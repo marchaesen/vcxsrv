@@ -305,6 +305,8 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
           sizeof(this->atomic_counter_offsets));
    this->allow_extension_directive_midshader =
       ctx->Const.AllowGLSLExtensionDirectiveMidShader;
+   this->allow_builtin_variable_redeclaration =
+      ctx->Const.AllowGLSLBuiltinVariableRedeclaration;
 
    this->cs_input_local_size_variable_specified = false;
 

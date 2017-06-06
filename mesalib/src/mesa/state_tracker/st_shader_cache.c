@@ -22,7 +22,7 @@
  */
 
 #include <stdio.h>
-
+#include "st_debug.h"
 #include "st_program.h"
 #include "st_shader_cache.h"
 #include "compiler/glsl/program.h"
@@ -225,8 +225,12 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
    if (prog->data->LinkStatus != linking_skipped)
       return false;
 
-   struct st_context *st = st_context(ctx);
    uint8_t *buffer = NULL;
+   if (ctx->_Shader->Flags & GLSL_CACHE_FALLBACK) {
+      goto fallback_recompile;
+   }
+
+   struct st_context *st = st_context(ctx);
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
          continue;
@@ -363,13 +367,17 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
          _mesa_associate_uniform_storage(ctx, prog, glprog->Parameters,
                                          false);
 
+         /* Create Gallium shaders now instead of on demand. */
+         if (ST_DEBUG & DEBUG_PRECOMPILE ||
+             st->shader_has_one_variant[glprog->info.stage])
+            st_precompile_shader_variant(st, glprog);
+
          free(buffer);
       } else {
          /* Failed to find a matching cached shader so fallback to recompile.
           */
          if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
-            fprintf(stderr, "TGSI cache item not found falling back to "
-                    "compile.\n");
+            fprintf(stderr, "TGSI cache item not found.\n");
          }
 
          goto fallback_recompile;
@@ -381,11 +389,14 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
 fallback_recompile:
    free(buffer);
 
+   if (ctx->_Shader->Flags & GLSL_CACHE_INFO)
+      fprintf(stderr, "TGSI cache falling back to recompile.\n");
+
    for (unsigned i = 0; i < prog->NumShaders; i++) {
       _mesa_glsl_compile_shader(ctx, prog->Shaders[i], false, false, true);
    }
 
-   prog->data->cache_fallback = true;
+   prog->data->skip_cache = true;
    _mesa_glsl_link_shader(ctx, prog);
 
    return true;

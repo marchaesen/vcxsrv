@@ -463,6 +463,9 @@ void st_init_limits(struct pipe_screen *screen,
 
    c->SparseBufferPageSize =
       screen->get_param(screen, PIPE_CAP_SPARSE_BUFFER_PAGE_SIZE);
+
+   c->AllowMappedBuffersDuringExecution =
+      screen->get_param(screen, PIPE_CAP_ALLOW_MAPPED_BUFFERS_DURING_EXECUTION);
 }
 
 
@@ -597,6 +600,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_occlusion_query2),             PIPE_CAP_OCCLUSION_QUERY                  },
       { o(ARB_pipeline_statistics_query),    PIPE_CAP_QUERY_PIPELINE_STATISTICS        },
       { o(ARB_point_sprite),                 PIPE_CAP_POINT_SPRITE                     },
+      { o(ARB_post_depth_coverage),          PIPE_CAP_POST_DEPTH_COVERAGE              },
       { o(ARB_query_buffer_object),          PIPE_CAP_QUERY_BUFFER_OBJECT              },
       { o(ARB_robust_buffer_access_behavior), PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR   },
       { o(ARB_sample_shading),               PIPE_CAP_SAMPLE_SHADING                   },
@@ -889,6 +893,8 @@ void st_init_extensions(struct pipe_screen *screen,
 
    consts->ForceGLSLAbsSqrt = options->force_glsl_abs_sqrt;
 
+   consts->AllowGLSLBuiltinVariableRedeclaration = options->allow_glsl_builtin_variable_redeclaration;
+
    consts->dri_config_options_sha1 = options->config_options_sha1;
 
    if (consts->GLSLVersion >= 400)
@@ -924,7 +930,6 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->OES_depth_texture_cube_map = GL_TRUE;
       extensions->ARB_shading_language_420pack = GL_TRUE;
       extensions->ARB_texture_query_levels = GL_TRUE;
-      extensions->ARB_shader_subroutine = GL_TRUE;
 
       if (!options->disable_shader_bit_encoding) {
          extensions->ARB_shader_bit_encoding = GL_TRUE;

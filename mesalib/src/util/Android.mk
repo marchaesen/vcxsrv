@@ -34,6 +34,7 @@ LOCAL_SRC_FILES := \
 	$(MESA_UTIL_FILES)
 
 LOCAL_C_INCLUDES := \
+	external/zlib \
 	$(MESA_TOP)/src/mesa \
 	$(MESA_TOP)/src/mapi \
 	$(MESA_TOP)/src/gallium/include \

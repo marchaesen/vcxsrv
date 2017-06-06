@@ -49,6 +49,7 @@ enum {
 	FAMILY_CZ,
 	FAMILY_PI,
 	FAMILY_AI,
+	FAMILY_RV,
 	FAMILY_LAST,
 };
 
@@ -184,5 +185,14 @@ enum {
 
 #define ASICREV_IS_VEGA10_P(eChipRev) \
    ((eChipRev) >= AI_VEGA10_P_A0 && (eChipRev) < AI_UNKNOWN)
+
+/* RV specific rev IDs */
+enum {
+   RAVEN_A0      = 0x01,
+   RAVEN_UNKNOWN = 0xFF
+};
+
+#define ASICREV_IS_RAVEN(eChipRev) \
+   ((eChipRev) >= RAVEN_A0 && (eChipRev) < RAVEN_UNKNOWN)
 
 #endif /* AMDGPU_ID_H */

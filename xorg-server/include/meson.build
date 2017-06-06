@@ -1,3 +1,10 @@
+version_split = meson.project_version().split('.')
+major = version_split[0].to_int()
+minor = version_split[1].to_int()
+patch = version_split[2].to_int()
+subpatch = version_split[3].to_int()
+
+release = major * 10000000 + minor * 100000 + patch * 1000 + subpatch
 
 dri_dep = dependency('dri', required: build_dri2 or build_dri3)
 
@@ -62,7 +69,7 @@ conf_data.set('CONFIG_WSCONS', host_machine.system() == 'openbsd')
 # that just uses whatever directory works?
 conf_data.set_quoted('SHMDIR', '/tmp')
 
-conf_data.set('XSHMFENCE', xshmfence_dep.found())
+conf_data.set('HAVE_XSHMFENCE', xshmfence_dep.found())
 conf_data.set('WITH_LIBDRM', libdrm_dep.found())
 conf_data.set('GLAMOR_HAS_DRM_NAME_FROM_FD_2',
               dependency('libdrm', version: '>= 2.4.74', required: false).found())
@@ -78,6 +85,7 @@ conf_data.set_quoted('PROJECTROOT', get_option('prefix'))
 conf_data.set_quoted('SYSCONFDIR', join_paths(get_option('prefix'), get_option('sysconfdir')))
 
 # XXX: Stopped enumerating at COMPILEDEFAULTFONTPATH
+conf_data.set('XORG_VERSION_CURRENT', release)
 
 conf_data.set('HASXDMAUTH', get_option('xdm-auth-1'))
 
@@ -190,23 +198,20 @@ conf_data.set_quoted('XVENDORNAME', get_option('vendor_name'))
 conf_data.set_quoted('XVENDORNAMESHORT', get_option('vendor_name_short'))
 conf_data.set_quoted('__VENDORDWEBSUPPORT__', get_option('vendor_web'))
 conf_data.set_quoted('OSVENDOR', get_option('os_vendor'))
+conf_data.set_quoted('BUILDERADDR', get_option('builder_addr'))
+conf_data.set_quoted('BUILDERSTRING', get_option('builder_string'))
 
 configure_file(output : 'dix-config.h',
                configuration : conf_data)
 
-version_split = meson.project_version().split('.')
-major = version_split[0].to_int()
-minor = version_split[1].to_int()
-patch = version_split[2].to_int()
-subpatch = version_split[3].to_int()
 
-release = major * 10000000 + minor * 100000 + patch * 1000 + subpatch
 
 version_data = configuration_data()
 version_data.set('VENDOR_RELEASE', '@0@'.format(release))
 version_data.set_quoted('VENDOR_NAME', get_option('vendor_name'))
 version_data.set_quoted('VENDOR_NAME_SHORT', get_option('vendor_name_short'))
 version_data.set_quoted('VENDOR_WEB', get_option('vendor_web'))
+version_data.set_quoted('VENDOR_MAN_VERSION', 'Version @0@.@1@.@2@'.format(major, minor, patch))
 configure_file(output : 'version-config.h',
                configuration : version_data)
 
@@ -268,6 +273,21 @@ endif
 configure_file(output : 'xorg-config.h',
                input : 'xorg-config.h.meson.in',
                configuration : xorg_data)
+
+xwin_data = configuration_data()
+xwin_data.set_quoted('DEFAULT_LOGDIR', log_dir)
+xwin_data.set('HAS_WINSOCK', host_machine.system() == 'windows', description: 'Use Windows sockets')
+xwin_data.set('HAS_DEVWINDOWS', host_machine.system() == 'cygwin', description: 'Has /dev/windows for signaling new win32 messages')
+xwin_data.set('RELOCATE_PROJECTROOT', host_machine.system() == 'windows', description: 'Make paths relative to the xserver installation location')
+# XXX: these three are all the same as DEBUG so we should just change to that
+enable_debugging = (get_option('buildtype') == 'debug') or (get_option('buildtype') == 'debugoptimized')
+xwin_data.set10('CYGDEBUG', enable_debugging)
+xwin_data.set10('CYGWINDOWING_DEBUG',enable_debugging)
+xwin_data.set10('CYGMULTIWINDOW_DEBUG', enable_debugging)
+
+configure_file(output : 'xwin-config.h',
+               input : 'xwin-config.h.meson.in',
+               configuration : xwin_data)
 
 if build_xorg
     install_data(

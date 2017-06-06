@@ -54,11 +54,13 @@ struct Gfx9ChipSettings
         // Asic/Generation name
         UINT_32 isArcticIsland      : 1;
         UINT_32 isVega10            : 1;
-        UINT_32 reserved0           : 30;
+        UINT_32 isRaven             : 1;
+        UINT_32 reserved0           : 29;
 
         // Display engine IP version name
         UINT_32 isDce12             : 1;
-        UINT_32 reserved1           : 31;
+        UINT_32 isDcn1              : 1;
+        UINT_32 reserved1           : 29;
 
         // Misc configuration bits
         UINT_32 metaBaseAlignFix    : 1;
@@ -201,7 +203,7 @@ protected:
 
         if (IsXor(swizzleMode))
         {
-            if (m_settings.isVega10)
+            if (m_settings.isVega10 || m_settings.isRaven)
             {
                 baseAlign = GetBlockSize(swizzleMode);
             }

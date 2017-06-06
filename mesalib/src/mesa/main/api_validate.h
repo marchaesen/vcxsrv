@@ -128,17 +128,4 @@ _mesa_validate_MultiDrawElementsIndirectCount(struct gl_context *ctx,
                                               GLsizei maxdrawcount,
                                               GLsizei stride);
 
-extern GLboolean
-_mesa_validate_DispatchCompute(struct gl_context *ctx,
-                               const GLuint *num_groups);
-
-extern GLboolean
-_mesa_validate_DispatchComputeIndirect(struct gl_context *ctx,
-                                       GLintptr indirect);
-
-extern GLboolean
-_mesa_validate_DispatchComputeGroupSizeARB(struct gl_context *ctx,
-                                           const GLuint *num_groups,
-                                           const GLuint *group_size);
-
 #endif

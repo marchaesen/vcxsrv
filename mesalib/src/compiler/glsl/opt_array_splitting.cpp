@@ -449,9 +449,20 @@ optimize_split_arrays(exec_list *instructions, bool linked)
       for (unsigned int i = 0; i < entry->size; i++) {
          const char *name = ralloc_asprintf(mem_ctx, "%s_%d",
                                             entry->var->name, i);
-
-         entry->components[i] =
+         ir_variable *new_var =
             new(entry->mem_ctx) ir_variable(subtype, name, ir_var_temporary);
+
+         /* Do not lose memory/format qualifiers when arrays of images are
+          * split.
+          */
+         new_var->data.memory_read_only = entry->var->data.memory_read_only;
+         new_var->data.memory_write_only = entry->var->data.memory_write_only;
+         new_var->data.memory_coherent = entry->var->data.memory_coherent;
+         new_var->data.memory_volatile = entry->var->data.memory_volatile;
+         new_var->data.memory_restrict = entry->var->data.memory_restrict;
+         new_var->data.image_format = entry->var->data.image_format;
+
+         entry->components[i] = new_var;
          entry->var->insert_before(entry->components[i]);
       }
 

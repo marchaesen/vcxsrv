@@ -63,13 +63,11 @@ _mesa_BeginTransformFeedback(GLenum mode);
 extern void GLAPIENTRY
 _mesa_EndTransformFeedback(void);
 
-extern void
-_mesa_bind_buffer_range_transform_feedback(struct gl_context *ctx,
-					   struct gl_transform_feedback_object *obj,
-					   GLuint index,
-					   struct gl_buffer_object *bufObj,
-					   GLintptr offset,
-					   GLsizeiptr size, bool dsa);
+extern bool
+_mesa_validate_buffer_range_xfb(struct gl_context *ctx,
+                                struct gl_transform_feedback_object *obj,
+                                GLuint index, struct gl_buffer_object *bufObj,
+                                GLintptr offset, GLsizeiptr size, bool dsa);
 
 extern void
 _mesa_bind_buffer_base_transform_feedback(struct gl_context *ctx,
@@ -148,6 +146,26 @@ _mesa_set_transform_feedback_binding(struct gl_context *ctx,
 
    if (bufObj != ctx->Shared->NullBufferObj)
       bufObj->UsageHistory |= USAGE_TRANSFORM_FEEDBACK_BUFFER;
+}
+
+static inline void
+_mesa_bind_buffer_range_xfb(struct gl_context *ctx,
+                            struct gl_transform_feedback_object *obj,
+                            GLuint index, struct gl_buffer_object *bufObj,
+                            GLintptr offset, GLsizeiptr size)
+{
+   /* Note: no need to FLUSH_VERTICES or flag NewTransformFeedback, because
+    * transform feedback buffers can't be changed while transform feedback is
+    * active.
+    */
+
+   /* The general binding point */
+   _mesa_reference_buffer_object(ctx,
+                                 &ctx->TransformFeedback.CurrentBuffer,
+                                 bufObj);
+
+   /* The per-attribute binding point */
+   _mesa_set_transform_feedback_binding(ctx, obj, index, bufObj, offset, size);
 }
 
 /*** GL_ARB_direct_state_access ***/

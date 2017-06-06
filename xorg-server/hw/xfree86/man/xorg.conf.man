@@ -1495,6 +1495,11 @@ option.
 .BI "Option \*qModeDebug\*q \*q" boolean \*q
 Enable printing of additional debugging information about modesetting to
 the server log.
+.TP 7
+.BI "Option \*qPreferCloneMode\*q \*q" boolean \*q
+If enabled, bring up monitors of a screen in clone mode instead of horizontal
+extended layout by default. (Defaults to off; the video driver can change the
+default value, but this option can always override it)
 .ig
 .TP 7
 This optional entry allows an IRQ number to be specified.

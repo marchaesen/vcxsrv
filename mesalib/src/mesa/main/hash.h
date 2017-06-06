@@ -33,7 +33,20 @@
 
 
 #include "glheader.h"
+#include "imports.h"
 
+
+/**
+ * The hash table data structure.
+ */
+struct _mesa_HashTable {
+   struct hash_table *ht;
+   GLuint MaxKey;                        /**< highest key inserted so far */
+   mtx_t Mutex;                          /**< mutual exclusion lock */
+   GLboolean InDeleteAll;                /**< Debug check */
+   /** Value that would be in the table for DELETED_KEY_VALUE. */
+   void *deleted_key_data;
+};
 
 extern struct _mesa_HashTable *_mesa_NewHashTable(void);
 
@@ -45,9 +58,34 @@ extern void _mesa_HashInsert(struct _mesa_HashTable *table, GLuint key, void *da
 
 extern void _mesa_HashRemove(struct _mesa_HashTable *table, GLuint key);
 
-extern void _mesa_HashLockMutex(struct _mesa_HashTable *table);
+/**
+ * Lock the hash table mutex.
+ *
+ * This function should be used when multiple objects need
+ * to be looked up in the hash table, to avoid having to lock
+ * and unlock the mutex each time.
+ *
+ * \param table the hash table.
+ */
+static inline void
+_mesa_HashLockMutex(struct _mesa_HashTable *table)
+{
+   assert(table);
+   mtx_lock(&table->Mutex);
+}
 
-extern void _mesa_HashUnlockMutex(struct _mesa_HashTable *table);
+
+/**
+ * Unlock the hash table mutex.
+ *
+ * \param table the hash table.
+ */
+static inline void
+_mesa_HashUnlockMutex(struct _mesa_HashTable *table)
+{
+   assert(table);
+   mtx_unlock(&table->Mutex);
+}
 
 extern void *_mesa_HashLookupLocked(struct _mesa_HashTable *table, GLuint key);
 

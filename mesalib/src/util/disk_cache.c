@@ -161,7 +161,8 @@ concatenate_and_mkdir(void *ctx, const char *path, const char *name)
 }
 
 struct disk_cache *
-disk_cache_create(const char *gpu_name, const char *timestamp)
+disk_cache_create(const char *gpu_name, const char *timestamp,
+                  uint64_t driver_flags)
 {
    void *local;
    struct disk_cache *cache = NULL;
@@ -356,6 +357,9 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
    size_t ptr_size_size = sizeof(ptr_size);
    cache->driver_keys_blob_size += ptr_size_size;
 
+   size_t driver_flags_size = sizeof(driver_flags);
+   cache->driver_keys_blob_size += driver_flags_size;
+
    cache->driver_keys_blob =
       ralloc_size(cache, cache->driver_keys_blob_size);
    if (!cache->driver_keys_blob)
@@ -365,6 +369,8 @@ disk_cache_create(const char *gpu_name, const char *timestamp)
    memcpy(cache->driver_keys_blob + ts_size, gpu_name, gpu_name_size);
    memcpy(cache->driver_keys_blob + ts_size + gpu_name_size, &ptr_size,
           ptr_size_size);
+   memcpy(cache->driver_keys_blob + ts_size + gpu_name_size + ptr_size_size,
+          &driver_flags, driver_flags_size);
 
    /* Seed our rand function */
    s_rand_xorshift128plus(cache->seed_xorshift128plus, true);

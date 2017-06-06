@@ -1238,12 +1238,14 @@ link_assign_uniform_storage(struct gl_context *ctx,
                                      prog->data->UniformStorage, data);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (prog->_LinkedShaders[i] == NULL)
+      struct gl_linked_shader *shader = prog->_LinkedShaders[i];
+
+      if (!shader)
          continue;
 
       parcel.start_shader((gl_shader_stage)i);
 
-      foreach_in_list(ir_instruction, node, prog->_LinkedShaders[i]->ir) {
+      foreach_in_list(ir_instruction, node, shader->ir) {
          ir_variable *const var = node->as_variable();
 
          if ((var == NULL) || (var->data.mode != ir_var_uniform &&
@@ -1253,15 +1255,14 @@ link_assign_uniform_storage(struct gl_context *ctx,
          parcel.set_and_process(var);
       }
 
-      prog->_LinkedShaders[i]->Program->SamplersUsed =
-         parcel.shader_samplers_used;
-      prog->_LinkedShaders[i]->shadow_samplers = parcel.shader_shadow_samplers;
+      shader->Program->SamplersUsed = parcel.shader_samplers_used;
+      shader->shadow_samplers = parcel.shader_shadow_samplers;
 
-      STATIC_ASSERT(sizeof(prog->_LinkedShaders[i]->Program->sh.SamplerTargets) ==
+      STATIC_ASSERT(sizeof(shader->Program->sh.SamplerTargets) ==
                     sizeof(parcel.targets));
-      memcpy(prog->_LinkedShaders[i]->Program->sh.SamplerTargets,
+      memcpy(shader->Program->sh.SamplerTargets,
              parcel.targets,
-             sizeof(prog->_LinkedShaders[i]->Program->sh.SamplerTargets));
+             sizeof(shader->Program->sh.SamplerTargets));
    }
 
    /* If this is a fallback compile for a cache miss we already have the

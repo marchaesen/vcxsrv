@@ -1829,11 +1829,15 @@ _glcpp_parser_expand_node(glcpp_parser_t *parser, token_node_t *node,
 
    /* Special handling for __LINE__ and __FILE__, (not through
     * the hash table). */
-   if (strcmp(identifier, "__LINE__") == 0)
-      return _token_list_create_with_one_integer(parser, node->token->location.first_line);
+   if (*identifier == '_') {
+      if (strcmp(identifier, "__LINE__") == 0)
+         return _token_list_create_with_one_integer(parser,
+                                                    node->token->location.first_line);
 
-   if (strcmp(identifier, "__FILE__") == 0)
-      return _token_list_create_with_one_integer(parser, node->token->location.source);
+      if (strcmp(identifier, "__FILE__") == 0)
+         return _token_list_create_with_one_integer(parser,
+                                                    node->token->location.source);
+   }
 
    /* Look up this identifier in the hash table. */
    entry = _mesa_hash_table_search(parser->defines, identifier);

@@ -467,6 +467,8 @@ partial alphanumeric_keys
 xkb_symbols "eng" {
     include "us(basic)"
     name[Group1] = "English (Canada)";
+
+    key <LSGT>  { [ backslash, bar, VoidSymbol, VoidSymbol ] };
 };
 
 // EXTRAS:

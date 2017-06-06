@@ -253,14 +253,13 @@ _mesa_WindowRectanglesEXT(GLenum mode, GLsizei count, const GLint *box)
       box += 4;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_SCISSOR);
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewWindowRectangles;
+
    memcpy(ctx->Scissor.WindowRects, newval,
           sizeof(struct gl_scissor_rect) * count);
    ctx->Scissor.NumWindowRects = count;
    ctx->Scissor.WindowRectMode = mode;
-
-   if (ctx->Driver.Scissor)
-      ctx->Driver.Scissor(ctx);
 }
 
 

@@ -80,9 +80,18 @@ GLboolean
 _mesa_is_image_unit_valid(struct gl_context *ctx, struct gl_image_unit *u);
 
 void GLAPIENTRY
+_mesa_BindImageTexture_no_error(GLuint unit, GLuint texture, GLint level,
+                                GLboolean layered, GLint layer, GLenum access,
+                                GLenum format);
+
+void GLAPIENTRY
 _mesa_BindImageTexture(GLuint unit, GLuint texture, GLint level,
                        GLboolean layered, GLint layer, GLenum access,
                        GLenum format);
+
+void GLAPIENTRY
+_mesa_BindImageTextures_no_error(GLuint first, GLsizei count,
+                                 const GLuint *textures);
 
 void GLAPIENTRY
 _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures);

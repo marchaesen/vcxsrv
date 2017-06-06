@@ -62,6 +62,13 @@ struct u_upload_mgr *
 u_upload_create_default(struct pipe_context *pipe);
 
 /**
+ * Create an uploader with identical parameters as another one, but using
+ * the given pipe_context instead.
+ */
+struct u_upload_mgr *
+u_upload_clone(struct pipe_context *pipe, struct u_upload_mgr *upload);
+
+/**
  * Destroy the upload manager.
  */
 void u_upload_destroy( struct u_upload_mgr *upload );

@@ -17,6 +17,10 @@ Application bugs worked around in this file:
   an #extension directive in the middle of its shaders, which is illegal
   in GLSL.
 
+* Dying Light and Dead Island Definitive Edition redeclare vertex shader
+  built-ins (specifically gl_VertexID), which causes the vertex shaders to fail
+  to compile.
+
 TODO: document the other workarounds.
 
 -->
@@ -81,8 +85,19 @@ TODO: document the other workarounds.
             <option name="always_have_depth_buffer" value="true" />
         </application>
 
-        <application name="Dead Island" executable="DeadIslandGame">
+        <application name="Dead Island (incl. Definitive Edition)" executable="DeadIslandGame">
             <option name="allow_glsl_extension_directive_midshader" value="true" />
+
+            <!-- For the Definitive Edition which shares the same executable name -->
+            <option name="allow_glsl_builtin_variable_redeclaration" value="true" />
+        </application>
+
+        <application name="Dead Island Riptide Definitive Edition" executable="DeadIslandRiptideGame">
+            <option name="allow_glsl_builtin_variable_redeclaration" value="true" />
+        </application>
+
+        <application name="Dying Light" executable="DyingLightGame">
+            <option name="allow_glsl_builtin_variable_redeclaration" value="true" />
         </application>
 
         <application name="Second Life" executable="do-not-directly-run-secondlife-bin">

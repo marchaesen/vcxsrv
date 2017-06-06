@@ -816,7 +816,7 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 	struct amdgpu_cs_request request;
 	uint32_t pad_word = 0xffff1000U;
 
-	if (radv_amdgpu_winsys(ws)->family == FAMILY_SI)
+	if (radv_amdgpu_winsys(ws)->info.chip_class == SI)
 		pad_word = 0x80000000;
 
 	assert(cs_count);

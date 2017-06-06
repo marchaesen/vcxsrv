@@ -50,6 +50,8 @@ execution.  These are generally used for debugging.
     The filenames will be "shader_X.vert" or "shader_X.frag" where X
     the shader ID.
 <li><b>cache_info</b> - print debug information about shader cache
+<li><b>cache_fb</b> - force cached shaders to be ignored and do a full
+    recompile via the fallback path</li>
 <li><b>uniform</b> - print message to stdout when glUniform is called
 <li><b>nopvert</b> - force vertex shaders to be a simple shader that just transforms
     the vertex position with ftransform() and passes through the color and

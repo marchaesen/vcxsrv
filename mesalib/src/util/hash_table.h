@@ -105,7 +105,8 @@ static inline uint32_t _mesa_key_hash_string(const void *key)
 
 static inline uint32_t _mesa_hash_pointer(const void *pointer)
 {
-   return _mesa_hash_data(&pointer, sizeof(pointer));
+   uintptr_t num = (uintptr_t) pointer;
+   return (uint32_t) ((num >> 2) ^ (num >> 6) ^ (num >> 10) ^ (num >> 14));
 }
 
 enum {

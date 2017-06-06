@@ -334,7 +334,7 @@ compile_setupinst(struct st_translate *t,
       src[1] = t->samplers[r];
       /* the texture target is still unknown, it will be fixed in the draw call */
       ureg_tex_insn(t->ureg, TGSI_OPCODE_TEX, dst, 1, TGSI_TEXTURE_2D,
-                    NULL, 0, src, 2);
+                    TGSI_RETURN_TYPE_FLOAT, NULL, 0, src, 2);
    } else if (texinst->Opcode == ATI_FRAGMENT_SHADER_PASS_OP) {
       ureg_insn(t->ureg, TGSI_OPCODE_MOV, dst, 1, src, 1);
    }

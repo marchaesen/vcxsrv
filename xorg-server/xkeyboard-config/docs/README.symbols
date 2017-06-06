@@ -38,8 +38,7 @@ group names in the symbols file.
 
 If the layout is country-based, the group name has to be the full name of
 the country.  It is highly discouraged to use forms like "Republic of XXX"
-or "XXX Republic" -- the form "XXX" should be used instead.  The only
-exception is "United Kingdom".
+or "XXX Republic" -- the form "XXX" should be used instead.
 
 If the layout is language-based, the group name has to be the name of the
 language.

@@ -919,7 +919,7 @@ SyncCreate(ClientPtr client, XID id, unsigned char type)
 int
 SyncCreateFenceFromFD(ClientPtr client, DrawablePtr pDraw, XID id, int fd, BOOL initially_triggered)
 {
-#if HAVE_XSHMFENCE
+#ifdef HAVE_XSHMFENCE
     SyncFence  *pFence;
     int         status;
 
@@ -945,7 +945,7 @@ SyncCreateFenceFromFD(ClientPtr client, DrawablePtr pDraw, XID id, int fd, BOOL 
 int
 SyncFDFromFence(ClientPtr client, DrawablePtr pDraw, SyncFence *pFence)
 {
-#if HAVE_XSHMFENCE
+#ifdef HAVE_XSHMFENCE
     return miSyncFDFromFence(pDraw, pFence);
 #else
     return BadImplementation;

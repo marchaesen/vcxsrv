@@ -28,11 +28,6 @@
 #include <string.h>
 #include <stdint.h>
 
-/* Android defines SIZE_MAX in limits.h, instead of the standard stdint.h */
-#ifdef ANDROID
-#include <limits.h>
-#endif
-
 /* Some versions of MinGW are missing _vscprintf's declaration, although they
  * still provide the symbol in the import library. */
 #ifdef __MINGW32__
@@ -405,12 +400,7 @@ ralloc_strcat(char **dest, const char *str)
 bool
 ralloc_strncat(char **dest, const char *str, size_t n)
 {
-   /* Clamp n to the string length */
-   size_t str_length = strlen(str);
-   if (str_length < n)
-      n = str_length;
-
-   return cat(dest, str, n);
+   return cat(dest, str, strnlen(str, n));
 }
 
 char *

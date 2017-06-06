@@ -279,14 +279,12 @@ calculate_derived_texenv( struct gl_tex_env_combine_state *state,
 }
 
 
-
-
 /* GL_ARB_multitexture */
-void GLAPIENTRY
-_mesa_ActiveTexture(GLenum texture)
+static ALWAYS_INLINE void
+active_texture(GLenum texture, bool no_error)
 {
    const GLuint texUnit = texture - GL_TEXTURE0;
-   GLuint k;
+
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
@@ -296,14 +294,16 @@ _mesa_ActiveTexture(GLenum texture)
    if (ctx->Texture.CurrentUnit == texUnit)
       return;
 
-   k = _mesa_max_tex_unit(ctx);
+   if (!no_error) {
+      GLuint k = _mesa_max_tex_unit(ctx);
 
-   assert(k <= ARRAY_SIZE(ctx->Texture.Unit));
+      assert(k <= ARRAY_SIZE(ctx->Texture.Unit));
 
-   if (texUnit >= k) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glActiveTexture(texture=%s)",
-                  _mesa_enum_to_string(texture));
-      return;
+      if (texUnit >= k) {
+         _mesa_error(ctx, GL_INVALID_ENUM, "glActiveTexture(texture=%s)",
+                     _mesa_enum_to_string(texture));
+         return;
+      }
    }
 
    FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
@@ -313,6 +313,20 @@ _mesa_ActiveTexture(GLenum texture)
       /* update current stack pointer */
       ctx->CurrentStack = &ctx->TextureMatrixStack[texUnit];
    }
+}
+
+
+void GLAPIENTRY
+_mesa_ActiveTexture_no_error(GLenum texture)
+{
+   active_texture(texture, true);
+}
+
+
+void GLAPIENTRY
+_mesa_ActiveTexture(GLenum texture)
+{
+   active_texture(texture, false);
 }
 
 

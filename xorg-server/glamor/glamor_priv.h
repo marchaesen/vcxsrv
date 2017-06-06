@@ -281,10 +281,7 @@ typedef struct glamor_screen_private {
     int linear_max_nstops;
     int radial_max_nstops;
 
-    int screen_fbo;
     struct glamor_saved_procs saved_procs;
-    char delayed_fallback_string[GLAMOR_DELAYED_STRING_MAX + 1];
-    int delayed_fallback_pending;
     int flags;
     ScreenPtr screen;
     int dri3_enabled;

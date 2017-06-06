@@ -75,7 +75,8 @@ xkb_symbols "bksl" {
     include "sk(basic)"
     name[Group1] = "Slovak (extended backslash)";
 
-    key <BKSL>  { [ backslash,        bar,        slash,     NoSymbol ] };
+    key <BKSL>  { [ backslash,        bar,        slash,     parenright ] };
+    key <LSGT>  { [ backslash,  parenleft,        slash,     NoSymbol ] };
 };
 
 partial alphanumeric_keys
@@ -99,7 +100,8 @@ xkb_symbols "qwerty_bksl" {
     include "sk(qwerty)"
     name[Group1] = "Slovak (QWERTY, extended backslash)";
 
-    key <BKSL>  { [ backslash,        bar,        slash,     NoSymbol ] };
+    key <BKSL>  { [ backslash,        bar,        slash,     parenright ] };
+    key <LSGT>  { [ backslash,  parenleft,        slash,     NoSymbol ] };
 };
 
 // EXTRAS:

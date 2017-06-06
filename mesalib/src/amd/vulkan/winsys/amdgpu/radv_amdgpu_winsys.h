@@ -29,6 +29,7 @@
 #define RADV_AMDGPU_WINSYS_H
 
 #include "radv_radeon_winsys.h"
+#include "ac_gpu_info.h"
 #include "addrlib/addrinterface.h"
 #include <amdgpu.h>
 #include "util/list.h"
@@ -40,9 +41,6 @@ struct radv_amdgpu_winsys {
 	struct radeon_info info;
 	struct amdgpu_gpu_info amdinfo;
 	ADDR_HANDLE addrlib;
-
-	uint32_t rev_id;
-	unsigned family;
 
 	bool debug_all_bos;
 	pthread_mutex_t global_bo_list_lock;

@@ -193,8 +193,7 @@ void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
 
       if (new_state & _NEW_SCISSOR)
          st->dirty |= ST_NEW_RASTERIZER |
-                      ST_NEW_SCISSOR |
-                      ST_NEW_WINDOW_RECTANGLES;
+                      ST_NEW_SCISSOR;
 
       if (new_state & _NEW_FOG)
          st->dirty |= ST_NEW_FS_STATE;
@@ -514,6 +513,7 @@ static void st_init_driver_flags(struct gl_driver_flags *f)
    f->NewAtomicBuffer = ST_NEW_ATOMIC_BUFFER;
    f->NewShaderStorageBuffer = ST_NEW_STORAGE_BUFFER;
    f->NewImageUnits = ST_NEW_IMAGE_UNITS;
+   f->NewWindowRectangles = ST_NEW_WINDOW_RECTANGLES;
 }
 
 struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,

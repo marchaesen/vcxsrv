@@ -29,8 +29,6 @@
 #ifndef __GLAMOR_DEBUG_H__
 #define __GLAMOR_DEBUG_H__
 
-#define GLAMOR_DELAYED_STRING_MAX 64
-
 #define GLAMOR_DEBUG_NONE                     0
 #define GLAMOR_DEBUG_UNIMPL                   0
 #define GLAMOR_DEBUG_FALLBACK                 1
@@ -71,33 +69,6 @@ AbortServer(void)
       __debug_output_message(_format_,			\
 			     "Glamor fallback",		\
 			     ##__VA_ARGS__);} while(0)
-
-#define glamor_delayed_fallback(_screen_, _format_,...)			\
-  do {									\
-    if (glamor_debug_level >= GLAMOR_DEBUG_FALLBACK)  {			\
-      glamor_screen_private *_glamor_priv_;				\
-      _glamor_priv_ = glamor_get_screen_private(_screen_);		\
-      _glamor_priv_->delayed_fallback_pending = 1;			\
-      snprintf(_glamor_priv_->delayed_fallback_string,			\
-	       GLAMOR_DELAYED_STRING_MAX,				\
-	       "glamor delayed fallback: \t%s " _format_ ,		\
-               __FUNCTION__, ##__VA_ARGS__); } } while(0)
-
-#define glamor_clear_delayed_fallbacks(_screen_)			\
-  do {									\
-    if (glamor_debug_level >= GLAMOR_DEBUG_FALLBACK) {			\
-      glamor_screen_private *_glamor_priv_;				\
-	_glamor_priv_ = glamor_get_screen_private(_screen_);		\
-      _glamor_priv_->delayed_fallback_pending = 0;  } } while(0)
-
-#define glamor_report_delayed_fallbacks(_screen_)			\
-  do {									\
-    if (glamor_debug_level >= GLAMOR_DEBUG_FALLBACK) {			\
-      glamor_screen_private *_glamor_priv_;				\
-      _glamor_priv_ = glamor_get_screen_private(_screen_);		\
-      LogMessageVerb(X_INFO, 0, "%s",					\
-		     _glamor_priv_->delayed_fallback_string);		\
-      _glamor_priv_->delayed_fallback_pending = 0;  } } while(0)
 
 #define DEBUGF(str, ...)  do {} while(0)
 //#define DEBUGF(str, ...) ErrorF(str, ##__VA_ARGS__)

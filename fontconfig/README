@@ -1,11 +1,38 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.12.1
-                              2016-08-05
+                            Version 2.12.3
+                              2017-05-31
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.12.3
+
+Akira TAGOH (1):
+      Fix make check fail with freetype-2.7.1 and 2.8 with PCF_CONFIG_OPTION_LONG_FAMILY_NAMES enabled.
+
+2.12.2
+
+Akira TAGOH (8):
+      Don't call perror() if no changes happens in errno
+      Fix FcCacheOffsetsValid()
+      Fix the build issue with gperf 3.1
+      Fix the build issue on GNU/Hurd
+      Update a bit for the changes in FreeType 2.7.1
+      Add the description of FC_LANG envvar to the doc
+      Bug 101202 - fontconfig FTBFS if docbook-utils is installed
+      Update libtool revision
+
+Alan Coopersmith (1):
+      Correct cache version info in doc/fontconfig-user.sgml
+
+Khem Raj (1):
+      Avoid conflicts with integer width macros from TS 18661-1:2014
+
+Masamichi Hosoda (2):
+      Fix PostScript font alias name
+      Update aliases for URW June 2016
 
 2.12.1
 

@@ -469,10 +469,12 @@ static OptionInfoRec xf86OutputOptions[] = {
 
 enum {
     OPTION_MODEDEBUG,
+    OPTION_PREFER_CLONEMODE,
 };
 
 static OptionInfoRec xf86DeviceOptions[] = {
     {OPTION_MODEDEBUG, "ModeDebug", OPTV_BOOLEAN, {0}, FALSE},
+    {OPTION_PREFER_CLONEMODE, "PreferCloneMode", OPTV_BOOLEAN, {0}, FALSE},
     {-1, NULL, OPTV_NONE, {0}, FALSE},
 };
 
@@ -2134,6 +2136,8 @@ xf86TargetRightOf(ScrnInfoPtr scrn, xf86CrtcConfigPtr config,
     Bool has_tile = FALSE;
     uint32_t configured_outputs;
 
+    xf86GetOptValBool(config->options, OPTION_PREFER_CLONEMODE,
+                      &scrn->preferClone);
     if (scrn->preferClone)
         return FALSE;
 

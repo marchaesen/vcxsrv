@@ -25,6 +25,7 @@
 #if defined(__linux__)
 #include <sys/file.h>
 #include <unistd.h>
+#include <fcntl.h>
 #else
 #include <time.h>
 #endif

@@ -492,7 +492,11 @@ void ir_print_visitor::visit(ir_constant *ir)
             else
                fprintf(f, "%f", ir->value.f[i]);
             break;
-	 case GLSL_TYPE_UINT64:fprintf(f, "%" PRIu64, ir->value.u64[i]); break;
+	 case GLSL_TYPE_SAMPLER:
+	 case GLSL_TYPE_IMAGE:
+	 case GLSL_TYPE_UINT64:
+            fprintf(f, "%" PRIu64, ir->value.u64[i]);
+            break;
 	 case GLSL_TYPE_INT64: fprintf(f, "%" PRIi64, ir->value.i64[i]); break;
 	 case GLSL_TYPE_BOOL:  fprintf(f, "%d", ir->value.b[i]); break;
 	 case GLSL_TYPE_DOUBLE:

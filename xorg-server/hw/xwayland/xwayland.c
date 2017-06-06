@@ -1013,8 +1013,9 @@ InitOutput(ScreenInfo * screen_info, int argc, char **argv)
     screen_info->bitmapBitOrder = BITMAP_BIT_ORDER;
     screen_info->numPixmapFormats = ARRAY_SIZE(depths);
 
-    LoadExtensionList(xwayland_extensions,
-                      ARRAY_SIZE(xwayland_extensions), FALSE);
+    if (serverGeneration == 1)
+        LoadExtensionList(xwayland_extensions,
+                          ARRAY_SIZE(xwayland_extensions), FALSE);
 
     /* Cast away warning from missing printf annotation for
      * wl_log_func_t.  Wayland 1.5 will have the annotation, so we can

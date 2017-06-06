@@ -54,7 +54,7 @@
       <param name="buffers" type="GLuint *" />
    </function>
 
-   <function name="NamedBufferStorage">
+   <function name="NamedBufferStorage" no_error="true">
       <param name="buffer" type="GLuint" />
       <param name="size" type="GLsizeiptr" />
       <param name="data" type="const GLvoid *" />
@@ -68,7 +68,7 @@
       <param name="usage" type="GLenum" />
    </function>
 
-   <function name="NamedBufferSubData">
+   <function name="NamedBufferSubData" no_error="true">
       <param name="buffer" type="GLuint" />
       <param name="offset" type="GLintptr" />
       <param name="size" type="GLsizeiptr" />
@@ -171,14 +171,14 @@
       <param name="param" type="GLint" />
    </function>
 
-   <function name="NamedFramebufferTexture">
+   <function name="NamedFramebufferTexture" no_error="true">
       <param name="framebuffer" type="GLuint" />
       <param name="attachment" type="GLenum" />
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
    </function>
 
-   <function name="NamedFramebufferTextureLayer">
+   <function name="NamedFramebufferTextureLayer" no_error="true">
       <param name="framebuffer" type="GLuint" />
       <param name="attachment" type="GLenum" />
       <param name="texture" type="GLuint" />
@@ -410,7 +410,7 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureSubImage1D">
+   <function name="CompressedTextureSubImage1D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -420,7 +420,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureSubImage2D">
+   <function name="CompressedTextureSubImage2D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -432,7 +432,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureSubImage3D">
+   <function name="CompressedTextureSubImage3D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -599,7 +599,7 @@
       <param name="buffer" type="GLuint" />
    </function>
 
-   <function name="VertexArrayVertexBuffer">
+   <function name="VertexArrayVertexBuffer" no_error="true">
       <param name="vaobj" type="GLuint" />
       <param name="bindingindex" type="GLuint" />
       <param name="buffer" type="GLuint" />

@@ -127,6 +127,8 @@ _mesa_LinkProgram(GLuint programObj);
 extern void GLAPIENTRY
 _mesa_ShaderSource(GLuint, GLsizei, const GLchar* const *, const GLint *);
 
+void GLAPIENTRY
+_mesa_UseProgram_no_error(GLuint);
 extern void GLAPIENTRY
 _mesa_UseProgram(GLuint);
 

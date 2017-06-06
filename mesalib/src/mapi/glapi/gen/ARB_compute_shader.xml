@@ -26,13 +26,13 @@
   <enum name="DISPATCH_INDIRECT_BUFFER_BINDING"                value="0x90EF"/>
   <enum name="COMPUTE_SHADER_BIT"                              value="0x00000020"/>
 
-  <function name="DispatchCompute" es2="3.1">
+  <function name="DispatchCompute" es2="3.1" no_error="true">
     <param name="num_groups_x" type="GLuint"/>
     <param name="num_groups_y" type="GLuint"/>
     <param name="num_groups_z" type="GLuint"/>
   </function>
 
-  <function name="DispatchComputeIndirect" es2="3.1">
+  <function name="DispatchComputeIndirect" es2="3.1" no_error="true">
     <param name="indirect" type="GLintptr"/>
   </function>
 </category>

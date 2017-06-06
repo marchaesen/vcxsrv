@@ -200,10 +200,10 @@ See the <a href="xlibdriver.html">Xlib software driver page</a> for details.
    <li>tes - dump shader assembly for tessellation evaluation shaders</li>
    <li>tex - emit messages about textures.</li>
    <li>urb - emit messages about URB setup</li>
-   <li>vec4 - force vec4 mode in vertex shader</li>
    <li>vert - emit messages about vertex assembly</li>
    <li>vs - dump shader assembly for vertex shaders</li>
 </ul>
+<li>INTEL_SCALAR_VS (or TCS, TES, GS) - force scalar/vec4 mode for a shader stage (Gen8-9 only)</li>
 <li>INTEL_PRECISE_TRIG - if set to 1, true or yes, then the driver prefers
    accuracy over performance in trig functions.</li>
 </ul>
@@ -304,6 +304,8 @@ See src/mesa/state_tracker/st_debug.c for other options.
 (will often result in incorrect rendering).
 <li>SVGA_DEBUG - for dumping shaders, constant buffers, etc.  See the code
 for details.
+<li>SVGA_EXTRA_LOGGING - if set, enables extra logging to the vmware.log file,
+such as the OpenGL program's name and command line arguments.
 <li>See the driver code for other, lesser-used variables.
 </ul>
 

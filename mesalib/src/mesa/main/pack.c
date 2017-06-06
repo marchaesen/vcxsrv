@@ -460,8 +460,7 @@ extract_uint_indexes(GLuint n, GLuint indexes[],
          break;
 
       default:
-         _mesa_problem(NULL, "bad srcType in extract_uint_indexes");
-         return;
+         unreachable("bad srcType in extract_uint_indexes");
    }
 }
 
@@ -585,7 +584,7 @@ _mesa_unpack_stencil_span( struct gl_context *ctx, GLuint n,
             }
             break;
          default:
-            _mesa_problem(ctx, "bad dstType in _mesa_unpack_stencil_span");
+            unreachable("bad dstType in _mesa_unpack_stencil_span");
       }
 
       free(indexes);
@@ -732,7 +731,7 @@ _mesa_pack_stencil_span( struct gl_context *ctx, GLuint n,
       }
       break;
    default:
-      _mesa_problem(ctx, "bad type in _mesa_pack_index_span");
+      unreachable("bad type in _mesa_pack_index_span");
    }
 
    free(stencil);
@@ -1123,8 +1122,7 @@ _mesa_pack_depth_span( struct gl_context *ctx, GLuint n, GLvoid *dest,
       }
       break;
    default:
-      _mesa_problem(ctx, "bad type in _mesa_pack_depth_span (%s)",
-                    _mesa_enum_to_string(dstType));
+      unreachable("bad type in _mesa_pack_depth_span()");
    }
 
    free(depthCopy);

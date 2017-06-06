@@ -633,14 +633,46 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 		     unsigned inst_offset,
 		     unsigned glc,
 		     unsigned slc,
-		     bool readonly_memory)
+		     bool can_speculate,
+		     bool allow_smem)
 {
+	LLVMValueRef offset = LLVMConstInt(ctx->i32, inst_offset, 0);
+	if (voffset)
+		offset = LLVMBuildAdd(ctx->builder, offset, voffset, "");
+	if (soffset)
+		offset = LLVMBuildAdd(ctx->builder, offset, soffset, "");
+
+	/* TODO: VI and later generations can use SMEM with GLC=1.*/
+	if (allow_smem && !glc && !slc) {
+		assert(vindex == NULL);
+
+		LLVMValueRef result[4];
+
+		for (int i = 0; i < num_channels; i++) {
+			if (i) {
+				offset = LLVMBuildAdd(ctx->builder, offset,
+						      LLVMConstInt(ctx->i32, 4, 0), "");
+			}
+			LLVMValueRef args[2] = {rsrc, offset};
+			result[i] = ac_build_intrinsic(ctx, "llvm.SI.load.const.v4i32",
+						       ctx->f32, args, 2,
+						       AC_FUNC_ATTR_READNONE |
+						       AC_FUNC_ATTR_LEGACY);
+		}
+		if (num_channels == 1)
+			return result[0];
+
+		if (num_channels == 3)
+			result[num_channels++] = LLVMGetUndef(ctx->f32);
+		return ac_build_gather_values(ctx, result, num_channels);
+	}
+
 	unsigned func = CLAMP(num_channels, 1, 3) - 1;
 
 	LLVMValueRef args[] = {
 		LLVMBuildBitCast(ctx->builder, rsrc, ctx->v4i32, ""),
 		vindex ? vindex : LLVMConstInt(ctx->i32, 0, 0),
-		LLVMConstInt(ctx->i32, inst_offset, 0),
+		offset,
 		LLVMConstInt(ctx->i1, glc, 0),
 		LLVMConstInt(ctx->i1, slc, 0)
 	};
@@ -650,16 +682,6 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 	const char *type_names[] = {"f32", "v2f32", "v4f32"};
 	char name[256];
 
-	if (voffset) {
-		args[2] = LLVMBuildAdd(ctx->builder, args[2], voffset,
-				"");
-	}
-
-	if (soffset) {
-		args[2] = LLVMBuildAdd(ctx->builder, args[2], soffset,
-				"");
-	}
-
 	snprintf(name, sizeof(name), "llvm.amdgcn.buffer.load.%s",
 		 type_names[func]);
 
@@ -667,7 +689,7 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 				  ARRAY_SIZE(args),
 				  /* READNONE means writes can't affect it, while
 				   * READONLY means that writes can affect it. */
-				  readonly_memory && HAVE_LLVM >= 0x0400 ?
+				  can_speculate && HAVE_LLVM >= 0x0400 ?
 					  AC_FUNC_ATTR_READNONE :
 					  AC_FUNC_ATTR_READONLY);
 }
@@ -676,7 +698,7 @@ LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
 					 LLVMValueRef rsrc,
 					 LLVMValueRef vindex,
 					 LLVMValueRef voffset,
-					 bool readonly_memory)
+					 bool can_speculate)
 {
 	LLVMValueRef args [] = {
 		LLVMBuildBitCast(ctx->builder, rsrc, ctx->v4i32, ""),
@@ -691,7 +713,7 @@ LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
 				  ctx->v4f32, args, ARRAY_SIZE(args),
 				  /* READNONE means writes can't affect it, while
 				   * READONLY means that writes can affect it. */
-				  readonly_memory && HAVE_LLVM >= 0x0400 ?
+				  can_speculate && HAVE_LLVM >= 0x0400 ?
 					  AC_FUNC_ATTR_READNONE :
 					  AC_FUNC_ATTR_READONLY);
 }

@@ -15,6 +15,7 @@
   thinkpad	=	thinkpad(intl)
   thinkpad60	=	thinkpad(60)
   thinkpadz60	=	thinkpad(60)
+  apex300	=	steelseries(apex300)
  $tmgeometries	=	typematrix(%m)
   winbook	=	winbook(XP5)
   pc98		=	nec(pc98)

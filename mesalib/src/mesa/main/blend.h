@@ -50,9 +50,15 @@ _mesa_BlendFuncSeparate( GLenum sfactorRGB, GLenum dfactorRGB,
 
 
 extern void GLAPIENTRY
+_mesa_BlendFunciARB_no_error(GLuint buf, GLenum sfactor, GLenum dfactor);
+extern void GLAPIENTRY
 _mesa_BlendFunciARB(GLuint buf, GLenum sfactor, GLenum dfactor);
 
 
+extern void GLAPIENTRY
+_mesa_BlendFuncSeparateiARB_no_error(GLuint buf, GLenum sfactorRGB,
+                                     GLenum dfactorRGB, GLenum sfactorA,
+                                     GLenum dfactorA);
 extern void GLAPIENTRY
 _mesa_BlendFuncSeparateiARB(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB,
                          GLenum sfactorA, GLenum dfactorA);
@@ -70,6 +76,9 @@ extern void GLAPIENTRY
 _mesa_BlendEquationSeparate( GLenum modeRGB, GLenum modeA );
 
 
+extern void GLAPIENTRY
+_mesa_BlendEquationSeparateiARB_no_error(GLuint buf, GLenum modeRGB,
+                                         GLenum modeA);
 extern void GLAPIENTRY
 _mesa_BlendEquationSeparateiARB(GLuint buf, GLenum modeRGB, GLenum modeA);
 

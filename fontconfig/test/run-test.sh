@@ -29,6 +29,7 @@ TESTDIR=${srcdir-"$MyPWD"}
 
 FONTDIR="$MyPWD"/fonts
 CACHEDIR="$MyPWD"/cache.dir
+EXPECTED=${EXPECTED-"out.expected"}
 
 ECHO=true
 
@@ -45,9 +46,9 @@ check () {
   echo "=" >> out
   $FCLIST - family pixelsize | sort >> out
   tr -d '\015' <out >out.tmp; mv out.tmp out
-  if cmp out $TESTDIR/out.expected > /dev/null ; then : ; else
+  if cmp out $TESTDIR/$EXPECTED > /dev/null ; then : ; else
     echo "*** Test failed: $TEST"
-    echo "*** output is in 'out', expected output in 'out.expected'"
+    echo "*** output is in 'out', expected output in '$EXPECTED'"
     exit 1
   fi
   rm out

@@ -117,6 +117,12 @@ remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
         char newline_separator[3];
 	int collapsed_newlines = 0;
 
+	backslash = strchr(shader, '\\');
+
+	/* No line continuations were found in this shader, our job is done */
+	if (backslash == NULL)
+		return (char *) shader;
+
 	search_start = shader;
 
 	/* Determine what flavor of newlines this shader is using. GLSL
@@ -157,8 +163,6 @@ remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
 	}
 
 	while (true) {
-		backslash = strchr(search_start, '\\');
-
 		/* If we have previously collapsed any line-continuations,
 		 * then we want to insert additional newlines at the next
 		 * occurrence of a newline character to avoid changing any
@@ -204,6 +208,8 @@ remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
 			shader = skip_newline (backslash + 1);
 			search_start = shader;
 		}
+
+		backslash = strchr(search_start, '\\');
 	}
 
 	ralloc_strcat(&clean, shader);

@@ -35,8 +35,7 @@ int main (int argc, char**argv)
 
     if (argc < 2) {
         fprintf(stderr,
-                "Must pass path of Xorg executable and any "
-                "modules to be loaded.\n");
+                "Must pass path any modules to be loaded.\n");
         exit(1);
     }
 

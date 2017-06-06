@@ -78,6 +78,9 @@ _mesa_print_texunit_state( struct gl_context *ctx, GLuint unit );
 /*@{*/
 
 extern void GLAPIENTRY
+_mesa_ActiveTexture_no_error( GLenum target );
+
+extern void GLAPIENTRY
 _mesa_ActiveTexture( GLenum target );
 
 extern void GLAPIENTRY

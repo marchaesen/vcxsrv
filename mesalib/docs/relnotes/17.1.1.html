@@ -1,0 +1,188 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.1.1 Release Notes / March 25, 2017</h1>
+
+<p>
+Mesa 17.1.1 is a bug fix release which fixes bugs found since the 17.1.0 release.
+</p>
+<p>
+Mesa 17.1.1 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+652315af87f2bb015ce99ee3b90d9d115d53cbf9e052493bd13d521a753b1930  mesa-17.1.1.tar.gz
+aed503f94c0c1630a162a3e276f4ee12a86764cee4cb92338ea2dea99a04e7ef  mesa-17.1.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100854">Bug 100854</a> - YUV to RGB Color Space Conversion result is not precise</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100925">Bug 100925</a> - [HSW/BSW/BDW/SKL] Google Earth is not resolving all the details in the map correctly</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Deucher (1):</p>
+<ul>
+  <li>radeonsi: add new vega10 pci ids</li>
+</ul>
+
+<p>Andres Gomez (2):</p>
+<ul>
+  <li>bin/get-fixes-pick-list.sh: don't warn if more than one, go over them</li>
+  <li>bin/get-fixes-pick-list.sh: bring back the warning</li>
+</ul>
+
+<p>Bruce Cherniak (1):</p>
+<ul>
+  <li>swr: move msaa resolve to generalized StoreTile</li>
+</ul>
+
+<p>Chad Versace (1):</p>
+<ul>
+  <li>egl: Partially revert 23c86c74, fix eglMakeCurrent</li>
+</ul>
+
+<p>Chih-Wei Huang (1):</p>
+<ul>
+  <li>Android: correct libz dependency</li>
+</ul>
+
+<p>Daniel Stone (1):</p>
+<ul>
+  <li>gbm/dri: Fix sign-extension in modifier query</li>
+</ul>
+
+<p>Emil Velikov (6):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.1.0</li>
+  <li>radeon: automake: remove unneeded elf Cflags/Libs</li>
+  <li>configure: remove unneeded bits around libunwind handling</li>
+  <li>egl: add g_egldispatchstubs.h to the release tarball</li>
+  <li>automake: add SWR LLVM gen_builder.hpp workaround</li>
+  <li>Update version to 17.1.1</li>
+</ul>
+
+<p>Eric Anholt (2):</p>
+<ul>
+  <li>renderonly: Initialize fields of struct winsys_handle.</li>
+  <li>vc4: Don't allocate new BOs to avoid synchronization when they're shared.</li>
+</ul>
+
+<p>Grazvydas Ignotas (2):</p>
+<ul>
+  <li>anv: fix possible stack corruption</li>
+  <li>anv: don't leak DRM devices</li>
+</ul>
+
+<p>Hans de Goede (1):</p>
+<ul>
+  <li>glxglvnddispatch: Add missing dispatch for GetDriverConfig</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>nvc0/ir: SHLADD's middle source must be an immediate</li>
+</ul>
+
+<p>Johnson Lin (1):</p>
+<ul>
+  <li>nir/lower_tex: Fix minor error in YUV color conversion matrix</li>
+</ul>
+
+<p>Juan A. Suarez Romero (2):</p>
+<ul>
+  <li>bin/get-{extra,fixes}-pick-list.sh: add support for ignore list</li>
+  <li>bin/get-{extra,fixes}-pick-list.sh: improve output</li>
+</ul>
+
+<p>Lucas Stach (2):</p>
+<ul>
+  <li>etnaviv: stop oversizing buffer resources</li>
+  <li>etnaviv: allow R/B swapped surfaces to be cleared</li>
+</ul>
+
+<p>Marek Olšák (2):</p>
+<ul>
+  <li>amd/addrlib: import Raven support</li>
+  <li>radeonsi/gfx9: add support for Raven</li>
+</ul>
+
+<p>Nanley Chery (2):</p>
+<ul>
+  <li>anv/formats: Update the three-channel BC1 mappings</li>
+  <li>i965/formats: Update the three-channel DXT1 mappings</li>
+</ul>
+
+<p>Nicolai Hähnle (5):</p>
+<ul>
+  <li>radeonsi: mark fast-cleared textures as compressed when dirtying</li>
+  <li>radeonsi: fix primitive ID in fragment shader when using tessellation</li>
+  <li>radeonsi: fix gl_PrimitiveID in tessellation with instanced draws on SI</li>
+  <li>radeonsi: fix gl_PrimitiveIDIn in geometry shader when using tessellation</li>
+  <li>st/mesa: remove an incorrect assertion</li>
+</ul>
+
+<p>Pohjolainen, Topi (1):</p>
+<ul>
+  <li>intel/isl/gen7: Use stencil vertical alignment of 8 instead of 4</li>
+</ul>
+
+<p>Rob Clark (2):</p>
+<ul>
+  <li>mesa/st: fix yuv EGLImage's</li>
+  <li>freedreno: fix crash when flush() but no rendering</li>
+</ul>
+
+<p>Rob Herring (1):</p>
+<ul>
+  <li>virgl: fix virgl_bo_transfer_{put, get} box struct copy</li>
+</ul>
+
+<p>Samuel Iglesias Gonsálvez (3):</p>
+<ul>
+  <li>i965/vec4/gs: restore the uniform values which was overwritten by failed vec4_gs_visitor execution</li>
+  <li>i965/vec4: fix swizzle and writemask when loading an uniform with constant offset</li>
+  <li>i965/vec4: load dvec3/4 uniforms first in the push constant buffer</li>
+</ul>
+
+<p>Tom Stellard (1):</p>
+<ul>
+  <li>gallivm: Make sure module has the correct data layout when pass manager runs</li>
+</ul>
+
+
+</div>
+</body>
+</html>

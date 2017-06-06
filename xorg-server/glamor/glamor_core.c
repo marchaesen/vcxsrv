@@ -40,12 +40,9 @@ glamor_get_drawable_location(const DrawablePtr drawable)
 {
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
-    glamor_screen_private *glamor_priv =
-        glamor_get_screen_private(drawable->pScreen);
+
     if (pixmap_priv->gl_fbo == GLAMOR_FBO_UNATTACHED)
         return 'm';
-    if (pixmap_priv->fbo->fb == glamor_priv->screen_fbo)
-        return 's';
     else
         return 'f';
 }

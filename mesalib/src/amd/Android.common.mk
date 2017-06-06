@@ -29,6 +29,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libmesa_amd_common
 
 LOCAL_SRC_FILES := \
+	$(AMD_COMMON_FILES) \
 	$(AMD_COMPILER_FILES) \
 	$(AMD_DEBUG_FILES)
 

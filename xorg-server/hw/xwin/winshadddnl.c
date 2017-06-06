@@ -658,7 +658,7 @@ winCloseScreenShadowDDNL(ScreenPtr pScreen)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
-    Bool fReturn;
+    Bool fReturn = TRUE;
 
 #if CYGDEBUG
     winDebug("winCloseScreenShadowDDNL - Freeing screen resources\n");

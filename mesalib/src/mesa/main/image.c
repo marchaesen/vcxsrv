@@ -581,7 +581,7 @@ _mesa_convert_colors(GLenum srcType, const GLvoid *src,
       }
       break;
    default:
-      _mesa_problem(NULL, "Invalid datatype in _mesa_convert_colors");
+      unreachable("Invalid datatype in _mesa_convert_colors");
    }
 
    free(tempBuffer);

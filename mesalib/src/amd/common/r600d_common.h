@@ -54,6 +54,17 @@
 #define PKT3_WAIT_REG_MEM                      0x3C
 #define		WAIT_REG_MEM_EQUAL		3
 #define         WAIT_REG_MEM_MEM_SPACE(x)       (((unsigned)(x) & 0x3) << 4)
+#define PKT3_COPY_DATA			       0x40
+#define		COPY_DATA_SRC_SEL(x)		((x) & 0xf)
+#define			COPY_DATA_REG		0
+#define			COPY_DATA_MEM		1
+#define                 COPY_DATA_PERF          4
+#define                 COPY_DATA_IMM           5
+#define                 COPY_DATA_TIMESTAMP     9
+#define		COPY_DATA_DST_SEL(x)		(((unsigned)(x) & 0xf) << 8)
+#define                 COPY_DATA_MEM_ASYNC     5
+#define		COPY_DATA_COUNT_SEL		(1 << 16)
+#define		COPY_DATA_WR_CONFIRM		(1 << 20)
 #define PKT3_EVENT_WRITE                       0x46
 #define PKT3_EVENT_WRITE_EOP                   0x47
 #define         EOP_DATA_SEL(x)                         ((x) << 29)

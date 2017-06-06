@@ -92,25 +92,41 @@ if build_dri2
     xorg_link += xorg_dri2
 endif
 
+xorg_deps = [
+    pixman_dep,
+    m_dep,
+    dl_dep,
+    pciaccess_dep,
+    sha1_dep,
+    dependency('xau'),
+    xdmcp_dep,
+    xfont2_dep,
+    xshmfence_dep,
+    config_dep,
+    libdrm_dep,
+]
+
 executable(
     'Xorg',
     srcs_xorg,
     include_directories: [inc, xorg_inc],
     link_whole: xorg_link,
-    dependencies: [
-        pixman_dep,
-        m_dep,
-        dl_dep,
-        pciaccess_dep,
-        sha1_dep,
-        dependency('xau'),
-        xdmcp_dep,
-        xfont2_dep,
-        xshmfence_dep,
-        config_dep,
-        libdrm_dep,
-    ],
+    dependencies: xorg_deps,
     link_args: '-Wl,--export-dynamic',
     c_args: xorg_c_args,
     install: true,
 )
+
+# For symbol presence testing only
+xorgserver_lib = shared_library(
+    'xorgserver',
+    srcs_xorg,
+    include_directories: [inc, xorg_inc],
+    link_whole: xorg_link,
+    dependencies: xorg_deps,
+    link_args: '-Wl,--export-dynamic',
+    c_args: xorg_c_args,
+    install: false,
+)
+
+xorgserver_dep = declare_dependency(link_with: xorgserver_lib)

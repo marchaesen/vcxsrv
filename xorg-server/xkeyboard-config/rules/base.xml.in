@@ -1309,6 +1309,13 @@
        <vendor>Truly Ergonomic</vendor>
      </configItem>
     </model>
+    <model>
+      <configItem>
+       <name>apex300</name>
+       <_description>SteelSeries Apex 300 (Apex RAW)</_description>
+       <vendor>SteelSeries</vendor>
+     </configItem>
+    </model>
   </modelList>
   <layoutList>
     <layout>

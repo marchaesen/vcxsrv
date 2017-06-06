@@ -63,7 +63,7 @@ ms_flush_drm_events(ScreenPtr screen)
     return 1;
 }
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
 
 /*
  * Event data for an in progress flip.

@@ -123,7 +123,7 @@ noinst_PROGRAMS =	\
 edit_sgml_SOURCES =	\
 	edit-sgml.c	\
 	$(NULL)
-edit_sgml_CC = $(CC_FOR_BUILD)
+edit_sgml_CC := $(CC_FOR_BUILD)
 #
 check_SCRIPTS =			\
 	check-missing-doc	\

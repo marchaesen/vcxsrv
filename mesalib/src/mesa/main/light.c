@@ -186,8 +186,7 @@ _mesa_light(struct gl_context *ctx, GLuint lnum, GLenum pname, const GLfloat *pa
       light->QuadraticAttenuation = params[0];
       break;
    default:
-      _mesa_problem(ctx, "Unexpected pname in _mesa_light()");
-      return;
+      unreachable("Unexpected pname in _mesa_light()");
    }
 
    if (ctx->Driver.Lightfv)

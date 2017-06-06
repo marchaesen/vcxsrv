@@ -490,7 +490,6 @@ EXTRA_EXT(ARB_clip_control);
 EXTRA_EXT(EXT_polygon_offset_clamp);
 EXTRA_EXT(ARB_framebuffer_no_attachments);
 EXTRA_EXT(ARB_tessellation_shader);
-EXTRA_EXT(ARB_shader_subroutine);
 EXTRA_EXT(ARB_shader_storage_buffer_object);
 EXTRA_EXT(ARB_indirect_parameters);
 EXTRA_EXT(ATI_meminfo);

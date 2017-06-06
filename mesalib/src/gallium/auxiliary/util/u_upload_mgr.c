@@ -97,6 +97,13 @@ u_upload_create_default(struct pipe_context *pipe)
                           PIPE_USAGE_STREAM);
 }
 
+struct u_upload_mgr *
+u_upload_clone(struct pipe_context *pipe, struct u_upload_mgr *upload)
+{
+   return u_upload_create(pipe, upload->default_size, upload->bind,
+                          upload->usage);
+}
+
 static void upload_unmap_internal(struct u_upload_mgr *upload, boolean destroying)
 {
    if (!destroying && upload->map_persistent)

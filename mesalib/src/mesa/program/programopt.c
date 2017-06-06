@@ -46,7 +46,7 @@
  * May be used to implement the position_invariant option.
  */
 static void
-_mesa_insert_mvp_dp4_code(struct gl_context *ctx, struct gl_program *vprog)
+insert_mvp_dp4_code(struct gl_context *ctx, struct gl_program *vprog)
 {
    struct prog_instruction *newInst;
    const GLuint origLen = vprog->arb.NumInstructions;
@@ -113,7 +113,7 @@ _mesa_insert_mvp_dp4_code(struct gl_context *ctx, struct gl_program *vprog)
 
 
 static void
-_mesa_insert_mvp_mad_code(struct gl_context *ctx, struct gl_program *vprog)
+insert_mvp_mad_code(struct gl_context *ctx, struct gl_program *vprog)
 {
    struct prog_instruction *newInst;
    const GLuint origLen = vprog->arb.NumInstructions;
@@ -217,9 +217,9 @@ void
 _mesa_insert_mvp_code(struct gl_context *ctx, struct gl_program *vprog)
 {
    if (ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].OptimizeForAOS)
-      _mesa_insert_mvp_dp4_code( ctx, vprog );
+      insert_mvp_dp4_code( ctx, vprog );
    else
-      _mesa_insert_mvp_mad_code( ctx, vprog );
+      insert_mvp_mad_code( ctx, vprog );
 }
       
 

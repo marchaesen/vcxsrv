@@ -66,6 +66,11 @@ void ac_dump_module(LLVMModuleRef module);
 
 LLVMValueRef ac_llvm_get_called_value(LLVMValueRef call);
 bool ac_llvm_is_function(LLVMValueRef v);
+
+void
+ac_llvm_add_target_dep_function_attr(LLVMValueRef F,
+				     const char *name, int value);
+
 #ifdef __cplusplus
 }
 #endif

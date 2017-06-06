@@ -593,7 +593,7 @@ redisplay_dirty(ScreenPtr screen, PixmapDirtyUpdatePtr dirty, int *timeout)
     PixmapSyncDirtyHelper(dirty);
 
     if (!screen->isGPU) {
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
         /*
          * When copying from the master framebuffer to the shared pixmap,
          * we must ensure the copy is complete before the slave starts a
@@ -738,7 +738,7 @@ try_enable_glamor(ScrnInfoPtr pScrn)
 
     ms->drmmode.glamor = FALSE;
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     if (ms->drmmode.force_24_32) {
         xf86DrvMsg(pScrn->scrnIndex, X_CONFIG, "Cannot use glamor with 24bpp packed fb\n");
         return;
@@ -1410,7 +1410,7 @@ msSharePixmapBacking(PixmapPtr ppix, ScreenPtr screen, void **handle)
 static Bool
 msSetSharedPixmapBacking(PixmapPtr ppix, void *fd_handle)
 {
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     ScreenPtr screen = ppix->drawable.pScreen;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
@@ -1599,7 +1599,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
     fbPictureInit(pScreen, NULL, 0);
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     if (ms->drmmode.glamor) {
         if (!glamor_init(pScreen, GLAMOR_USE_EGL_SCREEN)) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -1666,7 +1666,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
     xf86DPMSInit(pScreen, xf86DPMSSet, 0);
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     if (ms->drmmode.glamor) {
         XF86VideoAdaptorPtr     glamor_adaptor;
 
@@ -1688,7 +1688,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
     }
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     if (ms->drmmode.glamor) {
         if (!ms_dri2_screen_init(pScreen)) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -1789,7 +1789,7 @@ CloseScreen(ScreenPtr pScreen)
     /* Clear mask of assigned crtc's in this generation */
     ms_ent->assigned_crtcs = 0;
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     if (ms->drmmode.glamor) {
         ms_dri2_close_screen(pScreen);
     }
