@@ -184,6 +184,7 @@ st_draw_vbo(struct gl_context *ctx,
    }
    else {
       info.index_size = 0;
+      info.has_user_indices = false;
 
       /* Transform feedback drawing is always non-indexed. */
       /* Set info.count_from_stream_output. */

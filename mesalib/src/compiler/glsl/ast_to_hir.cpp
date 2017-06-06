@@ -4276,6 +4276,22 @@ get_variable_being_redeclared(ir_variable *var, YYLTYPE loc,
        */
       earlier->data.precision = var->data.precision;
 
+   } else if (earlier->data.how_declared == ir_var_declared_implicitly &&
+              state->allow_builtin_variable_redeclaration) {
+      /* Allow verbatim redeclarations of built-in variables. Not explicitly
+       * valid, but some applications do it.
+       */
+      if (earlier->data.mode != var->data.mode &&
+          !(earlier->data.mode == ir_var_system_value &&
+            var->data.mode == ir_var_shader_in)) {
+         _mesa_glsl_error(&loc, state,
+                          "redeclaration of `%s' with incorrect qualifiers",
+                          var->name);
+      } else if (earlier->type != var->type) {
+         _mesa_glsl_error(&loc, state,
+                          "redeclaration of `%s' has incorrect type",
+                          var->name);
+      }
    } else if (allow_all_redeclarations) {
       if (earlier->data.mode != var->data.mode) {
          _mesa_glsl_error(&loc, state,
@@ -7386,9 +7402,10 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
          }
 
          /* Memory qualifiers are allowed on buffer and image variables, while
-          * the format qualifier is only accept for images.
+          * the format qualifier is only accepted for images.
           */
-         if (var_mode == ir_var_shader_storage || field_type->is_image()) {
+         if (var_mode == ir_var_shader_storage ||
+             field_type->without_array()->is_image()) {
             /* For readonly and writeonly qualifiers the field definition,
              * if set, overwrites the layout qualifier.
              */
@@ -7415,9 +7432,10 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
             fields[i].memory_restrict = qual->flags.q.restrict_flag ||
                                         (layout && layout->flags.q.restrict_flag);
 
-            if (field_type->is_image()) {
+            if (field_type->without_array()->is_image()) {
                if (qual->flags.q.explicit_image_format) {
-                  if (qual->image_base_type != field_type->sampled_type) {
+                  if (qual->image_base_type !=
+                      field_type->without_array()->sampled_type) {
                      _mesa_glsl_error(&loc, state, "format qualifier doesn't "
                                       "match the base data type of the image");
                   }

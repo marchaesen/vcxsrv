@@ -13,19 +13,19 @@
         <param name="mode" type="GLenum"/>
     </function>
 
-    <function name="BlendEquationSeparateiARB">
+    <function name="BlendEquationSeparateiARB" no_error="true">
         <param name="buf" type="GLuint"/>
         <param name="modeRGB" type="GLenum"/>
         <param name="modeA" type="GLenum"/>
     </function>
 
-    <function name="BlendFunciARB">
+    <function name="BlendFunciARB" no_error="true">
         <param name="buf" type="GLuint"/>
         <param name="src" type="GLenum"/>
         <param name="dst" type="GLenum"/>
     </function>
 
-    <function name="BlendFuncSeparateiARB">
+    <function name="BlendFuncSeparateiARB" no_error="true">
         <param name="buf" type="GLuint"/>
         <param name="srcRGB" type="GLenum"/>
         <param name="dstRGB" type="GLenum"/>

@@ -57,7 +57,7 @@ struct nir_to_llvm_context {
 	struct ac_llvm_context ac;
 	const struct ac_nir_compiler_options *options;
 	struct ac_shader_variant_info *shader_info;
-
+	unsigned max_workgroup_size;
 	LLVMContextRef context;
 	LLVMModuleRef module;
 	LLVMBuilderRef builder;
@@ -257,7 +257,8 @@ create_llvm_function(LLVMContextRef ctx, LLVMModuleRef module,
                      LLVMBuilderRef builder, LLVMTypeRef *return_types,
                      unsigned num_return_elems, LLVMTypeRef *param_types,
                      unsigned param_count, unsigned array_params_mask,
-                     unsigned sgpr_params, bool unsafe_math)
+                     unsigned sgpr_params, unsigned max_workgroup_size,
+		     bool unsafe_math)
 {
 	LLVMTypeRef main_function_type, ret_type;
 	LLVMBasicBlockRef main_function_body;
@@ -289,6 +290,11 @@ create_llvm_function(LLVMContextRef ctx, LLVMModuleRef module,
 		}
 	}
 
+	if (max_workgroup_size) {
+		ac_llvm_add_target_dep_function_attr(main_function,
+						     "amdgpu-max-work-group-size",
+						     max_workgroup_size);
+	}
 	if (unsafe_math) {
 		/* These were copied from some LLVM test. */
 		LLVMAddTargetDependentFunctionAttr(main_function,
@@ -773,7 +779,8 @@ static void create_function(struct nir_to_llvm_context *ctx)
 
 	ctx->main_function = create_llvm_function(
 	    ctx->context, ctx->module, ctx->builder, NULL, 0, arg_types,
-	    arg_idx, array_params_mask, sgpr_count, ctx->options->unsafe_math);
+	    arg_idx, array_params_mask, sgpr_count, ctx->max_workgroup_size,
+	    ctx->options->unsafe_math);
 	set_llvm_calling_convention(ctx->main_function, ctx->stage);
 
 	ctx->shader_info->num_input_sgprs = 0;
@@ -2823,7 +2830,7 @@ load_tes_input(struct nir_to_llvm_context *ctx,
 						     is_compact, vertex_index, indir_index);
 
 	result = ac_build_buffer_load(&ctx->ac, ctx->hs_ring_tess_offchip, instr->num_components, NULL,
-				      buf_addr, ctx->oc_lds, is_compact ? (4 * const_index) : 0, 1, 0, true);
+				      buf_addr, ctx->oc_lds, is_compact ? (4 * const_index) : 0, 1, 0, true, false);
 	result = trim_vector(ctx, result, instr->num_components);
 	result = LLVMBuildBitCast(ctx->builder, result, get_def_type(ctx, &instr->dest.ssa), "");
 	return result;
@@ -5855,6 +5862,27 @@ ac_setup_rings(struct nir_to_llvm_context *ctx)
 	}
 }
 
+static unsigned
+ac_nir_get_max_workgroup_size(enum chip_class chip_class,
+			      struct nir_shader *nir)
+{
+	switch (nir->stage) {
+	case MESA_SHADER_TESS_CTRL:
+		return chip_class >= CIK ? 128 : 64;
+	case MESA_SHADER_GEOMETRY:
+		return 64;
+	case MESA_SHADER_COMPUTE:
+		break;
+	default:
+		return 0;
+	}
+
+	unsigned max_workgroup_size = nir->info.cs.local_size[0] *
+		nir->info.cs.local_size[1] *
+		nir->info.cs.local_size[2];
+	return max_workgroup_size;
+}
+
 static
 LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
                                        struct nir_shader *nir,
@@ -5891,6 +5919,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	ctx.builder = LLVMCreateBuilderInContext(ctx.context);
 	ctx.ac.builder = ctx.builder;
 	ctx.stage = nir->stage;
+	ctx.max_workgroup_size = ac_nir_get_max_workgroup_size(ctx.options->chip_class, nir);
 
 	for (i = 0; i < AC_UD_MAX_SETS; i++)
 		shader_info->user_sgprs_locs.descriptor_sets[i].sgpr_idx = -1;

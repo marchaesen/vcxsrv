@@ -2274,8 +2274,10 @@ checkInput(serverLayoutPtr layout, Bool implicit_layout)
 ConfigStatus
 xf86HandleConfigFile(Bool autoconfig)
 {
+#ifdef XSERVER_LIBPCIACCESS
     const char *scanptr;
     Bool singlecard = 0;
+#endif
     Bool implicit_layout = FALSE;
     XF86ConfLayoutPtr layout;
 

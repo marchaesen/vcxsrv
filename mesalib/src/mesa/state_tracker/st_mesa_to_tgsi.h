@@ -34,6 +34,8 @@
 #include "pipe/p_compiler.h"
 #include "pipe/p_defines.h"
 
+#include "compiler/glsl_types.h"
+
 #if defined __cplusplus
 extern "C" {
 #endif
@@ -63,6 +65,8 @@ st_translate_mesa_program(
 unsigned
 st_translate_texture_target(GLuint textarget, GLboolean shadow);
 
+unsigned
+st_translate_texture_type(enum glsl_base_type type);
 
 #if defined __cplusplus
 } /* extern "C" */

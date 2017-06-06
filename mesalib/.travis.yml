@@ -179,12 +179,9 @@ matrix:
         - MAKE_CHECK_COMMAND="make -C src/gtest check && make -C src/intel check"
         - LLVM_VERSION=3.9
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
-        # XXX: we want to test the WSI, but those are enabled via the EGL toggles
-        # XXX: Platform X11 dependencies are checked when --enable-glx is set
-        - DRI_LOADERS="--enable-glx --disable-gbm --enable-egl --with-platforms=x11,wayland"
+        - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl --with-platforms=x11,wayland"
         - DRI_DRIVERS=""
-        # XXX: enable DRI for EGL above
-        - GALLIUM_ST="--enable-dri --disable-opencl --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx --disable-gallium-osmesa"
+        - GALLIUM_ST="--enable-dri --enable-dri3 --disable-opencl --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx --disable-gallium-osmesa"
         - GALLIUM_DRIVERS=""
         - VULKAN_DRIVERS="intel,radeon"
       addons:

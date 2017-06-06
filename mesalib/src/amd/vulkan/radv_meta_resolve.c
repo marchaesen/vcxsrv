@@ -315,7 +315,7 @@ static void radv_pick_resolve_method_images(struct radv_image *src_image,
 
 {
 	if (dest_image->surface.micro_tile_mode != src_image->surface.micro_tile_mode) {
-		if (dest_image->surface.level[0].dcc_enabled)
+		if (dest_image->surface.num_dcc_levels > 0)
 			*method = RESOLVE_FRAGMENT;
 		else
 			*method = RESOLVE_COMPUTE;

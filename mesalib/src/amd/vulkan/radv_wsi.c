@@ -224,7 +224,7 @@ radv_wsi_image_create(VkDevice device_h,
 	*memory_p = memory_h;
 	*size = image->size;
 	*offset = image->offset;
-	*row_pitch = surface->level[0].pitch_bytes;
+	*row_pitch = surface->u.legacy.level[0].nblk_x * surface->bpe;
 	return VK_SUCCESS;
  fail_alloc_memory:
 	radv_FreeMemory(device_h, memory_h, pAllocator);
@@ -438,7 +438,7 @@ VkResult radv_AcquireNextImageKHR(
 	VkResult result = swapchain->acquire_next_image(swapchain, timeout, semaphore,
 	                                                pImageIndex);
 
-	if (fence && result == VK_SUCCESS) {
+	if (fence && (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)) {
 		fence->submitted = true;
 		fence->signalled = true;
 	}

@@ -12,7 +12,7 @@
   <enum name="MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB"        value="0x9345"/>
   <enum name="MAX_COMPUTE_FIXED_GROUP_SIZE_ARB"           value="0x91BF"/>
 
-  <function name="DispatchComputeGroupSizeARB">
+  <function name="DispatchComputeGroupSizeARB" no_error="true">
     <param name="num_groups_x" type="GLuint"/>
     <param name="num_groups_y" type="GLuint"/>
     <param name="num_groups_z" type="GLuint"/>

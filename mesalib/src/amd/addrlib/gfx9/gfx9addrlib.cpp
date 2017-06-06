@@ -1193,6 +1193,20 @@ ChipFamily Gfx9Lib::HwlConvertChipFamily(
             m_settings.depthPipeXorDisable = 1;
             break;
 
+        case FAMILY_RV:
+            m_settings.isArcticIsland = 1;
+            m_settings.isRaven        = ASICREV_IS_RAVEN(uChipRevision);
+
+            if (m_settings.isRaven)
+            {
+                m_settings.isDcn1   = 1;
+            }
+
+            m_settings.metaBaseAlignFix = 1;
+
+            m_settings.depthPipeXorDisable = 1;
+            break;
+
         default:
             ADDR_ASSERT(!"This should be a Fusion");
             break;
@@ -2734,6 +2748,35 @@ BOOL_32 Gfx9Lib::IsValidDisplaySwizzleMode(
                 break;
         }
     }
+    else if (m_settings.isDcn1)
+    {
+        switch (swizzleMode)
+        {
+            case ADDR_SW_4KB_D:
+            case ADDR_SW_64KB_D:
+            case ADDR_SW_VAR_D:
+            case ADDR_SW_64KB_D_T:
+            case ADDR_SW_4KB_D_X:
+            case ADDR_SW_64KB_D_X:
+            case ADDR_SW_VAR_D_X:
+                support = (pIn->bpp == 64);
+                break;
+
+            case ADDR_SW_LINEAR:
+            case ADDR_SW_4KB_S:
+            case ADDR_SW_64KB_S:
+            case ADDR_SW_VAR_S:
+            case ADDR_SW_64KB_S_T:
+            case ADDR_SW_4KB_S_X:
+            case ADDR_SW_64KB_S_X:
+            case ADDR_SW_VAR_S_X:
+                support = (pIn->bpp <= 64);
+                break;
+
+            default:
+                break;
+        }
+    }
     else
     {
         ADDR_NOT_IMPLEMENTED();
@@ -3194,6 +3237,20 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
 
                         // DCE12 does not support display surface to be _T swizzle mode
                         prtXor = FALSE;
+                    }
+                    else if (m_settings.isDcn1)
+                    {
+                        // _R is not supported by Dcn1
+                        if (pIn->bpp == 64)
+                        {
+                            swType = ADDR_SW_D;
+                        }
+                        else
+                        {
+                            swType = ADDR_SW_S;
+                        }
+
+                        blockSet.micro = FALSE;
                     }
                     else
                     {

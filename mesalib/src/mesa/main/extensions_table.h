@@ -118,7 +118,7 @@ EXT(ARB_shader_objects                      , dummy_true                        
 EXT(ARB_shader_precision                    , ARB_shader_precision                   , GLL, GLC,  x ,  x , 2010)
 EXT(ARB_shader_stencil_export               , ARB_shader_stencil_export              , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_shader_storage_buffer_object        , ARB_shader_storage_buffer_object       , GLL, GLC,  x ,  x , 2012)
-EXT(ARB_shader_subroutine                   , ARB_shader_subroutine                  ,  x , GLC,  x ,  x , 2010)
+EXT(ARB_shader_subroutine                   , dummy_true                             ,  x , GLC,  x ,  x , 2010)
 EXT(ARB_shader_texture_image_samples        , ARB_shader_texture_image_samples       , GLL, GLC,  x ,  x , 2014)
 EXT(ARB_shader_texture_lod                  , ARB_shader_texture_lod                 , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_shader_viewport_layer_array         , ARB_shader_viewport_layer_array        ,  x , GLC,  x ,  x , 2015)

@@ -139,8 +139,7 @@ _mesa_buffer_data(struct gl_context *ctx, struct gl_buffer_object *bufObj,
 
 extern void
 _mesa_buffer_sub_data(struct gl_context *ctx, struct gl_buffer_object *bufObj,
-                      GLintptr offset, GLsizeiptr size, const GLvoid *data,
-                      const char *func);
+                      GLintptr offset, GLsizeiptr size, const GLvoid *data);
 
 extern void
 _mesa_buffer_unmap_all_mappings(struct gl_context *ctx,
@@ -172,9 +171,15 @@ GLboolean GLAPIENTRY
 _mesa_IsBuffer(GLuint buffer);
 
 void GLAPIENTRY
+_mesa_BufferStorage_no_error(GLenum target, GLsizeiptr size,
+                             const GLvoid *data, GLbitfield flags);
+void GLAPIENTRY
 _mesa_BufferStorage(GLenum target, GLsizeiptr size, const GLvoid *data,
                     GLbitfield flags);
 
+void GLAPIENTRY
+_mesa_NamedBufferStorage_no_error(GLuint buffer, GLsizeiptr size,
+                                  const GLvoid *data, GLbitfield flags);
 void GLAPIENTRY
 _mesa_NamedBufferStorage(GLuint buffer, GLsizeiptr size, const GLvoid *data,
                          GLbitfield flags);
@@ -188,9 +193,15 @@ _mesa_NamedBufferData(GLuint buffer, GLsizeiptr size,
                       const GLvoid *data, GLenum usage);
 
 void GLAPIENTRY
+_mesa_BufferSubData_no_error(GLenum target, GLintptr offset,
+                             GLsizeiptr size, const GLvoid *data);
+void GLAPIENTRY
 _mesa_BufferSubData(GLenum target, GLintptr offset,
                     GLsizeiptr size, const GLvoid *data);
 
+void GLAPIENTRY
+_mesa_NamedBufferSubData_no_error(GLuint buffer, GLintptr offset,
+                                  GLsizeiptr size, const GLvoid *data);
 void GLAPIENTRY
 _mesa_NamedBufferSubData(GLuint buffer, GLintptr offset,
                          GLsizeiptr size, const GLvoid *data);
@@ -310,6 +321,9 @@ void GLAPIENTRY
 _mesa_FlushMappedNamedBufferRange(GLuint buffer, GLintptr offset,
                                   GLsizeiptr length);
 
+void GLAPIENTRY
+_mesa_BindBufferRange_no_error(GLenum target, GLuint index, GLuint buffer,
+                               GLintptr offset, GLsizeiptr size);
 void GLAPIENTRY
 _mesa_BindBufferRange(GLenum target, GLuint index,
                       GLuint buffer, GLintptr offset, GLsizeiptr size);

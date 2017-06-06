@@ -43,18 +43,13 @@ SRCS_MULTIWINDOWEXTWM = \
 	winwindowswm.c
 DEFS_MULTIWINDOWEXTWM = -DXWIN_MULTIWINDOWEXTWM
 MULTIWINDOWEXTWM_LIBS = $(top_builddir)/miext/rootless/librootless.la
+MULTIWINDOWEXTWM_CFLAGS = -I$(top_srcdir)/miext/rootless
 endif
 
 if XWIN_RANDR
 SRCS_RANDR = \
 	winrandr.c
 DEFS_RANDR = -DXWIN_RANDR
-endif
-
-if XWIN_XV
-SRCS_XV = \
-	winvideo.c
-DEFS_XV = -DXWIN_XV
 endif
 
 SRCS =	InitInput.c \
@@ -118,8 +113,7 @@ SRCS =	InitInput.c \
 	$(SRCS_MULTIWINDOWEXTWM) \
 	$(SRCS_NATIVEGDI) \
 	$(SRCS_PRIMARYFB) \
-	$(SRCS_RANDR) \
-	$(SRCS_XV)
+	$(SRCS_RANDR)
 
  DEFS = $(DEFS_CLIPBOARD) \
 	$(DEFS_GLX_WINDOWS) \
@@ -127,12 +121,9 @@ SRCS =	InitInput.c \
 	$(DEFS_MULTIWINDOWEXTWM) \
 	$(DEFS_NATIVEGDI) \
 	$(DEFS_PRIMARYFB) \
-	$(DEFS_RANDR) \
-	$(DEFS_XV)
+	$(DEFS_RANDR)
 
 XWin_SOURCES = $(SRCS)
-
-AM_CPPFLAGS = -I$(top_srcdir)/miext/rootless
 
 XWIN_SYS_LIBS += -ldxguid
 
@@ -178,6 +169,7 @@ AM_LFLAGS = -i
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
             -I$(top_srcdir) \
+            $(MULTIWINDOWEXTWM_CFLAGS) \
             -Wno-bad-function-cast
 
 xwinconfigdir = $(sysconfdir)/X11

@@ -35,6 +35,10 @@
 #include "main/macros.h"
 #include "amd_family.h"
 
+struct radeon_info;
+struct ac_surf_info;
+struct radeon_surf;
+
 #define FREE(x) free(x)
 
 enum radeon_bo_domain { /* bitfield */
@@ -71,63 +75,6 @@ struct radeon_winsys_cs {
 	uint32_t *buf; /* The base pointer of the chunk. */
 };
 
-struct radeon_info {
-	/* PCI info: domain:bus:dev:func */
-	uint32_t                    pci_domain;
-	uint32_t                    pci_bus;
-	uint32_t                    pci_dev;
-	uint32_t                    pci_func;
-
-	/* Device info. */
-	uint32_t                    pci_id;
-	enum radeon_family          family;
-	const char                  *name;
-	enum chip_class             chip_class;
-	uint32_t                    gart_page_size;
-	uint64_t                    gart_size;
-	uint64_t                    vram_size;
-	uint64_t                    visible_vram_size;
-	bool                        has_dedicated_vram;
-	bool                     has_virtual_memory;
-	bool                        gfx_ib_pad_with_type2;
-	bool                     has_uvd;
-	uint32_t                    sdma_rings;
-	uint32_t                    compute_rings;
-	uint32_t                    vce_fw_version;
-	uint32_t                    vce_harvest_config;
-	uint32_t                    clock_crystal_freq; /* in kHz */
-
-	/* Kernel info. */
-	uint32_t                    drm_major; /* version */
-	uint32_t                    drm_minor;
-	uint32_t                    drm_patchlevel;
-	bool                     has_userptr;
-
-	/* Shader cores. */
-	uint32_t                    r600_max_quad_pipes; /* wave size / 16 */
-	uint32_t                    max_shader_clock;
-	uint32_t                    num_good_compute_units;
-	uint32_t                    max_se; /* shader engines */
-	uint32_t                    max_sh_per_se; /* shader arrays per shader engine */
-
-	/* Render backends (color + depth blocks). */
-	uint32_t                    r300_num_gb_pipes;
-	uint32_t                    r300_num_z_pipes;
-	uint32_t                    r600_gb_backend_map; /* R600 harvest config */
-	bool                     r600_gb_backend_map_valid;
-	uint32_t                    r600_num_banks;
-	uint32_t                    num_render_backends;
-	uint32_t                    num_tile_pipes; /* pipe count from PIPE_CONFIG */
-	uint32_t                    pipe_interleave_bytes;
-	uint32_t                    enabled_rb_mask; /* GCN harvest config */
-
-	/* Tile modes. */
-	uint32_t                    si_tile_mode_array[32];
-	uint32_t                    cik_macrotile_mode_array[16];
-};
-
-#define RADEON_SURF_MAX_LEVEL                   32
-
 #define RADEON_SURF_TYPE_MASK                   0xFF
 #define RADEON_SURF_TYPE_SHIFT                  0
 #define     RADEON_SURF_TYPE_1D                     0
@@ -138,91 +85,10 @@ struct radeon_info {
 #define     RADEON_SURF_TYPE_2D_ARRAY               5
 #define RADEON_SURF_MODE_MASK                   0xFF
 #define RADEON_SURF_MODE_SHIFT                  8
-#define     RADEON_SURF_MODE_LINEAR_ALIGNED         1
-#define     RADEON_SURF_MODE_1D                     2
-#define     RADEON_SURF_MODE_2D                     3
-#define RADEON_SURF_SCANOUT                     (1 << 16)
-#define RADEON_SURF_ZBUFFER                     (1 << 17)
-#define RADEON_SURF_SBUFFER                     (1 << 18)
-#define RADEON_SURF_Z_OR_SBUFFER                (RADEON_SURF_ZBUFFER | RADEON_SURF_SBUFFER)
-#define RADEON_SURF_HAS_SBUFFER_MIPTREE         (1 << 19)
-#define RADEON_SURF_HAS_TILE_MODE_INDEX         (1 << 20)
-#define RADEON_SURF_FMASK                       (1 << 21)
-#define RADEON_SURF_DISABLE_DCC                 (1 << 22)
-#define RADEON_SURF_TC_COMPATIBLE_HTILE         (1 << 23)
 
 #define RADEON_SURF_GET(v, field)   (((v) >> RADEON_SURF_ ## field ## _SHIFT) & RADEON_SURF_ ## field ## _MASK)
 #define RADEON_SURF_SET(v, field)   (((v) & RADEON_SURF_ ## field ## _MASK) << RADEON_SURF_ ## field ## _SHIFT)
 #define RADEON_SURF_CLR(v, field)   ((v) & ~(RADEON_SURF_ ## field ## _MASK << RADEON_SURF_ ## field ## _SHIFT))
-
-struct radeon_surf_info {
-	uint32_t width;
-	uint32_t height;
-	uint32_t depth;
-	uint8_t samples;
-	uint8_t levels;
-	uint16_t array_size;
-};
-
-struct radeon_surf_level {
-	uint64_t                    offset;
-	uint64_t                    slice_size;
-	uint32_t                    nblk_x;
-	uint32_t                    nblk_y;
-	uint32_t                    nblk_z;
-	uint32_t                    pitch_bytes;
-	uint32_t                    mode;
-	bool                        dcc_enabled;
-	uint64_t                    dcc_offset;
-	uint64_t                    dcc_fast_clear_size;
-};
-
-
-/* surface defintions from the winsys */
-struct radeon_surf {
-	/* These are inputs to the calculator. */
-	uint32_t                    blk_w;
-	uint32_t                    blk_h;
-	uint32_t                    bpe;
-	uint32_t                    flags;
-
-	/* These are return values. Some of them can be set by the caller, but
-	 * they will be treated as hints (e.g. bankw, bankh) and might be
-	 * changed by the calculator.
-	 */
-	uint64_t                    bo_size;
-	uint64_t                    bo_alignment;
-	/* This applies to EG and later. */
-	uint32_t                    bankw;
-	uint32_t                    bankh;
-	uint32_t                    mtilea;
-	uint32_t                    tile_split;
-	uint32_t                    stencil_tile_split;
-	uint64_t                    stencil_offset;
-	struct radeon_surf_level    level[RADEON_SURF_MAX_LEVEL];
-	struct radeon_surf_level    stencil_level[RADEON_SURF_MAX_LEVEL];
-	uint32_t                    tiling_index[RADEON_SURF_MAX_LEVEL];
-	uint32_t                    stencil_tiling_index[RADEON_SURF_MAX_LEVEL];
-	uint32_t                    pipe_config;
-	uint32_t                    num_banks;
-	uint32_t                    macro_tile_index;
-	uint32_t                    micro_tile_mode; /* displayable, thin, depth, rotated */
-
-	/* Whether the depth miptree or stencil miptree as used by the DB are
-	 * adjusted from their TC compatible form to ensure depth/stencil
-	 * compatibility. If either is true, the corresponding plane cannot be
-	 * sampled from.
-	 */
-	bool                        depth_adjusted;
-	bool                        stencil_adjusted;
-
-	uint64_t                    dcc_size;
-	uint64_t                    dcc_alignment;
-
-	uint64_t                    htile_size;
-	uint64_t                    htile_slice_size;
-	uint64_t                    htile_alignment;
-};
 
 enum radeon_bo_layout {
 	RADEON_LAYOUT_LINEAR = 0,
@@ -237,16 +103,25 @@ struct radeon_bo_metadata {
 	/* Tiling flags describing the texture layout for display code
 	 * and DRI sharing.
 	 */
-	enum radeon_bo_layout   microtile;
-	enum radeon_bo_layout   macrotile;
-	unsigned                pipe_config;
-	unsigned                bankw;
-	unsigned                bankh;
-	unsigned                tile_split;
-	unsigned                mtilea;
-	unsigned                num_banks;
-	unsigned                stride;
-	bool                    scanout;
+	union {
+		struct {
+			enum radeon_bo_layout   microtile;
+			enum radeon_bo_layout   macrotile;
+			unsigned                pipe_config;
+			unsigned                bankw;
+			unsigned                bankh;
+			unsigned                tile_split;
+			unsigned                mtilea;
+			unsigned                num_banks;
+			unsigned                stride;
+			bool                    scanout;
+		} legacy;
+
+		struct {
+			/* surface flags */
+			unsigned swizzle_mode:5;
+		} gfx9;
+	} u;
 
 	/* Additional metadata associated with the buffer, in bytes.
 	 * The maximum size is 64 * 4. This is opaque for the winsys & kernel.
@@ -333,7 +208,7 @@ struct radeon_winsys {
 	void (*cs_dump)(struct radeon_winsys_cs *cs, FILE* file, uint32_t trace_id);
 
 	int (*surface_init)(struct radeon_winsys *ws,
-			    const struct radeon_surf_info *surf_info,
+			    const struct ac_surf_info *surf_info,
 			    struct radeon_surf *surf);
 
 	int (*surface_best)(struct radeon_winsys *ws,

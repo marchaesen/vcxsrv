@@ -496,7 +496,7 @@ drmmode_crtc_dpms(xf86CrtcPtr crtc, int mode)
     drmmode_crtc->dpms_mode = mode;
 }
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
 static PixmapPtr
 create_pixmap_for_fbcon(drmmode_ptr drmmode, ScrnInfoPtr pScrn, int fbcon_id)
 {
@@ -546,7 +546,7 @@ out_free_fb:
 void
 drmmode_copy_fb(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
 {
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
     ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     PixmapPtr src, dst;
@@ -1895,27 +1895,16 @@ drmmode_clones_init(ScrnInfoPtr scrn, drmmode_ptr drmmode, drmModeResPtr mode_re
 static Bool
 drmmode_set_pixmap_bo(drmmode_ptr drmmode, PixmapPtr pixmap, drmmode_bo *bo)
 {
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     ScrnInfoPtr scrn = drmmode->scrn;
 
     if (!drmmode->glamor)
         return TRUE;
 
-#ifdef GLAMOR_HAS_GBM
     if (!glamor_egl_create_textured_pixmap_from_gbm_bo(pixmap, bo->gbm)) {
         xf86DrvMsg(scrn->scrnIndex, X_ERROR, "Failed");
         return FALSE;
     }
-#else
-    if (!glamor_egl_create_textured_pixmap(pixmap,
-                                           drmmode_bo_get_handle(&drmmode->front_bo),
-                                           scrn->displayWidth *
-                                           scrn->bitsPerPixel / 8)) {
-        xf86DrvMsg(scrn->scrnIndex, X_ERROR,
-                   "glamor_egl_create_textured_pixmap() failed\n");
-        return FALSE;
-    }
-#endif
 #endif
 
     return TRUE;
@@ -1929,11 +1918,6 @@ drmmode_glamor_handle_new_screen_pixmap(drmmode_ptr drmmode)
 
     if (!drmmode_set_pixmap_bo(drmmode, screen_pixmap, &drmmode->front_bo))
         return FALSE;
-
-#ifdef GLAMOR
-    if (drmmode->glamor)
-        glamor_set_screen_pixmap(screen_pixmap, NULL);
-#endif
 
     return TRUE;
 }

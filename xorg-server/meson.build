@@ -135,9 +135,18 @@ if (host_machine.system() != 'darwin' and
     endif
 endif
 
+build_xwin = false
+if get_option('xwin') == 'auto'
+    if (host_machine.system() == 'cygwin' or
+        host_machine.system() == 'windows')
+            build_xwin = true
+    endif
+else
+    build_xwin = get_option('xwin') == 'yes'
+endif
+
 # XXX: Finish these.
 build_xquartz = false
-build_xwin = false
 
 if get_option('ipv6') == 'auto'
     build_ipv6 = cc.has_function('getaddrinfo')
@@ -330,6 +339,8 @@ inc = include_directories(
 )
 
 glx_inc = include_directories('glx')
+
+top_srcdir_inc = include_directories('.')
 
 serverconfigdir = join_paths(get_option('libdir'), '/xorg')
 

@@ -1902,8 +1902,7 @@ _mesa_meta_CopyPixels(struct gl_context *ctx, GLint srcX, GLint srcY,
       verts[3].tex[1] = tex->Ttop;
 
       /* upload new vertex data */
-      _mesa_buffer_sub_data(ctx, copypix->buf_obj, 0, sizeof(verts), verts,
-                            __func__);
+      _mesa_buffer_sub_data(ctx, copypix->buf_obj, 0, sizeof(verts), verts);
    }
 
    _mesa_set_enable(ctx, tex->Target, GL_TRUE);
@@ -2422,8 +2421,7 @@ _mesa_meta_Bitmap(struct gl_context *ctx,
       }
 
       /* upload new vertex data */
-      _mesa_buffer_sub_data(ctx, bitmap->buf_obj, 0, sizeof(verts), verts,
-                            __func__);
+      _mesa_buffer_sub_data(ctx, bitmap->buf_obj, 0, sizeof(verts), verts);
    }
 
    /* choose different foreground/background alpha values */
@@ -3140,8 +3138,7 @@ decompress_texture_image(struct gl_context *ctx,
    _mesa_set_viewport(ctx, 0, 0, 0, width, height);
 
    /* upload new vertex data */
-   _mesa_buffer_sub_data(ctx, decompress->buf_obj, 0, sizeof(verts), verts,
-                         __func__);
+   _mesa_buffer_sub_data(ctx, decompress->buf_obj, 0, sizeof(verts), verts);
 
    /* setup texture state */
    _mesa_BindTexture(target, texObj->Name);
@@ -3409,8 +3406,7 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
          verts[3].st[i][1] = t1;
       }
 
-      _mesa_buffer_sub_data(ctx, drawtex->buf_obj, 0, sizeof(verts), verts,
-                            __func__);
+      _mesa_buffer_sub_data(ctx, drawtex->buf_obj, 0, sizeof(verts), verts);
    }
 
    _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);

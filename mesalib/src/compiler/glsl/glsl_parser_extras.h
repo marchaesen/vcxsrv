@@ -846,6 +846,7 @@ struct _mesa_glsl_parse_state {
    unsigned atomic_counter_offsets[MAX_COMBINED_ATOMIC_BUFFERS];
 
    bool allow_extension_directive_midshader;
+   bool allow_builtin_variable_redeclaration;
 
    /**
     * Known subroutine type declarations.

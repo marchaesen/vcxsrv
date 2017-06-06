@@ -87,10 +87,18 @@ struct wsi_interface {
                            VkBool32* pSupported);
    VkResult (*get_capabilities)(VkIcdSurfaceBase *surface,
                                 VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
+   VkResult (*get_capabilities2)(VkIcdSurfaceBase *surface,
+                                 const void *info_next,
+                                 VkSurfaceCapabilities2KHR* pSurfaceCapabilities);
    VkResult (*get_formats)(VkIcdSurfaceBase *surface,
                            struct wsi_device *wsi_device,
                            uint32_t* pSurfaceFormatCount,
                            VkSurfaceFormatKHR* pSurfaceFormats);
+   VkResult (*get_formats2)(VkIcdSurfaceBase *surface,
+                            struct wsi_device *wsi_device,
+                            const void *info_next,
+                            uint32_t* pSurfaceFormatCount,
+                            VkSurfaceFormat2KHR* pSurfaceFormats);
    VkResult (*get_present_modes)(VkIcdSurfaceBase *surface,
                                  uint32_t* pPresentModeCount,
                                  VkPresentModeKHR* pPresentModes);

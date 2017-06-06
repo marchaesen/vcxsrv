@@ -246,7 +246,7 @@
 	<glx rop="4323"/>
     </function>
 
-    <function name="FramebufferTextureLayer" es2="3.0">
+    <function name="FramebufferTextureLayer" es2="3.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="attachment" type="GLenum"/>
         <param name="texture" type="GLuint"/>

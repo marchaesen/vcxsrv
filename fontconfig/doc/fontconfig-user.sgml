@@ -791,6 +791,10 @@ is used to output the detailed debugging messages. see <link linkend="debug">Deb
 is used to filter out the patterns. this takes a comma-separated list of object names and effects only when FC_DEBUG has MATCH2. see <link linkend="debug">Debugging Applications</link> section for more details.
   </para>
   <para>
+<emphasis>FC_LANG</emphasis>
+is used to specify the default language as the weak binding in the query. if this isn't set, the default language will be determined from current locale.
+  </para>
+  <para>
 <emphasis>FONTCONFIG_USE_MMAP</emphasis>
 is used to control the use of mmap(2) for the cache files if available. this take a boolean value. fontconfig will checks if the cache files are stored on the filesystem that is safe to use mmap(2). explicitly setting this environment variable will causes skipping this check and enforce to use or not use mmap(2) anyway.
   </para>

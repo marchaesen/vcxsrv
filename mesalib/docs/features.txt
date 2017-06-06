@@ -306,8 +306,8 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+)
   GL_KHR_blend_equation_advanced_coherent               DONE (i965/gen9+)
   GL_KHR_no_error                                       started (Timothy Arceri)
-  GL_KHR_texture_compression_astc_hdr                   DONE (core only)
-  GL_KHR_texture_compression_astc_sliced_3d             not started
+  GL_KHR_texture_compression_astc_hdr                   DONE (i965/bxt)
+  GL_KHR_texture_compression_astc_sliced_3d             DONE (i965/gen9+)
   GL_OES_depth_texture_cube_map                         DONE (all drivers that support GLSL 1.30+)
   GL_OES_EGL_image                                      DONE (all drivers)
   GL_OES_EGL_image_external_essl3                       not started

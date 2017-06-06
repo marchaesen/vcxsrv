@@ -327,7 +327,6 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->ARB_gpu_shader5 &&
                          extensions->ARB_gpu_shader_fp64 &&
                          extensions->ARB_sample_shading &&
-                         extensions->ARB_shader_subroutine &&
                          extensions->ARB_tessellation_shader &&
                          extensions->ARB_texture_buffer_object_rgb32 &&
                          extensions->ARB_texture_cube_map_array &&

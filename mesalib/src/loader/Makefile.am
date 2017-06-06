@@ -55,6 +55,7 @@ libloader_la_LIBADD += \
 	$(LIBDRM_LIBS)
 endif
 
+if HAVE_PLATFORM_X11
 if HAVE_DRI3
 noinst_LTLIBRARIES += libloader_dri3_helper.la
 
@@ -62,4 +63,5 @@ libloader_dri3_helper_la_SOURCES = \
 	loader_dri3_helper.c \
 	loader_dri3_helper.h
 libloader_dri3_helper_la_LIBADD = $(XCB_DRI3_LIBS)
+endif
 endif

@@ -70,7 +70,7 @@
 <enum name="MAX_FRAGMENT_IMAGE_UNIFORMS" value="0x90CE"/>
 <enum name="MAX_COMBINED_IMAGE_UNIFORMS" value="0x90CF"/>
 
-<function name="BindImageTexture" es2="3.1">
+<function name="BindImageTexture" es2="3.1" no_error="true">
   <param name="unit" type="GLuint"/>
   <param name="texture" type="GLuint"/>
   <param name="level" type="GLint"/>

@@ -42,6 +42,9 @@ supported_extensions = [
    'VK_KHR_wayland_surface',
    'VK_KHR_xcb_surface',
    'VK_KHR_xlib_surface',
+   'VK_KHX_external_memory_capabilities',
+   'VK_KHX_external_memory',
+   'VK_KHX_external_memory_fd',
 ]
 
 # We generate a static hash table for entry point lookup

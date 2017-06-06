@@ -647,7 +647,7 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    struct pipe_context *pipe;
    struct gl_config mode;
    gl_api api;
-   unsigned ctx_flags = 0;
+   unsigned ctx_flags = PIPE_CONTEXT_PREFER_THREADED;
 
    if (!(stapi->profile_mask & (1 << attribs->profile)))
       return NULL;
@@ -836,8 +836,6 @@ st_manager_flush_frontbuffer(struct st_context *st)
 {
    struct st_framebuffer *stfb = st_ws_framebuffer(st->ctx->DrawBuffer);
    struct st_renderbuffer *strb = NULL;
-
-   assert(st->ctx->DrawBuffer != _mesa_get_incomplete_framebuffer());
 
    if (stfb)
       strb = st_renderbuffer(stfb->Base.Attachment[BUFFER_FRONT_LEFT].Renderbuffer);

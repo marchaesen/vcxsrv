@@ -51,7 +51,8 @@ MESA_DRI_SHARED_LIBRARIES := \
 	libdl \
 	libexpat \
 	libglapi \
-	liblog
+	liblog \
+	libz
 
 #-----------------------------------------------
 # Build drivers and libmesa_dri_common

@@ -32,6 +32,9 @@
 MESA_TOP := $(call my-dir)
 
 MESA_ANDROID_MAJOR_VERSION := $(word 1, $(subst ., , $(PLATFORM_VERSION)))
+ifneq ($(filter 2 4, $(MESA_ANDROID_MAJOR_VERSION)),)
+$(error "Android 4.4 and earlier not supported")
+endif
 
 MESA_DRI_MODULE_REL_PATH := dri
 MESA_DRI_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/$(MESA_DRI_MODULE_REL_PATH)

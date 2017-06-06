@@ -132,8 +132,14 @@ void ac_dump_reg(FILE *file, unsigned offset, uint32_t value,
 static void ac_parse_set_reg_packet(FILE *f, uint32_t *ib, unsigned count,
 				    unsigned reg_offset)
 {
-	unsigned reg = (ib[1] << 2) + reg_offset;
+	unsigned reg = ((ib[1] & 0xFFFF) << 2) + reg_offset;
+	unsigned index = ib[1] >> 28;
 	int i;
+
+	if (index != 0) {
+		print_spaces(f, INDENT_PKT);
+		fprintf(f, "INDEX = %u\n", index);
+	}
 
 	for (i = 0; i < count; i++)
 		ac_dump_reg(f, reg + i*4, ib[2+i], ~0);

@@ -540,10 +540,14 @@ create_depthstencil_pipeline(struct radv_device *device,
 	return result;
 }
 
-static bool depth_view_can_fast_clear(const struct radv_image_view *iview,
+static bool depth_view_can_fast_clear(struct radv_cmd_buffer *cmd_buffer,
+				      const struct radv_image_view *iview,
 				      VkImageLayout layout,
 				      const VkClearRect *clear_rect)
 {
+	uint32_t queue_mask = radv_image_queue_family_mask(iview->image,
+	                                                   cmd_buffer->queue_family_index,
+	                                                   cmd_buffer->queue_family_index);
 	if (clear_rect->rect.offset.x || clear_rect->rect.offset.y ||
 	    clear_rect->rect.extent.width != iview->extent.width ||
 	    clear_rect->rect.extent.height != iview->extent.height)
@@ -551,14 +555,15 @@ static bool depth_view_can_fast_clear(const struct radv_image_view *iview,
 	if (iview->image->surface.htile_size &&
 	    iview->base_mip == 0 &&
 	    iview->base_layer == 0 &&
-	    radv_layout_can_expclear(iview->image, layout) &&
+	    radv_layout_is_htile_compressed(iview->image, layout, queue_mask) &&
 	    !radv_image_extent_compare(iview->image, &iview->extent))
 		return true;
 	return false;
 }
 
 static struct radv_pipeline *
-pick_depthstencil_pipeline(struct radv_meta_state *meta_state,
+pick_depthstencil_pipeline(struct radv_cmd_buffer *cmd_buffer,
+			   struct radv_meta_state *meta_state,
 			   const struct radv_image_view *iview,
 			   int samples_log2,
 			   VkImageAspectFlags aspects,
@@ -566,7 +571,7 @@ pick_depthstencil_pipeline(struct radv_meta_state *meta_state,
 			   const VkClearRect *clear_rect,
 			   VkClearDepthStencilValue clear_value)
 {
-	bool fast = depth_view_can_fast_clear(iview, layout, clear_rect);
+	bool fast = depth_view_can_fast_clear(cmd_buffer, iview, layout, clear_rect);
 	int index = DEPTH_CLEAR_SLOW;
 
 	if (fast) {
@@ -622,7 +627,8 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 						  clear_value.stencil);
 	}
 
-	struct radv_pipeline *pipeline = pick_depthstencil_pipeline(meta_state,
+	struct radv_pipeline *pipeline = pick_depthstencil_pipeline(cmd_buffer,
+								    meta_state,
 								    iview,
 								    samples_log2,
 								    aspects,
@@ -634,7 +640,7 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 					   radv_pipeline_to_handle(pipeline));
 	}
 
-	if (depth_view_can_fast_clear(iview, subpass->depth_stencil_attachment.layout, clear_rect))
+	if (depth_view_can_fast_clear(cmd_buffer, iview, subpass->depth_stencil_attachment.layout, clear_rect))
 		radv_set_depth_clear_regs(cmd_buffer, iview->image, clear_value, aspects);
 
 	radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
@@ -651,6 +657,96 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 	radv_CmdDraw(cmd_buffer_h, 3, clear_rect->layerCount, 0, 0);
 }
 
+static bool
+emit_fast_htile_clear(struct radv_cmd_buffer *cmd_buffer,
+		      const VkClearAttachment *clear_att,
+		      const VkClearRect *clear_rect,
+		      enum radv_cmd_flush_bits *pre_flush,
+		      enum radv_cmd_flush_bits *post_flush)
+{
+	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
+	const uint32_t pass_att = subpass->depth_stencil_attachment.attachment;
+	VkImageLayout image_layout = subpass->depth_stencil_attachment.layout;
+	const struct radv_framebuffer *fb = cmd_buffer->state.framebuffer;
+	const struct radv_image_view *iview = fb->attachments[pass_att].attachment;
+	VkClearDepthStencilValue clear_value = clear_att->clearValue.depthStencil;
+	VkImageAspectFlags aspects = clear_att->aspectMask;
+	uint32_t clear_word;
+	bool ret;
+
+	if (!iview->image->surface.htile_size)
+		return false;
+
+	if (cmd_buffer->device->debug_flags & RADV_DEBUG_NO_FAST_CLEARS)
+		return false;
+
+	if (!radv_layout_is_htile_compressed(iview->image, image_layout, radv_image_queue_family_mask(iview->image, cmd_buffer->queue_family_index, cmd_buffer->queue_family_index)))
+		goto fail;
+
+	/* don't fast clear 3D */
+	if (iview->image->type == VK_IMAGE_TYPE_3D)
+		goto fail;
+
+	/* all layers are bound */
+	if (iview->base_layer > 0)
+		goto fail;
+	if (iview->image->info.array_size != iview->layer_count)
+		goto fail;
+
+	if (iview->image->info.levels > 1)
+		goto fail;
+
+	if (!radv_image_extent_compare(iview->image, &iview->extent))
+		goto fail;
+
+	if (clear_rect->rect.offset.x || clear_rect->rect.offset.y ||
+	    clear_rect->rect.extent.width != iview->image->info.width ||
+	    clear_rect->rect.extent.height != iview->image->info.height)
+		goto fail;
+
+	if (clear_rect->baseArrayLayer != 0)
+		goto fail;
+	if (clear_rect->layerCount != iview->image->info.array_size)
+		goto fail;
+
+	/* Don't do stencil clears till we have figured out if the clear words are
+	 * correct. */
+	if (vk_format_aspects(iview->image->vk_format) & VK_IMAGE_ASPECT_STENCIL_BIT)
+		goto fail;
+
+	if (clear_value.depth == 1.0)
+		clear_word = 0xfffffff0;
+	else if (clear_value.depth == 0.0)
+		clear_word = 0;
+	else
+		goto fail;
+
+	if (pre_flush) {
+		cmd_buffer->state.flush_bits |= (RADV_CMD_FLAG_FLUSH_AND_INV_DB |
+						 RADV_CMD_FLAG_FLUSH_AND_INV_DB_META) & ~ *pre_flush;
+		*pre_flush |= cmd_buffer->state.flush_bits;
+	} else
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB |
+		                                RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
+
+	radv_fill_buffer(cmd_buffer, iview->image->bo,
+	                 iview->image->offset + iview->image->htile_offset,
+	                 iview->image->surface.htile_size, clear_word);
+
+
+	radv_set_depth_clear_regs(cmd_buffer, iview->image, clear_value, aspects);
+	if (post_flush)
+		*post_flush |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+	                       RADV_CMD_FLAG_INV_VMEM_L1 |
+	                       RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2;
+	else
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+	                                        RADV_CMD_FLAG_INV_VMEM_L1 |
+	                                        RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2;
+	return true;
+fail:
+	return false;
+}
 
 static VkFormat pipeline_formats[] = {
 	VK_FORMAT_R8G8B8A8_UNORM,
@@ -804,7 +900,7 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	if (iview->image->info.levels > 1)
 		goto fail;
 
-	if (iview->image->surface.level[0].mode < RADEON_SURF_MODE_1D)
+	if (iview->image->surface.u.legacy.level[0].mode < RADEON_SURF_MODE_1D)
 		goto fail;
 	if (!radv_image_extent_compare(iview->image, &iview->extent))
 		goto fail;
@@ -817,6 +913,11 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	if (clear_rect->baseArrayLayer != 0)
 		goto fail;
 	if (clear_rect->layerCount != iview->image->info.array_size)
+		goto fail;
+
+	/* RB+ doesn't work with CMASK fast clear on Stoney. */
+	if (!iview->image->surface.dcc_size &&
+	    cmd_buffer->device->physical_device->rad_info.family == CHIP_STONEY)
 		goto fail;
 
 	/* DCC */
@@ -877,7 +978,9 @@ emit_clear(struct radv_cmd_buffer *cmd_buffer,
 	} else {
 		assert(clear_att->aspectMask & (VK_IMAGE_ASPECT_DEPTH_BIT |
 						VK_IMAGE_ASPECT_STENCIL_BIT));
-		emit_depthstencil_clear(cmd_buffer, clear_att, clear_rect);
+		if (!emit_fast_htile_clear(cmd_buffer, clear_att, clear_rect,
+		                           pre_flush, post_flush))
+			emit_depthstencil_clear(cmd_buffer, clear_att, clear_rect);
 	}
 }
 

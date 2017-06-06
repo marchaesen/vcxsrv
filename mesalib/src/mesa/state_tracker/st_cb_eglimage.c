@@ -39,6 +39,35 @@
 #include "st_sampler_view.h"
 #include "util/u_surface.h"
 
+static bool
+is_format_supported(struct pipe_screen *screen, enum pipe_format format,
+                    unsigned nr_samples, unsigned usage)
+{
+   bool supported = screen->is_format_supported(screen, format, PIPE_TEXTURE_2D,
+                                                nr_samples, usage);
+
+   /* for sampling, some formats can be emulated.. it doesn't matter that
+    * the surface will have a format that the driver can't cope with because
+    * we'll give it sampler view formats that it can deal with and generate
+    * a shader variant that converts.
+    */
+   if ((usage == PIPE_BIND_SAMPLER_VIEW) && !supported) {
+      if (format == PIPE_FORMAT_IYUV) {
+         supported = screen->is_format_supported(screen, PIPE_FORMAT_R8_UNORM,
+                                                 PIPE_TEXTURE_2D, nr_samples,
+                                                 usage);
+      } else if (format == PIPE_FORMAT_NV12) {
+         supported = screen->is_format_supported(screen, PIPE_FORMAT_R8_UNORM,
+                                                 PIPE_TEXTURE_2D, nr_samples,
+                                                 usage) &&
+                     screen->is_format_supported(screen, PIPE_FORMAT_R8G8_UNORM,
+                                                 PIPE_TEXTURE_2D, nr_samples,
+                                                 usage);
+      }
+   }
+
+   return supported;
+}
 
 /**
  * Return the surface of an EGLImage.
@@ -65,8 +94,7 @@ st_egl_image_get_surface(struct gl_context *ctx, GLeglImageOES image_handle,
       return NULL;
    }
 
-   if (!screen->is_format_supported(screen, stimg.format, PIPE_TEXTURE_2D,
-                                    stimg.texture->nr_samples, usage)) {
+   if (!is_format_supported(screen, stimg.format, stimg.texture->nr_samples, usage)) {
       /* unable to specify a texture object using the specified EGL image */
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(format not supported)", error);
       return NULL;

@@ -180,7 +180,7 @@ xkb_symbols "T3" {
     key.type[Group1] = "THREE_LEVEL";
     key <LFSH> { [ Shift_L, Shift_L, ISO_Level5_Latch ] };
     key <RTSH> { [ Shift_R, Shift_R, ISO_Level5_Latch ] };
-    key <RALT> { [ ISO_Level3_Switch, ISO_Level5_Latch, ISO_Level5_Latch ] };
+    key <RALT> { [ ISO_Level3_Shift, ISO_Level5_Latch, ISO_Level5_Latch ] };
  };
 
 partial alphanumeric_keys
@@ -631,6 +631,108 @@ xkb_symbols "ru" {
     key <AC11> { [        Cyrillic_e,        Cyrillic_E ] };
     key <BKSL> { [       Cyrillic_yu,       Cyrillic_YU, numbersign, apostrophe ] };
     key <LatQ> { [       Cyrillic_ya,       Cyrillic_YA ] };
+
+    include "level3(ralt_switch)"
+};
+
+// layout for Russian (recommended) letters on a german keyboard
+// based on "Russisch für Deutsche, empfohlen" by B. Bendixen und H. Rothe http://russisch.urz.uni-leipzig.de/key2000.htm 2016-02-01
+// adapted for Linux by Niko Krause <nikokrause@gmx.de> 2016-06-09
+
+partial alphanumeric_keys
+xkb_symbols "ru-recom" {
+
+    include "de(basic)"
+
+    name[Group1]= "Russian (Germany, recommended)";
+
+    key <LatA> { [        Cyrillic_a,        Cyrillic_A ] };
+    key <LatB> { [       Cyrillic_be,       Cyrillic_BE ] };
+    key <LatW> { [       Cyrillic_ve,       Cyrillic_VE ] };
+    key <LatG> { [      Cyrillic_ghe,      Cyrillic_GHE, Ukrainian_ghe_with_upturn, Ukrainian_GHE_WITH_UPTURN ] };
+    key <LatD> { [       Cyrillic_de,       Cyrillic_DE ] };
+    key <LatE> { [       Cyrillic_ie,       Cyrillic_IE ] };
+    key <TLDE> { [       Cyrillic_ya,       Cyrillic_YA, asciicircum, degree ] };
+    key <LatX> { [      Cyrillic_ha,      Cyrillic_HA ] };
+    key <LatZ> { [       Cyrillic_tse,       Cyrillic_TSE ] };
+    key <LatI> { [        Cyrillic_i,        Cyrillic_I, Ukrainian_i,  Ukrainian_I ] };
+    key <LatJ> { [   Cyrillic_shorti,   Cyrillic_SHORTI, Ukrainian_yi, Ukrainian_YI ] };
+    key <LatK> { [       Cyrillic_ka,       Cyrillic_KA ] };
+    key <LatL> { [       Cyrillic_el,       Cyrillic_EL ] };
+    key <LatM> { [       Cyrillic_em,       Cyrillic_EM ] };
+    key <LatN> { [       Cyrillic_en,       Cyrillic_EN ] };
+    key <LatO> { [        Cyrillic_o,        Cyrillic_O ] };
+    key <LatP> { [       Cyrillic_pe,       Cyrillic_PE ] };
+    key <LatR> { [       Cyrillic_er,       Cyrillic_ER ] };
+    key <LatS> { [       Cyrillic_es,       Cyrillic_ES, Cyrillic_ze, Cyrillic_ZE ] };
+    key <LatT> { [       Cyrillic_te,       Cyrillic_TE ] };
+    key <LatU> { [        Cyrillic_u,        Cyrillic_U ] };
+    key <LatF> { [       Cyrillic_ef,       Cyrillic_EF ] };
+    key <LatH> { [       Cyrillic_zhe,       Cyrillic_ZHE ] };
+    key <LatC> { [      Cyrillic_che,      Cyrillic_CHE ] };
+    key <AC10> { [      Cyrillic_io,      Cyrillic_IO ] };
+    key <AD11> { [      Cyrillic_yu,      Cyrillic_YU ] };
+    key <AD12> { [    Cyrillic_sha,    Cyrillic_SHA, plus, asterisk ] };
+    key <LSGT> { [ Cyrillic_ze, Cyrillic_ZE ] };
+    key <LatY> { [     Cyrillic_yeru,     Cyrillic_YERU ] };
+    key <LatV> { [ Cyrillic_softsign, Cyrillic_SOFTSIGN ] };
+    key <AC11> { [        Cyrillic_e,        Cyrillic_E, Ukrainian_ie, Ukrainian_IE ] };
+    key <BKSL> { [       Cyrillic_hardsign,       Cyrillic_HARDSIGN, numbersign, apostrophe ] };
+    key <LatQ> { [       Cyrillic_shcha,       Cyrillic_SHCHA ] };
+
+    key <AE11> { [ asciitilde, question, backslash, questiondown ] };
+    key <AE12>	{ [     U0301,      U0300,      U0323,      U0307 ]	};
+
+    include "level3(ralt_switch)"
+};
+
+// layout for Russian (transliteration) letters on a german keyboard
+// based on "Russisch für Deutsche, Transliteration" by B. Bendixen und H. Rothe http://russisch.urz.uni-leipzig.de/key2000.htm 2016-02-01
+// adapted for Linux by Niko Krause <nikokrause@gmx.de> 2016-06-09
+
+partial alphanumeric_keys
+xkb_symbols "ru-translit" {
+
+    include "de(basic)"
+
+    name[Group1]= "Russian (Germany, transliteration)";
+
+    key <LatA> { [        Cyrillic_a,        Cyrillic_A ] };
+    key <LatB> { [       Cyrillic_be,       Cyrillic_BE ] };
+    key <LatW> { [       Cyrillic_sha,       Cyrillic_SHA ] };
+    key <LatG> { [      Cyrillic_ghe,      Cyrillic_GHE, Ukrainian_ghe_with_upturn, Ukrainian_GHE_WITH_UPTURN ] };
+    key <LatD> { [       Cyrillic_de,       Cyrillic_DE ] };
+    key <LatE> { [       Cyrillic_ie,       Cyrillic_IE ] };
+    key <TLDE> { [       Cyrillic_ya,       Cyrillic_YA, asciicircum, degree ] };
+    key <LatX> { [      Cyrillic_ha,      Cyrillic_HA ] };
+    key <LatZ> { [       Cyrillic_ze,       Cyrillic_ZE ] };
+    key <LatI> { [        Cyrillic_i,        Cyrillic_I, Ukrainian_i,  Ukrainian_I ] };
+    key <LatJ> { [   Cyrillic_shorti,   Cyrillic_SHORTI, Ukrainian_yi, Ukrainian_YI ] };
+    key <LatK> { [       Cyrillic_ka,       Cyrillic_KA ] };
+    key <LatL> { [       Cyrillic_el,       Cyrillic_EL ] };
+    key <LatM> { [       Cyrillic_em,       Cyrillic_EM ] };
+    key <LatN> { [       Cyrillic_en,       Cyrillic_EN ] };
+    key <LatO> { [        Cyrillic_o,        Cyrillic_O ] };
+    key <LatP> { [       Cyrillic_pe,       Cyrillic_PE ] };
+    key <LatR> { [       Cyrillic_er,       Cyrillic_ER ] };
+    key <LatS> { [       Cyrillic_es,       Cyrillic_ES, Cyrillic_che, Cyrillic_CHE ] };
+    key <LatT> { [       Cyrillic_te,       Cyrillic_TE ] };
+    key <LatU> { [        Cyrillic_u,        Cyrillic_U ] };
+    key <LatF> { [       Cyrillic_ef,       Cyrillic_EF ] };
+    key <LatH> { [       Cyrillic_zhe,       Cyrillic_ZHE ] };
+    key <LatC> { [      Cyrillic_tse,      Cyrillic_TSE ] };
+    key <AC10> { [      Cyrillic_io,      Cyrillic_IO ] };
+    key <AD11> { [      Cyrillic_yu,      Cyrillic_YU ] };
+    key <AD12> { [    Cyrillic_hardsign,    Cyrillic_HARDSIGN, plus, asterisk ] };
+    key <LSGT> { [ Cyrillic_che, Cyrillic_CHE ] };
+    key <LatY> { [     Cyrillic_yeru,     Cyrillic_YERU ] };
+    key <LatV> { [ Cyrillic_ve, Cyrillic_VE ] };
+    key <AC11> { [        Cyrillic_e,        Cyrillic_E, Ukrainian_ie, Ukrainian_IE ] };
+    key <BKSL> { [       Cyrillic_softsign,       Cyrillic_SOFTSIGN, numbersign, apostrophe ] };
+    key <LatQ> { [       Cyrillic_shcha,       Cyrillic_SHCHA ] };
+
+    key <AE11> { [ asciitilde, question, backslash, questiondown ] };
+    key <AE12>	{ [     U0301,      U0300,      U0323,      U0307 ]	};
 
     include "level3(ralt_switch)"
 };

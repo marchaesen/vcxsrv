@@ -723,8 +723,8 @@ glamor_is_large_pixmap(PixmapPtr pixmap)
 static inline void
 glamor_make_current(glamor_screen_private *glamor_priv)
 {
-    if (lastGLContext != &glamor_priv->ctx) {
-        lastGLContext = &glamor_priv->ctx;
+    if (lastGLContext != glamor_priv->ctx.ctx) {
+        lastGLContext = glamor_priv->ctx.ctx;
         glamor_priv->ctx.make_current(&glamor_priv->ctx);
     }
 }

@@ -420,7 +420,6 @@ public:
    uint32_t samplers_used;
    glsl_base_type sampler_types[PIPE_MAX_SAMPLERS];
    int sampler_targets[PIPE_MAX_SAMPLERS];   /**< One of TGSI_TEXTURE_* */
-   int buffers_used;
    int images_used;
    int image_targets[PIPE_MAX_SHADER_IMAGES];
    unsigned image_formats[PIPE_MAX_SHADER_IMAGES];
@@ -4543,7 +4542,6 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    num_immediates = 0;
    num_address_regs = 0;
    samplers_used = 0;
-   buffers_used = 0;
    images_used = 0;
    indirect_addr_consts = false;
    wpos_transform_const = -1;
@@ -4581,7 +4579,6 @@ static void
 count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
 {
    v->samplers_used = 0;
-   v->buffers_used = 0;
    v->images_used = 0;
 
    foreach_in_list(glsl_to_tgsi_instruction, inst, &v->instructions) {
@@ -4607,12 +4604,9 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
       if (inst->resource.file != PROGRAM_UNDEFINED && (
                 is_resource_instruction(inst->op) ||
                 inst->op == TGSI_OPCODE_STORE)) {
-         if (inst->resource.file == PROGRAM_BUFFER) {
-            v->buffers_used |= 1 << inst->resource.index;
-         } else if (inst->resource.file == PROGRAM_MEMORY) {
+         if (inst->resource.file == PROGRAM_MEMORY) {
             v->use_shared_memory = true;
-         } else {
-            assert(inst->resource.file == PROGRAM_IMAGE);
+         } else if (inst->resource.file == PROGRAM_IMAGE) {
             for (int i = 0; i < inst->sampler_array_size; i++) {
                unsigned idx = inst->sampler_base + i;
                v->images_used |= 1 << idx;
@@ -5877,6 +5871,7 @@ compile_tgsi_instruction(struct st_translate *t,
                     inst->op,
                     dst, num_dst,
                     tex_target,
+                    st_translate_texture_type(inst->tex_type),
                     texoffsets, inst->tex_offset_num_offset,
                     src, num_src);
       return;
@@ -6381,8 +6376,13 @@ st_translate_program(
    }
 
    if (procType == PIPE_SHADER_FRAGMENT) {
-      if (program->shader->Program->info.fs.early_fragment_tests)
+      if (program->shader->Program->info.fs.early_fragment_tests ||
+          program->shader->Program->info.fs.post_depth_coverage) {
          ureg_property(ureg, TGSI_PROPERTY_FS_EARLY_DEPTH_STENCIL, 1);
+
+         if (program->shader->Program->info.fs.post_depth_coverage)
+            ureg_property(ureg, TGSI_PROPERTY_FS_POST_DEPTH_COVERAGE, 1);
+      }
 
       if (proginfo->info.inputs_read & VARYING_BIT_POS) {
           /* Must do this after setting up t->inputs. */
@@ -6570,39 +6570,29 @@ st_translate_program(
    /* texture samplers */
    for (i = 0; i < frag_const->MaxTextureImageUnits; i++) {
       if (program->samplers_used & (1u << i)) {
-         unsigned type;
+         unsigned type = st_translate_texture_type(program->sampler_types[i]);
 
          t->samplers[i] = ureg_DECL_sampler(ureg, i);
-
-         switch (program->sampler_types[i]) {
-         case GLSL_TYPE_INT:
-            type = TGSI_RETURN_TYPE_SINT;
-            break;
-         case GLSL_TYPE_UINT:
-            type = TGSI_RETURN_TYPE_UINT;
-            break;
-         case GLSL_TYPE_FLOAT:
-            type = TGSI_RETURN_TYPE_FLOAT;
-            break;
-         default:
-            unreachable("not reached");
-         }
 
          ureg_DECL_sampler_view( ureg, i, program->sampler_targets[i],
                                  type, type, type, type );
       }
    }
 
-   for (i = 0; i < frag_const->MaxAtomicBuffers; i++) {
-      if (program->buffers_used & (1 << i)) {
-         t->buffers[i] = ureg_DECL_buffer(ureg, i, true);
-      }
-   }
+   /* Declare atomic and shader storage buffers. */
+   {
+      struct gl_program *prog = program->prog;
 
-   for (; i < frag_const->MaxAtomicBuffers + frag_const->MaxShaderStorageBlocks;
-        i++) {
-      if (program->buffers_used & (1 << i)) {
-         t->buffers[i] = ureg_DECL_buffer(ureg, i, false);
+      for (i = 0; i < prog->info.num_abos; i++) {
+         unsigned index = prog->sh.AtomicBuffers[i]->Binding;
+         assert(index < frag_const->MaxAtomicBuffers);
+         t->buffers[index] = ureg_DECL_buffer(ureg, index, true);
+      }
+
+      assert(prog->info.num_ssbos <= frag_const->MaxShaderStorageBlocks);
+      for (i = 0; i < prog->info.num_ssbos; i++) {
+         unsigned index = frag_const->MaxAtomicBuffers + i;
+         t->buffers[index] = ureg_DECL_buffer(ureg, index, false);
       }
    }
 

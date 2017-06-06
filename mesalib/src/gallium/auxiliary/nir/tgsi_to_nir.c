@@ -1411,15 +1411,17 @@ ttn_tex(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
    }
 
    if (tgsi_inst->Instruction.Opcode == TGSI_OPCODE_TXD) {
+      instr->src[src_number].src_type = nir_tex_src_ddx;
       instr->src[src_number].src =
          nir_src_for_ssa(nir_swizzle(b, src[1], SWIZ(X, Y, Z, W),
-              instr->coord_components, false));
-      instr->src[src_number].src_type = nir_tex_src_ddx;
+				     nir_tex_instr_src_size(instr, src_number),
+				     false));
       src_number++;
+      instr->src[src_number].src_type = nir_tex_src_ddy;
       instr->src[src_number].src =
          nir_src_for_ssa(nir_swizzle(b, src[2], SWIZ(X, Y, Z, W),
-              instr->coord_components, false));
-      instr->src[src_number].src_type = nir_tex_src_ddy;
+				     nir_tex_instr_src_size(instr, src_number),
+				     false));
       src_number++;
    }
 
@@ -1462,7 +1464,9 @@ ttn_tex(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
 
    assert(src_number == num_srcs);
 
-   nir_ssa_dest_init(&instr->instr, &instr->dest, 4, 32, NULL);
+   nir_ssa_dest_init(&instr->instr, &instr->dest,
+		     nir_tex_instr_dest_size(instr),
+		     32, NULL);
    nir_builder_instr_insert(b, &instr->instr);
 
    /* Resolve the writemask on the texture op. */
@@ -1501,7 +1505,8 @@ ttn_txq(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
    txs->src[0].src = nir_src_for_ssa(ttn_channel(b, src[0], X));
    txs->src[0].src_type = nir_tex_src_lod;
 
-   nir_ssa_dest_init(&txs->instr, &txs->dest, 3, 32, NULL);
+   nir_ssa_dest_init(&txs->instr, &txs->dest,
+		     nir_tex_instr_dest_size(txs), 32, NULL);
    nir_builder_instr_insert(b, &txs->instr);
 
    nir_ssa_dest_init(&qlv->instr, &qlv->dest, 1, 32, NULL);

@@ -704,8 +704,8 @@ struct gl_multisample_attrib
    /* ARB_texture_multisample / GL3.2 additions */
    GLboolean SampleMask;
 
-   GLfloat SampleCoverageValue;
-   GLfloat MinSampleShadingValue;
+   GLfloat SampleCoverageValue;  /**< In range [0, 1] */
+   GLfloat MinSampleShadingValue;  /**< In range [0, 1] */
 
    /** The GL spec defines this as an array but >32x MSAA is madness */
    GLbitfield SampleMaskValue;
@@ -2814,6 +2814,13 @@ struct gl_shader_program_data
 
    bool cache_fallback;
 
+   /* TODO: This used by Gallium drivers to skip the cache on tgsi fallback.
+    * All structures (gl_program, uniform storage, etc) will get recreated
+    * even though we have already loaded them from cache. Once the i965 cache
+    * lands we should switch to using the cache_fallback support.
+    */
+   bool skip_cache;
+
    /** List of all active resources after linking. */
    struct gl_program_resource *ProgramResourceList;
    unsigned NumProgramResourceList;
@@ -2977,6 +2984,7 @@ struct gl_shader_program
 #define GLSL_REPORT_ERRORS 0x40  /**< Print compilation errors */
 #define GLSL_DUMP_ON_ERROR 0x80 /**< Dump shaders to stderr on compile error */
 #define GLSL_CACHE_INFO 0x100 /**< Print debug information about shader cache */
+#define GLSL_CACHE_FALLBACK 0x200 /**< Force shader cache fallback paths */
 
 
 /**
@@ -3630,6 +3638,11 @@ struct gl_constants
    GLboolean AllowGLSLExtensionDirectiveMidShader;
 
    /**
+    * Allow GLSL built-in variables to be redeclared verbatim
+    */
+   GLboolean AllowGLSLBuiltinVariableRedeclaration;
+
+   /**
     * Allow creating a higher compat profile (version 3.1+) for apps that
     * request it. Be careful when adding that driconf option because some
     * features are unimplemented and might not work correctly.
@@ -3908,6 +3921,9 @@ struct gl_constants
 
    /** Used as an input for sha1 generation in the on-disk shader cache */
    unsigned char *dri_config_options_sha1;
+
+   /** When drivers are OK with mapped buffers during draw and other calls. */
+   bool AllowMappedBuffersDuringExecution;
 };
 
 
@@ -3987,7 +4003,6 @@ struct gl_extensions
    GLboolean ARB_shader_precision;
    GLboolean ARB_shader_stencil_export;
    GLboolean ARB_shader_storage_buffer_object;
-   GLboolean ARB_shader_subroutine;
    GLboolean ARB_shader_texture_image_samples;
    GLboolean ARB_shader_texture_lod;
    GLboolean ARB_shader_viewport_layer_array;
@@ -4382,6 +4397,11 @@ struct gl_driver_flags
     * gl_context::IntelConservativeRasterization
     */
    uint64_t NewIntelConservativeRasterization;
+
+   /**
+    * gl_context::Scissor::WindowRects
+    */
+   uint64_t NewWindowRectangles;
 };
 
 struct gl_uniform_buffer_binding

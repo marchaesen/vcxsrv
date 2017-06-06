@@ -170,6 +170,28 @@
             <_description>German (Neo qwerty)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>ru-recom</name>
+            <!-- Keyboard indicator for Russian layouts -->
+            <_shortDescription>ru</_shortDescription>
+            <_description>Russian (Germany, recommended)</_description>
+            <languageList>
+              <iso639Id>rus</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+	    <variant>
+          <configItem>
+            <name>ru-translit</name>
+            <!-- Keyboard indicator for Russian layouts -->
+            <_shortDescription>ru</_shortDescription>
+            <_description>Russian (Germany, transliteration)</_description>
+            <languageList>
+              <iso639Id>rus</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

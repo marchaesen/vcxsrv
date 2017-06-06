@@ -38,6 +38,7 @@
 #include <xf86drm.h>
 #include "util/hash_table.h"
 
+#include "util/vk_util.h"
 #include "wsi_common.h"
 #include "wsi_common_x11.h"
 #include "wsi_common_queue.h"
@@ -235,9 +236,9 @@ wsi_x11_get_connection(struct wsi_device *wsi_dev,
    return entry->data;
 }
 
-static const VkSurfaceFormatKHR formats[] = {
-   { .format = VK_FORMAT_B8G8R8A8_SRGB, },
-   { .format = VK_FORMAT_B8G8R8A8_UNORM, },
+static const VkFormat formats[] = {
+   VK_FORMAT_B8G8R8A8_SRGB,
+   VK_FORMAT_B8G8R8A8_UNORM,
 };
 
 static const VkPresentModeKHR present_modes[] = {
@@ -511,21 +512,51 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
 }
 
 static VkResult
+x11_surface_get_capabilities2(VkIcdSurfaceBase *icd_surface,
+                              const void *info_next,
+                              VkSurfaceCapabilities2KHR *caps)
+{
+   assert(caps->sType == VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR);
+
+   return x11_surface_get_capabilities(icd_surface, &caps->surfaceCapabilities);
+}
+
+static VkResult
 x11_surface_get_formats(VkIcdSurfaceBase *surface,
                         struct wsi_device *wsi_device,
                         uint32_t *pSurfaceFormatCount,
                         VkSurfaceFormatKHR *pSurfaceFormats)
 {
-   if (pSurfaceFormats == NULL) {
-      *pSurfaceFormatCount = ARRAY_SIZE(formats);
-      return VK_SUCCESS;
+   VK_OUTARRAY_MAKE(out, pSurfaceFormats, pSurfaceFormatCount);
+
+   for (unsigned i = 0; i < ARRAY_SIZE(formats); i++) {
+      vk_outarray_append(&out, f) {
+         f->format = formats[i];
+         f->colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+      }
    }
 
-   *pSurfaceFormatCount = MIN2(*pSurfaceFormatCount, ARRAY_SIZE(formats));
-   typed_memcpy(pSurfaceFormats, formats, *pSurfaceFormatCount);
+   return vk_outarray_status(&out);
+}
 
-   return *pSurfaceFormatCount < ARRAY_SIZE(formats) ?
-      VK_INCOMPLETE : VK_SUCCESS;
+static VkResult
+x11_surface_get_formats2(VkIcdSurfaceBase *surface,
+                        struct wsi_device *wsi_device,
+                        const void *info_next,
+                        uint32_t *pSurfaceFormatCount,
+                        VkSurfaceFormat2KHR *pSurfaceFormats)
+{
+   VK_OUTARRAY_MAKE(out, pSurfaceFormats, pSurfaceFormatCount);
+
+   for (unsigned i = 0; i < ARRAY_SIZE(formats); i++) {
+      vk_outarray_append(&out, f) {
+         assert(f->sType == VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR);
+         f->surfaceFormat.format = formats[i];
+         f->surfaceFormat.colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+      }
+   }
+
+   return vk_outarray_status(&out);
 }
 
 static VkResult
@@ -1242,7 +1273,9 @@ wsi_x11_init_wsi(struct wsi_device *wsi_device,
 
    wsi->base.get_support = x11_surface_get_support;
    wsi->base.get_capabilities = x11_surface_get_capabilities;
+   wsi->base.get_capabilities2 = x11_surface_get_capabilities2;
    wsi->base.get_formats = x11_surface_get_formats;
+   wsi->base.get_formats2 = x11_surface_get_formats2;
    wsi->base.get_present_modes = x11_surface_get_present_modes;
    wsi->base.create_swapchain = x11_surface_create_swapchain;
 

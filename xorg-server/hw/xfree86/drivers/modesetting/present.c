@@ -180,7 +180,7 @@ ms_present_abort_vblank(RRCrtcPtr crtc, uint64_t event_id, uint64_t msc)
 static void
 ms_present_flush(WindowPtr window)
 {
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     ScreenPtr screen = window->drawable.pScreen;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
@@ -190,7 +190,7 @@ ms_present_flush(WindowPtr window)
 #endif
 }
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
 
 /**
  * Callback for the DRM event queue when a flip has completed on all pipes
@@ -255,10 +255,8 @@ ms_present_check_flip(RRCrtcPtr crtc,
         drmmode_crtc_private_ptr drmmode_crtc = config->crtc[i]->driver_private;
 
         /* Don't do pageflipping if CRTCs are rotated. */
-#ifdef GLAMOR_HAS_GBM
         if (drmmode_crtc->rotate_bo.gbm)
             return FALSE;
-#endif
 
         if (ms_crtc_on(config->crtc[i]))
             num_crtcs_on++;
@@ -387,7 +385,7 @@ static present_screen_info_rec ms_present_screen_info = {
     .flush = ms_present_flush,
 
     .capabilities = PresentCapabilityNone,
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
     .check_flip = ms_present_check_flip,
     .flip = ms_present_flip,
     .unflip = ms_present_unflip,

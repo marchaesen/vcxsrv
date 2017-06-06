@@ -163,7 +163,9 @@ typedef int pid_t;
 #include "miline.h"
 #include "shadow.h"
 #include "fb.h"
+#ifdef XWIN_MULTIWINDOWEXTWM
 #include "rootless.h"
+#endif
 
 #include "mipict.h"
 #include "picturestr.h"

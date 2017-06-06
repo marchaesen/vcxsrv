@@ -25,6 +25,7 @@ COMMON_LIBS = common/libamd_common.la
 
 # TODO cleanup these
 common_libamd_common_la_CPPFLAGS = \
+	$(AMDGPU_CFLAGS) \
 	$(VALGRIND_CFLAGS) \
 	$(DEFINES) \
 	-I$(top_srcdir)/include \
@@ -45,6 +46,7 @@ common_libamd_common_la_CFLAGS = \
 	$(VISIBILITY_CFLAGS) \
 	$(PTHREAD_CFLAGS) \
 	$(LLVM_CFLAGS) \
+	$(LIBDRM_CFLAGS) \
 	$(LIBELF_CFLAGS)
 
 common_libamd_common_la_CXXFLAGS = \
@@ -54,6 +56,7 @@ common_libamd_common_la_CXXFLAGS = \
 noinst_LTLIBRARIES += $(COMMON_LIBS)
 
 common_libamd_common_la_SOURCES = \
+	$(AMD_COMMON_FILES) \
 	$(AMD_COMPILER_FILES) \
 	$(AMD_DEBUG_FILES) \
 	$(AMD_GENERATED_FILES)

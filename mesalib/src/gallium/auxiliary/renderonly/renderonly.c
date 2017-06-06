@@ -117,6 +117,7 @@ renderonly_create_kms_dumb_buffer_for_resource(struct pipe_resource *rsc,
    }
 
    /* import dumb buffer */
+   memset(&handle, 0, sizeof(handle));
    handle.type = DRM_API_HANDLE_TYPE_FD;
    handle.handle = prime_fd;
    handle.stride = create_dumb.pitch;

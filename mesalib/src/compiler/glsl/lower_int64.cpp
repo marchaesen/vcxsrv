@@ -341,6 +341,7 @@ lower_64bit_visitor::handle_op(ir_expression *ir,
       add_function(f);
    }
 
+   this->progress = true;
    return lower_op_to_function_call(this->base_ir, ir, callee);
 }
 
@@ -357,7 +358,6 @@ lower_64bit_visitor::handle_rvalue(ir_rvalue **rvalue)
    case ir_unop_sign:
       if (lowering(SIGN64)) {
          *rvalue = handle_op(ir, "__builtin_sign64", generate_ir::sign64);
-         this->progress = true;
       }
       break;
 
@@ -368,7 +368,6 @@ lower_64bit_visitor::handle_rvalue(ir_rvalue **rvalue)
          } else {
             *rvalue = handle_op(ir, "__builtin_idiv64", generate_ir::idiv64);
          }
-         this->progress = true;
       }
       break;
 
@@ -379,14 +378,12 @@ lower_64bit_visitor::handle_rvalue(ir_rvalue **rvalue)
          } else {
             *rvalue = handle_op(ir, "__builtin_imod64", generate_ir::imod64);
          }
-         this->progress = true;
       }
       break;
 
    case ir_binop_mul:
       if (lowering(MUL64)) {
          *rvalue = handle_op(ir, "__builtin_umul64", generate_ir::umul64);
-         this->progress = true;
       }
       break;
 

@@ -42,7 +42,7 @@
 #include "driver.h"
 #include "dri2.h"
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
 
 enum ms_dri2_frame_event_type {
     MS_DRI2_QUEUE_SWAP,
@@ -1113,4 +1113,4 @@ ms_dri2_close_screen(ScreenPtr screen)
     DRI2CloseScreen(screen);
 }
 
-#endif /* GLAMOR */
+#endif /* GLAMOR_HAS_GBM */

@@ -4268,7 +4268,7 @@
     <enum name="DOT3_RGB"                                 value="0x86AE"/>
     <enum name="DOT3_RGBA"                                value="0x86AF"/>
 
-    <function name="ActiveTexture" es1="1.0" es2="2.0">
+    <function name="ActiveTexture" es1="1.0" es2="2.0" no_error="true">
         <param name="texture" type="GLenum"/>
         <glx rop="197"/>
     </function>
@@ -4543,7 +4543,8 @@
         <glx rop="214" handcode="client"/>
     </function>
 
-    <function name="CompressedTexSubImage3D" es2="3.0" marshal="sync">
+    <function name="CompressedTexSubImage3D" es2="3.0" marshal="sync"
+              no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4558,7 +4559,8 @@
         <glx rop="219" handcode="client"/>
     </function>
 
-    <function name="CompressedTexSubImage2D" es1="1.0" es2="2.0" marshal="sync">
+    <function name="CompressedTexSubImage2D" es1="1.0" es2="2.0" marshal="sync"
+              no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4571,7 +4573,7 @@
         <glx rop="218" handcode="client"/>
     </function>
 
-    <function name="CompressedTexSubImage1D" marshal="sync">
+    <function name="CompressedTexSubImage1D" marshal="sync" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -5049,7 +5051,8 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="BufferSubData" es1="1.1" es2="2.0" marshal="custom">
+    <function name="BufferSubData" es1="1.1" es2="2.0" marshal="custom"
+              no_error="true">
         <param name="target" type="GLenum"/>
         <param name="offset" type="GLintptr"/>
         <param name="size" type="GLsizeiptr" counter="true"/>
@@ -5500,7 +5503,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="UseProgram" es2="2.0">
+    <function name="UseProgram" es2="2.0" no_error="true">
         <param name="program" type="GLuint"/>
         <glx ignore="true"/>
     </function>
@@ -8260,7 +8263,7 @@
     <enum name="BUFFER_STORAGE_FLAGS" value="0x8220" />
     <enum name="CLIENT_MAPPED_BUFFER_BARRIER_BIT" value="0x4000" />
 
-    <function name="BufferStorage">
+    <function name="BufferStorage" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="size" type="GLsizeiptr"/>
         <param name="data" type="const GLvoid *"/>
@@ -12528,7 +12531,7 @@
 </category>
 
 <xi:include href="APPLE_object_purgeable.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
-<!-- Extension number 273 obsolete APPLE_vertex_array_object. -->
+<xi:include href="APPLE_vertex_array_object.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <category name="GL_APPLE_ycbcr_422" number="275">
     <enum name="YCBCR_422_APPLE"                          value="0x85B9"/>

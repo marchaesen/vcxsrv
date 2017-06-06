@@ -28,7 +28,7 @@ shared_module(
 # Test that we don't have any unresolved symbols from our module to Xorg.
 xorg_build_root = join_paths(meson.build_root(), 'hw', 'xfree86')
 symbol_test_args = []
-symbol_test_args += join_paths(xorg_build_root, 'Xorg')
+symbol_test_args += join_paths(xorg_build_root, 'libxorgserver.so')
 symbol_test_args += join_paths(xorg_build_root, 'dixmods', 'libfb.so')
 symbol_test_args += join_paths(xorg_build_root, 'dixmods', 'libshadow.so')
 if build_glamor

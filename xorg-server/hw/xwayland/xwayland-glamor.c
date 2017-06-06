@@ -243,8 +243,6 @@ xwl_glamor_create_screen_resources(ScreenPtr screen)
             xwl_glamor_create_pixmap(screen, screen->width, screen->height,
                                      screen->rootDepth,
                                      CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
-        if (screen->devPrivate)
-            glamor_set_screen_pixmap(screen->devPrivate, NULL);
     }
 
     SetRootClip(screen, xwl_screen->root_clip_mode);

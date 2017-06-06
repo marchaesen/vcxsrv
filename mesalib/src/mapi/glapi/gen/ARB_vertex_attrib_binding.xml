@@ -7,7 +7,7 @@
 
 <category name="GL_ARB_vertex_attrib_binding" number="125">
 
-    <function name="BindVertexBuffer" es2="3.1">
+    <function name="BindVertexBuffer" es2="3.1" no_error="true">
         <param name="bindingindex" type="GLuint"/>
         <param name="buffer" type="GLuint"/>
         <param name="offset" type="GLintptr"/>

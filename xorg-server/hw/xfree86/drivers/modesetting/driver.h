@@ -33,12 +33,10 @@
 #include <xf86Crtc.h>
 #include <damage.h>
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
 #define GLAMOR_FOR_XORG 1
 #include "glamor.h"
-#ifdef GLAMOR_HAS_GBM
 #include <gbm.h>
-#endif
 #endif
 
 #include "drmmode_display.h"
@@ -146,7 +144,7 @@ void ms_vblank_close_screen(ScreenPtr screen);
 
 Bool ms_present_screen_init(ScreenPtr screen);
 
-#ifdef GLAMOR
+#ifdef GLAMOR_HAS_GBM
 
 typedef void (*ms_pageflip_handler_proc)(modesettingPtr ms,
                                          uint64_t frame,

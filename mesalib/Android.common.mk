@@ -44,6 +44,7 @@ LOCAL_CFLAGS += \
 # It's likely due to a bug elsewhere, but let's temporarily add them
 # here to fix the radeonsi build.
 LOCAL_CFLAGS += \
+	-DANDROID_API_LEVEL=$(PLATFORM_SDK_VERSION) \
 	-DENABLE_SHADER_CACHE \
 	-D__STDC_CONSTANT_MACROS \
 	-D__STDC_LIMIT_MACROS \
@@ -64,6 +65,7 @@ LOCAL_CFLAGS += \
 	-DHAVE_PTHREAD=1 \
 	-DHAVE_DLOPEN \
 	-DHAVE_DL_ITERATE_PHDR \
+	-DMAJOR_IN_SYSMACROS \
 	-fvisibility=hidden \
 	-Wno-sign-compare
 
@@ -103,7 +105,3 @@ endif
 
 # Quiet down the build system and remove any .h files from the sources
 LOCAL_SRC_FILES := $(patsubst %.h, , $(LOCAL_SRC_FILES))
-
-ifneq ($(LOCAL_IS_HOST_MODULE),true)
-LOCAL_SHARED_LIBRARIES += libz
-endif

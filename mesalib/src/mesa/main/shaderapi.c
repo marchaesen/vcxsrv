@@ -77,6 +77,8 @@ _mesa_get_shader_flags(void)
          flags |= GLSL_DUMP;
       if (strstr(env, "log"))
          flags |= GLSL_LOG;
+      if (strstr(env, "cache_fb"))
+         flags |= GLSL_CACHE_FALLBACK;
       if (strstr(env, "cache_info"))
          flags |= GLSL_CACHE_INFO;
       if (strstr(env, "nopvert"))
@@ -1242,33 +1244,6 @@ _mesa_active_program(struct gl_context *ctx, struct gl_shader_program *shProg,
 }
 
 
-static void
-use_program(struct gl_context *ctx, gl_shader_stage stage,
-            struct gl_shader_program *shProg, struct gl_program *new_prog,
-            struct gl_pipeline_object *shTarget)
-{
-   struct gl_program **target;
-
-   target = &shTarget->CurrentProgram[stage];
-   if (new_prog) {
-      _mesa_program_init_subroutine_defaults(ctx, new_prog);
-   }
-
-   if (*target != new_prog) {
-      /* Program is current, flush it */
-      if (shTarget == ctx->_Shader) {
-         FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
-      }
-
-      _mesa_reference_shader_program(ctx,
-                                     &shTarget->ReferencedPrograms[stage],
-                                     shProg);
-      _mesa_reference_program(ctx, target, new_prog);
-      return;
-   }
-}
-
-
 /**
  * Use the named shader program for subsequent rendering.
  */
@@ -1280,7 +1255,7 @@ _mesa_use_shader_program(struct gl_context *ctx,
       struct gl_program *new_prog = NULL;
       if (shProg && shProg->_LinkedShaders[i])
          new_prog = shProg->_LinkedShaders[i]->Program;
-      use_program(ctx, i, shProg, new_prog, &ctx->Shader);
+      _mesa_use_program(ctx, i, shProg, new_prog, &ctx->Shader);
    }
    _mesa_active_program(ctx, shProg, "glUseProgram");
 }
@@ -1830,8 +1805,8 @@ _mesa_ShaderSource(GLuint shaderObj, GLsizei count,
 }
 
 
-void GLAPIENTRY
-_mesa_UseProgram(GLuint program)
+static ALWAYS_INLINE void
+use_program(GLuint program, bool no_error)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_shader_program *shProg = NULL;
@@ -1839,26 +1814,33 @@ _mesa_UseProgram(GLuint program)
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glUseProgram %u\n", program);
 
-   if (_mesa_is_xfb_active_and_unpaused(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glUseProgram(transform feedback active)");
-      return;
-   }
-
-   if (program) {
-      shProg = _mesa_lookup_shader_program_err(ctx, program, "glUseProgram");
-      if (!shProg) {
-         return;
+   if (no_error) {
+      if (program) {
+         shProg = _mesa_lookup_shader_program(ctx, program);
       }
-      if (!shProg->data->LinkStatus) {
+   } else {
+      if (_mesa_is_xfb_active_and_unpaused(ctx)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glUseProgram(program %u not linked)", program);
+                     "glUseProgram(transform feedback active)");
          return;
       }
 
-      /* debug code */
-      if (ctx->_Shader->Flags & GLSL_USE_PROG) {
-         print_shader_info(shProg);
+      if (program) {
+         shProg =
+            _mesa_lookup_shader_program_err(ctx, program, "glUseProgram");
+         if (!shProg)
+            return;
+
+         if (!shProg->data->LinkStatus) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glUseProgram(program %u not linked)", program);
+            return;
+         }
+
+         /* debug code */
+         if (ctx->_Shader->Flags & GLSL_USE_PROG) {
+            print_shader_info(shProg);
+         }
       }
    }
 
@@ -1871,7 +1853,7 @@ _mesa_UseProgram(GLuint program)
     *     object (section 2.14.PPO), the program bound to the appropriate
     *     stage of the pipeline object is considered current."
     */
-   if (program) {
+   if (shProg) {
       /* Attach shader state to the binding point */
       _mesa_reference_pipeline_object(ctx, &ctx->_Shader, &ctx->Shader);
       /* Update the program */
@@ -1880,12 +1862,30 @@ _mesa_UseProgram(GLuint program)
       /* Must be done first: detach the progam */
       _mesa_use_shader_program(ctx, shProg);
       /* Unattach shader_state binding point */
-      _mesa_reference_pipeline_object(ctx, &ctx->_Shader, ctx->Pipeline.Default);
+      _mesa_reference_pipeline_object(ctx, &ctx->_Shader,
+                                      ctx->Pipeline.Default);
       /* If a pipeline was bound, rebind it */
       if (ctx->Pipeline.Current) {
-         _mesa_BindProgramPipeline(ctx->Pipeline.Current->Name);
+         if (no_error)
+            _mesa_BindProgramPipeline_no_error(ctx->Pipeline.Current->Name);
+         else
+            _mesa_BindProgramPipeline(ctx->Pipeline.Current->Name);
       }
    }
+}
+
+
+void GLAPIENTRY
+_mesa_UseProgram_no_error(GLuint program)
+{
+   use_program(program, true);
+}
+
+
+void GLAPIENTRY
+_mesa_UseProgram(GLuint program)
+{
+   use_program(program, false);
 }
 
 
@@ -2164,7 +2164,26 @@ _mesa_use_program(struct gl_context *ctx, gl_shader_stage stage,
                   struct gl_shader_program *shProg, struct gl_program *prog,
                   struct gl_pipeline_object *shTarget)
 {
-   use_program(ctx, stage, shProg, prog, shTarget);
+   struct gl_program **target;
+
+   target = &shTarget->CurrentProgram[stage];
+   if (prog) {
+      _mesa_program_init_subroutine_defaults(ctx, prog);
+   }
+
+   if (*target != prog) {
+      /* Program is current, flush it */
+      if (shTarget == ctx->_Shader) {
+         FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
+      }
+
+      _mesa_reference_shader_program(ctx,
+                                     &shTarget->ReferencedPrograms[stage],
+                                     shProg);
+      _mesa_reference_program(ctx, target, prog);
+      return;
+   }
+
 }
 
 
@@ -2335,11 +2354,6 @@ _mesa_GetSubroutineUniformLocation(GLuint program, GLenum shadertype,
    GLenum resource_type;
    gl_shader_stage stage;
 
-   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
-      return -1;
-   }
-
    if (!_mesa_validate_shader_target(ctx, shadertype)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return -1;
@@ -2369,11 +2383,6 @@ _mesa_GetSubroutineIndex(GLuint program, GLenum shadertype,
    struct gl_program_resource *res;
    GLenum resource_type;
    gl_shader_stage stage;
-
-   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
-      return -1;
-   }
 
    if (!_mesa_validate_shader_target(ctx, shadertype)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
@@ -2413,11 +2422,6 @@ _mesa_GetActiveSubroutineUniformiv(GLuint program, GLenum shadertype,
    const struct gl_uniform_storage *uni;
    GLenum resource_type;
    int count, i, j;
-
-   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
-      return;
-   }
 
    if (!_mesa_validate_shader_target(ctx, shadertype)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
@@ -2501,11 +2505,6 @@ _mesa_GetActiveSubroutineUniformName(GLuint program, GLenum shadertype,
    GLenum resource_type;
    gl_shader_stage stage;
 
-   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
-      return;
-   }
-
    if (!_mesa_validate_shader_target(ctx, shadertype)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return;
@@ -2540,11 +2539,6 @@ _mesa_GetActiveSubroutineName(GLuint program, GLenum shadertype,
    GLenum resource_type;
    gl_shader_stage stage;
 
-   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
-      return;
-   }
-
    if (!_mesa_validate_shader_target(ctx, shadertype)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return;
@@ -2573,11 +2567,6 @@ _mesa_UniformSubroutinesuiv(GLenum shadertype, GLsizei count,
    const char *api_name = "glUniformSubroutinesuiv";
    gl_shader_stage stage;
    int i;
-
-   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
-      return;
-   }
 
    if (!_mesa_validate_shader_target(ctx, shadertype)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
@@ -2649,11 +2638,6 @@ _mesa_GetUniformSubroutineuiv(GLenum shadertype, GLint location,
    const char *api_name = "glGetUniformSubroutineuiv";
    gl_shader_stage stage;
 
-   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
-      return;
-   }
-
    if (!_mesa_validate_shader_target(ctx, shadertype)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
       return;
@@ -2684,11 +2668,6 @@ _mesa_GetProgramStageiv(GLuint program, GLenum shadertype,
    struct gl_shader_program *shProg;
    struct gl_linked_shader *sh;
    gl_shader_stage stage;
-
-   if (!_mesa_has_ARB_shader_subroutine(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);
-      return;
-   }
 
    if (!_mesa_validate_shader_target(ctx, shadertype)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s", api_name);

@@ -460,7 +460,7 @@ Here is one solution that I've been using.
 		--enable-glx-tls \
 		--enable-gbm \
 		--enable-egl \
-		--with-egl-platforms=x11,drm,wayland
+		--with-platforms=x11,drm,wayland,surfaceless
 	make -j2 &amp;&amp; DESTDIR=`pwd`/test make -j6 install
 	__glxinfo_cmd='glxinfo 2>&amp;1 | egrep -o "Mesa.*|Gallium.*|.*dri\.so"'
 	__glxgears_cmd='glxgears 2>&amp;1 | grep -v "configuration file"'
@@ -576,7 +576,7 @@ docs/index.html to add a news entry. Then commit and push:
 </pre>
 
 
-<h1 id="#calendar">Update the calendar</h1>
+<h1 id="calendar">Update the calendar</h1>
 
 <p>
 Remove the version from the <a href="release-calendar.html" target="_parent">calendar</a>.

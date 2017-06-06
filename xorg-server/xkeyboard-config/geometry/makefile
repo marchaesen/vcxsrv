@@ -12,7 +12,7 @@ dell everex fujitsu \
 hhk hp keytronic kinesis \
 macintosh microsoft nec nokia \
 northgate pc sanwa sony thinkpad \
-sun teck typematrix winbook README
+sun teck steelseries typematrix winbook README
 
 DATA_FILES=$(dist_xkbdata_geometry_DATA:%=$(DESTDIR)\%)
 

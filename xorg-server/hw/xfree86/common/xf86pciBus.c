@@ -1303,7 +1303,7 @@ xf86MatchDriverFromFiles(uint16_t match_vendor, uint16_t match_chip,
     char *line = NULL, *tmpMatch;
     size_t len;
     ssize_t read;
-    char path_name[256], vendor_str[5], chip_str[5];
+    char path_name[512], vendor_str[5], chip_str[5];
     uint16_t vendor, chip;
     int j;
 

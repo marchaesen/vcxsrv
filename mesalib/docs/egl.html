@@ -77,15 +77,13 @@ drivers will be installed to <code>${libdir}/egl</code>.</p>
 
 </dd>
 
-<dt><code>--with-egl-platforms</code></dt>
+<dt><code>--with-platforms</code></dt>
 <dd>
 
 <p>List the platforms (window systems) to support.  Its argument is a comma
-separated string such as <code>--with-egl-platforms=x11,drm</code>.  It decides
+separated string such as <code>--with-platforms=x11,drm</code>.  It decides
 the platforms a driver may support.  The first listed platform is also used by
-the main library to decide the native platform: this defines EGL native
-types such as <code>EGLNativeDisplayType</code> or
-<code>EGLNativeWindowType</code>.</p>
+the main library to decide the native platform.</p>
 
 <p>The available platforms are <code>x11</code>, <code>drm</code>,
 <code>wayland</code>, <code>surfaceless</code>, <code>android</code>,
@@ -167,9 +165,9 @@ binaries.</p>
 <dd>
 
 <p>This variable specifies the native platform.  The valid values are the same
-as those for <code>--with-egl-platforms</code>.  When the variable is not set,
+as those for <code>--with-platforms</code>.  When the variable is not set,
 the main library uses the first platform listed in
-<code>--with-egl-platforms</code> as the native platform.</p>
+<code>--with-platforms</code> as the native platform.</p>
 
 <p>Extensions like <code>EGL_MESA_drm_display</code> define new functions to
 create displays for non-native platforms.  These extensions are usually used by

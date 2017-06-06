@@ -2445,19 +2445,9 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
                                    const enum glsl_interface_packing,
                                    bool /* last_field */)
 {
-   unsigned int size;
-
    /* atomics don't get real storage */
    if (type->contains_atomic())
       return;
-
-   if (type->is_vector() || type->is_scalar()) {
-      size = type->vector_elements;
-      if (type->is_64bit())
-         size *= 2;
-   } else {
-      size = type_size(type) * 4;
-   }
 
    gl_register_file file;
    if (type->without_array()->is_sampler()) {
@@ -2468,6 +2458,8 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
 
    int index = _mesa_lookup_parameter_index(params, name);
    if (index < 0) {
+      unsigned size = type_size(type) * 4;
+
       index = _mesa_add_parameter(params, file, name, size, type->gl_type,
 				  NULL, NULL);
 
@@ -2534,7 +2526,7 @@ _mesa_generate_parameters_list_for_uniforms(struct gl_shader_program
 
 void
 _mesa_associate_uniform_storage(struct gl_context *ctx,
-				struct gl_shader_program *shader_program,
+                                struct gl_shader_program *shader_program,
                                 struct gl_program_parameter_list *params,
                                 bool propagate_to_storage)
 {
@@ -2545,15 +2537,15 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
    unsigned last_location = unsigned(~0);
    for (unsigned i = 0; i < params->NumParameters; i++) {
       if (params->Parameters[i].Type != PROGRAM_UNIFORM)
-	 continue;
+         continue;
 
       unsigned location;
       const bool found =
-	 shader_program->UniformHash->get(location, params->Parameters[i].Name);
+         shader_program->UniformHash->get(location, params->Parameters[i].Name);
       assert(found);
 
       if (!found)
-	 continue;
+         continue;
 
       struct gl_uniform_storage *storage =
          &shader_program->data->UniformStorage[location];
@@ -2563,48 +2555,47 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
          continue;
 
       if (location != last_location) {
-	 enum gl_uniform_driver_format format = uniform_native;
+         enum gl_uniform_driver_format format = uniform_native;
+         unsigned columns = 0;
+         int dmul = 4 * sizeof(float);
 
-	 unsigned columns = 0;
-	 int dmul = 4 * sizeof(float);
-	 switch (storage->type->base_type) {
+         switch (storage->type->base_type) {
          case GLSL_TYPE_UINT64:
-	    if (storage->type->vector_elements > 2)
+            if (storage->type->vector_elements > 2)
                dmul *= 2;
-	    /* fallthrough */
-	 case GLSL_TYPE_UINT:
-	    assert(ctx->Const.NativeIntegers);
-	    format = uniform_native;
-	    columns = 1;
-	    break;
+            /* fallthrough */
+         case GLSL_TYPE_UINT:
+            assert(ctx->Const.NativeIntegers);
+            format = uniform_native;
+            columns = 1;
+            break;
          case GLSL_TYPE_INT64:
-	    if (storage->type->vector_elements > 2)
+            if (storage->type->vector_elements > 2)
                dmul *= 2;
-	    /* fallthrough */
-	 case GLSL_TYPE_INT:
-	    format =
-	       (ctx->Const.NativeIntegers) ? uniform_native : uniform_int_float;
-	    columns = 1;
-	    break;
-
-	 case GLSL_TYPE_DOUBLE:
-	    if (storage->type->vector_elements > 2)
+            /* fallthrough */
+         case GLSL_TYPE_INT:
+            format =
+               (ctx->Const.NativeIntegers) ? uniform_native : uniform_int_float;
+            columns = 1;
+            break;
+         case GLSL_TYPE_DOUBLE:
+            if (storage->type->vector_elements > 2)
                dmul *= 2;
-	    /* fallthrough */
-	 case GLSL_TYPE_FLOAT:
-	    format = uniform_native;
-	    columns = storage->type->matrix_columns;
-	    break;
-	 case GLSL_TYPE_BOOL:
-	    format = uniform_native;
-	    columns = 1;
-	    break;
-	 case GLSL_TYPE_SAMPLER:
-	 case GLSL_TYPE_IMAGE:
+            /* fallthrough */
+         case GLSL_TYPE_FLOAT:
+            format = uniform_native;
+            columns = storage->type->matrix_columns;
+            break;
+         case GLSL_TYPE_BOOL:
+            format = uniform_native;
+            columns = 1;
+            break;
+         case GLSL_TYPE_SAMPLER:
+         case GLSL_TYPE_IMAGE:
          case GLSL_TYPE_SUBROUTINE:
-	    format = uniform_native;
-	    columns = 1;
-	    break;
+            format = uniform_native;
+            columns = 1;
+            break;
          case GLSL_TYPE_ATOMIC_UINT:
          case GLSL_TYPE_ARRAY:
          case GLSL_TYPE_VOID:
@@ -2612,27 +2603,25 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
          case GLSL_TYPE_ERROR:
          case GLSL_TYPE_INTERFACE:
          case GLSL_TYPE_FUNCTION:
-	    assert(!"Should not get here.");
-	    break;
-	 }
+            assert(!"Should not get here.");
+            break;
+         }
 
-	 _mesa_uniform_attach_driver_storage(storage,
-					     dmul * columns,
-					     dmul,
-					     format,
-					     &params->ParameterValues[i]);
+         _mesa_uniform_attach_driver_storage(storage, dmul * columns, dmul,
+                                             format,
+                                             &params->ParameterValues[i]);
 
-	 /* After attaching the driver's storage to the uniform, propagate any
-	  * data from the linker's backing store.  This will cause values from
-	  * initializers in the source code to be copied over.
-	  */
+         /* After attaching the driver's storage to the uniform, propagate any
+          * data from the linker's backing store.  This will cause values from
+          * initializers in the source code to be copied over.
+          */
          if (propagate_to_storage) {
             unsigned array_elements = MAX2(1, storage->array_elements);
             _mesa_propagate_uniforms_to_driver_storage(storage, 0,
                                                        array_elements);
          }
 
-	 last_location = location;
+	      last_location = location;
       }
    }
 }

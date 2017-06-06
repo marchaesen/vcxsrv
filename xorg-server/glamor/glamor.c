@@ -114,20 +114,6 @@ glamor_set_pixmap_texture(PixmapPtr pixmap, unsigned int tex)
     glamor_pixmap_attach_fbo(pixmap, fbo);
 }
 
-void
-glamor_set_screen_pixmap(PixmapPtr screen_pixmap, PixmapPtr *back_pixmap)
-{
-    glamor_pixmap_private *pixmap_priv;
-    glamor_screen_private *glamor_priv;
-
-    glamor_priv = glamor_get_screen_private(screen_pixmap->drawable.pScreen);
-    pixmap_priv = glamor_get_pixmap_private(screen_pixmap);
-    glamor_priv->screen_fbo = pixmap_priv->fbo->fb;
-
-    pixmap_priv->fbo->width = screen_pixmap->drawable.width;
-    pixmap_priv->fbo->height = screen_pixmap->drawable.height;
-}
-
 uint32_t
 glamor_get_pixmap_texture(PixmapPtr pixmap)
 {

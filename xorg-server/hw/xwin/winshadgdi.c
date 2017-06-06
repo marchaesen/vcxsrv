@@ -563,7 +563,7 @@ winCloseScreenShadowGDI(ScreenPtr pScreen)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
-    Bool fReturn;
+    Bool fReturn = TRUE;
 
     winDebug("winCloseScreenShadowGDI - Freeing screen resources\n");
 

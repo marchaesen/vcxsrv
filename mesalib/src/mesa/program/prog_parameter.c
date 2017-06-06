@@ -267,9 +267,8 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
             COPY_4V(paramList->ParameterValues[oldNum + i], values);
          } else {
             /* copy 1, 2 or 3 values */
-            GLuint remaining = size % 4;
-            assert(remaining < 4);
-            for (j = 0; j < remaining; j++) {
+            assert(size < 4);
+            for (j = 0; j < size; j++) {
                paramList->ParameterValues[oldNum + i][j].f = values[j].f;
             }
             /* fill in remaining positions with zeros */

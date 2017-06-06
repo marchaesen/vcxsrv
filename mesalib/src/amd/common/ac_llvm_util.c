@@ -110,6 +110,9 @@ static const char *ac_get_llvm_processor_name(enum radeon_family family)
 	case CHIP_POLARIS11:
 	case CHIP_POLARIS12:
 		return "polaris11";
+	case CHIP_VEGA10:
+	case CHIP_RAVEN:
+		return "gfx900";
 	default:
 		return "";
 	}
@@ -216,4 +219,14 @@ ac_dump_module(LLVMModuleRef module)
 	char *str = LLVMPrintModuleToString(module);
 	fprintf(stderr, "%s", str);
 	LLVMDisposeMessage(str);
+}
+
+void
+ac_llvm_add_target_dep_function_attr(LLVMValueRef F,
+				     const char *name, int value)
+{
+	char str[16];
+
+	snprintf(str, sizeof(str), "%i", value);
+	LLVMAddTargetDependentFunctionAttr(F, name, str);
 }
