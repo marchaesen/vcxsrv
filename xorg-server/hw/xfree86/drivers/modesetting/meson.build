@@ -31,7 +31,7 @@ symbol_test_args = []
 symbol_test_args += join_paths(xorg_build_root, 'libxorgserver.so')
 symbol_test_args += join_paths(xorg_build_root, 'dixmods', 'libfb.so')
 symbol_test_args += join_paths(xorg_build_root, 'dixmods', 'libshadow.so')
-if build_glamor
+if gbm_dep.found()
     symbol_test_args += join_paths(xorg_build_root, 'glamor_egl', 'libglamoregl.so')
 endif
 symbol_test_args += join_paths(xorg_build_root, 'drivers', 'modesetting', 'modesetting_drv.so')

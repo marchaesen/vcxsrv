@@ -621,7 +621,7 @@ nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index)
    nir_load_##name(nir_builder *build)                                   \
    {                                                                     \
       return nir_load_system_value(build, nir_intrinsic_load_##name, 0); \
-   }                                                                     \
+   }
 
 #include "nir_intrinsics.h"
 

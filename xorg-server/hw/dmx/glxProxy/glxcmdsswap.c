@@ -30,7 +30,6 @@
 
 #include "glxserver.h"
 #include "glxutil.h"
-#include <GL/glxtokens.h>
 #include <g_disptab.h>
 #include <pixmapstr.h>
 #include <windowstr.h>

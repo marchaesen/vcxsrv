@@ -844,6 +844,7 @@ public:
    /* List of ast_declarator_list * */
    exec_list declarations;
    bool is_declaration;
+   const glsl_type *type;
 };
 
 

@@ -41,7 +41,7 @@
         <param name="textures" type="const GLuint *"/>
     </function>
 
-    <function name="BindVertexBuffers">
+    <function name="BindVertexBuffers" no_error="true">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="buffers" type="const GLuint *"/>

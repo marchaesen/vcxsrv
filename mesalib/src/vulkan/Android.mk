@@ -41,6 +41,8 @@ LOCAL_C_INCLUDES := \
 LOCAL_GENERATED_SOURCES := $(addprefix $(intermediates)/, \
 	$(VULKAN_UTIL_GENERATED_FILES))
 
+LOCAL_SRC_FILES := $(VULKAN_UTIL_FILES)
+
 vulkan_api_xml = $(MESA_TOP)/src/vulkan/registry/vk.xml
 
 $(LOCAL_GENERATED_SOURCES): $(MESA_TOP)/src/vulkan/util/gen_enum_to_str.py $(vulkan_api_xml)

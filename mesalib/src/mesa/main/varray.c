@@ -1353,6 +1353,29 @@ _mesa_GetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
    }
 }
 
+void GLAPIENTRY
+_mesa_GetVertexAttribLui64vARB(GLuint index, GLenum pname, GLuint64EXT *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (pname == GL_CURRENT_VERTEX_ATTRIB_ARB) {
+      const GLuint64 *v =
+         (const GLuint64 *)get_current_attrib(ctx, index,
+                                              "glGetVertexAttribLui64vARB");
+      if (v != NULL) {
+         params[0] = v[0];
+         params[1] = v[1];
+         params[2] = v[2];
+         params[3] = v[3];
+      }
+   }
+   else {
+      params[0] = (GLuint64) get_vertex_array_attrib(ctx, ctx->Array.VAO,
+                                                     index, pname,
+                                                     "glGetVertexAttribLui64vARB");
+   }
+}
+
 
 /** GL 3.0 */
 void GLAPIENTRY
@@ -2117,29 +2140,14 @@ _mesa_VertexArrayVertexBuffer(GLuint vaobj, GLuint bindingIndex, GLuint buffer,
 }
 
 
-static void
+static ALWAYS_INLINE void
 vertex_array_vertex_buffers(struct gl_context *ctx,
                             struct gl_vertex_array_object *vao,
                             GLuint first, GLsizei count, const GLuint *buffers,
                             const GLintptr *offsets, const GLsizei *strides,
-                            const char *func)
+                            bool no_error, const char *func)
 {
-   GLuint i;
-
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
-
-   /* The ARB_multi_bind spec says:
-    *
-    *    "An INVALID_OPERATION error is generated if <first> + <count>
-    *     is greater than the value of MAX_VERTEX_ATTRIB_BINDINGS."
-    */
-   if (first + count > ctx->Const.MaxVertexAttribBindings) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(first=%u + count=%d > the value of "
-                  "GL_MAX_VERTEX_ATTRIB_BINDINGS=%u)",
-                  func, first, count, ctx->Const.MaxVertexAttribBindings);
-      return;
-   }
+   GLint i;
 
    if (!buffers) {
       /**
@@ -2184,31 +2192,33 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
    for (i = 0; i < count; i++) {
       struct gl_buffer_object *vbo;
 
-      /* The ARB_multi_bind spec says:
-       *
-       *    "An INVALID_VALUE error is generated if any value in
-       *     <offsets> or <strides> is negative (per binding)."
-       */
-      if (offsets[i] < 0) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "%s(offsets[%u]=%" PRId64 " < 0)",
-                     func, i, (int64_t) offsets[i]);
-         continue;
-      }
+      if (!no_error) {
+         /* The ARB_multi_bind spec says:
+          *
+          *    "An INVALID_VALUE error is generated if any value in
+          *     <offsets> or <strides> is negative (per binding)."
+          */
+         if (offsets[i] < 0) {
+            _mesa_error(ctx, GL_INVALID_VALUE,
+                        "%s(offsets[%u]=%" PRId64 " < 0)",
+                        func, i, (int64_t) offsets[i]);
+            continue;
+         }
 
-      if (strides[i] < 0) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "%s(strides[%u]=%d < 0)",
-                     func, i, strides[i]);
-         continue;
-      }
+         if (strides[i] < 0) {
+            _mesa_error(ctx, GL_INVALID_VALUE,
+                        "%s(strides[%u]=%d < 0)",
+                        func, i, strides[i]);
+            continue;
+         }
 
-      if (ctx->API == API_OPENGL_CORE && ctx->Version >= 44 &&
-          strides[i] > ctx->Const.MaxVertexAttribStride) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "%s(strides[%u]=%d > "
-                     "GL_MAX_VERTEX_ATTRIB_STRIDE)", func, i, strides[i]);
-         continue;
+         if (ctx->API == API_OPENGL_CORE && ctx->Version >= 44 &&
+             strides[i] > ctx->Const.MaxVertexAttribStride) {
+            _mesa_error(ctx, GL_INVALID_VALUE,
+                        "%s(strides[%u]=%d > "
+                        "GL_MAX_VERTEX_ATTRIB_STRIDE)", func, i, strides[i]);
+            continue;
+         }
       }
 
       if (buffers[i]) {
@@ -2234,6 +2244,46 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
 }
 
 
+static void
+vertex_array_vertex_buffers_err(struct gl_context *ctx,
+                                struct gl_vertex_array_object *vao,
+                                GLuint first, GLsizei count,
+                                const GLuint *buffers, const GLintptr *offsets,
+                                const GLsizei *strides, const char *func)
+{
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
+
+   /* The ARB_multi_bind spec says:
+    *
+    *    "An INVALID_OPERATION error is generated if <first> + <count>
+    *     is greater than the value of MAX_VERTEX_ATTRIB_BINDINGS."
+    */
+   if (first + count > ctx->Const.MaxVertexAttribBindings) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(first=%u + count=%d > the value of "
+                  "GL_MAX_VERTEX_ATTRIB_BINDINGS=%u)",
+                  func, first, count, ctx->Const.MaxVertexAttribBindings);
+      return;
+   }
+
+   vertex_array_vertex_buffers(ctx, vao, first, count, buffers, offsets,
+                               strides, false, func);
+}
+
+
+void GLAPIENTRY
+_mesa_BindVertexBuffers_no_error(GLuint first, GLsizei count,
+                                 const GLuint *buffers, const GLintptr *offsets,
+                                 const GLsizei *strides)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   vertex_array_vertex_buffers(ctx, ctx->Array.VAO, first, count,
+                               buffers, offsets, strides, true,
+                               "glBindVertexBuffers");
+}
+
+
 void GLAPIENTRY
 _mesa_BindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers,
                         const GLintptr *offsets, const GLsizei *strides)
@@ -2252,9 +2302,24 @@ _mesa_BindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers,
       return;
    }
 
-   vertex_array_vertex_buffers(ctx, ctx->Array.VAO, first, count,
-                               buffers, offsets, strides,
-                               "glBindVertexBuffers");
+   vertex_array_vertex_buffers_err(ctx, ctx->Array.VAO, first, count,
+                                   buffers, offsets, strides,
+                                   "glBindVertexBuffers");
+}
+
+
+void GLAPIENTRY
+_mesa_VertexArrayVertexBuffers_no_error(GLuint vaobj, GLuint first,
+                                        GLsizei count, const GLuint *buffers,
+                                        const GLintptr *offsets,
+                                        const GLsizei *strides)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_vertex_array_object *vao = _mesa_lookup_vao(ctx, vaobj);
+   vertex_array_vertex_buffers(ctx, vao, first, count,
+                               buffers, offsets, strides, true,
+                               "glVertexArrayVertexBuffers");
 }
 
 
@@ -2276,9 +2341,9 @@ _mesa_VertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsizei count,
    if (!vao)
       return;
 
-   vertex_array_vertex_buffers(ctx, vao, first, count,
-                               buffers, offsets, strides,
-                               "glVertexArrayVertexBuffers");
+   vertex_array_vertex_buffers_err(ctx, vao, first, count,
+                                   buffers, offsets, strides,
+                                   "glVertexArrayVertexBuffers");
 }
 
 

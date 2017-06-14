@@ -186,7 +186,7 @@ set_fragment_shader(struct blit_state *ctx, uint writemask,
          util_make_fragment_tex_shader_writemask(ctx->pipe, tgsi_tex,
                                                  TGSI_INTERPOLATE_LINEAR,
                                                  writemask,
-                                                 stype, stype);
+                                                 stype, stype, false, false);
    }
 
    cso_set_fragment_shader_handle(ctx->cso, ctx->fs[pipe_tex][writemask][idx]);

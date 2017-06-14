@@ -33,7 +33,6 @@
 #include "st_program.h"
 
 #include "cso_cache/cso_context.h"
-#include "util/u_framebuffer.h"
 
 
 /* Update the sample mask for MSAA.
@@ -41,9 +40,7 @@
 void st_update_sample_mask( struct st_context *st )
 {
    unsigned sample_mask = 0xffffffff;
-   struct pipe_framebuffer_state *framebuffer = &st->state.framebuffer;
-   /* dependency here on bound surface (or rather, sample count) is worrying */
-   unsigned sample_count = util_framebuffer_get_num_samples(framebuffer);
+   unsigned sample_count = st->state.fb_num_samples;
 
    if (st->ctx->Multisample.Enabled && sample_count > 1) {
       /* unlike in gallium/d3d10 the mask is only active if msaa is enabled */

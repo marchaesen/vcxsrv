@@ -79,6 +79,12 @@ struct st_bitmap_cache
    ubyte *buffer;
 };
 
+struct st_bound_handles
+{
+   unsigned num_handles;
+   uint64_t *handles;
+};
+
 struct st_context
 {
    struct st_context_iface iface;
@@ -139,7 +145,10 @@ struct st_context
          void *ptr;
          unsigned size;
       } constants[PIPE_SHADER_TYPES];
-      struct pipe_framebuffer_state framebuffer;
+      unsigned fb_width;
+      unsigned fb_height;
+      unsigned fb_num_samples;
+      unsigned fb_num_layers;
       struct pipe_scissor_state scissor[PIPE_MAX_VIEWPORTS];
       struct pipe_viewport_state viewport[PIPE_MAX_VIEWPORTS];
       struct {
@@ -271,6 +280,11 @@ struct st_context
    struct st_perf_monitor_group *perfmon;
 
    enum pipe_reset_status reset_status;
+
+   /* Array of bound texture/image handles which are resident in the context.
+    */
+   struct st_bound_handles bound_texture_handles[PIPE_SHADER_TYPES];
+   struct st_bound_handles bound_image_handles[PIPE_SHADER_TYPES];
 };
 
 
@@ -302,7 +316,8 @@ struct st_framebuffer
 extern void st_init_driver_functions(struct pipe_screen *screen,
                                      struct dd_function_table *functions);
 
-void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state);
+void
+st_invalidate_buffers(struct st_context *st);
 
 /* Invalidate the readpixels cache to ensure we don't read stale data.
  */
@@ -360,6 +375,8 @@ st_shader_stage_to_ptarget(gl_shader_stage stage)
       return PIPE_SHADER_TESS_EVAL;
    case MESA_SHADER_COMPUTE:
       return PIPE_SHADER_COMPUTE;
+   default:
+      break;
    }
 
    assert(!"should not be reached");

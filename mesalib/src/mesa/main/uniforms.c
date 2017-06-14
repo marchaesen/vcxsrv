@@ -63,6 +63,40 @@
  * TEXTURE_2D_INDEX, TEXTURE_3D_INDEX, etc.
  * We'll use that info for state validation before rendering.
  */
+static inline void
+update_single_shader_texture_used(struct gl_shader_program *shProg,
+                                  struct gl_program *prog,
+                                  GLuint unit, GLuint target)
+{
+   gl_shader_stage prog_stage =
+      _mesa_program_enum_to_shader_stage(prog->Target);
+
+   assert(unit < ARRAY_SIZE(prog->TexturesUsed));
+   assert(target < NUM_TEXTURE_TARGETS);
+
+   /* From section 7.10 (Samplers) of the OpenGL 4.5 spec:
+    *
+    * "It is not allowed to have variables of different sampler types pointing
+    *  to the same texture image unit within a program object."
+    */
+   unsigned stages_mask = shProg->data->linked_stages;
+   while (stages_mask) {
+      const int stage = u_bit_scan(&stages_mask);
+
+      /* Skip validation if we are yet to update textures used in this
+       * stage.
+       */
+      if (prog_stage < stage)
+         break;
+
+      struct gl_program *glprog = shProg->_LinkedShaders[stage]->Program;
+      if (glprog->TexturesUsed[unit] & ~(1 << target))
+         shProg->SamplersValidated = GL_FALSE;
+   }
+
+   prog->TexturesUsed[unit] |= (1 << target);
+}
+
 void
 _mesa_update_shader_textures_used(struct gl_shader_program *shProg,
                                   struct gl_program *prog)
@@ -71,42 +105,32 @@ _mesa_update_shader_textures_used(struct gl_shader_program *shProg,
    gl_shader_stage prog_stage =
       _mesa_program_enum_to_shader_stage(prog->Target);
    struct gl_linked_shader *shader = shProg->_LinkedShaders[prog_stage];
+   GLuint s;
 
    assert(shader);
 
    memset(prog->TexturesUsed, 0, sizeof(prog->TexturesUsed));
 
    while (mask) {
-      const int s = u_bit_scan(&mask);
-      GLuint unit = prog->SamplerUnits[s];
-      GLuint tgt = prog->sh.SamplerTargets[s];
-      assert(unit < ARRAY_SIZE(prog->TexturesUsed));
-      assert(tgt < NUM_TEXTURE_TARGETS);
+      s = u_bit_scan(&mask);
 
-      /* The types of the samplers associated with a particular texture
-       * unit must be an exact match.  Page 74 (page 89 of the PDF) of the
-       * OpenGL 3.3 core spec says:
-       *
-       *     "It is not allowed to have variables of different sampler
-       *     types pointing to the same texture image unit within a program
-       *     object."
+      update_single_shader_texture_used(shProg, prog,
+                                        prog->SamplerUnits[s],
+                                        prog->sh.SamplerTargets[s]);
+   }
+
+   if (unlikely(prog->sh.HasBoundBindlessSampler)) {
+      /* Loop over bindless samplers bound to texture units.
        */
-      unsigned stages_mask = shProg->data->linked_stages;
-      while (stages_mask) {
-         const int stage = u_bit_scan(&stages_mask);
+      for (s = 0; s < prog->sh.NumBindlessSamplers; s++) {
+         struct gl_bindless_sampler *sampler = &prog->sh.BindlessSamplers[s];
 
-         /* Skip validation if we are yet to update textures used in this
-          * stage.
-          */
-         if (prog_stage < stage)
-            break;
+         if (!sampler->bound)
+            continue;
 
-         struct gl_program *glprog = shProg->_LinkedShaders[stage]->Program;
-         if (glprog->TexturesUsed[unit] & ~(1 << tgt))
-            shProg->SamplersValidated = GL_FALSE;
+         update_single_shader_texture_used(shProg, prog, sampler->unit,
+                                           sampler->target);
       }
-
-      prog->TexturesUsed[unit] |= (1 << tgt);
    }
 }
 
@@ -293,6 +317,23 @@ _mesa_Uniform4iv(GLint location, GLsizei count, const GLint * value)
    GET_CURRENT_CONTEXT(ctx);
    _mesa_uniform(location, count, value, ctx, ctx->_Shader->ActiveProgram, GLSL_TYPE_INT, 4);
 }
+
+void GLAPIENTRY
+_mesa_UniformHandleui64ARB(GLint location, GLuint64 value)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   _mesa_uniform_handle(location, 1, &value, ctx, ctx->_Shader->ActiveProgram);
+}
+
+void GLAPIENTRY
+_mesa_UniformHandleui64vARB(GLint location, GLsizei count,
+                            const GLuint64 *value)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   _mesa_uniform_handle(location, count, value, ctx,
+                        ctx->_Shader->ActiveProgram);
+}
+
 
 /** Same as above with direct state access **/
 void GLAPIENTRY
@@ -483,6 +524,28 @@ _mesa_ProgramUniform4iv(GLuint program, GLint location, GLsizei count,
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform4iv");
    _mesa_uniform(location, count, value, ctx, shProg, GLSL_TYPE_INT, 4);
+}
+
+void GLAPIENTRY
+_mesa_ProgramUniformHandleui64ARB(GLuint program, GLint location,
+                                  GLuint64 value)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_shader_program *shProg =
+      _mesa_lookup_shader_program_err(ctx, program,
+            "glProgramUniformHandleui64ARB");
+   _mesa_uniform_handle(location, 1, &value, ctx, shProg);
+}
+
+void GLAPIENTRY
+_mesa_ProgramUniformHandleui64vARB(GLuint program, GLint location,
+                                   GLsizei count, const GLuint64 *values)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_shader_program *shProg =
+      _mesa_lookup_shader_program_err(ctx, program,
+            "glProgramUniformHandleui64vARB");
+   _mesa_uniform_handle(location, count, values, ctx, shProg);
 }
 
 

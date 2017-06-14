@@ -79,9 +79,16 @@ DEFINE_RUN_ONCE_STATIC(ossl_init_base)
     if ((init_lock = CRYPTO_THREAD_lock_new()) == NULL)
         return 0;
     OPENSSL_cpuid_setup();
+
+    /*
+     * BIG FAT WARNING!
+     * Everything needed to be initialized in this function before threads
+     * come along MUST happen before base_inited is set to 1, or we will
+     * see race conditions.
+     */
     base_inited = 1;
 
-#ifndef OPENSSL_USE_NODELETE
+#if !defined(OPENSSL_NO_DSO) && !defined(OPENSSL_USE_NODELETE)
 # ifdef DSO_WIN32
     {
         HMODULE handle = NULL;
@@ -97,13 +104,15 @@ DEFINE_RUN_ONCE_STATIC(ossl_init_base)
 # else
     /*
      * Deliberately leak a reference to ourselves. This will force the library
-     * to remain loaded until the atexit() handler is run a process exit.
+     * to remain loaded until the atexit() handler is run at process exit.
      */
     {
         DSO *dso = NULL;
 
+        ERR_set_mark();
         dso = DSO_dsobyaddr(&base_inited, DSO_FLAG_NO_UNLOAD_ON_FREE);
         DSO_free(dso);
+        ERR_pop_to_mark();
     }
 # endif
 #endif
@@ -503,7 +512,7 @@ int OPENSSL_init_crypto(uint64_t opts, const OPENSSL_INIT_SETTINGS *settings)
         return 0;
     }
 
-    if (!RUN_ONCE(&base, ossl_init_base))
+    if (!base_inited && !RUN_ONCE(&base, ossl_init_base))
         return 0;
 
     if ((opts & OPENSSL_INIT_NO_LOAD_CRYPTO_STRINGS)
@@ -604,7 +613,7 @@ int OPENSSL_atexit(void (*handler)(void))
 {
     OPENSSL_INIT_STOP *newhand;
 
-#ifndef OPENSSL_USE_NODELETE
+#if !defined(OPENSSL_NO_DSO) && !defined(OPENSSL_USE_NODELETE)
     {
         union {
             void *sym;
@@ -638,8 +647,10 @@ int OPENSSL_atexit(void (*handler)(void))
         {
             DSO *dso = NULL;
 
+            ERR_set_mark();
             dso = DSO_dsobyaddr(handlersym.sym, DSO_FLAG_NO_UNLOAD_ON_FREE);
             DSO_free(dso);
+            ERR_pop_to_mark();
         }
 # endif
     }

@@ -35,6 +35,13 @@
 extern "C" {
 #endif
 
+void GLAPIENTRY
+_mesa_CopyImageSubData_no_error(GLuint srcName, GLenum srcTarget, GLint srcLevel,
+                                GLint srcX, GLint srcY, GLint srcZ,
+                                GLuint destName, GLenum destTarget, GLint destLevel,
+                                GLint destX, GLint destY, GLint destZ,
+                                GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth);
+
 extern void GLAPIENTRY
 _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
                        GLint srcX, GLint srcY, GLint srcZ,

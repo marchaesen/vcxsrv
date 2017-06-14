@@ -47,8 +47,8 @@
 #include "compiler/shader_enums.h"
 #include "util/macros.h"
 #include "util/list.h"
-#include "util/vk_alloc.h"
 #include "main/macros.h"
+#include "vk_alloc.h"
 
 #include "radv_radeon_winsys.h"
 #include "ac_binary.h"
@@ -288,6 +288,7 @@ struct radv_instance {
 	struct radv_physical_device                 physicalDevices[RADV_MAX_DRM_DEVICES];
 
 	uint64_t debug_flags;
+	uint64_t perftest_flags;
 };
 
 VkResult radv_init_wsi(struct radv_physical_device *physical_device);
@@ -750,7 +751,6 @@ struct radv_attachment_state {
 struct radv_cmd_state {
 	uint32_t                                      vb_dirty;
 	radv_cmd_dirty_mask_t                         dirty;
-	bool                                          vertex_descriptors_dirty;
 	bool                                          push_descriptors_dirty;
 
 	struct radv_pipeline *                        pipeline;
@@ -765,9 +765,9 @@ struct radv_cmd_state {
 	struct radv_descriptor_set *                  descriptors[MAX_SETS];
 	struct radv_attachment_state *                attachments;
 	VkRect2D                                     render_area;
-	struct radv_buffer *                         index_buffer;
 	uint32_t                                     index_type;
-	uint32_t                                     index_offset;
+	uint64_t                                     index_va;
+	uint32_t                                     max_index_count;
 	int32_t                                      last_primitive_reset_en;
 	uint32_t                                     last_primitive_reset_index;
 	enum radv_cmd_flush_bits                     flush_bits;
@@ -1078,6 +1078,8 @@ struct radv_pipeline {
 			uint32_t ps_input_cntl_num;
 			uint32_t pa_cl_vs_out_cntl;
 			uint32_t vgt_shader_stages_en;
+			uint32_t vtx_base_sgpr;
+			uint8_t vtx_emit_num;
 			struct radv_prim_vertex_count prim_vertex_count;
  			bool can_use_guardband;
 		} graphics;
@@ -1096,6 +1098,11 @@ static inline bool radv_pipeline_has_tess(struct radv_pipeline *pipeline)
 {
 	return pipeline->shaders[MESA_SHADER_TESS_EVAL] ? true : false;
 }
+
+uint32_t radv_shader_stage_to_user_data_0(gl_shader_stage stage, bool has_gs, bool has_tess);
+struct ac_userdata_info *radv_lookup_user_sgpr(struct radv_pipeline *pipeline,
+					       gl_shader_stage stage,
+					       int idx);
 
 struct radv_graphics_pipeline_create_info {
 	bool use_rectlist;

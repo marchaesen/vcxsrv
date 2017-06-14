@@ -161,25 +161,34 @@ st_get_active_states(struct gl_context *ctx)
 }
 
 
+void
+st_invalidate_buffers(struct st_context *st)
+{
+   st->dirty |= ST_NEW_BLEND |
+                ST_NEW_DSA |
+                ST_NEW_FB_STATE |
+                ST_NEW_SAMPLE_MASK |
+                ST_NEW_SAMPLE_SHADING |
+                ST_NEW_FS_STATE |
+                ST_NEW_POLY_STIPPLE |
+                ST_NEW_VIEWPORT |
+                ST_NEW_RASTERIZER |
+                ST_NEW_SCISSOR |
+                ST_NEW_WINDOW_RECTANGLES;
+}
+
+
 /**
  * Called via ctx->Driver.UpdateState()
  */
-void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
+static void
+st_invalidate_state(struct gl_context * ctx)
 {
+   GLbitfield new_state = ctx->NewState;
    struct st_context *st = st_context(ctx);
 
    if (new_state & _NEW_BUFFERS) {
-      st->dirty |= ST_NEW_BLEND |
-                   ST_NEW_DSA |
-                   ST_NEW_FB_STATE |
-                   ST_NEW_SAMPLE_MASK |
-                   ST_NEW_SAMPLE_SHADING |
-                   ST_NEW_FS_STATE |
-                   ST_NEW_POLY_STIPPLE |
-                   ST_NEW_VIEWPORT |
-                   ST_NEW_RASTERIZER |
-                   ST_NEW_SCISSOR |
-                   ST_NEW_WINDOW_RECTANGLES;
+      st_invalidate_buffers(st);
    } else {
       /* These set a subset of flags set by _NEW_BUFFERS, so we only have to
        * check them when _NEW_BUFFERS isn't set.
@@ -190,10 +199,6 @@ void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
 
       if (new_state & _NEW_PROGRAM)
          st->dirty |= ST_NEW_RASTERIZER;
-
-      if (new_state & _NEW_SCISSOR)
-         st->dirty |= ST_NEW_RASTERIZER |
-                      ST_NEW_SCISSOR;
 
       if (new_state & _NEW_FOG)
          st->dirty |= ST_NEW_FS_STATE;
@@ -270,11 +275,6 @@ void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
 
    if (new_state & _NEW_PROGRAM_CONSTANTS)
       st->dirty |= st->active_states & ST_NEW_CONSTANTS;
-
-   /* This is the only core Mesa module we depend upon.
-    * No longer use swrast, swsetup, tnl.
-    */
-   _vbo_InvalidateState(ctx, new_state);
 }
 
 
@@ -291,6 +291,8 @@ st_destroy_context_priv(struct st_context *st, bool destroy_pipe)
    st_destroy_drawtex(st);
    st_destroy_perfmon(st);
    st_destroy_pbo_helpers(st);
+   st_destroy_bound_texture_handles(st);
+   st_destroy_bound_image_handles(st);
 
    for (shader = 0; shader < ARRAY_SIZE(st->state.sampler_views); shader++) {
       for (i = 0; i < ARRAY_SIZE(st->state.sampler_views[0]); i++) {
@@ -314,6 +316,7 @@ st_destroy_context_priv(struct st_context *st, bool destroy_pipe)
    free( st );
 }
 
+static void st_init_driver_flags(struct st_context *st);
 
 static struct st_context *
 st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
@@ -499,12 +502,15 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
 
    _mesa_initialize_dispatch_tables(ctx);
    _mesa_initialize_vbo_vtxfmt(ctx);
+   st_init_driver_flags(st);
 
    return st;
 }
 
-static void st_init_driver_flags(struct gl_driver_flags *f)
+static void st_init_driver_flags(struct st_context *st)
 {
+   struct gl_driver_flags *f = &st->ctx->DriverFlags;
+
    f->NewArray = ST_NEW_VERTEX_ARRAYS;
    f->NewRasterizerDiscard = ST_NEW_RASTERIZER;
    f->NewUniformBuffer = ST_NEW_UNIFORM_BUFFER;
@@ -514,6 +520,9 @@ static void st_init_driver_flags(struct gl_driver_flags *f)
    f->NewShaderStorageBuffer = ST_NEW_STORAGE_BUFFER;
    f->NewImageUnits = ST_NEW_IMAGE_UNITS;
    f->NewWindowRectangles = ST_NEW_WINDOW_RECTANGLES;
+   f->NewFramebufferSRGB = ST_NEW_FRAMEBUFFER;
+   f->NewScissorRect = ST_NEW_SCISSOR;
+   f->NewScissorTest = ST_NEW_SCISSOR | ST_NEW_RASTERIZER;
 }
 
 struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
@@ -543,8 +552,6 @@ struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
    if (pipe->screen->get_disk_shader_cache &&
        !(ST_DEBUG & DEBUG_TGSI))
       ctx->Cache = pipe->screen->get_disk_shader_cache(pipe->screen);
-
-   st_init_driver_flags(&ctx->DriverFlags);
 
    /* XXX: need a capability bit in gallium to query if the pipe
     * driver prefers DP4 or MUL/MAD for vertex transformation.
@@ -577,7 +584,6 @@ destroy_tex_sampler_cb(GLuint id, void *data, void *userData)
 void st_destroy_context( struct st_context *st )
 {
    struct gl_context *ctx = st->ctx;
-   GLuint i;
 
    /* This must be called first so that glthread has a chance to finish */
    _mesa_glthread_destroy(ctx);
@@ -591,11 +597,6 @@ void st_destroy_context( struct st_context *st )
    st_reference_prog(st, &st->tep, NULL);
    st_reference_compprog(st, &st->cp, NULL);
 
-   /* release framebuffer surfaces */
-   for (i = 0; i < PIPE_MAX_COLOR_BUFS; i++) {
-      pipe_surface_reference(&st->state.framebuffer.cbufs[i], NULL);
-   }
-   pipe_surface_reference(&st->state.framebuffer.zsbuf, NULL);
    pipe_sampler_view_reference(&st->pixel_xfer.pixelmap_sampler_view, NULL);
    pipe_resource_reference(&st->pixel_xfer.pixelmap_texture, NULL);
 

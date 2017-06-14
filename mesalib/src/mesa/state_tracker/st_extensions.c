@@ -577,6 +577,7 @@ void st_init_extensions(struct pipe_screen *screen,
 
    static const struct st_extension_cap_mapping cap_mapping[] = {
       { o(ARB_base_instance),                PIPE_CAP_START_INSTANCE                   },
+      { o(ARB_bindless_texture),             PIPE_CAP_BINDLESS_TEXTURE                 },
       { o(ARB_buffer_storage),               PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT   },
       { o(ARB_clear_texture),                PIPE_CAP_CLEAR_TEXTURE                    },
       { o(ARB_clip_control),                 PIPE_CAP_CLIP_HALFZ                       },

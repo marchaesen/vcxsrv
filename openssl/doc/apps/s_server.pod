@@ -8,8 +8,13 @@ s_server - SSL/TLS server program
 
 B<openssl> B<s_server>
 [B<-help>]
-[B<-accept port>]
+[B<-port port>]
+[B<-accept val>]
 [B<-naccept count>]
+[B<-unix val>]
+[B<-unlink>]
+[B<-4>]
+[B<-6>]
 [B<-context id>]
 [B<-verify depth>]
 [B<-Verify depth>]
@@ -64,11 +69,15 @@ B<openssl> B<s_server>
 [B<-verify_name name>]
 [B<-x509_strict>]
 [B<-nocert>]
+[B<-client_sigalgs sigalglist>]
+[B<-named_curve curve>]
 [B<-cipher cipherlist>]
 [B<-serverpref>]
 [B<-quiet>]
 [B<-ssl3>]
 [B<-tls1>]
+[B<-tls1_1>]
+[B<-tls1_2>]
 [B<-dtls>]
 [B<-dtls1>]
 [B<-dtls1_2>]
@@ -121,13 +130,33 @@ manual page.
 
 Print out a usage message.
 
-=item B<-accept port>
+=item B<-port port>
 
 The TCP port to listen on for connections. If not specified 4433 is used.
+
+=item B<-accept val>
+
+The optional TCP host and port to listen on for connections. If not specified, *:4433 is used.
 
 =item B<-naccept count>
 
 The server will exit after receiving B<number> connections, default unlimited.
+
+=item B<-unix val>
+
+Unix domain socket to accept on.
+
+=item B<-unlink>
+
+For -unix, unlink existing socket first.
+
+=item B<-4>
+
+Use IPv4 only.
+
+=item B<-6>
+
+Use IPv6 only.
 
 =item B<-context id>
 
@@ -372,6 +401,18 @@ OpenSSL 1.1.0.
 
 Provide a brief summary of connection parameters instead of the normal verbose
 output.
+
+=item B<-client_sigalgs sigalglist>
+
+Signature algorithms to support for client certificate authentication
+(colon-separated list)
+
+=item B<-named_curve curve>
+
+Specifies the elliptic curve to use. NOTE: this is single curve, not a list.
+For a list of all possible curves, use:
+
+    $ openssl ecparam -list_curves
 
 =item B<-cipher cipherlist>
 

@@ -17,6 +17,7 @@
 
 #include "ssltestlib.h"
 #include "testutil.h"
+#include "e_os.h"
 
 static char *cert = NULL;
 static char *privkey = NULL;
@@ -44,7 +45,7 @@ static int execute_test_large_message(const SSL_METHOD *smeth,
     int certlen;
 
     if (certbio == NULL) {
-        printf("Can't load the certficate file\n");
+        printf("Can't load the certificate file\n");
         goto end;
     }
     chaincert = PEM_read_bio_X509(certbio, NULL, NULL, NULL);
@@ -73,7 +74,7 @@ static int execute_test_large_message(const SSL_METHOD *smeth,
      * We assume the supplied certificate is big enough so that if we add
      * NUM_EXTRA_CERTS it will make the overall message large enough. The
      * default buffer size is requested to be 16k, but due to the way BUF_MEM
-     * works, it ends up allocing a little over 21k (16 * 4/3). So, in this test
+     * works, it ends up allocating a little over 21k (16 * 4/3). So, in this test
      * we need to have a message larger than that.
      */
     certlen = i2d_X509(chaincert, NULL);
@@ -101,8 +102,16 @@ static int execute_test_large_message(const SSL_METHOD *smeth,
         goto end;
     }
 
-    testresult = 1;
+    /*
+     * Calling SSL_clear() first is not required but this tests that SSL_clear()
+     * doesn't leak (when using enable-crypto-mdebug).
+     */
+    if (!SSL_clear(serverssl)) {
+        printf("Unexpected failure from SSL_clear()\n");
+        goto end;
+    }
 
+    testresult = 1;
  end:
     X509_free(chaincert);
     SSL_free(serverssl);
@@ -322,11 +331,11 @@ static int test_tlsext_status_type(void)
 
     /*
      * We'll just use any old cert for this test - it doesn't have to be an OCSP
-     * specifc one. We'll use the server cert.
+     * specific one. We'll use the server cert.
      */
     certbio = BIO_new_file(cert, "r");
     if (certbio == NULL) {
-        printf("Can't load the certficate file\n");
+        printf("Can't load the certificate file\n");
         goto end;
     }
     id = OCSP_RESPID_new();
@@ -708,7 +717,7 @@ static int test_ssl_set_bio(int idx)
 
     /*
      * We want to maintain our own refs to these BIO, so do an up ref for each
-     * BIO that will have ownersip transferred in the SSL_set_bio() call
+     * BIO that will have ownership transferred in the SSL_set_bio() call
      */
     if (irbio != NULL)
         BIO_up_ref(irbio);
@@ -804,7 +813,7 @@ static int execute_test_ssl_bio(SSL_BIO_TEST_FIXTURE fix)
      */
     BIO_push(sslbio, membio1);
 
-    /* Verify chaning the rbio/wbio directly does not cause leaks */
+    /* Verify changing the rbio/wbio directly does not cause leaks */
     if (fix.change_bio != NO_BIO_CHANGE) {
         membio2 = BIO_new(BIO_s_mem());
         if (membio2 == NULL) {
@@ -867,6 +876,327 @@ static int test_ssl_bio_change_wbio(void)
     EXECUTE_TEST(execute_test_ssl_bio, ssl_bio_tear_down);
 }
 
+typedef struct {
+    /* The list of sig algs */
+    const int *list;
+    /* The length of the list */
+    size_t listlen;
+    /* A sigalgs list in string format */
+    const char *liststr;
+    /* Whether setting the list should succeed */
+    int valid;
+    /* Whether creating a connection with the list should succeed */
+    int connsuccess;
+} sigalgs_list;
+
+static const int validlist1[] = {NID_sha256, EVP_PKEY_RSA};
+static const int validlist2[] = {NID_sha256, EVP_PKEY_RSA, NID_sha512, EVP_PKEY_EC};
+static const int validlist3[] = {NID_sha512, EVP_PKEY_EC};
+static const int invalidlist1[] = {NID_undef, EVP_PKEY_RSA};
+static const int invalidlist2[] = {NID_sha256, NID_undef};
+static const int invalidlist3[] = {NID_sha256, EVP_PKEY_RSA, NID_sha256};
+static const int invalidlist4[] = {NID_sha256};
+static const sigalgs_list testsigalgs[] = {
+    {validlist1, OSSL_NELEM(validlist1), NULL, 1, 1},
+    {validlist2, OSSL_NELEM(validlist2), NULL, 1, 1},
+    {validlist3, OSSL_NELEM(validlist3), NULL, 1, 0},
+    {NULL, 0, "RSA+SHA256", 1, 1},
+    {NULL, 0, "RSA+SHA256:ECDSA+SHA512", 1, 1},
+    {NULL, 0, "ECDSA+SHA512", 1, 0},
+    {invalidlist1, OSSL_NELEM(invalidlist1), NULL, 0, 0},
+    {invalidlist2, OSSL_NELEM(invalidlist2), NULL, 0, 0},
+    {invalidlist3, OSSL_NELEM(invalidlist3), NULL, 0, 0},
+    {invalidlist4, OSSL_NELEM(invalidlist4), NULL, 0, 0},
+    {NULL, 0, "RSA", 0, 0},
+    {NULL, 0, "SHA256", 0, 0},
+    {NULL, 0, "RSA+SHA256:SHA256", 0, 0},
+    {NULL, 0, "Invalid", 0, 0}};
+
+static int test_set_sigalgs(int idx)
+{
+    SSL_CTX *cctx = NULL, *sctx = NULL;
+    SSL *clientssl = NULL, *serverssl = NULL;
+    int testresult = 0;
+    const sigalgs_list *curr;
+    int testctx;
+
+    /* Should never happen */
+    if ((size_t)idx >= OSSL_NELEM(testsigalgs) * 2)
+        return 0;
+
+    testctx = ((size_t)idx < OSSL_NELEM(testsigalgs));
+    curr = testctx ? &testsigalgs[idx]
+                   : &testsigalgs[idx - OSSL_NELEM(testsigalgs)];
+
+    if (!create_ssl_ctx_pair(TLS_server_method(), TLS_client_method(), &sctx,
+                             &cctx, cert, privkey)) {
+        printf("Unable to create SSL_CTX pair\n");
+        return 0;
+    }
+
+    if (testctx) {
+        int ret;
+        if (curr->list != NULL)
+            ret = SSL_CTX_set1_sigalgs(cctx, curr->list, curr->listlen);
+        else
+            ret = SSL_CTX_set1_sigalgs_list(cctx, curr->liststr);
+
+        if (!ret) {
+            if (curr->valid)
+                printf("Unexpected failure setting sigalgs in SSL_CTX (%d)\n",
+                       idx);
+            else
+                testresult = 1;
+            goto end;
+        }
+        if (!curr->valid) {
+            printf("Unexpected success setting sigalgs in SSL_CTX (%d)\n", idx);
+            goto end;
+        }
+    }
+
+    if (!create_ssl_objects(sctx, cctx, &serverssl, &clientssl, NULL, NULL)) {
+        printf("Unable to create SSL objects\n");
+        goto end;
+    }
+
+    if (!testctx) {
+        int ret;
+
+        if (curr->list != NULL)
+            ret = SSL_set1_sigalgs(clientssl, curr->list, curr->listlen);
+        else
+            ret = SSL_set1_sigalgs_list(clientssl, curr->liststr);
+        if (!ret) {
+            if (curr->valid)
+                printf("Unexpected failure setting sigalgs in SSL (%d)\n", idx);
+            else
+                testresult = 1;
+            goto end;
+        }
+        if (!curr->valid) {
+            printf("Unexpected success setting sigalgs in SSL (%d)\n", idx);
+            goto end;
+        }
+    }
+
+    if (curr->connsuccess != create_ssl_connection(serverssl, clientssl)) {
+        printf("Unexpected return value creating SSL connection (%d)\n", idx);
+        goto end;
+    }
+
+    testresult = 1;
+
+ end:
+    SSL_free(serverssl);
+    SSL_free(clientssl);
+    SSL_CTX_free(sctx);
+    SSL_CTX_free(cctx);
+
+    return testresult;
+}
+
+static int clntaddcb = 0;
+static int clntparsecb = 0;
+static int srvaddcb = 0;
+static int srvparsecb = 0;
+static int snicb = 0;
+
+#define TEST_EXT_TYPE1  0xff00
+
+static int add_cb(SSL *s, unsigned int ext_type, const unsigned char **out,
+                  size_t *outlen, int *al, void *add_arg)
+{
+    int *server = (int *)add_arg;
+    unsigned char *data;
+
+    if (SSL_is_server(s))
+        srvaddcb++;
+    else
+        clntaddcb++;
+
+    if (*server != SSL_is_server(s)
+            || (data = OPENSSL_malloc(sizeof(*data))) == NULL)
+        return -1;
+
+    *data = 1;
+    *out = data;
+    *outlen = sizeof(char);
+    return 1;
+}
+
+static void free_cb(SSL *s, unsigned int ext_type, const unsigned char *out,
+                    void *add_arg)
+{
+    OPENSSL_free((unsigned char *)out);
+}
+
+static int parse_cb(SSL *s, unsigned int ext_type, const unsigned char *in,
+                    size_t inlen, int *al, void *parse_arg)
+{
+    int *server = (int *)parse_arg;
+
+    if (SSL_is_server(s))
+        srvparsecb++;
+    else
+        clntparsecb++;
+
+    if (*server != SSL_is_server(s)
+            || inlen != sizeof(char)
+            || *in != 1)
+        return -1;
+
+    return 1;
+}
+
+static int sni_cb(SSL *s, int *al, void *arg)
+{
+    SSL_CTX *ctx = (SSL_CTX *)arg;
+
+    if (SSL_set_SSL_CTX(s, ctx) == NULL) {
+        *al = SSL_AD_INTERNAL_ERROR;
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
+    }
+    snicb++;
+    return SSL_TLSEXT_ERR_OK;
+}
+
+/*
+ * Custom call back tests.
+ * Test 0: callbacks in TLSv1.2
+ * Test 1: callbacks in TLSv1.2 with SNI
+ */
+static int test_custom_exts(int tst)
+{
+    SSL_CTX *cctx = NULL, *sctx = NULL, *sctx2 = NULL;
+    SSL *clientssl = NULL, *serverssl = NULL;
+    int testresult = 0;
+    static int server = 1;
+    static int client = 0;
+    SSL_SESSION *sess = NULL;
+
+    /* Reset callback counters */
+    clntaddcb = clntparsecb = srvaddcb = srvparsecb = 0;
+    snicb = 0;
+
+    if (!create_ssl_ctx_pair(TLS_server_method(),  TLS_client_method(), &sctx,
+                             &cctx, cert, privkey)) {
+        printf("Unable to create SSL_CTX pair\n");
+        goto end;
+    }
+
+    if (tst == 1
+            && !create_ssl_ctx_pair(TLS_server_method(), NULL, &sctx2, NULL,
+                                    cert, privkey)) {
+        printf("Unable to create SSL_CTX pair (2)\n");
+        goto end;
+    }
+
+    /* Create a client side custom extension */
+    if (!SSL_CTX_add_client_custom_ext(cctx, TEST_EXT_TYPE1, add_cb, free_cb,
+                                       &client, parse_cb, &client)) {
+        printf("Unable to add client custom extension\n");
+        goto end;
+    }
+
+    /* Should not be able to add duplicates */
+    if (SSL_CTX_add_client_custom_ext(cctx, TEST_EXT_TYPE1, add_cb, free_cb,
+                                      &client, parse_cb, &client)) {
+        printf("Unexpected success adding duplicate extension\n");
+        goto end;
+    }
+
+    /* Create a server side custom extension */
+    if (!SSL_CTX_add_server_custom_ext(sctx, TEST_EXT_TYPE1, add_cb, free_cb,
+                                       &server, parse_cb, &server)) {
+        printf("Unable to add server custom extension\n");
+        goto end;
+    }
+    if (sctx2 != NULL
+            && !SSL_CTX_add_server_custom_ext(sctx2, TEST_EXT_TYPE1,
+                                                        add_cb, free_cb,
+                                                        &server, parse_cb,
+                                                        &server)) {
+        printf("Unable to add server custom extension for SNI\n");
+        goto end;
+    }
+
+    /* Should not be able to add duplicates */
+    if (SSL_CTX_add_server_custom_ext(sctx, TEST_EXT_TYPE1, add_cb, free_cb,
+                                      &server, parse_cb, &server)) {
+        printf("Unexpected success adding duplicate extension (2)\n");
+        goto end;
+    }
+
+    if (tst == 1) {
+        /* Set up SNI */
+        if (!SSL_CTX_set_tlsext_servername_callback(sctx, sni_cb)
+                || !SSL_CTX_set_tlsext_servername_arg(sctx, sctx2)) {
+            printf("Cannot set SNI callbacks\n");
+            goto end;
+        }
+    }
+
+    if (!create_ssl_objects(sctx, cctx, &serverssl, &clientssl, NULL, NULL)
+            || !create_ssl_connection(serverssl, clientssl)) {
+        printf("Cannot create SSL connection\n");
+        goto end;
+    }
+
+    if (clntaddcb != 1
+            || clntparsecb != 1
+            || srvaddcb != 1
+            || srvparsecb != 1
+            || (tst != 1 && snicb != 0)
+            || (tst == 1 && snicb != 1)) {
+        printf("Incorrect callback counts\n");
+        goto end;
+    }
+
+    sess = SSL_get1_session(clientssl);
+    SSL_shutdown(clientssl);
+    SSL_shutdown(serverssl);
+    SSL_free(serverssl);
+    SSL_free(clientssl);
+    serverssl = clientssl = NULL;
+
+    if (tst == 1) {
+        /* We don't bother with the resumption aspects for this test */
+        testresult = 1;
+        goto end;
+    }
+
+    if (!create_ssl_objects(sctx, cctx, &serverssl, &clientssl, NULL, NULL)
+            || !SSL_set_session(clientssl, sess)
+            || !create_ssl_connection(serverssl, clientssl)) {
+        printf("Cannot create resumption connection\n");
+        goto end;
+    }
+
+    /*
+     * For a resumed session we expect to add the ClientHello extension but we
+     * should ignore it on the server side.
+     */
+    if (clntaddcb != 2
+            || clntparsecb != 1
+            || srvaddcb != 1
+            || srvparsecb != 1) {
+        printf("Incorrect resumption callback counts\n");
+        goto end;
+    }
+
+    testresult = 1;
+
+end:
+    SSL_SESSION_free(sess);
+    SSL_free(serverssl);
+    SSL_free(clientssl);
+    SSL_CTX_free(sctx2);
+    SSL_CTX_free(sctx);
+    SSL_CTX_free(cctx);
+    return testresult;
+}
+
 int main(int argc, char *argv[])
 {
     BIO *err = NULL;
@@ -901,6 +1231,8 @@ int main(int argc, char *argv[])
     ADD_TEST(test_ssl_bio_pop_ssl_bio);
     ADD_TEST(test_ssl_bio_change_rbio);
     ADD_TEST(test_ssl_bio_change_wbio);
+    ADD_ALL_TESTS(test_set_sigalgs, OSSL_NELEM(testsigalgs) * 2);
+    ADD_ALL_TESTS(test_custom_exts, 2);
 
     testresult = run_tests(argv[0]);
 

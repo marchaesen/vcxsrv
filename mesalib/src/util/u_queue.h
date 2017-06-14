@@ -42,6 +42,8 @@
 extern "C" {
 #endif
 
+#define UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY      (1 << 0)
+
 /* Job completion fence.
  * Put this into your job structure.
  */
@@ -81,7 +83,8 @@ struct util_queue {
 bool util_queue_init(struct util_queue *queue,
                      const char *name,
                      unsigned max_jobs,
-                     unsigned num_threads);
+                     unsigned num_threads,
+                     unsigned flags);
 void util_queue_destroy(struct util_queue *queue);
 void util_queue_fence_init(struct util_queue_fence *fence);
 void util_queue_fence_destroy(struct util_queue_fence *fence);
@@ -92,6 +95,8 @@ void util_queue_add_job(struct util_queue *queue,
                         struct util_queue_fence *fence,
                         util_queue_execute_func execute,
                         util_queue_execute_func cleanup);
+void util_queue_drop_job(struct util_queue *queue,
+                         struct util_queue_fence *fence);
 
 void util_queue_fence_wait(struct util_queue_fence *fence);
 int64_t util_queue_get_thread_time_nano(struct util_queue *queue,

@@ -3575,7 +3575,7 @@ ProcWarpPointer(ClientPtr client)
              winX + stuff->srcX + (int) stuff->srcWidth < x) ||
             (stuff->srcHeight != 0 &&
              winY + stuff->srcY + (int) stuff->srcHeight < y) ||
-            !PointInWindowIsVisible(source, x, y))
+            (source->parent && !PointInWindowIsVisible(source, x, y)))
             return Success;
     }
     if (dest) {

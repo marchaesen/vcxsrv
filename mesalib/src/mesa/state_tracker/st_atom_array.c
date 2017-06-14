@@ -670,6 +670,10 @@ setup_non_interleaved_attribs(struct st_context *st,
                             array->Size, array->Doubles, &attr);
    }
 
+   if (!ctx->Const.AllowMappedBuffersDuringExecution) {
+      u_upload_unmap(st->pipe->stream_uploader);
+   }
+
    set_vertex_attribs(st, vbuffer, num_vbuffers, velements, num_inputs);
 
    /* Unreference uploaded zero-stride vertex buffers. */

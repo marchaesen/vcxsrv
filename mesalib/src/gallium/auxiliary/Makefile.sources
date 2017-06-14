@@ -221,7 +221,6 @@ C_SOURCES := \
 	util/u_dump_defines.c \
 	util/u_dump.h \
 	util/u_dump_state.c \
-	util/u_dynarray.h \
 	util/u_fifo.h \
 	util/u_format.c \
 	util/u_format.h \

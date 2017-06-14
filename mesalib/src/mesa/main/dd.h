@@ -93,7 +93,7 @@ struct dd_function_table {
     * This is in addition to any state change callbacks Mesa may already have
     * made.
     */
-   void (*UpdateState)( struct gl_context *ctx, GLbitfield new_state );
+   void (*UpdateState)(struct gl_context *ctx);
 
    /**
     * This is called whenever glFinish() is called.
@@ -1050,6 +1050,23 @@ struct dd_function_table {
                                 GLintptr offset, GLsizeiptr size,
                                 GLboolean commit);
    /*@}*/
+
+   /**
+    * \name GL_ARB_bindless_texture interface
+    */
+   /*@{*/
+   GLuint64 (*NewTextureHandle)(struct gl_context *ctx,
+                                struct gl_texture_object *texObj,
+                                struct gl_sampler_object *sampObj);
+   void (*DeleteTextureHandle)(struct gl_context *ctx, GLuint64 handle);
+   void (*MakeTextureHandleResident)(struct gl_context *ctx, GLuint64 handle,
+                                     bool resident);
+   GLuint64 (*NewImageHandle)(struct gl_context *ctx,
+                              struct gl_image_unit *imgObj);
+   void (*DeleteImageHandle)(struct gl_context *ctx, GLuint64 handle);
+   void (*MakeImageHandleResident)(struct gl_context *ctx, GLuint64 handle,
+                                   GLenum access, bool resident);
+   /*@}*/
 };
 
 
@@ -1225,6 +1242,8 @@ typedef struct {
    void (GLAPIENTRYP VertexAttribL3dv)( GLuint index, const GLdouble *v);
    void (GLAPIENTRYP VertexAttribL4dv)( GLuint index, const GLdouble *v);
 
+   void (GLAPIENTRYP VertexAttribL1ui64ARB)( GLuint index, GLuint64EXT x);
+   void (GLAPIENTRYP VertexAttribL1ui64vARB)( GLuint index, const GLuint64EXT *v);
 } GLvertexformat;
 
 

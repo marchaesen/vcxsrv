@@ -142,96 +142,6 @@ set_poll_client(ClientPtr client);
 static void
 set_poll_clients(void);
 
-#if !defined(WIN32)
-int *ConnectionTranslation = NULL;
-int ConnectionTranslationSize = 0;
-#else
-/*
- * On NT fds are not small integers, they are unrelated, and there is
- * not even a known maximum value, so use something quite arbitrary for now.
- * Do storage is a hash table of size 256. Collisions are handled in a linked
- * list.
- */
-
-struct _ct_node {
-    struct _ct_node *next;
-    int key;
-    int value;
-};
-
-struct _ct_node *ct_head[256];
-
-void
-InitConnectionTranslation(void)
-{
-    memset(ct_head, 0, sizeof(ct_head));
-}
-
-int
-GetConnectionTranslation(int conn)
-{
-    struct _ct_node *node = ct_head[conn & 0xff];
-
-    while (node != NULL) {
-        if (node->key == conn)
-            return node->value;
-        node = node->next;
-    }
-    return 0;
-}
-
-void
-SetConnectionTranslation(int conn, int client)
-{
-    struct _ct_node **node = ct_head + (conn & 0xff);
-
-    if (client == 0) {          /* remove entry */
-        while (*node != NULL) {
-            if ((*node)->key == conn) {
-                struct _ct_node *temp = *node;
-
-                *node = (*node)->next;
-                free(temp);
-                return;
-            }
-            node = &((*node)->next);
-        }
-        return;
-    }
-    else {
-        while (*node != NULL) {
-            if ((*node)->key == conn) {
-                (*node)->value = client;
-                return;
-            }
-            node = &((*node)->next);
-        }
-        *node = malloc(sizeof(struct _ct_node));
-        (*node)->next = NULL;
-        (*node)->key = conn;
-        (*node)->value = client;
-        return;
-    }
-}
-
-void
-ClearConnectionTranslation(void)
-{
-    unsigned i;
-
-    for (i = 0; i < 256; i++) {
-        struct _ct_node *node = ct_head[i];
-
-        while (node != NULL) {
-            struct _ct_node *temp = node;
-
-            node = node->next;
-            free(temp);
-        }
-    }
-}
-#endif
-
 static XtransConnInfo *ListenTransConns = NULL;
 static int *ListenTransFds = NULL;
 static int ListenTransCount;
@@ -252,7 +162,7 @@ lookup_trans_conn(int fd)
     return NULL;
 }
 
-/* Set MaxClients and lastfdesc, and allocate ConnectionTranslation */
+/* Set MaxClients */
 
 void
 InitConnectionLimits(void)
@@ -261,15 +171,6 @@ InitConnectionLimits(void)
 
 #ifdef DEBUG
     ErrorF("InitConnectionLimits: MaxClients = %d\n", MaxClients);
-#endif
-
-#if !defined(WIN32)
-    if (!ConnectionTranslation) {
-        ConnectionTranslation = xnfallocarray(MaxClients, sizeof(int));
-        ConnectionTranslationSize = MaxClients;
-    }
-#else
-    InitConnectionTranslation();
 #endif
 }
 
@@ -344,13 +245,6 @@ CreateWellKnownSockets(void)
 {
     int i;
     int partial;
-
-#if !defined(WIN32)
-    for (i = 0; i < ConnectionTranslationSize; i++)
-        ConnectionTranslation[i] = 0;
-#else
-    ClearConnectionTranslation();
-#endif
 
     /* display is initialized to "0" by main(). It is then set to the display
      * number if specified on the command line. */
@@ -737,15 +631,6 @@ AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
         return NullClient;
     }
     client->local = ComputeLocalClient(client);
-#if !defined(WIN32)
-    if (fd >= ConnectionTranslationSize) {
-        ConnectionTranslationSize *= 2;
-        ConnectionTranslation = xnfreallocarray(ConnectionTranslation, ConnectionTranslationSize, sizeof (int));
-    }
-    ConnectionTranslation[fd] = client->index;
-#else
-    SetConnectionTranslation(fd, client->index);
-#endif
     ospoll_add(server_poll, fd,
                ospoll_trigger_edge,
                ClientReady,
@@ -781,7 +666,6 @@ EstablishNewConnections(ClientPtr clientUnused, void *closure)
     OsCommPtr oc;
     XtransConnInfo trans_conn, new_trans_conn;
     int status;
-    int clientid;
 
     connect_time = GetTimeInMillis();
     /* kill off stragglers */
@@ -802,10 +686,6 @@ EstablishNewConnections(ClientPtr clientUnused, void *closure)
         return TRUE;
 
     newconn = _XSERVTransGetConnectionNumber(new_trans_conn);
-
-    clientid = GetConnectionTranslation(newconn);
-    if (clientid && (client = clients[clientid]))
-        CloseDownClient(client);
 
     _XSERVTransSetOption(new_trans_conn, TRANS_NONBLOCKING, 1);
 
@@ -877,24 +757,23 @@ ErrorConnMax(XtransConnInfo trans_conn)
 
 /************
  *   CloseDownFileDescriptor:
- *     Remove this file descriptor and it's I/O buffers, etc.
+ *     Remove this file descriptor
  ************/
 
-static void
+void
 CloseDownFileDescriptor(OsCommPtr oc)
 {
-    int connection = oc->fd;
-
     if (oc->trans_conn) {
+        int connection = oc->fd;
+#ifdef XDMCP
+        XdmcpCloseDisplay(connection);
+#endif
+        ospoll_remove(server_poll, connection);
         _XSERVTransDisconnect(oc->trans_conn);
         _XSERVTransClose(oc->trans_conn);
+        oc->trans_conn = NULL;
+        oc->fd = -1;
     }
-#ifndef WIN32
-    ConnectionTranslation[connection] = 0;
-#else
-    SetConnectionTranslation(connection, 0);
-#endif
-    ospoll_remove(server_poll, connection);
 }
 
 /*****************
@@ -912,9 +791,6 @@ CloseDownConnection(ClientPtr client)
 
     if (oc->output)
 	FlushClient(client, oc, (char *) NULL, 0);
-#ifdef XDMCP
-    XdmcpCloseDisplay(oc->fd);
-#endif
     CloseDownFileDescriptor(oc);
     FreeOsBuffers(oc);
     free(client->osPrivate);
@@ -1209,10 +1085,12 @@ set_poll_client(ClientPtr client)
 {
     OsCommPtr oc = (OsCommPtr) client->osPrivate;
 
-    if (listen_to_client(client))
-        ospoll_listen(server_poll, oc->fd, X_NOTIFY_READ);
-    else
-        ospoll_mute(server_poll, oc->fd, X_NOTIFY_READ);
+    if (oc->trans_conn) {
+        if (listen_to_client(client))
+            ospoll_listen(server_poll, oc->trans_conn->fd, X_NOTIFY_READ);
+        else
+            ospoll_mute(server_poll, oc->trans_conn->fd, X_NOTIFY_READ);
+    }
 }
 
 static void

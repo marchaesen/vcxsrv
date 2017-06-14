@@ -184,25 +184,6 @@ process_xfb_layout_qualifiers(void *mem_ctx, const gl_linked_shader *sh,
    return has_xfb_qualifiers;
 }
 
-static bool
-anonymous_struct_type_matches(const glsl_type *output_type,
-                              const glsl_type *to_match)
-{
-    while (output_type->is_array() && to_match->is_array()) {
-        /* if the lengths at each level don't match fail. */
-        if (output_type->length != to_match->length)
-            return false;
-        output_type = output_type->fields.array;
-        to_match = to_match->fields.array;
-    }
-
-    if (output_type->is_array() || to_match->is_array())
-        return false;
-    return output_type->is_anonymous() &&
-           to_match->is_anonymous() &&
-           to_match->record_compare(output_type);
-}
-
 /**
  * Validate the types and qualifiers of an output from one stage against the
  * matching input to another stage.
@@ -247,19 +228,15 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
        *     fragment language."
        */
       if (!output->type->is_array() || !is_gl_identifier(output->name)) {
-         bool anon_matches = anonymous_struct_type_matches(output->type, type_to_match);
-
-         if (!anon_matches) {
-            linker_error(prog,
-                         "%s shader output `%s' declared as type `%s', "
-                         "but %s shader input declared as type `%s'\n",
-                         _mesa_shader_stage_to_string(producer_stage),
-                         output->name,
-                         output->type->name,
-                         _mesa_shader_stage_to_string(consumer_stage),
-                         input->type->name);
-            return;
-         }
+         linker_error(prog,
+                      "%s shader output `%s' declared as type `%s', "
+                      "but %s shader input declared as type `%s'\n",
+                      _mesa_shader_stage_to_string(producer_stage),
+                      output->name,
+                      output->type->name,
+                      _mesa_shader_stage_to_string(consumer_stage),
+                      input->type->name);
+         return;
       }
    }
 
@@ -1412,7 +1389,7 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
 
    if (!disable_varying_packing &&
        (needs_flat_qualifier ||
-        (consumer_stage != -1 && consumer_stage != MESA_SHADER_FRAGMENT))) {
+        (consumer_stage != MESA_SHADER_NONE && consumer_stage != MESA_SHADER_FRAGMENT))) {
       /* Since this varying is not being consumed by the fragment shader, its
        * interpolation type varying cannot possibly affect rendering.
        * Also, this variable is non-flat and is (or contains) an integer
@@ -2170,8 +2147,8 @@ assign_varying_locations(struct gl_context *ctx,
 
    varying_matches matches(disable_varying_packing, xfb_enabled,
                            ctx->Extensions.ARB_enhanced_layouts,
-                           producer ? producer->Stage : (gl_shader_stage)-1,
-                           consumer ? consumer->Stage : (gl_shader_stage)-1);
+                           producer ? producer->Stage : MESA_SHADER_NONE,
+                           consumer ? consumer->Stage : MESA_SHADER_NONE);
    hash_table *tfeedback_candidates =
          _mesa_hash_table_create(NULL, _mesa_key_hash_string,
                                  _mesa_key_string_equal);

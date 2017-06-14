@@ -47,6 +47,7 @@
 #include "main/formats.h"       /* MESA_FORMAT_COUNT */
 #include "compiler/glsl/list.h"
 #include "util/bitscan.h"
+#include "util/u_dynarray.h"
 
 
 #ifdef __cplusplus
@@ -144,7 +145,8 @@ typedef enum
    BUFFER_COLOR5,
    BUFFER_COLOR6,
    BUFFER_COLOR7,
-   BUFFER_COUNT
+   BUFFER_COUNT,
+   BUFFER_NONE = -1,
 } gl_buffer_index;
 
 /**
@@ -987,6 +989,10 @@ struct gl_sampler_object
    GLenum CompareFunc;		/**< GL_ARB_shadow */
    GLenum sRGBDecode;           /**< GL_DECODE_EXT or GL_SKIP_DECODE_EXT */
    GLboolean CubeMapSeamless;   /**< GL_AMD_seamless_cubemap_per_texture */
+
+   /** GL_ARB_bindless_texture */
+   struct util_dynarray Handles;
+   bool HandleAllocated;
 };
 
 
@@ -1051,6 +1057,11 @@ struct gl_texture_object
 
    /** GL_ARB_shader_image_load_store */
    GLenum ImageFormatCompatibilityType;
+
+   /** GL_ARB_bindless_texture */
+   struct util_dynarray SamplerHandles;
+   struct util_dynarray ImageHandles;
+   bool HandleAllocated;
 };
 
 
@@ -1403,6 +1414,8 @@ struct gl_buffer_object
    unsigned MinMaxCacheHitIndices;
    unsigned MinMaxCacheMissIndices;
    bool MinMaxCacheDirty;
+
+   bool HandleAllocated; /**< GL_ARB_bindless_texture */
 };
 
 
@@ -1978,6 +1991,42 @@ struct gl_perf_query_state
 
 
 /**
+ * A bindless sampler object.
+ */
+struct gl_bindless_sampler
+{
+   /** Texture unit (set by glUniform1()). */
+   GLubyte unit;
+
+   /** Texture Target (TEXTURE_1D/2D/3D/etc_INDEX). */
+   gl_texture_index target;
+
+   /** Whether this bindless sampler is bound to a unit. */
+   GLboolean bound;
+
+   /** Pointer to the base of the data. */
+   GLvoid *data;
+};
+
+/**
+ * A bindless image object.
+ */
+struct gl_bindless_image
+{
+   /** Image unit (set by glUniform1()). */
+   GLubyte unit;
+
+   /** Access qualifier (GL_READ_WRITE, GL_READ_ONLY, GL_WRITE_ONLY) */
+   GLenum access;
+
+   /** Whether this bindless image is bound to a unit. */
+   GLboolean bound;
+
+   /** Pointer to the base of the data. */
+   GLvoid *data;
+};
+
+/**
  * Names of the various vertex/fragment program register files, etc.
  *
  * NOTE: first four tokens must fit into 2 bits (see t_vb_arbprogram.c)
@@ -2110,6 +2159,22 @@ struct gl_program
           * (TEXTURE_1D/2D/3D/etc_INDEX)
           */
          gl_texture_index SamplerTargets[MAX_SAMPLERS];
+
+         /**
+          * Number of samplers declared with the bindless_sampler layout
+          * qualifier as specified by ARB_bindless_texture.
+          */
+         GLuint NumBindlessSamplers;
+         GLboolean HasBoundBindlessSampler;
+         struct gl_bindless_sampler *BindlessSamplers;
+
+         /**
+          * Number of images declared with the bindless_image layout qualifier
+          * as specified by ARB_bindless_texture.
+          */
+         GLuint NumBindlessImages;
+         GLboolean HasBoundBindlessImage;
+         struct gl_bindless_image *BindlessImages;
 
          union {
             struct {
@@ -3210,6 +3275,11 @@ struct gl_shared_state
 
    /** GL_ARB_sampler_objects */
    struct _mesa_HashTable *SamplerObjects;
+
+   /* GL_ARB_bindless_texture */
+   struct hash_table_u64 *TextureHandles;
+   struct hash_table_u64 *ImageHandles;
+   mtx_t HandlesMutex; /**< For texture/image handles safety */
 
    /**
     * Some context in this share group was affected by a GPU reset
@@ -4402,6 +4472,15 @@ struct gl_driver_flags
     * gl_context::Scissor::WindowRects
     */
    uint64_t NewWindowRectangles;
+
+   /** gl_context::Color::sRGBEnabled */
+   uint64_t NewFramebufferSRGB;
+
+   /** gl_context::Scissor::EnableFlags */
+   uint64_t NewScissorTest;
+
+   /** gl_context::Scissor::ScissorArray */
+   uint64_t NewScissorRect;
 };
 
 struct gl_uniform_buffer_binding
@@ -4503,6 +4582,19 @@ struct gl_subroutine_index_binding
 {
    GLuint NumIndex;
    GLuint *IndexPtr;
+};
+
+struct gl_texture_handle_object
+{
+   struct gl_texture_object *texObj;
+   struct gl_sampler_object *sampObj;
+   GLuint64 handle;
+};
+
+struct gl_image_handle_object
+{
+   struct gl_image_unit imgObj;
+   GLuint64 handle;
 };
 
 /**
@@ -4859,6 +4951,14 @@ struct gl_context
    GLfloat PrimitiveBoundingBox[8];
 
    struct disk_cache *Cache;
+
+   /**
+    * \name GL_ARB_bindless_texture
+    */
+   /*@{*/
+   struct hash_table_u64 *ResidentTextureHandles;
+   struct hash_table_u64 *ResidentImageHandles;
+   /*@}*/
 };
 
 /**

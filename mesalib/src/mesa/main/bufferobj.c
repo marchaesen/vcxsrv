@@ -1229,6 +1229,16 @@ _mesa_buffer_unmap_all_mappings(struct gl_context *ctx,
 /**********************************************************************/
 
 void GLAPIENTRY
+_mesa_BindBuffer_no_error(GLenum target, GLuint buffer)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_buffer_object **bindTarget = get_buffer_target(ctx, target);
+   bind_buffer_object(ctx, bindTarget, buffer);
+}
+
+
+void GLAPIENTRY
 _mesa_BindBuffer(GLenum target, GLuint buffer)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -1552,7 +1562,7 @@ validate_buffer_storage(struct gl_context *ctx,
       return false;
    }
 
-   if (bufObj->Immutable) {
+   if (bufObj->Immutable || bufObj->HandleAllocated) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(immutable)", func);
       return false;
    }
@@ -1716,7 +1726,7 @@ _mesa_buffer_data(struct gl_context *ctx, struct gl_buffer_object *bufObj,
       return;
    }
 
-   if (bufObj->Immutable) {
+   if (bufObj->Immutable || bufObj->HandleAllocated) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(immutable)", func);
       return;
    }
@@ -4237,6 +4247,25 @@ _mesa_BindBuffersBase(GLenum target, GLuint first, GLsizei count,
    }
 }
 
+static ALWAYS_INLINE void
+invalidate_buffer_subdata(struct gl_context *ctx,
+                          struct gl_buffer_object *bufObj, GLintptr offset,
+                          GLsizeiptr length)
+{
+   if (ctx->Driver.InvalidateBufferSubData)
+      ctx->Driver.InvalidateBufferSubData(ctx, bufObj, offset, length);
+}
+
+void GLAPIENTRY
+_mesa_InvalidateBufferSubData_no_error(GLuint buffer, GLintptr offset,
+                                       GLsizeiptr length)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_buffer_object *bufObj = _mesa_lookup_bufferobj(ctx, buffer);
+   invalidate_buffer_subdata(ctx, bufObj, offset, length);
+}
+
 void GLAPIENTRY
 _mesa_InvalidateBufferSubData(GLuint buffer, GLintptr offset,
                               GLsizeiptr length)
@@ -4286,8 +4315,16 @@ _mesa_InvalidateBufferSubData(GLuint buffer, GLintptr offset,
       return;
    }
 
-   if (ctx->Driver.InvalidateBufferSubData)
-      ctx->Driver.InvalidateBufferSubData(ctx, bufObj, offset, length);
+   invalidate_buffer_subdata(ctx, bufObj, offset, length);
+}
+
+void GLAPIENTRY
+_mesa_InvalidateBufferData_no_error(GLuint buffer)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_buffer_object *bufObj =_mesa_lookup_bufferobj(ctx, buffer);
+   invalidate_buffer_subdata(ctx, bufObj, 0, bufObj->Size);
 }
 
 void GLAPIENTRY
@@ -4324,8 +4361,7 @@ _mesa_InvalidateBufferData(GLuint buffer)
       return;
    }
 
-   if (ctx->Driver.InvalidateBufferSubData)
-      ctx->Driver.InvalidateBufferSubData(ctx, bufObj, 0, bufObj->Size);
+   invalidate_buffer_subdata(ctx, bufObj, 0, bufObj->Size);
 }
 
 static void

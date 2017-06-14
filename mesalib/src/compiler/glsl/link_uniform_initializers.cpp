@@ -97,7 +97,8 @@ copy_constant_to_storage(union gl_constant_value *storage,
  */
 void
 set_opaque_binding(void *mem_ctx, gl_shader_program *prog,
-                   const glsl_type *type, const char *name, int *binding)
+                   const ir_variable *var, const glsl_type *type,
+                   const char *name, int *binding)
 {
 
    if (type->is_array() && type->fields.array->is_array()) {
@@ -106,7 +107,7 @@ set_opaque_binding(void *mem_ctx, gl_shader_program *prog,
       for (unsigned int i = 0; i < type->length; i++) {
          const char *element_name = ralloc_asprintf(mem_ctx, "%s[%d]", name, i);
 
-         set_opaque_binding(mem_ctx, prog, element_type,
+         set_opaque_binding(mem_ctx, prog, var, element_type,
                             element_name, binding);
       }
    } else {
@@ -139,16 +140,39 @@ set_opaque_binding(void *mem_ctx, gl_shader_program *prog,
          if (storage->type->is_sampler()) {
             for (unsigned i = 0; i < elements; i++) {
                const unsigned index = storage->opaque[sh].index + i;
-               if (index >= ARRAY_SIZE(shader->Program->SamplerUnits))
-                  break;
-               shader->Program->SamplerUnits[index] = storage->storage[i].i;
+
+               if (var->data.bindless) {
+                  if (index >= shader->Program->sh.NumBindlessSamplers)
+                     break;
+                  shader->Program->sh.BindlessSamplers[index].unit =
+                     storage->storage[i].i;
+                  shader->Program->sh.BindlessSamplers[index].bound = true;
+                  shader->Program->sh.HasBoundBindlessSampler = true;
+               } else {
+                  if (index >= ARRAY_SIZE(shader->Program->SamplerUnits))
+                     break;
+                  shader->Program->SamplerUnits[index] =
+                     storage->storage[i].i;
+               }
             }
          } else if (storage->type->is_image()) {
             for (unsigned i = 0; i < elements; i++) {
                const unsigned index = storage->opaque[sh].index + i;
-               if (index >= ARRAY_SIZE(shader->Program->sh.ImageUnits))
-                  break;
-               shader->Program->sh.ImageUnits[index] = storage->storage[i].i;
+
+
+               if (var->data.bindless) {
+                  if (index >= shader->Program->sh.NumBindlessImages)
+                     break;
+                  shader->Program->sh.BindlessImages[index].unit =
+                     storage->storage[i].i;
+                  shader->Program->sh.BindlessImages[index].bound = true;
+                  shader->Program->sh.HasBoundBindlessImage = true;
+               } else {
+                  if (index >= ARRAY_SIZE(shader->Program->sh.ImageUnits))
+                     break;
+                  shader->Program->sh.ImageUnits[index] =
+                     storage->storage[i].i;
+               }
             }
          }
       }
@@ -281,7 +305,7 @@ link_set_uniform_initializers(struct gl_shader_program *prog,
             if (type->without_array()->is_sampler() ||
                 type->without_array()->is_image()) {
                int binding = var->data.binding;
-               linker::set_opaque_binding(mem_ctx, prog, var->type,
+               linker::set_opaque_binding(mem_ctx, prog, var, var->type,
                                           var->name, &binding);
             } else if (var->is_in_buffer_block()) {
                const glsl_type *const iface_type = var->get_interface_type();

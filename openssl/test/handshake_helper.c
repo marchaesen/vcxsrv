@@ -297,7 +297,7 @@ static int server_alpn_cb(SSL *s, const unsigned char **out,
     *out = tmp_out;
     /* Unlike NPN, we don't tolerate a mismatch. */
     return ret == OPENSSL_NPN_NEGOTIATED ? SSL_TLSEXT_ERR_OK
-        : SSL_TLSEXT_ERR_NOACK;
+        : SSL_TLSEXT_ERR_ALERT_FATAL;
 }
 
 /*
@@ -607,10 +607,20 @@ static void do_reneg_setup_step(const SSL_TEST_CTX *test_ctx, PEER *peer)
              * session. The server may or may not resume dependant on the
              * setting of SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
              */
-            if (SSL_is_server(peer->ssl))
+            if (SSL_is_server(peer->ssl)) {
                 ret = SSL_renegotiate(peer->ssl);
-            else
-                ret = SSL_renegotiate_abbreviated(peer->ssl);
+            } else {
+                if (test_ctx->extra.client.reneg_ciphers != NULL) {
+                    if (!SSL_set_cipher_list(peer->ssl,
+                                test_ctx->extra.client.reneg_ciphers)) {
+                        peer->status = PEER_ERROR;
+                        return;
+                    }
+                    ret = SSL_renegotiate(peer->ssl);
+                } else {
+                    ret = SSL_renegotiate_abbreviated(peer->ssl);
+                }
+            }
             if (!ret) {
                 peer->status = PEER_ERROR;
                 return;
@@ -867,7 +877,7 @@ static HANDSHAKE_RESULT *do_handshake_internal(
     HANDSHAKE_EX_DATA server_ex_data, client_ex_data;
     CTX_DATA client_ctx_data, server_ctx_data, server2_ctx_data;
     HANDSHAKE_RESULT *ret = HANDSHAKE_RESULT_new();
-    int client_turn = 1;
+    int client_turn = 1, client_turn_count = 0;
     connect_phase_t phase = HANDSHAKE;
     handshake_status_t status = HANDSHAKE_RETRY;
     const unsigned char* tick = NULL;
@@ -876,6 +886,7 @@ static HANDSHAKE_RESULT *do_handshake_internal(
     const unsigned char *proto = NULL;
     /* API dictates unsigned int rather than size_t. */
     unsigned int proto_len = 0;
+    EVP_PKEY *tmp_key;
 
     memset(&server_ctx_data, 0, sizeof(server_ctx_data));
     memset(&server2_ctx_data, 0, sizeof(server2_ctx_data));
@@ -956,6 +967,7 @@ static HANDSHAKE_RESULT *do_handshake_internal(
 
         switch (status) {
         case HANDSHAKE_SUCCESS:
+            client_turn_count = 0;
             phase = next_phase(test_ctx, phase);
             if (phase == CONNECTION_DONE) {
                 ret->result = SSL_TEST_SUCCESS;
@@ -981,6 +993,16 @@ static HANDSHAKE_RESULT *do_handshake_internal(
             ret->result = SSL_TEST_INTERNAL_ERROR;
             goto err;
         case HANDSHAKE_RETRY:
+            if (client_turn_count++ >= 2000) {
+                /*
+                 * At this point, there's been so many PEER_RETRY in a row
+                 * that it's likely both sides are stuck waiting for a read.
+                 * It's time to give up.
+                 */
+                ret->result = SSL_TEST_INTERNAL_ERROR;
+                goto err;
+            }
+
             /* Continue. */
             client_turn ^= 1;
             break;
@@ -1023,6 +1045,19 @@ static HANDSHAKE_RESULT *do_handshake_internal(
 
     if (session_out != NULL)
         *session_out = SSL_get1_session(client.ssl);
+
+    if (SSL_get_server_tmp_key(client.ssl, &tmp_key)) {
+        int nid = EVP_PKEY_id(tmp_key);
+
+#ifndef OPENSSL_NO_EC
+        if (nid == EVP_PKEY_EC) {
+            EC_KEY *ec = EVP_PKEY_get0_EC_KEY(tmp_key);
+            nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(ec));
+        }
+#endif
+        EVP_PKEY_free(tmp_key);
+        ret->tmp_key_type = nid;
+    }
 
     ctx_data_free_data(&server_ctx_data);
     ctx_data_free_data(&server2_ctx_data);

@@ -31,7 +31,7 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "util/vk_util.h"
+#include "vk_util.h"
 #include "wsi_common_wayland.h"
 #include "wayland-drm-client-protocol.h"
 

@@ -84,7 +84,7 @@ An internal representation of an SCT can be created in one of two ways.
 The first option is to create a blank SCT, using SCT_new(), and then populate
 it using:
 
-=over
+=over 4
 
 =item * SCT_set_version() to set the SCT version.
 
@@ -117,7 +117,7 @@ The former takes ownership, whereas the latter makes a copy.
 Alternatively, the SCT can be pre-populated from the following data using
 SCT_new_from_base64():
 
-=over
+=over 4
 
 =item * The SCT version (only SCT_VERSION_V1 is currently supported).
 
@@ -162,7 +162,7 @@ SCT_set_version() returns 1 if the specified version is supported, 0 otherwise.
 SCT_set_log_entry_type() returns 1 if the specified log entry type is supported, 0 otherwise.
 
 SCT_set0_log_id() and B<SCT_set1_log_id> return 1 if the specified LogID is a
-valid SHA-256 hash, 0 otherwise. Aditionally, B<SCT_set1_log_id> returns 0 if
+valid SHA-256 hash, 0 otherwise. Additionally, B<SCT_set1_log_id> returns 0 if
 malloc fails.
 
 B<SCT_set_signature_nid> returns 1 if the specified NID is supported, 0 otherwise.
@@ -174,8 +174,8 @@ B<SCT_set_source> returns 1 on success, 0 otherwise.
 
 =head1 SEE ALSO
 
-L<ct(3)>,
-L<SCT_verify(3)>,
+L<ct(7)>,
+L<SCT_validate(3)>,
 L<OBJ_nid2obj(3)>
 
 =head1 HISTORY
@@ -184,7 +184,7 @@ These functions were added in OpenSSL 1.1.0.
 
 =head1 COPYRIGHT
 
-Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2016-2017 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the OpenSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

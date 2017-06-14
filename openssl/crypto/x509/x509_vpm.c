@@ -306,6 +306,17 @@ unsigned long X509_VERIFY_PARAM_get_flags(X509_VERIFY_PARAM *param)
     return param->flags;
 }
 
+uint32_t X509_VERIFY_PARAM_get_inh_flags(const X509_VERIFY_PARAM *param)
+{
+    return param->inh_flags;
+}
+
+int X509_VERIFY_PARAM_set_inh_flags(X509_VERIFY_PARAM *param, uint32_t flags)
+{
+    param->inh_flags = flags;
+    return 1;
+}
+
 int X509_VERIFY_PARAM_set_purpose(X509_VERIFY_PARAM *param, int purpose)
 {
     return X509_PURPOSE_set(&param->purpose, purpose);
@@ -324,6 +335,11 @@ void X509_VERIFY_PARAM_set_depth(X509_VERIFY_PARAM *param, int depth)
 void X509_VERIFY_PARAM_set_auth_level(X509_VERIFY_PARAM *param, int auth_level)
 {
     param->auth_level = auth_level;
+}
+
+time_t X509_VERIFY_PARAM_get_time(const X509_VERIFY_PARAM *param)
+{
+    return param->check_time;
 }
 
 void X509_VERIFY_PARAM_set_time(X509_VERIFY_PARAM *param, time_t t)

@@ -378,9 +378,9 @@ si_emit_config(struct radv_physical_device *physical_device,
 			       S_02800C_FORCE_HIS_ENABLE1(V_02800C_FORCE_DISABLE));
 
 	if (physical_device->rad_info.chip_class >= GFX9) {
-		radeon_set_context_reg(cs, R_030920_VGT_MAX_VTX_INDX, ~0);
-		radeon_set_context_reg(cs, R_030924_VGT_MIN_VTX_INDX, 0);
-		radeon_set_context_reg(cs, R_030928_VGT_INDX_OFFSET, 0);
+		radeon_set_uconfig_reg(cs, R_030920_VGT_MAX_VTX_INDX, ~0);
+		radeon_set_uconfig_reg(cs, R_030924_VGT_MIN_VTX_INDX, 0);
+		radeon_set_uconfig_reg(cs, R_030928_VGT_INDX_OFFSET, 0);
 	} else {
 		radeon_set_context_reg(cs, R_028400_VGT_MAX_VTX_INDX, ~0);
 		radeon_set_context_reg(cs, R_028404_VGT_MIN_VTX_INDX, 0);
@@ -485,7 +485,7 @@ si_emit_config(struct radv_physical_device *physical_device,
 				       S_028C48_MAX_PRIM_PER_BATCH(1023));
 		radeon_set_context_reg(cs, R_028C4C_PA_SC_CONSERVATIVE_RASTERIZATION_CNTL,
 				       S_028C4C_NULL_SQUAD_AA_MASK_ENABLE(1));
-		radeon_set_context_reg(cs, R_030968_VGT_INSTANCE_BASE_ID, 0);
+		radeon_set_uconfig_reg(cs, R_030968_VGT_INSTANCE_BASE_ID, 0);
 	}
 	si_emit_compute(physical_device, cs);
 }
@@ -1079,7 +1079,7 @@ void
 si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 {
 	bool is_compute = cmd_buffer->queue_family_index == RADV_QUEUE_COMPUTE;
-	enum chip_class chip_class = cmd_buffer->device->physical_device->rad_info.chip_class;
+
 	if (is_compute)
 		cmd_buffer->state.flush_bits &= ~(RADV_CMD_FLAG_FLUSH_AND_INV_CB |
 	                                          RADV_CMD_FLAG_FLUSH_AND_INV_CB_META |
@@ -1089,6 +1089,10 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	                                          RADV_CMD_FLAG_VS_PARTIAL_FLUSH |
 	                                          RADV_CMD_FLAG_VGT_FLUSH);
 
+	if (!cmd_buffer->state.flush_bits)
+		return;
+
+	enum chip_class chip_class = cmd_buffer->device->physical_device->rad_info.chip_class;
 	radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 128);
 
 	uint32_t *ptr = NULL;
@@ -1104,8 +1108,7 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	                       cmd_buffer->state.flush_bits);
 
 
-	if (cmd_buffer->state.flush_bits)
-		radv_cmd_buffer_trace_emit(cmd_buffer);
+	radv_cmd_buffer_trace_emit(cmd_buffer);
 	cmd_buffer->state.flush_bits = 0;
 }
 
@@ -1190,6 +1193,7 @@ static void si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer,
 		radeon_emit(cs, dst_va >> 32);		/* DST_ADDR_HI [31:0] */
 		radeon_emit(cs, command);
 	} else {
+		assert(!(flags & CP_DMA_USE_L2));
 		header |= S_411_SRC_ADDR_HI(src_va >> 32);
 		radeon_emit(cs, PKT3(PKT3_CP_DMA, 4, 0));
 		radeon_emit(cs, src_va);			/* SRC_ADDR_LO [31:0] */

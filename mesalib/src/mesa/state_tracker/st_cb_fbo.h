@@ -48,7 +48,12 @@ struct st_renderbuffer
 {
    struct gl_renderbuffer Base;
    struct pipe_resource *texture;
-   struct pipe_surface *surface; /* temporary view into texture */
+   /* This points to either "surface_linear" or "surface_srgb".
+    * It doesn't hold the pipe_surface reference. The other two do.
+    */
+   struct pipe_surface *surface;
+   struct pipe_surface *surface_linear;
+   struct pipe_surface *surface_srgb;
    GLboolean defined;        /**< defined contents? */
 
    struct pipe_transfer *transfer; /**< only used when mapping the resource */

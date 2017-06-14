@@ -84,6 +84,8 @@ typedef struct {
     char *npn_protocols;
     char *alpn_protocols;
     ssl_ct_validation_t ct_validation;
+    /* Ciphersuites to set on a renegotiation */
+    char *reneg_ciphers;
 } SSL_TEST_CLIENT_CONF;
 
 typedef struct {
@@ -159,6 +161,8 @@ typedef struct {
     char *expected_alpn_protocol;
     /* Whether the second handshake is resumed or a full handshake (boolean). */
     int resumption_expected;
+    /* Expected temporary key type */
+    int expected_tmp_key_type;
 } SSL_TEST_CTX;
 
 const char *ssl_test_result_name(ssl_test_result_t result);

@@ -176,11 +176,16 @@ vbo_exec_copy_to_current(struct vbo_exec_context *exec)
        */
       GLfloat *current = (GLfloat *)vbo->currval[i].Ptr;
       fi_type tmp[8]; /* space for doubles */
-      int dmul = exec->vtx.attrtype[i] == GL_DOUBLE ? 2 : 1;
+      int dmul = 1;
+
+      if (exec->vtx.attrtype[i] == GL_DOUBLE ||
+          exec->vtx.attrtype[i] == GL_UNSIGNED_INT64_ARB)
+         dmul = 2;
 
       assert(exec->vtx.attrsz[i]);
 
-      if (exec->vtx.attrtype[i] == GL_DOUBLE) {
+      if (exec->vtx.attrtype[i] == GL_DOUBLE ||
+          exec->vtx.attrtype[i] == GL_UNSIGNED_INT64_ARB) {
          memset(tmp, 0, sizeof(tmp));
          memcpy(tmp, exec->vtx.attrptr[i], exec->vtx.attrsz[i] * sizeof(GLfloat));
       } else {
@@ -241,7 +246,8 @@ vbo_exec_copy_from_current(struct vbo_exec_context *exec)
    GLint i;
 
    for (i = VBO_ATTRIB_POS + 1; i < VBO_ATTRIB_MAX; i++) {
-      if (exec->vtx.attrtype[i] == GL_DOUBLE) {
+      if (exec->vtx.attrtype[i] == GL_DOUBLE ||
+          exec->vtx.attrtype[i] == GL_UNSIGNED_INT64_ARB) {
          memcpy(exec->vtx.attrptr[i], vbo->currval[i].Ptr,
                 exec->vtx.attrsz[i] * sizeof(GLfloat));
       } else {
@@ -1089,6 +1095,9 @@ vbo_exec_vtxfmt_init(struct vbo_exec_context *exec)
    vfmt->VertexAttribL2dv = vbo_VertexAttribL2dv;
    vfmt->VertexAttribL3dv = vbo_VertexAttribL3dv;
    vfmt->VertexAttribL4dv = vbo_VertexAttribL4dv;
+
+   vfmt->VertexAttribL1ui64ARB = vbo_VertexAttribL1ui64ARB;
+   vfmt->VertexAttribL1ui64vARB = vbo_VertexAttribL1ui64vARB;
 }
 
 

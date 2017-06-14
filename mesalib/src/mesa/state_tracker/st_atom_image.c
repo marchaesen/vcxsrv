@@ -102,6 +102,27 @@ st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
    }
 }
 
+/**
+ * Get a pipe_image_view object from an image unit.
+ */
+void
+st_convert_image_from_unit(const struct st_context *st,
+                           struct pipe_image_view *img,
+                           GLuint imgUnit)
+{
+   struct gl_image_unit *u = &st->ctx->ImageUnits[imgUnit];
+   struct st_texture_object *stObj = st_texture_object(u->TexObj);
+
+   if (!_mesa_is_image_unit_valid(st->ctx, u) ||
+       !st_finalize_texture(st->ctx, st->pipe, u->TexObj, 0) ||
+       !stObj->pt) {
+      memset(img, 0, sizeof(*img));
+      return;
+   }
+
+   st_convert_image(st, u, img);
+}
+
 static void
 st_bind_images(struct st_context *st, struct gl_program *prog,
                enum pipe_shader_type shader_type)
@@ -116,19 +137,9 @@ st_bind_images(struct st_context *st, struct gl_program *prog,
    c = &st->ctx->Const.Program[prog->info.stage];
 
    for (i = 0; i < prog->info.num_images; i++) {
-      struct gl_image_unit *u =
-         &st->ctx->ImageUnits[prog->sh.ImageUnits[i]];
-      struct st_texture_object *stObj = st_texture_object(u->TexObj);
       struct pipe_image_view *img = &images[i];
 
-      if (!_mesa_is_image_unit_valid(st->ctx, u) ||
-          !st_finalize_texture(st->ctx, st->pipe, u->TexObj, 0) ||
-          !stObj->pt) {
-         memset(img, 0, sizeof(*img));
-         continue;
-      }
-
-      st_convert_image(st, u, img);
+      st_convert_image_from_unit(st, img, prog->sh.ImageUnits[i]);
    }
    cso_set_shader_images(st->cso_context, shader_type, 0,
                          prog->info.num_images, images);

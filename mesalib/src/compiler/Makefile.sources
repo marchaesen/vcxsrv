@@ -186,7 +186,6 @@ NIR_GENERATED_FILES = \
 NIR_FILES = \
 	nir/nir.c \
 	nir/nir.h \
-	nir/nir_array.h \
 	nir/nir_builder.h \
 	nir/nir_clone.c \
 	nir/nir_constant_expressions.h \

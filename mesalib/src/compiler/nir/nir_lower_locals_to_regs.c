@@ -26,7 +26,6 @@
  */
 
 #include "nir.h"
-#include "nir_array.h"
 
 struct locals_to_regs_state {
    nir_shader *shader;

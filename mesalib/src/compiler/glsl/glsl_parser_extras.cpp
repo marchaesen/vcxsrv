@@ -1676,20 +1676,19 @@ ast_struct_specifier::ast_struct_specifier(void *lin_ctx, const char *identifier
 					   ast_declarator_list *declarator_list)
 {
    if (identifier == NULL) {
-      static mtx_t mutex = _MTX_INITIALIZER_NP;
-      static unsigned anon_count = 1;
-      unsigned count;
-
-      mtx_lock(&mutex);
-      count = anon_count++;
-      mtx_unlock(&mutex);
-
-      identifier = linear_asprintf(lin_ctx, "#anon_struct_%04x", count);
+      /* All anonymous structs have the same name. This simplifies matching of
+       * globals whose type is an unnamed struct.
+       *
+       * It also avoids a memory leak when the same shader is compiled over and
+       * over again.
+       */
+      identifier = "#anon_struct";
    }
    name = identifier;
    this->declarations.push_degenerate_list_at_head(&declarator_list->link);
    is_declaration = true;
    layout = NULL;
+   type = NULL;
 }
 
 void ast_subroutine_list::print(void) const

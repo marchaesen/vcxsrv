@@ -65,7 +65,7 @@
 	movl	(%ebx), %eax ; \
 	bswap	%eax          /* ARGB -> BGRA */ ; \
 	rorl	$8, %eax      /* BGRA -> ABGR */ ; \
-	movl	%eax, (%ecx)  /* ABGR -> R, G, B, A */ ; \
+	movl	%eax, (%ecx)  /* ABGR -> R, G, B, A */ ;
 
 
 /**

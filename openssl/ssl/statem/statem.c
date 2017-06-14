@@ -361,6 +361,8 @@ static int state_machine(SSL *s, int server)
                  */
                 s->ctx->stats.sess_accept_renegotiate++;
             }
+
+            s->s3->tmp.cert_request = 0;
         } else {
             s->ctx->stats.sess_connect++;
 
@@ -368,7 +370,7 @@ static int state_machine(SSL *s, int server)
             memset(s->s3->client_random, 0, sizeof(s->s3->client_random));
             s->hit = 0;
 
-            s->s3->tmp.cert_request = 0;
+            s->s3->tmp.cert_req = 0;
 
             if (SSL_IS_DTLS(s)) {
                 st->use_timer = 1;
@@ -848,26 +850,3 @@ int ossl_statem_app_data_allowed(SSL *s)
 
     return 0;
 }
-
-#ifndef OPENSSL_NO_SCTP
-/*
- * Set flag used by SCTP to determine whether we are in the read sock state
- */
-void ossl_statem_set_sctp_read_sock(SSL *s, int read_sock)
-{
-    s->statem.in_sctp_read_sock = read_sock;
-}
-
-/*
- * Called by the record layer to determine whether we are in the read sock
- * state or not.
- *
- * Return values are:
- *   1: Yes (we are in the read sock state)
- *   0: No (we are not in the read sock state)
- */
-int ossl_statem_in_sctp_read_sock(SSL *s)
-{
-    return s->statem.in_sctp_read_sock;
-}
-#endif

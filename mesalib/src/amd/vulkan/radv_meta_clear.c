@@ -672,7 +672,6 @@ emit_fast_htile_clear(struct radv_cmd_buffer *cmd_buffer,
 	VkClearDepthStencilValue clear_value = clear_att->clearValue.depthStencil;
 	VkImageAspectFlags aspects = clear_att->aspectMask;
 	uint32_t clear_word;
-	bool ret;
 
 	if (!iview->image->surface.htile_size)
 		return false;

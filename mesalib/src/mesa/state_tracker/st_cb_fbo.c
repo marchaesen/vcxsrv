@@ -112,11 +112,9 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
                               GLuint width, GLuint height)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = st->pipe->screen;
    struct st_renderbuffer *strb = st_renderbuffer(rb);
    enum pipe_format format = PIPE_FORMAT_NONE;
-   struct pipe_surface surf_tmpl;
    struct pipe_resource templ;
 
    /* init renderbuffer fields */
@@ -132,7 +130,9 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
 
    /* Free the old surface and texture
     */
-   pipe_surface_reference( &strb->surface, NULL );
+   pipe_surface_reference(&strb->surface_srgb, NULL);
+   pipe_surface_reference(&strb->surface_linear, NULL);
+   strb->surface = NULL;
    pipe_resource_reference( &strb->texture, NULL );
 
    /* If an sRGB framebuffer is unsupported, sRGB formats behave like linear
@@ -215,17 +215,7 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
    if (!strb->texture)
       return FALSE;
 
-   u_surface_default_template(&surf_tmpl, strb->texture);
-   strb->surface = pipe->create_surface(pipe,
-                                        strb->texture,
-                                        &surf_tmpl);
-   if (strb->surface) {
-      assert(strb->surface->texture);
-      assert(strb->surface->format);
-      assert(strb->surface->width == width);
-      assert(strb->surface->height == height);
-   }
-
+   st_update_renderbuffer_surface(st, strb);
    return strb->surface != NULL;
 }
 
@@ -239,7 +229,9 @@ st_renderbuffer_delete(struct gl_context *ctx, struct gl_renderbuffer *rb)
    struct st_renderbuffer *strb = st_renderbuffer(rb);
    if (ctx) {
       struct st_context *st = st_context(ctx);
-      pipe_surface_release(st->pipe, &strb->surface);
+      pipe_surface_release(st->pipe, &strb->surface_srgb);
+      pipe_surface_release(st->pipe, &strb->surface_linear);
+      strb->surface = NULL;
    }
    pipe_resource_reference(&strb->texture, NULL);
    free(strb->data);
@@ -450,15 +442,19 @@ st_update_renderbuffer_surface(struct st_context *st,
          last_layer = MIN2(first_layer + tex->NumLayers - 1, last_layer);
    }
 
-   if (!strb->surface ||
-       strb->surface->texture->nr_samples != strb->Base.NumSamples ||
-       strb->surface->format != format ||
-       strb->surface->texture != resource ||
-       strb->surface->width != rtt_width ||
-       strb->surface->height != rtt_height ||
-       strb->surface->u.tex.level != level ||
-       strb->surface->u.tex.first_layer != first_layer ||
-       strb->surface->u.tex.last_layer != last_layer) {
+   struct pipe_surface **psurf =
+      enable_srgb ? &strb->surface_srgb : &strb->surface_linear;
+   struct pipe_surface *surf = *psurf;
+
+   if (!surf ||
+       surf->texture->nr_samples != strb->Base.NumSamples ||
+       surf->format != format ||
+       surf->texture != resource ||
+       surf->width != rtt_width ||
+       surf->height != rtt_height ||
+       surf->u.tex.level != level ||
+       surf->u.tex.first_layer != first_layer ||
+       surf->u.tex.last_layer != last_layer) {
       /* create a new pipe_surface */
       struct pipe_surface surf_tmpl;
       memset(&surf_tmpl, 0, sizeof(surf_tmpl));
@@ -467,10 +463,11 @@ st_update_renderbuffer_surface(struct st_context *st,
       surf_tmpl.u.tex.first_layer = first_layer;
       surf_tmpl.u.tex.last_layer = last_layer;
 
-      pipe_surface_release(pipe, &strb->surface);
+      pipe_surface_release(pipe, psurf);
 
-      strb->surface = pipe->create_surface(pipe, resource, &surf_tmpl);
+      *psurf = pipe->create_surface(pipe, resource, &surf_tmpl);
    }
+   strb->surface = *psurf;
 }
 
 /**
@@ -507,7 +504,7 @@ st_render_texture(struct gl_context *ctx,
     * That's where the new renderbuffer (which we just created) gets
     * passed to the pipe as a (color/depth) render target.
     */
-   st_invalidate_state(ctx, _NEW_BUFFERS);
+   st_invalidate_buffers(st);
 
 
    /* Need to trigger a call to update_framebuffer() since we just
@@ -523,6 +520,7 @@ st_render_texture(struct gl_context *ctx,
 static void
 st_finish_render_texture(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
+   struct st_context *st = st_context(ctx);
    struct st_renderbuffer *strb = st_renderbuffer(rb);
 
    if (!strb)
@@ -531,7 +529,7 @@ st_finish_render_texture(struct gl_context *ctx, struct gl_renderbuffer *rb)
    strb->is_rtt = FALSE;
 
    /* restore previous framebuffer state */
-   st_invalidate_state(ctx, _NEW_BUFFERS);
+   st_invalidate_buffers(st);
 }
 
 

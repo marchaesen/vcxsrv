@@ -248,6 +248,9 @@ _mesa_GetVertexAttribLdv(GLuint index, GLenum pname, GLdouble *params);
 extern void GLAPIENTRY
 _mesa_GetVertexAttribiv(GLuint index, GLenum pname, GLint *params);
 
+extern void GLAPIENTRY
+_mesa_GetVertexAttribLui64vARB(GLuint index, GLenum pname, GLuint64EXT *params);
+
 
 extern void GLAPIENTRY
 _mesa_GetVertexAttribIiv(GLuint index, GLenum pname, GLint *params);
@@ -375,9 +378,20 @@ extern void GLAPIENTRY
 _mesa_VertexArrayVertexBuffer(GLuint vaobj, GLuint bindingIndex, GLuint buffer,
                               GLintptr offset, GLsizei stride);
 
+void GLAPIENTRY
+_mesa_BindVertexBuffers_no_error(GLuint first, GLsizei count,
+                                 const GLuint *buffers, const GLintptr *offsets,
+                                 const GLsizei *strides);
+
 extern void GLAPIENTRY
 _mesa_BindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers,
                         const GLintptr *offsets, const GLsizei *strides);
+
+void GLAPIENTRY
+_mesa_VertexArrayVertexBuffers_no_error(GLuint vaobj, GLuint first,
+                                        GLsizei count, const GLuint *buffers,
+                                        const GLintptr *offsets,
+                                        const GLsizei *strides);
 
 extern void GLAPIENTRY
 _mesa_VertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsizei count,

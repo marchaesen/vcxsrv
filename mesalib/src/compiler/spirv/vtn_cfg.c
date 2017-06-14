@@ -183,7 +183,7 @@ vtn_add_case(struct vtn_builder *b, struct vtn_switch *swtch,
       list_inithead(&c->body);
       c->start_block = case_block;
       c->fallthrough = NULL;
-      nir_array_init(&c->values, b);
+      util_dynarray_init(&c->values, b);
       c->is_default = false;
       c->visited = false;
 
@@ -195,7 +195,7 @@ vtn_add_case(struct vtn_builder *b, struct vtn_switch *swtch,
    if (is_default) {
       case_block->switch_case->is_default = true;
    } else {
-      nir_array_add(&case_block->switch_case->values, uint32_t, val);
+      util_dynarray_append(&case_block->switch_case->values, uint32_t, val);
    }
 }
 
@@ -709,7 +709,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
             }
 
             nir_ssa_def *cond = NULL;
-            nir_array_foreach(&cse->values, uint32_t, val) {
+            util_dynarray_foreach(&cse->values, uint32_t, val) {
                nir_ssa_def *is_val =
                   nir_ieq(&b->nb, sel, nir_imm_int(&b->nb, *val));
 

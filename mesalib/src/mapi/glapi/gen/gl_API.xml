@@ -2108,7 +2108,7 @@
         <glx rop="102"/>
     </function>
 
-    <function name="Scissor" es1="1.0" es2="2.0">
+    <function name="Scissor" es1="1.0" es2="2.0" no_error="true">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
@@ -3299,7 +3299,7 @@
         <glx rop="4122"/>
     </function>
 
-    <function name="TexSubImage1D">
+    <function name="TexSubImage1D" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -3311,7 +3311,7 @@
         <glx rop="4099" large="true"/>
     </function>
 
-    <function name="TexSubImage2D" es1="1.0" es2="2.0">
+    <function name="TexSubImage2D" es1="1.0" es2="2.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4025,7 +4025,7 @@
         <glx rop="4114" large="true"/>
     </function>
 
-    <function name="TexSubImage3D" es2="3.0">
+    <function name="TexSubImage3D" es2="3.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -5037,7 +5037,7 @@
     <type name="intptr"   size="4"                  glx_name="CARD32"/>
     <type name="sizeiptr" size="4"  unsigned="true" glx_name="CARD32"/>
 
-    <function name="BindBuffer" es1="1.1" es2="2.0" marshal="custom">
+    <function name="BindBuffer" es1="1.1" es2="2.0" marshal="custom" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="buffer" type="GLuint"/>
         <glx ignore="true"/>
@@ -8284,7 +8284,9 @@
     <enum name="QUERY_BUFFER_BARRIER_BIT"           value="0x00008000"/>
 </category>
 
-<!-- ARB extensions 149 - 152 -->
+<!-- ARB extensions 149 - 151 -->
+
+<xi:include href="ARB_bindless_texture.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="ARB_compute_variable_group_size.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

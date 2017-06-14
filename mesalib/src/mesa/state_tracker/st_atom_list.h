@@ -35,7 +35,7 @@ ST_STATE(ST_NEW_GS_IMAGES, st_bind_gs_images)
 ST_STATE(ST_NEW_FS_IMAGES, st_bind_fs_images)
 
 ST_STATE(ST_NEW_FB_STATE, st_update_framebuffer_state) /* depends on update_*_texture and bind_*_images */
-ST_STATE(ST_NEW_SAMPLE_MASK, st_update_sample_mask)
+ST_STATE(ST_NEW_SAMPLE_MASK, st_update_sample_mask) /* depends on update_framebuffer_state */
 ST_STATE(ST_NEW_SAMPLE_SHADING, st_update_sample_shading)
 
 ST_STATE(ST_NEW_VS_CONSTANTS, st_update_vs_constants)

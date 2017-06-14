@@ -969,6 +969,8 @@ _mesa_write_shader_to_file(const struct gl_shader *shader)
    case MESA_SHADER_COMPUTE:
       type = "comp";
       break;
+   default:
+      break;
    }
 
    _mesa_snprintf(filename, sizeof(filename), "shader_%u.%s", shader->Name, type);

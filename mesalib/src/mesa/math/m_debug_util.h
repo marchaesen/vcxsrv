@@ -216,7 +216,7 @@ extern char *mesa_profile;
    x = LONG_MAX;							\
    for ( cycle_i = 0 ; cycle_i < 10 ; cycle_i++ ) {			\
       unsigned long cycle_tmp1, cycle_tmp2;				\
-      rdtscll(cycle_tmp1);						\
+      rdtscll(cycle_tmp1);
 
 #define END_RACE(x)							\
       rdtscll(cycle_tmp2);						\

@@ -80,6 +80,12 @@ void st_upload_constants(struct st_context *st, struct gl_program *prog)
       }
    }
 
+   /* Make all bindless samplers/images bound texture/image units resident in
+    * the context.
+    */
+   st_make_bound_samplers_resident(st, prog);
+   st_make_bound_images_resident(st, prog);
+
    /* update constants */
    if (params && params->NumParameters) {
       struct pipe_constant_buffer cb;

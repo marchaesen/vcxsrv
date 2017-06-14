@@ -188,8 +188,11 @@ update_screen_size(struct xwl_output *xwl_output, int width, int height)
     SetRootClip(xwl_screen->screen, xwl_screen->root_clip_mode);
 
     if (xwl_screen->screen->root) {
+        BoxRec box = { 0, 0, width, height };
+
         xwl_screen->screen->root->drawable.width = width;
         xwl_screen->screen->root->drawable.height = height;
+        RegionReset(&xwl_screen->screen->root->winSize, &box);
         RRScreenSizeNotify(xwl_screen->screen);
     }
 

@@ -90,7 +90,6 @@ class PrintCode(gl_XML.gl_print_base):
             out('return {0};'.format(call))
 
     def print_sync_dispatch(self, func):
-        out('_mesa_glthread_finish(ctx);')
         out('debug_print_sync_fallback("{0}");'.format(func.name))
         self.print_sync_call(func)
 
@@ -259,6 +258,7 @@ class PrintCode(gl_XML.gl_print_base):
         if need_fallback_sync:
             out('fallback_to_sync:')
         with indent():
+            out('_mesa_glthread_finish(ctx);')
             self.print_sync_dispatch(func)
 
         out('}')

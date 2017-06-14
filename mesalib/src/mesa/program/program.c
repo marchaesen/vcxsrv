@@ -271,6 +271,14 @@ _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
       ralloc_free(prog->nir);
    }
 
+   if (prog->sh.BindlessSamplers) {
+      ralloc_free(prog->sh.BindlessSamplers);
+   }
+
+   if (prog->sh.BindlessImages) {
+      ralloc_free(prog->sh.BindlessImages);
+   }
+
    ralloc_free(prog);
 }
 

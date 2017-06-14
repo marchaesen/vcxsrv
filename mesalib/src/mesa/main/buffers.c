@@ -231,7 +231,7 @@ read_buffer_enum_to_index(const struct gl_context *ctx, GLenum buffer)
          if (buffer >= GL_COLOR_ATTACHMENT8 && buffer <= GL_COLOR_ATTACHMENT31)
             return BUFFER_COUNT;
          /* error */
-         return -1;
+         return BUFFER_NONE;
    }
 }
 
@@ -752,16 +752,16 @@ read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
 
    if (buffer == GL_NONE) {
       /* This is legal--it means that no buffer should be bound for reading. */
-      srcBuffer = -1;
+      srcBuffer = BUFFER_NONE;
    }
    else {
       /* general case / window-system framebuffer */
       if (_mesa_is_gles3(ctx) && !is_legal_es3_readbuffer_enum(buffer))
-         srcBuffer = -1;
+         srcBuffer = BUFFER_NONE;
       else
          srcBuffer = read_buffer_enum_to_index(ctx, buffer);
 
-      if (srcBuffer == -1) {
+      if (srcBuffer == BUFFER_NONE) {
          _mesa_error(ctx, GL_INVALID_ENUM,
                      "%s(invalid buffer %s)", caller,
                      _mesa_enum_to_string(buffer));

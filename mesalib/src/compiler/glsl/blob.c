@@ -107,7 +107,7 @@ blob_overwrite_bytes(struct blob *blob,
                      size_t to_write)
 {
    /* Detect an attempt to overwrite data out of bounds. */
-   if (offset < 0 || blob->size - offset < to_write)
+   if (blob->size < offset + to_write)
       return false;
 
    memcpy(blob->data + offset, bytes, to_write);

@@ -270,7 +270,7 @@ union tc_payload {
    struct pipe_query *query;
    struct pipe_resource *resource;
    struct pipe_transfer *transfer;
-   uint64_t __use_8_bytes;
+   uint64_t handle;
 };
 
 #ifdef _MSC_VER

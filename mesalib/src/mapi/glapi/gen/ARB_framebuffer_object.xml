@@ -271,7 +271,7 @@
 	<glx vendorpriv="1428"/>
     </function>
 
-    <function name="BlitFramebuffer" es2="3.0">
+    <function name="BlitFramebuffer" es2="3.0" no_error="true">
         <param name="srcX0" type="GLint"/>
         <param name="srcY0" type="GLint"/>
         <param name="srcX1" type="GLint"/>

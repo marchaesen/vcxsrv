@@ -342,7 +342,7 @@ disk_cache_create(const char *gpu_name, const char *timestamp,
     * really care about getting things to disk quickly just that it's not
     * blocking other tasks.
     */
-   util_queue_init(&cache->cache_queue, "disk_cache", 32, 1);
+   util_queue_init(&cache->cache_queue, "disk_cache", 32, 1, 0);
 
    /* Create driver id keys */
    size_t ts_size = strlen(timestamp) + 1;

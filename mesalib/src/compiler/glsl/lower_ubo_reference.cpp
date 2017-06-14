@@ -893,7 +893,7 @@ lower_ubo_reference_visitor::check_for_buffer_struct_copy(ir_assignment *ir)
    if (!lhs_deref)
       return false;
 
-   assert(lhs_deref->type->record_compare(rhs_deref->type));
+   assert(lhs_deref->type == rhs_deref->type);
    void *mem_ctx = ralloc_parent(shader->ir);
 
    for (unsigned i = 0; i < lhs_deref->type->length; i++) {

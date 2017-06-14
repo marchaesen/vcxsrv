@@ -9,7 +9,7 @@
 
 ##  Configure -- OpenSSL source tree configuration script
 
-require 5.10.0;
+use 5.10.0;
 use strict;
 use File::Basename;
 use File::Spec::Functions qw/:DEFAULT abs2rel rel2abs/;
@@ -59,11 +59,12 @@ my $usage="Usage: Configure [no-<cipher> ...] [enable-<cipher> ...] [-Dxxx] [-lx
 # zlib-dynamic	Like "zlib", but the zlib library is expected to be a shared
 #		library and will be loaded in run-time by the OpenSSL library.
 # sctp          include SCTP support
-# 386           generate 80386 code
 # enable-weak-ssl-ciphers
 #               Enable weak ciphers that are disabled by default. This currently
 #               only includes RC4 based ciphers.
-# no-sse2	disables IA-32 SSE2 code, above option implies no-sse2
+# 386           generate 80386 code in assembly modules
+# no-sse2       disables IA-32 SSE2 code in assembly modules, the above
+#               mentioned '386' option implies this one
 # no-<cipher>   build without specified algorithm (rsa, idea, rc5, ...)
 # -<xxx> +<xxx> compiler options are passed through
 # -static       while -static is also a pass-through compiler option (and
@@ -120,6 +121,7 @@ my $gcc_devteam_warn = "-DDEBUG_UNUSED"
         . " -Wshadow"
         . " -Wformat"
         . " -Wtype-limits"
+        . " -Wundef"
         . " -Werror"
         ;
 
@@ -142,6 +144,7 @@ my $clang_devteam_warn = ""
         . " -Wconditional-uninitialized"
         . " -Wincompatible-pointer-types-discards-qualifiers"
         . " -Wmissing-variable-declarations"
+        . " -Wundef"
         ;
 
 # This adds backtrace information to the memory leak info.  Is only used
@@ -455,6 +458,8 @@ my @disable_cascades = (
     "dgram"		=> [ "dtls", "sctp" ],
     "sock"		=> [ "dgram" ],
     "dtls"		=> [ @dtls ],
+    sub { 0 == scalar grep { !$disabled{$_} } @dtls }
+			=> [ "dtls" ],
 
     # SSL 3.0, (D)TLS 1.0 and TLS 1.1 require MD5 and SHA
     "md5"		=> [ "ssl", "tls1", "tls1_1", "dtls1" ],
@@ -475,6 +480,8 @@ my @disable_cascades = (
 			     "dtls1", "dtls1_2" ],
 
     "tls"		=> [ @tls ],
+    sub { 0 == scalar grep { !$disabled{$_} } @tls }
+			=> [ "tls" ],
 
     # SRP and HEARTBEATS require TLSEXT
     "tlsext"		=> [ "srp", "heartbeats" ],
@@ -987,6 +994,25 @@ $target{build_scheme} = [ $target{build_scheme} ]
 my ($builder, $builder_platform, @builder_opts) =
     @{$target{build_scheme}};
 
+foreach my $checker (($builder_platform."-".$target{build_file}."-checker.pm",
+                      $builder_platform."-checker.pm")) {
+    my $checker_path = catfile($srcdir, "Configurations", $checker);
+    if (-f $checker_path) {
+        my $fn = $ENV{CONFIGURE_CHECKER_WARN}
+            ? sub { warn $@; } : sub { die $@; };
+        if (! do $checker_path) {
+            if ($@) {
+                $fn->($@);
+            } elsif ($!) {
+                $fn->($!);
+            } else {
+                $fn->("The detected tools didn't match the platform\n");
+            }
+        }
+        last;
+    }
+}
+
 push @{$config{defines}}, "NDEBUG"    if $config{build_type} eq "release";
 
 if ($target =~ /^mingw/ && `$target{cc} --target-help 2>&1` =~ m/-mno-cygwin/m)
@@ -1190,6 +1216,9 @@ unless ($disabled{asm}) {
     }
     if ($target{ec_asm_src} =~ /ecp_nistz256/) {
 	push @{$config{defines}}, "ECP_NISTZ256_ASM";
+    }
+    if ($target{padlock_asm_src} ne $table{DEFAULTS}->{padlock_asm_src}) {
+	push @{$config{defines}}, "PADLOCK_ASM";
     }
     if ($target{poly1305_asm_src} ne "") {
 	push @{$config{defines}}, "POLY1305_ASM";
@@ -2580,7 +2609,7 @@ sub isabsolute {
     # On non-platforms, we just use file_name_is_absolute().
     return file_name_is_absolute($file) unless $^O eq "VMS";
 
-    # If the file spec includes a device or a directpry spec,
+    # If the file spec includes a device or a directory spec,
     # file_name_is_absolute() is perfectly safe.
     return file_name_is_absolute($file) if $file =~ m|[:\[]|;
 

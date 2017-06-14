@@ -39,6 +39,10 @@ test_bz89617_CFLAGS = \
 test_bz89617_LDADD = $(top_builddir)/src/libfontconfig.la
 TESTS += test-bz89617
 
+check_PROGRAMS += test-bz131804
+test_bz131804_LDADD = $(top_builddir)/src/libfontconfig.la
+TESTS += test-bz131804
+
 noinst_PROGRAMS = $(check_PROGRAMS)
 
 if !OS_WIN32

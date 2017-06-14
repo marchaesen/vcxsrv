@@ -1490,6 +1490,9 @@ _save_vtxfmt_init(struct gl_context *ctx)
    vfmt->VertexAttribL3dv = _save_VertexAttribL3dv;
    vfmt->VertexAttribL4dv = _save_VertexAttribL4dv;
 
+   vfmt->VertexAttribL1ui64ARB = _save_VertexAttribL1ui64ARB;
+   vfmt->VertexAttribL1ui64vARB = _save_VertexAttribL1ui64vARB;
+
    /* This will all require us to fallback to saving the list as opcodes:
     */
    vfmt->CallList = _save_CallList;

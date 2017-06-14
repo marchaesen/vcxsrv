@@ -17,10 +17,6 @@
 #include <openssl/rand.h>
 #include "record_locl.h"
 
-#ifndef  EVP_CIPH_FLAG_TLS1_1_MULTIBLOCK
-# define EVP_CIPH_FLAG_TLS1_1_MULTIBLOCK 0
-#endif
-
 #if     defined(OPENSSL_SMALL_FOOTPRINT) || \
         !(      defined(AES_ASM) &&     ( \
                 defined(__x86_64)       || defined(__x86_64__)  || \
@@ -39,8 +35,6 @@ void RECORD_LAYER_init(RECORD_LAYER *rl, SSL *s)
 
 void RECORD_LAYER_clear(RECORD_LAYER *rl)
 {
-    unsigned int pipes;
-
     rl->rstate = SSL_ST_READ_HEADER;
 
     /*
@@ -62,9 +56,7 @@ void RECORD_LAYER_clear(RECORD_LAYER *rl)
     rl->wpend_buf = NULL;
 
     SSL3_BUFFER_clear(&rl->rbuf);
-    for (pipes = 0; pipes < rl->numwpipes; pipes++)
-        SSL3_BUFFER_clear(&rl->wbuf[pipes]);
-    rl->numwpipes = 0;
+    ssl3_release_write_buffer(rl->s);
     rl->numrpipes = 0;
     SSL3_RECORD_clear(rl->rrec, SSL_MAX_PIPELINES);
 
@@ -84,9 +76,22 @@ void RECORD_LAYER_release(RECORD_LAYER *rl)
     SSL3_RECORD_release(rl->rrec, SSL_MAX_PIPELINES);
 }
 
+/* Checks if we have unprocessed read ahead data pending */
 int RECORD_LAYER_read_pending(const RECORD_LAYER *rl)
 {
     return SSL3_BUFFER_get_left(&rl->rbuf) != 0;
+}
+
+/* Checks if we have decrypted unread record data pending */
+int RECORD_LAYER_processed_read_pending(const RECORD_LAYER *rl)
+{
+    size_t curr_rec = 0, num_recs = RECORD_LAYER_get_numrpipes(rl);
+    const SSL3_RECORD *rr = rl->rrec;
+
+    while (curr_rec < num_recs && SSL3_RECORD_is_read(&rr[curr_rec]))
+        curr_rec++;
+
+    return curr_rec < num_recs;
 }
 
 int RECORD_LAYER_write_pending(const RECORD_LAYER *rl)
@@ -178,10 +183,7 @@ const char *SSL_rstate_string(const SSL *s)
 }
 
 /*
- * Return values are as per SSL_read(), i.e.
- * >0 The number of read bytes
- *  0 Failure (not retryable)
- * <0 Failure (may be retryable)
+ * Return values are as per SSL_read()
  */
 int ssl3_read_n(SSL *s, int n, int max, int extend, int clearold)
 {
@@ -312,7 +314,7 @@ int ssl3_read_n(SSL *s, int n, int max, int extend, int clearold)
             if (s->mode & SSL_MODE_RELEASE_BUFFERS && !SSL_IS_DTLS(s))
                 if (len + left == 0)
                     ssl3_release_read_buffer(s);
-            return -1;
+            return i;
         }
         left += i;
         /*
@@ -366,7 +368,8 @@ int ssl3_write_bytes(SSL *s, int type, const void *buf_, int len)
      * promptly send beyond the end of the users buffer ... so we trap and
      * report the error in a way the user will notice
      */
-    if ((unsigned int)len < s->rlayer.wnum) {
+    if (((unsigned int)len < s->rlayer.wnum) 
+        || ((wb->left != 0) && ((unsigned int)len < (s->rlayer.wnum + s->rlayer.wpend_tot)))) {
         SSLerr(SSL_F_SSL3_WRITE_BYTES, SSL_R_BAD_LENGTH);
         return -1;
     }
@@ -406,7 +409,7 @@ int ssl3_write_bytes(SSL *s, int type, const void *buf_, int len)
     if (type == SSL3_RT_APPLICATION_DATA &&
         u_len >= 4 * (max_send_fragment = s->max_send_fragment) &&
         s->compress == NULL && s->msg_callback == NULL &&
-        !SSL_USE_ETM(s) && SSL_USE_EXPLICIT_IV(s) &&
+        !SSL_WRITE_ETM(s) && SSL_USE_EXPLICIT_IV(s) &&
         EVP_CIPHER_flags(EVP_CIPHER_CTX_cipher(s->enc_write_ctx)) &
         EVP_CIPH_FLAG_TLS1_1_MULTIBLOCK) {
         unsigned char aad[13];
@@ -802,7 +805,7 @@ int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
          * wb->buf
          */
 
-        if (!SSL_USE_ETM(s) && mac_size != 0) {
+        if (!SSL_WRITE_ETM(s) && mac_size != 0) {
             if (s->method->ssl3_enc->mac(s, &wr[j],
                                          &(outbuf[j][wr[j].length + eivlen]),
                                          1) < 0)
@@ -825,7 +828,7 @@ int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
         goto err;
 
     for (j = 0; j < numpipes; j++) {
-        if (SSL_USE_ETM(s) && mac_size != 0) {
+        if (SSL_WRITE_ETM(s) && mac_size != 0) {
             if (s->method->ssl3_enc->mac(s, &wr[j],
                                          outbuf[j] + wr[j].length, 1) < 0)
                 goto err;
@@ -882,10 +885,7 @@ int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
 
 /* if s->s3->wbuf.left != 0, we need to call this
  *
- * Return values are as per SSL_read(), i.e.
- * >0 The number of read bytes
- *  0 Failure (not retryable)
- * <0 Failure (may be retryable)
+ * Return values are as per SSL_write()
  */
 int ssl3_write_pending(SSL *s, int type, const unsigned char *buf,
                        unsigned int len)
@@ -936,7 +936,7 @@ int ssl3_write_pending(SSL *s, int type, const unsigned char *buf,
                  */
                 SSL3_BUFFER_set_left(&wb[currbuf], 0);
             }
-            return -1;
+            return i;
         }
         SSL3_BUFFER_add_offset(&wb[currbuf], i);
         SSL3_BUFFER_add_left(&wb[currbuf], -i);
@@ -1307,7 +1307,12 @@ int ssl3_read_bytes(SSL *s, int type, int *recvd_type, unsigned char *buf,
                         return (-1);
                     }
                 }
+            } else {
+                SSL3_RECORD_set_read(rr);
             }
+        } else {
+            /* Does this ever happen? */
+            SSL3_RECORD_set_read(rr);
         }
         /*
          * we either finished a handshake or ignored the request, now try
