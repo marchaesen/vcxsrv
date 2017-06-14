@@ -240,6 +240,8 @@ MAIN_FILES = \
 	main/texstorage.h \
 	main/texstore.c \
 	main/texstore.h \
+	main/texturebindless.c \
+	main/texturebindless.h \
 	main/textureview.c \
 	main/textureview.h \
 	main/transformfeedback.c \

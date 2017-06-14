@@ -82,7 +82,7 @@ static void radv_amdgpu_winsys_destroy(struct radeon_winsys *rws)
 }
 
 struct radeon_winsys *
-radv_amdgpu_winsys_create(int fd, uint32_t debug_flags)
+radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags)
 {
 	uint32_t drm_major, drm_minor, r;
 	amdgpu_device_handle dev;
@@ -106,6 +106,7 @@ radv_amdgpu_winsys_create(int fd, uint32_t debug_flags)
 	if (debug_flags & RADV_DEBUG_NO_IBS)
 		ws->use_ib_bos = false;
 
+	ws->batchchain = !!(perftest_flags & RADV_PERFTEST_BATCHCHAIN);
 	LIST_INITHEAD(&ws->global_bo_list);
 	pthread_mutex_init(&ws->global_bo_list_lock, NULL);
 	ws->base.query_info = radv_amdgpu_winsys_query_info;

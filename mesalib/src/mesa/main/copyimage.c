@@ -57,16 +57,16 @@ enum mesa_block_class {
  * \return true if success, false if error
  */
 static bool
-prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
-               int level, int z, int depth,
-               struct gl_texture_image **tex_image,
-               struct gl_renderbuffer **renderbuffer,
-               mesa_format *format,
-               GLenum *internalFormat,
-               GLuint *width,
-               GLuint *height,
-               GLuint *num_samples,
-               const char *dbg_prefix)
+prepare_target_err(struct gl_context *ctx, GLuint name, GLenum target,
+                   int level, int z, int depth,
+                   struct gl_texture_image **tex_image,
+                   struct gl_renderbuffer **renderbuffer,
+                   mesa_format *format,
+                   GLenum *internalFormat,
+                   GLuint *width,
+                   GLuint *height,
+                   GLuint *num_samples,
+                   const char *dbg_prefix)
 {
    if (name == 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
@@ -214,6 +214,30 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
    return true;
 }
 
+static void
+prepare_target(struct gl_context *ctx, GLuint name, GLenum target,
+               int level, int z,
+               struct gl_texture_image **texImage,
+               struct gl_renderbuffer **renderbuffer)
+{
+   if (target == GL_RENDERBUFFER) {
+      struct gl_renderbuffer *rb = _mesa_lookup_renderbuffer(ctx, name);
+
+      *renderbuffer = rb;
+      *texImage = NULL;
+   } else {
+      struct gl_texture_object *texObj = _mesa_lookup_texture(ctx, name);
+
+      if (target == GL_TEXTURE_CUBE_MAP) {
+         *texImage = texObj->Image[z][level];
+      }
+      else {
+         *texImage = _mesa_select_tex_image(texObj, target, level);
+      }
+
+      *renderbuffer = NULL;
+   }
+}
 
 /**
  * Check that the x,y,z,width,height,region is within the texture image
@@ -450,6 +474,71 @@ copy_format_compatible(const struct gl_context *ctx,
    return false;
 }
 
+static void
+copy_image_subdata(struct gl_context *ctx,
+                   struct gl_texture_image *srcTexImage,
+                   struct gl_renderbuffer *srcRenderbuffer,
+                   int srcX, int srcY, int srcZ, int srcLevel,
+                   struct gl_texture_image *dstTexImage,
+                   struct gl_renderbuffer *dstRenderbuffer,
+                   int dstX, int dstY, int dstZ, int dstLevel,
+                   int srcWidth, int srcHeight, int srcDepth)
+{
+   /* loop over 2D slices/faces/layers */
+   for (int i = 0; i < srcDepth; ++i) {
+      int newSrcZ = srcZ + i;
+      int newDstZ = dstZ + i;
+
+      if (srcTexImage &&
+          srcTexImage->TexObject->Target == GL_TEXTURE_CUBE_MAP) {
+         /* need to update srcTexImage pointer for the cube face */
+         assert(srcZ + i < MAX_FACES);
+         srcTexImage = srcTexImage->TexObject->Image[srcZ + i][srcLevel];
+         assert(srcTexImage);
+         newSrcZ = 0;
+      }
+
+      if (dstTexImage &&
+          dstTexImage->TexObject->Target == GL_TEXTURE_CUBE_MAP) {
+         /* need to update dstTexImage pointer for the cube face */
+         assert(dstZ + i < MAX_FACES);
+         dstTexImage = dstTexImage->TexObject->Image[dstZ + i][dstLevel];
+         assert(dstTexImage);
+         newDstZ = 0;
+      }
+
+      ctx->Driver.CopyImageSubData(ctx,
+                                   srcTexImage, srcRenderbuffer,
+                                   srcX, srcY, newSrcZ,
+                                   dstTexImage, dstRenderbuffer,
+                                   dstX, dstY, newDstZ,
+                                   srcWidth, srcHeight);
+   }
+}
+
+void GLAPIENTRY
+_mesa_CopyImageSubData_no_error(GLuint srcName, GLenum srcTarget, GLint srcLevel,
+                                GLint srcX, GLint srcY, GLint srcZ,
+                                GLuint dstName, GLenum dstTarget, GLint dstLevel,
+                                GLint dstX, GLint dstY, GLint dstZ,
+                                GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)
+{
+   struct gl_texture_image *srcTexImage, *dstTexImage;
+   struct gl_renderbuffer *srcRenderbuffer, *dstRenderbuffer;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   prepare_target(ctx, srcName, srcTarget, srcLevel, srcZ, &srcTexImage,
+                  &srcRenderbuffer);
+
+   prepare_target(ctx, dstName, dstTarget, dstLevel, dstZ, &dstTexImage,
+                  &dstRenderbuffer);
+
+   copy_image_subdata(ctx, srcTexImage, srcRenderbuffer, srcX, srcY, srcZ,
+                      srcLevel, dstTexImage, dstRenderbuffer, dstX, dstY, dstZ,
+                      dstLevel, srcWidth, srcHeight, srcDepth);
+}
+
 void GLAPIENTRY
 _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
                        GLint srcX, GLint srcY, GLint srcZ,
@@ -466,7 +555,6 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
    GLuint src_bw, src_bh, dst_bw, dst_bh;
    GLuint src_num_samples, dst_num_samples;
    int dstWidth, dstHeight, dstDepth;
-   int i;
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glCopyImageSubData(%u, %s, %d, %d, %d, %d, "
@@ -484,14 +572,16 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
       return;
    }
 
-   if (!prepare_target(ctx, srcName, srcTarget, srcLevel, srcZ, srcDepth,
-                       &srcTexImage, &srcRenderbuffer, &srcFormat,
-                       &srcIntFormat, &src_w, &src_h, &src_num_samples, "src"))
+   if (!prepare_target_err(ctx, srcName, srcTarget, srcLevel, srcZ, srcDepth,
+                           &srcTexImage, &srcRenderbuffer, &srcFormat,
+                           &srcIntFormat, &src_w, &src_h, &src_num_samples,
+                           "src"))
       return;
 
-   if (!prepare_target(ctx, dstName, dstTarget, dstLevel, dstZ, srcDepth,
-                       &dstTexImage, &dstRenderbuffer, &dstFormat,
-                       &dstIntFormat, &dst_w, &dst_h, &dst_num_samples, "dst"))
+   if (!prepare_target_err(ctx, dstName, dstTarget, dstLevel, dstZ, srcDepth,
+                           &dstTexImage, &dstRenderbuffer, &dstFormat,
+                           &dstIntFormat, &dst_w, &dst_h, &dst_num_samples,
+                           "dst"))
       return;
 
    _mesa_get_format_block_size(srcFormat, &src_bw, &src_bh);
@@ -580,34 +670,7 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
       return;
    }
 
-   /* loop over 2D slices/faces/layers */
-   for (i = 0; i < srcDepth; ++i) {
-      int newSrcZ = srcZ + i;
-      int newDstZ = dstZ + i;
-
-      if (srcTexImage &&
-          srcTexImage->TexObject->Target == GL_TEXTURE_CUBE_MAP) {
-         /* need to update srcTexImage pointer for the cube face */
-         assert(srcZ + i < MAX_FACES);
-         srcTexImage = srcTexImage->TexObject->Image[srcZ + i][srcLevel];
-         assert(srcTexImage);
-         newSrcZ = 0;
-      }
-
-      if (dstTexImage &&
-          dstTexImage->TexObject->Target == GL_TEXTURE_CUBE_MAP) {
-         /* need to update dstTexImage pointer for the cube face */
-         assert(dstZ + i < MAX_FACES);
-         dstTexImage = dstTexImage->TexObject->Image[dstZ + i][dstLevel];
-         assert(dstTexImage);
-         newDstZ = 0;
-      }
-
-      ctx->Driver.CopyImageSubData(ctx,
-                                   srcTexImage, srcRenderbuffer,
-                                   srcX, srcY, newSrcZ,
-                                   dstTexImage, dstRenderbuffer,
-                                   dstX, dstY, newDstZ,
-                                   srcWidth, srcHeight);
-   }
+   copy_image_subdata(ctx, srcTexImage, srcRenderbuffer, srcX, srcY, srcZ,
+                      srcLevel, dstTexImage, dstRenderbuffer, dstX, dstY, dstZ,
+                      dstLevel, srcWidth, srcHeight, srcDepth);
 }

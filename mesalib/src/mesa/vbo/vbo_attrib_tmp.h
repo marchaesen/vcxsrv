@@ -41,6 +41,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
         FLOAT_AS_UNION(V2), FLOAT_AS_UNION(V3))
 #define ATTRD( A, N, V0, V1, V2, V3 ) \
     ATTR_UNION(A, N, GL_DOUBLE, double, V0, V1, V2, V3)
+#define ATTRUI64( A, N, V0, V1, V2, V3 ) \
+    ATTR_UNION(A, N, GL_UNSIGNED_INT64_ARB, uint64_t, V0, V1, V2, V3)
 
 
 /* float */
@@ -245,6 +247,9 @@ static inline float conv_i2_to_norm_float(const struct gl_context *ctx, int i2)
 #define ATTR2D( A, X, Y )       ATTRD( A, 2, X, Y, 0, 1 )
 #define ATTR3D( A, X, Y, Z )    ATTRD( A, 3, X, Y, Z, 1 )
 #define ATTR4D( A, X, Y, Z, W ) ATTRD( A, 4, X, Y, Z, W )
+
+#define ATTR1UIV64( A, V ) ATTRUI64( A, 1, (V)[0], 0, 0, 0 )
+#define ATTR1UI64( A, X )  ATTRUI64( A, 1, X, 0, 0, 0 )
 
 
 static void GLAPIENTRY
@@ -1302,6 +1307,29 @@ TAG(VertexAttribL4dv)(GLuint index, const GLdouble * v)
       ERROR(GL_INVALID_VALUE);
 }
 
+static void GLAPIENTRY
+TAG(VertexAttribL1ui64ARB)(GLuint index, GLuint64EXT x)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR1UI64(0, x);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR1UI64(VBO_ATTRIB_GENERIC0 + index, x);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribL1ui64vARB)(GLuint index, const GLuint64EXT *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR1UIV64(0, v);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR1UIV64(VBO_ATTRIB_GENERIC0 + index, v);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
 
 #undef ATTR1FV
 #undef ATTR2FV

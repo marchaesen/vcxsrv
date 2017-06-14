@@ -197,4 +197,6 @@ __vk_find_struct(void *start, VkStructureType sType)
 #define vk_find_struct_const(__start, __sType) \
    (const void *)__vk_find_struct((void *)(__start), VK_STRUCTURE_TYPE_##__sType)
 
+uint32_t vk_get_driver_version(void);
+
 #endif /* VK_UTIL_H */

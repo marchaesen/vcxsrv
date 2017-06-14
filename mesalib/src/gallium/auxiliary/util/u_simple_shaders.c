@@ -205,6 +205,28 @@ void *util_make_layered_clear_geometry_shader(struct pipe_context *pipe)
    return pipe->create_gs_state(pipe, &state);
 }
 
+static void
+ureg_load_tex(struct ureg_program *ureg, struct ureg_dst out,
+              struct ureg_src coord, struct ureg_src sampler,
+              unsigned tex_target, bool load_level_zero, bool use_txf)
+{
+   if (use_txf) {
+      struct ureg_dst temp = ureg_DECL_temporary(ureg);
+
+      ureg_F2I(ureg, temp, coord);
+
+      if (load_level_zero)
+         ureg_TXF_LZ(ureg, out, tex_target, ureg_src(temp), sampler);
+      else
+         ureg_TXF(ureg, out, tex_target, ureg_src(temp), sampler);
+   } else {
+      if (load_level_zero)
+         ureg_TEX_LZ(ureg, out, tex_target, coord, sampler);
+      else
+         ureg_TEX(ureg, out, tex_target, coord, sampler);
+   }
+}
+
 /**
  * Make simple fragment texture shader:
  *  IMM {0,0,0,1}                         // (if writemask != 0xf)
@@ -224,7 +246,9 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
                                         unsigned interp_mode,
                                         unsigned writemask,
                                         enum tgsi_return_type stype,
-                                        enum tgsi_return_type dtype)
+                                        enum tgsi_return_type dtype,
+                                        bool load_level_zero,
+                                        bool use_txf)
 {
    struct ureg_program *ureg;
    struct ureg_src sampler;
@@ -265,9 +289,8 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
                ureg_writemask(temp, writemask),
                tex_target, tex, sampler);
    else
-      ureg_TEX(ureg,
-               ureg_writemask(temp, writemask),
-               tex_target, tex, sampler);
+      ureg_load_tex(ureg, ureg_writemask(temp, writemask), tex, sampler,
+                    tex_target, load_level_zero, use_txf);
 
    if (stype != dtype) {
       if (stype == TGSI_RETURN_TYPE_SINT) {
@@ -299,13 +322,16 @@ void *
 util_make_fragment_tex_shader(struct pipe_context *pipe, unsigned tex_target,
                               unsigned interp_mode,
                               enum tgsi_return_type stype,
-                              enum tgsi_return_type dtype)
+                              enum tgsi_return_type dtype,
+                              bool load_level_zero,
+                              bool use_txf)
 {
    return util_make_fragment_tex_shader_writemask( pipe,
                                                    tex_target,
                                                    interp_mode,
                                                    TGSI_WRITEMASK_XYZW,
-                                                   stype, dtype );
+                                                   stype, dtype, load_level_zero,
+                                                   use_txf);
 }
 
 
@@ -316,7 +342,9 @@ util_make_fragment_tex_shader(struct pipe_context *pipe, unsigned tex_target,
 void *
 util_make_fragment_tex_shader_writedepth(struct pipe_context *pipe,
                                          unsigned tex_target,
-                                         unsigned interp_mode)
+                                         unsigned interp_mode,
+                                         bool load_level_zero,
+                                         bool use_txf)
 {
    struct ureg_program *ureg;
    struct ureg_src sampler;
@@ -352,9 +380,8 @@ util_make_fragment_tex_shader_writedepth(struct pipe_context *pipe,
 
    ureg_MOV( ureg, out, imm );
 
-   ureg_TEX( ureg,
-             ureg_writemask(depth, TGSI_WRITEMASK_Z),
-             tex_target, tex, sampler );
+   ureg_load_tex(ureg, ureg_writemask(depth, TGSI_WRITEMASK_Z), tex, sampler,
+                 tex_target, load_level_zero, use_txf);
    ureg_END( ureg );
 
    return ureg_create_shader_and_destroy( ureg, pipe );
@@ -368,7 +395,9 @@ util_make_fragment_tex_shader_writedepth(struct pipe_context *pipe,
 void *
 util_make_fragment_tex_shader_writedepthstencil(struct pipe_context *pipe,
                                                 unsigned tex_target,
-                                                unsigned interp_mode)
+                                                unsigned interp_mode,
+                                                bool load_level_zero,
+                                                bool use_txf)
 {
    struct ureg_program *ureg;
    struct ureg_src depth_sampler, stencil_sampler;
@@ -413,12 +442,10 @@ util_make_fragment_tex_shader_writedepthstencil(struct pipe_context *pipe,
 
    ureg_MOV( ureg, out, imm );
 
-   ureg_TEX( ureg,
-             ureg_writemask(depth, TGSI_WRITEMASK_Z),
-             tex_target, tex, depth_sampler );
-   ureg_TEX( ureg,
-             ureg_writemask(stencil, TGSI_WRITEMASK_Y),
-             tex_target, tex, stencil_sampler );
+   ureg_load_tex(ureg, ureg_writemask(depth, TGSI_WRITEMASK_Z), tex,
+                 depth_sampler, tex_target, load_level_zero, use_txf);
+   ureg_load_tex(ureg, ureg_writemask(stencil, TGSI_WRITEMASK_Y), tex,
+                 stencil_sampler, tex_target, load_level_zero, use_txf);
    ureg_END( ureg );
 
    return ureg_create_shader_and_destroy( ureg, pipe );
@@ -432,7 +459,9 @@ util_make_fragment_tex_shader_writedepthstencil(struct pipe_context *pipe,
 void *
 util_make_fragment_tex_shader_writestencil(struct pipe_context *pipe,
                                            unsigned tex_target,
-                                           unsigned interp_mode)
+                                           unsigned interp_mode,
+                                           bool load_level_zero,
+                                           bool use_txf)
 {
    struct ureg_program *ureg;
    struct ureg_src stencil_sampler;
@@ -468,9 +497,8 @@ util_make_fragment_tex_shader_writestencil(struct pipe_context *pipe,
 
    ureg_MOV( ureg, out, imm );
 
-   ureg_TEX( ureg,
-             ureg_writemask(stencil, TGSI_WRITEMASK_Y),
-             tex_target, tex, stencil_sampler );
+   ureg_load_tex(ureg, ureg_writemask(stencil, TGSI_WRITEMASK_Y), tex,
+                 stencil_sampler, tex_target, load_level_zero, use_txf);
    ureg_END( ureg );
 
    return ureg_create_shader_and_destroy( ureg, pipe );

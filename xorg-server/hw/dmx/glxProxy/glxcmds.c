@@ -39,7 +39,6 @@
 #include "dmxsync.h"
 
 #include "glxserver.h"
-#include <GL/glxtokens.h>
 #include "g_disptab.h"
 #include <pixmapstr.h>
 #include <windowstr.h>

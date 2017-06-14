@@ -119,6 +119,7 @@ API_XML = \
 	gl_and_glX_API.xml \
 	ARB_base_instance.xml \
 	ARB_blend_func_extended.xml \
+	ARB_bindless_texture.xml \
 	ARB_clear_buffer_object.xml \
 	ARB_clear_texture.xml \
 	ARB_clip_control.xml \

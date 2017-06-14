@@ -52,10 +52,13 @@
 #include "cso_cache/cso_context.h"
 
 
-static GLboolean
-update_single_texture(struct st_context *st,
-                      struct pipe_sampler_view **sampler_view,
-		      GLuint texUnit, unsigned glsl_version)
+/**
+ * Get a pipe_sampler_view object from a texture unit.
+ */
+GLboolean
+st_update_single_texture(struct st_context *st,
+                         struct pipe_sampler_view **sampler_view,
+                         GLuint texUnit, unsigned glsl_version)
 {
    struct gl_context *ctx = st->ctx;
    const struct gl_sampler_object *samp;
@@ -129,8 +132,8 @@ update_textures(struct st_context *st,
          const GLuint texUnit = prog->SamplerUnits[unit];
          GLboolean retval;
 
-         retval = update_single_texture(st, &sampler_view, texUnit,
-                                        glsl_version);
+         retval = st_update_single_texture(st, &sampler_view, texUnit,
+                                           glsl_version);
          if (retval == GL_FALSE)
             continue;
 

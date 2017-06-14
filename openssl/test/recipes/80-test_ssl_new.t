@@ -24,8 +24,8 @@ $ENV{CTLOG_FILE} = srctop_file("test", "ct", "log_list.conf");
 
 my @conf_srcs =  glob(srctop_file("test", "ssl-tests", "*.conf.in"));
 map { s/;.*// } @conf_srcs if $^O eq "VMS";
-my @conf_files = map { basename($_) } @conf_srcs;
-map { s/\.in// } @conf_files;
+my @conf_files = map { basename($_, ".in") } @conf_srcs;
+map { s/\^// } @conf_files if $^O eq "VMS";
 
 # We hard-code the number of tests to double-check that the globbing above
 # finds all files as expected.
@@ -54,6 +54,8 @@ my %conf_dependent_tests = (
   "07-dtls-protocol-version.conf" => !$is_default_dtls,
   "10-resumption.conf" => !$is_default_tls,
   "11-dtls_resumption.conf" => !$is_default_dtls,
+  "17-renegotiate.conf" => disabled("tls1_2"),
+  "18-dtls-renegotiate.conf" => disabled("dtls1_2"),
 );
 
 # Add your test here if it should be skipped for some compile-time

@@ -19,13 +19,13 @@
     <param name="level" type="GLint"/>
   </function>
 
-  <function name="InvalidateBufferSubData">
+  <function name="InvalidateBufferSubData" no_error="true">
     <param name="buffer" type="GLuint"/>
     <param name="offset" type="GLintptr"/>
     <param name="length" type="GLsizeiptr"/>
   </function>
 
-  <function name="InvalidateBufferData">
+  <function name="InvalidateBufferData" no_error="true">
     <param name="buffer" type="GLuint"/>
   </function>
 

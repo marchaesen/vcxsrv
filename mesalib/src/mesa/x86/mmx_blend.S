@@ -235,7 +235,7 @@ TWO(PUNPCKHWD  ( MA2, MA2 ))			/*    pa2    |    pa2    |           |           
 TWO(PUNPCKHDQ  ( MA2, MA2 ))                    /*    pa2    |    pa2    |    pa2    |    pa2    */
 
 #define GMB_PACK( MS1, MS2 ) \
-    PACKUSWB   ( MS2, MS1 )			/* sa2 | sb2 | sg2 | sr2 | sa1 | sb1 | sg1 | sr1 */	;\
+    PACKUSWB   ( MS2, MS1 )			/* sa2 | sb2 | sg2 | sr2 | sa1 | sb1 | sg1 | sr1 */	;
 
 #define GMB_STORE(rgba, MSS ) \
 ONE(MOVD       ( MSS, REGIND(rgba) ))		/*     |     |     |     | sa1 | sb1 | sg1 | sr1 */	;\

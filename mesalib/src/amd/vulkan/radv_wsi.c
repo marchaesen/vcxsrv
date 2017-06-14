@@ -26,7 +26,7 @@
 #include "radv_private.h"
 #include "radv_meta.h"
 #include "wsi_common.h"
-#include "util/vk_util.h"
+#include "vk_util.h"
 
 static const struct wsi_callbacks wsi_cbs = {
    .get_phys_device_format_properties = radv_GetPhysicalDeviceFormatProperties,

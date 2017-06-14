@@ -64,7 +64,7 @@ void GLAPIENTRY
 _mesa_PixelTransferi( GLenum pname, GLint param );
 
 extern void 
-_mesa_update_pixel( struct gl_context *ctx, GLuint newstate );
+_mesa_update_pixel( struct gl_context *ctx );
 
 extern void 
 _mesa_init_pixel( struct gl_context * ctx );

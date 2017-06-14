@@ -45,15 +45,14 @@ MESA_UTIL_FILES := \
 	texcompress_rgtc_tmp.h \
 	u_atomic.c \
 	u_atomic.h \
+	u_dynarray.h \
 	u_endian.h \
 	u_queue.c \
 	u_queue.h \
 	u_string.h \
 	u_thread.h \
 	u_vector.c \
-	u_vector.h \
-	vk_alloc.h \
-	vk_util.h
+	u_vector.h
 
 MESA_UTIL_GENERATED_FILES = \
 	format_srgb.c

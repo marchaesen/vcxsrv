@@ -36,7 +36,7 @@
 
 // Gets bits for specified mask from specified src packed instance.
 #define AMD_HSA_BITS_GET(src, mask)                                            \
-  ((src & mask) >> mask ## _SHIFT)                                             \
+  ((src & mask) >> mask ## _SHIFT)
 
 /* Every amd_*_code_t has the following properties, which are composed of
  * a number of bit fields. Every bit field has a mask (AMD_CODE_PROPERTY_*),

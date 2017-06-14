@@ -2,6 +2,73 @@
  OpenSSL CHANGES
  _______________
 
+ Changes between 1.1.0e and 1.1.0f [25 May 2017]
+
+  *) Have 'config' recognise 64-bit mingw and choose 'mingw64' as the target
+     platform rather than 'mingw'.
+     [Richard Levitte]
+
+  *) Remove the VMS-specific reimplementation of gmtime from crypto/o_times.c.
+     VMS C's RTL has a fully up to date gmtime() and gmtime_r() since V7.1,
+     which is the minimum version we support.
+     [Richard Levitte]
+
+ Changes between 1.1.0d and 1.1.0e [16 Feb 2017]
+
+  *) Encrypt-Then-Mac renegotiation crash
+
+     During a renegotiation handshake if the Encrypt-Then-Mac extension is
+     negotiated where it was not in the original handshake (or vice-versa) then
+     this can cause OpenSSL to crash (dependant on ciphersuite). Both clients
+     and servers are affected.
+
+     This issue was reported to OpenSSL by Joe Orton (Red Hat).
+     (CVE-2017-3733)
+     [Matt Caswell]
+
+ Changes between 1.1.0c and 1.1.0d [26 Jan 2017]
+
+  *) Truncated packet could crash via OOB read
+
+     If one side of an SSL/TLS path is running on a 32-bit host and a specific
+     cipher is being used, then a truncated packet can cause that host to
+     perform an out-of-bounds read, usually resulting in a crash.
+
+     This issue was reported to OpenSSL by Robert Święcki of Google.
+     (CVE-2017-3731)
+     [Andy Polyakov]
+
+  *) Bad (EC)DHE parameters cause a client crash
+
+     If a malicious server supplies bad parameters for a DHE or ECDHE key
+     exchange then this can result in the client attempting to dereference a
+     NULL pointer leading to a client crash. This could be exploited in a Denial
+     of Service attack.
+
+     This issue was reported to OpenSSL by Guido Vranken.
+     (CVE-2017-3730)
+     [Matt Caswell]
+
+  *) BN_mod_exp may produce incorrect results on x86_64
+
+     There is a carry propagating bug in the x86_64 Montgomery squaring
+     procedure. No EC algorithms are affected. Analysis suggests that attacks
+     against RSA and DSA as a result of this defect would be very difficult to
+     perform and are not believed likely. Attacks against DH are considered just
+     feasible (although very difficult) because most of the work necessary to
+     deduce information about a private key may be performed offline. The amount
+     of resources required for such an attack would be very significant and
+     likely only accessible to a limited number of attackers. An attacker would
+     additionally need online access to an unpatched system using the target
+     private key in a scenario with persistent DH parameters and a private
+     key that is shared between multiple clients. For example this can occur by
+     default in OpenSSL DHE based SSL/TLS ciphersuites. Note: This issue is very
+     similar to CVE-2015-3193 but must be treated as a separate problem.
+
+     This issue was reported to OpenSSL by the OSS-Fuzz project.
+     (CVE-2017-3732)
+     [Andy Polyakov]
+
  Changes between 1.1.0b and 1.1.0c [10 Nov 2016]
 
   *) ChaCha20/Poly1305 heap-buffer-overflow
@@ -117,7 +184,7 @@
      to service a connection. This could lead to a Denial of Service through
      memory exhaustion. However, the excessive message length check still takes
      place, and this would cause the connection to immediately fail. Assuming
-     that the application calls SSL_free() on the failed conneciton in a timely
+     that the application calls SSL_free() on the failed connection in a timely
      manner then the 21Mb of allocated memory will then be immediately freed
      again. Therefore the excessive memory allocation will be transitory in
      nature. This then means that there is only a security impact if:
@@ -365,7 +432,7 @@
   *) Add X25519 support.
      Add ASN.1 and EVP_PKEY methods for X25519. This includes support
      for public and private key encoding using the format documented in
-     draft-ietf-curdle-pkix-02. The coresponding EVP_PKEY method supports
+     draft-ietf-curdle-pkix-02. The corresponding EVP_PKEY method supports
      key generation and key derivation.
 
      TLS support complies with draft-ietf-tls-rfc4492bis-08 and uses
@@ -870,7 +937,7 @@
      done while fixing the error code for the key-too-small case.
      [Annie Yousar <a.yousar@informatik.hu-berlin.de>]
 
-  *) CA.sh has been removmed; use CA.pl instead.
+  *) CA.sh has been removed; use CA.pl instead.
      [Rich Salz]
 
   *) Removed old DES API.

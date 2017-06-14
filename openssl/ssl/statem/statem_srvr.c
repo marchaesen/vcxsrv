@@ -276,7 +276,7 @@ static int send_certificate_request(SSL *s)
             * if SSL_VERIFY_CLIENT_ONCE is set, don't request cert
             * during re-negotiation:
             */
-           && ((s->session->peer == NULL) ||
+           && (s->s3->tmp.finish_md_len == 0 ||
                !(s->verify_mode & SSL_VERIFY_CLIENT_ONCE))
            /*
             * never request cert in anonymous ciphersuites (see
@@ -448,7 +448,7 @@ WORK_STATE ossl_statem_server_pre_work(SSL *s, WORK_STATE wst)
     case TLS_ST_SW_SRVR_HELLO:
         if (SSL_IS_DTLS(s)) {
             /*
-             * Messages we write from now on should be bufferred and
+             * Messages we write from now on should be buffered and
              * retransmitted if necessary, so we need to use the timer now
              */
             st->use_timer = 1;
@@ -785,24 +785,6 @@ WORK_STATE ossl_statem_server_post_process_message(SSL *s, WORK_STATE wst)
 
     case TLS_ST_SR_KEY_EXCH:
         return tls_post_process_client_key_exchange(s, wst);
-
-    case TLS_ST_SR_CERT_VRFY:
-#ifndef OPENSSL_NO_SCTP
-        if (                    /* Is this SCTP? */
-               BIO_dgram_is_sctp(SSL_get_wbio(s))
-               /* Are we renegotiating? */
-               && s->renegotiate && BIO_dgram_sctp_msg_waiting(SSL_get_rbio(s))) {
-            s->s3->in_read_app_data = 2;
-            s->rwstate = SSL_READING;
-            BIO_clear_retry_flags(SSL_get_rbio(s));
-            BIO_set_retry_read(SSL_get_rbio(s));
-            ossl_statem_set_sctp_read_sock(s, 1);
-            return WORK_MORE_A;
-        } else {
-            ossl_statem_set_sctp_read_sock(s, 0);
-        }
-#endif
-        return WORK_FINISHED_CONTINUE;
 
     default:
         break;
@@ -2002,7 +1984,7 @@ int tls_construct_certificate_request(SSL *s)
     if (SSL_USE_SIGALGS(s)) {
         const unsigned char *psigs;
         unsigned char *etmp = p;
-        nl = tls12_get_psigalgs(s, &psigs);
+        nl = tls12_get_psigalgs(s, 1, &psigs);
         /* Skip over length for now */
         p += 2;
         nl = tls12_copy_sigalgs(s, p, psigs, nl);
@@ -2638,25 +2620,6 @@ WORK_STATE tls_post_process_client_key_exchange(SSL *s, WORK_STATE wst)
             BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_ADD_AUTH_KEY,
                      sizeof(sctpauthkey), sctpauthkey);
         }
-        wst = WORK_MORE_B;
-    }
-
-    if ((wst == WORK_MORE_B)
-        /* Is this SCTP? */
-        && BIO_dgram_is_sctp(SSL_get_wbio(s))
-        /* Are we renegotiating? */
-        && s->renegotiate
-        /* Are we going to skip the CertificateVerify? */
-        && (s->session->peer == NULL || s->statem.no_cert_verify)
-        && BIO_dgram_sctp_msg_waiting(SSL_get_rbio(s))) {
-        s->s3->in_read_app_data = 2;
-        s->rwstate = SSL_READING;
-        BIO_clear_retry_flags(SSL_get_rbio(s));
-        BIO_set_retry_read(SSL_get_rbio(s));
-        ossl_statem_set_sctp_read_sock(s, 1);
-        return WORK_MORE_B;
-    } else {
-        ossl_statem_set_sctp_read_sock(s, 0);
     }
 #endif
 
@@ -2715,6 +2678,11 @@ MSG_PROCESS_RETURN tls_process_cert_verify(SSL *s, PACKET *pkt)
 
     peer = s->session->peer;
     pkey = X509_get0_pubkey(peer);
+    if (pkey == NULL) {
+        al = SSL_AD_INTERNAL_ERROR;
+        goto f_err;
+    }
+
     type = X509_certificate_type(peer, pkey);
 
     if (!(type & EVP_PKT_SIGN)) {
@@ -2831,7 +2799,7 @@ MSG_PROCESS_RETURN tls_process_cert_verify(SSL *s, PACKET *pkt)
         goto f_err;
     }
 
-    ret = MSG_PROCESS_CONTINUE_PROCESSING;
+    ret = MSG_PROCESS_CONTINUE_READING;
     if (0) {
  f_err:
         ssl3_send_alert(s, SSL3_AL_FATAL, al);
@@ -2992,7 +2960,7 @@ int tls_construct_new_session_ticket(SSL *s)
     int len, slen_full, slen;
     SSL_SESSION *sess;
     unsigned int hlen;
-    SSL_CTX *tctx = s->initial_ctx;
+    SSL_CTX *tctx = s->session_ctx;
     unsigned char iv[EVP_MAX_IV_LENGTH];
     unsigned char key_name[TLSEXT_KEYNAME_LENGTH];
     int iv_len;
@@ -3256,20 +3224,52 @@ STACK_OF(SSL_CIPHER) *ssl_bytes_to_cipher_list(SSL *s,
         return NULL;
     }
 
-    if ((skp == NULL) || (*skp == NULL)) {
-        sk = sk_SSL_CIPHER_new_null(); /* change perhaps later */
-        if (sk == NULL) {
-            SSLerr(SSL_F_SSL_BYTES_TO_CIPHER_LIST, ERR_R_MALLOC_FAILURE);
-            *al = SSL_AD_INTERNAL_ERROR;
-            return NULL;
-        }
-    } else {
-        sk = *skp;
-        sk_SSL_CIPHER_zero(sk);
+    sk = sk_SSL_CIPHER_new_null();
+    if (sk == NULL) {
+        SSLerr(SSL_F_SSL_BYTES_TO_CIPHER_LIST, ERR_R_MALLOC_FAILURE);
+        *al = SSL_AD_INTERNAL_ERROR;
+        return NULL;
     }
 
-    if (!PACKET_memdup(cipher_suites, &s->s3->tmp.ciphers_raw,
-                       &s->s3->tmp.ciphers_rawlen)) {
+    if (sslv2format) {
+        size_t numciphers = PACKET_remaining(cipher_suites) / n;
+        PACKET sslv2ciphers = *cipher_suites;
+        unsigned int leadbyte;
+        unsigned char *raw;
+
+        /*
+         * We store the raw ciphers list in SSLv3+ format so we need to do some
+         * preprocessing to convert the list first. If there are any SSLv2 only
+         * ciphersuites with a non-zero leading byte then we are going to
+         * slightly over allocate because we won't store those. But that isn't a
+         * problem.
+         */
+        raw = OPENSSL_malloc(numciphers * TLS_CIPHER_LEN);
+        s->s3->tmp.ciphers_raw = raw;
+        if (raw == NULL) {
+            *al = SSL_AD_INTERNAL_ERROR;
+            goto err;
+        }
+        for (s->s3->tmp.ciphers_rawlen = 0;
+             PACKET_remaining(&sslv2ciphers) > 0;
+             raw += TLS_CIPHER_LEN) {
+            if (!PACKET_get_1(&sslv2ciphers, &leadbyte)
+                    || (leadbyte == 0
+                        && !PACKET_copy_bytes(&sslv2ciphers, raw,
+                                              TLS_CIPHER_LEN))
+                    || (leadbyte != 0
+                        && !PACKET_forward(&sslv2ciphers, TLS_CIPHER_LEN))) {
+                *al = SSL_AD_INTERNAL_ERROR;
+                OPENSSL_free(s->s3->tmp.ciphers_raw);
+                s->s3->tmp.ciphers_raw = NULL;
+                s->s3->tmp.ciphers_rawlen = 0;
+                goto err;
+            }
+            if (leadbyte == 0)
+                s->s3->tmp.ciphers_rawlen += TLS_CIPHER_LEN;
+        }
+    } else if (!PACKET_memdup(cipher_suites, &s->s3->tmp.ciphers_raw,
+                           &s->s3->tmp.ciphers_rawlen)) {
         *al = SSL_AD_INTERNAL_ERROR;
         goto err;
     }
@@ -3330,11 +3330,9 @@ STACK_OF(SSL_CIPHER) *ssl_bytes_to_cipher_list(SSL *s,
         goto err;
     }
 
-    if (skp != NULL)
-        *skp = sk;
-    return (sk);
+    *skp = sk;
+    return sk;
  err:
-    if ((skp == NULL) || (*skp == NULL))
-        sk_SSL_CIPHER_free(sk);
+    sk_SSL_CIPHER_free(sk);
     return NULL;
 }

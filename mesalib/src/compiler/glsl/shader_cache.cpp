@@ -578,6 +578,7 @@ write_uniforms(struct blob *metadata, struct gl_shader_program *prog)
       blob_write_uint32(metadata, prog->data->UniformStorage[i].is_shader_storage);
       blob_write_uint32(metadata, prog->data->UniformStorage[i].matrix_stride);
       blob_write_uint32(metadata, prog->data->UniformStorage[i].row_major);
+      blob_write_uint32(metadata, prog->data->UniformStorage[i].is_bindless);
       blob_write_uint32(metadata,
                         prog->data->UniformStorage[i].num_compatible_subroutines);
       blob_write_uint32(metadata,
@@ -642,6 +643,7 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
       uniforms[i].is_shader_storage = blob_read_uint32(metadata);
       uniforms[i].matrix_stride = blob_read_uint32(metadata);
       uniforms[i].row_major = blob_read_uint32(metadata);
+      uniforms[i].is_bindless = blob_read_uint32(metadata);
       uniforms[i].num_compatible_subroutines = blob_read_uint32(metadata);
       uniforms[i].top_level_array_size = blob_read_uint32(metadata);
       uniforms[i].top_level_array_stride = blob_read_uint32(metadata);
@@ -1127,6 +1129,7 @@ write_shader_metadata(struct blob *metadata, gl_linked_shader *shader)
 {
    assert(shader->Program);
    struct gl_program *glprog = shader->Program;
+   unsigned i;
 
    blob_write_bytes(metadata, glprog->TexturesUsed,
                     sizeof(glprog->TexturesUsed));
@@ -1143,6 +1146,20 @@ write_shader_metadata(struct blob *metadata, gl_linked_shader *shader)
    blob_write_bytes(metadata, glprog->sh.ImageUnits,
                     sizeof(glprog->sh.ImageUnits));
 
+   blob_write_uint32(metadata, glprog->sh.NumBindlessSamplers);
+   blob_write_uint32(metadata, glprog->sh.HasBoundBindlessSampler);
+   for (i = 0; i < glprog->sh.NumBindlessSamplers; i++) {
+      blob_write_bytes(metadata, &glprog->sh.BindlessSamplers[i],
+                       sizeof(struct gl_bindless_sampler));
+   }
+
+   blob_write_uint32(metadata, glprog->sh.NumBindlessImages);
+   blob_write_uint32(metadata, glprog->sh.HasBoundBindlessImage);
+   for (i = 0; i < glprog->sh.NumBindlessImages; i++) {
+      blob_write_bytes(metadata, &glprog->sh.BindlessImages[i],
+                       sizeof(struct gl_bindless_image));
+   }
+
    write_shader_parameters(metadata, glprog->Parameters);
 }
 
@@ -1151,6 +1168,8 @@ read_shader_metadata(struct blob_reader *metadata,
                      struct gl_program *glprog,
                      gl_linked_shader *linked)
 {
+   unsigned i;
+
    blob_copy_bytes(metadata, (uint8_t *) glprog->TexturesUsed,
                    sizeof(glprog->TexturesUsed));
    glprog->SamplersUsed = blob_read_uint64(metadata);
@@ -1165,6 +1184,32 @@ read_shader_metadata(struct blob_reader *metadata,
                    sizeof(glprog->sh.ImageAccess));
    blob_copy_bytes(metadata, (uint8_t *) glprog->sh.ImageUnits,
                    sizeof(glprog->sh.ImageUnits));
+
+   glprog->sh.NumBindlessSamplers = blob_read_uint32(metadata);
+   glprog->sh.HasBoundBindlessSampler = blob_read_uint32(metadata);
+   if (glprog->sh.NumBindlessSamplers > 0) {
+      glprog->sh.BindlessSamplers =
+         rzalloc_array(glprog, gl_bindless_sampler,
+                       glprog->sh.NumBindlessSamplers);
+
+      for (i = 0; i < glprog->sh.NumBindlessSamplers; i++) {
+         blob_copy_bytes(metadata, (uint8_t *) &glprog->sh.BindlessSamplers[i],
+                         sizeof(struct gl_bindless_sampler));
+      }
+   }
+
+   glprog->sh.NumBindlessImages = blob_read_uint32(metadata);
+   glprog->sh.HasBoundBindlessImage = blob_read_uint32(metadata);
+   if (glprog->sh.NumBindlessImages > 0) {
+      glprog->sh.BindlessImages =
+         rzalloc_array(glprog, gl_bindless_image,
+                       glprog->sh.NumBindlessImages);
+
+      for (i = 0; i < glprog->sh.NumBindlessImages; i++) {
+         blob_copy_bytes(metadata, (uint8_t *) &glprog->sh.BindlessImages[i],
+                        sizeof(struct gl_bindless_image));
+      }
+   }
 
    glprog->Parameters = _mesa_new_parameter_list();
    read_shader_parameters(metadata, glprog->Parameters);

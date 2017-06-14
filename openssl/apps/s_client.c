@@ -175,7 +175,7 @@ static unsigned int psk_client_cb(SSL *ssl, const char *hint, char *identity,
                    psk_key);
         return 0;
     }
-    if (key_len > max_psk_len) {
+    if (max_psk_len > INT_MAX || key_len > (long)max_psk_len) {
         BIO_printf(bio_err,
                    "psk buffer of callback is too small (%d) for key (%ld)\n",
                    max_psk_len, key_len);
@@ -567,7 +567,7 @@ OPTIONS s_client_options[] = {
     {"proxy", OPT_PROXY, 's',
      "Connect to via specified proxy to the real server"},
 #ifdef AF_UNIX
-    {"unix", OPT_UNIX, 's', "Connect over unix domain sockets"},
+    {"unix", OPT_UNIX, 's', "Connect over the specified Unix-domain socket"},
 #endif
     {"4", OPT_4, '-', "Use IPv4 only"},
 #ifdef AF_INET6
@@ -2001,24 +2001,44 @@ int s_client_main(int argc, char **argv)
         break;
     case PROTO_CONNECT:
         {
-            int foundit = 0;
+            enum {
+                error_proto,     /* Wrong protocol, not even HTTP */
+                error_connect,   /* CONNECT failed */
+                success
+            } foundit = error_connect;
             BIO *fbio = BIO_new(BIO_f_buffer());
 
             BIO_push(fbio, sbio);
             BIO_printf(fbio, "CONNECT %s HTTP/1.0\r\n\r\n", connectstr);
             (void)BIO_flush(fbio);
-            /* wait for multi-line response to end CONNECT response */
-            do {
-                mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
-                if (strstr(mbuf, "200") != NULL
-                    && strstr(mbuf, "established") != NULL)
-                    foundit++;
-            } while (mbuf_len > 3 && foundit == 0);
+            /*
+             * The first line is the HTTP response.  According to RFC 7230,
+             * it's formated exactly like this:
+             *
+             * HTTP/d.d ddd Reason text\r\n
+             */
+            mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+            if (mbuf[8] != ' ') {
+                BIO_printf(bio_err,
+                           "%s: HTTP CONNECT failed, incorrect response "
+                           "from proxy\n", prog);
+                foundit = error_proto;
+            } else if (mbuf[9] != '2') {
+                BIO_printf(bio_err, "%s: HTTP CONNECT failed: %s ", prog,
+                           &mbuf[9]);
+            } else {
+                foundit = success;
+            }
+            if (foundit != error_proto) {
+                /* Read past all following headers */
+                do {
+                    mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+                } while (mbuf_len > 2);
+            }
             (void)BIO_flush(fbio);
             BIO_pop(fbio);
             BIO_free(fbio);
-            if (!foundit) {
-                BIO_printf(bio_err, "%s: HTTP CONNECT failed\n", prog);
+            if (foundit != success) {
                 goto shut;
             }
         }
@@ -2103,12 +2123,6 @@ int s_client_main(int argc, char **argv)
             tty_on = 1;
             if (in_init) {
                 in_init = 0;
-
-                if (servername != NULL && !SSL_session_reused(con)) {
-                    BIO_printf(bio_c_out,
-                               "Server did %sacknowledge servername extension.\n",
-                               tlsextcbp.ack ? "" : "not ");
-                }
 
                 if (sess_out) {
                     BIO *stmp = BIO_new_file(sess_out, "w");
@@ -2595,8 +2609,8 @@ static void print_stuff(BIO *bio, SSL *s, int full)
 #endif
 
         BIO_printf(bio,
-                   "---\nSSL handshake has read %" PRIu64
-                   " bytes and written %" PRIu64 " bytes\n",
+                   "---\nSSL handshake has read %"BIO_PRI64"u"
+                   " bytes and written %"BIO_PRI64"u bytes\n",
                    BIO_number_read(SSL_get_rbio(s)),
                    BIO_number_written(SSL_get_wbio(s)));
     }

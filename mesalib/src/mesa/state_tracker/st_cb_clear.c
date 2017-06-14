@@ -53,7 +53,6 @@
 #include "pipe/p_state.h"
 #include "pipe/p_defines.h"
 #include "util/u_format.h"
-#include "util/u_framebuffer.h"
 #include "util/u_inlines.h"
 #include "util/u_simple_shaders.h"
 
@@ -184,8 +183,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
    const GLfloat x1 = (GLfloat) ctx->DrawBuffer->_Xmax / fb_width * 2.0f - 1.0f;
    const GLfloat y0 = (GLfloat) ctx->DrawBuffer->_Ymin / fb_height * 2.0f - 1.0f;
    const GLfloat y1 = (GLfloat) ctx->DrawBuffer->_Ymax / fb_height * 2.0f - 1.0f;
-   unsigned num_layers =
-      util_framebuffer_get_num_layers(&st->state.framebuffer);
+   unsigned num_layers = st->state.fb_num_layers;
 
    /*
    printf("%s %s%s%s %f,%f %f,%f\n", __func__,

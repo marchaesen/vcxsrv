@@ -167,7 +167,6 @@ lower_distance_visitor::visit(ir_variable *ir)
       /* Clone the old var so that we inherit all of its properties */
       *new_var = ir->clone(ralloc_parent(ir), NULL);
       (*new_var)->name = ralloc_strdup(*new_var, GLSL_CLIP_VAR_NAME);
-      (*new_var)->data.max_array_access = new_size - 1;
       (*new_var)->data.location = VARYING_SLOT_CLIP_DIST0;
 
       if (!ir->type->fields.array->is_array()) {
@@ -182,6 +181,7 @@ lower_distance_visitor::visit(ir_variable *ir)
                   this->shader_stage == MESA_SHADER_GEOMETRY)));
 
          assert (ir->type->fields.array == glsl_type::float_type);
+         (*new_var)->data.max_array_access = new_size - 1;
 
          /* And change the properties that we need to change */
          (*new_var)->type = glsl_type::get_array_instance(glsl_type::vec4_type,

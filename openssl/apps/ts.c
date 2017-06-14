@@ -106,7 +106,7 @@ OPTIONS ts_options[] = {
     {"reply", OPT_REPLY, '-', "Generate a TS reply"},
     {"queryfile", OPT_QUERYFILE, '<', "File containing a TS query"},
     {"passin", OPT_PASSIN, 's', "Input file pass phrase source"},
-    {"inkey", OPT_INKEY, '<', "File with private key for reply"},
+    {"inkey", OPT_INKEY, 's', "File with private key for reply"},
     {"signer", OPT_SIGNER, 's', "Signer certificate file"},
     {"chain", OPT_CHAIN, '<', "File with signer CA chain"},
     {"verify", OPT_VERIFY, '-', "Verify a TS response"},
@@ -890,9 +890,15 @@ static TS_VERIFY_CTX *create_verify_ctx(const char *data, const char *digest,
             goto err;
         f = TS_VFY_VERSION | TS_VFY_SIGNER;
         if (data != NULL) {
+            BIO *out = NULL;
+
             f |= TS_VFY_DATA;
-            if (TS_VERIFY_CTX_set_data(ctx, BIO_new_file(data, "rb")) == NULL)
+            if ((out = BIO_new_file(data, "rb")) == NULL)
                 goto err;
+            if (TS_VERIFY_CTX_set_data(ctx, out) == NULL) {
+                BIO_free_all(out);
+                goto err;
+            }
         } else if (digest != NULL) {
             long imprint_len;
             unsigned char *hexstr = OPENSSL_hexstr2buf(digest, &imprint_len);

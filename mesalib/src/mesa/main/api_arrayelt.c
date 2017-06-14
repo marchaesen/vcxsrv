@@ -65,12 +65,13 @@ typedef struct {
 typedef struct {
    AEarray arrays[32];
    AEattrib attribs[VERT_ATTRIB_MAX + 1];
-   GLbitfield NewState;
 
    /* List of VBOs we need to map before executing ArrayElements */
    struct gl_buffer_object *vbo[VERT_ATTRIB_MAX];
    GLuint nr_vbos;
    GLboolean mapped_vbos;  /**< Any currently mapped VBOs? */
+
+   bool dirty_state;
 } AEcontext;
 
 
@@ -91,6 +92,13 @@ static inline int
 TYPE_IDX(GLenum t)
 {
    return t == GL_DOUBLE ? 7 : t & 7;
+}
+
+
+bool
+_ae_is_state_dirty(struct gl_context *ctx)
+{
+   return AE_CONTEXT(ctx)->dirty_state;
 }
 
 
@@ -1511,7 +1519,7 @@ _ae_create_context(struct gl_context *ctx)
    if (!ctx->aelt_context)
       return GL_FALSE;
 
-   AE_CONTEXT(ctx)->NewState = ~0;
+   AE_CONTEXT(ctx)->dirty_state = true;
    return GL_TRUE;
 }
 
@@ -1690,7 +1698,7 @@ _ae_update_state(struct gl_context *ctx)
    at->func = NULL;  /* terminate the list */
    aa->offset = -1;  /* terminate the list */
 
-   actx->NewState = 0;
+   actx->dirty_state = false;
 }
 
 
@@ -1707,7 +1715,7 @@ _ae_map_vbos(struct gl_context *ctx)
    if (actx->mapped_vbos)
       return;
 
-   if (actx->NewState)
+   if (actx->dirty_state)
       _ae_update_state(ctx);
 
    for (i = 0; i < actx->nr_vbos; i++)
@@ -1734,7 +1742,7 @@ _ae_unmap_vbos(struct gl_context *ctx)
    if (!actx->mapped_vbos)
       return;
 
-   assert (!actx->NewState);
+   assert (!actx->dirty_state);
 
    for (i = 0; i < actx->nr_vbos; i++)
       ctx->Driver.UnmapBuffer(ctx, actx->vbo[i], MAP_INTERNAL);
@@ -1767,7 +1775,7 @@ _ae_ArrayElement(GLint elt)
       return;
    }
 
-   if (actx->NewState) {
+   if (actx->dirty_state) {
       assert(!actx->mapped_vbos);
       _ae_update_state(ctx);
    }
@@ -1802,7 +1810,7 @@ _ae_ArrayElement(GLint elt)
 
 
 void
-_ae_invalidate_state(struct gl_context *ctx, GLbitfield new_state)
+_ae_invalidate_state(struct gl_context *ctx)
 {
    AEcontext *actx = AE_CONTEXT(ctx);
 
@@ -1815,11 +1823,10 @@ _ae_invalidate_state(struct gl_context *ctx, GLbitfield new_state)
     * Luckily, neither the drivers nor tnl muck with the state that
     * concerns us here:
     */
-   new_state &= _NEW_ARRAY | _NEW_PROGRAM;
-   if (new_state) {
-      assert(!actx->mapped_vbos);
-      actx->NewState |= new_state;
-   }
+   assert(ctx->NewState & (_NEW_ARRAY | _NEW_PROGRAM));
+
+   assert(!actx->mapped_vbos);
+   actx->dirty_state = true;
 }
 
 

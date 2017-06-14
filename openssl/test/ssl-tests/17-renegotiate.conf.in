@@ -13,7 +13,7 @@ use strict;
 use warnings;
 
 package ssltests;
-
+use OpenSSL::Test::Utils;
 
 our @tests = (
     {
@@ -64,4 +64,122 @@ our @tests = (
             "ExpectedResult" => "Success"
         }
     },
+    {
+        name => "renegotiate-client-auth-require",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation",
+            "MaxProtocol" => "TLSv1.2",
+            "VerifyCAFile" => test_pem("root-cert.pem"),
+            "VerifyMode" => "Require",
+        },
+        client => {
+            "Certificate" => test_pem("ee-client-chain.pem"),
+            "PrivateKey"  => test_pem("ee-key.pem"),
+        },
+        test => {
+            "Method" => "TLS",
+            "HandshakeMode" => "RenegotiateServer",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    },
+    {
+        name => "renegotiate-client-auth-once",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation",
+            "MaxProtocol" => "TLSv1.2",
+            "VerifyCAFile" => test_pem("root-cert.pem"),
+            "VerifyMode" => "Once",
+        },
+        client => {
+            "Certificate" => test_pem("ee-client-chain.pem"),
+            "PrivateKey"  => test_pem("ee-key.pem"),
+        },
+        test => {
+            "Method" => "TLS",
+            "HandshakeMode" => "RenegotiateServer",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    }
 );
+our @tests_tls1_2 = (
+    {
+        name => "renegotiate-aead-to-non-aead",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation",
+            "MaxProtocol" => "TLSv1.2"
+        },
+        client => {
+            "CipherString" => "AES128-GCM-SHA256",
+            extra => {
+                "RenegotiateCiphers" => "AES128-SHA"
+            }
+        },
+        test => {
+            "Method" => "TLS",
+            "HandshakeMode" => "RenegotiateClient",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    },
+    {
+        name => "renegotiate-non-aead-to-aead",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation",
+            "MaxProtocol" => "TLSv1.2"
+        },
+        client => {
+            "CipherString" => "AES128-SHA",
+            extra => {
+                "RenegotiateCiphers" => "AES128-GCM-SHA256"
+            }
+        },
+        test => {
+            "Method" => "TLS",
+            "HandshakeMode" => "RenegotiateClient",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    },
+    {
+        name => "renegotiate-non-aead-to-non-aead",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation",
+            "MaxProtocol" => "TLSv1.2"
+        },
+        client => {
+            "CipherString" => "AES128-SHA",
+            extra => {
+                "RenegotiateCiphers" => "AES256-SHA"
+            }
+        },
+        test => {
+            "Method" => "TLS",
+            "HandshakeMode" => "RenegotiateClient",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    },
+    {
+        name => "renegotiate-aead-to-aead",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation",
+            "MaxProtocol" => "TLSv1.2"
+        },
+        client => {
+            "CipherString" => "AES128-GCM-SHA256",
+            extra => {
+                "RenegotiateCiphers" => "AES256-GCM-SHA384"
+            }
+        },
+        test => {
+            "Method" => "TLS",
+            "HandshakeMode" => "RenegotiateClient",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    }
+);
+
+push @tests, @tests_tls1_2 unless disabled("tls1_2");

@@ -217,6 +217,10 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
       SET_VertexAttribL2dv(tab, vfmt->VertexAttribL2dv);
       SET_VertexAttribL3dv(tab, vfmt->VertexAttribL3dv);
       SET_VertexAttribL4dv(tab, vfmt->VertexAttribL4dv);
+
+      /* GL_ARB_bindless_texture */
+      SET_VertexAttribL1ui64ARB(tab, vfmt->VertexAttribL1ui64ARB);
+      SET_VertexAttribL1ui64vARB(tab, vfmt->VertexAttribL1ui64vARB);
    }
 }
 

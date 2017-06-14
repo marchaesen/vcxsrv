@@ -499,7 +499,8 @@ si_make_texture_descriptor(struct radv_device *device,
 				S_008F20_PITCH_GFX6(image->fmask.pitch_in_pixels - 1);
 			fmask_state[5] |= S_008F24_LAST_ARRAY(last_layer);
 		}
-	}
+	} else if (fmask_state)
+		memset(fmask_state, 0, 8 * 4);
 }
 
 static void

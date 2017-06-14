@@ -38,7 +38,7 @@
 #include <xf86drm.h>
 #include "util/hash_table.h"
 
-#include "util/vk_util.h"
+#include "vk_util.h"
 #include "wsi_common.h"
 #include "wsi_common_x11.h"
 #include "wsi_common_queue.h"

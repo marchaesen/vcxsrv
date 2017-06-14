@@ -1,8 +1,8 @@
 IF[{- !$disabled{tests} -}]
   PROGRAMS_NO_INST=\
           aborttest \
-          sanitytest bntest \
-          ectest ecdsatest ecdhtest gmdifftest pbelutest ideatest \
+          sanitytest exdatatest bntest \
+          ectest ecdsatest gmdifftest pbelutest ideatest \
           md2test md4test md5test \
           hmactest wp_test \
           rc2test rc4test rc5test \
@@ -11,7 +11,7 @@ IF[{- !$disabled{tests} -}]
           randtest dhtest enginetest casttest \
           bftest ssltest_old dsatest exptest rsa_test \
           evp_test evp_extra_test igetest v3nametest v3ext \
-          danetest heartbeat_test p5_crpt2_test bad_dtls_test \
+          crltest danetest heartbeat_test p5_crpt2_test bad_dtls_test \
           constant_time_test verify_extra_test clienthellotest \
           packettest asynctest secmemtest srptest memleaktest \
           dtlsv1listentest ct_test threadstest afalgtest d2i_test \
@@ -26,6 +26,10 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[sanitytest]=../include
   DEPEND[sanitytest]=../libcrypto
 
+  SOURCE[exdatatest]=exdatatest.c
+  INCLUDE[exdatatest]=../include
+  DEPEND[exdatatest]=../libcrypto
+
   SOURCE[bntest]=bntest.c
   INCLUDE[bntest]=.. ../crypto/include ../include
   DEPEND[bntest]=../libcrypto
@@ -37,10 +41,6 @@ IF[{- !$disabled{tests} -}]
   SOURCE[ecdsatest]=ecdsatest.c
   INCLUDE[ecdsatest]=../include
   DEPEND[ecdsatest]=../libcrypto
-
-  SOURCE[ecdhtest]=ecdhtest.c
-  INCLUDE[ecdhtest]=../include
-  DEPEND[ecdhtest]=../libcrypto
 
   SOURCE[gmdifftest]=gmdifftest.c
   INCLUDE[gmdifftest]=../include
@@ -162,6 +162,10 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[v3nametest]=../include
   DEPEND[v3nametest]=../libcrypto
 
+  SOURCE[crltest]=crltest.c testutil.c
+  INCLUDE[crltest]=../include
+  DEPEND[crltest]=../libcrypto
+
   SOURCE[v3ext]=v3ext.c
   INCLUDE[v3ext]=../include
   DEPEND[v3ext]=../libcrypto
@@ -249,7 +253,7 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[testutil.o]=..
   INCLUDE[ssl_test_ctx.o]=../include
   INCLUDE[handshake_helper.o]=../include
-  INCLUDE[ssltestlib.o]=../include
+  INCLUDE[ssltestlib.o]=.. ../include
 
   SOURCE[x509aux]=x509aux.c
   INCLUDE[x509aux]=../include
@@ -264,7 +268,7 @@ IF[{- !$disabled{tests} -}]
   DEPEND[bioprinttest]=../libcrypto
 
   SOURCE[sslapitest]=sslapitest.c ssltestlib.c testutil.c
-  INCLUDE[sslapitest]=../include
+  INCLUDE[sslapitest]=../include ..
   DEPEND[sslapitest]=../libcrypto ../libssl
 
   SOURCE[dtlstest]=dtlstest.c ssltestlib.c testutil.c

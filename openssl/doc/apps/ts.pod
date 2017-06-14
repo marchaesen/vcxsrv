@@ -27,7 +27,7 @@ B<-reply>
 [B<-queryfile> request.tsq]
 [B<-passin> password_src]
 [B<-signer> tsa_cert.pem]
-[B<-inkey> private.pem]
+[B<-inkey> file_or_id]
 [B<-sha1|-sha224|-sha256|-sha384|-sha512>]
 [B<-chain> certs_file.pem]
 [B<-tspolicy> object_id]
@@ -139,9 +139,9 @@ MS-Windows, B<,> for VMS and B<:> for all other platforms. (Optional)
 
 =item B<-config> configfile
 
-The configuration file to use, this option overrides the
-B<OPENSSL_CONF> environment variable. Only the OID section
-of the config file is used with the B<-query> command. (Optional)
+The configuration file to use.
+Optional; for a description of the default value,
+see L<openssl(1)/COMMAND SUMMARY>.
 
 =item B<-data> file_to_hash
 
@@ -187,7 +187,6 @@ response. (Optional)
 This option specifies a previously created time stamp request in DER
 format that will be printed into the output file. Useful when you need
 to examine the content of a request in human-readable
-
 format. (Optional)
 
 =item B<-out> request.tsq
@@ -216,9 +215,10 @@ otherwise it is a time stamp token (ContentInfo).
 
 =item B<-config> configfile
 
-The configuration file to use, this option overrides the
-B<OPENSSL_CONF> environment variable. See B<CONFIGURATION FILE
-OPTIONS> for configurable variables. (Optional)
+The configuration file to use.
+Optional; for a description of the default value,
+see L<openssl(1)/COMMAND SUMMARY>.
+See B<CONFIGURATION FILE OPTIONS> for configurable variables.
 
 =item B<-section> tsa_section
 
@@ -243,10 +243,12 @@ timeStamping. The extended key usage must also be critical, otherwise
 the certificate is going to be refused. Overrides the B<signer_cert>
 variable of the config file. (Optional)
 
-=item B<-inkey> private.pem
+=item B<-inkey> file_or_id
 
 The signer private key of the TSA in PEM format. Overrides the
 B<signer_key> config file option. (Optional)
+If no engine is used, the argument is taken as a file; if an engine is
+specified, the argument is given to the engine as a key identifier.
 
 =item B<-sha1|-sha224|-sha256|-sha384|-sha512>
 
@@ -386,8 +388,8 @@ verification.  See L<verify(1)>.
 
 =head1 CONFIGURATION FILE OPTIONS
 
-The B<-query> and B<-reply> commands make use of a configuration file
-defined by the B<OPENSSL_CONF> environment variable. See L<config(5)>
+The B<-query> and B<-reply> commands make use of a configuration file.
+See L<config(5)>
 for a general description of the syntax of the config file. The
 B<-query> command uses only the symbolic OID names section
 and it can work without it. However, the B<-reply> command needs the
@@ -505,11 +507,6 @@ included. Default is no. (Optional)
 
 =back
 
-=head1 ENVIRONMENT VARIABLES
-
-B<OPENSSL_CONF> contains the path of the configuration file and can be
-overridden by the B<-config> command line option.
-
 =head1 EXAMPLES
 
 All the examples below presume that B<OPENSSL_CONF> is set to a proper
@@ -608,28 +605,40 @@ You could also look at the 'test' directory for more examples.
 
 =head1 BUGS
 
+=for comment foreign manuals: procmail(1), perl(1)
+
 If you find any bugs or you have suggestions please write to
 Zoltan Glozik <zglozik@opentsa.org>. Known issues:
 
-=over 4
+=over 2
 
-=item * No support for time stamps over SMTP, though it is quite easy
+=item *
+
+No support for time stamps over SMTP, though it is quite easy
 to implement an automatic e-mail based TSA with L<procmail(1)>
 and L<perl(1)>. HTTP server support is provided in the form of
 a separate apache module. HTTP client support is provided by
 L<tsget(1)>. Pure TCP/IP protocol is not supported.
 
-=item * The file containing the last serial number of the TSA is not
+=item *
+
+The file containing the last serial number of the TSA is not
 locked when being read or written. This is a problem if more than one
 instance of L<openssl(1)> is trying to create a time stamp
 response at the same time. This is not an issue when using the apache
 server module, it does proper locking.
 
-=item * Look for the FIXME word in the source files.
+=item *
 
-=item * The source code should really be reviewed by somebody else, too.
+Look for the FIXME word in the source files.
 
-=item * More testing is needed, I have done only some basic tests (see
+=item *
+
+The source code should really be reviewed by somebody else, too.
+
+=item *
+
+More testing is needed, I have done only some basic tests (see
 test/testtsa).
 
 =back
@@ -642,7 +651,7 @@ L<config(5)>
 
 =head1 COPYRIGHT
 
-Copyright 2006-2016 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2006-2017 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the OpenSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

@@ -378,7 +378,8 @@
 # define SSL_CLIENT_USE_SIGALGS(s)        \
     SSL_CLIENT_USE_TLS1_2_CIPHERS(s)
 
-# define SSL_USE_ETM(s) (s->s3->flags & TLS1_FLAGS_ENCRYPT_THEN_MAC)
+# define SSL_READ_ETM(s) (s->s3->flags & TLS1_FLAGS_ENCRYPT_THEN_MAC_READ)
+# define SSL_WRITE_ETM(s) (s->s3->flags & TLS1_FLAGS_ENCRYPT_THEN_MAC_WRITE)
 
 /* Mostly for SSLv3 */
 # define SSL_PKEY_RSA_ENC        0
@@ -1077,7 +1078,7 @@ struct ssl_st {
     /* TLS pre-shared secret session resumption */
     tls_session_secret_cb_fn tls_session_secret_cb;
     void *tls_session_secret_cb_arg;
-    SSL_CTX *initial_ctx;       /* initial ctx, used to store sessions */
+    SSL_CTX *session_ctx;       /* initial ctx, used to store sessions */
 # ifndef OPENSSL_NO_NEXTPROTONEG
     /*
      * Next protocol negotiation. For the client, this is the protocol that
@@ -1089,7 +1090,6 @@ struct ssl_st {
     unsigned char *next_proto_negotiated;
     unsigned char next_proto_negotiated_len;
 # endif
-# define session_ctx initial_ctx
     /* What we'll do */
     STACK_OF(SRTP_PROTECTION_PROFILE) *srtp_profiles;
     /* What's been chosen */
@@ -1111,6 +1111,10 @@ struct ssl_st {
      */
     unsigned char *alpn_client_proto_list;
     unsigned alpn_client_proto_list_len;
+
+    /* Set to one if we have negotiated ETM */
+    int tlsext_use_etm;
+
     /*-
      * 1 if we are renegotiating.
      * 2 if we are a server and are inside a handshake
@@ -2062,7 +2066,7 @@ __owur size_t tls12_copy_sigalgs(SSL *s, unsigned char *out,
                                  const unsigned char *psig, size_t psiglen);
 __owur int tls1_save_sigalgs(SSL *s, const unsigned char *data, int dsize);
 __owur int tls1_process_sigalgs(SSL *s);
-__owur size_t tls12_get_psigalgs(SSL *s, const unsigned char **psigs);
+__owur size_t tls12_get_psigalgs(SSL *s, int sent, const unsigned char **psigs);
 __owur int tls12_check_peer_sigalg(const EVP_MD **pmd, SSL *s,
                                    const unsigned char *sig, EVP_PKEY *pkey);
 void ssl_set_client_disabled(SSL *s);
@@ -2113,6 +2117,8 @@ __owur int custom_ext_add(SSL *s, int server, unsigned char **pret,
 
 __owur int custom_exts_copy(custom_ext_methods *dst,
                             const custom_ext_methods *src);
+__owur int custom_exts_copy_flags(custom_ext_methods *dst,
+                                  const custom_ext_methods *src);
 void custom_exts_free(custom_ext_methods *exts);
 
 void ssl_comp_free_compression_methods_int(void);

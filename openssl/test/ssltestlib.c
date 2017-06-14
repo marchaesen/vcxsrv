@@ -9,6 +9,7 @@
 
 #include <string.h>
 
+#include "e_os.h"
 #include "ssltestlib.h"
 
 static int tls_dump_new(BIO *bi);
@@ -530,8 +531,9 @@ int create_ssl_ctx_pair(const SSL_METHOD *sm, const SSL_METHOD *cm,
     SSL_CTX *clientctx = NULL;
 
     serverctx = SSL_CTX_new(sm);
-    clientctx = SSL_CTX_new(cm);
-    if (serverctx == NULL || clientctx == NULL) {
+    if (cctx != NULL)
+        clientctx = SSL_CTX_new(cm);
+    if (serverctx == NULL || (cctx != NULL && clientctx == NULL)) {
         printf("Failed to create SSL_CTX\n");
         goto err;
     }
@@ -555,7 +557,8 @@ int create_ssl_ctx_pair(const SSL_METHOD *sm, const SSL_METHOD *cm,
 #endif
 
     *sctx = serverctx;
-    *cctx = clientctx;
+    if (cctx != NULL)
+        *cctx = clientctx;
 
     return 1;
  err:

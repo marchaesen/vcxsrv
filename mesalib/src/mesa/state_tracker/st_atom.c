@@ -116,7 +116,6 @@ static void check_program_state( struct st_context *st )
    }
 
    st->dirty |= dirty;
-   st->gfx_shaders_may_be_dirty = false;
 }
 
 static void check_attrib_edgeflag(struct st_context *st)
@@ -171,7 +170,11 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline )
       if (st->ctx->API == API_OPENGL_COMPAT)
          check_attrib_edgeflag(st);
 
-      check_program_state(st);
+      if (st->gfx_shaders_may_be_dirty) {
+         check_program_state(st);
+         st->gfx_shaders_may_be_dirty = false;
+      }
+
       st_manager_validate_framebuffers(st);
 
       pipeline_mask = ST_PIPELINE_RENDER_STATE_MASK;

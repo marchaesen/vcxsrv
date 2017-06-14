@@ -271,12 +271,24 @@ _mesa_TexImage3DEXT( GLenum target, GLint level, GLenum internalformat,
 extern void GLAPIENTRY
 _mesa_EGLImageTargetTexture2DOES( GLenum target, GLeglImageOES image );
 
+void GLAPIENTRY
+_mesa_TexSubImage1D_no_error(GLenum target, GLint level, GLint xoffset,
+                             GLsizei width,
+                             GLenum format, GLenum type,
+                             const GLvoid *pixels);
+
 extern void GLAPIENTRY
 _mesa_TexSubImage1D( GLenum target, GLint level, GLint xoffset,
                      GLsizei width,
                      GLenum format, GLenum type,
                      const GLvoid *pixels );
 
+void GLAPIENTRY
+_mesa_TexSubImage2D_no_error(GLenum target, GLint level,
+                             GLint xoffset, GLint yoffset,
+                             GLsizei width, GLsizei height,
+                             GLenum format, GLenum type,
+                             const GLvoid *pixels);
 
 extern void GLAPIENTRY
 _mesa_TexSubImage2D( GLenum target, GLint level,
@@ -285,6 +297,12 @@ _mesa_TexSubImage2D( GLenum target, GLint level,
                      GLenum format, GLenum type,
                      const GLvoid *pixels );
 
+void GLAPIENTRY
+_mesa_TexSubImage3D_no_error(GLenum target, GLint level,
+                             GLint xoffset, GLint yoffset, GLint zoffset,
+                             GLsizei width, GLsizei height, GLsizei depth,
+                             GLenum format, GLenum type,
+                             const GLvoid *pixels);
 
 extern void GLAPIENTRY
 _mesa_TexSubImage3D( GLenum target, GLint level,

@@ -217,7 +217,12 @@ st_framebuffer_validate(struct st_framebuffer *stfb,
       u_surface_default_template(&surf_tmpl, textures[i]);
       ps = st->pipe->create_surface(st->pipe, textures[i], &surf_tmpl);
       if (ps) {
-         pipe_surface_reference(&strb->surface, ps);
+         struct pipe_surface **psurf =
+            util_format_is_srgb(ps->format) ? &strb->surface_srgb :
+                                              &strb->surface_linear;
+
+         pipe_surface_reference(psurf, ps);
+         strb->surface = *psurf;
          pipe_resource_reference(&strb->texture, ps->texture);
          /* ownership transfered */
          pipe_surface_reference(&ps, NULL);
@@ -587,6 +592,8 @@ st_context_teximage(struct st_context_iface *stctxi,
    pipe_resource_reference(&stImage->pt, tex);
    stObj->surface_format = pipe_format;
 
+   stObj->needs_validation = true;
+
    _mesa_dirty_texobj(ctx, texObj);
    _mesa_unlock_texture(ctx, texObj);
 
@@ -906,7 +913,7 @@ st_manager_add_color_renderbuffer(struct st_context *st,
    if (stfb->iface)
       stfb->iface_stamp = p_atomic_read(&stfb->iface->stamp) - 1;
 
-   st_invalidate_state(st->ctx, _NEW_BUFFERS);
+   st_invalidate_buffers(st);
 
    return TRUE;
 }

@@ -158,7 +158,12 @@ st_egl_image_target_renderbuffer_storage(struct gl_context *ctx,
       strb->Base._BaseFormat = st_pipe_format_to_base_format(ps->format);
       strb->Base.InternalFormat = strb->Base._BaseFormat;
 
-      pipe_surface_reference(&strb->surface, ps);
+      struct pipe_surface **psurf =
+         util_format_is_srgb(ps->format) ? &strb->surface_srgb :
+                                           &strb->surface_linear;
+
+      pipe_surface_reference(psurf, ps);
+      strb->surface = *psurf;
       pipe_resource_reference(&strb->texture, ps->texture);
 
       pipe_surface_reference(&ps, NULL);

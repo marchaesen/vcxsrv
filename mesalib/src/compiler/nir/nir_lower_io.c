@@ -68,7 +68,7 @@ nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
  * (such as geometry shader inputs).
  */
 bool
-nir_is_per_vertex_io(nir_variable *var, gl_shader_stage stage)
+nir_is_per_vertex_io(const nir_variable *var, gl_shader_stage stage)
 {
    if (var->data.patch || !glsl_type_is_array(var->type))
       return false;

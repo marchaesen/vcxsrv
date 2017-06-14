@@ -600,7 +600,7 @@ SSL *SSL_new(SSL_CTX *ctx)
     s->tlsext_ocsp_resp = NULL;
     s->tlsext_ocsp_resplen = -1;
     SSL_CTX_up_ref(ctx);
-    s->initial_ctx = ctx;
+    s->session_ctx = ctx;
 #ifndef OPENSSL_NO_EC
     if (ctx->tlsext_ecpointformatlist) {
         s->tlsext_ecpointformatlist =
@@ -740,7 +740,7 @@ int SSL_has_matching_session_id(const SSL *ssl, const unsigned char *id,
 {
     /*
      * A quick examination of SSL_SESSION_hash and SSL_SESSION_cmp shows how
-     * we can "construct" a session to give us the desired check - ie. to
+     * we can "construct" a session to give us the desired check - i.e. to
      * find if there's a session in the hash table that would conflict with
      * any new session built out of this id/id_len and the ssl_version in use
      * by this SSL.
@@ -999,7 +999,7 @@ void SSL_free(SSL *s)
     /* Free up if allocated */
 
     OPENSSL_free(s->tlsext_hostname);
-    SSL_CTX_free(s->initial_ctx);
+    SSL_CTX_free(s->session_ctx);
 #ifndef OPENSSL_NO_EC
     OPENSSL_free(s->tlsext_ecpointformatlist);
     OPENSSL_free(s->tlsext_ellipticcurvelist);
@@ -1313,7 +1313,7 @@ int SSL_has_pending(const SSL *s)
      * data. That data may not result in any application data, or we may fail
      * to parse the records for some reason.
      */
-    if (SSL_pending(s))
+    if (RECORD_LAYER_processed_read_pending(&s->rlayer))
         return 1;
 
     return RECORD_LAYER_read_pending(&s->rlayer);
@@ -2273,8 +2273,8 @@ void SSL_CTX_set_alpn_select_cb(SSL_CTX *ctx,
 }
 
 /*
- * SSL_get0_alpn_selected gets the selected ALPN protocol (if any) from
- * |ssl|. On return it sets |*data| to point to |*len| bytes of protocol name
+ * SSL_get0_alpn_selected gets the selected ALPN protocol (if any) from |ssl|.
+ * On return it sets |*data| to point to |*len| bytes of protocol name
  * (not including the leading length-prefix byte). If the server didn't
  * respond with a negotiated protocol then |*len| will be zero.
  */
@@ -2305,13 +2305,21 @@ int SSL_export_keying_material(SSL *s, unsigned char *out, size_t olen,
 
 static unsigned long ssl_session_hash(const SSL_SESSION *a)
 {
+    const unsigned char *session_id = a->session_id;
     unsigned long l;
+    unsigned char tmp_storage[4];
+
+    if (a->session_id_length < sizeof(tmp_storage)) {
+        memset(tmp_storage, 0, sizeof(tmp_storage));
+        memcpy(tmp_storage, a->session_id, a->session_id_length);
+        session_id = tmp_storage;
+    }
 
     l = (unsigned long)
-        ((unsigned int)a->session_id[0]) |
-        ((unsigned int)a->session_id[1] << 8L) |
-        ((unsigned long)a->session_id[2] << 16L) |
-        ((unsigned long)a->session_id[3] << 24L);
+        ((unsigned long)session_id[0]) |
+        ((unsigned long)session_id[1] << 8L) |
+        ((unsigned long)session_id[2] << 16L) |
+        ((unsigned long)session_id[3] << 24L);
     return (l);
 }
 
@@ -3380,11 +3388,17 @@ SSL_CTX *SSL_set_SSL_CTX(SSL *ssl, SSL_CTX *ctx)
     if (ssl->ctx == ctx)
         return ssl->ctx;
     if (ctx == NULL)
-        ctx = ssl->initial_ctx;
+        ctx = ssl->session_ctx;
     new_cert = ssl_cert_dup(ctx->cert);
     if (new_cert == NULL) {
         return NULL;
     }
+
+    if (!custom_exts_copy_flags(&new_cert->srv_ext, &ssl->cert->srv_ext)) {
+        ssl_cert_free(new_cert);
+        return NULL;
+    }
+
     ssl_cert_free(ssl->cert);
     ssl->cert = new_cert;
 
@@ -3710,8 +3724,8 @@ void SSL_set_not_resumable_session_callback(SSL *ssl,
 /*
  * Allocates new EVP_MD_CTX and sets pointer to it into given pointer
  * variable, freeing EVP_MD_CTX previously stored in that variable, if any.
- * If EVP_MD pointer is passed, initializes ctx with this md Returns newly
- * allocated ctx;
+ * If EVP_MD pointer is passed, initializes ctx with this |md|.
+ * Returns the newly allocated ctx;
  */
 
 EVP_MD_CTX *ssl_replace_hash(EVP_MD_CTX **hash, const EVP_MD *md)
@@ -3762,7 +3776,7 @@ int SSL_session_reused(SSL *s)
     return s->hit;
 }
 
-int SSL_is_server(SSL *s)
+int SSL_is_server(const SSL *s)
 {
     return s->server;
 }
@@ -4175,6 +4189,8 @@ int ssl_validate_ct(SSL *s)
     CT_POLICY_EVAL_CTX_set1_cert(ctx, cert);
     CT_POLICY_EVAL_CTX_set1_issuer(ctx, issuer);
     CT_POLICY_EVAL_CTX_set_shared_CTLOG_STORE(ctx, s->ctx->ctlog_store);
+    CT_POLICY_EVAL_CTX_set_time(
+            ctx, (uint64_t)SSL_SESSION_get_time(SSL_get0_session(s)) * 1000);
 
     scts = SSL_get0_peer_scts(s);
 

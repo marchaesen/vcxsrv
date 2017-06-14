@@ -33,7 +33,7 @@
 #include "radv_cs.h"
 #include "util/disk_cache.h"
 #include "util/strtod.h"
-#include "util/vk_util.h"
+#include "vk_util.h"
 #include <xf86drm.h>
 #include <amdgpu.h>
 #include <amdgpu_drm.h>
@@ -270,7 +270,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 	assert(strlen(path) < ARRAY_SIZE(device->path));
 	strncpy(device->path, path, ARRAY_SIZE(device->path));
 
-	device->ws = radv_amdgpu_winsys_create(fd, instance->debug_flags);
+	device->ws = radv_amdgpu_winsys_create(fd, instance->debug_flags,
+					       instance->perftest_flags);
 	if (!device->ws) {
 		result = VK_ERROR_INCOMPATIBLE_DRIVER;
 		goto fail;
@@ -367,6 +368,11 @@ static const struct debug_control radv_debug_options[] = {
 	{NULL, 0}
 };
 
+static const struct debug_control radv_perftest_options[] = {
+	{"batchchain", RADV_PERFTEST_BATCHCHAIN},
+	{NULL, 0}
+};
+
 VkResult radv_CreateInstance(
 	const VkInstanceCreateInfo*                 pCreateInfo,
 	const VkAllocationCallbacks*                pAllocator,
@@ -423,6 +429,9 @@ VkResult radv_CreateInstance(
 
 	instance->debug_flags = parse_debug_string(getenv("RADV_DEBUG"),
 						   radv_debug_options);
+
+	instance->perftest_flags = parse_debug_string(getenv("RADV_PERFTEST"),
+						   radv_perftest_options);
 
 	*pInstance = radv_instance_to_handle(instance);
 
@@ -574,28 +583,6 @@ void radv_GetPhysicalDeviceFeatures2KHR(
 	return radv_GetPhysicalDeviceFeatures(physicalDevice, &pFeatures->features);
 }
 
-static uint32_t radv_get_driver_version()
-{
-	const char *minor_string = strchr(VERSION, '.');
-	const char *patch_string = minor_string ? strchr(minor_string + 1, ','): NULL;
-	int major = atoi(VERSION);
-	int minor = minor_string ? atoi(minor_string + 1) : 0;
-	int patch = patch_string ? atoi(patch_string + 1) : 0;
-	if (strstr(VERSION, "devel")) {
-		if (patch == 0) {
-			patch = 99;
-			if (minor == 0) {
-				minor = 99;
-				--major;
-			} else
-				--minor;
-		} else
-			--patch;
-	}
-	uint32_t version = VK_MAKE_VERSION(major, minor, patch);
-	return version;
-}
-
 void radv_GetPhysicalDeviceProperties(
 	VkPhysicalDevice                            physicalDevice,
 	VkPhysicalDeviceProperties*                 pProperties)
@@ -731,7 +718,7 @@ void radv_GetPhysicalDeviceProperties(
 
 	*pProperties = (VkPhysicalDeviceProperties) {
 		.apiVersion = VK_MAKE_VERSION(1, 0, 42),
-		.driverVersion = radv_get_driver_version(),
+		.driverVersion = vk_get_driver_version(),
 		.vendorID = 0x1002,
 		.deviceID = pdevice->rad_info.pci_id,
 		.deviceType = pdevice->rad_info.has_dedicated_vram ? VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU : VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
@@ -2121,9 +2108,10 @@ VkResult radv_AllocateMemory(
 		       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHX);
 		mem->bo = device->ws->buffer_from_fd(device->ws, import_info->fd,
 						     NULL, NULL);
-		if (!mem->bo)
+		if (!mem->bo) {
+			result = VK_ERROR_INVALID_EXTERNAL_HANDLE_KHX;
 			goto fail;
-		else
+		} else
 			goto out_success;
 	}
 

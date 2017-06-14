@@ -35,6 +35,62 @@
 #include "glheader.h"
 #include "imports.h"
 
+/**
+ * Magic GLuint object name that gets stored outside of the struct hash_table.
+ *
+ * The hash table needs a particular pointer to be the marker for a key that
+ * was deleted from the table, along with NULL for the "never allocated in the
+ * table" marker.  Legacy GL allows any GLuint to be used as a GL object name,
+ * and we use a 1:1 mapping from GLuints to key pointers, so we need to be
+ * able to track a GLuint that happens to match the deleted key outside of
+ * struct hash_table.  We tell the hash table to use "1" as the deleted key
+ * value, so that we test the deleted-key-in-the-table path as best we can.
+ */
+#define DELETED_KEY_VALUE 1
+
+/** @{
+ * Mapping from our use of GLuint as both the key and the hash value to the
+ * hash_table.h API
+ *
+ * There exist many integer hash functions, designed to avoid collisions when
+ * the integers are spread across key space with some patterns.  In GL, the
+ * pattern (in the case of glGen*()ed object IDs) is that the keys are unique
+ * contiguous integers starting from 1.  Because of that, we just use the key
+ * as the hash value, to minimize the cost of the hash function.  If objects
+ * are never deleted, we will never see a collision in the table, because the
+ * table resizes itself when it approaches full, and thus key % table_size ==
+ * key.
+ *
+ * The case where we could have collisions for genned objects would be
+ * something like: glGenBuffers(&a, 100); glDeleteBuffers(&a + 50, 50);
+ * glGenBuffers(&b, 100), because objects 1-50 and 101-200 are allocated at
+ * the end of that sequence, instead of 1-150.  So far it doesn't appear to be
+ * a problem.
+ */
+static inline bool
+uint_key_compare(const void *a, const void *b)
+{
+   return a == b;
+}
+
+static inline uint32_t
+uint_hash(GLuint id)
+{
+   return id;
+}
+
+static inline uint32_t
+uint_key_hash(const void *key)
+{
+   return uint_hash((uintptr_t)key);
+}
+
+static inline void *
+uint_key(GLuint id)
+{
+   return (void *)(uintptr_t) id;
+}
+/** @} */
 
 /**
  * The hash table data structure.

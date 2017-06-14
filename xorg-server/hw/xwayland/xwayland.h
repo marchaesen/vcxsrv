@@ -62,8 +62,6 @@ struct xwl_screen {
 
     CreateScreenResourcesProcPtr CreateScreenResources;
     CloseScreenProcPtr CloseScreen;
-    CreateWindowProcPtr CreateWindow;
-    DestroyWindowProcPtr DestroyWindow;
     RealizeWindowProcPtr RealizeWindow;
     UnrealizeWindowProcPtr UnrealizeWindow;
     XYToWindowProcPtr XYToWindow;
@@ -215,6 +213,8 @@ struct xwl_tablet_tool {
 
     uint32_t buttons_now,
              buttons_prev;
+
+    int32_t wheel_clicks;
 
     struct xwl_cursor cursor;
 };

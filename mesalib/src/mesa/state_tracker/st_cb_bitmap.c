@@ -249,8 +249,8 @@ setup_render_state(struct gl_context *ctx,
    }
 
    /* viewport state: viewport matching window dims */
-   cso_set_viewport_dims(cso, st->state.framebuffer.width,
-                         st->state.framebuffer.height,
+   cso_set_viewport_dims(cso, st->state.fb_width,
+                         st->state.fb_height,
                          st->state.fb_orientation == Y_0_TOP);
 
    cso_set_vertex_elements(cso, 3, st->util_velems);
@@ -283,8 +283,8 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   const float fb_width = (float) st->state.framebuffer.width;
-   const float fb_height = (float) st->state.framebuffer.height;
+   const float fb_width = (float) st->state.fb_width;
+   const float fb_height = (float) st->state.fb_height;
    const float x0 = (float) x;
    const float x1 = (float) (x + width);
    const float y0 = (float) y;
@@ -666,8 +666,8 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
    /* convert Z from [0,1] to [-1,-1] to match viewport Z scale/bias */
    const float z = ctx->Current.RasterPos[2] * 2.0f - 1.0f;
    const float *color = ctx->Current.RasterColor;
-   const float clip_x_scale = 2.0f / st->state.framebuffer.width;
-   const float clip_y_scale = 2.0f / st->state.framebuffer.height;
+   const float clip_x_scale = 2.0f / st->state.fb_width;
+   const float clip_y_scale = 2.0f / st->state.fb_height;
    const unsigned num_verts = count * 4;
    const unsigned num_vert_bytes = num_verts * sizeof(struct st_util_vertex);
    struct st_util_vertex *verts;

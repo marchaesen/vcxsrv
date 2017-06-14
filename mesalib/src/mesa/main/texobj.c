@@ -43,6 +43,7 @@
 #include "texstate.h"
 #include "mtypes.h"
 #include "program/prog_instruction.h"
+#include "texturebindless.h"
 
 
 
@@ -311,6 +312,7 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
    obj->DepthMode = ctx->API == API_OPENGL_CORE ? GL_RED : GL_LUMINANCE;
    obj->StencilSampling = false;
    obj->Sampler.CubeMapSeamless = GL_FALSE;
+   obj->Sampler.HandleAllocated = GL_FALSE;
    obj->Swizzle[0] = GL_RED;
    obj->Swizzle[1] = GL_GREEN;
    obj->Swizzle[2] = GL_BLUE;
@@ -320,6 +322,9 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
    obj->BufferObjectFormat = GL_R8;
    obj->_BufferObjectFormat = MESA_FORMAT_R_UNORM8;
    obj->ImageFormatCompatibilityType = GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE;
+
+   /* GL_ARB_bindless_texture */
+   _mesa_init_texture_handles(obj);
 }
 
 
@@ -396,6 +401,9 @@ _mesa_delete_texture_object(struct gl_context *ctx,
          }
       }
    }
+
+   /* Delete all texture/image handles. */
+   _mesa_delete_texture_handles(ctx, texObj);
 
    _mesa_reference_buffer_object(ctx, &texObj->BufferObject, NULL);
 
@@ -1460,6 +1468,11 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *textures)
              * See section 3.9.X of GL_ARB_shader_image_load_store.
              */
             unbind_texobj_from_image_units(ctx, delObj);
+
+            /* Make all handles that reference this texture object non-resident
+             * in the current context.
+             */
+            _mesa_make_texture_handles_non_resident(ctx, delObj);
 
             _mesa_unlock_texture(ctx, delObj);
 

@@ -113,6 +113,18 @@ _mesa_UniformMatrix4x3fv(GLint location, GLsizei count, GLboolean transpose,
                          const GLfloat *value);
 
 void GLAPIENTRY
+_mesa_UniformHandleui64ARB(GLint location, GLuint64 value);
+void GLAPIENTRY
+_mesa_UniformHandleui64vARB(GLint location, GLsizei count,
+                            const GLuint64 *value);
+void GLAPIENTRY
+_mesa_ProgramUniformHandleui64ARB(GLuint program, GLint location,
+                                  GLuint64 value);
+void GLAPIENTRY
+_mesa_ProgramUniformHandleui64vARB(GLuint program, GLint location,
+                                   GLsizei count, const GLuint64 *values);
+
+void GLAPIENTRY
 _mesa_ProgramUniform1f(GLuint program, GLint, GLfloat);
 void GLAPIENTRY
 _mesa_ProgramUniform2f(GLuint program, GLint, GLfloat, GLfloat);
@@ -439,6 +451,10 @@ _mesa_uniform_matrix(GLint location, GLsizei count,
                      GLboolean transpose, const void *values,
                      struct gl_context *, struct gl_shader_program *,
                      GLuint cols, GLuint rows, enum glsl_base_type basicType);
+
+void
+_mesa_uniform_handle(GLint location, GLsizei count, const GLvoid *values,
+                     struct gl_context *, struct gl_shader_program *);
 
 void
 _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,

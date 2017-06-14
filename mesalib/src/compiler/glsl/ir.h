@@ -475,6 +475,17 @@ public:
    }
 
    /**
+    * Return whether this variable contains a bindless sampler/image.
+    */
+   inline bool contains_bindless() const
+   {
+      if (!this->type->contains_sampler() && !this->type->contains_image())
+         return false;
+
+      return this->data.bindless || this->data.mode != ir_var_uniform;
+   }
+
+   /**
     * Set this->interface_type on a newly created variable.
     */
    void init_interface_type(const struct glsl_type *type)

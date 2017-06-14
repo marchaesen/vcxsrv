@@ -607,7 +607,7 @@
       <param name="stride" type="GLsizei" />
    </function>
 
-   <function name="VertexArrayVertexBuffers">
+   <function name="VertexArrayVertexBuffers" no_error="true">
       <param name="vaobj" type="GLuint" />
       <param name="first" type="GLuint" />
       <param name="count" type="GLsizei" />

@@ -328,6 +328,16 @@ DRI_CONF_OPT_BEGIN_B(mesa_glthread, def) \
         DRI_CONF_DESC(en,gettext("Enable offloading GL driver work to a separate thread")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_DISABLE_EXT_BUFFER_AGE(def) \
+DRI_CONF_OPT_BEGIN_B(glx_disable_ext_buffer_age, def) \
+   DRI_CONF_DESC(en, gettext("Disable the GLX_EXT_buffer_age extension")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_DISABLE_OML_SYNC_CONTROL(def) \
+DRI_CONF_OPT_BEGIN_B(glx_disable_oml_sync_control, def) \
+   DRI_CONF_DESC(en, gettext("Disable the GLX_OML_sync_control extension")) \
+DRI_CONF_OPT_END
+
 
 /**
  * \brief Software-fallback options.  To allow using features (like

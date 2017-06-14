@@ -26,7 +26,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "util/vk_alloc.h"
+#include "vk_alloc.h"
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_icd.h>
 

@@ -43,6 +43,7 @@ struct radv_amdgpu_winsys {
 	ADDR_HANDLE addrlib;
 
 	bool debug_all_bos;
+	bool batchchain;
 	pthread_mutex_t global_bo_list_lock;
 	struct list_head global_bo_list;
 	unsigned num_buffers;

@@ -438,15 +438,15 @@ nir_instr_prev(nir_instr *instr)
 }
 
 static inline bool
-nir_instr_is_first(nir_instr *instr)
+nir_instr_is_first(const nir_instr *instr)
 {
-   return exec_node_is_head_sentinel(exec_node_get_prev(&instr->node));
+   return exec_node_is_head_sentinel(exec_node_get_prev_const(&instr->node));
 }
 
 static inline bool
-nir_instr_is_last(nir_instr *instr)
+nir_instr_is_last(const nir_instr *instr)
 {
-   return exec_node_is_tail_sentinel(exec_node_get_next(&instr->node));
+   return exec_node_is_tail_sentinel(exec_node_get_next_const(&instr->node));
 }
 
 typedef struct nir_ssa_def {
@@ -804,7 +804,8 @@ void nir_alu_dest_copy(nir_alu_dest *dest, const nir_alu_dest *src,
 
 /* is this source channel used? */
 static inline bool
-nir_alu_instr_channel_used(nir_alu_instr *instr, unsigned src, unsigned channel)
+nir_alu_instr_channel_used(const nir_alu_instr *instr, unsigned src,
+                           unsigned channel)
 {
    if (nir_op_infos[instr->op].input_sizes[src] > 0)
       return channel < nir_op_infos[instr->op].input_sizes[src];
@@ -1087,7 +1088,7 @@ extern const nir_intrinsic_info nir_intrinsic_infos[nir_num_intrinsics];
 
 #define INTRINSIC_IDX_ACCESSORS(name, flag, type)                             \
 static inline type                                                            \
-nir_intrinsic_##name(nir_intrinsic_instr *instr)                              \
+nir_intrinsic_##name(const nir_intrinsic_instr *instr)                        \
 {                                                                             \
    const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];   \
    assert(info->index_map[NIR_INTRINSIC_##flag] > 0);                         \
@@ -1221,7 +1222,7 @@ typedef struct {
 } nir_tex_instr;
 
 static inline unsigned
-nir_tex_instr_dest_size(nir_tex_instr *instr)
+nir_tex_instr_dest_size(const nir_tex_instr *instr)
 {
    switch (instr->op) {
    case nir_texop_txs: {
@@ -1270,7 +1271,7 @@ nir_tex_instr_dest_size(nir_tex_instr *instr)
  * rather than actually sampling it.
  */
 static inline bool
-nir_tex_instr_is_query(nir_tex_instr *instr)
+nir_tex_instr_is_query(const nir_tex_instr *instr)
 {
    switch (instr->op) {
    case nir_texop_txs:
@@ -1293,7 +1294,7 @@ nir_tex_instr_is_query(nir_tex_instr *instr)
 }
 
 static inline nir_alu_type
-nir_tex_instr_src_type(nir_tex_instr *instr, unsigned src)
+nir_tex_instr_src_type(const nir_tex_instr *instr, unsigned src)
 {
    switch (instr->src[src].src_type) {
    case nir_tex_src_coord:
@@ -1337,7 +1338,7 @@ nir_tex_instr_src_type(nir_tex_instr *instr, unsigned src)
 }
 
 static inline unsigned
-nir_tex_instr_src_size(nir_tex_instr *instr, unsigned src)
+nir_tex_instr_src_size(const nir_tex_instr *instr, unsigned src)
 {
    if (instr->src[src].src_type == nir_tex_src_coord)
       return instr->coord_components;
@@ -1359,7 +1360,7 @@ nir_tex_instr_src_size(nir_tex_instr *instr, unsigned src)
 }
 
 static inline int
-nir_tex_instr_src_index(nir_tex_instr *instr, nir_tex_src_type type)
+nir_tex_instr_src_index(const nir_tex_instr *instr, nir_tex_src_type type)
 {
    for (unsigned i = 0; i < instr->num_srcs; i++)
       if (instr->src[i].src_type == type)
@@ -2394,7 +2395,7 @@ bool nir_lower_io(nir_shader *shader,
 nir_src *nir_get_io_offset_src(nir_intrinsic_instr *instr);
 nir_src *nir_get_io_vertex_index_src(nir_intrinsic_instr *instr);
 
-bool nir_is_per_vertex_io(nir_variable *var, gl_shader_stage stage);
+bool nir_is_per_vertex_io(const nir_variable *var, gl_shader_stage stage);
 
 void nir_lower_io_types(nir_shader *shader);
 bool nir_lower_regs_to_ssa_impl(nir_function_impl *impl);

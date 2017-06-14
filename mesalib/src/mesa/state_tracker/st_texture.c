@@ -420,3 +420,217 @@ st_create_color_map_texture(struct gl_context *ctx)
                           texSize, texSize, 1, 1, 0, PIPE_BIND_SAMPLER_VIEW);
    return pt;
 }
+
+/**
+ * Destroy bound texture handles for the given stage.
+ */
+static void
+st_destroy_bound_texture_handles_per_stage(struct st_context *st,
+                                           enum pipe_shader_type shader)
+{
+   struct st_bound_handles *bound_handles = &st->bound_texture_handles[shader];
+   struct pipe_context *pipe = st->pipe;
+   unsigned i;
+
+   if (likely(!bound_handles->num_handles))
+      return;
+
+   for (i = 0; i < bound_handles->num_handles; i++) {
+      uint64_t handle = bound_handles->handles[i];
+
+      pipe->make_texture_handle_resident(pipe, handle, false);
+      pipe->delete_texture_handle(pipe, handle);
+   }
+   free(bound_handles->handles);
+   bound_handles->handles = NULL;
+   bound_handles->num_handles = 0;
+}
+
+
+/**
+ * Destroy all bound texture handles in the context.
+ */
+void
+st_destroy_bound_texture_handles(struct st_context *st)
+{
+   unsigned i;
+
+   for (i = 0; i < PIPE_SHADER_TYPES; i++) {
+      st_destroy_bound_texture_handles_per_stage(st, i);
+   }
+}
+
+
+/**
+ * Destroy bound image handles for the given stage.
+ */
+static void
+st_destroy_bound_image_handles_per_stage(struct st_context *st,
+                                         enum pipe_shader_type shader)
+{
+   struct st_bound_handles *bound_handles = &st->bound_image_handles[shader];
+   struct pipe_context *pipe = st->pipe;
+   unsigned i;
+
+   if (likely(!bound_handles->num_handles))
+      return;
+
+   for (i = 0; i < bound_handles->num_handles; i++) {
+      uint64_t handle = bound_handles->handles[i];
+
+      pipe->make_image_handle_resident(pipe, handle, GL_READ_WRITE, false);
+      pipe->delete_image_handle(pipe, handle);
+   }
+   free(bound_handles->handles);
+   bound_handles->handles = NULL;
+   bound_handles->num_handles = 0;
+}
+
+
+/**
+ * Destroy all bound image handles in the context.
+ */
+void
+st_destroy_bound_image_handles(struct st_context *st)
+{
+   unsigned i;
+
+   for (i = 0; i < PIPE_SHADER_TYPES; i++) {
+      st_destroy_bound_image_handles_per_stage(st, i);
+   }
+}
+
+
+/**
+ * Create a texture handle from a texture unit.
+ */
+static GLuint64
+st_create_texture_handle_from_unit(struct st_context *st,
+                                   struct gl_program *prog, GLuint texUnit)
+{
+   struct gl_context *ctx = st->ctx;
+   struct gl_texture_object *texObj;
+   struct pipe_context *pipe = st->pipe;
+   struct pipe_sampler_view *view;
+   struct pipe_sampler_state sampler;
+
+   if (!st_update_single_texture(st, &view, texUnit, prog->sh.data->Version))
+      return 0;
+
+   st_convert_sampler_from_unit(st, &sampler, texUnit);
+
+   texObj = ctx->Texture.Unit[texUnit]._Current;
+   assert(texObj);
+
+   return pipe->create_texture_handle(pipe, view, &sampler);
+}
+
+
+/**
+ * Create an image handle from an image unit.
+ */
+static GLuint64
+st_create_image_handle_from_unit(struct st_context *st,
+                                 struct gl_program *prog, GLuint imgUnit)
+{
+   struct pipe_context *pipe = st->pipe;
+   struct pipe_image_view img;
+
+   st_convert_image_from_unit(st, &img, imgUnit);
+
+   return pipe->create_image_handle(pipe, &img);
+}
+
+
+/**
+ * Make all bindless samplers bound to texture units resident in the context.
+ */
+void
+st_make_bound_samplers_resident(struct st_context *st,
+                                struct gl_program *prog)
+{
+   enum pipe_shader_type shader = st_shader_stage_to_ptarget(prog->info.stage);
+   struct st_bound_handles *bound_handles = &st->bound_texture_handles[shader];
+   struct pipe_context *pipe = st->pipe;
+   GLuint64 handle;
+   int i;
+
+   /* Remove previous bound texture handles for this stage. */
+   st_destroy_bound_texture_handles_per_stage(st, shader);
+
+   if (likely(!prog->sh.HasBoundBindlessSampler))
+      return;
+
+   for (i = 0; i < prog->sh.NumBindlessSamplers; i++) {
+      struct gl_bindless_sampler *sampler = &prog->sh.BindlessSamplers[i];
+
+      if (!sampler->bound)
+         continue;
+
+      /* Request a new texture handle from the driver and make it resident. */
+      handle = st_create_texture_handle_from_unit(st, prog, sampler->unit);
+      if (!handle)
+         continue;
+
+      pipe->make_texture_handle_resident(st->pipe, handle, true);
+
+      /* Overwrite the texture unit value by the resident handle before
+       * uploading the constant buffer.
+       */
+      *(uint64_t *)sampler->data = handle;
+
+      /* Store the handle in the context. */
+      bound_handles->handles = (uint64_t *)
+         realloc(bound_handles->handles,
+                 (bound_handles->num_handles + 1) * sizeof(uint64_t));
+      bound_handles->handles[bound_handles->num_handles] = handle;
+      bound_handles->num_handles++;
+   }
+}
+
+
+/**
+ * Make all bindless images bound to image units resident in the context.
+ */
+void
+st_make_bound_images_resident(struct st_context *st,
+                              struct gl_program *prog)
+{
+   enum pipe_shader_type shader = st_shader_stage_to_ptarget(prog->info.stage);
+   struct st_bound_handles *bound_handles = &st->bound_image_handles[shader];
+   struct pipe_context *pipe = st->pipe;
+   GLuint64 handle;
+   int i;
+
+   /* Remove previous bound image handles for this stage. */
+   st_destroy_bound_image_handles_per_stage(st, shader);
+
+   if (likely(!prog->sh.HasBoundBindlessImage))
+      return;
+
+   for (i = 0; i < prog->sh.NumBindlessImages; i++) {
+      struct gl_bindless_image *image = &prog->sh.BindlessImages[i];
+
+      if (!image->bound)
+         continue;
+
+      /* Request a new image handle from the driver and make it resident. */
+      handle = st_create_image_handle_from_unit(st, prog, image->unit);
+      if (!handle)
+         continue;
+
+      pipe->make_image_handle_resident(st->pipe, handle, GL_READ_WRITE, true);
+
+      /* Overwrite the image unit value by the resident handle before uploading
+       * the constant buffer.
+       */
+      *(uint64_t *)image->data = handle;
+
+      /* Store the handle in the context. */
+      bound_handles->handles = (uint64_t *)
+         realloc(bound_handles->handles,
+                 (bound_handles->num_handles + 1) * sizeof(uint64_t));
+      bound_handles->handles[bound_handles->num_handles] = handle;
+      bound_handles->num_handles++;
+   }
+}

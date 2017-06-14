@@ -177,18 +177,176 @@ is_valid_blit_filter(const struct gl_context *ctx, GLenum filter)
 }
 
 
-void
-_mesa_blit_framebuffer(struct gl_context *ctx,
-                       struct gl_framebuffer *readFb,
-                       struct gl_framebuffer *drawFb,
-                       GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
-                       GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
-                       GLbitfield mask, GLenum filter, const char *func)
+static bool
+validate_color_buffer(struct gl_context *ctx, struct gl_framebuffer *readFb,
+                      struct gl_framebuffer *drawFb, GLenum filter,
+                      const char *func)
 {
-   const GLbitfield legalMaskBits = (GL_COLOR_BUFFER_BIT |
-                                     GL_DEPTH_BUFFER_BIT |
-                                     GL_STENCIL_BUFFER_BIT);
+   const GLuint numColorDrawBuffers = drawFb->_NumColorDrawBuffers;
+   const struct gl_renderbuffer *colorReadRb = readFb->_ColorReadBuffer;
+   const struct gl_renderbuffer *colorDrawRb = NULL;
+   GLuint i;
 
+   for (i = 0; i < numColorDrawBuffers; i++) {
+      colorDrawRb = drawFb->_ColorDrawBuffers[i];
+      if (!colorDrawRb)
+         continue;
+
+      /* Page 193 (page 205 of the PDF) in section 4.3.2 of the OpenGL
+       * ES 3.0.1 spec says:
+       *
+       *     "If the source and destination buffers are identical, an
+       *     INVALID_OPERATION error is generated. Different mipmap levels of a
+       *     texture, different layers of a three- dimensional texture or
+       *     two-dimensional array texture, and different faces of a cube map
+       *     texture do not constitute identical buffers."
+       */
+      if (_mesa_is_gles3(ctx) && (colorDrawRb == colorReadRb)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(source and destination color buffer cannot be the "
+                     "same)", func);
+         return false;
+      }
+
+      if (!compatible_color_datatypes(colorReadRb->Format,
+                                      colorDrawRb->Format)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(color buffer datatypes mismatch)", func);
+         return false;
+      }
+
+      /* extra checks for multisample copies... */
+      if (readFb->Visual.samples > 0 || drawFb->Visual.samples > 0) {
+         /* color formats must match on GLES. This isn't checked on desktop GL
+          * because the GL 4.4 spec was changed to allow it.  In the section
+          * entitled “Changes in the released
+          * Specification of July 22, 2013” it says:
+          *
+          * “Relax BlitFramebuffer in section 18.3.1 so that format conversion
+          * can take place during multisample blits, since drivers already
+          * allow this and some apps depend on it.”
+          */
+         if (_mesa_is_gles(ctx) &&
+             !compatible_resolve_formats(colorReadRb, colorDrawRb)) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "%s(bad src/dst multisample pixel formats)", func);
+            return false;
+         }
+      }
+
+   }
+
+   if (filter != GL_NEAREST) {
+      /* From EXT_framebuffer_multisample_blit_scaled specification:
+       * "Calling BlitFramebuffer will result in an INVALID_OPERATION error if
+       * filter is not NEAREST and read buffer contains integer data."
+       */
+      GLenum type = _mesa_get_format_datatype(colorReadRb->Format);
+      if (type == GL_INT || type == GL_UNSIGNED_INT) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(integer color type)", func);
+         return false;
+      }
+   }
+   return true;
+}
+
+
+static bool
+validate_stencil_buffer(struct gl_context *ctx, struct gl_framebuffer *readFb,
+                        struct gl_framebuffer *drawFb, const char *func)
+{
+   struct gl_renderbuffer *readRb =
+      readFb->Attachment[BUFFER_STENCIL].Renderbuffer;
+   struct gl_renderbuffer *drawRb =
+      drawFb->Attachment[BUFFER_STENCIL].Renderbuffer;
+   int read_z_bits, draw_z_bits;
+
+   if (_mesa_is_gles3(ctx) && (drawRb == readRb)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(source and destination stencil buffer cannot be the "
+                  "same)", func);
+      return false;
+   }
+
+   if (_mesa_get_format_bits(readRb->Format, GL_STENCIL_BITS) !=
+       _mesa_get_format_bits(drawRb->Format, GL_STENCIL_BITS)) {
+      /* There is no need to check the stencil datatype here, because
+       * there is only one: GL_UNSIGNED_INT.
+       */
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(stencil attachment format mismatch)", func);
+      return false;
+   }
+
+   read_z_bits = _mesa_get_format_bits(readRb->Format, GL_DEPTH_BITS);
+   draw_z_bits = _mesa_get_format_bits(drawRb->Format, GL_DEPTH_BITS);
+
+   /* If both buffers also have depth data, the depth formats must match
+    * as well.  If one doesn't have depth, it's not blitted, so we should
+    * ignore the depth format check.
+    */
+   if (read_z_bits > 0 && draw_z_bits > 0 &&
+       (read_z_bits != draw_z_bits ||
+        _mesa_get_format_datatype(readRb->Format) !=
+        _mesa_get_format_datatype(drawRb->Format))) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(stencil attachment depth format mismatch)", func);
+      return false;
+   }
+   return true;
+}
+
+
+static bool
+validate_depth_buffer(struct gl_context *ctx, struct gl_framebuffer *readFb,
+                      struct gl_framebuffer *drawFb, const char *func)
+{
+   struct gl_renderbuffer *readRb =
+      readFb->Attachment[BUFFER_DEPTH].Renderbuffer;
+   struct gl_renderbuffer *drawRb =
+      drawFb->Attachment[BUFFER_DEPTH].Renderbuffer;
+   int read_s_bit, draw_s_bit;
+
+   if (_mesa_is_gles3(ctx) && (drawRb == readRb)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(source and destination depth buffer cannot be the same)",
+                  func);
+      return false;
+   }
+
+   if ((_mesa_get_format_bits(readRb->Format, GL_DEPTH_BITS) !=
+        _mesa_get_format_bits(drawRb->Format, GL_DEPTH_BITS)) ||
+       (_mesa_get_format_datatype(readRb->Format) !=
+        _mesa_get_format_datatype(drawRb->Format))) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(depth attachment format mismatch)", func);
+      return false;
+   }
+
+   read_s_bit = _mesa_get_format_bits(readRb->Format, GL_STENCIL_BITS);
+   draw_s_bit = _mesa_get_format_bits(drawRb->Format, GL_STENCIL_BITS);
+
+   /* If both buffers also have stencil data, the stencil formats must match as
+    * well.  If one doesn't have stencil, it's not blitted, so we should ignore
+    * the stencil format check.
+    */
+   if (read_s_bit > 0 && draw_s_bit > 0 && read_s_bit != draw_s_bit) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(depth attachment stencil bits mismatch)", func);
+      return false;
+   }
+   return true;
+}
+
+
+static ALWAYS_INLINE void
+blit_framebuffer(struct gl_context *ctx,
+                 struct gl_framebuffer *readFb, struct gl_framebuffer *drawFb,
+                 GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                 GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                 GLbitfield mask, GLenum filter, bool no_error, const char *func)
+{
    FLUSH_VERTICES(ctx, 0);
 
    /* Update completeness status of readFb and drawFb. */
@@ -204,47 +362,105 @@ _mesa_blit_framebuffer(struct gl_context *ctx,
       return;
    }
 
-   /* check for complete framebuffers */
-   if (drawFb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT ||
-       readFb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
-      _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION_EXT,
-                  "%s(incomplete draw/read buffers)", func);
-      return;
-   }
+   if (!no_error) {
+      const GLbitfield legalMaskBits = (GL_COLOR_BUFFER_BIT |
+                                        GL_DEPTH_BUFFER_BIT |
+                                        GL_STENCIL_BUFFER_BIT);
 
-   if (!is_valid_blit_filter(ctx, filter)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid filter %s)", func,
-                  _mesa_enum_to_string(filter));
-      return;
-   }
+      /* check for complete framebuffers */
+      if (drawFb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT ||
+          readFb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+         _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION_EXT,
+                     "%s(incomplete draw/read buffers)", func);
+         return;
+      }
 
-   if ((filter == GL_SCALED_RESOLVE_FASTEST_EXT ||
-        filter == GL_SCALED_RESOLVE_NICEST_EXT) &&
-        (readFb->Visual.samples == 0 || drawFb->Visual.samples > 0)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(%s: invalid samples)", func,
-                  _mesa_enum_to_string(filter));
-      return;
-   }
+      if (!is_valid_blit_filter(ctx, filter)) {
+         _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid filter %s)", func,
+                     _mesa_enum_to_string(filter));
+         return;
+      }
 
-   if (mask & ~legalMaskBits) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(invalid mask bits set)", func);
-      return;
-   }
+      if ((filter == GL_SCALED_RESOLVE_FASTEST_EXT ||
+           filter == GL_SCALED_RESOLVE_NICEST_EXT) &&
+           (readFb->Visual.samples == 0 || drawFb->Visual.samples > 0)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(%s: invalid samples)", func,
+                     _mesa_enum_to_string(filter));
+         return;
+      }
 
-   /* depth/stencil must be blitted with nearest filtering */
-   if ((mask & (GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT))
-        && filter != GL_NEAREST) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-             "%s(depth/stencil requires GL_NEAREST filter)", func);
-      return;
+      if (mask & ~legalMaskBits) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "%s(invalid mask bits set)", func);
+         return;
+      }
+
+      /* depth/stencil must be blitted with nearest filtering */
+      if ((mask & (GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT))
+           && filter != GL_NEAREST) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                "%s(depth/stencil requires GL_NEAREST filter)", func);
+         return;
+      }
+
+      if (_mesa_is_gles3(ctx)) {
+         /* Page 194 (page 206 of the PDF) in section 4.3.2 of the OpenGL ES
+          * 3.0.1 spec says:
+          *
+          *     "If SAMPLE_BUFFERS for the draw framebuffer is greater than
+          *     zero, an INVALID_OPERATION error is generated."
+          */
+         if (drawFb->Visual.samples > 0) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "%s(destination samples must be 0)", func);
+            return;
+         }
+
+         /* Page 194 (page 206 of the PDF) in section 4.3.2 of the OpenGL ES
+          * 3.0.1 spec says:
+          *
+          *     "If SAMPLE_BUFFERS for the read framebuffer is greater than
+          *     zero, no copy is performed and an INVALID_OPERATION error is
+          *     generated if the formats of the read and draw framebuffers are
+          *     not identical or if the source and destination rectangles are
+          *     not defined with the same (X0, Y0) and (X1, Y1) bounds."
+          *
+          * The format check was made above because desktop OpenGL has the same
+          * requirement.
+          */
+         if (readFb->Visual.samples > 0
+             && (srcX0 != dstX0 || srcY0 != dstY0
+                 || srcX1 != dstX1 || srcY1 != dstY1)) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "%s(bad src/dst multisample region)", func);
+            return;
+         }
+      } else {
+         if (readFb->Visual.samples > 0 &&
+             drawFb->Visual.samples > 0 &&
+             readFb->Visual.samples != drawFb->Visual.samples) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "%s(mismatched samples)", func);
+            return;
+         }
+
+         /* extra checks for multisample copies... */
+         if ((readFb->Visual.samples > 0 || drawFb->Visual.samples > 0) &&
+             (filter == GL_NEAREST || filter == GL_LINEAR)) {
+            /* src and dest region sizes must be the same */
+            if (abs(srcX1 - srcX0) != abs(dstX1 - dstX0) ||
+                abs(srcY1 - srcY0) != abs(dstY1 - dstY0)) {
+               _mesa_error(ctx, GL_INVALID_OPERATION,
+                           "%s(bad src/dst multisample region sizes)", func);
+               return;
+            }
+         }
+      }
    }
 
    /* get color read/draw renderbuffers */
    if (mask & GL_COLOR_BUFFER_BIT) {
       const GLuint numColorDrawBuffers = drawFb->_NumColorDrawBuffers;
       const struct gl_renderbuffer *colorReadRb = readFb->_ColorReadBuffer;
-      const struct gl_renderbuffer *colorDrawRb = NULL;
-      GLuint i;
 
       /* From the EXT_framebuffer_object spec:
        *
@@ -254,67 +470,9 @@ _mesa_blit_framebuffer(struct gl_context *ctx,
        */
       if (!colorReadRb || numColorDrawBuffers == 0) {
          mask &= ~GL_COLOR_BUFFER_BIT;
-      }
-      else {
-         for (i = 0; i < numColorDrawBuffers; i++) {
-            colorDrawRb = drawFb->_ColorDrawBuffers[i];
-            if (!colorDrawRb)
-               continue;
-
-            /* Page 193 (page 205 of the PDF) in section 4.3.2 of the OpenGL
-             * ES 3.0.1 spec says:
-             *
-             *     "If the source and destination buffers are identical, an
-             *     INVALID_OPERATION error is generated. Different mipmap
-             *     levels of a texture, different layers of a three-
-             *     dimensional texture or two-dimensional array texture, and
-             *     different faces of a cube map texture do not constitute
-             *     identical buffers."
-             */
-            if (_mesa_is_gles3(ctx) && (colorDrawRb == colorReadRb)) {
-               _mesa_error(ctx, GL_INVALID_OPERATION,
-                           "%s(source and destination color "
-                           "buffer cannot be the same)", func);
-               return;
-            }
-
-            if (!compatible_color_datatypes(colorReadRb->Format,
-                                            colorDrawRb->Format)) {
-               _mesa_error(ctx, GL_INVALID_OPERATION,
-                           "%s(color buffer datatypes mismatch)", func);
-               return;
-            }
-            /* extra checks for multisample copies... */
-            if (readFb->Visual.samples > 0 || drawFb->Visual.samples > 0) {
-               /* color formats must match on GLES. This isn't checked on
-                * desktop GL because the GL 4.4 spec was changed to allow it.
-                * In the section entitled “Changes in the released
-                * Specification of July 22, 2013” it says:
-                *
-                * “Relax BlitFramebuffer in section 18.3.1 so that format
-                *  conversion can take place during multisample blits, since
-                *  drivers already allow this and some apps depend on it.”
-                */
-               if (_mesa_is_gles(ctx) &&
-                   !compatible_resolve_formats(colorReadRb, colorDrawRb)) {
-                  _mesa_error(ctx, GL_INVALID_OPERATION,
-                         "%s(bad src/dst multisample pixel formats)", func);
-                  return;
-               }
-            }
-         }
-         if (filter != GL_NEAREST) {
-            /* From EXT_framebuffer_multisample_blit_scaled specification:
-             * "Calling BlitFramebuffer will result in an INVALID_OPERATION error
-             * if filter is not NEAREST and read buffer contains integer data."
-             */
-            GLenum type = _mesa_get_format_datatype(colorReadRb->Format);
-            if (type == GL_INT || type == GL_UNSIGNED_INT) {
-               _mesa_error(ctx, GL_INVALID_OPERATION,
-                           "%s(integer color type)", func);
-               return;
-            }
-         }
+      } else if (!no_error) {
+         if (!validate_color_buffer(ctx, readFb, drawFb, filter, func))
+            return;
       }
    }
 
@@ -332,43 +490,9 @@ _mesa_blit_framebuffer(struct gl_context *ctx,
        */
       if ((readRb == NULL) || (drawRb == NULL)) {
          mask &= ~GL_STENCIL_BUFFER_BIT;
-      }
-      else {
-         int read_z_bits, draw_z_bits;
-
-         if (_mesa_is_gles3(ctx) && (drawRb == readRb)) {
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "%s(source and destination stencil "
-                        "buffer cannot be the same)", func);
+      } else if (!no_error) {
+         if (!validate_stencil_buffer(ctx, readFb, drawFb, func))
             return;
-         }
-
-         if (_mesa_get_format_bits(readRb->Format, GL_STENCIL_BITS) !=
-             _mesa_get_format_bits(drawRb->Format, GL_STENCIL_BITS)) {
-            /* There is no need to check the stencil datatype here, because
-             * there is only one: GL_UNSIGNED_INT.
-             */
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "%s(stencil attachment format mismatch)", func);
-            return;
-         }
-
-         read_z_bits = _mesa_get_format_bits(readRb->Format, GL_DEPTH_BITS);
-         draw_z_bits = _mesa_get_format_bits(drawRb->Format, GL_DEPTH_BITS);
-
-         /* If both buffers also have depth data, the depth formats must match
-          * as well.  If one doesn't have depth, it's not blitted, so we should
-          * ignore the depth format check.
-          */
-         if (read_z_bits > 0 && draw_z_bits > 0 &&
-             (read_z_bits != draw_z_bits ||
-              _mesa_get_format_datatype(readRb->Format) !=
-              _mesa_get_format_datatype(drawRb->Format))) {
-
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "%s(stencil attachment depth format mismatch)", func);
-            return;
-         }
       }
    }
 
@@ -386,93 +510,9 @@ _mesa_blit_framebuffer(struct gl_context *ctx,
        */
       if ((readRb == NULL) || (drawRb == NULL)) {
          mask &= ~GL_DEPTH_BUFFER_BIT;
-      }
-      else {
-         int read_s_bit, draw_s_bit;
-
-         if (_mesa_is_gles3(ctx) && (drawRb == readRb)) {
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "%s(source and destination depth "
-                        "buffer cannot be the same)", func);
+      } else if (!no_error) {
+         if (!validate_depth_buffer(ctx, readFb, drawFb, func))
             return;
-         }
-
-         if ((_mesa_get_format_bits(readRb->Format, GL_DEPTH_BITS) !=
-              _mesa_get_format_bits(drawRb->Format, GL_DEPTH_BITS)) ||
-             (_mesa_get_format_datatype(readRb->Format) !=
-              _mesa_get_format_datatype(drawRb->Format))) {
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "%s(depth attachment format mismatch)", func);
-            return;
-         }
-
-         read_s_bit = _mesa_get_format_bits(readRb->Format, GL_STENCIL_BITS);
-         draw_s_bit = _mesa_get_format_bits(drawRb->Format, GL_STENCIL_BITS);
-
-         /* If both buffers also have stencil data, the stencil formats must
-          * match as well.  If one doesn't have stencil, it's not blitted, so
-          * we should ignore the stencil format check.
-          */
-         if (read_s_bit > 0 && draw_s_bit > 0 && read_s_bit != draw_s_bit) {
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "%s(depth attachment stencil bits mismatch)", func);
-            return;
-         }
-      }
-   }
-
-
-   if (_mesa_is_gles3(ctx)) {
-      /* Page 194 (page 206 of the PDF) in section 4.3.2 of the OpenGL ES
-       * 3.0.1 spec says:
-       *
-       *     "If SAMPLE_BUFFERS for the draw framebuffer is greater than zero,
-       *     an INVALID_OPERATION error is generated."
-       */
-      if (drawFb->Visual.samples > 0) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(destination samples must be 0)", func);
-         return;
-      }
-
-      /* Page 194 (page 206 of the PDF) in section 4.3.2 of the OpenGL ES
-       * 3.0.1 spec says:
-       *
-       *     "If SAMPLE_BUFFERS for the read framebuffer is greater than zero,
-       *     no copy is performed and an INVALID_OPERATION error is generated
-       *     if the formats of the read and draw framebuffers are not
-       *     identical or if the source and destination rectangles are not
-       *     defined with the same (X0, Y0) and (X1, Y1) bounds."
-       *
-       * The format check was made above because desktop OpenGL has the same
-       * requirement.
-       */
-      if (readFb->Visual.samples > 0
-          && (srcX0 != dstX0 || srcY0 != dstY0
-              || srcX1 != dstX1 || srcY1 != dstY1)) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(bad src/dst multisample region)", func);
-         return;
-      }
-   } else {
-      if (readFb->Visual.samples > 0 &&
-          drawFb->Visual.samples > 0 &&
-          readFb->Visual.samples != drawFb->Visual.samples) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(mismatched samples)", func);
-         return;
-      }
-
-      /* extra checks for multisample copies... */
-      if ((readFb->Visual.samples > 0 || drawFb->Visual.samples > 0) &&
-          (filter == GL_NEAREST || filter == GL_LINEAR)) {
-         /* src and dest region sizes must be the same */
-         if (abs(srcX1 - srcX0) != abs(dstX1 - dstX0) ||
-             abs(srcY1 - srcY0) != abs(dstY1 - dstY0)) {
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "%s(bad src/dst multisample region sizes)", func);
-            return;
-         }
       }
    }
 
@@ -540,12 +580,43 @@ _mesa_blit_framebuffer(struct gl_context *ctx,
 }
 
 
+static void
+blit_framebuffer_err(struct gl_context *ctx,
+                     struct gl_framebuffer *readFb,
+                     struct gl_framebuffer *drawFb,
+                     GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                     GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                     GLbitfield mask, GLenum filter, const char *func)
+{
+   /* We are wrapping the err variant of the always inlined
+    * blit_framebuffer() to avoid inlining it in every caller.
+    */
+   blit_framebuffer(ctx, readFb, drawFb, srcX0, srcY0, srcX1, srcY1,
+                    dstX0, dstY0, dstX1, dstY1, mask, filter, false, func);
+}
+
+
 /**
  * Blit rectangular region, optionally from one framebuffer to another.
  *
  * Note, if the src buffer is multisampled and the dest is not, this is
  * when the samples must be resolved to a single color.
  */
+void GLAPIENTRY
+_mesa_BlitFramebuffer_no_error(GLint srcX0, GLint srcY0, GLint srcX1,
+                               GLint srcY1, GLint dstX0, GLint dstY0,
+                               GLint dstX1, GLint dstY1,
+                               GLbitfield mask, GLenum filter)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   blit_framebuffer(ctx, ctx->ReadBuffer, ctx->DrawBuffer,
+                    srcX0, srcY0, srcX1, srcY1,
+                    dstX0, dstY0, dstX1, dstY1,
+                    mask, filter, true, "glBlitFramebuffer");
+}
+
+
 void GLAPIENTRY
 _mesa_BlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                       GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
@@ -561,30 +632,21 @@ _mesa_BlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                   dstX0, dstY0, dstX1, dstY1,
                   mask, _mesa_enum_to_string(filter));
 
-   _mesa_blit_framebuffer(ctx, ctx->ReadBuffer, ctx->DrawBuffer,
-                          srcX0, srcY0, srcX1, srcY1,
-                          dstX0, dstY0, dstX1, dstY1,
-                          mask, filter, "glBlitFramebuffer");
+   blit_framebuffer_err(ctx, ctx->ReadBuffer, ctx->DrawBuffer,
+                        srcX0, srcY0, srcX1, srcY1,
+                        dstX0, dstY0, dstX1, dstY1,
+                        mask, filter, "glBlitFramebuffer");
 }
 
 
-void GLAPIENTRY
-_mesa_BlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
-                           GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
-                           GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
-                           GLbitfield mask, GLenum filter)
+static ALWAYS_INLINE void
+blit_named_framebuffer(struct gl_context *ctx,
+                       GLuint readFramebuffer, GLuint drawFramebuffer,
+                       GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                       GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                       GLbitfield mask, GLenum filter, bool no_error)
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_framebuffer *readFb, *drawFb;
-
-   if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx,
-                  "glBlitNamedFramebuffer(%u %u %d, %d, %d, %d, "
-                  " %d, %d, %d, %d, 0x%x, %s)\n",
-                  readFramebuffer, drawFramebuffer,
-                  srcX0, srcY0, srcX1, srcY1,
-                  dstX0, dstY0, dstX1, dstY1,
-                  mask, _mesa_enum_to_string(filter));
 
    /*
     * According to PDF page 533 of the OpenGL 4.5 core spec (30.10.2014,
@@ -595,25 +657,75 @@ _mesa_BlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
     *   respectively."
     */
    if (readFramebuffer) {
-      readFb = _mesa_lookup_framebuffer_err(ctx, readFramebuffer,
-                                            "glBlitNamedFramebuffer");
-      if (!readFb)
-         return;
-   }
-   else
+      if (no_error) {
+         readFb = _mesa_lookup_framebuffer(ctx, readFramebuffer);
+      } else {
+         readFb = _mesa_lookup_framebuffer_err(ctx, readFramebuffer,
+                                               "glBlitNamedFramebuffer");
+         if (!readFb)
+            return;
+      }
+   } else {
       readFb = ctx->WinSysReadBuffer;
+   }
 
    if (drawFramebuffer) {
-      drawFb = _mesa_lookup_framebuffer_err(ctx, drawFramebuffer,
-                                            "glBlitNamedFramebuffer");
-      if (!drawFb)
-         return;
-   }
-   else
+      if (no_error) {
+         drawFb = _mesa_lookup_framebuffer(ctx, drawFramebuffer);
+      } else {
+         drawFb = _mesa_lookup_framebuffer_err(ctx, drawFramebuffer,
+                                               "glBlitNamedFramebuffer");
+         if (!drawFb)
+            return;
+      }
+   } else {
       drawFb = ctx->WinSysDrawBuffer;
+   }
 
-   _mesa_blit_framebuffer(ctx, readFb, drawFb,
+   blit_framebuffer(ctx, readFb, drawFb,
+                    srcX0, srcY0, srcX1, srcY1,
+                    dstX0, dstY0, dstX1, dstY1,
+                    mask, filter, no_error, "glBlitNamedFramebuffer");
+}
+
+
+void GLAPIENTRY
+_mesa_BlitNamedFramebuffer_no_error(GLuint readFramebuffer,
+                                    GLuint drawFramebuffer,
+                                    GLint srcX0, GLint srcY0,
+                                    GLint srcX1, GLint srcY1,
+                                    GLint dstX0, GLint dstY0,
+                                    GLint dstX1, GLint dstY1,
+                                    GLbitfield mask, GLenum filter)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   blit_named_framebuffer(ctx, readFramebuffer, drawFramebuffer,
                           srcX0, srcY0, srcX1, srcY1,
                           dstX0, dstY0, dstX1, dstY1,
-                          mask, filter, "glBlitNamedFramebuffer");
+                          mask, filter, true);
+}
+
+
+void GLAPIENTRY
+_mesa_BlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
+                           GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                           GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                           GLbitfield mask, GLenum filter)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx,
+                  "glBlitNamedFramebuffer(%u %u %d, %d, %d, %d, "
+                  " %d, %d, %d, %d, 0x%x, %s)\n",
+                  readFramebuffer, drawFramebuffer,
+                  srcX0, srcY0, srcX1, srcY1,
+                  dstX0, dstY0, dstX1, dstY1,
+                  mask, _mesa_enum_to_string(filter));
+
+   blit_named_framebuffer(ctx, readFramebuffer, drawFramebuffer,
+                          srcX0, srcY0, srcX1, srcY1,
+                          dstX0, dstY0, dstX1, dstY1,
+                          mask, filter, false);
 }

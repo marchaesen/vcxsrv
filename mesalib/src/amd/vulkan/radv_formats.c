@@ -28,7 +28,8 @@
 #include "sid.h"
 #include "r600d_common.h"
 
-#include "util/vk_util.h"
+#include "vk_util.h"
+
 #include "util/u_half.h"
 #include "util/format_srgb.h"
 #include "util/format_r11g11b10f.h"

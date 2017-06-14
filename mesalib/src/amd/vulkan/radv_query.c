@@ -44,9 +44,6 @@ static unsigned get_max_db(struct radv_device *device)
 	unsigned num_db = device->physical_device->rad_info.num_render_backends;
 	MAYBE_UNUSED unsigned rb_mask = device->physical_device->rad_info.enabled_rb_mask;
 
-	if (device->physical_device->rad_info.chip_class == SI)
-		num_db = 8;
-
 	/* Otherwise we need to change the query reset procedure */
 	assert(rb_mask == ((1ull << num_db) - 1));
 

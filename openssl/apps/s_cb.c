@@ -922,6 +922,7 @@ int args_excert(int opt, SSL_EXCERT **pexc)
             BIO_printf(bio_err, "%s: Error adding xcert\n", opt_getprog());
             goto err;
         }
+        *pexc = exc;
         exc->certfile = opt_arg();
         break;
     case OPT_X_KEY:
@@ -1001,7 +1002,7 @@ static char *hexencode(const unsigned char *data, size_t len)
     int ilen = (int) outlen;
 
     if (outlen < len || ilen < 0 || outlen != (size_t)ilen) {
-        BIO_printf(bio_err, "%s: %" PRIu64 "-byte buffer too large to hexencode\n",
+        BIO_printf(bio_err, "%s: %"BIO_PRI64"u-byte buffer too large to hexencode\n",
                    opt_getprog(), (uint64_t)len);
         exit(1);
     }

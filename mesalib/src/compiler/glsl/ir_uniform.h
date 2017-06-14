@@ -201,6 +201,12 @@ struct gl_uniform_storage {
     * top-level shader storage block member. (GL_TOP_LEVEL_ARRAY_STRIDE).
     */
    unsigned top_level_array_stride;
+
+   /**
+    * Whether this uniform variable has the bindless_sampler or bindless_image
+    * layout qualifier as specified by ARB_bindless_texture.
+    */
+   bool is_bindless;
 };
 
 #ifdef __cplusplus

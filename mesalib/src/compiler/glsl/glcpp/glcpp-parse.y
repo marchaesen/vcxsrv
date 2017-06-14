@@ -287,24 +287,41 @@ control_line_success:
                  * The GLSL ES 1.00 spec does not contain this text, but
                  * dEQP's preprocess test in GLES2 checks for it.
                  *
-                 * Section 3.3 (Preprocessor) of the GLSL 1.30 spec says:
+                 * Section 3.3 (Preprocessor) revision 7, of the GLSL 4.50
+                 * spec says:
                  *
-                 *    #define and #undef functionality are defined as is
-                 *    standard for C++ preprocessors for macro definitions
-                 *    both with and without macro parameters.
+                 *    By convention, all macro names containing two consecutive
+                 *    underscores ( __ ) are reserved for use by underlying
+                 *    software layers. Defining or undefining such a name
+                 *    in a shader does not itself result in an error, but may
+                 *    result in unintended behaviors that stem from having
+                 *    multiple definitions of the same name. All macro names
+                 *    prefixed with "GL_" (...) are also reseved, and defining
+                 *    such a name results in a compile-time error.
                  *
-                 * At least as far as I can tell GCC allow '#undef __FILE__'.
-                 * Furthermore, there are desktop OpenGL conformance tests
-                 * that expect '#undef __VERSION__' and '#undef
-                 * GL_core_profile' to work.
+                 * The code below implements the same checks as GLSLang.
                  */
-		if (parser->is_gles &&
-                    (strcmp("__LINE__", $3) == 0
-                     || strcmp("__FILE__", $3) == 0
-                     || strcmp("__VERSION__", $3) == 0
-                     || strncmp("GL_", $3, 3) == 0))
+		if (strncmp("GL_", $3, 3) == 0)
 			glcpp_error(& @1, parser, "Built-in (pre-defined)"
-				    " macro names cannot be undefined.");
+				    " names beginning with GL_ cannot be undefined.");
+		else if (strstr($3, "__") != NULL) {
+			if (parser->is_gles
+			    && parser->version >= 300
+			    && (strcmp("__LINE__", $3) == 0
+				|| strcmp("__FILE__", $3) == 0
+				|| strcmp("__VERSION__", $3) == 0)) {
+				glcpp_error(& @1, parser, "Built-in (pre-defined)"
+					    " names cannot be undefined.");
+			} else if (parser->is_gles && parser->version <= 300) {
+				glcpp_error(& @1, parser,
+					    " names containing consecutive underscores"
+					    " are reserved.");
+			} else {
+				glcpp_warning(& @1, parser,
+					      " names containing consecutive underscores"
+					      " are reserved.");
+			}
+		}
 
 		entry = _mesa_hash_table_search (parser->defines, $3);
 		if (entry) {

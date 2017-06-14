@@ -29,6 +29,16 @@ extern "C" {
 #  endif
 # endif
 
+/*
+ * BIO_printf format modifier for [u]int64_t.
+ */
+# if defined(__LP64__) || (defined(__SIZEOF_LONG__) && __SIZEOF_LONG__==8)
+#  define BIO_PRI64 "l"     /* 'll' does work "universally", but 'l' is
+                             * here to shut -Wformat warnings in LP64... */
+# else
+#  define BIO_PRI64 "ll"
+# endif
+
 # if !defined(NDEBUG) && !defined(OPENSSL_NO_STDIO)
 #  define REF_ASSERT_ISNT(test) \
     (void)((test) ? (OPENSSL_die("refcount error", __FILE__, __LINE__), 1) : 0)

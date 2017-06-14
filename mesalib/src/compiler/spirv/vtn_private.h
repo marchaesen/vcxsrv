@@ -30,7 +30,7 @@
 
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
-#include "nir/nir_array.h"
+#include "util/u_dynarray.h"
 #include "nir_spirv.h"
 #include "spirv.h"
 
@@ -115,7 +115,7 @@ struct vtn_case {
    struct vtn_case *fallthrough;
 
    /* The uint32_t values that map to this case */
-   nir_array values;
+   struct util_dynarray values;
 
    /* True if this is the default case */
    bool is_default;

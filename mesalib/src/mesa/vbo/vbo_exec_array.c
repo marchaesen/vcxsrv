@@ -948,9 +948,16 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
                   _mesa_enum_to_string(mode), start, end, count,
                   _mesa_enum_to_string(type), indices, basevertex);
 
-   if (!_mesa_validate_DrawRangeElements(ctx, mode, start, end, count,
-                                         type, indices))
-      return;
+   if (_mesa_is_no_error_enabled(ctx)) {
+      FLUSH_CURRENT(ctx, 0);
+
+      if (ctx->NewState)
+         _mesa_update_state(ctx);
+   } else {
+      if (!_mesa_validate_DrawRangeElements(ctx, mode, start, end, count,
+                                            type, indices))
+         return;
+   }
 
    if ((int) end + basevertex < 0 || start + basevertex >= max_element) {
       /* The application requested we draw using a range of indices that's

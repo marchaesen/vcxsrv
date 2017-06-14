@@ -268,7 +268,8 @@ void util_blitter_default_dst_texture(struct pipe_surface *dst_templ,
  * Helper function to initialize a view for copy_texture_view.
  * The parameters must match copy_texture_view.
  */
-void util_blitter_default_src_texture(struct pipe_sampler_view *src_templ,
+void util_blitter_default_src_texture(struct blitter_context *blitter,
+                                      struct pipe_sampler_view *src_templ,
                                       struct pipe_resource *src,
                                       unsigned srclevel);
 

@@ -13,7 +13,7 @@ use strict;
 use warnings;
 
 package ssltests;
-
+use OpenSSL::Test::Utils;
 
 our @tests = (
     {
@@ -60,4 +60,115 @@ our @tests = (
             "ExpectedResult" => "Success"
         }
     },
+    {
+        name => "renegotiate-client-auth-require",
+        server => {
+            "VerifyCAFile" => test_pem("root-cert.pem"),
+            "VerifyMode" => "Require",
+        },
+        client => {
+            "Certificate" => test_pem("ee-client-chain.pem"),
+            "PrivateKey"  => test_pem("ee-key.pem"),
+        },
+        test => {
+            "Method" => "DTLS",
+            "HandshakeMode" => "RenegotiateServer",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    },
+    {
+        name => "renegotiate-client-auth-once",
+        server => {
+            "VerifyCAFile" => test_pem("root-cert.pem"),
+            "VerifyMode" => "Once",
+        },
+        client => {
+            "Certificate" => test_pem("ee-client-chain.pem"),
+            "PrivateKey"  => test_pem("ee-key.pem"),
+        },
+        test => {
+            "Method" => "DTLS",
+            "HandshakeMode" => "RenegotiateServer",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    }
 );
+our @tests_dtls1_2 = (
+    {
+        name => "renegotiate-aead-to-non-aead",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation"
+        },
+        client => {
+            "CipherString" => "AES128-GCM-SHA256",
+            extra => {
+                "RenegotiateCiphers" => "AES128-SHA"
+            }
+        },
+        test => {
+            "Method" => "DTLS",
+            "HandshakeMode" => "RenegotiateClient",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    },
+    {
+        name => "renegotiate-non-aead-to-aead",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation"
+        },
+        client => {
+            "CipherString" => "AES128-SHA",
+            extra => {
+                "RenegotiateCiphers" => "AES128-GCM-SHA256"
+            }
+        },
+        test => {
+            "Method" => "DTLS",
+            "HandshakeMode" => "RenegotiateClient",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    },
+    {
+        name => "renegotiate-non-aead-to-non-aead",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation"
+        },
+        client => {
+            "CipherString" => "AES128-SHA",
+            extra => {
+                "RenegotiateCiphers" => "AES256-SHA"
+            }
+        },
+        test => {
+            "Method" => "DTLS",
+            "HandshakeMode" => "RenegotiateClient",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    },
+    {
+        name => "renegotiate-aead-to-aead",
+        server => {
+            "Options" => "NoResumptionOnRenegotiation"
+        },
+        client => {
+            "CipherString" => "AES128-GCM-SHA256",
+            extra => {
+                "RenegotiateCiphers" => "AES256-GCM-SHA384"
+            }
+        },
+        test => {
+            "Method" => "DTLS",
+            "HandshakeMode" => "RenegotiateClient",
+            "ResumptionExpected" => "No",
+            "ExpectedResult" => "Success"
+        }
+    },
+);
+
+
+push @tests, @tests_dtls1_2 unless disabled("dtls1_2");

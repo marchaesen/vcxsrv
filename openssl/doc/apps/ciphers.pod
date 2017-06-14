@@ -27,7 +27,7 @@ The B<ciphers> command converts textual OpenSSL cipher lists into ordered
 SSL cipher preference lists. It can be used as a test tool to determine
 the appropriate cipherlist.
 
-=head1 COMMAND OPTIONS
+=head1 OPTIONS
 
 =over 4
 
@@ -213,7 +213,8 @@ When in doubt, include B<!aNULL> in your cipherlist.
 
 =item B<kRSA>, B<aRSA>, B<RSA>
 
-Cipher suites using RSA key exchange, authentication or either respectively.
+Cipher suites using RSA key exchange or authentication. B<RSA> is an alias for
+B<kRSA>.
 
 =item B<kDHr>, B<kDHd>, B<kDH>
 
@@ -711,7 +712,7 @@ Set security level to 2 and display all ciphers consistent with level 2:
 
 =head1 SEE ALSO
 
-L<s_client(1)>, L<s_server(1)>, L<ssl(3)>
+L<s_client(1)>, L<s_server(1)>, L<ssl(7)>
 
 =head1 HISTORY
 

@@ -51,6 +51,7 @@
 #include "texobj.h"
 #include "texstate.h"
 #include "varray.h"
+#include "vbo/vbo_context.h"
 #include "viewport.h"
 #include "blend.h"
 
@@ -382,7 +383,7 @@ _mesa_update_state_locked( struct gl_context *ctx )
       _mesa_update_stencil( ctx );
 
    if (new_state & _NEW_PIXEL)
-      _mesa_update_pixel( ctx, new_state );
+      _mesa_update_pixel( ctx );
 
    /* ctx->_NeedEyeCoords is now up to date.
     *
@@ -410,18 +411,17 @@ _mesa_update_state_locked( struct gl_context *ctx )
  out:
    new_prog_state |= update_program_constants(ctx);
 
+   ctx->NewState |= new_prog_state;
+   vbo_exec_invalidate_state(ctx);
+
    /*
     * Give the driver a chance to act upon the new_state flags.
     * The driver might plug in different span functions, for example.
     * Also, this is where the driver can invalidate the state of any
     * active modules (such as swrast_setup, swrast, tnl, etc).
-    *
-    * Set ctx->NewState to zero to avoid recursion if
-    * Driver.UpdateState() has to call FLUSH_VERTICES().  (fixed?)
     */
-   new_state = ctx->NewState | new_prog_state;
+   ctx->Driver.UpdateState(ctx);
    ctx->NewState = 0;
-   ctx->Driver.UpdateState(ctx, new_state);
    ctx->Array.VAO->NewArrays = 0x0;
 }
 

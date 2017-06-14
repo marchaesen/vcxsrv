@@ -1324,6 +1324,8 @@ builtin_variable_generator::add_varying(int slot, const glsl_type *type,
    case MESA_SHADER_COMPUTE:
       /* Compute shaders don't have varyings. */
       break;
+   default:
+      break;
    }
 }
 
@@ -1460,6 +1462,8 @@ _mesa_glsl_initialize_variables(exec_list *instructions,
       break;
    case MESA_SHADER_COMPUTE:
       gen.generate_cs_special_vars();
+      break;
+   default:
       break;
    }
 }

@@ -56,6 +56,7 @@
 #include "st_nir.h"
 #include "st_shader_cache.h"
 
+#include "util/hash_table.h"
 #include <algorithm>
 
 #define PROGRAM_ANY_CONST ((1 << PROGRAM_STATE_VAR) |    \
@@ -165,7 +166,7 @@ public:
 
    explicit st_src_reg(st_dst_reg reg);
 
-   int16_t index; /**< temporary index, VERT_ATTRIB_*, VARYING_SLOT_*, etc. */
+   int32_t index; /**< temporary index, VERT_ATTRIB_*, VARYING_SLOT_*, etc. */
    int16_t index2D;
    uint16_t swizzle; /**< SWIZZLE_XYZWONEZERO swizzles from Mesa. */
    int negate:4; /**< NEGATE_XYZW mask from mesa */
@@ -239,7 +240,7 @@ public:
 
    explicit st_dst_reg(st_src_reg reg);
 
-   int16_t index; /**< temporary index, VERT_ATTRIB_*, VARYING_SLOT_*, etc. */
+   int32_t index; /**< temporary index, VERT_ATTRIB_*, VARYING_SLOT_*, etc. */
    int16_t index2D;
    gl_register_file file:5; /**< PROGRAM_* from Mesa */
    unsigned writemask:4; /**< Bitfield of WRITEMASK_[XYZW] */
@@ -288,7 +289,7 @@ public:
 
    st_dst_reg dst[2];
    st_src_reg src[4];
-   st_src_reg resource; /**< sampler or buffer register */
+   st_src_reg resource; /**< sampler, image or buffer register */
    st_src_reg *tex_offsets;
 
    /** Pointer to the ir source this tree came from for debugging */
@@ -310,7 +311,9 @@ public:
    const struct tgsi_opcode_info *info;
 };
 
-class variable_storage : public exec_node {
+class variable_storage {
+   DECLARE_RZALLOC_CXX_OPERATORS(variable_storage)
+
 public:
    variable_storage(ir_variable *var, gl_register_file file, int index,
                     unsigned array_id = 0)
@@ -388,7 +391,7 @@ find_array_type(struct inout_decl *decls, unsigned count, unsigned array_id)
 }
 
 struct rename_reg_pair {
-   int old_reg;
+   bool valid;
    int new_reg;
 };
 
@@ -488,7 +491,7 @@ public:
    st_src_reg result;
 
    /** List of variable_storage */
-   exec_list variables;
+   struct hash_table *variables;
 
    /** List of immediate_storage */
    exec_list immediates;
@@ -556,7 +559,7 @@ public:
 
    void simplify_cmp(void);
 
-   void rename_temp_registers(int num_renames, struct rename_reg_pair *renames);
+   void rename_temp_registers(struct rename_reg_pair *renames);
    void get_first_temp_read(int *first_reads);
    void get_first_temp_write(int *first_writes);
    void get_last_temp_read_first_temp_write(int *last_reads, int *first_writes);
@@ -1307,13 +1310,13 @@ glsl_to_tgsi_visitor::get_temp(const glsl_type *type)
 variable_storage *
 glsl_to_tgsi_visitor::find_variable_storage(ir_variable *var)
 {
+   struct hash_entry *entry;
 
-   foreach_in_list(variable_storage, entry, &this->variables) {
-      if (entry->var == var)
-         return entry;
-   }
+   entry = _mesa_hash_table_search(this->variables, var);
+   if (!entry)
+      return NULL;
 
-   return NULL;
+   return (variable_storage *)entry->data;
 }
 
 void
@@ -1346,7 +1349,8 @@ glsl_to_tgsi_visitor::visit(ir_variable *ir)
       if (i == ir->get_num_state_slots()) {
          /* We'll set the index later. */
          storage = new(mem_ctx) variable_storage(ir, PROGRAM_STATE_VAR, -1);
-         this->variables.push_tail(storage);
+
+         _mesa_hash_table_insert(this->variables, ir, storage);
 
          dst = undef_dst;
       } else {
@@ -1361,7 +1365,7 @@ glsl_to_tgsi_visitor::visit(ir_variable *ir)
          storage = new(mem_ctx) variable_storage(ir, dst.file, dst.index,
                                                  dst.array_id);
 
-         this->variables.push_tail(storage);
+         _mesa_hash_table_insert(this->variables, ir, storage);
       }
 
 
@@ -2327,6 +2331,10 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
    case ir_unop_pack_int_2x32:
    case ir_unop_unpack_uint_2x32:
    case ir_unop_pack_uint_2x32:
+   case ir_unop_unpack_sampler_2x32:
+   case ir_unop_pack_sampler_2x32:
+   case ir_unop_unpack_image_2x32:
+   case ir_unop_pack_image_2x32:
       emit_asm(ir, TGSI_OPCODE_MOV, result_dst, op[0]);
       break;
 
@@ -2485,11 +2493,6 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
    case ir_unop_unpack_snorm_4x8:
    case ir_unop_unpack_unorm_4x8:
 
-   case ir_unop_unpack_sampler_2x32:
-   case ir_unop_pack_sampler_2x32:
-   case ir_unop_unpack_image_2x32:
-   case ir_unop_pack_image_2x32:
-
    case ir_quadop_vector:
    case ir_binop_vector_extract:
    case ir_triop_vector_insert:
@@ -2604,7 +2607,7 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
       case ir_var_uniform:
          entry = new(mem_ctx) variable_storage(var, PROGRAM_UNIFORM,
                                                var->data.param_index);
-         this->variables.push_tail(entry);
+         _mesa_hash_table_insert(this->variables, var, entry);
          break;
       case ir_var_shader_in: {
          /* The linker assigns locations for varyings and attributes,
@@ -2651,7 +2654,8 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
                                                decl->array_id);
          entry->component = component;
 
-         this->variables.push_tail(entry);
+         _mesa_hash_table_insert(this->variables, var, entry);
+
          break;
       }
       case ir_var_shader_out: {
@@ -2709,7 +2713,8 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
          }
          entry->component = component;
 
-         this->variables.push_tail(entry);
+         _mesa_hash_table_insert(this->variables, var, entry);
+
          break;
       }
       case ir_var_system_value:
@@ -2723,7 +2728,7 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
 
          entry = new(mem_ctx) variable_storage(var, src.file, src.index,
                                                src.array_id);
-         this->variables.push_tail(entry);
+         _mesa_hash_table_insert(this->variables, var, entry);
 
          break;
       }
@@ -3758,6 +3763,59 @@ glsl_to_tgsi_visitor::visit_shared_intrinsic(ir_call *ir)
    }
 }
 
+static void
+get_image_qualifiers(ir_dereference *ir, const glsl_type **type,
+                     bool *memory_coherent, bool *memory_volatile,
+                     bool *memory_restrict, unsigned *image_format)
+{
+
+   switch (ir->ir_type) {
+   case ir_type_dereference_record: {
+      ir_dereference_record *deref_record = ir->as_dereference_record();
+      const glsl_type *struct_type = deref_record->record->type;
+
+      for (unsigned i = 0; i < struct_type->length; i++) {
+         if (!strcmp(struct_type->fields.structure[i].name,
+                     deref_record->field)) {
+            *type = struct_type->fields.structure[i].type;
+            *memory_coherent =
+               struct_type->fields.structure[i].memory_coherent;
+            *memory_volatile =
+               struct_type->fields.structure[i].memory_volatile;
+            *memory_restrict =
+               struct_type->fields.structure[i].memory_restrict;
+            *image_format =
+               struct_type->fields.structure[i].image_format;
+            break;
+         }
+      }
+      break;
+   }
+
+   case ir_type_dereference_array: {
+      ir_dereference_array *deref_arr = ir->as_dereference_array();
+      get_image_qualifiers((ir_dereference *)deref_arr->array, type,
+                           memory_coherent, memory_volatile, memory_restrict,
+                           image_format);
+      break;
+   }
+
+   case ir_type_dereference_variable: {
+      ir_variable *var = ir->variable_referenced();
+
+      *type = var->type->without_array();
+      *memory_coherent = var->data.memory_coherent;
+      *memory_volatile = var->data.memory_volatile;
+      *memory_restrict = var->data.memory_restrict;
+      *image_format = var->data.image_format;
+      break;
+   }
+
+   default:
+      break;
+   }
+}
+
 void
 glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
 {
@@ -3765,15 +3823,21 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
 
    ir_dereference *img = (ir_dereference *)param;
    const ir_variable *imgvar = img->variable_referenced();
-   const glsl_type *type = imgvar->type->without_array();
    unsigned sampler_array_size = 1, sampler_base = 0;
+   bool memory_coherent = false, memory_volatile = false, memory_restrict = false;
+   unsigned image_format = 0;
+   const glsl_type *type = NULL;
+
+   get_image_qualifiers(img, &type, &memory_coherent, &memory_volatile,
+                        &memory_restrict, &image_format);
 
    st_src_reg reladdr;
    st_src_reg image(PROGRAM_IMAGE, 0, GLSL_TYPE_UINT);
-
+   uint16_t index = 0;
    get_deref_offsets(img, &sampler_array_size, &sampler_base,
-                     (uint16_t*)&image.index, &reladdr, true);
+                     &index, &reladdr, !imgvar->contains_bindless());
 
+   image.index = index;
    if (reladdr.file != PROGRAM_UNDEFINED) {
       image.reladdr = ralloc(mem_ctx, st_src_reg);
       *image.reladdr = reladdr;
@@ -3885,19 +3949,26 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
          inst->dst[0].writemask = WRITEMASK_XYZW;
    }
 
-   inst->resource = image;
-   inst->sampler_array_size = sampler_array_size;
-   inst->sampler_base = sampler_base;
+   if (imgvar->contains_bindless()) {
+      img->accept(this);
+      inst->resource = this->result;
+      inst->resource.swizzle = MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y,
+                                             SWIZZLE_X, SWIZZLE_Y);
+   } else {
+      inst->resource = image;
+      inst->sampler_array_size = sampler_array_size;
+      inst->sampler_base = sampler_base;
+   }
 
    inst->tex_target = type->sampler_index();
    inst->image_format = st_mesa_format_to_pipe_format(st_context(ctx),
-         _mesa_get_shader_image_format(imgvar->data.image_format));
+         _mesa_get_shader_image_format(image_format));
 
-   if (imgvar->data.memory_coherent)
+   if (memory_coherent)
       inst->buffer_access |= TGSI_MEMORY_COHERENT;
-   if (imgvar->data.memory_restrict)
+   if (memory_restrict)
       inst->buffer_access |= TGSI_MEMORY_RESTRICT;
-   if (imgvar->data.memory_volatile)
+   if (memory_volatile)
       inst->buffer_access |= TGSI_MEMORY_VOLATILE;
 }
 
@@ -4154,6 +4225,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
    const glsl_type *sampler_type = ir->sampler->type;
    unsigned sampler_array_size = 1, sampler_base = 0;
    bool is_cube_array = false, is_cube_shadow = false;
+   ir_variable *var = ir->sampler->variable_referenced();
    unsigned i;
 
    /* if we are a cube array sampler or a cube shadow */
@@ -4385,9 +4457,11 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
 
    st_src_reg sampler(PROGRAM_SAMPLER, 0, GLSL_TYPE_UINT);
 
+   uint16_t index = 0;
    get_deref_offsets(ir->sampler, &sampler_array_size, &sampler_base,
-                     (uint16_t *)&sampler.index, &reladdr, true);
+                     &index, &reladdr, !var->contains_bindless());
 
+   sampler.index = index;
    if (reladdr.file != PROGRAM_UNDEFINED) {
       sampler.reladdr = ralloc(mem_ctx, st_src_reg);
       *sampler.reladdr = reladdr;
@@ -4423,9 +4497,16 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
    if (ir->shadow_comparator)
       inst->tex_shadow = GL_TRUE;
 
-   inst->resource = sampler;
-   inst->sampler_array_size = sampler_array_size;
-   inst->sampler_base = sampler_base;
+   if (var->contains_bindless()) {
+      ir->sampler->accept(this);
+      inst->resource = this->result;
+      inst->resource.swizzle = MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y,
+                                             SWIZZLE_X, SWIZZLE_Y);
+   } else {
+      inst->resource = sampler;
+      inst->sampler_array_size = sampler_array_size;
+      inst->sampler_base = sampler_base;
+   }
 
    if (ir->offset) {
       if (!inst->tex_offsets)
@@ -4557,10 +4638,19 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    have_fma = false;
    use_shared_memory = false;
    has_tex_txf_lz = false;
+   variables = NULL;
+}
+
+static void var_destroy(struct hash_entry *entry)
+{
+   variable_storage *storage = (variable_storage *)entry->data;
+
+   delete storage;
 }
 
 glsl_to_tgsi_visitor::~glsl_to_tgsi_visitor()
 {
+   _mesa_hash_table_destroy(variables, var_destroy);
    free(array_sizes);
    ralloc_free(mem_ctx);
 }
@@ -4730,30 +4820,37 @@ glsl_to_tgsi_visitor::simplify_cmp(void)
 
 /* Replaces all references to a temporary register index with another index. */
 void
-glsl_to_tgsi_visitor::rename_temp_registers(int num_renames, struct rename_reg_pair *renames)
+glsl_to_tgsi_visitor::rename_temp_registers(struct rename_reg_pair *renames)
 {
    foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
       unsigned j;
-      int k;
       for (j = 0; j < num_inst_src_regs(inst); j++) {
-         if (inst->src[j].file == PROGRAM_TEMPORARY)
-            for (k = 0; k < num_renames; k++)
-               if (inst->src[j].index == renames[k].old_reg)
-                  inst->src[j].index = renames[k].new_reg;
+         if (inst->src[j].file == PROGRAM_TEMPORARY) {
+            int old_idx = inst->src[j].index;
+            if (renames[old_idx].valid)
+               inst->src[j].index = renames[old_idx].new_reg;
+         }
       }
 
       for (j = 0; j < inst->tex_offset_num_offset; j++) {
-         if (inst->tex_offsets[j].file == PROGRAM_TEMPORARY)
-            for (k = 0; k < num_renames; k++)
-               if (inst->tex_offsets[j].index == renames[k].old_reg)
-                  inst->tex_offsets[j].index = renames[k].new_reg;
+         if (inst->tex_offsets[j].file == PROGRAM_TEMPORARY) {
+            int old_idx = inst->tex_offsets[j].index;
+            if (renames[old_idx].valid)
+               inst->tex_offsets[j].index = renames[old_idx].new_reg;
+         }
+      }
+
+      if (inst->resource.file == PROGRAM_TEMPORARY) {
+         int old_idx = inst->resource.index;
+         if (renames[old_idx].valid)
+            inst->resource.index = renames[old_idx].new_reg;
       }
 
       for (j = 0; j < num_inst_dst_regs(inst); j++) {
-         if (inst->dst[j].file == PROGRAM_TEMPORARY)
-             for (k = 0; k < num_renames; k++)
-                if (inst->dst[j].index == renames[k].old_reg)
-                   inst->dst[j].index = renames[k].new_reg;
+         if (inst->dst[j].file == PROGRAM_TEMPORARY) {
+            int old_idx = inst->dst[j].index;
+            if (renames[old_idx].valid)
+               inst->dst[j].index = renames[old_idx].new_reg;}
       }
    }
 }
@@ -5199,6 +5296,21 @@ glsl_to_tgsi_visitor::eliminate_dead_code(void)
                }
             }
          }
+
+         if (inst->resource.file == PROGRAM_TEMPORARY) {
+            int src_chans;
+
+            src_chans  = 1 << GET_SWZ(inst->resource.swizzle, 0);
+            src_chans |= 1 << GET_SWZ(inst->resource.swizzle, 1);
+            src_chans |= 1 << GET_SWZ(inst->resource.swizzle, 2);
+            src_chans |= 1 << GET_SWZ(inst->resource.swizzle, 3);
+
+            for (int c = 0; c < 4; c++) {
+               if (src_chans & (1 << c))
+                  writes[4 * inst->resource.index + c] = NULL;
+            }
+         }
+
          break;
       }
 
@@ -5319,7 +5431,6 @@ glsl_to_tgsi_visitor::merge_registers(void)
    int *first_writes = ralloc_array(mem_ctx, int, this->next_temp);
    struct rename_reg_pair *renames = rzalloc_array(mem_ctx, struct rename_reg_pair, this->next_temp);
    int i, j;
-   int num_renames = 0;
 
    /* Read the indices of the last read and first write to each temp register
     * into an array so that we don't have to traverse the instruction list as
@@ -5346,9 +5457,8 @@ glsl_to_tgsi_visitor::merge_registers(void)
           * as the register at index j. */
          if (first_writes[i] <= first_writes[j] &&
              last_reads[i] <= first_writes[j]) {
-            renames[num_renames].old_reg = j;
-            renames[num_renames].new_reg = i;
-            num_renames++;
+            renames[j].new_reg = i;
+            renames[j].valid = true;
 
             /* Update the first_writes and last_reads arrays with the new
              * values for the merged register index, and mark the newly unused
@@ -5361,7 +5471,7 @@ glsl_to_tgsi_visitor::merge_registers(void)
       }
    }
 
-   rename_temp_registers(num_renames, renames);
+   rename_temp_registers(renames);
    ralloc_free(renames);
    ralloc_free(last_reads);
    ralloc_free(first_writes);
@@ -5376,7 +5486,6 @@ glsl_to_tgsi_visitor::renumber_registers(void)
    int new_index = 0;
    int *first_writes = ralloc_array(mem_ctx, int, this->next_temp);
    struct rename_reg_pair *renames = rzalloc_array(mem_ctx, struct rename_reg_pair, this->next_temp);
-   int num_renames = 0;
 
    for (i = 0; i < this->next_temp; i++) {
       first_writes[i] = -1;
@@ -5386,14 +5495,13 @@ glsl_to_tgsi_visitor::renumber_registers(void)
    for (i = 0; i < this->next_temp; i++) {
       if (first_writes[i] < 0) continue;
       if (i != new_index) {
-         renames[num_renames].old_reg = i;
-         renames[num_renames].new_reg = new_index;
-         num_renames++;
+         renames[i].new_reg = new_index;
+         renames[i].valid = true;
       }
       new_index++;
    }
 
-   rename_temp_registers(num_renames, renames);
+   rename_temp_registers(renames);
    this->next_temp = new_index;
    ralloc_free(renames);
    ralloc_free(first_writes);
@@ -5856,7 +5964,12 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_TXL2:
    case TGSI_OPCODE_TG4:
    case TGSI_OPCODE_LODQ:
-      src[num_src] = t->samplers[inst->resource.index];
+      if (inst->resource.file == PROGRAM_SAMPLER) {
+         src[num_src] = t->samplers[inst->resource.index];
+      } else {
+         /* Bindless samplers. */
+         src[num_src] = translate_src(t, &inst->resource);
+      }
       assert(src[num_src].File != TGSI_FILE_NULL);
       if (inst->resource.reladdr)
          src[num_src] =
@@ -5896,7 +6009,12 @@ compile_tgsi_instruction(struct st_translate *t,
       } else if (inst->resource.file == PROGRAM_BUFFER) {
          src[0] = t->buffers[inst->resource.index];
       } else {
-         src[0] = t->images[inst->resource.index];
+         if (inst->resource.file == PROGRAM_IMAGE) {
+            src[0] = t->images[inst->resource.index];
+         } else {
+            /* Bindless images. */
+            src[0] = translate_src(t, &inst->resource);
+         }
          tex_target = st_translate_texture_target(inst->tex_target, inst->tex_shadow);
       }
       if (inst->resource.reladdr)
@@ -5913,7 +6031,12 @@ compile_tgsi_instruction(struct st_translate *t,
       } else if (inst->resource.file == PROGRAM_BUFFER) {
          dst[0] = ureg_dst(t->buffers[inst->resource.index]);
       } else {
-         dst[0] = ureg_dst(t->images[inst->resource.index]);
+         if (inst->resource.file == PROGRAM_IMAGE) {
+            dst[0] = ureg_dst(t->images[inst->resource.index]);
+         } else {
+            /* Bindless images. */
+            dst[0] = ureg_dst(translate_src(t, &inst->resource));
+         }
          tex_target = st_translate_texture_target(inst->tex_target, inst->tex_shadow);
       }
       dst[0] = ureg_writemask(dst[0], inst->dst[0].writemask);
@@ -6702,6 +6825,9 @@ get_mesa_program_tgsi(struct gl_context *ctx,
                                            PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED);
    v->has_tex_txf_lz = pscreen->get_param(pscreen,
                                           PIPE_CAP_TGSI_TEX_TXF_LZ);
+
+   v->variables = _mesa_hash_table_create(v->mem_ctx, _mesa_hash_pointer,
+                                          _mesa_key_pointer_equal);
    skip_merge_registers =
       pscreen->get_shader_param(pscreen, ptarget,
                                 PIPE_SHADER_CAP_TGSI_SKIP_MERGE_REGISTERS);
@@ -6810,8 +6936,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
     * prog->ParameterValues to get reallocated (e.g., anything that adds a
     * program constant) has to happen before creating this linkage.
     */
-   _mesa_associate_uniform_storage(ctx, shader_program, prog->Parameters,
-                                   true);
+   _mesa_associate_uniform_storage(ctx, shader_program, prog, true);
    if (!shader_program->data->LinkStatus) {
       free_glsl_to_tgsi_visitor(v);
       _mesa_reference_program(ctx, &shader->Program, NULL);

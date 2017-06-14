@@ -39,6 +39,7 @@ extern "C" {
  */
 typedef enum
 {
+   MESA_SHADER_NONE = -1,
    MESA_SHADER_VERTEX = 0,
    MESA_SHADER_TESS_CTRL = 1,
    MESA_SHADER_TESS_EVAL = 2,

@@ -45,8 +45,8 @@
  * free to avoid exponential performance degradation as the hash table fills
  */
 
-uint32_t deleted_key_value;
-const void *deleted_key = &deleted_key_value;
+static const uint32_t deleted_key_value;
+static const void *deleted_key = &deleted_key_value;
 
 static const struct {
    uint32_t max_entries, size, rehash;

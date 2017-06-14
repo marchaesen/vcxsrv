@@ -89,6 +89,8 @@
 #define ATTRIB3_D(index,x,y,z)     CALL_VertexAttribL3d(GET_DISPATCH(), (index,x,y,z))
 #define ATTRIB4_D(index,x,y,z,w)    CALL_VertexAttribL4d(GET_DISPATCH(), (index,x,y,z,w))
 
+#define ATTRIB1_UI64(index, x)     CALL_VertexAttribL1ui64ARB(GET_DISPATCH(), (index, x))
+
 void GLAPIENTRY
 _mesa_Color3b( GLbyte red, GLbyte green, GLbyte blue )
 {
@@ -1529,6 +1531,18 @@ _mesa_VertexAttribL1dv(GLuint index, const GLdouble *v)
 }
 
 void GLAPIENTRY
+_mesa_VertexAttribL1ui64ARB(GLuint index, GLuint64EXT x)
+{
+   ATTRIB1_UI64(index, x);
+}
+
+void GLAPIENTRY
+_mesa_VertexAttribL1ui64vARB(GLuint index, const GLuint64EXT *v)
+{
+   ATTRIB1_UI64(index, v[0]);
+}
+
+void GLAPIENTRY
 _mesa_VertexAttribL2dv(GLuint index, const GLdouble *v)
 {
    ATTRIB2_D(index, v[0], v[1]);
@@ -1789,5 +1803,9 @@ _mesa_loopback_init_api_table(const struct gl_context *ctx,
       SET_VertexAttribL2dv(dest, _mesa_VertexAttribL2dv);
       SET_VertexAttribL3dv(dest, _mesa_VertexAttribL3dv);
       SET_VertexAttribL4dv(dest, _mesa_VertexAttribL4dv);
+
+      /* GL_ARB_bindless_texture */
+      SET_VertexAttribL1ui64ARB(dest, _mesa_VertexAttribL1ui64ARB);
+      SET_VertexAttribL1ui64vARB(dest, _mesa_VertexAttribL1ui64vARB);
    }
 }

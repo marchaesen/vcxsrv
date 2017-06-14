@@ -16,7 +16,7 @@
 #include "apps.h"
 
 #if defined(OPENSSL_SYS_UNIX) || defined(__APPLE__) || \
-    (defined(__VMS) && defined(__DECC) && __CTRL_VER >= 80300000)
+    (defined(__VMS) && defined(__DECC) && __CRTL_VER >= 80300000)
 # include <unistd.h>
 # include <stdio.h>
 # include <limits.h>
@@ -25,7 +25,23 @@
 # include <ctype.h>
 # include <sys/stat.h>
 
+/*
+ * Make sure that the processing of symbol names is treated the same as when
+ * libcrypto is built.  This is done automatically for public headers (see
+ * include/openssl/__DECC_INCLUDE_PROLOGUE.H and __DECC_INCLUDE_EPILOGUE.H),
+ * but not for internal headers.
+ */
+# ifdef __VMS
+#  pragma names save
+#  pragma names as_is,shortened
+# endif
+
 # include "internal/o_dir.h"
+
+# ifdef __VMS
+#  pragma names restore
+# endif
+
 # include <openssl/evp.h>
 # include <openssl/pem.h>
 # include <openssl/x509.h>
@@ -267,6 +283,38 @@ static void str_free(char *s)
     OPENSSL_free(s);
 }
 
+static int ends_with_dirsep(const char *path)
+{
+    if (*path != '\0')
+        path += strlen(path) - 1;
+# if defined __VMS
+    if (*path == ']' || *path == '>' || *path == ':')
+        return 1;
+# elif defined _WIN32
+    if (*path == '\\')
+        return 1;
+# endif
+    return *path == '/';
+}
+
+static int massage_filename(char *name)
+{
+# ifdef __VMS
+    char *p = strchr(name, ';');
+    char *q = p;
+
+    if (q != NULL) {
+        for (q++; *q != '\0'; q++) {
+            if (!isdigit(*q))
+                return 1;
+        }
+    }
+
+    *p = '\0';
+# endif
+    return 1;
+}
+
 /*
  * Process a directory; return number of errors found.
  */
@@ -289,7 +337,7 @@ static int do_dir(const char *dirname, enum Hash h)
         return 1;
     }
     buflen = strlen(dirname);
-    pathsep = (buflen && dirname[buflen - 1] == '/') ? "" : "/";
+    pathsep = (buflen && !ends_with_dirsep(dirname)) ? "/": "";
     buflen += NAME_MAX + 1 + 1;
     buf = app_malloc(buflen, "filename buffer");
 
@@ -302,6 +350,7 @@ static int do_dir(const char *dirname, enum Hash h)
     }
     while ((filename = OPENSSL_DIR_read(&d, dirname)) != NULL) {
         if ((copy = strdup(filename)) == NULL
+                || !massage_filename(copy)
                 || sk_OPENSSL_STRING_push(files, copy) == 0) {
             BIO_puts(bio_err, "out of memory\n");
             exit(1);
@@ -313,8 +362,8 @@ static int do_dir(const char *dirname, enum Hash h)
     numfiles = sk_OPENSSL_STRING_num(files);
     for (n = 0; n < numfiles; ++n) {
         filename = sk_OPENSSL_STRING_value(files, n);
-        if (snprintf(buf, buflen, "%s%s%s",
-                    dirname, pathsep, filename) >= buflen)
+        if (BIO_snprintf(buf, buflen, "%s%s%s",
+                         dirname, pathsep, filename) >= buflen)
             continue;
         if (lstat(buf, &st) < 0)
             continue;
@@ -337,8 +386,8 @@ static int do_dir(const char *dirname, enum Hash h)
                 nextep = ep->next;
                 if (ep->old_id < bp->num_needed) {
                     /* Link exists, and is used as-is */
-                    snprintf(buf, buflen, "%08x.%s%d", bp->hash,
-                             suffixes[bp->type], ep->old_id);
+                    BIO_snprintf(buf, buflen, "%08x.%s%d", bp->hash,
+                                 suffixes[bp->type], ep->old_id);
                     if (verbose)
                         BIO_printf(bio_out, "link %s -> %s\n",
                                    ep->filename, buf);
@@ -347,9 +396,9 @@ static int do_dir(const char *dirname, enum Hash h)
                     while (bit_isset(idmask, nextid))
                         nextid++;
 
-                    snprintf(buf, buflen, "%s%s%n%08x.%s%d",
-                             dirname, pathsep, &n, bp->hash,
-                             suffixes[bp->type], nextid);
+                    BIO_snprintf(buf, buflen, "%s%s%n%08x.%s%d",
+                                 dirname, pathsep, &n, bp->hash,
+                                 suffixes[bp->type], nextid);
                     if (verbose)
                         BIO_printf(bio_out, "link %s -> %s\n",
                                    ep->filename, &buf[n]);
@@ -369,9 +418,9 @@ static int do_dir(const char *dirname, enum Hash h)
                     bit_set(idmask, nextid);
                 } else if (remove_links) {
                     /* Link to be deleted */
-                    snprintf(buf, buflen, "%s%s%n%08x.%s%d",
-                             dirname, pathsep, &n, bp->hash,
-                             suffixes[bp->type], ep->old_id);
+                    BIO_snprintf(buf, buflen, "%s%s%n%08x.%s%d",
+                                 dirname, pathsep, &n, bp->hash,
+                                 suffixes[bp->type], ep->old_id);
                     if (verbose)
                         BIO_printf(bio_out, "unlink %s\n",
                                    &buf[n]);

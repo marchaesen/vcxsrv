@@ -152,4 +152,15 @@ TODO: document the other workarounds.
             <option name="glsl_zero_init" value="true"/>
         </application>
     </device>
+    <!-- vmwgfx doesn't like full buffer swaps and can't sync to vertical retraces.-->
+    <device driver="vmwgfx">
+        <application name="gnome-shell" executable="gnome-shell">
+            <option name="glx_disable_ext_buffer_age" value="true" />
+            <option name="glx_disable_oml_sync_control" value="true" />
+        </application>
+	<application name="Compiz" executable="Compiz">
+            <option name="glx_disable_ext_buffer_age" value="true" />
+	    <option name="glx_disable_oml_sync_control" value="true" />
+        </application>
+    </device>
 </driconf>

@@ -37,7 +37,6 @@
 #include "light.h"
 #include "mtypes.h"
 #include "enums.h"
-#include "api_arrayelt.h"
 #include "texstate.h"
 
 
@@ -125,8 +124,6 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
       return;
 
    FLUSH_VERTICES(ctx, _NEW_ARRAY);
-
-   _ae_invalidate_state(ctx, _NEW_ARRAY);
 
    *var = state;
 
@@ -258,7 +255,10 @@ _mesa_set_framebuffer_srgb(struct gl_context *ctx, GLboolean state)
 {
    if (ctx->Color.sRGBEnabled == state)
       return;
-   FLUSH_VERTICES(ctx, _NEW_BUFFERS);
+
+   /* TODO: Switch i965 to the new flag and remove the conditional */
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewFramebufferSRGB ? 0 : _NEW_BUFFERS);
+   ctx->NewDriverState |= ctx->DriverFlags.NewFramebufferSRGB;
    ctx->Color.sRGBEnabled = state;
 
    if (ctx->Driver.Enable) {
@@ -671,6 +671,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
                state * ((1 << ctx->Const.MaxViewports) - 1);
             if (newEnabled != ctx->Scissor.EnableFlags) {
                FLUSH_VERTICES(ctx, _NEW_SCISSOR);
+               ctx->NewDriverState |= ctx->DriverFlags.NewScissorTest;
                ctx->Scissor.EnableFlags = newEnabled;
             }
          }
@@ -1113,6 +1114,7 @@ _mesa_set_enablei(struct gl_context *ctx, GLenum cap,
       }
       if (((ctx->Scissor.EnableFlags >> index) & 1) != state) {
          FLUSH_VERTICES(ctx, _NEW_SCISSOR);
+         ctx->NewDriverState |= ctx->DriverFlags.NewScissorTest;
          if (state)
             ctx->Scissor.EnableFlags |= (1 << index);
          else
