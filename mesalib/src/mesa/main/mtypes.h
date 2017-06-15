@@ -189,6 +189,9 @@ typedef enum
                             BUFFER_BIT_COLOR6 | \
                             BUFFER_BIT_COLOR7)
 
+/* Mask of bits for depth+stencil buffers */
+#define BUFFER_BITS_DEPTH_STENCIL (BUFFER_BIT_DEPTH | BUFFER_BIT_STENCIL)
+
 /**
  * Framebuffer configuration (aka visual / pixelformat)
  * Note: some of these fields should be boolean, but it appears that
