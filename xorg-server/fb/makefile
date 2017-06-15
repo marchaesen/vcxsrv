@@ -5,7 +5,6 @@ CCFLAGS:=$(CCFLAGS:-RTCc=)
 
 
 CSRCS = 	\
-	fb24_32.c	\
 	fballpriv.c	\
 	fbarc.c		\
 	fbbits.c	\

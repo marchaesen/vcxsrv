@@ -811,42 +811,6 @@ CloseDownFileDescriptor(OsCommPtr oc)
 }
 
 /*****************
- * CheckConnections
- *    Some connection has died, go find which one and shut it down
- *    The file descriptor has been closed, but is still in AllClients.
- *    If would truly be wonderful if select() would put the bogus
- *    file descriptors in the exception mask, but nooooo.  So we have
- *    to check each and every socket individually.
- *****************/
-
-void
-CheckConnections(struct pollfd *fds, int num)
-{
-    fd_set tmask;
-    int i;
-    struct timeval notime;
-    int r;
-
-    notime.tv_sec = 0;
-    notime.tv_usec = 0;
-
-    for (i=0; i<num; i++)
-    {
-      int curclient=fds[i].fd;
-      fd_set tmask;
-      FD_ZERO(&tmask);
-      FD_SET(curclient, &tmask);
-      do
-      {
-        r = select (curclient + 1, &tmask, NULL, NULL, &notime);
-      } while (r == SOCKET_ERROR && (WSAGetLastError() == WSAEINTR || WSAGetLastError() == WSAEWOULDBLOCK));
-      if (r < 0)
-        if (GetConnectionTranslation(curclient) > 0)
-          CloseDownClient(clients[GetConnectionTranslation(curclient)]);
-    }
-}
-
-/*****************
  * CloseDownConnection
  *    Delete client from AllClients and free resources
  *****************/

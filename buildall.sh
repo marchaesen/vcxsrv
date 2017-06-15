@@ -13,6 +13,10 @@ check-error 'Please install nasm'
 which MSBuild.exe > /dev/null 2>&1
 check-error 'Please install/set environment for visual studio 2010'
 
+# c;\perl should have a copy of strawberry perl portable edition
+ORIPATH=$PATH
+export PATH=/cygdrive/c/perl/site/bin:/cygdrive/c/perl/perl/bin:/cygdrive/c/perl/bin:$PATH
+
 # echo script lines from now one
 #set -v
 
@@ -41,7 +45,7 @@ if [[ ! -d "release32" ]]; then
 fi
 cd release32
 
-PERL=perl perl ../Configure VC-WIN32 $NOASM --release
+perl ../Configure VC-WIN32 $NOASM --release
 check-error 'Error executing perl'
 else
 
@@ -50,7 +54,7 @@ if [[ ! -d "release64" ]]; then
 fi
 cd release64
 
-PERL=perl perl ../Configure VC-WIN64A --release
+perl ../Configure VC-WIN64A --release
 check-error 'Error executing perl'
 fi
 
@@ -66,7 +70,7 @@ if [[ ! -d "debug32" ]]; then
 fi
 cd debug32
 
-PERL=perl perl ../Configure VC-WIN32 $NOASM --debug
+perl ../Configure VC-WIN32 $NOASM --debug
 check-error 'Error executing perl'
 else
 
@@ -75,7 +79,7 @@ if [[ ! -d "debug64" ]]; then
 fi
 cd debug64
 
-PERL=perl perl ../Configure VC-WIN64A --debug
+perl ../Configure VC-WIN64A --debug
 check-error 'Error executing perl'
 fi
 
@@ -90,6 +94,9 @@ nmake VC-static-debug
 check-error 'Error compiling pthreads for debug'
 
 cd ..
+
+#reuse the cygwin perl again
+export PATH=$ORIPATH
 
 MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Release /p:Platform=Win32
 check-error 'Error compiling mhmake for release'

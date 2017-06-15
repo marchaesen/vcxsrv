@@ -476,7 +476,3 @@ ospoll_data(struct ospoll *ospoll, int fd)
 #endif
 }
 
-void CheckServerConnections(struct ospoll *server_poll)
-{
-  CheckConnections(server_poll->fds, server_poll->num);
-}
