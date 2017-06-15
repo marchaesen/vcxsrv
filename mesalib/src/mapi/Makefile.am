@@ -241,3 +241,6 @@ es2api/glapi_mapi_tmp.h: glapi/gen/gl_and_es_API.xml $(glapi_gen_mapi_deps)
 		$(srcdir)/glapi/gen/gl_and_es_API.xml > $@
 
 include $(top_srcdir)/install-lib-links.mk
+
+khrdir = $(includedir)/KHR
+khr_HEADERS = $(top_srcdir)/include/KHR/khrplatform.h

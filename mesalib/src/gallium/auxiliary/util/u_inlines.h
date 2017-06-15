@@ -137,8 +137,14 @@ pipe_resource_reference(struct pipe_resource **ptr, struct pipe_resource *tex)
 
    if (pipe_reference_described(&(*ptr)->reference, &tex->reference, 
                                 (debug_reference_descriptor)debug_describe_resource)) {
-      pipe_resource_reference(&old_tex->next, NULL);
-      old_tex->screen->resource_destroy(old_tex->screen, old_tex);
+      /* Avoid recursion, which would prevent inlining this function */
+      do {
+         struct pipe_resource *next = old_tex->next;
+
+         old_tex->screen->resource_destroy(old_tex->screen, old_tex);
+         old_tex = next;
+      } while (pipe_reference_described(&old_tex->reference, NULL,
+                                        (debug_reference_descriptor)debug_describe_resource));
    }
    *ptr = tex;
 }
