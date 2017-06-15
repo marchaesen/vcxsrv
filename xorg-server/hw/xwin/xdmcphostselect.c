@@ -62,12 +62,7 @@ static INT_PTR CALLBACK DisplayXdmcpHostsDlgProc (HWND hwndDialog, UINT message,
       OffsetRect (&rc, -rc.left, -rc.top);
       OffsetRect (&rc, -rcDlg.right, -rcDlg.bottom);
 
-      SetWindowPos (hwndDialog,
-      HWND_TOPMOST,
-      rcDesk.left + (rc.right / 2),
-      rcDesk.top + (rc.bottom / 2),
-      0, 0,
-      SWP_NOSIZE | SWP_FRAMECHANGED);
+      SetWindowPos (hwndDialog, HWND_TOPMOST, rcDesk.left + (rc.right / 2), rcDesk.top + (rc.bottom / 2), 0, 0, SWP_NOSIZE | SWP_FRAMECHANGED);
       return TRUE;
     }
     break;
@@ -150,7 +145,7 @@ void DisplayXdmcpHostsDialog(void)
   if (g_hDlgHosts != NULL)
   {
     /* Dialog box already exists, display it */
-    ShowWindow (g_hDlgHosts, SW_SHOWDEFAULT);
+    ShowWindow (g_hDlgHosts, SW_SHOW);
 
     /* User has lost the dialog.  Show them where it is. */
     SetForegroundWindow (g_hDlgHosts);
@@ -167,14 +162,14 @@ void DisplayXdmcpHostsDialog(void)
   /*
    * Display the about box
    */
-  g_hDlgHosts = CreateDialogParam (g_hInstance, "XDMCP_HOSTS", NULL, DisplayXdmcpHostsDlgProc, 0);
- 
+  g_hDlgHosts = CreateDialogParam (g_hInstance, "XDMCP_HOSTS", GetForegroundWindow(), DisplayXdmcpHostsDlgProc, 0);
+
   /* Show the dialog box */
   ShowWindow (g_hDlgHosts, SW_SHOW);
 
   /* Needed to get keyboard controls (tab, arrows, enter, esc) to work */
   SetForegroundWindow (g_hDlgHosts);
-  
+
   /* Set focus to the OK button */
   PostMessage (g_hDlgAbout, WM_NEXTDLGCTL, (WPARAM)GetDlgItem (g_hDlgHosts, IDOK), TRUE);
 }
