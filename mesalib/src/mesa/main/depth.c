@@ -83,7 +83,8 @@ _mesa_DepthFunc( GLenum func )
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_DEPTH);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewDepth ? 0 : _NEW_DEPTH);
+   ctx->NewDriverState |= ctx->DriverFlags.NewDepth;
    ctx->Depth.Func = func;
 
    if (ctx->Driver.DepthFunc)
@@ -107,7 +108,8 @@ _mesa_DepthMask( GLboolean flag )
    if (ctx->Depth.Mask == flag)
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_DEPTH);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewDepth ? 0 : _NEW_DEPTH);
+   ctx->NewDriverState |= ctx->DriverFlags.NewDepth;
    ctx->Depth.Mask = flag;
 
    if (ctx->Driver.DepthMask)
@@ -138,7 +140,8 @@ _mesa_DepthBoundsEXT( GLclampd zmin, GLclampd zmax )
    if (ctx->Depth.BoundsMin == zmin && ctx->Depth.BoundsMax == zmax)
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_DEPTH);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewDepth ? 0 : _NEW_DEPTH);
+   ctx->NewDriverState |= ctx->DriverFlags.NewDepth;
    ctx->Depth.BoundsMin = (GLfloat) zmin;
    ctx->Depth.BoundsMax = (GLfloat) zmax;
 }

@@ -293,8 +293,10 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data)
 	 _mesa_update_state( ctx );
 
       /* XXX also need to check if shader enabled, but invalid */
-      if ((ctx->VertexProgram.Enabled && !ctx->VertexProgram._Enabled) ||
-          (ctx->FragmentProgram.Enabled && !ctx->FragmentProgram._Enabled)) {
+      if ((ctx->VertexProgram.Enabled &&
+           !_mesa_arb_vertex_program_enabled(ctx)) ||
+          (ctx->FragmentProgram.Enabled &&
+           !_mesa_arb_fragment_program_enabled(ctx))) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glBegin (invalid vertex/fragment program)");
          return;

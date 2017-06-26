@@ -1690,11 +1690,6 @@ glxWinCreateContext(__GLXscreen * screen,
     __GLXWinContext *context;
     __GLXWinContext *shareContext = (__GLXWinContext *) baseShareContext;
 
-    static __GLXtextureFromPixmap glxWinTextureFromPixmap = {
-        glxWinBindTexImage,
-        glxWinReleaseTexImage
-    };
-
     context = calloc(1, sizeof(__GLXWinContext));
 
     if (!context)
@@ -1705,7 +1700,8 @@ glxWinCreateContext(__GLXscreen * screen,
     context->base.makeCurrent = glxWinContextMakeCurrent;
     context->base.loseCurrent = glxWinContextLoseCurrent;
     context->base.copy = glxWinContextCopy;
-    context->base.textureFromPixmap = &glxWinTextureFromPixmap;
+    context->base.bindTexImage = glxWinBindTexImage;
+    context->base.releaseTexImage = glxWinReleaseTexImage;
     context->base.config = modes;
     context->base.pGlxScreen = screen;
 

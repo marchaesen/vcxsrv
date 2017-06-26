@@ -2556,14 +2556,14 @@
         <glx rop="161"/>
     </function>
 
-    <function name="StencilFunc" es1="1.0" es2="2.0">
+    <function name="StencilFunc" es1="1.0" es2="2.0" no_error="true">
         <param name="func" type="GLenum"/>
         <param name="ref" type="GLint"/>
         <param name="mask" type="GLuint"/>
         <glx rop="162"/>
     </function>
 
-    <function name="StencilOp" es1="1.0" es2="2.0">
+    <function name="StencilOp" es1="1.0" es2="2.0" no_error="true">
         <param name="fail" type="GLenum"/>
         <param name="zfail" type="GLenum"/>
         <param name="zpass" type="GLenum"/>
@@ -2966,7 +2966,7 @@
         <glx rop="190"/>
     </function>
 
-    <function name="Viewport" es1="1.0" es2="2.0">
+    <function name="Viewport" es1="1.0" es2="2.0" no_error="true">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
@@ -5271,7 +5271,7 @@
         <glx rop="233" large="true"/>
     </function>
 
-    <function name="StencilFuncSeparate" es2="2.0">
+    <function name="StencilFuncSeparate" es2="2.0" no_error="true">
         <param name="face" type="GLenum"/>
         <param name="func" type="GLenum"/>
         <param name="ref" type="GLint"/>
@@ -5279,7 +5279,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="StencilOpSeparate" es2="2.0">
+    <function name="StencilOpSeparate" es2="2.0" no_error="true">
         <param name="face" type="GLenum"/>
         <param name="sfail" type="GLenum"/>
         <param name="zfail" type="GLenum"/>
@@ -5287,7 +5287,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="StencilMaskSeparate" es2="2.0">
+    <function name="StencilMaskSeparate" es2="2.0" no_error="true">
         <param name="face" type="GLenum"/>
         <param name="mask" type="GLuint"/>
         <glx ignore="true"/>

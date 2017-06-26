@@ -372,7 +372,7 @@ compute_texgen(struct gl_context *ctx, const GLfloat vObj[4], const GLfloat vEye
 void
 _mesa_RasterPos(struct gl_context *ctx, const GLfloat vObj[4])
 {
-   if (ctx->VertexProgram._Enabled) {
+   if (_mesa_arb_vertex_program_enabled(ctx)) {
       /* XXX implement this */
       _mesa_problem(ctx, "Vertex programs not implemented for glRasterPos");
       return;

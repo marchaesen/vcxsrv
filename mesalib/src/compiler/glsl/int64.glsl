@@ -1,8 +1,8 @@
 /* Compile with:
  *
- * glsl_compiler --version 140 --dump-builder int64.glsl > builtin_int64.h
+ * glsl_compiler --version 400 --dump-builder int64.glsl > builtin_int64.h
  *
- * Using version 1.40+ prevents built-in variables from being included.
+ * Version 4.00+ is required for umulExtended.
  */
 #version 400
 #extension GL_ARB_gpu_shader_int64: require

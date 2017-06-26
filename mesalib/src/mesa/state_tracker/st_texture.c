@@ -508,19 +508,18 @@ static GLuint64
 st_create_texture_handle_from_unit(struct st_context *st,
                                    struct gl_program *prog, GLuint texUnit)
 {
-   struct gl_context *ctx = st->ctx;
-   struct gl_texture_object *texObj;
    struct pipe_context *pipe = st->pipe;
    struct pipe_sampler_view *view;
-   struct pipe_sampler_state sampler;
+   struct pipe_sampler_state sampler = {0};
 
-   if (!st_update_single_texture(st, &view, texUnit, prog->sh.data->Version))
+   st_update_single_texture(st, &view, texUnit, prog->sh.data->Version >= 130);
+   if (!view)
       return 0;
 
-   st_convert_sampler_from_unit(st, &sampler, texUnit);
+   if (view->target != PIPE_BUFFER)
+      st_convert_sampler_from_unit(st, &sampler, texUnit);
 
-   texObj = ctx->Texture.Unit[texUnit]._Current;
-   assert(texObj);
+   assert(st->ctx->Texture.Unit[texUnit]._Current);
 
    return pipe->create_texture_handle(pipe, view, &sampler);
 }

@@ -700,6 +700,9 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 
 	multi_instances_smaller_than_primgroup = indirect_draw || (instanced_draw &&
 								   num_prims < primgroup_size);
+	if (cmd_buffer->state.pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.prim_id_input)
+		ia_switch_on_eoi = true;
+
 	if (radv_pipeline_has_tess(cmd_buffer->state.pipeline)) {
 		/* SWITCH_ON_EOI must be set if PrimID is used. */
 		if (cmd_buffer->state.pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.uses_prim_id ||
@@ -789,6 +792,11 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 		partial_es_wave = true;
 
 	if (radv_pipeline_has_gs(cmd_buffer->state.pipeline)) {
+
+		if (radv_pipeline_has_gs(cmd_buffer->state.pipeline) &&
+		    cmd_buffer->state.pipeline->shaders[MESA_SHADER_GEOMETRY]->info.gs.uses_prim_id)
+			ia_switch_on_eoi = true;
+
 		/* GS requirement. */
 		if (SI_GS_PER_ES / primgroup_size >= cmd_buffer->device->gs_table_depth - 3)
 			partial_es_wave = true;

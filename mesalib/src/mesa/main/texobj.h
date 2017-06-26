@@ -170,11 +170,6 @@ _mesa_unlock_context_textures( struct gl_context *ctx );
 extern void
 _mesa_lock_context_textures( struct gl_context *ctx );
 
-extern void
-_mesa_delete_nameless_texture(struct gl_context *ctx,
-                              struct gl_texture_object *texObj);
-
-
 /*@}*/
 
 /**

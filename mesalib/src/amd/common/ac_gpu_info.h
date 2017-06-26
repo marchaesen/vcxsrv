@@ -26,13 +26,17 @@
 #ifndef AC_GPU_INFO_H
 #define AC_GPU_INFO_H
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "amd_family.h"
-
-#include <amdgpu.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Prior to C11 the following may trigger a typedef redeclaration warning */
+typedef struct amdgpu_device *amdgpu_device_handle;
+struct amdgpu_gpu_info;
 
 struct radeon_info {
 	/* PCI info: domain:bus:dev:func */

@@ -58,71 +58,43 @@
 static GLuint
 gl_wrap_xlate(GLenum wrap)
 {
-   switch (wrap) {
-   case GL_REPEAT:
-      return PIPE_TEX_WRAP_REPEAT;
-   case GL_CLAMP:
-      return PIPE_TEX_WRAP_CLAMP;
-   case GL_CLAMP_TO_EDGE:
-      return PIPE_TEX_WRAP_CLAMP_TO_EDGE;
-   case GL_CLAMP_TO_BORDER:
-      return PIPE_TEX_WRAP_CLAMP_TO_BORDER;
-   case GL_MIRRORED_REPEAT:
-      return PIPE_TEX_WRAP_MIRROR_REPEAT;
-   case GL_MIRROR_CLAMP_EXT:
-      return PIPE_TEX_WRAP_MIRROR_CLAMP;
-   case GL_MIRROR_CLAMP_TO_EDGE_EXT:
-      return PIPE_TEX_WRAP_MIRROR_CLAMP_TO_EDGE;
-   case GL_MIRROR_CLAMP_TO_BORDER_EXT:
-      return PIPE_TEX_WRAP_MIRROR_CLAMP_TO_BORDER;
-   default:
-      assert(0);
-      return 0;
-   }
+   /* Take advantage of how the enums are defined. */
+   static const unsigned table[32] = {
+      [GL_REPEAT & 0x1f] = PIPE_TEX_WRAP_REPEAT,
+      [GL_CLAMP & 0x1f] = PIPE_TEX_WRAP_CLAMP,
+      [GL_CLAMP_TO_EDGE & 0x1f] = PIPE_TEX_WRAP_CLAMP_TO_EDGE,
+      [GL_CLAMP_TO_BORDER & 0x1f] = PIPE_TEX_WRAP_CLAMP_TO_BORDER,
+      [GL_MIRRORED_REPEAT & 0x1f] = PIPE_TEX_WRAP_MIRROR_REPEAT,
+      [GL_MIRROR_CLAMP_EXT & 0x1f] = PIPE_TEX_WRAP_MIRROR_CLAMP,
+      [GL_MIRROR_CLAMP_TO_EDGE & 0x1f] = PIPE_TEX_WRAP_MIRROR_CLAMP_TO_EDGE,
+      [GL_MIRROR_CLAMP_TO_BORDER_EXT & 0x1f] = PIPE_TEX_WRAP_MIRROR_CLAMP_TO_BORDER,
+   };
+
+   return table[wrap & 0x1f];
 }
 
 
 static GLuint
 gl_filter_to_mip_filter(GLenum filter)
 {
-   switch (filter) {
-   case GL_NEAREST:
-   case GL_LINEAR:
+   /* Take advantage of how the enums are defined. */
+   if (filter <= GL_LINEAR)
       return PIPE_TEX_MIPFILTER_NONE;
-
-   case GL_NEAREST_MIPMAP_NEAREST:
-   case GL_LINEAR_MIPMAP_NEAREST:
+   if (filter <= GL_LINEAR_MIPMAP_NEAREST)
       return PIPE_TEX_MIPFILTER_NEAREST;
 
-   case GL_NEAREST_MIPMAP_LINEAR:
-   case GL_LINEAR_MIPMAP_LINEAR:
-      return PIPE_TEX_MIPFILTER_LINEAR;
-
-   default:
-      assert(0);
-      return PIPE_TEX_MIPFILTER_NONE;
-   }
+   return PIPE_TEX_MIPFILTER_LINEAR;
 }
 
 
 static GLuint
 gl_filter_to_img_filter(GLenum filter)
 {
-   switch (filter) {
-   case GL_NEAREST:
-   case GL_NEAREST_MIPMAP_NEAREST:
-   case GL_NEAREST_MIPMAP_LINEAR:
-      return PIPE_TEX_FILTER_NEAREST;
-
-   case GL_LINEAR:
-   case GL_LINEAR_MIPMAP_NEAREST:
-   case GL_LINEAR_MIPMAP_LINEAR:
+   /* Take advantage of how the enums are defined. */
+   if (filter & 1)
       return PIPE_TEX_FILTER_LINEAR;
 
-   default:
-      assert(0);
-      return PIPE_TEX_FILTER_NEAREST;
-   }
+   return PIPE_TEX_FILTER_NEAREST;
 }
 
 
@@ -135,10 +107,6 @@ st_convert_sampler(const struct st_context *st,
                    const struct gl_sampler_object *msamp,
                    struct pipe_sampler_state *sampler)
 {
-   GLenum texBaseFormat;
-
-   texBaseFormat = _mesa_texture_base_format(texobj);
-
    memset(sampler, 0, sizeof(*sampler));
    sampler->wrap_s = gl_wrap_xlate(msamp->WrapS);
    sampler->wrap_t = gl_wrap_xlate(msamp->WrapT);
@@ -171,42 +139,62 @@ st_convert_sampler(const struct st_context *st,
       assert(sampler->min_lod <= sampler->max_lod);
    }
 
+   /* Check that only wrap modes using the border color have the first bit
+    * set.
+    */
+   STATIC_ASSERT(PIPE_TEX_WRAP_CLAMP & 0x1);
+   STATIC_ASSERT(PIPE_TEX_WRAP_CLAMP_TO_BORDER & 0x1);
+   STATIC_ASSERT(PIPE_TEX_WRAP_MIRROR_CLAMP & 0x1);
+   STATIC_ASSERT(PIPE_TEX_WRAP_MIRROR_CLAMP_TO_BORDER & 0x1);
+   STATIC_ASSERT(((PIPE_TEX_WRAP_REPEAT |
+                   PIPE_TEX_WRAP_CLAMP_TO_EDGE |
+                   PIPE_TEX_WRAP_MIRROR_REPEAT |
+                   PIPE_TEX_WRAP_MIRROR_CLAMP_TO_EDGE) & 0x1) == 0);
+
    /* For non-black borders... */
-   if (msamp->BorderColor.ui[0] ||
-       msamp->BorderColor.ui[1] ||
-       msamp->BorderColor.ui[2] ||
-       msamp->BorderColor.ui[3]) {
-      const struct st_texture_object *stobj = st_texture_object_const(texobj);
+   if (/* This is true if wrap modes are using the border color: */
+       (sampler->wrap_s | sampler->wrap_t | sampler->wrap_r) & 0x1 &&
+       (msamp->BorderColor.ui[0] ||
+        msamp->BorderColor.ui[1] ||
+        msamp->BorderColor.ui[2] ||
+        msamp->BorderColor.ui[3])) {
       const GLboolean is_integer = texobj->_IsIntegerFormat;
-      const struct pipe_sampler_view *sv = NULL;
-      union pipe_color_union border_color;
-      GLuint i;
+      GLenum texBaseFormat = _mesa_base_tex_image(texobj)->_BaseFormat;
 
-      /* Just search for the first used view. We can do this because the
-         swizzle is per-texture, not per context. */
-      /* XXX: clean that up to not use the sampler view at all */
-      for (i = 0; i < stobj->num_sampler_views; ++i) {
-         if (stobj->sampler_views[i]) {
-            sv = stobj->sampler_views[i];
-            break;
+      if (st->apply_texture_swizzle_to_border_color) {
+         const struct st_texture_object *stobj = st_texture_object_const(texobj);
+         const struct pipe_sampler_view *sv = NULL;
+
+         /* Just search for the first used view. We can do this because the
+            swizzle is per-texture, not per context. */
+         /* XXX: clean that up to not use the sampler view at all */
+         for (unsigned i = 0; i < stobj->num_sampler_views; ++i) {
+            if (stobj->sampler_views[i]) {
+               sv = stobj->sampler_views[i];
+               break;
+            }
          }
-      }
 
-      if (st->apply_texture_swizzle_to_border_color && sv) {
-         const unsigned char swz[4] =
-         {
-            sv->swizzle_r,
-            sv->swizzle_g,
-            sv->swizzle_b,
-            sv->swizzle_a,
-         };
+         if (sv) {
+            union pipe_color_union tmp;
+            const unsigned char swz[4] =
+            {
+               sv->swizzle_r,
+               sv->swizzle_g,
+               sv->swizzle_b,
+               sv->swizzle_a,
+            };
 
-         st_translate_color(&msamp->BorderColor,
-                            &border_color,
-                            texBaseFormat, is_integer);
+            st_translate_color(&msamp->BorderColor, &tmp,
+                               texBaseFormat, is_integer);
 
-         util_format_apply_color_swizzle(&sampler->border_color,
-                                         &border_color, swz, is_integer);
+            util_format_apply_color_swizzle(&sampler->border_color,
+                                            &tmp, swz, is_integer);
+         } else {
+            st_translate_color(&msamp->BorderColor,
+                               &sampler->border_color,
+                               texBaseFormat, is_integer);
+         }
       } else {
          st_translate_color(&msamp->BorderColor,
                             &sampler->border_color,
@@ -218,11 +206,14 @@ st_convert_sampler(const struct st_context *st,
                               0 : (GLuint) msamp->MaxAnisotropy);
 
    /* If sampling a depth texture and using shadow comparison */
-   if ((texBaseFormat == GL_DEPTH_COMPONENT ||
-        (texBaseFormat == GL_DEPTH_STENCIL && !texobj->StencilSampling)) &&
-       msamp->CompareMode == GL_COMPARE_R_TO_TEXTURE) {
-      sampler->compare_mode = PIPE_TEX_COMPARE_R_TO_TEXTURE;
-      sampler->compare_func = st_compare_func_to_pipe(msamp->CompareFunc);
+   if (msamp->CompareMode == GL_COMPARE_R_TO_TEXTURE) {
+      GLenum texBaseFormat = _mesa_base_tex_image(texobj)->_BaseFormat;
+
+      if (texBaseFormat == GL_DEPTH_COMPONENT ||
+          (texBaseFormat == GL_DEPTH_STENCIL && !texobj->StencilSampling)) {
+         sampler->compare_mode = PIPE_TEX_COMPARE_R_TO_TEXTURE;
+         sampler->compare_func = st_compare_func_to_pipe(msamp->CompareFunc);
+      }
    }
 
    /* Only set the seamless cube map texture parameter because the per-context
@@ -246,6 +237,7 @@ st_convert_sampler_from_unit(const struct st_context *st,
 
    texobj = ctx->Texture.Unit[texUnit]._Current;
    assert(texobj);
+   assert(texobj->Target != GL_TEXTURE_BUFFER);
 
    msamp = _mesa_get_samplerobj(ctx, texUnit);
 
@@ -264,39 +256,37 @@ static void
 update_shader_samplers(struct st_context *st,
                        enum pipe_shader_type shader_stage,
                        const struct gl_program *prog,
-                       unsigned max_units,
                        struct pipe_sampler_state *samplers,
-                       unsigned *num_samplers)
+                       unsigned *out_num_samplers)
 {
+   struct gl_context *ctx = st->ctx;
    GLbitfield samplers_used = prog->SamplersUsed;
    GLbitfield free_slots = ~prog->SamplersUsed;
    GLbitfield external_samplers_used = prog->ExternalSamplersUsed;
-   GLuint unit;
-   const GLuint old_max = *num_samplers;
+   unsigned unit, num_samplers;
    const struct pipe_sampler_state *states[PIPE_MAX_SAMPLERS];
 
-   if (*num_samplers == 0 && samplers_used == 0x0)
+   if (samplers_used == 0x0) {
+      *out_num_samplers = 0;
       return;
+   }
 
-   *num_samplers = 0;
+   num_samplers = util_last_bit(samplers_used);
 
    /* loop over sampler units (aka tex image units) */
-   for (unit = 0; unit < max_units; unit++, samplers_used >>= 1) {
+   for (unit = 0; samplers_used; unit++, samplers_used >>= 1) {
       struct pipe_sampler_state *sampler = samplers + unit;
+      unsigned tex_unit = prog->SamplerUnits[unit];
 
-      if (samplers_used & 1) {
-         const GLuint texUnit = prog->SamplerUnits[unit];
-
-         st_convert_sampler_from_unit(st, sampler, texUnit);
+      /* Don't update the sampler for TBOs. cso_context will not bind sampler
+       * states that are NULL.
+       */
+      if (samplers_used & 1 &&
+          ctx->Texture.Unit[tex_unit]._Current->Target != GL_TEXTURE_BUFFER) {
+         st_convert_sampler_from_unit(st, sampler, tex_unit);
          states[unit] = sampler;
-         *num_samplers = unit + 1;
-      }
-      else if (samplers_used != 0 || unit < old_max) {
+      } else {
          states[unit] = NULL;
-      }
-      else {
-         /* if we've reset all the old samplers and we have no more new ones */
-         break;
       }
    }
 
@@ -332,10 +322,11 @@ update_shader_samplers(struct st_context *st,
          break;
       }
 
-      *num_samplers = MAX2(*num_samplers, extra + 1);
+      num_samplers = MAX2(num_samplers, extra + 1);
    }
 
-   cso_set_samplers(st->cso_context, shader_stage, *num_samplers, states);
+   cso_set_samplers(st->cso_context, shader_stage, num_samplers, states);
+   *out_num_samplers = num_samplers;
 }
 
 
@@ -347,7 +338,6 @@ st_update_vertex_samplers(struct st_context *st)
    update_shader_samplers(st,
                           PIPE_SHADER_VERTEX,
                           ctx->VertexProgram._Current,
-                          ctx->Const.Program[MESA_SHADER_VERTEX].MaxTextureImageUnits,
                           st->state.samplers[PIPE_SHADER_VERTEX],
                           &st->state.num_samplers[PIPE_SHADER_VERTEX]);
 }
@@ -362,7 +352,6 @@ st_update_tessctrl_samplers(struct st_context *st)
       update_shader_samplers(st,
                              PIPE_SHADER_TESS_CTRL,
                              ctx->TessCtrlProgram._Current,
-                             ctx->Const.Program[MESA_SHADER_TESS_CTRL].MaxTextureImageUnits,
                              st->state.samplers[PIPE_SHADER_TESS_CTRL],
                              &st->state.num_samplers[PIPE_SHADER_TESS_CTRL]);
    }
@@ -378,7 +367,6 @@ st_update_tesseval_samplers(struct st_context *st)
       update_shader_samplers(st,
                              PIPE_SHADER_TESS_EVAL,
                              ctx->TessEvalProgram._Current,
-                             ctx->Const.Program[MESA_SHADER_TESS_EVAL].MaxTextureImageUnits,
                              st->state.samplers[PIPE_SHADER_TESS_EVAL],
                              &st->state.num_samplers[PIPE_SHADER_TESS_EVAL]);
    }
@@ -394,7 +382,6 @@ st_update_geometry_samplers(struct st_context *st)
       update_shader_samplers(st,
                              PIPE_SHADER_GEOMETRY,
                              ctx->GeometryProgram._Current,
-                             ctx->Const.Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits,
                              st->state.samplers[PIPE_SHADER_GEOMETRY],
                              &st->state.num_samplers[PIPE_SHADER_GEOMETRY]);
    }
@@ -409,7 +396,6 @@ st_update_fragment_samplers(struct st_context *st)
    update_shader_samplers(st,
                           PIPE_SHADER_FRAGMENT,
                           ctx->FragmentProgram._Current,
-                          ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits,
                           st->state.samplers[PIPE_SHADER_FRAGMENT],
                           &st->state.num_samplers[PIPE_SHADER_FRAGMENT]);
 }
@@ -424,7 +410,6 @@ st_update_compute_samplers(struct st_context *st)
       update_shader_samplers(st,
                              PIPE_SHADER_COMPUTE,
                              ctx->ComputeProgram._Current,
-                             ctx->Const.Program[MESA_SHADER_COMPUTE].MaxTextureImageUnits,
                              st->state.samplers[PIPE_SHADER_COMPUTE],
                              &st->state.num_samplers[PIPE_SHADER_COMPUTE]);
    }

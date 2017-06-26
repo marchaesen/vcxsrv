@@ -145,11 +145,11 @@ register_surface(struct gl_context *ctx, GLboolean isOutput,
    surf->output = isOutput;
    for (i = 0; i < numTextureNames; ++i) {
       struct gl_texture_object *tex;
-      tex  = _mesa_lookup_texture(ctx, textureNames[i]);
+
+      tex = _mesa_lookup_texture_err(ctx, textureNames[i],
+                                     "VDPAURegisterSurfaceNV");
       if (tex == NULL) {
          free(surf);
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "VDPAURegisterSurfaceNV(texture ID not found)");
          return (GLintptr)NULL;
       }
 

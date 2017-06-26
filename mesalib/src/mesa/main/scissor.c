@@ -48,7 +48,7 @@ set_scissor_no_notify(struct gl_context *ctx, unsigned idx,
        height == ctx->Scissor.ScissorArray[idx].Height)
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_SCISSOR);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewScissorRect ? 0 : _NEW_SCISSOR);
    ctx->NewDriverState |= ctx->DriverFlags.NewScissorRect;
 
    ctx->Scissor.ScissorArray[idx].X = x;

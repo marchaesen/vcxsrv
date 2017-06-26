@@ -27,6 +27,8 @@
 #ifndef LOADER_H
 #define LOADER_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -51,7 +53,7 @@ loader_get_device_name_for_fd(int fd);
  */
 
 int
-loader_get_user_preferred_fd(int default_fd, int *different_device);
+loader_get_user_preferred_fd(int default_fd, bool *different_device);
 
 /* for logging.. keep this aligned with egllog.h so we can just use
  * _eglLog directly.

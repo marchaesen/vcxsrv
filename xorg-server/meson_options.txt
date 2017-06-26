@@ -49,6 +49,10 @@ option('hal', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
        description: 'Enable HAL integration')
 option('systemd_logind', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
        description: 'Enable systemd-logind integration')
+option('vbe', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+       description: 'Xorg VBE module')
+option('vgahw', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+       description: 'Xorg VGA access module')
 
 option('dri1', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
 option('dri2', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')

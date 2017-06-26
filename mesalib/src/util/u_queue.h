@@ -115,6 +115,20 @@ util_queue_fence_is_signalled(struct util_queue_fence *fence)
    return fence->signalled != 0;
 }
 
+/* Convenient structure for monitoring the queue externally and passing
+ * the structure between Mesa components. The queue doesn't use it directly.
+ */
+struct util_queue_monitoring
+{
+   /* For querying the thread busyness. */
+   struct util_queue *queue;
+
+   /* Counters updated by the user of the queue. */
+   unsigned num_offloaded_items;
+   unsigned num_direct_items;
+   unsigned num_syncs;
+};
+
 #ifdef __cplusplus
 }
 #endif

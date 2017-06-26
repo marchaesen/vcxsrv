@@ -71,6 +71,10 @@ if HAVE_GALLIUM_IMX
 SUBDIRS += drivers/imx winsys/imx/drm
 endif
 
+if HAVE_GALLIUM_PL111
+SUBDIRS += drivers/pl111 winsys/pl111/drm
+endif
+
 ## swrast/softpipe
 if HAVE_GALLIUM_SOFTPIPE
 SUBDIRS += drivers/softpipe

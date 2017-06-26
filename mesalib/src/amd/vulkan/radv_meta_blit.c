@@ -526,8 +526,7 @@ void radv_CmdBlitImage(
 						     .baseArrayLayer = src_res->baseArrayLayer,
 						     .layerCount = 1
 					     },
-						     },
-				     cmd_buffer, VK_IMAGE_USAGE_SAMPLED_BIT);
+				     });
 
 		unsigned dst_start, dst_end;
 		if (dest_image->type == VK_IMAGE_TYPE_3D) {
@@ -575,12 +574,6 @@ void radv_CmdBlitImage(
 		dest_box.extent.height = abs(dst_y1 - dst_y0);
 
 		struct radv_image_view dest_iview;
-		unsigned usage;
-		if (dst_res->aspectMask == VK_IMAGE_ASPECT_COLOR_BIT)
-			usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		else
-			usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
 		const unsigned num_layers = dst_end - dst_start;
 		for (unsigned i = 0; i < num_layers; i++) {
 			const VkOffset3D dest_offset_0 = {
@@ -620,8 +613,7 @@ void radv_CmdBlitImage(
 							     .baseArrayLayer = dest_array_slice,
 							     .layerCount = 1
 						     },
-					     },
-					     cmd_buffer, usage);
+					     });
 			meta_emit_blit(cmd_buffer,
 				       src_image, &src_iview,
 				       src_offset_0, src_offset_1,

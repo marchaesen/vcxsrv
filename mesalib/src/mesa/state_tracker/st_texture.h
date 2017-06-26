@@ -121,7 +121,7 @@ struct st_texture_object
    uint layer_override;
 
    /** The glsl version of the shader seen during the previous validation */
-   unsigned prev_glsl_version;
+   bool prev_glsl130_or_later;
    /** The value of the sampler's sRGBDecode state at the previous validation */
    GLenum prev_sRGBDecode;
 
@@ -288,10 +288,10 @@ st_convert_sampler_from_unit(const struct st_context *st,
                              struct pipe_sampler_state *sampler,
                              GLuint texUnit);
 
-GLboolean
+void
 st_update_single_texture(struct st_context *st,
                          struct pipe_sampler_view **sampler_view,
-                         GLuint texUnit, unsigned glsl_version);
+                         GLuint texUnit, bool glsl130_or_later);
 
 void
 st_make_bound_samplers_resident(struct st_context *st,

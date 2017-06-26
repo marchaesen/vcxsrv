@@ -50,6 +50,7 @@ struct gl_shader_program;
 struct gl_texture_image;
 struct gl_texture_object;
 struct gl_memory_info;
+struct util_queue_monitoring;
 
 /* GL_ARB_vertex_buffer_object */
 /* Modifies GL_MAP_UNSYNCHRONIZED_BIT to allow driver to fail (return
@@ -1039,7 +1040,8 @@ struct dd_function_table {
     *
     * Mesa will only call this function if GL multithreading is enabled.
     */
-   void (*SetBackgroundContext)(struct gl_context *ctx);
+   void (*SetBackgroundContext)(struct gl_context *ctx,
+                                struct util_queue_monitoring *queue_info);
 
    /**
     * \name GL_ARB_sparse_buffer interface

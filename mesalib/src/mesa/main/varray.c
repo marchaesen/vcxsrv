@@ -1898,7 +1898,7 @@ _mesa_PrimitiveRestartIndex(GLuint index)
    }
 
    if (ctx->Array.RestartIndex != index) {
-      FLUSH_VERTICES(ctx, _NEW_TRANSFORM);
+      FLUSH_VERTICES(ctx, 0);
       ctx->Array.RestartIndex = index;
    }
 }

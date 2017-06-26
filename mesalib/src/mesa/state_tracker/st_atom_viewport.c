@@ -43,40 +43,30 @@ void
 st_update_viewport( struct st_context *st )
 {
    struct gl_context *ctx = st->ctx;
-   GLfloat yScale, yBias;
    unsigned i;
-   /* _NEW_BUFFERS
-    */
-   if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
-      /* Drawing to a window.  The corresponding gallium surface uses
-       * Y=0=TOP but OpenGL is Y=0=BOTTOM.  So we need to invert the viewport.
-       */
-      yScale = -1;
-      yBias = (GLfloat)ctx->DrawBuffer->Height;
-   }
-   else {
-      /* Drawing to an FBO where Y=0=BOTTOM, like OpenGL - don't invert */
-      yScale = 1.0;
-      yBias = 0.0;
-   }
 
    /* _NEW_VIEWPORT 
     */
-   for (i = 0; i < ctx->Const.MaxViewports; i++)
-   {
-      float scale[3], translate[3];
+   for (i = 0; i < st->state.num_viewports; i++) {
+      float *scale = st->state.viewport[i].scale;
+      float *translate = st->state.viewport[i].translate;
+
       _mesa_get_viewport_xform(ctx, i, scale, translate);
 
-      st->state.viewport[i].scale[0] = scale[0];
-      st->state.viewport[i].scale[1] = scale[1] * yScale;
-      st->state.viewport[i].scale[2] = scale[2];
-
-      st->state.viewport[i].translate[0] = translate[0];
-      st->state.viewport[i].translate[1] = translate[1] * yScale + yBias;
-      st->state.viewport[i].translate[2] = translate[2];
+      /* _NEW_BUFFERS */
+      /* Drawing to a window where the coordinate system is upside down. */
+      if (st->state.fb_orientation == Y_0_TOP) {
+         scale[1] *= -1;
+         translate[1] = st->state.fb_height - translate[1];
+      }
    }
 
    cso_set_viewport(st->cso_context, &st->state.viewport[0]);
-   if (ctx->Const.MaxViewports > 1)
-      st->pipe->set_viewport_states(st->pipe, 1, ctx->Const.MaxViewports - 1, &st->state.viewport[1]);
+
+   if (st->state.num_viewports > 1) {
+      struct pipe_context *pipe = st->pipe;
+
+      pipe->set_viewport_states(pipe, 1, st->state.num_viewports - 1,
+                                &st->state.viewport[1]);
+   }
 }

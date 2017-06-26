@@ -28,6 +28,7 @@
 #define U_THREAD_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "c11/threads.h"
 
@@ -86,6 +87,17 @@ u_thread_get_time_nano(thrd_t thread)
 #else
    return 0;
 #endif
+}
+
+static inline bool u_thread_is_self(thrd_t thread)
+{
+#if defined(HAVE_PTHREAD)
+#  if defined(__GNU_LIBRARY__) && defined(__GLIBC__) && defined(__GLIBC_MINOR__) && \
+      (__GLIBC__ >= 3 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 12))
+   return pthread_equal(pthread_self(), thread);
+#  endif
+#endif
+   return false;
 }
 
 #endif /* U_THREAD_H_ */

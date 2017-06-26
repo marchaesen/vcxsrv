@@ -25,5 +25,6 @@ include $(LOCAL_PATH)/Android.libmesa_glsl_utils.mk
 include $(LOCAL_PATH)/Android.libmesa_dricore.mk
 include $(LOCAL_PATH)/Android.libmesa_st_mesa.mk
 include $(LOCAL_PATH)/Android.libmesa_sse41.mk
+include $(LOCAL_PATH)/Android.libmesa_git_sha1.mk
 
 include $(LOCAL_PATH)/program/Android.mk

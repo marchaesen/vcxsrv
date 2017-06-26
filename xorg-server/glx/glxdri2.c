@@ -335,11 +335,6 @@ __glXDRIreleaseTexImage(__GLXcontext * baseContext,
     return Success;
 }
 
-static __GLXtextureFromPixmap __glXDRItextureFromPixmap = {
-    __glXDRIbindTexImage,
-    __glXDRIreleaseTexImage
-};
-
 static Bool
 dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
                          const uint32_t *attribs,
@@ -561,7 +556,8 @@ __glXDRIscreenCreateContext(__GLXscreen * baseScreen,
     context->base.makeCurrent = __glXDRIcontextMakeCurrent;
     context->base.loseCurrent = __glXDRIcontextLoseCurrent;
     context->base.copy = __glXDRIcontextCopy;
-    context->base.textureFromPixmap = &__glXDRItextureFromPixmap;
+    context->base.bindTexImage = __glXDRIbindTexImage;
+    context->base.releaseTexImage = __glXDRIreleaseTexImage;
     context->base.wait = __glXDRIcontextWait;
 
     create_driver_context(context, screen, config, driShare, num_attribs,
@@ -1024,8 +1020,6 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
         dlclose(screen->driver);
 
     free(screen);
-
-    LogMessage(X_ERROR, "AIGLX: reverting to software rendering\n");
 
     return NULL;
 }

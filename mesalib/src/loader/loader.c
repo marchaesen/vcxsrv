@@ -153,7 +153,7 @@ static char *drm_get_id_path_tag_for_fd(int fd)
    return tag;
 }
 
-int loader_get_user_preferred_fd(int default_fd, int *different_device)
+int loader_get_user_preferred_fd(int default_fd, bool *different_device)
 {
 /* Arbitrary "maximum" value of drm devices. */
 #define MAX_DRM_DEVICES 32
@@ -171,7 +171,7 @@ int loader_get_user_preferred_fd(int default_fd, int *different_device)
 #endif
 
    if (prime == NULL) {
-      *different_device = 0;
+      *different_device = false;
       return default_fd;
    }
 
@@ -230,16 +230,16 @@ int loader_get_user_preferred_fd(int default_fd, int *different_device)
    return fd;
 
  err:
-   *different_device = 0;
+   *different_device = false;
 
    free(default_tag);
    free(prime);
    return default_fd;
 }
 #else
-int loader_get_user_preferred_fd(int default_fd, int *different_device)
+int loader_get_user_preferred_fd(int default_fd, bool *different_device)
 {
-   *different_device = 0;
+   *different_device = false;
    return default_fd;
 }
 #endif

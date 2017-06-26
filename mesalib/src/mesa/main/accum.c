@@ -28,6 +28,7 @@
 #include "context.h"
 #include "format_unpack.h"
 #include "format_pack.h"
+#include "framebuffer.h"
 #include "imports.h"
 #include "macros.h"
 #include "state.h"
@@ -72,6 +73,8 @@ _mesa_clear_accum_buffer(struct gl_context *ctx)
    accRb = ctx->DrawBuffer->Attachment[BUFFER_ACCUM].Renderbuffer;
    if (!accRb)
       return;   /* missing accum buffer, not an error */
+
+   _mesa_update_draw_buffer_bounds(ctx, ctx->DrawBuffer);
 
    /* bounds, with scissor */
    x = ctx->DrawBuffer->_Xmin;
@@ -397,6 +400,8 @@ accum(struct gl_context *ctx, GLenum op, GLfloat value)
 
    if (!_mesa_check_conditional_render(ctx))
       return;
+
+   _mesa_update_draw_buffer_bounds(ctx, ctx->DrawBuffer);
 
    xpos = ctx->DrawBuffer->_Xmin;
    ypos = ctx->DrawBuffer->_Ymin;

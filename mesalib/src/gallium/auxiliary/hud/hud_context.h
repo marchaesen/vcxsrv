@@ -32,6 +32,7 @@ struct hud_context;
 struct cso_context;
 struct pipe_context;
 struct pipe_resource;
+struct util_queue_monitoring;
 
 struct hud_context *
 hud_create(struct pipe_context *pipe, struct cso_context *cso);
@@ -41,5 +42,9 @@ hud_destroy(struct hud_context *hud);
 
 void
 hud_draw(struct hud_context *hud, struct pipe_resource *tex);
+
+void
+hud_add_queue_for_monitoring(struct hud_context *hud,
+                             struct util_queue_monitoring *queue_info);
 
 #endif

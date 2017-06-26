@@ -155,8 +155,8 @@ xf86PciProbe(void)
         if (xf86IsPrimaryPci(info))
             prim = "*";
 
-        xf86Msg(X_PROBED, "PCI:%s(%u:%u:%u:%u) %04x:%04x:%04x:%04x ", prim,
-                info->domain, info->bus, info->dev, info->func,
+        xf86Msg(X_PROBED, "PCI:%s(%u@%u:%u:%u) %04x:%04x:%04x:%04x ", prim,
+                info->bus, info->domain, info->dev, info->func,
                 info->vendor_id, info->device_id,
                 info->subvendor_id, info->subdevice_id);
 
@@ -859,7 +859,7 @@ xf86MatchPciInstances(const char *driverName, int vendorID,
             if (xf86CheckPciSlot(pPci) && pciDeviceHasBars(pPci)) {
                 xf86MsgVerb(X_WARNING, 0, "%s: No matching Device section "
                             "for instance (BusID PCI:%u@%u:%u:%u) found\n",
-                            driverName, pPci->domain, pPci->bus, pPci->dev,
+                            driverName, pPci->bus, pPci->domain, pPci->dev,
                             pPci->func);
             }
         }
@@ -1464,4 +1464,16 @@ xf86PciConfigureNewDev(void *busData, struct pci_device *pVideo,
 
     if (*chipset < 0)
         *chipset = (pVideo->vendor_id << 16) | pVideo->device_id;
+}
+
+char *
+DRICreatePCIBusID(const struct pci_device *dev)
+{
+    char *busID;
+
+    if (asprintf(&busID, "pci:%04x:%02x:%02x.%d",
+                 dev->domain, dev->bus, dev->dev, dev->func) == -1)
+        return NULL;
+
+    return busID;
 }

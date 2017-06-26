@@ -372,17 +372,17 @@ ir_builder_print_visitor::visit(ir_constant *ir)
          switch (ir->type->base_type) {
          case GLSL_TYPE_UINT:
             if (ir->value.u[i] != 0)
-               print_without_indent("r%04X_data.u[%u] = %u;\n",
+               print_with_indent("r%04X_data.u[%u] = %u;\n",
                                     my_index, i, ir->value.u[i]);
             break;
          case GLSL_TYPE_INT:
             if (ir->value.i[i] != 0)
-               print_without_indent("r%04X_data.i[%u] = %i;\n",
+               print_with_indent("r%04X_data.i[%u] = %i;\n",
                                     my_index, i, ir->value.i[i]);
             break;
          case GLSL_TYPE_FLOAT:
             if (ir->value.u[i] != 0)
-               print_without_indent("r%04X_data.u[%u] = 0x%08x; /* %f */\n",
+               print_with_indent("r%04X_data.u[%u] = 0x%08x; /* %f */\n",
                                     my_index,
                                     i,
                                     ir->value.u[i],
@@ -395,27 +395,27 @@ ir_builder_print_visitor::visit(ir_constant *ir)
 
             memcpy(&v, &ir->value.d[i], sizeof(v));
             if (v != 0)
-               print_without_indent("r%04X_data.u64[%u] = 0x%016" PRIx64 "; /* %g */\n",
+               print_with_indent("r%04X_data.u64[%u] = 0x%016" PRIx64 "; /* %g */\n",
                                     my_index, i, v, ir->value.d[i]);
             break;
          }
          case GLSL_TYPE_UINT64:
             if (ir->value.u64[i] != 0)
-               print_without_indent("r%04X_data.u64[%u] = %" PRIu64 ";\n",
+               print_with_indent("r%04X_data.u64[%u] = %" PRIu64 ";\n",
                                     my_index,
                                     i,
                                     ir->value.u64[i]);
             break;
          case GLSL_TYPE_INT64:
             if (ir->value.i64[i] != 0)
-               print_without_indent("r%04X_data.i64[%u] = %" PRId64 ";\n",
+               print_with_indent("r%04X_data.i64[%u] = %" PRId64 ";\n",
                                     my_index,
                                     i,
                                     ir->value.i64[i]);
             break;
          case GLSL_TYPE_BOOL:
             if (ir->value.u[i] != 0)
-               print_without_indent("r%04X_data.u[%u] = 1;\n", my_index, i);
+               print_with_indent("r%04X_data.u[%u] = 1;\n", my_index, i);
             break;
          default:
             unreachable("Invalid constant type");

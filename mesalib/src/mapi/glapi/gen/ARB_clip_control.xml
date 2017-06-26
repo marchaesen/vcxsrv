@@ -14,7 +14,7 @@
     <enum name="CLIP_ORIGIN" value = "0x935C"/>
     <enum name="CLIP_DEPTH_MODE" value = "0x935D"/>
 
-    <function name="ClipControl">
+    <function name="ClipControl" no_error="true">
         <param name="origin" type="GLenum"/>
         <param name="depth" type="GLenum"/>
         <!-- <glx rop="1340"/> -->

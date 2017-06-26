@@ -47,23 +47,23 @@ struct marshal_cmd_base
    uint16_t cmd_size;
 };
 
-#ifdef HAVE_PTHREAD
-
 static inline void *
 _mesa_glthread_allocate_command(struct gl_context *ctx,
                                 uint16_t cmd_id,
                                 size_t size)
 {
    struct glthread_state *glthread = ctx->GLThread;
+   struct glthread_batch *next = &glthread->batches[glthread->next];
    struct marshal_cmd_base *cmd_base;
    const size_t aligned_size = ALIGN(size, 8);
 
-   if (unlikely(glthread->batch->used + size > MARSHAL_MAX_CMD_SIZE))
+   if (unlikely(next->used + size > MARSHAL_MAX_CMD_SIZE)) {
       _mesa_glthread_flush_batch(ctx);
+      next = &glthread->batches[glthread->next];
+   }
 
-   cmd_base = (struct marshal_cmd_base *)
-      &glthread->batch->buffer[glthread->batch->used];
-   glthread->batch->used += aligned_size;
+   cmd_base = (struct marshal_cmd_base *)&next->buffer[next->used];
+   next->used += aligned_size;
    cmd_base->cmd_id = cmd_id;
    cmd_base->cmd_size = aligned_size;
    return cmd_base;
@@ -93,31 +93,6 @@ _mesa_glthread_is_non_vbo_draw_elements(const struct gl_context *ctx)
 
    return ctx->API != API_OPENGL_CORE && !glthread->element_array_is_vbo;
 }
-
-#else
-
-/* FIXME: dummy functions for non PTHREAD platforms */
-static inline void *
-_mesa_glthread_allocate_command(struct gl_context *ctx,
-                                uint16_t cmd_id,
-                                size_t size)
-{
-   return NULL;
-}
-
-static inline bool
-_mesa_glthread_is_non_vbo_vertex_attrib_pointer(const struct gl_context *ctx)
-{
-   return false;
-}
-
-static inline bool
-_mesa_glthread_is_non_vbo_draw_elements(const struct gl_context *ctx)
-{
-   return false;
-}
-
-#endif
 
 #define DEBUG_MARSHAL_PRINT_CALLS 0
 
@@ -205,6 +180,8 @@ struct marshal_cmd_Flush;
 struct marshal_cmd_BindBuffer;
 struct marshal_cmd_BufferData;
 struct marshal_cmd_BufferSubData;
+struct marshal_cmd_NamedBufferData;
+struct marshal_cmd_NamedBufferSubData;
 struct marshal_cmd_ClearBufferfv;
 
 void
@@ -251,6 +228,22 @@ _mesa_unmarshal_BufferSubData(struct gl_context *ctx,
 void GLAPIENTRY
 _mesa_marshal_BufferSubData(GLenum target, GLintptr offset, GLsizeiptr size,
                             const GLvoid * data);
+
+void
+_mesa_unmarshal_NamedBufferData(struct gl_context *ctx,
+                                const struct marshal_cmd_NamedBufferData *cmd);
+
+void GLAPIENTRY
+_mesa_marshal_NamedBufferData(GLuint buffer, GLsizeiptr size,
+                              const GLvoid * data, GLenum usage);
+
+void
+_mesa_unmarshal_NamedBufferSubData(struct gl_context *ctx,
+                                   const struct marshal_cmd_NamedBufferSubData *cmd);
+
+void GLAPIENTRY
+_mesa_marshal_NamedBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr size,
+                                 const GLvoid * data);
 
 void
 _mesa_unmarshal_ClearBufferfv(struct gl_context *ctx,

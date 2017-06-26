@@ -367,8 +367,7 @@ radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 						     .baseArrayLayer = subresourceRange->baseArrayLayer + layer,
 						     .layerCount = 1,
 					      },
-				     },
-				     cmd_buffer, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+				     });
 
 		VkFramebuffer fb_h;
 		radv_CreateFramebuffer(device_h,

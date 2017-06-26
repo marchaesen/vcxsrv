@@ -151,6 +151,30 @@ TODO: document the other workarounds.
         <application name="Kerbal Space Program (64-bit)" executable="KSP.x86_64">
             <option name="glsl_zero_init" value="true"/>
         </application>
+
+        <application name="Rocket League" executable="RocketLeague">
+            <option name="glsl_correct_derivatives_after_discard" value="true"/>
+        </application>
+
+        <application name="The Witcher 2" executable="witcher2">
+            <option name="glsl_correct_derivatives_after_discard" value="true"/>
+        </application>
+
+        <!-- The GL thread whitelist is below, workarounds are above.
+             Keep it that way. -->
+
+        <application name="Alien Isolation" executable="AlienIsolation">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Civilization 6" executable="Civ6">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="BioShock Infinite" executable="bioshock.i386">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Borderlands 2" executable="Borderlands2">
+            <option name="mesa_glthread" value="true"/>
+        </application>
     </device>
     <!-- vmwgfx doesn't like full buffer swaps and can't sync to vertical retraces.-->
     <device driver="vmwgfx">

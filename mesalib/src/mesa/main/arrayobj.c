@@ -605,14 +605,9 @@ _mesa_IsVertexArray( GLuint id )
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, GL_FALSE);
 
-   if (id == 0)
-      return GL_FALSE;
-
    obj = _mesa_lookup_vao(ctx, id);
-   if (obj == NULL)
-      return GL_FALSE;
 
-   return obj->EverBound;
+   return obj != NULL && obj->EverBound;
 }
 
 

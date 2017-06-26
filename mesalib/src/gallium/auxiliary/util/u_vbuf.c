@@ -366,8 +366,8 @@ void u_vbuf_destroy(struct u_vbuf *mgr)
 {
    struct pipe_screen *screen = mgr->pipe->screen;
    unsigned i;
-   unsigned num_vb = screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
-                                              PIPE_SHADER_CAP_MAX_INPUTS);
+   const unsigned num_vb = screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
+                                                    PIPE_SHADER_CAP_MAX_INPUTS);
 
    mgr->pipe->set_vertex_buffers(mgr->pipe, 0, num_vb, NULL);
 
@@ -416,8 +416,22 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
          unsigned size = vb->stride ? num_vertices * vb->stride
                                     : sizeof(double)*4;
 
-         if (offset+size > vb->buffer.resource->width0) {
+         if (offset + size > vb->buffer.resource->width0) {
+            /* Don't try to map past end of buffer.  This often happens when
+             * we're translating an attribute that's at offset > 0 from the
+             * start of the vertex.  If we'd subtract attrib's offset from
+             * the size, this probably wouldn't happen.
+             */
             size = vb->buffer.resource->width0 - offset;
+
+            /* Also adjust num_vertices.  A common user error is to call
+             * glDrawRangeElements() with incorrect 'end' argument.  The 'end
+             * value should be the max index value, but people often
+             * accidentally add one to this value.  This adjustment avoids
+             * crashing (by reading past the end of a hardware buffer mapping)
+             * when people do that.
+             */
+            num_vertices = (size + vb->stride - 1) / vb->stride;
          }
 
          map = pipe_buffer_map_range(mgr->pipe, vb->buffer.resource, offset, size,
@@ -435,7 +449,7 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
    /* Translate. */
    if (unroll_indices) {
       struct pipe_transfer *transfer = NULL;
-      unsigned offset = info->start * info->index_size;
+      const unsigned offset = info->start * info->index_size;
       uint8_t *map;
 
       /* Create and map the output buffer. */
@@ -555,16 +569,16 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
    struct translate_key key[VB_NUM];
    unsigned elem_index[VB_NUM][PIPE_MAX_ATTRIBS]; /* ... into key.elements */
    unsigned i, type;
-   unsigned incompatible_vb_mask = mgr->incompatible_vb_mask &
-                                   mgr->ve->used_vb_mask;
+   const unsigned incompatible_vb_mask = mgr->incompatible_vb_mask &
+                                         mgr->ve->used_vb_mask;
 
-   int start[VB_NUM] = {
+   const int start[VB_NUM] = {
       start_vertex,           /* VERTEX */
       info->start_instance,   /* INSTANCE */
       0                       /* CONST */
    };
 
-   unsigned num[VB_NUM] = {
+   const unsigned num[VB_NUM] = {
       num_vertices,           /* VERTEX */
       info->instance_count,   /* INSTANCE */
       1                       /* CONST */
@@ -802,7 +816,7 @@ void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
    uint32_t incompatible_vb_mask = 0;
    /* which buffers have a non-zero stride */
    uint32_t nonzero_stride_vb_mask = 0;
-   uint32_t mask = ~(((1ull << count) - 1) << start_slot);
+   const uint32_t mask = ~(((1ull << count) - 1) << start_slot);
 
    /* Zero out the bits we are going to rewrite completely. */
    mgr->user_vb_mask &= mask;
@@ -885,7 +899,7 @@ u_vbuf_upload_buffers(struct u_vbuf *mgr,
 {
    unsigned i;
    unsigned nr_velems = mgr->ve->count;
-   struct pipe_vertex_element *velems =
+   const struct pipe_vertex_element *velems =
          mgr->using_translate ? mgr->fallback_velems : mgr->ve->ve;
    unsigned start_offset[PIPE_MAX_ATTRIBS];
    unsigned end_offset[PIPE_MAX_ATTRIBS];
@@ -893,7 +907,7 @@ u_vbuf_upload_buffers(struct u_vbuf *mgr,
 
    /* Determine how much data needs to be uploaded. */
    for (i = 0; i < nr_velems; i++) {
-      struct pipe_vertex_element *velem = &velems[i];
+      const struct pipe_vertex_element *velem = &velems[i];
       unsigned index = velem->vertex_buffer_index;
       struct pipe_vertex_buffer *vb = &mgr->vertex_buffer[index];
       unsigned instance_div, first, size, index_bit;
@@ -1110,9 +1124,10 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
    int start_vertex, min_index;
    unsigned num_vertices;
    boolean unroll_indices = FALSE;
-   uint32_t used_vb_mask = mgr->ve->used_vb_mask;
+   const uint32_t used_vb_mask = mgr->ve->used_vb_mask;
    uint32_t user_vb_mask = mgr->user_vb_mask & used_vb_mask;
-   uint32_t incompatible_vb_mask = mgr->incompatible_vb_mask & used_vb_mask;
+   const uint32_t incompatible_vb_mask =
+      mgr->incompatible_vb_mask & used_vb_mask;
    struct pipe_draw_info new_info;
 
    /* Normal draw. No fallback and no user buffers. */

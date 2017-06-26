@@ -36,6 +36,7 @@
 #include "main/mtypes.h"
 #include "main/state.h"
 #include "main/samplerobj.h"
+#include "main/stencil.h"
 #include "main/teximage.h"
 #include "program/prog_instruction.h"
 
@@ -1023,7 +1024,7 @@ _swrast_choose_triangle( struct gl_context *ctx )
           ctx->Depth.Test &&
           ctx->Depth.Mask == GL_FALSE &&
           ctx->Depth.Func == GL_LESS &&
-          !ctx->Stencil._Enabled &&
+          !_mesa_stencil_is_enabled(ctx) &&
           depthRb &&
           depthRb->Format == MESA_FORMAT_Z_UNORM16) {
          if (ctx->Color.ColorMask[0][0] == 0 &&
@@ -1041,7 +1042,7 @@ _swrast_choose_triangle( struct gl_context *ctx )
        */
       if (ctx->Texture._EnabledCoordUnits ||
 	  _swrast_use_fragment_program(ctx) ||
-          ctx->ATIFragmentShader._Enabled ||
+          _mesa_ati_fragment_shader_enabled(ctx) ||
           _mesa_need_secondary_color(ctx) ||
           swrast->_FogEnabled) {
          /* Ugh, we do a _lot_ of tests to pick the best textured tri func */
@@ -1070,7 +1071,7 @@ _swrast_choose_triangle( struct gl_context *ctx )
          /* First see if we can use an optimized 2-D texture function */
          if (ctx->Texture._EnabledCoordUnits == 0x1
              && !_swrast_use_fragment_program(ctx)
-             && !ctx->ATIFragmentShader._Enabled
+             && !_mesa_ati_fragment_shader_enabled(ctx)
              && ctx->Texture._MaxEnabledTexImageUnit == 0
              && ctx->Texture.Unit[0]._Current->Target == GL_TEXTURE_2D
              && samp->WrapS == GL_REPEAT

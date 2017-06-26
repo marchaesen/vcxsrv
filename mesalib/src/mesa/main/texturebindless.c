@@ -533,6 +533,20 @@ is_sampler_border_color_valid(struct gl_sampler_object *samp)
 }
 
 GLuint64 GLAPIENTRY
+_mesa_GetTextureHandleARB_no_error(GLuint texture)
+{
+   struct gl_texture_object *texObj;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_texture(ctx, texture);
+   if (!_mesa_is_texture_complete(texObj, &texObj->Sampler))
+      _mesa_test_texobj_completeness(ctx, texObj);
+
+   return get_texture_handle(ctx, texObj, &texObj->Sampler);
+}
+
+GLuint64 GLAPIENTRY
 _mesa_GetTextureHandleARB(GLuint texture)
 {
    struct gl_texture_object *texObj = NULL;
@@ -581,6 +595,23 @@ _mesa_GetTextureHandleARB(GLuint texture)
    }
 
    return get_texture_handle(ctx, texObj, &texObj->Sampler);
+}
+
+GLuint64 GLAPIENTRY
+_mesa_GetTextureSamplerHandleARB_no_error(GLuint texture, GLuint sampler)
+{
+   struct gl_texture_object *texObj;
+   struct gl_sampler_object *sampObj;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_texture(ctx, texture);
+   sampObj = _mesa_lookup_samplerobj(ctx, sampler);
+
+   if (!_mesa_is_texture_complete(texObj, sampObj))
+      _mesa_test_texobj_completeness(ctx, texObj);
+
+   return get_texture_handle(ctx, texObj, sampObj);
 }
 
 GLuint64 GLAPIENTRY
@@ -649,6 +680,17 @@ _mesa_GetTextureSamplerHandleARB(GLuint texture, GLuint sampler)
 }
 
 void GLAPIENTRY
+_mesa_MakeTextureHandleResidentARB_no_error(GLuint64 handle)
+{
+   struct gl_texture_handle_object *texHandleObj;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   texHandleObj = lookup_texture_handle(ctx, handle);
+   make_texture_handle_resident(ctx, texHandleObj, true);
+}
+
+void GLAPIENTRY
 _mesa_MakeTextureHandleResidentARB(GLuint64 handle)
 {
    struct gl_texture_handle_object *texHandleObj;
@@ -684,6 +726,17 @@ _mesa_MakeTextureHandleResidentARB(GLuint64 handle)
 }
 
 void GLAPIENTRY
+_mesa_MakeTextureHandleNonResidentARB_no_error(GLuint64 handle)
+{
+   struct gl_texture_handle_object *texHandleObj;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   texHandleObj = lookup_texture_handle(ctx, handle);
+   make_texture_handle_resident(ctx, texHandleObj, false);
+}
+
+void GLAPIENTRY
 _mesa_MakeTextureHandleNonResidentARB(GLuint64 handle)
 {
    struct gl_texture_handle_object *texHandleObj;
@@ -716,6 +769,21 @@ _mesa_MakeTextureHandleNonResidentARB(GLuint64 handle)
    }
 
    make_texture_handle_resident(ctx, texHandleObj, false);
+}
+
+GLuint64 GLAPIENTRY
+_mesa_GetImageHandleARB_no_error(GLuint texture, GLint level, GLboolean layered,
+                                 GLint layer, GLenum format)
+{
+   struct gl_texture_object *texObj;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_texture(ctx, texture);
+   if (!_mesa_is_texture_complete(texObj, &texObj->Sampler))
+      _mesa_test_texobj_completeness(ctx, texObj);
+
+   return get_image_handle(ctx, texObj, level, layered, layer, format);
 }
 
 GLuint64 GLAPIENTRY
@@ -790,6 +858,17 @@ _mesa_GetImageHandleARB(GLuint texture, GLint level, GLboolean layered,
 }
 
 void GLAPIENTRY
+_mesa_MakeImageHandleResidentARB_no_error(GLuint64 handle, GLenum access)
+{
+   struct gl_image_handle_object *imgHandleObj;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   imgHandleObj = lookup_image_handle(ctx, handle);
+   make_image_handle_resident(ctx, imgHandleObj, access, true);
+}
+
+void GLAPIENTRY
 _mesa_MakeImageHandleResidentARB(GLuint64 handle, GLenum access)
 {
    struct gl_image_handle_object *imgHandleObj;
@@ -834,6 +913,17 @@ _mesa_MakeImageHandleResidentARB(GLuint64 handle, GLenum access)
 }
 
 void GLAPIENTRY
+_mesa_MakeImageHandleNonResidentARB_no_error(GLuint64 handle)
+{
+   struct gl_image_handle_object *imgHandleObj;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   imgHandleObj = lookup_image_handle(ctx, handle);
+   make_image_handle_resident(ctx, imgHandleObj, GL_READ_ONLY, false);
+}
+
+void GLAPIENTRY
 _mesa_MakeImageHandleNonResidentARB(GLuint64 handle)
 {
    struct gl_image_handle_object *imgHandleObj;
@@ -870,6 +960,13 @@ _mesa_MakeImageHandleNonResidentARB(GLuint64 handle)
 }
 
 GLboolean GLAPIENTRY
+_mesa_IsTextureHandleResidentARB_no_error(GLuint64 handle)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   return is_texture_handle_resident(ctx, handle);
+}
+
+GLboolean GLAPIENTRY
 _mesa_IsTextureHandleResidentARB(GLuint64 handle)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -893,6 +990,13 @@ _mesa_IsTextureHandleResidentARB(GLuint64 handle)
    }
 
    return is_texture_handle_resident(ctx, handle);
+}
+
+GLboolean GLAPIENTRY
+_mesa_IsImageHandleResidentARB_no_error(GLuint64 handle)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   return is_image_handle_resident(ctx, handle);
 }
 
 GLboolean GLAPIENTRY

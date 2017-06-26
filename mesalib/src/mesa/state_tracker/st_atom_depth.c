@@ -128,7 +128,7 @@ st_update_depth_stencil_alpha(struct st_context *st)
       dsa->stencil[0].writemask = ctx->Stencil.WriteMask[0] & 0xff;
       sr.ref_value[0] = _mesa_get_stencil_ref(ctx, 0);
 
-      if (ctx->Stencil._TestTwoSide) {
+      if (_mesa_stencil_is_two_sided(ctx)) {
          const GLuint back = ctx->Stencil._BackFace;
          dsa->stencil[1].enabled = 1;
          dsa->stencil[1].func = st_compare_func_to_pipe(ctx->Stencil.Function[back]);

@@ -318,8 +318,7 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 						     .baseArrayLayer = subresourceRange->baseArrayLayer + layer,
 						     .layerCount = 1,
 					     },
-				     },
-				     cmd_buffer, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+				     });
 
 
 		VkFramebuffer fb_h;

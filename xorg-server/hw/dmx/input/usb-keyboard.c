@@ -289,7 +289,8 @@ kbdUSBCtrl(DevicePtr pDev, KeybdCtrl * ctrl)
             led = i;
         event.code = led;
         event.value = ! !(ctrl->leds & (1 << led));
-        write(priv->fd, &event, sizeof(event));
+        if (write(priv->fd, &event, sizeof(event)) != sizeof(event))
+            DebugF("Failed to set LEDs!\n");
     }
 }
 

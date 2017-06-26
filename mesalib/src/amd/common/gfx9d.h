@@ -1345,8 +1345,8 @@
 #define     V_008F14_IMG_DATA_FORMAT_RESERVED_56                    0x38
 #define     V_008F14_IMG_DATA_FORMAT_4_4                            0x39
 #define     V_008F14_IMG_DATA_FORMAT_6_5_5                          0x3A
-#define     V_008F14_IMG_DATA_S8_16                                 0x3B
-#define     V_008F14_IMG_DATA_S8_32                                 0x3C
+#define     V_008F14_IMG_DATA_FORMAT_S8_16                          0x3B
+#define     V_008F14_IMG_DATA_FORMAT_S8_32                          0x3C
 #define     V_008F14_IMG_DATA_FORMAT_8_AS_32                        0x3D
 #define     V_008F14_IMG_DATA_FORMAT_8_AS_32_32                     0x3E
 #define     V_008F14_IMG_DATA_FORMAT_32_AS_32_32_32_32              0x3F

@@ -63,7 +63,8 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/gallium/include
 
 LOCAL_WHOLE_STATIC_LIBRARIES += \
-	libmesa_program
+	libmesa_program \
+	libmesa_git_sha1
 
 LOCAL_STATIC_LIBRARIES += libmesa_nir libmesa_glsl
 

@@ -68,6 +68,12 @@ util_dynarray_fini(struct util_dynarray *buf)
    }
 }
 
+static inline void
+util_dynarray_clear(struct util_dynarray *buf)
+{
+	buf->size = 0;
+}
+
 #define DYN_ARRAY_INITIAL_SIZE 64
 
 /* use util_dynarray_trim to reduce the allocated storage */

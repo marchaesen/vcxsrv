@@ -193,21 +193,11 @@ st_invalidate_state(struct gl_context * ctx)
       /* These set a subset of flags set by _NEW_BUFFERS, so we only have to
        * check them when _NEW_BUFFERS isn't set.
        */
-      if (new_state & (_NEW_DEPTH |
-                       _NEW_STENCIL))
-         st->dirty |= ST_NEW_DSA;
-
       if (new_state & _NEW_PROGRAM)
          st->dirty |= ST_NEW_RASTERIZER;
 
       if (new_state & _NEW_FOG)
          st->dirty |= ST_NEW_FS_STATE;
-
-      if (new_state & _NEW_POLYGONSTIPPLE)
-         st->dirty |= ST_NEW_POLY_STIPPLE;
-
-      if (new_state & _NEW_VIEWPORT)
-         st->dirty |= ST_NEW_VIEWPORT;
 
       if (new_state & _NEW_FRAG_CLAMP) {
          if (st->clamp_frag_color_in_shader)
@@ -217,32 +207,13 @@ st_invalidate_state(struct gl_context * ctx)
       }
    }
 
-   if (new_state & _NEW_MULTISAMPLE) {
-      st->dirty |= ST_NEW_BLEND |
-                   ST_NEW_SAMPLE_MASK |
-                   ST_NEW_SAMPLE_SHADING |
-                   ST_NEW_RASTERIZER |
-                   ST_NEW_FS_STATE;
-   } else {
-      /* These set a subset of flags set by _NEW_MULTISAMPLE, so we only
-       * have to check them when _NEW_MULTISAMPLE isn't set.
-       */
-      if (new_state & (_NEW_LIGHT |
-                       _NEW_LINE |
-                       _NEW_POINT |
-                       _NEW_POLYGON |
-                       _NEW_TRANSFORM))
-         st->dirty |= ST_NEW_RASTERIZER;
-   }
+   if (new_state & (_NEW_LIGHT |
+                    _NEW_POINT))
+      st->dirty |= ST_NEW_RASTERIZER;
 
-   if (new_state & (_NEW_PROJECTION |
-                    _NEW_TRANSFORM) &&
+   if (new_state & _NEW_PROJECTION &&
        st_user_clip_planes_enabled(ctx))
       st->dirty |= ST_NEW_CLIP_STATE;
-
-   if (new_state & _NEW_COLOR)
-      st->dirty |= ST_NEW_BLEND |
-                   ST_NEW_DSA;
 
    if (new_state & _NEW_PIXEL)
       st->dirty |= ST_NEW_PIXEL_TRANSFER;
@@ -272,9 +243,6 @@ st_invalidate_state(struct gl_context * ctx)
          st->dirty |= ST_NEW_FS_STATE;
       }
    }
-
-   if (new_state & _NEW_PROGRAM_CONSTANTS)
-      st->dirty |= st->active_states & ST_NEW_CONSTANTS;
 }
 
 
@@ -515,14 +483,53 @@ static void st_init_driver_flags(struct st_context *st)
    f->NewRasterizerDiscard = ST_NEW_RASTERIZER;
    f->NewUniformBuffer = ST_NEW_UNIFORM_BUFFER;
    f->NewDefaultTessLevels = ST_NEW_TESS_STATE;
+
+   /* Shader resources */
    f->NewTextureBuffer = ST_NEW_SAMPLER_VIEWS;
    f->NewAtomicBuffer = ST_NEW_ATOMIC_BUFFER;
    f->NewShaderStorageBuffer = ST_NEW_STORAGE_BUFFER;
    f->NewImageUnits = ST_NEW_IMAGE_UNITS;
+
+   f->NewShaderConstants[MESA_SHADER_VERTEX] = ST_NEW_VS_CONSTANTS;
+   f->NewShaderConstants[MESA_SHADER_TESS_CTRL] = ST_NEW_TCS_CONSTANTS;
+   f->NewShaderConstants[MESA_SHADER_TESS_EVAL] = ST_NEW_TES_CONSTANTS;
+   f->NewShaderConstants[MESA_SHADER_GEOMETRY] = ST_NEW_GS_CONSTANTS;
+   f->NewShaderConstants[MESA_SHADER_FRAGMENT] = ST_NEW_FS_CONSTANTS;
+   f->NewShaderConstants[MESA_SHADER_COMPUTE] = ST_NEW_CS_CONSTANTS;
+
    f->NewWindowRectangles = ST_NEW_WINDOW_RECTANGLES;
-   f->NewFramebufferSRGB = ST_NEW_FRAMEBUFFER;
+   f->NewFramebufferSRGB = ST_NEW_FB_STATE;
    f->NewScissorRect = ST_NEW_SCISSOR;
    f->NewScissorTest = ST_NEW_SCISSOR | ST_NEW_RASTERIZER;
+   f->NewAlphaTest = ST_NEW_DSA;
+   f->NewBlend = ST_NEW_BLEND;
+   f->NewBlendColor = ST_NEW_BLEND_COLOR;
+   f->NewColorMask = ST_NEW_BLEND;
+   f->NewDepth = ST_NEW_DSA;
+   f->NewLogicOp = ST_NEW_BLEND;
+   f->NewStencil = ST_NEW_DSA;
+   f->NewMultisampleEnable = ST_NEW_BLEND | ST_NEW_RASTERIZER |
+                             ST_NEW_SAMPLE_MASK | ST_NEW_SAMPLE_SHADING;
+   f->NewSampleAlphaToXEnable = ST_NEW_BLEND;
+   f->NewSampleMask = ST_NEW_SAMPLE_MASK;
+   f->NewSampleShading = ST_NEW_SAMPLE_SHADING;
+
+   /* This depends on what the gallium driver wants. */
+   if (st->force_persample_in_shader) {
+      f->NewMultisampleEnable |= ST_NEW_FS_STATE;
+      f->NewSampleShading |= ST_NEW_FS_STATE;
+   } else {
+      f->NewSampleShading |= ST_NEW_RASTERIZER;
+   }
+
+   f->NewClipControl = ST_NEW_VIEWPORT | ST_NEW_RASTERIZER;
+   f->NewClipPlane = ST_NEW_CLIP_STATE;
+   f->NewClipPlaneEnable = ST_NEW_RASTERIZER;
+   f->NewDepthClamp = ST_NEW_RASTERIZER;
+   f->NewLineState = ST_NEW_RASTERIZER;
+   f->NewPolygonState = ST_NEW_RASTERIZER;
+   f->NewPolygonStipple = ST_NEW_POLY_STIPPLE;
+   f->NewViewport = ST_NEW_VIEWPORT;
 }
 
 struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
@@ -622,14 +629,15 @@ st_emit_string_marker(struct gl_context *ctx, const GLchar *string, GLsizei len)
 }
 
 static void
-st_set_background_context(struct gl_context *ctx)
+st_set_background_context(struct gl_context *ctx,
+                          struct util_queue_monitoring *queue_info)
 {
    struct st_context *st = ctx->st;
    struct st_manager *smapi =
       (struct st_manager*)st->iface.st_context_private;
 
    assert(smapi->set_background_context);
-   smapi->set_background_context(&st->iface);
+   smapi->set_background_context(&st->iface, queue_info);
 }
 
 void st_init_driver_functions(struct pipe_screen *screen,

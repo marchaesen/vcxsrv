@@ -149,6 +149,7 @@ struct st_context
       unsigned fb_height;
       unsigned fb_num_samples;
       unsigned fb_num_layers;
+      unsigned num_viewports;
       struct pipe_scissor_state scissor[PIPE_MAX_VIEWPORTS];
       struct pipe_viewport_state viewport[PIPE_MAX_VIEWPORTS];
       struct {
@@ -156,15 +157,11 @@ struct st_context
          boolean include;
          struct pipe_scissor_state rects[PIPE_MAX_WINDOW_RECTANGLES];
       } window_rects;
-      unsigned sample_mask;
 
       GLuint poly_stipple[32];  /**< In OpenGL's bottom-to-top order */
 
       GLuint fb_orientation;
    } state;
-
-   char vendor[100];
-   char renderer[100];
 
    uint64_t dirty; /**< dirty states */
 
@@ -188,11 +185,6 @@ struct st_context
    struct st_compute_program *cp;   /**< Currently bound compute program */
 
    struct st_vp_variant *vp_variant;
-   struct st_fp_variant *fp_variant;
-   struct st_basic_variant *gp_variant;
-   struct st_basic_variant *tcp_variant;
-   struct st_basic_variant *tep_variant;
-   struct st_basic_variant *cp_variant;
 
    struct {
       struct pipe_resource *pixelmap_texture;

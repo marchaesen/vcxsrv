@@ -36,14 +36,17 @@ do
 		continue
 	fi
 
+	# Place every "fixes:" tag on its own line and join with the next word
+	# on its line or a later one.
+	fixes=`git show -s $sha | tr -d "\n" | sed -e 's/fixes:[[:space:]]*/\nfixes:/Ig' | grep "fixes:" | sed -e 's/\(fixes:[a-zA-Z0-9]*\).*$/\1/'`
+
 	# For each one try to extract the tag
-	fixes_count=`git show $sha | grep -i "fixes:" | wc -l`
+	fixes_count=`echo "$fixes" | wc -l`
 	warn=`(test $fixes_count -gt 1 && echo $fixes_count) || echo 0`
 	while [ $fixes_count -gt 0 ] ; do
-		fixes=`git show $sha | grep -i "fixes:" | tail -n $fixes_count`
+		# Treat only the current line
+		id=`echo "$fixes" | tail -n $fixes_count | head -n 1 | cut -d : -f 2`
 		fixes_count=$(($fixes_count-1))
-		# The following sed/cut combination is borrowed from GregKH
-		id=`echo ${fixes} | sed -e 's/^[ \t]*//' | cut -f 2 -d ':' | sed -e 's/^[ \t]*//' | cut -f 1 -d ' '`
 
 		# Bail out if we cannot find suitable id.
 		# Any specific validation the $id is valid and not some junk, is

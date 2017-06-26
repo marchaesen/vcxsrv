@@ -133,15 +133,17 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
       /* Any shader stages that are not supplied by the GLSL shader and have
        * assembly shaders enabled must now be validated.
        */
-      if (!ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX]
-          && ctx->VertexProgram.Enabled && !ctx->VertexProgram._Enabled) {
+      if (!ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX] &&
+          ctx->VertexProgram.Enabled &&
+          !_mesa_arb_vertex_program_enabled(ctx)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(vertex program not valid)", where);
          return GL_FALSE;
       }
 
       if (!ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT]) {
-         if (ctx->FragmentProgram.Enabled && !ctx->FragmentProgram._Enabled) {
+         if (ctx->FragmentProgram.Enabled &&
+             !_mesa_arb_fragment_program_enabled(ctx)) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "%s(fragment program not valid)", where);
             return GL_FALSE;

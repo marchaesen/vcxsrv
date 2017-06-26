@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.1.3 Release Notes / June 19, 2017</h1>
+
+<p>
+Mesa 17.1.3 is a bug fix release which fixes bugs found since the 17.1.2 release.
+</p>
+<p>
+Mesa 17.1.3 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+81ae9127286ff8d631e466d258608d6dea9854fe7bee2e8521da44c7544f01e5  mesa-17.1.3.tar.gz
+5f1ee9a8aea2880f887884df2dea0c16dd1b13eb42fd2e52265db0dc1b380e8c  mesa-17.1.3.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100988">Bug 100988</a> - glXGetCurrentDisplay() no longer works for FakeGLX contexts?</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Bas Nieuwenhuizen (3):</p>
+<ul>
+  <li>radv: Set both compute and graphics SGPRS on descriptor set flush.</li>
+  <li>radv: Dirty all descriptors sets when changing the pipeline.</li>
+  <li>radv: Remove SI num RB override for occlusion queries.</li>
+</ul>
+
+<p>Brian Paul (1):</p>
+<ul>
+  <li>xlib: fix glXGetCurrentDisplay() failure</li>
+</ul>
+
+<p>Chad Versace (1):</p>
+<ul>
+  <li>i965/dri: Fix bad GL error in intel_create_winsys_renderbuffer()</li>
+</ul>
+
+<p>Chuck Atkins (1):</p>
+<ul>
+  <li>configure.ac: Reduce zlib requirement from 1.2.8 to 1.2.3.</li>
+</ul>
+
+<p>Dave Airlie (3):</p>
+<ul>
+  <li>radv: expose integrated device type for APUs.</li>
+  <li>radv: set fmask state to all 0s when no fmask. (v2)</li>
+  <li>glsl/lower_distance: only set max_array_access for 1D clip dist arrays</li>
+</ul>
+
+<p>Emil Velikov (1):</p>
+<ul>
+  <li>Update version to 17.1.3</li>
+</ul>
+
+<p>Grazvydas Ignotas (1):</p>
+<ul>
+  <li>radv: fix trace dumping for !use_ib_bos</li>
+</ul>
+
+<p>Jason Ekstrand (4):</p>
+<ul>
+  <li>i965/blorp: Take a layer range in intel_hiz_exec</li>
+  <li>i965: Move the pre-depth-clear flush/stalls to intel_hiz_exec</li>
+  <li>i965: Perform HiZ flush/stall prior to HiZ resolves</li>
+  <li>i965: Mark depth surfaces as needing a HiZ resolve after blitting</li>
+</ul>
+
+<p>José Fonseca (1):</p>
+<ul>
+  <li>automake: Link all libGL.so variants with -Bsymbolic.</li>
+</ul>
+
+<p>Juan A. Suarez Romero (1):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.1.2</li>
+</ul>
+
+<p>Lucas Stach (1):</p>
+<ul>
+  <li>etnaviv: always do cpu_fini in transfer_unmap</li>
+</ul>
+
+<p>Lyude (1):</p>
+<ul>
+  <li>nvc0: disable BGRA8 images on Fermi</li>
+</ul>
+
+<p>Marek Olšák (3):</p>
+<ul>
+  <li>st/mesa: don't load cached TGSI shaders on demand</li>
+  <li>radeonsi: fix a GPU hang with tessellation on 2-CU configs</li>
+  <li>radeonsi: disable the patch ID workaround on SI when the patch ID isn't used (v2)</li>
+</ul>
+
+<p>Nicolai Hähnle (1):</p>
+<ul>
+  <li>radv: fewer than 8 RBs are possible</li>
+</ul>
+
+<p>Nicolas Dechesne (1):</p>
+<ul>
+  <li>util/rand_xor: add missing include statements</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>egl: fix _eglQuerySurface in EGL_BUFFER_AGE_EXT case</li>
+</ul>
+
+<p>Thomas Hellstrom (1):</p>
+<ul>
+  <li>dri3/GLX: Fix drawable invalidation v2</li>
+</ul>
+
+<p>Tim Rowley (1):</p>
+<ul>
+  <li>swr: relax c++ requirement from c++14 to c++11</li>
+</ul>
+
+
+</div>
+</body>
+</html>

@@ -1170,8 +1170,7 @@ xf86RandR12CrtcSet(ScreenPtr pScreen,
     if ((transform != NULL) != crtc->transformPresent)
         changed = TRUE;
     else if (transform &&
-             memcmp(&transform->transform, &crtc->transform.transform,
-                    sizeof(transform->transform)) != 0)
+             !RRTransformEqual(transform, &crtc->transform))
         changed = TRUE;
 
     if (x != crtc->x || y != crtc->y)

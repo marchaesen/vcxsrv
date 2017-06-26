@@ -325,8 +325,6 @@ extern _X_EXPORT void DRIMoveBuffersHelper(ScreenPtr pScreen,
                                            int dy,
                                            int *xdir, int *ydir, RegionPtr reg);
 
-extern _X_EXPORT char *DRICreatePCIBusID(const struct pci_device *PciInfo);
-
 extern _X_EXPORT int DRIMasterFD(ScrnInfoPtr pScrn);
 
 extern _X_EXPORT void *DRIMasterSareaPointer(ScrnInfoPtr pScrn);

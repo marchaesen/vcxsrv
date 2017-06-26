@@ -53,8 +53,6 @@ LOCAL_C_INCLUDES += $(intermediates)/x86
 endif
 endif
 
-sources += main/git_sha1.h
-
 sources := $(addprefix $(intermediates)/, $(sources))
 
 LOCAL_GENERATED_SOURCES += $(sources)
@@ -70,16 +68,6 @@ define es-gen
 	@echo "Gen ES: $(PRIVATE_MODULE) <= $(notdir $(@))"
 	$(hide) $(PRIVATE_SCRIPT) $(1) $(PRIVATE_XML) > $@
 endef
-
-$(intermediates)/main/git_sha1.h:
-	@mkdir -p $(dir $@)
-	@echo "GIT-SHA1: $(PRIVATE_MODULE) <= git"
-	$(hide) touch $@
-	$(hide) if which git > /dev/null; then \
-			git --git-dir $(PRIVATE_PATH)/../../.git log -n 1 --oneline | \
-			sed 's/^\([^ ]*\) .*/#define MESA_GIT_SHA1 "git-\1"/' \
-			> $@; \
-		fi
 
 matypes_deps := \
 	$(BUILD_OUT_EXECUTABLES)/mesa_gen_matypes$(BUILD_EXECUTABLE_SUFFIX) \

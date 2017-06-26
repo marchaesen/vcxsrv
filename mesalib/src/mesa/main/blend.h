@@ -34,7 +34,9 @@
 
 
 #include "glheader.h"
+#include "context.h"
 #include "formats.h"
+#include "extensions.h"
 
 struct gl_context;
 struct gl_framebuffer;
@@ -135,5 +137,23 @@ _mesa_get_render_format(const struct gl_context *ctx, mesa_format format);
 
 extern void  
 _mesa_init_color( struct gl_context * ctx );
+
+
+static inline void
+_mesa_flush_vertices_for_blend_state(struct gl_context *ctx)
+{
+   /* The advanced blend mode needs _NEW_COLOR to update the state constant,
+    * so we have to set it. This is inefficient.
+    * This should only be done for states that affect the state constant.
+    * It shouldn't be done for other blend states.
+    */
+   if (_mesa_has_KHR_blend_equation_advanced(ctx) ||
+       !ctx->DriverFlags.NewBlend) {
+      FLUSH_VERTICES(ctx, _NEW_COLOR);
+   } else {
+      FLUSH_VERTICES(ctx, 0);
+   }
+   ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
+}
 
 #endif

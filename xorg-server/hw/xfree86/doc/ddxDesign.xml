@@ -145,7 +145,8 @@ following changes:
         purpose is to identify particular cards in a multi-headed
         configuration.  The format of the argument is intentionally
         vague, and may be architecture dependent.  For a PCI bus, it
-        is something like "bus:slot:func".
+        is something like "bus@domain:slot:func". The "@domain" part
+        can be left out for domain 0.
 	      </para></listitem></varlistentry>
 	</variablelist>
       </para>

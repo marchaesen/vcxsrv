@@ -89,7 +89,7 @@ matrix:
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--enable-dri --disable-opencl --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx --disable-gallium-osmesa"
-        - GALLIUM_DRIVERS="i915,nouveau,r300,r600,radeonsi,freedreno,svga,swrast,vc4,virgl,etnaviv,imx"
+        - GALLIUM_DRIVERS="i915,nouveau,pl111,r300,r600,radeonsi,freedreno,svga,swrast,vc4,virgl,etnaviv,imx"
         - VULKAN_DRIVERS=""
       addons:
         apt:

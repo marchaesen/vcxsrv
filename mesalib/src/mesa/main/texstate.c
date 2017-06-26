@@ -38,6 +38,7 @@
 #include "teximage.h"
 #include "texstate.h"
 #include "mtypes.h"
+#include "state.h"
 #include "util/bitscan.h"
 #include "util/bitset.h"
 
@@ -306,8 +307,6 @@ active_texture(GLenum texture, bool no_error)
       }
    }
 
-   FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
-
    ctx->Texture.CurrentUnit = texUnit;
    if (ctx->Transform.MatrixMode == GL_TEXTURE) {
       /* update current stack pointer */
@@ -350,7 +349,7 @@ _mesa_ClientActiveTexture(GLenum texture)
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_ARRAY);
+   /* Don't flush vertices. This is a "latched" state. */
    ctx->Array.ActiveTexture = texUnit;
 }
 
@@ -839,15 +838,10 @@ _mesa_update_texture_state(struct gl_context *ctx)
    int old_max_unit = ctx->Texture._MaxEnabledTexImageUnit;
    BITSET_DECLARE(enabled_texture_units, MAX_COMBINED_TEXTURE_IMAGE_UNITS);
 
-   for (i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (ctx->_Shader->CurrentProgram[i]) {
-         prog[i] = ctx->_Shader->CurrentProgram[i];
-      } else {
-         prog[i] = NULL;
-      }
-   }
+   memcpy(prog, ctx->_Shader->CurrentProgram, sizeof(prog));
 
-   if (prog[MESA_SHADER_FRAGMENT] == NULL && ctx->FragmentProgram._Enabled) {
+   if (prog[MESA_SHADER_FRAGMENT] == NULL &&
+       _mesa_arb_fragment_program_enabled(ctx)) {
       prog[MESA_SHADER_FRAGMENT] = ctx->FragmentProgram.Current;
    }
 

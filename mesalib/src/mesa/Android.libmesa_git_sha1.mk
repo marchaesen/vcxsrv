@@ -1,6 +1,6 @@
-# Copyright 2012 Intel Corporation
-# Copyright (C) 2010-2011 Chia-I Wu <olvaffe@gmail.com>
-# Copyright (C) 2010-2011 LunarG Inc.
+# Mesa 3-D graphics library
+#
+# Copyright (C) 2017 Mauro Rossi <issor.oruam@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -21,53 +21,39 @@
 # DEALINGS IN THE SOFTWARE.
 
 # ----------------------------------------------------------------------
-# libmesa_dricore.a
+# libmesa_git_sha1
 # ----------------------------------------------------------------------
 
 LOCAL_PATH := $(call my-dir)
 
-# Import the following variables:
-#     MESA_FILES
-#     X86_FILES
-include $(LOCAL_PATH)/Makefile.sources
-
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := libmesa_dricore
+LOCAL_MODULE := libmesa_git_sha1
+
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
+intermediates := $(call local-generated-sources-dir)
 
-LOCAL_SRC_FILES := \
-	$(MESA_FILES)
+# dummy.c source file is generated to meet the build system's rules.
+LOCAL_GENERATED_SOURCES += $(intermediates)/dummy.c
 
-ifeq ($(strip $(MESA_ENABLE_ASM)),true)
-ifeq ($(TARGET_ARCH),x86)
-	LOCAL_SRC_FILES += $(X86_FILES)
-endif # x86
-endif # MESA_ENABLE_ASM
+$(intermediates)/dummy.c:
+	@mkdir -p $(dir $@)
+	@echo "Gen Dummy: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) touch $@
 
-ifeq ($(ARCH_X86_HAVE_SSE4_1),true)
-LOCAL_WHOLE_STATIC_LIBRARIES := \
-	libmesa_sse41
-LOCAL_CFLAGS := \
-	-msse4.1 \
-       -DUSE_SSE41
-endif
+LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, git_sha1.h)
 
-LOCAL_C_INCLUDES := \
-	$(MESA_TOP)/src/mapi \
-	$(MESA_TOP)/src/mesa/main \
-	$(MESA_TOP)/src/compiler/nir \
-	$(MESA_TOP)/src/gallium/include \
-	$(MESA_TOP)/src/gallium/auxiliary \
-	$(dir $(MESA_GEN_GLSL_H))
+$(intermediates)/git_sha1.h: $(wildcard $(MESA_TOP)/.git/logs/HEAD)
+	@mkdir -p $(dir $@)
+	@echo "GIT-SHA1: $(PRIVATE_MODULE) <= git"
+	$(hide) touch $@
+	$(hide) if which git > /dev/null; then \
+			git --git-dir $(MESA_TOP)/.git log -n 1 --oneline | \
+			sed 's/^\([^ ]*\) .*/#define MESA_GIT_SHA1 "git-\1"/' \
+			> $@; \
+		fi
 
-LOCAL_GENERATED_SOURCES += \
-	$(MESA_GEN_GLSL_H)
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(intermediates)
 
-LOCAL_WHOLE_STATIC_LIBRARIES += \
-	libmesa_program \
-	libmesa_git_sha1
-
-include $(LOCAL_PATH)/Android.gen.mk
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)

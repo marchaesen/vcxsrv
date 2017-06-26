@@ -859,7 +859,6 @@ radv_meta_end_cleari(struct radv_cmd_buffer *cmd_buffer,
 static void
 create_iview(struct radv_cmd_buffer *cmd_buffer,
              struct radv_meta_blit2d_surf *surf,
-             VkImageUsageFlags usage,
              struct radv_image_view *iview)
 {
 
@@ -876,7 +875,7 @@ create_iview(struct radv_cmd_buffer *cmd_buffer,
 					     .baseArrayLayer = surf->layer,
 					     .layerCount = 1
 				     },
-					     }, cmd_buffer, usage);
+			     });
 }
 
 static void
@@ -962,7 +961,7 @@ radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_device *device = cmd_buffer->device;
 	struct itob_temps temps;
 
-	create_iview(cmd_buffer, src, VK_IMAGE_USAGE_SAMPLED_BIT, &temps.src_iview);
+	create_iview(cmd_buffer, src, &temps.src_iview);
 	create_bview(cmd_buffer, dst->buffer, dst->offset, dst->format, &temps.dst_bview);
 	itob_bind_descriptors(cmd_buffer, &temps);
 
@@ -1048,7 +1047,7 @@ radv_meta_buffer_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 	struct btoi_temps temps;
 
 	create_bview(cmd_buffer, src->buffer, src->offset, src->format, &temps.src_bview);
-	create_iview(cmd_buffer, dst, VK_IMAGE_USAGE_STORAGE_BIT, &temps.dst_iview);
+	create_iview(cmd_buffer, dst, &temps.dst_iview);
 	btoi_bind_descriptors(cmd_buffer, &temps);
 
 	btoi_bind_pipeline(cmd_buffer);
@@ -1138,8 +1137,8 @@ radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_device *device = cmd_buffer->device;
 	struct itoi_temps temps;
 
-	create_iview(cmd_buffer, src, VK_IMAGE_USAGE_SAMPLED_BIT, &temps.src_iview);
-	create_iview(cmd_buffer, dst, VK_IMAGE_USAGE_STORAGE_BIT, &temps.dst_iview);
+	create_iview(cmd_buffer, src, &temps.src_iview);
+	create_iview(cmd_buffer, dst, &temps.dst_iview);
 
 	itoi_bind_descriptors(cmd_buffer, &temps);
 
@@ -1210,7 +1209,7 @@ radv_meta_clear_image_cs(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_device *device = cmd_buffer->device;
 	struct radv_image_view dst_iview;
 
-	create_iview(cmd_buffer, dst, VK_IMAGE_USAGE_STORAGE_BIT, &dst_iview);
+	create_iview(cmd_buffer, dst, &dst_iview);
 	cleari_bind_descriptors(cmd_buffer, &dst_iview);
 
 	cleari_bind_pipeline(cmd_buffer);

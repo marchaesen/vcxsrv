@@ -29,7 +29,63 @@
 #define HUD_PRIVATE_H
 
 #include "pipe/p_context.h"
+#include "pipe/p_state.h"
 #include "util/list.h"
+#include "hud/font.h"
+
+enum hud_counter {
+   HUD_COUNTER_OFFLOADED,
+   HUD_COUNTER_DIRECT,
+   HUD_COUNTER_SYNCS,
+};
+
+struct hud_context {
+   struct pipe_context *pipe;
+   struct cso_context *cso;
+
+   struct hud_batch_query_context *batch_query;
+   struct list_head pane_list;
+
+   struct util_queue_monitoring *monitored_queue;
+
+   /* states */
+   struct pipe_blend_state no_blend, alpha_blend;
+   struct pipe_depth_stencil_alpha_state dsa;
+   void *fs_color, *fs_text;
+   struct pipe_rasterizer_state rasterizer, rasterizer_aa_lines;
+   void *vs;
+   struct pipe_vertex_element velems[2];
+
+   /* font */
+   struct util_font font;
+   struct pipe_sampler_view *font_sampler_view;
+   struct pipe_sampler_state font_sampler_state;
+
+   /* VS constant buffer */
+   struct {
+      float color[4];
+      float two_div_fb_width;
+      float two_div_fb_height;
+      float translate[2];
+      float scale[2];
+      float padding[2];
+   } constants;
+   struct pipe_constant_buffer constbuf;
+
+   unsigned fb_width, fb_height;
+
+   /* vertices for text and background drawing are accumulated here and then
+    * drawn all at once */
+   struct vertex_queue {
+      float *vertices;
+      struct pipe_vertex_buffer vbuf;
+      unsigned max_num_vertices;
+      unsigned num_vertices;
+      unsigned buffer_size;
+   } text, bg, whitelines, color_prims;
+
+   bool has_srgb;
+};
 
 struct hud_graph {
    /* initialized by common code */
@@ -54,6 +110,7 @@ struct hud_graph {
 
 struct hud_pane {
    struct list_head head;
+   struct hud_context *hud;
    unsigned x1, y1, x2, y2;
    unsigned inner_x1;
    unsigned inner_y1;
@@ -93,7 +150,9 @@ int hud_get_num_cpus(void);
 
 void hud_fps_graph_install(struct hud_pane *pane);
 void hud_cpu_graph_install(struct hud_pane *pane, unsigned cpu_index);
-void hud_api_thread_busy_install(struct hud_pane *pane);
+void hud_thread_busy_install(struct hud_pane *pane, const char *name, bool main);
+void hud_thread_counter_install(struct hud_pane *pane, const char *name,
+                                enum hud_counter counter);
 void hud_pipe_query_install(struct hud_batch_query_context **pbq,
                             struct hud_pane *pane, struct pipe_context *pipe,
                             const char *name, unsigned query_type,

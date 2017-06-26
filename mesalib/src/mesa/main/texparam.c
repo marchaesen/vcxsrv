@@ -157,11 +157,9 @@ get_texobj_by_name(struct gl_context *ctx, GLuint texture, const char *name)
 {
    struct gl_texture_object *texObj;
 
-   texObj = _mesa_lookup_texture(ctx, texture);
-   if (!texObj) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(texture)", name);
+   texObj = _mesa_lookup_texture_err(ctx, texture, name);
+   if (!texObj)
       return NULL;
-   }
 
    switch (texObj->Target) {
    case GL_TEXTURE_1D:
