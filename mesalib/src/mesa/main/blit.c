@@ -349,18 +349,18 @@ blit_framebuffer(struct gl_context *ctx,
 {
    FLUSH_VERTICES(ctx, 0);
 
-   /* Update completeness status of readFb and drawFb. */
-   _mesa_update_framebuffer(ctx, readFb, drawFb);
-
-   /* Make sure drawFb has an initialized bounding box. */
-   _mesa_update_draw_buffer_bounds(ctx, drawFb);
-
    if (!readFb || !drawFb) {
       /* This will normally never happen but someday we may want to
        * support MakeCurrent() with no drawables.
        */
       return;
    }
+
+   /* Update completeness status of readFb and drawFb. */
+   _mesa_update_framebuffer(ctx, readFb, drawFb);
+
+   /* Make sure drawFb has an initialized bounding box. */
+   _mesa_update_draw_buffer_bounds(ctx, drawFb);
 
    if (!no_error) {
       const GLbitfield legalMaskBits = (GL_COLOR_BUFFER_BIT |

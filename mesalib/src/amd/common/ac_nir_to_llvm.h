@@ -41,10 +41,12 @@ struct ac_vs_variant_key {
 	uint32_t instance_rate_inputs;
 	uint32_t as_es:1;
 	uint32_t as_ls:1;
+	uint32_t export_prim_id:1;
 };
 
 struct ac_tes_variant_key {
 	uint32_t as_es:1;
+	uint32_t export_prim_id:1;
 };
 
 struct ac_tcs_variant_key {
@@ -128,6 +130,7 @@ struct ac_vs_output_info {
 	bool writes_pointsize;
 	bool writes_layer;
 	bool writes_viewport_index;
+	bool export_prim_id;
 	uint32_t export_mask;
 	unsigned pos_exports;
 };
@@ -178,6 +181,7 @@ struct ac_shader_variant_info {
 			unsigned invocations;
 			unsigned gsvs_vertex_size;
 			unsigned max_gsvs_emit_size;
+			bool uses_prim_id;
 		} gs;
 		struct {
 			bool uses_prim_id;

@@ -53,26 +53,19 @@
 #define __GLX_GET_DOUBLE(dst,src)	(dst) = *((GLdouble*)(src))
 #endif
 
-extern void __glXMemInit(void);
-
-extern xGLXSingleReply __glXReply;
-
 #define __GLX_BEGIN_REPLY(size) \
-  	__glXReply.length = __GLX_PAD(size) >> 2;	\
-  	__glXReply.type = X_Reply; 			\
-  	__glXReply.sequenceNumber = client->sequence;
+	reply.length = __GLX_PAD(size) >> 2;	\
+	reply.type = X_Reply; 			\
+	reply.sequenceNumber = client->sequence;
 
 #define __GLX_SEND_HEADER() \
-	WriteToClient (client, sz_xGLXSingleReply, &__glXReply);
+	WriteToClient (client, sz_xGLXSingleReply, &reply);
 
 #define __GLX_PUT_RETVAL(a) \
-  	__glXReply.retval = (a);
+	reply.retval = (a);
 
 #define __GLX_PUT_SIZE(a) \
-  	__glXReply.size = (a);
-
-#define __GLX_PUT_RENDERMODE(m) \
-        __glXReply.pad3 = (m)
+	reply.size = (a);
 
 /*
 ** Get a buffer to hold returned data, with the given alignment.  If we have
@@ -100,21 +93,6 @@ extern xGLXSingleReply __glXReply;
     } else {								 \
 	res = (char *)answerBuffer;					 \
     }
-
-#define __GLX_PUT_BYTE() \
-  	*(GLbyte *)&__glXReply.pad3 = *(GLbyte *)answer
-
-#define __GLX_PUT_SHORT() \
-  	*(GLshort *)&__glXReply.pad3 = *(GLshort *)answer
-
-#define __GLX_PUT_INT() \
-  	*(GLint *)&__glXReply.pad3 = *(GLint *)answer
-
-#define __GLX_PUT_FLOAT() \
-  	*(GLfloat *)&__glXReply.pad3 = *(GLfloat *)answer
-
-#define __GLX_PUT_DOUBLE() \
-  	*(GLdouble *)&__glXReply.pad3 = *(GLdouble *)answer
 
 #define __GLX_SEND_BYTE_ARRAY(len) \
 	WriteToClient(client, __GLX_PAD((len)*__GLX_SIZE_INT8), answer)
@@ -216,13 +194,13 @@ extern xGLXSingleReply __glXReply;
 	}
 
 #define __GLX_SWAP_REPLY_HEADER() \
-  	__GLX_SWAP_SHORT(&__glXReply.sequenceNumber); \
-  	__GLX_SWAP_INT(&__glXReply.length);
+	__GLX_SWAP_SHORT(&reply.sequenceNumber); \
+	__GLX_SWAP_INT(&reply.length);
 
 #define __GLX_SWAP_REPLY_RETVAL() \
-  	__GLX_SWAP_INT(&__glXReply.retval)
+	__GLX_SWAP_INT(&reply.retval)
 
 #define __GLX_SWAP_REPLY_SIZE() \
-  	__GLX_SWAP_INT(&__glXReply.size)
+	__GLX_SWAP_INT(&reply.size)
 
 #endif                          /* !__GLX_unpack_h__ */

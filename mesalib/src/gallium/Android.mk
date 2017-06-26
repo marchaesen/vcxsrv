@@ -37,6 +37,7 @@ SUBDIRS += winsys/sw/dri drivers/softpipe
 SUBDIRS += winsys/freedreno/drm drivers/freedreno
 SUBDIRS += winsys/i915/drm drivers/i915
 SUBDIRS += winsys/nouveau/drm drivers/nouveau
+SUBDIRS += winsys/pl111/drm drivers/pl111
 SUBDIRS += winsys/radeon/drm drivers/r300
 SUBDIRS += winsys/radeon/drm drivers/r600 drivers/radeon
 SUBDIRS += winsys/radeon/drm winsys/amdgpu/drm drivers/radeonsi drivers/radeon

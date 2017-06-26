@@ -259,7 +259,8 @@ _mesa_BlendFuncSeparate( GLenum sfactorRGB, GLenum dfactorRGB,
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewBlend ? 0 : _NEW_COLOR);
+   ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
 
    for (buf = 0; buf < numBuffers; buf++) {
       ctx->Color.Blend[buf].SrcRGB = sfactorRGB;
@@ -331,7 +332,8 @@ blend_func_separatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB,
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewBlend ? 0 : _NEW_COLOR);
+   ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
 
    ctx->Color.Blend[buf].SrcRGB = sfactorRGB;
    ctx->Color.Blend[buf].DstRGB = dfactorRGB;
@@ -477,7 +479,7 @@ _mesa_BlendEquation( GLenum mode )
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   _mesa_flush_vertices_for_blend_state(ctx);
 
    for (buf = 0; buf < numBuffers; buf++) {
       ctx->Color.Blend[buf].EquationRGB = mode;
@@ -519,7 +521,7 @@ _mesa_BlendEquationiARB(GLuint buf, GLenum mode)
        ctx->Color.Blend[buf].EquationA == mode)
       return;  /* no change */
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   _mesa_flush_vertices_for_blend_state(ctx);
    ctx->Color.Blend[buf].EquationRGB = mode;
    ctx->Color.Blend[buf].EquationA = mode;
    ctx->Color._BlendEquationPerBuffer = GL_TRUE;
@@ -585,7 +587,7 @@ _mesa_BlendEquationSeparate( GLenum modeRGB, GLenum modeA )
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   _mesa_flush_vertices_for_blend_state(ctx);
 
    for (buf = 0; buf < numBuffers; buf++) {
       ctx->Color.Blend[buf].EquationRGB = modeRGB;
@@ -607,7 +609,7 @@ blend_equation_separatei(struct gl_context *ctx, GLuint buf, GLenum modeRGB,
        ctx->Color.Blend[buf].EquationA == modeA)
       return;  /* no change */
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   _mesa_flush_vertices_for_blend_state(ctx);
    ctx->Color.Blend[buf].EquationRGB = modeRGB;
    ctx->Color.Blend[buf].EquationA = modeA;
    ctx->Color._BlendEquationPerBuffer = GL_TRUE;
@@ -691,7 +693,8 @@ _mesa_BlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
    if (TEST_EQ_4V(tmp, ctx->Color.BlendColorUnclamped))
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewBlendColor ? 0 : _NEW_COLOR);
+   ctx->NewDriverState |= ctx->DriverFlags.NewBlendColor;
    COPY_4FV( ctx->Color.BlendColorUnclamped, tmp );
 
    ctx->Color.BlendColor[0] = CLAMP(tmp[0], 0.0F, 1.0F);
@@ -735,7 +738,8 @@ _mesa_AlphaFunc( GLenum func, GLclampf ref )
    case GL_NOTEQUAL:
    case GL_GEQUAL:
    case GL_ALWAYS:
-      FLUSH_VERTICES(ctx, _NEW_COLOR);
+      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewAlphaTest ? 0 : _NEW_COLOR);
+      ctx->NewDriverState |= ctx->DriverFlags.NewAlphaTest;
       ctx->Color.AlphaFunc = func;
       ctx->Color.AlphaRefUnclamped = ref;
       ctx->Color.AlphaRef = CLAMP(ref, 0.0F, 1.0F);
@@ -795,7 +799,8 @@ _mesa_LogicOp( GLenum opcode )
    if (ctx->Color.LogicOp == opcode)
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewLogicOp ? 0 : _NEW_COLOR);
+   ctx->NewDriverState |= ctx->DriverFlags.NewLogicOp;
    ctx->Color.LogicOp = opcode;
 
    if (ctx->Driver.LogicOpcode)
@@ -811,7 +816,8 @@ _mesa_IndexMask( GLuint mask )
    if (ctx->Color.IndexMask == mask)
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR);
+   ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
    ctx->Color.IndexMask = mask;
 }
 
@@ -855,7 +861,8 @@ _mesa_ColorMask( GLboolean red, GLboolean green,
    for (i = 0; i < ctx->Const.MaxDrawBuffers; i++) {
       if (!TEST_EQ_4V(tmp, ctx->Color.ColorMask[i])) {
          if (!flushed) {
-            FLUSH_VERTICES(ctx, _NEW_COLOR);
+            FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR);
+            ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
          }
          flushed = GL_TRUE;
          COPY_4UBV(ctx->Color.ColorMask[i], tmp);
@@ -897,7 +904,8 @@ _mesa_ColorMaski( GLuint buf, GLboolean red, GLboolean green,
    if (TEST_EQ_4V(tmp, ctx->Color.ColorMask[buf]))
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR);
+   ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
    COPY_4UBV(ctx->Color.ColorMask[buf], tmp);
 }
 

@@ -260,6 +260,28 @@ if libdrm_dep.found()
   build_modesetting = libdrm_dep.version().version_compare('>= 2.4.46')
 endif
 
+build_vbe = false
+if get_option('vbe') == 'auto'
+    if (host_machine.system() != 'darwin' and
+        host_machine.system() != 'windows' and
+        host_machine.system() != 'cygwin')
+        build_vbe = true
+    endif
+else
+    build_vbe = get_option('vbe') == 'yes'
+endif
+
+build_vgahw = false
+if get_option('vgahw') == 'auto'
+    if (host_machine.system() != 'darwin' and
+        host_machine.system() != 'windows' and
+        host_machine.system() != 'cygwin')
+        build_vgahw = true
+    endif
+else
+    build_vgahw = get_option('vgahw') == 'yes'
+endif
+
 # XXX: Allow configuration of these.
 build_apm = false
 build_acpi = false
@@ -267,8 +289,6 @@ build_dpms = true
 build_mitshm = true
 build_res = true
 build_screensaver = true
-build_vbe = true
-build_vgahw = true
 build_xace = true
 build_xsecurity = true
 build_xf86bigfont = true

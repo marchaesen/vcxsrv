@@ -288,6 +288,20 @@ struct vtn_variable {
    nir_variable *var;
    nir_variable **members;
 
+   /**
+    * In some early released versions of GLSLang, it implemented all function
+    * calls by making copies of all parameters into temporary variables and
+    * passing those variables into the function.  It even did so for samplers
+    * and images which violates the SPIR-V spec.  Unfortunately, two games
+    * (Talos Principle and Doom) shipped with this old version of GLSLang and
+    * also happen to pass samplers into functions.  Talos Principle received
+    * an update fairly shortly after release with an updated GLSLang.  Doom,
+    * on the other hand, has never received an update so we need to work
+    * around this GLSLang issue in SPIR-V -> NIR.  Hopefully, we can drop this
+    * hack at some point in the future.
+    */
+   struct vtn_access_chain *copy_prop_sampler;
+
    struct vtn_access_chain chain;
 };
 

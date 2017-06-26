@@ -3978,6 +3978,8 @@ glsl_to_tgsi_visitor::visit_generic_intrinsic(ir_call *ir, unsigned op)
    ir->return_deref->accept(this);
    st_dst_reg dst = st_dst_reg(this->result);
 
+   dst.writemask = u_bit_consecutive(0, ir->return_deref->var->type->vector_elements);
+
    st_src_reg src[4] = { undef_src, undef_src, undef_src, undef_src };
    unsigned num_src = 0;
    foreach_in_list(ir_rvalue, param, &ir->actual_parameters) {

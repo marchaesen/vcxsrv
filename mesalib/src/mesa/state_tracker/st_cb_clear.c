@@ -36,6 +36,7 @@
 #include "main/glheader.h"
 #include "main/accum.h"
 #include "main/formats.h"
+#include "main/framebuffer.h"
 #include "main/macros.h"
 #include "main/glformats.h"
 #include "program/prog_instruction.h"
@@ -179,6 +180,9 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
    const struct gl_framebuffer *fb = ctx->DrawBuffer;
    const GLfloat fb_width = (GLfloat) fb->Width;
    const GLfloat fb_height = (GLfloat) fb->Height;
+
+   _mesa_update_draw_buffer_bounds(ctx, ctx->DrawBuffer);
+
    const GLfloat x0 = (GLfloat) ctx->DrawBuffer->_Xmin / fb_width * 2.0f - 1.0f;
    const GLfloat x1 = (GLfloat) ctx->DrawBuffer->_Xmax / fb_width * 2.0f - 1.0f;
    const GLfloat y0 = (GLfloat) ctx->DrawBuffer->_Ymin / fb_height * 2.0f - 1.0f;

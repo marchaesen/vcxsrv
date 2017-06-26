@@ -29,19 +29,19 @@
     <enum name="PROVOKING_VERTEX" value="0x8E4F"/>
     <enum name="UNDEFINED_VERTEX" value="0x8260"/>
 
-    <function name="ViewportArrayv">
+    <function name="ViewportArrayv" no_error="true">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="v" type="const GLfloat *" count="count" count_scale="4"/>
     </function>
-    <function name="ViewportIndexedf">
+    <function name="ViewportIndexedf" no_error="true">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="w" type="GLfloat"/>
         <param name="h" type="GLfloat"/>
     </function>
-    <function name="ViewportIndexedfv">
+    <function name="ViewportIndexedfv" no_error="true">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *" count="4"/>
     </function>

@@ -232,6 +232,7 @@ __glXDisp_Finish(__GLXclientState * cl, GLbyte * pc)
     ClientPtr client = cl->client;
     __GLXcontext *cx;
     int error;
+    xGLXSingleReply reply = { 0, };
 
     REQUEST_SIZE_MATCH(xGLXSingleReq);
 
@@ -328,6 +329,7 @@ DoGetString(__GLXclientState * cl, GLbyte * pc, GLboolean need_swap)
     __GLXcontext *cx;
     GLenum name;
     const char *string;
+    xGLXSingleReply reply = { 0, };
 
     __GLX_DECLARE_SWAP_VARIABLES;
     int error;

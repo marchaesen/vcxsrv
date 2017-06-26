@@ -47,7 +47,8 @@ _mesa_SampleCoverage(GLclampf value, GLboolean invert)
        ctx->Multisample.SampleCoverageValue == value)
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_MULTISAMPLE);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleMask ? 0 : _NEW_MULTISAMPLE);
+   ctx->NewDriverState |= ctx->DriverFlags.NewSampleMask;
    ctx->Multisample.SampleCoverageValue = value;
    ctx->Multisample.SampleCoverageInvert = invert;
 }
@@ -122,7 +123,8 @@ _mesa_SampleMaski(GLuint index, GLbitfield mask)
    if (ctx->Multisample.SampleMaskValue == mask)
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_MULTISAMPLE);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleMask ? 0 : _NEW_MULTISAMPLE);
+   ctx->NewDriverState |= ctx->DriverFlags.NewSampleMask;
    ctx->Multisample.SampleMaskValue = mask;
 }
 
@@ -145,7 +147,9 @@ _mesa_MinSampleShading(GLclampf value)
    if (ctx->Multisample.MinSampleShadingValue == value)
       return;
 
-   FLUSH_VERTICES(ctx, _NEW_MULTISAMPLE);
+   FLUSH_VERTICES(ctx,
+                  ctx->DriverFlags.NewSampleShading ? 0 : _NEW_MULTISAMPLE);
+   ctx->NewDriverState |= ctx->DriverFlags.NewSampleShading;
    ctx->Multisample.MinSampleShadingValue = value;
 }
 

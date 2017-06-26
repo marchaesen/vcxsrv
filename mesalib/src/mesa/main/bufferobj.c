@@ -1579,7 +1579,7 @@ buffer_storage(struct gl_context *ctx, struct gl_buffer_object *bufObj,
    /* Unmap the existing buffer.  We'll replace it now.  Not an error. */
    _mesa_buffer_unmap_all_mappings(ctx, bufObj);
 
-   FLUSH_VERTICES(ctx, _NEW_BUFFER_OBJECT);
+   FLUSH_VERTICES(ctx, 0);
 
    bufObj->Written = GL_TRUE;
    bufObj->Immutable = GL_TRUE;
@@ -1734,7 +1734,7 @@ _mesa_buffer_data(struct gl_context *ctx, struct gl_buffer_object *bufObj,
    /* Unmap the existing buffer.  We'll replace it now.  Not an error. */
    _mesa_buffer_unmap_all_mappings(ctx, bufObj);
 
-   FLUSH_VERTICES(ctx, _NEW_BUFFER_OBJECT);
+   FLUSH_VERTICES(ctx, 0);
 
    bufObj->Written = GL_TRUE;
    bufObj->MinMaxCacheDirty = true;

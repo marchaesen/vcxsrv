@@ -61,14 +61,14 @@
       <param name="flags" type="GLbitfield" />
    </function>
 
-   <function name="NamedBufferData">
+   <function name="NamedBufferData" marshal="custom">
       <param name="buffer" type="GLuint" />
       <param name="size" type="GLsizeiptr" />
       <param name="data" type="const GLvoid *" />
       <param name="usage" type="GLenum" />
    </function>
 
-   <function name="NamedBufferSubData" no_error="true">
+   <function name="NamedBufferSubData" no_error="true" marshal="custom">
       <param name="buffer" type="GLuint" />
       <param name="offset" type="GLintptr" />
       <param name="size" type="GLsizeiptr" />

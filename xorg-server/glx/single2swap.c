@@ -252,6 +252,7 @@ __glXDispSwap_Finish(__GLXclientState * cl, GLbyte * pc)
     ClientPtr client = cl->client;
     __GLXcontext *cx;
     int error;
+    xGLXSingleReply reply = { 0, };
 
     __GLX_DECLARE_SWAP_VARIABLES;
 

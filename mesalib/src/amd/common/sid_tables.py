@@ -110,7 +110,7 @@ class IntTable:
         [static] const typename name[] = { ... };
         to filp.
         """
-        idxs = sorted(self.idxs) + [-1]
+        idxs = sorted(self.idxs) + [len(self.table)]
 
         fragments = [
             ('\t/* %s */ %s' % (

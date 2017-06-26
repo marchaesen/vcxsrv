@@ -28,8 +28,8 @@ git_sha1.h.tmp:
 	@touch git_sha1.h.tmp
 	@if test -e $(top_srcdir)/.git; then \
 		if which git > /dev/null; then \
-		    git --git-dir=$(top_srcdir)/.git log -n 1 --oneline | \
-			sed 's/^\([^ ]*\) .*/#define MESA_GIT_SHA1 "git-\1"/' \
+			printf '#define MESA_GIT_SHA1 "git-%s"\n' \
+			`git --git-dir=$(top_srcdir)/.git rev-parse --short=10 HEAD` \
 			> git_sha1.h.tmp ; \
 		fi \
 	fi

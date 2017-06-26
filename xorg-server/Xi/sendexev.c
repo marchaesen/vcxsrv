@@ -78,7 +78,7 @@ SProcXSendExtensionEvent(ClientPtr client)
 {
     CARD32 *p;
     int i;
-    xEvent eventT;
+    xEvent eventT = { .u.u.type = 0 };
     xEvent *eventP;
     EventSwapPtr proc;
 
@@ -95,9 +95,17 @@ SProcXSendExtensionEvent(ClientPtr client)
 
     eventP = (xEvent *) &stuff[1];
     for (i = 0; i < stuff->num_events; i++, eventP++) {
-        proc = EventSwapVector[eventP->u.u.type & 0177];
-        if (proc == NotImplemented)     /* no swapping proc; invalid event type? */
+        if (eventP->u.u.type == GenericEvent) {
+            client->errorValue = eventP->u.u.type;
             return BadValue;
+        }
+
+        proc = EventSwapVector[eventP->u.u.type & 0177];
+        /* no swapping proc; invalid event type? */
+        if (proc == NotImplemented) {
+            client->errorValue = eventP->u.u.type;
+            return BadValue;
+        }
         (*proc) (eventP, &eventT);
         *eventP = eventT;
     }
@@ -117,7 +125,7 @@ SProcXSendExtensionEvent(ClientPtr client)
 int
 ProcXSendExtensionEvent(ClientPtr client)
 {
-    int ret;
+    int ret, i;
     DeviceIntPtr dev;
     xEvent *first;
     XEventClass *list;
@@ -141,10 +149,12 @@ ProcXSendExtensionEvent(ClientPtr client)
     /* The client's event type must be one defined by an extension. */
 
     first = ((xEvent *) &stuff[1]);
-    if (!((EXTENSION_EVENT_BASE <= first->u.u.type) &&
-          (first->u.u.type < lastEvent))) {
-        client->errorValue = first->u.u.type;
-        return BadValue;
+    for (i = 0; i < stuff->num_events; i++) {
+        if (!((EXTENSION_EVENT_BASE <= first[i].u.u.type) &&
+            (first[i].u.u.type < lastEvent))) {
+            client->errorValue = first[i].u.u.type;
+            return BadValue;
+        }
     }
 
     list = (XEventClass *) (first + stuff->num_events);

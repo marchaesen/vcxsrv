@@ -37,6 +37,7 @@ struct gl_context;
 struct gl_texture_object;
 struct pipe_context;
 struct st_context;
+struct st_texture_object;
 
 extern enum pipe_texture_target
 gl_target_to_pipe(GLenum target);

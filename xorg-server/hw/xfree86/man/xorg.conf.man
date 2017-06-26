@@ -1376,10 +1376,10 @@ For PCI/AGP cards,
 the
 .I bus\-id
 string has the form
-.BI PCI: bus : device : function
-(e.g., \(lqPCI:1:0:0\(rq might be appropriate for an AGP card).
-This field is usually optional in single-head configurations when using
-the primary graphics card.
+.BI PCI: bus @ domain : device : function
+(e.g., \(lqPCI:1@0:0:0\(rq might be appropriate for an AGP card). The
+"@domain" part can be left out for PCI domain 0. This field is usually
+optional in single-head configurations when using the primary graphics card.
 In multi-head configurations, or when using a secondary graphics card in a
 single-head configuration, this entry is mandatory.
 Its main purpose is to make an unambiguous connection between the device

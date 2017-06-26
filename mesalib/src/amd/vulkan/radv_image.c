@@ -837,9 +837,7 @@ radv_image_create(VkDevice _device,
 void
 radv_image_view_init(struct radv_image_view *iview,
 		     struct radv_device *device,
-		     const VkImageViewCreateInfo* pCreateInfo,
-		     struct radv_cmd_buffer *cmd_buffer,
-		     VkImageUsageFlags usage_mask)
+		     const VkImageViewCreateInfo* pCreateInfo)
 {
 	RADV_FROM_HANDLE(radv_image, image, pCreateInfo->image);
 	const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
@@ -1013,7 +1011,7 @@ radv_CreateImageView(VkDevice _device,
 	if (view == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
-	radv_image_view_init(view, device, pCreateInfo, NULL, ~0);
+	radv_image_view_init(view, device, pCreateInfo);
 
 	*pView = radv_image_view_to_handle(view);
 

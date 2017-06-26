@@ -58,7 +58,7 @@ static void TAG(triangle)(struct gl_context *ctx, GLuint e0, GLuint e1, GLuint e
 
       if (IND & (SS_TWOSIDE_BIT | SS_UNFILLED_BIT))
       {
-	 facing = (cc < 0.0F) ^ ctx->Polygon._FrontBit;
+	 facing = (cc < 0.0F) ^ _mesa_polygon_get_front_bit(ctx);
 
 	 if (IND & SS_UNFILLED_BIT)
 	    mode = facing ? ctx->Polygon.BackMode : ctx->Polygon.FrontMode;

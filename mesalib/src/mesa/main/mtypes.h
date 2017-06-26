@@ -803,7 +803,6 @@ struct gl_polygon_attrib
    GLenum FrontFace;		/**< Either GL_CW or GL_CCW */
    GLenum FrontMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
    GLenum BackMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
-   GLboolean _FrontBit;		/**< 0=GL_CCW, 1=GL_CW */
    GLboolean CullFlag;		/**< Culling on/off flag */
    GLboolean SmoothFlag;	/**< True if GL_POLYGON_SMOOTH is enabled */
    GLboolean StippleFlag;	/**< True if GL_POLYGON_STIPPLE is enabled */
@@ -856,9 +855,6 @@ struct gl_stencil_attrib
    GLboolean Enabled;		/**< Enabled flag */
    GLboolean TestTwoSide;	/**< GL_EXT_stencil_two_side */
    GLubyte ActiveFace;		/**< GL_EXT_stencil_two_side (0 or 2) */
-   GLboolean _Enabled;          /**< Enabled and stencil buffer present */
-   GLboolean _WriteEnabled;     /**< _Enabled and non-zero writemasks */
-   GLboolean _TestTwoSide;
    GLubyte _BackFace;           /**< Current back stencil state (1 or 2) */
    GLenum Function[3];		/**< Stencil function */
    GLenum FailFunc[3];		/**< Fail function */
@@ -2255,11 +2251,8 @@ struct gl_program_state
 struct gl_vertex_program_state
 {
    GLboolean Enabled;            /**< User-set GL_VERTEX_PROGRAM_ARB/NV flag */
-   GLboolean _Enabled;           /**< Enabled and _valid_ user program? */
    GLboolean PointSizeEnabled;   /**< GL_VERTEX_PROGRAM_POINT_SIZE_ARB/NV */
    GLboolean TwoSideEnabled;     /**< GL_VERTEX_PROGRAM_TWO_SIDE_ARB/NV */
-   /** Computed two sided lighting for fixed function/programs. */
-   GLboolean _TwoSideEnabled;
    struct gl_program *Current;  /**< User-bound vertex program */
 
    /** Currently enabled and valid vertex program (including internal
@@ -2321,7 +2314,6 @@ struct gl_geometry_program_state
 struct gl_fragment_program_state
 {
    GLboolean Enabled;     /**< User-set fragment program enable flag */
-   GLboolean _Enabled;    /**< Enabled and _valid_ user program? */
    struct gl_program *Current;  /**< User-bound fragment program */
 
    /** Currently enabled and valid fragment program (including internal
@@ -2390,7 +2382,6 @@ struct ati_fragment_shader
 struct gl_ati_fragment_shader_state
 {
    GLboolean Enabled;
-   GLboolean _Enabled;                  /**< enabled and valid shader? */
    GLboolean Compiling;
    GLfloat GlobalConstants[8][4];
    struct ati_fragment_shader *Current;
@@ -2674,8 +2665,7 @@ struct gl_uniform_block
 
    /**
     * Index (GL_UNIFORM_BLOCK_BINDING) into ctx->UniformBufferBindings[] to use
-    * with glBindBufferBase to bind a buffer object to this uniform block.  When
-    * updated in the program, _NEW_BUFFER_OBJECT will be set.
+    * with glBindBufferBase to bind a buffer object to this uniform block.
     */
    GLuint Binding;
 
@@ -4288,7 +4278,7 @@ struct gl_matrix_stack
 #define _NEW_TRACK_MATRIX      (1u << 25)  /**< gl_context::VertexProgram */
 #define _NEW_PROGRAM           (1u << 26)  /**< New program/shader state */
 #define _NEW_PROGRAM_CONSTANTS (1u << 27)
-#define _NEW_BUFFER_OBJECT     (1u << 28)
+/* gap */
 #define _NEW_FRAG_CLAMP        (1u << 29)
 /* gap, re-use for core Mesa state only; use ctx->DriverFlags otherwise */
 #define _NEW_VARYING_VP_INPUTS (1u << 31) /**< gl_context::varying_vp_inputs */
@@ -4484,6 +4474,66 @@ struct gl_driver_flags
 
    /** gl_context::Scissor::ScissorArray */
    uint64_t NewScissorRect;
+
+   /** gl_context::Color::Alpha* */
+   uint64_t NewAlphaTest;
+
+   /** gl_context::Color::Blend/Dither */
+   uint64_t NewBlend;
+
+   /** gl_context::Color::BlendColor */
+   uint64_t NewBlendColor;
+
+   /** gl_context::Color::Color/Index */
+   uint64_t NewColorMask;
+
+   /** gl_context::Depth */
+   uint64_t NewDepth;
+
+   /** gl_context::Color::LogicOp/ColorLogicOp/IndexLogicOp */
+   uint64_t NewLogicOp;
+
+   /** gl_context::Multisample::Enabled */
+   uint64_t NewMultisampleEnable;
+
+   /** gl_context::Multisample::SampleAlphaTo* */
+   uint64_t NewSampleAlphaToXEnable;
+
+   /** gl_context::Multisample::SampleCoverage/SampleMaskValue */
+   uint64_t NewSampleMask;
+
+   /** gl_context::Multisample::(Min)SampleShading */
+   uint64_t NewSampleShading;
+
+   /** gl_context::Stencil */
+   uint64_t NewStencil;
+
+   /** gl_context::Transform::ClipOrigin/ClipDepthMode */
+   uint64_t NewClipControl;
+
+   /** gl_context::Transform::EyeUserPlane */
+   uint64_t NewClipPlane;
+
+   /** gl_context::Transform::ClipPlanesEnabled */
+   uint64_t NewClipPlaneEnable;
+
+   /** gl_context::Transform::DepthClamp */
+   uint64_t NewDepthClamp;
+
+   /** gl_context::Line */
+   uint64_t NewLineState;
+
+   /** gl_context::Polygon */
+   uint64_t NewPolygonState;
+
+   /** gl_context::PolygonStipple */
+   uint64_t NewPolygonStipple;
+
+   /** gl_context::ViewportArray */
+   uint64_t NewViewport;
+
+   /** Shader constants (uniforms, program parameters, state constants) */
+   uint64_t NewShaderConstants[MESA_SHADER_STAGES];
 };
 
 struct gl_uniform_buffer_binding

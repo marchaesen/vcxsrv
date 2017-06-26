@@ -525,6 +525,8 @@ _mesa_bind_pipeline(struct gl_context *ctx,
     *     considered current."
     */
    if (&ctx->Shader != ctx->_Shader) {
+      FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
+
       if (pipe != NULL) {
          /* Bound the pipeline to the current program and
           * restore the pipeline state
@@ -535,8 +537,6 @@ _mesa_bind_pipeline(struct gl_context *ctx,
          _mesa_reference_pipeline_object(ctx, &ctx->_Shader,
                                          ctx->Pipeline.Default);
       }
-
-      FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
 
       for (i = 0; i < MESA_SHADER_STAGES; i++) {
          struct gl_program *prog = ctx->_Shader->CurrentProgram[i];

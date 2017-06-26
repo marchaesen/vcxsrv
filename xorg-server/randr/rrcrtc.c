@@ -843,9 +843,8 @@ RRCrtcGetTransform(RRCrtcPtr crtc)
 Bool
 RRCrtcPendingTransform(RRCrtcPtr crtc)
 {
-    return memcmp(&crtc->client_current_transform.transform,
-                  &crtc->client_pending_transform.transform,
-                  sizeof(PictTransform)) != 0;
+    return !RRTransformEqual(&crtc->client_current_transform,
+                             &crtc->client_pending_transform);
 }
 
 /*

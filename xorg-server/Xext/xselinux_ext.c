@@ -714,6 +714,4 @@ SELinuxExtensionInit(void)
                             SELinuxNumberEvents, SELinuxNumberErrors,
                             ProcSELinuxDispatch, SProcSELinuxDispatch,
                             SELinuxResetProc, StandardMinorOpcode);
-
-    AddExtensionAlias("Flask", extEntry);
 }

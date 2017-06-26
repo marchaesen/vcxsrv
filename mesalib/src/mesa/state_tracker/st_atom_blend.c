@@ -39,6 +39,7 @@
 #include "pipe/p_defines.h"
 #include "cso_cache/cso_context.h"
 
+#include "framebuffer.h"
 #include "main/macros.h"
 
 /**
@@ -265,8 +266,7 @@ st_update_blend( struct st_context *st )
 
    blend->dither = ctx->Color.DitherFlag;
 
-   if (ctx->Multisample.Enabled &&
-       ctx->DrawBuffer->Visual.sampleBuffers > 0 &&
+   if (_mesa_is_multisample_enabled(ctx) &&
        !(ctx->DrawBuffer->_IntegerBuffers & 0x1)) {
       /* Unlike in gallium/d3d10 these operations are only performed
        * if both msaa is enabled and we have a multisample buffer.
@@ -276,10 +276,13 @@ st_update_blend( struct st_context *st )
    }
 
    cso_set_blend(st->cso_context, blend);
+}
 
-   {
-      struct pipe_blend_color bc;
-      COPY_4FV(bc.color, ctx->Color.BlendColorUnclamped);
-      cso_set_blend_color(st->cso_context, &bc);
-   }
+void
+st_update_blend_color(struct st_context *st)
+{
+   struct pipe_blend_color bc;
+
+   COPY_4FV(bc.color, st->ctx->Color.BlendColorUnclamped);
+   cso_set_blend_color(st->cso_context, &bc);
 }

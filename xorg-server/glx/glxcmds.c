@@ -1807,10 +1807,10 @@ __glXDisp_BindTexImageEXT(__GLXclientState * cl, GLbyte * pc)
                           DixReadAccess, &pGlxDraw, &error))
         return error;
 
-    if (!context->textureFromPixmap)
+    if (!context->bindTexImage)
         return __glXError(GLXUnsupportedPrivateRequest);
 
-    return context->textureFromPixmap->bindTexImage(context, buffer, pGlxDraw);
+    return context->bindTexImage(context, buffer, pGlxDraw);
 }
 
 int
@@ -1839,11 +1839,10 @@ __glXDisp_ReleaseTexImageEXT(__GLXclientState * cl, GLbyte * pc)
                           DixReadAccess, &pGlxDraw, &error))
         return error;
 
-    if (!context->textureFromPixmap)
+    if (!context->releaseTexImage)
         return __glXError(GLXUnsupportedPrivateRequest);
 
-    return context->textureFromPixmap->releaseTexImage(context,
-                                                       buffer, pGlxDraw);
+    return context->releaseTexImage(context, buffer, pGlxDraw);
 }
 
 int

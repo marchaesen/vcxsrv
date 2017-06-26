@@ -2404,15 +2404,3 @@ DRIMoveBuffersHelper(ScreenPtr pScreen,
         *xdir = 1;
 
 }
-
-char *
-DRICreatePCIBusID(const struct pci_device *dev)
-{
-    char *busID;
-
-    if (asprintf(&busID, "pci:%04x:%02x:%02x.%d",
-                 dev->domain, dev->bus, dev->dev, dev->func) == -1)
-        return NULL;
-
-    return busID;
-}

@@ -837,6 +837,11 @@ dnl is not valid for that platform.
 if test "x$android" = xno; then
     test -z "$PTHREAD_LIBS" && PTHREAD_LIBS="-lpthread"
 fi
+dnl According to the manual when using pthreads, one should add -pthread to
+dnl both compile and link-time arguments.
+dnl In practise that should be sufficient for all platforms, since any
+dnl platforms build with GCC and Clang support the flag.
+PTHREAD_LIBS="$PTHREAD_LIBS -pthread"
 
 dnl pthread-stubs is mandatory on BSD platforms, due to the nature of the
 dnl project. Even then there's a notable issue as described in the project README
@@ -851,8 +856,6 @@ esac
 
 if test "x$pthread_stubs_possible" = xyes; then
     PKG_CHECK_MODULES(PTHREADSTUBS, pthread-stubs >= 0.4)
-    AC_SUBST(PTHREADSTUBS_CFLAGS)
-    AC_SUBST(PTHREADSTUBS_LIBS)
 fi
 
 dnl SELinux awareness.
@@ -1236,7 +1239,7 @@ GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
 AC_ARG_WITH([gallium-drivers],
     [AS_HELP_STRING([--with-gallium-drivers@<:@=DIRS...@:>@],
         [comma delimited Gallium drivers list, e.g.
-        "i915,nouveau,r300,r600,radeonsi,freedreno,svga,swrast,swr,vc4,virgl,etnaviv,imx"
+        "i915,nouveau,r300,r600,radeonsi,freedreno,pl111,svga,swrast,swr,vc4,virgl,etnaviv,imx"
         @<:@default=r300,r600,svga,swrast@:>@])],
     [with_gallium_drivers="$withval"],
     [with_gallium_drivers="$GALLIUM_DRIVERS_DEFAULT"])
@@ -2499,6 +2502,9 @@ if test -n "$with_gallium_drivers"; then
                                DEFINES="$DEFINES -DUSE_VC4_SIMULATOR"],
                               [USE_VC4_SIMULATOR=no])
             ;;
+        xpl111)
+            HAVE_GALLIUM_PL111=yes
+            ;;
         xvirgl)
             HAVE_GALLIUM_VIRGL=yes
             require_libdrm "virgl"
@@ -2526,6 +2532,10 @@ dnl We need to validate some needed dependencies for renderonly drivers.
 
 if test "x$HAVE_GALLIUM_ETNAVIV" != xyes -a "x$HAVE_GALLIUM_IMX" = xyes  ; then
     AC_MSG_ERROR([Building with imx requires etnaviv])
+fi
+
+if test "x$HAVE_GALLIUM_VC4" != xyes -a "x$HAVE_GALLIUM_PL111" = xyes  ; then
+    AC_MSG_ERROR([Building with pl111 requires vc4])
 fi
 
 dnl
@@ -2592,6 +2602,7 @@ fi
 
 AM_CONDITIONAL(HAVE_GALLIUM_SVGA, test "x$HAVE_GALLIUM_SVGA" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_I915, test "x$HAVE_GALLIUM_I915" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_PL111, test "x$HAVE_GALLIUM_PL111" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_R300, test "x$HAVE_GALLIUM_R300" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_R600, test "x$HAVE_GALLIUM_R600" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_RADEONSI, test "x$HAVE_GALLIUM_RADEONSI" = xyes)
@@ -2631,8 +2642,7 @@ AM_CONDITIONAL(HAVE_SWRAST_DRI, test x$HAVE_SWRAST_DRI = xyes)
 AM_CONDITIONAL(HAVE_RADEON_VULKAN, test "x$HAVE_RADEON_VULKAN" = xyes)
 AM_CONDITIONAL(HAVE_INTEL_VULKAN, test "x$HAVE_INTEL_VULKAN" = xyes)
 
-AM_CONDITIONAL(HAVE_AMD_DRIVERS, test "x$HAVE_GALLIUM_R600" = xyes -o \
-                                      "x$HAVE_GALLIUM_RADEONSI" = xyes -o \
+AM_CONDITIONAL(HAVE_AMD_DRIVERS, test "x$HAVE_GALLIUM_RADEONSI" = xyes -o \
                                       "x$HAVE_RADEON_VULKAN" = xyes)
 
 AM_CONDITIONAL(HAVE_INTEL_DRIVERS, test "x$HAVE_INTEL_VULKAN" = xyes -o \
@@ -2741,6 +2751,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/drivers/llvmpipe/Makefile
 		src/gallium/drivers/noop/Makefile
 		src/gallium/drivers/nouveau/Makefile
+		src/gallium/drivers/pl111/Makefile
 		src/gallium/drivers/r300/Makefile
 		src/gallium/drivers/r600/Makefile
 		src/gallium/drivers/radeon/Makefile
@@ -2786,6 +2797,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/winsys/freedreno/drm/Makefile
 		src/gallium/winsys/i915/drm/Makefile
 		src/gallium/winsys/nouveau/drm/Makefile
+		src/gallium/winsys/pl111/drm/Makefile
 		src/gallium/winsys/radeon/drm/Makefile
 		src/gallium/winsys/amdgpu/drm/Makefile
 		src/gallium/winsys/svga/drm/Makefile

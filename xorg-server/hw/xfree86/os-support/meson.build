@@ -73,7 +73,7 @@ elif host_machine.system() == 'solaris'
     endif
 
     os_support_flags += '-DHAVE_SYSV_IPC'
-else
+elif host_machine.system().endswith('bsd')
     srcs_xorg_os_support += [
         'bsd/bsd_VTsw.c',
         'bsd/bsd_bell.c',
@@ -109,6 +109,21 @@ else
     else
         srcs_xorg_os_support += 'shared/agp_noop.c'
     endif
+else
+    # stub ossupport
+    srcs_xorg_os_support += [
+        'shared/VTsw_noop.c',
+        'shared/agp_noop.c',
+        'shared/ioperm_noop.c',
+        'shared/kmod_noop.c',
+        'shared/pm_noop.c',
+        'shared/vidmem.c',
+        'shared/posix_tty.c',
+        'shared/sigio.c',
+        'stub/stub_bell.c',
+        'stub/stub_init.c',
+        'stub/stub_video.c',
+    ]
 endif
 
 xorg_os_support = static_library('xorg_os_support',

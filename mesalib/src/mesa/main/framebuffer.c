@@ -321,43 +321,6 @@ _mesa_resize_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
 }
 
 /**
- * Examine all the framebuffer's renderbuffers to update the Width/Height
- * fields of the framebuffer.  If we have renderbuffers with different
- * sizes, set the framebuffer's width and height to the min size.
- * Note: this is only intended for user-created framebuffers, not
- * window-system framebuffes.
- */
-static void
-update_framebuffer_size(struct gl_context *ctx, struct gl_framebuffer *fb)
-{
-   GLuint minWidth = ~0, minHeight = ~0;
-   GLuint i;
-
-   /* user-created framebuffers only */
-   assert(_mesa_is_user_fbo(fb));
-
-   for (i = 0; i < BUFFER_COUNT; i++) {
-      struct gl_renderbuffer_attachment *att = &fb->Attachment[i];
-      const struct gl_renderbuffer *rb = att->Renderbuffer;
-      if (rb) {
-         minWidth = MIN2(minWidth, rb->Width);
-         minHeight = MIN2(minHeight, rb->Height);
-      }
-   }
-
-   if (minWidth != ~0U) {
-      fb->Width = minWidth;
-      fb->Height = minHeight;
-   }
-   else {
-      fb->Width = 0;
-      fb->Height = 0;
-   }
-}
-
-
-
-/**
  * Given a bounding box, intersect the bounding box with the scissor of
  * a specified vieport.
  *
@@ -403,7 +366,7 @@ _mesa_intersect_scissor_bounding_box(const struct gl_context *ctx,
  *                xmax, ymin, ymax.
  *
  * \warning This function assumes that the framebuffer dimensions are up to
- * date (e.g., update_framebuffer_size has been recently called on \c buffer).
+ * date.
  *
  * \sa _mesa_clip_to_region
  */
@@ -437,11 +400,6 @@ _mesa_update_draw_buffer_bounds(struct gl_context *ctx,
 
    if (!buffer)
       return;
-
-   if (_mesa_is_user_fbo(buffer)) {
-      /* user-created framebuffer size depends on the renderbuffers */
-      update_framebuffer_size(ctx, buffer);
-   }
 
    /* Default to the first scissor as that's always valid */
    scissor_bounding_box(ctx, buffer, 0, bbox);

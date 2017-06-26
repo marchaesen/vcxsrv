@@ -45,8 +45,6 @@
 
 #define __GLX_PAD(a) (((a)+3)&~3)
 
-extern xGLXSingleReply __glXReply;
-
 GLint
 __glGetBooleanv_variable_size(GLenum e)
 {
@@ -117,6 +115,7 @@ __glXSendReply(ClientPtr client, const void *data, size_t elements,
                size_t element_size, GLboolean always_array, CARD32 retval)
 {
     size_t reply_ints = 0;
+    xGLXSingleReply reply = { 0, };
 
     if (__glXErrorOccured()) {
         elements = 0;
@@ -125,11 +124,11 @@ __glXSendReply(ClientPtr client, const void *data, size_t elements,
         reply_ints = bytes_to_int32(elements * element_size);
     }
 
-    __glXReply.length = reply_ints;
-    __glXReply.type = X_Reply;
-    __glXReply.sequenceNumber = client->sequence;
-    __glXReply.size = elements;
-    __glXReply.retval = retval;
+    reply.length = reply_ints;
+    reply.type = X_Reply;
+    reply.sequenceNumber = client->sequence;
+    reply.size = elements;
+    reply.retval = retval;
 
     /* It is faster on almost always every architecture to just copy the 8
      * bytes, even when not necessary, than check to see of the value of
@@ -137,8 +136,8 @@ __glXSendReply(ClientPtr client, const void *data, size_t elements,
      * harm.
      */
 
-    (void) memcpy(&__glXReply.pad3, data, 8);
-    WriteToClient(client, sz_xGLXSingleReply, &__glXReply);
+    (void) memcpy(&reply.pad3, data, 8);
+    WriteToClient(client, sz_xGLXSingleReply, &reply);
 
     if (reply_ints != 0) {
         WriteToClient(client, reply_ints * 4, data);
@@ -163,6 +162,7 @@ __glXSendReplySwap(ClientPtr client, const void *data, size_t elements,
                    size_t element_size, GLboolean always_array, CARD32 retval)
 {
     size_t reply_ints = 0;
+    xGLXSingleReply reply = { 0, };
 
     if (__glXErrorOccured()) {
         elements = 0;
@@ -171,11 +171,11 @@ __glXSendReplySwap(ClientPtr client, const void *data, size_t elements,
         reply_ints = bytes_to_int32(elements * element_size);
     }
 
-    __glXReply.length = bswap_32(reply_ints);
-    __glXReply.type = X_Reply;
-    __glXReply.sequenceNumber = bswap_16(client->sequence);
-    __glXReply.size = bswap_32(elements);
-    __glXReply.retval = bswap_32(retval);
+    reply.length = bswap_32(reply_ints);
+    reply.type = X_Reply;
+    reply.sequenceNumber = bswap_16(client->sequence);
+    reply.size = bswap_32(elements);
+    reply.retval = bswap_32(retval);
 
     /* It is faster on almost always every architecture to just copy the 8
      * bytes, even when not necessary, than check to see of the value of
@@ -183,8 +183,8 @@ __glXSendReplySwap(ClientPtr client, const void *data, size_t elements,
      * harm.
      */
 
-    (void) memcpy(&__glXReply.pad3, data, 8);
-    WriteToClient(client, sz_xGLXSingleReply, &__glXReply);
+    (void) memcpy(&reply.pad3, data, 8);
+    WriteToClient(client, sz_xGLXSingleReply, &reply);
 
     if (reply_ints != 0) {
         WriteToClient(client, reply_ints * 4, data);

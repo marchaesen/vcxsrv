@@ -95,8 +95,6 @@ AddExtension(const char *name, int NumEvents, int NumErrors,
         return NULL;
     }
     ext->name = strdup(name);
-    ext->num_aliases = 0;
-    ext->aliases = (const char **) NULL;
     if (!ext->name) {
         dixFreePrivates(ext->devPrivates, PRIVATE_EXTENSION);
         free(ext);
@@ -144,41 +142,14 @@ AddExtension(const char *name, int NumEvents, int NumErrors,
     return ext;
 }
 
-Bool
-AddExtensionAlias(const char *alias, ExtensionEntry * ext)
-{
-    char *name;
-    const char **aliases;
-
-    if (!ext)
-        return FALSE;
-    aliases = reallocarray(ext->aliases, ext->num_aliases + 1, sizeof(char *));
-    if (!aliases)
-        return FALSE;
-    ext->aliases = aliases;
-    name = strdup(alias);
-    if (!name)
-        return FALSE;
-    ext->aliases[ext->num_aliases] = name;
-    ext->num_aliases++;
-    return TRUE;
-}
-
 static int
 FindExtension(const char *extname, int len)
 {
-    int i, j;
+    int i;
 
     for (i = 0; i < NumExtensions; i++) {
         if ((strlen(extensions[i]->name) == len) &&
             !strncmp(extname, extensions[i]->name, len))
-            break;
-        for (j = extensions[i]->num_aliases; --j >= 0;) {
-            if ((strlen(extensions[i]->aliases[j]) == len) &&
-                !strncmp(extname, extensions[i]->aliases[j], len))
-                break;
-        }
-        if (j >= 0)
             break;
     }
     return ((i == NumExtensions) ? -1 : i);
@@ -223,16 +194,13 @@ StandardMinorOpcode(ClientPtr client)
 void
 CloseDownExtensions(void)
 {
-    int i, j;
+    int i;
 
     for (i = NumExtensions - 1; i >= 0; i--) {
         if (extensions[i]->CloseDown)
             extensions[i]->CloseDown(extensions[i]);
         NumExtensions = i;
         free((void *) extensions[i]->name);
-        for (j = extensions[i]->num_aliases; --j >= 0;)
-            free((void *) extensions[i]->aliases[j]);
-        free(extensions[i]->aliases);
         dixFreePrivates(extensions[i]->devPrivates, PRIVATE_EXTENSION);
         free(extensions[i]);
     }
@@ -294,7 +262,7 @@ ProcListExtensions(ClientPtr client)
     buffer = NULL;
 
     if (NumExtensions) {
-        int i, j;
+        int i;
 
         for (i = 0; i < NumExtensions; i++) {
             /* call callbacks to find out whether to show extension */
@@ -302,9 +270,7 @@ ProcListExtensions(ClientPtr client)
                 continue;
 
             total_length += strlen(extensions[i]->name) + 1;
-            reply.nExtensions += 1 + extensions[i]->num_aliases;
-            for (j = extensions[i]->num_aliases; --j >= 0;)
-                total_length += strlen(extensions[i]->aliases[j]) + 1;
+            reply.nExtensions += 1;
         }
         reply.length = bytes_to_int32(total_length);
         buffer = bufptr = malloc(total_length);
@@ -319,11 +285,6 @@ ProcListExtensions(ClientPtr client)
             *bufptr++ = len = strlen(extensions[i]->name);
             memmove(bufptr, extensions[i]->name, len);
             bufptr += len;
-            for (j = extensions[i]->num_aliases; --j >= 0;) {
-                *bufptr++ = len = strlen(extensions[i]->aliases[j]);
-                memmove(bufptr, extensions[i]->aliases[j], len);
-                bufptr += len;
-            }
         }
     }
     WriteReplyToClient(client, sizeof(xListExtensionsReply), &reply);

@@ -64,6 +64,7 @@ DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte * pc,
         GLenum pname;
         GLint compsize = 0;
         char *answer = NULL, answerBuffer[200];
+        xGLXSingleReply reply = { 0, };
 
         if (do_swap) {
             target = (GLenum) bswap_32(*(int *) (pc + 0));
@@ -92,7 +93,7 @@ DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte * pc,
         }
         else {
             __GLX_BEGIN_REPLY(compsize);
-            ((xGLXGetTexImageReply *) &__glXReply)->width = compsize;
+            ((xGLXGetTexImageReply *) &reply)->width = compsize;
             __GLX_SEND_HEADER();
             __GLX_SEND_VOID_ARRAY(compsize);
         }

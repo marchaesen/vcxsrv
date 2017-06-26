@@ -130,6 +130,10 @@ DRI_CONF_OPT_BEGIN_B(force_glsl_abs_sqrt, def) \
         DRI_CONF_DESC(en,gettext("Force computing the absolute value for sqrt() and inversesqrt()")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_GLSL_CORRECT_DERIVATIVES_AFTER_DISCARD(def) \
+DRI_CONF_OPT_BEGIN_B(glsl_correct_derivatives_after_discard, def) \
+        DRI_CONF_DESC(en,gettext("Implicit and explicit derivatives after a discard behave as if the discard didn't happen")) \
+DRI_CONF_OPT_END
 
 
 /**

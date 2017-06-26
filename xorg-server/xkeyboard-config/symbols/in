@@ -1472,7 +1472,7 @@ xkb_symbols "tel-sarala"
     key <AC09> { [          U0C32,          U0C33,          U0C0C,          U0C61 ] }; // ల ళ ఌ ౡ
     key <AC10> { [          U0C1F,          U0C20,      semicolon,          colon ] }; // ట ఠ ; :
     key <AC11> { [     quoteright,       quotedbl	    	    		  ] }; // ' " 
-    key <AD01> { [          U0C46,          U0C0E,          U0C44           U0C34 ] }; // ె ఎ ౄ ఴ
+    key <AD01> { [          U0C46,          U0C0E,          U0C44,          U0C34 ] }; // ె ఎ ౄ ఴ
     key <AD02> { [          U0C38,          U0C37,          U0C44                 ] }; // స ష ౄ
     key <AD03> { [          U0C47,          U0C0F,          U0C44                 ] }; // ే ఏ ౄ
     key <AD04> { [          U0C30,          U0C31,          U0C44,          U0C60 ] }; // ర ఱ ౄ ౠ

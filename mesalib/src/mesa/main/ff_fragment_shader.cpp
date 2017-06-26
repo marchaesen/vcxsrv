@@ -33,6 +33,7 @@
 #include "main/macros.h"
 #include "main/samplerobj.h"
 #include "main/shaderobj.h"
+#include "main/state.h"
 #include "main/texenvprogram.h"
 #include "main/texobj.h"
 #include "main/uniforms.h"
@@ -172,7 +173,7 @@ static GLbitfield filter_fp_input_mask( GLbitfield fp_inputs,
    /* _NEW_PROGRAM */
    const GLboolean vertexShader =
          ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX] != NULL;
-   const GLboolean vertexProgram = ctx->VertexProgram._Enabled;
+   const GLboolean vertexProgram = _mesa_arb_vertex_program_enabled(ctx);
 
    if (!(vertexProgram || vertexShader)) {
       /* Fixed function vertex logic */

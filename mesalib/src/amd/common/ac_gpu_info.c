@@ -34,6 +34,8 @@
 #include <xf86drm.h>
 #include <amdgpu_drm.h>
 
+#include <amdgpu.h>
+
 #define CIK_TILE_MODE_COLOR_2D			14
 
 #define CIK__GB_TILE_MODE__PIPE_CONFIG(x)        (((x) >> 6) & 0x1f)

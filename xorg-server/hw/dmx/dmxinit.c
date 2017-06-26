@@ -532,63 +532,6 @@ dmxDisplayInit(DMXScreenInfo * dmxScreen)
     dmxGetPixmapFormats(dmxScreen);
 }
 
-/* If this doesn't compile, just add || defined(yoursystem) to the line
- * below.  This information is to help with bug reports and is not
- * critical. */
-#if !defined(_POSIX_SOURCE)
-static const char *
-dmxExecOS(void)
-{
-    return "";
-}
-#else
-#include <sys/utsname.h>
-static const char *
-dmxExecOS(void)
-{
-    static char buffer[128];
-    static int initialized = 0;
-    struct utsname u;
-
-    if (!initialized++) {
-        memset(buffer, 0, sizeof(buffer));
-        uname(&u);
-        snprintf(buffer, sizeof(buffer) - 1, "%s %s %s",
-                 u.sysname, u.release, u.version);
-    }
-    return buffer;
-}
-#endif
-
-static const char *
-dmxBuildCompiler(void)
-{
-    static char buffer[128];
-    static int initialized = 0;
-
-    if (!initialized++) {
-        memset(buffer, 0, sizeof(buffer));
-#if defined(__GNUC__) && defined(__GNUC_MINOR__) &&defined(__GNUC_PATCHLEVEL__)
-        snprintf(buffer, sizeof(buffer) - 1, "gcc %d.%d.%d",
-                 __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-#endif
-    }
-    return buffer;
-}
-
-static const char *
-dmxExecHost(void)
-{
-    static char buffer[128];
-    static int initialized = 0;
-
-    if (!initialized++) {
-        memset(buffer, 0, sizeof(buffer));
-        XmuGetHostname(buffer, sizeof(buffer) - 1);
-    }
-    return buffer;
-}
-
 static void dmxAddExtensions(Bool glxSupported)
 {
     const ExtensionModule dmxExtensions[] = {
@@ -641,12 +584,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
         SetVendorRelease(VENDOR_RELEASE);
         SetVendorString(VENDOR_STRING);
 
-        if (dmxGeneration == 1) {
-            dmxLog(dmxInfo, "DMX Build OS:       %s (%s)\n", OSNAME, OSVENDOR);
-            dmxLog(dmxInfo, "DMX Build Compiler: %s\n", dmxBuildCompiler());
-            dmxLog(dmxInfo, "DMX Execution OS:   %s\n", dmxExecOS());
-            dmxLog(dmxInfo, "DMX Execution Host: %s\n", dmxExecHost());
-        }
         dmxLog(dmxInfo, "MAXSCREENS:         %d\n", MAXSCREENS);
 
         for (i = 0; i < dmxNumScreens; i++) {

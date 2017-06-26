@@ -35,6 +35,7 @@
 #include "main/macros.h"
 #include "main/imports.h"
 #include "main/samplerobj.h"
+#include "main/state.h"
 #include "math/m_xform.h"
 #include "program/prog_instruction.h"
 #include "program/prog_statevars.h"
@@ -162,7 +163,8 @@ do_ndc_cliptest(struct gl_context *ctx, struct vp_stage_data *store)
    /* Test userclip planes.  This contributes to VB->ClipMask.
     */
    /** XXX NEW_SLANG _Enabled ??? */
-   if (ctx->Transform.ClipPlanesEnabled && (!ctx->VertexProgram._Enabled ||
+   if (ctx->Transform.ClipPlanesEnabled &&
+       (!_mesa_arb_vertex_program_enabled(ctx) ||
       ctx->VertexProgram.Current->arb.IsPositionInvariant)) {
       userclip( ctx,
 		VB->ClipPtr,

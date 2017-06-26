@@ -53,11 +53,6 @@
 RESTYPE __glXContextRes;
 RESTYPE __glXDrawableRes;
 
-/*
-** Reply for most singles.
-*/
-xGLXSingleReply __glXReply;
-
 static DevPrivateKeyRec glxClientPrivateKeyRec;
 
 #define glxClientPrivateKey (&glxClientPrivateKeyRec)
@@ -422,10 +417,6 @@ GlxExtensionInit(void)
                             __glXDispatch, ResetExtension, StandardMinorOpcode);
     if (!extEntry) {
         FatalError("__glXExtensionInit: AddExtensions failed\n");
-        return;
-    }
-    if (!AddExtensionAlias(GLX_EXTENSION_ALIAS, extEntry)) {
-        ErrorF("__glXExtensionInit: AddExtensionAlias failed\n");
         return;
     }
 

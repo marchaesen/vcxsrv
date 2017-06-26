@@ -51,6 +51,7 @@ __glXDisp_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
         const GLint level = *(GLint *) (pc + 4);
         GLint compsize = 0;
         char *answer = NULL, answerBuffer[200];
+        xGLXSingleReply reply = { 0, };
 
         glGetTexLevelParameteriv(target, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE,
                                  &compsize);
@@ -69,7 +70,7 @@ __glXDisp_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
         }
         else {
             __GLX_BEGIN_REPLY(compsize);
-            ((xGLXGetTexImageReply *) &__glXReply)->width = compsize;
+            ((xGLXGetTexImageReply *) &reply)->width = compsize;
             __GLX_SEND_HEADER();
             __GLX_SEND_VOID_ARRAY(compsize);
         }
@@ -97,6 +98,7 @@ __glXDispSwap_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
         const GLint level = (GLint) bswap_32(*(int *) (pc + 4));
         GLint compsize = 0;
         char *answer = NULL, answerBuffer[200];
+        xGLXSingleReply reply = { 0, };
 
         glGetTexLevelParameteriv(target, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE,
                                  &compsize);
@@ -115,7 +117,7 @@ __glXDispSwap_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
         }
         else {
             __GLX_BEGIN_REPLY(compsize);
-            ((xGLXGetTexImageReply *) &__glXReply)->width = compsize;
+            ((xGLXGetTexImageReply *) &reply)->width = compsize;
             __GLX_SEND_HEADER();
             __GLX_SEND_VOID_ARRAY(compsize);
         }

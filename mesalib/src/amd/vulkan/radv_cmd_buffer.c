@@ -669,7 +669,7 @@ radv_emit_vertex_shader(struct radv_cmd_buffer *cmd_buffer,
 	else
 		radv_emit_hw_vs(cmd_buffer, pipeline, vs, &vs->info.vs.outinfo);
 
-	radeon_set_context_reg(cmd_buffer->cs, R_028A84_VGT_PRIMITIVEID_EN, 0);
+	radeon_set_context_reg(cmd_buffer->cs, R_028A84_VGT_PRIMITIVEID_EN, pipeline->graphics.vgt_primitiveid_en);
 }
 
 

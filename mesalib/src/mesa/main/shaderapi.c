@@ -2586,11 +2586,17 @@ _mesa_UniformSubroutinesuiv(GLenum shadertype, GLsizei count,
    }
 
    i = 0;
+   bool flushed = false;
    do {
       struct gl_uniform_storage *uni = p->sh.SubroutineUniformRemapTable[i];
       if (uni == NULL) {
          i++;
          continue;
+      }
+
+      if (!flushed) {
+         _mesa_flush_vertices_for_uniforms(ctx, uni);
+         flushed = true;
       }
 
       int uni_count = uni->array_elements ? uni->array_elements : 1;
@@ -2625,8 +2631,6 @@ _mesa_UniformSubroutinesuiv(GLenum shadertype, GLsizei count,
       }
       i += uni_count;
    } while(i < count);
-
-   FLUSH_VERTICES(ctx, _NEW_PROGRAM_CONSTANTS);
 }
 
 

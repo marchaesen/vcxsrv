@@ -323,12 +323,6 @@ GlxExtensionInit(void)
         FatalError("__glXExtensionInit: AddExtensions failed\n");
         return;
     }
-    /*
-       if (!AddExtensionAlias(GLX_EXTENSION_ALIAS, extEntry)) {
-       ErrorF("__glXExtensionInit: AddExtensionAlias failed\n");
-       return;
-       }
-     */
 
     __glXerrorBase = extEntry->errorBase;
     __glXBadContext = extEntry->errorBase + GLXBadContext;

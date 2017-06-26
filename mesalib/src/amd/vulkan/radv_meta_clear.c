@@ -1094,8 +1094,7 @@ radv_clear_image_layer(struct radv_cmd_buffer *cmd_buffer,
 					     .baseArrayLayer = range->baseArrayLayer + layer,
 					     .layerCount = 1
 				     },
-			     },
-			     cmd_buffer, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+			     });
 
 	VkFramebuffer fb;
 	radv_CreateFramebuffer(device_h,

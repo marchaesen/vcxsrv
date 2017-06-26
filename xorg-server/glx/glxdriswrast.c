@@ -71,8 +71,6 @@ struct __GLXDRIscreen {
     const __DRIcopySubBufferExtension *copySubBuffer;
     const __DRItexBufferExtension *texBuffer;
     const __DRIconfig **driConfigs;
-
-    unsigned char glx_enable_bits[__GLX_EXT_BYTES];
 };
 
 struct __GLXDRIcontext {
@@ -84,9 +82,6 @@ struct __GLXDRIdrawable {
     __GLXdrawable base;
     __DRIdrawable *driDrawable;
     __GLXDRIscreen *screen;
-
-    GCPtr gc;                   /* scratch GC for span drawing */
-    GCPtr swapgc;               /* GC for swapping the color buffers */
 };
 
 /* white lie */
@@ -99,9 +94,6 @@ __glXDRIdrawableDestroy(__GLXdrawable * drawable)
     const __DRIcoreExtension *core = private->screen->core;
 
     (*core->destroyDrawable) (private->driDrawable);
-
-    FreeGC(private->gc, (GContext) 0);
-    FreeGC(private->swapgc, (GContext) 0);
 
     __glXDrawableRelease(drawable);
 
@@ -208,11 +200,6 @@ __glXDRIreleaseTexImage(__GLXcontext * baseContext,
     return Success;
 }
 
-static __GLXtextureFromPixmap __glXDRItextureFromPixmap = {
-    __glXDRIbindTexImage,
-    __glXDRIreleaseTexImage
-};
-
 static __GLXcontext *
 __glXDRIscreenCreateContext(__GLXscreen * baseScreen,
                             __GLXconfig * glxConfig,
@@ -248,7 +235,8 @@ __glXDRIscreenCreateContext(__GLXscreen * baseScreen,
     context->base.makeCurrent = __glXDRIcontextMakeCurrent;
     context->base.loseCurrent = __glXDRIcontextLoseCurrent;
     context->base.copy = __glXDRIcontextCopy;
-    context->base.textureFromPixmap = &__glXDRItextureFromPixmap;
+    context->base.bindTexImage = __glXDRIbindTexImage;
+    context->base.releaseTexImage = __glXDRIreleaseTexImage;
 
     context->driContext =
         (*core->createNewContext) (screen->driScreen,
@@ -264,8 +252,6 @@ __glXDRIscreenCreateDrawable(ClientPtr client,
                              XID drawId,
                              int type, XID glxDrawId, __GLXconfig * glxConfig)
 {
-    XID gcvals[2];
-    int status;
     __GLXDRIscreen *driScreen = (__GLXDRIscreen *) screen;
     __GLXDRIconfig *config = (__GLXDRIconfig *) glxConfig;
     __GLXDRIdrawable *private;
@@ -284,14 +270,6 @@ __glXDRIscreenCreateDrawable(ClientPtr client,
     private->base.destroy = __glXDRIdrawableDestroy;
     private->base.swapBuffers = __glXDRIdrawableSwapBuffers;
     private->base.copySubBuffer = __glXDRIdrawableCopySubBuffer;
-
-    gcvals[0] = GXcopy;
-    private->gc =
-        CreateGC(pDraw, GCFunction, gcvals, &status, (XID) 0, serverClient);
-    gcvals[1] = FALSE;
-    private->swapgc =
-        CreateGC(pDraw, GCFunction | GCGraphicsExposures, gcvals, &status,
-                 (XID) 0, serverClient);
 
     private->driDrawable =
         (*driScreen->swrast->createNewDrawable) (driScreen->driScreen,
@@ -322,20 +300,13 @@ swrastPutImage(__DRIdrawable * draw, int op,
     GCPtr gc;
     __GLXcontext *cx = lastGLContext;
 
-    switch (op) {
-    case __DRI_SWRAST_IMAGE_OP_DRAW:
-        gc = drawable->gc;
-        break;
-    case __DRI_SWRAST_IMAGE_OP_SWAP:
-        gc = drawable->swapgc;
-        break;
-    default:
-        return;
+    if ((gc = GetScratchGC(pDraw->depth, pDraw->pScreen))) {
+        ValidateGC(pDraw, gc);
+        gc->ops->PutImage(pDraw, gc, pDraw->depth, x, y, w, h, 0, ZPixmap,
+                          data);
+        FreeScratchGC(gc);
     }
 
-    ValidateGC(pDraw, gc);
-
-    gc->ops->PutImage(pDraw, gc, pDraw->depth, x, y, w, h, 0, ZPixmap, data);
     if (cx != lastGLContext) {
         lastGLContext = cx;
         cx->makeCurrent(cx);

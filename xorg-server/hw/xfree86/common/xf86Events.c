@@ -86,20 +86,6 @@
 #include "xf86platformBus.h"
 #include "systemd-logind.h"
 
-/*
- * This is a toggling variable:
- *  FALSE = No VT switching keys have been pressed last time around
- *  TRUE  = Possible VT switch Pending
- * (DWH - 12/2/93)
- *
- * This has been generalised to work with Linux and *BSD+syscons (DHD)
- */
-
-Bool VTSwitchEnabled = TRUE;    /* Allows run-time disabling for
-                                 *BSD and for avoiding VT
-                                 switches when using the DRI
-                                 automatic full screen mode.*/
-
 #ifdef XF86PM
 extern void (*xf86OSPMClose) (void);
 #endif
@@ -197,7 +183,7 @@ xf86ProcessActionEvent(ActionEvent action, void *arg)
             xf86ZoomViewport(xf86Info.currentScreen, -1);
         break;
     case ACTION_SWITCHSCREEN:
-        if (VTSwitchEnabled && !xf86Info.dontVTSwitch && arg) {
+        if (!xf86Info.dontVTSwitch && arg) {
             int vtno = *((int *) arg);
 
             if (vtno != xf86Info.vtno) {
@@ -209,7 +195,7 @@ xf86ProcessActionEvent(ActionEvent action, void *arg)
         }
         break;
     case ACTION_SWITCHSCREEN_NEXT:
-        if (VTSwitchEnabled && !xf86Info.dontVTSwitch) {
+        if (!xf86Info.dontVTSwitch) {
             if (!xf86VTActivate(xf86Info.vtno + 1)) {
                 /* If first try failed, assume this is the last VT and
                  * try wrapping around to the first vt.
@@ -222,7 +208,7 @@ xf86ProcessActionEvent(ActionEvent action, void *arg)
         }
         break;
     case ACTION_SWITCHSCREEN_PREV:
-        if (VTSwitchEnabled && !xf86Info.dontVTSwitch && xf86Info.vtno > 0) {
+        if (!xf86Info.dontVTSwitch && xf86Info.vtno > 0) {
             if (!xf86VTActivate(xf86Info.vtno - 1)) {
                 /* Don't know what the maximum VT is, so can't wrap around */
                 ErrorF("Failed to switch from vt%02d to previous vt: %s\n",
@@ -768,28 +754,6 @@ xf86EnableGeneralHandler(void *handler)
     ih->enabled = TRUE;
     if (ih->fd >= 0)
         SetNotifyFd(ih->fd, xf86InputHandlerNotify, X_NOTIFY_READ, ih);
-}
-
-/*
- * As used currently by the DRI, the return value is ignored.
- */
-Bool
-xf86EnableVTSwitch(Bool new)
-{
-    static Bool def = TRUE;
-    Bool old;
-
-    old = VTSwitchEnabled;
-    if (!new) {
-        /* Disable VT switching */
-        def = VTSwitchEnabled;
-        VTSwitchEnabled = FALSE;
-    }
-    else {
-        /* Restore VT switching to default */
-        VTSwitchEnabled = def;
-    }
-    return old;
 }
 
 void

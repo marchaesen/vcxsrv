@@ -486,6 +486,10 @@ _mesa_sampler_uniforms_are_valid(const struct gl_shader_program *shProg,
 extern bool
 _mesa_sampler_uniforms_pipeline_are_valid(struct gl_pipeline_object *);
 
+extern void
+_mesa_flush_vertices_for_uniforms(struct gl_context *ctx,
+                                  const struct gl_uniform_storage *uni);
+
 struct gl_builtin_uniform_element {
    const char *field;
    int tokens[STATE_LENGTH];

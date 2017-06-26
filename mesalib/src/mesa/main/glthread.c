@@ -36,26 +36,15 @@
 #include "main/glthread.h"
 #include "main/marshal.h"
 #include "main/marshal_generated.h"
+#include "util/u_atomic.h"
 #include "util/u_thread.h"
 
-#ifdef HAVE_PTHREAD
 
 static void
-glthread_allocate_batch(struct gl_context *ctx)
+glthread_unmarshal_batch(void *job, int thread_index)
 {
-   struct glthread_state *glthread = ctx->GLThread;
-
-   /* TODO: handle memory allocation failure. */
-   glthread->batch = malloc(sizeof(*glthread->batch));
-   if (!glthread->batch)
-      return;
-   memset(glthread->batch, 0, offsetof(struct glthread_batch, buffer));
-}
-
-static void
-glthread_unmarshal_batch(struct gl_context *ctx, struct glthread_batch *batch,
-                         const bool release_batch)
-{
+   struct glthread_batch *batch = (struct glthread_batch*)job;
+   struct gl_context *ctx = batch->ctx;
    size_t pos = 0;
 
    _glapi_set_dispatch(ctx->CurrentServerDispatch);
@@ -64,57 +53,16 @@ glthread_unmarshal_batch(struct gl_context *ctx, struct glthread_batch *batch,
       pos += _mesa_unmarshal_dispatch_cmd(ctx, &batch->buffer[pos]);
 
    assert(pos == batch->used);
-
-   if (release_batch)
-      free(batch);
-   else
-      batch->used = 0;
+   batch->used = 0;
 }
 
-static void *
-glthread_worker(void *data)
+static void
+glthread_thread_initialization(void *job, int thread_index)
 {
-   struct gl_context *ctx = data;
-   struct glthread_state *glthread = ctx->GLThread;
+   struct gl_context *ctx = (struct gl_context*)job;
 
-   ctx->Driver.SetBackgroundContext(ctx);
+   ctx->Driver.SetBackgroundContext(ctx, &ctx->GLThread->stats);
    _glapi_set_context(ctx);
-
-   u_thread_setname("mesa_glthread");
-
-   pthread_mutex_lock(&glthread->mutex);
-
-   while (true) {
-      struct glthread_batch *batch;
-
-      /* Block (dropping the lock) until new work arrives for us. */
-      while (!glthread->batch_queue && !glthread->shutdown) {
-         pthread_cond_broadcast(&glthread->work_done);
-         pthread_cond_wait(&glthread->new_work, &glthread->mutex);
-      }
-
-      batch = glthread->batch_queue;
-
-      if (glthread->shutdown && !batch) {
-         pthread_cond_broadcast(&glthread->work_done);
-         pthread_mutex_unlock(&glthread->mutex);
-         return NULL;
-      }
-      glthread->batch_queue = batch->next;
-      if (glthread->batch_queue_tail == &batch->next)
-         glthread->batch_queue_tail = &glthread->batch_queue;
-
-      glthread->busy = true;
-      pthread_mutex_unlock(&glthread->mutex);
-
-      glthread_unmarshal_batch(ctx, batch, true);
-
-      pthread_mutex_lock(&glthread->mutex);
-      glthread->busy = false;
-   }
-
-   /* UNREACHED */
-   return NULL;
 }
 
 void
@@ -125,24 +73,35 @@ _mesa_glthread_init(struct gl_context *ctx)
    if (!glthread)
       return;
 
-   ctx->MarshalExec = _mesa_create_marshal_table(ctx);
-   if (!ctx->MarshalExec) {
+   if (!util_queue_init(&glthread->queue, "glthread", MARSHAL_MAX_BATCHES - 2,
+                        1, 0)) {
       free(glthread);
       return;
    }
 
+   ctx->MarshalExec = _mesa_create_marshal_table(ctx);
+   if (!ctx->MarshalExec) {
+      util_queue_destroy(&glthread->queue);
+      free(glthread);
+      return;
+   }
+
+   for (unsigned i = 0; i < MARSHAL_MAX_BATCHES; i++) {
+      glthread->batches[i].ctx = ctx;
+      util_queue_fence_init(&glthread->batches[i].fence);
+   }
+
+   glthread->stats.queue = &glthread->queue;
    ctx->CurrentClientDispatch = ctx->MarshalExec;
-
-   pthread_mutex_init(&glthread->mutex, NULL);
-   pthread_cond_init(&glthread->new_work, NULL);
-   pthread_cond_init(&glthread->work_done, NULL);
-
-   glthread->batch_queue_tail = &glthread->batch_queue;
    ctx->GLThread = glthread;
 
-   glthread_allocate_batch(ctx);
-
-   pthread_create(&glthread->thread, NULL, glthread_worker, ctx);
+   /* Execute the thread initialization function in the thread. */
+   struct util_queue_fence fence;
+   util_queue_fence_init(&fence);
+   util_queue_add_job(&glthread->queue, ctx, &fence,
+                      glthread_thread_initialization, NULL);
+   util_queue_fence_wait(&fence);
+   util_queue_fence_destroy(&fence);
 }
 
 void
@@ -153,29 +112,11 @@ _mesa_glthread_destroy(struct gl_context *ctx)
    if (!glthread)
       return;
 
-   _mesa_glthread_flush_batch(ctx);
+   _mesa_glthread_finish(ctx);
+   util_queue_destroy(&glthread->queue);
 
-   pthread_mutex_lock(&glthread->mutex);
-   glthread->shutdown = true;
-   pthread_cond_broadcast(&glthread->new_work);
-   pthread_mutex_unlock(&glthread->mutex);
-
-   /* Since this waits for the thread to exit, it means that all queued work
-    * will have been completed.
-    */
-   pthread_join(glthread->thread, NULL);
-
-   pthread_cond_destroy(&glthread->new_work);
-   pthread_cond_destroy(&glthread->work_done);
-   pthread_mutex_destroy(&glthread->mutex);
-
-   /* Due to the join above, there should be one empty batch allocated at this
-    * point, and no batches queued.
-    */
-   assert(!glthread->batch->used);
-   assert(!glthread->batch->next);
-   free(glthread->batch);
-   assert(!glthread->batch_queue);
+   for (unsigned i = 0; i < MARSHAL_MAX_BATCHES; i++)
+      util_queue_fence_destroy(&glthread->batches[i].fence);
 
    free(glthread);
    ctx->GLThread = NULL;
@@ -198,19 +139,16 @@ _mesa_glthread_restore_dispatch(struct gl_context *ctx)
    }
 }
 
-static void
-_mesa_glthread_flush_batch_locked(struct gl_context *ctx)
+void
+_mesa_glthread_flush_batch(struct gl_context *ctx)
 {
    struct glthread_state *glthread = ctx->GLThread;
-   struct glthread_batch *batch = glthread->batch;
-
-   if (!batch->used)
+   if (!glthread)
       return;
 
-   /* Immediately reallocate a new batch, since the next marshalled call would
-    * just do it.
-    */
-   glthread_allocate_batch(ctx);
+   struct glthread_batch *next = &glthread->batches[glthread->next];
+   if (!next->used)
+      return;
 
    /* Debug: execute the batch immediately from this thread.
     *
@@ -218,32 +156,17 @@ _mesa_glthread_flush_batch_locked(struct gl_context *ctx)
     * need to restore it when it returns.
     */
    if (false) {
-      glthread_unmarshal_batch(ctx, batch, true);
+      glthread_unmarshal_batch(next, 0);
       _glapi_set_dispatch(ctx->CurrentClientDispatch);
       return;
    }
 
-   *glthread->batch_queue_tail = batch;
-   glthread->batch_queue_tail = &batch->next;
-   pthread_cond_broadcast(&glthread->new_work);
-}
+   p_atomic_add(&glthread->stats.num_offloaded_items, next->used);
 
-void
-_mesa_glthread_flush_batch(struct gl_context *ctx)
-{
-   struct glthread_state *glthread = ctx->GLThread;
-   struct glthread_batch *batch;
-
-   if (!glthread)
-      return;
-
-   batch = glthread->batch;
-   if (!batch->used)
-      return;
-
-   pthread_mutex_lock(&glthread->mutex);
-   _mesa_glthread_flush_batch_locked(ctx);
-   pthread_mutex_unlock(&glthread->mutex);
+   util_queue_add_job(&glthread->queue, next, &next->fence,
+                      glthread_unmarshal_batch, NULL);
+   glthread->last = glthread->next;
+   glthread->next = (glthread->next + 1) % MARSHAL_MAX_BATCHES;
 }
 
 /**
@@ -256,7 +179,6 @@ void
 _mesa_glthread_finish(struct gl_context *ctx)
 {
    struct glthread_state *glthread = ctx->GLThread;
-
    if (!glthread)
       return;
 
@@ -265,24 +187,34 @@ _mesa_glthread_finish(struct gl_context *ctx)
     * dri interface entrypoints), in which case we don't need to actually
     * synchronize against ourself.
     */
-   if (pthread_equal(pthread_self(), glthread->thread))
+   if (u_thread_is_self(glthread->queue.threads[0]))
       return;
 
-   pthread_mutex_lock(&glthread->mutex);
+   struct glthread_batch *last = &glthread->batches[glthread->last];
+   struct glthread_batch *next = &glthread->batches[glthread->next];
+   bool synced = false;
 
-   if (!(glthread->batch_queue || glthread->busy)) {
-      if (glthread->batch && glthread->batch->used) {
-         struct _glapi_table *dispatch = _glapi_get_dispatch();
-         glthread_unmarshal_batch(ctx, glthread->batch, false);
-         _glapi_set_dispatch(dispatch);
-      }
-   } else {
-      _mesa_glthread_flush_batch_locked(ctx);
-      while (glthread->batch_queue || glthread->busy)
-         pthread_cond_wait(&glthread->work_done, &glthread->mutex);
+   if (!util_queue_fence_is_signalled(&last->fence)) {
+      util_queue_fence_wait(&last->fence);
+      synced = true;
    }
 
-   pthread_mutex_unlock(&glthread->mutex);
-}
+   if (next->used) {
+      p_atomic_add(&glthread->stats.num_direct_items, next->used);
 
-#endif
+      /* Since glthread_unmarshal_batch changes the dispatch to direct,
+       * restore it after it's done.
+       */
+      struct _glapi_table *dispatch = _glapi_get_dispatch();
+      glthread_unmarshal_batch(next, 0);
+      _glapi_set_dispatch(dispatch);
+
+      /* It's not a sync because we don't enqueue partial batches, but
+       * it would be a sync if we did. So count it anyway.
+       */
+      synced = true;
+   }
+
+   if (synced)
+      p_atomic_inc(&glthread->stats.num_syncs);
+}
