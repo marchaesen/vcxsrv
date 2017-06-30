@@ -45,6 +45,8 @@ matrix:
             - x11proto-xf86vidmode-dev
             - libexpat1-dev
             - libx11-xcb-dev
+            - libxdamage-dev
+            - libxfixes-dev
     - env:
         # NOTE: Building SWR is 2x (yes two) times slower than all the other
         # gallium drivers combined.

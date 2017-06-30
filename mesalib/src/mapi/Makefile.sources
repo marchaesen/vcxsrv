@@ -26,6 +26,8 @@ MAPI_BRIDGE_FILES = \
 	entry_x86-64_tls.h \
 	entry_x86_tls.h \
 	entry_x86_tsd.h \
+	entry_ppc64le_tls.h \
+	entry_ppc64le_tsd.h \
 	mapi_tmp.h
 
 MAPI_FILES = \

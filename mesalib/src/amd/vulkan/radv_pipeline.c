@@ -26,6 +26,7 @@
  */
 
 #include "util/mesa-sha1.h"
+#include "util/u_atomic.h"
 #include "radv_private.h"
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
@@ -374,7 +375,7 @@ static void radv_dump_pipeline_stats(struct radv_device *device, struct radv_pip
 void radv_shader_variant_destroy(struct radv_device *device,
                                  struct radv_shader_variant *variant)
 {
-	if (__sync_fetch_and_sub(&variant->ref_count, 1) != 1)
+	if (!p_atomic_dec_zero(&variant->ref_count))
 		return;
 
 	device->ws->buffer_destroy(variant->bo);

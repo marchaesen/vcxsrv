@@ -1211,6 +1211,7 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_FOURCC_NV12		0x3231564e
 #define __DRI_IMAGE_FOURCC_NV16		0x3631564e
 #define __DRI_IMAGE_FOURCC_YUYV		0x56595559
+#define __DRI_IMAGE_FOURCC_UYVY		0x59565955
 
 #define __DRI_IMAGE_FOURCC_YVU410	0x39555659
 #define __DRI_IMAGE_FOURCC_YVU411	0x31315659
@@ -1224,7 +1225,7 @@ struct __DRIdri2ExtensionRec {
  * RGB and RGBA are may be usable directly as images but its still
  * recommended to call fromPlanar with plane == 0.
  *
- * Y_U_V, Y_UV and Y_XUXV all requires call to fromPlanar to create
+ * Y_U_V, Y_UV,Y_XUXV and Y_UXVX all requires call to fromPlanar to create
  * usable sub-images, sampling from images return raw YUV data and
  * color conversion needs to be done in the shader.
  *
@@ -1236,6 +1237,7 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_COMPONENTS_Y_U_V	0x3003
 #define __DRI_IMAGE_COMPONENTS_Y_UV	0x3004
 #define __DRI_IMAGE_COMPONENTS_Y_XUXV	0x3005
+#define __DRI_IMAGE_COMPONENTS_Y_UXVX	0x3008
 #define __DRI_IMAGE_COMPONENTS_R	0x3006
 #define __DRI_IMAGE_COMPONENTS_RG	0x3007
 

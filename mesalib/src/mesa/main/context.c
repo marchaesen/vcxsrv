@@ -1834,20 +1834,6 @@ _mesa_record_error(struct gl_context *ctx, GLenum error)
 
 
 /**
- * Flush commands and wait for completion.
- */
-void
-_mesa_finish(struct gl_context *ctx)
-{
-   FLUSH_VERTICES( ctx, 0 );
-   FLUSH_CURRENT( ctx, 0 );
-   if (ctx->Driver.Finish) {
-      ctx->Driver.Finish(ctx);
-   }
-}
-
-
-/**
  * Flush commands.
  */
 void
@@ -1863,7 +1849,7 @@ _mesa_flush(struct gl_context *ctx)
 
 
 /**
- * Execute glFinish().
+ * Flush commands and wait for completion.
  *
  * Calls the #ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH macro and the
  * dd_function_table::Finish driver callback, if not NULL.
@@ -1873,7 +1859,13 @@ _mesa_Finish(void)
 {
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END(ctx);
-   _mesa_finish(ctx);
+
+   FLUSH_VERTICES(ctx, 0);
+   FLUSH_CURRENT(ctx, 0);
+
+   if (ctx->Driver.Finish) {
+      ctx->Driver.Finish(ctx);
+   }
 }
 
 

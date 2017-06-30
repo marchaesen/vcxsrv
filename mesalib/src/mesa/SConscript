@@ -79,6 +79,13 @@ format_unpack = env.CodeGenerate(
       command = python_cmd + ' $SCRIPT ' + ' $SOURCE > $TARGET'
 )
 
+format_fallback = env.CodeGenerate(
+      target = 'main/format_fallback.c',
+      script = 'main/format_fallback.py',
+      source = 'main/formats.csv',
+      command = python_cmd + ' $SCRIPT ' + ' $SOURCE ' + ' $TARGET'
+)
+
 #
 # Assembly sources
 #

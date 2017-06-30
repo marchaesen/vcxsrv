@@ -34,6 +34,7 @@ sources := \
 	main/enums.c \
 	main/api_exec.c \
 	main/dispatch.h \
+	main/format_fallback.c \
 	main/format_pack.c \
 	main/format_unpack.c \
 	main/format_info.h \
@@ -122,6 +123,17 @@ $(intermediates)/main/get_hash.h: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml
 $(intermediates)/main/get_hash.h: $(glapi)/gl_and_es_API.xml \
                $(LOCAL_PATH)/main/get_hash_params.py $(GET_HASH_GEN)
 	$(call es-gen)
+
+FORMAT_FALLBACK := $(LOCAL_PATH)/main/format_fallback.py
+format_fallback_deps := \
+	$(LOCAL_PATH)/main/formats.csv \
+	$(LOCAL_PATH)/main/format_parser.py \
+	$(FORMAT_FALLBACK)
+
+$(intermediates)/main/format_fallback.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(FORMAT_FALLBACK)
+$(intermediates)/main/format_fallback.c: PRIVATE_XML :=
+$(intermediates)/main/format_fallback.c: $(format_fallback_deps)
+	$(call es-gen, $< /dev/stdout)
 
 FORMAT_INFO := $(LOCAL_PATH)/main/format_info.py
 format_info_deps := \

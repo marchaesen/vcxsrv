@@ -154,19 +154,10 @@ _mesa_new_sampler_object(struct gl_context *ctx, GLuint name)
 }
 
 static void
-create_samplers(struct gl_context *ctx, GLsizei count, GLuint *samplers,
-                const char *caller)
+create_samplers(struct gl_context *ctx, GLsizei count, GLuint *samplers)
 {
    GLuint first;
    GLint i;
-
-   if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "%s(%d)\n", caller, count);
-
-   if (count < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(n<0)", caller);
-      return;
-   }
 
    if (!samplers)
       return;
@@ -186,18 +177,48 @@ create_samplers(struct gl_context *ctx, GLsizei count, GLuint *samplers,
    _mesa_HashUnlockMutex(ctx->Shared->SamplerObjects);
 }
 
+static void
+create_samplers_err(struct gl_context *ctx, GLsizei count, GLuint *samplers,
+                    const char *caller)
+{
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "%s(%d)\n", caller, count);
+
+   if (count < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(n<0)", caller);
+      return;
+   }
+
+   create_samplers(ctx, count, samplers);
+}
+
+void GLAPIENTRY
+_mesa_GenSamplers_no_error(GLsizei count, GLuint *samplers)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   create_samplers(ctx, count, samplers);
+}
+
 void GLAPIENTRY
 _mesa_GenSamplers(GLsizei count, GLuint *samplers)
 {
    GET_CURRENT_CONTEXT(ctx);
-   create_samplers(ctx, count, samplers, "glGenSamplers");
+   create_samplers_err(ctx, count, samplers, "glGenSamplers");
+}
+
+void GLAPIENTRY
+_mesa_CreateSamplers_no_error(GLsizei count, GLuint *samplers)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   create_samplers(ctx, count, samplers);
 }
 
 void GLAPIENTRY
 _mesa_CreateSamplers(GLsizei count, GLuint *samplers)
 {
    GET_CURRENT_CONTEXT(ctx);
-   create_samplers(ctx, count, samplers, "glCreateSamplers");
+   create_samplers_err(ctx, count, samplers, "glCreateSamplers");
 }
 
 

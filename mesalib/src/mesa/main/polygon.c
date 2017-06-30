@@ -50,19 +50,9 @@
  * change, flushes the vertices and notifies the driver via
  * the dd_function_table::CullFace callback.
  */
-void GLAPIENTRY
-_mesa_CullFace( GLenum mode )
+static void
+cull_face(struct gl_context *ctx, GLenum mode)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (MESA_VERBOSE&VERBOSE_API)
-      _mesa_debug(ctx, "glCullFace %s\n", _mesa_enum_to_string(mode));
-
-   if (mode!=GL_FRONT && mode!=GL_BACK && mode!=GL_FRONT_AND_BACK) {
-      _mesa_error( ctx, GL_INVALID_ENUM, "glCullFace" );
-      return;
-   }
-
    if (ctx->Polygon.CullFaceMode == mode)
       return;
 
@@ -71,7 +61,32 @@ _mesa_CullFace( GLenum mode )
    ctx->Polygon.CullFaceMode = mode;
 
    if (ctx->Driver.CullFace)
-      ctx->Driver.CullFace( ctx, mode );
+      ctx->Driver.CullFace(ctx, mode);
+}
+
+
+void GLAPIENTRY
+_mesa_CullFace_no_error(GLenum mode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   cull_face(ctx, mode);
+}
+
+
+void GLAPIENTRY
+_mesa_CullFace(GLenum mode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glCullFace %s\n", _mesa_enum_to_string(mode));
+
+   if (mode != GL_FRONT && mode != GL_BACK && mode != GL_FRONT_AND_BACK) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glCullFace");
+      return;
+   }
+
+   cull_face(ctx, mode);
 }
 
 
@@ -86,19 +101,14 @@ _mesa_CullFace( GLenum mode )
  * flushes the vertices and notifies the driver via
  * the dd_function_table::FrontFace callback.
  */
-void GLAPIENTRY
-_mesa_FrontFace( GLenum mode )
+static ALWAYS_INLINE void
+front_face(struct gl_context *ctx, GLenum mode, bool no_error)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (MESA_VERBOSE&VERBOSE_API)
-      _mesa_debug(ctx, "glFrontFace %s\n", _mesa_enum_to_string(mode));
-
    if (ctx->Polygon.FrontFace == mode)
       return;
 
-   if (mode!=GL_CW && mode!=GL_CCW) {
-      _mesa_error( ctx, GL_INVALID_ENUM, "glFrontFace" );
+   if (!no_error && mode != GL_CW && mode != GL_CCW) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glFrontFace");
       return;
    }
 
@@ -107,7 +117,27 @@ _mesa_FrontFace( GLenum mode )
    ctx->Polygon.FrontFace = mode;
 
    if (ctx->Driver.FrontFace)
-      ctx->Driver.FrontFace( ctx, mode );
+      ctx->Driver.FrontFace(ctx, mode);
+}
+
+
+void GLAPIENTRY
+_mesa_FrontFace_no_error(GLenum mode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   front_face(ctx, mode, true);
+}
+
+
+void GLAPIENTRY
+_mesa_FrontFace(GLenum mode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glFrontFace %s\n", _mesa_enum_to_string(mode));
+
+   front_face(ctx, mode, false);
 }
 
 

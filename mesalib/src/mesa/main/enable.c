@@ -66,7 +66,6 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
    struct gl_vertex_array_object *vao = ctx->Array.VAO;
    GLbitfield64 flag;
    GLboolean *var;
-   uint64_t new_state = _NEW_ARRAY;
 
    switch (cap) {
       case GL_VERTEX_ARRAY:
@@ -111,13 +110,15 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
 
       /* GL_NV_primitive_restart */
       case GL_PRIMITIVE_RESTART_NV:
-         if (!ctx->Extensions.NV_primitive_restart) {
+         if (!ctx->Extensions.NV_primitive_restart)
             goto invalid_enum_error;
-         }
-         var = &ctx->Array.PrimitiveRestart;
-         flag = 0;
-         new_state = 0; /* primitive restart is not a vertex array state */
-         break;
+         if (ctx->Array.PrimitiveRestart == state)
+            return;
+
+         FLUSH_VERTICES(ctx, 0);
+         ctx->Array.PrimitiveRestart = state;
+         update_derived_primitive_restart_state(ctx);
+         return;
 
       default:
          goto invalid_enum_error;
@@ -126,11 +127,9 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
    if (*var == state)
       return;
 
-   FLUSH_VERTICES(ctx, new_state);
+   FLUSH_VERTICES(ctx, _NEW_ARRAY);
 
    *var = state;
-
-   update_derived_primitive_restart_state(ctx);
 
    if (state)
       vao->_Enabled |= flag;
@@ -361,8 +360,13 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 
             if (state) {
                ctx->Transform.ClipPlanesEnabled |= (1 << p);
-               if (ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGLES)
+
+               /* The projection matrix transforms the clip plane. */
+               /* TODO: glEnable might not be the best place to do it. */
+               if (ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGLES) {
                   _mesa_update_clip_plane(ctx, p);
+                  ctx->NewDriverState |= ctx->DriverFlags.NewClipPlane;
+               }
             }
             else {
                ctx->Transform.ClipPlanesEnabled &= ~(1 << p);

@@ -1100,6 +1100,15 @@ _mesa_EnableVertexAttribArray(GLuint index)
 
 
 void GLAPIENTRY
+_mesa_EnableVertexAttribArray_no_error(GLuint index)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   _mesa_enable_vertex_array_attrib(ctx, ctx->Array.VAO,
+                                    VERT_ATTRIB_GENERIC(index));
+}
+
+
+void GLAPIENTRY
 _mesa_EnableVertexArrayAttrib(GLuint vaobj, GLuint index)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -1120,17 +1129,20 @@ _mesa_EnableVertexArrayAttrib(GLuint vaobj, GLuint index)
 }
 
 
+void GLAPIENTRY
+_mesa_EnableVertexArrayAttrib_no_error(GLuint vaobj, GLuint index)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_vertex_array_object *vao = _mesa_lookup_vao(ctx, vaobj);
+   _mesa_enable_vertex_array_attrib(ctx, vao, VERT_ATTRIB_GENERIC(index));
+}
+
+
 static void
 disable_vertex_array_attrib(struct gl_context *ctx,
                             struct gl_vertex_array_object *vao,
-                            GLuint index,
-                            const char *func)
+                            GLuint index)
 {
-   if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(index)", func);
-      return;
-   }
-
    assert(VERT_ATTRIB_GENERIC(index) < ARRAY_SIZE(vao->VertexAttrib));
 
    if (vao->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled) {
@@ -1147,8 +1159,21 @@ void GLAPIENTRY
 _mesa_DisableVertexAttribArray(GLuint index)
 {
    GET_CURRENT_CONTEXT(ctx);
-   disable_vertex_array_attrib(ctx, ctx->Array.VAO, index,
-                               "glDisableVertexAttribArray");
+
+   if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glDisableVertexAttribArray(index)");
+      return;
+   }
+
+   disable_vertex_array_attrib(ctx, ctx->Array.VAO, index);
+}
+
+
+void GLAPIENTRY
+_mesa_DisableVertexAttribArray_no_error(GLuint index)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   disable_vertex_array_attrib(ctx, ctx->Array.VAO, index);
 }
 
 
@@ -1169,7 +1194,21 @@ _mesa_DisableVertexArrayAttrib(GLuint vaobj, GLuint index)
    if (!vao)
       return;
 
-   disable_vertex_array_attrib(ctx, vao, index, "glDisableVertexArrayAttrib");
+   if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glDisableVertexArrayAttrib(index)");
+      return;
+   }
+
+   disable_vertex_array_attrib(ctx, vao, index);
+}
+
+
+void GLAPIENTRY
+_mesa_DisableVertexArrayAttrib_no_error(GLuint vaobj, GLuint index)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_vertex_array_object *vao = _mesa_lookup_vao(ctx, vaobj);
+   disable_vertex_array_attrib(ctx, vao, index);
 }
 
 
@@ -2576,6 +2615,16 @@ vertex_array_attrib_binding(struct gl_context *ctx,
 
 
 void GLAPIENTRY
+_mesa_VertexAttribBinding_no_error(GLuint attribIndex, GLuint bindingIndex)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   vertex_attrib_binding(ctx, ctx->Array.VAO,
+                         VERT_ATTRIB_GENERIC(attribIndex),
+                         VERT_ATTRIB_GENERIC(bindingIndex));
+}
+
+
+void GLAPIENTRY
 _mesa_VertexAttribBinding(GLuint attribIndex, GLuint bindingIndex)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -2595,6 +2644,19 @@ _mesa_VertexAttribBinding(GLuint attribIndex, GLuint bindingIndex)
    vertex_array_attrib_binding(ctx, ctx->Array.VAO,
                                attribIndex, bindingIndex,
                                "glVertexAttribBinding");
+}
+
+
+void GLAPIENTRY
+_mesa_VertexArrayAttribBinding_no_error(GLuint vaobj, GLuint attribIndex,
+                                        GLuint bindingIndex)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_vertex_array_object *vao = _mesa_lookup_vao(ctx, vaobj);
+   vertex_attrib_binding(ctx, vao,
+                         VERT_ATTRIB_GENERIC(attribIndex),
+                         VERT_ATTRIB_GENERIC(bindingIndex));
 }
 
 

@@ -25,7 +25,7 @@
 <!-- Duplicated with GL3x.xml: BindBufferRange, BindBufferBase,
      GetIntegeri_v -->
 
-<function name="ShaderStorageBlockBinding">
+<function name="ShaderStorageBlockBinding" no_error="true">
     <param name="program" type="GLuint" />
     <param name="shaderStorageBlockIndex" type="GLuint" />
     <param name="shaderStorageBlockBinding" type="GLuint" />

@@ -200,7 +200,7 @@
       <return type="GLint"/>
   </function>
 
-  <function name="BindFragDataLocation">
+  <function name="BindFragDataLocation" no_error="true">
     <param name="program" type="GLuint"/>
     <param name="colorNumber" type="GLuint"/>
     <param name="name" type="const GLchar *"/>

@@ -467,7 +467,7 @@ binop_reduce("fany_nequal", 1, tfloat32, tfloat32, "{src0} != {src1}",
 # and false respectively
 
 binop("slt", tfloat32, "", "(src0 < src1) ? 1.0f : 0.0f") # Set on Less Than
-binop("sge", tfloat32, "", "(src0 >= src1) ? 1.0f : 0.0f") # Set on Greater or Equal
+binop("sge", tfloat, "", "(src0 >= src1) ? 1.0f : 0.0f") # Set on Greater or Equal
 binop("seq", tfloat32, commutative, "(src0 == src1) ? 1.0f : 0.0f") # Set on Equal
 binop("sne", tfloat32, commutative, "(src0 != src1) ? 1.0f : 0.0f") # Set on Not Equal
 

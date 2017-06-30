@@ -73,6 +73,9 @@ _mesa_DepthRangeArrayv(GLuint first, GLsizei count, const GLclampd * v);
 extern void GLAPIENTRY
 _mesa_DepthRangeArrayfvOES(GLuint first, GLsizei count, const GLfloat * v);
 
+void GLAPIENTRY
+_mesa_DepthRangeIndexed_no_error(GLuint index, GLclampd n, GLclampd f);
+
 extern void GLAPIENTRY
 _mesa_DepthRangeIndexed(GLuint index, GLclampd n, GLclampd f);
 

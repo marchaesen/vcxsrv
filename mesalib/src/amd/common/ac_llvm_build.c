@@ -56,11 +56,20 @@ ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context)
 	ctx->voidt = LLVMVoidTypeInContext(ctx->context);
 	ctx->i1 = LLVMInt1TypeInContext(ctx->context);
 	ctx->i8 = LLVMInt8TypeInContext(ctx->context);
+	ctx->i16 = LLVMIntTypeInContext(ctx->context, 16);
 	ctx->i32 = LLVMIntTypeInContext(ctx->context, 32);
+	ctx->i64 = LLVMIntTypeInContext(ctx->context, 64);
+	ctx->f16 = LLVMHalfTypeInContext(ctx->context);
 	ctx->f32 = LLVMFloatTypeInContext(ctx->context);
+	ctx->f64 = LLVMDoubleTypeInContext(ctx->context);
 	ctx->v4i32 = LLVMVectorType(ctx->i32, 4);
 	ctx->v4f32 = LLVMVectorType(ctx->f32, 4);
-	ctx->v16i8 = LLVMVectorType(ctx->i8, 16);
+	ctx->v8i32 = LLVMVectorType(ctx->i32, 8);
+
+	ctx->i32_0 = LLVMConstInt(ctx->i32, 0, false);
+	ctx->i32_1 = LLVMConstInt(ctx->i32, 1, false);
+	ctx->f32_0 = LLVMConstReal(ctx->f32, 0.0);
+	ctx->f32_1 = LLVMConstReal(ctx->f32, 1.0);
 
 	ctx->range_md_kind = LLVMGetMDKindIDInContext(ctx->context,
 						     "range", 5);

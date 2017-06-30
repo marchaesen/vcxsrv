@@ -96,7 +96,14 @@ _mesa_bind_sampler(struct gl_context *ctx, GLuint unit,
                    struct gl_sampler_object *sampObj);
 
 void GLAPIENTRY
+_mesa_GenSamplers_no_error(GLsizei count, GLuint *samplers);
+
+void GLAPIENTRY
 _mesa_GenSamplers(GLsizei count, GLuint *samplers);
+
+void GLAPIENTRY
+_mesa_CreateSamplers_no_error(GLsizei count, GLuint *samplers);
+
 void GLAPIENTRY
 _mesa_CreateSamplers(GLsizei count, GLuint *samplers);
 void GLAPIENTRY

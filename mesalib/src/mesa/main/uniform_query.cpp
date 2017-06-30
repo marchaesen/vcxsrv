@@ -1006,6 +1006,12 @@ void
 _mesa_flush_vertices_for_uniforms(struct gl_context *ctx,
                                   const struct gl_uniform_storage *uni)
 {
+   /* Opaque uniforms have no storage unless they are bindless */
+   if (!uni->is_bindless && uni->type->contains_opaque()) {
+      FLUSH_VERTICES(ctx, 0);
+      return;
+   }
+
    uint64_t new_driver_state = 0;
    unsigned mask = uni->active_shader_mask;
 
@@ -1073,7 +1079,12 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
       count = MIN2(count, (int) (uni->array_elements - offset));
    }
 
-   _mesa_flush_vertices_for_uniforms(ctx, uni);
+   /* We check samplers for changes and flush if needed in the sampler
+    * handling code further down, so just skip them here.
+    */
+   if (!uni->type->is_sampler()) {
+       _mesa_flush_vertices_for_uniforms(ctx, uni);
+   }
 
    /* Store the data in the "actual type" backing storage for the uniform.
     */

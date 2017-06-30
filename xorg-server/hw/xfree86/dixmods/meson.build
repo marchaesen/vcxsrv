@@ -1,16 +1,3 @@
-srcs_xorg_dixmods = [
-    'xkbVT.c',
-    'xkbPrivate.c',
-    'xkbKillSrv.c',
-]
-
-xorg_dixmods = static_library('xorg_dixmods',
-    srcs_xorg_dixmods,
-    include_directories: [inc, xorg_inc],
-    dependencies: common_dep,
-    c_args: xorg_c_args,
-)
-
 shared_module(
     'fb',
     'fbmodule.c',
@@ -36,6 +23,7 @@ shared_module(
     install: true,
     install_dir: module_dir,
 )
+
 shared_module(
     'shadow',
     'shmodule.c',

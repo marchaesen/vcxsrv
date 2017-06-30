@@ -404,6 +404,15 @@ _mesa_DepthRangeArrayfvOES(GLuint first, GLsizei count, const GLfloat *v)
  *                 the far clip plane
  */
 void GLAPIENTRY
+_mesa_DepthRangeIndexed_no_error(GLuint index, GLclampd nearval,
+                                 GLclampd farval)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   _mesa_set_depth_range(ctx, index, nearval, farval);
+}
+
+
+void GLAPIENTRY
 _mesa_DepthRangeIndexed(GLuint index, GLclampd nearval, GLclampd farval)
 {
    GET_CURRENT_CONTEXT(ctx);

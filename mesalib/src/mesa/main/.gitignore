@@ -4,6 +4,7 @@ enums.c
 remap_helper.h
 get_hash.h
 get_hash.h.tmp
+format_fallback.c
 format_info.h
 format_info.c
 format_pack.c

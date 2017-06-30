@@ -433,9 +433,11 @@ vtn_nir_alu_op_for_spirv_glsl_opcode(enum GLSLstd450 opcode)
    case GLSLstd450Log2:          return nir_op_flog2;
    case GLSLstd450Sqrt:          return nir_op_fsqrt;
    case GLSLstd450InverseSqrt:   return nir_op_frsq;
+   case GLSLstd450NMin:          return nir_op_fmin;
    case GLSLstd450FMin:          return nir_op_fmin;
    case GLSLstd450UMin:          return nir_op_umin;
    case GLSLstd450SMin:          return nir_op_imin;
+   case GLSLstd450NMax:          return nir_op_fmax;
    case GLSLstd450FMax:          return nir_op_fmax;
    case GLSLstd450UMax:          return nir_op_umax;
    case GLSLstd450SMax:          return nir_op_imax;
@@ -464,6 +466,8 @@ vtn_nir_alu_op_for_spirv_glsl_opcode(enum GLSLstd450 opcode)
       unreachable("No NIR equivalent");
    }
 }
+
+#define NIR_IMM_FP(n, v) (src[0]->bit_size == 64 ? nir_imm_double(n, v) : nir_imm_float(n, v))
 
 static void
 handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
@@ -535,6 +539,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       return;
 
    case GLSLstd450FClamp:
+   case GLSLstd450NClamp:
       val->ssa->def = build_fclamp(nb, src[0], src[1], src[2]);
       return;
    case GLSLstd450UClamp:
@@ -560,12 +565,12 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       nir_ssa_def *t =
          build_fclamp(nb, nir_fdiv(nb, nir_fsub(nb, src[2], src[0]),
                                        nir_fsub(nb, src[1], src[0])),
-                          nir_imm_float(nb, 0.0), nir_imm_float(nb, 1.0));
+                          NIR_IMM_FP(nb, 0.0), NIR_IMM_FP(nb, 1.0));
       /* result = t * t * (3 - 2 * t) */
       val->ssa->def =
          nir_fmul(nb, t, nir_fmul(nb, t,
-            nir_fsub(nb, nir_imm_float(nb, 3.0),
-                         nir_fmul(nb, nir_imm_float(nb, 2.0), t))));
+            nir_fsub(nb, NIR_IMM_FP(nb, 3.0),
+                         nir_fmul(nb, NIR_IMM_FP(nb, 2.0), t))));
       return;
    }
 

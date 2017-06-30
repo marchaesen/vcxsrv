@@ -36,13 +36,13 @@ endif
 
 SUBDIRS = common ddc x86emu $(INT10_SUBDIR) os-support parser \
 	  ramdac $(VGAHW_SUBDIR) loader modes $(DRI_SUBDIR) \
-	  $(DRI2_SUBDIR) . $(VBE_SUBDIR) i2c dixmods \
+	  $(DRI2_SUBDIR) . $(VBE_SUBDIR) i2c dixmods xkb \
 	  fbdevhw shadowfb exa $(XF86UTILS_SUBDIR) doc man \
 	  $(GLAMOR_EGL_SUBDIR) drivers
 
 DIST_SUBDIRS = common ddc i2c x86emu int10 fbdevhw os-support \
                parser ramdac shadowfb vbe vgahw \
-               loader dixmods dri dri2 exa modes \
+               loader dixmods xkb dri dri2 exa modes \
 	       utils doc man glamor_egl drivers
 
 bin_PROGRAMS = Xorg
@@ -66,7 +66,7 @@ LOCAL_LIBS = \
             ddc/libddc.la \
             i2c/libi2c.la \
             $(XORG_LIBS) \
-            dixmods/libxorgxkb.la \
+            xkb/libxorgxkb.la \
             $(DRI_LIB) \
             $(DRI2_LIB) \
 	    $(DRI3_LIB) \
@@ -148,5 +148,5 @@ i2c/libi2c.la:
 dixmods/libdixmods.la:
 	$(AM_V_at)cd dixmods && $(MAKE) libdixmods.la
 
-dixmods/libxorgxkb.la:
-	$(AM_V_at)cd dixmods && $(MAKE) libxorgxkb.la
+xkb/libxorgxkb.la:
+	$(AM_V_at)cd xkb && $(MAKE) libxorgxkb.la

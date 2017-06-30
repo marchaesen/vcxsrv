@@ -86,7 +86,7 @@
 <!-- Duplicated with GL3x.xml: BindBufferRange, BindBufferBase,
      GetIntegeri_v -->
 
-<function name="UniformBlockBinding" es2="3.0">
+<function name="UniformBlockBinding" es2="3.0" no_error="true">
     <param name="program" type="GLuint" />
     <param name="uniformBlockIndex" type="GLuint" />
     <param name="uniformBlockBinding" type="GLuint" />

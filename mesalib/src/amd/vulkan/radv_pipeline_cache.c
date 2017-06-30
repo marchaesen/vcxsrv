@@ -23,6 +23,7 @@
 
 #include "util/mesa-sha1.h"
 #include "util/debug.h"
+#include "util/u_atomic.h"
 #include "radv_private.h"
 
 #include "ac_nir_to_llvm.h"
@@ -184,7 +185,7 @@ radv_create_shader_variant_from_pipeline_cache(struct radv_device *device,
 		entry->variant = variant;
 	}
 
-	__sync_fetch_and_add(&entry->variant->ref_count, 1);
+	p_atomic_inc(&entry->variant->ref_count);
 	return entry->variant;
 }
 
@@ -276,7 +277,7 @@ radv_pipeline_cache_insert_shader(struct radv_pipeline_cache *cache,
 		} else {
 			entry->variant = variant;
 		}
-		__sync_fetch_and_add(&variant->ref_count, 1);
+		p_atomic_inc(&variant->ref_count);
 		pthread_mutex_unlock(&cache->mutex);
 		return variant;
 	}
@@ -296,7 +297,7 @@ radv_pipeline_cache_insert_shader(struct radv_pipeline_cache *cache,
 	entry->rsrc2 = variant->rsrc2;
 	entry->code_size = code_size;
 	entry->variant = variant;
-	__sync_fetch_and_add(&variant->ref_count, 1);
+	p_atomic_inc(&variant->ref_count);
 
 	radv_pipeline_cache_add_entry(cache, entry);
 

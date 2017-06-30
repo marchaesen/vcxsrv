@@ -177,8 +177,14 @@ _mesa_lock_context_textures( struct gl_context *ctx );
  */
 /*@{*/
 
+void GLAPIENTRY
+_mesa_GenTextures_no_error(GLsizei n, GLuint *textures);
+
 extern void GLAPIENTRY
 _mesa_GenTextures(GLsizei n, GLuint *textures);
+
+void GLAPIENTRY
+_mesa_CreateTextures_no_error(GLenum target, GLsizei n, GLuint *textures);
 
 extern void GLAPIENTRY
 _mesa_CreateTextures(GLenum target, GLsizei n, GLuint *textures);
@@ -189,6 +195,9 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *textures );
 
 extern void GLAPIENTRY
 _mesa_BindTexture( GLenum target, GLuint texture );
+
+void GLAPIENTRY
+_mesa_BindTextureUnit_no_error(GLuint unit, GLuint texture);
 
 extern void GLAPIENTRY
 _mesa_BindTextureUnit(GLuint unit, GLuint texture);

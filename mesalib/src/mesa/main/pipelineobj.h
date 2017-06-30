@@ -90,8 +90,14 @@ _mesa_BindProgramPipeline(GLuint pipeline);
 extern void GLAPIENTRY
 _mesa_DeleteProgramPipelines(GLsizei n, const GLuint *pipelines);
 
+void GLAPIENTRY
+_mesa_GenProgramPipelines_no_error(GLsizei n, GLuint *pipelines);
+
 extern void GLAPIENTRY
 _mesa_GenProgramPipelines(GLsizei n, GLuint *pipelines);
+
+void GLAPIENTRY
+_mesa_CreateProgramPipelines_no_error(GLsizei n, GLuint *pipelines);
 
 void GLAPIENTRY
 _mesa_CreateProgramPipelines(GLsizei n, GLuint *pipelines);

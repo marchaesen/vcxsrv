@@ -178,6 +178,7 @@ EXTRA_DIST += \
 	hw/xfree86/vbe/meson.build \
 	hw/xfree86/vgahw/meson.build \
 	hw/xfree86/x86emu/meson.build \
+	hw/xfree86/xkb/meson.build \
 	hw/xnest/meson.build \
 	hw/xquartz/meson.build \
 	hw/xwayland/meson.build \
