@@ -665,7 +665,6 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
 		goto error;  \
 	}
 
-    GLAMOR_CHECK_EGL_EXTENSION(KHR_gl_texture_2D_image);
     GLAMOR_CHECK_EGL_EXTENSION(KHR_surfaceless_context);
 
     if (eglBindAPI(EGL_OPENGL_API)) {

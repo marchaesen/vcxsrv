@@ -40,11 +40,20 @@ struct ac_llvm_context {
 	LLVMTypeRef voidt;
 	LLVMTypeRef i1;
 	LLVMTypeRef i8;
+	LLVMTypeRef i16;
 	LLVMTypeRef i32;
+	LLVMTypeRef i64;
+	LLVMTypeRef f16;
 	LLVMTypeRef f32;
+	LLVMTypeRef f64;
 	LLVMTypeRef v4i32;
 	LLVMTypeRef v4f32;
-	LLVMTypeRef v16i8;
+	LLVMTypeRef v8i32;
+
+	LLVMValueRef i32_0;
+	LLVMValueRef i32_1;
+	LLVMValueRef f32_0;
+	LLVMValueRef f32_1;
 
 	unsigned range_md_kind;
 	unsigned invariant_load_md_kind;

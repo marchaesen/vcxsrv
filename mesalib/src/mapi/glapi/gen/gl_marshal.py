@@ -173,11 +173,19 @@ class PrintCode(gl_XML.gl_print_base):
         with indent():
             for p in func.fixed_params:
                 if p.count:
-                    out('const {0} * {1} = cmd->{1};'.format(
-                            p.get_base_type_string(), p.name))
+                    p_decl = '{0} * {1} = cmd->{1};'.format(
+                            p.get_base_type_string(), p.name)
                 else:
-                    out('const {0} {1} = cmd->{1};'.format(
-                            p.type_string(), p.name))
+                    p_decl = '{0} {1} = cmd->{1};'.format(
+                            p.type_string(), p.name)
+
+                if not p_decl.startswith('const '):
+                    # Declare all local function variables as const, even if
+                    # the original parameter is not const.
+                    p_decl = 'const ' + p_decl
+
+                out(p_decl)
+
             if func.variable_params:
                 for p in func.variable_params:
                     out('const {0} * {1};'.format(

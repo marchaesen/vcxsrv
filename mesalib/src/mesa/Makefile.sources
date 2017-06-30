@@ -94,6 +94,7 @@ MAIN_FILES = \
 	main/ffvertex_prog.h \
 	main/fog.c \
 	main/fog.h \
+	main/format_fallback.c \
 	main/format_info.h \
 	main/format_pack.h \
 	main/format_pack.c \

@@ -189,6 +189,8 @@ FcLangNormalize (const FcChar8 *lang)
 	return NULL;
 
     if (FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C") == 0 ||
+	FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C.UTF-8") == 0 ||
+	FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C.utf8") == 0 ||
 	FcStrCmpIgnoreCase (lang, (const FcChar8 *)"POSIX") == 0)
     {
 	result = FcStrCopy ((const FcChar8 *)"en");

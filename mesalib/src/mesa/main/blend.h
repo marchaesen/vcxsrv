@@ -45,11 +45,16 @@ struct gl_framebuffer;
 extern void GLAPIENTRY
 _mesa_BlendFunc( GLenum sfactor, GLenum dfactor );
 
+extern void GLAPIENTRY
+_mesa_BlendFunc_no_error(GLenum sfactor, GLenum dfactor);
 
 extern void GLAPIENTRY
 _mesa_BlendFuncSeparate( GLenum sfactorRGB, GLenum dfactorRGB,
                             GLenum sfactorA, GLenum dfactorA );
 
+extern void GLAPIENTRY
+_mesa_BlendFuncSeparate_no_error(GLenum sfactorRGB, GLenum dfactorRGB,
+                                 GLenum sfactorA, GLenum dfactorA);
 
 extern void GLAPIENTRY
 _mesa_BlendFunciARB_no_error(GLuint buf, GLenum sfactor, GLenum dfactor);
@@ -95,6 +100,10 @@ _mesa_AlphaFunc( GLenum func, GLclampf ref );
 
 extern void GLAPIENTRY
 _mesa_LogicOp( GLenum opcode );
+
+
+extern void GLAPIENTRY
+_mesa_LogicOp_no_error(GLenum opcode);
 
 
 extern void GLAPIENTRY

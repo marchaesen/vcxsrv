@@ -20,12 +20,12 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
 #ifndef AC_SHADER_INFO_H
 #define AC_SHADER_INFO_H
+
 struct nir_shader;
 struct ac_nir_compiler_options;
-
-/* a NIR pass to gather all the info needed to optimise the alloction patterns for the RADV user sgprs */
 
 struct ac_shader_info {
 	bool needs_push_constants;
@@ -42,8 +42,12 @@ struct ac_shader_info {
 	} cs;
 };
 
+/* A NIR pass to gather all the info needed to optimise the allocation patterns
+ * for the RADV user sgprs
+ */
 void
 ac_nir_shader_info_pass(struct nir_shader *nir,
 			const struct ac_nir_compiler_options *options,
 			struct ac_shader_info *info);
+
 #endif

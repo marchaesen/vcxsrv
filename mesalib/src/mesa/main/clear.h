@@ -43,6 +43,8 @@ _mesa_ClearColorIiEXT(GLint r, GLint g, GLint b, GLint a);
 extern void GLAPIENTRY
 _mesa_ClearColorIuiEXT(GLuint r, GLuint g, GLuint b, GLuint a);
 
+void GLAPIENTRY
+_mesa_Clear_no_error(GLbitfield mask);
 
 extern void GLAPIENTRY
 _mesa_Clear( GLbitfield mask );

@@ -123,7 +123,10 @@ noinst_PROGRAMS =	\
 edit_sgml_SOURCES =	\
 	edit-sgml.c	\
 	$(NULL)
-edit_sgml_CC := $(CC_FOR_BUILD)
+$(edit_sgml_OBJECTS) : CC:=$(CC_FOR_BUILD)
+$(edit_sgml_OBJECTS) : CFLAGS:=$(CFLAGS_FOR_BUILD)
+$(edit_sgml_OBJECTS) : CPPFLAGS:=$(CPPFLAGS_FOR_BUILD)
+edit_sgml_LINK = $(CC_FOR_BUILD) -o $@
 #
 check_SCRIPTS =			\
 	check-missing-doc	\

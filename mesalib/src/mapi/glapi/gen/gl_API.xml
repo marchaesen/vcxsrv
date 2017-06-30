@@ -1961,7 +1961,7 @@
         <glx rop="78"/>
     </function>
 
-    <function name="CullFace" es1="1.0" es2="2.0">
+    <function name="CullFace" es1="1.0" es2="2.0" no_error="true">
         <param name="mode" type="GLenum"/>
         <glx rop="79"/>
     </function>
@@ -1990,7 +1990,7 @@
         <glx rop="83"/>
     </function>
 
-    <function name="FrontFace" es1="1.0" es2="2.0">
+    <function name="FrontFace" es1="1.0" es2="2.0" no_error="true">
         <param name="mode" type="GLenum"/>
         <glx rop="84"/>
     </function>
@@ -2149,7 +2149,7 @@
         <glx rop="108"/>
     </function>
 
-    <function name="TexImage1D">
+    <function name="TexImage1D" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLint"/>
@@ -2161,7 +2161,7 @@
         <glx rop="109" large="true"/>
     </function>
 
-    <function name="TexImage2D" es1="1.0" es2="2.0">
+    <function name="TexImage2D" es1="1.0" es2="2.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLint"/>
@@ -2291,7 +2291,7 @@
         <glx rop="126"/>
     </function>
 
-    <function name="Clear" es1="1.0" es2="2.0">
+    <function name="Clear" es1="1.0" es2="2.0" no_error="true">
         <param name="mask" type="GLbitfield"/>
         <glx rop="127"/>
     </function>
@@ -2545,13 +2545,13 @@
         <glx rop="159"/>
     </function>
 
-    <function name="BlendFunc" es1="1.0" es2="2.0">
+    <function name="BlendFunc" es1="1.0" es2="2.0" no_error="true">
         <param name="sfactor" type="GLenum"/>
         <param name="dfactor" type="GLenum"/>
         <glx rop="160"/>
     </function>
 
-    <function name="LogicOp" es1="1.0">
+    <function name="LogicOp" es1="1.0" no_error="true">
         <param name="opcode" type="GLenum"/>
         <glx rop="161"/>
     </function>
@@ -2570,7 +2570,7 @@
         <glx rop="163"/>
     </function>
 
-    <function name="DepthFunc" es1="1.0" es2="2.0">
+    <function name="DepthFunc" es1="1.0" es2="2.0" no_error="true">
         <param name="func" type="GLenum"/>
         <glx rop="164"/>
     </function>
@@ -2593,13 +2593,13 @@
         <glx rop="167"/>
     </function>
 
-    <function name="PixelStoref">
+    <function name="PixelStoref" no_error="true">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx sop="109" handcode="client"/>
     </function>
 
-    <function name="PixelStorei" es1="1.0" es2="2.0">
+    <function name="PixelStorei" es1="1.0" es2="2.0" no_error="true">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx sop="110" handcode="client"/>
@@ -2626,7 +2626,7 @@
         <glx rop="170" large="true"/>
     </function>
 
-    <function name="ReadBuffer" es2="3.0">
+    <function name="ReadBuffer" es2="3.0" no_error="true">
         <param name="mode" type="GLenum"/>
         <glx rop="171"/>
     </function>
@@ -3254,7 +3254,7 @@
         <glx rop="192"/>
     </function>
 
-    <function name="CopyTexImage1D">
+    <function name="CopyTexImage1D" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -3265,7 +3265,7 @@
         <glx rop="4119"/>
     </function>
 
-    <function name="CopyTexImage2D" es1="1.0" es2="2.0">
+    <function name="CopyTexImage2D" es1="1.0" es2="2.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -3277,7 +3277,7 @@
         <glx rop="4120"/>
     </function>
 
-    <function name="CopyTexSubImage1D">
+    <function name="CopyTexSubImage1D" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -3287,7 +3287,7 @@
         <glx rop="4121"/>
     </function>
 
-    <function name="CopyTexSubImage2D" es1="1.0" es2="2.0">
+    <function name="CopyTexSubImage2D" es1="1.0" es2="2.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -3345,7 +3345,7 @@
         <glx sop="144"/>
     </function>
 
-    <function name="GenTextures" es1="1.0" es2="2.0">
+    <function name="GenTextures" es1="1.0" es2="2.0" no_error="true">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="textures" type="GLuint *" output="true" count="n"/>
         <glx sop="145" always_array="true"/>
@@ -4011,7 +4011,7 @@
         <glx rop="4113"/>
     </function>
 
-    <function name="TexImage3D" es2="3.0">
+    <function name="TexImage3D" es2="3.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLint"/>
@@ -4041,7 +4041,7 @@
         <glx rop="4115" large="true"/>
     </function>
 
-    <function name="CopyTexSubImage3D" es2="3.0">
+    <function name="CopyTexSubImage3D" es2="3.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4507,7 +4507,8 @@
         <glx rop="229"/>
     </function>
 
-    <function name="CompressedTexImage3D" es2="3.0" marshal="sync">
+    <function name="CompressedTexImage3D" es2="3.0" marshal="sync"
+              no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -4520,7 +4521,8 @@
         <glx rop="216" handcode="client"/>
     </function>
 
-    <function name="CompressedTexImage2D" es1="1.0" es2="2.0" marshal="sync">
+    <function name="CompressedTexImage2D" es1="1.0" es2="2.0" marshal="sync"
+               no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -4532,7 +4534,7 @@
         <glx rop="215" handcode="client"/>
     </function>
 
-    <function name="CompressedTexImage1D" marshal="sync">
+    <function name="CompressedTexImage1D" marshal="sync" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -4707,7 +4709,7 @@
     </enum>
     <enum name="COMPARE_R_TO_TEXTURE"                     value="0x884E"/>
 
-    <function name="BlendFuncSeparate" es2="2.0">
+    <function name="BlendFuncSeparate" es2="2.0" no_error="true">
         <param name="sfactorRGB" type="GLenum"/>
         <param name="dfactorRGB" type="GLenum"/>
         <param name="sfactorAlpha" type="GLenum"/>
@@ -5066,7 +5068,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="GenBuffers" es1="1.1" es2="2.0">
+    <function name="GenBuffers" es1="1.1" es2="2.0" no_error="true">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="buffer" type="GLuint *" output="true" count="n"/>
         <glx ignore="true"/>
@@ -5293,13 +5295,13 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="AttachShader" es2="2.0">
+    <function name="AttachShader" es2="2.0" no_error="true">
         <param name="program" type="GLuint"/>
         <param name="shader" type="GLuint"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="BindAttribLocation" es2="2.0">
+    <function name="BindAttribLocation" es2="2.0" no_error="true">
         <param name="program" type="GLuint"/>
         <param name="index" type="GLuint"/>
         <param name="name" type="const GLchar *"/>
@@ -5316,7 +5318,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="CreateShader" es2="2.0">
+    <function name="CreateShader" es2="2.0" no_error="true">
         <param name="type" type="GLenum"/>
         <return type="GLuint"/>
         <glx ignore="true"/>
@@ -5338,13 +5340,13 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="DisableVertexAttribArray" es2="2.0">
+    <function name="DisableVertexAttribArray" es2="2.0" no_error="true">
         <param name="index" type="GLuint"/>
         <glx ignore="true"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="EnableVertexAttribArray" es2="2.0">
+    <function name="EnableVertexAttribArray" es2="2.0" no_error="true">
         <param name="index" type="GLuint"/>
         <glx ignore="true"/>
         <glx handcode="true"/>
@@ -5425,7 +5427,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="GetUniformLocation" es2="2.0">
+    <function name="GetUniformLocation" es2="2.0" no_error="true">
         <param name="program" type="GLuint"/>
         <param name="name" type="const GLchar *"/>
         <return type="GLint"/>
@@ -7685,7 +7687,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="CreateShaderObjectARB">
+    <function name="CreateShaderObjectARB" no_error="true">
         <param name="shaderType" type="GLenum"/>
         <return type="GLhandleARB"/>
         <glx ignore="true"/>
@@ -7707,7 +7709,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="AttachObjectARB">
+    <function name="AttachObjectARB" no_error="true">
         <param name="containerObj" type="GLhandleARB"/>
         <param name="obj" type="GLhandleARB"/>
         <glx ignore="true"/>

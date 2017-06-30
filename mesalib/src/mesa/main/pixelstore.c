@@ -35,204 +35,228 @@
 #include "mtypes.h"
 
 
-void GLAPIENTRY
-_mesa_PixelStorei( GLenum pname, GLint param )
+static ALWAYS_INLINE void
+pixel_storei(GLenum pname, GLint param, bool no_error)
 {
    /* NOTE: this call can't be compiled into the display list */
    GET_CURRENT_CONTEXT(ctx);
 
    switch (pname) {
       case GL_PACK_SWAP_BYTES:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
          ctx->Pack.SwapBytes = param ? GL_TRUE : GL_FALSE;
          break;
       case GL_PACK_LSB_FIRST:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
          ctx->Pack.LsbFirst = param ? GL_TRUE : GL_FALSE;
          break;
       case GL_PACK_ROW_LENGTH:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Pack.RowLength = param;
          break;
       case GL_PACK_IMAGE_HEIGHT:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Pack.ImageHeight = param;
          break;
       case GL_PACK_SKIP_PIXELS:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Pack.SkipPixels = param;
          break;
       case GL_PACK_SKIP_ROWS:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Pack.SkipRows = param;
          break;
       case GL_PACK_SKIP_IMAGES:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Pack.SkipImages = param;
          break;
       case GL_PACK_ALIGNMENT:
-         if (param!=1 && param!=2 && param!=4 && param!=8)
+         if (!no_error && param!=1 && param!=2 && param!=4 && param!=8)
             goto invalid_value_error;
          ctx->Pack.Alignment = param;
          break;
       case GL_PACK_INVERT_MESA:
-         if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.MESA_pack_invert)
+         if (!no_error &&
+             (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.MESA_pack_invert))
             goto invalid_enum_error;
          ctx->Pack.Invert = param;
          break;
       case GL_PACK_COMPRESSED_BLOCK_WIDTH:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Pack.CompressedBlockWidth = param;
          break;
       case GL_PACK_COMPRESSED_BLOCK_HEIGHT:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Pack.CompressedBlockHeight = param;
          break;
       case GL_PACK_COMPRESSED_BLOCK_DEPTH:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Pack.CompressedBlockDepth = param;
          break;
       case GL_PACK_COMPRESSED_BLOCK_SIZE:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Pack.CompressedBlockSize = param;
          break;
 
       case GL_UNPACK_SWAP_BYTES:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
          ctx->Unpack.SwapBytes = param ? GL_TRUE : GL_FALSE;
          break;
       case GL_UNPACK_LSB_FIRST:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
          ctx->Unpack.LsbFirst = param ? GL_TRUE : GL_FALSE;
          break;
       case GL_UNPACK_ROW_LENGTH:
-         if (ctx->API == API_OPENGLES)
+         if (!no_error && ctx->API == API_OPENGLES)
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Unpack.RowLength = param;
          break;
       case GL_UNPACK_IMAGE_HEIGHT:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Unpack.ImageHeight = param;
          break;
       case GL_UNPACK_SKIP_PIXELS:
-         if (ctx->API == API_OPENGLES)
+         if (!no_error && ctx->API == API_OPENGLES)
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Unpack.SkipPixels = param;
          break;
       case GL_UNPACK_SKIP_ROWS:
-         if (ctx->API == API_OPENGLES)
+         if (!no_error && ctx->API == API_OPENGLES)
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Unpack.SkipRows = param;
          break;
       case GL_UNPACK_SKIP_IMAGES:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         if (param < 0)
+         if (!no_error && param < 0)
             goto invalid_value_error;
          ctx->Unpack.SkipImages = param;
          break;
       case GL_UNPACK_ALIGNMENT:
-         if (param!=1 && param!=2 && param!=4 && param!=8)
+         if (!no_error && param!=1 && param!=2 && param!=4 && param!=8)
             goto invalid_value_error;
          ctx->Unpack.Alignment = param;
          break;
       case GL_UNPACK_COMPRESSED_BLOCK_WIDTH:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Unpack.CompressedBlockWidth = param;
          break;
       case GL_UNPACK_COMPRESSED_BLOCK_HEIGHT:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Unpack.CompressedBlockHeight = param;
          break;
       case GL_UNPACK_COMPRESSED_BLOCK_DEPTH:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Unpack.CompressedBlockDepth = param;
          break;
       case GL_UNPACK_COMPRESSED_BLOCK_SIZE:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         if (param<0)
+         if (!no_error && param<0)
             goto invalid_value_error;
          ctx->Unpack.CompressedBlockSize = param;
          break;
       default:
-         goto invalid_enum_error;
+         if (!no_error)
+            goto invalid_enum_error;
+         else
+            unreachable("invalid pixel store enum");
    }
 
    return;
 
 invalid_enum_error:
-   _mesa_error( ctx, GL_INVALID_ENUM, "glPixelStore" );
+   _mesa_error(ctx, GL_INVALID_ENUM, "glPixelStore");
    return;
 
 invalid_value_error:
-   _mesa_error( ctx, GL_INVALID_VALUE, "glPixelStore(param)" );
+   _mesa_error(ctx, GL_INVALID_VALUE, "glPixelStore(param)");
    return;
 }
 
 
 void GLAPIENTRY
-_mesa_PixelStoref( GLenum pname, GLfloat param )
+_mesa_PixelStorei(GLenum pname, GLint param)
 {
-   _mesa_PixelStorei( pname, IROUND(param) );
+   pixel_storei(pname, param, false);
 }
 
+
+void GLAPIENTRY
+_mesa_PixelStoref(GLenum pname, GLfloat param)
+{
+   _mesa_PixelStorei(pname, IROUND(param));
+}
+
+
+void GLAPIENTRY
+_mesa_PixelStorei_no_error(GLenum pname, GLint param)
+{
+   pixel_storei(pname, param, true);
+}
+
+
+void GLAPIENTRY
+_mesa_PixelStoref_no_error(GLenum pname, GLfloat param)
+{
+   _mesa_PixelStorei_no_error(pname, IROUND(param));
+}
 
 
 /**
  * Initialize the context's pixel store state.
  */
 void
-_mesa_init_pixelstore( struct gl_context *ctx )
+_mesa_init_pixelstore(struct gl_context *ctx)
 {
    /* Pixel transfer */
    ctx->Pack.Alignment = 4;

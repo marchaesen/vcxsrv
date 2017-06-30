@@ -149,9 +149,64 @@ prepare_target_err(struct gl_context *ctx, GLuint name, GLenum target,
          return false;
       }
 
+      /* The ARB_copy_image specification says:
+       *
+       *    "INVALID_OPERATION is generated if either object is a texture and
+       *     the texture is not complete (as defined in section 3.9.14)"
+       *
+       * The cited section says:
+       *
+       *    "Using the preceding definitions, a texture is complete unless any
+       *     of the following conditions hold true: [...]
+       *
+       *     * The minification filter requires a mipmap (is neither NEAREST
+       *       nor LINEAR), and the texture is not mipmap complete."
+       *
+       * This imposes the bizarre restriction that glCopyImageSubData requires
+       * mipmap completion based on the sampler minification filter, even
+       * though the call fundamentally ignores the sampler.  Additionally, it
+       * doesn't work with texture units, so it can't consider any bound
+       * separate sampler objects.  It appears that you're supposed to use
+       * the sampler object which is built-in to the texture object.
+       *
+       * dEQP and the Android CTS mandate this behavior, and the Khronos
+       * GL and ES working groups both affirmed that this is unfortunate but
+       * correct.  See https://cvs.khronos.org/bugzilla/show_bug.cgi?id=16224.
+       *
+       * Integer textures with filtering cause another completeness snag:
+       *
+       *    "Any of:
+       *     – The internal format of the texture is integer (see table 8.12).
+       *     – The internal format is STENCIL_INDEX.
+       *     – The internal format is DEPTH_STENCIL, and the value of
+       *       DEPTH_STENCIL_TEXTURE_MODE for the texture is STENCIL_INDEX.
+       *     and either the magnification filter is not NEAREST, or the
+       *     minification filter is neither NEAREST nor
+       *     NEAREST_MIPMAP_NEAREST."
+       *
+       * However, applications in the wild (such as "Total War: WARHAMMER")
+       * appear to call glCopyImageSubData with integer textures and the
+       * default mipmap filters of GL_LINEAR and GL_NEAREST_MIPMAP_LINEAR,
+       * which would be considered incomplete, but expect this to work.  In
+       * fact, until VK-GL-CTS commit fef80039ff875a51806b54d151c5f2d0c12da,
+       * the GL 4.5 CTS contained three tests which did the exact same thing
+       * by accident, and all conformant implementations allowed it.
+       *
+       * A proposal was made to amend the spec to say "is not complete (as
+       * defined in section <X>, but ignoring format-based completeness
+       * rules)" to allow this case.  It makes some sense, given that
+       * glCopyImageSubData copies raw data without considering format.
+       * While the official edits have not yet been made, the OpenGL
+       * working group agreed with the idea of allowing this behavior.
+       *
+       * To ignore formats, we check texObj->_MipmapComplete directly
+       * rather than calling _mesa_is_texture_complete().
+       */
       _mesa_test_texobj_completeness(ctx, texObj);
-      if (!texObj->_BaseComplete ||
-          (level != 0 && !texObj->_MipmapComplete)) {
+      const bool texture_complete_aside_from_formats =
+         _mesa_is_mipmap_filter(&texObj->Sampler) ? texObj->_MipmapComplete
+                                                  : texObj->_BaseComplete;
+      if (!texture_complete_aside_from_formats) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glCopyImageSubData(%sName incomplete)", dbg_prefix);
          return false;

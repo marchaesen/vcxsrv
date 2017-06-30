@@ -49,7 +49,7 @@
 
    <!-- Buffer object functions -->
 
-   <function name="CreateBuffers">
+   <function name="CreateBuffers" no_error="true">
       <param name="n" type="GLsizei" />
       <param name="buffers" type="GLuint *" />
    </function>
@@ -197,7 +197,7 @@
       <param name="bufs" type="const GLenum *" />
    </function>
 
-   <function name="NamedFramebufferReadBuffer">
+   <function name="NamedFramebufferReadBuffer" no_error="true">
       <param name="framebuffer" type="GLuint" />
       <param name="buf" type="GLenum" />
    </function>
@@ -283,7 +283,7 @@
 
    <!-- Renderbuffer object functions -->
 
-   <function name="CreateRenderbuffers">
+   <function name="CreateRenderbuffers" no_error="true">
       <param name="n" type="GLsizei" />
       <param name="renderbuffers" type="GLuint *" />
    </function>
@@ -311,7 +311,7 @@
 
    <!-- Texture object functions -->
 
-   <function name="CreateTextures">
+   <function name="CreateTextures" no_error="true">
       <param name="target" type="GLenum" />
       <param name="n" type="GLsizei" />
       <param name="textures" type="GLuint *" />
@@ -446,7 +446,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CopyTextureSubImage1D">
+   <function name="CopyTextureSubImage1D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -455,7 +455,7 @@
       <param name="width" type="GLsizei" />
    </function>
 
-   <function name="CopyTextureSubImage2D">
+   <function name="CopyTextureSubImage2D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -466,7 +466,7 @@
       <param name="height" type="GLsizei" />
    </function>
 
-   <function name="CopyTextureSubImage3D">
+   <function name="CopyTextureSubImage3D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -518,7 +518,7 @@
       <param name="texture" type="GLuint" />
    </function>
 
-   <function name="BindTextureUnit">
+   <function name="BindTextureUnit" no_error="true">
       <param name="unit" type="GLuint" />
       <param name="texture" type="GLuint" />
    </function>
@@ -584,12 +584,12 @@
       <param name="arrays" type="GLuint *" />
    </function>
 
-   <function name="DisableVertexArrayAttrib">
+   <function name="DisableVertexArrayAttrib" no_error="true">
       <param name="vaobj" type="GLuint" />
       <param name="index" type="GLuint" />
    </function>
 
-   <function name="EnableVertexArrayAttrib">
+   <function name="EnableVertexArrayAttrib" no_error="true">
       <param name="vaobj" type="GLuint" />
       <param name="index" type="GLuint" />
    </function>
@@ -641,7 +641,7 @@
       <param name="relativeoffset" type="GLuint" />
    </function>
 
-   <function name="VertexArrayAttribBinding">
+   <function name="VertexArrayAttribBinding" no_error="true">
       <param name="vaobj" type="GLuint" />
       <param name="attribindex" type="GLuint" />
       <param name="bindingindex" type="GLuint" />
@@ -675,14 +675,14 @@
 
    <!-- Sampler object functions -->
 
-   <function name="CreateSamplers">
+   <function name="CreateSamplers" no_error="true">
       <param name="n" type="GLsizei" />
       <param name="samplers" type="GLuint *" />
    </function>
 
    <!-- Program Pipeline object functions -->
 
-   <function name="CreateProgramPipelines">
+   <function name="CreateProgramPipelines" no_error="true">
       <param name="n" type="GLsizei" />
       <param name="pipelines" type="GLuint *" />
    </function>

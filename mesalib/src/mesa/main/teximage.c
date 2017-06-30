@@ -2504,6 +2504,8 @@ copytexsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
                             GLint xoffset, GLint yoffset, GLint zoffset,
                             GLint width, GLint height, const char *caller)
 {
+   assert(texObj);
+
    struct gl_texture_image *texImage;
 
    /* Check that the source buffer is complete */
@@ -2527,12 +2529,6 @@ copytexsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
    /* Check level */
    if (level < 0 || level >= _mesa_max_texture_levels(ctx, target)) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(level=%d)", caller, level);
-      return GL_TRUE;
-   }
-
-   /* Get dest image pointers */
-   if (!texObj) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s()", caller);
       return GL_TRUE;
    }
 
@@ -2865,19 +2861,19 @@ strip_texture_border(GLenum target,
  * \param type  the user's image type (only used if !compressed)
  * \param imageSize  only used for glCompressedTexImage1D/2D/3D calls.
  */
-static void
+static ALWAYS_INLINE void
 teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
          GLenum target, GLint level, GLint internalFormat,
          GLsizei width, GLsizei height, GLsizei depth,
          GLint border, GLenum format, GLenum type,
-         GLsizei imageSize, const GLvoid *pixels)
+         GLsizei imageSize, const GLvoid *pixels, bool no_error)
 {
    const char *func = compressed ? "glCompressedTexImage" : "glTexImage";
    struct gl_pixelstore_attrib unpack_no_border;
    const struct gl_pixelstore_attrib *unpack = &ctx->Unpack;
    struct gl_texture_object *texObj;
    mesa_format texFormat;
-   GLboolean dimensionsOK, sizeOK;
+   bool dimensionsOK = true, sizeOK = true;
 
    FLUSH_VERTICES(ctx, 0);
 
@@ -2902,26 +2898,27 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
 
    internalFormat = override_internal_format(internalFormat, width, height);
 
-   /* target error checking */
-   if (!legal_teximage_target(ctx, dims, target)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s%uD(target=%s)",
-                  func, dims, _mesa_enum_to_string(target));
-      return;
-   }
+   if (!no_error) {
+      /* target error checking */
+      if (!legal_teximage_target(ctx, dims, target)) {
+         _mesa_error(ctx, GL_INVALID_ENUM, "%s%uD(target=%s)",
+                     func, dims, _mesa_enum_to_string(target));
+         return;
+      }
 
-   /* general error checking */
-   if (compressed) {
-      if (compressed_texture_error_check(ctx, dims, target, level,
-                                         internalFormat,
-                                         width, height, depth,
-                                         border, imageSize, pixels))
-         return;
-   }
-   else {
-      if (texture_error_check(ctx, dims, target, level, internalFormat,
-                              format, type, width, height, depth, border,
-                              pixels))
-         return;
+      /* general error checking */
+      if (compressed) {
+         if (compressed_texture_error_check(ctx, dims, target, level,
+                                            internalFormat,
+                                            width, height, depth,
+                                            border, imageSize, pixels))
+            return;
+      } else {
+         if (texture_error_check(ctx, dims, target, level, internalFormat,
+                                 format, type, width, height, depth, border,
+                                 pixels))
+            return;
+      }
    }
 
    /* Here we convert a cpal compressed image into a regular glTexImage2D
@@ -2976,14 +2973,16 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
 
    assert(texFormat != MESA_FORMAT_NONE);
 
-   /* check that width, height, depth are legal for the mipmap level */
-   dimensionsOK = _mesa_legal_texture_dimensions(ctx, target, level, width,
-                                                 height, depth, border);
+   if (!no_error) {
+      /* check that width, height, depth are legal for the mipmap level */
+      dimensionsOK = _mesa_legal_texture_dimensions(ctx, target, level, width,
+                                                    height, depth, border);
 
-   /* check that the texture won't take too much memory, etc */
-   sizeOK = ctx->Driver.TestProxyTexImage(ctx, proxy_target(target),
-                                          0, level, texFormat, 1,
-                                          width, height, depth);
+      /* check that the texture won't take too much memory, etc */
+      sizeOK = ctx->Driver.TestProxyTexImage(ctx, proxy_target(target),
+                                             0, level, texFormat, 1,
+                                             width, height, depth);
+   }
 
    if (_mesa_is_proxy_texture(target)) {
       /* Proxy texture: just clear or set state depending on error checking */
@@ -3072,6 +3071,31 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
    }
 }
 
+/* This is a wrapper around teximage() so that we can force the KHR_no_error
+ * logic to be inlined without inlining the function into all the callers.
+ */
+static void
+teximage_err(struct gl_context *ctx, GLboolean compressed, GLuint dims,
+             GLenum target, GLint level, GLint internalFormat,
+             GLsizei width, GLsizei height, GLsizei depth,
+             GLint border, GLenum format, GLenum type,
+             GLsizei imageSize, const GLvoid *pixels)
+{
+   teximage(ctx, compressed, dims, target, level, internalFormat, width, height,
+            depth, border, format, type, imageSize, pixels, false);
+}
+
+
+static void
+teximage_no_error(struct gl_context *ctx, GLboolean compressed, GLuint dims,
+                  GLenum target, GLint level, GLint internalFormat,
+                  GLsizei width, GLsizei height, GLsizei depth,
+                  GLint border, GLenum format, GLenum type,
+                  GLsizei imageSize, const GLvoid *pixels)
+{
+   teximage(ctx, compressed, dims, target, level, internalFormat, width, height,
+            depth, border, format, type, imageSize, pixels, true);
+}
 
 
 /*
@@ -3083,8 +3107,8 @@ _mesa_TexImage1D( GLenum target, GLint level, GLint internalFormat,
                   GLenum type, const GLvoid *pixels )
 {
    GET_CURRENT_CONTEXT(ctx);
-   teximage(ctx, GL_FALSE, 1, target, level, internalFormat, width, 1, 1,
-            border, format, type, 0, pixels);
+   teximage_err(ctx, GL_FALSE, 1, target, level, internalFormat, width, 1, 1,
+                border, format, type, 0, pixels);
 }
 
 
@@ -3095,8 +3119,8 @@ _mesa_TexImage2D( GLenum target, GLint level, GLint internalFormat,
                   const GLvoid *pixels )
 {
    GET_CURRENT_CONTEXT(ctx);
-   teximage(ctx, GL_FALSE, 2, target, level, internalFormat, width, height, 1,
-            border, format, type, 0, pixels);
+   teximage_err(ctx, GL_FALSE, 2, target, level, internalFormat, width, height, 1,
+                border, format, type, 0, pixels);
 }
 
 
@@ -3111,9 +3135,8 @@ _mesa_TexImage3D( GLenum target, GLint level, GLint internalFormat,
                   const GLvoid *pixels )
 {
    GET_CURRENT_CONTEXT(ctx);
-   teximage(ctx, GL_FALSE, 3, target, level, internalFormat,
-            width, height, depth,
-            border, format, type, 0, pixels);
+   teximage_err(ctx, GL_FALSE, 3, target, level, internalFormat,
+                width, height, depth, border, format, type, 0, pixels);
 }
 
 
@@ -3125,6 +3148,40 @@ _mesa_TexImage3DEXT( GLenum target, GLint level, GLenum internalFormat,
 {
    _mesa_TexImage3D(target, level, (GLint) internalFormat, width, height,
                     depth, border, format, type, pixels);
+}
+
+
+void GLAPIENTRY
+_mesa_TexImage1D_no_error(GLenum target, GLint level, GLint internalFormat,
+                          GLsizei width, GLint border, GLenum format,
+                          GLenum type, const GLvoid *pixels)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   teximage_no_error(ctx, GL_FALSE, 1, target, level, internalFormat, width, 1,
+                     1, border, format, type, 0, pixels);
+}
+
+
+void GLAPIENTRY
+_mesa_TexImage2D_no_error(GLenum target, GLint level, GLint internalFormat,
+                          GLsizei width, GLsizei height, GLint border,
+                          GLenum format, GLenum type, const GLvoid *pixels)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   teximage_no_error(ctx, GL_FALSE, 2, target, level, internalFormat, width,
+                     height, 1, border, format, type, 0, pixels);
+}
+
+
+void GLAPIENTRY
+_mesa_TexImage3D_no_error(GLenum target, GLint level, GLint internalFormat,
+                          GLsizei width, GLsizei height, GLsizei depth,
+                          GLint border, GLenum format, GLenum type,
+                          const GLvoid *pixels )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   teximage_no_error(ctx, GL_FALSE, 3, target, level, internalFormat,
+                     width, height, depth, border, format, type, 0, pixels);
 }
 
 
@@ -3647,19 +3704,114 @@ can_avoid_reallocation(const struct gl_texture_image *texImage,
    return true;
 }
 
+
+/**
+ * Implementation for glCopyTex(ture)SubImage1/2/3D() functions.
+ */
+static void
+copy_texture_sub_image(struct gl_context *ctx, GLuint dims,
+                       struct gl_texture_object *texObj,
+                       GLenum target, GLint level,
+                       GLint xoffset, GLint yoffset, GLint zoffset,
+                       GLint x, GLint y, GLsizei width, GLsizei height)
+{
+   struct gl_texture_image *texImage;
+
+   _mesa_lock_texture(ctx, texObj);
+
+   texImage = _mesa_select_tex_image(texObj, target, level);
+
+   /* If we have a border, offset=-1 is legal.  Bias by border width. */
+   switch (dims) {
+   case 3:
+      if (target != GL_TEXTURE_2D_ARRAY)
+         zoffset += texImage->Border;
+      /* fall-through */
+   case 2:
+      if (target != GL_TEXTURE_1D_ARRAY)
+         yoffset += texImage->Border;
+      /* fall-through */
+   case 1:
+      xoffset += texImage->Border;
+   }
+
+   if (_mesa_clip_copytexsubimage(ctx, &xoffset, &yoffset, &x, &y,
+                                  &width, &height)) {
+      struct gl_renderbuffer *srcRb =
+         get_copy_tex_image_source(ctx, texImage->TexFormat);
+
+      copytexsubimage_by_slice(ctx, texImage, dims, xoffset, yoffset, zoffset,
+                               srcRb, x, y, width, height);
+
+      check_gen_mipmap(ctx, target, texObj, level);
+
+      /* NOTE: Don't signal _NEW_TEXTURE_OBJECT since we've only changed
+       * the texel data, not the texture format, size, etc.
+       */
+   }
+
+   _mesa_unlock_texture(ctx, texObj);
+}
+
+
+static void
+copy_texture_sub_image_err(struct gl_context *ctx, GLuint dims,
+                           struct gl_texture_object *texObj,
+                           GLenum target, GLint level,
+                           GLint xoffset, GLint yoffset, GLint zoffset,
+                           GLint x, GLint y, GLsizei width, GLsizei height,
+                           const char *caller)
+{
+   FLUSH_VERTICES(ctx, 0);
+
+   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
+      _mesa_debug(ctx, "%s %s %d %d %d %d %d %d %d %d\n", caller,
+                  _mesa_enum_to_string(target),
+                  level, xoffset, yoffset, zoffset, x, y, width, height);
+
+   if (ctx->NewState & NEW_COPY_TEX_STATE)
+      _mesa_update_state(ctx);
+
+   if (copytexsubimage_error_check(ctx, dims, texObj, target, level,
+                                   xoffset, yoffset, zoffset,
+                                   width, height, caller)) {
+      return;
+   }
+
+   copy_texture_sub_image(ctx, dims, texObj, target, level, xoffset, yoffset,
+                          zoffset, x, y, width, height);
+}
+
+
+static void
+copy_texture_sub_image_no_error(struct gl_context *ctx, GLuint dims,
+                                struct gl_texture_object *texObj,
+                                GLenum target, GLint level,
+                                GLint xoffset, GLint yoffset, GLint zoffset,
+                                GLint x, GLint y, GLsizei width, GLsizei height)
+{
+   FLUSH_VERTICES(ctx, 0);
+
+   if (ctx->NewState & NEW_COPY_TEX_STATE)
+      _mesa_update_state(ctx);
+
+   copy_texture_sub_image(ctx, dims, texObj, target, level, xoffset, yoffset,
+                          zoffset, x, y, width, height);
+}
+
+
 /**
  * Implement the glCopyTexImage1/2D() functions.
  */
-static void
+static ALWAYS_INLINE void
 copyteximage(struct gl_context *ctx, GLuint dims,
              GLenum target, GLint level, GLenum internalFormat,
-             GLint x, GLint y, GLsizei width, GLsizei height, GLint border )
+             GLint x, GLint y, GLsizei width, GLsizei height, GLint border,
+             bool no_error)
 {
-   struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
-   const GLuint face = _mesa_tex_target_to_face(target);
+   struct gl_texture_object *texObj;
    mesa_format texFormat;
-   struct gl_renderbuffer *rb;
 
    FLUSH_VERTICES(ctx, 0);
 
@@ -3673,15 +3825,17 @@ copyteximage(struct gl_context *ctx, GLuint dims,
    if (ctx->NewState & NEW_COPY_TEX_STATE)
       _mesa_update_state(ctx);
 
-   if (copytexture_error_check(ctx, dims, target, level, internalFormat,
-                               width, height, border))
-      return;
+   if (!no_error) {
+      if (copytexture_error_check(ctx, dims, target, level, internalFormat,
+                                  width, height, border))
+         return;
 
-   if (!_mesa_legal_texture_dimensions(ctx, target, level, width, height,
-                                       1, border)) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glCopyTexImage%uD(invalid width or height)", dims);
-      return;
+      if (!_mesa_legal_texture_dimensions(ctx, target, level, width, height,
+                                          1, border)) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glCopyTexImage%uD(invalid width or height)", dims);
+         return;
+      }
    }
 
    texObj = _mesa_get_current_tex_object(ctx, target);
@@ -3699,9 +3853,13 @@ copyteximage(struct gl_context *ctx, GLuint dims,
       if (texImage && can_avoid_reallocation(texImage, internalFormat, texFormat,
                                              x, y, width, height, border)) {
          _mesa_unlock_texture(ctx, texObj);
-         _mesa_copy_texture_sub_image(ctx, dims, texObj, target, level,
-                                      0, 0, 0, x, y, width, height,
-                                      "CopyTexImage");
+         if (no_error) {
+            copy_texture_sub_image_no_error(ctx, dims, texObj, target, level, 0,
+                                            0, 0, x, y, width, height);
+         } else {
+            copy_texture_sub_image_err(ctx, dims, texObj, target, level, 0, 0,
+                                       0, x, y, width, height,"CopyTexImage");
+         }
          return;
       }
    }
@@ -3709,9 +3867,10 @@ copyteximage(struct gl_context *ctx, GLuint dims,
    _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_LOW, "glCopyTexImage "
                     "can't avoid reallocating texture storage\n");
 
-   rb = _mesa_get_read_renderbuffer_for_format(ctx, internalFormat);
+   if (!no_error && _mesa_is_gles3(ctx)) {
+      struct gl_renderbuffer *rb =
+         _mesa_get_read_renderbuffer_for_format(ctx, internalFormat);
 
-   if (_mesa_is_gles3(ctx)) {
       if (_mesa_is_enum_format_unsized(internalFormat)) {
       /* Conversion from GL_RGB10_A2 source buffer format is not allowed in
        * OpenGL ES 3.0. Khronos bug# 9807.
@@ -3771,6 +3930,7 @@ copyteximage(struct gl_context *ctx, GLuint dims,
       }
       else {
          GLint srcX = x, srcY = y, dstX = 0, dstY = 0, dstZ = 0;
+         const GLuint face = _mesa_tex_target_to_face(target);
 
          /* Free old texture image */
          ctx->Driver.FreeTextureImageBuffer(ctx, texImage);
@@ -3804,6 +3964,24 @@ copyteximage(struct gl_context *ctx, GLuint dims,
 }
 
 
+static void
+copyteximage_err(struct gl_context *ctx, GLuint dims, GLenum target,
+                 GLint level, GLenum internalFormat, GLint x, GLint y,
+                 GLsizei width, GLsizei height, GLint border)
+{
+   copyteximage(ctx, dims, target, level, internalFormat, x, y, width, height,
+                border, false);
+}
+
+static void
+copyteximage_no_error(struct gl_context *ctx, GLuint dims, GLenum target,
+                      GLint level, GLenum internalFormat, GLint x, GLint y,
+                      GLsizei width, GLsizei height, GLint border)
+{
+   copyteximage(ctx, dims, target, level, internalFormat, x, y, width, height,
+                border, true);
+}
+
 
 void GLAPIENTRY
 _mesa_CopyTexImage1D( GLenum target, GLint level,
@@ -3812,7 +3990,8 @@ _mesa_CopyTexImage1D( GLenum target, GLint level,
                       GLsizei width, GLint border )
 {
    GET_CURRENT_CONTEXT(ctx);
-   copyteximage(ctx, 1, target, level, internalFormat, x, y, width, 1, border);
+   copyteximage_err(ctx, 1, target, level, internalFormat, x, y, width, 1,
+                    border);
 }
 
 
@@ -3823,76 +4002,31 @@ _mesa_CopyTexImage2D( GLenum target, GLint level, GLenum internalFormat,
                       GLint border )
 {
    GET_CURRENT_CONTEXT(ctx);
-   copyteximage(ctx, 2, target, level, internalFormat,
-                x, y, width, height, border);
+   copyteximage_err(ctx, 2, target, level, internalFormat,
+                    x, y, width, height, border);
 }
 
-/**
- * Implementation for glCopyTex(ture)SubImage1/2/3D() functions.
- */
-void
-_mesa_copy_texture_sub_image(struct gl_context *ctx, GLuint dims,
-                             struct gl_texture_object *texObj,
-                             GLenum target, GLint level,
-                             GLint xoffset, GLint yoffset, GLint zoffset,
-                             GLint x, GLint y,
-                             GLsizei width, GLsizei height,
-                             const char *caller)
+
+void GLAPIENTRY
+_mesa_CopyTexImage1D_no_error(GLenum target, GLint level, GLenum internalFormat,
+                              GLint x, GLint y, GLsizei width, GLint border)
 {
-   struct gl_texture_image *texImage;
-
-   FLUSH_VERTICES(ctx, 0);
-
-   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
-      _mesa_debug(ctx, "%s %s %d %d %d %d %d %d %d %d\n", caller,
-                  _mesa_enum_to_string(target),
-                  level, xoffset, yoffset, zoffset, x, y, width, height);
-
-   if (ctx->NewState & NEW_COPY_TEX_STATE)
-      _mesa_update_state(ctx);
-
-   if (copytexsubimage_error_check(ctx, dims, texObj, target, level,
-                                   xoffset, yoffset, zoffset,
-                                   width, height, caller)) {
-      return;
-   }
-
-   _mesa_lock_texture(ctx, texObj);
-   {
-      texImage = _mesa_select_tex_image(texObj, target, level);
-
-      /* If we have a border, offset=-1 is legal.  Bias by border width. */
-      switch (dims) {
-      case 3:
-         if (target != GL_TEXTURE_2D_ARRAY)
-            zoffset += texImage->Border;
-         /* fall-through */
-      case 2:
-         if (target != GL_TEXTURE_1D_ARRAY)
-            yoffset += texImage->Border;
-         /* fall-through */
-      case 1:
-         xoffset += texImage->Border;
-      }
-
-      if (_mesa_clip_copytexsubimage(ctx, &xoffset, &yoffset, &x, &y,
-                                     &width, &height)) {
-         struct gl_renderbuffer *srcRb =
-            get_copy_tex_image_source(ctx, texImage->TexFormat);
-
-         copytexsubimage_by_slice(ctx, texImage, dims,
-                                  xoffset, yoffset, zoffset,
-                                  srcRb, x, y, width, height);
-
-         check_gen_mipmap(ctx, target, texObj, level);
-
-         /* NOTE: Don't signal _NEW_TEXTURE_OBJECT since we've only changed
-          * the texel data, not the texture format, size, etc.
-          */
-      }
-   }
-   _mesa_unlock_texture(ctx, texObj);
+   GET_CURRENT_CONTEXT(ctx);
+   copyteximage_no_error(ctx, 1, target, level, internalFormat, x, y, width, 1,
+                         border);
 }
+
+
+void GLAPIENTRY
+_mesa_CopyTexImage2D_no_error(GLenum target, GLint level, GLenum internalFormat,
+                              GLint x, GLint y, GLsizei width, GLsizei height,
+                              GLint border)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   copyteximage_no_error(ctx, 2, target, level, internalFormat,
+                         x, y, width, height, border);
+}
+
 
 void GLAPIENTRY
 _mesa_CopyTexSubImage1D( GLenum target, GLint level,
@@ -3915,11 +4049,9 @@ _mesa_CopyTexSubImage1D( GLenum target, GLint level,
    if (!texObj)
       return;
 
-   _mesa_copy_texture_sub_image(ctx, 1, texObj, target, level, xoffset, 0, 0,
-                                x, y, width, 1, self);
+   copy_texture_sub_image_err(ctx, 1, texObj, target, level, xoffset, 0, 0,
+                              x, y, width, 1, self);
 }
-
-
 
 void GLAPIENTRY
 _mesa_CopyTexSubImage2D( GLenum target, GLint level,
@@ -3943,9 +4075,8 @@ _mesa_CopyTexSubImage2D( GLenum target, GLint level,
    if (!texObj)
       return;
 
-   _mesa_copy_texture_sub_image(ctx, 2, texObj, target, level,
-                                xoffset, yoffset, 0,
-                                x, y, width, height, self);
+   copy_texture_sub_image_err(ctx, 2, texObj, target, level, xoffset, yoffset,
+                              0, x, y, width, height, self);
 }
 
 
@@ -3972,9 +4103,8 @@ _mesa_CopyTexSubImage3D( GLenum target, GLint level,
    if (!texObj)
       return;
 
-   _mesa_copy_texture_sub_image(ctx, 3, texObj, target, level,
-                                xoffset, yoffset, zoffset,
-                                x, y, width, height, self);
+   copy_texture_sub_image_err(ctx, 3, texObj, target, level, xoffset, yoffset,
+                              zoffset, x, y, width, height, self);
 }
 
 void GLAPIENTRY
@@ -3996,8 +4126,8 @@ _mesa_CopyTextureSubImage1D(GLuint texture, GLint level,
       return;
    }
 
-   _mesa_copy_texture_sub_image(ctx, 1, texObj, texObj->Target, level,
-                                xoffset, 0, 0, x, y, width, 1, self);
+   copy_texture_sub_image_err(ctx, 1, texObj, texObj->Target, level, xoffset, 0,
+                              0, x, y, width, 1, self);
 }
 
 void GLAPIENTRY
@@ -4020,9 +4150,8 @@ _mesa_CopyTextureSubImage2D(GLuint texture, GLint level,
       return;
    }
 
-   _mesa_copy_texture_sub_image(ctx, 2, texObj, texObj->Target, level,
-                                xoffset, yoffset, 0,
-                                x, y, width, height, self);
+   copy_texture_sub_image_err(ctx, 2, texObj, texObj->Target, level, xoffset,
+                              yoffset, 0, x, y, width, height, self);
 }
 
 
@@ -4049,16 +4178,96 @@ _mesa_CopyTextureSubImage3D(GLuint texture, GLint level,
 
    if (texObj->Target == GL_TEXTURE_CUBE_MAP) {
       /* Act like CopyTexSubImage2D */
-      _mesa_copy_texture_sub_image(ctx, 2, texObj,
-                                   GL_TEXTURE_CUBE_MAP_POSITIVE_X + zoffset,
-                                   level, xoffset, yoffset, 0,
-                                   x, y, width, height, self);
+      copy_texture_sub_image_err(ctx, 2, texObj,
+                                GL_TEXTURE_CUBE_MAP_POSITIVE_X + zoffset,
+                                level, xoffset, yoffset, 0, x, y, width, height,
+                                self);
    }
    else
-      _mesa_copy_texture_sub_image(ctx, 3, texObj, texObj->Target, level,
-                                   xoffset, yoffset, zoffset,
-                                   x, y, width, height, self);
+      copy_texture_sub_image_err(ctx, 3, texObj, texObj->Target, level, xoffset,
+                                 yoffset, zoffset, x, y, width, height, self);
 }
+
+
+void GLAPIENTRY
+_mesa_CopyTexSubImage1D_no_error(GLenum target, GLint level, GLint xoffset,
+                                 GLint x, GLint y, GLsizei width)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_texture_object* texObj = _mesa_get_current_tex_object(ctx, target);
+   copy_texture_sub_image_no_error(ctx, 1, texObj, target, level, xoffset, 0, 0,
+                                   x, y, width, 1);
+}
+
+void GLAPIENTRY
+_mesa_CopyTexSubImage2D_no_error(GLenum target, GLint level, GLint xoffset,
+                                 GLint yoffset, GLint x, GLint y, GLsizei width,
+                                 GLsizei height)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_texture_object* texObj = _mesa_get_current_tex_object(ctx, target);
+   copy_texture_sub_image_no_error(ctx, 2, texObj, target, level, xoffset,
+                                   yoffset, 0, x, y, width, height);
+}
+
+void GLAPIENTRY
+_mesa_CopyTexSubImage3D_no_error(GLenum target, GLint level, GLint xoffset,
+                                 GLint yoffset, GLint zoffset, GLint x, GLint y,
+                                 GLsizei width, GLsizei height)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_texture_object* texObj = _mesa_get_current_tex_object(ctx, target);
+   copy_texture_sub_image_no_error(ctx, 3, texObj, target, level, xoffset,
+                                   yoffset, zoffset, x, y, width, height);
+}
+
+void GLAPIENTRY
+_mesa_CopyTextureSubImage1D_no_error(GLuint texture, GLint level, GLint xoffset,
+                                     GLint x, GLint y, GLsizei width)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_texture_object* texObj = _mesa_lookup_texture(ctx, texture);
+   copy_texture_sub_image_no_error(ctx, 1, texObj, texObj->Target, level,
+                                   xoffset, 0, 0, x, y, width, 1);
+}
+
+void GLAPIENTRY
+_mesa_CopyTextureSubImage2D_no_error(GLuint texture, GLint level, GLint xoffset,
+                                     GLint yoffset, GLint x, GLint y,
+                                     GLsizei width, GLsizei height)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_texture_object* texObj = _mesa_lookup_texture(ctx, texture);
+   copy_texture_sub_image_no_error(ctx, 2, texObj, texObj->Target, level,
+                                   xoffset, yoffset, 0, x, y, width, height);
+}
+
+void GLAPIENTRY
+_mesa_CopyTextureSubImage3D_no_error(GLuint texture, GLint level, GLint xoffset,
+                                     GLint yoffset, GLint zoffset, GLint x,
+                                     GLint y, GLsizei width, GLsizei height)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_texture_object* texObj = _mesa_lookup_texture(ctx, texture);
+   if (texObj->Target == GL_TEXTURE_CUBE_MAP) {
+      /* Act like CopyTexSubImage2D */
+      copy_texture_sub_image_no_error(ctx, 2, texObj,
+                                      GL_TEXTURE_CUBE_MAP_POSITIVE_X + zoffset,
+                                      level, xoffset, yoffset, 0, x, y, width,
+                                      height);
+   }
+   else
+      copy_texture_sub_image_no_error(ctx, 3, texObj, texObj->Target, level,
+                                      xoffset, yoffset, zoffset, x, y, width,
+                                      height);
+}
+
 
 static bool
 check_clear_tex_image(struct gl_context *ctx,
@@ -4527,8 +4736,8 @@ _mesa_CompressedTexImage1D(GLenum target, GLint level,
                               const GLvoid *data)
 {
    GET_CURRENT_CONTEXT(ctx);
-   teximage(ctx, GL_TRUE, 1, target, level, internalFormat,
-            width, 1, 1, border, GL_NONE, GL_NONE, imageSize, data);
+   teximage_err(ctx, GL_TRUE, 1, target, level, internalFormat,
+                width, 1, 1, border, GL_NONE, GL_NONE, imageSize, data);
 }
 
 
@@ -4539,8 +4748,8 @@ _mesa_CompressedTexImage2D(GLenum target, GLint level,
                               const GLvoid *data)
 {
    GET_CURRENT_CONTEXT(ctx);
-   teximage(ctx, GL_TRUE, 2, target, level, internalFormat,
-            width, height, 1, border, GL_NONE, GL_NONE, imageSize, data);
+   teximage_err(ctx, GL_TRUE, 2, target, level, internalFormat,
+                width, height, 1, border, GL_NONE, GL_NONE, imageSize, data);
 }
 
 
@@ -4551,8 +4760,44 @@ _mesa_CompressedTexImage3D(GLenum target, GLint level,
                               GLsizei imageSize, const GLvoid *data)
 {
    GET_CURRENT_CONTEXT(ctx);
-   teximage(ctx, GL_TRUE, 3, target, level, internalFormat,
-            width, height, depth, border, GL_NONE, GL_NONE, imageSize, data);
+   teximage_err(ctx, GL_TRUE, 3, target, level, internalFormat, width, height,
+                depth, border, GL_NONE, GL_NONE, imageSize, data);
+}
+
+
+void GLAPIENTRY
+_mesa_CompressedTexImage1D_no_error(GLenum target, GLint level,
+                                    GLenum internalFormat, GLsizei width,
+                                    GLint border, GLsizei imageSize,
+                                    const GLvoid *data)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   teximage_no_error(ctx, GL_TRUE, 1, target, level, internalFormat, width, 1,
+                     1, border, GL_NONE, GL_NONE, imageSize, data);
+}
+
+
+void GLAPIENTRY
+_mesa_CompressedTexImage2D_no_error(GLenum target, GLint level,
+                                    GLenum internalFormat, GLsizei width,
+                                    GLsizei height, GLint border,
+                                    GLsizei imageSize, const GLvoid *data)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   teximage_no_error(ctx, GL_TRUE, 2, target, level, internalFormat, width,
+                     height, 1, border, GL_NONE, GL_NONE, imageSize, data);
+}
+
+
+void GLAPIENTRY
+_mesa_CompressedTexImage3D_no_error(GLenum target, GLint level,
+                                    GLenum internalFormat, GLsizei width,
+                                    GLsizei height, GLsizei depth, GLint border,
+                                    GLsizei imageSize, const GLvoid *data)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   teximage_no_error(ctx, GL_TRUE, 3, target, level, internalFormat, width,
+                     height, depth, border, GL_NONE, GL_NONE, imageSize, data);
 }
 
 

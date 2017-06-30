@@ -301,6 +301,20 @@ lower_yx_xuxv_external(nir_builder *b, nir_tex_instr *tex)
                       nir_channel(b, xuxv, 3));
 }
 
+static void
+lower_xy_uxvx_external(nir_builder *b, nir_tex_instr *tex)
+{
+  b->cursor = nir_after_instr(&tex->instr);
+
+  nir_ssa_def *y = sample_plane(b, tex, 0);
+  nir_ssa_def *uxvx = sample_plane(b, tex, 1);
+
+  convert_yuv_to_rgb(b, tex,
+                     nir_channel(b, y, 1),
+                     nir_channel(b, uxvx, 0),
+                     nir_channel(b, uxvx, 2));
+}
+
 /*
  * Emits a textureLod operation used to replace an existing
  * textureGrad instruction.
@@ -760,6 +774,10 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
          progress = true;
       }
 
+      if ((1 << tex->texture_index) & options->lower_xy_uxvx_external) {
+         lower_xy_uxvx_external(b, tex);
+         progress = true;
+      }
 
       if (sat_mask) {
          saturate_src(b, tex, sat_mask);

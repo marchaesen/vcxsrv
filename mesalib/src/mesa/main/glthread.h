@@ -47,7 +47,6 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
-#include <pthread.h>
 #include "util/u_queue.h"
 
 enum marshal_dispatch_cmd_id;

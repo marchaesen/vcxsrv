@@ -738,11 +738,10 @@ _mesa_readbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
  * renderbuffer for reading pixels.
  * \param mode color buffer such as GL_FRONT, GL_BACK, etc.
  */
-static void
+static ALWAYS_INLINE void
 read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
-            GLenum buffer, const char *caller)
+            GLenum buffer, const char *caller, bool no_error)
 {
-   GLbitfield supportedMask;
    gl_buffer_index srcBuffer;
 
    FLUSH_VERTICES(ctx, 0);
@@ -756,23 +755,29 @@ read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
    }
    else {
       /* general case / window-system framebuffer */
-      if (_mesa_is_gles3(ctx) && !is_legal_es3_readbuffer_enum(buffer))
+      if (!no_error &&_mesa_is_gles3(ctx) &&
+          !is_legal_es3_readbuffer_enum(buffer))
          srcBuffer = BUFFER_NONE;
       else
          srcBuffer = read_buffer_enum_to_index(ctx, buffer);
 
-      if (srcBuffer == BUFFER_NONE) {
-         _mesa_error(ctx, GL_INVALID_ENUM,
-                     "%s(invalid buffer %s)", caller,
-                     _mesa_enum_to_string(buffer));
-         return;
-      }
-      supportedMask = supported_buffer_bitmask(ctx, fb);
-      if (((1 << srcBuffer) & supportedMask) == 0) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(invalid buffer %s)", caller,
-                     _mesa_enum_to_string(buffer));
-         return;
+      if (!no_error) {
+         GLbitfield supportedMask;
+
+         if (srcBuffer == BUFFER_NONE) {
+            _mesa_error(ctx, GL_INVALID_ENUM,
+                        "%s(invalid buffer %s)", caller,
+                        _mesa_enum_to_string(buffer));
+            return;
+         }
+
+         supportedMask = supported_buffer_bitmask(ctx, fb);
+         if (((1 << srcBuffer) & supportedMask) == 0) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "%s(invalid buffer %s)", caller,
+                        _mesa_enum_to_string(buffer));
+            return;
+         }
       }
    }
 
@@ -788,11 +793,52 @@ read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
 }
 
 
+static void
+read_buffer_err(struct gl_context *ctx, struct gl_framebuffer *fb,
+                GLenum buffer, const char *caller)
+{
+   read_buffer(ctx, fb, buffer, caller, false);
+}
+
+
+static void
+read_buffer_no_error(struct gl_context *ctx, struct gl_framebuffer *fb,
+                     GLenum buffer, const char *caller)
+{
+   read_buffer(ctx, fb, buffer, caller, true);
+}
+
+
+void GLAPIENTRY
+_mesa_ReadBuffer_no_error(GLenum buffer)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   read_buffer_no_error(ctx, ctx->ReadBuffer, buffer, "glReadBuffer");
+}
+
+
 void GLAPIENTRY
 _mesa_ReadBuffer(GLenum buffer)
 {
    GET_CURRENT_CONTEXT(ctx);
-   read_buffer(ctx, ctx->ReadBuffer, buffer, "glReadBuffer");
+   read_buffer_err(ctx, ctx->ReadBuffer, buffer, "glReadBuffer");
+}
+
+
+void GLAPIENTRY
+_mesa_NamedFramebufferReadBuffer_no_error(GLuint framebuffer, GLenum src)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_framebuffer *fb;
+
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer(ctx, framebuffer);
+   } else {
+      fb = ctx->WinSysReadBuffer;
+   }
+
+   read_buffer_no_error(ctx, fb, src, "glNamedFramebufferReadBuffer");
 }
 
 
@@ -811,5 +857,5 @@ _mesa_NamedFramebufferReadBuffer(GLuint framebuffer, GLenum src)
    else
       fb = ctx->WinSysReadBuffer;
 
-   read_buffer(ctx, fb, src, "glNamedFramebufferReadBuffer");
+   read_buffer_err(ctx, fb, src, "glNamedFramebufferReadBuffer");
 }

@@ -21,18 +21,7 @@
 
 .PHONY: git_sha1.h.tmp
 git_sha1.h.tmp:
-	@# Don't assume that $(top_srcdir)/.git is a directory. It may be
-	@# a gitlink file if $(top_srcdir) is a submodule checkout or a linked
-	@# worktree.
-	@# If we are building from a release tarball copy the bundled header.
-	@touch git_sha1.h.tmp
-	@if test -e $(top_srcdir)/.git; then \
-		if which git > /dev/null; then \
-			printf '#define MESA_GIT_SHA1 "git-%s"\n' \
-			`git --git-dir=$(top_srcdir)/.git rev-parse --short=10 HEAD` \
-			> git_sha1.h.tmp ; \
-		fi \
-	fi
+	@sh $(top_srcdir)/git_sha1_gen.sh > $@
 
 git_sha1.h: git_sha1.h.tmp
 	@echo "updating git_sha1.h"

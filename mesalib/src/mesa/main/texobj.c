@@ -1195,14 +1195,6 @@ create_textures(struct gl_context *ctx, GLenum target,
    GLuint first;
    GLint i;
 
-   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
-      _mesa_debug(ctx, "%s %d\n", caller, n);
-
-   if (n < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(n < 0)", caller);
-      return;
-   }
-
    if (!textures)
       return;
 
@@ -1220,7 +1212,7 @@ create_textures(struct gl_context *ctx, GLenum target,
       texObj = ctx->Driver.NewTextureObject(ctx, name, target);
       if (!texObj) {
          _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "gl%sTextures", caller);
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", caller);
          return;
       }
 
@@ -1231,6 +1223,22 @@ create_textures(struct gl_context *ctx, GLenum target,
    }
 
    _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
+}
+
+
+static void
+create_textures_err(struct gl_context *ctx, GLenum target,
+                    GLsizei n, GLuint *textures, const char *caller)
+{
+   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
+      _mesa_debug(ctx, "%s %d\n", caller, n);
+
+   if (n < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(n < 0)", caller);
+      return;
+   }
+
+   create_textures(ctx, target, n, textures, caller);
 }
 
 /*@}*/
@@ -1254,10 +1262,18 @@ create_textures(struct gl_context *ctx, GLenum target,
  * objects are also generated.
  */
 void GLAPIENTRY
-_mesa_GenTextures(GLsizei n, GLuint *textures)
+_mesa_GenTextures_no_error(GLsizei n, GLuint *textures)
 {
    GET_CURRENT_CONTEXT(ctx);
    create_textures(ctx, 0, n, textures, "glGenTextures");
+}
+
+
+void GLAPIENTRY
+_mesa_GenTextures(GLsizei n, GLuint *textures)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   create_textures_err(ctx, 0, n, textures, "glGenTextures");
 }
 
 /**
@@ -1273,6 +1289,14 @@ _mesa_GenTextures(GLsizei n, GLuint *textures)
  * IDs which are stored in \p textures.  Corresponding empty texture
  * objects are also generated.
  */
+void GLAPIENTRY
+_mesa_CreateTextures_no_error(GLenum target, GLsizei n, GLuint *textures)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   create_textures(ctx, target, n, textures, "glCreateTextures");
+}
+
+
 void GLAPIENTRY
 _mesa_CreateTextures(GLenum target, GLsizei n, GLuint *textures)
 {
@@ -1290,7 +1314,7 @@ _mesa_CreateTextures(GLenum target, GLsizei n, GLuint *textures)
       return;
    }
 
-   create_textures(ctx, target, n, textures, "glCreateTextures");
+   create_textures_err(ctx, target, n, textures, "glCreateTextures");
 }
 
 /**
@@ -1700,20 +1724,11 @@ _mesa_BindTexture( GLenum target, GLuint texName )
  * If the named texture is not 0 or a recognized texture name, this throws
  * GL_INVALID_OPERATION.
  */
-void GLAPIENTRY
-_mesa_BindTextureUnit(GLuint unit, GLuint texture)
+static ALWAYS_INLINE void
+bind_texture_unit(struct gl_context *ctx, GLuint unit, GLuint texture,
+                  bool no_error)
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_object *texObj;
-
-   if (unit >= _mesa_max_tex_unit(ctx)) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glBindTextureUnit(unit=%u)", unit);
-      return;
-   }
-
-   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
-      _mesa_debug(ctx, "glBindTextureUnit %s %d\n",
-                  _mesa_enum_to_string(GL_TEXTURE0+unit), (GLint) texture);
 
    /* Section 8.1 (Texture Objects) of the OpenGL 4.5 core profile spec
     * (20141030) says:
@@ -1728,21 +1743,50 @@ _mesa_BindTextureUnit(GLuint unit, GLuint texture)
 
    /* Get the non-default texture object */
    texObj = _mesa_lookup_texture(ctx, texture);
+   if (!no_error) {
+      /* Error checking */
+      if (!texObj) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBindTextureUnit(non-gen name)");
+         return;
+      }
 
-   /* Error checking */
-   if (!texObj) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glBindTextureUnit(non-gen name)");
-      return;
+      if (texObj->Target == 0) {
+         /* Texture object was gen'd but never bound so the target is not set */
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glBindTextureUnit(target)");
+         return;
+      }
    }
-   if (texObj->Target == 0) {
-      /* Texture object was gen'd but never bound so the target is not set */
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glBindTextureUnit(target)");
-      return;
-   }
+
    assert(valid_texture_object(texObj));
 
    bind_texture(ctx, unit, texObj);
+}
+
+
+void GLAPIENTRY
+_mesa_BindTextureUnit_no_error(GLuint unit, GLuint texture)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   bind_texture_unit(ctx, unit, texture, true);
+}
+
+
+void GLAPIENTRY
+_mesa_BindTextureUnit(GLuint unit, GLuint texture)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (unit >= _mesa_max_tex_unit(ctx)) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glBindTextureUnit(unit=%u)", unit);
+      return;
+   }
+
+   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
+      _mesa_debug(ctx, "glBindTextureUnit %s %d\n",
+                  _mesa_enum_to_string(GL_TEXTURE0+unit), (GLint) texture);
+
+   bind_texture_unit(ctx, unit, texture, false);
 }
 
 

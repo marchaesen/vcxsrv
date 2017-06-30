@@ -36,7 +36,7 @@
         <param name="relativeoffset" type="GLuint"/>
     </function>
 
-    <function name="VertexAttribBinding" es2="3.1">
+    <function name="VertexAttribBinding" es2="3.1" no_error="true">
         <param name="attribindex" type="GLuint"/>
         <param name="bindingindex" type="GLuint"/>
     </function>

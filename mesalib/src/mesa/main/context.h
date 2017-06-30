@@ -162,9 +162,6 @@ _mesa_record_error( struct gl_context *ctx, GLenum error );
 
 
 extern void
-_mesa_finish(struct gl_context *ctx);
-
-extern void
 _mesa_flush(struct gl_context *ctx);
 
 extern void GLAPIENTRY

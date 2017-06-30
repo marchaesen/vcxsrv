@@ -62,30 +62,26 @@ DECL_RESOURCE_FUNC(XFV, gl_transform_feedback_varying_info);
 DECL_RESOURCE_FUNC(XFB, gl_transform_feedback_buffer);
 DECL_RESOURCE_FUNC(SUB, gl_subroutine_function);
 
-void GLAPIENTRY
-_mesa_BindAttribLocation(GLuint program, GLuint index,
-                         const GLchar *name)
+static void
+bind_attrib_location(struct gl_context *ctx,
+                     struct gl_shader_program *const shProg, GLuint index,
+                     const GLchar *name, bool no_error)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
-   struct gl_shader_program *const shProg =
-      _mesa_lookup_shader_program_err(ctx, program, "glBindAttribLocation");
-   if (!shProg)
-      return;
-
    if (!name)
       return;
 
-   if (strncmp(name, "gl_", 3) == 0) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glBindAttribLocation(illegal name)");
-      return;
-   }
+   if (!no_error) {
+      if (strncmp(name, "gl_", 3) == 0) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBindAttribLocation(illegal name)");
+         return;
+      }
 
-   if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glBindAttribLocation(%u >= %u)",
-                  index, ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs);
-      return;
+      if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "glBindAttribLocation(%u >= %u)",
+                     index, ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs);
+         return;
+      }
    }
 
    /* Replace the current value if it's already in the list.  Add
@@ -98,6 +94,31 @@ _mesa_BindAttribLocation(GLuint program, GLuint index,
     * Note that this attribute binding won't go into effect until
     * glLinkProgram is called again.
     */
+}
+
+void GLAPIENTRY
+_mesa_BindAttribLocation_no_error(GLuint program, GLuint index,
+                                  const GLchar *name)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_shader_program *const shProg =
+      _mesa_lookup_shader_program(ctx, program);
+   bind_attrib_location(ctx, shProg, index, name, true);
+}
+
+void GLAPIENTRY
+_mesa_BindAttribLocation(GLuint program, GLuint index,
+                         const GLchar *name)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_shader_program *const shProg =
+      _mesa_lookup_shader_program_err(ctx, program, "glBindAttribLocation");
+   if (!shProg)
+      return;
+
+   bind_attrib_location(ctx, shProg, index, name, false);
 }
 
 void GLAPIENTRY
@@ -233,11 +254,44 @@ _mesa_longest_attribute_name_length(struct gl_shader_program *shProg)
    return longest;
 }
 
+void static
+bind_frag_data_location(struct gl_shader_program *const shProg,
+                        const char *name, unsigned colorNumber,
+                        unsigned index)
+{
+   /* Replace the current value if it's already in the list.  Add
+    * FRAG_RESULT_DATA0 because that's how the linker differentiates
+    * between built-in attributes and user-defined attributes.
+    */
+   shProg->FragDataBindings->put(colorNumber + FRAG_RESULT_DATA0, name);
+   shProg->FragDataIndexBindings->put(index, name);
+
+   /*
+    * Note that this binding won't go into effect until
+    * glLinkProgram is called again.
+    */
+}
+
 void GLAPIENTRY
 _mesa_BindFragDataLocation(GLuint program, GLuint colorNumber,
 			   const GLchar *name)
 {
    _mesa_BindFragDataLocationIndexed(program, colorNumber, 0, name);
+}
+
+void GLAPIENTRY
+_mesa_BindFragDataLocation_no_error(GLuint program, GLuint colorNumber,
+                                    const GLchar *name)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!name)
+      return;
+
+   struct gl_shader_program *const shProg =
+      _mesa_lookup_shader_program(ctx, program);
+
+   bind_frag_data_location(shProg, name, colorNumber, 0);
 }
 
 void GLAPIENTRY
@@ -274,17 +328,22 @@ _mesa_BindFragDataLocationIndexed(GLuint program, GLuint colorNumber,
       return;
    }
 
-   /* Replace the current value if it's already in the list.  Add
-    * FRAG_RESULT_DATA0 because that's how the linker differentiates
-    * between built-in attributes and user-defined attributes.
-    */
-   shProg->FragDataBindings->put(colorNumber + FRAG_RESULT_DATA0, name);
-   shProg->FragDataIndexBindings->put(index, name);
-   /*
-    * Note that this binding won't go into effect until
-    * glLinkProgram is called again.
-    */
+   bind_frag_data_location(shProg, name, colorNumber, index);
+}
 
+void GLAPIENTRY
+_mesa_BindFragDataLocationIndexed_no_error(GLuint program, GLuint colorNumber,
+                                           GLuint index, const GLchar *name)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!name)
+      return;
+
+   struct gl_shader_program *const shProg =
+      _mesa_lookup_shader_program(ctx, program);
+
+   bind_frag_data_location(shProg, name, colorNumber, index);
 }
 
 GLint GLAPIENTRY

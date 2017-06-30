@@ -7,7 +7,7 @@
 
 <category name="GL_ARB_sampler_objects" number="81">
 
-    <function name="GenSamplers" es2="3.0">
+    <function name="GenSamplers" es2="3.0" no_error="true">
       <param name="count" type="GLsizei"/>
       <param name="samplers" type="GLuint *"/>
     </function>
