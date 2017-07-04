@@ -212,7 +212,6 @@ struct st_vertex_program
    /* used when bypassing glsl_to_tgsi: */
    struct gl_shader_program *shader_program;
 
-   /** maps a Mesa VERT_ATTRIB_x to a packed TGSI input index */
    /** maps a TGSI input index back to a Mesa VERT_ATTRIB_x */
    ubyte index_to_input[PIPE_MAX_ATTRIBS];
    ubyte num_inputs;

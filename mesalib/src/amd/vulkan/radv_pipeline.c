@@ -151,6 +151,7 @@ radv_optimize_nir(struct nir_shader *shader)
                 progress = false;
 
                 NIR_PASS_V(shader, nir_lower_vars_to_ssa);
+		NIR_PASS_V(shader, nir_lower_64bit_pack);
                 NIR_PASS_V(shader, nir_lower_alu_to_scalar);
                 NIR_PASS_V(shader, nir_lower_phis_to_scalar);
 
@@ -228,6 +229,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 			.image_read_without_format = true,
 			.image_write_without_format = true,
 			.tessellation = true,
+			.int64 = true,
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,
 					   spec_entries, num_spec_entries,

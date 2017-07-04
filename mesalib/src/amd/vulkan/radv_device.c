@@ -568,7 +568,7 @@ void radv_GetPhysicalDeviceFeatures(
 		.shaderClipDistance                       = true,
 		.shaderCullDistance                       = true,
 		.shaderFloat64                            = true,
-		.shaderInt64                              = false,
+		.shaderInt64                              = true,
 		.shaderInt16                              = false,
 		.sparseBinding                            = true,
 		.variableMultisampleRate                  = true,

@@ -96,6 +96,7 @@ st_egl_image_get_surface(struct gl_context *ctx, GLeglImageOES image_handle,
 
    if (!is_format_supported(screen, stimg.format, stimg.texture->nr_samples, usage)) {
       /* unable to specify a texture object using the specified EGL image */
+      pipe_resource_reference(&stimg.texture, NULL);
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(format not supported)", error);
       return NULL;
    }

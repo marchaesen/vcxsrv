@@ -1,0 +1,12 @@
+BROADCOM_GENXML_GENERATED_FILES = \
+	cle/v3d_packet_v21_pack.h \
+	$()
+
+BROADCOM_GENXML_XML_FILES = \
+	cle/v3d_packet_v21.xml \
+	$()
+
+BROADCOM_FILES = \
+	cle/v3d_packet_helpers.h \
+	$()
+

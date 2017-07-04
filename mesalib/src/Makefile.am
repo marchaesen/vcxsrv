@@ -82,6 +82,10 @@ if HAVE_INTEL_DRIVERS
 SUBDIRS += intel
 endif
 
+if HAVE_GALLIUM_VC4
+SUBDIRS += broadcom
+endif
+
 if NEED_OPENGL_COMMON
 SUBDIRS += mesa
 endif

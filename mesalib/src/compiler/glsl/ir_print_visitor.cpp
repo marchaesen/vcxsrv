@@ -174,7 +174,7 @@ void ir_print_visitor::visit(ir_variable *ir)
       snprintf(loc, sizeof(loc), "location=%i ", ir->data.location);
 
    char component[32] = {0};
-   if (ir->data.explicit_component)
+   if (ir->data.explicit_component || ir->data.location_frac != 0)
       snprintf(component, sizeof(component), "component=%i ", ir->data.location_frac);
 
    char stream[32] = {0};
