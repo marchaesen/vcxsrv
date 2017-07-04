@@ -1,5 +1,5 @@
 # Common makefile definitions
-!ifdef IS64
+!if "$(IS64)" == "1"
 SUFFIX=64
 !else
 SUFFIX=

@@ -35,7 +35,7 @@ CSRCS =			\
 	$(NULL)
 
 ## mmx code
-ifndef IS64
+ifneq ($(IS64),1)
 CSRCS += pixman-mmx.c
 DEFINES+=USE_X86_MMX
 endif

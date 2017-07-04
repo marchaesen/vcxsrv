@@ -6,7 +6,7 @@ MHMAKESLNFILE=mhmakevc10.sln
 BUILDCMD=devenv.com $(MHMAKESLNFILE) /build
 endif
 
-ifdef IS64
+ifeq ($(IS64),1)
 SUBCONF=|x64
 SUBCONFDIR=64
 else

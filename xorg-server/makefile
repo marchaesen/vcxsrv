@@ -90,7 +90,7 @@ load_makefile $(EXTRASTOBUILDDIRS:%$(NOSERVOBJDIR)\=%makefile MAKESERVER=0 DEBUG
 all: $(EXTRASTOBUILD)
 
 load_makefile ..\mesalib\windows\VC8\mesa\makefile MAKESERVER=0 DEBUG=$(DEBUG)
-ifdef IS64
+ifeq ($(IS64),1)
 TARGETDIR=x64
 else
 TARGETDIR=Win32

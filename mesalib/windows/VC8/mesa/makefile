@@ -2,7 +2,7 @@
 MHMAKESLNFILE=mesavc10.sln
 BUILDCMD=MSBuild.exe $(MHMAKESLNFILE) /t:Build
 
-ifdef IS64
+ifeq ($(IS64),1)
 TARGETDIR=x64
 else
 TARGETDIR=Win32
