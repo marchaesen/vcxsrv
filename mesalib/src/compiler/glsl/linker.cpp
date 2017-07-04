@@ -4517,24 +4517,17 @@ disable_varying_optimizations_for_sso(struct gl_shader_program *prog)
       if (!sh)
          continue;
 
-      if (first == last) {
-         /* For a single shader program only allow inputs to the vertex shader
-          * and outputs from the fragment shader to be removed.
-          */
-         if (stage != MESA_SHADER_VERTEX)
-            set_always_active_io(sh->ir, ir_var_shader_in);
-         if (stage != MESA_SHADER_FRAGMENT)
-            set_always_active_io(sh->ir, ir_var_shader_out);
-      } else {
-         /* For multi-stage separate shader programs only allow inputs and
-          * outputs between the shader stages to be removed as well as inputs
-          * to the vertex shader and outputs from the fragment shader.
-          */
-         if (stage == first && stage != MESA_SHADER_VERTEX)
-            set_always_active_io(sh->ir, ir_var_shader_in);
-         else if (stage == last && stage != MESA_SHADER_FRAGMENT)
-            set_always_active_io(sh->ir, ir_var_shader_out);
-      }
+      /* Prevent the removal of inputs to the first and outputs from the last
+       * stage, unless they are the initial pipeline inputs or final pipeline
+       * outputs, respectively.
+       *
+       * The removal of IO between shaders in the same program is always
+       * allowed.
+       */
+      if (stage == first && stage != MESA_SHADER_VERTEX)
+         set_always_active_io(sh->ir, ir_var_shader_in);
+      if (stage == last && stage != MESA_SHADER_FRAGMENT)
+         set_always_active_io(sh->ir, ir_var_shader_out);
    }
 }
 

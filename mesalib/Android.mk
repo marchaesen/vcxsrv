@@ -112,6 +112,7 @@ SUBDIRS := \
 	src/util \
 	src/egl \
 	src/amd \
+	src/broadcom \
 	src/intel \
 	src/mesa/drivers/dri \
 	src/vulkan

@@ -2409,10 +2409,8 @@ namespace {
 class add_uniform_to_shader : public program_resource_visitor {
 public:
    add_uniform_to_shader(struct gl_shader_program *shader_program,
-			 struct gl_program_parameter_list *params,
-                         gl_shader_stage shader_type)
-      : shader_program(shader_program), params(params), idx(-1),
-        shader_type(shader_type)
+			 struct gl_program_parameter_list *params)
+      : shader_program(shader_program), params(params), idx(-1)
    {
       /* empty */
    }
@@ -2435,7 +2433,6 @@ private:
    struct gl_program_parameter_list *params;
    int idx;
    ir_variable *var;
-   gl_shader_stage shader_type;
 };
 
 } /* anonymous namespace */
@@ -2483,7 +2480,7 @@ _mesa_generate_parameters_list_for_uniforms(struct gl_shader_program
 					    struct gl_program_parameter_list
 					    *params)
 {
-   add_uniform_to_shader add(shader_program, params, sh->Stage);
+   add_uniform_to_shader add(shader_program, params);
 
    foreach_in_list(ir_instruction, node, sh->ir) {
       ir_variable *var = node->as_variable();

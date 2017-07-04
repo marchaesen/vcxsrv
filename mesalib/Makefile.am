@@ -53,6 +53,7 @@ EXTRA_DIST = \
 	common.py \
 	docs \
 	doxygen \
+	git_sha1_gen.sh \
 	scons \
 	SConstruct
 

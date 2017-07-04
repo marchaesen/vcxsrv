@@ -470,6 +470,21 @@ st_update_renderbuffer_surface(struct st_context *st,
    strb->surface = *psurf;
 }
 
+
+/**
+ * Return the pipe_resource which stores a particular texture image.
+ */
+static struct pipe_resource *
+get_teximage_resource(struct gl_texture_object *texObj,
+                      unsigned face, unsigned level)
+{
+   struct st_texture_image *stImg =
+      st_texture_image(texObj->Image[face][level]);
+
+   return stImg->pt;
+}
+
+
 /**
  * Called by ctx->Driver.RenderTexture
  */
@@ -487,7 +502,9 @@ st_render_texture(struct gl_context *ctx,
    if (!st_finalize_texture(ctx, pipe, att->Texture, att->CubeMapFace))
       return;
 
-   pt = st_get_texobj_resource(att->Texture);
+   pt = get_teximage_resource(att->Texture,
+                              att->CubeMapFace,
+                              att->TextureLevel);
    assert(pt);
 
    /* point renderbuffer at texobject */

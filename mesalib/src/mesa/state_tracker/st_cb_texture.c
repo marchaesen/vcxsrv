@@ -2543,6 +2543,18 @@ st_finalize_texture(struct gl_context *ctx,
                 stObj->base.Target == GL_TEXTURE_CUBE_MAP_ARRAY)
                ptHeight = ptWidth;
          }
+
+         /* At this point, the texture may be incomplete (mismatched cube
+          * face sizes, for example).  If that's the case, give up, but
+          * don't return GL_FALSE as that would raise an incorrect
+          * GL_OUT_OF_MEMORY error.  See Piglit fbo-incomplete-texture-03 test.
+          */
+         if (!stObj->base._BaseComplete) {
+            _mesa_test_texobj_completeness(ctx, &stObj->base);
+            if (!stObj->base._BaseComplete) {
+               return TRUE;
+            }
+         }
       }
 
       ptNumSamples = firstImage->base.NumSamples;

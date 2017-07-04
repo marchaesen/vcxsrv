@@ -2568,6 +2568,7 @@ Input drivers:
 .BR fpit (__drivermansuffix__),
 .BR joystick (__drivermansuffix__),
 .BR kbd (__drivermansuffix__),
+.BR libinput (__drivermansuffix__),
 .BR mousedrv (__drivermansuffix__),
 .BR mutouch (__drivermansuffix__),
 .BR penmount (__drivermansuffix__),
