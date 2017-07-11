@@ -992,7 +992,7 @@ void radv_CmdCopyQueryPoolResults(
 				uint64_t avail_va = va + pool->availability_offset + 4 * query;
 
 				/* This waits on the ME. All copies below are done on the ME */
-				si_emit_wait_fence(cs, avail_va, 1, 0xffffffff);
+				si_emit_wait_fence(cs, false, avail_va, 1, 0xffffffff);
 			}
 		}
 		radv_query_shader(cmd_buffer, cmd_buffer->device->meta_state.query.pipeline_statistics_query_pipeline,
@@ -1015,7 +1015,7 @@ void radv_CmdCopyQueryPoolResults(
 				uint64_t avail_va = va + pool->availability_offset + 4 * query;
 
 				/* This waits on the ME. All copies below are done on the ME */
-				si_emit_wait_fence(cs, avail_va, 1, 0xffffffff);
+				si_emit_wait_fence(cs, false, avail_va, 1, 0xffffffff);
 			}
 			if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT) {
 				uint64_t avail_va = va + pool->availability_offset + 4 * query;
@@ -1149,6 +1149,7 @@ void radv_CmdEndQuery(
 		radeon_emit(cs, va >> 32);
 
 		si_cs_emit_write_event_eop(cs,
+					   false,
 					   cmd_buffer->device->physical_device->rad_info.chip_class,
 					   false,
 					   EVENT_TYPE_BOTTOM_OF_PIPE_TS, 0,
@@ -1198,11 +1199,13 @@ void radv_CmdWriteTimestamp(
 		break;
 	default:
 		si_cs_emit_write_event_eop(cs,
+					   false,
 					   cmd_buffer->device->physical_device->rad_info.chip_class,
 					   mec,
 					   V_028A90_BOTTOM_OF_PIPE_TS, 0,
 					   3, query_va, 0, 0);
 		si_cs_emit_write_event_eop(cs,
+					   false,
 					   cmd_buffer->device->physical_device->rad_info.chip_class,
 					   mec,
 					   V_028A90_BOTTOM_OF_PIPE_TS, 0,

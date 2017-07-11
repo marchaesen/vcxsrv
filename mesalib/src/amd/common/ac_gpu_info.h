@@ -95,6 +95,7 @@ struct radeon_info {
 	uint32_t                    pipe_interleave_bytes;
 	uint32_t                    enabled_rb_mask; /* GCN harvest config */
 
+	uint64_t                    max_alignment; /* from addrlib */
 	/* Tile modes. */
 	uint32_t                    si_tile_mode_array[32];
 	uint32_t                    cik_macrotile_mode_array[16];

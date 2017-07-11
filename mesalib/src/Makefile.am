@@ -21,7 +21,7 @@
 
 .PHONY: git_sha1.h.tmp
 git_sha1.h.tmp:
-	@sh $(top_srcdir)/git_sha1_gen.sh > $@
+	@sh $(top_srcdir)/bin/git_sha1_gen.sh > $@
 
 git_sha1.h: git_sha1.h.tmp
 	@echo "updating git_sha1.h"

@@ -830,10 +830,13 @@ SProcXIBarrierReleasePointer(ClientPtr client)
     REQUEST(xXIBarrierReleasePointerReq);
     int i;
 
-    info = (xXIBarrierReleasePointerInfo*) &stuff[1];
-
     swaps(&stuff->length);
+    REQUEST_AT_LEAST_SIZE(xXIBarrierReleasePointerReq);
+
     swapl(&stuff->num_barriers);
+    REQUEST_FIXED_SIZE(xXIBarrierReleasePointerReq, stuff->num_barriers * sizeof(xXIBarrierReleasePointerInfo));
+
+    info = (xXIBarrierReleasePointerInfo*) &stuff[1];
     for (i = 0; i < stuff->num_barriers; i++, info++) {
         swaps(&info->deviceid);
         swapl(&info->barrier);
@@ -853,7 +856,7 @@ ProcXIBarrierReleasePointer(ClientPtr client)
     xXIBarrierReleasePointerInfo *info;
 
     REQUEST(xXIBarrierReleasePointerReq);
-    REQUEST_AT_LEAST_SIZE(xXIBarrierReleasePointerReq);
+    REQUEST_FIXED_SIZE(xXIBarrierReleasePointerReq, stuff->num_barriers * sizeof(xXIBarrierReleasePointerInfo));
 
     info = (xXIBarrierReleasePointerInfo*) &stuff[1];
     for (i = 0; i < stuff->num_barriers; i++, info++) {

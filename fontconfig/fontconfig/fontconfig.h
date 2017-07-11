@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdarg.h>
+#include <limits.h>
 
 #if defined(__GNUC__) && (__GNUC__ >= 4)
 #define FC_ATTRIBUTE_SENTINEL(x) __attribute__((__sentinel__(0)))
@@ -52,7 +53,7 @@ typedef int		FcBool;
 
 #define FC_MAJOR	2
 #define FC_MINOR	12
-#define FC_REVISION	3
+#define FC_REVISION	4
 
 #define FC_VERSION	((FC_MAJOR * 10000) + (FC_MINOR * 100) + (FC_REVISION))
 
@@ -235,6 +236,12 @@ typedef enum _FcResult {
     FcResultMatch, FcResultNoMatch, FcResultTypeMismatch, FcResultNoId,
     FcResultOutOfMemory
 } FcResult;
+
+typedef enum _FcValueBinding {
+    FcValueBindingWeak, FcValueBindingStrong, FcValueBindingSame,
+    /* to make sure sizeof (FcValueBinding) == 4 even with -fshort-enums */
+    FcValueBindingEnd = INT_MAX
+} FcValueBinding;
 
 typedef struct _FcPattern   FcPattern;
 
@@ -837,7 +844,10 @@ FcPatternAddWeak (FcPattern *p, const char *object, FcValue value, FcBool append
     
 FcPublic FcResult
 FcPatternGet (const FcPattern *p, const char *object, int id, FcValue *v);
-    
+
+FcPublic FcResult
+FcPatternGetWithBinding (const FcPattern *p, const char *object, int id, FcValue *v, FcValueBinding *b);
+
 FcPublic FcBool
 FcPatternDel (FcPattern *p, const char *object);
 
@@ -1031,6 +1041,11 @@ FcStrListDone (FcStrList *list);
 /* fcxml.c */
 FcPublic FcBool
 FcConfigParseAndLoad (FcConfig *config, const FcChar8 *file, FcBool complain);
+
+FcPublic FcBool
+FcConfigParseAndLoadFromMemory (FcConfig       *config,
+				const FcChar8  *buffer,
+				FcBool         complain);
 
 _FCFUNCPROTOEND
 

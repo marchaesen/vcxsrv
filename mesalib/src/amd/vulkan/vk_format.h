@@ -367,6 +367,19 @@ vk_format_is_depth(VkFormat format)
 }
 
 static inline bool
+vk_format_is_stencil(VkFormat format)
+{
+	const struct vk_format_description *desc = vk_format_description(format);
+
+	assert(desc);
+	if (!desc) {
+		return false;
+	}
+
+	return vk_format_has_stencil(desc);
+}
+
+static inline bool
 vk_format_is_color(VkFormat format)
 {
 	return !vk_format_is_depth_or_stencil(format);

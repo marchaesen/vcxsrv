@@ -39,7 +39,7 @@ def parse_args():
     return p.parse_args()
 
 def get_rgbx_to_rgba_map(formats):
-    names = {fmt.name for fmt in formats}
+    names = set(fmt.name for fmt in formats)
 
     for fmt in formats:
         if not fmt.has_channel('r') or not fmt.has_channel('x'):

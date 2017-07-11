@@ -6227,14 +6227,23 @@ _mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
 }
 
 bool
-_mesa_glsl_has_builtin_function(const char *name)
+_mesa_glsl_has_builtin_function(_mesa_glsl_parse_state *state, const char *name)
 {
    ir_function *f;
+   bool ret = false;
    mtx_lock(&builtins_lock);
    f = builtins.shader->symbols->get_function(name);
+   if (f != NULL) {
+      foreach_in_list(ir_function_signature, sig, &f->signatures) {
+         if (sig->is_builtin_available(state)) {
+            ret = true;
+            break;
+         }
+      }
+   }
    mtx_unlock(&builtins_lock);
 
-   return f != NULL;
+   return ret;
 }
 
 gl_shader *

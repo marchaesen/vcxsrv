@@ -1159,7 +1159,7 @@ radv_load_color_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 	uint32_t reg = R_028C8C_CB_COLOR0_CLEAR_WORD0 + idx * 0x3c;
 	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, image->bo, 8);
 
-	radeon_emit(cmd_buffer->cs, PKT3(PKT3_COPY_DATA, 4, 0));
+	radeon_emit(cmd_buffer->cs, PKT3(PKT3_COPY_DATA, 4, cmd_buffer->state.predicating));
 	radeon_emit(cmd_buffer->cs, COPY_DATA_SRC_SEL(COPY_DATA_MEM) |
 				    COPY_DATA_DST_SEL(COPY_DATA_REG) |
 				    COPY_DATA_COUNT_SEL);
@@ -1168,7 +1168,7 @@ radv_load_color_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 	radeon_emit(cmd_buffer->cs, reg >> 2);
 	radeon_emit(cmd_buffer->cs, 0);
 
-	radeon_emit(cmd_buffer->cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
+	radeon_emit(cmd_buffer->cs, PKT3(PKT3_PFP_SYNC_ME, 0, cmd_buffer->state.predicating));
 	radeon_emit(cmd_buffer->cs, 0);
 }
 
@@ -2639,10 +2639,10 @@ void radv_CmdDraw(
 	if (cmd_buffer->state.pipeline->graphics.vtx_emit_num == 3)
 		radeon_emit(cmd_buffer->cs, 0);
 
-	radeon_emit(cmd_buffer->cs, PKT3(PKT3_NUM_INSTANCES, 0, 0));
+	radeon_emit(cmd_buffer->cs, PKT3(PKT3_NUM_INSTANCES, 0, cmd_buffer->state.predicating));
 	radeon_emit(cmd_buffer->cs, instanceCount);
 
-	radeon_emit(cmd_buffer->cs, PKT3(PKT3_DRAW_INDEX_AUTO, 1, 0));
+	radeon_emit(cmd_buffer->cs, PKT3(PKT3_DRAW_INDEX_AUTO, 1, cmd_buffer->state.predicating));
 	radeon_emit(cmd_buffer->cs, vertexCount);
 	radeon_emit(cmd_buffer->cs, V_0287F0_DI_SRC_SEL_AUTO_INDEX |
 		    S_0287F0_USE_OPAQUE(0));
@@ -3294,6 +3294,7 @@ static void write_event(struct radv_cmd_buffer *cmd_buffer,
 	 * the stage mask. */
 
 	si_cs_emit_write_event_eop(cs,
+				   cmd_buffer->state.predicating,
 				   cmd_buffer->device->physical_device->rad_info.chip_class,
 				   false,
 				   EVENT_TYPE_BOTTOM_OF_PIPE_TS, 0,
@@ -3345,7 +3346,7 @@ void radv_CmdWaitEvents(VkCommandBuffer commandBuffer,
 
 		MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws, cs, 7);
 
-		si_emit_wait_fence(cs, va, 1, 0xffffffff);
+		si_emit_wait_fence(cs, false, va, 1, 0xffffffff);
 		assert(cmd_buffer->cs->cdw <= cdw_max);
 	}
 

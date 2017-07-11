@@ -370,6 +370,7 @@ static const struct debug_control radv_debug_options[] = {
 
 static const struct debug_control radv_perftest_options[] = {
 	{"batchchain", RADV_PERFTEST_BATCHCHAIN},
+	{"sisched", RADV_PERFTEST_SISCHED},
 	{NULL, 0}
 };
 
@@ -1095,6 +1096,7 @@ VkResult radv_CreateDevice(
 		case RADV_QUEUE_GENERAL:
 		case RADV_QUEUE_COMPUTE:
 			si_cs_emit_cache_flush(device->flush_cs[family],
+					       false,
 			                       device->physical_device->rad_info.chip_class,
 					       NULL, 0,
 			                       family == RADV_QUEUE_COMPUTE && device->physical_device->rad_info.chip_class >= CIK,
@@ -1111,6 +1113,7 @@ VkResult radv_CreateDevice(
 		case RADV_QUEUE_GENERAL:
 		case RADV_QUEUE_COMPUTE:
 			si_cs_emit_cache_flush(device->flush_shader_cs[family],
+					       false,
 			                       device->physical_device->rad_info.chip_class,
 					       NULL, 0,
 			                       family == RADV_QUEUE_COMPUTE && device->physical_device->rad_info.chip_class >= CIK,
@@ -1761,6 +1764,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 
 		if (!i) {
 			si_cs_emit_cache_flush(cs,
+					       false,
 			                       queue->device->physical_device->rad_info.chip_class,
 					       NULL, 0,
 			                       queue->queue_family_index == RING_COMPUTE &&
@@ -2130,7 +2134,7 @@ VkResult radv_AllocateMemory(
 	if (pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
 		flags |= RADEON_FLAG_GTT_WC;
 
-	mem->bo = device->ws->buffer_create(device->ws, alloc_size, 65536,
+	mem->bo = device->ws->buffer_create(device->ws, alloc_size, device->physical_device->rad_info.max_alignment,
 					       domain, flags);
 
 	if (!mem->bo) {
@@ -2876,7 +2880,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 	uint64_t va, s_offs, z_offs;
 	bool stencil_only = false;
 	memset(ds, 0, sizeof(*ds));
-	switch (iview->vk_format) {
+	switch (iview->image->vk_format) {
 	case VK_FORMAT_D24_UNORM_S8_UINT:
 	case VK_FORMAT_X8_D24_UNORM_PACK32:
 		ds->pa_su_poly_offset_db_fmt_cntl = S_028B78_POLY_OFFSET_NEG_NUM_DB_BITS(-24);
@@ -2900,7 +2904,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 		break;
 	}
 
-	format = radv_translate_dbformat(iview->vk_format);
+	format = radv_translate_dbformat(iview->image->vk_format);
 	stencil_format = iview->image->surface.flags & RADEON_SURF_SBUFFER ?
 		V_028044_STENCIL_8 : V_028044_STENCIL_INVALID;
 

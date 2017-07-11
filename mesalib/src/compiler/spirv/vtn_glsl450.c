@@ -483,8 +483,13 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    /* Collect the various SSA sources */
    unsigned num_inputs = count - 5;
    nir_ssa_def *src[3] = { NULL, };
-   for (unsigned i = 0; i < num_inputs; i++)
+   for (unsigned i = 0; i < num_inputs; i++) {
+      /* These are handled specially below */
+      if (vtn_untyped_value(b, w[i + 5])->value_type == vtn_value_type_pointer)
+         continue;
+
       src[i] = vtn_ssa_value(b, w[i + 5])->def;
+   }
 
    switch (entrypoint) {
    case GLSLstd450Radians:

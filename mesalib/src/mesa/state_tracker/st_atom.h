@@ -68,7 +68,7 @@ enum {
 /* Define ST_NEW_xxx values as static const uint64_t values.
  * We can't use an enum type because MSVC doesn't allow 64-bit enum values.
  */
-#define ST_STATE(FLAG, st_update) static const uint64_t FLAG = 1llu << FLAG##_INDEX;
+#define ST_STATE(FLAG, st_update) static const uint64_t FLAG = 1ull << FLAG##_INDEX;
 #include "st_atom_list.h"
 #undef ST_STATE
 
@@ -145,7 +145,7 @@ enum {
 
 /* All state flags within each group: */
 #define ST_PIPELINE_RENDER_STATE_MASK  (ST_NEW_CS_STATE - 1)
-#define ST_PIPELINE_COMPUTE_STATE_MASK (0xffllu << ST_NEW_CS_STATE_INDEX)
+#define ST_PIPELINE_COMPUTE_STATE_MASK (0xffull << ST_NEW_CS_STATE_INDEX)
 #define ST_PIPELINE_CLEAR_STATE_MASK (ST_NEW_FB_STATE | \
                                       ST_NEW_SCISSOR | \
                                       ST_NEW_WINDOW_RECTANGLES)

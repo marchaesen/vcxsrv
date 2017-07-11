@@ -883,7 +883,7 @@ FcPatternAddRange (FcPattern *p, const char *object, const FcRange *r)
 }
 
 FcResult
-FcPatternObjectGet (const FcPattern *p, FcObject object, int id, FcValue *v)
+FcPatternObjectGetWithBinding (const FcPattern *p, FcObject object, int id, FcValue *v, FcValueBinding *b)
 {
     FcPatternElt   *e;
     FcValueListPtr l;
@@ -898,6 +898,8 @@ FcPatternObjectGet (const FcPattern *p, FcObject object, int id, FcValue *v)
 	if (!id)
 	{
 	    *v = FcValueCanonicalize(&l->value);
+	    if (b)
+		*b = l->binding;
 	    return FcResultMatch;
 	}
 	id--;
@@ -906,9 +908,21 @@ FcPatternObjectGet (const FcPattern *p, FcObject object, int id, FcValue *v)
 }
 
 FcResult
+FcPatternObjectGet (const FcPattern *p, FcObject object, int id, FcValue *v)
+{
+    return FcPatternObjectGetWithBinding (p, object, id, v, NULL);
+}
+
+FcResult
+FcPatternGetWithBinding (const FcPattern *p, const char *object, int id, FcValue *v, FcValueBinding *b)
+{
+    return FcPatternObjectGetWithBinding (p, FcObjectFromName (object), id, v, b);
+}
+
+FcResult
 FcPatternGet (const FcPattern *p, const char *object, int id, FcValue *v)
 {
-    return FcPatternObjectGet (p, FcObjectFromName (object), id, v);
+    return FcPatternObjectGetWithBinding (p, FcObjectFromName (object), id, v, NULL);
 }
 
 FcResult

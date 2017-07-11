@@ -155,8 +155,7 @@ extern _X_EXPORT struct gbm_device *glamor_egl_get_gbm_device(ScreenPtr screen);
  *
  * The EGL layer needs to have the following extensions working:
  *
- * .EGL_KHR_gl_texture_2D_image
- * .EGL_EXT_image_dma_buf_import
+ * .EGL_KHR_surfaceless_context
  * */
 extern _X_EXPORT Bool glamor_supports_pixmap_import_export(ScreenPtr screen);
 

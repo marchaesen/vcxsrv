@@ -53,7 +53,7 @@ do_winsys_init(struct radv_amdgpu_winsys *ws, int fd)
 		return false;
 	}
 
-	ws->addrlib = amdgpu_addr_create(&ws->info, &ws->amdinfo);
+	ws->addrlib = amdgpu_addr_create(&ws->info, &ws->amdinfo, &ws->info.max_alignment);
 	if (!ws->addrlib) {
 		fprintf(stderr, "amdgpu: Cannot create addrlib.\n");
 		return false;

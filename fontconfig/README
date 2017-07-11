@@ -1,11 +1,40 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.12.3
-                              2017-05-31
+                            Version 2.12.4
+                              2017-07-05
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.12.4
+
+Akira TAGOH (5):
+      Force regenerate fcobjshash.h when updating Makefile
+      Fix the build failure when srcdir != builddir and have gperf 3.1 or later installed
+      Add a testcase for Bug#131804
+      Update libtool revision
+      Fix distcheck error
+
+Florent Rougon (6):
+      FcCharSetHash(): use the 'numbers' values to compute the hash
+      fc-lang: gracefully handle the case where the last language initial is < 'z'
+      Fix an off-by-one error in FcLangSetIndex()
+      Fix erroneous test on language id in FcLangSetPromote()
+      FcLangSetCompare(): fix bug when two charsets come from different "buckets"
+      FcCharSetFreezeOrig(), FcCharSetFindFrozen(): use all buckets of freezer->orig_hash_table
+
+Helmut Grohne (1):
+      fix cross compilation
+
+Jan Alexander Steffens (heftig) (1):
+      Fix testing PCF_CONFIG_OPTION_LONG_FAMILY_NAMES (CFLAGS need to be right)
+
+Josselin Mouette (1):
+      Treat C.UTF-8 and C.utf8 locales as built in the C library.
+
+Masamichi Hosoda (1):
+      Bug 99360 - Fix cache file update on MinGW
 
 2.12.3
 

@@ -4361,6 +4361,15 @@ get_tex_obj_for_clear(struct gl_context *ctx,
    return texObj;
 }
 
+
+/**
+ * For clearing cube textures, the zoffset and depth parameters indicate
+ * which cube map faces are to be cleared.  This is the one case where we
+ * need to be concerned with multiple gl_texture_images.  This function
+ * returns the array of texture images to clear for cube maps, or one
+ * texture image otherwise.
+ * \return number of texture images, 0 for error, 6 for cube, 1 otherwise.
+ */
 static int
 get_tex_images_for_clear(struct gl_context *ctx,
                          const char *function,
@@ -4369,7 +4378,7 @@ get_tex_images_for_clear(struct gl_context *ctx,
                          struct gl_texture_image **texImages)
 {
    GLenum target;
-   int i;
+   int numFaces, i;
 
    if (level < 0 || level >= MAX_TEXTURE_LEVELS) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid level)", function);
@@ -4377,28 +4386,23 @@ get_tex_images_for_clear(struct gl_context *ctx,
    }
 
    if (texObj->Target == GL_TEXTURE_CUBE_MAP) {
-      for (i = 0; i < MAX_FACES; i++) {
-         target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + i;
+      target = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+      numFaces = MAX_FACES;
+   }
+   else {
+      target = texObj->Target;
+      numFaces = 1;
+   }
 
-         texImages[i] = _mesa_select_tex_image(texObj, target, level);
-         if (texImages[i] == NULL) {
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "%s(invalid level)", function);
-            return 0;
-         }
+   for (i = 0; i < numFaces; i++) {
+      texImages[i] = _mesa_select_tex_image(texObj, target + i, level);
+      if (texImages[i] == NULL) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid level)", function);
+         return 0;
       }
-
-      return MAX_FACES;
    }
 
-   texImages[0] = _mesa_select_tex_image(texObj, texObj->Target, level);
-
-   if (texImages[0] == NULL) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid level)", function);
-      return 0;
-   }
-
-   return 1;
+   return numFaces;
 }
 
 void GLAPIENTRY
@@ -4430,6 +4434,7 @@ _mesa_ClearTexSubImage( GLuint texture, GLint level,
       minDepth = -(int) texImages[0]->Border;
       maxDepth = texImages[0]->Depth;
    } else {
+      assert(numImages == MAX_FACES);
       minDepth = 0;
       maxDepth = numImages;
    }
@@ -4459,7 +4464,9 @@ _mesa_ClearTexSubImage( GLuint texture, GLint level,
                                       data ? clearValue[0] : NULL);
       }
    } else {
+      /* loop over cube face images */
       for (i = zoffset; i < zoffset + depth; i++) {
+         assert(i < MAX_FACES);
          if (!check_clear_tex_image(ctx, "glClearTexSubImage",
                                     texImages[i],
                                     format, type, data, clearValue[i]))

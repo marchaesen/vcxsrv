@@ -38,10 +38,10 @@
 #include "main/atifragshader.h"
 #include "program/program.h"
 #include "pipe/p_state.h"
+#include "tgsi/tgsi_from_mesa.h"
 #include "st_context.h"
 #include "st_texture.h"
 #include "st_glsl_to_tgsi.h"
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -358,23 +358,8 @@ st_reference_compprog(struct st_context *st,
 static inline unsigned
 st_get_generic_varying_index(struct st_context *st, GLuint attr)
 {
-   if (attr >= VARYING_SLOT_VAR0) {
-      if (st->needs_texcoord_semantic)
-         return attr - VARYING_SLOT_VAR0;
-      else
-         return 9 + (attr - VARYING_SLOT_VAR0);
-   }
-   if (attr == VARYING_SLOT_PNTC) {
-      assert(!st->needs_texcoord_semantic);
-      return 8;
-   }
-   if (attr >= VARYING_SLOT_TEX0 && attr <= VARYING_SLOT_TEX7) {
-      assert(!st->needs_texcoord_semantic);
-      return attr - VARYING_SLOT_TEX0;
-   }
-
-   assert(0);
-   return 0;
+   return tgsi_get_generic_gl_varying_index((gl_varying_slot)attr,
+                                            st->needs_texcoord_semantic);
 }
 
 extern void

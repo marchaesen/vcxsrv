@@ -90,7 +90,7 @@ vbo_initialize_save_dispatch(const struct gl_context *ctx,
 
 void vbo_exec_FlushVertices(struct gl_context *ctx, GLuint flags);
 void vbo_save_SaveFlushVertices(struct gl_context *ctx);
-GLboolean vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode);
+void vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode);
 void vbo_save_NewList(struct gl_context *ctx, GLuint list, GLenum mode);
 void vbo_save_EndList(struct gl_context *ctx);
 void vbo_save_BeginCallList(struct gl_context *ctx, struct gl_display_list *list);

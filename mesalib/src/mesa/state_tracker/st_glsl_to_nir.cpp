@@ -92,6 +92,9 @@ st_nir_assign_vs_in_locations(struct gl_program *prog, nir_shader *nir)
       }
    }
 
+   /* bit of a hack, mirroring st_translate_vertex_program */
+   input_to_index[VERT_ATTRIB_EDGEFLAG] = num_inputs;
+
    nir->num_inputs = 0;
    nir_foreach_variable_safe(var, &nir->inputs) {
       attr = var->data.location;

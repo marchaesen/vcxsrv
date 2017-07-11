@@ -199,6 +199,23 @@ any existing list of values.
 @@
 
 @RET@		FcResult
+@FUNC@		FcPatternGetWithBinding
+@TYPE1@		FcPattern *			@ARG1@		p
+@TYPE2@		const char *			@ARG2@		object
+@TYPE3@		int%  	   			@ARG3@		id
+@TYPE4@		FcValue *			@ARG4@		v
+@TYPE5@		FcValueBinding *		@ARG5@		b
+@PURPOSE@	Return a value with binding from a pattern
+@DESC@
+Returns in <parameter>v</parameter> the <parameter>id</parameter>'th value
+and <parameter>b</parameter> binding for that associated with the property
+<parameter>object</parameter>.
+The Value returned is not a copy, but rather refers to the data stored
+within the pattern directly.  Applications must not free this value.
+@SINCE@		2.13.0
+@@
+
+@RET@		FcResult
 @FUNC@		FcPatternGet
 @TYPE1@		FcPattern *			@ARG1@		p
 @TYPE2@		const char *			@ARG2@		object

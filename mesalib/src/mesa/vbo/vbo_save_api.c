@@ -1035,7 +1035,7 @@ _save_CallLists(GLsizei n, GLenum type, const GLvoid * v)
  * Called when a glBegin is getting compiled into a display list.
  * Updating of ctx->Driver.CurrentSavePrimitive is already taken care of.
  */
-GLboolean
+void
 vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
@@ -1064,11 +1064,6 @@ vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode)
 
    /* We need to call vbo_save_SaveFlushVertices() if there's state change */
    ctx->Driver.SaveNeedFlush = GL_TRUE;
-
-   /* GL_TRUE means we've handled this glBegin here; don't compile a BEGIN
-    * opcode into the display list.
-    */
-   return GL_TRUE;
 }
 
 
@@ -1113,13 +1108,23 @@ _save_Begin(GLenum mode)
 static void GLAPIENTRY
 _save_PrimitiveRestartNV(void)
 {
-   GLenum curPrim;
    GET_CURRENT_CONTEXT(ctx);
+   struct vbo_save_context *save = &vbo_context(ctx)->save;
 
-   curPrim = ctx->Driver.CurrentSavePrimitive;
+   if (save->prim_count == 0) {
+      /* We're not inside a glBegin/End pair, so calling glPrimitiverRestartNV
+       * is an error.
+       */
+      _mesa_compile_error(ctx, GL_INVALID_OPERATION,
+                          "glPrimitiveRestartNV called outside glBegin/End");
+   } else {
+      /* get current primitive mode */
+      GLenum curPrim = save->prim[save->prim_count - 1].mode;
 
-   _save_End();
-   _save_Begin(curPrim);
+      /* restart primitive */
+      CALL_End(GET_DISPATCH(), ());
+      vbo_save_NotifyBegin(ctx, curPrim);
+   }
 }
 
 

@@ -342,7 +342,7 @@ struct __DRI2throttleExtensionRec {
 #define __DRI2_FENCE "DRI2_Fence"
 #define __DRI2_FENCE_VERSION 2
 
-#define __DRI2_FENCE_TIMEOUT_INFINITE     0xffffffffffffffffllu
+#define __DRI2_FENCE_TIMEOUT_INFINITE     0xffffffffffffffffull
 
 #define __DRI2_FENCE_FLAG_FLUSH_COMMANDS  (1 << 0)
 

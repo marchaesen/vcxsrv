@@ -2836,6 +2836,42 @@ st_TextureView(struct gl_context *ctx,
    return GL_TRUE;
 }
 
+
+/**
+ * Find the mipmap level in 'pt' which matches the level described by
+ * 'texImage'.
+ */
+static unsigned
+find_mipmap_level(const struct gl_texture_image *texImage,
+                  const struct pipe_resource *pt)
+{
+   const GLenum target = texImage->TexObject->Target;
+   GLint texWidth = texImage->Width;
+   GLint texHeight = texImage->Height;
+   GLint texDepth = texImage->Depth;
+   unsigned level, w;
+   uint16_t h, d, layers;
+
+   st_gl_texture_dims_to_pipe_dims(target, texWidth, texHeight, texDepth,
+                                   &w, &h, &d, &layers);
+
+   for (level = 0; level <= pt->last_level; level++) {
+      if (u_minify(pt->width0, level) == w &&
+          u_minify(pt->height0, level) == h &&
+          u_minify(pt->depth0, level) == d) {
+         return level;
+      }
+   }
+
+   /* If we get here, there must be some sort of inconsistency between
+    * the Mesa texture object/images and the gallium resource.
+    */
+   debug_printf("Inconsistent textures in find_mipmap_level()\n");
+
+   return texImage->Level;
+}
+
+
 static void
 st_ClearTexSubImage(struct gl_context *ctx,
                     struct gl_texture_image *texImage,
@@ -2844,11 +2880,12 @@ st_ClearTexSubImage(struct gl_context *ctx,
                     const void *clearValue)
 {
    static const char zeros[16] = {0};
+   struct gl_texture_object *texObj = texImage->TexObject;
    struct st_texture_image *stImage = st_texture_image(texImage);
    struct pipe_resource *pt = stImage->pt;
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   unsigned level = texImage->Level;
+   unsigned level;
    struct pipe_box box;
 
    if (!pt)
@@ -2859,10 +2896,25 @@ st_ClearTexSubImage(struct gl_context *ctx,
 
    u_box_3d(xoffset, yoffset, zoffset + texImage->Face,
             width, height, depth, &box);
-   if (texImage->TexObject->Immutable) {
-      level += texImage->TexObject->MinLevel;
-      box.z += texImage->TexObject->MinLayer;
+   if (texObj->Immutable) {
+      /* The texture object has to be consistent (no "loose", per-image
+       * gallium resources).  If this texture is a view into another
+       * texture, we have to apply the MinLevel/Layer offsets.  If this is
+       * not a texture view, the offsets will be zero.
+       */
+      assert(stImage->pt == st_texture_object(texObj)->pt);
+      level = texImage->Level + texObj->MinLevel;
+      box.z += texObj->MinLayer;
    }
+   else {
+      /* Texture level sizes may be inconsistent.  We my have "loose",
+       * per-image gallium resources.  The texImage->Level may not match
+       * the gallium resource texture level.
+       */
+      level = find_mipmap_level(texImage, pt);
+   }
+
+   assert(level <= pt->last_level);
 
    pipe->clear_texture(pipe, pt, level, &box, clearValue ? clearValue : zeros);
 }
