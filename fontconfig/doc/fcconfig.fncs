@@ -375,6 +375,22 @@ Returns FcFalse if some error occurred while loading the file, either a
 parse error, semantic error or allocation failure. Otherwise returns FcTrue.
 @@
 
+@RET@		FcBool
+@FUNC@		FcConfigParseAndLoadFromMemory
+@TYPE1@		FcConfig *			@ARG1@		config
+@TYPE2@		const FcChar8 *			@ARG2@		buffer
+@TYPE3@		FcBool%				@ARG3@		complain
+@PURPOSE@	load a configuration from memory
+@DESC@
+Walks the configuration in 'memory' and constructs the internal representation
+in 'config'.  Any includes files referenced from within 'memory' will be loaded
+and dparsed.  If 'complain' is FcFalse, no warning will be displayed if
+'file' does not exist. Error and warning messages will be output to stderr.
+Returns FcFalse if fsome error occurred while loading the file, either a
+parse error, semantic error or allocation failure. Otherwise returns FcTrue.
+@SINCE@		2.13.0
+@@
+
 @RET@		const FcChar8 *
 @FUNC@		FcConfigGetSysRoot
 @TYPE1@		const FcConfig *		@ARG1@		config

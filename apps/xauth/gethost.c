@@ -1,5 +1,5 @@
 /*
- * 
+ *
 Copyright 1989, 1998  The Open Group
 
 Permission to use, copy, modify, distribute, and sell this software and its
@@ -29,12 +29,6 @@ in this Software without prior written authorization from The Open Group.
 #include "config.h"
 #endif
 
-/* sorry, streams support does not really work yet */
-#if defined(STREAMSCONN) && defined(SVR4)
-#undef STREAMSCONN
-#define TCPCONN
-#endif
-
 #ifdef WIN32
 #include <X11/Xwinsock.h>
 #ifndef EPROTOTYPE
@@ -50,7 +44,6 @@ in this Software without prior written authorization from The Open Group.
 #define __TYPES__
 #endif
 #ifndef WIN32
-#ifndef STREAMSCONN
 #ifndef Lynx
 #include <sys/socket.h>
 #else
@@ -62,15 +55,12 @@ in this Software without prior written authorization from The Open Group.
 #ifdef HAVE_NET_ERRNO_H
 #include <net/errno.h>
 #endif /* HAVE_NET_ERRNO_H */
-#endif /* !STREAMSCONN */
 #endif /* !WIN32 */
 #include <errno.h>
 #include "xauth.h"
 
-#ifdef DNETCONN
-#include <netdnet/dn.h>
-#include <netdnet/dnetdb.h>
-#endif
+#include <sys/stat.h>
+#include <limits.h>
 
 #ifndef WIN32
 #include <arpa/inet.h>
@@ -81,47 +71,23 @@ const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt);
 #endif
 #endif
 
-#ifdef SIGALRM
-static volatile Bool nameserver_timedout = False;
-
-
-/*
- * get_hostname - Given an internet address, return a name (CHARON.MIT.EDU)
- * or a string representing the address (18.58.0.13) if the name cannot
- * be found.  Stolen from xhost.
- */
-
-static jmp_buf env;
-static RETSIGTYPE
-nameserver_lost(int sig)
-{
-  nameserver_timedout = True;
-  longjmp (env, -1);
-  /* NOTREACHED */
-#ifdef SIGNALRETURNSINT
-  return -1;				/* for picky compilers */
-#endif
-}
-#endif
-
-char *
+const char *
 get_hostname (Xauth *auth)
 {
+#ifdef TCPCONN
     static struct hostent *hp;
     int af;
-#ifdef DNETCONN
-    struct nodeent *np;
-    static char nodeaddr[4 + 2 * DN_MAXADDL];
-#endif /* DNETCONN */
 
     hp = NULL;
+#endif
+
     if (auth->address_length == 0)
 	return "Illegal Address";
 #ifdef TCPCONN
     if (auth->family == FamilyInternet
 #if defined(IPv6) && defined(AF_INET6)
       || auth->family == FamilyInternet6
-#endif 
+#endif
 	)
     {
 #if defined(IPv6) && defined(AF_INET6)
@@ -131,23 +97,7 @@ get_hostname (Xauth *auth)
 #endif
 	    af = AF_INET;
 	if (no_name_lookups == False) {
-#ifdef SIGALRM
-	/* gethostbyaddr can take a LONG time if the host does not exist.
-	   Assume that if it does not respond in NAMESERVER_TIMEOUT seconds
-	   that something is wrong and do not make the user wait.
-	   gethostbyaddr will continue after a signal, so we have to
-	   jump out of it. 
-	   */
-	nameserver_timedout = False;
-	signal (SIGALRM, nameserver_lost);
-	alarm (4);
-	if (setjmp(env) == 0) {
-#endif
 	    hp = gethostbyaddr (auth->address, auth->address_length, af);
-#ifdef SIGALRM
-	}
-	alarm (0);
-#endif
 	}
 	if (hp)
 	  return (hp->h_name);
@@ -170,19 +120,6 @@ get_hostname (Xauth *auth)
 	}
     }
 #endif
-#ifdef DNETCONN
-    if (auth->family == FamilyDECnet) {
-	struct dn_naddr *addr_ptr = (struct dn_naddr *) auth->address;
-
-	if ((no_name_lookups == False) &&
-	    (np = getnodebyaddr(addr_ptr->a_addr, addr_ptr->a_len, AF_DECnet))) {
-	    sprintf(nodeaddr, "%s:", np->n_name);
-	} else {
-	    sprintf(nodeaddr, "%s:", dnet_htoa(auth->address));
-	}
-	return(nodeaddr);
-    }
-#endif
 
     return (NULL);
 }
@@ -191,7 +128,7 @@ get_hostname (Xauth *auth)
 /*
  * cribbed from lib/X/XConnDis.c
  */
-static Bool 
+static Bool
 get_inet_address(char *name, unsigned int *resultp)
 {
     unsigned int hostinetaddr = inet_addr (name);
@@ -214,8 +151,8 @@ get_inet_address(char *name, unsigned int *resultp)
 	    errno = EPROTOTYPE;
 	    return False;
 	}
- 
-	memmove( (char *)&hostinetaddr, (char *)host_ptr->h_addr, 
+
+	memmove( (char *)&hostinetaddr, (char *)host_ptr->h_addr,
 	      sizeof(inaddr.sin_addr));
     }
     *resultp = hostinetaddr;
@@ -223,35 +160,16 @@ get_inet_address(char *name, unsigned int *resultp)
 }
 #endif
 
-#ifdef DNETCONN
-static Bool get_dnet_address (name, resultp)
-    char *name;
-    struct dn_naddr *resultp;
-{
-    struct dn_naddr *dnaddrp, dnaddr;
-    struct nodeent *np;
-
-    if (dnaddrp = dnet_addr (name)) {	/* stolen from xhost */
-	dnaddr = *dnaddrp;
-    } else {
-	if ((np = getnodebyname (name)) == NULL) return False;
-	dnaddr.a_len = np->n_length;
-	memmove( dnaddr.a_addr, np->n_addr, np->n_length);
-    }
-    *resultp = dnaddr;
-    return True;
-}
-#endif
 
 struct addrlist *get_address_info (
     int family,
-    char *fulldpyname,
+    const char *fulldpyname,
     int prefix,
     char *host)
 {
     struct addrlist *retval = NULL;
     int len = 0;
-    void *src = NULL;
+    const void *src = NULL;
 #ifdef TCPCONN
 #if defined(IPv6) && defined(AF_INET6)
     struct addrlist *lastrv = NULL;
@@ -261,9 +179,6 @@ struct addrlist *get_address_info (
 #else
     unsigned int hostinetaddr;
 #endif
-#endif
-#ifdef DNETCONN
-    struct dn_naddr dnaddr;
 #endif
     char buf[255];
 
@@ -283,30 +198,55 @@ struct addrlist *get_address_info (
 		src = buf;
 		len = strlen (buf);
 	    }
-	} else if(prefix == 0 && (strncmp (fulldpyname, "/tmp/launch", 11) == 0)) {
-        /* Use the bundle id (part preceding : in the basename) as our src id */
-        char *c;
+	} else {
+	    char path[PATH_MAX];
+	    struct stat sbuf;
+	    int is_path_to_socket = 0;
+
 #ifdef HAVE_STRLCPY
-        strlcpy(buf, strrchr(fulldpyname, '/') + 1, sizeof(buf));
+	    strlcpy(path, fulldpyname, sizeof(path));
 #else
-        strncpy(buf, strrchr(fulldpyname, '/') + 1, sizeof(buf));
-	buf[sizeof(buf) - 1] = '\0';
+	    strncpy(path, fulldpyname, sizeof(path));
+	    path[sizeof(path) - 1] = '\0';
+#endif
+	    if (0 == stat(path, &sbuf)) {
+		is_path_to_socket = 1;
+	    } else {
+		char *dot = strrchr(path, '.');
+		if (dot) {
+		    *dot = '\0';
+		    /* screen = atoi(dot + 1); */
+		    if (0 == stat(path, &sbuf)) {
+		        is_path_to_socket = 1;
+		    }
+		}
+	    }
+
+	    if (is_path_to_socket) {
+		/* Use the bundle id (part preceding : in the basename) as our src id */
+		char *c;
+#ifdef HAVE_STRLCPY
+		strlcpy(buf, strrchr(fulldpyname, '/') + 1, sizeof(buf));
+#else
+		strncpy(buf, strrchr(fulldpyname, '/') + 1, sizeof(buf));
+		buf[sizeof(buf) - 1] = '\0';
 #endif
 
-        c = strchr(buf, ':');
-        
-        /* In the legacy case with no bundle id, use the full path */
-        if(c == buf) {
-            src = fulldpyname;
-        } else {
-            *c = '\0';
-            src = buf;
-        }
+		c = strchr(buf, ':');
 
-        len = strlen(src);
-    } else {
-	    src = fulldpyname;
-	    len = prefix;
+		/* In the legacy case with no bundle id, use the full path */
+		if(c == buf) {
+			src = fulldpyname;
+		} else {
+			*c = '\0';
+			src = buf;
+		}
+
+		len = strlen(src);
+	    } else {
+		src = fulldpyname;
+		len = prefix;
+            }
 	}
 	break;
       case FamilyInternet:		/* host:0 */
@@ -316,21 +256,47 @@ struct addrlist *get_address_info (
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_UNSPEC; /* IPv4 or IPv6 */
 	hints.ai_socktype = SOCK_STREAM; /* only interested in TCP */
-	hints.ai_protocol = 0;	
+	hints.ai_protocol = 0;
         if (getaddrinfo(host,NULL,&hints,&firstai) !=0) return NULL;
 	for (ai = firstai; ai != NULL; ai = ai->ai_next) {
 	    struct addrlist *duplicate;
 
+            len = 0;
 	    if (ai->ai_family == AF_INET) {
 		struct sockaddr_in *sin = (struct sockaddr_in *)ai->ai_addr;
 		src = &(sin->sin_addr);
-		len = sizeof(sin->sin_addr);
-		family = FamilyInternet;
+                if (*(const in_addr_t *) src == htonl(INADDR_LOOPBACK)) {
+                    family = FamilyLocal;
+                    if (get_local_hostname (buf, sizeof buf)) {
+                        src = buf;
+                        len = strlen (buf);
+                    } else
+                        src = NULL;
+                } else {
+                    len = sizeof(sin->sin_addr);
+                    family = FamilyInternet;
+                }
 	    } else if (ai->ai_family == AF_INET6) {
 		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)ai->ai_addr;
 		src = &(sin6->sin6_addr);
-		len = sizeof(sin6->sin6_addr);
-		family = FamilyInternet6;
+                if (!IN6_IS_ADDR_V4MAPPED((const struct in6_addr *)src)) {
+                    if (IN6_IS_ADDR_LOOPBACK((const struct in6_addr *)src)) {
+                        family = FamilyLocal;
+                        if (get_local_hostname (buf, sizeof buf)) {
+                            src = buf;
+                            len = strlen (buf);
+                        } else
+                            src = NULL;
+                    } else {
+                        len = sizeof(sin6->sin6_addr);
+                        family = FamilyInternet6;
+                    }
+                } else {
+                    src = &(sin6->sin6_addr.s6_addr[12]);
+                    len = sizeof(((struct sockaddr_in *)
+                                  ai->ai_addr)->sin_addr);
+                    family = FamilyInternet;
+                }
 	    }
 
 	    for(duplicate = retval; duplicate != NULL; duplicate = duplicate->next) {
@@ -369,21 +335,24 @@ struct addrlist *get_address_info (
 #else
 	if (!get_inet_address (host, &hostinetaddr)) return NULL;
 	src = (char *) &hostinetaddr;
-	len = 4; /* sizeof inaddr.sin_addr, would fail on Cray */
+        if (*(const in_addr_t *) src == htonl(INADDR_LOOPBACK)) {
+            family = FamilyLocal;
+            if (get_local_hostname (buf, sizeof buf)) {
+                src = buf;
+                len = strlen (buf);
+            } else {
+                len = 0;
+                src = NULL;
+            }
+        } else
+            len = 4; /* sizeof inaddr.sin_addr, would fail on Cray */
 	break;
 #endif /* IPv6 */
 #else
 	return NULL;
 #endif
       case FamilyDECnet:		/* host::0 */
-#ifdef DNETCONN
-	if (!get_dnet_address (host, &dnaddr)) return NULL;
-	src = (char *) &dnaddr;
-	len = (sizeof dnaddr);
-	break;
-#else
 	/* fall through since we don't have code for it */
-#endif
       default:
 	src = NULL;
 	len = 0;

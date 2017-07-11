@@ -460,12 +460,16 @@ static struct radv_shader_variant *radv_shader_variant_create(struct radv_device
 		options.key = *key;
 
 	struct ac_shader_binary binary;
-
+	enum ac_target_machine_options tm_options = 0;
 	options.unsafe_math = !!(device->debug_flags & RADV_DEBUG_UNSAFE_MATH);
 	options.family = chip_family;
 	options.chip_class = device->physical_device->rad_info.chip_class;
 	options.supports_spill = device->llvm_supports_spill;
-	tm = ac_create_target_machine(chip_family, options.supports_spill);
+	if (options.supports_spill)
+		tm_options |= AC_TM_SUPPORTS_SPILL;
+	if (device->instance->perftest_flags & RADV_PERFTEST_SISCHED)
+		tm_options |= AC_TM_SISCHED;
+	tm = ac_create_target_machine(chip_family, tm_options);
 	ac_compile_nir_shader(tm, &binary, &variant->config,
 			      &variant->info, shader, &options, dump);
 	LLVMDisposeTargetMachine(tm);
@@ -501,10 +505,14 @@ radv_pipeline_create_gs_copy_shader(struct radv_pipeline *pipeline,
 
 	struct ac_nir_compiler_options options = {0};
 	struct ac_shader_binary binary;
+	enum ac_target_machine_options tm_options = 0;
 	options.family = chip_family;
 	options.chip_class = pipeline->device->physical_device->rad_info.chip_class;
-	options.supports_spill = pipeline->device->llvm_supports_spill;
-	tm = ac_create_target_machine(chip_family, options.supports_spill);
+	if (options.supports_spill)
+		tm_options |= AC_TM_SUPPORTS_SPILL;
+	if (pipeline->device->instance->perftest_flags & RADV_PERFTEST_SISCHED)
+		tm_options |= AC_TM_SISCHED;
+	tm = ac_create_target_machine(chip_family, tm_options);
 	ac_create_gs_copy_shader(tm, nir, &binary, &variant->config, &variant->info, &options, dump_shader);
 	LLVMDisposeTargetMachine(tm);
 
@@ -1217,12 +1225,24 @@ radv_pipeline_init_depth_stencil_state(struct radv_pipeline *pipeline,
 	memset(ds, 0, sizeof(*ds));
 	if (!vkds)
 		return;
-	ds->db_depth_control = S_028800_Z_ENABLE(vkds->depthTestEnable ? 1 : 0) |
-		S_028800_Z_WRITE_ENABLE(vkds->depthWriteEnable ? 1 : 0) |
-		S_028800_ZFUNC(vkds->depthCompareOp) |
-		S_028800_DEPTH_BOUNDS_ENABLE(vkds->depthBoundsTestEnable ? 1 : 0);
 
-	if (vkds->stencilTestEnable) {
+	RADV_FROM_HANDLE(radv_render_pass, pass, pCreateInfo->renderPass);
+	struct radv_subpass *subpass = pass->subpasses + pCreateInfo->subpass;
+	if (subpass->depth_stencil_attachment.attachment == VK_ATTACHMENT_UNUSED)
+		return;
+
+	struct radv_render_pass_attachment *attachment = pass->attachments + subpass->depth_stencil_attachment.attachment;
+	bool has_depth_attachment = vk_format_is_depth(attachment->format);
+	bool has_stencil_attachment = vk_format_is_stencil(attachment->format);
+
+	if (has_depth_attachment) {
+		ds->db_depth_control = S_028800_Z_ENABLE(vkds->depthTestEnable ? 1 : 0) |
+		                       S_028800_Z_WRITE_ENABLE(vkds->depthWriteEnable ? 1 : 0) |
+		                       S_028800_ZFUNC(vkds->depthCompareOp) |
+		                       S_028800_DEPTH_BOUNDS_ENABLE(vkds->depthBoundsTestEnable ? 1 : 0);
+	}
+
+	if (has_stencil_attachment && vkds->stencilTestEnable) {
 		ds->db_depth_control |= S_028800_STENCIL_ENABLE(1) | S_028800_BACKFACE_ENABLE(1);
 		ds->db_depth_control |= S_028800_STENCILFUNC(vkds->front.compareOp);
 		ds->db_stencil_control |= S_02842C_STENCILFAIL(si_translate_stencil_op(vkds->front.failOp));

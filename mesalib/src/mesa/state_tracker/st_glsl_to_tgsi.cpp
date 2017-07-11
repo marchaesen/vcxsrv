@@ -6747,27 +6747,8 @@ st_translate_program(
 
       for (i = program->shader->Stage+1; i <= MESA_SHADER_FRAGMENT; i++) {
          if (program->shader_program->_LinkedShaders[i]) {
-            unsigned next;
-
-            switch (i) {
-            case MESA_SHADER_TESS_CTRL:
-               next = PIPE_SHADER_TESS_CTRL;
-               break;
-            case MESA_SHADER_TESS_EVAL:
-               next = PIPE_SHADER_TESS_EVAL;
-               break;
-            case MESA_SHADER_GEOMETRY:
-               next = PIPE_SHADER_GEOMETRY;
-               break;
-            case MESA_SHADER_FRAGMENT:
-               next = PIPE_SHADER_FRAGMENT;
-               break;
-            default:
-               assert(0);
-               continue;
-            }
-
-            ureg_set_next_shader_processor(ureg, next);
+            ureg_set_next_shader_processor(
+                  ureg, pipe_shader_type_from_mesa((gl_shader_stage)i));
             break;
          }
       }

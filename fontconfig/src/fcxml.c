@@ -3224,26 +3224,132 @@ pfnGetSystemWindowsDirectory pGetSystemWindowsDirectory = NULL;
 pfnSHGetFolderPathA pSHGetFolderPathA = NULL;
 #endif
 
+static FcBool
+FcConfigParseAndLoadFromMemoryInternal (FcConfig       *config,
+					const FcChar8  *filename,
+					const FcChar8  *buffer,
+					FcBool         complain)
+{
+
+    XML_Parser	    p;
+    size_t	    len;
+    FcConfigParse   parse;
+    FcBool	    error = FcTrue;
+    void            *buf;
+
+#ifdef ENABLE_LIBXML2
+    xmlSAXHandler   sax;
+#else
+    const FcChar8   *s;
+    size_t	    buflen;
+#endif
+
+    if (!buffer)
+	return FcFalse;
+    len = strlen ((const char *) buffer);
+    if (FcDebug () & FC_DBG_CONFIG)
+	printf ("\tLoading config file from %s\n", filename);
+
+#ifdef ENABLE_LIBXML2
+    memset(&sax, 0, sizeof(sax));
+
+    sax.internalSubset = FcInternalSubsetDecl;
+    sax.externalSubset = FcExternalSubsetDecl;
+    sax.startElement = FcStartElement;
+    sax.endElement = FcEndElement;
+    sax.characters = FcCharacterData;
+
+    p = xmlCreatePushParserCtxt (&sax, &parse, NULL, 0, (const char *) filename);
+#else
+    p = XML_ParserCreate ("UTF-8");
+#endif
+
+    if (!p)
+	goto bail1;
+
+    if (!FcConfigParseInit (&parse, filename, config, p))
+	goto bail2;
+
+#ifndef ENABLE_LIBXML2
+
+    XML_SetUserData (p, &parse);
+
+    XML_SetDoctypeDeclHandler (p, FcStartDoctypeDecl, FcEndDoctypeDecl);
+    XML_SetElementHandler (p, FcStartElement, FcEndElement);
+    XML_SetCharacterDataHandler (p, FcCharacterData);
+	
+#endif /* ENABLE_LIBXML2 */
+
+#ifndef ENABLE_LIBXML2
+    s = buffer;
+    do {
+	buf = XML_GetBuffer (p, BUFSIZ);
+	if (!buf)
+	{
+	    FcConfigMessage (&parse, FcSevereError, "cannot get parse buffer");
+	    goto bail3;
+	}
+	if (len > BUFSIZ)
+	{
+	    buflen = BUFSIZ;
+	    len -= BUFSIZ;
+	}
+	else
+	{
+	    buflen = len;
+	    len = 0;
+	}
+	memcpy (buf, s, buflen);
+	s = s + buflen;
+#endif
+
+#ifdef ENABLE_LIBXML2
+	if (xmlParseChunk (p, buffer, len, len == 0))
+#else
+	if (!XML_ParseBuffer (p, buflen, buflen == 0))
+#endif
+	{
+	    FcConfigMessage (&parse, FcSevereError, "%s",
+			   XML_ErrorString (XML_GetErrorCode (p)));
+	    goto bail3;
+	}
+#ifndef ENABLE_LIBXML2
+    } while (buflen != 0);
+#endif
+    error = parse.error;
+bail3:
+    FcConfigCleanup (&parse);
+bail2:
+    XML_ParserFree (p);
+bail1:
+    if (error && complain)
+    {
+	FcConfigMessage (0, FcSevereError, "Cannot load config file from %s", filename);
+	return FcFalse;
+    }
+    return FcTrue;
+}
+
+FcBool
+FcConfigParseAndLoadFromMemory (FcConfig       *config,
+				const FcChar8  *buffer,
+				FcBool         complain)
+{
+	return FcConfigParseAndLoadFromMemoryInternal (config, (const FcChar8 *)"memory", buffer, complain);
+}
+
 FcBool
 FcConfigParseAndLoad (FcConfig	    *config,
 		      const FcChar8 *name,
 		      FcBool	    complain)
 {
-
-    XML_Parser	    p;
     FcChar8	    *filename, *f;
     int		    fd;
     int		    len;
-    FcConfigParse   parse;
-    FcBool	    error = FcTrue;
     const FcChar8   *sysroot = FcConfigGetSysRoot (config);
-
-#ifdef ENABLE_LIBXML2
-    xmlSAXHandler   sax;
+    FcStrBuf	    sbuf;
     char            buf[BUFSIZ];
-#else
-    void	    *buf;
-#endif
+    FcBool	    ret = FcFalse;
 
 #ifdef _WIN32
     if (!pGetSystemWindowsDirectory)
@@ -3284,88 +3390,38 @@ FcConfigParseAndLoad (FcConfig	    *config,
 
     if (FcFileIsDir (filename))
     {
-	FcBool ret = FcConfigParseAndLoadDir (config, name, filename, complain);
+	ret = FcConfigParseAndLoadDir (config, name, filename, complain);
 	FcStrFree (filename);
 	return ret;
     }
 
-    if (FcDebug () & FC_DBG_CONFIG)
-	printf ("\tLoading config file %s\n", filename);
+    FcStrBufInit (&sbuf, NULL, 0);
 
     fd = FcOpen ((char *) filename, O_RDONLY);
     if (fd == -1) {
 	FcStrFree (filename);
-	goto bail0;
+	goto bail1;
     }
 
-#ifdef ENABLE_LIBXML2
-    memset(&sax, 0, sizeof(sax));
-
-    sax.internalSubset = FcInternalSubsetDecl;
-    sax.externalSubset = FcExternalSubsetDecl;
-    sax.startElement = FcStartElement;
-    sax.endElement = FcEndElement;
-    sax.characters = FcCharacterData;
-
-    p = xmlCreatePushParserCtxt (&sax, &parse, NULL, 0, (const char *) filename);
-#else
-    p = XML_ParserCreate ("UTF-8");
-#endif
-    FcStrFree (filename);
-
-    if (!p)
-	goto bail1;
-
-    if (!FcConfigParseInit (&parse, name, config, p))
-	goto bail2;
-
-#ifndef ENABLE_LIBXML2
-
-    XML_SetUserData (p, &parse);
-
-    XML_SetDoctypeDeclHandler (p, FcStartDoctypeDecl, FcEndDoctypeDecl);
-    XML_SetElementHandler (p, FcStartElement, FcEndElement);
-    XML_SetCharacterDataHandler (p, FcCharacterData);
-	
-#endif /* ENABLE_LIBXML2 */
-
     do {
-#ifndef ENABLE_LIBXML2
-	buf = XML_GetBuffer (p, BUFSIZ);
-	if (!buf)
-	{
-	    FcConfigMessage (&parse, FcSevereError, "cannot get parse buffer");
-	    goto bail3;
-	}
-#endif
 	len = read (fd, buf, BUFSIZ);
 	if (len < 0)
 	{
-	    FcConfigMessage (&parse, FcSevereError, "failed reading config file");
-	    goto bail3;
+	    FcConfigMessage (0, FcSevereError, "failed reading config file");
+	    close (fd);
+	    goto bail1;
 	}
-
-#ifdef ENABLE_LIBXML2
-	if (xmlParseChunk (p, buf, len, len == 0))
-#else
-	if (!XML_ParseBuffer (p, len, len == 0))
-#endif
-	{
-	    FcConfigMessage (&parse, FcSevereError, "%s",
-			   XML_ErrorString (XML_GetErrorCode (p)));
-	    goto bail3;
-	}
+	FcStrBufData (&sbuf, (const FcChar8 *)buf, len);
     } while (len != 0);
-    error = parse.error;
-bail3:
-    FcConfigCleanup (&parse);
-bail2:
-    XML_ParserFree (p);
-bail1:
     close (fd);
-    fd = -1;
+
+    ret = FcConfigParseAndLoadFromMemoryInternal (config, filename, FcStrBufDoneStatic (&sbuf), complain);
+    complain = FcFalse; /* no need to reclaim here */
+bail1:
+    FcStrFree (filename);
+    FcStrBufDestroy (&sbuf);
 bail0:
-    if (error && complain)
+    if (!ret && complain)
     {
 	if (name)
 	    FcConfigMessage (0, FcSevereError, "Cannot load config file \"%s\"", name);
@@ -3373,7 +3429,7 @@ bail0:
 	    FcConfigMessage (0, FcSevereError, "Cannot load default config file");
 	return FcFalse;
     }
-    return FcTrue;
+    return ret;
 }
 #define __fcxml__
 #include "fcaliastail.h"

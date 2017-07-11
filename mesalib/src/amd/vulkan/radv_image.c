@@ -72,7 +72,7 @@ radv_init_surface(struct radv_device *device,
 	surface->blk_w = vk_format_get_blockwidth(pCreateInfo->format);
 	surface->blk_h = vk_format_get_blockheight(pCreateInfo->format);
 
-	surface->bpe = vk_format_get_blocksize(pCreateInfo->format);
+	surface->bpe = vk_format_get_blocksize(vk_format_depth_only(pCreateInfo->format));
 	/* align byte per element on dword */
 	if (surface->bpe == 3) {
 		surface->bpe = 4;

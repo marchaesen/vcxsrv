@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 
@@ -133,7 +133,7 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
    pipe_surface_reference(&strb->surface_srgb, NULL);
    pipe_surface_reference(&strb->surface_linear, NULL);
    strb->surface = NULL;
-   pipe_resource_reference( &strb->texture, NULL );
+   pipe_resource_reference(&strb->texture, NULL);
 
    /* If an sRGB framebuffer is unsupported, sRGB formats behave like linear
     * formats.
@@ -353,7 +353,7 @@ st_new_renderbuffer_fb(enum pipe_format format, int samples, boolean sw)
       break;
    default:
       _mesa_problem(NULL,
-		    "Unexpected format %s in st_new_renderbuffer_fb",
+                    "Unexpected format %s in st_new_renderbuffer_fb",
                     util_format_name(format));
       free(strb);
       return NULL;
@@ -565,9 +565,9 @@ st_fbo_invalid(const char *reason)
  */
 static GLboolean
 st_validate_attachment(struct gl_context *ctx,
-		       struct pipe_screen *screen,
-		       const struct gl_renderbuffer_attachment *att,
-		       unsigned bindings)
+                       struct pipe_screen *screen,
+                       const struct gl_renderbuffer_attachment *att,
+                       unsigned bindings)
 {
    const struct st_texture_object *stObj = st_texture_object(att->Texture);
    enum pipe_format format;
@@ -611,7 +611,7 @@ st_validate_attachment(struct gl_context *ctx,
 
    return valid;
 }
- 
+
 
 /**
  * Check that the framebuffer configuration is valid in terms of what
@@ -653,18 +653,12 @@ st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
       return;
    }
 
-   if (!st_validate_attachment(ctx,
-                               screen,
-                               depth,
-			       PIPE_BIND_DEPTH_STENCIL)) {
+   if (!st_validate_attachment(ctx, screen, depth, PIPE_BIND_DEPTH_STENCIL)) {
       fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
       st_fbo_invalid("Invalid depth attachment");
       return;
    }
-   if (!st_validate_attachment(ctx,
-                               screen,
-                               stencil,
-			       PIPE_BIND_DEPTH_STENCIL)) {
+   if (!st_validate_attachment(ctx, screen, stencil, PIPE_BIND_DEPTH_STENCIL)) {
       fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
       st_fbo_invalid("Invalid stencil attachment");
       return;
@@ -674,13 +668,10 @@ st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
             &fb->Attachment[BUFFER_COLOR0 + i];
       enum pipe_format format;
 
-      if (!st_validate_attachment(ctx,
-                                  screen,
-				  att,
-				  PIPE_BIND_RENDER_TARGET)) {
-	 fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
-	 st_fbo_invalid("Invalid color attachment");
-	 return;
+      if (!st_validate_attachment(ctx, screen, att, PIPE_BIND_RENDER_TARGET)) {
+         fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+         st_fbo_invalid("Invalid color attachment");
+         return;
       }
 
       if (!mixed_formats) {
@@ -858,7 +849,8 @@ st_UnmapRenderbuffer(struct gl_context *ctx,
 
 
 
-void st_init_fbo_functions(struct dd_function_table *functions)
+void
+st_init_fbo_functions(struct dd_function_table *functions)
 {
    functions->NewFramebuffer = _mesa_new_framebuffer;
    functions->NewRenderbuffer = st_new_renderbuffer;
@@ -873,5 +865,3 @@ void st_init_fbo_functions(struct dd_function_table *functions)
    functions->MapRenderbuffer = st_MapRenderbuffer;
    functions->UnmapRenderbuffer = st_UnmapRenderbuffer;
 }
-
-

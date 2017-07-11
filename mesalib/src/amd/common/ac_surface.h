@@ -206,7 +206,8 @@ struct ac_surf_config {
 };
 
 ADDR_HANDLE amdgpu_addr_create(const struct radeon_info *info,
-			       const struct amdgpu_gpu_info *amdinfo);
+			       const struct amdgpu_gpu_info *amdinfo,
+			       uint64_t *max_alignment);
 
 int ac_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *info,
 		       const struct ac_surf_config * config,

@@ -108,7 +108,9 @@ st_update_fp( struct st_context *st )
    if (st->shader_has_one_variant[MESA_SHADER_FRAGMENT] &&
        !stfp->ati_fs && /* ATI_fragment_shader always has multiple variants */
        !stfp->Base.ExternalSamplersUsed && /* external samplers need variants */
-       stfp->variants) {
+       stfp->variants &&
+       !stfp->variants->key.drawpixels &&
+       !stfp->variants->key.bitmap) {
       shader = stfp->variants->driver_shader;
    } else {
       memset(&key, 0, sizeof(key));

@@ -295,7 +295,6 @@ static inline struct st_context *st_context(struct gl_context *ctx)
 struct st_framebuffer
 {
    struct gl_framebuffer Base;
-   void *Private;
 
    struct st_framebuffer_iface *iface;
    enum st_attachment_type statts[ST_ATTACHMENT_COUNT];

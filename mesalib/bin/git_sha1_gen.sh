@@ -4,7 +4,7 @@
 cd "$(dirname "$0")"
 
 # don't print anything if git fails
-if ! git_sha1=$(git --git-dir=.git rev-parse --short=10 HEAD 2>/dev/null)
+if ! git_sha1=$(git --git-dir=../.git rev-parse --short=10 HEAD 2>/dev/null)
 then
   exit
 fi

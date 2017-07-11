@@ -77,6 +77,17 @@ static inline bool glsl_base_type_is_64bit(enum glsl_base_type type)
           type == GLSL_TYPE_SAMPLER;
 }
 
+static inline bool glsl_base_type_is_integer(enum glsl_base_type type)
+{
+   return type == GLSL_TYPE_UINT ||
+          type == GLSL_TYPE_INT ||
+          type == GLSL_TYPE_UINT64 ||
+          type == GLSL_TYPE_INT64 ||
+          type == GLSL_TYPE_BOOL ||
+          type == GLSL_TYPE_SAMPLER ||
+          type == GLSL_TYPE_IMAGE;
+}
+
 enum glsl_sampler_dim {
    GLSL_SAMPLER_DIM_1D = 0,
    GLSL_SAMPLER_DIM_2D,

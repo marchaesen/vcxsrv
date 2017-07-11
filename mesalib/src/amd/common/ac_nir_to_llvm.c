@@ -3473,9 +3473,9 @@ static LLVMValueRef visit_image_atomic(struct nir_to_llvm_context *ctx,
 		abort();
 	}
 
-	params[param_count++] = get_src(ctx, instr->src[2]);
 	if (instr->intrinsic == nir_intrinsic_image_atomic_comp_swap)
 		params[param_count++] = get_src(ctx, instr->src[3]);
+	params[param_count++] = get_src(ctx, instr->src[2]);
 
 	if (glsl_get_sampler_dim(type) == GLSL_SAMPLER_DIM_BUF) {
 		params[param_count++] = get_sampler_desc(ctx, instr->variables[0], DESC_BUFFER);
@@ -5245,66 +5245,30 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 
 	}
 
-	for (unsigned i = 0; i < RADEON_LLVM_MAX_OUTPUTS; ++i) {
-		LLVMValueRef values[4];
-		if (!(ctx->output_mask & (1ull << i)))
-			continue;
-
+	LLVMValueRef pos_values[4] = {ctx->f32zero, ctx->f32zero, ctx->f32zero, ctx->f32one};
+	if (ctx->output_mask & (1ull << VARYING_SLOT_POS)) {
 		for (unsigned j = 0; j < 4; j++)
-			values[j] = to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
-					      ctx->outputs[radeon_llvm_reg_index_soa(i, j)], ""));
+			pos_values[j] = LLVMBuildLoad(ctx->builder,
+			                         ctx->outputs[radeon_llvm_reg_index_soa(VARYING_SLOT_POS, j)], "");
+	}
+	si_llvm_init_export_args(ctx, pos_values, V_008DFC_SQ_EXP_POS, &pos_args[0]);
 
-		if (i == VARYING_SLOT_POS) {
-			target = V_008DFC_SQ_EXP_POS;
-		} else if (i == VARYING_SLOT_CLIP_DIST0) {
-			continue;
-		} else if (i == VARYING_SLOT_PSIZ) {
-			outinfo->writes_pointsize = true;
-			psize_value = values[0];
-			continue;
-		} else if (i == VARYING_SLOT_LAYER) {
-			outinfo->writes_layer = true;
-			layer_value = values[0];
-			target = V_008DFC_SQ_EXP_PARAM + param_count;
-			outinfo->vs_output_param_offset[VARYING_SLOT_LAYER] = param_count;
-			param_count++;
-		} else if (i == VARYING_SLOT_VIEWPORT) {
-			outinfo->writes_viewport_index = true;
-			viewport_index_value = values[0];
-			continue;
-		} else if (i == VARYING_SLOT_PRIMITIVE_ID) {
-			target = V_008DFC_SQ_EXP_PARAM + param_count;
-			outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID] = param_count;
-			param_count++;
-		} else if (i >= VARYING_SLOT_VAR0) {
-			outinfo->export_mask |= 1u << (i - VARYING_SLOT_VAR0);
-			target = V_008DFC_SQ_EXP_PARAM + param_count;
-			outinfo->vs_output_param_offset[i] = param_count;
-			param_count++;
-		}
-
-		si_llvm_init_export_args(ctx, values, target, &args);
-
-		if (target >= V_008DFC_SQ_EXP_POS &&
-		    target <= (V_008DFC_SQ_EXP_POS + 3)) {
-			memcpy(&pos_args[target - V_008DFC_SQ_EXP_POS],
-			       &args, sizeof(args));
-		} else {
-			ac_build_export(&ctx->ac, &args);
-		}
+	if (ctx->output_mask & (1ull << VARYING_SLOT_PSIZ)) {
+		outinfo->writes_pointsize = true;
+		psize_value = LLVMBuildLoad(ctx->builder,
+		                            ctx->outputs[radeon_llvm_reg_index_soa(VARYING_SLOT_PSIZ, 0)], "");
 	}
 
-	/* We need to add the position output manually if it's missing. */
-	if (!pos_args[0].out[0]) {
-		pos_args[0].enabled_channels = 0xf;
-		pos_args[0].valid_mask = 0;
-		pos_args[0].done = 0;
-		pos_args[0].target = V_008DFC_SQ_EXP_POS;
-		pos_args[0].compr = 0;
-		pos_args[0].out[0] = ctx->f32zero; /* X */
-		pos_args[0].out[1] = ctx->f32zero; /* Y */
-		pos_args[0].out[2] = ctx->f32zero; /* Z */
-		pos_args[0].out[3] = ctx->f32one;  /* W */
+	if (ctx->output_mask & (1ull << VARYING_SLOT_LAYER)) {
+		outinfo->writes_layer = true;
+		layer_value = LLVMBuildLoad(ctx->builder,
+		                            ctx->outputs[radeon_llvm_reg_index_soa(VARYING_SLOT_LAYER, 0)], "");
+	}
+
+	if (ctx->output_mask & (1ull << VARYING_SLOT_VIEWPORT)) {
+		outinfo->writes_viewport_index = true;
+		viewport_index_value = LLVMBuildLoad(ctx->builder,
+		                                     ctx->outputs[radeon_llvm_reg_index_soa(VARYING_SLOT_VIEWPORT, 0)], "");
 	}
 
 	uint32_t mask = ((outinfo->writes_pointsize == true ? 1 : 0) |
@@ -5345,6 +5309,41 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 		ac_build_export(&ctx->ac, &pos_args[i]);
 	}
 
+	for (unsigned i = 0; i < RADEON_LLVM_MAX_OUTPUTS; ++i) {
+		LLVMValueRef values[4];
+		if (!(ctx->output_mask & (1ull << i)))
+			continue;
+
+		for (unsigned j = 0; j < 4; j++)
+			values[j] = to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
+					      ctx->outputs[radeon_llvm_reg_index_soa(i, j)], ""));
+
+		if (i == VARYING_SLOT_LAYER) {
+			target = V_008DFC_SQ_EXP_PARAM + param_count;
+			outinfo->vs_output_param_offset[VARYING_SLOT_LAYER] = param_count;
+			param_count++;
+		} else if (i == VARYING_SLOT_PRIMITIVE_ID) {
+			target = V_008DFC_SQ_EXP_PARAM + param_count;
+			outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID] = param_count;
+			param_count++;
+		} else if (i >= VARYING_SLOT_VAR0) {
+			outinfo->export_mask |= 1u << (i - VARYING_SLOT_VAR0);
+			target = V_008DFC_SQ_EXP_PARAM + param_count;
+			outinfo->vs_output_param_offset[i] = param_count;
+			param_count++;
+		} else
+			continue;
+
+		si_llvm_init_export_args(ctx, values, target, &args);
+
+		if (target >= V_008DFC_SQ_EXP_POS &&
+		    target <= (V_008DFC_SQ_EXP_POS + 3)) {
+			memcpy(&pos_args[target - V_008DFC_SQ_EXP_POS],
+			       &args, sizeof(args));
+		} else {
+			ac_build_export(&ctx->ac, &args);
+		}
+	}
 
 	if (export_prim_id) {
 		LLVMValueRef values[4];

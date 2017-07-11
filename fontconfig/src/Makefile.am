@@ -202,7 +202,12 @@ stamp-fcstdint: $(top_builddir)/config.status
 	@touch $@
 
 CLEANFILES = $(ALIAS_FILES) fontconfig.def
-DISTCLEANFILES = stamp-fcstdint fcstdint.h stamp-fcobjshash.gperf
+DISTCLEANFILES = 	\
+	stamp-fcstdint	\
+	fcstdint.h	\
+	stamp-fcobjshash.gperf	\
+	fcobjshash.h	\
+	fcobjshash.gperf
 
 fontconfig.def: $(PUBLIC_FILES) $(PUBLIC_FT_FILES)
 	echo Generating $@

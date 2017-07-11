@@ -116,12 +116,6 @@ extern pfnSHGetFolderPathA pSHGetFolderPathA;
 
 FC_ASSERT_STATIC (sizeof (FcRef) == sizeof (int));
 
-typedef enum _FcValueBinding {
-    FcValueBindingWeak, FcValueBindingStrong, FcValueBindingSame,
-    /* to make sure sizeof (FcValueBinding) == 4 even with -fshort-enums */
-    FcValueBindingEnd = INT_MAX
-} FcValueBinding;
-
 #define FcStrdup(s) ((FcChar8 *) strdup ((const char *) (s)))
 #define FcFree(s) (free ((FcChar8 *) (s)))
 
@@ -998,6 +992,9 @@ FcPatternObjectAdd (FcPattern *p, FcObject object, FcValue value, FcBool append)
 
 FcPrivate FcBool
 FcPatternObjectAddWeak (FcPattern *p, FcObject object, FcValue value, FcBool append);
+
+FcPrivate FcResult
+FcPatternObjectGetWithBinding (const FcPattern *p, FcObject object, int id, FcValue *v, FcValueBinding *b);
 
 FcPrivate FcResult
 FcPatternObjectGet (const FcPattern *p, FcObject object, int id, FcValue *v);

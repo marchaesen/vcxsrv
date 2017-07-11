@@ -2,7 +2,7 @@
  *
  * parse_displayname - utility routine for splitting up display name strings
  *
- * 
+ *
 Copyright 1989, 1998  The Open Group
 
 Permission to use, copy, modify, distribute, and sell this software and its
@@ -42,6 +42,9 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xauth.h>			/* for FamilyLocal */
 #include <X11/Xmu/SysUtil.h>
 
+#include <sys/stat.h>
+#include <limits.h>
+
 #if defined(UNIXCONN) || defined(LOCALCONN)
 #define UNIX_CONNECTION "unix"
 #define UNIX_CONNECTION_LENGTH 4
@@ -55,7 +58,7 @@ in this Software without prior written authorization from The Open Group.
  */
 
 char *
-copystring (char *src, int len)
+copystring (const char *src, int len)
 {
     char *cp;
 
@@ -83,7 +86,7 @@ copyhostname (void)
 {
     char buf[256];
 
-    return (get_local_hostname (buf, sizeof buf) ? 
+    return (get_local_hostname (buf, sizeof buf) ?
 	    copystring (buf, strlen (buf)) : NULL);
 }
 #endif
@@ -91,8 +94,8 @@ copyhostname (void)
 /*
  * parse_displayname - display a display string up into its component parts
  */
-Bool 
-parse_displayname (char *displayname, 
+Bool
+parse_displayname (const char *displayname,
 		   int *familyp,	/* return */
 		   char **hostp,	/* return */
 		   int *dpynump,	/* return */
@@ -158,8 +161,32 @@ parse_displayname (char *displayname,
 
     if (!host) return False;
 
-    if(strncmp (host, "/tmp/launch", 11) == 0) {
-        family = FamilyLocal;
+    {
+        /*
+         * If using launchd socket, remove the screen number from the end
+         * of $DISPLAY and check if it is a path to a socket.
+         */
+        char path[PATH_MAX];
+        struct stat sbuf;
+
+#ifdef HAVE_STRLCPY
+        strlcpy(path, displayname, sizeof(path));
+#else
+        strncpy(path, displayname, sizeof(path));
+        path[sizeof(path) - 1] = '\0';
+#endif
+        if (0 == stat(path, &sbuf)) {
+            family = FamilyLocal;
+        } else {
+            char *dot = strrchr(path, '.');
+            if (dot) {
+                *dot = '\0';
+                /* screen = atoi(dot + 1); */
+                if (0 == stat(path, &sbuf)) {
+                    family = FamilyLocal;
+                }
+            }
+        }
     }
 
     /*
@@ -180,7 +207,7 @@ parse_displayname (char *displayname,
 	    free (host);
 	    return False;
 	}
-	
+
 	dpynum = atoi (ptr);		/* it will handle num. as well */
 	ptr = cp;
     }
@@ -232,4 +259,4 @@ parse_displayname (char *displayname,
     return True;
 }
 
-	    
+

@@ -136,7 +136,7 @@ u_bit_scan_consecutive_range(unsigned *mask, int *start, int *count)
 static inline void
 u_bit_scan_consecutive_range64(uint64_t *mask, int *start, int *count)
 {
-   if (*mask == ~0llu) {
+   if (*mask == ~0ull) {
       *start = 0;
       *count = 64;
       *mask = 0;

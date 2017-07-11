@@ -90,27 +90,31 @@
 
 namespace {
 
+struct find_variable {
+   const char *name;
+   bool found;
+
+   find_variable(const char *name) : name(name), found(false) {}
+};
+
 /**
  * Visitor that determines whether or not a variable is ever written.
+ *
+ * Use \ref find_assignments for convenience.
  */
 class find_assignment_visitor : public ir_hierarchical_visitor {
 public:
-   find_assignment_visitor(const char *name)
-      : name(name), found(false)
+   find_assignment_visitor(unsigned num_vars,
+                           find_variable * const *vars)
+      : num_variables(num_vars), num_found(0), variables(vars)
    {
-      /* empty */
    }
 
    virtual ir_visitor_status visit_enter(ir_assignment *ir)
    {
       ir_variable *const var = ir->lhs->variable_referenced();
 
-      if (strcmp(name, var->name) == 0) {
-         found = true;
-         return visit_stop;
-      }
-
-      return visit_continue_with_parent;
+      return check_variable_name(var->name);
    }
 
    virtual ir_visitor_status visit_enter(ir_call *ir)
@@ -123,35 +127,71 @@ public:
          if (sig_param->data.mode == ir_var_function_out ||
              sig_param->data.mode == ir_var_function_inout) {
             ir_variable *var = param_rval->variable_referenced();
-            if (var && strcmp(name, var->name) == 0) {
-               found = true;
+            if (var && check_variable_name(var->name) == visit_stop)
                return visit_stop;
-            }
          }
       }
 
       if (ir->return_deref != NULL) {
          ir_variable *const var = ir->return_deref->variable_referenced();
 
-         if (strcmp(name, var->name) == 0) {
-            found = true;
+         if (check_variable_name(var->name) == visit_stop)
             return visit_stop;
+      }
+
+      return visit_continue_with_parent;
+   }
+
+private:
+   ir_visitor_status check_variable_name(const char *name)
+   {
+      for (unsigned i = 0; i < num_variables; ++i) {
+         if (strcmp(variables[i]->name, name) == 0) {
+            if (!variables[i]->found) {
+               variables[i]->found = true;
+
+               assert(num_found < num_variables);
+               if (++num_found == num_variables)
+                  return visit_stop;
+            }
+            break;
          }
       }
 
       return visit_continue_with_parent;
    }
 
-   bool variable_found()
-   {
-      return found;
-   }
-
 private:
-   const char *name;       /**< Find writes to a variable with this name. */
-   bool found;             /**< Was a write to the variable found? */
+   unsigned num_variables;           /**< Number of variables to find */
+   unsigned num_found;               /**< Number of variables already found */
+   find_variable * const *variables; /**< Variables to find */
 };
 
+/**
+ * Determine whether or not any of NULL-terminated list of variables is ever
+ * written to.
+ */
+static void
+find_assignments(exec_list *ir, find_variable * const *vars)
+{
+   unsigned num_variables = 0;
+
+   for (find_variable * const *v = vars; *v; ++v)
+      num_variables++;
+
+   find_assignment_visitor visitor(num_variables, vars);
+   visitor.run(ir);
+}
+
+/**
+ * Determine whether or not the given variable is ever written to.
+ */
+static void
+find_assignments(exec_list *ir, find_variable *var)
+{
+   find_assignment_visitor visitor(1, &var);
+   visitor.run(ir);
+}
 
 /**
  * Visitor that determines whether or not a variable is ever read.
@@ -567,11 +607,16 @@ analyze_clip_cull_usage(struct gl_shader_program *prog,
        * gl_ClipVertex nor gl_ClipDistance. However with
        * GL_EXT_clip_cull_distance, this functionality is exposed in ES 3.0.
        */
-      find_assignment_visitor clip_distance("gl_ClipDistance");
-      find_assignment_visitor cull_distance("gl_CullDistance");
-
-      clip_distance.run(shader->ir);
-      cull_distance.run(shader->ir);
+      find_variable gl_ClipDistance("gl_ClipDistance");
+      find_variable gl_CullDistance("gl_CullDistance");
+      find_variable gl_ClipVertex("gl_ClipVertex");
+      find_variable * const variables[] = {
+         &gl_ClipDistance,
+         &gl_CullDistance,
+         !prog->IsES ? &gl_ClipVertex : NULL,
+         NULL
+      };
+      find_assignments(shader->ir, variables);
 
       /* From the ARB_cull_distance spec:
        *
@@ -583,17 +628,13 @@ analyze_clip_cull_usage(struct gl_shader_program *prog,
        * gl_ClipVertex.
        */
       if (!prog->IsES) {
-         find_assignment_visitor clip_vertex("gl_ClipVertex");
-
-         clip_vertex.run(shader->ir);
-
-         if (clip_vertex.variable_found() && clip_distance.variable_found()) {
+         if (gl_ClipVertex.found && gl_ClipDistance.found) {
             linker_error(prog, "%s shader writes to both `gl_ClipVertex' "
                          "and `gl_ClipDistance'\n",
                          _mesa_shader_stage_to_string(shader->Stage));
             return;
          }
-         if (clip_vertex.variable_found() && cull_distance.variable_found()) {
+         if (gl_ClipVertex.found && gl_CullDistance.found) {
             linker_error(prog, "%s shader writes to both `gl_ClipVertex' "
                          "and `gl_CullDistance'\n",
                          _mesa_shader_stage_to_string(shader->Stage));
@@ -601,13 +642,13 @@ analyze_clip_cull_usage(struct gl_shader_program *prog,
          }
       }
 
-      if (clip_distance.variable_found()) {
+      if (gl_ClipDistance.found) {
          ir_variable *clip_distance_var =
                 shader->symbols->get_variable("gl_ClipDistance");
          assert(clip_distance_var);
          *clip_distance_array_size = clip_distance_var->type->length;
       }
-      if (cull_distance.variable_found()) {
+      if (gl_CullDistance.found) {
          ir_variable *cull_distance_var =
                 shader->symbols->get_variable("gl_CullDistance");
          assert(cull_distance_var);
@@ -676,9 +717,9 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
     * gl_Position is not an error.
     */
    if (prog->data->Version < (prog->IsES ? 300 : 140)) {
-      find_assignment_visitor find("gl_Position");
-      find.run(shader->ir);
-      if (!find.variable_found()) {
+      find_variable gl_Position("gl_Position");
+      find_assignments(shader->ir, &gl_Position);
+      if (!gl_Position.found) {
         if (prog->IsES) {
           linker_warning(prog,
                          "vertex shader does not write to `gl_Position'. "
@@ -722,13 +763,12 @@ validate_fragment_shader_executable(struct gl_shader_program *prog,
    if (shader == NULL)
       return;
 
-   find_assignment_visitor frag_color("gl_FragColor");
-   find_assignment_visitor frag_data("gl_FragData");
+   find_variable gl_FragColor("gl_FragColor");
+   find_variable gl_FragData("gl_FragData");
+   find_variable * const variables[] = { &gl_FragColor, &gl_FragData, NULL };
+   find_assignments(shader->ir, variables);
 
-   frag_color.run(shader->ir);
-   frag_data.run(shader->ir);
-
-   if (frag_color.variable_found() && frag_data.variable_found()) {
+   if (gl_FragColor.found && gl_FragData.found) {
       linker_error(prog,  "fragment shader writes to both "
                    "`gl_FragColor' and `gl_FragData'\n");
    }
@@ -3692,7 +3732,10 @@ create_shader_variable(struct gl_shader_program *shProg,
                        bool use_implicit_location, int location,
                        const glsl_type *outermost_struct_type)
 {
-   gl_shader_variable *out = ralloc(shProg, struct gl_shader_variable);
+   /* Allocate zero-initialized memory to ensure that bitfield padding
+    * is zero.
+    */
+   gl_shader_variable *out = rzalloc(shProg, struct gl_shader_variable);
    if (!out)
       return NULL;
 

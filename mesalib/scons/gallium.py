@@ -325,8 +325,10 @@ def generate(env):
                 'GLX_INDIRECT_RENDERING',
             ]
 
-        if env['platform'] in ('linux', 'darwin'):
+        conf = SCons.Script.Configure(env)
+        if conf.CheckHeader('xlocale.h'):
             cppdefines += ['HAVE_XLOCALE_H']
+        env = conf.Finish()
 
     if platform == 'windows':
         cppdefines += [

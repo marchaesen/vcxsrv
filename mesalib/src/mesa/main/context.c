@@ -1663,8 +1663,9 @@ _mesa_make_current( struct gl_context *newCtx,
        /* make sure this context is valid for flushing */
        curCtx != newCtx &&
        curCtx->Const.ContextReleaseBehavior ==
-       GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH)
+       GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH) {
       _mesa_flush(curCtx);
+   }
 
    /* We used to call _glapi_check_multithread() here.  Now do it in drivers */
 

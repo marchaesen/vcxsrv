@@ -1,3 +1,516 @@
+commit 536d1003a5c4d5ac24cd3b8afd10492e4e6242df
+Author: Matt Turner <mattst88@gmail.com>
+Date:   Sun Jan 29 13:09:12 2017 -0800
+
+    xauth 1.0.10
+    
+    Signed-off-by: Matt Turner <mattst88@gmail.com>
+
+commit 72717ccee0b6bdbf161cc9d44abe3dc1d824fe46
+Author: Matt Turner <mattst88@gmail.com>
+Date:   Sun Jan 29 13:09:39 2017 -0800
+
+    Build xauth before running tests.
+    
+    Otherwise make check fails if make hasn't previously been run.
+    
+    Signed-off-by: Matt Turner <mattst88@gmail.com>
+
+commit 4dee6a980fdc0174d3825389f95ac1f27c2427db
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 14:00:20 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit 4933bc594087c25dfbc9b1f6db46440f19d0b360
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit eaeb306e67c23657f713b3ca48765d1c6ed99986
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
+commit 179459471e83a0cd235a0c8ead99b3156390e00c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jun 1 21:03:14 2014 -0700
+
+    autogen.sh: Honor NOCONFIGURE=1
+    
+    See http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0e4c17c6d6980f07896f0631cffeb82a0e9705f7
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Thu Jan 26 10:26:30 2017 +1000
+
+    autogen.sh: stop using maintainer mode
+    
+    See xserver commit 4bf3eac5fe20f
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit a64ca3aafcde516658d699047382ab294e3e974f
+Author: Søren Sandmann Pedersen <ssp@redhat.com>
+Date:   Thu Sep 26 12:30:03 2013 -0400
+
+    usage(): Print summary for the -n option
+    
+    This option is mentioned in the man page, but not in the help text
+    
+    Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ad26f2137f6414c8cadc070f96a4476d435e994b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jan 2 09:49:52 2015 -0800
+
+    include POSIX-standard limits.h for PATH_MAX instead of sys/syslimits.h
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+    Reviewed-by: Mark Kettenis <kettenis@openbsd.org>
+
+commit a58c9d74c8f9c4292d367c6e23d15c4cba03dfde
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Fri Jan 2 16:18:52 2015 +0000
+
+    Fix !HAVE_STRLCPY case
+    
+    Fix error in the !HAVE_STRLCPY case, introduced in commit
+    f990dd936b5fd1a40290bb88cde517a0ac38f823
+    
+    It seems that "path[sizeof(path) - 1]" rather than "buf[sizeof(path) - 1]" must
+    be meant here, especially as the second instance doesn't even compile...
+    
+    parsedpy.c: In function ‘parse_displayname’:
+    parsedpy.c:176:9: error: ‘buf’ undeclared (first use in this function)
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit f990dd936b5fd1a40290bb88cde517a0ac38f823
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Wed Dec 31 02:42:17 2014 -0800
+
+    Update DISPLAY parsing to work with new launchd paths in Yosemite
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit 047f92a85796fca563d9345d6c4798b64be77cff
+Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+Date:   Tue Jun 24 00:22:54 2014 +0200
+
+    Fix for xauth failing on ENOSPC (= disk full)
+    
+    If xauth must store its XAUTHORITY file on a file system which is
+    full, it will be unable to write the changes. This condition was
+    not detected and therefore often the whole XAUTHORITY file was
+    cleared. Here is the fix.
+    
+    Fixes: https://bugs.freedesktop.org/show_bug.cgi?id=21260
+    
+    Signed-off-by: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+
+commit 12e63de4e0b3a45fad15863a66723609b068e668
+Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+Date:   Wed Apr 2 22:13:48 2014 +0200
+
+    Clarified RELEASING in README
+    
+    Changed clone URL and improved text. Removed section GARBAGE.
+    
+    Signed-off-by: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+
+commit 0b120e37be8ed44188b3497bf02db48e9cf638bc
+Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+Date:   Wed Apr 2 20:02:00 2014 +0200
+
+    Third version bump to 1.0.9.
+    
+    Minor change in README to include 1.0.9 in diff so that release.sh
+    is happy.
+    
+    Signed-off-by: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+
+commit e204395a7ccf403999ffa2515379784b641745d1
+Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+Date:   Wed Apr 2 19:52:43 2014 +0200
+
+    Second version bump to 1.0.9.
+    
+    Minor change in README to push the version bump.
+    
+    Signed-off-by: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+
+commit c36e9838294a6042eb7ae61fc476cbc3280aef2d
+Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+Date:   Wed Apr 2 19:44:37 2014 +0200
+
+    Fixed missing EXTRA_DIST in tests. Extended README for releasing.
+    
+    The tests/Makefile.am missed the EXTRA_DIST definition which resulted in
+    missing files for the test done with "make check". This was fixed.
+    README was extended to describe howto release a new version of this
+    software and to clarify something from ReleaseHOWTO of x.org.
+    Prepare anything for releasing 1.0.9.
+    
+    Signed-off-by: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+
+commit ce4bfd951160eabdb28f5534c34aa7549dba7fba
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Mon Mar 31 23:21:12 2014 +0200
+
+    version bump to 1.0.9
+    
+    Prepare for a new version 1.0.9 of xauth.
+    
+    Signed-off-by: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+
+commit ccf30deb585297823ea03fc68805a1c825e335fe
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Dec 27 11:01:35 2013 -0800
+
+    Add AC_USE_SYSTEM_EXTENSIONS to expose non-standard extensions
+    
+    Required on Solaris to expose definitions in system headers that
+    are not defined in the XPG standards now that xtrans 1.3 defines
+    _XOPEN_SOURCE to 600 on Solaris.
+    
+    Fixes build failures:
+    gethost.c: In function ‘get_hostname’:
+    gethost.c:97:21: error: ‘INET6_ADDRSTRLEN’ undeclared (first use in this function)
+    gethost.c:97:21: note: each undeclared identifier is reported only once for each function it appears in
+    gethost.c:97:16: warning: unused variable ‘addr’ [-Wunused-variable]
+    gethost.c: In function ‘get_address_info’:
+    gethost.c:196:9: error: implicit declaration of function ‘strlcpy’ [-Werror=implicit-function-declaration]
+    gethost.c:196:9: warning: nested extern declaration of ‘strlcpy’ [-Wnested-externs]
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Daniel Stone <daniel@fooishbar.org>
+
+commit afeb2c22ba1f7193acf814954e66f40cfd699c17
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Sun Oct 13 21:38:10 2013 +0200
+
+    Fix warning about warn_unused_result triggered by WRITES.
+
+commit 2eb4ef59d7c27ac7972954d406ad9c2fa8123672
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Sun Oct 13 17:57:49 2013 +0200
+
+    * Do not install test_xauth during "make install" as it is
+      only used during "make check".
+    * perror out, if test_xauth does not find "cmdtest".
+
+commit 4de4a231f3a718d2af0d2b00443c803f8bddfbc5
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Wed Oct 9 23:45:15 2013 +0200
+
+    Second version bump to 1.0.8
+
+commit f7425f45addce5629d338c051a41ec1a119ea51f
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Wed Oct 9 23:38:15 2013 +0200
+
+    Rewrote test_xauth to C to make automake and "make distclean" happy.
+
+commit c4356e8dc8b9fe039c38104551af93e0583ffbee
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Wed Oct 9 23:33:42 2013 +0200
+
+    Revert version bump back to 1.0.7 to prepare missing commit before 1.0.8
+
+commit d907dda4e5a2584ac15a404c8269b888b61bbf9e
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Tue Oct 8 21:45:06 2013 +0200
+
+    version bump to 1.0.8
+
+commit c6ecc2c8470093ba17ff1cf993df46f9e670173d
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Tue Oct 8 21:41:37 2013 +0200
+
+    Improved README to explain "make check".
+
+commit 4e05bce6da8eeb9eb98624cf868675eaf5816df5
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Tue Oct 8 21:34:49 2013 +0200
+
+    Added command "version" and command line arg "-V" to show version of xauth.
+
+commit e53df261c9ca11435df0c8853350d913b557446b
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Sun Oct 6 16:50:33 2013 +0200
+
+    Fix warning raised by "-Wshadow".
+
+commit 92de3583c7aaaa2040728808add2186348859b98
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Sun Oct 6 15:10:05 2013 +0200
+
+    Rework match_auth_dpy() to be easier to read and maintain (hopefully).
+
+commit 1555fff4ab458d7d4053f1ea6b74c3e14a65ad63
+Author: Egbert Eich <eich@freedesktop.org>
+Date:   Wed Aug 14 22:11:06 2013 +0200
+
+    Make matching algorithm mimic XauGet*AuthByAddr
+    
+    Xlib (xcb) uses XauGetBestAuthByAddr() when looking for an
+    authorization. 'xauth [n]list $DISPLAY' used a slightly
+    stricter algorithm which doesn't find a possible authorization
+    for cases where either the family is set to FamilyWild or
+    address the address length is 0.
+    
+    Signed-off-by: Egbert Eich <eich@freedesktop.org>
+
+commit 10cbe2ed2a96582e7ee9fa5cfe6f8f69a3a4e4d4
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Sun Oct 6 14:16:59 2013 +0200
+
+    Added black box tests for basic functionality started with "make check".
+
+commit 3be53072f8252962c6df740e64e897b970ae0349
+Author: Egbert Eich <eich@freedesktop.org>
+Date:   Tue Oct 1 01:17:09 2013 +0200
+
+    Handle v4-mapped inet6 addresses correctly
+    
+    Handling of v4-mapped inet6 addresses has been introduced
+    with commit 58140dbbd39389ad6af58e201e055f3d4b92d368:
+    
+       Look for FamilyLocal if inet or inet6 address is loopback
+    
+    These adresses should be treated as inet addresses. This patch
+    makes the code consistent with the handling if xcb_auth.c in
+    libxcb.
+    
+    Signed-off-by: Egbert Eich <eich@freedesktop.org>
+
+commit 58140dbbd39389ad6af58e201e055f3d4b92d368
+Author: Egbert Eich <eich@freedesktop.org>
+Date:   Sun Sep 29 08:25:14 2013 -0700
+
+    Look for FamilyLocal if inet or inet6 address is loopback
+    
+    libxcb uses FamilyLocal authorization if the host name or IP in the
+    display string is from the loopback device. This patch adds the same
+    behavior to xauth.
+    This fixes a long standing problem that for ssh tunneled connections
+    a display variable of the form: localhost:<N>.<M> leads to correct
+    authorization when an X client is started but "xauth list $DISPLAY"
+    returns nothing.
+    
+    Signed-off-by: Egbert Eich <eich@freedesktop.org>
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+    Reviewed-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit 09a9451af29545196cedfc8dcaf32e3f1ccc672b
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Sun Sep 29 07:57:37 2013 -0700
+
+    Silenece lack of noreturn warning
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit a2c8f59f13caf63a642bad1b97d9adf5a9e01bcb
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Sun Sep 29 08:04:39 2013 -0700
+
+    Revert "Look for FamilyLocal if inet or inet6 address is loopback"
+    
+    Also reverts the followup "More fixes for compiler warnings regarding the use of "const"."
+    
+    This reverts commits fb328950ce1156b8228214240b213860b794b4c8 and
+    345c7bf0d09f26183cfde9ad1c812c8de71869a5.
+    
+    Fixes build regression found on darwin tinderbox.
+    
+    Per SUSv4*, IN6_IS_ADDR_LOOPBACK takes a 'const struct in6_addr *', not a
+    'const struct sockaddr_in6 *'.
+    
+    *: http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/netinet_in.h.html
+
+commit fb328950ce1156b8228214240b213860b794b4c8
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Wed Sep 25 09:36:58 2013 +0200
+
+    More fixes for compiler warnings regarding the use of "const".
+
+commit 345c7bf0d09f26183cfde9ad1c812c8de71869a5
+Author: Egbert Eich <eich@freedesktop.org>
+Date:   Wed Aug 14 17:08:27 2013 +0200
+
+    Look for FamilyLocal if inet or inet6 address is loopback
+    
+    libxcb uses FamilyLocal authorization if the host name or IP in the
+    display string is from the loopback device. This patch adds the same
+    behavior to xauth.
+    This fixes a long standing problem that for ssh tunneled connections
+    a display variable of the form: localhost:<N>.<M> leads to correct
+    authorization when an X client is started but "xauth list $DISPLAY"
+    returns nothing.
+    
+    Signed-off-by: Egbert Eich <eich@freedesktop.org>
+
+commit 289ca779f73840cb5c9d69b919413079d1be3fc2
+Author: Dr. Tilmann Bubeck <t.bubeck@reinform.de>
+Date:   Tue Sep 24 11:21:52 2013 +0200
+
+    Fix various compiler warnings raised by modern gcc (4.8.1).
+
+commit 2440a254797cc3655c8743a9232f30a693f6f947
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Thu Jul 11 11:27:15 2013 +0200
+
+    Use copystring to create non-const string.]
+    
+    Hello!
+    
+    I see you're the official xauth maintainer according to
+    http://cgit.freedesktop.org/xorg/doc/xorg-docs/tree/MAINTAINERS#n80
+    
+    Can you please take a look at the attached patch and merge it?
+    
+    Thanks,
+     Thomas
+    
+    ----- Forwarded message from Thomas Klausner <wiz@NetBSD.org> -----
+    
+    Date: Sun, 30 Jun 2013 13:29:44 +0200
+    From: Thomas Klausner <wiz@NetBSD.org>
+    To: xorg-devel@lists.x.org
+    Cc: Thomas Klausner <wiz@NetBSD.org>
+    Subject: [PATCH:xauth] Use copystring to create non-const string.
+    
+    Fixes "error: assignment discards qualifiers from pointer target type"
+    
+    Signed-off-by: Thomas Klausner <wiz@NetBSD.org>
+
+commit eee471e446405350c02c221f044a70669dac48a2
+Author: Egbert Eich <eich@freedesktop.org>
+Date:   Wed Aug 14 17:07:35 2013 +0200
+
+    Don't crash when running past the end of the chain
+    
+    Running past the end of the chain would cause a SEGV.
+    
+    Signed-off-by: Egbert Eich <eich@freedesktop.org>
+
+commit 6dda11c17f2fdc47d43f269dccee98ec66cc8c4b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 10:13:14 2013 -0800
+
+    Assume signal handlers return void, as C89 requires
+    
+    Drops use of autoconf's obsolete AC_TYPE_SIGNAL and Imake's even more
+    obsolete SIGNALRETURNSINT.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 399dc5d6282f90fee2f6071aadde977280656ffc
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Dec 26 23:11:36 2012 -0800
+
+    Remove unused DECnet ("DNETCONN") code from xauth
+    
+    Has never been converted to build in modular builds, so has been unusable
+    since X11R7.0 release in 2005.  DNETCONN support was removed from xtrans
+    back in 2008.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit fe46fcc3ae58767960434445a4ea9c3ce0a6724e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Dec 26 23:09:31 2012 -0800
+
+    Remove unused TLI ("STREAMSCONN") code from xauth
+    
+    Has never been converted to build in modular builds, so has been unusable
+    since X11R7.0 release in 2005.  All known platforms with TLI/XTI support
+    that X11R7 & later releases run on also have (and mostly prefer) BSD
+    socket support for their networking API.
+    
+    And as the comment notes, it never worked right in xauth anyway.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ea343d117b5dbb17fc753e08918f44f167207fa9
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Sat Oct 27 18:10:30 2012 +0100
+
+    Include Xwinsock.h rather than sys/socket.h on WIN32
+    
+    For AF_INET6, include Xwinsock.h rather than sys/socket.h on WIN32
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+
+commit 374c8c7005200c13299fdcb7b7d1b12f9f4258ae
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Mar 22 21:41:35 2012 -0700
+
+    xauth 1.0.7
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit fbc307f3445a549815efb2476e9476bd51250cf6
+Author: Andreas Schwab <schwab@linux-m68k.org>
+Date:   Fri Sep 3 13:45:49 2010 +0200
+
+    Remove alarm handler in get_hostname
+    
+    gethostbyaddr is not (required to be) async-signal-safe.
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit ee3e046dfd84cda1588eef155c7e7c36df9bf5f4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Sep 28 19:57:15 2011 -0700
+
+    Add const attributes to fix gcc -Wwrite-strings warnings
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7f7f8cd60795c9503156950d518caa04b30a94a2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Sep 28 19:50:40 2011 -0700
+
+    Strip trailing whitespace
+    
+    Performed with: find * -type f | xargs perl -i -p -e 's{[ \t]+$}{}'
+    git diff -w & git diff -b show no diffs from this change
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit eb5ed59c623aa360677f62a7fd6e398ee9f3cab5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Sep 28 19:39:20 2011 -0700
+
+    convert strlen/malloc/strcpy combo to strdup
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit b67f0df2dbfa372417d0687e26704635e2d10034
 Author: Jeremy Huddleston <jeremyhu@apple.com>
 Date:   Mon May 23 19:38:50 2011 -0700
