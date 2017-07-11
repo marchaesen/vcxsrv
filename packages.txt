@@ -45,7 +45,7 @@ font-winitzki-cyrillic-1.0.3
 font-xfree86-type1-1.0.4
 fontconfig git version
 fontsproto-2.1.3
-freetype-2.7.1
+freetype-2.8
 glproto git version
 inputproto-2.3.2
 kbproto-1.0.7
