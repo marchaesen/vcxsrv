@@ -1,3 +1,6 @@
+#ifndef __XWINDOWS_H__
+#define __XWINDOWS_H__
+
 /*
 
 Copyright 1996, 1998  The Open Group
@@ -114,3 +117,4 @@ typedef int Status;
 # undef _XFree86Server
 #endif
 
+#endif

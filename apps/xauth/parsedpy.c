@@ -34,6 +34,7 @@ in this Software without prior written authorization from The Open Group.
 
 #include <stdio.h>			/* for NULL */
 #include <ctype.h>			/* for isascii() and isdigit() */
+#include <X11/Xwindows.h>
 #include <X11/Xos.h>			/* for strchr() and string routines */
 #include <X11/Xlib.h>			/* for Family contants */
 #ifdef hpux

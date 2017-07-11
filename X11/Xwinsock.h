@@ -1,3 +1,6 @@
+#ifndef __XWINSOCK_H__
+#define __XWINSOCK_H__
+
 /*
 
 Copyright 1996, 1998  The Open Group
@@ -77,8 +80,14 @@ typedef int Status;
  */
 #define wBOOL WINBOOL
 
+#if defined(WIN32) && (!defined(PATH_MAX) || PATH_MAX < 1024)
+# undef PATH_MAX
+# define PATH_MAX 1024
+#endif
+
 #ifdef _XFree86Server
 # define XFree86Server
 # undef _XFree86Server
 #endif
 
+#endif

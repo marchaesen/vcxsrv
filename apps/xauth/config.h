@@ -67,7 +67,7 @@
 #undef PACKAGE_URL
 
 /* Define to the version of this package. */
-#undef PACKAGE_VERSION
+#define PACKAGE_VERSION  "1.0.10"
 
 /* Major version of this package */
 #undef PACKAGE_VERSION_MAJOR

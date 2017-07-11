@@ -30,7 +30,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 
 #ifdef WIN32
-#include <X11/Xwinsock.h>
+#include <sys/socket.h>
 #ifndef EPROTOTYPE
 #define EPROTOTYPE WSAEPROTOTYPE
 #endif
@@ -64,11 +64,6 @@ in this Software without prior written authorization from The Open Group.
 
 #ifndef WIN32
 #include <arpa/inet.h>
-#else
-#if NTDDI_VERSION < NTDDI_VISTA
-int inet_pton(int af, const char *src, void *dst);
-const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt);
-#endif
 #endif
 
 const char *
