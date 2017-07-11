@@ -77,6 +77,9 @@ file locks before proceeding.  Use this option only to clean up stale locks.
 This option indicates that \fIxauth\fP should not attempt to resolve any
 hostnames, but should simply always print the host address as stored in
 the authority file.
+.TP 8
+.B \-V
+This option shows the version number of the xauth executable.
 .SH COMMANDS
 The following commands may be used to manipulate authority files:
 .TP 8
@@ -179,6 +182,9 @@ allowed), and the program exits.  An end of file is treated as an implicit
 .B "quit"
 The program exits, ignoring any modifications.  This may also be accomplished
 by pressing the interrupt character.
+.TP 8
+.B "version"
+This command shows the version number of the xauth executable.
 .TP 8
 .B "help [\fIstring\fP]"
 A description of all commands that begin with the given string (or all

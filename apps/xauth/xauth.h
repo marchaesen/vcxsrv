@@ -1,5 +1,5 @@
 /*
- * 
+ *
 Copyright 1989, 1998  The Open Group
 
 Permission to use, copy, modify, distribute, and sell this software and its
@@ -36,7 +36,7 @@ typedef int Bool;
 #define True 1
 #endif
 
-extern char *ProgramName;
+extern const char *ProgramName;
 
 #include <stdlib.h>
 
@@ -47,15 +47,15 @@ struct addrlist {
     int		    family;
 };
 
-extern char *get_hostname ( Xauth *auth );
-extern struct addrlist *get_address_info ( int family, char *fulldpyname, int prefix, char *host);
-extern char *copystring ( char *src, int len );
+extern const char *get_hostname ( Xauth *auth );
+extern struct addrlist *get_address_info ( int family, const char *fulldpyname, int prefix, char *host);
+extern char *copystring ( const char *src, int len );
 extern char *get_local_hostname ( char *buf, int maxlen );
-extern Bool parse_displayname ( char *displayname, int *familyp, char **hostp, int *dpynump, int *scrnump, char **restp );
-extern int auth_initialize ( char *authfilename );
+extern Bool parse_displayname ( const char *displayname, int *familyp, char **hostp, int *dpynump, int *scrnump, char **restp );
+extern int auth_initialize ( const char *authfilename );
 extern int auth_finalize ( void );
-extern int process_command ( char *inputfilename, int lineno, int argc, char **argv );
-extern int print_help ( FILE *fp, char *cmd, char *prefix );
+extern int process_command ( const char *inputfilename, int lineno, int argc, const char **argv );
+extern int print_help ( FILE *fp, const char *cmd, const char *prefix );
 extern int verbose;
 extern Bool ignore_locks;
 extern Bool break_locks;

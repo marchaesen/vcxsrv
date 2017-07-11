@@ -79,6 +79,7 @@ scrnsaverproto-1.2.2
 terminus-font-4.30
 ttf-bitstream-vera-1.10
 windowswmproto-1.0.4
+xauth-1.0.10
 xbitmaps-1.1.1
 xcalc-1.0.6
 xcb-proto git version
