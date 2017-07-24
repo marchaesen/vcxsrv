@@ -1,4 +1,4 @@
-<vcxml ver="2.1">
+<vcxml gen="2.1">
   <packet name="Halt" code="0"/>
   <packet name="NOP" code="1"/>
   <packet name="Flush" code="4" cl="B"/>
@@ -29,6 +29,76 @@
     <field name="Address" size="32" start="0" type="address"/>
     <field name="Disable Z/Stencil Buffer read" size="1" start="1" type="bool"/>
     <field name="Disable Color Buffer read" size="1" start="0" type="bool"/>
+  </packet>
+
+  <packet name="Store Tile Buffer General" code="28" cl="R">
+    <field name="Memory base address of frame/tile dump buffer" size="32" start="16" type="address"/>
+    <field name="Last Tile of Frame" size="1" start="19" type="bool"/>
+    <field name="Disable VG-Mask buffer dump" size="1" start="18" type="bool"/>
+    <field name="Disable Z/Stencil buffer dump" size="1" start="17" type="bool"/>
+    <field name="Disable Color buffer dump" size="1" start="16" type="bool"/>
+    <field name="Disable VG-Mask buffer clear on store/dump" size="1" start="15" type="bool"/>
+    <field name="Disable Z/Stencil buffer clear on store/dump" size="1" start="14" type="bool"/>
+    <field name="Disable Color buffer clear on store/dump" size="1" start="13" type="bool"/>
+
+    <field name="Pixel Color Format" size="2" start="8" type="uint">
+      <value name="rgba8888" value="0"/>
+      <value name="bgr565 dithered" value="1"/>
+      <value name="bgr565 no dither" value="2"/>
+    </field>
+
+    <field name="Mode" size="2" start="6" type="uint">
+      <value name="Sample 0" value="0"/>
+      <value name="Decimate x4" value="1"/>
+      <value name="Decimate x16" value="2"/>
+    </field>
+
+    <field name="Format" size="2" start="4" type="uint">
+      <value name="Raster" value="0"/>
+      <value name="T" value="1"/>
+      <value name="LT" value="2"/>
+    </field>
+
+    <field name="Buffer to Store" size="3" start="0" type="uint">
+      <value name="None" value="0"/>
+      <value name="Color" value="1"/>
+      <value name="Z/stencil" value="2"/>
+      <value name="Z" value="3"/>
+      <value name="VG-Mask" value="4"/>
+    </field>
+  </packet>
+
+  <packet name="Load Tile Buffer General" code="29" cl="R">
+    <field name="Memory base address of frame/tile dump buffer" size="32" start="16" type="address"/>
+    <field name="Disable VG-Mask buffer load" size="1" start="18" type="bool"/>
+    <field name="Disable Z/Stencil buffer load" size="1" start="17" type="bool"/>
+    <field name="Disable Color buffer load" size="1" start="16" type="bool"/>
+
+    <field name="Pixel Color Format" size="2" start="8" type="uint">
+      <value name="rgba8888" value="0"/>
+      <value name="bgr565 dithered" value="1"/>
+      <value name="bgr565 no dither" value="2"/>
+    </field>
+
+    <field name="Mode" size="2" start="6" type="uint">
+      <value name="Sample 0" value="0"/>
+      <value name="Decimate x4" value="1"/>
+      <value name="Decimate x16" value="2"/>
+    </field>
+
+    <field name="Format" size="2" start="4" type="uint">
+      <value name="Raster" value="0"/>
+      <value name="T" value="1"/>
+      <value name="LT" value="2"/>
+    </field>
+
+    <field name="Buffer to Store" size="3" start="0" type="uint">
+      <value name="None" value="0"/>
+      <value name="Color" value="1"/>
+      <value name="Z/stencil" value="2"/>
+      <value name="Z" value="3"/>
+      <value name="VG-Mask" value="4"/>
+    </field>
   </packet>
 
   <packet name="Indexed Primitive List" code="32">
@@ -189,6 +259,42 @@
     <field name="Tile Allocation memory size" size="32" start="32" type="uint"/>
     <field name="Tile Allocation memory address" size="32" start="0" type="uint"/>
 
+  </packet>
+
+  <packet name="Tile Rendering Mode Configuration" code="113" cl="R">
+    <field name="Double-buffer in non-ms mode" size="1" start="76" type="bool"/>
+    <field name="Early-Z/Early-Cov disable" size="1" start="75" type="bool"/>
+    <field name="Early-Z Update Direction GT/GE" size="1" start="74" type="bool"/>
+    <field name="Select Coverage Mode" size="1" start="73" type="bool"/>
+    <field name="Enable VG Mask Buffer" size="1" start="72" type="bool"/>
+    <field name="Memory Format" size="2" start="70" type="uint">
+      <value name="Raster" value="0"/>
+      <value name="T" value="1"/>
+      <value name="LT" value="2"/>
+    </field>
+    <field name="Decimate Mode" size="2" start="68" type="uint"/>
+
+    <field name="Non-HDR Frame Buffer Color Format" size="2" start="66" type="uint">
+      <value name="rendering config bgr565 dithered" value="0"/>
+      <value name="rendering config rgba8888" value="1"/>
+      <value name="rendering config bgr565 no dither" value="2"/>
+    </field>
+
+    <field name="Tile Buffer 64-bit Color Depth" size="1" start="65" type="bool"/>
+    <field name="Multisample Mode (4x)" size="1" start="64" type="bool"/>
+    <field name="Height (pixels)" size="16" start="48" type="uint"/>
+    <field name="Width (pixels)" size="16" start="32" type="uint"/>
+    <field name="Memory Address" size="32" start="0" type="address"/>
+  </packet>
+
+  <packet name="Tile Coordinates" code="115" cl="R">
+    <field name="Tile Row Number" size="8" start="8" type="uint"/>
+    <field name="Tile Column Number" size="8" start="0" type="uint"/>
+  </packet>
+
+  <packet name="Gem Relocations" code="254" cl="B">
+    <field name="buffer 1" size="32" start="32" type="uint"/>
+    <field name="buffer 0" size="32" start="0" type="uint"/>
   </packet>
 
   <struct name="Shader Record">

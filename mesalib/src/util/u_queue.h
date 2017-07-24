@@ -43,6 +43,7 @@ extern "C" {
 #endif
 
 #define UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY      (1 << 0)
+#define UTIL_QUEUE_INIT_RESIZE_IF_FULL            (1 << 1)
 
 /* Job completion fence.
  * Put this into your job structure.
@@ -69,6 +70,7 @@ struct util_queue {
    cnd_t has_queued_cond;
    cnd_t has_space_cond;
    thrd_t *threads;
+   unsigned flags;
    int num_queued;
    unsigned num_threads;
    int kill_threads;

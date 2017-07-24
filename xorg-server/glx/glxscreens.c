@@ -47,7 +47,10 @@
 #include "glxutil.h"
 #include "glxext.h"
 #include "protocol-versions.h"
+
+#ifdef COMPOSITE
 #include "compositeext.h"
+#endif
 
 static DevPrivateKeyRec glxScreenPrivateKeyRec;
 

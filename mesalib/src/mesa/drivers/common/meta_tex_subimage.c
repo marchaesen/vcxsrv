@@ -136,6 +136,7 @@ create_texture_for_pbo(struct gl_context *ctx,
    _mesa_initialize_texture_object(ctx, tex_obj, *tmp_tex, GL_TEXTURE_2D);
    /* This must be set after _mesa_initialize_texture_object, not before. */
    tex_obj->Immutable = GL_TRUE;
+   tex_obj->ImmutableLevels = 1;
    /* This is required for interactions with ARB_texture_view. */
    tex_obj->NumLayers = 1;
 

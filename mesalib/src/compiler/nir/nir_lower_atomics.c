@@ -155,7 +155,7 @@ lower_instr(nir_intrinsic_instr *instr,
     * instruction.
     */
    for (unsigned i = 0; i < nir_intrinsic_infos[instr->intrinsic].num_srcs; i++)
-      new_instr->src[i + 1] = instr->src[i];
+      nir_src_copy(&new_instr->src[i + 1], &instr->src[i], new_instr);
 
    if (instr->dest.is_ssa) {
       nir_ssa_dest_init(&new_instr->instr, &new_instr->dest,

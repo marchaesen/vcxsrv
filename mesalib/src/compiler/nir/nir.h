@@ -1821,6 +1821,9 @@ typedef struct nir_shader_compiler_options {
    bool lower_extract_byte;
    bool lower_extract_word;
 
+   bool lower_vote_trivial;
+   bool lower_subgroup_masks;
+
    /**
     * Does the driver support real 32-bit integers?  (Otherwise, integers
     * are simulated by floats.)
@@ -1839,6 +1842,8 @@ typedef struct nir_shader_compiler_options {
     * information must be inferred from the list of input nir_variables.
     */
    bool use_interpolated_input_intrinsics;
+
+   unsigned max_subgroup_size;
 
    unsigned max_unroll_iterations;
 } nir_shader_compiler_options;
@@ -2429,7 +2434,7 @@ bool nir_move_vec_src_uses_to_dest(nir_shader *shader);
 bool nir_lower_vec_to_movs(nir_shader *shader);
 bool nir_lower_alu_to_scalar(nir_shader *shader);
 bool nir_lower_load_const_to_scalar(nir_shader *shader);
-
+bool nir_lower_read_invocation_to_scalar(nir_shader *shader);
 bool nir_lower_phis_to_scalar(nir_shader *shader);
 void nir_lower_io_to_scalar(nir_shader *shader, nir_variable_mode mask);
 
@@ -2643,6 +2648,8 @@ bool nir_opt_dead_cf(nir_shader *shader);
 bool nir_opt_gcm(nir_shader *shader, bool value_number);
 
 bool nir_opt_if(nir_shader *shader);
+
+bool nir_opt_intrinsics(nir_shader *shader);
 
 bool nir_opt_loop_unroll(nir_shader *shader, nir_variable_mode indirect_mask);
 

@@ -1054,7 +1054,7 @@ ADDR_E_RETURNCODE ADDR_API AddrComputePrtInfo(
 */
 ADDR_E_RETURNCODE ADDR_API AddrGetMaxAlignments(
     ADDR_HANDLE                     hLib, ///< address lib handle
-    ADDR_GET_MAX_ALINGMENTS_OUTPUT* pOut) ///< [out] output structure
+    ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut) ///< [out] output structure
 {
     Addr::Lib* pLib = Lib::GetLib(hLib);
 

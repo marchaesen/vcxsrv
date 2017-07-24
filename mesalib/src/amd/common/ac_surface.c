@@ -157,7 +157,7 @@ ADDR_HANDLE amdgpu_addr_create(const struct radeon_info *info,
 	ADDR_CREATE_OUTPUT addrCreateOutput = {0};
 	ADDR_REGISTER_VALUE regValue = {0};
 	ADDR_CREATE_FLAGS createFlags = {{0}};
-	ADDR_GET_MAX_ALINGMENTS_OUTPUT addrGetMaxAlignmentsOutput = {0};
+	ADDR_GET_MAX_ALIGNMENTS_OUTPUT addrGetMaxAlignmentsOutput = {0};
 	ADDR_E_RETURNCODE addrRet;
 
 	addrCreateInput.size = sizeof(ADDR_CREATE_INPUT);
@@ -692,6 +692,20 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 		surf->htile_size *= 2;
 
 	surf->is_linear = surf->u.legacy.level[0].mode == RADEON_SURF_MODE_LINEAR_ALIGNED;
+
+	/* workout base swizzle */
+	if (!(surf->flags & RADEON_SURF_Z_OR_SBUFFER)) {
+		ADDR_COMPUTE_BASE_SWIZZLE_INPUT AddrBaseSwizzleIn = {0};
+		ADDR_COMPUTE_BASE_SWIZZLE_OUTPUT AddrBaseSwizzleOut = {0};
+
+		AddrBaseSwizzleIn.surfIndex = config->info.surf_index;
+		AddrBaseSwizzleIn.tileIndex = AddrSurfInfoIn.tileIndex;
+		AddrBaseSwizzleIn.macroModeIndex = AddrSurfInfoOut.macroModeIndex;
+		AddrBaseSwizzleIn.pTileInfo = AddrSurfInfoOut.pTileInfo;
+		AddrBaseSwizzleIn.tileMode = AddrSurfInfoOut.tileMode;
+		AddrComputeBaseSwizzle(addrlib, &AddrBaseSwizzleIn, &AddrBaseSwizzleOut);
+		surf->u.legacy.tile_swizzle = AddrBaseSwizzleOut.tileSwizzle;
+	}
 	return 0;
 }
 
@@ -947,7 +961,9 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	AddrSurfInfoIn.flags.color = !(surf->flags & RADEON_SURF_Z_OR_SBUFFER);
 	AddrSurfInfoIn.flags.depth = (surf->flags & RADEON_SURF_ZBUFFER) != 0;
 	AddrSurfInfoIn.flags.display = (surf->flags & RADEON_SURF_SCANOUT) != 0;
-	AddrSurfInfoIn.flags.texture = 1;
+	/* flags.texture currently refers to TC-compatible HTILE */
+	AddrSurfInfoIn.flags.texture = AddrSurfInfoIn.flags.color ||
+				       surf->flags & RADEON_SURF_TC_COMPATIBLE_HTILE;
 	AddrSurfInfoIn.flags.opt4space = 1;
 
 	AddrSurfInfoIn.numMipLevels = config->info.levels;

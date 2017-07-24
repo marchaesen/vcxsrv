@@ -27,10 +27,12 @@
 
 #include "radv_private.h"
 #include "vk_format.h"
+#include "vk_util.h"
 #include "radv_radeon_winsys.h"
 #include "sid.h"
 #include "gfx9d.h"
 #include "util/debug.h"
+#include "util/u_atomic.h"
 static unsigned
 radv_choose_tiling(struct radv_device *Device,
 		   const struct radv_image_create_info *create_info)
@@ -107,6 +109,7 @@ radv_init_surface(struct radv_device *device,
 		surface->flags |= RADEON_SURF_SBUFFER;
 
 	surface->flags |= RADEON_SURF_HAS_TILE_MODE_INDEX;
+	surface->flags |= RADEON_SURF_OPTIMIZE_FOR_SPACE;
 
 	if ((pCreateInfo->usage & (VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
 	                           VK_IMAGE_USAGE_STORAGE_BIT)) ||
@@ -195,7 +198,7 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 			       unsigned block_width, bool is_stencil,
 			       uint32_t *state)
 {
-	uint64_t gpu_address = device->ws->buffer_get_va(image->bo) + image->offset;
+	uint64_t gpu_address = image->bo ? device->ws->buffer_get_va(image->bo) + image->offset : 0;
 	uint64_t va = gpu_address;
 	unsigned pitch = base_level_info->nblk_x * block_width;
 	enum chip_class chip_class = device->physical_device->rad_info.chip_class;
@@ -209,6 +212,8 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 		va += base_level_info->offset;
 
 	state[0] = va >> 8;
+	if (chip_class < GFX9)
+		state[0] |= image->surface.u.legacy.tile_swizzle;
 	state[1] &= C_008F14_BASE_ADDRESS_HI;
 	state[1] |= S_008F14_BASE_ADDRESS_HI(va >> 40);
 	state[3] |= S_008F1C_TILING_INDEX(si_tile_mode_index(image, base_level,
@@ -219,12 +224,13 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 		state[6] &= C_008F28_COMPRESSION_EN;
 		state[7] = 0;
 		if (image->surface.dcc_size && first_level < image->surface.num_dcc_levels) {
-			uint64_t meta_va = gpu_address + image->dcc_offset;
+			meta_va = gpu_address + image->dcc_offset;
 			if (chip_class <= VI)
 				meta_va += base_level_info->dcc_offset;
 			state[6] |= S_008F28_COMPRESSION_EN(1);
 			state[7] = meta_va >> 8;
-
+			if (chip_class < GFX9)
+				state[7] |= image->surface.u.legacy.tile_swizzle;
 		}
 	}
 
@@ -325,7 +331,7 @@ static unsigned gfx9_border_color_swizzle(const unsigned char swizzle[4])
 static void
 si_make_texture_descriptor(struct radv_device *device,
 			   struct radv_image *image,
-			   bool sampler,
+			   bool is_storage_image,
 			   VkImageViewType view_type,
 			   VkFormat vk_format,
 			   const VkComponentMapping *mapping,
@@ -362,7 +368,7 @@ si_make_texture_descriptor(struct radv_device *device,
 	}
 
 	type = radv_tex_dim(image->type, view_type, image->info.array_size, image->info.samples,
-			    (image->usage & VK_IMAGE_USAGE_STORAGE_BIT));
+			    is_storage_image);
 	if (type == V_008F1C_SQ_RSRC_IMG_1D_ARRAY) {
 	        height = 1;
 		depth = image->info.array_size;
@@ -472,6 +478,8 @@ si_make_texture_descriptor(struct radv_device *device,
 		}
 
 		fmask_state[0] = va >> 8;
+		if (device->physical_device->rad_info.chip_class < GFX9)
+			fmask_state[0] |= image->surface.u.legacy.tile_swizzle;
 		fmask_state[1] = S_008F14_BASE_ADDRESS_HI(va >> 40) |
 			S_008F14_DATA_FORMAT_GFX6(fmask_format) |
 			S_008F14_NUM_FORMAT_GFX6(num_format);
@@ -526,7 +534,7 @@ radv_query_opaque_metadata(struct radv_device *device,
 	md->metadata[1] = si_get_bo_metadata_word1(device);
 
 
-	si_make_texture_descriptor(device, image, true,
+	si_make_texture_descriptor(device, image, false,
 				   (VkImageViewType)image->type, image->vk_format,
 				   &fixedmapping, 0, image->info.levels - 1, 0,
 				   image->info.array_size,
@@ -705,12 +713,16 @@ static void
 radv_image_alloc_cmask(struct radv_device *device,
 		       struct radv_image *image)
 {
+	uint32_t clear_value_size = 0;
 	radv_image_get_cmask_info(device, image, &image->cmask);
 
 	image->cmask.offset = align64(image->size, image->cmask.alignment);
 	/* + 8 for storing the clear values */
-	image->clear_value_offset = image->cmask.offset + image->cmask.size;
-	image->size = image->cmask.offset + image->cmask.size + 8;
+	if (!image->clear_value_offset) {
+		image->clear_value_offset = image->cmask.offset + image->cmask.size;
+		clear_value_size = 8;
+	}
+	image->size = image->cmask.offset + image->cmask.size + clear_value_size;
 	image->alignment = MAX2(image->alignment, image->cmask.alignment);
 }
 
@@ -719,9 +731,10 @@ radv_image_alloc_dcc(struct radv_device *device,
 		       struct radv_image *image)
 {
 	image->dcc_offset = align64(image->size, image->surface.dcc_alignment);
-	/* + 8 for storing the clear values */
+	/* + 16 for storing the clear values + dcc pred */
 	image->clear_value_offset = image->dcc_offset + image->surface.dcc_size;
-	image->size = image->dcc_offset + image->surface.dcc_size + 8;
+	image->dcc_pred_offset = image->clear_value_offset + 8;
+	image->size = image->dcc_offset + image->surface.dcc_size + 16;
 	image->alignment = MAX2(image->alignment, image->surface.dcc_alignment);
 }
 
@@ -783,10 +796,16 @@ radv_image_create(VkDevice _device,
 	image->exclusive = pCreateInfo->sharingMode == VK_SHARING_MODE_EXCLUSIVE;
 	if (pCreateInfo->sharingMode == VK_SHARING_MODE_CONCURRENT) {
 		for (uint32_t i = 0; i < pCreateInfo->queueFamilyIndexCount; ++i)
-			if (pCreateInfo->pQueueFamilyIndices[i] == VK_QUEUE_FAMILY_EXTERNAL_KHX)
+			if (pCreateInfo->pQueueFamilyIndices[i] == VK_QUEUE_FAMILY_EXTERNAL_KHR)
 				image->queue_family_mask |= (1u << RADV_MAX_QUEUE_FAMILIES) - 1u;
 			else
 				image->queue_family_mask |= 1u << pCreateInfo->pQueueFamilyIndices[i];
+	}
+
+	image->shareable = vk_find_struct_const(pCreateInfo->pNext,
+	                                        EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR) != NULL;
+	if (!vk_format_is_depth(pCreateInfo->format) && !create_info->scanout && !image->shareable) {
+		image->info.surf_index = p_atomic_inc_return(&device->image_mrt_offset_counter) - 1;
 	}
 
 	radv_init_surface(device, &image->surface, create_info);
@@ -834,6 +853,50 @@ radv_image_create(VkDevice _device,
 	return VK_SUCCESS;
 }
 
+static void
+radv_image_view_make_descriptor(struct radv_image_view *iview,
+				struct radv_device *device,
+				const VkImageViewCreateInfo* pCreateInfo,
+				bool is_storage_image)
+{
+	RADV_FROM_HANDLE(radv_image, image, pCreateInfo->image);
+	const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
+	bool is_stencil = iview->aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT;
+	uint32_t blk_w;
+	uint32_t *descriptor;
+	uint32_t *fmask_descriptor;
+
+	if (is_storage_image) {
+		descriptor = iview->storage_descriptor;
+		fmask_descriptor = iview->storage_fmask_descriptor;
+	} else {
+		descriptor = iview->descriptor;
+		fmask_descriptor = iview->fmask_descriptor;
+	}
+
+	assert(image->surface.blk_w % vk_format_get_blockwidth(image->vk_format) == 0);
+	blk_w = image->surface.blk_w / vk_format_get_blockwidth(image->vk_format) * vk_format_get_blockwidth(iview->vk_format);
+
+	si_make_texture_descriptor(device, image, is_storage_image,
+				   iview->type,
+				   iview->vk_format,
+				   &pCreateInfo->components,
+				   0, radv_get_levelCount(image, range) - 1,
+				   range->baseArrayLayer,
+				   range->baseArrayLayer + radv_get_layerCount(image, range) - 1,
+				   iview->extent.width,
+				   iview->extent.height,
+				   iview->extent.depth,
+				   descriptor,
+				   fmask_descriptor);
+	si_set_mutable_tex_desc_fields(device, image,
+				       is_stencil ? &image->surface.u.legacy.stencil_level[range->baseMipLevel]
+				                  : &image->surface.u.legacy.level[range->baseMipLevel],
+				       range->baseMipLevel,
+				       range->baseMipLevel,
+				       blk_w, is_stencil, descriptor);
+}
+
 void
 radv_image_view_init(struct radv_image_view *iview,
 		     struct radv_device *device,
@@ -841,8 +904,7 @@ radv_image_view_init(struct radv_image_view *iview,
 {
 	RADV_FROM_HANDLE(radv_image, image, pCreateInfo->image);
 	const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
-	uint32_t blk_w;
-	bool is_stencil = false;
+
 	switch (image->type) {
 	case VK_IMAGE_TYPE_1D:
 	case VK_IMAGE_TYPE_2D:
@@ -862,7 +924,6 @@ radv_image_view_init(struct radv_image_view *iview,
 	iview->aspect_mask = pCreateInfo->subresourceRange.aspectMask;
 
 	if (iview->aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT) {
-		is_stencil = true;
 		iview->vk_format = vk_format_stencil_only(iview->vk_format);
 	} else if (iview->aspect_mask == VK_IMAGE_ASPECT_DEPTH_BIT) {
 		iview->vk_format = vk_format_depth_only(iview->vk_format);
@@ -879,30 +940,12 @@ radv_image_view_init(struct radv_image_view *iview,
 	iview->extent.height = round_up_u32(iview->extent.height * vk_format_get_blockheight(iview->vk_format),
 					    vk_format_get_blockheight(image->vk_format));
 
-	assert(image->surface.blk_w % vk_format_get_blockwidth(image->vk_format) == 0);
-	blk_w = image->surface.blk_w / vk_format_get_blockwidth(image->vk_format) * vk_format_get_blockwidth(iview->vk_format);
 	iview->base_layer = range->baseArrayLayer;
 	iview->layer_count = radv_get_layerCount(image, range);
 	iview->base_mip = range->baseMipLevel;
 
-	si_make_texture_descriptor(device, image, false,
-				   iview->type,
-				   iview->vk_format,
-				   &pCreateInfo->components,
-				   0, radv_get_levelCount(image, range) - 1,
-				   range->baseArrayLayer,
-				   range->baseArrayLayer + radv_get_layerCount(image, range) - 1,
-				   iview->extent.width,
-				   iview->extent.height,
-				   iview->extent.depth,
-				   iview->descriptor,
-				   iview->fmask_descriptor);
-	si_set_mutable_tex_desc_fields(device, image,
-				       is_stencil ? &image->surface.u.legacy.stencil_level[range->baseMipLevel]
-				                  : &image->surface.u.legacy.level[range->baseMipLevel],
-				       range->baseMipLevel,
-				       range->baseMipLevel,
-				       blk_w, is_stencil, iview->descriptor);
+	radv_image_view_make_descriptor(iview, device, pCreateInfo, false);
+	radv_image_view_make_descriptor(iview, device, pCreateInfo, true);
 }
 
 bool radv_layout_has_htile(const struct radv_image *image,
@@ -938,7 +981,7 @@ unsigned radv_image_queue_family_mask(const struct radv_image *image, uint32_t f
 {
 	if (!image->exclusive)
 		return image->queue_family_mask;
-	if (family == VK_QUEUE_FAMILY_EXTERNAL_KHX)
+	if (family == VK_QUEUE_FAMILY_EXTERNAL_KHR)
 		return (1u << RADV_MAX_QUEUE_FAMILIES) - 1u;
 	if (family == VK_QUEUE_FAMILY_IGNORED)
 		return 1u << queue_family;

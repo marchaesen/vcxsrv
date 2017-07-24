@@ -67,6 +67,12 @@ vtn_access_chain_pointer_dereference(struct vtn_builder *b,
       vtn_access_chain_extend(b, base->chain, deref_chain->length);
    struct vtn_type *type = base->type;
 
+   /* OpPtrAccessChain is only allowed on things which support variable
+    * pointers.  For everything else, the client is expected to just pass us
+    * the right access chain.
+    */
+   assert(!deref_chain->ptr_as_array);
+
    unsigned start = base->chain ? base->chain->length : 0;
    for (unsigned i = 0; i < deref_chain->length; i++) {
       chain->link[start + i] = deref_chain->link[i];
@@ -135,6 +141,21 @@ vtn_ssa_offset_pointer_dereference(struct vtn_builder *b,
    struct vtn_type *type = base->type;
 
    unsigned idx = 0;
+   if (deref_chain->ptr_as_array) {
+      /* We need ptr_type for the stride */
+      assert(base->ptr_type);
+      /* This must be a pointer to an actual element somewhere */
+      assert(block_index && offset);
+      /* We need at least one element in the chain */
+      assert(deref_chain->length >= 1);
+
+      nir_ssa_def *elem_offset =
+         vtn_access_link_as_ssa(b, deref_chain->link[idx],
+                                base->ptr_type->stride);
+      offset = nir_iadd(&b->nb, offset, elem_offset);
+      idx++;
+   }
+
    if (!block_index) {
       assert(base->var);
       if (glsl_type_is_array(type->type)) {
@@ -202,8 +223,7 @@ vtn_pointer_dereference(struct vtn_builder *b,
                         struct vtn_pointer *base,
                         struct vtn_access_chain *deref_chain)
 {
-   if (base->mode == vtn_variable_mode_ubo ||
-       base->mode == vtn_variable_mode_ssbo) {
+   if (vtn_pointer_uses_ssa_offset(base)) {
       return vtn_ssa_offset_pointer_dereference(b, base, deref_chain);
    } else {
       return vtn_access_chain_pointer_dereference(b, base, deref_chain);
@@ -1405,6 +1425,10 @@ vtn_storage_class_to_mode(SpvStorageClass class,
          assert(!"Invalid uniform variable type");
       }
       break;
+   case SpvStorageClassStorageBuffer:
+      mode = vtn_variable_mode_ssbo;
+      nir_mode = 0;
+      break;
    case SpvStorageClassUniformConstant:
       if (glsl_type_is_image(interface_type->type)) {
          mode = vtn_variable_mode_image;
@@ -1453,6 +1477,53 @@ vtn_storage_class_to_mode(SpvStorageClass class,
    return mode;
 }
 
+nir_ssa_def *
+vtn_pointer_to_ssa(struct vtn_builder *b, struct vtn_pointer *ptr)
+{
+   /* This pointer needs to have a pointer type with actual storage */
+   assert(ptr->ptr_type);
+   assert(ptr->ptr_type->type);
+
+   if (ptr->offset && ptr->block_index) {
+      return nir_vec2(&b->nb, ptr->block_index, ptr->offset);
+   } else {
+      /* If we don't have an offset or block index, then we must be a pointer
+       * to the variable itself.
+       */
+      assert(!ptr->offset && !ptr->block_index);
+
+      /* We can't handle a pointer to an array of descriptors because we have
+       * no way of knowing later on that we need to add to update the block
+       * index when dereferencing.
+       */
+      assert(ptr->var && ptr->var->type->base_type == vtn_base_type_struct);
+
+      return nir_vec2(&b->nb, vtn_variable_resource_index(b, ptr->var, NULL),
+                              nir_imm_int(&b->nb, 0));
+   }
+}
+
+struct vtn_pointer *
+vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
+                     struct vtn_type *ptr_type)
+{
+   assert(ssa->num_components == 2 && ssa->bit_size == 32);
+   assert(ptr_type->base_type == vtn_base_type_pointer);
+   assert(ptr_type->deref->base_type != vtn_base_type_pointer);
+   /* This pointer type needs to have actual storage */
+   assert(ptr_type->type);
+
+   struct vtn_pointer *ptr = rzalloc(b, struct vtn_pointer);
+   ptr->mode = vtn_storage_class_to_mode(ptr_type->storage_class,
+                                         ptr_type, NULL);
+   ptr->type = ptr_type->deref;
+   ptr->ptr_type = ptr_type;
+   ptr->block_index = nir_channel(&b->nb, ssa, 0);
+   ptr->offset = nir_channel(&b->nb, ssa, 1);
+
+   return ptr;
+}
+
 static bool
 is_per_vertex_inout(const struct vtn_variable *var, gl_shader_stage stage)
 {
@@ -1478,7 +1549,6 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
 {
    assert(ptr_type->base_type == vtn_base_type_pointer);
    struct vtn_type *type = ptr_type->deref;
-   assert(type->base_type != vtn_base_type_pointer);
 
    struct vtn_type *without_array = type;
    while(glsl_type_is_array(without_array->type))
@@ -1695,8 +1765,10 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpAccessChain:
+   case SpvOpPtrAccessChain:
    case SpvOpInBoundsAccessChain: {
       struct vtn_access_chain *chain = vtn_access_chain_create(b, count - 4);
+      chain->ptr_as_array = (opcode == SpvOpPtrAccessChain);
 
       unsigned idx = 0;
       for (int i = 4; i < count; i++) {
@@ -1747,6 +1819,8 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpLoad: {
+      struct vtn_type *res_type =
+         vtn_value(b, w[1], vtn_value_type_type)->type;
       struct vtn_pointer *src =
          vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
 
@@ -1756,8 +1830,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
          return;
       }
 
-      struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_ssa);
-      val->ssa = vtn_variable_load(b, src);
+      vtn_push_ssa(b, w[2], res_type, vtn_variable_load(b, src));
       break;
    }
 

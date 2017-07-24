@@ -780,8 +780,19 @@ set_sampler_srgb_decode(struct gl_context *ctx,
    if (samp->sRGBDecode == param)
       return GL_FALSE;
 
+   /* The EXT_texture_sRGB_decode spec says:
+    *
+    *    "INVALID_ENUM is generated if the <pname> parameter of
+    *     TexParameter[i,f,Ii,Iui][v][EXT],
+    *     MultiTexParameter[i,f,Ii,Iui][v]EXT,
+    *     TextureParameter[i,f,Ii,Iui][v]EXT, SamplerParameter[i,f,Ii,Iui][v]
+    *     is TEXTURE_SRGB_DECODE_EXT when the <param> parameter is not one of
+    *     DECODE_EXT or SKIP_DECODE_EXT.
+    *
+    * Returning INVALID_PARAM makes that happen.
+    */
    if (param != GL_DECODE_EXT && param != GL_SKIP_DECODE_EXT)
-      return INVALID_VALUE;
+      return INVALID_PARAM;
 
    flush(ctx);
    samp->sRGBDecode = param;

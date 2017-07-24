@@ -374,7 +374,7 @@ protected:
 
 private:
     virtual ADDR_E_RETURNCODE HwlGetMaxAlignments(
-        ADDR_GET_MAX_ALINGMENTS_OUTPUT* pOut) const;
+        ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut) const;
 
     virtual BOOL_32 HwlInitGlobalParams(
         const ADDR_CREATE_INPUT* pCreateIn);

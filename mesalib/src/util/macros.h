@@ -244,8 +244,8 @@ do {                       \
 /** Compute ceiling of integer quotient of A divided by B. */
 #define DIV_ROUND_UP( A, B )  ( (A) % (B) == 0 ? (A)/(B) : (A)/(B)+1 )
 
-/** Clamp X to [MIN,MAX] */
-#define CLAMP( X, MIN, MAX )  ( (X)<(MIN) ? (MIN) : ((X)>(MAX) ? (MAX) : (X)) )
+/** Clamp X to [MIN,MAX].  Turn NaN into MIN, arbitrarily. */
+#define CLAMP( X, MIN, MAX )  ( (X)>(MIN) ? ((X)>(MAX) ? (MAX) : (X)) : (MIN) )
 
 /** Minimum of two values: */
 #define MIN2( A, B )   ( (A)<(B) ? (A) : (B) )

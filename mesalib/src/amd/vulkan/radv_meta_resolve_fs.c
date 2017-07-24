@@ -618,11 +618,14 @@ radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer)
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
 		VkAttachmentReference src_att = subpass->color_attachments[i];
 		VkAttachmentReference dest_att = subpass->resolve_attachments[i];
+
+		if (src_att.attachment == VK_ATTACHMENT_UNUSED ||
+		    dest_att.attachment == VK_ATTACHMENT_UNUSED)
+			continue;
+
 		struct radv_image_view *dest_iview = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment;
 		struct radv_image *dst_img = dest_iview->image;
 		struct radv_image_view *src_iview = cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment;
-		if (dest_att.attachment == VK_ATTACHMENT_UNUSED)
-			continue;
 
 		if (dst_img->surface.dcc_size) {
 			radv_initialize_dcc(cmd_buffer, dst_img, 0xffffffff);

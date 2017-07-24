@@ -566,7 +566,7 @@ compile_instruction(
       ureg_insn( ureg, 
                  translate_opcode( inst->Opcode ), 
                  dst, num_dst, 
-                 src, num_src );
+                 src, num_src, 0 );
       break;
 
    case OPCODE_XPD:
@@ -574,7 +574,7 @@ compile_instruction(
       ureg_insn( ureg, 
                  translate_opcode( inst->Opcode ), 
                  dst, num_dst, 
-                 src, num_src );
+                 src, num_src, 0 );
       break;
 
    case OPCODE_RSQ:
@@ -593,7 +593,7 @@ compile_instruction(
       ureg_insn( ureg, 
                  translate_opcode( inst->Opcode ), 
                  dst, num_dst, 
-                 src, num_src );
+                 src, num_src, 0);
       break;
    }
 }

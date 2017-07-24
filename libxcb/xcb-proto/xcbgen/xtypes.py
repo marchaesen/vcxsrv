@@ -42,6 +42,7 @@ class Type(object):
         self.is_case_or_bitcase = False
         self.is_bitcase = False
         self.is_case = False
+        self.is_fd = False
         self.required_start_align = Alignment()
 
         # the biggest align value of an align-pad contained in this type
@@ -68,7 +69,7 @@ class Type(object):
         '''
         raise Exception('abstract fixed_size method not overridden!')
 
-    def make_member_of(self, module, complex_type, field_type, field_name, visible, wire, auto, enum=None):
+    def make_member_of(self, module, complex_type, field_type, field_name, visible, wire, auto, enum=None, is_fd=False):
         '''
         Default method for making a data type a member of a structure.
         Extend this if the data type needs to add an additional length field or something.
@@ -77,7 +78,7 @@ class Type(object):
         complex_type is the structure object.
         see Field for the meaning of the other parameters.
         '''
-        new_field = Field(self, field_type, field_name, visible, wire, auto, enum)
+        new_field = Field(self, field_type, field_name, visible, wire, auto, enum, is_fd)
 
         # We dump the _placeholder_byte if any fields are added.
         for (idx, field) in enumerate(complex_type.fields):
@@ -217,6 +218,18 @@ tchar =  SimpleType(('char',), 1)
 tfloat = SimpleType(('float',), 4)
 tdouble = SimpleType(('double',), 8)
 
+class FileDescriptor(SimpleType):
+    '''
+    Derived class which represents a file descriptor.
+    '''
+    def __init__(self):
+        SimpleType.__init__(self, ('int'), 4)
+        self.is_fd = True
+
+    def fixed_size(self):
+        return True
+
+    out = __main__.output['simple']
 
 class Enum(SimpleType):
     '''
@@ -310,7 +323,9 @@ class ListType(Type):
                 type.make_member_of(module, complex_type, lenfield_type, lenfield_name, True, lenwire, False, enum)
 
         # Add ourself to the structure by calling our original method.
-        Type.make_member_of(self, module, complex_type, field_type, field_name, visible, wire, auto, enum)
+        if self.member.is_fd:
+            wire = False
+        Type.make_member_of(self, module, complex_type, field_type, field_name, visible, wire, auto, enum, self.member.is_fd)
 
     def resolve(self, module):
         if self.resolved:
@@ -532,7 +547,12 @@ class ComplexType(Type):
             elif child.tag == 'list':
                 field_name = child.get('name')
                 fkey = child.get('type')
-                type = ListType(child, module.get_type(fkey), *self.lenfield_parent)
+                if fkey == 'fd':
+                    ftype = FileDescriptor()
+                    fkey = 'INT32'
+                else:
+                    ftype = module.get_type(fkey)
+                type = ListType(child, ftype, *self.lenfield_parent)
                 visible = True
             elif child.tag == 'switch':
                 field_name = child.get('name')

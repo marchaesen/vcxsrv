@@ -28,10 +28,6 @@
 
 #include "glheader.h"
 
-extern void
-_mesa_generate_texture_mipmap(struct gl_context *ctx,
-                              struct gl_texture_object *texObj, GLenum target,
-                              bool dsa);
 bool
 _mesa_is_valid_generate_texture_mipmap_target(struct gl_context *ctx,
                                               GLenum target);

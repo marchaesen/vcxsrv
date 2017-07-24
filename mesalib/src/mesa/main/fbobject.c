@@ -3645,14 +3645,28 @@ _mesa_framebuffer_renderbuffer(struct gl_context *ctx,
 }
 
 static void
-framebuffer_renderbuffer(struct gl_context *ctx,
-                         struct gl_framebuffer *fb,
-                         GLenum attachment,
-                         struct gl_renderbuffer *rb,
-                         const char *func)
+framebuffer_renderbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                         GLenum attachment, GLenum renderbuffertarget,
+                         GLuint renderbuffer, const char *func)
 {
    struct gl_renderbuffer_attachment *att;
+   struct gl_renderbuffer *rb;
    bool is_color_attachment;
+
+   if (renderbuffertarget != GL_RENDERBUFFER) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "%s(renderbuffertarget is not GL_RENDERBUFFER)", func);
+      return;
+   }
+
+   if (renderbuffer) {
+      rb = _mesa_lookup_renderbuffer_err(ctx, renderbuffer, func);
+      if (!rb)
+         return;
+   } else {
+      /* remove renderbuffer attachment */
+      rb = NULL;
+   }
 
    if (_mesa_is_winsys_fbo(fb)) {
       /* Can't attach new renderbuffers to a window system framebuffer */
@@ -3707,7 +3721,6 @@ _mesa_FramebufferRenderbuffer(GLenum target, GLenum attachment,
                               GLuint renderbuffer)
 {
    struct gl_framebuffer *fb;
-   struct gl_renderbuffer *rb;
    GET_CURRENT_CONTEXT(ctx);
 
    fb = get_framebuffer_target(ctx, target);
@@ -3718,26 +3731,8 @@ _mesa_FramebufferRenderbuffer(GLenum target, GLenum attachment,
       return;
    }
 
-   if (renderbuffertarget != GL_RENDERBUFFER) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glFramebufferRenderbuffer(renderbuffertarget is not "
-                  "GL_RENDERBUFFER)");
-      return;
-   }
-
-   if (renderbuffer) {
-      rb = _mesa_lookup_renderbuffer_err(ctx, renderbuffer,
-                                         "glFramebufferRenderbuffer");
-      if (!rb)
-         return;
-   }
-   else {
-      /* remove renderbuffer attachment */
-      rb = NULL;
-   }
-
-   framebuffer_renderbuffer(ctx, fb, attachment, rb,
-                            "glFramebufferRenderbuffer");
+   framebuffer_renderbuffer(ctx, fb, attachment, renderbuffertarget,
+                            renderbuffer, "glFramebufferRenderbuffer");
 }
 
 
@@ -3747,7 +3742,6 @@ _mesa_NamedFramebufferRenderbuffer(GLuint framebuffer, GLenum attachment,
                                    GLuint renderbuffer)
 {
    struct gl_framebuffer *fb;
-   struct gl_renderbuffer *rb;
    GET_CURRENT_CONTEXT(ctx);
 
    fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
@@ -3755,26 +3749,8 @@ _mesa_NamedFramebufferRenderbuffer(GLuint framebuffer, GLenum attachment,
    if (!fb)
       return;
 
-   if (renderbuffertarget != GL_RENDERBUFFER) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glNamedFramebufferRenderbuffer(renderbuffertarget is not "
-                  "GL_RENDERBUFFER)");
-      return;
-   }
-
-   if (renderbuffer) {
-      rb = _mesa_lookup_renderbuffer_err(ctx, renderbuffer,
-                                         "glNamedFramebufferRenderbuffer");
-      if (!rb)
-         return;
-   }
-   else {
-      /* remove renderbuffer attachment */
-      rb = NULL;
-   }
-
-   framebuffer_renderbuffer(ctx, fb, attachment, rb,
-                            "glNamedFramebufferRenderbuffer");
+   framebuffer_renderbuffer(ctx, fb, attachment, renderbuffertarget,
+                            renderbuffer, "glNamedFramebufferRenderbuffer");
 }
 
 

@@ -1777,15 +1777,17 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
       return;
    }
 
-   if (blit_stencil ||
-       (dstbox->width == abs(srcbox->width) &&
-        dstbox->height == abs(srcbox->height))) {
+   bool is_scaled = dstbox->width != abs(srcbox->width) ||
+                    dstbox->height != abs(srcbox->height);
+
+   if (blit_stencil || !is_scaled)
       filter = PIPE_TEX_FILTER_NEAREST;
-   }
 
    bool use_txf = false;
 
+   /* Don't support scaled blits. The TXF shader uses F2I for rounding. */
    if (ctx->has_txf &&
+       !is_scaled &&
        filter == PIPE_TEX_FILTER_NEAREST &&
        src->target != PIPE_TEXTURE_CUBE &&
        src->target != PIPE_TEXTURE_CUBE_ARRAY) {

@@ -81,8 +81,10 @@ build_color_shaders(struct nir_shader **out_vs,
 	vs_out_layer->data.location = VARYING_SLOT_LAYER;
 	vs_out_layer->data.interpolation = INTERP_MODE_FLAT;
 	nir_ssa_def *inst_id = nir_load_system_value(&vs_b, nir_intrinsic_load_instance_id, 0);
+	nir_ssa_def *base_instance = nir_load_system_value(&vs_b, nir_intrinsic_load_base_instance, 0);
 
-	nir_store_var(&vs_b, vs_out_layer, inst_id, 0x1);
+	nir_ssa_def *layer_id = nir_iadd(&vs_b, inst_id, base_instance);
+	nir_store_var(&vs_b, vs_out_layer, layer_id, 0x1);
 
 	*out_vs = vs_b.shader;
 	*out_fs = fs_b.shader;
@@ -398,7 +400,7 @@ emit_color_clear(struct radv_cmd_buffer *cmd_buffer,
 
 	radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &clear_rect->rect);
 
-	radv_CmdDraw(cmd_buffer_h, 3, clear_rect->layerCount, 0, 0);
+	radv_CmdDraw(cmd_buffer_h, 3, clear_rect->layerCount, 0, clear_rect->baseArrayLayer);
 
 	radv_cmd_buffer_set_subpass(cmd_buffer, subpass, false);
 }
@@ -439,7 +441,10 @@ build_depthstencil_shader(struct nir_shader **out_vs, struct nir_shader **out_fs
 	vs_out_layer->data.location = VARYING_SLOT_LAYER;
 	vs_out_layer->data.interpolation = INTERP_MODE_FLAT;
 	nir_ssa_def *inst_id = nir_load_system_value(&vs_b, nir_intrinsic_load_instance_id, 0);
-	nir_store_var(&vs_b, vs_out_layer, inst_id, 0x1);
+	nir_ssa_def *base_instance = nir_load_system_value(&vs_b, nir_intrinsic_load_base_instance, 0);
+
+	nir_ssa_def *layer_id = nir_iadd(&vs_b, inst_id, base_instance);
+	nir_store_var(&vs_b, vs_out_layer, layer_id, 0x1);
 
 	*out_vs = vs_b.shader;
 	*out_fs = fs_b.shader;
@@ -654,7 +659,7 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 
 	radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &clear_rect->rect);
 
-	radv_CmdDraw(cmd_buffer_h, 3, clear_rect->layerCount, 0, 0);
+	radv_CmdDraw(cmd_buffer_h, 3, clear_rect->layerCount, 0, clear_rect->baseArrayLayer);
 }
 
 static bool
@@ -856,6 +861,83 @@ fail:
 	return res;
 }
 
+static void vi_get_fast_clear_parameters(VkFormat format,
+					 const VkClearColorValue *clear_value,
+					 uint32_t* reset_value,
+					 bool *can_avoid_fast_clear_elim)
+{
+	bool values[4] = {};
+	int extra_channel;
+	bool main_value = false;
+	bool extra_value = false;
+	int i;
+	*can_avoid_fast_clear_elim = false;
+
+	*reset_value = 0x20202020U;
+
+	const struct vk_format_description *desc = vk_format_description(format);
+	if (format == VK_FORMAT_B10G11R11_UFLOAT_PACK32 ||
+	    format == VK_FORMAT_R5G6B5_UNORM_PACK16 ||
+	    format == VK_FORMAT_B5G6R5_UNORM_PACK16)
+		extra_channel = -1;
+	else if (desc->layout == VK_FORMAT_LAYOUT_PLAIN) {
+		if (radv_translate_colorswap(format, false) <= 1)
+			extra_channel = desc->nr_channels - 1;
+		else
+			extra_channel = 0;
+	} else
+		return;
+
+	for (i = 0; i < 4; i++) {
+		int index = desc->swizzle[i] - VK_SWIZZLE_X;
+		if (desc->swizzle[i] < VK_SWIZZLE_X ||
+		    desc->swizzle[i] > VK_SWIZZLE_W)
+			continue;
+
+		if (desc->channel[i].pure_integer &&
+		    desc->channel[i].type == VK_FORMAT_TYPE_SIGNED) {
+			/* Use the maximum value for clamping the clear color. */
+			int max = u_bit_consecutive(0, desc->channel[i].size - 1);
+
+			values[i] = clear_value->int32[i] != 0;
+			if (clear_value->int32[i] != 0 && MIN2(clear_value->int32[i], max) != max)
+				return;
+		} else if (desc->channel[i].pure_integer &&
+			   desc->channel[i].type == VK_FORMAT_TYPE_UNSIGNED) {
+			/* Use the maximum value for clamping the clear color. */
+			unsigned max = u_bit_consecutive(0, desc->channel[i].size);
+
+			values[i] = clear_value->uint32[i] != 0U;
+			if (clear_value->uint32[i] != 0U && MIN2(clear_value->uint32[i], max) != max)
+				return;
+		} else {
+			values[i] = clear_value->float32[i] != 0.0F;
+			if (clear_value->float32[i] != 0.0F && clear_value->float32[i] != 1.0F)
+				return;
+		}
+
+		if (index == extra_channel)
+			extra_value = values[i];
+		else
+			main_value = values[i];
+	}
+
+	for (int i = 0; i < 4; ++i)
+		if (values[i] != main_value &&
+		    desc->swizzle[i] - VK_SWIZZLE_X != extra_channel &&
+		    desc->swizzle[i] >= VK_SWIZZLE_X &&
+		    desc->swizzle[i] <= VK_SWIZZLE_W)
+			return;
+
+	*can_avoid_fast_clear_elim = true;
+	if (main_value)
+		*reset_value |= 0x80808080U;
+
+	if (extra_value)
+		*reset_value |= 0x40404040U;
+	return;
+}
+
 static bool
 emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		      const VkClearAttachment *clear_att,
@@ -880,8 +962,6 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		return false;
 
 	if (!radv_layout_can_fast_clear(iview->image, image_layout, radv_image_queue_family_mask(iview->image, cmd_buffer->queue_family_index, cmd_buffer->queue_family_index)))
-		goto fail;
-	if (vk_format_get_blocksizebits(iview->image->vk_format) > 64)
 		goto fail;
 
 	/* don't fast clear 3D */
@@ -932,10 +1012,23 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 	/* clear cmask buffer */
 	if (iview->image->surface.dcc_size) {
+		uint32_t reset_value;
+		bool can_avoid_fast_clear_elim;
+		vi_get_fast_clear_parameters(iview->image->vk_format,
+					     &clear_value, &reset_value,
+					     &can_avoid_fast_clear_elim);
+
 		radv_fill_buffer(cmd_buffer, iview->image->bo,
 				 iview->image->offset + iview->image->dcc_offset,
-				 iview->image->surface.dcc_size, 0x20202020);
+				 iview->image->surface.dcc_size, reset_value);
+		radv_set_dcc_need_cmask_elim_pred(cmd_buffer, iview->image,
+						  !can_avoid_fast_clear_elim);
 	} else {
+
+		if (iview->image->surface.bpe > 8) {
+			/* 128 bit formats not supported */
+			return false;
+		}
 		radv_fill_buffer(cmd_buffer, iview->image->bo,
 				 iview->image->offset + iview->image->cmask.offset,
 				 iview->image->cmask.size, 0);
@@ -992,7 +1085,8 @@ subpass_needs_clear(const struct radv_cmd_buffer *cmd_buffer)
 	ds = cmd_state->subpass->depth_stencil_attachment.attachment;
 	for (uint32_t i = 0; i < cmd_state->subpass->color_count; ++i) {
 		uint32_t a = cmd_state->subpass->color_attachments[i].attachment;
-		if (cmd_state->attachments[a].pending_clear_aspects) {
+		if (a != VK_ATTACHMENT_UNUSED &&
+		    cmd_state->attachments[a].pending_clear_aspects) {
 			return true;
 		}
 	}
@@ -1032,7 +1126,8 @@ radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer)
 	for (uint32_t i = 0; i < cmd_state->subpass->color_count; ++i) {
 		uint32_t a = cmd_state->subpass->color_attachments[i].attachment;
 
-		if (!cmd_state->attachments[a].pending_clear_aspects)
+		if (a == VK_ATTACHMENT_UNUSED ||
+		    !cmd_state->attachments[a].pending_clear_aspects)
 			continue;
 
 		assert(cmd_state->attachments[a].pending_clear_aspects ==

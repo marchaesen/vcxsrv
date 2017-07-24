@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.1.5 Release Notes / July 14, 2017</h1>
+
+<p>
+Mesa 17.1.5 is a bug fix release which fixes bugs found since the 17.1.4 release.
+</p>
+<p>
+Mesa 17.1.5 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+7e3eeee8f9c28052796eb18133c2be12c38ba34864cc496382a2fa20c29b0317  mesa-17.1.5.tar.gz
+378516b171712687aace4c7ea8b37c85895231d7a6d61e1e27362cf6034fded9  mesa-17.1.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100242">Bug 100242</a> - radeon buffer allocation failure during startup of Factorio</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101657">Bug 101657</a> - strtod.c:32:10: fatal error: xlocale.h: No such file or directory</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101666">Bug 101666</a> - bitfieldExtract is marked as a built-in function on OpenGL ES 3.0, but was added in OpenGL ES 3.1</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101703">Bug 101703</a> - No stencil buffer allocated when requested by GLUT</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Aaron Watry (1):</p>
+<ul>
+  <li>radeon/winsys: Limit max allocation size to 70% of VRAM</li>
+</ul>
+
+<p>Aleksander Morgado (2):</p>
+<ul>
+  <li>etnaviv: fix refcnt initialization in etna_screen</li>
+  <li>etnaviv: don't dereference etna_resource pointer if allocation fails</li>
+</ul>
+
+<p>Alex Smith (2):</p>
+<ul>
+  <li>ac/nir: Use correct LLVM intrinsics for atomic ops on imageBuffers</li>
+  <li>ac/nir: Fix ordering of parameters for image atomic cmpswap intrinsics</li>
+</ul>
+
+<p>Andres Gomez (3):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.1.4</li>
+  <li>cherry-ignore: i965: Fix anisotropic filtering for mag filter</li>
+  <li>Update version to 17.1.5</li>
+</ul>
+
+<p>Anuj Phogat (2):</p>
+<ul>
+  <li>intel/isl: Use uint64_t to store total surface size</li>
+  <li>intel/isl: Add the maximum surface size limit</li>
+</ul>
+
+<p>Brian Paul (3):</p>
+<ul>
+  <li>draw: check for line_width != 1.0f in validate_pipeline()</li>
+  <li>svga: clamp device line width to at least 1 to fix HWv8 line stippling</li>
+  <li>svga: fix PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE value</li>
+</ul>
+
+<p>Bruce Cherniak (1):</p>
+<ul>
+  <li>swr: Limit memory held by defer deleted resources.</li>
+</ul>
+
+<p>Chandu Babu N (1):</p>
+<ul>
+  <li>st/va: Fix leak in VAAPI subpictures</li>
+</ul>
+
+<p>Charmaine Lee (1):</p>
+<ul>
+  <li>svga: fixed surface size to include array size</li>
+</ul>
+
+<p>Connor Abbott (2):</p>
+<ul>
+  <li>spirv: fix OpBitcast when the src and dst bitsize are different (v3)</li>
+  <li>ac/nir: implement 64-bit packing and unpacking</li>
+</ul>
+
+<p>Iago Toral Quiroga (1):</p>
+<ul>
+  <li>glsl: gl_Max{Vertex,Fragment}UniformComponents exist in all desktop GL versions</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>glsl: check if any of the named builtins are available first</li>
+</ul>
+
+<p>James Legg (2):</p>
+<ul>
+  <li>ac/nir: Make intrinsic_name buffer long enough</li>
+  <li>spirv: Fix reaching unreachable for compare exchange on images</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>nir/spirv: Use the type from the deref for atomics</li>
+</ul>
+
+<p>Juan A. Suarez Romero (1):</p>
+<ul>
+  <li>glsl: do not call link_xfb_stride_layout_qualifiers() for fragment shaders</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>i965: Use true AA line distance on G45/Ironlake.</li>
+  <li>i965: Always set AALINEDISTANCE_TRUE on Sandybridge.</li>
+</ul>
+
+<p>Lucas Stach (1):</p>
+<ul>
+  <li>etnaviv: fix shader miscompilation with more than 16 labels</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>gallium/radeon: fix a possible crash for buffer exports</li>
+</ul>
+
+<p>Neha Bhende (1):</p>
+<ul>
+  <li>svga: loop over box.depth for ReadBack_image on each slice</li>
+</ul>
+
+<p>Nicolai Hähnle (1):</p>
+<ul>
+  <li>winsys/radeon: only call pb_slabs_reclaim when slabs are actually used</li>
+</ul>
+
+<p>Olivier Lauffenburger (1):</p>
+<ul>
+  <li>st/wgl: improve selection of pixel format</li>
+</ul>
+
+<p>Philipp Zabel (1):</p>
+<ul>
+  <li>st/mesa: release EGLImage on EGLImageTarget* error</li>
+</ul>
+
+<p>Plamena Manolova (1):</p>
+<ul>
+  <li>mesa/main: Move NULL pointer check.</li>
+</ul>
+
+<p>Tim Rowley (2):</p>
+<ul>
+  <li>swr/rast: _mm*_undefined_* implementations for gcc&lt;4.9</li>
+  <li>swr/rast: Correctly allocate SWR_STATS memory as cacheline aligned</li>
+</ul>
+
+<p>Tomasz Figa (1):</p>
+<ul>
+  <li>intel: common: Fix link failure with standalone Android build</li>
+</ul>
+
+<p>Vinson Lee (1):</p>
+<ul>
+  <li>scons: Check for xlocale.h before defining HAVE_XLOCALE_H.</li>
+</ul>
+
+</div>
+</body>
+</html>

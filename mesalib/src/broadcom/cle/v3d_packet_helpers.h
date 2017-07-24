@@ -177,6 +177,22 @@ __gen_unpack_sint(const uint8_t *restrict cl, uint32_t start, uint32_t end)
 }
 
 static inline float
+__gen_unpack_sfixed(const uint8_t *restrict cl, uint32_t start, uint32_t end,
+                    uint32_t fractional_size)
+{
+        int32_t bits = __gen_unpack_sint(cl, start, end);
+        return (float)bits / (1 << fractional_size);
+}
+
+static inline float
+__gen_unpack_ufixed(const uint8_t *restrict cl, uint32_t start, uint32_t end,
+                    uint32_t fractional_size)
+{
+        int32_t bits = __gen_unpack_uint(cl, start, end);
+        return (float)bits / (1 << fractional_size);
+}
+
+static inline float
 __gen_unpack_float(const uint8_t *restrict cl, uint32_t start, uint32_t end)
 {
    assert(start % 8 == 0);

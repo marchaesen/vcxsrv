@@ -405,7 +405,8 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
     if (mesa_api != API_OPENGL_COMPAT
         && mesa_api != API_OPENGL_CORE
         && (flags & ~(__DRI_CTX_FLAG_DEBUG |
-	              __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS))) {
+	              __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS |
+	              __DRI_CTX_FLAG_NO_ERROR))) {
 	*error = __DRI_CTX_ERROR_BAD_FLAG;
 	return NULL;
     }
@@ -427,7 +428,8 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
 
     const uint32_t allowed_flags = (__DRI_CTX_FLAG_DEBUG
                                     | __DRI_CTX_FLAG_FORWARD_COMPATIBLE
-                                    | __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS);
+                                    | __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS
+                                    | __DRI_CTX_FLAG_NO_ERROR);
     if (flags & ~allowed_flags) {
 	*error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
 	return NULL;
@@ -469,6 +471,8 @@ driContextSetFlags(struct gl_context *ctx, uint32_t flags)
        _mesa_set_debug_state_int(ctx, GL_DEBUG_OUTPUT, GL_TRUE);
         ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_DEBUG_BIT;
     }
+    if ((flags & __DRI_CTX_FLAG_NO_ERROR) != 0)
+        ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
 }
 
 static __DRIcontext *
@@ -936,4 +940,8 @@ const __DRIcopySubBufferExtension driCopySubBufferExtension = {
    /*.base =*/ { __DRI_COPY_SUB_BUFFER, 1 },
 
    /*.copySubBuffer               =*/ driCopySubBuffer,
+};
+
+const __DRInoErrorExtension dri2NoErrorExtension = {
+   .base = { __DRI2_NO_ERROR, 1 },
 };

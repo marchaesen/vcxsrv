@@ -1129,8 +1129,9 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	cmd_buffer->state.flush_bits = 0;
 }
 
+/* sets the CP predication state using a boolean stored at va */
 void
-si_emit_set_pred(struct radv_cmd_buffer *cmd_buffer, uint64_t va)
+si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer, uint64_t va)
 {
 	uint32_t val = 0;
 

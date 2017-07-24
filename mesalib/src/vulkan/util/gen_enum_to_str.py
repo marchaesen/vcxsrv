@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Create enum to string functions for vulking using vk.xml."""
+"""Create enum to string functions for vulkan using vk.xml."""
 
 from __future__ import print_function
 import argparse

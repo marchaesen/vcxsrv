@@ -888,7 +888,7 @@ descriptor=[
 
 # GL_EXT_provoking_vertex
   [ "PROVOKING_VERTEX_EXT", "CONTEXT_ENUM(Light.ProvokingVertex), extra_EXT_provoking_vertex" ],
-  [ "QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION_EXT", "CONTEXT_BOOL(Const.QuadsFollowProvokingVertexConvention), extra_EXT_provoking_vertex" ],
+  [ "QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION_EXT", "CONTEXT_BOOL(Const.QuadsFollowProvokingVertexConvention), extra_EXT_provoking_vertex_32" ],
 
 # GL_ARB_seamless_cube_map
   [ "TEXTURE_CUBE_MAP_SEAMLESS", "CONTEXT_BOOL(Texture.CubeMapSeamless), extra_ARB_seamless_cube_map" ],

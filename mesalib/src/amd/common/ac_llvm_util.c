@@ -40,21 +40,23 @@ static void ac_init_llvm_target()
 	LLVMInitializeAMDGPUTargetMC();
 	LLVMInitializeAMDGPUAsmPrinter();
 
-	/*
-	 * Workaround for bug in llvm 4.0 that causes image intrinsics
+	/* For inline assembly. */
+	LLVMInitializeAMDGPUAsmParser();
+
+	/* Workaround for bug in llvm 4.0 that causes image intrinsics
 	 * to disappear.
 	 * https://reviews.llvm.org/D26348
 	 */
-#if HAVE_LLVM >= 0x0400
-	const char *argv[2] = {"mesa", "-simplifycfg-sink-common=false"};
-	LLVMParseCommandLineOptions(2, argv, NULL);
-#endif
-
+	if (HAVE_LLVM >= 0x0400) {
+		/* "mesa" is the prefix for error messages */
+		const char *argv[2] = { "mesa", "-simplifycfg-sink-common=false" };
+		LLVMParseCommandLineOptions(2, argv, NULL);
+	}
 }
 
 static once_flag ac_init_llvm_target_once_flag = ONCE_FLAG_INIT;
 
-static LLVMTargetRef ac_get_llvm_target(const char *triple)
+LLVMTargetRef ac_get_llvm_target(const char *triple)
 {
 	LLVMTargetRef target = NULL;
 	char *err_message = NULL;

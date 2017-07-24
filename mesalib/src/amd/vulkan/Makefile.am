@@ -107,13 +107,11 @@ libvulkan_radeon_la_SOURCES = $(VULKAN_GEM_FILES)
 
 vulkan_api_xml = $(top_srcdir)/src/vulkan/registry/vk.xml
 
-radv_entrypoints.h : radv_entrypoints_gen.py $(vulkan_api_xml)
-	$(AM_V_GEN) cat $(vulkan_api_xml) |\
-	$(PYTHON2) $(srcdir)/radv_entrypoints_gen.py header > $@
-
-radv_entrypoints.c : radv_entrypoints_gen.py $(vulkan_api_xml)
-	$(AM_V_GEN) cat $(vulkan_api_xml) |\
-	$(PYTHON2) $(srcdir)/radv_entrypoints_gen.py code > $@
+radv_entrypoints.c: radv_entrypoints_gen.py $(vulkan_api_xml)
+	$(MKDIR_GEN)
+	$(AM_V_GEN)$(PYTHON2) $(srcdir)/radv_entrypoints_gen.py \
+		--xml $(vulkan_api_xml) --outdir $(builddir)
+radv_entrypoints.h: radv_entrypoints.c
 
 vk_format_table.c: vk_format_table.py \
 		   vk_format_parse.py \

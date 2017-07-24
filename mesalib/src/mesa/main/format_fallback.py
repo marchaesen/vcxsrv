@@ -38,6 +38,34 @@ def parse_args():
     p.add_argument("out")
     return p.parse_args()
 
+def get_unorm_to_srgb_map(formats):
+    names = set(fmt.name for fmt in formats)
+
+    for fmt in formats:
+        if fmt.colorspace != 'srgb':
+            continue;
+
+        replacements = [
+            ('SRGB', 'RGB'),
+            ('SRGB', 'UNORM'),
+            ('SRGB8_ALPHA8', 'RGBA'),
+            ('SRGB8_ALPHA8', 'RGBA8'),
+            ('SRGB_ALPHA_UNORM', 'RGBA_UNORM'),
+        ]
+        found_unorm_name = False
+        for rep in replacements:
+            if fmt.name.find(rep[0]) == -1:
+                continue
+
+            unorm_name = fmt.name.replace(rep[0], rep[1])
+            if unorm_name in names:
+                yield unorm_name, fmt.name
+                found_unorm_name = True
+                break
+
+        # Every sRGB format MUST have a UNORM equivalent
+        assert found_unorm_name
+
 def get_rgbx_to_rgba_map(formats):
     names = set(fmt.name for fmt in formats)
 
@@ -59,6 +87,45 @@ def get_rgbx_to_rgba_map(formats):
 
 TEMPLATE = Template(COPYRIGHT + """
 #include "formats.h"
+
+/**
+ * For an sRGB format, return the corresponding linear color space format.
+ * For non-sRGB formats, return the format as-is.
+ */
+mesa_format
+_mesa_get_srgb_format_linear(mesa_format format)
+{
+   switch (format) {
+%for unorm, srgb in unorm_to_srgb_map:
+   case ${srgb}:
+      return ${unorm};
+%endfor
+   default:
+      return format;
+   }
+}
+
+/**
+ * For a linear format, return the corresponding sRGB color space format.
+ * For an sRGB format, return the format as-is.
+ * Assert-fails if the format is not sRGB and does not have an sRGB equivalent.
+ */
+mesa_format
+_mesa_get_linear_format_srgb(mesa_format format)
+{
+   switch (format) {
+%for unorm, srgb in unorm_to_srgb_map:
+   case ${unorm}:
+      return ${srgb};
+%endfor
+%for unorm, srgb in unorm_to_srgb_map:
+   case ${srgb}:
+%endfor
+      return format;
+   default:
+      unreachable("Given format does not have an sRGB equivalent");
+   }
+}
 
 /**
  * If the format has an alpha channel, and there exists a non-alpha
@@ -94,6 +161,7 @@ def main():
     formats = list(format_parser.parse(pargs.csv))
 
     template_env = {
+        'unorm_to_srgb_map': list(get_unorm_to_srgb_map(formats)),
         'rgbx_to_rgba_map': list(get_rgbx_to_rgba_map(formats)),
     }
 

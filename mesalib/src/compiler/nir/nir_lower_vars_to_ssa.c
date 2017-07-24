@@ -245,8 +245,12 @@ foreach_deref_node_worker(struct deref_node *node, nir_deref *deref,
 
       case nir_deref_type_struct: {
          nir_deref_struct *str = nir_deref_as_struct(deref->child);
-         return foreach_deref_node_worker(node->children[str->index],
-                                          deref->child, cb, state);
+         if (node->children[str->index] &&
+             !foreach_deref_node_worker(node->children[str->index],
+                                        deref->child, cb, state))
+            return false;
+
+         return true;
       }
 
       default:

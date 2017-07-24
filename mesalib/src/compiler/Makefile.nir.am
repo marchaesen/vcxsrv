@@ -29,6 +29,7 @@ nir_libnir_la_LIBADD = \
 nir_libnir_la_SOURCES =					\
 	$(NIR_FILES)					\
 	$(SPIRV_FILES)					\
+	$(SPIRV_GENERATED_FILES) 			\
 	$(NIR_GENERATED_FILES)
 
 nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py
@@ -50,6 +51,10 @@ nir/nir_opcodes.c: nir/nir_opcodes.py nir/nir_opcodes_c.py
 nir/nir_opt_algebraic.c: nir/nir_opt_algebraic.py nir/nir_algebraic.py
 	$(MKDIR_GEN)
 	$(PYTHON_GEN) $(srcdir)/nir/nir_opt_algebraic.py > $@ || ($(RM) $@; false)
+
+spirv/spirv_info.c: spirv/spirv_info_c.py spirv/spirv.core.grammar.json
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/spirv/spirv_info_c.py $(srcdir)/spirv/spirv.core.grammar.json $@ || ($(RM) $@; false)
 
 noinst_PROGRAMS += spirv2nir
 
@@ -91,8 +96,13 @@ nir_tests_control_flow_tests_LDADD =			\
 TESTS += nir/tests/control_flow_tests
 
 
-BUILT_SOURCES += $(NIR_GENERATED_FILES)
-CLEANFILES += $(NIR_GENERATED_FILES)
+BUILT_SOURCES += \
+	$(NIR_GENERATED_FILES) \
+	$(SPIRV_GENERATED_FILES)
+
+CLEANFILES += \
+	$(NIR_GENERATED_FILES) \
+	$(SPIRV_GENERATED_FILES)
 
 EXTRA_DIST += \
 	nir/nir_algebraic.py				\
@@ -104,4 +114,6 @@ EXTRA_DIST += \
 	nir/nir_opt_algebraic.py			\
 	nir/tests \
 	nir/README \
+	spirv/spirv_info_c.py				\
+	spirv/spirv.core.grammar.json			\
 	SConscript.nir

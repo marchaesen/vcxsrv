@@ -38,6 +38,7 @@
 #include "program/prog_cache.h"
 #include "vbo/vbo.h"
 #include "glapi/glapi.h"
+#include "st_manager.h"
 #include "st_context.h"
 #include "st_debug.h"
 #include "st_cb_bitmap.h"
@@ -288,7 +289,7 @@ static void st_init_driver_flags(struct st_context *st);
 
 static struct st_context *
 st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
-		const struct st_config_options *options)
+		const struct st_config_options *options, bool no_error)
 {
    struct pipe_screen *screen = pipe->screen;
    uint i;
@@ -368,6 +369,9 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    ctx->FragmentProgram._MaintainTexEnvProgram = GL_TRUE;
 
    ctx->VertexProgram._MaintainTnlProgram = GL_TRUE;
+
+   if (no_error)
+      ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
 
    st->has_stencil_export =
       screen->get_param(screen, PIPE_CAP_SHADER_STENCIL_EXPORT);
@@ -472,6 +476,9 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    _mesa_initialize_vbo_vtxfmt(ctx);
    st_init_driver_flags(st);
 
+   /* Initialize context's winsys buffers list */
+   LIST_INITHEAD(&st->winsys_buffers);
+
    return st;
 }
 
@@ -535,7 +542,8 @@ static void st_init_driver_flags(struct st_context *st)
 struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
                                      const struct gl_config *visual,
                                      struct st_context *share,
-                                     const struct st_config_options *options)
+                                     const struct st_config_options *options,
+                                     bool no_error)
 {
    struct gl_context *ctx;
    struct gl_context *shareCtx = share ? share->ctx : NULL;
@@ -566,7 +574,7 @@ struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
    if (debug_get_option_mesa_mvp_dp4())
       ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].OptimizeForAOS = GL_TRUE;
 
-   st = st_create_context_priv(ctx, pipe, options);
+   st = st_create_context_priv(ctx, pipe, options, no_error);
    if (!st) {
       _mesa_destroy_context(ctx);
    }
@@ -591,6 +599,17 @@ destroy_tex_sampler_cb(GLuint id, void *data, void *userData)
 void st_destroy_context( struct st_context *st )
 {
    struct gl_context *ctx = st->ctx;
+   struct st_framebuffer *stfb, *next;
+
+   GET_CURRENT_CONTEXT(curctx);
+   if (curctx == NULL) {
+
+      /* No current context, but we need one to release
+       * renderbuffer surface when we release framebuffer.
+       * So temporarily bind the context.
+       */
+      _mesa_make_current(ctx, NULL, NULL);
+   }
 
    /* This must be called first so that glthread has a chance to finish */
    _mesa_glthread_destroy(ctx);
@@ -603,6 +622,11 @@ void st_destroy_context( struct st_context *st )
    st_reference_prog(st, &st->tcp, NULL);
    st_reference_prog(st, &st->tep, NULL);
    st_reference_compprog(st, &st->cp, NULL);
+
+   /* release framebuffer in the winsys buffers list */
+   LIST_FOR_EACH_ENTRY_SAFE_REV(stfb, next, &st->winsys_buffers, head) {
+      st_framebuffer_reference(&stfb, NULL);
+   }
 
    pipe_sampler_view_reference(&st->pixel_xfer.pixelmap_sampler_view, NULL);
    pipe_resource_reference(&st->pixel_xfer.pixelmap_texture, NULL);

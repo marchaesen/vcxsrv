@@ -2651,6 +2651,8 @@ st_finalize_texture(struct gl_context *ctx,
 /**
  * Called via ctx->Driver.AllocTextureStorage() to allocate texture memory
  * for a whole mipmap stack.
+ * Note: for multisample textures if the requested sample count is not
+ * supported, we search for the next higher supported sample count.
  */
 static GLboolean
 st_AllocTextureStorage(struct gl_context *ctx,
@@ -2679,10 +2681,11 @@ st_AllocTextureStorage(struct gl_context *ctx,
 
    /* Raise the sample count if the requested one is unsupported. */
    if (num_samples > 1) {
+      enum pipe_texture_target ptarget = gl_target_to_pipe(texObj->Target);
       boolean found = FALSE;
 
       for (; num_samples <= ctx->Const.MaxSamples; num_samples++) {
-         if (screen->is_format_supported(screen, fmt, PIPE_TEXTURE_2D,
+         if (screen->is_format_supported(screen, fmt, ptarget,
                                          num_samples,
                                          PIPE_BIND_SAMPLER_VIEW)) {
             /* Update the sample count in gl_texture_image as well. */

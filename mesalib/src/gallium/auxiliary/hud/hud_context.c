@@ -204,7 +204,7 @@ hud_draw_string(struct hud_context *hud, unsigned x, unsigned y,
 }
 
 static void
-number_to_human_readable(uint64_t num, enum pipe_driver_query_type type,
+number_to_human_readable(double num, enum pipe_driver_query_type type,
                          char *out)
 {
    static const char *byte_units[] =
@@ -861,13 +861,19 @@ hud_pane_add_graph(struct hud_pane *pane, struct hud_graph *gr)
 }
 
 void
-hud_graph_add_value(struct hud_graph *gr, uint64_t value)
+hud_graph_add_value(struct hud_graph *gr, double value)
 {
    gr->current_value = value;
    value = value > gr->pane->ceiling ? gr->pane->ceiling : value;
 
-   if (gr->fd)
-      fprintf(gr->fd, "%" PRIu64 "\n", value);
+   if (gr->fd) {
+      if (fabs(value - lround(value)) > FLT_EPSILON) {
+         fprintf(gr->fd, "%f\n", value);
+      }
+      else {
+         fprintf(gr->fd, "%" PRIu64 "\n", (uint64_t) lround(value));
+      }
+   }
 
    if (gr->index == gr->pane->max_num_vertices) {
       gr->vertices[0] = 0;

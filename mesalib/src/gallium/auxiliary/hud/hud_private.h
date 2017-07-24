@@ -104,7 +104,7 @@ struct hud_graph {
    /* mutable variables */
    unsigned num_vertices;
    unsigned index; /* vertex index being updated */
-   uint64_t current_value;
+   double current_value;
    FILE *fd;
 };
 
@@ -139,7 +139,7 @@ struct hud_pane {
 /* core */
 void hud_pane_add_graph(struct hud_pane *pane, struct hud_graph *gr);
 void hud_pane_set_max_value(struct hud_pane *pane, uint64_t value);
-void hud_graph_add_value(struct hud_graph *gr, uint64_t value);
+void hud_graph_add_value(struct hud_graph *gr, double value);
 
 /* graphs/queries */
 struct hud_batch_query_context;

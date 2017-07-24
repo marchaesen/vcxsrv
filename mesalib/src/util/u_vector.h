@@ -31,7 +31,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include "util/u_math.h"
 #include "util/macros.h"
 
 /* TODO - move to u_math.h - name it better etc */

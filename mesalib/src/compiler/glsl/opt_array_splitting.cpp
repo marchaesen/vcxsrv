@@ -140,6 +140,29 @@ ir_array_reference_visitor::get_variable_entry(ir_variable *var)
    if (var->type->is_unsized_array())
       return NULL;
 
+   /* FIXME: arrays of arrays are not handled correctly by this pass so we
+    * skip it for now. While the pass will create functioning code it actually
+    * produces worse code.
+    *
+    * For example the array:
+    *
+    *    int[3][2] a;
+    *
+    * ends up being split up into:
+    *
+    *    int[3][2] a_0;
+    *    int[3][2] a_1;
+    *    int[3][2] a_2;
+    *
+    * And we end up referencing each of these new arrays for example:
+    *
+    *    a[0][1] will be turned into a_0[0][1]
+    *    a[1][0] will be turned into a_1[1][0]
+    *    a[2][0] will be turned into a_2[2][0]
+    */
+   if (var->type->is_array() && var->type->fields.array->is_array())
+      return NULL;
+
    foreach_in_list(variable_entry, entry, &this->variable_list) {
       if (entry->var == var)
          return entry;

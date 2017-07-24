@@ -275,13 +275,32 @@ message_kit_thread(SEL selector, NSObject *arg)
             if (_x_active) [self activateX:NO];
         }
         else if ([self modalWindow] == nil) {
-            /* Must be an X window. Tell appkit it doesn't have focus. */
+            /* Must be an X window. Tell appkit windows to resign main/key */
             for_appkit = NO;
 
-            if ([self isActive]) {
-                [self deactivate];
-                if (!_x_active && quartzProcs->IsX11Window([e windowNumber]))
-                    [self activateX:YES];
+            if (!_x_active && quartzProcs->IsX11Window([e windowNumber])) {
+                if ([self respondsToSelector:@selector(_setKeyWindow:)] && [self respondsToSelector:@selector(_setMainWindow:)]) {
+                    NSWindow *keyWindow = [self keyWindow];
+                    if (keyWindow) {
+                        [self _setKeyWindow:nil];
+                        [keyWindow resignKeyWindow];
+                    }
+
+                    NSWindow *mainWindow = [self mainWindow];
+                    if (mainWindow) {
+                        [self _setMainWindow:nil];
+                        [mainWindow resignMainWindow];
+                   }
+                 } else {
+                    /* This has a side effect of causing background apps to steal focus from XQuartz.
+                     * Unfortunately, there is no public and stable API to do what we want, but this
+                     * is a decent fallback in the off chance that the above selectors get dropped
+                     * in the future.
+                     */
+                    [self deactivate];
+                }
+
+                [self activateX:YES];
             }
         }
 

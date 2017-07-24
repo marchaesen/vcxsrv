@@ -245,7 +245,7 @@ protected:
         return TRUE;
     }
 
-    virtual ADDR_E_RETURNCODE HwlGetMaxAlignments(ADDR_GET_MAX_ALINGMENTS_OUTPUT* pOut) const;
+    virtual ADDR_E_RETURNCODE HwlGetMaxAlignments(ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut) const;
 
     virtual VOID HwlComputeSurfaceAlignmentsMacroTiled(
         AddrTileMode tileMode, UINT_32 bpp, ADDR_SURFACE_FLAGS flags,

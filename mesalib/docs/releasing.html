@@ -24,7 +24,6 @@
 <li><a href="#branch">Making a branchpoint</a>
 <li><a href="#prerelease">Pre-release announcement</a>
 <li><a href="#release">Making a new release</a>
-<li><a href="#calendar">Update the calendar</a>
 <li><a href="#announce">Announce the release</a>
 <li><a href="#website">Update the mesa3d.org website</a>
 <li><a href="#bugzilla">Update Bugzilla</a>
@@ -437,6 +436,8 @@ Here is one solution that I've been using.
 	chmod 755 -fR $__build_root; rm -rf $__build_root
 	mkdir -p $__build_root &amp;&amp; cd $__build_root
 
+	# For the distcheck, you may want to specify which LLVM to use:
+	# export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
 	$__mesa_root/autogen.sh &amp;&amp; make -j2 distcheck
 
 	# Build check the tarballs (scons, linux)
@@ -445,18 +446,22 @@ Here is one solution that I've been using.
 	cd .. &amp;&amp; rm -rf mesa-$__version
 
 	# Build check the tarballs (scons, windows/mingw)
+	# You may need to unset LLVM if you set it before:
+	# unset LLVM_CONFIG
 	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
 	scons platform=windows toolchain=crossmingw
 	cd .. &amp;&amp; rm -rf mesa-$__version
 
 	# Test the automake binaries
 	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
+	# You may want to specify which LLVM to use:
 	./configure \
 		--with-dri-drivers=i965,swrast \
 		--with-gallium-drivers=swrast \
 		--with-vulkan-drivers=intel \
 		--enable-llvm-shared-libs \
 		--enable-llvm \
+		--with-llvm-prefix=/usr/lib/llvm-3.9 \
 		--enable-glx-tls \
 		--enable-gbm \
 		--enable-egl \
@@ -466,7 +471,8 @@ Here is one solution that I've been using.
 	__glxgears_cmd='glxgears 2>&amp;1 | grep -v "configuration file"'
 	__es2info_cmd='es2_info 2>&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
 	__es2gears_cmd='es2gears_x11 2>&amp;1 | grep -v "configuration file"'
-	export LD_LIBRARY_PATH=`pwd`/test/usr/local/lib/
+	test "x$LD_LIBRARY_PATH" != 'x' &amp;&amp; __old_ld="$LD_LIBRARY_PATH"
+	export LD_LIBRARY_PATH=`pwd`/test/usr/local/lib/:"${__old_ld}"
 	export LIBGL_DRIVERS_PATH=`pwd`/test/usr/local/lib/dri/
 	export LIBGL_DEBUG=verbose
 	eval $__glxinfo_cmd
@@ -486,6 +492,7 @@ Here is one solution that I've been using.
 	eval $__es2gears_cmd
 	# Smoke test DOTA2
 	unset LD_LIBRARY_PATH
+	test "x$__old_ld" != 'x' &amp;&amp; export LD_LIBRARY_PATH="$__old_ld" &amp;&amp; unset __old_ld
 	unset LIBGL_DRIVERS_PATH
 	unset LIBGL_DEBUG
 	unset LIBGL_ALWAYS_SOFTWARE
@@ -540,6 +547,8 @@ Start the release process.
 </p>
 
 <pre>
+	# For the dist/distcheck, you may want to specify which LLVM to use:
+	# export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
 	../relative/path/to/release.sh . # append --dist if you've already done distcheck above
 </pre>
 
@@ -566,21 +575,15 @@ Something like the following steps will do the trick:
 </pre>
 
 <p>
-Also, edit docs/relnotes.html to add a link to the new release notes, and edit
-docs/index.html to add a news entry. Then commit and push:
+Also, edit docs/relnotes.html to add a link to the new release notes,
+edit docs/index.html to add a news entry, and remove the version from
+docs/release-calendar.html. Then commit and push:
 </p>
 
 <pre>
-	git commit -as -m "docs: add news item and link release notes for X.Y.Z"
+	git commit -as -m "docs: update calendar, add news item and link release notes for X.Y.Z"
 	git push origin master X.Y
 </pre>
-
-
-<h1 id="calendar">Update the calendar</h1>
-
-<p>
-Remove the version from the <a href="release-calendar.html" target="_parent">calendar</a>.
-</p>
 
 
 <h1 id="announce">Announce the release</h1>

@@ -1908,6 +1908,20 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_helper_invocation;
    case SYSTEM_VALUE_VIEW_INDEX:
       return nir_intrinsic_load_view_index;
+   case SYSTEM_VALUE_SUBGROUP_SIZE:
+      return nir_intrinsic_load_subgroup_size;
+   case SYSTEM_VALUE_SUBGROUP_INVOCATION:
+      return nir_intrinsic_load_subgroup_invocation;
+   case SYSTEM_VALUE_SUBGROUP_EQ_MASK:
+	return nir_intrinsic_load_subgroup_eq_mask;
+   case SYSTEM_VALUE_SUBGROUP_GE_MASK:
+	return nir_intrinsic_load_subgroup_ge_mask;
+   case SYSTEM_VALUE_SUBGROUP_GT_MASK:
+	return nir_intrinsic_load_subgroup_gt_mask;
+   case SYSTEM_VALUE_SUBGROUP_LE_MASK:
+	return nir_intrinsic_load_subgroup_le_mask;
+   case SYSTEM_VALUE_SUBGROUP_LT_MASK:
+	return nir_intrinsic_load_subgroup_lt_mask;
    default:
       unreachable("system value does not directly correspond to intrinsic");
    }
@@ -1961,6 +1975,20 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_HELPER_INVOCATION;
    case nir_intrinsic_load_view_index:
       return SYSTEM_VALUE_VIEW_INDEX;
+   case SYSTEM_VALUE_SUBGROUP_SIZE:
+      return nir_intrinsic_load_subgroup_size;
+   case SYSTEM_VALUE_SUBGROUP_INVOCATION:
+      return nir_intrinsic_load_subgroup_invocation;
+   case nir_intrinsic_load_subgroup_eq_mask:
+      return SYSTEM_VALUE_SUBGROUP_EQ_MASK;
+   case nir_intrinsic_load_subgroup_ge_mask:
+      return SYSTEM_VALUE_SUBGROUP_GE_MASK;
+   case nir_intrinsic_load_subgroup_gt_mask:
+      return SYSTEM_VALUE_SUBGROUP_GT_MASK;
+   case nir_intrinsic_load_subgroup_le_mask:
+      return SYSTEM_VALUE_SUBGROUP_LE_MASK;
+   case nir_intrinsic_load_subgroup_lt_mask:
+      return SYSTEM_VALUE_SUBGROUP_LT_MASK;
    default:
       unreachable("intrinsic doesn't produce a system value");
    }

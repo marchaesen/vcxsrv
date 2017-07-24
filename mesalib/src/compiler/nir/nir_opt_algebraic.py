@@ -357,6 +357,17 @@ optimizations = [
    (('~fadd', '#a', ('fadd', b, '#c')), ('fadd', ('fadd', a, c), b)),
    (('iadd', '#a', ('iadd', b, '#c')), ('iadd', ('iadd', a, c), b)),
 
+   # By definition...
+   (('bcsel', ('ige', ('find_lsb', a), 0), ('find_lsb', a), -1), ('find_lsb', a)),
+   (('bcsel', ('ige', ('ifind_msb', a), 0), ('ifind_msb', a), -1), ('ifind_msb', a)),
+   (('bcsel', ('ige', ('ufind_msb', a), 0), ('ufind_msb', a), -1), ('ufind_msb', a)),
+
+   (('bcsel', ('ine', a, 0), ('find_lsb', a), -1), ('find_lsb', a)),
+   (('bcsel', ('ine', a, 0), ('ifind_msb', a), -1), ('ifind_msb', a)),
+   (('bcsel', ('ine', a, 0), ('ufind_msb', a), -1), ('ufind_msb', a)),
+
+   (('bcsel', ('ine', a, -1), ('ifind_msb', a), -1), ('ifind_msb', a)),
+
    # Misc. lowering
    (('fmod@32', a, b), ('fsub', a, ('fmul', b, ('ffloor', ('fdiv', a, b)))), 'options->lower_fmod32'),
    (('fmod@64', a, b), ('fsub', a, ('fmul', b, ('ffloor', ('fdiv', a, b)))), 'options->lower_fmod64'),
