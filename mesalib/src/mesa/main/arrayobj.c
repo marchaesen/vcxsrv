@@ -298,33 +298,6 @@ _mesa_initialize_vao(struct gl_context *ctx,
 
 
 /**
- * Add the given array object to the array object pool.
- */
-static void
-save_array_object(struct gl_context *ctx, struct gl_vertex_array_object *vao)
-{
-   if (vao->Name > 0) {
-      /* insert into hash table */
-      _mesa_HashInsertLocked(ctx->Array.Objects, vao->Name, vao);
-   }
-}
-
-
-/**
- * Remove the given array object from the array object pool.
- * Do not deallocate the array object though.
- */
-static void
-remove_array_object(struct gl_context *ctx, struct gl_vertex_array_object *vao)
-{
-   if (vao->Name > 0) {
-      /* remove from hash table */
-      _mesa_HashRemoveLocked(ctx->Array.Objects, vao->Name);
-   }
-}
-
-
-/**
  * Updates the derived gl_vertex_arrays when a gl_vertex_attrib_array
  * or a gl_vertex_buffer_binding has changed.
  */
@@ -493,19 +466,18 @@ _mesa_DeleteVertexArrays(GLsizei n, const GLuint *ids)
    for (i = 0; i < n; i++) {
       struct gl_vertex_array_object *obj = _mesa_lookup_vao(ctx, ids[i]);
 
-      if ( obj != NULL ) {
-	 assert( obj->Name == ids[i] );
+      if (obj) {
+         assert(obj->Name == ids[i]);
 
-	 /* If the array object is currently bound, the spec says "the binding
-	  * for that object reverts to zero and the default vertex array
-	  * becomes current."
-	  */
-	 if ( obj == ctx->Array.VAO ) {
-	    _mesa_BindVertexArray(0);
-	 }
+         /* If the array object is currently bound, the spec says "the binding
+          * for that object reverts to zero and the default vertex array
+          * becomes current."
+          */
+         if (obj == ctx->Array.VAO)
+            _mesa_BindVertexArray(0);
 
-	 /* The ID is immediately freed for re-use */
-	 remove_array_object(ctx, obj);
+         /* The ID is immediately freed for re-use */
+         _mesa_HashRemoveLocked(ctx->Array.Objects, obj->Name);
 
          if (ctx->Array.LastLookedUpVAO == obj)
             _mesa_reference_vao(ctx, &ctx->Array.LastLookedUpVAO, NULL);
@@ -561,7 +533,7 @@ gen_vertex_arrays(struct gl_context *ctx, GLsizei n, GLuint *arrays,
          return;
       }
       obj->EverBound = create;
-      save_array_object(ctx, obj);
+      _mesa_HashInsertLocked(ctx->Array.Objects, obj->Name, obj);
       arrays[i] = first + i;
    }
 }

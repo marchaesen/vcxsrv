@@ -229,6 +229,7 @@ NIR_FILES = \
 	nir/nir_lower_passthrough_edgeflags.c \
 	nir/nir_lower_patch_vertices.c \
 	nir/nir_lower_phis_to_scalar.c \
+	nir/nir_lower_read_invocation_to_scalar.c \
 	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_returns.c \
 	nir/nir_lower_samplers.c \
@@ -254,6 +255,7 @@ NIR_FILES = \
 	nir/nir_opt_gcm.c \
 	nir/nir_opt_global_to_local.c \
 	nir/nir_opt_if.c \
+	nir/nir_opt_intrinsics.c \
 	nir/nir_opt_loop_unroll.c \
 	nir/nir_opt_move_comparisons.c \
 	nir/nir_opt_peephole_select.c \
@@ -277,12 +279,14 @@ NIR_FILES = \
 	nir/nir_worklist.c \
 	nir/nir_worklist.h
 
+SPIRV_GENERATED_FILES = \
+	spirv/spirv_info.c
+
 SPIRV_FILES = \
 	spirv/GLSL.std.450.h \
 	spirv/nir_spirv.h \
 	spirv/spirv.h \
 	spirv/spirv_info.h \
-	spirv/spirv_info.c \
 	spirv/spirv_to_nir.c \
 	spirv/vtn_alu.c \
 	spirv/vtn_cfg.c \

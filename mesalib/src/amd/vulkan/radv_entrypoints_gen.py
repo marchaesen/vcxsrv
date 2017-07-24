@@ -1,6 +1,6 @@
 # coding=utf-8
 #
-# Copyright © 2015 Intel Corporation
+# Copyright © 2015, 2017 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,29 +22,41 @@
 # IN THE SOFTWARE.
 #
 
-import sys
-import xml.etree.ElementTree as ET
+import argparse
+import functools
+import os
+import textwrap
+import xml.etree.cElementTree as et
 
-max_api_version = 1.0
+from mako.template import Template
 
-supported_extensions = [
-   'VK_AMD_draw_indirect_count',
-   'VK_NV_dedicated_allocation',
-   'VK_KHR_descriptor_update_template',
-   'VK_KHR_get_physical_device_properties2',
-   'VK_KHR_incremental_present',
-   'VK_KHR_maintenance1',
-   'VK_KHR_push_descriptor',
-   'VK_KHR_sampler_mirror_clamp_to_edge',
-   'VK_KHR_shader_draw_parameters',
-   'VK_KHR_surface',
-   'VK_KHR_swapchain',
-   'VK_KHR_wayland_surface',
-   'VK_KHR_xcb_surface',
-   'VK_KHR_xlib_surface',
-   'VK_KHX_external_memory_capabilities',
-   'VK_KHX_external_memory',
-   'VK_KHX_external_memory_fd',
+MAX_API_VERSION = 1.0
+
+SUPPORTED_EXTENSIONS = [
+    'VK_AMD_draw_indirect_count',
+    'VK_NV_dedicated_allocation',
+    'VK_KHR_descriptor_update_template',
+    'VK_KHR_get_physical_device_properties2',
+    'VK_KHR_incremental_present',
+    'VK_KHR_maintenance1',
+    'VK_KHR_push_descriptor',
+    'VK_KHR_sampler_mirror_clamp_to_edge',
+    'VK_KHR_shader_draw_parameters',
+    'VK_KHR_surface',
+    'VK_KHR_swapchain',
+    'VK_KHR_wayland_surface',
+    'VK_KHR_xcb_surface',
+    'VK_KHR_xlib_surface',
+    'VK_KHR_get_memory_requirements2',
+    'VK_KHR_dedicated_allocation',
+    'VK_KHR_external_memory_capabilities',
+    'VK_KHR_external_memory',
+    'VK_KHR_external_memory_fd',
+    'VK_KHR_storage_buffer_storage_class',
+    'VK_KHR_variable_pointers',
+    'VK_KHR_external_semaphore_capabilities',
+    'VK_KHR_external_semaphore',
+    'VK_KHR_external_semaphore_fd',
 ]
 
 # We generate a static hash table for entry point lookup
@@ -52,54 +64,204 @@ supported_extensions = [
 # function and a power-of-two size table. The prime numbers are determined
 # experimentally.
 
-none = 0xffff
-hash_size = 256
-u32_mask = 2**32 - 1
-hash_mask = hash_size - 1
+TEMPLATE_H = Template(textwrap.dedent("""\
+    /* This file generated from ${filename}, don't edit directly. */
 
-prime_factor = 5024183
-prime_step = 19
+    struct radv_dispatch_table {
+       union {
+          void *entrypoints[${len(entrypoints)}];
+          struct {
+          % for _, name, _, _, _, guard in entrypoints:
+            % if guard is not None:
+    #ifdef ${guard}
+              PFN_vk${name} ${name};
+    #else
+              void *${name};
+    # endif
+            % else:
+              PFN_vk${name} ${name};
+            % endif
+          % endfor
+          };
+       };
+    };
 
-def hash(name):
-    h = 0;
-    for c in name:
-        h = (h * prime_factor + ord(c)) & u32_mask
+    % for type_, name, args, num, h, guard in entrypoints:
+      % if guard is not None:
+    #ifdef ${guard}
+      % endif
+      ${type_} radv_${name}(${args});
+      % if guard is not None:
+    #endif // ${guard}
+      % endif
+    % endfor
+    """), output_encoding='utf-8')
 
-    return h
+TEMPLATE_C = Template(textwrap.dedent(u"""\
+    /*
+     * Copyright © 2015 Intel Corporation
+     *
+     * Permission is hereby granted, free of charge, to any person obtaining a
+     * copy of this software and associated documentation files (the "Software"),
+     * to deal in the Software without restriction, including without limitation
+     * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+     * and/or sell copies of the Software, and to permit persons to whom the
+     * Software is furnished to do so, subject to the following conditions:
+     *
+     * The above copyright notice and this permission notice (including the next
+     * paragraph) shall be included in all copies or substantial portions of the
+     * Software.
+     *
+     * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+     * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+     * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+     * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+     * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+     * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+     * IN THE SOFTWARE.
+     */
 
-def print_guard_start(guard):
-    if guard is not None:
-        print "#ifdef {0}".format(guard)
+    /* This file generated from ${filename}, don't edit directly. */
 
-def print_guard_end(guard):
-    if guard is not None:
-        print "#endif // {0}".format(guard)
+    #include "radv_private.h"
 
-opt_header = False
-opt_code = False
+    struct radv_entrypoint {
+       uint32_t name;
+       uint32_t hash;
+    };
 
-if (sys.argv[1] == "header"):
-    opt_header = True
-    sys.argv.pop()
-elif (sys.argv[1] == "code"):
-    opt_code = True
-    sys.argv.pop()
+    /* We use a big string constant to avoid lots of reloctions from the entry
+     * point table to lots of little strings. The entries in the entry point table
+     * store the index into this big string.
+     */
 
-# Extract the entry points from the registry
+    static const char strings[] =
+    % for _, name, _, _, _, _ in entrypoints:
+        "vk${name}\\0"
+    % endfor
+    ;
+
+    static const struct radv_entrypoint entrypoints[] = {
+    % for _, _, _, num, h, _ in entrypoints:
+        { ${offsets[num]}, ${'{:0=#8x}'.format(h)} },
+    % endfor
+    };
+
+    /* Weak aliases for all potential implementations. These will resolve to
+     * NULL if they're not defined, which lets the resolve_entrypoint() function
+     * either pick the correct entry point.
+     */
+
+    % for layer in ['radv']:
+      % for type_, name, args, _, _, guard in entrypoints:
+        % if guard is not None:
+    #ifdef ${guard}
+        % endif
+        ${type_} ${layer}_${name}(${args}) __attribute__ ((weak));
+        % if guard is not None:
+    #endif // ${guard}
+        % endif
+      % endfor
+
+      const struct radv_dispatch_table ${layer}_layer = {
+      % for _, name, args, _, _, guard in entrypoints:
+        % if guard is not None:
+    #ifdef ${guard}
+        % endif
+        .${name} = ${layer}_${name},
+        % if guard is not None:
+    #endif // ${guard}
+        % endif
+      % endfor
+      };
+    % endfor
+
+    static void * __attribute__ ((noinline))
+    radv_resolve_entrypoint(uint32_t index)
+    {
+       return radv_layer.entrypoints[index];
+    }
+
+    /* Hash table stats:
+     * size ${hash_size} entries
+     * collisions entries:
+    % for i in xrange(10):
+     *     ${i}${'+' if i == 9 else ''}     ${collisions[i]}
+    % endfor
+     */
+
+    #define none ${'{:#x}'.format(none)}
+    static const uint16_t map[] = {
+    % for i in xrange(0, hash_size, 8):
+      % for j in xrange(i, i + 8):
+        ## This is 6 because the 0x is counted in the length
+        % if mapping[j] & 0xffff == 0xffff:
+          none,
+        % else:
+          ${'{:0=#6x}'.format(mapping[j] & 0xffff)},
+        % endif
+      % endfor
+    % endfor
+    };
+
+    void *
+    radv_lookup_entrypoint(const char *name)
+    {
+       static const uint32_t prime_factor = ${prime_factor};
+       static const uint32_t prime_step = ${prime_step};
+       const struct radv_entrypoint *e;
+       uint32_t hash, h, i;
+       const char *p;
+
+       hash = 0;
+       for (p = name; *p; p++)
+          hash = hash * prime_factor + *p;
+
+       h = hash;
+       do {
+          i = map[h & ${hash_mask}];
+          if (i == none)
+             return NULL;
+          e = &entrypoints[i];
+          h += prime_step;
+       } while (e->hash != hash);
+
+       if (strcmp(name, strings + e->name) != 0)
+          return NULL;
+
+       return radv_resolve_entrypoint(i);
+    }"""), output_encoding='utf-8')
+
+NONE = 0xffff
+HASH_SIZE = 256
+U32_MASK = 2**32 - 1
+HASH_MASK = HASH_SIZE - 1
+
+PRIME_FACTOR = 5024183
+PRIME_STEP = 19
+
+
+def cal_hash(name):
+    """Calculate the same hash value that Mesa will calculate in C."""
+    return functools.reduce(
+        lambda h, c: (h * PRIME_FACTOR + ord(c)) & U32_MASK, name, 0)
+
+
 def get_entrypoints(doc, entrypoints_to_defines):
+    """Extract the entry points from the registry."""
     entrypoints = []
 
     enabled_commands = set()
     for feature in doc.findall('./feature'):
         assert feature.attrib['api'] == 'vulkan'
-        if float(feature.attrib['number']) > max_api_version:
+        if float(feature.attrib['number']) > MAX_API_VERSION:
             continue
 
         for command in feature.findall('./require/command'):
             enabled_commands.add(command.attrib['name'])
 
     for extension in doc.findall('.extensions/extension'):
-        if extension.attrib['name'] not in supported_extensions:
+        if extension.attrib['name'] not in SUPPORTED_EXTENSIONS:
             continue
 
         assert extension.attrib['supported'] == 'vulkan'
@@ -115,219 +277,78 @@ def get_entrypoints(doc, entrypoints_to_defines):
             continue
 
         shortname = fullname[2:]
-        params = map(lambda p: "".join(p.itertext()), command.findall('./param'))
+        params = (''.join(p.itertext()) for p in command.findall('./param'))
         params = ', '.join(params)
-        if fullname in entrypoints_to_defines:
-            guard = entrypoints_to_defines[fullname]
-        else:
-            guard = None
-        entrypoints.append((type, shortname, params, index, hash(fullname), guard))
+        guard = entrypoints_to_defines.get(fullname)
+        entrypoints.append((type, shortname, params, index, cal_hash(fullname), guard))
         index += 1
 
     return entrypoints
 
-# Maps entry points to extension defines
+
 def get_entrypoints_defines(doc):
+    """Maps entry points to extension defines."""
     entrypoints_to_defines = {}
-    extensions = doc.findall('./extensions/extension')
-    for extension in extensions:
-        define = extension.get('protect')
-        entrypoints = extension.findall('./require/command')
-        for entrypoint in entrypoints:
-            fullname = entrypoint.get('name')
+
+    for extension in doc.findall('./extensions/extension[@protect]'):
+        define = extension.attrib['protect']
+
+        for entrypoint in extension.findall('./require/command'):
+            fullname = entrypoint.attrib['name']
             entrypoints_to_defines[fullname] = define
+
     return entrypoints_to_defines
 
-doc = ET.parse(sys.stdin)
-entrypoints = get_entrypoints(doc, get_entrypoints_defines(doc))
 
-# For outputting entrypoints.h we generate a radv_EntryPoint() prototype
-# per entry point.
+def gen_code(entrypoints):
+    """Generate the C code."""
+    i = 0
+    offsets = []
+    for _, name, _, _, _, _ in entrypoints:
+        offsets.append(i)
+        i += 2 + len(name) + 1
 
-if opt_header:
-    print "/* This file generated from vk_gen.py, don't edit directly. */\n"
-
-    print "struct radv_dispatch_table {"
-    print "   union {"
-    print "      void *entrypoints[%d];" % len(entrypoints)
-    print "      struct {"
-
-    for type, name, args, num, h, guard in entrypoints:
-        if guard is not None:
-            print "#ifdef {0}".format(guard)
-            print "         PFN_vk{0} {0};".format(name)
-            print "#else"
-            print "         void *{0};".format(name)
-            print "#endif"
+    mapping = [NONE] * HASH_SIZE
+    collisions = [0] * 10
+    for _, name, _, num, h, _ in entrypoints:
+        level = 0
+        while mapping[h & HASH_MASK] != NONE:
+            h = h + PRIME_STEP
+            level = level + 1
+        if level > 9:
+            collisions[9] += 1
         else:
-            print "         PFN_vk{0} {0};".format(name)
-    print "      };\n"
-    print "   };\n"
-    print "};\n"
+            collisions[level] += 1
+        mapping[h & HASH_MASK] = num
 
-    for type, name, args, num, h, guard in entrypoints:
-        print_guard_start(guard)
-        print "%s radv_%s(%s);" % (type, name, args)
-        print_guard_end(guard)
-    exit()
+    return TEMPLATE_C.render(entrypoints=entrypoints,
+                             offsets=offsets,
+                             collisions=collisions,
+                             mapping=mapping,
+                             hash_mask=HASH_MASK,
+                             prime_step=PRIME_STEP,
+                             prime_factor=PRIME_FACTOR,
+                             none=NONE,
+                             hash_size=HASH_SIZE,
+                             filename=os.path.basename(__file__))
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--outdir', help='Where to write the files.',
+                        required=True)
+    parser.add_argument('--xml', help='Vulkan API XML file.', required=True)
+    args = parser.parse_args()
 
-print """/*
- * Copyright © 2015 Intel Corporation
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- */
+    doc = et.parse(args.xml)
+    entrypoints = get_entrypoints(doc, get_entrypoints_defines(doc))
 
-/* DO NOT EDIT! This is a generated file. */
+    with open(os.path.join(args.outdir, 'radv_entrypoints.h'), 'wb') as f:
+        f.write(TEMPLATE_H.render(entrypoints=entrypoints,
+                                  filename=os.path.basename(__file__)))
+    with open(os.path.join(args.outdir, 'radv_entrypoints.c'), 'wb') as f:
+        f.write(gen_code(entrypoints))
 
-#include "radv_private.h"
 
-struct radv_entrypoint {
-   uint32_t name;
-   uint32_t hash;
-};
-
-/* We use a big string constant to avoid lots of reloctions from the entry
- * point table to lots of little strings. The entries in the entry point table
- * store the index into this big string.
- */
-
-static const char strings[] ="""
-
-offsets = []
-i = 0;
-for type, name, args, num, h, guard in entrypoints:
-    print "   \"vk%s\\0\"" % name
-    offsets.append(i)
-    i += 2 + len(name) + 1
-print "   ;"
-
-# Now generate the table of all entry points
-
-print "\nstatic const struct radv_entrypoint entrypoints[] = {"
-for type, name, args, num, h, guard in entrypoints:
-    print "   { %5d, 0x%08x }," % (offsets[num], h)
-print "};\n"
-
-print """
-
-/* Weak aliases for all potential implementations. These will resolve to
- * NULL if they're not defined, which lets the resolve_entrypoint() function
- * either pick the correct entry point.
- */
-"""
-
-for layer in [ "radv" ]:
-    for type, name, args, num, h, guard in entrypoints:
-        print_guard_start(guard)
-        print "%s %s_%s(%s) __attribute__ ((weak));" % (type, layer, name, args)
-        print_guard_end(guard)
-    print "\nconst struct radv_dispatch_table %s_layer = {" % layer
-    for type, name, args, num, h, guard in entrypoints:
-        print_guard_start(guard)
-        print "   .%s = %s_%s," % (name, layer, name)
-        print_guard_end(guard)
-    print "};\n"
-
-print """
-
-static void * __attribute__ ((noinline))
-radv_resolve_entrypoint(uint32_t index)
-{
-   return radv_layer.entrypoints[index];
-}
-"""
-
-# Now generate the hash table used for entry point look up.  This is a
-# uint16_t table of entry point indices. We use 0xffff to indicate an entry
-# in the hash table is empty.
-
-map = [none for f in xrange(hash_size)]
-collisions = [0 for f in xrange(10)]
-for type, name, args, num, h, guard in entrypoints:
-    level = 0
-    while map[h & hash_mask] != none:
-        h = h + prime_step
-        level = level + 1
-    if level > 9:
-        collisions[9] += 1
-    else:
-        collisions[level] += 1
-    map[h & hash_mask] = num
-
-print "/* Hash table stats:"
-print " * size %d entries" % hash_size
-print " * collisions  entries"
-for i in xrange(10):
-    if (i == 9):
-        plus = "+"
-    else:
-        plus = " "
-
-    print " *     %2d%s     %4d" % (i, plus, collisions[i])
-print " */\n"
-
-print "#define none 0x%04x\n" % none
-
-print "static const uint16_t map[] = {"
-for i in xrange(0, hash_size, 8):
-    print "   ",
-    for j in xrange(i, i + 8):
-        if map[j] & 0xffff == 0xffff:
-            print "  none,",
-        else:
-            print "0x%04x," % (map[j] & 0xffff),
-    print
-
-print "};"    
-
-# Finally we generate the hash table lookup function.  The hash function and
-# linear probing algorithm matches the hash table generated above.
-
-print """
-void *
-radv_lookup_entrypoint(const char *name)
-{
-   static const uint32_t prime_factor = %d;
-   static const uint32_t prime_step = %d;
-   const struct radv_entrypoint *e;
-   uint32_t hash, h, i;
-   const char *p;
-
-   hash = 0;
-   for (p = name; *p; p++)
-      hash = hash * prime_factor + *p;
-
-   h = hash;
-   do {
-      i = map[h & %d];
-      if (i == none)
-         return NULL;
-      e = &entrypoints[i];
-      h += prime_step;
-   } while (e->hash != hash);
-
-   if (strcmp(name, strings + e->name) != 0)
-      return NULL;
-
-   return radv_resolve_entrypoint(i);
-}
-""" % (prime_factor, prime_step, hash_mask)
+if __name__ == '__main__':
+    main()

@@ -7677,21 +7677,17 @@ ast_interface_block::hir(exec_list *instructions,
                                "invalid qualifier for block",
                                this->block_name);
 
-   /* The ast_interface_block has a list of ast_declarator_lists.  We
-    * need to turn those into ir_variables with an association
-    * with this uniform block.
-    */
    enum glsl_interface_packing packing;
-   if (this->layout.flags.q.shared) {
-      packing = GLSL_INTERFACE_PACKING_SHARED;
+   if (this->layout.flags.q.std140) {
+      packing = GLSL_INTERFACE_PACKING_STD140;
    } else if (this->layout.flags.q.packed) {
       packing = GLSL_INTERFACE_PACKING_PACKED;
    } else if (this->layout.flags.q.std430) {
       packing = GLSL_INTERFACE_PACKING_STD430;
    } else {
-      /* The default layout is std140.
+      /* The default layout is shared.
        */
-      packing = GLSL_INTERFACE_PACKING_STD140;
+      packing = GLSL_INTERFACE_PACKING_SHARED;
    }
 
    ir_variable_mode var_mode;

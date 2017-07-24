@@ -469,8 +469,8 @@ specialize_wildcards(nir_deref_var *deref,
    nir_deref_var *ret = nir_deref_var_create(mem_ctx, deref->var);
 
    nir_deref *deref_tail = deref->deref.child;
-   nir_deref *guide_tail = guide->deref.child;
-   nir_deref *spec_tail = specific->deref.child;
+   nir_deref *guide_tail = &guide->deref;
+   nir_deref *spec_tail = &specific->deref;
    nir_deref *ret_tail = &ret->deref;
    while (deref_tail) {
       switch (deref_tail->deref_type) {
@@ -495,14 +495,14 @@ specialize_wildcards(nir_deref_var *deref,
              * the entry deref to find its corresponding wildcard and fill
              * this slot in with the value from the src.
              */
-            while (guide_tail) {
+            while (guide_tail->child) {
+               guide_tail = guide_tail->child;
+               spec_tail = spec_tail->child;
+
                if (guide_tail->deref_type == nir_deref_type_array &&
                    nir_deref_as_array(guide_tail)->deref_array_type ==
                    nir_deref_array_type_wildcard)
                   break;
-
-               guide_tail = guide_tail->child;
-               spec_tail = spec_tail->child;
             }
 
             nir_deref_array *spec_arr = nir_deref_as_array(spec_tail);

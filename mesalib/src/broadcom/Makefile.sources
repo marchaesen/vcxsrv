@@ -8,5 +8,6 @@ BROADCOM_GENXML_XML_FILES = \
 
 BROADCOM_FILES = \
 	cle/v3d_packet_helpers.h \
+	common/v3d_device_info.h \
 	$()
 

@@ -230,6 +230,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 			.image_write_without_format = true,
 			.tessellation = true,
 			.int64 = true,
+			.variable_pointers = true,
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,
 					   spec_entries, num_spec_entries,
@@ -1034,14 +1035,17 @@ radv_pipeline_compute_spi_color_formats(struct radv_pipeline *pipeline,
 	unsigned col_format = 0;
 
 	for (unsigned i = 0; i < (single_cb_enable ? 1 : subpass->color_count); ++i) {
-		struct radv_render_pass_attachment *attachment;
 		unsigned cf;
 
-		attachment = pass->attachments + subpass->color_attachments[i].attachment;
+		if (subpass->color_attachments[i].attachment == VK_ATTACHMENT_UNUSED) {
+			cf = V_028714_SPI_SHADER_ZERO;
+		} else {
+			struct radv_render_pass_attachment *attachment = pass->attachments + subpass->color_attachments[i].attachment;
 
-		cf = si_choose_spi_color_format(attachment->format,
-						blend_enable & (1 << i),
-						blend_need_alpha & (1 << i));
+			cf = si_choose_spi_color_format(attachment->format,
+			                                blend_enable & (1 << i),
+			                                blend_need_alpha & (1 << i));
+		}
 
 		col_format |= cf << (4 * i);
 	}
@@ -1080,6 +1084,9 @@ radv_pipeline_compute_is_int8(const VkGraphicsPipelineCreateInfo *pCreateInfo)
 
 	for (unsigned i = 0; i < subpass->color_count; ++i) {
 		struct radv_render_pass_attachment *attachment;
+
+		if (subpass->color_attachments[i].attachment == VK_ATTACHMENT_UNUSED)
+			continue;
 
 		attachment = pass->attachments + subpass->color_attachments[i].attachment;
 
@@ -1342,7 +1349,9 @@ radv_pipeline_init_multisample_state(struct radv_pipeline *pipeline,
 	else
 		ms->num_samples = 1;
 
-	if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.force_persample) {
+	if (vkms && vkms->sampleShadingEnable) {
+		ps_iter_samples = ceil(vkms->minSampleShading * ms->num_samples);
+	} else if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.force_persample) {
 		ps_iter_samples = ms->num_samples;
 	}
 

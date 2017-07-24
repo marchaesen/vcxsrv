@@ -117,13 +117,13 @@
 
   <!-- These functions are unique to GL3 -->
 
-  <function name="ClearBufferiv" es2="3.0">
+  <function name="ClearBufferiv" es2="3.0" marshal="custom">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
     <param name="value" type="const GLint *"/>
   </function>
 
-  <function name="ClearBufferuiv" es2="3.0">
+  <function name="ClearBufferuiv" es2="3.0" marshal="custom">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
     <param name="value" type="const GLuint *"/>
@@ -135,7 +135,7 @@
     <param name="value" type="const GLfloat *"/>
   </function>
 
-  <function name="ClearBufferfi" es2="3.0">
+  <function name="ClearBufferfi" es2="3.0" marshal="custom">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
     <param name="depth" type="GLfloat"/>

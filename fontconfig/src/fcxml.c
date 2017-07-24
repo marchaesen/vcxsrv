@@ -3234,11 +3234,11 @@ FcConfigParseAndLoadFromMemoryInternal (FcConfig       *config,
     size_t	    len;
     FcConfigParse   parse;
     FcBool	    error = FcTrue;
-    void            *buf;
 
 #ifdef ENABLE_LIBXML2
     xmlSAXHandler   sax;
 #else
+    void            *buf;
     const FcChar8   *s;
     size_t	    buflen;
 #endif
@@ -3303,7 +3303,7 @@ FcConfigParseAndLoadFromMemoryInternal (FcConfig       *config,
 #endif
 
 #ifdef ENABLE_LIBXML2
-	if (xmlParseChunk (p, buffer, len, len == 0))
+	if (xmlParseChunk (p, (const char *)buffer, len, len == 0))
 #else
 	if (!XML_ParseBuffer (p, buflen, buflen == 0))
 #endif

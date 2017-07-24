@@ -41,7 +41,7 @@ LOCAL_EXPORT_C_INCLUDE_DIRS += \
 	$(MESA_TOP)/src/compiler/nir
 
 LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, \
-	$(NIR_GENERATED_FILES))
+	$(NIR_GENERATED_FILES) $(SPIRV_GENERATED_FILES))
 
 # Modules using libmesa_nir must set LOCAL_GENERATED_SOURCES to this
 MESA_GEN_NIR_H := $(addprefix $(call local-generated-sources-dir)/, \
@@ -94,3 +94,7 @@ nir_opt_algebraic_deps := \
 $(intermediates)/nir/nir_opt_algebraic.c: $(nir_opt_algebraic_deps)
 	@mkdir -p $(dir $@)
 	$(hide) $(MESA_PYTHON2) $(nir_opt_algebraic_gen) $< > $@
+
+$(intermediates)/spirv/spirv_info.c: $(LOCAL_PATH)/spirv/spirv_info_c.py $(LOCAL_PATH)/spirv/spirv.core.grammar.json
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $^ $@ || ($(RM) $@; false)

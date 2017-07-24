@@ -141,6 +141,7 @@ create_shadow_temp(struct lower_io_state *state, nir_variable *var)
    temp->data.mode = nir_var_global;
    temp->data.read_only = false;
    temp->data.fb_fetch_output = false;
+   temp->data.compact = false;
 
    return nvar;
 }

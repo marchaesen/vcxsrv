@@ -663,7 +663,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeDccInfo(
 ************************************************************************************************************************
 */
 ADDR_E_RETURNCODE Gfx9Lib::HwlGetMaxAlignments(
-    ADDR_GET_MAX_ALINGMENTS_OUTPUT* pOut    ///< [out] output structure
+    ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut    ///< [out] output structure
     ) const
 {
     pOut->baseAlign = HwlComputeSurfaceBaseAlign(ADDR_SW_64KB);

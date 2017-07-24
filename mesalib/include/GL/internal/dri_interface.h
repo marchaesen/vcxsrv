@@ -1050,6 +1050,12 @@ struct __DRIdri2LoaderExtensionRec {
 #define __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS	0x00000004
 
 /**
+ * \requires __DRI2_NO_ERROR.
+ *
+ */
+#define __DRI_CTX_FLAG_NO_ERROR			0x00000008
+
+/**
  * \name Context reset strategies.
  */
 /*@{*/
@@ -1610,6 +1616,19 @@ typedef struct __DRIrobustnessExtensionRec __DRIrobustnessExtension;
 struct __DRIrobustnessExtensionRec {
    __DRIextension base;
 };
+
+/**
+ * No-error context driver extension.
+ *
+ * Existence of this extension means the driver can accept the
+ * __DRI_CTX_FLAG_NO_ERROR flag.
+ */
+#define __DRI2_NO_ERROR "DRI_NoError"
+#define __DRI2_NO_ERROR_VERSION 1
+
+typedef struct __DRInoErrorExtensionRec {
+   __DRIextension base;
+} __DRInoErrorExtension;
 
 /**
  * DRI config options extension.

@@ -640,7 +640,7 @@ loader_dri3_swap_buffers_msc(struct loader_dri3_drawable *draw,
 
    draw->vtable->flush_drawable(draw, flush_flags);
 
-   back = draw->buffers[LOADER_DRI3_BACK_ID(draw->cur_back)];
+   back = draw->buffers[dri3_find_back(draw)];
    if (draw->is_different_gpu && back) {
       /* Update the linear buffer before presenting the pixmap */
       draw->ext->image->blitImage(dri_context,

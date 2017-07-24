@@ -71,7 +71,7 @@ GETTEXT_PACKAGE=xkeyboard-config
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Gettext package])
 
-ALL_LINGUAS="af az bg ca crh cs da de el en_GB eo es fi fr gl hr hu id it ja ka ko ky lt nb nl pl pt_BR ro ru rw sk sl sq sr sv tr uk vi zh_CN zh_TW"
+ALL_LINGUAS="af az bg ca crh cs da de el en_GB eo es fi fr fur gl hr hu id it ja ka ko ky lt nb nl pl pt_BR ro ru rw sk sl sq sr sv tr uk vi zh_CN zh_TW"
 
 AC_SUBST(xkb_base)
 AC_SUBST(xkb_rules_symlink)

@@ -105,18 +105,18 @@ apply_swizzle(struct st_translate *t,
       imm[0] = src;
       imm[1] = ureg_imm4f(t->ureg, 1.0f, 1.0f, 0.0f, 0.0f);
       imm[2] = ureg_imm4f(t->ureg, 0.0f, 0.0f, 1.0f, 1.0f);
-      ureg_insn(t->ureg, TGSI_OPCODE_MAD, &tmp[0], 1, imm, 3);
+      ureg_insn(t->ureg, TGSI_OPCODE_MAD, &tmp[0], 1, imm, 3, 0);
 
       if (swizzle == GL_SWIZZLE_STR_DR_ATI) {
          imm[0] = ureg_scalar(src, TGSI_SWIZZLE_Z);
       } else {
          imm[0] = ureg_scalar(src, TGSI_SWIZZLE_W);
       }
-      ureg_insn(t->ureg, TGSI_OPCODE_RCP, &tmp[1], 1, &imm[0], 1);
+      ureg_insn(t->ureg, TGSI_OPCODE_RCP, &tmp[1], 1, &imm[0], 1, 0);
 
       imm[0] = ureg_src(tmp[0]);
       imm[1] = ureg_src(tmp[1]);
-      ureg_insn(t->ureg, TGSI_OPCODE_MUL, &tmp[0], 1, imm, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_MUL, &tmp[0], 1, imm, 2, 0);
 
       return ureg_src(tmp[0]);
    }
@@ -170,35 +170,35 @@ prepare_argument(struct st_translate *t, const unsigned argId,
       src = ureg_scalar(src, TGSI_SWIZZLE_W);
       break;
    }
-   ureg_insn(t->ureg, TGSI_OPCODE_MOV, &arg, 1, &src, 1);
+   ureg_insn(t->ureg, TGSI_OPCODE_MOV, &arg, 1, &src, 1, 0);
 
    if (srcReg->argMod & GL_COMP_BIT_ATI) {
       struct ureg_src modsrc[2];
       modsrc[0] = ureg_imm1f(t->ureg, 1.0f);
       modsrc[1] = ureg_negate(ureg_src(arg));
 
-      ureg_insn(t->ureg, TGSI_OPCODE_ADD, &arg, 1, modsrc, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_ADD, &arg, 1, modsrc, 2, 0);
    }
    if (srcReg->argMod & GL_BIAS_BIT_ATI) {
       struct ureg_src modsrc[2];
       modsrc[0] = ureg_src(arg);
       modsrc[1] = ureg_imm1f(t->ureg, -0.5f);
 
-      ureg_insn(t->ureg, TGSI_OPCODE_ADD, &arg, 1, modsrc, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_ADD, &arg, 1, modsrc, 2, 0);
    }
    if (srcReg->argMod & GL_2X_BIT_ATI) {
       struct ureg_src modsrc[2];
       modsrc[0] = ureg_src(arg);
       modsrc[1] = ureg_src(arg);
 
-      ureg_insn(t->ureg, TGSI_OPCODE_ADD, &arg, 1, modsrc, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_ADD, &arg, 1, modsrc, 2, 0);
    }
    if (srcReg->argMod & GL_NEGATE_BIT_ATI) {
       struct ureg_src modsrc[2];
       modsrc[0] = ureg_src(arg);
       modsrc[1] = ureg_imm1f(t->ureg, -1.0f);
 
-      ureg_insn(t->ureg, TGSI_OPCODE_MUL, &arg, 1, modsrc, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_MUL, &arg, 1, modsrc, 2, 0);
    }
    return  ureg_src(arg);
 }
@@ -217,25 +217,25 @@ emit_special_inst(struct st_translate *t, const struct instruction_desc *desc,
       tmp[0] = get_temp(t, MAX_NUM_FRAGMENT_REGISTERS_ATI + 2); /* re-purpose a3 */
       src[0] = ureg_imm1f(t->ureg, 0.5f);
       src[1] = ureg_negate(args[2]);
-      ureg_insn(t->ureg, TGSI_OPCODE_ADD, tmp, 1, src, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_ADD, tmp, 1, src, 2, 0);
       src[0] = ureg_src(tmp[0]);
       src[1] = args[0];
       src[2] = args[1];
-      ureg_insn(t->ureg, TGSI_OPCODE_CMP, dst, 1, src, 3);
+      ureg_insn(t->ureg, TGSI_OPCODE_CMP, dst, 1, src, 3, 0);
    } else if (!strcmp(desc->name, "CND0")) {
       src[0] = args[2];
       src[1] = args[1];
       src[2] = args[0];
-      ureg_insn(t->ureg, TGSI_OPCODE_CMP, dst, 1, src, 3);
+      ureg_insn(t->ureg, TGSI_OPCODE_CMP, dst, 1, src, 3, 0);
    } else if (!strcmp(desc->name, "DOT2_ADD")) {
       /* note: DP2A is not implemented in most pipe drivers */
       tmp[0] = get_temp(t, MAX_NUM_FRAGMENT_REGISTERS_ATI); /* re-purpose a1 */
       src[0] = args[0];
       src[1] = args[1];
-      ureg_insn(t->ureg, TGSI_OPCODE_DP2, tmp, 1, src, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_DP2, tmp, 1, src, 2, 0);
       src[0] = ureg_src(tmp[0]);
       src[1] = ureg_scalar(args[2], TGSI_SWIZZLE_Z);
-      ureg_insn(t->ureg, TGSI_OPCODE_ADD, dst, 1, src, 2);
+      ureg_insn(t->ureg, TGSI_OPCODE_ADD, dst, 1, src, 2, 0);
    }
 }
 
@@ -249,7 +249,7 @@ emit_arith_inst(struct st_translate *t,
       return;
    }
 
-   ureg_insn(t->ureg, desc->TGSI_opcode, dst, 1, args, argcount);
+   ureg_insn(t->ureg, desc->TGSI_opcode, dst, 1, args, argcount, 0);
 }
 
 static void
@@ -292,7 +292,7 @@ emit_dstmod(struct st_translate *t,
    if (dstMod & GL_SATURATE_BIT_ATI) {
       dst = ureg_saturate(dst);
    }
-   ureg_insn(t->ureg, TGSI_OPCODE_MUL, &dst, 1, src, 2);
+   ureg_insn(t->ureg, TGSI_OPCODE_MUL, &dst, 1, src, 2, 0);
 }
 
 /**
@@ -336,7 +336,7 @@ compile_setupinst(struct st_translate *t,
       ureg_tex_insn(t->ureg, TGSI_OPCODE_TEX, dst, 1, TGSI_TEXTURE_2D,
                     TGSI_RETURN_TYPE_FLOAT, NULL, 0, src, 2);
    } else if (texinst->Opcode == ATI_FRAGMENT_SHADER_PASS_OP) {
-      ureg_insn(t->ureg, TGSI_OPCODE_MOV, dst, 1, src, 1);
+      ureg_insn(t->ureg, TGSI_OPCODE_MOV, dst, 1, src, 1, 0);
    }
 
    t->regs_written[t->current_pass][r] = true;
@@ -408,11 +408,11 @@ finalize_shader(struct st_translate *t, unsigned numPasses)
       /* copy the result into the OUT slot */
       dst[0] = t->outputs[t->outputMapping[FRAG_RESULT_COLOR]];
       src[0] = ureg_src(t->temps[0]);
-      ureg_insn(t->ureg, TGSI_OPCODE_MOV, dst, 1, src, 1);
+      ureg_insn(t->ureg, TGSI_OPCODE_MOV, dst, 1, src, 1, 0);
    }
 
    /* signal the end of the program */
-   ureg_insn(t->ureg, TGSI_OPCODE_END, dst, 0, src, 0);
+   ureg_insn(t->ureg, TGSI_OPCODE_END, dst, 0, src, 0, 0);
 }
 
 /**

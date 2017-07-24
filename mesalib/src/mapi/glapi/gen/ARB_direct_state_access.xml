@@ -247,7 +247,7 @@
       <param name="stencil" type="GLint" />
    </function>
 
-   <function name="BlitNamedFramebuffer">
+   <function name="BlitNamedFramebuffer" no_error="true">
       <param name="readFramebuffer" type="GLuint" />
       <param name="drawFramebuffer" type="GLuint" />
       <param name="srcX0" type="GLint" />

@@ -204,6 +204,7 @@ util_queue_init(struct util_queue *queue,
 
    memset(queue, 0, sizeof(*queue));
    queue->name = name;
+   queue->flags = flags;
    queue->num_threads = num_threads;
    queue->max_jobs = max_jobs;
 
@@ -329,9 +330,39 @@ util_queue_add_job(struct util_queue *queue,
 
    assert(queue->num_queued >= 0 && queue->num_queued <= queue->max_jobs);
 
-   /* if the queue is full, wait until there is space */
-   while (queue->num_queued == queue->max_jobs)
-      cnd_wait(&queue->has_space_cond, &queue->lock);
+   if (queue->num_queued == queue->max_jobs) {
+      if (queue->flags & UTIL_QUEUE_INIT_RESIZE_IF_FULL) {
+         /* If the queue is full, make it larger to avoid waiting for a free
+          * slot.
+          */
+         unsigned new_max_jobs = queue->max_jobs + 8;
+         struct util_queue_job *jobs =
+            (struct util_queue_job*)calloc(new_max_jobs,
+                                           sizeof(struct util_queue_job));
+         assert(jobs);
+
+         /* Copy all queued jobs into the new list. */
+         unsigned num_jobs = 0;
+         unsigned i = queue->read_idx;
+
+         do {
+            jobs[num_jobs++] = queue->jobs[i];
+            i = (i + 1) % queue->max_jobs;
+         } while (i != queue->write_idx);
+
+         assert(num_jobs == queue->num_queued);
+
+         free(queue->jobs);
+         queue->jobs = jobs;
+         queue->read_idx = 0;
+         queue->write_idx = num_jobs;
+         queue->max_jobs = new_max_jobs;
+      } else {
+         /* Wait until there is a free slot. */
+         while (queue->num_queued == queue->max_jobs)
+            cnd_wait(&queue->has_space_cond, &queue->lock);
+      }
+   }
 
    ptr = &queue->jobs[queue->write_idx];
    assert(ptr->job == NULL);

@@ -34,8 +34,6 @@
 struct renderonly_scanout {
    uint32_t handle;
    uint32_t stride;
-
-   struct pipe_resource *prime;
 };
 
 struct renderonly {
@@ -59,7 +57,8 @@ struct renderonly {
     *   to be done in flush_resource(..) like a resolve to linear.
     */
    struct renderonly_scanout *(*create_for_resource)(struct pipe_resource *rsc,
-                                                     struct renderonly *ro);
+                                                     struct renderonly *ro,
+                                                     struct winsys_handle *out_handle);
    int kms_fd;
    int gpu_fd;
 };
@@ -68,13 +67,12 @@ struct renderonly *
 renderonly_dup(const struct renderonly *ro);
 
 static inline struct renderonly_scanout *
-renderonly_scanout_for_resource(struct pipe_resource *rsc, struct renderonly *ro)
+renderonly_scanout_for_resource(struct pipe_resource *rsc,
+                                struct renderonly *ro,
+                                struct winsys_handle *out_handle)
 {
-   return ro->create_for_resource(rsc, ro);
+   return ro->create_for_resource(rsc, ro, out_handle);
 }
-
-struct renderonly_scanout *
-renderonly_scanout_for_prime(struct pipe_resource *rsc, struct renderonly *ro);
 
 void
 renderonly_scanout_destroy(struct renderonly_scanout *scanout,
@@ -99,13 +97,15 @@ renderonly_get_handle(struct renderonly_scanout *scanout,
  */
 struct renderonly_scanout *
 renderonly_create_kms_dumb_buffer_for_resource(struct pipe_resource *rsc,
-                                               struct renderonly *ro);
+                                               struct renderonly *ro,
+                                               struct winsys_handle *out_handle);
 
 /**
  * Import GPU resource into scanout hw.
  */
 struct renderonly_scanout *
 renderonly_create_gpu_import_for_resource(struct pipe_resource *rsc,
-                                          struct renderonly *ro);
+                                          struct renderonly *ro,
+                                          struct winsys_handle *out_handle);
 
 #endif /* RENDERONLY_H_ */

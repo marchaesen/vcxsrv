@@ -38,6 +38,7 @@
 #include "main/fbobject.h"
 #include "main/renderbuffer.h"
 #include "main/version.h"
+#include "util/hash_table.h"
 #include "st_texture.h"
 
 #include "st_context.h"
@@ -57,7 +58,12 @@
 #include "util/u_inlines.h"
 #include "util/u_atomic.h"
 #include "util/u_surface.h"
+#include "util/list.h"
 
+struct hash_table;
+static struct hash_table *st_fbi_ht; /* framebuffer iface objects hash table */
+
+static mtx_t st_mutex = _MTX_INITIALIZER_NP;
 
 /**
  * Map an attachment to a buffer index.
@@ -459,6 +465,7 @@ st_framebuffer_create(struct st_context *st,
    _mesa_initialize_window_framebuffer(&stfb->Base, &mode);
 
    stfb->iface = stfbi;
+   stfb->iface_ID = stfbi->ID;
    stfb->iface_stamp = p_atomic_read(&stfbi->stamp) - 1;
 
    /* add the color buffer */
@@ -480,12 +487,105 @@ st_framebuffer_create(struct st_context *st,
 /**
  * Reference a framebuffer.
  */
-static void
+void
 st_framebuffer_reference(struct st_framebuffer **ptr,
                          struct st_framebuffer *stfb)
 {
    struct gl_framebuffer *fb = &stfb->Base;
    _mesa_reference_framebuffer((struct gl_framebuffer **) ptr, fb);
+}
+
+
+static uint32_t
+st_framebuffer_iface_hash(const void *key)
+{
+   return (uintptr_t)key;
+}
+
+
+static bool
+st_framebuffer_iface_equal(const void *a, const void *b)
+{
+   return (struct st_framebuffer_iface *)a == (struct st_framebuffer_iface *)b;
+}
+
+
+static boolean
+st_framebuffer_iface_lookup(const struct st_framebuffer_iface *stfbi)
+{
+   struct hash_entry *entry;
+
+   mtx_lock(&st_mutex);
+   entry = _mesa_hash_table_search(st_fbi_ht, stfbi);
+   mtx_unlock(&st_mutex);
+
+   return entry != NULL;
+}
+
+
+static boolean
+st_framebuffer_iface_insert(struct st_framebuffer_iface *stfbi)
+{
+   struct hash_entry *entry;
+
+   mtx_lock(&st_mutex);
+   entry = _mesa_hash_table_insert(st_fbi_ht, stfbi, stfbi);
+   mtx_unlock(&st_mutex);
+
+   return entry != NULL;
+}
+
+
+static void
+st_framebuffer_iface_remove(struct st_framebuffer_iface *stfbi)
+{
+   struct hash_entry *entry;
+
+   mtx_lock(&st_mutex);
+   entry = _mesa_hash_table_search(st_fbi_ht, stfbi);
+   if (!entry)
+      goto unlock;
+
+   _mesa_hash_table_remove(st_fbi_ht, entry);
+
+unlock:
+   mtx_unlock(&st_mutex);
+}
+
+
+/**
+ * The framebuffer interface object is no longer valid.
+ * Remove the object from the framebuffer interface hash table.
+ */
+static void
+st_api_destroy_drawable(struct st_api *stapi,
+                        struct st_framebuffer_iface *stfbi)
+{
+   st_framebuffer_iface_remove(stfbi);
+}
+
+
+/**
+ * Purge the winsys buffers list to remove any references to
+ * non-existing framebuffer interface objects.
+ */
+static void
+st_framebuffers_purge(struct st_context *st)
+{
+   struct st_framebuffer *stfb, *next;
+
+   LIST_FOR_EACH_ENTRY_SAFE_REV(stfb, next, &st->winsys_buffers, head) {
+      /**
+       * If the corresponding framebuffer interface object no longer exists,
+       * remove the framebuffer object from the context's winsys buffers list,
+       * and unreference the framebuffer object, so its resources can be
+       * deleted.
+       */
+      if (!st_framebuffer_iface_lookup(stfb->iface)) {
+         LIST_DEL(&stfb->head);
+         st_framebuffer_reference(&stfb, NULL);
+      }
+   }
 }
 
 static void
@@ -654,6 +754,7 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    struct pipe_context *pipe;
    struct gl_config mode;
    gl_api api;
+   bool no_error = false;
    unsigned ctx_flags = PIPE_CONTEXT_PREFER_THREADED;
 
    if (!(stapi->profile_mask & (1 << attribs->profile)))
@@ -680,6 +781,9 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    if (attribs->flags & ST_CONTEXT_FLAG_ROBUST_ACCESS)
       ctx_flags |= PIPE_CONTEXT_ROBUST_BUFFER_ACCESS;
 
+   if (attribs->flags & ST_CONTEXT_FLAG_NO_ERROR)
+      no_error = true;
+
    pipe = smapi->screen->context_create(smapi->screen, NULL, ctx_flags);
    if (!pipe) {
       *error = ST_CONTEXT_ERROR_NO_MEMORY;
@@ -687,7 +791,7 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    }
 
    st_visual_to_context_mode(&attribs->visual, &mode);
-   st = st_create_context(api, pipe, &mode, shared_ctx, &attribs->options);
+   st = st_create_context(api, pipe, &mode, shared_ctx, &attribs->options, no_error);
    if (!st) {
       *error = ST_CONTEXT_ERROR_NO_MEMORY;
       pipe->destroy(pipe);
@@ -761,17 +865,39 @@ st_framebuffer_reuse_or_create(struct st_context *st,
                                struct gl_framebuffer *fb,
                                struct st_framebuffer_iface *stfbi)
 {
-   struct st_framebuffer *cur = st_ws_framebuffer(fb), *stfb = NULL;
+   struct st_framebuffer *cur = NULL, *stfb = NULL;
 
-   /* dummy framebuffers cant be used as st_framebuffer */
-   if (cur && &cur->Base != _mesa_get_incomplete_framebuffer() &&
-       cur->iface == stfbi) {
-      /* reuse the current stfb */
-      st_framebuffer_reference(&stfb, cur);
+   if (!stfbi)
+	return NULL;
+
+   /* Check if there is already a framebuffer object for the specified
+    * framebuffer interface in this context. If there is one, use it.
+    */
+   LIST_FOR_EACH_ENTRY(cur, &st->winsys_buffers, head) {
+      if (cur->iface_ID == stfbi->ID) {
+         st_framebuffer_reference(&stfb, cur);
+         break;
+      }
    }
-   else {
-      /* create a new one */
-      stfb = st_framebuffer_create(st, stfbi);
+
+   /* If there is not already a framebuffer object, create one */
+   if (stfb == NULL) {
+      cur = st_framebuffer_create(st, stfbi);
+
+      if (cur) {
+         /* add the referenced framebuffer interface object to
+          * the framebuffer interface object hash table.
+          */
+         if (!st_framebuffer_iface_insert(stfbi)) {
+            st_framebuffer_reference(&cur, NULL);
+            return NULL;
+         }
+
+         /* add to the context's winsys buffers list */
+         LIST_ADD(&cur->head, &st->winsys_buffers);
+
+         st_framebuffer_reference(&stfb, cur);
+      }
    }
 
    return stfb;
@@ -822,6 +948,11 @@ st_api_make_current(struct st_api *stapi, struct st_context_iface *stctxi,
 
       st_framebuffer_reference(&stdraw, NULL);
       st_framebuffer_reference(&stread, NULL);
+
+      /* Purge the context's winsys_buffers list in case any
+       * of the referenced drawables no longer exist.
+       */
+      st_framebuffers_purge(st);
    }
    else {
       ret = _mesa_make_current(NULL, NULL, NULL);
@@ -833,6 +964,8 @@ st_api_make_current(struct st_api *stapi, struct st_context_iface *stctxi,
 static void
 st_api_destroy(struct st_api *stapi)
 {
+   _mesa_hash_table_destroy(st_fbi_ht, NULL);
+   mtx_destroy(&st_mutex);
 }
 
 /**
@@ -967,10 +1100,18 @@ static const struct st_api st_gl_api = {
    .create_context = st_api_create_context,
    .make_current = st_api_make_current,
    .get_current = st_api_get_current,
+   .destroy_drawable = st_api_destroy_drawable,
 };
 
 struct st_api *
 st_gl_api_create(void)
 {
+   /* Create a hash table for all the framebuffer interface objects */
+
+   mtx_init(&st_mutex, mtx_plain);
+   st_fbi_ht = _mesa_hash_table_create(NULL,
+                                       st_framebuffer_iface_hash,
+                                       st_framebuffer_iface_equal);
+
    return (struct st_api *) &st_gl_api;
 }

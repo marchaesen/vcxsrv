@@ -67,7 +67,7 @@
 #include <unistd.h>
 #endif
 
-#if defined(PIPE_OS_ANDROID)
+#if defined(HAS_ANDROID_CPUFEATURES)
 #include <cpu-features.h>
 #endif
 
@@ -304,7 +304,14 @@ PIPE_ALIGN_STACK static inline boolean sse2_has_daz(void)
 static void
 check_os_arm_support(void)
 {
-#if defined(PIPE_OS_ANDROID)
+   /*
+    * On Android, the cpufeatures library is preferred way of checking
+    * CPU capabilities. However, it is not available for standalone Mesa
+    * builds, i.e. when Android build system (Android.mk-based) is not
+    * used. Because of this we cannot use PIPE_OS_ANDROID here, but rather
+    * have a separate macro that only gets enabled from respective Android.mk.
+    */
+#if defined(HAS_ANDROID_CPUFEATURES)
    AndroidCpuFamily cpu_family = android_getCpuFamily();
    uint64_t cpu_features = android_getCpuFeatures();
 
@@ -431,7 +438,7 @@ util_cpu_detect(void)
           (xgetbv() & (0x7 << 5)) && // OPMASK: upper-256 enabled by OS
           ((xgetbv() & 6) == 6)) { // XMM/YMM enabled by OS
          uint32_t regs3[4];
-         cpuid(0x00000007, regs3);
+         cpuid_count(0x00000007, 0x00000000, regs3);
          util_cpu_caps.has_avx512f    = (regs3[1] >> 16) & 1;
          util_cpu_caps.has_avx512dq   = (regs3[1] >> 17) & 1;
          util_cpu_caps.has_avx512ifma = (regs3[1] >> 21) & 1;

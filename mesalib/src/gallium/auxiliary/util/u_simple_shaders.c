@@ -954,7 +954,7 @@ util_make_geometry_passthrough_shader(struct pipe_context *pipe,
    }
 
    /* EMIT IMM[0] */
-   ureg_insn(ureg, TGSI_OPCODE_EMIT, NULL, 0, &imm, 1);
+   ureg_insn(ureg, TGSI_OPCODE_EMIT, NULL, 0, &imm, 1, 0);
 
    /* END */
    ureg_END(ureg);

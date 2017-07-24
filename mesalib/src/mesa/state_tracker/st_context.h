@@ -33,6 +33,7 @@
 #include "main/fbobject.h"
 #include "state_tracker/st_atom.h"
 #include "util/u_inlines.h"
+#include "util/list.h"
 
 
 #ifdef __cplusplus
@@ -277,6 +278,9 @@ struct st_context
     */
    struct st_bound_handles bound_texture_handles[PIPE_SHADER_TYPES];
    struct st_bound_handles bound_image_handles[PIPE_SHADER_TYPES];
+
+   /* Winsys buffers */
+   struct list_head winsys_buffers;
 };
 
 
@@ -301,6 +305,10 @@ struct st_framebuffer
    unsigned num_statts;
    int32_t stamp;
    int32_t iface_stamp;
+   uint32_t iface_ID;
+
+   /* list of framebuffer objects */
+   struct list_head head;
 };
 
 
@@ -390,7 +398,8 @@ extern struct st_context *
 st_create_context(gl_api api, struct pipe_context *pipe,
                   const struct gl_config *visual,
                   struct st_context *share,
-                  const struct st_config_options *options);
+                  const struct st_config_options *options,
+                  bool no_error);
 
 extern void
 st_destroy_context(struct st_context *st);

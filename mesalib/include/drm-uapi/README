@@ -1,0 +1,18 @@
+This directory contains a copy of the installed kernel headers
+required by the anv & i965 drivers to communicate with the kernel.
+Whenever either of those driver needs new definitions for new kernel
+APIs, these files should be updated.
+
+You can copy files installed after running this from the kernel
+repository, at version the drivers require :
+
+$ make headers_install INSTALL_HDR_PATH=/path/to/install
+
+The last update was done at the following kernel commit :
+
+commit 6d61e70ccc21606ffb8a0a03bd3aba24f659502b
+Merge: 338ffbf7cb5e c0bc126f97fb
+Author: Dave Airlie <airlied@redhat.com>
+Date:   Tue Jun 27 07:24:49 2017 +1000
+
+    Backmerge tag 'v4.12-rc7' into drm-next

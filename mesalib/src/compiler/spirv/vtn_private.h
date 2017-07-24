@@ -220,14 +220,14 @@ struct vtn_type {
    /* Specifies the length of complex types. */
    unsigned length;
 
+   /* for arrays, matrices and pointers, the array stride */
+   unsigned stride;
+
    union {
       /* Members for scalar, vector, and array-like types */
       struct {
          /* for arrays, the vtn_type for the elements of the array */
          struct vtn_type *array_element;
-
-         /* for arrays and matrices, the array stride */
-         unsigned stride;
 
          /* for matrices, whether the matrix is stored row-major */
          bool row_major:1;
@@ -308,6 +308,11 @@ struct vtn_access_link {
 struct vtn_access_chain {
    uint32_t length;
 
+   /** Whether or not to treat the base pointer as an array.  This is only
+    * true if this access chain came from an OpPtrAccessChain.
+    */
+   bool ptr_as_array;
+
    /** Struct elements and array offsets.
     *
     * This is an array of 1 so that it can conveniently be created on the
@@ -363,6 +368,13 @@ struct vtn_pointer {
    struct nir_ssa_def *block_index;
    struct nir_ssa_def *offset;
 };
+
+static inline bool
+vtn_pointer_uses_ssa_offset(struct vtn_pointer *ptr)
+{
+   return ptr->mode == vtn_variable_mode_ubo ||
+          ptr->mode == vtn_variable_mode_ssbo;
+}
 
 struct vtn_variable {
    enum vtn_variable_mode mode;
@@ -496,6 +508,12 @@ struct vtn_builder {
    bool has_loop_continue;
 };
 
+nir_ssa_def *
+vtn_pointer_to_ssa(struct vtn_builder *b, struct vtn_pointer *ptr);
+struct vtn_pointer *
+vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
+                     struct vtn_type *ptr_type);
+
 static inline struct vtn_value *
 vtn_push_value(struct vtn_builder *b, uint32_t value_id,
                enum vtn_value_type value_type)
@@ -506,6 +524,21 @@ vtn_push_value(struct vtn_builder *b, uint32_t value_id,
    b->values[value_id].value_type = value_type;
 
    return &b->values[value_id];
+}
+
+static inline struct vtn_value *
+vtn_push_ssa(struct vtn_builder *b, uint32_t value_id,
+             struct vtn_type *type, struct vtn_ssa_value *ssa)
+{
+   struct vtn_value *val;
+   if (type->base_type == vtn_base_type_pointer) {
+      val = vtn_push_value(b, value_id, vtn_value_type_pointer);
+      val->pointer = vtn_pointer_from_ssa(b, ssa->def, type);
+   } else {
+      val = vtn_push_value(b, value_id, vtn_value_type_ssa);
+      val->ssa = ssa;
+   }
+   return val;
 }
 
 static inline struct vtn_value *

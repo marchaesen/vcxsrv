@@ -1117,6 +1117,35 @@ radv_load_depth_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 	radeon_emit(cmd_buffer->cs, 0);
 }
 
+/*
+ *with DCC some colors don't require CMASK elimiation before being
+ * used as a texture. This sets a predicate value to determine if the
+ * cmask eliminate is required.
+ */
+void
+radv_set_dcc_need_cmask_elim_pred(struct radv_cmd_buffer *cmd_buffer,
+				  struct radv_image *image,
+				  bool value)
+{
+	uint64_t pred_val = value;
+	uint64_t va = cmd_buffer->device->ws->buffer_get_va(image->bo);
+	va += image->offset + image->dcc_pred_offset;
+
+	if (!image->surface.dcc_size)
+		return;
+
+	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, image->bo, 8);
+
+	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 4, 0));
+	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+				    S_370_WR_CONFIRM(1) |
+				    S_370_ENGINE_SEL(V_370_PFP));
+	radeon_emit(cmd_buffer->cs, va);
+	radeon_emit(cmd_buffer->cs, va >> 32);
+	radeon_emit(cmd_buffer->cs, pred_val);
+	radeon_emit(cmd_buffer->cs, pred_val >> 32);
+}
+
 void
 radv_set_color_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_image *image,
@@ -1179,7 +1208,13 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
 	struct radv_framebuffer *framebuffer = cmd_buffer->state.framebuffer;
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 
-	for (i = 0; i < subpass->color_count; ++i) {
+	for (i = 0; i < 8; ++i) {
+		if (i >= subpass->color_count || subpass->color_attachments[i].attachment == VK_ATTACHMENT_UNUSED) {
+			radeon_set_context_reg(cmd_buffer->cs, R_028C70_CB_COLOR0_INFO + i * 0x3C,
+				       S_028C70_FORMAT(V_028C70_COLOR_INVALID));
+			continue;
+		}
+
 		int idx = subpass->color_attachments[i].attachment;
 		struct radv_attachment_info *att = &framebuffer->attachments[idx];
 
@@ -1190,10 +1225,6 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
 
 		radv_load_color_clear_regs(cmd_buffer, att->attachment->image, i);
 	}
-
-	for (i = subpass->color_count; i < 8; i++)
-		radeon_set_context_reg(cmd_buffer->cs, R_028C70_CB_COLOR0_INFO + i * 0x3C,
-				       S_028C70_FORMAT(V_028C70_COLOR_INVALID));
 
 	if(subpass->depth_stencil_attachment.attachment != VK_ATTACHMENT_UNUSED) {
 		int idx = subpass->depth_stencil_attachment.attachment;
@@ -1768,8 +1799,9 @@ radv_cmd_buffer_set_subpass(struct radv_cmd_buffer *cmd_buffer,
 		radv_subpass_barrier(cmd_buffer, &subpass->start_barrier);
 
 		for (unsigned i = 0; i < subpass->color_count; ++i) {
-			radv_handle_subpass_image_transition(cmd_buffer,
-							subpass->color_attachments[i]);
+			if (subpass->color_attachments[i].attachment != VK_ATTACHMENT_UNUSED)
+				radv_handle_subpass_image_transition(cmd_buffer,
+				                                     subpass->color_attachments[i]);
 		}
 
 		for (unsigned i = 0; i < subpass->input_count; ++i) {
@@ -1824,6 +1856,9 @@ radv_cmd_state_setup_attachments(struct radv_cmd_buffer *cmd_buffer,
 			if ((att_aspects & VK_IMAGE_ASPECT_DEPTH_BIT) &&
 			    att->load_op == VK_ATTACHMENT_LOAD_OP_CLEAR) {
 				clear_aspects |= VK_IMAGE_ASPECT_DEPTH_BIT;
+				if ((att_aspects & VK_IMAGE_ASPECT_STENCIL_BIT) &&
+				    att->stencil_load_op == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+					clear_aspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
 			}
 			if ((att_aspects & VK_IMAGE_ASPECT_STENCIL_BIT) &&
 			    att->stencil_load_op == VK_ATTACHMENT_LOAD_OP_CLEAR) {

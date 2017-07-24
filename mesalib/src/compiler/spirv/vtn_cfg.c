@@ -52,7 +52,8 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
       func->num_params = func_type->length;
       func->params = ralloc_array(b->shader, nir_parameter, func->num_params);
       for (unsigned i = 0; i < func->num_params; i++) {
-         if (func_type->params[i]->base_type == vtn_base_type_pointer) {
+         if (func_type->params[i]->base_type == vtn_base_type_pointer &&
+             func_type->params[i]->type == NULL) {
             func->params[i].type = func_type->params[i]->deref->type;
          } else {
             func->params[i].type = func_type->params[i]->type;
@@ -82,7 +83,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
       assert(b->func_param_idx < b->func->impl->num_params);
       nir_variable *param = b->func->impl->params[b->func_param_idx++];
 
-      if (type->base_type == vtn_base_type_pointer) {
+      if (type->base_type == vtn_base_type_pointer && type->type == NULL) {
          struct vtn_variable *vtn_var = rzalloc(b, struct vtn_variable);
          vtn_var->type = type->deref;
          vtn_var->var = param;
@@ -112,12 +113,12 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
          val->pointer = vtn_pointer_for_variable(b, vtn_var, type);
       } else {
          /* We're a regular SSA value. */
-         struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_ssa);
+         struct vtn_ssa_value *param_ssa =
+            vtn_local_load(b, nir_deref_var_create(b, param));
+         struct vtn_value *val = vtn_push_ssa(b, w[2], type, param_ssa);
 
          /* Name the parameter so it shows up nicely in NIR */
          param->name = ralloc_strdup(param, val->name);
-
-         val->ssa = vtn_local_load(b, nir_deref_var_create(b, param));
       }
       break;
    }
@@ -504,14 +505,13 @@ vtn_handle_phis_first_pass(struct vtn_builder *b, SpvOp opcode,
     * algorithm all over again.  It's easier if we just let
     * lower_vars_to_ssa do that for us instead of repeating it here.
     */
-   struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_ssa);
-
    struct vtn_type *type = vtn_value(b, w[1], vtn_value_type_type)->type;
    nir_variable *phi_var =
       nir_local_variable_create(b->nb.impl, type->type, "phi");
    _mesa_hash_table_insert(b->phi_table, w, phi_var);
 
-   val->ssa = vtn_local_load(b, nir_deref_var_create(b, phi_var));
+   vtn_push_ssa(b, w[2], type,
+                vtn_local_load(b, nir_deref_var_create(b, phi_var)));
 
    return true;
 }

@@ -444,7 +444,7 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
       if (pname == GL_TEXTURE_LOD_BIAS_EXT) {
 	 if (texUnit->LodBias == param[0])
 	    return;
-	 FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
+	 FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
          texUnit->LodBias = param[0];
       }
       else {

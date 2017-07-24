@@ -2177,7 +2177,7 @@ VOID CiLib::HwlPadDimensions(
 ****************************************************************************************************
 */
 ADDR_E_RETURNCODE CiLib::HwlGetMaxAlignments(
-    ADDR_GET_MAX_ALINGMENTS_OUTPUT* pOut    ///< [out] output structure
+    ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut    ///< [out] output structure
     ) const
 {
     const UINT_32 pipes = HwlGetPipes(&m_tileTable[0].info);

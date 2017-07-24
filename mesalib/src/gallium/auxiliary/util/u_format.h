@@ -495,6 +495,19 @@ util_format_is_s3tc(enum pipe_format format)
    return desc->layout == UTIL_FORMAT_LAYOUT_S3TC ? TRUE : FALSE;
 }
 
+static inline boolean
+util_format_is_etc(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   assert(desc);
+   if (!desc) {
+      return FALSE;
+   }
+
+   return desc->layout == UTIL_FORMAT_LAYOUT_ETC ? TRUE : FALSE;
+}
+
 static inline boolean 
 util_format_is_srgb(enum pipe_format format)
 {

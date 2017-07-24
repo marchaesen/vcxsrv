@@ -185,6 +185,13 @@ vtn_ssa_value(struct vtn_builder *b, uint32_t value_id)
    case vtn_value_type_ssa:
       return val->ssa;
 
+   case vtn_value_type_pointer:
+      assert(val->pointer->ptr_type && val->pointer->ptr_type->type);
+      struct vtn_ssa_value *ssa =
+         vtn_create_ssa_value(b, val->pointer->ptr_type->type);
+      ssa->def = vtn_pointer_to_ssa(b, val->pointer);
+      return ssa;
+
    default:
       unreachable("Invalid type for an SSA value");
    }
@@ -599,12 +606,17 @@ type_decoration_cb(struct vtn_builder *b,
 
    switch (dec->decoration) {
    case SpvDecorationArrayStride:
+      assert(type->base_type == vtn_base_type_matrix ||
+             type->base_type == vtn_base_type_array ||
+             type->base_type == vtn_base_type_pointer);
       type->stride = dec->literals[0];
       break;
    case SpvDecorationBlock:
+      assert(type->base_type == vtn_base_type_struct);
       type->block = true;
       break;
    case SpvDecorationBufferBlock:
+      assert(type->base_type == vtn_base_type_struct);
       type->buffer_block = true;
       break;
    case SpvDecorationGLSLShared:
@@ -856,9 +868,16 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          vtn_value(b, w[3], vtn_value_type_type)->type;
 
       val->type->base_type = vtn_base_type_pointer;
-      val->type->type = NULL;
       val->type->storage_class = storage_class;
       val->type->deref = deref_type;
+
+      if (storage_class == SpvStorageClassUniform ||
+          storage_class == SpvStorageClassStorageBuffer) {
+         /* These can actually be stored to nir_variables and used as SSA
+          * values so they need a real glsl_type.
+          */
+         val->type->type = glsl_vector_type(GLSL_TYPE_UINT, 2);
+      }
       break;
    }
 
@@ -1374,6 +1393,7 @@ static void
 vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
                          const uint32_t *w, unsigned count)
 {
+   struct vtn_type *res_type = vtn_value(b, w[1], vtn_value_type_type)->type;
    struct nir_function *callee =
       vtn_value(b, w[3], vtn_value_type_function)->func->impl->function;
 
@@ -1381,7 +1401,8 @@ vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
    for (unsigned i = 0; i < call->num_params; i++) {
       unsigned arg_id = w[4 + i];
       struct vtn_value *arg = vtn_untyped_value(b, arg_id);
-      if (arg->value_type == vtn_value_type_pointer) {
+      if (arg->value_type == vtn_value_type_pointer &&
+          arg->pointer->ptr_type->type == NULL) {
          nir_deref_var *d = vtn_pointer_to_deref(b, arg->pointer);
          call->params[i] = nir_deref_var_clone(d, call);
       } else {
@@ -1397,6 +1418,7 @@ vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
    }
 
    nir_variable *out_tmp = NULL;
+   assert(res_type->type == callee->return_type);
    if (!glsl_type_is_void(callee->return_type)) {
       out_tmp = nir_local_variable_create(b->impl, callee->return_type,
                                           "out_tmp");
@@ -1408,8 +1430,7 @@ vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
    if (glsl_type_is_void(callee->return_type)) {
       vtn_push_value(b, w[2], vtn_value_type_undef);
    } else {
-      struct vtn_value *retval = vtn_push_value(b, w[2], vtn_value_type_ssa);
-      retval->ssa = vtn_local_load(b, call->return_deref);
+      vtn_push_ssa(b, w[2], res_type, vtn_local_load(b, call->return_deref));
    }
 }
 
@@ -2763,6 +2784,11 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(multiview, cap);
          break;
 
+      case SpvCapabilityVariablePointersStorageBuffer:
+      case SpvCapabilityVariablePointers:
+         spv_check_supported(variable_pointers, cap);
+         break;
+
       default:
          unreachable("Unhandled capability");
       }
@@ -3063,6 +3089,7 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpCopyMemory:
    case SpvOpCopyMemorySized:
    case SpvOpAccessChain:
+   case SpvOpPtrAccessChain:
    case SpvOpInBoundsAccessChain:
    case SpvOpArrayLength:
       vtn_handle_variables(b, opcode, w, count);
@@ -3146,6 +3173,19 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
       break;
    }
 
+   case SpvOpSelect: {
+      /* Handle OpSelect up-front here because it needs to be able to handle
+       * pointers and not just regular vectors and scalars.
+       */
+      struct vtn_type *res_type = vtn_value(b, w[1], vtn_value_type_type)->type;
+      struct vtn_ssa_value *ssa = vtn_create_ssa_value(b, res_type->type);
+      ssa->def = nir_bcsel(&b->nb, vtn_ssa_value(b, w[3])->def,
+                                   vtn_ssa_value(b, w[4])->def,
+                                   vtn_ssa_value(b, w[5])->def);
+      vtn_push_ssa(b, w[2], res_type, ssa);
+      break;
+   }
+
    case SpvOpSNegate:
    case SpvOpFNegate:
    case SpvOpNot:
@@ -3203,7 +3243,6 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpBitwiseOr:
    case SpvOpBitwiseXor:
    case SpvOpBitwiseAnd:
-   case SpvOpSelect:
    case SpvOpIEqual:
    case SpvOpFOrdEqual:
    case SpvOpFUnordEqual:

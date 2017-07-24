@@ -776,7 +776,10 @@ enum OptConfElem {
     OC_APPLICATION = 0, OC_DEVICE, OC_DRICONF, OC_OPTION, OC_COUNT
 };
 static const XML_Char *OptConfElems[] = {
-    "application", "device", "driconf", "option"
+    [OC_APPLICATION]  = "application",
+    [OC_DEVICE] = "device",
+    [OC_DRICONF] = "driconf",
+    [OC_OPTION] = "option",
 };
 
 /** \brief Parse attributes of a device element. */

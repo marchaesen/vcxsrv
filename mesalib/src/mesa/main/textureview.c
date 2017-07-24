@@ -633,7 +633,6 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
 
    texFormat = _mesa_choose_texture_format(ctx, texObj, target, 0,
                                            internalformat, GL_NONE, GL_NONE);
-   assert(texFormat != MESA_FORMAT_NONE);
    if (texFormat == MESA_FORMAT_NONE) return;
 
    newViewNumLevels = MIN2(numlevels, origTexObj->NumLevels - minlevel);

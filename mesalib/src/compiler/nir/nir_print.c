@@ -257,7 +257,7 @@ static const char *
 get_var_name(nir_variable *var, print_state *state)
 {
    if (state->ht == NULL)
-      return var->name;
+      return var->name ? var->name : "unnamed";
 
    assert(state->syms);
 
