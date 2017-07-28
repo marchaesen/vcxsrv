@@ -588,7 +588,7 @@ _mesa_hash_table_u64_insert(struct hash_table_u64 *ht, uint64_t key,
    }
 
    if (sizeof(void *) == 8) {
-      _mesa_hash_table_insert(ht->table, (void *)key, data);
+      _mesa_hash_table_insert(ht->table, (void *)(uintptr_t)key, data);
    } else {
       struct hash_key_u64 *_key = CALLOC_STRUCT(hash_key_u64);
 
@@ -604,7 +604,7 @@ static struct hash_entry *
 hash_table_u64_search(struct hash_table_u64 *ht, uint64_t key)
 {
    if (sizeof(void *) == 8) {
-      return _mesa_hash_table_search(ht->table, (void *)key);
+      return _mesa_hash_table_search(ht->table, (void *)(uintptr_t)key);
    } else {
       struct hash_key_u64 _key = { .value = key };
       return _mesa_hash_table_search(ht->table, &_key);

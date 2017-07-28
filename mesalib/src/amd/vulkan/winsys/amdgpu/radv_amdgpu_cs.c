@@ -841,7 +841,7 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 		uint32_t *ptr;
 		unsigned cnt = 0;
 		unsigned size = 0;
-
+		unsigned pad_words = 0;
 		if (preamble_cs)
 			size += preamble_cs->cdw;
 
@@ -850,6 +850,10 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 			++cnt;
 		}
 
+		while(!size || (size & 7)) {
+			size++;
+			pad_words++;
+		}
 		assert(cnt);
 
 		bo = ws->buffer_create(ws, 4 * size, 4096, RADEON_DOMAIN_GTT, RADEON_FLAG_CPU_ACCESS);
@@ -867,10 +871,8 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 
 		}
 
-		while(!size || (size & 7)) {
+		for (unsigned j = 0; j < pad_words; ++j)
 			*ptr++ = pad_word;
-			++size;
-		}
 
 		memset(&request, 0, sizeof(request));
 

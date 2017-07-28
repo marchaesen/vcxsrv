@@ -1028,24 +1028,24 @@ test_format_conversion(struct st_context *st)
 
       pf = st_mesa_format_to_pipe_format(st, i);
       if (pf != PIPE_FORMAT_NONE) {
-         mesa_format mf = st_pipe_format_to_mesa_format(pf);
+         mesa_format MAYBE_UNUSED mf = st_pipe_format_to_mesa_format(pf);
          assert(mf == i);
       }
    }
 
    /* Test all Gallium formats */
    for (i = 1; i < PIPE_FORMAT_COUNT; i++) {
-      mesa_format mf = st_pipe_format_to_mesa_format(i);
-
       /* ETC formats are translated differently, skip them. */
       if (i == PIPE_FORMAT_ETC1_RGB8 && !st->has_etc1)
          continue;
 
+      mesa_format mf = st_pipe_format_to_mesa_format(i);
       if (_mesa_is_format_etc2(mf) && !st->has_etc2)
          continue;
 
       if (mf != MESA_FORMAT_NONE) {
-         enum pipe_format pf = st_mesa_format_to_pipe_format(st, mf);
+         enum pipe_format MAYBE_UNUSED pf =
+            st_mesa_format_to_pipe_format(st, mf);
          assert(pf == i);
       }
    }

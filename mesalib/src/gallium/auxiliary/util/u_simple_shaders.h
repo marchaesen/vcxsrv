@@ -129,35 +129,36 @@ util_make_fragment_cloneinput_shader(struct pipe_context *pipe, int num_cbufs,
 
 extern void *
 util_make_fs_blit_msaa_color(struct pipe_context *pipe,
-                             unsigned tgsi_tex,
+                             enum tgsi_texture_type tgsi_tex,
                              enum tgsi_return_type stype,
                              enum tgsi_return_type dtype);
 
 
 extern void *
 util_make_fs_blit_msaa_depth(struct pipe_context *pipe,
-                             unsigned tgsi_tex);
+                             enum tgsi_texture_type tgsi_tex);
 
 
 extern void *
 util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
-                                    unsigned tgsi_tex);
+                                    enum tgsi_texture_type tgsi_tex);
 
 
 void *
 util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
-                               unsigned tgsi_tex);
+                               enum tgsi_texture_type tgsi_tex);
 
 
 void *
 util_make_fs_msaa_resolve(struct pipe_context *pipe,
-                          unsigned tgsi_tex, unsigned nr_samples,
+                          enum tgsi_texture_type tgsi_tex, unsigned nr_samples,
                           enum tgsi_return_type stype);
 
 
 void *
 util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
-                                   unsigned tgsi_tex, unsigned nr_samples,
+                                   enum tgsi_texture_type tgsi_tex,
+                                   unsigned nr_samples,
                                    enum tgsi_return_type stype);
 
 extern void *

@@ -174,6 +174,10 @@ struct ra_graph {
     * stack.
     */
    unsigned int stack_optimistic_start;
+
+   unsigned int (*select_reg_callback)(struct ra_graph *g, BITSET_WORD *regs,
+                                       void *data);
+   void *select_reg_callback_data;
 };
 
 /**
@@ -392,11 +396,11 @@ ra_add_node_adjacency(struct ra_graph *g, unsigned int n1, unsigned int n2)
 {
    BITSET_SET(g->nodes[n1].adjacency, n2);
 
-   if (n1 != n2) {
-      int n1_class = g->nodes[n1].class;
-      int n2_class = g->nodes[n2].class;
-      g->nodes[n1].q_total += g->regs->classes[n1_class]->q[n2_class];
-   }
+   assert(n1 != n2);
+
+   int n1_class = g->nodes[n1].class;
+   int n2_class = g->nodes[n2].class;
+   g->nodes[n1].q_total += g->regs->classes[n1_class]->q[n2_class];
 
    if (g->nodes[n1].adjacency_count >=
        g->nodes[n1].adjacency_list_size) {
@@ -433,11 +437,20 @@ ra_alloc_interference_graph(struct ra_regs *regs, unsigned int count)
       g->nodes[i].adjacency_count = 0;
       g->nodes[i].q_total = 0;
 
-      ra_add_node_adjacency(g, i, i);
       g->nodes[i].reg = NO_REG;
    }
 
    return g;
+}
+
+void ra_set_select_reg_callback(struct ra_graph *g,
+                                unsigned int (*callback)(struct ra_graph *g,
+                                                         BITSET_WORD *regs,
+                                                         void *data),
+                                void *data)
+{
+   g->select_reg_callback = callback;
+   g->select_reg_callback_data = data;
 }
 
 void
@@ -451,7 +464,7 @@ void
 ra_add_node_interference(struct ra_graph *g,
                          unsigned int n1, unsigned int n2)
 {
-   if (!BITSET_TEST(g->nodes[n1].adjacency, n2)) {
+   if (n1 != n2 && !BITSET_TEST(g->nodes[n1].adjacency, n2)) {
       ra_add_node_adjacency(g, n1, n2);
       ra_add_node_adjacency(g, n2, n1);
    }
@@ -475,7 +488,7 @@ decrement_q(struct ra_graph *g, unsigned int n)
       unsigned int n2 = g->nodes[n].adjacency_list[i];
       unsigned int n2_class = g->nodes[n2].class;
 
-      if (n != n2 && !g->nodes[n2].in_stack) {
+      if (!g->nodes[n2].in_stack) {
          assert(g->nodes[n2].q_total >= g->regs->classes[n2_class]->q[n_class]);
          g->nodes[n2].q_total -= g->regs->classes[n2_class]->q[n_class];
       }
@@ -539,6 +552,58 @@ ra_simplify(struct ra_graph *g)
    g->stack_optimistic_start = stack_optimistic_start;
 }
 
+static bool
+ra_any_neighbors_conflict(struct ra_graph *g, unsigned int n, unsigned int r)
+{
+   unsigned int i;
+
+   for (i = 0; i < g->nodes[n].adjacency_count; i++) {
+      unsigned int n2 = g->nodes[n].adjacency_list[i];
+
+      if (!g->nodes[n2].in_stack &&
+          BITSET_TEST(g->regs->regs[r].conflicts, g->nodes[n2].reg)) {
+         return true;
+      }
+   }
+
+   return false;
+}
+
+/* Computes a bitfield of what regs are available for a given register
+ * selection.
+ *
+ * This lets drivers implement a more complicated policy than our simple first
+ * or round robin policies (which don't require knowing the whole bitset)
+ */
+static bool
+ra_compute_available_regs(struct ra_graph *g, unsigned int n, BITSET_WORD *regs)
+{
+   struct ra_class *c = g->regs->classes[g->nodes[n].class];
+
+   /* Populate with the set of regs that are in the node's class. */
+   memcpy(regs, c->regs, BITSET_WORDS(g->regs->count) * sizeof(BITSET_WORD));
+
+   /* Remove any regs that conflict with nodes that we're adjacent to and have
+    * already colored.
+    */
+   for (int i = 0; i < g->nodes[n].adjacency_count; i++) {
+      unsigned int n2 = g->nodes[n].adjacency_list[i];
+      unsigned int r = g->nodes[n2].reg;
+
+      if (!g->nodes[n2].in_stack) {
+         for (int j = 0; j < BITSET_WORDS(g->regs->count); j++)
+            regs[j] &= ~g->regs->regs[r].conflicts[j];
+      }
+   }
+
+   for (int i = 0; i < BITSET_WORDS(g->regs->count); i++) {
+      if (regs[i])
+         return true;
+   }
+
+   return false;
+}
+
 /**
  * Pops nodes from the stack back into the graph, coloring them with
  * registers as they go.
@@ -550,42 +615,45 @@ static bool
 ra_select(struct ra_graph *g)
 {
    int start_search_reg = 0;
+   BITSET_WORD *select_regs = NULL;
+
+   if (g->select_reg_callback)
+      select_regs = malloc(BITSET_WORDS(g->regs->count) * sizeof(BITSET_WORD));
 
    while (g->stack_count != 0) {
-      unsigned int i;
       unsigned int ri;
       unsigned int r = -1;
       int n = g->stack[g->stack_count - 1];
       struct ra_class *c = g->regs->classes[g->nodes[n].class];
-
-      /* Find the lowest-numbered reg which is not used by a member
-       * of the graph adjacent to us.
-       */
-      for (ri = 0; ri < g->regs->count; ri++) {
-         r = (start_search_reg + ri) % g->regs->count;
-         if (!reg_belongs_to_class(r, c))
-	    continue;
-
-	 /* Check if any of our neighbors conflict with this register choice. */
-	 for (i = 0; i < g->nodes[n].adjacency_count; i++) {
-	    unsigned int n2 = g->nodes[n].adjacency_list[i];
-
-	    if (!g->nodes[n2].in_stack &&
-		BITSET_TEST(g->regs->regs[r].conflicts, g->nodes[n2].reg)) {
-	       break;
-	    }
-	 }
-	 if (i == g->nodes[n].adjacency_count)
-	    break;
-      }
 
       /* set this to false even if we return here so that
        * ra_get_best_spill_node() considers this node later.
        */
       g->nodes[n].in_stack = false;
 
-      if (ri == g->regs->count)
-	 return false;
+      if (g->select_reg_callback) {
+         if (!ra_compute_available_regs(g, n, select_regs)) {
+            free(select_regs);
+            return false;
+         }
+
+         r = g->select_reg_callback(g, select_regs, g->select_reg_callback_data);
+      } else {
+         /* Find the lowest-numbered reg which is not used by a member
+          * of the graph adjacent to us.
+          */
+         for (ri = 0; ri < g->regs->count; ri++) {
+            r = (start_search_reg + ri) % g->regs->count;
+            if (!reg_belongs_to_class(r, c))
+               continue;
+
+            if (!ra_any_neighbors_conflict(g, n, r))
+               break;
+         }
+
+         if (ri >= g->regs->count)
+            return false;
+      }
 
       g->nodes[n].reg = r;
       g->stack_count--;
@@ -654,11 +722,9 @@ ra_get_spill_benefit(struct ra_graph *g, unsigned int n)
     */
    for (j = 0; j < g->nodes[n].adjacency_count; j++) {
       unsigned int n2 = g->nodes[n].adjacency_list[j];
-      if (n != n2) {
-	 unsigned int n2_class = g->nodes[n2].class;
-	 benefit += ((float)g->regs->classes[n_class]->q[n2_class] /
-		     g->regs->classes[n_class]->p);
-      }
+      unsigned int n2_class = g->nodes[n2].class;
+      benefit += ((float)g->regs->classes[n_class]->q[n2_class] /
+                  g->regs->classes[n_class]->p);
    }
 
    return benefit;

@@ -358,7 +358,8 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
        */
       if (returnType == uni->type->base_type ||
           ((returnType == GLSL_TYPE_INT || returnType == GLSL_TYPE_UINT) &&
-           (uni->type->is_sampler() || uni->type->is_image()))) {
+           (uni->type->is_sampler() || uni->type->is_image())) ||
+          (returnType == GLSL_TYPE_UINT64 && uni->is_bindless)) {
          memcpy(paramsOut, src, bytes);
       } else {
          union gl_constant_value *const dst =

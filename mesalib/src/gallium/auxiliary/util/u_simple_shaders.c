@@ -594,7 +594,7 @@ util_make_fragment_cloneinput_shader(struct pipe_context *pipe, int num_cbufs,
 
 static void *
 util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
-                           unsigned tgsi_tex,
+                           enum tgsi_texture_type tgsi_tex,
                            const char *samp_type,
                            const char *output_semantic,
                            const char *output_mask,
@@ -648,7 +648,7 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
  */
 void *
 util_make_fs_blit_msaa_color(struct pipe_context *pipe,
-                             unsigned tgsi_tex,
+                             enum tgsi_texture_type tgsi_tex,
                              enum tgsi_return_type stype,
                              enum tgsi_return_type dtype)
 {
@@ -688,7 +688,7 @@ util_make_fs_blit_msaa_color(struct pipe_context *pipe,
  */
 void *
 util_make_fs_blit_msaa_depth(struct pipe_context *pipe,
-                             unsigned tgsi_tex)
+                             enum tgsi_texture_type tgsi_tex)
 {
    return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "FLOAT",
                                      "POSITION", ".z", "", "");
@@ -702,7 +702,7 @@ util_make_fs_blit_msaa_depth(struct pipe_context *pipe,
  */
 void *
 util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
-                               unsigned tgsi_tex)
+                               enum tgsi_texture_type tgsi_tex)
 {
    return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "UINT",
                                      "STENCIL", ".y", "", "");
@@ -718,7 +718,7 @@ util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
  */
 void *
 util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
-                                    unsigned tgsi_tex)
+                                    enum tgsi_texture_type tgsi_tex)
 {
    static const char shader_templ[] =
          "FRAG\n"
@@ -759,7 +759,7 @@ util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
 
 void *
 util_make_fs_msaa_resolve(struct pipe_context *pipe,
-                          unsigned tgsi_tex, unsigned nr_samples,
+                          enum tgsi_texture_type tgsi_tex, unsigned nr_samples,
                           enum tgsi_return_type stype)
 {
    struct ureg_program *ureg;
@@ -819,7 +819,8 @@ util_make_fs_msaa_resolve(struct pipe_context *pipe,
 
 void *
 util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
-                                   unsigned tgsi_tex, unsigned nr_samples,
+                                   enum tgsi_texture_type tgsi_tex,
+                                   unsigned nr_samples,
                                    enum tgsi_return_type stype)
 {
    struct ureg_program *ureg;

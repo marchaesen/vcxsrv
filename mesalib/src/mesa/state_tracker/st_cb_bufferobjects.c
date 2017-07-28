@@ -96,9 +96,9 @@ st_bufferobj_free(struct gl_context *ctx, struct gl_buffer_object *obj)
  */
 static void
 st_bufferobj_subdata(struct gl_context *ctx,
-		     GLintptrARB offset,
-		     GLsizeiptrARB size,
-		     const void * data, struct gl_buffer_object *obj)
+                     GLintptrARB offset,
+                     GLsizeiptrARB size,
+                     const void * data, struct gl_buffer_object *obj)
 {
    struct st_buffer_object *st_obj = st_buffer_object(obj);
 
@@ -130,8 +130,8 @@ st_bufferobj_subdata(struct gl_context *ctx,
     * buffer directly.
     */
    pipe_buffer_write(st_context(ctx)->pipe,
-		     st_obj->buffer,
-		     offset, size, data);
+                     st_obj->buffer,
+                     offset, size, data);
 }
 
 
@@ -173,12 +173,12 @@ st_bufferobj_get_subdata(struct gl_context *ctx,
  */
 static GLboolean
 st_bufferobj_data(struct gl_context *ctx,
-		  GLenum target,
-		  GLsizeiptrARB size,
-		  const void * data,
-		  GLenum usage,
+                  GLenum target,
+                  GLsizeiptrARB size,
+                  const void * data,
+                  GLenum usage,
                   GLbitfield storageFlags,
-		  struct gl_buffer_object *obj)
+                  struct gl_buffer_object *obj)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
@@ -263,7 +263,7 @@ st_bufferobj_data(struct gl_context *ctx,
       case GL_STATIC_DRAW:
       case GL_STATIC_COPY:
       default:
-	 pipe_usage = PIPE_USAGE_DEFAULT;
+         pipe_usage = PIPE_USAGE_DEFAULT;
          break;
       case GL_DYNAMIC_DRAW:
       case GL_DYNAMIC_COPY:
@@ -420,7 +420,7 @@ st_bufferobj_map_range(struct gl_context *ctx,
       flags |= PIPE_TRANSFER_COHERENT;
 
    /* ... other flags ...
-    */
+   */
 
    if (access & MESA_MAP_NOWAIT_BIT)
       flags |= PIPE_TRANSFER_DONTBLOCK;
@@ -431,10 +431,10 @@ st_bufferobj_map_range(struct gl_context *ctx,
    assert(offset + length <= obj->Size);
 
    obj->Mappings[index].Pointer = pipe_buffer_map_range(pipe,
-                                        st_obj->buffer,
-                                        offset, length,
-                                        flags,
-                                        &st_obj->transfer[index]);
+                                                        st_obj->buffer,
+                                                        offset, length,
+                                                        flags,
+                                                        &st_obj->transfer[index]);
    if (obj->Mappings[index].Pointer) {
       obj->Mappings[index].Offset = offset;
       obj->Mappings[index].Length = length;
@@ -546,19 +546,6 @@ st_clear_buffer_subdata(struct gl_context *ctx,
 
    pipe->clear_buffer(pipe, buf->buffer, offset, size,
                       clearValue, clearValueSize);
-}
-
-
-/* TODO: if buffer wasn't created with appropriate usage flags, need
- * to recreate it now and copy contents -- or possibly create a
- * gallium entrypoint to extend the usage flags and let the driver
- * decide if a copy is necessary.
- */
-void
-st_bufferobj_validate_usage(struct st_context *st,
-			    struct st_buffer_object *obj,
-			    unsigned usage)
-{
 }
 
 static void

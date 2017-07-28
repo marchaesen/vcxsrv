@@ -18,7 +18,7 @@
   <packet name="Store Multi-sample Resolved Tile Color Buffer and EOF" code="25" cl="R"/>
 
   <packet name="Store Full Resolution Tile Buffer" cl="R" code="26">
-    <field name="Address" size="32" start="0" type="address"/>
+    <field name="Address" size="28" start="4" type="address"/>
     <field name="Last Tile" size="1" start="3" type="bool"/>
     <field name="Disable Clear on Write" size="1" start="2" type="bool"/>
     <field name="Disable Z/Stencil Buffer write" size="1" start="1" type="bool"/>
@@ -26,13 +26,13 @@
   </packet>
 
   <packet name="Re-load Full Resolution Tile Buffer" cl="R" code="27">
-    <field name="Address" size="32" start="0" type="address"/>
+    <field name="Address" size="28" start="4" type="address"/>
     <field name="Disable Z/Stencil Buffer read" size="1" start="1" type="bool"/>
     <field name="Disable Color Buffer read" size="1" start="0" type="bool"/>
   </packet>
 
   <packet name="Store Tile Buffer General" code="28" cl="R">
-    <field name="Memory base address of frame/tile dump buffer" size="32" start="16" type="address"/>
+    <field name="Memory base address of frame/tile dump buffer" size="28" start="20" type="address"/>
     <field name="Last Tile of Frame" size="1" start="19" type="bool"/>
     <field name="Disable VG-Mask buffer dump" size="1" start="18" type="bool"/>
     <field name="Disable Z/Stencil buffer dump" size="1" start="17" type="bool"/>
@@ -69,7 +69,7 @@
   </packet>
 
   <packet name="Load Tile Buffer General" code="29" cl="R">
-    <field name="Memory base address of frame/tile dump buffer" size="32" start="16" type="address"/>
+    <field name="Memory base address of frame/tile dump buffer" size="28" start="20" type="address"/>
     <field name="Disable VG-Mask buffer load" size="1" start="18" type="bool"/>
     <field name="Disable Z/Stencil buffer load" size="1" start="17" type="bool"/>
     <field name="Disable Color buffer load" size="1" start="16" type="bool"/>
@@ -212,8 +212,8 @@
   </packet>
 
   <packet name="Viewport Offset" code="103">
-    <field name="Viewport Centre Y-coordinate" size="16" start="16" type="int"/>
-    <field name="Viewport Centre X-coordinate" size="16" start="0" type="int"/>
+    <field name="Viewport Centre Y-coordinate" size="16" start="16" type="s12.4"/>
+    <field name="Viewport Centre X-coordinate" size="16" start="0" type="s12.4"/>
   </packet>
 
   <packet name="Z min and max clipping planes" code="104">

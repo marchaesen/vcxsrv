@@ -187,9 +187,27 @@ TODO: document the other workarounds.
         <application name="Euro Truck Simulator 2" executable="eurotrucks2">
             <option name="mesa_glthread" value="true"/>
         </application>
-	<application name="War Thunder (Wine)" executable="aces.exe">
+        <application name="Overlord" executable="overlord.i386">
             <option name="mesa_glthread" value="true"/>
-	</application>
+        </application>
+        <application name="Overlord 2" executable="overlord2.i386">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Oil Rush" executable="OilRush_x86">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="War Thunder" executable="aces">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Saints Row 2" executable="saintsrow2.i386">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="War Thunder (Wine)" executable="aces.exe">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Mount and Blade Warband" executable="mb_warband_linux">
+            <option name="mesa_glthread" value="true"/>
+        </application>
     </device>
     <!-- vmwgfx doesn't like full buffer swaps and can't sync to vertical retraces.-->
     <device driver="vmwgfx">

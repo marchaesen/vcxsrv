@@ -567,6 +567,13 @@ enum glsl_interp_mode
    INTERP_MODE_COUNT /**< Number of interpolation qualifiers */
 };
 
+enum glsl_interface_packing {
+   GLSL_INTERFACE_PACKING_STD140,
+   GLSL_INTERFACE_PACKING_SHARED,
+   GLSL_INTERFACE_PACKING_PACKED,
+   GLSL_INTERFACE_PACKING_STD430
+};
+
 const char *glsl_interp_mode_name(enum glsl_interp_mode qual);
 
 /**

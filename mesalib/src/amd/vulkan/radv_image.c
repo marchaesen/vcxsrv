@@ -181,6 +181,11 @@ radv_make_buffer_descriptor(struct radv_device *device,
 	state[0] = va;
 	state[1] = S_008F04_BASE_ADDRESS_HI(va >> 32) |
 		S_008F04_STRIDE(stride);
+
+	if (device->physical_device->rad_info.chip_class < VI && stride) {
+		range /= stride;
+	}
+
 	state[2] = range;
 	state[3] = S_008F0C_DST_SEL_X(radv_map_swizzle(desc->swizzle[0])) |
 		   S_008F0C_DST_SEL_Y(radv_map_swizzle(desc->swizzle[1])) |

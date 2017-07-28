@@ -1,4 +1,5 @@
 # Copyright © 2016 Intel Corporation
+# Copyright © 2016 Mauro Rossi <issor.oruam@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -7,36 +8,28 @@
 # and/or sell copies of the Software, and to permit persons to whom the
 # Software is furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice (including the next
-# paragraph) shall be included in all copies or substantial portions of the
-# Software.
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-# IN THE SOFTWARE.
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
-BUILT_SOURCES += $(BROADCOM_GENXML_GENERATED_FILES)
+include $(CLEAR_VARS)
 
-EXTRA_DIST += $(BROADCOM_GENXML_XML_FILES)
-EXTRA_DIST += $(BROADCOM_GENXML_GENERATED_FILES)
+LOCAL_MODULE := libmesa_broadcom_cle
 
-SUFFIXES = _pack.h .xml
+LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 
-$(BROADCOM_GENXML_GENERATED_FILES): cle/gen_pack_header.py
+LOCAL_SRC_FILES := $(BROADCOM_DECODER_FILES)
 
-.xml_pack.h:
-	$(MKDIR_GEN)
-	$(PYTHON_GEN) $(srcdir)/cle/gen_pack_header.py $< > $@ || ($(RM) $@; false)
+LOCAL_STATIC_LIBRARIES := libmesa_broadcom_genxml
 
-GEN_ZIPPED = $(srcdir)/../intel/genxml/gen_zipped_file.py
-cle/v3d_xml.h: $(GEN_ZIPPED) $(BROADCOM_GENXML_XML_FILES)
-	$(MKDIR_GEN)
-	$(PYTHON_GEN) $(GEN_ZIPPED) $(BROADCOM_GENXML_XML_FILES:%=$(srcdir)/%) > $@ || ($(RM) $@; false)
+LOCAL_SHARED_LIBRARIES := libexpat libz
 
-EXTRA_DIST += \
-	cle/gen_pack_header.py \
-	$()
+include $(MESA_COMMON_MK)
+include $(BUILD_STATIC_LIBRARY)

@@ -20,6 +20,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-I$(top_builddir)/src \
+	-I$(top_srcdir)/src \
+	$(VALGRIND_CFLAGS) \
+	$(DEFINES)
+
 include Makefile.sources
 
 lib_LTLIBRARIES =
@@ -38,5 +45,6 @@ MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
 PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
 include Makefile.genxml.am
+include Makefile.cle.am
 
 CLEANFILES += $(BUILT_SOURCES)
