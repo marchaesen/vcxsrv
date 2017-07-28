@@ -257,6 +257,18 @@ static int gfx6_compute_level(ADDR_HANDLE addrlib,
 	AddrSurfInfoIn->width = u_minify(config->info.width, level);
 	AddrSurfInfoIn->height = u_minify(config->info.height, level);
 
+	/* Make GFX6 linear surfaces compatible with GFX9 for hybrid graphics,
+	 * because GFX9 needs linear alignment of 256 bytes.
+	 */
+	if (config->info.levels == 1 &&
+	    AddrSurfInfoIn->tileMode == ADDR_TM_LINEAR_ALIGNED &&
+	    AddrSurfInfoIn->bpp) {
+		unsigned alignment = 256 / (AddrSurfInfoIn->bpp / 8);
+
+		assert(util_is_power_of_two(AddrSurfInfoIn->bpp));
+		AddrSurfInfoIn->width = align(AddrSurfInfoIn->width, alignment);
+	}
+
 	if (config->is_3d)
 		AddrSurfInfoIn->numSlices = u_minify(config->info.depth, level);
 	else if (config->is_cube)

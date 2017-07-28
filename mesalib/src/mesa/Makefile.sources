@@ -436,7 +436,6 @@ STATETRACKER_FILES = \
 	state_tracker/st_atom_tess.c \
 	state_tracker/st_atom_texture.c \
 	state_tracker/st_atom_viewport.c \
-	state_tracker/st_cache.h \
 	state_tracker/st_cb_bitmap.c \
 	state_tracker/st_cb_bitmap.h \
 	state_tracker/st_cb_bitmap_shader.c \

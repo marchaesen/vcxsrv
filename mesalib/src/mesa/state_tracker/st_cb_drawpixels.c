@@ -464,7 +464,6 @@ make_texture(struct st_context *st,
 
    {
       struct pipe_transfer *transfer;
-      GLboolean success;
       GLubyte *dest;
       const GLbitfield imageTransferStateSave = ctx->_ImageTransferState;
 
@@ -497,9 +496,9 @@ make_texture(struct st_context *st,
                               format, type,     /* src format/type */
                               pixels,           /* data source */
                               unpack);
-         success = GL_TRUE;
       }
       else {
+         bool MAYBE_UNUSED success;
          success = _mesa_texstore(ctx, 2,           /* dims */
                                   baseInternalFormat, /* baseInternalFormat */
                                   mformat,          /* mesa_format */
@@ -509,12 +508,12 @@ make_texture(struct st_context *st,
                                   format, type,     /* src format/type */
                                   pixels,           /* data source */
                                   unpack);
+
+         assert(success);
       }
 
       /* unmap */
       pipe_transfer_unmap(pipe, transfer);
-
-      assert(success);
 
       /* restore */
       ctx->_ImageTransferState = imageTransferStateSave;
@@ -570,7 +569,7 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    const unsigned fb_width = _mesa_geometric_width(ctx->DrawBuffer);
    const unsigned fb_height = _mesa_geometric_height(ctx->DrawBuffer);
    GLfloat x0, y0, x1, y1;
-   GLsizei maxSize;
+   GLsizei MAYBE_UNUSED maxSize;
    boolean normalized = sv[0]->texture->target == PIPE_TEXTURE_2D;
    unsigned cso_state_mask;
 

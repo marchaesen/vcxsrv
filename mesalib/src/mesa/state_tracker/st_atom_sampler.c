@@ -105,6 +105,7 @@ void
 st_convert_sampler(const struct st_context *st,
                    const struct gl_texture_object *texobj,
                    const struct gl_sampler_object *msamp,
+                   float tex_unit_lod_bias,
                    struct pipe_sampler_state *sampler)
 {
    memset(sampler, 0, sizeof(*sampler));
@@ -119,7 +120,7 @@ st_convert_sampler(const struct st_context *st,
    if (texobj->Target != GL_TEXTURE_RECTANGLE_ARB)
       sampler->normalized_coords = 1;
 
-   sampler->lod_bias = msamp->LodBias;
+   sampler->lod_bias = msamp->LodBias + tex_unit_lod_bias;
    /* Reduce the number of states by allowing only the values that AMD GCN
     * can represent. Apps use lod_bias for smooth transitions to bigger mipmap
     * levels.
@@ -241,9 +242,9 @@ st_convert_sampler_from_unit(const struct st_context *st,
 
    msamp = _mesa_get_samplerobj(ctx, texUnit);
 
-   st_convert_sampler(st, texobj, msamp, sampler);
+   st_convert_sampler(st, texobj, msamp, ctx->Texture.Unit[texUnit].LodBias,
+                      sampler);
 
-   sampler->lod_bias += ctx->Texture.Unit[texUnit].LodBias;
    sampler->seamless_cube_map |= ctx->Texture.CubeMapSeamless;
 }
 

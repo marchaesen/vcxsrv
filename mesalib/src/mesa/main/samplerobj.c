@@ -154,7 +154,8 @@ _mesa_new_sampler_object(struct gl_context *ctx, GLuint name)
 }
 
 static void
-create_samplers(struct gl_context *ctx, GLsizei count, GLuint *samplers)
+create_samplers(struct gl_context *ctx, GLsizei count, GLuint *samplers,
+                const char *caller)
 {
    GLuint first;
    GLint i;
@@ -168,10 +169,18 @@ create_samplers(struct gl_context *ctx, GLsizei count, GLuint *samplers)
 
    /* Insert the ID and pointer to new sampler object into hash table */
    for (i = 0; i < count; i++) {
-      struct gl_sampler_object *sampObj =
-         ctx->Driver.NewSamplerObject(ctx, first + i);
-      _mesa_HashInsertLocked(ctx->Shared->SamplerObjects, first + i, sampObj);
-      samplers[i] = first + i;
+      struct gl_sampler_object *sampObj;
+      GLuint name = first + i;
+
+      sampObj = ctx->Driver.NewSamplerObject(ctx, name);
+      if (!sampObj) {
+         _mesa_HashUnlockMutex(ctx->Shared->SamplerObjects);
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", caller);
+         return;
+      }
+
+      _mesa_HashInsertLocked(ctx->Shared->SamplerObjects, name, sampObj);
+      samplers[i] = name;
    }
 
    _mesa_HashUnlockMutex(ctx->Shared->SamplerObjects);
@@ -190,14 +199,14 @@ create_samplers_err(struct gl_context *ctx, GLsizei count, GLuint *samplers,
       return;
    }
 
-   create_samplers(ctx, count, samplers);
+   create_samplers(ctx, count, samplers, caller);
 }
 
 void GLAPIENTRY
 _mesa_GenSamplers_no_error(GLsizei count, GLuint *samplers)
 {
    GET_CURRENT_CONTEXT(ctx);
-   create_samplers(ctx, count, samplers);
+   create_samplers(ctx, count, samplers, "glGenSamplers");
 }
 
 void GLAPIENTRY
@@ -211,7 +220,7 @@ void GLAPIENTRY
 _mesa_CreateSamplers_no_error(GLsizei count, GLuint *samplers)
 {
    GET_CURRENT_CONTEXT(ctx);
-   create_samplers(ctx, count, samplers);
+   create_samplers(ctx, count, samplers, "glCreateSamplers");
 }
 
 void GLAPIENTRY

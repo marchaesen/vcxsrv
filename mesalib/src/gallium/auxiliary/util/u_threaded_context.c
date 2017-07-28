@@ -1978,9 +1978,11 @@ static void
 tc_call_generate_mipmap(struct pipe_context *pipe, union tc_payload *payload)
 {
    struct tc_generate_mipmap *p = (struct tc_generate_mipmap *)payload;
-   bool result = pipe->generate_mipmap(pipe, p->res, p->format, p->base_level,
-                                       p->last_level, p->first_layer,
-                                       p->last_layer);
+   bool MAYBE_UNUSED result = pipe->generate_mipmap(pipe, p->res, p->format,
+                                                    p->base_level,
+                                                    p->last_level,
+                                                    p->first_layer,
+                                                    p->last_layer);
    assert(result);
    pipe_resource_reference(&p->res, NULL);
 }

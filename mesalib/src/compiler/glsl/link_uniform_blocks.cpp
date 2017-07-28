@@ -280,7 +280,7 @@ process_block_array_leaf(const char *name,
    blocks[i].Binding = (b->has_binding) ? b->binding + *binding_offset : 0;
 
    blocks[i].UniformBufferSize = 0;
-   blocks[i]._Packing = gl_uniform_block_packing(type->interface_packing);
+   blocks[i]._Packing = glsl_interface_packing(type->interface_packing);
    blocks[i]._RowMajor = type->get_interface_row_major();
    blocks[i].linearized_array_index = linearized_index;
 
@@ -353,15 +353,6 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
     * structures.
     */
    ubo_visitor parcel(blocks, variables, num_variables, prog);
-
-   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_STD140)
-                 == unsigned(ubo_packing_std140));
-   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_SHARED)
-                 == unsigned(ubo_packing_shared));
-   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_PACKED)
-                 == unsigned(ubo_packing_packed));
-   STATIC_ASSERT(unsigned(GLSL_INTERFACE_PACKING_STD430)
-                 == unsigned(ubo_packing_std430));
 
    unsigned i = 0;
    struct hash_entry *entry;

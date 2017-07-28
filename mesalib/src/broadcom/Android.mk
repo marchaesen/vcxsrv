@@ -26,3 +26,4 @@ LOCAL_PATH := $(call my-dir)
 include $(LOCAL_PATH)/Makefile.sources
 
 include $(LOCAL_PATH)/Android.genxml.mk
+include $(LOCAL_PATH)/Android.cle.mk

@@ -433,8 +433,7 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
               exec_list *actual_parameters,
               ir_variable *sub_var,
               ir_rvalue *array_idx,
-              struct _mesa_glsl_parse_state *state,
-              bool inline_immediately)
+              struct _mesa_glsl_parse_state *state)
 {
    void *ctx = state;
    exec_list post_call_conversions;
@@ -546,7 +545,8 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
    ir_call *call = new(ctx) ir_call(sig, deref,
                                     actual_parameters, sub_var, array_idx);
    instructions->push_tail(call);
-   if (inline_immediately) {
+   if (sig->is_builtin()) {
+      /* inline immediately */
       call->generate_inline(call);
       call->remove();
    }
@@ -2331,7 +2331,7 @@ ast_function_expression::hir(exec_list *instructions,
          }
 
          value = generate_call(instructions, sig, &actual_parameters, sub_var,
-                               array_idx, state, sig->is_builtin());
+                               array_idx, state);
          if (!value) {
             ir_variable *const tmp = new(ctx) ir_variable(glsl_type::void_type,
                                                           "void_var",

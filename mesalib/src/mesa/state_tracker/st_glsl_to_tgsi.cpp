@@ -3790,7 +3790,7 @@ get_image_qualifiers(ir_dereference *ir, const glsl_type **type,
       for (unsigned i = 0; i < struct_type->length; i++) {
          if (!strcmp(struct_type->fields.structure[i].name,
                      deref_record->field)) {
-            *type = struct_type->fields.structure[i].type;
+            *type = struct_type->fields.structure[i].type->without_array();
             *memory_coherent =
                struct_type->fields.structure[i].memory_coherent;
             *memory_volatile =

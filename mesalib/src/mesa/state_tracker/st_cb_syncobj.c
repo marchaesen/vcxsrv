@@ -45,17 +45,12 @@ struct st_sync_object {
 };
 
 
-static struct gl_sync_object * st_new_sync_object(struct gl_context *ctx,
-                                                  GLenum type)
+static struct gl_sync_object *st_new_sync_object(struct gl_context *ctx)
 {
-   if (type == GL_SYNC_FENCE) {
-      struct st_sync_object *so = CALLOC_STRUCT(st_sync_object);
+   struct st_sync_object *so = CALLOC_STRUCT(st_sync_object);
 
-      mtx_init(&so->mutex, mtx_plain);
-      return &so->b;
-   } else {
-      return NULL;
-   }
+   mtx_init(&so->mutex, mtx_plain);
+   return &so->b;
 }
 
 static void st_delete_sync_object(struct gl_context *ctx,
