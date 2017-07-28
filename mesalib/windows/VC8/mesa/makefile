@@ -55,6 +55,7 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\mesa\main\format_info.h \
       ..\..\..\src\mesa\main\format_unpack.c \
       ..\..\..\src\mesa\main\format_pack.c \
+      ..\..\..\src\mesa\main\format_fallback.c \
       ..\..\..\src\util\format_srgb.c \
       ..\..\..\src\mapi\glapi\gen\glapiTemp.h \
       ..\..\..\src\mesa\main\remap_helper.h \
@@ -88,6 +89,10 @@ GET_HASH_GEN = ../../../src/mesa/main/get_hash_generator.py
 GEN_FORMAT_INFO=../../../src/mesa/main/format_info.py
 ..\..\..\src\mesa\main\format_info.h: ..\..\..\src\mesa\main\formats.csv ..\..\..\src\mesa\main\format_parser.py $(GEN_FORMAT_INFO)
 	python $(GEN_FORMAT_INFO) $< > $@
+
+GEN_FORMAT_FALLBACK=../../../src/mesa/main/format_fallback.py
+..\..\..\src\mesa\main\format_fallback.c: ..\..\..\src\mesa\main\formats.csv ..\..\..\src\mesa\main\format_fallback.py $(GEN_FORMAT_FALLBACK)
+	python $(GEN_FORMAT_FALLBACK) $< $@
 
 ..\..\..\src\util\format_srgb.c: ..\..\..\src\util\format_srgb.py
 	python $< > $@
