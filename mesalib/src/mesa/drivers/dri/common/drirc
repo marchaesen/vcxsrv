@@ -205,9 +205,6 @@ TODO: document the other workarounds.
         <application name="War Thunder (Wine)" executable="aces.exe">
             <option name="mesa_glthread" value="true"/>
         </application>
-        <application name="Mount and Blade Warband" executable="mb_warband_linux">
-            <option name="mesa_glthread" value="true"/>
-        </application>
     </device>
     <!-- vmwgfx doesn't like full buffer swaps and can't sync to vertical retraces.-->
     <device driver="vmwgfx">

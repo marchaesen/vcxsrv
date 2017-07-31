@@ -227,6 +227,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader)
    }
 
    case nir_intrinsic_load_draw_id:
+   case nir_intrinsic_load_frag_coord:
    case nir_intrinsic_load_front_face:
    case nir_intrinsic_load_vertex_id:
    case nir_intrinsic_load_vertex_id_zero_base:

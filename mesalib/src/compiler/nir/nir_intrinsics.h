@@ -322,6 +322,7 @@ INTRINSIC(shared_atomic_comp_swap, 3, ARR(1, 1, 1), true, 1, 0, 1, BASE, xx, xx,
    idx0, idx1, idx2, \
    NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
 
+SYSTEM_VALUE(frag_coord, 4, 0, xx, xx, xx)
 SYSTEM_VALUE(front_face, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(vertex_id, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(vertex_id_zero_base, 1, 0, xx, xx, xx)

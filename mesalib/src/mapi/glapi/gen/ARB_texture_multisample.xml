@@ -59,7 +59,7 @@
       <param name="val" type="GLfloat *"/>
    </function>
 
-   <function name="SampleMaski" es2="3.1">
+   <function name="SampleMaski" es2="3.1" no_error="true">
       <param name="index" type="GLuint"/>
       <param name="mask" type="GLbitfield"/>
    </function>

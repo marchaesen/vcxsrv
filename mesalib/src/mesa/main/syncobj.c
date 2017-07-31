@@ -223,10 +223,9 @@ _mesa_IsSync(GLsync sync)
 }
 
 
-void GLAPIENTRY
-_mesa_DeleteSync(GLsync sync)
+static ALWAYS_INLINE void
+delete_sync(struct gl_context *ctx, GLsync sync, bool no_error)
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_sync_object *syncObj;
 
    /* From the GL_ARB_sync spec:
@@ -240,18 +239,35 @@ _mesa_DeleteSync(GLsync sync)
    }
 
    syncObj = _mesa_get_and_ref_sync(ctx, sync, true);
-   if (!syncObj) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glDeleteSync (not a valid sync object)");
+   if (!no_error && !syncObj) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glDeleteSync (not a valid sync object)");
       return;
    }
 
    /* If there are no client-waits or server-waits pending on this sync, delete
     * the underlying object. Note that we double-unref the object, as
-    * _mesa_get_and_ref_sync above took an extra refcount to make sure the pointer
-    * is valid for us to manipulate.
+    * _mesa_get_and_ref_sync above took an extra refcount to make sure the
+    * pointer is valid for us to manipulate.
     */
    syncObj->DeletePending = GL_TRUE;
    _mesa_unref_sync_object(ctx, syncObj, 2);
+}
+
+
+void GLAPIENTRY
+_mesa_DeleteSync_no_error(GLsync sync)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   delete_sync(ctx, sync, true);
+}
+
+
+void GLAPIENTRY
+_mesa_DeleteSync(GLsync sync)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   delete_sync(ctx, sync, false);
 }
 
 
@@ -381,6 +397,25 @@ _mesa_ClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 }
 
 
+static void
+wait_sync(struct gl_context *ctx, struct gl_sync_object *syncObj,
+          GLbitfield flags, GLuint64 timeout)
+{
+   ctx->Driver.ServerWaitSync(ctx, syncObj, flags, timeout);
+   _mesa_unref_sync_object(ctx, syncObj, 1);
+}
+
+
+void GLAPIENTRY
+_mesa_WaitSync_no_error(GLsync sync, GLbitfield flags, GLuint64 timeout)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_sync_object *syncObj = _mesa_get_and_ref_sync(ctx, sync, true);
+   wait_sync(ctx, syncObj, flags, timeout);
+}
+
+
 void GLAPIENTRY
 _mesa_WaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
@@ -404,8 +439,7 @@ _mesa_WaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
       return;
    }
 
-   ctx->Driver.ServerWaitSync(ctx, syncObj, flags, timeout);
-   _mesa_unref_sync_object(ctx, syncObj, 1);
+   wait_sync(ctx, syncObj, flags, timeout);
 }
 
 

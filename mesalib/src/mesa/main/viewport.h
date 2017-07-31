@@ -67,6 +67,10 @@ _mesa_DepthRange(GLclampd nearval, GLclampd farval);
 extern void GLAPIENTRY
 _mesa_DepthRangef(GLclampf nearval, GLclampf farval);
 
+void GLAPIENTRY
+_mesa_DepthRangeArrayv_no_error(GLuint first, GLsizei count,
+                                const GLclampd * v);
+
 extern void GLAPIENTRY
 _mesa_DepthRangeArrayv(GLuint first, GLsizei count, const GLclampd * v);
 

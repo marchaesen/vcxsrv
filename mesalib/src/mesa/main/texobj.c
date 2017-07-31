@@ -1447,26 +1447,15 @@ unbind_textures_from_unit(struct gl_context *ctx, GLuint unit)
  * Recall that texture objects can be shared among several rendering
  * contexts.
  */
-void GLAPIENTRY
-_mesa_DeleteTextures( GLsizei n, const GLuint *textures)
+static void
+delete_textures(struct gl_context *ctx, GLsizei n, const GLuint *textures)
 {
-   GET_CURRENT_CONTEXT(ctx);
-   GLint i;
-
-   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
-      _mesa_debug(ctx, "glDeleteTextures %d\n", n);
-
-   if (n < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glDeleteTextures(n < 0)");
-      return;
-   }
-
    FLUSH_VERTICES(ctx, 0); /* too complex */
 
    if (!textures)
       return;
 
-   for (i = 0; i < n; i++) {
+   for (GLsizei i = 0; i < n; i++) {
       if (textures[i] > 0) {
          struct gl_texture_object *delObj
             = _mesa_lookup_texture(ctx, textures[i]);
@@ -1512,6 +1501,31 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *textures)
          }
       }
    }
+}
+
+
+void GLAPIENTRY
+_mesa_DeleteTextures_no_error(GLsizei n, const GLuint *textures)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   delete_textures(ctx, n, textures);
+}
+
+
+void GLAPIENTRY
+_mesa_DeleteTextures(GLsizei n, const GLuint *textures)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
+      _mesa_debug(ctx, "glDeleteTextures %d\n", n);
+
+   if (n < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glDeleteTextures(n < 0)");
+      return;
+   }
+
+   delete_textures(ctx, n, textures);
 }
 
 
@@ -1576,9 +1590,8 @@ _mesa_tex_target_to_index(const struct gl_context *ctx, GLenum target)
  * \param texObj  the new texture object (cannot be NULL)
  */
 static void
-bind_texture(struct gl_context *ctx,
-             unsigned unit,
-             struct gl_texture_object *texObj)
+bind_texture_object(struct gl_context *ctx, unsigned unit,
+                    struct gl_texture_object *texObj)
 {
    struct gl_texture_unit *texUnit;
    int targetIndex;
@@ -1638,18 +1651,15 @@ bind_texture(struct gl_context *ctx,
  * \param target texture target.
  * \param texName texture name.
  */
-void GLAPIENTRY
-_mesa_BindTexture( GLenum target, GLuint texName )
+static ALWAYS_INLINE void
+bind_texture(struct gl_context *ctx, GLenum target, GLuint texName,
+             bool no_error)
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_object *newTexObj = NULL;
+   int targetIndex;
 
-   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
-      _mesa_debug(ctx, "glBindTexture %s %d\n",
-                  _mesa_enum_to_string(target), (GLint) texName);
-
-   int targetIndex = _mesa_tex_target_to_index(ctx, target);
-   if (targetIndex < 0) {
+   targetIndex = _mesa_tex_target_to_index(ctx, target);
+   if (!no_error && targetIndex < 0) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glBindTexture(target = %s)",
                   _mesa_enum_to_string(target));
       return;
@@ -1662,13 +1672,13 @@ _mesa_BindTexture( GLenum target, GLuint texName )
    if (texName == 0) {
       /* Use a default texture object */
       newTexObj = ctx->Shared->DefaultTex[targetIndex];
-   }
-   else {
+   } else {
       /* non-default texture object */
       newTexObj = _mesa_lookup_texture(ctx, texName);
       if (newTexObj) {
          /* error checking */
-         if (newTexObj->Target != 0 && newTexObj->Target != target) {
+         if (!no_error &&
+             newTexObj->Target != 0 && newTexObj->Target != target) {
             /* The named texture object's target doesn't match the
              * given target
              */
@@ -1681,7 +1691,7 @@ _mesa_BindTexture( GLenum target, GLuint texName )
          }
       }
       else {
-         if (ctx->API == API_OPENGL_CORE) {
+         if (!no_error && ctx->API == API_OPENGL_CORE) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "glBindTexture(non-gen name)");
             return;
@@ -1702,7 +1712,28 @@ _mesa_BindTexture( GLenum target, GLuint texName )
    assert(newTexObj->Target == target);
    assert(newTexObj->TargetIndex == targetIndex);
 
-   bind_texture(ctx, ctx->Texture.CurrentUnit, newTexObj);
+   bind_texture_object(ctx, ctx->Texture.CurrentUnit, newTexObj);
+}
+
+
+void GLAPIENTRY
+_mesa_BindTexture_no_error(GLenum target, GLuint texName)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   bind_texture(ctx, target, texName, true);
+}
+
+
+void GLAPIENTRY
+_mesa_BindTexture(GLenum target, GLuint texName)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
+      _mesa_debug(ctx, "glBindTexture %s %d\n",
+                  _mesa_enum_to_string(target), (GLint) texName);
+
+   bind_texture(ctx, target, texName, false);
 }
 
 
@@ -1755,7 +1786,7 @@ bind_texture_unit(struct gl_context *ctx, GLuint unit, GLuint texture,
 
    assert(valid_texture_object(texObj));
 
-   bind_texture(ctx, unit, texObj);
+   bind_texture_object(ctx, unit, texObj);
 }
 
 
@@ -1788,25 +1819,11 @@ _mesa_BindTextureUnit(GLuint unit, GLuint texture)
 /**
  * OpenGL 4.4 / GL_ARB_multi_bind glBindTextures().
  */
-void GLAPIENTRY
-_mesa_BindTextures(GLuint first, GLsizei count, const GLuint *textures)
+static ALWAYS_INLINE void
+bind_textures(struct gl_context *ctx, GLuint first, GLsizei count,
+              const GLuint *textures, bool no_error)
 {
-   GET_CURRENT_CONTEXT(ctx);
-   GLint i;
-
-   /* The ARB_multi_bind spec says:
-    *
-    *     "An INVALID_OPERATION error is generated if <first> + <count>
-    *      is greater than the number of texture image units supported
-    *      by the implementation."
-    */
-   if (first + count > ctx->Const.MaxCombinedTextureImageUnits) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glBindTextures(first=%u + count=%d > the value of "
-                  "GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS=%u)",
-                  first, count, ctx->Const.MaxCombinedTextureImageUnits);
-      return;
-   }
+   GLsizei i;
 
    if (textures) {
       /* Note that the error semantics for multi-bind commands differ from
@@ -1842,8 +1859,8 @@ _mesa_BindTextures(GLuint first, GLsizei count, const GLuint *textures)
                texObj = _mesa_lookup_texture_locked(ctx, textures[i]);
 
             if (texObj && texObj->Target != 0) {
-               bind_texture(ctx, first + i, texObj);
-            } else {
+               bind_texture_object(ctx, first + i, texObj);
+            } else if (!no_error) {
                /* The ARB_multi_bind spec says:
                 *
                 *     "An INVALID_OPERATION error is generated if any value
@@ -1866,6 +1883,37 @@ _mesa_BindTextures(GLuint first, GLsizei count, const GLuint *textures)
       for (i = 0; i < count; i++)
          unbind_textures_from_unit(ctx, first + i);
    }
+}
+
+
+void GLAPIENTRY
+_mesa_BindTextures_no_error(GLuint first, GLsizei count, const GLuint *textures)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   bind_textures(ctx, first, count, textures, true);
+}
+
+
+void GLAPIENTRY
+_mesa_BindTextures(GLuint first, GLsizei count, const GLuint *textures)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   /* The ARB_multi_bind spec says:
+    *
+    *     "An INVALID_OPERATION error is generated if <first> + <count>
+    *      is greater than the number of texture image units supported
+    *      by the implementation."
+    */
+   if (first + count > ctx->Const.MaxCombinedTextureImageUnits) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glBindTextures(first=%u + count=%d > the value of "
+                  "GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS=%u)",
+                  first, count, ctx->Const.MaxCombinedTextureImageUnits);
+      return;
+   }
+
+   bind_textures(ctx, first, count, textures, false);
 }
 
 
@@ -2029,6 +2077,16 @@ _mesa_unlock_context_textures( struct gl_context *ctx )
 
 
 void GLAPIENTRY
+_mesa_InvalidateTexSubImage_no_error(GLuint texture, GLint level, GLint xoffset,
+                                     GLint yoffset, GLint zoffset,
+                                     GLsizei width, GLsizei height,
+                                     GLsizei depth)
+{
+   /* no-op */
+}
+
+
+void GLAPIENTRY
 _mesa_InvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset,
                             GLint yoffset, GLint zoffset, GLsizei width,
                             GLsizei height, GLsizei depth)
@@ -2172,6 +2230,13 @@ _mesa_InvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset,
     * validating the parameters and generating the required errors.
     */
    return;
+}
+
+
+void GLAPIENTRY
+_mesa_InvalidateTexImage_no_error(GLuint texture, GLint level)
+{
+   /* no-op */
 }
 
 

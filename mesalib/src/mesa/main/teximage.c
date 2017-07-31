@@ -3369,13 +3369,13 @@ texsubimage(struct gl_context *ctx, GLuint dims, GLenum target, GLint level,
  * Implement all the glTextureSubImage1/2/3D() functions.
  * Must split this out this way because of GL_TEXTURE_CUBE_MAP.
  */
-static void
+static ALWAYS_INLINE void
 texturesubimage(struct gl_context *ctx, GLuint dims,
                 GLuint texture, GLint level,
                 GLint xoffset, GLint yoffset, GLint zoffset,
                 GLsizei width, GLsizei height, GLsizei depth,
                 GLenum format, GLenum type, const GLvoid *pixels,
-                const char *callerName)
+                const char *callerName, bool no_error)
 {
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
@@ -3390,24 +3390,29 @@ texturesubimage(struct gl_context *ctx, GLuint dims,
                   _mesa_enum_to_string(type), pixels);
 
    /* Get the texture object by Name. */
-   texObj = _mesa_lookup_texture_err(ctx, texture, callerName);
-   if (!texObj)
-      return;
-
-   /* check target (proxies not allowed) */
-   if (!legal_texsubimage_target(ctx, dims, texObj->Target, true)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(target=%s)",
-                  callerName, _mesa_enum_to_string(texObj->Target));
-      return;
+   if (!no_error) {
+      texObj = _mesa_lookup_texture_err(ctx, texture, callerName);
+      if (!texObj)
+         return;
+   } else {
+      texObj = _mesa_lookup_texture(ctx, texture);
    }
 
-   if (texsubimage_error_check(ctx, dims, texObj, texObj->Target, level,
-                               xoffset, yoffset, zoffset,
-                               width, height, depth, format, type,
-                               pixels, true, callerName)) {
-      return;   /* error was detected */
-   }
+   if (!no_error) {
+      /* check target (proxies not allowed) */
+      if (!legal_texsubimage_target(ctx, dims, texObj->Target, true)) {
+         _mesa_error(ctx, GL_INVALID_ENUM, "%s(target=%s)",
+                     callerName, _mesa_enum_to_string(texObj->Target));
+         return;
+      }
 
+      if (texsubimage_error_check(ctx, dims, texObj, texObj->Target, level,
+                                  xoffset, yoffset, zoffset,
+                                  width, height, depth, format, type,
+                                  pixels, true, callerName)) {
+         return;   /* error was detected */
+      }
+   }
 
    /* Must handle special case GL_TEXTURE_CUBE_MAP. */
    if (texObj->Target == GL_TEXTURE_CUBE_MAP) {
@@ -3442,7 +3447,7 @@ texturesubimage(struct gl_context *ctx, GLuint dims,
        * It seems reasonable to check for cube completeness of an arbitrary
        * level here so that the image data has a consistent format and size.
        */
-      if (!_mesa_cube_level_complete(texObj, level)) {
+      if (!no_error && !_mesa_cube_level_complete(texObj, level)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glTextureSubImage%uD(cube map incomplete)",
                      dims);
@@ -3472,6 +3477,34 @@ texturesubimage(struct gl_context *ctx, GLuint dims,
                         width, height, depth, format,
                         type, pixels, true);
    }
+}
+
+
+static void
+texturesubimage_error(struct gl_context *ctx, GLuint dims,
+                      GLuint texture, GLint level,
+                      GLint xoffset, GLint yoffset, GLint zoffset,
+                      GLsizei width, GLsizei height, GLsizei depth,
+                      GLenum format, GLenum type, const GLvoid *pixels,
+                      const char *callerName)
+{
+   texturesubimage(ctx, dims, texture, level, xoffset, yoffset, zoffset,
+                   width, height, depth, format, type, pixels, callerName,
+                   false);
+}
+
+
+static void
+texturesubimage_no_error(struct gl_context *ctx, GLuint dims,
+                         GLuint texture, GLint level,
+                         GLint xoffset, GLint yoffset, GLint zoffset,
+                         GLsizei width, GLsizei height, GLsizei depth,
+                         GLenum format, GLenum type, const GLvoid *pixels,
+                         const char *callerName)
+{
+   texturesubimage(ctx, dims, texture, level, xoffset, yoffset, zoffset,
+                   width, height, depth, format, type, pixels, callerName,
+                   true);
 }
 
 
@@ -3562,6 +3595,18 @@ _mesa_TexSubImage3D( GLenum target, GLint level,
                    format, type, pixels, "glTexSubImage3D");
 }
 
+
+void GLAPIENTRY
+_mesa_TextureSubImage1D_no_error(GLuint texture, GLint level, GLint xoffset,
+                                 GLsizei width, GLenum format, GLenum type,
+                                 const GLvoid *pixels)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   texturesubimage_no_error(ctx, 1, texture, level, xoffset, 0, 0, width, 1, 1,
+                            format, type, pixels, "glTextureSubImage1D");
+}
+
+
 void GLAPIENTRY
 _mesa_TextureSubImage1D(GLuint texture, GLint level,
                         GLint xoffset, GLsizei width,
@@ -3569,10 +3614,21 @@ _mesa_TextureSubImage1D(GLuint texture, GLint level,
                         const GLvoid *pixels)
 {
    GET_CURRENT_CONTEXT(ctx);
-   texturesubimage(ctx, 1, texture, level,
-                   xoffset, 0, 0,
-                   width, 1, 1,
-                   format, type, pixels, "glTextureSubImage1D");
+   texturesubimage_error(ctx, 1, texture, level, xoffset, 0, 0, width, 1, 1,
+                         format, type, pixels, "glTextureSubImage1D");
+}
+
+
+void GLAPIENTRY
+_mesa_TextureSubImage2D_no_error(GLuint texture, GLint level, GLint xoffset,
+                                 GLint yoffset, GLsizei width, GLsizei height,
+                                 GLenum format, GLenum type,
+                                 const GLvoid *pixels)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   texturesubimage_no_error(ctx, 2, texture, level, xoffset, yoffset, 0, width,
+                            height, 1, format, type, pixels,
+                            "glTextureSubImage2D");
 }
 
 
@@ -3584,10 +3640,22 @@ _mesa_TextureSubImage2D(GLuint texture, GLint level,
                         const GLvoid *pixels)
 {
    GET_CURRENT_CONTEXT(ctx);
-   texturesubimage(ctx, 2, texture, level,
-                   xoffset, yoffset, 0,
-                   width, height, 1,
-                   format, type, pixels, "glTextureSubImage2D");
+   texturesubimage_error(ctx, 2, texture, level, xoffset, yoffset, 0, width,
+                         height, 1, format, type, pixels,
+                         "glTextureSubImage2D");
+}
+
+
+void GLAPIENTRY
+_mesa_TextureSubImage3D_no_error(GLuint texture, GLint level, GLint xoffset,
+                                 GLint yoffset, GLint zoffset, GLsizei width,
+                                 GLsizei height, GLsizei depth, GLenum format,
+                                 GLenum type, const GLvoid *pixels)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   texturesubimage_no_error(ctx, 3, texture, level, xoffset, yoffset, zoffset,
+                            width, height, depth, format, type, pixels,
+                            "glTextureSubImage3D");
 }
 
 
@@ -3599,10 +3667,9 @@ _mesa_TextureSubImage3D(GLuint texture, GLint level,
                         const GLvoid *pixels)
 {
    GET_CURRENT_CONTEXT(ctx);
-   texturesubimage(ctx, 3, texture, level,
-                   xoffset, yoffset, zoffset,
-                   width, height, depth,
-                   format, type, pixels, "glTextureSubImage3D");
+   texturesubimage_error(ctx, 3, texture, level, xoffset, yoffset, zoffset,
+                         width, height, depth, format, type, pixels,
+                         "glTextureSubImage3D");
 }
 
 

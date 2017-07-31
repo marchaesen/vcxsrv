@@ -48,6 +48,8 @@ const struct glsl_type *glsl_get_struct_field(const struct glsl_type *type,
 
 const struct glsl_type *glsl_get_array_element(const struct glsl_type *type);
 const struct glsl_type *glsl_without_array(const struct glsl_type *type);
+const struct glsl_type *glsl_get_array_instance(const struct glsl_type *type,
+                                                unsigned array_size);
 
 const struct glsl_type *glsl_get_column_type(const struct glsl_type *type);
 

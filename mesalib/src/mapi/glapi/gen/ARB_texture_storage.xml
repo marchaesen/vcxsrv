@@ -10,14 +10,14 @@
 
   <enum name="TEXTURE_IMMUTABLE_FORMAT" value="0x912F"/>
 
-  <function name="TexStorage1D">
+  <function name="TexStorage1D" no_error="true">
     <param name="target" type="GLenum"/>
     <param name="levels" type="GLsizei"/>
     <param name="internalFormat" type="GLenum"/>
     <param name="width" type="GLsizei"/>
   </function>
 
-  <function name="TexStorage2D" es2="3.0">
+  <function name="TexStorage2D" es2="3.0" no_error="true">
     <param name="target" type="GLenum"/>
     <param name="levels" type="GLsizei"/>
     <param name="internalFormat" type="GLenum"/>
@@ -25,7 +25,7 @@
     <param name="height" type="GLsizei"/>
   </function>
 
-  <function name="TexStorage3D" es2="3.0">
+  <function name="TexStorage3D" es2="3.0" no_error="true">
     <param name="target" type="GLenum"/>
     <param name="levels" type="GLsizei"/>
     <param name="internalFormat" type="GLenum"/>

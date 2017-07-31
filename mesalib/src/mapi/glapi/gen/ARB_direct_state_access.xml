@@ -158,7 +158,7 @@
       <param name="framebuffers" type="GLuint *" />
    </function>
 
-   <function name="NamedFramebufferRenderbuffer">
+   <function name="NamedFramebufferRenderbuffer" no_error="true">
       <param name="framebuffer" type="GLuint" />
       <param name="attachment" type="GLenum" />
       <param name="renderbuffertarget" type="GLenum" />
@@ -186,12 +186,12 @@
       <param name="layer" type="GLint" />
    </function>
 
-   <function name="NamedFramebufferDrawBuffer">
+   <function name="NamedFramebufferDrawBuffer" no_error="true">
       <param name="framebuffer" type="GLuint" />
       <param name="buf" type="GLenum" />
    </function>
 
-   <function name="NamedFramebufferDrawBuffers">
+   <function name="NamedFramebufferDrawBuffers" no_error="true">
       <param name="framebuffer" type="GLuint" />
       <param name="n" type="GLsizei" />
       <param name="bufs" type="const GLenum *" />
@@ -331,14 +331,14 @@
       <param name="size" type="GLsizeiptr" />
    </function>
 
-   <function name="TextureStorage1D">
+   <function name="TextureStorage1D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="levels" type="GLsizei" />
       <param name="internalformat" type="GLenum" />
       <param name="width" type="GLsizei" />
    </function>
 
-   <function name="TextureStorage2D">
+   <function name="TextureStorage2D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="levels" type="GLsizei" />
       <param name="internalformat" type="GLenum" />
@@ -346,7 +346,7 @@
       <param name="height" type="GLsizei" />
    </function>
 
-   <function name="TextureStorage3D">
+   <function name="TextureStorage3D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="levels" type="GLsizei" />
       <param name="internalformat" type="GLenum" />
@@ -374,7 +374,7 @@
       <param name="fixedsamplelocations" type="GLboolean" />
    </function>
 
-   <function name="TextureSubImage1D">
+   <function name="TextureSubImage1D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -384,7 +384,7 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureSubImage2D">
+   <function name="TextureSubImage2D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -396,7 +396,7 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureSubImage3D">
+   <function name="TextureSubImage3D" no_error="true">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -514,7 +514,7 @@
       <param name="param" type="const GLint *" />
    </function>
 
-   <function name="GenerateTextureMipmap">
+   <function name="GenerateTextureMipmap" no_error="true">
       <param name="texture" type="GLuint" />
    </function>
 
@@ -579,7 +579,7 @@
 
    <!-- Vertex Array object functions -->
 
-   <function name="CreateVertexArrays">
+   <function name="CreateVertexArrays" no_error="true">
       <param name="n" type="GLsizei" />
       <param name="arrays" type="GLuint *" />
    </function>
@@ -594,7 +594,7 @@
       <param name="index" type="GLuint" />
    </function>
 
-   <function name="VertexArrayElementBuffer">
+   <function name="VertexArrayElementBuffer" no_error="true">
       <param name="vaobj" type="GLuint" />
       <param name="buffer" type="GLuint" />
    </function>
@@ -647,7 +647,7 @@
       <param name="bindingindex" type="GLuint" />
    </function>
 
-   <function name="VertexArrayBindingDivisor">
+   <function name="VertexArrayBindingDivisor" no_error="true">
       <param name="vaobj" type="GLuint" />
       <param name="bindingindex" type="GLuint" />
       <param name="divisor" type="GLuint" />

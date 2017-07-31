@@ -518,6 +518,202 @@ _mesa_set_texture_view_state(struct gl_context *ctx,
  * If an error is found, record it with _mesa_error()
  * \return none.
  */
+static ALWAYS_INLINE void
+texture_view(struct gl_context *ctx, struct gl_texture_object *origTexObj,
+             struct gl_texture_object *texObj, GLenum target,
+             GLenum internalformat, GLuint minlevel, GLuint numlevels,
+             GLuint minlayer, GLuint numlayers, bool no_error)
+{
+   struct gl_texture_image *origTexImage;
+   GLuint newViewNumLevels, newViewNumLayers;
+   GLsizei width, height, depth;
+   mesa_format texFormat;
+   GLboolean sizeOK, dimensionsOK;
+   GLenum faceTarget;
+
+   texFormat = _mesa_choose_texture_format(ctx, texObj, target, 0,
+                                           internalformat, GL_NONE, GL_NONE);
+   if (texFormat == MESA_FORMAT_NONE) return;
+
+   newViewNumLevels = MIN2(numlevels, origTexObj->NumLevels - minlevel);
+   newViewNumLayers = MIN2(numlayers, origTexObj->NumLayers - minlayer);
+
+   faceTarget = _mesa_cube_face_target(origTexObj->Target, minlayer);
+
+   /* Get a reference to what will become this View's base level */
+   origTexImage = _mesa_select_tex_image(origTexObj, faceTarget, minlevel);
+   width = origTexImage->Width;
+   height = origTexImage->Height;
+   depth = origTexImage->Depth;
+
+   /* Adjust width, height, depth to be appropriate for new target */
+   switch (target) {
+   case GL_TEXTURE_1D:
+      height = 1;
+      break;
+
+   case GL_TEXTURE_3D:
+      break;
+
+   case GL_TEXTURE_1D_ARRAY:
+      height = (GLsizei) newViewNumLayers;
+      break;
+
+   case GL_TEXTURE_2D:
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_TEXTURE_RECTANGLE:
+      depth = 1;
+      break;
+   case GL_TEXTURE_CUBE_MAP:
+      /* If the new texture's target is TEXTURE_CUBE_MAP, the clamped
+       * <numlayers> must be equal to 6.
+       */
+      if (!no_error && newViewNumLayers != 6) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glTextureView(clamped numlayers %d != 6)",
+                     newViewNumLayers);
+         return;
+      }
+      depth = 1;
+      break;
+
+   case GL_TEXTURE_2D_ARRAY:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      depth = newViewNumLayers;
+      break;
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+      /* If the new texture's target is TEXTURE_CUBE_MAP_ARRAY,
+       * then <numlayers> counts layer-faces rather than layers,
+       * and the clamped <numlayers> must be a multiple of 6.
+       * Otherwise, the error INVALID_VALUE is generated.
+       */
+      if (!no_error && (newViewNumLayers % 6) != 0) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glTextureView(clamped numlayers %d is not"
+                     " a multiple of 6)",
+                     newViewNumLayers);
+         return;
+      }
+      depth = newViewNumLayers;
+      break;
+   }
+
+   if (!no_error) {
+      /* If the dimensions of the original texture are larger than the maximum
+       * supported dimensions of the new target, the error INVALID_OPERATION is
+       * generated. For example, if the original texture has a TEXTURE_2D_ARRAY
+       * target and its width is greater than MAX_CUBE_MAP_TEXTURE_SIZE, an
+       * error will be generated if TextureView is called to create a
+       * TEXTURE_CUBE_MAP view.
+       */
+      dimensionsOK = _mesa_legal_texture_dimensions(ctx, target, 0,
+                                                    width, height, depth, 0);
+      if (!dimensionsOK) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glTextureView(invalid width or height or depth)");
+         return;
+      }
+
+      sizeOK = ctx->Driver.TestProxyTexImage(ctx, target, 1, 0, texFormat,
+                                             origTexImage->NumSamples,
+                                             width, height, depth);
+      if (!sizeOK) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glTextureView(invalid texture size)");
+         return;
+      }
+
+      /* If <target> is TEXTURE_1D, TEXTURE_2D, TEXTURE_3D, TEXTURE_RECTANGLE,
+       * or TEXTURE_2D_MULTISAMPLE and <numlayers> does not equal 1, the error
+       * INVALID_VALUE is generated.
+       */
+      switch (target) {
+      case GL_TEXTURE_1D:
+      case GL_TEXTURE_2D:
+      case GL_TEXTURE_3D:
+      case GL_TEXTURE_RECTANGLE:
+      case GL_TEXTURE_2D_MULTISAMPLE:
+         if (numlayers != 1) {
+            _mesa_error(ctx, GL_INVALID_VALUE, "glTextureView(numlayers %d != 1)",
+                        numlayers);
+            return;
+         }
+         break;
+      case GL_TEXTURE_CUBE_MAP:
+         break;
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
+         break;
+      }
+
+      /* If the new texture's target is TEXTURE_CUBE_MAP or
+       * TEXTURE_CUBE_MAP_ARRAY, the width and height of the original texture's
+       * levels must be equal otherwise the error INVALID_OPERATION is
+       * generated.
+       */
+      if ((target == GL_TEXTURE_CUBE_MAP || target == GL_TEXTURE_CUBE_MAP_ARRAY)
+          && (origTexImage->Width != origTexImage->Height)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glTextureView(origtexture width (%d) != height (%d))",
+                     origTexImage->Width, origTexImage->Height);
+         return;
+      }
+   }
+
+   /* When the original texture's target is TEXTURE_CUBE_MAP, the layer
+    * parameters are interpreted in the same order as if it were a
+    * TEXTURE_CUBE_MAP_ARRAY with 6 layer-faces.
+    */
+
+   /* If the internal format does not exactly match the internal format of the
+    * original texture, the contents of the memory are reinterpreted in the
+    * same manner as for image bindings described in
+    * section 3.9.20 (Texture Image Loads and Stores).
+    */
+
+   /* TEXTURE_BASE_LEVEL and TEXTURE_MAX_LEVEL are interpreted
+    * relative to the view and not relative to the original data store.
+    */
+
+   if (!initialize_texture_fields(ctx, target, texObj, newViewNumLevels,
+                                  width, height, depth,
+                                  internalformat, texFormat)) {
+      return; /* Already recorded error */
+   }
+
+   texObj->MinLevel = origTexObj->MinLevel + minlevel;
+   texObj->MinLayer = origTexObj->MinLayer + minlayer;
+   texObj->NumLevels = newViewNumLevels;
+   texObj->NumLayers = newViewNumLayers;
+   texObj->Immutable = GL_TRUE;
+   texObj->ImmutableLevels = origTexObj->ImmutableLevels;
+   texObj->Target = target;
+   texObj->TargetIndex = _mesa_tex_target_to_index(ctx, target);
+   assert(texObj->TargetIndex < NUM_TEXTURE_TARGETS);
+
+   if (ctx->Driver.TextureView != NULL &&
+       !ctx->Driver.TextureView(ctx, texObj, origTexObj)) {
+      return; /* driver recorded error */
+   }
+}
+
+void GLAPIENTRY
+_mesa_TextureView_no_error(GLuint texture, GLenum target, GLuint origtexture,
+                           GLenum internalformat,
+                           GLuint minlevel, GLuint numlevels,
+                           GLuint minlayer, GLuint numlayers)
+{
+   struct gl_texture_object *texObj;
+   struct gl_texture_object *origTexObj;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   origTexObj = _mesa_lookup_texture(ctx, origtexture);
+   texObj = _mesa_lookup_texture(ctx, texture);
+
+   texture_view(ctx, origTexObj, texObj, target, internalformat, minlevel,
+                numlevels, minlayer, numlayers, true);
+}
+
 void GLAPIENTRY
 _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
                   GLenum internalformat,
@@ -526,13 +722,7 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
 {
    struct gl_texture_object *texObj;
    struct gl_texture_object *origTexObj;
-   struct gl_texture_image *origTexImage;
    GLuint newViewMinLevel, newViewMinLayer;
-   GLuint newViewNumLevels, newViewNumLayers;
-   GLsizei width, height, depth;
-   mesa_format texFormat;
-   GLboolean sizeOK, dimensionsOK;
-   GLenum faceTarget;
 
    GET_CURRENT_CONTEXT(ctx);
 
@@ -631,164 +821,6 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
       return;
    }
 
-   texFormat = _mesa_choose_texture_format(ctx, texObj, target, 0,
-                                           internalformat, GL_NONE, GL_NONE);
-   if (texFormat == MESA_FORMAT_NONE) return;
-
-   newViewNumLevels = MIN2(numlevels, origTexObj->NumLevels - minlevel);
-   newViewNumLayers = MIN2(numlayers, origTexObj->NumLayers - minlayer);
-
-   faceTarget = _mesa_cube_face_target(origTexObj->Target, minlayer);
-
-   /* Get a reference to what will become this View's base level */
-   origTexImage = _mesa_select_tex_image(origTexObj, faceTarget, minlevel);
-   width = origTexImage->Width;
-   height = origTexImage->Height;
-   depth = origTexImage->Depth;
-
-   /* Adjust width, height, depth to be appropriate for new target */
-   switch (target) {
-   case GL_TEXTURE_1D:
-      height = 1;
-      break;
-
-   case GL_TEXTURE_3D:
-      break;
-
-   case GL_TEXTURE_1D_ARRAY:
-      height = (GLsizei) newViewNumLayers;
-      break;
-
-   case GL_TEXTURE_2D:
-   case GL_TEXTURE_2D_MULTISAMPLE:
-   case GL_TEXTURE_RECTANGLE:
-      depth = 1;
-      break;
-   case GL_TEXTURE_CUBE_MAP:
-      /* If the new texture's target is TEXTURE_CUBE_MAP, the clamped
-       * <numlayers> must be equal to 6.
-       */
-      if (newViewNumLayers != 6) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glTextureView(clamped numlayers %d != 6)",
-                     newViewNumLayers);
-         return;
-      }
-      depth = 1;
-      break;
-
-   case GL_TEXTURE_2D_ARRAY:
-   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-      depth = newViewNumLayers;
-      break;
-   case GL_TEXTURE_CUBE_MAP_ARRAY:
-      /* If the new texture's target is TEXTURE_CUBE_MAP_ARRAY,
-       * then <numlayers> counts layer-faces rather than layers,
-       * and the clamped <numlayers> must be a multiple of 6.
-       * Otherwise, the error INVALID_VALUE is generated.
-       */
-      if ((newViewNumLayers % 6) != 0) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glTextureView(clamped numlayers %d is not"
-                     " a multiple of 6)",
-                     newViewNumLayers);
-         return;
-      }
-      depth = newViewNumLayers;
-      break;
-   }
-
-   /* If the dimensions of the original texture are larger than the maximum
-    * supported dimensions of the new target, the error INVALID_OPERATION is
-    * generated. For example, if the original texture has a TEXTURE_2D_ARRAY
-    * target and its width is greater than MAX_CUBE_MAP_TEXTURE_SIZE, an error
-    * will be generated if TextureView is called to create a TEXTURE_CUBE_MAP
-    * view.
-    */
-   dimensionsOK = _mesa_legal_texture_dimensions(ctx, target, 0,
-                                                 width, height, depth, 0);
-   if (!dimensionsOK) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureView(invalid width or height or depth)");
-      return;
-   }
-
-   sizeOK = ctx->Driver.TestProxyTexImage(ctx, target, 1, 0, texFormat,
-                                          origTexImage->NumSamples,
-                                          width, height, depth);
-   if (!sizeOK) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureView(invalid texture size)");
-      return;
-   }
-
-   /* If <target> is TEXTURE_1D, TEXTURE_2D, TEXTURE_3D, TEXTURE_RECTANGLE,
-    * or TEXTURE_2D_MULTISAMPLE and <numlayers> does not equal 1, the error
-    * INVALID_VALUE is generated.
-    */
-   switch (target) {
-   case GL_TEXTURE_1D:
-   case GL_TEXTURE_2D:
-   case GL_TEXTURE_3D:
-   case GL_TEXTURE_RECTANGLE:
-   case GL_TEXTURE_2D_MULTISAMPLE:
-      if (numlayers != 1) {
-         _mesa_error(ctx, GL_INVALID_VALUE, "glTextureView(numlayers %d != 1)",
-                     numlayers);
-         return;
-      }
-      break;
-   case GL_TEXTURE_CUBE_MAP:
-      break;
-   case GL_TEXTURE_CUBE_MAP_ARRAY:
-      break;
-   }
-
-   /* If the new texture's target is TEXTURE_CUBE_MAP or
-    * TEXTURE_CUBE_MAP_ARRAY, the width and height of the original texture's
-    * levels must be equal otherwise the error INVALID_OPERATION is generated.
-    */
-   if ((target == GL_TEXTURE_CUBE_MAP || target == GL_TEXTURE_CUBE_MAP_ARRAY) &&
-       (origTexImage->Width != origTexImage->Height)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureView(origtexture width (%d) != height (%d))",
-                  origTexImage->Width, origTexImage->Height);
-      return;
-   }
-
-   /* When the original texture's target is TEXTURE_CUBE_MAP, the layer
-    * parameters are interpreted in the same order as if it were a
-    * TEXTURE_CUBE_MAP_ARRAY with 6 layer-faces.
-    */
-
-   /* If the internal format does not exactly match the internal format of the
-    * original texture, the contents of the memory are reinterpreted in the
-    * same manner as for image bindings described in
-    * section 3.9.20 (Texture Image Loads and Stores).
-    */
-
-   /* TEXTURE_BASE_LEVEL and TEXTURE_MAX_LEVEL are interpreted
-    * relative to the view and not relative to the original data store.
-    */
-
-   if (!initialize_texture_fields(ctx, target, texObj, newViewNumLevels,
-                                  width, height, depth,
-                                  internalformat, texFormat)) {
-      return; /* Already recorded error */
-   }
-
-   texObj->MinLevel = newViewMinLevel;
-   texObj->MinLayer = newViewMinLayer;
-   texObj->NumLevels = newViewNumLevels;
-   texObj->NumLayers = newViewNumLayers;
-   texObj->Immutable = GL_TRUE;
-   texObj->ImmutableLevels = origTexObj->ImmutableLevels;
-   texObj->Target = target;
-   texObj->TargetIndex = _mesa_tex_target_to_index(ctx, target);
-   assert(texObj->TargetIndex < NUM_TEXTURE_TARGETS);
-
-   if (ctx->Driver.TextureView != NULL &&
-       !ctx->Driver.TextureView(ctx, texObj, origTexObj)) {
-      return; /* driver recorded error */
-   }
+   texture_view(ctx, origTexObj, texObj, target, internalformat, minlevel,
+                numlevels, minlayer, numlayers, false);
 }

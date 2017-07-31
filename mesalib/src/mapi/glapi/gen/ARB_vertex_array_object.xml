@@ -10,17 +10,17 @@
 
     <enum name="VERTEX_ARRAY_BINDING" value="0x85B5"/>
 
-    <function name="BindVertexArray" es2="3.0"
+    <function name="BindVertexArray" es2="3.0" no_error="true"
               marshal_fail="_mesa_glthread_is_compat_bind_vertex_array(ctx)">
         <param name="array" type="GLuint"/>
     </function>
 
-    <function name="DeleteVertexArrays" es2="3.0">
+    <function name="DeleteVertexArrays" es2="3.0" no_error="true">
         <param name="n" type="GLsizei"/>
         <param name="arrays" type="const GLuint *" count="n"/>
     </function>
 
-    <function name="GenVertexArrays" es2="3.0">
+    <function name="GenVertexArrays" es2="3.0" no_error="true">
         <param name="n" type="GLsizei"/>
         <param name="arrays" type="GLuint *"/>
     </function>

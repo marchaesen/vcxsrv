@@ -1468,21 +1468,14 @@ bind_atomic_buffer(struct gl_context *ctx, unsigned index,
  * \param n      Number of buffer objects to delete.
  * \param ids    Array of \c n buffer object IDs.
  */
-void GLAPIENTRY
-_mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
+static void
+delete_buffers(struct gl_context *ctx, GLsizei n, const GLuint *ids)
 {
-   GET_CURRENT_CONTEXT(ctx);
-   GLsizei i;
    FLUSH_VERTICES(ctx, 0);
-
-   if (n < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glDeleteBuffersARB(n)");
-      return;
-   }
 
    _mesa_HashLockMutex(ctx->Shared->BufferObjects);
 
-   for (i = 0; i < n; i++) {
+   for (GLsizei i = 0; i < n; i++) {
       struct gl_buffer_object *bufObj =
          _mesa_lookup_bufferobj_locked(ctx, ids[i]);
       if (bufObj) {
@@ -1616,6 +1609,28 @@ _mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
    }
 
    _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
+}
+
+
+void GLAPIENTRY
+_mesa_DeleteBuffers_no_error(GLsizei n, const GLuint *ids)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   delete_buffers(ctx, n, ids);
+}
+
+
+void GLAPIENTRY
+_mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (n < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glDeleteBuffersARB(n)");
+      return;
+   }
+
+   delete_buffers(ctx, n, ids);
 }
 
 

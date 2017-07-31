@@ -105,6 +105,24 @@ _mesa_GetMultisamplefv(GLenum pname, GLuint index, GLfloat * val)
    }
 }
 
+static void
+sample_maski(struct gl_context *ctx, GLuint index, GLbitfield mask)
+{
+   if (ctx->Multisample.SampleMaskValue == mask)
+      return;
+
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleMask ? 0 : _NEW_MULTISAMPLE);
+   ctx->NewDriverState |= ctx->DriverFlags.NewSampleMask;
+   ctx->Multisample.SampleMaskValue = mask;
+}
+
+void GLAPIENTRY
+_mesa_SampleMaski_no_error(GLuint index, GLbitfield mask)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   sample_maski(ctx, index, mask);
+}
+
 void GLAPIENTRY
 _mesa_SampleMaski(GLuint index, GLbitfield mask)
 {
@@ -120,17 +138,33 @@ _mesa_SampleMaski(GLuint index, GLbitfield mask)
       return;
    }
 
-   if (ctx->Multisample.SampleMaskValue == mask)
+   sample_maski(ctx, index, mask);
+}
+
+static void
+min_sample_shading(struct gl_context *ctx, GLclampf value)
+{
+   value = CLAMP(value, 0.0f, 1.0f);
+
+   if (ctx->Multisample.MinSampleShadingValue == value)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleMask ? 0 : _NEW_MULTISAMPLE);
-   ctx->NewDriverState |= ctx->DriverFlags.NewSampleMask;
-   ctx->Multisample.SampleMaskValue = mask;
+   FLUSH_VERTICES(ctx,
+                  ctx->DriverFlags.NewSampleShading ? 0 : _NEW_MULTISAMPLE);
+   ctx->NewDriverState |= ctx->DriverFlags.NewSampleShading;
+   ctx->Multisample.MinSampleShadingValue = value;
 }
 
 /**
  * Called via glMinSampleShadingARB
  */
+void GLAPIENTRY
+_mesa_MinSampleShading_no_error(GLclampf value)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   min_sample_shading(ctx, value);
+}
+
 void GLAPIENTRY
 _mesa_MinSampleShading(GLclampf value)
 {
@@ -142,15 +176,7 @@ _mesa_MinSampleShading(GLclampf value)
       return;
    }
 
-   value = CLAMP(value, 0.0f, 1.0f);
-
-   if (ctx->Multisample.MinSampleShadingValue == value)
-      return;
-
-   FLUSH_VERTICES(ctx,
-                  ctx->DriverFlags.NewSampleShading ? 0 : _NEW_MULTISAMPLE);
-   ctx->NewDriverState |= ctx->DriverFlags.NewSampleShading;
-   ctx->Multisample.MinSampleShadingValue = value;
+   min_sample_shading(ctx, value);
 }
 
 /**

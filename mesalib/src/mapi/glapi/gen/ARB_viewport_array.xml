@@ -61,7 +61,7 @@
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLint *" count="4"/>
     </function>
-    <function name="DepthRangeArrayv">
+    <function name="DepthRangeArrayv" no_error="true">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="v" type="const GLclampd *" count="count" count_scale="2"/>

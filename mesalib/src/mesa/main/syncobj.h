@@ -57,6 +57,9 @@ _mesa_unref_sync_object(struct gl_context *ctx, struct gl_sync_object *syncObj,
 extern GLboolean GLAPIENTRY
 _mesa_IsSync(GLsync sync);
 
+void GLAPIENTRY
+_mesa_DeleteSync_no_error(GLsync sync);
+
 extern void GLAPIENTRY
 _mesa_DeleteSync(GLsync sync);
 
@@ -71,6 +74,9 @@ _mesa_ClientWaitSync_no_error(GLsync sync, GLbitfield flags, GLuint64 timeout);
 
 extern GLenum GLAPIENTRY
 _mesa_ClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout);
+
+void GLAPIENTRY
+_mesa_WaitSync_no_error(GLsync sync, GLbitfield flags, GLuint64 timeout);
 
 extern void GLAPIENTRY
 _mesa_WaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout);

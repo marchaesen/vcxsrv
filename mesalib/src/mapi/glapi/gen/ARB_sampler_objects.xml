@@ -12,7 +12,7 @@
       <param name="samplers" type="GLuint *"/>
     </function>
 
-    <function name="DeleteSamplers" es2="3.0">
+    <function name="DeleteSamplers" es2="3.0" no_error="true">
       <param name="count" type="GLsizei"/>
       <param name="samplers" type="const GLuint *"/>
     </function>
@@ -22,7 +22,7 @@
       <return type="GLboolean"/>
     </function>
 
-    <function name="BindSampler" es2="3.0">
+    <function name="BindSampler" es2="3.0" no_error="true">
       <param name="unit" type="GLuint"/>
       <param name="sampler" type="GLuint"/>
     </function>

@@ -984,10 +984,9 @@ read_pixels_es3_error_check(GLenum format, GLenum type,
 }
 
 
-void GLAPIENTRY
-_mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
-		      GLenum format, GLenum type, GLsizei bufSize,
-                      GLvoid *pixels )
+static ALWAYS_INLINE void
+read_pixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
+            GLenum type, GLsizei bufSize, GLvoid *pixels, bool no_error)
 {
    GLenum err = GL_NO_ERROR;
    struct gl_renderbuffer *rb;
@@ -1005,7 +1004,7 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
                   _mesa_enum_to_string(type),
                   pixels);
 
-   if (width < 0 || height < 0) {
+   if (!no_error && (width < 0 || height < 0)) {
       _mesa_error( ctx, GL_INVALID_VALUE,
                    "glReadPixels(width=%d height=%d)", width, height );
       return;
@@ -1014,82 +1013,84 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   if (ctx->ReadBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+   if (!no_error && ctx->ReadBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
       _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION_EXT,
                   "glReadPixels(incomplete framebuffer)" );
       return;
    }
 
    rb = _mesa_get_read_renderbuffer_for_format(ctx, format);
-   if (rb == NULL) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glReadPixels(read buffer)");
-      return;
-   }
-
-   /* OpenGL ES 1.x and OpenGL ES 2.0 impose additional restrictions on the
-    * combinations of format and type that can be used.
-    *
-    * Technically, only two combinations are actually allowed:
-    * GL_RGBA/GL_UNSIGNED_BYTE, and some implementation-specific internal
-    * preferred combination.  This code doesn't know what that preferred
-    * combination is, and Mesa can handle anything valid.  Just work instead.
-    */
-   if (_mesa_is_gles(ctx)) {
-      if (ctx->API == API_OPENGLES2 &&
-          _mesa_is_color_format(format) &&
-          _mesa_get_color_read_format(ctx, NULL, "glReadPixels") == format &&
-          _mesa_get_color_read_type(ctx, NULL, "glReadPixels") == type) {
-         err = GL_NO_ERROR;
-      } else if (ctx->Version < 30) {
-         err = _mesa_es_error_check_format_and_type(ctx, format, type, 2);
-         if (err == GL_NO_ERROR) {
-            if (type == GL_FLOAT || type == GL_HALF_FLOAT_OES) {
-               err = GL_INVALID_OPERATION;
-            }
-         }
-      } else {
-         err = read_pixels_es3_error_check(format, type, rb);
+   if (!no_error) {
+      if (rb == NULL) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glReadPixels(read buffer)");
+         return;
       }
 
+      /* OpenGL ES 1.x and OpenGL ES 2.0 impose additional restrictions on the
+       * combinations of format and type that can be used.
+       *
+       * Technically, only two combinations are actually allowed:
+       * GL_RGBA/GL_UNSIGNED_BYTE, and some implementation-specific internal
+       * preferred combination.  This code doesn't know what that preferred
+       * combination is, and Mesa can handle anything valid.  Just work instead.
+       */
+      if (_mesa_is_gles(ctx)) {
+         if (ctx->API == API_OPENGLES2 &&
+             _mesa_is_color_format(format) &&
+             _mesa_get_color_read_format(ctx, NULL, "glReadPixels") == format &&
+             _mesa_get_color_read_type(ctx, NULL, "glReadPixels") == type) {
+            err = GL_NO_ERROR;
+         } else if (ctx->Version < 30) {
+            err = _mesa_es_error_check_format_and_type(ctx, format, type, 2);
+            if (err == GL_NO_ERROR) {
+               if (type == GL_FLOAT || type == GL_HALF_FLOAT_OES) {
+                  err = GL_INVALID_OPERATION;
+               }
+            }
+         } else {
+            err = read_pixels_es3_error_check(format, type, rb);
+         }
+
+         if (err != GL_NO_ERROR) {
+            _mesa_error(ctx, err, "glReadPixels(invalid format %s and/or type %s)",
+                        _mesa_enum_to_string(format),
+                        _mesa_enum_to_string(type));
+            return;
+         }
+      }
+
+      err = _mesa_error_check_format_and_type(ctx, format, type);
       if (err != GL_NO_ERROR) {
          _mesa_error(ctx, err, "glReadPixels(invalid format %s and/or type %s)",
                      _mesa_enum_to_string(format),
                      _mesa_enum_to_string(type));
          return;
       }
-   }
 
-   err = _mesa_error_check_format_and_type(ctx, format, type);
-   if (err != GL_NO_ERROR) {
-      _mesa_error(ctx, err, "glReadPixels(invalid format %s and/or type %s)",
-                  _mesa_enum_to_string(format),
-                  _mesa_enum_to_string(type));
-      return;
-   }
-
-   if (_mesa_is_user_fbo(ctx->ReadBuffer) &&
-       ctx->ReadBuffer->Visual.samples > 0) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glReadPixels(multisample FBO)");
-      return;
-   }
-
-   if (!_mesa_source_buffer_exists(ctx, format)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glReadPixels(no readbuffer)");
-      return;
-   }
-
-   /* Check that the destination format and source buffer are both
-    * integer-valued or both non-integer-valued.
-    */
-   if (ctx->Extensions.EXT_texture_integer && _mesa_is_color_format(format)) {
-      const struct gl_renderbuffer *rb = ctx->ReadBuffer->_ColorReadBuffer;
-      const GLboolean srcInteger = _mesa_is_format_integer_color(rb->Format);
-      const GLboolean dstInteger = _mesa_is_enum_format_integer(format);
-      if (dstInteger != srcInteger) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glReadPixels(integer / non-integer format mismatch");
+      if (_mesa_is_user_fbo(ctx->ReadBuffer) &&
+          ctx->ReadBuffer->Visual.samples > 0) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glReadPixels(multisample FBO)");
          return;
+      }
+
+      if (!_mesa_source_buffer_exists(ctx, format)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glReadPixels(no readbuffer)");
+         return;
+      }
+
+      /* Check that the destination format and source buffer are both
+       * integer-valued or both non-integer-valued.
+       */
+      if (ctx->Extensions.EXT_texture_integer && _mesa_is_color_format(format)) {
+         const struct gl_renderbuffer *rb = ctx->ReadBuffer->_ColorReadBuffer;
+         const GLboolean srcInteger = _mesa_is_format_integer_color(rb->Format);
+         const GLboolean dstInteger = _mesa_is_enum_format_integer(format);
+         if (dstInteger != srcInteger) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glReadPixels(integer / non-integer format mismatch");
+            return;
+         }
       }
    }
 
@@ -1098,24 +1099,26 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
    if (!_mesa_clip_readpixels(ctx, &x, &y, &width, &height, &clippedPacking))
       return; /* nothing to do */
 
-   if (!_mesa_validate_pbo_access(2, &ctx->Pack, width, height, 1,
-                                  format, type, bufSize, pixels)) {
-      if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glReadPixels(out of bounds PBO access)");
-      } else {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glReadnPixelsARB(out of bounds access:"
-                     " bufSize (%d) is too small)", bufSize);
+   if (!no_error) {
+      if (!_mesa_validate_pbo_access(2, &ctx->Pack, width, height, 1,
+                                     format, type, bufSize, pixels)) {
+         if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glReadPixels(out of bounds PBO access)");
+         } else {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glReadnPixelsARB(out of bounds access:"
+                        " bufSize (%d) is too small)", bufSize);
+         }
+         return;
       }
-      return;
-   }
 
-   if (_mesa_is_bufferobj(ctx->Pack.BufferObj) &&
-       _mesa_check_disallowed_mapping(ctx->Pack.BufferObj)) {
-      /* buffer is mapped - that's an error */
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glReadPixels(PBO is mapped)");
-      return;
+      if (_mesa_is_bufferobj(ctx->Pack.BufferObj) &&
+          _mesa_check_disallowed_mapping(ctx->Pack.BufferObj)) {
+         /* buffer is mapped - that's an error */
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glReadPixels(PBO is mapped)");
+         return;
+      }
    }
 
    ctx->Driver.ReadPixels(ctx, x, y, width, height,
@@ -1123,8 +1126,32 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
 }
 
 void GLAPIENTRY
-_mesa_ReadPixels( GLint x, GLint y, GLsizei width, GLsizei height,
-		  GLenum format, GLenum type, GLvoid *pixels )
+_mesa_ReadnPixelsARB_no_error(GLint x, GLint y, GLsizei width, GLsizei height,
+                              GLenum format, GLenum type, GLsizei bufSize,
+                              GLvoid *pixels)
+{
+   read_pixels(x, y, width, height, format, type, bufSize, pixels, true);
+}
+
+void GLAPIENTRY
+_mesa_ReadnPixelsARB(GLint x, GLint y, GLsizei width, GLsizei height,
+                     GLenum format, GLenum type, GLsizei bufSize,
+                     GLvoid *pixels)
+{
+   read_pixels(x, y, width, height, format, type, bufSize, pixels, false);
+}
+
+void GLAPIENTRY
+_mesa_ReadPixels_no_error(GLint x, GLint y, GLsizei width, GLsizei height,
+                          GLenum format, GLenum type, GLvoid *pixels)
+{
+   _mesa_ReadnPixelsARB_no_error(x, y, width, height, format, type, INT_MAX,
+                                 pixels);
+}
+
+void GLAPIENTRY
+_mesa_ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
+                 GLenum format, GLenum type, GLvoid *pixels)
 {
    _mesa_ReadnPixelsARB(x, y, width, height, format, type, INT_MAX, pixels);
 }

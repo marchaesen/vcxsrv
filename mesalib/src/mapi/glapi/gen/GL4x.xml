@@ -9,7 +9,7 @@
   <enum name="SAMPLE_SHADING"                          value="0x8C36"/>
   <enum name="MIN_SAMPLE_SHADING_VALUE"                value="0x8C37"/>
 
-  <function name="MinSampleShading" es2="3.2">
+  <function name="MinSampleShading" es2="3.2" no_error="true">
     <param name="value" type="GLfloat"/>
   </function>
 
@@ -61,7 +61,7 @@
 </category>
 
 <category name="4.5">
-  <function name="MemoryBarrierByRegion" es2="3.1">
+  <function name="MemoryBarrierByRegion" es2="3.1" no_error="true">
     <param name="barriers" type="GLbitfield"/>
   </function>
 </category>

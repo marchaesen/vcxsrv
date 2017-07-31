@@ -26,7 +26,7 @@
         <param name="length" type="GLsizei"/>
     </function>
 
-    <function name="ProgramParameteri" es2="3.0">
+    <function name="ProgramParameteri" es2="3.0" no_error="true">
         <param name="program" type="GLuint"/>
         <param name="pname" type="GLenum"/>
         <param name="value" type="GLint"/>

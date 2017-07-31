@@ -123,10 +123,6 @@ _mesa_destroy_context( struct gl_context *ctx );
 extern void
 _mesa_copy_context(const struct gl_context *src, struct gl_context *dst, GLuint mask);
 
-
-extern void
-_mesa_check_init_viewport(struct gl_context *ctx, GLuint width, GLuint height);
-
 extern GLboolean
 _mesa_make_current( struct gl_context *ctx, struct gl_framebuffer *drawBuffer,
                     struct gl_framebuffer *readBuffer );

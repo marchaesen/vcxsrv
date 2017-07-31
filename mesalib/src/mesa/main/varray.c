@@ -1923,9 +1923,27 @@ _mesa_MultiModeDrawElementsIBM( const GLenum * mode, const GLsizei * count,
 }
 
 
+static void
+primitive_restart_index(struct gl_context *ctx, GLuint index)
+{
+   if (ctx->Array.RestartIndex != index) {
+      FLUSH_VERTICES(ctx, 0);
+      ctx->Array.RestartIndex = index;
+   }
+}
+
+
 /**
  * GL_NV_primitive_restart and GL 3.1
  */
+void GLAPIENTRY
+_mesa_PrimitiveRestartIndex_no_error(GLuint index)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   primitive_restart_index(ctx, index);
+}
+
+
 void GLAPIENTRY
 _mesa_PrimitiveRestartIndex(GLuint index)
 {
@@ -1936,10 +1954,7 @@ _mesa_PrimitiveRestartIndex(GLuint index)
       return;
    }
 
-   if (ctx->Array.RestartIndex != index) {
-      FLUSH_VERTICES(ctx, 0);
-      ctx->Array.RestartIndex = index;
-   }
+   primitive_restart_index(ctx, index);
 }
 
 
@@ -2712,6 +2727,15 @@ vertex_array_binding_divisor(struct gl_context *ctx,
 
 
 void GLAPIENTRY
+_mesa_VertexBindingDivisor_no_error(GLuint bindingIndex, GLuint divisor)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   vertex_binding_divisor(ctx, ctx->Array.VAO,
+                          VERT_ATTRIB_GENERIC(bindingIndex), divisor);
+}
+
+
+void GLAPIENTRY
 _mesa_VertexBindingDivisor(GLuint bindingIndex, GLuint divisor)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -2731,6 +2755,17 @@ _mesa_VertexBindingDivisor(GLuint bindingIndex, GLuint divisor)
    vertex_array_binding_divisor(ctx, ctx->Array.VAO,
                                 bindingIndex, divisor,
                                 "glVertexBindingDivisor");
+}
+
+
+void GLAPIENTRY
+_mesa_VertexArrayBindingDivisor_no_error(GLuint vaobj, GLuint bindingIndex,
+                                         GLuint divisor)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_vertex_array_object *vao = _mesa_lookup_vao(ctx, vaobj);
+   vertex_binding_divisor(ctx, vao, VERT_ATTRIB_GENERIC(bindingIndex), divisor);
 }
 
 

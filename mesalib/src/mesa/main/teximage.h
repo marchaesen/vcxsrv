@@ -318,12 +318,22 @@ _mesa_TexSubImage3D( GLenum target, GLint level,
                      GLenum format, GLenum type,
                      const GLvoid *pixels );
 
+void GLAPIENTRY
+_mesa_TextureSubImage1D_no_error(GLuint texture, GLint level, GLint xoffset,
+                                 GLsizei width, GLenum format, GLenum type,
+                                 const GLvoid *pixels);
+
 extern void GLAPIENTRY
 _mesa_TextureSubImage1D(GLuint texture, GLint level, GLint xoffset,
                         GLsizei width,
                         GLenum format, GLenum type,
                         const GLvoid *pixels);
 
+void GLAPIENTRY
+_mesa_TextureSubImage2D_no_error(GLuint texture, GLint level, GLint xoffset,
+                                 GLint yoffset, GLsizei width, GLsizei height,
+                                 GLenum format, GLenum type,
+                                 const GLvoid *pixels);
 
 extern void GLAPIENTRY
 _mesa_TextureSubImage2D(GLuint texture, GLint level,
@@ -331,6 +341,12 @@ _mesa_TextureSubImage2D(GLuint texture, GLint level,
                         GLsizei width, GLsizei height,
                         GLenum format, GLenum type,
                         const GLvoid *pixels);
+
+void GLAPIENTRY
+_mesa_TextureSubImage3D_no_error(GLuint texture, GLint level, GLint xoffset,
+                                 GLint yoffset, GLint zoffset, GLsizei width,
+                                 GLsizei height, GLsizei depth, GLenum format,
+                                 GLenum type, const GLvoid *pixels);
 
 extern void GLAPIENTRY
 _mesa_TextureSubImage3D(GLuint texture, GLint level,

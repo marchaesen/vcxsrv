@@ -162,6 +162,9 @@ void GLAPIENTRY
 _mesa_BindBuffer(GLenum target, GLuint buffer);
 
 void GLAPIENTRY
+_mesa_DeleteBuffers_no_error(GLsizei n, const GLuint * buffer);
+
+void GLAPIENTRY
 _mesa_DeleteBuffers(GLsizei n, const GLuint * buffer);
 
 void GLAPIENTRY

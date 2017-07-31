@@ -302,8 +302,10 @@ lower_wpos_ytransform_block(lower_wpos_ytransform_state *state, nir_block *block
             nir_deref_var *dvar = intr->variables[0];
             nir_variable *var = dvar->var;
 
-            if (var->data.mode == nir_var_shader_in &&
-                var->data.location == VARYING_SLOT_POS) {
+            if ((var->data.mode == nir_var_shader_in &&
+                 var->data.location == VARYING_SLOT_POS) ||
+                (var->data.mode == nir_var_system_value &&
+                 var->data.location == SYSTEM_VALUE_FRAG_COORD)) {
                /* gl_FragCoord should not have array/struct derefs: */
                assert(dvar->deref.child == NULL);
                lower_fragcoord(state, intr);

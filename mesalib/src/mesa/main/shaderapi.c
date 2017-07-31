@@ -423,16 +423,21 @@ delete_shader(struct gl_context *ctx, GLuint shader)
 }
 
 
-static void
-detach_shader(struct gl_context *ctx, GLuint program, GLuint shader)
+static ALWAYS_INLINE void
+detach_shader(struct gl_context *ctx, GLuint program, GLuint shader,
+              bool no_error)
 {
    struct gl_shader_program *shProg;
    GLuint n;
    GLuint i, j;
 
-   shProg = _mesa_lookup_shader_program_err(ctx, program, "glDetachShader");
-   if (!shProg)
-      return;
+   if (!no_error) {
+      shProg = _mesa_lookup_shader_program_err(ctx, program, "glDetachShader");
+      if (!shProg)
+         return;
+   } else {
+      shProg = _mesa_lookup_shader_program(ctx, program);
+   }
 
    n = shProg->NumShaders;
 
@@ -480,7 +485,7 @@ detach_shader(struct gl_context *ctx, GLuint program, GLuint shader)
    }
 
    /* not found */
-   {
+   if (!no_error) {
       GLenum err;
       if (is_shader(ctx, shader) || is_program(ctx, shader))
          err = GL_INVALID_OPERATION;
@@ -489,6 +494,20 @@ detach_shader(struct gl_context *ctx, GLuint program, GLuint shader)
       _mesa_error(ctx, err, "glDetachShader(shader)");
       return;
    }
+}
+
+
+static void
+detach_shader_error(struct gl_context *ctx, GLuint program, GLuint shader)
+{
+   detach_shader(ctx, program, shader, false);
+}
+
+
+static void
+detach_shader_no_error(struct gl_context *ctx, GLuint program, GLuint shader)
+{
+   detach_shader(ctx, program, shader, true);
 }
 
 
@@ -1496,10 +1515,26 @@ _mesa_DeleteShader(GLuint name)
 
 
 void GLAPIENTRY
+_mesa_DetachObjectARB_no_error(GLhandleARB program, GLhandleARB shader)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   detach_shader_no_error(ctx, program, shader);
+}
+
+
+void GLAPIENTRY
 _mesa_DetachObjectARB(GLhandleARB program, GLhandleARB shader)
 {
    GET_CURRENT_CONTEXT(ctx);
-   detach_shader(ctx, program, shader);
+   detach_shader_error(ctx, program, shader);
+}
+
+
+void GLAPIENTRY
+_mesa_DetachShader_no_error(GLuint program, GLuint shader)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   detach_shader_no_error(ctx, program, shader);
 }
 
 
@@ -1507,7 +1542,7 @@ void GLAPIENTRY
 _mesa_DetachShader(GLuint program, GLuint shader)
 {
    GET_CURRENT_CONTEXT(ctx);
-   detach_shader(ctx, program, shader);
+   detach_shader_error(ctx, program, shader);
 }
 
 
@@ -2141,17 +2176,10 @@ _mesa_ProgramBinary(GLuint program, GLenum binaryFormat,
 }
 
 
-void GLAPIENTRY
-_mesa_ProgramParameteri(GLuint program, GLenum pname, GLint value)
+static ALWAYS_INLINE void
+program_parameteri(struct gl_context *ctx, struct gl_shader_program *shProg,
+                   GLuint pname, GLint value, bool no_error)
 {
-   struct gl_shader_program *shProg;
-   GET_CURRENT_CONTEXT(ctx);
-
-   shProg = _mesa_lookup_shader_program_err(ctx, program,
-                                            "glProgramParameteri");
-   if (!shProg)
-      return;
-
    switch (pname) {
    case GL_PROGRAM_BINARY_RETRIEVABLE_HINT:
       /* This enum isn't part of the OES extension for OpenGL ES 2.0, but it
@@ -2167,7 +2195,7 @@ _mesa_ProgramParameteri(GLuint program, GLenum pname, GLint value)
        *     "An INVALID_VALUE error is generated if the <value> argument to
        *     ProgramParameteri is not TRUE or FALSE."
        */
-      if (value != GL_TRUE && value != GL_FALSE) {
+      if (!no_error && value != GL_TRUE && value != GL_FALSE) {
          goto invalid_value;
       }
 
@@ -2198,15 +2226,17 @@ _mesa_ProgramParameteri(GLuint program, GLenum pname, GLint value)
       /* Spec imply that the behavior is the same as ARB_get_program_binary
        * Chapter 7.3 Program Objects
        */
-      if (value != GL_TRUE && value != GL_FALSE) {
+      if (!no_error && value != GL_TRUE && value != GL_FALSE) {
          goto invalid_value;
       }
       shProg->SeparateShader = value;
       return;
 
    default:
-      _mesa_error(ctx, GL_INVALID_ENUM, "glProgramParameteri(pname=%s)",
-                  _mesa_enum_to_string(pname));
+      if (!no_error) {
+         _mesa_error(ctx, GL_INVALID_ENUM, "glProgramParameteri(pname=%s)",
+                     _mesa_enum_to_string(pname));
+      }
       return;
    }
 
@@ -2216,6 +2246,31 @@ invalid_value:
                "value must be 0 or 1.",
                _mesa_enum_to_string(pname),
                value);
+}
+
+
+void GLAPIENTRY
+_mesa_ProgramParameteri_no_error(GLuint program, GLenum pname, GLint value)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_shader_program *shProg = _mesa_lookup_shader_program(ctx, program);
+   program_parameteri(ctx, shProg, pname, value, true);
+}
+
+
+void GLAPIENTRY
+_mesa_ProgramParameteri(GLuint program, GLenum pname, GLint value)
+{
+   struct gl_shader_program *shProg;
+   GET_CURRENT_CONTEXT(ctx);
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program,
+                                            "glProgramParameteri");
+   if (!shProg)
+      return;
+
+   program_parameteri(ctx, shProg, pname, value, false);
 }
 
 
@@ -2324,7 +2379,7 @@ _mesa_CreateShaderProgramv(GLenum type, GLsizei count,
 	 if (compiled) {
 	    attach_shader_err(ctx, program, shader, "glCreateShaderProgramv");
 	    _mesa_link_program(ctx, shProg);
-	    detach_shader(ctx, program, shader);
+	    detach_shader_error(ctx, program, shader);
 
 #if 0
 	    /* Possibly... */
@@ -2348,6 +2403,14 @@ _mesa_CreateShaderProgramv(GLenum type, GLsizei count,
 /**
  * For GL_ARB_tessellation_shader
  */
+void GLAPIENTRY
+_mesa_PatchParameteri_no_error(GLenum pname, GLint value)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   ctx->TessCtrlProgram.patch_vertices = value;
+}
+
+
 extern void GLAPIENTRY
 _mesa_PatchParameteri(GLenum pname, GLint value)
 {

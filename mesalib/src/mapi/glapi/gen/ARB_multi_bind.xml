@@ -23,13 +23,13 @@
         <param name="sizes" type="const GLsizeiptr *"/>
     </function>
 
-    <function name="BindTextures">
+    <function name="BindTextures" no_error="true">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="textures" type="const GLuint *"/>
     </function>
 
-    <function name="BindSamplers">
+    <function name="BindSamplers" no_error="true">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="samplers" type="const GLuint *"/>

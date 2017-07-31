@@ -563,7 +563,7 @@
     <param name="buffer" type="GLuint"/>
   </function>
 
-  <function name="PrimitiveRestartIndex">
+  <function name="PrimitiveRestartIndex" no_error="true">
     <param name="index" type="GLuint"/>
   </function>
 

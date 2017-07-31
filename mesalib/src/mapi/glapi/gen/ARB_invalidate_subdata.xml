@@ -3,7 +3,7 @@
 
 <OpenGLAPI>
 <category name="GL_ARB_invalidate_subdata" number="666">
-  <function name="InvalidateTexSubImage">
+  <function name="InvalidateTexSubImage" no_error="true">
     <param name="texture" type="GLuint"/>
     <param name="level" type="GLint"/>
     <param name="xoffset" type="GLint"/>
@@ -14,7 +14,7 @@
     <param name="depth" type="GLsizei"/>
   </function>
 
-  <function name="InvalidateTexImage">
+  <function name="InvalidateTexImage" no_error="true">
     <param name="texture" type="GLuint"/>
     <param name="level" type="GLint"/>
   </function>
@@ -29,7 +29,7 @@
     <param name="buffer" type="GLuint"/>
   </function>
 
-  <function name="InvalidateSubFramebuffer" es2="3.0">
+  <function name="InvalidateSubFramebuffer" es2="3.0" no_error="true">
     <param name="target" type="GLenum"/>
     <param name="numAttachments" type="GLsizei" counter="true"/>
     <param name="attachments" type="const GLenum *" count="numAttachments"/>
@@ -39,7 +39,7 @@
     <param name="height" type="GLsizei"/>
   </function>
 
-  <function name="InvalidateFramebuffer" es2="3.0">
+  <function name="InvalidateFramebuffer" es2="3.0" no_error="true">
     <param name="target" type="GLenum"/>
     <param name="numAttachments" type="GLsizei" counter="true"/>
     <param name="attachments" type="const GLenum *" count="numAttachments"/>
