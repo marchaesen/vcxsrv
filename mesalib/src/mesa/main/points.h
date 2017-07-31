@@ -37,6 +37,9 @@
 struct gl_context;
 
 
+void GLAPIENTRY
+_mesa_PointSize_no_error(GLfloat size);
+
 extern void GLAPIENTRY
 _mesa_PointSize( GLfloat size );
 

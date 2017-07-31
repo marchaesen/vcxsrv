@@ -8,7 +8,7 @@
 
 <category name="GL_ARB_draw_buffers_blend" number="69">
 
-    <function name="BlendEquationiARB">
+    <function name="BlendEquationiARB" no_error="true">
         <param name="buf" type="GLuint"/>
         <param name="mode" type="GLenum"/>
     </function>

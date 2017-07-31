@@ -7,7 +7,7 @@
 
 <category name="GL_ARB_texture_view" number="124">
 
-   <function name="TextureView">
+   <function name="TextureView" no_error="true">
       <param name="texture" type="GLuint"/>
       <param name="target" type="GLenum"/>
       <param name="origtexture" type="GLuint"/>

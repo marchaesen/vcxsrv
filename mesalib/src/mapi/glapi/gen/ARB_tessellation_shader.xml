@@ -50,7 +50,7 @@
     <enum value="0x8E8A" name="MAX_TESS_EVALUATION_UNIFORM_BLOCKS"/>
     <enum value="0x8221" name="PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED"/>
 
-    <function name="PatchParameteri" es2="3.2">
+    <function name="PatchParameteri" es2="3.2" no_error="true">
         <param name="pname" type="GLenum"/>
         <param name="value" type="GLint"/>
     </function>

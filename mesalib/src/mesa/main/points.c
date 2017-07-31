@@ -40,6 +40,28 @@
  * \param size  point diameter in pixels
  * \sa glPointSize().
  */
+static void
+point_size(struct gl_context *ctx, GLfloat size)
+{
+   if (ctx->Point.Size == size)
+      return;
+
+   FLUSH_VERTICES(ctx, _NEW_POINT);
+   ctx->Point.Size = size;
+
+   if (ctx->Driver.PointSize)
+      ctx->Driver.PointSize(ctx, size);
+}
+
+
+void GLAPIENTRY
+_mesa_PointSize_no_error(GLfloat size)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   point_size(ctx, size);
+}
+
+
 void GLAPIENTRY
 _mesa_PointSize( GLfloat size )
 {
@@ -50,14 +72,7 @@ _mesa_PointSize( GLfloat size )
       return;
    }
 
-   if (ctx->Point.Size == size)
-      return;
-
-   FLUSH_VERTICES(ctx, _NEW_POINT);
-   ctx->Point.Size = size;
-
-   if (ctx->Driver.PointSize)
-      ctx->Driver.PointSize(ctx, size);
+   point_size(ctx, size);
 }
 
 

@@ -2092,7 +2092,7 @@
         <glx rop="99"/>
     </function>
 
-    <function name="PointSize" es1="1.0">
+    <function name="PointSize" es1="1.0" no_error="true">
         <param name="size" type="GLfloat"/>
         <glx rop="100"/>
     </function>
@@ -2286,7 +2286,7 @@
         <glx rop="125"/>
     </function>
 
-    <function name="DrawBuffer">
+    <function name="DrawBuffer" no_error="true">
         <param name="mode" type="GLenum"/>
         <glx rop="126"/>
     </function>
@@ -2640,7 +2640,7 @@
         <glx rop="172"/>
     </function>
 
-    <function name="ReadPixels" es1="1.0" es2="2.0">
+    <function name="ReadPixels" es1="1.0" es2="2.0" no_error="true">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
@@ -3333,13 +3333,13 @@
         <glx sop="143" handcode="client" always_array="true"/>
     </function>
 
-    <function name="BindTexture" es1="1.0" es2="2.0">
+    <function name="BindTexture" es1="1.0" es2="2.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="texture" type="GLuint"/>
         <glx rop="4117"/>
     </function>
 
-    <function name="DeleteTextures" es1="1.0" es2="2.0">
+    <function name="DeleteTextures" es1="1.0" es2="2.0" no_error="true">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="textures" type="const GLuint *" count="n"/>
         <glx sop="144"/>
@@ -5062,7 +5062,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="DeleteBuffers" es1="1.1" es2="2.0">
+    <function name="DeleteBuffers" es1="1.1" es2="2.0" no_error="true">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="buffer" type="const GLuint *" count="n"/>
         <glx ignore="true"/>
@@ -5261,13 +5261,13 @@
     <enum name="STENCIL_BACK_VALUE_MASK"          value="0x8CA4"/>
     <enum name="STENCIL_BACK_WRITEMASK"           value="0x8CA5"/>
 
-    <function name="BlendEquationSeparate" es2="2.0">
+    <function name="BlendEquationSeparate" es2="2.0" no_error="true">
         <param name="modeRGB" type="GLenum"/>
         <param name="modeA" type="GLenum"/>
         <glx rop="4228"/>
     </function>
 
-    <function name="DrawBuffers" es2="3.0">
+    <function name="DrawBuffers" es2="3.0" no_error="true">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="bufs" type="const GLenum *" count="n"/>
         <glx rop="233" large="true"/>
@@ -5334,7 +5334,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="DetachShader" es2="2.0">
+    <function name="DetachShader" es2="2.0" no_error="true">
         <param name="program" type="GLuint"/>
         <param name="shader" type="GLuint"/>
         <glx ignore="true"/>
@@ -7681,7 +7681,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="DetachObjectARB">
+    <function name="DetachObjectARB" no_error="true">
         <param name="containerObj" type="GLhandleARB"/>
         <param name="attachedObj" type="GLhandleARB"/>
         <glx ignore="true"/>

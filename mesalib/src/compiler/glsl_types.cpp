@@ -1999,10 +1999,12 @@ glsl_type::count_attribute_slots(bool is_vertex_input) const
    case GLSL_TYPE_ARRAY:
       return this->length * this->fields.array->count_attribute_slots(is_vertex_input);
 
+   case GLSL_TYPE_SUBROUTINE:
+      return 1;
+
    case GLSL_TYPE_FUNCTION:
    case GLSL_TYPE_ATOMIC_UINT:
    case GLSL_TYPE_VOID:
-   case GLSL_TYPE_SUBROUTINE:
    case GLSL_TYPE_ERROR:
       break;
    }

@@ -2211,6 +2211,8 @@ void nir_instr_move_src(nir_instr *dest_instr, nir_src *dest, nir_src *src);
 void nir_if_rewrite_condition(nir_if *if_stmt, nir_src new_src);
 void nir_instr_rewrite_dest(nir_instr *instr, nir_dest *dest,
                             nir_dest new_dest);
+void nir_instr_rewrite_deref(nir_instr *instr, nir_deref_var **deref,
+                             nir_deref_var *new_deref);
 
 void nir_ssa_dest_init(nir_instr *instr, nir_dest *dest,
                        unsigned num_components, unsigned bit_size,
@@ -2440,6 +2442,8 @@ void nir_lower_io_to_scalar(nir_shader *shader, nir_variable_mode mask);
 
 bool nir_lower_samplers(nir_shader *shader,
                         const struct gl_shader_program *shader_program);
+bool nir_lower_samplers_as_deref(nir_shader *shader,
+                                 const struct gl_shader_program *shader_program);
 
 bool nir_lower_system_values(nir_shader *shader);
 
@@ -2577,6 +2581,7 @@ void nir_lower_bitmap(nir_shader *shader, const nir_lower_bitmap_options *option
 bool nir_lower_atomics(nir_shader *shader,
                        const struct gl_shader_program *shader_program);
 bool nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset);
+bool nir_lower_uniforms_to_ubo(nir_shader *shader);
 bool nir_lower_to_source_mods(nir_shader *shader);
 
 bool nir_lower_gs_intrinsics(nir_shader *shader);

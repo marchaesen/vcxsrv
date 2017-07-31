@@ -255,7 +255,7 @@
 	<glx rop="237"/>
     </function>
 
-    <function name="FramebufferRenderbuffer" es2="2.0">
+    <function name="FramebufferRenderbuffer" es2="2.0" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="attachment" type="GLenum"/>
         <param name="renderbuffertarget" type="GLenum"/>
@@ -285,7 +285,7 @@
         <glx rop="4330"/>
     </function>
 
-    <function name="GenerateMipmap" es2="2.0">
+    <function name="GenerateMipmap" es2="2.0" no_error="true">
         <param name="target" type="GLenum"/>
 	<glx rop="4325"/>
     </function>

@@ -52,7 +52,6 @@
 #include "st_program.h"
 #include "st_mesa_to_tgsi.h"
 #include "st_format.h"
-#include "st_glsl_types.h"
 #include "st_nir.h"
 #include "st_shader_cache.h"
 
@@ -1238,13 +1237,13 @@ glsl_to_tgsi_visitor::st_src_reg_for_type(enum glsl_base_type type, int val)
 static int
 attrib_type_size(const struct glsl_type *type, bool is_vs_input)
 {
-   return st_glsl_attrib_type_size(type, is_vs_input);
+   return type->count_attribute_slots(is_vs_input);
 }
 
 static int
 type_size(const struct glsl_type *type)
 {
-   return st_glsl_type_size(type);
+   return type->count_attribute_slots(false);
 }
 
 /**

@@ -49,6 +49,13 @@ glsl_without_array(const glsl_type *type)
 }
 
 const glsl_type *
+glsl_get_array_instance(const glsl_type *type,
+                        unsigned array_size)
+{
+   return glsl_type::get_array_instance(type, array_size);
+}
+
+const glsl_type *
 glsl_get_struct_field(const glsl_type *type, unsigned index)
 {
    return type->fields.structure[index].type;

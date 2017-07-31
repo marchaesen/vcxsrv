@@ -30,12 +30,14 @@
 #include "amd_family.h"
 #include "../vulkan/radv_descriptor_set.h"
 #include "ac_shader_info.h"
-#include "shader_enums.h"
+#include "compiler/shader_enums.h"
 struct ac_shader_binary;
 struct ac_shader_config;
 struct nir_shader;
 struct radv_pipeline_layout;
 
+struct ac_llvm_context;
+struct ac_shader_abi;
 
 struct ac_vs_variant_key {
 	uint32_t instance_rate_inputs;
@@ -167,7 +169,6 @@ struct ac_shader_variant_info {
 			bool writes_sample_mask;
 			bool early_fragment_test;
 			bool writes_memory;
-			bool force_persample;
 			bool prim_id_input;
 			bool layer_input;
 		} fs;
@@ -220,5 +221,9 @@ void ac_create_gs_copy_shader(LLVMTargetMachineRef tm,
 			      struct ac_shader_variant_info *shader_info,
 			      const struct ac_nir_compiler_options *options,
 			      bool dump_shader);
+
+struct nir_to_llvm_context;
+void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
+		      struct nir_shader *nir, struct nir_to_llvm_context *nctx);
 
 #endif /* AC_NIR_TO_LLVM_H */

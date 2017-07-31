@@ -1509,6 +1509,19 @@ nir_instr_rewrite_dest(nir_instr *instr, nir_dest *dest, nir_dest new_dest)
       src_add_all_uses(dest->reg.indirect, instr, NULL);
 }
 
+void
+nir_instr_rewrite_deref(nir_instr *instr, nir_deref_var **deref,
+                        nir_deref_var *new_deref)
+{
+   if (*deref)
+      visit_deref_src(*deref, remove_use_cb, NULL);
+
+   *deref = new_deref;
+
+   if (*deref)
+      visit_deref_src(*deref, add_use_cb, instr);
+}
+
 /* note: does *not* take ownership of 'name' */
 void
 nir_ssa_def_init(nir_instr *instr, nir_ssa_def *def,
@@ -1878,6 +1891,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_base_vertex;
    case SYSTEM_VALUE_INVOCATION_ID:
       return nir_intrinsic_load_invocation_id;
+   case SYSTEM_VALUE_FRAG_COORD:
+      return nir_intrinsic_load_frag_coord;
    case SYSTEM_VALUE_FRONT_FACE:
       return nir_intrinsic_load_front_face;
    case SYSTEM_VALUE_SAMPLE_ID:
@@ -1945,6 +1960,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_BASE_VERTEX;
    case nir_intrinsic_load_invocation_id:
       return SYSTEM_VALUE_INVOCATION_ID;
+   case nir_intrinsic_load_frag_coord:
+      return SYSTEM_VALUE_FRAG_COORD;
    case nir_intrinsic_load_front_face:
       return SYSTEM_VALUE_FRONT_FACE;
    case nir_intrinsic_load_sample_id:

@@ -82,7 +82,7 @@
         <param name="img" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="ReadnPixelsARB">
+    <function name="ReadnPixelsARB" no_error="true">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>

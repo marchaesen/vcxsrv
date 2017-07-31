@@ -41,7 +41,7 @@
         <param name="bindingindex" type="GLuint"/>
     </function>
 
-    <function name="VertexBindingDivisor" es2="3.1">
+    <function name="VertexBindingDivisor" es2="3.1" no_error="true">
         <param name="attribindex" type="GLuint"/>
         <param name="divisor" type="GLuint"/>
     </function>

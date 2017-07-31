@@ -50,7 +50,7 @@
 	<return type="GLboolean"/>
     </function>
 
-    <function name="DeleteSync" es2="3.0">
+    <function name="DeleteSync" es2="3.0" no_error="true">
         <param name="sync" type="GLsync"/>
     </function>
 
@@ -61,7 +61,7 @@
         <return type="GLenum"/>
     </function>
 
-    <function name="WaitSync" es2="3.0">
+    <function name="WaitSync" es2="3.0" no_error="true">
         <param name="sync" type="GLsync"/>
         <param name="flags" type="GLbitfield"/>
 	<param name="timeout" type="GLuint64"/>
