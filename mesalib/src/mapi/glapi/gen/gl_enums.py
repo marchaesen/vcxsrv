@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 # (C) Copyright Zack Rusin 2005. All Rights Reserved.
 # Copyright (C) 2015 Intel Corporation
