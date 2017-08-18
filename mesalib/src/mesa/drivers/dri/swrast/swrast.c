@@ -954,23 +954,21 @@ dri_copy_sub_buffer(__DRIdrawable *dPriv, int x, int y,
 
 
 static const struct __DriverAPIRec swrast_driver_api = {
-    /*.InitScreen = */dri_init_screen,
-    /*.DestroyScreen = */dri_destroy_screen,
-    /*.CreateContext = */dri_create_context,
-    /*.DestroyContext = */dri_destroy_context,
-    /*.CreateBuffer = */dri_create_buffer,
-    /*.DestroyBuffer = */dri_destroy_buffer,
-    /*.SwapBuffers = */dri_swap_buffers,
-    /*.MakeCurrent = */dri_make_current,
-    /*.UnbindContext = */dri_unbind_context,
-    /*.CopySubBuffer = */dri_copy_sub_buffer,
-    /*.AllocateBuffer = */NULL,
-    /*.ReleaseBuffer = */NULL
+    .InitScreen = dri_init_screen,
+    .DestroyScreen = dri_destroy_screen,
+    .CreateContext = dri_create_context,
+    .DestroyContext = dri_destroy_context,
+    .CreateBuffer = dri_create_buffer,
+    .DestroyBuffer = dri_destroy_buffer,
+    .SwapBuffers = dri_swap_buffers,
+    .MakeCurrent = dri_make_current,
+    .UnbindContext = dri_unbind_context,
+    .CopySubBuffer = dri_copy_sub_buffer,
 };
 
 static const struct __DRIDriverVtableExtensionRec swrast_vtable = {
-   /*.base = */{ __DRI_DRIVER_VTABLE, 1 },
-   /*.vtable = */&swrast_driver_api,
+   .base = { __DRI_DRIVER_VTABLE, 1 },
+   .vtable = &swrast_driver_api,
 };
 
 static const __DRIextension *swrast_driver_extensions[] = {
