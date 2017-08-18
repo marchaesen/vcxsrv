@@ -502,8 +502,6 @@ struct __DRIgetDrawableInfoExtensionRec {
 	void *loaderPrivate);
 };
 
-typedef int int32_t;
-
 /**
  * Callback to get system time for media stream counter extensions.
  */
