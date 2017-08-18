@@ -410,7 +410,7 @@ swrast_alloc_back_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
 
     swrast_alloc_front_storage(ctx, rb, internalFormat, width, height);
 
-    xrb->Base.Buffer = (GLubyte*)malloc(height * xrb->pitch);
+    xrb->Base.Buffer = malloc(height * xrb->pitch);
 
     return GL_TRUE;
 }
@@ -419,7 +419,7 @@ static struct dri_swrast_renderbuffer *
 swrast_new_renderbuffer(const struct gl_config *visual, __DRIdrawable *dPriv,
 			GLboolean front)
 {
-    struct dri_swrast_renderbuffer *xrb = (struct dri_swrast_renderbuffer *)calloc(1, sizeof *xrb);
+    struct dri_swrast_renderbuffer *xrb = calloc(1, sizeof *xrb);
     struct gl_renderbuffer *rb;
     GLuint pixel_format;
 
@@ -500,7 +500,7 @@ swrast_map_renderbuffer(struct gl_context *ctx,
       xrb->map_h = h;
 
       stride = w * cpp;
-      xrb->Base.Buffer = (GLubyte*)malloc(h * stride);
+      xrb->Base.Buffer = malloc(h * stride);
 
       sPriv->swrast_loader->getImage(dPriv, x, xrb->map_y, w, h,
 				     (char *) xrb->Base.Buffer,
@@ -569,7 +569,7 @@ dri_create_buffer(__DRIscreen * sPriv,
     dPriv->driverPrivate = drawable;
     drawable->dPriv = dPriv;
 
-    drawable->row = (char*)malloc(SWRAST_MAX_WIDTH * 4);
+    drawable->row = malloc(SWRAST_MAX_WIDTH * 4);
     if (drawable->row == NULL)
 	goto drawable_fail;
 
