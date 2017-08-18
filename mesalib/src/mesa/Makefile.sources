@@ -85,6 +85,8 @@ MAIN_FILES = \
 	main/extensions.h \
 	main/extensions_table.c \
 	main/extensions_table.h \
+	main/externalobjects.c \
+	main/externalobjects.h \
 	main/fbobject.c \
 	main/fbobject.h \
 	main/feedback.c \
@@ -464,6 +466,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_cb_feedback.h \
 	state_tracker/st_cb_flush.c \
 	state_tracker/st_cb_flush.h \
+	state_tracker/st_cb_memoryobjects.c \
+	state_tracker/st_cb_memoryobjects.h \
 	state_tracker/st_cb_msaa.c \
 	state_tracker/st_cb_msaa.h \
 	state_tracker/st_cb_perfmon.c \
@@ -507,6 +511,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_glsl_to_nir.cpp \
 	state_tracker/st_glsl_to_tgsi.cpp \
 	state_tracker/st_glsl_to_tgsi.h \
+	state_tracker/st_glsl_types.cpp \
+	state_tracker/st_glsl_types.h \
 	state_tracker/st_manager.c \
 	state_tracker/st_manager.h \
 	state_tracker/st_mesa_to_tgsi.c \

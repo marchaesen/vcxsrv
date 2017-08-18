@@ -53,4 +53,7 @@ st_framebuffer_reference(struct st_framebuffer **ptr,
 void
 st_framebuffer_interface_destroy(struct st_framebuffer_interface *stfbi);
 
+void
+st_manager_flush_swapbuffers(void);
+
 #endif /* ST_MANAGER_H */

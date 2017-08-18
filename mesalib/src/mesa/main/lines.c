@@ -37,19 +37,14 @@
  *
  * \sa glLineWidth().
  */
-void GLAPIENTRY
-_mesa_LineWidth( GLfloat width )
+static ALWAYS_INLINE void
+line_width(struct gl_context *ctx, GLfloat width, bool no_error)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glLineWidth %f\n", width);
-
    /* If width is unchanged, there can't be an error */
    if (ctx->Line.Width == width)
       return;
 
-   if (width <= 0.0F) {
+   if (!no_error && width <= 0.0F) {
       _mesa_error( ctx, GL_INVALID_VALUE, "glLineWidth" );
       return;
    }
@@ -64,7 +59,7 @@ _mesa_LineWidth( GLfloat width )
     * *NOT* removed in a later spec.  Therefore, we only disallow this in a
     * forward compatible context.
     */
-   if (ctx->API == API_OPENGL_CORE
+   if (!no_error && ctx->API == API_OPENGL_CORE
        && ((ctx->Const.ContextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT)
            != 0)
        && width > 1.0F) {
@@ -78,6 +73,26 @@ _mesa_LineWidth( GLfloat width )
 
    if (ctx->Driver.LineWidth)
       ctx->Driver.LineWidth(ctx, width);
+}
+
+
+void GLAPIENTRY
+_mesa_LineWidth_no_error(GLfloat width)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   line_width(ctx, width, true);
+}
+
+
+void GLAPIENTRY
+_mesa_LineWidth(GLfloat width)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glLineWidth %f\n", width);
+
+   line_width(ctx, width, false);
 }
 
 
@@ -125,7 +140,7 @@ _mesa_LineStipple( GLint factor, GLushort pattern )
  * Initializes __struct gl_contextRec::Line and line related constants in
  * __struct gl_contextRec::Const.
  */
-void GLAPIENTRY
+void
 _mesa_init_line( struct gl_context * ctx )
 {
    ctx->Line.SmoothFlag = GL_FALSE;

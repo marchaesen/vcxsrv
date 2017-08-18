@@ -291,7 +291,7 @@ void ir_print_visitor::visit(ir_expression *ir)
 
    fprintf(f, " %s ", ir_expression_operation_strings[ir->operation]);
 
-   for (unsigned i = 0; i < ir->get_num_operands(); i++) {
+   for (unsigned i = 0; i < ir->num_operands; i++) {
       ir->operands[i]->accept(this);
    }
 
@@ -423,7 +423,10 @@ void ir_print_visitor::visit(ir_dereference_record *ir)
 {
    fprintf(f, "(record_ref ");
    ir->record->accept(this);
-   fprintf(f, " %s) ", ir->field);
+
+   const char *field_name =
+      ir->record->type->fields.structure[ir->field_idx].name;
+   fprintf(f, " %s) ", field_name);
 }
 
 

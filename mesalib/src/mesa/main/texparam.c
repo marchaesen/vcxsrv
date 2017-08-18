@@ -174,7 +174,7 @@ get_texobj_by_name(struct gl_context *ctx, GLuint texture, const char *name)
    case GL_TEXTURE_RECTANGLE:
       return texObj;
    default:
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(target)", name);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(target)", name);
       return NULL;
    }
 
@@ -622,6 +622,14 @@ set_tex_parameteri(struct gl_context *ctx,
       }
       goto invalid_pname;
 
+   case GL_TEXTURE_TILING_EXT:
+      if (ctx->Extensions.EXT_memory_object) {
+         texObj->TextureTiling = params[0];
+
+         return GL_TRUE;
+      }
+      goto invalid_pname;
+
    default:
       goto invalid_pname;
    }
@@ -777,6 +785,13 @@ set_tex_parameterf(struct gl_context *ctx,
          texObj->Sampler.BorderColor.f[ACOMP] = CLAMP(params[3], 0.0F, 1.0F);
       }
       return GL_TRUE;
+
+   case GL_TEXTURE_TILING_EXT:
+      if (ctx->Extensions.EXT_memory_object) {
+         texObj->TextureTiling = params[0];
+         return GL_TRUE;
+      }
+      goto invalid_pname;
 
    default:
       goto invalid_pname;
@@ -2019,6 +2034,12 @@ get_tex_parameterfv(struct gl_context *ctx,
          *params = ENUM_TO_FLOAT(obj->Target);
          break;
 
+      case GL_TEXTURE_TILING_EXT:
+         if (!ctx->Extensions.EXT_memory_object)
+            goto invalid_pname;
+         *params = ENUM_TO_FLOAT(obj->TextureTiling);
+         break;
+
       default:
          goto invalid_pname;
    }
@@ -2249,6 +2270,12 @@ get_tex_parameteriv(struct gl_context *ctx,
          if (ctx->API != API_OPENGL_CORE)
             goto invalid_pname;
          *params = (GLint) obj->Target;
+         break;
+
+      case GL_TEXTURE_TILING_EXT:
+         if (!ctx->Extensions.EXT_memory_object)
+            goto invalid_pname;
+         *params = (GLint) obj->TextureTiling;
          break;
 
       default:

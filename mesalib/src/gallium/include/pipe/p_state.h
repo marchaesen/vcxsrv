@@ -888,6 +888,14 @@ struct pipe_memory_info
    unsigned nr_device_memory_evictions; /**< # of evictions (monotonic counter) */
 };
 
+/**
+ * Structure that contains information about external memory
+ */
+struct pipe_memory_object
+{
+   bool dedicated;
+};
+
 #ifdef __cplusplus
 }
 #endif

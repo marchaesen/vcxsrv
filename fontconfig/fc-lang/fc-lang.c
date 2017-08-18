@@ -174,6 +174,11 @@ scan (FILE *f, char *file, FcCharSetFreezer *freezer)
 	    if (sscanf (line, "%x-%x", &start, &end) != 2)
 		fatal (file, lineno, "parse error");
 	}
+	else if (strstr (line, ".."))
+	{
+	    if (sscanf (line, "%x..%x", &start, &end) != 2)
+		fatal (file, lineno, "parse error");
+	}
 	else
 	{
 	    if (sscanf (line, "%x", &start) != 1)

@@ -267,7 +267,8 @@ flatten_named_interface_blocks_declarations::handle_rvalue(ir_rvalue **rvalue)
          ralloc_asprintf(mem_ctx, "%s %s.%s.%s",
                          var->data.mode == ir_var_shader_in ? "in" : "out",
                          var->get_interface_type()->name,
-                         var->name, ir->field);
+                         var->name,
+                         ir->record->type->fields.structure[ir->field_idx].name);
 
       /* Find the variable in the set of flattened interface blocks */
       hash_entry *entry = _mesa_hash_table_search(interface_namespace,

@@ -168,6 +168,7 @@ radv_create_shader_variant_from_pipeline_cache(struct radv_device *device,
 		if (!variant)
 			return NULL;
 
+		variant->code_size = entry->code_size;
 		variant->config = entry->config;
 		variant->info = entry->variant_info;
 		variant->rsrc1 = entry->rsrc1;
@@ -175,12 +176,8 @@ radv_create_shader_variant_from_pipeline_cache(struct radv_device *device,
 		variant->code_size = entry->code_size;
 		variant->ref_count = 1;
 
-		variant->bo = device->ws->buffer_create(device->ws, entry->code_size, 256,
-						RADEON_DOMAIN_VRAM, RADEON_FLAG_CPU_ACCESS);
-
-		void *ptr = device->ws->buffer_map(variant->bo);
+		void *ptr = radv_alloc_shader_memory(device, variant);
 		memcpy(ptr, entry->code, entry->code_size);
-		device->ws->buffer_unmap(variant->bo);
 
 		entry->variant = variant;
 	}

@@ -2059,7 +2059,7 @@
         <glx rop="94"/>
     </function>
 
-    <function name="LineWidth" es1="1.0" es2="2.0">
+    <function name="LineWidth" es1="1.0" es2="2.0" no_error="true">
         <param name="width" type="GLfloat"/>
         <glx rop="95"/>
     </function>
@@ -2097,7 +2097,7 @@
         <glx rop="100"/>
     </function>
 
-    <function name="PolygonMode">
+    <function name="PolygonMode" no_error="true">
         <param name="face" type="GLenum"/>
         <param name="mode" type="GLenum"/>
         <glx rop="101"/>
@@ -5045,7 +5045,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="BufferData" es1="1.1" es2="2.0" marshal="custom">
+    <function name="BufferData" es1="1.1" es2="2.0" marshal="custom" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="size" type="GLsizeiptr" counter="true"/>
         <param name="data" type="const GLvoid *" count="size" img_null_flag="true"/>
@@ -5492,12 +5492,12 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="LinkProgram" es2="2.0">
+    <function name="LinkProgram" es2="2.0" no_error="true">
         <param name="program" type="GLuint"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="ShaderSource" es2="2.0" marshal="custom">
+    <function name="ShaderSource" es2="2.0" marshal="custom" no_error="true">
         <param name="shader" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="string" type="const GLchar * const *"/>
@@ -13059,6 +13059,9 @@
 <xi:include href="EXT_transform_feedback.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="NV_vdpau_interop.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="EXT_external_objects.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+<xi:include href="EXT_external_objects_fd.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="GL4x.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

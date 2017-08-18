@@ -388,12 +388,12 @@ RRCrtcDetachScanoutPixmap(RRCrtcPtr crtc)
 
     if (crtc->scanout_pixmap) {
         ScreenPtr master = crtc->pScreen->current_master;
-        PixmapPtr mscreenpix = master->GetScreenPixmap(master);
+        DrawablePtr mrootdraw = &master->root->drawable;
 
         if (crtc->scanout_pixmap_back) {
             pScrPriv->rrDisableSharedPixmapFlipping(crtc);
 
-            master->StopFlippingPixmapTracking(mscreenpix,
+            master->StopFlippingPixmapTracking(mrootdraw,
                                                crtc->scanout_pixmap,
                                                crtc->scanout_pixmap_back);
 
@@ -402,7 +402,8 @@ RRCrtcDetachScanoutPixmap(RRCrtcPtr crtc)
         }
         else {
             pScrPriv->rrCrtcSetScanoutPixmap(crtc, NULL);
-            master->StopPixmapTracking(mscreenpix, crtc->scanout_pixmap);
+            master->StopPixmapTracking(mrootdraw,
+                                       crtc->scanout_pixmap);
         }
 
         rrDestroySharedPixmap(crtc, crtc->scanout_pixmap);
@@ -491,9 +492,8 @@ rrSetupPixmapSharing(RRCrtcPtr crtc, int width, int height,
     ScreenPtr master = crtc->pScreen->current_master;
     rrScrPrivPtr pMasterScrPriv = rrGetScrPriv(master);
     rrScrPrivPtr pSlaveScrPriv = rrGetScrPriv(crtc->pScreen);
-
-    int depth;
-    PixmapPtr mscreenpix;
+    DrawablePtr mrootdraw = &master->root->drawable;
+    int depth = mrootdraw->depth;
     PixmapPtr spix_front;
 
     /* Create a pixmap on the master screen, then get a shared handle for it.
@@ -514,9 +514,6 @@ rrSetupPixmapSharing(RRCrtcPtr crtc, int width, int height,
        Prompt the master to do a dirty update on the first shared pixmap, then
        defer to the slave.
     */
-
-    mscreenpix = master->GetScreenPixmap(master);
-    depth = mscreenpix->drawable.depth;
 
     if (crtc->scanout_pixmap)
         RRCrtcDetachScanoutPixmap(crtc);
@@ -553,7 +550,8 @@ rrSetupPixmapSharing(RRCrtcPtr crtc, int width, int height,
         crtc->scanout_pixmap = spix_front;
         crtc->scanout_pixmap_back = spix_back;
 
-        if (!pMasterScrPriv->rrStartFlippingPixmapTracking(crtc, mscreenpix,
+        if (!pMasterScrPriv->rrStartFlippingPixmapTracking(crtc,
+                                                           mrootdraw,
                                                            spix_front,
                                                            spix_back,
                                                            x, y, 0, 0,
@@ -588,7 +586,7 @@ fail: /* If flipping funcs fail, just fall back to unsynchronized */
     }
     crtc->scanout_pixmap = spix_front;
 
-    master->StartPixmapTracking(mscreenpix, spix_front, x, y, 0, 0, rotation);
+    master->StartPixmapTracking(mrootdraw, spix_front, x, y, 0, 0, rotation);
 
     return TRUE;
 }

@@ -366,6 +366,8 @@ struct st_framebuffer_iface
                        const enum st_attachment_type *statts,
                        unsigned count,
                        struct pipe_resource **out);
+   boolean (*flush_swapbuffers) (struct st_context_iface *stctx,
+                                 struct st_framebuffer_iface *stfbi);
 };
 
 /**

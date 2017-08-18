@@ -224,7 +224,7 @@ __glXdirectContextCreate(__GLXscreen * screen,
 /**
  * Create a GL context with the given properties.  This routine is used
  * to implement \c glXCreateContext, \c glXCreateNewContext, and
- * \c glXCreateContextWithConfigSGIX.  This works becuase of the hack way
+ * \c glXCreateContextWithConfigSGIX.  This works because of the hack way
  * that GLXFBConfigs are implemented.  Basically, the FBConfigID is the
  * same as the VisualID.
  */

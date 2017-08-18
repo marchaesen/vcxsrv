@@ -32,6 +32,7 @@
 #include "pipe/p_format.h"
 #include "pipe/p_state.h"
 #include "pipe/p_screen.h"
+#include "util/u_hash_table.h"
 #include "util/u_inlines.h"
 
 #ifdef __cplusplus
@@ -407,7 +408,8 @@ struct pipe_h264_enc_picture_desc
    bool not_referenced;
    bool is_idr;
    bool enable_vui;
-   unsigned int frame_idx[32];
+   struct util_hash_table *frame_idx;
+
 };
 
 struct pipe_h265_sps

@@ -477,48 +477,8 @@ radv_meta_build_nir_fs_noop(void)
 	return b.shader;
 }
 
-static nir_ssa_def *radv_meta_build_resolve_srgb_conversion(nir_builder *b,
-							    nir_ssa_def *input)
-{
-	nir_const_value v;
-	unsigned i;
-	v.u32[0] = 0x3b4d2e1c; // 0.00313080009
-
-	nir_ssa_def *cmp[3];
-	for (i = 0; i < 3; i++)
-		cmp[i] = nir_flt(b, nir_channel(b, input, i),
-				 nir_build_imm(b, 1, 32, v));
-
-	nir_ssa_def *ltvals[3];
-	v.f32[0] = 12.92;
-	for (i = 0; i < 3; i++)
-		ltvals[i] = nir_fmul(b, nir_channel(b, input, i),
-				     nir_build_imm(b, 1, 32, v));
-
-	nir_ssa_def *gtvals[3];
-
-	for (i = 0; i < 3; i++) {
-		v.f32[0] = 1.0/2.4;
-		gtvals[i] = nir_fpow(b, nir_channel(b, input, i),
-				     nir_build_imm(b, 1, 32, v));
-		v.f32[0] = 1.055;
-		gtvals[i] = nir_fmul(b, gtvals[i],
-				     nir_build_imm(b, 1, 32, v));
-		v.f32[0] = 0.055;
-		gtvals[i] = nir_fsub(b, gtvals[i],
-				     nir_build_imm(b, 1, 32, v));
-	}
-
-	nir_ssa_def *comp[4];
-	for (i = 0; i < 3; i++)
-		comp[i] = nir_bcsel(b, cmp[i], ltvals[i], gtvals[i]);
-	comp[3] = nir_channels(b, input, 3);
-	return nir_vec(b, comp, 4);
-}
-
 void radv_meta_build_resolve_shader_core(nir_builder *b,
 					 bool is_integer,
-					 bool is_srgb,
 					 int samples,
 					 nir_variable *input_img,
 					 nir_variable *color,
@@ -596,10 +556,4 @@ void radv_meta_build_resolve_shader_core(nir_builder *b,
 
 	if (outer_if)
 		b->cursor = nir_after_cf_node(&outer_if->cf_node);
-
-	if (is_srgb) {
-		nir_ssa_def *newv = nir_load_var(b, color);
-		newv = radv_meta_build_resolve_srgb_conversion(b, newv);
-		nir_store_var(b, color, newv, 0xf);
-	}
 }

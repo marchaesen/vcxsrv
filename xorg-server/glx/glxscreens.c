@@ -176,13 +176,6 @@ glxGetScreen(ScreenPtr pScreen)
     return dixLookupPrivate(&pScreen->devPrivates, glxScreenPrivateKey);
 }
 
-_X_EXPORT void
-GlxSetVisualConfigs(int nconfigs, void *configs, void **privates)
-{
-    /* We keep this stub around for the DDX drivers that still
-     * call it. */
-}
-
 GLint
 glxConvertToXVisualType(int visualType)
 {

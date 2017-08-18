@@ -429,3 +429,12 @@ DRI_CONF_OPT_END
 DRI_CONF_OPT_BEGIN(csmt_force, int, def) \
         DRI_CONF_DESC(en,gettext("If set to 1, force gallium nine CSMT. If set to 0, disable it. By default (-1) CSMT is enabled on known thread-safe drivers.")) \
 DRI_CONF_OPT_END
+
+/**
+ * \brief radeonsi specific configuration options
+ */
+
+#define DRI_CONF_RADEONSI_ENABLE_SISCHED(def) \
+DRI_CONF_OPT_BEGIN_B(radeonsi_enable_sisched, def) \
+        DRI_CONF_DESC(en,gettext("Use the LLVM sisched option for shader compiles")) \
+DRI_CONF_OPT_END

@@ -31,7 +31,8 @@ LOCAL_MODULE := libmesa_amd_common
 LOCAL_SRC_FILES := \
 	$(AMD_COMMON_FILES) \
 	$(AMD_COMPILER_FILES) \
-	$(AMD_DEBUG_FILES)
+	$(AMD_DEBUG_FILES) \
+	$(AMD_NIR_FILES)
 
 LOCAL_CFLAGS += -DFORCE_BUILD_AMDGPU   # instructs LLVM to declare LLVMInitializeAMDGPU* functions
 

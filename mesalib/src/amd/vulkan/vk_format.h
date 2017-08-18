@@ -465,4 +465,27 @@ vk_format_get_component_bits(VkFormat format,
 	}
 }
 
+static inline VkFormat
+vk_to_non_srgb_format(VkFormat format)
+{
+	switch(format) {
+	case VK_FORMAT_R8_SRGB :
+		return VK_FORMAT_R8_UNORM;
+	case VK_FORMAT_R8G8_SRGB:
+		return VK_FORMAT_R8G8_UNORM;
+	case VK_FORMAT_R8G8B8_SRGB:
+		return VK_FORMAT_R8G8B8_UNORM;
+	case VK_FORMAT_B8G8R8_SRGB:
+		return VK_FORMAT_B8G8R8_UNORM;
+	case VK_FORMAT_R8G8B8A8_SRGB :
+		return VK_FORMAT_R8G8B8A8_UNORM;
+	case VK_FORMAT_B8G8R8A8_SRGB:
+		return VK_FORMAT_B8G8R8A8_UNORM;
+	case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
+		return VK_FORMAT_A8B8G8R8_UNORM_PACK32;
+	default:
+		return format;
+	}
+}
+
 #endif /* VK_FORMAT_H */

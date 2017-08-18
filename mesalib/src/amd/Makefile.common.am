@@ -58,13 +58,8 @@ common_libamd_common_la_SOURCES = \
 	$(AMD_COMMON_FILES) \
 	$(AMD_COMPILER_FILES) \
 	$(AMD_DEBUG_FILES) \
-	$(AMD_GENERATED_FILES)
-
-# nir_to_llvm requires LLVM 3.9, which is only required as a minimum when
-# radv is built.
-if HAVE_RADEON_VULKAN
-common_libamd_common_la_SOURCES += $(AMD_NIR_FILES)
-endif
+	$(AMD_GENERATED_FILES) \
+	$(AMD_NIR_FILES)
 endif
 
 common_libamd_common_la_LIBADD = $(LIBELF_LIBS)

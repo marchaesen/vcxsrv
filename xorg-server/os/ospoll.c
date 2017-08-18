@@ -32,7 +32,7 @@
 #include "ospoll.h"
 #include "list.h"
 
-#if !HAVE_OSPOLL && HAVE_EPOLL_CREATE1
+#if !HAVE_OSPOLL && defined(HAVE_EPOLL_CREATE1)
 #include <sys/epoll.h>
 #define EPOLL           1
 #define HAVE_OSPOLL     1

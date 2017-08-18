@@ -88,7 +88,8 @@ typedef struct _Pixmap {
 } PixmapRec;
 
 typedef struct _PixmapDirtyUpdate {
-    PixmapPtr src, slave_dst;
+    DrawablePtr src;            /* Root window / shared pixmap */
+    PixmapPtr slave_dst;        /* Shared / scanout pixmap */
     int x, y;
     DamagePtr damage;
     struct xorg_list ent;

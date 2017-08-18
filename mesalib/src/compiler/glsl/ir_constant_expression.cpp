@@ -485,7 +485,7 @@ constant_referenced(const ir_dereference *deref,
        */
       assert(suboffset == 0);
 
-      store = substore->get_record_field(dr->field);
+      store = substore->get_record_field(dr->field_idx);
       break;
    }
 
@@ -509,7 +509,7 @@ constant_referenced(const ir_dereference *deref,
 
 
 ir_constant *
-ir_rvalue::constant_expression_value(struct hash_table *)
+ir_rvalue::constant_expression_value(void *mem_ctx, struct hash_table *)
 {
    assert(this->type->is_error());
    return NULL;
@@ -628,8 +628,11 @@ bitfield_insert(uint32_t base, uint32_t insert, int offset, int bits)
 }
 
 ir_constant *
-ir_expression::constant_expression_value(struct hash_table *variable_context)
+ir_expression::constant_expression_value(void *mem_ctx,
+                                         struct hash_table *variable_context)
 {
+   assert(mem_ctx);
+
    if (this->type->is_error())
       return NULL;
 
@@ -638,8 +641,10 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 
    memset(&data, 0, sizeof(data));
 
-   for (unsigned operand = 0; operand < this->get_num_operands(); operand++) {
-      op[operand] = this->operands[operand]->constant_expression_value(variable_context);
+   for (unsigned operand = 0; operand < this->num_operands; operand++) {
+      op[operand] =
+         this->operands[operand]->constant_expression_value(mem_ctx,
+                                                            variable_context);
       if (!op[operand])
          return NULL;
    }
@@ -676,16 +681,14 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
       components = op[1]->type->components();
    }
 
-   void *ctx = ralloc_parent(this);
-
    /* Handle array operations here, rather than below. */
    if (op[0]->type->is_array()) {
       assert(op[1] != NULL && op[1]->type->is_array());
       switch (this->operation) {
       case ir_binop_all_equal:
-         return new(ctx) ir_constant(op[0]->has_value(op[1]));
+         return new(mem_ctx) ir_constant(op[0]->has_value(op[1]));
       case ir_binop_any_nequal:
-         return new(ctx) ir_constant(!op[0]->has_value(op[1]));
+         return new(mem_ctx) ir_constant(!op[0]->has_value(op[1]));
       default:
          break;
       }
@@ -694,12 +697,12 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 
 #include "ir_expression_operation_constant.h"
 
-   return new(ctx) ir_constant(this->type, &data);
+   return new(mem_ctx) ir_constant(this->type, &data);
 }
 
 
 ir_constant *
-ir_texture::constant_expression_value(struct hash_table *)
+ir_texture::constant_expression_value(void *mem_ctx, struct hash_table *)
 {
    /* texture lookups aren't constant expressions */
    return NULL;
@@ -707,9 +710,13 @@ ir_texture::constant_expression_value(struct hash_table *)
 
 
 ir_constant *
-ir_swizzle::constant_expression_value(struct hash_table *variable_context)
+ir_swizzle::constant_expression_value(void *mem_ctx,
+                                      struct hash_table *variable_context)
 {
-   ir_constant *v = this->val->constant_expression_value(variable_context);
+   assert(mem_ctx);
+
+   ir_constant *v = this->val->constant_expression_value(mem_ctx,
+                                                         variable_context);
 
    if (v != NULL) {
       ir_constant_data data = { { 0 } };
@@ -725,21 +732,24 @@ ir_swizzle::constant_expression_value(struct hash_table *variable_context)
          case GLSL_TYPE_FLOAT: data.f[i] = v->value.f[swiz_idx[i]]; break;
          case GLSL_TYPE_BOOL:  data.b[i] = v->value.b[swiz_idx[i]]; break;
          case GLSL_TYPE_DOUBLE:data.d[i] = v->value.d[swiz_idx[i]]; break;
+         case GLSL_TYPE_UINT64:data.u64[i] = v->value.u64[swiz_idx[i]]; break;
+         case GLSL_TYPE_INT64: data.i64[i] = v->value.i64[swiz_idx[i]]; break;
          default:              assert(!"Should not get here."); break;
          }
       }
 
-      void *ctx = ralloc_parent(this);
-      return new(ctx) ir_constant(this->type, &data);
+      return new(mem_ctx) ir_constant(this->type, &data);
    }
    return NULL;
 }
 
 
 ir_constant *
-ir_dereference_variable::constant_expression_value(struct hash_table *variable_context)
+ir_dereference_variable::constant_expression_value(void *mem_ctx,
+                                                   struct hash_table *variable_context)
 {
    assert(var);
+   assert(mem_ctx);
 
    /* Give priority to the context hashtable, if it exists */
    if (variable_context) {
@@ -758,18 +768,20 @@ ir_dereference_variable::constant_expression_value(struct hash_table *variable_c
    if (!var->constant_value)
       return NULL;
 
-   return var->constant_value->clone(ralloc_parent(var), NULL);
+   return var->constant_value->clone(mem_ctx, NULL);
 }
 
 
 ir_constant *
-ir_dereference_array::constant_expression_value(struct hash_table *variable_context)
+ir_dereference_array::constant_expression_value(void *mem_ctx,
+                                                struct hash_table *variable_context)
 {
-   ir_constant *array = this->array->constant_expression_value(variable_context);
-   ir_constant *idx = this->array_index->constant_expression_value(variable_context);
+   assert(mem_ctx);
+
+   ir_constant *array = this->array->constant_expression_value(mem_ctx, variable_context);
+   ir_constant *idx = this->array_index->constant_expression_value(mem_ctx, variable_context);
 
    if ((array != NULL) && (idx != NULL)) {
-      void *ctx = ralloc_parent(this);
       if (array->type->is_matrix()) {
          /* Array access of a matrix results in a vector.
           */
@@ -809,14 +821,14 @@ ir_dereference_array::constant_expression_value(struct hash_table *variable_cont
             break;
          }
 
-         return new(ctx) ir_constant(column_type, &data);
+         return new(mem_ctx) ir_constant(column_type, &data);
       } else if (array->type->is_vector()) {
          const unsigned component = idx->value.u[0];
 
-         return new(ctx) ir_constant(array, component);
+         return new(mem_ctx) ir_constant(array, component);
       } else {
          const unsigned index = idx->value.u[0];
-         return array->get_array_element(index)->clone(ctx, NULL);
+         return array->get_array_element(index)->clone(mem_ctx, NULL);
       }
    }
    return NULL;
@@ -824,16 +836,19 @@ ir_dereference_array::constant_expression_value(struct hash_table *variable_cont
 
 
 ir_constant *
-ir_dereference_record::constant_expression_value(struct hash_table *)
+ir_dereference_record::constant_expression_value(void *mem_ctx,
+                                                 struct hash_table *)
 {
-   ir_constant *v = this->record->constant_expression_value();
+   assert(mem_ctx);
 
-   return (v != NULL) ? v->get_record_field(this->field) : NULL;
+   ir_constant *v = this->record->constant_expression_value(mem_ctx);
+
+   return (v != NULL) ? v->get_record_field(this->field_idx) : NULL;
 }
 
 
 ir_constant *
-ir_assignment::constant_expression_value(struct hash_table *)
+ir_assignment::constant_expression_value(void *mem_ctx, struct hash_table *)
 {
    /* FINISHME: Handle CEs involving assignment (return RHS) */
    return NULL;
@@ -841,23 +856,30 @@ ir_assignment::constant_expression_value(struct hash_table *)
 
 
 ir_constant *
-ir_constant::constant_expression_value(struct hash_table *)
+ir_constant::constant_expression_value(void *mem_ctx, struct hash_table *)
 {
    return this;
 }
 
 
 ir_constant *
-ir_call::constant_expression_value(struct hash_table *variable_context)
+ir_call::constant_expression_value(void *mem_ctx, struct hash_table *variable_context)
 {
-   return this->callee->constant_expression_value(&this->actual_parameters, variable_context);
+   assert(mem_ctx);
+
+   return this->callee->constant_expression_value(mem_ctx,
+                                                  &this->actual_parameters,
+                                                  variable_context);
 }
 
 
-bool ir_function_signature::constant_expression_evaluate_expression_list(const struct exec_list &body,
+bool ir_function_signature::constant_expression_evaluate_expression_list(void *mem_ctx,
+                                                                        const struct exec_list &body,
                                                                          struct hash_table *variable_context,
                                                                          ir_constant **result)
 {
+   assert(mem_ctx);
+
    foreach_in_list(ir_instruction, inst, &body) {
       switch(inst->ir_type) {
 
@@ -872,7 +894,9 @@ bool ir_function_signature::constant_expression_evaluate_expression_list(const s
       case ir_type_assignment: {
          ir_assignment *asg = inst->as_assignment();
          if (asg->condition) {
-            ir_constant *cond = asg->condition->constant_expression_value(variable_context);
+            ir_constant *cond =
+               asg->condition->constant_expression_value(mem_ctx,
+                                                         variable_context);
             if (!cond)
                return false;
             if (!cond->get_bool_component(0))
@@ -885,7 +909,8 @@ bool ir_function_signature::constant_expression_evaluate_expression_list(const s
          if (!constant_referenced(asg->lhs, variable_context, store, offset))
             return false;
 
-         ir_constant *value = asg->rhs->constant_expression_value(variable_context);
+         ir_constant *value =
+            asg->rhs->constant_expression_value(mem_ctx, variable_context);
 
          if (!value)
             return false;
@@ -897,7 +922,9 @@ bool ir_function_signature::constant_expression_evaluate_expression_list(const s
          /* (return (expression)) */
       case ir_type_return:
          assert (result);
-         *result = inst->as_return()->value->constant_expression_value(variable_context);
+         *result =
+            inst->as_return()->value->constant_expression_value(mem_ctx,
+                                                                variable_context);
          return *result != NULL;
 
          /* (call name (ref) (params))*/
@@ -918,7 +945,8 @@ bool ir_function_signature::constant_expression_evaluate_expression_list(const s
                                   store, offset))
             return false;
 
-         ir_constant *value = call->constant_expression_value(variable_context);
+         ir_constant *value =
+            call->constant_expression_value(mem_ctx, variable_context);
 
          if(!value)
             return false;
@@ -931,14 +959,18 @@ bool ir_function_signature::constant_expression_evaluate_expression_list(const s
       case ir_type_if: {
          ir_if *iif = inst->as_if();
 
-         ir_constant *cond = iif->condition->constant_expression_value(variable_context);
+         ir_constant *cond =
+            iif->condition->constant_expression_value(mem_ctx,
+                                                      variable_context);
          if (!cond || !cond->type->is_boolean())
             return false;
 
          exec_list &branch = cond->get_bool_component(0) ? iif->then_instructions : iif->else_instructions;
 
          *result = NULL;
-         if (!constant_expression_evaluate_expression_list(branch, variable_context, result))
+         if (!constant_expression_evaluate_expression_list(mem_ctx, branch,
+                                                           variable_context,
+                                                           result))
             return false;
 
          /* If there was a return in the branch chosen, drop out now. */
@@ -962,8 +994,12 @@ bool ir_function_signature::constant_expression_evaluate_expression_list(const s
 }
 
 ir_constant *
-ir_function_signature::constant_expression_value(exec_list *actual_parameters, struct hash_table *variable_context)
+ir_function_signature::constant_expression_value(void *mem_ctx,
+                                                 exec_list *actual_parameters,
+                                                 struct hash_table *variable_context)
 {
+   assert(mem_ctx);
+
    const glsl_type *type = this->return_type;
    if (type == glsl_type::void_type)
       return NULL;
@@ -998,7 +1034,8 @@ ir_function_signature::constant_expression_value(exec_list *actual_parameters, s
    const exec_node *parameter_info = origin ? origin->parameters.get_head_raw() : parameters.get_head_raw();
 
    foreach_in_list(ir_rvalue, n, actual_parameters) {
-      ir_constant *constant = n->constant_expression_value(variable_context);
+      ir_constant *constant =
+         n->constant_expression_value(mem_ctx, variable_context);
       if (constant == NULL) {
          _mesa_hash_table_destroy(deref_hash, NULL);
          return NULL;
@@ -1016,8 +1053,9 @@ ir_function_signature::constant_expression_value(exec_list *actual_parameters, s
    /* Now run the builtin function until something non-constant
     * happens or we get the result.
     */
-   if (constant_expression_evaluate_expression_list(origin ? origin->body : body, deref_hash, &result) && result)
-      result = result->clone(ralloc_parent(this), NULL);
+   if (constant_expression_evaluate_expression_list(mem_ctx, origin ? origin->body : body, deref_hash, &result) &&
+       result)
+      result = result->clone(mem_ctx, NULL);
 
    _mesa_hash_table_destroy(deref_hash, NULL);
 

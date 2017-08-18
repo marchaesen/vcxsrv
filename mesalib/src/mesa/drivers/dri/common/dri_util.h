@@ -56,7 +56,7 @@
 #include <GL/gl.h>
 #include <GL/internal/dri_interface.h>
 #include "main/mtypes.h"
-#include "xmlconfig.h"
+#include "util/xmlconfig.h"
 #include <stdbool.h>
 
 /**

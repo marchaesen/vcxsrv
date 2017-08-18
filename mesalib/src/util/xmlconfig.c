@@ -36,8 +36,6 @@
 #include <math.h>
 #include <unistd.h>
 #include <errno.h>
-#include "main/imports.h"
-#include "utils.h"
 #include "xmlconfig.h"
 
 #undef GET_PROGRAM_NAME
@@ -332,7 +330,7 @@ parseValue(driOptionValue *v, driOptionType type, const XML_Char *string)
       case DRI_STRING:
         free (v->_string);
         v->_string = strndup(string, STRING_CONF_MAXLEN);
-        return GL_TRUE;
+        return true;
     }
 
     if (tail == string)
@@ -925,7 +923,7 @@ optConfEndElem(void *userData, const XML_Char *name)
 static void
 initOptionCache(driOptionCache *cache, const driOptionCache *info)
 {
-    GLuint i, size = 1 << info->tableSize;
+    unsigned i, size = 1 << info->tableSize;
     cache->info = info->info;
     cache->tableSize = info->tableSize;
     cache->values = malloc((1<<info->tableSize) * sizeof (driOptionValue));
@@ -1057,7 +1055,7 @@ void
 driDestroyOptionCache(driOptionCache *cache)
 {
     if (cache->info) {
-        GLuint i, size = 1 << cache->tableSize;
+        unsigned i, size = 1 << cache->tableSize;
         for (i = 0; i < size; ++i) {
             if (cache->info[i].type == DRI_STRING)
                 free(cache->values[i]._string);
@@ -1107,7 +1105,7 @@ driQueryOptionf(const driOptionCache *cache, const char *name)
 char *
 driQueryOptionstr(const driOptionCache *cache, const char *name)
 {
-    GLuint i = findOption (cache, name);
+    uint32_t i = findOption (cache, name);
   /* make sure the option is defined and has the correct type */
     assert (cache->info[i].name != NULL);
     assert (cache->info[i].type == DRI_STRING);

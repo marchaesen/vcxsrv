@@ -1017,6 +1017,11 @@ builtin_variable_generator::generate_vs_special_vars()
 
    if (state->is_version(130, 300))
       add_system_value(SYSTEM_VALUE_VERTEX_ID, int_t, "gl_VertexID");
+   if (state->is_version(460, 0)) {
+      add_system_value(SYSTEM_VALUE_BASE_VERTEX, int_t, "gl_BaseVertex");
+      add_system_value(SYSTEM_VALUE_BASE_INSTANCE, int_t, "gl_BaseInstance");
+      add_system_value(SYSTEM_VALUE_DRAW_ID, int_t, "gl_DrawID");
+   }
    if (state->ARB_draw_instanced_enable)
       add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, "gl_InstanceIDARB");
    if (state->ARB_draw_instanced_enable || state->is_version(140, 300))

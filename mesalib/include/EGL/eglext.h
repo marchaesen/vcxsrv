@@ -31,14 +31,14 @@ extern "C" {
 ** This header is generated from the Khronos OpenGL / OpenGL ES XML
 ** API Registry. The current version of the Registry, generator scripts
 ** used to make the header, and the header can be found at
-**   http://www.opengl.org/registry/egl
+**   http://www.khronos.org/registry/egl
 **
-** Khronos $Revision$ on $Date$
+** Khronos $Git commit SHA1: a732b061e7 $ on $Git commit date: 2017-06-17 23:27:53 +0100 $
 */
 
 #include <EGL/eglplatform.h>
 
-#define EGL_EGLEXT_VERSION 20161230
+#define EGL_EGLEXT_VERSION 20170627
 
 /* Generated C header for:
  * API: egl
@@ -132,6 +132,15 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQueryDebugKHR (EGLint attribute, EGLAttrib *val
 EGLAPI EGLint EGLAPIENTRY eglLabelObjectKHR (EGLDisplay display, EGLenum objectType, EGLObjectKHR object, EGLLabelKHR label);
 #endif
 #endif /* EGL_KHR_debug */
+
+#ifndef EGL_KHR_display_reference
+#define EGL_KHR_display_reference 1
+#define EGL_TRACK_REFERENCES_KHR          0x3352
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLQUERYDISPLAYATTRIBKHRPROC) (EGLDisplay dpy, EGLint name, EGLAttrib *value);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglQueryDisplayAttribKHR (EGLDisplay dpy, EGLint name, EGLAttrib *value);
+#endif
+#endif /* EGL_KHR_display_reference */
 
 #ifndef EGL_KHR_fence_sync
 #define EGL_KHR_fence_sync 1
@@ -555,6 +564,11 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQuerySurfacePointerANGLE (EGLDisplay dpy, EGLSu
 #define EGL_DISCARD_SAMPLES_ARM           0x3286
 #endif /* EGL_ARM_pixmap_multisample_discard */
 
+#ifndef EGL_EXT_bind_to_front
+#define EGL_EXT_bind_to_front 1
+#define EGL_FRONT_BUFFER_EXT              0x3464
+#endif /* EGL_EXT_bind_to_front */
+
 #ifndef EGL_EXT_buffer_age
 #define EGL_EXT_buffer_age 1
 #define EGL_BUFFER_AGE_EXT                0x313D
@@ -563,6 +577,30 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQuerySurfacePointerANGLE (EGLDisplay dpy, EGLSu
 #ifndef EGL_EXT_client_extensions
 #define EGL_EXT_client_extensions 1
 #endif /* EGL_EXT_client_extensions */
+
+#ifndef EGL_EXT_compositor
+#define EGL_EXT_compositor 1
+#define EGL_PRIMARY_COMPOSITOR_CONTEXT_EXT 0x3460
+#define EGL_EXTERNAL_REF_ID_EXT           0x3461
+#define EGL_COMPOSITOR_DROP_NEWEST_FRAME_EXT 0x3462
+#define EGL_COMPOSITOR_KEEP_NEWEST_FRAME_EXT 0x3463
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLCOMPOSITORSETCONTEXTLISTEXTPROC) (const EGLint *external_ref_ids, EGLint num_entries);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLCOMPOSITORSETCONTEXTATTRIBUTESEXTPROC) (EGLint external_ref_id, const EGLint *context_attributes, EGLint num_entries);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLCOMPOSITORSETWINDOWLISTEXTPROC) (EGLint external_ref_id, const EGLint *external_win_ids, EGLint num_entries);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLCOMPOSITORSETWINDOWATTRIBUTESEXTPROC) (EGLint external_win_id, const EGLint *window_attributes, EGLint num_entries);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLCOMPOSITORBINDTEXWINDOWEXTPROC) (EGLint external_win_id);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLCOMPOSITORSETSIZEEXTPROC) (EGLint external_win_id, EGLint width, EGLint height);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLCOMPOSITORSWAPPOLICYEXTPROC) (EGLint external_win_id, EGLint policy);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglCompositorSetContextListEXT (const EGLint *external_ref_ids, EGLint num_entries);
+EGLAPI EGLBoolean EGLAPIENTRY eglCompositorSetContextAttributesEXT (EGLint external_ref_id, const EGLint *context_attributes, EGLint num_entries);
+EGLAPI EGLBoolean EGLAPIENTRY eglCompositorSetWindowListEXT (EGLint external_ref_id, const EGLint *external_win_ids, EGLint num_entries);
+EGLAPI EGLBoolean EGLAPIENTRY eglCompositorSetWindowAttributesEXT (EGLint external_win_id, const EGLint *window_attributes, EGLint num_entries);
+EGLAPI EGLBoolean EGLAPIENTRY eglCompositorBindTexWindowEXT (EGLint external_win_id);
+EGLAPI EGLBoolean EGLAPIENTRY eglCompositorSetSizeEXT (EGLint external_win_id, EGLint width, EGLint height);
+EGLAPI EGLBoolean EGLAPIENTRY eglCompositorSwapPolicyEXT (EGLint external_win_id, EGLint policy);
+#endif
+#endif /* EGL_EXT_compositor */
 
 #ifndef EGL_EXT_create_context_robustness
 #define EGL_EXT_create_context_robustness 1
@@ -618,6 +656,21 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQueryDisplayAttribEXT (EGLDisplay dpy, EGLint a
 #define EGL_GL_COLORSPACE_BT2020_PQ_EXT   0x3340
 #endif /* EGL_EXT_gl_colorspace_bt2020_pq */
 
+#ifndef EGL_EXT_gl_colorspace_display_p3
+#define EGL_EXT_gl_colorspace_display_p3 1
+#define EGL_GL_COLORSPACE_DISPLAY_P3_EXT  0x3363
+#endif /* EGL_EXT_gl_colorspace_display_p3 */
+
+#ifndef EGL_EXT_gl_colorspace_display_p3_linear
+#define EGL_EXT_gl_colorspace_display_p3_linear 1
+#define EGL_GL_COLORSPACE_DISPLAY_P3_LINEAR_EXT 0x3362
+#endif /* EGL_EXT_gl_colorspace_display_p3_linear */
+
+#ifndef EGL_EXT_gl_colorspace_scrgb
+#define EGL_EXT_gl_colorspace_scrgb 1
+#define EGL_GL_COLORSPACE_SCRGB_EXT       0x3351
+#endif /* EGL_EXT_gl_colorspace_scrgb */
+
 #ifndef EGL_EXT_gl_colorspace_scrgb_linear
 #define EGL_EXT_gl_colorspace_scrgb_linear 1
 #define EGL_GL_COLORSPACE_SCRGB_LINEAR_EXT 0x3350
@@ -669,6 +722,13 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQueryDmaBufFormatsEXT (EGLDisplay dpy, EGLint m
 EGLAPI EGLBoolean EGLAPIENTRY eglQueryDmaBufModifiersEXT (EGLDisplay dpy, EGLint format, EGLint max_modifiers, EGLuint64KHR *modifiers, EGLBoolean *external_only, EGLint *num_modifiers);
 #endif
 #endif /* EGL_EXT_image_dma_buf_import_modifiers */
+
+#ifndef EGL_EXT_image_implicit_sync_control
+#define EGL_EXT_image_implicit_sync_control 1
+#define EGL_IMPORT_SYNC_TYPE_EXT          0x3470
+#define EGL_IMPORT_IMPLICIT_SYNC_EXT      0x3471
+#define EGL_IMPORT_EXPLICIT_SYNC_EXT      0x3472
+#endif /* EGL_EXT_image_implicit_sync_control */
 
 #ifndef EGL_EXT_multiview_window
 #define EGL_EXT_multiview_window 1
@@ -769,6 +829,12 @@ EGLAPI EGLBoolean EGLAPIENTRY eglStreamConsumerOutputEXT (EGLDisplay dpy, EGLStr
 #endif
 #endif /* EGL_EXT_stream_consumer_egloutput */
 
+#ifndef EGL_EXT_surface_CTA861_3_metadata
+#define EGL_EXT_surface_CTA861_3_metadata 1
+#define EGL_CTA861_3_MAX_CONTENT_LIGHT_LEVEL_EXT 0x3360
+#define EGL_CTA861_3_MAX_FRAME_AVERAGE_LEVEL_EXT 0x3361
+#endif /* EGL_EXT_surface_CTA861_3_metadata */
+
 #ifndef EGL_EXT_surface_SMPTE2086_metadata
 #define EGL_EXT_surface_SMPTE2086_metadata 1
 #define EGL_SMPTE2086_DISPLAY_PRIMARY_RX_EXT 0x3341
@@ -781,6 +847,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglStreamConsumerOutputEXT (EGLDisplay dpy, EGLStr
 #define EGL_SMPTE2086_WHITE_POINT_Y_EXT   0x3348
 #define EGL_SMPTE2086_MAX_LUMINANCE_EXT   0x3349
 #define EGL_SMPTE2086_MIN_LUMINANCE_EXT   0x334A
+#define EGL_METADATA_SCALING_EXT          50000
 #endif /* EGL_EXT_surface_SMPTE2086_metadata */
 
 #ifndef EGL_EXT_swap_buffers_with_damage

@@ -45,6 +45,7 @@
 #include "relative-pointer-unstable-v1-client-protocol.h"
 #include "pointer-constraints-unstable-v1-client-protocol.h"
 #include "tablet-unstable-v2-client-protocol.h"
+#include "xwayland-keyboard-grab-unstable-v1-client-protocol.h"
 
 struct xwl_screen {
     int width;
@@ -80,7 +81,7 @@ struct xwl_screen {
     struct wl_shell *shell;
     struct zwp_relative_pointer_manager_v1 *relative_pointer_manager;
     struct zwp_pointer_constraints_v1 *pointer_constraints;
-
+    struct zwp_xwayland_keyboard_grab_manager_v1 *wp_grab;
     uint32_t serial;
 
 #define XWL_FORMAT_ARGB8888 (1 << 0)
@@ -188,6 +189,7 @@ struct xwl_seat {
     struct xorg_list tablets;
     struct xorg_list tablet_tools;
     struct xorg_list tablet_pads;
+    struct zwp_xwayland_keyboard_grab_v1 *keyboard_grab;
 };
 
 struct xwl_tablet {
@@ -307,6 +309,7 @@ RRModePtr xwayland_cvt(int HDisplay, int VDisplay,
 void xwl_pixmap_set_private(PixmapPtr pixmap, struct xwl_pixmap *xwl_pixmap);
 struct xwl_pixmap *xwl_pixmap_get(PixmapPtr pixmap);
 
+struct xwl_window *xwl_window_from_window(WindowPtr window);
 
 Bool xwl_shm_create_screen_resources(ScreenPtr screen);
 PixmapPtr xwl_shm_create_pixmap(ScreenPtr screen, int width, int height,

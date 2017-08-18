@@ -137,4 +137,13 @@ _mesa_AllocTextureStorage_sw(struct gl_context *ctx,
                              GLsizei levels, GLsizei width,
                              GLsizei height, GLsizei depth);
 
+extern void
+_mesa_texture_storage_memory(struct gl_context *ctx, GLuint dims,
+                             struct gl_texture_object *texObj,
+                             struct gl_memory_object *memObj,
+                             GLenum target, GLsizei levels,
+                             GLenum internalformat, GLsizei width,
+                             GLsizei height, GLsizei depth,
+                             GLuint64 offset, bool dsa);
+
 #endif /* TEXSTORAGE_H */

@@ -88,23 +88,23 @@ update_max_array_access(ir_rvalue *ir, int idx, YYLTYPE *loc,
 
       if (deref_var != NULL) {
          if (deref_var->var->is_interface_instance()) {
-            unsigned field_index =
-               deref_record->record->type->field_index(deref_record->field);
-            assert(field_index < deref_var->var->get_interface_type()->length);
+            unsigned field_idx = deref_record->field_idx;
+            assert(field_idx < deref_var->var->get_interface_type()->length);
 
             int *const max_ifc_array_access =
                deref_var->var->get_max_ifc_array_access();
 
             assert(max_ifc_array_access != NULL);
 
-            if (idx > max_ifc_array_access[field_index]) {
-               max_ifc_array_access[field_index] = idx;
+            if (idx > max_ifc_array_access[field_idx]) {
+               max_ifc_array_access[field_idx] = idx;
 
                /* Check whether this access will, as a side effect, implicitly
                 * cause the size of a built-in array to be too large.
                 */
-               check_builtin_array_max_size(deref_record->field, idx+1, *loc,
-                                            state);
+               const char *field_name =
+                  deref_record->record->type->fields.structure[field_idx].name;
+               check_builtin_array_max_size(field_name, idx+1, *loc, state);
             }
          }
       }
@@ -167,7 +167,7 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
     * index is not a constant expression, ensure that the array has a
     * declared size.
     */
-   ir_constant *const const_index = idx->constant_expression_value();
+   ir_constant *const const_index = idx->constant_expression_value(mem_ctx);
    if (const_index != NULL && idx->type->is_integer()) {
       const int idx = const_index->value.i[0];
       const char *type_name = "error";

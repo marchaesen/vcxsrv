@@ -74,7 +74,7 @@ ir_constant_fold(ir_rvalue **rvalue)
     */
    ir_expression *expr = (*rvalue)->as_expression();
    if (expr) {
-      for (unsigned int i = 0; i < expr->get_num_operands(); i++) {
+      for (unsigned int i = 0; i < expr->num_operands; i++) {
 	 if (!expr->operands[i]->as_constant())
 	    return false;
       }
@@ -100,7 +100,8 @@ ir_constant_fold(ir_rvalue **rvalue)
    if (var_ref)
       return false;
 
-   ir_constant *constant = (*rvalue)->constant_expression_value();
+   ir_constant *constant =
+      (*rvalue)->constant_expression_value(ralloc_parent(*rvalue));
    if (constant) {
       *rvalue = constant;
       return true;
@@ -189,7 +190,7 @@ ir_constant_folding_visitor::visit_enter(ir_call *ir)
    }
 
    /* Next, see if the call can be replaced with an assignment of a constant */
-   ir_constant *const_val = ir->constant_expression_value();
+   ir_constant *const_val = ir->constant_expression_value(ralloc_parent(ir));
 
    if (const_val != NULL) {
       ir_assignment *assignment =

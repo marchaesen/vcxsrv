@@ -67,6 +67,8 @@ _mesa_init_multisample(struct gl_context *ctx)
    ctx->Multisample.SampleCoverage = GL_FALSE;
    ctx->Multisample.SampleCoverageValue = 1.0;
    ctx->Multisample.SampleCoverageInvert = GL_FALSE;
+   ctx->Multisample.SampleShading = GL_FALSE;
+   ctx->Multisample.MinSampleShadingValue = 0.0f;
 
    /* ARB_texture_multisample / GL3.2 additions */
    ctx->Multisample.SampleMask = GL_FALSE;

@@ -10,6 +10,7 @@ env.MSVC2013Compat()
 
 env.Prepend(CPPPATH = [
     '#include',
+    xmlpool_options.dir.dir, # Dir to generated xmlpool/options.h
     '#src',
     '#src/mapi',
     '#src/mesa',
@@ -33,7 +34,16 @@ mesautil_sources = (
     source_lists['MESA_UTIL_GENERATED_FILES']
 )
 
-mesautil = env.ConvenienceLibrary(
+mesautilenv = env.Clone()
+
+if env['dri']:
+    mesautil_sources += source_lists['XMLCONFIG_FILES']
+
+    mesautilenv.AppendUnique(LIBS = [
+        'expat',
+    ])
+
+mesautil = mesautilenv.ConvenienceLibrary(
     target = 'mesautil',
     source = mesautil_sources,
 )

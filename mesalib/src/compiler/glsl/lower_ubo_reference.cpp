@@ -627,7 +627,7 @@ lower_ubo_reference_visitor::check_ssbo_unsized_array_length_expression(ir_expre
          return;
    }
 
-   for (unsigned i = 0; i < ir->get_num_operands(); i++) {
+   for (unsigned i = 0; i < ir->num_operands; i++) {
       if (ir->operands[i]->ir_type != ir_type_expression)
          continue;
       ir_expression *expr = (ir_expression *) ir->operands[i];

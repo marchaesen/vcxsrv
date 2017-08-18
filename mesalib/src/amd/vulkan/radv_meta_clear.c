@@ -754,6 +754,8 @@ static VkFormat pipeline_formats[] = {
 	VK_FORMAT_R8G8B8A8_UNORM,
 	VK_FORMAT_R8G8B8A8_UINT,
 	VK_FORMAT_R8G8B8A8_SINT,
+	VK_FORMAT_A2R10G10B10_UINT_PACK32,
+	VK_FORMAT_A2R10G10B10_SINT_PACK32,
 	VK_FORMAT_R16G16B16A16_UNORM,
 	VK_FORMAT_R16G16B16A16_SNORM,
 	VK_FORMAT_R16G16B16A16_UINT,
@@ -977,7 +979,7 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	if (iview->image->info.levels > 1)
 		goto fail;
 
-	if (iview->image->surface.u.legacy.level[0].mode < RADEON_SURF_MODE_1D)
+	if (iview->image->surface.is_linear)
 		goto fail;
 	if (!radv_image_extent_compare(iview->image, &iview->extent))
 		goto fail;

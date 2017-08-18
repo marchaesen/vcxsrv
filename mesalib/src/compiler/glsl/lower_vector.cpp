@@ -133,7 +133,7 @@ lower_vector_visitor::handle_rvalue(ir_rvalue **rvalue)
     */
    void *const mem_ctx = expr;
 
-   assert(expr->type->vector_elements == expr->get_num_operands());
+   assert(expr->type->vector_elements == expr->num_operands);
 
    /* Generate a temporary with the same type as the ir_quadop_operation.
     */

@@ -227,7 +227,7 @@ swrastFillInModes(__DRIscreen *psp,
      * support pageflipping at all.
      */
     static const GLenum back_buffer_modes[] = {
-	GLX_NONE, GLX_SWAP_UNDEFINED_OML
+	__DRI_ATTRIB_SWAP_NONE, __DRI_ATTRIB_SWAP_UNDEFINED
     };
 
     uint8_t depth_bits_array[4];

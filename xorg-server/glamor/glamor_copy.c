@@ -351,6 +351,7 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
     const glamor_facet *copy_facet;
     int n;
     Bool ret = FALSE;
+    BoxRec bounds = glamor_no_rendering_bounds();
 
     glamor_make_current(glamor_priv);
 
@@ -391,11 +392,18 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
     glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_SHORT, GL_FALSE,
                           2 * sizeof (GLshort), vbo_offset);
 
+    if (nbox < 100) {
+        bounds = glamor_start_rendering_bounds();
+        for (int i = 0; i < nbox; i++)
+            glamor_bounds_union_box(&bounds, &box[i]);
+    }
+
     for (n = 0; n < nbox; n++) {
         v[0] = box->x1; v[1] = box->y1;
         v[2] = box->x1; v[3] = box->y2;
         v[4] = box->x2; v[5] = box->y2;
         v[6] = box->x2; v[7] = box->y1;
+
         v += 8;
         box++;
     }
@@ -417,15 +425,24 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
             goto bail_ctx;
 
         glamor_pixmap_loop(dst_priv, dst_box_index) {
+            BoxRec scissor = {
+                .x1 = max(-args.dx, bounds.x1),
+                .y1 = max(-args.dy, bounds.y1),
+                .x2 = min(-args.dx + src_box->x2 - src_box->x1, bounds.x2),
+                .y2 = min(-args.dy + src_box->y2 - src_box->y1, bounds.y2),
+            };
+            if (scissor.x1 >= scissor.x2 || scissor.y1 >= scissor.y2)
+                continue;
+
             if (!glamor_set_destination_drawable(dst, dst_box_index, FALSE, FALSE,
                                                  prog->matrix_uniform,
                                                  &dst_off_x, &dst_off_y))
                 goto bail_ctx;
 
-            glScissor(dst_off_x - args.dx,
-                      dst_off_y - args.dy,
-                      src_box->x2 - src_box->x1,
-                      src_box->y2 - src_box->y1);
+            glScissor(scissor.x1 + dst_off_x,
+                      scissor.y1 + dst_off_y,
+                      scissor.x2 - scissor.x1,
+                      scissor.y2 - scissor.y1);
 
             glamor_glDrawArrays_GL_QUADS(glamor_priv, nbox);
         }

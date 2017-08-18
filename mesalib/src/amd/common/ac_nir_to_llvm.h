@@ -59,6 +59,7 @@ struct ac_tcs_variant_key {
 struct ac_fs_variant_key {
 	uint32_t col_format;
 	uint32_t is_int8;
+	uint32_t is_int10;
 };
 
 union ac_shader_variant_key {

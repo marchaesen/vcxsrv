@@ -83,7 +83,7 @@ struct ac_shader_config {
  * Parse the elf binary stored in \p elf_data and create a
  * ac_shader_binary object.
  */
-void ac_elf_read(const char *elf_data, unsigned elf_size,
+bool ac_elf_read(const char *elf_data, unsigned elf_size,
 		 struct ac_shader_binary *binary);
 
 /**

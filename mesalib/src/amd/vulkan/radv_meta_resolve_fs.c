@@ -51,7 +51,7 @@ build_nir_vertex_shader(void)
 }
 
 static nir_shader *
-build_resolve_fragment_shader(struct radv_device *dev, bool is_integer, bool is_srgb, int samples)
+build_resolve_fragment_shader(struct radv_device *dev, bool is_integer, int samples)
 {
 	nir_builder b;
 	char name[64];
@@ -62,7 +62,7 @@ build_resolve_fragment_shader(struct radv_device *dev, bool is_integer, bool is_
 								 false,
 								 GLSL_TYPE_FLOAT);
 
-	snprintf(name, 64, "meta_resolve_fs-%d-%s", samples, is_integer ? "int" : (is_srgb ? "srgb" : "float"));
+	snprintf(name, 64, "meta_resolve_fs-%d-%s", samples, is_integer ? "int" : "float");
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, NULL);
 	b.shader->info.name = ralloc_strdup(b.shader, name);
 
@@ -92,8 +92,8 @@ build_resolve_fragment_shader(struct radv_device *dev, bool is_integer, bool is_
 	nir_ssa_def *img_coord = nir_channels(&b, nir_iadd(&b, pos_int, &src_offset->dest.ssa), 0x3);
 	nir_variable *color = nir_local_variable_create(b.impl, glsl_vec4_type(), "color");
 
-	radv_meta_build_resolve_shader_core(&b, is_integer, is_srgb,samples,
-					    input_img, color, img_coord);
+	radv_meta_build_resolve_shader_core(&b, is_integer, samples, input_img,
+	                                    color, img_coord);
 
 	nir_ssa_def *outval = nir_load_var(&b, color);
 	nir_store_var(&b, color_out, outval, 0xf);
@@ -160,6 +160,8 @@ static VkFormat pipeline_formats[] = {
    VK_FORMAT_R8G8B8A8_UNORM,
    VK_FORMAT_R8G8B8A8_UINT,
    VK_FORMAT_R8G8B8A8_SINT,
+   VK_FORMAT_A2R10G10B10_UINT_PACK32,
+   VK_FORMAT_A2R10G10B10_SINT_PACK32,
    VK_FORMAT_R16G16B16A16_UNORM,
    VK_FORMAT_R16G16B16A16_SNORM,
    VK_FORMAT_R16G16B16A16_UINT,
@@ -175,31 +177,25 @@ create_resolve_pipeline(struct radv_device *device,
 			VkFormat format)
 {
 	VkResult result;
-	bool is_integer = false, is_srgb = false;
+	bool is_integer = false;
 	uint32_t samples = 1 << samples_log2;
 	unsigned fs_key = radv_format_meta_fs_key(format);
 	const VkPipelineVertexInputStateCreateInfo *vi_create_info;
 	vi_create_info = &normal_vi_create_info;
 	if (vk_format_is_int(format))
 		is_integer = true;
-	else if (vk_format_is_srgb(format))
-		is_srgb = true;
 
 	struct radv_shader_module fs = { .nir = NULL };
-	fs.nir = build_resolve_fragment_shader(device, is_integer, is_srgb, samples);
+	fs.nir = build_resolve_fragment_shader(device, is_integer, samples);
 	struct radv_shader_module vs = {
 		.nir = build_nir_vertex_shader(),
 	};
 
-	VkRenderPass *rp = is_srgb ?
-		&device->meta_state.resolve_fragment.rc[samples_log2].srgb_render_pass :
-		&device->meta_state.resolve_fragment.rc[samples_log2].render_pass[fs_key];
+	VkRenderPass *rp = &device->meta_state.resolve_fragment.rc[samples_log2].render_pass[fs_key];
 
 	assert(!*rp);
 
-	VkPipeline *pipeline = is_srgb ?
-		&device->meta_state.resolve_fragment.rc[samples_log2].srgb_pipeline :
-		&device->meta_state.resolve_fragment.rc[samples_log2].pipeline[fs_key];
+	VkPipeline *pipeline = &device->meta_state.resolve_fragment.rc[samples_log2].pipeline[fs_key];
 	assert(!*pipeline);
 
 	VkPipelineShaderStageCreateInfo pipeline_shader_stages[] = {
@@ -348,8 +344,6 @@ radv_device_init_meta_resolve_fragment_state(struct radv_device *device)
 		for (unsigned j = 0; j < ARRAY_SIZE(pipeline_formats); ++j) {
 			res = create_resolve_pipeline(device, i, pipeline_formats[j]);
 		}
-
-		res = create_resolve_pipeline(device, i, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 
 	return res;
@@ -368,12 +362,6 @@ radv_device_finish_meta_resolve_fragment_state(struct radv_device *device)
 					     state->resolve_fragment.rc[i].pipeline[j],
 					     &state->alloc);
 		}
-		radv_DestroyRenderPass(radv_device_to_handle(device),
-				       state->resolve_fragment.rc[i].srgb_render_pass,
-					       &state->alloc);
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     state->resolve_fragment.rc[i].srgb_pipeline,
-				     &state->alloc);
 	}
 
 	radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
@@ -430,9 +418,7 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 			      push_constants);
 
 	unsigned fs_key = radv_format_meta_fs_key(dest_iview->vk_format);
-	VkPipeline pipeline_h = vk_format_is_srgb(dest_iview->vk_format) ?
-		device->meta_state.resolve_fragment.rc[samples_log2].srgb_pipeline :
-		device->meta_state.resolve_fragment.rc[samples_log2].pipeline[fs_key];
+	VkPipeline pipeline_h = device->meta_state.resolve_fragment.rc[samples_log2].pipeline[fs_key];
 
 	radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			     pipeline_h);
@@ -483,9 +469,7 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 		radv_fast_clear_flush_image_inplace(cmd_buffer, src_image, &range);
 	}
 
-	rp = vk_format_is_srgb(dest_image->vk_format) ?
-		device->meta_state.resolve_fragment.rc[samples_log2].srgb_render_pass :
-		device->meta_state.resolve_fragment.rc[samples_log2].render_pass[fs_key];
+	rp = device->meta_state.resolve_fragment.rc[samples_log2].render_pass[fs_key];
 	radv_meta_save_graphics_reset_vport_scissor_novertex(&saved_state, cmd_buffer);
 
 	for (uint32_t r = 0; r < region_count; ++r) {

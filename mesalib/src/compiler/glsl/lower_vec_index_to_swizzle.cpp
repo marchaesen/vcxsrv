@@ -63,11 +63,12 @@ ir_vec_index_to_swizzle_visitor::handle_rvalue(ir_rvalue **rv)
    if (expr == NULL || expr->operation != ir_binop_vector_extract)
       return;
 
-   ir_constant *const idx = expr->operands[1]->constant_expression_value();
+   void *mem_ctx = ralloc_parent(expr);
+   ir_constant *const idx =
+      expr->operands[1]->constant_expression_value(mem_ctx);
    if (idx == NULL)
       return;
 
-   void *ctx = ralloc_parent(expr);
    this->progress = true;
 
    /* Page 40 of the GLSL 1.20 spec says:
@@ -87,7 +88,7 @@ ir_vec_index_to_swizzle_visitor::handle_rvalue(ir_rvalue **rv)
    const int i = CLAMP(idx->value.i[0], 0,
                        (int) expr->operands[0]->type->vector_elements - 1);
 
-   *rv = new(ctx) ir_swizzle(expr->operands[0], i, 0, 0, 0, 1);
+   *rv = new(mem_ctx) ir_swizzle(expr->operands[0], i, 0, 0, 0, 1);
 }
 
 bool

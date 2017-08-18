@@ -40,6 +40,7 @@
 
 #include "st_context.h"
 #include "st_cb_bufferobjects.h"
+#include "st_cb_memoryobjects.h"
 #include "st_debug.h"
 
 #include "pipe/p_context.h"
@@ -163,27 +164,22 @@ st_bufferobj_get_subdata(struct gl_context *ctx,
                     offset, size, data);
 }
 
-
-/**
- * Allocate space for and store data in a buffer object.  Any data that was
- * previously stored in the buffer object is lost.  If data is NULL,
- * memory will be allocated, but no copy will occur.
- * Called via ctx->Driver.BufferData().
- * \return GL_TRUE for success, GL_FALSE if out of memory
- */
-static GLboolean
-st_bufferobj_data(struct gl_context *ctx,
-                  GLenum target,
-                  GLsizeiptrARB size,
-                  const void * data,
-                  GLenum usage,
-                  GLbitfield storageFlags,
-                  struct gl_buffer_object *obj)
+static ALWAYS_INLINE GLboolean
+bufferobj_data(struct gl_context *ctx,
+               GLenum target,
+               GLsizeiptrARB size,
+               const void *data,
+               struct gl_memory_object *memObj,
+               GLuint64 offset,
+               GLenum usage,
+               GLbitfield storageFlags,
+               struct gl_buffer_object *obj)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = pipe->screen;
    struct st_buffer_object *st_obj = st_buffer_object(obj);
+   struct st_memory_object *st_mem_obj = st_memory_object(memObj);
    unsigned bind, pipe_usage, pipe_flags = 0;
 
    if (target != GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD &&
@@ -317,7 +313,12 @@ st_bufferobj_data(struct gl_context *ctx,
       buffer.depth0 = 1;
       buffer.array_size = 1;
 
-      if (target == GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD) {
+      if (st_mem_obj) {
+         st_obj->buffer = screen->resource_from_memobj(screen, &buffer,
+                                                       st_mem_obj->memory,
+                                                       offset);
+      }
+      else if (target == GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD) {
          st_obj->buffer =
             screen->resource_from_user_memory(screen, &buffer, (void*)data);
       }
@@ -352,6 +353,36 @@ st_bufferobj_data(struct gl_context *ctx,
    return GL_TRUE;
 }
 
+/**
+ * Allocate space for and store data in a buffer object.  Any data that was
+ * previously stored in the buffer object is lost.  If data is NULL,
+ * memory will be allocated, but no copy will occur.
+ * Called via ctx->Driver.BufferData().
+ * \return GL_TRUE for success, GL_FALSE if out of memory
+ */
+static GLboolean
+st_bufferobj_data(struct gl_context *ctx,
+                  GLenum target,
+                  GLsizeiptrARB size,
+                  const void *data,
+                  GLenum usage,
+                  GLbitfield storageFlags,
+                  struct gl_buffer_object *obj)
+{
+   return bufferobj_data(ctx, target, size, data, NULL, 0, usage, storageFlags, obj);
+}
+
+static GLboolean
+st_bufferobj_data_mem(struct gl_context *ctx,
+                      GLenum target,
+                      GLsizeiptrARB size,
+                      struct gl_memory_object *memObj,
+                      GLuint64 offset,
+                      GLenum usage,
+                      struct gl_buffer_object *bufObj)
+{
+   return bufferobj_data(ctx, target, size, NULL, memObj, offset, usage, 0, bufObj);
+}
 
 /**
  * Called via glInvalidateBuffer(Sub)Data.
@@ -573,6 +604,7 @@ st_init_bufferobject_functions(struct pipe_screen *screen,
    functions->NewBufferObject = st_bufferobj_alloc;
    functions->DeleteBuffer = st_bufferobj_free;
    functions->BufferData = st_bufferobj_data;
+   functions->BufferDataMem = st_bufferobj_data_mem;
    functions->BufferSubData = st_bufferobj_subdata;
    functions->GetBufferSubData = st_bufferobj_get_subdata;
    functions->MapBufferRange = st_bufferobj_map_range;

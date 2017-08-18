@@ -157,6 +157,8 @@ extern struct gl_texture_image *
 _mesa_get_tex_image(struct gl_context *ctx, struct gl_texture_object *texObj,
                     GLenum target, GLint level);
 
+mesa_format
+_mesa_get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat);
 
 /**
  * Return the base-level texture image for the given texture object.
@@ -225,6 +227,16 @@ _mesa_texture_sub_image(struct gl_context *ctx, GLuint dims,
                         GLsizei width, GLsizei height, GLsizei depth,
                         GLenum format, GLenum type, const GLvoid *pixels,
                         bool dsa);
+
+extern void
+_mesa_texture_storage_ms_memory(struct gl_context *ctx, GLuint dims,
+                                struct gl_texture_object *texObj,
+                                struct gl_memory_object *memObj,
+                                GLenum target, GLsizei samples,
+                                GLenum internalFormat, GLsizei width,
+                                GLsizei height, GLsizei depth,
+                                GLboolean fixedSampleLocations,
+                                GLuint64 offset, const char* func);
 
 bool
 _mesa_is_cube_map_texture(GLenum target);

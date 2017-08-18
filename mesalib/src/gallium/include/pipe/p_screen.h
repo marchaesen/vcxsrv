@@ -59,6 +59,7 @@ struct pipe_transfer;
 struct pipe_box;
 struct pipe_memory_info;
 struct disk_cache;
+struct driOptionCache;
 
 
 /**
@@ -357,6 +358,63 @@ struct pipe_screen {
                                   enum pipe_format format, int max,
                                   uint64_t *modifiers,
                                   unsigned int *external_only, int *count);
+
+   /**
+    * Create a memory object from a winsys handle
+    *
+    * The underlying memory is most often allocated in by a foregin API.
+    * Then the underlying memory object is then exported through interfaces
+    * compatible with EXT_external_resources.
+    *
+    * Note: For DRM_API_HANDLE_TYPE_FD handles, the caller retains ownership
+    * of the fd.
+    *
+    * \param handle  A handle representing the memory object to import
+    */
+   struct pipe_memory_object *(*memobj_create_from_handle)(struct pipe_screen *screen,
+                                                           struct winsys_handle *handle,
+                                                           bool dedicated);
+
+   /**
+    * Destroy a memory object
+    *
+    * \param memobj  The memory object to destroy
+    */
+   void (*memobj_destroy)(struct pipe_screen *screen,
+                          struct pipe_memory_object *memobj);
+
+   /**
+    * Create a texture from a memory object
+    *
+    * \param t       texture template
+    * \param memobj  The memory object used to back the texture
+    */
+   struct pipe_resource * (*resource_from_memobj)(struct pipe_screen *screen,
+                                                  const struct pipe_resource *t,
+                                                  struct pipe_memory_object *memobj,
+                                                  uint64_t offset);
+
+   /**
+    * Fill @uuid with a unique driver identifier
+    *
+    * \param uuid    pointer to a memory region of PIPE_UUID_SIZE bytes
+    */
+   void (*get_driver_uuid)(struct pipe_screen *screen, char *uuid);
+
+   /**
+    * Fill @uuid with a unique device identifier
+    *
+    * \param uuid    pointer to a memory region of PIPE_UUID_SIZE bytes
+    */
+   void (*get_device_uuid)(struct pipe_screen *screen, char *uuid);
+};
+
+
+/**
+ * Global configuration options for screen creation.
+ */
+struct pipe_screen_config {
+   const struct driOptionCache *options;
 };
 
 

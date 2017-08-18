@@ -860,7 +860,7 @@ drmmode_set_target_scanout_pixmap_gpu(xf86CrtcPtr crtc, PixmapPtr ppix,
     int c, total_width = 0, max_height = 0, this_x = 0;
 
     if (*target) {
-        PixmapStopDirtyTracking(*target, screenpix);
+        PixmapStopDirtyTracking(&(*target)->drawable, screenpix);
         if (drmmode->fb_id) {
             drmModeRmFB(drmmode->fd, drmmode->fb_id);
             drmmode->fb_id = 0;
@@ -900,7 +900,8 @@ drmmode_set_target_scanout_pixmap_gpu(xf86CrtcPtr crtc, PixmapPtr ppix,
         screen->height = screenpix->drawable.height = max_height;
     }
     drmmode_crtc->prime_pixmap_x = this_x;
-    PixmapStartDirtyTracking(ppix, screenpix, 0, 0, this_x, 0, RR_Rotate_0);
+    PixmapStartDirtyTracking(&ppix->drawable, screenpix, 0, 0, this_x, 0,
+                             RR_Rotate_0);
     *target = ppix;
     return TRUE;
 }

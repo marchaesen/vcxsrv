@@ -109,7 +109,7 @@ static void parse_relocs(Elf *elf, Elf_Data *relocs, Elf_Data *symbols,
 	}
 }
 
-void ac_elf_read(const char *elf_data, unsigned elf_size,
+bool ac_elf_read(const char *elf_data, unsigned elf_size,
 		 struct ac_shader_binary *binary)
 {
 	char *elf_buffer;
@@ -118,6 +118,7 @@ void ac_elf_read(const char *elf_data, unsigned elf_size,
 	Elf_Data *symbols = NULL, *relocs = NULL;
 	size_t section_str_index;
 	unsigned symbol_sh_link = 0;
+	bool success = true;
 
 	/* One of the libelf implementations
 	 * (http://www.mr511.de/software/english.htm) requires calling
@@ -137,7 +138,8 @@ void ac_elf_read(const char *elf_data, unsigned elf_size,
 		GElf_Shdr section_header;
 		if (gelf_getshdr(section, &section_header) != &section_header) {
 			fprintf(stderr, "Failed to read ELF section header\n");
-			return;
+			success = false;
+			break;
 		}
 		name = elf_strptr(elf, section_str_index, section_header.sh_name);
 		if (!strcmp(name, ".text")) {
@@ -148,6 +150,11 @@ void ac_elf_read(const char *elf_data, unsigned elf_size,
 		} else if (!strcmp(name, ".AMDGPU.config")) {
 			section_data = elf_getdata(section, section_data);
 			binary->config_size = section_data->d_size;
+			if (!binary->config_size) {
+				fprintf(stderr, ".AMDGPU.config is empty!\n");
+				success = false;
+				break;
+			}
 			binary->config = MALLOC(binary->config_size * sizeof(unsigned char));
 			memcpy(binary->config, section_data->d_buf, binary->config_size);
 		} else if (!strcmp(name, ".AMDGPU.disasm")) {
@@ -186,6 +193,7 @@ void ac_elf_read(const char *elf_data, unsigned elf_size,
 		binary->global_symbol_count = 1;
 		binary->config_size_per_symbol = binary->config_size;
 	}
+	return success;
 }
 
 const unsigned char *ac_shader_binary_config_start(

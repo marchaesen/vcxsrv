@@ -477,7 +477,7 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
     return NULL;
 }
 
-_X_EXPORT __GLXprovider __glXDRISWRastProvider = {
+__GLXprovider __glXDRISWRastProvider = {
     __glXDRIscreenProbe,
     "DRISWRAST",
     NULL

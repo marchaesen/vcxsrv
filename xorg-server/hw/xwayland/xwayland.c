@@ -234,7 +234,7 @@ xwl_close_screen(ScreenPtr screen)
     return screen->CloseScreen(screen);
 }
 
-static struct xwl_window *
+struct xwl_window *
 xwl_window_from_window(WindowPtr window)
 {
     struct xwl_window *xwl_window;

@@ -42,7 +42,7 @@
 #include <stdbool.h>
 #include "dri_util.h"
 #include "utils.h"
-#include "xmlpool.h"
+#include "util/xmlpool.h"
 #include "main/mtypes.h"
 #include "main/framebuffer.h"
 #include "main/version.h"
@@ -767,7 +767,7 @@ driSwapBuffers(__DRIdrawable *pdp)
 
 /** Core interface */
 const __DRIcoreExtension driCoreExtension = {
-    .base = { __DRI_CORE, 1 },
+    .base = { __DRI_CORE, 2 },
 
     .createNewScreen            = NULL,
     .destroyScreen              = driDestroyScreen,

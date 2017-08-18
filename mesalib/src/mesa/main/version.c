@@ -385,8 +385,24 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->ARB_derivative_control &&
                          extensions->ARB_shader_texture_image_samples &&
                          extensions->NV_texture_barrier);
+   const bool ver_4_6 = (ver_4_5 &&
+                         consts->GLSLVersion >= 460 &&
+                         /* extensions->ARB_gl_spirv */ 0 &&
+                         /* extensions->ARB_spirv_extensions */ 0 &&
+                         extensions->ARB_indirect_parameters &&
+                         extensions->ARB_pipeline_statistics_query &&
+                         /* extensions->ARB_polygon_offset_clamp */ 0 &&
+                         extensions->ARB_shader_atomic_counter_ops &&
+                         extensions->ARB_shader_draw_parameters &&
+                         extensions->ARB_shader_group_vote &&
+                         /* extensions->ARB_texture_filter_anisotropic */ 0 &&
+                         extensions->ARB_transform_feedback_overflow_query);
 
-   if (ver_4_5) {
+   if (ver_4_6) {
+      major = 4;
+      minor = 6;
+   }
+   else if (ver_4_5) {
       major = 4;
       minor = 5;
    }
@@ -634,4 +650,17 @@ _mesa_compute_version(struct gl_context *ctx)
       create_version_string(ctx, "OpenGL ES ");
       break;
    }
+}
+
+
+void
+_mesa_get_driver_uuid(struct gl_context *ctx, GLint *uuid)
+{
+   ctx->Driver.GetDriverUuid(ctx, (char*) uuid);
+}
+
+void
+_mesa_get_device_uuid(struct gl_context *ctx, GLint *uuid)
+{
+   ctx->Driver.GetDeviceUuid(ctx, (char*) uuid);
 }

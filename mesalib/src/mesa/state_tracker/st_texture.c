@@ -41,6 +41,7 @@
 #include "util/u_rect.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
+#include "tgsi/tgsi_from_mesa.h"
 
 
 #define DBG if(0) printf
@@ -550,7 +551,7 @@ void
 st_make_bound_samplers_resident(struct st_context *st,
                                 struct gl_program *prog)
 {
-   enum pipe_shader_type shader = st_shader_stage_to_ptarget(prog->info.stage);
+   enum pipe_shader_type shader = pipe_shader_type_from_mesa(prog->info.stage);
    struct st_bound_handles *bound_handles = &st->bound_texture_handles[shader];
    struct pipe_context *pipe = st->pipe;
    GLuint64 handle;
@@ -597,7 +598,7 @@ void
 st_make_bound_images_resident(struct st_context *st,
                               struct gl_program *prog)
 {
-   enum pipe_shader_type shader = st_shader_stage_to_ptarget(prog->info.stage);
+   enum pipe_shader_type shader = pipe_shader_type_from_mesa(prog->info.stage);
    struct st_bound_handles *bound_handles = &st->bound_image_handles[shader];
    struct pipe_context *pipe = st->pipe;
    GLuint64 handle;

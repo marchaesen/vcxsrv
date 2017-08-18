@@ -1057,6 +1057,9 @@ struct gl_texture_object
    /** GL_ARB_shader_image_load_store */
    GLenum ImageFormatCompatibilityType;
 
+   /** GL_EXT_memory_object */
+   GLenum TextureTiling;
+
    /** GL_ARB_bindless_texture */
    struct util_dynarray SamplerHandles;
    struct util_dynarray ImageHandles;
@@ -3274,6 +3277,10 @@ struct gl_shared_state
     * Once this field becomes true, it is never reset to false.
     */
    bool ShareGroupReset;
+
+   /** EXT_external_objects */
+   struct _mesa_HashTable *MemoryObjects;
+
 };
 
 
@@ -3303,7 +3310,7 @@ struct gl_renderbuffer
     * called without a rb->TexImage.
     */
    GLboolean NeedsFinishRenderTexture;
-   GLubyte NumSamples;
+   GLubyte NumSamples;    /**< zero means not multisampled */
    GLenum InternalFormat; /**< The user-specified format */
    GLenum _BaseFormat;    /**< Either GL_RGB, GL_RGBA, GL_DEPTH_COMPONENT or
                                GL_STENCIL_INDEX. */
@@ -4111,6 +4118,8 @@ struct gl_extensions
    GLboolean EXT_framebuffer_sRGB;
    GLboolean EXT_gpu_program_parameters;
    GLboolean EXT_gpu_shader4;
+   GLboolean EXT_memory_object;
+   GLboolean EXT_memory_object_fd;
    GLboolean EXT_packed_float;
    GLboolean EXT_pixel_buffer_object;
    GLboolean EXT_point_parameters;
@@ -4638,6 +4647,13 @@ struct gl_image_handle_object
 {
    struct gl_image_unit imgObj;
    GLuint64 handle;
+};
+
+struct gl_memory_object
+{
+   GLuint Name;            /**< hash table ID/name */
+   GLboolean Immutable;    /**< denotes mutability state of parameters */
+   GLboolean Dedicated;    /**< import memory from a dedicated allocation */
 };
 
 /**

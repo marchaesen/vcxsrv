@@ -192,6 +192,8 @@ API_XML = \
 	APPLE_object_purgeable.xml \
 	APPLE_vertex_array_object.xml \
 	EXT_draw_buffers2.xml \
+	EXT_external_objects.xml \
+	EXT_external_objects_fd.xml \
 	EXT_framebuffer_object.xml \
 	EXT_gpu_shader4.xml \
 	EXT_packed_depth_stencil.xml \

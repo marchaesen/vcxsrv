@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2010 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 
@@ -38,7 +38,8 @@
 
 /* Update the sample mask for MSAA.
  */
-void st_update_sample_mask( struct st_context *st )
+void
+st_update_sample_mask(struct st_context *st)
 {
    unsigned sample_mask = 0xffffffff;
    unsigned sample_count = st->state.fb_num_samples;
@@ -46,14 +47,14 @@ void st_update_sample_mask( struct st_context *st )
    if (_mesa_is_multisample_enabled(st->ctx) && sample_count > 1) {
       /* unlike in gallium/d3d10 the mask is only active if msaa is enabled */
       if (st->ctx->Multisample.SampleCoverage) {
-         unsigned nr_bits;
-         nr_bits = (unsigned)
-            (st->ctx->Multisample.SampleCoverageValue * (float)sample_count);
+         unsigned nr_bits = (unsigned)
+            (st->ctx->Multisample.SampleCoverageValue * (float) sample_count);
          /* there's lot of ways how to do this. We just use first few bits,
-            since we have no knowledge of sample positions here. When
-            app-supplied mask though is used too might need to be smarter.
-            Also, there's an interface restriction here in theory it is
-            encouraged this mask not be the same at each pixel. */
+          * since we have no knowledge of sample positions here. When
+          * app-supplied mask though is used too might need to be smarter.
+          * Also, there's an interface restriction here in theory it is
+          * encouraged this mask not be the same at each pixel.
+          */
          sample_mask = (1 << nr_bits) - 1;
          if (st->ctx->Multisample.SampleCoverageInvert)
             sample_mask = ~sample_mask;
@@ -65,7 +66,9 @@ void st_update_sample_mask( struct st_context *st )
    cso_set_sample_mask(st->cso_context, sample_mask);
 }
 
-void st_update_sample_shading( struct st_context *st )
+
+void
+st_update_sample_shading(struct st_context *st)
 {
    if (!st->fp)
       return;
@@ -73,7 +76,6 @@ void st_update_sample_shading( struct st_context *st )
    if (!st->ctx->Extensions.ARB_sample_shading)
       return;
 
-   cso_set_min_samples(
-	 st->cso_context,
+   cso_set_min_samples(st->cso_context,
          _mesa_get_min_invocations_per_fragment(st->ctx, &st->fp->Base, false));
 }

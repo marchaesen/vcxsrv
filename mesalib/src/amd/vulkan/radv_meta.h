@@ -234,7 +234,6 @@ nir_shader *radv_meta_build_nir_fs_noop(void);
 
 void radv_meta_build_resolve_shader_core(nir_builder *b,
 					 bool is_integer,
-					 bool is_srgb,
 					 int samples,
 					 nir_variable *input_img,
 					 nir_variable *color,

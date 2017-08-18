@@ -62,36 +62,36 @@ util_dump_enum_continuous(unsigned value,
 }
 
 
-#define DEFINE_UTIL_DUMP_CONTINUOUS(_name) \
+#define DEFINE_UTIL_STR_CONTINUOUS(_name) \
    const char * \
-   util_dump_##_name(unsigned value, boolean shortened) \
+   util_str_##_name(unsigned value, boolean shortened) \
    { \
       if(shortened) \
-         return util_dump_enum_continuous(value, ARRAY_SIZE(util_dump_##_name##_short_names), util_dump_##_name##_short_names); \
+         return util_dump_enum_continuous(value, ARRAY_SIZE(util_##_name##_short_names), util_##_name##_short_names); \
       else \
-         return util_dump_enum_continuous(value, ARRAY_SIZE(util_dump_##_name##_names), util_dump_##_name##_names); \
+         return util_dump_enum_continuous(value, ARRAY_SIZE(util_##_name##_names), util_##_name##_names); \
    }
 
 
 /**
- * Same as DEFINE_UTIL_DUMP_CONTINUOUS but with static assertions to detect
+ * Same as DEFINE_UTIL_STR_CONTINUOUS but with static assertions to detect
  * failures to update lists.
  */
-#define DEFINE_UTIL_DUMP_CONTINUOUS_COUNT(_name, _count) \
+#define DEFINE_UTIL_STR_CONTINUOUS_COUNT(_name, _count) \
    const char * \
-   util_dump_##_name(unsigned value, boolean shortened) \
+   util_str_##_name(unsigned value, boolean shortened) \
    { \
-      STATIC_ASSERT(ARRAY_SIZE(util_dump_##_name##_names) == _count); \
-      STATIC_ASSERT(ARRAY_SIZE(util_dump_##_name##_short_names) == _count); \
+      STATIC_ASSERT(ARRAY_SIZE(util_##_name##_names) == _count); \
+      STATIC_ASSERT(ARRAY_SIZE(util_##_name##_short_names) == _count); \
       if(shortened) \
-         return util_dump_enum_continuous(value, ARRAY_SIZE(util_dump_##_name##_short_names), util_dump_##_name##_short_names); \
+         return util_dump_enum_continuous(value, ARRAY_SIZE(util_##_name##_short_names), util_##_name##_short_names); \
       else \
-         return util_dump_enum_continuous(value, ARRAY_SIZE(util_dump_##_name##_names), util_dump_##_name##_names); \
+         return util_dump_enum_continuous(value, ARRAY_SIZE(util_##_name##_names), util_##_name##_names); \
    }
 
 
 static const char *
-util_dump_blend_factor_names[] = {
+util_blend_factor_names[] = {
    UTIL_DUMP_INVALID_NAME, /* 0x0 */
    "PIPE_BLENDFACTOR_ONE",
    "PIPE_BLENDFACTOR_SRC_COLOR",
@@ -122,7 +122,7 @@ util_dump_blend_factor_names[] = {
 };
 
 static const char *
-util_dump_blend_factor_short_names[] = {
+util_blend_factor_short_names[] = {
    UTIL_DUMP_INVALID_NAME, /* 0x0 */
    "one",
    "src_color",
@@ -152,11 +152,11 @@ util_dump_blend_factor_short_names[] = {
    "inv_src1_alpha"
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(blend_factor)
+DEFINE_UTIL_STR_CONTINUOUS(blend_factor)
 
 
 static const char *
-util_dump_blend_func_names[] = {
+util_blend_func_names[] = {
    "PIPE_BLEND_ADD",
    "PIPE_BLEND_SUBTRACT",
    "PIPE_BLEND_REVERSE_SUBTRACT",
@@ -165,7 +165,7 @@ util_dump_blend_func_names[] = {
 };
 
 static const char *
-util_dump_blend_func_short_names[] = {
+util_blend_func_short_names[] = {
    "add",
    "sub",
    "rev_sub",
@@ -173,11 +173,11 @@ util_dump_blend_func_short_names[] = {
    "max"
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(blend_func)
+DEFINE_UTIL_STR_CONTINUOUS(blend_func)
 
 
 static const char *
-util_dump_logicop_names[] = {
+util_logicop_names[] = {
    "PIPE_LOGICOP_CLEAR",
    "PIPE_LOGICOP_NOR",
    "PIPE_LOGICOP_AND_INVERTED",
@@ -197,7 +197,7 @@ util_dump_logicop_names[] = {
 };
 
 static const char *
-util_dump_logicop_short_names[] = {
+util_logicop_short_names[] = {
    "clear",
    "nor",
    "and_inverted",
@@ -216,11 +216,11 @@ util_dump_logicop_short_names[] = {
    "set"
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(logicop)
+DEFINE_UTIL_STR_CONTINUOUS(logicop)
 
 
 static const char *
-util_dump_func_names[] = {
+util_func_names[] = {
    "PIPE_FUNC_NEVER",
    "PIPE_FUNC_LESS",
    "PIPE_FUNC_EQUAL",
@@ -232,7 +232,7 @@ util_dump_func_names[] = {
 };
 
 static const char *
-util_dump_func_short_names[] = {
+util_func_short_names[] = {
    "never",
    "less",
    "equal",
@@ -243,11 +243,11 @@ util_dump_func_short_names[] = {
    "always"
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(func)
+DEFINE_UTIL_STR_CONTINUOUS(func)
 
 
 static const char *
-util_dump_stencil_op_names[] = {
+util_stencil_op_names[] = {
    "PIPE_STENCIL_OP_KEEP",
    "PIPE_STENCIL_OP_ZERO",
    "PIPE_STENCIL_OP_REPLACE",
@@ -259,7 +259,7 @@ util_dump_stencil_op_names[] = {
 };
 
 static const char *
-util_dump_stencil_op_short_names[] = {
+util_stencil_op_short_names[] = {
    "keep",
    "zero",
    "replace",
@@ -270,11 +270,11 @@ util_dump_stencil_op_short_names[] = {
    "invert"
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(stencil_op)
+DEFINE_UTIL_STR_CONTINUOUS(stencil_op)
 
 
 static const char *
-util_dump_tex_target_names[] = {
+util_tex_target_names[] = {
    "PIPE_BUFFER",
    "PIPE_TEXTURE_1D",
    "PIPE_TEXTURE_2D",
@@ -287,7 +287,7 @@ util_dump_tex_target_names[] = {
 };
 
 static const char *
-util_dump_tex_target_short_names[] = {
+util_tex_target_short_names[] = {
    "buffer",
    "1d",
    "2d",
@@ -299,11 +299,11 @@ util_dump_tex_target_short_names[] = {
    "cube_array",
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS_COUNT(tex_target, PIPE_MAX_TEXTURE_TYPES)
+DEFINE_UTIL_STR_CONTINUOUS_COUNT(tex_target, PIPE_MAX_TEXTURE_TYPES)
 
 
 static const char *
-util_dump_tex_wrap_names[] = {
+util_tex_wrap_names[] = {
    "PIPE_TEX_WRAP_REPEAT",
    "PIPE_TEX_WRAP_CLAMP",
    "PIPE_TEX_WRAP_CLAMP_TO_EDGE",
@@ -315,7 +315,7 @@ util_dump_tex_wrap_names[] = {
 };
 
 static const char *
-util_dump_tex_wrap_short_names[] = {
+util_tex_wrap_short_names[] = {
    "repeat",
    "clamp",
    "clamp_to_edge",
@@ -326,43 +326,43 @@ util_dump_tex_wrap_short_names[] = {
    "mirror_clamp_to_border"
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(tex_wrap)
+DEFINE_UTIL_STR_CONTINUOUS(tex_wrap)
 
 
 static const char *
-util_dump_tex_mipfilter_names[] = {
+util_tex_mipfilter_names[] = {
    "PIPE_TEX_MIPFILTER_NEAREST",
    "PIPE_TEX_MIPFILTER_LINEAR",
    "PIPE_TEX_MIPFILTER_NONE"
 };
 
 static const char *
-util_dump_tex_mipfilter_short_names[] = {
+util_tex_mipfilter_short_names[] = {
    "nearest",
    "linear",
    "none"
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(tex_mipfilter)
+DEFINE_UTIL_STR_CONTINUOUS(tex_mipfilter)
 
 
 static const char *
-util_dump_tex_filter_names[] = {
+util_tex_filter_names[] = {
    "PIPE_TEX_FILTER_NEAREST",
    "PIPE_TEX_FILTER_LINEAR"
 };
 
 static const char *
-util_dump_tex_filter_short_names[] = {
+util_tex_filter_short_names[] = {
    "nearest",
    "linear"
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(tex_filter)
+DEFINE_UTIL_STR_CONTINUOUS(tex_filter)
 
 
 static const char *
-util_dump_query_type_names[] = {
+util_query_type_names[] = {
    "PIPE_QUERY_OCCLUSION_COUNTER",
    "PIPE_QUERY_OCCLUSION_PREDICATE",
    "PIPE_QUERY_TIMESTAMP",
@@ -372,12 +372,13 @@ util_dump_query_type_names[] = {
    "PIPE_QUERY_PRIMITIVES_EMITTED",
    "PIPE_QUERY_SO_STATISTICS",
    "PIPE_QUERY_SO_OVERFLOW_PREDICATE",
+   "PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE",
    "PIPE_QUERY_GPU_FINISHED",
    "PIPE_QUERY_PIPELINE_STATISTICS",
 };
 
 static const char *
-util_dump_query_type_short_names[] = {
+util_query_type_short_names[] = {
    "occlusion_counter",
    "occlusion_predicate",
    "timestamp",
@@ -391,11 +392,30 @@ util_dump_query_type_short_names[] = {
    "pipeline_statistics",
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(query_type)
+DEFINE_UTIL_STR_CONTINUOUS(query_type)
 
 
 static const char *
-util_dump_prim_mode_names[] = {
+util_query_value_type_names[] = {
+   "PIPE_QUERY_TYPE_I32",
+   "PIPE_QUERY_TYPE_U32",
+   "PIPE_QUERY_TYPE_I64",
+   "PIPE_QUERY_TYPE_U64",
+};
+
+static const char *
+util_query_value_type_short_names[] = {
+   "i32",
+   "u32",
+   "i64",
+   "u64",
+};
+
+DEFINE_UTIL_STR_CONTINUOUS(query_value_type)
+
+
+static const char *
+util_prim_mode_names[] = {
    "PIPE_PRIM_POINTS",
    "PIPE_PRIM_LINES",
    "PIPE_PRIM_LINE_LOOP",
@@ -414,7 +434,7 @@ util_dump_prim_mode_names[] = {
 };
 
 static const char *
-util_dump_prim_mode_short_names[] = {
+util_prim_mode_short_names[] = {
    "points",
    "lines",
    "line_loop",
@@ -432,4 +452,20 @@ util_dump_prim_mode_short_names[] = {
    "patches",
 };
 
-DEFINE_UTIL_DUMP_CONTINUOUS(prim_mode)
+DEFINE_UTIL_STR_CONTINUOUS(prim_mode)
+
+void
+util_dump_query_type(FILE *stream, unsigned value)
+{
+   if (value >= PIPE_QUERY_DRIVER_SPECIFIC)
+      fprintf(stream, "PIPE_QUERY_DRIVER_SPECIFIC + %i",
+              value - PIPE_QUERY_DRIVER_SPECIFIC);
+   else
+      fprintf(stream, "%s", util_str_query_type(value, false));
+}
+
+void
+util_dump_query_value_type(FILE *stream, unsigned value)
+{
+   fprintf(stream, "%s", util_str_query_value_type(value, false));
+}

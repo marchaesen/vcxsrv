@@ -203,10 +203,15 @@ ir_expression::ir_expression(int op, const struct glsl_type *type,
    this->operands[1] = op1;
    this->operands[2] = op2;
    this->operands[3] = op3;
+   init_num_operands();
+
 #ifndef NDEBUG
-   int num_operands = get_num_operands(this->operation);
-   for (int i = num_operands; i < 4; i++) {
+   for (unsigned i = num_operands; i < 4; i++) {
       assert(this->operands[i] == NULL);
+   }
+
+   for (unsigned i = 0; i < num_operands; i++) {
+      assert(this->operands[i] != NULL);
    }
 #endif
 }
@@ -221,6 +226,9 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    this->operands[3] = NULL;
 
    assert(op <= ir_last_unop);
+   init_num_operands();
+   assert(num_operands == 1);
+   assert(this->operands[0]);
 
    switch (this->operation) {
    case ir_unop_bit_not:
@@ -425,6 +433,11 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
    this->operands[3] = NULL;
 
    assert(op > ir_last_unop);
+   init_num_operands();
+   assert(num_operands == 2);
+   for (unsigned i = 0; i < num_operands; i++) {
+      assert(this->operands[i] != NULL);
+   }
 
    switch (this->operation) {
    case ir_binop_all_equal:
@@ -519,6 +532,11 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1,
    this->operands[3] = NULL;
 
    assert(op > ir_last_binop && op <= ir_last_triop);
+   init_num_operands();
+   assert(num_operands == 3);
+   for (unsigned i = 0; i < num_operands; i++) {
+      assert(this->operands[i] != NULL);
+   }
 
    switch (this->operation) {
    case ir_triop_fma:
@@ -538,7 +556,11 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1,
    }
 }
 
-unsigned int
+/**
+ * This is only here for ir_reader to used for testing purposes. Please use
+ * the precomputed num_operands field if you need the number of operands.
+ */
+unsigned
 ir_expression::get_num_operands(ir_expression_operation op)
 {
    assert(op <= ir_last_opcode);
@@ -555,8 +577,7 @@ ir_expression::get_num_operands(ir_expression_operation op)
    if (op <= ir_last_quadop)
       return 4;
 
-   assert(false);
-   return 0;
+   unreachable("Could not calculate number of operands");
 }
 
 #include "ir_expression_operation_strings.h"
@@ -1083,10 +1104,8 @@ ir_constant::get_array_element(unsigned i) const
 }
 
 ir_constant *
-ir_constant::get_record_field(const char *name)
+ir_constant::get_record_field(int idx)
 {
-   int idx = this->type->field_index(name);
-
    if (idx < 0)
       return NULL;
 
@@ -1431,8 +1450,8 @@ ir_dereference_record::ir_dereference_record(ir_rvalue *value,
    assert(value != NULL);
 
    this->record = value;
-   this->field = ralloc_strdup(this, field);
    this->type = this->record->type->field_type(field);
+   this->field_idx = this->record->type->field_index(field);
 }
 
 
@@ -1443,8 +1462,8 @@ ir_dereference_record::ir_dereference_record(ir_variable *var,
    void *ctx = ralloc_parent(var);
 
    this->record = new(ctx) ir_dereference_variable(var);
-   this->field = ralloc_strdup(this, field);
    this->type = this->record->type->field_type(field);
+   this->field_idx = this->record->type->field_index(field);
 }
 
 bool

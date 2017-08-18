@@ -63,12 +63,15 @@ radv_device_get_cache_uuid(enum radeon_family family, void *uuid)
 }
 
 static void
-radv_get_device_uuid(drmDevicePtr device, void *uuid) {
-	memset(uuid, 0, VK_UUID_SIZE);
-	memcpy((char*)uuid + 0, &device->businfo.pci->domain, 2);
-	memcpy((char*)uuid + 2, &device->businfo.pci->bus, 1);
-	memcpy((char*)uuid + 3, &device->businfo.pci->dev, 1);
-	memcpy((char*)uuid + 4, &device->businfo.pci->func, 1);
+radv_get_driver_uuid(void *uuid)
+{
+	ac_compute_driver_uuid(uuid, VK_UUID_SIZE);
+}
+
+static void
+radv_get_device_uuid(struct radeon_info *info, void *uuid)
+{
+	ac_compute_device_uuid(info, uuid, VK_UUID_SIZE);
 }
 
 static const VkExtensionProperties instance_extensions[] = {
@@ -338,7 +341,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 	fprintf(stderr, "WARNING: radv is not a conformant vulkan implementation, testing use only.\n");
 	device->name = get_chip_name(device->rad_info.family);
 
-	radv_get_device_uuid(drm_device, device->device_uuid);
+	radv_get_driver_uuid(&device->device_uuid);
+	radv_get_device_uuid(&device->rad_info, &device->device_uuid);
 
 	if (device->rad_info.family == CHIP_STONEY ||
 	    device->rad_info.chip_class >= GFX9) {
@@ -795,7 +799,7 @@ void radv_GetPhysicalDeviceProperties2KHR(
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES_KHR: {
 			VkPhysicalDeviceIDPropertiesKHR *properties = (VkPhysicalDeviceIDPropertiesKHR*)ext;
-			radv_device_get_cache_uuid(0, properties->driverUUID);
+			memcpy(properties->driverUUID, pdevice->driver_uuid, VK_UUID_SIZE);
 			memcpy(properties->deviceUUID, pdevice->device_uuid, VK_UUID_SIZE);
 			properties->deviceLUIDValid = false;
 			break;
@@ -928,15 +932,17 @@ void radv_GetPhysicalDeviceMemoryProperties(
 	};
 
 	STATIC_ASSERT(RADV_MEM_HEAP_COUNT <= VK_MAX_MEMORY_HEAPS);
+	uint64_t visible_vram_size = MIN2(physical_device->rad_info.vram_size,
+	                                  physical_device->rad_info.vram_vis_size);
 
 	pMemoryProperties->memoryHeapCount = RADV_MEM_HEAP_COUNT;
 	pMemoryProperties->memoryHeaps[RADV_MEM_HEAP_VRAM] = (VkMemoryHeap) {
 		.size = physical_device->rad_info.vram_size -
-				physical_device->rad_info.vram_vis_size,
+				visible_vram_size,
 		.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
 	};
 	pMemoryProperties->memoryHeaps[RADV_MEM_HEAP_VRAM_CPU_ACCESS] = (VkMemoryHeap) {
-		.size = physical_device->rad_info.vram_vis_size,
+		.size = visible_vram_size,
 		.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
 	};
 	pMemoryProperties->memoryHeaps[RADV_MEM_HEAP_GTT] = (VkMemoryHeap) {
@@ -1077,6 +1083,9 @@ VkResult radv_CreateDevice(
 		device->alloc = *pAllocator;
 	else
 		device->alloc = physical_device->instance->alloc;
+
+	mtx_init(&device->shader_slab_mutex, mtx_plain);
+	list_inithead(&device->shader_slabs);
 
 	for (unsigned i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
 		const VkDeviceQueueCreateInfo *queue_create = &pCreateInfo->pQueueCreateInfos[i];
@@ -1267,6 +1276,8 @@ void radv_DestroyDevice(
 
 	VkPipelineCache pc = radv_pipeline_cache_to_handle(device->mem_cache);
 	radv_DestroyPipelineCache(radv_device_to_handle(device), pc, NULL);
+
+	radv_destroy_shader_slabs(device);
 
 	vk_free(&device->alloc, device);
 }
@@ -2957,6 +2968,8 @@ radv_initialise_color_surface(struct radv_device *device,
 
 	va = device->ws->buffer_get_va(iview->bo) + iview->image->offset;
 
+	cb->cb_color_base = va >> 8;
+
 	if (device->physical_device->rad_info.chip_class >= GFX9) {
 		struct gfx9_surf_meta_flags meta;
 		if (iview->image->dcc_offset)
@@ -2969,12 +2982,15 @@ radv_initialise_color_surface(struct radv_device *device,
 			S_028C74_RB_ALIGNED(meta.rb_aligned) |
 			S_028C74_PIPE_ALIGNED(meta.pipe_aligned);
 
-		va += iview->image->surface.u.gfx9.surf_offset >> 8;
+		cb->cb_color_base += iview->image->surface.u.gfx9.surf_offset >> 8;
+		cb->cb_color_base |= iview->image->surface.tile_swizzle;
 	} else {
 		const struct legacy_surf_level *level_info = &surf->u.legacy.level[iview->base_mip];
 		unsigned pitch_tile_max, slice_tile_max, tile_mode_index;
 
-		va += level_info->offset;
+		cb->cb_color_base += level_info->offset >> 8;
+		if (level_info->mode == RADEON_SURF_MODE_2D)
+			cb->cb_color_base |= iview->image->surface.tile_swizzle;
 
 		pitch_tile_max = level_info->nblk_x / 8 - 1;
 		slice_tile_max = (level_info->nblk_x * level_info->nblk_y) / 64 - 1;
@@ -3001,9 +3017,6 @@ radv_initialise_color_surface(struct radv_device *device,
 		}
 	}
 
-	cb->cb_color_base = va >> 8;
-	if (device->physical_device->rad_info.chip_class < GFX9)
-		cb->cb_color_base |= iview->image->surface.u.legacy.tile_swizzle;
 	/* CMASK variables */
 	va = device->ws->buffer_get_va(iview->bo) + iview->image->offset;
 	va += iview->image->cmask.offset;
@@ -3012,8 +3025,7 @@ radv_initialise_color_surface(struct radv_device *device,
 	va = device->ws->buffer_get_va(iview->bo) + iview->image->offset;
 	va += iview->image->dcc_offset;
 	cb->cb_dcc_base = va >> 8;
-	if (device->physical_device->rad_info.chip_class < GFX9)
-		cb->cb_dcc_base |= iview->image->surface.u.legacy.tile_swizzle;
+	cb->cb_dcc_base |= iview->image->surface.tile_swizzle;
 
 	uint32_t max_slice = radv_surface_layer_count(iview);
 	cb->cb_color_view = S_028C6C_SLICE_START(iview->base_layer) |
@@ -3029,8 +3041,7 @@ radv_initialise_color_surface(struct radv_device *device,
 	if (iview->image->fmask.size) {
 		va = device->ws->buffer_get_va(iview->bo) + iview->image->offset + iview->image->fmask.offset;
 		cb->cb_color_fmask = va >> 8;
-		if (device->physical_device->rad_info.chip_class < GFX9)
-			cb->cb_color_fmask |= iview->image->surface.u.legacy.tile_swizzle;
+		cb->cb_color_fmask |= iview->image->fmask.tile_swizzle;
 	} else {
 		cb->cb_color_fmask = cb->cb_color_base;
 	}
@@ -3077,9 +3088,13 @@ radv_initialise_color_surface(struct radv_device *device,
 				    format != V_028C70_COLOR_24_8) |
 		S_028C70_NUMBER_TYPE(ntype) |
 		S_028C70_ENDIAN(endian);
-	if (iview->image->info.samples > 1)
-		if (iview->image->fmask.size)
-			cb->cb_color_info |= S_028C70_COMPRESSION(1);
+	if ((iview->image->info.samples > 1) && iview->image->fmask.size) {
+		cb->cb_color_info |= S_028C70_COMPRESSION(1);
+		if (device->physical_device->rad_info.chip_class == SI) {
+			unsigned fmask_bankh = util_logbase2(iview->image->fmask.bank_height);
+			cb->cb_color_attrib |= S_028C74_FMASK_BANK_HEIGHT(fmask_bankh);
+		}
+	}
 
 	if (iview->image->cmask.size &&
 	    !(device->debug_flags & RADV_DEBUG_NO_FAST_CLEARS))

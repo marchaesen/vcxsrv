@@ -39,6 +39,8 @@ GALLIUM_TARGET_CFLAGS = \
 	-I$(top_srcdir)/src/gallium/auxiliary \
 	-I$(top_srcdir)/src/gallium/drivers \
 	-I$(top_srcdir)/src/gallium/winsys \
+	-I$(top_builddir)/src/util/ \
+	-I$(top_builddir)/src/gallium/drivers/ \
 	$(DEFINES) \
 	$(PTHREAD_CFLAGS) \
 	$(LIBDRM_CFLAGS) \

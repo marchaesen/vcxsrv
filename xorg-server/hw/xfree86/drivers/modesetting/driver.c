@@ -851,13 +851,11 @@ ms_get_drm_master_fd(ScrnInfoPtr pScrn)
 
         PciInfo = xf86GetPciInfoForEntity(ms->pEnt->index);
         if (PciInfo) {
-            BusID = XNFalloc(64);
-            sprintf(BusID, "PCI:%d:%d:%d",
-                    ((PciInfo->domain << 8) | PciInfo->bus),
-                    PciInfo->dev, PciInfo->func);
+            if ((BusID = ms_DRICreatePCIBusID(PciInfo)) != NULL) {
+                ms->fd = drmOpen(NULL, BusID);
+                free(BusID);
+            }
         }
-        ms->fd = drmOpen(NULL, BusID);
-        free(BusID);
     }
     else
 #endif
@@ -1219,12 +1217,12 @@ msDisableSharedPixmapFlipping(RRCrtcPtr crtc)
 }
 
 static Bool
-msStartFlippingPixmapTracking(RRCrtcPtr crtc, PixmapPtr src,
+msStartFlippingPixmapTracking(RRCrtcPtr crtc, DrawablePtr src,
                               PixmapPtr slave_dst1, PixmapPtr slave_dst2,
                               int x, int y, int dst_x, int dst_y,
                               Rotation rotation)
 {
-    ScreenPtr pScreen = src->drawable.pScreen;
+    ScreenPtr pScreen = src->pScreen;
     modesettingPtr ms = modesettingPTR(xf86ScreenToScrn(pScreen));
 
     msPixmapPrivPtr ppriv1 = msGetPixmapPriv(&ms->drmmode, slave_dst1),
@@ -1264,7 +1262,7 @@ msPresentSharedPixmap(PixmapPtr slave_dst)
     RegionPtr region = DamageRegion(ppriv->dirty->damage);
 
     if (RegionNotEmpty(region)) {
-        redisplay_dirty(ppriv->slave_src->drawable.pScreen, ppriv->dirty, NULL);
+        redisplay_dirty(ppriv->slave_src->pScreen, ppriv->dirty, NULL);
         DamageEmpty(ppriv->dirty->damage);
 
         return TRUE;
@@ -1274,10 +1272,10 @@ msPresentSharedPixmap(PixmapPtr slave_dst)
 }
 
 static Bool
-msStopFlippingPixmapTracking(PixmapPtr src,
+msStopFlippingPixmapTracking(DrawablePtr src,
                              PixmapPtr slave_dst1, PixmapPtr slave_dst2)
 {
-    ScreenPtr pScreen = src->drawable.pScreen;
+    ScreenPtr pScreen = src->pScreen;
     modesettingPtr ms = modesettingPTR(xf86ScreenToScrn(pScreen));
 
     msPixmapPrivPtr ppriv1 = msGetPixmapPriv(&ms->drmmode, slave_dst1),

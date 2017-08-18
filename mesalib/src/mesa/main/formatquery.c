@@ -216,6 +216,8 @@ _legal_parameters(struct gl_context *ctx, GLenum target, GLenum internalformat,
    case GL_CLEAR_BUFFER:
    case GL_TEXTURE_VIEW:
    case GL_VIEW_COMPATIBILITY_CLASS:
+   case GL_NUM_TILING_TYPES_EXT:
+   case GL_TILING_TYPES_EXT:
       /* The ARB_internalformat_query spec says:
        *
        *     "If the <pname> parameter to GetInternalformativ is not SAMPLES
@@ -284,6 +286,7 @@ _set_default_response(GLenum pname, GLint buffer[16])
     */
    switch(pname) {
    case GL_SAMPLES:
+   case GL_TILING_TYPES_EXT:
       break;
 
    case GL_MAX_COMBINED_DIMENSIONS:
@@ -309,6 +312,7 @@ _set_default_response(GLenum pname, GLint buffer[16])
    case GL_TEXTURE_COMPRESSED_BLOCK_WIDTH:
    case GL_TEXTURE_COMPRESSED_BLOCK_HEIGHT:
    case GL_TEXTURE_COMPRESSED_BLOCK_SIZE:
+   case GL_NUM_TILING_TYPES_EXT:
       buffer[0] = 0;
       break;
 
@@ -699,6 +703,13 @@ _mesa_query_internal_format_default(struct gl_context *ctx, GLenum target,
    case GL_FRAMEBUFFER_BLEND:
    case GL_FILTER:
       params[0] = GL_FULL_SUPPORT;
+      break;
+   case GL_NUM_TILING_TYPES_EXT:
+      params[0] = 2;
+      break;
+   case GL_TILING_TYPES_EXT:
+      params[0] = GL_OPTIMAL_TILING_EXT;
+      params[1] = GL_LINEAR_TILING_EXT;
       break;
 
    default:
@@ -1517,6 +1528,12 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
 
          buffer[0] = view_class;
       }
+      break;
+
+   case GL_NUM_TILING_TYPES_EXT:
+   case GL_TILING_TYPES_EXT:
+      ctx->Driver.QueryInternalFormat(ctx, target, internalformat, pname,
+                                      buffer);
       break;
 
    default:

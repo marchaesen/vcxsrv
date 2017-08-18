@@ -252,7 +252,7 @@ lower_buffer_access::is_dereferenced_thing_row_major(const ir_rvalue *deref)
 
          ir = record_deref->record;
 
-         const int idx = ir->type->field_index(record_deref->field);
+         const int idx = record_deref->field_idx;
          assert(idx >= 0);
 
          const enum glsl_matrix_layout matrix_layout =
@@ -404,7 +404,7 @@ lower_buffer_access::setup_buffer_access(void *mem_ctx,
             array_index = i2u(array_index);
 
          ir_constant *const_index =
-            array_index->constant_expression_value(NULL);
+            array_index->constant_expression_value(mem_ctx, NULL);
          if (const_index) {
             *const_offset += array_stride * const_index->value.u[0];
          } else {
@@ -445,8 +445,8 @@ lower_buffer_access::setup_buffer_access(void *mem_ctx,
 
             intra_struct_offset = glsl_align(intra_struct_offset, field_align);
 
-            if (strcmp(struct_type->fields.structure[i].name,
-                       deref_record->field) == 0) {
+            assert(deref_record->field_idx >= 0);
+            if (i == (unsigned) deref_record->field_idx) {
                if (struct_field)
                   *struct_field = &struct_type->fields.structure[i];
                break;

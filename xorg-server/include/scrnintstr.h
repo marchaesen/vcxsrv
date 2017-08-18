@@ -377,7 +377,7 @@ typedef Bool (*SetSharedPixmapBackingProcPtr)(PixmapPtr, void *);
  */
 typedef void (*SyncSharedPixmapProcPtr)(PixmapDirtyUpdatePtr);
 
-typedef Bool (*StartPixmapTrackingProcPtr)(PixmapPtr, PixmapPtr,
+typedef Bool (*StartPixmapTrackingProcPtr)(DrawablePtr, PixmapPtr,
                                            int x, int y,
                                            int dst_x, int dst_y,
                                            Rotation rotation);
@@ -386,9 +386,9 @@ typedef Bool (*PresentSharedPixmapProcPtr)(PixmapPtr);
 
 typedef Bool (*RequestSharedPixmapNotifyDamageProcPtr)(PixmapPtr);
 
-typedef Bool (*StopPixmapTrackingProcPtr)(PixmapPtr, PixmapPtr);
+typedef Bool (*StopPixmapTrackingProcPtr)(DrawablePtr, PixmapPtr);
 
-typedef Bool (*StopFlippingPixmapTrackingProcPtr)(PixmapPtr,
+typedef Bool (*StopFlippingPixmapTrackingProcPtr)(DrawablePtr,
                                                   PixmapPtr, PixmapPtr);
 
 typedef Bool (*SharedPixmapNotifyDamageProcPtr)(PixmapPtr);

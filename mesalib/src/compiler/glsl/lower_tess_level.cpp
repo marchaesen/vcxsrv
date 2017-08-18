@@ -264,7 +264,8 @@ lower_tess_level_visitor::fix_lhs(ir_assignment *ir)
 
    ir_dereference *const new_lhs = (ir_dereference *) expr->operands[0];
 
-   ir_constant *old_index_constant = expr->operands[1]->constant_expression_value();
+   ir_constant *old_index_constant =
+      expr->operands[1]->constant_expression_value(mem_ctx);
    if (!old_index_constant) {
       ir->rhs = new(mem_ctx) ir_expression(ir_triop_vector_insert,
                                            expr->operands[0]->type,
