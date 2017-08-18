@@ -314,3 +314,30 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	return true;
 }
 
+void ac_compute_driver_uuid(char *uuid, size_t size)
+{
+	char amd_uuid[] = "AMD-MESA-DRV";
+
+	assert(size >= sizeof(amd_uuid));
+
+	memset(uuid, 0, size);
+	strncpy(uuid, amd_uuid, size);
+}
+
+void ac_compute_device_uuid(struct radeon_info *info, char *uuid, size_t size)
+{
+	uint32_t *uint_uuid = (uint32_t*)uuid;
+
+	assert(size >= sizeof(uint32_t)*4);
+
+	/**
+	 * Use the device info directly instead of using a sha1. GL/VK UUIDs
+	 * are 16 byte vs 20 byte for sha1, and the truncation that would be
+	 * required would get rid of part of the little entropy we have.
+	 * */
+	memset(uuid, 0, size);
+	uint_uuid[0] = info->pci_domain;
+	uint_uuid[1] = info->pci_bus;
+	uint_uuid[2] = info->pci_dev;
+	uint_uuid[3] = info->pci_func;
+}

@@ -5,6 +5,7 @@
 #include "pipe/p_compiler.h"
 
 struct pipe_screen;
+struct pipe_screen_config;
 struct pipe_context;
 struct pipe_resource;
 
@@ -63,6 +64,8 @@ enum drm_conf {
    DRM_CONF_THROTTLE, /* DRM_CONF_INT. */
    /* Can this driver, running on this kernel, import and export dma-buf fds? */
    DRM_CONF_SHARE_FD, /* DRM_CONF_BOOL. */
+   /* XML string describing the available config options. */
+   DRM_CONF_XML_OPTIONS, /* DRM_CONF_POINTER */
    DRM_CONF_MAX
 };
 
@@ -102,7 +105,8 @@ struct drm_driver_descriptor
     * This function does any wrapping of the screen.
     * For example wrapping trace or rbug debugging drivers around it.
     */
-   struct pipe_screen* (*create_screen)(int drm_fd, unsigned flags);
+   struct pipe_screen* (*create_screen)(int drm_fd,
+                                        const struct pipe_screen_config *config);
 
    /**
     * Return a configuration value.

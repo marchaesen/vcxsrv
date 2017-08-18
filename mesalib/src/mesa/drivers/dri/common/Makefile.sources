@@ -4,10 +4,6 @@ DRI_COMMON_FILES := \
 	dri_util.c \
 	dri_util.h
 
-XMLCONFIG_FILES := \
-	xmlconfig.c \
-	xmlconfig.h
-
 # Paths are relative to MESA_TOP.
 mesa_dri_common_INCLUDES := \
 	include \
@@ -15,7 +11,8 @@ mesa_dri_common_INCLUDES := \
 	src/egl/main \
 	src/mapi \
 	src/mesa \
-	src/mesa/drivers/dri/common
+	src/mesa/drivers/dri/common \
+	src/util
 
 megadriver_stub_FILES := \
 	megadriver_stub.c

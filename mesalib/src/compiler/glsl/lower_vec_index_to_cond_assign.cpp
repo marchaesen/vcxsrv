@@ -165,7 +165,7 @@ ir_vec_index_to_cond_assign_visitor::visit_enter(ir_expression *ir)
 {
    unsigned int i;
 
-   for (i = 0; i < ir->get_num_operands(); i++) {
+   for (i = 0; i < ir->num_operands; i++) {
       ir->operands[i] = convert_vector_extract_to_cond_assign(ir->operands[i]);
    }
 

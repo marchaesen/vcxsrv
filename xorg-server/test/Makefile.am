@@ -184,6 +184,5 @@ EXTRA_DIST = \
 	scripts/xephyr-glamor-piglit.sh \
 	scripts/xinit-piglit-session.sh \
 	scripts/run-piglit.sh \
-	ddxstubs.c \
 	$(NULL)
 

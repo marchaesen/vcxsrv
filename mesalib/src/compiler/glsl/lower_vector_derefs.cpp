@@ -61,8 +61,9 @@ vector_deref_visitor::visit_enter(ir_assignment *ir)
    ir_dereference *const new_lhs = (ir_dereference *) deref->array;
    ir->set_lhs(new_lhs);
 
-   ir_constant *old_index_constant = deref->array_index->constant_expression_value();
    void *mem_ctx = ralloc_parent(ir);
+   ir_constant *old_index_constant =
+      deref->array_index->constant_expression_value(mem_ctx);
    if (!old_index_constant) {
       ir->rhs = new(mem_ctx) ir_expression(ir_triop_vector_insert,
                                            new_lhs->type,

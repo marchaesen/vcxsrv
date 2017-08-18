@@ -721,7 +721,7 @@ translate_image_format(SpvImageFormat format)
    case SpvImageFormatRg32ui:       return 0x823C; /* GL_RG32UI */
    case SpvImageFormatRg16ui:       return 0x823A; /* GL_RG16UI */
    case SpvImageFormatRg8ui:        return 0x8238; /* GL_RG8UI */
-   case SpvImageFormatR16ui:        return 0x823A; /* GL_RG16UI */
+   case SpvImageFormatR16ui:        return 0x8234; /* GL_R16UI */
    case SpvImageFormatR8ui:         return 0x8232; /* GL_R8UI */
    default:
       assert(!"Invalid image format");

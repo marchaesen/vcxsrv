@@ -1845,7 +1845,7 @@ ast_expression::do_hir(exec_list *instructions,
          error_emitted = true;
       }
 
-      ir_constant *cond_val = op[0]->constant_expression_value();
+      ir_constant *cond_val = op[0]->constant_expression_value(ctx);
 
       if (then_instructions.is_empty()
           && else_instructions.is_empty()
@@ -2229,6 +2229,8 @@ static unsigned
 process_array_size(exec_node *node,
                    struct _mesa_glsl_parse_state *state)
 {
+   void *mem_ctx = state;
+
    exec_list dummy_instructions;
 
    ast_node *array_size = exec_node_data(ast_node, node, link);
@@ -2261,7 +2263,7 @@ process_array_size(exec_node *node,
       return 0;
    }
 
-   ir_constant *const size = ir->constant_expression_value();
+   ir_constant *const size = ir->constant_expression_value(mem_ctx);
    if (size == NULL ||
        (state->is_version(120, 300) &&
         array_size->has_sequence_subexpression())) {
@@ -4326,6 +4328,7 @@ process_initializer(ir_variable *var, ast_declaration *decl,
                     exec_list *initializer_instructions,
                     struct _mesa_glsl_parse_state *state)
 {
+   void *mem_ctx = state;
    ir_rvalue *result = NULL;
 
    YYLTYPE initializer_loc = decl->initializer->get_location();
@@ -4460,7 +4463,9 @@ process_initializer(ir_variable *var, ast_declaration *decl,
           * GLSL ES 3.00.4 spec.  This is a new limitation for these GLSL
           * versions.
           */
-         ir_constant *constant_value = rhs->constant_expression_value();
+         ir_constant *constant_value =
+            rhs->constant_expression_value(mem_ctx);
+
          if (!constant_value ||
              (state->is_version(430, 300) &&
               decl->initializer->has_sequence_subexpression())) {
@@ -4495,7 +4500,7 @@ process_initializer(ir_variable *var, ast_declaration *decl,
       } else {
          if (var->type->is_numeric()) {
             /* Reduce cascading errors. */
-            var->constant_value = type->qualifier.flags.q.constant
+            rhs = var->constant_value = type->qualifier.flags.q.constant
                ? ir_constant::zero(state, var->type) : NULL;
          }
       }
@@ -4520,7 +4525,7 @@ process_initializer(ir_variable *var, ast_declaration *decl,
       } else
          initializer_type = rhs->type;
 
-      var->constant_initializer = rhs->constant_expression_value();
+      var->constant_initializer = rhs->constant_expression_value(mem_ctx);
       var->data.has_initializer = true;
 
       /* If the declared variable is an unsized array, it must inherrit
@@ -6652,7 +6657,7 @@ ast_case_label::hir(exec_list *instructions,
        * comparison of cached test expression value to case label.
        */
       ir_rvalue *const label_rval = this->test_value->hir(instructions, state);
-      ir_constant *label_const = label_rval->constant_expression_value();
+      ir_constant *label_const = label_rval->constant_expression_value(ctx);
 
       if (!label_const) {
          YYLTYPE loc = this->test_value->get_location();
@@ -7372,14 +7377,13 @@ ast_process_struct_or_iface_block_members(exec_list *instructions,
                                            qual->offset, &xfb_offset)) {
                fields[i].offset = xfb_offset;
                block_xfb_offset = fields[i].offset +
-                  MAX2(xfb_stride, (int) (4 * field_type->component_slots()));
+                  4 * field_type->component_slots();
             }
          } else {
             if (layout && layout->flags.q.explicit_xfb_offset) {
                unsigned align = field_type->is_64bit() ? 8 : 4;
                fields[i].offset = glsl_align(block_xfb_offset, align);
-               block_xfb_offset +=
-                  MAX2(xfb_stride, (int) (4 * field_type->component_slots()));
+               block_xfb_offset += 4 * field_type->component_slots();
             }
          }
 

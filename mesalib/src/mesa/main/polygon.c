@@ -50,11 +50,17 @@
  * change, flushes the vertices and notifies the driver via
  * the dd_function_table::CullFace callback.
  */
-static void
-cull_face(struct gl_context *ctx, GLenum mode)
+static ALWAYS_INLINE void
+cull_face(struct gl_context *ctx, GLenum mode, bool no_error)
 {
    if (ctx->Polygon.CullFaceMode == mode)
       return;
+
+   if (!no_error &&
+       mode != GL_FRONT && mode != GL_BACK && mode != GL_FRONT_AND_BACK) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glCullFace");
+      return;
+   }
 
    FLUSH_VERTICES(ctx, ctx->DriverFlags.NewPolygonState ? 0 : _NEW_POLYGON);
    ctx->NewDriverState |= ctx->DriverFlags.NewPolygonState;
@@ -69,7 +75,7 @@ void GLAPIENTRY
 _mesa_CullFace_no_error(GLenum mode)
 {
    GET_CURRENT_CONTEXT(ctx);
-   cull_face(ctx, mode);
+   cull_face(ctx, mode, true);
 }
 
 
@@ -81,12 +87,7 @@ _mesa_CullFace(GLenum mode)
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glCullFace %s\n", _mesa_enum_to_string(mode));
 
-   if (mode != GL_FRONT && mode != GL_BACK && mode != GL_FRONT_AND_BACK) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glCullFace");
-      return;
-   }
-
-   cull_face(ctx, mode);
+   cull_face(ctx, mode, false);
 }
 
 
@@ -153,33 +154,33 @@ _mesa_FrontFace(GLenum mode)
  * gl_polygon_attrib::BackMode. On change flushes the vertices and notifies the
  * driver via the dd_function_table::PolygonMode callback.
  */
-void GLAPIENTRY
-_mesa_PolygonMode( GLenum face, GLenum mode )
+static ALWAYS_INLINE void
+polygon_mode(struct gl_context *ctx, GLenum face, GLenum mode, bool no_error)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (MESA_VERBOSE&VERBOSE_API)
+   if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glPolygonMode %s %s\n",
                   _mesa_enum_to_string(face),
                   _mesa_enum_to_string(mode));
 
-   switch (mode) {
-   case GL_POINT:
-   case GL_LINE:
-   case GL_FILL:
-      break;
-   case GL_FILL_RECTANGLE_NV:
-      if (ctx->Extensions.NV_fill_rectangle)
+   if (!no_error) {
+      switch (mode) {
+      case GL_POINT:
+      case GL_LINE:
+      case GL_FILL:
          break;
-      /* fall-through */
-   default:
-      _mesa_error(ctx, GL_INVALID_ENUM, "glPolygonMode(mode)");
-      return;
+      case GL_FILL_RECTANGLE_NV:
+         if (ctx->Extensions.NV_fill_rectangle)
+            break;
+         /* fall-through */
+      default:
+         _mesa_error(ctx, GL_INVALID_ENUM, "glPolygonMode(mode)");
+         return;
+      }
    }
 
    switch (face) {
    case GL_FRONT:
-      if (ctx->API == API_OPENGL_CORE) {
+      if (!no_error && ctx->API == API_OPENGL_CORE) {
          _mesa_error( ctx, GL_INVALID_ENUM, "glPolygonMode(face)" );
          return;
       }
@@ -198,7 +199,7 @@ _mesa_PolygonMode( GLenum face, GLenum mode )
       ctx->Polygon.BackMode = mode;
       break;
    case GL_BACK:
-      if (ctx->API == API_OPENGL_CORE) {
+      if (!no_error && ctx->API == API_OPENGL_CORE) {
          _mesa_error( ctx, GL_INVALID_ENUM, "glPolygonMode(face)" );
          return;
       }
@@ -209,12 +210,29 @@ _mesa_PolygonMode( GLenum face, GLenum mode )
       ctx->Polygon.BackMode = mode;
       break;
    default:
-      _mesa_error( ctx, GL_INVALID_ENUM, "glPolygonMode(face)" );
+      if (!no_error)
+         _mesa_error( ctx, GL_INVALID_ENUM, "glPolygonMode(face)" );
       return;
    }
 
    if (ctx->Driver.PolygonMode)
       ctx->Driver.PolygonMode(ctx, face, mode);
+}
+
+
+void GLAPIENTRY
+_mesa_PolygonMode_no_error(GLenum face, GLenum mode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   polygon_mode(ctx, face, mode, true);
+}
+
+
+void GLAPIENTRY
+_mesa_PolygonMode(GLenum face, GLenum mode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   polygon_mode(ctx, face, mode, false);
 }
 
 

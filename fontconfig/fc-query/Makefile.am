@@ -41,7 +41,7 @@ EXTRA_DIST=fc-query.sgml $(BUILT_MANS)
 
 CLEANFILES =
 
-fc_query_LDADD = ${top_builddir}/src/libfontconfig.la
+fc_query_LDADD = $(FREETYPE_LIBS) ${top_builddir}/src/libfontconfig.la
 
 if USEDOCBOOK
 

@@ -46,8 +46,8 @@
 #ifdef HAVE_LIBDRM
 #include <xf86drm.h>
 #ifdef USE_DRICONF
-#include "xmlconfig.h"
-#include "xmlpool.h"
+#include "util/xmlconfig.h"
+#include "util/xmlpool.h"
 #endif
 #endif
 

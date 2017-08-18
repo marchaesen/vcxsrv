@@ -672,6 +672,8 @@ ra_select(struct ra_graph *g)
          start_search_reg = r + 1;
    }
 
+   free(select_regs);
+
    return true;
 }
 

@@ -76,7 +76,7 @@ mat_op_to_vec_predicate(ir_instruction *ir)
    if (!expr)
       return false;
 
-   for (i = 0; i < expr->get_num_operands(); i++) {
+   for (i = 0; i < expr->num_operands; i++) {
       if (expr->operands[i]->type->is_matrix())
 	 return true;
    }
@@ -294,7 +294,7 @@ ir_mat_op_to_vec_visitor::do_equal_mat_mat(ir_dereference *result,
 static bool
 has_matrix_operand(const ir_expression *expr, unsigned &columns)
 {
-   for (unsigned i = 0; i < expr->get_num_operands(); i++) {
+   for (unsigned i = 0; i < expr->num_operands; i++) {
       if (expr->operands[i]->type->is_matrix()) {
 	 columns = expr->operands[i]->type->matrix_columns;
 	 return true;
@@ -318,7 +318,7 @@ ir_mat_op_to_vec_visitor::visit_leave(ir_assignment *orig_assign)
    if (!has_matrix_operand(orig_expr, matrix_columns))
       return visit_continue;
 
-   assert(orig_expr->get_num_operands() <= 2);
+   assert(orig_expr->num_operands <= 2);
 
    mem_ctx = ralloc_parent(orig_assign);
 
@@ -329,7 +329,7 @@ ir_mat_op_to_vec_visitor::visit_leave(ir_assignment *orig_assign)
    /* Store the expression operands in temps so we can use them
     * multiple times.
     */
-   for (i = 0; i < orig_expr->get_num_operands(); i++) {
+   for (i = 0; i < orig_expr->num_operands; i++) {
       ir_assignment *assign;
       ir_dereference *deref = orig_expr->operands[i]->as_dereference();
 

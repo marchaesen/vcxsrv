@@ -75,6 +75,7 @@ header = """/**
 #include "main/errors.h"
 #include "main/es1_conversion.h"
 #include "main/eval.h"
+#include "main/externalobjects.h"
 #include "main/get.h"
 #include "main/feedback.h"
 #include "main/fog.h"

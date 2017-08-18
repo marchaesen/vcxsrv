@@ -106,7 +106,7 @@ public:
       if (options->EmitNoIndirectSampler) {
          if ((ir->array->type->is_array() &&
               ir->array->type->contains_sampler()) &&
-             !ir->array_index->constant_expression_value()) {
+             !ir->array_index->constant_expression_value(ralloc_parent(ir))) {
             unsupported_variable_indexing = true;
             return visit_continue;
          }

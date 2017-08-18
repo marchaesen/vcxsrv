@@ -1016,6 +1016,85 @@ static const struct wl_touch_listener touch_listener = {
     touch_handle_cancel
 };
 
+static struct xwl_seat *
+find_matching_seat(DeviceIntPtr device)
+{
+    DeviceIntPtr dev;
+
+    for (dev = inputInfo.devices; dev; dev = dev->next)
+        if (dev->deviceProc == xwl_keyboard_proc &&
+            device == GetMaster(dev, MASTER_KEYBOARD))
+                return (struct xwl_seat *) dev->public.devicePrivate;
+
+    return NULL;
+}
+
+static void
+release_grab(struct xwl_seat *xwl_seat)
+{
+    if (xwl_seat->keyboard_grab)
+        zwp_xwayland_keyboard_grab_v1_destroy(xwl_seat->keyboard_grab);
+    xwl_seat->keyboard_grab = NULL;
+}
+
+static void
+set_grab(struct xwl_seat *xwl_seat, struct xwl_window *xwl_window)
+{
+    struct xwl_screen *xwl_screen;
+
+    if (!xwl_window)
+        return;
+
+    /* We already have a grab */
+    if (xwl_seat->keyboard_grab)
+        release_grab (xwl_seat);
+
+    xwl_screen = xwl_seat->xwl_screen;
+    if (xwl_screen->wp_grab)
+        xwl_seat->keyboard_grab =
+            zwp_xwayland_keyboard_grab_manager_v1_grab_keyboard(xwl_screen->wp_grab,
+                                                                xwl_window->surface,
+                                                                xwl_seat->seat);
+}
+
+static void
+xwl_keyboard_activate_grab(DeviceIntPtr device, GrabPtr grab, TimeStamp time, Bool passive)
+{
+    struct xwl_seat *xwl_seat = device->public.devicePrivate;
+
+    /* We are not interested in passive grabs */
+    if (!passive) {
+        /* If the device is the MASTER_KEYBOARD, we don't have an xwl_seat */
+        if (xwl_seat == NULL)
+            xwl_seat = find_matching_seat(device);
+        if (xwl_seat)
+            set_grab(xwl_seat, xwl_window_from_window(grab->window));
+    }
+
+    ActivateKeyboardGrab(device, grab, time, passive);
+}
+
+static void
+xwl_keyboard_deactivate_grab(DeviceIntPtr device)
+{
+    struct xwl_seat *xwl_seat = device->public.devicePrivate;
+
+    /* If the device is the MASTER_KEYBOARD, we don't have an xwl_seat */
+    if (xwl_seat == NULL)
+        xwl_seat = find_matching_seat(device);
+    if (xwl_seat)
+        release_grab (xwl_seat);
+
+    DeactivateKeyboardGrab(device);
+}
+
+static void
+setup_keyboard_grab_handler (DeviceIntPtr device)
+{
+    device->deviceGrab.ActivateGrab = xwl_keyboard_activate_grab;
+    device->deviceGrab.DeactivateGrab = xwl_keyboard_deactivate_grab;
+}
+
 static DeviceIntPtr
 add_device(struct xwl_seat *xwl_seat,
            const char *driver, DeviceProc device_proc)
@@ -1104,6 +1183,8 @@ release_relative_pointer(struct xwl_seat *xwl_seat)
 static void
 init_keyboard(struct xwl_seat *xwl_seat)
 {
+    DeviceIntPtr master;
+
     xwl_seat->wl_keyboard = wl_seat_get_keyboard(xwl_seat->seat);
     wl_keyboard_add_listener(xwl_seat->wl_keyboard,
                              &keyboard_listener, xwl_seat);
@@ -1115,6 +1196,10 @@ init_keyboard(struct xwl_seat *xwl_seat)
     }
     EnableDevice(xwl_seat->keyboard, TRUE);
     xwl_seat->keyboard->key->xkbInfo->checkRepeat = keyboard_check_repeat;
+
+    master = GetMaster(xwl_seat->keyboard, MASTER_KEYBOARD);
+    if (master)
+        setup_keyboard_grab_handler(master);
 }
 
 static void
@@ -1172,6 +1257,7 @@ seat_handle_capabilities(void *data, struct wl_seat *seat,
     if (caps & WL_SEAT_CAPABILITY_KEYBOARD && xwl_seat->wl_keyboard == NULL) {
         init_keyboard(xwl_seat);
     } else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && xwl_seat->wl_keyboard) {
+        release_grab(xwl_seat);
         release_keyboard(xwl_seat);
     }
 
@@ -1271,6 +1357,7 @@ xwl_seat_destroy(struct xwl_seat *xwl_seat)
 
     release_tablet_manager_seat(xwl_seat);
 
+    release_grab(xwl_seat);
     wl_seat_destroy(xwl_seat->seat);
     xwl_cursor_release(&xwl_seat->cursor);
     wl_array_release(&xwl_seat->keys);
@@ -2311,6 +2398,16 @@ init_pointer_constraints(struct xwl_screen *xwl_screen,
 }
 
 static void
+init_keyboard_grab(struct xwl_screen *xwl_screen,
+                   uint32_t id, uint32_t version)
+{
+    xwl_screen->wp_grab =
+         wl_registry_bind(xwl_screen->registry, id,
+                          &zwp_xwayland_keyboard_grab_manager_v1_interface,
+                          1);
+}
+
+static void
 input_handler(void *data, struct wl_registry *registry, uint32_t id,
               const char *interface, uint32_t version)
 {
@@ -2325,6 +2422,8 @@ input_handler(void *data, struct wl_registry *registry, uint32_t id,
         init_pointer_constraints(xwl_screen, id, version);
     } else if (strcmp(interface, "zwp_tablet_manager_v2") == 0) {
         init_tablet_manager(xwl_screen, id, version);
+    } else if (strcmp(interface, "zwp_xwayland_keyboard_grab_manager_v1") == 0) {
+        init_keyboard_grab(xwl_screen, id, version);
     }
 }
 

@@ -160,7 +160,7 @@ ir_expression::clone(void *mem_ctx, struct hash_table *ht) const
    ir_rvalue *op[ARRAY_SIZE(this->operands)] = { NULL, };
    unsigned int i;
 
-   for (i = 0; i < get_num_operands(); i++) {
+   for (i = 0; i < num_operands; i++) {
       op[i] = this->operands[i]->clone(mem_ctx, ht);
    }
 
@@ -194,8 +194,10 @@ ir_dereference_array::clone(void *mem_ctx, struct hash_table *ht) const
 ir_dereference_record *
 ir_dereference_record::clone(void *mem_ctx, struct hash_table *ht) const
 {
+   const char *field_name =
+      this->record->type->fields.structure[this->field_idx].name;
    return new(mem_ctx) ir_dereference_record(this->record->clone(mem_ctx, ht),
-					     this->field);
+                                             field_name);
 }
 
 ir_texture *

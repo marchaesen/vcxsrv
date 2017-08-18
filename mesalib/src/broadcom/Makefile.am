@@ -27,6 +27,9 @@ AM_CPPFLAGS = \
 	$(VALGRIND_CFLAGS) \
 	$(DEFINES)
 
+AM_CFLAGS = \
+	$(EXPAT_CFLAGS)
+
 include Makefile.sources
 
 lib_LTLIBRARIES =

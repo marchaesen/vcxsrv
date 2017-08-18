@@ -235,7 +235,8 @@ lower_distance_visitor::create_indices(ir_rvalue *old_index,
       old_index = new(ctx) ir_expression(ir_unop_u2i, old_index);
    }
 
-   ir_constant *old_index_constant = old_index->constant_expression_value();
+   ir_constant *old_index_constant =
+      old_index->constant_expression_value(ctx);
    if (old_index_constant) {
       /* gl_ClipDistance is being accessed via a constant index.  Don't bother
        * creating expressions to calculate the lowered indices.  Just create

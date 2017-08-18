@@ -796,21 +796,21 @@ ac_build_ddxy(struct ac_llvm_context *ctx,
 	      bool has_ds_bpermute,
 	      uint32_t mask,
 	      int idx,
-	      LLVMValueRef lds,
 	      LLVMValueRef val)
 {
-	LLVMValueRef thread_id, tl, trbl, tl_tid, trbl_tid, args[2];
+	LLVMValueRef tl, trbl, args[2];
 	LLVMValueRef result;
 
-	thread_id = ac_get_thread_id(ctx);
-
-	tl_tid = LLVMBuildAnd(ctx->builder, thread_id,
-			      LLVMConstInt(ctx->i32, mask, false), "");
-
-	trbl_tid = LLVMBuildAdd(ctx->builder, tl_tid,
-				LLVMConstInt(ctx->i32, idx, false), "");
-
 	if (has_ds_bpermute) {
+		LLVMValueRef thread_id, tl_tid, trbl_tid;
+		thread_id = ac_get_thread_id(ctx);
+
+		tl_tid = LLVMBuildAnd(ctx->builder, thread_id,
+				      LLVMConstInt(ctx->i32, mask, false), "");
+
+		trbl_tid = LLVMBuildAdd(ctx->builder, tl_tid,
+					LLVMConstInt(ctx->i32, idx, false), "");
+
 		args[0] = LLVMBuildMul(ctx->builder, tl_tid,
 				       LLVMConstInt(ctx->i32, 4, false), "");
 		args[1] = val;
@@ -828,15 +828,42 @@ ac_build_ddxy(struct ac_llvm_context *ctx,
 					  AC_FUNC_ATTR_READNONE |
 					  AC_FUNC_ATTR_CONVERGENT);
 	} else {
-		LLVMValueRef store_ptr, load_ptr0, load_ptr1;
+		uint32_t masks[2];
 
-		store_ptr = ac_build_gep0(ctx, lds, thread_id);
-		load_ptr0 = ac_build_gep0(ctx, lds, tl_tid);
-		load_ptr1 = ac_build_gep0(ctx, lds, trbl_tid);
+		switch (mask) {
+		case AC_TID_MASK_TOP_LEFT:
+			masks[0] = 0x8000;
+			if (idx == 1)
+				masks[1] = 0x8055;
+			else
+				masks[1] = 0x80aa;
 
-		LLVMBuildStore(ctx->builder, val, store_ptr);
-		tl = LLVMBuildLoad(ctx->builder, load_ptr0, "");
-		trbl = LLVMBuildLoad(ctx->builder, load_ptr1, "");
+			break;
+		case AC_TID_MASK_TOP:
+			masks[0] = 0x8044;
+			masks[1] = 0x80ee;
+			break;
+		case AC_TID_MASK_LEFT:
+			masks[0] = 0x80a0;
+			masks[1] = 0x80f5;
+			break;
+		}
+
+		args[0] = val;
+		args[1] = LLVMConstInt(ctx->i32, masks[0], false);
+
+		tl = ac_build_intrinsic(ctx,
+					"llvm.amdgcn.ds.swizzle", ctx->i32,
+					args, 2,
+					AC_FUNC_ATTR_READNONE |
+					AC_FUNC_ATTR_CONVERGENT);
+
+		args[1] = LLVMConstInt(ctx->i32, masks[1], false);
+		trbl = ac_build_intrinsic(ctx,
+					"llvm.amdgcn.ds.swizzle", ctx->i32,
+					args, 2,
+					AC_FUNC_ATTR_READNONE |
+					AC_FUNC_ATTR_CONVERGENT);
 	}
 
 	tl = LLVMBuildBitCast(ctx->builder, tl, ctx->f32, "");

@@ -773,6 +773,20 @@ if test "x$enable_asm" = xyes; then
             ;;
         esac
         ;;
+    aarch64)
+        case "$host_os" in
+        linux*)
+            asm_arch=aarch64
+            ;;
+        esac
+        ;;
+    arm)
+        case "$host_os" in
+        linux*)
+            asm_arch=arm
+            ;;
+        esac
+        ;;
     esac
 
     case "$asm_arch" in
@@ -791,6 +805,14 @@ if test "x$enable_asm" = xyes; then
     ppc64le)
         DEFINES="$DEFINES -DUSE_PPC64LE_ASM"
         AC_MSG_RESULT([yes, ppc64le])
+        ;;
+    aarch64)
+        DEFINES="$DEFINES -DUSE_AARCH64_ASM"
+        AC_MSG_RESULT([yes, aarch64])
+        ;;
+    arm)
+        DEFINES="$DEFINES -DUSE_ARM_ASM"
+        AC_MSG_RESULT([yes, arm])
         ;;
     *)
         AC_MSG_RESULT([no, platform not supported])
@@ -1791,6 +1813,11 @@ if test "x$with_dri_drivers" = xno; then
     with_dri_drivers=''
 fi
 
+# Check for expat
+PKG_CHECK_MODULES([EXPAT], [expat],,
+    [PKG_CHECK_MODULES([EXPAT], [expat21])]
+)
+
 dnl If $with_dri_drivers is yes, drivers will be added through
 dnl platform checks. Set DEFINES and LIB_DEPS
 if test "x$enable_dri" = xyes; then
@@ -1823,15 +1850,6 @@ if test "x$enable_dri" = xyes; then
     if test "x$with_dri_drivers" = "xyes"; then
         with_dri_drivers="i915 i965 nouveau r200 radeon swrast"
     fi
-
-    # Check for expat
-    PKG_CHECK_MODULES([EXPAT], [expat], [],
-        # expat version 2.0 and earlier do not provide expat.pc
-        [AC_CHECK_HEADER([expat.h],[],
-                         [AC_MSG_ERROR([Expat headers required for DRI not found])])
-         AC_CHECK_LIB([expat],[XML_ParserCreate],[],
-                     [AC_MSG_ERROR([Expat library required for DRI not found])])
-         EXPAT_LIBS="-lexpat"])
 
     # put all the necessary libs together
     DRI_LIB_DEPS="$DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
@@ -2511,7 +2529,7 @@ if test -n "$with_gallium_drivers"; then
             AC_SUBST([SWR_CXX11_CXXFLAGS])
 
             swr_require_cxx_feature_flags "AVX" "defined(__AVX__)" \
-                ",-mavx,-march=core-avx" \
+                ",-target-cpu=sandybridge,-mavx,-march=core-avx,-tp=sandybridge" \
                 SWR_AVX_CXXFLAGS
             AC_SUBST([SWR_AVX_CXXFLAGS])
 
@@ -2523,21 +2541,21 @@ if test -n "$with_gallium_drivers"; then
                     ;;
                 xavx2)
                     swr_require_cxx_feature_flags "AVX2" "defined(__AVX2__)" \
-                        ",-mavx2 -mfma -mbmi2 -mf16c,-march=core-avx2" \
+                        ",-target-cpu=haswell,-mavx2 -mfma -mbmi2 -mf16c,-march=core-avx2,-tp=haswell" \
                         SWR_AVX2_CXXFLAGS
                     AC_SUBST([SWR_AVX2_CXXFLAGS])
                     HAVE_SWR_AVX2=yes
                     ;;
                 xknl)
                     swr_require_cxx_feature_flags "KNL" "defined(__AVX512F__) && defined(__AVX512ER__)" \
-                        ",-march=knl,-xMIC-AVX512" \
+                        ",-target-cpu=mic-knl,-march=knl,-xMIC-AVX512" \
                         SWR_KNL_CXXFLAGS
                     AC_SUBST([SWR_KNL_CXXFLAGS])
                     HAVE_SWR_KNL=yes
                     ;;
                 xskx)
                     swr_require_cxx_feature_flags "SKX" "defined(__AVX512F__) && defined(__AVX512BW__)" \
-                        ",-march=skylake-avx512,-xCORE-AVX512" \
+                        ",-target-cpu=x86-skylake,-march=skylake-avx512,-xCORE-AVX512" \
                         SWR_SKX_CXXFLAGS
                     AC_SUBST([SWR_SKX_CXXFLAGS])
                     HAVE_SWR_SKX=yes
@@ -2551,7 +2569,7 @@ if test -n "$with_gallium_drivers"; then
             if test "x$HAVE_SWR_AVX" != xyes -a \
                     "x$HAVE_SWR_AVX2" != xyes -a \
                     "x$HAVE_SWR_KNL" != xyes -a \
-                    "x$HAVE_SWR_SKX" != xyes -a; then
+                    "x$HAVE_SWR_SKX" != xyes; then
                AC_MSG_ERROR([swr enabled but no swr architectures selected])
             fi
 
@@ -2629,35 +2647,37 @@ if test "x$enable_llvm" = xyes; then
     fi
     LLVM_LIBS="`$LLVM_CONFIG --libs ${LLVM_COMPONENTS}`"
 
-    dnl llvm-config may not give the right answer when llvm is a built as a
-    dnl single shared library, so we must work the library name out for
-    dnl ourselves.
-    dnl (See https://llvm.org/bugs/show_bug.cgi?id=6823)
     if test "x$enable_llvm_shared_libs" = xyes; then
-        dnl We can't use $LLVM_VERSION because it has 'svn' stripped out,
-        LLVM_SO_NAME=LLVM-`$LLVM_CONFIG --version`
-        AS_IF([test -f "$LLVM_LIBDIR/lib$LLVM_SO_NAME.$IMP_LIB_EXT"], [llvm_have_one_so=yes])
+        if test $LLVM_VERSION_MAJOR -lt 4 -o "`$LLVM_CONFIG --shared-mode ${LLVM_COMPONENTS}`" = static; then
+            dnl llvm-config may not give the right answer when llvm is a built as a
+            dnl single shared library, so we must work the library name out for
+            dnl ourselves.
+            dnl (See https://llvm.org/bugs/show_bug.cgi?id=6823)
+            dnl We can't use $LLVM_VERSION because it has 'svn' stripped out,
+            LLVM_SO_NAME=LLVM-`$LLVM_CONFIG --version`
+            AS_IF([test -f "$LLVM_LIBDIR/lib$LLVM_SO_NAME.$IMP_LIB_EXT"], [llvm_have_one_so=yes])
 
-        if test "x$llvm_have_one_so" = xyes; then
-            dnl LLVM was built using auto*, so there is only one shared object.
-            LLVM_LIBS="-l$LLVM_SO_NAME"
-        else
-            dnl If LLVM was built with CMake, there will be one shared object per
-            dnl component.
-            AS_IF([test ! -f "$LLVM_LIBDIR/libLLVMTarget.$IMP_LIB_EXT"],
-                    [AC_MSG_ERROR([Could not find llvm shared libraries:
-	Please make sure you have built llvm with the --enable-shared option
-	and that your llvm libraries are installed in $LLVM_LIBDIR
-	If you have installed your llvm libraries to a different directory you
-	can use the --with-llvm-prefix= configure flag to specify this directory.
-	NOTE: Mesa is attempting to use llvm shared libraries by default.
-	If you do not want to build with llvm shared libraries and instead want to
-	use llvm static libraries then add --disable-llvm-shared-libs to your configure
-	invocation and rebuild.])])
+            if test "x$llvm_have_one_so" = xyes; then
+               dnl LLVM was built using auto*, so there is only one shared object.
+               LLVM_LIBS="-l$LLVM_SO_NAME"
+            else
+                dnl If LLVM was built with CMake, there will be one shared object per
+                dnl component.
+                AS_IF([test ! -f "$LLVM_LIBDIR/libLLVMTarget.$IMP_LIB_EXT"],
+                      [AC_MSG_ERROR([Could not find llvm shared libraries:
+                       Please make sure you have built llvm with the --enable-shared option
+                       and that your llvm libraries are installed in $LLVM_LIBDIR
+                       If you have installed your llvm libraries to a different directory you
+                       can use the --with-llvm-prefix= configure flag to specify this directory.
+                       NOTE: Mesa is attempting to use llvm shared libraries by default.
+                       If you do not want to build with llvm shared libraries and instead want to
+                       use llvm static libraries then add --disable-llvm-shared-libs to your configure
+                       invocation and rebuild.])])
 
-           dnl We don't need to update LLVM_LIBS in this case because the LLVM
-           dnl install uses a shared object for each component and we have
-           dnl already added all of these objects to LLVM_LIBS.
+                dnl We don't need to update LLVM_LIBS in this case because the LLVM
+                dnl install uses a shared object for each component and we have
+                dnl already added all of these objects to LLVM_LIBS.
+            fi
         fi
     else
         AC_MSG_WARN([Building mesa with statically linked LLVM may cause compilation issues])
@@ -2735,6 +2755,8 @@ AM_CONDITIONAL(HAVE_X86_ASM, test "x$asm_arch" = xx86 -o "x$asm_arch" = xx86_64)
 AM_CONDITIONAL(HAVE_X86_64_ASM, test "x$asm_arch" = xx86_64)
 AM_CONDITIONAL(HAVE_SPARC_ASM, test "x$asm_arch" = xsparc)
 AM_CONDITIONAL(HAVE_PPC64LE_ASM, test "x$asm_arch" = xppc64le)
+AM_CONDITIONAL(HAVE_AARCH64_ASM, test "x$asm_arch" = xaarch64)
+AM_CONDITIONAL(HAVE_ARM_ASM, test "x$asm_arch" = xarm)
 
 AC_SUBST([NINE_MAJOR], 1)
 AC_SUBST([NINE_MINOR], 0)
@@ -2898,7 +2920,6 @@ AC_CONFIG_FILES([Makefile
                  src/mesa/gl.pc
                  src/mesa/drivers/dri/dri.pc
                  src/mesa/drivers/dri/common/Makefile
-                 src/mesa/drivers/dri/common/xmlpool/Makefile
                  src/mesa/drivers/dri/i915/Makefile
                  src/mesa/drivers/dri/i965/Makefile
                  src/mesa/drivers/dri/Makefile
@@ -2912,6 +2933,7 @@ AC_CONFIG_FILES([Makefile
                  src/mesa/main/tests/Makefile
                  src/util/Makefile
                  src/util/tests/hash_table/Makefile
+                 src/util/xmlpool/Makefile
                  src/vulkan/Makefile])
 
 AC_OUTPUT
@@ -2920,6 +2942,8 @@ AC_OUTPUT
 # source file
 $SED -i -e 's/brw_blorp.cpp/brw_blorp.c/' src/mesa/drivers/dri/i965/.deps/brw_blorp.Plo
 
+rm -f src/compiler/spirv/spirv_info.lo
+echo "# dummy" > src/compiler/spirv/.deps/spirv_info.Plo
 
 dnl
 dnl Output some configuration info for the user

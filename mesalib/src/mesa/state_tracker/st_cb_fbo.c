@@ -156,12 +156,11 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
     *   by the implementation.
     *
     * So let's find the supported number of samples closest to NumSamples.
-    * (NumSamples == 1) is treated the same as (NumSamples == 0).
     */
-   if (rb->NumSamples > 1) {
+   if (rb->NumSamples > 0) {
       unsigned i;
 
-      for (i = rb->NumSamples; i <= ctx->Const.MaxSamples; i++) {
+      for (i = MAX2(2, rb->NumSamples); i <= ctx->Const.MaxSamples; i++) {
          format = st_choose_renderbuffer_format(st, internalFormat, i);
 
          if (format != PIPE_FORMAT_NONE) {

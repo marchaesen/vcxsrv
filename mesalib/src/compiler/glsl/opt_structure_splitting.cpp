@@ -233,13 +233,9 @@ ir_structure_splitting_visitor::split_deref(ir_dereference **deref)
    if (!entry)
       return;
 
-   unsigned int i;
-   for (i = 0; i < entry->var->type->length; i++) {
-      if (strcmp(deref_record->field,
-		 entry->var->type->fields.structure[i].name) == 0)
-	 break;
-   }
-   assert(i != entry->var->type->length);
+   int i = deref_record->field_idx;
+   assert(i >= 0);
+   assert((unsigned) i < entry->var->type->length);
 
    *deref = new(entry->mem_ctx) ir_dereference_variable(entry->components[i]);
 }

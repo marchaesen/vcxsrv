@@ -104,7 +104,6 @@ GL_API void GL_APIENTRY glBlendEquationOES (GLenum mode);
 
 #ifndef GL_OES_byte_coordinates
 #define GL_OES_byte_coordinates 1
-typedef khronos_int8_t GLbyte;
 #endif /* GL_OES_byte_coordinates */
 
 #ifndef GL_OES_compressed_ETC1_RGB8_sub_texture
@@ -128,7 +127,6 @@ typedef khronos_int8_t GLbyte;
 
 #ifndef GL_OES_draw_texture
 #define GL_OES_draw_texture 1
-typedef short GLshort;
 #define GL_TEXTURE_CROP_RECT_OES          0x8B9D
 typedef void (GL_APIENTRYP PFNGLDRAWTEXSOESPROC) (GLshort x, GLshort y, GLshort z, GLshort width, GLshort height);
 typedef void (GL_APIENTRYP PFNGLDRAWTEXIOESPROC) (GLint x, GLint y, GLint z, GLint width, GLint height);
@@ -409,7 +407,6 @@ GL_API GLbitfield GL_APIENTRY glQueryMatrixxOES (GLfixed *mantissa, GLint *expon
 
 #ifndef GL_OES_single_precision
 #define GL_OES_single_precision 1
-typedef khronos_float_t GLclampf;
 typedef void (GL_APIENTRYP PFNGLCLEARDEPTHFOESPROC) (GLclampf depth);
 typedef void (GL_APIENTRYP PFNGLCLIPPLANEFOESPROC) (GLenum plane, const GLfloat *equation);
 typedef void (GL_APIENTRYP PFNGLDEPTHRANGEFOESPROC) (GLclampf n, GLclampf f);

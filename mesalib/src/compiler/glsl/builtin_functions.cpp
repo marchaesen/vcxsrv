@@ -151,6 +151,12 @@ v130_desktop(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+v460_desktop(const _mesa_glsl_parse_state *state)
+{
+   return state->is_version(460, 0);
+}
+
+static bool
 v130_fs_only(const _mesa_glsl_parse_state *state)
 {
    return state->is_version(130, 300) &&
@@ -487,6 +493,12 @@ shader_atomic_counter_ops(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+shader_atomic_counter_ops_or_v460_desktop(const _mesa_glsl_parse_state *state)
+{
+   return state->ARB_shader_atomic_counter_ops_enable || v460_desktop(state);
+}
+
+static bool
 shader_ballot(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shader_ballot_enable;
@@ -607,6 +619,12 @@ static bool
 vote(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shader_group_vote_enable;
+}
+
+static bool
+vote_or_v460_desktop(const _mesa_glsl_parse_state *state)
+{
+   return state->ARB_shader_group_vote_enable || v460_desktop(state);
 }
 
 static bool
@@ -962,7 +980,8 @@ private:
 
    ir_function_signature *_vote_intrinsic(builtin_available_predicate avail,
                                           enum ir_intrinsic_id id);
-   ir_function_signature *_vote(const char *intrinsic_name);
+   ir_function_signature *_vote(const char *intrinsic_name,
+                                builtin_available_predicate avail);
 
 #undef B0
 #undef B1
@@ -1090,7 +1109,7 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_add),
-                _atomic_counter_intrinsic1(shader_atomic_counter_ops,
+                _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_add),
                 NULL);
    add_function("__intrinsic_atomic_min",
@@ -1100,7 +1119,7 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_min),
-                _atomic_counter_intrinsic1(shader_atomic_counter_ops,
+                _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_min),
                 NULL);
    add_function("__intrinsic_atomic_max",
@@ -1110,7 +1129,7 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_max),
-                _atomic_counter_intrinsic1(shader_atomic_counter_ops,
+                _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_max),
                 NULL);
    add_function("__intrinsic_atomic_and",
@@ -1120,7 +1139,7 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_and),
-                _atomic_counter_intrinsic1(shader_atomic_counter_ops,
+                _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_and),
                 NULL);
    add_function("__intrinsic_atomic_or",
@@ -1130,7 +1149,7 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_or),
-                _atomic_counter_intrinsic1(shader_atomic_counter_ops,
+                _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_or),
                 NULL);
    add_function("__intrinsic_atomic_xor",
@@ -1140,7 +1159,7 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_xor),
-                _atomic_counter_intrinsic1(shader_atomic_counter_ops,
+                _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_xor),
                 NULL);
    add_function("__intrinsic_atomic_exchange",
@@ -1150,7 +1169,7 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_exchange),
-                _atomic_counter_intrinsic1(shader_atomic_counter_ops,
+                _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_exchange),
                 NULL);
    add_function("__intrinsic_atomic_comp_swap",
@@ -1160,7 +1179,7 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic3(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_comp_swap),
-                _atomic_counter_intrinsic2(shader_atomic_counter_ops,
+                _atomic_counter_intrinsic2(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_comp_swap),
                 NULL);
 
@@ -1197,13 +1216,13 @@ builtin_builder::create_intrinsics()
                 NULL);
 
    add_function("__intrinsic_vote_all",
-                _vote_intrinsic(vote, ir_intrinsic_vote_all),
+                _vote_intrinsic(vote_or_v460_desktop, ir_intrinsic_vote_all),
                 NULL);
    add_function("__intrinsic_vote_any",
-                _vote_intrinsic(vote, ir_intrinsic_vote_any),
+                _vote_intrinsic(vote_or_v460_desktop, ir_intrinsic_vote_any),
                 NULL);
    add_function("__intrinsic_vote_eq",
-                _vote_intrinsic(vote, ir_intrinsic_vote_eq),
+                _vote_intrinsic(vote_or_v460_desktop, ir_intrinsic_vote_eq),
                 NULL);
 
    add_function("__intrinsic_ballot", _ballot_intrinsic(), NULL);
@@ -3031,6 +3050,43 @@ builtin_builder::create_builtins()
                                     shader_atomic_counter_ops),
                 NULL);
 
+   add_function("atomicCounterAdd",
+                _atomic_counter_op1("__intrinsic_atomic_add",
+                                    v460_desktop),
+                NULL);
+   add_function("atomicCounterSubtract",
+                _atomic_counter_op1("__intrinsic_atomic_sub",
+                                    v460_desktop),
+                NULL);
+   add_function("atomicCounterMin",
+                _atomic_counter_op1("__intrinsic_atomic_min",
+                                    v460_desktop),
+                NULL);
+   add_function("atomicCounterMax",
+                _atomic_counter_op1("__intrinsic_atomic_max",
+                                    v460_desktop),
+                NULL);
+   add_function("atomicCounterAnd",
+                _atomic_counter_op1("__intrinsic_atomic_and",
+                                    v460_desktop),
+                NULL);
+   add_function("atomicCounterOr",
+                _atomic_counter_op1("__intrinsic_atomic_or",
+                                    v460_desktop),
+                NULL);
+   add_function("atomicCounterXor",
+                _atomic_counter_op1("__intrinsic_atomic_xor",
+                                    v460_desktop),
+                NULL);
+   add_function("atomicCounterExchange",
+                _atomic_counter_op1("__intrinsic_atomic_exchange",
+                                    v460_desktop),
+                NULL);
+   add_function("atomicCounterCompSwap",
+                _atomic_counter_op2("__intrinsic_atomic_comp_swap",
+                                    v460_desktop),
+                NULL);
+
    add_function("atomicAdd",
                 _atomic_op2("__intrinsic_atomic_add",
                             buffer_atomics_supported,
@@ -3220,9 +3276,29 @@ builtin_builder::create_builtins()
                               glsl_type::uint64_t_type),
                 NULL);
 
-   add_function("anyInvocationARB", _vote("__intrinsic_vote_any"), NULL);
-   add_function("allInvocationsARB", _vote("__intrinsic_vote_all"), NULL);
-   add_function("allInvocationsEqualARB", _vote("__intrinsic_vote_eq"), NULL);
+   add_function("anyInvocationARB",
+                _vote("__intrinsic_vote_any", vote),
+                NULL);
+
+   add_function("allInvocationsARB",
+                _vote("__intrinsic_vote_all", vote),
+                NULL);
+
+   add_function("allInvocationsEqualARB",
+                _vote("__intrinsic_vote_eq", vote),
+                NULL);
+
+   add_function("anyInvocation",
+                _vote("__intrinsic_vote_any", v460_desktop),
+                NULL);
+
+   add_function("allInvocations",
+                _vote("__intrinsic_vote_all", v460_desktop),
+                NULL);
+
+   add_function("allInvocationsEqual",
+                _vote("__intrinsic_vote_eq", v460_desktop),
+                NULL);
 
    add_function("__builtin_idiv64",
                 generate_ir::idiv64(mem_ctx, integer_functions_supported),
@@ -6163,11 +6239,12 @@ builtin_builder::_vote_intrinsic(builtin_available_predicate avail,
 }
 
 ir_function_signature *
-builtin_builder::_vote(const char *intrinsic_name)
+builtin_builder::_vote(const char *intrinsic_name,
+                       builtin_available_predicate avail)
 {
    ir_variable *value = in_var(glsl_type::bool_type, "value");
 
-   MAKE_SIG(glsl_type::bool_type, vote, 1, value);
+   MAKE_SIG(glsl_type::bool_type, avail, 1, value);
 
    ir_variable *retval = body.make_temp(glsl_type::bool_type, "retval");
 
@@ -6214,16 +6291,7 @@ _mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
    s = builtins.find(state, name, actual_parameters);
    mtx_unlock(&builtins_lock);
 
-   if (s == NULL)
-      return NULL;
-
-   struct hash_table *ht =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
-   void *mem_ctx = state;
-   ir_function *f = s->function()->clone(mem_ctx, ht);
-   _mesa_hash_table_destroy(ht, NULL);
-
-   return f->matching_signature(state, actual_parameters, true);
+   return s;
 }
 
 bool

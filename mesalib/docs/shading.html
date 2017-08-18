@@ -65,8 +65,7 @@ Example:  export MESA_GLSL=dump,nopt
 </p>
 
 <p>
-Shaders can be dumped and replaced on runtime for debugging purposes. Mesa 
-needs to be configured with '--with-sha1' to enable this functionality. This 
+Shaders can be dumped and replaced on runtime for debugging purposes. This
 feature is not currently supported by SCons build.
 
 This is controlled via following environment variables:
@@ -76,7 +75,8 @@ This is controlled via following environment variables:
 </ul>
 Note, path set must exist before running for dumping or replacing to work. 
 When both are set, these paths should be different so the dumped shaders do 
-not clobber the replacement shaders.
+not clobber the replacement shaders. Also, the filenames of the replacement shaders
+should match the filenames of the corresponding dumped shaders.
 </p>
 
 <h2 id="support">GLSL Version</h2>

@@ -84,7 +84,7 @@ typedef uint32_t xcb_window_t;
 #define MAX_PUSH_DESCRIPTORS 32
 #define MAX_DYNAMIC_BUFFERS 16
 #define MAX_SAMPLES_LOG2 4
-#define NUM_META_FS_KEYS 11
+#define NUM_META_FS_KEYS 13
 #define RADV_MAX_DRM_DEVICES 8
 
 #define NUM_DEPTH_CLEAR_PIPELINES 3
@@ -267,6 +267,7 @@ struct radv_physical_device {
 	struct radeon_info rad_info;
 	char                                        path[20];
 	const char *                                name;
+	uint8_t                                     driver_uuid[VK_UUID_SIZE];
 	uint8_t                                     device_uuid[VK_UUID_SIZE];
 	uint8_t                                     cache_uuid[VK_UUID_SIZE];
 
@@ -433,8 +434,6 @@ struct radv_meta_state {
 		VkPipelineLayout                          p_layout;
 
 		struct {
-			VkRenderPass srgb_render_pass;
-			VkPipeline   srgb_pipeline;
 			VkRenderPass render_pass[NUM_META_FS_KEYS];
 			VkPipeline   pipeline[NUM_META_FS_KEYS];
 		} rc[MAX_SAMPLES_LOG2];
@@ -444,7 +443,7 @@ struct radv_meta_state {
 		VkPipeline                                decompress_pipeline;
 		VkPipeline                                resummarize_pipeline;
 		VkRenderPass                              pass;
-	} depth_decomp;
+	} depth_decomp[1 + MAX_SAMPLES_LOG2];
 
 	struct {
 		VkPipeline                                cmask_eliminate_pipeline;
@@ -548,7 +547,14 @@ struct radv_device {
 	/* Backup in-memory cache to be used if the app doesn't provide one */
 	struct radv_pipeline_cache *                mem_cache;
 
+	/*
+	 * use different counters so MSAA MRTs get consecutive surface indices,
+	 * even if MASK is allocated in between.
+	 */
 	uint32_t image_mrt_offset_counter;
+	uint32_t fmask_mrt_offset_counter;
+	struct list_head shader_slabs;
+	mtx_t shader_slab_mutex;
 };
 
 struct radv_device_memory {
@@ -981,16 +987,34 @@ mesa_to_vk_shader_stage(gl_shader_stage mesa_stage)
 	     stage = __builtin_ffs(__tmp) - 1, __tmp;			\
 	     __tmp &= ~(1 << (stage)))
 
+
+struct radv_shader_slab {
+	struct list_head slabs;
+	struct list_head shaders;
+	struct radeon_winsys_bo *bo;
+	uint64_t size;
+	char *ptr;
+};
+
 struct radv_shader_variant {
 	uint32_t ref_count;
 
 	struct radeon_winsys_bo *bo;
+	uint64_t bo_offset;
 	struct ac_shader_config config;
 	struct ac_shader_variant_info info;
 	unsigned rsrc1;
 	unsigned rsrc2;
 	uint32_t code_size;
+
+	struct list_head slab_list;
 };
+
+
+void *radv_alloc_shader_memory(struct radv_device *device,
+                              struct radv_shader_variant *shader);
+
+void radv_destroy_shader_slabs(struct radv_device *device);
 
 struct radv_depth_stencil_state {
 	uint32_t db_depth_control;
@@ -1173,6 +1197,7 @@ struct radv_fmask_info {
 	unsigned bank_height;
 	unsigned slice_tile_max;
 	unsigned tile_mode_index;
+	unsigned tile_swizzle;
 };
 
 struct radv_cmask_info {

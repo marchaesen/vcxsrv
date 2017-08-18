@@ -279,7 +279,7 @@ typedef Bool (*RRSetConfigProcPtr) (ScreenPtr pScreen,
 
 typedef Bool (*RRCrtcSetScanoutPixmapProcPtr)(RRCrtcPtr crtc, PixmapPtr pixmap);
 
-typedef Bool (*RRStartFlippingPixmapTrackingProcPtr)(RRCrtcPtr, PixmapPtr,
+typedef Bool (*RRStartFlippingPixmapTrackingProcPtr)(RRCrtcPtr, DrawablePtr,
                                                      PixmapPtr, PixmapPtr,
                                                      int x, int y,
                                                      int dst_x, int dst_y,

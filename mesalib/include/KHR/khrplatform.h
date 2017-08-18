@@ -26,7 +26,7 @@
 
 /* Khronos platform-specific types and definitions.
  *
- * $Revision: 23298 $ on $Date: 2013-09-30 17:07:13 -0700 (Mon, 30 Sep 2013) $
+ * $Revision: 32517 $ on $Date: 2016-03-11 02:41:19 -0800 (Fri, 11 Mar 2016) $
  *
  * Adopters may modify this file to suit their platform. Adopters are
  * encouraged to submit platform specific modifications to the Khronos
@@ -98,11 +98,7 @@
  * This precedes the return type of the function in the function prototype.
  */
 #if defined(_WIN32) && !defined(__SCITECH_SNAP__)
-#   if defined(KHRONOS_DLL_EXPORTS)
-#      define KHRONOS_APICALL __declspec(dllexport)
-#   else
-#      define KHRONOS_APICALL __declspec(dllimport)
-#   endif
+#   define KHRONOS_APICALL __declspec(dllimport)
 #elif defined (__SYMBIAN32__)
 #   define KHRONOS_APICALL IMPORT_C
 #elif (defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__) >= 303) \
@@ -231,7 +227,7 @@ typedef signed   short int     khronos_int16_t;
 typedef unsigned short int     khronos_uint16_t;
 
 /*
- * Types that differ between LLP64 and LP64 architectures - in LLP64, 
+ * Types that differ between LLP64 and LP64 architectures - in LLP64,
  * pointers are 64 bits, but 'long' is still 32 bits. Win64 appears
  * to be the only LLP64 architecture in current use.
  */

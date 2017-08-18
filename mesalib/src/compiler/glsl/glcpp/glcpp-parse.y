@@ -209,7 +209,12 @@ line:
 |	SPACE control_line
 |	text_line {
 		_glcpp_parser_print_expanded_token_list (parser, $1);
-		ralloc_asprintf_rewrite_tail (&parser->output, &parser->output_length, "\n");
+		const char *newline_str = "\n";
+		size_t size = strlen(newline_str);
+
+		ralloc_str_append(&parser->output, newline_str,
+				  parser->output_length, size);
+		parser->output_length += size;
 	}
 |	expanded_line
 ;
@@ -259,7 +264,12 @@ define:
 
 control_line:
 	control_line_success {
-		ralloc_asprintf_rewrite_tail (&parser->output, &parser->output_length, "\n");
+		const char *newline_str = "\n";
+		size_t size = strlen(newline_str);
+
+		ralloc_str_append(&parser->output, newline_str,
+				  parser->output_length, size);
+		parser->output_length += size;
 	}
 |	control_line_error
 |	HASH_TOKEN LINE pp_tokens NEWLINE {
@@ -1130,7 +1140,10 @@ static void
 _token_print(char **out, size_t *len, token_t *token)
 {
    if (token->type < 256) {
-      ralloc_asprintf_rewrite_tail (out, len, "%c", token->type);
+      size_t size = sizeof(char);
+
+      ralloc_str_append(out, (char *) &token->type, *len, size);
+      *len += size;
       return;
    }
 
@@ -1140,48 +1153,117 @@ _token_print(char **out, size_t *len, token_t *token)
       break;
    case IDENTIFIER:
    case INTEGER_STRING:
-   case OTHER:
-      ralloc_asprintf_rewrite_tail (out, len, "%s", token->value.str);
+   case OTHER: {
+      size_t size = strlen(token->value.str);
+
+      ralloc_str_append(out, token->value.str, *len, size);
+      *len += size;
       break;
-   case SPACE:
-      ralloc_asprintf_rewrite_tail (out, len, " ");
+   }
+   case SPACE: {
+      const char *token_str = " ";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case LEFT_SHIFT:
-      ralloc_asprintf_rewrite_tail (out, len, "<<");
+   }
+   case LEFT_SHIFT: {
+      const char *token_str = "<<";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case RIGHT_SHIFT:
-      ralloc_asprintf_rewrite_tail (out, len, ">>");
+   }
+   case RIGHT_SHIFT: {
+      const char *token_str = ">>";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case LESS_OR_EQUAL:
-      ralloc_asprintf_rewrite_tail (out, len, "<=");
+   }
+   case LESS_OR_EQUAL: {
+      const char *token_str = "<=";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case GREATER_OR_EQUAL:
-      ralloc_asprintf_rewrite_tail (out, len, ">=");
+   }
+   case GREATER_OR_EQUAL: {
+      const char *token_str = ">=";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case EQUAL:
-      ralloc_asprintf_rewrite_tail (out, len, "==");
+   }
+   case EQUAL: {
+      const char *token_str = "==";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case NOT_EQUAL:
-      ralloc_asprintf_rewrite_tail (out, len, "!=");
+   }
+   case NOT_EQUAL: {
+      const char *token_str = "!=";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case AND:
-      ralloc_asprintf_rewrite_tail (out, len, "&&");
+   }
+   case AND: {
+      const char *token_str = "&&";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case OR:
-      ralloc_asprintf_rewrite_tail (out, len, "||");
+   }
+   case OR: {
+      const char *token_str = "||";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case PASTE:
-      ralloc_asprintf_rewrite_tail (out, len, "##");
+   }
+   case PASTE: {
+      const char *token_str = "##";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case PLUS_PLUS:
-      ralloc_asprintf_rewrite_tail (out, len, "++");
+   }
+   case PLUS_PLUS: {
+      const char *token_str = "++";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case MINUS_MINUS:
-      ralloc_asprintf_rewrite_tail (out, len, "--");
+   }
+   case MINUS_MINUS: {
+      const char *token_str = "--";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
-   case DEFINED:
-      ralloc_asprintf_rewrite_tail (out, len, "defined");
+   }
+   case DEFINED: {
+      const char *token_str = "defined";
+      size_t size = strlen(token_str);
+
+      ralloc_str_append(out, token_str, *len, size);
+      *len += size;
       break;
+   }
    case PLACEHOLDER:
       /* Nothing to print. */
       break;

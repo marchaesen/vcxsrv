@@ -232,7 +232,7 @@ ir_tree_grafting_visitor::visit_enter(ir_call *ir)
 ir_visitor_status
 ir_tree_grafting_visitor::visit_enter(ir_expression *ir)
 {
-   for (unsigned int i = 0; i < ir->get_num_operands(); i++) {
+   for (unsigned int i = 0; i < ir->num_operands; i++) {
       if (do_graft(&ir->operands[i]))
 	 return visit_stop;
    }

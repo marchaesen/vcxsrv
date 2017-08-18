@@ -61,7 +61,7 @@
       <param name="flags" type="GLbitfield" />
    </function>
 
-   <function name="NamedBufferData" marshal="custom">
+   <function name="NamedBufferData" marshal="custom" no_error="true">
       <param name="buffer" type="GLuint" />
       <param name="size" type="GLsizeiptr" />
       <param name="data" type="const GLvoid *" />
@@ -83,7 +83,7 @@
       <param name="size" type="GLsizeiptr" />
    </function>
 
-   <function name="ClearNamedBufferData">
+   <function name="ClearNamedBufferData" no_error="true">
       <param name="buffer" type="GLuint" />
       <param name="internalformat" type="GLenum" />
       <param name="format" type="GLenum" />
@@ -91,7 +91,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="ClearNamedBufferSubData">
+   <function name="ClearNamedBufferSubData" no_error="true">
       <param name="buffer" type="GLuint" />
       <param name="internalformat" type="GLenum" />
       <param name="offset" type="GLintptr" />

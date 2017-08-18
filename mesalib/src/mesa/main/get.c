@@ -40,6 +40,7 @@
 #include "framebuffer.h"
 #include "samplerobj.h"
 #include "stencil.h"
+#include "version.h"
 
 /* This is a table driven implemetation of the glGet*v() functions.
  * The basic idea is that most getters just look up an int somewhere
@@ -839,6 +840,14 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
          ctx->Texture.Unit[unit].CurrentTex[d->offset]->Name;
       break;
 
+   /* GL_EXT_external_objects */
+   case GL_DRIVER_UUID_EXT:
+      _mesa_get_driver_uuid(ctx, v->value_int_4);
+      break;
+   case GL_DEVICE_UUID_EXT:
+      _mesa_get_device_uuid(ctx, v->value_int_4);
+      break;
+
    /* GL_EXT_packed_float */
    case GL_RGBA_SIGNED_COMPONENTS_EXT:
       {
@@ -1431,6 +1440,72 @@ static const int transpose[] = {
    3, 7, 11, 15
 };
 
+static GLsizei
+get_value_size(enum value_type type, const union value *v)
+{
+   switch (type) {
+   case TYPE_INVALID:
+      return 0;
+   case TYPE_CONST:
+   case TYPE_UINT:
+   case TYPE_INT:
+      return sizeof(GLint);
+   case TYPE_INT_2:
+   case TYPE_UINT_2:
+      return sizeof(GLint) * 2;
+   case TYPE_INT_3:
+   case TYPE_UINT_3:
+      return sizeof(GLint) * 3;
+   case TYPE_INT_4:
+   case TYPE_UINT_4:
+      return sizeof(GLint) * 4;
+   case TYPE_INT_N:
+      return sizeof(GLint) * v->value_int_n.n;
+   case TYPE_INT64:
+      return sizeof(GLint64);
+      break;
+   case TYPE_ENUM:
+      return sizeof(GLenum);
+   case TYPE_ENUM_2:
+      return sizeof(GLenum) * 2;
+   case TYPE_BOOLEAN:
+      return sizeof(GLboolean);
+   case TYPE_BIT_0:
+   case TYPE_BIT_1:
+   case TYPE_BIT_2:
+   case TYPE_BIT_3:
+   case TYPE_BIT_4:
+   case TYPE_BIT_5:
+   case TYPE_BIT_6:
+   case TYPE_BIT_7:
+      return 1;
+   case TYPE_FLOAT:
+   case TYPE_FLOATN:
+      return sizeof(GLfloat);
+   case TYPE_FLOAT_2:
+   case TYPE_FLOATN_2:
+      return sizeof(GLfloat) * 2;
+   case TYPE_FLOAT_3:
+   case TYPE_FLOATN_3:
+      return sizeof(GLfloat) * 3;
+   case TYPE_FLOAT_4:
+   case TYPE_FLOATN_4:
+      return sizeof(GLfloat) * 4;
+   case TYPE_FLOAT_8:
+      return sizeof(GLfloat) * 8;
+   case TYPE_DOUBLEN:
+      return sizeof(GLdouble);
+   case TYPE_DOUBLEN_2:
+      return sizeof(GLdouble) * 2;
+   case TYPE_MATRIX:
+      return sizeof (GLfloat) * 16;
+   case TYPE_MATRIX_T:
+      return sizeof (GLfloat) * 16;
+   default:
+      return -1;
+   }
+}
+
 void GLAPIENTRY
 _mesa_GetBooleanv(GLenum pname, GLboolean *params)
 {
@@ -1946,6 +2021,74 @@ _mesa_GetDoublev(GLenum pname, GLdouble *params)
    }
 }
 
+void GLAPIENTRY
+_mesa_GetUnsignedBytevEXT(GLenum pname, GLubyte *data)
+{
+   const struct value_desc *d;
+   union value v;
+   int shift;
+   void *p;
+   GLsizei size;
+   const char *func = "glGetUnsignedBytevEXT";
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   d = find_value(func, pname, &p, &v);
+   size = get_value_size(d->type, &v);
+   if (size >= 0) {
+      _mesa_problem(ctx, "invalid value type in GetUnsignedBytevEXT()");
+   }
+
+   switch (d->type) {
+   case TYPE_BIT_0:
+   case TYPE_BIT_1:
+   case TYPE_BIT_2:
+   case TYPE_BIT_3:
+   case TYPE_BIT_4:
+   case TYPE_BIT_5:
+   case TYPE_BIT_6:
+   case TYPE_BIT_7:
+      shift = d->type - TYPE_BIT_0;
+      data[0] = (*(GLbitfield *) p >> shift) & 1;
+      break;
+   case TYPE_CONST:
+      memcpy(data, &d->offset, size);
+      break;
+   case TYPE_INT_N:
+      memcpy(data, &v.value_int_n.ints, size);
+      break;
+   case TYPE_UINT:
+   case TYPE_INT:
+   case TYPE_INT_2:
+   case TYPE_UINT_2:
+   case TYPE_INT_3:
+   case TYPE_UINT_3:
+   case TYPE_INT_4:
+   case TYPE_UINT_4:
+   case TYPE_INT64:
+   case TYPE_ENUM:
+   case TYPE_ENUM_2:
+   case TYPE_BOOLEAN:
+   case TYPE_FLOAT:
+   case TYPE_FLOATN:
+   case TYPE_FLOAT_2:
+   case TYPE_FLOATN_2:
+   case TYPE_FLOAT_3:
+   case TYPE_FLOATN_3:
+   case TYPE_FLOAT_4:
+   case TYPE_FLOATN_4:
+   case TYPE_FLOAT_8:
+   case TYPE_DOUBLEN:
+   case TYPE_DOUBLEN_2:
+   case TYPE_MATRIX:
+   case TYPE_MATRIX_T:
+      memcpy(data, p, size);
+      break;
+   default:
+      break; /* nothing - GL error was recorded */
+   }
+}
+
 /**
  * Convert a GL texture binding enum such as GL_TEXTURE_BINDING_2D
  * into the corresponding Mesa texture target index.
@@ -2367,6 +2510,14 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
          goto invalid_value;
       v->value_int = ctx->Const.MaxComputeVariableGroupSize[index];
       return TYPE_INT;
+
+   /* GL_EXT_external_objects */
+   case GL_DRIVER_UUID_EXT:
+      _mesa_get_driver_uuid(ctx, v->value_int_4);
+      return TYPE_INT_4;
+   case GL_DEVICE_UUID_EXT:
+      _mesa_get_device_uuid(ctx, v->value_int_4);
+      return TYPE_INT_4;
    }
 
  invalid_enum:
@@ -2648,6 +2799,58 @@ _mesa_GetDoublei_v(GLenum pname, GLuint index, GLdouble *params)
 
    default:
       ;
+   }
+}
+
+void GLAPIENTRY
+_mesa_GetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte *data)
+{
+   GLsizei size;
+   union value v;
+   enum value_type type;
+   const char *func = "glGetUnsignedBytei_vEXT";
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   type = find_value_indexed(func, target, index, &v);
+   size = get_value_size(type, &v);
+   if (size <= 0) {
+      _mesa_problem(ctx, "invalid value type in GetUnsignedBytei_vEXT()");
+   }
+
+   switch (type) {
+   case TYPE_UINT:
+   case TYPE_INT:
+   case TYPE_INT_2:
+   case TYPE_UINT_2:
+   case TYPE_INT_3:
+   case TYPE_UINT_3:
+   case TYPE_INT_4:
+   case TYPE_UINT_4:
+   case TYPE_INT64:
+   case TYPE_ENUM:
+   case TYPE_ENUM_2:
+   case TYPE_BOOLEAN:
+   case TYPE_FLOAT:
+   case TYPE_FLOATN:
+   case TYPE_FLOAT_2:
+   case TYPE_FLOATN_2:
+   case TYPE_FLOAT_3:
+   case TYPE_FLOATN_3:
+   case TYPE_FLOAT_4:
+   case TYPE_FLOATN_4:
+   case TYPE_FLOAT_8:
+   case TYPE_DOUBLEN:
+   case TYPE_DOUBLEN_2:
+   case TYPE_MATRIX:
+   case TYPE_MATRIX_T:
+      memcpy(data, &v.value_int, size);
+      break;
+   case TYPE_INT_N:
+      memcpy(data, &v.value_int_n.ints, size);
+      break;
+   default:
+      break; /* nothing - GL error was recorded */
    }
 }
 

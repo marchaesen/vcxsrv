@@ -65,6 +65,8 @@ shading_language_version(struct gl_context *ctx)
          return (const GLubyte *) "4.40";
       case 450:
          return (const GLubyte *) "4.50";
+      case 460:
+         return (const GLubyte *) "4.60";
       default:
          _mesa_problem(ctx,
                        "Invalid GLSL version in shading_language_version()");

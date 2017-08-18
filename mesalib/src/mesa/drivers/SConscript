@@ -7,6 +7,5 @@ if env['x11']:
 
 if env['dri']:
     SConscript([
-        'dri/common/xmlpool/SConscript',
         'dri/common/SConscript',
     ])

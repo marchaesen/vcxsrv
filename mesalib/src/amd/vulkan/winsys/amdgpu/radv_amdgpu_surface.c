@@ -42,9 +42,6 @@ static int radv_amdgpu_surface_sanity(const struct ac_surf_info *surf_info,
 {
 	unsigned type = RADEON_SURF_GET(surf->flags, TYPE);
 
-	if (!(surf->flags & RADEON_SURF_HAS_TILE_MODE_INDEX))
-		return -EINVAL;
-
 	if (!surf->blk_w || !surf->blk_h)
 		return -EINVAL;
 

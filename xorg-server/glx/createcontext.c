@@ -207,7 +207,9 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
 #endif
 
         default:
-            return BadValue;
+            if (!req->isDirect)
+                return BadValue;
+            break;
         }
     }
 

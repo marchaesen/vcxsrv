@@ -54,9 +54,9 @@ glsl_compute_version_string(void *mem_ctx, bool is_es, unsigned version)
 
 
 static const unsigned known_desktop_glsl_versions[] =
-   { 110, 120, 130, 140, 150, 330, 400, 410, 420, 430, 440, 450 };
+   { 110, 120, 130, 140, 150, 330, 400, 410, 420, 430, 440, 450, 460 };
 static const unsigned known_desktop_gl_versions[] =
-   {  20,  21,  30,  31,  32,  33,  40,  41,  42,  43,  44,  45 };
+   {  20,  21,  30,  31,  32,  33,  40,  41,  42,  43,  44,  45, 46 };
 
 
 _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,

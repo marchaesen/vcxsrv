@@ -153,7 +153,7 @@ typedef struct _msPixmapPriv {
     /** Source fields for flipping shared pixmaps */
     Bool defer_dirty_update; /* if we want to manually update */
     PixmapDirtyUpdatePtr dirty; /* cached dirty ent to avoid searching list */
-    PixmapPtr slave_src; /* if we exported shared pixmap, dirty tracking src */
+    DrawablePtr slave_src; /* if we exported shared pixmap, dirty tracking src */
     Bool notify_on_damage; /* if sink has requested damage notification */
 } msPixmapPrivRec, *msPixmapPrivPtr;
 

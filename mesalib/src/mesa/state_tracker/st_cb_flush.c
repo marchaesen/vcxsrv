@@ -46,35 +46,6 @@
 #include "util/u_gen_mipmap.h"
 
 
-/** Check if we have a front color buffer and if it's been drawn to. */
-static inline GLboolean
-is_front_buffer_dirty(struct st_context *st)
-{
-   struct gl_framebuffer *fb = st->ctx->DrawBuffer;
-   struct st_renderbuffer *strb
-      = st_renderbuffer(fb->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
-   return strb && strb->defined;
-}
-
-
-/**
- * Tell the screen to display the front color buffer on-screen.
- */
-static void
-display_front_buffer(struct st_context *st)
-{
-   struct gl_framebuffer *fb = st->ctx->DrawBuffer;
-   struct st_renderbuffer *strb
-      = st_renderbuffer(fb->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
-
-   if (strb) {
-      /* Hook for copying "fake" frontbuffer if necessary:
-       */
-      st_manager_flush_frontbuffer(st);
-   }
-}
-
-
 void st_flush(struct st_context *st,
               struct pipe_fence_handle **fence,
               unsigned flags)
@@ -102,6 +73,8 @@ void st_finish( struct st_context *st )
                                      PIPE_TIMEOUT_INFINITE);
       st->pipe->screen->fence_reference(st->pipe->screen, &fence, NULL);
    }
+
+   st_manager_flush_swapbuffers();
 }
 
 
@@ -120,9 +93,7 @@ static void st_glFlush(struct gl_context *ctx)
     */
    st_flush(st, NULL, 0);
 
-   if (is_front_buffer_dirty(st)) {
-      display_front_buffer(st);
-   }
+   st_manager_flush_frontbuffer(st);
 }
 
 
@@ -135,9 +106,7 @@ static void st_glFinish(struct gl_context *ctx)
 
    st_finish(st);
 
-   if (is_front_buffer_dirty(st)) {
-      display_front_buffer(st);
-   }
+   st_manager_flush_frontbuffer(st);
 }
 
 
@@ -214,16 +183,4 @@ void st_init_flush_functions(struct pipe_screen *screen,
 
    if (screen->get_param(screen, PIPE_CAP_DEVICE_RESET_STATUS_QUERY))
       functions->GetGraphicsResetStatus = st_get_graphics_reset_status;
-
-   /* Windows opengl32.dll calls glFinish prior to every swapbuffers.
-    * This is unnecessary and degrades performance.  Luckily we have some
-    * scope to work around this, as the externally-visible behaviour of
-    * Finish() is identical to Flush() in all cases - no differences in
-    * rendering or ReadPixels are visible if we opt not to wait here.
-    *
-    * Only set this up on Windows to avoid surprise elsewhere.
-    */
-#ifdef PIPE_OS_WINDOWS
-   functions->Finish = st_glFlush;
-#endif
 }

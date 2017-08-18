@@ -554,15 +554,15 @@ driver_sort(const void *_l, const void *_r)
     if (left == -1 && right == -1)
 	return strcmp(l, r);
 
-    /* left is a fallback */
-    if (left >= 0)
+    /* left is a fallback, right is not */
+    if (left >= 0 && right == -1)
 	return 1;
 
-    /* right is a fallback */
-    if (right >= 0)
+    /* right is a fallback, left is not */
+    if (right >= 0 && left == -1)
 	return -1;
 
-    /* both are fallbacks, which is worse */
+    /* both are fallbacks, decide which is worse */
     return left - right;
 }
 
@@ -573,7 +573,6 @@ fixup_video_driver_list(const char **drivers)
 
     /* walk to the end of the list */
     for (end = drivers; *end && **end; end++);
-    end--;
 
     qsort(drivers, end - drivers, sizeof(const char *), driver_sort);
 }

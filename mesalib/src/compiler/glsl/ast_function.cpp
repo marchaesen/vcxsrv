@@ -37,6 +37,7 @@ process_parameters(exec_list *instructions, exec_list *actual_parameters,
                    exec_list *parameters,
                    struct _mesa_glsl_parse_state *state)
 {
+   void *mem_ctx = state;
    unsigned count = 0;
 
    foreach_list_typed(ast_node, ast, link, parameters) {
@@ -48,7 +49,9 @@ process_parameters(exec_list *instructions, exec_list *actual_parameters,
       ast->set_is_lhs(true);
       ir_rvalue *result = ast->hir(instructions, state);
 
-      ir_constant *const constant = result->constant_expression_value();
+      ir_constant *const constant =
+         result->constant_expression_value(mem_ctx);
+
       if (constant != NULL)
          result = constant;
 
@@ -518,7 +521,8 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
     * instructions; just generate an ir_constant.
     */
    if (state->is_version(120, 100)) {
-      ir_constant *value = sig->constant_expression_value(actual_parameters,
+      ir_constant *value = sig->constant_expression_value(ctx,
+                                                          actual_parameters,
                                                           NULL);
       if (value != NULL) {
          return value;
@@ -939,7 +943,7 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
    assert(result->type == desired_type);
 
    /* Try constant folding; it may fold in the conversion we just added. */
-   ir_constant *const constant = result->constant_expression_value();
+   ir_constant *const constant = result->constant_expression_value(ctx);
    return (constant != NULL) ? (ir_rvalue *) constant : (ir_rvalue *) result;
 }
 
@@ -967,6 +971,7 @@ static bool
 implicitly_convert_component(ir_rvalue * &from, const glsl_base_type to,
                              struct _mesa_glsl_parse_state *state)
 {
+   void *mem_ctx = state;
    ir_rvalue *result = from;
 
    if (to != from->type->base_type) {
@@ -985,7 +990,7 @@ implicitly_convert_component(ir_rvalue * &from, const glsl_base_type to,
       }
    }
 
-   ir_rvalue *const constant = result->constant_expression_value();
+   ir_rvalue *const constant = result->constant_expression_value(mem_ctx);
 
    if (constant != NULL)
       result = constant;
@@ -2154,7 +2159,7 @@ ast_function_expression::hir(exec_list *instructions,
             instructions->push_tail(
                new(ctx) ir_assignment(new(ctx) ir_dereference_variable(var),
                                       matrix, NULL));
-            var->constant_value = matrix->constant_expression_value();
+            var->constant_value = matrix->constant_expression_value(ctx);
 
             /* Replace the matrix with dereferences of its columns. */
             for (int i = 0; i < matrix->type->matrix_columns; i++) {
@@ -2221,7 +2226,7 @@ ast_function_expression::hir(exec_list *instructions,
           * After doing so, track whether or not all the parameters to the
           * constructor are trivially constant valued expressions.
           */
-         ir_rvalue *const constant = result->constant_expression_value();
+         ir_rvalue *const constant = result->constant_expression_value(ctx);
 
          if (constant != NULL)
             result = constant;

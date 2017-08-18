@@ -154,7 +154,8 @@ ir_constant_propagation_visitor::constant_folding(ir_rvalue **rvalue)
 
    ir_dereference_variable *var_ref = (*rvalue)->as_dereference_variable();
    if (var_ref && !var_ref->type->is_array()) {
-      ir_constant *constant = var_ref->constant_expression_value();
+      ir_constant *constant =
+         var_ref->constant_expression_value(ralloc_parent(var_ref));
       if (constant) {
          *rvalue = constant;
          this->progress = true;
@@ -236,6 +237,12 @@ ir_constant_propagation_visitor::constant_propagation(ir_rvalue **rvalue) {
 	 break;
       case GLSL_TYPE_BOOL:
 	 data.b[i] = found->constant->value.b[rhs_channel];
+	 break;
+      case GLSL_TYPE_UINT64:
+	 data.u64[i] = found->constant->value.u64[rhs_channel];
+	 break;
+      case GLSL_TYPE_INT64:
+	 data.i64[i] = found->constant->value.i64[rhs_channel];
 	 break;
       default:
 	 assert(!"not reached");

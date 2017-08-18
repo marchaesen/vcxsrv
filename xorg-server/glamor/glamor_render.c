@@ -1198,6 +1198,29 @@ glamor_composite_with_shader(CARD8 op,
 
     nrect_max = MIN(nrect, GLAMOR_COMPOSITE_VBO_VERT_CNT / 4);
 
+    if (nrect < 100) {
+        BoxRec bounds = glamor_start_rendering_bounds();
+
+        for (int i = 0; i < nrect; i++) {
+            BoxRec box = {
+                .x1 = rects[i].x_dst,
+                .y1 = rects[i].y_dst,
+                .x2 = rects[i].x_dst + rects[i].width,
+                .y2 = rects[i].y_dst + rects[i].height,
+            };
+            glamor_bounds_union_box(&bounds, &box);
+        }
+
+        if (bounds.x1 >= bounds.x2 || bounds.y1 >= bounds.y2)
+            goto disable_va;
+
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(bounds.x1 + dest_x_off,
+                  bounds.y1 + dest_y_off,
+                  bounds.x2 - bounds.x1,
+                  bounds.y2 - bounds.y1);
+    }
+
     while (nrect) {
         int mrect, rect_processed;
         int vb_stride;
@@ -1279,6 +1302,8 @@ glamor_composite_with_shader(CARD8 op,
         }
     }
 
+    glDisable(GL_SCISSOR_TEST);
+disable_va:
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);

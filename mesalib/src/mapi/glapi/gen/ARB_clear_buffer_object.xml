@@ -8,7 +8,7 @@
 
 <category name="GL_ARB_clear_buffer_object" number="121">
 
-    <function name ="ClearBufferData">
+    <function name ="ClearBufferData" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="format" type="GLenum"/>
@@ -16,7 +16,7 @@
         <param name="data" type="const GLvoid *"/>
     </function>
 
-    <function name ="ClearBufferSubData">
+    <function name ="ClearBufferSubData" no_error="true">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="offset" type="GLintptr"/>

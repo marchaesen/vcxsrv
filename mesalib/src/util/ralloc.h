@@ -293,6 +293,24 @@ bool ralloc_strcat(char **dest, const char *str);
 bool ralloc_strncat(char **dest, const char *str, size_t n);
 
 /**
+ * Concatenate two strings, allocating the necessary space.
+ *
+ * This appends \p n bytes of \p str to \p *dest, using ralloc_resize
+ * to expand \p *dest to the appropriate size.  \p dest will be updated to the
+ * new pointer unless allocation fails.
+ *
+ * The result will always be null-terminated.
+ *
+ * This function differs from ralloc_strcat() and ralloc_strncat() in that it
+ * does not do any strlen() calls which can become costly on large strings.
+ *
+ * \return True unless allocation failed.
+ */
+bool
+ralloc_str_append(char **dest, const char *str,
+                  size_t existing_length, size_t str_size);
+
+/**
  * Print to a string.
  *
  * This is analogous to \c sprintf, but allocates enough space (using \p ctx

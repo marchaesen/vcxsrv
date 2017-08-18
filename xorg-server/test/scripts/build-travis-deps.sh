@@ -7,6 +7,6 @@ export XTEST_DIR=$TRAVIS_BUILD_DIR/xtest
 
 set -e
 
-meson build/
+meson --prefix=/usr build/
 ninja -C build/ install
 ninja -C build/ test

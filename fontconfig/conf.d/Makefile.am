@@ -32,10 +32,12 @@ CONF_LINKS = \
 	30-urw-aliases.conf \
 	30-metric-aliases.conf \
 	40-nonlatin.conf \
+	45-generic.conf \
 	45-latin.conf \
 	49-sansserif.conf \
 	50-user.conf \
 	51-local.conf \
+	60-generic.conf \
 	60-latin.conf \
 	65-fonts-persian.conf \
 	65-nonlatin.conf \
@@ -71,10 +73,12 @@ template_DATA =				\
 	30-urw-aliases.conf		\
 	30-metric-aliases.conf		\
 	40-nonlatin.conf		\
+	45-generic.conf			\
 	45-latin.conf			\
 	49-sansserif.conf		\
 	50-user.conf			\
 	51-local.conf			\
+	60-generic.conf			\
 	60-latin.conf			\
 	65-fonts-persian.conf		\
 	65-khmer.conf			\

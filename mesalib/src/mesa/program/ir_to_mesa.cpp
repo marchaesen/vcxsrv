@@ -499,7 +499,7 @@ ir_to_mesa_visitor::src_reg_for_float(float val)
 }
 
 static int
-type_size(const struct glsl_type *type)
+storage_type_size(const struct glsl_type *type, bool bindless)
 {
    unsigned int i;
    int size;
@@ -541,19 +541,19 @@ type_size(const struct glsl_type *type)
          return 1;
    case GLSL_TYPE_ARRAY:
       assert(type->length > 0);
-      return type_size(type->fields.array) * type->length;
+      return storage_type_size(type->fields.array, bindless) * type->length;
    case GLSL_TYPE_STRUCT:
       size = 0;
       for (i = 0; i < type->length; i++) {
-	 size += type_size(type->fields.structure[i].type);
+	 size += storage_type_size(type->fields.structure[i].type, bindless);
       }
       return size;
    case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_IMAGE:
+      if (!bindless)
+         return 0;
+      /* fall through */
    case GLSL_TYPE_SUBROUTINE:
-      /* Samplers take up one slot in UNIFORMS[], but they're baked in
-       * at link time.
-       */
       return 1;
    case GLSL_TYPE_ATOMIC_UINT:
    case GLSL_TYPE_VOID:
@@ -565,6 +565,12 @@ type_size(const struct glsl_type *type)
    }
 
    return 0;
+}
+
+static int
+type_size(const struct glsl_type *type)
+{
+   return storage_type_size(type, false);
 }
 
 /**
@@ -1004,7 +1010,7 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
       return;
    }
 
-   for (operand = 0; operand < ir->get_num_operands(); operand++) {
+   for (operand = 0; operand < ir->num_operands; operand++) {
       this->result.file = PROGRAM_UNDEFINED;
       ir->operands[operand]->accept(this);
       if (this->result.file == PROGRAM_UNDEFINED) {
@@ -1543,7 +1549,7 @@ ir_to_mesa_visitor::visit(ir_dereference_array *ir)
    src_reg src;
    int element_size = type_size(ir->type);
 
-   index = ir->array_index->constant_expression_value();
+   index = ir->array_index->constant_expression_value(ralloc_parent(ir));
 
    ir->array->accept(this);
    src = this->result;
@@ -1602,8 +1608,9 @@ ir_to_mesa_visitor::visit(ir_dereference_record *ir)
 
    ir->record->accept(this);
 
+   assert(ir->field_idx >= 0);
    for (i = 0; i < struct_type->length; i++) {
-      if (strcmp(struct_type->fields.structure[i].name, ir->field) == 0)
+      if (i == (unsigned) ir->field_idx)
 	 break;
       offset += type_size(struct_type->fields.structure[i].type);
    }
@@ -1656,8 +1663,10 @@ calc_sampler_offsets(struct gl_shader_program *prog, ir_dereference *deref,
    switch (deref->ir_type) {
    case ir_type_dereference_array: {
       ir_dereference_array *deref_arr = deref->as_dereference_array();
+
+      void *mem_ctx = ralloc_parent(deref_arr);
       ir_constant *array_index =
-         deref_arr->array_index->constant_expression_value();
+         deref_arr->array_index->constant_expression_value(mem_ctx);
 
       if (!array_index) {
 	 /* GLSL 1.10 and 1.20 allowed variable sampler array indices,
@@ -1684,8 +1693,7 @@ calc_sampler_offsets(struct gl_shader_program *prog, ir_dereference *deref,
 
    case ir_type_dereference_record: {
       ir_dereference_record *deref_record = deref->as_dereference_record();
-      unsigned field_index =
-         deref_record->record->type->field_index(deref_record->field);
+      unsigned field_index = deref_record->field_idx;
       *location +=
          deref_record->record->type->record_location_offset(field_index);
       calc_sampler_offsets(prog, deref_record->record->as_dereference(),
@@ -1736,7 +1744,7 @@ ir_to_mesa_visitor::process_move_condition(ir_rvalue *ir)
    bool switch_order = false;
 
    ir_expression *const expr = ir->as_expression();
-   if ((expr != NULL) && (expr->get_num_operands() == 2)) {
+   if ((expr != NULL) && (expr->num_operands == 2)) {
       bool zero_on_left = false;
 
       if (expr->operands[0]->is_zero()) {
@@ -2452,7 +2460,7 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
 
    assert(_mesa_lookup_parameter_index(params, name) < 0);
 
-   unsigned size = type_size(type) * 4;
+   unsigned size = storage_type_size(type, var->data.bindless) * 4;
 
    int index = _mesa_add_parameter(params, PROGRAM_UNIFORM, name, size,
                                    type->gl_type, NULL, NULL);

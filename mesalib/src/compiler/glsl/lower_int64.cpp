@@ -258,7 +258,7 @@ lower_64bit::lower_op_to_function_call(ir_instruction *base_ir,
                                        ir_expression *ir,
                                        ir_function_signature *callee)
 {
-   const unsigned num_operands = ir->get_num_operands();
+   const unsigned num_operands = ir->num_operands;
    ir_variable *src[4][4];
    ir_variable *dst[4];
    void *const mem_ctx = ralloc_parent(ir);
@@ -319,7 +319,7 @@ lower_64bit_visitor::handle_op(ir_expression *ir,
                                const char *function_name,
                                function_generator generator)
 {
-   for (unsigned i = 0; i < ir->get_num_operands(); i++)
+   for (unsigned i = 0; i < ir->num_operands; i++)
       if (!ir->operands[i]->type->is_integer_64())
          return ir;
 

@@ -68,8 +68,6 @@ struct ac_nir_context {
 	int num_locals;
 	LLVMValueRef *locals;
 
-	LLVMValueRef ddxy_lds;
-
 	struct nir_to_llvm_context *nctx; /* TODO get rid of this */
 };
 
@@ -1187,7 +1185,17 @@ static LLVMValueRef emit_find_lsb(struct ac_llvm_context *ctx,
 		 */
 		LLVMConstInt(ctx->i1, 1, false),
 	};
-	return ac_build_intrinsic(ctx, "llvm.cttz.i32", ctx->i32, params, 2, AC_FUNC_ATTR_READNONE);
+
+	LLVMValueRef lsb = ac_build_intrinsic(ctx, "llvm.cttz.i32", ctx->i32,
+					      params, 2,
+					      AC_FUNC_ATTR_READNONE);
+
+	/* TODO: We need an intrinsic to skip this conditional. */
+	/* Check for zero: */
+	return LLVMBuildSelect(ctx->builder, LLVMBuildICmp(ctx->builder,
+							   LLVMIntEQ, src0,
+							   ctx->i32_0, ""),
+			       LLVMConstInt(ctx->i32, -1, 0), lsb, "");
 }
 
 static LLVMValueRef emit_ifind_msb(struct ac_llvm_context *ctx,
@@ -1314,7 +1322,6 @@ static LLVMValueRef emit_f2f16(struct nir_to_llvm_context *ctx,
 	src0 = to_float(&ctx->ac, src0);
 	result = LLVMBuildFPTrunc(ctx->builder, src0, ctx->f16, "");
 
-	/* TODO SI/CIK options here */
 	if (ctx->options->chip_class >= VI) {
 		LLVMValueRef args[2];
 		/* Check if the result is a denormal - and flush to 0 if so. */
@@ -1328,7 +1335,22 @@ static LLVMValueRef emit_f2f16(struct nir_to_llvm_context *ctx,
 
 	if (ctx->options->chip_class >= VI)
 		result = LLVMBuildSelect(ctx->builder, cond, ctx->f32zero, result, "");
-
+	else {
+		/* for SI/CIK */
+		/* 0x38800000 is smallest half float value (2^-14) in 32-bit float,
+		 * so compare the result and flush to 0 if it's smaller.
+		 */
+		LLVMValueRef temp, cond2;
+		temp = emit_intrin_1f_param(&ctx->ac, "llvm.fabs",
+					    ctx->f32, result);
+		cond = LLVMBuildFCmp(ctx->builder, LLVMRealUGT,
+				     LLVMBuildBitCast(ctx->builder, LLVMConstInt(ctx->i32, 0x38800000, false), ctx->f32, ""),
+				     temp, "");
+		cond2 = LLVMBuildFCmp(ctx->builder, LLVMRealUNE,
+				      temp, ctx->f32zero, "");
+		cond = LLVMBuildAnd(ctx->builder, cond, cond2, "");
+		result = LLVMBuildSelect(ctx->builder, cond, ctx->f32zero, result, "");
+	}
 	return result;
 }
 
@@ -1453,11 +1475,6 @@ static LLVMValueRef emit_ddxy(struct ac_nir_context *ctx,
 	LLVMValueRef result;
 	bool has_ds_bpermute = ctx->abi->chip_class >= VI;
 
-	if (!ctx->ddxy_lds && !has_ds_bpermute)
-		ctx->ddxy_lds = LLVMAddGlobalInAddressSpace(ctx->ac.module,
-						       LLVMArrayType(ctx->ac.i32, 64),
-						       "ddxy_lds", LOCAL_ADDR_SPACE);
-
 	if (op == nir_op_fddx_fine || op == nir_op_fddx)
 		mask = AC_TID_MASK_LEFT;
 	else if (op == nir_op_fddy_fine || op == nir_op_fddy)
@@ -1474,7 +1491,7 @@ static LLVMValueRef emit_ddxy(struct ac_nir_context *ctx,
 		idx = 2;
 
 	result = ac_build_ddxy(&ctx->ac, has_ds_bpermute,
-			      mask, idx, ctx->ddxy_lds,
+			      mask, idx,
 			      src0);
 	return result;
 }
@@ -1885,7 +1902,7 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 						    LLVMVectorType(ctx->ac.i32, 2),
 						    "");
 		result = LLVMBuildExtractElement(ctx->ac.builder, tmp,
-						 ctx->ac.i32_0, "");
+						 ctx->ac.i32_1, "");
 		break;
 	}
 
@@ -2168,7 +2185,7 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 		break;
 	}
 
-	if (instr->op == nir_texop_tg4) {
+	if (instr->op == nir_texop_tg4 && ctx->abi->chip_class <= VI) {
 		enum glsl_base_type stype = glsl_get_sampler_result_type(instr->texture->var->type);
 		if (stype == GLSL_TYPE_UINT || stype == GLSL_TYPE_INT) {
 			return radv_lower_gather4_integer(&ctx->ac, args, instr);
@@ -4492,7 +4509,8 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 
 	/* Pack depth comparison value */
 	if (instr->is_shadow && comparator) {
-		LLVMValueRef z = llvm_extract_elem(&ctx->ac, comparator, 0);
+		LLVMValueRef z = to_float(&ctx->ac,
+		                          llvm_extract_elem(&ctx->ac, comparator, 0));
 
 		/* TC-compatible HTILE promotes Z16 and Z24 to Z32_FLOAT,
 		 * so the depth comparison value isn't clamped for Z16 and
@@ -5254,8 +5272,8 @@ static LLVMValueRef
 emit_float_saturate(struct ac_llvm_context *ctx, LLVMValueRef v, float lo, float hi)
 {
 	v = to_float(ctx, v);
-	v = emit_intrin_2f_param(ctx, "llvm.maxnum.f32", ctx->f32, v, LLVMConstReal(ctx->f32, lo));
-	return emit_intrin_2f_param(ctx, "llvm.minnum.f32", ctx->f32, v, LLVMConstReal(ctx->f32, hi));
+	v = emit_intrin_2f_param(ctx, "llvm.maxnum", ctx->f32, v, LLVMConstReal(ctx->f32, lo));
+	return emit_intrin_2f_param(ctx, "llvm.minnum", ctx->f32, v, LLVMConstReal(ctx->f32, hi));
 }
 
 
@@ -5304,6 +5322,7 @@ si_llvm_init_export_args(struct nir_to_llvm_context *ctx,
 		unsigned index = target - V_008DFC_SQ_EXP_MRT;
 		unsigned col_format = (ctx->options->key.fs.col_format >> (4 * index)) & 0xf;
 		bool is_int8 = (ctx->options->key.fs.is_int8 >> index) & 1;
+		bool is_int10 = (ctx->options->key.fs.is_int10 >> index) & 1;
 
 		switch(col_format) {
 		case V_028714_SPI_SHADER_ZERO:
@@ -5381,11 +5400,13 @@ si_llvm_init_export_args(struct nir_to_llvm_context *ctx,
 			break;
 
 		case V_028714_SPI_SHADER_UINT16_ABGR: {
-			LLVMValueRef max = LLVMConstInt(ctx->i32, is_int8 ? 255 : 65535, 0);
+			LLVMValueRef max_rgb = LLVMConstInt(ctx->i32,
+							    is_int8 ? 255 : is_int10 ? 1023 : 65535, 0);
+			LLVMValueRef max_alpha = !is_int10 ? max_rgb : LLVMConstInt(ctx->i32, 3, 0);
 
 			for (unsigned chan = 0; chan < 4; chan++) {
 				val[chan] = to_integer(&ctx->ac, values[chan]);
-				val[chan] = emit_minmax_int(&ctx->ac, LLVMIntULT, val[chan], max);
+				val[chan] = emit_minmax_int(&ctx->ac, LLVMIntULT, val[chan], chan == 3 ? max_alpha : max_rgb);
 			}
 
 			args->compr = 1;
@@ -5395,14 +5416,18 @@ si_llvm_init_export_args(struct nir_to_llvm_context *ctx,
 		}
 
 		case V_028714_SPI_SHADER_SINT16_ABGR: {
-			LLVMValueRef max = LLVMConstInt(ctx->i32, is_int8 ? 127 : 32767, 0);
-			LLVMValueRef min = LLVMConstInt(ctx->i32, is_int8 ? -128 : -32768, 0);
+			LLVMValueRef max_rgb = LLVMConstInt(ctx->i32,
+							    is_int8 ? 127 : is_int10 ? 511 : 32767, 0);
+			LLVMValueRef min_rgb = LLVMConstInt(ctx->i32,
+							    is_int8 ? -128 : is_int10 ? -512 : -32768, 0);
+			LLVMValueRef max_alpha = !is_int10 ? max_rgb : ctx->i32one;
+			LLVMValueRef min_alpha = !is_int10 ? min_rgb : LLVMConstInt(ctx->i32, -2, 0);
 
 			/* Clamp. */
 			for (unsigned chan = 0; chan < 4; chan++) {
 				val[chan] = to_integer(&ctx->ac, values[chan]);
-				val[chan] = emit_minmax_int(&ctx->ac, LLVMIntSLT, val[chan], max);
-				val[chan] = emit_minmax_int(&ctx->ac, LLVMIntSGT, val[chan], min);
+				val[chan] = emit_minmax_int(&ctx->ac, LLVMIntSLT, val[chan], chan == 3 ? max_alpha : max_rgb);
+				val[chan] = emit_minmax_int(&ctx->ac, LLVMIntSGT, val[chan], chan == 3 ? min_alpha : min_rgb);
 			}
 
 			args->compr = 1;

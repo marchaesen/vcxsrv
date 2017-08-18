@@ -131,7 +131,7 @@ ir_constant_variable_visitor::visit_enter(ir_assignment *ir)
        var->data.mode == ir_var_shader_shared)
       return visit_continue;
 
-   constval = ir->rhs->constant_expression_value();
+   constval = ir->rhs->constant_expression_value(ralloc_parent(ir));
    if (!constval)
       return visit_continue;
 

@@ -227,7 +227,7 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
                gl_shader_stage stage)
 {
    struct pipe_screen *pscreen = st->pipe->screen;
-   enum pipe_shader_type ptarget = st_shader_stage_to_ptarget(stage);
+   enum pipe_shader_type ptarget = pipe_shader_type_from_mesa(stage);
    const nir_shader_compiler_options *options;
    nir_shader *nir;
 

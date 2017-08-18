@@ -188,17 +188,36 @@ _mesa_BufferStorage_no_error(GLenum target, GLsizeiptr size,
 void GLAPIENTRY
 _mesa_BufferStorage(GLenum target, GLsizeiptr size, const GLvoid *data,
                     GLbitfield flags);
-
+void GLAPIENTRY
+_mesa_BufferStorageMemEXT(GLenum target, GLsizeiptr size,
+                          GLuint memory, GLuint64 offset);
+void GLAPIENTRY
+_mesa_BufferStorageMemEXT_no_error(GLenum target, GLsizeiptr size,
+                                   GLuint memory, GLuint64 offset);
 void GLAPIENTRY
 _mesa_NamedBufferStorage_no_error(GLuint buffer, GLsizeiptr size,
                                   const GLvoid *data, GLbitfield flags);
 void GLAPIENTRY
 _mesa_NamedBufferStorage(GLuint buffer, GLsizeiptr size, const GLvoid *data,
                          GLbitfield flags);
+void GLAPIENTRY
+_mesa_NamedBufferStorageMemEXT(GLuint buffer, GLsizeiptr size,
+                               GLuint memory, GLuint64 offset);
+void GLAPIENTRY
+_mesa_NamedBufferStorageMemEXT_no_error(GLuint buffer, GLsizeiptr size,
+                                        GLuint memory, GLuint64 offset);
+
+void GLAPIENTRY
+_mesa_BufferData_no_error(GLenum target, GLsizeiptr size,
+                          const GLvoid *data, GLenum usage);
 
 void GLAPIENTRY
 _mesa_BufferData(GLenum target, GLsizeiptr size,
                  const GLvoid *data, GLenum usage);
+
+void GLAPIENTRY
+_mesa_NamedBufferData_no_error(GLuint buffer, GLsizeiptr size,
+                               const GLvoid *data, GLenum usage);
 
 void GLAPIENTRY
 _mesa_NamedBufferData(GLuint buffer, GLsizeiptr size,
@@ -227,9 +246,18 @@ _mesa_GetNamedBufferSubData(GLuint buffer, GLintptr offset,
                             GLsizeiptr size, GLvoid *data);
 
 void GLAPIENTRY
+_mesa_ClearBufferData_no_error(GLenum target, GLenum internalformat,
+                               GLenum format, GLenum type, const GLvoid *data);
+
+void GLAPIENTRY
 _mesa_ClearBufferData(GLenum target, GLenum internalformat,
                       GLenum format, GLenum type,
                       const GLvoid *data);
+
+void GLAPIENTRY
+_mesa_ClearNamedBufferData_no_error(GLuint buffer, GLenum internalformat,
+                                    GLenum format, GLenum type,
+                                    const GLvoid *data);
 
 void GLAPIENTRY
 _mesa_ClearNamedBufferData(GLuint buffer, GLenum internalformat,
@@ -237,10 +265,22 @@ _mesa_ClearNamedBufferData(GLuint buffer, GLenum internalformat,
                            const GLvoid *data);
 
 void GLAPIENTRY
+_mesa_ClearBufferSubData_no_error(GLenum target, GLenum internalformat,
+                                  GLintptr offset, GLsizeiptr size,
+                                  GLenum format, GLenum type,
+                                  const GLvoid *data);
+
+void GLAPIENTRY
 _mesa_ClearBufferSubData(GLenum target, GLenum internalformat,
                          GLintptr offset, GLsizeiptr size,
                          GLenum format, GLenum type,
                          const GLvoid *data);
+
+void GLAPIENTRY
+_mesa_ClearNamedBufferSubData_no_error(GLuint buffer, GLenum internalformat,
+                                       GLintptr offset, GLsizeiptr size,
+                                       GLenum format, GLenum type,
+                                       const GLvoid *data);
 
 void GLAPIENTRY
 _mesa_ClearNamedBufferSubData(GLuint buffer, GLenum internalformat,

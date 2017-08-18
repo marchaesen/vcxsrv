@@ -73,6 +73,9 @@ _mesa_ProvokingVertex(GLenum mode)
    if (MESA_VERBOSE&VERBOSE_API)
       _mesa_debug(ctx, "glProvokingVertexEXT 0x%x\n", mode);
 
+   if (ctx->Light.ProvokingVertex == mode)
+      return;
+
    switch (mode) {
    case GL_FIRST_VERTEX_CONVENTION_EXT:
    case GL_LAST_VERTEX_CONVENTION_EXT:
@@ -81,9 +84,6 @@ _mesa_ProvokingVertex(GLenum mode)
       _mesa_error(ctx, GL_INVALID_ENUM, "glProvokingVertexEXT(0x%x)", mode);
       return;
    }
-
-   if (ctx->Light.ProvokingVertex == mode)
-      return;
 
    FLUSH_VERTICES(ctx, _NEW_LIGHT);
    ctx->Light.ProvokingVertex = mode;

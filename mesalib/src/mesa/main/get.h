@@ -54,6 +54,9 @@ extern void GLAPIENTRY
 _mesa_GetFixedv(GLenum pname, GLfixed *params);
 
 extern void GLAPIENTRY
+_mesa_GetUnsignedBytevEXT(GLenum pname, GLubyte *data);
+
+extern void GLAPIENTRY
 _mesa_GetBooleani_v( GLenum pname, GLuint index, GLboolean *params );
 
 extern void GLAPIENTRY
@@ -70,6 +73,9 @@ _mesa_GetFloati_v(GLenum target, GLuint index, GLfloat *data);
 
 extern void GLAPIENTRY
 _mesa_GetDoublei_v(GLenum target, GLuint index, GLdouble *data);
+
+extern void GLAPIENTRY
+_mesa_GetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte *data);
 
 extern const GLubyte * GLAPIENTRY
 _mesa_GetString( GLenum name );

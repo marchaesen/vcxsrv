@@ -77,8 +77,6 @@ extern __GLXclientState *glxGetClient(ClientPtr pClient);
 
 /************************************************************************/
 
-void GlxSetVisualConfigs(int nconfigs, void *configs, void **privates);
-
 void __glXScreenInitVisuals(__GLXscreen * screen);
 
 /*

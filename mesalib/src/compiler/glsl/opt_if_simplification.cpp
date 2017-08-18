@@ -84,7 +84,8 @@ ir_if_simplification_visitor::visit_leave(ir_if *ir)
     * FINISHME: This can probably be done with some flags, but it would take
     * FINISHME: some work to get right.
     */
-   ir_constant *condition_constant = ir->condition->constant_expression_value();
+   ir_constant *condition_constant =
+      ir->condition->constant_expression_value(ralloc_parent(ir));
    if (condition_constant) {
       /* Move the contents of the one branch of the conditional
        * that matters out.

@@ -394,8 +394,12 @@ _mesa_init_shared_handles(struct gl_shared_state *shared)
 void
 _mesa_free_shared_handles(struct gl_shared_state *shared)
 {
-   _mesa_hash_table_u64_destroy(shared->TextureHandles, NULL);
-   _mesa_hash_table_u64_destroy(shared->ImageHandles, NULL);
+   if (shared->TextureHandles)
+      _mesa_hash_table_u64_destroy(shared->TextureHandles, NULL);
+
+   if (shared->ImageHandles)
+      _mesa_hash_table_u64_destroy(shared->ImageHandles, NULL);
+
    mtx_destroy(&shared->HandlesMutex);
 }
 

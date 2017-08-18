@@ -1133,15 +1133,18 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 void
 si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer, uint64_t va)
 {
-	uint32_t val = 0;
+	uint32_t op = PRED_OP(PREDICATION_OP_BOOL64) | PREDICATION_DRAW_VISIBLE;
 
-	if (va)
-		val = (((va >> 32) & 0xff) |
-		       PRED_OP(PREDICATION_OP_BOOL64)|
-		       PREDICATION_DRAW_VISIBLE);
-	radeon_emit(cmd_buffer->cs, PKT3(PKT3_SET_PREDICATION, 1, 0));
-	radeon_emit(cmd_buffer->cs, va);
-	radeon_emit(cmd_buffer->cs, val);
+	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+		radeon_emit(cmd_buffer->cs, PKT3(PKT3_SET_PREDICATION, 2, 0));
+		radeon_emit(cmd_buffer->cs, op);
+		radeon_emit(cmd_buffer->cs, va);
+		radeon_emit(cmd_buffer->cs, va >> 32);
+	} else {
+		radeon_emit(cmd_buffer->cs, PKT3(PKT3_SET_PREDICATION, 1, 0));
+		radeon_emit(cmd_buffer->cs, va);
+		radeon_emit(cmd_buffer->cs, op | ((va >> 32) & 0xFF));
+	}
 }
 
 /* Set this if you want the 3D engine to wait until CP DMA is done.

@@ -48,7 +48,6 @@
 #include "st_cb_fbo.h"
 #include "st_cb_flush.h"
 #include "st_manager.h"
-#include "st_sampler_view.h"
 
 #include "state_tracker/st_gl_api.h"
 
@@ -635,7 +634,7 @@ st_context_flush(struct st_context_iface *stctxi, unsigned flags,
 
    st_flush(st, fence, pipe_flags);
 
-   if ((flags & ST_FLUSH_WAIT) && fence) {
+   if ((flags & ST_FLUSH_WAIT) && fence && *fence) {
       st->pipe->screen->fence_finish(st->pipe->screen, NULL, *fence,
                                      PIPE_TIMEOUT_INFINITE);
       st->pipe->screen->fence_reference(st->pipe->screen, fence, NULL);
@@ -736,7 +735,6 @@ st_context_teximage(struct st_context_iface *stctxi,
    pipe_resource_reference(&stImage->pt, tex);
    stObj->surface_format = pipe_format;
 
-   st_texture_release_all_sampler_views(st, stObj);
    stObj->needs_validation = true;
 
    _mesa_dirty_texobj(ctx, texObj);
@@ -1038,11 +1036,15 @@ st_manager_flush_frontbuffer(struct st_context *st)
 
    if (stfb)
       strb = st_renderbuffer(stfb->Base.Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
-   if (!strb)
-      return;
 
-   /* never a dummy fb */
-   stfb->iface->flush_front(&st->iface, stfb->iface, ST_ATTACHMENT_FRONT_LEFT);
+   /* Do we have a front color buffer and has it been drawn to since last
+    * frontbuffer flush?
+    */
+   if (strb && strb->defined) {
+      stfb->iface->flush_front(&st->iface, stfb->iface,
+                               ST_ATTACHMENT_FRONT_LEFT);
+      strb->defined = GL_FALSE;
+   }
 }
 
 /**
@@ -1061,6 +1063,28 @@ st_manager_validate_framebuffers(struct st_context *st)
 
    st_context_validate(st, stdraw, stread);
 }
+
+
+/**
+ * Flush any outstanding swapbuffers on the current draw framebuffer.
+ */
+void
+st_manager_flush_swapbuffers(void)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct st_context *st = (ctx) ? ctx->st : NULL;
+   struct st_framebuffer *stfb;
+
+   if (!st)
+      return;
+
+   stfb = st_ws_framebuffer(ctx->DrawBuffer);
+   if (!stfb || !stfb->iface->flush_swapbuffers)
+      return;
+
+   stfb->iface->flush_swapbuffers(&st->iface, stfb->iface);
+}
+
 
 /**
  * Add a color renderbuffer on demand.  The FBO must correspond to a window,

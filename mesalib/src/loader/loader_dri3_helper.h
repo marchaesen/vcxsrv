@@ -67,8 +67,6 @@ struct loader_dri3_buffer {
    uint32_t     flags;
    uint32_t     width, height;
    uint64_t     last_swap;
-
-   enum loader_dri3_buffer_type        buffer_type;
 };
 
 
@@ -97,13 +95,9 @@ struct loader_dri3_extensions {
 struct loader_dri3_drawable;
 
 struct loader_dri3_vtable {
-   int (*get_swap_interval)(struct loader_dri3_drawable *);
-   int (*clamp_swap_interval)(struct loader_dri3_drawable *, int);
-   void (*set_swap_interval)(struct loader_dri3_drawable *, int);
    void (*set_drawable_size)(struct loader_dri3_drawable *, int, int);
    bool (*in_current_context)(struct loader_dri3_drawable *);
    __DRIcontext *(*get_dri_context)(struct loader_dri3_drawable *);
-   __DRIscreen *(*get_dri_screen)(struct loader_dri3_drawable *);
    void (*flush_drawable)(struct loader_dri3_drawable *, unsigned);
    void (*show_fps)(struct loader_dri3_drawable *, uint64_t);
 };
@@ -149,6 +143,7 @@ struct loader_dri3_drawable {
    struct loader_dri3_buffer *buffers[LOADER_DRI3_NUM_BUFFERS];
    int cur_back;
    int num_back;
+   int cur_blit_source;
 
    uint32_t *stamp;
 
@@ -157,9 +152,13 @@ struct loader_dri3_drawable {
    xcb_special_event_t *special_event;
 
    bool first_init;
+   int swap_interval;
 
    struct loader_dri3_extensions *ext;
    const struct loader_dri3_vtable *vtable;
+
+   unsigned int swap_method;
+   unsigned int back_format;
 };
 
 void
@@ -241,4 +240,10 @@ loader_dri3_get_buffers(__DRIdrawable *driDrawable,
 
 void
 loader_dri3_update_drawable_geometry(struct loader_dri3_drawable *draw);
+
+void
+loader_dri3_swapbuffer_barrier(struct loader_dri3_drawable *draw);
+
+void
+loader_dri3_close_screen(__DRIscreen *dri_screen);
 #endif

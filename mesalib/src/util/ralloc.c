@@ -403,6 +403,25 @@ ralloc_strncat(char **dest, const char *str, size_t n)
    return cat(dest, str, strnlen(str, n));
 }
 
+bool
+ralloc_str_append(char **dest, const char *str,
+                  size_t existing_length, size_t str_size)
+{
+   char *both;
+   assert(dest != NULL && *dest != NULL);
+
+   both = resize(*dest, existing_length + str_size + 1);
+   if (unlikely(both == NULL))
+      return false;
+
+   memcpy(both + existing_length, str, str_size);
+   both[existing_length + str_size] = '\0';
+
+   *dest = both;
+
+   return true;
+}
+
 char *
 ralloc_asprintf(const void *ctx, const char *fmt, ...)
 {

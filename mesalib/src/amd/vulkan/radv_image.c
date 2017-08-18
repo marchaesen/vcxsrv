@@ -108,7 +108,6 @@ radv_init_surface(struct radv_device *device,
 	if (is_stencil)
 		surface->flags |= RADEON_SURF_SBUFFER;
 
-	surface->flags |= RADEON_SURF_HAS_TILE_MODE_INDEX;
 	surface->flags |= RADEON_SURF_OPTIMIZE_FOR_SPACE;
 
 	if ((pCreateInfo->usage & (VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
@@ -205,7 +204,6 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 {
 	uint64_t gpu_address = image->bo ? device->ws->buffer_get_va(image->bo) + image->offset : 0;
 	uint64_t va = gpu_address;
-	unsigned pitch = base_level_info->nblk_x * block_width;
 	enum chip_class chip_class = device->physical_device->rad_info.chip_class;
 	uint64_t meta_va = 0;
 	if (chip_class >= GFX9) {
@@ -217,13 +215,11 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 		va += base_level_info->offset;
 
 	state[0] = va >> 8;
-	if (chip_class < GFX9)
-		state[0] |= image->surface.u.legacy.tile_swizzle;
+	if (chip_class >= GFX9 ||
+	    base_level_info->mode == RADEON_SURF_MODE_2D)
+		state[0] |= image->surface.tile_swizzle;
 	state[1] &= C_008F14_BASE_ADDRESS_HI;
 	state[1] |= S_008F14_BASE_ADDRESS_HI(va >> 40);
-	state[3] |= S_008F1C_TILING_INDEX(si_tile_mode_index(image, base_level,
-							     is_stencil));
-	state[4] |= S_008F20_PITCH_GFX6(pitch - 1);
 
 	if (chip_class >= VI) {
 		state[6] &= C_008F28_COMPRESSION_EN;
@@ -234,8 +230,7 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 				meta_va += base_level_info->dcc_offset;
 			state[6] |= S_008F28_COMPRESSION_EN(1);
 			state[7] = meta_va >> 8;
-			if (chip_class < GFX9)
-				state[7] |= image->surface.u.legacy.tile_swizzle;
+			state[7] |= image->surface.tile_swizzle;
 		}
 	}
 
@@ -483,8 +478,7 @@ si_make_texture_descriptor(struct radv_device *device,
 		}
 
 		fmask_state[0] = va >> 8;
-		if (device->physical_device->rad_info.chip_class < GFX9)
-			fmask_state[0] |= image->surface.u.legacy.tile_swizzle;
+		fmask_state[0] |= image->fmask.tile_swizzle;
 		fmask_state[1] = S_008F14_BASE_ADDRESS_HI(va >> 40) |
 			S_008F14_DATA_FORMAT_GFX6(fmask_format) |
 			S_008F14_NUM_FORMAT_GFX6(num_format);
@@ -559,10 +553,11 @@ radv_query_opaque_metadata(struct radv_device *device,
 	memcpy(&md->metadata[2], desc, sizeof(desc));
 
 	/* Dwords [10:..] contain the mipmap level offsets. */
-	for (i = 0; i <= image->info.levels - 1; i++)
-		md->metadata[10+i] = image->surface.u.legacy.level[i].offset >> 8;
-
-	md->size_metadata = (11 + image->info.levels - 1) * 4;
+	if (device->physical_device->rad_info.chip_class <= VI) {
+		for (i = 0; i <= image->info.levels - 1; i++)
+			md->metadata[10+i] = image->surface.u.legacy.level[i].offset >> 8;
+		md->size_metadata = (11 + image->info.levels - 1) * 4;
+	}
 }
 
 void
@@ -616,6 +611,9 @@ radv_image_get_fmask_info(struct radv_device *device,
 	info.samples = 1;
 	fmask.flags = image->surface.flags | RADEON_SURF_FMASK;
 
+	if (!image->shareable)
+		info.surf_index = &device->fmask_mrt_offset_counter;
+
 	/* Force 2D tiling if it wasn't set. This may occur when creating
 	 * FMASK for MSAA resolve on R6xx. On R6xx, the single-sample
 	 * destination buffer must have an FMASK too. */
@@ -644,8 +642,11 @@ radv_image_get_fmask_info(struct radv_device *device,
 	out->tile_mode_index = fmask.u.legacy.tiling_index[0];
 	out->pitch_in_pixels = fmask.u.legacy.level[0].nblk_x;
 	out->bank_height = fmask.u.legacy.bankh;
+	out->tile_swizzle = fmask.tile_swizzle;
 	out->alignment = MAX2(256, fmask.surf_alignment);
 	out->size = fmask.surf_size;
+
+	assert(!out->tile_swizzle || !image->shareable);
 }
 
 static void
@@ -810,7 +811,7 @@ radv_image_create(VkDevice _device,
 	image->shareable = vk_find_struct_const(pCreateInfo->pNext,
 	                                        EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR) != NULL;
 	if (!vk_format_is_depth(pCreateInfo->format) && !create_info->scanout && !image->shareable) {
-		image->info.surf_index = p_atomic_inc_return(&device->image_mrt_offset_counter) - 1;
+		image->info.surf_index = &device->image_mrt_offset_counter;
 	}
 
 	radv_init_surface(device, &image->surface, create_info);

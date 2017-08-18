@@ -53,6 +53,7 @@ XStoreColors(
 	citem.green = defs[i].green;
 	citem.blue = defs[i].blue;
 	citem.flags = defs[i].flags;
+	citem.pad = 0;
 
 	/* note that xColorItem doesn't contain all 16-bit quantities, so
 	   we can't use Data16 */

@@ -98,7 +98,7 @@ if (host_machine.system() != 'darwin' and
 
         xwayland_dep = [
             dependency('wayland-client', version: '>= 1.3.0', required: xwayland_required),
-            dependency('wayland-protocols', version: '>= 1.5.0', required: xwayland_required),
+            dependency('wayland-protocols', version: '>= 1.9', required: xwayland_required),
             dependency('libdrm', version: '>= 2.3.1', required: xwayland_required),
             dependency('epoxy', required: xwayland_required),
         ]

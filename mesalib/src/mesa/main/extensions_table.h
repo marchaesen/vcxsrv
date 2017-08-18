@@ -226,6 +226,8 @@ EXT(EXT_gpu_program_parameters              , EXT_gpu_program_parameters        
 EXT(EXT_gpu_shader4                         , EXT_gpu_shader4                        , GLL, GLC,  x ,  x , 2006)
 EXT(EXT_gpu_shader5                         , ARB_gpu_shader5                        ,  x ,  x ,  x ,  31, 2014)
 EXT(EXT_map_buffer_range                    , ARB_map_buffer_range                   ,  x ,  x , ES1, ES2, 2012)
+EXT(EXT_memory_object                       , EXT_memory_object                      , GLL, GLC,  x , ES2, 2017)
+EXT(EXT_memory_object_fd                    , EXT_memory_object_fd                   , GLL, GLC,  x , ES2, 2017)
 EXT(EXT_multi_draw_arrays                   , dummy_true                             , GLL,  x , ES1, ES2, 1999)
 EXT(EXT_packed_depth_stencil                , dummy_true                             , GLL, GLC,  x ,  x , 2005)
 EXT(EXT_packed_float                        , EXT_packed_float                       , GLL, GLC,  x ,  x , 2004)

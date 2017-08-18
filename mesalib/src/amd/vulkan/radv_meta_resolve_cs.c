@@ -31,6 +31,45 @@
 #include "sid.h"
 #include "vk_format.h"
 
+static nir_ssa_def *radv_meta_build_resolve_srgb_conversion(nir_builder *b,
+							    nir_ssa_def *input)
+{
+	nir_const_value v;
+	unsigned i;
+	v.u32[0] = 0x3b4d2e1c; // 0.00313080009
+
+	nir_ssa_def *cmp[3];
+	for (i = 0; i < 3; i++)
+		cmp[i] = nir_flt(b, nir_channel(b, input, i),
+				 nir_build_imm(b, 1, 32, v));
+
+	nir_ssa_def *ltvals[3];
+	v.f32[0] = 12.92;
+	for (i = 0; i < 3; i++)
+		ltvals[i] = nir_fmul(b, nir_channel(b, input, i),
+				     nir_build_imm(b, 1, 32, v));
+
+	nir_ssa_def *gtvals[3];
+
+	for (i = 0; i < 3; i++) {
+		v.f32[0] = 1.0/2.4;
+		gtvals[i] = nir_fpow(b, nir_channel(b, input, i),
+				     nir_build_imm(b, 1, 32, v));
+		v.f32[0] = 1.055;
+		gtvals[i] = nir_fmul(b, gtvals[i],
+				     nir_build_imm(b, 1, 32, v));
+		v.f32[0] = 0.055;
+		gtvals[i] = nir_fsub(b, gtvals[i],
+				     nir_build_imm(b, 1, 32, v));
+	}
+
+	nir_ssa_def *comp[4];
+	for (i = 0; i < 3; i++)
+		comp[i] = nir_bcsel(b, cmp[i], ltvals[i], gtvals[i]);
+	comp[3] = nir_channels(b, input, 1 << 3);
+	return nir_vec(b, comp, 4);
+}
+
 static nir_shader *
 build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_srgb, int samples)
 {
@@ -88,10 +127,13 @@ build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_s
 	nir_ssa_def *img_coord = nir_channels(&b, nir_iadd(&b, global_id, &src_offset->dest.ssa), 0x3);
 	nir_variable *color = nir_local_variable_create(b.impl, glsl_vec4_type(), "color");
 
-	radv_meta_build_resolve_shader_core(&b, is_integer, is_srgb, samples,
-					    input_img, color, img_coord);
+	radv_meta_build_resolve_shader_core(&b, is_integer, samples, input_img,
+	                                    color, img_coord);
 
 	nir_ssa_def *outval = nir_load_var(&b, color);
+	if (is_srgb)
+		outval = radv_meta_build_resolve_srgb_conversion(&b, outval);
+
 	nir_ssa_def *coord = nir_iadd(&b, global_id, &dst_offset->dest.ssa);
 	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_store);
 	store->src[0] = nir_src_for_ssa(coord);
@@ -402,7 +444,7 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 						     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 							     .image = radv_image_to_handle(dest_image),
 							     .viewType = radv_meta_get_view_type(dest_image),
-							     .format = dest_image->vk_format,
+							     .format = vk_to_non_srgb_format(dest_image->vk_format),
 							     .subresourceRange = {
 							     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 							     .baseMipLevel = region->dstSubresource.mipLevel,
