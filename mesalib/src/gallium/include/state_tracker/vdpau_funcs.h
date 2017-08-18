@@ -1,6 +1,6 @@
 /**************************************************************************
  *
- * Copyright 2013 Advanced Micro Devices, Inc.
+ * Copyright 2016 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -31,24 +31,35 @@
  *
  */
 
-#ifndef _VDPAU_INTEROP_H_
-#define _VDPAU_INTEROP_H_
+#ifndef _VDPAU_FUNCS_H_
+#define _VDPAU_FUNCS_H_
 
-/* driver specific functions for NV_vdpau_interop */
-#ifndef VDP_FUNC_ID_BASE_DRIVER
-#define VDP_FUNC_ID_BASE_DRIVER 0x2000
-#endif
+#include "vdpau_dmabuf.h"
 
-/* Older implementation relying on passing pipe_video_buffer and
- * pipe_resources around. Deprecated and shouldn't be used for new things.
- */
-#define VDP_FUNC_ID_VIDEO_SURFACE_GALLIUM (VDP_FUNC_ID_BASE_DRIVER + 0)
-#define VDP_FUNC_ID_OUTPUT_SURFACE_GALLIUM (VDP_FUNC_ID_BASE_DRIVER + 1)
+/* Used for implementing NV_vdpau_interop */
+static inline enum pipe_format
+VdpFormatRGBAToPipe(uint32_t vdpau_format)
+{
+   switch (vdpau_format) {
+   case VDP_RGBA_FORMAT_R8:
+      return PIPE_FORMAT_R8_UNORM;
+   case VDP_RGBA_FORMAT_R8G8:
+      return PIPE_FORMAT_R8G8_UNORM;
+   case VDP_RGBA_FORMAT_A8:
+      return PIPE_FORMAT_A8_UNORM;
+   case VDP_RGBA_FORMAT_B10G10R10A2:
+      return PIPE_FORMAT_B10G10R10A2_UNORM;
+   case VDP_RGBA_FORMAT_B8G8R8A8:
+      return PIPE_FORMAT_B8G8R8A8_UNORM;
+   case VDP_RGBA_FORMAT_R10G10B10A2:
+      return PIPE_FORMAT_R10G10B10A2_UNORM;
+   case VDP_RGBA_FORMAT_R8G8B8A8:
+      return PIPE_FORMAT_R8G8B8A8_UNORM;
+   default:
+      assert(0);
+   }
 
-struct pipe_resource;
-struct pipe_video_buffer;
+   return PIPE_FORMAT_NONE;
+}
 
-typedef struct pipe_video_buffer *VdpVideoSurfaceGallium(uint32_t surface);
-typedef struct pipe_resource *VdpOutputSurfaceGallium(uint32_t surface);
-
-#endif /* _VDPAU_INTEROP_H_ */
+#endif /* _VDPAU_FUNCS_H_ */

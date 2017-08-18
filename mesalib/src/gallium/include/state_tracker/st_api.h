@@ -89,6 +89,8 @@ enum st_api_feature
 #define ST_CONTEXT_FLAG_DEBUG               (1 << 0)
 #define ST_CONTEXT_FLAG_FORWARD_COMPATIBLE  (1 << 1)
 #define ST_CONTEXT_FLAG_ROBUST_ACCESS       (1 << 2)
+#define ST_CONTEXT_FLAG_RESET_NOTIFICATION_ENABLED (1 << 3)
+#define ST_CONTEXT_FLAG_NO_ERROR            (1 << 4)
 
 /**
  * Reasons that context creation might fail.
@@ -159,6 +161,7 @@ enum st_context_resource_type {
  */
 #define ST_FLUSH_FRONT                    (1 << 0)
 #define ST_FLUSH_END_OF_FRAME             (1 << 1)
+#define ST_FLUSH_WAIT                     (1 << 2)
 
 /**
  * Value to st_manager->get_param function.
@@ -174,14 +177,10 @@ enum st_manager_param {
    ST_MANAGER_BROKEN_INVALIDATE
 };
 
-/**
- * The return type of st_api->get_proc_address.
- */
-typedef void (*st_proc_t)(void);
-
 struct pipe_context;
 struct pipe_resource;
 struct pipe_fence_handle;
+struct util_queue_monitoring;
 
 /**
  * Used in st_context_iface->get_resource_for_egl_image.
@@ -204,6 +203,9 @@ struct st_egl_image
    /* this is owned by the caller */
    struct pipe_resource *texture;
 
+   /* format only differs from texture->format for multi-planar (YUV): */
+   enum pipe_format format;
+
    unsigned level;
    unsigned layer;
 };
@@ -214,7 +216,7 @@ struct st_egl_image
 struct st_visual
 {
    /**
-    * Available buffers.  Tested with ST_FRAMEBUFFER_*_MASK.
+    * Available buffers.  Bitfield of ST_ATTACHMENT_*_MASK bits.
     */
    unsigned buffer_mask;
 
@@ -246,6 +248,11 @@ struct st_config_options
    unsigned force_glsl_version;
    boolean force_s3tc_enable;
    boolean allow_glsl_extension_directive_midshader;
+   boolean allow_glsl_builtin_variable_redeclaration;
+   boolean allow_higher_compat_version;
+   boolean glsl_zero_init;
+   boolean force_glsl_abs_sqrt;
+   unsigned char config_options_sha1[20];
 };
 
 /**
@@ -277,6 +284,7 @@ struct st_context_attribs
 };
 
 struct st_context_iface;
+struct st_manager;
 
 /**
  * Represent a windowing system drawable.
@@ -303,6 +311,16 @@ struct st_framebuffer_iface
     * Atomic stamp which changes when framebuffers need to be updated.
     */
    int32_t stamp;
+
+   /**
+    * Identifier that uniquely identifies the framebuffer interface object.
+    */
+   uint32_t ID;
+
+   /**
+    * The state tracker manager that manages this object.
+    */
+   struct st_manager *state_manager;
 
    /**
     * Available for the state tracker manager to use.
@@ -364,6 +382,11 @@ struct st_context_iface
    void *st_manager_private;
 
    /**
+    * The state tracker manager that manages this object.
+    */
+   struct st_manager *state_manager;
+
+   /**
     * The CSO context associated with this context in case we need to draw
     * something before swap buffers.
     */
@@ -414,6 +437,19 @@ struct st_context_iface
     */
    boolean (*get_resource_for_egl_image)(struct st_context_iface *stctxi,
                                          struct st_context_resource *stres);
+
+   /**
+    * Start the thread if the API has a worker thread.
+    * Called after the context has been created and fully initialized on both
+    * sides (e.g. st/mesa and st/dri).
+    */
+   void (*start_thread)(struct st_context_iface *stctxi);
+
+   /**
+    * If the API is multithreaded, wait for all queued commands to complete.
+    * Called from the main thread.
+    */
+   void (*thread_finish)(struct st_context_iface *stctxi);
 };
 
 
@@ -451,6 +487,23 @@ struct st_manager
     */
    int (*get_param)(struct st_manager *smapi,
                     enum st_manager_param param);
+
+   /**
+    * Call the loader function setBackgroundContext. Called from the worker
+    * thread.
+    */
+   void (*set_background_context)(struct st_context_iface *stctxi,
+                                  struct util_queue_monitoring *queue_info);
+
+   /**
+    * Destroy any private data used by the state tracker manager.
+    */
+   void (*destroy)(struct st_manager *smapi);
+
+   /**
+    * Available for the state tracker manager to use.
+    */
+   void *st_manager_private;
 };
 
 /**
@@ -497,13 +550,6 @@ struct st_api
                           int *gl_es2_version);
 
    /**
-    * Return an API entry point.
-    *
-    * For GL this is the same as _glapi_get_proc_address.
-    */
-   st_proc_t (*get_proc_address)(struct st_api *stapi, const char *procname);
-
-   /**
     * Create a rendering context.
     */
    struct st_context_iface *(*create_context)(struct st_api *stapi,
@@ -527,12 +573,19 @@ struct st_api
     * Get the currently bound context in the calling thread.
     */
    struct st_context_iface *(*get_current)(struct st_api *stapi);
+
+   /**
+    * Notify the st manager the framebuffer interface object
+    * is no longer valid.
+    */
+   void (*destroy_drawable)(struct st_api *stapi,
+                            struct st_framebuffer_iface *stfbi);
 };
 
 /**
  * Return true if the visual has the specified buffers.
  */
-static INLINE boolean
+static inline boolean
 st_visual_have_buffers(const struct st_visual *visual, unsigned mask)
 {
    return ((visual->buffer_mask & mask) == mask);
