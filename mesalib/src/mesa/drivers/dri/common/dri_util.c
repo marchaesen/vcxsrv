@@ -767,36 +767,36 @@ driSwapBuffers(__DRIdrawable *pdp)
 
 /** Core interface */
 const __DRIcoreExtension driCoreExtension = {
-    /*.base =*/ { __DRI_CORE, 1 },
+    .base = { __DRI_CORE, 1 },
 
-    /*.createNewScreen            =*/ NULL,
-    /*.destroyScreen              =*/ driDestroyScreen,
-    /*.getExtensions              =*/ driGetExtensions,
-    /*.getConfigAttrib            =*/ driGetConfigAttrib,
-    /*.indexConfigAttrib          =*/ driIndexConfigAttrib,
-    /*.createNewDrawable          =*/ NULL,
-    /*.destroyDrawable            =*/ driDestroyDrawable,
-    /*.swapBuffers                =*/ driSwapBuffers, /* swrast */
-    /*.createNewContext           =*/ driCreateNewContext, /* swrast */
-    /*.copyContext                =*/ driCopyContext,
-    /*.destroyContext             =*/ driDestroyContext,
-    /*.bindContext                =*/ driBindContext,
-    /*.unbindContext              =*/ driUnbindContext
+    .createNewScreen            = NULL,
+    .destroyScreen              = driDestroyScreen,
+    .getExtensions              = driGetExtensions,
+    .getConfigAttrib            = driGetConfigAttrib,
+    .indexConfigAttrib          = driIndexConfigAttrib,
+    .createNewDrawable          = NULL,
+    .destroyDrawable            = driDestroyDrawable,
+    .swapBuffers                = driSwapBuffers, /* swrast */
+    .createNewContext           = driCreateNewContext, /* swrast */
+    .copyContext                = driCopyContext,
+    .destroyContext             = driDestroyContext,
+    .bindContext                = driBindContext,
+    .unbindContext              = driUnbindContext
 };
 
 /** DRI2 interface */
 const __DRIdri2Extension driDRI2Extension = {
-    /*.base =*/ { __DRI_DRI2, 4 },
+    .base = { __DRI_DRI2, 4 },
 
-    /*.createNewScreen            =*/ dri2CreateNewScreen,
-    /*.createNewDrawable          =*/ driCreateNewDrawable,
-    /*.createNewContext           =*/ driCreateNewContext,
-    /*.getAPIMask                 =*/ driGetAPIMask,
-    /*.createNewContextForAPI     =*/ driCreateNewContextForAPI,
-    /*.allocateBuffer             =*/ dri2AllocateBuffer,
-    /*.releaseBuffer              =*/ dri2ReleaseBuffer,
-    /*.createContextAttribs       =*/ driCreateContextAttribs,
-    /*.createNewScreen2           =*/ driCreateNewScreen2,
+    .createNewScreen            = dri2CreateNewScreen,
+    .createNewDrawable          = driCreateNewDrawable,
+    .createNewContext           = driCreateNewContext,
+    .getAPIMask                 = driGetAPIMask,
+    .createNewContextForAPI     = driCreateNewContextForAPI,
+    .allocateBuffer             = dri2AllocateBuffer,
+    .releaseBuffer              = dri2ReleaseBuffer,
+    .createContextAttribs       = driCreateContextAttribs,
+    .createNewScreen2           = driCreateNewScreen2,
 };
 
 const __DRIswrastExtension driSWRastExtension = {
@@ -810,11 +810,11 @@ const __DRIswrastExtension driSWRastExtension = {
 };
 
 const __DRI2configQueryExtension dri2ConfigQueryExtension = {
-   /*.base =*/ { __DRI2_CONFIG_QUERY, 1 },
+   .base = { __DRI2_CONFIG_QUERY, 1 },
 
-   /*.configQueryb        =*/ dri2ConfigQueryb,
-   /*.configQueryi        =*/ dri2ConfigQueryi,
-   /*.configQueryf        =*/ dri2ConfigQueryf,
+   .configQueryb        = dri2ConfigQueryb,
+   .configQueryi        = dri2ConfigQueryi,
+   .configQueryf        = dri2ConfigQueryf,
 };
 
 void
@@ -916,12 +916,12 @@ driImageFormatToGLFormat(uint32_t image_format)
 
 /** Image driver interface */
 const __DRIimageDriverExtension driImageDriverExtension = {
-    /*.base =*/ { __DRI_IMAGE_DRIVER, 1 },
+    .base = { __DRI_IMAGE_DRIVER, 1 },
 
-    /*.createNewScreen2           =*/ driCreateNewScreen2,
-    /*.createNewDrawable          =*/ driCreateNewDrawable,
-    /*.createContextAttribs       =*/ driCreateContextAttribs,
-    /*.getAPIMask                 =*/ driGetAPIMask,
+    .createNewScreen2           = driCreateNewScreen2,
+    .createNewDrawable          = driCreateNewDrawable,
+    .getAPIMask                 = driGetAPIMask,
+    .createContextAttribs       = driCreateContextAttribs,
 };
 
 /* swrast copy sub buffer entrypoint. */
@@ -935,9 +935,9 @@ static void driCopySubBuffer(__DRIdrawable *pdp, int x, int y,
 
 /* for swrast only */
 const __DRIcopySubBufferExtension driCopySubBufferExtension = {
-   /*.base =*/ { __DRI_COPY_SUB_BUFFER, 1 },
+   .base = { __DRI_COPY_SUB_BUFFER, 1 },
 
-   /*.copySubBuffer               =*/ driCopySubBuffer,
+   .copySubBuffer               = driCopySubBuffer,
 };
 
 const __DRInoErrorExtension dri2NoErrorExtension = {
