@@ -38,19 +38,19 @@ struct dd_function_table;
 struct gl_context;
 struct gl_sync_object;
 
-extern void GLAPIENTRY
+extern void
 _mesa_init_sync_object_functions(struct dd_function_table *driver);
 
-extern void GLAPIENTRY
+extern void
 _mesa_init_sync(struct gl_context *);
 
-extern void GLAPIENTRY
+extern void
 _mesa_free_sync_data(struct gl_context *);
 
-struct gl_sync_object * GLAPIENTRY
+struct gl_sync_object *
 _mesa_get_and_ref_sync(struct gl_context *ctx, GLsync sync, bool incRefCount);
 
-extern void GLAPIENTRY
+extern void
 _mesa_unref_sync_object(struct gl_context *ctx, struct gl_sync_object *syncObj,
                         int amount);
 

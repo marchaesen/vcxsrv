@@ -126,7 +126,7 @@ _mesa_wait_sync(struct gl_context *ctx, struct gl_sync_object *syncObj,
 }
 
 
-void GLAPIENTRY
+void
 _mesa_init_sync_object_functions(struct dd_function_table *driver)
 {
    driver->NewSyncObject = _mesa_new_sync_object;
@@ -143,7 +143,7 @@ _mesa_init_sync_object_functions(struct dd_function_table *driver)
 /**
  * Allocate/init the context state related to sync objects.
  */
-void GLAPIENTRY
+void
 _mesa_init_sync(struct gl_context *ctx)
 {
    (void) ctx;
@@ -153,7 +153,7 @@ _mesa_init_sync(struct gl_context *ctx)
 /**
  * Free the context state related to sync objects.
  */
-void GLAPIENTRY
+void
 _mesa_free_sync_data(struct gl_context *ctx)
 {
    (void) ctx;
@@ -173,7 +173,7 @@ _mesa_free_sync_data(struct gl_context *ctx)
  * normally what you want; otherwise, a glDeleteSync from another thread
  * could delete the sync object while you are still working on it.
  */
-struct gl_sync_object * GLAPIENTRY
+struct gl_sync_object *
 _mesa_get_and_ref_sync(struct gl_context *ctx, GLsync sync, bool incRefCount)
 {
    struct gl_sync_object *syncObj = (struct gl_sync_object *) sync;
@@ -192,7 +192,7 @@ _mesa_get_and_ref_sync(struct gl_context *ctx, GLsync sync, bool incRefCount)
 }
 
 
-void GLAPIENTRY
+void
 _mesa_unref_sync_object(struct gl_context *ctx, struct gl_sync_object *syncObj,
                         int amount)
 {
