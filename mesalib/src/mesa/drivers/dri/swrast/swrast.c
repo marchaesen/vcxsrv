@@ -92,7 +92,7 @@ static void swrastSetTexBuffer2(__DRIcontext *pDRICtx, GLint target,
     uint32_t internalFormat;
     mesa_format texFormat;
 
-    dri_ctx = (struct dri_context *)pDRICtx->driverPrivate;
+    dri_ctx = pDRICtx->driverPrivate;
 
     internalFormat = (texture_format == __DRI_TEXTURE_FORMAT_RGB ? 3 : 4);
 
