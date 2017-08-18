@@ -30,7 +30,7 @@
 
 /* Compute the size of an array */
 #ifndef ARRAY_SIZE
-#  define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+#  define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #endif
 
 /* For compatibility with Clang's __has_builtin() */

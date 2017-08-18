@@ -123,9 +123,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\dri_util.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\xmlconfig.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\expat\lib\xmlparse.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -142,6 +139,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\util\debug.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\xmlconfig.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -63,7 +63,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1382
+#define _gloffset_COUNT 1410
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +473,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 974
+#define driDispatchRemapTable_size 1002
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1400,56 +1400,84 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define GetPerfQueryInfoINTEL_remap_index 921
 #define PolygonOffsetClampEXT_remap_index 922
 #define WindowRectanglesEXT_remap_index 923
-#define StencilFuncSeparateATI_remap_index 924
-#define ProgramEnvParameters4fvEXT_remap_index 925
-#define ProgramLocalParameters4fvEXT_remap_index 926
-#define EGLImageTargetRenderbufferStorageOES_remap_index 927
-#define EGLImageTargetTexture2DOES_remap_index 928
-#define AlphaFuncx_remap_index 929
-#define ClearColorx_remap_index 930
-#define ClearDepthx_remap_index 931
-#define Color4x_remap_index 932
-#define DepthRangex_remap_index 933
-#define Fogx_remap_index 934
-#define Fogxv_remap_index 935
-#define Frustumf_remap_index 936
-#define Frustumx_remap_index 937
-#define LightModelx_remap_index 938
-#define LightModelxv_remap_index 939
-#define Lightx_remap_index 940
-#define Lightxv_remap_index 941
-#define LineWidthx_remap_index 942
-#define LoadMatrixx_remap_index 943
-#define Materialx_remap_index 944
-#define Materialxv_remap_index 945
-#define MultMatrixx_remap_index 946
-#define MultiTexCoord4x_remap_index 947
-#define Normal3x_remap_index 948
-#define Orthof_remap_index 949
-#define Orthox_remap_index 950
-#define PointSizex_remap_index 951
-#define PolygonOffsetx_remap_index 952
-#define Rotatex_remap_index 953
-#define SampleCoveragex_remap_index 954
-#define Scalex_remap_index 955
-#define TexEnvx_remap_index 956
-#define TexEnvxv_remap_index 957
-#define TexParameterx_remap_index 958
-#define Translatex_remap_index 959
-#define ClipPlanef_remap_index 960
-#define ClipPlanex_remap_index 961
-#define GetClipPlanef_remap_index 962
-#define GetClipPlanex_remap_index 963
-#define GetFixedv_remap_index 964
-#define GetLightxv_remap_index 965
-#define GetMaterialxv_remap_index 966
-#define GetTexEnvxv_remap_index 967
-#define GetTexParameterxv_remap_index 968
-#define PointParameterx_remap_index 969
-#define PointParameterxv_remap_index 970
-#define TexParameterxv_remap_index 971
-#define BlendBarrier_remap_index 972
-#define PrimitiveBoundingBox_remap_index 973
+#define BufferStorageMemEXT_remap_index 924
+#define CreateMemoryObjectsEXT_remap_index 925
+#define DeleteMemoryObjectsEXT_remap_index 926
+#define DeleteSemaphoresEXT_remap_index 927
+#define GenSemaphoresEXT_remap_index 928
+#define GetMemoryObjectParameterivEXT_remap_index 929
+#define GetSemaphoreParameterui64vEXT_remap_index 930
+#define GetUnsignedBytei_vEXT_remap_index 931
+#define GetUnsignedBytevEXT_remap_index 932
+#define IsMemoryObjectEXT_remap_index 933
+#define IsSemaphoreEXT_remap_index 934
+#define MemoryObjectParameterivEXT_remap_index 935
+#define NamedBufferStorageMemEXT_remap_index 936
+#define SemaphoreParameterui64vEXT_remap_index 937
+#define SignalSemaphoreEXT_remap_index 938
+#define TexStorageMem1DEXT_remap_index 939
+#define TexStorageMem2DEXT_remap_index 940
+#define TexStorageMem2DMultisampleEXT_remap_index 941
+#define TexStorageMem3DEXT_remap_index 942
+#define TexStorageMem3DMultisampleEXT_remap_index 943
+#define TextureStorageMem1DEXT_remap_index 944
+#define TextureStorageMem2DEXT_remap_index 945
+#define TextureStorageMem2DMultisampleEXT_remap_index 946
+#define TextureStorageMem3DEXT_remap_index 947
+#define TextureStorageMem3DMultisampleEXT_remap_index 948
+#define WaitSemaphoreEXT_remap_index 949
+#define ImportMemoryFdEXT_remap_index 950
+#define ImportSemaphoreFdEXT_remap_index 951
+#define StencilFuncSeparateATI_remap_index 952
+#define ProgramEnvParameters4fvEXT_remap_index 953
+#define ProgramLocalParameters4fvEXT_remap_index 954
+#define EGLImageTargetRenderbufferStorageOES_remap_index 955
+#define EGLImageTargetTexture2DOES_remap_index 956
+#define AlphaFuncx_remap_index 957
+#define ClearColorx_remap_index 958
+#define ClearDepthx_remap_index 959
+#define Color4x_remap_index 960
+#define DepthRangex_remap_index 961
+#define Fogx_remap_index 962
+#define Fogxv_remap_index 963
+#define Frustumf_remap_index 964
+#define Frustumx_remap_index 965
+#define LightModelx_remap_index 966
+#define LightModelxv_remap_index 967
+#define Lightx_remap_index 968
+#define Lightxv_remap_index 969
+#define LineWidthx_remap_index 970
+#define LoadMatrixx_remap_index 971
+#define Materialx_remap_index 972
+#define Materialxv_remap_index 973
+#define MultMatrixx_remap_index 974
+#define MultiTexCoord4x_remap_index 975
+#define Normal3x_remap_index 976
+#define Orthof_remap_index 977
+#define Orthox_remap_index 978
+#define PointSizex_remap_index 979
+#define PolygonOffsetx_remap_index 980
+#define Rotatex_remap_index 981
+#define SampleCoveragex_remap_index 982
+#define Scalex_remap_index 983
+#define TexEnvx_remap_index 984
+#define TexEnvxv_remap_index 985
+#define TexParameterx_remap_index 986
+#define Translatex_remap_index 987
+#define ClipPlanef_remap_index 988
+#define ClipPlanex_remap_index 989
+#define GetClipPlanef_remap_index 990
+#define GetClipPlanex_remap_index 991
+#define GetFixedv_remap_index 992
+#define GetLightxv_remap_index 993
+#define GetMaterialxv_remap_index 994
+#define GetTexEnvxv_remap_index 995
+#define GetTexParameterxv_remap_index 996
+#define PointParameterx_remap_index 997
+#define PointParameterxv_remap_index 998
+#define TexParameterxv_remap_index 999
+#define BlendBarrier_remap_index 1000
+#define PrimitiveBoundingBox_remap_index 1001
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2375,6 +2403,34 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_GetPerfQueryInfoINTEL driDispatchRemapTable[GetPerfQueryInfoINTEL_remap_index]
 #define _gloffset_PolygonOffsetClampEXT driDispatchRemapTable[PolygonOffsetClampEXT_remap_index]
 #define _gloffset_WindowRectanglesEXT driDispatchRemapTable[WindowRectanglesEXT_remap_index]
+#define _gloffset_BufferStorageMemEXT driDispatchRemapTable[BufferStorageMemEXT_remap_index]
+#define _gloffset_CreateMemoryObjectsEXT driDispatchRemapTable[CreateMemoryObjectsEXT_remap_index]
+#define _gloffset_DeleteMemoryObjectsEXT driDispatchRemapTable[DeleteMemoryObjectsEXT_remap_index]
+#define _gloffset_DeleteSemaphoresEXT driDispatchRemapTable[DeleteSemaphoresEXT_remap_index]
+#define _gloffset_GenSemaphoresEXT driDispatchRemapTable[GenSemaphoresEXT_remap_index]
+#define _gloffset_GetMemoryObjectParameterivEXT driDispatchRemapTable[GetMemoryObjectParameterivEXT_remap_index]
+#define _gloffset_GetSemaphoreParameterui64vEXT driDispatchRemapTable[GetSemaphoreParameterui64vEXT_remap_index]
+#define _gloffset_GetUnsignedBytei_vEXT driDispatchRemapTable[GetUnsignedBytei_vEXT_remap_index]
+#define _gloffset_GetUnsignedBytevEXT driDispatchRemapTable[GetUnsignedBytevEXT_remap_index]
+#define _gloffset_IsMemoryObjectEXT driDispatchRemapTable[IsMemoryObjectEXT_remap_index]
+#define _gloffset_IsSemaphoreEXT driDispatchRemapTable[IsSemaphoreEXT_remap_index]
+#define _gloffset_MemoryObjectParameterivEXT driDispatchRemapTable[MemoryObjectParameterivEXT_remap_index]
+#define _gloffset_NamedBufferStorageMemEXT driDispatchRemapTable[NamedBufferStorageMemEXT_remap_index]
+#define _gloffset_SemaphoreParameterui64vEXT driDispatchRemapTable[SemaphoreParameterui64vEXT_remap_index]
+#define _gloffset_SignalSemaphoreEXT driDispatchRemapTable[SignalSemaphoreEXT_remap_index]
+#define _gloffset_TexStorageMem1DEXT driDispatchRemapTable[TexStorageMem1DEXT_remap_index]
+#define _gloffset_TexStorageMem2DEXT driDispatchRemapTable[TexStorageMem2DEXT_remap_index]
+#define _gloffset_TexStorageMem2DMultisampleEXT driDispatchRemapTable[TexStorageMem2DMultisampleEXT_remap_index]
+#define _gloffset_TexStorageMem3DEXT driDispatchRemapTable[TexStorageMem3DEXT_remap_index]
+#define _gloffset_TexStorageMem3DMultisampleEXT driDispatchRemapTable[TexStorageMem3DMultisampleEXT_remap_index]
+#define _gloffset_TextureStorageMem1DEXT driDispatchRemapTable[TextureStorageMem1DEXT_remap_index]
+#define _gloffset_TextureStorageMem2DEXT driDispatchRemapTable[TextureStorageMem2DEXT_remap_index]
+#define _gloffset_TextureStorageMem2DMultisampleEXT driDispatchRemapTable[TextureStorageMem2DMultisampleEXT_remap_index]
+#define _gloffset_TextureStorageMem3DEXT driDispatchRemapTable[TextureStorageMem3DEXT_remap_index]
+#define _gloffset_TextureStorageMem3DMultisampleEXT driDispatchRemapTable[TextureStorageMem3DMultisampleEXT_remap_index]
+#define _gloffset_WaitSemaphoreEXT driDispatchRemapTable[WaitSemaphoreEXT_remap_index]
+#define _gloffset_ImportMemoryFdEXT driDispatchRemapTable[ImportMemoryFdEXT_remap_index]
+#define _gloffset_ImportSemaphoreFdEXT driDispatchRemapTable[ImportSemaphoreFdEXT_remap_index]
 #define _gloffset_StencilFuncSeparateATI driDispatchRemapTable[StencilFuncSeparateATI_remap_index]
 #define _gloffset_ProgramEnvParameters4fvEXT driDispatchRemapTable[ProgramEnvParameters4fvEXT_remap_index]
 #define _gloffset_ProgramLocalParameters4fvEXT driDispatchRemapTable[ProgramLocalParameters4fvEXT_remap_index]
@@ -17076,6 +17132,314 @@ static INLINE _glptr_WindowRectanglesEXT GET_WindowRectanglesEXT(struct _glapi_t
 
 static INLINE void SET_WindowRectanglesEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, const GLint *)) {
    SET_by_offset(disp, _gloffset_WindowRectanglesEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_BufferStorageMemEXT)(GLenum, GLsizeiptr, GLuint, GLuint64);
+#define CALL_BufferStorageMemEXT(disp, parameters) \
+    (* GET_BufferStorageMemEXT(disp)) parameters
+static INLINE _glptr_BufferStorageMemEXT GET_BufferStorageMemEXT(struct _glapi_table *disp) {
+   return (_glptr_BufferStorageMemEXT) (GET_by_offset(disp, _gloffset_BufferStorageMemEXT));
+}
+
+static INLINE void SET_BufferStorageMemEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizeiptr, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_BufferStorageMemEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CreateMemoryObjectsEXT)(GLsizei, GLuint *);
+#define CALL_CreateMemoryObjectsEXT(disp, parameters) \
+    (* GET_CreateMemoryObjectsEXT(disp)) parameters
+static INLINE _glptr_CreateMemoryObjectsEXT GET_CreateMemoryObjectsEXT(struct _glapi_table *disp) {
+   return (_glptr_CreateMemoryObjectsEXT) (GET_by_offset(disp, _gloffset_CreateMemoryObjectsEXT));
+}
+
+static INLINE void SET_CreateMemoryObjectsEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLsizei, GLuint *)) {
+   SET_by_offset(disp, _gloffset_CreateMemoryObjectsEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_DeleteMemoryObjectsEXT)(GLsizei, const GLuint *);
+#define CALL_DeleteMemoryObjectsEXT(disp, parameters) \
+    (* GET_DeleteMemoryObjectsEXT(disp)) parameters
+static INLINE _glptr_DeleteMemoryObjectsEXT GET_DeleteMemoryObjectsEXT(struct _glapi_table *disp) {
+   return (_glptr_DeleteMemoryObjectsEXT) (GET_by_offset(disp, _gloffset_DeleteMemoryObjectsEXT));
+}
+
+static INLINE void SET_DeleteMemoryObjectsEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLsizei, const GLuint *)) {
+   SET_by_offset(disp, _gloffset_DeleteMemoryObjectsEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_DeleteSemaphoresEXT)(GLsizei, const GLuint *);
+#define CALL_DeleteSemaphoresEXT(disp, parameters) \
+    (* GET_DeleteSemaphoresEXT(disp)) parameters
+static INLINE _glptr_DeleteSemaphoresEXT GET_DeleteSemaphoresEXT(struct _glapi_table *disp) {
+   return (_glptr_DeleteSemaphoresEXT) (GET_by_offset(disp, _gloffset_DeleteSemaphoresEXT));
+}
+
+static INLINE void SET_DeleteSemaphoresEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLsizei, const GLuint *)) {
+   SET_by_offset(disp, _gloffset_DeleteSemaphoresEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GenSemaphoresEXT)(GLsizei, GLuint *);
+#define CALL_GenSemaphoresEXT(disp, parameters) \
+    (* GET_GenSemaphoresEXT(disp)) parameters
+static INLINE _glptr_GenSemaphoresEXT GET_GenSemaphoresEXT(struct _glapi_table *disp) {
+   return (_glptr_GenSemaphoresEXT) (GET_by_offset(disp, _gloffset_GenSemaphoresEXT));
+}
+
+static INLINE void SET_GenSemaphoresEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLsizei, GLuint *)) {
+   SET_by_offset(disp, _gloffset_GenSemaphoresEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMemoryObjectParameterivEXT)(GLuint, GLenum, GLint *);
+#define CALL_GetMemoryObjectParameterivEXT(disp, parameters) \
+    (* GET_GetMemoryObjectParameterivEXT(disp)) parameters
+static INLINE _glptr_GetMemoryObjectParameterivEXT GET_GetMemoryObjectParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMemoryObjectParameterivEXT) (GET_by_offset(disp, _gloffset_GetMemoryObjectParameterivEXT));
+}
+
+static INLINE void SET_GetMemoryObjectParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint *)) {
+   SET_by_offset(disp, _gloffset_GetMemoryObjectParameterivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetSemaphoreParameterui64vEXT)(GLuint, GLenum, GLuint64 *);
+#define CALL_GetSemaphoreParameterui64vEXT(disp, parameters) \
+    (* GET_GetSemaphoreParameterui64vEXT(disp)) parameters
+static INLINE _glptr_GetSemaphoreParameterui64vEXT GET_GetSemaphoreParameterui64vEXT(struct _glapi_table *disp) {
+   return (_glptr_GetSemaphoreParameterui64vEXT) (GET_by_offset(disp, _gloffset_GetSemaphoreParameterui64vEXT));
+}
+
+static INLINE void SET_GetSemaphoreParameterui64vEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLuint64 *)) {
+   SET_by_offset(disp, _gloffset_GetSemaphoreParameterui64vEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetUnsignedBytei_vEXT)(GLenum, GLuint, GLubyte *);
+#define CALL_GetUnsignedBytei_vEXT(disp, parameters) \
+    (* GET_GetUnsignedBytei_vEXT(disp)) parameters
+static INLINE _glptr_GetUnsignedBytei_vEXT GET_GetUnsignedBytei_vEXT(struct _glapi_table *disp) {
+   return (_glptr_GetUnsignedBytei_vEXT) (GET_by_offset(disp, _gloffset_GetUnsignedBytei_vEXT));
+}
+
+static INLINE void SET_GetUnsignedBytei_vEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLuint, GLubyte *)) {
+   SET_by_offset(disp, _gloffset_GetUnsignedBytei_vEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetUnsignedBytevEXT)(GLenum, GLubyte *);
+#define CALL_GetUnsignedBytevEXT(disp, parameters) \
+    (* GET_GetUnsignedBytevEXT(disp)) parameters
+static INLINE _glptr_GetUnsignedBytevEXT GET_GetUnsignedBytevEXT(struct _glapi_table *disp) {
+   return (_glptr_GetUnsignedBytevEXT) (GET_by_offset(disp, _gloffset_GetUnsignedBytevEXT));
+}
+
+static INLINE void SET_GetUnsignedBytevEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLubyte *)) {
+   SET_by_offset(disp, _gloffset_GetUnsignedBytevEXT, fn);
+}
+
+typedef GLboolean (GLAPIENTRYP _glptr_IsMemoryObjectEXT)(GLuint);
+#define CALL_IsMemoryObjectEXT(disp, parameters) \
+    (* GET_IsMemoryObjectEXT(disp)) parameters
+static INLINE _glptr_IsMemoryObjectEXT GET_IsMemoryObjectEXT(struct _glapi_table *disp) {
+   return (_glptr_IsMemoryObjectEXT) (GET_by_offset(disp, _gloffset_IsMemoryObjectEXT));
+}
+
+static INLINE void SET_IsMemoryObjectEXT(struct _glapi_table *disp, GLboolean (GLAPIENTRYP fn)(GLuint)) {
+   SET_by_offset(disp, _gloffset_IsMemoryObjectEXT, fn);
+}
+
+typedef GLboolean (GLAPIENTRYP _glptr_IsSemaphoreEXT)(GLuint);
+#define CALL_IsSemaphoreEXT(disp, parameters) \
+    (* GET_IsSemaphoreEXT(disp)) parameters
+static INLINE _glptr_IsSemaphoreEXT GET_IsSemaphoreEXT(struct _glapi_table *disp) {
+   return (_glptr_IsSemaphoreEXT) (GET_by_offset(disp, _gloffset_IsSemaphoreEXT));
+}
+
+static INLINE void SET_IsSemaphoreEXT(struct _glapi_table *disp, GLboolean (GLAPIENTRYP fn)(GLuint)) {
+   SET_by_offset(disp, _gloffset_IsSemaphoreEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MemoryObjectParameterivEXT)(GLuint, GLenum, const GLint *);
+#define CALL_MemoryObjectParameterivEXT(disp, parameters) \
+    (* GET_MemoryObjectParameterivEXT(disp)) parameters
+static INLINE _glptr_MemoryObjectParameterivEXT GET_MemoryObjectParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_MemoryObjectParameterivEXT) (GET_by_offset(disp, _gloffset_MemoryObjectParameterivEXT));
+}
+
+static INLINE void SET_MemoryObjectParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, const GLint *)) {
+   SET_by_offset(disp, _gloffset_MemoryObjectParameterivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_NamedBufferStorageMemEXT)(GLuint, GLsizeiptr, GLuint, GLuint64);
+#define CALL_NamedBufferStorageMemEXT(disp, parameters) \
+    (* GET_NamedBufferStorageMemEXT(disp)) parameters
+static INLINE _glptr_NamedBufferStorageMemEXT GET_NamedBufferStorageMemEXT(struct _glapi_table *disp) {
+   return (_glptr_NamedBufferStorageMemEXT) (GET_by_offset(disp, _gloffset_NamedBufferStorageMemEXT));
+}
+
+static INLINE void SET_NamedBufferStorageMemEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizeiptr, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_NamedBufferStorageMemEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_SemaphoreParameterui64vEXT)(GLuint, GLenum, const GLuint64 *);
+#define CALL_SemaphoreParameterui64vEXT(disp, parameters) \
+    (* GET_SemaphoreParameterui64vEXT(disp)) parameters
+static INLINE _glptr_SemaphoreParameterui64vEXT GET_SemaphoreParameterui64vEXT(struct _glapi_table *disp) {
+   return (_glptr_SemaphoreParameterui64vEXT) (GET_by_offset(disp, _gloffset_SemaphoreParameterui64vEXT));
+}
+
+static INLINE void SET_SemaphoreParameterui64vEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, const GLuint64 *)) {
+   SET_by_offset(disp, _gloffset_SemaphoreParameterui64vEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_SignalSemaphoreEXT)(GLuint, GLuint, const GLuint *, GLuint, const GLuint *, const GLenum *);
+#define CALL_SignalSemaphoreEXT(disp, parameters) \
+    (* GET_SignalSemaphoreEXT(disp)) parameters
+static INLINE _glptr_SignalSemaphoreEXT GET_SignalSemaphoreEXT(struct _glapi_table *disp) {
+   return (_glptr_SignalSemaphoreEXT) (GET_by_offset(disp, _gloffset_SignalSemaphoreEXT));
+}
+
+static INLINE void SET_SignalSemaphoreEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, const GLuint *, GLuint, const GLuint *, const GLenum *)) {
+   SET_by_offset(disp, _gloffset_SignalSemaphoreEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexStorageMem1DEXT)(GLenum, GLsizei, GLenum, GLsizei, GLuint, GLuint64);
+#define CALL_TexStorageMem1DEXT(disp, parameters) \
+    (* GET_TexStorageMem1DEXT(disp)) parameters
+static INLINE _glptr_TexStorageMem1DEXT GET_TexStorageMem1DEXT(struct _glapi_table *disp) {
+   return (_glptr_TexStorageMem1DEXT) (GET_by_offset(disp, _gloffset_TexStorageMem1DEXT));
+}
+
+static INLINE void SET_TexStorageMem1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TexStorageMem1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexStorageMem2DEXT)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLuint, GLuint64);
+#define CALL_TexStorageMem2DEXT(disp, parameters) \
+    (* GET_TexStorageMem2DEXT(disp)) parameters
+static INLINE _glptr_TexStorageMem2DEXT GET_TexStorageMem2DEXT(struct _glapi_table *disp) {
+   return (_glptr_TexStorageMem2DEXT) (GET_by_offset(disp, _gloffset_TexStorageMem2DEXT));
+}
+
+static INLINE void SET_TexStorageMem2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TexStorageMem2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexStorageMem2DMultisampleEXT)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLboolean, GLuint, GLuint64);
+#define CALL_TexStorageMem2DMultisampleEXT(disp, parameters) \
+    (* GET_TexStorageMem2DMultisampleEXT(disp)) parameters
+static INLINE _glptr_TexStorageMem2DMultisampleEXT GET_TexStorageMem2DMultisampleEXT(struct _glapi_table *disp) {
+   return (_glptr_TexStorageMem2DMultisampleEXT) (GET_by_offset(disp, _gloffset_TexStorageMem2DMultisampleEXT));
+}
+
+static INLINE void SET_TexStorageMem2DMultisampleEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLboolean, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TexStorageMem2DMultisampleEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexStorageMem3DEXT)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLuint, GLuint64);
+#define CALL_TexStorageMem3DEXT(disp, parameters) \
+    (* GET_TexStorageMem3DEXT(disp)) parameters
+static INLINE _glptr_TexStorageMem3DEXT GET_TexStorageMem3DEXT(struct _glapi_table *disp) {
+   return (_glptr_TexStorageMem3DEXT) (GET_by_offset(disp, _gloffset_TexStorageMem3DEXT));
+}
+
+static INLINE void SET_TexStorageMem3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TexStorageMem3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexStorageMem3DMultisampleEXT)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLboolean, GLuint, GLuint64);
+#define CALL_TexStorageMem3DMultisampleEXT(disp, parameters) \
+    (* GET_TexStorageMem3DMultisampleEXT(disp)) parameters
+static INLINE _glptr_TexStorageMem3DMultisampleEXT GET_TexStorageMem3DMultisampleEXT(struct _glapi_table *disp) {
+   return (_glptr_TexStorageMem3DMultisampleEXT) (GET_by_offset(disp, _gloffset_TexStorageMem3DMultisampleEXT));
+}
+
+static INLINE void SET_TexStorageMem3DMultisampleEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLboolean, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TexStorageMem3DMultisampleEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureStorageMem1DEXT)(GLuint, GLsizei, GLenum, GLsizei, GLuint, GLuint64);
+#define CALL_TextureStorageMem1DEXT(disp, parameters) \
+    (* GET_TextureStorageMem1DEXT(disp)) parameters
+static INLINE _glptr_TextureStorageMem1DEXT GET_TextureStorageMem1DEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureStorageMem1DEXT) (GET_by_offset(disp, _gloffset_TextureStorageMem1DEXT));
+}
+
+static INLINE void SET_TextureStorageMem1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, GLenum, GLsizei, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TextureStorageMem1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureStorageMem2DEXT)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLuint, GLuint64);
+#define CALL_TextureStorageMem2DEXT(disp, parameters) \
+    (* GET_TextureStorageMem2DEXT(disp)) parameters
+static INLINE _glptr_TextureStorageMem2DEXT GET_TextureStorageMem2DEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureStorageMem2DEXT) (GET_by_offset(disp, _gloffset_TextureStorageMem2DEXT));
+}
+
+static INLINE void SET_TextureStorageMem2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TextureStorageMem2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureStorageMem2DMultisampleEXT)(GLuint, GLsizei, GLenum, GLsizei, GLsizei, GLboolean, GLuint, GLuint64);
+#define CALL_TextureStorageMem2DMultisampleEXT(disp, parameters) \
+    (* GET_TextureStorageMem2DMultisampleEXT(disp)) parameters
+static INLINE _glptr_TextureStorageMem2DMultisampleEXT GET_TextureStorageMem2DMultisampleEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureStorageMem2DMultisampleEXT) (GET_by_offset(disp, _gloffset_TextureStorageMem2DMultisampleEXT));
+}
+
+static INLINE void SET_TextureStorageMem2DMultisampleEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, GLenum, GLsizei, GLsizei, GLboolean, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TextureStorageMem2DMultisampleEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureStorageMem3DEXT)(GLuint, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLuint, GLuint64);
+#define CALL_TextureStorageMem3DEXT(disp, parameters) \
+    (* GET_TextureStorageMem3DEXT(disp)) parameters
+static INLINE _glptr_TextureStorageMem3DEXT GET_TextureStorageMem3DEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureStorageMem3DEXT) (GET_by_offset(disp, _gloffset_TextureStorageMem3DEXT));
+}
+
+static INLINE void SET_TextureStorageMem3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TextureStorageMem3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureStorageMem3DMultisampleEXT)(GLuint, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLboolean, GLuint, GLuint64);
+#define CALL_TextureStorageMem3DMultisampleEXT(disp, parameters) \
+    (* GET_TextureStorageMem3DMultisampleEXT(disp)) parameters
+static INLINE _glptr_TextureStorageMem3DMultisampleEXT GET_TextureStorageMem3DMultisampleEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureStorageMem3DMultisampleEXT) (GET_by_offset(disp, _gloffset_TextureStorageMem3DMultisampleEXT));
+}
+
+static INLINE void SET_TextureStorageMem3DMultisampleEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLboolean, GLuint, GLuint64)) {
+   SET_by_offset(disp, _gloffset_TextureStorageMem3DMultisampleEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_WaitSemaphoreEXT)(GLuint, GLuint, const GLuint *, GLuint, const GLuint *, const GLenum *);
+#define CALL_WaitSemaphoreEXT(disp, parameters) \
+    (* GET_WaitSemaphoreEXT(disp)) parameters
+static INLINE _glptr_WaitSemaphoreEXT GET_WaitSemaphoreEXT(struct _glapi_table *disp) {
+   return (_glptr_WaitSemaphoreEXT) (GET_by_offset(disp, _gloffset_WaitSemaphoreEXT));
+}
+
+static INLINE void SET_WaitSemaphoreEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, const GLuint *, GLuint, const GLuint *, const GLenum *)) {
+   SET_by_offset(disp, _gloffset_WaitSemaphoreEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_ImportMemoryFdEXT)(GLuint, GLuint64, GLenum, GLint);
+#define CALL_ImportMemoryFdEXT(disp, parameters) \
+    (* GET_ImportMemoryFdEXT(disp)) parameters
+static INLINE _glptr_ImportMemoryFdEXT GET_ImportMemoryFdEXT(struct _glapi_table *disp) {
+   return (_glptr_ImportMemoryFdEXT) (GET_by_offset(disp, _gloffset_ImportMemoryFdEXT));
+}
+
+static INLINE void SET_ImportMemoryFdEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint64, GLenum, GLint)) {
+   SET_by_offset(disp, _gloffset_ImportMemoryFdEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_ImportSemaphoreFdEXT)(GLuint, GLenum, GLint);
+#define CALL_ImportSemaphoreFdEXT(disp, parameters) \
+    (* GET_ImportSemaphoreFdEXT(disp)) parameters
+static INLINE _glptr_ImportSemaphoreFdEXT GET_ImportSemaphoreFdEXT(struct _glapi_table *disp) {
+   return (_glptr_ImportSemaphoreFdEXT) (GET_by_offset(disp, _gloffset_ImportSemaphoreFdEXT));
+}
+
+static INLINE void SET_ImportSemaphoreFdEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint)) {
+   SET_by_offset(disp, _gloffset_ImportSemaphoreFdEXT, fn);
 }
 
 typedef void (GLAPIENTRYP _glptr_StencilFuncSeparateATI)(GLenum, GLenum, GLint, GLuint);
