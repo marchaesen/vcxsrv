@@ -48,15 +48,13 @@
 #include <string.h>
 #include "glapi/glapi_priv.h"
 
-#undef _GLAPI_EXPORT
-#define _GLAPI_EXPORT
 
-void _GLAPI_EXPORT
+void
 _glapi_noop_enable_warnings(unsigned char enable)
 {
 }
 
-void _GLAPI_EXPORT
+void
 _glapi_set_warning_func(_glapi_proc func)
 {
 }
@@ -72,7 +70,7 @@ static _glapi_nop_handler_proc nop_handler = NULL;
 /**
  * Register the no-op handler call-back function.
  */
-_GLAPI_EXPORT void
+void
 _glapi_set_nop_handler(_glapi_nop_handler_proc func)
 {
    nop_handler = func;
@@ -122,7 +120,7 @@ NoOpUnused(void)
 
 
 /** Return pointer to new dispatch table filled with no-op functions */
-struct _glapi_table * _GLAPI_EXPORT
+struct _glapi_table *
 _glapi_new_nop_table(unsigned num_entries)
 {
    struct _glapi_table *table = malloc(num_entries * sizeof(_glapi_proc));
