@@ -116,10 +116,6 @@ driCreateNewScreen2(int scrn, int fd,
 {
     static const __DRIextension *emptyExtensionList[] = { NULL };
     __DRIscreen *psp;
-    struct gl_constants consts = { 0 };
-    gl_api api;
-    unsigned version;
-    int i;
 
     psp = calloc(1, sizeof(*psp));
     if (!psp)
@@ -132,7 +128,7 @@ driCreateNewScreen2(int scrn, int fd,
      * (megadrivers), use that instead.
      */
     if (driver_extensions) {
-       for (i = 0; driver_extensions[i]; i++) {
+       for (int i = 0; driver_extensions[i]; i++) {
           if (strcmp(driver_extensions[i]->name, __DRI_DRIVER_VTABLE) == 0) {
              psp->driver =
                 ((__DRIDriverVtableExtension *)driver_extensions[i])->vtable;
@@ -153,6 +149,10 @@ driCreateNewScreen2(int scrn, int fd,
 	free(psp);
 	return NULL;
     }
+
+    struct gl_constants consts = { 0 };
+    gl_api api;
+    unsigned version;
 
     api = API_OPENGLES2;
     if (_mesa_override_gl_version_contextless(&consts, &api, &version))
@@ -306,8 +306,6 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
     unsigned minor_version = 0;
     uint32_t flags = 0;
     bool notify_reset = false;
-    unsigned i;
-    struct gl_context *ctx;
 
     assert((num_attribs == 0) || (attribs != NULL));
 
@@ -335,7 +333,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
 	return NULL;
     }
 
-    for (i = 0; i < num_attribs; i++) {
+    for (unsigned i = 0; i < num_attribs; i++) {
 	switch (attribs[i * 2]) {
 	case __DRI_CTX_ATTRIB_MAJOR_VERSION:
 	    major_version = attribs[i * 2 + 1];
