@@ -41,7 +41,7 @@
  * \param id - the new object's ID
  * \return pointer to new query_object object or NULL if out of memory.
  */
-struct gl_query_object *
+static struct gl_query_object *
 _mesa_new_query_object(struct gl_context *ctx, GLuint id)
 {
    struct gl_query_object *q = CALLOC_STRUCT(gl_query_object);
@@ -73,7 +73,7 @@ _mesa_new_query_object(struct gl_context *ctx, GLuint id)
  * Begin a query.  Software driver fallback.
  * Called via ctx->Driver.BeginQuery().
  */
-void
+static void
 _mesa_begin_query(struct gl_context *ctx, struct gl_query_object *q)
 {
    ctx->NewState |= _NEW_DEPTH; /* for swrast */
@@ -84,7 +84,7 @@ _mesa_begin_query(struct gl_context *ctx, struct gl_query_object *q)
  * End a query.  Software driver fallback.
  * Called via ctx->Driver.EndQuery().
  */
-void
+static void
 _mesa_end_query(struct gl_context *ctx, struct gl_query_object *q)
 {
    ctx->NewState |= _NEW_DEPTH; /* for swrast */
@@ -96,7 +96,7 @@ _mesa_end_query(struct gl_context *ctx, struct gl_query_object *q)
  * Wait for query to complete.  Software driver fallback.
  * Called via ctx->Driver.WaitQuery().
  */
-void
+static void
 _mesa_wait_query(struct gl_context *ctx, struct gl_query_object *q)
 {
    /* For software drivers, _mesa_end_query() should have completed the query.
@@ -124,7 +124,7 @@ _mesa_check_query(struct gl_context *ctx, struct gl_query_object *q)
  * Delete a query object.  Called via ctx->Driver.DeleteQuery().
  * Not removed from hash table here.
  */
-void
+static void
 _mesa_delete_query(struct gl_context *ctx, struct gl_query_object *q)
 {
    free(q->Label);
