@@ -275,7 +275,7 @@ swrastFillInModes(__DRIscreen *psp,
 	format = MESA_FORMAT_B8G8R8A8_UNORM;
 	break;
     default:
-	fprintf(stderr, "[%s:%u] bad depth %d\n", __FUNCTION__, __LINE__,
+	fprintf(stderr, "[%s:%u] bad depth %d\n", __func__, __LINE__,
 		pixel_bits);
 	return NULL;
     }
@@ -286,7 +286,7 @@ swrastFillInModes(__DRIscreen *psp,
 			       back_buffer_factor, msaa_samples_array, 1,
 			       GL_TRUE, GL_FALSE);
     if (configs == NULL) {
-	fprintf(stderr, "[%s:%u] Error creating FBConfig!\n", __FUNCTION__,
+	fprintf(stderr, "[%s:%u] Error creating FBConfig!\n", __func__,
 		__LINE__);
 	return NULL;
     }
