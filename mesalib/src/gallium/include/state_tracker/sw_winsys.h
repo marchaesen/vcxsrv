@@ -90,6 +90,7 @@ struct sw_winsys
                             enum pipe_format format,
                             unsigned width, unsigned height,
                             unsigned alignment,
+                            const void *front_private,
                             unsigned *stride );
 
    /**

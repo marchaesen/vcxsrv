@@ -57,6 +57,8 @@ struct pipe_resource;
 struct pipe_surface;
 struct pipe_transfer;
 struct pipe_box;
+struct pipe_memory_info;
+struct disk_cache;
 
 
 /**
@@ -70,6 +72,14 @@ struct pipe_screen {
    const char *(*get_name)( struct pipe_screen * );
 
    const char *(*get_vendor)( struct pipe_screen * );
+
+   /**
+    * Returns the device vendor.
+    *
+    * The returned value should return the actual device vendor/manufacturer,
+    * rather than a potentially generic driver string.
+    */
+   const char *(*get_device_vendor)( struct pipe_screen * );
 
    /**
     * Query an integer-valued capability/parameter/limit
@@ -87,7 +97,8 @@ struct pipe_screen {
     * Query a per-shader-stage integer-valued capability/parameter/limit
     * \param param  one of PIPE_CAP_x
     */
-   int (*get_shader_param)( struct pipe_screen *, unsigned shader, enum pipe_shader_cap param );
+   int (*get_shader_param)( struct pipe_screen *, enum pipe_shader_type shader,
+                            enum pipe_shader_cap param );
 
    /**
     * Query an integer-valued capability/parameter/limit for a codec/profile
@@ -100,13 +111,16 @@ struct pipe_screen {
 
    /**
     * Query a compute-specific capability/parameter/limit.
-    * \param param  one of PIPE_COMPUTE_CAP_x
-    * \param ret    pointer to a preallocated buffer that will be
-    *               initialized to the parameter value, or NULL.
-    * \return       size in bytes of the parameter value that would be
-    *               returned.
+    * \param ir_type shader IR type for which the param applies, or don't care
+    *                if the param is not shader related
+    * \param param   one of PIPE_COMPUTE_CAP_x
+    * \param ret     pointer to a preallocated buffer that will be
+    *                initialized to the parameter value, or NULL.
+    * \return        size in bytes of the parameter value that would be
+    *                returned.
     */
    int (*get_compute_param)(struct pipe_screen *,
+			    enum pipe_shader_ir ir_type,
 			    enum pipe_compute_cap param,
 			    void *ret);
 
@@ -117,8 +131,15 @@ struct pipe_screen {
     */
    uint64_t (*get_timestamp)(struct pipe_screen *);
 
-   struct pipe_context * (*context_create)( struct pipe_screen *,
-					    void *priv );
+   /**
+    * Create a context.
+    *
+    * \param screen      pipe screen
+    * \param priv        a pointer to set in pipe_context::priv
+    * \param flags       a mask of PIPE_CONTEXT_* flags
+    */
+   struct pipe_context * (*context_create)(struct pipe_screen *screen,
+					   void *priv, unsigned flags);
 
    /**
     * Check if the given pipe_format is supported as a texture or
@@ -147,21 +168,32 @@ struct pipe_screen {
     */
    boolean (*can_create_resource)(struct pipe_screen *screen,
                                   const struct pipe_resource *templat);
-                               
+
    /**
     * Create a new texture object, using the given template info.
     */
    struct pipe_resource * (*resource_create)(struct pipe_screen *,
 					     const struct pipe_resource *templat);
 
+   struct pipe_resource * (*resource_create_front)(struct pipe_screen *,
+                                                   const struct pipe_resource *templat,
+                                                   const void *map_front_private);
+
    /**
     * Create a texture from a winsys_handle. The handle is often created in
     * another process by first creating a pipe texture and then calling
     * resource_get_handle.
+    *
+    * NOTE: in the case of DRM_API_HANDLE_TYPE_FD handles, the caller
+    * retains ownership of the FD.  (This is consistent with
+    * EGL_EXT_image_dma_buf_import)
+    *
+    * \param usage  A combination of PIPE_HANDLE_USAGE_* flags.
     */
    struct pipe_resource * (*resource_from_handle)(struct pipe_screen *,
 						  const struct pipe_resource *templat,
-						  struct winsys_handle *handle);
+						  struct winsys_handle *handle,
+						  unsigned usage);
 
    /**
     * Create a resource from user memory. This maps the user memory into
@@ -175,11 +207,33 @@ struct pipe_screen {
     * Get a winsys_handle from a texture. Some platforms/winsys requires
     * that the texture is created with a special usage flag like
     * DISPLAYTARGET or PRIMARY.
+    *
+    * The context parameter can optionally be used to flush the resource and
+    * the context to make sure the resource is coherent with whatever user
+    * will use it. Some drivers may also use the context to convert
+    * the resource into a format compatible for sharing. The use case is
+    * OpenGL-OpenCL interop. The context parameter is allowed to be NULL.
+    *
+    * NOTE: in the case of DRM_API_HANDLE_TYPE_FD handles, the caller
+    * takes ownership of the FD.  (This is consistent with
+    * EGL_MESA_image_dma_buf_export)
+    *
+    * \param usage  A combination of PIPE_HANDLE_USAGE_* flags.
     */
    boolean (*resource_get_handle)(struct pipe_screen *,
+                                  struct pipe_context *context,
 				  struct pipe_resource *tex,
-				  struct winsys_handle *handle);
+				  struct winsys_handle *handle,
+				  unsigned usage);
 
+   /**
+    * Mark the resource as changed so derived internal resources will be
+    * recreated on next use.
+    *
+    * This is necessary when reimporting external images that can't be directly
+    * used as texture sampler source, to avoid sampling from old copies.
+    */
+   void (*resource_changed)(struct pipe_screen *, struct pipe_resource *pt);
 
    void (*resource_destroy)(struct pipe_screen *,
 			    struct pipe_resource *pt);
@@ -204,18 +258,31 @@ struct pipe_screen {
                             struct pipe_fence_handle *fence );
 
    /**
-    * Checks whether the fence has been signalled.
-    */
-   boolean (*fence_signalled)( struct pipe_screen *screen,
-                               struct pipe_fence_handle *fence );
-
-   /**
     * Wait for the fence to finish.
+    *
+    * If the fence was created with PIPE_FLUSH_DEFERRED, and the context is
+    * still unflushed, and the ctx parameter of fence_finish is equal to
+    * the context where the fence was created, fence_finish will flush
+    * the context prior to waiting for the fence.
+    *
+    * In all other cases, the ctx parameter has no effect.
+    *
     * \param timeout  in nanoseconds (may be PIPE_TIMEOUT_INFINITE).
     */
-   boolean (*fence_finish)( struct pipe_screen *screen,
-                            struct pipe_fence_handle *fence,
-                            uint64_t timeout );
+   boolean (*fence_finish)(struct pipe_screen *screen,
+                           struct pipe_context *ctx,
+                           struct pipe_fence_handle *fence,
+                           uint64_t timeout);
+
+   /**
+    * For fences created with PIPE_FLUSH_FENCE_FD (exported fd) or
+    * by create_fence_fd() (imported fd), return the native fence fd
+    * associated with the fence.  This may return -1 for fences
+    * created with PIPE_FLUSH_DEFERRED if the fence command has not
+    * been flushed yet.
+    */
+   int (*fence_get_fd)(struct pipe_screen *screen,
+                       struct pipe_fence_handle *fence);
 
    /**
     * Returns a driver-specific query.
@@ -228,6 +295,68 @@ struct pipe_screen {
                                 unsigned index,
                                 struct pipe_driver_query_info *info);
 
+   /**
+    * Returns a driver-specific query group.
+    *
+    * If \p info is NULL, the number of available groups is returned.
+    * Otherwise, the driver query group at the specified \p index is returned
+    * in \p info. The function returns non-zero on success.
+    */
+   int (*get_driver_query_group_info)(struct pipe_screen *screen,
+                                      unsigned index,
+                                      struct pipe_driver_query_group_info *info);
+
+   /**
+    * Query information about memory usage.
+    */
+   void (*query_memory_info)(struct pipe_screen *screen,
+                             struct pipe_memory_info *info);
+
+   /**
+    * Get IR specific compiler options struct.  For PIPE_SHADER_IR_NIR this
+    * returns a 'struct nir_shader_compiler_options'.  Drivers reporting
+    * NIR as the preferred IR must implement this.
+    */
+   const void *(*get_compiler_options)(struct pipe_screen *screen,
+                                      enum pipe_shader_ir ir,
+                                      enum pipe_shader_type shader);
+
+   /**
+    * Returns a pointer to a driver-specific on-disk shader cache. If the
+    * driver failed to create the cache or does not support an on-disk shader
+    * cache NULL is returned. The callback itself may also be NULL if the
+    * driver doesn't support an on-disk shader cache.
+    */
+   struct disk_cache *(*get_disk_shader_cache)(struct pipe_screen *screen);
+
+   /**
+    * Create a new texture object from the given template info, taking
+    * format modifiers into account. \p modifiers specifies a list of format
+    * modifier tokens, as defined in drm_fourcc.h. The driver then picks the
+    * best modifier among these and creates the resource. \p count must
+    * contain the size of \p modifiers array.
+    *
+    * Returns NULL if an entry in \p modifiers is unsupported by the driver,
+    * or if only DRM_FORMAT_MOD_INVALID is provided.
+    */
+   struct pipe_resource * (*resource_create_with_modifiers)(
+                           struct pipe_screen *,
+                           const struct pipe_resource *templat,
+                           const uint64_t *modifiers, int count);
+
+   /**
+    * Get supported modifiers for a format.
+    * If \p max is 0, the total number of supported modifiers for the supplied
+    * format is returned in \p count, with no modification to \p modifiers.
+    * Otherwise, \p modifiers is filled with upto \p max supported modifier
+    * codes, and \p count with the number of modifiers copied.
+    * The \p external_only array is used to return whether the format and
+    * modifier combination can only be used with an external texture target.
+    */
+   void (*query_dmabuf_modifiers)(struct pipe_screen *screen,
+                                  enum pipe_format format, int max,
+                                  uint64_t *modifiers,
+                                  unsigned int *external_only, int *count);
 };
 
 

@@ -1,6 +1,6 @@
 /**************************************************************************
  *
- * Copyright 2013 Advanced Micro Devices, Inc.
+ * Copyright 2015 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -25,30 +25,16 @@
  *
  **************************************************************************/
 
-/*
- * Authors:
- *      Christian König <christian.koenig@amd.com>
- *
+#ifndef OPENCL_INTEROP_H
+#define OPENCL_INTEROP_H
+
+/* dlsym these without the "_t" suffix. You should get the correct symbols
+ * if the OpenCL driver is loaded.
  */
 
-#ifndef _VDPAU_INTEROP_H_
-#define _VDPAU_INTEROP_H_
+typedef bool (*opencl_dri_event_add_ref_t)(void *cl_event);
+typedef bool (*opencl_dri_event_release_t)(void *cl_event);
+typedef bool (*opencl_dri_event_wait_t)(void *cl_event, uint64_t timeout);
+typedef struct pipe_fence_handle *(*opencl_dri_event_get_fence_t)(void *cl_event);
 
-/* driver specific functions for NV_vdpau_interop */
-#ifndef VDP_FUNC_ID_BASE_DRIVER
-#define VDP_FUNC_ID_BASE_DRIVER 0x2000
-#endif
-
-/* Older implementation relying on passing pipe_video_buffer and
- * pipe_resources around. Deprecated and shouldn't be used for new things.
- */
-#define VDP_FUNC_ID_VIDEO_SURFACE_GALLIUM (VDP_FUNC_ID_BASE_DRIVER + 0)
-#define VDP_FUNC_ID_OUTPUT_SURFACE_GALLIUM (VDP_FUNC_ID_BASE_DRIVER + 1)
-
-struct pipe_resource;
-struct pipe_video_buffer;
-
-typedef struct pipe_video_buffer *VdpVideoSurfaceGallium(uint32_t surface);
-typedef struct pipe_resource *VdpOutputSurfaceGallium(uint32_t surface);
-
-#endif /* _VDPAU_INTEROP_H_ */
+#endif /* OPENCL_INTEROP_H */

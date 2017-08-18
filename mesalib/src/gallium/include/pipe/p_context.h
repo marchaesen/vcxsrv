@@ -32,6 +32,7 @@
 #include "p_format.h"
 #include "p_video_enums.h"
 #include "p_defines.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,11 +45,14 @@ struct pipe_blit_info;
 struct pipe_box;
 struct pipe_clip_state;
 struct pipe_constant_buffer;
+struct pipe_debug_callback;
 struct pipe_depth_stencil_alpha_state;
+struct pipe_device_reset_callback;
 struct pipe_draw_info;
+struct pipe_grid_info;
 struct pipe_fence_handle;
 struct pipe_framebuffer_state;
-struct pipe_index_buffer;
+struct pipe_image_view;
 struct pipe_query;
 struct pipe_poly_stipple;
 struct pipe_rasterizer_state;
@@ -57,6 +61,7 @@ struct pipe_resource;
 struct pipe_sampler_state;
 struct pipe_sampler_view;
 struct pipe_scissor_state;
+struct pipe_shader_buffer;
 struct pipe_shader_state;
 struct pipe_stencil_ref;
 struct pipe_stream_output_target;
@@ -70,6 +75,7 @@ struct pipe_viewport_state;
 struct pipe_compute_state;
 union pipe_color_union;
 union pipe_query_result;
+struct u_upload_mgr;
 
 /**
  * Gallium rendering context.  Basically:
@@ -82,6 +88,16 @@ struct pipe_context {
 
    void *priv;  /**< context private data (for DRI for example) */
    void *draw;  /**< private, for draw module (temporary?) */
+
+   /**
+    * Stream uploaders created by the driver. All drivers, state trackers, and
+    * modules should use them.
+    *
+    * Use u_upload_alloc or u_upload_data as many times as you want.
+    * Once you are done, use u_upload_unmap.
+    */
+   struct u_upload_mgr *stream_uploader; /* everything but shader constants */
+   struct u_upload_mgr *const_uploader;  /* shader constants only */
 
    void (*destroy)( struct pipe_context * );
 
@@ -102,7 +118,7 @@ struct pipe_context {
    void (*render_condition)( struct pipe_context *pipe,
                              struct pipe_query *query,
                              boolean condition,
-                             uint mode );
+                             enum pipe_render_cond_flag mode );
 
    /**
     * Query objects
@@ -112,11 +128,30 @@ struct pipe_context {
                                        unsigned query_type,
                                        unsigned index );
 
+   /**
+    * Create a query object that queries all given query types simultaneously.
+    *
+    * This can only be used for those query types for which
+    * get_driver_query_info indicates that it must be used. Only one batch
+    * query object may be active at a time.
+    *
+    * There may be additional constraints on which query types can be used
+    * together, in particular those that are implied by
+    * get_driver_query_group_info.
+    *
+    * \param num_queries the number of query types
+    * \param query_types array of \p num_queries query types
+    * \return a query object, or NULL on error.
+    */
+   struct pipe_query *(*create_batch_query)( struct pipe_context *pipe,
+                                             unsigned num_queries,
+                                             unsigned *query_types );
+
    void (*destroy_query)(struct pipe_context *pipe,
                          struct pipe_query *q);
 
-   void (*begin_query)(struct pipe_context *pipe, struct pipe_query *q);
-   void (*end_query)(struct pipe_context *pipe, struct pipe_query *q);
+   boolean (*begin_query)(struct pipe_context *pipe, struct pipe_query *q);
+   bool (*end_query)(struct pipe_context *pipe, struct pipe_query *q);
 
    /**
     * Get results of a query.
@@ -127,6 +162,34 @@ struct pipe_context {
                                struct pipe_query *q,
                                boolean wait,
                                union pipe_query_result *result);
+
+   /**
+    * Get results of a query, storing into resource. Note that this may not
+    * be used with batch queries.
+    *
+    * \param wait  if true, this query will block until the result is ready
+    * \param result_type  the type of the value being stored:
+    * \param index  for queries that return multiple pieces of data, which
+    *               item of that data to store (e.g. for
+    *               PIPE_QUERY_PIPELINE_STATISTICS).
+    *               When the index is -1, instead of the value of the query
+    *               the driver should instead write a 1 or 0 to the appropriate
+    *               location with 1 meaning that the query result is available.
+    */
+   void (*get_query_result_resource)(struct pipe_context *pipe,
+                                     struct pipe_query *q,
+                                     boolean wait,
+                                     enum pipe_query_value_type result_type,
+                                     int index,
+                                     struct pipe_resource *resource,
+                                     unsigned offset);
+
+   /**
+    * Set whether all current non-driver queries except TIME_ELAPSED are
+    * active or paused.
+    */
+   void (*set_active_query_state)(struct pipe_context *pipe, boolean enable);
+
    /*@}*/
 
    /**
@@ -141,8 +204,9 @@ struct pipe_context {
    void * (*create_sampler_state)(struct pipe_context *,
                                   const struct pipe_sampler_state *);
    void   (*bind_sampler_states)(struct pipe_context *,
-                                 unsigned shader, unsigned start_slot,
-                                 unsigned num_samplers, void **samplers);
+                                 enum pipe_shader_type shader,
+                                 unsigned start_slot, unsigned num_samplers,
+                                 void **samplers);
    void   (*delete_sampler_state)(struct pipe_context *, void *);
 
    void * (*create_rasterizer_state)(struct pipe_context *,
@@ -169,6 +233,16 @@ struct pipe_context {
                              const struct pipe_shader_state *);
    void   (*bind_gs_state)(struct pipe_context *, void *);
    void   (*delete_gs_state)(struct pipe_context *, void *);
+
+   void * (*create_tcs_state)(struct pipe_context *,
+                              const struct pipe_shader_state *);
+   void   (*bind_tcs_state)(struct pipe_context *, void *);
+   void   (*delete_tcs_state)(struct pipe_context *, void *);
+
+   void * (*create_tes_state)(struct pipe_context *,
+                              const struct pipe_shader_state *);
+   void   (*bind_tes_state)(struct pipe_context *, void *);
+   void   (*delete_tes_state)(struct pipe_context *, void *);
 
    void * (*create_vertex_elements_state)(struct pipe_context *,
                                           unsigned num_elements,
@@ -198,8 +272,8 @@ struct pipe_context {
                             const struct pipe_clip_state * );
 
    void (*set_constant_buffer)( struct pipe_context *,
-                                uint shader, uint index,
-                                struct pipe_constant_buffer *buf );
+                                enum pipe_shader_type shader, uint index,
+                                const struct pipe_constant_buffer *buf );
 
    void (*set_framebuffer_state)( struct pipe_context *,
                                   const struct pipe_framebuffer_state * );
@@ -212,38 +286,72 @@ struct pipe_context {
                                unsigned num_scissors,
                                const struct pipe_scissor_state * );
 
+   void (*set_window_rectangles)( struct pipe_context *,
+                                  boolean include,
+                                  unsigned num_rectangles,
+                                  const struct pipe_scissor_state * );
+
    void (*set_viewport_states)( struct pipe_context *,
                                 unsigned start_slot,
                                 unsigned num_viewports,
                                 const struct pipe_viewport_state *);
 
-   void (*set_sampler_views)(struct pipe_context *, unsigned shader,
+   void (*set_sampler_views)(struct pipe_context *,
+                             enum pipe_shader_type shader,
                              unsigned start_slot, unsigned num_views,
                              struct pipe_sampler_view **);
 
+   void (*set_tess_state)(struct pipe_context *,
+                          const float default_outer_level[4],
+                          const float default_inner_level[2]);
+
    /**
-    * Bind an array of shader resources that will be used by the
-    * graphics pipeline.  Any resources that were previously bound to
-    * the specified range will be unbound after this call.
-    *
-    * \param start      first resource to bind.
-    * \param count      number of consecutive resources to bind.
-    * \param resources  array of pointers to the resources to bind, it
-    *                   should contain at least \a count elements
-    *                   unless it's NULL, in which case no new
-    *                   resources will be bound.
+    * Sets the debug callback. If the pointer is null, then no callback is
+    * set, otherwise a copy of the data should be made.
     */
-   void (*set_shader_resources)(struct pipe_context *,
-                                unsigned start, unsigned count,
-                                struct pipe_surface **resources);
+   void (*set_debug_callback)(struct pipe_context *,
+                              const struct pipe_debug_callback *);
+
+   /**
+    * Bind an array of shader buffers that will be used by a shader.
+    * Any buffers that were previously bound to the specified range
+    * will be unbound.
+    *
+    * \param shader     selects shader stage
+    * \param start_slot first buffer slot to bind.
+    * \param count      number of consecutive buffers to bind.
+    * \param buffers    array of pointers to the buffers to bind, it
+    *                   should contain at least \a count elements
+    *                   unless it's NULL, in which case no buffers will
+    *                   be bound.
+    */
+   void (*set_shader_buffers)(struct pipe_context *,
+                              enum pipe_shader_type shader,
+                              unsigned start_slot, unsigned count,
+                              const struct pipe_shader_buffer *buffers);
+
+   /**
+    * Bind an array of images that will be used by a shader.
+    * Any images that were previously bound to the specified range
+    * will be unbound.
+    *
+    * \param shader     selects shader stage
+    * \param start_slot first image slot to bind.
+    * \param count      number of consecutive images to bind.
+    * \param buffers    array of the images to bind, it
+    *                   should contain at least \a count elements
+    *                   unless it's NULL, in which case no images will
+    *                   be bound.
+    */
+   void (*set_shader_images)(struct pipe_context *,
+                             enum pipe_shader_type shader,
+                             unsigned start_slot, unsigned count,
+                             const struct pipe_image_view *images);
 
    void (*set_vertex_buffers)( struct pipe_context *,
                                unsigned start_slot,
                                unsigned num_buffers,
                                const struct pipe_vertex_buffer * );
-
-   void (*set_index_buffer)( struct pipe_context *pipe,
-                             const struct pipe_index_buffer * );
 
    /*@}*/
 
@@ -320,7 +428,8 @@ struct pipe_context {
                                struct pipe_surface *dst,
                                const union pipe_color_union *color,
                                unsigned dstx, unsigned dsty,
-                               unsigned width, unsigned height);
+                               unsigned width, unsigned height,
+                               bool render_condition_enabled);
 
    /**
     * Clear a depth-stencil surface.
@@ -334,7 +443,18 @@ struct pipe_context {
                                double depth,
                                unsigned stencil,
                                unsigned dstx, unsigned dsty,
-                               unsigned width, unsigned height);
+                               unsigned width, unsigned height,
+                               bool render_condition_enabled);
+
+   /**
+    * Clear the texture with the specified texel. Not guaranteed to be a
+    * renderable format. Data provided in the resource's format.
+    */
+   void (*clear_texture)(struct pipe_context *pipe,
+                         struct pipe_resource *res,
+                         unsigned level,
+                         const struct pipe_box *box,
+                         const void *data);
 
    /**
     * Clear a buffer. Runs a memset over the specified region with the element
@@ -347,13 +467,38 @@ struct pipe_context {
                         const void *clear_value,
                         int clear_value_size);
 
-   /** Flush draw commands
+   /**
+    * Flush draw commands
     *
+    * NOTE: use screen->fence_reference() (or equivalent) to transfer
+    * new fence ref to **fence, to ensure that previous fence is unref'd
+    *
+    * \param fence  if not NULL, an old fence to unref and transfer a
+    *    new fence reference to
     * \param flags  bitfield of enum pipe_flush_flags values.
     */
    void (*flush)(struct pipe_context *pipe,
                  struct pipe_fence_handle **fence,
                  unsigned flags);
+
+   /**
+    * Create a fence from a native sync fd.
+    *
+    * This is used for importing a foreign/external fence fd.
+    *
+    * \param fence  if not NULL, an old fence to unref and transfer a
+    *    new fence reference to
+    * \param fd     native fence fd
+    */
+   void (*create_fence_fd)(struct pipe_context *pipe,
+                           struct pipe_fence_handle **fence,
+                           int fd);
+
+   /**
+    * Insert commands to have GPU wait for fence to be signaled.
+    */
+   void (*fence_server_sync)(struct pipe_context *pipe,
+                             struct pipe_fence_handle *fence);
 
    /**
     * Create a view on a texture to be used by a shader stage.
@@ -376,6 +521,7 @@ struct pipe_context {
 
    void (*surface_destroy)(struct pipe_context *ctx,
                            struct pipe_surface *);
+
 
    /**
     * Map a resource.
@@ -406,26 +552,46 @@ struct pipe_context {
                           struct pipe_transfer *transfer);
 
    /* One-shot transfer operation with data supplied in a user
-    * pointer.  XXX: strides??
+    * pointer.
     */
-   void (*transfer_inline_write)( struct pipe_context *,
-                                  struct pipe_resource *,
-                                  unsigned level,
-                                  unsigned usage, /* a combination of PIPE_TRANSFER_x */
-                                  const struct pipe_box *,
-                                  const void *data,
-                                  unsigned stride,
-                                  unsigned layer_stride);
+   void (*buffer_subdata)(struct pipe_context *,
+                          struct pipe_resource *,
+                          unsigned usage, /* a combination of PIPE_TRANSFER_x */
+                          unsigned offset,
+                          unsigned size,
+                          const void *data);
+
+   void (*texture_subdata)(struct pipe_context *,
+                           struct pipe_resource *,
+                           unsigned level,
+                           unsigned usage, /* a combination of PIPE_TRANSFER_x */
+                           const struct pipe_box *,
+                           const void *data,
+                           unsigned stride,
+                           unsigned layer_stride);
 
    /**
     * Flush any pending framebuffer writes and invalidate texture caches.
     */
-   void (*texture_barrier)(struct pipe_context *);
+   void (*texture_barrier)(struct pipe_context *, unsigned flags);
 
    /**
     * Flush caches according to flags.
     */
    void (*memory_barrier)(struct pipe_context *, unsigned flags);
+
+   /**
+    * Change the commitment status of a part of the given resource, which must
+    * have been created with the PIPE_RESOURCE_FLAG_SPARSE bit.
+    *
+    * \param level The texture level whose commitment should be changed.
+    * \param box The region of the resource whose commitment should be changed.
+    * \param commit Whether memory should be committed or un-committed.
+    *
+    * \return false if out of memory, true on success.
+    */
+   bool (*resource_commit)(struct pipe_context *, struct pipe_resource *,
+                           unsigned level, struct pipe_box *box, bool commit);
 
    /**
     * Creates a video codec for a specific video format/profile
@@ -507,23 +673,9 @@ struct pipe_context {
    /**
     * Launch the compute kernel starting from instruction \a pc of the
     * currently bound compute program.
-    *
-    * \a grid_layout and \a block_layout are arrays of size \a
-    * PIPE_COMPUTE_CAP_GRID_DIMENSION that determine the layout of the
-    * grid (in block units) and working block (in thread units) to be
-    * used, respectively.
-    *
-    * \a pc For drivers that use PIPE_SHADER_IR_LLVM as their prefered IR,
-    * this value will be the index of the kernel in the opencl.kernels
-    * metadata list.
-    *
-    * \a input will be used to initialize the INPUT resource, and it
-    * should point to a buffer of at least
-    * pipe_compute_state::req_input_mem bytes.
     */
    void (*launch_grid)(struct pipe_context *context,
-                       const uint *block_layout, const uint *grid_layout,
-                       uint32_t pc, const void *input);
+                       const struct pipe_grid_info *info);
    /*@}*/
 
    /**
@@ -540,6 +692,13 @@ struct pipe_context {
                                float *out_value);
 
    /**
+    * Query a timestamp in nanoseconds.  This is completely equivalent to
+    * pipe_screen::get_timestamp() but takes a context handle for drivers
+    * that require a context.
+    */
+   uint64_t (*get_timestamp)(struct pipe_context *);
+
+   /**
     * Flush the resource cache, so that the resource can be used
     * by an external client. Possible usage:
     * - flushing a resource before presenting it on the screen
@@ -553,15 +712,119 @@ struct pipe_context {
                           struct pipe_resource *resource);
 
    /**
-    * Invalidate the contents of the resource.
+    * Invalidate the contents of the resource. This is used to
     *
-    * This is used to implement EGL's semantic of undefined depth/stencil
+    * (1) implement EGL's semantic of undefined depth/stencil
     * contenst after a swapbuffers.  This allows a tiled renderer (for
     * example) to not store the depth buffer.
+    *
+    * (2) implement GL's InvalidateBufferData. For backwards compatibility,
+    * you must only rely on the usability for this purpose when
+    * PIPE_CAP_INVALIDATE_BUFFER is enabled.
     */
    void (*invalidate_resource)(struct pipe_context *ctx,
                                struct pipe_resource *resource);
 
+   /**
+    * Return information about unexpected device resets.
+    */
+   enum pipe_reset_status (*get_device_reset_status)(struct pipe_context *ctx);
+
+   /**
+    * Sets the reset status callback. If the pointer is null, then no callback
+    * is set, otherwise a copy of the data should be made.
+    */
+   void (*set_device_reset_callback)(struct pipe_context *ctx,
+                                     const struct pipe_device_reset_callback *cb);
+
+   /**
+    * Dump driver-specific debug information into a stream. This is
+    * used by debugging tools.
+    *
+    * \param ctx        pipe context
+    * \param stream     where the output should be written to
+    * \param flags      a mask of PIPE_DUMP_* flags
+    */
+   void (*dump_debug_state)(struct pipe_context *ctx, FILE *stream,
+                            unsigned flags);
+
+   /**
+    * Emit string marker in cmdstream
+    */
+   void (*emit_string_marker)(struct pipe_context *ctx,
+                              const char *string,
+                              int len);
+
+   /**
+    * Generate mipmap.
+    * \return TRUE if mipmap generation succeeds, FALSE otherwise
+    */
+   boolean (*generate_mipmap)(struct pipe_context *ctx,
+                              struct pipe_resource *resource,
+                              enum pipe_format format,
+                              unsigned base_level,
+                              unsigned last_level,
+                              unsigned first_layer,
+                              unsigned last_layer);
+
+   /**
+    * Create a 64-bit texture handle.
+    *
+    * \param ctx        pipe context
+    * \param view       pipe sampler view object
+    * \param state      pipe sampler state template
+    * \return           a 64-bit texture handle if success, 0 otherwise
+    */
+   uint64_t (*create_texture_handle)(struct pipe_context *ctx,
+                                     struct pipe_sampler_view *view,
+                                     const struct pipe_sampler_state *state);
+
+   /**
+    * Delete a texture handle.
+    *
+    * \param ctx        pipe context
+    * \param handle     64-bit texture handle
+    */
+   void (*delete_texture_handle)(struct pipe_context *ctx, uint64_t handle);
+
+   /**
+    * Make a texture handle resident.
+    *
+    * \param ctx        pipe context
+    * \param handle     64-bit texture handle
+    * \param resident   TRUE for resident, FALSE otherwise
+    */
+   void (*make_texture_handle_resident)(struct pipe_context *ctx,
+                                        uint64_t handle, bool resident);
+
+   /**
+    * Create a 64-bit image handle.
+    *
+    * \param ctx        pipe context
+    * \param image      pipe image view template
+    * \return           a 64-bit image handle if success, 0 otherwise
+    */
+   uint64_t (*create_image_handle)(struct pipe_context *ctx,
+                                   const struct pipe_image_view *image);
+
+   /**
+    * Delete an image handle.
+    *
+    * \param ctx        pipe context
+    * \param handle     64-bit image handle
+    */
+   void (*delete_image_handle)(struct pipe_context *ctx, uint64_t handle);
+
+   /**
+    * Make an image handle resident.
+    *
+    * \param ctx        pipe context
+    * \param handle     64-bit image handle
+    * \param access     GL_READ_ONLY, GL_WRITE_ONLY or GL_READ_WRITE
+    * \param resident   TRUE for resident, FALSE otherwise
+    */
+   void (*make_image_handle_resident)(struct pipe_context *ctx, uint64_t handle,
+                                      unsigned access, bool resident);
 };
 
 

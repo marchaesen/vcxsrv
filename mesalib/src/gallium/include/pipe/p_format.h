@@ -29,11 +29,11 @@
 #ifndef PIPE_FORMAT_H
 #define PIPE_FORMAT_H
 
+#include "p_config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "p_config.h"
 
 /**
  * Formats for textures, surfaces and vertex data
@@ -359,6 +359,38 @@ enum pipe_format {
    PIPE_FORMAT_ETC2_RG11_UNORM         = 277,
    PIPE_FORMAT_ETC2_RG11_SNORM         = 278,
 
+   PIPE_FORMAT_ASTC_4x4                = 279,
+   PIPE_FORMAT_ASTC_5x4                = 280,
+   PIPE_FORMAT_ASTC_5x5                = 281,
+   PIPE_FORMAT_ASTC_6x5                = 282,
+   PIPE_FORMAT_ASTC_6x6                = 283,
+   PIPE_FORMAT_ASTC_8x5                = 284,
+   PIPE_FORMAT_ASTC_8x6                = 285,
+   PIPE_FORMAT_ASTC_8x8                = 286,
+   PIPE_FORMAT_ASTC_10x5               = 287,
+   PIPE_FORMAT_ASTC_10x6               = 288,
+   PIPE_FORMAT_ASTC_10x8               = 289,
+   PIPE_FORMAT_ASTC_10x10              = 290,
+   PIPE_FORMAT_ASTC_12x10              = 291,
+   PIPE_FORMAT_ASTC_12x12              = 292,
+
+   PIPE_FORMAT_ASTC_4x4_SRGB           = 293,
+   PIPE_FORMAT_ASTC_5x4_SRGB           = 294,
+   PIPE_FORMAT_ASTC_5x5_SRGB           = 295,
+   PIPE_FORMAT_ASTC_6x5_SRGB           = 296,
+   PIPE_FORMAT_ASTC_6x6_SRGB           = 297,
+   PIPE_FORMAT_ASTC_8x5_SRGB           = 298,
+   PIPE_FORMAT_ASTC_8x6_SRGB           = 299,
+   PIPE_FORMAT_ASTC_8x8_SRGB           = 300,
+   PIPE_FORMAT_ASTC_10x5_SRGB          = 301,
+   PIPE_FORMAT_ASTC_10x6_SRGB          = 302,
+   PIPE_FORMAT_ASTC_10x8_SRGB          = 303,
+   PIPE_FORMAT_ASTC_10x10_SRGB         = 304,
+   PIPE_FORMAT_ASTC_12x10_SRGB         = 305,
+   PIPE_FORMAT_ASTC_12x12_SRGB         = 306,
+
+   PIPE_FORMAT_P016                    = 307,
+
    PIPE_FORMAT_COUNT
 };
 
@@ -402,7 +434,6 @@ enum pipe_format {
 #elif defined(PIPE_ARCH_BIG_ENDIAN)
 #define PIPE_FORMAT_ABGR8888_UNORM PIPE_FORMAT_R8G8B8A8_UNORM
 #define PIPE_FORMAT_XBGR8888_UNORM PIPE_FORMAT_R8G8B8X8_UNORM
-#define PIPE_FORMAT_XRGB8888_UNORM PIPE_FORMAT_B8G8R8X8_UNORM
 #define PIPE_FORMAT_ARGB8888_UNORM PIPE_FORMAT_B8G8R8A8_UNORM
 #define PIPE_FORMAT_XRGB8888_UNORM PIPE_FORMAT_B8G8R8X8_UNORM
 #define PIPE_FORMAT_BGRA8888_UNORM PIPE_FORMAT_A8R8G8B8_UNORM
@@ -444,7 +475,8 @@ enum pipe_video_chroma_format
    PIPE_VIDEO_CHROMA_FORMAT_400,
    PIPE_VIDEO_CHROMA_FORMAT_420,
    PIPE_VIDEO_CHROMA_FORMAT_422,
-   PIPE_VIDEO_CHROMA_FORMAT_444
+   PIPE_VIDEO_CHROMA_FORMAT_444,
+   PIPE_VIDEO_CHROMA_FORMAT_NONE
 };
 
 #ifdef __cplusplus

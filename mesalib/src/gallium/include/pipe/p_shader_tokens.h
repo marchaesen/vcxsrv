@@ -40,21 +40,18 @@ struct tgsi_header
    unsigned BodySize   : 24;
 };
 
-#define TGSI_PROCESSOR_FRAGMENT  0
-#define TGSI_PROCESSOR_VERTEX    1
-#define TGSI_PROCESSOR_GEOMETRY  2
-#define TGSI_PROCESSOR_COMPUTE   3
-
 struct tgsi_processor
 {
-   unsigned Processor  : 4;  /* TGSI_PROCESSOR_ */
+   unsigned Processor  : 4;  /* PIPE_SHADER_ */
    unsigned Padding    : 28;
 };
 
-#define TGSI_TOKEN_TYPE_DECLARATION    0
-#define TGSI_TOKEN_TYPE_IMMEDIATE      1
-#define TGSI_TOKEN_TYPE_INSTRUCTION    2
-#define TGSI_TOKEN_TYPE_PROPERTY       3
+enum tgsi_token_type {
+   TGSI_TOKEN_TYPE_DECLARATION,
+   TGSI_TOKEN_TYPE_IMMEDIATE,
+   TGSI_TOKEN_TYPE_INSTRUCTION,
+   TGSI_TOKEN_TYPE_PROPERTY,
+};
 
 struct tgsi_token
 {
@@ -64,19 +61,20 @@ struct tgsi_token
 };
 
 enum tgsi_file_type {
-   TGSI_FILE_NULL                =0,
-   TGSI_FILE_CONSTANT            =1,
-   TGSI_FILE_INPUT               =2,
-   TGSI_FILE_OUTPUT              =3,
-   TGSI_FILE_TEMPORARY           =4,
-   TGSI_FILE_SAMPLER             =5,
-   TGSI_FILE_ADDRESS             =6,
-   TGSI_FILE_IMMEDIATE           =7,
-   TGSI_FILE_PREDICATE           =8,
-   TGSI_FILE_SYSTEM_VALUE        =9,
-   TGSI_FILE_RESOURCE            =10,
-   TGSI_FILE_SAMPLER_VIEW        =11,
-   TGSI_FILE_COUNT      /**< how many TGSI_FILE_ types */
+   TGSI_FILE_NULL,
+   TGSI_FILE_CONSTANT,
+   TGSI_FILE_INPUT,
+   TGSI_FILE_OUTPUT,
+   TGSI_FILE_TEMPORARY,
+   TGSI_FILE_SAMPLER,
+   TGSI_FILE_ADDRESS,
+   TGSI_FILE_IMMEDIATE,
+   TGSI_FILE_SYSTEM_VALUE,
+   TGSI_FILE_IMAGE,
+   TGSI_FILE_SAMPLER_VIEW,
+   TGSI_FILE_BUFFER,
+   TGSI_FILE_MEMORY,
+   TGSI_FILE_COUNT,      /**< how many TGSI_FILE_ types */
 };
 
 
@@ -97,21 +95,33 @@ enum tgsi_file_type {
 #define TGSI_WRITEMASK_YZW      0x0E
 #define TGSI_WRITEMASK_XYZW     0x0F
 
-#define TGSI_INTERPOLATE_CONSTANT      0
-#define TGSI_INTERPOLATE_LINEAR        1
-#define TGSI_INTERPOLATE_PERSPECTIVE   2
-#define TGSI_INTERPOLATE_COLOR         3 /* special color case for smooth/flat */
-#define TGSI_INTERPOLATE_COUNT         4
+enum tgsi_interpolate_mode {
+   TGSI_INTERPOLATE_CONSTANT,
+   TGSI_INTERPOLATE_LINEAR,
+   TGSI_INTERPOLATE_PERSPECTIVE,
+   TGSI_INTERPOLATE_COLOR,          /* special color case for smooth/flat */
+   TGSI_INTERPOLATE_COUNT,
+};
 
-#define TGSI_INTERPOLATE_LOC_CENTER    0
-#define TGSI_INTERPOLATE_LOC_CENTROID  1
-#define TGSI_INTERPOLATE_LOC_SAMPLE    2
-#define TGSI_INTERPOLATE_LOC_COUNT     3
+enum tgsi_interpolate_loc {
+   TGSI_INTERPOLATE_LOC_CENTER,
+   TGSI_INTERPOLATE_LOC_CENTROID,
+   TGSI_INTERPOLATE_LOC_SAMPLE,
+   TGSI_INTERPOLATE_LOC_COUNT,
+};
 
 #define TGSI_CYLINDRICAL_WRAP_X (1 << 0)
 #define TGSI_CYLINDRICAL_WRAP_Y (1 << 1)
 #define TGSI_CYLINDRICAL_WRAP_Z (1 << 2)
 #define TGSI_CYLINDRICAL_WRAP_W (1 << 3)
+
+enum tgsi_memory_type {
+   TGSI_MEMORY_TYPE_GLOBAL,         /* OpenCL global              */
+   TGSI_MEMORY_TYPE_SHARED,         /* OpenCL local / GLSL shared */
+   TGSI_MEMORY_TYPE_PRIVATE,        /* OpenCL private             */
+   TGSI_MEMORY_TYPE_INPUT,          /* OpenCL kernel input params */
+   TGSI_MEMORY_TYPE_COUNT,
+};
 
 struct tgsi_declaration
 {
@@ -125,7 +135,9 @@ struct tgsi_declaration
    unsigned Invariant   : 1;  /**< invariant optimization? */
    unsigned Local       : 1;  /**< optimize as subroutine local variable? */
    unsigned Array       : 1;  /**< extra array info? */
-   unsigned Padding     : 6;
+   unsigned Atomic      : 1;  /**< atomic only? for TGSI_FILE_BUFFER */
+   unsigned MemType     : 2;  /**< TGSI_MEMORY_TYPE_x for TGSI_FILE_MEMORY */
+   unsigned Padding     : 3;
 };
 
 struct tgsi_declaration_range
@@ -148,50 +160,71 @@ struct tgsi_declaration_interp
    unsigned Padding     : 22;
 };
 
-#define TGSI_SEMANTIC_POSITION   0
-#define TGSI_SEMANTIC_COLOR      1
-#define TGSI_SEMANTIC_BCOLOR     2  /**< back-face color */
-#define TGSI_SEMANTIC_FOG        3
-#define TGSI_SEMANTIC_PSIZE      4
-#define TGSI_SEMANTIC_GENERIC    5
-#define TGSI_SEMANTIC_NORMAL     6
-#define TGSI_SEMANTIC_FACE       7
-#define TGSI_SEMANTIC_EDGEFLAG   8
-#define TGSI_SEMANTIC_PRIMID     9
-#define TGSI_SEMANTIC_INSTANCEID 10 /**< doesn't include start_instance */
-#define TGSI_SEMANTIC_VERTEXID   11
-#define TGSI_SEMANTIC_STENCIL    12
-#define TGSI_SEMANTIC_CLIPDIST   13
-#define TGSI_SEMANTIC_CLIPVERTEX 14
-#define TGSI_SEMANTIC_GRID_SIZE  15 /**< grid size in blocks */
-#define TGSI_SEMANTIC_BLOCK_ID   16 /**< id of the current block */
-#define TGSI_SEMANTIC_BLOCK_SIZE 17 /**< block size in threads */
-#define TGSI_SEMANTIC_THREAD_ID  18 /**< block-relative id of the current thread */
-#define TGSI_SEMANTIC_TEXCOORD   19 /**< texture or sprite coordinates */
-#define TGSI_SEMANTIC_PCOORD     20 /**< point sprite coordinate */
-#define TGSI_SEMANTIC_VIEWPORT_INDEX 21 /**< viewport index */
-#define TGSI_SEMANTIC_LAYER      22 /**< layer (rendertarget index) */
-#define TGSI_SEMANTIC_CULLDIST   23
-#define TGSI_SEMANTIC_SAMPLEID   24
-#define TGSI_SEMANTIC_SAMPLEPOS  25
-#define TGSI_SEMANTIC_SAMPLEMASK 26
-#define TGSI_SEMANTIC_INVOCATIONID 27
-#define TGSI_SEMANTIC_VERTEXID_NOBASE 28
-#define TGSI_SEMANTIC_BASEVERTEX 29
-#define TGSI_SEMANTIC_COUNT      30 /**< number of semantic values */
+enum tgsi_semantic {
+   TGSI_SEMANTIC_POSITION,
+   TGSI_SEMANTIC_COLOR,
+   TGSI_SEMANTIC_BCOLOR,       /**< back-face color */
+   TGSI_SEMANTIC_FOG,
+   TGSI_SEMANTIC_PSIZE,
+   TGSI_SEMANTIC_GENERIC,
+   TGSI_SEMANTIC_NORMAL,
+   TGSI_SEMANTIC_FACE,
+   TGSI_SEMANTIC_EDGEFLAG,
+   TGSI_SEMANTIC_PRIMID,
+   TGSI_SEMANTIC_INSTANCEID,  /**< doesn't include start_instance */
+   TGSI_SEMANTIC_VERTEXID,
+   TGSI_SEMANTIC_STENCIL,
+   TGSI_SEMANTIC_CLIPDIST,
+   TGSI_SEMANTIC_CLIPVERTEX,
+   TGSI_SEMANTIC_GRID_SIZE,   /**< grid size in blocks */
+   TGSI_SEMANTIC_BLOCK_ID,    /**< id of the current block */
+   TGSI_SEMANTIC_BLOCK_SIZE,  /**< block size in threads */
+   TGSI_SEMANTIC_THREAD_ID,   /**< block-relative id of the current thread */
+   TGSI_SEMANTIC_TEXCOORD,    /**< texture or sprite coordinates */
+   TGSI_SEMANTIC_PCOORD,      /**< point sprite coordinate */
+   TGSI_SEMANTIC_VIEWPORT_INDEX,  /**< viewport index */
+   TGSI_SEMANTIC_LAYER,       /**< layer (rendertarget index) */
+   TGSI_SEMANTIC_SAMPLEID,
+   TGSI_SEMANTIC_SAMPLEPOS,
+   TGSI_SEMANTIC_SAMPLEMASK,
+   TGSI_SEMANTIC_INVOCATIONID,
+   TGSI_SEMANTIC_VERTEXID_NOBASE,
+   TGSI_SEMANTIC_BASEVERTEX,
+   TGSI_SEMANTIC_PATCH,       /**< generic per-patch semantic */
+   TGSI_SEMANTIC_TESSCOORD,   /**< coordinate being processed by tess */
+   TGSI_SEMANTIC_TESSOUTER,   /**< outer tessellation levels */
+   TGSI_SEMANTIC_TESSINNER,   /**< inner tessellation levels */
+   TGSI_SEMANTIC_VERTICESIN,  /**< number of input vertices */
+   TGSI_SEMANTIC_HELPER_INVOCATION,  /**< current invocation is helper */
+   TGSI_SEMANTIC_BASEINSTANCE,
+   TGSI_SEMANTIC_DRAWID,
+   TGSI_SEMANTIC_WORK_DIM,    /**< opencl get_work_dim value */
+   TGSI_SEMANTIC_SUBGROUP_SIZE,
+   TGSI_SEMANTIC_SUBGROUP_INVOCATION,
+   TGSI_SEMANTIC_SUBGROUP_EQ_MASK,
+   TGSI_SEMANTIC_SUBGROUP_GE_MASK,
+   TGSI_SEMANTIC_SUBGROUP_GT_MASK,
+   TGSI_SEMANTIC_SUBGROUP_LE_MASK,
+   TGSI_SEMANTIC_SUBGROUP_LT_MASK,
+   TGSI_SEMANTIC_COUNT,       /**< number of semantic values */
+};
 
 struct tgsi_declaration_semantic
 {
    unsigned Name           : 8;  /**< one of TGSI_SEMANTIC_x */
    unsigned Index          : 16; /**< UINT */
-   unsigned Padding        : 8;
+   unsigned StreamX        : 2; /**< vertex stream (for GS output) */
+   unsigned StreamY        : 2;
+   unsigned StreamZ        : 2;
+   unsigned StreamW        : 2;
 };
 
-struct tgsi_declaration_resource {
+struct tgsi_declaration_image {
    unsigned Resource    : 8; /**< one of TGSI_TEXTURE_ */
    unsigned Raw         : 1;
    unsigned Writable    : 1;
-   unsigned Padding     : 22;
+   unsigned Format      : 10; /**< one of PIPE_FORMAT_ */
+   unsigned Padding     : 12;
 };
 
 enum tgsi_return_type {
@@ -200,6 +233,7 @@ enum tgsi_return_type {
    TGSI_RETURN_TYPE_SINT,
    TGSI_RETURN_TYPE_UINT,
    TGSI_RETURN_TYPE_FLOAT,
+   TGSI_RETURN_TYPE_UNKNOWN,
    TGSI_RETURN_TYPE_COUNT
 };
 
@@ -216,19 +250,14 @@ struct tgsi_declaration_array {
    unsigned Padding : 22;
 };
 
-/*
- * Special resources that don't need to be declared.  They map to the
- * GLOBAL/LOCAL/PRIVATE/INPUT compute memory spaces.
- */
-#define TGSI_RESOURCE_GLOBAL	0x7fff
-#define TGSI_RESOURCE_LOCAL	0x7ffe
-#define TGSI_RESOURCE_PRIVATE	0x7ffd
-#define TGSI_RESOURCE_INPUT	0x7ffc
-
-#define TGSI_IMM_FLOAT32   0
-#define TGSI_IMM_UINT32    1
-#define TGSI_IMM_INT32     2
-#define TGSI_IMM_FLOAT64   3
+enum tgsi_imm_type {
+   TGSI_IMM_FLOAT32,
+   TGSI_IMM_UINT32,
+   TGSI_IMM_INT32,
+   TGSI_IMM_FLOAT64,
+   TGSI_IMM_UINT64,
+   TGSI_IMM_INT64,
+};
 
 struct tgsi_immediate
 {
@@ -245,17 +274,33 @@ union tgsi_immediate_data
    int Int;
 };
 
-#define TGSI_PROPERTY_GS_INPUT_PRIM          0
-#define TGSI_PROPERTY_GS_OUTPUT_PRIM         1
-#define TGSI_PROPERTY_GS_MAX_OUTPUT_VERTICES 2
-#define TGSI_PROPERTY_FS_COORD_ORIGIN        3
-#define TGSI_PROPERTY_FS_COORD_PIXEL_CENTER  4
-#define TGSI_PROPERTY_FS_COLOR0_WRITES_ALL_CBUFS 5
-#define TGSI_PROPERTY_FS_DEPTH_LAYOUT        6
-#define TGSI_PROPERTY_VS_PROHIBIT_UCPS       7
-#define TGSI_PROPERTY_GS_INVOCATIONS         8
-#define TGSI_PROPERTY_VS_WINDOW_SPACE_POSITION 9
-#define TGSI_PROPERTY_COUNT                  10
+enum tgsi_property_name {
+   TGSI_PROPERTY_GS_INPUT_PRIM,
+   TGSI_PROPERTY_GS_OUTPUT_PRIM,
+   TGSI_PROPERTY_GS_MAX_OUTPUT_VERTICES,
+   TGSI_PROPERTY_FS_COORD_ORIGIN,
+   TGSI_PROPERTY_FS_COORD_PIXEL_CENTER,
+   TGSI_PROPERTY_FS_COLOR0_WRITES_ALL_CBUFS,
+   TGSI_PROPERTY_FS_DEPTH_LAYOUT,
+   TGSI_PROPERTY_VS_PROHIBIT_UCPS,
+   TGSI_PROPERTY_GS_INVOCATIONS,
+   TGSI_PROPERTY_VS_WINDOW_SPACE_POSITION,
+   TGSI_PROPERTY_TCS_VERTICES_OUT,
+   TGSI_PROPERTY_TES_PRIM_MODE,
+   TGSI_PROPERTY_TES_SPACING,
+   TGSI_PROPERTY_TES_VERTEX_ORDER_CW,
+   TGSI_PROPERTY_TES_POINT_MODE,
+   TGSI_PROPERTY_NUM_CLIPDIST_ENABLED,
+   TGSI_PROPERTY_NUM_CULLDIST_ENABLED,
+   TGSI_PROPERTY_FS_EARLY_DEPTH_STENCIL,
+   TGSI_PROPERTY_FS_POST_DEPTH_COVERAGE,
+   TGSI_PROPERTY_NEXT_SHADER,
+   TGSI_PROPERTY_CS_FIXED_BLOCK_WIDTH,
+   TGSI_PROPERTY_CS_FIXED_BLOCK_HEIGHT,
+   TGSI_PROPERTY_CS_FIXED_BLOCK_DEPTH,
+   TGSI_PROPERTY_MUL_ZERO_WINS,
+   TGSI_PROPERTY_COUNT,
+};
 
 struct tgsi_property {
    unsigned Type         : 4;  /**< TGSI_TOKEN_TYPE_PROPERTY */
@@ -264,18 +309,23 @@ struct tgsi_property {
    unsigned Padding      : 12;
 };
 
-#define TGSI_FS_COORD_ORIGIN_UPPER_LEFT 0
-#define TGSI_FS_COORD_ORIGIN_LOWER_LEFT 1
+enum tgsi_fs_coord_origin {
+   TGSI_FS_COORD_ORIGIN_UPPER_LEFT,
+   TGSI_FS_COORD_ORIGIN_LOWER_LEFT,
+};
 
-#define TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER 0
-#define TGSI_FS_COORD_PIXEL_CENTER_INTEGER 1
+enum tgsi_fs_coord_pixcenter {
+   TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER,
+   TGSI_FS_COORD_PIXEL_CENTER_INTEGER,
+};
 
-#define TGSI_FS_DEPTH_LAYOUT_NONE         0
-#define TGSI_FS_DEPTH_LAYOUT_ANY          1
-#define TGSI_FS_DEPTH_LAYOUT_GREATER      2
-#define TGSI_FS_DEPTH_LAYOUT_LESS         3
-#define TGSI_FS_DEPTH_LAYOUT_UNCHANGED    4
-
+enum tgsi_fs_depth_layout {
+   TGSI_FS_DEPTH_LAYOUT_NONE,
+   TGSI_FS_DEPTH_LAYOUT_ANY,
+   TGSI_FS_DEPTH_LAYOUT_GREATER,
+   TGSI_FS_DEPTH_LAYOUT_LESS,
+   TGSI_FS_DEPTH_LAYOUT_UNCHANGED,
+};
 
 struct tgsi_property_data {
    unsigned Data;
@@ -304,23 +354,24 @@ struct tgsi_property_data {
 #define TGSI_OPCODE_SLT                 14
 #define TGSI_OPCODE_SGE                 15
 #define TGSI_OPCODE_MAD                 16
-#define TGSI_OPCODE_SUB                 17
+#define TGSI_OPCODE_TEX_LZ              17
 #define TGSI_OPCODE_LRP                 18
-                                /* gap */
+#define TGSI_OPCODE_FMA                 19
 #define TGSI_OPCODE_SQRT                20
 #define TGSI_OPCODE_DP2A                21
-                                /* gap */
+#define TGSI_OPCODE_F2U64               22
+#define TGSI_OPCODE_F2I64               23
 #define TGSI_OPCODE_FRC                 24
-#define TGSI_OPCODE_CLAMP               25
+#define TGSI_OPCODE_TXF_LZ              25
 #define TGSI_OPCODE_FLR                 26
 #define TGSI_OPCODE_ROUND               27
 #define TGSI_OPCODE_EX2                 28
 #define TGSI_OPCODE_LG2                 29
 #define TGSI_OPCODE_POW                 30
 #define TGSI_OPCODE_XPD                 31
-                                /* gap */
-#define TGSI_OPCODE_ABS                 33
-                                /* gap */
+#define TGSI_OPCODE_U2I64               32
+#define TGSI_OPCODE_CLOCK               33
+#define TGSI_OPCODE_I2I64               34
 #define TGSI_OPCODE_DPH                 35
 #define TGSI_OPCODE_COS                 36
 #define TGSI_OPCODE_DDX                 37
@@ -330,14 +381,14 @@ struct tgsi_property_data {
 #define TGSI_OPCODE_PK2US               41
 #define TGSI_OPCODE_PK4B                42
 #define TGSI_OPCODE_PK4UB               43
-                                /* gap */
+#define TGSI_OPCODE_D2U64               44
 #define TGSI_OPCODE_SEQ                 45
-                                /* gap */
+#define TGSI_OPCODE_D2I64               46
 #define TGSI_OPCODE_SGT                 47
 #define TGSI_OPCODE_SIN                 48
 #define TGSI_OPCODE_SLE                 49
 #define TGSI_OPCODE_SNE                 50
-                                /* gap */
+#define TGSI_OPCODE_U642D               51
 #define TGSI_OPCODE_TEX                 52
 #define TGSI_OPCODE_TXD                 53
 #define TGSI_OPCODE_TXP                 54
@@ -345,22 +396,24 @@ struct tgsi_property_data {
 #define TGSI_OPCODE_UP2US               56
 #define TGSI_OPCODE_UP4B                57
 #define TGSI_OPCODE_UP4UB               58
-                                /* gap */
+#define TGSI_OPCODE_U642F               59
+#define TGSI_OPCODE_I642F               60
 #define TGSI_OPCODE_ARR                 61
-                                /* gap */
+#define TGSI_OPCODE_I642D               62
 #define TGSI_OPCODE_CAL                 63
 #define TGSI_OPCODE_RET                 64
 #define TGSI_OPCODE_SSG                 65 /* SGN */
 #define TGSI_OPCODE_CMP                 66
 #define TGSI_OPCODE_SCS                 67
 #define TGSI_OPCODE_TXB                 68
-                                /* gap */
+#define TGSI_OPCODE_FBFETCH             69
 #define TGSI_OPCODE_DIV                 70
 #define TGSI_OPCODE_DP2                 71
 #define TGSI_OPCODE_TXL                 72
 #define TGSI_OPCODE_BRK                 73
 #define TGSI_OPCODE_IF                  74
 #define TGSI_OPCODE_UIF                 75
+#define TGSI_OPCODE_READ_INVOC          76
 #define TGSI_OPCODE_ELSE                77
 #define TGSI_OPCODE_ENDIF               78
 
@@ -374,7 +427,7 @@ struct tgsi_property_data {
 #define TGSI_OPCODE_NOT                 85
 #define TGSI_OPCODE_TRUNC               86
 #define TGSI_OPCODE_SHL                 87
-                                /* gap */
+#define TGSI_OPCODE_BALLOT              88
 #define TGSI_OPCODE_AND                 89
 #define TGSI_OPCODE_OR                  90
 #define TGSI_OPCODE_MOD                 91
@@ -390,7 +443,9 @@ struct tgsi_property_data {
 #define TGSI_OPCODE_ENDLOOP             101
 #define TGSI_OPCODE_ENDSUB              102
 #define TGSI_OPCODE_TXQ_LZ              103 /* TXQ for mipmap level 0 */
-                                /* gap */
+#define TGSI_OPCODE_TXQS                104
+#define TGSI_OPCODE_RESQ                105
+#define TGSI_OPCODE_READ_FIRST          106
 #define TGSI_OPCODE_NOP                 107
 
 #define TGSI_OPCODE_FSEQ                108
@@ -398,13 +453,13 @@ struct tgsi_property_data {
 #define TGSI_OPCODE_FSLT                110
 #define TGSI_OPCODE_FSNE                111
 
-                                /* gap */
+#define TGSI_OPCODE_MEMBAR              112
 #define TGSI_OPCODE_CALLNZ              113
                                 /* gap */
 #define TGSI_OPCODE_BREAKC              115
 #define TGSI_OPCODE_KILL_IF             116  /* conditional kill */
 #define TGSI_OPCODE_END                 117  /* aka HALT */
-                                /* gap */
+#define TGSI_OPCODE_DFMA                118
 #define TGSI_OPCODE_F2I                 119
 #define TGSI_OPCODE_IDIV                120
 #define TGSI_OPCODE_IMAX                121
@@ -510,7 +565,7 @@ struct tgsi_property_data {
 #define TGSI_OPCODE_DSNE                206 /* SM5 */
 #define TGSI_OPCODE_DRCP                207 /* eg, cayman */
 #define TGSI_OPCODE_DSQRT               208 /* eg, cayman also has DRSQ */
-#define TGSI_OPCODE_DMAD                209 /* DFMA? */
+#define TGSI_OPCODE_DMAD                209
 #define TGSI_OPCODE_DFRAC               210 /* eg, cayman */
 #define TGSI_OPCODE_DLDEXP              211 /* eg, cayman */
 #define TGSI_OPCODE_DFRACEXP            212 /* eg, cayman */
@@ -524,11 +579,41 @@ struct tgsi_property_data {
 #define TGSI_OPCODE_DFLR                220 /* nvc0 */
 #define TGSI_OPCODE_DROUND              221 /* nvc0 */
 #define TGSI_OPCODE_DSSG                222
-#define TGSI_OPCODE_LAST                223
 
-#define TGSI_SAT_NONE            0  /* do not saturate */
-#define TGSI_SAT_ZERO_ONE        1  /* clamp to [0,1] */
-#define TGSI_SAT_MINUS_PLUS_ONE  2  /* clamp to [-1,1] */
+#define TGSI_OPCODE_VOTE_ANY            223
+#define TGSI_OPCODE_VOTE_ALL            224
+#define TGSI_OPCODE_VOTE_EQ             225
+
+#define TGSI_OPCODE_U64SEQ              226
+#define TGSI_OPCODE_U64SNE              227
+#define TGSI_OPCODE_I64SLT              228
+#define TGSI_OPCODE_U64SLT              229
+#define TGSI_OPCODE_I64SGE              230
+#define TGSI_OPCODE_U64SGE              231
+
+#define TGSI_OPCODE_I64MIN              232
+#define TGSI_OPCODE_U64MIN              233
+#define TGSI_OPCODE_I64MAX              234
+#define TGSI_OPCODE_U64MAX              235
+
+#define TGSI_OPCODE_I64ABS              236
+#define TGSI_OPCODE_I64SSG              237
+#define TGSI_OPCODE_I64NEG              238
+
+#define TGSI_OPCODE_U64ADD              239
+#define TGSI_OPCODE_U64MUL              240
+#define TGSI_OPCODE_U64SHL              241
+#define TGSI_OPCODE_I64SHR              242
+#define TGSI_OPCODE_U64SHR              243
+
+#define TGSI_OPCODE_I64DIV              244
+#define TGSI_OPCODE_U64DIV              245
+#define TGSI_OPCODE_I64MOD              246
+#define TGSI_OPCODE_U64MOD              247
+
+#define TGSI_OPCODE_DDIV                248
+
+#define TGSI_OPCODE_LAST                249
 
 /**
  * Opcode is the operation code to execute. A given operation defines the
@@ -539,8 +624,6 @@ struct tgsi_property_data {
  * respectively. For a given operation code, those numbers are fixed and are
  * present here only for convenience.
  *
- * If Predicate is TRUE, tgsi_instruction_predicate token immediately follows.
- *
  * Saturate controls how are final results in destination registers modified.
  */
 
@@ -549,12 +632,13 @@ struct tgsi_instruction
    unsigned Type       : 4;  /* TGSI_TOKEN_TYPE_INSTRUCTION */
    unsigned NrTokens   : 8;  /* UINT */
    unsigned Opcode     : 8;  /* TGSI_OPCODE_ */
-   unsigned Saturate   : 2;  /* TGSI_SAT_ */
+   unsigned Saturate   : 1;  /* BOOL */
    unsigned NumDstRegs : 2;  /* UINT */
    unsigned NumSrcRegs : 4;  /* UINT */
-   unsigned Predicate  : 1;  /* BOOL */
    unsigned Label      : 1;
    unsigned Texture    : 1;
+   unsigned Memory     : 1;
+   unsigned Precise    : 1;
    unsigned Padding    : 1;
 };
 
@@ -573,10 +657,12 @@ struct tgsi_instruction
  * instruction, including the instruction word.
  */
 
-#define TGSI_SWIZZLE_X      0
-#define TGSI_SWIZZLE_Y      1
-#define TGSI_SWIZZLE_Z      2
-#define TGSI_SWIZZLE_W      3
+enum tgsi_swizzle {
+   TGSI_SWIZZLE_X,
+   TGSI_SWIZZLE_Y,
+   TGSI_SWIZZLE_Z,
+   TGSI_SWIZZLE_W,
+};
 
 struct tgsi_instruction_label
 {
@@ -584,32 +670,35 @@ struct tgsi_instruction_label
    unsigned Padding  : 8;
 };
 
-#define TGSI_TEXTURE_BUFFER         0
-#define TGSI_TEXTURE_1D             1
-#define TGSI_TEXTURE_2D             2
-#define TGSI_TEXTURE_3D             3
-#define TGSI_TEXTURE_CUBE           4
-#define TGSI_TEXTURE_RECT           5
-#define TGSI_TEXTURE_SHADOW1D       6
-#define TGSI_TEXTURE_SHADOW2D       7
-#define TGSI_TEXTURE_SHADOWRECT     8
-#define TGSI_TEXTURE_1D_ARRAY       9
-#define TGSI_TEXTURE_2D_ARRAY       10
-#define TGSI_TEXTURE_SHADOW1D_ARRAY 11
-#define TGSI_TEXTURE_SHADOW2D_ARRAY 12
-#define TGSI_TEXTURE_SHADOWCUBE     13
-#define TGSI_TEXTURE_2D_MSAA        14
-#define TGSI_TEXTURE_2D_ARRAY_MSAA  15
-#define TGSI_TEXTURE_CUBE_ARRAY     16
-#define TGSI_TEXTURE_SHADOWCUBE_ARRAY 17
-#define TGSI_TEXTURE_UNKNOWN        18
-#define TGSI_TEXTURE_COUNT          19
+enum tgsi_texture_type {
+   TGSI_TEXTURE_BUFFER,
+   TGSI_TEXTURE_1D,
+   TGSI_TEXTURE_2D,
+   TGSI_TEXTURE_3D,
+   TGSI_TEXTURE_CUBE,
+   TGSI_TEXTURE_RECT,
+   TGSI_TEXTURE_SHADOW1D,
+   TGSI_TEXTURE_SHADOW2D,
+   TGSI_TEXTURE_SHADOWRECT,
+   TGSI_TEXTURE_1D_ARRAY,
+   TGSI_TEXTURE_2D_ARRAY,
+   TGSI_TEXTURE_SHADOW1D_ARRAY,
+   TGSI_TEXTURE_SHADOW2D_ARRAY,
+   TGSI_TEXTURE_SHADOWCUBE,
+   TGSI_TEXTURE_2D_MSAA,
+   TGSI_TEXTURE_2D_ARRAY_MSAA,
+   TGSI_TEXTURE_CUBE_ARRAY,
+   TGSI_TEXTURE_SHADOWCUBE_ARRAY,
+   TGSI_TEXTURE_UNKNOWN,
+   TGSI_TEXTURE_COUNT,
+};
 
 struct tgsi_instruction_texture
 {
    unsigned Texture  : 8;    /* TGSI_TEXTURE_ */
    unsigned NumOffsets : 4;
-   unsigned Padding : 20;
+   unsigned ReturnType : 3; /* TGSI_RETURN_TYPE_x */
+   unsigned Padding : 17;
 };
 
 /* for texture offsets in GLSL and DirectX.
@@ -625,21 +714,6 @@ struct tgsi_texture_offset
    unsigned SwizzleY : 2;  /* TGSI_SWIZZLE_x */
    unsigned SwizzleZ : 2;  /* TGSI_SWIZZLE_x */
    unsigned Padding  : 6;
-};
-
-/*
- * For SM3, the following constraint applies.
- *   - Swizzle is either set to identity or replicate.
- */
-struct tgsi_instruction_predicate
-{
-   int      Index    : 16; /* SINT */
-   unsigned SwizzleX : 2;  /* TGSI_SWIZZLE_x */
-   unsigned SwizzleY : 2;  /* TGSI_SWIZZLE_x */
-   unsigned SwizzleZ : 2;  /* TGSI_SWIZZLE_x */
-   unsigned SwizzleW : 2;  /* TGSI_SWIZZLE_x */
-   unsigned Negate   : 1;  /* BOOL */
-   unsigned Padding  : 7;
 };
 
 /**
@@ -677,7 +751,7 @@ struct tgsi_src_register
  *
  * File, Index and Swizzle are handled the same as in tgsi_src_register.
  *
- * If ArrayID is zero the whole register file might be is indirectly addressed,
+ * If ArrayID is zero the whole register file might be indirectly addressed,
  * if not only the Declaration with this ArrayID is accessed by this operand.
  *
  */
@@ -712,6 +786,26 @@ struct tgsi_dst_register
    unsigned Padding     : 6;
 };
 
+#define TGSI_MEMORY_COHERENT (1 << 0)
+#define TGSI_MEMORY_RESTRICT (1 << 1)
+#define TGSI_MEMORY_VOLATILE (1 << 2)
+
+/**
+ * Specifies the type of memory access to do for the LOAD/STORE instruction.
+ */
+struct tgsi_instruction_memory
+{
+   unsigned Qualifier : 3;  /* TGSI_MEMORY_ */
+   unsigned Texture   : 8;  /* only for images: TGSI_TEXTURE_ */
+   unsigned Format    : 10; /* only for images: PIPE_FORMAT_ */
+   unsigned Padding   : 11;
+};
+
+#define TGSI_MEMBAR_SHADER_BUFFER (1 << 0)
+#define TGSI_MEMBAR_ATOMIC_BUFFER (1 << 1)
+#define TGSI_MEMBAR_SHADER_IMAGE  (1 << 2)
+#define TGSI_MEMBAR_SHARED        (1 << 3)
+#define TGSI_MEMBAR_THREAD_GROUP  (1 << 4)
 
 #ifdef __cplusplus
 }
