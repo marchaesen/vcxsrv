@@ -440,7 +440,7 @@ convert_clear_buffer_data(struct gl_context *ctx,
  *
  * Default callback for the \c dd_function_table::NewBufferObject() hook.
  */
-struct gl_buffer_object *
+static struct gl_buffer_object *
 _mesa_new_buffer_object(struct gl_context *ctx, GLuint name)
 {
    struct gl_buffer_object *obj = MALLOC_STRUCT(gl_buffer_object);
@@ -606,7 +606,7 @@ _mesa_total_buffer_object_memory(struct gl_context *ctx)
  * \return GL_TRUE for success, GL_FALSE for failure
  * \sa glBufferDataARB, dd_function_table::BufferData.
  */
-GLboolean
+static GLboolean
 buffer_data_fallback(struct gl_context *ctx, GLenum target, GLsizeiptr size,
                      const GLvoid *data, GLenum usage, GLenum storageFlags,
                      struct gl_buffer_object *bufObj)
@@ -652,7 +652,7 @@ buffer_data_fallback(struct gl_context *ctx, GLenum target, GLsizeiptr size,
  *
  * \sa glBufferSubDataARB, dd_function_table::BufferSubData.
  */
-void
+static void
 buffer_sub_data_fallback(struct gl_context *ctx, GLintptr offset,
                          GLsizeiptr size, const GLvoid *data,
                          struct gl_buffer_object *bufObj)
@@ -685,7 +685,7 @@ buffer_sub_data_fallback(struct gl_context *ctx, GLintptr offset,
  *
  * \sa glBufferGetSubDataARB, dd_function_table::GetBufferSubData.
  */
-void
+static void
 buffer_get_subdata(struct gl_context *ctx, GLintptrARB offset,
                    GLsizeiptrARB size, GLvoid *data,
                    struct gl_buffer_object *bufObj )
@@ -799,7 +799,7 @@ flush_mapped_buffer_range_fallback(struct gl_context *ctx,
  *
  * \sa glUnmapBufferARB, dd_function_table::UnmapBuffer
  */
-GLboolean
+static GLboolean
 unmap_buffer_fallback(struct gl_context *ctx, struct gl_buffer_object *bufObj,
                       gl_map_buffer_index index)
 {
