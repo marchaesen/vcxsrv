@@ -356,8 +356,7 @@ create_field(struct parser_context *ctx, const char **atts)
                                 size *= 8;
                 } else if (strcmp(atts[i], "type") == 0)
                         field->type = string_to_type(ctx, atts[i + 1]);
-                else if (strcmp(atts[i], "default") == 0 &&
-                         field->start >= 16 && field->end <= 31) {
+                else if (strcmp(atts[i], "default") == 0) {
                         field->has_default = true;
                         field->default_value = strtoul(atts[i + 1], &p, 0);
                 }
@@ -641,10 +640,32 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
 struct v3d_group *
 v3d_spec_find_instruction(struct v3d_spec *spec, const uint8_t *p)
 {
+        uint8_t opcode = *p;
+
         for (int i = 0; i < spec->ncommands; i++) {
-                uint8_t opcode = *p;
-                if (opcode == spec->commands[i]->opcode)
-                        return spec->commands[i];
+                struct v3d_group *group = spec->commands[i];
+
+                if (opcode != group->opcode)
+                        continue;
+
+                /* If there's a "sub-id" field, make sure that it matches the
+                 * instruction being decoded.
+                 */
+                struct v3d_field *subid = NULL;
+                for (int j = 0; j < group->nfields; j++) {
+                        struct v3d_field *field = group->fields[j];
+                        if (strcmp(field->name, "sub-id") == 0) {
+                                subid = field;
+                                break;
+                        }
+                }
+
+                if (subid && (__gen_unpack_uint(p, subid->start, subid->end) !=
+                              subid->default_value)) {
+                        continue;
+                }
+
+                return group;
         }
 
         return NULL;

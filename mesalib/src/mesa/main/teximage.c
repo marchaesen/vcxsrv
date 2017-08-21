@@ -4968,13 +4968,13 @@ compressed_tex_sub_image(unsigned dim, GLenum target, GLuint texture,
       }
 
       /* Copy in each face. */
-      for (int i = 0; i < 6; ++i) {
+      for (int i = zoffset; i < zoffset + depth; ++i) {
          texImage = texObj->Image[i][level];
          assert(texImage);
 
          compressed_texture_sub_image(ctx, 3, texObj, texImage,
                                       texObj->Target, level, xoffset, yoffset,
-                                      zoffset, width, height, 1, format,
+                                      0, width, height, 1, format,
                                       imageSize, pixels);
 
          /* Compressed images don't have a client format */

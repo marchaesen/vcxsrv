@@ -25,6 +25,15 @@
 #include "util/u_math.h"
 #include "util/u_vector.h"
 
+/** @file u_vector.c
+ *
+ * A dynamically growable, circular buffer.  Elements are added at head and
+ * removed from tail. head and tail are free-running uint32_t indices and we
+ * only compute the modulo with size when accessing the array.  This way,
+ * number of bytes in the queue is always head - tail, even in case of
+ * wraparound.
+ */
+
 int
 u_vector_init(struct u_vector *vector, uint32_t element_size, uint32_t size)
 {
