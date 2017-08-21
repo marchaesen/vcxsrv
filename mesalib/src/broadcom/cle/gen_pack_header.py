@@ -478,13 +478,7 @@ class Parser(object):
 
         print("}\n#endif\n")
 
-    def emit_packet(self):
-        name = self.packet
-
-        assert(self.group.fields[0].name == "opcode")
-        print('#define %-33s %6d' %
-              (name + "_opcode", self.group.fields[0].default))
-
+    def emit_header(self, name):
         default_fields = []
         for field in self.group.fields:
             if not type(field) is Field:
@@ -493,11 +487,18 @@ class Parser(object):
                 continue
             default_fields.append("   .%-35s = %6d" % (field.name, field.default))
 
-        if default_fields:
-            print('#define %-40s\\' % (name + '_header'))
-            print(",  \\\n".join(default_fields))
-            print('')
+        print('#define %-40s\\' % (name + '_header'))
+        print(",  \\\n".join(default_fields))
+        print('')
 
+    def emit_packet(self):
+        name = self.packet
+
+        assert(self.group.fields[0].name == "opcode")
+        print('#define %-33s %6d' %
+              (name + "_opcode", self.group.fields[0].default))
+
+        self.emit_header(name)
         self.emit_template_struct(self.packet, self.group)
         self.emit_pack_function(self.packet, self.group)
         self.emit_unpack_function(self.packet, self.group)
@@ -516,10 +517,8 @@ class Parser(object):
 
     def emit_struct(self):
         name = self.struct
-        # Emit an empty header define so that we can use the CL pack functions
-        # with structs.
-        print('#define ' + name + '_header')
 
+        self.emit_header(name)
         self.emit_template_struct(self.struct, self.group)
         self.emit_pack_function(self.struct, self.group)
         self.emit_unpack_function(self.struct, self.group)

@@ -5518,11 +5518,11 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 		                                     ctx->nir->outputs[radeon_llvm_reg_index_soa(VARYING_SLOT_VIEWPORT, 0)], "");
 	}
 
-	uint32_t mask = ((outinfo->writes_pointsize == true ? 1 : 0) |
-			 (outinfo->writes_layer == true ? 4 : 0) |
-			 (outinfo->writes_viewport_index == true ? 8 : 0));
-	if (mask) {
-		pos_args[1].enabled_channels = mask;
+	if (outinfo->writes_pointsize ||
+	    outinfo->writes_layer ||
+	    outinfo->writes_viewport_index) {
+		pos_args[1].enabled_channels = ((outinfo->writes_pointsize == true ? 1 : 0) |
+						(outinfo->writes_layer == true ? 4 : 0));
 		pos_args[1].valid_mask = 0;
 		pos_args[1].done = 0;
 		pos_args[1].target = V_008DFC_SQ_EXP_POS + 1;
@@ -5536,8 +5536,26 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 			pos_args[1].out[0] = psize_value;
 		if (outinfo->writes_layer == true)
 			pos_args[1].out[2] = layer_value;
-		if (outinfo->writes_viewport_index == true)
-			pos_args[1].out[3] = viewport_index_value;
+		if (outinfo->writes_viewport_index == true) {
+			if (ctx->options->chip_class >= GFX9) {
+				/* GFX9 has the layer in out.z[10:0] and the viewport
+				 * index in out.z[19:16].
+				 */
+				LLVMValueRef v = viewport_index_value;
+				v = to_integer(&ctx->ac, v);
+				v = LLVMBuildShl(ctx->builder, v,
+						 LLVMConstInt(ctx->i32, 16, false),
+						 "");
+				v = LLVMBuildOr(ctx->builder, v,
+						to_integer(&ctx->ac, pos_args[1].out[2]), "");
+
+				pos_args[1].out[2] = to_float(&ctx->ac, v);
+				pos_args[1].enabled_channels |= 1 << 2;
+			} else {
+				pos_args[1].out[3] = viewport_index_value;
+				pos_args[1].enabled_channels |= 1 << 3;
+			}
+		}
 	}
 	for (i = 0; i < 4; i++) {
 		if (pos_args[i].out[0])
