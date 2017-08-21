@@ -504,34 +504,6 @@
     <ClCompile Include="..\..\..\..\src\util\string_to_uint_map.cpp" />
     <ClCompile Include="..\..\..\..\src\util\strtod.c" />
   </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\..\..\..\src\mesa\program\program_lexer.l">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\mesa\program\doflexbison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\mesa\program\doflexbison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\mesa\program\lex.yy.c;..\..\..\..\src\mesa\program\program_parse.tab.c;..\..\..\..\src\mesa\program\program_parse.tab.h;%(Outputs)</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\mesa\program\lex.yy.c;..\..\..\..\src\mesa\program\program_parse.tab.c;..\..\..\..\src\mesa\program\program_parse.tab.h;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\mesa\program\doflexbison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\mesa\program\doflexbison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\mesa\program\lex.yy.c;..\..\..\..\src\mesa\program\program_parse.tab.c;..\..\..\..\src\mesa\program\program_parse.tab.h;%(Outputs)</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\mesa\program\lex.yy.c;..\..\..\..\src\mesa\program\program_parse.tab.c;..\..\..\..\src\mesa\program\program_parse.tab.h;%(Outputs)</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\mesa\program\program_parse.y;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\mesa\program\program_parse.y;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\mesa\program\program_parse.y;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\mesa\program\program_parse.y;%(AdditionalInputs)</AdditionalInputs>
-    </CustomBuild>
-    <None Include="..\..\..\..\src\mesa\program\program_parse.y">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\mesa\program\dobison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\mesa\program\dobison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\mesa\program\program_parse.tab.c;..\..\..\..\src\mesa\program\program_parse.tab.h;%(Outputs)</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\mesa\program\program_parse.tab.c;..\..\..\..\src\mesa\program\program_parse.tab.h;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\mesa\program\dobison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\mesa\program\dobison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\mesa\program\program_parse.tab.c;..\..\..\..\src\mesa\program\program_parse.tab.h;%(Outputs)</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\mesa\program\program_parse.tab.c;..\..\..\..\src\mesa\program\program_parse.tab.h;%(Outputs)</Outputs>
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

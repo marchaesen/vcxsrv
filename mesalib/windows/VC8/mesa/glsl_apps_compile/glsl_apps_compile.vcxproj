@@ -287,34 +287,6 @@
     <ClCompile Include="..\..\..\..\src\util\sha1\sha1.c" />
     <ClCompile Include="..\..\..\..\src\util\strtod.c" />
   </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\..\..\..\src\compiler\glsl\glsl_lexer.ll">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\doflexbison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\doflexbison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\glsl_lexer.cpp;..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\glsl_lexer.cpp;..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\doflexbison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\doflexbison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\glsl_lexer.cpp;..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\glsl_lexer.cpp;..\..\..\..\src\compiler\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
-    </CustomBuild>
-    <None Include="..\..\..\..\src\compiler\glsl\glsl_parser.yy">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\dobison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\dobison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\dobison.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\dobison.bat</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\compiler\glsl\glsl_parser.cpp;..\..\..\..\src\compiler\glsl\glsl_parser.h;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h</Outputs>
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

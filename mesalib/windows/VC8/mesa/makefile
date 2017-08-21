@@ -10,6 +10,20 @@ endif
 DBGBUILDCMD=$(BUILDCMD) /p:Configuration=Debug /p:Platform=$(TARGETDIR)
 RELBUILDCMD=$(BUILDCMD) /p:Configuration=Release /p:Platform=$(TARGETDIR)
 
+COMPILERFLEXBISONGEN:=..\..\..\src/compiler\glsl\glcpp\glcpp-lex.c\
+  ..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c\
+  ..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h\
+  ..\..\..\src\compiler\glsl\glcpp\glcpp-parse.output\
+  ..\..\..\src\compiler\glsl\glsl_lexer.cpp\
+  ..\..\..\src\compiler\glsl\glsl_parser.cpp\
+  ..\..\..\src\compiler\glsl\glsl_parser.h\
+  ..\..\..\src\compiler\glsl\glsl_parser.output
+
+PROGRAMFLEXBISONGEN:=..\..\..\src\mesa\program\lex.yy.c\
+  ..\..\..\src\mesa\program\program_parse.output\
+  ..\..\..\src\mesa\program\program_parse.tab.c\
+  ..\..\..\src\mesa\program\program_parse.tab.h
+
 
 DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       $(wildcard ..\..\..\src\mesa\swrast\*.h) \
@@ -63,64 +77,10 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\compiler\glsl\ir_expression_operation.h \
       ..\..\..\src\compiler\glsl\ir_expression_operation_constant.h \
       ..\..\..\src\compiler\glsl\expression_operation_strings.h \
-      ..\..\..\src\compiler\glsl\ir_expression_operation_strings.h
+      ..\..\..\src\compiler\glsl\ir_expression_operation_strings.h \
+			$(COMPILERFLEXBISONGEN) $(PROGRAMFLEXBISONGEN)
 
 all: $(TARGETDIR)\Release\swrast_dri.dll $(TARGETDIR)\Debug\swrast_dri.dll
-
-..\..\..\src\util\xmlpool\options.h: ..\..\..\src\mesa\drivers\dri\common\xmlpool\t_options.h ..\..\..\src\util\xmlpool\gen_xmlpool.py
-	cd ..\..\..\src\util\xmlpool & python gen_xmlpool.py t_options.h . > options.h
-
-..\..\..\src\mesa\main\dispatch.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_table.py
-	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -f gl_and_es_API.xml -m remap_table > ..\..\..\mesa\main\dispatch.h
-
-..\..\..\src\mesa\main\glapitable.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_table.py
-	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -f gl_and_es_API.xml > ..\..\..\mesa\main\glapitable.h
-
-..\..\..\src\mesa\main\enums.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\glapi\registry\gl.xml ..\..\..\src\mapi\glapi\gen\gl_enums.py
-	cd ..\..\..\src\mapi\glapi\gen & python gl_enums.py -f ..\registry\gl.xml > ..\..\..\mesa\main\enums.c
-
-..\..\..\src\mesa\main\api_exec.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_genexec.py
-	cd ..\..\..\src\mapi\glapi\gen & python gl_genexec.py -f gl_and_es_API.xml > ..\..\..\mesa\main\api_exec.c
-
-GET_HASH_GEN = ../../../src/mesa/main/get_hash_generator.py
-..\..\..\src\mesa\main\get_hash.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml ..\..\..\src\mesa\main\get_hash_params.py $(GET_HASH_GEN)
-	python $(GET_HASH_GEN) -f $(subst $/,/,$<) > $@
-
-GEN_FORMAT_INFO=../../../src/mesa/main/format_info.py
-..\..\..\src\mesa\main\format_info.h: ..\..\..\src\mesa\main\formats.csv ..\..\..\src\mesa\main\format_parser.py $(GEN_FORMAT_INFO)
-	python $(GEN_FORMAT_INFO) $< > $@
-
-GEN_FORMAT_FALLBACK=../../../src/mesa/main/format_fallback.py
-..\..\..\src\mesa\main\format_fallback.c: ..\..\..\src\mesa\main\formats.csv ..\..\..\src\mesa\main\format_fallback.py $(GEN_FORMAT_FALLBACK)
-	python $(GEN_FORMAT_FALLBACK) $< $@
-
-..\..\..\src\util\format_srgb.c: ..\..\..\src\util\format_srgb.py
-	python $< > $@
-
-..\..\..\src\mesa\main\format_unpack.c: ..\..\..\src\mesa\main\format_unpack.py  ..\..\..\src\mesa\main\formats.csv
-	python ..\..\..\src\mesa\main\format_unpack.py  ..\..\..\src\mesa\main\formats.csv > $@ 
-
-..\..\..\src\mesa\main\format_pack.c: ..\..\..\src\mesa\main\format_pack.py  ..\..\..\src\mesa\main\formats.csv
-	python ..\..\..\src\mesa\main\format_pack.py  ..\..\..\src\mesa\main\formats.csv > $@ 
-
-REMAP_HELPER = ../../../src/mapi/glapi/gen/remap_helper.py
-..\..\..\src\mesa\main\remap_helper.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml $(REMAP_HELPER)
-	python $(REMAP_HELPER) -f $(subst $/,/,$<) > $@
-
-..\..\..\src\mapi\glapi\gen\glapiTemp.h: ../../../src/mapi/glapi/gen/gl_apitemp.py
-	cd  ..\..\..\src\mapi\glapi\gen & python gl_apitemp.py -f gl_and_es_API.xml > glapiTemp.h
-
-..\..\..\src\compiler\glsl\ir_expression_operation.h: ..\..\..\src\compiler\glsl\ir_expression_operation.py
-	python $< enum > $@
-
-..\..\..\src\compiler\glsl\ir_expression_operation_constant.h: ..\..\..\src\compiler\glsl\ir_expression_operation.py
-	python $< constant > $@
-
-..\..\..\src\compiler\glsl\expression_operation_strings.h: ..\..\..\src\compiler\glsl\ir_expression_operation.py
-	python $< strings > $@
-
-..\..\..\src\compiler\glsl\ir_expression_operation_strings.h: ..\..\..\src\compiler\glsl\ir_expression_operation.py
-	python $< strings > $@
 
 $(TARGETDIR)\Debug\swrast_dri.dll: $(DEPS)
 	$(DBGBUILDCMD)
@@ -133,3 +93,6 @@ clean: cleanthis
 cleanthis:
 	del -e Debug
 	del -e Release
+
+load_makefile NORELDBG=1 makefile.srcs
+
