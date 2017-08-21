@@ -59,7 +59,7 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\util\format_srgb.c \
       ..\..\..\src\mapi\glapi\gen\glapiTemp.h \
       ..\..\..\src\mesa\main\remap_helper.h \
-      ..\..\..\src\mesa\drivers\dri\common\xmlpool\options.h \
+      ..\..\..\src\util\xmlpool\options.h \
       ..\..\..\src\compiler\glsl\ir_expression_operation.h \
       ..\..\..\src\compiler\glsl\ir_expression_operation_constant.h \
       ..\..\..\src\compiler\glsl\expression_operation_strings.h \
@@ -67,8 +67,8 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
 
 all: $(TARGETDIR)\Release\swrast_dri.dll $(TARGETDIR)\Debug\swrast_dri.dll
 
-..\..\..\src\mesa\drivers\dri\common\xmlpool\options.h: ..\..\..\src\mesa\drivers\dri\common\xmlpool\t_options.h ..\..\..\src\mesa\drivers\dri\common\xmlpool\gen_xmlpool.py
-	cd ..\..\..\src\mesa\drivers\dri\common\xmlpool & python gen_xmlpool.py t_options.h . > options.h
+..\..\..\src\util\xmlpool\options.h: ..\..\..\src\mesa\drivers\dri\common\xmlpool\t_options.h ..\..\..\src\util\xmlpool\gen_xmlpool.py
+	cd ..\..\..\src\util\xmlpool & python gen_xmlpool.py t_options.h . > options.h
 
 ..\..\..\src\mesa\main\dispatch.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_table.py
 	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -f gl_and_es_API.xml -m remap_table > ..\..\..\mesa\main\dispatch.h

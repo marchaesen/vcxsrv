@@ -100,7 +100,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ForcedIncludeFiles>../../../../src/mesa/main/compiler.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
@@ -128,7 +128,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ForcedIncludeFiles>../../../../src/mesa/main/compiler.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
@@ -394,7 +394,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\get.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\getstring.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\hash.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\program\dummy_errors.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\ir_to_mesa.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\program\lex.yy.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\program.c" />
