@@ -34,10 +34,12 @@ namespace {
 class ubo_visitor : public program_resource_visitor {
 public:
    ubo_visitor(void *mem_ctx, gl_uniform_buffer_variable *variables,
-               unsigned num_variables, struct gl_shader_program *prog)
+               unsigned num_variables, struct gl_shader_program *prog,
+               bool use_std430_as_default)
       : index(0), offset(0), buffer_size(0), variables(variables),
         num_variables(num_variables), mem_ctx(mem_ctx),
-        is_array_instance(false), prog(prog)
+        is_array_instance(false), prog(prog),
+        use_std430_as_default(use_std430_as_default)
    {
       /* empty */
    }
@@ -47,7 +49,8 @@ public:
       this->offset = 0;
       this->buffer_size = 0;
       this->is_array_instance = strchr(name, ']') != NULL;
-      this->program_resource_visitor::process(type, name);
+      this->program_resource_visitor::process(type, name,
+                                              use_std430_as_default);
    }
 
    unsigned index;
@@ -181,6 +184,8 @@ private:
        */
       this->buffer_size = glsl_align(this->offset, 16);
    }
+
+   bool use_std430_as_default;
 };
 
 class count_block_size : public program_resource_visitor {
@@ -352,7 +357,8 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
    /* Add each variable from each uniform block to the API tracking
     * structures.
     */
-   ubo_visitor parcel(blocks, variables, num_variables, prog);
+   ubo_visitor parcel(blocks, variables, num_variables, prog,
+                      ctx->Const.UseSTD430AsDefaultPacking);
 
    unsigned i = 0;
    struct hash_entry *entry;
@@ -438,7 +444,8 @@ link_uniform_blocks(void *mem_ctx,
       }
 
       block_size.num_active_uniforms = 0;
-      block_size.process(b->type->without_array(), "");
+      block_size.process(b->type->without_array(), "",
+                         ctx->Const.UseSTD430AsDefaultPacking);
 
       if (b->array != NULL) {
          unsigned aoa_size = b->type->arrays_of_arrays_size();

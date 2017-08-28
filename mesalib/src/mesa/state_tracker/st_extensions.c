@@ -541,7 +541,7 @@ init_format_extensions(struct pipe_screen *screen,
 static unsigned
 get_max_samples_for_formats(struct pipe_screen *screen,
                             unsigned num_formats,
-                            enum pipe_format *formats,
+                            const enum pipe_format *formats,
                             unsigned max_samples,
                             unsigned bind)
 {
@@ -601,6 +601,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_occlusion_query2),             PIPE_CAP_OCCLUSION_QUERY                  },
       { o(ARB_pipeline_statistics_query),    PIPE_CAP_QUERY_PIPELINE_STATISTICS        },
       { o(ARB_point_sprite),                 PIPE_CAP_POINT_SPRITE                     },
+      { o(ARB_polygon_offset_clamp),         PIPE_CAP_POLYGON_OFFSET_CLAMP             },
       { o(ARB_post_depth_coverage),          PIPE_CAP_POST_DEPTH_COVERAGE              },
       { o(ARB_query_buffer_object),          PIPE_CAP_QUERY_BUFFER_OBJECT              },
       { o(ARB_robust_buffer_access_behavior), PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR   },
@@ -633,7 +634,6 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(EXT_blend_equation_separate),      PIPE_CAP_BLEND_EQUATION_SEPARATE          },
       { o(EXT_depth_bounds_test),            PIPE_CAP_DEPTH_BOUNDS_TEST                },
       { o(EXT_draw_buffers2),                PIPE_CAP_INDEP_BLEND_ENABLE               },
-      { o(EXT_polygon_offset_clamp),         PIPE_CAP_POLYGON_OFFSET_CLAMP             },
       { o(EXT_memory_object),                PIPE_CAP_MEMOBJ                           },
       { o(EXT_memory_object_fd),             PIPE_CAP_MEMOBJ                           },
       { o(EXT_stencil_two_side),             PIPE_CAP_TWO_SIDED_STENCIL                },
@@ -995,23 +995,23 @@ void st_init_extensions(struct pipe_screen *screen,
 
    /* Maximum sample count. */
    {
-      enum pipe_format color_formats[] = {
+      static const enum pipe_format color_formats[] = {
          PIPE_FORMAT_R8G8B8A8_UNORM,
          PIPE_FORMAT_B8G8R8A8_UNORM,
          PIPE_FORMAT_A8R8G8B8_UNORM,
          PIPE_FORMAT_A8B8G8R8_UNORM,
       };
-      enum pipe_format depth_formats[] = {
+      static const enum pipe_format depth_formats[] = {
          PIPE_FORMAT_Z16_UNORM,
          PIPE_FORMAT_Z24X8_UNORM,
          PIPE_FORMAT_X8Z24_UNORM,
          PIPE_FORMAT_Z32_UNORM,
          PIPE_FORMAT_Z32_FLOAT
       };
-      enum pipe_format int_formats[] = {
+      static const enum pipe_format int_formats[] = {
          PIPE_FORMAT_R8G8B8A8_SINT
       };
-      enum pipe_format void_formats[] = {
+      static const enum pipe_format void_formats[] = {
          PIPE_FORMAT_NONE
       };
 
@@ -1055,11 +1055,12 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->EXT_framebuffer_multisample_blit_scaled = GL_TRUE;
    }
 
-   if (consts->MaxSamples == 0 && screen->get_param(screen, PIPE_CAP_FAKE_SW_MSAA)) {
-	consts->FakeSWMSAA = GL_TRUE;
-        extensions->EXT_framebuffer_multisample = GL_TRUE;
-        extensions->EXT_framebuffer_multisample_blit_scaled = GL_TRUE;
-        extensions->ARB_texture_multisample = GL_TRUE;
+   if (consts->MaxSamples == 0 &&
+       screen->get_param(screen, PIPE_CAP_FAKE_SW_MSAA)) {
+      consts->FakeSWMSAA = GL_TRUE;
+      extensions->EXT_framebuffer_multisample = GL_TRUE;
+      extensions->EXT_framebuffer_multisample_blit_scaled = GL_TRUE;
+      extensions->ARB_texture_multisample = GL_TRUE;
    }
 
    if (consts->MaxDualSourceDrawBuffers > 0 &&
@@ -1249,6 +1250,10 @@ void st_init_extensions(struct pipe_screen *screen,
          }
       }
    }
+
+   if (extensions->EXT_texture_filter_anisotropic &&
+       screen->get_paramf(screen, PIPE_CAPF_MAX_TEXTURE_ANISOTROPY) >= 16.0)
+      extensions->ARB_texture_filter_anisotropic = GL_TRUE;
 
    extensions->KHR_robustness = extensions->ARB_robust_buffer_access_behavior;
 

@@ -344,11 +344,11 @@ dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
     unsigned i;
 
     if (num_attribs == 0)
-        return True;
+        return TRUE;
 
     if (attribs == NULL) {
         *error = BadImplementation;
-        return False;
+        return FALSE;
     }
 
     *major_ver = 1;
@@ -381,13 +381,13 @@ dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
                 break;
             default:
                 *error = __glXError(GLXBadProfileARB);
-                return False;
+                return FALSE;
             }
             break;
         case GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB:
             if (screen->dri2->base.version >= 4) {
                 *error = BadValue;
-                return False;
+                return FALSE;
             }
 
             switch (attribs[i * 2 + 1]) {
@@ -399,14 +399,14 @@ dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
                 break;
             default:
                 *error = BadValue;
-                return False;
+                return FALSE;
             }
             break;
         default:
             /* If an unknown attribute is received, fail.
              */
             *error = BadValue;
-            return False;
+            return FALSE;
         }
     }
 
@@ -414,7 +414,7 @@ dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
      */
     if ((*flags & ~ALL_DRI_CTX_FLAGS) != 0) {
         *error = BadValue;
-        return False;
+        return FALSE;
     }
 
     /* If the core profile is requested for a GL version is less than 3.2,
@@ -428,7 +428,7 @@ dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
     }
 
     *error = Success;
-    return True;
+    return TRUE;
 }
 
 static void

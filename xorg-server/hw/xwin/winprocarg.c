@@ -41,9 +41,7 @@ from The Open Group.
 #include "winmsg.h"
 #include "winmonitors.h"
 
-#ifdef XWIN_CLIPBOARD
 #include "winclipboard/winclipboard.h"
-#endif
 
 /*
  * Function prototypes
@@ -132,12 +130,8 @@ winInitializeScreenDefaults(void)
     defaultScreenInfo.fMWExtWM = FALSE;
 #endif
     defaultScreenInfo.fRootless = FALSE;
-#ifdef XWIN_MULTIWINDOW
     defaultScreenInfo.fMultiWindow = FALSE;
-#endif
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
     defaultScreenInfo.fMultiMonitorOverride = FALSE;
-#endif
     defaultScreenInfo.fMultipleMonitors = FALSE;
     defaultScreenInfo.fLessPointer = FALSE;
     defaultScreenInfo.iResizeMode = resizeDefault;
@@ -526,10 +520,8 @@ ddxProcessArgument(int argc, char *argv[], int i)
      * Look for the '-fullscreen' argument
      */
     if (IS_OPTION("-fullscreen")) {
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
         if (!screenInfoPtr->fMultiMonitorOverride)
             screenInfoPtr->fMultipleMonitors = FALSE;
-#endif
         screenInfoPtr->fFullScreen = TRUE;
 
         /* Indicate that we have processed this argument */
@@ -550,10 +542,8 @@ ddxProcessArgument(int argc, char *argv[], int i)
      * Look for the '-nodecoration' argument
      */
     if (IS_OPTION("-nodecoration")) {
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
         if (!screenInfoPtr->fMultiMonitorOverride)
             screenInfoPtr->fMultipleMonitors = FALSE;
-#endif
         screenInfoPtr->fDecoration = FALSE;
 
         /* Indicate that we have processed this argument */
@@ -587,40 +577,32 @@ ddxProcessArgument(int argc, char *argv[], int i)
      * Look for the '-rootless' argument
      */
     if (IS_OPTION("-rootless")) {
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
         if (!screenInfoPtr->fMultiMonitorOverride)
             screenInfoPtr->fMultipleMonitors = FALSE;
-#endif
         screenInfoPtr->fRootless = TRUE;
 
         /* Indicate that we have processed this argument */
         return 1;
     }
 
-#ifdef XWIN_MULTIWINDOW
     /*
      * Look for the '-multiwindow' argument
      */
     if (IS_OPTION("-multiwindow")) {
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
         if (!screenInfoPtr->fMultiMonitorOverride)
             screenInfoPtr->fMultipleMonitors = TRUE;
-#endif
         screenInfoPtr->fMultiWindow = TRUE;
 
         /* Indicate that we have processed this argument */
         return 1;
     }
-#endif
 
     /*
      * Look for the '-multiplemonitors' argument
      */
     if (IS_OPTION("-multiplemonitors")
         || IS_OPTION("-multimonitors")) {
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
         screenInfoPtr->fMultiMonitorOverride = TRUE;
-#endif
         screenInfoPtr->fMultipleMonitors = TRUE;
 
         /* Indicate that we have processed this argument */
@@ -632,9 +614,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
      */
     if (IS_OPTION("-nomultiplemonitors")
         || IS_OPTION("-nomultimonitors")) {
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
         screenInfoPtr->fMultiMonitorOverride = TRUE;
-#endif
         screenInfoPtr->fMultipleMonitors = FALSE;
 
         /* Indicate that we have processed this argument */
@@ -690,7 +670,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
 
-#ifdef XWIN_CLIPBOARD
     /*
      * Look for the '-clipboard' argument
      */
@@ -731,7 +710,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
         /* Indicate that we have processed this argument */
         return 1;
     }
-#endif
 
     /*
      * Look for the '-ignoreinput' argument
@@ -1022,7 +1000,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 2;
     }
 
-#ifdef XWIN_CLIPBOARD
     /*
      * Look for the '-nounicodeclipboard' argument
      */
@@ -1031,7 +1008,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
         /* Indicate that we have processed the argument */
         return 1;
     }
-#endif
 
     if (IS_OPTION("-xkbrules")) {
         CHECK_ARGS(1);

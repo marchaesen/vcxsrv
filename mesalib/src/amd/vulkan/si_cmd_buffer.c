@@ -1133,8 +1133,10 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 void
 si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer, uint64_t va)
 {
-	uint32_t op = PRED_OP(PREDICATION_OP_BOOL64) | PREDICATION_DRAW_VISIBLE;
+	uint32_t op = 0;
 
+	if (va)
+		op = PRED_OP(PREDICATION_OP_BOOL64) | PREDICATION_DRAW_VISIBLE;
 	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
 		radeon_emit(cmd_buffer->cs, PKT3(PKT3_SET_PREDICATION, 2, 0));
 		radeon_emit(cmd_buffer->cs, op);

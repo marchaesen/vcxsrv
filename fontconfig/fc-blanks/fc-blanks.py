@@ -19,10 +19,14 @@ try:
     fp = urlopen('http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[%3AGC%3DZs%3A][%3ADI%3A]&abb=on&ucd=on&esc=on&g')
     data = fp.read()
     fp.close()
+    # check before writing if data isn't corrupted.
+    dom = html.fromstring(data)
+    x = dom.xpath('/html/body/form/p/text()')
+    p = x[1]
     fp = open(datafile, 'wb');
     fp.write(data);
     fp.close();
-except URLError:
+except (URLError, IndexError):
     # fall back reading the static data in repo
     try:
         fp = open(datafile)

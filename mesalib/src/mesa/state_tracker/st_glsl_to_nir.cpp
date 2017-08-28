@@ -400,7 +400,7 @@ st_nir_get_mesa_program(struct gl_context *ctx,
    do_set_program_inouts(shader->ir, prog, shader->Stage);
 
    _mesa_copy_linked_program_data(shader_program, shader);
-   _mesa_generate_parameters_list_for_uniforms(shader_program, shader,
+   _mesa_generate_parameters_list_for_uniforms(ctx, shader_program, shader,
                                                prog->Parameters);
 
    /* Make a pass over the IR to add state references for any built-in

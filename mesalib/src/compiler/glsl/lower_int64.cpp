@@ -69,7 +69,7 @@ namespace {
 class lower_64bit_visitor : public ir_rvalue_visitor {
 public:
    lower_64bit_visitor(void *mem_ctx, exec_list *instructions, unsigned lower)
-      : progress(false), lower(lower), instructions(instructions),
+      : progress(false), lower(lower),
         function_list(), added_functions(&function_list, mem_ctx)
    {
       functions = _mesa_hash_table_create(mem_ctx,
@@ -110,8 +110,6 @@ public:
 
 private:
    unsigned lower; /** Bitfield of which operations to lower */
-
-   exec_list *instructions;
 
    /** Hashtable containing all of the known functions in the IR */
    struct hash_table *functions;

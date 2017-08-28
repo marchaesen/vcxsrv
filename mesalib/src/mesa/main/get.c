@@ -489,7 +489,7 @@ EXTRA_EXT2(ARB_transform_feedback3, ARB_gpu_shader5);
 EXTRA_EXT(INTEL_performance_query);
 EXTRA_EXT(ARB_explicit_uniform_location);
 EXTRA_EXT(ARB_clip_control);
-EXTRA_EXT(EXT_polygon_offset_clamp);
+EXTRA_EXT(ARB_polygon_offset_clamp);
 EXTRA_EXT(ARB_framebuffer_no_attachments);
 EXTRA_EXT(ARB_tessellation_shader);
 EXTRA_EXT(ARB_shader_storage_buffer_object);
@@ -2033,6 +2033,11 @@ _mesa_GetUnsignedBytevEXT(GLenum pname, GLubyte *data)
 
    GET_CURRENT_CONTEXT(ctx);
 
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
+
    d = find_value(func, pname, &p, &v);
    size = get_value_size(d->type, &v);
    if (size >= 0) {
@@ -2811,6 +2816,11 @@ _mesa_GetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte *data)
    const char *func = "glGetUnsignedBytei_vEXT";
 
    GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
 
    type = find_value_indexed(func, target, index, &v);
    size = get_value_size(type, &v);

@@ -61,7 +61,6 @@ winKeyboardMessageHookLL(int iCode, WPARAM wParam, LPARAM lParam)
     PKBDLLHOOKSTRUCT p = (PKBDLLHOOKSTRUCT) lParam;
     HWND hwnd = GetActiveWindow();
 
-#ifdef XWIN_MULTIWINDOW
     WindowPtr pWin = NULL;
     winPrivWinPtr pWinPriv = NULL;
     winPrivScreenPtr pScreenPriv = NULL;
@@ -79,7 +78,6 @@ winKeyboardMessageHookLL(int iCode, WPARAM wParam, LPARAM lParam)
         if (pScreenInfo->fMultiWindow)
             fPassAltTab = FALSE;
     }
-#endif
 
     /* Pass keystrokes on to our main message loop */
     if (iCode == HC_ACTION) {

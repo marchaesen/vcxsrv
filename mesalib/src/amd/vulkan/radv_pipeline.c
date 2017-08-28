@@ -230,6 +230,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 			.image_write_without_format = true,
 			.tessellation = true,
 			.int64 = true,
+			.multiview = true,
 			.variable_pointers = true,
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,
@@ -441,7 +442,7 @@ static void radv_fill_shader_variant(struct radv_device *device,
 static struct radv_shader_variant *radv_shader_variant_create(struct radv_device *device,
 							      struct nir_shader *shader,
 							      struct radv_pipeline_layout *layout,
-							      const union ac_shader_variant_key *key,
+							      const struct ac_shader_variant_key *key,
 							      void** code_out,
 							      unsigned *code_size_out,
 							      bool dump)
@@ -493,7 +494,8 @@ radv_pipeline_create_gs_copy_shader(struct radv_pipeline *pipeline,
 				    struct nir_shader *nir,
 				    void** code_out,
 				    unsigned *code_size_out,
-				    bool dump_shader)
+				    bool dump_shader,
+				    bool multiview)
 {
 	struct radv_shader_variant *variant = calloc(1, sizeof(struct radv_shader_variant));
 	enum radeon_family chip_family = pipeline->device->physical_device->rad_info.family;
@@ -506,6 +508,7 @@ radv_pipeline_create_gs_copy_shader(struct radv_pipeline *pipeline,
 	enum ac_target_machine_options tm_options = 0;
 	options.family = chip_family;
 	options.chip_class = pipeline->device->physical_device->rad_info.chip_class;
+	options.key.has_multiview_view_index = multiview;
 	if (options.supports_spill)
 		tm_options |= AC_TM_SUPPORTS_SPILL;
 	if (pipeline->device->instance->perftest_flags & RADV_PERFTEST_SISCHED)
@@ -538,7 +541,7 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 		      gl_shader_stage stage,
 		      const VkSpecializationInfo *spec_info,
 		      struct radv_pipeline_layout *layout,
-		      const union ac_shader_variant_key *key)
+		      const struct ac_shader_variant_key *key)
 {
 	unsigned char sha1[20];
 	unsigned char gs_copy_sha1[20];
@@ -590,7 +593,7 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 		void *gs_copy_code = NULL;
 		unsigned gs_copy_code_size = 0;
 		pipeline->gs_copy_shader = radv_pipeline_create_gs_copy_shader(
-			pipeline, nir, &gs_copy_code, &gs_copy_code_size, dump);
+			pipeline, nir, &gs_copy_code, &gs_copy_code_size, dump, key->has_multiview_view_index);
 
 		if (pipeline->gs_copy_shader) {
 			pipeline->gs_copy_shader =
@@ -613,10 +616,10 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 	return variant;
 }
 
-static union ac_shader_variant_key
+static struct ac_shader_variant_key
 radv_compute_tes_key(bool as_es, bool export_prim_id)
 {
-	union ac_shader_variant_key key;
+	struct ac_shader_variant_key key;
 	memset(&key, 0, sizeof(key));
 	key.tes.as_es = as_es;
 	/* export prim id only happens when no geom shader */
@@ -625,10 +628,10 @@ radv_compute_tes_key(bool as_es, bool export_prim_id)
 	return key;
 }
 
-static union ac_shader_variant_key
+static struct ac_shader_variant_key
 radv_compute_tcs_key(unsigned primitive_mode, unsigned input_vertices)
 {
-	union ac_shader_variant_key key;
+	struct ac_shader_variant_key key;
 	memset(&key, 0, sizeof(key));
 	key.tcs.primitive_mode = primitive_mode;
 	key.tcs.input_vertices = input_vertices;
@@ -645,19 +648,21 @@ radv_tess_pipeline_compile(struct radv_pipeline *pipeline,
 			   const VkSpecializationInfo *tcs_spec_info,
 			   const VkSpecializationInfo *tes_spec_info,
 			   struct radv_pipeline_layout *layout,
-			   unsigned input_vertices)
+			   unsigned input_vertices,
+			   bool has_view_index)
 {
 	unsigned char tcs_sha1[20], tes_sha1[20];
 	struct radv_shader_variant *tes_variant = NULL, *tcs_variant = NULL;
 	nir_shader *tes_nir, *tcs_nir;
 	void *tes_code = NULL, *tcs_code = NULL;
 	unsigned tes_code_size = 0, tcs_code_size = 0;
-	union ac_shader_variant_key tes_key;
-	union ac_shader_variant_key tcs_key;
+	struct ac_shader_variant_key tes_key;
+	struct ac_shader_variant_key tcs_key;
 	bool dump = (pipeline->device->debug_flags & RADV_DEBUG_DUMP_SHADERS);
 
 	tes_key = radv_compute_tes_key(radv_pipeline_has_gs(pipeline),
 				       pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.prim_id_input);
+	tes_key.has_multiview_view_index = has_view_index;
 	if (tes_module->nir)
 		_mesa_sha1_compute(tes_module->nir->info.name,
 				   strlen(tes_module->nir->info.name),
@@ -847,6 +852,79 @@ static uint32_t si_translate_blend_factor(VkBlendFactor factor)
 	default:
 		return 0;
 	}
+}
+
+static uint32_t si_translate_blend_opt_function(VkBlendOp op)
+{
+	switch (op) {
+	case VK_BLEND_OP_ADD:
+		return V_028760_OPT_COMB_ADD;
+	case VK_BLEND_OP_SUBTRACT:
+		return V_028760_OPT_COMB_SUBTRACT;
+	case VK_BLEND_OP_REVERSE_SUBTRACT:
+		return V_028760_OPT_COMB_REVSUBTRACT;
+	case VK_BLEND_OP_MIN:
+		return V_028760_OPT_COMB_MIN;
+	case VK_BLEND_OP_MAX:
+		return V_028760_OPT_COMB_MAX;
+	default:
+		return V_028760_OPT_COMB_BLEND_DISABLED;
+	}
+}
+
+static uint32_t si_translate_blend_opt_factor(VkBlendFactor factor, bool is_alpha)
+{
+	switch (factor) {
+	case VK_BLEND_FACTOR_ZERO:
+		return V_028760_BLEND_OPT_PRESERVE_NONE_IGNORE_ALL;
+	case VK_BLEND_FACTOR_ONE:
+		return V_028760_BLEND_OPT_PRESERVE_ALL_IGNORE_NONE;
+	case VK_BLEND_FACTOR_SRC_COLOR:
+		return is_alpha ? V_028760_BLEND_OPT_PRESERVE_A1_IGNORE_A0
+				: V_028760_BLEND_OPT_PRESERVE_C1_IGNORE_C0;
+	case VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR:
+		return is_alpha ? V_028760_BLEND_OPT_PRESERVE_A0_IGNORE_A1
+				: V_028760_BLEND_OPT_PRESERVE_C0_IGNORE_C1;
+	case VK_BLEND_FACTOR_SRC_ALPHA:
+		return V_028760_BLEND_OPT_PRESERVE_A1_IGNORE_A0;
+	case VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA:
+		return V_028760_BLEND_OPT_PRESERVE_A0_IGNORE_A1;
+	case VK_BLEND_FACTOR_SRC_ALPHA_SATURATE:
+		return is_alpha ? V_028760_BLEND_OPT_PRESERVE_ALL_IGNORE_NONE
+				: V_028760_BLEND_OPT_PRESERVE_NONE_IGNORE_A0;
+	default:
+		return V_028760_BLEND_OPT_PRESERVE_NONE_IGNORE_NONE;
+	}
+}
+
+/**
+ * Get rid of DST in the blend factors by commuting the operands:
+ *    func(src * DST, dst * 0) ---> func(src * 0, dst * SRC)
+ */
+static void si_blend_remove_dst(unsigned *func, unsigned *src_factor,
+				unsigned *dst_factor, unsigned expected_dst,
+				unsigned replacement_src)
+{
+	if (*src_factor == expected_dst &&
+	    *dst_factor == VK_BLEND_FACTOR_ZERO) {
+		*src_factor = VK_BLEND_FACTOR_ZERO;
+		*dst_factor = replacement_src;
+
+		/* Commuting the operands requires reversing subtractions. */
+		if (*func == VK_BLEND_OP_SUBTRACT)
+			*func = VK_BLEND_OP_REVERSE_SUBTRACT;
+		else if (*func == VK_BLEND_OP_REVERSE_SUBTRACT)
+			*func = VK_BLEND_OP_SUBTRACT;
+	}
+}
+
+static bool si_blend_factor_uses_dst(unsigned factor)
+{
+	return factor == VK_BLEND_FACTOR_DST_COLOR ||
+		factor == VK_BLEND_FACTOR_DST_ALPHA ||
+		factor == VK_BLEND_FACTOR_SRC_ALPHA_SATURATE ||
+		factor == VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA ||
+		factor == VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
 }
 
 static bool is_dual_src(VkBlendFactor factor)
@@ -1146,6 +1224,7 @@ radv_pipeline_init_blend_state(struct radv_pipeline *pipeline,
 	for (i = 0; i < vkblend->attachmentCount; i++) {
 		const VkPipelineColorBlendAttachmentState *att = &vkblend->pAttachments[i];
 		unsigned blend_cntl = 0;
+		unsigned srcRGB_opt, dstRGB_opt, srcA_opt, dstA_opt;
 		VkBlendOp eqRGB = att->colorBlendOp;
 		VkBlendFactor srcRGB = att->srcColorBlendFactor;
 		VkBlendFactor dstRGB = att->dstColorBlendFactor;
@@ -1153,7 +1232,7 @@ radv_pipeline_init_blend_state(struct radv_pipeline *pipeline,
 		VkBlendFactor srcA = att->srcAlphaBlendFactor;
 		VkBlendFactor dstA = att->dstAlphaBlendFactor;
 
-		blend->sx_mrt0_blend_opt[i] = S_028760_COLOR_COMB_FCN(V_028760_OPT_COMB_BLEND_DISABLED) | S_028760_ALPHA_COMB_FCN(V_028760_OPT_COMB_BLEND_DISABLED);
+		blend->sx_mrt_blend_opt[i] = S_028760_COLOR_COMB_FCN(V_028760_OPT_COMB_BLEND_DISABLED) | S_028760_ALPHA_COMB_FCN(V_028760_OPT_COMB_BLEND_DISABLED);
 
 		if (!att->colorWriteMask)
 			continue;
@@ -1177,6 +1256,50 @@ radv_pipeline_init_blend_state(struct radv_pipeline *pipeline,
 			dstA = VK_BLEND_FACTOR_ONE;
 		}
 
+		/* Blending optimizations for RB+.
+		 * These transformations don't change the behavior.
+		 *
+		 * First, get rid of DST in the blend factors:
+		 *    func(src * DST, dst * 0) ---> func(src * 0, dst * SRC)
+		 */
+		si_blend_remove_dst(&eqRGB, &srcRGB, &dstRGB,
+				    VK_BLEND_FACTOR_DST_COLOR,
+				    VK_BLEND_FACTOR_SRC_COLOR);
+
+		si_blend_remove_dst(&eqA, &srcA, &dstA,
+				    VK_BLEND_FACTOR_DST_COLOR,
+				    VK_BLEND_FACTOR_SRC_COLOR);
+
+		si_blend_remove_dst(&eqA, &srcA, &dstA,
+				    VK_BLEND_FACTOR_DST_ALPHA,
+				    VK_BLEND_FACTOR_SRC_ALPHA);
+
+		/* Look up the ideal settings from tables. */
+		srcRGB_opt = si_translate_blend_opt_factor(srcRGB, false);
+		dstRGB_opt = si_translate_blend_opt_factor(dstRGB, false);
+		srcA_opt = si_translate_blend_opt_factor(srcA, true);
+		dstA_opt = si_translate_blend_opt_factor(dstA, true);
+
+				/* Handle interdependencies. */
+		if (si_blend_factor_uses_dst(srcRGB))
+			dstRGB_opt = V_028760_BLEND_OPT_PRESERVE_NONE_IGNORE_NONE;
+		if (si_blend_factor_uses_dst(srcA))
+			dstA_opt = V_028760_BLEND_OPT_PRESERVE_NONE_IGNORE_NONE;
+
+		if (srcRGB == VK_BLEND_FACTOR_SRC_ALPHA_SATURATE &&
+		    (dstRGB == VK_BLEND_FACTOR_ZERO ||
+		     dstRGB == VK_BLEND_FACTOR_SRC_ALPHA ||
+		     dstRGB == VK_BLEND_FACTOR_SRC_ALPHA_SATURATE))
+			dstRGB_opt = V_028760_BLEND_OPT_PRESERVE_NONE_IGNORE_A0;
+
+		/* Set the final value. */
+		blend->sx_mrt_blend_opt[i] =
+			S_028760_COLOR_SRC_OPT(srcRGB_opt) |
+			S_028760_COLOR_DST_OPT(dstRGB_opt) |
+			S_028760_COLOR_COMB_FCN(si_translate_blend_opt_function(eqRGB)) |
+			S_028760_ALPHA_SRC_OPT(srcA_opt) |
+			S_028760_ALPHA_DST_OPT(dstA_opt) |
+			S_028760_ALPHA_COMB_FCN(si_translate_blend_opt_function(eqA));
 		blend_cntl |= S_028780_ENABLE(1);
 
 		blend_cntl |= S_028780_COLOR_COMB_FCN(si_translate_blend_function(eqRGB));
@@ -1200,8 +1323,14 @@ radv_pipeline_init_blend_state(struct radv_pipeline *pipeline,
 		    dstRGB == VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA)
 			blend_need_alpha |= 1 << i;
 	}
-	for (i = vkblend->attachmentCount; i < 8; i++)
+	for (i = vkblend->attachmentCount; i < 8; i++) {
 		blend->cb_blend_control[i] = 0;
+		blend->sx_mrt_blend_opt[i] = S_028760_COLOR_COMB_FCN(V_028760_OPT_COMB_BLEND_DISABLED) | S_028760_ALPHA_COMB_FCN(V_028760_OPT_COMB_BLEND_DISABLED);
+	}
+
+	/* disable RB+ for now */
+	if (pipeline->device->physical_device->has_rbplus)
+		blend->cb_color_control |= S_028808_DISABLE_DUAL_QUAD(1);
 
 	if (blend->cb_target_mask)
 		blend->cb_color_control |= S_028808_MODE(mode);
@@ -1656,10 +1785,10 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 	pipeline->dynamic_state_mask = states;
 }
 
-static union ac_shader_variant_key
+static struct ac_shader_variant_key
 radv_compute_vs_key(const VkGraphicsPipelineCreateInfo *pCreateInfo, bool as_es, bool as_ls, bool export_prim_id)
 {
-	union ac_shader_variant_key key;
+	struct ac_shader_variant_key key;
 	const VkPipelineVertexInputStateCreateInfo *input_state =
 	                                         pCreateInfo->pVertexInputState;
 
@@ -1995,10 +2124,11 @@ static void calculate_ps_inputs(struct radv_pipeline *pipeline)
 
 	if (ps->info.fs.layer_input) {
 		unsigned vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_LAYER];
-		if (vs_offset != AC_EXP_PARAM_UNDEFINED) {
+		if (vs_offset != AC_EXP_PARAM_UNDEFINED)
 			pipeline->graphics.ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
-			++ps_offset;
-		}
+		else
+			pipeline->graphics.ps_input_cntl[ps_offset] = offset_to_ps_input(AC_EXP_PARAM_DEFAULT_VAL_0000, true);
+		++ps_offset;
 	}
 
 	if (ps->info.fs.has_pcoord) {
@@ -2040,7 +2170,12 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 {
 	struct radv_shader_module fs_m = {0};
 	VkResult result;
+	bool has_view_index = false;
 
+	RADV_FROM_HANDLE(radv_render_pass, pass, pCreateInfo->renderPass);
+	struct radv_subpass *subpass = pass->subpasses + pCreateInfo->subpass;
+	if (subpass->view_mask)
+		has_view_index = true;
 	if (alloc == NULL)
 		alloc = &device->alloc;
 
@@ -2067,8 +2202,11 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	}
 
 	if (modules[MESA_SHADER_FRAGMENT]) {
-		union ac_shader_variant_key key = {0};
+		struct ac_shader_variant_key key = {0};
 		key.fs.col_format = pipeline->graphics.blend.spi_shader_col_format;
+		if (pCreateInfo->pMultisampleState &&
+		    pCreateInfo->pMultisampleState->rasterizationSamples > 1)
+			key.fs.multisample = true;
 
 		if (pipeline->device->physical_device->rad_info.chip_class < VI)
 			radv_pipeline_compute_get_int_clamp(pCreateInfo, &key.fs.is_int8, &key.fs.is_int10);
@@ -2097,7 +2235,8 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 			as_es = true;
 		else if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.prim_id_input)
 			export_prim_id = true;
-		union ac_shader_variant_key key = radv_compute_vs_key(pCreateInfo, as_es, as_ls, export_prim_id);
+		struct ac_shader_variant_key key = radv_compute_vs_key(pCreateInfo, as_es, as_ls, export_prim_id);
+		key.has_multiview_view_index = has_view_index;
 
 		pipeline->shaders[MESA_SHADER_VERTEX] =
 			 radv_pipeline_compile(pipeline, cache, modules[MESA_SHADER_VERTEX],
@@ -2110,7 +2249,8 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	}
 
 	if (modules[MESA_SHADER_GEOMETRY]) {
-		union ac_shader_variant_key key = radv_compute_vs_key(pCreateInfo, false, false, false);
+		struct ac_shader_variant_key key = radv_compute_vs_key(pCreateInfo, false, false, false);
+		key.has_multiview_view_index = has_view_index;
 
 		pipeline->shaders[MESA_SHADER_GEOMETRY] =
 			 radv_pipeline_compile(pipeline, cache, modules[MESA_SHADER_GEOMETRY],
@@ -2134,7 +2274,8 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 					   pStages[MESA_SHADER_TESS_CTRL]->pSpecializationInfo,
 					   pStages[MESA_SHADER_TESS_EVAL]->pSpecializationInfo,
 					   pipeline->layout,
-					   pCreateInfo->pTessellationState->patchControlPoints);
+					   pCreateInfo->pTessellationState->patchControlPoints,
+					   has_view_index);
 		pipeline->active_stages |= mesa_to_vk_shader_stage(MESA_SHADER_TESS_EVAL) |
 			mesa_to_vk_shader_stage(MESA_SHADER_TESS_CTRL);
 	}
@@ -2195,6 +2336,9 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 		S_02880C_DEPTH_BEFORE_SHADER(ps->info.fs.early_fragment_test) |
 		S_02880C_EXEC_ON_HIER_FAIL(ps->info.fs.writes_memory) |
 		S_02880C_EXEC_ON_NOOP(ps->info.fs.writes_memory);
+
+	if (pipeline->device->physical_device->has_rbplus)
+		pipeline->graphics.db_shader_control |= S_02880C_DUAL_QUAD_DISABLE(1);
 
 	pipeline->graphics.shader_z_format =
 		ps->info.fs.writes_sample_mask ? V_028710_SPI_SHADER_32_ABGR :

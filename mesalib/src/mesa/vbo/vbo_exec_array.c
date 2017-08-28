@@ -193,8 +193,8 @@ skip_validated_draw(struct gl_context *ctx)
    case API_OPENGLES:
       /* For OpenGL ES, only draw if we have vertex positions
        */
-      if (ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled)
-         return false;
+      if (!ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled)
+         return true;
       break;
 
    case API_OPENGL_CORE:
@@ -356,7 +356,7 @@ recalculate_input_bindings(struct gl_context *ctx)
          else if (array[VERT_ATTRIB_POS].Enabled)
             inputs[0] = &vertexAttrib[VERT_ATTRIB_POS];
          else {
-            inputs[0] = &vbo->currval[VBO_ATTRIB_POS];
+            inputs[0] = &vbo->currval[VBO_ATTRIB_GENERIC0];
             const_inputs |= VERT_BIT_POS;
          }
 
@@ -421,7 +421,7 @@ recalculate_input_bindings(struct gl_context *ctx)
  * Note that this might set the _NEW_VARYING_VP_INPUTS dirty flag so state
  * validation must be done after this call.
  */
-void
+static void
 vbo_bind_arrays(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);

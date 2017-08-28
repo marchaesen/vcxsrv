@@ -86,6 +86,7 @@ typedef uint32_t xcb_window_t;
 #define MAX_SAMPLES_LOG2 4
 #define NUM_META_FS_KEYS 13
 #define RADV_MAX_DRM_DEVICES 8
+#define MAX_VIEWS        8
 
 #define NUM_DEPTH_CLEAR_PIPELINES 3
 
@@ -752,6 +753,7 @@ void radv_dynamic_state_copy(struct radv_dynamic_state *dest,
  */
 struct radv_attachment_state {
 	VkImageAspectFlags                           pending_clear_aspects;
+	uint32_t                                     cleared_views;
 	VkClearValue                                 clear_value;
 	VkImageLayout                                current_layout;
 };
@@ -831,7 +833,7 @@ struct radv_cmd_buffer {
 	bool tess_rings_needed;
 	bool sample_positions_needed;
 
-	bool record_fail;
+	VkResult record_result;
 
 	int ring_offsets_idx; /* just used for verification */
 	uint32_t gfx9_fence_offset;
@@ -956,14 +958,14 @@ struct radv_shader_module {
 	char                                         data[0];
 };
 
-union ac_shader_variant_key;
+struct ac_shader_variant_key;
 
 void
 radv_hash_shader(unsigned char *hash, struct radv_shader_module *module,
 		 const char *entrypoint,
 		 const VkSpecializationInfo *spec_info,
 		 const struct radv_pipeline_layout *layout,
-		 const union ac_shader_variant_key *key,
+		 const struct ac_shader_variant_key *key,
 		 uint32_t is_geom_copy_shader);
 
 static inline gl_shader_stage
@@ -1026,7 +1028,7 @@ struct radv_depth_stencil_state {
 struct radv_blend_state {
 	uint32_t cb_color_control;
 	uint32_t cb_target_mask;
-	uint32_t sx_mrt0_blend_opt[8];
+	uint32_t sx_mrt_blend_opt[8];
 	uint32_t cb_blend_control[8];
 
 	uint32_t spi_shader_col_format;
@@ -1305,6 +1307,7 @@ struct radv_image_view {
 	uint32_t base_layer;
 	uint32_t layer_count;
 	uint32_t base_mip;
+	uint32_t level_count;
 	VkExtent3D extent; /**< Extent of VkImageViewCreateInfo::baseMipLevel. */
 
 	uint32_t descriptor[8];
@@ -1463,6 +1466,8 @@ struct radv_subpass {
 	bool                                         has_resolve;
 
 	struct radv_subpass_barrier                  start_barrier;
+
+	uint32_t                                     view_mask;
 };
 
 struct radv_render_pass_attachment {
@@ -1472,6 +1477,7 @@ struct radv_render_pass_attachment {
 	VkAttachmentLoadOp                           stencil_load_op;
 	VkImageLayout                                initial_layout;
 	VkImageLayout                                final_layout;
+	uint32_t                                     view_mask;
 };
 
 struct radv_render_pass {

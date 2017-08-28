@@ -75,9 +75,24 @@ compile_shaders(struct gl_context *ctx, struct gl_shader_program *prog) {
 }
 
 static void
+get_struct_type_field_and_pointer_sizes(size_t *s_field_size,
+                                        size_t *s_field_ptrs)
+{
+   *s_field_size = sizeof(glsl_struct_field);
+   *s_field_ptrs =
+     sizeof(((glsl_struct_field *)0)->type) +
+     sizeof(((glsl_struct_field *)0)->name);
+}
+
+static void
 encode_type_to_blob(struct blob *blob, const glsl_type *type)
 {
    uint32_t encoding;
+
+   if (!type) {
+      blob_write_uint32(blob, 0);
+      return;
+   }
 
    switch (type->base_type) {
    case GLSL_TYPE_UINT:
@@ -122,11 +137,18 @@ encode_type_to_blob(struct blob *blob, const glsl_type *type)
       blob_write_uint32(blob, (type->base_type) << 24);
       blob_write_string(blob, type->name);
       blob_write_uint32(blob, type->length);
-      blob_write_bytes(blob, type->fields.structure,
-                       sizeof(glsl_struct_field) * type->length);
+
+      size_t s_field_size, s_field_ptrs;
+      get_struct_type_field_and_pointer_sizes(&s_field_size, &s_field_ptrs);
+
       for (unsigned i = 0; i < type->length; i++) {
          encode_type_to_blob(blob, type->fields.structure[i].type);
          blob_write_string(blob, type->fields.structure[i].name);
+
+         /* Write the struct field skipping the pointers */
+         blob_write_bytes(blob,
+                          ((char *)&type->fields.structure[i]) + s_field_ptrs,
+                          s_field_size - s_field_ptrs);
       }
 
       if (type->is_interface()) {
@@ -149,6 +171,11 @@ static const glsl_type *
 decode_type_from_blob(struct blob_reader *blob)
 {
    uint32_t u = blob_read_uint32(blob);
+
+   if (u == 0) {
+      return NULL;
+   }
+
    glsl_base_type base_type = (glsl_base_type) (u >> 24);
 
    switch (base_type) {
@@ -182,22 +209,33 @@ decode_type_from_blob(struct blob_reader *blob)
    case GLSL_TYPE_INTERFACE: {
       char *name = blob_read_string(blob);
       unsigned num_fields = blob_read_uint32(blob);
-      glsl_struct_field *fields = (glsl_struct_field *)
-         blob_read_bytes(blob, sizeof(glsl_struct_field) * num_fields);
+
+      size_t s_field_size, s_field_ptrs;
+      get_struct_type_field_and_pointer_sizes(&s_field_size, &s_field_ptrs);
+
+      glsl_struct_field *fields =
+         (glsl_struct_field *) malloc(s_field_size * num_fields);
       for (unsigned i = 0; i < num_fields; i++) {
          fields[i].type = decode_type_from_blob(blob);
          fields[i].name = blob_read_string(blob);
+
+         blob_copy_bytes(blob, ((uint8_t *) &fields[i]) + s_field_ptrs,
+                         s_field_size - s_field_ptrs);
       }
 
+      const glsl_type *t;
       if (base_type == GLSL_TYPE_INTERFACE) {
          enum glsl_interface_packing packing =
             (glsl_interface_packing) blob_read_uint32(blob);
          bool row_major = blob_read_uint32(blob);
-         return glsl_type::get_interface_instance(fields, num_fields,
-                                                  packing, row_major, name);
+         t = glsl_type::get_interface_instance(fields, num_fields, packing,
+                                               row_major, name);
       } else {
-         return glsl_type::get_record_instance(fields, num_fields, name);
+         t = glsl_type::get_record_instance(fields, num_fields, name);
       }
+
+      free(fields);
+      return t;
    }
    case GLSL_TYPE_VOID:
    case GLSL_TYPE_ERROR:
@@ -555,6 +593,17 @@ read_xfb(struct blob_reader *metadata, struct gl_shader_program *shProg)
                       MAX_FEEDBACK_BUFFERS);
 }
 
+static bool
+has_uniform_storage(struct gl_shader_program *prog, unsigned idx)
+{
+   if (!prog->data->UniformStorage[idx].builtin &&
+       !prog->data->UniformStorage[idx].is_shader_storage &&
+       prog->data->UniformStorage[idx].block_index == -1)
+      return true;
+
+   return false;
+}
+
 static void
 write_uniforms(struct blob *metadata, struct gl_shader_program *prog)
 {
@@ -566,8 +615,6 @@ write_uniforms(struct blob *metadata, struct gl_shader_program *prog)
       encode_type_to_blob(metadata, prog->data->UniformStorage[i].type);
       blob_write_uint32(metadata, prog->data->UniformStorage[i].array_elements);
       blob_write_string(metadata, prog->data->UniformStorage[i].name);
-      blob_write_uint32(metadata, prog->data->UniformStorage[i].storage -
-                                  prog->data->UniformDataSlots);
       blob_write_uint32(metadata, prog->data->UniformStorage[i].builtin);
       blob_write_uint32(metadata, prog->data->UniformStorage[i].remap_location);
       blob_write_uint32(metadata, prog->data->UniformStorage[i].block_index);
@@ -586,6 +633,12 @@ write_uniforms(struct blob *metadata, struct gl_shader_program *prog)
                         prog->data->UniformStorage[i].top_level_array_size);
       blob_write_uint32(metadata,
                         prog->data->UniformStorage[i].top_level_array_stride);
+
+     if (has_uniform_storage(prog, i)) {
+         blob_write_uint32(metadata, prog->data->UniformStorage[i].storage -
+                                     prog->data->UniformDataSlots);
+      }
+
       blob_write_bytes(metadata, prog->data->UniformStorage[i].opaque,
                        sizeof(prog->data->UniformStorage[i].opaque));
    }
@@ -597,9 +650,7 @@ write_uniforms(struct blob *metadata, struct gl_shader_program *prog)
     */
    blob_write_uint32(metadata, prog->data->NumHiddenUniforms);
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
-      if (!prog->data->UniformStorage[i].builtin &&
-          !prog->data->UniformStorage[i].is_shader_storage &&
-          prog->data->UniformStorage[i].block_index == -1) {
+      if (has_uniform_storage(prog, i)) {
          unsigned vec_size =
             prog->data->UniformStorage[i].type->component_slots() *
             MAX2(prog->data->UniformStorage[i].array_elements, 1);
@@ -633,7 +684,6 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
       uniforms[i].type = decode_type_from_blob(metadata);
       uniforms[i].array_elements = blob_read_uint32(metadata);
       uniforms[i].name = ralloc_strdup(prog, blob_read_string (metadata));
-      uniforms[i].storage = data + blob_read_uint32(metadata);
       uniforms[i].builtin = blob_read_uint32(metadata);
       uniforms[i].remap_location = blob_read_uint32(metadata);
       uniforms[i].block_index = blob_read_uint32(metadata);
@@ -651,6 +701,10 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
       uniforms[i].top_level_array_stride = blob_read_uint32(metadata);
       prog->UniformHash->put(i, uniforms[i].name);
 
+      if (has_uniform_storage(prog, i)) {
+         uniforms[i].storage = data + blob_read_uint32(metadata);
+      }
+
       memcpy(uniforms[i].opaque,
              blob_read_bytes(metadata, sizeof(uniforms[i].opaque)),
              sizeof(uniforms[i].opaque));
@@ -659,9 +713,7 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
    /* Restore uniform values. */
    prog->data->NumHiddenUniforms = blob_read_uint32(metadata);
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
-      if (!prog->data->UniformStorage[i].builtin &&
-          !prog->data->UniformStorage[i].is_shader_storage &&
-          prog->data->UniformStorage[i].block_index == -1) {
+      if (has_uniform_storage(prog, i)) {
          unsigned vec_size =
             prog->data->UniformStorage[i].type->component_slots() *
             MAX2(prog->data->UniformStorage[i].array_elements, 1);
@@ -868,6 +920,18 @@ write_shader_subroutine_index(struct blob *metadata,
 }
 
 static void
+get_shader_var_and_pointer_sizes(size_t *s_var_size, size_t *s_var_ptrs,
+                                 const gl_shader_variable *var)
+{
+   *s_var_size = sizeof(gl_shader_variable);
+   *s_var_ptrs =
+      sizeof(var->type) +
+      sizeof(var->interface_type) +
+      sizeof(var->outermost_struct_type) +
+      sizeof(var->name);
+}
+
+static void
 write_program_resource_data(struct blob *metadata,
                             struct gl_shader_program *prog,
                             struct gl_program_resource *res)
@@ -878,16 +942,19 @@ write_program_resource_data(struct blob *metadata,
    case GL_PROGRAM_INPUT:
    case GL_PROGRAM_OUTPUT: {
       const gl_shader_variable *var = (gl_shader_variable *)res->Data;
-      blob_write_bytes(metadata, var, sizeof(gl_shader_variable));
+
       encode_type_to_blob(metadata, var->type);
-
-      if (var->interface_type)
-         encode_type_to_blob(metadata, var->interface_type);
-
-      if (var->outermost_struct_type)
-         encode_type_to_blob(metadata, var->outermost_struct_type);
+      encode_type_to_blob(metadata, var->interface_type);
+      encode_type_to_blob(metadata, var->outermost_struct_type);
 
       blob_write_string(metadata, var->name);
+
+      size_t s_var_size, s_var_ptrs;
+      get_shader_var_and_pointer_sizes(&s_var_size, &s_var_ptrs, var);
+
+      /* Write gl_shader_variable skipping over the pointers */
+      blob_write_bytes(metadata, ((char *)var) + s_var_ptrs,
+                       s_var_size - s_var_ptrs);
       break;
    }
    case GL_UNIFORM_BLOCK:
@@ -978,16 +1045,17 @@ read_program_resource_data(struct blob_reader *metadata,
    case GL_PROGRAM_OUTPUT: {
       gl_shader_variable *var = ralloc(prog, struct gl_shader_variable);
 
-      blob_copy_bytes(metadata, (uint8_t *) var, sizeof(gl_shader_variable));
       var->type = decode_type_from_blob(metadata);
-
-      if (var->interface_type)
-         var->interface_type = decode_type_from_blob(metadata);
-
-      if (var->outermost_struct_type)
-         var->outermost_struct_type = decode_type_from_blob(metadata);
+      var->interface_type = decode_type_from_blob(metadata);
+      var->outermost_struct_type = decode_type_from_blob(metadata);
 
       var->name = ralloc_strdup(prog, blob_read_string(metadata));
+
+      size_t s_var_size, s_var_ptrs;
+      get_shader_var_and_pointer_sizes(&s_var_size, &s_var_ptrs, var);
+
+      blob_copy_bytes(metadata, ((uint8_t *) var) + s_var_ptrs,
+                      s_var_size - s_var_ptrs);
 
       res->Data = var;
       break;
@@ -1148,18 +1216,20 @@ write_shader_metadata(struct blob *metadata, gl_linked_shader *shader)
    blob_write_bytes(metadata, glprog->sh.ImageUnits,
                     sizeof(glprog->sh.ImageUnits));
 
+   size_t ptr_size = sizeof(GLvoid *);
+
    blob_write_uint32(metadata, glprog->sh.NumBindlessSamplers);
    blob_write_uint32(metadata, glprog->sh.HasBoundBindlessSampler);
    for (i = 0; i < glprog->sh.NumBindlessSamplers; i++) {
       blob_write_bytes(metadata, &glprog->sh.BindlessSamplers[i],
-                       sizeof(struct gl_bindless_sampler));
+                       sizeof(struct gl_bindless_sampler) - ptr_size);
    }
 
    blob_write_uint32(metadata, glprog->sh.NumBindlessImages);
    blob_write_uint32(metadata, glprog->sh.HasBoundBindlessImage);
    for (i = 0; i < glprog->sh.NumBindlessImages; i++) {
       blob_write_bytes(metadata, &glprog->sh.BindlessImages[i],
-                       sizeof(struct gl_bindless_image));
+                       sizeof(struct gl_bindless_image) - ptr_size);
    }
 
    write_shader_parameters(metadata, glprog->Parameters);
@@ -1187,6 +1257,8 @@ read_shader_metadata(struct blob_reader *metadata,
    blob_copy_bytes(metadata, (uint8_t *) glprog->sh.ImageUnits,
                    sizeof(glprog->sh.ImageUnits));
 
+   size_t ptr_size = sizeof(GLvoid *);
+
    glprog->sh.NumBindlessSamplers = blob_read_uint32(metadata);
    glprog->sh.HasBoundBindlessSampler = blob_read_uint32(metadata);
    if (glprog->sh.NumBindlessSamplers > 0) {
@@ -1196,7 +1268,7 @@ read_shader_metadata(struct blob_reader *metadata,
 
       for (i = 0; i < glprog->sh.NumBindlessSamplers; i++) {
          blob_copy_bytes(metadata, (uint8_t *) &glprog->sh.BindlessSamplers[i],
-                         sizeof(struct gl_bindless_sampler));
+                         sizeof(struct gl_bindless_sampler) - ptr_size);
       }
    }
 
@@ -1209,7 +1281,7 @@ read_shader_metadata(struct blob_reader *metadata,
 
       for (i = 0; i < glprog->sh.NumBindlessImages; i++) {
          blob_copy_bytes(metadata, (uint8_t *) &glprog->sh.BindlessImages[i],
-                        sizeof(struct gl_bindless_image));
+                        sizeof(struct gl_bindless_image) - ptr_size);
       }
    }
 
@@ -1222,6 +1294,14 @@ create_binding_str(const char *key, unsigned value, void *closure)
 {
    char **bindings_str = (char **) closure;
    ralloc_asprintf_append(bindings_str, "%s:%u,", key, value);
+}
+
+static void
+get_shader_info_and_pointer_sizes(size_t *s_info_size, size_t *s_info_ptrs,
+                                  shader_info *info)
+{
+   *s_info_size = sizeof(shader_info);
+   *s_info_ptrs = sizeof(info->name) + sizeof(info->label);
 }
 
 static void
@@ -1242,12 +1322,16 @@ create_linked_shader_and_program(struct gl_context *ctx,
 
    read_shader_metadata(metadata, glprog, linked);
 
+   glprog->info.name = ralloc_strdup(glprog, blob_read_string(metadata));
+   glprog->info.label = ralloc_strdup(glprog, blob_read_string(metadata));
+
+   size_t s_info_size, s_info_ptrs;
+   get_shader_info_and_pointer_sizes(&s_info_size, &s_info_ptrs,
+                                     &glprog->info);
+
    /* Restore shader info */
-   blob_copy_bytes(metadata, (uint8_t *) &glprog->info, sizeof(shader_info));
-   if (glprog->info.name)
-      glprog->info.name = ralloc_strdup(glprog, blob_read_string(metadata));
-   if (glprog->info.label)
-      glprog->info.label = ralloc_strdup(glprog, blob_read_string(metadata));
+   blob_copy_bytes(metadata, ((uint8_t *) &glprog->info) + s_info_ptrs,
+                   s_info_size - s_info_ptrs);
 
    _mesa_reference_shader_program_data(ctx, &glprog->sh.data, prog->data);
    _mesa_reference_program(ctx, &linked->Program, glprog);
@@ -1286,14 +1370,24 @@ shader_cache_write_program_metadata(struct gl_context *ctx,
       if (sh) {
          write_shader_metadata(metadata, sh);
 
-         /* Store nir shader info */
-         blob_write_bytes(metadata, &sh->Program->info, sizeof(shader_info));
-
          if (sh->Program->info.name)
             blob_write_string(metadata, sh->Program->info.name);
+         else
+            blob_write_string(metadata, "");
 
          if (sh->Program->info.label)
             blob_write_string(metadata, sh->Program->info.label);
+         else
+            blob_write_string(metadata, "");
+
+         size_t s_info_size, s_info_ptrs;
+         get_shader_info_and_pointer_sizes(&s_info_size, &s_info_ptrs,
+                                           &sh->Program->info);
+
+         /* Store shader info */
+         blob_write_bytes(metadata,
+                          ((char *) &sh->Program->info) + s_info_ptrs,
+                          s_info_size - s_info_ptrs);
       }
    }
 
@@ -1309,23 +1403,37 @@ shader_cache_write_program_metadata(struct gl_context *ctx,
 
    write_program_resource_list(metadata, prog);
 
+   struct cache_item_metadata cache_item_metadata;
+   cache_item_metadata.type = CACHE_ITEM_TYPE_GLSL;
+   cache_item_metadata.keys =
+      (cache_key *) malloc(prog->NumShaders * sizeof(cache_key));
+   cache_item_metadata.num_keys = prog->NumShaders;
+
+   if (!cache_item_metadata.keys)
+      goto fail;
+
    char sha1_buf[41];
    for (unsigned i = 0; i < prog->NumShaders; i++) {
       disk_cache_put_key(cache, prog->Shaders[i]->sha1);
+      memcpy(cache_item_metadata.keys[i], prog->Shaders[i]->sha1,
+             sizeof(cache_key));
       if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
          _mesa_sha1_format(sha1_buf, prog->Shaders[i]->sha1);
          fprintf(stderr, "marking shader: %s\n", sha1_buf);
       }
    }
 
-   disk_cache_put(cache, prog->data->sha1, metadata->data, metadata->size);
-
-   blob_destroy(metadata);
+   disk_cache_put(cache, prog->data->sha1, metadata->data, metadata->size,
+                  &cache_item_metadata);
 
    if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
       _mesa_sha1_format(sha1_buf, prog->data->sha1);
       fprintf(stderr, "putting program metadata in cache: %s\n", sha1_buf);
    }
+
+fail:
+   free(cache_item_metadata.keys);
+   blob_destroy(metadata);
 }
 
 bool

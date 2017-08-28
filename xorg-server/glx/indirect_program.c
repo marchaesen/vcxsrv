@@ -112,7 +112,7 @@ __glXDisp_GetProgramStringARB(struct __GLXclientStateRec *cl, GLbyte * pc)
     PFNGLGETPROGRAMSTRINGARBPROC get_program_string =
         __glGetProcAddress("glGetProgramStringARB");
 
-    return DoGetProgramString(cl, pc, get_program, get_program_string, False);
+    return DoGetProgramString(cl, pc, get_program, get_program_string, FALSE);
 }
 
 int
@@ -123,5 +123,5 @@ __glXDispSwap_GetProgramStringARB(struct __GLXclientStateRec *cl, GLbyte * pc)
     PFNGLGETPROGRAMSTRINGARBPROC get_program_string =
         __glGetProcAddress("glGetProgramStringARB");
 
-    return DoGetProgramString(cl, pc, get_program, get_program_string, True);
+    return DoGetProgramString(cl, pc, get_program, get_program_string, TRUE);
 }

@@ -52,7 +52,7 @@ const struct option compiler_opts[] = {
 /**
  * \brief Print proper usage and exit with failure.
  */
-void
+static void
 usage_fail(const char *name)
 {
 

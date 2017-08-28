@@ -17,10 +17,6 @@ endif
 xwin_c_args = []
 xwin_c_args += '-DHAVE_XWIN_CONFIG_H'
 xwin_c_args += '-Wno-bad-function-cast'
-# XXX: these conditionals are always on and can be removed
-xwin_c_args += '-DXWIN_CLIPBOARD'
-xwin_c_args += '-DXWIN_MULTIWINDOW'
-xwin_c_args += '-DXWIN_RANDR'
 
 srcs_windows = [
     'winclipboardinit.c',

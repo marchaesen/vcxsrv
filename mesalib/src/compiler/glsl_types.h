@@ -817,6 +817,27 @@ struct glsl_type {
    }
 
    /**
+    * Get the type interface packing used internally. For shared and packing
+    * layouts this is implementation defined.
+    */
+   enum glsl_interface_packing get_internal_ifc_packing(bool std430_supported) const
+   {
+      enum glsl_interface_packing packing = this->get_interface_packing();
+      if (packing == GLSL_INTERFACE_PACKING_STD140 ||
+          (!std430_supported &&
+           (packing == GLSL_INTERFACE_PACKING_SHARED ||
+            packing == GLSL_INTERFACE_PACKING_PACKED))) {
+         return GLSL_INTERFACE_PACKING_STD140;
+      } else {
+         assert(packing == GLSL_INTERFACE_PACKING_STD430 ||
+                (std430_supported &&
+                 (packing == GLSL_INTERFACE_PACKING_SHARED ||
+                  packing == GLSL_INTERFACE_PACKING_PACKED)));
+         return GLSL_INTERFACE_PACKING_STD430;
+      }
+   }
+
+   /**
     * Check if the type interface is row major
     */
    bool get_interface_row_major() const

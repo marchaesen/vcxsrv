@@ -89,7 +89,7 @@ radv_hash_shader(unsigned char *hash, struct radv_shader_module *module,
 		 const char *entrypoint,
 		 const VkSpecializationInfo *spec_info,
 		 const struct radv_pipeline_layout *layout,
-		 const union ac_shader_variant_key *key,
+		 const struct ac_shader_variant_key *key,
 		 uint32_t is_geom_copy_shader)
 {
 	struct mesa_sha1 ctx;

@@ -154,6 +154,7 @@ radv_wsi_image_create(VkDevice device_h,
 	VkImage image_h;
 	struct radv_image *image;
 	int fd;
+	RADV_FROM_HANDLE(radv_device, device, device_h);
 
 	result = radv_image_create(device_h,
 				   &(struct radv_image_create_info) {
@@ -211,7 +212,6 @@ radv_wsi_image_create(VkDevice device_h,
 	 * or the fd for the linear image if a copy is required.
 	 */
 	if (!needs_linear_copy || (needs_linear_copy && linear)) {
-		RADV_FROM_HANDLE(radv_device, device, device_h);
 		RADV_FROM_HANDLE(radv_device_memory, memory, memory_h);
 		if (!radv_get_memory_fd(device, memory, &fd))
 			goto fail_alloc_memory;
@@ -224,7 +224,11 @@ radv_wsi_image_create(VkDevice device_h,
 	*memory_p = memory_h;
 	*size = image->size;
 	*offset = image->offset;
-	*row_pitch = surface->u.legacy.level[0].nblk_x * surface->bpe;
+
+	if (device->physical_device->rad_info.chip_class >= GFX9)
+		*row_pitch = surface->u.gfx9.surf_pitch * surface->bpe;
+	else
+		*row_pitch = surface->u.legacy.level[0].nblk_x * surface->bpe;
 	return VK_SUCCESS;
  fail_alloc_memory:
 	radv_FreeMemory(device_h, memory_h, pAllocator);

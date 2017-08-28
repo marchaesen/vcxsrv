@@ -908,6 +908,23 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 			surf->u.gfx9.dcc_pitch_max = dout.pitch - 1;
 			surf->dcc_size = dout.dccRamSize;
 			surf->dcc_alignment = dout.dccRamBaseAlign;
+			surf->num_dcc_levels = in->numMipLevels;
+
+			/* Disable DCC for the smallest levels. It seems to be
+			 * required for DCC readability between CB and shaders
+			 * when TC L2 isn't flushed. This was guessed.
+			 *
+			 * Alternative solutions that also work but are worse:
+			 * - Disable DCC.
+			 * - Flush TC L2 after rendering.
+			 */
+			for (unsigned i = 1; i < in->numMipLevels; i++) {
+				if (mip_info[i].pitch *
+				    mip_info[i].height * surf->bpe < 1024) {
+					surf->num_dcc_levels = i;
+					break;
+				}
+			}
 		}
 
 		/* FMASK */
@@ -1044,6 +1061,11 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 
 	case RADEON_SURF_MODE_1D:
 	case RADEON_SURF_MODE_2D:
+		if (surf->flags & RADEON_SURF_IMPORTED) {
+			AddrSurfInfoIn.swizzleMode = surf->u.gfx9.surf.swizzle_mode;
+			break;
+		}
+
 		r = gfx9_get_preferred_swizzle_mode(addrlib, &AddrSurfInfoIn, false,
 						    &AddrSurfInfoIn.swizzleMode);
 		if (r)
@@ -1056,6 +1078,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 
 	surf->u.gfx9.resource_type = AddrSurfInfoIn.resourceType;
 
+	surf->num_dcc_levels = 0;
 	surf->surf_size = 0;
 	surf->dcc_size = 0;
 	surf->htile_size = 0;
@@ -1082,7 +1105,6 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	}
 
 	surf->is_linear = surf->u.gfx9.surf.swizzle_mode == ADDR_SW_LINEAR;
-	surf->num_dcc_levels = surf->dcc_size ? config->info.levels : 0;
 
 	switch (surf->u.gfx9.surf.swizzle_mode) {
 		/* S = standard. */

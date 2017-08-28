@@ -90,6 +90,12 @@ _mesa_DeleteMemoryObjectsEXT(GLsizei n, const GLuint *memoryObjects)
                   memoryObjects);
    }
 
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glDeleteMemoryObjectsEXT(unsupported)");
+      return;
+   }
+
    if (n < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glDeleteMemoryObjectsEXT(n < 0)");
       return;
@@ -118,6 +124,13 @@ GLboolean GLAPIENTRY
 _mesa_IsMemoryObjectEXT(GLuint memoryObject)
 {
    GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glIsMemoryObjectEXT(unsupported)");
+      return GL_FALSE;
+   }
+
    struct gl_memory_object *obj =
       _mesa_lookup_memory_object(ctx, memoryObject);
 
@@ -133,6 +146,12 @@ _mesa_CreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
 
    if (MESA_VERBOSE & (VERBOSE_API))
       _mesa_debug(ctx, "%s(%d, %p)", func, n, memoryObjects);
+
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCreateMemoryObjectsEXT(unsupported)");
+      return;
+   }
 
    if (n < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(n < 0)", func);
@@ -176,6 +195,12 @@ _mesa_MemoryObjectParameterivEXT(GLuint memoryObject,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_memory_object *memObj;
 
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glMemoryObjectParameterivEXT(unsupported)");
+      return;
+   }
+
    memObj = _mesa_lookup_memory_object(ctx, memoryObject);
    if (!memObj)
       return;
@@ -210,6 +235,12 @@ _mesa_GetMemoryObjectParameterivEXT(GLuint memoryObject,
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_memory_object *memObj;
+
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetMemoryObjectParameterivEXT(unsupported)");
+      return;
+   }
 
    memObj = _mesa_lookup_memory_object(ctx, memoryObject);
    if (!memObj)
@@ -268,6 +299,11 @@ texstorage_memory(GLuint dims, GLenum target, GLsizei levels,
 
    GET_CURRENT_CONTEXT(ctx);
 
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
+
    texObj = _mesa_get_current_tex_object(ctx, target);
    if (!texObj)
       return;
@@ -291,6 +327,11 @@ texstorage_memory_ms(GLuint dims, GLenum target, GLsizei samples,
    struct gl_memory_object *memObj;
 
    GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
 
    texObj = _mesa_get_current_tex_object(ctx, target);
    if (!texObj)
@@ -319,6 +360,11 @@ texturestorage_memory(GLuint dims, GLuint texture, GLsizei levels,
 
    GET_CURRENT_CONTEXT(ctx);
 
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
+
    texObj = _mesa_lookup_texture(ctx, texture);
    if (!texObj)
       return;
@@ -342,6 +388,11 @@ texturestorage_memory_ms(GLuint dims, GLuint texture, GLsizei samples,
    struct gl_memory_object *memObj;
 
    GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.EXT_memory_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
 
    texObj = _mesa_lookup_texture(ctx, texture);
    if (!texObj)
@@ -559,6 +610,12 @@ _mesa_ImportMemoryFdEXT(GLuint memory,
                         GLint fd)
 {
    GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.EXT_memory_object_fd) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glImportMemoryFdEXT(unsupported)");
+      return;
+   }
 
    if (handleType != GL_HANDLE_TYPE_OPAQUE_FD_EXT) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glImportMemoryFdEXT(handleType=%u)",

@@ -97,7 +97,7 @@ ContextGone(__GLXcontext * cx, XID id)
         __glXFreeContext(cx);
     }
 
-    return True;
+    return TRUE;
 }
 
 static __GLXcontext *glxPendingDestroyContexts;
@@ -146,7 +146,7 @@ DrawableGone(__GLXdrawable * glxPriv, XID xid)
 
     glxPriv->destroy(glxPriv);
 
-    return True;
+    return TRUE;
 }
 
 Bool
@@ -155,12 +155,12 @@ __glXAddContext(__GLXcontext * cx)
     /* Register this context as a resource.
      */
     if (!AddResource(cx->id, __glXContextRes, (void *)cx)) {
-	return False;
+	return FALSE;
     }
 
     cx->next = glxAllContexts;
     glxAllContexts = cx;
-    return True;
+    return TRUE;
 }
 
 static void
@@ -321,11 +321,11 @@ checkScreenVisuals(void)
         for (j = 0; j < screen->numVisuals; j++) {
             if (screen->visuals[j].class == TrueColor ||
                 screen->visuals[j].class == DirectColor)
-                return True;
+                return TRUE;
         }
     }
 
-    return False;
+    return FALSE;
 }
 
 static void
@@ -355,7 +355,7 @@ GlxExtensionInit(void)
     ScreenPtr pScreen;
     int i;
     __GLXprovider *p, **stack;
-    Bool glx_provided = False;
+    Bool glx_provided = FALSE;
 
     if (serverGeneration == 1) {
         for (stack = &__glXProviderStack; *stack; stack = &(*stack)->next)
@@ -402,7 +402,7 @@ GlxExtensionInit(void)
             LogMessage(X_INFO,
                        "GLX: no usable GL providers found for screen %d\n", i);
         else
-            glx_provided = True;
+            glx_provided = TRUE;
     }
 
     /* don't register extension if GL is not provided on any screen */

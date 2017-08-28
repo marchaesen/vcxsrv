@@ -990,18 +990,18 @@ _mesa_ColorMask( GLboolean red, GLboolean green,
  * For GL_EXT_draw_buffers2 and GL3
  */
 void GLAPIENTRY
-_mesa_ColorMaski( GLuint buf, GLboolean red, GLboolean green,
-                        GLboolean blue, GLboolean alpha )
+_mesa_ColorMaski(GLuint buf, GLboolean red, GLboolean green,
+                 GLboolean blue, GLboolean alpha)
 {
    GLubyte tmp[4];
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glColorMaskIndexed %u %d %d %d %d\n",
+      _mesa_debug(ctx, "glColorMaski %u %d %d %d %d\n",
                   buf, red, green, blue, alpha);
 
    if (buf >= ctx->Const.MaxDrawBuffers) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glColorMaskIndexed(buf=%u)", buf);
+      _mesa_error(ctx, GL_INVALID_VALUE, "glColorMaski(buf=%u)", buf);
       return;
    }
 

@@ -42,9 +42,7 @@
 #include "winmsg.h"
 #include "winmonitors.h"
 #include "inputstr.h"
-#ifdef XWIN_CLIPBOARD
 #include "winclipboard/winclipboard.h"
-#endif
 
 /*
  * Global variables
@@ -231,11 +229,9 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                                                                     ||
                                                                     s_pScreenInfo->
                                                                     fRootless
-#ifdef XWIN_MULTIWINDOW
                                                                     ||
                                                                     s_pScreenInfo->
                                                                     fMultiWindow
-#endif
                 )) {
                 DWORD dwWidth = 0, dwHeight = 0;
 
@@ -323,9 +319,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             || s_pScreenInfo->fMWExtWM
 #endif
             || s_pScreenInfo->fRootless
-#ifdef XWIN_MULTIWINDOW
             || s_pScreenInfo->fMultiWindow
-#endif
             || s_pScreenInfo->fFullScreen)
             break;
 
@@ -626,9 +620,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             || s_pScreenInfo->fMWExtWM
 #endif
             || s_pScreenInfo->fRootless
-#ifdef XWIN_MULTIWINDOW
             || s_pScreenInfo->fMultiWindow
-#endif
             )
             break;
 
@@ -1168,10 +1160,8 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             ShowCursor(TRUE);
         }
 
-#ifdef XWIN_CLIPBOARD
         /* Make sure the clipboard chain is ok. */
         winFixClipboardChain();
-#endif
 
         /* Call engine specific screen activation/deactivation function */
         (*s_pScreenPriv->pwinActivateApp) (s_pScreen);
@@ -1193,7 +1183,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             winDisplayExitDialog(s_pScreenPriv);
             return 0;
 
-#ifdef XWIN_MULTIWINDOW
         case ID_APP_HIDE_ROOT:
             if (s_pScreenPriv->fRootWindowShown)
                 ShowWindow(s_pScreenPriv->hwndScreen, SW_HIDE);
@@ -1201,13 +1190,10 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 ShowWindow(s_pScreenPriv->hwndScreen, SW_SHOW);
             s_pScreenPriv->fRootWindowShown = !s_pScreenPriv->fRootWindowShown;
             return 0;
-#endif
 
-#ifdef XWIN_CLIPBOARD
         case ID_APP_MONITOR_PRIMARY:
             fPrimarySelection = !fPrimarySelection;
             return 0;
-#endif
 
         case ID_APP_ABOUT:
             /* Display the About box */
@@ -1223,10 +1209,8 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_GIVEUP:
         /* Tell X that we are giving up */
-#ifdef XWIN_MULTIWINDOW
         if (s_pScreenInfo->fMultiWindow)
             winDeinitMultiWindowWM();
-#endif
         GiveUp(0);
         return 0;
 

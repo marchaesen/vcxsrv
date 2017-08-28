@@ -38,9 +38,7 @@
 void
 winBlockHandler(ScreenPtr pScreen, void *pTimeout)
 {
-#if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
     winScreenPriv(pScreen);
-#endif
 
 #ifndef HAS_DEVWINDOWS
     struct timeval **tvp = pTimeout;
@@ -64,7 +62,6 @@ winBlockHandler(ScreenPtr pScreen, void *pTimeout)
     }
 #endif
 
-#if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
     /* Signal threaded modules to begin */
     if (pScreenPriv != NULL && !pScreenPriv->fServerStarted) {
         int iReturn;
@@ -84,7 +81,6 @@ winBlockHandler(ScreenPtr pScreen, void *pTimeout)
             winDebug("winBlockHandler - pthread_mutex_unlock () returned\n");
         }
     }
-#endif
 
   /*
     At least one X client has asked to suspend the screensaver, so

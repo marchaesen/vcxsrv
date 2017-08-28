@@ -253,7 +253,7 @@ __glXDisp_Finish(__GLXclientState * cl, GLbyte * pc)
 
 #define SEPARATOR " "
 
-char *
+static char *
 __glXcombine_strings(const char *cext_string, const char *sext_string)
 {
     size_t clen, slen;

@@ -95,9 +95,7 @@ winPointerWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
      */
     if ((pScreenPriv->hwndScreen == GetForegroundWindow())
         || pScreenPriv->pScreenInfo->fRootless
-#ifdef XWIN_MULTIWINDOW
         || pScreenPriv->pScreenInfo->fMultiWindow
-#endif
         ) {
         /* Get the client area coordinates */
         GetClientRect(pScreenPriv->hwndScreen, &rcClient);

@@ -349,7 +349,7 @@ _mesa_GetPerfCounterInfoINTEL(GLuint queryId, GLuint counterId,
 
    counterIndex = counterid_to_index(counterId);
 
-   if (counterIndex < 0 || counterIndex >= queryNumCounters) {
+   if (counterIndex >= queryNumCounters) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glGetPerfCounterInfoINTEL(invalid counterId)");
       return;

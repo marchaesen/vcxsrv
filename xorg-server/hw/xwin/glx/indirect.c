@@ -1403,7 +1403,7 @@ glxWinContextMakeCurrent(__GLXcontext * base)
          * feature so just error out if it can't work.
          */
         if (!scr->has_WGL_ARB_make_current_read)
-            return False;
+            return FALSE;
 
         /*
            If there is a separate read drawable, create a separate read DC, and

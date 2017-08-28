@@ -522,12 +522,25 @@ TAG(MultiTexCoord4fv)(GLenum target, const GLfloat * v)
 }
 
 
+/**
+ * If index=0, does glVertexAttrib*() alias glVertex() to emit a vertex?
+ * It depends on a few things, including whether we're inside or outside
+ * of glBegin/glEnd.
+ */
+static inline bool
+is_vertex_position(const struct gl_context *ctx, GLuint index)
+{
+   return (index == 0 &&
+           _mesa_attr_zero_aliases_vertex(ctx) &&
+           _mesa_inside_begin_end(ctx));
+}
+
 
 static void GLAPIENTRY
 TAG(VertexAttrib1fARB)(GLuint index, GLfloat x)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR1F(0, x);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR1F(VBO_ATTRIB_GENERIC0 + index, x);
@@ -539,7 +552,7 @@ static void GLAPIENTRY
 TAG(VertexAttrib1fvARB)(GLuint index, const GLfloat * v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR1FV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR1FV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -551,7 +564,7 @@ static void GLAPIENTRY
 TAG(VertexAttrib2fARB)(GLuint index, GLfloat x, GLfloat y)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR2F(0, x, y);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR2F(VBO_ATTRIB_GENERIC0 + index, x, y);
@@ -563,7 +576,7 @@ static void GLAPIENTRY
 TAG(VertexAttrib2fvARB)(GLuint index, const GLfloat * v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR2FV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR2FV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -575,7 +588,7 @@ static void GLAPIENTRY
 TAG(VertexAttrib3fARB)(GLuint index, GLfloat x, GLfloat y, GLfloat z)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR3F(0, x, y, z);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR3F(VBO_ATTRIB_GENERIC0 + index, x, y, z);
@@ -587,7 +600,7 @@ static void GLAPIENTRY
 TAG(VertexAttrib3fvARB)(GLuint index, const GLfloat * v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR3FV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR3FV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -599,7 +612,7 @@ static void GLAPIENTRY
 TAG(VertexAttrib4fARB)(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR4F(0, x, y, z, w);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR4F(VBO_ATTRIB_GENERIC0 + index, x, y, z, w);
@@ -611,7 +624,7 @@ static void GLAPIENTRY
 TAG(VertexAttrib4fvARB)(GLuint index, const GLfloat * v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR4FV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR4FV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -628,7 +641,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI1i)(GLuint index, GLint x)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR1I(0, x);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR1I(VBO_ATTRIB_GENERIC0 + index, x);
@@ -640,7 +653,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI2i)(GLuint index, GLint x, GLint y)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR2I(0, x, y);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR2I(VBO_ATTRIB_GENERIC0 + index, x, y);
@@ -652,7 +665,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI3i)(GLuint index, GLint x, GLint y, GLint z)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR3I(0, x, y, z);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR3I(VBO_ATTRIB_GENERIC0 + index, x, y, z);
@@ -664,7 +677,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI4i)(GLuint index, GLint x, GLint y, GLint z, GLint w)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR4I(0, x, y, z, w);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR4I(VBO_ATTRIB_GENERIC0 + index, x, y, z, w);
@@ -676,7 +689,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI2iv)(GLuint index, const GLint *v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR2IV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR2IV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -688,7 +701,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI3iv)(GLuint index, const GLint *v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR3IV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR3IV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -700,7 +713,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI4iv)(GLuint index, const GLint *v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR4IV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR4IV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -717,7 +730,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI1ui)(GLuint index, GLuint x)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR1UI(0, x);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR1UI(VBO_ATTRIB_GENERIC0 + index, x);
@@ -729,7 +742,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI2ui)(GLuint index, GLuint x, GLuint y)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR2UI(0, x, y);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR2UI(VBO_ATTRIB_GENERIC0 + index, x, y);
@@ -741,7 +754,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI3ui)(GLuint index, GLuint x, GLuint y, GLuint z)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR3UI(0, x, y, z);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR3UI(VBO_ATTRIB_GENERIC0 + index, x, y, z);
@@ -753,7 +766,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI4ui)(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR4UI(0, x, y, z, w);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR4UI(VBO_ATTRIB_GENERIC0 + index, x, y, z, w);
@@ -765,7 +778,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI2uiv)(GLuint index, const GLuint *v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR2UIV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR2UIV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -777,7 +790,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI3uiv)(GLuint index, const GLuint *v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR3UIV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR3UIV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -789,7 +802,7 @@ static void GLAPIENTRY
 TAG(VertexAttribI4uiv)(GLuint index, const GLuint *v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR4UIV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR4UIV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -799,10 +812,10 @@ TAG(VertexAttribI4uiv)(GLuint index, const GLuint *v)
 
 
 
-/* In addition to supporting NV_vertex_program, these entrypoints are
- * used by the display list and other code specifically because of
- * their property of aliasing with other attributes.  (See
- * vbo_save_loopback.c)
+/* These entrypoints are no longer used for NV_vertex_program but they are
+ * used by the display list and other code specifically because of their
+ * property of aliasing with the legacy Vertex, TexCoord, Normal, etc
+ * attributes.  (See vbo_save_loopback.c)
  */
 static void GLAPIENTRY
 TAG(VertexAttrib1fNV)(GLuint index, GLfloat x)
@@ -1215,7 +1228,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL1d)(GLuint index, GLdouble x)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR1D(0, x);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR1D(VBO_ATTRIB_GENERIC0 + index, x);
@@ -1227,7 +1240,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL1dv)(GLuint index, const GLdouble * v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR1DV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR1DV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -1239,7 +1252,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL2d)(GLuint index, GLdouble x, GLdouble y)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR2D(0, x, y);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR2D(VBO_ATTRIB_GENERIC0 + index, x, y);
@@ -1251,7 +1264,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL2dv)(GLuint index, const GLdouble * v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR2DV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR2DV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -1263,7 +1276,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL3d)(GLuint index, GLdouble x, GLdouble y, GLdouble z)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR3D(0, x, y, z);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR3D(VBO_ATTRIB_GENERIC0 + index, x, y, z);
@@ -1275,7 +1288,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL3dv)(GLuint index, const GLdouble * v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR3DV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR3DV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -1287,7 +1300,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL4d)(GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR4D(0, x, y, z, w);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR4D(VBO_ATTRIB_GENERIC0 + index, x, y, z, w);
@@ -1299,7 +1312,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL4dv)(GLuint index, const GLdouble * v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR4DV(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR4DV(VBO_ATTRIB_GENERIC0 + index, v);
@@ -1311,7 +1324,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL1ui64ARB)(GLuint index, GLuint64EXT x)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR1UI64(0, x);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR1UI64(VBO_ATTRIB_GENERIC0 + index, x);
@@ -1323,7 +1336,7 @@ static void GLAPIENTRY
 TAG(VertexAttribL1ui64vARB)(GLuint index, const GLuint64EXT *v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+   if (is_vertex_position(ctx, index))
       ATTR1UIV64(0, v);
    else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
       ATTR1UIV64(VBO_ATTRIB_GENERIC0 + index, v);

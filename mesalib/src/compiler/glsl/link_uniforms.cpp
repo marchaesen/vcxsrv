@@ -43,14 +43,17 @@
 #define UNMAPPED_UNIFORM_LOC ~0u
 
 void
-program_resource_visitor::process(const glsl_type *type, const char *name)
+program_resource_visitor::process(const glsl_type *type, const char *name,
+                                  bool use_std430_as_default)
 {
    assert(type->without_array()->is_record()
           || type->without_array()->is_interface());
 
    unsigned record_array_count = 1;
    char *name_copy = ralloc_strdup(NULL, name);
-   enum glsl_interface_packing packing = type->get_interface_packing();
+
+   enum glsl_interface_packing packing =
+      type->get_internal_ifc_packing(use_std430_as_default);
 
    recursion(type, &name_copy, strlen(name), false, NULL, packing, false,
              record_array_count, NULL);
@@ -58,15 +61,16 @@ program_resource_visitor::process(const glsl_type *type, const char *name)
 }
 
 void
-program_resource_visitor::process(ir_variable *var)
+program_resource_visitor::process(ir_variable *var, bool use_std430_as_default)
 {
    unsigned record_array_count = 1;
    const bool row_major =
       var->data.matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR;
 
-   const enum glsl_interface_packing packing = var->get_interface_type() ?
-      var->get_interface_type_packing() :
-      var->type->get_interface_packing();
+   enum glsl_interface_packing packing = var->get_interface_type() ?
+      var->get_interface_type()->
+         get_internal_ifc_packing(use_std430_as_default) :
+      var->type->get_internal_ifc_packing(use_std430_as_default);
 
    const glsl_type *t =
       var->data.from_named_ifc_block ? var->get_interface_type() : var->type;
@@ -253,12 +257,14 @@ namespace {
 class count_uniform_size : public program_resource_visitor {
 public:
    count_uniform_size(struct string_to_uint_map *map,
-                      struct string_to_uint_map *hidden_map)
+                      struct string_to_uint_map *hidden_map,
+                      bool use_std430_as_default)
       : num_active_uniforms(0), num_hidden_uniforms(0), num_values(0),
         num_shader_samplers(0), num_shader_images(0),
         num_shader_uniform_components(0), num_shader_subroutines(0),
         is_buffer_block(false), is_shader_storage(false), map(map),
-        hidden_map(hidden_map), current_var(NULL)
+        hidden_map(hidden_map), current_var(NULL),
+        use_std430_as_default(use_std430_as_default)
    {
       /* empty */
    }
@@ -278,9 +284,10 @@ public:
       this->is_shader_storage = var->is_in_shader_storage_block();
       if (var->is_interface_instance())
          program_resource_visitor::process(var->get_interface_type(),
-                                           var->get_interface_type()->name);
+                                           var->get_interface_type()->name,
+                                           use_std430_as_default);
       else
-         program_resource_visitor::process(var);
+         program_resource_visitor::process(var, use_std430_as_default);
    }
 
    /**
@@ -393,6 +400,8 @@ private:
     * Current variable being processed.
     */
    ir_variable *current_var;
+
+   bool use_std430_as_default;
 };
 
 } /* anonymous namespace */
@@ -417,8 +426,10 @@ public:
    parcel_out_uniform_storage(struct gl_shader_program *prog,
                               struct string_to_uint_map *map,
                               struct gl_uniform_storage *uniforms,
-                              union gl_constant_value *values)
-      : prog(prog), map(map), uniforms(uniforms), values(values),
+                              union gl_constant_value *values,
+                              bool use_std430_as_default)
+      : prog(prog), map(map), uniforms(uniforms),
+        use_std430_as_default(use_std430_as_default), values(values),
         bindless_targets(NULL), bindless_access(NULL)
    {
    }
@@ -498,7 +509,8 @@ public:
          if (var->is_interface_instance()) {
             ubo_byte_offset = 0;
             process(var->get_interface_type(),
-                    var->get_interface_type()->name);
+                    var->get_interface_type()->name,
+                    use_std430_as_default);
          } else {
             const struct gl_uniform_block *const block =
                &blks[buffer_block_index];
@@ -509,7 +521,7 @@ public:
                &block->Uniforms[var->data.location];
 
             ubo_byte_offset = ubo_var->Offset;
-            process(var);
+            process(var, use_std430_as_default);
          }
       } else {
          /* Store any explicit location and reset data location so we can
@@ -518,7 +530,7 @@ public:
          this->explicit_location = current_var->data.location;
          current_var->data.location = -1;
 
-         process(var);
+         process(var, use_std430_as_default);
       }
       delete this->record_next_sampler;
       delete this->record_next_bindless_sampler;
@@ -895,6 +907,8 @@ private:
    unsigned next_image;
    unsigned next_bindless_image;
    unsigned next_subroutine;
+
+   bool use_std430_as_default;
 
    /**
     * Field counter is used to take care that uniform structures
@@ -1333,7 +1347,8 @@ link_assign_uniform_storage(struct gl_context *ctx,
 #endif
 
    parcel_out_uniform_storage parcel(prog, prog->UniformHash,
-                                     prog->data->UniformStorage, data);
+                                     prog->data->UniformStorage, data,
+                                     ctx->Const.UseSTD430AsDefaultPacking);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
@@ -1436,7 +1451,8 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
     * glGetUniformLocation.
     */
    struct string_to_uint_map *hiddenUniforms = new string_to_uint_map;
-   count_uniform_size uniform_size(prog->UniformHash, hiddenUniforms);
+   count_uniform_size uniform_size(prog->UniformHash, hiddenUniforms,
+                                   ctx->Const.UseSTD430AsDefaultPacking);
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *sh = prog->_LinkedShaders[i];
 

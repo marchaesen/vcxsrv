@@ -226,14 +226,16 @@ GL 4.6, GLSL 4.60
   GL_ARB_gl_spirv                                       in progress (Nicolai Hähnle, Ian Romanick)
   GL_ARB_indirect_parameters                            DONE (nvc0, radeonsi)
   GL_ARB_pipeline_statistics_query                      DONE (i965, nvc0, radeonsi, softpipe, swr)
-  GL_ARB_polygon_offset_clamp                           not started
+  GL_ARB_polygon_offset_clamp                           DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, swr)
   GL_ARB_shader_atomic_counter_ops                      DONE (i965/gen7+, nvc0, radeonsi, softpipe)
   GL_ARB_shader_draw_parameters                         DONE (i965, nvc0, radeonsi)
   GL_ARB_shader_group_vote                              DONE (i965, nvc0, radeonsi)
   GL_ARB_spirv_extensions                               in progress (Nicolai Hähnle, Ian Romanick)
-  GL_ARB_texture_filter_anisotropic                     not started
+  GL_ARB_texture_filter_anisotropic                     DONE (i965, nv50, nvc0, r600, radeonsi, softpipe (*), llvmpipe (*))
   GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+, radeonsi, llvmpipe, softpipe)
   GL_KHR_no_error                                       started (Timothy Arceri)
+
+(*) softpipe and llvmpipe advertise 16x anisotropy but simply ignore the setting
 
 These are the extensions cherry-picked to make GLES 3.1
 GLES3.1, GLSL ES 3.1 -- all DONE: i965/hsw+, nvc0, radeonsi

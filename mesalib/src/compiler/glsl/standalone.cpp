@@ -100,7 +100,7 @@ private:
    set *variables;
 };
 
-void
+static void
 init_gl_program(struct gl_program *prog, GLenum target, bool is_arb_asm)
 {
    prog->RefCount = 1;
@@ -108,7 +108,7 @@ init_gl_program(struct gl_program *prog, GLenum target, bool is_arb_asm)
    prog->is_arb_asm = is_arb_asm;
 }
 
-struct gl_program *
+static struct gl_program *
 new_program(struct gl_context *ctx, GLenum target, GLuint id, bool is_arb_asm)
 {
    switch (target) {
@@ -374,7 +374,7 @@ load_text_file(void *ctx, const char *file_name)
    return text;
 }
 
-void
+static void
 compile_shader(struct gl_context *ctx, struct gl_shader *shader)
 {
    struct _mesa_glsl_parse_state *state =

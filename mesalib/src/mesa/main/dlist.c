@@ -10062,7 +10062,7 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_ProgramUniformMatrix3x4fv(table, save_ProgramUniformMatrix3x4fv);
    SET_ProgramUniformMatrix4x3fv(table, save_ProgramUniformMatrix4x3fv);
 
-   /* GL_EXT_polygon_offset_clamp */
+   /* GL_{ARB,EXT}_polygon_offset_clamp */
    SET_PolygonOffsetClampEXT(table, save_PolygonOffsetClampEXT);
 
    /* GL_EXT_window_rectangles */

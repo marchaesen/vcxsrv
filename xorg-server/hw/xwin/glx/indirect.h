@@ -64,9 +64,6 @@ struct __GLXWinDrawable {
 struct __GLXWinScreen {
     __GLXscreen base;
 
-    /* Supported GLX extensions */
-    unsigned char glx_enable_bits[__GLX_EXT_BYTES];
-
     Bool has_WGL_ARB_multisample;
     Bool has_WGL_ARB_pixel_format;
     Bool has_WGL_ARB_pbuffer;

@@ -358,9 +358,6 @@ enum pipe_flush_flags
  * Flags for pipe_context::dump_debug_state.
  */
 #define PIPE_DUMP_DEVICE_STATUS_REGISTERS    (1 << 0)
-#define PIPE_DUMP_CURRENT_STATES             (1 << 1)
-#define PIPE_DUMP_CURRENT_SHADERS            (1 << 2)
-#define PIPE_DUMP_LAST_COMMAND_BUFFER        (1 << 3)
 
 /**
  * Create a compute-only context. Use in pipe_screen::context_create.

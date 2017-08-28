@@ -1843,7 +1843,7 @@ public:
 
       this->toplevel_var = var;
       this->varying_floats = 0;
-      program_resource_visitor::process(var);
+      program_resource_visitor::process(var, false);
    }
 
 private:
@@ -2072,7 +2072,8 @@ reserved_varying_slot(struct gl_linked_shader *stage,
       var_slot = var->data.location - VARYING_SLOT_VAR0;
 
       unsigned num_elements = get_varying_type(var, stage->Stage)
-         ->count_attribute_slots(stage->Stage == MESA_SHADER_VERTEX);
+         ->count_attribute_slots(io_mode == ir_var_shader_in &&
+                                 stage->Stage == MESA_SHADER_VERTEX);
       for (unsigned i = 0; i < num_elements; i++) {
          if (var_slot >= 0 && var_slot < MAX_VARYINGS_INCL_PATCH)
             slots |= UINT64_C(1) << var_slot;
@@ -2349,7 +2350,7 @@ assign_varying_locations(struct gl_context *ctx,
    return true;
 }
 
-bool
+static bool
 check_against_output_limit(struct gl_context *ctx,
                            struct gl_shader_program *prog,
                            gl_linked_shader *producer,
@@ -2393,7 +2394,7 @@ check_against_output_limit(struct gl_context *ctx,
    return true;
 }
 
-bool
+static bool
 check_against_input_limit(struct gl_context *ctx,
                           struct gl_shader_program *prog,
                           gl_linked_shader *consumer,

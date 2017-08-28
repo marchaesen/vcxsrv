@@ -919,9 +919,15 @@ util_dump_draw_info(FILE *stream, const struct pipe_draw_info *state)
    util_dump_member(stream, uint, state, max_index);
 
    util_dump_member(stream, bool, state, primitive_restart);
-   util_dump_member(stream, uint, state, restart_index);
+   if (state->primitive_restart)
+      util_dump_member(stream, uint, state, restart_index);
 
-   util_dump_member(stream, ptr, state, index.resource);
+   if (state->index_size) {
+      if (state->has_user_indices)
+         util_dump_member(stream, ptr, state, index.user);
+      else
+         util_dump_member(stream, ptr, state, index.resource);
+   }
    util_dump_member(stream, ptr, state, count_from_stream_output);
 
    if (!state->indirect) {

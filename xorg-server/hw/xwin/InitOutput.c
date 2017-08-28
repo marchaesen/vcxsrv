@@ -35,9 +35,7 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#ifdef XWIN_CLIPBOARD
 #include "X11/Xlocale.h"
-#endif
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
@@ -152,9 +150,7 @@ ddxBeforeReset(void)
 {
     winDebug("ddxBeforeReset - Hello\n");
 
-#ifdef XWIN_CLIPBOARD
     winClipboardShutdown();
-#endif
 }
 #endif
 
@@ -194,13 +190,11 @@ ddxGiveUp(enum ExitCode error)
             winDeleteNotifyIcon(winGetScreenPriv(g_ScreenInfo[i].pScreen));
     }
 
-#ifdef XWIN_MULTIWINDOW
     /* Unload libraries for taskbar grouping */
     winPropertyStoreDestroy();
 
     /* Notify the worker threads we're exiting */
     winDeinitMultiWindowWM();
-#endif
 
 #ifdef HAS_DEVWINDOWS
     /* Close our handle to our message queue */
@@ -718,10 +712,8 @@ winUseMsg(void)
     ErrorF(EXECUTABLE_NAME " Device Dependent Usage:\n");
     ErrorF("\n");
 
-#ifdef XWIN_CLIPBOARD
     ErrorF("-[no]clipboard\n"
            "\tEnable [disable] the clipboard integration. Default is enabled.\n");
-#endif
 
     ErrorF("-clipupdates num_boxes\n"
            "\tUse a clipping region to constrain shadow update blits to\n"
@@ -793,9 +785,7 @@ winUseMsg(void)
            "\tUse the entire virtual screen if multiple\n"
            "\tmonitors are present.\n");
 
-#ifdef XWIN_MULTIWINDOW
     ErrorF("-multiwindow\n" "\tRun the server in multi-window mode.\n");
-#endif
 
 #ifdef XWIN_MULTIWINDOWEXTWM
     ErrorF("-mwextwm\n"
@@ -806,14 +796,12 @@ winUseMsg(void)
            "\tDo not draw a window border, title bar, etc.  Windowed\n"
            "\tmode only.\n");
 
-#ifdef XWIN_CLIPBOARD
     ErrorF("-nounicodeclipboard\n"
            "\tDo not use Unicode clipboard even if on a NT-based platform.\n");
 
     ErrorF("-[no]primary\n"
            "\tWhen clipboard integration is enabled, map the X11 PRIMARY selection\n"
            "\tto the Windows clipboard. Default is enabled.\n");
-#endif
 
     ErrorF("-refresh rate_in_Hz\n"
            "\tSpecify an optional refresh rate to use in fullscreen mode\n"
@@ -956,10 +944,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 
     /* Detect supported engines */
     winDetectSupportedEngines();
-#ifdef XWIN_MULTIWINDOW
     /* Load libraries for taskbar grouping */
     winPropertyStoreInit();
-#endif
 
     /* Store the instance handle */
     g_hInstance = GetModuleHandle(NULL);
@@ -1029,8 +1015,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
         }
     }
 
-#if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
-
     /* Generate a cookie used by internal clients for authorization */
     if (g_fXdmcpEnabled || g_fAuthEnabled)
         winGenerateAuthorization();
@@ -1043,7 +1027,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
          */
         setlocale(LC_ALL, "");
     }
-#endif
 
 #if CYGDEBUG || YES
     winDebug("InitOutput - Returning.\n");

@@ -943,37 +943,6 @@ glsl_to_tgsi_visitor::get_opcode(unsigned op,
       else \
          op = TGSI_OPCODE_##f; \
       break;
-#define case5(c, f, i, u, d)                    \
-   case TGSI_OPCODE_##c: \
-      if (type == GLSL_TYPE_DOUBLE)           \
-         op = TGSI_OPCODE_##d; \
-      else if (type == GLSL_TYPE_INT)       \
-         op = TGSI_OPCODE_##i; \
-      else if (type == GLSL_TYPE_UINT) \
-         op = TGSI_OPCODE_##u; \
-      else \
-         op = TGSI_OPCODE_##f; \
-      break;
-
-#define case4(c, f, i, u)                    \
-   case TGSI_OPCODE_##c: \
-      if (type == GLSL_TYPE_INT) \
-         op = TGSI_OPCODE_##i; \
-      else if (type == GLSL_TYPE_UINT) \
-         op = TGSI_OPCODE_##u; \
-      else \
-         op = TGSI_OPCODE_##f; \
-      break;
-
-#define case3(f, i, u)  case4(f, f, i, u)
-#define case6d(f, i, u, d, i64, u64)  case7(f, f, i, u, d, i64, u64)
-#define case3fid(f, i, d) case5(f, f, i, i, d)
-#define case3fid64(f, i, d, i64) case7(f, f, i, i, d, i64, i64)
-#define case2fi(f, i)   case4(f, f, i, i)
-#define case2iu(i, u)   case4(i, LAST, i, u)
-
-#define case2iu64(i, i64)   case7(i, LAST, i, i, LAST, i64, i64)
-#define case4iu64(i, u, i64, u64)   case7(i, LAST, i, u, LAST, i64, u64)
 
 #define casecomp(c, f, i, u, d, i64, ui64)           \
    case TGSI_OPCODE_##c: \
@@ -994,42 +963,41 @@ glsl_to_tgsi_visitor::get_opcode(unsigned op,
       break;
 
    switch(op) {
-      case3fid64(ADD, UADD, DADD, U64ADD);
-      case3fid64(MUL, UMUL, DMUL, U64MUL);
-      case3fid(MAD, UMAD, DMAD);
-      case3fid(FMA, UMAD, DFMA);
-      case6d(DIV, IDIV, UDIV, DDIV, I64DIV, U64DIV);
-      case6d(MAX, IMAX, UMAX, DMAX, I64MAX, U64MAX);
-      case6d(MIN, IMIN, UMIN, DMIN, I64MIN, U64MIN);
-      case4iu64(MOD, UMOD, I64MOD, U64MOD);
+      /* Some instructions are initially selected without considering the type.
+       * This fixes the type:
+       *
+       *    INIT     FLOAT SINT     UINT     DOUBLE   SINT64   UINT64
+       */
+      case7(ADD,     ADD,  UADD,    UADD,    DADD,    U64ADD,  U64ADD);
+      case7(CEIL,    CEIL, LAST,    LAST,    DCEIL,   LAST,    LAST);
+      case7(DIV,     DIV,  IDIV,    UDIV,    DDIV,    I64DIV,  U64DIV);
+      case7(FMA,     FMA,  UMAD,    UMAD,    DFMA,    LAST,    LAST);
+      case7(FLR,     FLR,  LAST,    LAST,    DFLR,    LAST,    LAST);
+      case7(FRC,     FRC,  LAST,    LAST,    DFRAC,   LAST,    LAST);
+      case7(MUL,     MUL,  UMUL,    UMUL,    DMUL,    U64MUL,  U64MUL);
+      case7(MAD,     MAD,  UMAD,    UMAD,    DMAD,    LAST,    LAST);
+      case7(MAX,     MAX,  IMAX,    UMAX,    DMAX,    I64MAX,  U64MAX);
+      case7(MIN,     MIN,  IMIN,    UMIN,    DMIN,    I64MIN,  U64MIN);
+      case7(RCP,     RCP,  LAST,    LAST,    DRCP,    LAST,    LAST);
+      case7(ROUND,   ROUND,LAST,    LAST,    DROUND,  LAST,    LAST);
+      case7(RSQ,     RSQ,  LAST,    LAST,    DRSQ,    LAST,    LAST);
+      case7(SQRT,    SQRT, LAST,    LAST,    DSQRT,   LAST,    LAST);
+      case7(SSG,     SSG,  ISSG,    ISSG,    DSSG,    I64SSG,  I64SSG);
+      case7(TRUNC,   TRUNC,LAST,    LAST,    DTRUNC,  LAST,    LAST);
+
+      case7(MOD,     LAST, MOD,     UMOD,    LAST,    I64MOD,  U64MOD);
+      case7(SHL,     LAST, SHL,     SHL,     LAST,    U64SHL,  U64SHL);
+      case7(IBFE,    LAST, IBFE,    UBFE,    LAST,    LAST,    LAST);
+      case7(IMSB,    LAST, IMSB,    UMSB,    LAST,    LAST,    LAST);
+      case7(IMUL_HI, LAST, IMUL_HI, UMUL_HI, LAST,    LAST,    LAST);
+      case7(ISHR,    LAST, ISHR,    USHR,    LAST,    I64SHR,  U64SHR);
+      case7(ATOMIMAX,LAST, ATOMIMAX,ATOMUMAX,LAST,    LAST,    LAST);
+      case7(ATOMIMIN,LAST, ATOMIMIN,ATOMUMIN,LAST,    LAST,    LAST);
 
       casecomp(SEQ, FSEQ, USEQ, USEQ, DSEQ, U64SEQ, U64SEQ);
       casecomp(SNE, FSNE, USNE, USNE, DSNE, U64SNE, U64SNE);
       casecomp(SGE, FSGE, ISGE, USGE, DSGE, I64SGE, U64SGE);
       casecomp(SLT, FSLT, ISLT, USLT, DSLT, I64SLT, U64SLT);
-
-      case2iu64(SHL, U64SHL);
-      case4iu64(ISHR, USHR, I64SHR, U64SHR);
-
-      case3fid64(SSG, ISSG, DSSG, I64SSG);
-
-      case2iu(IBFE, UBFE);
-      case2iu(IMSB, UMSB);
-      case2iu(IMUL_HI, UMUL_HI);
-
-      case3fid(SQRT, SQRT, DSQRT);
-
-      case3fid(RCP, RCP, DRCP);
-      case3fid(RSQ, RSQ, DRSQ);
-
-      case3fid(FRC, FRC, DFRAC);
-      case3fid(TRUNC, TRUNC, DTRUNC);
-      case3fid(CEIL, CEIL, DCEIL);
-      case3fid(FLR, FLR, DFLR);
-      case3fid(ROUND, ROUND, DROUND);
-
-      case2iu(ATOMIMAX, ATOMUMAX);
-      case2iu(ATOMIMIN, ATOMUMIN);
 
       default: break;
    }
@@ -2161,7 +2129,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
       ir_constant *const_uniform_block = ir->operands[0]->as_constant();
       ir_constant *const_offset_ir = ir->operands[1]->as_constant();
       unsigned const_offset = const_offset_ir ? const_offset_ir->value.u[0] : 0;
-      unsigned const_block = const_uniform_block ? const_uniform_block->value.u[0] + 1 : 0;
+      unsigned const_block = const_uniform_block ? const_uniform_block->value.u[0] + 1 : 1;
       st_src_reg index_reg = get_temp(glsl_type::uint_type);
       st_src_reg cbuf;
 
@@ -2171,6 +2139,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
       cbuf.reladdr = NULL;
       cbuf.negate = 0;
       cbuf.abs = 0;
+      cbuf.index2D = const_block;
 
       assert(ir->type->is_vector() || ir->type->is_scalar());
 
@@ -2217,13 +2186,11 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
       if (const_uniform_block) {
          /* Constant constant buffer */
          cbuf.reladdr2 = NULL;
-         cbuf.index2D = const_block;
          cbuf.has_index2 = true;
       }
       else {
          /* Relative/variable constant buffer */
          cbuf.reladdr2 = ralloc(mem_ctx, st_src_reg);
-         cbuf.index2D = 1;
          memcpy(cbuf.reladdr2, &op[0], sizeof(st_src_reg));
          cbuf.has_index2 = true;
       }
@@ -2751,7 +2718,9 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
 
    this->result = st_src_reg(entry->file, entry->index, var->type,
                              entry->component, entry->array_id);
-   if (this->shader->Stage == MESA_SHADER_VERTEX && var->data.mode == ir_var_shader_in && var->type->is_double())
+   if (this->shader->Stage == MESA_SHADER_VERTEX &&
+       var->data.mode == ir_var_shader_in &&
+       var->type->without_array()->is_double())
       this->result.is_double_vertex_input = true;
    if (!native_integers)
       this->result.type = GLSL_TYPE_FLOAT;
@@ -3797,12 +3766,10 @@ get_image_qualifiers(ir_dereference *ir, const glsl_type **type,
    switch (ir->ir_type) {
    case ir_type_dereference_record: {
       ir_dereference_record *deref_record = ir->as_dereference_record();
-
-      *type = deref_record->type;
-
-      const glsl_type *struct_type =
-         deref_record->record->type->without_array();
+      const glsl_type *struct_type = deref_record->record->type;
       int fild_idx = deref_record->field_idx;
+
+      *type = struct_type->fields.structure[fild_idx].type->without_array();
       *memory_coherent =
          struct_type->fields.structure[fild_idx].memory_coherent;
       *memory_volatile =
@@ -6079,11 +6046,6 @@ compile_tgsi_instruction(struct st_translate *t,
                        tex_target, inst->image_format);
       break;
 
-   case TGSI_OPCODE_SCS:
-      dst[0] = ureg_writemask(dst[0], TGSI_WRITEMASK_XY);
-      ureg_insn(ureg, inst->op, dst, num_dst, src, num_src, inst->precise);
-      break;
-
    default:
       ureg_insn(ureg,
                 inst->op,
@@ -6844,7 +6806,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
       pscreen->get_shader_param(pscreen, ptarget,
                                 PIPE_SHADER_CAP_TGSI_SKIP_MERGE_REGISTERS);
 
-   _mesa_generate_parameters_list_for_uniforms(shader_program, shader,
+   _mesa_generate_parameters_list_for_uniforms(ctx, shader_program, shader,
                                                prog->Parameters);
 
    /* Remove reads from output registers. */

@@ -513,9 +513,9 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
    mgr->real_vertex_buffer[out_vb].stride = key->output_stride;
 
    /* Move the buffer reference. */
-   pipe_resource_reference(
-      &mgr->real_vertex_buffer[out_vb].buffer.resource, NULL);
+   pipe_vertex_buffer_unreference(&mgr->real_vertex_buffer[out_vb]);
    mgr->real_vertex_buffer[out_vb].buffer.resource = out_buffer;
+   mgr->real_vertex_buffer[out_vb].is_user_buffer = false;
 
    return PIPE_OK;
 }
@@ -833,8 +833,7 @@ void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
          unsigned dst_index = start_slot + i;
 
          pipe_vertex_buffer_unreference(&mgr->vertex_buffer[dst_index]);
-         pipe_resource_reference(&mgr->real_vertex_buffer[dst_index].buffer.resource,
-                                 NULL);
+         pipe_vertex_buffer_unreference(&mgr->real_vertex_buffer[dst_index]);
       }
 
       pipe->set_vertex_buffers(pipe, start_slot, count, NULL);

@@ -26,6 +26,8 @@
  */
 #include "radv_private.h"
 
+#include "vk_util.h"
+
 VkResult radv_CreateRenderPass(
 	VkDevice                                    _device,
 	const VkRenderPassCreateInfo*               pCreateInfo,
@@ -36,6 +38,7 @@ VkResult radv_CreateRenderPass(
 	struct radv_render_pass *pass;
 	size_t size;
 	size_t attachments_offset;
+	VkRenderPassMultiviewCreateInfoKHX *multiview_info = NULL;
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
 
@@ -53,6 +56,16 @@ VkResult radv_CreateRenderPass(
 	pass->attachment_count = pCreateInfo->attachmentCount;
 	pass->subpass_count = pCreateInfo->subpassCount;
 	pass->attachments = (void *) pass + attachments_offset;
+
+	vk_foreach_struct(ext, pCreateInfo->pNext) {
+		switch(ext->sType) {
+		case  VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO_KHX:
+			multiview_info = ( VkRenderPassMultiviewCreateInfoKHX*)ext;
+			break;
+		default:
+			break;
+		}
+	}
 
 	for (uint32_t i = 0; i < pCreateInfo->attachmentCount; i++) {
 		struct radv_render_pass_attachment *att = &pass->attachments[i];
@@ -97,6 +110,8 @@ VkResult radv_CreateRenderPass(
 
 		subpass->input_count = desc->inputAttachmentCount;
 		subpass->color_count = desc->colorAttachmentCount;
+		if (multiview_info)
+			subpass->view_mask = multiview_info->pViewMasks[i];
 
 		if (desc->inputAttachmentCount > 0) {
 			subpass->input_attachments = p;
@@ -105,6 +120,8 @@ VkResult radv_CreateRenderPass(
 			for (uint32_t j = 0; j < desc->inputAttachmentCount; j++) {
 				subpass->input_attachments[j]
 					= desc->pInputAttachments[j];
+				if (desc->pInputAttachments[j].attachment != VK_ATTACHMENT_UNUSED)
+					pass->attachments[desc->pInputAttachments[j].attachment].view_mask |= subpass->view_mask;
 			}
 		}
 
@@ -115,6 +132,8 @@ VkResult radv_CreateRenderPass(
 			for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
 				subpass->color_attachments[j]
 					= desc->pColorAttachments[j];
+				if (desc->pColorAttachments[j].attachment != VK_ATTACHMENT_UNUSED)
+					pass->attachments[desc->pColorAttachments[j].attachment].view_mask |= subpass->view_mask;
 			}
 		}
 
@@ -127,14 +146,18 @@ VkResult radv_CreateRenderPass(
 				uint32_t a = desc->pResolveAttachments[j].attachment;
 				subpass->resolve_attachments[j]
 					= desc->pResolveAttachments[j];
-				if (a != VK_ATTACHMENT_UNUSED)
+				if (a != VK_ATTACHMENT_UNUSED) {
 					subpass->has_resolve = true;
+					pass->attachments[desc->pResolveAttachments[j].attachment].view_mask |= subpass->view_mask;
+				}
 			}
 		}
 
 		if (desc->pDepthStencilAttachment) {
 			subpass->depth_stencil_attachment =
 				*desc->pDepthStencilAttachment;
+			if (desc->pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED)
+				pass->attachments[desc->pDepthStencilAttachment->attachment].view_mask |= subpass->view_mask;
 		} else {
 			subpass->depth_stencil_attachment.attachment = VK_ATTACHMENT_UNUSED;
 		}

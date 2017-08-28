@@ -963,6 +963,27 @@ dri3_cpp_for_format(uint32_t format) {
    }
 }
 
+/* the DRIimage createImage function takes __DRI_IMAGE_FORMAT codes, while
+ * the createImageFromFds call takes __DRI_IMAGE_FOURCC codes. To avoid
+ * complete confusion, just deal in __DRI_IMAGE_FORMAT codes for now and
+ * translate to __DRI_IMAGE_FOURCC codes in the call to createImageFromFds
+ */
+static int
+image_format_to_fourcc(int format)
+{
+
+   /* Convert from __DRI_IMAGE_FORMAT to __DRI_IMAGE_FOURCC (sigh) */
+   switch (format) {
+   case __DRI_IMAGE_FORMAT_SARGB8: return __DRI_IMAGE_FOURCC_SARGB8888;
+   case __DRI_IMAGE_FORMAT_RGB565: return __DRI_IMAGE_FOURCC_RGB565;
+   case __DRI_IMAGE_FORMAT_XRGB8888: return __DRI_IMAGE_FOURCC_XRGB8888;
+   case __DRI_IMAGE_FORMAT_ARGB8888: return __DRI_IMAGE_FOURCC_ARGB8888;
+   case __DRI_IMAGE_FORMAT_ABGR8888: return __DRI_IMAGE_FOURCC_ABGR8888;
+   case __DRI_IMAGE_FORMAT_XBGR8888: return __DRI_IMAGE_FOURCC_XBGR8888;
+   }
+   return 0;
+}
+
 /** loader_dri3_alloc_render_buffer
  *
  * Use the driver createImage function to construct a __DRIimage, then
@@ -1184,27 +1205,6 @@ dri3_update_drawable(__DRIdrawable *driDrawable,
    }
    dri3_flush_present_events(draw);
    return true;
-}
-
-/* the DRIimage createImage function takes __DRI_IMAGE_FORMAT codes, while
- * the createImageFromFds call takes __DRI_IMAGE_FOURCC codes. To avoid
- * complete confusion, just deal in __DRI_IMAGE_FORMAT codes for now and
- * translate to __DRI_IMAGE_FOURCC codes in the call to createImageFromFds
- */
-static int
-image_format_to_fourcc(int format)
-{
-
-   /* Convert from __DRI_IMAGE_FORMAT to __DRI_IMAGE_FOURCC (sigh) */
-   switch (format) {
-   case __DRI_IMAGE_FORMAT_SARGB8: return __DRI_IMAGE_FOURCC_SARGB8888;
-   case __DRI_IMAGE_FORMAT_RGB565: return __DRI_IMAGE_FOURCC_RGB565;
-   case __DRI_IMAGE_FORMAT_XRGB8888: return __DRI_IMAGE_FOURCC_XRGB8888;
-   case __DRI_IMAGE_FORMAT_ARGB8888: return __DRI_IMAGE_FOURCC_ARGB8888;
-   case __DRI_IMAGE_FORMAT_ABGR8888: return __DRI_IMAGE_FOURCC_ABGR8888;
-   case __DRI_IMAGE_FORMAT_XBGR8888: return __DRI_IMAGE_FOURCC_XBGR8888;
-   }
-   return 0;
 }
 
 __DRIimage *

@@ -58,12 +58,16 @@ extern "C" {
 #endif
 
 /* Forward declarations to avoid inclusion of GL/glx.h */
+#ifndef GLX_H
 struct _XDisplay;
 struct __GLXcontextRec;
+#endif
 
 /* Forward declarations to avoid inclusion of EGL/egl.h */
+#ifndef __egl_h_
 typedef void *EGLDisplay;
 typedef void *EGLContext;
+#endif
 
 /** Returned error codes. */
 enum {

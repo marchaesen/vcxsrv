@@ -519,6 +519,65 @@ struct pipe_h265_picture_desc
    bool UseRefPicList;
 };
 
+struct pipe_mjpeg_picture_desc
+{
+   struct pipe_picture_desc base;
+
+   struct
+   {
+      uint16_t picture_width;
+      uint16_t picture_height;
+
+      struct {
+         uint8_t component_id;
+         uint8_t h_sampling_factor;
+         uint8_t v_sampling_factor;
+         uint8_t quantiser_table_selector;
+      } components[255];
+
+      uint8_t num_components;
+   } picture_parameter;
+
+   struct
+   {
+      uint8_t load_quantiser_table[4];
+      uint8_t quantiser_table[4][64];
+   } quantization_table;
+
+   struct
+   {
+      uint8_t load_huffman_table[2];
+
+      struct {
+         uint8_t   num_dc_codes[16];
+         uint8_t   dc_values[12];
+         uint8_t   num_ac_codes[16];
+         uint8_t   ac_values[162];
+         uint8_t   pad[2];
+      } table[2];
+   } huffman_table;
+
+   struct
+   {
+      unsigned slice_data_size;
+      unsigned slice_data_offset;
+      unsigned slice_data_flag;
+      unsigned slice_horizontal_position;
+      unsigned slice_vertical_position;
+
+      struct {
+         uint8_t component_selector;
+         uint8_t dc_table_selector;
+         uint8_t ac_table_selector;
+      } components[4];
+
+      uint8_t num_components;
+
+      uint16_t restart_interval;
+      unsigned num_mcus;
+   } slice_parameter;
+};
+
 #ifdef __cplusplus
 }
 #endif

@@ -66,11 +66,23 @@
 struct gl_vertex_array_object *
 _mesa_lookup_vao(struct gl_context *ctx, GLuint id)
 {
-   if (id == 0)
+   if (id == 0) {
       return NULL;
-   else
-      return (struct gl_vertex_array_object *)
-         _mesa_HashLookupLocked(ctx->Array.Objects, id);
+   } else {
+      struct gl_vertex_array_object *vao;
+
+      if (ctx->Array.LastLookedUpVAO &&
+          ctx->Array.LastLookedUpVAO->Name == id) {
+         vao = ctx->Array.LastLookedUpVAO;
+      } else {
+         vao = (struct gl_vertex_array_object *)
+            _mesa_HashLookupLocked(ctx->Array.Objects, id);
+
+         _mesa_reference_vao(ctx, &ctx->Array.LastLookedUpVAO, vao);
+      }
+
+      return vao;
+   }
 }
 
 

@@ -2191,12 +2191,9 @@ dnl XWin requires OpenGL spec files in order to generate wrapper code for native
 
 fi
 AM_CONDITIONAL(XWIN, [test "x$XWIN" = xyes])
-AM_CONDITIONAL(XWIN_MULTIWINDOW, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOWEXTWM, [test "x$XWIN" = xyes && test "x$WINDOWSWM" = xyes])
-AM_CONDITIONAL(XWIN_CLIPBOARD, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_GLX_WINDOWS, [test "x$XWIN" = xyes && test "x$GLX" = xyes])
 AM_CONDITIONAL(XWIN_WINDOWS_DRI, [test "x$XWIN" = xyes && test "x$WINDOWSDRI" = xyes])
-AM_CONDITIONAL(XWIN_RANDR, [test "x$XWIN" = xyes])
 
 dnl Darwin / OS X DDX
 if test "x$XQUARTZ" = xyes; then

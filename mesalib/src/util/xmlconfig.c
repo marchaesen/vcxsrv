@@ -466,11 +466,11 @@ __driUtilMessage(const char *f, ...)
                       (int) XML_GetCurrentLineNumber(data->parser), \
                       (int) XML_GetCurrentColumnNumber(data->parser)); \
 } while (0)
-#define XML_WARNING(msg,args...) do { \
+#define XML_WARNING(msg, ...) do { \
     __driUtilMessage ("Warning in %s line %d, column %d: "msg, data->name, \
                       (int) XML_GetCurrentLineNumber(data->parser), \
                       (int) XML_GetCurrentColumnNumber(data->parser), \
-                      args); \
+                      ##__VA_ARGS__); \
 } while (0)
 /** \brief Output an error message. */
 #define XML_ERROR1(msg) do { \
@@ -478,11 +478,11 @@ __driUtilMessage(const char *f, ...)
                       (int) XML_GetCurrentLineNumber(data->parser), \
                       (int) XML_GetCurrentColumnNumber(data->parser)); \
 } while (0)
-#define XML_ERROR(msg,args...) do { \
+#define XML_ERROR(msg, ...) do { \
     __driUtilMessage ("Error in %s line %d, column %d: "msg, data->name, \
                       (int) XML_GetCurrentLineNumber(data->parser), \
                       (int) XML_GetCurrentColumnNumber(data->parser), \
-                      args); \
+                      ##__VA_ARGS__); \
 } while (0)
 /** \brief Output a fatal error message and abort. */
 #define XML_FATAL1(msg) do { \
@@ -492,12 +492,12 @@ __driUtilMessage(const char *f, ...)
              (int) XML_GetCurrentColumnNumber(data->parser)); \
     abort();\
 } while (0)
-#define XML_FATAL(msg,args...) do { \
+#define XML_FATAL(msg, ...) do { \
     fprintf (stderr, "Fatal error in %s line %d, column %d: "msg"\n", \
              data->name, \
              (int) XML_GetCurrentLineNumber(data->parser), \
              (int) XML_GetCurrentColumnNumber(data->parser), \
-             args); \
+             ##__VA_ARGS__); \
     abort();\
 } while (0)
 

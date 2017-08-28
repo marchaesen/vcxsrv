@@ -612,13 +612,6 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 
 		radv_cmd_buffer_set_subpass(cmd_buffer, &resolve_subpass, false);
 
-		/* Subpass resolves must respect the render area. We can ignore the
-		 * render area here because vkCmdBeginRenderPass set the render area
-		 * with 3DSTATE_DRAWING_RECTANGLE.
-		 *
-		 * XXX(chadv): Does the hardware really respect
-		 * 3DSTATE_DRAWING_RECTANGLE when draing a 3DPRIM_RECTLIST?
-		 */
 		emit_resolve(cmd_buffer,
 			     &(VkOffset2D) { 0, 0 },
 			     &(VkExtent2D) { fb->width, fb->height });

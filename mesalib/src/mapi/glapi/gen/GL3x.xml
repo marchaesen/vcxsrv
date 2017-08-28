@@ -206,11 +206,11 @@
     <param name="name" type="const GLchar *"/>
   </function>
 
-  <function name="BeginTransformFeedback" es2="3.0">
+  <function name="BeginTransformFeedback" es2="3.0" no_error="true">
     <param name="mode" type="GLenum"/>
   </function>
 
-  <function name="EndTransformFeedback" es2="3.0">
+  <function name="EndTransformFeedback" es2="3.0" no_error="true">
   </function>
 
   <function name="BindBufferRange" es2="3.0" no_error="true">
@@ -227,7 +227,7 @@
     <param name="buffer" type="GLuint"/>
   </function>
 
-  <function name="TransformFeedbackVaryings" es2="3.0">
+  <function name="TransformFeedbackVaryings" es2="3.0" no_error="true">
     <param name="program" type="GLuint"/>
     <param name="count" type="GLsizei"/>
     <param name="varyings" type="const GLchar * const *"/>

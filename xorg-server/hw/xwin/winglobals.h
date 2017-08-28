@@ -62,8 +62,6 @@ extern HWND g_hDlgAbout;
 extern Bool g_fSoftwareCursor;
 extern Bool g_fCursor;
 
-#ifdef XWIN_CLIPBOARD
-
 /* Typedef for DIX wrapper functions */
 typedef int (*winDispatchProcPtr) (ClientPtr);
 
@@ -71,20 +69,15 @@ typedef int (*winDispatchProcPtr) (ClientPtr);
  * Wrapped DIX functions
  */
 extern winDispatchProcPtr winProcEstablishConnectionOrig;
-#endif
 extern Bool g_fUnicodeClipboard;
 extern Bool g_fClipboard;
 extern Bool g_fClipboardStarted;
 
 /* The global X default icons */
-#if defined(XWIN_MULTIWINDOW)
 extern HICON g_hIconX;
 extern HICON g_hSmallIconX;
-#endif
 
-#ifdef XWIN_MULTIWINDOW
 extern DWORD g_dwCurrentThreadID;
-#endif
 
 extern Bool g_fKeyboardHookLL;
 extern Bool g_fButton[3];

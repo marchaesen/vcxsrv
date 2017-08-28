@@ -39,7 +39,8 @@ enum pipe_video_format
    PIPE_VIDEO_FORMAT_MPEG4,    /**< DIVX, XVID */
    PIPE_VIDEO_FORMAT_VC1,      /**< WMV */
    PIPE_VIDEO_FORMAT_MPEG4_AVC,/**< H.264 */
-   PIPE_VIDEO_FORMAT_HEVC      /**< H.265 */
+   PIPE_VIDEO_FORMAT_HEVC,     /**< H.265 */
+   PIPE_VIDEO_FORMAT_JPEG      /**< JPEG */
 };
 
 enum pipe_video_profile
@@ -65,7 +66,8 @@ enum pipe_video_profile
    PIPE_VIDEO_PROFILE_HEVC_MAIN_10,
    PIPE_VIDEO_PROFILE_HEVC_MAIN_STILL,
    PIPE_VIDEO_PROFILE_HEVC_MAIN_12,
-   PIPE_VIDEO_PROFILE_HEVC_MAIN_444
+   PIPE_VIDEO_PROFILE_HEVC_MAIN_444,
+   PIPE_VIDEO_PROFILE_JPEG_BASELINE
 };
 
 /* Video caps, can be different for each codec/profile */
