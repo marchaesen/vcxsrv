@@ -223,7 +223,10 @@ WaitForSomething(Bool are_ready)
         if (dispatchException)
             i = -1;
         else
+        {
+            if (!timeout) timeout=1; /* Avoid a 100 % usage loop */
             i = ospoll_wait(server_poll, timeout);
+        }
         pollerr = GetErrno();
         WakeupHandler(i);
         if (i <= 0) {           /* An error or timeout occurred */
