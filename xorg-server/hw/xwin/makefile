@@ -1,37 +1,14 @@
 LIBRARY = libXWin
 
-XWIN_MULTIWINDOW=1
-XWIN_CLIPBOARD=1
 XWIN_MULTIWINDOWEXTWM=0  # currently not working correctly
 XWIN_MULTIWINDOWINTWM=0  # currently not working correctly
-XWIN_RANDR=1
-XWIN_NATIVEGDI=0         # currently not working correctly
-XWIN_PRIMARYFB=0         # currently not working correctly
 XWIN_GLX_WINDOWS=1       # everything is in the glx makefile
-
-if XWIN_CLIPBOARD
-SRCS_CLIPBOARD = \
-	winclipboardinit.c \
-	winclipboardwrappers.c
-DEFS_CLIPBOARD = -DXWIN_CLIPBOARD
-INCLUDES_CLIPBOARD = winclipboard
-endif
 
 if XWIN_GLX_WINDOWS
 GLX_DIR = glx
 DEFS_GLX_WINDOWS = -DXWIN_GLX_WINDOWS
 XWIN_GLX_LIBS = $(top_builddir)/hw/xwin/glx/libXwinGLX.la
 XWIN_GLX_LINK_FLAGS = -lopengl32
-endif
-
-if XWIN_MULTIWINDOW
-SRCS_MULTIWINDOW = \
-	winmultiwindowshape.c \
-	winmultiwindowwindow.c \
-	winmultiwindowwm.c \
-	winmultiwindowwndproc.c \
-	winSetAppUserModelID.c
-DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
 endif
 
 if XWIN_MULTIWINDOWEXTWM
@@ -42,33 +19,6 @@ SRCS_MULTIWINDOWEXTWM = \
 	winwindowswm.c
 DEFS_MULTIWINDOWEXTWM = -DXWIN_MULTIWINDOWEXTWM
 MULTIWINDOWEXTWM_LIBS = $(top_builddir)/miext/rootless/librootless.la
-endif
-
-if XWIN_NATIVEGDI
-SRCS_NATIVEGDI = \
-	winclip.c \
-	winfillsp.c \
-	winfont.c \
-	wingc.c \
-	wingetsp.c \
-	winnativegdi.c \
-	winpixmap.c \
-	winpolyline.c \
-	winrop.c \
-	winsetsp.c
-DEFS_NATIVEGDI = -DXWIN_NATIVEGDI
-endif
-
-if XWIN_PRIMARYFB
-SRCS_PRIMARYFB = \
-	winpfbdd.c
-DEFS_PRIMARYFB = -DXWIN_PRIMARYFB
-endif
-
-if XWIN_RANDR
-SRCS_RANDR = \
-	winrandr.c
-DEFS_RANDR = -DXWIN_RANDR
 endif
 
 if XWIN_XV
@@ -132,12 +82,15 @@ SRCS =	InitInput.c \
 	windisplay.c \
 	windisplay.h \
 	XWin.rc \
-	$(SRCS_CLIPBOARD) \
-	$(SRCS_MULTIWINDOW) \
+	winclipboardinit.c \
+	winclipboardwrappers.c \
+	winmultiwindowshape.c \
+	winmultiwindowwindow.c \
+	winmultiwindowwm.c \
+	winmultiwindowwndproc.c \
+	winSetAppUserModelID.c \
+	winrandr.c \
 	$(SRCS_MULTIWINDOWEXTWM) \
-	$(SRCS_NATIVEGDI) \
-	$(SRCS_PRIMARYFB) \
-	$(SRCS_RANDR) \
 	$(SRCS_XV) \
 	xdmcphostselect.c
 
@@ -145,18 +98,13 @@ CSRCS=$(filter %.c,$(SRCS)) $(filter %.y,$(SRCS)) $(filter %.l,$(SRCS))
 CSRCS := $(CSRCS:%.y=%.c)
 CSRCS := $(CSRCS:%.l=%.c)
 
- DEFS = $(DEFS_CLIPBOARD) \
-	$(DEFS_GLX_WINDOWS) \
-	$(DEFS_MULTIWINDOW) \
+ DEFS = $(DEFS_GLX_WINDOWS) \
 	$(DEFS_MULTIWINDOWEXTWM) \
-	$(DEFS_NATIVEGDI) \
-	$(DEFS_PRIMARYFB) \
-	$(DEFS_RANDR) \
 	$(DEFS_XV)
 
 DEFINES += $(DEFS:-D%=%) HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB RELOCATE_PROJECTROOT
 
-INCLUDES += $(INCLUDES_CLIPBOARD) ..\.. ..\..\miext\rootless
+INCLUDES += winclipboard ..\.. ..\..\miext\rootless
 
 INCLUDES += $(OBJDIR)
 

@@ -246,6 +246,7 @@ ORTH = \
 	pap_an.orth \
 	pap_aw.orth \
 	qu.orth \
+	quz.orth \
 	rn.orth \
 	rw.orth \
 	sc.orth \
@@ -262,7 +263,9 @@ ORTH = \
 	brx.orth \
 	sat.orth \
 	doi.orth \
-	mni.orth
+	mni.orth \
+	und_zsye.orth \
+	und_zmth.orth
 #	^-------------- Add new orth files here
 
 DEFINES += HAVE_CONFIG_H

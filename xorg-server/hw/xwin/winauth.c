@@ -71,20 +71,7 @@ static xcb_auth_info_t auth_info;
  * Code to generate a MIT-MAGIC-COOKIE-1, copied from under XCSECURITY
  */
 
-
-
 #ifndef XCSECURITY
-#ifdef _MSC_VER
-    static HANDLE hAdvApi32;
-    static BOOLEAN (_stdcall * RtlGenRandom)(void *,unsigned long);
-    if (!hAdvApi32)
-    {
-      hAdvApi32=LoadLibrary("advapi32.dll");
-      RtlGenRandom=(BOOLEAN (_stdcall *)(void*,unsigned long))GetProcAddress(hAdvApi32,"SystemFunction036");
-    }
-    RtlGenRandom(buf, len);
-#else
-#endif
 
 static
     XID
