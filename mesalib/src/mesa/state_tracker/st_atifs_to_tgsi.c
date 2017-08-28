@@ -228,7 +228,6 @@ emit_special_inst(struct st_translate *t, const struct instruction_desc *desc,
       src[2] = args[0];
       ureg_insn(t->ureg, TGSI_OPCODE_CMP, dst, 1, src, 3, 0);
    } else if (!strcmp(desc->name, "DOT2_ADD")) {
-      /* note: DP2A is not implemented in most pipe drivers */
       tmp[0] = get_temp(t, MAX_NUM_FRAGMENT_REGISTERS_ATI); /* re-purpose a1 */
       src[0] = args[0];
       src[1] = args[1];

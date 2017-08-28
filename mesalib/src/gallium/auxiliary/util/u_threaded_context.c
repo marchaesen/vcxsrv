@@ -1297,7 +1297,7 @@ tc_improve_map_buffer_flags(struct threaded_context *tc,
 
    /* Handle CPU reads trivially. */
    if (usage & PIPE_TRANSFER_READ) {
-      /* Driver aren't allowed to do buffer invalidations. */
+      /* Drivers aren't allowed to do buffer invalidations. */
       return (usage & ~PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE) |
              TC_TRANSFER_MAP_NO_INVALIDATE |
              TC_TRANSFER_MAP_IGNORE_VALID_RANGE;

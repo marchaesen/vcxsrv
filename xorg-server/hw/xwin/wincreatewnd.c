@@ -160,9 +160,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
         && !pScreenInfo->fMWExtWM
 #endif
         && !pScreenInfo->fRootless
-#ifdef XWIN_MULTIWINDOW
         && !pScreenInfo->fMultiWindow
-#endif
         ) {
         /* Try to handle startup via run.exe. run.exe instructs Windows to
          * hide all created windows. Detect this case and make sure the
@@ -224,9 +222,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
          || pScreenInfo->fMWExtWM
 #endif
          || pScreenInfo->fRootless
-#ifdef XWIN_MULTIWINDOW
          || pScreenInfo->fMultiWindow
-#endif
         )
         && (pScreenInfo->iResizeMode == resizeWithScrollbars)) {
         /* We cannot have scrollbars if we do not have a window border */
@@ -245,9 +241,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
             && !pScreenInfo->fMWExtWM
 #endif
             && !pScreenInfo->fRootless
-#ifdef XWIN_MULTIWINDOW
             && !pScreenInfo->fMultiWindow
-#endif
             ) {
             winDebug
                 ("winCreateBoundingWindowWindowed - Window has decoration\n");
@@ -287,9 +281,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 #ifdef XWIN_MULTIWINDOWEXTWM
         && !pScreenInfo->fMWExtWM
 #endif
-#ifdef XWIN_MULTIWINDOW
         && !pScreenInfo->fMultiWindow
-#endif
         ) {
         /* Trim window width to fit work area */
         if (iWidth > (rcWorkArea.right - rcWorkArea.left))
@@ -422,13 +414,9 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 #ifdef XWIN_MULTIWINDOWEXTWM
         || pScreenInfo->fMWExtWM
 #endif
-#ifdef XWIN_MULTIWINDOW
         || pScreenInfo->fMultiWindow
-#endif
         ) {
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
         pScreenPriv->fRootWindowShown = FALSE;
-#endif
         ShowWindow(*phwnd, SW_HIDE);
     }
     else
@@ -444,9 +432,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
         && !pScreenInfo->fMWExtWM
 #endif
         && !pScreenInfo->fRootless
-#ifdef XWIN_MULTIWINDOW
         && !pScreenInfo->fMultiWindow
-#endif
         ) {
         if (!BringWindowToTop(*phwnd)) {
             ErrorF("winCreateBoundingWindowWindowed - BringWindowToTop () "

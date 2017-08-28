@@ -122,7 +122,7 @@ public:
     * matter.  For example, enumerating the names of members of the block, but
     * not for determining the offsets of members.
     */
-   void process(ir_variable *var);
+   void process(ir_variable *var, bool use_std430_as_default);
 
    /**
     * Begin processing a variable of a structured type.
@@ -139,7 +139,8 @@ public:
     * \c type must be \c GLSL_TYPE_RECORD, \c GLSL_TYPE_INTERFACE, or an array
     * there of.
     */
-   void process(const glsl_type *type, const char *name);
+   void process(const glsl_type *type, const char *name,
+                bool use_std430_as_default);
 
 protected:
    /**

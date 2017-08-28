@@ -1277,7 +1277,7 @@ process_array_constructor(exec_list *instructions,
 /**
  * Determine if a list consists of a single scalar r-value
  */
-bool
+static bool
 single_scalar_parameter(exec_list *parameters)
 {
    const ir_rvalue *const p = (ir_rvalue *) parameters->get_head_raw();
@@ -1298,7 +1298,7 @@ single_scalar_parameter(exec_list *parameters)
  * An \c ir_dereference_variable of the temprorary generated in the constructor
  * body.
  */
-ir_rvalue *
+static ir_rvalue *
 emit_inline_vector_constructor(const glsl_type *type,
                                exec_list *instructions,
                                exec_list *parameters,
@@ -1462,7 +1462,7 @@ emit_inline_vector_constructor(const glsl_type *type,
  * \c src_base + \c count must be less than or equal to the number of
  * components in the source vector.
  */
-ir_instruction *
+static ir_instruction *
 assign_to_matrix_column(ir_variable *var, unsigned column, unsigned row_base,
                         ir_rvalue *src, unsigned src_base, unsigned count,
                         void *mem_ctx)
@@ -1502,7 +1502,7 @@ assign_to_matrix_column(ir_variable *var, unsigned column, unsigned row_base,
  * An \c ir_dereference_variable of the temprorary generated in the constructor
  * body.
  */
-ir_rvalue *
+static ir_rvalue *
 emit_inline_matrix_constructor(const glsl_type *type,
                                exec_list *instructions,
                                exec_list *parameters,
@@ -1771,7 +1771,7 @@ emit_inline_matrix_constructor(const glsl_type *type,
 }
 
 
-ir_rvalue *
+static ir_rvalue *
 emit_inline_record_constructor(const glsl_type *type,
                                exec_list *instructions,
                                exec_list *parameters,

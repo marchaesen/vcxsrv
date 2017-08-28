@@ -32,7 +32,7 @@
     <param name="size" type="GLsizeiptr"/>
   </function>
 
-  <function name="BindBufferOffsetEXT">
+  <function name="BindBufferOffsetEXT" no_error="true">
     <param name="target" type="GLenum"/>
     <param name="index" type="GLuint"/>
     <param name="buffer" type="GLuint"/>
@@ -82,7 +82,7 @@
   <enum name="TRANSFORM_FEEDBACK_BUFFER_ACTIVE"    value="0x8E24"/>
   <enum name="TRANSFORM_FEEDBACK_BINDING"          value="0x8E25"/>
 
-  <function name="BindTransformFeedback" es2="3.0">
+  <function name="BindTransformFeedback" es2="3.0" no_error="true">
     <param name="target" type="GLenum"/>
     <param name="id" type="GLuint"/>
   </function>
@@ -102,10 +102,10 @@
     <return type="GLboolean"/>
   </function>
 
-  <function name="PauseTransformFeedback" es2="3.0">
+  <function name="PauseTransformFeedback" es2="3.0" no_error="true">
   </function>
 
-  <function name="ResumeTransformFeedback" es2="3.0">
+  <function name="ResumeTransformFeedback" es2="3.0" no_error="true">
   </function>
 
   <function name="DrawTransformFeedback" exec="dynamic" marshal="draw">

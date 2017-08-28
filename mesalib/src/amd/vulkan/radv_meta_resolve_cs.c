@@ -521,21 +521,6 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 		if (dest_att.attachment == VK_ATTACHMENT_UNUSED)
 			continue;
 
-		struct radv_subpass resolve_subpass = {
-			.color_count = 1,
-			.color_attachments = (VkAttachmentReference[]) { dest_att },
-			.depth_stencil_attachment = { .attachment = VK_ATTACHMENT_UNUSED },
-		};
-
-		radv_cmd_buffer_set_subpass(cmd_buffer, &resolve_subpass, false);
-
-		/* Subpass resolves must respect the render area. We can ignore the
-		 * render area here because vkCmdBeginRenderPass set the render area
-		 * with 3DSTATE_DRAWING_RECTANGLE.
-		 *
-		 * XXX(chadv): Does the hardware really respect
-		 * 3DSTATE_DRAWING_RECTANGLE when draing a 3DPRIM_RECTLIST?
-		 */
 		emit_resolve(cmd_buffer,
 			     src_iview,
 			     dst_iview,

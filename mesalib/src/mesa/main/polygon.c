@@ -328,7 +328,6 @@ _mesa_PolygonOffset( GLfloat factor, GLfloat units )
    _mesa_polygon_offset_clamp(ctx, factor, units, 0.0);
 }
 
-
 void GLAPIENTRY
 _mesa_PolygonOffsetEXT( GLfloat factor, GLfloat bias )
 {
@@ -342,19 +341,17 @@ _mesa_PolygonOffsetClampEXT( GLfloat factor, GLfloat units, GLfloat clamp )
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.EXT_polygon_offset_clamp) {
+   if (!ctx->Extensions.ARB_polygon_offset_clamp) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "unsupported function (glPolygonOffsetClampEXT) called");
+                  "unsupported function (%s) called", "glPolygonOffsetClamp");
       return;
    }
 
    if (MESA_VERBOSE&VERBOSE_API)
-      _mesa_debug(ctx, "glPolygonOffsetClampEXT %f %f %f\n", factor, units, clamp);
+      _mesa_debug(ctx, "glPolygonOffsetClamp %f %f %f\n", factor, units, clamp);
 
    _mesa_polygon_offset_clamp(ctx, factor, units, clamp);
 }
-
-
 
 /**********************************************************************/
 /** \name Initialization */

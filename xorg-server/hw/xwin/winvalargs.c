@@ -86,10 +86,8 @@ winValidateArgs(void)
             int iCount = 0;
 
             /* Count conflicting options */
-#ifdef XWIN_MULTIWINDOW
             if (g_ScreenInfo[i].fMultiWindow)
                 ++iCount;
-#endif
 #ifdef XWIN_MULTIWINDOWEXTWM
             if (g_ScreenInfo[i].fMWExtWM)
                 ++iCount;
@@ -112,10 +110,9 @@ winValidateArgs(void)
         /* Check for -multiwindow or -mwextwm and Xdmcp */
         /* allow xdmcp if screen 0 is normal. */
         if (g_fXdmcpEnabled && !fHasNormalScreen0 && (FALSE
-#ifdef XWIN_MULTIWINDOW
                                                       || g_ScreenInfo[i].
                                                       fMultiWindow
-#endif
+
 #ifdef XWIN_MULTIWINDOWEXTWM
                                                       || g_ScreenInfo[i].
                                                       fMWExtWM
@@ -129,9 +126,7 @@ winValidateArgs(void)
 
         /* Check for -multiwindow, -mwextwm, or -rootless and -fullscreen */
         if (g_ScreenInfo[i].fFullScreen && (FALSE
-#ifdef XWIN_MULTIWINDOW
                                             || g_ScreenInfo[i].fMultiWindow
-#endif
 #ifdef XWIN_MULTIWINDOWEXTWM
                                             || g_ScreenInfo[i].fMWExtWM
 #endif
@@ -144,9 +139,7 @@ winValidateArgs(void)
 
         /* Check for -multiwindow, -mwextwm, or -rootless and -nodecoration */
         if (!g_ScreenInfo[i].fDecoration && (FALSE
-#ifdef XWIN_MULTIWINDOW
                                             || g_ScreenInfo[i].fMultiWindow
-#endif
 #ifdef XWIN_MULTIWINDOWEXTWM
                                             || g_ScreenInfo[i].fMWExtWM
 #endif

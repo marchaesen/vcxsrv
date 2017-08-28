@@ -133,8 +133,6 @@ MitRemoveCookie(unsigned short data_length, const char *data)
     return 0;
 }
 
-#ifdef XCSECURITY
-
 static char cookie[16];         /* 128 bits */
 
 XID
@@ -161,5 +159,3 @@ MitGenerateCookie(unsigned data_length,
     }
     return id;
 }
-
-#endif                          /* XCSECURITY */

@@ -583,7 +583,6 @@ winXIconToHICON(xcb_connection_t *conn, xcb_window_t id, int iconSize)
  * Change the Windows window icon
  */
 
-#ifdef XWIN_MULTIWINDOW
 void
 winUpdateIcon(HWND hWnd, xcb_connection_t *conn, Window id, HICON hIconNew)
 {
@@ -673,4 +672,3 @@ winDestroyIcon(HICON hIcon)
         hIcon != g_hSmallIconX && !winIconIsOverride(hIcon))
         DestroyIcon(hIcon);
 }
-#endif

@@ -81,7 +81,6 @@ typedef struct {
 #endif
 } winPrivWinRec, *winPrivWinPtr;
 
-#ifdef XWIN_MULTIWINDOW
 typedef struct _winWMMessageRec {
     DWORD dwID;
     DWORD msg;
@@ -168,5 +167,4 @@ void
 void
  winShowWindowOnTaskbar(HWND hWnd, Bool show);
 
-#endif                          /* XWIN_MULTIWINDOW */
 #endif

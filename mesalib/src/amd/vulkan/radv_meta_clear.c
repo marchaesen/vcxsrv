@@ -337,7 +337,8 @@ radv_device_finish_meta_clear_state(struct radv_device *device)
 static void
 emit_color_clear(struct radv_cmd_buffer *cmd_buffer,
                  const VkClearAttachment *clear_att,
-                 const VkClearRect *clear_rect)
+                 const VkClearRect *clear_rect,
+                 uint32_t view_mask)
 {
 	struct radv_device *device = cmd_buffer->device;
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
@@ -400,7 +401,13 @@ emit_color_clear(struct radv_cmd_buffer *cmd_buffer,
 
 	radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &clear_rect->rect);
 
-	radv_CmdDraw(cmd_buffer_h, 3, clear_rect->layerCount, 0, clear_rect->baseArrayLayer);
+	if (view_mask) {
+		unsigned i;
+		for_each_bit(i, view_mask)
+			radv_CmdDraw(cmd_buffer_h, 3, 1, 0, i);
+	} else {
+		radv_CmdDraw(cmd_buffer_h, 3, clear_rect->layerCount, 0, clear_rect->baseArrayLayer);
+	}
 
 	radv_cmd_buffer_set_subpass(cmd_buffer, subpass, false);
 }
@@ -945,7 +952,8 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		      const VkClearAttachment *clear_att,
 		      const VkClearRect *clear_rect,
 		      enum radv_cmd_flush_bits *pre_flush,
-		      enum radv_cmd_flush_bits *post_flush)
+		      enum radv_cmd_flush_bits *post_flush,
+                      uint32_t view_mask)
 {
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 	const uint32_t subpass_att = clear_att->colorAttachment;
@@ -989,9 +997,12 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	    clear_rect->rect.extent.height != iview->image->info.height)
 		goto fail;
 
-	if (clear_rect->baseArrayLayer != 0)
+	if (view_mask && (iview->image->info.array_size >= 32 ||
+	                 (1u << iview->image->info.array_size) - 1u != view_mask))
 		goto fail;
-	if (clear_rect->layerCount != iview->image->info.array_size)
+	if (!view_mask && clear_rect->baseArrayLayer != 0)
+		goto fail;
+	if (!view_mask && clear_rect->layerCount != iview->image->info.array_size)
 		goto fail;
 
 	/* RB+ doesn't work with CMASK fast clear on Stoney. */
@@ -1060,13 +1071,13 @@ emit_clear(struct radv_cmd_buffer *cmd_buffer,
            const VkClearAttachment *clear_att,
            const VkClearRect *clear_rect,
            enum radv_cmd_flush_bits *pre_flush,
-           enum radv_cmd_flush_bits *post_flush)
+           enum radv_cmd_flush_bits *post_flush,
+           uint32_t view_mask)
 {
 	if (clear_att->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
-
 		if (!emit_fast_color_clear(cmd_buffer, clear_att, clear_rect,
-		                           pre_flush, post_flush))
-			emit_color_clear(cmd_buffer, clear_att, clear_rect);
+		                           pre_flush, post_flush, view_mask))
+			emit_color_clear(cmd_buffer, clear_att, clear_rect, view_mask);
 	} else {
 		assert(clear_att->aspectMask & (VK_IMAGE_ASPECT_DEPTH_BIT |
 						VK_IMAGE_ASPECT_STENCIL_BIT));
@@ -1084,17 +1095,20 @@ subpass_needs_clear(const struct radv_cmd_buffer *cmd_buffer)
 
 	if (!cmd_state->subpass)
 		return false;
+	uint32_t view_mask = cmd_state->subpass->view_mask;
 	ds = cmd_state->subpass->depth_stencil_attachment.attachment;
 	for (uint32_t i = 0; i < cmd_state->subpass->color_count; ++i) {
 		uint32_t a = cmd_state->subpass->color_attachments[i].attachment;
 		if (a != VK_ATTACHMENT_UNUSED &&
-		    cmd_state->attachments[a].pending_clear_aspects) {
+		    cmd_state->attachments[a].pending_clear_aspects &&
+		    (!view_mask || (view_mask & ~cmd_state->attachments[a].cleared_views))) {
 			return true;
 		}
 	}
 
 	if (ds != VK_ATTACHMENT_UNUSED &&
-	    cmd_state->attachments[ds].pending_clear_aspects) {
+	    cmd_state->attachments[ds].pending_clear_aspects &&
+	    (!view_mask || (view_mask & ~cmd_state->attachments[ds].cleared_views))) {
 		return true;
 	}
 
@@ -1113,6 +1127,7 @@ radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer)
 	struct radv_meta_saved_state saved_state;
 	enum radv_cmd_flush_bits pre_flush = 0;
 	enum radv_cmd_flush_bits post_flush = 0;
+	uint32_t view_mask = cmd_buffer->state.subpass->view_mask;
 
 	if (!subpass_needs_clear(cmd_buffer))
 		return;
@@ -1129,7 +1144,8 @@ radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer)
 		uint32_t a = cmd_state->subpass->color_attachments[i].attachment;
 
 		if (a == VK_ATTACHMENT_UNUSED ||
-		    !cmd_state->attachments[a].pending_clear_aspects)
+		    !cmd_state->attachments[a].pending_clear_aspects ||
+		    (view_mask && !(view_mask & ~cmd_state->attachments[a].cleared_views)))
 			continue;
 
 		assert(cmd_state->attachments[a].pending_clear_aspects ==
@@ -1141,15 +1157,20 @@ radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer)
 			.clearValue = cmd_state->attachments[a].clear_value,
 		};
 
-		emit_clear(cmd_buffer, &clear_att, &clear_rect, &pre_flush, &post_flush);
-		cmd_state->attachments[a].pending_clear_aspects = 0;
+		emit_clear(cmd_buffer, &clear_att, &clear_rect, &pre_flush, &post_flush,
+		           view_mask & ~cmd_state->attachments[a].cleared_views);
+		if (view_mask)
+			cmd_state->attachments[a].cleared_views |= view_mask;
+		else
+			cmd_state->attachments[a].pending_clear_aspects = 0;
 	}
 
 	uint32_t ds = cmd_state->subpass->depth_stencil_attachment.attachment;
 
 	if (ds != VK_ATTACHMENT_UNUSED) {
 
-		if (cmd_state->attachments[ds].pending_clear_aspects) {
+		if (cmd_state->attachments[ds].pending_clear_aspects &&
+		    (!view_mask || (view_mask & ~cmd_state->attachments[ds].cleared_views))) {
 
 			VkClearAttachment clear_att = {
 				.aspectMask = cmd_state->attachments[ds].pending_clear_aspects,
@@ -1157,8 +1178,12 @@ radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer)
 			};
 
 			emit_clear(cmd_buffer, &clear_att, &clear_rect,
-			           &pre_flush, &post_flush);
-			cmd_state->attachments[ds].pending_clear_aspects = 0;
+			           &pre_flush, &post_flush,
+			           view_mask & ~cmd_state->attachments[ds].cleared_views);
+			if (view_mask)
+				cmd_state->attachments[ds].cleared_views |= view_mask;
+			else
+				cmd_state->attachments[ds].pending_clear_aspects = 0;
 		}
 	}
 
@@ -1283,7 +1308,7 @@ radv_clear_image_layer(struct radv_cmd_buffer *cmd_buffer,
 		.layerCount = 1, /* FINISHME: clear multi-layer framebuffer */
 	};
 
-	emit_clear(cmd_buffer, &clear_att, &clear_rect, NULL, NULL);
+	emit_clear(cmd_buffer, &clear_att, &clear_rect, NULL, NULL, 0);
 
 	radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
 	radv_DestroyRenderPass(device_h, pass,
@@ -1420,7 +1445,8 @@ void radv_CmdClearAttachments(
 	 */
 	for (uint32_t a = 0; a < attachmentCount; ++a) {
 		for (uint32_t r = 0; r < rectCount; ++r) {
-			emit_clear(cmd_buffer, &pAttachments[a], &pRects[r], &pre_flush, &post_flush);
+			emit_clear(cmd_buffer, &pAttachments[a], &pRects[r], &pre_flush, &post_flush,
+			           cmd_buffer->state.subpass->view_mask);
 		}
 	}
 

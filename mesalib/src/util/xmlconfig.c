@@ -497,7 +497,7 @@ __driUtilMessage(const char *f, ...)
     __driUtilMessage ("Warning in %s line %d, column %d: "msg, data->name, \
                       (int) XML_GetCurrentLineNumber(data->parser), \
                       (int) XML_GetCurrentColumnNumber(data->parser), \
-                      __VA_ARGS__); \
+                      ##__VA_ARGS__); \
 } while (0)
 /** \brief Output an error message. */
 #define XML_ERROR1(msg) do { \
@@ -509,7 +509,7 @@ __driUtilMessage(const char *f, ...)
     __driUtilMessage ("Error in %s line %d, column %d: "msg, data->name, \
                       (int) XML_GetCurrentLineNumber(data->parser), \
                       (int) XML_GetCurrentColumnNumber(data->parser), \
-                      __VA_ARGS__); \
+                      ##__VA_ARGS__); \
 } while (0)
 /** \brief Output a fatal error message and abort. */
 #define XML_FATAL1(msg) do { \
@@ -524,7 +524,7 @@ __driUtilMessage(const char *f, ...)
              data->name, \
              (int) XML_GetCurrentLineNumber(data->parser), \
              (int) XML_GetCurrentColumnNumber(data->parser), \
-             __VA_ARGS__); \
+             ##__VA_ARGS__); \
     abort();\
 } while (0)
 

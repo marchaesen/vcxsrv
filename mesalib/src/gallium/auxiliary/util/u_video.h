@@ -76,6 +76,9 @@ u_reduce_video_profile(enum pipe_video_profile profile)
       case PIPE_VIDEO_PROFILE_HEVC_MAIN_444:
          return PIPE_VIDEO_FORMAT_HEVC;
 
+      case PIPE_VIDEO_PROFILE_JPEG_BASELINE:
+         return PIPE_VIDEO_FORMAT_JPEG;
+
       default:
          return PIPE_VIDEO_FORMAT_UNKNOWN;
    }

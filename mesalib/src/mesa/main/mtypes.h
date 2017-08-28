@@ -3844,6 +3844,15 @@ struct gl_constants
    GLboolean DisableVaryingPacking;
 
    /**
+    * UBOs and SSBOs can be packed tightly by the OpenGL implementation when
+    * layout is set as shared (the default) or packed. However most Mesa drivers
+    * just use STD140 for these layouts. This flag allows drivers to use STD430
+    * for packed and shared layouts which allows arrays to be packed more
+    * tightly.
+    */
+   bool UseSTD430AsDefaultPacking;
+
+   /**
     * Should meaningful names be generated for compiler temporary variables?
     *
     * Generally, it is not useful to have the compiler generate "meaningful"
@@ -4046,6 +4055,7 @@ struct gl_extensions
    GLboolean ARB_occlusion_query2;
    GLboolean ARB_pipeline_statistics_query;
    GLboolean ARB_point_sprite;
+   GLboolean ARB_polygon_offset_clamp;
    GLboolean ARB_post_depth_coverage;
    GLboolean ARB_query_buffer_object;
    GLboolean ARB_robust_buffer_access_behavior;
@@ -4084,6 +4094,7 @@ struct gl_extensions
    GLboolean ARB_texture_env_combine;
    GLboolean ARB_texture_env_crossbar;
    GLboolean ARB_texture_env_dot3;
+   GLboolean ARB_texture_filter_anisotropic;
    GLboolean ARB_texture_float;
    GLboolean ARB_texture_gather;
    GLboolean ARB_texture_mirror_clamp_to_edge;
@@ -4123,7 +4134,6 @@ struct gl_extensions
    GLboolean EXT_packed_float;
    GLboolean EXT_pixel_buffer_object;
    GLboolean EXT_point_parameters;
-   GLboolean EXT_polygon_offset_clamp;
    GLboolean EXT_provoking_vertex;
    GLboolean EXT_shader_integer_mix;
    GLboolean EXT_shader_samples_identical;
@@ -4971,6 +4981,9 @@ struct gl_context
 
    GLboolean RasterDiscard;  /**< GL_RASTERIZER_DISCARD */
    GLboolean IntelConservativeRasterization; /**< GL_INTEL_CONSERVATIVE_RASTERIZATION */
+
+   /** Does glVertexAttrib(0) alias glVertex()? */
+   bool _AttribZeroAliasesVertex;
 
    /**
     * \name Hooks for module contexts.  

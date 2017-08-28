@@ -302,6 +302,8 @@ GenerateAuthorization(unsigned name_length,
     return -1;
 }
 
+#endif                          /* XCSECURITY */
+
 void
 GenerateRandomData(int len, char *buf)
 {
@@ -327,5 +329,3 @@ GenerateRandomData(int len, char *buf)
 #endif
 #endif
 }
-
-#endif                          /* XCSECURITY */

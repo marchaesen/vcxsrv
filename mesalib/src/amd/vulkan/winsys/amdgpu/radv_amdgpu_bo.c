@@ -149,6 +149,7 @@ radv_amdgpu_winsys_bo_virtual_bind(struct radeon_winsys_bo *_parent,
 	if (parent->ranges[first].bo == bo && (!bo || offset - bo_offset == parent->ranges[first].offset - parent->ranges[first].bo_offset)) {
 		size += offset - parent->ranges[first].offset;
 		offset = parent->ranges[first].offset;
+		bo_offset = parent->ranges[first].bo_offset;
 		remove_first = true;
 	}
 

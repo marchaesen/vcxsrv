@@ -51,6 +51,9 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, struct ac_shader_info *info)
 	case nir_intrinsic_load_sample_pos:
 		info->ps.force_persample = true;
 		break;
+	case nir_intrinsic_load_view_index:
+		info->needs_multiview_view_index = true;
+		break;
 	case nir_intrinsic_vulkan_resource_index:
 		info->desc_set_used_mask |= (1 << nir_intrinsic_desc_set(instr));
 		break;
@@ -64,9 +67,18 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, struct ac_shader_info *info)
 	case nir_intrinsic_image_atomic_xor:
 	case nir_intrinsic_image_atomic_exchange:
 	case nir_intrinsic_image_atomic_comp_swap:
-	case nir_intrinsic_image_size:
+	case nir_intrinsic_image_size: {
+		const struct glsl_type *type = instr->variables[0]->var->type;
+		if(instr->variables[0]->deref.child)
+			type = instr->variables[0]->deref.child->type;
+
+		enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
+		if (dim == GLSL_SAMPLER_DIM_SUBPASS ||
+		    dim == GLSL_SAMPLER_DIM_SUBPASS_MS)
+			info->ps.uses_input_attachments = true;
 		mark_sampler_desc(instr->variables[0]->var, info);
 		break;
+	}
 	default:
 		break;
 	}

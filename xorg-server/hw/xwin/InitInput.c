@@ -37,9 +37,7 @@
  * Local function prototypes
  */
 
-#ifdef XWIN_CLIPBOARD
 int winProcEstablishConnection(ClientPtr /* client */ );
-#endif
 
 /*
  * Local global declarations
@@ -100,7 +98,6 @@ InitInput(int argc, char *argv[])
   int rc;
     winDebug("InitInput\n");
 
-#ifdef XWIN_CLIPBOARD
     /*
      * Wrap some functions at every generation of the server.
      */
@@ -108,7 +105,6 @@ InitInput(int argc, char *argv[])
         winProcEstablishConnectionOrig = InitialVector[2];
         InitialVector[2] = winProcEstablishConnection;
     }
-#endif
 
     if (AllocDevicePair(serverClient, "Windows",
                         &g_pwinPointer, &g_pwinKeyboard,

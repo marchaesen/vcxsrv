@@ -130,6 +130,7 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.ARB_texture_env_combine = GL_TRUE;
    ctx->Extensions.ARB_texture_env_crossbar = GL_TRUE;
    ctx->Extensions.ARB_texture_env_dot3 = GL_TRUE;
+   ctx->Extensions.ARB_texture_filter_anisotropic = GL_TRUE;
 #ifdef TEXTURE_FLOAT_ENABLED
    ctx->Extensions.ARB_texture_float = GL_TRUE;
 #endif

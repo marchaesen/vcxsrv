@@ -281,7 +281,8 @@ ORTH = \
 	sat.orth \
 	doi.orth \
 	mni.orth \
-	und_zsye.orth
+	und_zsye.orth \
+	und_zmth.orth
 #	^-------------- Add new orth files here
 
 -include $(top_srcdir)/git.mk

@@ -188,6 +188,9 @@ FcLangNormalize (const FcChar8 *lang)
     if (!lang || !*lang)
 	return NULL;
 
+    /* might be called without initialization */
+    FcInitDebug ();
+
     if (FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C") == 0 ||
 	FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C.UTF-8") == 0 ||
 	FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C.utf8") == 0 ||
@@ -259,7 +262,8 @@ FcLangNormalize (const FcChar8 *lang)
 		 lang);
 	goto bail0;
     }
-    if (territory && (tlen < 2 || tlen > 3))
+    if (territory && (tlen < 2 || tlen > 3) &&
+	!(territory[0] == 'z' && tlen < 5))
     {
 	fprintf (stderr, "Fontconfig warning: ignoring %s: not a valid region tag\n",
 		 lang);

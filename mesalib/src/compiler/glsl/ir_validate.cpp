@@ -1043,7 +1043,7 @@ ir_validate::validate_ir(ir_instruction *ir, void *data)
    _mesa_set_add(ir_set, ir);
 }
 
-void
+static void
 check_node_type(ir_instruction *ir, void *data)
 {
    (void) data;

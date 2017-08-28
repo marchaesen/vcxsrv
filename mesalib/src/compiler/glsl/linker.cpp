@@ -675,7 +675,7 @@ analyze_clip_cull_usage(struct gl_shader_program *prog,
  *
  * \param shader  Vertex shader executable to be verified
  */
-void
+static void
 validate_vertex_shader_executable(struct gl_shader_program *prog,
                                   struct gl_linked_shader *shader,
                                   struct gl_context *ctx)
@@ -730,7 +730,7 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
                            &shader->Program->info.cull_distance_array_size);
 }
 
-void
+static void
 validate_tess_eval_shader_executable(struct gl_shader_program *prog,
                                      struct gl_linked_shader *shader,
                                      struct gl_context *ctx)
@@ -749,7 +749,7 @@ validate_tess_eval_shader_executable(struct gl_shader_program *prog,
  *
  * \param shader  Fragment shader executable to be verified
  */
-void
+static void
 validate_fragment_shader_executable(struct gl_shader_program *prog,
                                     struct gl_linked_shader *shader)
 {
@@ -775,7 +775,7 @@ validate_fragment_shader_executable(struct gl_shader_program *prog,
  *
  * \param shader Geometry shader executable to be verified
  */
-void
+static void
 validate_geometry_shader_executable(struct gl_shader_program *prog,
                                     struct gl_linked_shader *shader,
                                     struct gl_context *ctx)
@@ -892,7 +892,7 @@ validate_intrastage_arrays(struct gl_shader_program *prog,
 /**
  * Perform validation of global variables used across multiple shaders
  */
-void
+static void
 cross_validate_globals(struct gl_shader_program *prog,
                        struct exec_list *ir, glsl_symbol_table *variables,
                        bool uniforms_only)
@@ -1135,7 +1135,7 @@ cross_validate_globals(struct gl_shader_program *prog,
 /**
  * Perform validation of uniforms used across multiple shader stages
  */
-void
+static void
 cross_validate_uniforms(struct gl_shader_program *prog)
 {
    glsl_symbol_table variables;
@@ -1292,7 +1292,7 @@ populate_symbol_table(gl_linked_shader *sh)
  * \param instructions Instruction stream where new variable declarations
  *                     should be added.
  */
-void
+static void
 remap_variables(ir_instruction *inst, struct gl_linked_shader *target,
                 hash_table *temps)
 {
@@ -1366,7 +1366,7 @@ remap_variables(ir_instruction *inst, struct gl_linked_shader *target,
  * is suitable for use as the \c last parameter of a later call to this
  * function.
  */
-exec_node *
+static exec_node *
 move_non_declarations(exec_list *instructions, exec_node *last,
                       bool make_copies, gl_linked_shader *target)
 {
@@ -2548,7 +2548,7 @@ resize_tes_inputs(struct gl_context *ctx,
  * \return
  * Base location of the available bits on success or -1 on failure.
  */
-int
+static int
 find_available_slots(unsigned used_mask, unsigned needed_count)
 {
    unsigned needed_mask = (1 << needed_count) - 1;
@@ -2585,7 +2585,7 @@ find_available_slots(unsigned used_mask, unsigned needed_count)
  * If locations are successfully assigned, true is returned.  Otherwise an
  * error is emitted to the shader link log and false is returned.
  */
-bool
+static bool
 assign_attribute_or_color_locations(void *mem_ctx,
                                     gl_shader_program *prog,
                                     struct gl_constants *constants,
@@ -4126,9 +4126,9 @@ get_array_size(struct gl_uniform_storage *uni, const glsl_struct_field *field,
 }
 
 static int
-get_array_stride(struct gl_uniform_storage *uni, const glsl_type *interface,
-                 const glsl_struct_field *field, char *interface_name,
-                 char *var_name)
+get_array_stride(struct gl_context *ctx, struct gl_uniform_storage *uni,
+                 const glsl_type *interface, const glsl_struct_field *field,
+                 char *interface_name, char *var_name)
 {
    /* The ARB_program_interface_query spec says:
     *
@@ -4152,7 +4152,9 @@ get_array_stride(struct gl_uniform_storage *uni, const glsl_type *interface,
                                                    var_name))
          return 0;
 
-      if (interface->interface_packing != GLSL_INTERFACE_PACKING_STD430) {
+      if (GLSL_INTERFACE_PACKING_STD140 ==
+          interface->
+             get_internal_ifc_packing(ctx->Const.UseSTD430AsDefaultPacking)) {
          if (array_type->is_record() || array_type->is_array())
             return glsl_align(array_type->std140_size(row_major), 16);
          else
@@ -4165,7 +4167,8 @@ get_array_stride(struct gl_uniform_storage *uni, const glsl_type *interface,
 }
 
 static void
-calculate_array_size_and_stride(struct gl_shader_program *shProg,
+calculate_array_size_and_stride(struct gl_context *ctx,
+                                struct gl_shader_program *shProg,
                                 struct gl_uniform_storage *uni)
 {
    int block_index = uni->block_index;
@@ -4214,7 +4217,7 @@ calculate_array_size_and_stride(struct gl_shader_program *shProg,
             if (strcmp(field->name, var_name) != 0)
                continue;
 
-            array_stride = get_array_stride(uni, interface, field,
+            array_stride = get_array_stride(ctx, uni, interface, field,
                                             interface_name, var_name);
             array_size = get_array_size(uni, field, interface_name, var_name);
             goto write_top_level_array_size_and_stride;
@@ -4340,7 +4343,7 @@ build_program_resource_list(struct gl_context *ctx,
          continue;
 
       if (is_shader_storage) {
-         calculate_array_size_and_stride(shProg,
+         calculate_array_size_and_stride(ctx, shProg,
                                          &shProg->data->UniformStorage[i]);
       }
 
@@ -4642,7 +4645,8 @@ link_varyings_and_uniforms(unsigned first, unsigned last,
 
       if (options->LowerBufferInterfaceBlocks)
          lower_ubo_reference(prog->_LinkedShaders[i],
-                             options->ClampBlockIndicesToArrayBounds);
+                             options->ClampBlockIndicesToArrayBounds,
+                             ctx->Const.UseSTD430AsDefaultPacking);
 
       if (i == MESA_SHADER_COMPUTE)
          lower_shared_reference(prog->_LinkedShaders[i],

@@ -75,6 +75,7 @@ struct pipe_viewport_state;
 struct pipe_compute_state;
 union pipe_color_union;
 union pipe_query_result;
+struct u_log_context;
 struct u_upload_mgr;
 
 /**
@@ -747,6 +748,19 @@ struct pipe_context {
     */
    void (*dump_debug_state)(struct pipe_context *ctx, FILE *stream,
                             unsigned flags);
+
+   /**
+    * Set the log context to which the driver should write internal debug logs
+    * (internal states, command streams).
+    *
+    * The caller must ensure that the log context is destroyed and reset to
+    * NULL before the pipe context is destroyed, and that log context functions
+    * are only called from the driver thread.
+    *
+    * \param ctx pipe context
+    * \param log logging context
+    */
+   void (*set_log_context)(struct pipe_context *ctx, struct u_log_context *log);
 
    /**
     * Emit string marker in cmdstream

@@ -39,22 +39,18 @@
 void
 OsVendorVErrorF(const char *pszFormat, va_list va_args)
 {
-#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
     /* make sure the clipboard and multiwindow threads do not interfere the
      * main thread */
     static pthread_mutex_t s_pmPrinting = PTHREAD_MUTEX_INITIALIZER;
 
     /* Lock the printing mutex */
     pthread_mutex_lock(&s_pmPrinting);
-#endif
 
     /* Print the error message to a log file, could be stderr */
     LogVWrite(0, pszFormat, va_args);
 
-#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
     /* Unlock the printing mutex */
     pthread_mutex_unlock(&s_pmPrinting);
-#endif
 }
 #endif
 

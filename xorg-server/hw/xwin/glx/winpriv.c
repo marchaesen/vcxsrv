@@ -41,7 +41,6 @@ winGetWindowInfo(WindowPtr pWin)
         hwnd = pWinScreen->hwndScreen;
 
         pScreenInfo = pWinScreen->pScreenInfo;
-#ifdef XWIN_MULTIWINDOW
         /* check for multiwindow mode */
         if (pScreenInfo->fMultiWindow) {
             winWindowPriv(pWin);
@@ -150,7 +149,6 @@ winGetWindowInfo(WindowPtr pWin)
               hwnd = pWinPriv->hWnd;
             }
         }
-#endif
 #ifdef XWIN_MULTIWINDOWEXTWM
         /* check for multiwindow external wm mode */
         if (pScreenInfo->fMWExtWM) {
@@ -192,10 +190,8 @@ winCheckScreenAiglxIsSupported(ScreenPtr pScreen)
     winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
     winScreenInfoPtr pScreenInfo = pWinScreen->pScreenInfo;
 
-#ifdef XWIN_MULTIWINDOW
     if (pScreenInfo->fMultiWindow)
         return TRUE;
-#endif
 
 #ifdef XWIN_MULTIWINDOWEXTWM
     if (pScreenInfo->fMWExtWM)

@@ -66,4 +66,13 @@
   </function>
 </category>
 
+<category name="4.6">
+  <function name="PolygonOffsetClamp" alias="PolygonOffsetClampEXT">
+    <param name="factor" type="GLfloat"/>
+    <param name="units" type="GLfloat"/>
+    <param name="clamp" type="GLfloat"/>
+  </function>
+  <enum name="POLYGON_OFFSET_CLAMP" value="0x8E1B"/>
+</category>
+
 </OpenGLAPI>

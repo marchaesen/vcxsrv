@@ -174,9 +174,7 @@ winRandRScreenSetSize(ScreenPtr pScreen,
         || pScreenInfo->fMWExtWM
 #endif
         || pScreenInfo->fRootless
-#ifdef XWIN_MULTIWINDOW
         || pScreenInfo->fMultiWindow
-#endif
         ) {
         ErrorF
             ("winRandRScreenSetSize - resize not supported in rootless modes\n");

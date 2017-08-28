@@ -115,7 +115,7 @@ lower_if_to_cond_assign(gl_shader_stage stage, exec_list *instructions,
    return v.progress;
 }
 
-void
+static void
 check_ir_node(ir_instruction *ir, void *data)
 {
    ir_if_to_cond_assign_visitor *v = (ir_if_to_cond_assign_visitor *)data;
@@ -168,7 +168,7 @@ check_ir_node(ir_instruction *ir, void *data)
    }
 }
 
-void
+static void
 move_block_to_cond_assign(void *mem_ctx,
 			  ir_if *if_ir, ir_rvalue *cond_expr,
 			  exec_list *instructions,

@@ -1079,7 +1079,7 @@ _mesa_ast_process_interface_block(YYLTYPE *locp,
    }
 }
 
-void
+static void
 _mesa_ast_type_qualifier_print(const struct ast_type_qualifier *q)
 {
    if (q->is_subroutine_decl())

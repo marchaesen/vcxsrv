@@ -74,14 +74,9 @@ static xcb_auth_info_t auth_info;
 
 
 #ifndef XCSECURITY
-void
-GenerateRandomData(int len, char *buf)
-{
-    int fd;
 #ifdef _MSC_VER
     static HANDLE hAdvApi32;
     static BOOLEAN (_stdcall * RtlGenRandom)(void *,unsigned long);
-
     if (!hAdvApi32)
     {
       hAdvApi32=LoadLibrary("advapi32.dll");
@@ -89,38 +84,7 @@ GenerateRandomData(int len, char *buf)
     }
     RtlGenRandom(buf, len);
 #else
-    fd = open("/dev/urandom", O_RDONLY);
-    read(fd, buf, len);
-    close(fd);
 #endif
-}
-
-static char cookie[16];         /* 128 bits */
-
-XID
-MitGenerateCookie(unsigned data_length,
-                  const char *data,
-                  XID id, unsigned *data_length_return, char **data_return)
-{
-    int i = 0;
-    int status;
-
-    while (data_length--) {
-        cookie[i++] += *data++;
-        if (i >= sizeof(cookie))
-            i = 0;
-    }
-    GenerateRandomData(sizeof(cookie), cookie);
-    status = MitAddCookie(sizeof(cookie), cookie, id);
-    if (!status) {
-        id = -1;
-    }
-    else {
-        *data_return = cookie;
-        *data_length_return = sizeof(cookie);
-    }
-    return id;
-}
 
 static
     XID

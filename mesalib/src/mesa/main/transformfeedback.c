@@ -121,21 +121,6 @@ reference_transform_feedback_object(struct gl_transform_feedback_object **ptr,
 
 
 /**
- * Check that all the buffer objects currently bound for transform
- * feedback actually exist.  Raise a GL_INVALID_OPERATION error if
- * any buffers are missing.
- * \return GL_TRUE for success, GL_FALSE if error
- */
-GLboolean
-_mesa_validate_transform_feedback_buffers(struct gl_context *ctx)
-{
-   /* XXX to do */
-   return GL_TRUE;
-}
-
-
-
-/**
  * Per-context init for transform feedback.
  */
 void
@@ -208,9 +193,6 @@ void
 _mesa_init_transform_feedback_object(struct gl_transform_feedback_object *obj,
                                      GLuint name)
 {
-   if (!obj)
-      return;
-
    obj->Name = name;
    obj->RefCount = 1;
    obj->EverBound = GL_FALSE;
@@ -219,18 +201,22 @@ _mesa_init_transform_feedback_object(struct gl_transform_feedback_object *obj,
 
 /** Default fallback for ctx->Driver.NewTransformFeedback() */
 static struct gl_transform_feedback_object *
-new_transform_feedback(struct gl_context *ctx, GLuint name)
+new_transform_feedback_fallback(struct gl_context *ctx, GLuint name)
 {
    struct gl_transform_feedback_object *obj;
+
    obj = CALLOC_STRUCT(gl_transform_feedback_object);
+   if (!obj)
+      return NULL;
+
    _mesa_init_transform_feedback_object(obj, name);
    return obj;
 }
 
 /** Default fallback for ctx->Driver.DeleteTransformFeedback() */
 static void
-delete_transform_feedback(struct gl_context *ctx,
-                          struct gl_transform_feedback_object *obj)
+delete_transform_feedback_fallback(struct gl_context *ctx,
+                                   struct gl_transform_feedback_object *obj)
 {
    GLuint i;
 
@@ -245,32 +231,32 @@ delete_transform_feedback(struct gl_context *ctx,
 
 /** Default fallback for ctx->Driver.BeginTransformFeedback() */
 static void
-begin_transform_feedback(struct gl_context *ctx, GLenum mode,
-                         struct gl_transform_feedback_object *obj)
+begin_transform_feedback_fallback(struct gl_context *ctx, GLenum mode,
+                                  struct gl_transform_feedback_object *obj)
 {
    /* nop */
 }
 
 /** Default fallback for ctx->Driver.EndTransformFeedback() */
 static void
-end_transform_feedback(struct gl_context *ctx,
-                       struct gl_transform_feedback_object *obj)
+end_transform_feedback_fallback(struct gl_context *ctx,
+                                struct gl_transform_feedback_object *obj)
 {
    /* nop */
 }
 
 /** Default fallback for ctx->Driver.PauseTransformFeedback() */
 static void
-pause_transform_feedback(struct gl_context *ctx,
-                         struct gl_transform_feedback_object *obj)
+pause_transform_feedback_fallback(struct gl_context *ctx,
+                                  struct gl_transform_feedback_object *obj)
 {
    /* nop */
 }
 
 /** Default fallback for ctx->Driver.ResumeTransformFeedback() */
 static void
-resume_transform_feedback(struct gl_context *ctx,
-                          struct gl_transform_feedback_object *obj)
+resume_transform_feedback_fallback(struct gl_context *ctx,
+                                   struct gl_transform_feedback_object *obj)
 {
    /* nop */
 }
@@ -283,12 +269,12 @@ resume_transform_feedback(struct gl_context *ctx,
 void
 _mesa_init_transform_feedback_functions(struct dd_function_table *driver)
 {
-   driver->NewTransformFeedback = new_transform_feedback;
-   driver->DeleteTransformFeedback = delete_transform_feedback;
-   driver->BeginTransformFeedback = begin_transform_feedback;
-   driver->EndTransformFeedback = end_transform_feedback;
-   driver->PauseTransformFeedback = pause_transform_feedback;
-   driver->ResumeTransformFeedback = resume_transform_feedback;
+   driver->NewTransformFeedback = new_transform_feedback_fallback;
+   driver->DeleteTransformFeedback = delete_transform_feedback_fallback;
+   driver->BeginTransformFeedback = begin_transform_feedback_fallback;
+   driver->EndTransformFeedback = end_transform_feedback_fallback;
+   driver->PauseTransformFeedback = pause_transform_feedback_fallback;
+   driver->ResumeTransformFeedback = resume_transform_feedback_fallback;
 }
 
 
@@ -395,22 +381,22 @@ get_xfb_source(struct gl_context *ctx)
 }
 
 
-void GLAPIENTRY
-_mesa_BeginTransformFeedback(GLenum mode)
+static ALWAYS_INLINE void
+begin_transform_feedback(struct gl_context *ctx, GLenum mode, bool no_error)
 {
    struct gl_transform_feedback_object *obj;
    struct gl_transform_feedback_info *info = NULL;
+   struct gl_program *source;
    GLuint i;
    unsigned vertices_per_prim;
-   GET_CURRENT_CONTEXT(ctx);
 
    obj = ctx->TransformFeedback.CurrentObject;
 
    /* Figure out what pipeline stage is the source of data for transform
     * feedback.
     */
-   struct gl_program *source = get_xfb_source(ctx);
-   if (source == NULL) {
+   source = get_xfb_source(ctx);
+   if (!no_error && source == NULL) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glBeginTransformFeedback(no program active)");
       return;
@@ -418,7 +404,7 @@ _mesa_BeginTransformFeedback(GLenum mode)
 
    info = source->sh.LinkedTransformFeedback;
 
-   if (info->NumOutputs == 0) {
+   if (!no_error && info->NumOutputs == 0) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glBeginTransformFeedback(no varyings to record)");
       return;
@@ -435,23 +421,30 @@ _mesa_BeginTransformFeedback(GLenum mode)
       vertices_per_prim = 3;
       break;
    default:
-      _mesa_error(ctx, GL_INVALID_ENUM, "glBeginTransformFeedback(mode)");
-      return;
+      if (!no_error) {
+         _mesa_error(ctx, GL_INVALID_ENUM, "glBeginTransformFeedback(mode)");
+         return;
+      } else {
+         /* Stop compiler warnings */
+         unreachable("Error in API use when using KHR_no_error");
+      }
    }
 
-   if (obj->Active) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glBeginTransformFeedback(already active)");
-      return;
-   }
+   if (!no_error) {
+      if (obj->Active) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBeginTransformFeedback(already active)");
+         return;
+      }
 
-   for (i = 0; i < ctx->Const.MaxTransformFeedbackBuffers; i++) {
-      if ((info->ActiveBuffers >> i) & 1) {
-         if (obj->BufferNames[i] == 0) {
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "glBeginTransformFeedback(binding point %d does not "
-                        "have a buffer object bound)", i);
-            return;
+      for (i = 0; i < ctx->Const.MaxTransformFeedbackBuffers; i++) {
+         if ((info->ActiveBuffers >> i) & 1) {
+            if (obj->BufferNames[i] == 0) {
+               _mesa_error(ctx, GL_INVALID_OPERATION,
+                           "glBeginTransformFeedback(binding point %d does not "
+                           "have a buffer object bound)", i);
+               return;
+            }
          }
       }
    }
@@ -487,6 +480,46 @@ _mesa_BeginTransformFeedback(GLenum mode)
 
 
 void GLAPIENTRY
+_mesa_BeginTransformFeedback_no_error(GLenum mode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   begin_transform_feedback(ctx, mode, true);
+}
+
+
+void GLAPIENTRY
+_mesa_BeginTransformFeedback(GLenum mode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   begin_transform_feedback(ctx, mode, false);
+}
+
+
+static void
+end_transform_feedback(struct gl_context *ctx,
+                       struct gl_transform_feedback_object *obj)
+{
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
+
+   assert(ctx->Driver.EndTransformFeedback);
+   ctx->Driver.EndTransformFeedback(ctx, obj);
+
+   ctx->TransformFeedback.CurrentObject->Active = GL_FALSE;
+   ctx->TransformFeedback.CurrentObject->Paused = GL_FALSE;
+   ctx->TransformFeedback.CurrentObject->EndedAnytime = GL_TRUE;
+}
+
+
+void GLAPIENTRY
+_mesa_EndTransformFeedback_no_error(void)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   end_transform_feedback(ctx, ctx->TransformFeedback.CurrentObject);
+}
+
+
+void GLAPIENTRY
 _mesa_EndTransformFeedback(void)
 {
    struct gl_transform_feedback_object *obj;
@@ -500,15 +533,7 @@ _mesa_EndTransformFeedback(void)
       return;
    }
 
-   FLUSH_VERTICES(ctx, 0);
-   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
-
-   assert(ctx->Driver.EndTransformFeedback);
-   ctx->Driver.EndTransformFeedback(ctx, obj);
-
-   ctx->TransformFeedback.CurrentObject->Active = GL_FALSE;
-   ctx->TransformFeedback.CurrentObject->Paused = GL_FALSE;
-   ctx->TransformFeedback.CurrentObject->EndedAnytime = GL_TRUE;
+   end_transform_feedback(ctx, obj);
 }
 
 
@@ -754,12 +779,43 @@ _mesa_TransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer,
  * offset in the buffer to start placing results.
  * This function is part of GL_EXT_transform_feedback, but not GL3.
  */
+static ALWAYS_INLINE void
+bind_buffer_offset(struct gl_context *ctx,
+                   struct gl_transform_feedback_object *obj, GLuint index,
+                   GLuint buffer, GLintptr offset, bool no_error)
+{
+   struct gl_buffer_object *bufObj;
+
+   if (buffer == 0) {
+      bufObj = ctx->Shared->NullBufferObj;
+   } else {
+      bufObj = _mesa_lookup_bufferobj(ctx, buffer);
+      if (!no_error && !bufObj) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBindBufferOffsetEXT(invalid buffer=%u)", buffer);
+         return;
+      }
+   }
+
+   _mesa_bind_buffer_range_xfb(ctx, obj, index, bufObj, offset, 0);
+}
+
+
+void GLAPIENTRY
+_mesa_BindBufferOffsetEXT_no_error(GLenum target, GLuint index, GLuint buffer,
+                                   GLintptr offset)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   bind_buffer_offset(ctx, ctx->TransformFeedback.CurrentObject, index, buffer,
+                      offset, true);
+}
+
+
 void GLAPIENTRY
 _mesa_BindBufferOffsetEXT(GLenum target, GLuint index, GLuint buffer,
                           GLintptr offset)
 {
    struct gl_transform_feedback_object *obj;
-   struct gl_buffer_object *bufObj;
    GET_CURRENT_CONTEXT(ctx);
 
    if (target != GL_TRANSFORM_FEEDBACK_BUFFER) {
@@ -788,19 +844,7 @@ _mesa_BindBufferOffsetEXT(GLenum target, GLuint index, GLuint buffer,
       return;
    }
 
-   if (buffer == 0) {
-      bufObj = ctx->Shared->NullBufferObj;
-   } else {
-      bufObj = _mesa_lookup_bufferobj(ctx, buffer);
-   }
-
-   if (!bufObj) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glBindBufferOffsetEXT(invalid buffer=%u)", buffer);
-      return;
-   }
-
-   _mesa_bind_buffer_range_xfb(ctx, obj, index, bufObj, offset, 0);
+   bind_buffer_offset(ctx, obj, index, buffer, offset, false);
 }
 
 
@@ -808,6 +852,53 @@ _mesa_BindBufferOffsetEXT(GLenum target, GLuint index, GLuint buffer,
  * This function specifies the transform feedback outputs to be written
  * to the feedback buffer(s), and in what order.
  */
+static ALWAYS_INLINE void
+transform_feedback_varyings(struct gl_context *ctx,
+                            struct gl_shader_program *shProg, GLsizei count,
+                            const GLchar *const *varyings, GLenum bufferMode)
+{
+   GLint i;
+
+   /* free existing varyings, if any */
+   for (i = 0; i < (GLint) shProg->TransformFeedback.NumVarying; i++) {
+      free(shProg->TransformFeedback.VaryingNames[i]);
+   }
+   free(shProg->TransformFeedback.VaryingNames);
+
+   /* allocate new memory for varying names */
+   shProg->TransformFeedback.VaryingNames =
+      malloc(count * sizeof(GLchar *));
+
+   if (!shProg->TransformFeedback.VaryingNames) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTransformFeedbackVaryings()");
+      return;
+   }
+
+   /* Save the new names and the count */
+   for (i = 0; i < count; i++) {
+      shProg->TransformFeedback.VaryingNames[i] = strdup(varyings[i]);
+   }
+   shProg->TransformFeedback.NumVarying = count;
+
+   shProg->TransformFeedback.BufferMode = bufferMode;
+
+   /* No need to invoke FLUSH_VERTICES or flag NewTransformFeedback since
+    * the varyings won't be used until shader link time.
+    */
+}
+
+
+void GLAPIENTRY
+_mesa_TransformFeedbackVaryings_no_error(GLuint program, GLsizei count,
+                                         const GLchar *const *varyings,
+                                         GLenum bufferMode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_shader_program *shProg = _mesa_lookup_shader_program(ctx, program);
+   transform_feedback_varyings(ctx, shProg, count, varyings, bufferMode);
+}
+
 void GLAPIENTRY
 _mesa_TransformFeedbackVaryings(GLuint program, GLsizei count,
                                 const GLchar * const *varyings,
@@ -883,32 +974,7 @@ _mesa_TransformFeedbackVaryings(GLuint program, GLsizei count,
       }
    }
 
-   /* free existing varyings, if any */
-   for (i = 0; i < (GLint) shProg->TransformFeedback.NumVarying; i++) {
-      free(shProg->TransformFeedback.VaryingNames[i]);
-   }
-   free(shProg->TransformFeedback.VaryingNames);
-
-   /* allocate new memory for varying names */
-   shProg->TransformFeedback.VaryingNames =
-      malloc(count * sizeof(GLchar *));
-
-   if (!shProg->TransformFeedback.VaryingNames) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTransformFeedbackVaryings()");
-      return;
-   }
-
-   /* Save the new names and the count */
-   for (i = 0; i < count; i++) {
-      shProg->TransformFeedback.VaryingNames[i] = strdup(varyings[i]);
-   }
-   shProg->TransformFeedback.NumVarying = count;
-
-   shProg->TransformFeedback.BufferMode = bufferMode;
-
-   /* No need to invoke FLUSH_VERTICES or flag NewTransformFeedback since
-    * the varyings won't be used until shader link time.
-    */
+   transform_feedback_varyings(ctx, shProg, count, varyings, bufferMode);
 }
 
 
@@ -1077,10 +1143,34 @@ _mesa_IsTransformFeedback(GLuint name)
  * Bind the given transform feedback object.
  * Part of GL_ARB_transform_feedback2.
  */
+static ALWAYS_INLINE void
+bind_transform_feedback(struct gl_context *ctx, GLuint name, bool no_error)
+{
+   struct gl_transform_feedback_object *obj;
+
+   obj = _mesa_lookup_transform_feedback_object(ctx, name);
+   if (!no_error && !obj) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glBindTransformFeedback(name=%u)", name);
+      return;
+   }
+
+   reference_transform_feedback_object(&ctx->TransformFeedback.CurrentObject,
+                                       obj);
+}
+
+
+void GLAPIENTRY
+_mesa_BindTransformFeedback_no_error(GLenum target, GLuint name)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   bind_transform_feedback(ctx, name, true);
+}
+
+
 void GLAPIENTRY
 _mesa_BindTransformFeedback(GLenum target, GLuint name)
 {
-   struct gl_transform_feedback_object *obj;
    GET_CURRENT_CONTEXT(ctx);
 
    if (target != GL_TRANSFORM_FEEDBACK) {
@@ -1094,15 +1184,7 @@ _mesa_BindTransformFeedback(GLenum target, GLuint name)
       return;
    }
 
-   obj = _mesa_lookup_transform_feedback_object(ctx, name);
-   if (!obj) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glBindTransformFeedback(name=%u)", name);
-      return;
-   }
-
-   reference_transform_feedback_object(&ctx->TransformFeedback.CurrentObject,
-                                       obj);
+   bind_transform_feedback(ctx, name, false);
 }
 
 
@@ -1153,6 +1235,28 @@ _mesa_DeleteTransformFeedbacks(GLsizei n, const GLuint *names)
  * Pause transform feedback.
  * Part of GL_ARB_transform_feedback2.
  */
+static void
+pause_transform_feedback(struct gl_context *ctx,
+                         struct gl_transform_feedback_object *obj)
+{
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
+
+   assert(ctx->Driver.PauseTransformFeedback);
+   ctx->Driver.PauseTransformFeedback(ctx, obj);
+
+   obj->Paused = GL_TRUE;
+}
+
+
+void GLAPIENTRY
+_mesa_PauseTransformFeedback_no_error(void)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   pause_transform_feedback(ctx, ctx->TransformFeedback.CurrentObject);
+}
+
+
 void GLAPIENTRY
 _mesa_PauseTransformFeedback(void)
 {
@@ -1167,13 +1271,7 @@ _mesa_PauseTransformFeedback(void)
       return;
    }
 
-   FLUSH_VERTICES(ctx, 0);
-   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
-
-   assert(ctx->Driver.PauseTransformFeedback);
-   ctx->Driver.PauseTransformFeedback(ctx, obj);
-
-   obj->Paused = GL_TRUE;
+   pause_transform_feedback(ctx, obj);
 }
 
 
@@ -1181,6 +1279,28 @@ _mesa_PauseTransformFeedback(void)
  * Resume transform feedback.
  * Part of GL_ARB_transform_feedback2.
  */
+static void
+resume_transform_feedback(struct gl_context *ctx,
+                          struct gl_transform_feedback_object *obj)
+{
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
+
+   obj->Paused = GL_FALSE;
+
+   assert(ctx->Driver.ResumeTransformFeedback);
+   ctx->Driver.ResumeTransformFeedback(ctx, obj);
+}
+
+
+void GLAPIENTRY
+_mesa_ResumeTransformFeedback_no_error(void)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   resume_transform_feedback(ctx, ctx->TransformFeedback.CurrentObject);
+}
+
+
 void GLAPIENTRY
 _mesa_ResumeTransformFeedback(void)
 {
@@ -1206,13 +1326,7 @@ _mesa_ResumeTransformFeedback(void)
       return;
    }
 
-   FLUSH_VERTICES(ctx, 0);
-   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
-
-   obj->Paused = GL_FALSE;
-
-   assert(ctx->Driver.ResumeTransformFeedback);
-   ctx->Driver.ResumeTransformFeedback(ctx, obj);
+   resume_transform_feedback(ctx, obj);
 }
 
 extern void GLAPIENTRY

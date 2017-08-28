@@ -32,13 +32,13 @@ extern "C" {
 #endif
 
 typedef struct shader_info {
-   /** The shader stage, such as MESA_SHADER_VERTEX. */
-   gl_shader_stage stage;
-
    const char *name;
 
    /* Descriptive name provided by the client; may be NULL */
    const char *label;
+
+   /** The shader stage, such as MESA_SHADER_VERTEX. */
+   gl_shader_stage stage;
 
    /* Number of textures used by this shader */
    unsigned num_textures;

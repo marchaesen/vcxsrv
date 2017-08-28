@@ -107,23 +107,23 @@ DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte * pc,
 int
 __glXDisp_GetProgramStringARB(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
-    return DoGetProgramString(cl, pc, False);
+    return DoGetProgramString(cl, pc, FALSE);
 }
 
 int
 __glXDispSwap_GetProgramStringARB(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
-    return DoGetProgramString(cl, pc, True);
+    return DoGetProgramString(cl, pc, TRUE);
 }
 
 int
 __glXDisp_GetProgramStringNV(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
-    return DoGetProgramString(cl, pc, False);
+    return DoGetProgramString(cl, pc, FALSE);
 }
 
 int
 __glXDispSwap_GetProgramStringNV(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
-    return DoGetProgramString(cl, pc, True);
+    return DoGetProgramString(cl, pc, TRUE);
 }

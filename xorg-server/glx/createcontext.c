@@ -37,29 +37,29 @@ static Bool
 validate_GL_version(int major_version, int minor_version)
 {
     if (major_version <= 0 || minor_version < 0)
-        return False;
+        return FALSE;
 
     switch (major_version) {
     case 1:
         if (minor_version > 5)
-            return False;
+            return FALSE;
         break;
 
     case 2:
         if (minor_version > 1)
-            return False;
+            return FALSE;
         break;
 
     case 3:
         if (minor_version > 3)
-            return False;
+            return FALSE;
         break;
 
     default:
         break;
     }
 
-    return True;
+    return TRUE;
 }
 
 static Bool
@@ -70,9 +70,9 @@ validate_render_type(uint32_t render_type)
     case GLX_COLOR_INDEX_TYPE:
     case GLX_RGBA_FLOAT_TYPE_ARB:
     case GLX_RGBA_UNSIGNED_FLOAT_TYPE_EXT:
-        return True;
+        return TRUE;
     default:
-        return False;
+        return FALSE;
     }
 }
 
@@ -316,7 +316,7 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     ctx->config = config;
     ctx->id = req->context;
     ctx->share_id = req->shareList;
-    ctx->idExists = True;
+    ctx->idExists = TRUE;
     ctx->isDirect = req->isDirect;
     ctx->renderMode = GL_RENDER;
     ctx->resetNotificationStrategy = reset;

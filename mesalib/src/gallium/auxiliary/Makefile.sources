@@ -151,6 +151,7 @@ C_SOURCES := \
 	tgsi/tgsi_from_mesa.h \
 	tgsi/tgsi_info.c \
 	tgsi/tgsi_info.h \
+	tgsi/tgsi_info_opcodes.h \
 	tgsi/tgsi_iterate.c \
 	tgsi/tgsi_iterate.h \
 	tgsi/tgsi_lowering.c \
@@ -253,6 +254,8 @@ C_SOURCES := \
 	util/u_hash_table.h \
 	util/u_helpers.c \
 	util/u_helpers.h \
+	util/u_idalloc.c \
+	util/u_idalloc.h \
 	util/u_index_modify.c \
 	util/u_index_modify.h \
 	util/u_inlines.h \
@@ -260,6 +263,8 @@ C_SOURCES := \
 	util/u_keymap.h \
 	util/u_linear.c \
 	util/u_linear.h \
+	util/u_log.c \
+	util/u_log.h \
 	util/u_math.c \
 	util/u_math.h \
 	util/u_memory.h \

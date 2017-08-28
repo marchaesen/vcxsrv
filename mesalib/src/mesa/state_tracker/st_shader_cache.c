@@ -47,7 +47,7 @@ write_tgsi_to_cache(struct blob *blob, struct pipe_shader_state *tgsi,
    blob_write_bytes(blob, tgsi->tokens,
                     num_tokens * sizeof(struct tgsi_token));
 
-   disk_cache_put(st->ctx->Cache, sha1, blob->data, blob->size);
+   disk_cache_put(st->ctx->Cache, sha1, blob->data, blob->size, NULL);
 }
 
 /**

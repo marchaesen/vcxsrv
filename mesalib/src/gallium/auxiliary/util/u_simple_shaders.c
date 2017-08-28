@@ -66,7 +66,7 @@ util_make_vertex_passthrough_shader(struct pipe_context *pipe,
    return util_make_vertex_passthrough_shader_with_so(pipe, num_attribs,
                                                       semantic_names,
                                                       semantic_indexes,
-                                                      window_space, NULL);
+                                                      window_space, false, NULL);
 }
 
 void *
@@ -74,7 +74,7 @@ util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
                                     uint num_attribs,
                                     const uint *semantic_names,
                                     const uint *semantic_indexes,
-                                    bool window_space,
+                                    bool window_space, bool layered,
 				    const struct pipe_stream_output_info *so)
 {
    struct ureg_program *ureg;
@@ -100,6 +100,15 @@ util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
       ureg_MOV( ureg, dst, src );
    }
 
+   if (layered) {
+      struct ureg_src instance_id =
+         ureg_DECL_system_value(ureg, TGSI_SEMANTIC_INSTANCEID, 0);
+      struct ureg_dst layer = ureg_DECL_output(ureg, TGSI_SEMANTIC_LAYER, 0);
+
+      ureg_MOV(ureg, ureg_writemask(layer, TGSI_WRITEMASK_X),
+               ureg_scalar(instance_id, TGSI_SWIZZLE_X));
+   }
+
    ureg_END( ureg );
 
    return ureg_create_shader_with_so_and_destroy( ureg, pipe, so );
@@ -108,28 +117,13 @@ util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
 
 void *util_make_layered_clear_vertex_shader(struct pipe_context *pipe)
 {
-   static const char text[] =
-         "VERT\n"
-         "DCL IN[0]\n"
-         "DCL IN[1]\n"
-         "DCL SV[0], INSTANCEID\n"
-         "DCL OUT[0], POSITION\n"
-         "DCL OUT[1], GENERIC[0]\n"
-         "DCL OUT[2], LAYER\n"
+   const unsigned semantic_names[] = {TGSI_SEMANTIC_POSITION,
+                                      TGSI_SEMANTIC_GENERIC};
+   const unsigned semantic_indices[] = {0, 0};
 
-         "MOV OUT[0], IN[0]\n"
-         "MOV OUT[1], IN[1]\n"
-         "MOV OUT[2].x, SV[0].xxxx\n"
-         "END\n";
-   struct tgsi_token tokens[1000];
-   struct pipe_shader_state state;
-
-   if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
-      assert(0);
-      return NULL;
-   }
-   pipe_shader_state_from_tgsi(&state, tokens);
-   return pipe->create_vs_state(pipe, &state);
+   return util_make_vertex_passthrough_shader_with_so(pipe, 2, semantic_names,
+                                                      semantic_indices, false,
+                                                      true, NULL);
 }
 
 /**

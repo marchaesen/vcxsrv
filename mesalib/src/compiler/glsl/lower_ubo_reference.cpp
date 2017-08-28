@@ -45,10 +45,12 @@ class lower_ubo_reference_visitor :
       public lower_buffer_access::lower_buffer_access {
 public:
    lower_ubo_reference_visitor(struct gl_linked_shader *shader,
-                               bool clamp_block_indices)
+                               bool clamp_block_indices,
+                               bool use_std430_as_default)
    : shader(shader), clamp_block_indices(clamp_block_indices),
      struct_field(NULL), variable(NULL)
    {
+      this->use_std430_as_default = use_std430_as_default;
    }
 
    void handle_rvalue(ir_rvalue **rvalue);
@@ -345,7 +347,10 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
    unsigned const_offset;
    bool row_major;
    int matrix_columns;
-   enum glsl_interface_packing packing = var->get_interface_type_packing();
+
+   enum glsl_interface_packing packing =
+      var->get_interface_type()->
+         get_internal_ifc_packing(use_std430_as_default);
 
    this->buffer_access_type =
       var->is_in_shader_storage_block() ?
@@ -558,7 +563,10 @@ lower_ubo_reference_visitor::write_to_memory(void *mem_ctx,
    unsigned const_offset;
    bool row_major;
    int matrix_columns;
-   enum glsl_interface_packing packing = var->get_interface_type_packing();
+
+   enum glsl_interface_packing packing =
+      var->get_interface_type()->
+         get_internal_ifc_packing(use_std430_as_default);
 
    this->buffer_access_type = ssbo_store_access;
    this->variable = var;
@@ -737,8 +745,12 @@ lower_ubo_reference_visitor::process_ssbo_unsized_array_length(ir_rvalue **rvalu
    unsigned const_offset;
    bool row_major;
    int matrix_columns;
-   enum glsl_interface_packing packing = var->get_interface_type_packing();
-   int unsized_array_stride = calculate_unsized_array_stride(deref, packing);
+
+   enum glsl_interface_packing packing =
+      var->get_interface_type()->
+         get_internal_ifc_packing(use_std430_as_default);
+   int unsized_array_stride =
+      calculate_unsized_array_stride(deref, packing);
 
    this->buffer_access_type = ssbo_unsized_array_length_access;
    this->variable = var;
@@ -971,7 +983,10 @@ lower_ubo_reference_visitor::lower_ssbo_atomic_intrinsic(ir_call *ir)
    unsigned const_offset;
    bool row_major;
    int matrix_columns;
-   enum glsl_interface_packing packing = var->get_interface_type_packing();
+
+   enum glsl_interface_packing packing =
+      var->get_interface_type()->
+         get_internal_ifc_packing(use_std430_as_default);
 
    this->buffer_access_type = ssbo_atomic_access;
    this->variable = var;
@@ -1108,9 +1123,11 @@ lower_ubo_reference_visitor::visit_enter(ir_texture *ir)
 } /* unnamed namespace */
 
 void
-lower_ubo_reference(struct gl_linked_shader *shader, bool clamp_block_indices)
+lower_ubo_reference(struct gl_linked_shader *shader,
+                    bool clamp_block_indices, bool use_std430_as_default)
 {
-   lower_ubo_reference_visitor v(shader, clamp_block_indices);
+   lower_ubo_reference_visitor v(shader, clamp_block_indices,
+                                 use_std430_as_default);
 
    /* Loop over the instructions lowering references, because we take
     * a deref of a UBO array using a UBO dereference as the index will

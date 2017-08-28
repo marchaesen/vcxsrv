@@ -828,109 +828,6 @@ __glXDispSwap_GetDrawableAttributes(__GLXclientState * cl, GLbyte * pc)
 /************************************************************************/
 
 /*
-** Swap replies.
-*/
-
-void
-__glXSwapMakeCurrentReply(ClientPtr client, xGLXMakeCurrentReply * reply)
-{
-    __GLX_DECLARE_SWAP_VARIABLES;
-    __GLX_SWAP_SHORT(&reply->sequenceNumber);
-    __GLX_SWAP_INT(&reply->length);
-    __GLX_SWAP_INT(&reply->contextTag);
-    WriteToClient(client, sz_xGLXMakeCurrentReply, reply);
-}
-
-void
-__glXSwapIsDirectReply(ClientPtr client, xGLXIsDirectReply * reply)
-{
-    __GLX_DECLARE_SWAP_VARIABLES;
-    __GLX_SWAP_SHORT(&reply->sequenceNumber);
-    __GLX_SWAP_INT(&reply->length);
-    WriteToClient(client, sz_xGLXIsDirectReply, reply);
-}
-
-void
-__glXSwapQueryVersionReply(ClientPtr client, xGLXQueryVersionReply * reply)
-{
-    __GLX_DECLARE_SWAP_VARIABLES;
-    __GLX_SWAP_SHORT(&reply->sequenceNumber);
-    __GLX_SWAP_INT(&reply->length);
-    __GLX_SWAP_INT(&reply->majorVersion);
-    __GLX_SWAP_INT(&reply->minorVersion);
-    WriteToClient(client, sz_xGLXQueryVersionReply, reply);
-}
-
-void
-glxSwapQueryExtensionsStringReply(ClientPtr client,
-                                  xGLXQueryExtensionsStringReply * reply,
-                                  char *buf)
-{
-    int length = reply->length;
-
-    __GLX_DECLARE_SWAP_VARIABLES;
-    __GLX_DECLARE_SWAP_ARRAY_VARIABLES;
-    __GLX_SWAP_SHORT(&reply->sequenceNumber);
-    __GLX_SWAP_INT(&reply->length);
-    __GLX_SWAP_INT(&reply->n);
-    WriteToClient(client, sz_xGLXQueryExtensionsStringReply, reply);
-    __GLX_SWAP_INT_ARRAY((int *) buf, length);
-    WriteToClient(client, length << 2, buf);
-}
-
-void
-glxSwapQueryServerStringReply(ClientPtr client,
-                              xGLXQueryServerStringReply * reply, char *buf)
-{
-    int length = reply->length;
-
-    __GLX_DECLARE_SWAP_VARIABLES;
-    __GLX_SWAP_SHORT(&reply->sequenceNumber);
-    __GLX_SWAP_INT(&reply->length);
-    __GLX_SWAP_INT(&reply->n);
-    WriteToClient(client, sz_xGLXQueryServerStringReply, reply);
-    /** no swap is needed for an array of chars **/
-    /* __GLX_SWAP_INT_ARRAY((int *)buf, length); */
-    WriteToClient(client, length << 2, buf);
-}
-
-void
-__glXSwapQueryContextInfoEXTReply(ClientPtr client,
-                                  xGLXQueryContextInfoEXTReply * reply,
-                                  int *buf)
-{
-    int length = reply->length;
-
-    __GLX_DECLARE_SWAP_VARIABLES;
-    __GLX_DECLARE_SWAP_ARRAY_VARIABLES;
-    __GLX_SWAP_SHORT(&reply->sequenceNumber);
-    __GLX_SWAP_INT(&reply->length);
-    __GLX_SWAP_INT(&reply->n);
-    WriteToClient(client, sz_xGLXQueryContextInfoEXTReply, reply);
-    __GLX_SWAP_INT_ARRAY((int *) buf, length);
-    WriteToClient(client, length << 2, buf);
-}
-
-void
-__glXSwapGetDrawableAttributesReply(ClientPtr client,
-                                    xGLXGetDrawableAttributesReply * reply,
-                                    CARD32 *buf)
-{
-    int length = reply->length;
-
-    __GLX_DECLARE_SWAP_VARIABLES;
-    __GLX_DECLARE_SWAP_ARRAY_VARIABLES;
-    __GLX_SWAP_SHORT(&reply->sequenceNumber);
-    __GLX_SWAP_INT(&reply->length);
-    __GLX_SWAP_INT(&reply->numAttribs);
-    WriteToClient(client, sz_xGLXGetDrawableAttributesReply, reply);
-    __GLX_SWAP_INT_ARRAY((int *) buf, length);
-    WriteToClient(client, length << 2, buf);
-}
-
-/************************************************************************/
-
-/*
 ** Render and Renderlarge are not in the GLX API.  They are used by the GLX
 ** client library to send batches of GL rendering commands.
 */
@@ -978,8 +875,7 @@ __glXDispSwap_VendorPrivate(__GLXclientState * cl, GLbyte * pc)
         __glXGetProtocolDecodeFunction(&VendorPriv_dispatch_info,
                                        vendorcode, 1);
     if (proc != NULL) {
-        (*proc) (cl, (GLbyte *) req);
-        return Success;
+        return (*proc) (cl, (GLbyte *) req);
     }
 
     cl->client->errorValue = req->vendorCode;

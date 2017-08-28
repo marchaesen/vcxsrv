@@ -136,8 +136,8 @@ descriptor=[
   [ "MAX_DEBUG_GROUP_STACK_DEPTH", "CONST(MAX_DEBUG_GROUP_STACK_DEPTH), NO_EXTRA" ],
   [ "DEBUG_GROUP_STACK_DEPTH", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
 
-# GL_EXT_polygon_offset_clamp
-  [ "POLYGON_OFFSET_CLAMP_EXT", "CONTEXT_FLOAT(Polygon.OffsetClamp), extra_EXT_polygon_offset_clamp" ],
+# GL_ARB_polygon_offset_clamp / GL_EXT_polygon_offset_clamp
+  [ "POLYGON_OFFSET_CLAMP_EXT", "CONTEXT_FLOAT(Polygon.OffsetClamp), extra_ARB_polygon_offset_clamp" ],
 ]},
 
 # Enums in OpenGL and GLES1

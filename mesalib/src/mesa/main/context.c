@@ -1607,6 +1607,23 @@ handle_first_current(struct gl_context *ctx)
       }
    }
 
+   /* Determine if generic vertex attribute 0 aliases the conventional
+    * glVertex position.
+    */
+   {
+      const bool is_forward_compatible_context =
+         ctx->Const.ContextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
+
+      /* In OpenGL 3.1 attribute 0 becomes non-magic, just like in OpenGL ES
+       * 2.0.  Note that we cannot just check for API_OPENGL_COMPAT here because
+       * that will erroneously allow this usage in a 3.0 forward-compatible
+       * context too.
+       */
+      ctx->_AttribZeroAliasesVertex = (ctx->API == API_OPENGLES
+                                       || (ctx->API == API_OPENGL_COMPAT
+                                           && !is_forward_compatible_context));
+   }
+
    /* We can use this to help debug user's problems.  Tell them to set
     * the MESA_INFO env variable before running their app.  Then the
     * first time each context is made current we'll print some useful

@@ -58,7 +58,7 @@ public:
  * Extended swizzles consist of access of a single vector source (with possible
  * per component negation) and the constants -1, 0, or 1.
  */
-bool
+static bool
 is_extended_swizzle(ir_expression *ir)
 {
    /* Track any variables that are accessed by this expression.

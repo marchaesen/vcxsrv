@@ -1,12 +1,9 @@
 bin_PROGRAMS = XWin
 
-if XWIN_CLIPBOARD
 SRCS_CLIPBOARD = \
 	winclipboardinit.c \
 	winclipboardwrappers.c
-DEFS_CLIPBOARD = -DXWIN_CLIPBOARD
 CLIPBOARD_LIBS = $(top_builddir)/hw/xwin/winclipboard/libXWinclipboard.la
-endif
 
 if XWIN_GLX_WINDOWS
 GLX_DIR =
@@ -23,7 +20,6 @@ XWIN_GLX_LIBS += $(top_builddir)/hw/xwin/glx/libXwinGLX.la
 XWIN_GLX_SYS_LIBS = -lopengl32
 endif
 
-if XWIN_MULTIWINDOW
 SRCS_MULTIWINDOW = \
 	winmultiwindowshape.c \
 	winmultiwindowwindow.c \
@@ -31,9 +27,7 @@ SRCS_MULTIWINDOW = \
 	winmultiwindowwndproc.c \
 	propertystore.h \
 	winSetAppUserModelID.c
-DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
 MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
-endif
 
 if XWIN_MULTIWINDOWEXTWM
 SRCS_MULTIWINDOWEXTWM = \
@@ -46,11 +40,8 @@ MULTIWINDOWEXTWM_LIBS = $(top_builddir)/miext/rootless/librootless.la
 MULTIWINDOWEXTWM_CFLAGS = -I$(top_srcdir)/miext/rootless
 endif
 
-if XWIN_RANDR
 SRCS_RANDR = \
 	winrandr.c
-DEFS_RANDR = -DXWIN_RANDR
-endif
 
 SRCS =	InitInput.c \
 	InitOutput.c \
@@ -111,17 +102,11 @@ SRCS =	InitInput.c \
 	$(SRCS_CLIPBOARD) \
 	$(SRCS_MULTIWINDOW) \
 	$(SRCS_MULTIWINDOWEXTWM) \
-	$(SRCS_NATIVEGDI) \
-	$(SRCS_PRIMARYFB) \
 	$(SRCS_RANDR)
 
- DEFS = $(DEFS_CLIPBOARD) \
+DEFS = \
 	$(DEFS_GLX_WINDOWS) \
-	$(DEFS_MULTIWINDOW) \
-	$(DEFS_MULTIWINDOWEXTWM) \
-	$(DEFS_NATIVEGDI) \
-	$(DEFS_PRIMARYFB) \
-	$(DEFS_RANDR)
+	$(DEFS_MULTIWINDOWEXTWM)
 
 XWin_SOURCES = $(SRCS)
 

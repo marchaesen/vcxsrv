@@ -36,9 +36,7 @@
 #include "win.h"
 #include <shellapi.h>
 #include "winprefs.h"
-#ifdef XWIN_CLIPBOARD
 #include "winclipboard/winclipboard.h"
-#endif
 
 static NOTIFYICONDATA nid;
 /*
@@ -123,9 +121,7 @@ LRESULT
 winHandleIconMessage(HWND hwnd, UINT message,
                      WPARAM wParam, LPARAM lParam, winPrivScreenPtr pScreenPriv)
 {
-#if defined(XWIN_MULTIWINDOWEXTWM) || defined(XWIN_MULTIWINDOW)
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
-#endif
 
     switch (lParam) {
     case WM_MOUSEMOVE:
@@ -171,7 +167,6 @@ winHandleIconMessage(HWND hwnd, UINT message,
         /* Get actual tray icon menu */
         hmenuTray = GetSubMenu(hmenuPopup, 0);
 
-#ifdef XWIN_MULTIWINDOW
         /* Check for MultiWindow mode */
         if (pScreenInfo->fMultiWindow) {
             MENUITEMINFO mii = { 0 };
@@ -191,13 +186,11 @@ winHandleIconMessage(HWND hwnd, UINT message,
             SetMenuItemInfo(hmenuTray, ID_APP_HIDE_ROOT, FALSE, &mii);
         }
         else
-#endif
         {
             /* Remove Hide Root Window button */
             RemoveMenu(hmenuTray, ID_APP_HIDE_ROOT, MF_BYCOMMAND);
         }
 
-#ifdef XWIN_CLIPBOARD
         if (g_fClipboard) {
             /* Set menu state to indicate if 'Monitor Primary' is enabled or not */
             MENUITEMINFO mii = { 0 };
@@ -210,7 +203,6 @@ winHandleIconMessage(HWND hwnd, UINT message,
             /* Remove 'Monitor Primary' menu item */
             RemoveMenu(hmenuTray, ID_APP_MONITOR_PRIMARY, MF_BYCOMMAND);
         }
-#endif
 
         SetupRootMenu(hmenuTray);
 

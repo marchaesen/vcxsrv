@@ -56,7 +56,7 @@ util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
                                     uint num_attribs,
                                     const uint *semantic_names,
                                     const uint *semantic_indexes,
-                                    bool window_space,
+                                    bool window_space, bool layered,
                                     const struct pipe_stream_output_info *so);
 
 extern void *
