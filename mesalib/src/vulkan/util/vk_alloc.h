@@ -37,6 +37,20 @@ vk_alloc(const VkAllocationCallbacks *alloc,
 }
 
 static inline void *
+vk_zalloc(const VkAllocationCallbacks *alloc,
+          size_t size, size_t align,
+          VkSystemAllocationScope scope)
+{
+   void *mem = vk_alloc(alloc, size, align, scope);
+   if (mem == NULL)
+      return NULL;
+
+   memset(mem, 0, size);
+
+   return mem;
+}
+
+static inline void *
 vk_realloc(const VkAllocationCallbacks *alloc,
            void *ptr, size_t size, size_t align,
            VkSystemAllocationScope scope)

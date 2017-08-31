@@ -562,8 +562,10 @@ compile_instruction(
                ureg_scalar(src[0], TGSI_SWIZZLE_X));
       break;
 
-   case OPCODE_XPD:
-      ureg_MUL(ureg, ureg_writemask(dst[0], TGSI_WRITEMASK_XYZ),
+   case OPCODE_XPD: {
+      struct ureg_dst tmp = ureg_DECL_temporary(ureg);
+
+      ureg_MUL(ureg, ureg_writemask(tmp, TGSI_WRITEMASK_XYZ),
                ureg_swizzle(src[0], TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z,
                             TGSI_SWIZZLE_X, 0),
                ureg_swizzle(src[1], TGSI_SWIZZLE_Z, TGSI_SWIZZLE_X,
@@ -573,8 +575,9 @@ compile_instruction(
                             TGSI_SWIZZLE_Y, 0),
                ureg_negate(ureg_swizzle(src[1], TGSI_SWIZZLE_Y,
                                         TGSI_SWIZZLE_Z, TGSI_SWIZZLE_X, 0)),
-               ureg_src(dst[0]));
+               ureg_src(tmp));
       break;
+   }
 
    case OPCODE_RSQ:
       ureg_RSQ( ureg, dst[0], ureg_abs(src[0]) );

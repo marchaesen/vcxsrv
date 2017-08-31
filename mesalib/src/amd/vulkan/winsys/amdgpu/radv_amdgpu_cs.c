@@ -969,12 +969,25 @@ static void *radv_amdgpu_winsys_get_cpu_addr(void *_cs, uint64_t addr)
 				return (char *)ret + (addr - bo->va);
 		}
 	}
+	if(cs->ws->debug_all_bos) {
+		pthread_mutex_lock(&cs->ws->global_bo_list_lock);
+		list_for_each_entry(struct radv_amdgpu_winsys_bo, bo,
+		                    &cs->ws->global_bo_list, global_list_item) {
+			if (addr >= bo->va && addr - bo->va < bo->size) {
+				if (amdgpu_bo_cpu_map(bo->bo, &ret) == 0) {
+					pthread_mutex_unlock(&cs->ws->global_bo_list_lock);
+					return (char *)ret + (addr - bo->va);
+				}
+			}
+		}
+		pthread_mutex_unlock(&cs->ws->global_bo_list_lock);
+	}
 	return ret;
 }
 
 static void radv_amdgpu_winsys_cs_dump(struct radeon_winsys_cs *_cs,
                                        FILE* file,
-                                       uint32_t trace_id)
+                                       const int *trace_ids, int trace_id_count)
 {
 	struct radv_amdgpu_cs *cs = (struct radv_amdgpu_cs *)_cs;
 	void *ib = cs->base.buf;
@@ -985,8 +998,8 @@ static void radv_amdgpu_winsys_cs_dump(struct radeon_winsys_cs *_cs,
 		num_dw = cs->ib.size;
 	}
 	assert(ib);
-	ac_parse_ib(file, ib, num_dw, trace_id, "main IB", cs->ws->info.chip_class,
-		    radv_amdgpu_winsys_get_cpu_addr, cs);
+	ac_parse_ib(file, ib, num_dw, trace_ids, trace_id_count,  "main IB",
+		    cs->ws->info.chip_class, radv_amdgpu_winsys_get_cpu_addr, cs);
 }
 
 static struct radeon_winsys_ctx *radv_amdgpu_ctx_create(struct radeon_winsys *_ws)

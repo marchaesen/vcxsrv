@@ -47,12 +47,12 @@
 #include "compiler/glsl/linker.h"
 #include "compiler/glsl/program.h"
 #include "compiler/glsl/shader_cache.h"
+#include "compiler/glsl/string_to_uint_map.h"
 #include "program/prog_instruction.h"
 #include "program/prog_optimize.h"
 #include "program/prog_print.h"
 #include "program/program.h"
 #include "program/prog_parameter.h"
-#include "util/string_to_uint_map.h"
 
 
 static int swizzle_for_size(int size);

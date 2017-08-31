@@ -1334,7 +1334,7 @@ static LLVMValueRef emit_f2f16(struct nir_to_llvm_context *ctx,
 			       LLVMValueRef src0)
 {
 	LLVMValueRef result;
-	LLVMValueRef cond;
+	LLVMValueRef cond = NULL;
 
 	src0 = to_float(&ctx->ac, src0);
 	result = LLVMBuildFPTrunc(ctx->builder, src0, ctx->f16, "");
@@ -2054,7 +2054,7 @@ static LLVMValueRef radv_lower_gather4_integer(struct ac_llvm_context *ctx,
 	enum glsl_base_type stype = glsl_get_sampler_result_type(instr->texture->var->type);
 	LLVMValueRef coord = args->addr;
 	LLVMValueRef half_texel[2];
-	LLVMValueRef compare_cube_wa;
+	LLVMValueRef compare_cube_wa = NULL;
 	LLVMValueRef result;
 	int c;
 	unsigned coord_vgpr_index = (unsigned)args->offset + (unsigned)args->compare;
@@ -2780,7 +2780,8 @@ static LLVMValueRef
 load_tcs_output(struct nir_to_llvm_context *ctx,
 	       nir_intrinsic_instr *instr)
 {
-	LLVMValueRef dw_addr, stride;
+	LLVMValueRef dw_addr;
+	LLVMValueRef stride = NULL;
 	LLVMValueRef value[4], result;
 	LLVMValueRef vertex_index = NULL;
 	LLVMValueRef indir_index = NULL;
@@ -2819,7 +2820,8 @@ store_tcs_output(struct nir_to_llvm_context *ctx,
 		 LLVMValueRef src,
 		 unsigned writemask)
 {
-	LLVMValueRef stride, dw_addr;
+	LLVMValueRef dw_addr;
+	LLVMValueRef stride = NULL;
 	LLVMValueRef buf_addr = NULL;
 	LLVMValueRef vertex_index = NULL;
 	LLVMValueRef indir_index = NULL;
@@ -3819,8 +3821,9 @@ static LLVMValueRef visit_interp(struct nir_to_llvm_context *ctx,
 	LLVMValueRef interp_param, attr_number;
 	unsigned location;
 	unsigned chan;
-	LLVMValueRef src_c0, src_c1;
-	LLVMValueRef src0;
+	LLVMValueRef src_c0 = NULL;
+	LLVMValueRef src_c1 = NULL;
+	LLVMValueRef src0 = NULL;
 	int input_index = instr->variables[0]->var->data.location - VARYING_SLOT_VAR0;
 	switch (instr->intrinsic) {
 	case nir_intrinsic_interp_var_at_centroid:
@@ -3853,7 +3856,7 @@ static LLVMValueRef visit_interp(struct nir_to_llvm_context *ctx,
 	interp_param = lookup_interp_param(ctx, instr->variables[0]->var->data.interpolation, location);
 	attr_number = LLVMConstInt(ctx->i32, input_index, false);
 
-	if (location == INTERP_SAMPLE || location == INTERP_CENTER) {
+	if (location == INTERP_CENTER) {
 		LLVMValueRef ij_out[2];
 		LLVMValueRef ddxy_out = emit_ddxy_interp(ctx->nir, interp_param);
 

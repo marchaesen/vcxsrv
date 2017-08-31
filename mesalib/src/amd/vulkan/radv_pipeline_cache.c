@@ -118,6 +118,9 @@ radv_pipeline_cache_search_unlocked(struct radv_pipeline_cache *cache,
 	const uint32_t mask = cache->table_size - 1;
 	const uint32_t start = (*(uint32_t *) sha1);
 
+	if (cache->table_size == 0)
+		return NULL;
+
 	for (uint32_t i = 0; i < cache->table_size; i++) {
 		const uint32_t index = (start + i) & mask;
 		struct cache_entry *entry = cache->hash_table[index];

@@ -35,7 +35,6 @@
 #include "main/errors.h"
 #include "main/shaderapi.h"
 #include "main/uniforms.h"
-#include "util/string_to_uint_map.h"
 
 #include "st_context.h"
 #include "st_program.h"
@@ -44,6 +43,7 @@
 #include "compiler/glsl_types.h"
 #include "compiler/glsl/glsl_to_nir.h"
 #include "compiler/glsl/ir.h"
+#include "compiler/glsl/string_to_uint_map.h"
 
 
 static int

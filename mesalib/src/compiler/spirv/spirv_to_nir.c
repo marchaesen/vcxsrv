@@ -262,7 +262,7 @@ vtn_handle_extension(struct vtn_builder *b, SpvOp opcode,
       if (strcmp((const char *)&w[2], "GLSL.std.450") == 0) {
          val->ext_handler = vtn_handle_glsl450_instruction;
       } else {
-         assert(!"Unsupported extension");
+         unreachable("Unsupported extension");
       }
       break;
    }
@@ -724,7 +724,7 @@ translate_image_format(SpvImageFormat format)
    case SpvImageFormatR16ui:        return 0x8234; /* GL_R16UI */
    case SpvImageFormatR8ui:         return 0x8232; /* GL_R8UI */
    default:
-      assert(!"Invalid image format");
+      unreachable("Invalid image format");
       return 0;
    }
 }
@@ -919,7 +919,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          else if (dim == GLSL_SAMPLER_DIM_SUBPASS)
             dim = GLSL_SAMPLER_DIM_SUBPASS_MS;
          else
-            assert(!"Unsupported multisampled image type");
+            unreachable("Unsupported multisampled image type");
       }
 
       val->type->image_format = translate_image_format(format);
@@ -934,7 +934,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          val->type->type = glsl_image_type(dim, is_array,
                                            glsl_get_base_type(sampled_type));
       } else {
-         assert(!"We need to know if the image will be sampled");
+         unreachable("We need to know if the image will be sampled");
       }
       break;
    }
@@ -1378,7 +1378,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
       break;
 
    case SpvOpConstantSampler:
-      assert(!"OpConstantSampler requires Kernel Capability");
+      unreachable("OpConstantSampler requires Kernel Capability");
       break;
 
    default:
@@ -2626,7 +2626,7 @@ gl_primitive_from_spv_execution_mode(SpvExecutionMode mode)
    case SpvExecutionModeOutputTriangleStrip:
       return 5; /* GL_TRIANGLE_STRIP */
    default:
-      assert(!"Invalid primitive type");
+      unreachable("Invalid primitive type");
       return 4;
    }
 }
@@ -2646,7 +2646,7 @@ vertices_in_from_spv_execution_mode(SpvExecutionMode mode)
    case SpvExecutionModeInputTrianglesAdjacency:
       return 6;
    default:
-      assert(!"Invalid GS input mode");
+      unreachable("Invalid GS input mode");
       return 0;
    }
 }
@@ -2974,7 +2974,7 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       break;
 
    case SpvExecutionModeXfb:
-      assert(!"Unhandled execution mode");
+      unreachable("Unhandled execution mode");
       break;
 
    case SpvExecutionModeVecTypeHint:
@@ -3008,7 +3008,7 @@ vtn_handle_variable_or_type_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpMemberDecorate:
    case SpvOpGroupDecorate:
    case SpvOpGroupMemberDecorate:
-      assert(!"Invalid opcode types and variables section");
+      unreachable("Invalid opcode types and variables section");
       break;
 
    case SpvOpTypeVoid:

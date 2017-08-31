@@ -282,85 +282,50 @@ esac
 
 AM_CONDITIONAL(HAVE_ANDROID, test "x$android" = xyes)
 
-dnl Add flags for gcc and g++
-if test "x$GCC" = xyes; then
-    CFLAGS="$CFLAGS -Wall"
+dnl
+dnl Check compiler flags
+dnl
+AX_CHECK_COMPILE_FLAG([-Wall],                                 [CFLAGS="$CFLAGS -Wall"])
+AX_CHECK_COMPILE_FLAG([-Werror=implicit-function-declaration], [CFLAGS="$CFLAGS -Werror=implicit-function-declaration"])
+AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes],            [CFLAGS="$CFLAGS -Werror=missing-prototypes"])
+AX_CHECK_COMPILE_FLAG([-Wmissing-prototypes],                  [CFLAGS="$CFLAGS -Wmissing-prototypes"])
+AX_CHECK_COMPILE_FLAG([-fno-math-errno],                       [CFLAGS="$CFLAGS -fno-math-errno"])
+AX_CHECK_COMPILE_FLAG([-fno-trapping-math],                    [CFLAGS="$CFLAGS -fno-trapping-math"])
+AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],                   [VISIBILITY_CFLAGS="-fvisibility=hidden"])
 
+dnl
+dnl Check C++ compiler flags
+dnl
+AC_LANG_PUSH([C++])
+AX_CHECK_COMPILE_FLAG([-Wall],                                 [CXXFLAGS="$CXXFLAGS -Wall"])
+AX_CHECK_COMPILE_FLAG([-fno-math-errno],                       [CXXFLAGS="$CXXFLAGS -fno-math-errno"])
+AX_CHECK_COMPILE_FLAG([-fno-trapping-math],                    [CXXFLAGS="$CXXFLAGS -fno-trapping-math"])
+AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],                   [VISIBILITY_CXXFLAGS="-fvisibility=hidden"])
+AC_LANG_POP([C++])
+
+# Flags to help ensure that certain portions of the code -- and only those
+# portions -- can be built with MSVC:
+# - src/util, src/gallium/auxiliary, rc/gallium/drivers/llvmpipe, and
+# - non-Linux/Posix OpenGL portions needs to build on MSVC 2013 (which
+#   supports most of C99)
+# - the rest has no compiler compiler restrictions
+AX_CHECK_COMPILE_FLAG([-Werror=pointer-arith],                 [MSVC2013_COMPAT_CFLAGS="-Werror=pointer-arith"])
+AX_CHECK_COMPILE_FLAG([-Werror=vla],                           [MSVC2013_COMPAT_CFLAGS="-Werror=vla"])
+AC_LANG_PUSH([C++])
+AX_CHECK_COMPILE_FLAG([-Werror=pointer-arith],                 [MSVC2013_COMPAT_CXXFLAGS="-Werror=pointer-arith"])
+AX_CHECK_COMPILE_FLAG([-Werror=vla],                           [MSVC2013_COMPAT_CXXFLAGS="-Werror=vla"])
+AC_LANG_POP([C++])
+
+AC_SUBST([MSVC2013_COMPAT_CFLAGS])
+AC_SUBST([MSVC2013_COMPAT_CXXFLAGS])
+
+if test "x$GCC" = xyes; then
     if test "x$USE_GNU99" = xyes; then
         CFLAGS="$CFLAGS -std=gnu99"
     else
         CFLAGS="$CFLAGS -std=c99"
     fi
-
-    # Enable -Werror=implicit-function-declaration and
-    # -Werror=missing-prototypes, if available, or otherwise, just
-    # -Wmissing-prototypes.  This is particularly useful to avoid
-    # generating a loadable driver module that has undefined symbols.
-    save_CFLAGS="$CFLAGS"
-    AC_MSG_CHECKING([whether $CC supports -Werror=missing-prototypes])
-    CFLAGS="$CFLAGS -Werror=implicit-function-declaration"
-    CFLAGS="$CFLAGS -Werror=missing-prototypes"
-    AC_LINK_IFELSE([AC_LANG_PROGRAM()],
-                   AC_MSG_RESULT([yes]),
-                   [CFLAGS="$save_CFLAGS -Wmissing-prototypes";
-                    AC_MSG_RESULT([no])])
-
-    # Enable -fvisibility=hidden if using a gcc that supports it
-    save_CFLAGS="$CFLAGS"
-    AC_MSG_CHECKING([whether $CC supports -fvisibility=hidden])
-    VISIBILITY_CFLAGS="-fvisibility=hidden"
-    CFLAGS="$CFLAGS $VISIBILITY_CFLAGS"
-    AC_LINK_IFELSE([AC_LANG_PROGRAM()], AC_MSG_RESULT([yes]),
-                   [VISIBILITY_CFLAGS=""; AC_MSG_RESULT([no])])
-
-    # Restore CFLAGS; VISIBILITY_CFLAGS are added to it where needed.
-    CFLAGS=$save_CFLAGS
-
-    # We don't want floating-point math functions to set errno or trap
-    CFLAGS="$CFLAGS -fno-math-errno -fno-trapping-math"
-
-    # Flags to help ensure that certain portions of the code -- and only those
-    # portions -- can be built with MSVC:
-    # - src/util, src/gallium/auxiliary, rc/gallium/drivers/llvmpipe, and
-    # - non-Linux/Posix OpenGL portions needs to build on MSVC 2013 (which
-    #   supports most of C99)
-    # - the rest has no compiler compiler restrictions
-    MSVC2013_COMPAT_CFLAGS="-Werror=pointer-arith"
-    MSVC2013_COMPAT_CXXFLAGS="-Werror=pointer-arith"
-
-    # Enable -Werror=vla if compiler supports it
-    save_CFLAGS="$CFLAGS"
-    AC_MSG_CHECKING([whether $CC supports -Werror=vla])
-    CFLAGS="$CFLAGS -Werror=vla"
-    AC_LINK_IFELSE([AC_LANG_PROGRAM()],
-                   [MSVC2013_COMPAT_CFLAGS="$MSVC2013_COMPAT_CFLAGS -Werror=vla";
-                    MSVC2013_COMPAT_CXXFLAGS="$MSVC2013_COMPAT_CXXFLAGS -Werror=vla";
-                    AC_MSG_RESULT([yes])],
-                    AC_MSG_RESULT([no]))
-    CFLAGS="$save_CFLAGS"
 fi
-if test "x$GXX" = xyes; then
-    CXXFLAGS="$CXXFLAGS -Wall"
-
-    # Enable -fvisibility=hidden if using a gcc that supports it
-    save_CXXFLAGS="$CXXFLAGS"
-    AC_MSG_CHECKING([whether $CXX supports -fvisibility=hidden])
-    VISIBILITY_CXXFLAGS="-fvisibility=hidden"
-    CXXFLAGS="$CXXFLAGS $VISIBILITY_CXXFLAGS"
-    AC_LANG_PUSH([C++])
-    AC_LINK_IFELSE([AC_LANG_PROGRAM()], AC_MSG_RESULT([yes]),
-                   [VISIBILITY_CXXFLAGS="" ; AC_MSG_RESULT([no])])
-    AC_LANG_POP([C++])
-
-    # Restore CXXFLAGS; VISIBILITY_CXXFLAGS are added to it where needed.
-    CXXFLAGS=$save_CXXFLAGS
-
-    # We don't want floating-point math functions to set errno or trap
-    CXXFLAGS="$CXXFLAGS -fno-math-errno -fno-trapping-math"
-fi
-
-AC_SUBST([MSVC2013_COMPAT_CFLAGS])
-AC_SUBST([MSVC2013_COMPAT_CXXFLAGS])
 
 dnl even if the compiler appears to support it, using visibility attributes isn't
 dnl going to do anything useful currently on cygwin apart from emit lots of warnings
@@ -373,6 +338,10 @@ esac
 
 AC_SUBST([VISIBILITY_CFLAGS])
 AC_SUBST([VISIBILITY_CXXFLAGS])
+
+AX_CHECK_COMPILE_FLAG([-Wno-override-init],                    [WNO_OVERRIDE_INIT="-Wno-override-init"])         # gcc
+AX_CHECK_COMPILE_FLAG([-Wno-initializer-overrides],            [WNO_OVERRIDE_INIT="-Wno-initializer-overrides"]) # clang
+AC_SUBST([WNO_OVERRIDE_INIT])
 
 dnl
 dnl Optional flags, check for compiler support

@@ -140,7 +140,9 @@ LIBGLSL_FILES = \
 	glsl/program.h \
 	glsl/propagate_invariance.cpp \
 	glsl/s_expression.cpp \
-	glsl/s_expression.h
+	glsl/s_expression.h \
+	glsl/string_to_uint_map.cpp \
+	glsl/string_to_uint_map.h
 
 LIBGLSL_SHADER_CACHE_FILES = \
 	glsl/shader_cache.cpp \

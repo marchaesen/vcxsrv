@@ -94,7 +94,7 @@
  *
  * 2) The driver isn't allowed to infer unsychronized mappings by tracking
  *    the valid buffer range. The threaded context always sends TC_TRANSFER_-
- *    MAP_IGNORE_VALID_RANGE to indicate this. Ignoring the flag will lead
+ *    MAP_NO_INFER_UNSYNCHRONIZED to indicate this. Ignoring the flag will lead
  *    to failures.
  *    The threaded context does its own detection of unsynchronized mappings.
  *
@@ -166,7 +166,7 @@
 
 /* These are transfer flags sent to drivers. */
 /* Never infer whether it's safe to use unsychronized mappings: */
-#define TC_TRANSFER_MAP_IGNORE_VALID_RANGE   (1u << 29)
+#define TC_TRANSFER_MAP_NO_INFER_UNSYNCHRONIZED (1u << 29)
 /* Don't invalidate buffers: */
 #define TC_TRANSFER_MAP_NO_INVALIDATE        (1u << 30)
 /* transfer_map is called from a non-driver thread: */

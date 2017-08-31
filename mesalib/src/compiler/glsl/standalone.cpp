@@ -36,7 +36,7 @@
 #include "loop_analysis.h"
 #include "standalone_scaffolding.h"
 #include "standalone.h"
-#include "util/string_to_uint_map.h"
+#include "string_to_uint_map.h"
 #include "util/set.h"
 #include "linker.h"
 #include "glsl_parser_extras.h"

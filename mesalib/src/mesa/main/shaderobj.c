@@ -30,6 +30,7 @@
  */
 
 
+#include "compiler/glsl/string_to_uint_map.h"
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/hash.h"
@@ -40,7 +41,6 @@
 #include "program/program.h"
 #include "program/prog_parameter.h"
 #include "util/ralloc.h"
-#include "util/string_to_uint_map.h"
 #include "util/u_atomic.h"
 
 /**********************************************************************/
