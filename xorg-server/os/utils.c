@@ -307,7 +307,7 @@ LockServer(void)
     }
     if (lfd < 0)
         FatalError("Could not create lock file in %s\n", tmp);
-    snprintf(pid_str, sizeof(pid_str), "%10ld\n", (long) getpid());
+    snprintf(pid_str, sizeof(pid_str), "%10lu\n", (unsigned long) getpid());
     if (write(lfd, pid_str, 11) != 11)
         FatalError("Could not write pid to lock file in %s\n", tmp);
     (void) fchmod(lfd, 0444);

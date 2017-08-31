@@ -27,7 +27,7 @@
 #include "ir_uniform.h"
 #include "glsl_symbol_table.h"
 #include "program.h"
-#include "util/string_to_uint_map.h"
+#include "string_to_uint_map.h"
 #include "ir_array_refcount.h"
 
 /**

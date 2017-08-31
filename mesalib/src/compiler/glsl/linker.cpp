@@ -75,7 +75,7 @@
 #include "program/program.h"
 #include "util/mesa-sha1.h"
 #include "util/set.h"
-#include "util/string_to_uint_map.h"
+#include "string_to_uint_map.h"
 #include "linker.h"
 #include "link_varyings.h"
 #include "ir_optimization.h"

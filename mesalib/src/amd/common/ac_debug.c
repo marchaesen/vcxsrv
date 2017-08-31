@@ -56,7 +56,8 @@ struct ac_ib_parser {
 	FILE *f;
 	uint32_t *ib;
 	unsigned num_dw;
-	int trace_id;
+	const int *trace_ids;
+	unsigned trace_id_count;
 	enum chip_class chip_class;
 	ac_debug_addr_callback addr_callback;
 	void *addr_callback_data;
@@ -196,7 +197,8 @@ static void ac_parse_set_reg_packet(FILE *f, unsigned count, unsigned reg_offset
 		ac_dump_reg(f, reg + i*4, ac_ib_get(ib), ~0);
 }
 
-static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib)
+static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
+                             int *current_trace_id)
 {
 	unsigned first_dw = ib->cur_dw;
 	int count = PKT_COUNT_G(header);
@@ -391,6 +393,14 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib)
 		ib_recurse.ib = data;
 		ib_recurse.num_dw = G_3F2_IB_SIZE(control_dw);
 		ib_recurse.cur_dw = 0;
+		if(ib_recurse.trace_id_count) {
+			if (*current_trace_id == *ib->trace_ids) {
+				++ib_recurse.trace_ids;
+				--ib_recurse.trace_id_count;
+			} else {
+				ib_recurse.trace_id_count = 0;
+			}
+		}
 
 		fprintf(f, "\n\035>------------------ nested begin ------------------\n");
 		ac_do_parse_ib(f, &ib_recurse);
@@ -411,20 +421,22 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib)
 			print_spaces(f, INDENT_PKT);
 			fprintf(f, COLOR_RED "Trace point ID: %u\n", packet_id);
 
-			if (ib->trace_id == -1)
+			if (!ib->trace_id_count)
 				break; /* tracing was disabled */
 
+			*current_trace_id = packet_id;
+
 			print_spaces(f, INDENT_PKT);
-			if (packet_id < ib->trace_id)
+			if (packet_id < *ib->trace_ids)
 				fprintf(f, COLOR_RED
 					"This trace point was reached by the CP."
 					COLOR_RESET "\n");
-			else if (packet_id == ib->trace_id)
+			else if (packet_id == *ib->trace_ids)
 				fprintf(f, COLOR_RED
 					"!!!!! This is the last trace point that "
 					"was reached by the CP !!!!!"
 					COLOR_RESET "\n");
-			else if (packet_id+1 == ib->trace_id)
+			else if (packet_id+1 == *ib->trace_ids)
 				fprintf(f, COLOR_RED
 					"!!!!! This is the first trace point that "
 					"was NOT been reached by the CP !!!!!"
@@ -453,13 +465,15 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib)
  */
 static void ac_do_parse_ib(FILE *f, struct ac_ib_parser *ib)
 {
+	int current_trace_id = -1;
+
 	while (ib->cur_dw < ib->num_dw) {
 		uint32_t header = ac_ib_get(ib);
 		unsigned type = PKT_TYPE_G(header);
 
 		switch (type) {
 		case 3:
-			ac_parse_packet3(f, header, ib);
+			ac_parse_packet3(f, header, ib, &current_trace_id);
 			break;
 		case 2:
 			/* type-2 nop */
@@ -519,20 +533,22 @@ static void format_ib_output(FILE *f, char *out)
  * \param ib_ptr       IB
  * \param num_dw       size of the IB
  * \param chip_class   chip class
- * \param trace_id     the last trace ID that is known to have been reached
- *                     and executed by the CP, typically read from a buffer
+ * \param trace_ids	the last trace IDs that are known to have been reached
+ *			and executed by the CP, typically read from a buffer
+ * \param trace_id_count The number of entries in the trace_ids array.
  * \param addr_callback Get a mapped pointer of the IB at a given address. Can
  *                      be NULL.
  * \param addr_callback_data user data for addr_callback
  */
-void ac_parse_ib_chunk(FILE *f, uint32_t *ib_ptr, int num_dw, int trace_id,
-                       enum chip_class chip_class,
+void ac_parse_ib_chunk(FILE *f, uint32_t *ib_ptr, int num_dw, const int *trace_ids,
+		       unsigned trace_id_count, enum chip_class chip_class,
                        ac_debug_addr_callback addr_callback, void *addr_callback_data)
 {
 	struct ac_ib_parser ib = {};
 	ib.ib = ib_ptr;
 	ib.num_dw = num_dw;
-	ib.trace_id = trace_id;
+	ib.trace_ids = trace_ids;
+	ib.trace_id_count = trace_id_count;
 	ib.chip_class = chip_class;
 	ib.addr_callback = addr_callback;
 	ib.addr_callback_data = addr_callback_data;
@@ -562,20 +578,22 @@ void ac_parse_ib_chunk(FILE *f, uint32_t *ib_ptr, int num_dw, int trace_id,
  * \param ib		IB
  * \param num_dw	size of the IB
  * \param chip_class	chip class
- * \param trace_id	the last trace ID that is known to have been reached
+ * \param trace_ids	the last trace IDs that are known to have been reached
  *			and executed by the CP, typically read from a buffer
+ * \param trace_id_count The number of entries in the trace_ids array.
  * \param addr_callback Get a mapped pointer of the IB at a given address. Can
  *                      be NULL.
  * \param addr_callback_data user data for addr_callback
  */
-void ac_parse_ib(FILE *f, uint32_t *ib, int num_dw, int trace_id,
-		 const char *name, enum chip_class chip_class,
-		 ac_debug_addr_callback addr_callback, void *addr_callback_data)
+void ac_parse_ib(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids,
+		 unsigned trace_id_count, const char *name,
+		 enum chip_class chip_class, ac_debug_addr_callback addr_callback,
+		 void *addr_callback_data)
 {
 	fprintf(f, "------------------ %s begin ------------------\n", name);
 
-	ac_parse_ib_chunk(f, ib, num_dw, trace_id, chip_class, addr_callback,
-			  addr_callback_data);
+	ac_parse_ib_chunk(f, ib, num_dw, trace_ids, trace_id_count,
+			  chip_class, addr_callback,  addr_callback_data);
 
 	fprintf(f, "------------------- %s end -------------------\n\n", name);
 }

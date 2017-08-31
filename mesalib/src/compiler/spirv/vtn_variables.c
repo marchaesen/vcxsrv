@@ -599,7 +599,7 @@ vtn_type_block_size(struct vtn_type *type)
       return type->stride * glsl_get_length(type->type);
 
    default:
-      assert(!"Invalid block type");
+      unreachable("Invalid block type");
       return 0;
    }
 }
@@ -825,7 +825,7 @@ vtn_block_load(struct vtn_builder *b, struct vtn_pointer *src)
                                        &access_offset, &access_size);
       break;
    default:
-      assert(!"Invalid block variable mode");
+      unreachable("Invalid block variable mode");
    }
 
    nir_ssa_def *offset, *index = NULL;
@@ -1422,7 +1422,7 @@ vtn_storage_class_to_mode(SpvStorageClass class,
          mode = vtn_variable_mode_ssbo;
          nir_mode = 0;
       } else {
-         assert(!"Invalid uniform variable type");
+         unreachable("Invalid uniform variable type");
       }
       break;
    case SpvStorageClassStorageBuffer:
@@ -1437,7 +1437,7 @@ vtn_storage_class_to_mode(SpvStorageClass class,
          mode = vtn_variable_mode_sampler;
          nir_mode = nir_var_uniform;
       } else {
-         assert(!"Invalid uniform constant variable type");
+         unreachable("Invalid uniform constant variable type");
       }
       break;
    case SpvStorageClassPushConstant:

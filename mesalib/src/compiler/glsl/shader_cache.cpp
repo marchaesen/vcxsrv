@@ -59,7 +59,7 @@
 #include "program.h"
 #include "shader_cache.h"
 #include "util/mesa-sha1.h"
-#include "util/string_to_uint_map.h"
+#include "string_to_uint_map.h"
 
 extern "C" {
 #include "main/enums.h"

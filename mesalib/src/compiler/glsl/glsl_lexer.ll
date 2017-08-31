@@ -34,6 +34,7 @@ static int classify_identifier(struct _mesa_glsl_parse_state *, const char *);
 #define YY_NO_UNISTD_H
 #endif
 
+#define YY_NO_INPUT
 #define YY_USER_ACTION						\
    do {								\
       yylloc->first_column = yycolumn + 1;			\

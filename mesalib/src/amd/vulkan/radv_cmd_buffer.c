@@ -341,6 +341,8 @@ void radv_cmd_buffer_trace_emit(struct radv_cmd_buffer *cmd_buffer)
 		return;
 
 	va = device->ws->buffer_get_va(device->trace_bo);
+	if (cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+		va += 4;
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 7);
 

@@ -66,6 +66,7 @@ VkResult radv_CreateDescriptorSetLayout(
 
 	set_layout->binding_count = max_binding + 1;
 	set_layout->shader_stages = 0;
+	set_layout->dynamic_shader_stages = 0;
 	set_layout->size = 0;
 
 	memset(set_layout->binding, 0, size - sizeof(struct radv_descriptor_set_layout));

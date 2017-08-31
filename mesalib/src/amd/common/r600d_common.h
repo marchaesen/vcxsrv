@@ -67,6 +67,9 @@
 #define		COPY_DATA_WR_CONFIRM		(1 << 20)
 #define PKT3_EVENT_WRITE                       0x46
 #define PKT3_EVENT_WRITE_EOP                   0x47
+#define         EOP_INT_SEL(x)                          ((x) << 24)
+#define			EOP_INT_SEL_NONE			0
+#define			EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM	3
 #define         EOP_DATA_SEL(x)                         ((x) << 29)
 #define			EOP_DATA_SEL_DISCARD		0
 #define			EOP_DATA_SEL_VALUE_32BIT	1
