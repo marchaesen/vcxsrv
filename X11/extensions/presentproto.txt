@@ -13,11 +13,17 @@ window contents from a pixmap in a well defined fashion, synchronizing
 with the display refresh and potentially using a more efficient
 mechanism than copying the contents of the source pixmap.
 
-1.1. Acknowledgments
+1.1. Future Present extension versions
+
+This document includes speculation about future 'redirect' support
+within the Present extension. All such information is subject to
+change and is provided only as an aid to further Present development.
+
+1.2. Acknowledgments
 
 Eric Anholt <eric@anholt.net>
 Owen Taylor <otaylor@redhat.com>
-James Jones <janomes@nvidia.com>
+James Jones <jajones@nvidia.com>
 
 			     ❄ ❄ ❄  ❄  ❄ ❄ ❄ 
 
@@ -41,13 +47,11 @@ PRESENTNOTIFY {
 
 PRESENTEVENTTYPE { PresentConfigureNotify,
 		   PresentCompleteNotify,
-		   PresentIdleNotify,
-		   PresentRedirectNotify }
+		   PresentIdleNotify }
 
 PRESENTEVENTMASK { PresentConfigureNotifyMask,
 		   PresentCompleteNotifyMask,
-		   PresentIdleNotifyMask,
-		   PresentSubredirectNotifyMask }
+		   PresentIdleNotifyMask }
 
 PRESENTOPTION { PresentOptionAsync,
                 PresentOptionCopy,
@@ -67,6 +71,14 @@ PRESENTCOMPLETEMODE { PresentCompleteModeCopy,
 The Present extension also uses the Sync extension Fence data type to
 provide synchronization for pixmaps.
 
+2.1. Data Types proposed for a later Present extension version
+
+PRESENTEVENTTYPE { ...
+		   PresentRedirectNotify }
+
+PRESENTEVENTMASK { ...
+		   PresentSubredirectNotifyMask }
+
 			     ❄ ❄ ❄  ❄  ❄ ❄ ❄ 
 
 3. Errors
@@ -85,6 +97,8 @@ CompleteNotify events inform clients about the completion of a pending
 PresentPixmap request.
 
 IdleNotify events inform clients when pixmaps are available for re-use.
+
+5.1. Events proposed for a later Present extension version
 
 RedirectNotify events inform clients about other clients PresentPixmap
 requests.
@@ -268,7 +282,7 @@ The name of this extension is "Present"
 
 	Selects the set of Present events to be delivered for the
 	specified window and event context. PresentSelectInput can
-	create, modifiy or delete event contexts. An event context is
+	create, modify, or delete event contexts. An event context is
 	associated with a specific window; using an existing event
 	context with a different window generates a Match error.
 
@@ -280,13 +294,6 @@ The name of this extension is "Present"
 	If eventContext is an unused XID, then if eventMask is empty
 	no operation is performed. Otherwise, a new event context is
 	created selecting the specified events.
-
-	Specifying PresentSubredirectNotify Mask causes PresentPixmap
-	requests on any child of 'window' from other clients to
-	generate PresentRedirectNotify events to 'window' instead of
-	actually performing the operation. However, only one client at
-	a time can select for PresentRedirect on a window. An attempt
-	to violate this restriction results in an Access error.
 
 ┌───
     PresentQueryCapabilities
@@ -323,6 +330,25 @@ The name of this extension is "Present"
 	the request. The precise accuracy of the scanout time is not
 	defined by the extension, but is expected to be on the order
 	of milliseconds or less.
+
+
+7.1 Requests proposed for a later Present extension version
+
+	These are not part of the standard and represent future plans
+	for the Present extension.
+
+┌───
+    PresentSelectInput
+    ...
+└───
+	...
+
+	Specifying PresentSubredirectNotify Mask causes PresentPixmap
+	requests on any child of 'window' from other clients to
+	generate PresentRedirectNotify events to 'window' instead of
+	actually performing the operation. However, only one client at
+	a time can select for PresentRedirect on a window. An attempt
+	to violate this restriction results in an Access error.
 
 			     ❄ ❄ ❄  ❄  ❄ ❄ ❄ 
 
@@ -426,6 +452,8 @@ The name of this extension is "Present"
 	buffer. If not None, then the client must wait for the fence
 	to be signaled before using the pixmap.
 
+8.1. Extension Events proposed for a later Present extension version
+
 ┌───
     PresentRedirectNotify
 	type: CARD8			XGE event type (35)
@@ -527,7 +555,6 @@ A.1 Common Types
 	0	PresentConfigureNotify
 	1	PresentCompleteNotify
 	2	PresentIdleNotify
-	3	PresentRedirectNotify
 └───
 
 ┌───
@@ -535,7 +562,6 @@ A.1 Common Types
 	1	PresentConfigureNotifyMask
 	2	PresentCompleteNotifyMask
 	4	PresentIdleNotifyMask
-	8	PresentRedirectNotifyMask
 └───
 
 ┌───
@@ -569,6 +595,20 @@ A.1 Common Types
     PresentNotify
 	4	Window			window
 	4	CARD32			serial
+└───
+
+A.1.1 Common Types proposed for a later Present extension version
+
+┌───
+    PresentEventType
+	...
+	3	PresentRedirectNotify
+└───
+
+┌───
+    PresentEventMask
+	...
+	8	PresentSubredirectNotifyMask
 └───
 
 A.2 Protocol Requests
@@ -706,6 +746,8 @@ A.3 Protocol Events
 	4	SyncFence		idle-fence
 └───
 
+A.3.1 Protocol Events proposed for later Present extension version
+
 ┌───
     PresentRedirectNotify
 	1	35			XGE
@@ -740,6 +782,6 @@ A.3 Protocol Events
 
 A.4 Protocol Errors
 
-The DRI3 extension defines no errors.
+The Present extension defines no errors.
 
 			     ❄ ❄ ❄  ❄  ❄ ❄ ❄

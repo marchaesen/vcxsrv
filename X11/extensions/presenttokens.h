@@ -64,18 +64,28 @@
 #define PresentConfigureNotify	0
 #define PresentCompleteNotify	1
 #define PresentIdleNotify       2
+#if PRESENT_FUTURE_VERSION
 #define PresentRedirectNotify	3
+#endif
 
 /* Event Masks */
 #define PresentConfigureNotifyMask      1
 #define PresentCompleteNotifyMask       2
 #define PresentIdleNotifyMask           4
+#if PRESENT_FUTURE_VERSION
 #define PresentRedirectNotifyMask       8
+#endif
+
+#if PRESENT_FUTURE_VERSION
+#define PRESENT_REDIRECT_NOTIFY_MASK    PresentRedirectNotifyMask
+#else
+#define PRESENT_REDIRECT_NOTIFY_MASK    0
+#endif
 
 #define PresentAllEvents   (PresentConfigureNotifyMask |        \
                             PresentCompleteNotifyMask |         \
                             PresentIdleNotifyMask |             \
-                            PresentRedirectNotifyMask)
+                            PRESENT_REDIRECT_NOTIFY_MASK)
 
 /* Complete Kinds */
 
