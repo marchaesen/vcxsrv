@@ -308,6 +308,7 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_tree_grafting.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\opt_vectorize.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\propagate_invariance.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\string_to_uint_map.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\s_expression.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl_types.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\shader_enums.c" />
@@ -501,7 +502,6 @@
     <ClCompile Include="..\..\..\..\src\util\rgtc.c" />
     <ClCompile Include="..\..\..\..\src\util\set.c" />
     <ClCompile Include="..\..\..\..\src\util\sha1\sha1.c" />
-    <ClCompile Include="..\..\..\..\src\util\string_to_uint_map.cpp" />
     <ClCompile Include="..\..\..\..\src\util\strtod.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
