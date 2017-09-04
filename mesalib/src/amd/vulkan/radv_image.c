@@ -25,6 +25,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "radv_debug.h"
 #include "radv_private.h"
 #include "vk_format.h"
 #include "vk_util.h"

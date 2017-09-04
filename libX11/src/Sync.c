@@ -37,7 +37,7 @@ XSync (
     Bool discard)
 {
     xGetInputFocusReply rep;
-    register xReq *req;
+    _X_UNUSED register xReq *req;
 
     LockDisplay(dpy);
     GetEmptyReq(GetInputFocus, req);

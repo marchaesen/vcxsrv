@@ -195,7 +195,7 @@ XCreateFontSet (
     if (oc && def_string) {
 	*def_string = oc->core.default_string;
 	if (!*def_string)
-	    *def_string = "";
+	    *def_string = (char *)"";
     }
 
     if (oc == NULL)

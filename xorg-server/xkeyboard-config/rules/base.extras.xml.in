@@ -192,6 +192,17 @@
             </languageList>
           </configItem>
         </variant>
+	<variant>
+          <configItem>
+            <name>lld</name>
+            <_description>German Ladin</_description>
+            <_shortDescription>de_lld</_shortDescription>
+            <languageList>
+              <iso639Id>ger</iso639Id>
+              <iso639Id>lld</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -388,7 +399,7 @@
         <variant>
           <configItem>
             <name>carpalx-altgr-intl</name>
-            <_description>English (Carpalx, intl., with dead keys)</_description>
+            <_description>English (Carpalx, intl., with AltGr dead keys)</_description>
           </configItem>
         </variant>
         <variant>
@@ -406,7 +417,7 @@
         <variant>
           <configItem>
             <name>carpalx-full-altgr-intl</name>
-            <_description>English (Carpalx, full optimization, intl., with dead keys)</_description>
+            <_description>English (Carpalx, full optimization, intl., with AltGr dead keys)</_description>
           </configItem>
         </variant>
       </variantList>
@@ -531,6 +542,81 @@
           <configItem>
             <name>sun_type6</name>
             <_description>Russian (Sun Type 6/7)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>prxn</name>
+            <_shortDescription>ru</_shortDescription>
+            <_description>Russian (Polyglot and Reactionary)</_description>
+            <languageList>
+              <iso639Id>rus</iso639Id>
+              <iso639Id>rus-petr1708</iso639Id>
+              <iso639Id>ukr</iso639Id>
+              <iso639Id>bel</iso639Id>
+              <iso639Id>srp</iso639Id>
+              <iso639Id>mkd</iso639Id>
+              <iso639Id>bul</iso639Id>
+              <iso639Id>chu</iso639Id>
+              <iso639Id>rum-Cyrl</iso639Id>
+              <iso639Id>kaz</iso639Id>
+              <iso639Id>kir</iso639Id>
+              <iso639Id>uzb</iso639Id>
+              <iso639Id>bak</iso639Id>
+              <iso639Id>aze</iso639Id>
+              <iso639Id>tat</iso639Id>
+              <iso639Id>uig</iso639Id>
+              <iso639Id>kdr</iso639Id>
+              <iso639Id>tyv</iso639Id>
+              <iso639Id>kjh</iso639Id>
+              <iso639Id>crh</iso639Id>
+              <iso639Id>tgk</iso639Id>
+              <iso639Id>abk</iso639Id>
+              <iso639Id>sah</iso639Id>
+              <iso639Id>mon</iso639Id>
+              <iso639Id>kal</iso639Id>
+              <iso639Id>sjd</iso639Id>
+              <iso639Id>chv</iso639Id>
+              <iso639Id>oss</iso639Id>
+              <iso639Id>krl</iso639Id>
+              <iso639Id>ale</iso639Id>
+              <iso639Id>wbl</iso639Id>
+              <iso639Id>kur</iso639Id>
+              <iso639Id>niv</iso639Id>
+              <iso639Id>dng</iso639Id>
+              <iso639Id>kom</iso639Id>
+              <iso639Id>udm</iso639Id>
+              <iso639Id>sel</iso639Id>
+              <iso639Id>ulc</iso639Id>
+              <iso639Id>ude</iso639Id>
+              <iso639Id>oac</iso639Id>
+              <iso639Id>oaa</iso639Id>
+              <iso639Id>gld</iso639Id>
+              <iso639Id>eve</iso639Id>
+              <iso639Id>evn</iso639Id>
+              <iso639Id>kca</iso639Id>
+              <iso639Id>itl</iso639Id>
+              <iso639Id>yrk</iso639Id>
+              <iso639Id>neg</iso639Id>
+            </languageList>
+            <countryList>
+              <iso3166Id>RU</iso3166Id>
+              <iso3166Id>RS</iso3166Id>
+              <iso3166Id>BA</iso3166Id>
+              <iso3166Id>ME</iso3166Id>
+              <iso3166Id>MK</iso3166Id>
+              <iso3166Id>BG</iso3166Id>
+              <iso3166Id>MD</iso3166Id>
+              <iso3166Id>UA</iso3166Id>
+              <iso3166Id>BY</iso3166Id>
+              <iso3166Id>KZ</iso3166Id>
+              <iso3166Id>MN</iso3166Id>
+              <iso3166Id>KG</iso3166Id>
+              <iso3166Id>TJ</iso3166Id>
+              <iso3166Id>UZ</iso3166Id>
+              <iso3166Id>TM</iso3166Id>
+              <iso3166Id>AZ</iso3166Id>
+            </countryList>
           </configItem>
         </variant>
       </variantList>
@@ -698,6 +784,12 @@
             <_description>Finnish (Sun Type 6/7)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>fidvorak</name>
+            <_description>Finnish Dvorak</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -749,6 +841,17 @@
             <_description>Friulian (Italy)</_description>
             <languageList>
               <iso639Id>fur</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+	<variant>
+          <configItem>
+            <name>lld</name>
+            <_description>Italian Ladin</_description>
+            <_shortDescription>it_lld</_shortDescription>
+            <languageList>
+              <iso639Id>it</iso639Id>
+              <iso639Id>lld</iso639Id>
             </languageList>
           </configItem>
         </variant>

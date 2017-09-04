@@ -624,16 +624,16 @@ _XimPreeditCaretCallback(Xim im,
      */
     {
 	CARD8 buf[sz_ximPacketHeader + sz_ximPreeditCaretReply];
-	INT16 len = sz_XIMID + sz_XICID + sz_ximPreeditCaretReply;
+	INT16 rlen = sz_XIMID + sz_XICID + sz_ximPreeditCaretReply;
 	int p;
 
-	_XimSetHeader((XPointer)buf, XIM_PREEDIT_CARET_REPLY, 0, &len);
+	_XimSetHeader((XPointer)buf, XIM_PREEDIT_CARET_REPLY, 0, &rlen);
 	p = XIM_HEADER_SIZE;
 	*(CARD16*)&buf[p] = (CARD16)im->private.proto.imid; p += sz_CARD16;
 	*(CARD16*)&buf[p] = (CARD16)ic->private.proto.icid; p += sz_CARD16;
 	*(CARD32*)&buf[p] = (CARD32)cbs.position;
 
-	if (!(_XimWriteData(im, len, buf))) {
+	if (!(_XimWriteData(im, rlen, buf))) {
 	    return XimCbError;
 	}
 	_XimFlushData(im);

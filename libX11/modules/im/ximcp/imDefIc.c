@@ -231,10 +231,9 @@ _XimReCreateIC(ic)
 
     _XimRegisterFilter(ic);
     MARK_IC_CONNECTED(ic);
-    if (save_ic->private.proto.ic_resources)
-	Xfree(save_ic->private.proto.ic_resources);
-    if (save_ic->private.proto.ic_inner_resources)
-	Xfree(save_ic->private.proto.ic_inner_resources);
+
+    Xfree(save_ic->private.proto.ic_resources);
+    Xfree(save_ic->private.proto.ic_inner_resources);
     Xfree(save_ic);
     return True;
 
@@ -833,7 +832,7 @@ _XimDestroyICCheck(
      && (imid == im->private.proto.imid)
      && (buf_s[2] & XIM_ICID_VALID)
      && (icid == ic->private.proto.icid))
-    ret = False;
+        ret = False;
     return ret;
 }
 
@@ -845,22 +844,22 @@ _XimProtoICFree(
     Xim		 im = (Xim)ic->core.im;
 #endif
 
-    if (ic->private.proto.preedit_font) {
-	Xfree(ic->private.proto.preedit_font);
-	ic->private.proto.preedit_font = NULL;
-    }
-    if (ic->private.proto.status_font) {
-	Xfree(ic->private.proto.status_font);
-	ic->private.proto.status_font = NULL;
-    }
+
+    Xfree(ic->private.proto.preedit_font);
+    ic->private.proto.preedit_font = NULL;
+
+
+    Xfree(ic->private.proto.status_font);
+    ic->private.proto.status_font = NULL;
+
     if (ic->private.proto.commit_info) {
 	_XimFreeCommitInfo(ic);
 	ic->private.proto.commit_info = NULL;
     }
-    if (ic->private.proto.ic_inner_resources) {
-	Xfree(ic->private.proto.ic_inner_resources);
-	ic->private.proto.ic_inner_resources = NULL;
-    }
+
+    Xfree(ic->private.proto.ic_inner_resources);
+    ic->private.proto.ic_inner_resources = NULL;
+
 
 #ifdef XIM_CONNECTABLE
     if (IS_SERVER_CONNECTED(im) && IS_RECONNECTABLE(im)) {
@@ -868,18 +867,18 @@ _XimProtoICFree(
     }
 #endif /* XIM_CONNECTABLE */
 
-    if (ic->private.proto.saved_icvalues) {
-	Xfree(ic->private.proto.saved_icvalues);
-	ic->private.proto.saved_icvalues = NULL;
-    }
-    if (ic->private.proto.ic_resources) {
-	Xfree(ic->private.proto.ic_resources);
-	ic->private.proto.ic_resources = NULL;
-    }
-    if (ic->core.hotkey) {
-	Xfree(ic->core.hotkey);
-	ic->core.hotkey = NULL;
-    }
+
+    Xfree(ic->private.proto.saved_icvalues);
+    ic->private.proto.saved_icvalues = NULL;
+
+
+    Xfree(ic->private.proto.ic_resources);
+    ic->private.proto.ic_resources = NULL;
+
+
+    Xfree(ic->core.hotkey);
+    ic->core.hotkey = NULL;
+
 
     return;
 }

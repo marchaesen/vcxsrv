@@ -353,3 +353,17 @@ partial alphanumeric_keys
 
 };
 
+partial alphanumeric_keys
+    xkb_symbols "lld" {
+    include "it(basic)"
+    name[Group1] = "Italian Ladin";
+
+    key <AD08> { [ i, I, idiaeresis, Idiaeresis ] };
+    key <AD10> { [ p, P, ediaeresis, Ediaeresis ] };
+
+    key <AC01> { [ a, A, aacute, Aacute ] };
+    key <AC02> { [ s, S, sacute, Sacute ] };
+
+    key <AB03> { [ c, C, cacute, Cacute ] };
+
+};

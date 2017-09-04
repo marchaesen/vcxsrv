@@ -111,7 +111,7 @@ radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags)
 	if (debug_flags & RADV_DEBUG_NO_IBS)
 		ws->use_ib_bos = false;
 
-	ws->batchchain = !!(perftest_flags & RADV_PERFTEST_BATCHCHAIN);
+	ws->batchchain = !(perftest_flags & RADV_PERFTEST_NO_BATCHCHAIN);
 	LIST_INITHEAD(&ws->global_bo_list);
 	pthread_mutex_init(&ws->global_bo_list_lock, NULL);
 	ws->base.query_info = radv_amdgpu_winsys_query_info;

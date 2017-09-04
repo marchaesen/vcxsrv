@@ -155,12 +155,19 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
     *   to <samples> and no more than the next larger sample count supported
     *   by the implementation.
     *
-    * So let's find the supported number of samples closest to NumSamples.
+    * Find the supported number of samples >= rb->NumSamples
     */
    if (rb->NumSamples > 0) {
-      unsigned i;
+      unsigned start, i;
 
-      for (i = MAX2(2, rb->NumSamples); i <= ctx->Const.MaxSamples; i++) {
+      if (ctx->Const.MaxSamples > 1 &&  rb->NumSamples == 1) {
+         /* don't try num_samples = 1 with drivers that support real msaa */
+         start = 2;
+      } else {
+         start = rb->NumSamples;
+      }
+
+      for (i = start; i <= ctx->Const.MaxSamples; i++) {
          format = st_choose_renderbuffer_format(st, internalFormat, i);
 
          if (format != PIPE_FORMAT_NONE) {

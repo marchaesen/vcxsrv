@@ -157,6 +157,19 @@ def check_header(env, header):
     env = conf.Finish()
     return have_header
 
+def check_functions(env, functions):
+    '''Check if all of the functions exist'''
+
+    conf = SCons.Script.Configure(env)
+    have_functions = True
+
+    for function in functions:
+        if not conf.CheckFunc(function):
+            have_functions = False
+
+    env = conf.Finish()
+    return have_functions
+
 def check_prog(env, prog):
     """Check whether this program exists."""
 
@@ -338,6 +351,9 @@ def generate(env):
 
         if check_header(env, 'xlocale.h'):
             cppdefines += ['HAVE_XLOCALE_H']
+
+        if check_functions(env, ['strtod_l', 'strtof_l']):
+            cppdefines += ['HAVE_STRTOD_L']
 
     if platform == 'windows':
         cppdefines += [

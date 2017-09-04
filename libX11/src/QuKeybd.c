@@ -39,7 +39,7 @@ XQueryKeymap(
     char keys[32])
 {
     xQueryKeymapReply rep;
-    register xReq *req;
+    _X_UNUSED register xReq *req;
 
     LockDisplay(dpy);
     GetEmptyReq(QueryKeymap, req);

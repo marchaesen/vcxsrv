@@ -1242,9 +1242,9 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
 		struct radv_attachment_info *att = &framebuffer->attachments[idx];
 		struct radv_image *image = att->attachment->image;
 		cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, att->attachment->bo, 8);
-		uint32_t queue_mask = radv_image_queue_family_mask(image,
-		                                                   cmd_buffer->queue_family_index,
-		                                                   cmd_buffer->queue_family_index);
+		MAYBE_UNUSED uint32_t queue_mask = radv_image_queue_family_mask(image,
+										cmd_buffer->queue_family_index,
+										cmd_buffer->queue_family_index);
 		/* We currently don't support writing decompressed HTILE */
 		assert(radv_layout_has_htile(image, layout, queue_mask) ==
 		       radv_layout_is_htile_compressed(image, layout, queue_mask));
@@ -1990,6 +1990,7 @@ VkResult radv_BeginCommandBuffer(
 
 	memset(&cmd_buffer->state, 0, sizeof(cmd_buffer->state));
 	cmd_buffer->state.last_primitive_reset_en = -1;
+	cmd_buffer->usage_flags = pBeginInfo->flags;
 
 	/* setup initial configuration into command buffer */
 	if (cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_PRIMARY) {

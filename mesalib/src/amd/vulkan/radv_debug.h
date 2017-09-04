@@ -24,6 +24,8 @@
 #ifndef RADV_DEBUG_H
 #define RADV_DEBUG_H
 
+#include "radv_private.h"
+
 enum {
 	RADV_DEBUG_NO_FAST_CLEARS    =   0x1,
 	RADV_DEBUG_NO_DCC            =   0x2,
@@ -35,10 +37,21 @@ enum {
 	RADV_DEBUG_UNSAFE_MATH       =  0x80,
 	RADV_DEBUG_ALL_BOS           = 0x100,
 	RADV_DEBUG_NO_IBS            = 0x200,
+	RADV_DEBUG_DUMP_SPIRV        = 0x400,
 };
 
 enum {
-	RADV_PERFTEST_BATCHCHAIN     =   0x1,
+	RADV_PERFTEST_NO_BATCHCHAIN  =   0x1,
 	RADV_PERFTEST_SISCHED        =   0x2,
 };
+
+bool
+radv_init_trace(struct radv_device *device);
+
+void
+radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_winsys_cs *cs);
+
+void
+radv_print_spirv(struct radv_shader_module *module, FILE *fp);
+
 #endif

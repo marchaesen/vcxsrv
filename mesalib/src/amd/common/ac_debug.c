@@ -34,6 +34,8 @@
 #define VG(x)
 #endif
 
+#include <inttypes.h>
+
 #include "sid.h"
 #include "gfx9d.h"
 #include "sid_tables.h"
@@ -596,4 +598,111 @@ void ac_parse_ib(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids,
 			  chip_class, addr_callback,  addr_callback_data);
 
 	fprintf(f, "------------------- %s end -------------------\n\n", name);
+}
+
+/**
+ * Parse dmesg and return TRUE if a VM fault has been detected.
+ *
+ * \param chip_class		chip class
+ * \param old_dmesg_timestamp	previous dmesg timestamp parsed at init time
+ * \param out_addr		detected VM fault addr
+ */
+bool ac_vm_fault_occured(enum chip_class chip_class,
+			 uint64_t *old_dmesg_timestamp, uint64_t *out_addr)
+{
+	char line[2000];
+	unsigned sec, usec;
+	int progress = 0;
+	uint64_t dmesg_timestamp = 0;
+	bool fault = false;
+
+	FILE *p = popen("dmesg", "r");
+	if (!p)
+		return false;
+
+	while (fgets(line, sizeof(line), p)) {
+		char *msg, len;
+
+		if (!line[0] || line[0] == '\n')
+			continue;
+
+		/* Get the timestamp. */
+		if (sscanf(line, "[%u.%u]", &sec, &usec) != 2) {
+			static bool hit = false;
+			if (!hit) {
+				fprintf(stderr, "%s: failed to parse line '%s'\n",
+					__func__, line);
+				hit = true;
+			}
+			continue;
+		}
+		dmesg_timestamp = sec * 1000000ull + usec;
+
+		/* If just updating the timestamp. */
+		if (!out_addr)
+			continue;
+
+		/* Process messages only if the timestamp is newer. */
+		if (dmesg_timestamp <= *old_dmesg_timestamp)
+			continue;
+
+		/* Only process the first VM fault. */
+		if (fault)
+			continue;
+
+		/* Remove trailing \n */
+		len = strlen(line);
+		if (len && line[len-1] == '\n')
+			line[len-1] = 0;
+
+		/* Get the message part. */
+		msg = strchr(line, ']');
+		if (!msg)
+			continue;
+		msg++;
+
+		const char *header_line, *addr_line_prefix, *addr_line_format;
+
+		if (chip_class >= GFX9) {
+			/* Match this:
+			 * ..: [gfxhub] VMC page fault (src_id:0 ring:158 vm_id:2 pas_id:0)
+			 * ..:   at page 0x0000000219f8f000 from 27
+			 * ..: VM_L2_PROTECTION_FAULT_STATUS:0x0020113C
+			 */
+			header_line = "VMC page fault";
+			addr_line_prefix = "   at page";
+			addr_line_format = "%"PRIx64;
+		} else {
+			header_line = "GPU fault detected:";
+			addr_line_prefix = "VM_CONTEXT1_PROTECTION_FAULT_ADDR";
+			addr_line_format = "%"PRIX64;
+		}
+
+		switch (progress) {
+		case 0:
+			if (strstr(msg, header_line))
+				progress = 1;
+			break;
+		case 1:
+			msg = strstr(msg, addr_line_prefix);
+			if (msg) {
+				msg = strstr(msg, "0x");
+				if (msg) {
+					msg += 2;
+					if (sscanf(msg, addr_line_format, out_addr) == 1)
+						fault = true;
+				}
+			}
+			progress = 0;
+			break;
+		default:
+			progress = 0;
+		}
+	}
+	pclose(p);
+
+	if (dmesg_timestamp > *old_dmesg_timestamp)
+		*old_dmesg_timestamp = dmesg_timestamp;
+
+	return fault;
 }

@@ -78,6 +78,7 @@ create(
     return lcd;
 
 err:
+    Xfree(lcd->core);
     Xfree(lcd);
     return (XLCd) NULL;
 }
@@ -1028,10 +1029,8 @@ freeByteM(
     }
     blst = codeset->byteM;
     for (i = 0; i < codeset->length; i++) {
-	if (blst[i].byteinfo) {
 	    Xfree(blst[i].byteinfo);
 	    blst[i].byteinfo = NULL;
-	}
     }
     Xfree(codeset->byteM);
     codeset->byteM = NULL;
@@ -1045,20 +1044,18 @@ freeConversion(
     if (codeset->mbconv) {
 	mbconv = codeset->mbconv;
 	/*  ...  */
-	if (mbconv->convlist) {
-	    Xfree(mbconv->convlist);
-	    mbconv->convlist = NULL;
-	}
+	Xfree(mbconv->convlist);
+	mbconv->convlist = NULL;
+
 	Xfree(mbconv);
 	codeset->mbconv = NULL;
     }
     if (codeset->ctconv) {
 	ctconv = codeset->ctconv;
 	/*  ...  */
-	if (ctconv->convlist) {
-	    Xfree(ctconv->convlist);
-	    ctconv->convlist = NULL;
-	}
+	Xfree(ctconv->convlist);
+	ctconv->convlist = NULL;
+	
 	Xfree(ctconv);
 	codeset->ctconv = NULL;
     }
@@ -1073,14 +1070,12 @@ freeExtdSegment(
 	return;
     }
     ctextseg = codeset->ctextseg;
-    if (ctextseg->name) {
-	Xfree(ctextseg->name);
-	ctextseg->name = NULL;
-    }
-    if (ctextseg->area) {
-	Xfree(ctextseg->area);
-	ctextseg->area = NULL;
-    }
+    Xfree(ctextseg->name);
+    ctextseg->name = NULL;
+
+    Xfree(ctextseg->area);
+    ctextseg->area = NULL;
+
     Xfree(codeset->ctextseg);
     codeset->ctextseg = NULL;
 }
@@ -1094,10 +1089,10 @@ freeParseInfo(
 	return;
     }
     parse_info = codeset->parse_info;
-    if (parse_info->encoding) {
-	Xfree(parse_info->encoding);
-	parse_info->encoding = NULL;
-    }
+
+    Xfree(parse_info->encoding);
+    parse_info->encoding = NULL;
+
     Xfree(codeset->parse_info);
     codeset->parse_info = NULL;
 }
@@ -1116,10 +1111,10 @@ destroy_CodeSetList(
 	freeConversion(codeset[i]);
 	freeExtdSegment(codeset[i]);
 	freeParseInfo(codeset[i]);
-	if (codeset[i]->charset_list) {
-	    Xfree(codeset[i]->charset_list);
-	    codeset[i]->charset_list = NULL;
-	}
+
+	Xfree(codeset[i]->charset_list);
+	codeset[i]->charset_list = NULL;
+
 	Xfree(codeset[i]); codeset[i]=NULL;
     }
     Xfree(codeset); gen->codeset_list = NULL;
@@ -1131,21 +1126,20 @@ destroy_SegConv(
 {
     SegConv seg = gen->segment_conv;
     int i;
+
     if (gen->segment_conv_num == 0) {
 	return;
     }
     for (i=0;i<gen->segment_conv_num;i++) {
-	if (seg[i].source_encoding) {
+
 	    Xfree(seg[i].source_encoding);
 	    seg[i].source_encoding = NULL;
-	}
-	if (seg[i].destination_encoding) {
+
 	    Xfree(seg[i].destination_encoding);
 	    seg[i].destination_encoding = NULL;
-	}
-	if (seg[i].conv) {
-	    Xfree(seg[i].conv); seg[i].conv = NULL;
-	}
+
+	    Xfree(seg[i].conv);
+            seg[i].conv = NULL;
     }
     Xfree(seg); gen->segment_conv = NULL;
 }
@@ -1157,14 +1151,13 @@ destroy_gen(
     XLCdGenericPart *gen = XLC_GENERIC_PART(lcd);
     destroy_SegConv(gen);
     destroy_CodeSetList(gen);
-    if (gen->mb_parse_table) {
-	Xfree(gen->mb_parse_table);
-	gen->mb_parse_table = NULL;
-    }
-    if (gen->mb_parse_list) {
-	Xfree(gen->mb_parse_list);
-	gen->mb_parse_list = NULL;
-    }
+
+    Xfree(gen->mb_parse_table);
+    gen->mb_parse_table = NULL;
+
+    Xfree(gen->mb_parse_list);
+    gen->mb_parse_list = NULL;
+
 }
 /* VW/UDC end 95.01.08 */
 

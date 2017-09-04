@@ -1021,19 +1021,19 @@ cstoct(
            ) {
             while (csstr_len > 0 && ct_len > 0) {
                 unsigned char ch = * (const unsigned char *) csptr;
-                int char_size = (ch < 0xc0 ? 1 :
+                int ch_size = (ch < 0xc0 ? 1 :
                                  ch < 0xe0 ? 2 :
                                  ch < 0xf0 ? 3 :
                                  ch < 0xf8 ? 4 :
                                  ch < 0xfc ? 5 :
                                              6);
                 int i;
-                if (!(csstr_len >= char_size && ct_len >= char_size))
+                if (!(csstr_len >= ch_size && ct_len >= ch_size))
                     break;
-                for (i = char_size; i > 0; i--)
+                for (i = ch_size; i > 0; i--)
                     *ctptr++ = *csptr++;
-                csstr_len -= char_size;
-                ct_len -= char_size;
+                csstr_len -= ch_size;
+                ct_len -= ch_size;
             }
         } else {
             while (csstr_len > 0 && ct_len > 0) {

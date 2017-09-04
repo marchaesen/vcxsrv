@@ -98,6 +98,7 @@ create(
     return lcd;
 
 err:
+    Xfree(lcd->core);
     Xfree(lcd);
     return (XLCd) NULL;
 }

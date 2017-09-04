@@ -1046,17 +1046,15 @@ void st_init_extensions(struct pipe_screen *screen,
                                      void_formats, 32,
                                      PIPE_BIND_RENDER_TARGET);
    }
-   if (consts->MaxSamples == 1) {
-      /* one sample doesn't really make sense */
-      consts->MaxSamples = 0;
-   }
-   else if (consts->MaxSamples >= 2) {
+
+   if (consts->MaxSamples >= 2) {
+      /* Real MSAA support */
       extensions->EXT_framebuffer_multisample = GL_TRUE;
       extensions->EXT_framebuffer_multisample_blit_scaled = GL_TRUE;
    }
-
-   if (consts->MaxSamples == 0 &&
-       screen->get_param(screen, PIPE_CAP_FAKE_SW_MSAA)) {
+   else if (consts->MaxSamples > 0 &&
+            screen->get_param(screen, PIPE_CAP_FAKE_SW_MSAA)) {
+      /* fake MSAA support */
       consts->FakeSWMSAA = GL_TRUE;
       extensions->EXT_framebuffer_multisample = GL_TRUE;
       extensions->EXT_framebuffer_multisample_blit_scaled = GL_TRUE;

@@ -1050,11 +1050,10 @@ set_grab(struct xwl_seat *xwl_seat, struct xwl_window *xwl_window)
         release_grab (xwl_seat);
 
     xwl_screen = xwl_seat->xwl_screen;
-    if (xwl_screen->wp_grab)
-        xwl_seat->keyboard_grab =
-            zwp_xwayland_keyboard_grab_manager_v1_grab_keyboard(xwl_screen->wp_grab,
-                                                                xwl_window->surface,
-                                                                xwl_seat->seat);
+    xwl_seat->keyboard_grab =
+        zwp_xwayland_keyboard_grab_manager_v1_grab_keyboard(xwl_screen->wp_grab,
+                                                            xwl_window->surface,
+                                                            xwl_seat->seat);
 }
 
 static void
@@ -1197,14 +1196,18 @@ init_keyboard(struct xwl_seat *xwl_seat)
     EnableDevice(xwl_seat->keyboard, TRUE);
     xwl_seat->keyboard->key->xkbInfo->checkRepeat = keyboard_check_repeat;
 
-    master = GetMaster(xwl_seat->keyboard, MASTER_KEYBOARD);
-    if (master)
-        setup_keyboard_grab_handler(master);
+    if (xwl_seat->xwl_screen->wp_grab) {
+        /* We have Xwayland grab protocol supported by the compositor */
+        master = GetMaster(xwl_seat->keyboard, MASTER_KEYBOARD);
+        if (master)
+            setup_keyboard_grab_handler(master);
+    }
 }
 
 static void
 release_keyboard(struct xwl_seat *xwl_seat)
 {
+    release_grab(xwl_seat);
     wl_keyboard_release(xwl_seat->wl_keyboard);
     xwl_seat->wl_keyboard = NULL;
 
@@ -1257,7 +1260,6 @@ seat_handle_capabilities(void *data, struct wl_seat *seat,
     if (caps & WL_SEAT_CAPABILITY_KEYBOARD && xwl_seat->wl_keyboard == NULL) {
         init_keyboard(xwl_seat);
     } else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && xwl_seat->wl_keyboard) {
-        release_grab(xwl_seat);
         release_keyboard(xwl_seat);
     }
 
@@ -2401,10 +2403,21 @@ static void
 init_keyboard_grab(struct xwl_screen *xwl_screen,
                    uint32_t id, uint32_t version)
 {
+    struct xwl_seat *xwl_seat;
+    DeviceIntPtr master;
+
     xwl_screen->wp_grab =
          wl_registry_bind(xwl_screen->registry, id,
                           &zwp_xwayland_keyboard_grab_manager_v1_interface,
                           1);
+
+    xorg_list_for_each_entry(xwl_seat, &xwl_screen->seat_list, link) {
+        if (xwl_seat->keyboard) {
+            master = GetMaster(xwl_seat->keyboard, MASTER_KEYBOARD);
+            if (master)
+                setup_keyboard_grab_handler(master);
+        }
+    }
 }
 
 static void

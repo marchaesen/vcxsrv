@@ -69,7 +69,7 @@ mesa git version
 mkfontscale git version
 openssl-1.1.0f
 pixman git version
-presentproto-1.0
+presentproto-1.1
 pthreads-w32 cvs version
 randrproto git version
 recordproto-1.14.2

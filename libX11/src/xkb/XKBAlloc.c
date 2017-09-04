@@ -216,24 +216,22 @@ XkbFreeNames(XkbDescPtr xkb, unsigned which, Bool freeMap)
 
             type = map->types;
             for (i = 0; i < map->num_types; i++, type++) {
-                if (type->level_names != NULL) {
                     _XkbFree(type->level_names);
                     type->level_names = NULL;
-                }
             }
         }
     }
-    if ((which & XkbKeyNamesMask) && (names->keys != NULL)) {
+    if (which & XkbKeyNamesMask) {
         _XkbFree(names->keys);
         names->keys = NULL;
         names->num_keys = 0;
     }
-    if ((which & XkbKeyAliasesMask) && (names->key_aliases)) {
+    if (which & XkbKeyAliasesMask) {
         _XkbFree(names->key_aliases);
         names->key_aliases = NULL;
         names->num_key_aliases = 0;
     }
-    if ((which & XkbRGNamesMask) && (names->radio_groups)) {
+    if (which & XkbRGNamesMask) {
         _XkbFree(names->radio_groups);
         names->radio_groups = NULL;
         names->num_rg = 0;

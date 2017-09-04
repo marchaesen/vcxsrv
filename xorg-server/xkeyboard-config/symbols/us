@@ -822,7 +822,7 @@ partial alphanumeric_keys
 xkb_symbols "altgr-intl" {
 
    include "us(intl)"
-   name[Group1]= "English (intl., with dead keys)";
+   name[Group1]= "English (intl., with AltGr dead keys)";
 
 // five dead keys moved into level3:
 
@@ -1517,7 +1517,7 @@ partial alphanumeric_keys
 xkb_symbols "carpalx-altgr-intl" {
 
    include "us(carpalx-intl)"
-   name[Group1]= "English (Carpalx, intl., with dead keys)";
+   name[Group1]= "English (Carpalx, intl., with AltGr dead keys)";
 
 // five dead keys moved into level3:
 
@@ -1583,7 +1583,7 @@ partial alphanumeric_keys
 xkb_symbols "carpalx-full-altgr-intl" {
 
    include "us(carpalx-altgr-intl)"
-   name[Group1]= "English (Carpalx, full optimization, intl., with dead keys)";
+   name[Group1]= "English (Carpalx, full optimization, intl., with AltGr dead keys)";
 
     key <AD06> { [	   b,          B,    idiaeresis,       Idiaeresis ] };
     key <AD07> { [	   y,          Y,    adiaeresis,       Adiaeresis ] };

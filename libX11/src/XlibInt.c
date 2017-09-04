@@ -216,7 +216,7 @@ void _XSeqSyncFunction(
     register Display *dpy)
 {
     xGetInputFocusReply rep;
-    register xReq *req;
+    _X_UNUSED register xReq *req;
 
     if ((X_DPY_GET_REQUEST(dpy) - X_DPY_GET_LAST_REQUEST_READ(dpy)) >= (65535 - BUFSIZE/SIZEOF(xReq))) {
 	GetEmptyReq(GetInputFocus, req);
@@ -1258,7 +1258,7 @@ _XWireToEvent(
  * _XDefaultIOError - Default fatal system error reporting routine.  Called
  * when an X internal system error is encountered.
  */
-int _XDefaultIOError(
+_X_NORETURN int _XDefaultIOError(
 	Display *dpy)
 {
 	if (ECHECK(EPIPE)) {

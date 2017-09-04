@@ -795,6 +795,27 @@ AC_CHECK_HEADER([sys/sysctl.h], [DEFINES="$DEFINES -DHAVE_SYS_SYSCTL_H"])
 AC_CHECK_FUNC([strtof], [DEFINES="$DEFINES -DHAVE_STRTOF"])
 AC_CHECK_FUNC([mkostemp], [DEFINES="$DEFINES -DHAVE_MKOSTEMP"])
 
+AC_MSG_CHECKING([whether strtod has locale support])
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
+    #define _GNU_SOURCE
+    #include <stdlib.h>
+    #include <locale.h>
+    #ifdef HAVE_XLOCALE_H
+    #include <xlocale.h>
+    #endif
+    int main() {
+       locale_t loc = newlocale(LC_CTYPE_MASK, "C", NULL);
+       const char *s = "1.0";
+       char *end;
+       double d = strtod_l(s, end, loc);
+       float f = strtof_l(s, end, loc);
+       freelocale(loc);
+       return 0;
+    }]])],
+  [DEFINES="$DEFINES -DHAVE_STRTOD_L"];
+   AC_MSG_RESULT([yes]),
+   AC_MSG_RESULT([no]))
+
 dnl Check to see if dlopen is in default libraries (like Solaris, which
 dnl has it in libc), or if libdl is needed to get it.
 AC_CHECK_FUNC([dlopen], [DEFINES="$DEFINES -DHAVE_DLOPEN"],
