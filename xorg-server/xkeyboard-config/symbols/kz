@@ -221,6 +221,7 @@ xkb_symbols "ext" {
 
 key.type[group1] = "FOUR_LEVEL_ALPHABETIC";
 
+    key <TLDE> { [ Cyrillic_io,             Cyrillic_IO,             grave,  asciitilde ] };
     key <AE01> { [ quotedbl,                exclam,                  1,      exclam ] };
     key <AE02> { [ Cyrillic_schwa,          Cyrillic_SCHWA,          2,      at ] };
     key <AE03> { [ Ukrainian_i,             Ukrainian_I,             3,      numbersign ] };
@@ -233,4 +234,12 @@ key.type[group1] = "FOUR_LEVEL_ALPHABETIC";
     key <AE10> { [ Cyrillic_ka_descender,   Cyrillic_KA_descender,   0,      parenright ] };
     key <AE11> { [ Cyrillic_o_bar,          Cyrillic_O_bar,          minus,  underscore  ] };
     key <AE12> { [ Cyrillic_shha,           Cyrillic_SHHA,           equal,  plus ] };
+    key <BKSL> { [ backslash,               slash,                   bar,    brokenbar ] };
+    key <AD11> { [ Cyrillic_ha,             Cyrillic_HA,             bracketleft,  braceleft ] };
+    key <AD12> { [ Cyrillic_hardsign,       Cyrillic_HARDSIGN,       bracketright, braceright ] };
+    key <AC11> { [ Cyrillic_e,              Cyrillic_E,              apostrophe ] };
+    key <AB08> { [ Cyrillic_be,             Cyrillic_BE,             less    ] };
+    key <AB09> { [ Cyrillic_yu,             Cyrillic_YU,             greater ] };
+
+   include "level3(ralt_switch)"
 };

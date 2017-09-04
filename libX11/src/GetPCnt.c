@@ -38,7 +38,7 @@ XGetPointerControl(
      int *threshold)
 {
     xGetPointerControlReply rep;
-    xReq *req;
+    _X_UNUSED xReq *req;
     LockDisplay(dpy);
     GetEmptyReq(GetPointerControl, req);
     (void) _XReply (dpy, (xReply *)&rep, 0, xTrue);

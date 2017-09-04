@@ -40,7 +40,7 @@ XGetScreenSaver(
 
 {
     xGetScreenSaverReply rep;
-    register xReq *req;
+    _X_UNUSED register xReq *req;
     LockDisplay(dpy);
     GetEmptyReq(GetScreenSaver, req);
 

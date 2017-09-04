@@ -45,7 +45,7 @@ int XGetPointerMapping (
     unsigned char mapping[256];	/* known fixed size */
     unsigned long nbytes, remainder = 0;
     xGetPointerMappingReply rep;
-    register xReq *req;
+    _X_UNUSED register xReq *req;
 
     LockDisplay(dpy);
     GetEmptyReq(GetPointerMapping, req);

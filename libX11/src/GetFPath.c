@@ -42,7 +42,7 @@ char **XGetFontPath(
 	int count = 0;
 	register unsigned i;
 	register int length;
-	register xReq *req;
+	_X_UNUSED register xReq *req;
 
 	LockDisplay(dpy);
 	GetEmptyReq (GetFontPath, req);

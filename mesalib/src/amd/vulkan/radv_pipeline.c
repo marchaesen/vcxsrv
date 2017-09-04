@@ -27,6 +27,7 @@
 
 #include "util/mesa-sha1.h"
 #include "util/u_atomic.h"
+#include "radv_debug.h"
 #include "radv_private.h"
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
@@ -206,6 +207,9 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		uint32_t *spirv = (uint32_t *) module->data;
 		assert(module->size % 4 == 0);
 
+		if (device->debug_flags & RADV_DEBUG_DUMP_SPIRV)
+			radv_print_spirv(module, stderr);
+
 		uint32_t num_spec_entries = 0;
 		struct nir_spirv_specialization *spec_entries = NULL;
 		if (spec_info && spec_info->mapEntryCount > 0) {
@@ -320,8 +324,19 @@ static void radv_dump_pipeline_stats(struct radv_device *device, struct radv_pip
 	struct ac_shader_config *conf;
 	int i;
 	FILE *file = stderr;
-	unsigned max_simd_waves = 10;
+	unsigned max_simd_waves;
 	unsigned lds_per_wave = 0;
+
+	switch (device->physical_device->rad_info.family) {
+	/* These always have 8 waves: */
+	case CHIP_POLARIS10:
+	case CHIP_POLARIS11:
+	case CHIP_POLARIS12:
+		max_simd_waves = 8;
+		break;
+	default:
+		max_simd_waves = 10;
+	}
 
 	for (i = 0; i < MESA_SHADER_STAGES; i++) {
 		if (!pipeline->shaders[i])

@@ -700,10 +700,7 @@ Status _XReply(Display *dpy, xReply *rep, int extra, Bool discard)
 	/* it's not an error, but we don't have a reply, so it's an I/O
 	 * error. */
 	if(!reply)
-	{
 		_XIOError(dpy);
-		return 0;
-	}
 
 	/* there's no error and we have a reply. */
 	dpy->xcb->reply_data = reply;

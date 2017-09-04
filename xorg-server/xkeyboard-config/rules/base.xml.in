@@ -40,7 +40,7 @@
     <model>
       <configItem>
         <name>latitude</name>
-        <_description>Dell Latutude laptop</_description>
+        <_description>Dell Latitude laptop</_description>
         <vendor>Dell</vendor>
       </configItem>
     </model>
@@ -1426,7 +1426,7 @@
         <variant>
           <configItem>
             <name>altgr-intl</name>
-            <_description>English (intl., with dead keys)</_description>
+            <_description>English (intl., with AltGr dead keys)</_description>
             <languageList>
               <iso639Id>eng</iso639Id>
               <iso639Id>fra</iso639Id>
@@ -2234,7 +2234,7 @@
         <variant>
           <configItem>
             <name>alternatequotes</name>
-            <_description>Bosnian (with guillements)</_description>
+            <_description>Bosnian (with guillemets)</_description>
           </configItem>
         </variant>
         <variant>
@@ -2706,7 +2706,7 @@
         <variant>
           <configItem>
             <name>alternatequotes</name>
-            <_description>Croatian (with guillements)</_description>
+            <_description>Croatian (with guillemets)</_description>
           </configItem>
         </variant>
         <variant>
@@ -4613,7 +4613,7 @@
         <variant>
           <configItem>
             <name>phonetic_fr</name>
-            <_description>Russian Russian (phonetic, French)</_description>
+            <_description>Russian (phonetic, French)</_description>
           </configItem>
         </variant>
       </variantList>
@@ -4696,7 +4696,7 @@
         <variant>
           <configItem>
             <name>alternatequotes</name>
-            <_description>Slovenian (with guillements)</_description>
+            <_description>Slovenian (with guillemets)</_description>
           </configItem>
         </variant>
         <variant>
@@ -6001,7 +6001,7 @@
       <configItem>
         <name>my</name>
         <shortDescription>ms</shortDescription>
-        <description>Malay (Jawi)</description>
+        <description>Malay (Jawi, Arabic Keyboard)</description>
         <languageList>
           <iso639Id>ind</iso639Id>
           <iso639Id>msa</iso639Id>
@@ -6012,7 +6012,14 @@
           <iso639Id>mfa</iso639Id>
         </languageList>
       </configItem>
-      <variantList></variantList>
+      <variantList>
+       <variant>
+         <configItem>
+          <name>phonetic</name>
+            <description>Malay (Jawi, phonetic)</description>
+         </configItem>
+       </variant>
+      </variantList>
     </layout>
   </layoutList>
   <optionList>
@@ -6506,7 +6513,7 @@
       <!-- Select a keypad KPDL variant -->
       <configItem>
         <name>kpdl</name>
-        <_description>Numeric keypad Delete behaviour</_description>
+        <_description>Numeric keypad Delete behavior</_description>
       </configItem>
       <option>
         <configItem>
@@ -7088,19 +7095,19 @@
       <option>
         <configItem>
           <name>nbsp:level4</name>
-          <_description>Non-breaking space at the 4th lever</_description>
+          <_description>Non-breaking space at the 4th level</_description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>nbsp:level4n</name>
-          <_description>Non-breaking space at the 4th lever, thin non-breaking space at the 6th level</_description>
+          <_description>Non-breaking space at the 4th level, thin non-breaking space at the 6th level</_description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>nbsp:level4nl</name>
-          <_description>Non-breaking space at the 4th lever, thin non-breaking space at the 6th level (via Ctrl+Shift)</_description>
+          <_description>Non-breaking space at the 4th level, thin non-breaking space at the 6th level (via Ctrl+Shift)</_description>
         </configItem>
       </option>
       <option>
@@ -7142,7 +7149,7 @@
       <option>
         <configItem>
           <name>nbsp:zwnj2nb3nnb4</name>
-          <_description>Zero-width non-joiner at the 2nd level, non-breaking space at the 3rd level, thin non-breakable space at the 4th level</_description>
+          <_description>Zero-width non-joiner at the 2nd level, non-breaking space at the 3rd level, thin non-breaking space at the 4th level</_description>
         </configItem>
       </option>
       <option>

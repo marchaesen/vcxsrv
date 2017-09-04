@@ -1617,15 +1617,14 @@ free_fontdataOM(
     FontData	font_data,
     int		font_data_count)
 {
+    if (!font_data)
+	return;
+
     for( ; font_data_count-- ; font_data++) {
-	if(font_data->name){
 	    Xfree(font_data->name);
 	    font_data->name = NULL;
-	}
-	if(font_data->scopes){
 	    Xfree(font_data->scopes);
 	    font_data->scopes = NULL;
-	}
     }
 }
 
@@ -1639,51 +1638,41 @@ close_om(
 
     if ((data = gen->data)) {
 	for (count = gen->data_num; count-- > 0; data++) {
-	    if (data->charset_list){
 		Xfree(data->charset_list);
 		data->charset_list = NULL;
-	    }
+	
 	    /* free font_data for om */
-	    if (data->font_data) {
 		free_fontdataOM(data->font_data,data->font_data_count);
 		Xfree(data->font_data);
 		data->font_data = NULL;
-	    }
+
 	    /* free substitute for om */
-	    if (data->substitute) {
 		free_fontdataOM(data->substitute,data->substitute_num);
 		Xfree(data->substitute);
 		data->substitute = NULL;
-	    }
+
 	    /* free vmap for om */
-	    if (data->vmap) {
 		free_fontdataOM(data->vmap,data->vmap_num);
 		Xfree(data->vmap);
 		data->vmap = NULL;
-	    }
+
 	    /* free vrotate for om */
-	    if (data->vrotate) {
 		Xfree(data->vrotate);
 		data->vrotate = NULL;
-	    }
 	}
 	Xfree(gen->data);
 	gen->data = NULL;
     }
 
-    if (gen->object_name){
 	Xfree(gen->object_name);
 	gen->object_name = NULL;
-    }
 
-    if (om->core.res_name){
 	Xfree(om->core.res_name);
 	om->core.res_name = NULL;
-    }
-    if (om->core.res_class){
+
 	Xfree(om->core.res_class);
 	om->core.res_class = NULL;
-    }
+
     if (om->core.required_charset.charset_list &&
 	om->core.required_charset.charset_count > 0){
 	XFreeStringList(om->core.required_charset.charset_list);
@@ -1692,10 +1681,9 @@ close_om(
 	Xfree((char*)om->core.required_charset.charset_list);
 	om->core.required_charset.charset_list = NULL;
     }
-    if (om->core.orientation_list.orientation){
+
 	Xfree(om->core.orientation_list.orientation);
 	om->core.orientation_list.orientation = NULL;
-    }
 
     Xfree(om);
 

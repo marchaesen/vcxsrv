@@ -77,7 +77,7 @@ XHostAddress *XListHosts (
     xListHostsReply reply;
     unsigned char *buf, *bp;
     register unsigned i;
-    register xListHostsReq *req;
+    _X_UNUSED register xListHostsReq *req;
     XServerInterpretedAddress *sip;
 
     *nhosts = 0;

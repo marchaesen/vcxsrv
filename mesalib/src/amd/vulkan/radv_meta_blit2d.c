@@ -28,22 +28,6 @@
 #include "nir/nir_builder.h"
 #include "vk_format.h"
 
-enum blit2d_dst_type {
-	/* We can bind this destination as a "normal" render target and render
-	 * to it just like you would anywhere else.
-	 */
-	BLIT2D_DST_TYPE_NORMAL,
-
-	/* The destination has a 3-channel RGB format.  Since we can't render to
-	 * non-power-of-two textures, we have to bind it as a red texture and
-	 * select the correct component for the given red pixel in the shader.
-	 */
-	BLIT2D_DST_TYPE_RGB,
-
-	BLIT2D_NUM_DST_TYPES,
-};
-
-
 enum blit2d_src_type {
 	BLIT2D_SRC_TYPE_IMAGE,
 	BLIT2D_SRC_TYPE_BUFFER,

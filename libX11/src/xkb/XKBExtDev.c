@@ -36,7 +36,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 /***====================================================================***/
 
-extern void
+void
 XkbNoteDeviceChanges(XkbDeviceChangesPtr old,
                      XkbExtensionDeviceNotifyEvent *new,
                      unsigned int wanted)

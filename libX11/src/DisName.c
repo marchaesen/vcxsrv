@@ -60,5 +60,5 @@ XDisplayName(
 	return( (char *)display );
     if ( (d = getenv( "DISPLAY" )) != (char *)NULL )
 	return( d );
-    return( "" );
+    return( (char *) "" );
 }

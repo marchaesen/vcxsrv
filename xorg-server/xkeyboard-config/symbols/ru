@@ -626,7 +626,7 @@ xkb_symbols "phonetic_fr" {
     include "fr"
     include "ru(phonetic_azerty)"
 
-    name[Group1]= "Russian Russian (phonetic, French)";
+    name[Group1]= "Russian (phonetic, French)";
 };
 
 // Rulemak, Colemak based Russian phonetic layout
@@ -852,4 +852,110 @@ xkb_symbols "mac" {
     key <AC06> { [   Cyrillic_er,  Cyrillic_ER, U20BD ] };
 
     include "level3(ralt_switch)"
+};
+
+// eng: Russian-based polyglot and reactionary keyboard layout
+// This keyboard layout covers Russian in Petrine 1708 and Bolshevik 1918 variant spelling, Ukrainian, Belorussian, Serbian in its modern and Slavenoserbian variants, and Bulgarian and Slavomacedonian in pre-1945 and post-1945 spelling,
+// in short all in any dominion prevailing Cyrillic orthographies of modern secular Slavic literary languages, even with dictionary accentuation marks,
+// but also the most-widespread Church Slavonic spellings, that is all Church-Slavonic in so far as variants can be replaced without loss of meaning  – not to speak of Interslavic.
+// Furthermore, it suffices Romanian Cyrillic, Moldovan Cyrillic, Abkhazian excluding the more clumsy obsoleted forms unlikely to find devotees, Tajik, all Turkic and Mongolic Cyrillic alphabets
+// and virtually all overlooked languages in Cyrillic reigns at least by combining characters, taking advantage of eight key levels.
+// This is withal a pan-Cyrillic keyboard layout, or a comprehensive Cyrillic keyboard layout, an universal Cyrillic keyboard layout, a generic Cyrillic keyboard layout.
+//
+// rus: Многоязыковая и реакціонная клавіатурная разкладка основана на русскихъ
+// Сія разкладка покрываетъ русскій въ петровскомъ правописаніи 1708-го года и большевицкомъ 1918-го, украинскій, бѣлорусскій въ современномъ и славяносербскомъ видѣ, и булгарскій и славомацедонскій въ писаніи до и послѣ 1945-го года,
+// короче всѣ въ какомъ-либо державствѣ преобладающія правописанія, то есть весь церкославянскій, поскольку какъ разные виды буквъ можно возмѣщать безъ потери значенія — не говоря о междуславянскомъ.
+// Свѣрхъ этого, она подходитъ къ румынской кириллицѣ, къ молдавской кириллицѣ, къ абхазскому за изключеніемъ неуклюжихъ устарѣлыхъ образовъ, у которыхъ невѣроятно что они вообще найдутъ поклонниковъ, къ таджикскому, къ всѣмъ тюрксимъ и монголскимъ кириллицамъ,
+// и по сути дѣла всѣмъ упущеннымъ языкамъ въ кириллическихъ правленіяхъ хотя бы соединящими сѵмволами, извлѣкая выгоду изъ восьми уровней клавишъ.
+// Тѣмъ всѣмъ сё всекириллическая клавіатурная разкладка, или всеобъемлющая кириллическая разкладка, или универсальная кириллическая разкладка клавіатуры.
+//
+// srp: Многојезиков и реакционаран распоред тастера основан на рускима
+// Овај распоред покрива руски у петровском правопису 1708-е године и бољшевичком 1918-е године, украјински, белоруски, српски у сувременом и славеносрпском виду, те бугарски и славомакедонски у писању до и после 1945-е године,
+// укратко све у некој држави преовлађујуће правописе, то је читав црквенословенски, пошто је могуће разне видове слова замењивати без губитка значења — не говорећи о меџусловенском.
+// Поврх овог, он одговара к румунској ћирилици, к молдавској ћирилици, к абхаскоме с изузетком гломазних застарелих ликова, уз које није вероватно да они најђу поклонике, к таџичкоме, к свим туркијским и монголским ћирилицима,
+// те у спровођењу свим испуштеним језицима у ћириличким господарствима бар са спајајућим симболима, искориштавајући осам ступњева тастера.
+// Тиме свим ово је свећирилички тастатуран распоред, или свеобухватан ћирилички распоред тастера, или свеопшти ћирилички тастатуран распоред.
+partial alphanumeric_keys
+xkb_symbols "prxn" {
+
+	name[Group1]= "Russian (Polyglot and Reactionary)";
+
+	key.type[Group1]="EIGHT_LEVEL";
+    key <TLDE> { [ U2019, apostrophe,  U0301,      U0300, U2053, U2015, U02BC, asciitilde ] }; // Typographic Apostrophe, Apostrophe, Combining Acute, Combining Grave, Swung Dash, Quotation Dash, Modifier Letter Apostrophe, Tilde
+    key <AE01> { [      1,    exclam,  U0304,      U0306, U0308, U0311, U0307, U0313 ] };      // 1, !, Combining Macron, Combining Breve, Combining Diaresis, Combining Inverted Breve, Combining Dot Above, Combining Comma Above
+    key <AE02> { [     2,quotedbl,numerosign,      U20BF, U20B8, U20AE, U00A3, U20B9 ] };      // 2 " № ₿ ₸ ₮ £ ₹
+    key <AE03> { [     3,      U00A7,  U20B4,   currency, U20BD, U20AA, U20BC, U20BE ] };      // 3 § ₴ ¤ ₽ ₪ ₼ ₾
+    key <AE04> { [     4,  semicolon, dollar,   EuroSign, U0482, U20DD, U0488, U0489 ] };      // 4 ; $ € Thousands Sign, Combining Enclosing Circle, Combining Hundred Thousands, Combining Millions
+    key <AE05> { [      5,   percent, degree,      U2030, UA670, UA671, UA672, UA66F ] };      // 5, %, °, ‰, Combinining Ten Millions, Combining Hundred Millions, Combining Thousand Millions, Combining Vzmet
+    key <AE06> { [      6,     colon,  U0335,      U0336, U0483, U0487, UFE2E, UFE2F ] };      // 6, :, Combining Short Stroke Overlay, Combining Long Stroke Overlay, Combining Titlo, Combining Pokrytie, Combining Titlo Left Half, Combining Titlo Right Half
+    key <AE07> { [    7,    question,  U030B,      U030F, U030C, U0303, U032C, U0360 ] };      // 7, ?, Combining Double Acute, Combining Double Grave, Combining Caron/Háček, Combining Tilde, Combining Caron/Háček Below, Combining Double Tilde
+    key <AE08> { [    8,    asterisk,  U0331,      U0332, U0333, U032F, U032D, U032E ] };      // 8, *, Combining Macron Below, Combining Low Line, Combining Double Low Line, Combining Inverted Breve Below, Combining Circumflex Accent, Combining Breve Below
+    key <AE09> { [ 9,parenleft,  bracketleft,  braceleft, U035F, U035D, U035E, U035C ] };      // 9 ( [ { Combining Double Macron Below, Combining Double Breve, Combining Double Macron, Combining Double Breve Below
+    key <AE10> { [ 0,parenright,bracketright, braceright, U27E8, U27E9, U04A7, U04A6 ] };      // 0 ) ] } ⟨⟩ ҧ Ҧ
+    key <AE11> { [ minus, underscore, emdash,     endash, U2011, U00AD, U2010, U2212 ] };      // Hyphen-Minus, Underscore, Em Dash, En Dash,  Non-Breaking-Hyphen, Soft Hyphen, Hyphen, Minus Sign
+    key <AE12> { [  equal,     plus,notequal,      U2248, U04FF, U04FE, U050D, U050C ] };      // = + ≠ ≈ ӿ Ӿ ԍ Ԍ
+
+    key <AD01> { [ Cyrillic_shorti,   Cyrillic_SHORTI,                 Cyrillic_je,            Cyrillic_JE,     U04CF,    U04C0,                                  U030A,    U0325 ] };	                             // й Й ј Ј ӏ Ӏ, Combining Ring Above and Below
+    key <AD02> { [      Cyrillic_tse,    Cyrillic_TSE,                       U04B5,                  U04B4,     Cyrillic_u_straight, Cyrillic_U_straight,         U051B,    U051A ] };                               // ц Ц ҵ Ҵ ү Ү ԛ Ԛ
+    key <AD03> { [        Cyrillic_u,      Cyrillic_U,            Byelorussian_shortu, Byelorussian_SHORTU,     Cyrillic_u_straight_bar,Cyrillic_U_straight_bar,  Byelorussian_shortu, Byelorussian_SHORTU ] };      // у У ў Ў ұ Ұ ў Ў
+    key <AD04> { [       Cyrillic_ka,     Cyrillic_KA,         Cyrillic_ka_descender,Cyrillic_KA_descender,     U049F,    U049E,                                  U046F,    U046E ] };                               // к К Қ қ ҟ Ҟ ѯ Ѯ 
+    key <AD05> { [     Cyrillic_ie,       Cyrillic_IE,                 Cyrillic_io,            Cyrillic_IO,     U0463,    U0462,                                  UA653,    UA652 ] };	                             // е Е ё Ё ѣ Ѣ ꙓ Ꙓ
+    key <AD06> { [     Cyrillic_en,       Cyrillic_EN,                Cyrillic_nje,           Cyrillic_NJE,     Cyrillic_en_descender, Cyrillic_EN_descender,     U04C8,    U04C7 ] };	                             // н Н њ Њ ң Ң ӈ Ӈ
+    key <AD07> { [      Cyrillic_ghe,    Cyrillic_GHE, Ukrainian_ghe_with_upturn,Ukrainian_GHE_WITH_UPTURN,     Cyrillic_ghe_bar, Cyrillic_GHE_bar,               U04F7,    U04F6 ] };                               // г Г Ґ ґ ғ Ғ ӷ Ӷ
+    key <AD08> { [      Cyrillic_sha,    Cyrillic_SHA,                       U04A1,                  U04A0,     U04AB,    U04AA,                                  UA67D,    UA67F ] };                               // ш Ш ҡ Ҡ ҫ Ҫ Combining Payerok Payerok
+    key <AD09> { [    Cyrillic_shcha,  Cyrillic_SHCHA,                       U0505,                  U0504,     UA68D,    UA68C,                                  U050F,    U050E ] };                               // щ Щ ԅ Ԅ ꚍ Ꚍ ԏ Ԏ
+    key <AD10> { [       Cyrillic_ze,     Cyrillic_ZE,                       U04E1,                  U04E0,     U0499,    U0498,                                  U0507,    U0506 ] };                               // з З ӡ Ӡ ҙ Ҙ ԇ Ԇ
+    key <AD11> { [       Cyrillic_ha,     Cyrillic_HA,                  Cyrillic_shha,       Cyrillic_SHHA,     Cyrillic_ha_descender, Cyrillic_HA_descender,     U04FD,    U04FC ] };                               // х Х һ Һ ҳ Ҳ ӽ Ӽ
+    key <AD12> { [Cyrillic_hardsign,Cyrillic_HARDSIGN,                   Ukrainian_yi,        Ukrainian_YI,     Macedonia_dse, Macedonia_DSE,                     U033E,    U2E2F ] };	                             // ъ Ъ ї Ї ѕ Ѕ, Combining Yerok, Yerok
+
+    key <AC01> { [      Cyrillic_ef,      Cyrillic_EF,                       U0473,                  U0472,     U04C4,    U04C3,                                  U04FB,    U04FA ] };	                             // ф Ф ѳ Ѳ ӄ Ӄ ӻ Ӻ
+    key <AC02> { [     Cyrillic_yeru,   Cyrillic_YERU,                    Ukrainian_i,         Ukrainian_I,     U04D5,    U04D4,                                  U04A9,    U04A8 ] };	                             // ы Ы і І ӕ Ӕ ҩ Ҩ
+    key	<AC03> { [     Cyrillic_ve,       Cyrillic_VE,                       U051D,                  U051C,     U0529,    U0528,                                  U0527,    U0526 ] };                               // в В ԝ Ԝ ԩ Ԩ ԧ Ԧ
+    key <AC04> { [        Cyrillic_a,      Cyrillic_A,                       U04D9,                  U04D8,     UA657,    UA656,                                  UA655,    UA654 ] };                               // а А ә Ә ꙗ Ꙗ ꙕ Ꙕ
+    key <AC05> { [       Cyrillic_pe,     Cyrillic_PE,                       U0525,                  U0524,     U0471,    U0470,                                  UA65F,    UA65E ] };                               // п П ԥ Ԥ ѱ Ѱ ꙟ Ꙟ
+    key <AC06> { [       Cyrillic_er,     Cyrillic_ER,                       U0481,                  U0480,     U048F,    U048E,                                  U0521,    U0520 ] };                               // р Р ҁ Ҁ ҏ Ҏ ԡ Ԡ
+    key <AC07> { [        Cyrillic_o,      Cyrillic_O,              Cyrillic_o_bar,         Cyrillic_O_bar,     U047B,    U047A,                                  U0461,    U0460 ] };                               // о О ө Ө ѻ Ѻ ѡ Ѡ
+    key <AC08> { [     Cyrillic_el,       Cyrillic_EL,                Cyrillic_lje,           Cyrillic_LJE,     U04C6,    U04C5,                                  U052F,    U052E ] };	                             // л Л љ Љ ӆ Ӆ ԯ Ԯ
+    key <AC09> { [     Cyrillic_de,       Cyrillic_DE,               Cyrillic_dzhe,          Cyrillic_DZHE,     U04BD,    U04BC,                                  U04BF,    U04BE ] };	                             // д Д џ Џ ҽ Ҽ ҿ Ҿ
+    key <AC10> { [    Cyrillic_zhe,      Cyrillic_ZHE,                 Serbian_dje,            Serbian_DJE,     Cyrillic_zhe_descender, Cyrillic_ZHE_descender,   U04C2,    U04C1 ] };	                             // ж Ж ђ Ђ Җ җ ӂ Ӂ
+    key <AC11> { [      Cyrillic_e,        Cyrillic_E,                Ukrainian_ie,           Ukrainian_IE,     U0465,    U0464,                                  U04CA,    U04C9 ] };                               // э Э є Є ѥ Ѥ ӊ Ӊ
+    key <BKSL> { [           slash,               bar,                   backslash,                  U260E,     UA65B,    UA65A,                                  U0513,    U0512 ] };                               // / | \ ☎ ꙛ Ꙛ ԓ Ԓ
+
+    key <LSGT> { [           U0495,             U0494,                       U0501,                  U0500,     U0503,    U0502,                                  U0509,    U0508 ] };                               // ҕ Ҕ ԁ Ԁ ԃ Ԃ ԉ Ԉ
+    key <AB01> { [     Cyrillic_ya,       Cyrillic_YA,                       U0469,                  U0468,     U0467,    U0466,                                  UA657,    UA656 ] };                               // я Я ѩ Ѩ ѧ Ѧ ꙗ Ꙗ
+    key <AB02> { [    Cyrillic_che,      Cyrillic_CHE,                Serbian_tshe,           Serbian_TSHE,     U04B7,    U04B6,                                  U2016,    U00A6 ] };	                             // ч Ч ћ Ћ ҷ Ҷ ‖ ¦
+    key <AB03> { [      Cyrillic_es,      Cyrillic_ES,                       U046D,                  U046C,     U046B,    U046A,                                  U04F7,    U04F6 ] };                               // с С ѭ Ѭ ѫ Ѫ ӷ Ӷ
+    key <AB04> { [       Cyrillic_em,     Cyrillic_EM,                    multiply,                  U00F7,     U22C5,    U2219,                                  U04CE,    U04CD ] };                               // м М × ÷ ⋅ ∙ ӎ Ӎ
+    key <AB05> { [      Cyrillic_i,        Cyrillic_I,                       U0475,                  U0474,     U048B,    U048A,                                  periodcentered, U261B ] };	                     // и И ѵ Ѵ ҋ Ҋ · ☛
+    key <AB06> { [      Cyrillic_te,      Cyrillic_TE,                       U04AD,                  U04AC,     U051F,    U051E,                                  Cyrillic_che_vertstroke,Cyrillic_CHE_vertstroke]}; // т Т ҭ Ҭ ԟ Ԟ ҹ Ҹ
+    key <AB07> { [Cyrillic_softsign,Cyrillic_SOFTSIGN,                       U04A5,                  U04A4,     UA64F,    UA64E,                                  U048D,    U048C ] };                               // ь Ь ҥ Ҥ ꙏ Ꙏ ҍ Ҍ
+    key <AB08> { [       Cyrillic_be,     Cyrillic_BE,                  guillemotleft,  doublelowquotemark,     singlelowquotemark, U2039,                        U0523,    U0522 ] };	                             // б Б « „ ‚ ‹ ԣ Ԣ
+    key <AB09> { [       Cyrillic_yu,     Cyrillic_YU,                 guillemotright, leftdoublequotemark,     leftsinglequotemark, U203A,                       rightdoublequotemark, rightsinglequotemark]};      // ю Ю » “ ‘ › ” ’
+    key <AB10> { [            period,           comma,                       ellipsis,  enfilledcircbullet,     U04CC,    U04CB,                                  UA649,    UA648 ] };                               // . , … • ӌ Ӌ ꙉ  Ꙉ
+
+// eng: Maps Right Alt for reaching the third level
+// rus: Составляетъ правую Alt для достиженія третьяго уровня
+// srp: Саставља десни Alt за достизање трећег ступња
+	include "level3(ralt_switch)"
+
+// eng: Maps <CAPS> for reaching the fifth level
+// rus: Составляетъ <CAPS> для достиженія пятаго уровня
+// srp: Саставља <CAPS> за достизање петег ступња
+
+	include "level5(caps_switch)"
+
+// eng: Offers pressing both shift keys for capslock
+// rus: Предоставляетъ нажатие обѣихъ клавишъ Shift для защелкиванія прописности буквъ
+// srp: Ставља на располагање притискивање обију тастера Shift за учвршћивање верзала
+	include "shift(both_shiftlock)"
+
+// eng: Makes <KPDL> return comma instead of dot, as the comma is decimal separator in Cyrillic written languages
+// rus: Дѣлаетъ что <KPDL> отдаетъ запятую вмѣсто точки, такъ какъ запятая десятичный раздѣлитель въ языкахъ пишемыхъ кириллицей
+// srp: Ради да <KPDL> враћа зарез уместо точке, будући да зарез је десетни разделитељ у језицима који се пишу ћирилицом
+	include "kpdl(comma)"
+
+// eng: Bug notice: One has to set lv5:rwin_switch_lock or one of the other level 5 locks for the caps switch to work!
+// rus: Приходится ставить lv5:rwin_switch_lock либо одинъ изъ другихъ затворовъ пятаго уровня, чтобы работалъ переключатель Caps!
+// srp: Потребно да се ставља lv5:rwin_switch_lock или једна из других брава петег ступња, да би шљакао пребацивач Caps!
+// https://bugs.freedesktop.org/show_bug.cgi?id=102189
 };

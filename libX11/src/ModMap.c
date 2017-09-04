@@ -34,7 +34,7 @@ XModifierKeymap *
 XGetModifierMapping(register Display *dpy)
 {
     xGetModifierMappingReply rep;
-    register xReq *req;
+    _X_UNUSED register xReq *req;
     unsigned long nbytes;
     XModifierKeymap *res;
 
@@ -84,7 +84,7 @@ XSetModifierMapping(
     req->length += mapSize >> 2;
     req->numKeyPerModifier = modifier_map->max_keypermod;
 
-    Data(dpy, modifier_map->modifiermap, mapSize);
+    Data(dpy, (const char *)modifier_map->modifiermap, mapSize);
 
     (void) _XReply(dpy, (xReply *) & rep,
 	(SIZEOF(xSetModifierMappingReply) - SIZEOF(xReply)) >> 2, xTrue);

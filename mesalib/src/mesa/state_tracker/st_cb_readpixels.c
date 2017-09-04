@@ -175,7 +175,7 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
 
       if (view_target != PIPE_TEXTURE_3D) {
          templ.u.tex.first_layer = surface->u.tex.first_layer;
-         templ.u.tex.last_layer = templ.u.tex.last_layer;
+         templ.u.tex.last_layer = templ.u.tex.first_layer;
       } else {
          addr.constants.layer_offset = surface->u.tex.first_layer;
       }

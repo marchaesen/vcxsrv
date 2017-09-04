@@ -2739,13 +2739,18 @@ st_texture_storage(struct gl_context *ctx,
 
    bindings = default_bindings(st, fmt);
 
-   /* Raise the sample count if the requested one is unsupported. */
    if (num_samples > 0) {
+      /* Find msaa sample count which is actually supported.  For example,
+       * if the user requests 1x but only 4x or 8x msaa is supported, we'll
+       * choose 4x here.
+       */
       enum pipe_texture_target ptarget = gl_target_to_pipe(texObj->Target);
       boolean found = FALSE;
 
-      /* start the query with at least two samples */
-      num_samples = MAX2(num_samples, 2);
+      if (ctx->Const.MaxSamples > 1 && num_samples == 1) {
+         /* don't try num_samples = 1 with drivers that support real msaa */
+         num_samples = 2;
+      }
 
       for (; num_samples <= ctx->Const.MaxSamples; num_samples++) {
          if (screen->is_format_supported(screen, fmt, ptarget,

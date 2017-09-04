@@ -115,7 +115,7 @@ XStringToKeysym(_Xconst char *s)
     {
 	XrmValue result;
 	XrmRepresentation from_type;
-	char c;
+	char d;
 	XrmQuark names[2];
 
 	names[0] = _XrmInternalStringToQuark(s, p - s - 1, sig, False);
@@ -126,10 +126,10 @@ XStringToKeysym(_Xconst char *s)
 	    val = 0;
 	    for (i = 0; i < result.size - 1; i++)
 	    {
-		c = ((char *)result.addr)[i];
-		if ('0' <= c && c <= '9') val = (val<<4)+c-'0';
-		else if ('a' <= c && c <= 'f') val = (val<<4)+c-'a'+10;
-		else if ('A' <= c && c <= 'F') val = (val<<4)+c-'A'+10;
+		d = ((char *)result.addr)[i];
+		if ('0' <= d && d <= '9') val = (val<<4)+d-'0';
+		else if ('a' <= d && d <= 'f') val = (val<<4)+d-'a'+10;
+		else if ('A' <= d && d <= 'F') val = (val<<4)+d-'A'+10;
 		else return NoSymbol;
 	    }
 	    return val;

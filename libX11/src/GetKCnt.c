@@ -35,7 +35,7 @@ XGetKeyboardControl (
     register XKeyboardState *state)
 {
     xGetKeyboardControlReply rep;
-    register xReq *req;
+    _X_UNUSED register xReq *req;
     LockDisplay(dpy);
     GetEmptyReq (GetKeyboardControl, req);
     (void) _XReply (dpy, (xReply *) &rep,

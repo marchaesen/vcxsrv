@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "amd_family.h"
 
@@ -45,5 +46,8 @@ void ac_parse_ib_chunk(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids,
 void ac_parse_ib(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids,
 		 unsigned trace_id_count, const char *name, enum chip_class chip_class,
 		 ac_debug_addr_callback addr_callback, void *addr_callback_data);
+
+bool ac_vm_fault_occured(enum chip_class chip_class,
+			 uint64_t *old_dmesg_timestamp, uint64_t *out_addr);
 
 #endif
