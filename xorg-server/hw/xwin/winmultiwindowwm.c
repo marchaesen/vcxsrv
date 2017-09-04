@@ -166,10 +166,11 @@ static void *winMultiWindowWMProc(void *pArg);
 static void *winMultiWindowXMsgProc(void *pArg);
 
 static void
- winMultiWindowThreadExit(void *arg);
+ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg);
 
 static void
- winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg);
+ winMultiWindowThreadExit(void *arg);
+
 
 static Bool
 CheckAnotherWindowManager(xcb_connection_t *conn, DWORD dwScreen);
@@ -1873,7 +1874,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
     if (hint & HINT_NOSYSMENU)
         style = style & ~WS_SYSMENU;
 
-    if ((hint & HINT_SKIPTASKBAR)) {
+    if (hint & HINT_SKIPTASKBAR) {
         winShowWindowOnTaskbar(hWnd, FALSE);
         style = style & ~WS_MINIMIZEBOX;        /* window will become lost if minimized */
     }
@@ -1887,7 +1888,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
     SetWindowLongPtr(hWnd, GWL_STYLE, style);
 
     exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-    if ((hint & HINT_SKIPTASKBAR))
+    if (hint & HINT_SKIPTASKBAR)
         exStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
     else
         exStyle = (exStyle & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW;
