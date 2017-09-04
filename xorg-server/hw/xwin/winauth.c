@@ -44,14 +44,6 @@
 
 #include <xcb/xcb.h>
 
-/* Need to get this from Xlib.h */
-extern void XSetAuthorization(
-    const char *                /* name */,
-    int                         /* namelen */,
-    const char *                /* data */,
-    int                         /* datalen */
-);
-
 /*
  * Constants
  */
