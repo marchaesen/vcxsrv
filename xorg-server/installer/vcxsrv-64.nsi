@@ -22,7 +22,7 @@
 Name "VcXsrv"
 
 ; The file to write
-OutFile "vcxsrv-64.1.19.2.0.installer.exe"
+OutFile "vcxsrv-64.1.19.3.0.installer.exe"
 
 ; The default installation directory
 InstallDir $programfiles64\VcXsrv
@@ -33,11 +33,11 @@ InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir_64"
 
 LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
 
-VIProductVersion "1.19.2.0"
+VIProductVersion "1.19.3.0"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "VcXsrv"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.19.2.0"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.19.2.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.19.3.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.19.3.0"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
@@ -142,7 +142,7 @@ Section "VcXsrv (required)"
 
   ; Write the uninstall keys for Windows
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayName" "VcXsrv"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayVersion" "1.19.2.0"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayVersion" "1.19.3.0"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "Publisher" "marha@users.sourceforge.net"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "UninstallString" '"$INSTDIR\uninstall.exe"'
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "NoModify" 1
