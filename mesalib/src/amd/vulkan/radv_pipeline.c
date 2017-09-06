@@ -618,6 +618,8 @@ radv_pipeline_compile(struct radv_pipeline *pipeline,
 								  gs_copy_code,
 								  gs_copy_code_size);
 		}
+
+		free(gs_copy_code);
 	}
 	if (!module->nir)
 		ralloc_free(nir);

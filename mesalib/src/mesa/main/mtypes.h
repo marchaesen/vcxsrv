@@ -990,8 +990,8 @@ struct gl_sampler_object
    GLboolean CubeMapSeamless;   /**< GL_AMD_seamless_cubemap_per_texture */
 
    /** GL_ARB_bindless_texture */
-   struct util_dynarray Handles;
    bool HandleAllocated;
+   struct util_dynarray Handles;
 };
 
 
@@ -1012,7 +1012,6 @@ struct gl_texture_object
    struct gl_sampler_object Sampler;
 
    GLenum DepthMode;           /**< GL_ARB_depth_texture */
-   bool StencilSampling;       /**< Should we sample stencil instead of depth? */
 
    GLfloat Priority;           /**< in [0,1] */
    GLint BaseLevel;            /**< min mipmap level, OpenGL 1.2 */
@@ -1033,11 +1032,16 @@ struct gl_texture_object
    GLboolean Immutable;        /**< GL_ARB_texture_storage */
    GLboolean _IsFloat;         /**< GL_OES_float_texture */
    GLboolean _IsHalfFloat;     /**< GL_OES_half_float_texture */
+   bool StencilSampling;       /**< Should we sample stencil instead of depth? */
+   bool HandleAllocated;       /**< GL_ARB_bindless_texture */
 
    GLuint MinLevel;            /**< GL_ARB_texture_view */
    GLuint MinLayer;            /**< GL_ARB_texture_view */
    GLuint NumLevels;           /**< GL_ARB_texture_view */
    GLuint NumLayers;           /**< GL_ARB_texture_view */
+
+   /** GL_EXT_memory_object */
+   GLenum TextureTiling;
 
    /** Actual texture images, indexed by [cube face] and [mipmap level] */
    struct gl_texture_image *Image[MAX_FACES][MAX_TEXTURE_LEVELS];
@@ -1057,13 +1061,9 @@ struct gl_texture_object
    /** GL_ARB_shader_image_load_store */
    GLenum ImageFormatCompatibilityType;
 
-   /** GL_EXT_memory_object */
-   GLenum TextureTiling;
-
    /** GL_ARB_bindless_texture */
    struct util_dynarray SamplerHandles;
    struct util_dynarray ImageHandles;
-   bool HandleAllocated;
 };
 
 
@@ -2000,11 +2000,11 @@ struct gl_bindless_sampler
    /** Texture unit (set by glUniform1()). */
    GLubyte unit;
 
-   /** Texture Target (TEXTURE_1D/2D/3D/etc_INDEX). */
-   gl_texture_index target;
-
    /** Whether this bindless sampler is bound to a unit. */
    GLboolean bound;
+
+   /** Texture Target (TEXTURE_1D/2D/3D/etc_INDEX). */
+   gl_texture_index target;
 
    /** Pointer to the base of the data. */
    GLvoid *data;
@@ -2018,11 +2018,11 @@ struct gl_bindless_image
    /** Image unit (set by glUniform1()). */
    GLubyte unit;
 
-   /** Access qualifier (GL_READ_WRITE, GL_READ_ONLY, GL_WRITE_ONLY) */
-   GLenum access;
-
    /** Whether this bindless image is bound to a unit. */
    GLboolean bound;
+
+   /** Access qualifier (GL_READ_WRITE, GL_READ_ONLY, GL_WRITE_ONLY) */
+   GLenum access;
 
    /** Pointer to the base of the data. */
    GLvoid *data;
@@ -2256,6 +2256,9 @@ struct gl_vertex_program_state
    GLboolean Enabled;            /**< User-set GL_VERTEX_PROGRAM_ARB/NV flag */
    GLboolean PointSizeEnabled;   /**< GL_VERTEX_PROGRAM_POINT_SIZE_ARB/NV */
    GLboolean TwoSideEnabled;     /**< GL_VERTEX_PROGRAM_TWO_SIDE_ARB/NV */
+   /** Should fixed-function T&L be implemented with a vertex prog? */
+   GLboolean _MaintainTnlProgram;
+
    struct gl_program *Current;  /**< User-bound vertex program */
 
    /** Currently enabled and valid vertex program (including internal
@@ -2265,9 +2268,6 @@ struct gl_vertex_program_state
    struct gl_program *_Current;
 
    GLfloat Parameters[MAX_PROGRAM_ENV_PARAMS][4]; /**< Env params */
-
-   /** Should fixed-function T&L be implemented with a vertex prog? */
-   GLboolean _MaintainTnlProgram;
 
    /** Program to emulate fixed-function T&L (see above) */
    struct gl_program *_TnlProgram;
@@ -2317,6 +2317,9 @@ struct gl_geometry_program_state
 struct gl_fragment_program_state
 {
    GLboolean Enabled;     /**< User-set fragment program enable flag */
+   /** Should fixed-function texturing be implemented with a fragment prog? */
+   GLboolean _MaintainTexEnvProgram;
+
    struct gl_program *Current;  /**< User-bound fragment program */
 
    /** Currently enabled and valid fragment program (including internal
@@ -2326,9 +2329,6 @@ struct gl_fragment_program_state
    struct gl_program *_Current;
 
    GLfloat Parameters[MAX_PROGRAM_ENV_PARAMS][4]; /**< Env params */
-
-   /** Should fixed-function texturing be implemented with a fragment prog? */
-   GLboolean _MaintainTexEnvProgram;
 
    /** Program to emulate fixed-function texture env/combine (see above) */
    struct gl_program *_TexEnvProgram;
@@ -2567,8 +2567,9 @@ struct gl_shader
    GLchar *Label;   /**< GL_KHR_debug */
    unsigned char sha1[20]; /**< SHA1 hash of pre-processed source */
    GLboolean DeletePending;
-   enum gl_compile_status CompileStatus;
    bool IsES;              /**< True if this shader uses GLSL ES */
+
+   enum gl_compile_status CompileStatus;
 
 #ifdef DEBUG
    unsigned SourceChecksum;       /**< for debug/logging purposes */
@@ -2581,13 +2582,13 @@ struct gl_shader
 
    unsigned Version;       /**< GLSL version used for linking */
 
-   struct exec_list *ir;
-   struct glsl_symbol_table *symbols;
-
    /**
     * A bitmask of gl_advanced_blend_mode values
     */
    GLbitfield BlendSupport;
+
+   struct exec_list *ir;
+   struct glsl_symbol_table *symbols;
 
    /**
     * Whether early fragment tests are enabled as defined by
@@ -2852,9 +2853,9 @@ struct gl_shader_program_data
    struct gl_uniform_storage *UniformStorage;
 
    unsigned NumUniformBlocks;
-   struct gl_uniform_block *UniformBlocks;
-
    unsigned NumShaderStorageBlocks;
+
+   struct gl_uniform_block *UniformBlocks;
    struct gl_uniform_block *ShaderStorageBlocks;
 
    struct gl_active_atomic_buffer *AtomicBuffers;
@@ -2872,13 +2873,13 @@ struct gl_shader_program_data
     * lands we should switch to using the cache_fallback support.
     */
    bool skip_cache;
+   GLboolean Validated;
 
    /** List of all active resources after linking. */
    struct gl_program_resource *ProgramResourceList;
    unsigned NumProgramResourceList;
 
    enum gl_link_status LinkStatus;   /**< GL_LINK_STATUS */
-   GLboolean Validated;
    GLchar *InfoLog;
 
    unsigned Version;       /**< GLSL version used for linking */
@@ -3192,8 +3193,8 @@ struct gl_query_state
 struct gl_sync_object
 {
    GLuint Name;               /**< Fence name */
-   GLchar *Label;             /**< GL_KHR_debug */
    GLint RefCount;            /**< Reference count */
+   GLchar *Label;             /**< GL_KHR_debug */
    GLboolean DeletePending;   /**< Object was deleted while there were still
 			       * live references (e.g., sync not yet finished)
 			       */
@@ -4342,8 +4343,8 @@ union gl_dlist_node;
 struct gl_display_list
 {
    GLuint Name;
-   GLchar *Label;     /**< GL_KHR_debug */
    GLbitfield Flags;  /**< DLIST_x flags */
+   GLchar *Label;     /**< GL_KHR_debug */
    /** The dlist commands are in a linked list of nodes */
    union gl_dlist_node *Head;
 };
@@ -4354,11 +4355,10 @@ struct gl_display_list
  */
 struct gl_dlist_state
 {
-   GLuint CallDepth;		/**< Current recursion calling depth */
-
    struct gl_display_list *CurrentList; /**< List currently being compiled */
    union gl_dlist_node *CurrentBlock; /**< Pointer to current block of nodes */
    GLuint CurrentPos;		/**< Index into current block of nodes */
+   GLuint CallDepth;		/**< Current recursion calling depth */
 
    GLvertexformat ListVtxfmt;
 

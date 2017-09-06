@@ -4875,6 +4875,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>us_dvorak</name>
+            <_description>Swedish (based on US Intl. Dvorak)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>swl</name>
             <_description>Swedish Sign Language</_description>
             <languageList>
@@ -6057,6 +6063,12 @@
         <configItem>
           <name>grp:win_switch</name>
           <_description>Any Win (while pressed)</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>grp:menu_switch</name>
+          <_description>Menu (while pressed), Shift+Menu for Menu</_description>
         </configItem>
       </option>
       <option>

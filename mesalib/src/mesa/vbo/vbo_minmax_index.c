@@ -255,7 +255,7 @@ vbo_get_minmax_index(struct gl_context *ctx,
                                 count, min_index, max_index))
          return;
 
-      offset = indices;
+      offset = (GLintptr) indices;
       indices = ctx->Driver.MapBufferRange(ctx, offset, size,
                                            GL_MAP_READ_BIT, ib->obj,
                                            MAP_INTERNAL);

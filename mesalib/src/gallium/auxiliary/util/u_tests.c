@@ -418,10 +418,10 @@ util_test_constant_buffer(struct pipe_context *ctx,
    {
       static const char *text = /* I don't like ureg... */
             "FRAG\n"
-            "DCL CONST[0]\n"
+            "DCL CONST[0][0]\n"
             "DCL OUT[0], COLOR\n"
 
-            "MOV OUT[0], CONST[0]\n"
+            "MOV OUT[0], CONST[0][0]\n"
             "END\n";
       struct tgsi_token tokens[1000];
       struct pipe_shader_state state;

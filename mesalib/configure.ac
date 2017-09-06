@@ -2921,6 +2921,7 @@ AC_CONFIG_FILES([Makefile
                  src/mesa/drivers/osmesa/osmesa.pc
                  src/mesa/drivers/x11/Makefile
                  src/mesa/main/tests/Makefile
+                 src/mesa/state_tracker/tests/Makefile
                  src/util/Makefile
                  src/util/tests/hash_table/Makefile
                  src/util/xmlpool/Makefile

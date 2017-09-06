@@ -101,54 +101,69 @@ static void print_named_value(FILE *file, const char *name, uint32_t value,
 	print_value(file, value, bits);
 }
 
-void ac_dump_reg(FILE *file, unsigned offset, uint32_t value,
-		 uint32_t field_mask)
+static const struct si_reg *find_register(const struct si_reg *table,
+					  unsigned table_size,
+					  unsigned offset)
 {
-	int r, f;
+	for (unsigned i = 0; i < table_size; i++) {
+		const struct si_reg *reg = &table[i];
 
-	for (r = 0; r < ARRAY_SIZE(sid_reg_table); r++) {
-		const struct si_reg *reg = &sid_reg_table[r];
+		if (reg->offset == offset)
+			return reg;
+	}
+
+	return NULL;
+}
+
+void ac_dump_reg(FILE *file, enum chip_class chip_class, unsigned offset,
+		 uint32_t value, uint32_t field_mask)
+{
+	const struct si_reg *reg = NULL;
+
+	if (chip_class >= GFX9)
+		reg = find_register(gfx9d_reg_table, ARRAY_SIZE(gfx9d_reg_table), offset);
+	if (!reg)
+		reg = find_register(sid_reg_table, ARRAY_SIZE(sid_reg_table), offset);
+
+	if (reg) {
 		const char *reg_name = sid_strings + reg->name_offset;
+		bool first_field = true;
 
-		if (reg->offset == offset) {
-			bool first_field = true;
+		print_spaces(file, INDENT_PKT);
+		fprintf(file, COLOR_YELLOW "%s" COLOR_RESET " <- ",
+			reg_name);
 
-			print_spaces(file, INDENT_PKT);
-			fprintf(file, COLOR_YELLOW "%s" COLOR_RESET " <- ",
-				reg_name);
-
-			if (!reg->num_fields) {
-				print_value(file, value, 32);
-				return;
-			}
-
-			for (f = 0; f < reg->num_fields; f++) {
-				const struct si_field *field = sid_fields_table + reg->fields_offset + f;
-				const int *values_offsets = sid_strings_offsets + field->values_offset;
-				uint32_t val = (value & field->mask) >>
-					       (ffs(field->mask) - 1);
-
-				if (!(field->mask & field_mask))
-					continue;
-
-				/* Indent the field. */
-				if (!first_field)
-					print_spaces(file,
-						     INDENT_PKT + strlen(reg_name) + 4);
-
-				/* Print the field. */
-				fprintf(file, "%s = ", sid_strings + field->name_offset);
-
-				if (val < field->num_values && values_offsets[val] >= 0)
-					fprintf(file, "%s\n", sid_strings + values_offsets[val]);
-				else
-					print_value(file, val,
-						    util_bitcount(field->mask));
-
-				first_field = false;
-			}
+		if (!reg->num_fields) {
+			print_value(file, value, 32);
 			return;
 		}
+
+		for (unsigned f = 0; f < reg->num_fields; f++) {
+			const struct si_field *field = sid_fields_table + reg->fields_offset + f;
+			const int *values_offsets = sid_strings_offsets + field->values_offset;
+			uint32_t val = (value & field->mask) >>
+				       (ffs(field->mask) - 1);
+
+			if (!(field->mask & field_mask))
+				continue;
+
+			/* Indent the field. */
+			if (!first_field)
+				print_spaces(file,
+					     INDENT_PKT + strlen(reg_name) + 4);
+
+			/* Print the field. */
+			fprintf(file, "%s = ", sid_strings + field->name_offset);
+
+			if (val < field->num_values && values_offsets[val] >= 0)
+				fprintf(file, "%s\n", sid_strings + values_offsets[val]);
+			else
+				print_value(file, val,
+					    util_bitcount(field->mask));
+
+			first_field = false;
+		}
+		return;
 	}
 
 	print_spaces(file, INDENT_PKT);
@@ -196,7 +211,7 @@ static void ac_parse_set_reg_packet(FILE *f, unsigned count, unsigned reg_offset
 	}
 
 	for (i = 0; i < count; i++)
-		ac_dump_reg(f, reg + i*4, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, reg + i*4, ac_ib_get(ib), ~0);
 }
 
 static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
@@ -244,28 +259,28 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 		ac_parse_set_reg_packet(f, count, SI_SH_REG_OFFSET, ib);
 		break;
 	case PKT3_ACQUIRE_MEM:
-		ac_dump_reg(f, R_0301F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_0301F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_030230_CP_COHER_SIZE_HI, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_0301E4_CP_COHER_BASE_HI, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_0301F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_0301F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_030230_CP_COHER_SIZE_HI, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_0301E4_CP_COHER_BASE_HI, ac_ib_get(ib), ~0);
 		print_named_value(f, "POLL_INTERVAL", ac_ib_get(ib), 16);
 		break;
 	case PKT3_SURFACE_SYNC:
 		if (ib->chip_class >= CIK) {
-			ac_dump_reg(f, R_0301F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
-			ac_dump_reg(f, R_0301F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
-			ac_dump_reg(f, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
+			ac_dump_reg(f, ib->chip_class, R_0301F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
+			ac_dump_reg(f, ib->chip_class, R_0301F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
+			ac_dump_reg(f, ib->chip_class, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
 		} else {
-			ac_dump_reg(f, R_0085F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
-			ac_dump_reg(f, R_0085F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
-			ac_dump_reg(f, R_0085F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
+			ac_dump_reg(f, ib->chip_class, R_0085F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
+			ac_dump_reg(f, ib->chip_class, R_0085F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
+			ac_dump_reg(f, ib->chip_class, R_0085F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
 		}
 		print_named_value(f, "POLL_INTERVAL", ac_ib_get(ib), 16);
 		break;
 	case PKT3_EVENT_WRITE: {
 		uint32_t event_dw = ac_ib_get(ib);
-		ac_dump_reg(f, R_028A90_VGT_EVENT_INITIATOR, event_dw,
+		ac_dump_reg(f, ib->chip_class, R_028A90_VGT_EVENT_INITIATOR, event_dw,
 			    S_028A90_EVENT_TYPE(~0));
 		print_named_value(f, "EVENT_INDEX", (event_dw >> 8) & 0xf, 4);
 		print_named_value(f, "INV_L2", (event_dw >> 20) & 0x1, 1);
@@ -277,7 +292,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 	}
 	case PKT3_EVENT_WRITE_EOP: {
 		uint32_t event_dw = ac_ib_get(ib);
-		ac_dump_reg(f, R_028A90_VGT_EVENT_INITIATOR, event_dw,
+		ac_dump_reg(f, ib->chip_class, R_028A90_VGT_EVENT_INITIATOR, event_dw,
 			    S_028A90_EVENT_TYPE(~0));
 		print_named_value(f, "EVENT_INDEX", (event_dw >> 8) & 0xf, 4);
 		print_named_value(f, "TCL1_VOL_ACTION_ENA", (event_dw >> 12) & 0x1, 1);
@@ -297,7 +312,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 	}
 	case PKT3_RELEASE_MEM: {
 		uint32_t event_dw = ac_ib_get(ib);
-		ac_dump_reg(f, R_028A90_VGT_EVENT_INITIATOR, event_dw,
+		ac_dump_reg(f, ib->chip_class, R_028A90_VGT_EVENT_INITIATOR, event_dw,
 			    S_028A90_EVENT_TYPE(~0));
 		print_named_value(f, "EVENT_INDEX", (event_dw >> 8) & 0xf, 4);
 		print_named_value(f, "TCL1_VOL_ACTION_ENA", (event_dw >> 12) & 0x1, 1);
@@ -328,52 +343,52 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 		print_named_value(f, "POLL_INTERVAL", ac_ib_get(ib), 16);
 		break;
 	case PKT3_DRAW_INDEX_AUTO:
-		ac_dump_reg(f, R_030930_VGT_NUM_INDICES, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_0287F0_VGT_DRAW_INITIATOR, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_030930_VGT_NUM_INDICES, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_0287F0_VGT_DRAW_INITIATOR, ac_ib_get(ib), ~0);
 		break;
 	case PKT3_DRAW_INDEX_2:
-		ac_dump_reg(f, R_028A78_VGT_DMA_MAX_SIZE, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_0287E8_VGT_DMA_BASE, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_0287E4_VGT_DMA_BASE_HI, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_030930_VGT_NUM_INDICES, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_0287F0_VGT_DRAW_INITIATOR, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_028A78_VGT_DMA_MAX_SIZE, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_0287E8_VGT_DMA_BASE, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_0287E4_VGT_DMA_BASE_HI, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_030930_VGT_NUM_INDICES, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_0287F0_VGT_DRAW_INITIATOR, ac_ib_get(ib), ~0);
 		break;
 	case PKT3_INDEX_TYPE:
-		ac_dump_reg(f, R_028A7C_VGT_DMA_INDEX_TYPE, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_028A7C_VGT_DMA_INDEX_TYPE, ac_ib_get(ib), ~0);
 		break;
 	case PKT3_NUM_INSTANCES:
-		ac_dump_reg(f, R_030934_VGT_NUM_INSTANCES, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_030934_VGT_NUM_INSTANCES, ac_ib_get(ib), ~0);
 		break;
 	case PKT3_WRITE_DATA:
-		ac_dump_reg(f, R_370_CONTROL, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_371_DST_ADDR_LO, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_372_DST_ADDR_HI, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_370_CONTROL, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_371_DST_ADDR_LO, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_372_DST_ADDR_HI, ac_ib_get(ib), ~0);
 		/* The payload is written automatically */
 		break;
 	case PKT3_CP_DMA:
-		ac_dump_reg(f, R_410_CP_DMA_WORD0, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_411_CP_DMA_WORD1, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_412_CP_DMA_WORD2, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_413_CP_DMA_WORD3, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_414_COMMAND, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_410_CP_DMA_WORD0, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_411_CP_DMA_WORD1, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_412_CP_DMA_WORD2, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_413_CP_DMA_WORD3, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_414_COMMAND, ac_ib_get(ib), ~0);
 		break;
 	case PKT3_DMA_DATA:
-		ac_dump_reg(f, R_500_DMA_DATA_WORD0, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_501_SRC_ADDR_LO, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_502_SRC_ADDR_HI, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_503_DST_ADDR_LO, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_504_DST_ADDR_HI, ac_ib_get(ib), ~0);
-		ac_dump_reg(f, R_414_COMMAND, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_500_DMA_DATA_WORD0, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_501_SRC_ADDR_LO, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_502_SRC_ADDR_HI, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_503_DST_ADDR_LO, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_504_DST_ADDR_HI, ac_ib_get(ib), ~0);
+		ac_dump_reg(f, ib->chip_class, R_414_COMMAND, ac_ib_get(ib), ~0);
 		break;
 	case PKT3_INDIRECT_BUFFER_SI:
 	case PKT3_INDIRECT_BUFFER_CONST:
 	case PKT3_INDIRECT_BUFFER_CIK: {
 		uint32_t base_lo_dw = ac_ib_get(ib);
-		ac_dump_reg(f, R_3F0_IB_BASE_LO, base_lo_dw, ~0);
+		ac_dump_reg(f, ib->chip_class, R_3F0_IB_BASE_LO, base_lo_dw, ~0);
 		uint32_t base_hi_dw = ac_ib_get(ib);
-		ac_dump_reg(f, R_3F1_IB_BASE_HI, base_hi_dw, ~0);
+		ac_dump_reg(f, ib->chip_class, R_3F1_IB_BASE_HI, base_hi_dw, ~0);
 		uint32_t control_dw = ac_ib_get(ib);
-		ac_dump_reg(f, R_3F2_CONTROL, control_dw, ~0);
+		ac_dump_reg(f, ib->chip_class, R_3F2_CONTROL, control_dw, ~0);
 
 		if (!ib->addr_callback)
 			break;

@@ -45,6 +45,16 @@ xkb_symbols "rwin_switch" {
     };
 };
 
+// The right Menu key (while pressed) chooses the second keyboard group.
+// while Shift+Menu acts as Menu.
+partial modifier_keys
+xkb_symbols "menu_switch" {
+    key <MENU> {
+        symbols[Group1] = [ Mode_switch, Menu ],
+        virtualMods= AltGr
+    };
+};
+
 // The right Ctrl key (while pressed) chooses the second keyboard group.
 // (Needed mainly for the Canadian keyboard.)
 partial modifier_keys

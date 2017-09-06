@@ -1430,7 +1430,7 @@ _mesa_GetTextureImage(GLuint texture, GLint level, GLenum format, GLenum type,
    }
 
    if (!legal_getteximage_target(ctx, texObj->Target, true)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s", caller);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", caller);
       return;
    }
 

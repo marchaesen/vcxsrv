@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-SUBDIRS = . main/tests
+SUBDIRS = . main/tests state_tracker/tests
 
 if HAVE_XLIB_GLX
 SUBDIRS += drivers/x11

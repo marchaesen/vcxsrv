@@ -624,7 +624,7 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
          assert(!dim);
          break;
       case TGSI_FILE_CONSTANT:
-         if (dim) {
+         if (dim && (dim->Index > 0 || dim->Indirect)) {
             op = nir_intrinsic_load_ubo;
          } else {
             op = nir_intrinsic_load_uniform;

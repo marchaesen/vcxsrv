@@ -38,8 +38,8 @@
 
 typedef void *(*ac_debug_addr_callback)(void *data, uint64_t addr);
 
-void ac_dump_reg(FILE *file, unsigned offset, uint32_t value,
-		 uint32_t field_mask);
+void ac_dump_reg(FILE *file, enum chip_class chip_class, unsigned offset,
+		 uint32_t value, uint32_t field_mask);
 void ac_parse_ib_chunk(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids,
 		       unsigned trace_id_count, enum chip_class chip_class,
 		       ac_debug_addr_callback addr_callback, void *addr_callback_data);
