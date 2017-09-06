@@ -213,7 +213,7 @@ xwl_glamor_xv_add_formats(XvAdaptorPtr pa)
                         void *moreSpace;
 
                         totFormat *= 2;
-                        moreSpace = XNFreallocarray(pFormat, totFormat,
+                        moreSpace = xnfreallocarray(pFormat, totFormat,
                                                     sizeof(XvFormatRec));
                         pFormat = moreSpace;
                         pf = pFormat + numFormat;

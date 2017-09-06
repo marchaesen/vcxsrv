@@ -635,14 +635,6 @@ loader_dri3_copy_sub_buffer(struct loader_dri3_drawable *draw,
                                     back->image,
                                     0, 0, back->width, back->height,
                                     0, 0, __BLIT_FLAG_FLUSH);
-      /* We use blit_image to update our fake front,
-       */
-      if (draw->have_fake_front)
-         (void) loader_dri3_blit_image(draw,
-                                       dri3_fake_front_buffer(draw)->image,
-                                       back->image,
-                                       x, y, width, height,
-                                       x, y, __BLIT_FLAG_FLUSH);
    }
 
    loader_dri3_swapbuffer_barrier(draw);
@@ -656,7 +648,13 @@ loader_dri3_copy_sub_buffer(struct loader_dri3_drawable *draw,
    /* Refresh the fake front (if present) after we just damaged the real
     * front.
     */
-   if (draw->have_fake_front && !draw->is_different_gpu) {
+   if (draw->have_fake_front &&
+       !loader_dri3_blit_image(draw,
+                               dri3_fake_front_buffer(draw)->image,
+                               back->image,
+                               x, y, width, height,
+                               x, y, __BLIT_FLAG_FLUSH) &&
+       !draw->is_different_gpu) {
       dri3_fence_reset(draw->conn, dri3_fake_front_buffer(draw));
       dri3_copy_area(draw->conn,
                      back->pixmap,

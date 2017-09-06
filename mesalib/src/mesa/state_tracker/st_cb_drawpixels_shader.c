@@ -204,6 +204,8 @@ transform_inst:
                  ctx->info.input_semantic_index[reg] == 0) {
          src->Register.File = TGSI_FILE_CONSTANT;
          src->Register.Index = ctx->texcoord_const;
+         src->Register.Dimension = 1;
+         src->Dimension.Index = 0;
       }
    }
 

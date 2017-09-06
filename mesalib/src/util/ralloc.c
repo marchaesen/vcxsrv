@@ -311,10 +311,12 @@ ralloc_adopt(const void *new_ctx, void *old_ctx)
    for (child = old_info->child; child->next != NULL; child = child->next) {
       child->parent = new_info;
    }
+   child->parent = new_info;
 
    /* Connect the two lists together; parent them to new_ctx; make old_ctx empty. */
    child->next = new_info->child;
-   child->parent = new_info;
+   if (child->next)
+      child->next->prev = child;
    new_info->child = old_info->child;
    old_info->child = NULL;
 }

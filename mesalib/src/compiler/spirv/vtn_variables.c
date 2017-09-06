@@ -1121,6 +1121,10 @@ vtn_get_builtin_location(struct vtn_builder *b,
       *location = FRAG_RESULT_DEPTH;
       assert(*mode == nir_var_shader_out);
       break;
+   case SpvBuiltInHelperInvocation:
+      *location = SYSTEM_VALUE_HELPER_INVOCATION;
+      set_mode_system_value(mode);
+      break;
    case SpvBuiltInNumWorkgroups:
       *location = SYSTEM_VALUE_NUM_WORK_GROUPS;
       set_mode_system_value(mode);
@@ -1161,7 +1165,6 @@ vtn_get_builtin_location(struct vtn_builder *b,
       *location = SYSTEM_VALUE_VIEW_INDEX;
       set_mode_system_value(mode);
       break;
-   case SpvBuiltInHelperInvocation:
    default:
       unreachable("unsupported builtin");
    }

@@ -1618,17 +1618,17 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
          /* [0] = color,
           * [1] = (2/fb_width, 2/fb_height, xoffset, yoffset)
           * [2] = (xscale, yscale, 0, 0) */
-         "DCL CONST[0..2]\n"
+         "DCL CONST[0][0..2]\n"
          "DCL TEMP[0]\n"
          "IMM[0] FLT32 { -1, 0, 0, 1 }\n"
 
          /* v = in * (xscale, yscale) + (xoffset, yoffset) */
-         "MAD TEMP[0].xy, IN[0], CONST[2].xyyy, CONST[1].zwww\n"
+         "MAD TEMP[0].xy, IN[0], CONST[0][2].xyyy, CONST[0][1].zwww\n"
          /* pos = v * (2 / fb_width, 2 / fb_height) - (1, 1) */
-         "MAD OUT[0].xy, TEMP[0], CONST[1].xyyy, IMM[0].xxxx\n"
+         "MAD OUT[0].xy, TEMP[0], CONST[0][1].xyyy, IMM[0].xxxx\n"
          "MOV OUT[0].zw, IMM[0]\n"
 
-         "MOV OUT[1], CONST[0]\n"
+         "MOV OUT[1], CONST[0][0]\n"
          "MOV OUT[2], IN[1]\n"
          "END\n"
       };

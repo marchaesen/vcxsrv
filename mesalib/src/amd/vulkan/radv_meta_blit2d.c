@@ -37,7 +37,8 @@ enum blit2d_src_type {
 static void
 create_iview(struct radv_cmd_buffer *cmd_buffer,
              struct radv_meta_blit2d_surf *surf,
-             struct radv_image_view *iview, VkFormat depth_format)
+             struct radv_image_view *iview, VkFormat depth_format,
+              VkImageAspectFlagBits aspects)
 {
 	VkFormat format;
 
@@ -53,7 +54,7 @@ create_iview(struct radv_cmd_buffer *cmd_buffer,
 					     .viewType = VK_IMAGE_VIEW_TYPE_2D,
 					     .format = format,
 					     .subresourceRange = {
-					     .aspectMask = surf->aspect_mask,
+					     .aspectMask = aspects,
 					     .baseMipLevel = surf->level,
 					     .levelCount = 1,
 					     .baseArrayLayer = surf->layer,
@@ -95,7 +96,8 @@ blit2d_bind_src(struct radv_cmd_buffer *cmd_buffer,
                 struct radv_meta_blit2d_surf *src_img,
                 struct radv_meta_blit2d_buffer *src_buf,
                 struct blit2d_src_temps *tmp,
-                enum blit2d_src_type src_type, VkFormat depth_format)
+                enum blit2d_src_type src_type, VkFormat depth_format,
+                VkImageAspectFlagBits aspects)
 {
 	struct radv_device *device = cmd_buffer->device;
 
@@ -122,7 +124,7 @@ blit2d_bind_src(struct radv_cmd_buffer *cmd_buffer,
 				      VK_SHADER_STAGE_FRAGMENT_BIT, 16, 4,
 				      &src_buf->pitch);
 	} else {
-		create_iview(cmd_buffer, src_img, &tmp->iview, depth_format);
+		create_iview(cmd_buffer, src_img, &tmp->iview, depth_format, aspects);
 
 		radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 					      device->meta_state.blit2d.p_layouts[src_type],
@@ -159,9 +161,10 @@ blit2d_bind_dst(struct radv_cmd_buffer *cmd_buffer,
                 uint32_t width,
                 uint32_t height,
 		VkFormat depth_format,
-                struct blit2d_dst_temps *tmp)
+                struct blit2d_dst_temps *tmp,
+                VkImageAspectFlagBits aspects)
 {
-	create_iview(cmd_buffer, dst, &tmp->iview, depth_format);
+	create_iview(cmd_buffer, dst, &tmp->iview, depth_format, aspects);
 
 	radv_CreateFramebuffer(radv_device_to_handle(cmd_buffer->device),
 			       &(VkFramebufferCreateInfo) {
@@ -234,106 +237,111 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_device *device = cmd_buffer->device;
 
 	for (unsigned r = 0; r < num_rects; ++r) {
-		VkFormat depth_format = 0;
-		if (dst->aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT)
-			depth_format = vk_format_stencil_only(dst->image->vk_format);
-		else if (dst->aspect_mask == VK_IMAGE_ASPECT_DEPTH_BIT)
-			depth_format = vk_format_depth_only(dst->image->vk_format);
-		struct blit2d_src_temps src_temps;
-		blit2d_bind_src(cmd_buffer, src_img, src_buf, &src_temps, src_type, depth_format);
+		unsigned i;
+		for_each_bit(i, dst->aspect_mask) {
+			unsigned aspect_mask = 1u << i;
+			VkFormat depth_format = 0;
+			if (aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT)
+				depth_format = vk_format_stencil_only(dst->image->vk_format);
+			else if (aspect_mask == VK_IMAGE_ASPECT_DEPTH_BIT)
+				depth_format = vk_format_depth_only(dst->image->vk_format);
+			struct blit2d_src_temps src_temps;
+			blit2d_bind_src(cmd_buffer, src_img, src_buf, &src_temps, src_type, depth_format, aspect_mask);
 
-		struct blit2d_dst_temps dst_temps;
-		blit2d_bind_dst(cmd_buffer, dst, rects[r].dst_x + rects[r].width,
-				rects[r].dst_y + rects[r].height, depth_format, &dst_temps);
+			struct blit2d_dst_temps dst_temps;
+			blit2d_bind_dst(cmd_buffer, dst, rects[r].dst_x + rects[r].width,
+					rects[r].dst_y + rects[r].height, depth_format, &dst_temps, aspect_mask);
 
-		float vertex_push_constants[4] = {
-			rects[r].src_x,
-			rects[r].src_y,
-			rects[r].src_x + rects[r].width,
-			rects[r].src_y + rects[r].height,
-		};
+			float vertex_push_constants[4] = {
+				rects[r].src_x,
+				rects[r].src_y,
+				rects[r].src_x + rects[r].width,
+				rects[r].src_y + rects[r].height,
+			};
 
-		radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
-				      device->meta_state.blit2d.p_layouts[src_type],
-				      VK_SHADER_STAGE_VERTEX_BIT, 0, 16,
-				      vertex_push_constants);
+			radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
+					device->meta_state.blit2d.p_layouts[src_type],
+					VK_SHADER_STAGE_VERTEX_BIT, 0, 16,
+					vertex_push_constants);
 
-		if (dst->aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT) {
-			unsigned fs_key = radv_format_meta_fs_key(dst_temps.iview.vk_format);
+			if (aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT) {
+				unsigned fs_key = radv_format_meta_fs_key(dst_temps.iview.vk_format);
 
-			radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-						      &(VkRenderPassBeginInfo) {
-							      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-								      .renderPass = device->meta_state.blit2d.render_passes[fs_key],
-								      .framebuffer = dst_temps.fb,
-								      .renderArea = {
-								      .offset = { rects[r].dst_x, rects[r].dst_y, },
-								      .extent = { rects[r].width, rects[r].height },
-							      },
-								      .clearValueCount = 0,
-									       .pClearValues = NULL,
-									       }, VK_SUBPASS_CONTENTS_INLINE);
-
-
-			bind_pipeline(cmd_buffer, src_type, fs_key);
-		} else if (dst->aspect_mask == VK_IMAGE_ASPECT_DEPTH_BIT) {
-			radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-						      &(VkRenderPassBeginInfo) {
-							      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-								      .renderPass = device->meta_state.blit2d.depth_only_rp,
-								      .framebuffer = dst_temps.fb,
-								      .renderArea = {
-								      .offset = { rects[r].dst_x, rects[r].dst_y, },
-								      .extent = { rects[r].width, rects[r].height },
-							      },
-								      .clearValueCount = 0,
-									       .pClearValues = NULL,
-									       }, VK_SUBPASS_CONTENTS_INLINE);
+				radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
+							&(VkRenderPassBeginInfo) {
+								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+									.renderPass = device->meta_state.blit2d.render_passes[fs_key],
+									.framebuffer = dst_temps.fb,
+									.renderArea = {
+									.offset = { rects[r].dst_x, rects[r].dst_y, },
+									.extent = { rects[r].width, rects[r].height },
+								},
+									.clearValueCount = 0,
+										.pClearValues = NULL,
+										}, VK_SUBPASS_CONTENTS_INLINE);
 
 
-			bind_depth_pipeline(cmd_buffer, src_type);
+				bind_pipeline(cmd_buffer, src_type, fs_key);
+			} else if (aspect_mask == VK_IMAGE_ASPECT_DEPTH_BIT) {
+				radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
+							&(VkRenderPassBeginInfo) {
+								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+									.renderPass = device->meta_state.blit2d.depth_only_rp,
+									.framebuffer = dst_temps.fb,
+									.renderArea = {
+									.offset = { rects[r].dst_x, rects[r].dst_y, },
+									.extent = { rects[r].width, rects[r].height },
+								},
+									.clearValueCount = 0,
+										.pClearValues = NULL,
+										}, VK_SUBPASS_CONTENTS_INLINE);
 
-		} else if (dst->aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT) {
-			radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-						      &(VkRenderPassBeginInfo) {
-							      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-								      .renderPass = device->meta_state.blit2d.stencil_only_rp,
-								      .framebuffer = dst_temps.fb,
-								      .renderArea = {
-								      .offset = { rects[r].dst_x, rects[r].dst_y, },
-								      .extent = { rects[r].width, rects[r].height },
-							      },
-								      .clearValueCount = 0,
-									       .pClearValues = NULL,
-									       }, VK_SUBPASS_CONTENTS_INLINE);
+
+				bind_depth_pipeline(cmd_buffer, src_type);
+
+			} else if (aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT) {
+				radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
+							&(VkRenderPassBeginInfo) {
+								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+									.renderPass = device->meta_state.blit2d.stencil_only_rp,
+									.framebuffer = dst_temps.fb,
+									.renderArea = {
+									.offset = { rects[r].dst_x, rects[r].dst_y, },
+									.extent = { rects[r].width, rects[r].height },
+								},
+									.clearValueCount = 0,
+										.pClearValues = NULL,
+										}, VK_SUBPASS_CONTENTS_INLINE);
 
 
-			bind_stencil_pipeline(cmd_buffer, src_type);
+				bind_stencil_pipeline(cmd_buffer, src_type);
+			} else
+				unreachable("Processing blit2d with multiple aspects.");
+
+			radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
+				.x = rects[r].dst_x,
+				.y = rects[r].dst_y,
+				.width = rects[r].width,
+				.height = rects[r].height,
+				.minDepth = 0.0f,
+				.maxDepth = 1.0f
+			});
+
+			radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkRect2D) {
+				.offset = (VkOffset2D) { rects[r].dst_x, rects[r].dst_y },
+				.extent = (VkExtent2D) { rects[r].width, rects[r].height },
+			});
+
+
+
+			radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
+			radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
+
+			/* At the point where we emit the draw call, all data from the
+			* descriptor sets, etc. has been used.  We are free to delete it.
+			*/
+			blit2d_unbind_dst(cmd_buffer, &dst_temps);
 		}
-
-		radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
-			.x = rects[r].dst_x,
-			.y = rects[r].dst_y,
-			.width = rects[r].width,
-			.height = rects[r].height,
-			.minDepth = 0.0f,
-			.maxDepth = 1.0f
-		});
-
-		radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkRect2D) {
-			.offset = (VkOffset2D) { rects[r].dst_x, rects[r].dst_y },
-			.extent = (VkExtent2D) { rects[r].width, rects[r].height },
-		});
-
-
-
-		radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
-		radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
-
-		/* At the point where we emit the draw call, all data from the
-		 * descriptor sets, etc. has been used.  We are free to delete it.
-		 */
-		blit2d_unbind_dst(cmd_buffer, &dst_temps);
 	}
 }
 
