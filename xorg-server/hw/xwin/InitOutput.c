@@ -81,10 +81,6 @@ void
 Bool
  winValidateArgs(void);
 
-#ifdef RELOCATE_PROJECTROOT
-const char *winGetBaseDir(void);
-#endif
-
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
  * we change this pixmap format later if we detect that the display
@@ -355,7 +351,7 @@ winGetBaseDir(void)
         fendptr = buffer + size;
         while (fendptr > buffer) {
             if (*fendptr == '\\' || *fendptr == '/') {
-                *fendptr = 0;
+                fendptr[1] = 0; // Include ending slash
                 break;
             }
             fendptr--;
@@ -381,13 +377,13 @@ winFixupPaths(void)
     {
         /* Open fontpath configuration file */
 #if defined WIN32 && defined __MINGW32__
-        static Bool once = False;
+        static Bool once = FALSE;
         char buffer[MAX_PATH];
-        snprintf(buffer, sizeof(buffer), "%s\\font-dirs", basedir);
+        snprintf(buffer, sizeof(buffer), "%sfont-dirs", basedir);
         buffer[sizeof(buffer)-1] = 0;
         FILE *fontdirs = fopen(buffer, "rt");
         if (once) fontdirs = NULL;
-        else once = True;
+        else once = TRUE;
 #else
         FILE *fontdirs = fopen(ETCX11DIR "/font-dirs", "rt");
 #endif
@@ -488,7 +484,7 @@ winFixupPaths(void)
 #endif                          /* READ_FONTDIRS */
 #ifdef RELOCATE_PROJECTROOT
     {
-        const char *libx11dir = PROJECTROOT "/lib/X11";
+        const char *libx11dir = PROJECTROOT "/";
         size_t libx11dir_len = strlen(libx11dir);
         char *newfp = NULL;
         size_t newfp_len = 0;
@@ -560,27 +556,27 @@ winFixupPaths(void)
     if (getenv("XKEYSYMDB") == NULL) {
         char buffer[MAX_PATH];
 
-        snprintf(buffer, sizeof(buffer), "XKEYSYMDB=%s\\XKeysymDB", basedir);
+        snprintf(buffer, sizeof(buffer), "XKEYSYMDB=%sXKeysymDB", basedir);
         buffer[sizeof(buffer) - 1] = 0;
         putenv(buffer);
     }
     if (getenv("XERRORDB") == NULL) {
         char buffer[MAX_PATH];
 
-        snprintf(buffer, sizeof(buffer), "XERRORDB=%s\\XErrorDB", basedir);
+        snprintf(buffer, sizeof(buffer), "XERRORDB=%sXErrorDB", basedir);
         buffer[sizeof(buffer) - 1] = 0;
         putenv(buffer);
     }
     if (getenv("XLOCALEDIR") == NULL) {
         char buffer[MAX_PATH];
 
-        snprintf(buffer, sizeof(buffer), "XLOCALEDIR=%s\\locale", basedir);
+        snprintf(buffer, sizeof(buffer), "XLOCALEDIR=%slocale", basedir);
         buffer[sizeof(buffer) - 1] = 0;
         putenv(buffer);
     }
     if (getenv("XHOSTPREFIX") == NULL) {
         char buffer[MAX_PATH];
-        snprintf(buffer, sizeof(buffer), "XHOSTPREFIX=%s\\X",
+        snprintf(buffer, sizeof(buffer), "XHOSTPREFIX=%sX",
                 basedir);
         buffer[sizeof(buffer)-1] = 0;
         putenv(buffer);
@@ -616,7 +612,7 @@ winFixupPaths(void)
     {
         static char xkbbasedir[MAX_PATH];
 
-        snprintf(xkbbasedir, sizeof(xkbbasedir), "%s\\xkbdata", basedir);
+        snprintf(xkbbasedir, sizeof(xkbbasedir), "%sxkbdata", basedir);
         if (sizeof(xkbbasedir) > 0)
             xkbbasedir[sizeof(xkbbasedir) - 1] = 0;
         XkbBaseDirectory = xkbbasedir;

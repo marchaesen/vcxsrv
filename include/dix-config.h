@@ -26,7 +26,7 @@
 #define BUILDERSTRING ""
 
 /* Default font path */
-#define COMPILEDDEFAULTFONTPATH "fonts/misc/,fonts/TTF/,fonts/OTF,fonts/Type1/,fonts/100dpi/,fonts/75dpi/,fonts/cyrillic/,fonts/Speedo/,fonts/terminus-font/,built-ins"
+#define COMPILEDDEFAULTFONTPATH "./fonts/misc/,./fonts/TTF/,./fonts/OTF,./fonts/Type1/,./fonts/100dpi/,./fonts/75dpi/,./fonts/cyrillic/,./fonts/Speedo/,./fonts/terminus-font/,built-ins"
 
 /* Miscellaneous server configuration files path */
 #define SERVER_MISC_CONFIG_PATH "."

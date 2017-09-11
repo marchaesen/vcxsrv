@@ -696,7 +696,7 @@ LoadPreferences(void)
         char buffer[MAX_PATH];
 
 #ifdef RELOCATE_PROJECTROOT
-        snprintf(buffer, sizeof(buffer), "%s\\system.XWinrc", winGetBaseDir());
+        snprintf(buffer, sizeof(buffer), "%ssystem.XWinrc", winGetBaseDir());
 #else
         strncpy(buffer, SYSCONFDIR "/X11/system.XWinrc", sizeof(buffer));
 #endif
