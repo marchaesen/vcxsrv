@@ -102,18 +102,18 @@ cd ..
 #reuse the cygwin perl again
 export PATH=$ORIPATH
 
-MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Release /p:Platform=Win32
+MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Release /p:Platform=x64
 check-error 'Error compiling mhmake for release'
 
-MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Debug /p:Platform=Win32
+MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Debug /p:Platform=x64
 check-error 'Error compiling mhmake for debug'
 
 export MHMAKECONF=`cygpath -da .`
 
-tools/mhmake/release/mhmake $PARBUILD -C xorg-server MAKESERVER=1 DEBUG=1
+tools/mhmake/Release64/mhmake $PARBUILD -C xorg-server MAKESERVER=1 DEBUG=1
 check-error 'Error compiling vcxsrv for debug'
 
-tools/mhmake/release/mhmake.exe $PARBUILD -C xorg-server MAKESERVER=1
+tools/mhmake/Release64/mhmake.exe $PARBUILD -C xorg-server MAKESERVER=1
 check-error 'Error compiling vcxsrv for release'
 
 cd xorg-server/installer
