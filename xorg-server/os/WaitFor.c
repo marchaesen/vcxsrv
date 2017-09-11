@@ -236,11 +236,11 @@ WaitForSomething(Bool are_ready)
                 char szMessage[1024];
                 FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, pollerr, 0, szMessage, 1024, NULL );
                 ErrorF("WaitForSomething(): poll: %d %s\n", pollerr, szMessage);
-//                if (pollerr == WSAENOTSOCK)
-//                {
-//                  CheckServerConnections(server_poll);
-//                  continue; // try again
-//                }
+                if (pollerr == WSAENOTSOCK)
+                {
+                  CheckServerConnections(server_poll);
+                  continue; // try again
+                }
             }
         } else
             are_ready = clients_are_ready();
