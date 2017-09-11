@@ -358,13 +358,15 @@ disk_cache_create(const char *gpu_name, const char *timestamp,
 
    cache->max_size = max_size;
 
-   /* A limit of 32 jobs was choosen as observations of Deus Ex start-up times
-    * showed that we reached at most 11 jobs on an Intel i5-6400 CPU@2.70GHz
-    * (a fairly modest desktop CPU). 1 thread was chosen because we don't
-    * really care about getting things to disk quickly just that it's not
-    * blocking other tasks.
+   /* 1 thread was chosen because we don't really care about getting things
+    * to disk quickly just that it's not blocking other tasks.
+    *
+    * The queue will resize automatically when it's full, so adding new jobs
+    * doesn't stall.
     */
-   util_queue_init(&cache->cache_queue, "disk_cache", 32, 1, 0);
+   util_queue_init(&cache->cache_queue, "disk_cache", 32, 1,
+                   UTIL_QUEUE_INIT_RESIZE_IF_FULL |
+                   UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY);
 
    uint8_t cache_version = CACHE_VERSION;
    size_t cv_size = sizeof(cache_version);

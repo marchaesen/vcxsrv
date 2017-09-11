@@ -7,11 +7,13 @@
 *.log
 *.o
 *.obj
+*.orig
 *.os
 *.pc
 *.pdb
 *.pyc
 *.pyo
+*.rej
 *.so
 *.so.*
 *.sw[a-z]

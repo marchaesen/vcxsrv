@@ -66,12 +66,30 @@ struct ac_llvm_context {
 void
 ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context);
 
+unsigned ac_get_type_size(LLVMTypeRef type);
+
+LLVMTypeRef ac_to_integer_type(struct ac_llvm_context *ctx, LLVMTypeRef t);
+LLVMValueRef ac_to_integer(struct ac_llvm_context *ctx, LLVMValueRef v);
+LLVMTypeRef ac_to_float_type(struct ac_llvm_context *ctx, LLVMTypeRef t);
+LLVMValueRef ac_to_float(struct ac_llvm_context *ctx, LLVMValueRef v);
+
 LLVMValueRef
 ac_build_intrinsic(struct ac_llvm_context *ctx, const char *name,
 		   LLVMTypeRef return_type, LLVMValueRef *params,
 		   unsigned param_count, unsigned attrib_mask);
 
 void ac_build_type_name_for_intr(LLVMTypeRef type, char *buf, unsigned bufsize);
+
+void ac_build_optimization_barrier(struct ac_llvm_context *ctx,
+				   LLVMValueRef *pvgpr);
+
+LLVMValueRef ac_build_ballot(struct ac_llvm_context *ctx, LLVMValueRef value);
+
+LLVMValueRef ac_build_vote_all(struct ac_llvm_context *ctx, LLVMValueRef value);
+
+LLVMValueRef ac_build_vote_any(struct ac_llvm_context *ctx, LLVMValueRef value);
+
+LLVMValueRef ac_build_vote_eq(struct ac_llvm_context *ctx, LLVMValueRef value);
 
 LLVMValueRef
 ac_build_gather_values_extended(struct ac_llvm_context *ctx,

@@ -767,7 +767,6 @@ static const __DRIuseInvalidateExtension dri2UseInvalidate = {
 };
 
 static const __DRIextension *loader_extensions[] = {
-    &systemTimeExtension.base,
     &loaderExtension.base,
     &dri2UseInvalidate.base,
     NULL

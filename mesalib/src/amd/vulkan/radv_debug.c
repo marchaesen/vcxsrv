@@ -30,6 +30,7 @@
 
 #include "ac_debug.h"
 #include "radv_debug.h"
+#include "radv_shader.h"
 
 bool
 radv_init_trace(struct radv_device *device)
@@ -87,11 +88,15 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_winsys_cs *cs)
 	struct radv_device *device = queue->device;
 	uint64_t addr;
 
-	if (!radv_gpu_hang_occured(queue))
+	bool hang_occurred = radv_gpu_hang_occured(queue);
+	bool vm_fault_occurred = false;
+	if (queue->device->instance->debug_flags & RADV_DEBUG_VM_FAULTS)
+		vm_fault_occurred = ac_vm_fault_occured(device->physical_device->rad_info.chip_class,
+		                                        &device->dmesg_timestamp, &addr);
+	if (!hang_occurred && !vm_fault_occurred)
 		return;
 
-	if (ac_vm_fault_occured(device->physical_device->rad_info.chip_class,
-				&device->dmesg_timestamp, &addr)) {
+	if (vm_fault_occurred) {
 		fprintf(stderr, "VM fault report.\n\n");
 		fprintf(stderr, "Failing VM page: 0x%08"PRIx64"\n\n", addr);
 	}

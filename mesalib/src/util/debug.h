@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _DEBUG_H
-#define _DEBUG_H
+#ifndef _UTIL_DEBUG_H
+#define _UTIL_DEBUG_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -46,4 +46,4 @@ env_var_as_boolean(const char *var_name, bool default_value);
 } /* extern C */
 #endif
 
-#endif /* _DEBUG_H */
+#endif /* _UTIL_DEBUG_H */

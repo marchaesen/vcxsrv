@@ -41,7 +41,16 @@ struct pipe_context;
 enum blitter_attrib_type {
    UTIL_BLITTER_ATTRIB_NONE,
    UTIL_BLITTER_ATTRIB_COLOR,
-   UTIL_BLITTER_ATTRIB_TEXCOORD
+   UTIL_BLITTER_ATTRIB_TEXCOORD_XY,
+   UTIL_BLITTER_ATTRIB_TEXCOORD_XYZW,
+};
+
+union blitter_attrib {
+   float color[4];
+
+   struct {
+      float x1, y1, x2, y2, z, w;
+   } texcoord;
 };
 
 struct blitter_context
@@ -73,9 +82,9 @@ struct blitter_context
     */
    void (*draw_rectangle)(struct blitter_context *blitter,
                           int x1, int y1, int x2, int y2,
-                          float depth,
+                          float depth, unsigned num_instances,
                           enum blitter_attrib_type type,
-                          const union pipe_color_union *color);
+                          const union blitter_attrib *attrib);
 
    /* Whether the blitter is running. */
    bool running;
@@ -146,9 +155,10 @@ void util_blitter_set_texture_multisample(struct blitter_context *blitter,
 /* The default function to draw a rectangle. This can only be used
  * inside of the draw_rectangle callback if the driver overrides it. */
 void util_blitter_draw_rectangle(struct blitter_context *blitter,
-                                 int x1, int y1, int x2, int y2, float depth,
+                                 int x1, int y1, int x2, int y2,
+                                 float depth, unsigned num_instances,
                                  enum blitter_attrib_type type,
-                                 const union pipe_color_union *attrib);
+                                 const union blitter_attrib *attrib);
 
 
 /*

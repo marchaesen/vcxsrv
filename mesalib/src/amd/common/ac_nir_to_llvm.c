@@ -216,26 +216,6 @@ static unsigned shader_io_get_unique_index(gl_varying_slot slot)
 	unreachable("illegal slot in get unique index\n");
 }
 
-static unsigned llvm_get_type_size(LLVMTypeRef type)
-{
-	LLVMTypeKind kind = LLVMGetTypeKind(type);
-
-	switch (kind) {
-	case LLVMIntegerTypeKind:
-		return LLVMGetIntTypeWidth(type) / 8;
-	case LLVMFloatTypeKind:
-		return 4;
-	case LLVMPointerTypeKind:
-		return 8;
-	case LLVMVectorTypeKind:
-		return LLVMGetVectorSize(type) *
-		       llvm_get_type_size(LLVMGetElementType(type));
-	default:
-		assert(0);
-		return 0;
-	}
-}
-
 static void set_llvm_calling_convention(LLVMValueRef func,
                                         gl_shader_stage stage)
 {
@@ -291,7 +271,7 @@ add_sgpr_argument(struct arg_info *info,
 		  LLVMTypeRef type, LLVMValueRef *param_ptr)
 {
 	add_argument(info, type, param_ptr);
-	info->num_sgprs_used += llvm_get_type_size(type) / 4;
+	info->num_sgprs_used += ac_get_type_size(type) / 4;
 	info->sgpr_count++;
 }
 
@@ -301,7 +281,7 @@ add_user_sgpr_argument(struct arg_info *info,
 		       LLVMValueRef *param_ptr)
 {
 	add_sgpr_argument(info, type, param_ptr);
-	info->num_user_sgprs_used += llvm_get_type_size(type) / 4;
+	info->num_user_sgprs_used += ac_get_type_size(type) / 4;
 	info->user_sgpr_count++;
 }
 
@@ -311,7 +291,7 @@ add_vgpr_argument(struct arg_info *info,
 		  LLVMValueRef *param_ptr)
 {
 	add_argument(info, type, param_ptr);
-	info->num_vgprs_used += llvm_get_type_size(type) / 4;
+	info->num_vgprs_used += ac_get_type_size(type) / 4;
 }
 
 static inline void
@@ -398,62 +378,6 @@ static LLVMTypeRef const_array(LLVMTypeRef elem_type, int num_elements)
 {
 	return LLVMPointerType(LLVMArrayType(elem_type, num_elements),
 	                       CONST_ADDR_SPACE);
-}
-
-static LLVMTypeRef to_integer_type_scalar(struct ac_llvm_context *ctx, LLVMTypeRef t)
-{
-	if (t == ctx->f16 || t == ctx->i16)
-		return ctx->i16;
-	else if (t == ctx->f32 || t == ctx->i32)
-		return ctx->i32;
-	else if (t == ctx->f64 || t == ctx->i64)
-		return ctx->i64;
-	else
-		unreachable("Unhandled integer size");
-}
-
-static LLVMTypeRef to_integer_type(struct ac_llvm_context *ctx, LLVMTypeRef t)
-{
-	if (LLVMGetTypeKind(t) == LLVMVectorTypeKind) {
-		LLVMTypeRef elem_type = LLVMGetElementType(t);
-		return LLVMVectorType(to_integer_type_scalar(ctx, elem_type),
-		                      LLVMGetVectorSize(t));
-	}
-	return to_integer_type_scalar(ctx, t);
-}
-
-static LLVMValueRef to_integer(struct ac_llvm_context *ctx, LLVMValueRef v)
-{
-	LLVMTypeRef type = LLVMTypeOf(v);
-	return LLVMBuildBitCast(ctx->builder, v, to_integer_type(ctx, type), "");
-}
-
-static LLVMTypeRef to_float_type_scalar(struct ac_llvm_context *ctx, LLVMTypeRef t)
-{
-	if (t == ctx->i16 || t == ctx->f16)
-		return ctx->f16;
-	else if (t == ctx->i32 || t == ctx->f32)
-		return ctx->f32;
-	else if (t == ctx->i64 || t == ctx->f64)
-		return ctx->f64;
-	else
-		unreachable("Unhandled float size");
-}
-
-static LLVMTypeRef to_float_type(struct ac_llvm_context *ctx, LLVMTypeRef t)
-{
-	if (LLVMGetTypeKind(t) == LLVMVectorTypeKind) {
-		LLVMTypeRef elem_type = LLVMGetElementType(t);
-		return LLVMVectorType(to_float_type_scalar(ctx, elem_type),
-		                      LLVMGetVectorSize(t));
-	}
-	return to_float_type_scalar(ctx, t);
-}
-
-static LLVMValueRef to_float(struct ac_llvm_context *ctx, LLVMValueRef v)
-{
-	LLVMTypeRef type = LLVMTypeOf(v);
-	return LLVMBuildBitCast(ctx->builder, v, to_float_type(ctx, type), "");
 }
 
 static int get_elem_bits(struct ac_llvm_context *ctx, LLVMTypeRef type)
@@ -1120,8 +1044,8 @@ static LLVMValueRef emit_float_cmp(struct ac_llvm_context *ctx,
                                    LLVMValueRef src1)
 {
 	LLVMValueRef result;
-	src0 = to_float(ctx, src0);
-	src1 = to_float(ctx, src1);
+	src0 = ac_to_float(ctx, src0);
+	src1 = ac_to_float(ctx, src1);
 	result = LLVMBuildFCmp(ctx->builder, pred, src0, src1, "");
 	return LLVMBuildSelect(ctx->builder, result,
 	                       LLVMConstInt(ctx->i32, 0xFFFFFFFF, false),
@@ -1135,7 +1059,7 @@ static LLVMValueRef emit_intrin_1f_param(struct ac_llvm_context *ctx,
 {
 	char name[64];
 	LLVMValueRef params[] = {
-		to_float(ctx, src0),
+		ac_to_float(ctx, src0),
 	};
 
 	MAYBE_UNUSED const int length = snprintf(name, sizeof(name), "%s.f%d", intrin,
@@ -1151,8 +1075,8 @@ static LLVMValueRef emit_intrin_2f_param(struct ac_llvm_context *ctx,
 {
 	char name[64];
 	LLVMValueRef params[] = {
-		to_float(ctx, src0),
-		to_float(ctx, src1),
+		ac_to_float(ctx, src0),
+		ac_to_float(ctx, src1),
 	};
 
 	MAYBE_UNUSED const int length = snprintf(name, sizeof(name), "%s.f%d", intrin,
@@ -1168,9 +1092,9 @@ static LLVMValueRef emit_intrin_3f_param(struct ac_llvm_context *ctx,
 {
 	char name[64];
 	LLVMValueRef params[] = {
-		to_float(ctx, src0),
-		to_float(ctx, src1),
-		to_float(ctx, src2),
+		ac_to_float(ctx, src0),
+		ac_to_float(ctx, src1),
+		ac_to_float(ctx, src2),
 	};
 
 	MAYBE_UNUSED const int length = snprintf(name, sizeof(name), "%s.f%d", intrin,
@@ -1272,7 +1196,7 @@ static LLVMValueRef emit_ffract(struct ac_llvm_context *ctx,
 				LLVMValueRef src0)
 {
 	const char *intr = "llvm.floor.f32";
-	LLVMValueRef fsrc0 = to_float(ctx, src0);
+	LLVMValueRef fsrc0 = ac_to_float(ctx, src0);
 	LLVMValueRef params[] = {
 		fsrc0,
 	};
@@ -1310,7 +1234,7 @@ static LLVMValueRef emit_b2f(struct ac_llvm_context *ctx,
 static LLVMValueRef emit_f2b(struct ac_llvm_context *ctx,
 			     LLVMValueRef src0)
 {
-	src0 = to_float(ctx, src0);
+	src0 = ac_to_float(ctx, src0);
 	return LLVMBuildSExt(ctx->builder,
 			     LLVMBuildFCmp(ctx->builder, LLVMRealUNE, src0, ctx->f32_0, ""),
 			     ctx->i32, "");
@@ -1336,7 +1260,7 @@ static LLVMValueRef emit_f2f16(struct nir_to_llvm_context *ctx,
 	LLVMValueRef result;
 	LLVMValueRef cond = NULL;
 
-	src0 = to_float(&ctx->ac, src0);
+	src0 = ac_to_float(&ctx->ac, src0);
 	result = LLVMBuildFPTrunc(ctx->builder, src0, ctx->f16, "");
 
 	if (ctx->options->chip_class >= VI) {
@@ -1446,7 +1370,7 @@ static LLVMValueRef emit_pack_half_2x16(struct ac_llvm_context *ctx,
 	int i;
 	LLVMValueRef comp[2];
 
-	src0 = to_float(ctx, src0);
+	src0 = ac_to_float(ctx, src0);
 	comp[0] = LLVMBuildExtractElement(ctx->builder, src0, ctx->i32_0, "");
 	comp[1] = LLVMBuildExtractElement(ctx->builder, src0, ctx->i32_1, "");
 	for (i = 0; i < 2; i++) {
@@ -1567,7 +1491,7 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = src[0];
 		break;
 	case nir_op_fneg:
-	        src[0] = to_float(&ctx->ac, src[0]);
+	        src[0] = ac_to_float(&ctx->ac, src[0]);
 		result = LLVMBuildFNeg(ctx->ac.builder, src[0], "");
 		break;
 	case nir_op_ineg:
@@ -1580,13 +1504,13 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = LLVMBuildAdd(ctx->ac.builder, src[0], src[1], "");
 		break;
 	case nir_op_fadd:
-		src[0] = to_float(&ctx->ac, src[0]);
-		src[1] = to_float(&ctx->ac, src[1]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		src[1] = ac_to_float(&ctx->ac, src[1]);
 		result = LLVMBuildFAdd(ctx->ac.builder, src[0], src[1], "");
 		break;
 	case nir_op_fsub:
-		src[0] = to_float(&ctx->ac, src[0]);
-		src[1] = to_float(&ctx->ac, src[1]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		src[1] = ac_to_float(&ctx->ac, src[1]);
 		result = LLVMBuildFSub(ctx->ac.builder, src[0], src[1], "");
 		break;
 	case nir_op_isub:
@@ -1602,17 +1526,17 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = LLVMBuildURem(ctx->ac.builder, src[0], src[1], "");
 		break;
 	case nir_op_fmod:
-		src[0] = to_float(&ctx->ac, src[0]);
-		src[1] = to_float(&ctx->ac, src[1]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		src[1] = ac_to_float(&ctx->ac, src[1]);
 		result = ac_build_fdiv(&ctx->ac, src[0], src[1]);
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.floor",
-		                              to_float_type(&ctx->ac, def_type), result);
+		                              ac_to_float_type(&ctx->ac, def_type), result);
 		result = LLVMBuildFMul(ctx->ac.builder, src[1] , result, "");
 		result = LLVMBuildFSub(ctx->ac.builder, src[0], result, "");
 		break;
 	case nir_op_frem:
-		src[0] = to_float(&ctx->ac, src[0]);
-		src[1] = to_float(&ctx->ac, src[1]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		src[1] = ac_to_float(&ctx->ac, src[1]);
 		result = LLVMBuildFRem(ctx->ac.builder, src[0], src[1], "");
 		break;
 	case nir_op_irem:
@@ -1625,17 +1549,17 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = LLVMBuildUDiv(ctx->ac.builder, src[0], src[1], "");
 		break;
 	case nir_op_fmul:
-		src[0] = to_float(&ctx->ac, src[0]);
-		src[1] = to_float(&ctx->ac, src[1]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		src[1] = ac_to_float(&ctx->ac, src[1]);
 		result = LLVMBuildFMul(ctx->ac.builder, src[0], src[1], "");
 		break;
 	case nir_op_fdiv:
-		src[0] = to_float(&ctx->ac, src[0]);
-		src[1] = to_float(&ctx->ac, src[1]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		src[1] = ac_to_float(&ctx->ac, src[1]);
 		result = ac_build_fdiv(&ctx->ac, src[0], src[1]);
 		break;
 	case nir_op_frcp:
-		src[0] = to_float(&ctx->ac, src[0]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
 		result = ac_build_fdiv(&ctx->ac, ctx->ac.f32_1, src[0]);
 		break;
 	case nir_op_iand:
@@ -1697,7 +1621,7 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		break;
 	case nir_op_fabs:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.fabs",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		break;
 	case nir_op_iabs:
 		result = emit_iabs(&ctx->ac, src[0]);
@@ -1718,76 +1642,76 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = emit_isign(&ctx->ac, src[0]);
 		break;
 	case nir_op_fsign:
-		src[0] = to_float(&ctx->ac, src[0]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
 		result = emit_fsign(&ctx->ac, src[0]);
 		break;
 	case nir_op_ffloor:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.floor",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		break;
 	case nir_op_ftrunc:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.trunc",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		break;
 	case nir_op_fceil:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.ceil",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		break;
 	case nir_op_fround_even:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.rint",
-		                              to_float_type(&ctx->ac, def_type),src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type),src[0]);
 		break;
 	case nir_op_ffract:
 		result = emit_ffract(&ctx->ac, src[0]);
 		break;
 	case nir_op_fsin:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.sin",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		break;
 	case nir_op_fcos:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.cos",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		break;
 	case nir_op_fsqrt:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.sqrt",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		break;
 	case nir_op_fexp2:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.exp2",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		break;
 	case nir_op_flog2:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.log2",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		break;
 	case nir_op_frsq:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.sqrt",
-		                              to_float_type(&ctx->ac, def_type), src[0]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0]);
 		result = ac_build_fdiv(&ctx->ac, ctx->ac.f32_1, result);
 		break;
 	case nir_op_fpow:
 		result = emit_intrin_2f_param(&ctx->ac, "llvm.pow",
-		                              to_float_type(&ctx->ac, def_type), src[0], src[1]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0], src[1]);
 		break;
 	case nir_op_fmax:
 		result = emit_intrin_2f_param(&ctx->ac, "llvm.maxnum",
-		                              to_float_type(&ctx->ac, def_type), src[0], src[1]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0], src[1]);
 		if (instr->dest.dest.ssa.bit_size == 32)
 			result = emit_intrin_1f_param(&ctx->ac, "llvm.canonicalize",
-						      to_float_type(&ctx->ac, def_type),
+						      ac_to_float_type(&ctx->ac, def_type),
 						      result);
 		break;
 	case nir_op_fmin:
 		result = emit_intrin_2f_param(&ctx->ac, "llvm.minnum",
-		                              to_float_type(&ctx->ac, def_type), src[0], src[1]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0], src[1]);
 		if (instr->dest.dest.ssa.bit_size == 32)
 			result = emit_intrin_1f_param(&ctx->ac, "llvm.canonicalize",
-						      to_float_type(&ctx->ac, def_type),
+						      ac_to_float_type(&ctx->ac, def_type),
 						      result);
 		break;
 	case nir_op_ffma:
 		result = emit_intrin_3f_param(&ctx->ac, "llvm.fma",
-		                              to_float_type(&ctx->ac, def_type), src[0], src[1], src[2]);
+		                              ac_to_float_type(&ctx->ac, def_type), src[0], src[1], src[2]);
 		break;
 	case nir_op_ibitfield_extract:
 		result = emit_bitfield_extract(&ctx->ac, true, src);
@@ -1808,38 +1732,38 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 	case nir_op_vec3:
 	case nir_op_vec4:
 		for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++)
-			src[i] = to_integer(&ctx->ac, src[i]);
+			src[i] = ac_to_integer(&ctx->ac, src[i]);
 		result = ac_build_gather_values(&ctx->ac, src, num_components);
 		break;
 	case nir_op_f2i32:
 	case nir_op_f2i64:
-		src[0] = to_float(&ctx->ac, src[0]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
 		result = LLVMBuildFPToSI(ctx->ac.builder, src[0], def_type, "");
 		break;
 	case nir_op_f2u32:
 	case nir_op_f2u64:
-		src[0] = to_float(&ctx->ac, src[0]);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
 		result = LLVMBuildFPToUI(ctx->ac.builder, src[0], def_type, "");
 		break;
 	case nir_op_i2f32:
 	case nir_op_i2f64:
-		src[0] = to_integer(&ctx->ac, src[0]);
-		result = LLVMBuildSIToFP(ctx->ac.builder, src[0], to_float_type(&ctx->ac, def_type), "");
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
+		result = LLVMBuildSIToFP(ctx->ac.builder, src[0], ac_to_float_type(&ctx->ac, def_type), "");
 		break;
 	case nir_op_u2f32:
 	case nir_op_u2f64:
-		src[0] = to_integer(&ctx->ac, src[0]);
-		result = LLVMBuildUIToFP(ctx->ac.builder, src[0], to_float_type(&ctx->ac, def_type), "");
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
+		result = LLVMBuildUIToFP(ctx->ac.builder, src[0], ac_to_float_type(&ctx->ac, def_type), "");
 		break;
 	case nir_op_f2f64:
-		result = LLVMBuildFPExt(ctx->ac.builder, src[0], to_float_type(&ctx->ac, def_type), "");
+		result = LLVMBuildFPExt(ctx->ac.builder, src[0], ac_to_float_type(&ctx->ac, def_type), "");
 		break;
 	case nir_op_f2f32:
-		result = LLVMBuildFPTrunc(ctx->ac.builder, src[0], to_float_type(&ctx->ac, def_type), "");
+		result = LLVMBuildFPTrunc(ctx->ac.builder, src[0], ac_to_float_type(&ctx->ac, def_type), "");
 		break;
 	case nir_op_u2u32:
 	case nir_op_u2u64:
-		src[0] = to_integer(&ctx->ac, src[0]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
 		if (get_elem_bits(&ctx->ac, LLVMTypeOf(src[0])) < get_elem_bits(&ctx->ac, def_type))
 			result = LLVMBuildZExt(ctx->ac.builder, src[0], def_type, "");
 		else
@@ -1847,7 +1771,7 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		break;
 	case nir_op_i2i32:
 	case nir_op_i2i64:
-		src[0] = to_integer(&ctx->ac, src[0]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
 		if (get_elem_bits(&ctx->ac, LLVMTypeOf(src[0])) < get_elem_bits(&ctx->ac, def_type))
 			result = LLVMBuildSExt(ctx->ac.builder, src[0], def_type, "");
 		else
@@ -1857,25 +1781,25 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = emit_bcsel(&ctx->ac, src[0], src[1], src[2]);
 		break;
 	case nir_op_find_lsb:
-		src[0] = to_integer(&ctx->ac, src[0]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
 		result = emit_find_lsb(&ctx->ac, src[0]);
 		break;
 	case nir_op_ufind_msb:
-		src[0] = to_integer(&ctx->ac, src[0]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
 		result = emit_ufind_msb(&ctx->ac, src[0]);
 		break;
 	case nir_op_ifind_msb:
-		src[0] = to_integer(&ctx->ac, src[0]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
 		result = emit_ifind_msb(&ctx->ac, src[0]);
 		break;
 	case nir_op_uadd_carry:
-		src[0] = to_integer(&ctx->ac, src[0]);
-		src[1] = to_integer(&ctx->ac, src[1]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
+		src[1] = ac_to_integer(&ctx->ac, src[1]);
 		result = emit_uint_carry(&ctx->ac, "llvm.uadd.with.overflow.i32", src[0], src[1]);
 		break;
 	case nir_op_usub_borrow:
-		src[0] = to_integer(&ctx->ac, src[0]);
-		src[1] = to_integer(&ctx->ac, src[1]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
+		src[1] = ac_to_integer(&ctx->ac, src[1]);
 		result = emit_uint_carry(&ctx->ac, "llvm.usub.with.overflow.i32", src[0], src[1]);
 		break;
 	case nir_op_b2f:
@@ -1888,20 +1812,20 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = emit_b2i(&ctx->ac, src[0]);
 		break;
 	case nir_op_i2b:
-		src[0] = to_integer(&ctx->ac, src[0]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
 		result = emit_i2b(&ctx->ac, src[0]);
 		break;
 	case nir_op_fquantize2f16:
 		result = emit_f2f16(ctx->nctx, src[0]);
 		break;
 	case nir_op_umul_high:
-		src[0] = to_integer(&ctx->ac, src[0]);
-		src[1] = to_integer(&ctx->ac, src[1]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
+		src[1] = ac_to_integer(&ctx->ac, src[1]);
 		result = emit_umul_high(&ctx->ac, src[0], src[1]);
 		break;
 	case nir_op_imul_high:
-		src[0] = to_integer(&ctx->ac, src[0]);
-		src[1] = to_integer(&ctx->ac, src[1]);
+		src[0] = ac_to_integer(&ctx->ac, src[0]);
+		src[1] = ac_to_integer(&ctx->ac, src[1]);
 		result = emit_imul_high(&ctx->ac, src[0], src[1]);
 		break;
 	case nir_op_pack_half_2x16:
@@ -1958,7 +1882,7 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 
 	if (result) {
 		assert(instr->dest.dest.is_ssa);
-		result = to_integer(&ctx->ac, result);
+		result = ac_to_integer(&ctx->ac, result);
 		_mesa_hash_table_insert(ctx->defs, &instr->dest.dest.ssa,
 		                        result);
 	}
@@ -2303,7 +2227,7 @@ static void visit_store_ssbo(struct ac_nir_context *ctx,
 	if (components_32bit > 1)
 		data_type = LLVMVectorType(ctx->ac.f32, components_32bit);
 
-	base_data = to_float(&ctx->ac, src_data);
+	base_data = ac_to_float(&ctx->ac, src_data);
 	base_data = trim_vector(&ctx->ac, base_data, instr->num_components);
 	base_data = LLVMBuildBitCast(ctx->ac.builder, base_data,
 				     data_type, "");
@@ -3100,7 +3024,7 @@ visit_store_var(struct ac_nir_context *ctx,
 {
 	LLVMValueRef temp_ptr, value;
 	int idx = instr->variables[0]->var->data.driver_location;
-	LLVMValueRef src = to_float(&ctx->ac, get_src(ctx, instr->src[0]));
+	LLVMValueRef src = ac_to_float(&ctx->ac, get_src(ctx, instr->src[0]));
 	int writemask = instr->const_index[0];
 	LLVMValueRef indir_index;
 	unsigned const_index;
@@ -3285,7 +3209,7 @@ static LLVMValueRef adjust_sample_index_using_fmask(struct ac_llvm_context *ctx,
 
 	res = ac_build_image_opcode(ctx, &args);
 
-	res = to_integer(ctx, res);
+	res = ac_to_integer(ctx, res);
 	LLVMValueRef four = LLVMConstInt(ctx->i32, 4, false);
 	LLVMValueRef F = LLVMConstInt(ctx->i32, 0xf, false);
 
@@ -3364,7 +3288,7 @@ static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
 					LLVMBuildAdd(ctx->ac.builder, fmask_load_address[chan],
 						LLVMBuildFPToUI(ctx->ac.builder, ctx->abi->frag_pos[chan],
 								ctx->ac.i32, ""), "");
-			fmask_load_address[2] = to_integer(&ctx->ac, ctx->abi->inputs[radeon_llvm_reg_index_soa(VARYING_SLOT_LAYER, 0)]);
+			fmask_load_address[2] = ac_to_integer(&ctx->ac, ctx->abi->inputs[radeon_llvm_reg_index_soa(VARYING_SLOT_LAYER, 0)]);
 		}
 		sample_index = adjust_sample_index_using_fmask(&ctx->ac,
 							       fmask_load_address[0],
@@ -3390,7 +3314,7 @@ static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
 			for (chan = 0; chan < 2; ++chan)
 				coords[chan] = LLVMBuildAdd(ctx->ac.builder, coords[chan], LLVMBuildFPToUI(ctx->ac.builder, ctx->abi->frag_pos[chan],
 						ctx->ac.i32, ""), "");
-			coords[2] = to_integer(&ctx->ac, ctx->abi->inputs[radeon_llvm_reg_index_soa(VARYING_SLOT_LAYER, 0)]);
+			coords[2] = ac_to_integer(&ctx->ac, ctx->abi->inputs[radeon_llvm_reg_index_soa(VARYING_SLOT_LAYER, 0)]);
 			count++;
 		}
 		if (is_ms) {
@@ -3433,7 +3357,7 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 					 params, 5, 0);
 
 		res = trim_vector(&ctx->ac, res, instr->dest.ssa.num_components);
-		res = to_integer(&ctx->ac, res);
+		res = ac_to_integer(&ctx->ac, res);
 	} else {
 		bool is_da = glsl_sampler_type_is_array(type) ||
 			     glsl_get_sampler_dim(type) == GLSL_SAMPLER_DIM_CUBE ||
@@ -3468,7 +3392,7 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 		res = ac_build_intrinsic(&ctx->ac, intrinsic_name, ctx->ac.v4f32,
 					 params, 7, AC_FUNC_ATTR_READONLY);
 	}
-	return to_integer(&ctx->ac, res);
+	return ac_to_integer(&ctx->ac, res);
 }
 
 static void visit_image_store(struct ac_nir_context *ctx,
@@ -3486,7 +3410,7 @@ static void visit_image_store(struct ac_nir_context *ctx,
 		glc = i1true;
 
 	if (glsl_get_sampler_dim(type) == GLSL_SAMPLER_DIM_BUF) {
-		params[0] = to_float(&ctx->ac, get_src(ctx, instr->src[2])); /* data */
+		params[0] = ac_to_float(&ctx->ac, get_src(ctx, instr->src[2])); /* data */
 		params[1] = get_sampler_desc(ctx, instr->variables[0], AC_DESC_BUFFER, true, true);
 		params[2] = LLVMBuildExtractElement(ctx->ac.builder, get_src(ctx, instr->src[0]),
 						    ctx->ac.i32_0, ""); /* vindex */
@@ -3501,7 +3425,7 @@ static void visit_image_store(struct ac_nir_context *ctx,
 		LLVMValueRef da = is_da ? i1true : i1false;
 		LLVMValueRef slc = i1false;
 
-		params[0] = to_float(&ctx->ac, get_src(ctx, instr->src[2]));
+		params[0] = ac_to_float(&ctx->ac, get_src(ctx, instr->src[2]));
 		params[1] = get_image_coords(ctx, instr); /* coords */
 		params[2] = get_sampler_desc(ctx, instr->variables[0], AC_DESC_IMAGE, true, true);
 		params[3] = LLVMConstInt(ctx->ac.i32, 15, false); /* dmask */
@@ -3751,7 +3675,7 @@ static LLVMValueRef visit_var_atomic(struct nir_to_llvm_context *ctx,
 			return NULL;
 		}
 
-		result = LLVMBuildAtomicRMW(ctx->builder, op, ptr, to_integer(&ctx->ac, src),
+		result = LLVMBuildAtomicRMW(ctx->builder, op, ptr, ac_to_integer(&ctx->ac, src),
 					    LLVMAtomicOrderingSequentiallyConsistent,
 					    false);
 	}
@@ -3839,8 +3763,8 @@ static LLVMValueRef visit_interp(struct nir_to_llvm_context *ctx,
 	}
 
 	if (instr->intrinsic == nir_intrinsic_interp_var_at_offset) {
-		src_c0 = to_float(&ctx->ac, LLVMBuildExtractElement(ctx->builder, src0, ctx->i32zero, ""));
-		src_c1 = to_float(&ctx->ac, LLVMBuildExtractElement(ctx->builder, src0, ctx->i32one, ""));
+		src_c0 = ac_to_float(&ctx->ac, LLVMBuildExtractElement(ctx->builder, src0, ctx->i32zero, ""));
+		src_c1 = ac_to_float(&ctx->ac, LLVMBuildExtractElement(ctx->builder, src0, ctx->i32one, ""));
 	} else if (instr->intrinsic == nir_intrinsic_interp_var_at_sample) {
 		LLVMValueRef sample_position;
 		LLVMValueRef halfval = LLVMConstReal(ctx->f32, 0.5f);
@@ -4425,9 +4349,9 @@ static void tex_fetch_ptrs(struct ac_nir_context *ctx,
 static LLVMValueRef apply_round_slice(struct ac_llvm_context *ctx,
 				      LLVMValueRef coord)
 {
-	coord = to_float(ctx, coord);
+	coord = ac_to_float(ctx, coord);
 	coord = ac_build_intrinsic(ctx, "llvm.rint.f32", ctx->f32, &coord, 1, 0);
-	coord = to_integer(ctx, coord);
+	coord = ac_to_integer(ctx, coord);
 	return coord;
 }
 
@@ -4553,8 +4477,8 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 
 	/* Pack depth comparison value */
 	if (instr->is_shadow && comparator) {
-		LLVMValueRef z = to_float(&ctx->ac,
-		                          llvm_extract_elem(&ctx->ac, comparator, 0));
+		LLVMValueRef z = ac_to_float(&ctx->ac,
+		                             llvm_extract_elem(&ctx->ac, comparator, 0));
 
 		/* TC-compatible HTILE promotes Z16 and Z24 to Z32_FLOAT,
 		 * so the depth comparison value isn't clamped for Z16 and
@@ -4586,8 +4510,8 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		}
 
 		for (unsigned i = 0; i < num_deriv_comp; i++) {
-			derivs[i] = to_float(&ctx->ac, llvm_extract_elem(&ctx->ac, ddx, i));
-			derivs[num_deriv_comp + i] = to_float(&ctx->ac, llvm_extract_elem(&ctx->ac, ddy, i));
+			derivs[i] = ac_to_float(&ctx->ac, llvm_extract_elem(&ctx->ac, ddx, i));
+			derivs[num_deriv_comp + i] = ac_to_float(&ctx->ac, llvm_extract_elem(&ctx->ac, ddy, i));
 		}
 	}
 
@@ -4595,7 +4519,7 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		if (instr->is_array && instr->op != nir_texop_lod)
 			coords[3] = apply_round_slice(&ctx->ac, coords[3]);
 		for (chan = 0; chan < instr->coord_components; chan++)
-			coords[chan] = to_float(&ctx->ac, coords[chan]);
+			coords[chan] = ac_to_float(&ctx->ac, coords[chan]);
 		if (instr->coord_components == 3)
 			coords[3] = LLVMGetUndef(ctx->ac.f32);
 		ac_prepare_cube_coords(&ctx->ac,
@@ -4730,7 +4654,7 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 write_result:
 	if (result) {
 		assert(instr->dest.is_ssa);
-		result = to_integer(&ctx->ac, result);
+		result = ac_to_integer(&ctx->ac, result);
 		_mesa_hash_table_insert(ctx->defs, &instr->dest.ssa, result);
 	}
 }
@@ -4959,7 +4883,7 @@ handle_vs_input_decl(struct nir_to_llvm_context *ctx,
 		for (unsigned chan = 0; chan < 4; chan++) {
 			LLVMValueRef llvm_chan = LLVMConstInt(ctx->i32, chan, false);
 			ctx->inputs[radeon_llvm_reg_index_soa(idx, chan)] =
-				to_integer(&ctx->ac, LLVMBuildExtractElement(ctx->builder,
+				ac_to_integer(&ctx->ac, LLVMBuildExtractElement(ctx->builder,
 							input, llvm_chan, ""));
 		}
 	}
@@ -5345,7 +5269,7 @@ setup_shared(struct ac_nir_context *ctx,
 static LLVMValueRef
 emit_float_saturate(struct ac_llvm_context *ctx, LLVMValueRef v, float lo, float hi)
 {
-	v = to_float(ctx, v);
+	v = ac_to_float(ctx, v);
 	v = emit_intrin_2f_param(ctx, "llvm.maxnum", ctx->f32, v, LLVMConstReal(ctx->f32, lo));
 	return emit_intrin_2f_param(ctx, "llvm.minnum", ctx->f32, v, LLVMConstReal(ctx->f32, hi));
 }
@@ -5479,7 +5403,7 @@ si_llvm_init_export_args(struct nir_to_llvm_context *ctx,
 			LLVMValueRef max_alpha = !is_int10 ? max_rgb : LLVMConstInt(ctx->i32, 3, 0);
 
 			for (unsigned chan = 0; chan < 4; chan++) {
-				val[chan] = to_integer(&ctx->ac, values[chan]);
+				val[chan] = ac_to_integer(&ctx->ac, values[chan]);
 				val[chan] = emit_minmax_int(&ctx->ac, LLVMIntULT, val[chan], chan == 3 ? max_alpha : max_rgb);
 			}
 
@@ -5499,7 +5423,7 @@ si_llvm_init_export_args(struct nir_to_llvm_context *ctx,
 
 			/* Clamp. */
 			for (unsigned chan = 0; chan < 4; chan++) {
-				val[chan] = to_integer(&ctx->ac, values[chan]);
+				val[chan] = ac_to_integer(&ctx->ac, values[chan]);
 				val[chan] = emit_minmax_int(&ctx->ac, LLVMIntSLT, val[chan], chan == 3 ? max_alpha : max_rgb);
 				val[chan] = emit_minmax_int(&ctx->ac, LLVMIntSGT, val[chan], chan == 3 ? min_alpha : min_rgb);
 			}
@@ -5519,7 +5443,7 @@ si_llvm_init_export_args(struct nir_to_llvm_context *ctx,
 		memcpy(&args->out[0], values, sizeof(values[0]) * 4);
 
 	for (unsigned i = 0; i < 4; ++i)
-		args->out[i] = to_float(&ctx->ac, args->out[i]);
+		args->out[i] = ac_to_float(&ctx->ac, args->out[i]);
 }
 
 static void
@@ -5542,7 +5466,7 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 				            si_build_alloca_undef(&ctx->ac, ctx->ac.f32, "");
 		}
 
-		LLVMBuildStore(ctx->builder, to_float(&ctx->ac, ctx->view_index),  *tmp_out);
+		LLVMBuildStore(ctx->builder, ac_to_float(&ctx->ac, ctx->view_index),  *tmp_out);
 		ctx->output_mask |= 1ull << VARYING_SLOT_LAYER;
 	}
 
@@ -5558,7 +5482,7 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 
 		i = VARYING_SLOT_CLIP_DIST0;
 		for (j = 0; j < ctx->num_output_clips + ctx->num_output_culls; j++)
-			slots[j] = to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
+			slots[j] = ac_to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
 							       ctx->nir->outputs[radeon_llvm_reg_index_soa(i, j)], ""));
 
 		for (i = ctx->num_output_clips + ctx->num_output_culls; i < 8; i++)
@@ -5628,14 +5552,14 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 				 * index in out.z[19:16].
 				 */
 				LLVMValueRef v = viewport_index_value;
-				v = to_integer(&ctx->ac, v);
+				v = ac_to_integer(&ctx->ac, v);
 				v = LLVMBuildShl(ctx->builder, v,
 						 LLVMConstInt(ctx->i32, 16, false),
 						 "");
 				v = LLVMBuildOr(ctx->builder, v,
-						to_integer(&ctx->ac, pos_args[1].out[2]), "");
+						ac_to_integer(&ctx->ac, pos_args[1].out[2]), "");
 
-				pos_args[1].out[2] = to_float(&ctx->ac, v);
+				pos_args[1].out[2] = ac_to_float(&ctx->ac, v);
 				pos_args[1].enabled_channels |= 1 << 2;
 			} else {
 				pos_args[1].out[3] = viewport_index_value;
@@ -5666,8 +5590,8 @@ handle_vs_outputs_post(struct nir_to_llvm_context *ctx,
 			continue;
 
 		for (unsigned j = 0; j < 4; j++)
-			values[j] = to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
-					      ctx->nir->outputs[radeon_llvm_reg_index_soa(i, j)], ""));
+			values[j] = ac_to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
+					        ctx->nir->outputs[radeon_llvm_reg_index_soa(i, j)], ""));
 
 		if (i == VARYING_SLOT_LAYER) {
 			target = V_008DFC_SQ_EXP_PARAM + param_count;
@@ -6095,20 +6019,20 @@ handle_fs_outputs_post(struct nir_to_llvm_context *ctx)
 
 		if (i == FRAG_RESULT_DEPTH) {
 			ctx->shader_info->fs.writes_z = true;
-			depth = to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
+			depth = ac_to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
 							    ctx->nir->outputs[radeon_llvm_reg_index_soa(i, 0)], ""));
 		} else if (i == FRAG_RESULT_STENCIL) {
 			ctx->shader_info->fs.writes_stencil = true;
-			stencil = to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
+			stencil = ac_to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
 							      ctx->nir->outputs[radeon_llvm_reg_index_soa(i, 0)], ""));
 		} else if (i == FRAG_RESULT_SAMPLE_MASK) {
 			ctx->shader_info->fs.writes_sample_mask = true;
-			samplemask = to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
+			samplemask = ac_to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
 								  ctx->nir->outputs[radeon_llvm_reg_index_soa(i, 0)], ""));
 		} else {
 			bool last = false;
 			for (unsigned j = 0; j < 4; j++)
-				values[j] = to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
+				values[j] = ac_to_float(&ctx->ac, LLVMBuildLoad(ctx->builder,
 									ctx->nir->outputs[radeon_llvm_reg_index_soa(i, j)], ""));
 
 			if (!ctx->shader_info->fs.writes_z && !ctx->shader_info->fs.writes_stencil && !ctx->shader_info->fs.writes_sample_mask)
@@ -6651,7 +6575,7 @@ ac_gs_copy_shader_emit(struct nir_to_llvm_context *ctx)
 						   AC_FUNC_ATTR_LEGACY);
 
 			LLVMBuildStore(ctx->builder,
-				       to_float(&ctx->ac, value), ctx->nir->outputs[radeon_llvm_reg_index_soa(i, j)]);
+				       ac_to_float(&ctx->ac, value), ctx->nir->outputs[radeon_llvm_reg_index_soa(i, j)]);
 		}
 		idx += slot_inc;
 	}

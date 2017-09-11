@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include "radv_debug.h"
 #include "radv_private.h"
+#include "radv_shader.h"
 #include "radv_cs.h"
 #include "util/disk_cache.h"
 #include "util/strtod.h"
@@ -410,6 +411,7 @@ static const struct debug_control radv_debug_options[] = {
 	{"allbos", RADV_DEBUG_ALL_BOS},
 	{"noibs", RADV_DEBUG_NO_IBS},
 	{"spirv", RADV_DEBUG_DUMP_SPIRV},
+	{"vmfaults", RADV_DEBUG_VM_FAULTS},
 	{NULL, 0}
 };
 
@@ -2789,7 +2791,7 @@ VkResult radv_CreateEvent(
 
 	event->bo = device->ws->buffer_create(device->ws, 8, 8,
 					      RADEON_DOMAIN_GTT,
-					      RADEON_FLAG_CPU_ACCESS);
+					      RADEON_FLAG_VA_UNCACHED | RADEON_FLAG_CPU_ACCESS);
 	if (!event->bo) {
 		vk_free2(&device->alloc, pAllocator, event);
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
@@ -3141,7 +3143,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 	}
 
 	format = radv_translate_dbformat(iview->image->vk_format);
-	stencil_format = iview->image->surface.flags & RADEON_SURF_SBUFFER ?
+	stencil_format = iview->image->surface.has_stencil ?
 		V_028044_STENCIL_8 : V_028044_STENCIL_INVALID;
 
 	uint32_t max_slice = radv_surface_layer_count(iview);
@@ -3176,7 +3178,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 		if (iview->image->surface.htile_size && !level) {
 			ds->db_z_info |= S_028038_TILE_SURFACE_ENABLE(1);
 
-			if (!(iview->image->surface.flags & RADEON_SURF_SBUFFER))
+			if (!iview->image->surface.has_stencil)
 				/* Use all of the htile_buffer for depth if there's no stencil. */
 				ds->db_stencil_info |= S_02803C_TILE_STENCIL_DISABLE(1);
 			va = device->ws->buffer_get_va(iview->bo) + iview->image->offset +
@@ -3239,7 +3241,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 		if (iview->image->surface.htile_size && !level) {
 			ds->db_z_info |= S_028040_TILE_SURFACE_ENABLE(1);
 
-			if (!(iview->image->surface.flags & RADEON_SURF_SBUFFER))
+			if (!iview->image->surface.has_stencil)
 				/* Use all of the htile_buffer for depth if there's no stencil. */
 				ds->db_stencil_info |= S_028044_TILE_STENCIL_DISABLE(1);
 

@@ -102,10 +102,15 @@ vtn_access_link_as_ssa(struct vtn_builder *b, struct vtn_access_link link,
    if (link.mode == vtn_access_mode_literal) {
       return nir_imm_int(&b->nb, link.id * stride);
    } else if (stride == 1) {
-      return vtn_ssa_value(b, link.id)->def;
+       nir_ssa_def *ssa = vtn_ssa_value(b, link.id)->def;
+       if (ssa->bit_size != 32)
+          ssa = nir_u2u32(&b->nb, ssa);
+      return ssa;
    } else {
-      return nir_imul(&b->nb, vtn_ssa_value(b, link.id)->def,
-                              nir_imm_int(&b->nb, stride));
+      nir_ssa_def *src0 = vtn_ssa_value(b, link.id)->def;
+      if (src0->bit_size != 32)
+         src0 = nir_u2u32(&b->nb, src0);
+      return nir_imul(&b->nb, src0, nir_imm_int(&b->nb, stride));
    }
 }
 

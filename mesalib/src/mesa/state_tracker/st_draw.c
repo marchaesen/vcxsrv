@@ -198,9 +198,14 @@ st_draw_vbo(struct gl_context *ctx,
 
    /* do actual drawing */
    for (i = 0; i < nr_prims; i++) {
+      info.count = prims[i].count;
+
+      /* Skip no-op draw calls. */
+      if (!info.count && !tfb_vertcount)
+         continue;
+
       info.mode = translate_prim(ctx, prims[i].mode);
       info.start = start + prims[i].start;
-      info.count = prims[i].count;
       info.start_instance = prims[i].base_instance;
       info.instance_count = prims[i].num_instances;
       info.index_bias = prims[i].basevertex;

@@ -43,7 +43,6 @@ radv_meta_save_novertex(struct radv_meta_saved_state *state,
 				dynamic_mask);
 
 	memcpy(state->push_constants, cmd_buffer->push_constants, MAX_PUSH_CONSTANTS_SIZE);
-	state->vertex_saved = false;
 }
 
 void
@@ -53,11 +52,6 @@ radv_meta_restore(const struct radv_meta_saved_state *state,
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_GRAPHICS,
 			     radv_pipeline_to_handle(state->old_pipeline));
 	cmd_buffer->state.descriptors[0] = state->old_descriptor_set0;
-	if (state->vertex_saved) {
-		memcpy(cmd_buffer->state.vertex_bindings, state->old_vertex_bindings,
-		       sizeof(state->old_vertex_bindings));
-		cmd_buffer->state.vb_dirty |= (1 << RADV_META_VERTEX_BINDING_COUNT) - 1;
-	}
 
 	cmd_buffer->state.dirty |= RADV_CMD_DIRTY_PIPELINE;
 
