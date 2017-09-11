@@ -212,7 +212,7 @@ and <parameter>b</parameter> binding for that associated with the property
 <parameter>object</parameter>.
 The Value returned is not a copy, but rather refers to the data stored
 within the pattern directly.  Applications must not free this value.
-@SINCE@		2.13.0
+@SINCE@		2.12.5
 @@
 
 @RET@		FcResult

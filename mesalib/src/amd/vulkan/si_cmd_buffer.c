@@ -28,6 +28,7 @@
 /* command buffer handling for SI */
 
 #include "radv_private.h"
+#include "radv_shader.h"
 #include "radv_cs.h"
 #include "sid.h"
 #include "gfx9d.h"

@@ -36,6 +36,7 @@
 #include "ac_exp_param.h"
 #include "util/bitscan.h"
 #include "util/macros.h"
+#include "util/u_atomic.h"
 #include "sid.h"
 
 #include "shader_enums.h"
@@ -88,6 +89,92 @@ ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context)
 	ctx->empty_md = LLVMMDNodeInContext(ctx->context, NULL, 0);
 }
 
+unsigned
+ac_get_type_size(LLVMTypeRef type)
+{
+	LLVMTypeKind kind = LLVMGetTypeKind(type);
+
+	switch (kind) {
+	case LLVMIntegerTypeKind:
+		return LLVMGetIntTypeWidth(type) / 8;
+	case LLVMFloatTypeKind:
+		return 4;
+	case LLVMDoubleTypeKind:
+	case LLVMPointerTypeKind:
+		return 8;
+	case LLVMVectorTypeKind:
+		return LLVMGetVectorSize(type) *
+		       ac_get_type_size(LLVMGetElementType(type));
+	case LLVMArrayTypeKind:
+		return LLVMGetArrayLength(type) *
+		       ac_get_type_size(LLVMGetElementType(type));
+	default:
+		assert(0);
+		return 0;
+	}
+}
+
+static LLVMTypeRef to_integer_type_scalar(struct ac_llvm_context *ctx, LLVMTypeRef t)
+{
+	if (t == ctx->f16 || t == ctx->i16)
+		return ctx->i16;
+	else if (t == ctx->f32 || t == ctx->i32)
+		return ctx->i32;
+	else if (t == ctx->f64 || t == ctx->i64)
+		return ctx->i64;
+	else
+		unreachable("Unhandled integer size");
+}
+
+LLVMTypeRef
+ac_to_integer_type(struct ac_llvm_context *ctx, LLVMTypeRef t)
+{
+	if (LLVMGetTypeKind(t) == LLVMVectorTypeKind) {
+		LLVMTypeRef elem_type = LLVMGetElementType(t);
+		return LLVMVectorType(to_integer_type_scalar(ctx, elem_type),
+		                      LLVMGetVectorSize(t));
+	}
+	return to_integer_type_scalar(ctx, t);
+}
+
+LLVMValueRef
+ac_to_integer(struct ac_llvm_context *ctx, LLVMValueRef v)
+{
+	LLVMTypeRef type = LLVMTypeOf(v);
+	return LLVMBuildBitCast(ctx->builder, v, ac_to_integer_type(ctx, type), "");
+}
+
+static LLVMTypeRef to_float_type_scalar(struct ac_llvm_context *ctx, LLVMTypeRef t)
+{
+	if (t == ctx->i16 || t == ctx->f16)
+		return ctx->f16;
+	else if (t == ctx->i32 || t == ctx->f32)
+		return ctx->f32;
+	else if (t == ctx->i64 || t == ctx->f64)
+		return ctx->f64;
+	else
+		unreachable("Unhandled float size");
+}
+
+LLVMTypeRef
+ac_to_float_type(struct ac_llvm_context *ctx, LLVMTypeRef t)
+{
+	if (LLVMGetTypeKind(t) == LLVMVectorTypeKind) {
+		LLVMTypeRef elem_type = LLVMGetElementType(t);
+		return LLVMVectorType(to_float_type_scalar(ctx, elem_type),
+		                      LLVMGetVectorSize(t));
+	}
+	return to_float_type_scalar(ctx, t);
+}
+
+LLVMValueRef
+ac_to_float(struct ac_llvm_context *ctx, LLVMValueRef v)
+{
+	LLVMTypeRef type = LLVMTypeOf(v);
+	return LLVMBuildBitCast(ctx->builder, v, ac_to_float_type(ctx, type), "");
+}
+
+
 LLVMValueRef
 ac_build_intrinsic(struct ac_llvm_context *ctx, const char *name,
 		   LLVMTypeRef return_type, LLVMValueRef *params,
@@ -125,20 +212,6 @@ ac_build_intrinsic(struct ac_llvm_context *ctx, const char *name,
 	return call;
 }
 
-static LLVMValueRef bitcast_to_float(struct ac_llvm_context *ctx,
-				     LLVMValueRef value)
-{
-	LLVMTypeRef type = LLVMTypeOf(value);
-	LLVMTypeRef new_type;
-
-	if (LLVMGetTypeKind(type) == LLVMVectorTypeKind)
-		new_type = LLVMVectorType(ctx->f32, LLVMGetVectorSize(type));
-	else
-		new_type = ctx->f32;
-
-	return LLVMBuildBitCast(ctx->builder, value, new_type, "");
-}
-
 /**
  * Given the i32 or vNi32 \p type, generate the textual name (e.g. for use with
  * intrinsic names).
@@ -174,6 +247,104 @@ void ac_build_type_name_for_intr(LLVMTypeRef type, char *buf, unsigned bufsize)
 		snprintf(buf, bufsize, "f64");
 		break;
 	}
+}
+
+/* Prevent optimizations (at least of memory accesses) across the current
+ * point in the program by emitting empty inline assembly that is marked as
+ * having side effects.
+ *
+ * Optionally, a value can be passed through the inline assembly to prevent
+ * LLVM from hoisting calls to ReadNone functions.
+ */
+void
+ac_build_optimization_barrier(struct ac_llvm_context *ctx,
+			      LLVMValueRef *pvgpr)
+{
+	static int counter = 0;
+
+	LLVMBuilderRef builder = ctx->builder;
+	char code[16];
+
+	snprintf(code, sizeof(code), "; %d", p_atomic_inc_return(&counter));
+
+	if (!pvgpr) {
+		LLVMTypeRef ftype = LLVMFunctionType(ctx->voidt, NULL, 0, false);
+		LLVMValueRef inlineasm = LLVMConstInlineAsm(ftype, code, "", true, false);
+		LLVMBuildCall(builder, inlineasm, NULL, 0, "");
+	} else {
+		LLVMTypeRef ftype = LLVMFunctionType(ctx->i32, &ctx->i32, 1, false);
+		LLVMValueRef inlineasm = LLVMConstInlineAsm(ftype, code, "=v,0", true, false);
+		LLVMValueRef vgpr = *pvgpr;
+		LLVMTypeRef vgpr_type = LLVMTypeOf(vgpr);
+		unsigned vgpr_size = ac_get_type_size(vgpr_type);
+		LLVMValueRef vgpr0;
+
+		assert(vgpr_size % 4 == 0);
+
+		vgpr = LLVMBuildBitCast(builder, vgpr, LLVMVectorType(ctx->i32, vgpr_size / 4), "");
+		vgpr0 = LLVMBuildExtractElement(builder, vgpr, ctx->i32_0, "");
+		vgpr0 = LLVMBuildCall(builder, inlineasm, &vgpr0, 1, "");
+		vgpr = LLVMBuildInsertElement(builder, vgpr, vgpr0, ctx->i32_0, "");
+		vgpr = LLVMBuildBitCast(builder, vgpr, vgpr_type, "");
+
+		*pvgpr = vgpr;
+	}
+}
+
+LLVMValueRef
+ac_build_ballot(struct ac_llvm_context *ctx,
+		LLVMValueRef value)
+{
+	LLVMValueRef args[3] = {
+		value,
+		ctx->i32_0,
+		LLVMConstInt(ctx->i32, LLVMIntNE, 0)
+	};
+
+	/* We currently have no other way to prevent LLVM from lifting the icmp
+	 * calls to a dominating basic block.
+	 */
+	ac_build_optimization_barrier(ctx, &args[0]);
+
+	if (LLVMTypeOf(args[0]) != ctx->i32)
+		args[0] = LLVMBuildBitCast(ctx->builder, args[0], ctx->i32, "");
+
+	return ac_build_intrinsic(ctx,
+				  "llvm.amdgcn.icmp.i32",
+				  ctx->i64, args, 3,
+				  AC_FUNC_ATTR_NOUNWIND |
+				  AC_FUNC_ATTR_READNONE |
+				  AC_FUNC_ATTR_CONVERGENT);
+}
+
+LLVMValueRef
+ac_build_vote_all(struct ac_llvm_context *ctx, LLVMValueRef value)
+{
+	LLVMValueRef active_set = ac_build_ballot(ctx, ctx->i32_1);
+	LLVMValueRef vote_set = ac_build_ballot(ctx, value);
+	return LLVMBuildICmp(ctx->builder, LLVMIntEQ, vote_set, active_set, "");
+}
+
+LLVMValueRef
+ac_build_vote_any(struct ac_llvm_context *ctx, LLVMValueRef value)
+{
+	LLVMValueRef vote_set = ac_build_ballot(ctx, value);
+	return LLVMBuildICmp(ctx->builder, LLVMIntNE, vote_set,
+			     LLVMConstInt(ctx->i64, 0, 0), "");
+}
+
+LLVMValueRef
+ac_build_vote_eq(struct ac_llvm_context *ctx, LLVMValueRef value)
+{
+	LLVMValueRef active_set = ac_build_ballot(ctx, ctx->i32_1);
+	LLVMValueRef vote_set = ac_build_ballot(ctx, value);
+
+	LLVMValueRef all = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+					 vote_set, active_set, "");
+	LLVMValueRef none = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+					  vote_set,
+					  LLVMConstInt(ctx->i64, 0, 0), "");
+	return LLVMBuildOr(ctx->builder, all, none, "");
 }
 
 LLVMValueRef
@@ -576,7 +747,7 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 			offset = LLVMBuildAdd(ctx->builder, offset, voffset, "");
 
 		LLVMValueRef args[] = {
-			bitcast_to_float(ctx, vdata),
+			ac_to_float(ctx, vdata),
 			LLVMBuildBitCast(ctx->builder, rsrc, ctx->v4i32, ""),
 			LLVMConstInt(ctx->i32, 0, 0),
 			offset,
@@ -1033,7 +1204,7 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 			      a->opcode == ac_image_get_lod;
 
 		if (sample)
-			args[num_args++] = bitcast_to_float(ctx, a->addr);
+			args[num_args++] = ac_to_float(ctx, a->addr);
 		else
 			args[num_args++] = a->addr;
 

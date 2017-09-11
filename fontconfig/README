@@ -1,11 +1,48 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.12.4
-                              2017-07-05
+                            Version 2.12.5
+                              2017-09-09
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.12.5
+
+Akira TAGOH (17):
+      Add FcPatternGetWithBinding() to obtain the binding type of the value in FcPattern.
+      Add FcConfigParseAndLoadFromMemory() to load a configuration from memory.
+      Bug 101726 - Sans config pulls in Microsoft Serifed font
+      Fix gcc warnings with enabling libxml2
+      Add und-zsye.orth to support emoji in lang
+      Add more code points to und-zsye.orth
+      Keep the same behavior to the return value of FcConfigParseAndLoad
+      Do not ship fcobjshash.gperf in archive
+      Accept 4 digit script tag in FcLangNormalize().
+      Fix to work the debugging option on fc-validate
+      Add und_zmth.orth to support Math in lang
+      Polish und_zmth.orth for Libertinus Math
+      Polish und_zmth.orth more for Cambria Math and Minion Math
+      Update similar to emoji's
+      fc-blanks: fall back to the static data available in repo if downloaded data is corrupted
+      Update docs
+      Update libtool versioning
+
+Behdad Esfahbod (14):
+      Pass --pic to gperf
+      Add generic family matching for "emoji" and "math"
+      [fc-query] Support listing named instances
+      Add Twitter Color Emoji
+      Add EmojiOne Mozilla font
+      [fc-lang] Allow using ".." instead of "-" in ranges
+      Minor
+      Remove unneeded codepoints
+      Adjust color emoji config some more
+      Ignore 'und-' prefix for in FcLangCompare
+      Minor
+      Fix sign-difference compare warning
+      Fix warning
+      Fix weight mapping
 
 2.12.4
 

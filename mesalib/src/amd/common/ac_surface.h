@@ -130,11 +130,12 @@ struct gfx9_surf_layout {
     struct gfx9_surf_meta_flags cmask; /* metadata of fmask */
 
     enum gfx9_resource_type     resource_type; /* 1D, 2D or 3D */
+    uint16_t                    surf_pitch; /* in blocks */
+    uint16_t                    surf_height;
+
     uint64_t                    surf_offset; /* 0 unless imported with an offset */
     /* The size of the 2D plane containing all mipmap levels. */
     uint64_t                    surf_slice_size;
-    uint16_t                    surf_pitch; /* in blocks */
-    uint16_t                    surf_height;
     /* Mipmap level offset within the slice in bytes. Only valid for LINEAR. */
     uint32_t                    offset[RADEON_SURF_MAX_LEVELS];
 
@@ -159,6 +160,7 @@ struct radeon_surf {
      */
     unsigned                    num_dcc_levels:4;
     unsigned                    is_linear:1;
+    unsigned                    has_stencil:1;
     /* Displayable, thin, depth, rotated. AKA D,S,Z,R swizzle modes. */
     unsigned                    micro_tile_mode:3;
     uint32_t                    flags;

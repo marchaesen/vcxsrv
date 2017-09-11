@@ -1402,12 +1402,34 @@ _mesa_GetTransformFeedbacki64_v(GLuint xfb, GLenum pname, GLuint index,
       return;
    }
 
+   /**
+    * This follows the same general rules used for BindBufferBase:
+    *
+    *   "To query the starting offset or size of the range of a buffer
+    *    object binding in an indexed array, call GetInteger64i_v with
+    *    target set to respectively the starting offset or binding size
+    *    name from table 6.5 for that array. Index must be in the range
+    *    zero to the number of bind points supported minus one. If the
+    *    starting offset or size was not specified when the buffer object
+    *    was bound (e.g. if it was bound with BindBufferBase), or if no
+    *    buffer object is bound to the target array at index, zero is
+    *    returned."
+    */
+   if (obj->RequestedSize[index] == 0 &&
+       (pname == GL_TRANSFORM_FEEDBACK_BUFFER_START ||
+        pname == GL_TRANSFORM_FEEDBACK_BUFFER_SIZE)) {
+      *param = 0;
+      return;
+   }
+
    compute_transform_feedback_buffer_sizes(obj);
    switch(pname) {
    case GL_TRANSFORM_FEEDBACK_BUFFER_START:
+      assert(obj->RequestedSize[index] > 0);
       *param = obj->Offset[index];
       break;
    case GL_TRANSFORM_FEEDBACK_BUFFER_SIZE:
+      assert(obj->RequestedSize[index] > 0);
       *param = obj->Size[index];
       break;
    default:

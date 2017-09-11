@@ -38,6 +38,7 @@ enum {
 	RADV_DEBUG_ALL_BOS           = 0x100,
 	RADV_DEBUG_NO_IBS            = 0x200,
 	RADV_DEBUG_DUMP_SPIRV        = 0x400,
+	RADV_DEBUG_VM_FAULTS         = 0x800,
 };
 
 enum {

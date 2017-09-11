@@ -655,6 +655,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 		}
 	}
 
+	surf->has_stencil = !!(surf->flags & RADEON_SURF_SBUFFER);
 	surf->num_dcc_levels = 0;
 	surf->surf_size = 0;
 	surf->dcc_size = 0;
@@ -1077,6 +1078,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	}
 
 	surf->u.gfx9.resource_type = AddrSurfInfoIn.resourceType;
+	surf->has_stencil = !!(surf->flags & RADEON_SURF_SBUFFER);
 
 	surf->num_dcc_levels = 0;
 	surf->surf_size = 0;

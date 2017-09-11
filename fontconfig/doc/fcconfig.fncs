@@ -388,7 +388,7 @@ and dparsed.  If 'complain' is FcFalse, no warning will be displayed if
 'file' does not exist. Error and warning messages will be output to stderr.
 Returns FcFalse if fsome error occurred while loading the file, either a
 parse error, semantic error or allocation failure. Otherwise returns FcTrue.
-@SINCE@		2.13.0
+@SINCE@		2.12.5
 @@
 
 @RET@		const FcChar8 *

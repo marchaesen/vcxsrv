@@ -39,6 +39,23 @@
 
 static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo);
 
+static int
+radv_amdgpu_bo_va_op(amdgpu_device_handle dev,
+		     amdgpu_bo_handle bo,
+		     uint64_t offset,
+		     uint64_t size,
+		     uint64_t addr,
+		     uint64_t flags,
+		     uint32_t ops)
+{
+	size = ALIGN(size, getpagesize());
+	flags |= (AMDGPU_VM_PAGE_READABLE |
+		  AMDGPU_VM_PAGE_WRITEABLE |
+		  AMDGPU_VM_PAGE_EXECUTABLE);
+	return amdgpu_bo_va_op_raw(dev, bo, offset, size, addr,
+				   flags, ops);
+}
+
 static void
 radv_amdgpu_winsys_virtual_map(struct radv_amdgpu_winsys_bo *bo,
                                const struct radv_amdgpu_map_range *range)
@@ -49,8 +66,8 @@ radv_amdgpu_winsys_virtual_map(struct radv_amdgpu_winsys_bo *bo,
 		return; /* TODO: PRT mapping */
 
 	p_atomic_inc(&range->bo->ref_count);
-	int r = amdgpu_bo_va_op(range->bo->bo, range->bo_offset, range->size,
-	                        range->offset + bo->va, 0, AMDGPU_VA_OP_MAP);
+	int r = radv_amdgpu_bo_va_op(bo->ws->dev, range->bo->bo, range->bo_offset, range->size,
+				     range->offset + bo->va, 0, AMDGPU_VA_OP_MAP);
 	if (r)
 		abort();
 }
@@ -64,8 +81,8 @@ radv_amdgpu_winsys_virtual_unmap(struct radv_amdgpu_winsys_bo *bo,
 	if (!range->bo)
 		return; /* TODO: PRT mapping */
 
-	int r = amdgpu_bo_va_op(range->bo->bo, range->bo_offset, range->size,
-	                        range->offset + bo->va, 0, AMDGPU_VA_OP_UNMAP);
+	int r = radv_amdgpu_bo_va_op(bo->ws->dev, range->bo->bo, range->bo_offset, range->size,
+				     range->offset + bo->va, 0, AMDGPU_VA_OP_UNMAP);
 	if (r)
 		abort();
 	radv_amdgpu_winsys_bo_destroy((struct radeon_winsys_bo *)range->bo);
@@ -235,7 +252,7 @@ static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo)
 			bo->ws->num_buffers--;
 			pthread_mutex_unlock(&bo->ws->global_bo_list_lock);
 		}
-		amdgpu_bo_va_op(bo->bo, 0, bo->size, bo->va, 0, AMDGPU_VA_OP_UNMAP);
+		radv_amdgpu_bo_va_op(bo->ws->dev, bo->bo, 0, bo->size, bo->va, 0, AMDGPU_VA_OP_UNMAP);
 		amdgpu_bo_free(bo->bo);
 	}
 	amdgpu_va_range_free(bo->va_handle);
@@ -323,7 +340,11 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 		goto error_bo_alloc;
 	}
 
-	r = amdgpu_bo_va_op(buf_handle, 0, size, va, 0, AMDGPU_VA_OP_MAP);
+
+	uint32_t va_flags = 0;
+	if (flags & RADEON_FLAG_VA_UNCACHED)
+		va_flags |= AMDGPU_VM_MTYPE_UC;
+	r = radv_amdgpu_bo_va_op(ws->dev, buf_handle, 0, size, va, va_flags, AMDGPU_VA_OP_MAP);
 	if (r)
 		goto error_va_map;
 
@@ -399,7 +420,7 @@ radv_amdgpu_winsys_bo_from_fd(struct radeon_winsys *_ws,
 	if (r)
 		goto error_query;
 
-	r = amdgpu_bo_va_op(result.buf_handle, 0, result.alloc_size, va, 0, AMDGPU_VA_OP_MAP);
+	r = radv_amdgpu_bo_va_op(ws->dev, result.buf_handle, 0, result.alloc_size, va, 0, AMDGPU_VA_OP_MAP);
 	if (r)
 		goto error_va_map;
 

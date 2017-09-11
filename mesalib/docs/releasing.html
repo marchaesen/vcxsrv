@@ -428,6 +428,7 @@ Here is one solution that I've been using.
 </p>
 
 <pre>
+	# Set MAKEFLAGS if you haven't already
 	git clean -fXd; git clean -nxd
 	read # quick cross check any outstanding files
 	export __version=`cat VERSION`
@@ -436,9 +437,12 @@ Here is one solution that I've been using.
 	chmod 755 -fR $__build_root; rm -rf $__build_root
 	mkdir -p $__build_root &amp;&amp; cd $__build_root
 
-	# For the distcheck, you may want to specify which LLVM to use:
+	# For the native builds - such as distcheck, scons, sanity test, you
+	# may want to specify which LLVM to use:
 	# export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
-	$__mesa_root/autogen.sh &amp;&amp; make -j2 distcheck
+
+	# Do a full distcheck
+	$__mesa_root/autogen.sh &amp;&amp; make distcheck
 
 	# Build check the tarballs (scons, linux)
 	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
@@ -446,27 +450,27 @@ Here is one solution that I've been using.
 	cd .. &amp;&amp; rm -rf mesa-$__version
 
 	# Build check the tarballs (scons, windows/mingw)
-	# You may need to unset LLVM if you set it before:
-	# unset LLVM_CONFIG
+	# Temporary drop LLVM_CONFIG, unless you have a Windows/mingw one.
+	# save_LLVM_CONFIG=`echo $LLVM_CONFIG`; unset LLVM_CONFIG
 	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
 	scons platform=windows toolchain=crossmingw
 	cd .. &amp;&amp; rm -rf mesa-$__version
 
 	# Test the automake binaries
 	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
-	# You may want to specify which LLVM to use:
+	# Restore LLVM_CONFIG, if applicable:
+	# export LLVM_CONFIG=`echo $save_LLVM_CONFIG`; unset save_LLVM_CONFIG
 	./configure \
 		--with-dri-drivers=i965,swrast \
 		--with-gallium-drivers=swrast \
 		--with-vulkan-drivers=intel \
 		--enable-llvm-shared-libs \
 		--enable-llvm \
-		--with-llvm-prefix=/usr/lib/llvm-3.9 \
 		--enable-glx-tls \
 		--enable-gbm \
 		--enable-egl \
 		--with-platforms=x11,drm,wayland,surfaceless
-	make -j2 &amp;&amp; DESTDIR=`pwd`/test make -j6 install
+	make &amp;&amp; DESTDIR=`pwd`/test make install
 	__glxinfo_cmd='glxinfo 2>&amp;1 | egrep -o "Mesa.*|Gallium.*|.*dri\.so"'
 	__glxgears_cmd='glxgears 2>&amp;1 | grep -v "configuration file"'
 	__es2info_cmd='es2_info 2>&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'

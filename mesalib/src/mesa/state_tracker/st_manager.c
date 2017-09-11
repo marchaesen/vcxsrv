@@ -1044,6 +1044,9 @@ st_manager_flush_frontbuffer(struct st_context *st)
       stfb->iface->flush_front(&st->iface, stfb->iface,
                                ST_ATTACHMENT_FRONT_LEFT);
       strb->defined = GL_FALSE;
+
+      /* Trigger an update of strb->defined on next draw */
+      st->dirty |= ST_NEW_FB_STATE;
    }
 }
 

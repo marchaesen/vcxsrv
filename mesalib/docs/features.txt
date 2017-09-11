@@ -225,7 +225,7 @@ GL 4.6, GLSL 4.60
 
   GL_ARB_gl_spirv                                       in progress (Nicolai Hähnle, Ian Romanick)
   GL_ARB_indirect_parameters                            DONE (nvc0, radeonsi)
-  GL_ARB_pipeline_statistics_query                      DONE (i965, nvc0, radeonsi, softpipe, swr)
+  GL_ARB_pipeline_statistics_query                      DONE (i965, nvc0, radeonsi, llvmpipe, softpipe, swr)
   GL_ARB_polygon_offset_clamp                           DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, swr)
   GL_ARB_shader_atomic_counter_ops                      DONE (i965/gen7+, nvc0, radeonsi, softpipe)
   GL_ARB_shader_draw_parameters                         DONE (i965, nvc0, radeonsi)

@@ -44,11 +44,11 @@ struct radv_amdgpu_winsys {
 
 	bool debug_all_bos;
 	bool batchchain;
-	pthread_mutex_t global_bo_list_lock;
-	struct list_head global_bo_list;
+	bool use_ib_bos;
 	unsigned num_buffers;
 
-	bool use_ib_bos;
+	pthread_mutex_t global_bo_list_lock;
+	struct list_head global_bo_list;
 };
 
 static inline struct radv_amdgpu_winsys *

@@ -220,7 +220,7 @@ typedef struct nir_variable {
        * be tightly packed.  In other words, consecutive array elements
        * should be stored one component apart, rather than one slot apart.
        */
-      bool compact:1;
+      unsigned compact:1;
 
       /**
        * Whether this is a fragment shader output implicitly initialized with

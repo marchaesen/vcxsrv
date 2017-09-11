@@ -1133,7 +1133,8 @@ error_check_subtexture_dimensions(struct gl_context *ctx, GLuint dims,
    }
 
    if (xoffset + subWidth > (GLint) destImage->Width) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(xoffset+width)", func);
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(xoffset %d + width %d > %u)", func,
+                  xoffset, subWidth, destImage->Width);
       return GL_TRUE;
    }
 
@@ -1145,7 +1146,8 @@ error_check_subtexture_dimensions(struct gl_context *ctx, GLuint dims,
          return GL_TRUE;
       }
       if (yoffset + subHeight > (GLint) destImage->Height) {
-         _mesa_error(ctx, GL_INVALID_VALUE, "%s(yoffset+height)", func);
+         _mesa_error(ctx, GL_INVALID_VALUE, "%s(yoffset %d + height %d > %u)",
+                     func, yoffset, subHeight, destImage->Height);
          return GL_TRUE;
       }
    }
@@ -1166,7 +1168,8 @@ error_check_subtexture_dimensions(struct gl_context *ctx, GLuint dims,
       if (target == GL_TEXTURE_CUBE_MAP)
          depth = 6;
       if (zoffset + subDepth  > depth) {
-         _mesa_error(ctx, GL_INVALID_VALUE, "%s(zoffset+depth)", func);
+         _mesa_error(ctx, GL_INVALID_VALUE, "%s(zoffset %d + depth %d > %u)",
+                     func, zoffset, subDepth, depth);
          return GL_TRUE;
       }
    }
@@ -2151,8 +2154,8 @@ texsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
    texImage = _mesa_select_tex_image(texObj, target, level);
    if (!texImage) {
       /* non-existant texture level */
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid texture image)",
-                  callerName);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid texture level %d)",
+                  callerName, level);
       return GL_TRUE;
    }
 
@@ -2441,7 +2444,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
                     _mesa_is_enum_format_unsigned_int(internalFormat) !=
                       _mesa_is_enum_format_unsigned_int(rb_internal_format)) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "glCopyTexImage%dD(signed vs unsigned integer)", dimensions);
+                        "glCopyTexImage%dD(signed vs unsigned integer)",
+                        dimensions);
             return GL_TRUE;
          }
       }
@@ -2533,7 +2537,7 @@ copytexsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
    if (!texImage) {
       /* destination image does not exist */
       _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(invalid texture image)", caller);
+                  "%s(invalid texture level %d)", caller, level);
       return GL_TRUE;
    }
 
@@ -2752,7 +2756,7 @@ _mesa_choose_texture_format(struct gl_context *ctx,
    /* see if we've already chosen a format for the previous level */
    if (level > 0) {
       struct gl_texture_image *prevImage =
-	 _mesa_select_tex_image(texObj, target, level - 1);
+         _mesa_select_tex_image(texObj, target, level - 1);
       /* See if the prev level is defined and has an internal format which
        * matches the new internal format.
        */
@@ -3022,22 +3026,22 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
        * rarely-tested software fallback rendering.
        */
       if (border && ctx->Const.StripTextureBorder) {
-	 strip_texture_border(target, &width, &height, &depth, unpack,
-			      &unpack_no_border);
+         strip_texture_border(target, &width, &height, &depth, unpack,
+                              &unpack_no_border);
          border = 0;
-	 unpack = &unpack_no_border;
+         unpack = &unpack_no_border;
       }
 
       if (ctx->NewState & _NEW_PIXEL)
-	 _mesa_update_state(ctx);
+         _mesa_update_state(ctx);
 
       _mesa_lock_texture(ctx, texObj);
       {
-	 texImage = _mesa_get_tex_image(ctx, texObj, target, level);
+         texImage = _mesa_get_tex_image(ctx, texObj, target, level);
 
-	 if (!texImage) {
-	    _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s%uD", func, dims);
-	 }
+         if (!texImage) {
+            _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s%uD", func, dims);
+         }
          else {
             ctx->Driver.FreeTextureImageBuffer(ctx, texImage);
 
@@ -3067,6 +3071,7 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
       _mesa_unlock_texture(ctx, texObj);
    }
 }
+
 
 /* This is a wrapper around teximage() so that we can force the KHR_no_error
  * logic to be inlined without inlining the function into all the callers.
@@ -3239,7 +3244,7 @@ _mesa_EGLImageTargetTexture2DOES (GLenum target, GLeglImageOES image)
       ctx->Driver.FreeTextureImageBuffer(ctx, texImage);
 
       ctx->Driver.EGLImageTargetTexture2D(ctx, target,
-					  texObj, texImage, image);
+                                          texObj, texImage, image);
 
       _mesa_dirty_texobj(ctx, texObj);
    }
@@ -3691,6 +3696,7 @@ get_copy_tex_image_source(struct gl_context *ctx, mesa_format texFormat)
    }
 }
 
+
 static void
 copytexsubimage_by_slice(struct gl_context *ctx,
                          struct gl_texture_image *texImage,
@@ -3720,6 +3726,7 @@ copytexsubimage_by_slice(struct gl_context *ctx,
                                   rb, x, y, width, height);
    }
 }
+
 
 static GLboolean
 formats_differ_in_component_sizes(mesa_format f1, mesa_format f2)
@@ -3980,8 +3987,8 @@ copyteximage(struct gl_context *ctx, GLuint dims,
       x += border;
       width -= border * 2;
       if (dims == 2) {
-	 y += border;
-	 height -= border * 2;
+         y += border;
+         height -= border * 2;
       }
       border = 0;
    }
@@ -3991,7 +3998,7 @@ copyteximage(struct gl_context *ctx, GLuint dims,
       texImage = _mesa_get_tex_image(ctx, texObj, target, level);
 
       if (!texImage) {
-	 _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCopyTexImage%uD", dims);
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCopyTexImage%uD", dims);
       }
       else {
          GLint srcX = x, srcY = y, dstX = 0, dstY = 0, dstZ = 0;
@@ -4038,6 +4045,7 @@ copyteximage_err(struct gl_context *ctx, GLuint dims, GLenum target,
                 border, false);
 }
 
+
 static void
 copyteximage_no_error(struct gl_context *ctx, GLuint dims, GLenum target,
                       GLint level, GLenum internalFormat, GLint x, GLint y,
@@ -4058,7 +4066,6 @@ _mesa_CopyTexImage1D( GLenum target, GLint level,
    copyteximage_err(ctx, 1, target, level, internalFormat, x, y, width, 1,
                     border);
 }
-
 
 
 void GLAPIENTRY
@@ -4094,8 +4101,8 @@ _mesa_CopyTexImage2D_no_error(GLenum target, GLint level, GLenum internalFormat,
 
 
 void GLAPIENTRY
-_mesa_CopyTexSubImage1D( GLenum target, GLint level,
-                         GLint xoffset, GLint x, GLint y, GLsizei width )
+_mesa_CopyTexSubImage1D(GLenum target, GLint level,
+                        GLint xoffset, GLint x, GLint y, GLsizei width)
 {
    struct gl_texture_object* texObj;
    const char *self = "glCopyTexSubImage1D";
@@ -4118,10 +4125,11 @@ _mesa_CopyTexSubImage1D( GLenum target, GLint level,
                               x, y, width, 1, self);
 }
 
+
 void GLAPIENTRY
-_mesa_CopyTexSubImage2D( GLenum target, GLint level,
-                         GLint xoffset, GLint yoffset,
-                         GLint x, GLint y, GLsizei width, GLsizei height )
+_mesa_CopyTexSubImage2D(GLenum target, GLint level,
+                        GLint xoffset, GLint yoffset,
+                        GLint x, GLint y, GLsizei width, GLsizei height)
 {
    struct gl_texture_object* texObj;
    const char *self = "glCopyTexSubImage2D";
@@ -4145,11 +4153,10 @@ _mesa_CopyTexSubImage2D( GLenum target, GLint level,
 }
 
 
-
 void GLAPIENTRY
-_mesa_CopyTexSubImage3D( GLenum target, GLint level,
-                         GLint xoffset, GLint yoffset, GLint zoffset,
-                         GLint x, GLint y, GLsizei width, GLsizei height )
+_mesa_CopyTexSubImage3D(GLenum target, GLint level,
+                        GLint xoffset, GLint yoffset, GLint zoffset,
+                        GLint x, GLint y, GLsizei width, GLsizei height)
 {
    struct gl_texture_object* texObj;
    const char *self = "glCopyTexSubImage3D";
@@ -4171,6 +4178,7 @@ _mesa_CopyTexSubImage3D( GLenum target, GLint level,
    copy_texture_sub_image_err(ctx, 3, texObj, target, level, xoffset, yoffset,
                               zoffset, x, y, width, height, self);
 }
+
 
 void GLAPIENTRY
 _mesa_CopyTextureSubImage1D(GLuint texture, GLint level,
@@ -4195,6 +4203,7 @@ _mesa_CopyTextureSubImage1D(GLuint texture, GLint level,
                               0, x, y, width, 1, self);
 }
 
+
 void GLAPIENTRY
 _mesa_CopyTextureSubImage2D(GLuint texture, GLint level,
                             GLint xoffset, GLint yoffset,
@@ -4218,7 +4227,6 @@ _mesa_CopyTextureSubImage2D(GLuint texture, GLint level,
    copy_texture_sub_image_err(ctx, 2, texObj, texObj->Target, level, xoffset,
                               yoffset, 0, x, y, width, height, self);
 }
-
 
 
 void GLAPIENTRY
@@ -4265,6 +4273,7 @@ _mesa_CopyTexSubImage1D_no_error(GLenum target, GLint level, GLint xoffset,
                                    x, y, width, 1);
 }
 
+
 void GLAPIENTRY
 _mesa_CopyTexSubImage2D_no_error(GLenum target, GLint level, GLint xoffset,
                                  GLint yoffset, GLint x, GLint y, GLsizei width,
@@ -4276,6 +4285,7 @@ _mesa_CopyTexSubImage2D_no_error(GLenum target, GLint level, GLint xoffset,
    copy_texture_sub_image_no_error(ctx, 2, texObj, target, level, xoffset,
                                    yoffset, 0, x, y, width, height);
 }
+
 
 void GLAPIENTRY
 _mesa_CopyTexSubImage3D_no_error(GLenum target, GLint level, GLint xoffset,
@@ -4289,6 +4299,7 @@ _mesa_CopyTexSubImage3D_no_error(GLenum target, GLint level, GLint xoffset,
                                    yoffset, zoffset, x, y, width, height);
 }
 
+
 void GLAPIENTRY
 _mesa_CopyTextureSubImage1D_no_error(GLuint texture, GLint level, GLint xoffset,
                                      GLint x, GLint y, GLsizei width)
@@ -4299,6 +4310,7 @@ _mesa_CopyTextureSubImage1D_no_error(GLuint texture, GLint level, GLint xoffset,
    copy_texture_sub_image_no_error(ctx, 1, texObj, texObj->Target, level,
                                    xoffset, 0, 0, x, y, width, 1);
 }
+
 
 void GLAPIENTRY
 _mesa_CopyTextureSubImage2D_no_error(GLuint texture, GLint level, GLint xoffset,
@@ -4311,6 +4323,7 @@ _mesa_CopyTextureSubImage2D_no_error(GLuint texture, GLint level, GLint xoffset,
    copy_texture_sub_image_no_error(ctx, 2, texObj, texObj->Target, level,
                                    xoffset, yoffset, 0, x, y, width, height);
 }
+
 
 void GLAPIENTRY
 _mesa_CopyTextureSubImage3D_no_error(GLuint texture, GLint level, GLint xoffset,
@@ -4407,6 +4420,7 @@ check_clear_tex_image(struct gl_context *ctx,
    return true;
 }
 
+
 static struct gl_texture_object *
 get_tex_obj_for_clear(struct gl_context *ctx,
                       const char *function,
@@ -4470,11 +4484,12 @@ get_tex_images_for_clear(struct gl_context *ctx,
    return numFaces;
 }
 
+
 void GLAPIENTRY
-_mesa_ClearTexSubImage( GLuint texture, GLint level,
-                        GLint xoffset, GLint yoffset, GLint zoffset,
-                        GLsizei width, GLsizei height, GLsizei depth,
-                        GLenum format, GLenum type, const void *data )
+_mesa_ClearTexSubImage(GLuint texture, GLint level,
+                       GLint xoffset, GLint yoffset, GLint zoffset,
+                       GLsizei width, GLsizei height, GLsizei depth,
+                       GLenum format, GLenum type, const void *data)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_object *texObj;
@@ -4519,8 +4534,7 @@ _mesa_ClearTexSubImage( GLuint texture, GLint level,
    }
 
    if (numImages == 1) {
-      if (check_clear_tex_image(ctx, "glClearTexSubImage",
-                                texImages[0],
+      if (check_clear_tex_image(ctx, "glClearTexSubImage", texImages[0],
                                 format, type, data, clearValue[0])) {
          ctx->Driver.ClearTexSubImage(ctx,
                                       texImages[0],
@@ -4532,8 +4546,7 @@ _mesa_ClearTexSubImage( GLuint texture, GLint level,
       /* loop over cube face images */
       for (i = zoffset; i < zoffset + depth; i++) {
          assert(i < MAX_FACES);
-         if (!check_clear_tex_image(ctx, "glClearTexSubImage",
-                                    texImages[i],
+         if (!check_clear_tex_image(ctx, "glClearTexSubImage", texImages[i],
                                     format, type, data, clearValue[i]))
             goto out;
       }
@@ -4549,6 +4562,7 @@ _mesa_ClearTexSubImage( GLuint texture, GLint level,
  out:
    _mesa_unlock_texture(ctx, texObj);
 }
+
 
 void GLAPIENTRY
 _mesa_ClearTexImage( GLuint texture, GLint level,
@@ -4571,10 +4585,8 @@ _mesa_ClearTexImage( GLuint texture, GLint level,
                                         texObj, level, texImages);
 
    for (i = 0; i < numImages; i++) {
-      if (!check_clear_tex_image(ctx, "glClearTexImage",
-                                 texImages[i],
-                                 format, type, data,
-                                 clearValue[i]))
+      if (!check_clear_tex_image(ctx, "glClearTexImage", texImages[i], format,
+                                 type, data, clearValue[i]))
          goto out;
    }
 
@@ -4730,15 +4742,12 @@ compressed_subtexture_error_check(struct gl_context *ctx, GLint dims,
 
    /* this will catch any invalid compressed format token */
    if (!_mesa_is_compressed_format(ctx, format)) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "%s(format)", callerName);
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(format)", callerName);
       return GL_TRUE;
    }
 
    if (level < 0 || level >= _mesa_max_texture_levels(ctx, target)) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "%s(level=%d)",
-                  callerName, level);
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(level=%d)", callerName, level);
       return GL_TRUE;
    }
 
@@ -4756,43 +4765,36 @@ compressed_subtexture_error_check(struct gl_context *ctx, GLint dims,
 
    expectedSize = compressed_tex_size(width, height, depth, format);
    if (expectedSize != imageSize) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "%s(size=%d)",
-                  callerName, imageSize);
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(size=%d)", callerName, imageSize);
       return GL_TRUE;
    }
 
    texImage = _mesa_select_tex_image(texObj, target, level);
    if (!texImage) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(invalid texture image)",
-                  callerName);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid texture level %d)",
+                  callerName, level);
       return GL_TRUE;
    }
 
    if ((GLint) format != texImage->InternalFormat) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(format=%s)",
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(format=%s)",
                   callerName, _mesa_enum_to_string(format));
       return GL_TRUE;
    }
 
    if (compressedteximage_only_format(ctx, format)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(format=%s cannot be updated)",
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(format=%s cannot be updated)",
                   callerName, _mesa_enum_to_string(format));
       return GL_TRUE;
    }
 
-   if (error_check_subtexture_negative_dimensions(ctx, dims,
-                                                  width, height, depth,
-                                                  callerName)) {
+   if (error_check_subtexture_negative_dimensions(ctx, dims, width, height,
+                                                  depth, callerName)) {
       return GL_TRUE;
    }
 
-   if (error_check_subtexture_dimensions(ctx, dims,
-                                         texImage, xoffset, yoffset, zoffset,
-                                         width, height, depth,
+   if (error_check_subtexture_dimensions(ctx, dims, texImage, xoffset, yoffset,
+                                         zoffset, width, height, depth,
                                          callerName)) {
       return GL_TRUE;
    }

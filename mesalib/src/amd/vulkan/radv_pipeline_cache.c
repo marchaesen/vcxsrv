@@ -26,6 +26,7 @@
 #include "util/u_atomic.h"
 #include "radv_debug.h"
 #include "radv_private.h"
+#include "radv_shader.h"
 
 #include "ac_nir_to_llvm.h"
 
