@@ -155,8 +155,12 @@ void DisplayXdmcpHostsDialog(void)
 
   /* Show an arrow cursor as long as the selection dialog is shown */
   {
-    winScreenPriv(screenInfo.screens[0]);
-    pScreenPriv->cursor.handle=LoadCursor(NULL,IDC_ARROW);
+    int i;
+    for (i = 0; i < screenInfo.numScreens; ++i)
+    {
+      winScreenPriv(screenInfo.screens[i]);
+      pScreenPriv->cursor.handle=LoadCursor(NULL,IDC_ARROW);
+    }
   }
 
   /*
