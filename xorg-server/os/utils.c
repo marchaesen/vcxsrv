@@ -199,6 +199,7 @@ char *SeatId = NULL;
 #ifdef _MSC_VER
 static HANDLE s_hSmartScheduleTimer = NULL;
 static HANDLE s_hSmartScheduleTimerQueue = NULL;
+static CRITICAL_SECTION timerCriticalSection;
 #endif
 
 #if defined(SVR4) || defined(__linux__) || defined(CSRG_BASED)
@@ -1221,8 +1222,13 @@ SmartScheduleStopTimer(void)
 #ifdef _MSC_VER
     if (!SmartScheduleSignalEnable)
         return;
-    DeleteTimerQueueTimer(s_hSmartScheduleTimerQueue, s_hSmartScheduleTimer, NULL);
-    s_hSmartScheduleTimer=NULL;
+    EnterCriticalSection(&timerCriticalSection);
+    if (s_hSmartScheduleTimer)
+    {
+      DeleteTimerQueueTimer(s_hSmartScheduleTimerQueue, s_hSmartScheduleTimer, NULL);
+      s_hSmartScheduleTimer=NULL;
+    }
+    LeaveCriticalSection(&timerCriticalSection);
 #else
     struct itimerval timer;
 
@@ -1249,15 +1255,25 @@ SmartScheduleStartTimer(void)
     if (!SmartScheduleSignalEnable)
         return;
 
+    EnterCriticalSection(&timerCriticalSection);
+    if (s_hSmartScheduleTimer)
+    {
+        LeaveCriticalSection(&timerCriticalSection);
+        return;
+    }
+
     if (!CreateTimerQueueTimer( &s_hSmartScheduleTimer, s_hSmartScheduleTimerQueue, SmartScheduleTimer, NULL
-                              , SmartScheduleInterval, SmartScheduleInterval, WT_EXECUTEONLYONCE|WT_EXECUTEINPERSISTENTTHREAD))
+                              , SmartScheduleInterval, SmartScheduleInterval, 0))
     {
         DWORD Error=GetLastError();
         ErrorF("Error starting timer, smart scheduling disabled: 0x%x (%d)\n",Error,Error);
         CloseHandle(s_hSmartScheduleTimer);
+        s_hSmartScheduleTimer=NULL;
         SmartScheduleSignalEnable = FALSE;
+        LeaveCriticalSection(&timerCriticalSection);
         return;
     }
+    LeaveCriticalSection(&timerCriticalSection);
 #else
     struct itimerval timer;
 
@@ -1296,6 +1312,10 @@ SmartScheduleEnable(void)
         ErrorF("Error creating timer, smart scheduling disabled: 0x%x (%d)\n",Error,Error);
         SmartScheduleSignalEnable = FALSE;
     }
+    else
+    {
+        InitializeCriticalSection(&timerCriticalSection);
+    }
 #else
     struct sigaction act;
 
@@ -1314,6 +1334,7 @@ SmartScheduleEnable(void)
     return ret;
 }
 
+#if !defined(WIN32)
 static int
 SmartSchedulePause(void)
 {
@@ -1335,6 +1356,7 @@ SmartSchedulePause(void)
 #endif
     return ret;
 }
+#endif
 #endif
 
 void
