@@ -206,17 +206,13 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
 {
    const glsl_type *t_without_array = type->without_array();
    if (type->is_record()) {
-      ir_constant *field_constant;
-
-      field_constant = (ir_constant *)val->components.get_head();
-
       for (unsigned int i = 0; i < type->length; i++) {
          const glsl_type *field_type = type->fields.structure[i].type;
          const char *field_name = ralloc_asprintf(mem_ctx, "%s.%s", name,
                                             type->fields.structure[i].name);
          set_uniform_initializer(mem_ctx, prog, field_name,
-                                 field_type, field_constant, boolean_true);
-         field_constant = (ir_constant *)field_constant->next;
+                                 field_type, val->get_record_field(i),
+                                 boolean_true);
       }
       return;
    } else if (t_without_array->is_record() ||
@@ -227,7 +223,7 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
          const char *element_name = ralloc_asprintf(mem_ctx, "%s[%d]", name, i);
 
          set_uniform_initializer(mem_ctx, prog, element_name,
-                                 element_type, val->array_elements[i],
+                                 element_type, val->const_elements[i],
                                  boolean_true);
       }
       return;
@@ -240,15 +236,15 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
 
    if (val->type->is_array()) {
       const enum glsl_base_type base_type =
-         val->array_elements[0]->type->base_type;
-      const unsigned int elements = val->array_elements[0]->type->components();
+         val->const_elements[0]->type->base_type;
+      const unsigned int elements = val->const_elements[0]->type->components();
       unsigned int idx = 0;
       unsigned dmul = glsl_base_type_is_64bit(base_type) ? 2 : 1;
 
       assert(val->type->length >= storage->array_elements);
       for (unsigned int i = 0; i < storage->array_elements; i++) {
          copy_constant_to_storage(& storage->storage[idx],
-                                  val->array_elements[i],
+                                  val->const_elements[i],
                                   base_type,
                                   elements,
                                   boolean_true);

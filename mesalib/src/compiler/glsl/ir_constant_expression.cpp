@@ -509,7 +509,7 @@ constant_referenced(const ir_dereference *deref,
 
 
 ir_constant *
-ir_rvalue::constant_expression_value(void *mem_ctx, struct hash_table *)
+ir_rvalue::constant_expression_value(void *, struct hash_table *)
 {
    assert(this->type->is_error());
    return NULL;
@@ -702,7 +702,7 @@ ir_expression::constant_expression_value(void *mem_ctx,
 
 
 ir_constant *
-ir_texture::constant_expression_value(void *mem_ctx, struct hash_table *)
+ir_texture::constant_expression_value(void *, struct hash_table *)
 {
    /* texture lookups aren't constant expressions */
    return NULL;
@@ -848,7 +848,7 @@ ir_dereference_record::constant_expression_value(void *mem_ctx,
 
 
 ir_constant *
-ir_assignment::constant_expression_value(void *mem_ctx, struct hash_table *)
+ir_assignment::constant_expression_value(void *, struct hash_table *)
 {
    /* FINISHME: Handle CEs involving assignment (return RHS) */
    return NULL;
@@ -856,7 +856,7 @@ ir_assignment::constant_expression_value(void *mem_ctx, struct hash_table *)
 
 
 ir_constant *
-ir_constant::constant_expression_value(void *mem_ctx, struct hash_table *)
+ir_constant::constant_expression_value(void *, struct hash_table *)
 {
    return this;
 }

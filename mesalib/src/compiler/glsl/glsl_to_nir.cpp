@@ -285,24 +285,13 @@ constant_copy(ir_constant *ir, void *mem_ctx)
       break;
 
    case GLSL_TYPE_STRUCT:
-      ret->elements = ralloc_array(mem_ctx, nir_constant *,
-                                   ir->type->length);
-      ret->num_elements = ir->type->length;
-
-      i = 0;
-      foreach_in_list(ir_constant, field, &ir->components) {
-         ret->elements[i] = constant_copy(field, mem_ctx);
-         i++;
-      }
-      break;
-
    case GLSL_TYPE_ARRAY:
       ret->elements = ralloc_array(mem_ctx, nir_constant *,
                                    ir->type->length);
       ret->num_elements = ir->type->length;
 
       for (i = 0; i < ir->type->length; i++)
-         ret->elements[i] = constant_copy(ir->array_elements[i], mem_ctx);
+         ret->elements[i] = constant_copy(ir->const_elements[i], mem_ctx);
       break;
 
    default:

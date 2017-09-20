@@ -747,7 +747,7 @@ ADDR_E_RETURNCODE CiLib::HwlComputeSurfaceInfo(
 
                 SiLib::HwlComputeSurfaceInfo(&localIn, pOut);
 
-                ADDR_ASSERT((MinDepth2DThinIndex <= pOut->tileIndex) && (MaxDepth2DThinIndex >= pOut->tileIndex));
+                ADDR_ASSERT(((MinDepth2DThinIndex <= pOut->tileIndex) && (MaxDepth2DThinIndex >= pOut->tileIndex)) || pOut->tileIndex == Depth1DThinIndex);
 
                 depthStencil2DTileConfigMatch = DepthStencilTileCfgMatch(pIn, pOut);
             }

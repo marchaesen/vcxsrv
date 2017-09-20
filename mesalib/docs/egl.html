@@ -130,27 +130,6 @@ mesa/demos repository.</p>
 runtime</p>
 
 <dl>
-<dt><code>EGL_DRIVERS_PATH</code></dt>
-<dd>
-
-<p>By default, the main library will look for drivers in the directory where
-the drivers are installed to.  This variable specifies a list of
-colon-separated directories where the main library will look for drivers, in
-addition to the default directory.  This variable is ignored for setuid/setgid
-binaries.</p>
-
-<p>This variable is usually set to test an uninstalled build.  For example, one
-may set</p>
-
-<pre>
-  $ export LD_LIBRARY_PATH=$mesa/lib
-  $ export EGL_DRIVERS_PATH=$mesa/lib/egl
-</pre>
-
-<p>to test a build without installation</p>
-
-</dd>
-
 <dt><code>EGL_DRIVER</code></dt>
 <dd>
 

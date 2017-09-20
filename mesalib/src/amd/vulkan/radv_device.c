@@ -170,6 +170,10 @@ static const VkExtensionProperties common_device_extensions[] = {
 		.extensionName = VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME,
 		.specVersion = 1,
 	},
+	{
+		.extensionName = VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME,
+		.specVersion = 1,
+	},
 };
 static const VkExtensionProperties ext_sema_device_extensions[] = {
 	{
@@ -412,14 +416,30 @@ static const struct debug_control radv_debug_options[] = {
 	{"noibs", RADV_DEBUG_NO_IBS},
 	{"spirv", RADV_DEBUG_DUMP_SPIRV},
 	{"vmfaults", RADV_DEBUG_VM_FAULTS},
+	{"zerovram", RADV_DEBUG_ZERO_VRAM},
+	{"syncshaders", RADV_DEBUG_SYNC_SHADERS},
 	{NULL, 0}
 };
+
+const char *
+radv_get_debug_option_name(int id)
+{
+	assert(id < ARRAY_SIZE(radv_debug_options) - 1);
+	return radv_debug_options[id].string;
+}
 
 static const struct debug_control radv_perftest_options[] = {
 	{"nobatchchain", RADV_PERFTEST_NO_BATCHCHAIN},
 	{"sisched", RADV_PERFTEST_SISCHED},
 	{NULL, 0}
 };
+
+const char *
+radv_get_perftest_option_name(int id)
+{
+	assert(id < ARRAY_SIZE(radv_debug_options) - 1);
+	return radv_perftest_options[id].string;
+}
 
 VkResult radv_CreateInstance(
 	const VkInstanceCreateInfo*                 pCreateInfo,
@@ -3093,8 +3113,8 @@ radv_initialise_color_surface(struct radv_device *device,
 	}
 
 	if (device->physical_device->rad_info.chip_class >= GFX9) {
-		uint32_t max_slice = radv_surface_layer_count(iview);
-		unsigned mip0_depth = iview->base_layer + max_slice - 1;
+		unsigned mip0_depth = iview->image->type == VK_IMAGE_TYPE_3D ?
+		  (iview->extent.depth - 1) : (iview->image->info.array_size - 1);
 
 		cb->cb_color_view |= S_028C6C_MIP_LEVEL(iview->base_mip);
 		cb->cb_color_attrib |= S_028C74_MIP0_DEPTH(mip0_depth) |

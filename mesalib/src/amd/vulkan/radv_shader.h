@@ -100,4 +100,10 @@ radv_shader_stage_to_user_data_0(gl_shader_stage stage, bool has_gs,
 const char *
 radv_get_shader_name(struct radv_shader_variant *var, gl_shader_stage stage);
 
+void
+radv_shader_dump_stats(struct radv_device *device,
+		       struct radv_shader_variant *variant,
+		       gl_shader_stage stage,
+		       FILE *file);
+
 #endif

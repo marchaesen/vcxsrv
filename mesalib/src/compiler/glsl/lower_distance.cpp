@@ -649,7 +649,7 @@ lower_distance_visitor_counter::visit(ir_variable *ir)
 }
 
 void
-lower_distance_visitor_counter::handle_rvalue(ir_rvalue **rv)
+lower_distance_visitor_counter::handle_rvalue(ir_rvalue **)
 {
    return;
 }

@@ -158,6 +158,13 @@ createModeFromConfig(const __DRIcoreExtension * core,
                 config->config.bindToTextureTargets |=
                     GLX_TEXTURE_RECTANGLE_BIT_EXT;
             break;
+        case __DRI_ATTRIB_SWAP_METHOD:
+            /* Workaround for broken dri drivers */
+            if (value != GLX_SWAP_UNDEFINED_OML &&
+                value != GLX_SWAP_COPY_OML &&
+                value != GLX_SWAP_EXCHANGE_OML)
+                value = GLX_SWAP_UNDEFINED_OML;
+            /* Fall through. */
         default:
             setScalar(&config->config, attrib, value);
             break;

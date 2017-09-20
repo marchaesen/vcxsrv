@@ -438,3 +438,13 @@ DRI_CONF_OPT_END
 DRI_CONF_OPT_BEGIN_B(radeonsi_enable_sisched, def) \
         DRI_CONF_DESC(en,gettext("Use the LLVM sisched option for shader compiles")) \
 DRI_CONF_OPT_END
+
+#define DRI_CONF_RADEONSI_ASSUME_NO_Z_FIGHTS(def) \
+DRI_CONF_OPT_BEGIN_B(radeonsi_assume_no_z_fights, def) \
+        DRI_CONF_DESC(en,gettext("Assume no Z fights (enables aggressive out-of-order rasterization to improve performance; may cause rendering errors)")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_RADEONSI_COMMUTATIVE_BLEND_ADD(def) \
+DRI_CONF_OPT_BEGIN_B(radeonsi_commutative_blend_add, def) \
+        DRI_CONF_DESC(en,gettext("Commutative additive blending optimizations (may cause rendering errors)")) \
+DRI_CONF_OPT_END

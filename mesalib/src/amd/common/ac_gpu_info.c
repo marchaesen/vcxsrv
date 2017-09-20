@@ -100,7 +100,6 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	struct amdgpu_heap_info vram, vram_vis, gtt;
 	struct drm_amdgpu_info_hw_ip dma = {}, compute = {}, uvd = {}, vce = {}, vcn_dec = {};
 	uint32_t vce_version = 0, vce_feature = 0, uvd_version = 0, uvd_feature = 0;
-	uint32_t unused_feature;
 	int r, i, j;
 	drmDevicePtr devinfo;
 
@@ -176,21 +175,24 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	}
 
 	r = amdgpu_query_firmware_version(dev, AMDGPU_INFO_FW_GFX_ME, 0, 0,
-					&info->me_fw_version, &unused_feature);
+					&info->me_fw_version,
+					&info->me_fw_feature);
 	if (r) {
 		fprintf(stderr, "amdgpu: amdgpu_query_firmware_version(me) failed.\n");
 		return false;
 	}
 
 	r = amdgpu_query_firmware_version(dev, AMDGPU_INFO_FW_GFX_PFP, 0, 0,
-					&info->pfp_fw_version, &unused_feature);
+					&info->pfp_fw_version,
+					&info->pfp_fw_feature);
 	if (r) {
 		fprintf(stderr, "amdgpu: amdgpu_query_firmware_version(pfp) failed.\n");
 		return false;
 	}
 
 	r = amdgpu_query_firmware_version(dev, AMDGPU_INFO_FW_GFX_CE, 0, 0,
-					&info->ce_fw_version, &unused_feature);
+					&info->ce_fw_version,
+					&info->ce_fw_feature);
 	if (r) {
 		fprintf(stderr, "amdgpu: amdgpu_query_firmware_version(ce) failed.\n");
 		return false;

@@ -744,6 +744,13 @@ extern const struct radv_dynamic_state default_dynamic_state;
 void radv_dynamic_state_copy(struct radv_dynamic_state *dest,
 			     const struct radv_dynamic_state *src,
 			     uint32_t copy_mask);
+
+const char *
+radv_get_debug_option_name(int id);
+
+const char *
+radv_get_perftest_option_name(int id);
+
 /**
  * Attachment state when recording a renderpass instance.
  *
@@ -1044,6 +1051,8 @@ struct radv_vertex_elements_info {
 	uint32_t count;
 };
 
+#define SI_GS_PER_ES 128
+
 struct radv_pipeline {
 	struct radv_device *                          device;
 	uint32_t                                     dynamic_state_mask;
@@ -1075,6 +1084,8 @@ struct radv_pipeline {
 			uint32_t vgt_gs_mode;
 			bool vgt_primitiveid_en;
 			bool prim_restart_enable;
+			bool partial_es_wave;
+			uint8_t primgroup_size;
 			unsigned esgs_ring_size;
 			unsigned gsvs_ring_size;
 			uint32_t ps_input_cntl[32];
@@ -1082,6 +1093,10 @@ struct radv_pipeline {
 			uint32_t pa_cl_vs_out_cntl;
 			uint32_t vgt_shader_stages_en;
 			uint32_t vtx_base_sgpr;
+			uint32_t base_ia_multi_vgt_param;
+			bool wd_switch_on_eop;
+			bool ia_switch_on_eoi;
+			bool partial_vs_wave;
 			uint8_t vtx_emit_num;
 			struct radv_prim_vertex_count prim_vertex_count;
  			bool can_use_guardband;
@@ -1155,6 +1170,8 @@ bool radv_format_pack_clear_color(VkFormat format,
 				  uint32_t clear_vals[2],
 				  VkClearColorValue *value);
 bool radv_is_colorbuffer_format_supported(VkFormat format, bool *blendable);
+bool radv_dcc_formats_compatible(VkFormat format1,
+                                 VkFormat format2);
 
 struct radv_fmask_info {
 	uint64_t offset;
@@ -1306,8 +1323,7 @@ struct radv_buffer_view {
 };
 void radv_buffer_view_init(struct radv_buffer_view *view,
 			   struct radv_device *device,
-			   const VkBufferViewCreateInfo* pCreateInfo,
-			   struct radv_cmd_buffer *cmd_buffer);
+			   const VkBufferViewCreateInfo* pCreateInfo);
 
 static inline struct VkExtent3D
 radv_sanitize_image_extent(const VkImageType imageType,

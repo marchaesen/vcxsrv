@@ -85,7 +85,7 @@
 1F3E0..1F3F0  	#  6.0 [17] (🏠..🏰)    house..castle
 # 1F3F4         	#  7.0  [1] (🏴)       black flag
 # 1F3F8..1F3FF  	#  8.0  [8] (🏸..🏿)    badminton..dark skin tone
-1F400..1F43E  	#  6.0 [63] (🐀..🐾)    rat..paw prints
+# 1F400..1F43E  	#  6.0 [63] (🐀..🐾)    rat..paw prints
 1F440         	#  6.0  [1] (👀)       eyes
 1F442..1F4F7  	#  6.0[182] (👂..📷)    ear..camera
 # 1F4F8         	#  7.0  [1] (📸)       camera with flash
@@ -123,7 +123,7 @@
 # 1F641..1F642  	#  7.0  [2] (🙁..🙂)    slightly frowning face..slightly smiling face
 # 1F643..1F644  	#  8.0  [2] (🙃..🙄)    upside-down face..face with rolling eyes
 1F645..1F64F  	#  6.0 [11] (🙅..🙏)    person gesturing NO..folded hands
-1F680..1F6C5  	#  6.0 [70] (🚀..🛅)    rocket..left luggage
+# 1F680..1F6C5  	#  6.0 [70] (🚀..🛅)    rocket..left luggage
 # 1F6CC         	#  7.0  [1] (🛌)       person in bed
 # 1F6D0         	#  8.0  [1] (🛐)       place of worship
 # 1F6D1..1F6D2  	#  9.0  [2] (🛑..🛒)    stop sign..shopping cart

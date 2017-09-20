@@ -151,6 +151,18 @@ Whenever possible and applicable, test the patch with
 to check for regressions.
 </p>
 
+<p>
+As mentioned at the begining, patches should be bisectable.
+A good way to test this is to make use of the `git rebase` command,
+to run your tests on each commit. Assuming your branch is based off
+<code>origin/master</code>, you can run:
+<pre>
+$ git rebase --interactive --exec "make check" origin/master
+</pre>
+replacing <code>"make check"</code> with whatever other test you want to
+run.
+</p>
+
 
 <h2 id="mailing">Mailing Patches</h2>
 

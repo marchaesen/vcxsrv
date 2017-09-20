@@ -59,7 +59,7 @@ to learn if it is thread safe.
 Indirect Rendering
 
 You can force indirect rendering mode by setting the LIBGL_ALWAYS_INDIRECT
-environment variable.  Hardware acceleration will not be used.
+environment variable to `true`.  Hardware acceleration will not be used.
 
 
 

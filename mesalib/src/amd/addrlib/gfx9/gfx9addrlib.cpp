@@ -268,7 +268,8 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeCmaskInfo(
     ADDR2_COMPUTE_CMASK_INFO_OUTPUT*         pOut    ///< [out] output structure
     ) const
 {
-    ADDR_ASSERT(pIn->resourceType == ADDR_RSRC_TEX_2D);
+// TODO: Clarify with AddrLib team
+//     ADDR_ASSERT(pIn->resourceType == ADDR_RSRC_TEX_2D);
 
     UINT_32 numPipeTotal = GetPipeNumForMetaAddressing(pIn->cMaskFlags.pipeAligned,
                                                        pIn->swizzleMode);

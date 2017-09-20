@@ -588,15 +588,35 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	AddrSurfInfoIn.flags.noStencil = (surf->flags & RADEON_SURF_SBUFFER) == 0;
 	AddrSurfInfoIn.flags.compressZ = AddrSurfInfoIn.flags.depth;
 
-	/* noStencil = 0 can result in a depth part that is incompatible with
-	 * mipmapped texturing. So set noStencil = 1 when mipmaps are requested (in
-	 * this case, we may end up setting stencil_adjusted).
+	/* On CI/VI, the DB uses the same pitch and tile mode (except tilesplit)
+	 * for Z and stencil. This can cause a number of problems which we work
+	 * around here:
 	 *
-	 * TODO: update addrlib to a newer version, remove this, and
-	 * use flags.matchStencilTileCfg = 1 as an alternative fix.
+	 * - a depth part that is incompatible with mipmapped texturing
+	 * - at least on Stoney, entirely incompatible Z/S aspects (e.g.
+	 *   incorrect tiling applied to the stencil part, stencil buffer
+	 *   memory accesses that go out of bounds) even without mipmapping
+	 *
+	 * Some piglit tests that are prone to different types of related
+	 * failures:
+	 *  ./bin/ext_framebuffer_multisample-upsample 2 stencil
+	 *  ./bin/framebuffer-blit-levels {draw,read} stencil
+	 *  ./bin/ext_framebuffer_multisample-unaligned-blit N {depth,stencil} {msaa,upsample,downsample}
+	 *  ./bin/fbo-depth-array fs-writes-{depth,stencil} / {depth,stencil}-{clear,layered-clear,draw}
+	 *  ./bin/depthstencil-render-miplevels 1024 d=s=z24_s8
 	 */
-	if (config->info.levels > 1)
+	int stencil_tile_idx = -1;
+
+	if (AddrSurfInfoIn.flags.depth && !AddrSurfInfoIn.flags.noStencil &&
+	    (config->info.levels > 1 || info->family == CHIP_STONEY)) {
+		/* Compute stencilTileIdx that is compatible with the (depth)
+		 * tileIdx. This degrades the depth surface if necessary to
+		 * ensure that a matching stencilTileIdx exists. */
+		AddrSurfInfoIn.flags.matchStencilTileCfg = 1;
+
+		/* Keep the depth mip-tail compatible with texturing. */
 		AddrSurfInfoIn.flags.noStencil = 1;
+	}
 
 	/* Set preferred macrotile parameters. This is usually required
 	 * for shared resources. This is for 2D tiling only. */
@@ -679,6 +699,26 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 			if (level > 0)
 				continue;
 
+			/* Check that we actually got a TC-compatible HTILE if
+			 * we requested it (only for level 0, since we're not
+			 * supporting HTILE on higher mip levels anyway). */
+			assert(AddrSurfInfoOut.tcCompatible ||
+			       !AddrSurfInfoIn.flags.tcCompatible ||
+			       AddrSurfInfoIn.flags.matchStencilTileCfg);
+
+			if (AddrSurfInfoIn.flags.matchStencilTileCfg) {
+				if (!AddrSurfInfoOut.tcCompatible) {
+					AddrSurfInfoIn.flags.tcCompatible = 0;
+					surf->flags &= ~RADEON_SURF_TC_COMPATIBLE_HTILE;
+				}
+
+				AddrSurfInfoIn.flags.matchStencilTileCfg = 0;
+				AddrSurfInfoIn.tileIndex = AddrSurfInfoOut.tileIndex;
+				stencil_tile_idx = AddrSurfInfoOut.stencilTileIdx;
+
+				assert(stencil_tile_idx >= 0);
+			}
+
 			r = gfx6_surface_settings(addrlib, info, config,
 						  &AddrSurfInfoOut, surf);
 			if (r)
@@ -688,6 +728,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 
 	/* Calculate texture layout information for stencil. */
 	if (surf->flags & RADEON_SURF_SBUFFER) {
+		AddrSurfInfoIn.tileIndex = stencil_tile_idx;
 		AddrSurfInfoIn.bpp = 8;
 		AddrSurfInfoIn.flags.depth = 0;
 		AddrSurfInfoIn.flags.stencil = 1;
@@ -1097,9 +1138,14 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 
 	/* Calculate texture layout information for stencil. */
 	if (surf->flags & RADEON_SURF_SBUFFER) {
-		AddrSurfInfoIn.bpp = 8;
-		AddrSurfInfoIn.flags.depth = 0;
 		AddrSurfInfoIn.flags.stencil = 1;
+		AddrSurfInfoIn.bpp = 8;
+
+		if (!AddrSurfInfoIn.flags.depth)
+			r = gfx9_get_preferred_swizzle_mode(addrlib, &AddrSurfInfoIn, false,
+							    &AddrSurfInfoIn.swizzleMode);
+		else
+			AddrSurfInfoIn.flags.depth = 0;
 
 		r = gfx9_compute_miptree(addrlib, surf, compressed, &AddrSurfInfoIn);
 		if (r)

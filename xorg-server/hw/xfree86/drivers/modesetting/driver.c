@@ -1197,6 +1197,11 @@ msEnableSharedPixmapFlipping(RRCrtcPtr crtc, PixmapPtr front, PixmapPtr back)
          * vblank events */
         if (syspath && strstr(syspath, "usb"))
             return FALSE;
+
+        /* EVDI uses USB transport but is platform device, not usb.
+         * Blacklist it explicitly */
+        if (syspath && strstr(syspath, "evdi"))
+            return FALSE;
     }
 #endif
 

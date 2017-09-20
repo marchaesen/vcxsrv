@@ -27,7 +27,6 @@
 #include "fcint.h"
 #include <dirent.h>
 #include <sys/types.h>
-#include "../fc-blanks/fcblanks.h"
 
 #if defined (_WIN32) && !defined (R_OK)
 #define R_OK 4
@@ -109,8 +108,6 @@ FcConfigCreate (void)
     config->cacheDirs = FcStrSetCreate ();
     if (!config->cacheDirs)
 	goto bail8;
-
-    config->blanks = &fcBlanks;
 
     config->substPattern = 0;
     config->substFont = 0;
@@ -275,9 +272,6 @@ FcConfigDestroy (FcConfig *config)
     FcStrSetDestroy (config->rejectGlobs);
     FcFontSetDestroy (config->acceptPatterns);
     FcFontSetDestroy (config->rejectPatterns);
-
-    if (config->blanks)
-	FcBlanksDestroy (config->blanks);
 
     FcSubstDestroy (config->substPattern);
     FcSubstDestroy (config->substFont);
@@ -569,40 +563,49 @@ FcConfigSetFonts (FcConfig	*config,
     config->fonts[set] = fonts;
 }
 
+
 FcBlanks *
-FcConfigGetBlanks (FcConfig	*config)
+FcBlanksCreate (void)
 {
-    if (!config)
-    {
-	config = FcConfigGetCurrent ();
-	if (!config)
-	    return 0;
-    }
-    return config->blanks;
+    /* Deprecated. */
+    return NULL;
+}
+
+void
+FcBlanksDestroy (FcBlanks *b FC_UNUSED)
+{
+    /* Deprecated. */
 }
 
 FcBool
-FcConfigAddBlank (FcConfig	*config,
-		  FcChar32    	blank)
+FcBlanksAdd (FcBlanks *b FC_UNUSED, FcChar32 ucs4 FC_UNUSED)
 {
-    FcBlanks	*b, *freeme = 0;
-
-    b = config->blanks;
-    if (!b)
-    {
-	freeme = b = FcBlanksCreate ();
-	if (!b)
-	    return FcFalse;
-    }
-    if (!FcBlanksAdd (b, blank))
-    {
-        if (freeme)
-            FcBlanksDestroy (freeme);
-	return FcFalse;
-    }
-    config->blanks = b;
-    return FcTrue;
+    /* Deprecated. */
+    return FcFalse;
 }
+
+FcBool
+FcBlanksIsMember (FcBlanks *b FC_UNUSED, FcChar32 ucs4 FC_UNUSED)
+{
+    /* Deprecated. */
+    return FcFalse;
+}
+
+FcBlanks *
+FcConfigGetBlanks (FcConfig	*config FC_UNUSED)
+{
+    /* Deprecated. */
+    return NULL;
+}
+
+FcBool
+FcConfigAddBlank (FcConfig	*config FC_UNUSED,
+		  FcChar32    	blank FC_UNUSED)
+{
+    /* Deprecated. */
+    return FcFalse;
+}
+
 
 int
 FcConfigGetRescanInterval (FcConfig *config)
@@ -2221,7 +2224,7 @@ FcConfigAppFontAddFile (FcConfig    *config,
 	FcConfigSetFonts (config, set, FcSetApplication);
     }
 	
-    if (!FcFileScanConfig (set, subdirs, config->blanks, file, config))
+    if (!FcFileScanConfig (set, subdirs, file, config))
     {
 	FcStrSetDestroy (subdirs);
 	return FcFalse;

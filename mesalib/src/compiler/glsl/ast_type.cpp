@@ -186,10 +186,7 @@ validate_point_mode(MAYBE_UNUSED const ast_type_qualifier &qualifier,
 }
 
 static void
-merge_bindless_qualifier(YYLTYPE *loc,
-                         _mesa_glsl_parse_state *state,
-                         const ast_type_qualifier &qualifier,
-                         const ast_type_qualifier &new_qualifier)
+merge_bindless_qualifier(_mesa_glsl_parse_state *state)
 {
    if (state->default_uniform_qualifier->flags.q.bindless_sampler) {
       state->bindless_sampler_specified = true;
@@ -484,7 +481,7 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
        q.flags.q.bindless_image ||
        q.flags.q.bound_sampler ||
        q.flags.q.bound_image)
-      merge_bindless_qualifier(loc, state, *this, q);
+      merge_bindless_qualifier(state);
 
    return r;
 }

@@ -22,6 +22,7 @@
  */
 
 #ifdef HAVE_DL_ITERATE_PHDR
+#include <dlfcn.h>
 #include <link.h>
 #include <stddef.h>
 #include <string.h>
@@ -46,7 +47,9 @@ struct build_id_note {
 };
 
 struct callback_data {
-   const char *filename;
+   /* Base address of shared object, taken from Dl_info::dli_fbase */
+   const void *dli_fbase;
+
    struct build_id_note *note;
 };
 
@@ -55,14 +58,7 @@ build_id_find_nhdr_callback(struct dl_phdr_info *info, size_t size, void *data_)
 {
    struct callback_data *data = data_;
 
-   /* The first object visited by callback is the main program.
-    * Android's libc returns a NULL pointer for the first executable.
-    */
-   if (info->dlpi_name == NULL)
-      return 0;
-
-   char *ptr = strstr(info->dlpi_name, data->filename);
-   if (ptr == NULL || ptr[strlen(data->filename)] != '\0')
+   if ((void *)info->dlpi_addr != data->dli_fbase)
       return 0;
 
    for (unsigned i = 0; i < info->dlpi_phnum; i++) {
@@ -94,10 +90,18 @@ build_id_find_nhdr_callback(struct dl_phdr_info *info, size_t size, void *data_)
 }
 
 const struct build_id_note *
-build_id_find_nhdr(const char *filename)
+build_id_find_nhdr_for_addr(const void *addr)
 {
+   Dl_info info;
+
+   if (!dladdr(addr, &info))
+      return NULL;
+
+   if (!info.dli_fbase)
+      return NULL;
+
    struct callback_data data = {
-      .filename = filename,
+      .dli_fbase = info.dli_fbase,
       .note = NULL,
    };
 

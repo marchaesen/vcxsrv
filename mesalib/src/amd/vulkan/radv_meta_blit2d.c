@@ -82,7 +82,7 @@ create_bview(struct radv_cmd_buffer *cmd_buffer,
 				      .format = format,
 				      .offset = src->offset,
 				      .range = VK_WHOLE_SIZE,
-			      }, cmd_buffer);
+			      });
 
 }
 

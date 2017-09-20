@@ -992,7 +992,7 @@ glamor_composite_choose_shader(CARD8 op,
                 goto fail;
             }
         } else {
-            if (!glamor_render_format_is_supported(source->format)) {
+            if (source && !glamor_render_format_is_supported(source->format)) {
                 glamor_fallback("Unsupported source picture format.\n");
                 goto fail;
             }
@@ -1436,7 +1436,8 @@ glamor_composite_clipped_region(CARD8 op,
            x_source, y_source, x_mask, y_mask, x_dest, y_dest, width, height);
 
     /* Is the composite operation equivalent to a copy? */
-    if (!mask && !source->alphaMap && !dest->alphaMap
+    if (source &&
+        !mask && !source->alphaMap && !dest->alphaMap
         && source->pDrawable && !source->transform
         /* CopyArea is only defined with matching depths. */
         && dest->pDrawable->depth == source->pDrawable->depth

@@ -46,9 +46,12 @@
  * The caller is responsible for initializing ctx::module and ctx::builder.
  */
 void
-ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context)
+ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context,
+		     enum chip_class chip_class)
 {
 	LLVMValueRef args[1];
+
+	ctx->chip_class = chip_class;
 
 	ctx->context = context;
 	ctx->module = NULL;
@@ -484,7 +487,7 @@ static void build_cube_select(LLVMBuilderRef builder,
 
 void
 ac_prepare_cube_coords(struct ac_llvm_context *ctx,
-		       bool is_deriv, bool is_array,
+		       bool is_deriv, bool is_array, bool is_lod,
 		       LLVMValueRef *coords_arg,
 		       LLVMValueRef *derivs_arg)
 {
@@ -493,6 +496,38 @@ ac_prepare_cube_coords(struct ac_llvm_context *ctx,
 	struct cube_selection_coords selcoords;
 	LLVMValueRef coords[3];
 	LLVMValueRef invma;
+
+	if (is_array && !is_lod) {
+		LLVMValueRef tmp = coords_arg[3];
+		tmp = ac_build_intrinsic(ctx, "llvm.rint.f32", ctx->f32, &tmp, 1, 0);
+
+		/* Section 8.9 (Texture Functions) of the GLSL 4.50 spec says:
+		 *
+		 *    "For Array forms, the array layer used will be
+		 *
+		 *       max(0, min(d−1, floor(layer+0.5)))
+		 *
+		 *     where d is the depth of the texture array and layer
+		 *     comes from the component indicated in the tables below.
+		 *     Workaroudn for an issue where the layer is taken from a
+		 *     helper invocation which happens to fall on a different
+		 *     layer due to extrapolation."
+		 *
+		 * VI and earlier attempt to implement this in hardware by
+		 * clamping the value of coords[2] = (8 * layer) + face.
+		 * Unfortunately, this means that the we end up with the wrong
+		 * face when clamping occurs.
+		 *
+		 * Clamp the layer earlier to work around the issue.
+		 */
+		if (ctx->chip_class <= VI) {
+			LLVMValueRef ge0;
+			ge0 = LLVMBuildFCmp(builder, LLVMRealOGE, tmp, ctx->f32_0, "");
+			tmp = LLVMBuildSelect(builder, ge0, tmp, ctx->f32_0, "");
+		}
+
+		coords_arg[3] = tmp;
+	}
 
 	build_cube_intrinsic(ctx, coords_arg, &selcoords);
 
@@ -964,7 +999,6 @@ ac_get_thread_id(struct ac_llvm_context *ctx)
  */
 LLVMValueRef
 ac_build_ddxy(struct ac_llvm_context *ctx,
-	      bool has_ds_bpermute,
 	      uint32_t mask,
 	      int idx,
 	      LLVMValueRef val)
@@ -972,7 +1006,7 @@ ac_build_ddxy(struct ac_llvm_context *ctx,
 	LLVMValueRef tl, trbl, args[2];
 	LLVMValueRef result;
 
-	if (has_ds_bpermute) {
+	if (ctx->chip_class >= VI) {
 		LLVMValueRef thread_id, tl_tid, trbl_tid;
 		thread_id = ac_get_thread_id(ctx);
 

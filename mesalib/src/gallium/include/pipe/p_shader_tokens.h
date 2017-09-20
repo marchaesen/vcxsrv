@@ -74,6 +74,7 @@ enum tgsi_file_type {
    TGSI_FILE_SAMPLER_VIEW,
    TGSI_FILE_BUFFER,
    TGSI_FILE_MEMORY,
+   TGSI_FILE_CONSTBUF,
    TGSI_FILE_COUNT,      /**< how many TGSI_FILE_ types */
 };
 

@@ -2262,11 +2262,8 @@ public:
     */
    union ir_constant_data value;
 
-   /* Array elements */
-   ir_constant **array_elements;
-
-   /* Structure fields */
-   exec_list components;
+   /* Array elements and structure fields */
+   ir_constant **const_elements;
 
 private:
    /**

@@ -1,5 +1,67 @@
 <vcxml gen="3.3">
 
+  <enum name="Compare Function" prefix="V3D_COMPARE_FUNC">
+    <value name="NEVER" value="0"/>
+    <value name="LESS" value="1"/>
+    <value name="EQUAL" value="2"/>
+    <value name="LEQUAL" value="3"/>
+    <value name="GREATER" value="4"/>
+    <value name="NOTEQUAL" value="5"/>
+    <value name="GEQUAL" value="6"/>
+    <value name="ALWAYS" value="7"/>
+  </enum>
+
+  <enum name="Blend Factor" prefix="V3D_BLEND_FACTOR">
+    <value name="ZERO" value="0"/>
+    <value name="ONE" value="1"/>
+    <value name="SRC_COLOR" value="2"/>
+    <value name="INV_SRC_COLOR" value="3"/>
+    <value name="DST_COLOR" value="4"/>
+    <value name="INV_DST_COLOR" value="5"/>
+    <value name="SRC_ALPHA" value="6"/>
+    <value name="INV_SRC_ALPHA" value="7"/>
+    <value name="DST_ALPHA" value="8"/>
+    <value name="INV_DST_ALPHA" value="9"/>
+    <value name="CONST_COLOR" value="10"/>
+    <value name="INV_CONST_COLOR" value="11"/>
+    <value name="CONST_ALPHA" value="12"/>
+    <value name="INV_CONST_ALPHA" value="13"/>
+    <value name="SRC_ALPHA_SATURATE" value="14"/>
+  </enum>
+
+  <enum name="Blend Mode" prefix="V3D_BLEND_MODE">
+    <value name="ADD" value="0"/>
+    <value name="SUB" value="1"/>
+    <value name="RSUB" value="2"/>
+    <value name="MIN" value="3"/>
+    <value name="MAX" value="4"/>
+    <value name="MUL" value="5"/>
+    <value name="SCREEN" value="6"/>
+    <value name="DARKEN" value="7"/>
+    <value name="LIGHTEN" value="8"/>
+  </enum>
+
+  <enum name="Stencil Op" prefix="V3D_STENCIL_OP">
+    <value name="ZERO" value="0"/>
+    <value name="KEEP" value="1"/>
+    <value name="REPLACE" value="2"/>
+    <value name="INCR" value="3"/>
+    <value name="DECR" value="4"/>
+    <value name="INVERT" value="5"/>
+    <value name="INCWRAP" value="6"/>
+    <value name="DECWRAP" value="7"/>
+  </enum>
+
+  <enum name="Primitive" prefix="V3D_PRIM">
+    <value name="POINTS" value="0"/>
+    <value name="LINES" value="1"/>
+    <value name="LINE_LOOP" value="2"/>
+    <value name="LINE_STRIP" value="3"/>
+    <value name="TRIANGLES" value="4"/>
+    <value name="TRIANGLE_STRIP" value="5"/>
+    <value name="TRIANGLE_FAN" value="6"/>
+  </enum>
+
   <packet code="0" name="Halt"/>
   <packet code="1" name="NOP"/>
   <packet code="4" name="Flush"/>
@@ -86,13 +148,6 @@
     </field>
 
     <field name="mode" size="5" start="0" type="uint">
-      <value name="points" value="0"/>
-      <value name="lines" value="1"/>
-      <value name="line loop" value="2"/>
-      <value name="line strip" value="3"/>
-      <value name="triangles" value="4"/>
-      <value name="triangles strip" value="5"/>
-      <value name="triangles fan" value="6"/>
     </field>
   </packet>
 
@@ -109,30 +164,14 @@
       <value name="Index type 32-bit" value="2"/>
     </field>
 
-    <field name="mode" size="5" start="0" type="uint">
-      <value name="points" value="0"/>
-      <value name="lines" value="1"/>
-      <value name="line loop" value="2"/>
-      <value name="line strip" value="3"/>
-      <value name="triangles" value="4"/>
-      <value name="triangles strip" value="5"/>
-      <value name="triangles fan" value="6"/>
-    </field>
+    <field name="mode" size="5" start="0" type="Primitive"/>
   </packet>
 
   <packet code="36" name="Vertex Array Primitives" cl="B">
     <field name="Index of First Vertex" size="32" start="40" type="uint"/>
     <field name="Length" size="32" start="8" type="uint"/>
 
-    <field name="mode" size="8" start="0" type="uint">
-      <value name="points" value="0"/>
-      <value name="lines" value="1"/>
-      <value name="line loop" value="2"/>
-      <value name="line strip" value="3"/>
-      <value name="triangles" value="4"/>
-      <value name="triangles strip" value="5"/>
-      <value name="triangles fan" value="6"/>
-    </field>
+    <field name="mode" size="8" start="0" type="Primitive"/>
   </packet>
 
   <packet code="38" name="Vertex Array Instanced Primitives" cl="B">
@@ -140,15 +179,7 @@
     <field name="Number of Instances" size="32" start="40" type="uint"/>
     <field name="Instance Length" size="32" start="8" type="uint"/>
 
-    <field name="mode" size="8" start="0" type="uint">
-      <value name="points" value="0"/>
-      <value name="lines" value="1"/>
-      <value name="line loop" value="2"/>
-      <value name="line strip" value="3"/>
-      <value name="triangles" value="4"/>
-      <value name="triangles strip" value="5"/>
-      <value name="triangles fan" value="6"/>
-    </field>
+    <field name="mode" size="8" start="0" type="Primitive"/>
   </packet>
 
   <packet code="56" name="Primitive List Format">
@@ -189,22 +220,22 @@
     <field name="Stencil Write Mask" size="8" start="32" type="uint"/>
     <field name="Back Config" size="1" start="29" type="bool"/>
     <field name="Front Config" size="1" start="28" type="bool"/>
-    <field name="Stencil Pass Op" size="3" start="25" type="uint"/>
-    <field name="Depth Test Fail Op" size="3" start="22" type="uint"/>
-    <field name="Stencil Test Fail Op" size="3" start="19" type="uint"/>
-    <field name="Stencil Test Function" size="3" start="16" type="uint"/>
+    <field name="Stencil Pass Op" size="3" start="25" type="Stencil Op"/>
+    <field name="Depth Test Fail Op" size="3" start="22" type="Stencil Op"/>
+    <field name="Stencil Test Fail Op" size="3" start="19" type="Stencil Op"/>
+    <field name="Stencil Test Function" size="3" start="16" type="Compare Function"/>
     <field name="Stencil Test Mask" size="8" start="8" type="uint"/>
     <field name="Stencil Ref Value" size="8" start="0" type="uint"/>
   </packet>
 
   <packet code="84" name="Blend Config">
     <field name="VG Coverage Modes" size="2" start="28" type="uint"/>
-    <field name="Colour blend dst factor" size="4" start="20" type="uint"/>
-    <field name="Colour blend src factor" size="4" start="16" type="uint"/>
-    <field name="Colour blend mode" size="4" start="12" type="uint"/>
-    <field name="Alpha blend dst factor" size="4" start="8" type="uint"/>
-    <field name="Alpha blend src factor" size="4" start="4" type="uint"/>
-    <field name="Alpha blend mode" size="4" start="0" type="uint"/>
+    <field name="Colour blend dst factor" size="4" start="20" type="Blend Factor"/>
+    <field name="Colour blend src factor" size="4" start="16" type="Blend Factor"/>
+    <field name="Colour blend mode" size="4" start="12" type="Blend Mode"/>
+    <field name="Alpha blend dst factor" size="4" start="8" type="Blend Factor"/>
+    <field name="Alpha blend src factor" size="4" start="4" type="Blend Factor"/>
+    <field name="Alpha blend mode" size="4" start="0" type="Blend Mode"/>
   </packet>
 
   <packet code="86" name="Blend Constant Colour">
@@ -229,7 +260,7 @@
     <field name="Early Z updates enable" size="1" start="17" type="bool"/>
     <field name="Early Z enable" size="1" start="16" type="bool"/>
     <field name="Z updates enable" size="1" start="15" type="bool"/>
-    <field name="Depth-Test Function" size="3" start="12" type="uint"/>
+    <field name="Depth-Test Function" size="3" start="12" type="Compare Function"/>
     <field name="Direct3D Wireframe triangles mode" size="1" start="11" type="bool"/>
     <field name="Coverage Update Mode" size="2" start="9" type="uint"/>
     <field name="Coverage Pipe Select" size="1" start="8" type="bool"/>
@@ -704,7 +735,7 @@
     <field name="Swizzle G" size="3" start="115" type="uint"/>
     <field name="Swizzle R" size="3" start="112" type="uint"/>
 
-    <field name="Depth Compare Function" size="3" start="109" type="uint"/>
+    <field name="Depth Compare Function" size="3" start="109" type="Compare Function"/>
 
     <field name="sRGB" size="1" start="107" type="bool"/>
 

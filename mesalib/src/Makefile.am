@@ -64,7 +64,7 @@ endif
 # include only conditionally ?
 SUBDIRS += compiler
 
-## Optionally required by GBM, EGL and Vulkan
+## Optionally required by GBM, EGL
 if HAVE_PLATFORM_WAYLAND
 SUBDIRS += egl/wayland/wayland-drm
 endif
@@ -72,7 +72,9 @@ endif
 if HAVE_VULKAN_COMMON
 SUBDIRS += vulkan
 endif
+
 EXTRA_DIST += vulkan/registry/vk.xml
+EXTRA_DIST += vulkan/registry/vk_android_native_buffer.xml
 
 if HAVE_AMD_DRIVERS
 SUBDIRS += amd

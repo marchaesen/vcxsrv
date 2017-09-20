@@ -627,14 +627,14 @@ ir_expression::variable_referenced() const
 ir_constant::ir_constant()
    : ir_rvalue(ir_type_constant)
 {
-   this->array_elements = NULL;
+   this->const_elements = NULL;
 }
 
 ir_constant::ir_constant(const struct glsl_type *type,
 			 const ir_constant_data *data)
    : ir_rvalue(ir_type_constant)
 {
-   this->array_elements = NULL;
+   this->const_elements = NULL;
 
    assert((type->base_type >= GLSL_TYPE_UINT)
 	  && (type->base_type <= GLSL_TYPE_IMAGE));
@@ -737,7 +737,7 @@ ir_constant::ir_constant(bool b, unsigned vector_elements)
 ir_constant::ir_constant(const ir_constant *c, unsigned i)
    : ir_rvalue(ir_type_constant)
 {
-   this->array_elements = NULL;
+   this->const_elements = NULL;
    this->type = c->type->get_base_type();
 
    switch (this->type->base_type) {
@@ -753,34 +753,25 @@ ir_constant::ir_constant(const ir_constant *c, unsigned i)
 ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
    : ir_rvalue(ir_type_constant)
 {
-   this->array_elements = NULL;
+   this->const_elements = NULL;
    this->type = type;
 
    assert(type->is_scalar() || type->is_vector() || type->is_matrix()
 	  || type->is_record() || type->is_array());
-
-   if (type->is_array()) {
-      this->array_elements = ralloc_array(this, ir_constant *, type->length);
-      unsigned i = 0;
-      foreach_in_list(ir_constant, value, value_list) {
-	 assert(value->as_constant() != NULL);
-
-	 this->array_elements[i++] = value;
-      }
-      return;
-   }
 
    /* If the constant is a record, the types of each of the entries in
     * value_list must be a 1-for-1 match with the structure components.  Each
     * entry must also be a constant.  Just move the nodes from the value_list
     * to the list in the ir_constant.
     */
-   /* FINISHME: Should there be some type checking and / or assertions here? */
-   /* FINISHME: Should the new constant take ownership of the nodes from
-    * FINISHME: value_list, or should it make copies?
-    */
-   if (type->is_record()) {
-      value_list->move_nodes_to(& this->components);
+   if (type->is_array() || type->is_record()) {
+      this->const_elements = ralloc_array(this, ir_constant *, type->length);
+      unsigned i = 0;
+      foreach_in_list(ir_constant, value, value_list) {
+	 assert(value->as_constant() != NULL);
+
+	 this->const_elements[i++] = value;
+      }
       return;
    }
 
@@ -924,16 +915,18 @@ ir_constant::zero(void *mem_ctx, const glsl_type *type)
    memset(&c->value, 0, sizeof(c->value));
 
    if (type->is_array()) {
-      c->array_elements = ralloc_array(c, ir_constant *, type->length);
+      c->const_elements = ralloc_array(c, ir_constant *, type->length);
 
       for (unsigned i = 0; i < type->length; i++)
-	 c->array_elements[i] = ir_constant::zero(c, type->fields.array);
+	 c->const_elements[i] = ir_constant::zero(c, type->fields.array);
    }
 
    if (type->is_record()) {
+      c->const_elements = ralloc_array(c, ir_constant *, type->length);
+
       for (unsigned i = 0; i < type->length; i++) {
-	 ir_constant *comp = ir_constant::zero(mem_ctx, type->fields.structure[i].type);
-	 c->components.push_tail(comp);
+         c->const_elements[i] =
+            ir_constant::zero(mem_ctx, type->fields.structure[i].type);
       }
    }
 
@@ -1100,30 +1093,16 @@ ir_constant::get_array_element(unsigned i) const
    else if (i >= this->type->length)
       i = this->type->length - 1;
 
-   return array_elements[i];
+   return const_elements[i];
 }
 
 ir_constant *
 ir_constant::get_record_field(int idx)
 {
-   if (idx < 0)
-      return NULL;
+   assert(this->type->is_record());
+   assert(idx >= 0 && idx < this->type->length);
 
-   if (this->components.is_empty())
-      return NULL;
-
-   exec_node *node = this->components.get_head_raw();
-   for (int i = 0; i < idx; i++) {
-      node = node->next;
-
-      /* If the end of the list is encountered before the element matching the
-       * requested field is found, return NULL.
-       */
-      if (node->is_tail_sentinel())
-	 return NULL;
-   }
-
-   return (ir_constant *) node;
+   return const_elements[idx];
 }
 
 void
@@ -1169,19 +1148,11 @@ ir_constant::copy_offset(ir_constant *src, int offset)
       break;
    }
 
-   case GLSL_TYPE_STRUCT: {
-      assert (src->type == this->type);
-      this->components.make_empty();
-      foreach_in_list(ir_constant, orig, &src->components) {
-	 this->components.push_tail(orig->clone(this, NULL));
-      }
-      break;
-   }
-
+   case GLSL_TYPE_STRUCT:
    case GLSL_TYPE_ARRAY: {
       assert (src->type == this->type);
       for (unsigned i = 0; i < this->type->length; i++) {
-	 this->array_elements[i] = src->array_elements[i]->clone(this, NULL);
+	 this->const_elements[i] = src->const_elements[i]->clone(this, NULL);
       }
       break;
    }
@@ -1241,31 +1212,11 @@ ir_constant::has_value(const ir_constant *c) const
    if (this->type != c->type)
       return false;
 
-   if (this->type->is_array()) {
+   if (this->type->is_array() || this->type->is_record()) {
       for (unsigned i = 0; i < this->type->length; i++) {
-	 if (!this->array_elements[i]->has_value(c->array_elements[i]))
+	 if (!this->const_elements[i]->has_value(c->const_elements[i]))
 	    return false;
       }
-      return true;
-   }
-
-   if (this->type->is_record()) {
-      const exec_node *a_node = this->components.get_head_raw();
-      const exec_node *b_node = c->components.get_head_raw();
-
-      while (!a_node->is_tail_sentinel()) {
-	 assert(!b_node->is_tail_sentinel());
-
-	 const ir_constant *const a_field = (ir_constant *) a_node;
-	 const ir_constant *const b_field = (ir_constant *) b_node;
-
-	 if (!a_field->has_value(b_field))
-	    return false;
-
-	 a_node = a_node->next;
-	 b_node = b_node->next;
-      }
-
       return true;
    }
 
@@ -1969,15 +1920,10 @@ steal_memory(ir_instruction *ir, void *new_ctx)
    /* The components of aggregate constants are not visited by the normal
     * visitor, so steal their values by hand.
     */
-   if (constant != NULL) {
-      if (constant->type->is_record()) {
-	 foreach_in_list(ir_constant, field, &constant->components) {
-	    steal_memory(field, ir);
-	 }
-      } else if (constant->type->is_array()) {
-	 for (unsigned int i = 0; i < constant->type->length; i++) {
-	    steal_memory(constant->array_elements[i], ir);
-	 }
+   if (constant != NULL &&
+       (constant->type->is_array() || constant->type->is_record())) {
+      for (unsigned int i = 0; i < constant->type->length; i++) {
+         steal_memory(constant->const_elements[i], ir);
       }
    }
 

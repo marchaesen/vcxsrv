@@ -352,7 +352,6 @@ typedef enum _FcElement {
     FcElementMatch,
     FcElementAlias,
 	
-    FcElementBlank,
     FcElementRescan,
 
     FcElementPrefer,
@@ -415,7 +414,6 @@ static const struct {
     { "match",		FcElementMatch },
     { "alias",		FcElementAlias },
 
-    { "blank",		FcElementBlank },
     { "rescan",		FcElementRescan },
 
     { "prefer",		FcElementPrefer },
@@ -1254,55 +1252,6 @@ FcStartElement(void *userData, const XML_Char *name, const XML_Char **attr)
 	return;
     }
     return;
-}
-
-static void
-FcParseBlank (FcConfigParse *parse)
-{
-    int		n = FcVStackElements (parse);
-#if 0
-    FcChar32	i, begin, end;
-#endif
-
-    FcConfigMessage (parse, FcSevereWarning, "blank doesn't take any effect anymore. please remove it from your fonts.conf");
-    while (n-- > 0)
-    {
-	FcVStack    *v = FcVStackFetch (parse, n);
-	if (!parse->config->blanks)
-	{
-	    parse->config->blanks = FcBlanksCreate ();
-	    if (!parse->config->blanks)
-		goto bail;
-	}
-	switch ((int) v->tag) {
-	case FcVStackInteger:
-#if 0
-	    if (!FcBlanksAdd (parse->config->blanks, v->u.integer))
-		goto bail;
-	    break;
-#endif
-	case FcVStackRange:
-#if 0
-	    begin = (FcChar32) v->u.range->begin;
-	    end = (FcChar32) v->u.range->end;
-	    if (begin <= end)
-	    {
-	      for (i = begin; i <= end; i++)
-	      {
-		  if (!FcBlanksAdd (parse->config->blanks, i))
-		      goto bail;
-	      }
-	    }
-#endif
-	    break;
-	default:
-	    FcConfigMessage (parse, FcSevereError, "invalid element in blank");
-	    break;
-	}
-    }
-    return;
-  bail:
-    FcConfigMessage (parse, FcSevereError, "out of memory");
 }
 
 static void
@@ -2936,9 +2885,6 @@ FcEndElement(void *userData, const XML_Char *name FC_UNUSED)
 	FcParseAlias (parse);
 	break;
 
-    case FcElementBlank:
-	FcParseBlank (parse);
-	break;
     case FcElementRescan:
 	FcParseRescan (parse);
 	break;

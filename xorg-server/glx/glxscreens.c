@@ -275,6 +275,15 @@ pickFBConfig(__GLXscreen * pGlxScreen, VisualPtr visual)
         if (config->visualID != 0)
             continue;
 
+        /*
+         * If possible, use the same swapmethod for all built-in visual
+         * fbconfigs, to avoid getting the 32-bit composite visual when
+         * requesting, for example, a SWAP_COPY fbconfig.
+         */
+        if (config->swapMethod == GLX_SWAP_UNDEFINED_OML)
+            score += 32;
+        if (config->swapMethod == GLX_SWAP_EXCHANGE_OML)
+            score += 16;
         if (config->doubleBufferMode > 0)
             score += 8;
         if (config->depthBits > 0)

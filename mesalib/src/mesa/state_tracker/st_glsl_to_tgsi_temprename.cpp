@@ -107,11 +107,9 @@ public:
    bool is_loop() const;
    bool is_in_loop() const;
    bool is_conditional() const;
-   bool is_conditional_in_loop() const;
 
    bool break_is_for_switchcase() const;
    bool contains_range_of(const prog_scope& other) const;
-   const st_src_reg *switch_register() const;
 
    void set_end(int end);
    void set_loop_break_line(int line);
@@ -124,7 +122,6 @@ private:
    int scope_end;
    int break_loop_line;
    prog_scope *parent_scope;
-   const st_src_reg *switch_reg;
 };
 
 /* Some storage class to encapsulate the prog_scope (de-)allocations */
@@ -201,8 +198,7 @@ prog_scope::prog_scope(prog_scope *parent, prog_scope_type type, int id,
    scope_begin(scope_begin),
    scope_end(-1),
    break_loop_line(numeric_limits<int>::max()),
-   parent_scope(parent),
-   switch_reg(nullptr)
+   parent_scope(parent)
 {
 }
 
@@ -235,11 +231,6 @@ bool prog_scope::is_in_loop() const
       return parent_scope->is_in_loop();
 
    return false;
-}
-
-bool prog_scope::is_conditional_in_loop() const
-{
-   return is_conditional() && is_in_loop();
 }
 
 const prog_scope *prog_scope::innermost_loop() const
@@ -301,11 +292,6 @@ const prog_scope *prog_scope::in_ifelse_scope() const
       return parent_scope->in_ifelse_scope();
 
    return nullptr;
-}
-
-const st_src_reg *prog_scope::switch_register() const
-{
-   return switch_reg;
 }
 
 const prog_scope *prog_scope::in_switchcase_scope() const
@@ -540,8 +526,8 @@ lifetime temp_comp_access::get_required_lifetime()
    if (enclosing_scope_first_write->contains_range_of(*enclosing_scope))
       enclosing_scope = enclosing_scope_first_write;
 
-   if (enclosing_scope_first_read->contains_range_of(*enclosing_scope))
-      enclosing_scope = enclosing_scope_first_read;
+   if (last_read_scope->contains_range_of(*enclosing_scope))
+      enclosing_scope = last_read_scope;
 
    while (!enclosing_scope->contains_range_of(*enclosing_scope_first_write) ||
           !enclosing_scope->contains_range_of(*last_read_scope)) {
@@ -631,6 +617,7 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
    int if_id = 0;
    int switch_id = 0;
    bool is_at_end = false;
+   bool ok = true;
    int n_scopes = 1;
 
    /* Count scopes to allocate the needed space without the need for
@@ -772,7 +759,8 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
           * Since this is not done, we have to bail out here and signal
           * that no register merge will take place.
           */
-         return false;
+         ok = false;
+         goto out;
       default: {
          for (unsigned j = 0; j < num_inst_src_regs(inst); j++) {
             const st_src_reg& src = inst->src[j];
@@ -811,8 +799,9 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
    }
    RENAME_DEBUG(cerr << "==================================\n\n");
 
+out:
    delete[] acc;
-   return true;
+   return ok;
 }
 
 /* Find the next register between [start, end) that has a life time starting

@@ -29,12 +29,12 @@ sometimes be useful for debugging end-user issues.
 <li>LIBGL_DEBUG - If defined debug information will be printed to stderr.
    If set to 'verbose' additional information will be printed.
 <li>LIBGL_DRIVERS_PATH - colon-separated list of paths to search for DRI drivers
-<li>LIBGL_ALWAYS_INDIRECT - forces an indirect rendering context/connection.
-<li>LIBGL_ALWAYS_SOFTWARE - if set, always use software rendering
-<li>LIBGL_NO_DRAWARRAYS - if set do not use DrawArrays GLX protocol (for debugging)
+<li>LIBGL_ALWAYS_INDIRECT - if set to `true`, forces an indirect rendering context/connection.
+<li>LIBGL_ALWAYS_SOFTWARE - if set to `true`, always use software rendering
+<li>LIBGL_NO_DRAWARRAYS - if set to `true`, do not use DrawArrays GLX protocol (for debugging)
 <li>LIBGL_SHOW_FPS - print framerate to stdout based on the number of glXSwapBuffers
     calls per second.
-<li>LIBGL_DRI3_DISABLE - disable DRI3 if set (the value does not matter)
+<li>LIBGL_DRI3_DISABLE - disable DRI3 if set to `true`.
 </ul>
 
 
@@ -117,7 +117,7 @@ glGetString(GL_VERSION) for OpenGL ES.
 glGetString(GL_SHADING_LANGUAGE_VERSION). Valid values are integers, such as
 "130".  Mesa will not really implement all the features of the given language version
 if it's higher than what's normally reported. (for developers only)
-<li>MESA_GLSL_CACHE_DISABLE - if set, disables the GLSL shader cache
+<li>MESA_GLSL_CACHE_DISABLE - if set to `true`, disables the GLSL shader cache
 <li>MESA_GLSL_CACHE_MAX_SIZE - if set, determines the maximum size of
 the on-disk cache of compiled GLSL programs. Should be set to a number
 optionally followed by 'K', 'M', or 'G' to specify a size in
@@ -133,6 +133,8 @@ that variable is set), or else within .cache/mesa within the user's
 home directory.
 <li>MESA_GLSL - <a href="shading.html#envvars">shading language compiler options</a>
 <li>MESA_NO_MINMAX_CACHE - when set, the minmax index cache is globally disabled.
+<li>MESA_SHADER_CAPTURE_PATH - see <a href="shading.html#capture">Capturing Shaders</a></li>
+<li>MESA_SHADER_DUMP_PATH and MESA_SHADER_READ_PATH - see <a href="shading.html#replacement">Experimenting with Shader Replacements</a></li>
 </ul>
 
 
@@ -190,11 +192,13 @@ See the <a href="xlibdriver.html">Xlib software driver page</a> for details.
    <li>perfmon - emit messages about AMD_performance_monitor</li>
    <li>pix - emit messages about pixel operations</li>
    <li>prim - emit messages about drawing primitives</li>
+   <li>reemit - mark all state dirty on each draw call</li>
    <li>sf - emit messages about the strips &amp; fans unit (for old gens, includes the SF program)</li>
    <li>shader_time - record how much GPU time is spent in each shader</li>
    <li>spill_fs - force spilling of all registers in the scalar backend (useful to debug spilling code)</li>
    <li>spill_vec4 - force spilling of all registers in the vec4 backend (useful to debug spilling code)</li>
    <li>state - emit messages about state flag tracking</li>
+   <li>submit - emit batchbuffer usage statistics</li>
    <li>sync - after sending each batch, emit a message and wait for that batch to finish rendering</li>
    <li>tcs - dump shader assembly for tessellation control shaders</li>
    <li>tes - dump shader assembly for tessellation evaluation shaders</li>
@@ -240,7 +244,7 @@ Mesa EGL supports different sets of environment variables.  See the
     Use kill -10 <pid> to toggle the hud as desired.
 <li>GALLIUM_HUD_DUMP_DIR - specifies a directory for writing the displayed
     hud values into files.
-<li>GALLIUM_DRIVER - useful in combination with LIBGL_ALWAYS_SOFTWARE=1 for
+<li>GALLIUM_DRIVER - useful in combination with LIBGL_ALWAYS_SOFTWARE=true for
     choosing one of the software renderers "softpipe", "llvmpipe" or "swr".
 <li>GALLIUM_LOG_FILE - specifies a file for logging all errors, warnings, etc.
     rather than stderr.

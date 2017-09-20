@@ -1317,3 +1317,88 @@ void radv_GetPhysicalDeviceExternalBufferPropertiesKHR(
 		.compatibleHandleTypes = compat_flags,
 	};
 }
+
+/* DCC channel type categories within which formats can be reinterpreted
+ * while keeping the same DCC encoding. The swizzle must also match. */
+enum dcc_channel_type {
+        dcc_channel_float32,
+        dcc_channel_uint32,
+        dcc_channel_sint32,
+        dcc_channel_float16,
+        dcc_channel_uint16,
+        dcc_channel_sint16,
+        dcc_channel_uint_10_10_10_2,
+        dcc_channel_uint8,
+        dcc_channel_sint8,
+        dcc_channel_incompatible,
+};
+
+/* Return the type of DCC encoding. */
+static enum dcc_channel_type
+radv_get_dcc_channel_type(const struct vk_format_description *desc)
+{
+        int i;
+
+        /* Find the first non-void channel. */
+        for (i = 0; i < desc->nr_channels; i++)
+                if (desc->channel[i].type != VK_FORMAT_TYPE_VOID)
+                        break;
+        if (i == desc->nr_channels)
+                return dcc_channel_incompatible;
+
+        switch (desc->channel[i].size) {
+        case 32:
+                if (desc->channel[i].type == VK_FORMAT_TYPE_FLOAT)
+                        return dcc_channel_float32;
+                if (desc->channel[i].type == VK_FORMAT_TYPE_UNSIGNED)
+                        return dcc_channel_uint32;
+                return dcc_channel_sint32;
+        case 16:
+                if (desc->channel[i].type == VK_FORMAT_TYPE_FLOAT)
+                        return dcc_channel_float16;
+                if (desc->channel[i].type == VK_FORMAT_TYPE_UNSIGNED)
+                        return dcc_channel_uint16;
+                return dcc_channel_sint16;
+        case 10:
+                return dcc_channel_uint_10_10_10_2;
+        case 8:
+                if (desc->channel[i].type == VK_FORMAT_TYPE_UNSIGNED)
+                        return dcc_channel_uint8;
+                return dcc_channel_sint8;
+        default:
+                return dcc_channel_incompatible;
+        }
+}
+
+/* Return if it's allowed to reinterpret one format as another with DCC enabled. */
+bool radv_dcc_formats_compatible(VkFormat format1,
+                                 VkFormat format2)
+{
+        const struct vk_format_description *desc1, *desc2;
+        enum dcc_channel_type type1, type2;
+        int i;
+
+        if (format1 == format2)
+                return true;
+
+        desc1 = vk_format_description(format1);
+        desc2 = vk_format_description(format2);
+
+        if (desc1->nr_channels != desc2->nr_channels)
+                return false;
+
+        /* Swizzles must be the same. */
+        for (i = 0; i < desc1->nr_channels; i++)
+                if (desc1->swizzle[i] <= VK_SWIZZLE_W &&
+                    desc2->swizzle[i] <= VK_SWIZZLE_W &&
+                    desc1->swizzle[i] != desc2->swizzle[i])
+                        return false;
+
+        type1 = radv_get_dcc_channel_type(desc1);
+        type2 = radv_get_dcc_channel_type(desc2);
+
+        return type1 != dcc_channel_incompatible &&
+               type2 != dcc_channel_incompatible &&
+               type1 == type2;
+}
+

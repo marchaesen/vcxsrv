@@ -78,75 +78,13 @@ void radv_DestroyPipeline(
 
 static void radv_dump_pipeline_stats(struct radv_device *device, struct radv_pipeline *pipeline)
 {
-	unsigned lds_increment = device->physical_device->rad_info.chip_class >= CIK ? 512 : 256;
-	struct radv_shader_variant *var;
-	struct ac_shader_config *conf;
 	int i;
-	FILE *file = stderr;
-	unsigned max_simd_waves;
-	unsigned lds_per_wave = 0;
-
-	switch (device->physical_device->rad_info.family) {
-	/* These always have 8 waves: */
-	case CHIP_POLARIS10:
-	case CHIP_POLARIS11:
-	case CHIP_POLARIS12:
-		max_simd_waves = 8;
-		break;
-	default:
-		max_simd_waves = 10;
-	}
 
 	for (i = 0; i < MESA_SHADER_STAGES; i++) {
 		if (!pipeline->shaders[i])
 			continue;
-		var = pipeline->shaders[i];
 
-		conf = &var->config;
-
-		if (i == MESA_SHADER_FRAGMENT) {
-			lds_per_wave = conf->lds_size * lds_increment +
-				align(var->info.fs.num_interp * 48, lds_increment);
-		}
-
-		if (conf->num_sgprs) {
-			if (device->physical_device->rad_info.chip_class >= VI)
-				max_simd_waves = MIN2(max_simd_waves, 800 / conf->num_sgprs);
-			else
-				max_simd_waves = MIN2(max_simd_waves, 512 / conf->num_sgprs);
-		}
-
-		if (conf->num_vgprs)
-			max_simd_waves = MIN2(max_simd_waves, 256 / conf->num_vgprs);
-
-		/* LDS is 64KB per CU (4 SIMDs), divided into 16KB blocks per SIMD
-		 * that PS can use.
-		 */
-		if (lds_per_wave)
-			max_simd_waves = MIN2(max_simd_waves, 16384 / lds_per_wave);
-
-		fprintf(file, "\n%s:\n",
-			radv_get_shader_name(var, i));
-		if (i == MESA_SHADER_FRAGMENT) {
-			fprintf(file, "*** SHADER CONFIG ***\n"
-				"SPI_PS_INPUT_ADDR = 0x%04x\n"
-				"SPI_PS_INPUT_ENA  = 0x%04x\n",
-				conf->spi_ps_input_addr, conf->spi_ps_input_ena);
-		}
-		fprintf(file, "*** SHADER STATS ***\n"
-			"SGPRS: %d\n"
-			"VGPRS: %d\n"
-		        "Spilled SGPRs: %d\n"
-			"Spilled VGPRs: %d\n"
-			"Code Size: %d bytes\n"
-			"LDS: %d blocks\n"
-			"Scratch: %d bytes per wave\n"
-			"Max Waves: %d\n"
-			"********************\n\n\n",
-			conf->num_sgprs, conf->num_vgprs,
-			conf->spilled_sgprs, conf->spilled_vgprs, var->code_size,
-			conf->lds_size, conf->scratch_bytes_per_wave,
-			max_simd_waves);
+		radv_shader_dump_stats(device, pipeline->shaders[i], i, stderr);
 	}
 }
 
@@ -2006,6 +1944,86 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 		}
 		calculate_tess_state(pipeline, pCreateInfo);
 	}
+
+	if (radv_pipeline_has_tess(pipeline))
+		pipeline->graphics.primgroup_size = pipeline->graphics.tess.num_patches;
+	else if (radv_pipeline_has_gs(pipeline))
+		pipeline->graphics.primgroup_size = 64;
+	else
+		pipeline->graphics.primgroup_size = 128; /* recommended without a GS */
+
+	pipeline->graphics.partial_es_wave = false;
+	if (pipeline->device->has_distributed_tess) {
+		if (radv_pipeline_has_gs(pipeline)) {
+			if (device->physical_device->rad_info.chip_class <= VI)
+				pipeline->graphics.partial_es_wave = true;
+		}
+	}
+	/* GS requirement. */
+	if (SI_GS_PER_ES / pipeline->graphics.primgroup_size >= pipeline->device->gs_table_depth - 3)
+		pipeline->graphics.partial_es_wave = true;
+
+	pipeline->graphics.wd_switch_on_eop = false;
+	if (device->physical_device->rad_info.chip_class >= CIK) {
+		unsigned prim = pipeline->graphics.prim;
+		/* WD_SWITCH_ON_EOP has no effect on GPUs with less than
+		 * 4 shader engines. Set 1 to pass the assertion below.
+		 * The other cases are hardware requirements. */
+		if (device->physical_device->rad_info.max_se < 4 ||
+		    prim == V_008958_DI_PT_POLYGON ||
+		    prim == V_008958_DI_PT_LINELOOP ||
+		    prim == V_008958_DI_PT_TRIFAN ||
+		    prim == V_008958_DI_PT_TRISTRIP_ADJ ||
+		    (pipeline->graphics.prim_restart_enable &&
+		     (device->physical_device->rad_info.family < CHIP_POLARIS10 ||
+		      (prim != V_008958_DI_PT_POINTLIST &&
+		       prim != V_008958_DI_PT_LINESTRIP &&
+		       prim != V_008958_DI_PT_TRISTRIP))))
+			pipeline->graphics.wd_switch_on_eop = true;
+	}
+
+	pipeline->graphics.ia_switch_on_eoi = false;
+	if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.prim_id_input)
+		pipeline->graphics.ia_switch_on_eoi = true;
+	if (radv_pipeline_has_gs(pipeline) &&
+	    pipeline->shaders[MESA_SHADER_GEOMETRY]->info.gs.uses_prim_id)
+		pipeline->graphics.ia_switch_on_eoi = true;
+	if (radv_pipeline_has_tess(pipeline)) {
+		/* SWITCH_ON_EOI must be set if PrimID is used. */
+		if (pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.uses_prim_id ||
+		    pipeline->shaders[MESA_SHADER_TESS_EVAL]->info.tes.uses_prim_id)
+			pipeline->graphics.ia_switch_on_eoi = true;
+	}
+
+	pipeline->graphics.partial_vs_wave = false;
+	if (radv_pipeline_has_tess(pipeline)) {
+		/* Bug with tessellation and GS on Bonaire and older 2 SE chips. */
+		if ((device->physical_device->rad_info.family == CHIP_TAHITI ||
+		     device->physical_device->rad_info.family == CHIP_PITCAIRN ||
+		     device->physical_device->rad_info.family == CHIP_BONAIRE) &&
+		    radv_pipeline_has_gs(pipeline))
+			pipeline->graphics.partial_vs_wave = true;
+		/* Needed for 028B6C_DISTRIBUTION_MODE != 0 */
+		if (device->has_distributed_tess) {
+			if (radv_pipeline_has_gs(pipeline)) {
+				if (device->physical_device->rad_info.family == CHIP_TONGA ||
+				    device->physical_device->rad_info.family == CHIP_FIJI ||
+				    device->physical_device->rad_info.family == CHIP_POLARIS10 ||
+				    device->physical_device->rad_info.family == CHIP_POLARIS11 ||
+				    device->physical_device->rad_info.family == CHIP_POLARIS12)
+					pipeline->graphics.partial_vs_wave = true;
+			} else {
+				pipeline->graphics.partial_vs_wave = true;
+			}
+		}
+	}
+
+	pipeline->graphics.base_ia_multi_vgt_param =
+		S_028AA8_PRIMGROUP_SIZE(pipeline->graphics.primgroup_size - 1) |
+		/* The following field was moved to VGT_SHADER_STAGES_EN in GFX9. */
+		S_028AA8_MAX_PRIMGRP_IN_WAVE(device->physical_device->rad_info.chip_class == VI ? 2 : 0) |
+		S_030960_EN_INST_OPT_BASIC(device->physical_device->rad_info.chip_class >= GFX9) |
+		S_030960_EN_INST_OPT_ADV(device->physical_device->rad_info.chip_class >= GFX9);
 
 	const VkPipelineVertexInputStateCreateInfo *vi_info =
 		pCreateInfo->pVertexInputState;

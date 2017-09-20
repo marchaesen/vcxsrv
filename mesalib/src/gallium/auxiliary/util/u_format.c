@@ -238,6 +238,10 @@ util_format_is_subsampled_422(enum pipe_format format)
 boolean
 util_format_is_supported(enum pipe_format format, unsigned bind)
 {
+   if (format >= PIPE_FORMAT_COUNT) {
+      return FALSE;
+   }
+
    if (util_format_is_s3tc(format) && !util_format_s3tc_enabled) {
       return FALSE;
    }

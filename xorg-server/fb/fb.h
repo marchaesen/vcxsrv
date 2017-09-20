@@ -494,7 +494,7 @@ typedef struct {
  */
 
 #define fbWindowEnabled(pWin) \
-    RegionNotEmpty(&(pWin)->drawable.pScreen->root->borderClip)
+    RegionNotEmpty(&(pWin)->borderClip)
 
 #define fbDrawableEnabled(pDrawable) \
     ((pDrawable)->type == DRAWABLE_PIXMAP ? \

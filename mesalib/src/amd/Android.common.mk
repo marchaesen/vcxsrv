@@ -44,7 +44,7 @@ LOCAL_GENERATED_SOURCES := $(addprefix $(intermediates)/, $(AMD_GENERATED_FILES)
 $(LOCAL_GENERATED_SOURCES): PRIVATE_PYTHON := $(MESA_PYTHON2)
 $(LOCAL_GENERATED_SOURCES): PRIVATE_CUSTOM_TOOL = $(PRIVATE_PYTHON) $^ > $@
 
-$(intermediates)/common/sid_tables.h: $(LOCAL_PATH)/common/sid_tables.py $(MESA_TOP)/src/amd/common/sid.h
+$(intermediates)/common/sid_tables.h: $(LOCAL_PATH)/common/sid_tables.py $(LOCAL_PATH)/common/sid.h $(LOCAL_PATH)/common/gfx9d.h
 	$(transform-generated-source)
 
 LOCAL_C_INCLUDES := \

@@ -309,7 +309,7 @@ RRModePtr xwayland_cvt(int HDisplay, int VDisplay,
 void xwl_pixmap_set_private(PixmapPtr pixmap, struct xwl_pixmap *xwl_pixmap);
 struct xwl_pixmap *xwl_pixmap_get(PixmapPtr pixmap);
 
-struct xwl_window *xwl_window_from_window(WindowPtr window);
+struct xwl_window *xwl_window_of_top(WindowPtr window);
 
 Bool xwl_shm_create_screen_resources(ScreenPtr screen);
 PixmapPtr xwl_shm_create_pixmap(ScreenPtr screen, int width, int height,

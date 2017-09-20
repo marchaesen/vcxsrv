@@ -356,8 +356,16 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
                                                   switch_case, switch_break,
                                                   loop_break, loop_cont);
 
-         if (if_stmt->then_type == vtn_branch_type_none &&
-             if_stmt->else_type == vtn_branch_type_none) {
+         if (then_block == else_block) {
+            block->branch_type = if_stmt->then_type;
+            if (block->branch_type == vtn_branch_type_none) {
+               block = then_block;
+               continue;
+            } else {
+               return;
+            }
+         } else if (if_stmt->then_type == vtn_branch_type_none &&
+                    if_stmt->else_type == vtn_branch_type_none) {
             /* Neither side of the if is something we can short-circuit. */
             assert((*block->merge & SpvOpCodeMask) == SpvOpSelectionMerge);
             struct vtn_block *merge_block =

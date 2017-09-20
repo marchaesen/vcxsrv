@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.2.1 Release Notes / September 17, 2017</h1>
+
+<p>
+Mesa 17.2.1 is a bug fix release which fixes bugs found since the 17.2.0 release.
+</p>
+<p>
+Mesa 17.2.1 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+c902d8dc2540195bc570d88af1a8fd8a1774373660a27bb1d539551f46824bc1  mesa-17.2.1.tar.gz
+77385d17827cff24a3bae134342234f2efe7f7f990e778109682571dbbc9ba1e  mesa-17.2.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100613">Bug 100613</a> - Regression in Mesa 17 on s390x (zSystems)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101709">Bug 101709</a> - [llvmpipe] piglit gl-1.0-scissor-offscreen regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102454">Bug 102454</a> - glibc 2.26 doesn't provide anymore xlocale.h</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102467">Bug 102467</a> - src/mesa/state_tracker/st_cb_readpixels.c:178]: (warning) Redundant assignment</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102502">Bug 102502</a> - [bisected] Kodi crashes since commit 707d2e8b - gallium: fold u_trim_pipe_prim call from st/mesa to drivers</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Bas Nieuwenhuizen (4):</p>
+<ul>
+  <li>radv: Actually set the cmd_buffer usage_flags.</li>
+  <li>radv: Fix vkCopyImage with both depth and stencil aspects.</li>
+  <li>radv: Disable multilayer &amp; multilevel DCC.</li>
+  <li>radv: Don't allocate CMASK for linear images.</li>
+</ul>
+
+<p>Ben Crocker (1):</p>
+<ul>
+  <li>llvmpipe: lp_build_gather_elem_vec BE fix for 3x16 load</li>
+</ul>
+
+<p>Brian Paul (1):</p>
+<ul>
+  <li>llvmpipe: initialize llvmpipe-&gt;dirty with LP_NEW_SCISSOR</li>
+</ul>
+
+<p>Charmaine Lee (1):</p>
+<ul>
+  <li>vbo: fix offset in minmax cache key</li>
+</ul>
+
+<p>Dave Airlie (12):</p>
+<ul>
+  <li>radv: disable 1d/2d linear optimisation on gfx9.</li>
+  <li>radv/gfx9: set descriptor up for base_mip to level range.</li>
+  <li>Revert "radv: disable support for VEGA for now."</li>
+  <li>radv/winsys: use amdgpu_bo_va_op_raw.</li>
+  <li>radv/gfx9: allocate events from uncached VA space</li>
+  <li>radv: use simpler indirect packet 3 if possible.</li>
+  <li>radv: don't use iview for meta image width/height.</li>
+  <li>radv: handle GFX9 1D textures</li>
+  <li>radv/gfx9: set mip0-depth correctly for 2d arrays/3d images</li>
+  <li>radv/ac: bump params array for image atomic comp swap</li>
+  <li>radv/gfx9: fix image resource handling.</li>
+  <li>radv/winsys: fix flags vs va_flags thinko.</li>
+</ul>
+
+<p>Emil Velikov (7):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.2.0</li>
+  <li>cherry-ignore: add getCapability patches</li>
+  <li>cherry-ignore: ignore gfx9 tile swizzle fix</li>
+  <li>cherry-ignore: add execution_type() fix to the list</li>
+  <li>cherry-ignore: add EGL+gbm swast patches</li>
+  <li>egl/x11/dri3: adding missing __DRI_BACKGROUND_CALLABLE extension</li>
+  <li>Update version to 17.2.1</li>
+</ul>
+
+<p>Eric Engestrom (3):</p>
+<ul>
+  <li>util: improve compiler guard</li>
+  <li>mesa/st: remove unwanted backup file</li>
+  <li>docs/egl: remove reference to EGL_DRIVERS_PATH</li>
+</ul>
+
+<p>Grazvydas Ignotas (1):</p>
+<ul>
+  <li>radv: don't assert on empty hash table</li>
+</ul>
+
+<p>Jason Ekstrand (2):</p>
+<ul>
+  <li>anv/formats: Nicely handle unknown VkFormat enums</li>
+  <li>spirv: Add support for the HelperInvocation builtin</li>
+</ul>
+
+<p>Karol Herbst (1):</p>
+<ul>
+  <li>nvc0: write 0 to pipeline_statistics.cs_invocations</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>i965: Fix crash in fallback GTT mapping.</li>
+  <li>i965: Set "Subslice Hashing Mode" to 16x16 on Apollolake.</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>st/mesa: skip draw calls with pipe_draw_info::count == 0</li>
+</ul>
+
+<p>Michael Olbrich (1):</p>
+<ul>
+  <li>egl/dri2: only destroy created objects</li>
+</ul>
+
+<p>Nicolai HÃÂ¤hnle (1):</p>
+<ul>
+  <li>radeonsi: apply a mask to gl_SampleMaskIn in the PS prolog</li>
+</ul>
+
+<p>Nicolai Hähnle (4):</p>
+<ul>
+  <li>radeonsi/gfx9: always flush DB metadata on framebuffer changes</li>
+  <li>st/glsl_to_tgsi: only the first (inner-most) array reference can be a 2D index</li>
+  <li>ac/surface: match Z and stencil tile config</li>
+  <li>glsl: fix glsl_struct_field size calculations for shader cache</li>
+</ul>
+
+<p>Ray Strode (1):</p>
+<ul>
+  <li>gallivm: correct channel shift logic on big endian</li>
+</ul>
+
+<p>Rob Clark (1):</p>
+<ul>
+  <li>freedreno: skip batch-cache for compute shaders</li>
+</ul>
+
+<p>Roland Scheidegger (1):</p>
+<ul>
+  <li>st/mesa: fix view template initialization in try_pbo_readpixels</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>radeonsi: update dirty_level_mask before dispatching</li>
+</ul>
+
+<p>Timothy Arceri (9):</p>
+<ul>
+  <li>glsl: allow NULL to be passed to encode_type_to_blob()</li>
+  <li>glsl: stop adding pointers from gl_shader_variable to the cache</li>
+  <li>glsl: stop adding pointers from glsl_struct_field to the cache</li>
+  <li>glsl: add has_uniform_storage() helper to shader cache</li>
+  <li>glsl: don't write uniform storage offset if there isn't one</li>
+  <li>glsl: always write a name/label string to the cache</li>
+  <li>compiler: move pointers to the start of shader_info</li>
+  <li>glsl: stop adding pointers from shader_info to the cache</li>
+  <li>glsl: stop adding pointers from bindless structs to the cache</li>
+</ul>
+
+
+</div>
+</body>
+</html>

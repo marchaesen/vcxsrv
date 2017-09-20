@@ -72,6 +72,23 @@ static void radv_amdgpu_winsys_query_info(struct radeon_winsys *rws,
 	*info = ((struct radv_amdgpu_winsys *)rws)->info;
 }
 
+static bool radv_amdgpu_winsys_read_registers(struct radeon_winsys *rws,
+					      unsigned reg_offset,
+					      unsigned num_registers, uint32_t *out)
+{
+	struct radv_amdgpu_winsys *ws = (struct radv_amdgpu_winsys*)rws;
+
+	return amdgpu_read_mm_registers(ws->dev, reg_offset / 4, num_registers,
+					0xffffffff, 0, out) == 0;
+}
+
+static const char *radv_amdgpu_winsys_get_chip_name(struct radeon_winsys *rws)
+{
+	amdgpu_device_handle dev = ((struct radv_amdgpu_winsys *)rws)->dev;
+
+	return amdgpu_get_marketing_name(dev);
+}
+
 static void radv_amdgpu_winsys_destroy(struct radeon_winsys *rws)
 {
 	struct radv_amdgpu_winsys *ws = (struct radv_amdgpu_winsys*)rws;
@@ -106,10 +123,13 @@ radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags)
 	if (debug_flags & RADV_DEBUG_NO_IBS)
 		ws->use_ib_bos = false;
 
+	ws->zero_all_vram_allocs = debug_flags & RADV_DEBUG_ZERO_VRAM;
 	ws->batchchain = !(perftest_flags & RADV_PERFTEST_NO_BATCHCHAIN);
 	LIST_INITHEAD(&ws->global_bo_list);
 	pthread_mutex_init(&ws->global_bo_list_lock, NULL);
 	ws->base.query_info = radv_amdgpu_winsys_query_info;
+	ws->base.read_registers = radv_amdgpu_winsys_read_registers;
+	ws->base.get_chip_name = radv_amdgpu_winsys_get_chip_name;
 	ws->base.destroy = radv_amdgpu_winsys_destroy;
 	radv_amdgpu_bo_init_functions(ws);
 	radv_amdgpu_cs_init_functions(ws);

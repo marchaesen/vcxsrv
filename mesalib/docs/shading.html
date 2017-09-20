@@ -64,6 +64,7 @@ execution.  These are generally used for debugging.
 Example:  export MESA_GLSL=dump,nopt
 </p>
 
+<h3 id="replacement">Experimenting with Shader Replacements</h3>
 <p>
 Shaders can be dumped and replaced on runtime for debugging purposes. This
 feature is not currently supported by SCons build.
@@ -77,6 +78,20 @@ Note, path set must exist before running for dumping or replacing to work.
 When both are set, these paths should be different so the dumped shaders do 
 not clobber the replacement shaders. Also, the filenames of the replacement shaders
 should match the filenames of the corresponding dumped shaders.
+</p>
+
+<h3 id="capture">Capturing Shaders</h3>
+
+<p>
+Setting <b>MESA_SHADER_CAPTURE_PATH</b> to a directory will cause the compiler
+to write <tt>.shader_test</tt> files for use with
+<a href="https://cgit.freedesktop.org/mesa/shader-db">shader-db</a>, a tool
+which compiler developers can use to gather statistics about shaders
+(instructions, cycles, memory accesses, and so on).
+</p>
+<p>
+Notably, this captures linked GLSL shaders - with all stages together -
+as well as ARB programs.
 </p>
 
 <h2 id="support">GLSL Version</h2>

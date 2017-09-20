@@ -40,6 +40,7 @@
 #include "zlib.h"
 
 #include "util/crc32.h"
+#include "util/debug.h"
 #include "util/rand_xor.h"
 #include "util/u_atomic.h"
 #include "util/u_queue.h"
@@ -204,7 +205,7 @@ disk_cache_create(const char *gpu_name, const char *timestamp,
       goto fail;
 
    /* At user request, disable shader cache entirely. */
-   if (getenv("MESA_GLSL_CACHE_DISABLE"))
+   if (env_var_as_boolean("MESA_GLSL_CACHE_DISABLE", false))
       goto fail;
 
    /* Determine path for cache based on the first defined name as follows:
