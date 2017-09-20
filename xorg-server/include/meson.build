@@ -72,13 +72,12 @@ conf_data.set_quoted('SHMDIR', '/tmp')
 conf_data.set('HAVE_XSHMFENCE', xshmfence_dep.found())
 conf_data.set('WITH_LIBDRM', libdrm_dep.found())
 conf_data.set('GLAMOR_HAS_DRM_NAME_FROM_FD_2',
-              dependency('libdrm', version: '>= 2.4.74', required: false).found())
+              libdrm_dep.found() and libdrm_dep.version().version_compare('>= 2.4.74'))
 conf_data.set('GLXEXT', build_glx)
 conf_data.set('GLAMOR', build_glamor)
 conf_data.set('GLAMOR_HAS_GBM', gbm_dep.found())
-if gbm_dep.found() and dependency('gbm', version: '>= 10.6', required: false).found()
-    conf_data.set('GLAMOR_HAS_GBM_LINEAR', build_glamor)
-endif
+conf_data.set('GLAMOR_HAS_GBM_LINEAR',
+              gbm_dep.found() and gbm_dep.version().version_compare('>= 10.6'))
 
 conf_data.set_quoted('SERVER_MISC_CONFIG_PATH', serverconfigdir)
 conf_data.set_quoted('PROJECTROOT', get_option('prefix'))

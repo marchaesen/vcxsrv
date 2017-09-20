@@ -133,6 +133,9 @@ start_client(char *const *client_args, int display)
             return 1;
         }
 
+        if (!WIFEXITED(wstatus))
+            return 1;
+
         return WEXITSTATUS(wstatus);
     } else {
         execvp(client_args[0], client_args);

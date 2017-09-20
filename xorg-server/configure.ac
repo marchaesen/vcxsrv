@@ -1197,6 +1197,7 @@ PKG_CHECK_MODULES([DRI3PROTO], $DRI3PROTO,
 
 case "$DRI3,$HAVE_DRI3PROTO" in
 	yes,yes | auto,yes)
+		REQUIRED_MODULES="$REQUIRED_MODULES dri3proto"
 		;;
 	yes,no)
 		AC_MSG_ERROR([DRI3 requested, but dri3proto not found.])

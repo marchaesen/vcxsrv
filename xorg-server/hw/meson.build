@@ -6,7 +6,9 @@ if get_option('dmx')
     subdir('dmx')
 endif
 
-subdir('vfb')
+if get_option('xvfb')
+    subdir('vfb')
+endif
 
 if build_xnest
     subdir('xnest')

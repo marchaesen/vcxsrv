@@ -210,9 +210,6 @@ endif
 gbm_dep = dependency('', required:false)
 if build_glamor
     gbm_dep = dependency('gbm', version: '>= 10.2', required: false)
-    if gbm_dep.found()
-        gbm_linear_dep = dependency('gbm', version: '>= 10.6', required: false)
-    endif
 endif
 
 # XXX: Add more sha1 options, because Linux is about choice
@@ -426,3 +423,4 @@ libxserver = [
 libxserver += libxserver_dri3
 
 subdir('hw')
+subdir('test')

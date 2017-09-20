@@ -10,6 +10,8 @@ option('xnest', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
        description: 'Enable Xnest nested X server')
 option('dmx', type: 'boolean', value: false,
        description: 'Enable DMX nested X server')
+option('xvfb', type: 'boolean', value: true,
+       description: 'Enable Xvfb X server')
 option('xwin', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
        description: 'Enable XWin X server')
 

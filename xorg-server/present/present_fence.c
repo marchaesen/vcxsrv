@@ -45,7 +45,7 @@ struct present_fence {
  * SyncTrigger callbacks
  */
 static Bool
-present_fence_sync_check_trigger(SyncTrigger *trigger, XSyncValue oldval)
+present_fence_sync_check_trigger(SyncTrigger *trigger, int64_t oldval)
 {
     struct present_fence        *present_fence = container_of(trigger, struct present_fence, trigger);
 
