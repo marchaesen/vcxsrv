@@ -57,6 +57,88 @@ extern Bool		g_fClipboardStarted;
 Bool g_fCursor = TRUE;
 Bool g_fButton[3] = { FALSE, FALSE, FALSE };
 
+
+wBOOL CALLBACK enumWindowsProc(HWND hwnd, LPARAM lParam)
+{
+  DWORD thisProcessId=(DWORD)lParam;
+  DWORD wndProcessId;
+
+  GetWindowThreadProcessId(hwnd, &wndProcessId);
+
+  if (thisProcessId!=wndProcessId)
+    return TRUE;
+
+  if (!IsWindowVisible(hwnd)) // Leave hidden windows hidden
+    return TRUE;
+
+  WINDOWPLACEMENT wp;
+  wp.length=sizeof(wp);
+  if (!GetWindowPlacement(hwnd, &wp))
+    return TRUE;
+
+  wp.showCmd=SW_RESTORE;
+  SetWindowPlacement(hwnd, &wp);
+
+  RECT rect;
+  if (!GetWindowRect(hwnd, &rect))
+    return TRUE;
+
+  HMONITOR hMonitor=MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+  MONITORINFO monitorInfo;
+  monitorInfo.cbSize=sizeof(monitorInfo);
+  if (!GetMonitorInfo(hMonitor, &monitorInfo))
+    return TRUE;
+
+  BOOL moveWin=FALSE;
+  if (rect.left<monitorInfo.rcMonitor.left)
+  {
+    moveWin=TRUE;
+    rect.right+=monitorInfo.rcMonitor.left-rect.left;
+    rect.left=monitorInfo.rcMonitor.left;
+  }
+  if (rect.top<monitorInfo.rcMonitor.top)
+  {
+    moveWin=TRUE;
+    rect.bottom+=monitorInfo.rcMonitor.top-rect.top;
+    rect.top=monitorInfo.rcMonitor.top;
+  }
+  if (rect.bottom>monitorInfo.rcMonitor.bottom)
+  {
+    moveWin=TRUE;
+    rect.top+=monitorInfo.rcMonitor.bottom-rect.bottom;
+    rect.bottom=monitorInfo.rcMonitor.bottom;
+  }
+  if (rect.right>monitorInfo.rcMonitor.right)
+  {
+    moveWin=TRUE;
+    rect.left+=monitorInfo.rcMonitor.right-rect.right;
+    rect.right=monitorInfo.rcMonitor.right;
+  }
+  if (rect.left<monitorInfo.rcMonitor.left)
+  {
+    moveWin=TRUE;
+    rect.left=monitorInfo.rcMonitor.left;
+  }
+  if (rect.top<monitorInfo.rcMonitor.top)
+  {
+    moveWin=TRUE;
+    rect.top=monitorInfo.rcMonitor.top;
+  }
+  if (moveWin)
+  {
+    SetWindowPos(hwnd, NULL, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top,
+                 SWP_NOACTIVATE|SWP_NOOWNERZORDER|SWP_NOZORDER);
+  }
+
+  return TRUE;
+}
+
+static void gatherWindows(void)
+{
+  DWORD processId=GetCurrentProcessId();
+  EnumDesktopWindows(NULL, enumWindowsProc, (LPARAM)processId);
+}
+
 /*
  * Called by winWakeupHandler
  * Processes current Windows message
@@ -1162,6 +1244,10 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case ID_APP_MONITOR_PRIMARY:
             fPrimarySelection = !fPrimarySelection;
+            return 0;
+
+        case ID_APP_GATHER_WINDOWS:
+            gatherWindows();
             return 0;
 
         case ID_APP_ABOUT:
