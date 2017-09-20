@@ -1899,30 +1899,14 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
          iWindow, hint, style, exStyle);
 }
 
-struct EnumArg
-{
-  RECT rcMonitor;
-  HMONITOR hMonitor;
-};
-
-static wBOOL CALLBACK monitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData )
-{
-  struct EnumArg *pArg=(struct EnumArg *)dwData;
-  if (pArg->hMonitor==hMonitor)
-  {
-    pArg->rcMonitor=*lprcMonitor;
-    return FALSE;
-  }
-  return TRUE;
-}
-
 void
 winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
 {
     int iX, iY, iWidth, iHeight;
     int iDx, iDy;
     RECT rcNew;
-    struct EnumArg enumArg;
+    HMONITOR hMonitor;
+    MONITORINFO monitorInfo;
     WindowPtr pWin = GetProp(hWnd, WIN_WINDOW_PROP);
     DrawablePtr pDraw = NULL;
 
@@ -1946,20 +1930,22 @@ winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
     AdjustWindowRectEx(&rcNew, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE,
                        GetWindowLongPtr(hWnd, GWL_EXSTYLE));
 
-    enumArg.hMonitor=MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
-    EnumDisplayMonitors(NULL, NULL, monitorEnumProc, (LPARAM)&enumArg);
-
-    /* Don't allow window decoration to disappear off to top-left as a result of this adjustment */
-    if (rcNew.left < enumArg.rcMonitor.left) {
-        iDx = enumArg.rcMonitor.left - rcNew.left;
+    hMonitor=MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+    monitorInfo.cbSize=sizeof(monitorInfo);
+    if (GetMonitorInfo(hMonitor, &monitorInfo))
+    {
+      /* Don't allow window decoration to disappear off to top-left as a result of this adjustment */
+      if (rcNew.left < monitorInfo.rcMonitor.left) {
+        iDx = monitorInfo.rcMonitor.left - rcNew.left;
         rcNew.left += iDx;
         rcNew.right += iDx;
-    }
+      }
 
-    if (rcNew.top < enumArg.rcMonitor.top) {
-        iDy = enumArg.rcMonitor.top - rcNew.top;
+      if (rcNew.top < monitorInfo.rcMonitor.top) {
+        iDy = monitorInfo.rcMonitor.top - rcNew.top;
         rcNew.top += iDy;
         rcNew.bottom += iDy;
+      }
     }
 
     /* Position the Windows window */
