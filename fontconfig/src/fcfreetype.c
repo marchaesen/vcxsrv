@@ -51,6 +51,7 @@
 #include <string.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_ADVANCES_H
 #include FT_TRUETYPE_TABLES_H
 #include FT_SFNT_NAMES_H
 #include FT_TRUETYPE_IDS_H
@@ -1157,7 +1158,7 @@ FcPattern *
 FcFreeTypeQueryFace (const FT_Face  face,
 		     const FcChar8  *file,
 		     int	    id,
-		     FcBlanks	    *blanks)
+		     FcBlanks	    *blanks FC_UNUSED)
 {
     FcPattern	    *pat;
     int		    slant = -1;
@@ -1219,14 +1220,11 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	int has_outline = !!(face->face_flags & FT_FACE_FLAG_SCALABLE);
 	int has_color = 0;
 
-#ifdef FT_FACE_FLAG_COLOR
-	has_color = !!(face->face_flags & FT_FACE_FLAG_COLOR);
-#endif
-
 	if (!FcPatternAddBool (pat, FC_OUTLINE, has_outline))
 	    goto bail1;
 
 #ifdef FT_FACE_FLAG_COLOR
+	has_color = !!(face->face_flags & FT_FACE_FLAG_COLOR);
 	if (!FcPatternAddBool (pat, FC_COLOR, has_color))
 	    goto bail1;
 #endif
@@ -1982,7 +1980,8 @@ FcFreeTypeQuery(const FcChar8	*file,
     if (FT_New_Face (ftLibrary, (char *) file, id, &face))
 	goto bail;
 
-    *count = face->num_faces;
+    if (count)
+      *count = face->num_faces;
 
     pat = FcFreeTypeQueryFace (face, file, id, blanks);
 
@@ -1991,6 +1990,67 @@ bail:
     FT_Done_FreeType (ftLibrary);
     return pat;
 }
+
+unsigned int
+FcFreeTypeQueryAll(const FcChar8	*file,
+		   int			id,
+		   FcBlanks		*blanks,
+		   int			*count,
+		   FcFontSet            *set)
+{
+    FT_Face face;
+    FT_Library ftLibrary = NULL;
+    int index_set = id != -1;
+    int set_face_num = index_set ? id & 0xFFFF : 0;
+    int set_instance_num = index_set ? id >> 16 : 0;
+    int face_num = set_face_num;
+    int instance_num = set_instance_num;
+    int num_faces = 0;
+    int num_instances = 0;
+    unsigned int ret = 0;
+    int		err = 0;
+
+    if (FT_Init_FreeType (&ftLibrary))
+	return 0;
+
+    do {
+	FcPattern *pat;
+
+	id = ((instance_num << 16) + face_num);
+	if (FT_New_Face (ftLibrary, (const char *) file, id, &face))
+	  break;
+
+	num_faces = face->num_faces;
+	num_instances = face->style_flags >> 16;
+	pat = FcFreeTypeQueryFace (face, (const FcChar8 *) file, id, blanks);
+	FT_Done_Face (face);
+
+	if (pat)
+	{
+	    ret++;
+	    if (!set || ! FcFontSetAdd (set, pat))
+	      FcPatternDestroy (pat);
+	}
+	else
+	    err = 1;
+
+	if (instance_num < num_instances && !set_instance_num)
+	    instance_num++;
+	else
+	{
+	    face_num++;
+	    instance_num = 0;
+	}
+    } while (!err && (!index_set || face_num == set_face_num) && face_num < num_faces);
+
+    if (count)
+      *count = num_faces;
+
+    FT_Done_FreeType (ftLibrary);
+
+    return ret;
+}
+
 
 /*
  * For our purposes, this approximation is sufficient
@@ -2008,122 +2068,6 @@ static const FT_Encoding fcFontEncodings[] = {
 };
 
 #define NUM_DECODE  (int) (sizeof (fcFontEncodings) / sizeof (fcFontEncodings[0]))
-
-#include "../fc-glyphname/fcglyphname.h"
-
-static FcChar32
-FcHashGlyphName (const FcChar8 *name)
-{
-    FcChar32	h = 0;
-    FcChar8	c;
-
-    while ((c = *name++))
-    {
-	h = ((h << 1) | (h >> 31)) ^ c;
-    }
-    return h;
-}
-
-#if HAVE_FT_HAS_PS_GLYPH_NAMES
-/*
- * Use Type1 glyph names for fonts which have reliable names
- * and which export an Adobe Custom mapping
- */
-static FcBool
-FcFreeTypeUseNames (FT_Face face)
-{
-    FT_Int  map;
-
-    if (!FT_Has_PS_Glyph_Names (face))
-	return FcFalse;
-    for (map = 0; map < face->num_charmaps; map++)
-	if (face->charmaps[map]->encoding == ft_encoding_adobe_custom)
-	    return FcTrue;
-    return FcFalse;
-}
-
-static const FcChar8 *
-FcUcs4ToGlyphName (FcChar32 ucs4)
-{
-    int		i = (int) (ucs4 % FC_GLYPHNAME_HASH);
-    int		r = 0;
-    FcGlyphId	gn;
-
-    while ((gn = _fc_ucs_to_name[i]) != -1)
-    {
-	if (_fc_glyph_names[gn].ucs == ucs4)
-	    return _fc_glyph_names[gn].name;
-	if (!r)
-	{
-	    r = (int) (ucs4 % FC_GLYPHNAME_REHASH);
-	    if (!r)
-		r = 1;
-	}
-	i += r;
-	if (i >= FC_GLYPHNAME_HASH)
-	    i -= FC_GLYPHNAME_HASH;
-    }
-    return 0;
-}
-
-static FcChar32
-FcGlyphNameToUcs4 (FcChar8 *name)
-{
-    FcChar32	h = FcHashGlyphName (name);
-    int		i = (int) (h % FC_GLYPHNAME_HASH);
-    int		r = 0;
-    FcGlyphId	gn;
-
-    while ((gn = _fc_name_to_ucs[i]) != -1)
-    {
-	if (!strcmp ((char *) name, (char *) _fc_glyph_names[gn].name))
-	    return _fc_glyph_names[gn].ucs;
-	if (!r)
-	{
-	    r = (int) (h % FC_GLYPHNAME_REHASH);
-	    if (!r)
-		r = 1;
-	}
-	i += r;
-	if (i >= FC_GLYPHNAME_HASH)
-	    i -= FC_GLYPHNAME_HASH;
-    }
-    return 0xffff;
-}
-
-/*
- * Work around a bug in some FreeType versions which fail
- * to correctly bounds check glyph name buffers and overwrite
- * the stack. As Postscript names have a limit of 127 characters,
- * this should be sufficient.
- */
-
-#if FC_GLYPHNAME_MAXLEN < 127
-# define FC_GLYPHNAME_BUFLEN 127
-#else
-# define FC_GLYPHNAME_BUFLEN FC_GLYPHNAME_MAXLEN
-#endif
-
-/*
- * Search through a font for a glyph by name.  This is
- * currently a linear search as there doesn't appear to be
- * any defined order within the font
- */
-static FT_UInt
-FcFreeTypeGlyphNameIndex (FT_Face face, const FcChar8 *name)
-{
-    FT_UInt gindex;
-    FcChar8 name_buf[FC_GLYPHNAME_BUFLEN + 2];
-
-    for (gindex = 0; gindex < (FT_UInt) face->num_glyphs; gindex++)
-    {
-	if (FT_Get_Glyph_Name (face, gindex, name_buf, FC_GLYPHNAME_BUFLEN+1) == 0)
-	    if (!strcmp ((char *) name, (char *) name_buf))
-		return gindex;
-    }
-    return 0;
-}
-#endif
 
 /*
  * Map a UCS4 glyph to a glyph index.  Use all available encoding
@@ -2182,38 +2126,28 @@ FcFreeTypeCharIndex (FT_Face face, FcChar32 ucs4)
 		return glyphindex;
 	}
     }
-#if HAVE_FT_HAS_PS_GLYPH_NAMES
-    /*
-     * Check postscript name table if present
-     */
-    if (FcFreeTypeUseNames (face))
-    {
-	const FcChar8	*name = FcUcs4ToGlyphName (ucs4);
-	if (name)
-	{
-	    glyphindex = FcFreeTypeGlyphNameIndex (face, name);
-	    if (glyphindex)
-		return glyphindex;
-	}
-    }
-#endif
     return 0;
 }
 
-static FcBool
-FcFreeTypeCheckGlyph (FT_Face face, FcChar32 ucs4,
-		      FT_UInt glyph, FcBlanks *blanks,
-		      FT_Pos *advance,
-		      FcBool using_strike)
+static inline int fc_min (int a, int b) { return a <= b ? a : b; }
+static inline int fc_max (int a, int b) { return a >= b ? a : b; }
+static inline FcBool fc_approximately_equal (int x, int y)
+{ return abs (x - y) * 33 <= fc_max (abs (x), abs (y)); }
+
+FcCharSet *
+FcFreeTypeCharSetAndSpacing (FT_Face face, FcBlanks *blanks FC_UNUSED, int *spacing)
 {
+    FcCharSet	    *fcs;
+    int		    o;
     FT_Int	    load_flags = FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH | FT_LOAD_NO_SCALE | FT_LOAD_NO_HINTING;
-    FT_GlyphSlot    slot;
+    FT_Pos	    advances[3];
+    unsigned int    num_advances = 0;
 
-    if (using_strike)
-	load_flags &= ~FT_LOAD_NO_SCALE;
+    fcs = FcCharSetCreate ();
+    if (!fcs)
+	goto bail0;
 
-    /*
-     * When using scalable fonts, only report those glyphs
+    /* When using scalable fonts, only report those glyphs
      * which can be scaled; otherwise those fonts will
      * only be available at some sizes, and never when
      * transformed.  Avoid this by simply reporting bitmap-only
@@ -2222,70 +2156,22 @@ FcFreeTypeCheckGlyph (FT_Face face, FcChar32 ucs4,
     if (face->face_flags & FT_FACE_FLAG_SCALABLE)
 	load_flags |= FT_LOAD_NO_BITMAP;
 
-    if (FT_Load_Glyph (face, glyph, load_flags))
-	return FcFalse;
-
-    slot = face->glyph;
-    if (!glyph)
-	return FcFalse;
-
-    *advance = slot->metrics.horiAdvance;
-
-    switch ((int) slot->format) {
-    case ft_glyph_format_bitmap:
-	/*
-	 * Bitmaps are assumed to be reasonable; if
-	 * this proves to be a rash assumption, this
-	 * code can be easily modified
-	 */
-	return FcTrue;
-    case ft_glyph_format_outline:
-	/*
-	 * Glyphs with contours are always OK
-	 */
-	if (slot->outline.n_contours != 0)
-	    return FcTrue;
-	/*
-	 * Glyphs with no contours are only OK if
-	 * they're members of the Blanks set specified
-	 * in the configuration.  If blanks isn't set,
-	 * then allow any glyph to be blank
-	 */
-	if (!blanks || FcBlanksIsMember (blanks, ucs4))
-	    return FcTrue;
-	/* fall through ... */
-    default:
-	break;
-    }
-    return FcFalse;
-}
-
-#define APPROXIMATELY_EQUAL(x,y) (FC_ABS ((x) - (y)) <= FC_MAX (FC_ABS (x), FC_ABS (y)) / 33)
-
-static FcCharSet *
-FcFreeTypeCharSetAndSpacingForSize (FT_Face face, FcBlanks *blanks, int *spacing, FT_Int strike_index)
-{
-    FcChar32	    page, off, ucs4;
-#ifdef CHECK
-    FcChar32	    font_max = 0;
-#endif
-    FcCharSet	    *fcs;
-    FcCharLeaf	    *leaf;
-    int		    o;
-    FT_UInt	    glyph;
-    FT_Pos	    advance, advance_one = 0, advance_two = 0;
-    FcBool	    has_advance = FcFalse, fixed_advance = FcTrue, dual_advance = FcFalse;
-    FcBool	    using_strike = FcFalse;
-
-    fcs = FcCharSetCreate ();
-    if (!fcs)
-	goto bail0;
-
 #if HAVE_FT_SELECT_SIZE
-    if (strike_index >= 0) {
+    if (!(face->face_flags & FT_FACE_FLAG_SCALABLE) &&
+	face->num_fixed_sizes > 0 &&
+	FT_Get_Sfnt_Table (face, ft_sfnt_head))
+    {
+	FT_Int strike_index = 0, i;
+	/* Select the face closest to 16 pixels tall */
+	for (i = 1; i < face->num_fixed_sizes; i++)
+	{
+	    if (abs (face->available_sizes[i].height - 16) <
+		abs (face->available_sizes[strike_index].height - 16))
+		strike_index = i;
+	}
+
 	if (FT_Select_Size (face, strike_index) != FT_Err_Ok)
 	    goto bail1;
-	using_strike = FcTrue;
     }
 #endif
 
@@ -2294,156 +2180,96 @@ FcFreeTypeCharSetAndSpacingForSize (FT_Face face, FcBlanks *blanks, int *spacing
 #endif
     for (o = 0; o < NUM_DECODE; o++)
     {
+	FcChar32	page, off, ucs4;
+	FcCharLeaf	*leaf;
+	FT_UInt	 	glyph;
+
 	if (FT_Select_Charmap (face, fcFontEncodings[o]) != 0)
 	    continue;
 
+	page = ~0;
+	leaf = NULL;
+	ucs4 = FT_Get_First_Char (face, &glyph);
+	while (glyph != 0)
 	{
-            page = ~0;
-            leaf = NULL;
-            ucs4 = FT_Get_First_Char (face, &glyph);
-            while (glyph != 0)
-	    {
-		if (FcFreeTypeCheckGlyph (face, ucs4, glyph, blanks, &advance, using_strike))
-		{
-		    if (advance)
-		    {
-			if (!has_advance)
-			{
-			    has_advance = FcTrue;
-			    advance_one = advance;
-			}
-			else if (!APPROXIMATELY_EQUAL (advance, advance_one))
-			{
-			    if (fixed_advance)
-			    {
-				dual_advance = FcTrue;
-				fixed_advance = FcFalse;
-				advance_two = advance;
-			    }
-			    else if (!APPROXIMATELY_EQUAL (advance, advance_two))
-				dual_advance = FcFalse;
-			}
-		    }
+	    FcBool good = FcTrue;
 
-		    if ((ucs4 >> 8) != page)
-		    {
-			page = (ucs4 >> 8);
-			leaf = FcCharSetFindLeafCreate (fcs, ucs4);
-			if (!leaf)
-			    goto bail1;
-		    }
-		    off = ucs4 & 0xff;
-		    leaf->map[off >> 5] |= (1 << (off & 0x1f));
-#ifdef CHECK
-		    if (ucs4 > font_max)
-			font_max = ucs4;
-#endif
-		}
-		ucs4 = FT_Get_Next_Char (face, ucs4, &glyph);
+	    /* CID fonts built by Adobe used to make ASCII control chars to cid1
+	     * (space glyph). As such, always check contour for those characters. */
+	    if (ucs4 <= 0x001F)
+	    {
+		if (FT_Load_Glyph (face, glyph, load_flags) ||
+		    (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE &&
+		     face->glyph->outline.n_contours == 0))
+		    good = FcFalse;
 	    }
-	    if (fcFontEncodings[o] == FT_ENCODING_MS_SYMBOL)
-	    {
-		/* For symbol-encoded OpenType fonts, we duplicate the
-		 * U+F000..F0FF range at U+0000..U+00FF.  That's what
-		 * Windows seems to do, and that's hinted about at:
-		 * http://www.microsoft.com/typography/otspec/recom.htm
-		 * under "Non-Standard (Symbol) Fonts".
-		 *
-		 * See thread with subject "Webdings and other MS symbol
-		 * fonts don't display" on mailing list from May 2015.
-		 */
-		for (ucs4 = 0xF000; ucs4 < 0xF100; ucs4++)
-		{
-		    if (FcCharSetHasChar (fcs, ucs4))
-			FcCharSetAddChar (fcs, ucs4 - 0xF000);
-		}
-	    }
-#ifdef CHECK
-	    for (ucs4 = 0; ucs4 < 0x10000; ucs4++)
-	    {
-		FcBool	    FT_Has, FC_Has;
 
-		FT_Has = FT_Get_Char_Index (face, ucs4) != 0;
-		FC_Has = FcCharSetHasChar (fcs, ucs4);
-		if (FT_Has != FC_Has)
-		{
-		    printf ("0x%08x FT says %d FC says %d\n", ucs4, FT_Has, FC_Has);
-		}
-	    }
-#endif
-	}
-
-       break;
-    }
-#if HAVE_FT_HAS_PS_GLYPH_NAMES
-    /*
-     * Add mapping from PS glyph names if available
-     */
-    if (FcFreeTypeUseNames (face))
-    {
-	FcChar8 name_buf[FC_GLYPHNAME_BUFLEN + 2];
-
-	for (glyph = 0; glyph < (FT_UInt) face->num_glyphs; glyph++)
-	{
-	    if (FT_Get_Glyph_Name (face, glyph, name_buf, FC_GLYPHNAME_BUFLEN+1) == 0)
+	    if (good)
 	    {
-		ucs4 = FcGlyphNameToUcs4 (name_buf);
-		if (ucs4 != 0xffff &&
-		    FcFreeTypeCheckGlyph (face, ucs4, glyph, blanks, &advance, using_strike))
+		if (num_advances < 3)
 		{
-		    if (advance)
+		    FT_Pos advance = 0;
+		    if (!FT_Get_Advance (face, glyph, load_flags, &advance) && advance)
 		    {
-			if (!has_advance)
-			{
-			    has_advance = FcTrue;
-			    advance_one = advance;
-			}
-			else if (!APPROXIMATELY_EQUAL (advance, advance_one))
-			{
-			    if (fixed_advance)
-			    {
-				dual_advance = FcTrue;
-				fixed_advance = FcFalse;
-				advance_two = advance;
-			    }
-			    else if (!APPROXIMATELY_EQUAL (advance, advance_two))
-				dual_advance = FcFalse;
-			}
+			unsigned int i;
+			for (i = 0; i < num_advances; i++)
+			  if (fc_approximately_equal (advance, advances[i]))
+			    break;
+			if (i == num_advances)
+			  advances[num_advances++] = advance;
 		    }
+		}
+
+		if ((ucs4 >> 8) != page)
+		{
+		    page = (ucs4 >> 8);
 		    leaf = FcCharSetFindLeafCreate (fcs, ucs4);
 		    if (!leaf)
 			goto bail1;
-		    leaf->map[(ucs4 & 0xff) >> 5] |= (1 << (ucs4 & 0x1f));
-#ifdef CHECK
-		    if (ucs4 > font_max)
-			font_max = ucs4;
-#endif
 		}
+		off = ucs4 & 0xff;
+		leaf->map[off >> 5] |= (1 << (off & 0x1f));
+	    }
+
+	    ucs4 = FT_Get_Next_Char (face, ucs4, &glyph);
+	}
+	if (fcFontEncodings[o] == FT_ENCODING_MS_SYMBOL)
+	{
+	    /* For symbol-encoded OpenType fonts, we duplicate the
+	     * U+F000..F0FF range at U+0000..U+00FF.  That's what
+	     * Windows seems to do, and that's hinted about at:
+	     * http://www.microsoft.com/typography/otspec/recom.htm
+	     * under "Non-Standard (Symbol) Fonts".
+	     *
+	     * See thread with subject "Webdings and other MS symbol
+	     * fonts don't display" on mailing list from May 2015.
+	     */
+	    for (ucs4 = 0xF000; ucs4 < 0xF100; ucs4++)
+	    {
+		if (FcCharSetHasChar (fcs, ucs4))
+		    FcCharSetAddChar (fcs, ucs4 - 0xF000);
 	    }
 	}
-    }
-#endif
 #ifdef CHECK
-    printf ("%d glyphs %d encoded\n", (int) face->num_glyphs, FcCharSetCount (fcs));
-    for (ucs4 = 0; ucs4 <= font_max; ucs4++)
-    {
-	FcBool	has_char = (glyph = FcFreeTypeCharIndex (face, ucs4)) != 0;
-	FcBool	has_bit = FcCharSetHasChar (fcs, ucs4);
-
-	if (has_char && !has_bit)
+	for (ucs4 = 0x0020; ucs4 < 0x10000; ucs4++)
 	{
-	    if (!FcFreeTypeCheckGlyph (face, ucs4, glyph, blanks, &advance, using_strike))
-		printf ("Bitmap missing broken char 0x%x\n", ucs4);
-	    else
-		printf ("Bitmap missing char 0x%x\n", ucs4);
+	    FcBool	    FT_Has, FC_Has;
+
+	    FT_Has = FT_Get_Char_Index (face, ucs4) != 0;
+	    FC_Has = FcCharSetHasChar (fcs, ucs4);
+	    if (FT_Has != FC_Has)
+	    {
+		printf ("0x%08x FT says %d FC says %d\n", ucs4, FT_Has, FC_Has);
+	    }
 	}
-	else if (!has_char && has_bit)
-	    printf ("Bitmap extra char 0x%x\n", ucs4);
-    }
 #endif
-    if (fixed_advance)
+	break;
+    }
+    if (num_advances <= 1)
 	*spacing = FC_MONO;
-    else if (dual_advance && APPROXIMATELY_EQUAL (2 * FC_MIN (advance_one, advance_two), FC_MAX (advance_one, advance_two)))
+    else if (num_advances == 2 &&
+	     fc_approximately_equal (fc_min (advances[0], advances[1]) * 2,
+				     fc_max (advances[0], advances[1])))
         *spacing = FC_DUAL;
     else
 	*spacing = FC_PROPORTIONAL;
@@ -2455,36 +2281,7 @@ bail0:
 }
 
 FcCharSet *
-FcFreeTypeCharSetAndSpacing (FT_Face face, FcBlanks *blanks, int *spacing)
-{
-    FcCharSet	*cs;
-
-    /*
-     * Check for bitmap-only ttf fonts that are missing the glyf table.
-     * In that case, pick a size and look for glyphs in that size instead
-     */
-    if (!(face->face_flags & FT_FACE_FLAG_SCALABLE) &&
-	face->num_fixed_sizes > 0 &&
-	FT_Get_Sfnt_Table (face, ft_sfnt_head))
-    {
-	FT_Int  strike_index = 0;
-	int	    i;
-
-	/* Select the face closest to 16 pixels tall */
-	for (i = 1; i < face->num_fixed_sizes; i++) {
-	    if (abs (face->available_sizes[i].height - 16) <
-		abs (face->available_sizes[strike_index].height - 16))
-		strike_index = i;
-	}
-	cs = FcFreeTypeCharSetAndSpacingForSize (face, blanks, spacing, strike_index);
-    }
-    else
-	cs = FcFreeTypeCharSetAndSpacingForSize (face, blanks, spacing, -1);
-    return cs;
-}
-
-FcCharSet *
-FcFreeTypeCharSet (FT_Face face, FcBlanks *blanks)
+FcFreeTypeCharSet (FT_Face face, FcBlanks *blanks FC_UNUSED)
 {
     int spacing;
 

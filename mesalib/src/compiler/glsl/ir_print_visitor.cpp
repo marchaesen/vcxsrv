@@ -469,13 +469,10 @@ void ir_print_visitor::visit(ir_constant *ir)
       for (unsigned i = 0; i < ir->type->length; i++)
 	 ir->get_array_element(i)->accept(this);
    } else if (ir->type->is_record()) {
-      ir_constant *value = (ir_constant *) ir->components.get_head();
       for (unsigned i = 0; i < ir->type->length; i++) {
 	 fprintf(f, "(%s ", ir->type->fields.structure[i].name);
-	 value->accept(this);
+         ir->get_record_field(i)->accept(this);
 	 fprintf(f, ")");
-
-	 value = (ir_constant *) value->next;
       }
    } else {
       for (unsigned i = 0; i < ir->type->components(); i++) {

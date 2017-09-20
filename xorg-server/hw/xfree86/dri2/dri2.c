@@ -1538,6 +1538,7 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
     ds->CreateBuffer = info->CreateBuffer;
     ds->DestroyBuffer = info->DestroyBuffer;
     ds->CopyRegion = info->CopyRegion;
+    cur_minor = 1;
 
     if (info->version >= 4) {
         ds->ScheduleSwap = info->ScheduleSwap;
@@ -1545,13 +1546,7 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
         ds->GetMSC = info->GetMSC;
         cur_minor = 3;
     }
-    else {
-        cur_minor = 1;
-    }
 
-    if (info->version >= 8) {
-        ds->AuthMagic = info->AuthMagic2;
-    }
     if (info->version >= 5) {
         ds->LegacyAuthMagic = info->AuthMagic;
     }
@@ -1564,6 +1559,10 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
     if (info->version >= 7) {
         ds->GetParam = info->GetParam;
         cur_minor = 4;
+    }
+
+    if (info->version >= 8) {
+        ds->AuthMagic = info->AuthMagic2;
     }
 
     if (info->version >= 9) {

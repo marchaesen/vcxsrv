@@ -178,6 +178,21 @@ TODO: document the other workarounds.
         <application name="Civilization 5" executable="Civ5XP">
             <option name="mesa_glthread" value="true"/>
         </application>
+        <application name="Dreamfall Chapters" executable="Dreamfall Chapters">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Hitman" executable="HitmanPro">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Renowned Explorers: International Society" executable="abbeycore_steam">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Saints Row: The Third" executable="SaintsRow3.i386">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Sid Meier's: Civilization Beyond Earth" executable="CivBE">
+            <option name="mesa_glthread" value="true"/>
+        </application>
         <application name="The Witcher 2" executable="witcher2">
             <option name="mesa_glthread" value="true"/>
         </application>

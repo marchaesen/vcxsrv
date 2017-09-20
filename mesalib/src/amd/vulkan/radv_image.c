@@ -116,13 +116,32 @@ radv_init_surface(struct radv_device *device,
 
 	surface->flags |= RADEON_SURF_OPTIMIZE_FOR_SPACE;
 
+	bool dcc_compatible_formats = !radv_is_colorbuffer_format_supported(pCreateInfo->format, &blendable);
+	if (pCreateInfo->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) {
+		const struct  VkImageFormatListCreateInfoKHR *format_list =
+		          (const struct  VkImageFormatListCreateInfoKHR *)
+		                vk_find_struct_const(pCreateInfo->pNext,
+		                                     IMAGE_FORMAT_LIST_CREATE_INFO_KHR);
+		if (format_list) {
+			/* compatibility is transitive, so we only need to check
+			 * one format with everything else. */
+			for (unsigned i = 0; i < format_list->viewFormatCount; ++i) {
+				if (!radv_dcc_formats_compatible(pCreateInfo->format,
+				                                 format_list->pViewFormats[i]))
+					dcc_compatible_formats = false;
+			}
+		} else {
+			dcc_compatible_formats = false;
+		}
+	}
+
 	if ((pCreateInfo->usage & (VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
 	                           VK_IMAGE_USAGE_STORAGE_BIT)) ||
-	    (pCreateInfo->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) ||
+	    !dcc_compatible_formats ||
             (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR) ||
+            pCreateInfo->mipLevels > 1 || pCreateInfo->arrayLayers > 1 ||
             device->physical_device->rad_info.chip_class < VI ||
-            create_info->scanout || (device->debug_flags & RADV_DEBUG_NO_DCC) ||
-            !radv_is_colorbuffer_format_supported(pCreateInfo->format, &blendable))
+            create_info->scanout || (device->debug_flags & RADV_DEBUG_NO_DCC))
 		surface->flags |= RADEON_SURF_DISABLE_DCC;
 	if (create_info->scanout)
 		surface->flags |= RADEON_SURF_SCANOUT;
@@ -280,10 +299,14 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 }
 
 static unsigned radv_tex_dim(VkImageType image_type, VkImageViewType view_type,
-			     unsigned nr_layers, unsigned nr_samples, bool is_storage_image)
+			     unsigned nr_layers, unsigned nr_samples, bool is_storage_image, bool gfx9)
 {
 	if (view_type == VK_IMAGE_VIEW_TYPE_CUBE || view_type == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
 		return is_storage_image ? V_008F1C_SQ_RSRC_IMG_2D_ARRAY : V_008F1C_SQ_RSRC_IMG_CUBE;
+
+	/* GFX9 allocates 1D textures as 2D. */
+	if (gfx9 && image_type == VK_IMAGE_TYPE_1D)
+		image_type = VK_IMAGE_TYPE_2D;
 	switch (image_type) {
 	case VK_IMAGE_TYPE_1D:
 		return nr_layers > 1 ? V_008F1C_SQ_RSRC_IMG_1D_ARRAY : V_008F1C_SQ_RSRC_IMG_1D;
@@ -374,7 +397,7 @@ si_make_texture_descriptor(struct radv_device *device,
 	}
 
 	type = radv_tex_dim(image->type, view_type, image->info.array_size, image->info.samples,
-			    is_storage_image);
+			    is_storage_image, device->physical_device->rad_info.chip_class >= GFX9);
 	if (type == V_008F1C_SQ_RSRC_IMG_1D_ARRAY) {
 	        height = 1;
 		depth = image->info.array_size;
@@ -494,7 +517,7 @@ si_make_texture_descriptor(struct radv_device *device,
 			S_008F1C_DST_SEL_Y(V_008F1C_SQ_SEL_X) |
 			S_008F1C_DST_SEL_Z(V_008F1C_SQ_SEL_X) |
 			S_008F1C_DST_SEL_W(V_008F1C_SQ_SEL_X) |
-			S_008F1C_TYPE(radv_tex_dim(image->type, view_type, 1, 0, false));
+			S_008F1C_TYPE(radv_tex_dim(image->type, view_type, 1, 0, false, false));
 		fmask_state[4] = 0;
 		fmask_state[5] = S_008F24_BASE_ARRAY(first_layer);
 		fmask_state[6] = 0;
@@ -838,8 +861,10 @@ radv_image_create(VkDevice _device,
 
 	if ((pCreateInfo->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) &&
 	    pCreateInfo->mipLevels == 1 &&
-	    !image->surface.dcc_size && image->info.depth == 1 && can_cmask_dcc)
+	    !image->surface.dcc_size && image->info.depth == 1 && can_cmask_dcc &&
+	    !image->surface.is_linear)
 		radv_image_alloc_cmask(device, image);
+
 	if (image->info.samples > 1 && vk_format_is_color(pCreateInfo->format)) {
 		radv_image_alloc_fmask(device, image);
 	} else if (vk_format_is_depth(pCreateInfo->format)) {
@@ -1052,23 +1077,34 @@ radv_DestroyImage(VkDevice _device, VkImage _image,
 }
 
 void radv_GetImageSubresourceLayout(
-	VkDevice                                    device,
+	VkDevice                                    _device,
 	VkImage                                     _image,
 	const VkImageSubresource*                   pSubresource,
 	VkSubresourceLayout*                        pLayout)
 {
 	RADV_FROM_HANDLE(radv_image, image, _image);
+	RADV_FROM_HANDLE(radv_device, device, _device);
 	int level = pSubresource->mipLevel;
 	int layer = pSubresource->arrayLayer;
 	struct radeon_surf *surface = &image->surface;
 
-	pLayout->offset = surface->u.legacy.level[level].offset + surface->u.legacy.level[level].slice_size * layer;
-	pLayout->rowPitch = surface->u.legacy.level[level].nblk_x * surface->bpe;
-	pLayout->arrayPitch = surface->u.legacy.level[level].slice_size;
-	pLayout->depthPitch = surface->u.legacy.level[level].slice_size;
-	pLayout->size = surface->u.legacy.level[level].slice_size;
-	if (image->type == VK_IMAGE_TYPE_3D)
-		pLayout->size *= u_minify(image->info.depth, level);
+	if (device->physical_device->rad_info.chip_class >= GFX9) {
+		pLayout->offset = surface->u.gfx9.offset[level] + surface->u.gfx9.surf_slice_size * layer;
+		pLayout->rowPitch = surface->u.gfx9.surf_pitch * surface->bpe;
+		pLayout->arrayPitch = surface->u.gfx9.surf_slice_size;
+		pLayout->depthPitch = surface->u.gfx9.surf_slice_size;
+		pLayout->size = surface->u.gfx9.surf_slice_size;
+		if (image->type == VK_IMAGE_TYPE_3D)
+			pLayout->size *= u_minify(image->info.depth, level);
+	} else {
+		pLayout->offset = surface->u.legacy.level[level].offset + surface->u.legacy.level[level].slice_size * layer;
+		pLayout->rowPitch = surface->u.legacy.level[level].nblk_x * surface->bpe;
+		pLayout->arrayPitch = surface->u.legacy.level[level].slice_size;
+		pLayout->depthPitch = surface->u.legacy.level[level].slice_size;
+		pLayout->size = surface->u.legacy.level[level].slice_size;
+		if (image->type == VK_IMAGE_TYPE_3D)
+			pLayout->size *= u_minify(image->info.depth, level);
+	}
 }
 
 
@@ -1107,8 +1143,7 @@ radv_DestroyImageView(VkDevice _device, VkImageView _iview,
 
 void radv_buffer_view_init(struct radv_buffer_view *view,
 			   struct radv_device *device,
-			   const VkBufferViewCreateInfo* pCreateInfo,
-			   struct radv_cmd_buffer *cmd_buffer)
+			   const VkBufferViewCreateInfo* pCreateInfo)
 {
 	RADV_FROM_HANDLE(radv_buffer, buffer, pCreateInfo->buffer);
 
@@ -1135,7 +1170,7 @@ radv_CreateBufferView(VkDevice _device,
 	if (!view)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
-	radv_buffer_view_init(view, device, pCreateInfo, NULL);
+	radv_buffer_view_init(view, device, pCreateInfo);
 
 	*pView = radv_buffer_view_to_handle(view);
 

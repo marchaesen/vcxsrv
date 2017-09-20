@@ -2402,9 +2402,15 @@ AC_DEFINE_DIR(PROJECTROOT, prefix, [Overall prefix])
 AC_DEFINE_DIR(SYSCONFDIR, sysconfdir, [sysconfdir])
 
 AC_SUBST([RELEASE_DATE])
-BUILD_DATE="`date +'%Y%m%d'`"
+DATE_FMT="%Y%m%d"
+TIME_FMT="1%H%M%S"
+BUILD_DATE="`date "+$DATE_FMT"`"
+BUILD_TIME="`date "+$TIME_FMT"`"
+if test "x$SOURCE_DATE_EPOCH" != "x"; then
+	BUILD_DATE="`date -u -d "@$SOURCE_DATE_EPOCH" "+$DATE_FMT" 2>/dev/null || date -u -r "$SOURCE_DATE_EPOCH" "+$DATE_FMT" 2>/dev/null || date -u "+$DATE_FMT"`"
+	BUILD_TIME="`date -u -d "@$SOURCE_DATE_EPOCH" "+$TIME_FMT" 2>/dev/null || date -u -r "$SOURCE_DATE_EPOCH" "+$TIME_FMT" 2>/dev/null || date -u "+$TIME_FMT"`"
+fi
 AC_SUBST([BUILD_DATE])
-BUILD_TIME="`date +'1%H%M%S'`"
 AC_SUBST([BUILD_TIME])
 
 DIX_CFLAGS="-DHAVE_DIX_CONFIG_H $XSERVER_CFLAGS"

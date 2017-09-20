@@ -29,7 +29,6 @@ CONF_LINKS = \
 	10-hinting-$(PREFERRED_HINTING).conf	\
 	10-scale-bitmap-fonts.conf \
 	20-unhint-small-vera.conf \
-	30-urw-aliases.conf \
 	30-metric-aliases.conf \
 	40-nonlatin.conf \
 	45-generic.conf \
@@ -70,7 +69,6 @@ template_DATA =				\
 	11-lcdfilter-light.conf		\
 	20-unhint-small-vera.conf	\
 	25-unhint-nonlatin.conf		\
-	30-urw-aliases.conf		\
 	30-metric-aliases.conf		\
 	40-nonlatin.conf		\
 	45-generic.conf			\

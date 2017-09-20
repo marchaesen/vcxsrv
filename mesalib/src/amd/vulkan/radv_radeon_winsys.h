@@ -156,6 +156,11 @@ struct radeon_winsys {
 	void (*query_info)(struct radeon_winsys *ws,
 			   struct radeon_info *info);
 
+	bool (*read_registers)(struct radeon_winsys *ws, unsigned reg_offset,
+			       unsigned num_registers, uint32_t *out);
+
+	const char *(*get_chip_name)(struct radeon_winsys *ws);
+
 	struct radeon_winsys_bo *(*buffer_create)(struct radeon_winsys *ws,
 						  uint64_t size,
 						  unsigned alignment,

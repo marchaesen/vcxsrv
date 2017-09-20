@@ -65,11 +65,9 @@ if get_option('pciaccess')
     srcs_xorg_common += ['xf86pciBus.c', 'xf86VGAarbiter.c']
 endif
 
-srcs_xorg_common += custom_target(
-    'xf86Build.h',
+srcs_xorg_common += configure_file(
     output: 'xf86Build.h',
-    command: [join_paths(meson.current_source_dir(), 'xf86Build.sh'), '@OUTPUT@'],
-    build_always: true,
+    command: ['sh', join_paths(meson.current_source_dir(), 'xf86Build.sh'), '@OUTPUT@'],
 )
 
 srcs_xorg_common += custom_target(

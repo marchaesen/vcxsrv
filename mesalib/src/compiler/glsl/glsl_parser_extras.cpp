@@ -1866,8 +1866,7 @@ set_shader_inout_layout(struct gl_shader *shader,
 extern "C" {
 
 static void
-assign_subroutine_indexes(struct gl_shader *sh,
-			  struct _mesa_glsl_parse_state *state)
+assign_subroutine_indexes(struct _mesa_glsl_parse_state *state)
 {
    int j, k;
    int index = 0;
@@ -2105,7 +2104,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    shader->IsES = state->es_shader;
 
    if (!state->error && !shader->ir->is_empty()) {
-      assign_subroutine_indexes(shader, state);
+      assign_subroutine_indexes(state);
       lower_subroutine(shader->ir, state);
 
       if (!ctx->Cache || force_recompile)

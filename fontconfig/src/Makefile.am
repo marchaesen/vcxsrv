@@ -89,7 +89,6 @@ ALIAS_FILES = fcalias.h fcaliastail.h fcftalias.h fcftaliastail.h
 
 BUILT_SOURCES = $(ALIAS_FILES) \
 	../fc-case/fccase.h \
-	../fc-glyphname/fcglyphname.h \
 	../fc-lang/fclang.h \
 	stamp-fcstdint \
 	fcobjshash.h \
@@ -99,8 +98,6 @@ noinst_PROGRAMS = fcarch
 
 ../fc-case/fccase.h:
 	cd ../fc-case && $(MAKE) $(AM_MAKEFLAGS) fccase.h
-../fc-glyphname/fcglyphname.h:
-	cd ../fc-glyphname && $(MAKE) $(AM_MAKEFLAGS) fcglyphname.h
 ../fc-lang/fclang.h:
 	cd ../fc-lang && $(MAKE) $(AM_MAKEFLAGS) fclang.h
 
@@ -130,7 +127,6 @@ libfontconfig_la_SOURCES = \
 	fcarch.h \
 	fcatomic.c \
 	fcatomic.h \
-	fcblanks.c \
 	fccache.c \
 	fccfg.c \
 	fccharset.c \

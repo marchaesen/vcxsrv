@@ -1202,6 +1202,9 @@ radv_clear_image_layer(struct radv_cmd_buffer *cmd_buffer,
 {
 	VkDevice device_h = radv_device_to_handle(cmd_buffer->device);
 	struct radv_image_view iview;
+	uint32_t width = radv_minify(image->info.width, range->baseMipLevel + level);
+	uint32_t height = radv_minify(image->info.height, range->baseMipLevel + level);
+
 	radv_image_view_init(&iview, cmd_buffer->device,
 			     &(VkImageViewCreateInfo) {
 				     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -1225,9 +1228,9 @@ radv_clear_image_layer(struct radv_cmd_buffer *cmd_buffer,
 					       .pAttachments = (VkImageView[]) {
 					       radv_image_view_to_handle(&iview),
 				       },
-					       .width = iview.extent.width,
-							.height = iview.extent.height,
-							.layers = 1
+					       .width = width,
+					       .height = height,
+					       .layers = 1
 			       },
 			       &cmd_buffer->pool->alloc,
 			       &fb);
@@ -1283,8 +1286,8 @@ radv_clear_image_layer(struct radv_cmd_buffer *cmd_buffer,
 						.renderArea = {
 						.offset = { 0, 0, },
 						.extent = {
-							.width = iview.extent.width,
-							.height = iview.extent.height,
+							.width = width,
+							.height = height,
 						},
 					},
 						.renderPass = pass,
@@ -1303,7 +1306,7 @@ radv_clear_image_layer(struct radv_cmd_buffer *cmd_buffer,
 	VkClearRect clear_rect = {
 		.rect = {
 			.offset = { 0, 0 },
-			.extent = { iview.extent.width, iview.extent.height },
+			.extent = { width, height },
 		},
 		.baseArrayLayer = range->baseArrayLayer,
 		.layerCount = 1, /* FINISHME: clear multi-layer framebuffer */

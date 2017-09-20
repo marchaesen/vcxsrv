@@ -47,10 +47,9 @@ higher level functions.
 @TYPE2@         FcBlanks *			@ARG2@          blanks
 @PURPOSE@	compute Unicode coverage
 @DESC@
-Scans a FreeType face and returns the set of encoded Unicode chars.  This scans
-several encoding tables to build as complete a list as possible.  
-If 'blanks' is not 0, the glyphs in the font are examined and any blank glyphs
-not in 'blanks' are not placed in the returned FcCharSet.
+Scans a FreeType face and returns the set of encoded Unicode chars.
+FcBlanks is deprecated, <parameter>blanks</parameter> is ignored and
+accepted only for compatibility with older code.
 @@
 
 @SYNOPSIS@
@@ -64,10 +63,8 @@ not in 'blanks' are not placed in the returned FcCharSet.
 @PURPOSE@	compute Unicode coverage and spacing type
 @DESC@
 Scans a FreeType face and returns the set of encoded Unicode chars.
-This scans
-several encoding tables to build as complete a list as possible.  
-If 'blanks' is not 0, the glyphs in the font are examined and any blank glyphs
-not in 'blanks' are not placed in the returned FcCharSet.
+FcBlanks is deprecated, <parameter>blanks</parameter> is ignored and
+accepted only for compatibility with older code.
 <parameter>spacing</parameter> receives the computed spacing type of the
 font, one of FC_MONO for a font where all glyphs have the same width,
 FC_DUAL, where the font has glyphs in precisely two widths, one twice as
@@ -88,6 +85,8 @@ widths.
 @DESC@
 Constructs a pattern representing the 'id'th font in 'file'.  The number
 of fonts in 'file' is returned in 'count'.
+FcBlanks is deprecated, <parameter>blanks</parameter> is ignored and
+accepted only for compatibility with older code.
 @@
 
 @SYNOPSIS@
@@ -103,4 +102,6 @@ of fonts in 'file' is returned in 'count'.
 @DESC@
 Constructs a pattern representing 'face'. 'file' and 'id' are used solely as
 data for pattern elements (FC_FILE, FC_INDEX and sometimes FC_FAMILY).
+FcBlanks is deprecated, <parameter>blanks</parameter> is ignored and
+accepted only for compatibility with older code.
 @@

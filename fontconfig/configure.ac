@@ -760,8 +760,6 @@ AC_CONFIG_FILES([
 Makefile
 fontconfig/Makefile
 fc-lang/Makefile
-fc-glyphname/Makefile
-fc-blanks/Makefile
 fc-case/Makefile
 src/Makefile
 conf.d/Makefile

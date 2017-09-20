@@ -102,8 +102,10 @@ st_BeginQuery(struct gl_context *ctx, struct gl_query_object *q)
    /* convert GL query type to Gallium query type */
    switch (q->Target) {
    case GL_ANY_SAMPLES_PASSED:
-   case GL_ANY_SAMPLES_PASSED_CONSERVATIVE:
       type = PIPE_QUERY_OCCLUSION_PREDICATE;
+      break;
+   case GL_ANY_SAMPLES_PASSED_CONSERVATIVE:
+      type = PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE;
       break;
    case GL_SAMPLES_PASSED_ARB:
       type = PIPE_QUERY_OCCLUSION_COUNTER;
@@ -260,6 +262,7 @@ get_query_result(struct pipe_context *pipe,
    default:
       switch (stq->type) {
       case PIPE_QUERY_OCCLUSION_PREDICATE:
+      case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
       case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
       case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
          stq->base.Result = !!data.b;

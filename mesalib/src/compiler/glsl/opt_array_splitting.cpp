@@ -195,7 +195,7 @@ ir_array_reference_visitor::visit_enter(ir_assignment *ir)
 }
 
 ir_visitor_status
-ir_array_reference_visitor::visit_leave(ir_assignment *ir)
+ir_array_reference_visitor::visit_leave(ir_assignment *)
 {
    in_whole_array_copy = false;
 

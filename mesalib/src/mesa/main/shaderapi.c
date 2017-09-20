@@ -513,10 +513,12 @@ detach_shader_no_error(struct gl_context *ctx, GLuint program, GLuint shader)
 
 /**
  * Return list of shaders attached to shader program.
+ * \param objOut  returns GLuint ids
+ * \param handleOut  returns GLhandleARB handles
  */
 static void
 get_attached_shaders(struct gl_context *ctx, GLuint program, GLsizei maxCount,
-                     GLsizei *count, GLuint *obj)
+                     GLsizei *countOut, GLuint *objOut, GLhandleARB *handleOut)
 {
    struct gl_shader_program *shProg;
 
@@ -531,13 +533,19 @@ get_attached_shaders(struct gl_context *ctx, GLuint program, GLsizei maxCount,
    if (shProg) {
       GLuint i;
       for (i = 0; i < (GLuint) maxCount && i < shProg->NumShaders; i++) {
-         obj[i] = shProg->Shaders[i]->Name;
+         if (objOut) {
+            objOut[i] = shProg->Shaders[i]->Name;
+         }
+
+         if (handleOut) {
+            handleOut[i] = (GLhandleARB) shProg->Shaders[i]->Name;
+         }
       }
-      if (count)
-         *count = i;
+      if (countOut) {
+         *countOut = i;
+      }
    }
 }
-
 
 /**
  * glGetHandleARB() - return ID/name of currently bound shader program.
@@ -1575,7 +1583,7 @@ _mesa_GetAttachedObjectsARB(GLhandleARB container, GLsizei maxCount,
                             GLsizei * count, GLhandleARB * obj)
 {
    GET_CURRENT_CONTEXT(ctx);
-   get_attached_shaders(ctx, container, maxCount, count, obj);
+   get_attached_shaders(ctx, (GLuint)container, maxCount, count, NULL, obj);
 }
 
 
@@ -1584,7 +1592,7 @@ _mesa_GetAttachedShaders(GLuint program, GLsizei maxCount,
                          GLsizei *count, GLuint *obj)
 {
    GET_CURRENT_CONTEXT(ctx);
-   get_attached_shaders(ctx, program, maxCount, count, obj);
+   get_attached_shaders(ctx, program, maxCount, count, obj, NULL);
 }
 
 

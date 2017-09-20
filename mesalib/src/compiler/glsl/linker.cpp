@@ -1652,7 +1652,6 @@ validate_xfb_buffer_stride(struct gl_context *ctx, unsigned idx,
 static void
 link_xfb_stride_layout_qualifiers(struct gl_context *ctx,
                                   struct gl_shader_program *prog,
-                                  struct gl_linked_shader *linked_shader,
                                   struct gl_shader **shader_list,
                                   unsigned num_shaders)
 {
@@ -1690,7 +1689,6 @@ link_xfb_stride_layout_qualifiers(struct gl_context *ctx,
  */
 static void
 link_bindless_layout_qualifiers(struct gl_shader_program *prog,
-                                struct gl_program *gl_prog,
                                 struct gl_shader **shader_list,
                                 unsigned num_shaders)
 {
@@ -2286,10 +2284,9 @@ link_intrastage_shaders(void *mem_ctx,
    link_cs_input_layout_qualifiers(prog, gl_prog, shader_list, num_shaders);
 
    if (linked->Stage != MESA_SHADER_FRAGMENT)
-      link_xfb_stride_layout_qualifiers(ctx, prog, linked, shader_list,
-                                        num_shaders);
+      link_xfb_stride_layout_qualifiers(ctx, prog, shader_list, num_shaders);
 
-   link_bindless_layout_qualifiers(prog, gl_prog, shader_list, num_shaders);
+   link_bindless_layout_qualifiers(prog, shader_list, num_shaders);
 
    populate_symbol_table(linked);
 

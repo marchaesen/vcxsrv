@@ -29,7 +29,7 @@
 struct build_id_note;
 
 const struct build_id_note *
-build_id_find_nhdr(const char *filename);
+build_id_find_nhdr_for_addr(const void *addr);
 
 unsigned
 build_id_length(const struct build_id_note *note);

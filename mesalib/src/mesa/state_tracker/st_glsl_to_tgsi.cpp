@@ -205,6 +205,7 @@ public:
    st_src_reg st_src_reg_for_double(double val);
    st_src_reg st_src_reg_for_float(float val);
    st_src_reg st_src_reg_for_int(int val);
+   st_src_reg st_src_reg_for_int64(int64_t val);
    st_src_reg st_src_reg_for_type(enum glsl_base_type type, int val);
 
    /**
@@ -909,6 +910,19 @@ glsl_to_tgsi_visitor::st_src_reg_for_int(int val)
 }
 
 st_src_reg
+glsl_to_tgsi_visitor::st_src_reg_for_int64(int64_t val)
+{
+   st_src_reg src(PROGRAM_IMMEDIATE, -1, GLSL_TYPE_INT64);
+   union gl_constant_value uval[2];
+
+   memcpy(uval, &val, sizeof(uval));
+   src.index = add_constant(src.file, uval, 1, GL_DOUBLE, &src.swizzle);
+   src.swizzle = MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y, SWIZZLE_X, SWIZZLE_Y);
+
+   return src;
+}
+
+st_src_reg
 glsl_to_tgsi_visitor::st_src_reg_for_type(enum glsl_base_type type, int val)
 {
    if (native_integers)
@@ -928,6 +942,32 @@ static int
 type_size(const struct glsl_type *type)
 {
    return type->count_attribute_slots(false);
+}
+
+static void
+add_buffer_to_load_and_stores(glsl_to_tgsi_instruction *inst, st_src_reg *buf,
+                              exec_list *instructions, ir_constant *access)
+{
+   /**
+    * emit_asm() might have actually split the op into pieces, e.g. for
+    * double stores. We have to go back and fix up all the generated ops.
+    */
+   unsigned op = inst->op;
+   do {
+      inst->resource = *buf;
+      if (access)
+         inst->buffer_access = access->value.u[0];
+
+      if (inst == instructions->get_head_raw())
+         break;
+      inst = (glsl_to_tgsi_instruction *)inst->get_prev();
+
+      if (inst->op == TGSI_OPCODE_UADD) {
+         if (inst == instructions->get_head_raw())
+            break;
+         inst = (glsl_to_tgsi_instruction *)inst->get_prev();
+      }
+   } while (inst->op == op && inst->resource.file == PROGRAM_UNDEFINED);
 }
 
 /**
@@ -1841,90 +1881,125 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
       break;
 
    case ir_binop_ubo_load: {
-      ir_constant *const_uniform_block = ir->operands[0]->as_constant();
-      ir_constant *const_offset_ir = ir->operands[1]->as_constant();
-      unsigned const_offset = const_offset_ir ? const_offset_ir->value.u[0] : 0;
-      unsigned const_block = const_uniform_block ? const_uniform_block->value.u[0] + 1 : 1;
-      st_src_reg index_reg = get_temp(glsl_type::uint_type);
-      st_src_reg cbuf;
+      if (ctx->Const.UseSTD430AsDefaultPacking) {
+         ir_rvalue *block = ir->operands[0];
+         ir_rvalue *offset = ir->operands[1];
+         ir_constant *const_block = block->as_constant();
 
-      cbuf.type = ir->type->base_type;
-      cbuf.file = PROGRAM_CONSTANT;
-      cbuf.index = 0;
-      cbuf.reladdr = NULL;
-      cbuf.negate = 0;
-      cbuf.abs = 0;
-      cbuf.index2D = const_block;
+         st_src_reg cbuf(PROGRAM_CONSTANT,
+            (const_block ? const_block->value.u[0] + 1 : 1),
+            ir->type->base_type);
 
-      assert(ir->type->is_vector() || ir->type->is_scalar());
+         cbuf.has_index2 = true;
 
-      if (const_offset_ir) {
-         /* Constant index into constant buffer */
-         cbuf.reladdr = NULL;
-         cbuf.index = const_offset / 16;
-      }
-      else {
-         ir_expression *offset_expr = ir->operands[1]->as_expression();
-         st_src_reg offset = op[1];
-
-         /* The OpenGL spec is written in such a way that accesses with
-          * non-constant offset are almost always vec4-aligned. The only
-          * exception to this are members of structs in arrays of structs:
-          * each struct in an array of structs is at least vec4-aligned,
-          * but single-element and [ui]vec2 members of the struct may be at
-          * an offset that is not a multiple of 16 bytes.
-          *
-          * Here, we extract that offset, relying on previous passes to always
-          * generate offset expressions of the form (+ expr constant_offset).
-          *
-          * Note that the std430 layout, which allows more cases of alignment
-          * less than vec4 in arrays, is not supported for uniform blocks, so
-          * we do not have to deal with it here.
-          */
-         if (offset_expr && offset_expr->operation == ir_binop_add) {
-            const_offset_ir = offset_expr->operands[1]->as_constant();
-            if (const_offset_ir) {
-               const_offset = const_offset_ir->value.u[0];
-               cbuf.index = const_offset / 16;
-               offset_expr->operands[0]->accept(this);
-               offset = this->result;
-            }
+         if (!const_block) {
+            block->accept(this);
+            cbuf.reladdr = ralloc(mem_ctx, st_src_reg);
+            *cbuf.reladdr = this->result;
+            emit_arl(ir, sampler_reladdr, this->result);
          }
 
-         /* Relative/variable index into constant buffer */
-         emit_asm(ir, TGSI_OPCODE_USHR, st_dst_reg(index_reg), offset,
-              st_src_reg_for_int(4));
-         cbuf.reladdr = ralloc(mem_ctx, st_src_reg);
-         memcpy(cbuf.reladdr, &index_reg, sizeof(index_reg));
-      }
+         /* Calculate the surface offset */
+         offset->accept(this);
+         st_src_reg off = this->result;
 
-      if (const_uniform_block) {
-         /* Constant constant buffer */
-         cbuf.reladdr2 = NULL;
-      }
-      else {
-         /* Relative/variable constant buffer */
-         cbuf.reladdr2 = ralloc(mem_ctx, st_src_reg);
-         memcpy(cbuf.reladdr2, &op[0], sizeof(st_src_reg));
-      }
-      cbuf.has_index2 = true;
+         glsl_to_tgsi_instruction *inst =
+            emit_asm(ir, TGSI_OPCODE_LOAD, result_dst, off);
 
-      cbuf.swizzle = swizzle_for_size(ir->type->vector_elements);
-      if (glsl_base_type_is_64bit(cbuf.type))
-         cbuf.swizzle += MAKE_SWIZZLE4(const_offset % 16 / 8,
-                                       const_offset % 16 / 8,
-                                       const_offset % 16 / 8,
-                                       const_offset % 16 / 8);
-      else
-         cbuf.swizzle += MAKE_SWIZZLE4(const_offset % 16 / 4,
-                                       const_offset % 16 / 4,
-                                       const_offset % 16 / 4,
-                                       const_offset % 16 / 4);
+         if (result_dst.type == GLSL_TYPE_BOOL)
+            emit_asm(ir, TGSI_OPCODE_USNE, result_dst, st_src_reg(result_dst),
+                     st_src_reg_for_int(0));
 
-      if (ir->type->is_boolean()) {
-         emit_asm(ir, TGSI_OPCODE_USNE, result_dst, cbuf, st_src_reg_for_int(0));
+         add_buffer_to_load_and_stores(inst, &cbuf, &this->instructions,
+                                       NULL);
       } else {
-         emit_asm(ir, TGSI_OPCODE_MOV, result_dst, cbuf);
+         ir_constant *const_uniform_block = ir->operands[0]->as_constant();
+         ir_constant *const_offset_ir = ir->operands[1]->as_constant();
+         unsigned const_offset = const_offset_ir ?
+            const_offset_ir->value.u[0] : 0;
+         unsigned const_block = const_uniform_block ?
+            const_uniform_block->value.u[0] + 1 : 1;
+         st_src_reg index_reg = get_temp(glsl_type::uint_type);
+         st_src_reg cbuf;
+
+         cbuf.type = ir->type->base_type;
+         cbuf.file = PROGRAM_CONSTANT;
+         cbuf.index = 0;
+         cbuf.reladdr = NULL;
+         cbuf.negate = 0;
+         cbuf.abs = 0;
+         cbuf.index2D = const_block;
+
+         assert(ir->type->is_vector() || ir->type->is_scalar());
+
+         if (const_offset_ir) {
+            /* Constant index into constant buffer */
+            cbuf.reladdr = NULL;
+            cbuf.index = const_offset / 16;
+         } else {
+            ir_expression *offset_expr = ir->operands[1]->as_expression();
+            st_src_reg offset = op[1];
+
+            /* The OpenGL spec is written in such a way that accesses with
+             * non-constant offset are almost always vec4-aligned. The only
+             * exception to this are members of structs in arrays of structs:
+             * each struct in an array of structs is at least vec4-aligned,
+             * but single-element and [ui]vec2 members of the struct may be at
+             * an offset that is not a multiple of 16 bytes.
+             *
+             * Here, we extract that offset, relying on previous passes to
+             * always generate offset expressions of the form
+             * (+ expr constant_offset).
+             *
+             * Note that the std430 layout, which allows more cases of
+             * alignment less than vec4 in arrays, is not supported for
+             * uniform blocks, so we do not have to deal with it here.
+             */
+            if (offset_expr && offset_expr->operation == ir_binop_add) {
+               const_offset_ir = offset_expr->operands[1]->as_constant();
+               if (const_offset_ir) {
+                  const_offset = const_offset_ir->value.u[0];
+                  cbuf.index = const_offset / 16;
+                  offset_expr->operands[0]->accept(this);
+                  offset = this->result;
+               }
+            }
+
+            /* Relative/variable index into constant buffer */
+            emit_asm(ir, TGSI_OPCODE_USHR, st_dst_reg(index_reg), offset,
+                 st_src_reg_for_int(4));
+            cbuf.reladdr = ralloc(mem_ctx, st_src_reg);
+            memcpy(cbuf.reladdr, &index_reg, sizeof(index_reg));
+         }
+
+         if (const_uniform_block) {
+            /* Constant constant buffer */
+            cbuf.reladdr2 = NULL;
+         } else {
+            /* Relative/variable constant buffer */
+            cbuf.reladdr2 = ralloc(mem_ctx, st_src_reg);
+            memcpy(cbuf.reladdr2, &op[0], sizeof(st_src_reg));
+         }
+         cbuf.has_index2 = true;
+
+         cbuf.swizzle = swizzle_for_size(ir->type->vector_elements);
+         if (glsl_base_type_is_64bit(cbuf.type))
+            cbuf.swizzle += MAKE_SWIZZLE4(const_offset % 16 / 8,
+                                          const_offset % 16 / 8,
+                                          const_offset % 16 / 8,
+                                          const_offset % 16 / 8);
+         else
+            cbuf.swizzle += MAKE_SWIZZLE4(const_offset % 16 / 4,
+                                          const_offset % 16 / 4,
+                                          const_offset % 16 / 4,
+                                          const_offset % 16 / 4);
+
+         if (ir->type->is_boolean()) {
+            emit_asm(ir, TGSI_OPCODE_USNE, result_dst, cbuf,
+                     st_src_reg_for_int(0));
+         } else {
+            emit_asm(ir, TGSI_OPCODE_MOV, result_dst, cbuf);
+         }
       }
       break;
    }
@@ -2141,7 +2216,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
       break;
    }
    case ir_unop_i642b:
-      emit_asm(ir, TGSI_OPCODE_U64SNE, result_dst, op[0], st_src_reg_for_int(0));
+      emit_asm(ir, TGSI_OPCODE_U64SNE, result_dst, op[0], st_src_reg_for_int64(0));
       break;
    case ir_unop_i642f:
       emit_asm(ir, TGSI_OPCODE_I642F, result_dst, op[0]);
@@ -2532,7 +2607,7 @@ glsl_to_tgsi_visitor::visit(ir_dereference_array *ir)
    ir->array->accept(this);
    src = this->result;
 
-   if (ir->array->ir_type != ir_type_dereference_array) {
+   if (!src.has_index2) {
       switch (this->prog->Target) {
       case GL_TESS_CONTROL_PROGRAM_NV:
          is_2D = (src.file == PROGRAM_INPUT || src.file == PROGRAM_OUTPUT) &&
@@ -2941,6 +3016,7 @@ glsl_to_tgsi_visitor::visit(ir_assignment *ir)
       inst = (glsl_to_tgsi_instruction *)this->instructions.get_tail();
       new_inst = emit_asm(ir, inst->op, l, inst->src[0], inst->src[1], inst->src[2], inst->src[3]);
       new_inst->saturate = inst->saturate;
+      new_inst->resource = inst->resource;
       inst->dead_mask = inst->dst[0].writemask;
    } else {
       emit_block_mov(ir, ir->rhs->type, &l, &r, NULL, false);
@@ -2969,7 +3045,8 @@ glsl_to_tgsi_visitor::visit(ir_constant *ir)
       st_src_reg temp_base = get_temp(ir->type);
       st_dst_reg temp = st_dst_reg(temp_base);
 
-      foreach_in_list(ir_constant, field_value, &ir->components) {
+      for (i = 0; i < ir->type->length; i++) {
+         ir_constant *const field_value = ir->get_record_field(i);
          int size = type_size(field_value->type);
 
          assert(size > 0);
@@ -2997,7 +3074,7 @@ glsl_to_tgsi_visitor::visit(ir_constant *ir)
       in_array++;
 
       for (i = 0; i < ir->type->length; i++) {
-         ir->array_elements[i]->accept(this);
+         ir->const_elements[i]->accept(this);
          src = this->result;
          for (int j = 0; j < size; j++) {
             emit_asm(ir, TGSI_OPCODE_MOV, temp, src);
@@ -3326,25 +3403,7 @@ glsl_to_tgsi_visitor::visit_ssbo_intrinsic(ir_call *ir)
       assert(access);
    }
 
-   /* The emit_asm() might have actually split the op into pieces, e.g. for
-    * double stores. We have to go back and fix up all the generated ops.
-    */
-   unsigned op = inst->op;
-   do {
-      inst->resource = buffer;
-      if (access)
-         inst->buffer_access = access->value.u[0];
-
-      if (inst == this->instructions.get_head_raw())
-         break;
-      inst = (glsl_to_tgsi_instruction *)inst->get_prev();
-
-      if (inst->op == TGSI_OPCODE_UADD) {
-         if (inst == this->instructions.get_head_raw())
-            break;
-         inst = (glsl_to_tgsi_instruction *)inst->get_prev();
-      }
-   } while (inst->op == op && inst->resource.file == PROGRAM_UNDEFINED);
+   add_buffer_to_load_and_stores(inst, &buffer, &this->instructions, access);
 }
 
 void
@@ -5685,7 +5744,11 @@ compile_tgsi_instruction(struct st_translate *t,
          src[0] = t->shared_memory;
       } else if (inst->resource.file == PROGRAM_BUFFER) {
          src[0] = t->buffers[inst->resource.index];
+      } else if (inst->resource.file == PROGRAM_CONSTANT) {
+         assert(inst->resource.has_index2);
+         src[0] = ureg_src_register(TGSI_FILE_CONSTBUF, inst->resource.index);
       } else {
+         assert(inst->resource.file != PROGRAM_UNDEFINED);
          if (inst->resource.file == PROGRAM_IMAGE) {
             src[0] = t->images[inst->resource.index];
          } else {

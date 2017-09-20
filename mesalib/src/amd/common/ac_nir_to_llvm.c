@@ -1414,7 +1414,6 @@ static LLVMValueRef emit_ddxy(struct ac_nir_context *ctx,
 	unsigned mask;
 	int idx;
 	LLVMValueRef result;
-	bool has_ds_bpermute = ctx->abi->chip_class >= VI;
 
 	if (op == nir_op_fddx_fine || op == nir_op_fddx)
 		mask = AC_TID_MASK_LEFT;
@@ -1431,9 +1430,7 @@ static LLVMValueRef emit_ddxy(struct ac_nir_context *ctx,
 	else
 		idx = 2;
 
-	result = ac_build_ddxy(&ctx->ac, has_ds_bpermute,
-			      mask, idx,
-			      src0);
+	result = ac_build_ddxy(&ctx->ac, mask, idx, src0);
 	return result;
 }
 
@@ -3264,13 +3261,13 @@ static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
 
 	int count;
 	enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
+	bool is_array = glsl_sampler_type_is_array(type);
 	bool add_frag_pos = (dim == GLSL_SAMPLER_DIM_SUBPASS ||
 			     dim == GLSL_SAMPLER_DIM_SUBPASS_MS);
 	bool is_ms = (dim == GLSL_SAMPLER_DIM_MS ||
 		      dim == GLSL_SAMPLER_DIM_SUBPASS_MS);
-
-	count = image_type_to_components_count(dim,
-					       glsl_sampler_type_is_array(type));
+	bool gfx9_1d = ctx->abi->chip_class >= GFX9 && dim == GLSL_SAMPLER_DIM_1D;
+	count = image_type_to_components_count(dim, is_array);
 
 	if (is_ms) {
 		LLVMValueRef fmask_load_address[3];
@@ -3278,7 +3275,7 @@ static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
 
 		fmask_load_address[0] = LLVMBuildExtractElement(ctx->ac.builder, src0, masks[0], "");
 		fmask_load_address[1] = LLVMBuildExtractElement(ctx->ac.builder, src0, masks[1], "");
-		if (glsl_sampler_type_is_array(type))
+		if (is_array)
 			fmask_load_address[2] = LLVMBuildExtractElement(ctx->ac.builder, src0, masks[2], "");
 		else
 			fmask_load_address[2] = NULL;
@@ -3297,7 +3294,7 @@ static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
 							       sample_index,
 							       get_sampler_desc(ctx, instr->variables[0], AC_DESC_FMASK, true, false));
 	}
-	if (count == 1) {
+	if (count == 1 && !gfx9_1d) {
 		if (instr->src[0].ssa->num_components)
 			res = LLVMBuildExtractElement(ctx->ac.builder, src0, masks[0], "");
 		else
@@ -3307,9 +3304,8 @@ static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
 		if (is_ms)
 			count--;
 		for (chan = 0; chan < count; ++chan) {
-			coords[chan] = LLVMBuildExtractElement(ctx->ac.builder, src0, masks[chan], "");
+			coords[chan] = llvm_extract_elem(&ctx->ac, src0, chan);
 		}
-
 		if (add_frag_pos) {
 			for (chan = 0; chan < 2; ++chan)
 				coords[chan] = LLVMBuildAdd(ctx->ac.builder, coords[chan], LLVMBuildFPToUI(ctx->ac.builder, ctx->abi->frag_pos[chan],
@@ -3317,6 +3313,16 @@ static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
 			coords[2] = ac_to_integer(&ctx->ac, ctx->abi->inputs[radeon_llvm_reg_index_soa(VARYING_SLOT_LAYER, 0)]);
 			count++;
 		}
+
+		if (gfx9_1d) {
+			if (is_array) {
+				coords[2] = coords[1];
+				coords[1] = ctx->ac.i32_0;
+			} else
+				coords[1] = ctx->ac.i32_0;
+			count++;
+		}
+
 		if (is_ms) {
 			coords[count] = sample_index;
 			count++;
@@ -3457,7 +3463,7 @@ static void visit_image_store(struct ac_nir_context *ctx,
 static LLVMValueRef visit_image_atomic(struct ac_nir_context *ctx,
                                        const nir_intrinsic_instr *instr)
 {
-	LLVMValueRef params[6];
+	LLVMValueRef params[7];
 	int param_count = 0;
 	const nir_variable *var = instr->variables[0]->var;
 
@@ -3561,13 +3567,22 @@ static LLVMValueRef visit_image_size(struct ac_nir_context *ctx,
 
 	res = ac_build_image_opcode(&ctx->ac, &args);
 
+	LLVMValueRef two = LLVMConstInt(ctx->ac.i32, 2, false);
+
 	if (glsl_get_sampler_dim(type) == GLSL_SAMPLER_DIM_CUBE &&
 	    glsl_sampler_type_is_array(type)) {
-		LLVMValueRef two = LLVMConstInt(ctx->ac.i32, 2, false);
 		LLVMValueRef six = LLVMConstInt(ctx->ac.i32, 6, false);
 		LLVMValueRef z = LLVMBuildExtractElement(ctx->ac.builder, res, two, "");
 		z = LLVMBuildSDiv(ctx->ac.builder, z, six, "");
 		res = LLVMBuildInsertElement(ctx->ac.builder, res, z, two, "");
+	}
+	if (ctx->abi->chip_class >= GFX9 &&
+	    glsl_get_sampler_dim(type) == GLSL_SAMPLER_DIM_1D &&
+	    glsl_sampler_type_is_array(type)) {
+		LLVMValueRef layers = LLVMBuildExtractElement(ctx->ac.builder, res, two, "");
+		res = LLVMBuildInsertElement(ctx->ac.builder, res, layers,
+						ctx->ac.i32_1, "");
+
 	}
 	return res;
 }
@@ -4495,36 +4510,50 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 
 	/* pack derivatives */
 	if (ddx || ddy) {
+		int num_src_deriv_channels, num_dest_deriv_channels;
 		switch (instr->sampler_dim) {
 		case GLSL_SAMPLER_DIM_3D:
 		case GLSL_SAMPLER_DIM_CUBE:
 			num_deriv_comp = 3;
+			num_src_deriv_channels = 3;
+			num_dest_deriv_channels = 3;
 			break;
 		case GLSL_SAMPLER_DIM_2D:
 		default:
+			num_src_deriv_channels = 2;
+			num_dest_deriv_channels = 2;
 			num_deriv_comp = 2;
 			break;
 		case GLSL_SAMPLER_DIM_1D:
-			num_deriv_comp = 1;
+			num_src_deriv_channels = 1;
+			if (ctx->abi->chip_class >= GFX9) {
+				num_dest_deriv_channels = 2;
+				num_deriv_comp = 2;
+			} else {
+				num_dest_deriv_channels = 1;
+				num_deriv_comp = 1;
+			}
 			break;
 		}
 
-		for (unsigned i = 0; i < num_deriv_comp; i++) {
+		for (unsigned i = 0; i < num_src_deriv_channels; i++) {
 			derivs[i] = ac_to_float(&ctx->ac, llvm_extract_elem(&ctx->ac, ddx, i));
-			derivs[num_deriv_comp + i] = ac_to_float(&ctx->ac, llvm_extract_elem(&ctx->ac, ddy, i));
+			derivs[num_dest_deriv_channels + i] = ac_to_float(&ctx->ac, llvm_extract_elem(&ctx->ac, ddy, i));
+		}
+		for (unsigned i = num_src_deriv_channels; i < num_dest_deriv_channels; i++) {
+			derivs[i] = ctx->ac.f32_0;
+			derivs[num_dest_deriv_channels + i] = ctx->ac.f32_0;
 		}
 	}
 
 	if (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE && coord) {
-		if (instr->is_array && instr->op != nir_texop_lod)
-			coords[3] = apply_round_slice(&ctx->ac, coords[3]);
 		for (chan = 0; chan < instr->coord_components; chan++)
 			coords[chan] = ac_to_float(&ctx->ac, coords[chan]);
 		if (instr->coord_components == 3)
 			coords[3] = LLVMGetUndef(ctx->ac.f32);
 		ac_prepare_cube_coords(&ctx->ac,
 			instr->op == nir_texop_txd, instr->is_array,
-			coords, derivs);
+			instr->op == nir_texop_lod, coords, derivs);
 		if (num_deriv_comp)
 			num_deriv_comp--;
 	}
@@ -4551,6 +4580,23 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 				coords[2] = apply_round_slice(&ctx->ac, coords[2]);
 			}
 			address[count++] = coords[2];
+		}
+
+		if (ctx->abi->chip_class >= GFX9) {
+			LLVMValueRef filler;
+			if (instr->op == nir_texop_txf)
+				filler = ctx->ac.i32_0;
+			else
+				filler = LLVMConstReal(ctx->ac.f32, 0.5);
+
+			if (instr->sampler_dim == GLSL_SAMPLER_DIM_1D) {
+				if (instr->is_array) {
+					address[count] = address[count - 1];
+					address[count - 1] = filler;
+					count++;
+				} else
+					address[count++] = filler;
+			}
 		}
 	}
 
@@ -4648,6 +4694,14 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		LLVMValueRef z = LLVMBuildExtractElement(ctx->ac.builder, result, two, "");
 		z = LLVMBuildSDiv(ctx->ac.builder, z, six, "");
 		result = LLVMBuildInsertElement(ctx->ac.builder, result, z, two, "");
+	} else if (ctx->abi->chip_class >= GFX9 &&
+		   instr->op == nir_texop_txs &&
+		   instr->sampler_dim == GLSL_SAMPLER_DIM_1D &&
+		   instr->is_array) {
+		LLVMValueRef two = LLVMConstInt(ctx->ac.i32, 2, false);
+		LLVMValueRef layers = LLVMBuildExtractElement(ctx->ac.builder, result, two, "");
+		result = LLVMBuildInsertElement(ctx->ac.builder, result, layers,
+						ctx->ac.i32_1, "");
 	} else if (instr->dest.ssa.num_components != 4)
 		result = trim_vector(&ctx->ac, result, instr->dest.ssa.num_components);
 
@@ -6272,7 +6326,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	ctx.context = LLVMContextCreate();
 	ctx.module = LLVMModuleCreateWithNameInContext("shader", ctx.context);
 
-	ac_llvm_context_init(&ctx.ac, ctx.context);
+	ac_llvm_context_init(&ctx.ac, ctx.context, options->chip_class);
 	ctx.ac.module = ctx.module;
 
 	memset(shader_info, 0, sizeof(*shader_info));
@@ -6596,7 +6650,7 @@ void ac_create_gs_copy_shader(LLVMTargetMachineRef tm,
 	ctx.options = options;
 	ctx.shader_info = shader_info;
 
-	ac_llvm_context_init(&ctx.ac, ctx.context);
+	ac_llvm_context_init(&ctx.ac, ctx.context, options->chip_class);
 	ctx.ac.module = ctx.module;
 
 	ctx.is_gs_copy_shader = true;

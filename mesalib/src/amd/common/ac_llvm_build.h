@@ -28,6 +28,8 @@
 #include <stdbool.h>
 #include <llvm-c/TargetMachine.h>
 
+#include "amd_family.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -61,10 +63,13 @@ struct ac_llvm_context {
 	unsigned fpmath_md_kind;
 	LLVMValueRef fpmath_md_2p5_ulp;
 	LLVMValueRef empty_md;
+
+	enum chip_class chip_class;
 };
 
 void
-ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context);
+ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context,
+		     enum chip_class chip_class);
 
 unsigned ac_get_type_size(LLVMTypeRef type);
 
@@ -110,7 +115,7 @@ ac_build_fdiv(struct ac_llvm_context *ctx,
 
 void
 ac_prepare_cube_coords(struct ac_llvm_context *ctx,
-		       bool is_deriv, bool is_array,
+		       bool is_deriv, bool is_array, bool is_lod,
 		       LLVMValueRef *coords_arg,
 		       LLVMValueRef *derivs_arg);
 
@@ -189,7 +194,6 @@ ac_get_thread_id(struct ac_llvm_context *ctx);
 
 LLVMValueRef
 ac_build_ddxy(struct ac_llvm_context *ctx,
-	      bool has_ds_bpermute,
 	      uint32_t mask,
 	      int idx,
 	      LLVMValueRef val);

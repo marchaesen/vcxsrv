@@ -36,14 +36,22 @@
 
 #include "addrinterface.h"
 
-
 // ADDR_LNX_KERNEL_BUILD is for internal build
 // Moved from addrinterface.h so __KERNEL__ is not needed any more
 #if ADDR_LNX_KERNEL_BUILD // || (defined(__GNUC__) && defined(__KERNEL__))
     #include "lnx_common_defs.h" // ported from cmmqs
 #elif !defined(__APPLE__) || defined(HAVE_TSERVER)
+    #include <assert.h>
     #include <stdlib.h>
     #include <string.h>
+#endif
+
+#if BRAHMA_BUILD && !defined(DEBUG)
+#ifdef NDEBUG
+#define DEBUG 0
+#else
+#define DEBUG 1
+#endif
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -51,7 +59,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #if DEBUG
     #if defined(__GNUC__)
-        #define ADDR_DBG_BREAK()
+        #define ADDR_DBG_BREAK()    assert(false)
     #elif defined(__APPLE__)
         #define ADDR_DBG_BREAK()    { IOPanic("");}
     #else
@@ -71,21 +79,21 @@
     #define ADDR_ANALYSIS_ASSUME(expr) do { (void)(expr); } while (0)
 #endif
 
-#if DEBUG
+#if BRAHMA_BUILD
+    #define ADDR_ASSERT(__e) assert(__e)
+#elif DEBUG
     #define ADDR_ASSERT(__e)                                \
         do {                                                    \
             ADDR_ANALYSIS_ASSUME(__e);                          \
             if ( !((__e) ? TRUE : FALSE)) { ADDR_DBG_BREAK(); } \
         } while (0)
-    #define ADDR_ASSERT_ALWAYS() ADDR_DBG_BREAK()
-    #define ADDR_UNHANDLED_CASE() ADDR_ASSERT(!"Unhandled case")
-    #define ADDR_NOT_IMPLEMENTED() ADDR_ASSERT(!"Not implemented");
 #else //DEBUG
     #define ADDR_ASSERT(__e) ADDR_ANALYSIS_ASSUME(__e)
-    #define ADDR_ASSERT_ALWAYS()
-    #define ADDR_UNHANDLED_CASE()
-    #define ADDR_NOT_IMPLEMENTED()
 #endif //DEBUG
+
+#define ADDR_ASSERT_ALWAYS() ADDR_DBG_BREAK()
+#define ADDR_UNHANDLED_CASE() ADDR_ASSERT(!"Unhandled case")
+#define ADDR_NOT_IMPLEMENTED() ADDR_ASSERT(!"Not implemented");
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

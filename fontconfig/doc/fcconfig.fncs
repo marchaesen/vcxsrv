@@ -181,11 +181,8 @@ If <parameter>config</parameter> is NULL, the current configuration is used.
 @TYPE1@         FcConfig *                      @ARG1@          config
 @PURPOSE@	Get config blanks
 @DESC@
-Returns the FcBlanks object associated with the given configuration, if no
-blanks were present in the configuration, this function will return 0.
-The returned FcBlanks object if not NULL, is valid as long as the owning
-FcConfig is alive.
-If <parameter>config</parameter> is NULL, the current configuration is used.
+FcBlanks is deprecated.
+This function always returns NULL.
 @@
 
 @RET@           int

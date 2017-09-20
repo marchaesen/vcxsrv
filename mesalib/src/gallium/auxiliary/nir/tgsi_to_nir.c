@@ -314,7 +314,8 @@ ttn_emit_declaration(struct ttn_compile *c)
              file == TGSI_FILE_CONSTANT);
 
       /* nothing to do for UBOs: */
-      if ((file == TGSI_FILE_CONSTANT) && decl->Declaration.Dimension) {
+      if ((file == TGSI_FILE_CONSTANT) && decl->Declaration.Dimension &&
+          decl->Dim.Index2D != 0) {
          b->shader->info.num_ubos =
             MAX2(b->shader->info.num_ubos, decl->Dim.Index2D);
          return;
@@ -638,7 +639,7 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
       load = nir_intrinsic_instr_create(b->shader, op);
 
       load->num_components = 4;
-      if (dim) {
+      if (dim && (dim->Index > 0 || dim->Indirect)) {
          if (dimind) {
             load->src[srcn] =
                ttn_src_for_file_and_index(c, dimind->File, dimind->Index,

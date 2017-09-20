@@ -66,8 +66,11 @@ struct radeon_info {
 	uint32_t                    uvd_fw_version;
 	uint32_t                    vce_fw_version;
 	uint32_t                    me_fw_version;
+	uint32_t                    me_fw_feature;
 	uint32_t                    pfp_fw_version;
+	uint32_t                    pfp_fw_feature;
 	uint32_t                    ce_fw_version;
+	uint32_t                    ce_fw_feature;
 	uint32_t                    vce_harvest_config;
 	uint32_t                    clock_crystal_freq;
 	uint32_t                    tcc_cache_line_size;

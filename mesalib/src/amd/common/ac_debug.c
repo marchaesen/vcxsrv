@@ -43,6 +43,8 @@
 #include "util/u_memory.h"
 #include "util/u_string.h"
 
+#include <assert.h>
+
 /* Parsed IBs are difficult to read without colors. Use "less -R file" to
  * read them, or use "aha -b -f file" to convert them to html.
  */
@@ -720,4 +722,78 @@ bool ac_vm_fault_occured(enum chip_class chip_class,
 		*old_dmesg_timestamp = dmesg_timestamp;
 
 	return fault;
+}
+
+static int compare_wave(const void *p1, const void *p2)
+{
+	struct ac_wave_info *w1 = (struct ac_wave_info *)p1;
+	struct ac_wave_info *w2 = (struct ac_wave_info *)p2;
+
+	/* Sort waves according to PC and then SE, SH, CU, etc. */
+	if (w1->pc < w2->pc)
+		return -1;
+	if (w1->pc > w2->pc)
+		return 1;
+	if (w1->se < w2->se)
+		return -1;
+	if (w1->se > w2->se)
+		return 1;
+	if (w1->sh < w2->sh)
+		return -1;
+	if (w1->sh > w2->sh)
+		return 1;
+	if (w1->cu < w2->cu)
+		return -1;
+	if (w1->cu > w2->cu)
+		return 1;
+	if (w1->simd < w2->simd)
+		return -1;
+	if (w1->simd > w2->simd)
+		return 1;
+	if (w1->wave < w2->wave)
+		return -1;
+	if (w1->wave > w2->wave)
+		return 1;
+
+	return 0;
+}
+
+/* Return wave information. "waves" should be a large enough array. */
+unsigned ac_get_wave_info(struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP])
+{
+	char line[2000];
+	unsigned num_waves = 0;
+
+	FILE *p = popen("umr -wa", "r");
+	if (!p)
+		return 0;
+
+	if (!fgets(line, sizeof(line), p) ||
+	    strncmp(line, "SE", 2) != 0) {
+		pclose(p);
+		return 0;
+	}
+
+	while (fgets(line, sizeof(line), p)) {
+		struct ac_wave_info *w;
+		uint32_t pc_hi, pc_lo, exec_hi, exec_lo;
+
+		assert(num_waves < AC_MAX_WAVES_PER_CHIP);
+		w = &waves[num_waves];
+
+		if (sscanf(line, "%u %u %u %u %u %x %x %x %x %x %x %x",
+			   &w->se, &w->sh, &w->cu, &w->simd, &w->wave,
+			   &w->status, &pc_hi, &pc_lo, &w->inst_dw0,
+			   &w->inst_dw1, &exec_hi, &exec_lo) == 12) {
+			w->pc = ((uint64_t)pc_hi << 32) | pc_lo;
+			w->exec = ((uint64_t)exec_hi << 32) | exec_lo;
+			w->matched = false;
+			num_waves++;
+		}
+	}
+
+	qsort(waves, num_waves, sizeof(struct ac_wave_info), compare_wave);
+
+	pclose(p);
+	return num_waves;
 }

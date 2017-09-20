@@ -36,6 +36,7 @@
 #include "ir.h"
 #include "ir_hierarchical_visitor.h"
 #include "util/hash_table.h"
+#include "util/macros.h"
 #include "util/set.h"
 #include "compiler/glsl_types.h"
 
@@ -1043,7 +1044,7 @@ ir_validate::validate_ir(ir_instruction *ir, void *data)
    _mesa_set_add(ir_set, ir);
 }
 
-static void
+MAYBE_UNUSED static void
 check_node_type(ir_instruction *ir, void *data)
 {
    (void) data;

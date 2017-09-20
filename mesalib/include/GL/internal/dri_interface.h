@@ -1180,7 +1180,7 @@ struct __DRIdri2ExtensionRec {
  * extensions.
  */
 #define __DRI_IMAGE "DRI_IMAGE"
-#define __DRI_IMAGE_VERSION 15
+#define __DRI_IMAGE_VERSION 16
 
 /**
  * These formats correspond to the similarly named MESA_FORMAT_*
@@ -1359,6 +1359,13 @@ enum __DRIChromaSiting {
 
 #define __BLIT_FLAG_FLUSH		0x0001
 #define __BLIT_FLAG_FINISH		0x0002
+
+/**
+ * queryDmaBufFormatModifierAttribs attributes
+ */
+
+/* Available in version 16 */
+#define __DRI_IMAGE_FORMAT_MODIFIER_ATTRIB_PLANE_COUNT   0x0001
 
 typedef struct __DRIimageRec          __DRIimage;
 typedef struct __DRIimageExtensionRec __DRIimageExtension;
@@ -1600,6 +1607,24 @@ struct __DRIimageExtensionRec {
                                      int max, uint64_t *modifiers,
                                      unsigned int *external_only,
                                      int *count);
+
+   /**
+    * dmabuf format modifier attribute query for a given format and modifier.
+    *
+    * \param fourcc    The format to query. If this format is not supported by
+    *                  the driver, return false.
+    * \param modifier  The modifier to query. If this format+modifier is not
+    *                  supported by the driver, return false.
+    * \param attrib    The __DRI_IMAGE_FORMAT_MODIFIER_ATTRIB to query.
+    * \param value     A pointer to where to store the result of the query.
+    *
+    * Returns true upon success.
+    *
+    * \since 16
+    */
+   GLboolean (*queryDmaBufFormatModifierAttribs)(__DRIscreen *screen,
+                                                 uint32_t fourcc, uint64_t modifier,
+                                                 int attrib, uint64_t *value);
 };
 
 

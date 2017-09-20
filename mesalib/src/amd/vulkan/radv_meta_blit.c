@@ -275,15 +275,20 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
                VkFilter blit_filter)
 {
 	struct radv_device *device = cmd_buffer->device;
+	uint32_t src_width = radv_minify(src_iview->image->info.width, src_iview->base_mip);
+	uint32_t src_height = radv_minify(src_iview->image->info.height, src_iview->base_mip);
+	uint32_t src_depth = radv_minify(src_iview->image->info.depth, src_iview->base_mip);
+	uint32_t dst_width = radv_minify(dest_iview->image->info.width, dest_iview->base_mip);
+	uint32_t dst_height = radv_minify(dest_iview->image->info.height, dest_iview->base_mip);
 
 	assert(src_image->info.samples == dest_image->info.samples);
 
 	float vertex_push_constants[5] = {
-		(float)src_offset_0.x / (float)src_iview->extent.width,
-		(float)src_offset_0.y / (float)src_iview->extent.height,
-		(float)src_offset_1.x / (float)src_iview->extent.width,
-		(float)src_offset_1.y / (float)src_iview->extent.height,
-		(float)src_offset_0.z / (float)src_iview->extent.depth,
+		(float)src_offset_0.x / (float)src_width,
+		(float)src_offset_0.y / (float)src_height,
+		(float)src_offset_1.x / (float)src_width,
+		(float)src_offset_1.y / (float)src_height,
+		(float)src_offset_0.z / (float)src_depth,
 	};
 
 	radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
@@ -310,8 +315,8 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 					       .pAttachments = (VkImageView[]) {
 					       radv_image_view_to_handle(dest_iview),
 				       },
-				       .width = dest_iview->extent.width,
-				       .height = dest_iview->extent.height,
+				       .width = dst_width,
+				       .height = dst_height,
 				       .layers = 1,
 				}, &cmd_buffer->pool->alloc, &fb);
 	VkPipeline pipeline;
