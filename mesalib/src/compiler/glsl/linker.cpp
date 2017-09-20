@@ -2651,12 +2651,14 @@ assign_attribute_or_color_locations(void *mem_ctx,
    } to_assign[32];
    assert(max_index <= 32);
 
-   /* Temporary array for the set of attributes that have locations assigned.
+   /* Temporary array for the set of attributes that have locations assigned,
+    * for the purpose of checking overlapping slots/components of (non-ES)
+    * fragment shader outputs.
     */
-   ir_variable *assigned[16];
+   ir_variable *assigned[12 * 4]; /* (max # of FS outputs) * # components */
+   unsigned assigned_attr = 0;
 
    unsigned num_attr = 0;
-   unsigned assigned_attr = 0;
 
    foreach_in_list(ir_instruction, node, sh->ir) {
       ir_variable *const var = node->as_variable();
@@ -2882,6 +2884,12 @@ assign_attribute_or_color_locations(void *mem_ctx,
                         }
                      }
                   }
+
+                  /* At most one variable per fragment output component should
+                   * reach this. */
+                  assert(assigned_attr < ARRAY_SIZE(assigned));
+                  assigned[assigned_attr] = var;
+                  assigned_attr++;
                } else if (target_index == MESA_SHADER_FRAGMENT ||
                           (prog->IsES && prog->data->Version >= 300)) {
                   linker_error(prog, "overlapping location is assigned "
@@ -2920,9 +2928,6 @@ assign_attribute_or_color_locations(void *mem_ctx,
             if (var->type->without_array()->is_dual_slot())
                double_storage_locations |= (use_mask << attr);
          }
-
-         assigned[assigned_attr] = var;
-         assigned_attr++;
 
          continue;
       }

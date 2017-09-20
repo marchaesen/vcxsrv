@@ -118,15 +118,16 @@ static int
 ProcDPMSGetVersion(ClientPtr client)
 {
     /* REQUEST(xDPMSGetVersionReq); */
-    xDPMSGetVersionReply rep;
+    xDPMSGetVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = DPMSMajorVersion,
+        .minorVersion = DPMSMinorVersion
+    };
 
     REQUEST_SIZE_MATCH(xDPMSGetVersionReq);
 
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.majorVersion = DPMSMajorVersion;
-    rep.minorVersion = DPMSMinorVersion;
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swaps(&rep.majorVersion);
@@ -140,14 +141,14 @@ static int
 ProcDPMSCapable(ClientPtr client)
 {
     /* REQUEST(xDPMSCapableReq); */
-    xDPMSCapableReply rep;
+    xDPMSCapableReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .capable = TRUE
+    };
 
     REQUEST_SIZE_MATCH(xDPMSCapableReq);
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.capable = TRUE;
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
@@ -160,16 +161,16 @@ static int
 ProcDPMSGetTimeouts(ClientPtr client)
 {
     /* REQUEST(xDPMSGetTimeoutsReq); */
-    xDPMSGetTimeoutsReply rep;
+    xDPMSGetTimeoutsReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .standby = DPMSStandbyTime / MILLI_PER_SECOND,
+        .suspend = DPMSSuspendTime / MILLI_PER_SECOND,
+        .off = DPMSOffTime / MILLI_PER_SECOND
+    };
 
     REQUEST_SIZE_MATCH(xDPMSGetTimeoutsReq);
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.standby = DPMSStandbyTime / MILLI_PER_SECOND;
-    rep.suspend = DPMSSuspendTime / MILLI_PER_SECOND;
-    rep.off = DPMSOffTime / MILLI_PER_SECOND;
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
@@ -259,15 +260,15 @@ static int
 ProcDPMSInfo(ClientPtr client)
 {
     /* REQUEST(xDPMSInfoReq); */
-    xDPMSInfoReply rep;
+    xDPMSInfoReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .power_level = DPMSPowerLevel,
+        .state = DPMSEnabled
+    };
 
     REQUEST_SIZE_MATCH(xDPMSInfoReq);
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.power_level = DPMSPowerLevel;
-    rep.state = DPMSEnabled;
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);

@@ -289,8 +289,6 @@ ProcShmQueryVersion(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xShmQueryVersionReq);
 
-#ifndef _MSC_VER
-#endif
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);

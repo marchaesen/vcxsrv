@@ -206,15 +206,16 @@ CreateClipShape(WindowPtr pWin)
 static int
 ProcShapeQueryVersion(ClientPtr client)
 {
-    xShapeQueryVersionReply rep;
+    xShapeQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = SERVER_SHAPE_MAJOR_VERSION,
+        .minorVersion = SERVER_SHAPE_MINOR_VERSION
+    };
 
     REQUEST_SIZE_MATCH(xShapeQueryVersionReq);
-    memset(&rep, 0, sizeof(xShapeQueryVersionReply));
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.majorVersion = SERVER_SHAPE_MAJOR_VERSION;
-    rep.minorVersion = SERVER_SHAPE_MINOR_VERSION;
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
@@ -633,12 +634,13 @@ ProcShapeQueryExtents(ClientPtr client)
     rc = dixLookupWindow(&pWin, stuff->window, client, DixGetAttrAccess);
     if (rc != Success)
         return rc;
-    memset(&rep, 0, sizeof(xShapeQueryExtentsReply));
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.boundingShaped = (wBoundingShape(pWin) != 0);
-    rep.clipShaped = (wClipShape(pWin) != 0);
+    rep = (xShapeQueryExtentsReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .boundingShaped = (wBoundingShape(pWin) != 0),
+        .clipShaped = (wClipShape(pWin) != 0)
+    };
     if ((region = wBoundingShape(pWin))) {
         /* this is done in two steps because of a compiler bug on SunOS 4.1.3 */
         pExtents = RegionExtents(region);
@@ -883,16 +885,17 @@ SendShapeNotify(WindowPtr pWin, int which)
     }
     UpdateCurrentTimeIf();
     for (pShapeEvent = *pHead; pShapeEvent; pShapeEvent = pShapeEvent->next) {
-        xShapeNotifyEvent se;
-        se.type = ShapeNotify + ShapeEventBase;
-        se.kind = which;
-        se.window = pWin->drawable.id;
-        se.x = extents.x1;
-        se.y = extents.y1;
-        se.width = extents.x2 - extents.x1;
-        se.height = extents.y2 - extents.y1;
-        se.time = currentTime.milliseconds;
-        se.shaped = shaped;
+        xShapeNotifyEvent se = {
+            .type = ShapeNotify + ShapeEventBase,
+            .kind = which,
+            .window = pWin->drawable.id,
+            .x = extents.x1,
+            .y = extents.y1,
+            .width = extents.x2 - extents.x1,
+            .height = extents.y2 - extents.y1,
+            .time = currentTime.milliseconds,
+            .shaped = shaped
+        };
         WriteEventsToClient(pShapeEvent->client, 1, (xEvent *) &se);
     }
 }
@@ -923,12 +926,12 @@ ProcShapeInputSelected(ClientPtr client)
             }
         }
     }
-
-    rep.type = X_Reply;
-    rep.enabled = enabled;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-
+    rep = (xShapeInputSelectedReply) {
+        .type = X_Reply,
+        .enabled = enabled,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
@@ -1006,13 +1009,13 @@ ProcShapeGetRectangles(ClientPtr client)
             rects[i].height = box->y2 - box->y1;
         }
     }
-
-    rep.type = X_Reply;
-    rep.ordering = YXBanded;
-    rep.sequenceNumber = client->sequence;
-    rep.length = bytes_to_int32(nrects * sizeof(xRectangle));
-    rep.nrects = nrects;
-
+    rep = (xShapeGetRectanglesReply) {
+        .type = X_Reply,
+        .ordering = YXBanded,
+        .sequenceNumber = client->sequence,
+        .length = bytes_to_int32(nrects * sizeof(xRectangle)),
+        .nrects = nrects
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);

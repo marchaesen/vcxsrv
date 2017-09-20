@@ -53,11 +53,12 @@ ProcBigReqDispatch(ClientPtr client)
         return BadRequest;
     REQUEST_SIZE_MATCH(xBigReqEnableReq);
     client->big_requests = TRUE;
-    memset(&rep, 0, sizeof(xBigReqEnableReply));
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.max_request_size = maxBigRequestSize;
+    rep = (xBigReqEnableReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .max_request_size = maxBigRequestSize
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.max_request_size);

@@ -45,14 +45,16 @@ from The Open Group.
 static int
 ProcXCMiscGetVersion(ClientPtr client)
 {
-    xXCMiscGetVersionReply rep;
+    xXCMiscGetVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = XCMiscMajorVersion,
+        .minorVersion = XCMiscMinorVersion
+    };
 
     REQUEST_SIZE_MATCH(xXCMiscGetVersionReq);
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.majorVersion = XCMiscMajorVersion;
-    rep.minorVersion = XCMiscMinorVersion;
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swaps(&rep.majorVersion);
@@ -70,12 +72,13 @@ ProcXCMiscGetXIDRange(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXCMiscGetXIDRangeReq);
     GetXIDRange(client->index, FALSE, &min_id, &max_id);
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.start_id = min_id;
-    rep.count = max_id - min_id + 1;
+    rep = (xXCMiscGetXIDRangeReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .start_id = min_id,
+        .count = max_id - min_id + 1
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.start_id);
@@ -103,11 +106,12 @@ ProcXCMiscGetXIDList(ClientPtr client)
         return BadAlloc;
     }
     count = GetXIDList(client, stuff->count, pids);
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = count;
-    rep.count = count;
+    rep = (xXCMiscGetXIDListReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = count,
+        .count = count
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);

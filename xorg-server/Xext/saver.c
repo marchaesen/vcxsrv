@@ -419,14 +419,15 @@ SendScreenSaverNotify(ScreenPtr pScreen, int state, Bool forced)
         kind = ScreenSaverInternal;
     for (pEv = pPriv->events; pEv; pEv = pEv->next) {
         if (pEv->mask & mask) {
-            xScreenSaverNotifyEvent ev;
-            ev.type = ScreenSaverNotify + ScreenSaverEventBase;
-            ev.state = state;
-            ev.timestamp = currentTime.milliseconds;
-            ev.root = pScreen->root->drawable.id;
-            ev.window = pScreen->screensaver.wid;
-            ev.kind = kind;
-            ev.forced = forced;
+            xScreenSaverNotifyEvent ev = {
+                .type = ScreenSaverNotify + ScreenSaverEventBase,
+                .state = state,
+                .timestamp = currentTime.milliseconds,
+                .root = pScreen->root->drawable.id,
+                .window = pScreen->screensaver.wid,
+                .kind = kind,
+                .forced = forced
+            };
             WriteEventsToClient(pEv->client, 1, (xEvent *) &ev);
         }
     }
@@ -616,14 +617,16 @@ ScreenSaverHandle(ScreenPtr pScreen, int xstate, Bool force)
 static int
 ProcScreenSaverQueryVersion(ClientPtr client)
 {
-    xScreenSaverQueryVersionReply rep;
+    xScreenSaverQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = SERVER_SAVER_MAJOR_VERSION,
+        .minorVersion = SERVER_SAVER_MINOR_VERSION
+    };
 
     REQUEST_SIZE_MATCH(xScreenSaverQueryVersionReq);
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.majorVersion = SERVER_SAVER_MAJOR_VERSION;
-    rep.minorVersion = SERVER_SAVER_MINOR_VERSION;
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
@@ -659,12 +662,12 @@ ProcScreenSaverQueryInfo(ClientPtr client)
     UpdateCurrentTime();
     lastInput = GetTimeInMillis() - LastEventTime(XIAllDevices).milliseconds;
 
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.window = pSaver->wid;
-
+    rep = (xScreenSaverQueryInfoReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .window = pSaver->wid
+    };
     if (screenIsSaved != SCREEN_SAVER_OFF) {
         rep.state = ScreenSaverOn;
         if (ScreenSaverTime)

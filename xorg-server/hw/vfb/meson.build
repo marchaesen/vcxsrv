@@ -4,7 +4,7 @@ srcs = [
     '../../mi/miinitext.c',
 ]
 
-executable(
+xvfb_server = executable(
     'Xvfb',
     srcs,
     include_directories: inc,

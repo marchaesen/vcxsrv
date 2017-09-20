@@ -269,28 +269,28 @@ ProcXF86BigfontQueryVersion(ClientPtr client)
     xXF86BigfontQueryVersionReply reply;
 
     REQUEST_SIZE_MATCH(xXF86BigfontQueryVersionReq);
-
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
-    reply.length = 0;
-    reply.majorVersion = SERVER_XF86BIGFONT_MAJOR_VERSION;
-    reply.minorVersion = SERVER_XF86BIGFONT_MINOR_VERSION;
-    #ifdef WIN32
-    reply.uid = 0;
-    reply.gid = 0;
-    #else
-    reply.uid = geteuid();
-    reply.gid = getegid();
-    #endif
+    reply = (xXF86BigfontQueryVersionReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = SERVER_XF86BIGFONT_MAJOR_VERSION,
+        .minorVersion = SERVER_XF86BIGFONT_MINOR_VERSION,
+#ifdef WIN32
+        .uid = 0,
+        .gid = 0,
+#else,
+        .uid = geteuid(),
+        .gid = getegid(),
+#endif
 #ifdef HAS_SHM
-    reply.signature = signature;
-    reply.capabilities = (client->local && !client->swapped)
+        .signature = signature,
+        .capabilities = (client->local && !client->swapped)
                          ? XF86Bigfont_CAP_LocalShm : 0
 #else
-    reply.signature = 0;        /* This is redundant. Avoids uninitialized memory. */
-    reply.capabilities = 0;
+        .signature = 0,
+        .capabilities = 0
 #endif
-    
+    };
     if (client->swapped) {
         swaps(&reply.sequenceNumber);
         swapl(&reply.length);
