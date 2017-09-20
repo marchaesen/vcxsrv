@@ -31,6 +31,8 @@
 #define WINVER 0x0501 /* required for getaddrinfo/freeaddrinfo defined only for WinXP and above */
 #endif
 
+#define INCL_WINSOCK_API_TYPEDEFS 1 /* Needed for LPFN_GETPEERNAME */
+
 #define FD_SETSIZE 1024
 
 #include <X11/Xwinsock.h>
