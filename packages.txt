@@ -82,6 +82,7 @@ windowswmproto-1.0.4
 xauth-1.0.10
 xbitmaps-1.1.1
 xcalc-1.0.6
+xcb-util-errors-1.0
 xcb-proto git version
 xclock-1.0.7
 xcmiscproto-1.2.2
