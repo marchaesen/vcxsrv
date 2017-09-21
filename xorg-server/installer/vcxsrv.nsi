@@ -271,10 +271,21 @@ Section "Uninstall"
   Delete "$INSTDIR\msvcp140.dll"
   Delete "$INSTDIR\vcruntime140d.dll"
   Delete "$INSTDIR\msvcp140d.dll"
+  Delete "$INSTDIR\libgcc_s_sjlj-1.dll"
+  Delete "$INSTDIR\libcrypto-1_1.dll"
+  Delete "$INSTDIR\libiconv-2.dll"
+  Delete "$INSTDIR\libwinpthread-1.dll"
+  Delete "$INSTDIR\libxml2-2.dll"
+  Delete "$INSTDIR\X0.hosts"
+  Delete "$INSTDIR\xauth.exe"
+  Delete "$INSTDIR\xhost.exe"
+  Delete "$INSTDIR\xrdb.exe"
+
 
   RMDir /r "$INSTDIR\fonts"
   RMDir /r "$INSTDIR\xkbdata"
   RMDir /r "$INSTDIR\locale"
+  RMDir /r "$INSTDIR\bitmaps"
 
   ; Remove shortcuts, if any
   Delete "$SMPROGRAMS\VcXsrv\*.*"
