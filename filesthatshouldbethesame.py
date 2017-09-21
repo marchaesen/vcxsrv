@@ -220,6 +220,8 @@ libXfixes/include/X11/extensions/Xfixes.h         X11/extensions/Xfixes.h
 libXfont2/include/X11/fonts/fntfil.h              X11/fonts/fntfil.h
 libXfont2/include/X11/fonts/fontmisc.h            X11/fonts/fontmisc.h
 libXfont2/include/X11/fonts/libxfont2.h           X11/fonts/libxfont2.h
+libXfont2/include/X11/fonts/bufio.h               X11/fonts/bufio.h
+
 
 xorg-server/hw/xwin/glx/gl.xml                    mesalib/src/mapi/glapi/registry/gl.xml
 """
