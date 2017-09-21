@@ -72,6 +72,7 @@ typedef int pid_t;
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_aux.h>
+#include <xcb/xcb_errors.h>
 
 /* We need the native HWND atom for intWM, so for consistency use the
    same name as extWM does */
@@ -116,6 +117,7 @@ typedef struct _WMMsgQueueRec {
 
 typedef struct _WMInfo {
     xcb_connection_t *conn;
+    xcb_errors_context_t *err_ctx;
     WMMsgQueueRec wmMsgQueue;
     xcb_atom_t atmWmProtos;
     xcb_atom_t atmWmDelete;
@@ -134,6 +136,7 @@ typedef struct _WMProcArgRec {
 
 typedef struct _XMsgProcArgRec {
     xcb_connection_t *conn;
+    xcb_errors_context_t *err_ctx;
     DWORD dwScreen;
     WMInfoPtr pWMInfo;
     pthread_mutex_t *ppmServerStarted;
@@ -958,11 +961,17 @@ winMultiWindowWMProc(void *pArg)
             xcb_generic_event_t *event = xcb_poll_for_event(pWMInfo->conn);
             if (event) {
                 if ((event->response_type & ~0x80) == 0) {
+                    const char *extension;
                     xcb_generic_error_t *err = (xcb_generic_error_t *)event;
-                    ErrorF("winMultiWindowWMProc - Error code: %i, ID: 0x%08x, "
-                           "Major opcode: %i, Minor opcode: %i\n",
-                           err->error_code, err->resource_id,
-                           err->major_code, err->minor_code);
+                    ErrorF("winMultiWindowWMProc - Error code: %i (%s), ID: 0x%08x, "
+                           "Major opcode: %i (%s), Minor opcode: %i (%s)\n",
+                           err->error_code,
+                           xcb_errors_get_name_for_error(pWMInfo->err_ctx, err->error_code, &extension),
+                           err->resource_id,
+                           err->major_code,
+                           xcb_errors_get_name_for_major_code(pWMInfo->err_ctx, err->major_code),
+                           err->minor_code,
+                           xcb_errors_get_name_for_minor_code(pWMInfo->err_ctx, err->major_code, err->minor_code));
                 }
             }
         }
@@ -982,6 +991,12 @@ winMultiWindowWMProc(void *pArg)
 
     /* Free the mutex variable */
     pthread_mutex_destroy(&pWMInfo->wmMsgQueue.pmMutex);
+
+    xcb_disconnect(pWMInfo->conn);
+    xcb_errors_context_free(pWMInfo->err_ctx);
+    pWMInfo->conn=NULL;
+    pWMInfo->err_ctx=NULL;
+
 
     /* Free the passed-in argument */
     free(pProcArg);
@@ -1095,6 +1110,8 @@ winMultiWindowXMsgProc(void *pArg)
     winDebug("winMultiWindowXMsgProc - xcb_connect() returned and "
              "successfully opened the display.\n");
 
+    xcb_errors_context_new(pProcArg->conn, &pProcArg->err_ctx);
+
     /* Check if another window manager is already running */
     if (CheckAnotherWindowManager(pProcArg->conn, pProcArg->dwScreen)) {
         ErrorF("winMultiWindowXMsgProc - "
@@ -1168,11 +1185,17 @@ winMultiWindowXMsgProc(void *pArg)
 
         /* Branch on event type */
         if (type == 0) {
+            const char *extension;
             xcb_generic_error_t *err = (xcb_generic_error_t *)event;
-            ErrorF("winMultiWindowXMsgProc - Error code: %i, ID: 0x%08x, "
-                   "Major opcode: %i, Minor opcode: %i\n",
-                   err->error_code, err->resource_id,
-                   err->major_code, err->minor_code);
+            ErrorF("winMultiWindowWMProc - Error code: %i (%s), ID: 0x%08x, "
+                "Major opcode: %i (%s), Minor opcode: %i (%s)\n",
+                err->error_code,
+                xcb_errors_get_name_for_error(pProcArg->err_ctx, err->error_code, &extension),
+                err->resource_id,
+                err->major_code,
+                xcb_errors_get_name_for_major_code(pProcArg->err_ctx, err->major_code),
+                err->minor_code,
+                xcb_errors_get_name_for_minor_code(pProcArg->err_ctx, err->major_code, err->minor_code));
             }
         else if (type == XCB_CREATE_NOTIFY) {
             xcb_create_notify_event_t *notify = (xcb_create_notify_event_t *)event;
@@ -1329,6 +1352,7 @@ winMultiWindowXMsgProc(void *pArg)
     }
 
     xcb_disconnect(pProcArg->conn);
+    xcb_errors_context_free(pProcArg->err_ctx);
     pthread_cleanup_pop(0);
 
     return NULL;
@@ -1474,6 +1498,8 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
 
     winDebug("winInitMultiWindowWM - xcb_connect () returned and "
              "successfully opened the display.\n");
+
+    xcb_errors_context_new(pWMInfo->conn, &pWMInfo->err_ctx);
 
     /* Create some atoms */
     pWMInfo->atmWmProtos = intern_atom(pWMInfo->conn, "WM_PROTOCOLS");

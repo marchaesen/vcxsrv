@@ -70,17 +70,19 @@ libXau/include/X11/Xauth.h                        X11/Xauth.h
 
 libXdmcp/include/X11/Xdmcp.h                      X11/Xdmcp.h
 
-include/xcb/xcbext.h                              libxcb/src/xcbext.h
-include/xcb/render.h                              libxcb/src/render.h
-include/xcb/xcb.h                                 libxcb/src/xcb.h
-include/xcb/xc_misc.h                             libxcb/src/xc_misc.h
-include/xcb/bigreq.h                              libxcb/src/bigreq.h
-include/xcb/xproto.h                              libxcb/src/xproto.h
-include/xcb/xcb_windefs.h                         libxcb/src/xcb_windefs.h
-include/xcb/shape.h                               libxcb/src/shape.h
-include/xcb/xcb_icccm.h                           libxcb/src/xcb_icccm.h
-include/xcb/xcb_aux.h                             libxcb/src/xcb_aux.h
-include/xcb/xcb_ewmh.h                            libxcb/src/xcb_ewmh.h
+libxcb/src/xcbext.h                               include/xcb/xcbext.h
+libxcb/src/render.h                               include/xcb/render.h
+libxcb/src/xcb.h                                  include/xcb/xcb.h
+libxcb/src/xc_misc.h                              include/xcb/xc_misc.h
+libxcb/src/bigreq.h                               include/xcb/bigreq.h
+libxcb/src/xproto.h                               include/xcb/xproto.h
+libxcb/src/xcb_windefs.h                          include/xcb/xcb_windefs.h
+libxcb/src/shape.h                                include/xcb/shape.h
+libxcb/src/xcb_icccm.h                            include/xcb/xcb_icccm.h
+libxcb/src/xcb_aux.h                              include/xcb/xcb_aux.h
+libxcb/src/xcb_ewmh.h                             include/xcb/xcb_ewmh.h
+
+xcb-util-errors/src/xcb_errors.h                  include/xcb/xcb_errors.h
 
 mesalib/include/gl/glext.h                        gl/glext.h
 mesalib/include/gl/glx.h                          gl/glx.h

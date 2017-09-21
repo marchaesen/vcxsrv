@@ -8,7 +8,8 @@ CSRCS = \
 DEFINES += PTW32_STATIC_LIB HAVE_GETADDRINFO LIBXCB_DLL
 
 INCLUDELIBFILES = \
- $(MHMAKECONF)\libXau\$(OBJDIR)\libXau.lib
+ $(MHMAKECONF)\libXau\$(OBJDIR)\libXau.lib \
+ $(MHMAKECONF)\xcb-util-errors\$(OBJDIR)\libxcb-errors.lib
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))
 
