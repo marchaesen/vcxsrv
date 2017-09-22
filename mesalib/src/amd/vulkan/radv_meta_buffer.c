@@ -418,7 +418,7 @@ void radv_fill_buffer(struct radv_cmd_buffer *cmd_buffer,
 	if (size >= 4096)
 		fill_buffer_shader(cmd_buffer, bo, offset, size, value);
 	else if (size) {
-		uint64_t va = cmd_buffer->device->ws->buffer_get_va(bo);
+		uint64_t va = radv_buffer_get_va(bo);
 		va += offset;
 		cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, bo, 8);
 		si_cp_dma_clear_buffer(cmd_buffer, va, size, value);
@@ -436,8 +436,8 @@ void radv_copy_buffer(struct radv_cmd_buffer *cmd_buffer,
 		copy_buffer_shader(cmd_buffer, src_bo, dst_bo,
 				   src_offset, dst_offset, size);
 	else if (size) {
-		uint64_t src_va = cmd_buffer->device->ws->buffer_get_va(src_bo);
-		uint64_t dst_va = cmd_buffer->device->ws->buffer_get_va(dst_bo);
+		uint64_t src_va = radv_buffer_get_va(src_bo);
+		uint64_t dst_va = radv_buffer_get_va(dst_bo);
 		src_va += src_offset;
 		dst_va += dst_offset;
 
@@ -497,7 +497,7 @@ void radv_CmdUpdateBuffer(
 	RADV_FROM_HANDLE(radv_buffer, dst_buffer, dstBuffer);
 	bool mec = radv_cmd_buffer_uses_mec(cmd_buffer);
 	uint64_t words = dataSize / 4;
-	uint64_t va = cmd_buffer->device->ws->buffer_get_va(dst_buffer->bo);
+	uint64_t va = radv_buffer_get_va(dst_buffer->bo);
 	va += dstOffset + dst_buffer->offset;
 
 	assert(!(dataSize & 3));

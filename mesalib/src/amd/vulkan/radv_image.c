@@ -190,7 +190,7 @@ radv_make_buffer_descriptor(struct radv_device *device,
 {
 	const struct vk_format_description *desc;
 	unsigned stride;
-	uint64_t gpu_address = device->ws->buffer_get_va(buffer->bo);
+	uint64_t gpu_address = radv_buffer_get_va(buffer->bo);
 	uint64_t va = gpu_address + buffer->offset;
 	unsigned num_format, data_format;
 	int first_non_void;
@@ -227,7 +227,7 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 			       unsigned block_width, bool is_stencil,
 			       uint32_t *state)
 {
-	uint64_t gpu_address = image->bo ? device->ws->buffer_get_va(image->bo) + image->offset : 0;
+	uint64_t gpu_address = image->bo ? radv_buffer_get_va(image->bo) + image->offset : 0;
 	uint64_t va = gpu_address;
 	enum chip_class chip_class = device->physical_device->rad_info.chip_class;
 	uint64_t meta_va = 0;
@@ -468,7 +468,7 @@ si_make_texture_descriptor(struct radv_device *device,
 	/* Initialize the sampler view for FMASK. */
 	if (image->fmask.size) {
 		uint32_t fmask_format, num_format;
-		uint64_t gpu_address = device->ws->buffer_get_va(image->bo);
+		uint64_t gpu_address = radv_buffer_get_va(image->bo);
 		uint64_t va;
 
 		va = gpu_address + image->offset + image->fmask.offset;

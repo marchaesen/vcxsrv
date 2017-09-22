@@ -1922,7 +1922,7 @@ ir_to_mesa_visitor::visit(ir_constant *ir)
 	 field_value->accept(this);
 	 src = this->result;
 
-	 for (i = 0; i < (unsigned int)size; i++) {
+         for (unsigned j = 0; j < (unsigned int)size; j++) {
 	    emit(ir, OPCODE_MOV, temp, src);
 
 	    src.index++;

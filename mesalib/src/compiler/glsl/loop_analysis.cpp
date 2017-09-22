@@ -32,6 +32,145 @@ static bool all_expression_operands_are_loop_constant(ir_rvalue *,
 
 static ir_rvalue *get_basic_induction_increment(ir_assignment *, hash_table *);
 
+/**
+ * Find an initializer of a variable outside a loop
+ *
+ * Works backwards from the loop to find the pre-loop value of the variable.
+ * This is used, for example, to find the initial value of loop induction
+ * variables.
+ *
+ * \param loop  Loop where \c var is an induction variable
+ * \param var   Variable whose initializer is to be found
+ *
+ * \return
+ * The \c ir_rvalue assigned to the variable outside the loop.  May return
+ * \c NULL if no initializer can be found.
+ */
+static ir_rvalue *
+find_initial_value(ir_loop *loop, ir_variable *var)
+{
+   for (exec_node *node = loop->prev; !node->is_head_sentinel();
+        node = node->prev) {
+      ir_instruction *ir = (ir_instruction *) node;
+
+      switch (ir->ir_type) {
+      case ir_type_call:
+      case ir_type_loop:
+      case ir_type_loop_jump:
+      case ir_type_return:
+      case ir_type_if:
+         return NULL;
+
+      case ir_type_function:
+      case ir_type_function_signature:
+         assert(!"Should not get here.");
+         return NULL;
+
+      case ir_type_assignment: {
+         ir_assignment *assign = ir->as_assignment();
+         ir_variable *assignee = assign->lhs->whole_variable_referenced();
+
+         if (assignee == var)
+            return (assign->condition != NULL) ? NULL : assign->rhs;
+
+         break;
+      }
+
+      default:
+         break;
+      }
+   }
+
+   return NULL;
+}
+
+
+static int
+calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
+                     enum ir_expression_operation op)
+{
+   if (from == NULL || to == NULL || increment == NULL)
+      return -1;
+
+   void *mem_ctx = ralloc_context(NULL);
+
+   ir_expression *const sub =
+      new(mem_ctx) ir_expression(ir_binop_sub, from->type, to, from);
+
+   ir_expression *const div =
+      new(mem_ctx) ir_expression(ir_binop_div, sub->type, sub, increment);
+
+   ir_constant *iter = div->constant_expression_value(mem_ctx);
+   if (iter == NULL) {
+      ralloc_free(mem_ctx);
+      return -1;
+   }
+
+   if (!iter->type->is_integer()) {
+      const ir_expression_operation op = iter->type->is_double()
+         ? ir_unop_d2i : ir_unop_f2i;
+      ir_rvalue *cast =
+         new(mem_ctx) ir_expression(op, glsl_type::int_type, iter, NULL);
+
+      iter = cast->constant_expression_value(mem_ctx);
+   }
+
+   int iter_value = iter->get_int_component(0);
+
+   /* Make sure that the calculated number of iterations satisfies the exit
+    * condition.  This is needed to catch off-by-one errors and some types of
+    * ill-formed loops.  For example, we need to detect that the following
+    * loop does not have a maximum iteration count.
+    *
+    *    for (float x = 0.0; x != 0.9; x += 0.2)
+    *        ;
+    */
+   const int bias[] = { -1, 0, 1 };
+   bool valid_loop = false;
+
+   for (unsigned i = 0; i < ARRAY_SIZE(bias); i++) {
+      /* Increment may be of type int, uint or float. */
+      switch (increment->type->base_type) {
+      case GLSL_TYPE_INT:
+         iter = new(mem_ctx) ir_constant(iter_value + bias[i]);
+         break;
+      case GLSL_TYPE_UINT:
+         iter = new(mem_ctx) ir_constant(unsigned(iter_value + bias[i]));
+         break;
+      case GLSL_TYPE_FLOAT:
+         iter = new(mem_ctx) ir_constant(float(iter_value + bias[i]));
+         break;
+      case GLSL_TYPE_DOUBLE:
+         iter = new(mem_ctx) ir_constant(double(iter_value + bias[i]));
+         break;
+      default:
+          unreachable("Unsupported type for loop iterator.");
+      }
+
+      ir_expression *const mul =
+         new(mem_ctx) ir_expression(ir_binop_mul, increment->type, iter,
+                                    increment);
+
+      ir_expression *const add =
+         new(mem_ctx) ir_expression(ir_binop_add, mul->type, mul, from);
+
+      ir_expression *const cmp =
+         new(mem_ctx) ir_expression(op, glsl_type::bool_type, add, to);
+
+      ir_constant *const cmp_result = cmp->constant_expression_value(mem_ctx);
+
+      assert(cmp_result != NULL);
+      if (cmp_result->get_bool_component(0)) {
+         iter_value += bias[i];
+         valid_loop = true;
+         break;
+      }
+   }
+
+   ralloc_free(mem_ctx);
+   return (valid_loop) ? iter_value : -1;
+}
+
 
 /**
  * Record the fact that the given loop variable was referenced inside the loop.

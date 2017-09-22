@@ -1100,7 +1100,7 @@ ir_constant *
 ir_constant::get_record_field(int idx)
 {
    assert(this->type->is_record());
-   assert(idx >= 0 && idx < this->type->length);
+   assert(idx >= 0 && (unsigned) idx < this->type->length);
 
    return const_elements[idx];
 }

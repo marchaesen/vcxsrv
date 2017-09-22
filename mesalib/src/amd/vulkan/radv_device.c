@@ -174,7 +174,19 @@ static const VkExtensionProperties common_device_extensions[] = {
 		.extensionName = VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME,
 		.specVersion = 1,
 	},
+	{
+		.extensionName = VK_KHR_BIND_MEMORY_2_EXTENSION_NAME,
+		.specVersion = 1,
+	},
 };
+
+static const VkExtensionProperties rasterization_order_extension[] ={
+	{
+		.extensionName = VK_AMD_RASTERIZATION_ORDER_EXTENSION_NAME,
+		.specVersion = 1,
+	},
+};
+
 static const VkExtensionProperties ext_sema_device_extensions[] = {
 	{
 		.extensionName = VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
@@ -338,6 +350,15 @@ radv_physical_device_init(struct radv_physical_device *device,
 					ARRAY_SIZE(common_device_extensions));
 	if (result != VK_SUCCESS)
 		goto fail;
+
+	if (device->rad_info.chip_class >= VI && device->rad_info.max_se >= 2) {
+		result = radv_extensions_register(instance,
+						&device->extensions,
+						rasterization_order_extension,
+						ARRAY_SIZE(rasterization_order_extension));
+		if (result != VK_SUCCESS)
+			goto fail;
+	}
 
 	if (device->rad_info.has_syncobj) {
 		result = radv_extensions_register(instance,
@@ -1377,13 +1398,13 @@ fill_geom_tess_rings(struct radv_queue *queue,
 	uint32_t *desc = &map[4];
 
 	if (esgs_ring_bo)
-		esgs_va = queue->device->ws->buffer_get_va(esgs_ring_bo);
+		esgs_va = radv_buffer_get_va(esgs_ring_bo);
 	if (gsvs_ring_bo)
-		gsvs_va = queue->device->ws->buffer_get_va(gsvs_ring_bo);
+		gsvs_va = radv_buffer_get_va(gsvs_ring_bo);
 	if (tess_factor_ring_bo)
-		tess_factor_va = queue->device->ws->buffer_get_va(tess_factor_ring_bo);
+		tess_factor_va = radv_buffer_get_va(tess_factor_ring_bo);
 	if (tess_offchip_ring_bo)
-		tess_offchip_va = queue->device->ws->buffer_get_va(tess_offchip_ring_bo);
+		tess_offchip_va = radv_buffer_get_va(tess_offchip_ring_bo);
 
 	/* stride 0, num records - size, add tid, swizzle, elsize4,
 	   index stride 64 */
@@ -1730,7 +1751,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			uint32_t *map = (uint32_t*)queue->device->ws->buffer_map(descriptor_bo);
 
 			if (scratch_bo) {
-				uint64_t scratch_va = queue->device->ws->buffer_get_va(scratch_bo);
+				uint64_t scratch_va = radv_buffer_get_va(scratch_bo);
 				uint32_t rsrc1 = S_008F04_BASE_ADDRESS_HI(scratch_va >> 32) |
 				                 S_008F04_SWIZZLE_ENABLE(1);
 				map[0] = scratch_va;
@@ -1768,7 +1789,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		}
 
 		if (tess_factor_ring_bo) {
-			uint64_t tf_va = queue->device->ws->buffer_get_va(tess_factor_ring_bo);
+			uint64_t tf_va = radv_buffer_get_va(tess_factor_ring_bo);
 			if (queue->device->physical_device->rad_info.chip_class >= CIK) {
 				radeon_set_uconfig_reg(cs, R_030938_VGT_TF_RING_SIZE,
 						       S_030938_SIZE(tess_factor_ring_size / 4));
@@ -1797,7 +1818,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			                   R_00B430_SPI_SHADER_USER_DATA_HS_0,
 			                   R_00B530_SPI_SHADER_USER_DATA_LS_0};
 
-			uint64_t va = queue->device->ws->buffer_get_va(descriptor_bo);
+			uint64_t va = radv_buffer_get_va(descriptor_bo);
 
 			for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
 				radeon_set_sh_reg_seq(cs, regs[i], 2);
@@ -1807,7 +1828,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		}
 
 		if (compute_scratch_bo) {
-			uint64_t scratch_va = queue->device->ws->buffer_get_va(compute_scratch_bo);
+			uint64_t scratch_va = radv_buffer_get_va(compute_scratch_bo);
 			uint32_t rsrc1 = S_008F04_BASE_ADDRESS_HI(scratch_va >> 32) |
 			                 S_008F04_SWIZZLE_ENABLE(1);
 
@@ -2481,44 +2502,74 @@ void radv_GetDeviceMemoryCommitment(
 	*pCommittedMemoryInBytes = 0;
 }
 
-VkResult radv_BindBufferMemory(
-	VkDevice                                    device,
-	VkBuffer                                    _buffer,
-	VkDeviceMemory                              _memory,
-	VkDeviceSize                                memoryOffset)
+VkResult radv_BindBufferMemory2KHR(VkDevice device,
+                                   uint32_t bindInfoCount,
+                                   const VkBindBufferMemoryInfoKHR *pBindInfos)
 {
-	RADV_FROM_HANDLE(radv_device_memory, mem, _memory);
-	RADV_FROM_HANDLE(radv_buffer, buffer, _buffer);
+	for (uint32_t i = 0; i < bindInfoCount; ++i) {
+		RADV_FROM_HANDLE(radv_device_memory, mem, pBindInfos[i].memory);
+		RADV_FROM_HANDLE(radv_buffer, buffer, pBindInfos[i].buffer);
 
-	if (mem) {
-		buffer->bo = mem->bo;
-		buffer->offset = memoryOffset;
-	} else {
-		buffer->bo = NULL;
-		buffer->offset = 0;
+		if (mem) {
+			buffer->bo = mem->bo;
+			buffer->offset = pBindInfos[i].memoryOffset;
+		} else {
+			buffer->bo = NULL;
+		}
 	}
-
 	return VK_SUCCESS;
 }
 
-VkResult radv_BindImageMemory(
+VkResult radv_BindBufferMemory(
 	VkDevice                                    device,
-	VkImage                                     _image,
-	VkDeviceMemory                              _memory,
+	VkBuffer                                    buffer,
+	VkDeviceMemory                              memory,
 	VkDeviceSize                                memoryOffset)
 {
-	RADV_FROM_HANDLE(radv_device_memory, mem, _memory);
-	RADV_FROM_HANDLE(radv_image, image, _image);
+	const VkBindBufferMemoryInfoKHR info = {
+		.sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR,
+		.buffer = buffer,
+		.memory = memory,
+		.memoryOffset = memoryOffset
+	};
 
-	if (mem) {
-		image->bo = mem->bo;
-		image->offset = memoryOffset;
-	} else {
-		image->bo = NULL;
-		image->offset = 0;
+	return radv_BindBufferMemory2KHR(device, 1, &info);
+}
+
+VkResult radv_BindImageMemory2KHR(VkDevice device,
+                                  uint32_t bindInfoCount,
+                                  const VkBindImageMemoryInfoKHR *pBindInfos)
+{
+	for (uint32_t i = 0; i < bindInfoCount; ++i) {
+		RADV_FROM_HANDLE(radv_device_memory, mem, pBindInfos[i].memory);
+		RADV_FROM_HANDLE(radv_image, image, pBindInfos[i].image);
+
+		if (mem) {
+			image->bo = mem->bo;
+			image->offset = pBindInfos[i].memoryOffset;
+		} else {
+			image->bo = NULL;
+			image->offset = 0;
+		}
 	}
-
 	return VK_SUCCESS;
+}
+
+
+VkResult radv_BindImageMemory(
+	VkDevice                                    device,
+	VkImage                                     image,
+	VkDeviceMemory                              memory,
+	VkDeviceSize                                memoryOffset)
+{
+	const VkBindImageMemoryInfoKHR info = {
+		.sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR,
+		.image = image,
+		.memory = memory,
+		.memoryOffset = memoryOffset
+	};
+
+	return radv_BindImageMemory2KHR(device, 1, &info);
 }
 
 
@@ -2955,7 +3006,7 @@ radv_initialise_color_surface(struct radv_device *device,
 	/* Intensity is implemented as Red, so treat it that way. */
 	cb->cb_color_attrib = S_028C74_FORCE_DST_ALPHA_1(desc->swizzle[3] == VK_SWIZZLE_1);
 
-	va = device->ws->buffer_get_va(iview->bo) + iview->image->offset;
+	va = radv_buffer_get_va(iview->bo) + iview->image->offset;
 
 	cb->cb_color_base = va >> 8;
 
@@ -3007,11 +3058,11 @@ radv_initialise_color_surface(struct radv_device *device,
 	}
 
 	/* CMASK variables */
-	va = device->ws->buffer_get_va(iview->bo) + iview->image->offset;
+	va = radv_buffer_get_va(iview->bo) + iview->image->offset;
 	va += iview->image->cmask.offset;
 	cb->cb_color_cmask = va >> 8;
 
-	va = device->ws->buffer_get_va(iview->bo) + iview->image->offset;
+	va = radv_buffer_get_va(iview->bo) + iview->image->offset;
 	va += iview->image->dcc_offset;
 	cb->cb_dcc_base = va >> 8;
 	cb->cb_dcc_base |= iview->image->surface.tile_swizzle;
@@ -3028,7 +3079,7 @@ radv_initialise_color_surface(struct radv_device *device,
 	}
 
 	if (iview->image->fmask.size) {
-		va = device->ws->buffer_get_va(iview->bo) + iview->image->offset + iview->image->fmask.offset;
+		va = radv_buffer_get_va(iview->bo) + iview->image->offset + iview->image->fmask.offset;
 		cb->cb_color_fmask = va >> 8;
 		cb->cb_color_fmask |= iview->image->fmask.tile_swizzle;
 	} else {
@@ -3173,7 +3224,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 	ds->db_htile_data_base = 0;
 	ds->db_htile_surface = 0;
 
-	va = device->ws->buffer_get_va(iview->bo) + iview->image->offset;
+	va = radv_buffer_get_va(iview->bo) + iview->image->offset;
 	s_offs = z_offs = va;
 
 	if (device->physical_device->rad_info.chip_class >= GFX9) {
@@ -3201,7 +3252,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 			if (!iview->image->surface.has_stencil)
 				/* Use all of the htile_buffer for depth if there's no stencil. */
 				ds->db_stencil_info |= S_02803C_TILE_STENCIL_DISABLE(1);
-			va = device->ws->buffer_get_va(iview->bo) + iview->image->offset +
+			va = radv_buffer_get_va(iview->bo) + iview->image->offset +
 				iview->image->htile_offset;
 			ds->db_htile_data_base = va >> 8;
 			ds->db_htile_surface = S_028ABC_FULL_CACHE(1) |
@@ -3265,7 +3316,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 				/* Use all of the htile_buffer for depth if there's no stencil. */
 				ds->db_stencil_info |= S_028044_TILE_STENCIL_DISABLE(1);
 
-			va = device->ws->buffer_get_va(iview->bo) + iview->image->offset +
+			va = radv_buffer_get_va(iview->bo) + iview->image->offset +
 				iview->image->htile_offset;
 			ds->db_htile_data_base = va >> 8;
 			ds->db_htile_surface = S_028ABC_FULL_CACHE(1);

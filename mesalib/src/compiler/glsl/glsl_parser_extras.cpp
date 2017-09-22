@@ -2216,7 +2216,6 @@ do_common_optimization(exec_list *ir, bool linked,
    if (options->MaxUnrollIterations) {
       loop_state *ls = analyze_loop_variables(ir);
       if (ls->loop_found) {
-         OPT(set_loop_controls, ir, ls);
          OPT(unroll_loops, ir, ls, options);
       }
       delete ls;

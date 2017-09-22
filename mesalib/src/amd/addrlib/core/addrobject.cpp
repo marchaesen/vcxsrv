@@ -216,20 +216,16 @@ VOID Object::DebugPrint(
 #if DEBUG
     if (m_client.callbacks.debugPrint != NULL)
     {
-        va_list ap;
-
-        va_start(ap, pDebugString);
-
         ADDR_DEBUGPRINT_INPUT debugPrintInput = {0};
 
         debugPrintInput.size         = sizeof(ADDR_DEBUGPRINT_INPUT);
         debugPrintInput.pDebugString = const_cast<CHAR*>(pDebugString);
         debugPrintInput.hClient      = m_client.handle;
-        va_copy(debugPrintInput.ap, ap);
+        va_start(debugPrintInput.ap, pDebugString);
 
         m_client.callbacks.debugPrint(&debugPrintInput);
 
-        va_end(ap);
+        va_end(debugPrintInput.ap);
     }
 #endif
 }

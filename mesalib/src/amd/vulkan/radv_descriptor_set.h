@@ -68,6 +68,8 @@ struct radv_descriptor_set_layout {
    /* Number of dynamic offsets used by this descriptor set */
    uint16_t dynamic_offset_count;
 
+   bool has_immutable_samplers;
+
    /* Bindings in this descriptor set */
    struct radv_descriptor_set_binding_layout binding[0];
 };

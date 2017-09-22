@@ -215,7 +215,7 @@ radv_amdgpu_cs_create(struct radeon_winsys *ws,
 			return NULL;
 		}
 
-		cs->ib.ib_mc_address = radv_amdgpu_winsys_bo(cs->ib_buffer)->va;
+		cs->ib.ib_mc_address = radv_amdgpu_winsys_bo(cs->ib_buffer)->base.va;
 		cs->base.buf = (uint32_t *)cs->ib_mapped;
 		cs->base.max_dw = ib_size / 4 - 4;
 		cs->ib_size_ptr = &cs->ib.size;
@@ -306,8 +306,8 @@ static void radv_amdgpu_cs_grow(struct radeon_winsys_cs *_cs, size_t min_size)
 	cs->ws->base.cs_add_buffer(&cs->base, cs->ib_buffer, 8);
 
 	cs->base.buf[cs->base.cdw++] = PKT3(PKT3_INDIRECT_BUFFER_CIK, 2, 0);
-	cs->base.buf[cs->base.cdw++] = radv_amdgpu_winsys_bo(cs->ib_buffer)->va;
-	cs->base.buf[cs->base.cdw++] = radv_amdgpu_winsys_bo(cs->ib_buffer)->va >> 32;
+	cs->base.buf[cs->base.cdw++] = radv_amdgpu_winsys_bo(cs->ib_buffer)->base.va;
+	cs->base.buf[cs->base.cdw++] = radv_amdgpu_winsys_bo(cs->ib_buffer)->base.va >> 32;
 	cs->ib_size_ptr = cs->base.buf + cs->base.cdw;
 	cs->base.buf[cs->base.cdw++] = S_3F2_CHAIN(1) | S_3F2_VALID(1);
 
@@ -360,7 +360,7 @@ static void radv_amdgpu_cs_reset(struct radeon_winsys_cs *_cs)
 			cs->ws->base.buffer_destroy(cs->old_ib_buffers[i]);
 
 		cs->num_old_ib_buffers = 0;
-		cs->ib.ib_mc_address = radv_amdgpu_winsys_bo(cs->ib_buffer)->va;
+		cs->ib.ib_mc_address = radv_amdgpu_winsys_bo(cs->ib_buffer)->base.va;
 		cs->ib_size_ptr = &cs->ib.size;
 		cs->ib.size = 0;
 	}
@@ -886,7 +886,7 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 		}
 
 		ib.size = size;
-		ib.ib_mc_address = ws->buffer_get_va(bo);
+		ib.ib_mc_address = radv_buffer_get_va(bo);
 
 		request.ip_type = cs0->hw_ip;
 		request.ring = queue_idx;
@@ -964,19 +964,19 @@ static void *radv_amdgpu_winsys_get_cpu_addr(void *_cs, uint64_t addr)
 
 		bo = (struct radv_amdgpu_winsys_bo*)
 		       (i == cs->num_old_ib_buffers ? cs->ib_buffer : cs->old_ib_buffers[i]);
-		if (addr >= bo->va && addr - bo->va < bo->size) {
+		if (addr >= bo->base.va && addr - bo->base.va < bo->size) {
 			if (amdgpu_bo_cpu_map(bo->bo, &ret) == 0)
-				return (char *)ret + (addr - bo->va);
+				return (char *)ret + (addr - bo->base.va);
 		}
 	}
 	if(cs->ws->debug_all_bos) {
 		pthread_mutex_lock(&cs->ws->global_bo_list_lock);
 		list_for_each_entry(struct radv_amdgpu_winsys_bo, bo,
 		                    &cs->ws->global_bo_list, global_list_item) {
-			if (addr >= bo->va && addr - bo->va < bo->size) {
+			if (addr >= bo->base.va && addr - bo->base.va < bo->size) {
 				if (amdgpu_bo_cpu_map(bo->bo, &ret) == 0) {
 					pthread_mutex_unlock(&cs->ws->global_bo_list_lock);
-					return (char *)ret + (addr - bo->va);
+					return (char *)ret + (addr - bo->base.va);
 				}
 			}
 		}
