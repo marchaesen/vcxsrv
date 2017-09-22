@@ -380,7 +380,7 @@ radv_dump_annotated_shader(struct radv_pipeline *pipeline,
 	if (!shader)
 		return;
 
-	start_addr = device->ws->buffer_get_va(shader->bo) + shader->bo_offset;
+	start_addr = radv_buffer_get_va(shader->bo) + shader->bo_offset;
 	end_addr = start_addr + shader->code_size;
 
 	/* See if any wave executes the shader. */

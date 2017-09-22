@@ -80,7 +80,6 @@ LIBGLSL_FILES = \
 	glsl/list.h \
 	glsl/loop_analysis.cpp \
 	glsl/loop_analysis.h \
-	glsl/loop_controls.cpp \
 	glsl/loop_unroll.cpp \
 	glsl/lower_blend_equation_advanced.cpp \
 	glsl/lower_buffer_access.cpp \

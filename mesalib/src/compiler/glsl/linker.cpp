@@ -2884,12 +2884,6 @@ assign_attribute_or_color_locations(void *mem_ctx,
                         }
                      }
                   }
-
-                  /* At most one variable per fragment output component should
-                   * reach this. */
-                  assert(assigned_attr < ARRAY_SIZE(assigned));
-                  assigned[assigned_attr] = var;
-                  assigned_attr++;
                } else if (target_index == MESA_SHADER_FRAGMENT ||
                           (prog->IsES && prog->data->Version >= 300)) {
                   linker_error(prog, "overlapping location is assigned "
@@ -2901,6 +2895,18 @@ assign_attribute_or_color_locations(void *mem_ctx,
                                  "to %s `%s' %d %d %d\n", string, var->name,
                                  used_locations, use_mask, attr);
                }
+            }
+
+            if (target_index == MESA_SHADER_FRAGMENT && !prog->IsES) {
+               /* Only track assigned variables for non-ES fragment shaders
+                * to avoid overflowing the array.
+                *
+                * At most one variable per fragment output component should
+                * reach this.
+                */
+               assert(assigned_attr < ARRAY_SIZE(assigned));
+               assigned[assigned_attr] = var;
+               assigned_attr++;
             }
 
             used_locations |= (use_mask << attr);

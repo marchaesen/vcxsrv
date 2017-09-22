@@ -259,8 +259,6 @@ C_SOURCES := \
 	util/u_index_modify.c \
 	util/u_index_modify.h \
 	util/u_inlines.h \
-	util/u_keymap.c \
-	util/u_keymap.h \
 	util/u_linear.c \
 	util/u_linear.h \
 	util/u_log.c \

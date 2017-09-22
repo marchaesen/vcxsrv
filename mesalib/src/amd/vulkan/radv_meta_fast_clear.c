@@ -341,7 +341,7 @@ radv_emit_set_predication_state_from_image(struct radv_cmd_buffer *cmd_buffer,
 	uint64_t va = 0;
 
 	if (value) {
-		va = cmd_buffer->device->ws->buffer_get_va(image->bo) + image->offset;
+		va = radv_buffer_get_va(image->bo) + image->offset;
 		va += image->dcc_pred_offset;
 	}
 

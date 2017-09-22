@@ -35,32 +35,9 @@ extern class loop_state *
 analyze_loop_variables(exec_list *instructions);
 
 
-/**
- * Fill in loop control fields
- *
- * Based on analysis of loop variables, this function tries to remove
- * redundant sequences in the loop of the form
- *
- *  (if (expression bool ...) (break))
- *
- * For example, if it is provable that one loop exit condition will
- * always be satisfied before another, the unnecessary exit condition will be
- * removed.
- */
-extern bool
-set_loop_controls(exec_list *instructions, loop_state *ls);
-
-
 extern bool
 unroll_loops(exec_list *instructions, loop_state *ls,
              const struct gl_shader_compiler_options *options);
-
-ir_rvalue *
-find_initial_value(ir_loop *loop, ir_variable *var);
-
-int
-calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
-		     enum ir_expression_operation op);
 
 
 /**

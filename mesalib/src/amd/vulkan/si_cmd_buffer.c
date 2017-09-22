@@ -1060,7 +1060,7 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	uint32_t *ptr = NULL;
 	uint64_t va = 0;
 	if (chip_class == GFX9) {
-		va = cmd_buffer->device->ws->buffer_get_va(cmd_buffer->gfx9_fence_bo) + cmd_buffer->gfx9_fence_offset;
+		va = radv_buffer_get_va(cmd_buffer->gfx9_fence_bo) + cmd_buffer->gfx9_fence_offset;
 		ptr = &cmd_buffer->gfx9_fence_idx;
 	}
 	si_cs_emit_cache_flush(cmd_buffer->cs,
@@ -1239,7 +1239,7 @@ static void si_cp_dma_realign_engine(struct radv_cmd_buffer *cmd_buffer, unsigne
 
 	radv_cmd_buffer_upload_alloc(cmd_buffer, buf_size, SI_CPDMA_ALIGNMENT,  &offset, &ptr);
 
-	va = cmd_buffer->device->ws->buffer_get_va(cmd_buffer->upload.upload_bo);
+	va = radv_buffer_get_va(cmd_buffer->upload.upload_bo);
 	va += offset;
 
 	si_cp_dma_prepare(cmd_buffer, size, size, &dma_flags);

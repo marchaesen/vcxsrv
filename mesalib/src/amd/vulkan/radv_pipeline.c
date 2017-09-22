@@ -33,6 +33,7 @@
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
 #include "spirv/nir_spirv.h"
+#include "vk_util.h"
 
 #include <llvm-c/Core.h>
 #include <llvm-c/TargetMachine.h>
@@ -262,6 +263,7 @@ radv_tess_pipeline_compile(struct radv_pipeline *pipeline,
 	if (tcs_nir == NULL)
 		return;
 
+	tes_nir->info.tess.ccw = !tes_nir->info.tess.ccw;
 	nir_lower_tes_patch_vertices(tes_nir,
 				     tcs_nir->info.tess.tcs_vertices_out);
 
@@ -1085,6 +1087,13 @@ radv_pipeline_init_multisample_state(struct radv_pipeline *pipeline,
 		ms->pa_sc_mode_cntl_1 |= EG_S_028A4C_PS_ITER_SAMPLE(ps_iter_samples > 1);
 	}
 
+	const struct VkPipelineRasterizationStateRasterizationOrderAMD *raster_order =
+		vk_find_struct_const(pCreateInfo->pRasterizationState->pNext, PIPELINE_RASTERIZATION_STATE_RASTERIZATION_ORDER_AMD);
+	if (raster_order && raster_order->rasterizationOrder == VK_RASTERIZATION_ORDER_RELAXED_AMD) {
+		ms->pa_sc_mode_cntl_1 |= S_028A4C_OUT_OF_ORDER_PRIMITIVE_ENABLE(1) |
+					S_028A4C_OUT_OF_ORDER_WATER_MARK(0x7);
+	}
+
 	if (vkms) {
 		if (vkms->alphaToCoverageEnable)
 			blend->db_alpha_to_mask |= S_028B70_ALPHA_TO_MASK_ENABLE(1);
@@ -1875,7 +1884,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 		    !ps->info.fs.writes_sample_mask)
 			pipeline->graphics.blend.spi_shader_col_format = V_028714_SPI_SHADER_32_R;
 	}
-	
+
 	unsigned z_order;
 	pipeline->graphics.db_shader_control = 0;
 	if (ps->info.fs.early_fragment_test || !ps->info.fs.writes_memory)

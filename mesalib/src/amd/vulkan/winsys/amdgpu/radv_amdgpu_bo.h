@@ -40,8 +40,8 @@ struct radv_amdgpu_map_range {
 };
 
 struct radv_amdgpu_winsys_bo {
+	struct radeon_winsys_bo base;
 	amdgpu_va_handle va_handle;
-	uint64_t va;
 	uint64_t size;
 	struct radv_amdgpu_winsys *ws;
 	bool is_virtual;

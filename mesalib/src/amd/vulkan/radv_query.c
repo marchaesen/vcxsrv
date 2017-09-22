@@ -952,8 +952,8 @@ void radv_CmdCopyQueryPoolResults(
 	RADV_FROM_HANDLE(radv_buffer, dst_buffer, dstBuffer);
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
 	unsigned elem_size = (flags & VK_QUERY_RESULT_64_BIT) ? 8 : 4;
-	uint64_t va = cmd_buffer->device->ws->buffer_get_va(pool->bo);
-	uint64_t dest_va = cmd_buffer->device->ws->buffer_get_va(dst_buffer->bo);
+	uint64_t va = radv_buffer_get_va(pool->bo);
+	uint64_t dest_va = radv_buffer_get_va(dst_buffer->bo);
 	dest_va += dst_buffer->offset + dstOffset;
 
 	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, pool->bo, 8);
@@ -1057,7 +1057,7 @@ void radv_CmdResetQueryPool(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
-	uint64_t va = cmd_buffer->device->ws->buffer_get_va(pool->bo);
+	uint64_t va = radv_buffer_get_va(pool->bo);
 
 	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, pool->bo, 8);
 
@@ -1078,7 +1078,7 @@ void radv_CmdBeginQuery(
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
-	uint64_t va = cmd_buffer->device->ws->buffer_get_va(pool->bo);
+	uint64_t va = radv_buffer_get_va(pool->bo);
 	va += pool->stride * query;
 
 	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 8);
@@ -1118,7 +1118,7 @@ void radv_CmdEndQuery(
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
-	uint64_t va = cmd_buffer->device->ws->buffer_get_va(pool->bo);
+	uint64_t va = radv_buffer_get_va(pool->bo);
 	uint64_t avail_va = va + pool->availability_offset + 4 * query;
 	va += pool->stride * query;
 
@@ -1170,7 +1170,7 @@ void radv_CmdWriteTimestamp(
 	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
 	bool mec = radv_cmd_buffer_uses_mec(cmd_buffer);
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
-	uint64_t va = cmd_buffer->device->ws->buffer_get_va(pool->bo);
+	uint64_t va = radv_buffer_get_va(pool->bo);
 	uint64_t avail_va = va + pool->availability_offset + 4 * query;
 	uint64_t query_va = va + pool->stride * query;
 

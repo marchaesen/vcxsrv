@@ -305,7 +305,6 @@ ir_visitor_status
 loop_unroll_visitor::visit_leave(ir_loop *ir)
 {
    loop_variable_state *const ls = this->state->get(ir);
-   int iterations;
 
    /* If we've entered a loop that hasn't been analyzed, something really,
     * really bad has happened.
@@ -313,6 +312,39 @@ loop_unroll_visitor::visit_leave(ir_loop *ir)
    if (ls == NULL) {
       assert(ls != NULL);
       return visit_continue;
+   }
+
+   if (ls->limiting_terminator != NULL) {
+      /* If the limiting terminator has an iteration count of zero, then we've
+       * proven that the loop cannot run, so delete it.
+       */
+      int iterations = ls->limiting_terminator->iterations;
+      if (iterations == 0) {
+         ir->remove();
+         this->progress = true;
+         return visit_continue;
+      }
+   }
+
+   /* Remove the conditional break statements associated with all terminators
+    * that are associated with a fixed iteration count, except for the one
+    * associated with the limiting terminator--that one needs to stay, since
+    * it terminates the loop.  Exception: if the loop still has a normative
+    * bound, then that terminates the loop, so we don't even need the limiting
+    * terminator.
+    */
+   foreach_in_list(loop_terminator, t, &ls->terminators) {
+      if (t->iterations < 0)
+         continue;
+
+      if (t != ls->limiting_terminator) {
+         t->ir->remove();
+
+         assert(ls->num_loop_jumps > 0);
+         ls->num_loop_jumps--;
+
+         this->progress = true;
+      }
    }
 
    if (ls->limiting_terminator == NULL) {
@@ -343,7 +375,7 @@ loop_unroll_visitor::visit_leave(ir_loop *ir)
       return visit_continue;
    }
 
-   iterations = ls->limiting_terminator->iterations;
+   int iterations = ls->limiting_terminator->iterations;
 
    const int max_iterations = options->MaxUnrollIterations;
 

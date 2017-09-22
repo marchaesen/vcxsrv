@@ -298,6 +298,7 @@ glxClientCallback(CallbackListPtr *list, void *closure, void *data)
         free(cl->returnBuf);
         free(cl->largeCmdBuf);
         free(cl->GLClientextensions);
+        memset(cl, 0, sizeof(*cl));
         break;
 
     default:

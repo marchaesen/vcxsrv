@@ -67,7 +67,7 @@ radv_amdgpu_winsys_virtual_map(struct radv_amdgpu_winsys_bo *bo,
 
 	p_atomic_inc(&range->bo->ref_count);
 	int r = radv_amdgpu_bo_va_op(bo->ws->dev, range->bo->bo, range->bo_offset, range->size,
-				     range->offset + bo->va, 0, AMDGPU_VA_OP_MAP);
+				     range->offset + bo->base.va, 0, AMDGPU_VA_OP_MAP);
 	if (r)
 		abort();
 }
@@ -82,7 +82,7 @@ radv_amdgpu_winsys_virtual_unmap(struct radv_amdgpu_winsys_bo *bo,
 		return; /* TODO: PRT mapping */
 
 	int r = radv_amdgpu_bo_va_op(bo->ws->dev, range->bo->bo, range->bo_offset, range->size,
-				     range->offset + bo->va, 0, AMDGPU_VA_OP_UNMAP);
+				     range->offset + bo->base.va, 0, AMDGPU_VA_OP_UNMAP);
 	if (r)
 		abort();
 	radv_amdgpu_winsys_bo_destroy((struct radeon_winsys_bo *)range->bo);
@@ -252,7 +252,7 @@ static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo)
 			bo->ws->num_buffers--;
 			pthread_mutex_unlock(&bo->ws->global_bo_list_lock);
 		}
-		radv_amdgpu_bo_va_op(bo->ws->dev, bo->bo, 0, bo->size, bo->va, 0, AMDGPU_VA_OP_UNMAP);
+		radv_amdgpu_bo_va_op(bo->ws->dev, bo->bo, 0, bo->size, bo->base.va, 0, AMDGPU_VA_OP_UNMAP);
 		amdgpu_bo_free(bo->bo);
 	}
 	amdgpu_va_range_free(bo->va_handle);
@@ -295,7 +295,7 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 	if (r)
 		goto error_va_alloc;
 
-	bo->va = va;
+	bo->base.va = va;
 	bo->va_handle = va_handle;
 	bo->size = size;
 	bo->ws = ws;
@@ -367,12 +367,6 @@ error_va_alloc:
 	return NULL;
 }
 
-static uint64_t radv_amdgpu_winsys_bo_get_va(struct radeon_winsys_bo *_bo)
-{
-	struct radv_amdgpu_winsys_bo *bo = radv_amdgpu_winsys_bo(_bo);
-	return bo->va;
-}
-
 static void *
 radv_amdgpu_winsys_bo_map(struct radeon_winsys_bo *_bo)
 {
@@ -433,7 +427,7 @@ radv_amdgpu_winsys_bo_from_fd(struct radeon_winsys *_ws,
 		initial |= RADEON_DOMAIN_GTT;
 
 	bo->bo = result.buf_handle;
-	bo->va = va;
+	bo->base.va = va;
 	bo->va_handle = va_handle;
 	bo->initial_domain = initial;
 	bo->size = result.alloc_size;
@@ -527,7 +521,6 @@ void radv_amdgpu_bo_init_functions(struct radv_amdgpu_winsys *ws)
 {
 	ws->base.buffer_create = radv_amdgpu_winsys_bo_create;
 	ws->base.buffer_destroy = radv_amdgpu_winsys_bo_destroy;
-	ws->base.buffer_get_va = radv_amdgpu_winsys_bo_get_va;
 	ws->base.buffer_map = radv_amdgpu_winsys_bo_map;
 	ws->base.buffer_unmap = radv_amdgpu_winsys_bo_unmap;
 	ws->base.buffer_from_fd = radv_amdgpu_winsys_bo_from_fd;

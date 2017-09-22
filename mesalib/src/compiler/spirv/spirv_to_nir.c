@@ -2951,17 +2951,12 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeVertexOrderCw:
       assert(b->shader->stage == MESA_SHADER_TESS_CTRL ||
              b->shader->stage == MESA_SHADER_TESS_EVAL);
-      /* Vulkan's notion of CCW seems to match the hardware backends,
-       * but be the opposite of OpenGL.  Currently NIR follows GL semantics,
-       * so we set it backwards here.
-       */
-      b->shader->info.tess.ccw = true;
+      b->shader->info.tess.ccw = false;
       break;
    case SpvExecutionModeVertexOrderCcw:
       assert(b->shader->stage == MESA_SHADER_TESS_CTRL ||
              b->shader->stage == MESA_SHADER_TESS_EVAL);
-      /* Backwards; see above */
-      b->shader->info.tess.ccw = false;
+      b->shader->info.tess.ccw = true;
       break;
    case SpvExecutionModePointMode:
       assert(b->shader->stage == MESA_SHADER_TESS_CTRL ||

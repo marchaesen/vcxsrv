@@ -1141,10 +1141,12 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 		AddrSurfInfoIn.flags.stencil = 1;
 		AddrSurfInfoIn.bpp = 8;
 
-		if (!AddrSurfInfoIn.flags.depth)
+		if (!AddrSurfInfoIn.flags.depth) {
 			r = gfx9_get_preferred_swizzle_mode(addrlib, &AddrSurfInfoIn, false,
 							    &AddrSurfInfoIn.swizzleMode);
-		else
+			if (r)
+				return r;
+		} else
 			AddrSurfInfoIn.flags.depth = 0;
 
 		r = gfx9_compute_miptree(addrlib, surf, compressed, &AddrSurfInfoIn);

@@ -133,9 +133,11 @@ struct radeon_bo_metadata {
 };
 
 uint32_t syncobj_handle;
-struct radeon_winsys_bo;
 struct radeon_winsys_fence;
 
+struct radeon_winsys_bo {
+	uint64_t va;
+};
 struct radv_winsys_sem_counts {
 	uint32_t syncobj_count;
 	uint32_t sem_count;
@@ -179,8 +181,6 @@ struct radeon_winsys {
 			      int *fd);
 
 	void (*buffer_unmap)(struct radeon_winsys_bo *bo);
-
-	uint64_t (*buffer_get_va)(struct radeon_winsys_bo *bo);
 
 	void (*buffer_set_metadata)(struct radeon_winsys_bo *bo,
 				    struct radeon_bo_metadata *md);
@@ -261,6 +261,11 @@ static inline void radeon_emit_array(struct radeon_winsys_cs *cs,
 {
 	memcpy(cs->buf + cs->cdw, values, count * 4);
 	cs->cdw += count;
+}
+
+static inline uint64_t radv_buffer_get_va(struct radeon_winsys_bo *bo)
+{
+	return bo->va;
 }
 
 #endif /* RADV_RADEON_WINSYS_H */
