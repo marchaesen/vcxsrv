@@ -217,7 +217,6 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\link_uniform_initializers.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\link_varyings.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_analysis.cpp" />
-    <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_controls.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_unroll.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_buffer_access.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_const_arrays_to_uniforms.cpp" />

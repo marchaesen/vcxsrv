@@ -105,9 +105,6 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_analysis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_controls.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_unroll.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -366,15 +363,5 @@
     <ClCompile Include="..\..\..\..\src\util\sha1\sha1.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\..\..\..\src\compiler\glsl\glsl_lexer.ll">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\..\src\compiler\glsl\glsl_parser.yy">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
 </Project>
