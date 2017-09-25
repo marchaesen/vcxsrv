@@ -74,6 +74,8 @@ typedef uint32_t xcb_window_t;
 
 #include "wsi_common.h"
 
+#define ATI_VENDOR_ID 0x1002
+
 #define MAX_VBS         32
 #define MAX_VERTEX_ATTRIBS 32
 #define MAX_RTS          8
@@ -1132,13 +1134,6 @@ struct radv_graphics_pipeline_create_info {
 	bool db_resummarize;
 	uint32_t custom_blend_mode;
 };
-
-VkResult
-radv_pipeline_init(struct radv_pipeline *pipeline, struct radv_device *device,
-		   struct radv_pipeline_cache *cache,
-		   const VkGraphicsPipelineCreateInfo *pCreateInfo,
-		   const struct radv_graphics_pipeline_create_info *extra,
-		   const VkAllocationCallbacks *alloc);
 
 VkResult
 radv_graphics_pipeline_create(VkDevice device,

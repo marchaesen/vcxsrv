@@ -48,7 +48,8 @@ libmesautil_la_SOURCES = \
 
 libmesautil_la_LIBADD = \
 	$(CLOCK_LIB) \
-	$(ZLIB_LIBS)
+	$(ZLIB_LIBS) \
+	$(LIBATOMIC_LIBS)
 
 libxmlconfig_la_SOURCES = $(XMLCONFIG_FILES)
 libxmlconfig_la_CFLAGS = \

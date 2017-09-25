@@ -1725,7 +1725,7 @@ static void calculate_ps_inputs(struct radv_pipeline *pipeline)
 	pipeline->graphics.ps_input_cntl_num = ps_offset;
 }
 
-VkResult
+static VkResult
 radv_pipeline_init(struct radv_pipeline *pipeline,
 		   struct radv_device *device,
 		   struct radv_pipeline_cache *cache,

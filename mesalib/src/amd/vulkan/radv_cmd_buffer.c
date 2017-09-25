@@ -1010,6 +1010,11 @@ static void
 radv_emit_scissor(struct radv_cmd_buffer *cmd_buffer)
 {
 	uint32_t count = cmd_buffer->state.dynamic.scissor.count;
+
+	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_PS_PARTIAL_FLUSH;
+		si_emit_cache_flush(cmd_buffer);
+	}
 	si_write_scissors(cmd_buffer->cs, 0, count,
 			  cmd_buffer->state.dynamic.scissor.scissors,
 			  cmd_buffer->state.dynamic.viewport.viewports,

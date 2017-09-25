@@ -1,10 +1,18 @@
 language: c
 cache: ccache
-dist: trusty
-services: docker
+
+matrix:
+ include:
+   - os: linux
+     dist: trusty
+     services: docker
+   - os: osx
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull anholt/xserver-travis ; fi
+
+install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ccache ; fi
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM anholt/xserver-travis:v6 > Dockerfile ; fi
@@ -13,3 +21,5 @@ before_script:
 
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run --volume $HOME/.ccache:/root/.ccache withgit /bin/sh -c "cd /root && ./test/scripts/build-travis-deps.sh" ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./test/scripts/build-travis-osx.sh ; fi
+  - ccache -s
