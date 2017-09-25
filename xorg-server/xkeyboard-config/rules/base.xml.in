@@ -2553,7 +2553,7 @@
         <variant>
           <configItem>
             <name>mmuock</name>
-            <description>Mmuock</description>
+            <_description>Mmuock</_description>
           </configItem>
         </variant>
       </variantList>
@@ -3653,6 +3653,26 @@
         </variant>
       </variantList>
     </layout>
+<!--Old Hungarian layouts-->
+<layout>
+       <configItem>
+        <name>hung</name>
+        <_description>Old Hungarian</_description>
+<languageList>
+<iso639Id>hun</iso639Id>
+</languageList>       
+</configItem>
+      <variantList>
+        <variant>
+         <configItem>
+            <name>oldhun</name>
+            <_shortDescription>oldhun</_shortDescription>
+            <_description>Old Hungarian (default)</_description>
+          </configItem>
+        </variant>
+      </variantList>
+    </layout>
+<!-- End of Old Hungarian layouts-->
     <layout>
       <configItem>
         <name>is</name>
@@ -5989,8 +6009,8 @@
     <layout>
       <configItem>
         <name>id</name>
-        <shortDescription>id</shortDescription>
-        <description>Indonesian (Jawi)</description>
+        <_shortDescription>id</_shortDescription>
+        <_description>Indonesian (Jawi)</_description>
         <languageList>
           <iso639Id>ind</iso639Id>
           <iso639Id>msa</iso639Id>
@@ -6006,8 +6026,8 @@
     <layout>
       <configItem>
         <name>my</name>
-        <shortDescription>ms</shortDescription>
-        <description>Malay (Jawi, Arabic Keyboard)</description>
+        <_shortDescription>ms</_shortDescription>
+        <_description>Malay (Jawi, Arabic Keyboard)</_description>
         <languageList>
           <iso639Id>ind</iso639Id>
           <iso639Id>msa</iso639Id>
@@ -6022,7 +6042,7 @@
        <variant>
          <configItem>
           <name>phonetic</name>
-            <description>Malay (Jawi, phonetic)</description>
+            <_description>Malay (Jawi, phonetic)</_description>
          </configItem>
        </variant>
       </variantList>

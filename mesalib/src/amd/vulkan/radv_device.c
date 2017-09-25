@@ -564,7 +564,7 @@ radv_enumerate_devices(struct radv_instance *instance)
 	for (unsigned i = 0; i < (unsigned)max_devices; i++) {
 		if (devices[i]->available_nodes & 1 << DRM_NODE_RENDER &&
 		    devices[i]->bustype == DRM_BUS_PCI &&
-		    devices[i]->deviceinfo.pci->vendor_id == 0x1002) {
+		    devices[i]->deviceinfo.pci->vendor_id == ATI_VENDOR_ID) {
 
 			result = radv_physical_device_init(instance->physicalDevices +
 			                                   instance->physicalDeviceCount,
@@ -827,7 +827,7 @@ void radv_GetPhysicalDeviceProperties(
 	*pProperties = (VkPhysicalDeviceProperties) {
 		.apiVersion = VK_MAKE_VERSION(1, 0, 42),
 		.driverVersion = vk_get_driver_version(),
-		.vendorID = 0x1002,
+		.vendorID = ATI_VENDOR_ID,
 		.deviceID = pdevice->rad_info.pci_id,
 		.deviceType = pdevice->rad_info.has_dedicated_vram ? VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU : VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
 		.limits = limits,
@@ -1203,6 +1203,11 @@ VkResult radv_CreateDevice(
 		device->physical_device->rad_info.chip_class >= VI &&
 		device->physical_device->rad_info.max_se >= 2;
 
+	if (getenv("RADV_TRACE_FILE")) {
+		if (!radv_init_trace(device))
+			goto fail;
+	}
+
 	result = radv_device_init_meta(device);
 	if (result != VK_SUCCESS)
 		goto fail;
@@ -1223,11 +1228,6 @@ VkResult radv_CreateDevice(
 			break;
 		}
 		device->ws->cs_finalize(device->empty_cs[family]);
-	}
-
-	if (getenv("RADV_TRACE_FILE")) {
-		if (!radv_init_trace(device))
-			goto fail;
 	}
 
 	if (device->physical_device->rad_info.chip_class >= CIK)

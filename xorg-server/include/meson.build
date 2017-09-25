@@ -31,7 +31,7 @@ else
     conf_data.set('X_BYTE_ORDER', 'X_BIG_ENDIAN')
 endif
 
-glx_align64 = ''
+glx_align64 = []
 if cc.sizeof('unsigned long') == 8
    conf_data.set('_XSERVER64', '1')
    glx_align64 = '-D__GLX_ALIGN64'

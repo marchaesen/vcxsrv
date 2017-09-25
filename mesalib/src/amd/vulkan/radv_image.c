@@ -147,7 +147,7 @@ radv_init_surface(struct radv_device *device,
 		surface->flags |= RADEON_SURF_SCANOUT;
 	return 0;
 }
-#define ATI_VENDOR_ID 0x1002
+
 static uint32_t si_get_bo_metadata_word1(struct radv_device *device)
 {
 	return (ATI_VENDOR_ID << 16) | device->physical_device->rad_info.pci_id;

@@ -1,0 +1,170 @@
+// New style XKB layout used Old Hungarian keyboard layouts
+//
+// 
+//
+// (C) 2013 Andras Tisza
+// (C) 2017 Viktor Kovacs <kovacs.viktor.dev@gmail.com>
+//
+// Permission is granted to anyone to use, distribute and modify
+// this file in any way, provided that the above copyright notice
+// is left intact and the author of the modification summarizes
+// the changes in this header.
+//
+// This file is distributed without any expressed or implied warranty.
+//
+// Changes:
+// 2013 - Planned Old Hungarian default layout
+// 2017 - Added Old Hungarian default layout
+
+default partial alphanumeric_keys
+xkb_symbols "oldhun"{
+name[Group1]="Old Hungarian (default)";
+include "level3(caps_switch_latch)"
+include "level3(ralt_switch)"
+key.type[Group1]="FOUR_LEVEL_SEMIALPHABETIC";
+// In the remarks you can read characters displayed only Unicode point
+    key <AE01> {[U10CFA,         apostrophe,	1,	asciitilde    ]};
+//Old Hungarian one
+    
+    key <AE02> {[                 U10CFB,	quotedbl,	2,quotedbl]};
+//Old Hungarian five
+    
+    key <AE03> {[                 U10CFC,	plus,	3,	plus]};
+//Old Hungarian ten
+    
+    key <AE04> {[       U10CFD,	exclam,	4,	excalm]};
+//Old Hungarian fifty
+    
+    key <AE05> {[       U10CFE,	percent,	5,	percent]};
+//Old Hungarian hundred
+    
+    key <AE06> {[       U10CFF,	slash, 6,   slash]};
+//Old Hungarian thousand
+ 
+    key <AE07> {[U10CC6,	U10C86,	7,	equal]};
+//Old Hungarian cs, Cs
+    
+    key <AE08> {[ U10CDA,	U10C9A,	8,	parenleft]};
+//Old Hungarian ny, Ny
+    
+    key <AE09> {[U10CE8,	U10CA8,	9,	parenright]};
+//Old Hungarian ty, Ty
+    
+    key <AE10> {[     U10CDE,     U10C9E,    U10CDD,       U10C9D          ]};
+//Old Hungarian Rudimenta oe, Oe, Nikolsburg oe, Oe
+    
+    key <AE11> {[U10CED,         U10CAD		]};
+//Old Hungarian ue , Ue
+    
+    key <AE12> {[U10CDC,         U10C9C		 ]};
+//Old Hungarian oo, OO
+    
+    key <AD01> {[U10CCE,         U10C8E,	backslash	    ]};
+//Old-Hungarian gy, Gy
+    
+    key <AD02> {[U10CF0,         U10CB0		     ]}; 
+//Old Hungarian zs, Zs
+    
+    key <AD03> {[U10CC9,         U10C89,       U10CCA,         U10C8A ]};
+ //Old Hungarian e, E, close e, close E
+    
+    key <AD04> {[U10CE2,         U10CA2,       U10CE3,         U10CA3 ]};
+//Old Hungarian r, R, short r, short R
+    
+    key <AD05> {[     U10CE6,         U10CA6,       U10CF1,         U10CB1 ]};
+//Old Hungarian t, T, ent-sharped sign,Ent-sharped sign
+    
+    key <AD06> {[U10CEF,         U10CAF		 ]};
+//Old Hungarian z, Z
+    
+    key <AD07> {[U10CEA,         U10CAA,       U10CF2,         U10CB2 ]};
+//Old Hungarian u, U,  Old Hungarian us, Us
+    
+    key <AD08> {[U10CD0,         U10C90		        ]};
+//Old Hungarian i, I
+   
+    key <AD09> {[U10CDB,         U10C9B		                                 ]};
+//Old Hungarian o, O
+    
+    key <AD10> {[U10CE0,         U10CA0		        ]};
+//Old Hungarian p, P
+    
+    key <AD11> {[U10CDF,         U10C9F		]};
+//Old Hungarian oee, Oee
+    
+    key <AD12> {[     U10CEB,         U10CAB,        U10CD5,         U10C95]};
+//Old Hungarian uu,Uu,unk,Unk
+   
+    key <AC01> {[ U10CC0  ,       U10C80,       U10CC3,         U10C83 ]};
+//Old Hungarian a,A,amb,Amb
+    
+    key <AC02> {[U10CE4,         U10CA4,       U10CE1,         U10CA1 ]};
+//Old Hungarian s,S,emp,Emp
+    
+    key <AC03> {[     U10CC7,         U10C87,       U10CE7,         U10CA7 ]};
+//Old Hungarian d,D, ent/ant/int, Ent/Ant/Int
+	
+	key <AC04> {[U10CCC,         U10C8C,	U10CE9,         U10CA9]};
+//Old Hungarian f,F ech, Ech
+    
+    key <AC05> {[     U10CCD,         U10C8D,	bracketleft	 ]};
+//Old Hungarian g, G
+    
+    key <AC06> {[     U10CCF,         U10C8F,       bracketright	        ]};
+//Old Hungarian h, H
+    
+    
+    key <AC07> {[      U10CD2,         U10C92,       backslash         ]};
+//Old Hungarian j, J
+    
+    key <AC08> {[U10CD3,         U10C93,       U10CD4,         U10C94 ]};
+//Old Hungarian open k, open K, close k, close K
+    
+    key <AC09> {[U10CD6,         U10C96		]};
+//Old Hungarian l, L
+    
+    key <AC10> {[U10CCB,         U10C8B		]};
+//Old Hungarian ee, EE
+    
+    key <AC11> {[U10CC1,         U10C81 ,	U10CC8,	U10C88]};
+//Old Hungarian aa, AA, and And
+	
+	     
+    key <BKSL> {[U10CEC,         U10CAC		]};
+//Old Hungarian ue, Ue
+    
+    key <AB01> {[ U10CD7,         U10C97,	greater 	 ]};
+//Old Hungarian ly, Ly
+    
+    key <AB02> {[ U10CE5,         U10CA5,	numbersign 	]};
+//Old Hungarian sz, Sz
+    
+    key <AB03> {[     U10CC4,         U10C84,       U10CC5,         U10C85 ]};
+//Old Hungarian c,C, enc, Enc
+    
+    key <AB04> {[U10CEE,         U10CAE,	at	]};
+//Old Hungarian v,V
+    
+    key <AB05> {[U10CC2,         U10C82,	braceleft	       ]};
+//Old Hungarian b, B
+    
+    key <AB06> { [       U10CD9,         U10C99  ,	braceright	     ]};
+//Old Hungarian n, N
+    
+    key <AB07> {[     U10CD8,         U10C98 ,	less	]};
+//Old Hungarian m, M
+    
+    key <AB08> {[U2E41,     U2E2E,         U204F   	               ]};
+//reserved question mark,reserved semicolon, reserved comma
+    
+    key <AB09> {[period,        colon, 	greater	                    ]};
+    
+    key <AB10> {[minus,   underscore,          asterisk	   ]};
+    
+	key <LSGT> {[U10CD1,         U10C91,	less	]};
+//Old Hungarian ii,II
+	
+	key <TLDE> {[	section,	U200F,	0,	U200E]};
+//Right to left mark, left to right mark
+
+	    };

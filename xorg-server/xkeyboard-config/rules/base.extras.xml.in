@@ -1103,12 +1103,12 @@
           <!-- Tweaking the position of the "(" and ")" keys -->
           <configItem>
               <name>parens</name>
-              <description>Parentheses position</description>
+              <_description>Parentheses position</_description>
           </configItem>
           <option>
               <configItem>
                   <name>parens:swap_brackets</name>
-                  <description>Swap with square brackets</description>
+                  <_description>Swap with square brackets</_description>
               </configItem>
           </option>
       </group>

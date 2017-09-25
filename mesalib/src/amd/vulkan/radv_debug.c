@@ -373,7 +373,6 @@ radv_dump_annotated_shader(struct radv_pipeline *pipeline,
 			   struct ac_wave_info *waves, unsigned num_waves,
 			   FILE *f)
 {
-	struct radv_device *device = pipeline->device;
 	uint64_t start_addr, end_addr;
 	unsigned i;
 
