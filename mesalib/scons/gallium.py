@@ -193,15 +193,15 @@ def generate(env):
     env.Tool(env['toolchain'])
 
     # Allow override compiler and specify additional flags from environment
-    if os.environ.has_key('CC'):
+    if 'CC' in os.environ:
         env['CC'] = os.environ['CC']
-    if os.environ.has_key('CFLAGS'):
+    if 'CFLAGS' in os.environ:
         env['CCFLAGS'] += SCons.Util.CLVar(os.environ['CFLAGS'])
-    if os.environ.has_key('CXX'):
+    if 'CXX' in os.environ:
         env['CXX'] = os.environ['CXX']
-    if os.environ.has_key('CXXFLAGS'):
+    if 'CXXFLAGS' in os.environ:
         env['CXXFLAGS'] += SCons.Util.CLVar(os.environ['CXXFLAGS'])
-    if os.environ.has_key('LDFLAGS'):
+    if 'LDFLAGS' in os.environ:
         env['LINKFLAGS'] += SCons.Util.CLVar(os.environ['LDFLAGS'])
 
     # Detect gcc/clang not by executable name, but through pre-defined macros
@@ -257,16 +257,16 @@ def generate(env):
     # Backwards compatability with the debug= profile= options
     if env['build'] == 'debug':
         if not env['debug']:
-            print 'scons: warning: debug option is deprecated and will be removed eventually; use instead'
-            print
-            print ' scons build=release'
-            print
+            print('scons: warning: debug option is deprecated and will be removed eventually; use instead')
+            print('')
+            print(' scons build=release')
+            print('')
             env['build'] = 'release'
         if env['profile']:
-            print 'scons: warning: profile option is deprecated and will be removed eventually; use instead'
-            print
-            print ' scons build=profile'
-            print
+            print('scons: warning: profile option is deprecated and will be removed eventually; use instead')
+            print('')
+            print(' scons build=profile')
+            print('')
             env['build'] = 'profile'
     if False:
         # Enforce SConscripts to use the new build variable
@@ -300,7 +300,7 @@ def generate(env):
     env['build_dir'] = build_dir
     env.SConsignFile(os.path.join(build_dir, '.sconsign'))
     if 'SCONS_CACHE_DIR' in os.environ:
-        print 'scons: Using build cache in %s.' % (os.environ['SCONS_CACHE_DIR'],)
+        print('scons: Using build cache in %s.' % (os.environ['SCONS_CACHE_DIR'],))
         env.CacheDir(os.environ['SCONS_CACHE_DIR'])
     env['CONFIGUREDIR'] = os.path.join(build_dir, 'conf')
     env['CONFIGURELOG'] = os.path.join(os.path.abspath(build_dir), 'config.log')
@@ -385,8 +385,8 @@ def generate(env):
     if env['embedded']:
         cppdefines += ['PIPE_SUBSYSTEM_EMBEDDED']
     if env['texture_float']:
-        print 'warning: Floating-point textures enabled.'
-        print 'warning: Please consult docs/patents.txt with your lawyer before building Mesa.'
+        print('warning: Floating-point textures enabled.')
+        print('warning: Please consult docs/patents.txt with your lawyer before building Mesa.')
         cppdefines += ['TEXTURE_FLOAT_ENABLED']
     env.Append(CPPDEFINES = cppdefines)
 

@@ -51,7 +51,7 @@ def generate(env):
     elif env['machine'] == 'x86_64':
         target_cpu = 'x64'
     else:
-        raise SCons.Errors.InternalError, "Unsupported target machine"
+        raise SCons.Errors.InternalError("Unsupported target machine")
 
     include_dir = os.path.join(dxsdk_root, 'Include')
     lib_dir = os.path.join(dxsdk_root, 'Lib', target_cpu)

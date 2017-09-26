@@ -162,6 +162,8 @@ radv_create_shader_variant_from_pipeline_cache(struct radv_device *device,
 
 	if (cache)
 		entry = radv_pipeline_cache_search(cache, sha1);
+	else
+		entry = radv_pipeline_cache_search(device->mem_cache, sha1);
 
 	if (!entry)
 		return NULL;
@@ -262,13 +264,14 @@ radv_pipeline_cache_add_entry(struct radv_pipeline_cache *cache,
 }
 
 struct radv_shader_variant *
-radv_pipeline_cache_insert_shader(struct radv_pipeline_cache *cache,
+radv_pipeline_cache_insert_shader(struct radv_device *device,
+				  struct radv_pipeline_cache *cache,
 				  const unsigned char *sha1,
 				  struct radv_shader_variant *variant,
 				  const void *code, unsigned code_size)
 {
 	if (!cache)
-		return variant;
+		cache = device->mem_cache;
 
 	pthread_mutex_lock(&cache->mutex);
 	struct cache_entry *entry = radv_pipeline_cache_search_unlocked(cache, sha1);

@@ -32,15 +32,22 @@
 
 static void
 radv_meta_save_novertex(struct radv_meta_saved_state *state,
-	       const struct radv_cmd_buffer *cmd_buffer,
-	       uint32_t dynamic_mask)
+			const struct radv_cmd_buffer *cmd_buffer)
 {
 	state->old_pipeline = cmd_buffer->state.pipeline;
 	state->old_descriptor_set0 = cmd_buffer->state.descriptors[0];
 
-	state->dynamic_mask = dynamic_mask;
-	radv_dynamic_state_copy(&state->dynamic, &cmd_buffer->state.dynamic,
-				dynamic_mask);
+	/* Save all viewports. */
+	state->viewport.count = cmd_buffer->state.dynamic.viewport.count;
+	typed_memcpy(state->viewport.viewports,
+		     cmd_buffer->state.dynamic.viewport.viewports,
+		     MAX_VIEWPORTS);
+
+	/* Save all scissors. */
+	state->scissor.count = cmd_buffer->state.dynamic.scissor.count;
+	typed_memcpy(state->scissor.scissors,
+		     cmd_buffer->state.dynamic.scissor.scissors,
+		     MAX_SCISSORS);
 
 	memcpy(state->push_constants, cmd_buffer->push_constants, MAX_PUSH_CONSTANTS_SIZE);
 }
@@ -55,9 +62,20 @@ radv_meta_restore(const struct radv_meta_saved_state *state,
 
 	cmd_buffer->state.dirty |= RADV_CMD_DIRTY_PIPELINE;
 
-	radv_dynamic_state_copy(&cmd_buffer->state.dynamic, &state->dynamic,
-				state->dynamic_mask);
-	cmd_buffer->state.dirty |= state->dynamic_mask;
+	/* Restore all viewports. */
+	cmd_buffer->state.dynamic.viewport.count = state->viewport.count;
+	typed_memcpy(cmd_buffer->state.dynamic.viewport.viewports,
+		     state->viewport.viewports,
+		     MAX_VIEWPORTS);
+
+	/* Restore all scissors. */
+	cmd_buffer->state.dynamic.scissor.count = state->scissor.count;
+	typed_memcpy(cmd_buffer->state.dynamic.scissor.scissors,
+		     state->scissor.scissors,
+		     MAX_SCISSORS);
+
+	cmd_buffer->state.dirty |= 1 << VK_DYNAMIC_STATE_VIEWPORT |
+				   1 << VK_DYNAMIC_STATE_SCISSOR;
 
 	memcpy(cmd_buffer->push_constants, state->push_constants, MAX_PUSH_CONSTANTS_SIZE);
 	cmd_buffer->push_constant_stages |= VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT;
@@ -391,11 +409,11 @@ void
 radv_meta_save_graphics_reset_vport_scissor_novertex(struct radv_meta_saved_state *saved_state,
 						     struct radv_cmd_buffer *cmd_buffer)
 {
-	uint32_t dirty_state = (1 << VK_DYNAMIC_STATE_VIEWPORT) | (1 << VK_DYNAMIC_STATE_SCISSOR);
-	radv_meta_save_novertex(saved_state, cmd_buffer, dirty_state);
+	radv_meta_save_novertex(saved_state, cmd_buffer);
 	cmd_buffer->state.dynamic.viewport.count = 0;
 	cmd_buffer->state.dynamic.scissor.count = 0;
-	cmd_buffer->state.dirty |= dirty_state;
+	cmd_buffer->state.dirty |= 1 << VK_DYNAMIC_STATE_VIEWPORT |
+				   1 << VK_DYNAMIC_STATE_SCISSOR;
 }
 
 nir_ssa_def *radv_meta_gen_rect_vertices_comp2(nir_builder *vs_b, nir_ssa_def *comp2)

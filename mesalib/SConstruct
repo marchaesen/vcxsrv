@@ -50,10 +50,10 @@ except KeyError:
     pass
 else:
     targets = targets.split(',')
-    print 'scons: warning: targets option is deprecated; pass the targets on their own such as'
-    print
-    print '  scons %s' % ' '.join(targets)
-    print
+    print('scons: warning: targets option is deprecated; pass the targets on their own such as')
+    print()
+    print('  scons %s' % ' '.join(targets))
+    print()
     COMMAND_LINE_TARGETS.append(targets)
 
 
@@ -152,8 +152,7 @@ try:
 except ImportError:
     pass
 else:
-    aliases = default_ans.keys()
-    aliases.sort()
+    aliases = sorted(default_ans.keys())
     env.Help('\n')
     env.Help('Recognized targets:\n')
     for alias in aliases:
