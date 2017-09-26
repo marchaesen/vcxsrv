@@ -49,11 +49,16 @@ getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _data)
     // only get data for monitor number specified in <data>
     data->monitorNum++;
     if (data->monitorNum == data->requestedMonitor) {
+        MONITORINFO monitorInfo;
+        monitorInfo.cbSize=sizeof(monitorInfo);
+        if (!GetMonitorInfo(hMonitor, &monitorInfo))
+          return FALSE;
+
         data->bMonitorSpecifiedExists = TRUE;
-        data->monitorOffsetX = rect->left;
-        data->monitorOffsetY = rect->top;
-        data->monitorHeight = rect->bottom - rect->top;
-        data->monitorWidth = rect->right - rect->left;
+        data->monitorOffsetX = monitorInfo.rcWork.left;
+        data->monitorOffsetY = monitorInfo.rcWork.top;
+        data->monitorHeight = monitorInfo.rcWork.bottom - monitorInfo.rcWork.top;
+        data->monitorWidth = monitorInfo.rcWork.right - monitorInfo.rcWork.left;
         data->monitorHandle = hMonitor;
         return FALSE;
     }

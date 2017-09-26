@@ -90,39 +90,39 @@ wBOOL CALLBACK enumWindowsProc(HWND hwnd, LPARAM lParam)
     return TRUE;
 
   BOOL moveWin=FALSE;
-  if (rect.left<monitorInfo.rcMonitor.left)
+  if (rect.left<monitorInfo.rcWork.left)
   {
     moveWin=TRUE;
-    rect.right+=monitorInfo.rcMonitor.left-rect.left;
-    rect.left=monitorInfo.rcMonitor.left;
+    rect.right+=monitorInfo.rcWork.left-rect.left;
+    rect.left=monitorInfo.rcWork.left;
   }
-  if (rect.top<monitorInfo.rcMonitor.top)
+  if (rect.top<monitorInfo.rcWork.top)
   {
     moveWin=TRUE;
-    rect.bottom+=monitorInfo.rcMonitor.top-rect.top;
-    rect.top=monitorInfo.rcMonitor.top;
+    rect.bottom+=monitorInfo.rcWork.top-rect.top;
+    rect.top=monitorInfo.rcWork.top;
   }
-  if (rect.bottom>monitorInfo.rcMonitor.bottom)
+  if (rect.bottom>monitorInfo.rcWork.bottom)
   {
     moveWin=TRUE;
-    rect.top+=monitorInfo.rcMonitor.bottom-rect.bottom;
-    rect.bottom=monitorInfo.rcMonitor.bottom;
+    rect.top+=monitorInfo.rcWork.bottom-rect.bottom;
+    rect.bottom=monitorInfo.rcWork.bottom;
   }
-  if (rect.right>monitorInfo.rcMonitor.right)
+  if (rect.right>monitorInfo.rcWork.right)
   {
     moveWin=TRUE;
-    rect.left+=monitorInfo.rcMonitor.right-rect.right;
-    rect.right=monitorInfo.rcMonitor.right;
+    rect.left+=monitorInfo.rcWork.right-rect.right;
+    rect.right=monitorInfo.rcWork.right;
   }
-  if (rect.left<monitorInfo.rcMonitor.left)
+  if (rect.left<monitorInfo.rcWork.left)
   {
     moveWin=TRUE;
-    rect.left=monitorInfo.rcMonitor.left;
+    rect.left=monitorInfo.rcWork.left;
   }
-  if (rect.top<monitorInfo.rcMonitor.top)
+  if (rect.top<monitorInfo.rcWork.top)
   {
     moveWin=TRUE;
-    rect.top=monitorInfo.rcMonitor.top;
+    rect.top=monitorInfo.rcWork.top;
   }
   if (moveWin)
   {
