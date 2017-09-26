@@ -42,7 +42,7 @@ if HAVE_GALLIUM_R300
 SUBDIRS += drivers/r300
 endif
 
-## radeon - linked into r600 and radeonsi
+## radeon - linked into radeonsi
 if HAVE_GALLIUM_RADEON_COMMON
 SUBDIRS += drivers/radeon
 endif

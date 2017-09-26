@@ -12,7 +12,7 @@ try:
         'rev-parse',
         '--short=10',
         'HEAD',
-    ], stderr=open(os.devnull, 'w'))
+    ], stderr=open(os.devnull, 'w')).decode("ascii")
 except:
     # don't print anything if it fails
     pass

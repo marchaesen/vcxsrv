@@ -50,7 +50,7 @@ def generate(env):
         llvm_dir = None
     else:
         if not os.path.isdir(llvm_dir):
-            raise SCons.Errors.InternalError, "Specified LLVM directory not found"
+            raise SCons.Errors.InternalError("Specified LLVM directory not found")
 
         if env['debug']:
             llvm_subdir = 'Debug'
@@ -61,20 +61,20 @@ def generate(env):
         if not os.path.isdir(llvm_bin_dir):
             llvm_bin_dir = os.path.join(llvm_dir, 'bin')
             if not os.path.isdir(llvm_bin_dir):
-                raise SCons.Errors.InternalError, "LLVM binary directory not found"
+                raise SCons.Errors.InternalError("LLVM binary directory not found")
 
         env.PrependENVPath('PATH', llvm_bin_dir)
 
     if env['platform'] == 'windows':
         # XXX: There is no llvm-config on Windows, so assume a standard layout
         if llvm_dir is None:
-            print 'scons: LLVM environment variable must be specified when building for windows'
+            print('scons: LLVM environment variable must be specified when building for windows')
             return
 
         # Try to determine the LLVM version from llvm/Config/config.h
         llvm_config = os.path.join(llvm_dir, 'include/llvm/Config/llvm-config.h')
         if not os.path.exists(llvm_config):
-            print 'scons: could not find %s' % llvm_config
+            print('scons: could not find %s' % llvm_config)
             return
         llvm_version_major_re = re.compile(r'^#define LLVM_VERSION_MAJOR ([0-9]+)')
         llvm_version_minor_re = re.compile(r'^#define LLVM_VERSION_MINOR ([0-9]+)')
@@ -92,10 +92,10 @@ def generate(env):
             llvm_version = distutils.version.LooseVersion('%s.%s' % (llvm_version_major, llvm_version_minor))
 
         if llvm_version is None:
-            print 'scons: could not determine the LLVM version from %s' % llvm_config
+            print('scons: could not determine the LLVM version from %s' % llvm_config)
             return
         if llvm_version < distutils.version.LooseVersion(required_llvm_version):
-            print 'scons: LLVM version %s found, but %s is required' % (llvm_version, required_llvm_version)
+            print('scons: LLVM version %s found, but %s is required' % (llvm_version, required_llvm_version))
             return
 
         env.Prepend(CPPPATH = [os.path.join(llvm_dir, 'include')])
@@ -231,14 +231,14 @@ def generate(env):
     else:
         llvm_config = os.environ.get('LLVM_CONFIG', 'llvm-config')
         if not env.Detect(llvm_config):
-            print 'scons: %s script not found' % llvm_config
+            print('scons: %s script not found' % llvm_config)
             return
 
         llvm_version = env.backtick('%s --version' % llvm_config).rstrip()
         llvm_version = distutils.version.LooseVersion(llvm_version)
 
         if llvm_version < distutils.version.LooseVersion(required_llvm_version):
-            print 'scons: LLVM version %s found, but %s is required' % (llvm_version, required_llvm_version)
+            print('scons: LLVM version %s found, but %s is required' % (llvm_version, required_llvm_version))
             return
 
         try:
@@ -264,13 +264,13 @@ def generate(env):
                 env.ParseConfig('%s --system-libs' % llvm_config)
                 env.Append(CXXFLAGS = ['-std=c++11'])
         except OSError:
-            print 'scons: llvm-config version %s failed' % llvm_version
+            print('scons: llvm-config version %s failed' % llvm_version)
             return
 
     assert llvm_version is not None
     env['llvm'] = True
 
-    print 'scons: Found LLVM version %s' % llvm_version
+    print('scons: Found LLVM version %s' % llvm_version)
     env['LLVM_VERSION'] = llvm_version
 
     # Define HAVE_LLVM macro with the major/minor version number (e.g., 0x0206 for 2.6)

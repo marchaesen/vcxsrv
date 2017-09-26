@@ -122,7 +122,9 @@ radv_init_surface(struct radv_device *device,
 		          (const struct  VkImageFormatListCreateInfoKHR *)
 		                vk_find_struct_const(pCreateInfo->pNext,
 		                                     IMAGE_FORMAT_LIST_CREATE_INFO_KHR);
-		if (format_list) {
+
+		/* We have to ignore the existence of the list if viewFormatCount = 0 */
+		if (format_list && format_list->viewFormatCount) {
 			/* compatibility is transitive, so we only need to check
 			 * one format with everything else. */
 			for (unsigned i = 0; i < format_list->viewFormatCount; ++i) {

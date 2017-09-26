@@ -30,7 +30,7 @@ def write_git_sha1_h_file(filename):
         try:
             subprocess.Popen(args, stdout=f).wait()
         except:
-            print "Warning: exception in write_git_sha1_h_file()"
+            print("Warning: exception in write_git_sha1_h_file()")
             return
 
     if not os.path.exists(filename) or not filecmp.cmp(tempfile, filename):
