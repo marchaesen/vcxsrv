@@ -68,19 +68,19 @@ void MessageDebug::debug(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, con
         LPNMHDR pnmh = (LPNMHDR)lParam;
         int psn_index = -(int)pnmh->code - 200;
         if (psn_index >= 0 && psn_index < 10 && psn_notify[psn_index])
-            printf("%s: %p %04x WM_NOTIFY (%s)\n", prefix, hwnd, wParam, psn_notify[psn_index]);
+            printf("%s: %p %Ix WM_NOTIFY (%s)\n", prefix, hwnd, wParam, psn_notify[psn_index]);
         else if (pnmh->code < NOTIFY_NAMES_LEN && notify_names[pnmh->code])
-            printf("%s: %p %04x WM_NOTIFY (%s)\n", prefix, hwnd, wParam, notify_names[pnmh->code]);
+            printf("%s: %p %Ix WM_NOTIFY (%s)\n", prefix, hwnd, wParam, notify_names[pnmh->code]);
         else
-            printf("%s: %p %04x WM_NOTIFY (%u)\n", prefix, hwnd, wParam, pnmh->code);
+            printf("%s: %p %Ix WM_NOTIFY (%u)\n", prefix, hwnd, wParam, pnmh->code);
     }
     else if (uMsg >= MESSAGE_NAMES_LEN)
         if (uMsg >= WM_USER)
-            printf("%s: %p %04x %08x WM_USER + %d\n", prefix, hwnd, wParam, lParam, uMsg - WM_USER);
+            printf("%s: %p %Ix %Ix WM_USER + %d\n", prefix, hwnd, wParam, lParam, uMsg - WM_USER);
         else
-            printf("%s: %p %04x %08x %d\n", prefix, hwnd, wParam, lParam, uMsg);
+            printf("%s: %p %Ix %Ix %d\n", prefix, hwnd, wParam, lParam, uMsg);
     else if (uMsg >= 0 && uMsg < MESSAGE_NAMES_LEN && message_names[uMsg])
-        printf("%s: %p %04x %08x %s\n", prefix, hwnd, wParam, lParam, message_names[uMsg]);
+        printf("%s: %p %Ix %Ix %s\n", prefix, hwnd, wParam, lParam, message_names[uMsg]);
 #endif
 }
 
