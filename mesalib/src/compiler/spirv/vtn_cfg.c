@@ -435,7 +435,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          list_for_each_entry(struct vtn_case, cse, &swtch->cases, link) {
             assert(cse->start_block != break_block);
             vtn_cfg_walk_blocks(b, &cse->body, cse->start_block, cse,
-                                break_block, NULL, loop_cont, NULL);
+                                break_block, loop_break, loop_cont, NULL);
          }
 
          /* Finally, we walk over all of the cases one more time and put

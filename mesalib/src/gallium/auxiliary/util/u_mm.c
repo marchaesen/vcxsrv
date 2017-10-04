@@ -183,7 +183,10 @@ u_mmAllocMem(struct mem_block *heap, int size, int align2, int startSearch)
 
    assert(size >= 0);
    assert(align2 >= 0);
-   assert(align2 <= 12); /* sanity check, 2^12 (4KB) enough? */
+   /* Make sure that a byte alignment isn't getting passed for our
+    * power-of-two alignment arg.
+    */
+   assert(align2 < 32);
 
    if (!heap || align2 < 0 || size <= 0)
       return NULL;

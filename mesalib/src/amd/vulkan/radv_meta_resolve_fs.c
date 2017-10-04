@@ -332,9 +332,7 @@ fail:
 VkResult
 radv_device_init_meta_resolve_fragment_state(struct radv_device *device)
 {
-	struct radv_meta_state *state = &device->meta_state;
 	VkResult res;
-	memset(&state->resolve_fragment, 0, sizeof(state->resolve_fragment));
 
 	res = create_layout(device);
 	if (res != VK_SUCCESS)

@@ -1707,7 +1707,7 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 						      result);
 		break;
 	case nir_op_ffma:
-		result = emit_intrin_3f_param(&ctx->ac, "llvm.fma",
+		result = emit_intrin_3f_param(&ctx->ac, "llvm.fmuladd",
 		                              ac_to_float_type(&ctx->ac, def_type), src[0], src[1], src[2]);
 		break;
 	case nir_op_ibitfield_extract:
@@ -1933,7 +1933,7 @@ get_buffer_size(struct ac_nir_context *ctx, LLVMValueRef descriptor, bool in_ele
 					LLVMConstInt(ctx->ac.i32, 2, false), "");
 
 	/* VI only */
-	if (ctx->abi->chip_class == VI && in_elements) {
+	if (ctx->ac.chip_class == VI && in_elements) {
 		/* On VI, the descriptor contains the size in bytes,
 		 * but TXQ must return the size in elements.
 		 * The stride is always non-zero for resources using TXQ.
@@ -2139,7 +2139,7 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 		break;
 	}
 
-	if (instr->op == nir_texop_tg4 && ctx->abi->chip_class <= VI) {
+	if (instr->op == nir_texop_tg4 && ctx->ac.chip_class <= VI) {
 		enum glsl_base_type stype = glsl_get_sampler_result_type(instr->texture->var->type);
 		if (stype == GLSL_TYPE_UINT || stype == GLSL_TYPE_INT) {
 			return radv_lower_gather4_integer(&ctx->ac, args, instr);
@@ -3266,7 +3266,7 @@ static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
 			     dim == GLSL_SAMPLER_DIM_SUBPASS_MS);
 	bool is_ms = (dim == GLSL_SAMPLER_DIM_MS ||
 		      dim == GLSL_SAMPLER_DIM_SUBPASS_MS);
-	bool gfx9_1d = ctx->abi->chip_class >= GFX9 && dim == GLSL_SAMPLER_DIM_1D;
+	bool gfx9_1d = ctx->ac.chip_class >= GFX9 && dim == GLSL_SAMPLER_DIM_1D;
 	count = image_type_to_components_count(dim, is_array);
 
 	if (is_ms) {
@@ -3411,7 +3411,7 @@ static void visit_image_store(struct ac_nir_context *ctx,
 	LLVMValueRef i1false = LLVMConstInt(ctx->ac.i1, 0, false);
 	LLVMValueRef i1true = LLVMConstInt(ctx->ac.i1, 1, false);
 	LLVMValueRef glc = i1false;
-	bool force_glc = ctx->abi->chip_class == SI;
+	bool force_glc = ctx->ac.chip_class == SI;
 	if (force_glc)
 		glc = i1true;
 
@@ -3576,7 +3576,7 @@ static LLVMValueRef visit_image_size(struct ac_nir_context *ctx,
 		z = LLVMBuildSDiv(ctx->ac.builder, z, six, "");
 		res = LLVMBuildInsertElement(ctx->ac.builder, res, z, two, "");
 	}
-	if (ctx->abi->chip_class >= GFX9 &&
+	if (ctx->ac.chip_class >= GFX9 &&
 	    glsl_get_sampler_dim(type) == GLSL_SAMPLER_DIM_1D &&
 	    glsl_sampler_type_is_array(type)) {
 		LLVMValueRef layers = LLVMBuildExtractElement(ctx->ac.builder, res, two, "");
@@ -4327,7 +4327,7 @@ static LLVMValueRef sici_fix_sampler_aniso(struct ac_nir_context *ctx,
 	LLVMBuilderRef builder = ctx->ac.builder;
 	LLVMValueRef img7, samp0;
 
-	if (ctx->abi->chip_class >= VI)
+	if (ctx->ac.chip_class >= VI)
 		return samp;
 
 	img7 = LLVMBuildExtractElement(builder, res,
@@ -4502,7 +4502,7 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		 * It's unnecessary if the original texture format was
 		 * Z32_FLOAT, but we don't know that here.
 		 */
-		if (ctx->abi->chip_class == VI)
+		if (ctx->ac.chip_class == VI)
 			z = ac_build_clamp(&ctx->ac, z);
 
 		address[count++] = z;
@@ -4526,7 +4526,7 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 			break;
 		case GLSL_SAMPLER_DIM_1D:
 			num_src_deriv_channels = 1;
-			if (ctx->abi->chip_class >= GFX9) {
+			if (ctx->ac.chip_class >= GFX9) {
 				num_dest_deriv_channels = 2;
 				num_deriv_comp = 2;
 			} else {
@@ -4582,7 +4582,7 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 			address[count++] = coords[2];
 		}
 
-		if (ctx->abi->chip_class >= GFX9) {
+		if (ctx->ac.chip_class >= GFX9) {
 			LLVMValueRef filler;
 			if (instr->op == nir_texop_txf)
 				filler = ctx->ac.i32_0;
@@ -4694,7 +4694,7 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		LLVMValueRef z = LLVMBuildExtractElement(ctx->ac.builder, result, two, "");
 		z = LLVMBuildSDiv(ctx->ac.builder, z, six, "");
 		result = LLVMBuildInsertElement(ctx->ac.builder, result, z, two, "");
-	} else if (ctx->abi->chip_class >= GFX9 &&
+	} else if (ctx->ac.chip_class >= GFX9 &&
 		   instr->op == nir_texop_txs &&
 		   instr->sampler_dim == GLSL_SAMPLER_DIM_1D &&
 		   instr->is_array) {
@@ -6380,7 +6380,6 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	else if(nir->stage == MESA_SHADER_VERTEX)
 		handle_vs_inputs(&ctx, nir);
 
-	ctx.abi.chip_class = options->chip_class;
 	ctx.abi.inputs = &ctx.inputs[0];
 	ctx.abi.emit_outputs = handle_shader_outputs_post;
 	ctx.abi.load_ssbo = radv_load_ssbo;

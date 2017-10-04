@@ -1634,7 +1634,13 @@ validate_io(struct gl_program *producer, struct gl_program *consumer)
        * Note that location mismatches are detected by the loops above that
        * find the producer variable that goes with the consumer variable.
        */
-      if (producer_var->interpolation != consumer_var->interpolation) {
+      unsigned producer_interpolation = producer_var->interpolation;
+      unsigned consumer_interpolation = consumer_var->interpolation;
+      if (producer_interpolation == INTERP_MODE_NONE)
+         producer_interpolation = INTERP_MODE_SMOOTH;
+      if (consumer_interpolation == INTERP_MODE_NONE)
+         consumer_interpolation = INTERP_MODE_SMOOTH;
+      if (producer_interpolation != consumer_interpolation) {
          valid = false;
          goto out;
       }

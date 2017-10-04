@@ -3287,6 +3287,7 @@ get_map_buffer_access_flags(struct gl_context *ctx, GLenum access,
       *flags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT;
       return _mesa_is_desktop_gl(ctx);
    default:
+      *flags = 0;
       return false;
    }
 }

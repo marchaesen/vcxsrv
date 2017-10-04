@@ -490,6 +490,106 @@ null_fragment_shader(struct pipe_context *ctx)
    util_report_result(qresult.u64 == 2);
 }
 
+#if defined(PIPE_OS_LINUX) && defined(HAVE_LIBDRM)
+#include <libsync.h>
+#else
+#define sync_merge(str, fd1, fd2) (-1)
+#define sync_wait(fd, timeout) (-1)
+#endif
+
+static void
+test_sync_file_fences(struct pipe_context *ctx)
+{
+   struct pipe_screen *screen = ctx->screen;
+   bool pass = true;
+
+   if (!screen->get_param(screen, PIPE_CAP_NATIVE_FENCE_FD))
+      return;
+
+   struct cso_context *cso = cso_create_context(ctx, 0);
+   struct pipe_resource *buf =
+      pipe_buffer_create(screen, 0, PIPE_USAGE_DEFAULT, 1024 * 1024);
+   struct pipe_resource *tex =
+      util_create_texture2d(screen, 4096, 1024, PIPE_FORMAT_R8_UNORM);
+   struct pipe_fence_handle *buf_fence = NULL, *tex_fence = NULL;
+
+   /* Run 2 clears, get fencess. */
+   uint32_t value = 0;
+   ctx->clear_buffer(ctx, buf, 0, buf->width0, &value, sizeof(value));
+   ctx->flush(ctx, &buf_fence, PIPE_FLUSH_FENCE_FD);
+
+   struct pipe_box box;
+   u_box_2d(0, 0, tex->width0, tex->height0, &box);
+   ctx->clear_texture(ctx, tex, 0, &box, &value);
+   ctx->flush(ctx, &tex_fence, PIPE_FLUSH_FENCE_FD);
+   pass = pass && buf_fence && tex_fence;
+
+   /* Export fences. */
+   int buf_fd = screen->fence_get_fd(screen, buf_fence);
+   int tex_fd = screen->fence_get_fd(screen, tex_fence);
+   pass = pass && buf_fd >= 0 && tex_fd >= 0;
+
+   /* Merge fences. */
+   int merged_fd = sync_merge("test", buf_fd, tex_fd);
+   pass = pass && merged_fd >= 0;
+
+   /* (Re)import all fences. */
+   struct pipe_fence_handle *re_buf_fence = NULL, *re_tex_fence = NULL;
+   struct pipe_fence_handle *merged_fence = NULL;
+   ctx->create_fence_fd(ctx, &re_buf_fence, buf_fd);
+   ctx->create_fence_fd(ctx, &re_tex_fence, tex_fd);
+   ctx->create_fence_fd(ctx, &merged_fence, merged_fd);
+   pass = pass && re_buf_fence && re_tex_fence && merged_fence;
+
+   /* Run another clear after waiting for everything. */
+   struct pipe_fence_handle *final_fence = NULL;
+   ctx->fence_server_sync(ctx, merged_fence);
+   value = 0xff;
+   ctx->clear_buffer(ctx, buf, 0, buf->width0, &value, sizeof(value));
+   ctx->flush(ctx, &final_fence, PIPE_FLUSH_FENCE_FD);
+   pass = pass && final_fence;
+
+   /* Wait for the last fence. */
+   int final_fd = screen->fence_get_fd(screen, final_fence);
+   pass = pass && final_fd >= 0;
+   pass = pass && sync_wait(final_fd, -1) == 0;
+
+   /* Check that all fences are signalled. */
+   pass = pass && sync_wait(buf_fd, 0) == 0;
+   pass = pass && sync_wait(tex_fd, 0) == 0;
+   pass = pass && sync_wait(merged_fd, 0) == 0;
+
+   pass = pass && screen->fence_finish(screen, NULL, buf_fence, 0);
+   pass = pass && screen->fence_finish(screen, NULL, tex_fence, 0);
+   pass = pass && screen->fence_finish(screen, NULL, re_buf_fence, 0);
+   pass = pass && screen->fence_finish(screen, NULL, re_tex_fence, 0);
+   pass = pass && screen->fence_finish(screen, NULL, merged_fence, 0);
+   pass = pass && screen->fence_finish(screen, NULL, final_fence, 0);
+
+   /* Cleanup. */
+   if (buf_fd >= 0)
+      close(buf_fd);
+   if (tex_fd >= 0)
+      close(tex_fd);
+   if (merged_fd >= 0)
+      close(merged_fd);
+   if (final_fd >= 0)
+      close(final_fd);
+
+   screen->fence_reference(screen, &buf_fence, NULL);
+   screen->fence_reference(screen, &tex_fence, NULL);
+   screen->fence_reference(screen, &re_buf_fence, NULL);
+   screen->fence_reference(screen, &re_tex_fence, NULL);
+   screen->fence_reference(screen, &merged_fence, NULL);
+   screen->fence_reference(screen, &final_fence, NULL);
+
+   cso_destroy_context(cso);
+   pipe_resource_reference(&buf, NULL);
+   pipe_resource_reference(&tex, NULL);
+
+   util_report_result(pass);
+}
+
 /**
  * Run all tests. This should be run with a clean context after
  * context_create.
@@ -504,6 +604,7 @@ util_run_tests(struct pipe_screen *screen)
    null_sampler_view(ctx, TGSI_TEXTURE_2D);
    null_sampler_view(ctx, TGSI_TEXTURE_BUFFER);
    util_test_constant_buffer(ctx, NULL);
+   test_sync_file_fences(ctx);
 
    ctx->destroy(ctx);
 

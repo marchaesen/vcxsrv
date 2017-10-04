@@ -31,10 +31,6 @@ if env['platform'] == 'windows':
     if not env['gles']:
         # prevent _glapi_* from being declared __declspec(dllimport)
         env.Append(CPPDEFINES = ['_GLAPI_NO_EXPORTS'])
-else:
-    env.Append(CPPDEFINES = [
-        ('HAVE_DLOPEN', '1'),
-    ])
 
 # parse Makefile.sources
 source_lists = env.ParseSourceList('Makefile.sources')

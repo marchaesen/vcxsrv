@@ -51,8 +51,10 @@ st_import_memoryobj_fd(struct gl_context *ctx,
                                                       &whandle,
                                                       obj->Dedicated);
 
+#if !defined(_WIN32)
    /* We own fd, but we no longer need it. So get rid of it */
    close(fd);
+#endif
 }
 
 void

@@ -69,7 +69,7 @@ lower_texture_projection_visitor::visit_leave(ir_texture *ir)
 						    ir->projector->type,
 						    ir->projector,
 						    NULL);
-   ir_assignment *assign = new(mem_ctx) ir_assignment(deref, expr, NULL);
+   ir_assignment *assign = new(mem_ctx) ir_assignment(deref, expr);
    base_ir->insert_before(assign);
 
    deref = new(mem_ctx) ir_dereference_variable(var);

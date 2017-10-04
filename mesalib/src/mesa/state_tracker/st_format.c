@@ -89,6 +89,8 @@ st_mesa_format_to_pipe_format(const struct st_context *st, mesa_format mesaForma
       return PIPE_FORMAT_B10G10R10A2_UNORM;
    case MESA_FORMAT_R10G10B10A2_UNORM:
       return PIPE_FORMAT_R10G10B10A2_UNORM;
+   case MESA_FORMAT_R10G10B10X2_UNORM:
+      return PIPE_FORMAT_R10G10B10X2_UNORM;
    case MESA_FORMAT_L4A4_UNORM:
       return PIPE_FORMAT_L4A4_UNORM;
    case MESA_FORMAT_L8A8_UNORM:
@@ -566,6 +568,8 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
       return MESA_FORMAT_B10G10R10A2_UNORM;
    case PIPE_FORMAT_R10G10B10A2_UNORM:
       return MESA_FORMAT_R10G10B10A2_UNORM;
+   case PIPE_FORMAT_R10G10B10X2_UNORM:
+      return MESA_FORMAT_R10G10B10X2_UNORM;
    case PIPE_FORMAT_L4A4_UNORM:
       return MESA_FORMAT_L4A4_UNORM;
    case PIPE_FORMAT_LA88_UNORM:
@@ -1058,7 +1062,7 @@ test_format_conversion(struct st_context *st)
 struct format_mapping
 {
    GLenum glFormats[18];       /**< list of GLenum formats, 0-terminated */
-   enum pipe_format pipeFormats[13]; /**< list of pipe formats, 0-terminated */
+   enum pipe_format pipeFormats[14]; /**< list of pipe formats, 0-terminated */
 };
 
 
@@ -1110,8 +1114,9 @@ static const struct format_mapping format_map[] = {
    /* Basic RGB, RGBA formats */
    {
       { GL_RGB10, 0 },
-      { PIPE_FORMAT_B10G10R10X2_UNORM, PIPE_FORMAT_B10G10R10A2_UNORM,
-        PIPE_FORMAT_R10G10B10A2_UNORM, DEFAULT_RGB_FORMATS }
+      { PIPE_FORMAT_R10G10B10X2_UNORM, PIPE_FORMAT_B10G10R10X2_UNORM,
+        PIPE_FORMAT_R10G10B10A2_UNORM, PIPE_FORMAT_B10G10R10A2_UNORM,
+        DEFAULT_RGB_FORMATS }
    },
    {
       { GL_RGB10_A2, 0 },
@@ -2275,13 +2280,13 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
    }
 
    pFormat = st_choose_format(st, internalFormat, format, type,
-                              pTarget, 0, bindings, ctx->Mesa_DXTn);
+                              pTarget, 0, bindings, GL_TRUE);
 
    if (pFormat == PIPE_FORMAT_NONE && !is_renderbuffer) {
       /* try choosing format again, this time without render target bindings */
       pFormat = st_choose_format(st, internalFormat, format, type,
                                  pTarget, 0, PIPE_BIND_SAMPLER_VIEW,
-                                 ctx->Mesa_DXTn);
+                                 GL_TRUE);
    }
 
    if (pFormat == PIPE_FORMAT_NONE) {

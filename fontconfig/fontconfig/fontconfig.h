@@ -72,8 +72,9 @@ typedef int		FcBool;
 #define _FC_STRINGIFY(s)    	_FC_STRINGIFY_(s)
 #define FC_CACHE_VERSION    	_FC_STRINGIFY(FC_CACHE_VERSION_NUMBER)
 
-#define FcTrue		1
 #define FcFalse		0
+#define FcTrue		1
+#define FcDontCare	2
 
 #define FC_FAMILY	    "family"		/* String */
 #define FC_STYLE	    "style"		/* String */
@@ -99,6 +100,7 @@ typedef int		FcBool;
 #define FC_OUTLINE	    "outline"		/* Bool */
 #define FC_SCALABLE	    "scalable"		/* Bool */
 #define FC_COLOR	    "color"		/* Bool */
+#define FC_VARIABLE	    "variable"		/* Bool */
 #define FC_SCALE	    "scale"		/* double (deprecated) */
 #define FC_SYMBOL	    "symbol"		/* Bool */
 #define FC_DPI		    "dpi"		/* double */
@@ -119,6 +121,7 @@ typedef int		FcBool;
 #define FC_DECORATIVE	    "decorative"	/* Bool - true if style is a decorative variant */
 #define FC_LCD_FILTER	    "lcdfilter"		/* Int */
 #define FC_FONT_FEATURES    "fontfeatures"	/* String */
+#define FC_FONT_VARIATIONS  "fontvariations"	/* String */
 #define FC_NAMELANG	    "namelang"		/* String RFC 3866 langs */
 #define FC_PRGNAME	    "prgname"		/* String */
 #define FC_HASH		    "hash"		/* String (deprecated) */
@@ -575,10 +578,10 @@ FcDirCacheUnload (FcCache *cache);
 
 /* fcfreetype.c */
 FcPublic FcPattern *
-FcFreeTypeQuery (const FcChar8 *file, int id, FcBlanks *blanks, int *count);
+FcFreeTypeQuery (const FcChar8 *file, unsigned int id, FcBlanks *blanks, int *count);
 
 FcPublic unsigned int
-FcFreeTypeQueryAll(const FcChar8 *file, int id, FcBlanks *blanks, int *count, FcFontSet *set);
+FcFreeTypeQueryAll(const FcChar8 *file, unsigned int id, FcBlanks *blanks, int *count, FcFontSet *set);
 
 /* fcfs.c */
 

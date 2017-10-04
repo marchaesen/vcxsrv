@@ -177,10 +177,8 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.EXT_gpu_program_parameters = GL_TRUE;
    ctx->Extensions.OES_standard_derivatives = GL_TRUE;
    ctx->Extensions.TDFX_texture_compression_FXT1 = GL_TRUE;
-   if (ctx->Mesa_DXTn) {
-      ctx->Extensions.ANGLE_texture_compression_dxt = GL_TRUE;
-      ctx->Extensions.EXT_texture_compression_s3tc = GL_TRUE;
-   }
+   ctx->Extensions.ANGLE_texture_compression_dxt = GL_TRUE;
+   ctx->Extensions.EXT_texture_compression_s3tc = GL_TRUE;
 }
 
 /**

@@ -737,8 +737,11 @@ is_format_color_renderable(const struct gl_context *ctx, mesa_format format,
       break;
    }
 
-   if (format == MESA_FORMAT_B10G10R10A2_UNORM &&
-       internalFormat != GL_RGB10_A2) {
+   if (internalFormat != GL_RGB10_A2 &&
+       (format == MESA_FORMAT_B10G10R10A2_UNORM ||
+        format == MESA_FORMAT_B10G10R10X2_UNORM ||
+        format == MESA_FORMAT_R10G10B10A2_UNORM ||
+        format == MESA_FORMAT_R10G10B10X2_UNORM)) {
       return GL_FALSE;
    }
 

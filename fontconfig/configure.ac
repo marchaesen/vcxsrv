@@ -298,49 +298,16 @@ AC_DEFINE_UNQUOTED(USE_ICONV,$use_iconv,[Use iconv.])
 #
 # Checks for FreeType
 #
-PKG_CHECK_MODULES(FREETYPE, freetype2)
+dnl See http://git.savannah.gnu.org/cgit/freetype/freetype2.git/tree/docs/VERSIONS.TXT for versioning in freetype
+PKG_CHECK_MODULES(FREETYPE, freetype2 >= 21.0.15)
 PKGCONFIG_REQUIRES="$PKGCONFIG_REQUIRES freetype2"
 
 AC_SUBST(FREETYPE_LIBS)
 AC_SUBST(FREETYPE_CFLAGS)
 
 fontconfig_save_libs="$LIBS"
-fontconfig_save_cflags="$CFLAGS"
 LIBS="$LIBS $FREETYPE_LIBS"
-CFLAGS="$CFLAGS $FREETYPE_CFLAGS"
-
-dnl See http://git.savannah.gnu.org/cgit/freetype/freetype2.git/tree/docs/VERSIONS.TXT for versioning in freetype
-dnl
-dnl The outcome of the family property has been changed in freetype-2.7.1.
-dnl Our test cases relies on it and need to update the dependency to get it success.
-dnl However it isn't exactly required to run fontconfig itself.
-dnl so adding another test here for compatibility. it might be simplified in the future.
-PKG_CHECK_EXISTS([freetype2 = 19.0.13], [have_freetype_2_7_1=yes], [have_freetype_2_7_1=no])
-PKG_CHECK_EXISTS([freetype2 >= 20.0.14],
-	[AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
-		#include <ft2build.h>
-		#include FT_CONFIG_OPTIONS_H
-		#ifndef PCF_CONFIG_OPTION_LONG_FAMILY_NAMES
-		#  error "No pcf long family names support"
-		#endif
-		]])], [have_pcf_long_family_names=yes], [have_pcf_long_family_names=no])],
-	[have_pcf_long_family_names=no])
-AM_CONDITIONAL(FREETYPE_PCF_LONG_FAMILY_NAMES, test "x$have_freetype_2_7_1" = xyes -o "x$have_pcf_long_family_names" = xyes)
-
-AC_CHECK_FUNCS(FT_Get_Next_Char FT_Get_BDF_Property FT_Get_PS_Font_Info FT_Has_PS_Glyph_Names FT_Get_X11_Font_Format FT_Select_Size)
-AC_CHECK_MEMBER(FT_Bitmap_Size.y_ppem,
-		HAVE_FT_BITMAP_SIZE_Y_PPEM=1,
-		HAVE_FT_BITMAP_SIZE_Y_PPEM=0,
-[#include <ft2build.h>
-#include FT_FREETYPE_H])
-AC_DEFINE_UNQUOTED(HAVE_FT_BITMAP_SIZE_Y_PPEM,$HAVE_FT_BITMAP_SIZE_Y_PPEM,
-		   [FT_Bitmap_Size structure includes y_ppem field])
-AC_CHECK_MEMBERS([TT_OS2.usLowerOpticalPointSize, TT_OS2.usUpperOpticalPointSize], [], [], [[
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_TRUETYPE_TABLES_H]])
-
-CFLAGS="$fontconfig_save_cflags"
+AC_CHECK_FUNCS(FT_Get_BDF_Property FT_Get_PS_Font_Info FT_Has_PS_Glyph_Names FT_Get_X11_Font_Format)
 LIBS="$fontconfig_save_libs"
 
 #

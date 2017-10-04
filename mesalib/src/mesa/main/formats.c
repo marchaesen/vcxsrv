@@ -2005,7 +2005,6 @@ _mesa_format_matches_format_and_type(mesa_format mesa_format,
    case MESA_FORMAT_RGBX_UINT8:
    case MESA_FORMAT_RGBX_SINT8:
    case MESA_FORMAT_B10G10R10X2_UNORM:
-   case MESA_FORMAT_R10G10B10X2_UNORM:
    case MESA_FORMAT_RGBX_UNORM16:
    case MESA_FORMAT_RGBX_SNORM16:
    case MESA_FORMAT_RGBX_FLOAT16:
@@ -2016,6 +2015,9 @@ _mesa_format_matches_format_and_type(mesa_format mesa_format,
    case MESA_FORMAT_RGBX_SINT32:
       return GL_FALSE;
 
+   case MESA_FORMAT_R10G10B10X2_UNORM:
+      return format == GL_RGB && type == GL_UNSIGNED_INT_2_10_10_10_REV &&
+         !swapBytes;
    case MESA_FORMAT_R10G10B10A2_UNORM:
       return format == GL_RGBA && type == GL_UNSIGNED_INT_2_10_10_10_REV &&
          !swapBytes;

@@ -46,7 +46,10 @@ _FcValuePrintFile (FILE *f, const FcValue v)
 	fprintf (f, "\"%s\"", v.u.s);
 	break;
     case FcTypeBool:
-	fprintf (f, "%s", v.u.b ? "True" : "False");
+	fprintf (f,
+		 v.u.b == FcTrue  ? "True" :
+		 v.u.b == FcFalse ? "False" :
+				    "DontCare");
 	break;
     case FcTypeMatrix:
 	fprintf (f, "[%g %g; %g %g]", v.u.m->xx, v.u.m->xy, v.u.m->yx, v.u.m->yy);
@@ -62,7 +65,7 @@ _FcValuePrintFile (FILE *f, const FcValue v)
 	fprintf (f, "face");
 	break;
     case FcTypeRange:
-	fprintf (f, "[%g %g)", v.u.r->begin, v.u.r->end);
+	fprintf (f, "[%g %g]", v.u.r->begin, v.u.r->end);
 	break;
     }
 }

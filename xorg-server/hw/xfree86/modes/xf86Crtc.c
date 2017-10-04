@@ -3252,6 +3252,7 @@ xf86ConnectorGetName(xf86ConnectorType connector)
     return _xf86ConnectorNames[connector];
 }
 
+#ifdef XV
 static void
 x86_crtc_box_intersect(BoxPtr dest, BoxPtr a, BoxPtr b)
 {
@@ -3283,7 +3284,6 @@ xf86_crtc_box_area(BoxPtr box)
     return (int) (box->x2 - box->x1) * (int) (box->y2 - box->y1);
 }
 
-#ifdef XV
 /*
  * Return the crtc covering 'box'. If two crtcs cover a portion of
  * 'box', then prefer 'desired'. If 'desired' is NULL, then prefer the crtc

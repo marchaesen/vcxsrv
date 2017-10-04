@@ -1128,7 +1128,7 @@ process_vec_mat_constructor(exec_list *instructions,
       if (var->type->is_matrix()) {
          ir_rvalue *lhs =
             new(ctx) ir_dereference_array(var, new(ctx) ir_constant(i));
-         assignment = new(ctx) ir_assignment(lhs, rhs, NULL);
+         assignment = new(ctx) ir_assignment(lhs, rhs);
       } else {
          /* use writemask rather than index for vector */
          assert(var->type->is_vector());
@@ -1264,7 +1264,7 @@ process_array_constructor(exec_list *instructions,
       ir_rvalue *lhs = new(ctx) ir_dereference_array(var,
                                                      new(ctx) ir_constant(i));
 
-      ir_instruction *assignment = new(ctx) ir_assignment(lhs, rhs, NULL);
+      ir_instruction *assignment = new(ctx) ir_assignment(lhs, rhs);
       instructions->push_tail(assignment);
 
       i++;
@@ -1549,8 +1549,7 @@ emit_inline_matrix_constructor(const glsl_type *type,
 
       ir_instruction *inst =
          new(ctx) ir_assignment(new(ctx) ir_dereference_variable(rhs_var),
-                                new(ctx) ir_constant(rhs_var->type, &zero),
-                                NULL);
+                                new(ctx) ir_constant(rhs_var->type, &zero));
       instructions->push_tail(inst);
 
       ir_dereference *const rhs_ref =
@@ -1583,7 +1582,7 @@ emit_inline_matrix_constructor(const glsl_type *type,
          ir_rvalue *const rhs = new(ctx) ir_swizzle(rhs_ref, rhs_swiz[i],
                                                     type->vector_elements);
 
-         inst = new(ctx) ir_assignment(col_ref, rhs, NULL);
+         inst = new(ctx) ir_assignment(col_ref, rhs);
          instructions->push_tail(inst);
       }
 
@@ -1596,7 +1595,7 @@ emit_inline_matrix_constructor(const glsl_type *type,
          ir_rvalue *const rhs = new(ctx) ir_swizzle(rhs_ref, 1, 1, 1, 1,
                                                     type->vector_elements);
 
-         inst = new(ctx) ir_assignment(col_ref, rhs, NULL);
+         inst = new(ctx) ir_assignment(col_ref, rhs);
          instructions->push_tail(inst);
       }
    } else if (first_param->type->is_matrix()) {
@@ -1650,7 +1649,7 @@ emit_inline_matrix_constructor(const glsl_type *type,
             ir_rvalue *const lhs =
                new(ctx) ir_dereference_array(var, new(ctx) ir_constant(col));
 
-            ir_instruction *inst = new(ctx) ir_assignment(lhs, rhs, NULL);
+            ir_instruction *inst = new(ctx) ir_assignment(lhs, rhs);
             instructions->push_tail(inst);
          }
       }
@@ -1668,7 +1667,7 @@ emit_inline_matrix_constructor(const glsl_type *type,
       ir_dereference *const rhs_var_ref =
          new(ctx) ir_dereference_variable(rhs_var);
       ir_instruction *const inst =
-         new(ctx) ir_assignment(rhs_var_ref, first_param, NULL);
+         new(ctx) ir_assignment(rhs_var_ref, first_param);
       instructions->push_tail(inst);
 
       const unsigned last_row = MIN2(src_matrix->type->vector_elements,
@@ -1731,7 +1730,7 @@ emit_inline_matrix_constructor(const glsl_type *type,
 
          ir_dereference *rhs_var_ref =
             new(ctx) ir_dereference_variable(rhs_var);
-         ir_instruction *inst = new(ctx) ir_assignment(rhs_var_ref, rhs, NULL);
+         ir_instruction *inst = new(ctx) ir_assignment(rhs_var_ref, rhs);
          instructions->push_tail(inst);
 
          do {
@@ -1795,8 +1794,7 @@ emit_inline_record_constructor(const glsl_type *type,
       ir_rvalue *const rhs = ((ir_instruction *) node)->as_rvalue();
       assert(rhs != NULL);
 
-      ir_instruction *const assign =
-         new(mem_ctx) ir_assignment(lhs, rhs, NULL);
+      ir_instruction *const assign = new(mem_ctx) ir_assignment(lhs, rhs);
 
       instructions->push_tail(assign);
       node = node->next;
@@ -2158,7 +2156,7 @@ ast_function_expression::hir(exec_list *instructions,
             instructions->push_tail(var);
             instructions->push_tail(
                new(ctx) ir_assignment(new(ctx) ir_dereference_variable(var),
-                                      matrix, NULL));
+                                      matrix));
             var->constant_value = matrix->constant_expression_value(ctx);
 
             /* Replace the matrix with dereferences of its columns. */

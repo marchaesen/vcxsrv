@@ -485,6 +485,9 @@ FcLangSetCreate (void)
 void
 FcLangSetDestroy (FcLangSet *ls)
 {
+    if (!ls)
+	return;
+
     if (ls->extra)
 	FcStrSetDestroy (ls->extra);
     free (ls);
@@ -494,6 +497,9 @@ FcLangSet *
 FcLangSetCopy (const FcLangSet *ls)
 {
     FcLangSet	*new;
+
+    if (!ls)
+	return NULL;
 
     new = FcLangSetCreate ();
     if (!new)

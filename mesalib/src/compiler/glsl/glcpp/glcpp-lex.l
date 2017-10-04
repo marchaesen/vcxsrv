@@ -101,7 +101,14 @@ void glcpp_set_column (int  column_no , yyscan_t yyscanner);
 #define RETURN_STRING_TOKEN(token)					\
 	do {								\
 		if (! parser->skipping) {				\
-			yylval->str = linear_strdup(yyextra->linalloc, yytext);	\
+			/* We're not doing linear_strdup here, to avoid \
+			 * an implicit call on strlen() for the length  \
+			 * of the string, as this is already found by   \
+			 * flex and stored in yyleng */                 \
+			void *mem_ctx = yyextra->linalloc;		\
+			yylval->str = linear_alloc_child(mem_ctx,	\
+							 yyleng + 1);	\
+			memcpy(yylval->str, yytext, yyleng + 1);        \
 			RETURN_TOKEN_NEVER_SKIP (token);		\
 		}							\
 	} while(0)

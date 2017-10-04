@@ -572,8 +572,7 @@ get_max_samples_for_formats(struct pipe_screen *screen,
 void st_init_extensions(struct pipe_screen *screen,
                         struct gl_constants *consts,
                         struct gl_extensions *extensions,
-                        struct st_config_options *options,
-                        boolean has_lib_dxtc)
+                        struct st_config_options *options)
 {
    unsigned i;
    GLboolean *extension_table = (GLboolean *) extensions;
@@ -965,11 +964,6 @@ void st_init_extensions(struct pipe_screen *screen,
    consts->UniformBooleanTrue = consts->NativeIntegers ? ~0U : fui(1.0f);
 
    /* Below are the cases which cannot be moved into tables easily. */
-
-   if (!has_lib_dxtc && !options->force_s3tc_enable) {
-      extensions->EXT_texture_compression_s3tc = GL_FALSE;
-      extensions->ANGLE_texture_compression_dxt = GL_FALSE;
-   }
 
    if (screen->get_shader_param(screen, PIPE_SHADER_TESS_CTRL,
                                 PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0) {

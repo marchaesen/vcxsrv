@@ -37,6 +37,8 @@ MESA_UTIL_FILES := \
 	simple_list.h \
 	slab.c \
 	slab.h \
+	string_buffer.c \
+	string_buffer.h \
 	strndup.h \
 	strtod.c \
 	strtod.h \

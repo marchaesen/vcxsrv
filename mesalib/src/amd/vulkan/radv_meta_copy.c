@@ -121,7 +121,7 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 	assert(image->info.samples == 1);
 
 	if (cs)
-		radv_meta_begin_bufimage(cmd_buffer, &saved_state.compute);
+		radv_meta_save_compute(&saved_state.compute, cmd_buffer, 12);
 	else
 		radv_meta_save_graphics_reset_vport_scissor_novertex(&saved_state.gfx, cmd_buffer);
 
@@ -203,7 +203,7 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 		}
 	}
 	if (cs)
-		radv_meta_end_bufimage(cmd_buffer, &saved_state.compute);
+		radv_meta_restore_compute(&saved_state.compute, cmd_buffer);
 	else
 		radv_meta_restore(&saved_state.gfx, cmd_buffer);
 }
@@ -233,7 +233,8 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_meta_saved_compute_state saved_state;
 
-	radv_meta_begin_bufimage(cmd_buffer, &saved_state);
+	radv_meta_save_compute(&saved_state, cmd_buffer, 12);
+
 	for (unsigned r = 0; r < regionCount; r++) {
 
 		/**
@@ -303,7 +304,7 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 				slice_array++;
 		}
 	}
-	radv_meta_end_bufimage(cmd_buffer, &saved_state);
+	radv_meta_restore_compute(&saved_state, cmd_buffer);
 }
 
 void radv_CmdCopyImageToBuffer(
@@ -339,7 +340,7 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 	 */
 	assert(src_image->info.samples == dest_image->info.samples);
 	if (cs)
-		radv_meta_begin_itoi(cmd_buffer, &saved_state.compute);
+		radv_meta_save_compute(&saved_state.compute, cmd_buffer, 16);
 	else
 		radv_meta_save_graphics_reset_vport_scissor_novertex(&saved_state.gfx, cmd_buffer);
 
@@ -413,7 +414,7 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 	}
 
 	if (cs)
-		radv_meta_end_itoi(cmd_buffer, &saved_state.compute);
+		radv_meta_restore_compute(&saved_state.compute, cmd_buffer);
 	else
 		radv_meta_restore(&saved_state.gfx, cmd_buffer);
 }

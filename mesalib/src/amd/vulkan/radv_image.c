@@ -109,6 +109,15 @@ radv_init_surface(struct radv_device *device,
 
 	if (is_depth) {
 		surface->flags |= RADEON_SURF_ZBUFFER;
+		if (!(pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) &&
+		    !(pCreateInfo->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) &&
+		    pCreateInfo->tiling != VK_IMAGE_TILING_LINEAR &&
+		    pCreateInfo->mipLevels <= 1 &&
+		    device->physical_device->rad_info.chip_class >= VI &&
+		    (pCreateInfo->format == VK_FORMAT_D32_SFLOAT ||
+		     (device->physical_device->rad_info.chip_class >= GFX9 &&
+		      pCreateInfo->format == VK_FORMAT_D16_UNORM)))
+			surface->flags |= RADEON_SURF_TC_COMPATIBLE_HTILE;
 	}
 
 	if (is_stencil)
@@ -251,10 +260,15 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 	if (chip_class >= VI) {
 		state[6] &= C_008F28_COMPRESSION_EN;
 		state[7] = 0;
-		if (image->surface.dcc_size && first_level < image->surface.num_dcc_levels) {
+		if (radv_vi_dcc_enabled(image, first_level)) {
 			meta_va = gpu_address + image->dcc_offset;
 			if (chip_class <= VI)
 				meta_va += base_level_info->dcc_offset;
+		} else if(image->tc_compatible_htile && image->surface.htile_size) {
+			meta_va = gpu_address + image->htile_offset;
+		}
+
+		if (meta_va) {
 			state[6] |= S_008F28_COMPRESSION_EN(1);
 			state[7] = meta_va >> 8;
 			state[7] |= image->surface.tile_swizzle;
@@ -764,8 +778,7 @@ radv_image_alloc_cmask(struct radv_device *device,
 }
 
 static void
-radv_image_alloc_dcc(struct radv_device *device,
-		       struct radv_image *image)
+radv_image_alloc_dcc(struct radv_image *image)
 {
 	image->dcc_offset = align64(image->size, image->surface.dcc_alignment);
 	/* + 16 for storing the clear values + dcc pred */
@@ -776,20 +789,49 @@ radv_image_alloc_dcc(struct radv_device *device,
 }
 
 static void
-radv_image_alloc_htile(struct radv_device *device,
-		       struct radv_image *image)
+radv_image_alloc_htile(struct radv_image *image)
 {
-	if ((device->debug_flags & RADV_DEBUG_NO_HIZ) || image->info.levels > 1) {
-		image->surface.htile_size = 0;
-		return;
-	}
-
 	image->htile_offset = align64(image->size, image->surface.htile_alignment);
 
 	/* + 8 for storing the clear values */
 	image->clear_value_offset = image->htile_offset + image->surface.htile_size;
 	image->size = image->clear_value_offset + 8;
 	image->alignment = align64(image->alignment, image->surface.htile_alignment);
+}
+
+static inline bool
+radv_image_can_enable_dcc_or_cmask(struct radv_image *image)
+{
+	return image->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT &&
+	       (image->exclusive || image->queue_family_mask == 1);
+}
+
+static inline bool
+radv_image_can_enable_dcc(struct radv_image *image)
+{
+	return radv_image_can_enable_dcc_or_cmask(image) &&
+	       image->surface.dcc_size;
+}
+
+static inline bool
+radv_image_can_enable_cmask(struct radv_image *image)
+{
+	return radv_image_can_enable_dcc_or_cmask(image) &&
+	       image->info.levels == 1 &&
+	       image->info.depth == 1 &&
+	       !image->surface.is_linear;
+}
+
+static inline bool
+radv_image_can_enable_fmask(struct radv_image *image)
+{
+	return image->info.samples > 1 && vk_format_is_color(image->vk_format);
+}
+
+static inline bool
+radv_image_can_enable_htile(struct radv_image *image)
+{
+	return image->info.levels == 1 && vk_format_is_depth(image->vk_format);
 }
 
 VkResult
@@ -801,7 +843,6 @@ radv_image_create(VkDevice _device,
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	const VkImageCreateInfo *pCreateInfo = create_info->vk_info;
 	struct radv_image *image = NULL;
-	bool can_cmask_dcc = false;
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
 
 	radv_assert(pCreateInfo->mipLevels > 0);
@@ -852,26 +893,29 @@ radv_image_create(VkDevice _device,
 	image->size = image->surface.surf_size;
 	image->alignment = image->surface.surf_alignment;
 
-	if (image->exclusive || image->queue_family_mask == 1)
-		can_cmask_dcc = true;
-
-	if ((pCreateInfo->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) &&
-	    image->surface.dcc_size && can_cmask_dcc)
-		radv_image_alloc_dcc(device, image);
-	else
+	/* Try to enable DCC first. */
+	if (radv_image_can_enable_dcc(image)) {
+		radv_image_alloc_dcc(image);
+	} else {
+		/* When DCC cannot be enabled, try CMASK. */
 		image->surface.dcc_size = 0;
+		if (radv_image_can_enable_cmask(image)) {
+			radv_image_alloc_cmask(device, image);
+		}
+	}
 
-	if ((pCreateInfo->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) &&
-	    pCreateInfo->mipLevels == 1 &&
-	    !image->surface.dcc_size && image->info.depth == 1 && can_cmask_dcc &&
-	    !image->surface.is_linear)
-		radv_image_alloc_cmask(device, image);
-
-	if (image->info.samples > 1 && vk_format_is_color(pCreateInfo->format)) {
+	/* Try to enable FMASK for multisampled images. */
+	if (radv_image_can_enable_fmask(image)) {
 		radv_image_alloc_fmask(device, image);
-	} else if (vk_format_is_depth(pCreateInfo->format)) {
-
-		radv_image_alloc_htile(device, image);
+	} else {
+		/* Otherwise, try to enable HTILE for depth surfaces. */
+		if (radv_image_can_enable_htile(image) &&
+		    !(device->debug_flags & RADV_DEBUG_NO_HIZ)) {
+			radv_image_alloc_htile(image);
+			image->tc_compatible_htile = image->surface.flags & RADEON_SURF_TC_COMPATIBLE_HTILE;
+		} else {
+			image->surface.htile_size = 0;
+		}
 	}
 
 	if (pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT) {
@@ -1011,6 +1055,9 @@ bool radv_layout_has_htile(const struct radv_image *image,
                            VkImageLayout layout,
                            unsigned queue_mask)
 {
+	if (image->surface.htile_size && image->tc_compatible_htile)
+		return layout != VK_IMAGE_LAYOUT_GENERAL;
+
 	return image->surface.htile_size &&
 	       (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
 	        layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) &&
@@ -1021,6 +1068,9 @@ bool radv_layout_is_htile_compressed(const struct radv_image *image,
                                      VkImageLayout layout,
                                      unsigned queue_mask)
 {
+	if (image->surface.htile_size && image->tc_compatible_htile)
+		return layout != VK_IMAGE_LAYOUT_GENERAL;
+
 	return image->surface.htile_size &&
 	       (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
 	        layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) &&

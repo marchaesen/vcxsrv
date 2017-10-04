@@ -767,12 +767,13 @@ ttn_get_var(struct ttn_compile *c, struct tgsi_full_dst_register *tgsi_fdst)
 }
 
 static nir_ssa_def *
-ttn_get_src(struct ttn_compile *c, struct tgsi_full_src_register *tgsi_fsrc)
+ttn_get_src(struct ttn_compile *c, struct tgsi_full_src_register *tgsi_fsrc,
+            int src_idx)
 {
    nir_builder *b = &c->build;
    struct tgsi_src_register *tgsi_src = &tgsi_fsrc->Register;
    unsigned tgsi_opcode = c->token->FullInstruction.Instruction.Opcode;
-   unsigned tgsi_src_type = tgsi_opcode_infer_src_type(tgsi_opcode);
+   unsigned tgsi_src_type = tgsi_opcode_infer_src_type(tgsi_opcode, src_idx);
    bool src_is_float = !(tgsi_src_type == TGSI_TYPE_SIGNED ||
                          tgsi_src_type == TGSI_TYPE_UNSIGNED);
    nir_alu_src src;
@@ -1644,7 +1645,7 @@ ttn_emit_instruction(struct ttn_compile *c)
 
    nir_ssa_def *src[TGSI_FULL_MAX_SRC_REGISTERS];
    for (i = 0; i < tgsi_inst->Instruction.NumSrcRegs; i++) {
-      src[i] = ttn_get_src(c, &tgsi_inst->Src[i]);
+      src[i] = ttn_get_src(c, &tgsi_inst->Src[i], i);
    }
    nir_alu_dest dest = ttn_get_dest(c, tgsi_dst);
 

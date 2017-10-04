@@ -127,8 +127,6 @@ radv_device_init_meta_itob_state(struct radv_device *device)
 	VkResult result;
 	struct radv_shader_module cs = { .nir = NULL };
 
-	zero(device->meta_state.itob);
-
 	cs.nir = build_nir_itob_compute_shader(device);
 
 	/*
@@ -214,21 +212,15 @@ fail:
 static void
 radv_device_finish_meta_itob_state(struct radv_device *device)
 {
-	if (device->meta_state.itob.img_p_layout) {
-		radv_DestroyPipelineLayout(radv_device_to_handle(device),
-					   device->meta_state.itob.img_p_layout,
-					   &device->meta_state.alloc);
-	}
-	if (device->meta_state.itob.img_ds_layout) {
-		radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
-						device->meta_state.itob.img_ds_layout,
-						&device->meta_state.alloc);
-	}
-	if (device->meta_state.itob.pipeline) {
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.itob.pipeline,
-				     &device->meta_state.alloc);
-	}
+	struct radv_meta_state *state = &device->meta_state;
+
+	radv_DestroyPipelineLayout(radv_device_to_handle(device),
+				   state->itob.img_p_layout, &state->alloc);
+	radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
+				        state->itob.img_ds_layout,
+					&state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->itob.pipeline, &state->alloc);
 }
 
 static nir_shader *
@@ -327,8 +319,6 @@ radv_device_init_meta_btoi_state(struct radv_device *device)
 	VkResult result;
 	struct radv_shader_module cs = { .nir = NULL };
 
-	zero(device->meta_state.btoi);
-
 	cs.nir = build_nir_btoi_compute_shader(device);
 
 	/*
@@ -414,21 +404,15 @@ fail:
 static void
 radv_device_finish_meta_btoi_state(struct radv_device *device)
 {
-	if (device->meta_state.btoi.img_p_layout) {
-		radv_DestroyPipelineLayout(radv_device_to_handle(device),
-					   device->meta_state.btoi.img_p_layout,
-					   &device->meta_state.alloc);
-	}
-	if (device->meta_state.btoi.img_ds_layout) {
-		radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
-						device->meta_state.btoi.img_ds_layout,
-						&device->meta_state.alloc);
-	}
-	if (device->meta_state.btoi.pipeline) {
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.btoi.pipeline,
-				     &device->meta_state.alloc);
-	}
+	struct radv_meta_state *state = &device->meta_state;
+
+	radv_DestroyPipelineLayout(radv_device_to_handle(device),
+				   state->btoi.img_p_layout, &state->alloc);
+	radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
+				        state->btoi.img_ds_layout,
+					&state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->btoi.pipeline, &state->alloc);
 }
 
 static nir_shader *
@@ -521,8 +505,6 @@ radv_device_init_meta_itoi_state(struct radv_device *device)
 	VkResult result;
 	struct radv_shader_module cs = { .nir = NULL };
 
-	zero(device->meta_state.itoi);
-
 	cs.nir = build_nir_itoi_compute_shader(device);
 
 	/*
@@ -608,21 +590,15 @@ fail:
 static void
 radv_device_finish_meta_itoi_state(struct radv_device *device)
 {
-	if (device->meta_state.itoi.img_p_layout) {
-		radv_DestroyPipelineLayout(radv_device_to_handle(device),
-					   device->meta_state.itoi.img_p_layout,
-					   &device->meta_state.alloc);
-	}
-	if (device->meta_state.itoi.img_ds_layout) {
-		radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
-						device->meta_state.itoi.img_ds_layout,
-						&device->meta_state.alloc);
-	}
-	if (device->meta_state.itoi.pipeline) {
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.itoi.pipeline,
-				     &device->meta_state.alloc);
-	}
+	struct radv_meta_state *state = &device->meta_state;
+
+	radv_DestroyPipelineLayout(radv_device_to_handle(device),
+				   state->itoi.img_p_layout, &state->alloc);
+	radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
+				        state->itoi.img_ds_layout,
+					&state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->itoi.pipeline, &state->alloc);
 }
 
 static nir_shader *
@@ -676,8 +652,6 @@ radv_device_init_meta_cleari_state(struct radv_device *device)
 {
 	VkResult result;
 	struct radv_shader_module cs = { .nir = NULL };
-
-	zero(device->meta_state.cleari);
 
 	cs.nir = build_nir_cleari_compute_shader(device);
 
@@ -757,21 +731,15 @@ fail:
 static void
 radv_device_finish_meta_cleari_state(struct radv_device *device)
 {
-	if (device->meta_state.cleari.img_p_layout) {
-		radv_DestroyPipelineLayout(radv_device_to_handle(device),
-					   device->meta_state.cleari.img_p_layout,
-					   &device->meta_state.alloc);
-	}
-	if (device->meta_state.cleari.img_ds_layout) {
-		radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
-						device->meta_state.cleari.img_ds_layout,
-						&device->meta_state.alloc);
-	}
-	if (device->meta_state.cleari.pipeline) {
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.cleari.pipeline,
-				     &device->meta_state.alloc);
-	}
+	struct radv_meta_state *state = &device->meta_state;
+
+	radv_DestroyPipelineLayout(radv_device_to_handle(device),
+				   state->cleari.img_p_layout, &state->alloc);
+	radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
+				        state->cleari.img_ds_layout,
+					&state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->cleari.pipeline, &state->alloc);
 }
 
 void
@@ -812,48 +780,6 @@ fail_btoi:
 fail_itob:
 	radv_device_finish_meta_itob_state(device);
 	return result;
-}
-
-void
-radv_meta_begin_itoi(struct radv_cmd_buffer *cmd_buffer,
-		     struct radv_meta_saved_compute_state *save)
-{
-	radv_meta_save_compute(save, cmd_buffer, 16);
-}
-
-void
-radv_meta_end_itoi(struct radv_cmd_buffer *cmd_buffer,
-		   struct radv_meta_saved_compute_state *save)
-{
-	radv_meta_restore_compute(save, cmd_buffer, 16);
-}
-
-void
-radv_meta_begin_bufimage(struct radv_cmd_buffer *cmd_buffer,
-			 struct radv_meta_saved_compute_state *save)
-{
-	radv_meta_save_compute(save, cmd_buffer, 12);
-}
-
-void
-radv_meta_end_bufimage(struct radv_cmd_buffer *cmd_buffer,
-		       struct radv_meta_saved_compute_state *save)
-{
-	radv_meta_restore_compute(save, cmd_buffer, 12);
-}
-
-void
-radv_meta_begin_cleari(struct radv_cmd_buffer *cmd_buffer,
-		       struct radv_meta_saved_compute_state *save)
-{
-	radv_meta_save_compute(save, cmd_buffer, 16);
-}
-
-void
-radv_meta_end_cleari(struct radv_cmd_buffer *cmd_buffer,
-		     struct radv_meta_saved_compute_state *save)
-{
-	radv_meta_restore_compute(save, cmd_buffer, 16);
 }
 
 static void

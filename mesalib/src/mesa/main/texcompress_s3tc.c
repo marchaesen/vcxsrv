@@ -31,90 +31,16 @@
 
 #include "glheader.h"
 #include "imports.h"
-#include "dlopen.h"
 #include "image.h"
 #include "macros.h"
 #include "mtypes.h"
 #include "texcompress.h"
 #include "texcompress_s3tc.h"
+#include "texcompress_s3tc_tmp.h"
 #include "texstore.h"
 #include "format_unpack.h"
 #include "util/format_srgb.h"
 
-
-#if defined(_WIN32) || defined(WIN32)
-#define DXTN_LIBNAME "dxtn.dll"
-#define RTLD_LAZY 0
-#define RTLD_GLOBAL 0
-#elif defined(__CYGWIN__)
-#define DXTN_LIBNAME "cygtxc_dxtn.dll"
-#else
-#define DXTN_LIBNAME "libtxc_dxtn.so"
-#endif
-
-typedef void (*dxtFetchTexelFuncExt)( GLint srcRowstride, const GLubyte *pixdata, GLint col, GLint row, GLvoid *texelOut );
-
-static dxtFetchTexelFuncExt fetch_ext_rgb_dxt1 = NULL;
-static dxtFetchTexelFuncExt fetch_ext_rgba_dxt1 = NULL;
-static dxtFetchTexelFuncExt fetch_ext_rgba_dxt3 = NULL;
-static dxtFetchTexelFuncExt fetch_ext_rgba_dxt5 = NULL;
-
-typedef void (*dxtCompressTexFuncExt)(GLint srccomps, GLint width,
-                                      GLint height, const GLubyte *srcPixData,
-                                      GLenum destformat, GLubyte *dest,
-                                      GLint dstRowStride);
-
-static dxtCompressTexFuncExt ext_tx_compress_dxtn = NULL;
-
-static void *dxtlibhandle = NULL;
-
-
-void
-_mesa_init_texture_s3tc( struct gl_context *ctx )
-{
-   /* called during context initialization */
-   ctx->Mesa_DXTn = GL_FALSE;
-   if (!dxtlibhandle) {
-      dxtlibhandle = _mesa_dlopen(DXTN_LIBNAME, 0);
-      if (!dxtlibhandle) {
-	 _mesa_warning(ctx, "couldn't open " DXTN_LIBNAME ", software DXTn "
-	    "compression/decompression unavailable");
-      }
-      else {
-         /* the fetch functions are not per context! Might be problematic... */
-         fetch_ext_rgb_dxt1 = (dxtFetchTexelFuncExt)
-            _mesa_dlsym(dxtlibhandle, "fetch_2d_texel_rgb_dxt1");
-         fetch_ext_rgba_dxt1 = (dxtFetchTexelFuncExt)
-            _mesa_dlsym(dxtlibhandle, "fetch_2d_texel_rgba_dxt1");
-         fetch_ext_rgba_dxt3 = (dxtFetchTexelFuncExt)
-            _mesa_dlsym(dxtlibhandle, "fetch_2d_texel_rgba_dxt3");
-         fetch_ext_rgba_dxt5 = (dxtFetchTexelFuncExt)
-            _mesa_dlsym(dxtlibhandle, "fetch_2d_texel_rgba_dxt5");
-         ext_tx_compress_dxtn = (dxtCompressTexFuncExt)
-            _mesa_dlsym(dxtlibhandle, "tx_compress_dxtn");
-
-         if (!fetch_ext_rgb_dxt1 ||
-             !fetch_ext_rgba_dxt1 ||
-             !fetch_ext_rgba_dxt3 ||
-             !fetch_ext_rgba_dxt5 ||
-             !ext_tx_compress_dxtn) {
-	    _mesa_warning(ctx, "couldn't reference all symbols in "
-	       DXTN_LIBNAME ", software DXTn compression/decompression "
-	       "unavailable");
-            fetch_ext_rgb_dxt1 = NULL;
-            fetch_ext_rgba_dxt1 = NULL;
-            fetch_ext_rgba_dxt3 = NULL;
-            fetch_ext_rgba_dxt5 = NULL;
-            ext_tx_compress_dxtn = NULL;
-            _mesa_dlclose(dxtlibhandle);
-            dxtlibhandle = NULL;
-         }
-      }
-   }
-   if (dxtlibhandle) {
-      ctx->Mesa_DXTn = GL_TRUE;
-   }
-}
 
 /**
  * Store user's image in rgb_dxt1 format.
@@ -158,14 +84,9 @@ _mesa_texstore_rgb_dxt1(TEXSTORE_PARAMS)
 
    dst = dstSlices[0];
 
-   if (ext_tx_compress_dxtn) {
-      (*ext_tx_compress_dxtn)(3, srcWidth, srcHeight, pixels,
-                              GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
-                              dst, dstRowStride);
-   }
-   else {
-      _mesa_warning(ctx, "external dxt library not available: texstore_rgb_dxt1");
-   }
+   tx_compress_dxtn(3, srcWidth, srcHeight, pixels,
+                    GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
+                    dst, dstRowStride);
 
    free((void *) tempImage);
 
@@ -216,14 +137,9 @@ _mesa_texstore_rgba_dxt1(TEXSTORE_PARAMS)
 
    dst = dstSlices[0];
 
-   if (ext_tx_compress_dxtn) {
-      (*ext_tx_compress_dxtn)(4, srcWidth, srcHeight, pixels,
-                              GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-                              dst, dstRowStride);
-   }
-   else {
-      _mesa_warning(ctx, "external dxt library not available: texstore_rgba_dxt1");
-   }
+   tx_compress_dxtn(4, srcWidth, srcHeight, pixels,
+                    GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+                    dst, dstRowStride);
 
    free((void*) tempImage);
 
@@ -273,14 +189,9 @@ _mesa_texstore_rgba_dxt3(TEXSTORE_PARAMS)
 
    dst = dstSlices[0];
 
-   if (ext_tx_compress_dxtn) {
-      (*ext_tx_compress_dxtn)(4, srcWidth, srcHeight, pixels,
-                              GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
-                              dst, dstRowStride);
-   }
-   else {
-      _mesa_warning(ctx, "external dxt library not available: texstore_rgba_dxt3");
-   }
+   tx_compress_dxtn(4, srcWidth, srcHeight, pixels,
+                    GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
+                    dst, dstRowStride);
 
    free((void *) tempImage);
 
@@ -330,14 +241,9 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
 
    dst = dstSlices[0];
 
-   if (ext_tx_compress_dxtn) {
-      (*ext_tx_compress_dxtn)(4, srcWidth, srcHeight, pixels,
-                              GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
-                              dst, dstRowStride);
-   }
-   else {
-      _mesa_warning(ctx, "external dxt library not available: texstore_rgba_dxt5");
-   }
+   tx_compress_dxtn(4, srcWidth, srcHeight, pixels,
+                    GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
+                    dst, dstRowStride);
 
    free((void *) tempImage);
 
@@ -345,85 +251,52 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
 }
 
 
-/** Report problem with dxt texture decompression, once */
-static void
-problem(const char *func)
-{
-   static GLboolean warned = GL_FALSE;
-   if (!warned) {
-      _mesa_debug(NULL, "attempted to decode DXT texture without "
-                  "library available: %s\n", func);
-      warned = GL_TRUE;
-   }
-}
-
-
 static void
 fetch_rgb_dxt1(const GLubyte *map,
                GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
-   if (fetch_ext_rgb_dxt1) {
-      GLubyte tex[4];
-      fetch_ext_rgb_dxt1(rowStride, map, i, j, tex);
-      texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
-      texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
-      texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
-      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
-   }
-   else {
-      problem("rgb_dxt1");
-   }
+   GLubyte tex[4];
+   fetch_2d_texel_rgb_dxt1(rowStride, map, i, j, tex);
+   texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
+   texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
+   texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
+   texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
 }
 
 static void
 fetch_rgba_dxt1(const GLubyte *map,
                 GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
-   if (fetch_ext_rgba_dxt1) {
-      GLubyte tex[4];
-      fetch_ext_rgba_dxt1(rowStride, map, i, j, tex);
-      texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
-      texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
-      texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
-      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
-   }
-   else {
-      problem("rgba_dxt1");
-   }
+   GLubyte tex[4];
+   fetch_2d_texel_rgba_dxt1(rowStride, map, i, j, tex);
+   texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
+   texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
+   texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
+   texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
 }
 
 static void
 fetch_rgba_dxt3(const GLubyte *map,
                 GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
-   if (fetch_ext_rgba_dxt3) {
-      GLubyte tex[4];
-      fetch_ext_rgba_dxt3(rowStride, map, i, j, tex);
-      texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
-      texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
-      texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
-      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
-   }
-   else {
-      problem("rgba_dxt3");
-   }
+   GLubyte tex[4];
+   fetch_2d_texel_rgba_dxt3(rowStride, map, i, j, tex);
+   texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
+   texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
+   texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
+   texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
 }
 
 static void
 fetch_rgba_dxt5(const GLubyte *map,
                 GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
-   if (fetch_ext_rgba_dxt5) {
-      GLubyte tex[4];
-      fetch_ext_rgba_dxt5(rowStride, map, i, j, tex);
-      texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
-      texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
-      texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
-      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
-   }
-   else {
-      problem("rgba_dxt5");
-   }
+   GLubyte tex[4];
+   fetch_2d_texel_rgba_dxt5(rowStride, map, i, j, tex);
+   texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
+   texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
+   texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
+   texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
 }
 
 
@@ -431,68 +304,48 @@ static void
 fetch_srgb_dxt1(const GLubyte *map,
                 GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
-   if (fetch_ext_rgb_dxt1) {
-      GLubyte tex[4];
-      fetch_ext_rgb_dxt1(rowStride, map, i, j, tex);
-      texel[RCOMP] = util_format_srgb_8unorm_to_linear_float(tex[RCOMP]);
-      texel[GCOMP] = util_format_srgb_8unorm_to_linear_float(tex[GCOMP]);
-      texel[BCOMP] = util_format_srgb_8unorm_to_linear_float(tex[BCOMP]);
-      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
-   }
-   else {
-      problem("srgb_dxt1");
-   }
+   GLubyte tex[4];
+   fetch_2d_texel_rgb_dxt1(rowStride, map, i, j, tex);
+   texel[RCOMP] = util_format_srgb_8unorm_to_linear_float(tex[RCOMP]);
+   texel[GCOMP] = util_format_srgb_8unorm_to_linear_float(tex[GCOMP]);
+   texel[BCOMP] = util_format_srgb_8unorm_to_linear_float(tex[BCOMP]);
+   texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
 }
 
 static void
 fetch_srgba_dxt1(const GLubyte *map,
                  GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
-   if (fetch_ext_rgba_dxt1) {
-      GLubyte tex[4];
-      fetch_ext_rgba_dxt1(rowStride, map, i, j, tex);
-      texel[RCOMP] = util_format_srgb_8unorm_to_linear_float(tex[RCOMP]);
-      texel[GCOMP] = util_format_srgb_8unorm_to_linear_float(tex[GCOMP]);
-      texel[BCOMP] = util_format_srgb_8unorm_to_linear_float(tex[BCOMP]);
-      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
-   }
-   else {
-      problem("srgba_dxt1");
-   }
+   GLubyte tex[4];
+   fetch_2d_texel_rgba_dxt1(rowStride, map, i, j, tex);
+   texel[RCOMP] = util_format_srgb_8unorm_to_linear_float(tex[RCOMP]);
+   texel[GCOMP] = util_format_srgb_8unorm_to_linear_float(tex[GCOMP]);
+   texel[BCOMP] = util_format_srgb_8unorm_to_linear_float(tex[BCOMP]);
+   texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
 }
 
 static void
 fetch_srgba_dxt3(const GLubyte *map,
                  GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
-   if (fetch_ext_rgba_dxt3) {
-      GLubyte tex[4];
-      fetch_ext_rgba_dxt3(rowStride, map, i, j, tex);
-      texel[RCOMP] = util_format_srgb_8unorm_to_linear_float(tex[RCOMP]);
-      texel[GCOMP] = util_format_srgb_8unorm_to_linear_float(tex[GCOMP]);
-      texel[BCOMP] = util_format_srgb_8unorm_to_linear_float(tex[BCOMP]);
-      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
-   }
-   else {
-      problem("srgba_dxt3");
-   }
+   GLubyte tex[4];
+   fetch_2d_texel_rgba_dxt3(rowStride, map, i, j, tex);
+   texel[RCOMP] = util_format_srgb_8unorm_to_linear_float(tex[RCOMP]);
+   texel[GCOMP] = util_format_srgb_8unorm_to_linear_float(tex[GCOMP]);
+   texel[BCOMP] = util_format_srgb_8unorm_to_linear_float(tex[BCOMP]);
+   texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
 }
 
 static void
 fetch_srgba_dxt5(const GLubyte *map,
                  GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
-   if (fetch_ext_rgba_dxt5) {
-      GLubyte tex[4];
-      fetch_ext_rgba_dxt5(rowStride, map, i, j, tex);
-      texel[RCOMP] = util_format_srgb_8unorm_to_linear_float(tex[RCOMP]);
-      texel[GCOMP] = util_format_srgb_8unorm_to_linear_float(tex[GCOMP]);
-      texel[BCOMP] = util_format_srgb_8unorm_to_linear_float(tex[BCOMP]);
-      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
-   }
-   else {
-      problem("srgba_dxt5");
-   }
+   GLubyte tex[4];
+   fetch_2d_texel_rgba_dxt5(rowStride, map, i, j, tex);
+   texel[RCOMP] = util_format_srgb_8unorm_to_linear_float(tex[RCOMP]);
+   texel[GCOMP] = util_format_srgb_8unorm_to_linear_float(tex[GCOMP]);
+   texel[BCOMP] = util_format_srgb_8unorm_to_linear_float(tex[BCOMP]);
+   texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
 }
 
 

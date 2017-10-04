@@ -103,6 +103,12 @@ F: CleanSpec.mk
 F: */Android.*mk
 F: */Makefile.sources
 
+MESON BUILD
+R: Dylan Baker <dylan@pnwbakers.com>
+R: Eric Engestrom <eric@engestrom.ch>
+F: */meson.build
+F: meson_options.txt
+
 ANDROID EGL SUPPORT
 R: Rob Herring <robh@kernel.org>
 R: Tomasz Figa <tfiga@chromium.org>

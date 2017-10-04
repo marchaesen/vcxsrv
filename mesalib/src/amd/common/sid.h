@@ -2453,6 +2453,8 @@
 #define   S_008F3C_BORDER_COLOR_PTR(x)                                (((unsigned)(x) & 0xFFF) << 0)
 #define   G_008F3C_BORDER_COLOR_PTR(x)                                (((x) >> 0) & 0xFFF)
 #define   C_008F3C_BORDER_COLOR_PTR                                   0xFFFFF000
+/* The UPGRADED_DEPTH field is driver-specific and does not exist in hardware. */
+#define   S_008F3C_UPGRADED_DEPTH(x)                                  (((unsigned)(x) & 0x1) << 29)
 #define   S_008F3C_BORDER_COLOR_TYPE(x)                               (((unsigned)(x) & 0x03) << 30)
 #define   G_008F3C_BORDER_COLOR_TYPE(x)                               (((x) >> 30) & 0x03)
 #define   C_008F3C_BORDER_COLOR_TYPE                                  0x3FFFFFFF

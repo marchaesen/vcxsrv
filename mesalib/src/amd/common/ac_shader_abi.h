@@ -37,8 +37,6 @@ enum ac_descriptor_type {
  * radv to share a compiler backend.
  */
 struct ac_shader_abi {
-	enum chip_class chip_class;
-
 	LLVMValueRef base_vertex;
 	LLVMValueRef start_instance;
 	LLVMValueRef draw_id;

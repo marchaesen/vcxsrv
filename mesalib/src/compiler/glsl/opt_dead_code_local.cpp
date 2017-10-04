@@ -173,6 +173,17 @@ process_assignment(void *lin_ctx, ir_assignment *ir, exec_list *assignments)
    bool progress = false;
    kill_for_derefs_visitor v(assignments);
 
+   if (ir->condition == NULL) {
+      /* If this is an assignment of the form "foo = foo;", remove the whole
+       * instruction and be done with it.
+       */
+      const ir_variable *const lhs_var = ir->whole_variable_written();
+      if (lhs_var != NULL && lhs_var == ir->rhs->whole_variable_referenced()) {
+         ir->remove();
+         return true;
+      }
+   }
+
    /* Kill assignment entries for things used to produce this assignment. */
    ir->rhs->accept(&v);
    if (ir->condition) {
