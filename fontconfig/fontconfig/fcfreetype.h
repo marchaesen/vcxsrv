@@ -51,7 +51,7 @@ FcPatternAddFTFace (FcPattern *p, const char *object, const FT_Face f);
 FcPublic FcPattern *
 FcFreeTypeQueryFace (const FT_Face  face,
 		     const FcChar8  *file,
-		     int	    id,
+		     unsigned int   id,
 		     FcBlanks	    *blanks);
 
 _FCFUNCPROTOEND

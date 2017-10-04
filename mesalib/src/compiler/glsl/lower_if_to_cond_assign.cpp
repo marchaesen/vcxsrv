@@ -170,43 +170,43 @@ check_ir_node(ir_instruction *ir, void *data)
 
 static void
 move_block_to_cond_assign(void *mem_ctx,
-			  ir_if *if_ir, ir_rvalue *cond_expr,
-			  exec_list *instructions,
-			  struct set *set)
+                          ir_if *if_ir, ir_rvalue *cond_expr,
+                          exec_list *instructions,
+                          struct set *set)
 {
    foreach_in_list_safe(ir_instruction, ir, instructions) {
       if (ir->ir_type == ir_type_assignment) {
-	 ir_assignment *assign = (ir_assignment *)ir;
+         ir_assignment *assign = (ir_assignment *)ir;
 
-	 if (_mesa_set_search(set, assign) == NULL) {
-	    _mesa_set_add(set, assign);
+         if (_mesa_set_search(set, assign) == NULL) {
+            _mesa_set_add(set, assign);
 
-	    /* If the LHS of the assignment is a condition variable that was
-	     * previously added, insert an additional assignment of false to
-	     * the variable.
-	     */
-	    const bool assign_to_cv =
-	          _mesa_set_search(
-	                set, assign->lhs->variable_referenced()) != NULL;
+            /* If the LHS of the assignment is a condition variable that was
+             * previously added, insert an additional assignment of false to
+             * the variable.
+             */
+            const bool assign_to_cv =
+               _mesa_set_search(
+                  set, assign->lhs->variable_referenced()) != NULL;
 
-	    if (!assign->condition) {
-          if (assign_to_cv) {
-             assign->rhs =
-		          new(mem_ctx) ir_expression(ir_binop_logic_and,
-                                           glsl_type::bool_type,
-                                           cond_expr->clone(mem_ctx, NULL),
-                                           assign->rhs);
-          } else {
-             assign->condition = cond_expr->clone(mem_ctx, NULL);
-	       }
-	    } else {
-	       assign->condition =
-             new(mem_ctx) ir_expression(ir_binop_logic_and,
-                                        glsl_type::bool_type,
-                                        cond_expr->clone(mem_ctx, NULL),
-                                        assign->condition);
-	    }
-	 }
+            if (!assign->condition) {
+               if (assign_to_cv) {
+                  assign->rhs =
+                     new(mem_ctx) ir_expression(ir_binop_logic_and,
+                                                glsl_type::bool_type,
+                                                cond_expr->clone(mem_ctx, NULL),
+                                                assign->rhs);
+               } else {
+                  assign->condition = cond_expr->clone(mem_ctx, NULL);
+               }
+            } else {
+               assign->condition =
+                  new(mem_ctx) ir_expression(ir_binop_logic_and,
+                                             glsl_type::bool_type,
+                                             cond_expr->clone(mem_ctx, NULL),
+                                             assign->condition);
+            }
+         }
       }
 
       /* Now, move from the if block to the block surrounding it. */
@@ -216,9 +216,8 @@ move_block_to_cond_assign(void *mem_ctx,
 }
 
 ir_visitor_status
-ir_if_to_cond_assign_visitor::visit_enter(ir_if *ir)
+ir_if_to_cond_assign_visitor::visit_enter(ir_if *)
 {
-   (void) ir;
    this->depth++;
 
    return visit_continue;
@@ -277,8 +276,8 @@ ir_if_to_cond_assign_visitor::visit_leave(ir_if *ir)
     */
    ir_variable *const then_var =
       new(mem_ctx) ir_variable(glsl_type::bool_type,
-			       "if_to_cond_assign_then",
-			       ir_var_temporary);
+                               "if_to_cond_assign_then",
+                               ir_var_temporary);
    ir->insert_before(then_var);
 
    ir_dereference_variable *then_cond =
@@ -288,8 +287,8 @@ ir_if_to_cond_assign_visitor::visit_leave(ir_if *ir)
    ir->insert_before(assign);
 
    move_block_to_cond_assign(mem_ctx, ir, then_cond,
-			     &ir->then_instructions,
-			     this->condition_variables);
+                             &ir->then_instructions,
+                             this->condition_variables);
 
    /* Add the new condition variable to the hash table.  This allows us to
     * find this variable when lowering other (enclosing) if-statements.
@@ -303,24 +302,24 @@ ir_if_to_cond_assign_visitor::visit_leave(ir_if *ir)
     */
    if (!ir->else_instructions.is_empty()) {
       ir_variable *const else_var =
-	 new(mem_ctx) ir_variable(glsl_type::bool_type,
-				  "if_to_cond_assign_else",
-				  ir_var_temporary);
+         new(mem_ctx) ir_variable(glsl_type::bool_type,
+                                  "if_to_cond_assign_else",
+                                  ir_var_temporary);
       ir->insert_before(else_var);
 
       ir_dereference_variable *else_cond =
-	 new(mem_ctx) ir_dereference_variable(else_var);
+         new(mem_ctx) ir_dereference_variable(else_var);
 
       ir_rvalue *inverse =
-	 new(mem_ctx) ir_expression(ir_unop_logic_not,
-				    then_cond->clone(mem_ctx, NULL));
+         new(mem_ctx) ir_expression(ir_unop_logic_not,
+                                    then_cond->clone(mem_ctx, NULL));
 
       assign = new(mem_ctx) ir_assignment(else_cond, inverse);
       ir->insert_before(assign);
 
       move_block_to_cond_assign(mem_ctx, ir, else_cond,
-				&ir->else_instructions,
-				this->condition_variables);
+                                &ir->else_instructions,
+                                this->condition_variables);
 
       /* Add the new condition variable to the hash table.  This allows us to
        * find this variable when lowering other (enclosing) if-statements.

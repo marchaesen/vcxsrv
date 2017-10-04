@@ -52,6 +52,7 @@ static const struct option longopts[] = {
     {"sort", 0, 0, 's'},
     {"all", 0, 0, 'a'},
     {"verbose", 0, 0, 'v'},
+    {"brief", 0, 0, 'b'},
     {"format", 1, 0, 'f'},
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
@@ -69,7 +70,7 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-savVh] [-f FORMAT] [--sort] [--all] [--verbose] [--format=FORMAT] [--version] [--help] [pattern] {element...}\n",
+    fprintf (file, "usage: %s [-savbVh] [-f FORMAT] [--sort] [--all] [--verbose] [--brief] [--format=FORMAT] [--version] [--help] [pattern] {element...}\n",
 	     program);
 #else
     fprintf (file, "usage: %s [-savVh] [-f FORMAT] [pattern] {element...}\n",
@@ -81,6 +82,7 @@ usage (char *program, int error)
     fprintf (file, "  -s, --sort           display sorted list of matches\n");
     fprintf (file, "  -a, --all            display unpruned sorted list of matches\n");
     fprintf (file, "  -v, --verbose        display entire font pattern verbosely\n");
+    fprintf (file, "  -b, --brief          display entire font pattern briefly\n");
     fprintf (file, "  -f, --format=FORMAT  use the given output format\n");
     fprintf (file, "  -V, --version        display font config version and exit\n");
     fprintf (file, "  -h, --help           display this help and exit\n");
@@ -88,6 +90,7 @@ usage (char *program, int error)
     fprintf (file, "  -s,        (sort)    display sorted list of matches\n");
     fprintf (file, "  -a         (all)     display unpruned sorted list of matches\n");
     fprintf (file, "  -v         (verbose) display entire font pattern verbosely\n");
+    fprintf (file, "  -b         (brief)   display entire font pattern briefly\n");
     fprintf (file, "  -f FORMAT  (format)  use the given output format\n");
     fprintf (file, "  -V         (version) display font config version and exit\n");
     fprintf (file, "  -h         (help)    display this help and exit\n");
@@ -99,6 +102,7 @@ int
 main (int argc, char **argv)
 {
     int			verbose = 0;
+    int			brief = 0;
     int			sort = 0, all = 0;
     const FcChar8	*format = NULL;
     int			i;
@@ -110,9 +114,9 @@ main (int argc, char **argv)
     int			c;
 
 #if HAVE_GETOPT_LONG
-    while ((c = getopt_long (argc, argv, "asvf:Vh", longopts, NULL)) != -1)
+    while ((c = getopt_long (argc, argv, "asvbf:Vh", longopts, NULL)) != -1)
 #else
-    while ((c = getopt (argc, argv, "asvf:Vh")) != -1)
+    while ((c = getopt (argc, argv, "asvbf:Vh")) != -1)
 #endif
     {
 	switch (c) {
@@ -124,6 +128,9 @@ main (int argc, char **argv)
 	    break;
 	case 'v':
 	    verbose = 1;
+	    break;
+	case 'b':
+	    brief = 1;
 	    break;
 	case 'f':
 	    format = (FcChar8 *) strdup (optarg);
@@ -218,8 +225,13 @@ main (int argc, char **argv)
 
 	    font = FcPatternFilter (fs->fonts[j], os);
 
-	    if (verbose)
+	    if (verbose || brief)
 	    {
+		if (brief)
+		{
+		    FcPatternDel (font, FC_CHARSET);
+		    FcPatternDel (font, FC_LANG);
+		}
 		FcPatternPrint (font);
 	    }
 	    else

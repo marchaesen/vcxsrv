@@ -315,6 +315,7 @@ nir_visitor::visit(ir_variable *ir)
    var->type = ir->type;
    var->name = ralloc_strdup(var, ir->name);
 
+   var->data.always_active_io = ir->data.always_active_io;
    var->data.read_only = ir->data.read_only;
    var->data.centroid = ir->data.centroid;
    var->data.sample = ir->data.sample;

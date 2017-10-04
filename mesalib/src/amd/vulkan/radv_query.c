@@ -519,8 +519,6 @@ VkResult radv_device_init_meta_query_state(struct radv_device *device)
 	struct radv_shader_module occlusion_cs = { .nir = NULL };
 	struct radv_shader_module pipeline_statistics_cs = { .nir = NULL };
 
-	zero(device->meta_state.query);
-
 	occlusion_cs.nir = build_occlusion_query_shader(device);
 	pipeline_statistics_cs.nir = build_pipeline_statistics_query_shader(device);
 
@@ -653,7 +651,7 @@ static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_device *device = cmd_buffer->device;
 	struct radv_meta_saved_compute_state saved_state;
 
-	radv_meta_save_compute(&saved_state, cmd_buffer, 4);
+	radv_meta_save_compute(&saved_state, cmd_buffer, 16);
 
 	struct radv_buffer dst_buffer = {
 		.bo = dst_bo,
@@ -737,7 +735,7 @@ static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer,
 	                                RADV_CMD_FLAG_INV_VMEM_L1 |
 	                                RADV_CMD_FLAG_CS_PARTIAL_FLUSH;
 
-	radv_meta_restore_compute(&saved_state, cmd_buffer, 4);
+	radv_meta_restore_compute(&saved_state, cmd_buffer);
 }
 
 VkResult radv_CreateQueryPool(

@@ -209,12 +209,7 @@ line:
 |	SPACE control_line
 |	text_line {
 		_glcpp_parser_print_expanded_token_list (parser, $1);
-		const char *newline_str = "\n";
-		size_t size = strlen(newline_str);
-
-		ralloc_str_append(&parser->output, newline_str,
-				  parser->output_length, size);
-		parser->output_length += size;
+		_mesa_string_buffer_append_char(parser->output, '\n');
 	}
 |	expanded_line
 ;
@@ -233,20 +228,16 @@ expanded_line:
 |	LINE_EXPANDED integer_constant NEWLINE {
 		parser->has_new_line_number = 1;
 		parser->new_line_number = $2;
-		ralloc_asprintf_rewrite_tail (&parser->output,
-					      &parser->output_length,
-					      "#line %" PRIiMAX "\n",
-					      $2);
+		_mesa_string_buffer_printf(parser->output, "#line %" PRIiMAX "\n", $2);
 	}
 |	LINE_EXPANDED integer_constant integer_constant NEWLINE {
 		parser->has_new_line_number = 1;
 		parser->new_line_number = $2;
 		parser->has_new_source_number = 1;
 		parser->new_source_number = $3;
-		ralloc_asprintf_rewrite_tail (&parser->output,
-					      &parser->output_length,
-					      "#line %" PRIiMAX " %" PRIiMAX "\n",
-					      $2, $3);
+		_mesa_string_buffer_printf(parser->output,
+					   "#line %" PRIiMAX " %" PRIiMAX "\n",
+					    $2, $3);
 	}
 ;
 
@@ -264,12 +255,7 @@ define:
 
 control_line:
 	control_line_success {
-		const char *newline_str = "\n";
-		size_t size = strlen(newline_str);
-
-		ralloc_str_append(&parser->output, newline_str,
-				  parser->output_length, size);
-		parser->output_length += size;
+		_mesa_string_buffer_append_char(parser->output, '\n');
 	}
 |	control_line_error
 |	HASH_TOKEN LINE pp_tokens NEWLINE {
@@ -459,7 +445,7 @@ control_line_success:
 		glcpp_parser_resolve_implicit_version(parser);
 	}
 |	HASH_TOKEN PRAGMA NEWLINE {
-		ralloc_asprintf_rewrite_tail (&parser->output, &parser->output_length, "#%s", $2);
+		_mesa_string_buffer_printf(parser->output, "#%s", $2);
 	}
 ;
 
@@ -1137,133 +1123,61 @@ _token_list_equal_ignoring_space(token_list_t *a, token_list_t *b)
 }
 
 static void
-_token_print(char **out, size_t *len, token_t *token)
+_token_print(struct _mesa_string_buffer *out, token_t *token)
 {
    if (token->type < 256) {
-      size_t size = sizeof(char);
-
-      ralloc_str_append(out, (char *) &token->type, *len, size);
-      *len += size;
+      _mesa_string_buffer_append_char(out, token->type);
       return;
    }
 
    switch (token->type) {
    case INTEGER:
-      ralloc_asprintf_rewrite_tail (out, len, "%" PRIiMAX, token->value.ival);
+      _mesa_string_buffer_printf(out, "%" PRIiMAX, token->value.ival);
       break;
    case IDENTIFIER:
    case INTEGER_STRING:
-   case OTHER: {
-      size_t size = strlen(token->value.str);
-
-      ralloc_str_append(out, token->value.str, *len, size);
-      *len += size;
+   case OTHER:
+      _mesa_string_buffer_append(out, token->value.str);
       break;
-   }
-   case SPACE: {
-      const char *token_str = " ";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case SPACE:
+      _mesa_string_buffer_append_char(out, ' ');
       break;
-   }
-   case LEFT_SHIFT: {
-      const char *token_str = "<<";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case LEFT_SHIFT:
+      _mesa_string_buffer_append(out, "<<");
       break;
-   }
-   case RIGHT_SHIFT: {
-      const char *token_str = ">>";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case RIGHT_SHIFT:
+      _mesa_string_buffer_append(out, ">>");
       break;
-   }
-   case LESS_OR_EQUAL: {
-      const char *token_str = "<=";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case LESS_OR_EQUAL:
+      _mesa_string_buffer_append(out, "<=");
       break;
-   }
-   case GREATER_OR_EQUAL: {
-      const char *token_str = ">=";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case GREATER_OR_EQUAL:
+      _mesa_string_buffer_append(out, ">=");
       break;
-   }
-   case EQUAL: {
-      const char *token_str = "==";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case EQUAL:
+      _mesa_string_buffer_append(out, "==");
       break;
-   }
-   case NOT_EQUAL: {
-      const char *token_str = "!=";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case NOT_EQUAL:
+      _mesa_string_buffer_append(out, "!=");
       break;
-   }
-   case AND: {
-      const char *token_str = "&&";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case AND:
+      _mesa_string_buffer_append(out, "&&");
       break;
-   }
-   case OR: {
-      const char *token_str = "||";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case OR:
+      _mesa_string_buffer_append(out, "||");
       break;
-   }
-   case PASTE: {
-      const char *token_str = "##";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case PASTE:
+      _mesa_string_buffer_append(out, "##");
       break;
-   }
-   case PLUS_PLUS: {
-      const char *token_str = "++";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case PLUS_PLUS:
+      _mesa_string_buffer_append(out, "++");
       break;
-   }
-   case MINUS_MINUS: {
-      const char *token_str = "--";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case MINUS_MINUS:
+      _mesa_string_buffer_append(out, "--");
       break;
-   }
-   case DEFINED: {
-      const char *token_str = "defined";
-      size_t size = strlen(token_str);
-
-      ralloc_str_append(out, token_str, *len, size);
-      *len += size;
+   case DEFINED:
+      _mesa_string_buffer_append(out, "defined");
       break;
-   }
    case PLACEHOLDER:
       /* Nothing to print. */
       break;
@@ -1389,11 +1303,11 @@ _token_paste(glcpp_parser_t *parser, token_t *token, token_t *other)
 
     FAIL:
    glcpp_error (&token->location, parser, "");
-   ralloc_asprintf_rewrite_tail (&parser->info_log, &parser->info_log_length, "Pasting \"");
-   _token_print (&parser->info_log, &parser->info_log_length, token);
-   ralloc_asprintf_rewrite_tail (&parser->info_log, &parser->info_log_length, "\" and \"");
-   _token_print (&parser->info_log, &parser->info_log_length, other);
-   ralloc_asprintf_rewrite_tail (&parser->info_log, &parser->info_log_length, "\" does not give a valid preprocessing token.\n");
+   _mesa_string_buffer_append(parser->info_log, "Pasting \"");
+   _token_print(parser->info_log, token);
+   _mesa_string_buffer_append(parser->info_log, "\" and \"");
+   _token_print(parser->info_log, other);
+   _mesa_string_buffer_append(parser->info_log, "\" does not give a valid preprocessing token.\n");
 
    return token;
 }
@@ -1407,7 +1321,7 @@ _token_list_print(glcpp_parser_t *parser, token_list_t *list)
       return;
 
    for (node = list->head; node; node = node->next)
-      _token_print (&parser->output, &parser->output_length, node->token);
+      _token_print(parser->output, node->token);
 }
 
 void
@@ -1428,6 +1342,11 @@ add_builtin_define(glcpp_parser_t *parser, const char *name, int value)
    _token_list_append(parser, list, tok);
    _define_object_macro(parser, NULL, name, list);
 }
+
+/* Initial output buffer size, 4096 minus ralloc() overhead. It was selected
+ * to minimize total amount of allocated memory during shader-db run.
+ */
+#define INITIAL_PP_OUTPUT_BUF_SIZE 4048
 
 glcpp_parser_t *
 glcpp_parser_create(const struct gl_extensions *extension_list,
@@ -1459,10 +1378,10 @@ glcpp_parser_create(const struct gl_extensions *extension_list,
    parser->lex_from_list = NULL;
    parser->lex_from_node = NULL;
 
-   parser->output = ralloc_strdup(parser, "");
-   parser->output_length = 0;
-   parser->info_log = ralloc_strdup(parser, "");
-   parser->info_log_length = 0;
+   parser->output = _mesa_string_buffer_create(parser,
+                                               INITIAL_PP_OUTPUT_BUF_SIZE);
+   parser->info_log = _mesa_string_buffer_create(parser,
+                                                 INITIAL_PP_OUTPUT_BUF_SIZE);
    parser->error = 0;
 
    parser->extensions = extensions;
@@ -2453,10 +2372,10 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
    }
 
    if (explicitly_set) {
-      ralloc_asprintf_rewrite_tail(&parser->output, &parser->output_length,
-                                   "#version %" PRIiMAX "%s%s", version,
-                                   es_identifier ? " " : "",
-                                   es_identifier ? es_identifier : "");
+      _mesa_string_buffer_printf(parser->output,
+                                 "#version %" PRIiMAX "%s%s", version,
+                                 es_identifier ? " " : "",
+                                 es_identifier ? es_identifier : "");
    }
 }
 

@@ -56,6 +56,7 @@ struct radv_meta_saved_compute_state {
 	struct radv_descriptor_set *old_descriptor_set0;
 	struct radv_pipeline *old_pipeline;
 
+	unsigned push_constant_size;
 	char push_constants[128];
 };
 
@@ -103,8 +104,7 @@ void radv_meta_save_compute(struct radv_meta_saved_compute_state *state,
 			    unsigned push_constant_size);
 
 void radv_meta_restore_compute(const struct radv_meta_saved_compute_state *state,
-			       struct radv_cmd_buffer *cmd_buffer,
-			       unsigned push_constant_size);
+			       struct radv_cmd_buffer *cmd_buffer);
 
 VkImageViewType radv_meta_get_view_type(const struct radv_image *image);
 
@@ -153,18 +153,6 @@ void radv_meta_end_blit2d(struct radv_cmd_buffer *cmd_buffer,
 
 VkResult radv_device_init_meta_bufimage_state(struct radv_device *device);
 void radv_device_finish_meta_bufimage_state(struct radv_device *device);
-void radv_meta_begin_bufimage(struct radv_cmd_buffer *cmd_buffer,
-			      struct radv_meta_saved_compute_state *save);
-void radv_meta_end_bufimage(struct radv_cmd_buffer *cmd_buffer,
-			    struct radv_meta_saved_compute_state *save);
-void radv_meta_begin_itoi(struct radv_cmd_buffer *cmd_buffer,
-			  struct radv_meta_saved_compute_state *save);
-void radv_meta_end_itoi(struct radv_cmd_buffer *cmd_buffer,
-			struct radv_meta_saved_compute_state *save);
-void radv_meta_begin_cleari(struct radv_cmd_buffer *cmd_buffer,
-			    struct radv_meta_saved_compute_state *save);
-void radv_meta_end_cleari(struct radv_cmd_buffer *cmd_buffer,
-			  struct radv_meta_saved_compute_state *save);
 void radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 			       struct radv_meta_blit2d_surf *src,
 			       struct radv_meta_blit2d_buffer *dst,

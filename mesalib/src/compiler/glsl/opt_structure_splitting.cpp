@@ -285,9 +285,7 @@ ir_structure_splitting_visitor::visit_leave(ir_assignment *ir)
 				     type->fields.structure[i].name);
 	 }
 
-	 ir->insert_before(new(mem_ctx) ir_assignment(new_lhs,
-						      new_rhs,
-						      NULL));
+         ir->insert_before(new(mem_ctx) ir_assignment(new_lhs, new_rhs));
       }
       ir->remove();
    } else {

@@ -220,6 +220,9 @@ TODO: document the other workarounds.
         <application name="War Thunder (Wine)" executable="aces.exe">
             <option name="mesa_glthread" value="true"/>
         </application>
+        <application name="Outlast" executable="OLGame.x86_64">
+            <option name="mesa_glthread" value="true"/>
+        </application>
     </device>
     <!-- vmwgfx doesn't like full buffer swaps and can't sync to vertical retraces.-->
     <device driver="vmwgfx">

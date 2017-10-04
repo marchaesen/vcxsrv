@@ -3140,7 +3140,7 @@ radv_initialise_color_surface(struct radv_device *device,
 	    !(device->debug_flags & RADV_DEBUG_NO_FAST_CLEARS))
 		cb->cb_color_info |= S_028C70_FAST_CLEAR(1);
 
-	if (iview->image->surface.dcc_size && iview->base_mip < surf->num_dcc_levels)
+	if (radv_vi_dcc_enabled(iview->image, iview->base_mip))
 		cb->cb_color_info |= S_028C70_DCC_ENABLE(1);
 
 	if (device->physical_device->rad_info.chip_class >= VI) {
@@ -3249,6 +3249,18 @@ radv_initialise_ds_surface(struct radv_device *device,
 		if (iview->image->surface.htile_size && !level) {
 			ds->db_z_info |= S_028038_TILE_SURFACE_ENABLE(1);
 
+			if (iview->image->tc_compatible_htile) {
+				unsigned max_zplanes = 4;
+
+				if (iview->vk_format == VK_FORMAT_D16_UNORM  &&
+				    iview->image->info.samples > 1)
+					max_zplanes = 2;
+
+				ds->db_z_info |= S_028038_DECOMPRESS_ON_N_ZPLANES(max_zplanes + 1) |
+					  S_028038_ITERATE_FLUSH(1);
+				ds->db_stencil_info |= S_02803C_ITERATE_FLUSH(1);
+			}
+
 			if (!iview->image->surface.has_stencil)
 				/* Use all of the htile_buffer for depth if there's no stencil. */
 				ds->db_stencil_info |= S_02803C_TILE_STENCIL_DISABLE(1);
@@ -3268,7 +3280,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 		z_offs += iview->image->surface.u.legacy.level[level].offset;
 		s_offs += iview->image->surface.u.legacy.stencil_level[level].offset;
 
-		ds->db_depth_info = S_02803C_ADDR5_SWIZZLE_MASK(1);
+		ds->db_depth_info = S_02803C_ADDR5_SWIZZLE_MASK(!iview->image->tc_compatible_htile);
 		ds->db_z_info = S_028040_FORMAT(format) | S_028040_ZRANGE_PRECISION(1);
 		ds->db_stencil_info = S_028044_FORMAT(stencil_format);
 
@@ -3312,7 +3324,8 @@ radv_initialise_ds_surface(struct radv_device *device,
 		if (iview->image->surface.htile_size && !level) {
 			ds->db_z_info |= S_028040_TILE_SURFACE_ENABLE(1);
 
-			if (!iview->image->surface.has_stencil)
+			if (!iview->image->surface.has_stencil &&
+			    !iview->image->tc_compatible_htile)
 				/* Use all of the htile_buffer for depth if there's no stencil. */
 				ds->db_stencil_info |= S_028044_TILE_STENCIL_DISABLE(1);
 
@@ -3320,6 +3333,17 @@ radv_initialise_ds_surface(struct radv_device *device,
 				iview->image->htile_offset;
 			ds->db_htile_data_base = va >> 8;
 			ds->db_htile_surface = S_028ABC_FULL_CACHE(1);
+
+			if (iview->image->tc_compatible_htile) {
+				ds->db_htile_surface |= S_028ABC_TC_COMPATIBLE(1);
+
+				if (iview->image->info.samples <= 1)
+					ds->db_z_info |= S_028040_DECOMPRESS_ON_N_ZPLANES(5);
+				else if (iview->image->info.samples <= 4)
+					ds->db_z_info |= S_028040_DECOMPRESS_ON_N_ZPLANES(3);
+				else
+					ds->db_z_info|= S_028040_DECOMPRESS_ON_N_ZPLANES(2);
+			}
 		}
 	}
 

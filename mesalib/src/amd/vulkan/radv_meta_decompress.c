@@ -207,22 +207,17 @@ void
 radv_device_finish_meta_depth_decomp_state(struct radv_device *device)
 {
 	struct radv_meta_state *state = &device->meta_state;
-	VkDevice device_h = radv_device_to_handle(device);
-	const VkAllocationCallbacks *alloc = &device->meta_state.alloc;
 
 	for (uint32_t i = 0; i < ARRAY_SIZE(state->depth_decomp); ++i) {
-		VkRenderPass pass_h = state->depth_decomp[i].pass;
-		if (pass_h) {
-			radv_DestroyRenderPass(device_h, pass_h, alloc);
-		}
-		VkPipeline pipeline_h = state->depth_decomp[i].decompress_pipeline;
-		if (pipeline_h) {
-			radv_DestroyPipeline(device_h, pipeline_h, alloc);
-		}
-		pipeline_h = state->depth_decomp[i].resummarize_pipeline;
-		if (pipeline_h) {
-			radv_DestroyPipeline(device_h, pipeline_h, alloc);
-		}
+		radv_DestroyRenderPass(radv_device_to_handle(device),
+				       state->depth_decomp[i].pass,
+				       &state->alloc);
+		radv_DestroyPipeline(radv_device_to_handle(device),
+				     state->depth_decomp[i].decompress_pipeline,
+				     &state->alloc);
+		radv_DestroyPipeline(radv_device_to_handle(device),
+				     state->depth_decomp[i].resummarize_pipeline,
+				     &state->alloc);
 	}
 }
 
@@ -231,8 +226,6 @@ radv_device_init_meta_depth_decomp_state(struct radv_device *device)
 {
 	struct radv_meta_state *state = &device->meta_state;
 	VkResult res = VK_SUCCESS;
-
-	zero(state->depth_decomp);
 
 	struct radv_shader_module vs_module = { .nir = radv_meta_build_nir_vs_generate_vertices() };
 	if (!vs_module.nir) {
@@ -271,7 +264,6 @@ cleanup:
 
 static void
 emit_depth_decomp(struct radv_cmd_buffer *cmd_buffer,
-		  const VkOffset2D *dest_offset,
 		  const VkExtent2D *depth_decomp_extent,
 		  VkPipeline pipeline_h)
 {
@@ -285,8 +277,8 @@ emit_depth_decomp(struct radv_cmd_buffer *cmd_buffer,
 	}
 
 	radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
-		.x = dest_offset->x,
-		.y = dest_offset->y,
+		.x = 0,
+		.y = 0,
 		.width = depth_decomp_extent->width,
 		.height = depth_decomp_extent->height,
 		.minDepth = 0.0f,
@@ -294,7 +286,7 @@ emit_depth_decomp(struct radv_cmd_buffer *cmd_buffer,
 	});
 
 	radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkRect2D) {
-		.offset = *dest_offset,
+		.offset = { 0, 0 },
 		.extent = *depth_decomp_extent,
 	});
 
@@ -337,6 +329,7 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 				     &(VkImageViewCreateInfo) {
 					     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 					     .image = radv_image_to_handle(image),
+					     .viewType = radv_meta_get_view_type(image),
 					     .format = image->vk_format,
 					     .subresourceRange = {
 						     .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
@@ -395,7 +388,7 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 			unreachable("unknown operation");
 		}
 
-		emit_depth_decomp(cmd_buffer, &(VkOffset2D){0, 0 }, &(VkExtent2D){width, height}, pipeline_h);
+		emit_depth_decomp(cmd_buffer, &(VkExtent2D){width, height}, pipeline_h);
 		radv_CmdEndRenderPass(cmd_buffer_h);
 
 		radv_DestroyFramebuffer(device_h, fb_h,

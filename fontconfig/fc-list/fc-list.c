@@ -49,6 +49,7 @@
 #include <getopt.h>
 const struct option longopts[] = {
     {"verbose", 0, 0, 'v'},
+    {"brief", 0, 0, 'b'},
     {"format", 1, 0, 'f'},
     {"quiet", 0, 0, 'q'},
     {"version", 0, 0, 'V'},
@@ -67,22 +68,24 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-vqVh] [-f FORMAT] [--verbose] [--format=FORMAT] [--quiet] [--version] [--help] [pattern] {element ...} \n",
+    fprintf (file, "usage: %s [-vbqVh] [-f FORMAT] [--verbose] [--brief] [--format=FORMAT] [--quiet] [--version] [--help] [pattern] {element ...} \n",
 	     program);
 #else
-    fprintf (file, "usage: %s [-vqVh] [-f FORMAT] [pattern] {element ...} \n",
+    fprintf (file, "usage: %s [-vbqVh] [-f FORMAT] [pattern] {element ...} \n",
 	     program);
 #endif
     fprintf (file, "List fonts matching [pattern]\n");
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
     fprintf (file, "  -v, --verbose        display entire font pattern verbosely\n");
+    fprintf (file, "  -b, --brief          display entire font pattern briefly\n");
     fprintf (file, "  -f, --format=FORMAT  use the given output format\n");
     fprintf (file, "  -q, --quiet          suppress all normal output, exit 1 if no fonts matched\n");
     fprintf (file, "  -V, --version        display font config version and exit\n");
     fprintf (file, "  -h, --help           display this help and exit\n");
 #else
     fprintf (file, "  -v         (verbose) display entire font pattern verbosely\n");
+    fprintf (file, "  -b         (brief)   display entire font pattern briefly\n");
     fprintf (file, "  -f FORMAT  (format)  use the given output format\n");
     fprintf (file, "  -q,        (quiet)   suppress all normal output, exit 1 if no fonts matched\n");
     fprintf (file, "  -V         (version) display font config version and exit\n");
@@ -95,6 +98,7 @@ int
 main (int argc, char **argv)
 {
     int			verbose = 0;
+    int			brief = 0;
     int			quiet = 0;
     const FcChar8	*format = NULL;
     int			nfont = 0;
@@ -106,14 +110,17 @@ main (int argc, char **argv)
     int			c;
 
 #if HAVE_GETOPT_LONG
-    while ((c = getopt_long (argc, argv, "vf:qVh", longopts, NULL)) != -1)
+    while ((c = getopt_long (argc, argv, "vbf:qVh", longopts, NULL)) != -1)
 #else
-    while ((c = getopt (argc, argv, "vf:qVh")) != -1)
+    while ((c = getopt (argc, argv, "vbf:qVh")) != -1)
 #endif
     {
 	switch (c) {
 	case 'v':
 	    verbose = 1;
+	    break;
+	case 'b':
+	    brief = 1;
 	    break;
 	case 'f':
 	    format = (FcChar8 *) strdup (optarg);
@@ -155,7 +162,7 @@ main (int argc, char **argv)
 	pat = FcPatternCreate ();
     if (quiet && !os)
 	os = FcObjectSetCreate ();
-    if (!verbose && !format && !os)
+    if (!verbose && !brief && !format && !os)
 	os = FcObjectSetBuild (FC_FAMILY, FC_STYLE, FC_FILE, (char *) 0);
     if (!format)
         format = (const FcChar8 *) "%{=fclist}\n";
@@ -171,8 +178,13 @@ main (int argc, char **argv)
 
 	for (j = 0; j < fs->nfont; j++)
 	{
-	    if (verbose)
+	    if (verbose || brief)
 	    {
+		if (brief)
+		{
+		    FcPatternDel (fs->fonts[j], FC_CHARSET);
+		    FcPatternDel (fs->fonts[j], FC_LANG);
+		}
 		FcPatternPrint (fs->fonts[j]);
 	    }
 	    else

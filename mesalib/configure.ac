@@ -831,9 +831,9 @@ AC_LINK_IFELSE([AC_LANG_SOURCE([[
 
 dnl Check to see if dlopen is in default libraries (like Solaris, which
 dnl has it in libc), or if libdl is needed to get it.
-AC_CHECK_FUNC([dlopen], [DEFINES="$DEFINES -DHAVE_DLOPEN"],
+AC_CHECK_FUNC([dlopen], [],
     [AC_CHECK_LIB([dl], [dlopen],
-       [DEFINES="$DEFINES -DHAVE_DLOPEN"; DLOPEN_LIBS="-ldl"])])
+       [DLOPEN_LIBS="-ldl"])])
 AC_SUBST([DLOPEN_LIBS])
 
 dnl Check if that library also has dladdr
@@ -2942,6 +2942,7 @@ AC_CONFIG_FILES([Makefile
                  src/mesa/state_tracker/tests/Makefile
                  src/util/Makefile
                  src/util/tests/hash_table/Makefile
+                 src/util/tests/string_buffer/Makefile
                  src/util/xmlpool/Makefile
                  src/vulkan/Makefile])
 

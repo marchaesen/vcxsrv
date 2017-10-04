@@ -32,20 +32,16 @@ glcpp_error (YYLTYPE *locp, glcpp_parser_t *parser, const char *fmt, ...)
 	va_list ap;
 
 	parser->error = 1;
-	ralloc_asprintf_rewrite_tail(&parser->info_log,
-				     &parser->info_log_length,
-				     "%u:%u(%u): "
-				     "preprocessor error: ",
-				     locp->source,
-				     locp->first_line,
-				     locp->first_column);
+	_mesa_string_buffer_printf(parser->info_log,
+				   "%u:%u(%u): "
+				   "preprocessor error: ",
+				   locp->source,
+				   locp->first_line,
+				   locp->first_column);
 	va_start(ap, fmt);
-	ralloc_vasprintf_rewrite_tail(&parser->info_log,
-				      &parser->info_log_length,
-				      fmt, ap);
+	_mesa_string_buffer_vprintf(parser->info_log, fmt, ap);
 	va_end(ap);
-	ralloc_asprintf_rewrite_tail(&parser->info_log,
-				     &parser->info_log_length, "\n");
+	_mesa_string_buffer_append_char(parser->info_log, '\n');
 }
 
 void
@@ -53,20 +49,16 @@ glcpp_warning (YYLTYPE *locp, glcpp_parser_t *parser, const char *fmt, ...)
 {
 	va_list ap;
 
-	ralloc_asprintf_rewrite_tail(&parser->info_log,
-				     &parser->info_log_length,
+	_mesa_string_buffer_printf(parser->info_log,
 				     "%u:%u(%u): "
 				     "preprocessor warning: ",
 				     locp->source,
 				     locp->first_line,
 				     locp->first_column);
 	va_start(ap, fmt);
-	ralloc_vasprintf_rewrite_tail(&parser->info_log,
-				      &parser->info_log_length,
-				      fmt, ap);
+	_mesa_string_buffer_vprintf(parser->info_log, fmt, ap);
 	va_end(ap);
-	ralloc_asprintf_rewrite_tail(&parser->info_log,
-				     &parser->info_log_length, "\n");
+	_mesa_string_buffer_append_char(parser->info_log, '\n');
 }
 
 /* Given str, (that's expected to start with a newline terminator of some
@@ -105,17 +97,25 @@ skip_newline (const char *str)
 	return ret;
 }
 
+/* Initial output buffer size, 4096 minus ralloc() overhead. It was selected
+ * to minimize total amount of allocated memory during shader-db run.
+ */
+#define INITIAL_PP_OUTPUT_BUF_SIZE 4048
+
 /* Remove any line continuation characters in the shader, (whether in
  * preprocessing directives or in GLSL code).
  */
 static char *
 remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
 {
-	char *clean = ralloc_strdup(ctx, "");
+	struct _mesa_string_buffer *sb =
+		_mesa_string_buffer_create(ctx, INITIAL_PP_OUTPUT_BUF_SIZE);
+
 	const char *backslash, *newline, *search_start;
         const char *cr, *lf;
         char newline_separator[3];
 	int collapsed_newlines = 0;
+	int separator_len;
 
 	backslash = strchr(shader, '\\');
 
@@ -161,6 +161,7 @@ remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
 		newline_separator[0] = '\n';
 		newline_separator[1] = '\r';
 	}
+	separator_len = strlen(newline_separator);
 
 	while (true) {
 		/* If we have previously collapsed any line-continuations,
@@ -180,10 +181,12 @@ remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
 			if (newline &&
 			    (backslash == NULL || newline < backslash))
 			{
-				ralloc_strncat(&clean, shader,
-					       newline - shader + 1);
+				_mesa_string_buffer_append_len(sb, shader,
+							       newline - shader + 1);
 				while (collapsed_newlines) {
-					ralloc_strcat(&clean, newline_separator);
+					_mesa_string_buffer_append_len(sb,
+								       newline_separator,
+								       separator_len);
 					collapsed_newlines--;
 				}
 				shader = skip_newline (newline);
@@ -204,7 +207,7 @@ remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
 		if (backslash[1] == '\r' || backslash[1] == '\n')
 		{
 			collapsed_newlines++;
-			ralloc_strncat(&clean, shader, backslash - shader);
+			_mesa_string_buffer_append_len(sb, shader, backslash - shader);
 			shader = skip_newline (backslash + 1);
 			search_start = shader;
 		}
@@ -212,9 +215,9 @@ remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
 		backslash = strchr(search_start, '\\');
 	}
 
-	ralloc_strcat(&clean, shader);
+	_mesa_string_buffer_append(sb, shader);
 
-	return clean;
+	return sb->buf;
 }
 
 int
@@ -238,10 +241,13 @@ glcpp_preprocess(void *ralloc_ctx, const char **shader, char **info_log,
 
 	glcpp_parser_resolve_implicit_version(parser);
 
-	ralloc_strcat(info_log, parser->info_log);
+	ralloc_strcat(info_log, parser->info_log->buf);
 
-	ralloc_steal(ralloc_ctx, parser->output);
-	*shader = parser->output;
+	/* Crimp the buffer first, to conserve memory */
+	_mesa_string_buffer_crimp_to_fit(parser->output);
+
+	ralloc_steal(ralloc_ctx, parser->output->buf);
+	*shader = parser->output->buf;
 
 	errors = parser->error;
 	glcpp_parser_destroy (parser);

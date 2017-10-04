@@ -158,7 +158,7 @@ replace_discard(void *mem_ctx, ir_variable *var, ir_discard *ir)
 
    ir_assignment *assignment =
       new(mem_ctx) ir_assignment(new(mem_ctx) ir_dereference_variable(var),
-				 condition, NULL);
+                                 condition);
 
    ir->replace_with(assignment);
 }
@@ -180,7 +180,7 @@ lower_discard_visitor::visit_leave(ir_if *ir)
 						ir_var_temporary);
    ir_assignment *temp_initializer =
       new(mem_ctx) ir_assignment(new(mem_ctx) ir_dereference_variable(temp),
-				 new(mem_ctx) ir_constant(false), NULL);
+                                 new(mem_ctx) ir_constant(false));
 
    ir->insert_before(temp);
    ir->insert_before(temp_initializer);

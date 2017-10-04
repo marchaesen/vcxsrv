@@ -89,7 +89,7 @@ replace_return_with_assignment(ir_instruction *ir, void *data)
    if (ret) {
       if (ret->value) {
 	 ir_rvalue *lhs = orig_deref->clone(ctx, NULL);
-	 ret->replace_with(new(ctx) ir_assignment(lhs, ret->value, NULL));
+         ret->replace_with(new(ctx) ir_assignment(lhs, ret->value));
       } else {
 	 /* un-valued return has to be the last return, or we shouldn't
 	  * have reached here. (see can_inline()).
@@ -121,7 +121,7 @@ ir_save_lvalue_visitor::visit_enter(ir_dereference_array *deref)
       base_ir->insert_before(index);
 
       assignment = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(index),
-                                          deref->array_index, 0);
+                                          deref->array_index);
       base_ir->insert_before(assignment);
 
       deref->array_index = new(ctx) ir_dereference_variable(index);
@@ -199,7 +199,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
             ir_assignment *assign;
 
             assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(parameters[i]),
-                                            param, NULL);
+                                            param);
             next_ir->insert_before(assign);
          } else {
             assert(sig_param->data.mode == ir_var_function_out ||
@@ -215,7 +215,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
                ir_assignment *assign;
 
                assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(parameters[i]),
-                                               param->clone(ctx, NULL)->as_rvalue(), NULL);
+                                               param->clone(ctx, NULL)->as_rvalue());
                next_ir->insert_before(assign);
             }
          }
@@ -268,8 +268,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
 	 ir_assignment *assign;
 
          assign = new(ctx) ir_assignment(param,
-					 new(ctx) ir_dereference_variable(parameters[i]),
-					 NULL);
+                                         new(ctx) ir_dereference_variable(parameters[i]));
 	 next_ir->insert_before(assign);
       }
 

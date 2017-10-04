@@ -33,6 +33,8 @@
 
 #include "util/hash_table.h"
 
+#include "util/string_buffer.h"
+
 #define yyscan_t void*
 
 /* Some data types used for parser values. */
@@ -199,10 +201,8 @@ struct glcpp_parser {
 	int skipping;
 	token_list_t *lex_from_list;
 	token_node_t *lex_from_node;
-	char *output;
-	char *info_log;
-	size_t output_length;
-	size_t info_log_length;
+	struct _mesa_string_buffer *output;
+	struct _mesa_string_buffer *info_log;
 	int error;
 	glcpp_extension_iterator extensions;
 	const struct gl_extensions *extension_list;

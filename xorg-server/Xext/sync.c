@@ -865,7 +865,7 @@ SyncChangeAlarmAttributes(ClientPtr client, SyncAlarm * pAlarm, Mask mask,
             ||
             (((pAlarm->trigger.test_type == XSyncNegativeComparison) ||
               (pAlarm->trigger.test_type == XSyncNegativeTransition))
-             && pAlarm->delta >= 0)
+             && pAlarm->delta > 0)
             ) {
             return BadMatch;
         }

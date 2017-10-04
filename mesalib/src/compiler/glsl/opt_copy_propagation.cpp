@@ -348,20 +348,13 @@ ir_copy_propagation_visitor::add_copy(ir_assignment *ir)
    ir_variable *lhs_var = ir->whole_variable_written();
    ir_variable *rhs_var = ir->rhs->whole_variable_referenced();
 
-   if ((lhs_var != NULL) && (rhs_var != NULL)) {
-      if (lhs_var == rhs_var) {
-	 /* This is a dumb assignment, but we've conveniently noticed
-	  * it here.  Removing it now would mess up the loop iteration
-	  * calling us.  Just flag it to not execute, and someone else
-	  * will clean up the mess.
-	  */
-	 ir->condition = new(ralloc_parent(ir)) ir_constant(false);
-	 this->progress = true;
-      } else if (lhs_var->data.mode != ir_var_shader_storage &&
-                 lhs_var->data.mode != ir_var_shader_shared &&
-                 lhs_var->data.precise == rhs_var->data.precise) {
-         assert(lhs_var);
-         assert(rhs_var);
+   /* Don't try to remove a dumb assignment of a variable to itself.  Removing
+    * it now would mess up the loop iteration calling us.
+    */
+   if (lhs_var != NULL && rhs_var != NULL && lhs_var != rhs_var) {
+      if (lhs_var->data.mode != ir_var_shader_storage &&
+          lhs_var->data.mode != ir_var_shader_shared &&
+          lhs_var->data.precise == rhs_var->data.precise) {
          _mesa_hash_table_insert(acp, lhs_var, rhs_var);
       }
    }

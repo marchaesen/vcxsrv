@@ -406,7 +406,7 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    /* GL limits and extensions */
    st_init_limits(pipe->screen, &ctx->Const, &ctx->Extensions);
    st_init_extensions(pipe->screen, &ctx->Const,
-                      &ctx->Extensions, &st->options, ctx->Mesa_DXTn);
+                      &ctx->Extensions, &st->options);
 
    if (st_have_perfmon(st)) {
       ctx->Extensions.AMD_performance_monitor = GL_TRUE;

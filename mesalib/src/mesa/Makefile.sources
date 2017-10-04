@@ -67,7 +67,6 @@ MAIN_FILES = \
 	main/depth.h \
 	main/dlist.c \
 	main/dlist.h \
-	main/dlopen.h \
 	main/drawpix.c \
 	main/drawpix.h \
 	main/drawtex.c \

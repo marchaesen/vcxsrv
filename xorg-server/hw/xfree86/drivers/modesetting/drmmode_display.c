@@ -2278,9 +2278,12 @@ drmmode_handle_uevents(int fd, void *closure)
     for (i = 0; i < config->num_output; i++) {
         xf86OutputPtr output = config->output[i];
         drmmode_output_private_ptr drmmode_output = output->driver_private;
-        uint32_t con_id = drmmode_output->mode_output->connector_id;
+        uint32_t con_id;
         drmModeConnectorPtr koutput;
 
+        if (drmmode_output->mode_output == NULL)
+            continue;
+        con_id = drmmode_output->mode_output->connector_id;
         /* Get an updated view of the properties for the current connector and
          * look for the link-status property
          */

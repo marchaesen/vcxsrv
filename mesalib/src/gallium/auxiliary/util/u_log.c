@@ -24,6 +24,7 @@
 #include "u_log.h"
 
 #include "u_memory.h"
+#include "util/u_string.h"
 
 struct page_entry {
    const struct u_log_chunk_type *type;
@@ -129,7 +130,7 @@ u_log_printf(struct u_log_context *ctx, const char *fmt, ...)
    char *str = NULL;
 
    va_start(va, fmt);
-   int ret = vasprintf(&str, fmt, va);
+   int ret = util_vasprintf(&str, fmt, va);
    va_end(va);
 
    if (ret >= 0) {

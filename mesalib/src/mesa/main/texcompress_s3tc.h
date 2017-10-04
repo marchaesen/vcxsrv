@@ -44,9 +44,6 @@ extern GLboolean
 _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS);
 
 
-extern void
-_mesa_init_texture_s3tc(struct gl_context *ctx);
-
 extern compressed_fetch_func
 _mesa_get_dxt_fetch_func(mesa_format format);
 

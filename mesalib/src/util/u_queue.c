@@ -120,6 +120,19 @@ void
 util_queue_fence_destroy(struct util_queue_fence *fence)
 {
    assert(fence->signalled);
+
+   /* Ensure that another thread is not in the middle of
+    * util_queue_fence_signal (having set the fence to signalled but still
+    * holding the fence mutex).
+    *
+    * A common contract between threads is that as soon as a fence is signalled
+    * by thread A, thread B is allowed to destroy it. Since
+    * util_queue_fence_is_signalled does not lock the fence mutex (for
+    * performance reasons), we must do so here.
+    */
+   mtx_lock(&fence->mutex);
+   mtx_unlock(&fence->mutex);
+
    cnd_destroy(&fence->cond);
    mtx_destroy(&fence->mutex);
 }

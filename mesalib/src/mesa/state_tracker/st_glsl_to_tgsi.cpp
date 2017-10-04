@@ -584,10 +584,10 @@ glsl_to_tgsi_visitor::emit_asm(ir_instruction *ir, unsigned op,
 
             } else {
                /* some opcodes are special case in what they use as sources
-                  - [FUI]2D/[UI]2I64 is a float/[u]int src0, DLDEXP is integer src1 */
+                  - [FUI]2D/[UI]2I64 is a float/[u]int src0, (D)LDEXP is integer src1 */
                if (op == TGSI_OPCODE_F2D || op == TGSI_OPCODE_U2D || op == TGSI_OPCODE_I2D ||
                    op == TGSI_OPCODE_I2I64 || op == TGSI_OPCODE_U2I64 ||
-                   op == TGSI_OPCODE_DLDEXP ||
+                   op == TGSI_OPCODE_DLDEXP || op == TGSI_OPCODE_LDEXP ||
                    (op == TGSI_OPCODE_UCMP && dst_is_64bit[0])) {
                   dinst->src[j].swizzle = MAKE_SWIZZLE4(swz, swz, swz, swz);
                }
@@ -2107,6 +2107,8 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
    case ir_binop_ldexp:
       if (ir->operands[0]->type->is_double()) {
          emit_asm(ir, TGSI_OPCODE_DLDEXP, result_dst, op[0], op[1]);
+      } else if (ir->operands[0]->type->is_float()) {
+         emit_asm(ir, TGSI_OPCODE_LDEXP, result_dst, op[0], op[1]);
       } else {
          assert(!"Invalid ldexp for non-double opcode in glsl_to_tgsi_visitor::visit()");
       }
@@ -2897,7 +2899,15 @@ glsl_to_tgsi_visitor::emit_block_mov(ir_assignment *ir, const struct glsl_type *
    r->type = type->base_type;
    if (cond) {
       st_src_reg l_src = st_src_reg(*l);
-      l_src.swizzle = swizzle_for_size(type->vector_elements);
+
+      if (l_src.file == PROGRAM_OUTPUT &&
+          this->prog->Target == GL_FRAGMENT_PROGRAM_ARB &&
+          (l_src.index == FRAG_RESULT_DEPTH || l_src.index == FRAG_RESULT_STENCIL)) {
+         /* This is a special case because the source swizzles will be shifted
+          * later to account for the difference between GLSL (where they're
+          * plain floats) and TGSI (where they're Z and Y components). */
+         l_src.swizzle = SWIZZLE_XXXX;
+      }
 
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_UCMP, *l, *cond,
@@ -5148,7 +5158,8 @@ glsl_to_tgsi_visitor::eliminate_dead_code(void)
 void
 glsl_to_tgsi_visitor::merge_two_dsts(void)
 {
-   foreach_in_list_safe(glsl_to_tgsi_instruction, inst, &this->instructions) {
+   /* We never delete inst, but we may delete its successor. */
+   foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
       glsl_to_tgsi_instruction *inst2;
       bool merged;
       if (num_inst_dst_regs(inst) != 2)
@@ -6774,6 +6785,8 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                                                    PIPE_SHADER_CAP_TGSI_DROUND_SUPPORTED);
       bool have_dfrexp = pscreen->get_shader_param(pscreen, ptarget,
                                                    PIPE_SHADER_CAP_TGSI_DFRACEXP_DLDEXP_SUPPORTED);
+      bool have_ldexp = pscreen->get_shader_param(pscreen, ptarget,
+                                                  PIPE_SHADER_CAP_TGSI_LDEXP_SUPPORTED);
       unsigned if_threshold = pscreen->get_shader_param(pscreen, ptarget,
                                                         PIPE_SHADER_CAP_LOWER_IF_THRESHOLD);
 
@@ -6824,7 +6837,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                          FDIV_TO_MUL_RCP |
                          EXP_TO_EXP2 |
                          LOG_TO_LOG2 |
-                         LDEXP_TO_ARITH |
+                         (have_ldexp ? 0 : LDEXP_TO_ARITH) |
                          (have_dfrexp ? 0 : DFREXP_DLDEXP_TO_ARITH) |
                          CARRY_TO_ARITH |
                          BORROW_TO_ARITH |

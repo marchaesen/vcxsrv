@@ -840,9 +840,11 @@ _mesa_update_texture_state(struct gl_context *ctx)
 
    memcpy(prog, ctx->_Shader->CurrentProgram, sizeof(prog));
 
-   if (prog[MESA_SHADER_FRAGMENT] == NULL &&
-       _mesa_arb_fragment_program_enabled(ctx)) {
-      prog[MESA_SHADER_FRAGMENT] = ctx->FragmentProgram.Current;
+   if (prog[MESA_SHADER_FRAGMENT] == NULL) {
+      if (_mesa_arb_fragment_program_enabled(ctx))
+         prog[MESA_SHADER_FRAGMENT] = ctx->FragmentProgram.Current;
+      else if (_mesa_ati_fragment_shader_enabled(ctx))
+         prog[MESA_SHADER_FRAGMENT] = ctx->ATIFragmentShader.Current->Program;
    }
 
    /* TODO: only set this if there are actual changes */

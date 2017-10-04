@@ -1,8 +1,4 @@
-if FREETYPE_PCF_LONG_FAMILY_NAMES
-check_SCRIPTS=run-test271.sh
-else
 check_SCRIPTS=run-test.sh
-endif
 TEST_EXTENSIONS = \
 	.sh \
 	$(NULL)
@@ -13,12 +9,7 @@ AM_TESTS_ENVIRONMENT= \
 	$(NULL)
 
 SH_LOG_COMPILER = sh
-
-if FREETYPE_PCF_LONG_FAMILY_NAMES
-TESTS=run-test271.sh
-else
 TESTS=run-test.sh
-endif
 
 TESTDATA=4x6.pcf 8x16.pcf out.expected out271.expected fonts.conf.in
 

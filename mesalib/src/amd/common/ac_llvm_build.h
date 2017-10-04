@@ -85,6 +85,11 @@ ac_build_intrinsic(struct ac_llvm_context *ctx, const char *name,
 
 void ac_build_type_name_for_intr(LLVMTypeRef type, char *buf, unsigned bufsize);
 
+LLVMValueRef
+ac_build_phi(struct ac_llvm_context *ctx, LLVMTypeRef type,
+	     unsigned count_incoming, LLVMValueRef *values,
+	     LLVMBasicBlockRef *blocks);
+
 void ac_build_optimization_barrier(struct ac_llvm_context *ctx,
 				   LLVMValueRef *pvgpr);
 

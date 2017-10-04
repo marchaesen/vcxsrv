@@ -4974,9 +4974,6 @@ struct gl_context
     */
    GLboolean HasConfig;
 
-   /** software compression/decompression supported or not */
-   GLboolean Mesa_DXTn;
-
    GLboolean TextureFormatSupported[MESA_FORMAT_COUNT];
 
    GLboolean RasterDiscard;  /**< GL_RASTERIZER_DISCARD */

@@ -112,23 +112,26 @@ radv_meta_save_compute(struct radv_meta_saved_compute_state *state,
 {
 	state->old_pipeline = cmd_buffer->state.compute_pipeline;
 	state->old_descriptor_set0 = cmd_buffer->state.descriptors[0];
+	state->push_constant_size = push_constant_size;
 
-	if (push_constant_size)
-		memcpy(state->push_constants, cmd_buffer->push_constants, push_constant_size);
+	if (state->push_constant_size) {
+		memcpy(state->push_constants, cmd_buffer->push_constants,
+		       state->push_constant_size);
+	}
 }
 
 void
 radv_meta_restore_compute(const struct radv_meta_saved_compute_state *state,
-                          struct radv_cmd_buffer *cmd_buffer,
-                          unsigned push_constant_size)
+                          struct radv_cmd_buffer *cmd_buffer)
 {
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
 			     radv_pipeline_to_handle(state->old_pipeline));
 
 	cmd_buffer->state.descriptors[0] = state->old_descriptor_set0;
 
-	if (push_constant_size) {
-		memcpy(cmd_buffer->push_constants, state->push_constants, push_constant_size);
+	if (state->push_constant_size) {
+		memcpy(cmd_buffer->push_constants, state->push_constants,
+		       state->push_constant_size);
 		cmd_buffer->push_constant_stages |= VK_SHADER_STAGE_COMPUTE_BIT;
 	}
 }

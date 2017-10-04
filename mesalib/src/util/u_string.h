@@ -38,8 +38,10 @@
 #if !defined(XF86_LIBC_H)
 #include <stdio.h>
 #endif
+#include <stdlib.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "util/macros.h" // PRINTFLIKE
 
@@ -108,6 +110,27 @@ util_sprintf(char *str, const char *format, ...)
    va_start(ap, format);
    util_vsnprintf(str, (size_t)-1, format, ap);
    va_end(ap);
+}
+
+static inline int
+util_vasprintf(char **ret, const char *format, va_list ap)
+{
+   va_list ap_copy;
+
+   /* Compute length of output string first */
+   va_copy(ap_copy, ap);
+   int r = util_vsnprintf(NULL, 0, format, ap);
+   va_end(ap_copy);
+
+   if (r < 0)
+      return -1;
+
+   *ret = (char *) malloc(r + 1);
+   if (!ret)
+      return -1;
+
+   /* Print to buffer */
+   return util_vsnprintf(*ret, r + 1, format, ap);
 }
 
 static inline char *
@@ -186,6 +209,7 @@ util_strstr(const char *haystack, const char *needle)
 #define util_vsnprintf vsnprintf
 #define util_snprintf snprintf
 #define util_vsprintf vsprintf
+#define util_vasprintf vasprintf
 #define util_sprintf sprintf
 #define util_strchr strchr
 #define util_strcmp strcmp

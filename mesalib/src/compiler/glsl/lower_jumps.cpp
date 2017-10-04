@@ -189,7 +189,7 @@ struct loop_record
       if(!this->execute_flag) {
          exec_list& list = this->loop ? this->loop->body_instructions : signature->body;
          this->execute_flag = new(this->signature) ir_variable(glsl_type::bool_type, "execute_flag", ir_var_temporary);
-         list.push_head(new(this->signature) ir_assignment(new(this->signature) ir_dereference_variable(execute_flag), new(this->signature) ir_constant(true), 0));
+         list.push_head(new(this->signature) ir_assignment(new(this->signature) ir_dereference_variable(execute_flag), new(this->signature) ir_constant(true)));
          list.push_head(this->execute_flag);
       }
       return this->execute_flag;
@@ -201,7 +201,7 @@ struct loop_record
       if(!this->break_flag) {
          this->break_flag = new(this->signature) ir_variable(glsl_type::bool_type, "break_flag", ir_var_temporary);
          this->loop->insert_before(this->break_flag);
-         this->loop->insert_before(new(this->signature) ir_assignment(new(this->signature) ir_dereference_variable(break_flag), new(this->signature) ir_constant(false), 0));
+         this->loop->insert_before(new(this->signature) ir_assignment(new(this->signature) ir_dereference_variable(break_flag), new(this->signature) ir_constant(false)));
       }
       return this->break_flag;
    }
@@ -229,7 +229,7 @@ struct function_record
    {
       if(!this->return_flag) {
          this->return_flag = new(this->signature) ir_variable(glsl_type::bool_type, "return_flag", ir_var_temporary);
-         this->signature->body.push_head(new(this->signature) ir_assignment(new(this->signature) ir_dereference_variable(return_flag), new(this->signature) ir_constant(false), 0));
+         this->signature->body.push_head(new(this->signature) ir_assignment(new(this->signature) ir_dereference_variable(return_flag), new(this->signature) ir_constant(false)));
          this->signature->body.push_head(this->return_flag);
       }
       return this->return_flag;
@@ -356,8 +356,7 @@ struct ir_lower_jumps_visitor : public ir_control_flow_visitor {
       void *ctx = this->function.signature;
       return new(ctx) ir_assignment(
           new(ctx) ir_dereference_variable(this->loop.get_break_flag()),
-          new(ctx) ir_constant(true),
-          0);
+          new(ctx) ir_constant(true));
    }
 
    /**
@@ -681,7 +680,7 @@ lower_continue:
              * this->loop must be initialized even outside of loops.
              */
             ir_variable* execute_flag = this->loop.get_execute_flag();
-            jumps[lower]->replace_with(new(ir) ir_assignment(new (ir) ir_dereference_variable(execute_flag), new (ir) ir_constant(false), 0));
+            jumps[lower]->replace_with(new(ir) ir_assignment(new (ir) ir_dereference_variable(execute_flag), new (ir) ir_constant(false)));
             /* Note: we must update block_records and jumps to reflect
              * the fact that the control path has been altered to an
              * instruction that clears the execute flag.

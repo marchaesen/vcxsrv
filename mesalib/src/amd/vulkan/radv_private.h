@@ -197,8 +197,6 @@ radv_clear_mask(uint32_t *inout_mask, uint32_t clear_mask)
 			memcpy((dest), (src), (count) * sizeof(*(src))); \
 		})
 
-#define zero(x) (memset(&(x), 0, sizeof(x)))
-
 /* Whenever we generate an error, pass it through this function. Useful for
  * debugging, where we can break on it. Only call at error site, not when
  * propagating errors. Might be useful to plug in a stack trace here.
@@ -343,12 +341,12 @@ struct radv_meta_state {
 	 */
 	struct {
 		VkRenderPass render_pass[NUM_META_FS_KEYS];
-		struct radv_pipeline *color_pipelines[NUM_META_FS_KEYS];
+		VkPipeline color_pipelines[NUM_META_FS_KEYS];
 
 		VkRenderPass depthstencil_rp;
-		struct radv_pipeline *depth_only_pipeline[NUM_DEPTH_CLEAR_PIPELINES];
-		struct radv_pipeline *stencil_only_pipeline[NUM_DEPTH_CLEAR_PIPELINES];
-		struct radv_pipeline *depthstencil_pipeline[NUM_DEPTH_CLEAR_PIPELINES];
+		VkPipeline depth_only_pipeline[NUM_DEPTH_CLEAR_PIPELINES];
+		VkPipeline stencil_only_pipeline[NUM_DEPTH_CLEAR_PIPELINES];
+		VkPipeline depthstencil_pipeline[NUM_DEPTH_CLEAR_PIPELINES];
 	} clear[1 + MAX_SAMPLES_LOG2];
 
 	VkPipelineLayout                          clear_color_p_layout;
@@ -398,7 +396,6 @@ struct radv_meta_state {
 		VkPipeline pipeline;
 	} itob;
 	struct {
-		VkRenderPass render_pass;
 		VkPipelineLayout                          img_p_layout;
 		VkDescriptorSetLayout                     img_ds_layout;
 		VkPipeline pipeline;
@@ -747,10 +744,6 @@ struct radv_dynamic_state {
 };
 
 extern const struct radv_dynamic_state default_dynamic_state;
-
-void radv_dynamic_state_copy(struct radv_dynamic_state *dest,
-			     const struct radv_dynamic_state *src,
-			     uint32_t copy_mask);
 
 const char *
 radv_get_debug_option_name(int id);
@@ -1225,6 +1218,7 @@ struct radv_image {
 	VkDeviceSize offset;
 	uint32_t dcc_offset;
 	uint32_t htile_offset;
+	bool tc_compatible_htile;
 	struct radeon_surf surface;
 
 	struct radv_fmask_info fmask;
@@ -1253,6 +1247,11 @@ bool radv_layout_can_fast_clear(const struct radv_image *image,
 			        VkImageLayout layout,
 			        unsigned queue_mask);
 
+static inline bool
+radv_vi_dcc_enabled(const struct radv_image *image, unsigned level)
+{
+	return image->surface.dcc_size && level < image->surface.num_dcc_levels;
+}
 
 unsigned radv_image_queue_family_mask(const struct radv_image *image, uint32_t family, uint32_t queue_family);
 

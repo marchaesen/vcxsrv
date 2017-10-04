@@ -39,6 +39,7 @@ static const struct {
     { FC_EMBEDDED_BITMAP_OBJECT,   FcTrue 	},  /* !FC_LOAD_NO_BITMAP */
     { FC_DECORATIVE_OBJECT,	   FcFalse	},
     { FC_SYMBOL_OBJECT,		   FcFalse	},
+    { FC_VARIABLE_OBJECT,	   FcFalse	},
 };
 
 #define NUM_FC_BOOL_DEFAULTS	(int) (sizeof FcBoolDefaults / sizeof FcBoolDefaults[0])
@@ -255,7 +256,14 @@ FcDefaultSubstitute (FcPattern *pattern)
 	    FcPatternObjectAddBool (pattern, FcBoolDefaults[i].field, FcBoolDefaults[i].value);
 
     if (FcPatternObjectGetDouble (pattern, FC_SIZE_OBJECT, 0, &size) != FcResultMatch)
-	size = 12.0L;
+    {
+	FcRange *r;
+	double b, e;
+	if (FcPatternObjectGetRange (pattern, FC_SIZE_OBJECT, 0, &r) == FcResultMatch && FcRangeGetDouble (r, &b, &e))
+	    size = (b + e) * .5;
+	else
+	    size = 12.0L;
+    }
     if (FcPatternObjectGetDouble (pattern, FC_SCALE_OBJECT, 0, &scale) != FcResultMatch)
 	scale = 1.0;
     if (FcPatternObjectGetDouble (pattern, FC_DPI_OBJECT, 0, &dpi) != FcResultMatch)

@@ -250,7 +250,6 @@ radv_device_init_meta_resolve_compute_state(struct radv_device *device)
 {
 	struct radv_meta_state *state = &device->meta_state;
 	VkResult res;
-	memset(&device->meta_state.resolve_compute, 0, sizeof(device->meta_state.resolve_compute));
 
 	res = create_layout(device);
 	if (res != VK_SUCCESS)
@@ -462,7 +461,7 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 				     &(VkExtent2D) {extent.width, extent.height });
 		}
 	}
-	radv_meta_restore_compute(&saved_state, cmd_buffer, 16);
+	radv_meta_restore_compute(&saved_state, cmd_buffer);
 }
 
 /**
@@ -529,7 +528,7 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 			     &(VkExtent2D) { fb->width, fb->height });
 	}
 
-	radv_meta_restore_compute(&saved_state, cmd_buffer, 16);
+	radv_meta_restore_compute(&saved_state, cmd_buffer);
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
 		VkAttachmentReference dest_att = subpass->resolve_attachments[i];

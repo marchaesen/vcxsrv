@@ -1113,6 +1113,9 @@ FcPatternDuplicate (const FcPattern *orig)
     int		    i;
     FcValueListPtr  l;
 
+    if (!orig)
+	return NULL;
+
     new = FcPatternCreate ();
     if (!new)
 	goto bail0;

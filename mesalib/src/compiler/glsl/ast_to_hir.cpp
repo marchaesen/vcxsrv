@@ -3126,17 +3126,6 @@ interpret_interpolation_qualifier(const struct ast_type_qualifier *qual,
       interpolation = INTERP_MODE_NOPERSPECTIVE;
    else if (qual->flags.q.smooth)
       interpolation = INTERP_MODE_SMOOTH;
-   else if (state->es_shader &&
-            ((mode == ir_var_shader_in &&
-              state->stage != MESA_SHADER_VERTEX) ||
-             (mode == ir_var_shader_out &&
-              state->stage != MESA_SHADER_FRAGMENT)))
-      /* Section 4.3.9 (Interpolation) of the GLSL ES 3.00 spec says:
-       *
-       *    "When no interpolation qualifier is present, smooth interpolation
-       *    is used."
-       */
-      interpolation = INTERP_MODE_SMOOTH;
    else
       interpolation = INTERP_MODE_NONE;
 
@@ -6376,13 +6365,28 @@ ast_selection_statement::hir(exec_list *instructions,
 }
 
 
+struct case_label {
+   /** Value of the case label. */
+   unsigned value;
+
+   /** Does this label occur after the default? */
+   bool after_default;
+
+   /**
+    * AST for the case label.
+    *
+    * This is only used to generate error messages for duplicate labels.
+    */
+   ast_expression *ast;
+};
+
 /* Used for detection of duplicate case values, compare
  * given contents directly.
  */
 static bool
 compare_case_value(const void *a, const void *b)
 {
-   return *(unsigned *) a == *(unsigned *) b;
+   return ((struct case_label *) a)->value == ((struct case_label *) b)->value;
 }
 
 
@@ -6392,7 +6396,7 @@ compare_case_value(const void *a, const void *b)
 static unsigned
 key_contents(const void *key)
 {
-   return *(unsigned *) key;
+   return ((struct case_label *) key)->value;
 }
 
 
@@ -6418,6 +6422,7 @@ ast_switch_statement::hir(exec_list *instructions,
                        state,
                        "switch-statement expression must be scalar "
                        "integer");
+      return NULL;
    }
 
    /* Track the switch-statement nesting in a stack-like manner.
@@ -6574,43 +6579,34 @@ ast_case_statement_list::hir(exec_list *instructions,
     * if default should be chosen or not.
     */
    if (!default_case.is_empty()) {
+      struct hash_entry *entry;
+      ir_factory body(instructions, state);
 
-      ir_rvalue *const true_val = new (state) ir_constant(true);
-      ir_dereference_variable *deref_run_default_var =
-         new(state) ir_dereference_variable(state->switch_state.run_default);
+      ir_expression *cmp = NULL;
 
-      /* Choose to run default case initially, following conditional
-       * assignments might change this.
-       */
-      ir_assignment *const init_var =
-         new(state) ir_assignment(deref_run_default_var, true_val);
-      instructions->push_tail(init_var);
+      hash_table_foreach(state->switch_state.labels_ht, entry) {
+         const struct case_label *const l = (struct case_label *) entry->data;
 
-      /* Default case was the last one, no checks required. */
-      if (after_default.is_empty()) {
-         instructions->append_list(&default_case);
-         return NULL;
+         /* If the switch init-value is the value of one of the labels that
+          * occurs after the default case, disable execution of the default
+          * case.
+          */
+         if (l->after_default) {
+            ir_constant *const cnst =
+               state->switch_state.test_var->type->base_type == GLSL_TYPE_UINT
+               ? body.constant(unsigned(l->value))
+               : body.constant(int(l->value));
+
+            cmp = cmp == NULL
+               ? equal(cnst, state->switch_state.test_var)
+               : logic_or(cmp, equal(cnst, state->switch_state.test_var));
+         }
       }
 
-      foreach_in_list(ir_instruction, ir, &after_default) {
-         ir_assignment *assign = ir->as_assignment();
-
-         if (!assign)
-            continue;
-
-         /* Clone the check between case label and init expression. */
-         ir_expression *exp = (ir_expression*) assign->condition;
-         ir_expression *clone = exp->clone(state, NULL);
-
-         ir_dereference_variable *deref_var =
-            new(state) ir_dereference_variable(state->switch_state.run_default);
-         ir_rvalue *const false_val = new (state) ir_constant(false);
-
-         ir_assignment *const set_false =
-            new(state) ir_assignment(deref_var, false_val, clone);
-
-         instructions->push_tail(set_false);
-      }
+      if (cmp != NULL)
+         body.emit(assign(state->switch_state.run_default, logic_not(cmp)));
+      else
+         body.emit(assign(state->switch_state.run_default, body.constant(true)));
 
       /* Append default case and all cases after it. */
       instructions->append_list(&default_case);
@@ -6657,12 +6653,9 @@ ir_rvalue *
 ast_case_label::hir(exec_list *instructions,
                     struct _mesa_glsl_parse_state *state)
 {
-   void *ctx = state;
+   ir_factory body(instructions, state);
 
-   ir_dereference_variable *deref_fallthru_var =
-      new(ctx) ir_dereference_variable(state->switch_state.is_fallthru_var);
-
-   ir_rvalue *const true_val = new(ctx) ir_constant(true);
+   ir_variable *const fallthru_var = state->switch_state.is_fallthru_var;
 
    /* If not default case, ... */
    if (this->test_value != NULL) {
@@ -6670,7 +6663,8 @@ ast_case_label::hir(exec_list *instructions,
        * comparison of cached test expression value to case label.
        */
       ir_rvalue *const label_rval = this->test_value->hir(instructions, state);
-      ir_constant *label_const = label_rval->constant_expression_value(ctx);
+      ir_constant *label_const =
+         label_rval->constant_expression_value(body.mem_ctx);
 
       if (!label_const) {
          YYLTYPE loc = this->test_value->get_location();
@@ -6680,32 +6674,44 @@ ast_case_label::hir(exec_list *instructions,
                           "constant expression");
 
          /* Stuff a dummy value in to allow processing to continue. */
-         label_const = new(ctx) ir_constant(0);
+         label_const = body.constant(0);
       } else {
          hash_entry *entry =
                _mesa_hash_table_search(state->switch_state.labels_ht,
-                     (void *)(uintptr_t)&label_const->value.u[0]);
+                                       &label_const->value.u[0]);
 
          if (entry) {
-            ast_expression *previous_label = (ast_expression *) entry->data;
+            const struct case_label *const l =
+               (struct case_label *) entry->data;
+            const ast_expression *const previous_label = l->ast;
             YYLTYPE loc = this->test_value->get_location();
+
             _mesa_glsl_error(& loc, state, "duplicate case value");
 
             loc = previous_label->get_location();
             _mesa_glsl_error(& loc, state, "this is the previous case label");
          } else {
+            struct case_label *l = ralloc(state->switch_state.labels_ht,
+                                          struct case_label);
+
+            l->value = label_const->value.u[0];
+            l->after_default = state->switch_state.previous_default != NULL;
+            l->ast = this->test_value;
+
             _mesa_hash_table_insert(state->switch_state.labels_ht,
-                                    (void *)(uintptr_t)&label_const->value.u[0],
-                                    this->test_value);
+                                    &label_const->value.u[0],
+                                    l);
          }
       }
 
-      ir_dereference_variable *deref_test_var =
-         new(ctx) ir_dereference_variable(state->switch_state.test_var);
+      /* Create an r-value version of the ir_constant label here (after we may
+       * have created a fake one in error cases) that can be passed to
+       * apply_implicit_conversion below.
+       */
+      ir_rvalue *label = label_const;
 
-      ir_expression *test_cond = new(ctx) ir_expression(ir_binop_all_equal,
-                                                        label_const,
-                                                        deref_test_var);
+      ir_rvalue *deref_test_var =
+         new(body.mem_ctx) ir_dereference_variable(state->switch_state.test_var);
 
       /*
        * From GLSL 4.40 specification section 6.2 ("Selection"):
@@ -6718,10 +6724,10 @@ ast_case_label::hir(exec_list *instructions,
        *     uint (see section 4.1.10 “Implicit Conversions”) before the compare
        *     is done."
        */
-      if (label_const->type != state->switch_state.test_var->type) {
+      if (label->type != state->switch_state.test_var->type) {
          YYLTYPE loc = this->test_value->get_location();
 
-         const glsl_type *type_a = label_const->type;
+         const glsl_type *type_a = label->type;
          const glsl_type *type_b = state->switch_state.test_var->type;
 
          /* Check if int->uint implicit conversion is supported. */
@@ -6738,21 +6744,26 @@ ast_case_label::hir(exec_list *instructions,
             /* Conversion of the case label. */
             if (type_a->base_type == GLSL_TYPE_INT) {
                if (!apply_implicit_conversion(glsl_type::uint_type,
-                                              test_cond->operands[0], state))
+                                              label, state))
                   _mesa_glsl_error(&loc, state, "implicit type conversion error");
             } else {
                /* Conversion of the init-expression value. */
                if (!apply_implicit_conversion(glsl_type::uint_type,
-                                              test_cond->operands[1], state))
+                                              deref_test_var, state))
                   _mesa_glsl_error(&loc, state, "implicit type conversion error");
             }
          }
+
+         /* If the implicit conversion was allowed, the types will already be
+          * the same.  If the implicit conversion wasn't allowed, smash the
+          * type of the label anyway.  This will prevent the expression
+          * constructor (below) from failing an assertion.
+          */
+         label->type = deref_test_var->type;
       }
 
-      ir_assignment *set_fallthru_on_test =
-         new(ctx) ir_assignment(deref_fallthru_var, true_val, test_cond);
-
-      instructions->push_tail(set_fallthru_on_test);
+      body.emit(assign(fallthru_var,
+                       logic_or(fallthru_var, equal(label, deref_test_var))));
    } else { /* default case */
       if (state->switch_state.previous_default) {
          YYLTYPE loc = this->get_location();
@@ -6765,18 +6776,9 @@ ast_case_label::hir(exec_list *instructions,
       state->switch_state.previous_default = this;
 
       /* Set fallthru condition on 'run_default' bool. */
-      ir_dereference_variable *deref_run_default =
-         new(ctx) ir_dereference_variable(state->switch_state.run_default);
-      ir_rvalue *const cond_true = new(ctx) ir_constant(true);
-      ir_expression *test_cond = new(ctx) ir_expression(ir_binop_all_equal,
-                                                        cond_true,
-                                                        deref_run_default);
-
-      /* Set falltrhu state. */
-      ir_assignment *set_fallthru =
-         new(ctx) ir_assignment(deref_fallthru_var, true_val, test_cond);
-
-      instructions->push_tail(set_fallthru);
+      body.emit(assign(fallthru_var,
+                       logic_or(fallthru_var,
+                                state->switch_state.run_default)));
    }
 
    /* Case statements do not have r-values. */

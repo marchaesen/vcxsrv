@@ -635,65 +635,48 @@ void radv_CmdBlitImage(
 void
 radv_device_finish_meta_blit_state(struct radv_device *device)
 {
+	struct radv_meta_state *state = &device->meta_state;
+
 	for (unsigned i = 0; i < NUM_META_FS_KEYS; ++i) {
-		if (device->meta_state.blit.render_pass[i])
-			radv_DestroyRenderPass(radv_device_to_handle(device),
-					       device->meta_state.blit.render_pass[i],
-					       &device->meta_state.alloc);
-		if (device->meta_state.blit.pipeline_1d_src[i])
-			radv_DestroyPipeline(radv_device_to_handle(device),
-					     device->meta_state.blit.pipeline_1d_src[i],
-					     &device->meta_state.alloc);
-		if (device->meta_state.blit.pipeline_2d_src[i])
-			radv_DestroyPipeline(radv_device_to_handle(device),
-					     device->meta_state.blit.pipeline_2d_src[i],
-					     &device->meta_state.alloc);
-		if (device->meta_state.blit.pipeline_3d_src[i])
-			radv_DestroyPipeline(radv_device_to_handle(device),
-					     device->meta_state.blit.pipeline_3d_src[i],
-					     &device->meta_state.alloc);
+		radv_DestroyRenderPass(radv_device_to_handle(device),
+				       state->blit.render_pass[i],
+				       &state->alloc);
+		radv_DestroyPipeline(radv_device_to_handle(device),
+				     state->blit.pipeline_1d_src[i],
+				     &state->alloc);
+		radv_DestroyPipeline(radv_device_to_handle(device),
+				     state->blit.pipeline_2d_src[i],
+				     &state->alloc);
+		radv_DestroyPipeline(radv_device_to_handle(device),
+				     state->blit.pipeline_3d_src[i],
+				     &state->alloc);
 	}
 
-	if (device->meta_state.blit.depth_only_rp)
-		radv_DestroyRenderPass(radv_device_to_handle(device),
-				       device->meta_state.blit.depth_only_rp,
-				       &device->meta_state.alloc);
-	if (device->meta_state.blit.depth_only_1d_pipeline)
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.blit.depth_only_1d_pipeline,
-				     &device->meta_state.alloc);
-	if (device->meta_state.blit.depth_only_2d_pipeline)
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.blit.depth_only_2d_pipeline,
-				     &device->meta_state.alloc);
-	if (device->meta_state.blit.depth_only_3d_pipeline)
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.blit.depth_only_3d_pipeline,
-				     &device->meta_state.alloc);
-	if (device->meta_state.blit.stencil_only_rp)
-		radv_DestroyRenderPass(radv_device_to_handle(device),
-				       device->meta_state.blit.stencil_only_rp,
-				       &device->meta_state.alloc);
-	if (device->meta_state.blit.stencil_only_1d_pipeline)
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.blit.stencil_only_1d_pipeline,
-				     &device->meta_state.alloc);
-	if (device->meta_state.blit.stencil_only_2d_pipeline)
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.blit.stencil_only_2d_pipeline,
-				     &device->meta_state.alloc);
-	if (device->meta_state.blit.stencil_only_3d_pipeline)
-		radv_DestroyPipeline(radv_device_to_handle(device),
-				     device->meta_state.blit.stencil_only_3d_pipeline,
-				     &device->meta_state.alloc);
-	if (device->meta_state.blit.pipeline_layout)
-		radv_DestroyPipelineLayout(radv_device_to_handle(device),
-					   device->meta_state.blit.pipeline_layout,
-					   &device->meta_state.alloc);
-	if (device->meta_state.blit.ds_layout)
-		radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
-						device->meta_state.blit.ds_layout,
-						&device->meta_state.alloc);
+	radv_DestroyRenderPass(radv_device_to_handle(device),
+			       state->blit.depth_only_rp, &state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->blit.depth_only_1d_pipeline, &state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->blit.depth_only_2d_pipeline, &state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->blit.depth_only_3d_pipeline, &state->alloc);
+
+	radv_DestroyRenderPass(radv_device_to_handle(device),
+			       state->blit.stencil_only_rp, &state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->blit.stencil_only_1d_pipeline,
+			     &state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->blit.stencil_only_2d_pipeline,
+			     &state->alloc);
+	radv_DestroyPipeline(radv_device_to_handle(device),
+			     state->blit.stencil_only_3d_pipeline,
+			     &state->alloc);
+
+	radv_DestroyPipelineLayout(radv_device_to_handle(device),
+				   state->blit.pipeline_layout, &state->alloc);
+	radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
+					state->blit.ds_layout, &state->alloc);
 }
 
 static VkFormat pipeline_formats[] = {
@@ -1210,7 +1193,6 @@ radv_device_init_meta_blit_state(struct radv_device *device)
 {
 	VkResult result;
 	struct radv_shader_module vs = {0};
-	zero(device->meta_state.blit);
 
 	VkDescriptorSetLayoutCreateInfo ds_layout_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,

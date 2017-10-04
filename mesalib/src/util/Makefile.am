@@ -19,7 +19,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-SUBDIRS = xmlpool . tests/hash_table
+SUBDIRS = . \
+	xmlpool \
+	tests/hash_table \
+	tests/string_buffer
 
 include Makefile.sources
 
