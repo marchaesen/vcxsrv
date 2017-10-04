@@ -887,5 +887,8 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\string_to_uint_map.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\string_buffer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

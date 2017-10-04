@@ -501,6 +501,7 @@
     <ClCompile Include="..\..\..\..\src\util\rgtc.c" />
     <ClCompile Include="..\..\..\..\src\util\set.c" />
     <ClCompile Include="..\..\..\..\src\util\sha1\sha1.c" />
+    <ClCompile Include="..\..\..\..\src\util\string_buffer.c" />
     <ClCompile Include="..\..\..\..\src\util\strtod.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

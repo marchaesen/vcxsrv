@@ -363,5 +363,8 @@
     <ClCompile Include="..\..\..\..\src\util\sha1\sha1.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\string_buffer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
