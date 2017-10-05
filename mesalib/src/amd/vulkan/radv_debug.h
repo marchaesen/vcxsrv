@@ -55,6 +55,6 @@ void
 radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_winsys_cs *cs);
 
 void
-radv_print_spirv(struct radv_shader_module *module, FILE *fp);
+radv_print_spirv(uint32_t *data, uint32_t size, FILE *fp);
 
 #endif

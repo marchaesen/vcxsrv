@@ -111,6 +111,10 @@ typedef struct _modesettingRec {
     Bool dirty_enabled;
 
     uint32_t cursor_width, cursor_height;
+
+    Bool has_queue_sequence;
+    Bool tried_queue_sequence;
+
 } modesettingRec, *modesettingPtr;
 
 #define modesettingPTR(p) ((modesettingPtr)((p)->driverPrivate))
@@ -120,6 +124,15 @@ uint32_t ms_drm_queue_alloc(xf86CrtcPtr crtc,
                             void *data,
                             ms_drm_handler_proc handler,
                             ms_drm_abort_proc abort);
+
+typedef enum ms_queue_flag {
+    MS_QUEUE_ABSOLUTE = 0,
+    MS_QUEUE_RELATIVE = 1,
+    MS_QUEUE_NEXT_ON_MISS = 2
+} ms_queue_flag;
+
+Bool ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
+                     uint64_t msc, uint64_t *msc_queued, uint32_t seq);
 
 void ms_drm_abort(ScrnInfoPtr scrn,
                   Bool (*match)(void *data, void *match_data),
@@ -132,8 +145,8 @@ xf86CrtcPtr ms_dri2_crtc_covering_drawable(DrawablePtr pDraw);
 
 int ms_get_crtc_ust_msc(xf86CrtcPtr crtc, CARD64 *ust, CARD64 *msc);
 
-uint32_t ms_crtc_msc_to_kernel_msc(xf86CrtcPtr crtc, uint64_t expect);
-uint64_t ms_kernel_msc_to_crtc_msc(xf86CrtcPtr crtc, uint32_t sequence);
+uint64_t ms_crtc_msc_to_kernel_msc(xf86CrtcPtr crtc, uint64_t expect);
+uint64_t ms_kernel_msc_to_crtc_msc(xf86CrtcPtr crtc, uint64_t sequence);
 
 
 Bool ms_dri2_screen_init(ScreenPtr screen);

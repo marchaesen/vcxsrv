@@ -11,7 +11,10 @@ dri_dep = dependency('dri', required: build_dri2 or build_dri3)
 conf_data = configuration_data()
 conf_data.set('_DIX_CONFIG_H_', '1')
 
-
+conf_data.set('HAVE_TYPEOF', cc.compiles('''
+    int foo(int bar) { typeof(bar) baz = 1; return baz; }
+''',
+    name: 'typeof()'))
 
 conf_data.set('MONOTONIC_CLOCK', cc.compiles('''
     #define _POSIX_C_SOURCE 200112L

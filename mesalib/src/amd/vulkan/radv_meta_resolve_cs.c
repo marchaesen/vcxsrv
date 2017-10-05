@@ -351,10 +351,9 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 		pipeline = device->meta_state.resolve_compute.rc[samples_log2].srgb_pipeline;
 	else
 		pipeline = device->meta_state.resolve_compute.rc[samples_log2].pipeline;
-	if (cmd_buffer->state.compute_pipeline != radv_pipeline_from_handle(pipeline)) {
-		radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-				     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-	}
+
+	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
+			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
 	unsigned push_constants[4] = {
 		src_offset->x,

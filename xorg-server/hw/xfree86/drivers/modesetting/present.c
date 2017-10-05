@@ -109,13 +109,7 @@ ms_present_queue_vblank(RRCrtcPtr crtc,
                         uint64_t msc)
 {
     xf86CrtcPtr xf86_crtc = crtc->devPrivate;
-    ScreenPtr screen = crtc->pScreen;
-    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
-    modesettingPtr ms = modesettingPTR(scrn);
-    drmmode_crtc_private_ptr drmmode_crtc = xf86_crtc->driver_private;
     struct ms_present_vblank_event *event;
-    drmVBlank vbl;
-    int ret;
     uint32_t seq;
 
     event = calloc(sizeof(struct ms_present_vblank_event), 1);
@@ -130,22 +124,9 @@ ms_present_queue_vblank(RRCrtcPtr crtc,
         return BadAlloc;
     }
 
-    vbl.request.type =
-        DRM_VBLANK_ABSOLUTE | DRM_VBLANK_EVENT | drmmode_crtc->vblank_pipe;
-    vbl.request.sequence = ms_crtc_msc_to_kernel_msc(xf86_crtc, msc);
-    vbl.request.signal = seq;
-    for (;;) {
-        ret = drmWaitVBlank(ms->fd, &vbl);
-        if (!ret)
-            break;
-        /* If we hit EBUSY, then try to flush events.  If we can't, then
-         * this is an error.
-         */
-        if (errno != EBUSY || ms_flush_drm_events(screen) < 0) {
-	    ms_drm_abort_seq(scrn, seq);
-            return BadAlloc;
-        }
-    }
+    if (!ms_queue_vblank(xf86_crtc, MS_QUEUE_ABSOLUTE, msc, NULL, seq))
+        return BadAlloc;
+
     DebugPresent(("\t\tmq %lld seq %u msc %llu (hw msc %u)\n",
                  (long long) event_id, seq, (long long) msc,
                  vbl.request.sequence));

@@ -495,8 +495,19 @@ radv_dump_shader(struct radv_pipeline *pipeline,
 	if (!shader)
 		return;
 
-	fprintf(f, "%s:\n%s\n\n", radv_get_shader_name(shader, stage),
-		shader->disasm_string);
+	fprintf(f, "%s:\n\n", radv_get_shader_name(shader, stage));
+
+	if (shader->spirv) {
+		fprintf(f, "SPIRV:\n");
+		radv_print_spirv(shader->spirv, shader->spirv_size, f);
+	}
+
+	if (shader->nir) {
+		fprintf(f, "NIR:\n");
+		nir_print_shader(shader->nir, f);
+	}
+
+	fprintf(stderr, "DISASM:\n%s\n", shader->disasm_string);
 
 	radv_shader_dump_stats(pipeline->device, shader, stage, f);
 }
@@ -694,7 +705,7 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_winsys_cs *cs)
 }
 
 void
-radv_print_spirv(struct radv_shader_module *module, FILE *fp)
+radv_print_spirv(uint32_t *data, uint32_t size, FILE *fp)
 {
 	char path[] = "/tmp/fileXXXXXX";
 	char line[2048], command[128];
@@ -706,7 +717,7 @@ radv_print_spirv(struct radv_shader_module *module, FILE *fp)
 	if (fd < 0)
 		return;
 
-	if (write(fd, module->data, module->size) == -1)
+	if (write(fd, data, size) == -1)
 		goto fail;
 
 	sprintf(command, "spirv-dis %s", path);

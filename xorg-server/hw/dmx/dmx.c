@@ -63,7 +63,6 @@
 
 #ifdef PANORAMIX
 #include "panoramiXsrv.h"
-extern int PanoramiXNumScreens;
 #endif
 
 static unsigned char DMXCode;

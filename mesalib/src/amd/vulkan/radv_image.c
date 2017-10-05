@@ -114,7 +114,8 @@ radv_init_surface(struct radv_device *device,
 		    pCreateInfo->tiling != VK_IMAGE_TILING_LINEAR &&
 		    pCreateInfo->mipLevels <= 1 &&
 		    device->physical_device->rad_info.chip_class >= VI &&
-		    (pCreateInfo->format == VK_FORMAT_D32_SFLOAT ||
+		    ((pCreateInfo->format == VK_FORMAT_D32_SFLOAT ||
+		      pCreateInfo->format == VK_FORMAT_D32_SFLOAT_S8_UINT) ||
 		     (device->physical_device->rad_info.chip_class >= GFX9 &&
 		      pCreateInfo->format == VK_FORMAT_D16_UNORM)))
 			surface->flags |= RADEON_SURF_TC_COMPATIBLE_HTILE;

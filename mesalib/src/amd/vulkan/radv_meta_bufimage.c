@@ -865,18 +865,6 @@ itob_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				      });
 }
 
-static void
-itob_bind_pipeline(struct radv_cmd_buffer *cmd_buffer)
-{
-	VkPipeline pipeline =
-		cmd_buffer->device->meta_state.itob.pipeline;
-
-	if (cmd_buffer->state.compute_pipeline != radv_pipeline_from_handle(pipeline)) {
-		radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-				     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-	}
-}
-
 void
 radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_meta_blit2d_surf *src,
@@ -884,6 +872,7 @@ radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 			  unsigned num_rects,
 			  struct radv_meta_blit2d_rect *rects)
 {
+	VkPipeline pipeline = cmd_buffer->device->meta_state.itob.pipeline;
 	struct radv_device *device = cmd_buffer->device;
 	struct itob_temps temps;
 
@@ -891,7 +880,9 @@ radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 	create_bview(cmd_buffer, dst->buffer, dst->offset, dst->format, &temps.dst_bview);
 	itob_bind_descriptors(cmd_buffer, &temps);
 
-	itob_bind_pipeline(cmd_buffer);
+
+	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
+			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
 	for (unsigned r = 0; r < num_rects; ++r) {
 		unsigned push_constants[3] = {
@@ -950,18 +941,6 @@ btoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				      });
 }
 
-static void
-btoi_bind_pipeline(struct radv_cmd_buffer *cmd_buffer)
-{
-	VkPipeline pipeline =
-		cmd_buffer->device->meta_state.btoi.pipeline;
-
-	if (cmd_buffer->state.compute_pipeline != radv_pipeline_from_handle(pipeline)) {
-		radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-				     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-	}
-}
-
 void
 radv_meta_buffer_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 			     struct radv_meta_blit2d_buffer *src,
@@ -969,6 +948,7 @@ radv_meta_buffer_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 			     unsigned num_rects,
 			     struct radv_meta_blit2d_rect *rects)
 {
+	VkPipeline pipeline = cmd_buffer->device->meta_state.btoi.pipeline;
 	struct radv_device *device = cmd_buffer->device;
 	struct btoi_temps temps;
 
@@ -976,7 +956,8 @@ radv_meta_buffer_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 	create_iview(cmd_buffer, dst, &temps.dst_iview);
 	btoi_bind_descriptors(cmd_buffer, &temps);
 
-	btoi_bind_pipeline(cmd_buffer);
+	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
+			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
 	for (unsigned r = 0; r < num_rects; ++r) {
 		unsigned push_constants[3] = {
@@ -1041,18 +1022,6 @@ itoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				      });
 }
 
-static void
-itoi_bind_pipeline(struct radv_cmd_buffer *cmd_buffer)
-{
-	VkPipeline pipeline =
-		cmd_buffer->device->meta_state.itoi.pipeline;
-
-	if (cmd_buffer->state.compute_pipeline != radv_pipeline_from_handle(pipeline)) {
-		radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-				     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-	}
-}
-
 void
 radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 			    struct radv_meta_blit2d_surf *src,
@@ -1060,6 +1029,7 @@ radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 			    unsigned num_rects,
 			    struct radv_meta_blit2d_rect *rects)
 {
+	VkPipeline pipeline = cmd_buffer->device->meta_state.itoi.pipeline;
 	struct radv_device *device = cmd_buffer->device;
 	struct itoi_temps temps;
 
@@ -1068,7 +1038,8 @@ radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 
 	itoi_bind_descriptors(cmd_buffer, &temps);
 
-	itoi_bind_pipeline(cmd_buffer);
+	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
+			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
 	for (unsigned r = 0; r < num_rects; ++r) {
 		unsigned push_constants[4] = {
@@ -1115,30 +1086,20 @@ cleari_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				      });
 }
 
-static void
-cleari_bind_pipeline(struct radv_cmd_buffer *cmd_buffer)
-{
-	VkPipeline pipeline =
-		cmd_buffer->device->meta_state.cleari.pipeline;
-
-	if (cmd_buffer->state.compute_pipeline != radv_pipeline_from_handle(pipeline)) {
-		radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-				     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-	}
-}
-
 void
 radv_meta_clear_image_cs(struct radv_cmd_buffer *cmd_buffer,
 			 struct radv_meta_blit2d_surf *dst,
 			 const VkClearColorValue *clear_color)
 {
+	VkPipeline pipeline = cmd_buffer->device->meta_state.cleari.pipeline;
 	struct radv_device *device = cmd_buffer->device;
 	struct radv_image_view dst_iview;
 
 	create_iview(cmd_buffer, dst, &dst_iview);
 	cleari_bind_descriptors(cmd_buffer, &dst_iview);
 
-	cleari_bind_pipeline(cmd_buffer);
+	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
+			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
 	unsigned push_constants[4] = {
 		clear_color->uint32[0],

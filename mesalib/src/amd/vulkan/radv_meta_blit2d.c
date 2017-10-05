@@ -186,10 +186,8 @@ bind_pipeline(struct radv_cmd_buffer *cmd_buffer,
 	VkPipeline pipeline =
 		cmd_buffer->device->meta_state.blit2d.pipelines[src_type][fs_key];
 
-	if (cmd_buffer->state.pipeline != radv_pipeline_from_handle(pipeline)) {
-		radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-				     VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-	}
+	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
+			     VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 }
 
 static void
@@ -199,10 +197,8 @@ bind_depth_pipeline(struct radv_cmd_buffer *cmd_buffer,
 	VkPipeline pipeline =
 		cmd_buffer->device->meta_state.blit2d.depth_only_pipeline[src_type];
 
-	if (cmd_buffer->state.pipeline != radv_pipeline_from_handle(pipeline)) {
-		radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-				     VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-	}
+	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
+			     VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 }
 
 static void
@@ -212,10 +208,8 @@ bind_stencil_pipeline(struct radv_cmd_buffer *cmd_buffer,
 	VkPipeline pipeline =
 		cmd_buffer->device->meta_state.blit2d.stencil_only_pipeline[src_type];
 
-	if (cmd_buffer->state.pipeline != radv_pipeline_from_handle(pipeline)) {
-		radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-				     VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-	}
+	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
+			     VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 }
 
 static void
