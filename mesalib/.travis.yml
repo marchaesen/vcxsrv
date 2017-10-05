@@ -507,7 +507,7 @@ script:
       test -n "$OVERRIDE_CXX" && export CXX="$OVERRIDE_CXX";
       test -n "$OVERRIDE_PATH" && export PATH="$OVERRIDE_PATH:$PATH";
 
-      export CC="$CC -isystem`pwd`";
+      export CFLAGS="$CFLAGS -isystem`pwd`";
 
       ./autogen.sh --enable-debug
         $LIBUNWIND_FLAGS
@@ -528,7 +528,7 @@ script:
     fi
 
   - if test "x$BUILD" = xmeson; then
-      export CC="$CC -isystem`pwd`";
+      export CFLAGS="$CFLAGS -isystem`pwd`";
       meson _build $MESON_OPTIONS;
       ninja -C _build test;
     fi

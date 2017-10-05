@@ -56,7 +56,7 @@ main(int argc, char **argv)
     int fd = 0;
     int rc;
     int i, j;
-    char *tmp;
+    const char *tmp;
 
 #define test_bit(bit) (mask[(bit)/8] & (1 << ((bit)%8)))
 

@@ -1,5 +1,8 @@
 project('xserver', 'c',
-        default_options: ['buildtype=debugoptimized'],
+        default_options: [
+            'buildtype=debugoptimized',
+            'c_std=gnu99',
+        ],
         version: '1.19.99.1',
         meson_version: '>= 0.40.0',
 )
@@ -11,8 +14,49 @@ add_global_arguments('-fvisibility=hidden', language : 'c')
 
 add_global_link_arguments('-fvisibility=hidden', language : 'c')
 
-# Quiet some EXA warnings.
-add_global_arguments('-Wno-discarded-qualifiers', language : 'c')
+if cc.get_id() == 'gcc' or cc.get_id() == 'clang'
+    test_wflags = [
+        '-Wall',
+        '-Wpointer-arith',
+        '-Wmissing-declarations',
+        '-Wformat=2',
+        '-Wstrict-prototypes',
+        '-Wmissing-prototypes',
+        '-Wnested-externs',
+        '-Wbad-function-cast',
+        '-Wold-style-definition',
+        '-Wunused',
+        '-Wuninitialized',
+        '-Wshadow',
+        '-Wmissing-noreturn',
+        '-Wmissing-format-attribute',
+        '-Wredundant-decls',
+        '-Werror=implicit',
+        '-Werror=nonnull',
+        '-Werror=init-self',
+        '-Werror=main',
+        '-Werror=missing-braces',
+        '-Werror=sequence-point',
+        '-Werror=return-type',
+        '-Werror=trigraphs',
+        '-Werror=array-bounds',
+        '-Werror=write-strings',
+        '-Werror=address',
+        '-Werror=int-to-pointer-cast',
+        '-Werror=pointer-to-int-cast',
+    ]
+else
+    test_wflags = []
+endif
+
+common_wflags = []
+foreach wflag: test_wflags
+    if cc.has_argument(wflag)
+        common_wflags += [ wflag ]
+    endif
+endforeach
+
+add_global_arguments(common_wflags, language : 'c')
 
 xproto_dep = dependency('xproto', version: '>= 7.0.31')
 randrproto_dep = dependency('randrproto', version: '>= 1.5.0')

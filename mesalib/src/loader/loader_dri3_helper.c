@@ -391,13 +391,13 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
       for (b = 0; b < sizeof(draw->buffers) / sizeof(draw->buffers[0]); b++) {
          struct loader_dri3_buffer *buf = draw->buffers[b];
 
-         if (buf && buf->pixmap == ie->pixmap) {
+         if (buf && buf->pixmap == ie->pixmap)
             buf->busy = 0;
-            if (draw->num_back <= b && b < LOADER_DRI3_MAX_BACK) {
-               dri3_free_render_buffer(draw, buf);
-               draw->buffers[b] = NULL;
-            }
-            break;
+
+         if (buf && draw->num_back <= b && b < LOADER_DRI3_MAX_BACK &&
+             draw->cur_blit_source != b) {
+            dri3_free_render_buffer(draw, buf);
+            draw->buffers[b] = NULL;
          }
       }
       break;
@@ -1373,30 +1373,30 @@ dri3_get_buffer(__DRIdrawable *driDrawable,
       /* When resizing, copy the contents of the old buffer, waiting for that
        * copy to complete using our fences before proceeding
        */
-      switch (buffer_type) {
-      case loader_dri3_buffer_back:
-         if (buffer) {
-            if (!buffer->linear_buffer) {
-               dri3_fence_reset(draw->conn, new_buffer);
-               dri3_fence_await(draw->conn, draw, buffer);
-               dri3_copy_area(draw->conn,
-                              buffer->pixmap,
-                              new_buffer->pixmap,
-                              dri3_drawable_gc(draw),
-                              0, 0, 0, 0,
-                              draw->width, draw->height);
-               dri3_fence_trigger(draw->conn, new_buffer);
-            } else if (draw->vtable->in_current_context(draw)) {
-               (void) loader_dri3_blit_image(draw,
-                                             new_buffer->image,
-                                             buffer->image,
-                                             0, 0, draw->width, draw->height,
-                                             0, 0, 0);
-            }
-            dri3_free_render_buffer(draw, buffer);
+      if ((buffer_type == loader_dri3_buffer_back ||
+           (buffer_type == loader_dri3_buffer_front && draw->have_fake_front))
+          && buffer) {
+
+         /* Fill the new buffer with data from an old buffer */
+         dri3_fence_await(draw->conn, draw, buffer);
+         if (!loader_dri3_blit_image(draw,
+                                     new_buffer->image,
+                                     buffer->image,
+                                     0, 0, draw->width, draw->height,
+                                     0, 0, 0) &&
+             !buffer->linear_buffer) {
+            dri3_fence_reset(draw->conn, new_buffer);
+            dri3_copy_area(draw->conn,
+                           buffer->pixmap,
+                           new_buffer->pixmap,
+                           dri3_drawable_gc(draw),
+                           0, 0, 0, 0,
+                           draw->width, draw->height);
+            dri3_fence_trigger(draw->conn, new_buffer);
          }
-         break;
-      case loader_dri3_buffer_front:
+         dri3_free_render_buffer(draw, buffer);
+      } else if (buffer_type == loader_dri3_buffer_front) {
+         /* Fill the new fake front with data from a real front */
          loader_dri3_swapbuffer_barrier(draw);
          dri3_fence_reset(draw->conn, new_buffer);
          dri3_copy_area(draw->conn,
@@ -1407,8 +1407,7 @@ dri3_get_buffer(__DRIdrawable *driDrawable,
                         draw->width, draw->height);
          dri3_fence_trigger(draw->conn, new_buffer);
 
-         if (new_buffer->linear_buffer &&
-             draw->vtable->in_current_context(draw)) {
+         if (new_buffer->linear_buffer) {
             dri3_fence_await(draw->conn, draw, new_buffer);
             (void) loader_dri3_blit_image(draw,
                                           new_buffer->image,
@@ -1416,7 +1415,6 @@ dri3_get_buffer(__DRIdrawable *driDrawable,
                                           0, 0, draw->width, draw->height,
                                           0, 0, 0);
          }
-         break;
       }
       buffer = new_buffer;
       draw->buffers[buf_id] = buffer;
@@ -1471,10 +1469,12 @@ dri3_free_buffers(__DRIdrawable *driDrawable,
    case loader_dri3_buffer_back:
       first_id = LOADER_DRI3_BACK_ID(0);
       n_id = LOADER_DRI3_MAX_BACK;
+      draw->cur_blit_source = -1;
       break;
    case loader_dri3_buffer_front:
       first_id = LOADER_DRI3_FRONT_ID;
-      n_id = 1;
+      /* Don't free a fake front holding new backbuffer content. */
+      n_id = (draw->cur_blit_source == LOADER_DRI3_FRONT_ID) ? 0 : 1;
    }
 
    for (buf_id = first_id; buf_id < first_id + n_id; buf_id++) {
@@ -1641,6 +1641,7 @@ loader_dri3_close_screen(__DRIscreen *dri_screen)
  * Find a potentially new back buffer, and if it's not been allocated yet and
  * in addition needs initializing, then try to allocate and initialize it.
  */
+#include <stdio.h>
 static struct loader_dri3_buffer *
 dri3_find_back_alloc(struct loader_dri3_drawable *draw)
 {
@@ -1648,16 +1649,36 @@ dri3_find_back_alloc(struct loader_dri3_drawable *draw)
    int id;
 
    id = dri3_find_back(draw);
-   back = (id >= 0) ? draw->buffers[id] : NULL;
+   if (id < 0)
+      return NULL;
 
-   if (back || (id >= 0 && draw->back_format != __DRI_IMAGE_FORMAT_NONE)) {
-      if (dri3_update_drawable(draw->dri_drawable, draw)) {
-         (void) dri3_get_buffer(draw->dri_drawable,
-                                draw->back_format,
-                                loader_dri3_buffer_back,
-                                draw);
-         back = (id >= 0) ? draw->buffers[id] : NULL;
-      }
+   back = draw->buffers[id];
+   /* Allocate a new back if we haven't got one */
+   if (!back && draw->back_format != __DRI_IMAGE_FORMAT_NONE &&
+       dri3_update_drawable(draw->dri_drawable, draw))
+      back = dri3_alloc_render_buffer(draw, draw->back_format,
+                                      draw->width, draw->height, draw->depth);
+
+   if (!back)
+      return NULL;
+
+   draw->buffers[id] = back;
+
+   /* If necessary, prefill the back with data according to swap_method mode. */
+   if (draw->cur_blit_source != -1 &&
+       draw->buffers[draw->cur_blit_source] &&
+       back != draw->buffers[draw->cur_blit_source]) {
+      struct loader_dri3_buffer *source = draw->buffers[draw->cur_blit_source];
+
+      dri3_fence_await(draw->conn, draw, source);
+      dri3_fence_await(draw->conn, draw, back);
+      (void) loader_dri3_blit_image(draw,
+                                    back->image,
+                                    source->image,
+                                    0, 0, draw->width, draw->height,
+                                    0, 0, 0);
+      back->last_swap = source->last_swap;
+      draw->cur_blit_source = -1;
    }
 
    return back;

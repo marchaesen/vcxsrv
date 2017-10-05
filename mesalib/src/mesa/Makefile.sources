@@ -221,6 +221,7 @@ MAIN_FILES = \
 	main/texcompress_rgtc.h \
 	main/texcompress_s3tc.c \
 	main/texcompress_s3tc.h \
+	main/texcompress_s3tc_tmp.h \
 	main/texenv.c \
 	main/texenv.h \
 	main/texenvprogram.h \

@@ -207,6 +207,21 @@
     </layout>
     <layout>
       <configItem>
+        <name>hu</name>
+        <_description>Hungarian</_description>
+      </configItem>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>oldhun</name>
+            <_description>Old Hungarian</_description>
+            <_shortDescription>oldhun</_shortDescription>
+          </configItem>
+        </variant>
+      </variantList>
+    </layout>
+    <layout>
+      <configItem>
         <name>ir</name>
         <_shortDescription>fa</_shortDescription>
         <_description>Persian</_description>

@@ -132,16 +132,32 @@ check_os_altivec_support(void)
    if (setjmp(__lv_powerpc_jmpbuf)) {
       signal(SIGILL, SIG_DFL);
    } else {
-      __lv_powerpc_canjump = 1;
+      boolean enable_altivec = TRUE;    /* Default: enable  if available, and if not overridden */
+#ifdef DEBUG
+      /* Disabling Altivec code generation is not the same as disabling VSX code generation,
+       * which can be done simply by passing -mattr=-vsx to the LLVM compiler; cf.
+       * lp_build_create_jit_compiler_for_module().
+       * If you want to disable Altivec code generation, the best place to do it is here.
+       */
+      char *env_control = getenv("GALLIVM_ALTIVEC");    /* 1=enable (default); 0=disable */
+      if (env_control && env_control[0] == '0') {
+         enable_altivec = FALSE;
+      }
+#endif
+      if (enable_altivec) {
+         __lv_powerpc_canjump = 1;
 
-      __asm __volatile
-         ("mtspr 256, %0\n\t"
-          "vand %%v0, %%v0, %%v0"
-          :
-          : "r" (-1));
+         __asm __volatile
+            ("mtspr 256, %0\n\t"
+             "vand %%v0, %%v0, %%v0"
+             :
+             : "r" (-1));
 
-      signal(SIGILL, SIG_DFL);
-      util_cpu_caps.has_altivec = 1;
+         signal(SIGILL, SIG_DFL);
+         util_cpu_caps.has_altivec = 1;
+      } else {
+         util_cpu_caps.has_altivec = 0;
+      }
    }
 #endif /* !PIPE_OS_APPLE */
 }

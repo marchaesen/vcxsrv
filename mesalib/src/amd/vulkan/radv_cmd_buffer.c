@@ -2454,14 +2454,20 @@ void radv_CmdBindPipeline(
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_pipeline, pipeline, _pipeline);
 
-	radv_mark_descriptor_sets_dirty(cmd_buffer);
-
 	switch (pipelineBindPoint) {
 	case VK_PIPELINE_BIND_POINT_COMPUTE:
+		if (cmd_buffer->state.compute_pipeline == pipeline)
+			return;
+		radv_mark_descriptor_sets_dirty(cmd_buffer);
+
 		cmd_buffer->state.compute_pipeline = pipeline;
 		cmd_buffer->push_constant_stages |= VK_SHADER_STAGE_COMPUTE_BIT;
 		break;
 	case VK_PIPELINE_BIND_POINT_GRAPHICS:
+		if (cmd_buffer->state.pipeline == pipeline)
+			return;
+		radv_mark_descriptor_sets_dirty(cmd_buffer);
+
 		cmd_buffer->state.pipeline = pipeline;
 		if (!pipeline)
 			break;

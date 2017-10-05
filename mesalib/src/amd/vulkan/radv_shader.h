@@ -49,7 +49,12 @@ struct radv_shader_variant {
 	struct ac_shader_variant_info info;
 	unsigned rsrc1;
 	unsigned rsrc2;
-	char *disasm_string; /* debug only */
+
+	/* debug only */
+	uint32_t *spirv;
+	uint32_t spirv_size;
+	struct nir_shader *nir;
+	char *disasm_string;
 
 	struct list_head slab_list;
 };
@@ -78,6 +83,7 @@ radv_destroy_shader_slabs(struct radv_device *device);
 
 struct radv_shader_variant *
 radv_shader_variant_create(struct radv_device *device,
+			   struct radv_shader_module *module,
 			   struct nir_shader *shader,
 			   struct radv_pipeline_layout *layout,
 			   const struct ac_shader_variant_key *key,

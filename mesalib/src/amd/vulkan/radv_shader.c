@@ -175,7 +175,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		assert(module->size % 4 == 0);
 
 		if (device->debug_flags & RADV_DEBUG_DUMP_SPIRV)
-			radv_print_spirv(module, stderr);
+			radv_print_spirv(spirv, module->size, stderr);
 
 		uint32_t num_spec_entries = 0;
 		struct nir_spirv_specialization *spec_entries = NULL;
@@ -377,6 +377,7 @@ radv_fill_shader_variant(struct radv_device *device,
 
 static struct radv_shader_variant *
 shader_variant_create(struct radv_device *device,
+		      struct radv_shader_module *module,
 		      struct nir_shader *shader,
 		      gl_shader_stage stage,
 		      struct ac_nir_compiler_options *options,
@@ -430,6 +431,11 @@ shader_variant_create(struct radv_device *device,
 
 	if (device->trace_bo) {
 		variant->disasm_string = binary.disasm_string;
+		if (!gs_copy_shader && !module->nir) {
+			variant->nir = shader;
+			variant->spirv = (uint32_t *)module->data;
+			variant->spirv_size = module->size;
+		}
 	} else {
 		free(binary.disasm_string);
 	}
@@ -439,6 +445,7 @@ shader_variant_create(struct radv_device *device,
 
 struct radv_shader_variant *
 radv_shader_variant_create(struct radv_device *device,
+			   struct radv_shader_module *module,
 			   struct nir_shader *shader,
 			   struct radv_pipeline_layout *layout,
 			   const struct ac_shader_variant_key *key,
@@ -454,7 +461,7 @@ radv_shader_variant_create(struct radv_device *device,
 	options.unsafe_math = !!(device->debug_flags & RADV_DEBUG_UNSAFE_MATH);
 	options.supports_spill = device->llvm_supports_spill;
 
-	return shader_variant_create(device, shader, shader->stage,
+	return shader_variant_create(device, module, shader, shader->stage,
 				     &options, false, code_out, code_size_out);
 }
 
@@ -469,7 +476,7 @@ radv_create_gs_copy_shader(struct radv_device *device,
 
 	options.key.has_multiview_view_index = multiview;
 
-	return shader_variant_create(device, shader, MESA_SHADER_VERTEX,
+	return shader_variant_create(device, NULL, shader, MESA_SHADER_VERTEX,
 				     &options, true, code_out, code_size_out);
 }
 
@@ -484,6 +491,7 @@ radv_shader_variant_destroy(struct radv_device *device,
 	list_del(&variant->slab_list);
 	mtx_unlock(&device->shader_slab_mutex);
 
+	ralloc_free(variant->nir);
 	free(variant->disasm_string);
 	free(variant);
 }

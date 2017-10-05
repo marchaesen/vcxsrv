@@ -279,8 +279,6 @@ drmmode_SharedPixmapPresentOnVBlank(PixmapPtr ppix, xf86CrtcPtr crtc,
 {
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
     msPixmapPrivPtr ppriv = msGetPixmapPriv(drmmode, ppix);
-
-    drmVBlank vbl;
     struct vblank_event_args *event_args;
 
     if (ppix == drmmode_crtc->prime_pixmap)
@@ -303,12 +301,7 @@ drmmode_SharedPixmapPresentOnVBlank(PixmapPtr ppix, xf86CrtcPtr crtc,
                            drmmode_SharedPixmapVBlankEventHandler,
                            drmmode_SharedPixmapVBlankEventAbort);
 
-    vbl.request.type =
-        DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT | drmmode_crtc->vblank_pipe;
-    vbl.request.sequence = 1;
-    vbl.request.signal = (unsigned long) ppriv->flip_seq;
-
-    return drmWaitVBlank(drmmode->fd, &vbl) >= 0;
+    return ms_queue_vblank(crtc, MS_QUEUE_RELATIVE, 1, NULL, ppriv->flip_seq);
 }
 
 Bool

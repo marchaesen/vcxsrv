@@ -285,7 +285,7 @@ int main(int argc, char **argv)
 {
     int screen;
     xcb_connection_t *c = xcb_connect(NULL, &screen);
-    xcb_query_extension_reply_t *ext = xcb_get_extension_data(c, &xcb_sync_id);
+    const xcb_query_extension_reply_t *ext = xcb_get_extension_data(c, &xcb_sync_id);
 
     if (!ext->present) {
         printf("No XSync present\n");

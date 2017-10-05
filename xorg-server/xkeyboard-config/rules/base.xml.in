@@ -3653,26 +3653,6 @@
         </variant>
       </variantList>
     </layout>
-<!--Old Hungarian layouts-->
-<layout>
-       <configItem>
-        <name>hung</name>
-        <_description>Old Hungarian</_description>
-<languageList>
-<iso639Id>hun</iso639Id>
-</languageList>       
-</configItem>
-      <variantList>
-        <variant>
-         <configItem>
-            <name>oldhun</name>
-            <_shortDescription>oldhun</_shortDescription>
-            <_description>Old Hungarian (default)</_description>
-          </configItem>
-        </variant>
-      </variantList>
-    </layout>
-<!-- End of Old Hungarian layouts-->
     <layout>
       <configItem>
         <name>is</name>
