@@ -377,7 +377,7 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 				     uint32_t region_count,
 				     const VkImageResolve *regions)
 {
-	struct radv_meta_saved_compute_state saved_state;
+	struct radv_meta_saved_state saved_state;
 
 	for (uint32_t r = 0; r < region_count; ++r) {
 		const VkImageResolve *region = &regions[r];
@@ -393,7 +393,10 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 		radv_fast_clear_flush_image_inplace(cmd_buffer, src_image, &range);
 	}
 
-	radv_meta_save_compute(&saved_state, cmd_buffer, 16);
+	radv_meta_save(&saved_state, cmd_buffer,
+		       RADV_META_SAVE_COMPUTE_PIPELINE |
+		       RADV_META_SAVE_CONSTANTS |
+		       RADV_META_SAVE_DESCRIPTORS);
 
 	for (uint32_t r = 0; r < region_count; ++r) {
 		const VkImageResolve *region = &regions[r];
@@ -460,7 +463,7 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 				     &(VkExtent2D) {extent.width, extent.height });
 		}
 	}
-	radv_meta_restore_compute(&saved_state, cmd_buffer);
+	radv_meta_restore(&saved_state, cmd_buffer);
 }
 
 /**
@@ -471,7 +474,7 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 {
 	struct radv_framebuffer *fb = cmd_buffer->state.framebuffer;
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
-	struct radv_meta_saved_compute_state saved_state;
+	struct radv_meta_saved_state saved_state;
 	/* FINISHME(perf): Skip clears for resolve attachments.
 	 *
 	 * From the Vulkan 1.0 spec:
@@ -509,7 +512,10 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 		radv_fast_clear_flush_image_inplace(cmd_buffer, src_iview->image, &range);
 	}
 
-	radv_meta_save_compute(&saved_state, cmd_buffer, 16);
+	radv_meta_save(&saved_state, cmd_buffer,
+		       RADV_META_SAVE_COMPUTE_PIPELINE |
+		       RADV_META_SAVE_CONSTANTS |
+		       RADV_META_SAVE_DESCRIPTORS);
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
 		VkAttachmentReference src_att = subpass->color_attachments[i];
@@ -527,7 +533,7 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 			     &(VkExtent2D) { fb->width, fb->height });
 	}
 
-	radv_meta_restore_compute(&saved_state, cmd_buffer);
+	radv_meta_restore(&saved_state, cmd_buffer);
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
 		VkAttachmentReference dest_att = subpass->resolve_attachments[i];

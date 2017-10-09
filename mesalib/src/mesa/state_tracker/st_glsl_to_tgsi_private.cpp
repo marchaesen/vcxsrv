@@ -44,6 +44,22 @@ static int swizzle_for_type(const glsl_type *type, int component = 0)
    return swizzle;
 }
 
+static st_src_reg *
+dup_reladdr(const st_src_reg *input)
+{
+   if (!input)
+      return NULL;
+
+   st_src_reg *reg = ralloc(input, st_src_reg);
+   if (!reg) {
+      assert(!"can't create reladdr, expect shader breakage");
+      return NULL;
+   }
+
+   *reg = *input;
+   return reg;
+}
+
 st_src_reg::st_src_reg(gl_register_file file, int index, const glsl_type *type,
                        int component, unsigned array_id)
 {
@@ -116,6 +132,28 @@ st_src_reg::st_src_reg()
    this->is_double_vertex_input = false;
 }
 
+st_src_reg::st_src_reg(const st_src_reg &reg)
+{
+   *this = reg;
+}
+
+void st_src_reg::operator=(const st_src_reg &reg)
+{
+   this->type = reg.type;
+   this->file = reg.file;
+   this->index = reg.index;
+   this->index2D = reg.index2D;
+   this->swizzle = reg.swizzle;
+   this->negate = reg.negate;
+   this->abs = reg.abs;
+   this->reladdr = dup_reladdr(reg.reladdr);
+   this->reladdr2 = dup_reladdr(reg.reladdr2);
+   this->has_index2 = reg.has_index2;
+   this->double_reg2 = reg.double_reg2;
+   this->array_id = reg.array_id;
+   this->is_double_vertex_input = reg.is_double_vertex_input;
+}
+
 st_src_reg::st_src_reg(st_dst_reg reg)
 {
    this->type = reg.type;
@@ -124,9 +162,9 @@ st_src_reg::st_src_reg(st_dst_reg reg)
    this->swizzle = SWIZZLE_XYZW;
    this->negate = 0;
    this->abs = 0;
-   this->reladdr = reg.reladdr;
+   this->reladdr = dup_reladdr(reg.reladdr);
    this->index2D = reg.index2D;
-   this->reladdr2 = reg.reladdr2;
+   this->reladdr2 = dup_reladdr(reg.reladdr2);
    this->has_index2 = reg.has_index2;
    this->double_reg2 = false;
    this->array_id = reg.array_id;
@@ -147,9 +185,9 @@ st_dst_reg::st_dst_reg(st_src_reg reg)
    this->file = reg.file;
    this->index = reg.index;
    this->writemask = WRITEMASK_XYZW;
-   this->reladdr = reg.reladdr;
+   this->reladdr = dup_reladdr(reg.reladdr);
    this->index2D = reg.index2D;
-   this->reladdr2 = reg.reladdr2;
+   this->reladdr2 = dup_reladdr(reg.reladdr2);
    this->has_index2 = reg.has_index2;
    this->array_id = reg.array_id;
 }
@@ -193,4 +231,22 @@ st_dst_reg::st_dst_reg()
    this->reladdr2 = NULL;
    this->has_index2 = false;
    this->array_id = 0;
+}
+
+st_dst_reg::st_dst_reg(const st_dst_reg &reg)
+{
+   *this = reg;
+}
+
+void st_dst_reg::operator=(const st_dst_reg &reg)
+{
+   this->type = reg.type;
+   this->file = reg.file;
+   this->index = reg.index;
+   this->writemask = reg.writemask;
+   this->reladdr = dup_reladdr(reg.reladdr);
+   this->index2D = reg.index2D;
+   this->reladdr2 = dup_reladdr(reg.reladdr2);
+   this->has_index2 = reg.has_index2;
+   this->array_id = reg.array_id;
 }

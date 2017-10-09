@@ -113,6 +113,13 @@
 #define PKT3_INDIRECT_BUFFER_SI                0x32 /* not on CIK */
 #define PKT3_INDIRECT_BUFFER_CONST             0x33
 #define PKT3_STRMOUT_BUFFER_UPDATE             0x34
+#define		STRMOUT_STORE_BUFFER_FILLED_SIZE	1
+#define		STRMOUT_OFFSET_SOURCE(x)	(((unsigned)(x) & 0x3) << 1)
+#define			STRMOUT_OFFSET_FROM_PACKET		0
+#define			STRMOUT_OFFSET_FROM_VGT_FILLED_SIZE	1
+#define			STRMOUT_OFFSET_FROM_MEM			2
+#define			STRMOUT_OFFSET_NONE			3
+#define		STRMOUT_SELECT_BUFFER(x)	(((unsigned)(x) & 0x3) << 8)
 #define PKT3_DRAW_INDEX_OFFSET_2               0x35
 #define PKT3_WRITE_DATA                        0x37
 #define   R_370_CONTROL				0x370 /* 0x[packet number][word index] */
@@ -137,6 +144,7 @@
 #define PKT3_MPEG_INDEX                        0x3A /* not on CIK */
 #define PKT3_WAIT_REG_MEM                      0x3C
 #define		WAIT_REG_MEM_EQUAL		3
+#define         WAIT_REG_MEM_MEM_SPACE(x)       (((unsigned)(x) & 0x3) << 4)
 #define PKT3_MEM_WRITE                         0x3D /* not on CIK */
 #define PKT3_INDIRECT_BUFFER_CIK               0x3F /* new on CIK */
 #define   R_3F0_IB_BASE_LO                     0x3F0
@@ -156,6 +164,7 @@
 #define                 COPY_DATA_IMM           5
 #define                 COPY_DATA_TIMESTAMP     9
 #define		COPY_DATA_DST_SEL(x)		(((unsigned)(x) & 0xf) << 8)
+#define                 COPY_DATA_MEM_ASYNC     5
 #define		COPY_DATA_COUNT_SEL		(1 << 16)
 #define		COPY_DATA_WR_CONFIRM		(1 << 20)
 #define PKT3_PFP_SYNC_ME		       0x42
@@ -164,6 +173,14 @@
 #define PKT3_COND_WRITE                        0x45
 #define PKT3_EVENT_WRITE                       0x46
 #define PKT3_EVENT_WRITE_EOP                   0x47 /* not on GFX9 */
+#define         EOP_INT_SEL(x)                          ((x) << 24)
+#define			EOP_INT_SEL_NONE			0
+#define			EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM	3
+#define         EOP_DATA_SEL(x)                         ((x) << 29)
+#define			EOP_DATA_SEL_DISCARD		0
+#define			EOP_DATA_SEL_VALUE_32BIT	1
+#define			EOP_DATA_SEL_VALUE_64BIT	2
+#define			EOP_DATA_SEL_TIMESTAMP		3
 /* CP DMA bug: Any use of CP_DMA.DST_SEL=TC must be avoided when EOS packets
  * are used. Use DST_SEL=MC instead. For prefetch, use SRC_SEL=TC and
  * DST_SEL=MC. Only CIK chips are affected.

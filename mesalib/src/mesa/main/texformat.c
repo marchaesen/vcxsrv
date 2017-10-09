@@ -117,6 +117,9 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
       if (type == GL_UNSIGNED_INT_2_10_10_10_REV) {
          RETURN_IF_SUPPORTED(MESA_FORMAT_B10G10R10A2_UNORM);
       }
+      if (type == GL_UNSIGNED_SHORT_5_6_5) {
+         RETURN_IF_SUPPORTED(MESA_FORMAT_B5G6R5_UNORM);
+      }
       /* fallthrough */
    case GL_RGB8:
       RETURN_IF_SUPPORTED(MESA_FORMAT_RGB_UNORM8);

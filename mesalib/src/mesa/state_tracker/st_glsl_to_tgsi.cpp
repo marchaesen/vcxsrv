@@ -193,6 +193,7 @@ public:
    bool use_shared_memory;
    bool has_tex_txf_lz;
    bool precise;
+   bool need_uarl;
 
    variable_storage *find_variable_storage(ir_variable *var);
 
@@ -803,8 +804,12 @@ glsl_to_tgsi_visitor::emit_arl(ir_instruction *ir,
 {
    int op = TGSI_OPCODE_ARL;
 
-   if (src0.type == GLSL_TYPE_INT || src0.type == GLSL_TYPE_UINT)
+   if (src0.type == GLSL_TYPE_INT || src0.type == GLSL_TYPE_UINT) {
+      if (!this->need_uarl && src0.is_legal_tgsi_address_operand())
+         return;
+
       op = TGSI_OPCODE_UARL;
+   }
 
    assert(dst.file == PROGRAM_ADDRESS);
    if (dst.index >= this->num_address_regs)
@@ -3625,6 +3630,12 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
 
    glsl_to_tgsi_instruction *inst;
 
+   st_src_reg bindless;
+   if (imgvar->contains_bindless()) {
+      img->accept(this);
+      bindless = this->result;
+   }
+
    if (ir->callee->intrinsic_id == ir_intrinsic_image_size) {
       dst.writemask = WRITEMASK_XYZ;
       inst = emit_asm(ir, TGSI_OPCODE_RESQ, dst);
@@ -3722,8 +3733,7 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
    }
 
    if (imgvar->contains_bindless()) {
-      img->accept(this);
-      inst->resource = this->result;
+      inst->resource = bindless;
       inst->resource.swizzle = MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y,
                                              SWIZZLE_X, SWIZZLE_Y);
    } else {
@@ -4245,6 +4255,12 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       emit_arl(ir, sampler_reladdr, reladdr);
    }
 
+   st_src_reg bindless;
+   if (var->contains_bindless()) {
+      ir->sampler->accept(this);
+      bindless = this->result;
+   }
+
    if (opcode == TGSI_OPCODE_TXD)
       inst = emit_asm(ir, opcode, result_dst, coord, dx, dy);
    else if (opcode == TGSI_OPCODE_TXQ) {
@@ -4275,8 +4291,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       inst->tex_shadow = GL_TRUE;
 
    if (var->contains_bindless()) {
-      ir->sampler->accept(this);
-      inst->resource = this->result;
+      inst->resource = bindless;
       inst->resource.swizzle = MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y,
                                              SWIZZLE_X, SWIZZLE_Y);
    } else {
@@ -4596,6 +4611,17 @@ glsl_to_tgsi_visitor::simplify_cmp(void)
    free(tempWrites);
 }
 
+static void
+rename_temp_handle_src(struct rename_reg_pair *renames,
+                           struct st_src_reg *src)
+{
+   if (src && src->file == PROGRAM_TEMPORARY) {
+      int old_idx = src->index;
+      if (renames[old_idx].valid)
+         src->index = renames[old_idx].new_reg;
+   }
+}
+
 /* Replaces all references to a temporary register index with another index. */
 void
 glsl_to_tgsi_visitor::rename_temp_registers(struct rename_reg_pair *renames)
@@ -4603,32 +4629,29 @@ glsl_to_tgsi_visitor::rename_temp_registers(struct rename_reg_pair *renames)
    foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
       unsigned j;
       for (j = 0; j < num_inst_src_regs(inst); j++) {
-         if (inst->src[j].file == PROGRAM_TEMPORARY) {
-            int old_idx = inst->src[j].index;
-            if (renames[old_idx].valid)
-               inst->src[j].index = renames[old_idx].new_reg;
-         }
+         rename_temp_handle_src(renames, &inst->src[j]);
+         rename_temp_handle_src(renames, inst->src[j].reladdr);
+         rename_temp_handle_src(renames, inst->src[j].reladdr2);
       }
 
       for (j = 0; j < inst->tex_offset_num_offset; j++) {
-         if (inst->tex_offsets[j].file == PROGRAM_TEMPORARY) {
-            int old_idx = inst->tex_offsets[j].index;
-            if (renames[old_idx].valid)
-               inst->tex_offsets[j].index = renames[old_idx].new_reg;
-         }
+         rename_temp_handle_src(renames, &inst->tex_offsets[j]);
+         rename_temp_handle_src(renames, inst->tex_offsets[j].reladdr);
+         rename_temp_handle_src(renames, inst->tex_offsets[j].reladdr2);
       }
 
-      if (inst->resource.file == PROGRAM_TEMPORARY) {
-         int old_idx = inst->resource.index;
-         if (renames[old_idx].valid)
-            inst->resource.index = renames[old_idx].new_reg;
-      }
+      rename_temp_handle_src(renames, &inst->resource);
+      rename_temp_handle_src(renames, inst->resource.reladdr);
+      rename_temp_handle_src(renames, inst->resource.reladdr2);
 
       for (j = 0; j < num_inst_dst_regs(inst); j++) {
          if (inst->dst[j].file == PROGRAM_TEMPORARY) {
             int old_idx = inst->dst[j].index;
             if (renames[old_idx].valid)
-               inst->dst[j].index = renames[old_idx].new_reg;}
+               inst->dst[j].index = renames[old_idx].new_reg;
+         }
+         rename_temp_handle_src(renames, inst->dst[j].reladdr);
+         rename_temp_handle_src(renames, inst->dst[j].reladdr2);
       }
    }
 }
@@ -4947,6 +4970,8 @@ glsl_to_tgsi_visitor::copy_propagate(void)
           !inst->dst[0].reladdr2 &&
           !inst->saturate &&
           inst->src[0].file != PROGRAM_ARRAY &&
+          (inst->src[0].file != PROGRAM_OUTPUT ||
+           this->shader->Stage != MESA_SHADER_TESS_CTRL) &&
           !inst->src[0].reladdr &&
           !inst->src[0].reladdr2 &&
           !inst->src[0].negate &&
@@ -4962,6 +4987,16 @@ glsl_to_tgsi_visitor::copy_propagate(void)
 
    ralloc_free(acp_level);
    ralloc_free(acp);
+}
+
+static void
+dead_code_handle_reladdr(glsl_to_tgsi_instruction **writes, st_src_reg *reladdr)
+{
+   if (reladdr && reladdr->file == PROGRAM_TEMPORARY) {
+      /* Clear where it's used as src. */
+      int swz = GET_SWZ(reladdr->swizzle, 0);
+      writes[4 * reladdr->index + swz] = NULL;
+   }
 }
 
 /*
@@ -5054,6 +5089,8 @@ glsl_to_tgsi_visitor::eliminate_dead_code(void)
                      writes[4 * inst->src[i].index + c] = NULL;
                }
             }
+            dead_code_handle_reladdr(writes, inst->src[i].reladdr);
+            dead_code_handle_reladdr(writes, inst->src[i].reladdr2);
          }
          for (unsigned i = 0; i < inst->tex_offset_num_offset; i++) {
             if (inst->tex_offsets[i].file == PROGRAM_TEMPORARY && inst->tex_offsets[i].reladdr){
@@ -5073,6 +5110,8 @@ glsl_to_tgsi_visitor::eliminate_dead_code(void)
                      writes[4 * inst->tex_offsets[i].index + c] = NULL;
                }
             }
+            dead_code_handle_reladdr(writes, inst->tex_offsets[i].reladdr);
+            dead_code_handle_reladdr(writes, inst->tex_offsets[i].reladdr2);
          }
 
          if (inst->resource.file == PROGRAM_TEMPORARY) {
@@ -5088,7 +5127,13 @@ glsl_to_tgsi_visitor::eliminate_dead_code(void)
                   writes[4 * inst->resource.index + c] = NULL;
             }
          }
+         dead_code_handle_reladdr(writes, inst->resource.reladdr);
+         dead_code_handle_reladdr(writes, inst->resource.reladdr2);
 
+         for (unsigned i = 0; i < ARRAY_SIZE(inst->dst); i++) {
+            dead_code_handle_reladdr(writes, inst->dst[i].reladdr);
+            dead_code_handle_reladdr(writes, inst->dst[i].reladdr2);
+         }
          break;
       }
 
@@ -5206,7 +5251,7 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
 void
 glsl_to_tgsi_visitor::merge_registers(void)
 {
-
+   assert(need_uarl);
    struct lifetime *lifetimes =
          rzalloc_array(mem_ctx, struct lifetime, this->next_temp);
 
@@ -5287,6 +5332,7 @@ struct st_translate {
    const ubyte *outputMapping;
 
    unsigned procType;  /**< PIPE_SHADER_VERTEX/FRAGMENT */
+   bool need_uarl;
 };
 
 /** Map Mesa's SYSTEM_VALUE_x to TGSI_SEMANTIC_x */
@@ -5483,6 +5529,19 @@ dst_register(struct st_translate *t, gl_register_file file, unsigned index,
    }
 }
 
+static struct ureg_src
+translate_src(struct st_translate *t, const st_src_reg *src_reg);
+
+static struct ureg_src
+translate_addr(struct st_translate *t, const st_src_reg *reladdr,
+               unsigned addr_index)
+{
+   if (t->need_uarl || !reladdr->is_legal_tgsi_address_operand())
+      return ureg_src(t->address[addr_index]);
+
+   return translate_src(t, reladdr);
+}
+
 /**
  * Create a TGSI ureg_dst register from an st_dst_reg.
  */
@@ -5504,12 +5563,13 @@ translate_dst(struct st_translate *t,
 
    if (dst_reg->reladdr != NULL) {
       assert(dst_reg->file != PROGRAM_TEMPORARY);
-      dst = ureg_dst_indirect(dst, ureg_src(t->address[0]));
+      dst = ureg_dst_indirect(dst, translate_addr(t, dst_reg->reladdr, 0));
    }
 
    if (dst_reg->has_index2) {
       if (dst_reg->reladdr2)
-         dst = ureg_dst_dimension_indirect(dst, ureg_src(t->address[1]),
+         dst = ureg_dst_dimension_indirect(dst,
+                                           translate_addr(t, dst_reg->reladdr2, 1),
                                            dst_reg->index2D);
       else
          dst = ureg_dst_dimension(dst, dst_reg->index2D);
@@ -5612,7 +5672,8 @@ translate_src(struct st_translate *t, const st_src_reg *src_reg)
        * and UBO constant buffers (buffer, position).
        */
       if (src_reg->reladdr2)
-         src = ureg_src_dimension_indirect(src, ureg_src(t->address[1]),
+         src = ureg_src_dimension_indirect(src,
+                                           translate_addr(t, src_reg->reladdr2, 1),
                                            src_reg->index2D);
       else
          src = ureg_src_dimension(src, src_reg->index2D);
@@ -5632,7 +5693,7 @@ translate_src(struct st_translate *t, const st_src_reg *src_reg)
 
    if (src_reg->reladdr != NULL) {
       assert(src_reg->file != PROGRAM_TEMPORARY);
-      src = ureg_src_indirect(src, ureg_src(t->address[0]));
+      src = ureg_src_indirect(src, translate_addr(t, src_reg->reladdr, 0));
    }
 
    return src;
@@ -5720,7 +5781,8 @@ compile_tgsi_instruction(struct st_translate *t,
       assert(src[num_src].File != TGSI_FILE_NULL);
       if (inst->resource.reladdr)
          src[num_src] =
-            ureg_src_indirect(src[num_src], ureg_src(t->address[2]));
+            ureg_src_indirect(src[num_src],
+                              translate_addr(t, inst->resource.reladdr, 2));
       num_src++;
       for (i = 0; i < (int)inst->tex_offset_num_offset; i++) {
          texoffsets[i] = translate_tex_offset(t, &inst->tex_offsets[i]);
@@ -5769,7 +5831,8 @@ compile_tgsi_instruction(struct st_translate *t,
          tex_target = st_translate_texture_target(inst->tex_target, inst->tex_shadow);
       }
       if (inst->resource.reladdr)
-         src[0] = ureg_src_indirect(src[0], ureg_src(t->address[2]));
+         src[0] = ureg_src_indirect(src[0],
+                                    translate_addr(t, inst->resource.reladdr, 2));
       assert(src[0].File != TGSI_FILE_NULL);
       ureg_memory_insn(ureg, inst->op, dst, num_dst, src, num_src,
                        inst->buffer_access,
@@ -5792,7 +5855,8 @@ compile_tgsi_instruction(struct st_translate *t,
       }
       dst[0] = ureg_writemask(dst[0], inst->dst[0].writemask);
       if (inst->resource.reladdr)
-         dst[0] = ureg_dst_indirect(dst[0], ureg_src(t->address[2]));
+         dst[0] = ureg_dst_indirect(dst[0],
+                                    translate_addr(t, inst->resource.reladdr, 2));
       assert(dst[0].File != TGSI_FILE_NULL);
       ureg_memory_insn(ureg, inst->op, dst, num_dst, src, num_src,
                        inst->buffer_access,
@@ -6111,6 +6175,7 @@ st_translate_program(
    const ubyte outputSemanticName[],
    const ubyte outputSemanticIndex[])
 {
+   struct pipe_screen *screen = st_context(ctx)->pipe->screen;
    struct st_translate *t;
    unsigned i;
    struct gl_program_constants *frag_const =
@@ -6127,6 +6192,7 @@ st_translate_program(
    }
 
    t->procType = procType;
+   t->need_uarl = !screen->get_param(screen, PIPE_CAP_TGSI_ANY_REG_AS_ADDRESS);
    t->inputMapping = inputMapping;
    t->outputMapping = outputMapping;
    t->ureg = ureg;
@@ -6552,6 +6618,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
                                            PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED);
    v->has_tex_txf_lz = pscreen->get_param(pscreen,
                                           PIPE_CAP_TGSI_TEX_TXF_LZ);
+   v->need_uarl = !pscreen->get_param(pscreen, PIPE_CAP_TGSI_ANY_REG_AS_ADDRESS);
 
    v->variables = _mesa_hash_table_create(v->mem_ctx, _mesa_hash_pointer,
                                           _mesa_key_pointer_equal);
@@ -6602,10 +6669,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
 
    /* Perform optimizations on the instructions in the glsl_to_tgsi_visitor. */
    v->simplify_cmp();
-
-   if (shader->Stage != MESA_SHADER_TESS_CTRL &&
-       shader->Stage != MESA_SHADER_TESS_EVAL)
-      v->copy_propagate();
+   v->copy_propagate();
 
    while (v->eliminate_dead_code());
 

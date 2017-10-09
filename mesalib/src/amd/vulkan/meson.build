@@ -116,9 +116,16 @@ libvulkan_radeon = shared_library(
 
 radv_data = configuration_data()
 radv_data.set('install_libdir', join_paths(get_option('prefix'), get_option('libdir')))
+radv_data.set('libvulkan_radeon_path', libvulkan_radeon.full_path())
+
 configure_file(
   configuration : radv_data,
   input : 'radeon_icd.json.in',
   output : 'radeon_icd.@0@.json'.format(target_machine.cpu()),
   install_dir : with_vulkan_icd_dir,
+)
+configure_file(
+  configuration : radv_data,
+  input : 'dev_icd.json.in',
+  output : 'dev_icd.json'
 )

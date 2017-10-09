@@ -170,7 +170,7 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 		            bool glc,
 		            bool slc,
 			    bool writeonly_memory,
-			    bool has_add_tid);
+			    bool swizzle_enable_hint);
 LLVMValueRef
 ac_build_buffer_load(struct ac_llvm_context *ctx,
 		     LLVMValueRef rsrc,

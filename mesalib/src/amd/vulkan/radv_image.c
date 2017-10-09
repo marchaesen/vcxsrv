@@ -110,7 +110,8 @@ radv_init_surface(struct radv_device *device,
 	if (is_depth) {
 		surface->flags |= RADEON_SURF_ZBUFFER;
 		if (!(pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) &&
-		    !(pCreateInfo->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) &&
+		    !(pCreateInfo->flags & (VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT |
+		                            VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR)) &&
 		    pCreateInfo->tiling != VK_IMAGE_TILING_LINEAR &&
 		    pCreateInfo->mipLevels <= 1 &&
 		    device->physical_device->rad_info.chip_class >= VI &&
@@ -149,6 +150,7 @@ radv_init_surface(struct radv_device *device,
 
 	if ((pCreateInfo->usage & (VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
 	                           VK_IMAGE_USAGE_STORAGE_BIT)) ||
+	    (pCreateInfo->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR) ||
 	    !dcc_compatible_formats ||
             (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR) ||
             pCreateInfo->mipLevels > 1 || pCreateInfo->arrayLayers > 1 ||
