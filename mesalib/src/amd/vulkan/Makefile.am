@@ -149,7 +149,7 @@ noinst_DATA = dev_icd.json
 
 dev_icd.json : dev_icd.json.in
 	$(AM_V_GEN) $(SED) \
-		-e "s#@build_libdir@#${abs_top_builddir}/${LIB_DIR}#" \
+		-e "s#@libvulkan_radeon_path@#${abs_top_builddir}/${LIB_DIR}/libvulkan_radeon.so#" \
 		< $(srcdir)/dev_icd.json.in > $@
 
 radeon_icd.@host_cpu@.json : radeon_icd.json.in

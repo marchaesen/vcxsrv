@@ -32,7 +32,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
-#include "r600d_common.h"
 #include <amdgpu.h>
 
 #include "radv_radeon_winsys.h"

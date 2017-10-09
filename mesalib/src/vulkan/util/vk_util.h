@@ -199,4 +199,10 @@ __vk_find_struct(void *start, VkStructureType sType)
 
 uint32_t vk_get_driver_version(void);
 
+#define VK_EXT_OFFSET (1000000000UL)
+#define VK_ENUM_EXTENSION(__enum) \
+   ((__enum) >= VK_EXT_OFFSET ? ((((__enum) - VK_EXT_OFFSET) / 1000UL) + 1) : 0)
+#define VK_ENUM_OFFSET(__enum) \
+   ((__enum) >= VK_EXT_OFFSET ? ((__enum) % 1000) : (__enum))
+
 #endif /* VK_UTIL_H */

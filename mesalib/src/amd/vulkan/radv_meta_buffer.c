@@ -285,9 +285,12 @@ static void fill_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_device *device = cmd_buffer->device;
 	uint64_t block_count = round_up_u64(size, 1024);
-	struct radv_meta_saved_compute_state saved_state;
+	struct radv_meta_saved_state saved_state;
 
-	radv_meta_save_compute(&saved_state, cmd_buffer, 4);
+	radv_meta_save(&saved_state, cmd_buffer,
+		       RADV_META_SAVE_COMPUTE_PIPELINE |
+		       RADV_META_SAVE_CONSTANTS |
+		       RADV_META_SAVE_DESCRIPTORS);
 
 	struct radv_buffer dst_buffer = {
 		.bo = bo,
@@ -325,7 +328,7 @@ static void fill_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 
 	radv_CmdDispatch(radv_cmd_buffer_to_handle(cmd_buffer), block_count, 1, 1);
 
-	radv_meta_restore_compute(&saved_state, cmd_buffer);
+	radv_meta_restore(&saved_state, cmd_buffer);
 }
 
 static void copy_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
@@ -336,9 +339,11 @@ static void copy_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_device *device = cmd_buffer->device;
 	uint64_t block_count = round_up_u64(size, 1024);
-	struct radv_meta_saved_compute_state saved_state;
+	struct radv_meta_saved_state saved_state;
 
-	radv_meta_save_compute(&saved_state, cmd_buffer, 0);
+	radv_meta_save(&saved_state, cmd_buffer,
+		       RADV_META_SAVE_COMPUTE_PIPELINE |
+		       RADV_META_SAVE_DESCRIPTORS);
 
 	struct radv_buffer dst_buffer = {
 		.bo = dst_bo,
@@ -389,7 +394,7 @@ static void copy_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 
 	radv_CmdDispatch(radv_cmd_buffer_to_handle(cmd_buffer), block_count, 1, 1);
 
-	radv_meta_restore_compute(&saved_state, cmd_buffer);
+	radv_meta_restore(&saved_state, cmd_buffer);
 }
 
 

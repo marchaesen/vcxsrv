@@ -28,7 +28,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
-#include "r600d_common.h"
+#include "sid.h"
 
 static inline unsigned radeon_check_space(struct radeon_winsys *ws,
                                       struct radeon_winsys_cs *cs,
@@ -41,11 +41,11 @@ static inline unsigned radeon_check_space(struct radeon_winsys *ws,
 
 static inline void radeon_set_config_reg_seq(struct radeon_winsys_cs *cs, unsigned reg, unsigned num)
 {
-        assert(reg < R600_CONTEXT_REG_OFFSET);
+        assert(reg < SI_CONTEXT_REG_OFFSET);
         assert(cs->cdw + 2 + num <= cs->max_dw);
         assert(num);
         radeon_emit(cs, PKT3(PKT3_SET_CONFIG_REG, num, 0));
-        radeon_emit(cs, (reg - R600_CONFIG_REG_OFFSET) >> 2);
+        radeon_emit(cs, (reg - SI_CONFIG_REG_OFFSET) >> 2);
 }
 
 static inline void radeon_set_config_reg(struct radeon_winsys_cs *cs, unsigned reg, unsigned value)
@@ -56,11 +56,11 @@ static inline void radeon_set_config_reg(struct radeon_winsys_cs *cs, unsigned r
 
 static inline void radeon_set_context_reg_seq(struct radeon_winsys_cs *cs, unsigned reg, unsigned num)
 {
-        assert(reg >= R600_CONTEXT_REG_OFFSET);
+        assert(reg >= SI_CONTEXT_REG_OFFSET);
         assert(cs->cdw + 2 + num <= cs->max_dw);
         assert(num);
         radeon_emit(cs, PKT3(PKT3_SET_CONTEXT_REG, num, 0));
-        radeon_emit(cs, (reg - R600_CONTEXT_REG_OFFSET) >> 2);
+        radeon_emit(cs, (reg - SI_CONTEXT_REG_OFFSET) >> 2);
 }
 
 static inline void radeon_set_context_reg(struct radeon_winsys_cs *cs, unsigned reg, unsigned value)
@@ -74,10 +74,10 @@ static inline void radeon_set_context_reg_idx(struct radeon_winsys_cs *cs,
 					      unsigned reg, unsigned idx,
 					      unsigned value)
 {
-	assert(reg >= R600_CONTEXT_REG_OFFSET);
+	assert(reg >= SI_CONTEXT_REG_OFFSET);
 	assert(cs->cdw + 3 <= cs->max_dw);
 	radeon_emit(cs, PKT3(PKT3_SET_CONTEXT_REG, 1, 0));
-	radeon_emit(cs, (reg - R600_CONTEXT_REG_OFFSET) >> 2 | (idx << 28));
+	radeon_emit(cs, (reg - SI_CONTEXT_REG_OFFSET) >> 2 | (idx << 28));
 	radeon_emit(cs, value);
 }
 

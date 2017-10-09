@@ -467,7 +467,7 @@ key.type[Group1]="FOUR_LEVEL_SEMIALPHABETIC";
     key <AE03> {[                 U10CFC,	plus,	3,	plus]};
 //Old Hungarian ten
     
-    key <AE04> {[       U10CFD,	exclam,	4,	excalm]};
+    key <AE04> {[       U10CFD,	exclam,	4,	exclam]};
 //Old Hungarian fifty
     
     key <AE05> {[       U10CFE,	percent,	5,	percent]};

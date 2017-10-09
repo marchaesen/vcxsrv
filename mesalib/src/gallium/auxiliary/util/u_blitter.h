@@ -53,11 +53,20 @@ union blitter_attrib {
    } texcoord;
 };
 
+struct blitter_context;
+
+typedef void *(*blitter_get_vs_func)(struct blitter_context *blitter);
+
 struct blitter_context
 {
    /**
     * Draw a rectangle.
     *
+    * \param get_vs  Callback for obtaining the vertex shader for the draw call.
+    *                It might invoke the shader compiler. The driver is
+    *                responsible for setting the vertex shader, and the callback
+    *                allows the driver to query the vertex shader CSO if it
+    *                wants to use the default one.
     * \param x1      An X coordinate of the top-left corner.
     * \param y1      A Y coordinate of the top-left corner.
     * \param x2      An X coordinate of the bottom-right corner.
@@ -81,6 +90,8 @@ struct blitter_context
     *       a rectangular point sprite.
     */
    void (*draw_rectangle)(struct blitter_context *blitter,
+                          void *vertex_elements_cso,
+                          blitter_get_vs_func get_vs,
                           int x1, int y1, int x2, int y2,
                           float depth, unsigned num_instances,
                           enum blitter_attrib_type type,
@@ -102,6 +113,7 @@ struct blitter_context
    struct pipe_stencil_ref saved_stencil_ref;     /**< stencil ref */
    struct pipe_viewport_state saved_viewport;
    struct pipe_scissor_state saved_scissor;
+   bool skip_viewport_restore;
    bool is_sample_mask_saved;
    unsigned saved_sample_mask;
 
@@ -155,6 +167,8 @@ void util_blitter_set_texture_multisample(struct blitter_context *blitter,
 /* The default function to draw a rectangle. This can only be used
  * inside of the draw_rectangle callback if the driver overrides it. */
 void util_blitter_draw_rectangle(struct blitter_context *blitter,
+                                 void *vertex_elements_cso,
+                                 blitter_get_vs_func get_vs,
                                  int x1, int y1, int x2, int y2,
                                  float depth, unsigned num_instances,
                                  enum blitter_attrib_type type,

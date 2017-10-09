@@ -58,6 +58,7 @@ SUPPORTED_EXTENSIONS = [
     'VK_KHR_external_semaphore',
     'VK_KHR_external_semaphore_fd',
     'VK_KHR_bind_memory2',
+    'VK_KHR_maintenance2',
 ]
 
 # We generate a static hash table for entry point lookup

@@ -33,31 +33,29 @@
 extern "C" {
 #endif
 
-#define RADV_META_VERTEX_BINDING_COUNT 2
+enum radv_meta_save_flags {
+	RADV_META_SAVE_PASS		 = (1 << 0),
+	RADV_META_SAVE_CONSTANTS         = (1 << 1),
+	RADV_META_SAVE_DESCRIPTORS       = (1 << 2),
+	RADV_META_SAVE_GRAPHICS_PIPELINE = (1 << 3),
+	RADV_META_SAVE_COMPUTE_PIPELINE  = (1 << 4),
+};
 
 struct radv_meta_saved_state {
+	uint32_t flags;
+
 	struct radv_descriptor_set *old_descriptor_set0;
 	struct radv_pipeline *old_pipeline;
 	struct radv_viewport_state viewport;
 	struct radv_scissor_state scissor;
 
 	char push_constants[128];
-};
 
-struct radv_meta_saved_pass_state {
 	struct radv_render_pass *pass;
 	const struct radv_subpass *subpass;
 	struct radv_attachment_state *attachments;
 	struct radv_framebuffer *framebuffer;
 	VkRect2D render_area;
-};
-
-struct radv_meta_saved_compute_state {
-	struct radv_descriptor_set *old_descriptor_set0;
-	struct radv_pipeline *old_pipeline;
-
-	unsigned push_constant_size;
-	char push_constants[128];
 };
 
 VkResult radv_device_init_meta_clear_state(struct radv_device *device);
@@ -90,21 +88,11 @@ void radv_device_finish_meta_resolve_compute_state(struct radv_device *device);
 VkResult radv_device_init_meta_resolve_fragment_state(struct radv_device *device);
 void radv_device_finish_meta_resolve_fragment_state(struct radv_device *device);
 
+void radv_meta_save(struct radv_meta_saved_state *saved_state,
+		    struct radv_cmd_buffer *cmd_buffer, uint32_t flags);
+
 void radv_meta_restore(const struct radv_meta_saved_state *state,
 		       struct radv_cmd_buffer *cmd_buffer);
-
-void radv_meta_save_pass(struct radv_meta_saved_pass_state *state,
-			 const struct radv_cmd_buffer *cmd_buffer);
-
-void radv_meta_restore_pass(const struct radv_meta_saved_pass_state *state,
-			    struct radv_cmd_buffer *cmd_buffer);
-
-void radv_meta_save_compute(struct radv_meta_saved_compute_state *state,
-			    const struct radv_cmd_buffer *cmd_buffer,
-			    unsigned push_constant_size);
-
-void radv_meta_restore_compute(const struct radv_meta_saved_compute_state *state,
-			       struct radv_cmd_buffer *cmd_buffer);
 
 VkImageViewType radv_meta_get_view_type(const struct radv_image *image);
 
@@ -182,9 +170,6 @@ void radv_resummarize_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 void radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
 					 const VkImageSubresourceRange *subresourceRange);
-
-void radv_meta_save_graphics_reset_vport_scissor_novertex(struct radv_meta_saved_state *saved_state,
-							  struct radv_cmd_buffer *cmd_buffer);
 
 void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 				     struct radv_image *src_image,

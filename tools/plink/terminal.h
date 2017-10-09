@@ -103,7 +103,7 @@ struct terminal_tag {
 #endif /* OPTIMISE_SCROLL */
 
     int default_attr, curr_attr, save_attr;
-    truecolour curr_truecolour;
+    truecolour curr_truecolour, save_truecolour;
     termchar basic_erase_char, erase_char;
 
     bufchain inbuf;		       /* terminal input buffer */
@@ -140,6 +140,7 @@ struct terminal_tag {
     /* ESC 7 saved state for the alternate screen */
     pos alt_savecurs;
     int alt_save_attr;
+    truecolour alt_save_truecolour;
     int alt_save_cset, alt_save_csattr;
     int alt_save_utf, alt_save_wnext;
     int alt_save_sco_acs;
@@ -325,6 +326,7 @@ struct terminal_tag {
     int scroll_on_disp;
     int scroll_on_key;
     int xterm_256_colour;
+    int true_colour;
 };
 
 #define in_utf(term) ((term)->utf || (term)->ucsdata->line_codepage==CP_UTF8)

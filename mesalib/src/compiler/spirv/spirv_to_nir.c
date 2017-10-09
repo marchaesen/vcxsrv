@@ -2706,6 +2706,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilitySampled1D:
       case SpvCapabilityImage1D:
       case SpvCapabilitySampledCubeArray:
+      case SpvCapabilityImageCubeArray:
       case SpvCapabilitySampledBuffer:
       case SpvCapabilityImageBuffer:
       case SpvCapabilityImageQuery:
@@ -2729,7 +2730,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityAtomicStorage:
       case SpvCapabilityInt16:
       case SpvCapabilityStorageImageMultisample:
-      case SpvCapabilityImageCubeArray:
       case SpvCapabilityInt8:
       case SpvCapabilitySparseResidency:
       case SpvCapabilityMinLod:

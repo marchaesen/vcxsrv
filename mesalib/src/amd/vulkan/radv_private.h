@@ -1009,9 +1009,6 @@ unsigned radv_format_meta_fs_key(VkFormat format);
 struct radv_raster_state {
 	uint32_t pa_cl_clip_cntl;
 	uint32_t spi_interp_control;
-	uint32_t pa_su_point_size;
-	uint32_t pa_su_point_minmax;
-	uint32_t pa_su_line_cntl;
 	uint32_t pa_su_vtx_cntl;
 	uint32_t pa_su_sc_mode_cntl;
 };
@@ -1098,6 +1095,7 @@ struct radv_pipeline {
 			bool ia_switch_on_eoi;
 			bool partial_vs_wave;
 			uint8_t vtx_emit_num;
+			uint32_t vtx_reuse_depth;
 			struct radv_prim_vertex_count prim_vertex_count;
  			bool can_use_guardband;
 		} graphics;
@@ -1251,6 +1249,12 @@ static inline bool
 radv_vi_dcc_enabled(const struct radv_image *image, unsigned level)
 {
 	return image->surface.dcc_size && level < image->surface.num_dcc_levels;
+}
+
+static inline bool
+radv_htile_enabled(const struct radv_image *image, unsigned level)
+{
+	return image->surface.htile_size && level == 0;
 }
 
 unsigned radv_image_queue_family_mask(const struct radv_image *image, uint32_t family, uint32_t queue_family);

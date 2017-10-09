@@ -100,11 +100,6 @@ blit_surf_for_image_level_layer(struct radv_image *image,
 	};
 }
 
-union meta_saved_state {
-	struct radv_meta_saved_state gfx;
-	struct radv_meta_saved_compute_state compute;
-};
-
 static void
 meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
                           struct radv_buffer* buffer,
@@ -113,17 +108,18 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
                           const VkBufferImageCopy* pRegions)
 {
 	bool cs = cmd_buffer->queue_family_index == RADV_QUEUE_COMPUTE;
-	union meta_saved_state saved_state;
+	struct radv_meta_saved_state saved_state;
 
 	/* The Vulkan 1.0 spec says "dstImage must have a sample count equal to
 	 * VK_SAMPLE_COUNT_1_BIT."
 	 */
 	assert(image->info.samples == 1);
 
-	if (cs)
-		radv_meta_save_compute(&saved_state.compute, cmd_buffer, 12);
-	else
-		radv_meta_save_graphics_reset_vport_scissor_novertex(&saved_state.gfx, cmd_buffer);
+	radv_meta_save(&saved_state, cmd_buffer,
+		       (cs ? RADV_META_SAVE_COMPUTE_PIPELINE :
+			RADV_META_SAVE_GRAPHICS_PIPELINE) |
+		       RADV_META_SAVE_CONSTANTS |
+		       RADV_META_SAVE_DESCRIPTORS);
 
 	for (unsigned r = 0; r < regionCount; r++) {
 
@@ -202,10 +198,8 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 				slice_array++;
 		}
 	}
-	if (cs)
-		radv_meta_restore_compute(&saved_state.compute, cmd_buffer);
-	else
-		radv_meta_restore(&saved_state.gfx, cmd_buffer);
+
+	radv_meta_restore(&saved_state, cmd_buffer);
 }
 
 void radv_CmdCopyBufferToImage(
@@ -231,9 +225,12 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
                           uint32_t regionCount,
                           const VkBufferImageCopy* pRegions)
 {
-	struct radv_meta_saved_compute_state saved_state;
+	struct radv_meta_saved_state saved_state;
 
-	radv_meta_save_compute(&saved_state, cmd_buffer, 12);
+	radv_meta_save(&saved_state, cmd_buffer,
+		       RADV_META_SAVE_COMPUTE_PIPELINE |
+		       RADV_META_SAVE_CONSTANTS |
+		       RADV_META_SAVE_DESCRIPTORS);
 
 	for (unsigned r = 0; r < regionCount; r++) {
 
@@ -304,7 +301,8 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 				slice_array++;
 		}
 	}
-	radv_meta_restore_compute(&saved_state, cmd_buffer);
+
+	radv_meta_restore(&saved_state, cmd_buffer);
 }
 
 void radv_CmdCopyImageToBuffer(
@@ -331,7 +329,7 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 		const VkImageCopy *pRegions)
 {
 	bool cs = cmd_buffer->queue_family_index == RADV_QUEUE_COMPUTE;
-	union meta_saved_state saved_state;
+	struct radv_meta_saved_state saved_state;
 
 	/* From the Vulkan 1.0 spec:
 	 *
@@ -339,10 +337,12 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 	 *    images, but both images must have the same number of samples.
 	 */
 	assert(src_image->info.samples == dest_image->info.samples);
-	if (cs)
-		radv_meta_save_compute(&saved_state.compute, cmd_buffer, 16);
-	else
-		radv_meta_save_graphics_reset_vport_scissor_novertex(&saved_state.gfx, cmd_buffer);
+
+	radv_meta_save(&saved_state, cmd_buffer,
+		       (cs ? RADV_META_SAVE_COMPUTE_PIPELINE :
+			RADV_META_SAVE_GRAPHICS_PIPELINE) |
+		       RADV_META_SAVE_CONSTANTS |
+		       RADV_META_SAVE_DESCRIPTORS);
 
 	for (unsigned r = 0; r < regionCount; r++) {
 		assert(pRegions[r].srcSubresource.aspectMask ==
@@ -413,10 +413,7 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 		}
 	}
 
-	if (cs)
-		radv_meta_restore_compute(&saved_state.compute, cmd_buffer);
-	else
-		radv_meta_restore(&saved_state.gfx, cmd_buffer);
+	radv_meta_restore(&saved_state, cmd_buffer);
 }
 
 void radv_CmdCopyImage(

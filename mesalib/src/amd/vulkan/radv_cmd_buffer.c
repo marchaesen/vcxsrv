@@ -488,13 +488,6 @@ radv_emit_graphics_depth_stencil_state(struct radv_cmd_buffer *cmd_buffer,
 	radeon_set_context_reg(cmd_buffer->cs, R_028010_DB_RENDER_OVERRIDE2, ds->db_render_override2);
 }
 
-/* 12.4 fixed-point */
-static unsigned radv_pack_float_12p4(float x)
-{
-	return x <= 0    ? 0 :
-	       x >= 4096 ? 0xffff : x * 16;
-}
-
 struct ac_userdata_info *
 radv_lookup_user_sgpr(struct radv_pipeline *pipeline,
 		      gl_shader_stage stage,
@@ -532,13 +525,13 @@ radv_update_multisample_state(struct radv_cmd_buffer *cmd_buffer,
 	radeon_emit(cmd_buffer->cs, ms->pa_sc_aa_mask[0]);
 	radeon_emit(cmd_buffer->cs, ms->pa_sc_aa_mask[1]);
 
-	radeon_set_context_reg(cmd_buffer->cs, CM_R_028804_DB_EQAA, ms->db_eqaa);
-	radeon_set_context_reg(cmd_buffer->cs, EG_R_028A4C_PA_SC_MODE_CNTL_1, ms->pa_sc_mode_cntl_1);
+	radeon_set_context_reg(cmd_buffer->cs, R_028804_DB_EQAA, ms->db_eqaa);
+	radeon_set_context_reg(cmd_buffer->cs, R_028A4C_PA_SC_MODE_CNTL_1, ms->pa_sc_mode_cntl_1);
 
 	if (old_pipeline && num_samples == old_pipeline->graphics.ms.num_samples)
 		return;
 
-	radeon_set_context_reg_seq(cmd_buffer->cs, CM_R_028BDC_PA_SC_LINE_CNTL, 2);
+	radeon_set_context_reg_seq(cmd_buffer->cs, R_028BDC_PA_SC_LINE_CNTL, 2);
 	radeon_emit(cmd_buffer->cs, ms->pa_sc_line_cntl);
 	radeon_emit(cmd_buffer->cs, ms->pa_sc_aa_config);
 
@@ -588,19 +581,10 @@ radv_emit_graphics_raster_state(struct radv_cmd_buffer *cmd_buffer,
 
 	radeon_set_context_reg(cmd_buffer->cs, R_028810_PA_CL_CLIP_CNTL,
 			       raster->pa_cl_clip_cntl);
-
 	radeon_set_context_reg(cmd_buffer->cs, R_0286D4_SPI_INTERP_CONTROL_0,
 			       raster->spi_interp_control);
-
-	radeon_set_context_reg_seq(cmd_buffer->cs, R_028A00_PA_SU_POINT_SIZE, 2);
-	unsigned tmp = (unsigned)(1.0 * 8.0);
-	radeon_emit(cmd_buffer->cs, S_028A00_HEIGHT(tmp) | S_028A00_WIDTH(tmp));
-	radeon_emit(cmd_buffer->cs, S_028A04_MIN_SIZE(radv_pack_float_12p4(0)) |
-		    S_028A04_MAX_SIZE(radv_pack_float_12p4(8192/2))); /* R_028A04_PA_SU_POINT_MINMAX */
-
 	radeon_set_context_reg(cmd_buffer->cs, R_028BE4_PA_SU_VTX_CNTL,
 			       raster->pa_su_vtx_cntl);
-
 	radeon_set_context_reg(cmd_buffer->cs, R_028814_PA_SU_SC_MODE_CNTL,
 			       raster->pa_su_sc_mode_cntl);
 }
@@ -939,19 +923,17 @@ radv_emit_fragment_shader(struct radv_cmd_buffer *cmd_buffer,
 	}
 }
 
-static void polaris_set_vgt_vertex_reuse(struct radv_cmd_buffer *cmd_buffer,
-					 struct radv_pipeline *pipeline)
+static void
+radv_emit_vgt_vertex_reuse(struct radv_cmd_buffer *cmd_buffer,
+			   struct radv_pipeline *pipeline)
 {
-	uint32_t vtx_reuse_depth = 30;
+	struct radeon_winsys_cs *cs = cmd_buffer->cs;
+
 	if (cmd_buffer->device->physical_device->rad_info.family < CHIP_POLARIS10)
 		return;
 
-	if (pipeline->shaders[MESA_SHADER_TESS_EVAL]) {
-		if (pipeline->shaders[MESA_SHADER_TESS_EVAL]->info.tes.spacing == TESS_SPACING_FRACTIONAL_ODD)
-			vtx_reuse_depth = 14;
-	}
-	radeon_set_context_reg(cmd_buffer->cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL,
-			       vtx_reuse_depth);
+	radeon_set_context_reg(cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL,
+			       pipeline->graphics.vtx_reuse_depth);
 }
 
 static void
@@ -970,7 +952,7 @@ radv_emit_graphics_pipeline(struct radv_cmd_buffer *cmd_buffer)
 	radv_emit_tess_shaders(cmd_buffer, pipeline);
 	radv_emit_geometry_shader(cmd_buffer, pipeline);
 	radv_emit_fragment_shader(cmd_buffer, pipeline);
-	polaris_set_vgt_vertex_reuse(cmd_buffer, pipeline);
+	radv_emit_vgt_vertex_reuse(cmd_buffer, pipeline);
 
 	cmd_buffer->scratch_size_needed =
 	                          MAX2(cmd_buffer->scratch_size_needed,
@@ -3216,7 +3198,15 @@ radv_emit_dispatch_packets(struct radv_cmd_buffer *cmd_buffer,
 		}
 	} else {
 		unsigned blocks[3] = { info->blocks[0], info->blocks[1], info->blocks[2] };
-		unsigned dispatch_initiator = S_00B800_COMPUTE_SHADER_EN(1);
+		unsigned dispatch_initiator = S_00B800_COMPUTE_SHADER_EN(1) |
+					      S_00B800_FORCE_START_AT_000(1);
+
+		if (cmd_buffer->device->physical_device->rad_info.chip_class >= CIK) {
+			/* If the KMD allows it (there is a KMD hw register for
+			 * it), allow launching waves out-of-order.
+			 */
+			dispatch_initiator |= S_00B800_ORDER_MODE(1);
+		}
 
 		if (info->unaligned) {
 			unsigned *cs_block_size = compute_shader->info.cs.block_size;
@@ -3615,7 +3605,7 @@ static void write_event(struct radv_cmd_buffer *cmd_buffer,
 				   cmd_buffer->state.predicating,
 				   cmd_buffer->device->physical_device->rad_info.chip_class,
 				   false,
-				   EVENT_TYPE_BOTTOM_OF_PIPE_TS, 0,
+				   V_028A90_BOTTOM_OF_PIPE_TS, 0,
 				   1, va, 2, value);
 
 	assert(cmd_buffer->cs->cdw <= cdw_max);

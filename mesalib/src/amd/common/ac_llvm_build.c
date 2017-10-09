@@ -760,10 +760,13 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 			    bool glc,
 			    bool slc,
 			    bool writeonly_memory,
-			    bool has_add_tid)
+			    bool swizzle_enable_hint)
 {
-	/* TODO: Fix stores with ADD_TID and remove the "has_add_tid" flag. */
-	if (!has_add_tid) {
+	/* SWIZZLE_ENABLE requires that soffset isn't folded into voffset
+	 * (voffset is swizzled, but soffset isn't swizzled).
+	 * llvm.amdgcn.buffer.store doesn't have a separate soffset parameter.
+	 */
+	if (!swizzle_enable_hint) {
 		/* Split 3 channel stores, becase LLVM doesn't support 3-channel
 		 * intrinsics. */
 		if (num_channels == 3) {
@@ -777,11 +780,11 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 
 			ac_build_buffer_store_dword(ctx, rsrc, v01, 2, voffset,
 						    soffset, inst_offset, glc, slc,
-						    writeonly_memory, has_add_tid);
+						    writeonly_memory, swizzle_enable_hint);
 			ac_build_buffer_store_dword(ctx, rsrc, v[2], 1, voffset,
 						    soffset, inst_offset + 8,
 						    glc, slc,
-						    writeonly_memory, has_add_tid);
+						    writeonly_memory, swizzle_enable_hint);
 			return;
 		}
 

@@ -336,15 +336,16 @@ radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 				    const VkImageSubresourceRange *subresourceRange)
 {
 	struct radv_meta_saved_state saved_state;
-	struct radv_meta_saved_pass_state saved_pass_state;
 	VkDevice device_h = radv_device_to_handle(cmd_buffer->device);
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
 	uint32_t layer_count = radv_get_layerCount(image, subresourceRange);
 	VkPipeline pipeline;
 
 	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
-	radv_meta_save_pass(&saved_pass_state, cmd_buffer);
-	radv_meta_save_graphics_reset_vport_scissor_novertex(&saved_state, cmd_buffer);
+
+	radv_meta_save(&saved_state, cmd_buffer,
+		       RADV_META_SAVE_GRAPHICS_PIPELINE |
+		       RADV_META_SAVE_PASS);
 
 	if (image->fmask.size > 0) {
                pipeline = cmd_buffer->device->meta_state.fast_clear_flush.fmask_decompress_pipeline;
@@ -423,5 +424,4 @@ radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 		radv_emit_set_predication_state_from_image(cmd_buffer, image, false);
 	}
 	radv_meta_restore(&saved_state, cmd_buffer);
-	radv_meta_restore_pass(&saved_pass_state, cmd_buffer);
 }

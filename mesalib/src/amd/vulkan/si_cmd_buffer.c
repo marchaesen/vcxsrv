@@ -216,6 +216,13 @@ si_init_compute(struct radv_cmd_buffer *cmd_buffer)
 	si_emit_compute(physical_device, cmd_buffer->cs);
 }
 
+/* 12.4 fixed-point */
+static unsigned radv_pack_float_12p4(float x)
+{
+	return x <= 0    ? 0 :
+	       x >= 4096 ? 0xffff : x * 16;
+}
+
 static void
 si_emit_config(struct radv_physical_device *physical_device,
 	       struct radeon_winsys_cs *cs)
@@ -486,6 +493,14 @@ si_emit_config(struct radv_physical_device *physical_device,
 				       S_028C4C_NULL_SQUAD_AA_MASK_ENABLE(1));
 		radeon_set_uconfig_reg(cs, R_030968_VGT_INSTANCE_BASE_ID, 0);
 	}
+
+	unsigned tmp = (unsigned)(1.0 * 8.0);
+	radeon_set_context_reg_seq(cs, R_028A00_PA_SU_POINT_SIZE, 1);
+	radeon_emit(cs, S_028A00_HEIGHT(tmp) | S_028A00_WIDTH(tmp));
+	radeon_set_context_reg_seq(cs, R_028A04_PA_SU_POINT_MINMAX, 1);
+	radeon_emit(cs, S_028A04_MIN_SIZE(radv_pack_float_12p4(0)) |
+		    S_028A04_MAX_SIZE(radv_pack_float_12p4(8192/2)));
+
 	si_emit_compute(physical_device, cs);
 }
 
@@ -1410,25 +1425,25 @@ void radv_cayman_emit_msaa_sample_locs(struct radeon_winsys_cs *cs, int nr_sampl
 	switch (nr_samples) {
 	default:
 	case 1:
-		radeon_set_context_reg(cs, CM_R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, 0);
-		radeon_set_context_reg(cs, CM_R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, 0);
-		radeon_set_context_reg(cs, CM_R_028C18_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0, 0);
-		radeon_set_context_reg(cs, CM_R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, 0);
+		radeon_set_context_reg(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, 0);
+		radeon_set_context_reg(cs, R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, 0);
+		radeon_set_context_reg(cs, R_028C18_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0, 0);
+		radeon_set_context_reg(cs, R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, 0);
 		break;
 	case 2:
-		radeon_set_context_reg(cs, CM_R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, eg_sample_locs_2x[0]);
-		radeon_set_context_reg(cs, CM_R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, eg_sample_locs_2x[1]);
-		radeon_set_context_reg(cs, CM_R_028C18_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0, eg_sample_locs_2x[2]);
-		radeon_set_context_reg(cs, CM_R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, eg_sample_locs_2x[3]);
+		radeon_set_context_reg(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, eg_sample_locs_2x[0]);
+		radeon_set_context_reg(cs, R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, eg_sample_locs_2x[1]);
+		radeon_set_context_reg(cs, R_028C18_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0, eg_sample_locs_2x[2]);
+		radeon_set_context_reg(cs, R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, eg_sample_locs_2x[3]);
 		break;
 	case 4:
-		radeon_set_context_reg(cs, CM_R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, eg_sample_locs_4x[0]);
-		radeon_set_context_reg(cs, CM_R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, eg_sample_locs_4x[1]);
-		radeon_set_context_reg(cs, CM_R_028C18_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0, eg_sample_locs_4x[2]);
-		radeon_set_context_reg(cs, CM_R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, eg_sample_locs_4x[3]);
+		radeon_set_context_reg(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, eg_sample_locs_4x[0]);
+		radeon_set_context_reg(cs, R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, eg_sample_locs_4x[1]);
+		radeon_set_context_reg(cs, R_028C18_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0, eg_sample_locs_4x[2]);
+		radeon_set_context_reg(cs, R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, eg_sample_locs_4x[3]);
 		break;
 	case 8:
-		radeon_set_context_reg_seq(cs, CM_R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, 14);
+		radeon_set_context_reg_seq(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, 14);
 		radeon_emit(cs, cm_sample_locs_8x[0]);
 		radeon_emit(cs, cm_sample_locs_8x[4]);
 		radeon_emit(cs, 0);
@@ -1445,7 +1460,7 @@ void radv_cayman_emit_msaa_sample_locs(struct radeon_winsys_cs *cs, int nr_sampl
 		radeon_emit(cs, cm_sample_locs_8x[7]);
 		break;
 	case 16:
-		radeon_set_context_reg_seq(cs, CM_R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, 16);
+		radeon_set_context_reg_seq(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, 16);
 		radeon_emit(cs, cm_sample_locs_16x[0]);
 		radeon_emit(cs, cm_sample_locs_16x[4]);
 		radeon_emit(cs, cm_sample_locs_16x[8]);
