@@ -1180,7 +1180,7 @@ struct __DRIdri2ExtensionRec {
  * extensions.
  */
 #define __DRI_IMAGE "DRI_IMAGE"
-#define __DRI_IMAGE_VERSION 16
+#define __DRI_IMAGE_VERSION 17
 
 /**
  * These formats correspond to the similarly named MESA_FORMAT_*
@@ -1377,6 +1377,7 @@ struct __DRIimageExtensionRec {
 				       int name, int pitch,
 				       void *loaderPrivate);
 
+    /* Deprecated since version 17; see createImageFromRenderbuffer2 */
     __DRIimage *(*createImageFromRenderbuffer)(__DRIcontext *context,
 					       int renderbuffer,
 					       void *loaderPrivate);
@@ -1625,6 +1626,22 @@ struct __DRIimageExtensionRec {
    GLboolean (*queryDmaBufFormatModifierAttribs)(__DRIscreen *screen,
                                                  uint32_t fourcc, uint64_t modifier,
                                                  int attrib, uint64_t *value);
+
+   /**
+    * Create a DRI image from the given renderbuffer.
+    *
+    * \param context       the current DRI context
+    * \param renderbuffer  the GL name of the renderbuffer
+    * \param loaderPrivate for callbacks into the loader related to the image
+    * \param error         will be set to one of __DRI_IMAGE_ERROR_xxx
+    * \return the newly created image on success, or NULL otherwise
+    *
+    * \since 17
+    */
+    __DRIimage *(*createImageFromRenderbuffer2)(__DRIcontext *context,
+                                                int renderbuffer,
+                                                void *loaderPrivate,
+                                                unsigned *error);
 };
 
 
