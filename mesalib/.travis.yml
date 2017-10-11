@@ -396,7 +396,7 @@ matrix:
     - env:
         - LABEL="meson Vulkan"
         - BUILD=meson
-        - MESON_OPTIONS="-Dbuild-tests=true"
+        - MESON_OPTIONS="-Ddri-drivers="
       addons:
         apt:
           sources:
@@ -410,6 +410,20 @@ matrix:
             - xz-utils
             - libexpat1-dev
             - libelf-dev
+            - python3-pip
+    - env:
+        - LABEL="meson loaders/classic DRI"
+        - BUILD=meson
+        - MESON_OPTIONS="-Dvulkan-drivers="
+      addons:
+        apt:
+          packages:
+            - xz-utils
+            - x11proto-xf86vidmode-dev
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libxdamage-dev
+            - libxfixes-dev
             - python3-pip
 
 install:
@@ -530,5 +544,5 @@ script:
   - if test "x$BUILD" = xmeson; then
       export CFLAGS="$CFLAGS -isystem`pwd`";
       meson _build $MESON_OPTIONS;
-      ninja -C _build test;
+      ninja -C _build;
     fi

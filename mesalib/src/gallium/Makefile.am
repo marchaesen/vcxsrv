@@ -94,6 +94,11 @@ if HAVE_GALLIUM_VC4
 SUBDIRS += drivers/vc4 winsys/vc4/drm
 endif
 
+## vc5
+if HAVE_GALLIUM_VC5
+SUBDIRS += drivers/vc5 winsys/vc5/drm
+endif
+
 ## virgl
 if HAVE_GALLIUM_VIRGL
 SUBDIRS += drivers/virgl winsys/virgl/drm winsys/virgl/vtest

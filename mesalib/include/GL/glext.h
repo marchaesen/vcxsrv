@@ -12470,6 +12470,12 @@ GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN (co
 #define GL_FOG_SPECULAR_TEXTURE_WIN       0x80EC
 #endif /* GL_WIN_specular_fog */
 
+/* XXX: Get a regenerated header with the enums properly present. */
+#define GL_TILE_RASTER_ORDER_FIXED_MESA          0x8BB8
+#define GL_TILE_RASTER_ORDER_INCREASING_X_MESA   0x8BB9
+#define GL_TILE_RASTER_ORDER_INCREASING_Y_MESA   0x8BBA
+
+
 #ifdef __cplusplus
 }
 #endif

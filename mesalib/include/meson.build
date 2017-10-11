@@ -20,3 +20,41 @@
 
 inc_drm_uapi = include_directories('drm-uapi')
 inc_vulkan = include_directories('vulkan')
+
+if with_gles1
+  install_headers(
+    'GLES/egl.h', 'GLES/gl.h', 'GLES/glext.h', 'GLES/glplatform.h',
+    subdir : 'GLES',
+  )
+endif
+
+if with_gles2
+  install_headers(
+    'GLES2/gl2.h', 'GLES2/gl2ext.h', 'GLES2/gl2platform.h',
+    subdir : 'GLES2',
+  )
+  install_headers(
+    'GLES3/gl3.h', 'GLES3/gl32.h', 'GLES3/gl32.h', 'GLES3/gl3ext.h',
+    'GLES3/gl3platform.h',
+    subdir : 'GLES3',
+  )
+endif
+
+if with_gles1 or with_gles2 # or with_egl
+  install_headers('KHR/khrplatform.h', subdir : 'KHR')
+endif
+
+if with_opengl
+  install_headers(
+    'GL/gl.h', 'GL/glext.h', 'GL/glcorearb.h', 'GL/gl_mangle.h',
+    subdir : 'GL',
+  )
+endif
+
+if with_glx != 'disabled'
+  install_headers('GL/glx.h', 'GL/glext.h', 'GL/glx_mangle.h', subdir : 'GL')
+endif
+
+if with_osmesa
+  install_headers('GL/osmesa.h', subdir : 'GL')
+endif

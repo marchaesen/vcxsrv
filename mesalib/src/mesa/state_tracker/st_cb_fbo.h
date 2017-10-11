@@ -79,6 +79,11 @@ st_renderbuffer(struct gl_renderbuffer *rb)
    return (struct st_renderbuffer *) rb;
 }
 
+static inline struct pipe_resource *
+st_get_renderbuffer_resource(struct gl_renderbuffer *rb)
+{
+   return st_renderbuffer(rb)->texture;
+}
 
 /**
  * Cast wrapper to convert a struct gl_framebuffer to an st_framebuffer.

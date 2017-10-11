@@ -33,6 +33,7 @@
 
 #include "lower_buffer_access.h"
 #include "ir_builder.h"
+#include "linker.h"
 #include "main/macros.h"
 #include "util/list.h"
 #include "glsl_parser_extras.h"
@@ -478,7 +479,9 @@ lower_shared_reference_visitor::visit_enter(ir_call *ir)
 } /* unnamed namespace */
 
 void
-lower_shared_reference(struct gl_linked_shader *shader, unsigned *shared_size)
+lower_shared_reference(struct gl_context *ctx,
+                       struct gl_shader_program *prog,
+                       struct gl_linked_shader *shader)
 {
    if (shader->Stage != MESA_SHADER_COMPUTE)
       return;
@@ -495,5 +498,19 @@ lower_shared_reference(struct gl_linked_shader *shader, unsigned *shared_size)
       visit_list_elements(&v, shader->ir);
    } while (v.progress);
 
-   *shared_size = v.shared_size;
+   prog->Comp.SharedSize = v.shared_size;
+
+   /* Section 19.1 (Compute Shader Variables) of the OpenGL 4.5 (Core Profile)
+    * specification says:
+    *
+    *   "There is a limit to the total size of all variables declared as
+    *    shared in a single program object. This limit, expressed in units of
+    *    basic machine units, may be queried as the value of
+    *    MAX_COMPUTE_SHARED_MEMORY_SIZE."
+    */
+   if (prog->Comp.SharedSize > ctx->Const.MaxComputeSharedMemorySize) {
+      linker_error(prog, "Too much shared memory used (%u/%u)\n",
+                   prog->Comp.SharedSize,
+                   ctx->Const.MaxComputeSharedMemorySize);
+   }
 }

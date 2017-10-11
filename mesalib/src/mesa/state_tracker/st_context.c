@@ -489,6 +489,7 @@ static void st_init_driver_flags(struct st_context *st)
 
    f->NewArray = ST_NEW_VERTEX_ARRAYS;
    f->NewRasterizerDiscard = ST_NEW_RASTERIZER;
+   f->NewTileRasterOrder = ST_NEW_RASTERIZER;
    f->NewUniformBuffer = ST_NEW_UNIFORM_BUFFER;
    f->NewDefaultTessLevels = ST_NEW_TESS_STATE;
 

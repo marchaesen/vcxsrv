@@ -441,6 +441,11 @@ ReadRequestFromClient(ClientPtr client)
     if (!gotnow)
         AvailableInput = oc;
     if (move_header) {
+        if (client->req_len < bytes_to_int32(sizeof(xBigReq) - sizeof(xReq))) {
+            YieldControlDeath();
+            return -1;
+        }
+
         request = (xReq *) oci->bufptr;
         oci->bufptr += (sizeof(xBigReq) - sizeof(xReq));
         *(xReq *) oci->bufptr = *request;

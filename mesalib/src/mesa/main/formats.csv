@@ -68,6 +68,7 @@ MESA_FORMAT_B4G4R4A4_UNORM                , packed, 1, 1, 1, un4 , un4 , un4 , u
 MESA_FORMAT_B4G4R4X4_UNORM                , packed, 1, 1, 1, un4 , un4 , un4 , x4  , zyx1, rgb
 MESA_FORMAT_A4R4G4B4_UNORM                , packed, 1, 1, 1, un4 , un4 , un4 , un4 , yzwx, rgb
 MESA_FORMAT_A1B5G5R5_UNORM                , packed, 1, 1, 1, un1 , un5 , un5 , un5 , wzyx, rgb
+MESA_FORMAT_X1B5G5R5_UNORM                , packed, 1, 1, 1, x1  , un5 , un5 , un5 , wzy1, rgb
 MESA_FORMAT_B5G5R5A1_UNORM                , packed, 1, 1, 1, un5 , un5 , un5 , un1 , zyxw, rgb
 MESA_FORMAT_B5G5R5X1_UNORM                , packed, 1, 1, 1, un5 , un5 , un5 , x1  , zyx1, rgb
 MESA_FORMAT_A1R5G5B5_UNORM                , packed, 1, 1, 1, un1 , un5 , un5 , un5 , yzwx, rgb

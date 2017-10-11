@@ -729,6 +729,7 @@ is_format_color_renderable(const struct gl_context *ctx, mesa_format format,
    case GL_RGB8I:
    case GL_RGB8UI:
    case GL_SRGB8:
+   case GL_RGB10:
    case GL_RGB9_E5:
    case GL_RG8_SNORM:
    case GL_R8_SNORM:

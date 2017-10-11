@@ -143,8 +143,9 @@ bool lower_clip_cull_distance(struct gl_shader_program *prog,
                               gl_linked_shader *shader);
 void lower_output_reads(unsigned stage, exec_list *instructions);
 bool lower_packing_builtins(exec_list *instructions, int op_mask);
-void lower_shared_reference(struct gl_linked_shader *shader,
-                            unsigned *shared_size);
+void lower_shared_reference(struct gl_context *ctx,
+                            struct gl_shader_program *prog,
+                            struct gl_linked_shader *shader);
 void lower_ubo_reference(struct gl_linked_shader *shader,
                          bool clamp_block_indices, bool use_std430_as_default);
 void lower_packed_varyings(void *mem_ctx,

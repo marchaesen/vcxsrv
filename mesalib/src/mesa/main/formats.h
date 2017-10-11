@@ -350,6 +350,7 @@ typedef enum
    MESA_FORMAT_B4G4R4X4_UNORM,                       /* xxxx RRRR GGGG BBBB */
    MESA_FORMAT_A4R4G4B4_UNORM,                       /* BBBB GGGG RRRR AAAA */
    MESA_FORMAT_A1B5G5R5_UNORM,                       /* RRRR RGGG GGBB BBBA */
+   MESA_FORMAT_X1B5G5R5_UNORM,                       /* BBBB BGGG GGRR RRRX */
    MESA_FORMAT_B5G5R5A1_UNORM,                       /* ARRR RRGG GGGB BBBB */
    MESA_FORMAT_B5G5R5X1_UNORM,                       /* xRRR RRGG GGGB BBBB */
    MESA_FORMAT_A1R5G5B5_UNORM,                       /* BBBB BGGG GGRR RRRA */

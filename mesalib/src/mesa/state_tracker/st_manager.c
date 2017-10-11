@@ -694,7 +694,7 @@ st_context_teximage(struct st_context_iface *stctxi,
    stObj = st_texture_object(texObj);
    /* switch to surface based */
    if (!stObj->surface_based) {
-      _mesa_clear_texture_object(ctx, texObj);
+      _mesa_clear_texture_object(ctx, texObj, NULL);
       stObj->surface_based = GL_TRUE;
    }
 

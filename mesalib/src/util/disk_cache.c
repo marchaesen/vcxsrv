@@ -987,10 +987,8 @@ cache_put(void *job, int thread_index)
     */
    if (fd != -1)
       close(fd);
-   if (filename_tmp)
-      free(filename_tmp);
-   if (filename)
-      free(filename);
+   free(filename_tmp);
+   free(filename);
 }
 
 void
@@ -1145,6 +1143,7 @@ disk_cache_get(struct disk_cache *cache, const cache_key key, size_t *size)
 
    free(data);
    free(filename);
+   free(file_header);
    close(fd);
 
    if (size)

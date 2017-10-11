@@ -54,7 +54,7 @@ st_bind_ssbos(struct st_context *st, struct gl_program *prog,
    c = &st->ctx->Const.Program[prog->info.stage];
 
    for (i = 0; i < prog->info.num_ssbos; i++) {
-      struct gl_shader_storage_buffer_binding *binding;
+      struct gl_buffer_binding *binding;
       struct st_buffer_object *st_obj;
       struct pipe_shader_buffer *sb = &buffers[i];
 

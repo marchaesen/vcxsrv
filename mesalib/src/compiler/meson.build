@@ -22,8 +22,6 @@ inc_compiler = include_directories('.')
 inc_nir = include_directories('nir')
 inc_glsl = include_directories('glsl')
 
-subdir('glsl')
-
 files_libcompiler = files(
   'builtin_type_macros.h',
   'glsl_types.cpp',
@@ -33,6 +31,14 @@ files_libcompiler = files(
   'shader_enums.c',
   'shader_enums.h',
   'shader_info.h',
+)
+
+ir_expression_operation_h = custom_target(
+  'ir_expression_operation.h',
+  input : 'glsl/ir_expression_operation.py',
+  output : 'ir_expression_operation.h',
+  command : [prog_python2, '@INPUT@', 'enum'],
+  capture : true,
 )
 
 libcompiler = static_library(
@@ -55,3 +61,5 @@ spirv2nir = executable(
   c_args : [c_vis_args, c_msvc_compat_args, no_override_init_args],
   build_by_default : false,
 )
+
+subdir('glsl')

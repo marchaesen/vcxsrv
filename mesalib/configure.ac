@@ -1280,7 +1280,7 @@ GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
 AC_ARG_WITH([gallium-drivers],
     [AS_HELP_STRING([--with-gallium-drivers@<:@=DIRS...@:>@],
         [comma delimited Gallium drivers list, e.g.
-        "i915,nouveau,r300,r600,radeonsi,freedreno,pl111,svga,swrast,swr,vc4,virgl,etnaviv,imx"
+        "i915,nouveau,r300,r600,radeonsi,freedreno,pl111,svga,swrast,swr,vc4,vc5,virgl,etnaviv,imx"
         @<:@default=r300,r600,svga,swrast@:>@])],
     [with_gallium_drivers="$withval"],
     [with_gallium_drivers="$GALLIUM_DRIVERS_DEFAULT"])
@@ -2593,6 +2593,14 @@ if test -n "$with_gallium_drivers"; then
                                DEFINES="$DEFINES -DUSE_VC4_SIMULATOR"],
                               [USE_VC4_SIMULATOR=no])
             ;;
+        xvc5)
+            HAVE_GALLIUM_VC5=yes
+
+            PKG_CHECK_MODULES([VC5_SIMULATOR], [v3dv3],
+                              [USE_VC5_SIMULATOR=yes;
+                               DEFINES="$DEFINES -DUSE_VC5_SIMULATOR"],
+                              [AC_MSG_ERROR([vc5 requires the simulator])])
+            ;;
         xpl111)
             HAVE_GALLIUM_PL111=yes
             ;;
@@ -2716,6 +2724,7 @@ AM_CONDITIONAL(HAVE_GALLIUM_SWRAST, test "x$HAVE_GALLIUM_SOFTPIPE" = xyes -o \
                                          "x$HAVE_GALLIUM_LLVMPIPE" = xyes -o \
                                          "x$HAVE_GALLIUM_SWR" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_VC4, test "x$HAVE_GALLIUM_VC4" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_VC5, test "x$HAVE_GALLIUM_VC5" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_VIRGL, test "x$HAVE_GALLIUM_VIRGL" = xyes)
 
 AM_CONDITIONAL(HAVE_GALLIUM_STATIC_TARGETS, test "x$enable_shared_pipe_drivers" = xno)
@@ -2742,6 +2751,9 @@ AM_CONDITIONAL(HAVE_INTEL_VULKAN, test "x$HAVE_INTEL_VULKAN" = xyes)
 AM_CONDITIONAL(HAVE_AMD_DRIVERS, test "x$HAVE_GALLIUM_RADEONSI" = xyes -o \
                                       "x$HAVE_RADEON_VULKAN" = xyes)
 
+AM_CONDITIONAL(HAVE_BROADCOM_DRIVERS, test "x$HAVE_GALLIUM_VC4" = xyes -o \
+                                      "x$HAVE_GALLIUM_VC5" = xyes)
+
 AM_CONDITIONAL(HAVE_INTEL_DRIVERS, test "x$HAVE_INTEL_VULKAN" = xyes -o \
                                         "x$HAVE_I965_DRI" = xyes)
 
@@ -2752,6 +2764,7 @@ AM_CONDITIONAL(NEED_WINSYS_XLIB, test "x$enable_glx" = xgallium-xlib)
 AM_CONDITIONAL(HAVE_GALLIUM_COMPUTE, test x$enable_opencl = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_LLVM, test "x$enable_llvm" = xyes)
 AM_CONDITIONAL(USE_VC4_SIMULATOR, test x$USE_VC4_SIMULATOR = xyes)
+AM_CONDITIONAL(USE_VC5_SIMULATOR, test x$USE_VC5_SIMULATOR = xyes)
 
 AM_CONDITIONAL(HAVE_LIBDRM, test "x$have_libdrm" = xyes)
 AM_CONDITIONAL(HAVE_OSMESA, test "x$enable_osmesa" = xyes)
@@ -2865,6 +2878,7 @@ AC_CONFIG_FILES([Makefile
                  src/gallium/drivers/etnaviv/Makefile
                  src/gallium/drivers/imx/Makefile
                  src/gallium/drivers/vc4/Makefile
+                 src/gallium/drivers/vc5/Makefile
                  src/gallium/drivers/virgl/Makefile
                  src/gallium/state_trackers/clover/Makefile
                  src/gallium/state_trackers/dri/Makefile
@@ -2908,6 +2922,7 @@ AC_CONFIG_FILES([Makefile
                  src/gallium/winsys/sw/wrapper/Makefile
                  src/gallium/winsys/sw/xlib/Makefile
                  src/gallium/winsys/vc4/drm/Makefile
+                 src/gallium/winsys/vc5/drm/Makefile
                  src/gallium/winsys/virgl/drm/Makefile
                  src/gallium/winsys/virgl/vtest/Makefile
                  src/gbm/Makefile

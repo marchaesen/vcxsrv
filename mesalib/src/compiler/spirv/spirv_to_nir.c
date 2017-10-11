@@ -2034,6 +2034,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicIDecrement:
    case SpvOpAtomicExchange:
    case SpvOpAtomicIAdd:
+   case SpvOpAtomicISub:
    case SpvOpAtomicSMin:
    case SpvOpAtomicUMin:
    case SpvOpAtomicSMax:

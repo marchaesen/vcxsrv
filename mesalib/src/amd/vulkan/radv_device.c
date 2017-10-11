@@ -182,6 +182,10 @@ static const VkExtensionProperties common_device_extensions[] = {
 		.extensionName = VK_KHR_MAINTENANCE2_EXTENSION_NAME,
 		.specVersion = 1,
 	},
+	{
+		.extensionName = VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
+		.specVersion = 1,
+	},
 };
 
 static const VkExtensionProperties rasterization_order_extension[] ={

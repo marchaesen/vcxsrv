@@ -88,6 +88,7 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
       break;
    case GL_RGB5_A1:
       RETURN_IF_SUPPORTED(MESA_FORMAT_B5G5R5A1_UNORM);
+      RETURN_IF_SUPPORTED(MESA_FORMAT_A1B5G5R5_UNORM);
       break;
    case GL_RGBA2:
       RETURN_IF_SUPPORTED(MESA_FORMAT_A4R4G4B4_UNORM); /* just to test another format*/

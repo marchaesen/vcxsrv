@@ -198,7 +198,7 @@ st_bind_egl_image(struct gl_context *ctx,
 
    /* switch to surface based */
    if (!stObj->surface_based) {
-      _mesa_clear_texture_object(ctx, texObj);
+      _mesa_clear_texture_object(ctx, texObj, NULL);
       stObj->surface_based = GL_TRUE;
    }
 
@@ -226,12 +226,13 @@ st_bind_egl_image(struct gl_context *ctx,
                               stimg->texture->width0, stimg->texture->height0,
                               1, 0, internalFormat, texFormat);
 
-   /* FIXME create a non-default sampler view from the stimg? */
    pipe_resource_reference(&stObj->pt, stimg->texture);
    st_texture_release_all_sampler_views(st, stObj);
    pipe_resource_reference(&stImage->pt, stObj->pt);
 
    stObj->surface_format = stimg->format;
+   stObj->level_override = stimg->level;
+   stObj->layer_override = stimg->layer;
 
    _mesa_dirty_texobj(ctx, texObj);
 }

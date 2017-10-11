@@ -66,7 +66,7 @@ _mesa_init_renderbuffer(struct gl_renderbuffer *rb, GLuint name)
     * specs. If the context is not current, we cannot determine the
     * API, so default to GL_RGBA.
     */
-   if (ctx && _mesa_is_gles3(ctx)) {
+   if (ctx && _mesa_is_gles(ctx)) {
       rb->InternalFormat = GL_RGBA4;
    } else {
       rb->InternalFormat = GL_RGBA;

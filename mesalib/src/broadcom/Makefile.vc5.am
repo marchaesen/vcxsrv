@@ -1,0 +1,20 @@
+noinst_LTLIBRARIES += libbroadcom.la
+
+if USE_VC5_SIMULATOR
+AM_CFLAGS += $(VC5_SIMULATOR_CFLAGS)
+libbroadcom_la_LDFLAGS = $(VC5_SIMULATOR_LIBS)
+endif
+
+libbroadcom_la_SOURCES = $(BROADCOM_FILES)
+
+check_PROGRAMS += \
+	qpu/tests/qpu_disasm \
+	$(NULL)
+
+LDADD = \
+	libbroadcom.la \
+	$(top_builddir)/src/compiler/nir/libnir.la \
+	$(top_builddir)/src/util/libmesautil.la \
+	$(NULL)
+
+TESTS += $(check_PROGRAMS)

@@ -318,13 +318,6 @@ extern void *
 _mesa_align_realloc(void *oldBuffer, size_t oldSize, size_t newSize,
                     unsigned long alignment);
 
-extern void *
-_mesa_exec_malloc( GLuint size );
-
-extern void 
-_mesa_exec_free( void *addr );
-
-
 #ifdef HAVE___BUILTIN_POPCOUNT
 #define _mesa_bitcount(i) __builtin_popcount(i)
 #else
@@ -339,12 +332,6 @@ extern unsigned int
 _mesa_bitcount_64(uint64_t n);
 #endif
 
-
-static inline bool
-_mesa_half_is_negative(GLhalfARB h)
-{
-   return h & 0x8000;
-}
 
 extern int
 _mesa_snprintf( char *str, size_t size, const char *fmt, ... ) PRINTFLIKE(3, 4);

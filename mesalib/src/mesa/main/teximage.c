@@ -1731,28 +1731,15 @@ texture_format_error_check_gles(struct gl_context *ctx, GLenum format,
                                 GLenum type, GLenum internalFormat,
                                 GLuint dimensions, const char *callerName)
 {
-   GLenum err;
-
-   if (_mesa_is_gles3(ctx)) {
-      err = _mesa_es3_error_check_format_and_type(ctx, format, type,
-                                                  internalFormat);
-      if (err != GL_NO_ERROR) {
-         _mesa_error(ctx, err,
-                     "%s(format = %s, type = %s, internalformat = %s)",
-                     callerName, _mesa_enum_to_string(format),
-                     _mesa_enum_to_string(type),
-                     _mesa_enum_to_string(internalFormat));
-         return true;
-      }
-   }
-   else {
-      err = _mesa_es_error_check_format_and_type(ctx, format, type, dimensions);
-      if (err != GL_NO_ERROR) {
-         _mesa_error(ctx, err, "%s(format = %s, type = %s)",
-                     callerName, _mesa_enum_to_string(format),
-                     _mesa_enum_to_string(type));
-         return true;
-      }
+   GLenum err = _mesa_es3_error_check_format_and_type(ctx, format, type,
+                                                      internalFormat);
+   if (err != GL_NO_ERROR) {
+      _mesa_error(ctx, err,
+                  "%s(format = %s, type = %s, internalformat = %s)",
+                  callerName, _mesa_enum_to_string(format),
+                  _mesa_enum_to_string(type),
+                  _mesa_enum_to_string(internalFormat));
+      return true;
    }
 
    return false;

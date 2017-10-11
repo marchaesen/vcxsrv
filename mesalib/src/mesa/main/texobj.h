@@ -81,7 +81,8 @@ _mesa_copy_texture_object( struct gl_texture_object *dest,
 
 extern void
 _mesa_clear_texture_object(struct gl_context *ctx,
-                           struct gl_texture_object *obj);
+                           struct gl_texture_object *obj,
+                           struct gl_texture_image *retainTexImage);
 
 extern void
 _mesa_reference_texobj_(struct gl_texture_object **ptr,

@@ -208,7 +208,7 @@ static void st_bind_ubos(struct st_context *st, struct gl_program *prog,
       return;
 
    for (i = 0; i < prog->info.num_ubos; i++) {
-      struct gl_uniform_buffer_binding *binding;
+      struct gl_buffer_binding *binding;
       struct st_buffer_object *st_obj;
 
       binding =

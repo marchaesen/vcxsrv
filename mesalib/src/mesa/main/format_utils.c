@@ -312,6 +312,20 @@ _mesa_format_convert(void *void_dst, uint32_t dst_format, size_t dst_stride,
     * enable it for specific combinations that are known to work.
     */
    if (!rebase_swizzle) {
+      /* Do a direct memcpy where possible */
+      if ((dst_format_is_mesa_array_format &&
+           src_format_is_mesa_array_format &&
+           src_array_format == dst_array_format) ||
+          src_format == dst_format) {
+         int format_size = _mesa_get_format_bytes(src_format);
+         for (row = 0; row < height; row++) {
+            memcpy(dst, src, width * format_size);
+            src += src_stride;
+            dst += dst_stride;
+         }
+         return;
+      }
+
       /* Handle the cases where we can directly unpack */
       if (!src_format_is_mesa_array_format) {
          if (dst_array_format == RGBA32_FLOAT) {

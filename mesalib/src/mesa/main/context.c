@@ -867,6 +867,8 @@ init_attrib_groups(struct gl_context *ctx)
       return GL_FALSE;
 
    /* Miscellaneous */
+   ctx->TileRasterOrderIncreasingX = GL_TRUE;
+   ctx->TileRasterOrderIncreasingY = GL_TRUE;
    ctx->NewState = _NEW_ALL;
    ctx->NewDriverState = ~0;
    ctx->ErrorValue = GL_NO_ERROR;

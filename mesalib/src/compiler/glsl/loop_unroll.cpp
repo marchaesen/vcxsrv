@@ -42,7 +42,9 @@ public:
    virtual ir_visitor_status visit_leave(ir_loop *ir);
    void simple_unroll(ir_loop *ir, int iterations);
    void complex_unroll(ir_loop *ir, int iterations,
-                       bool continue_from_then_branch);
+                       bool continue_from_then_branch,
+                       bool limiting_term_first,
+                       bool lt_continue_from_then_branch);
    void splice_post_if_instructions(ir_if *ir_if, exec_list *splice_dest);
 
    loop_state *state;
@@ -52,13 +54,6 @@ public:
 };
 
 } /* anonymous namespace */
-
-static bool
-is_break(ir_instruction *ir)
-{
-   return ir != NULL && ir->ir_type == ir_type_loop_jump
-		     && ((ir_loop_jump *) ir)->is_break();
-}
 
 class loop_unroll_count : public ir_hierarchical_visitor {
 public:
@@ -183,6 +178,51 @@ void
 loop_unroll_visitor::simple_unroll(ir_loop *ir, int iterations)
 {
    void *const mem_ctx = ralloc_parent(ir);
+   loop_variable_state *const ls = this->state->get(ir);
+
+   ir_instruction *first_ir =
+      (ir_instruction *) ir->body_instructions.get_head();
+
+   if (!first_ir) {
+      /* The loop is empty remove it and return */
+      ir->remove();
+      return;
+   }
+
+   ir_if *limit_if = NULL;
+   bool exit_branch_has_instructions = false;
+   if (ls->limiting_terminator) {
+      limit_if = ls->limiting_terminator->ir;
+      ir_instruction *ir_if_last = (ir_instruction *)
+         limit_if->then_instructions.get_tail();
+
+      if (is_break(ir_if_last)) {
+         if (ir_if_last != limit_if->then_instructions.get_head())
+            exit_branch_has_instructions = true;
+
+         splice_post_if_instructions(limit_if, &limit_if->else_instructions);
+         ir_if_last->remove();
+      } else {
+         ir_if_last = (ir_instruction *)
+            limit_if->else_instructions.get_tail();
+         assert(is_break(ir_if_last));
+
+         if (ir_if_last != limit_if->else_instructions.get_head())
+            exit_branch_has_instructions = true;
+
+         splice_post_if_instructions(limit_if, &limit_if->then_instructions);
+         ir_if_last->remove();
+      }
+   }
+
+   /* Because 'iterations' is the number of times we pass over the *entire*
+    * loop body before hitting the first break, we need to bump the number of
+    * iterations if the limiting terminator is not the first instruction in
+    * the loop, or it the exit branch contains instructions. This ensures we
+    * execute any instructions before the terminator or in its exit branch.
+    */
+   if (limit_if != first_ir->as_if() || exit_branch_has_instructions)
+      iterations++;
 
    for (int i = 0; i < iterations; i++) {
       exec_list copy_list;
@@ -234,10 +274,21 @@ loop_unroll_visitor::simple_unroll(ir_loop *ir, int iterations)
  */
 void
 loop_unroll_visitor::complex_unroll(ir_loop *ir, int iterations,
-                                    bool continue_from_then_branch)
+                                    bool second_term_then_continue,
+                                    bool extra_iteration_required,
+                                    bool first_term_then_continue)
 {
    void *const mem_ctx = ralloc_parent(ir);
    ir_instruction *ir_to_replace = ir;
+
+   /* Because 'iterations' is the number of times we pass over the *entire*
+    * loop body before hitting the first break, we need to bump the number of
+    * iterations if the limiting terminator is not the first instruction in
+    * the loop, or it the exit branch contains instructions. This ensures we
+    * execute any instructions before the terminator or in its exit branch.
+    */
+   if (extra_iteration_required)
+      iterations++;
 
    for (int i = 0; i < iterations; i++) {
       exec_list copy_list;
@@ -248,6 +299,10 @@ loop_unroll_visitor::complex_unroll(ir_loop *ir, int iterations,
       ir_if *ir_if = ((ir_instruction *) copy_list.get_tail())->as_if();
       assert(ir_if != NULL);
 
+      exec_list *const first_list = first_term_then_continue
+         ? &ir_if->then_instructions : &ir_if->else_instructions;
+      ir_if = ((ir_instruction *) first_list->get_tail())->as_if();
+
       ir_to_replace->insert_before(&copy_list);
       ir_to_replace->remove();
 
@@ -255,10 +310,10 @@ loop_unroll_visitor::complex_unroll(ir_loop *ir, int iterations,
       ir_to_replace =
          new(mem_ctx) ir_loop_jump(ir_loop_jump::jump_continue);
 
-      exec_list *const list = (continue_from_then_branch)
+      exec_list *const second_term_continue_list = second_term_then_continue
          ? &ir_if->then_instructions : &ir_if->else_instructions;
 
-      list->push_tail(ir_to_replace);
+      second_term_continue_list->push_tail(ir_to_replace);
    }
 
    ir_to_replace->remove();
@@ -300,6 +355,21 @@ loop_unroll_visitor::splice_post_if_instructions(ir_if *ir_if,
    }
 }
 
+static bool
+exit_branch_has_instructions(ir_if *term_if, bool lt_then_continue)
+{
+   if (lt_then_continue) {
+      if (term_if->else_instructions.get_head() ==
+          term_if->else_instructions.get_tail())
+         return false;
+   } else {
+      if (term_if->then_instructions.get_head() ==
+          term_if->then_instructions.get_tail())
+         return false;
+   }
+
+   return true;
+}
 
 ir_visitor_status
 loop_unroll_visitor::visit_leave(ir_loop *ir)
@@ -333,15 +403,34 @@ loop_unroll_visitor::visit_leave(ir_loop *ir)
     * bound, then that terminates the loop, so we don't even need the limiting
     * terminator.
     */
-   foreach_in_list(loop_terminator, t, &ls->terminators) {
+   foreach_in_list_safe(loop_terminator, t, &ls->terminators) {
       if (t->iterations < 0)
          continue;
 
+      exec_list *branch_instructions;
       if (t != ls->limiting_terminator) {
+         ir_instruction *ir_if_last = (ir_instruction *)
+            t->ir->then_instructions.get_tail();
+         if (is_break(ir_if_last)) {
+            branch_instructions = &t->ir->else_instructions;
+         } else {
+            branch_instructions = &t->ir->then_instructions;
+            assert(is_break((ir_instruction *)
+                            t->ir->else_instructions.get_tail()));
+         }
+
+         exec_list copy_list;
+         copy_list.make_empty();
+         clone_ir_list(ir, &copy_list, branch_instructions);
+
+         t->ir->insert_before(&copy_list);
          t->ir->remove();
 
          assert(ls->num_loop_jumps > 0);
          ls->num_loop_jumps--;
+
+         /* Also remove it from the terminator list */
+         t->remove();
 
          this->progress = true;
       }
@@ -405,7 +494,6 @@ loop_unroll_visitor::visit_leave(ir_loop *ir)
       return visit_continue;
 
    if (predicted_num_loop_jumps == 0) {
-      ls->limiting_terminator->ir->remove();
       simple_unroll(ir, iterations);
       return visit_continue;
    }
@@ -420,51 +508,71 @@ loop_unroll_visitor::visit_leave(ir_loop *ir)
        */
       last_ir->remove();
 
-      ls->limiting_terminator->ir->remove();
       simple_unroll(ir, 1);
       return visit_continue;
    }
 
-   /* recognize loops in the form produced by ir_lower_jumps */
-   foreach_in_list(ir_instruction, cur_ir, &ir->body_instructions) {
-      /* Skip the limiting terminator, since it will go away when we
-       * unroll.
-       */
-      if (cur_ir == ls->limiting_terminator->ir)
-         continue;
+   /* Complex unrolling can only handle two terminators. One with an unknown
+    * iteration count and one with a known iteration count. We have already
+    * made sure we have a known iteration count above and removed any
+    * unreachable terminators with a known count. Here we make sure there
+    * isn't any additional unknown terminators, or any other jumps nested
+    * inside futher ifs.
+    */
+   if (ls->num_loop_jumps != 2)
+      return visit_continue;
 
-      ir_if *ir_if = cur_ir->as_if();
-      if (ir_if != NULL) {
-         /* Determine which if-statement branch, if any, ends with a
-          * break.  The branch that did *not* have the break will get a
-          * temporary continue inserted in each iteration of the loop
-          * unroll.
-          *
-          * Note that since ls->num_loop_jumps is <= 1, it is impossible
-          * for both branches to end with a break.
-          */
-         ir_instruction *ir_if_last =
-            (ir_instruction *) ir_if->then_instructions.get_tail();
+   ir_instruction *first_ir =
+      (ir_instruction *) ir->body_instructions.get_head();
 
-         if (is_break(ir_if_last)) {
-            ls->limiting_terminator->ir->remove();
-            splice_post_if_instructions(ir_if, &ir_if->else_instructions);
-            ir_if_last->remove();
-            complex_unroll(ir, iterations, false);
+   unsigned term_count = 0;
+   bool first_term_then_continue = false;
+   foreach_in_list(loop_terminator, t, &ls->terminators) {
+      assert(term_count < 2);
+
+      ir_if *ir_if = t->ir->as_if();
+      assert(ir_if != NULL);
+
+      ir_instruction *ir_if_last =
+         (ir_instruction *) ir_if->then_instructions.get_tail();
+
+      if (is_break(ir_if_last)) {
+         splice_post_if_instructions(ir_if, &ir_if->else_instructions);
+         ir_if_last->remove();
+         if (term_count == 1) {
+            bool ebi =
+               exit_branch_has_instructions(ls->limiting_terminator->ir,
+                                            first_term_then_continue);
+            complex_unroll(ir, iterations, false,
+                           first_ir->as_if() != ls->limiting_terminator->ir ||
+                           ebi,
+                           first_term_then_continue);
             return visit_continue;
-         } else {
-            ir_if_last =
-               (ir_instruction *) ir_if->else_instructions.get_tail();
+         }
+      } else {
+         ir_if_last =
+            (ir_instruction *) ir_if->else_instructions.get_tail();
 
-            if (is_break(ir_if_last)) {
-               ls->limiting_terminator->ir->remove();
-               splice_post_if_instructions(ir_if, &ir_if->then_instructions);
-               ir_if_last->remove();
-               complex_unroll(ir, iterations, true);
+         assert(is_break(ir_if_last));
+         if (is_break(ir_if_last)) {
+            splice_post_if_instructions(ir_if, &ir_if->then_instructions);
+            ir_if_last->remove();
+            if (term_count == 1) {
+               bool ebi =
+                  exit_branch_has_instructions(ls->limiting_terminator->ir,
+                                               first_term_then_continue);
+               complex_unroll(ir, iterations, true,
+                              first_ir->as_if() != ls->limiting_terminator->ir ||
+                              ebi,
+                              first_term_then_continue);
                return visit_continue;
+            } else {
+               first_term_then_continue = true;
             }
          }
       }
+
+      term_count++;
    }
 
    /* Did not find the break statement.  It must be in a complex if-nesting,
