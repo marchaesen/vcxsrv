@@ -2216,7 +2216,13 @@ do_common_optimization(exec_list *ir, bool linked,
    if (options->MaxUnrollIterations) {
       loop_state *ls = analyze_loop_variables(ir);
       if (ls->loop_found) {
-         OPT(unroll_loops, ir, ls, options);
+         bool loop_progress = unroll_loops(ir, ls, options);
+         while (loop_progress) {
+            loop_progress = false;
+            loop_progress |= do_constant_propagation(ir);
+            loop_progress |= do_if_simplification(ir);
+         }
+         progress |= loop_progress;
       }
       delete ls;
    }

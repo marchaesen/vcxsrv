@@ -277,6 +277,11 @@ void st_update_rasterizer( struct st_context *st )
 
    /* ST_NEW_RASTERIZER */
    raster->rasterizer_discard = ctx->RasterDiscard;
+   if (ctx->TileRasterOrderFixed) {
+      raster->tile_raster_order_fixed = true;
+      raster->tile_raster_order_increasing_x = ctx->TileRasterOrderIncreasingX;
+      raster->tile_raster_order_increasing_y = ctx->TileRasterOrderIncreasingY;
+   }
 
    if (st->edgeflag_culls_prims) {
       /* All edge flags are FALSE. Cull the affected faces. */

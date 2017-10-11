@@ -80,6 +80,7 @@ MAIN_FILES = \
 	main/eval.c \
 	main/eval.h \
 	main/execmem.c \
+	main/execmem.h \
 	main/extensions.c \
 	main/extensions.h \
 	main/extensions_table.c \

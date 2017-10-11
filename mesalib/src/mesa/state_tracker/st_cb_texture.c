@@ -693,7 +693,10 @@ prep_teximage(struct gl_context *ctx, struct gl_texture_image *texImage,
       const GLuint level = texImage->Level;
       mesa_format texFormat;
 
-      _mesa_clear_texture_object(ctx, texObj);
+      assert(!st_texture_image(texImage)->pt);
+      _mesa_clear_texture_object(ctx, texObj, texImage);
+      stObj->layer_override = 0;
+      stObj->level_override = 0;
       pipe_resource_reference(&stObj->pt, NULL);
 
       /* oops, need to init this image again */

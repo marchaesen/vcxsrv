@@ -471,16 +471,19 @@ _mesa_copy_texture_object( struct gl_texture_object *dest,
 
 
 /**
- * Free all texture images of the given texture object.
+ * Free all texture images of the given texture objectm, except for
+ * \p retainTexImage.
  *
  * \param ctx GL context.
- * \param t texture object.
+ * \param texObj texture object.
+ * \param retainTexImage a texture image that will \em not be freed.
  *
  * \sa _mesa_clear_texture_image().
  */
 void
 _mesa_clear_texture_object(struct gl_context *ctx,
-                           struct gl_texture_object *texObj)
+                           struct gl_texture_object *texObj,
+                           struct gl_texture_image *retainTexImage)
 {
    GLuint i, j;
 
@@ -490,7 +493,7 @@ _mesa_clear_texture_object(struct gl_context *ctx,
    for (i = 0; i < MAX_FACES; i++) {
       for (j = 0; j < MAX_TEXTURE_LEVELS; j++) {
          struct gl_texture_image *texImage = texObj->Image[i][j];
-         if (texImage)
+         if (texImage && texImage != retainTexImage)
             _mesa_clear_texture_image(ctx, texImage);
       }
    }

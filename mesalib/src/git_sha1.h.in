@@ -1,0 +1,1 @@
+#define MESA_GIT_SHA1 "git-@VCS_TAG@"

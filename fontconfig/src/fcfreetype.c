@@ -2109,7 +2109,8 @@ FcFreeTypeQueryAll(const FcChar8	*file,
     if (num_instances && (!index_set || instance_num))
     {
 	FT_Get_MM_Var (face, &mm_var);
-	assert (mm_var);
+	if (!mm_var)
+	  num_instances = 0;
     }
 
     if (count)

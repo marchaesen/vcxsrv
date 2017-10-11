@@ -210,6 +210,7 @@ API_XML = \
 	KHR_robustness.xml \
 	KHR_robustness_es.xml \
 	KHR_texture_compression_astc.xml \
+	MESA_tile_raster_order.xml \
 	NV_conditional_render.xml \
 	NV_primitive_restart.xml \
 	NV_texture_barrier.xml \

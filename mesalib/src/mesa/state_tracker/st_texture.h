@@ -70,7 +70,7 @@ struct st_texture_image
     * mapping/unmapping, as well as image copies.
     */
    GLubyte *etc_data;
- };
+};
 
 
 /**
@@ -111,12 +111,21 @@ struct st_texture_object
     */
    enum pipe_format surface_format;
 
+   /* When non-zero, samplers should use this level instead of the level
+    * range specified by the GL state.
+    *
+    * This is used for EGL images, which may correspond to a single level out
+    * of an imported pipe_resources with multiple mip levels.
+    */
+   uint level_override;
+
    /* When non-zero, samplers should use this layer instead of the one
     * specified by the GL state.
     *
-    * This is used for VDPAU interop, where imported pipe_resources may be
-    * array textures (containing layers with different fields) even though the
-    * GL state describes one non-array texture per field.
+    * This is used for EGL images and VDPAU interop, where imported
+    * pipe_resources may be cube, 3D, or array textures (containing layers
+    * with different fields in the case of VDPAU) even though the GL state
+    * describes one non-array texture per field.
     */
    uint layer_override;
 

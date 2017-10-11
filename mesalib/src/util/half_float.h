@@ -25,6 +25,7 @@
 #ifndef _HALF_FLOAT_H_
 #define _HALF_FLOAT_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -33,6 +34,13 @@ extern "C" {
 
 uint16_t _mesa_float_to_half(float val);
 float _mesa_half_to_float(uint16_t val);
+
+static inline bool
+_mesa_half_is_negative(uint16_t h)
+{
+   return !!(h & 0x8000);
+}
+
 
 #ifdef __cplusplus
 } /* extern C */

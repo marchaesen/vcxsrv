@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include "main/glheader.h"
 #include "main/context.h"
+#include "main/execmem.h"
 #include "swrast/s_chan.h"
 #include "t_context.h"
 #include "t_vertex.h"

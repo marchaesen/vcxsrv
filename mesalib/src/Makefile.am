@@ -84,7 +84,7 @@ if HAVE_INTEL_DRIVERS
 SUBDIRS += intel
 endif
 
-if HAVE_GALLIUM_VC4
+if HAVE_BROADCOM_DRIVERS
 SUBDIRS += broadcom
 endif
 

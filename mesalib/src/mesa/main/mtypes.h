@@ -4151,6 +4151,7 @@ struct gl_extensions
    GLboolean EXT_texture_sRGB;
    GLboolean EXT_texture_sRGB_decode;
    GLboolean EXT_texture_swizzle;
+   GLboolean EXT_texture_type_2_10_10_10_REV;
    GLboolean EXT_transform_feedback;
    GLboolean EXT_timer_query;
    GLboolean EXT_vertex_array_bgra;
@@ -4185,6 +4186,7 @@ struct gl_extensions
    GLboolean KHR_texture_compression_astc_hdr;
    GLboolean KHR_texture_compression_astc_ldr;
    GLboolean KHR_texture_compression_astc_sliced_3d;
+   GLboolean MESA_tile_raster_order;
    GLboolean MESA_pack_invert;
    GLboolean MESA_shader_framebuffer_fetch;
    GLboolean MESA_shader_framebuffer_fetch_non_coherent;
@@ -4436,6 +4438,9 @@ struct gl_driver_flags
    /** gl_context::RasterDiscard */
    uint64_t NewRasterizerDiscard;
 
+   /** gl_context::TileRasterOrder* */
+   uint64_t NewTileRasterOrder;
+
    /**
     * gl_context::UniformBufferBindings
     * gl_shader_program::UniformBlocks
@@ -4545,24 +4550,10 @@ struct gl_driver_flags
    uint64_t NewShaderConstants[MESA_SHADER_STAGES];
 };
 
-struct gl_uniform_buffer_binding
+struct gl_buffer_binding
 {
    struct gl_buffer_object *BufferObject;
    /** Start of uniform block data in the buffer */
-   GLintptr Offset;
-   /** Size of data allowed to be referenced from the buffer (in bytes) */
-   GLsizeiptr Size;
-   /**
-    * glBindBufferBase() indicates that the Size should be ignored and only
-    * limited by the current size of the BufferObject.
-    */
-   GLboolean AutomaticSize;
-};
-
-struct gl_shader_storage_buffer_binding
-{
-   struct gl_buffer_object *BufferObject;
-   /** Start of shader storage block data in the buffer */
    GLintptr Offset;
    /** Size of data allowed to be referenced from the buffer (in bytes) */
    GLsizeiptr Size;
@@ -4625,16 +4616,6 @@ struct gl_image_unit
     */
    mesa_format _ActualFormat;
 
-};
-
-/**
- * Binding point for an atomic counter buffer object.
- */
-struct gl_atomic_buffer_binding
-{
-   struct gl_buffer_object *BufferObject;
-   GLintptr Offset;
-   GLsizeiptr Size;
 };
 
 /**
@@ -4887,7 +4868,7 @@ struct gl_context
     * associated with uniform blocks by glUniformBlockBinding()'s state in the
     * shader program.
     */
-   struct gl_uniform_buffer_binding
+   struct gl_buffer_binding
       UniformBufferBindings[MAX_COMBINED_UNIFORM_BUFFERS];
 
    /**
@@ -4896,7 +4877,7 @@ struct gl_context
     * glBindBufferBase().  They are associated with shader storage blocks by
     * glShaderStorageBlockBinding()'s state in the shader program.
     */
-   struct gl_shader_storage_buffer_binding
+   struct gl_buffer_binding
       ShaderStorageBufferBindings[MAX_COMBINED_SHADER_STORAGE_BUFFERS];
 
    /**
@@ -4914,7 +4895,7 @@ struct gl_context
    /**
     * Array of atomic counter buffer binding points.
     */
-   struct gl_atomic_buffer_binding
+   struct gl_buffer_binding
       AtomicBufferBindings[MAX_COMBINED_ATOMIC_BUFFERS];
 
    /**
@@ -4981,6 +4962,15 @@ struct gl_context
 
    /** Does glVertexAttrib(0) alias glVertex()? */
    bool _AttribZeroAliasesVertex;
+
+   /**
+    * When set, TileRasterOrderIncreasingX/Y control the order that a tiled
+    * renderer's tiles should be excecuted, to meet the requirements of
+    * GL_MESA_tile_raster_order.
+    */
+   GLboolean TileRasterOrderFixed;
+   GLboolean TileRasterOrderIncreasingX;
+   GLboolean TileRasterOrderIncreasingY;
 
    /**
     * \name Hooks for module contexts.  

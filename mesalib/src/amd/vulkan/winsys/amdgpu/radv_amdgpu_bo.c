@@ -345,7 +345,7 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 
 
 	uint32_t va_flags = 0;
-	if (flags & RADEON_FLAG_VA_UNCACHED)
+	if ((flags & RADEON_FLAG_VA_UNCACHED) && ws->info.chip_class >= GFX9)
 		va_flags |= AMDGPU_VM_MTYPE_UC;
 	r = radv_amdgpu_bo_va_op(ws->dev, buf_handle, 0, size, va, va_flags, AMDGPU_VA_OP_MAP);
 	if (r)

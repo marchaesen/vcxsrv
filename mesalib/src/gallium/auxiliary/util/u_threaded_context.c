@@ -2233,6 +2233,13 @@ tc_destroy(struct pipe_context *_pipe)
    struct threaded_context *tc = threaded_context(_pipe);
    struct pipe_context *pipe = tc->pipe;
 
+   if (tc->base.const_uploader &&
+       tc->base.stream_uploader != tc->base.const_uploader)
+      u_upload_destroy(tc->base.const_uploader);
+
+   if (tc->base.stream_uploader)
+      u_upload_destroy(tc->base.stream_uploader);
+
    tc_sync(tc);
 
    if (util_queue_is_initialized(&tc->queue)) {
@@ -2242,14 +2249,8 @@ tc_destroy(struct pipe_context *_pipe)
          util_queue_fence_destroy(&tc->batch_slots[i].fence);
    }
 
-   if (tc->base.const_uploader &&
-       tc->base.stream_uploader != tc->base.const_uploader)
-      u_upload_destroy(tc->base.const_uploader);
-
-   if (tc->base.stream_uploader)
-      u_upload_destroy(tc->base.stream_uploader);
-
    slab_destroy_child(&tc->pool_transfers);
+   assert(tc->batch_slots[tc->next].num_total_call_slots == 0);
    pipe->destroy(pipe);
    os_free_aligned(tc);
 }

@@ -1040,6 +1040,33 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          }
          break;
 
+      case GL_TILE_RASTER_ORDER_FIXED_MESA:
+         CHECK_EXTENSION(MESA_tile_raster_order, cap);
+         if (ctx->TileRasterOrderFixed != state) {
+            FLUSH_VERTICES(ctx, 0);
+            ctx->NewDriverState |= ctx->DriverFlags.NewTileRasterOrder;
+            ctx->TileRasterOrderFixed = state;
+         }
+         break;
+
+      case GL_TILE_RASTER_ORDER_INCREASING_X_MESA:
+         CHECK_EXTENSION(MESA_tile_raster_order, cap);
+         if (ctx->TileRasterOrderIncreasingX != state) {
+            FLUSH_VERTICES(ctx, 0);
+            ctx->NewDriverState |= ctx->DriverFlags.NewTileRasterOrder;
+            ctx->TileRasterOrderIncreasingX = state;
+         }
+         break;
+
+      case GL_TILE_RASTER_ORDER_INCREASING_Y_MESA:
+         CHECK_EXTENSION(MESA_tile_raster_order, cap);
+         if (ctx->TileRasterOrderIncreasingY != state) {
+            FLUSH_VERTICES(ctx, 0);
+            ctx->NewDriverState |= ctx->DriverFlags.NewTileRasterOrder;
+            ctx->TileRasterOrderIncreasingY = state;
+         }
+         break;
+
       /* GL 3.1 primitive restart.  Note: this enum is different from
        * GL_PRIMITIVE_RESTART_NV (which is client state).
        */
@@ -1715,6 +1742,18 @@ _mesa_IsEnabled( GLenum cap )
       case GL_CONSERVATIVE_RASTERIZATION_INTEL:
          CHECK_EXTENSION(INTEL_conservative_rasterization);
          return ctx->IntelConservativeRasterization;
+
+      case GL_TILE_RASTER_ORDER_FIXED_MESA:
+         CHECK_EXTENSION(MESA_tile_raster_order);
+         return ctx->TileRasterOrderFixed;
+
+      case GL_TILE_RASTER_ORDER_INCREASING_X_MESA:
+         CHECK_EXTENSION(MESA_tile_raster_order);
+         return ctx->TileRasterOrderIncreasingX;
+
+      case GL_TILE_RASTER_ORDER_INCREASING_Y_MESA:
+         CHECK_EXTENSION(MESA_tile_raster_order);
+         return ctx->TileRasterOrderIncreasingY;
 
       default:
          goto invalid_enum_error;

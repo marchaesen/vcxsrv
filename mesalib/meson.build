@@ -21,10 +21,101 @@
 project('mesa', ['c', 'cpp'], version : '17.3.0-devel', license : 'MIT',
         default_options : ['c_std=c99', 'cpp_std=c++11'])
 
-with_dri3 = true  # XXX: need a switch for this
+# Arguments for the preprocessor, put these in a separate array from the C and
+# C++ (cpp in meson terminology) arguments since they need to be added to the
+# default arguments for both C and C++.
+pre_args = [
+  '-D__STDC_CONSTANT_MACROS',
+  '-D__STDC_FORMAT_MACROS',
+  '-D__STDC_LIMIT_MACROS',
+  '-DVERSION="@0@"'.format(meson.project_version()),
+  '-DPACKAGE_VERSION=VERSION',
+  '-DPACKAGE_BUGREPORT="https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa"',
+]
+
 with_vulkan_icd_dir = get_option('vulkan-icd-dir')
 with_tests = get_option('build-tests')
 with_valgrind = get_option('valgrind')
+with_asm = get_option('asm')
+
+# XXX: yeah, do these
+with_appledri = false
+with_windowsdri = false
+
+dri_drivers_path = get_option('dri-drivers-path')
+if dri_drivers_path == ''
+  dri_drivers_path = join_paths(get_option('libdir'), 'dri')
+endif
+
+with_gles1 = get_option('gles1')
+with_gles2 = get_option('gles2')
+with_opengl = get_option('opengl')
+with_any_opengl = with_opengl or with_gles1 or with_gles2
+# Only build shared_glapi if at least one OpenGL API is enabled
+with_shared_glapi = get_option('shared-glapi') and with_any_opengl
+
+# TODO: these will need options, but at the moment they just control header
+# installs
+with_osmesa = false
+
+# shared-glapi is required if at least two OpenGL APIs are being built
+if not with_shared_glapi
+  if ((with_gles1 and with_gles2) or (with_gles1 and with_opengl)
+      or (with_gles2 and with_opengl))
+    error('shared-glapi required for building two or more of OpenGL, OpenGL ES 1.x, OpenGL ES 2.x')
+  endif
+endif
+
+# We require OpenGL for OpenGL ES
+if (with_gles1 or with_gles2) and not with_opengl
+  error('building OpenGL ES without OpenGL is not supported.')
+endif
+
+with_dri = false
+with_dri_i965 = false
+with_dri_swrast = false
+_drivers = get_option('dri-drivers')
+if _drivers != ''
+  _split = _drivers.split(',')
+  with_dri_i965 = _split.contains('i965')
+  with_dri_swrast = _split.contains('swrast')
+  with_dri = true
+endif
+
+if not with_dri
+  with_gles1 = false
+  with_gles2 = false
+  with_opengl = false
+  with_any_opengl = false
+  with_shared_glapi = false
+endif
+
+# TODO: other OSes
+with_dri_platform = 'drm'
+
+with_gallium = false
+# TODO: gallium drivers
+
+# TODO: conditionalize libdrm requirement
+dep_libdrm = dependency('libdrm', version : '>= 2.4.75')
+pre_args += '-DHAVE_LIBDRM'
+
+with_dri2 = with_dri_platform == 'drm' and dep_libdrm.found()
+with_dri3 = get_option('dri3')
+if with_dri3 == 'auto'
+  if host_machine.system() == 'linux' and with_dri2
+    with_dri3 = true
+  else
+    with_dri3 = false
+ endif
+elif with_dri3 == 'yes'
+  if not with_dri2
+    error('dri3 support requires libdrm')
+  endif
+  with_dri3 = true
+else
+  with_dri3 = false
+endif
 
 # TODO: there are more platforms required for non-vulkan drivers
 with_platform_wayland = false
@@ -36,19 +127,76 @@ if _platforms != ''
   with_platform_wayland = _split.contains('wayland')
 endif
 
+with_gbm = get_option('gbm')
+if with_gbm == 'auto' and with_dri  # TODO: or gallium
+  with_gbm = host_machine.system() == 'linux'
+elif with_gbm == 'yes'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    error('GBM only supports unix-like platforms')
+  endif
+  with_gbm = true
+else
+  with_gbm = false
+endif
+
+with_glx = get_option('glx')
+if with_glx != 'disabled'
+  pre_args += '-DGLX_USE_TLS'
+  if not (with_platform_x11 and with_any_opengl) and with_glx != 'auto'
+    error('Cannot build GLX support without X11 platform support and at least one OpenGL API')
+  elif with_glx == 'gallium-xlib' 
+    if not with_gallium
+      error('Gallium-xlib based GLX requires at least one gallium driver')
+    elif with_dri
+      error('gallium-xlib conflicts with any dri driver')
+    endif
+  elif with_glx == 'dri' and not with_dri
+    error('dri based GLX requires at least one DRI driver')
+  elif with_glx == 'auto'
+    if with_dri
+      with_glx = 'dri'
+    elif with_gallium
+      with_glx = 'gallium-xlib'
+    elif with_platform_x11 and with_any_opengl
+      with_glx = 'xlib'
+    else
+      with_glx = 'disabled'
+    endif
+  endif
+endif
+
+with_glvnd = get_option('glvnd')
+if with_glvnd and with_glx != 'dri'
+  message('glvnd requires dri based glx')
+endif
+
+# TODO: toggle for this
+with_glx_direct = true
+
 if with_vulkan_icd_dir == ''
   with_vulkan_icd_dir = join_paths(get_option('datadir'), 'vulkan/icd.d')
 endif
 
 with_intel_vk = false
 with_amd_vk = false
+with_any_vk = false
 _vulkan_drivers = get_option('vulkan-drivers')
 if _vulkan_drivers != ''
   _split = _vulkan_drivers.split(',')
   with_intel_vk = _split.contains('intel')
   with_amd_vk = _split.contains('amd')
+  with_any_vk = with_amd_vk or with_intel_vk
   if not (with_platform_x11 or with_platform_wayland)
     error('Vulkan requires at least one platform (x11, wayland)')
+  endif
+  if with_platform_x11 and not with_dri3
+    error('Vulkan drivers require dri3 for X11 support')
+  endif
+endif
+
+if with_dri # TODO: or gallium
+  if with_glx == 'disabled' # TODO: or egl
+    error('building dri or gallium drivers require at least one window system')
   endif
 endif
 
@@ -62,13 +210,6 @@ cc = meson.get_compiler('c')
 if cc.get_id() == 'gcc' and cc.version().version_compare('< 4.4.6')
   error('When using GCC, version 4.4.6 or later is required.')
 endif
-
-# Arguments for the preprocessor, put these in a separate array from the C and
-# C++ (cpp in meson terminology) arguments since they need to be added to the
-# default arguments for both C and C++.
-pre_args = ['-D__STDC_CONSTANT_MACROS', '-D__STDC_FORMAT_MACROS',
-            '-D__STDC_LIMIT_MACROS',
-            '-DVERSION="@0@"'.format(meson.project_version())]
 
 # Define DEBUG for debug and debugoptimized builds
 if get_option('buildtype').startswith('debug')
@@ -204,7 +345,39 @@ endif
 
 # TODO: cross-compiling. I don't think this is relavent to meson
 
-# TODO: assembly support. mesa and vc4
+# FIXME: enable asm when cross compiler
+# This is doable (autotools does it), but it's not of immediate concern
+if meson.is_cross_build()
+  message('Cross compiling, disabling asm')
+  with_asm = false
+endif
+
+with_asm_arch = ''
+if with_asm
+  # TODO: SPARC and PPC
+  if host_machine.cpu_family() == 'x86'
+    if ['linux', 'bsd'].contains(host_machine.system()) # FIXME: hurd?
+      with_asm_arch = 'x86'
+      pre_args += ['-DUSE_X86_ASM', '-DUSE_MMX_ASM', '-DUSE_3DNOW_ASM',
+                   '-DUSE_SSE_ASM']
+    endif
+  elif host_machine.cpu_family() == 'x86_64'
+    if host_machine.system() == 'linux'
+      with_asm_arch = 'x86_64'
+      pre_args += ['-DUSE_X86_64_ASM']
+    endif
+  elif host_machine.cpu_family() == 'arm'
+    if host_machine.system() == 'linux'
+      with_asm_arch = 'arm'
+      pre_args += ['-DUSE_ARM_ASM']
+    endif
+  elif host_machine.cpu_family() == 'aarch64'
+    if host_machine.system() == 'linux'
+      with_asm_arch = 'aarch64'
+      pre_args += ['-DUSE_AARCH64_ASM']
+    endif
+  endif
+endif
 
 # Check for standard headers and functions
 if cc.has_header_symbol('sys/sysmacros.h', 'major')
@@ -264,9 +437,9 @@ if cc.has_function('dlopen')
 else
   dep_dl = cc.find_library('dl')
 endif
-
-if not cc.has_function('dladdr', dependencies : dep_dl)
-  error('dl library doesn\'t have dladdr')
+if cc.has_function('dladdr', dependencies : dep_dl)
+  # This is really only required for megadrivers
+  pre_args += '-DHAVE_DLADDR'
 endif
 
 if cc.has_function('dl_iterate_phdr')
@@ -288,16 +461,13 @@ dep_thread = dependency('threads')
 pre_args += '-DHAVE_PTHREAD'
 dep_elf = dependency('libelf', required : false)
 if not dep_elf.found()
-  dep_elf = cc.find_library('elf')
+  dep_elf = cc.find_library('elf', required : with_amd_vk) # TODO: clover, r600, radeonsi
 endif
 dep_expat = dependency('expat')
 # this only exists on linux so either this is linux and it will be found, or
 # its not linux and and wont
 dep_m = cc.find_library('m', required : false)
 
-# TODO: conditionalize libdrm requirement
-dep_libdrm = dependency('libdrm', version : '>= 2.4.75')
-pre_args += '-DHAVE_LIBDRM'
 dep_libdrm_amdgpu = []
 if with_amd_vk
   dep_libdrm_amdgpu = dependency('libdrm_amdgpu', version : '>= 2.4.82')
@@ -328,6 +498,12 @@ else
   ]
 endif
 
+dep_glvnd = []
+if with_glvnd
+  dep_glvnd = dependency('libglvnd', version : '>= 0.2.0')
+  pre_args += '-DUSE_LIBGLVND=1'
+endif
+
 # TODO: make this conditional
 dep_valgrind = dependency('valgrind', required : false)
 if dep_valgrind.found() and with_valgrind
@@ -336,7 +512,11 @@ endif
 
 # pthread stubs. Lets not and say we didn't
 
+prog_bison = find_program('bison', required : with_any_opengl)
+prog_flex = find_program('flex', required : with_any_opengl)
+
 # TODO: selinux
+dep_selinux = []
 
 # TODO: llvm-prefix and llvm-shared-libs
 
@@ -355,17 +535,7 @@ endif
 
 # TODO: gallium drivers
 
-# TODO: libglvnd
-
 # TODO: symbol mangling
-
-# TODO: dri handling
-
-# TODO: shared-glapi
-
-# TODO: libgl requirements
-
-# TODO: GLX configuration
 
 # TODO: egl configuration
 
@@ -383,31 +553,64 @@ endif
 
 dep_xcb_dri2 = []
 dep_xcb_dri3 = []
+dep_dri2proto = []
+dep_glproto = []
+dep_x11 = []
+dep_xf86vm = []
 if with_platform_x11
-  dep_xcb_dri2 = [
-    dependency('x11-xcb'),
-    dependency('xcb'),
-    dependency('xcb-dri2', version : '>= 1.8'),
-    dependency('xcb-xfixes'),
-  ]
-  if with_dri3
-    dep_xcb_dri3 = [
-      dep_xcb_dri2,
-      dependency('xcb-dri3'),
-      dependency('xcb-present'),
-      dependency('xcb-sync'),
-      dependency('xshmfence', version : '>= 1.1'),
-    ]
+  if with_glx == 'xlib'
+    # TODO
+    error('TODO')
+  elif with_glx == 'gallium-xlib'
+    # TODO
+    error('TODO')
   else
-    # TODO: dri3 is required for vulkan
+    pre_args += '-DGLX_INDIRECT_RENDERING'
+    if with_glx_direct
+      pre_args += '-DGLX_DIRECT_RENDERING'
+    endif
+    if with_dri_platform == 'drm'
+      pre_args += '-DGLX_USE_DRM'
+      dep_dri2proto = dependency('dri2proto', version : '>= 2.8')
+      dep_x11 = [
+        dependency('x11'),
+        dependency('xext'),
+        dependency('xdamage', version : '>= 1.1'),
+        dependency('xfixes'),
+        dependency('x11-xcb'),
+        dependency('xcb'),
+        dependency('xcb-glx', version : '>= 1.8.1'),
+      ]
+
+      dep_xf86vm = dependency('xf86vm', required : false)
+    endif
+    # TODO: XF86VIDMODE
+  endif
+  if with_glx != 'disabled'
+    dep_glproto = dependency('glproto', version : '>= 1.4.14')
+  endif
+  if with_any_vk or (with_glx == 'dri' and with_dri_platform == 'drm')
+    dep_xcb_dri2 = [
+      dependency('x11-xcb'),
+      dependency('xcb'),
+      dependency('xcb-dri2', version : '>= 1.8'),
+      dependency('xcb-xfixes'),
+    ]
+    pre_args += '-DHAVE_X11_PLATFORM'
+    if with_dri3
+      pre_args += '-DHAVE_DRI3'
+      dep_xcb_dri3 = [
+        dep_xcb_dri2,
+        dependency('xcb-dri3'),
+        dependency('xcb-present'),
+        dependency('xcb-sync'),
+        dependency('xshmfence', version : '>= 1.1'),
+      ]
+    endif
   endif
 endif
 
 # TODO: platforms for !vulkan
-
-# TODO: dri paths
-
-# TODO: dri drivers
 
 # TODO: osmesa
 
@@ -452,6 +655,8 @@ foreach a : cpp_args
 endforeach
 
 inc_include = include_directories('include')
+
+pkg = import('pkgconfig')
 
 subdir('include')
 subdir('src')

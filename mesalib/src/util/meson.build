@@ -18,8 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# TODO: subdir('xmlpool')
 inc_util = include_directories('.')
+
+subdir('xmlpool')
 
 files_mesa_util = files(
   'bitscan.c',

@@ -60,6 +60,13 @@
     <value name="TRIANGLES" value="4"/>
     <value name="TRIANGLE_STRIP" value="5"/>
     <value name="TRIANGLE_FAN" value="6"/>
+    <value name="POINTS_TF" value="16"/>
+    <value name="LINES_TF" value="17"/>
+    <value name="LINE_LOOP_TF" value="18"/>
+    <value name="LINE_STRIP_TF" value="19"/>
+    <value name="TRIANGLES_TF" value="20"/>
+    <value name="TRIANGLE_STRIP_TF" value="21"/>
+    <value name="TRIANGLE_FAN_TF" value="22"/>
   </enum>
 
   <packet code="0" name="Halt"/>
@@ -93,6 +100,28 @@
 
   <packet code="18" name="Return from sub-list"/>
   <packet code="19" name="Flush VCD cache"/>
+
+  <packet code="20" name="Start Address of Generic Tile List">
+    <field name="start" size="32" start="0" type="address"/>
+    <field name="end" size="32" start="32" type="address"/>
+  </packet>
+
+  <packet code="21" name="Branch to Implicit Tile List">
+    <field name="tile list set number" size="8" start="0" type="uint"/>
+  </packet>
+
+  <packet code="22" name="Branch to Explicit Supertile">
+    <field name="Absolute address of explicit supertile render list" size="32" start="24" type="address"/>
+    <field name="explicit supertile number" size="8" start="16" type="uint"/>
+    <field name="row number" size="8" start="8" type="uint"/>
+    <field name="column number" size="8" start="0" type="uint"/>
+  </packet>
+
+  <packet code="23" name="Supertile Coordinates">
+    <field name="row number in supertiles" size="8" start="8" type="uint"/>
+    <field name="column number in supertiles" size="8" start="0" type="uint"/>
+  </packet>
+
   <packet code="24" name="Store Multi-Sample Resolved Tile Color Buffer" cl="R"/>
 
   <packet code="25" name="Store Multi-Sample Resolved Tile Color Buffer (extended)" cl="R">
@@ -113,16 +142,35 @@
     <field name="Enable Stencil load" size="1" start="6" type="bool"/>
   </packet>
 
+  <packet code="27" name="End of Tile Marker" cl="R"/>
+
   <packet code="29" name="Store Tile Buffer General" cl="R">
     <field name="Address" size="32" start="16" type="address"/>
     <field name="Padded height of output image in UIF blocks" size="13" start="11" type="uint"/>
-    <field name="XOR UIF" size="13" start="11" type="uint"/>
+    <field name="XOR UIF" size="1" start="10" type="bool"/>
     <field name="Last Tile of Frame" size="1" start="8" type="bool"/>
     <field name="Disable Colour buffer(s) clear on write" size="1" start="7" type="bool"/>
     <field name="Disable Stencil buffer clear on write" size="1" start="6" type="bool"/>
     <field name="Disable Z buffer clear on write" size="1" start="5" type="bool"/>
     <field name="Raw Mode" size="1" start="4" type="bool"/>
     <field name="Buffer to Store" size="4" start="0" type="uint">
+      <value name="Render target 0" value="0"/>
+      <value name="Render target 1" value="1"/>
+      <value name="Render target 2" value="2"/>
+      <value name="Render target 3" value="3"/>
+      <value name="None" value="8"/>
+      <value name="Z" value="9"/>
+      <value name="Stencil" value="10"/>
+      <value name="Z+Stencil" value="11"/>
+    </field>
+  </packet>
+
+  <packet code="30" name="Load Tile Buffer General" cl="R">
+    <field name="Address" size="24" start="24" type="address"/>
+    <field name="Padded height of output image in UIF blocks" size="13" start="11" type="uint"/>
+    <field name="XOR UIF" size="1" start="10" type="bool"/>
+    <field name="Raw Mode" size="1" start="4" type="bool"/>
+    <field name="Buffer to Load" size="4" start="0" type="uint">
       <value name="Render target 0" value="0"/>
       <value name="Render target 1" value="1"/>
       <value name="Render target 2" value="2"/>
@@ -182,6 +230,12 @@
     <field name="mode" size="8" start="0" type="Primitive"/>
   </packet>
 
+  <packet code="43" name="Base Vertex Base Instance" cl="B">
+    <field name="Base Instance" size="32" start="32" type="uint"/>
+
+    <field name="Base Vertex" size="32" start="0" type="uint"/>
+  </packet>
+
   <packet code="56" name="Primitive List Format">
     <field name="data type" size="1" start="6" type="uint">
       <value name="List Indexed" value="0"/>
@@ -208,7 +262,7 @@
 
   <struct name="Transform Feedback Output Data Spec">
     <field name="First Shaded Vertex Value to output" size="8" start="0" type="uint"/>
-    <field name="Number of consecutive Vertex Values to output as 32-bit values" size="4" start="8" type="uint"/>
+    <field name="Number of consecutive Vertex Values to output as 32-bit values minus 1" size="4" start="8" type="uint"/>
     <field name="Output Buffer to write to" size="2" start="12" type="uint"/>
   </struct>
 
@@ -254,6 +308,7 @@
   </packet>
 
   <packet code="96" name="Configuration Bits">
+    <field name="Direct3D Provoking Vertex" size="1" start="21" type="bool"/>
     <field name="Direct3D 'Point-fill' mode" size="1" start="20" type="bool"/>
     <field name="Blend enable" size="1" start="19" type="bool"/>
     <field name="Stencil enable" size="1" start="18" type="bool"/>
@@ -322,11 +377,6 @@
     <field name="Viewport Z Scale (Zc to Zs)" size="32" start="0" type="float"/>
   </packet>
 
-  <packet code="120" name="Tile Binning Mode Configuration">
-    <field name="pad" size="63" start="1" type="uint" default="0"/>
-    <field name="sub-id" size="1" start="0" type="uint" default="0"/>
-  </packet>
-
   <packet code="120" name="Tile Binning Mode Configuration (Part1)">
     <field name="Double-buffer in non-ms mode" size="1" start="63" type="bool"/>
     <field name="Multisample Mode (4x)" size="1" start="62" type="bool"/>
@@ -364,13 +414,8 @@
     <field name="sub-id" size="1" start="0" type="uint" default="1"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration" cl="R">
-    <field name="pad" size="60" start="4" type="uint"/>
-    <field name="sub-id" size="4" start="0" type="uint"/>
-  </packet>
-
   <packet code="121" name="Tile Rendering Mode Configuration (Common Configuration)" cl="R">
-    <field name="Disable Render Target Stores" size="8" start="56" type="bool"/>
+    <field name="Disable Render Target Stores" size="8" start="56" type="uint"/>
     <field name="Enable Z Store" size="1" start="55" type="bool"/>
     <field name="Enable Stencil Store" size="1" start="54" type="bool"/>
 
@@ -520,7 +565,7 @@
   <packet code="121" name="Tile Rendering Mode Configuration (Z Stencil Clear Values)" cl="R">
     <field name="unused" size="16" start="48" type="uint"/>
 
-    <field name="Z/S Clear Value" size="32" start="16" type="uint"/>
+    <field name="Z Clear Value" size="32" start="16" type="float"/>
 
     <field name="Stencil/VG Mask Clear Value" size="8" start="8" type="uint"/>
     <field name="sub-id" size="4" start="0" type="uint" default="3"/>
@@ -535,9 +580,48 @@
     <field name="sub-id" size="4" start="0" type="uint" default="4"/>
   </packet>
 
+  <packet code="121" name="Tile Rendering Mode Configuration (Clear Colors Part2)" cl="R">
+    <!-- Express this as a 56-bit field? -->
+    <field name="Clear Color mid-high 24 bits" size="24" start="40" type="uint"/>
+    <field name="Clear Color mid-low 32 bits" size="32" start="8" type="uint"/>
+
+    <field name="Render Target number" size="4" start="4" type="uint"/>
+    <field name="sub-id" size="4" start="0" type="uint" default="5"/>
+  </packet>
+
+  <packet code="121" name="Tile Rendering Mode Configuration (Clear Colors Part3)" cl="R">
+    <field name="pad" size="11" start="53" type="uint"/>
+    <field name="UIF padded height in UIF blocks" size="13" start="40" type="uint"/>
+    <!-- image height is for Y flipping -->
+    <field name="Raster Row Stride or Image Height in Pixels" size="16" start="24" type="uint"/>
+    <field name="Clear Color high 16 bits" size="16" start="8" type="uint"/>
+
+    <field name="Render Target number" size="4" start="4" type="uint"/>
+    <field name="sub-id" size="4" start="0" type="uint" default="6"/>
+  </packet>
+
   <packet code="124" name="Tile Coordinates">
     <field name="tile row number" size="12" start="12" type="uint"/>
     <field name="tile column number" size="12" start="0" type="uint"/>
+  </packet>
+
+  <packet code="122" name="Multicore Rendering Supertile Configuration" cl="R">
+    <field name="Supertile Raster Order" size="1" start="60" type="bool"/>
+    <field name="Multicore Enable" size="1" start="56" type="bool"/>
+
+    <field name="Total Frame Height in Tiles" size="12" start="44" type="uint"/>
+    <field name="Total Frame Width in Tiles" size="12" start="32" type="uint"/>
+
+    <field name="Total Frame Height in Supertiles" size="8" start="24" type="uint"/>
+    <field name="Total Frame Width in Supertiles" size="8" start="16" type="uint"/>
+
+    <field name="Supertile Height in Tiles minus 1" size="8" start="8" type="uint"/>
+    <field name="Supertile Width in Tiles minus 1" size="8" start="0" type="uint"/>
+  </packet>
+
+  <packet code="123" name="Multicore Rendering Tile List Set Base" cl="R">
+    <field name="address" size="26" start="6" type="address"/>
+    <field name="Tile List Set Number" size="4" start="0" type="uint"/>
   </packet>
 
   <!-- add fields -->
