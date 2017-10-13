@@ -1493,11 +1493,13 @@ XineramaXvShmPutImage(ClientPtr client)
 {
     REQUEST(xvShmPutImageReq);
     PanoramiXRes *draw, *gc, *port;
-    Bool send_event = stuff->send_event;
+    Bool send_event;
     Bool isRoot;
     int result, i, x, y;
 
     REQUEST_SIZE_MATCH(xvShmPutImageReq);
+
+    send_event = stuff->send_event;
 
     result = dixLookupResourceByClass((void **) &draw, stuff->drawable,
                                       XRC_DRAWABLE, client, DixWriteAccess);

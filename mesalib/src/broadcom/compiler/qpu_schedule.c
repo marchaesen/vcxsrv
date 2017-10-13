@@ -590,6 +590,9 @@ qpu_accesses_peripheral(const struct v3d_qpu_instr *inst)
                         return true;
                 }
 
+                if (inst->alu.add.op == V3D_QPU_A_VPMSETUP)
+                        return true;
+
                 if (inst->alu.mul.op != V3D_QPU_M_NOP &&
                     inst->alu.mul.magic_write &&
                     qpu_magic_waddr_is_periph(inst->alu.mul.waddr)) {

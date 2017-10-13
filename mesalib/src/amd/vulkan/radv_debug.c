@@ -599,7 +599,7 @@ radv_dump_enabled_options(struct radv_device *device, FILE *f)
 
 	fprintf(f, "Enabled debug options: ");
 
-	mask = device->debug_flags;
+	mask = device->instance->debug_flags;
 	while (mask) {
 		int i = u_bit_scan64(&mask);
 		fprintf(f, "%s, ", radv_get_debug_option_name(i));

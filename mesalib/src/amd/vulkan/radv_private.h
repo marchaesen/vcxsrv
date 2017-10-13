@@ -277,6 +277,12 @@ struct radv_physical_device {
 
 	bool has_rbplus; /* if RB+ register exist */
 	bool rbplus_allowed; /* if RB+ is allowed */
+	bool has_clear_state;
+
+	/* This is the drivers on-disk cache used as a fallback as opposed to
+	 * the pipeline cache defined by apps.
+	 */
+	struct disk_cache *                          disk_cache;
 };
 
 struct radv_instance {
@@ -513,7 +519,6 @@ struct radv_device {
 	struct radv_queue *queues[RADV_MAX_QUEUE_FAMILIES];
 	int queue_count[RADV_MAX_QUEUE_FAMILIES];
 	struct radeon_winsys_cs *empty_cs[RADV_MAX_QUEUE_FAMILIES];
-	uint64_t debug_flags;
 
 	bool llvm_supports_spill;
 	bool has_distributed_tess;
@@ -957,13 +962,16 @@ struct radv_event {
 struct radv_shader_module;
 struct ac_shader_variant_key;
 
+#define RADV_HASH_SHADER_IS_GEOM_COPY_SHADER (1 << 0)
+#define RADV_HASH_SHADER_SISCHED             (1 << 1)
+#define RADV_HASH_SHADER_UNSAFE_MATH         (1 << 2)
 void
 radv_hash_shader(unsigned char *hash, struct radv_shader_module *module,
 		 const char *entrypoint,
 		 const VkSpecializationInfo *spec_info,
 		 const struct radv_pipeline_layout *layout,
 		 const struct ac_shader_variant_key *key,
-		 uint32_t is_geom_copy_shader);
+		 uint32_t flags);
 
 static inline gl_shader_stage
 vk_to_mesa_shader_stage(VkShaderStageFlagBits vk_stage)

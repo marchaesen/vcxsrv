@@ -656,7 +656,7 @@
     <field name="Vertex Shader output VPM segment size" size="8" start="6b" type="uint"/>
     <field name="Vertex Shader input VPM segment size" size="8" start="7b" type="uint"/>
     <field name="Address of default attribute values" size="32" start="8b" type="address"/>
-    <field name="Fragment Shader Code Address" size="32" start="12b" type="address"/>
+    <field name="Fragment Shader Code Address" size="29" start="99" type="address"/>
     <field name="2-way threadable" size="1" start="96" type="bool"/>
     <field name="4-way threadable" size="1" start="97" type="bool"/>
     <field name="Propagate NaNs" size="1" start="98" type="bool"/>

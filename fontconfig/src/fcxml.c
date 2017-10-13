@@ -3345,7 +3345,6 @@ FcConfigParseAndLoad (FcConfig	    *config,
 
     fd = FcOpen ((char *) filename, O_RDONLY);
     if (fd == -1) {
-	FcStrFree (filename);
 	goto bail1;
     }
 

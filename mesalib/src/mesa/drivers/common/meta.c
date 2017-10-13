@@ -87,6 +87,7 @@
 #include "main/glformats.h"
 #include "util/bitscan.h"
 #include "util/ralloc.h"
+#include "compiler/nir/nir.h"
 
 /** Return offset in bytes of the field within a vertex struct */
 #define OFFSET(FIELD) ((void *) offsetof(struct vertex, FIELD))
@@ -194,6 +195,18 @@ _mesa_meta_compile_and_link_program(struct gl_context *ctx,
       meta_compile_shader_with_debug(ctx, MESA_SHADER_FRAGMENT, fs_source);
 
    _mesa_meta_link_program_with_debug(ctx, sh_prog);
+
+   struct gl_program *fp =
+      sh_prog->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program;
+
+   /* texelFetch() can break GL_SKIP_DECODE_EXT, but many meta passes want
+    * to use both together; pretend that we're not using texelFetch to hack
+    * around this bad interaction.  This is a bit fragile as it may break
+    * if you re-run the pass that gathers this info, but we probably won't...
+    */
+   fp->info.textures_used_by_txf = 0;
+   if (fp->nir)
+      fp->nir->info.textures_used_by_txf = 0;
 
    _mesa_meta_use_program(ctx, sh_prog);
 

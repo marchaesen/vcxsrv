@@ -81,6 +81,7 @@ struct radeon_info {
 	uint32_t                    drm_patchlevel;
 	bool                        has_userptr;
 	bool                        has_syncobj;
+	bool                        has_sync_file;
 
 	/* Shader cores. */
 	uint32_t                    r600_max_quad_pipes; /* wave size / 16 */

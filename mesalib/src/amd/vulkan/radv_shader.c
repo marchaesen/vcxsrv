@@ -174,7 +174,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		uint32_t *spirv = (uint32_t *) module->data;
 		assert(module->size % 4 == 0);
 
-		if (device->debug_flags & RADV_DEBUG_DUMP_SPIRV)
+		if (device->instance->debug_flags & RADV_DEBUG_DUMP_SPIRV)
 			radv_print_spirv(spirv, module->size, stderr);
 
 		uint32_t num_spec_entries = 0;
@@ -263,7 +263,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	nir_remove_dead_variables(nir, nir_var_local);
 	radv_optimize_nir(nir);
 
-	if (device->debug_flags & RADV_DEBUG_DUMP_SHADERS)
+	if (device->instance->debug_flags & RADV_DEBUG_DUMP_SHADERS)
 		nir_print_shader(nir, stderr);
 
 	return nir;
@@ -386,7 +386,7 @@ shader_variant_create(struct radv_device *device,
 		      unsigned *code_size_out)
 {
 	enum radeon_family chip_family = device->physical_device->rad_info.family;
-	bool dump_shaders = device->debug_flags & RADV_DEBUG_DUMP_SHADERS;
+	bool dump_shaders = device->instance->debug_flags & RADV_DEBUG_DUMP_SHADERS;
 	enum ac_target_machine_options tm_options = 0;
 	struct radv_shader_variant *variant;
 	struct ac_shader_binary binary;
@@ -458,7 +458,7 @@ radv_shader_variant_create(struct radv_device *device,
 	if (key)
 		options.key = *key;
 
-	options.unsafe_math = !!(device->debug_flags & RADV_DEBUG_UNSAFE_MATH);
+	options.unsafe_math = !!(device->instance->debug_flags & RADV_DEBUG_UNSAFE_MATH);
 	options.supports_spill = device->llvm_supports_spill;
 
 	return shader_variant_create(device, module, shader, shader->stage,

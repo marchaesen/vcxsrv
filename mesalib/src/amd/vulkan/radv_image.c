@@ -155,7 +155,7 @@ radv_init_surface(struct radv_device *device,
             (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR) ||
             pCreateInfo->mipLevels > 1 || pCreateInfo->arrayLayers > 1 ||
             device->physical_device->rad_info.chip_class < VI ||
-            create_info->scanout || (device->debug_flags & RADV_DEBUG_NO_DCC))
+            create_info->scanout || (device->instance->debug_flags & RADV_DEBUG_NO_DCC))
 		surface->flags |= RADEON_SURF_DISABLE_DCC;
 	if (create_info->scanout)
 		surface->flags |= RADEON_SURF_SCANOUT;
@@ -913,7 +913,7 @@ radv_image_create(VkDevice _device,
 	} else {
 		/* Otherwise, try to enable HTILE for depth surfaces. */
 		if (radv_image_can_enable_htile(image) &&
-		    !(device->debug_flags & RADV_DEBUG_NO_HIZ)) {
+		    !(device->instance->debug_flags & RADV_DEBUG_NO_HIZ)) {
 			radv_image_alloc_htile(image);
 			image->tc_compatible_htile = image->surface.flags & RADEON_SURF_TC_COMPATIBLE_HTILE;
 		} else {

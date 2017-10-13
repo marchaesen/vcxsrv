@@ -205,6 +205,23 @@ struct pipe_screen {
                                                        void *user_memory);
 
    /**
+    * Unlike pipe_resource::bind, which describes what state trackers want,
+    * resources can have much greater capabilities in practice, often implied
+    * by the tiling layout or memory placement. This function allows querying
+    * whether a capability is supported beyond what was requested by state
+    * trackers. It's also useful for querying capabilities of imported
+    * resources where the capabilities are unknown at first.
+    *
+    * Only these flags are allowed:
+    * - PIPE_BIND_SCANOUT
+    * - PIPE_BIND_CURSOR
+    * - PIPE_BIND_LINEAR
+    */
+   bool (*check_resource_capability)(struct pipe_screen *screen,
+                                     struct pipe_resource *resource,
+                                     unsigned bind);
+
+   /**
     * Get a winsys_handle from a texture. Some platforms/winsys requires
     * that the texture is created with a special usage flag like
     * DISPLAYTARGET or PRIMARY.

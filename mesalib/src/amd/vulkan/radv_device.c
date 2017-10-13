@@ -352,6 +352,18 @@ radv_physical_device_init(struct radv_physical_device *device,
 		goto fail;
 	}
 
+	/* These flags affect shader compilation. */
+	uint64_t shader_env_flags =
+		(device->instance->perftest_flags & RADV_PERFTEST_SISCHED ? 0x1 : 0) |
+		(device->instance->debug_flags & RADV_DEBUG_UNSAFE_MATH ? 0x2 : 0);
+
+	/* The gpu id is already embeded in the uuid so we just pass "radv"
+	 * when creating the cache.
+	 */
+	char buf[VK_UUID_SIZE + 1];
+	disk_cache_format_hex_id(buf, device->cache_uuid, VK_UUID_SIZE);
+	device->disk_cache = disk_cache_create("radv", buf, shader_env_flags);
+
 	result = radv_extensions_register(instance,
 					&device->extensions,
 					common_device_extensions,
@@ -389,6 +401,11 @@ radv_physical_device_init(struct radv_physical_device *device,
 		device->rbplus_allowed = device->rad_info.family == CHIP_STONEY;
 	}
 
+	/* The mere presense of CLEAR_STATE in the IB causes random GPU hangs
+	 * on SI.
+	 */
+	device->has_clear_state = device->rad_info.chip_class >= CIK;
+
 	return VK_SUCCESS;
 
 fail:
@@ -402,6 +419,7 @@ radv_physical_device_finish(struct radv_physical_device *device)
 	radv_extensions_finish(device->instance, &device->extensions);
 	radv_finish_wsi(device);
 	device->ws->destroy(device->ws);
+	disk_cache_destroy(device->disk_cache);
 	close(device->local_fd);
 }
 
@@ -1153,8 +1171,6 @@ VkResult radv_CreateDevice(
 	device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 	device->instance = physical_device->instance;
 	device->physical_device = physical_device;
-
-	device->debug_flags = device->instance->debug_flags;
 
 	device->ws = physical_device->ws;
 	if (pAllocator)
@@ -3151,7 +3167,7 @@ radv_initialise_color_surface(struct radv_device *device,
 	}
 
 	if (iview->image->cmask.size &&
-	    !(device->debug_flags & RADV_DEBUG_NO_FAST_CLEARS))
+	    !(device->instance->debug_flags & RADV_DEBUG_NO_FAST_CLEARS))
 		cb->cb_color_info |= S_028C70_FAST_CLEAR(1);
 
 	if (radv_vi_dcc_enabled(iview->image, iview->base_mip))

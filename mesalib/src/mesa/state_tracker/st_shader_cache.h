@@ -22,7 +22,7 @@
  */
 
 #include "st_context.h"
-#include "compiler/glsl/blob.h"
+#include "compiler/blob.h"
 #include "main/mtypes.h"
 #include "pipe/p_state.h"
 #include "util/disk_cache.h"

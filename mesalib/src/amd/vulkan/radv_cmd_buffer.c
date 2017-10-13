@@ -373,7 +373,7 @@ void radv_cmd_buffer_trace_emit(struct radv_cmd_buffer *cmd_buffer)
 static void
 radv_cmd_buffer_after_draw(struct radv_cmd_buffer *cmd_buffer)
 {
-	if (cmd_buffer->device->debug_flags & RADV_DEBUG_SYNC_SHADERS) {
+	if (cmd_buffer->device->instance->debug_flags & RADV_DEBUG_SYNC_SHADERS) {
 		enum radv_cmd_flush_bits flags;
 
 		/* Force wait for graphics/compute engines to be idle. */

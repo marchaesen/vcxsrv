@@ -1356,52 +1356,53 @@ shader_cache_write_program_metadata(struct gl_context *ctx,
    if (memcmp(prog->data->sha1, zero, sizeof(prog->data->sha1)) == 0)
       return;
 
-   struct blob *metadata = blob_create();
+   struct blob metadata;
+   blob_init(&metadata);
 
-   write_uniforms(metadata, prog);
+   write_uniforms(&metadata, prog);
 
-   write_hash_tables(metadata, prog);
+   write_hash_tables(&metadata, prog);
 
-   blob_write_uint32(metadata, prog->data->Version);
-   blob_write_uint32(metadata, prog->data->linked_stages);
+   blob_write_uint32(&metadata, prog->data->Version);
+   blob_write_uint32(&metadata, prog->data->linked_stages);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *sh = prog->_LinkedShaders[i];
       if (sh) {
-         write_shader_metadata(metadata, sh);
+         write_shader_metadata(&metadata, sh);
 
          if (sh->Program->info.name)
-            blob_write_string(metadata, sh->Program->info.name);
+            blob_write_string(&metadata, sh->Program->info.name);
          else
-            blob_write_string(metadata, "");
+            blob_write_string(&metadata, "");
 
          if (sh->Program->info.label)
-            blob_write_string(metadata, sh->Program->info.label);
+            blob_write_string(&metadata, sh->Program->info.label);
          else
-            blob_write_string(metadata, "");
+            blob_write_string(&metadata, "");
 
          size_t s_info_size, s_info_ptrs;
          get_shader_info_and_pointer_sizes(&s_info_size, &s_info_ptrs,
                                            &sh->Program->info);
 
          /* Store shader info */
-         blob_write_bytes(metadata,
+         blob_write_bytes(&metadata,
                           ((char *) &sh->Program->info) + s_info_ptrs,
                           s_info_size - s_info_ptrs);
       }
    }
 
-   write_xfb(metadata, prog);
+   write_xfb(&metadata, prog);
 
-   write_uniform_remap_tables(metadata, prog);
+   write_uniform_remap_tables(&metadata, prog);
 
-   write_atomic_buffers(metadata, prog);
+   write_atomic_buffers(&metadata, prog);
 
-   write_buffer_blocks(metadata, prog);
+   write_buffer_blocks(&metadata, prog);
 
-   write_subroutines(metadata, prog);
+   write_subroutines(&metadata, prog);
 
-   write_program_resource_list(metadata, prog);
+   write_program_resource_list(&metadata, prog);
 
    struct cache_item_metadata cache_item_metadata;
    cache_item_metadata.type = CACHE_ITEM_TYPE_GLSL;
@@ -1423,7 +1424,7 @@ shader_cache_write_program_metadata(struct gl_context *ctx,
       }
    }
 
-   disk_cache_put(cache, prog->data->sha1, metadata->data, metadata->size,
+   disk_cache_put(cache, prog->data->sha1, metadata.data, metadata.size,
                   &cache_item_metadata);
 
    if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
@@ -1433,7 +1434,7 @@ shader_cache_write_program_metadata(struct gl_context *ctx,
 
 fail:
    free(cache_item_metadata.keys);
-   blob_destroy(metadata);
+   blob_finish(&metadata);
 }
 
 bool

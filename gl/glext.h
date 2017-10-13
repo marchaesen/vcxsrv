@@ -51,7 +51,7 @@ extern "C" {
 #define GLAPI extern
 #endif
 
-#define GL_GLEXT_VERSION 20170730
+#define GL_GLEXT_VERSION 20171010
 
 /* Generated C header for:
  * API: gl
@@ -353,15 +353,17 @@ GLAPI void APIENTRY glMultTransposeMatrixd (const GLdouble *m);
 #define GL_TEXTURE_FILTER_CONTROL         0x8500
 #define GL_DEPTH_TEXTURE_MODE             0x884B
 #define GL_COMPARE_R_TO_TEXTURE           0x884E
-#define GL_FUNC_ADD                       0x8006
-#define GL_FUNC_SUBTRACT                  0x800A
-#define GL_FUNC_REVERSE_SUBTRACT          0x800B
-#define GL_MIN                            0x8007
-#define GL_MAX                            0x8008
+#define GL_BLEND_COLOR                    0x8005
+#define GL_BLEND_EQUATION                 0x8009
 #define GL_CONSTANT_COLOR                 0x8001
 #define GL_ONE_MINUS_CONSTANT_COLOR       0x8002
 #define GL_CONSTANT_ALPHA                 0x8003
 #define GL_ONE_MINUS_CONSTANT_ALPHA       0x8004
+#define GL_FUNC_ADD                       0x8006
+#define GL_FUNC_REVERSE_SUBTRACT          0x800B
+#define GL_FUNC_SUBTRACT                  0x800A
+#define GL_MIN                            0x8007
+#define GL_MAX                            0x8008
 typedef void (APIENTRYP PFNGLBLENDFUNCSEPARATEPROC) (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
 typedef void (APIENTRYP PFNGLMULTIDRAWARRAYSPROC) (GLenum mode, const GLint *first, const GLsizei *count, GLsizei drawcount);
 typedef void (APIENTRYP PFNGLMULTIDRAWELEMENTSPROC) (GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount);
@@ -3504,8 +3506,6 @@ typedef unsigned short GLhalfARB;
 
 #ifndef GL_ARB_imaging
 #define GL_ARB_imaging 1
-#define GL_BLEND_COLOR                    0x8005
-#define GL_BLEND_EQUATION                 0x8009
 #define GL_CONVOLUTION_1D                 0x8010
 #define GL_CONVOLUTION_2D                 0x8011
 #define GL_SEPARABLE_2D                   0x8012
@@ -4995,6 +4995,16 @@ GLAPI void APIENTRY glBlendBarrierKHR (void);
 #define GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR  0x00000008
 #endif /* GL_KHR_no_error */
 
+#ifndef GL_KHR_parallel_shader_compile
+#define GL_KHR_parallel_shader_compile 1
+#define GL_MAX_SHADER_COMPILER_THREADS_KHR 0x91B0
+#define GL_COMPLETION_STATUS_KHR          0x91B1
+typedef void (APIENTRYP PFNGLMAXSHADERCOMPILERTHREADSKHRPROC) (GLuint count);
+#ifdef GL_GLEXT_PROTOTYPES
+GLAPI void APIENTRY glMaxShaderCompilerThreadsKHR (GLuint count);
+#endif
+#endif /* GL_KHR_parallel_shader_compile */
+
 #ifndef GL_KHR_robust_buffer_access_behavior
 #define GL_KHR_robust_buffer_access_behavior 1
 #endif /* GL_KHR_robust_buffer_access_behavior */
@@ -5698,6 +5708,10 @@ GLAPI void APIENTRY glSetMultisamplefvAMD (GLenum pname, GLuint index, const GLf
 #ifndef GL_AMD_shader_explicit_vertex_parameter
 #define GL_AMD_shader_explicit_vertex_parameter 1
 #endif /* GL_AMD_shader_explicit_vertex_parameter */
+
+#ifndef GL_AMD_shader_image_load_store_lod
+#define GL_AMD_shader_image_load_store_lod 1
+#endif /* GL_AMD_shader_image_load_store_lod */
 
 #ifndef GL_AMD_shader_stencil_export
 #define GL_AMD_shader_stencil_export 1
@@ -9210,6 +9224,13 @@ GLAPI void APIENTRY glResizeBuffersMESA (void);
 #define GL_MESA_shader_integer_functions 1
 #endif /* GL_MESA_shader_integer_functions */
 
+#ifndef GL_MESA_tile_raster_order
+#define GL_MESA_tile_raster_order 1
+#define GL_TILE_RASTER_ORDER_FIXED_MESA   0x8BB8
+#define GL_TILE_RASTER_ORDER_INCREASING_X_MESA 0x8BB9
+#define GL_TILE_RASTER_ORDER_INCREASING_Y_MESA 0x8BBA
+#endif /* GL_MESA_tile_raster_order */
+
 #ifndef GL_MESA_window_pos
 #define GL_MESA_window_pos 1
 typedef void (APIENTRYP PFNGLWINDOWPOS2DMESAPROC) (GLdouble x, GLdouble y);
@@ -10519,6 +10540,32 @@ GLAPI void APIENTRY glPrimitiveRestartNV (void);
 GLAPI void APIENTRY glPrimitiveRestartIndexNV (GLuint index);
 #endif
 #endif /* GL_NV_primitive_restart */
+
+#ifndef GL_NV_query_resource
+#define GL_NV_query_resource 1
+#define GL_QUERY_RESOURCE_TYPE_VIDMEM_ALLOC_NV 0x9540
+#define GL_QUERY_RESOURCE_MEMTYPE_VIDMEM_NV 0x9542
+#define GL_QUERY_RESOURCE_SYS_RESERVED_NV 0x9544
+#define GL_QUERY_RESOURCE_TEXTURE_NV      0x9545
+#define GL_QUERY_RESOURCE_RENDERBUFFER_NV 0x9546
+#define GL_QUERY_RESOURCE_BUFFEROBJECT_NV 0x9547
+typedef GLint (APIENTRYP PFNGLQUERYRESOURCENVPROC) (GLenum queryType, GLint tagId, GLuint bufSize, GLint *buffer);
+#ifdef GL_GLEXT_PROTOTYPES
+GLAPI GLint APIENTRY glQueryResourceNV (GLenum queryType, GLint tagId, GLuint bufSize, GLint *buffer);
+#endif
+#endif /* GL_NV_query_resource */
+
+#ifndef GL_NV_query_resource_tag
+#define GL_NV_query_resource_tag 1
+typedef void (APIENTRYP PFNGLGENQUERYRESOURCETAGNVPROC) (GLsizei n, GLint *tagIds);
+typedef void (APIENTRYP PFNGLDELETEQUERYRESOURCETAGNVPROC) (GLsizei n, const GLint *tagIds);
+typedef void (APIENTRYP PFNGLQUERYRESOURCETAGNVPROC) (GLint tagId, const GLchar *tagString);
+#ifdef GL_GLEXT_PROTOTYPES
+GLAPI void APIENTRY glGenQueryResourceTagNV (GLsizei n, GLint *tagIds);
+GLAPI void APIENTRY glDeleteQueryResourceTagNV (GLsizei n, const GLint *tagIds);
+GLAPI void APIENTRY glQueryResourceTagNV (GLint tagId, const GLchar *tagString);
+#endif
+#endif /* GL_NV_query_resource_tag */
 
 #ifndef GL_NV_register_combiners
 #define GL_NV_register_combiners 1
@@ -12469,12 +12516,6 @@ GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN (co
 #define GL_WIN_specular_fog 1
 #define GL_FOG_SPECULAR_TEXTURE_WIN       0x80EC
 #endif /* GL_WIN_specular_fog */
-
-/* XXX: Get a regenerated header with the enums properly present. */
-#define GL_TILE_RASTER_ORDER_FIXED_MESA          0x8BB8
-#define GL_TILE_RASTER_ORDER_INCREASING_X_MESA   0x8BB9
-#define GL_TILE_RASTER_ORDER_INCREASING_Y_MESA   0x8BBA
-
 
 #ifdef __cplusplus
 }

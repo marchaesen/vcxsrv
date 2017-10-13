@@ -70,6 +70,9 @@ typedef struct shader_info {
    /* Whether or not this shader ever uses textureGather() */
    bool uses_texture_gather;
 
+   /** Bitfield of which textures are used by texelFetch() */
+   uint32_t textures_used_by_txf;
+
    /* The size of the gl_ClipDistance[] array, if declared. */
    unsigned clip_distance_array_size;
 

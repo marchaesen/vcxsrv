@@ -121,9 +121,9 @@ BARRIER(memory_barrier_shared)
 INTRINSIC(discard_if, 1, ARR(1), false, 0, 0, 0, xx, xx, xx, 0)
 
 /** ARB_shader_group_vote intrinsics */
-INTRINSIC(vote_any, 1, ARR(1), true, 1, 1, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
-INTRINSIC(vote_all, 1, ARR(1), true, 1, 1, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
-INTRINSIC(vote_eq,  1, ARR(1), true, 1, 1, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(vote_any, 1, ARR(1), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(vote_all, 1, ARR(1), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(vote_eq,  1, ARR(1), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 
 /**
  * Basic Geometry Shader intrinsics.

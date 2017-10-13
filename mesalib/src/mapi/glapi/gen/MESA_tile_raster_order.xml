@@ -3,8 +3,7 @@
 
 <OpenGLAPI>
 
-<!-- XXX: need an extension number -->
-<category name="GL_MESA_tile_rasterizer_order">
+<category name="GL_MESA_tile_rasterizer_order" number="515">
     <enum name="TILE_RASTER_ORDER_FIXED_MESA"              value="0x8BB8"/>
     <enum name="TILE_RASTER_ORDER_INCREASING_X_MESA"       value="0x8BB9"/>
     <enum name="TILE_RASTER_ORDER_INCREASING_Y_MESA"       value="0x8BBA"/>

@@ -4,7 +4,7 @@ project('xserver', 'c',
             'c_std=gnu99',
         ],
         version: '1.19.99.1',
-        meson_version: '>= 0.40.0',
+        meson_version: '>= 0.42.0',
 )
 add_project_arguments('-DHAVE_DIX_CONFIG_H', language: 'c')
 cc = meson.get_compiler('c')
@@ -105,6 +105,11 @@ endif
 xkb_output_dir = get_option('xkb_output_dir')
 if xkb_output_dir == ''
     xkb_output_dir = join_paths(get_option('prefix'), 'share/X11/xkb/compiled')
+endif
+
+xkb_bin_dir = get_option('xkb_bin_dir')
+if xkb_bin_dir == ''
+    xkb_bin_dir = join_paths(get_option('prefix'), get_option('bindir'))
 endif
 
 hal_option = get_option('hal')

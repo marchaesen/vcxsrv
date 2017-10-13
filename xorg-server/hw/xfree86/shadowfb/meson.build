@@ -5,6 +5,7 @@ shared_module('shadowfb',
     c_args: xorg_c_args,
     install: true,
     install_dir: module_dir,
+    link_with: e,
 )
 
 install_data('shadowfb.h', install_dir: xorgsdkdir)

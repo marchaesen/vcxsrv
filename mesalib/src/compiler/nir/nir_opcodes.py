@@ -308,7 +308,7 @@ for (unsigned bit = 0; bit < 32; bit++) {
 
 unop_convert("ufind_msb", tint32, tuint32, """
 dst = -1;
-for (int bit = 31; bit > 0; bit--) {
+for (int bit = 31; bit >= 0; bit--) {
    if ((src0 >> bit) & 1) {
       dst = bit;
       break;

@@ -97,6 +97,9 @@ public:
         return (pMem != NULL) ? new (pMem) Gfx9Lib(pClient) : NULL;
     }
 
+    virtual BOOL_32 IsValidDisplaySwizzleMode(
+        const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
+
 protected:
     Gfx9Lib(const Client* pClient);
     virtual ~Gfx9Lib();
@@ -404,8 +407,6 @@ private:
                         BOOL_32 dataThick, ADDR2_META_MIP_INFO* pInfo,
                         UINT_32 mip0Width, UINT_32 mip0Height, UINT_32 mip0Depth,
                         UINT_32* pNumMetaBlkX, UINT_32* pNumMetaBlkY, UINT_32* pNumMetaBlkZ) const;
-
-    BOOL_32 IsValidDisplaySwizzleMode(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
     Gfx9ChipSettings m_settings;
 };

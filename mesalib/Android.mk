@@ -75,6 +75,10 @@ $(foreach d, $(BOARD_GPU_DRIVERS), \
 MESA_BUILD_CLASSIC := $(strip $(foreach d, $(BOARD_GPU_DRIVERS), $(patsubst $(d).%,%, $(filter $(d).%, $(classic_drivers)))))
 MESA_BUILD_GALLIUM := $(strip $(foreach d, $(BOARD_GPU_DRIVERS), $(patsubst $(d).%,%, $(filter $(d).%, $(gallium_drivers)))))
 endif
+ifeq ($(filter x86%,$(TARGET_ARCH)),)
+	MESA_BUILD_CLASSIC :=
+endif
+
 $(foreach d, $(MESA_BUILD_CLASSIC) $(MESA_BUILD_GALLIUM), $(eval $(d) := true))
 
 # host and target must be the same arch to generate matypes.h

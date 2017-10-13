@@ -454,7 +454,6 @@ files_libmesa_classic = files(
   'drivers/common/driverfuncs.h',
   'drivers/common/meta_blit.c',
   'drivers/common/meta_generate_mipmap.c',
-  'drivers/common/meta_tex_subimage.c',
   'drivers/common/meta.c',
   'drivers/common/meta.h',
   'x86/common_x86.c',

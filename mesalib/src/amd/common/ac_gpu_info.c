@@ -269,6 +269,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		vce.available_rings ? vce_version : 0;
 	info->has_userptr = true;
 	info->has_syncobj = has_syncobj(fd);
+	info->has_sync_file = info->has_syncobj && info->drm_minor >= 21;
 	info->num_render_backends = amdinfo->rb_pipes;
 	info->clock_crystal_freq = amdinfo->gpu_counter_freq;
 	if (!info->clock_crystal_freq) {

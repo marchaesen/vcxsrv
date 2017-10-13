@@ -2349,7 +2349,8 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
          goto invalid_enum;
       if (index >= ctx->Const.MaxAtomicBufferBindings)
          goto invalid_value;
-      v->value_int64 = ctx->AtomicBufferBindings[index].Offset;
+      v->value_int64 = ctx->AtomicBufferBindings[index].Offset < 0 ? 0 :
+                       ctx->AtomicBufferBindings[index].Offset;
       return TYPE_INT64;
 
    case GL_ATOMIC_COUNTER_BUFFER_SIZE:
@@ -2357,7 +2358,8 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
          goto invalid_enum;
       if (index >= ctx->Const.MaxAtomicBufferBindings)
          goto invalid_value;
-      v->value_int64 = ctx->AtomicBufferBindings[index].Size;
+      v->value_int64 = ctx->AtomicBufferBindings[index].Size < 0 ? 0 :
+                       ctx->AtomicBufferBindings[index].Size;
       return TYPE_INT64;
 
    case GL_VERTEX_BINDING_DIVISOR:

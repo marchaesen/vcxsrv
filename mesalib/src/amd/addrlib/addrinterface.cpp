@@ -1675,3 +1675,37 @@ ADDR_E_RETURNCODE ADDR_API Addr2GetPreferredSurfaceSetting(
     return returnCode;
 }
 
+/**
+****************************************************************************************************
+*   Addr2IsValidDisplaySwizzleMode
+*
+*   @brief
+*       Return whether the swizzle mode is supported by DCE / DCN.
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2IsValidDisplaySwizzleMode(
+    ADDR_HANDLE     hLib,
+    AddrSwizzleMode swizzleMode,
+    UINT_32         bpp,
+    bool            *result)
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V2::Lib* pLib = V2::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        ADDR2_COMPUTE_SURFACE_INFO_INPUT in;
+        in.swizzleMode = swizzleMode;
+        in.bpp = bpp;
+
+        *result = pLib->IsValidDisplaySwizzleMode(&in);
+        returnCode = ADDR_OK;
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}

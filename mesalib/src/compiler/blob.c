@@ -46,8 +46,16 @@ grow_to_fit(struct blob *blob, size_t additional)
    size_t to_allocate;
    uint8_t *new_data;
 
+   if (blob->out_of_memory)
+      return false;
+
    if (blob->size + additional <= blob->allocated)
       return true;
+
+   if (blob->fixed_allocation) {
+      blob->out_of_memory = true;
+      return false;
+   }
 
    if (blob->allocated == 0)
       to_allocate = BLOB_INITIAL_SIZE;
@@ -57,8 +65,10 @@ grow_to_fit(struct blob *blob, size_t additional)
    to_allocate = MAX2(to_allocate, blob->allocated + additional);
 
    new_data = realloc(blob->data, to_allocate);
-   if (new_data == NULL)
+   if (new_data == NULL) {
+      blob->out_of_memory = true;
       return false;
+   }
 
    blob->data = new_data;
    blob->allocated = to_allocate;
@@ -81,7 +91,8 @@ align_blob(struct blob *blob, size_t alignment)
       if (!grow_to_fit(blob, new_size - blob->size))
          return false;
 
-      memset(blob->data + blob->size, 0, new_size - blob->size);
+      if (blob->data)
+         memset(blob->data + blob->size, 0, new_size - blob->size);
       blob->size = new_size;
    }
 
@@ -94,18 +105,24 @@ align_blob_reader(struct blob_reader *blob, size_t alignment)
    blob->current = blob->data + ALIGN(blob->current - blob->data, alignment);
 }
 
-struct blob *
-blob_create()
+void
+blob_init(struct blob *blob)
 {
-   struct blob *blob = (struct blob *) malloc(sizeof(struct blob));
-   if (blob == NULL)
-      return NULL;
-
    blob->data = NULL;
    blob->allocated = 0;
    blob->size = 0;
+   blob->fixed_allocation = false;
+   blob->out_of_memory = false;
+}
 
-   return blob;
+void
+blob_init_fixed(struct blob *blob, void *data, size_t size)
+{
+   blob->data = data;
+   blob->allocated = size;
+   blob->size = 0;
+   blob->fixed_allocation = true;
+   blob->out_of_memory = false;
 }
 
 bool
@@ -115,12 +132,13 @@ blob_overwrite_bytes(struct blob *blob,
                      size_t to_write)
 {
    /* Detect an attempt to overwrite data out of bounds. */
-   if (blob->size < offset + to_write)
+   if (offset + to_write < offset || blob->size < offset + to_write)
       return false;
 
    VG(VALGRIND_CHECK_MEM_IS_DEFINED(bytes, to_write));
 
-   memcpy(blob->data + offset, bytes, to_write);
+   if (blob->data)
+      memcpy(blob->data + offset, bytes, to_write);
 
    return true;
 }
@@ -133,24 +151,39 @@ blob_write_bytes(struct blob *blob, const void *bytes, size_t to_write)
 
    VG(VALGRIND_CHECK_MEM_IS_DEFINED(bytes, to_write));
 
-   memcpy(blob->data + blob->size, bytes, to_write);
+   if (blob->data)
+      memcpy(blob->data + blob->size, bytes, to_write);
    blob->size += to_write;
 
    return true;
 }
 
-uint8_t *
+ssize_t
 blob_reserve_bytes(struct blob *blob, size_t to_write)
 {
-   uint8_t *ret;
+   ssize_t ret;
 
    if (! grow_to_fit (blob, to_write))
-      return NULL;
+      return -1;
 
-   ret = blob->data + blob->size;
+   ret = blob->size;
    blob->size += to_write;
 
    return ret;
+}
+
+ssize_t
+blob_reserve_uint32(struct blob *blob)
+{
+   align_blob(blob, sizeof(uint32_t));
+   return blob_reserve_bytes(blob, sizeof(uint32_t));
+}
+
+ssize_t
+blob_reserve_intptr(struct blob *blob)
+{
+   align_blob(blob, sizeof(intptr_t));
+   return blob_reserve_bytes(blob, sizeof(intptr_t));
 }
 
 bool
@@ -161,11 +194,15 @@ blob_write_uint32(struct blob *blob, uint32_t value)
    return blob_write_bytes(blob, &value, sizeof(value));
 }
 
+#define ASSERT_ALIGNED(_offset, _align) \
+   assert(ALIGN((_offset), (_align)) == (_offset))
+
 bool
 blob_overwrite_uint32 (struct blob *blob,
                        size_t offset,
                        uint32_t value)
 {
+   ASSERT_ALIGNED(offset, sizeof(value));
    return blob_overwrite_bytes(blob, offset, &value, sizeof(value));
 }
 
@@ -186,16 +223,25 @@ blob_write_intptr(struct blob *blob, intptr_t value)
 }
 
 bool
+blob_overwrite_intptr (struct blob *blob,
+                       size_t offset,
+                       intptr_t value)
+{
+   ASSERT_ALIGNED(offset, sizeof(value));
+   return blob_overwrite_bytes(blob, offset, &value, sizeof(value));
+}
+
+bool
 blob_write_string(struct blob *blob, const char *str)
 {
    return blob_write_bytes(blob, str, strlen(str) + 1);
 }
 
 void
-blob_reader_init(struct blob_reader *blob, uint8_t *data, size_t size)
+blob_reader_init(struct blob_reader *blob, const void *data, size_t size)
 {
    blob->data = data;
-   blob->end = data + size;
+   blob->end = blob->data + size;
    blob->current = data;
    blob->overrun = false;
 }
@@ -207,6 +253,9 @@ blob_reader_init(struct blob_reader *blob, uint8_t *data, size_t size)
 static bool
 ensure_can_read(struct blob_reader *blob, size_t size)
 {
+   if (blob->overrun)
+      return false;
+
    if (blob->current < blob->end && blob->end - blob->current >= size)
       return true;
 
@@ -215,10 +264,10 @@ ensure_can_read(struct blob_reader *blob, size_t size)
    return false;
 }
 
-void *
+const void *
 blob_read_bytes(struct blob_reader *blob, size_t size)
 {
-   void *ret;
+   const void *ret;
 
    if (! ensure_can_read (blob, size))
       return NULL;
@@ -231,9 +280,9 @@ blob_read_bytes(struct blob_reader *blob, size_t size)
 }
 
 void
-blob_copy_bytes(struct blob_reader *blob, uint8_t *dest, size_t size)
+blob_copy_bytes(struct blob_reader *blob, void *dest, size_t size)
 {
-   uint8_t *bytes;
+   const void *bytes;
 
    bytes = blob_read_bytes(blob, size);
    if (bytes == NULL)
