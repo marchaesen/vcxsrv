@@ -795,6 +795,9 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 		surf->htile_size *= 2;
 
 	surf->is_linear = surf->u.legacy.level[0].mode == RADEON_SURF_MODE_LINEAR_ALIGNED;
+	surf->is_displayable = surf->is_linear ||
+			       surf->micro_tile_mode == RADEON_MICRO_MODE_DISPLAY ||
+			       surf->micro_tile_mode == RADEON_MICRO_MODE_ROTATED;
 	return 0;
 }
 
@@ -1155,6 +1158,14 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	}
 
 	surf->is_linear = surf->u.gfx9.surf.swizzle_mode == ADDR_SW_LINEAR;
+
+	/* Query whether the surface is displayable. */
+	bool displayable = false;
+	r = Addr2IsValidDisplaySwizzleMode(addrlib, surf->u.gfx9.surf.swizzle_mode,
+					   surf->bpe * 8, &displayable);
+	if (r)
+		return r;
+	surf->is_displayable = displayable;
 
 	switch (surf->u.gfx9.surf.swizzle_mode) {
 		/* S = standard. */

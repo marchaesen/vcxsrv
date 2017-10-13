@@ -91,7 +91,7 @@ xorg_deps = [
     libdrm_dep,
 ]
 
-executable(
+e = executable(
     'Xorg',
     srcs_xorg,
     include_directories: [inc, xorg_inc],
@@ -100,6 +100,7 @@ executable(
     link_args: linker_export_flags,
     c_args: xorg_c_args,
     install: true,
+    implib: true,
 )
 
 # subdirs for modules loadable by Xorg

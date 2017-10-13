@@ -141,22 +141,6 @@ enum st_attachment_type {
 #define ST_ATTACHMENT_SAMPLE_MASK         (1 << ST_ATTACHMENT_SAMPLE)
 
 /**
- * Enumerations of state tracker context resources.
- */
-enum st_context_resource_type {
-   ST_CONTEXT_RESOURCE_OPENGL_TEXTURE_2D,
-   ST_CONTEXT_RESOURCE_OPENGL_TEXTURE_3D,
-   ST_CONTEXT_RESOURCE_OPENGL_TEXTURE_CUBE_MAP_POSITIVE_X,
-   ST_CONTEXT_RESOURCE_OPENGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-   ST_CONTEXT_RESOURCE_OPENGL_TEXTURE_CUBE_MAP_POSITIVE_Y,
-   ST_CONTEXT_RESOURCE_OPENGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-   ST_CONTEXT_RESOURCE_OPENGL_TEXTURE_CUBE_MAP_POSITIVE_Z,
-   ST_CONTEXT_RESOURCE_OPENGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-   ST_CONTEXT_RESOURCE_OPENGL_RENDERBUFFER,
-   ST_CONTEXT_RESOURCE_OPENVG_PARENT_IMAGE
-};
-
-/**
  * Flush flags.
  */
 #define ST_FLUSH_FRONT                    (1 << 0)
@@ -181,19 +165,6 @@ struct pipe_context;
 struct pipe_resource;
 struct pipe_fence_handle;
 struct util_queue_monitoring;
-
-/**
- * Used in st_context_iface->get_resource_for_egl_image.
- */
-struct st_context_resource
-{
-   /* these fields are filled in by the caller */
-   enum st_context_resource_type type;
-   void *resource;
-
-   /* this is owned by the caller */
-   struct pipe_resource *texture;
-};
 
 /**
  * Used in st_manager_iface->get_egl_image.
@@ -430,14 +401,6 @@ struct st_context_iface
     */
    boolean (*share)(struct st_context_iface *stctxi,
                     struct st_context_iface *stsrci);
-
-   /**
-    * Look up and return the info of a resource for EGLImage.
-    *
-    * This function is optional.
-    */
-   boolean (*get_resource_for_egl_image)(struct st_context_iface *stctxi,
-                                         struct st_context_resource *stres);
 
    /**
     * Start the thread if the API has a worker thread.

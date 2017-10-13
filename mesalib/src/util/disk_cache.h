@@ -65,6 +65,21 @@ struct cache_item_metadata {
 
 struct disk_cache;
 
+static inline char *
+disk_cache_format_hex_id(char *buf, const uint8_t *hex_id, unsigned size)
+{
+   static const char hex_digits[] = "0123456789abcdef";
+   unsigned i;
+
+   for (i = 0; i < size; i += 2) {
+      buf[i] = hex_digits[hex_id[i >> 1] >> 4];
+      buf[i + 1] = hex_digits[hex_id[i >> 1] & 0x0f];
+   }
+   buf[i] = '\0';
+
+   return buf;
+}
+
 static inline bool
 disk_cache_get_function_timestamp(void *ptr, uint32_t* timestamp)
 {

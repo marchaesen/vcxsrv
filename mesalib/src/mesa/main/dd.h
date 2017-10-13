@@ -426,22 +426,6 @@ struct dd_function_table {
                             struct gl_texture_object *texObj,
                             struct gl_texture_object *origTexObj);
 
-   /** Sets the given buffer object as the texture's storage.  The given
-    * texture must have target GL_TEXTURE_1D, GL_TEXTURE_2D,
-    * GL_TEXTURE_RECTANGLE, and GL_TEXTURE_2D_ARRAY; have only a single
-    * mipmap level; be immutable; and must not have any assigned storage.
-    * The format and dimensions of the gl_texture_object will already be
-    * initialized.
-    *
-    * This function is used by the meta PBO texture upload path.
-    */
-   bool (*SetTextureStorageForBufferObject)(struct gl_context *ctx,
-                                            struct gl_texture_object *texObj,
-                                            struct gl_buffer_object *bufferObj,
-                                            uint32_t buffer_offset,
-                                            uint32_t row_stride,
-                                            bool read_only);
-
    /**
     * Map a renderbuffer into user space.
     * \param mode  bitmask of GL_MAP_READ_BIT, GL_MAP_WRITE_BIT and

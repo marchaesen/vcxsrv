@@ -170,8 +170,8 @@ st_convert_sampler(const struct st_context *st,
             swizzle is per-texture, not per context. */
          /* XXX: clean that up to not use the sampler view at all */
          for (unsigned i = 0; i < stobj->num_sampler_views; ++i) {
-            if (stobj->sampler_views[i]) {
-               sv = stobj->sampler_views[i];
+            if (stobj->sampler_views[i].view) {
+               sv = stobj->sampler_views[i].view;
                break;
             }
          }

@@ -219,7 +219,7 @@ configure_file(output : 'version-config.h',
 
 xkb_data = configuration_data()
 
-xkb_data.set_quoted('XKB_BIN_DIRECTORY', join_paths(get_option('prefix'), get_option('bindir')))
+xkb_data.set_quoted('XKB_BIN_DIRECTORY', xkb_bin_dir)
 xkb_data.set_quoted('XKB_BASE_DIRECTORY', xkb_dir)
 xkb_data.set_quoted('XKB_DFLT_RULES', get_option('xkb_default_rules'))
 xkb_data.set_quoted('XKB_DFLT_MODEL', get_option('xkb_default_model'))

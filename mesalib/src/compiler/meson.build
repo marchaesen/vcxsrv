@@ -23,6 +23,8 @@ inc_nir = include_directories('nir')
 inc_glsl = include_directories('glsl')
 
 files_libcompiler = files(
+  'blob.c',
+  'blob.h',
   'builtin_type_macros.h',
   'glsl_types.cpp',
   'glsl_types.h',
@@ -47,6 +49,7 @@ libcompiler = static_library(
   include_directories : [inc_mapi, inc_mesa, inc_compiler, inc_common],
   c_args : [c_vis_args, c_msvc_compat_args, no_override_init_args],
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
+  dependencies : [dep_valgrind],
   build_by_default : false,
 )
 

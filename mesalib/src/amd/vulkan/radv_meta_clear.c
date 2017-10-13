@@ -683,7 +683,7 @@ emit_fast_htile_clear(struct radv_cmd_buffer *cmd_buffer,
 	if (!iview->image->surface.htile_size)
 		return false;
 
-	if (cmd_buffer->device->debug_flags & RADV_DEBUG_NO_FAST_CLEARS)
+	if (cmd_buffer->device->instance->debug_flags & RADV_DEBUG_NO_FAST_CLEARS)
 		return false;
 
 	if (!radv_layout_is_htile_compressed(iview->image, image_layout, radv_image_queue_family_mask(iview->image, cmd_buffer->queue_family_index, cmd_buffer->queue_family_index)))
@@ -958,7 +958,7 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	if (!iview->image->cmask.size && !iview->image->surface.dcc_size)
 		return false;
 
-	if (cmd_buffer->device->debug_flags & RADV_DEBUG_NO_FAST_CLEARS)
+	if (cmd_buffer->device->instance->debug_flags & RADV_DEBUG_NO_FAST_CLEARS)
 		return false;
 
 	if (!radv_layout_can_fast_clear(iview->image, image_layout, radv_image_queue_family_mask(iview->image, cmd_buffer->queue_family_index, cmd_buffer->queue_family_index)))

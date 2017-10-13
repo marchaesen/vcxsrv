@@ -29,6 +29,7 @@ option('ipv6', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto')
 
 option('xkb_dir', type: 'string')
 option('xkb_output_dir', type: 'string')
+option('xkb_bin_dir', type: 'string')
 option('xkb_default_rules', type: 'string', value: 'evdev')
 option('xkb_default_model', type: 'string', value: 'pc105')
 option('xkb_default_layout', type: 'string', value: 'us')

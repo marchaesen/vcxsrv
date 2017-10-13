@@ -58,7 +58,8 @@
 void
 st_update_single_texture(struct st_context *st,
                          struct pipe_sampler_view **sampler_view,
-                         GLuint texUnit, bool glsl130_or_later)
+                         GLuint texUnit, bool glsl130_or_later,
+                         bool ignore_srgb_decode)
 {
    struct gl_context *ctx = st->ctx;
    const struct gl_sampler_object *samp;
@@ -84,25 +85,14 @@ st_update_single_texture(struct st_context *st,
       return;
    }
 
-   /* Check a few pieces of state outside the texture object to see if we
-    * need to force revalidation.
-    */
-   if (stObj->prev_glsl130_or_later != glsl130_or_later ||
-       stObj->prev_sRGBDecode != samp->sRGBDecode) {
-
-      st_texture_release_all_sampler_views(st, stObj);
-
-      stObj->prev_glsl130_or_later = glsl130_or_later;
-      stObj->prev_sRGBDecode = samp->sRGBDecode;
-   }
-
    if (texObj->TargetIndex == TEXTURE_EXTERNAL_INDEX &&
        stObj->pt->screen->resource_changed)
          stObj->pt->screen->resource_changed(stObj->pt->screen, stObj->pt);
 
    *sampler_view =
       st_get_texture_sampler_view_from_stobj(st, stObj, samp,
-                                             glsl130_or_later);
+                                             glsl130_or_later,
+                                             ignore_srgb_decode);
 }
 
 
@@ -116,6 +106,7 @@ update_textures(struct st_context *st,
 {
    const GLuint old_max = *out_num_textures;
    GLbitfield samplers_used = prog->SamplersUsed;
+   GLbitfield texel_fetch_samplers = prog->info.textures_used_by_txf;
    GLbitfield free_slots = ~prog->SamplersUsed;
    GLbitfield external_samplers_used = prog->ExternalSamplersUsed;
    GLuint unit;
@@ -130,13 +121,41 @@ update_textures(struct st_context *st,
 
    /* loop over sampler units (aka tex image units) */
    for (unit = 0; samplers_used || unit < old_max;
-        unit++, samplers_used >>= 1) {
+        unit++, samplers_used >>= 1, texel_fetch_samplers >>= 1) {
       struct pipe_sampler_view *sampler_view = NULL;
 
       if (samplers_used & 1) {
          const GLuint texUnit = prog->SamplerUnits[unit];
 
-         st_update_single_texture(st, &sampler_view, texUnit, glsl130);
+         /* The EXT_texture_sRGB_decode extension says:
+          *
+          *    "The conversion of sRGB color space components to linear color
+          *     space is always performed if the texel lookup function is one
+          *     of the texelFetch builtin functions.
+          *
+          *     Otherwise, if the texel lookup function is one of the texture
+          *     builtin functions or one of the texture gather functions, the
+          *     conversion of sRGB color space components to linear color space
+          *     is controlled by the TEXTURE_SRGB_DECODE_EXT parameter.
+          *
+          *     If the TEXTURE_SRGB_DECODE_EXT parameter is DECODE_EXT, the
+          *     conversion of sRGB color space components to linear color space
+          *     is performed.
+          *
+          *     If the TEXTURE_SRGB_DECODE_EXT parameter is SKIP_DECODE_EXT,
+          *     the value is returned without decoding. However, if the texture
+          *     is also [statically] accessed with a texelFetch function, then
+          *     the result of texture builtin functions and/or texture gather
+          *     functions may be returned with decoding or without decoding."
+          *
+          * Note: the "statically" will be added to the language per
+          *       https://cvs.khronos.org/bugzilla/show_bug.cgi?id=14934
+          *
+          * So we simply ignore the setting entirely for samplers that are
+          * (statically) accessed with a texelFetch function.
+          */
+         st_update_single_texture(st, &sampler_view, texUnit, glsl130,
+                                  texel_fetch_samplers & 1);
          num_textures = unit + 1;
       }
 

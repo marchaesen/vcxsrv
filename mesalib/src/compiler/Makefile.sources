@@ -1,4 +1,6 @@
 LIBCOMPILER_FILES = \
+	blob.c \
+	blob.h \
 	builtin_type_macros.h \
 	glsl_types.cpp \
 	glsl_types.h \
@@ -17,8 +19,6 @@ LIBGLSL_FILES = \
 	glsl/ast_function.cpp \
 	glsl/ast_to_hir.cpp \
 	glsl/ast_type.cpp \
-	glsl/blob.c \
-	glsl/blob.h \
 	glsl/builtin_functions.cpp \
 	glsl/builtin_functions.h \
 	glsl/builtin_int64.h \

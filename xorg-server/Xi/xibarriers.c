@@ -834,6 +834,8 @@ SProcXIBarrierReleasePointer(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xXIBarrierReleasePointerReq);
 
     swapl(&stuff->num_barriers);
+    if (stuff->num_barriers > UINT32_MAX / sizeof(xXIBarrierReleasePointerInfo))
+        return BadLength;
     REQUEST_FIXED_SIZE(xXIBarrierReleasePointerReq, stuff->num_barriers * sizeof(xXIBarrierReleasePointerInfo));
 
     info = (xXIBarrierReleasePointerInfo*) &stuff[1];
@@ -856,6 +858,9 @@ ProcXIBarrierReleasePointer(ClientPtr client)
     xXIBarrierReleasePointerInfo *info;
 
     REQUEST(xXIBarrierReleasePointerReq);
+    REQUEST_AT_LEAST_SIZE(xXIBarrierReleasePointerReq);
+    if (stuff->num_barriers > UINT32_MAX / sizeof(xXIBarrierReleasePointerInfo))
+        return BadLength;
     REQUEST_FIXED_SIZE(xXIBarrierReleasePointerReq, stuff->num_barriers * sizeof(xXIBarrierReleasePointerInfo));
 
     info = (xXIBarrierReleasePointerInfo*) &stuff[1];

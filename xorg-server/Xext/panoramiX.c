@@ -988,10 +988,11 @@ ProcPanoramiXGetScreenSize(ClientPtr client)
     xPanoramiXGetScreenSizeReply rep;
     int rc;
 
+    REQUEST_SIZE_MATCH(xPanoramiXGetScreenSizeReq);
+
     if (stuff->screen >= PanoramiXNumScreens)
         return BadMatch;
 
-    REQUEST_SIZE_MATCH(xPanoramiXGetScreenSizeReq);
     rc = dixLookupWindow(&pWin, stuff->window, client, DixGetAttrAccess);
     if (rc != Success)
         return rc;

@@ -58,8 +58,6 @@ files_libglsl = files(
   'ast_function.cpp',
   'ast_to_hir.cpp',
   'ast_type.cpp',
-  'blob.c',
-  'blob.h',
   'builtin_functions.cpp',
   'builtin_functions.h',
   'builtin_int64.h',
@@ -204,8 +202,7 @@ libglsl = static_library(
   c_args : [c_vis_args, c_msvc_compat_args, no_override_init_args],
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
   link_with : [libnir, libglcpp],
-  include_directories : [inc_common, inc_nir],
-  dependencies : [dep_valgrind],
+  include_directories : [inc_common, inc_compiler, inc_nir],
   build_by_default : false,
 )
 

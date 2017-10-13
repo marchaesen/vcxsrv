@@ -55,6 +55,18 @@ struct blob {
 
    /** The number of bytes that have actual data written to them. */
    size_t size;
+
+   /** True if \c data a fixed allocation that we cannot resize
+    *
+    * \see blob_init_fixed
+    */
+   bool fixed_allocation;
+
+   /**
+    * True if we've ever failed to realloc or if we go pas the end of a fixed
+    * allocation blob.
+    */
+   bool out_of_memory;
 };
 
 /* When done reading, the caller can ensure that everything was consumed by
@@ -66,28 +78,43 @@ struct blob {
  *   2. blob->overrun should be false, (otherwise, too much was read).
  */
 struct blob_reader {
-   uint8_t *data;
-   uint8_t *end;
-   uint8_t *current;
+   const uint8_t *data;
+   const uint8_t *end;
+   const uint8_t *current;
    bool overrun;
 };
 
 /**
- * Create a new, empty blob.
- *
- * \return The new blob, (or NULL in case of allocation failure).
+ * Init a new, empty blob.
  */
-struct blob *
-blob_create(void);
+void
+blob_init(struct blob *blob);
 
 /**
- * Destroy a blob and free its memory.
+ * Init a new, fixed-size blob.
+ *
+ * A fixed-size blob has a fixed block of data that will not be freed on
+ * blob_finish and will never be grown.  If we hit the end, we simply start
+ * returning false from the write functions.
+ *
+ * If a fixed-size blob has a NULL data pointer then the data is written but
+ * it otherwise operates normally.  This can be used to determine the size
+ * that will be required to write a given data structure.
+ */
+void
+blob_init_fixed(struct blob *blob, void *data, size_t size);
+
+/**
+ * Finish a blob and free its memory.
+ *
+ * If \blob was initialized with blob_init_fixed, the data pointer is
+ * considered to be owned by the user and will not be freed.
  */
 static inline void
-blob_destroy(struct blob *blob)
+blob_finish(struct blob *blob)
 {
-   free(blob->data);
-   free(blob);
+   if (!blob->fixed_allocation)
+      free(blob->data);
 }
 
 /**
@@ -102,22 +129,30 @@ blob_write_bytes(struct blob *blob, const void *bytes, size_t to_write);
  * Reserve space in \blob for a number of bytes.
  *
  * Space will be allocated within the blob for these byes, but the bytes will
- * be left uninitialized. The caller is expected to use the return value to
- * write directly (and immediately) to these bytes.
+ * be left uninitialized. The caller is expected to use \sa
+ * blob_overwrite_bytes to write to these bytes.
  *
- * \note The return value is valid immediately upon return, but can be
- * invalidated by any other call to a blob function. So the caller should call
- * blob_reserve_byes immediately before writing through the returned pointer.
- *
- * This function is intended to be used when interfacing with an existing API
- * that is not aware of the blob API, (so that blob_write_bytes cannot be
- * called).
- *
- * \return A pointer to space allocated within \blob to which \to_write bytes
- * can be written, (or NULL in case of any allocation error).
+ * \return An offset to space allocated within \blob to which \to_write bytes
+ * can be written, (or -1 in case of any allocation error).
  */
-uint8_t *
+ssize_t
 blob_reserve_bytes(struct blob *blob, size_t to_write);
+
+/**
+ * Similar to \sa blob_reserve_bytes, but only reserves an uint32_t worth of
+ * space. Note that this must be used if later reading with \sa
+ * blob_read_uint32, since it aligns the offset correctly.
+ */
+ssize_t
+blob_reserve_uint32(struct blob *blob);
+
+/**
+ * Similar to \sa blob_reserve_bytes, but only reserves an intptr_t worth of
+ * space. Note that this must be used if later reading with \sa
+ * blob_read_intptr, since it aligns the offset correctly.
+ */
+ssize_t
+blob_reserve_intptr(struct blob *blob);
 
 /**
  * Overwrite some data previously written to the blob.
@@ -162,8 +197,7 @@ blob_write_uint32(struct blob *blob, uint32_t value);
  *
  *	size_t offset;
  *
- *	offset = blob->size;
- *	blob_write_uint32 (blob, 0); // placeholder
+ *	offset = blob_reserve_uint32(blob);
  *	... various blob write calls, writing N items ...
  *	blob_overwrite_uint32 (blob, offset, N);
  *
@@ -202,6 +236,23 @@ bool
 blob_write_intptr(struct blob *blob, intptr_t value);
 
 /**
+ * Overwrite an intptr_t previously written to the blob.
+ *
+ * Writes a intptr_t value to an existing portion of the blob at an offset of
+ * \offset.  This data range must have previously been written to the blob by
+ * one of the blob_write_* calls.
+ *
+ * For example usage, see blob_overwrite_uint32
+ *
+ * \return True unless the requested position or position+to_write lie outside
+ * the current blob's size.
+ */
+bool
+blob_overwrite_intptr(struct blob *blob,
+                      size_t offset,
+                      intptr_t value);
+
+/**
  * Add a NULL-terminated string to a blob, (including the NULL terminator).
  *
  * \return True unless allocation failed.
@@ -221,7 +272,7 @@ blob_write_string(struct blob *blob, const char *str);
  * current value is unchanged before and after the call.
  */
 void
-blob_reader_init(struct blob_reader *blob, uint8_t *data, size_t size);
+blob_reader_init(struct blob_reader *blob, const void *data, size_t size);
 
 /**
  * Read some unstructured, fixed-size data from the current location, (and
@@ -233,7 +284,7 @@ blob_reader_init(struct blob_reader *blob, uint8_t *data, size_t size);
  *
  * \return The bytes read (see note above about memory lifetime).
  */
-void *
+const void *
 blob_read_bytes(struct blob_reader *blob, size_t size);
 
 /**
@@ -241,7 +292,7 @@ blob_read_bytes(struct blob_reader *blob, size_t size);
  * it to \dest (and update the current location to just past this data)
  */
 void
-blob_copy_bytes(struct blob_reader *blob, uint8_t *dest, size_t size);
+blob_copy_bytes(struct blob_reader *blob, void *dest, size_t size);
 
 /**
  * Read a uint32_t from the current location, (and update the current location

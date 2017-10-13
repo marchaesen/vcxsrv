@@ -570,6 +570,7 @@ static int _X_COLD
 SProcXF86DRIQueryDirectRenderingCapable(register ClientPtr client)
 {
     REQUEST(xXF86DRIQueryDirectRenderingCapableReq);
+    REQUEST_SIZE_MATCH(xXF86DRIQueryDirectRenderingCapableReq);
     swaps(&stuff->length);
     swapl(&stuff->screen);
     return ProcXF86DRIQueryDirectRenderingCapable(client);

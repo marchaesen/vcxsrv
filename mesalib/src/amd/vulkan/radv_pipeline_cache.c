@@ -23,6 +23,7 @@
 
 #include "util/mesa-sha1.h"
 #include "util/debug.h"
+#include "util/disk_cache.h"
 #include "util/u_atomic.h"
 #include "radv_debug.h"
 #include "radv_private.h"
@@ -60,7 +61,7 @@ radv_pipeline_cache_init(struct radv_pipeline_cache *cache,
 	/* We don't consider allocation failure fatal, we just start with a 0-sized
 	 * cache. */
 	if (cache->hash_table == NULL ||
-	    (device->debug_flags & RADV_DEBUG_NO_CACHE))
+	    (device->instance->debug_flags & RADV_DEBUG_NO_CACHE))
 		cache->table_size = 0;
 	else
 		memset(cache->hash_table, 0, byte_size);
@@ -92,7 +93,7 @@ radv_hash_shader(unsigned char *hash, struct radv_shader_module *module,
 		 const VkSpecializationInfo *spec_info,
 		 const struct radv_pipeline_layout *layout,
 		 const struct ac_shader_variant_key *key,
-		 uint32_t is_geom_copy_shader)
+		 uint32_t flags)
 {
 	struct mesa_sha1 ctx;
 
@@ -108,7 +109,7 @@ radv_hash_shader(unsigned char *hash, struct radv_shader_module *module,
 				  spec_info->mapEntryCount * sizeof spec_info->pMapEntries[0]);
 		_mesa_sha1_update(&ctx, spec_info->pData, spec_info->dataSize);
 	}
-	_mesa_sha1_update(&ctx, &is_geom_copy_shader, 4);
+	_mesa_sha1_update(&ctx, &flags, 4);
 	_mesa_sha1_final(&ctx, hash);
 }
 
@@ -165,8 +166,18 @@ radv_create_shader_variant_from_pipeline_cache(struct radv_device *device,
 	else
 		entry = radv_pipeline_cache_search(device->mem_cache, sha1);
 
-	if (!entry)
-		return NULL;
+	if (!entry) {
+		if (!device->physical_device->disk_cache)
+			return NULL;
+		uint8_t disk_sha1[20];
+		disk_cache_compute_key(device->physical_device->disk_cache,
+				       sha1, 20, disk_sha1);
+		entry = (struct cache_entry *)
+			disk_cache_get(device->physical_device->disk_cache,
+				       disk_sha1, NULL);
+		if (!entry)
+			return NULL;
+	}
 
 	if (!entry->variant) {
 		struct radv_shader_variant *variant;
@@ -180,7 +191,6 @@ radv_create_shader_variant_from_pipeline_cache(struct radv_device *device,
 		variant->info = entry->variant_info;
 		variant->rsrc1 = entry->rsrc1;
 		variant->rsrc2 = entry->rsrc2;
-		variant->code_size = entry->code_size;
 		variant->ref_count = 1;
 
 		void *ptr = radv_alloc_shader_memory(device, variant);
@@ -301,6 +311,22 @@ radv_pipeline_cache_insert_shader(struct radv_device *device,
 	entry->rsrc1 = variant->rsrc1;
 	entry->rsrc2 = variant->rsrc2;
 	entry->code_size = code_size;
+
+	/* Set variant to NULL so we have reproducible cache items */
+	entry->variant = NULL;
+
+	/* Always add cache items to disk. This will allow collection of
+	 * compiled shaders by third parties such as steam, even if the app
+	 * implements its own pipeline cache.
+	 */
+	if (device->physical_device->disk_cache) {
+		uint8_t disk_sha1[20];
+		disk_cache_compute_key(device->physical_device->disk_cache, sha1, 20,
+				       disk_sha1);
+		disk_cache_put(device->physical_device->disk_cache,
+			       disk_sha1, entry, entry_size(entry), NULL);
+	}
+
 	entry->variant = variant;
 	p_atomic_inc(&variant->ref_count);
 

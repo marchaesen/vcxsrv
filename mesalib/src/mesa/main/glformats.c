@@ -3119,6 +3119,8 @@ _mesa_es3_error_check_format_and_type(const struct gl_context *ctx,
       case GL_HALF_FLOAT_OES:
          switch (internalFormat) {
             case GL_RG16F:
+               if (ctx->Version <= 20)
+                  return GL_INVALID_OPERATION;
                break;
             case GL_RG:
                if (ctx->Extensions.ARB_texture_rg &&
@@ -3207,6 +3209,8 @@ _mesa_es3_error_check_format_and_type(const struct gl_context *ctx,
       case GL_HALF_FLOAT_OES:
          switch (internalFormat) {
          case GL_R16F:
+            if (ctx->Version <= 20)
+               return GL_INVALID_OPERATION;
             break;
          case GL_RG:
          case GL_RED:

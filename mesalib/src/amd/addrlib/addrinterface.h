@@ -3653,6 +3653,20 @@ ADDR_E_RETURNCODE ADDR_API Addr2GetPreferredSurfaceSetting(
     const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
     ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT*      pOut);
 
+/**
+****************************************************************************************************
+*   Addr2IsValidDisplaySwizzleMode
+*
+*   @brief
+*       Return whether the swizzle mode is supported by DCE / DCN.
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2IsValidDisplaySwizzleMode(
+    ADDR_HANDLE     hLib,
+    AddrSwizzleMode swizzleMode,
+    UINT_32         bpp,
+    bool            *result);
+
 #if defined(__cplusplus)
 }
 #endif

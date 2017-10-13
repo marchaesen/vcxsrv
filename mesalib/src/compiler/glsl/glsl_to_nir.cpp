@@ -1155,8 +1155,6 @@ nir_visitor::visit(ir_call *ir)
       case nir_intrinsic_vote_eq: {
          nir_ssa_dest_init(&instr->instr, &instr->dest, 1, 32, NULL);
 
-         instr->variables[0] = evaluate_deref(&instr->instr, ir->return_deref);
-
          ir_rvalue *value = (ir_rvalue *) ir->actual_parameters.get_head();
          instr->src[0] = nir_src_for_ssa(evaluate_rvalue(value));
 

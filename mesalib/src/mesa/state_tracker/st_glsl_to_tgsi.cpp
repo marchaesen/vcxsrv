@@ -389,7 +389,7 @@ glsl_to_tgsi_visitor::emit_asm(ir_instruction *ir, unsigned op,
     * sources into temps.
     */
    num_reladdr += dst.reladdr != NULL || dst.reladdr2;
-   num_reladdr += dst1.reladdr != NULL || dst1.reladdr2;
+   assert(!dst1.reladdr); /* should be lowered in earlier passes */
    num_reladdr += src0.reladdr != NULL || src0.reladdr2 != NULL;
    num_reladdr += src1.reladdr != NULL || src1.reladdr2 != NULL;
    num_reladdr += src2.reladdr != NULL || src2.reladdr2 != NULL;
@@ -407,10 +407,7 @@ glsl_to_tgsi_visitor::emit_asm(ir_instruction *ir, unsigned op,
          emit_arl(ir, address_reg2, *dst.reladdr2);
       num_reladdr--;
    }
-   if (dst1.reladdr) {
-      emit_arl(ir, address_reg, *dst1.reladdr);
-      num_reladdr--;
-   }
+
    assert(num_reladdr == 0);
 
    /* inst->op has only 8 bits. */
@@ -1269,7 +1266,7 @@ glsl_to_tgsi_visitor::reladdr_to_temp(ir_instruction *ir,
    if (reg->reladdr2) emit_arl(ir, address_reg2, *reg->reladdr2);
 
    if (*num_reladdr != 1) {
-      st_src_reg temp = get_temp(reg->type == GLSL_TYPE_DOUBLE ? glsl_type::dvec4_type : glsl_type::vec4_type);
+      st_src_reg temp = get_temp(glsl_type::get_instance(reg->type, 4, 1));
 
       emit_asm(ir, TGSI_OPCODE_MOV, st_dst_reg(temp), *reg);
       *reg = temp;
@@ -4463,6 +4460,7 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
 {
    v->samplers_used = 0;
    v->images_used = 0;
+   prog->info.textures_used_by_txf = 0;
 
    foreach_in_list(glsl_to_tgsi_instruction, inst, &v->instructions) {
       if (inst->info->is_tex) {
@@ -4475,8 +4473,8 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
             v->sampler_targets[idx] =
                st_translate_texture_target(inst->tex_target, inst->tex_shadow);
 
-            if (inst->tex_shadow) {
-               prog->ShadowSamplers |= 1 << (inst->resource.index + i);
+            if (inst->op == TGSI_OPCODE_TXF || inst->op == TGSI_OPCODE_TXF_LZ) {
+               prog->info.textures_used_by_txf |= 1u << idx;
             }
          }
       }
@@ -5206,7 +5204,8 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
    /* We never delete inst, but we may delete its successor. */
    foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
       glsl_to_tgsi_instruction *inst2;
-      bool merged;
+      unsigned defined;
+
       if (num_inst_dst_regs(inst) != 2)
          continue;
 
@@ -5214,10 +5213,19 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
           inst->dst[1].file != PROGRAM_UNDEFINED)
          continue;
 
+      assert(inst->dst[0].file != PROGRAM_UNDEFINED ||
+             inst->dst[1].file != PROGRAM_UNDEFINED);
+
+      if (inst->dst[0].file == PROGRAM_UNDEFINED)
+         defined = 1;
+      else
+         defined = 0;
+
       inst2 = (glsl_to_tgsi_instruction *) inst->next;
       do {
-
-         if (inst->src[0].file == inst2->src[0].file &&
+         if (inst->op == inst2->op &&
+             inst2->dst[defined].file == PROGRAM_UNDEFINED &&
+             inst->src[0].file == inst2->src[0].file &&
              inst->src[0].index == inst2->src[0].index &&
              inst->src[0].type == inst2->src[0].type &&
              inst->src[0].swizzle == inst2->src[0].swizzle)
@@ -5225,21 +5233,19 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
          inst2 = (glsl_to_tgsi_instruction *) inst2->next;
       } while (inst2);
 
-      if (!inst2)
+      if (!inst2) {
+         /* Undefined destinations are not allowed, substitute with an unused
+          * temporary register.
+          */
+         st_src_reg tmp = get_temp(glsl_type::vec4_type);
+         inst->dst[defined ^ 1] = st_dst_reg(tmp);
+         inst->dst[defined ^ 1].writemask = 0;
          continue;
-      merged = false;
-      if (inst->dst[0].file == PROGRAM_UNDEFINED) {
-         merged = true;
-         inst->dst[0] = inst2->dst[0];
-      } else if (inst->dst[1].file == PROGRAM_UNDEFINED) {
-         inst->dst[1] = inst2->dst[1];
-         merged = true;
       }
 
-      if (merged) {
-         inst2->remove();
-         delete inst2;
-      }
+      inst->dst[defined ^ 1] = inst2->dst[defined ^ 1];
+      inst2->remove();
+      delete inst2;
    }
 }
 

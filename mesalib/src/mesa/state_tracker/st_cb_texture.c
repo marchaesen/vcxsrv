@@ -3087,7 +3087,9 @@ st_NewTextureHandle(struct gl_context *ctx, struct gl_texture_object *texObj,
          return 0;
 
       st_convert_sampler(st, texObj, sampObj, 0, &sampler);
-      view = st_get_texture_sampler_view_from_stobj(st, stObj, sampObj, 0);
+
+      /* TODO: Clarify the interaction of ARB_bindless_texture and EXT_texture_sRGB_decode */
+      view = st_get_texture_sampler_view_from_stobj(st, stObj, sampObj, 0, true);
    } else {
       view = st_get_buffer_sampler_view_from_stobj(st, stObj);
    }

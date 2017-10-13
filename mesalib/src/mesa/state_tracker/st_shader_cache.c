@@ -69,21 +69,22 @@ st_store_tgsi_in_disk_cache(struct st_context *st, struct gl_program *prog,
       return;
 
    unsigned char *sha1;
-   struct blob *blob = blob_create();
+   struct blob blob;
+   blob_init(&blob);
 
    switch (prog->info.stage) {
    case MESA_SHADER_VERTEX: {
       struct st_vertex_program *stvp = (struct st_vertex_program *) prog;
       sha1 = stvp->sha1;
 
-      blob_write_uint32(blob, stvp->num_inputs);
-      blob_write_bytes(blob, stvp->index_to_input,
+      blob_write_uint32(&blob, stvp->num_inputs);
+      blob_write_bytes(&blob, stvp->index_to_input,
                        sizeof(stvp->index_to_input));
-      blob_write_bytes(blob, stvp->result_to_output,
+      blob_write_bytes(&blob, stvp->result_to_output,
                        sizeof(stvp->result_to_output));
 
-      write_stream_out_to_cache(blob, &stvp->tgsi);
-      write_tgsi_to_cache(blob, &stvp->tgsi, st, sha1, num_tokens);
+      write_stream_out_to_cache(&blob, &stvp->tgsi);
+      write_tgsi_to_cache(&blob, &stvp->tgsi, st, sha1, num_tokens);
       break;
    }
    case MESA_SHADER_TESS_CTRL:
@@ -92,22 +93,22 @@ st_store_tgsi_in_disk_cache(struct st_context *st, struct gl_program *prog,
       struct st_common_program *p = st_common_program(prog);
       sha1 = p->sha1;
 
-      write_stream_out_to_cache(blob, out_state);
-      write_tgsi_to_cache(blob, out_state, st, sha1, num_tokens);
+      write_stream_out_to_cache(&blob, out_state);
+      write_tgsi_to_cache(&blob, out_state, st, sha1, num_tokens);
       break;
    }
    case MESA_SHADER_FRAGMENT: {
       struct st_fragment_program *stfp = (struct st_fragment_program *) prog;
       sha1 = stfp->sha1;
 
-      write_tgsi_to_cache(blob, &stfp->tgsi, st, sha1, num_tokens);
+      write_tgsi_to_cache(&blob, &stfp->tgsi, st, sha1, num_tokens);
       break;
    }
    case MESA_SHADER_COMPUTE: {
       struct st_compute_program *stcp = (struct st_compute_program *) prog;
       sha1 = stcp->sha1;
 
-      write_tgsi_to_cache(blob, out_state, st, sha1, num_tokens);
+      write_tgsi_to_cache(&blob, out_state, st, sha1, num_tokens);
       break;
    }
    default:
@@ -121,7 +122,7 @@ st_store_tgsi_in_disk_cache(struct st_context *st, struct gl_program *prog,
               _mesa_shader_stage_to_string(prog->info.stage), sha1_buf);
    }
 
-   blob_destroy(blob);
+   blob_finish(&blob);
 }
 
 static void

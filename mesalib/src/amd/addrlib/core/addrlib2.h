@@ -178,6 +178,13 @@ public:
         const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
         ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT*      pOut) const;
 
+    virtual BOOL_32 IsValidDisplaySwizzleMode(
+        const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTIMPLEMENTED;
+    }
+
 protected:
     Lib();  // Constructor is protected
     Lib(const Client* pClient);

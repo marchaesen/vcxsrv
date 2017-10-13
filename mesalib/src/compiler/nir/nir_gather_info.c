@@ -264,8 +264,20 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader)
 static void
 gather_tex_info(nir_tex_instr *instr, nir_shader *shader)
 {
-   if (instr->op == nir_texop_tg4)
+   switch (instr->op) {
+   case nir_texop_tg4:
       shader->info.uses_texture_gather = true;
+      break;
+   case nir_texop_txf:
+   case nir_texop_txf_ms:
+   case nir_texop_txf_ms_mcs:
+      shader->info.textures_used_by_txf |=
+         ((1 << MAX2(instr->texture_array_size, 1)) - 1) <<
+         instr->texture_index;
+      break;
+   default:
+      break;
+   }
 }
 
 static void
