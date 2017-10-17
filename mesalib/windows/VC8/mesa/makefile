@@ -78,6 +78,7 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\compiler\glsl\ir_expression_operation_constant.h \
       ..\..\..\src\compiler\glsl\expression_operation_strings.h \
       ..\..\..\src\compiler\glsl\ir_expression_operation_strings.h \
+      ..\..\..\src\compiler\nir\nir_opcodes.h \
 			$(COMPILERFLEXBISONGEN) $(PROGRAMFLEXBISONGEN)
 
 all: $(TARGETDIR)\Release\swrast_dri.dll $(TARGETDIR)\Debug\swrast_dri.dll

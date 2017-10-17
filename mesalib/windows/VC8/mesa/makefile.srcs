@@ -57,6 +57,10 @@ REMAP_HELPER = ../../../src/mapi/glapi/gen/remap_helper.py
 ..\..\..\src\compiler\glsl\ir_expression_operation_strings.h: ..\..\..\src\compiler\glsl\ir_expression_operation.py
 	python $< strings > $@
 
+..\..\..\src\compiler\nir\nir_opcodes.h: ..\..\..\src\compiler\nir\nir_opcodes_h.py ..\..\..\src\compiler\nir\nir_opcodes.py
+	python $< > $@
+
+
 COMPILERFLEXBISONGEN:=..\..\..\src/compiler\glsl\glcpp\glcpp-lex.c\
   ..\..\..\src\compiler\glsl\glcpp\glcpp-parse.c\
   ..\..\..\src\compiler\glsl\glcpp\glcpp-parse.h\
