@@ -25,11 +25,14 @@ dri_link = []
 if with_dri_swrast
   subdir('swrast')
 endif
+if with_dri_i915
+  subdir('i915')
+endif
 if with_dri_i965
   subdir('i965')
 endif
 
-if with_dri
+if dri_drivers != []
   libmesa_dri_drivers = shared_library(
     'mesa_dri_drivers',
     dummy_cpp,  # see meson #2180

@@ -686,8 +686,6 @@ update_single_program_texture_state(struct gl_context *ctx,
    struct gl_texture_object *texObj;
 
    texObj = update_single_program_texture(ctx, prog, unit);
-   if (!texObj)
-      return;
 
    _mesa_reference_texobj(&ctx->Texture.Unit[unit]._Current, texObj);
    BITSET_SET(enabled_texture_units, unit);
@@ -840,11 +838,9 @@ _mesa_update_texture_state(struct gl_context *ctx)
 
    memcpy(prog, ctx->_Shader->CurrentProgram, sizeof(prog));
 
-   if (prog[MESA_SHADER_FRAGMENT] == NULL) {
-      if (_mesa_arb_fragment_program_enabled(ctx))
-         prog[MESA_SHADER_FRAGMENT] = ctx->FragmentProgram.Current;
-      else if (_mesa_ati_fragment_shader_enabled(ctx))
-         prog[MESA_SHADER_FRAGMENT] = ctx->ATIFragmentShader.Current->Program;
+   if (prog[MESA_SHADER_FRAGMENT] == NULL &&
+       _mesa_arb_fragment_program_enabled(ctx)) {
+      prog[MESA_SHADER_FRAGMENT] = ctx->FragmentProgram.Current;
    }
 
    /* TODO: only set this if there are actual changes */

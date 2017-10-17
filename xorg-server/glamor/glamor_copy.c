@@ -317,6 +317,13 @@ bail:
     return FALSE;
 }
 
+/* Include the enums here for the moment, to keep from needing to bump epoxy. */
+#ifndef GL_TILE_RASTER_ORDER_FIXED_MESA
+#define GL_TILE_RASTER_ORDER_FIXED_MESA          0x8BB8
+#define GL_TILE_RASTER_ORDER_INCREASING_X_MESA   0x8BB9
+#define GL_TILE_RASTER_ORDER_INCREASING_Y_MESA   0x8BBA
+#endif
+
 /*
  * Copy from GPU to GPU by using the source
  * as a texture and painting that into the destination
@@ -388,6 +395,18 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
 
     v = glamor_get_vbo_space(dst->pScreen, nbox * 8 * sizeof (int16_t), &vbo_offset);
 
+    if (src_pixmap == dst_pixmap && glamor_priv->has_mesa_tile_raster_order) {
+        glEnable(GL_TILE_RASTER_ORDER_FIXED_MESA);
+        if (dx >= 0)
+            glEnable(GL_TILE_RASTER_ORDER_INCREASING_X_MESA);
+        else
+            glDisable(GL_TILE_RASTER_ORDER_INCREASING_X_MESA);
+        if (dy >= 0)
+            glEnable(GL_TILE_RASTER_ORDER_INCREASING_Y_MESA);
+        else
+            glDisable(GL_TILE_RASTER_ORDER_INCREASING_Y_MESA);
+    }
+
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
     glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_SHORT, GL_FALSE,
                           2 * sizeof (GLshort), vbo_offset);
@@ -451,6 +470,9 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
     ret = TRUE;
 
 bail_ctx:
+    if (src_pixmap == dst_pixmap && glamor_priv->has_mesa_tile_raster_order) {
+        glDisable(GL_TILE_RASTER_ORDER_FIXED_MESA);
+    }
     glDisable(GL_SCISSOR_TEST);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
@@ -611,34 +633,36 @@ glamor_copy_needs_temp(DrawablePtr src,
     if (!glamor_priv->has_nv_texture_barrier)
         return TRUE;
 
-    glamor_get_drawable_deltas(src, src_pixmap, &src_off_x, &src_off_y);
-    glamor_get_drawable_deltas(dst, dst_pixmap, &dst_off_x, &dst_off_y);
+    if (!glamor_priv->has_mesa_tile_raster_order) {
+        glamor_get_drawable_deltas(src, src_pixmap, &src_off_x, &src_off_y);
+        glamor_get_drawable_deltas(dst, dst_pixmap, &dst_off_x, &dst_off_y);
 
-    bounds = box[0];
-    for (n = 1; n < nbox; n++) {
-        bounds.x1 = min(bounds.x1, box[n].x1);
-        bounds.y1 = min(bounds.y1, box[n].y1);
+        bounds = box[0];
+        for (n = 1; n < nbox; n++) {
+            bounds.x1 = min(bounds.x1, box[n].x1);
+            bounds.y1 = min(bounds.y1, box[n].y1);
 
-        bounds.x2 = max(bounds.x2, box[n].x2);
-        bounds.y2 = max(bounds.y2, box[n].y2);
-    }
+            bounds.x2 = max(bounds.x2, box[n].x2);
+            bounds.y2 = max(bounds.y2, box[n].y2);
+        }
 
-    /* Check to see if the pixmap-relative boxes overlap in both X and Y,
-     * in which case we can't rely on NV_texture_barrier and must
-     * make a temporary copy
-     *
-     *  dst.x1                     < src.x2 &&
-     *  src.x1                     < dst.x2 &&
-     *
-     *  dst.y1                     < src.y2 &&
-     *  src.y1                     < dst.y2
-     */
-    if (bounds.x1 + dst_off_x      < bounds.x2 + dx + src_off_x &&
-        bounds.x1 + dx + src_off_x < bounds.x2 + dst_off_x &&
+        /* Check to see if the pixmap-relative boxes overlap in both X and Y,
+         * in which case we can't rely on NV_texture_barrier and must
+         * make a temporary copy
+         *
+         *  dst.x1                     < src.x2 &&
+         *  src.x1                     < dst.x2 &&
+         *
+         *  dst.y1                     < src.y2 &&
+         *  src.y1                     < dst.y2
+         */
+        if (bounds.x1 + dst_off_x      < bounds.x2 + dx + src_off_x &&
+            bounds.x1 + dx + src_off_x < bounds.x2 + dst_off_x &&
 
-        bounds.y1 + dst_off_y      < bounds.y2 + dy + src_off_y &&
-        bounds.y1 + dy + src_off_y < bounds.y2 + dst_off_y) {
-        return TRUE;
+            bounds.y1 + dst_off_y      < bounds.y2 + dy + src_off_y &&
+            bounds.y1 + dy + src_off_y < bounds.y2 + dst_off_y) {
+            return TRUE;
+        }
     }
 
     glTextureBarrierNV();

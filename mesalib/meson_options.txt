@@ -18,37 +18,132 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-option('platforms', type : 'string', value : 'x11,wayland',
-       description : 'comma separated list of window systems to support. wayland, x11, surfaceless, drm, etc.')
-option('dri3', type : 'combo', value : 'auto', choices : ['auto', 'yes', 'no'],
-       description : 'enable support for dri3')
-option('dri-drivers', type : 'string', value : 'swrast,i965',
-       description : 'comma separated list of dri drivers to build.')
-option('dri-drivers-path', type : 'string', value : '',
-       description : 'Location of dri drivers. Default: $libdir/dri.')
-option('vulkan-drivers', type : 'string', value : 'intel,amd',
-       description : 'comma separated list of vulkan drivers to build.')
-option('shader-cache', type : 'boolean', value : true,
-       description : 'Build with on-disk shader cache support')
-option('vulkan-icd-dir', type : 'string', value : '',
-       description : 'Location relative to prefix to put vulkan icds on install. Default: $datadir/vulkan/icd.d')
-option('shared-glapi', type : 'boolean', value : true,
-       description : 'Whether to build a shared or static glapi')
-option('gles1', type : 'boolean', value : true,
-       description : 'Build support for OpenGL ES 1.x')
-option('gles2', type : 'boolean', value : true,
-       description : 'Build support for OpenGL ES 2.x and 3.x')
-option('opengl', type : 'boolean', value : true,
-       description : 'Build support for OpenGL (all versions)')
-option('gbm', type : 'combo', value : 'auto', choices : ['auto', 'yes', 'no'],
-       description : 'Build support for gbm platform')
-option('glx', type : 'combo', value : 'auto', choices : ['auto', 'disabled', 'dri', 'xlib', 'gallium-xlib'],
-       description : 'Build support for GLX platform')
-option('glvnd', type : 'boolean', value : false,
-       description : 'Enable GLVND support.')
-option('asm', type : 'boolean', value : true,
-       description : 'Build assembly code if possible')
-option('valgrind', type : 'boolean', value : true,
-       description : 'Build with valgrind support if possible')
-option('build-tests', type : 'boolean', value : false,
-       description : 'Build unit tests. Currently this will build *all* unit tests, which may build more than expected.')
+option(
+  'platforms',
+  type : 'string',
+  value : 'x11,wayland,drm',
+  description : 'comma separated list of window systems to support. wayland, x11, surfaceless, drm, etc.'
+)
+option(
+  'dri3',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'yes', 'no'],
+  description : 'enable support for dri3'
+)
+option(
+  'dri-drivers',
+  type : 'string',
+  value : 'i915,i965',
+  description : 'comma separated list of dri drivers to build.'
+)
+option(
+  'dri-drivers-path',
+  type : 'string',
+  value : '',
+  description : 'Location of dri drivers. Default: $libdir/dri.'
+)
+option(
+  'gallium-drivers',
+  type : 'string',
+  value : 'radeonsi,nouveau,swrast',
+  description : 'comma separated list of gallium drivers to build.'
+)
+option(
+  'gallium-media',
+  type : 'string',
+  value : '',
+  description : 'comma separated list of gallium media APIs to build (omx,va,vdpau,xvmc).'
+)
+option(
+  'vulkan-drivers',
+  type : 'string',
+  value : 'intel,amd',
+  description : 'comma separated list of vulkan drivers to build.'
+)
+option(
+  'shader-cache',
+  type : 'boolean',
+  value : true,
+  description : 'Build with on-disk shader cache support'
+)
+option(
+  'vulkan-icd-dir',
+  type : 'string',
+  value : '',
+  description : 'Location relative to prefix to put vulkan icds on install. Default: $datadir/vulkan/icd.d'
+)
+option(
+  'shared-glapi',
+  type : 'boolean',
+  value : true,
+  description : 'Whether to build a shared or static glapi'
+)
+option(
+  'gles1',
+  type : 'boolean',
+  value : true,
+  description : 'Build support for OpenGL ES 1.x'
+)
+option(
+  'gles2',
+  type : 'boolean',
+  value : true,
+  description : 'Build support for OpenGL ES 2.x and 3.x'
+)
+option(
+  'opengl',
+  type : 'boolean',
+  value : true,
+  description : 'Build support for OpenGL (all versions)'
+)
+option(
+  'gbm',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'yes', 'no'],
+  description : 'Build support for gbm platform'
+)
+option(
+  'glx',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'disabled', 'dri', 'xlib', 'gallium-xlib'],
+  description : 'Build support for GLX platform'
+)
+option(
+  'glvnd',
+  type : 'boolean',
+  value : false,
+  description : 'Enable GLVND support.'
+)
+option(
+  'asm',
+  type : 'boolean',
+  value : true,
+  description : 'Build assembly code if possible'
+)
+option(
+  'llvm',
+  type : 'boolean',
+  value : true,
+  description : 'Build with LLVM support.'
+)
+option(
+  'valgrind',
+  type : 'boolean',
+  value : true,
+  description : 'Build with valgrind support if possible'
+)
+option(
+  'build-tests',
+  type : 'boolean',
+  value : false,
+  description : 'Build unit tests. Currently this will build *all* unit tests, which may build more than expected.'
+)
+option(
+  'texture-float',
+  type : 'boolean',
+  value : false,
+  description : 'Enable floating point textures and renderbuffers. This option may be patent encumbered, please read docs/patents.txt and consult with your lawyer before turning this on.'
+)

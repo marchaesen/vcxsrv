@@ -30,4 +30,7 @@ def get_git_sha1():
 
 git_sha1 = os.environ.get('MESA_GIT_SHA1_OVERRIDE', get_git_sha1())[:10]
 if git_sha1:
-    sys.stdout.write('#define MESA_GIT_SHA1 "git-%s"\n' % git_sha1.rstrip())
+    git_sha1_h_in_path = os.path.join(os.path.dirname(sys.argv[0]),
+            '..', 'src', 'git_sha1.h.in')
+    with open(git_sha1_h_in_path , 'r') as git_sha1_h_in:
+        sys.stdout.write(git_sha1_h_in.read().replace('@VCS_TAG@', git_sha1))

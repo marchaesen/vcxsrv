@@ -62,6 +62,8 @@ matrix:
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
         - OVERRIDE_CC="gcc-4.8"
         - OVERRIDE_CXX="g++-4.8"
+        # New binutils linker is required for llvm-3.9
+        - OVERRIDE_PATH=/usr/lib/binutils-2.26/bin
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--enable-dri --disable-opencl --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
@@ -73,6 +75,7 @@ matrix:
           sources:
             - llvm-toolchain-trusty-3.9
           packages:
+            - binutils-2.26
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
             # From sources above
@@ -91,6 +94,8 @@ matrix:
         - MAKE_CHECK_COMMAND="true"
         - LLVM_VERSION=3.9
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+        # New binutils linker is required for llvm-3.9
+        - OVERRIDE_PATH=/usr/lib/binutils-2.26/bin
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--enable-dri --disable-opencl --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
@@ -102,48 +107,11 @@ matrix:
           sources:
             - llvm-toolchain-trusty-3.9
           packages:
+            - binutils-2.26
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
             # From sources above
             - llvm-3.9-dev
-            # Common
-            - xz-utils
-            - x11proto-xf86vidmode-dev
-            - libexpat1-dev
-            - libx11-xcb-dev
-            - libelf-dev
-            - libunwind8-dev
-    - env:
-        # NOTE: Analogous to SWR above, building Clover is quite slow.
-        - LABEL="make Gallium ST Clover"
-        - BUILD=make
-        - MAKEFLAGS="-j4"
-        - MAKE_CHECK_COMMAND="true"
-        - LLVM_VERSION=3.6
-        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
-        - OVERRIDE_CC=gcc-4.7
-        - OVERRIDE_CXX=g++-4.7
-        - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
-        - DRI_DRIVERS=""
-        - GALLIUM_ST="--disable-dri --enable-opencl --enable-opencl-icd --enable-llvm --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
-        # i915 most likely doesn't work with OpenCL.
-        # Regardless - we're doing a quick build test here.
-        - GALLIUM_DRIVERS="i915"
-        - VULKAN_DRIVERS=""
-        - LIBUNWIND_FLAGS="--enable-libunwind"
-      addons:
-        apt:
-          sources:
-            - llvm-toolchain-trusty-3.6
-          packages:
-            - libclc-dev
-            # LLVM packaging is broken and misses these dependencies
-            - libedit-dev
-            - g++-4.7
-            # From sources above
-            - llvm-3.6-dev
-            - clang-3.6
-            - libclang-3.6-dev
             # Common
             - xz-utils
             - x11proto-xf86vidmode-dev
@@ -305,6 +273,8 @@ matrix:
         - MAKE_CHECK_COMMAND="make -C src/gtest check && make -C src/intel check"
         - LLVM_VERSION=3.9
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+        # New binutils linker is required for llvm-3.9
+        - OVERRIDE_PATH=/usr/lib/binutils-2.26/bin
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl --with-platforms=x11,wayland"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--enable-dri --enable-dri3 --disable-opencl --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
@@ -316,6 +286,7 @@ matrix:
           sources:
             - llvm-toolchain-trusty-3.9
           packages:
+            - binutils-2.26
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
             # From sources above
@@ -396,7 +367,7 @@ matrix:
     - env:
         - LABEL="meson Vulkan"
         - BUILD=meson
-        - MESON_OPTIONS="-Ddri-drivers="
+        - MESON_OPTIONS="-Ddri-drivers= -Dgallium-drivers="
       addons:
         apt:
           sources:
@@ -414,7 +385,7 @@ matrix:
     - env:
         - LABEL="meson loaders/classic DRI"
         - BUILD=meson
-        - MESON_OPTIONS="-Dvulkan-drivers="
+        - MESON_OPTIONS="-Dvulkan-drivers= -Dgallium-drivers="
       addons:
         apt:
           packages:

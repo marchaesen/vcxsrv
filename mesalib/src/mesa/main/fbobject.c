@@ -855,8 +855,7 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
           * these textures to be used as a render target, this is done via
           * GL_EXT_color_buffer(_half)_float with set of new sized types.
           */
-         if (_mesa_is_gles(ctx) && (texImage->TexObject->_IsFloat ||
-                                    texImage->TexObject->_IsHalfFloat)) {
+         if (_mesa_is_gles(ctx) && (texObj->_IsFloat || texObj->_IsHalfFloat)) {
             att_incomplete("bad internal format");
             att->Complete = GL_FALSE;
             return;

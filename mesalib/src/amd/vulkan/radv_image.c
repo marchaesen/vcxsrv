@@ -819,6 +819,14 @@ radv_image_can_enable_dcc(struct radv_image *image)
 static inline bool
 radv_image_can_enable_cmask(struct radv_image *image)
 {
+	if (image->surface.bpe > 8 && image->info.samples == 1) {
+		/* Do not enable CMASK for non-MSAA images (fast color clear)
+		 * because 128 bit formats are not supported, but FMASK might
+		 * still be used.
+		 */
+		return false;
+	}
+
 	return radv_image_can_enable_dcc_or_cmask(image) &&
 	       image->info.levels == 1 &&
 	       image->info.depth == 1 &&

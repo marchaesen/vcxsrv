@@ -11,7 +11,7 @@ AM_TESTS_ENVIRONMENT= \
 SH_LOG_COMPILER = sh
 TESTS=run-test.sh
 
-TESTDATA=4x6.pcf 8x16.pcf out.expected out271.expected fonts.conf.in
+TESTDATA=4x6.pcf 8x16.pcf out.expected fonts.conf.in
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_builddir)
 
@@ -45,7 +45,7 @@ check_PROGRAMS += test-bz96676
 test_bz96676_LDADD = $(top_builddir)/src/libfontconfig.la
 TESTS += test-bz96676
 
-EXTRA_DIST=run-test.sh run-test271.sh $(TESTDATA)
+EXTRA_DIST=run-test.sh $(TESTDATA)
 
 CLEANFILES=
 

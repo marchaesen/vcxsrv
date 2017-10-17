@@ -64,6 +64,9 @@ LOCAL_C_INCLUDES := \
 LOCAL_GENERATED_SOURCES += \
 	$(MESA_GEN_GLSL_H)
 
+LOCAL_STATIC_LIBRARIES += \
+	libmesa_nir
+
 LOCAL_WHOLE_STATIC_LIBRARIES += \
 	libmesa_program \
 	libmesa_git_sha1
