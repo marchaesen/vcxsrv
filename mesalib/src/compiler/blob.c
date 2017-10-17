@@ -158,10 +158,10 @@ blob_write_bytes(struct blob *blob, const void *bytes, size_t to_write)
    return true;
 }
 
-ssize_t
+intptr_t
 blob_reserve_bytes(struct blob *blob, size_t to_write)
 {
-   ssize_t ret;
+   intptr_t ret;
 
    if (! grow_to_fit (blob, to_write))
       return -1;
@@ -172,14 +172,14 @@ blob_reserve_bytes(struct blob *blob, size_t to_write)
    return ret;
 }
 
-ssize_t
+intptr_t
 blob_reserve_uint32(struct blob *blob)
 {
    align_blob(blob, sizeof(uint32_t));
    return blob_reserve_bytes(blob, sizeof(uint32_t));
 }
 
-ssize_t
+intptr_t
 blob_reserve_intptr(struct blob *blob)
 {
    align_blob(blob, sizeof(intptr_t));

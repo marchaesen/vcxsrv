@@ -2622,6 +2622,8 @@ void radv_CmdExecuteCommands(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, primary, commandBuffer);
 
+	assert(commandBufferCount > 0);
+
 	/* Emit pending flushes on primary prior to executing secondary */
 	si_emit_cache_flush(primary);
 
@@ -2650,18 +2652,46 @@ void radv_CmdExecuteCommands(
 		}
 		primary->device->ws->cs_execute_secondary(primary->cs, secondary->cs);
 
-		primary->state.emitted_pipeline = secondary->state.emitted_pipeline;
-		primary->state.emitted_compute_pipeline = secondary->state.emitted_compute_pipeline;
-		primary->state.last_primitive_reset_en = secondary->state.last_primitive_reset_en;
-		primary->state.last_primitive_reset_index = secondary->state.last_primitive_reset_index;
+
+		/* When the secondary command buffer is compute only we don't
+		 * need to re-emit the current graphics pipeline.
+		 */
+		if (secondary->state.emitted_pipeline) {
+			primary->state.emitted_pipeline =
+				secondary->state.emitted_pipeline;
+		}
+
+		/* When the secondary command buffer is graphics only we don't
+		 * need to re-emit the current compute pipeline.
+		 */
+		if (secondary->state.emitted_compute_pipeline) {
+			primary->state.emitted_compute_pipeline =
+				secondary->state.emitted_compute_pipeline;
+		}
+
+		/* Only re-emit the draw packets when needed. */
+		if (secondary->state.last_primitive_reset_en != -1) {
+			primary->state.last_primitive_reset_en =
+				secondary->state.last_primitive_reset_en;
+		}
+
+		if (secondary->state.last_primitive_reset_index) {
+			primary->state.last_primitive_reset_index =
+				secondary->state.last_primitive_reset_index;
+		}
+
+		if (secondary->state.last_ia_multi_vgt_param) {
+			primary->state.last_ia_multi_vgt_param =
+				secondary->state.last_ia_multi_vgt_param;
+		}
 	}
 
-	/* if we execute secondary we need to mark some stuff to reset dirty */
-	if (commandBufferCount) {
-		primary->state.dirty |= RADV_CMD_DIRTY_PIPELINE;
-		primary->state.dirty |= RADV_CMD_DIRTY_DYNAMIC_ALL;
-		radv_mark_descriptor_sets_dirty(primary);
-	}
+	/* After executing commands from secondary buffers we have to dirty
+	 * some states.
+	 */
+	primary->state.dirty |= RADV_CMD_DIRTY_PIPELINE;
+	primary->state.dirty |= RADV_CMD_DIRTY_DYNAMIC_ALL;
+	radv_mark_descriptor_sets_dirty(primary);
 }
 
 VkResult radv_CreateCommandPool(
@@ -2992,6 +3022,8 @@ radv_emit_indirect_draw(struct radv_cmd_buffer *cmd_buffer,
 	if (count_buffer) {
 		count_va = radv_buffer_get_va(count_buffer->bo);
 		count_va += count_offset + count_buffer->offset;
+
+		cmd_buffer->device->ws->cs_add_buffer(cs, count_buffer->bo, 8);
 	}
 
 	if (!draw_count)
@@ -3056,8 +3088,14 @@ radv_cmd_draw_indexed_indirect_count(
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 31 * MAX_VIEWS);
 
-	radeon_emit(cmd_buffer->cs, PKT3(PKT3_INDEX_TYPE, 0, 0));
-	radeon_emit(cmd_buffer->cs, cmd_buffer->state.index_type);
+	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+		radeon_set_uconfig_reg_idx(cmd_buffer->cs,
+					   R_03090C_VGT_INDEX_TYPE,
+					   2, cmd_buffer->state.index_type);
+	} else {
+		radeon_emit(cmd_buffer->cs, PKT3(PKT3_INDEX_TYPE, 0, 0));
+		radeon_emit(cmd_buffer->cs, cmd_buffer->state.index_type);
+	}
 
 	radeon_emit(cmd_buffer->cs, PKT3(PKT3_INDEX_BASE, 1, 0));
 	radeon_emit(cmd_buffer->cs, index_va);
@@ -3522,7 +3560,7 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 						   dst_queue_mask, range,
 						   pending_clears);
 
-	if (image->cmask.size)
+	if (image->cmask.size || image->fmask.size)
 		radv_handle_cmask_image_transition(cmd_buffer, image, src_layout,
 						   dst_layout, src_queue_mask,
 						   dst_queue_mask, range);

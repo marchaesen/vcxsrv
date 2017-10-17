@@ -1027,11 +1027,6 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		radv_set_dcc_need_cmask_elim_pred(cmd_buffer, iview->image,
 						  !can_avoid_fast_clear_elim);
 	} else {
-
-		if (iview->image->surface.bpe > 8) {
-			/* 128 bit formats not supported */
-			return false;
-		}
 		radv_fill_buffer(cmd_buffer, iview->image->bo,
 				 iview->image->offset + iview->image->cmask.offset,
 				 iview->image->cmask.size, 0);

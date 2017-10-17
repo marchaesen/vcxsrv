@@ -135,7 +135,7 @@ blob_write_bytes(struct blob *blob, const void *bytes, size_t to_write);
  * \return An offset to space allocated within \blob to which \to_write bytes
  * can be written, (or -1 in case of any allocation error).
  */
-ssize_t
+intptr_t
 blob_reserve_bytes(struct blob *blob, size_t to_write);
 
 /**
@@ -143,7 +143,7 @@ blob_reserve_bytes(struct blob *blob, size_t to_write);
  * space. Note that this must be used if later reading with \sa
  * blob_read_uint32, since it aligns the offset correctly.
  */
-ssize_t
+intptr_t
 blob_reserve_uint32(struct blob *blob);
 
 /**
@@ -151,7 +151,7 @@ blob_reserve_uint32(struct blob *blob);
  * space. Note that this must be used if later reading with \sa
  * blob_read_intptr, since it aligns the offset correctly.
  */
-ssize_t
+intptr_t
 blob_reserve_intptr(struct blob *blob);
 
 /**

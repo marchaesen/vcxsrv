@@ -56,7 +56,9 @@ EXTRA_DIST = \
 	doxygen \
 	bin/git_sha1_gen.py \
 	scons \
-	SConstruct
+	SConstruct \
+	build-support/conftest.dyn \
+	build-support/conftest.map
 
 noinst_HEADERS = \
 	include/c99_alloca.h \

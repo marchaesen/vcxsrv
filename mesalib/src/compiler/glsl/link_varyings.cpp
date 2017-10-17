@@ -2268,9 +2268,6 @@ assign_varying_locations(struct gl_context *ctx,
       }
    }
 
-   _mesa_hash_table_destroy(consumer_inputs, NULL);
-   _mesa_hash_table_destroy(consumer_interface_inputs, NULL);
-
    for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
       if (!tfeedback_decls[i].is_varying())
          continue;
@@ -2286,11 +2283,30 @@ assign_varying_locations(struct gl_context *ctx,
       /* Mark xfb varyings as always active */
       matched_candidate->toplevel_var->data.always_active_io = 1;
 
+      /* Mark any corresponding inputs as always active also. We must do this
+       * because we have a NIR pass that lowers vectors to scalars and another
+       * that removes unused varyings.
+       * We don't split varyings marked as always active because there is no
+       * point in doing so. This means we need to mark both sides of the
+       * interface as always active otherwise we will have a mismatch and
+       * start removing things we shouldn't.
+       */
+      ir_variable *const input_var =
+         linker::get_matching_input(mem_ctx, matched_candidate->toplevel_var,
+                                    consumer_inputs,
+                                    consumer_interface_inputs,
+                                    consumer_inputs_with_locations);
+      if (input_var)
+         input_var->data.always_active_io = 1;
+
       if (matched_candidate->toplevel_var->data.is_unmatched_generic_inout) {
          matched_candidate->toplevel_var->data.is_xfb_only = 1;
          matches.record(matched_candidate->toplevel_var, NULL);
       }
    }
+
+   _mesa_hash_table_destroy(consumer_inputs, NULL);
+   _mesa_hash_table_destroy(consumer_interface_inputs, NULL);
 
    uint8_t components[MAX_VARYINGS_INCL_PATCH] = {0};
    const unsigned slots_used = matches.assign_locations(

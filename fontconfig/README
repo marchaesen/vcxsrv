@@ -1,11 +1,29 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.12.5
-                              2017-09-09
+                            Version 2.12.6
+                              2017-09-21
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.12.6
+
+Akira TAGOH (4):
+      und_zsye.orth: polish to get for NotoEmoji-Regular.ttf
+      Revert "Keep the same behavior to the return value of FcConfigParseAndLoad"
+      Fix again to keep the same behavior to the return value of FcConfigParseAndLoad
+      Update libtool revision
+
+Behdad Esfahbod (2):
+      Minor
+      [fc-query] Fix linking order
+
+David Kaspar [Dee'Kej] (1):
+      conf.d: Drop aliases for (URW)++ fonts
+
+Florian Müllner (1):
+      build: Remove references to deleted file
 
 2.12.5
 

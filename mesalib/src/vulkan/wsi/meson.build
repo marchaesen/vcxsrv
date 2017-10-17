@@ -41,7 +41,15 @@ files_vulkan_wsi = files(
 )
 if with_platform_x11
   vulkan_wsi_args += ['-DVK_USE_PLATFORM_XCB_KHR', '-DVK_USE_PLATFORM_XLIB_KHR']
-  vulkan_wsi_deps += dep_xcb_dri3
+  vulkan_wsi_deps += [
+    dep_xcb,
+    dep_x11_xcb,
+    dep_xcb_dri2,
+    dep_xcb_dri3,
+    dep_xcb_present,
+    dep_xcb_sync,
+    dep_xshmfence,
+  ]
   files_vulkan_wsi += files(
     'wsi_common_x11.c',
     'wsi_common_x11.h',

@@ -76,198 +76,6 @@ radv_get_device_uuid(struct radeon_info *info, void *uuid)
 	ac_compute_device_uuid(info, uuid, VK_UUID_SIZE);
 }
 
-static const VkExtensionProperties instance_extensions[] = {
-	{
-		.extensionName = VK_KHR_SURFACE_EXTENSION_NAME,
-		.specVersion = 25,
-	},
-#ifdef VK_USE_PLATFORM_XCB_KHR
-	{
-		.extensionName = VK_KHR_XCB_SURFACE_EXTENSION_NAME,
-		.specVersion = 6,
-	},
-#endif
-#ifdef VK_USE_PLATFORM_XLIB_KHR
-	{
-		.extensionName = VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
-		.specVersion = 6,
-	},
-#endif
-#ifdef VK_USE_PLATFORM_WAYLAND_KHR
-	{
-		.extensionName = VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME,
-		.specVersion = 6,
-	},
-#endif
-	{
-		.extensionName = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-};
-
-static const VkExtensionProperties common_device_extensions[] = {
-	{
-		.extensionName = VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_MAINTENANCE1_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-		.specVersion = 68,
-	},
-	{
-		.extensionName = VK_AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_BIND_MEMORY_2_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_MAINTENANCE2_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-};
-
-static const VkExtensionProperties rasterization_order_extension[] ={
-	{
-		.extensionName = VK_AMD_RASTERIZATION_ORDER_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-};
-
-static const VkExtensionProperties ext_sema_device_extensions[] = {
-	{
-		.extensionName = VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-	{
-		.extensionName = VK_KHX_MULTIVIEW_EXTENSION_NAME,
-		.specVersion = 1,
-	},
-};
-
-static VkResult
-radv_extensions_register(struct radv_instance *instance,
-			struct radv_extensions *extensions,
-			const VkExtensionProperties *new_ext,
-			uint32_t num_ext)
-{
-	size_t new_size;
-	VkExtensionProperties *new_ptr;
-
-	assert(new_ext && num_ext > 0);
-
-	if (!new_ext)
-		return VK_ERROR_INITIALIZATION_FAILED;
-
-	new_size = (extensions->num_ext + num_ext) * sizeof(VkExtensionProperties);
-	new_ptr = vk_realloc(&instance->alloc, extensions->ext_array,
-				new_size, 8, VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
-
-	/* Old array continues to be valid, update nothing */
-	if (!new_ptr)
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
-
-	memcpy(&new_ptr[extensions->num_ext], new_ext,
-		num_ext * sizeof(VkExtensionProperties));
-	extensions->ext_array = new_ptr;
-	extensions->num_ext += num_ext;
-
-	return VK_SUCCESS;
-}
-
-static void
-radv_extensions_finish(struct radv_instance *instance,
-			struct radv_extensions *extensions)
-{
-	assert(extensions);
-
-	if (!extensions)
-		radv_loge("Attemted to free invalid extension struct\n");
-
-	if (extensions->ext_array)
-		vk_free(&instance->alloc, extensions->ext_array);
-}
-
-static bool
-is_extension_enabled(const VkExtensionProperties *extensions,
-			size_t num_ext,
-			const char *name)
-{
-	assert(extensions && name);
-
-	for (uint32_t i = 0; i < num_ext; i++) {
-		if (strcmp(name, extensions[i].extensionName) == 0)
-			return true;
-	}
-
-	return false;
-}
-
 static const char *
 get_chip_name(enum radeon_family family)
 {
@@ -364,31 +172,6 @@ radv_physical_device_init(struct radv_physical_device *device,
 	disk_cache_format_hex_id(buf, device->cache_uuid, VK_UUID_SIZE);
 	device->disk_cache = disk_cache_create("radv", buf, shader_env_flags);
 
-	result = radv_extensions_register(instance,
-					&device->extensions,
-					common_device_extensions,
-					ARRAY_SIZE(common_device_extensions));
-	if (result != VK_SUCCESS)
-		goto fail;
-
-	if (device->rad_info.chip_class >= VI && device->rad_info.max_se >= 2) {
-		result = radv_extensions_register(instance,
-						&device->extensions,
-						rasterization_order_extension,
-						ARRAY_SIZE(rasterization_order_extension));
-		if (result != VK_SUCCESS)
-			goto fail;
-	}
-
-	if (device->rad_info.has_syncobj) {
-		result = radv_extensions_register(instance,
-						  &device->extensions,
-						  ext_sema_device_extensions,
-						  ARRAY_SIZE(ext_sema_device_extensions));
-		if (result != VK_SUCCESS)
-			goto fail;
-	}
-
 	fprintf(stderr, "WARNING: radv is not a conformant vulkan implementation, testing use only.\n");
 	device->name = get_chip_name(device->rad_info.family);
 
@@ -416,7 +199,6 @@ fail:
 static void
 radv_physical_device_finish(struct radv_physical_device *device)
 {
-	radv_extensions_finish(device->instance, &device->extensions);
 	radv_finish_wsi(device);
 	device->ws->destroy(device->ws);
 	disk_cache_destroy(device->disk_cache);
@@ -515,9 +297,8 @@ VkResult radv_CreateInstance(
 	}
 
 	for (uint32_t i = 0; i < pCreateInfo->enabledExtensionCount; i++) {
-		if (!is_extension_enabled(instance_extensions,
-					ARRAY_SIZE(instance_extensions),
-					pCreateInfo->ppEnabledExtensionNames[i]))
+	        const char *ext_name = pCreateInfo->ppEnabledExtensionNames[i];
+		if (!radv_instance_extension_supported(ext_name))
 			return vk_error(VK_ERROR_EXTENSION_NOT_PRESENT);
 	}
 
@@ -851,7 +632,7 @@ void radv_GetPhysicalDeviceProperties(
 	};
 
 	*pProperties = (VkPhysicalDeviceProperties) {
-		.apiVersion = VK_MAKE_VERSION(1, 0, 42),
+		.apiVersion = radv_physical_device_api_version(pdevice),
 		.driverVersion = vk_get_driver_version(),
 		.vendorID = ATI_VENDOR_ID,
 		.deviceID = pdevice->rad_info.pci_id,
@@ -1141,9 +922,8 @@ VkResult radv_CreateDevice(
 	struct radv_device *device;
 
 	for (uint32_t i = 0; i < pCreateInfo->enabledExtensionCount; i++) {
-		if (!is_extension_enabled(physical_device->extensions.ext_array,
-					physical_device->extensions.num_ext,
-					pCreateInfo->ppEnabledExtensionNames[i]))
+		const char *ext_name = pCreateInfo->ppEnabledExtensionNames[i];
+		if (!radv_physical_device_extension_supported(physical_device, ext_name))
 			return vk_error(VK_ERROR_EXTENSION_NOT_PRESENT);
 	}
 
@@ -1329,47 +1109,6 @@ void radv_DestroyDevice(
 	radv_destroy_shader_slabs(device);
 
 	vk_free(&device->alloc, device);
-}
-
-VkResult radv_EnumerateInstanceExtensionProperties(
-	const char*                                 pLayerName,
-	uint32_t*                                   pPropertyCount,
-	VkExtensionProperties*                      pProperties)
-{
-	if (pProperties == NULL) {
-		*pPropertyCount = ARRAY_SIZE(instance_extensions);
-		return VK_SUCCESS;
-	}
-
-	*pPropertyCount = MIN2(*pPropertyCount, ARRAY_SIZE(instance_extensions));
-	typed_memcpy(pProperties, instance_extensions, *pPropertyCount);
-
-	if (*pPropertyCount < ARRAY_SIZE(instance_extensions))
-		return VK_INCOMPLETE;
-
-	return VK_SUCCESS;
-}
-
-VkResult radv_EnumerateDeviceExtensionProperties(
-	VkPhysicalDevice                            physicalDevice,
-	const char*                                 pLayerName,
-	uint32_t*                                   pPropertyCount,
-	VkExtensionProperties*                      pProperties)
-{
-	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
-
-	if (pProperties == NULL) {
-		*pPropertyCount = pdevice->extensions.num_ext;
-		return VK_SUCCESS;
-	}
-
-	*pPropertyCount = MIN2(*pPropertyCount, pdevice->extensions.num_ext);
-	typed_memcpy(pProperties, pdevice->extensions.ext_array, *pPropertyCount);
-
-	if (*pPropertyCount < pdevice->extensions.num_ext)
-		return VK_INCOMPLETE;
-
-	return VK_SUCCESS;
 }
 
 VkResult radv_EnumerateInstanceLayerProperties(

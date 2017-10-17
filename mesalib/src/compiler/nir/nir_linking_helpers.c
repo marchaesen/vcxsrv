@@ -56,11 +56,9 @@ get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
    return ((1ull << slots) - 1) << var->data.location;
 }
 
-static uint64_t
-tcs_output_read_bitmask(nir_shader *shader)
+static void
+tcs_add_output_reads(nir_shader *shader, uint64_t *read)
 {
-   uint64_t read = 0;
-
    nir_foreach_function(function, shader) {
       if (function->impl) {
          nir_foreach_block(block, function->impl) {
@@ -73,20 +71,21 @@ tcs_output_read_bitmask(nir_shader *shader)
                if (intrin_instr->intrinsic == nir_intrinsic_load_var &&
                    intrin_instr->variables[0]->var->data.mode ==
                    nir_var_shader_out) {
-                  read |= get_variable_io_mask(intrin_instr->variables[0]->var,
-                                               shader->stage);
+
+                  nir_variable *var = intrin_instr->variables[0]->var;
+                  read[var->data.location_frac] |=
+                     get_variable_io_mask(intrin_instr->variables[0]->var,
+                                          shader->stage);
                }
             }
          }
       }
    }
-
-   return read;
 }
 
 static bool
 remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
-                      uint64_t used_by_other_stage)
+                      uint64_t *used_by_other_stage)
 {
    bool progress = false;
 
@@ -101,7 +100,9 @@ remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
       if (var->data.always_active_io)
          continue;
 
-      if (!(used_by_other_stage & get_variable_io_mask(var, shader->stage))) {
+      uint64_t other_stage = used_by_other_stage[var->data.location_frac];
+
+      if (!(other_stage & get_variable_io_mask(var, shader->stage))) {
          /* This one is invalid, make it a global variable instead */
          var->data.location = 0;
          var->data.mode = nir_var_global;
@@ -122,20 +123,24 @@ nir_remove_unused_varyings(nir_shader *producer, nir_shader *consumer)
    assert(producer->stage != MESA_SHADER_FRAGMENT);
    assert(consumer->stage != MESA_SHADER_VERTEX);
 
-   uint64_t read = 0, written = 0;
+   uint64_t read[4] = { 0 }, written[4] = { 0 };
 
-   nir_foreach_variable(var, &producer->outputs)
-      written |= get_variable_io_mask(var, producer->stage);
+   nir_foreach_variable(var, &producer->outputs) {
+      written[var->data.location_frac] |=
+         get_variable_io_mask(var, producer->stage);
+   }
 
-   nir_foreach_variable(var, &consumer->inputs)
-      read |= get_variable_io_mask(var, consumer->stage);
+   nir_foreach_variable(var, &consumer->inputs) {
+      read[var->data.location_frac] |=
+         get_variable_io_mask(var, consumer->stage);
+   }
 
    /* Each TCS invocation can read data written by other TCS invocations,
     * so even if the outputs are not used by the TES we must also make
     * sure they are not read by the TCS before demoting them to globals.
     */
    if (producer->stage == MESA_SHADER_TESS_CTRL)
-      read |= tcs_output_read_bitmask(producer);
+      tcs_add_output_reads(producer, read);
 
    bool progress = false;
    progress = remove_unused_io_vars(producer, &producer->outputs, read);

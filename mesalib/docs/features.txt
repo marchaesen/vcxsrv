@@ -313,6 +313,12 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_ARB_sparse_texture2                                not started
   GL_ARB_sparse_texture_clamp                           not started
   GL_ARB_texture_filter_minmax                          not started
+  GL_EXT_memory_object                                  DONE (radeonsi)
+  GL_EXT_memory_object_fd                               DONE (radeonsi)
+  GL_EXT_memory_object_win32                            not started
+  GL_EXT_semaphore                                      not started
+  GL_EXT_semaphore_fd                                   not started
+  GL_EXT_semaphore_win32                                not started
   GL_KHR_blend_equation_advanced_coherent               DONE (i965/gen9+)
   GL_KHR_texture_compression_astc_hdr                   DONE (i965/bxt)
   GL_KHR_texture_compression_astc_sliced_3d             DONE (i965/gen9+)

@@ -47,7 +47,9 @@ AM_CPPFLAGS =							\
 	-I$(top_srcdir)/include					\
 	-I$(top_srcdir)/src					\
 	-I$(top_builddir)/src/mapi				\
-	-I$(top_srcdir)/src/mapi
+	-I$(top_srcdir)/src/mapi				\
+	-I$(top_builddir)/src/mapi/glapi			\
+	-I$(top_srcdir)/src/mapi/glapi
 
 include Makefile.sources
 
@@ -85,7 +87,6 @@ check_PROGRAMS += shared-glapi-test
 shared_glapi_test_SOURCES = shared-glapi/tests/check_table.cpp
 shared_glapi_test_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-I$(top_builddir)/src/mapi/glapi \
 	-I$(top_srcdir)/src/gtest/include
 shared_glapi_test_LDADD = \
 	$(top_builddir)/src/mapi/shared-glapi/libglapi.la \
@@ -114,7 +115,6 @@ endif
 glapi_libglapi_la_SOURCES =
 glapi_libglapi_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-I$(top_srcdir)/src/mapi/glapi \
 	-I$(top_srcdir)/src/mesa
 
 if HAVE_APPLEDRI
@@ -149,7 +149,6 @@ check_PROGRAMS += glapi-test
 glapi_test_SOURCES = glapi/tests/check_table.cpp
 glapi_test_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-I$(top_builddir)/src/mapi/glapi \
 	-I$(top_srcdir)/src/gtest/include
 
 glapi_test_LDADD = \

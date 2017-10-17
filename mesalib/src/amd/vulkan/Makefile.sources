@@ -77,5 +77,6 @@ VULKAN_WSI_X11_FILES := \
 
 VULKAN_GENERATED_FILES := \
 	radv_entrypoints.c \
-	radv_entrypoints.h
+	radv_entrypoints.h \
+	radv_extensions.c
 
