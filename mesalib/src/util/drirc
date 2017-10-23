@@ -166,63 +166,84 @@ TODO: document the other workarounds.
         <application name="Alien Isolation" executable="AlienIsolation">
             <option name="mesa_glthread" value="true"/>
         </application>
-        <application name="Civilization 6" executable="Civ6">
-            <option name="mesa_glthread" value="true"/>
-        </application>
+
         <application name="BioShock Infinite" executable="bioshock.i386">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="Borderlands 2" executable="Borderlands2">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="Civilization 5" executable="Civ5XP">
             <option name="mesa_glthread" value="true"/>
         </application>
+        <application name="Civilization 6" executable="Civ6">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+
         <application name="Dreamfall Chapters" executable="Dreamfall Chapters">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="Hitman" executable="HitmanPro">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="Renowned Explorers: International Society" executable="abbeycore_steam">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+
+        <application name="Saints Row 2" executable="saintsrow2.i386">
             <option name="mesa_glthread" value="true"/>
         </application>
         <application name="Saints Row: The Third" executable="SaintsRow3.i386">
             <option name="mesa_glthread" value="true"/>
         </application>
+        <application name="Saints Row IV" executable="SaintsRow4.i386">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+        <application name="Saints Row: Gat out of Hell" executable="SaintsRow4GooH.i386">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+
         <application name="Sid Meier's: Civilization Beyond Earth" executable="CivBE">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="The Witcher 2" executable="witcher2">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="American Truck Simulator" executable="amtrucks">
             <option name="mesa_glthread" value="true"/>
         </application>
         <application name="Euro Truck Simulator 2" executable="eurotrucks2">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="Overlord" executable="overlord.i386">
             <option name="mesa_glthread" value="true"/>
         </application>
         <application name="Overlord 2" executable="overlord2.i386">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="Oil Rush" executable="OilRush_x86">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="War Thunder" executable="aces">
-            <option name="mesa_glthread" value="true"/>
-        </application>
-        <application name="Saints Row 2" executable="saintsrow2.i386">
             <option name="mesa_glthread" value="true"/>
         </application>
         <application name="War Thunder (Wine)" executable="aces.exe">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="Outlast" executable="OLGame.x86_64">
             <option name="mesa_glthread" value="true"/>
         </application>
+
         <application name="Spec Ops: The Line (32-bit)" executable="specops.i386">
             <option name="mesa_glthread" value="true"/>
         </application>

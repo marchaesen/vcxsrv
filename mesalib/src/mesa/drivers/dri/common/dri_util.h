@@ -85,11 +85,12 @@ struct __DriverAPIRec {
     GLboolean (*CreateContext)(gl_api api,
                                const struct gl_config *glVis,
                                __DRIcontext *driContextPriv,
-			       unsigned major_version,
-			       unsigned minor_version,
-			       uint32_t flags,
+                               unsigned major_version,
+                               unsigned minor_version,
+                               uint32_t flags,
                                bool notify_reset,
-			       unsigned *error,
+                               unsigned priority,
+                               unsigned *error,
                                void *sharedContextPrivate);
 
     void (*DestroyContext)(__DRIcontext *driContextPriv);

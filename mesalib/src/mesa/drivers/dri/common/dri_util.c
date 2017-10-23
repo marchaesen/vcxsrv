@@ -306,6 +306,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
     unsigned minor_version = 0;
     uint32_t flags = 0;
     bool notify_reset = false;
+    unsigned priority = __DRI_CTX_PRIORITY_MEDIUM;
 
     assert((num_attribs == 0) || (attribs != NULL));
 
@@ -348,6 +349,9 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
             notify_reset = (attribs[i * 2 + 1]
                             != __DRI_CTX_RESET_NO_NOTIFICATION);
             break;
+	case __DRI_CTX_ATTRIB_PRIORITY:
+	    priority = attribs[i * 2 + 1];
+	    break;
 	default:
 	    /* We can't create a context that satisfies the requirements of an
 	     * attribute that we don't understand.  Return failure.
@@ -451,7 +455,8 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
 
     if (!screen->driver->CreateContext(mesa_api, modes, context,
                                        major_version, minor_version,
-                                       flags, notify_reset, error, shareCtx)) {
+                                       flags, notify_reset, priority,
+                                       error, shareCtx)) {
         free(context);
         return NULL;
     }

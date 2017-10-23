@@ -193,7 +193,7 @@ nir_lower_two_sided_color(nir_shader *shader)
       .shader = shader,
    };
 
-   if (shader->stage != MESA_SHADER_FRAGMENT)
+   if (shader->info.stage != MESA_SHADER_FRAGMENT)
       return;
 
    if (setup_inputs(&state) != 0)

@@ -53,6 +53,7 @@ enum radeon_bo_flag { /* bitfield */
 	RADEON_FLAG_NO_CPU_ACCESS = (1 << 2),
 	RADEON_FLAG_VIRTUAL =       (1 << 3),
 	RADEON_FLAG_VA_UNCACHED =   (1 << 4),
+	RADEON_FLAG_IMPLICIT_SYNC = (1 << 5),
 };
 
 enum radeon_bo_usage { /* bitfield */
@@ -68,6 +69,14 @@ enum ring_type {
 	RING_UVD,
 	RING_VCE,
 	RING_LAST,
+};
+
+enum radeon_ctx_priority {
+	RADEON_CTX_PRIORITY_INVALID = -1,
+	RADEON_CTX_PRIORITY_LOW = 0,
+	RADEON_CTX_PRIORITY_MEDIUM,
+	RADEON_CTX_PRIORITY_HIGH,
+	RADEON_CTX_PRIORITY_REALTIME,
 };
 
 struct radeon_winsys_cs {
@@ -188,7 +197,8 @@ struct radeon_winsys {
 	void (*buffer_virtual_bind)(struct radeon_winsys_bo *parent,
 	                            uint64_t offset, uint64_t size,
 	                            struct radeon_winsys_bo *bo, uint64_t bo_offset);
-	struct radeon_winsys_ctx *(*ctx_create)(struct radeon_winsys *ws);
+	struct radeon_winsys_ctx *(*ctx_create)(struct radeon_winsys *ws,
+						enum radeon_ctx_priority priority);
 	void (*ctx_destroy)(struct radeon_winsys_ctx *ctx);
 
 	bool (*ctx_wait_idle)(struct radeon_winsys_ctx *ctx,

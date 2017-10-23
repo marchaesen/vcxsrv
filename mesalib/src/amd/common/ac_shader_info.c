@@ -116,7 +116,7 @@ gather_info_input_decl(nir_shader *nir,
 		       nir_variable *var,
 		       struct ac_shader_info *info)
 {
-	switch (nir->stage) {
+	switch (nir->info.stage) {
 	case MESA_SHADER_VERTEX:
 		info->vs.has_vertex_buffers = true;
 		break;

@@ -894,5 +894,5 @@ vir_get_stage_name(struct v3d_compile *c)
         if (c->vs_key && c->vs_key->is_coord)
                 return "MESA_SHADER_COORD";
         else
-                return gl_shader_stage_name(c->s->stage);
+                return gl_shader_stage_name(c->s->info.stage);
 }

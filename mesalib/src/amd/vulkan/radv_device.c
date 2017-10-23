@@ -419,8 +419,6 @@ void radv_GetPhysicalDeviceFeatures(
 	VkPhysicalDevice                            physicalDevice,
 	VkPhysicalDeviceFeatures*                   pFeatures)
 {
-	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
-	bool is_gfx9 = pdevice->rad_info.chip_class >= GFX9;
 	memset(pFeatures, 0, sizeof(*pFeatures));
 
 	*pFeatures = (VkPhysicalDeviceFeatures) {
@@ -428,8 +426,8 @@ void radv_GetPhysicalDeviceFeatures(
 		.fullDrawIndexUint32                      = true,
 		.imageCubeArray                           = true,
 		.independentBlend                         = true,
-		.geometryShader                           = !is_gfx9,
-		.tessellationShader                       = !is_gfx9,
+		.geometryShader                           = true,
+		.tessellationShader                       = true,
 		.sampleRateShading                        = true,
 		.dualSrcBlend                             = true,
 		.logicOp                                  = true,
@@ -834,16 +832,40 @@ void radv_GetPhysicalDeviceMemoryProperties2KHR(
 						      &pMemoryProperties->memoryProperties);
 }
 
+static enum radeon_ctx_priority
+radv_get_queue_global_priority(const VkDeviceQueueGlobalPriorityCreateInfoEXT *pObj)
+{
+	/* Default to MEDIUM when a specific global priority isn't requested */
+	if (!pObj)
+		return RADEON_CTX_PRIORITY_MEDIUM;
+
+	switch(pObj->globalPriority) {
+	case VK_QUEUE_GLOBAL_PRIORITY_REALTIME:
+		return RADEON_CTX_PRIORITY_REALTIME;
+	case VK_QUEUE_GLOBAL_PRIORITY_HIGH:
+		return RADEON_CTX_PRIORITY_HIGH;
+	case VK_QUEUE_GLOBAL_PRIORITY_MEDIUM:
+		return RADEON_CTX_PRIORITY_MEDIUM;
+	case VK_QUEUE_GLOBAL_PRIORITY_LOW:
+		return RADEON_CTX_PRIORITY_LOW;
+	default:
+		unreachable("Illegal global priority value");
+		return RADEON_CTX_PRIORITY_INVALID;
+	}
+}
+
 static int
 radv_queue_init(struct radv_device *device, struct radv_queue *queue,
-		int queue_family_index, int idx)
+		int queue_family_index, int idx,
+		const VkDeviceQueueGlobalPriorityCreateInfoEXT *global_priority)
 {
 	queue->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 	queue->device = device;
 	queue->queue_family_index = queue_family_index;
 	queue->queue_idx = idx;
+	queue->priority = radv_get_queue_global_priority(global_priority);
 
-	queue->hw_ctx = device->ws->ctx_create(device->ws);
+	queue->hw_ctx = device->ws->ctx_create(device->ws, queue->priority);
 	if (!queue->hw_ctx)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 
@@ -964,6 +986,10 @@ VkResult radv_CreateDevice(
 	for (unsigned i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
 		const VkDeviceQueueCreateInfo *queue_create = &pCreateInfo->pQueueCreateInfos[i];
 		uint32_t qfi = queue_create->queueFamilyIndex;
+		const VkDeviceQueueGlobalPriorityCreateInfoEXT *global_priority =
+			vk_find_struct_const(queue_create->pNext, DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT);
+
+		assert(!global_priority || device->physical_device->rad_info.has_ctx_priority);
 
 		device->queues[qfi] = vk_alloc(&device->alloc,
 					       queue_create->queueCount * sizeof(struct radv_queue), 8, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
@@ -977,7 +1003,7 @@ VkResult radv_CreateDevice(
 		device->queue_count[qfi] = queue_create->queueCount;
 
 		for (unsigned q = 0; q < queue_create->queueCount; q++) {
-			result = radv_queue_init(device, &device->queues[qfi][q], qfi, q);
+			result = radv_queue_init(device, &device->queues[qfi][q], qfi, q, global_priority);
 			if (result != VK_SUCCESS)
 				goto fail;
 		}
@@ -1580,19 +1606,31 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		}
 
 		if (descriptor_bo) {
-			uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
-			                   R_00B130_SPI_SHADER_USER_DATA_VS_0,
-			                   R_00B230_SPI_SHADER_USER_DATA_GS_0,
-			                   R_00B330_SPI_SHADER_USER_DATA_ES_0,
-			                   R_00B430_SPI_SHADER_USER_DATA_HS_0,
-			                   R_00B530_SPI_SHADER_USER_DATA_LS_0};
-
 			uint64_t va = radv_buffer_get_va(descriptor_bo);
+			if (queue->device->physical_device->rad_info.chip_class >= GFX9) {
+				uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
+						R_00B130_SPI_SHADER_USER_DATA_VS_0,
+						R_00B208_SPI_SHADER_USER_DATA_ADDR_LO_GS,
+						R_00B408_SPI_SHADER_USER_DATA_ADDR_LO_HS};
 
-			for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
-				radeon_set_sh_reg_seq(cs, regs[i], 2);
-				radeon_emit(cs, va);
-				radeon_emit(cs, va >> 32);
+				for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
+					radeon_set_sh_reg_seq(cs, regs[i], 2);
+					radeon_emit(cs, va);
+					radeon_emit(cs, va >> 32);
+				}
+			} else {
+				uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
+						R_00B130_SPI_SHADER_USER_DATA_VS_0,
+						R_00B230_SPI_SHADER_USER_DATA_GS_0,
+						R_00B330_SPI_SHADER_USER_DATA_ES_0,
+						R_00B430_SPI_SHADER_USER_DATA_HS_0,
+						R_00B530_SPI_SHADER_USER_DATA_LS_0};
+
+				for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
+					radeon_set_sh_reg_seq(cs, regs[i], 2);
+					radeon_emit(cs, va);
+					radeon_emit(cs, va >> 32);
+				}
 			}
 		}
 
@@ -2010,11 +2048,11 @@ bool radv_get_memory_fd(struct radv_device *device,
 					 pFD);
 }
 
-VkResult radv_AllocateMemory(
-	VkDevice                                    _device,
-	const VkMemoryAllocateInfo*                 pAllocateInfo,
-	const VkAllocationCallbacks*                pAllocator,
-	VkDeviceMemory*                             pMem)
+VkResult radv_alloc_memory(VkDevice                        _device,
+			   const VkMemoryAllocateInfo*     pAllocateInfo,
+			   const VkAllocationCallbacks*    pAllocator,
+			   enum radv_mem_flags_bits        mem_flags,
+			   VkDeviceMemory*                 pMem)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_device_memory *mem;
@@ -2077,6 +2115,9 @@ VkResult radv_AllocateMemory(
 	if (pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
 		flags |= RADEON_FLAG_GTT_WC;
 
+	if (mem_flags & RADV_MEM_IMPLICIT_SYNC)
+		flags |= RADEON_FLAG_IMPLICIT_SYNC;
+
 	mem->bo = device->ws->buffer_create(device->ws, alloc_size, device->physical_device->rad_info.max_alignment,
 					       domain, flags);
 
@@ -2094,6 +2135,15 @@ fail:
 	vk_free2(&device->alloc, pAllocator, mem);
 
 	return result;
+}
+
+VkResult radv_AllocateMemory(
+	VkDevice                                    _device,
+	const VkMemoryAllocateInfo*                 pAllocateInfo,
+	const VkAllocationCallbacks*                pAllocator,
+	VkDeviceMemory*                             pMem)
+{
+	return radv_alloc_memory(_device, pAllocateInfo, pAllocator, 0, pMem);
 }
 
 void radv_FreeMemory(

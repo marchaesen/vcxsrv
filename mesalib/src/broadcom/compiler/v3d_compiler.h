@@ -458,9 +458,6 @@ struct v3d_compile {
         /* Fragment shader payload regs. */
         struct qreg payload_w, payload_w_centroid, payload_z;
 
-        /** boolean (~0 -> true) if the fragment has been discarded. */
-        struct qreg discard;
-
         uint8_t vattr_sizes[V3D_MAX_VS_INPUTS];
         uint32_t num_vpm_writes;
 

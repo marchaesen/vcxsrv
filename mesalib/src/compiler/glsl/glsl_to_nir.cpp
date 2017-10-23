@@ -163,7 +163,7 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
     * two locations. For instance, if we have in the IR code a dvec3 attr0 in
     * location 0 and vec4 attr1 in location 1, in NIR attr0 will use
     * locations/slots 0 and 1, and attr1 will use location/slot 2 */
-   if (shader->stage == MESA_SHADER_VERTEX)
+   if (shader->info.stage == MESA_SHADER_VERTEX)
       nir_remap_attributes(shader);
 
    shader->info.name = ralloc_asprintf(shader, "GLSL%d", shader_prog->Name);
@@ -341,12 +341,12 @@ nir_visitor::visit(ir_variable *ir)
       break;
 
    case ir_var_shader_in:
-      if (shader->stage == MESA_SHADER_FRAGMENT &&
+      if (shader->info.stage == MESA_SHADER_FRAGMENT &&
           ir->data.location == VARYING_SLOT_FACE) {
          /* For whatever reason, GLSL IR makes gl_FrontFacing an input */
          var->data.location = SYSTEM_VALUE_FRONT_FACE;
          var->data.mode = nir_var_system_value;
-      } else if (shader->stage == MESA_SHADER_GEOMETRY &&
+      } else if (shader->info.stage == MESA_SHADER_GEOMETRY &&
                  ir->data.location == VARYING_SLOT_PRIMITIVE_ID) {
          /* For whatever reason, GLSL IR makes gl_PrimitiveIDIn an input */
          var->data.location = SYSTEM_VALUE_PRIMITIVE_ID;
@@ -354,7 +354,7 @@ nir_visitor::visit(ir_variable *ir)
       } else {
          var->data.mode = nir_var_shader_in;
 
-         if (shader->stage == MESA_SHADER_TESS_EVAL &&
+         if (shader->info.stage == MESA_SHADER_TESS_EVAL &&
              (ir->data.location == VARYING_SLOT_TESS_LEVEL_INNER ||
               ir->data.location == VARYING_SLOT_TESS_LEVEL_OUTER)) {
             var->data.compact = ir->type->without_array()->is_scalar();
@@ -372,7 +372,7 @@ nir_visitor::visit(ir_variable *ir)
 
    case ir_var_shader_out:
       var->data.mode = nir_var_shader_out;
-      if (shader->stage == MESA_SHADER_TESS_CTRL &&
+      if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
           (ir->data.location == VARYING_SLOT_TESS_LEVEL_INNER ||
            ir->data.location == VARYING_SLOT_TESS_LEVEL_OUTER)) {
          var->data.compact = ir->type->without_array()->is_scalar();

@@ -131,7 +131,7 @@ lower_io_types_block(struct lower_io_types_state *state, nir_block *block)
           (var->data.mode != nir_var_shader_out))
          continue;
 
-      bool vs_in = (state->shader->stage == MESA_SHADER_VERTEX) &&
+      bool vs_in = (state->shader->info.stage == MESA_SHADER_VERTEX) &&
                    (var->data.mode == nir_var_shader_in);
       if (glsl_count_attribute_slots(var->type, vs_in) == 1)
          continue;

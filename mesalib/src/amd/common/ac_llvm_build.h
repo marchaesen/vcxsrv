@@ -150,14 +150,12 @@ ac_build_indexed_store(struct ac_llvm_context *ctx,
 		       LLVMValueRef base_ptr, LLVMValueRef index,
 		       LLVMValueRef value);
 
-LLVMValueRef
-ac_build_indexed_load(struct ac_llvm_context *ctx,
-		      LLVMValueRef base_ptr, LLVMValueRef index,
-		      bool uniform);
-
-LLVMValueRef
-ac_build_indexed_load_const(struct ac_llvm_context *ctx,
-			    LLVMValueRef base_ptr, LLVMValueRef index);
+LLVMValueRef ac_build_load(struct ac_llvm_context *ctx, LLVMValueRef base_ptr,
+			   LLVMValueRef index);
+LLVMValueRef ac_build_load_invariant(struct ac_llvm_context *ctx,
+				     LLVMValueRef base_ptr, LLVMValueRef index);
+LLVMValueRef ac_build_load_to_sgpr(struct ac_llvm_context *ctx,
+				   LLVMValueRef base_ptr, LLVMValueRef index);
 
 void
 ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
@@ -283,6 +281,7 @@ void ac_optimize_vs_outputs(struct ac_llvm_context *ac,
 			    uint8_t *vs_output_param_offset,
 			    uint32_t num_outputs,
 			    uint8_t *num_param_exports);
+void ac_init_exec_full_mask(struct ac_llvm_context *ctx);
 #ifdef __cplusplus
 }
 #endif

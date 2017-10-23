@@ -85,6 +85,6 @@ XauFileName (void)
 	bsize = size;
     }
     snprintf (buf, bsize, "%s%s", name,
-              slashDotXauthority + (name[1] == '\0' ? 1 : 0));
+              slashDotXauthority + (name[0] == '/' && name[1] == '\0' ? 1 : 0));
     return buf;
 }

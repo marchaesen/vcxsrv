@@ -939,6 +939,7 @@ x11_manage_fifo_queues(void *state)
             goto fail;
 
          result = x11_handle_dri3_present_event(chain, (void *)event);
+         free(event);
          if (result != VK_SUCCESS)
             goto fail;
       }

@@ -196,6 +196,9 @@ conf_data.set('XvMCExtension', build_xv)
 
 conf_data.set('HAVE_SHA1_IN_LIBNETTLE', '1') # XXX
 
+enable_debugging = get_option('buildtype') == 'debug'
+conf_data.set('DEBUG', enable_debugging)
+
 conf_data.set_quoted('XVENDORNAME', get_option('vendor_name'))
 conf_data.set_quoted('XVENDORNAMESHORT', get_option('vendor_name_short'))
 conf_data.set_quoted('__VENDORDWEBSUPPORT__', get_option('vendor_web'))
@@ -282,7 +285,6 @@ xwin_data.set('HAS_WINSOCK', host_machine.system() == 'windows', description: 'U
 xwin_data.set('HAS_DEVWINDOWS', host_machine.system() == 'cygwin', description: 'Has /dev/windows for signaling new win32 messages')
 xwin_data.set('RELOCATE_PROJECTROOT', host_machine.system() == 'windows', description: 'Make paths relative to the xserver installation location')
 # XXX: these three are all the same as DEBUG so we should just change to that
-enable_debugging = (get_option('buildtype') == 'debug') or (get_option('buildtype') == 'debugoptimized')
 xwin_data.set10('CYGDEBUG', enable_debugging)
 xwin_data.set10('CYGWINDOWING_DEBUG',enable_debugging)
 xwin_data.set10('CYGMULTIWINDOW_DEBUG', enable_debugging)

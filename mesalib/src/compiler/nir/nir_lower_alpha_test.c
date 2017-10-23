@@ -39,7 +39,7 @@ void
 nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
                      bool alpha_to_one)
 {
-   assert(shader->stage == MESA_SHADER_FRAGMENT);
+   assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
    nir_foreach_function(function, shader) {
       nir_function_impl *impl = function->impl;

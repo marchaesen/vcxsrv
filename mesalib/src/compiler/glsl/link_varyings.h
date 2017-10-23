@@ -300,7 +300,8 @@ link_varyings(struct gl_shader_program *prog, unsigned first, unsigned last,
               struct gl_context *ctx, void *mem_ctx);
 
 void
-cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
+cross_validate_outputs_to_inputs(struct gl_context *ctx,
+                                 struct gl_shader_program *prog,
                                  gl_linked_shader *producer,
                                  gl_linked_shader *consumer);
 

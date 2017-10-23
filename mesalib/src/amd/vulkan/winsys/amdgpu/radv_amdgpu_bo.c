@@ -330,6 +330,8 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 		request.flags |= AMDGPU_GEM_CREATE_NO_CPU_ACCESS;
 	if (flags & RADEON_FLAG_GTT_WC)
 		request.flags |= AMDGPU_GEM_CREATE_CPU_GTT_USWC;
+	if (!(flags & RADEON_FLAG_IMPLICIT_SYNC) && ws->info.drm_minor >= 22)
+		request.flags |= AMDGPU_GEM_CREATE_EXPLICIT_SYNC;
 
 	/* this won't do anything on pre 4.9 kernels */
 	if (ws->zero_all_vram_allocs && (initial_domain & RADEON_DOMAIN_VRAM))

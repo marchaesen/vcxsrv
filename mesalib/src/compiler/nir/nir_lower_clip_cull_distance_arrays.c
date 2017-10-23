@@ -48,7 +48,7 @@ get_unwrapped_array_length(nir_shader *nir, nir_variable *var)
     * array length.
     */
    const struct glsl_type *type = var->type;
-   if (nir_is_per_vertex_io(var, nir->stage))
+   if (nir_is_per_vertex_io(var, nir->info.stage))
       type = glsl_get_array_element(type);
 
    assert(glsl_type_is_array(type));
@@ -158,7 +158,7 @@ combine_clip_cull(nir_shader *nir,
          cull->data.location = VARYING_SLOT_CLIP_DIST0;
       } else {
          /* Turn the ClipDistance array into a combined one */
-         update_type(clip, nir->stage, clip_array_size + cull_array_size);
+         update_type(clip, nir->info.stage, clip_array_size + cull_array_size);
 
          /* Rewrite CullDistance to reference the combined array */
          nir_foreach_function(function, nir) {
@@ -194,10 +194,10 @@ nir_lower_clip_cull_distance_arrays(nir_shader *nir)
 {
    bool progress = false;
 
-   if (nir->stage <= MESA_SHADER_GEOMETRY)
+   if (nir->info.stage <= MESA_SHADER_GEOMETRY)
       progress |= combine_clip_cull(nir, &nir->outputs, true);
 
-   if (nir->stage > MESA_SHADER_VERTEX)
+   if (nir->info.stage > MESA_SHADER_VERTEX)
       progress |= combine_clip_cull(nir, &nir->inputs, false);
 
    return progress;

@@ -313,9 +313,11 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    st->can_bind_const_buffer_as_vertex =
       screen->get_param(screen, PIPE_CAP_CAN_BIND_CONST_BUFFER_AS_VERTEX);
 
-   /* Drivers still have to upload zero-stride vertex attribs manually
-    * with the GL core profile, but they don't have to deal with any complex
-    * user vertex buffer uploads.
+   /* st/mesa always uploads zero-stride vertex attribs, and other user
+    * vertex buffers are only possible with a compatibility profile.
+    * So tell the u_vbuf module that user VBOs are not possible with the Core
+    * profile, so that u_vbuf is bypassed completely if there is nothing else
+    * to do.
     */
    unsigned vbuf_flags =
       ctx->API == API_OPENGL_CORE ? U_VBUF_FLAG_NO_USER_VBOS : 0;
