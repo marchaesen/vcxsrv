@@ -33,7 +33,7 @@ typedef struct {
 static bool
 is_color_output(lower_state *state, nir_variable *out)
 {
-   switch (state->shader->stage) {
+   switch (state->shader->info.stage) {
    case MESA_SHADER_VERTEX:
    case MESA_SHADER_GEOMETRY:
       switch (out->data.location) {

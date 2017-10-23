@@ -349,7 +349,7 @@ v3d_vir_to_qpu(struct v3d_compile *c)
         }
 
         if (V3D_DEBUG & (V3D_DEBUG_QPU |
-                         v3d_debug_flag_for_shader_stage(c->s->stage))) {
+                         v3d_debug_flag_for_shader_stage(c->s->info.stage))) {
                 v3d_dump_qpu(c);
         }
 

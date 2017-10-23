@@ -44,8 +44,12 @@ nir_shader_create(void *mem_ctx,
 
    shader->options = options;
 
-   if (si)
+   if (si) {
+      assert(si->stage == stage);
       shader->info = *si;
+   } else {
+      shader->info.stage = stage;
+   }
 
    exec_list_make_empty(&shader->functions);
    exec_list_make_empty(&shader->registers);
@@ -57,8 +61,6 @@ nir_shader_create(void *mem_ctx,
    shader->num_outputs = 0;
    shader->num_uniforms = 0;
    shader->num_shared = 0;
-
-   shader->stage = stage;
 
    return shader;
 }
@@ -143,7 +145,7 @@ nir_shader_add_variable(nir_shader *shader, nir_variable *var)
       break;
 
    case nir_var_shared:
-      assert(shader->stage == MESA_SHADER_COMPUTE);
+      assert(shader->info.stage == MESA_SHADER_COMPUTE);
       exec_list_push_tail(&shader->shared, &var->node);
       break;
 
@@ -162,8 +164,10 @@ nir_variable_create(nir_shader *shader, nir_variable_mode mode,
    var->type = type;
    var->data.mode = mode;
 
-   if ((mode == nir_var_shader_in && shader->stage != MESA_SHADER_VERTEX) ||
-       (mode == nir_var_shader_out && shader->stage != MESA_SHADER_FRAGMENT))
+   if ((mode == nir_var_shader_in &&
+        shader->info.stage != MESA_SHADER_VERTEX) ||
+       (mode == nir_var_shader_out &&
+        shader->info.stage != MESA_SHADER_FRAGMENT))
       var->data.interpolation = INTERP_MODE_SMOOTH;
 
    if (mode == nir_var_shader_in || mode == nir_var_uniform)
@@ -539,6 +543,28 @@ nir_tex_instr_create(nir_shader *shader, unsigned num_srcs)
    instr->sampler = NULL;
 
    return instr;
+}
+
+void
+nir_tex_instr_add_src(nir_tex_instr *tex,
+                      nir_tex_src_type src_type,
+                      nir_src src)
+{
+   nir_tex_src *new_srcs = rzalloc_array(tex, nir_tex_src,
+                                         tex->num_srcs + 1);
+
+   for (unsigned i = 0; i < tex->num_srcs; i++) {
+      new_srcs[i].src_type = tex->src[i].src_type;
+      nir_instr_move_src(&tex->instr, &new_srcs[i].src,
+                         &tex->src[i].src);
+   }
+
+   ralloc_free(tex->src);
+   tex->src = new_srcs;
+
+   tex->src[tex->num_srcs].src_type = src_type;
+   nir_instr_rewrite_src(&tex->instr, &tex->src[tex->num_srcs].src, src);
+   tex->num_srcs++;
 }
 
 void

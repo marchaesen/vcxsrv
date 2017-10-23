@@ -21,7 +21,7 @@
 option(
   'platforms',
   type : 'string',
-  value : 'x11,wayland,drm',
+  value : 'x11,wayland,drm,surfaceless',
   description : 'comma separated list of window systems to support. wayland, x11, surfaceless, drm, etc.'
 )
 option(
@@ -46,7 +46,7 @@ option(
 option(
   'gallium-drivers',
   type : 'string',
-  value : 'radeonsi,nouveau,swrast',
+  value : 'pl111,radeonsi,nouveau,swrast,vc4',
   description : 'comma separated list of gallium drivers to build.'
 )
 option(
@@ -110,6 +110,13 @@ option(
   value : 'auto',
   choices : ['auto', 'disabled', 'dri', 'xlib', 'gallium-xlib'],
   description : 'Build support for GLX platform'
+)
+option(
+  'egl',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'yes', 'no'],
+  description : 'Build support for EGL platform'
 )
 option(
   'glvnd',

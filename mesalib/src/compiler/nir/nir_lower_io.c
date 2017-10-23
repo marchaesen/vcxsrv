@@ -167,7 +167,7 @@ lower_load(nir_intrinsic_instr *intrin, struct lower_io_state *state,
    nir_intrinsic_op op;
    switch (mode) {
    case nir_var_shader_in:
-      if (nir->stage == MESA_SHADER_FRAGMENT &&
+      if (nir->info.stage == MESA_SHADER_FRAGMENT &&
           nir->options->use_interpolated_input_intrinsics &&
           var->data.interpolation != INTERP_MODE_FLAT) {
          assert(vertex_index == NULL);
@@ -412,7 +412,7 @@ nir_lower_io_block(nir_block *block,
 
       b->cursor = nir_before_instr(instr);
 
-      const bool per_vertex = nir_is_per_vertex_io(var, b->shader->stage);
+      const bool per_vertex = nir_is_per_vertex_io(var, b->shader->info.stage);
 
       nir_ssa_def *offset;
       nir_ssa_def *vertex_index = NULL;

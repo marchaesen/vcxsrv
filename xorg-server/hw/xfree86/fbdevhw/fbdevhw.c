@@ -120,7 +120,7 @@ fbdevHWGetFD(ScrnInfoPtr pScrn)
 /* -------------------------------------------------------------------- */
 /* some helpers for printing debug informations                         */
 
-#if DEBUG
+#ifdef DEBUG
 static void
 print_fbdev_mode(const char *txt, struct fb_var_screeninfo *var)
 {
@@ -466,7 +466,7 @@ fbdevHWSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode, Bool check)
     xfree2fbdev_fblayout(pScrn, &req_var);
     xfree2fbdev_timing(mode, &req_var);
 
-#if DEBUG
+#ifdef DEBUG
     print_xfree_mode("init", mode);
     print_fbdev_mode("init", &req_var);
 #endif
@@ -486,7 +486,7 @@ fbdevHWSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode, Bool check)
         if (!check)
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
                        "FBIOPUT_VSCREENINFO succeeded but modified " "mode\n");
-#if DEBUG
+#ifdef DEBUG
         print_fbdev_mode("returned", &set_var);
 #endif
         return FALSE;

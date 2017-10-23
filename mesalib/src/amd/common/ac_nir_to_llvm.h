@@ -52,8 +52,10 @@ struct ac_tes_variant_key {
 };
 
 struct ac_tcs_variant_key {
+	struct ac_vs_variant_key vs_key;
 	unsigned primitive_mode;
 	unsigned input_vertices;
+	uint32_t tes_reads_tess_factors:1;
 };
 
 struct ac_fs_variant_key {
@@ -103,13 +105,13 @@ enum ac_ud_index {
 	AC_UD_PS_MAX_UD,
 	AC_UD_CS_GRID_SIZE = AC_UD_SHADER_START,
 	AC_UD_CS_MAX_UD,
-	AC_UD_GS_VS_RING_STRIDE_ENTRIES = AC_UD_SHADER_START,
+	AC_UD_GS_VS_RING_STRIDE_ENTRIES = AC_UD_VS_MAX_UD,
 	AC_UD_GS_MAX_UD,
-	AC_UD_TCS_OFFCHIP_LAYOUT = AC_UD_SHADER_START,
+	AC_UD_TCS_OFFCHIP_LAYOUT = AC_UD_VS_MAX_UD,
 	AC_UD_TCS_MAX_UD,
 	AC_UD_TES_OFFCHIP_LAYOUT = AC_UD_SHADER_START,
 	AC_UD_TES_MAX_UD,
-	AC_UD_MAX_UD = AC_UD_VS_MAX_UD,
+	AC_UD_MAX_UD = AC_UD_TCS_MAX_UD,
 };
 
 /* descriptor index into scratch ring offsets */
@@ -154,7 +156,7 @@ struct ac_shader_variant_info {
 	unsigned num_input_sgprs;
 	unsigned num_input_vgprs;
 	bool need_indirect_descriptor_sets;
-	union {
+	struct {
 		struct {
 			struct ac_vs_output_info outinfo;
 			struct ac_es_output_info es_info;
@@ -216,7 +218,8 @@ void ac_compile_nir_shader(LLVMTargetMachineRef tm,
                            struct ac_shader_binary *binary,
                            struct ac_shader_config *config,
                            struct ac_shader_variant_info *shader_info,
-                           struct nir_shader *nir,
+                           struct nir_shader *const *nir,
+                           int nir_count,
                            const struct ac_nir_compiler_options *options,
 			   bool dump_shader);
 

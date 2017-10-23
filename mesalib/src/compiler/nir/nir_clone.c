@@ -737,7 +737,7 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
    clone_state state;
    init_clone_state(&state, NULL, true, false);
 
-   nir_shader *ns = nir_shader_create(mem_ctx, s->stage, s->options, NULL);
+   nir_shader *ns = nir_shader_create(mem_ctx, s->info.stage, s->options, NULL);
    state.ns = ns;
 
    clone_var_list(&state, &ns->uniforms, &s->uniforms);

@@ -1867,7 +1867,7 @@ ttn_add_output_stores(struct ttn_compile *c)
          nir_src src = nir_src_for_reg(c->output_regs[loc].reg);
          src.reg.base_offset = c->output_regs[loc].offset;
 
-         if (c->build.shader->stage == MESA_SHADER_FRAGMENT &&
+         if (c->build.shader->info.stage == MESA_SHADER_FRAGMENT &&
              var->data.location == FRAG_RESULT_DEPTH) {
             /* TGSI uses TGSI_SEMANTIC_POSITION.z for the depth output, while
              * NIR uses a single float FRAG_RESULT_DEPTH.

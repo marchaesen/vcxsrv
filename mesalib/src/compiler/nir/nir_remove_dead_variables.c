@@ -28,7 +28,8 @@
 #include "nir.h"
 
 static void
-add_var_use_intrinsic(nir_intrinsic_instr *instr, struct set *live)
+add_var_use_intrinsic(nir_intrinsic_instr *instr, struct set *live,
+                      nir_variable_mode modes)
 {
    unsigned num_vars = nir_intrinsic_infos[instr->intrinsic].num_variables;
 
@@ -46,6 +47,14 @@ add_var_use_intrinsic(nir_intrinsic_instr *instr, struct set *live)
          _mesa_set_add(live, instr->variables[0]->var);
       break;
    }
+
+   /* This pass can't be used on I/O variables after they've been lowered. */
+   case nir_intrinsic_load_input:
+      assert(!(modes & nir_var_shader_in));
+      break;
+   case nir_intrinsic_store_output:
+      assert(!(modes & nir_var_shader_out));
+      break;
 
    default:
       for (unsigned i = 0; i < num_vars; i++) {
@@ -84,7 +93,7 @@ add_var_use_tex(nir_tex_instr *instr, struct set *live)
 }
 
 static void
-add_var_use_shader(nir_shader *shader, struct set *live)
+add_var_use_shader(nir_shader *shader, struct set *live, nir_variable_mode modes)
 {
    nir_foreach_function(function, shader) {
       if (function->impl) {
@@ -92,7 +101,8 @@ add_var_use_shader(nir_shader *shader, struct set *live)
             nir_foreach_instr(instr, block) {
                switch(instr->type) {
                case nir_instr_type_intrinsic:
-                  add_var_use_intrinsic(nir_instr_as_intrinsic(instr), live);
+                  add_var_use_intrinsic(nir_instr_as_intrinsic(instr), live,
+                                        modes);
                   break;
 
                case nir_instr_type_call:
@@ -162,7 +172,7 @@ nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes)
    struct set *live =
       _mesa_set_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
 
-   add_var_use_shader(shader, live);
+   add_var_use_shader(shader, live, modes);
 
    if (modes & nir_var_uniform)
       progress = remove_dead_vars(&shader->uniforms, live) || progress;

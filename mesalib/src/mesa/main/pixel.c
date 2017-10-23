@@ -283,7 +283,7 @@ _mesa_PixelMapusv(GLenum map, GLsizei mapsize, const GLushort *values )
    if (map >= GL_PIXEL_MAP_S_TO_S && map <= GL_PIXEL_MAP_I_TO_A) {
       /* test that mapsize is a power of two */
       if (!_mesa_is_pow_two(mapsize)) {
-	 _mesa_error( ctx, GL_INVALID_VALUE, "glPixelMapuiv(mapsize)" );
+	 _mesa_error( ctx, GL_INVALID_VALUE, "glPixelMapusv(mapsize)" );
          return;
       }
    }

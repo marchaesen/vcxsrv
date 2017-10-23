@@ -58,3 +58,11 @@ endif
 if with_osmesa
   install_headers('GL/osmesa.h', subdir : 'GL')
 endif
+
+if with_egl
+  install_headers(
+    'EGL/eglext.h', 'EGL/egl.h', 'EGL/eglextchromium.h', 'EGL/eglmesaext.h',
+    'EGL/eglplatform.h',
+    subdir : 'EGL',
+  )
+endif

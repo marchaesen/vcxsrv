@@ -637,6 +637,10 @@ set_src(struct tgsi_full_instruction *inst, unsigned i, unsigned file, unsigned 
    inst->Src[i].Register.SwizzleY = y;
    inst->Src[i].Register.SwizzleZ = z;
    inst->Src[i].Register.SwizzleW = w;
+   if (file == TGSI_FILE_CONSTANT) {
+      inst->Src[i].Register.Dimension = 1;
+      inst->Src[i].Dimension.Index = 0;
+   }
 }
 
 #define SET_SRC(inst, i, file, index, x, y, z, w) \

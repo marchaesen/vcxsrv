@@ -67,6 +67,9 @@ struct radv_shader_slab {
 	char *ptr;
 };
 
+void
+radv_optimize_nir(struct nir_shader *shader);
+
 nir_shader *
 radv_shader_compile_to_nir(struct radv_device *device,
 			   struct radv_shader_module *module,
@@ -84,10 +87,11 @@ radv_destroy_shader_slabs(struct radv_device *device);
 struct radv_shader_variant *
 radv_shader_variant_create(struct radv_device *device,
 			   struct radv_shader_module *module,
-			   struct nir_shader *shader,
+			   struct nir_shader *const *shaders,
+			   int shader_count,
 			   struct radv_pipeline_layout *layout,
 			   const struct ac_shader_variant_key *key,
-			   void ** code_out,
+			   void **code_out,
 			   unsigned *code_size_out);
 
 struct radv_shader_variant *
@@ -100,8 +104,8 @@ radv_shader_variant_destroy(struct radv_device *device,
 			    struct radv_shader_variant *variant);
 
 uint32_t
-radv_shader_stage_to_user_data_0(gl_shader_stage stage, bool has_gs,
-				 bool has_tess);
+radv_shader_stage_to_user_data_0(gl_shader_stage stage, enum chip_class chip_class,
+				 bool has_gs, bool has_tess);
 
 const char *
 radv_get_shader_name(struct radv_shader_variant *var, gl_shader_stage stage);

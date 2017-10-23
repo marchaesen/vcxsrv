@@ -823,14 +823,10 @@ create_bview(struct radv_cmd_buffer *cmd_buffer,
 
 }
 
-struct itob_temps {
-	struct radv_image_view src_iview;
-	struct radv_buffer_view dst_bview;
-};
-
 static void
 itob_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
-		      struct itob_temps *tmp)
+		      struct radv_image_view *src,
+		      struct radv_buffer_view *dst)
 {
 	struct radv_device *device = cmd_buffer->device;
 
@@ -849,7 +845,7 @@ itob_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				                      .pImageInfo = (VkDescriptorImageInfo[]) {
 				                              {
 				                                      .sampler = VK_NULL_HANDLE,
-				                                      .imageView = radv_image_view_to_handle(&tmp->src_iview),
+				                                      .imageView = radv_image_view_to_handle(src),
 				                                      .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
 				                              },
 				                      }
@@ -860,7 +856,7 @@ itob_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				                      .dstArrayElement = 0,
 				                      .descriptorCount = 1,
 				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-				                      .pTexelBufferView = (VkBufferView[])  { radv_buffer_view_to_handle(&tmp->dst_bview) },
+				                      .pTexelBufferView = (VkBufferView[])  { radv_buffer_view_to_handle(dst) },
 				              }
 				      });
 }
@@ -874,11 +870,12 @@ radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 {
 	VkPipeline pipeline = cmd_buffer->device->meta_state.itob.pipeline;
 	struct radv_device *device = cmd_buffer->device;
-	struct itob_temps temps;
+	struct radv_image_view src_view;
+	struct radv_buffer_view dst_view;
 
-	create_iview(cmd_buffer, src, &temps.src_iview);
-	create_bview(cmd_buffer, dst->buffer, dst->offset, dst->format, &temps.dst_bview);
-	itob_bind_descriptors(cmd_buffer, &temps);
+	create_iview(cmd_buffer, src, &src_view);
+	create_bview(cmd_buffer, dst->buffer, dst->offset, dst->format, &dst_view);
+	itob_bind_descriptors(cmd_buffer, &src_view, &dst_view);
 
 
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
@@ -899,14 +896,10 @@ radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 	}
 }
 
-struct btoi_temps {
-	struct radv_buffer_view src_bview;
-	struct radv_image_view dst_iview;
-};
-
 static void
 btoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
-		      struct btoi_temps *tmp)
+		      struct radv_buffer_view *src,
+		      struct radv_image_view *dst)
 {
 	struct radv_device *device = cmd_buffer->device;
 
@@ -922,7 +915,7 @@ btoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				                      .dstArrayElement = 0,
 				                      .descriptorCount = 1,
 				                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-				                      .pTexelBufferView = (VkBufferView[])  { radv_buffer_view_to_handle(&tmp->src_bview) },
+				                      .pTexelBufferView = (VkBufferView[])  { radv_buffer_view_to_handle(src) },
 				              },
 				              {
 				                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -933,7 +926,7 @@ btoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				                      .pImageInfo = (VkDescriptorImageInfo[]) {
 				                              {
 				                                      .sampler = VK_NULL_HANDLE,
-				                                      .imageView = radv_image_view_to_handle(&tmp->dst_iview),
+				                                      .imageView = radv_image_view_to_handle(dst),
 				                                      .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
 				                              },
 				                      }
@@ -950,11 +943,12 @@ radv_meta_buffer_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 {
 	VkPipeline pipeline = cmd_buffer->device->meta_state.btoi.pipeline;
 	struct radv_device *device = cmd_buffer->device;
-	struct btoi_temps temps;
+	struct radv_buffer_view src_view;
+	struct radv_image_view dst_view;
 
-	create_bview(cmd_buffer, src->buffer, src->offset, src->format, &temps.src_bview);
-	create_iview(cmd_buffer, dst, &temps.dst_iview);
-	btoi_bind_descriptors(cmd_buffer, &temps);
+	create_bview(cmd_buffer, src->buffer, src->offset, src->format, &src_view);
+	create_iview(cmd_buffer, dst, &dst_view);
+	btoi_bind_descriptors(cmd_buffer, &src_view, &dst_view);
 
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
 			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
@@ -974,14 +968,10 @@ radv_meta_buffer_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 	}
 }
 
-struct itoi_temps {
-	struct radv_image_view src_iview;
-	struct radv_image_view dst_iview;
-};
-
 static void
 itoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
-		      struct itoi_temps *tmp)
+		      struct radv_image_view *src,
+		      struct radv_image_view *dst)
 {
 	struct radv_device *device = cmd_buffer->device;
 
@@ -1000,7 +990,7 @@ itoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				                       .pImageInfo = (VkDescriptorImageInfo[]) {
 				                               {
 				                                       .sampler = VK_NULL_HANDLE,
-				                                       .imageView = radv_image_view_to_handle(&tmp->src_iview),
+				                                       .imageView = radv_image_view_to_handle(src),
 				                                       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
 				                               },
 				                       }
@@ -1014,7 +1004,7 @@ itoi_bind_descriptors(struct radv_cmd_buffer *cmd_buffer,
 				                       .pImageInfo = (VkDescriptorImageInfo[]) {
 				                               {
 				                                       .sampler = VK_NULL_HANDLE,
-				                                       .imageView = radv_image_view_to_handle(&tmp->dst_iview),
+				                                       .imageView = radv_image_view_to_handle(dst),
 				                                       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
 				                               },
 				                       }
@@ -1031,12 +1021,12 @@ radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 {
 	VkPipeline pipeline = cmd_buffer->device->meta_state.itoi.pipeline;
 	struct radv_device *device = cmd_buffer->device;
-	struct itoi_temps temps;
+	struct radv_image_view src_view, dst_view;
 
-	create_iview(cmd_buffer, src, &temps.src_iview);
-	create_iview(cmd_buffer, dst, &temps.dst_iview);
+	create_iview(cmd_buffer, src, &src_view);
+	create_iview(cmd_buffer, dst, &dst_view);
 
-	itoi_bind_descriptors(cmd_buffer, &temps);
+	itoi_bind_descriptors(cmd_buffer, &src_view, &dst_view);
 
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
 			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);

@@ -1100,6 +1100,12 @@ struct __DRIdri2LoaderExtensionRec {
 #define __DRI_CTX_RESET_LOSE_CONTEXT		1
 /*@}*/
 
+#define __DRI_CTX_ATTRIB_PRIORITY		4
+
+#define __DRI_CTX_PRIORITY_LOW			0
+#define __DRI_CTX_PRIORITY_MEDIUM		1
+#define __DRI_CTX_PRIORITY_HIGH			2
+
 /**
  * \name Reasons that __DRIdri2Extension::createContextAttribs might fail
  */
@@ -1781,6 +1787,14 @@ typedef struct __DRIDriverVtableExtensionRec {
  * color format.
  */
 #define __DRI2_RENDERER_HAS_FRAMEBUFFER_SRGB                  0x000c
+
+/* Bitmaks of supported/available context priorities - must match
+ * __EGL_CONTEXT_PRIORITY_LOW_BIT et al
+ */
+#define __DRI2_RENDERER_HAS_CONTEXT_PRIORITY                  0x000d
+#define   __DRI2_RENDERER_HAS_CONTEXT_PRIORITY_LOW            (1 << 0)
+#define   __DRI2_RENDERER_HAS_CONTEXT_PRIORITY_MEDIUM         (1 << 1)
+#define   __DRI2_RENDERER_HAS_CONTEXT_PRIORITY_HIGH           (1 << 2)
 
 typedef struct __DRI2rendererQueryExtensionRec __DRI2rendererQueryExtension;
 struct __DRI2rendererQueryExtensionRec {

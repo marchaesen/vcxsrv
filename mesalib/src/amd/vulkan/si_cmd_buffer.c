@@ -179,7 +179,8 @@ si_emit_compute(struct radv_physical_device *physical_device,
 	radeon_emit(cs, 0);
 	radeon_emit(cs, 0);
 
-	radeon_set_sh_reg_seq(cs, R_00B854_COMPUTE_RESOURCE_LIMITS, 3);
+	radeon_set_sh_reg_seq(cs, R_00B854_COMPUTE_RESOURCE_LIMITS,
+			      S_00B854_WAVES_PER_SH(0x3));
 	radeon_emit(cs, 0);
 	/* R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0 / SE1 */
 	radeon_emit(cs, S_00B858_SH0_CU_EN(0xffff) | S_00B858_SH1_CU_EN(0xffff));
@@ -341,7 +342,7 @@ si_emit_config(struct radv_physical_device *physical_device,
 	radeon_emit(cs, CONTEXT_CONTROL_SHADOW_ENABLE(1));
 
 	if (physical_device->has_clear_state) {
-		radeon_emit(cs, PKT3(PKT3_CLEAR_STATE, 1, 0));
+		radeon_emit(cs, PKT3(PKT3_CLEAR_STATE, 0, 0));
 		radeon_emit(cs, 0);
 	}
 
@@ -432,11 +433,15 @@ si_emit_config(struct radv_physical_device *physical_device,
 
 	if (physical_device->rad_info.chip_class >= CIK) {
 		if (physical_device->rad_info.chip_class >= GFX9) {
-			radeon_set_sh_reg(cs, R_00B41C_SPI_SHADER_PGM_RSRC3_HS, S_00B41C_CU_EN(0xffff));
+			radeon_set_sh_reg(cs, R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
+					  S_00B41C_CU_EN(0xffff) | S_00B41C_WAVE_LIMIT(0x3F));
 		} else {
-			radeon_set_sh_reg(cs, R_00B51C_SPI_SHADER_PGM_RSRC3_LS, S_00B51C_CU_EN(0xffff));
-			radeon_set_sh_reg(cs, R_00B41C_SPI_SHADER_PGM_RSRC3_HS, 0);
-			radeon_set_sh_reg(cs, R_00B31C_SPI_SHADER_PGM_RSRC3_ES, S_00B31C_CU_EN(0xffff));
+			radeon_set_sh_reg(cs, R_00B51C_SPI_SHADER_PGM_RSRC3_LS,
+					  S_00B51C_CU_EN(0xffff) | S_00B51C_WAVE_LIMIT(0x3F));
+			radeon_set_sh_reg(cs, R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
+					  S_00B41C_WAVE_LIMIT(0x3F));
+			radeon_set_sh_reg(cs, R_00B31C_SPI_SHADER_PGM_RSRC3_ES,
+					  S_00B31C_CU_EN(0xffff) | S_00B31C_WAVE_LIMIT(0x3F));
 			/* If this is 0, Bonaire can hang even if GS isn't being used.
 			 * Other chips are unaffected. These are suboptimal values,
 			 * but we don't use on-chip GS.
@@ -445,7 +450,8 @@ si_emit_config(struct radv_physical_device *physical_device,
 					       S_028A44_ES_VERTS_PER_SUBGRP(64) |
 					       S_028A44_GS_PRIMS_PER_SUBGRP(4));
 		}
-		radeon_set_sh_reg(cs, R_00B21C_SPI_SHADER_PGM_RSRC3_GS, S_00B21C_CU_EN(0xffff));
+		radeon_set_sh_reg(cs, R_00B21C_SPI_SHADER_PGM_RSRC3_GS,
+				  S_00B21C_CU_EN(0xffff) | S_00B21C_WAVE_LIMIT(0x3F));
 
 		if (physical_device->rad_info.num_good_compute_units /
 		    (physical_device->rad_info.max_se * physical_device->rad_info.max_sh_per_se) <= 4) {
@@ -455,7 +461,8 @@ si_emit_config(struct radv_physical_device *physical_device,
 			 *
 			 * LATE_ALLOC_VS = 2 is the highest safe number.
 			 */
-			radeon_set_sh_reg(cs, R_00B118_SPI_SHADER_PGM_RSRC3_VS, S_00B118_CU_EN(0xffff));
+			radeon_set_sh_reg(cs, R_00B118_SPI_SHADER_PGM_RSRC3_VS,
+					  S_00B118_CU_EN(0xffff) | S_00B118_WAVE_LIMIT(0x3F) );
 			radeon_set_sh_reg(cs, R_00B11C_SPI_SHADER_LATE_ALLOC_VS, S_00B11C_LIMIT(2));
 		} else {
 			/* Set LATE_ALLOC_VS == 31. It should be less than
@@ -463,11 +470,13 @@ si_emit_config(struct radv_physical_device *physical_device,
 			 * - VS can't execute on CU0.
 			 * - If HS writes outputs to LDS, LS can't execute on CU0.
 			 */
-			radeon_set_sh_reg(cs, R_00B118_SPI_SHADER_PGM_RSRC3_VS, S_00B118_CU_EN(0xfffe));
+			radeon_set_sh_reg(cs, R_00B118_SPI_SHADER_PGM_RSRC3_VS,
+					  S_00B118_CU_EN(0xfffe) | S_00B118_WAVE_LIMIT(0x3F));
 			radeon_set_sh_reg(cs, R_00B11C_SPI_SHADER_LATE_ALLOC_VS, S_00B11C_LIMIT(31));
 		}
 
-		radeon_set_sh_reg(cs, R_00B01C_SPI_SHADER_PGM_RSRC3_PS, S_00B01C_CU_EN(0xffff));
+		radeon_set_sh_reg(cs, R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
+				  S_00B01C_CU_EN(0xffff) | S_00B01C_WAVE_LIMIT(0x3F));
 	}
 
 	if (physical_device->rad_info.chip_class >= VI) {
@@ -527,6 +536,11 @@ si_emit_config(struct radv_physical_device *physical_device,
 	radeon_set_context_reg_seq(cs, R_028A04_PA_SU_POINT_MINMAX, 1);
 	radeon_emit(cs, S_028A04_MIN_SIZE(radv_pack_float_12p4(0)) |
 		    S_028A04_MAX_SIZE(radv_pack_float_12p4(8192/2)));
+
+	if (!physical_device->has_clear_state) {
+		radeon_set_context_reg(cs, R_028004_DB_COUNT_CONTROL,
+				       S_028004_ZPASS_INCREMENT_DISABLE(1));
+	}
 
 	si_emit_compute(physical_device, cs);
 }
@@ -958,14 +972,12 @@ si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
 		radeon_emit(cs, EVENT_TYPE(V_028A90_FLUSH_AND_INV_DB_META) | EVENT_INDEX(0));
 	}
 
-	if (!flush_cb_db) {
-		if (flush_bits & RADV_CMD_FLAG_PS_PARTIAL_FLUSH) {
-			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, predicated));
-			radeon_emit(cs, EVENT_TYPE(V_028A90_PS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-		} else if (flush_bits & RADV_CMD_FLAG_VS_PARTIAL_FLUSH) {
-			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, predicated));
-			radeon_emit(cs, EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-		}
+	if (flush_bits & RADV_CMD_FLAG_PS_PARTIAL_FLUSH) {
+		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
+		radeon_emit(cs, EVENT_TYPE(V_028A90_PS_PARTIAL_FLUSH) | EVENT_INDEX(4));
+	} else if (flush_bits & RADV_CMD_FLAG_VS_PARTIAL_FLUSH) {
+		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
+		radeon_emit(cs, EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
 	}
 
 	if (flush_bits & RADV_CMD_FLAG_CS_PARTIAL_FLUSH) {

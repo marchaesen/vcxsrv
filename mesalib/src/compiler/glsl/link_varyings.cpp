@@ -377,11 +377,38 @@ cross_validate_front_and_back_color(struct gl_shader_program *prog,
                                           consumer_stage, producer_stage);
 }
 
+static unsigned
+compute_variable_location_slot(ir_variable *var, gl_shader_stage stage)
+{
+   unsigned location_start = VARYING_SLOT_VAR0;
+
+   switch (stage) {
+      case MESA_SHADER_VERTEX:
+         if (var->data.mode == ir_var_shader_in)
+            location_start = VERT_ATTRIB_GENERIC0;
+         break;
+      case MESA_SHADER_TESS_CTRL:
+      case MESA_SHADER_TESS_EVAL:
+         if (var->data.patch)
+            location_start = VARYING_SLOT_PATCH0;
+         break;
+      case MESA_SHADER_FRAGMENT:
+         if (var->data.mode == ir_var_shader_out)
+            location_start = FRAG_RESULT_DATA0;
+         break;
+      default:
+         break;
+   }
+
+   return var->data.location - location_start;
+}
+
 /**
  * Validate that outputs from one stage match inputs of another
  */
 void
-cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
+cross_validate_outputs_to_inputs(struct gl_context *ctx,
+                                 struct gl_shader_program *prog,
                                  gl_linked_shader *producer,
                                  gl_linked_shader *consumer)
 {
@@ -406,9 +433,18 @@ cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
           */
          const glsl_type *type = get_varying_type(var, producer->Stage);
          unsigned num_elements = type->count_attribute_slots(false);
-         unsigned idx = var->data.location - VARYING_SLOT_VAR0;
+         unsigned idx = compute_variable_location_slot(var, producer->Stage);
          unsigned slot_limit = idx + num_elements;
          unsigned last_comp;
+
+         unsigned slot_max =
+            ctx->Const.Program[producer->Stage].MaxOutputComponents / 4;
+         if (slot_limit > slot_max) {
+            linker_error(prog,
+                         "Invalid location %u in %s shader\n",
+                         idx, _mesa_shader_stage_to_string(producer->Stage));
+            return;
+         }
 
          if (type->without_array()->is_record()) {
             /* The component qualifier can't be used on structs so just treat
@@ -515,7 +551,8 @@ cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
 
             const glsl_type *type = get_varying_type(input, consumer->Stage);
             unsigned num_elements = type->count_attribute_slots(false);
-            unsigned idx = input->data.location - VARYING_SLOT_VAR0;
+            unsigned idx =
+               compute_variable_location_slot(input, consumer->Stage);
             unsigned slot_limit = idx + num_elements;
 
             while (idx < slot_limit) {

@@ -416,7 +416,7 @@ print_var_decl(nir_variable *var, print_state *state)
       const char *loc = NULL;
       char buf[4];
 
-      switch (state->shader->stage) {
+      switch (state->shader->info.stage) {
       case MESA_SHADER_VERTEX:
          if (var->data.mode == nir_var_shader_in)
             loc = gl_vert_attrib_name(var->data.location);
@@ -447,7 +447,31 @@ print_var_decl(nir_variable *var, print_state *state)
          loc = buf;
       }
 
-      fprintf(fp, " (%s, %u, %u)%s", loc, var->data.driver_location, var->data.binding,
+      /* For shader I/O vars that have been split to components or packed,
+       * print the fractional location within the input/output.
+       */
+      unsigned int num_components =
+         glsl_get_components(glsl_without_array(var->type));
+      const char *components = NULL;
+      char components_local[6] = {'.' /* the rest is 0-filled */};
+      switch (var->data.mode) {
+      case nir_var_shader_in:
+      case nir_var_shader_out:
+         if (num_components != 4 && num_components != 0) {
+            const char *xyzw = "xyzw";
+            for (int i = 0; i < num_components; i++)
+               components_local[i + 1] = xyzw[i + var->data.location_frac];
+
+            components = components_local;
+         }
+         break;
+      default:
+         break;
+      }
+
+      fprintf(fp, " (%s%s, %u, %u)%s", loc,
+              components ? components : "",
+              var->data.driver_location, var->data.binding,
               var->data.compact ? " compact" : "");
    }
 
@@ -1157,7 +1181,7 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
 
    state.annotations = annotations;
 
-   fprintf(fp, "shader: %s\n", gl_shader_stage_name(shader->stage));
+   fprintf(fp, "shader: %s\n", gl_shader_stage_name(shader->info.stage));
 
    if (shader->info.name)
       fprintf(fp, "name: %s\n", shader->info.name);
@@ -1165,7 +1189,7 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
    if (shader->info.label)
       fprintf(fp, "label: %s\n", shader->info.label);
 
-   switch (shader->stage) {
+   switch (shader->info.stage) {
    case MESA_SHADER_COMPUTE:
       fprintf(fp, "local-size: %u, %u, %u%s\n",
               shader->info.cs.local_size[0],

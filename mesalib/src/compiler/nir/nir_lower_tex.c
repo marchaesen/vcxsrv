@@ -813,6 +813,20 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
          progress = true;
          continue;
       }
+
+      /* TXF, TXS and TXL require a LOD but not everything we implement using those
+       * three opcodes provides one.  Provide a default LOD of 0.
+       */
+      if ((nir_tex_instr_src_index(tex, nir_tex_src_lod) == -1) &&
+          (tex->op == nir_texop_txf || tex->op == nir_texop_txs ||
+           tex->op == nir_texop_txl || tex->op == nir_texop_query_levels ||
+           (tex->op == nir_texop_tex &&
+            b->shader->info.stage != MESA_SHADER_FRAGMENT))) {
+         b->cursor = nir_before_instr(&tex->instr);
+         nir_tex_instr_add_src(tex, nir_tex_src_lod, nir_src_for_ssa(nir_imm_int(b, 0)));
+         progress = true;
+         continue;
+      }
    }
 
    return progress;

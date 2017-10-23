@@ -116,7 +116,7 @@ lower_deref(nir_deref_var *deref,
             nir_builder *b)
 {
    nir_variable *var = deref->var;
-   gl_shader_stage stage = state->shader->stage;
+   gl_shader_stage stage = state->shader->info.stage;
    unsigned location = var->data.location;
    unsigned binding;
    const struct glsl_type *orig_type = deref->deref.type;

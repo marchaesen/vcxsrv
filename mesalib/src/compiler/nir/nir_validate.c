@@ -973,7 +973,7 @@ validate_var_decl(nir_variable *var, bool is_global, validate_state *state)
       assert(glsl_type_is_array(var->type));
 
       const struct glsl_type *type = glsl_get_array_element(var->type);
-      if (nir_is_per_vertex_io(var, state->shader->stage)) {
+      if (nir_is_per_vertex_io(var, state->shader->info.stage)) {
          assert(glsl_type_is_array(type));
          assert(glsl_type_is_scalar(glsl_get_array_element(type)));
       } else {

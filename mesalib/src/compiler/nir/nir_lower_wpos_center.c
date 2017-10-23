@@ -105,7 +105,7 @@ nir_lower_wpos_center(nir_shader *shader, const bool for_sample_shading)
    bool progress = false;
    nir_builder b;
 
-   assert(shader->stage == MESA_SHADER_FRAGMENT);
+   assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
    nir_foreach_function(function, shader) {
       if (function->impl) {

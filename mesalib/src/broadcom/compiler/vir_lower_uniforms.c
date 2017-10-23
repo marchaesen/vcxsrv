@@ -66,7 +66,7 @@ remove_uniform(struct hash_table *ht, struct qreg reg)
 
         entry = _mesa_hash_table_search(ht, key);
         assert(entry);
-        entry->data--;
+        entry->data = (void *)(((uintptr_t) entry->data) - 1);
         if (entry->data == NULL)
                 _mesa_hash_table_remove(ht, entry);
 }

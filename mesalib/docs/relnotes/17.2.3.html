@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.2.3 Release Notes / October 19, 2017</h1>
+
+<p>
+Mesa 17.2.3 is a bug fix release which fixes bugs found since the 17.2.2 release.
+</p>
+<p>
+Mesa 17.2.3 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+fb305eecfeec1fd771fdc96fff973c51871f7bd35fd2bd56cacc27b4b8823220  mesa-17.2.3.tar.gz
+a0b0ec8f7b24dd044d7ab30a8c7e6d3767521e245f88d4ed5dd93315dc56f837  mesa-17.2.3.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101832">Bug 101832</a> - [PATCH][regression][bisect] Xorg fails to start after f50aa21456d82c8cb6fbaa565835f1acc1720a5d</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102852">Bug 102852</a> - Scons: Support the new Scons 3.0.0</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102940">Bug 102940</a> - Regression: Vulkan KMS rendering crashes since 17.2</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Smith (1):</p>
+<ul>
+  <li>radv: Add R16G16B16A16_SNORM fast clear support</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (2):</p>
+<ul>
+  <li>nir/spirv: Allow loop breaks in a switch body.</li>
+  <li>radv: Only set the MTYPE flags on GFX9+.</li>
+</ul>
+
+<p>Ben Crocker (4):</p>
+<ul>
+  <li>gallivm: fix typo in debug_printf message</li>
+  <li>gallivm: allow additional llc options</li>
+  <li>gallivm/ppc64le: adjust VSX code generation control.</li>
+  <li>gallivm/ppc64le: allow environmental control of Altivec code generation</li>
+</ul>
+
+<p>Daniel Stone (2):</p>
+<ul>
+  <li>egl/wayland: Check queryImage return for wl_buffer</li>
+  <li>egl/wayland: Don't use dmabuf with no modifiers</li>
+</ul>
+
+<p>Dave Airlie (2):</p>
+<ul>
+  <li>radv: emit fmuladd instead of fma to llvm.</li>
+  <li>radv: lower ffma in nir.</li>
+</ul>
+
+<p>Emil Velikov (6):</p>
+<ul>
+  <li>cherry-ignore: add "anv: Remove unreachable cases from isl_format_for_size"</li>
+  <li>cherry-ignore: add "anv/wsi: Allocate enough memory for the entire image"</li>
+  <li>swr/rast: do not crash on NULL strings returned by getenv</li>
+  <li>wayland-drm: use a copy of the wayland_drm_callbacks struct</li>
+  <li>eglmesaext: add forward declaration for struct wl_buffers</li>
+  <li>Update version to 17.2.3</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>scons: use python3-compatible print()</li>
+</ul>
+
+<p>Ilia Mirkin (2):</p>
+<ul>
+  <li>nv50/ir: fix 64-bit integer shifts</li>
+  <li>nv50,nvc0: fix push hint logic in presence of a start offset</li>
+</ul>
+
+<p>Jason Ekstrand (6):</p>
+<ul>
+  <li>intel/compiler: Don't cmod propagate into a saturated operation</li>
+  <li>intel/compiler: Don't propagate cmod into integer multiplies</li>
+  <li>glsl/blob: Return false from ensure_can_read on overrun</li>
+  <li>glsl/blob: Return false from grow_to_fit if we've ever failed</li>
+  <li>nir/opcodes: Fix constant-folding of ufind_msb</li>
+  <li>nir: Get rid of the variable on vote intrinsics</li>
+</ul>
+
+<p>Juan A. Suarez Romero (1):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.2.2</li>
+</ul>
+
+<p>Józef Kucia (3):</p>
+<ul>
+  <li>anv: Fix vkCmdFillBuffer()</li>
+  <li>spirv: Fix SpvOpAtomicISub</li>
+  <li>anv: Do not assert() on VK_ATTACHMENT_UNUSED</li>
+</ul>
+
+<p>Leo Liu (3):</p>
+<ul>
+  <li>st/va: use pipe transfer_map to map upload buffer</li>
+  <li>st/vdpau: don't re-allocate interlaced buffer with packed YUV format</li>
+  <li>st/va: don't re-allocate interlaced buffer with pakced format</li>
+</ul>
+
+<p>Lionel Landwerlin (4):</p>
+<ul>
+  <li>intel: compiler: vec4: add missing default 0 lod</li>
+  <li>anv/cmd_buffer: fix push descriptors with set &gt; 0</li>
+  <li>anv/cmd_buffer: Reset state in cmd_buffer_destroy</li>
+  <li>anv: bo_cache: allow importing a BO larger than needed</li>
+</ul>
+
+<p>Marek Olšák (3):</p>
+<ul>
+  <li>mesa: fix texture updates for ATI_fragment_shader</li>
+  <li>st/mesa: don't use pipe_surface for passing information about EGLImage</li>
+  <li>glsl_to_tgsi: fix instruction order for bindless textures</li>
+</ul>
+
+<p>Nicolai Hähnle (14):</p>
+<ul>
+  <li>st/glsl_to_tgsi: fix conditional assignments to packed shader outputs</li>
+  <li>amd/common: fix build_cube_select</li>
+  <li>radeonsi/gfx9: fix geometry shaders without output vertices</li>
+  <li>util/queue: fix a race condition in the fence code</li>
+  <li>glsl/lower_instruction: handle denorms and overflow in ldexp correctly</li>
+  <li>radeonsi: move current_rast_prim to r600_common_context</li>
+  <li>radeonsi: don't discard points and lines</li>
+  <li>radeonsi: deduce rast_prim correctly for tessellation point mode</li>
+  <li>radeonsi: fix maximum advertised point size / line width</li>
+  <li>st/mesa: don't clobber glGetInternalformat* buffer for GL_NUM_SAMPLE_COUNTS</li>
+  <li>st/glsl_to_tgsi: fix indirect access to 64-bit integer</li>
+  <li>st/glsl_to_tgsi: fix a use-after-free in merge_two_dsts</li>
+  <li>radeonsi: clamp depth comparison value only for fixed point formats</li>
+  <li>radeonsi: clamp border colors for upgraded depth textures</li>
+</ul>
+
+<p>Rob Clark (2):</p>
+<ul>
+  <li>freedreno/a5xx: align height to GMEM</li>
+  <li>freedreno/a5xx: fix missing restore state</li>
+</ul>
+
+
+</div>
+</body>
+</html>

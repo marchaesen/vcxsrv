@@ -32,14 +32,29 @@ subdir('drivers/radeon')
 subdir('drivers/radeonsi')
 subdir('drivers/nouveau')
 subdir('drivers/softpipe')
+if with_gallium_vc4
+  subdir('drivers/vc4')
+endif
+if with_gallium_vc5
+  subdir('drivers/vc5')
+endif
 subdir('drivers/llvmpipe')
 subdir('winsys/sw/null')
 subdir('winsys/sw/dri')
 subdir('winsys/sw/kms-dri')
 subdir('winsys/sw/wrapper')
+if with_gallium_vc4
+  subdir('winsys/pl111/drm')
+endif
 subdir('winsys/radeon/drm')
 subdir('winsys/amdgpu/drm')
 subdir('winsys/nouveau/drm')
+if with_gallium_vc4
+  subdir('winsys/vc4/drm')
+endif
+if with_gallium_vc5
+  subdir('winsys/vc5/drm')
+endif
 subdir('state_trackers/dri')
 # TODO: freedreno
 # TODO: i915
@@ -48,13 +63,11 @@ subdir('state_trackers/dri')
 # TODO: r600
 # TODO: etnaviv
 # TODO: IMX
-# TODO: PL111
 # TODO: SWR
-# TODO: vc4
 # TODO: virgl
 # TODO: winsys/sw/xlib
 # TODO: clover
-if with_dri
+if with_dri and with_gallium
   subdir('targets/dri')
 endif
 # TODO: xlib-glx

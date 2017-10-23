@@ -75,7 +75,7 @@ tcs_add_output_reads(nir_shader *shader, uint64_t *read)
                   nir_variable *var = intrin_instr->variables[0]->var;
                   read[var->data.location_frac] |=
                      get_variable_io_mask(intrin_instr->variables[0]->var,
-                                          shader->stage);
+                                          shader->info.stage);
                }
             }
          }
@@ -102,7 +102,7 @@ remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
 
       uint64_t other_stage = used_by_other_stage[var->data.location_frac];
 
-      if (!(other_stage & get_variable_io_mask(var, shader->stage))) {
+      if (!(other_stage & get_variable_io_mask(var, shader->info.stage))) {
          /* This one is invalid, make it a global variable instead */
          var->data.location = 0;
          var->data.mode = nir_var_global;
@@ -120,26 +120,26 @@ remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
 bool
 nir_remove_unused_varyings(nir_shader *producer, nir_shader *consumer)
 {
-   assert(producer->stage != MESA_SHADER_FRAGMENT);
-   assert(consumer->stage != MESA_SHADER_VERTEX);
+   assert(producer->info.stage != MESA_SHADER_FRAGMENT);
+   assert(consumer->info.stage != MESA_SHADER_VERTEX);
 
    uint64_t read[4] = { 0 }, written[4] = { 0 };
 
    nir_foreach_variable(var, &producer->outputs) {
       written[var->data.location_frac] |=
-         get_variable_io_mask(var, producer->stage);
+         get_variable_io_mask(var, producer->info.stage);
    }
 
    nir_foreach_variable(var, &consumer->inputs) {
       read[var->data.location_frac] |=
-         get_variable_io_mask(var, consumer->stage);
+         get_variable_io_mask(var, consumer->info.stage);
    }
 
    /* Each TCS invocation can read data written by other TCS invocations,
     * so even if the outputs are not used by the TES we must also make
     * sure they are not read by the TCS before demoting them to globals.
     */
-   if (producer->stage == MESA_SHADER_TESS_CTRL)
+   if (producer->info.stage == MESA_SHADER_TESS_CTRL)
       tcs_add_output_reads(producer, read);
 
    bool progress = false;

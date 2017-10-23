@@ -328,7 +328,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
    NIR_PASS_V(nir, nir_lower_var_copies);
    NIR_PASS_V(nir, nir_lower_io_types);
 
-   if (nir->stage == MESA_SHADER_VERTEX) {
+   if (nir->info.stage == MESA_SHADER_VERTEX) {
       /* Needs special handling so drvloc matches the vbo state: */
       st_nir_assign_vs_in_locations(prog, nir);
       /* Re-lower global vars, to deal with any dead VS inputs. */
@@ -339,7 +339,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
                                &nir->num_outputs,
                                type_size);
       st_nir_fixup_varying_slots(st, &nir->outputs);
-   } else if (nir->stage == MESA_SHADER_FRAGMENT) {
+   } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
       sort_varyings(&nir->inputs);
       nir_assign_var_locations(&nir->inputs,
                                &nir->num_inputs,
@@ -348,14 +348,14 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
       nir_assign_var_locations(&nir->outputs,
                                &nir->num_outputs,
                                type_size);
-   } else if (nir->stage == MESA_SHADER_COMPUTE) {
+   } else if (nir->info.stage == MESA_SHADER_COMPUTE) {
        /* TODO? */
    } else {
       unreachable("invalid shader type for tgsi bypass\n");
    }
 
    struct gl_shader_program *shader_program;
-   switch (nir->stage) {
+   switch (nir->info.stage) {
    case MESA_SHADER_VERTEX:
       shader_program = ((struct st_vertex_program *)prog)->shader_program;
       break;
@@ -371,7 +371,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
    }
 
    NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,
-         st->ctx->Const.Program[nir->stage].MaxAtomicBuffers);
+         st->ctx->Const.Program[nir->info.stage].MaxAtomicBuffers);
 
    st_nir_assign_uniform_locations(prog, shader_program,
                                    &nir->uniforms, &nir->num_uniforms);

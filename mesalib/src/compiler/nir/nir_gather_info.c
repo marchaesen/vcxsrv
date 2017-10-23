@@ -53,7 +53,7 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len)
          else
             shader->info.inputs_read |= bitfield;
 
-         if (shader->stage == MESA_SHADER_FRAGMENT) {
+         if (shader->info.stage == MESA_SHADER_FRAGMENT) {
             shader->info.fs.uses_sample_qualifier |= var->data.sample;
          }
       } else {
@@ -79,7 +79,7 @@ mark_whole_variable(nir_shader *shader, nir_variable *var)
 {
    const struct glsl_type *type = var->type;
 
-   if (nir_is_per_vertex_io(var, shader->stage)) {
+   if (nir_is_per_vertex_io(var, shader->info.stage)) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -129,7 +129,7 @@ try_mask_partial_io(nir_shader *shader, nir_deref_var *deref)
    nir_variable *var = deref->var;
    const struct glsl_type *type = var->type;
 
-   if (nir_is_per_vertex_io(var, shader->stage)) {
+   if (nir_is_per_vertex_io(var, shader->info.stage)) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -196,7 +196,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader)
    switch (instr->intrinsic) {
    case nir_intrinsic_discard:
    case nir_intrinsic_discard_if:
-      assert(shader->stage == MESA_SHADER_FRAGMENT);
+      assert(shader->info.stage == MESA_SHADER_FRAGMENT);
       shader->info.fs.uses_discard = true;
       break;
 
@@ -214,7 +214,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader)
 
          /* We need to track which input_reads bits correspond to a
           * dvec3/dvec4 input attribute */
-         if (shader->stage == MESA_SHADER_VERTEX &&
+         if (shader->info.stage == MESA_SHADER_VERTEX &&
              var->data.mode == nir_var_shader_in &&
              glsl_type_is_dual_slot(glsl_without_array(var->type))) {
             for (uint i = 0; i < glsl_count_attribute_slots(var->type, false); i++) {
@@ -252,7 +252,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader)
 
    case nir_intrinsic_end_primitive:
    case nir_intrinsic_end_primitive_with_counter:
-      assert(shader->stage == MESA_SHADER_GEOMETRY);
+      assert(shader->info.stage == MESA_SHADER_GEOMETRY);
       shader->info.gs.uses_end_primitive = 1;
       break;
 
@@ -327,7 +327,7 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
    shader->info.patch_inputs_read = 0;
    shader->info.patch_outputs_written = 0;
    shader->info.system_values_read = 0;
-   if (shader->stage == MESA_SHADER_FRAGMENT) {
+   if (shader->info.stage == MESA_SHADER_FRAGMENT) {
       shader->info.fs.uses_sample_qualifier = false;
    }
    nir_foreach_block(block, entrypoint) {

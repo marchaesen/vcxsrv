@@ -190,6 +190,8 @@ st_framebuffer_validate(struct st_framebuffer *stfb,
    if (stfb->iface_stamp == new_stamp)
       return;
 
+   memset(textures, 0, stfb->num_statts * sizeof(textures[0]));
+
    /* validate the fb */
    do {
       if (!stfb->iface->validate(&st->iface, stfb->iface, stfb->statts,

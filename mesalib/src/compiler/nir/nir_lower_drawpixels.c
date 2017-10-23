@@ -252,7 +252,7 @@ nir_lower_drawpixels(nir_shader *shader,
       .shader = shader,
    };
 
-   assert(shader->stage == MESA_SHADER_FRAGMENT);
+   assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
    nir_foreach_function(function, shader) {
       if (function->impl)

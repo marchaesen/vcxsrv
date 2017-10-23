@@ -25,6 +25,12 @@ if int10 == 'x86emu'
     ]
     int10_c_args += '-D_X86EMU'
     int10_c_args += '-DNO_SYS_HEADERS'
+
+    # Silence some useless warnings from x86emu
+    if cc.has_argument('-Wno-format-nonliteral')
+        int10_c_args += '-Wno-format-nonliteral'
+    endif
+
     int10_link += xorg_x86emu
 endif
 

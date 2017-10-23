@@ -91,15 +91,21 @@ if _drivers != ''
 endif
 
 with_gallium = false
+with_gallium_pl111 = false
 with_gallium_radeonsi = false
 with_gallium_nouveau = false
 with_gallium_softpipe = false
+with_gallium_vc4 = false
+with_gallium_vc5 = false
 _drivers = get_option('gallium-drivers')
 if _drivers != ''
   _split = _drivers.split(',')
+  with_gallium_pl111 = _split.contains('pl111')
   with_gallium_radeonsi = _split.contains('radeonsi')
   with_gallium_nouveau = _split.contains('nouveau')
   with_gallium_softpipe = _split.contains('swrast')
+  with_gallium_vc4 = _split.contains('vc4')
+  with_gallium_vc5 = _split.contains('vc5')
   with_gallium = true
   with_dri = true
 endif
@@ -124,16 +130,20 @@ endif
 # TODO: other OSes
 with_dri_platform = 'drm'
 
-# TODO: there are more platforms required for non-vulkan drivers
+# TODO: android platform
 with_platform_wayland = false
 with_platform_x11 = false
 with_platform_drm = false
+with_platform_surfaceless = false
+egl_native_platform = ''
 _platforms = get_option('platforms')
 if _platforms != ''
   _split = _platforms.split(',')
   with_platform_x11 = _split.contains('x11')
   with_platform_wayland = _split.contains('wayland')
   with_platform_drm = _split.contains('drm')
+  with_platform_surfaceless = _split.contains('surfaceless')
+  egl_native_platform = _split[0]
 endif
 
 with_gbm = get_option('gbm')
@@ -148,11 +158,36 @@ else
   with_gbm = false
 endif
 
+_egl = get_option('egl')
+if _egl == 'auto'
+  with_egl = with_dri and with_shared_glapi and egl_native_platform != ''
+elif _egl == 'yes'
+  if not with_dri
+    error('EGL requires dri')
+  elif not with_shared_glapi
+    error('EGL requires shared-glapi')
+  elif egl_native_platform == ''
+    error('No platforms specified, consider -Dplatforms=drm,x11 at least')
+  endif
+  with_egl = true
+else
+  with_egl = false
+endif
+
+# TODO: or virgl
+if with_egl and with_gallium_radeonsi and not (with_platform_drm or with_platform_surfaceless)
+  error('RadeonSI requires drm or surfaceless platform when using EGL')
+endif
+
 pre_args += '-DGLX_USE_TLS'
 with_glx = get_option('glx')
 if with_glx != 'disabled'
-  if not (with_platform_x11 and with_any_opengl) and with_glx != 'auto'
-    error('Cannot build GLX support without X11 platform support and at least one OpenGL API')
+  if not (with_platform_x11 and with_any_opengl)
+    if with_glx == 'auto'
+      with_glx = 'disabled'
+    else
+      error('Cannot build GLX support without X11 platform support and at least one OpenGL API')
+    endif
   elif with_glx == 'gallium-xlib' 
     if not with_gallium
       error('Gallium-xlib based GLX requires at least one gallium driver')
@@ -218,7 +253,7 @@ if with_any_vk and (with_platform_x11 and not with_dri3)
   error('Vulkan drivers require dri3 for X11 support')
 endif
 if with_dri or with_gallium
-  if with_glx == 'disabled' # TODO: or egl
+  if with_glx == 'disabled' and not with_egl
     error('building dri or gallium drivers require at least one window system')
   endif
 endif
@@ -240,6 +275,7 @@ if _drivers != ''
                         with_gallium_omx or with_gallium_va)
 endif
 
+gl_pkgconfig_c_flags = []
 if with_platform_x11
   if with_any_vk or (with_glx == 'dri' and with_dri_platform == 'drm')
     pre_args += '-DHAVE_X11_PLATFORM'
@@ -259,6 +295,18 @@ if with_platform_x11
       pre_args += '-DGLX_USE_DRM'
     endif
   endif
+else
+  pre_args += '-DMESA_EGL_NO_X11_HEADERS'
+  gl_pkgconfig_c_flags += '-DMESA_EGL_NO_X11_HEADERS'
+endif
+if with_platform_drm
+  if with_egl and not with_gbm
+    error('EGL drm platform requires gbm')
+  endif
+  pre_args += '-DHAVE_DRM_PLATFORM'
+endif
+if with_platform_surfaceless
+  pre_args += '-DHAVE_SURFACELESS_PLATFORM'
 endif
 
 prog_python2 = find_program('python2')
@@ -559,7 +607,7 @@ dep_libdrm_amdgpu = []
 dep_libdrm_radeon = []
 dep_libdrm_nouveau = []
 if with_amd_vk or with_gallium_radeonsi
-  dep_libdrm_amdgpu = dependency('libdrm_amdgpu', version : '>= 2.4.84')
+  dep_libdrm_amdgpu = dependency('libdrm_amdgpu', version : '>= 2.4.85')
 endif
 if with_gallium_radeonsi # older radeon too
   dep_libdrm_radeon = dependency('libdrm_radeon', version : '>= 2.4.71')
@@ -636,18 +684,22 @@ endif
 
 # TODO: symbol mangling
 
-# TODO: egl configuration
-
 if with_platform_wayland
   prog_wl_scanner = find_program('wayland-scanner')
   dep_wl_protocols = dependency('wayland-protocols', version : '>= 1.8')
   dep_wayland_client = dependency('wayland-client', version : '>=1.11')
   dep_wayland_server = dependency('wayland-server', version : '>=1.11')
+  wayland_dmabuf_xml = join_paths(
+    dep_wl_protocols.get_pkgconfig_variable('pkgdatadir'), 'unstable',
+    'linux-dmabuf', 'linux-dmabuf-unstable-v1.xml'
+  )
+  pre_args += ['-DHAVE_WAYLAND_PLATFORM', '-DWL_HIDE_DEPRECATED']
 else
   prog_wl_scanner = []
   dep_wl_protocols = []
   dep_wayland_client = []
   dep_wayland_server = []
+  wayland_dmabuf_xml = ''
 endif
 
 dep_x11 = []
@@ -664,6 +716,7 @@ dep_xf86vm = []
 dep_xcb_dri3 = []
 dep_xcb_present = []
 dep_xcb_sync = []
+dep_xcb_xfixes = []
 dep_xshmfence = []
 if with_platform_x11
   if with_glx == 'dri' and with_dri_platform == 'drm'
@@ -672,7 +725,7 @@ if with_platform_x11
     dep_xdamage = dependency('xdamage', version : '>= 1.1')
     dep_xfixes = dependency('xfixes')
     dep_xcb_glx = dependency('xcb-glx', version : '>= 1.8.1')
-    dep_xf86vm = dependency('xf86vm', required : false)
+    dep_xf86vm = dependency('xxf86vm', required : false)
   endif
   if with_any_vk or (with_glx == 'dri' and with_dri_platform == 'drm')
     dep_xcb = dependency('xcb')
@@ -691,13 +744,12 @@ if with_platform_x11
     dep_dri2proto = dependency('dri2proto', version : '>= 2.8')
     dep_glproto = dependency('glproto', version : '>= 1.4.14')
   endif
+  if with_egl
+    dep_xcb_xfixes = dependency('xcb-xfixes')
+  endif
 endif
 
-# TODO: platforms for !vulkan
-
 # TODO: osmesa
-
-# TODO: egl
 
 # TODO: vallium G3DVL
 
@@ -705,7 +757,6 @@ endif
 
 # TODO: clover
 
-# TODO: egl sans x11
 # TODO: gallium tests
 
 # TODO: various libdirs
@@ -733,6 +784,28 @@ foreach a : cpp_args
 endforeach
 
 inc_include = include_directories('include')
+
+gl_priv_reqs = [
+  'x11', 'xext', 'xdamage >= 1.1', 'xfixes', 'x11-xcb', 'xcb',
+  'xcb-glx >= 1.8.1', 'libdrm >= 2.4.75',
+]
+if dep_xf86vm != [] and dep_xf86vm.found()
+  gl_priv_reqs += 'xf86vm'
+endif
+if with_dri_platform == 'drm'
+  gl_priv_reqs += 'xcb-dri2 >= 1.8'
+endif
+
+gl_priv_libs = []
+if dep_thread.found()
+  gl_priv_libs += ['-lpthread', '-pthread']
+endif
+if dep_m.found()
+  gl_priv_libs += '-lm'
+endif
+if dep_dl.found()
+  gl_priv_libs += '-ldl'
+endif
 
 pkg = import('pkgconfig')
 
