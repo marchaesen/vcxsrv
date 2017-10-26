@@ -169,6 +169,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\compiler\blob.c" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_array_index.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_expr.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\ast_function.cpp" />
@@ -220,6 +221,7 @@
     <ClCompile Include="..\..\..\..\src\compiler\glsl\loop_unroll.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_buffer_access.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_const_arrays_to_uniforms.cpp" />
+    <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_cs_derived.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_discard.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_discard_flow.cpp" />
     <ClCompile Include="..\..\..\..\src\compiler\glsl\lower_distance.cpp" />
