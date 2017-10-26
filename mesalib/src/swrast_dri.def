@@ -1,0 +1,3 @@
+LIBRARY swrast_dri
+EXPORTS
+  __driDriverGetExtensions_swrast

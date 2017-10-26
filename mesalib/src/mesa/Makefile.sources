@@ -118,8 +118,6 @@ MAIN_FILES = \
 	main/getstring.c \
 	main/glformats.c \
 	main/glformats.h \
-	main/glthread.c \
-	main/glthread.h \
 	main/glheader.h \
 	main/hash.c \
 	main/hash.h \
@@ -136,10 +134,6 @@ MAIN_FILES = \
 	main/lines.c \
 	main/lines.h \
 	main/macros.h \
-	main/marshal.c \
-	main/marshal.h \
-	main/marshal_generated.c \
-	main/marshal_generated.h \
 	main/matrix.c \
 	main/matrix.h \
 	main/mipmap.c \
@@ -267,10 +261,7 @@ MAIN_FILES = \
 
 MATH_FILES = \
 	math/m_debug.h \
-	math/m_debug_clip.c \
-	math/m_debug_norm.c \
 	math/m_debug_util.h \
-	math/m_debug_xform.c \
 	math/m_eval.c \
 	math/m_eval.h \
 	math/m_matrix.c \
@@ -578,11 +569,11 @@ PROGRAM_FILES = \
 	program/symbol_table.c \
 	program/symbol_table.h
 
-PROGRAM_NIR_FILES = \
+PROGRAM_NIR_FILES_REMOVED = \
 	program/prog_to_nir.c \
 	program/prog_to_nir.h
 
-ASM_C_FILES =	\
+ASM_C_FILES_REMOVED =	\
 	x86/common_x86.c \
 	x86/x86_xform.c \
 	x86/3dnow.c \

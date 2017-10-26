@@ -89,18 +89,8 @@ EXTRASTOBUILDDIRS=$(dir $(EXTRASTOBUILD))
 load_makefile $(EXTRASTOBUILDDIRS:%$(NOSERVOBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
 all: $(EXTRASTOBUILD)
 
-load_makefile ..\mesalib\windows\VC8\mesa\makefile MAKESERVER=0 DEBUG=$(DEBUG)
-ifeq ($(IS64),1)
-TARGETDIR=x64
-else
-TARGETDIR=Win32
-endif
-
-ifeq ($(DEBUG),1)
-all: ..\mesalib\windows\VC8\mesa\$(TARGETDIR)\Debug\swrast_dri.dll
-else
-all: ..\mesalib\windows\VC8\mesa\$(TARGETDIR)\Release\swrast_dri.dll
-endif
+load_makefile $(MHMAKECONF)\mesalib\src\makefile MAKESERVER=0 DEBUG=$(DEBUG)
+all: $(MHMAKECONF)\mesalib\src\$(NOSERVOBJDIR)\swrast_dri.lib
 
 all: fonts.src\all xkeyboard-config\all
 
