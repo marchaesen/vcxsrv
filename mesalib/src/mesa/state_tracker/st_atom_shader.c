@@ -215,8 +215,7 @@ st_update_common_program(struct st_context *st, struct gl_program *prog,
    if (st->shader_has_one_variant[prog->info.stage] && stp->variants)
       return stp->variants->driver_shader;
 
-   return st_get_basic_variant(st, pipe_shader, &stp->tgsi,
-                               &stp->variants)->driver_shader;
+   return st_get_basic_variant(st, pipe_shader, stp)->driver_shader;
 }
 
 

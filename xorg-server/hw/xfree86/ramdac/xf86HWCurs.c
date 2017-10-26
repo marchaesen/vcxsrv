@@ -181,8 +181,15 @@ xf86ScreenSetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y)
     xf86CursorScreenPtr ScreenPriv =
         (xf86CursorScreenPtr) dixLookupPrivate(&pScreen->devPrivates,
                                                xf86CursorScreenKey);
-    xf86CursorInfoPtr infoPtr = ScreenPriv->CursorInfoPtr;
+
+    xf86CursorInfoPtr infoPtr;
     unsigned char *bits;
+
+    if (!ScreenPriv) { /* NULL if Option "SWCursor" */
+        return (pCurs == NullCursor);
+    }
+
+    infoPtr = ScreenPriv->CursorInfoPtr;
 
     if (pCurs == NullCursor) {
         (*infoPtr->HideCursor) (infoPtr->pScrn);

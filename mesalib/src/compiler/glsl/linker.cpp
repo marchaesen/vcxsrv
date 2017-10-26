@@ -2374,6 +2374,9 @@ link_intrastage_shaders(void *mem_ctx,
    if (ctx->Const.VertexID_is_zero_based)
       lower_vertex_id(linked);
 
+   if (ctx->Const.LowerCsDerivedVariables)
+      lower_cs_derived(linked);
+
 #ifdef DEBUG
    /* Compute the source checksum. */
    linked->SourceChecksum = 0;

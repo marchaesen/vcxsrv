@@ -2410,12 +2410,13 @@ dnl Surfaceless is an alternative for the last one.
 dnl
 require_basic_egl() {
     case "$with_platforms" in
-        *drm*|*surfaceless*)
+        *drm*|*surfaceless*|*android*)
             ;;
         *)
             AC_MSG_ERROR([$1 requires one of these:
                   1) --with-platforms=drm (X, Wayland, offscreen rendering based on DRM)
                   2) --with-platforms=surfaceless (offscreen only)
+                  3) --with-platforms=android (Android only)
                   Recommended options: drm,x11])
             ;;
     esac

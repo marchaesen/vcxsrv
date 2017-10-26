@@ -567,6 +567,7 @@ test_sync_file_fences(struct pipe_context *ctx)
    pass = pass && screen->fence_finish(screen, NULL, final_fence, 0);
 
    /* Cleanup. */
+#ifndef PIPE_OS_WINDOWS
    if (buf_fd >= 0)
       close(buf_fd);
    if (tex_fd >= 0)
@@ -575,6 +576,7 @@ test_sync_file_fences(struct pipe_context *ctx)
       close(merged_fd);
    if (final_fd >= 0)
       close(final_fd);
+#endif
 
    screen->fence_reference(screen, &buf_fence, NULL);
    screen->fence_reference(screen, &tex_fence, NULL);

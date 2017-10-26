@@ -76,9 +76,9 @@ compositeproto_dep = dependency('compositeproto', version: '>= 0.4')
 recordproto_dep = dependency('recordproto', version: '>= 1.13.99.1')
 scrnsaverproto_dep = dependency('scrnsaverproto', version: '>= 1.1')
 resourceproto_dep = dependency('resourceproto', version: '>= 1.2.0')
-xf86driproto_dep = dependency('xf86driproto', version: '>= 2.1.0', required: get_option('dri1') == 'yes')
-dri2proto_dep = dependency('dri2proto', version: '>= 2.8', required: get_option('dri2') == 'yes')
-dri3proto_dep = dependency('dri3proto', version: '>= 1.0', required: get_option('dri3') == 'yes')
+xf86driproto_dep = dependency('xf86driproto', version: '>= 2.1.0', required: get_option('dri1') == 'true')
+dri2proto_dep = dependency('dri2proto', version: '>= 2.8', required: get_option('dri2') == 'true')
+dri3proto_dep = dependency('dri3proto', version: '>= 1.0', required: get_option('dri3') == 'true')
 xineramaproto_dep = dependency('xineramaproto')
 xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0')
 xf86dgaproto_dep = dependency('xf86dgaproto', version: '>= 2.0.99.1', required: false)
@@ -93,7 +93,7 @@ xkbfile_dep = dependency('xkbfile')
 xfont2_dep = dependency('xfont2', version: '>= 2.0')
 nettle_dep = dependency('nettle')
 
-dbus_required = get_option('systemd_logind') == 'yes'
+dbus_required = get_option('systemd_logind') == 'true'
 dbus_dep = dependency('dbus-1', version: '>= 1.0', required: dbus_required)
 
 # Resolve default values of some options
@@ -118,13 +118,13 @@ glamor_option = get_option('glamor')
 build_udev = get_option('udev')
 if host_machine.system() == 'windows'
     build_udev = false
-    hal_option = 'no'
+    hal_option = 'false'
 endif
 
 if get_option('systemd_logind') == 'auto'
     build_systemd_logind = build_udev and dbus_dep.found()
 else
-    build_systemd_logind = get_option('systemd_logind') == 'yes'
+    build_systemd_logind = get_option('systemd_logind') == 'true'
 endif
 
 build_xorg = false
@@ -134,7 +134,7 @@ if (host_machine.system() != 'darwin' and
         build_xorg = (host_machine.system() != 'darwin' and
                       host_machine.system() != 'windows')
     else
-        build_xorg = get_option('xorg') == 'yes'
+        build_xorg = get_option('xorg') == 'true'
     endif
 endif
 xorgsdkdir = join_paths(get_option('prefix'), get_option('includedir'), 'xorg')
@@ -142,8 +142,8 @@ xorgsdkdir = join_paths(get_option('prefix'), get_option('includedir'), 'xorg')
 build_xwayland = false
 if (host_machine.system() != 'darwin' and
     host_machine.system() != 'windows')
-    if get_option('xwayland') != 'no'
-        xwayland_required = get_option('xwayland') == 'yes'
+    if get_option('xwayland') != 'false'
+        xwayland_required = get_option('xwayland') == 'true'
 
         xwayland_dep = [
             dependency('wayland-client', version: '>= 1.3.0', required: xwayland_required),
@@ -165,8 +165,8 @@ endif
 build_xnest = false
 if (host_machine.system() != 'darwin' and
     host_machine.system() != 'windows')
-    if get_option('xnest') != 'no'
-        xnest_required = get_option('xnest') == 'yes'
+    if get_option('xnest') != 'false'
+        xnest_required = get_option('xnest') == 'true'
 
         xnest_dep = [
             dependency('xext', version: '>= 1.0.99.4', required: xnest_required),
@@ -191,7 +191,7 @@ if get_option('xwin') == 'auto'
             build_xwin = true
     endif
 else
-    build_xwin = get_option('xwin') == 'yes'
+    build_xwin = get_option('xwin') == 'true'
 endif
 
 # XXX: Finish these.
@@ -200,7 +200,7 @@ build_xquartz = false
 if get_option('ipv6') == 'auto'
     build_ipv6 = cc.has_function('getaddrinfo')
 else
-    build_ipv6 = get_option('ipv6') == 'yes'
+    build_ipv6 = get_option('ipv6') == 'true'
 endif
 
 int10 = get_option('int10')
@@ -214,7 +214,7 @@ if int10 == 'auto'
     endif
 endif
 
-hal_dep = ''
+hal_dep = []
 if hal_option == 'auto'
     if not build_udev
         hal_dep = dependency('hal', required: false)
@@ -223,7 +223,7 @@ if hal_option == 'auto'
         build_hal = false
     endif
 else
-    build_hal = hal_option == 'yes'
+    build_hal = hal_option == 'true'
     if build_hal
         hal_dep = dependency('hal')
     endif
@@ -253,7 +253,7 @@ endif
 if glamor_option == 'auto'
     build_glamor = build_xorg or build_xwayland
 else
-    build_glamor = get_option('glamor') == 'yes'
+    build_glamor = get_option('glamor') == 'true'
 endif
 
 gbm_dep = dependency('', required:false)
@@ -264,7 +264,7 @@ endif
 # XXX: Add more sha1 options, because Linux is about choice
 sha1_dep = nettle_dep
 
-xdmcp_dep = ''
+xdmcp_dep = []
 if get_option('xdmcp')
     xdmcp_dep = dependency('xdmcp')
 endif
@@ -274,19 +274,19 @@ build_glx = get_option('glx')
 if get_option('dri1') == 'auto'
     build_dri1 = xf86driproto_dep.found()
 else
-    build_dri1 = get_option('dri1') == 'yes'
+    build_dri1 = get_option('dri1') == 'true'
 endif
 
 if get_option('dri2') == 'auto'
     build_dri2 = dri2proto_dep.found()
 else
-    build_dri2 = get_option('dri2') == 'yes'
+    build_dri2 = get_option('dri2') == 'true'
 endif
 
 if get_option('dri3') == 'auto'
     build_dri3 = dri3proto_dep.found() and xshmfence_dep.found()
 else
-    build_dri3 = get_option('dri3') == 'yes'
+    build_dri3 = get_option('dri3') == 'true'
     if build_dri3
        if not xshmfence_dep.found()
            error('DRI3 requested, but xshmfence not found')
@@ -294,7 +294,7 @@ else
     endif
 endif
 
-libdrm_required = (get_option('dri1') == 'yes') or (get_option('dri2') == 'yes') or (get_option('dri3') == 'yes')
+libdrm_required = (get_option('dri1') == 'true') or (get_option('dri2') == 'true') or (get_option('dri3') == 'true')
 libdrm_dep = dependency('libdrm', version: '>= 2.3.1', required: libdrm_required)
 build_modesetting = false
 if libdrm_dep.found()
@@ -314,7 +314,7 @@ if get_option('vbe') == 'auto'
         build_vbe = true
     endif
 else
-    build_vbe = get_option('vbe') == 'yes'
+    build_vbe = get_option('vbe') == 'true'
 endif
 
 build_vgahw = false
@@ -325,7 +325,7 @@ if get_option('vgahw') == 'auto'
         build_vgahw = true
     endif
 else
-    build_vgahw = get_option('vgahw') == 'yes'
+    build_vgahw = get_option('vgahw') == 'true'
 endif
 
 # XXX: Allow configuration of these.

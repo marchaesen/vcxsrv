@@ -1295,15 +1295,10 @@ builtin_variable_generator::generate_cs_special_vars()
                        uvec3_t, "gl_LocalGroupSizeARB");
    }
 
-   if (state->ctx->Const.LowerCsDerivedVariables) {
-      add_variable("gl_GlobalInvocationID", uvec3_t, ir_var_auto, 0);
-      add_variable("gl_LocalInvocationIndex", uint_t, ir_var_auto, 0);
-   } else {
-      add_system_value(SYSTEM_VALUE_GLOBAL_INVOCATION_ID,
-                       uvec3_t, "gl_GlobalInvocationID");
-      add_system_value(SYSTEM_VALUE_LOCAL_INVOCATION_INDEX,
-                       uint_t, "gl_LocalInvocationIndex");
-   }
+   add_system_value(SYSTEM_VALUE_GLOBAL_INVOCATION_ID,
+                    uvec3_t, "gl_GlobalInvocationID");
+   add_system_value(SYSTEM_VALUE_LOCAL_INVOCATION_INDEX,
+                    uint_t, "gl_LocalInvocationIndex");
 }
 
 
@@ -1472,86 +1467,5 @@ _mesa_glsl_initialize_variables(exec_list *instructions,
       break;
    default:
       break;
-   }
-}
-
-
-/**
- * Initialize compute shader variables with values that are derived from other
- * compute shader variable.
- */
-static void
-initialize_cs_derived_variables(gl_shader *shader,
-                                ir_function_signature *const main_sig)
-{
-   assert(shader->Stage == MESA_SHADER_COMPUTE);
-
-   ir_variable *gl_GlobalInvocationID =
-      shader->symbols->get_variable("gl_GlobalInvocationID");
-   assert(gl_GlobalInvocationID);
-   ir_variable *gl_WorkGroupID =
-      shader->symbols->get_variable("gl_WorkGroupID");
-   assert(gl_WorkGroupID);
-   ir_variable *gl_WorkGroupSize =
-      shader->symbols->get_variable("gl_WorkGroupSize");
-   if (gl_WorkGroupSize == NULL) {
-      void *const mem_ctx = ralloc_parent(shader->ir);
-      gl_WorkGroupSize = new(mem_ctx) ir_variable(glsl_type::uvec3_type,
-                                                  "gl_WorkGroupSize",
-                                                  ir_var_auto);
-      gl_WorkGroupSize->data.how_declared = ir_var_declared_implicitly;
-      gl_WorkGroupSize->data.read_only = true;
-      shader->ir->push_head(gl_WorkGroupSize);
-   }
-   ir_variable *gl_LocalInvocationID =
-      shader->symbols->get_variable("gl_LocalInvocationID");
-   assert(gl_LocalInvocationID);
-
-   /* gl_GlobalInvocationID =
-    *    gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID
-    */
-   ir_instruction *inst =
-      assign(gl_GlobalInvocationID,
-             add(mul(gl_WorkGroupID, gl_WorkGroupSize),
-                 gl_LocalInvocationID));
-   main_sig->body.push_head(inst);
-
-   /* gl_LocalInvocationIndex =
-    *    gl_LocalInvocationID.z * gl_WorkGroupSize.x * gl_WorkGroupSize.y +
-    *    gl_LocalInvocationID.y * gl_WorkGroupSize.x +
-    *    gl_LocalInvocationID.x;
-    */
-   ir_expression *index_z =
-      mul(mul(swizzle_z(gl_LocalInvocationID), swizzle_x(gl_WorkGroupSize)),
-          swizzle_y(gl_WorkGroupSize));
-   ir_expression *index_y =
-      mul(swizzle_y(gl_LocalInvocationID), swizzle_x(gl_WorkGroupSize));
-   ir_expression *index_y_plus_z = add(index_y, index_z);
-   operand index_x(swizzle_x(gl_LocalInvocationID));
-   ir_expression *index_x_plus_y_plus_z = add(index_y_plus_z, index_x);
-   ir_variable *gl_LocalInvocationIndex =
-      shader->symbols->get_variable("gl_LocalInvocationIndex");
-   assert(gl_LocalInvocationIndex);
-   inst = assign(gl_LocalInvocationIndex, index_x_plus_y_plus_z);
-   main_sig->body.push_head(inst);
-}
-
-
-/**
- * Initialize builtin variables with values based on other builtin variables.
- * These are initialized in the main function.
- */
-void
-_mesa_glsl_initialize_derived_variables(struct gl_context *ctx,
-                                        gl_shader *shader)
-{
-   /* We only need to set CS variables currently. */
-   if (shader->Stage == MESA_SHADER_COMPUTE &&
-       ctx->Const.LowerCsDerivedVariables) {
-      ir_function_signature *const main_sig =
-         _mesa_get_main_function_signature(shader->symbols);
-
-      if (main_sig != NULL)
-         initialize_cs_derived_variables(shader, main_sig);
    }
 }

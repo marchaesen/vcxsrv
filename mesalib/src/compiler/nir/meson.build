@@ -193,6 +193,8 @@ libnir = static_library(
   build_by_default : false,
 )
 
+nir_algebraic_py = files('nir_algebraic.py')
+
 if with_tests
   nir_control_flow_test = executable(
     'nir_control_flow_test',

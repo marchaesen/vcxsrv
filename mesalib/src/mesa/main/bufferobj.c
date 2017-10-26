@@ -3815,7 +3815,7 @@ bind_uniform_buffers(struct gl_context *ctx, GLuint first, GLsizei count,
       }
 
       set_buffer_multi_binding(ctx, buffers, i, caller,
-                               binding, offset, size, !range,
+                               binding, offset, size, range,
                                USAGE_UNIFORM_BUFFER);
    }
 
@@ -3916,7 +3916,7 @@ bind_shader_storage_buffers(struct gl_context *ctx, GLuint first,
       }
 
       set_buffer_multi_binding(ctx, buffers, i, caller,
-                               binding, offset, size, !range,
+                               binding, offset, size, range,
                                USAGE_SHADER_STORAGE_BUFFER);
    }
 
@@ -4238,7 +4238,7 @@ bind_atomic_buffers(struct gl_context *ctx,
       }
 
       set_buffer_multi_binding(ctx, buffers, i, caller,
-                               binding, offset, size, !range,
+                               binding, offset, size, range,
                                USAGE_ATOMIC_COUNTER_BUFFER);
    }
 

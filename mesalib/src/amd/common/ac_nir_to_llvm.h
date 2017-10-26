@@ -80,6 +80,7 @@ struct ac_nir_compiler_options {
 	struct ac_shader_variant_key key;
 	bool unsafe_math;
 	bool supports_spill;
+	bool clamp_shadow_reference;
 	enum radeon_family family;
 	enum chip_class chip_class;
 };

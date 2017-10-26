@@ -260,6 +260,9 @@ struct st_common_program
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
    uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
+  /* used when bypassing glsl_to_tgsi: */
+   struct gl_shader_program *shader_program;
+
    struct st_basic_variant *variants;
 
    /** SHA1 hash of linked tgsi shader program, used for on-disk cache */
@@ -384,8 +387,7 @@ st_get_cp_variant(struct st_context *st,
 extern struct st_basic_variant *
 st_get_basic_variant(struct st_context *st,
                      unsigned pipe_shader,
-                     struct pipe_shader_state *tgsi,
-                     struct st_basic_variant **variants);
+                     struct st_common_program *p);
 
 extern void
 st_release_vp_variants( struct st_context *st,

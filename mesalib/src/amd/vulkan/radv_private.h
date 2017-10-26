@@ -320,6 +320,16 @@ struct radv_pipeline_cache {
 	VkAllocationCallbacks                        alloc;
 };
 
+struct radv_pipeline_key {
+	uint32_t instance_rate_inputs;
+	unsigned tess_input_vertices;
+	uint32_t col_format;
+	uint32_t is_int8;
+	uint32_t is_int10;
+	uint32_t multisample : 1;
+	uint32_t has_multiview_view_index : 1;
+};
+
 void
 radv_pipeline_cache_init(struct radv_pipeline_cache *cache,
 			 struct radv_device *device);
@@ -531,6 +541,7 @@ struct radv_device {
 
 	bool llvm_supports_spill;
 	bool has_distributed_tess;
+	bool dfsm_allowed;
 	uint32_t tess_offchip_block_dw_size;
 	uint32_t scratch_waves;
 
@@ -975,7 +986,6 @@ struct radv_event {
 };
 
 struct radv_shader_module;
-struct ac_shader_variant_key;
 
 #define RADV_HASH_SHADER_IS_GEOM_COPY_SHADER (1 << 0)
 #define RADV_HASH_SHADER_SISCHED             (1 << 1)
@@ -984,7 +994,7 @@ void
 radv_hash_shaders(unsigned char *hash,
 		  const VkPipelineShaderStageCreateInfo **stages,
 		  const struct radv_pipeline_layout *layout,
-		  const struct ac_shader_variant_key *keys,
+		  const struct radv_pipeline_key *key,
 		  uint32_t flags);
 
 static inline gl_shader_stage

@@ -324,16 +324,8 @@ util_resource_copy_region(struct pipe_context *pipe,
    /* check that region boxes are block aligned */
    assert(src_box.x % src_bw == 0);
    assert(src_box.y % src_bh == 0);
-   assert(src_box.width % src_bw == 0 ||
-          src_box.x + src_box.width == u_minify(src->width0, src_level));
-   assert(src_box.height % src_bh == 0 ||
-          src_box.y + src_box.height == u_minify(src->height0, src_level));
    assert(dst_box.x % dst_bw == 0);
    assert(dst_box.y % dst_bh == 0);
-   assert(dst_box.width % dst_bw == 0 ||
-          dst_box.x + dst_box.width == u_minify(dst->width0, dst_level));
-   assert(dst_box.height % dst_bh == 0 ||
-          dst_box.y + dst_box.height == u_minify(dst->height0, dst_level));
 
    /* check that region boxes are not out of bounds */
    assert(src_box.x + src_box.width <= u_minify(src->width0, src_level));

@@ -166,6 +166,7 @@ void optimize_dead_builtin_variables(exec_list *instructions,
 bool lower_tess_level(gl_linked_shader *shader);
 
 bool lower_vertex_id(gl_linked_shader *shader);
+bool lower_cs_derived(gl_linked_shader *shader);
 bool lower_blend_equation_advanced(gl_linked_shader *shader);
 
 bool lower_subroutine(exec_list *instructions, struct _mesa_glsl_parse_state *state);

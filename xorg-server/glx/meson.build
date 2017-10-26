@@ -30,7 +30,7 @@ srcs_glx = [
     'xfont.c',
 ]
 
-libxserver_glx = ''
+libxserver_glx = []
 if build_glx
     libxserver_glx = static_library('libxserver_glx',
         srcs_glx,

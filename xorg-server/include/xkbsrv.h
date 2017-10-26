@@ -235,7 +235,8 @@ typedef struct _XkbSrvLedInfo {
  * Settings for xkbClientFlags field (used by DIX)
  * These flags _must_ not overlap with XkbPCF_*
  */
-#define	_XkbClientInitialized		(1<<15)
+#define _XkbClientInitialized           (1<<7)
+#define _XkbClientIsAncient             (1<<6)
 
 #define	_XkbWantsDetectableAutoRepeat(c)\
 	((c)->xkbClientFlags&XkbPCF_DetectableAutoRepeatMask)

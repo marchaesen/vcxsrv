@@ -152,6 +152,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 		goto fail;
 	}
 
+	device->name = get_chip_name(device->rad_info.family);
+
 	if (radv_device_get_cache_uuid(device->rad_info.family, device->cache_uuid)) {
 		radv_finish_wsi(device);
 		device->ws->destroy(device->ws);
@@ -168,12 +170,11 @@ radv_physical_device_init(struct radv_physical_device *device,
 	/* The gpu id is already embeded in the uuid so we just pass "radv"
 	 * when creating the cache.
 	 */
-	char buf[VK_UUID_SIZE + 1];
-	disk_cache_format_hex_id(buf, device->cache_uuid, VK_UUID_SIZE);
-	device->disk_cache = disk_cache_create("radv", buf, shader_env_flags);
+	char buf[VK_UUID_SIZE * 2 + 1];
+	disk_cache_format_hex_id(buf, device->cache_uuid, VK_UUID_SIZE * 2);
+	device->disk_cache = disk_cache_create(device->name, buf, shader_env_flags);
 
 	fprintf(stderr, "WARNING: radv is not a conformant vulkan implementation, testing use only.\n");
-	device->name = get_chip_name(device->rad_info.family);
 
 	radv_get_driver_uuid(&device->device_uuid);
 	radv_get_device_uuid(&device->rad_info, &device->device_uuid);

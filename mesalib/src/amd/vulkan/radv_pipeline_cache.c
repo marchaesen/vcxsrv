@@ -100,14 +100,14 @@ void
 radv_hash_shaders(unsigned char *hash,
 		  const VkPipelineShaderStageCreateInfo **stages,
 		  const struct radv_pipeline_layout *layout,
-		  const struct ac_shader_variant_key *keys,
+		  const struct radv_pipeline_key *key,
 		  uint32_t flags)
 {
 	struct mesa_sha1 ctx;
 
 	_mesa_sha1_init(&ctx);
-	if (keys)
-		_mesa_sha1_update(&ctx, keys, sizeof(*keys) * MESA_SHADER_STAGES);
+	if (key)
+		_mesa_sha1_update(&ctx, key, sizeof(*key));
 	if (layout)
 		_mesa_sha1_update(&ctx, layout->sha1, sizeof(layout->sha1));
 
@@ -231,6 +231,8 @@ radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 			p += entry->code_sizes[i];
 
 			entry->variants[i] = variant;
+		} else if (entry->code_sizes[i]) {
+			p += sizeof(struct cache_entry_variant_info) + entry->code_sizes[i];
 		}
 
 	}
