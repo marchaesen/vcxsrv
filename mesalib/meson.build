@@ -18,8 +18,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-project('mesa', ['c', 'cpp'], version : '17.3.0-devel', license : 'MIT',
-        default_options : ['c_std=c99', 'cpp_std=c++11'])
+project(
+  'mesa',
+  ['c', 'cpp'],
+  version : '17.3.0-devel',
+  license : 'MIT',
+  meson_version : '>= 0.42',
+  default_options : ['c_std=c99', 'cpp_std=c++11']
+)
 
 # Arguments for the preprocessor, put these in a separate array from the C and
 # C++ (cpp in meson terminology) arguments since they need to be added to the
@@ -37,6 +43,7 @@ pre_args = [
 with_vulkan_icd_dir = get_option('vulkan-icd-dir')
 with_tests = get_option('build-tests')
 with_valgrind = get_option('valgrind')
+with_libunwind = get_option('libunwind')
 with_asm = get_option('asm')
 with_llvm = get_option('llvm')
 if get_option('texture-float')
@@ -94,18 +101,24 @@ with_gallium = false
 with_gallium_pl111 = false
 with_gallium_radeonsi = false
 with_gallium_nouveau = false
+with_gallium_freedreno = false
 with_gallium_softpipe = false
 with_gallium_vc4 = false
 with_gallium_vc5 = false
+with_gallium_etnaviv = false
+with_gallium_imx = false
 _drivers = get_option('gallium-drivers')
 if _drivers != ''
   _split = _drivers.split(',')
   with_gallium_pl111 = _split.contains('pl111')
   with_gallium_radeonsi = _split.contains('radeonsi')
   with_gallium_nouveau = _split.contains('nouveau')
+  with_gallium_freedreno = _split.contains('freedreno')
   with_gallium_softpipe = _split.contains('swrast')
   with_gallium_vc4 = _split.contains('vc4')
   with_gallium_vc5 = _split.contains('vc5')
+  with_gallium_etnaviv = _split.contains('etnaviv')
+  with_gallium_imx = _split.contains('imx')
   with_gallium = true
   with_dri = true
 endif
@@ -120,6 +133,9 @@ endif
 
 if with_dri_swrast and with_gallium_softpipe
   error('Only one swrast provider can be built')
+endif
+if with_gallium_imx and not with_gallium_etnaviv
+  error('IMX driver requires etnaviv driver')
 endif
 
 dep_libdrm_intel = []
@@ -606,6 +622,8 @@ dep_m = cc.find_library('m', required : false)
 dep_libdrm_amdgpu = []
 dep_libdrm_radeon = []
 dep_libdrm_nouveau = []
+dep_libdrm_etnaviv = []
+dep_libdrm_freedreno = []
 if with_amd_vk or with_gallium_radeonsi
   dep_libdrm_amdgpu = dependency('libdrm_amdgpu', version : '>= 2.4.85')
 endif
@@ -614,6 +632,12 @@ if with_gallium_radeonsi # older radeon too
 endif
 if with_gallium_nouveau
   dep_libdrm_nouveau = dependency('libdrm_nouveau', version : '>= 2.4.66')
+endif
+if with_gallium_etnaviv
+  dep_libdrm_etnaviv = dependency('libdrm_etnaviv', version : '>= 2.4.82')
+endif
+if with_gallium_freedreno
+  dep_libdrm_freedreno = dependency('libdrm_freedreno', version : '>= 2.4.74')
 endif
 
 llvm_modules = ['bitwriter', 'engine', 'mcdisassembler', 'mcjit']
@@ -670,7 +694,7 @@ dep_selinux = []
 # TODO: llvm-prefix and llvm-shared-libs
 
 dep_unwind = dependency('libunwind', required : false)
-if dep_unwind.found()
+if dep_unwind.found() and with_libunwind
   pre_args += '-DHAVE_LIBUNWIND'
 endif
 

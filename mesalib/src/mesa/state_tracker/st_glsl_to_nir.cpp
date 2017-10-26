@@ -359,6 +359,11 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
    case MESA_SHADER_VERTEX:
       shader_program = ((struct st_vertex_program *)prog)->shader_program;
       break;
+   case MESA_SHADER_GEOMETRY:
+   case MESA_SHADER_TESS_CTRL:
+   case MESA_SHADER_TESS_EVAL:
+      shader_program = ((struct st_common_program *)prog)->shader_program;
+      break;
    case MESA_SHADER_FRAGMENT:
       shader_program = ((struct st_fragment_program *)prog)->shader_program;
       break;
@@ -451,6 +456,7 @@ st_nir_get_mesa_program(struct gl_context *ctx,
    _mesa_associate_uniform_storage(ctx, shader_program, prog, true);
 
    struct st_vertex_program *stvp;
+   struct st_common_program *stp;
    struct st_fragment_program *stfp;
    struct st_compute_program *stcp;
 
@@ -458,6 +464,12 @@ st_nir_get_mesa_program(struct gl_context *ctx,
    case MESA_SHADER_VERTEX:
       stvp = (struct st_vertex_program *)prog;
       stvp->shader_program = shader_program;
+      break;
+   case MESA_SHADER_GEOMETRY:
+   case MESA_SHADER_TESS_CTRL:
+   case MESA_SHADER_TESS_EVAL:
+      stp = (struct st_common_program *)prog;
+      stp->shader_program = shader_program;
       break;
    case MESA_SHADER_FRAGMENT:
       stfp = (struct st_fragment_program *)prog;

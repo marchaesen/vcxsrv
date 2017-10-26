@@ -58,6 +58,7 @@ convert_block(nir_block *block, nir_builder *b)
           */
 
          nir_const_value local_size;
+         memset(&local_size, 0, sizeof(local_size));
          local_size.u32[0] = b->shader->info.cs.local_size[0];
          local_size.u32[1] = b->shader->info.cs.local_size[1];
          local_size.u32[2] = b->shader->info.cs.local_size[2];

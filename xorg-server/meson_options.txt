@@ -1,18 +1,18 @@
-option('xorg', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+option('xorg', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable Xorg X Server')
 option('xephyr', type: 'boolean', value: false,
        description: 'Enable Xephyr nested X server')
-option('xwayland', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+option('xwayland', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable XWayland X server')
-option('glamor', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+option('glamor', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable glamor (default yes for Xorg/Xwayland builds)')
-option('xnest', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+option('xnest', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable Xnest nested X server')
 option('dmx', type: 'boolean', value: false,
        description: 'Enable DMX nested X server')
 option('xvfb', type: 'boolean', value: true,
        description: 'Enable Xvfb X server')
-option('xwin', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+option('xwin', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable XWin X server')
 
 option('builder_addr', type: 'string', description: 'Builder address', value: 'xorg@lists.freedesktop.org')
@@ -25,7 +25,7 @@ option('module_dir', type: 'string',
 option('glx', type: 'boolean', value: true)
 option('xdmcp', type: 'boolean', value: true)
 option('xdm-auth-1', type: 'boolean', value: true)
-option('ipv6', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto')
+option('ipv6', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto')
 
 option('xkb_dir', type: 'string')
 option('xkb_output_dir', type: 'string')
@@ -41,22 +41,22 @@ option('vendor_name_short', type: 'string', value: 'X.Org')
 option('vendor_web', type: 'string', value: 'http://wiki.x.org')
 option('os_vendor', type: 'string', value: '')
 
-option('int10', type: 'combo', choices: ['stub', 'x86emu', 'vm86', 'auto', 'disabled'],
+option('int10', type: 'combo', choices: ['stub', 'x86emu', 'vm86', 'auto', 'false'],
        value: 'auto',
        description: 'Xorg int10 backend (default: usually x86emu)')
 
 option('pciaccess', type: 'boolean', value: 'true',
        description: 'Xorg pciaccess support')
 option('udev', type: 'boolean', value: 'true')
-option('hal', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+option('hal', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable HAL integration')
-option('systemd_logind', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+option('systemd_logind', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable systemd-logind integration')
-option('vbe', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+option('vbe', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Xorg VBE module')
-option('vgahw', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto',
+option('vgahw', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Xorg VGA access module')
 
-option('dri1', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
-option('dri2', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')
-option('dri3', type: 'combo', choices: ['yes', 'no', 'auto'], value: 'auto', description: 'Build DRI3 extension (default: auto)')
+option('dri1', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
+option('dri2', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')
+option('dri3', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI3 extension (default: auto)')

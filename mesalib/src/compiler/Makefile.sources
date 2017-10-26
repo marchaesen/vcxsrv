@@ -85,6 +85,7 @@ LIBGLSL_FILES = \
 	glsl/lower_buffer_access.cpp \
 	glsl/lower_buffer_access.h \
 	glsl/lower_const_arrays_to_uniforms.cpp \
+	glsl/lower_cs_derived.cpp \
 	glsl/lower_discard.cpp \
 	glsl/lower_discard_flow.cpp \
 	glsl/lower_distance.cpp \

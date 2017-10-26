@@ -43,7 +43,7 @@ dmx_dep = [
     dl_dep,
 ]
 
-dmx_glx = ''
+dmx_glx = []
 if build_glx
     srcs += 'dmx_glxvisuals.c'
     subdir('glxProxy')

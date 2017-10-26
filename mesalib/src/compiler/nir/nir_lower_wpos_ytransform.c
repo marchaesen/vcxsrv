@@ -314,6 +314,10 @@ lower_wpos_ytransform_block(lower_wpos_ytransform_state *state, nir_block *block
                assert(dvar->deref.child == NULL);
                lower_load_sample_pos(state, intr);
             }
+         } else if (intr->intrinsic == nir_intrinsic_load_frag_coord) {
+            lower_fragcoord(state, intr);
+         } else if (intr->intrinsic == nir_intrinsic_load_sample_pos) {
+            lower_load_sample_pos(state, intr);
          } else if (intr->intrinsic == nir_intrinsic_interp_var_at_offset) {
             lower_interp_var_at_offset(state, intr);
          }

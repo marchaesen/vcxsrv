@@ -46,7 +46,7 @@ option(
 option(
   'gallium-drivers',
   type : 'string',
-  value : 'pl111,radeonsi,nouveau,swrast,vc4',
+  value : 'pl111,radeonsi,nouveau,freedreno,swrast,vc4,etnaviv,imx',
   description : 'comma separated list of gallium drivers to build.'
 )
 option(
@@ -141,6 +141,12 @@ option(
   type : 'boolean',
   value : true,
   description : 'Build with valgrind support if possible'
+)
+option(
+  'libunwind',
+  type : 'boolean',
+  value : true,
+  description : 'Use libunwind for stack-traces if possible'
 )
 option(
   'build-tests',

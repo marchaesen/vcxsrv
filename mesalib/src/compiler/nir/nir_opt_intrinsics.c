@@ -121,8 +121,6 @@ opt_intrinsics_impl(nir_function_impl *impl)
          nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
                                   nir_src_for_ssa(replacement));
          nir_instr_remove(instr);
-         nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
          progress = true;
       }
    }
@@ -136,9 +134,15 @@ nir_opt_intrinsics(nir_shader *shader)
    bool progress = false;
 
    nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= opt_intrinsics_impl(function->impl);
+      if (!function->impl)
+         continue;
+
+      if (opt_intrinsics_impl(function->impl)) {
+         progress = true;
+         nir_metadata_preserve(function->impl, nir_metadata_block_index |
+                                               nir_metadata_dominance);
+      }
    }
 
-   return false;
+   return progress;
 }

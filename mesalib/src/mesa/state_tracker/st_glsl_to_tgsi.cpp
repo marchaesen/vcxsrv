@@ -186,7 +186,6 @@ public:
    bool indirect_addr_consts;
    int wpos_transform_const;
 
-   int glsl_version;
    bool native_integers;
    bool have_sqrt;
    bool have_fma;
@@ -4415,7 +4414,6 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    images_used = 0;
    indirect_addr_consts = false;
    wpos_transform_const = -1;
-   glsl_version = 0;
    native_integers = false;
    mem_ctx = ralloc_context(NULL);
    ctx = NULL;
@@ -6615,7 +6613,6 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    v->shader_program = shader_program;
    v->shader = shader;
    v->options = options;
-   v->glsl_version = ctx->Const.GLSLVersion;
    v->native_integers = ctx->Const.NativeIntegers;
 
    v->have_sqrt = pscreen->get_shader_param(pscreen, ptarget,
@@ -6976,15 +6973,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
       struct gl_program *linked_prog = NULL;
       if (preferred_ir == PIPE_SHADER_IR_NIR) {
-         /* TODO only for GLSL VS/FS/CS for now: */
-         switch (shader->Stage) {
-         case MESA_SHADER_VERTEX:
-         case MESA_SHADER_FRAGMENT:
-         case MESA_SHADER_COMPUTE:
-            linked_prog = st_nir_get_mesa_program(ctx, prog, shader);
-         default:
-            break;
-         }
+         linked_prog = st_nir_get_mesa_program(ctx, prog, shader);
       } else {
          linked_prog = get_mesa_program_tgsi(ctx, prog, shader);
       }

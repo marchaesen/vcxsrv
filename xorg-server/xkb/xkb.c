@@ -172,8 +172,8 @@ ProcXkbUseExtension(ClientPtr client)
 
     if ((supported) && (!(client->xkbClientFlags & _XkbClientInitialized))) {
         client->xkbClientFlags = _XkbClientInitialized;
-        client->vMajor = stuff->wantedMajor;
-        client->vMinor = stuff->wantedMinor;
+        if (stuff->wantedMajor == 0)
+            client->xkbClientFlags |= _XkbClientIsAncient;
     }
     else if (xkbDebugFlags & 0x1) {
         ErrorF
@@ -2388,7 +2388,8 @@ _XkbSetMapChecks(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req,
 
     if ((xkb->min_key_code != req->minKeyCode) ||
         (xkb->max_key_code != req->maxKeyCode)) {
-        if (client->vMajor != 1) {      /* pre 1.0 versions of Xlib have a bug */
+        if (client->xkbClientFlags & _XkbClientIsAncient) {
+            /* pre 1.0 versions of Xlib have a bug */
             req->minKeyCode = xkb->min_key_code;
             req->maxKeyCode = xkb->max_key_code;
         }

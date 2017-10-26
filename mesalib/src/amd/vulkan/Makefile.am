@@ -132,6 +132,7 @@ EXTRA_DIST = \
 	dev_icd.json.in \
 	radeon_icd.json.in \
 	radv_entrypoints_gen.py \
+	radv_extensions.py \
 	vk_format_layout.csv \
 	vk_format_parse.py \
 	vk_format_table.py

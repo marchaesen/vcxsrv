@@ -34,6 +34,10 @@
 extern "C" {
 #endif
 
+enum {
+	AC_LOCAL_ADDR_SPACE = 3,
+};
+
 struct ac_llvm_context {
 	LLVMContextRef context;
 	LLVMModuleRef module;
@@ -56,6 +60,8 @@ struct ac_llvm_context {
 	LLVMValueRef i32_1;
 	LLVMValueRef f32_0;
 	LLVMValueRef f32_1;
+	LLVMValueRef i1true;
+	LLVMValueRef i1false;
 
 	unsigned range_md_kind;
 	unsigned invariant_load_md_kind;
@@ -65,6 +71,8 @@ struct ac_llvm_context {
 	LLVMValueRef empty_md;
 
 	enum chip_class chip_class;
+
+	LLVMValueRef lds;
 };
 
 void
@@ -265,7 +273,8 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 				   struct ac_image_args *a);
 LLVMValueRef ac_build_cvt_pkrtz_f16(struct ac_llvm_context *ctx,
 				    LLVMValueRef args[2]);
-void ac_build_kill(struct ac_llvm_context *ctx, LLVMValueRef value);
+LLVMValueRef ac_build_wqm_vote(struct ac_llvm_context *ctx, LLVMValueRef i1);
+void ac_build_kill_if_false(struct ac_llvm_context *ctx, LLVMValueRef i1);
 LLVMValueRef ac_build_bfe(struct ac_llvm_context *ctx, LLVMValueRef input,
 			  LLVMValueRef offset, LLVMValueRef width,
 			  bool is_signed);
@@ -282,6 +291,16 @@ void ac_optimize_vs_outputs(struct ac_llvm_context *ac,
 			    uint32_t num_outputs,
 			    uint8_t *num_param_exports);
 void ac_init_exec_full_mask(struct ac_llvm_context *ctx);
+
+void ac_declare_lds_as_pointer(struct ac_llvm_context *ac);
+LLVMValueRef ac_lds_load(struct ac_llvm_context *ctx,
+			 LLVMValueRef dw_addr);
+void ac_lds_store(struct ac_llvm_context *ctx,
+		  LLVMValueRef dw_addr, LLVMValueRef value);
+
+LLVMValueRef ac_find_lsb(struct ac_llvm_context *ctx,
+			 LLVMTypeRef dst_type,
+			 LLVMValueRef src0);
 #ifdef __cplusplus
 }
 #endif

@@ -62,23 +62,6 @@ optimize_dead_builtin_variables(exec_list *instructions,
        * information, so removing these variables from the user shader will
        * cause problems later.
        *
-       * For compute shaders, gl_GlobalInvocationID has some dependencies, so
-       * we avoid removing these dependencies.
-       *
-       * We also avoid removing gl_GlobalInvocationID at this stage because it
-       * might be used by a linked shader. In this case it still needs to be
-       * initialized by the main function.
-       *
-       *    gl_GlobalInvocationID =
-       *       gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID
-       *
-       * Similarly, we initialize gl_LocalInvocationIndex in the main function:
-       *
-       *    gl_LocalInvocationIndex =
-       *       gl_LocalInvocationID.z * gl_WorkGroupSize.x * gl_WorkGroupSize.y +
-       *       gl_LocalInvocationID.y * gl_WorkGroupSize.x +
-       *       gl_LocalInvocationID.x;
-       *
        * Matrix uniforms with "Transpose" are not eliminated because there's
        * an optimization pass that can turn references to the regular matrix
        * into references to the transpose matrix.  Eliminating the transpose
@@ -90,11 +73,6 @@ optimize_dead_builtin_variables(exec_list *instructions,
        */
       if (strcmp(var->name, "gl_ModelViewProjectionMatrix") == 0
           || strcmp(var->name, "gl_Vertex") == 0
-          || strcmp(var->name, "gl_WorkGroupID") == 0
-          || strcmp(var->name, "gl_WorkGroupSize") == 0
-          || strcmp(var->name, "gl_LocalInvocationID") == 0
-          || strcmp(var->name, "gl_GlobalInvocationID") == 0
-          || strcmp(var->name, "gl_LocalInvocationIndex") == 0
           || strstr(var->name, "Transpose") != NULL)
          continue;
 

@@ -88,6 +88,10 @@ struct ac_shader_abi {
 					  LLVMValueRef index,
 					  enum ac_descriptor_type desc_type,
 					  bool image, bool write);
+
+	/* Whether to clamp the shadow reference value to [0,1]on VI. Radeonsi currently
+	 * uses it due to promoting D16 to D32, but radv needs it off. */
+	bool clamp_shadow_reference;
 };
 
 #endif /* AC_SHADER_ABI_H */

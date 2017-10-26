@@ -233,7 +233,7 @@ GL 4.6, GLSL 4.60
   GL_ARB_spirv_extensions                               in progress (Nicolai Hähnle, Ian Romanick)
   GL_ARB_texture_filter_anisotropic                     DONE (i965, nv50, nvc0, r600, radeonsi, softpipe (*), llvmpipe (*))
   GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+, radeonsi, llvmpipe, softpipe)
-  GL_KHR_no_error                                       started (Timothy Arceri)
+  GL_KHR_no_error                                       DONE (all drivers)
 
 (*) softpipe and llvmpipe advertise 16x anisotropy but simply ignore the setting
 
