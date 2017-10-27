@@ -1477,6 +1477,10 @@ BitmapScaleBitmaps(FontPtr pf,          /* scaled font */
     lastRow = pfi->lastRow;
 
     nchars = (lastRow - firstRow + 1) * (lastCol - firstCol + 1);
+    if (nchars <= 0) {
+        goto bail;
+    }
+
     glyph = pf->glyph;
     for (i = 0; i < nchars; i++)
     {

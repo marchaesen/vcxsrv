@@ -1,3 +1,213 @@
+commit d82dfe25491c599f650b2ad868772c3b8e6ba7bc
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Wed Oct 11 11:33:29 2017 -0400
+
+    libXfont 2.0.2
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 672bb944311392e2415b39c0d63b1e1902905bcd
+Author: Michal Srb <msrb@suse.com>
+Date:   Thu Jul 20 17:05:23 2017 +0200
+
+    pcfGetProperties: Check string boundaries (CVE-2017-13722)
+    
+    Without the checks a malformed PCF file can cause the library to make
+    atom from random heap memory that was behind the `strings` buffer.
+    This may crash the process or leak information.
+    
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit d1e670a4a8704b8708e493ab6155589bcd570608
+Author: Michal Srb <msrb@suse.com>
+Date:   Thu Jul 20 13:38:53 2017 +0200
+
+    Check for end of string in PatternMatch (CVE-2017-13720)
+    
+    If a pattern contains '?' character, any character in the string is skipped,
+    even if it is '\0'. The rest of the matching then reads invalid memory.
+    
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit 9112a6846b9d8ff18f7568c58e06d0a450e25814
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Thu Apr 13 12:10:05 2017 -0400
+
+    readme: Update for libXfont 2.0 interface change
+    
+    While xfs can be more or less trivially ported to 2.0, bcftopcf cannot
+    because the font file I/O API is no longer externally visible. This is
+    intentional, because bdftopcf is literally the only consumer of that
+    API, and is itself only used in the build process for the classic core
+    fonts themselves. The plan for bdftopcf is to import a copy of libXfont
+    1.5 and link against that statically instead.
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+    Acked-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit f8ff8d5f7442b3cbac57d5fe343aabd8f54a030f
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 75b9a15b51a062941a549fef0dedaee9daef4867
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
+commit 33a98f2b5343da927f29191348e992f505544873
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Wed Jun 8 14:28:09 2016 -0400
+
+    freetype: Fix a logic error in computing face name
+    
+    gcc6 chirps an indentation warning here, but really this is bad code.
+    Effectively this would ignore en_US or en_UK names for the font, despite
+    that those are the English names the font is most likely to have.
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 79084468fb844e386a72d938c67be0728959a2bd
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Wed May 18 11:49:52 2016 -0400
+
+    autogen: Set a default subject prefix for patches
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 7557fe152d9948bcb4b805bb7b6b6f8121bd34fb
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Wed May 18 11:52:27 2016 -0400
+
+    configure: Use -fvisibility=hidden if available
+    
+    text       data     bss     dec     hex filename
+     233732    8168    1616  243516   3b73c .libs/libXfont2.so.2.before
+     217113    6816    1616  225545   37109 .libs/libXfont2.so.2.after
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Emil Velikov <emil.l.velikov@gmail.com>
+
+commit 6972ea08ee5b2ef1cfbdc2fcaf14f06bbd391561
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Mon May 30 00:46:21 2016 -0700
+
+    fserve: Fix a buffer read overrun in _fs_client_access
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=83224
+    
+    Found by clang's Address Sanitizer
+    
+            crac.num_auths = set_font_authorizations(&authorizations, &authlen,
+                                                     client);
+            /* Work around bug in xfs versions up through modular release 1.0.8
+               which rejects CreateAC packets with num_auths = 0 & authlen < 4 */
+            if (crac.num_auths == 0) {
+                authorizations = padding;
+                authlen = 4;
+            } else {
+                authlen = (authlen + 3) & ~0x3;
+            }
+            crac.length = (sizeof (fsCreateACReq) + authlen) >> 2;
+            crac.acid = cur->acid;
+            _fs_add_req_log(conn, FS_CreateAC);
+            _fs_write(conn, (char *) &crac, sizeof (fsCreateACReq));
+            _fs_write(conn, authorizations, authlen);
+    
+    In the case in the report, set_font_authorizations setup authorizations as a
+    34 byte buffer (and authlen set to 34 as one would expect). The following
+    block changed authlen to 36 to make it 4byte aligned and the final _fs_write()
+    caused us to read 36 bytes from this 34 byte buffer.
+    
+    This changes the incorrect size increase to instead use _fs_write_pad which
+    takes care of the padding for us.
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit d967caa988eaabd9e84c82879e2f21bd33b952a7
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Sun May 29 23:39:06 2016 -0700
+
+    fstrans: Remove unused foo() function
+    
+    The point of it seems to have been to silence an unused function warning, but
+    there's no point if we're just transitioning that to another unused function
+    warning.
+    
+    src/fc/fstrans.c:32:20: warning: unused function 'foo' [-Wunused-function]
+    static inline void foo(void) { (void) is_numeric("a"); }
+                       ^
+    1 warning generated.
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+    Reviewed-by: Keith Packard <keithp@keithp.com>
+
+commit e6009adbc89ec3e1f924bcb57b333c1c02f5e66d
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Sun May 29 23:37:13 2016 -0700
+
+    fserve: Silence a -Wformat warning
+    
+    src/fc/fserve.c:653:32: warning: format specifies type 'int' but the argument has type 'CARD32' (aka 'unsigned long') [-Wformat]
+                   " from font server\n", rep->length);
+                                          ^~~~~~~~~~~
+    1 warning generated.
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit ac559fad20bbae45332c758abb6a790c3fd341a2
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Sun May 29 23:34:35 2016 -0700
+
+    bitmap: Bail out on invalid input to FontFileMakeDir instead of calling calloc for 0 bytes
+    
+    Found by clang static analysis:
+        Call to 'calloc' has an allocation size of 0 bytes
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit d0fff111992fed9d9bfbf0c19e136bda9ba1db55
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Sun May 29 23:29:50 2016 -0700
+
+    FreeType: Correct an allocation size
+    
+    Found by clang static analysis:
+        Result of 'calloc' is converted to a pointer of type 'int', which is
+        incompatible with sizeof operand type 'int *'
+    
+    This is likely benign because the old size was larger on any platform where
+    sizeof(int) <= sizeof(void *), which is everywhere.
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit eefc0b0b908eb8533e704d7156ce983ad7891cc5
+Author: Keith Packard <keithp@keithp.com>
+Date:   Sat Dec 12 14:54:26 2015 -0800
+
+    Revert "Add compiler warning flags". Leave warning fixes.
+    
+    This reverts commit eb67d10ae82b364a4324e96ce53baaa4e5e75f97, but
+    leaves the warning fixes in place; it looks like either I was
+    confused, or something has changed so that XORG_DEFAULT_OPTIONS now
+    pulls in the appropriate compiler warnings.
+
 commit 14488af0338191356c0177e3d0b5fa473ffbd59c
 Author: Keith Packard <keithp@keithp.com>
 Date:   Fri Dec 11 07:08:29 2015 -0800
@@ -1353,7 +1563,7 @@ Date:   Wed Apr 14 05:58:28 2010 -0500
     
     Conflicts:
     
-    	ChangeLog
+            ChangeLog
     
     Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
 
@@ -2166,7 +2376,7 @@ Date:   Tue Jun 19 10:38:02 2007 -0400
     This patch adds a new FPE type, which will match font path elements of the
     form
     
-    	catalogue:<dir>
+            catalogue:<dir>
     
     The dir specified after the catalogue: prefix will be scanned for symlinks
     and each symlink destination will be added as a local fontfile FPE.
@@ -2176,22 +2386,22 @@ Date:   Tue Jun 19 10:38:02 2007 -0400
     
     An example configuration:
     
-    	75dpi:unscaled:pri=20 -> /usr/share/X11/fonts/75dpi
-    	ghostscript:pri=60 -> /usr/share/fonts/default/ghostscript
-    	misc:unscaled:pri=10 -> /usr/share/X11/fonts/misc
-    	type1:pri=40 -> /usr/share/X11/fonts/Type1
-    	type1:pri=50 -> /usr/share/fonts/default/Type1
+            75dpi:unscaled:pri=20 -> /usr/share/X11/fonts/75dpi
+            ghostscript:pri=60 -> /usr/share/fonts/default/ghostscript
+            misc:unscaled:pri=10 -> /usr/share/X11/fonts/misc
+            type1:pri=40 -> /usr/share/X11/fonts/Type1
+            type1:pri=50 -> /usr/share/fonts/default/Type1
     
     will add /usr/share/X11/fonts/misc as the first FPE with the attribute
     'unscaled', second FPE will be /usr/share/X11/fonts/75dpi, also with
     the attribute unscaled etc.  This is functionally equivalent to setting
     the following font path:
     
-    	/usr/share/X11/fonts/misc:unscaled,
-    	/usr/share/X11/fonts/75dpi:unscaled,
-    	/usr/share/X11/fonts/Type1,
-    	/usr/share/fonts/default/Type1,
-    	/usr/share/fonts/default/ghostscript
+            /usr/share/X11/fonts/misc:unscaled,
+            /usr/share/X11/fonts/75dpi:unscaled,
+            /usr/share/X11/fonts/Type1,
+            /usr/share/fonts/default/Type1,
+            /usr/share/fonts/default/ghostscript
     
     The motivation is to let font packages add a symlink to the new font
     directory they provide instead of rewriting either the Xorg config file

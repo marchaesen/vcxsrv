@@ -45,6 +45,7 @@ from The Open Group.
 
 #include <stdarg.h>
 #include <stdint.h>
+#include <string.h>
 
 void
 pcfError(const char* message, ...)
@@ -311,11 +312,19 @@ pcfGetProperties(FontInfoPtr pFontInfo, FontFilePtr file,
     if (IS_EOF(file)) goto Bail;
     position += string_size;
     for (i = 0; i < nprops; i++) {
+	if (props[i].name >= string_size) {
+	    pcfError("pcfGetProperties(): String starts out of bounds (%ld/%d)\n", props[i].name, string_size);
+	    goto Bail;
+	}
 	props[i].name = MakeAtom(strings + props[i].name,
-				 strlen(strings + props[i].name), TRUE);
+				 strnlen(strings + props[i].name, string_size - props[i].name), TRUE);
 	if (isStringProp[i]) {
+	    if (props[i].value >= string_size) {
+		pcfError("pcfGetProperties(): String starts out of bounds (%ld/%d)\n", props[i].value, string_size);
+		goto Bail;
+	    }
 	    props[i].value = MakeAtom(strings + props[i].value,
-				      strlen(strings + props[i].value), TRUE);
+				      strnlen(strings + props[i].value, string_size - props[i].value), TRUE);
 	}
     }
     free(strings);

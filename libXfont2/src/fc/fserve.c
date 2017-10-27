@@ -649,8 +649,8 @@ fs_get_reply (FSFpePtr conn, int *error)
      */
     if (rep->length > MAX_REPLY_LENGTH)
     {
-	ErrorF("fserve: reply length %d > MAX_REPLY_LENGTH, disconnecting"
-	       " from font server\n", rep->length);
+	ErrorF("fserve: reply length %ld > MAX_REPLY_LENGTH, disconnecting"
+	       " from font server\n", (long)rep->length);
 	_fs_connection_died (conn);
 	*error = FSIO_ERROR;
 	return 0;
@@ -2856,14 +2856,12 @@ _fs_client_access (FSFpePtr conn, pointer client, Bool sync)
 	if (crac.num_auths == 0) {
 	    authorizations = padding;
 	    authlen = 4;
-	} else {
-	    authlen = (authlen + 3) & ~0x3;
 	}
 	crac.length = (sizeof (fsCreateACReq) + authlen) >> 2;
 	crac.acid = cur->acid;
 	_fs_add_req_log(conn, FS_CreateAC);
 	_fs_write(conn, (char *) &crac, sizeof (fsCreateACReq));
-	_fs_write(conn, authorizations, authlen);
+	_fs_write_pad(conn, authorizations, authlen);
 	/* ignore reply; we don't even care about it */
 	conn->curacid = 0;
 	cur->auth_generation = client_auth_generation(client);

@@ -28,5 +28,3 @@
 #define FONT_t
 #define TRANS_CLIENT
 #include <X11/Xtrans/transport.c>
-/* inhibit warning about is_numeric */
-static inline void foo(void) { (void) is_numeric("a"); }
