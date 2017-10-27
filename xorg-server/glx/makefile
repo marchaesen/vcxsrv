@@ -42,3 +42,4 @@ CSRCS = \
 
 INCLUDES := $(MHMAKECONF)\mesalib\include . ../composite $(INCLUDES)
 
+load_makefile -f $(MHMAKECONF)\mesalib\src\mapi\glapi\gen\makefile.srcs NORELDBG=1

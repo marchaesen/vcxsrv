@@ -1,0 +1,50 @@
+ifneq ($(NORELDBG),1)
+$(error NORELDBG should have been set to 1)
+endif
+
+srcdir=.
+builddir=.
+top_srcdir=../..
+top_builddir=../..
+
+PYTHON_GEN = python
+
+main/get_hash.h: ../mapi/glapi/gen/gl_and_es_API.xml main/get_hash_params.py \
+                 main/get_hash_generator.py
+	$(PYTHON_GEN) $(srcdir)/main/get_hash_generator.py \
+		-f $(srcdir)/../mapi/glapi/gen/gl_and_es_API.xml > $@
+
+main/format_fallback.c: main/format_fallback.py \
+                        main/format_parser.py \
+	                main/formats.csv
+	$(PYTHON_GEN) $(srcdir)/main/format_fallback.py $(srcdir)/main/formats.csv $@
+
+main/format_info.h: main/formats.csv \
+                    main/format_parser.py main/format_info.py
+	$(PYTHON_GEN) $(srcdir)/main/format_info.py $(srcdir)/main/formats.csv > $@
+
+main/format_pack.c: main/format_pack.py main/formats.csv \
+                    main/format_parser.py
+	$(PYTHON_GEN) $(srcdir)/main/format_pack.py $(srcdir)/main/formats.csv > $@
+
+main/format_unpack.c: main/format_unpack.py main/formats.csv	\
+                      main/format_parser.py
+	$(PYTHON_GEN) $(srcdir)/main/format_unpack.py $(srcdir)/main/formats.csv > $@
+
+main/formats.c: main/format_info.h
+
+YACC_GEN = bison.exe -v
+LEX_GEN = flex.exe --nounistd
+
+program/lex.yy.c: program/program_lexer.l
+	$(LEX_GEN) -o $@ $(srcdir)/program/program_lexer.l
+
+program/program_parse.tab.c: program/program_parse.y
+	$(YACC_GEN) -o $@ -p "_mesa_program_" --defines=$(builddir)/program/program_parse.tab.h $(srcdir)/program/program_parse.y
+program/program_parse.tab.h: program/program_parse.y
+	$(YACC_GEN) -o $@ -p "_mesa_program_" --defines=$(builddir)/program/program_parse.tab.h $(srcdir)/program/program_parse.y
+
+matypes.h: gen_matypes
+	./gen_matypes > $@
+
+

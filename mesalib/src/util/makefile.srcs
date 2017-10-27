@@ -1,0 +1,9 @@
+ifneq ($(NORELDBG),1)
+$(error NORELDBG should have been set to 1)
+endif
+
+srcdir=.
+
+format_srgb.c: format_srgb.py
+	python $(srcdir)/format_srgb.py > $@
+

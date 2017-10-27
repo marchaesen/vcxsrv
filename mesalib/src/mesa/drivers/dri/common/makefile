@@ -19,3 +19,5 @@ CSRCS := $(notdir $(subst /,$/,$(libdricommon_la_SOURCES)))
 CSRCS += $(notdir $(subst /,$/,$(megadriver_stub_FILES)))
 CSRCS := $(CSRCS:%.h=)
 
+load_makefile $(top_srcdir)/src/util/xmlpool/makefile.srcs NORELDBG=1
+

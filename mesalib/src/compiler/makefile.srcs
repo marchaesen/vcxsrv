@@ -1,0 +1,58 @@
+ifneq ($(NORELDBG),1)
+$(error NORELDBG should have been set to 1)
+endif
+
+top_srcdir=../..
+srcdir=.
+builddir=.
+
+BISON_PKGDATADIR=../../../tools/mhmake/src/bisondata
+export BISON_PKGDATADIR
+
+YACC_GEN = bison.exe -v
+LEX_GEN = flex.exe --nounistd
+PYTHON_GEN = python
+
+glsl/glsl_parser.cpp: glsl/glsl_parser.yy
+	$(YACC_GEN) -o $@ -p "_mesa_glsl_" --defines=$(builddir)/glsl/glsl_parser.h $(srcdir)/glsl/glsl_parser.yy
+glsl/glsl_parser.h: glsl/glsl_parser.yy
+	$(YACC_GEN) -o $@ -p "_mesa_glsl_" --defines=$(builddir)/glsl/glsl_parser.h $(srcdir)/glsl/glsl_parser.yy
+
+glsl/glsl_lexer.cpp: glsl/glsl_lexer.ll
+	$(LEX_GEN) -o $@ $(srcdir)/glsl/glsl_lexer.ll
+
+glsl/glcpp/glcpp-parse.c: glsl/glcpp/glcpp-parse.y
+	$(YACC_GEN) -o $@ -p "glcpp_parser_" --defines=$(builddir)/glsl/glcpp/glcpp-parse.h $(srcdir)/glsl/glcpp/glcpp-parse.y
+glsl/glcpp/glcpp-parse.h: glsl/glcpp/glcpp-parse.y
+	$(YACC_GEN) -o $@ -p "glcpp_parser_" --defines=$(builddir)/glsl/glcpp/glcpp-parse.h $(srcdir)/glsl/glcpp/glcpp-parse.y
+
+glsl/glcpp/glcpp-lex.c: glsl/glcpp/glcpp-lex.l
+	$(LEX_GEN) -o $@ $(srcdir)/glsl/glcpp/glcpp-lex.l
+
+glsl/ir_expression_operation.h: glsl/ir_expression_operation.py
+	$(PYTHON_GEN) $(srcdir)/glsl/ir_expression_operation.py enum > $@
+
+glsl/ir_expression_operation_constant.h: glsl/ir_expression_operation.py
+	$(PYTHON_GEN) $(srcdir)/glsl/ir_expression_operation.py constant > $@
+
+glsl/ir_expression_operation_strings.h: glsl/ir_expression_operation.py
+	$(PYTHON_GEN) $(srcdir)/glsl/ir_expression_operation.py strings > $@
+
+nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py
+	$(PYTHON_GEN) $(srcdir)/nir/nir_builder_opcodes_h.py > $@
+
+nir/nir_constant_expressions.c: nir/nir_opcodes.py nir/nir_constant_expressions.py
+	$(PYTHON_GEN) $(srcdir)/nir/nir_constant_expressions.py > $@
+
+nir/nir_opcodes.h: nir/nir_opcodes.py nir/nir_opcodes_h.py
+	$(PYTHON_GEN) $(srcdir)/nir/nir_opcodes_h.py > $@
+
+nir/nir_opcodes.c: nir/nir_opcodes.py nir/nir_opcodes_c.py
+	$(PYTHON_GEN) $(srcdir)/nir/nir_opcodes_c.py > $@
+
+nir/nir_opt_algebraic.c: nir/nir_opt_algebraic.py nir/nir_algebraic.py
+	$(PYTHON_GEN) $(srcdir)/nir/nir_opt_algebraic.py > $@
+
+spirv/spirv_info.c: spirv/spirv_info_c.py spirv/spirv.core.grammar.json
+	$(PYTHON_GEN) $(srcdir)/spirv/spirv_info_c.py $(srcdir)/spirv/spirv.core.grammar.json $@
+

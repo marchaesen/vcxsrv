@@ -1,9 +1,6 @@
 srcdir=.
 top_srcdir=../..
 
-#SUBDIRS = . \
-#	xmlpool 
-
 include Makefile.sources
 
 INCLUDES = \
@@ -32,9 +29,6 @@ BUILT_SOURCES = $(MESA_UTIL_GENERATED_FILES)
 
 PYTHON_GEN = python
 
-format_srgb.c: format_srgb.py
-	$(PYTHON_GEN) $(srcdir)/format_srgb.py > $@
-
 DEFINES = SWRAST_DRI_EXPORT INSERVER _USE_MATH_DEFINES __STDC_CONSTANT_MACROS __STDC_CONSTANT_MACROS __STDC_FORMAT_MACROS XML_STATIC
 
 INCLUDES += $(MHMAKECONF)/include $(MHMAKECONF) $(MHMAKECONF)/expat/lib
@@ -48,3 +42,4 @@ CSRCS := $(CSRCS:%.h=)
 
 vpath %.c sha1
 
+load_makefile -f makefile.srcs NORELDBG=1
