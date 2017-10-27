@@ -400,8 +400,10 @@ PatternMatch(char *pat, int patdashes, char *string, int stringdashes)
 		}
 	    }
 	case '?':
-	    if (*string++ == XK_minus)
+	    if ((t = *string++) == XK_minus)
 		stringdashes--;
+	    if (!t)
+		return 0;
 	    break;
 	case '\0':
 	    return (*string == '\0');

@@ -55,7 +55,7 @@ libXaw-1.0.13
 libXdmcp git version
 libXext git version
 libXfixes-5.0.3
-libXfont2-2.0.1
+libXfont2-2.0.2
 libXft git version
 libXinerama git version
 libXmu git version

@@ -623,7 +623,7 @@ FreeTypeInstanceFindGlyph(unsigned idx_in, int flags, FTInstancePtr instance,
     offset = idx - segment * FONTSEGMENTSIZE;
 
     if((*available)[segment] == NULL) {
-        (*available)[segment] = calloc(FONTSEGMENTSIZE, sizeof(int *));
+        (*available)[segment] = calloc(FONTSEGMENTSIZE, sizeof(int));
         if((*available)[segment] == NULL)
             return AllocError;
     }
