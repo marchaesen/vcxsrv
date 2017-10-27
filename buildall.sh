@@ -5,7 +5,11 @@ source ./setenv.sh 1
 elif [[ "$1" == "0" ]] ; then
 source ./setenv.sh 0
 else
-  echo "Please pass 1 (64-bit compilation) or 0 (32-bit compilation) as argument"
+  echo "Please pass 1 (64-bit compilation) or 0 (32-bit compilation) as first argument"
+  exit 
+fi
+if [[ "$2" == "" ]] ; then
+  echo "Please pass number of parallel builds as second argument"
   exit 
 fi
 
@@ -110,10 +114,10 @@ check-error 'Error compiling mhmake for debug'
 
 export MHMAKECONF=`cygpath -da .`
 
-tools/mhmake/Release64/mhmake $PARBUILD -C xorg-server MAKESERVER=1 DEBUG=1
+tools/mhmake/Release64/mhmake -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
 check-error 'Error compiling vcxsrv for debug'
 
-tools/mhmake/Release64/mhmake.exe $PARBUILD -C xorg-server MAKESERVER=1
+tools/mhmake/Release64/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
 check-error 'Error compiling vcxsrv for release'
 
 cd xorg-server/installer
