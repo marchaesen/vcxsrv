@@ -38,7 +38,7 @@
  */
 
 #include "glapi/glapi_priv.h"
-#include "glapi/glapitable.h"
+#include "glapitable.h"
 
 
 #if !(defined(USE_X86_ASM) || defined(USE_X86_64_ASM) || defined(USE_SPARC_ASM))

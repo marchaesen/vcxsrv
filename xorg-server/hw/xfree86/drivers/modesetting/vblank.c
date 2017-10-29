@@ -219,7 +219,8 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
         if (flags & MS_QUEUE_NEXT_ON_MISS)
             vbl.request.type |= DRM_VBLANK_NEXTONMISS;
 
-        vbl.request.sequence = ms_crtc_msc_to_kernel_msc(crtc, msc);
+        vbl.request.sequence = (flags & MS_QUEUE_RELATIVE) ?
+                                    msc : ms_crtc_msc_to_kernel_msc(crtc, msc);
         vbl.request.signal = seq;
         ret = drmWaitVBlank(ms->fd, &vbl);
         if (ret == 0) {

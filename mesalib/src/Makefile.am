@@ -19,17 +19,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-.PHONY: git_sha1.h.tmp
-git_sha1.h.tmp:
-	@$(PYTHON2) $(top_srcdir)/bin/git_sha1_gen.py > $@
-
-git_sha1.h: git_sha1.h.tmp
-	@echo "updating git_sha1.h"
-	@if ! cmp -s git_sha1.h.tmp git_sha1.h; then \
-		mv git_sha1.h.tmp git_sha1.h ;\
-	else \
-		rm git_sha1.h.tmp ;\
-	fi
+.PHONY: git_sha1.h
+git_sha1.h: $(top_srcdir)/src/git_sha1.h.in
+	@echo "updating $@"
+	@$(PYTHON2) $(top_srcdir)/bin/git_sha1_gen.py --output $@
 
 BUILT_SOURCES = git_sha1.h
 CLEANFILES = $(BUILT_SOURCES)

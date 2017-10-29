@@ -1430,7 +1430,13 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
       if (!_mesa_has_ARB_shader_image_load_store(ctx))
          goto end;
 
-      if (!_mesa_legal_get_tex_level_parameter_target(ctx, target, true))
+      /* As pointed by the spec quote below, this pname query should return
+       * the same value that GetTexParameter. So if the target is not valid
+       * for GetTexParameter we return the unsupported value. The check below
+       * is the same target check used by GetTexParameter.
+       */
+      int targetIndex = _mesa_tex_target_to_index(ctx, target);
+      if (targetIndex < 0 || targetIndex == TEXTURE_BUFFER_INDEX)
          goto end;
 
       /* From spec: "Equivalent to calling GetTexParameter with <value> set

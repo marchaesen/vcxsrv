@@ -20,7 +20,7 @@ DEFINES += SWRAST_DRI_EXPORT INSERVER _USE_MATH_DEFINES __STDC_CONSTANT_MACROS _
 
 LIBRARY = libmapi
 
-INCLUDES += . .. $(top_srcdir)/include
+INCLUDES += . .. glapi/gen $(top_srcdir)/include
 
 CSRCS := $(notdir $(subst /,$/,$(glapi_libglapi_la_SOURCES)))
 CSRCS := $(CSRCS:%.h=)

@@ -34,7 +34,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "glapi/glapi_priv.h"
-#include "glapi/glapitable.h"
+#include "glapitable.h"
 
 
 #define FIRST_DYNAMIC_OFFSET (sizeof(struct _glapi_table) / sizeof(void *))
@@ -49,7 +49,7 @@
 #if !defined(DISPATCH_FUNCTION_SIZE) 
 # define NEED_FUNCTION_POINTER
 #endif
-#include "glapi/glprocs.h"
+#include "glprocs.h"
 
 
 /**

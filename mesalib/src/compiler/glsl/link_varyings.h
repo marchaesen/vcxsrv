@@ -300,6 +300,12 @@ link_varyings(struct gl_shader_program *prog, unsigned first, unsigned last,
               struct gl_context *ctx, void *mem_ctx);
 
 void
+validate_sso_explicit_locations(struct gl_context *ctx,
+                                struct gl_shader_program *prog,
+                                gl_shader_stage first,
+                                gl_shader_stage last);
+
+void
 cross_validate_outputs_to_inputs(struct gl_context *ctx,
                                  struct gl_shader_program *prog,
                                  gl_linked_shader *producer,

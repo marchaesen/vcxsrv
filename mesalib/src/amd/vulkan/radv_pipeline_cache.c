@@ -62,9 +62,11 @@ radv_pipeline_cache_init(struct radv_pipeline_cache *cache,
 	cache->hash_table = malloc(byte_size);
 
 	/* We don't consider allocation failure fatal, we just start with a 0-sized
-	 * cache. */
+	 * cache. Disable caching when we want to keep shader debug info, since
+	 * we don't get the debug info on cached shaders. */
 	if (cache->hash_table == NULL ||
-	    (device->instance->debug_flags & RADV_DEBUG_NO_CACHE))
+	    (device->instance->debug_flags & RADV_DEBUG_NO_CACHE) ||
+	    device->keep_shader_info)
 		cache->table_size = 0;
 	else
 		memset(cache->hash_table, 0, byte_size);
@@ -186,8 +188,11 @@ radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 	entry = radv_pipeline_cache_search_unlocked(cache, sha1);
 
 	if (!entry) {
+		/* Again, don't cache when we want debug info, since this isn't
+		 * present in the cache. */
 		if (!device->physical_device->disk_cache ||
-		    (device->instance->debug_flags & RADV_DEBUG_NO_CACHE)) {
+		    (device->instance->debug_flags & RADV_DEBUG_NO_CACHE) ||
+		    device->keep_shader_info) {
 			pthread_mutex_unlock(&cache->mutex);
 			return false;
 		}

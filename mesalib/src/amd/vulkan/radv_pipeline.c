@@ -1137,7 +1137,7 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 		}
 	}
 
-	pipeline->dynamic_state_mask = states;
+	pipeline->dynamic_state.mask = states;
 }
 
 static void calculate_gfx9_gs_info(const VkGraphicsPipelineCreateInfo *pCreateInfo,
@@ -1942,7 +1942,7 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
 		free(codes[i]);
-		if (modules[i] && !pipeline->device->trace_bo)
+		if (modules[i] && !pipeline->device->keep_shader_info)
 			ralloc_free(nir[i]);
 	}
 

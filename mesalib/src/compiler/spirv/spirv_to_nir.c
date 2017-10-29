@@ -2802,7 +2802,8 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpMemoryModel:
       assert(w[1] == SpvAddressingModelLogical);
-      assert(w[2] == SpvMemoryModelGLSL450);
+      assert(w[2] == SpvMemoryModelSimple ||
+             w[2] == SpvMemoryModelGLSL450);
       break;
 
    case SpvOpEntryPoint: {

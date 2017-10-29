@@ -79,10 +79,13 @@ const struct radv_dynamic_state default_dynamic_state = {
 };
 
 static void
-radv_dynamic_state_copy(struct radv_dynamic_state *dest,
-			const struct radv_dynamic_state *src,
-			uint32_t copy_mask)
+radv_bind_dynamic_state(struct radv_cmd_buffer *cmd_buffer,
+			const struct radv_dynamic_state *src)
 {
+	struct radv_dynamic_state *dest = &cmd_buffer->state.dynamic;
+	uint32_t copy_mask = src->mask;
+	uint32_t dest_mask = 0;
+
 	/* Make sure to copy the number of viewports/scissors because they can
 	 * only be specified at pipeline creation time.
 	 */
@@ -90,35 +93,82 @@ radv_dynamic_state_copy(struct radv_dynamic_state *dest,
 	dest->scissor.count = src->scissor.count;
 
 	if (copy_mask & (1 << VK_DYNAMIC_STATE_VIEWPORT)) {
-		typed_memcpy(dest->viewport.viewports, src->viewport.viewports,
-			     src->viewport.count);
+		if (memcmp(&dest->viewport.viewports, &src->viewport.viewports,
+			   src->viewport.count * sizeof(VkViewport))) {
+			typed_memcpy(dest->viewport.viewports,
+				     src->viewport.viewports,
+				     src->viewport.count);
+			dest_mask |= 1 << VK_DYNAMIC_STATE_VIEWPORT;
+		}
 	}
 
 	if (copy_mask & (1 << VK_DYNAMIC_STATE_SCISSOR)) {
-		typed_memcpy(dest->scissor.scissors, src->scissor.scissors,
-			     src->scissor.count);
+		if (memcmp(&dest->scissor.scissors, &src->scissor.scissors,
+			   src->scissor.count * sizeof(VkRect2D))) {
+			typed_memcpy(dest->scissor.scissors,
+				     src->scissor.scissors, src->scissor.count);
+			dest_mask |= 1 << VK_DYNAMIC_STATE_SCISSOR;
+		}
 	}
 
-	if (copy_mask & (1 << VK_DYNAMIC_STATE_LINE_WIDTH))
-		dest->line_width = src->line_width;
+	if (copy_mask & (1 << VK_DYNAMIC_STATE_LINE_WIDTH)) {
+		if (dest->line_width != src->line_width) {
+			dest->line_width = src->line_width;
+			dest_mask |= 1 << VK_DYNAMIC_STATE_LINE_WIDTH;
+		}
+	}
 
-	if (copy_mask & (1 << VK_DYNAMIC_STATE_DEPTH_BIAS))
-		dest->depth_bias = src->depth_bias;
+	if (copy_mask & (1 << VK_DYNAMIC_STATE_DEPTH_BIAS)) {
+		if (memcmp(&dest->depth_bias, &src->depth_bias,
+			   sizeof(src->depth_bias))) {
+			dest->depth_bias = src->depth_bias;
+			dest_mask |= 1 << VK_DYNAMIC_STATE_DEPTH_BIAS;
+		}
+	}
 
-	if (copy_mask & (1 << VK_DYNAMIC_STATE_BLEND_CONSTANTS))
-		typed_memcpy(dest->blend_constants, src->blend_constants, 4);
+	if (copy_mask & (1 << VK_DYNAMIC_STATE_BLEND_CONSTANTS)) {
+		if (memcmp(&dest->blend_constants, &src->blend_constants,
+			   sizeof(src->blend_constants))) {
+			typed_memcpy(dest->blend_constants,
+				     src->blend_constants, 4);
+			dest_mask |= 1 << VK_DYNAMIC_STATE_BLEND_CONSTANTS;
+		}
+	}
 
-	if (copy_mask & (1 << VK_DYNAMIC_STATE_DEPTH_BOUNDS))
-		dest->depth_bounds = src->depth_bounds;
+	if (copy_mask & (1 << VK_DYNAMIC_STATE_DEPTH_BOUNDS)) {
+		if (memcmp(&dest->depth_bounds, &src->depth_bounds,
+			   sizeof(src->depth_bounds))) {
+			dest->depth_bounds = src->depth_bounds;
+			dest_mask |= 1 << VK_DYNAMIC_STATE_DEPTH_BOUNDS;
+		}
+	}
 
-	if (copy_mask & (1 << VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK))
-		dest->stencil_compare_mask = src->stencil_compare_mask;
+	if (copy_mask & (1 << VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK)) {
+		if (memcmp(&dest->stencil_compare_mask,
+			   &src->stencil_compare_mask,
+			   sizeof(src->stencil_compare_mask))) {
+			dest->stencil_compare_mask = src->stencil_compare_mask;
+			dest_mask |= 1 << VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
+		}
+	}
 
-	if (copy_mask & (1 << VK_DYNAMIC_STATE_STENCIL_WRITE_MASK))
-		dest->stencil_write_mask = src->stencil_write_mask;
+	if (copy_mask & (1 << VK_DYNAMIC_STATE_STENCIL_WRITE_MASK)) {
+		if (memcmp(&dest->stencil_write_mask, &src->stencil_write_mask,
+			   sizeof(src->stencil_write_mask))) {
+			dest->stencil_write_mask = src->stencil_write_mask;
+			dest_mask |= 1 << VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+		}
+	}
 
-	if (copy_mask & (1 << VK_DYNAMIC_STATE_STENCIL_REFERENCE))
-		dest->stencil_reference = src->stencil_reference;
+	if (copy_mask & (1 << VK_DYNAMIC_STATE_STENCIL_REFERENCE)) {
+		if (memcmp(&dest->stencil_reference, &src->stencil_reference,
+			   sizeof(src->stencil_reference))) {
+			dest->stencil_reference = src->stencil_reference;
+			dest_mask |= 1 << VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+		}
+	}
+
+	cmd_buffer->state.dirty |= dest_mask;
 }
 
 bool radv_cmd_buffer_uses_mec(struct radv_cmd_buffer *cmd_buffer)
@@ -263,7 +313,8 @@ radv_cmd_buffer_resize_upload_buf(struct radv_cmd_buffer *cmd_buffer,
 	bo = device->ws->buffer_create(device->ws,
 				       new_size, 4096,
 				       RADEON_DOMAIN_GTT,
-				       RADEON_FLAG_CPU_ACCESS);
+				       RADEON_FLAG_CPU_ACCESS|
+				       RADEON_FLAG_NO_INTERPROCESS_SHARING);
 
 	if (!bo) {
 		cmd_buffer->record_result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
@@ -1523,8 +1574,7 @@ radv_cmd_buffer_flush_dynamic_state(struct radv_cmd_buffer *cmd_buffer)
 				       RADV_CMD_DIRTY_DYNAMIC_STENCIL_COMPARE_MASK))
 		radv_emit_stencil(cmd_buffer);
 
-	if (cmd_buffer->state.dirty & (RADV_CMD_DIRTY_PIPELINE |
-				       RADV_CMD_DIRTY_DYNAMIC_DEPTH_BOUNDS))
+	if (cmd_buffer->state.dirty & RADV_CMD_DIRTY_DYNAMIC_DEPTH_BOUNDS)
 		radv_emit_depth_bounds(cmd_buffer);
 
 	if (cmd_buffer->state.dirty & (RADV_CMD_DIRTY_PIPELINE |
@@ -2531,11 +2581,7 @@ void radv_CmdBindPipeline(
 		cmd_buffer->state.dirty |= RADV_CMD_DIRTY_PIPELINE;
 		cmd_buffer->push_constant_stages |= pipeline->active_stages;
 
-		/* Apply the dynamic state from the pipeline */
-		cmd_buffer->state.dirty |= pipeline->dynamic_state_mask;
-		radv_dynamic_state_copy(&cmd_buffer->state.dynamic,
-					&pipeline->dynamic_state,
-					pipeline->dynamic_state_mask);
+		radv_bind_dynamic_state(cmd_buffer, &pipeline->dynamic_state);
 
 		if (pipeline->graphics.esgs_ring_size > cmd_buffer->esgs_ring_size_needed)
 			cmd_buffer->esgs_ring_size_needed = pipeline->graphics.esgs_ring_size;
@@ -3595,16 +3641,15 @@ static void radv_initialize_htile(struct radv_cmd_buffer *cmd_buffer,
 	uint64_t size = image->surface.htile_slice_size * layer_count;
 	uint64_t offset = image->offset + image->htile_offset +
 	                  image->surface.htile_slice_size * range->baseArrayLayer;
+	struct radv_cmd_state *state = &cmd_buffer->state;
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB |
-	                                RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
+	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB |
+			     RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
 
-	radv_fill_buffer(cmd_buffer, image->bo, offset, size, clear_word);
+	state->flush_bits |= radv_fill_buffer(cmd_buffer, image->bo, offset,
+					      size, clear_word);
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB_META |
-	                                RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-	                                RADV_CMD_FLAG_INV_VMEM_L1 |
-	                                RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2;
+	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
 }
 
 static void radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffer,
@@ -3650,16 +3695,16 @@ static void radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffe
 void radv_initialise_cmask(struct radv_cmd_buffer *cmd_buffer,
 			   struct radv_image *image, uint32_t value)
 {
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-	                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+	struct radv_cmd_state *state = &cmd_buffer->state;
 
-	radv_fill_buffer(cmd_buffer, image->bo, image->offset + image->cmask.offset,
-			 image->cmask.size, value);
+	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+			    RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB_META |
-	                                RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-	                                RADV_CMD_FLAG_INV_VMEM_L1 |
-	                                RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2;
+	state->flush_bits |= radv_fill_buffer(cmd_buffer, image->bo,
+					      image->offset + image->cmask.offset,
+					      image->cmask.size, value);
+
+	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 }
 
 static void radv_handle_cmask_image_transition(struct radv_cmd_buffer *cmd_buffer,
@@ -3684,18 +3729,17 @@ static void radv_handle_cmask_image_transition(struct radv_cmd_buffer *cmd_buffe
 void radv_initialize_dcc(struct radv_cmd_buffer *cmd_buffer,
 			 struct radv_image *image, uint32_t value)
 {
+	struct radv_cmd_state *state = &cmd_buffer->state;
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-	                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+			     RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 
-	radv_fill_buffer(cmd_buffer, image->bo, image->offset + image->dcc_offset,
-			 image->surface.dcc_size, value);
+	state->flush_bits |= radv_fill_buffer(cmd_buffer, image->bo,
+					      image->offset + image->dcc_offset,
+					      image->surface.dcc_size, value);
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-	                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META |
-	                                RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-	                                RADV_CMD_FLAG_INV_VMEM_L1 |
-	                                RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2;
+	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+			     RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 }
 
 static void radv_handle_dcc_image_transition(struct radv_cmd_buffer *cmd_buffer,

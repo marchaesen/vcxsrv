@@ -330,6 +330,15 @@ get_fb0_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
       return &fb->Attachment[BUFFER_BACK_LEFT];
    case GL_BACK_RIGHT:
       return &fb->Attachment[BUFFER_BACK_RIGHT];
+   case GL_BACK:
+      /* The ARB_ES3_1_compatibility spec says:
+       *
+       *    "Since this command can only query a single framebuffer
+       *     attachment, BACK is equivalent to BACK_LEFT."
+       */
+      if (ctx->Extensions.ARB_ES3_1_compatibility)
+         return &fb->Attachment[BUFFER_BACK_LEFT];
+      return NULL;
    case GL_AUX0:
       if (fb->Visual.numAuxBuffers == 1) {
          return &fb->Attachment[BUFFER_AUX0];

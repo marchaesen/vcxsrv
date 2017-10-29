@@ -54,6 +54,7 @@ enum radeon_bo_flag { /* bitfield */
 	RADEON_FLAG_VIRTUAL =       (1 << 3),
 	RADEON_FLAG_VA_UNCACHED =   (1 << 4),
 	RADEON_FLAG_IMPLICIT_SYNC = (1 << 5),
+	RADEON_FLAG_NO_INTERPROCESS_SHARING = (1 << 6),
 };
 
 enum radeon_bo_usage { /* bitfield */
