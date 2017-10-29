@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-inc_gallium_aux = include_directories('.')
-
 files_libgallium = files(
   'cso_cache/cso_cache.c',
   'cso_cache/cso_cache.h',

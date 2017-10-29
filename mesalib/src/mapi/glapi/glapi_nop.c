@@ -116,7 +116,7 @@ NoOpUnused(void)
 #define DISPATCH_TABLE_NAME __glapi_noop_table
 #define UNUSED_TABLE_NAME __unused_noop_functions
 
-#include "glapi/glapitemp.h"
+#include "glapitemp.h"
 
 
 /** Return pointer to new dispatch table filled with no-op functions */

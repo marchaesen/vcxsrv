@@ -61,7 +61,8 @@ radv_init_trace(struct radv_device *device)
 
 	device->trace_bo = ws->buffer_create(ws, TRACE_BO_SIZE, 8,
 					     RADEON_DOMAIN_VRAM,
-					     RADEON_FLAG_CPU_ACCESS);
+					     RADEON_FLAG_CPU_ACCESS|
+					     RADEON_FLAG_NO_INTERPROCESS_SHARING);
 	if (!device->trace_bo)
 		return false;
 

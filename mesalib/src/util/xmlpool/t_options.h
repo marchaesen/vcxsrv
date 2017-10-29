@@ -444,7 +444,7 @@ DRI_CONF_OPT_BEGIN_B(radeonsi_commutative_blend_add, def) \
         DRI_CONF_DESC(en,gettext("Commutative additive blending optimizations (may cause rendering errors)")) \
 DRI_CONF_OPT_END
 
-#define DRI_CONF_RADEONSI_CLEAR_DB_META_BEFORE_CLEAR(def) \
-DRI_CONF_OPT_BEGIN_B(radeonsi_clear_db_meta_before_clear, def) \
-        DRI_CONF_DESC(en,"Clear DB metadata cache before fast depth clear") \
+#define DRI_CONF_RADEONSI_CLEAR_DB_CACHE_BEFORE_CLEAR(def) \
+DRI_CONF_OPT_BEGIN_B(radeonsi_clear_db_cache_before_clear, def) \
+        DRI_CONF_DESC(en,"Clear DB cache before fast depth clear") \
 DRI_CONF_OPT_END

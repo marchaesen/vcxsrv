@@ -404,21 +404,28 @@ static void copy_buffer_shader(struct radv_cmd_buffer *cmd_buffer,
 }
 
 
-void radv_fill_buffer(struct radv_cmd_buffer *cmd_buffer,
+uint32_t radv_fill_buffer(struct radv_cmd_buffer *cmd_buffer,
 		      struct radeon_winsys_bo *bo,
 		      uint64_t offset, uint64_t size, uint32_t value)
 {
+	uint32_t flush_bits = 0;
+
 	assert(!(offset & 3));
 	assert(!(size & 3));
 
-	if (size >= RADV_BUFFER_OPS_CS_THRESHOLD)
+	if (size >= RADV_BUFFER_OPS_CS_THRESHOLD) {
 		fill_buffer_shader(cmd_buffer, bo, offset, size, value);
-	else if (size) {
+		flush_bits = RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+			     RADV_CMD_FLAG_INV_VMEM_L1 |
+			     RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2;
+	} else if (size) {
 		uint64_t va = radv_buffer_get_va(bo);
 		va += offset;
 		cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, bo, 8);
 		si_cp_dma_clear_buffer(cmd_buffer, va, size, value);
 	}
+
+	return flush_bits;
 }
 
 static

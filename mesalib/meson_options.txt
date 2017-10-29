@@ -34,7 +34,7 @@ option(
 option(
   'dri-drivers',
   type : 'string',
-  value : 'i915,i965',
+  value : 'i915,i965,r100,r200,nouveau',
   description : 'comma separated list of dri drivers to build.'
 )
 option(
@@ -159,4 +159,24 @@ option(
   type : 'boolean',
   value : false,
   description : 'Enable floating point textures and renderbuffers. This option may be patent encumbered, please read docs/patents.txt and consult with your lawyer before turning this on.'
+)
+option(
+  'selinux',
+  type : 'boolean',
+  value : false,
+  description : 'Build an SELinux-aware Mesa'
+)
+option(
+  'osmesa',
+  type : 'combo',
+  value : 'none',
+  choices : ['none', 'classic', 'gallium'],
+  description : 'Build OSmesa.'
+)
+option(
+  'osmesa-bits',
+  type : 'combo',
+  value : '8',
+  choices : ['8', '16', '32'],
+  description : 'Number of channel bits for OSMesa.'
 )

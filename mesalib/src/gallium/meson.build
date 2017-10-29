@@ -18,7 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-inc_gallium = include_directories('include')
 inc_gallium_drivers = include_directories('drivers')
 inc_gallium_winsys = include_directories('winsys')
 
@@ -67,6 +66,9 @@ if with_gallium_imx
   subdir('winsys/imx/drm')
 endif
 subdir('state_trackers/dri')
+if with_osmesa == 'gallium'
+  subdir('state_trackers/osmesa')
+endif
 # TODO: i915
 # TODO: SVGA
 # TODO: r300
@@ -78,9 +80,11 @@ subdir('state_trackers/dri')
 if with_dri and with_gallium
   subdir('targets/dri')
 endif
+if with_osmesa == 'gallium'
+  subdir('targets/osmesa')
+endif
 # TODO: xlib-glx
 # TODO: OMX
-# TODO: osmesa
 # TODO: VA
 # TODO: vdpau
 # TODO: xa

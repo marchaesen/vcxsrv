@@ -264,7 +264,7 @@ TODO: document the other workarounds.
     </device>
     <device driver="radeonsi">
         <application name="ARK: Survival Evolved (and unintentionally the UE4 demo template)" executable="ShooterGame">
-            <option name="radeonsi_clear_db_meta_before_clear" value="true" />
+            <option name="radeonsi_clear_db_cache_before_clear" value="true" />
         </application>
     </device>
 </driconf>

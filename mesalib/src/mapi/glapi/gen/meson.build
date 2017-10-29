@@ -153,10 +153,10 @@ glapi_mapi_tmp_h = custom_target(
   capture : true,
 )
 
-gl_procs_h = custom_target(
-  'gl_procs.h',
+glprocs_h = custom_target(
+  'glprocs.h',
   input : ['gl_procs.py', 'gl_and_es_API.xml'],
-  output : 'gl_procs.h',
+  output : 'glprocs.h',
   command : [prog_python2, '@INPUT0@', '-c', '-f', '@INPUT1@'],
   depend_files : glapi_gen_depends,
   capture : true,
