@@ -647,8 +647,6 @@ ir_validate::visit_leave(ir_expression *ir)
       break;
 
    case ir_binop_less:
-   case ir_binop_greater:
-   case ir_binop_lequal:
    case ir_binop_gequal:
    case ir_binop_equal:
    case ir_binop_nequal:

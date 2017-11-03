@@ -1110,7 +1110,7 @@ disk_cache_get(struct disk_cache *cache, const cache_key key, size_t *size)
        * TODO: pass the metadata back to the caller and do some basic
        * validation.
        */
-      cache_item_md_size += sizeof(cache_key);
+      cache_item_md_size += num_keys * sizeof(cache_key);
       ret = lseek(fd, num_keys * sizeof(cache_key), SEEK_CUR);
       if (ret == -1)
          goto fail;

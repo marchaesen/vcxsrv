@@ -462,8 +462,6 @@ static const int version_requests[] = {
     X_DamageAdd,                /* Version 1 */
 };
 
-#define NUM_VERSION_REQUESTS	(sizeof (version_requests) / sizeof (version_requests[0]))
-
 static int (*ProcDamageVector[XDamageNumberRequests]) (ClientPtr) = {
     /*************** Version 1 ******************/
     ProcDamageQueryVersion,
@@ -480,7 +478,7 @@ ProcDamageDispatch(ClientPtr client)
     REQUEST(xDamageReq);
     DamageClientPtr pDamageClient = GetDamageClient(client);
 
-    if (pDamageClient->major_version >= NUM_VERSION_REQUESTS)
+    if (pDamageClient->major_version >= ARRAY_SIZE(version_requests))
         return BadRequest;
     if (stuff->damageReqType > version_requests[pDamageClient->major_version])
         return BadRequest;

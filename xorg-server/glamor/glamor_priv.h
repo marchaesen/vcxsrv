@@ -910,16 +910,6 @@ void glamor_xv_render(glamor_port_private *port_priv);
 
 #include "glamor_utils.h"
 
-/* Dynamic pixmap upload to texture if needed.
- * Sometimes, the target is a gl texture pixmap/picture,
- * but the source or mask is in cpu memory. In that case,
- * upload the source/mask to gl texture and then avoid
- * fallback the whole process to cpu. Most of the time,
- * this will increase performance obviously. */
-
-#define GLAMOR_PIXMAP_DYNAMIC_UPLOAD
-#define GLAMOR_GRADIENT_SHADER
-#define GLAMOR_TEXTURED_LARGE_PIXMAP 1
 #if 0
 #define MAX_FBO_SIZE 32         /* For test purpose only. */
 #endif

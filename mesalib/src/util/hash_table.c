@@ -476,9 +476,10 @@ _mesa_hash_data(const void *data, size_t size)
 
 /** FNV-1a string hash implementation */
 uint32_t
-_mesa_hash_string(const char *key)
+_mesa_hash_string(const void *_key)
 {
    uint32_t hash = _mesa_fnv32_1a_offset_bias;
+   const char *key = _key;
 
    while (*key != 0) {
       hash = _mesa_fnv32_1a_accumulate(hash, *key);

@@ -38,6 +38,7 @@
 
 enum reloc_worklist_type {
         reloc_gl_shader_state,
+        reloc_generic_tile_list,
 };
 
 struct reloc_worklist_entry {
@@ -50,6 +51,9 @@ struct reloc_worklist_entry {
                 struct {
                         uint32_t num_attrs;
                 } shader_state;
+                struct {
+                        uint32_t end;
+                } generic_tile_list;
         };
 };
 
@@ -190,6 +194,17 @@ clif_dump_packet(struct clif_dump *clif, uint32_t offset, const uint8_t *cl,
                 break;
         }
 
+        case V3D33_START_ADDRESS_OF_GENERIC_TILE_LIST_opcode: {
+                struct V3D33_START_ADDRESS_OF_GENERIC_TILE_LIST values;
+                V3D33_START_ADDRESS_OF_GENERIC_TILE_LIST_unpack(cl, &values);
+                struct reloc_worklist_entry *reloc =
+                        clif_dump_add_address_to_worklist(clif,
+                                                          reloc_generic_tile_list,
+                                                          values.start);
+                reloc->generic_tile_list.end = values.end;
+                break;
+        }
+
         case V3D33_HALT_opcode:
                 return false;
         }
@@ -220,6 +235,37 @@ clif_dump_gl_shader_state_record(struct clif_dump *clif,
 }
 
 static void
+clif_dump_cl(struct clif_dump *clif, uint32_t start, uint32_t end)
+{
+        void *start_vaddr;
+        if (!clif->lookup_vaddr(clif->data, start, &start_vaddr)) {
+                out(clif, "Failed to look up address 0x%08x\n",
+                    start);
+                return;
+        }
+
+        /* The end address is optional (for example, a BRANCH instruction
+         * won't set an end), but is used for BCL/RCL termination.
+         */
+        void *end_vaddr = NULL;
+        if (end && !clif->lookup_vaddr(clif->data, end, &end_vaddr)) {
+                out(clif, "Failed to look up address 0x%08x\n",
+                    end);
+                return;
+        }
+
+        uint32_t size;
+        uint8_t *cl = start_vaddr;
+        while (clif_dump_packet(clif, start, cl, &size)) {
+                cl += size;
+                start += size;
+
+                if (cl == end_vaddr)
+                        break;
+        }
+}
+
+static void
 clif_process_worklist(struct clif_dump *clif)
 {
         while (!list_empty(&clif->worklist)) {
@@ -239,6 +285,10 @@ clif_process_worklist(struct clif_dump *clif)
                 case reloc_gl_shader_state:
                         clif_dump_gl_shader_state_record(clif, reloc, vaddr);
                         break;
+                case reloc_generic_tile_list:
+                        clif_dump_cl(clif, reloc->addr,
+                                     reloc->generic_tile_list.end);
+                        break;
                 }
                 out(clif, "\n");
         }
@@ -247,34 +297,7 @@ clif_process_worklist(struct clif_dump *clif)
 void
 clif_dump_add_cl(struct clif_dump *clif, uint32_t start, uint32_t end)
 {
-        uint32_t size;
-
-        void *start_vaddr;
-        if (!clif->lookup_vaddr(clif->data, start, &start_vaddr)) {
-                out(clif, "Failed to look up address 0x%08x\n",
-                    start);
-                return;
-        }
-
-        /* The end address is optional (for example, a BRANCH instruction
-         * won't set an end), but is used for BCL/RCL termination.
-         */
-        void *end_vaddr = NULL;
-        if (end && !clif->lookup_vaddr(clif->data, end, &end_vaddr)) {
-                out(clif, "Failed to look up address 0x%08x\n",
-                    end);
-                return;
-        }
-
-        uint8_t *cl = start_vaddr;
-        while (clif_dump_packet(clif, start, cl, &size)) {
-                cl += size;
-                start += size;
-
-                if (cl == end_vaddr)
-                        break;
-        }
-
+        clif_dump_cl(clif, start, end);
         out(clif, "\n");
 
         clif_process_worklist(clif);

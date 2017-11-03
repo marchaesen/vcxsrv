@@ -832,7 +832,7 @@ long
 keysym2ucs(int keysym)
 {
     int min = 0;
-    int max = sizeof(keysymtab) / sizeof(struct codepair) - 1;
+    int max = ARRAY_SIZE(keysymtab) - 1;
     int mid;
 
     /* first check for Latin-1 characters (1:1 mapping) */
@@ -875,7 +875,7 @@ ucs2keysym(long ucs)
     static struct codepair *reverse_keysymtab;
 
     int min = 0;
-    int max = sizeof(keysymtab) / sizeof(struct codepair) - 1;
+    int max = ARRAY_SIZE(keysymtab) - 1;
     int mid;
 
     if (reverse_keysymtab == NULL) {
@@ -883,7 +883,7 @@ ucs2keysym(long ucs)
         memcpy(reverse_keysymtab, keysymtab, sizeof(keysymtab));
 
         qsort(reverse_keysymtab,
-              sizeof(keysymtab) / sizeof(struct codepair),
+              ARRAY_SIZE(keysymtab),
               sizeof(struct codepair),
               reverse_compare);
     }

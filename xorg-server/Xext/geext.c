@@ -47,7 +47,6 @@ static const int version_requests[] = {
 /* Forward declarations */
 static void SGEGenericEvent(xEvent *from, xEvent *to);
 
-#define NUM_VERSION_REQUESTS	(sizeof (version_requests) / sizeof (version_requests[0]))
 #define EXT_MASK(ext) ((ext) & 0x7F)
 
 /************************************************************/
@@ -127,7 +126,7 @@ ProcGEDispatch(ClientPtr client)
 
     REQUEST(xGEReq);
 
-    if (pGEClient->major_version >= NUM_VERSION_REQUESTS)
+    if (pGEClient->major_version >= ARRAY_SIZE(version_requests))
         return BadRequest;
     if (stuff->ReqType > version_requests[pGEClient->major_version])
         return BadRequest;

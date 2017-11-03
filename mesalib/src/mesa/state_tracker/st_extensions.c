@@ -78,6 +78,7 @@ void st_init_limits(struct pipe_screen *screen,
    int supported_irs;
    unsigned sh;
    boolean can_ubo = TRUE;
+   int temp;
 
    c->MaxTextureLevels
       = _min(screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_2D_LEVELS),
@@ -469,6 +470,11 @@ void st_init_limits(struct pipe_screen *screen,
 
    c->UseSTD430AsDefaultPacking =
       screen->get_param(screen, PIPE_CAP_LOAD_CONSTBUF);
+
+   /* limit the max combined shader output resources to a driver limit */
+   temp = screen->get_param(screen, PIPE_CAP_MAX_COMBINED_SHADER_OUTPUT_RESOURCES);
+   if (temp > 0 && c->MaxCombinedShaderOutputResources > temp)
+      c->MaxCombinedShaderOutputResources = temp;
 }
 
 

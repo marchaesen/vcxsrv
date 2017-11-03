@@ -281,10 +281,26 @@ gather_tex_info(nir_tex_instr *instr, nir_shader *shader)
 }
 
 static void
+gather_alu_info(nir_alu_instr *instr, nir_shader *shader)
+{
+   switch (instr->op) {
+   case nir_op_fddx:
+   case nir_op_fddy:
+      shader->info.uses_fddx_fddy = true;
+      break;
+   default:
+      break;
+   }
+}
+
+static void
 gather_info_block(nir_block *block, nir_shader *shader)
 {
    nir_foreach_instr(instr, block) {
       switch (instr->type) {
+      case nir_instr_type_alu:
+         gather_alu_info(nir_instr_as_alu(instr), shader);
+         break;
       case nir_instr_type_intrinsic:
          gather_intrinsic_info(nir_instr_as_intrinsic(instr), shader);
          break;

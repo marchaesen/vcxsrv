@@ -179,8 +179,10 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
 #endif
             return xnfstrdup(keymap);
         }
-        else
-            LogMessage(X_ERROR, "Error compiling keymap (%s)\n", keymap);
+        else {
+            LogMessage(X_ERROR, "Error compiling keymap (%s) executing '%s'\n",
+                       keymap, buf);
+        }
 #ifdef WIN32
         /* remove the temporary file */
         unlink(tmpname);

@@ -37,6 +37,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#define ARRAY_SIZE(a)  (sizeof((a)) / sizeof((a)[0]))
+
 struct x_hash_table_struct {
     unsigned int bucket_index;
     unsigned int total_keys;
@@ -64,8 +66,6 @@ static const unsigned int bucket_sizes[] = {
     25165843, 50331653, 100663319, 201326611, 402653189, 805306457,
     1610612741
 };
-
-#define N_BUCKET_SIZES (sizeof(bucket_sizes) / sizeof(bucket_sizes[0]))
 
 static inline unsigned int
 hash_table_total_buckets(x_hash_table *h)
@@ -110,7 +110,7 @@ hash_table_split(x_hash_table *h)
     size_t b;
     int i;
 
-    if (h->bucket_index == N_BUCKET_SIZES - 1)
+    if (h->bucket_index == ARRAY_SIZE(bucket_sizes) - 1)
         return;
 
     old_size = hash_table_total_buckets(h);

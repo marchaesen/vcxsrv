@@ -31,6 +31,38 @@ env:
 matrix:
   include:
     - env:
+        - LABEL="meson Vulkan"
+        - BUILD=meson
+        - MESON_OPTIONS="-Ddri-drivers= -Dgallium-drivers="
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-3.9
+          packages:
+            # LLVM packaging is broken and misses these dependencies
+            - libedit-dev
+            # From sources above
+            - llvm-3.9-dev
+            # Common
+            - xz-utils
+            - libexpat1-dev
+            - libelf-dev
+            - python3-pip
+    - env:
+        - LABEL="meson loaders/classic DRI"
+        - BUILD=meson
+        - MESON_OPTIONS="-Dvulkan-drivers= -Dgallium-drivers="
+      addons:
+        apt:
+          packages:
+            - xz-utils
+            - x11proto-xf86vidmode-dev
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libxdamage-dev
+            - libxfixes-dev
+            - python3-pip
+    - env:
         - LABEL="make loaders/classic DRI"
         - BUILD=make
         - MAKEFLAGS="-j4"
@@ -364,38 +396,6 @@ matrix:
             - libexpat1-dev
             - libx11-xcb-dev
             - libelf-dev
-    - env:
-        - LABEL="meson Vulkan"
-        - BUILD=meson
-        - MESON_OPTIONS="-Ddri-drivers= -Dgallium-drivers="
-      addons:
-        apt:
-          sources:
-            - llvm-toolchain-trusty-3.9
-          packages:
-            # LLVM packaging is broken and misses these dependencies
-            - libedit-dev
-            # From sources above
-            - llvm-3.9-dev
-            # Common
-            - xz-utils
-            - libexpat1-dev
-            - libelf-dev
-            - python3-pip
-    - env:
-        - LABEL="meson loaders/classic DRI"
-        - BUILD=meson
-        - MESON_OPTIONS="-Dvulkan-drivers= -Dgallium-drivers="
-      addons:
-        apt:
-          packages:
-            - xz-utils
-            - x11proto-xf86vidmode-dev
-            - libexpat1-dev
-            - libx11-xcb-dev
-            - libxdamage-dev
-            - libxfixes-dev
-            - python3-pip
 
 install:
   - pip install --user mako

@@ -477,7 +477,7 @@ xf86LookupMode(ScrnInfoPtr scrp, DisplayModePtr modep,
         M_T_DRIVER,
         0
     };
-    const int ntypes = sizeof(types) / sizeof(int);
+    const int ntypes = ARRAY_SIZE(types);
 
     strategy &= ~(LOOKUP_CLKDIV2 | LOOKUP_OPTIONAL_TOLERANCES);
 
@@ -1853,7 +1853,7 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
                 M_T_DRIVER,
                 0
             };
-            const int ntypes = sizeof(types) / sizeof(int);
+            const int ntypes = ARRAY_SIZE(types);
             int n;
 
             /*

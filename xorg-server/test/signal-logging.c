@@ -145,13 +145,13 @@ number_formatting(void)
                                 -0x7FFFFFFFFFFFFFFF, /* Maximum 64-bit signed number */
     } ;
 
-    for (i = 0; i < sizeof(unsigned_tests) / sizeof(unsigned_tests[0]); i++)
+    for (i = 0; i < ARRAY_SIZE(unsigned_tests); i++)
         assert(check_number_format_test(unsigned_tests[i]));
 
-    for (i = 0; i < sizeof(unsigned_tests) / sizeof(signed_tests[0]); i++)
+    for (i = 0; i < ARRAY_SIZE(signed_tests); i++)
         assert(check_signed_number_format_test(signed_tests[i]));
 
-    for (i = 0; i < sizeof(float_tests) / sizeof(float_tests[0]); i++)
+    for (i = 0; i < ARRAY_SIZE(float_tests); i++)
         assert(check_float_format_test(float_tests[i]));
 }
 #pragma GCC diagnostic pop
@@ -366,7 +366,7 @@ static void logging_format(void)
     } while(ptr);
 
 
-    for (i = 0; i < sizeof(float_tests)/sizeof(float_tests[0]); i++) {
+    for (i = 0; i < ARRAY_SIZE(float_tests); i++) {
         double d = float_tests[i];
         char expected[30];
         sprintf(expected, "(EE) %.2f\n", d);

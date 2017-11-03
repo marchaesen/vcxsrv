@@ -73,6 +73,13 @@ typedef struct shader_info {
    /** Bitfield of which textures are used by texelFetch() */
    uint32_t textures_used_by_txf;
 
+   /**
+    * True if this shader uses the fddx/fddy opcodes.
+    *
+    * Note that this does not include the "fine" and "coarse" variants.
+    */
+   bool uses_fddx_fddy;
+
    /* The size of the gl_ClipDistance[] array, if declared. */
    unsigned clip_distance_array_size;
 

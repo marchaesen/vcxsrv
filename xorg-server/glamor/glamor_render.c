@@ -762,7 +762,7 @@ glamor_set_normalize_tcoords_generic(PixmapPtr pixmap,
 /**
  * Returns whether the general composite path supports this picture
  * format for a pixmap that is permanently stored in an FBO (as
- * opposed to the GLAMOR_PIXMAP_DYNAMIC_UPLOAD path).
+ * opposed to the dynamic upload path).
  *
  * We could support many more formats by using GL_ARB_texture_view to
  * parse the same bits as different formats.  For now, we only support
@@ -915,12 +915,7 @@ glamor_composite_choose_shader(CARD8 op,
             glamor_fallback("source == dest\n");
         }
         if (source_pixmap_priv->gl_fbo == GLAMOR_FBO_UNATTACHED) {
-#ifdef GLAMOR_PIXMAP_DYNAMIC_UPLOAD
             source_needs_upload = TRUE;
-#else
-            glamor_fallback("no texture in source\n");
-            goto fail;
-#endif
         }
     }
 
@@ -931,16 +926,10 @@ glamor_composite_choose_shader(CARD8 op,
             goto fail;
         }
         if (mask_pixmap_priv->gl_fbo == GLAMOR_FBO_UNATTACHED) {
-#ifdef GLAMOR_PIXMAP_DYNAMIC_UPLOAD
             mask_needs_upload = TRUE;
-#else
-            glamor_fallback("no texture in mask\n");
-            goto fail;
-#endif
         }
     }
 
-#ifdef GLAMOR_PIXMAP_DYNAMIC_UPLOAD
     if (source_needs_upload && mask_needs_upload
         && source_pixmap == mask_pixmap) {
 
@@ -1010,7 +999,6 @@ glamor_composite_choose_shader(CARD8 op,
             }
         }
     }
-#endif
 
     /* If the source and mask are two differently-formatted views of
      * the same pixmap bits, and the pixmap was already uploaded (so
@@ -1343,7 +1331,6 @@ glamor_convert_gradient_picture(ScreenPtr screen,
         pFormat = PictureMatchFormat(screen, 32, format);
     }
 
-#ifdef GLAMOR_GRADIENT_SHADER
     if (!source->pDrawable) {
         if (source->pSourcePict->type == SourcePictTypeLinear) {
             dst = glamor_generate_linear_gradient_picture(screen,
@@ -1362,7 +1349,7 @@ glamor_convert_gradient_picture(ScreenPtr screen,
             return dst;
         }
     }
-#endif
+
     pixmap = glamor_create_pixmap(screen,
                                   width,
                                   height,

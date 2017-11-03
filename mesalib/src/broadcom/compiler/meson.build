@@ -32,6 +32,7 @@ libbroadcom_compiler_files = files(
   'qpu_validate.c',
   'v3d_compiler.h',
   'v3d_nir_lower_io.c',
+  'v3d_nir_lower_txf_ms.c',
 )
 
 libbroadcom_compiler = static_library(

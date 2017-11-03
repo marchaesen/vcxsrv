@@ -485,7 +485,7 @@ static struct states {
 #endif
 };
 
-static int numStates = sizeof(modemStates) / sizeof(modemStates[0]);
+static int numStates = ARRAY_SIZE(modemStates);
 
 static int
 xf2osState(int state)

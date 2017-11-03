@@ -284,9 +284,6 @@ static CompAlternateVisual altVisuals[] = {
     {32, PICT_a8r8g8b8},
 };
 
-static const int NUM_COMP_ALTERNATE_VISUALS = sizeof(altVisuals) /
-    sizeof(CompAlternateVisual);
-
 static Bool
 compAddAlternateVisual(ScreenPtr pScreen, CompScreenPtr cs,
                        CompAlternateVisual * alt)
@@ -362,7 +359,7 @@ compAddAlternateVisuals(ScreenPtr pScreen, CompScreenPtr cs)
 {
     int alt, ret = 0;
 
-    for (alt = 0; alt < NUM_COMP_ALTERNATE_VISUALS; alt++)
+    for (alt = 0; alt < ARRAY_SIZE(altVisuals); alt++)
         ret |= compAddAlternateVisual(pScreen, cs, altVisuals + alt);
 
     return ! !ret;

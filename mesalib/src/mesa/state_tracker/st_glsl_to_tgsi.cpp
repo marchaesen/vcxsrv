@@ -1499,12 +1499,6 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
    case ir_binop_less:
       emit_asm(ir, TGSI_OPCODE_SLT, result_dst, op[0], op[1]);
       break;
-   case ir_binop_greater:
-      emit_asm(ir, TGSI_OPCODE_SLT, result_dst, op[1], op[0]);
-      break;
-   case ir_binop_lequal:
-      emit_asm(ir, TGSI_OPCODE_SGE, result_dst, op[1], op[0]);
-      break;
    case ir_binop_gequal:
       emit_asm(ir, TGSI_OPCODE_SGE, result_dst, op[0], op[1]);
       break;
@@ -2807,10 +2801,6 @@ glsl_to_tgsi_visitor::process_move_condition(ir_rvalue *ir)
       /*      a is -  0  +            -  0  +
        * (a <  0)  T  F  F  ( a < 0)  T  F  F
        * (0 <  a)  F  F  T  (-a < 0)  F  F  T
-       * (a <= 0)  T  T  F  (-a < 0)  F  F  T  (swap order of other operands)
-       * (0 <= a)  F  T  T  ( a < 0)  T  F  F  (swap order of other operands)
-       * (a >  0)  F  F  T  (-a < 0)  F  F  T
-       * (0 >  a)  T  F  F  ( a < 0)  T  F  F
        * (a >= 0)  F  T  T  ( a < 0)  T  F  F  (swap order of other operands)
        * (0 >= a)  T  T  F  (-a < 0)  F  F  T  (swap order of other operands)
        *
@@ -2822,16 +2812,6 @@ glsl_to_tgsi_visitor::process_move_condition(ir_rvalue *ir)
          case ir_binop_less:
             switch_order = false;
             negate = zero_on_left;
-            break;
-
-         case ir_binop_greater:
-            switch_order = false;
-            negate = !zero_on_left;
-            break;
-
-         case ir_binop_lequal:
-            switch_order = true;
-            negate = !zero_on_left;
             break;
 
          case ir_binop_gequal:

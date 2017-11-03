@@ -2312,6 +2312,8 @@ nir_variable *nir_variable_clone(const nir_variable *c, nir_shader *shader);
 nir_deref *nir_deref_clone(const nir_deref *deref, void *mem_ctx);
 nir_deref_var *nir_deref_var_clone(const nir_deref_var *deref, void *mem_ctx);
 
+nir_shader *nir_shader_serialize_deserialize(void *mem_ctx, nir_shader *s);
+
 #ifdef DEBUG
 void nir_validate_shader(nir_shader *shader);
 void nir_metadata_set_validation_flag(nir_shader *shader);
@@ -2328,6 +2330,16 @@ should_clone_nir(void)
 }
 
 static inline bool
+should_serialize_deserialize_nir(void)
+{
+   static int test_serialize = -1;
+   if (test_serialize < 0)
+      test_serialize = env_var_as_boolean("NIR_TEST_SERIALIZE", false);
+
+   return test_serialize;
+}
+
+static inline bool
 should_print_nir(void)
 {
    static int should_print = -1;
@@ -2341,6 +2353,7 @@ static inline void nir_validate_shader(nir_shader *shader) { (void) shader; }
 static inline void nir_metadata_set_validation_flag(nir_shader *shader) { (void) shader; }
 static inline void nir_metadata_check_validation_flag(nir_shader *shader) { (void) shader; }
 static inline bool should_clone_nir(void) { return false; }
+static inline bool should_serialize_deserialize_nir(void) { return false; }
 static inline bool should_print_nir(void) { return false; }
 #endif /* DEBUG */
 
@@ -2351,6 +2364,10 @@ static inline bool should_print_nir(void) { return false; }
       nir_shader *clone = nir_shader_clone(ralloc_parent(nir), nir); \
       ralloc_free(nir);                                              \
       nir = clone;                                                   \
+   }                                                                 \
+   if (should_serialize_deserialize_nir()) {                         \
+      void *mem_ctx = ralloc_parent(nir);                            \
+      nir = nir_shader_serialize_deserialize(mem_ctx, nir);          \
    }                                                                 \
 } while (0)
 

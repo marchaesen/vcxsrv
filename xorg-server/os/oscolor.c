@@ -49,6 +49,7 @@ SOFTWARE.
 #endif
 
 #include <X11/keysym.h>
+#include "dix.h"
 #include "os.h"
 
 typedef struct _builtinColor {
@@ -1628,8 +1629,6 @@ static const BuiltinColor BuiltinColors[] = {
     {154, 205, 50, 7602},       /* YellowGreen */
 };
 
-#define NUM_BUILTIN_COLORS  (sizeof (BuiltinColors) / sizeof (BuiltinColors[0]))
-
 Bool
 OsLookupColor(int screen,
               char *name,
@@ -1642,7 +1641,7 @@ OsLookupColor(int screen,
     int r;
 
     low = 0;
-    high = NUM_BUILTIN_COLORS - 1;
+    high = ARRAY_SIZE(BuiltinColors) - 1;
     while (high >= low) {
         mid = (low + high) / 2;
         c = &BuiltinColors[mid];

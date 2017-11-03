@@ -551,8 +551,6 @@ ir_builder_print_visitor::print_without_declaration(const ir_expression *ir)
    case ir_binop_mul:
    case ir_binop_imul_high:
    case ir_binop_less:
-   case ir_binop_greater:
-   case ir_binop_lequal:
    case ir_binop_gequal:
    case ir_binop_equal:
    case ir_binop_nequal:

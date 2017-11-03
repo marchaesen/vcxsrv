@@ -277,6 +277,8 @@ NIR_FILES = \
 	nir/nir_search.c \
 	nir/nir_search.h \
 	nir/nir_search_helpers.h \
+	nir/nir_serialize.c \
+	nir/nir_serialize.h \
 	nir/nir_split_var_copies.c \
 	nir/nir_sweep.c \
 	nir/nir_to_lcssa.c \

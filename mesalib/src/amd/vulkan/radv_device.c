@@ -104,6 +104,75 @@ get_chip_name(enum radeon_family family)
 	}
 }
 
+static void
+radv_physical_device_init_mem_types(struct radv_physical_device *device)
+{
+	STATIC_ASSERT(RADV_MEM_HEAP_COUNT <= VK_MAX_MEMORY_HEAPS);
+	uint64_t visible_vram_size = MIN2(device->rad_info.vram_size,
+	                                  device->rad_info.vram_vis_size);
+
+	int vram_index = -1, visible_vram_index = -1, gart_index = -1;
+	device->memory_properties.memoryHeapCount = 0;
+	if (device->rad_info.vram_size - visible_vram_size > 0) {
+		vram_index = device->memory_properties.memoryHeapCount++;
+		device->memory_properties.memoryHeaps[vram_index] = (VkMemoryHeap) {
+			.size = device->rad_info.vram_size - visible_vram_size,
+			.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
+		};
+	}
+	if (visible_vram_size) {
+		visible_vram_index = device->memory_properties.memoryHeapCount++;
+		device->memory_properties.memoryHeaps[visible_vram_index] = (VkMemoryHeap) {
+			.size = visible_vram_size,
+			.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
+		};
+	}
+	if (device->rad_info.gart_size > 0) {
+		gart_index = device->memory_properties.memoryHeapCount++;
+		device->memory_properties.memoryHeaps[gart_index] = (VkMemoryHeap) {
+			.size = device->rad_info.gart_size,
+			.flags = 0,
+		};
+	}
+
+	STATIC_ASSERT(RADV_MEM_TYPE_COUNT <= VK_MAX_MEMORY_TYPES);
+	unsigned type_count = 0;
+	if (vram_index >= 0) {
+		device->mem_type_indices[type_count] = RADV_MEM_TYPE_VRAM;
+		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
+			.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			.heapIndex = vram_index,
+		};
+	}
+	if (gart_index >= 0) {
+		device->mem_type_indices[type_count] = RADV_MEM_TYPE_GTT_WRITE_COMBINE;
+		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
+			.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			.heapIndex = gart_index,
+		};
+	}
+	if (visible_vram_index >= 0) {
+		device->mem_type_indices[type_count] = RADV_MEM_TYPE_VRAM_CPU_ACCESS;
+		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
+			.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			.heapIndex = visible_vram_index,
+		};
+	}
+	if (gart_index >= 0) {
+		device->mem_type_indices[type_count] = RADV_MEM_TYPE_GTT_CACHED;
+		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
+			.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+			VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+			.heapIndex = gart_index,
+		};
+	}
+	device->memory_properties.memoryTypeCount = type_count;
+}
+
 static VkResult
 radv_physical_device_init(struct radv_physical_device *device,
 			  struct radv_instance *instance,
@@ -190,6 +259,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	 */
 	device->has_clear_state = device->rad_info.chip_class >= CIK;
 
+	radv_physical_device_init_mem_types(device);
 	return VK_SUCCESS;
 
 fail:
@@ -780,49 +850,7 @@ void radv_GetPhysicalDeviceMemoryProperties(
 {
 	RADV_FROM_HANDLE(radv_physical_device, physical_device, physicalDevice);
 
-	STATIC_ASSERT(RADV_MEM_TYPE_COUNT <= VK_MAX_MEMORY_TYPES);
-
-	pMemoryProperties->memoryTypeCount = RADV_MEM_TYPE_COUNT;
-	pMemoryProperties->memoryTypes[RADV_MEM_TYPE_VRAM] = (VkMemoryType) {
-		.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		.heapIndex = RADV_MEM_HEAP_VRAM,
-	};
-	pMemoryProperties->memoryTypes[RADV_MEM_TYPE_GTT_WRITE_COMBINE] = (VkMemoryType) {
-		.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		.heapIndex = RADV_MEM_HEAP_GTT,
-	};
-	pMemoryProperties->memoryTypes[RADV_MEM_TYPE_VRAM_CPU_ACCESS] = (VkMemoryType) {
-		.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		.heapIndex = RADV_MEM_HEAP_VRAM_CPU_ACCESS,
-	};
-	pMemoryProperties->memoryTypes[RADV_MEM_TYPE_GTT_CACHED] = (VkMemoryType) {
-		.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-		VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
-		.heapIndex = RADV_MEM_HEAP_GTT,
-	};
-
-	STATIC_ASSERT(RADV_MEM_HEAP_COUNT <= VK_MAX_MEMORY_HEAPS);
-	uint64_t visible_vram_size = MIN2(physical_device->rad_info.vram_size,
-	                                  physical_device->rad_info.vram_vis_size);
-
-	pMemoryProperties->memoryHeapCount = RADV_MEM_HEAP_COUNT;
-	pMemoryProperties->memoryHeaps[RADV_MEM_HEAP_VRAM] = (VkMemoryHeap) {
-		.size = physical_device->rad_info.vram_size -
-				visible_vram_size,
-		.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
-	};
-	pMemoryProperties->memoryHeaps[RADV_MEM_HEAP_VRAM_CPU_ACCESS] = (VkMemoryHeap) {
-		.size = visible_vram_size,
-		.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
-	};
-	pMemoryProperties->memoryHeaps[RADV_MEM_HEAP_GTT] = (VkMemoryHeap) {
-		.size = physical_device->rad_info.gart_size,
-		.flags = 0,
-	};
+	*pMemoryProperties = physical_device->memory_properties;
 }
 
 void radv_GetPhysicalDeviceMemoryProperties2KHR(
@@ -2070,6 +2098,7 @@ VkResult radv_alloc_memory(VkDevice                        _device,
 	VkResult result;
 	enum radeon_bo_domain domain;
 	uint32_t flags = 0;
+	enum radv_mem_type mem_type_index = device->physical_device->mem_type_indices[pAllocateInfo->memoryTypeIndex];
 
 	assert(pAllocateInfo->sType == VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
 
@@ -2112,18 +2141,18 @@ VkResult radv_alloc_memory(VkDevice                        _device,
 	}
 
 	uint64_t alloc_size = align_u64(pAllocateInfo->allocationSize, 4096);
-	if (pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_GTT_WRITE_COMBINE ||
-	    pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_GTT_CACHED)
+	if (mem_type_index == RADV_MEM_TYPE_GTT_WRITE_COMBINE ||
+	    mem_type_index == RADV_MEM_TYPE_GTT_CACHED)
 		domain = RADEON_DOMAIN_GTT;
 	else
 		domain = RADEON_DOMAIN_VRAM;
 
-	if (pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_VRAM)
+	if (mem_type_index == RADV_MEM_TYPE_VRAM)
 		flags |= RADEON_FLAG_NO_CPU_ACCESS;
 	else
 		flags |= RADEON_FLAG_CPU_ACCESS;
 
-	if (pAllocateInfo->memoryTypeIndex == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
+	if (mem_type_index == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
 		flags |= RADEON_FLAG_GTT_WC;
 
 	if (mem_flags & RADV_MEM_IMPLICIT_SYNC)
@@ -2139,7 +2168,7 @@ VkResult radv_alloc_memory(VkDevice                        _device,
 		result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
 		goto fail;
 	}
-	mem->type_index = pAllocateInfo->memoryTypeIndex;
+	mem->type_index = mem_type_index;
 out_success:
 	*pMem = radv_device_memory_to_handle(mem);
 
@@ -2232,13 +2261,14 @@ VkResult radv_InvalidateMappedMemoryRanges(
 }
 
 void radv_GetBufferMemoryRequirements(
-	VkDevice                                    device,
+	VkDevice                                    _device,
 	VkBuffer                                    _buffer,
 	VkMemoryRequirements*                       pMemoryRequirements)
 {
+	RADV_FROM_HANDLE(radv_device, device, _device);
 	RADV_FROM_HANDLE(radv_buffer, buffer, _buffer);
 
-	pMemoryRequirements->memoryTypeBits = (1u << RADV_MEM_TYPE_COUNT) - 1;
+	pMemoryRequirements->memoryTypeBits = (1u << device->physical_device->memory_properties.memoryTypeCount) - 1;
 
 	if (buffer->flags & VK_BUFFER_CREATE_SPARSE_BINDING_BIT)
 		pMemoryRequirements->alignment = 4096;
@@ -2255,13 +2285,13 @@ void radv_GetBufferMemoryRequirements2KHR(
 {
 	radv_GetBufferMemoryRequirements(device, pInfo->buffer,
                                         &pMemoryRequirements->memoryRequirements);
-
+	RADV_FROM_HANDLE(radv_buffer, buffer, pInfo->buffer);
 	vk_foreach_struct(ext, pMemoryRequirements->pNext) {
 		switch (ext->sType) {
 		case VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR: {
 			VkMemoryDedicatedRequirementsKHR *req =
 			               (VkMemoryDedicatedRequirementsKHR *) ext;
-			req->requiresDedicatedAllocation = false;
+			req->requiresDedicatedAllocation = buffer->shareable;
 			req->prefersDedicatedAllocation = req->requiresDedicatedAllocation;
 			break;
 		}
@@ -2272,13 +2302,14 @@ void radv_GetBufferMemoryRequirements2KHR(
 }
 
 void radv_GetImageMemoryRequirements(
-	VkDevice                                    device,
+	VkDevice                                    _device,
 	VkImage                                     _image,
 	VkMemoryRequirements*                       pMemoryRequirements)
 {
+	RADV_FROM_HANDLE(radv_device, device, _device);
 	RADV_FROM_HANDLE(radv_image, image, _image);
 
-	pMemoryRequirements->memoryTypeBits = (1u << RADV_MEM_TYPE_COUNT) - 1;
+	pMemoryRequirements->memoryTypeBits = (1u << device->physical_device->memory_properties.memoryTypeCount) - 1;
 
 	pMemoryRequirements->size = image->size;
 	pMemoryRequirements->alignment = image->alignment;
@@ -2774,6 +2805,9 @@ VkResult radv_CreateBuffer(
 	buffer->bo = NULL;
 	buffer->offset = 0;
 	buffer->flags = pCreateInfo->flags;
+
+	buffer->shareable = vk_find_struct_const(pCreateInfo->pNext,
+						 EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR) != NULL;
 
 	if (pCreateInfo->flags & VK_BUFFER_CREATE_SPARSE_BINDING_BIT) {
 		buffer->bo = device->ws->buffer_create(device->ws,

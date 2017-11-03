@@ -206,7 +206,7 @@ configureScreenSection(int screennum)
     XNFasprintf(&tmp, "Card%d", screennum);
     ptr->scrn_device_str = tmp;
 
-    for (i = 0; i < sizeof(depths) / sizeof(depths[0]); i++) {
+    for (i = 0; i < ARRAY_SIZE(depths); i++) {
         XF86ConfDisplayPtr conf_display;
 
         conf_display = calloc(1, sizeof(XF86ConfDisplayRec));

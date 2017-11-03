@@ -1316,9 +1316,12 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
     * however some drivers expect to receive the list of transform feedback
     * declarations in order so sort it now for convenience.
     */
-   if (has_xfb_qualifiers)
+   if (has_xfb_qualifiers) {
       qsort(tfeedback_decls, num_tfeedback_decls, sizeof(*tfeedback_decls),
             cmp_xfb_offset);
+   } else {
+      xfb_prog->sh.LinkedTransformFeedback->api_enabled = true;
+   }
 
    xfb_prog->sh.LinkedTransformFeedback->Varyings =
       rzalloc_array(xfb_prog, struct gl_transform_feedback_varying_info,

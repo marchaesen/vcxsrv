@@ -38,8 +38,6 @@
 #define RADIAL_SMALL_STOPS (6 + 2)
 #define RADIAL_LARGE_STOPS (16 + 2)
 
-#ifdef GLAMOR_GRADIENT_SHADER
-
 static const char *
 _glamor_create_getcolor_fs_source(ScreenPtr screen, int stops_count,
                                   int use_array)
@@ -1451,5 +1449,3 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     return NULL;
 }
-
-#endif                          /* End of GLAMOR_GRADIENT_SHADER */

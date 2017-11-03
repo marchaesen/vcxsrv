@@ -371,13 +371,13 @@ less(operand a, operand b)
 ir_expression*
 greater(operand a, operand b)
 {
-   return expr(ir_binop_greater, a, b);
+   return expr(ir_binop_less, b, a);
 }
 
 ir_expression*
 lequal(operand a, operand b)
 {
-   return expr(ir_binop_lequal, a, b);
+   return expr(ir_binop_gequal, b, a);
 }
 
 ir_expression*

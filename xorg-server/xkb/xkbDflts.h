@@ -131,7 +131,7 @@ static XkbKeyTypeRec dflt_types[] = {
      None, lnames_SHIFT_ALT}
 };
 
-#define num_dflt_types (sizeof(dflt_types)/sizeof(XkbKeyTypeRec))
+#define num_dflt_types ARRAY_SIZE(dflt_types)
 
 static void
 initTypeNames(DPYTYPE dpy)
@@ -445,7 +445,7 @@ static XkbSymInterpretRec dfltSI[69] = {
      {XkbSA_SetMods, {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}}
 };
 
-#define num_dfltSI (sizeof(dfltSI)/sizeof(XkbSymInterpretRec))
+#define num_dfltSI ARRAY_SIZE(dfltSI)
 
 static XkbCompatMapRec compatMap = {
     dfltSI,

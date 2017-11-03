@@ -1135,22 +1135,6 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_binop_less:
       emit(ir, OPCODE_SLT, result_dst, op[0], op[1]);
       break;
-   case ir_binop_greater:
-      /* Negating the operands (as opposed to switching the order of the
-       * operands) produces the correct result when both are +/-Inf.
-       */
-      op[0].negate = ~op[0].negate;
-      op[1].negate = ~op[1].negate;
-      emit(ir, OPCODE_SLT, result_dst, op[0], op[1]);
-      break;
-   case ir_binop_lequal:
-      /* Negating the operands (as opposed to switching the order of the
-       * operands) produces the correct result when both are +/-Inf.
-       */
-      op[0].negate = ~op[0].negate;
-      op[1].negate = ~op[1].negate;
-      emit(ir, OPCODE_SGE, result_dst, op[0], op[1]);
-      break;
    case ir_binop_gequal:
       emit(ir, OPCODE_SGE, result_dst, op[0], op[1]);
       break;
@@ -1758,10 +1742,6 @@ ir_to_mesa_visitor::process_move_condition(ir_rvalue *ir)
       /*      a is -  0  +            -  0  +
        * (a <  0)  T  F  F  ( a < 0)  T  F  F
        * (0 <  a)  F  F  T  (-a < 0)  F  F  T
-       * (a <= 0)  T  T  F  (-a < 0)  F  F  T  (swap order of other operands)
-       * (0 <= a)  F  T  T  ( a < 0)  T  F  F  (swap order of other operands)
-       * (a >  0)  F  F  T  (-a < 0)  F  F  T
-       * (0 >  a)  T  F  F  ( a < 0)  T  F  F
        * (a >= 0)  F  T  T  ( a < 0)  T  F  F  (swap order of other operands)
        * (0 >= a)  T  T  F  (-a < 0)  F  F  T  (swap order of other operands)
        *
@@ -1773,16 +1753,6 @@ ir_to_mesa_visitor::process_move_condition(ir_rvalue *ir)
 	 case ir_binop_less:
 	    switch_order = false;
 	    negate = zero_on_left;
-	    break;
-
-	 case ir_binop_greater:
-	    switch_order = false;
-	    negate = !zero_on_left;
-	    break;
-
-	 case ir_binop_lequal:
-	    switch_order = true;
-	    negate = !zero_on_left;
 	    break;
 
 	 case ir_binop_gequal:

@@ -203,6 +203,4 @@ void drmmode_copy_fb(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 #define DRM_CAP_DUMB_PREFER_SHADOW 4
 #endif
 
-#define MS_ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
-
 #endif

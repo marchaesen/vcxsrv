@@ -162,7 +162,6 @@ static PixmapFormatRec formats[] = {
     { 24, 32, BITMAP_SCANLINE_PAD    },
     { 32, 32, BITMAP_SCANLINE_PAD    }
 };
-const int NUMFORMATS = sizeof(formats) / sizeof(formats[0]);
 
 void
 DarwinPrintBanner(void)
@@ -659,8 +658,8 @@ InitOutput(ScreenInfo *pScreenInfo, int argc, char **argv)
     pScreenInfo->bitmapBitOrder = BITMAP_BIT_ORDER;
 
     // List how we want common pixmap formats to be padded
-    pScreenInfo->numPixmapFormats = NUMFORMATS;
-    for (i = 0; i < NUMFORMATS; i++)
+    pScreenInfo->numPixmapFormats = ARRAY_SIZE(formats);
+    for (i = 0; i < ARRAY_SIZE(formats); i++)
         pScreenInfo->formats[i] = formats[i];
 
     // Discover screens and do mode specific initialization

@@ -1337,8 +1337,8 @@ ast_expression::do_hir(exec_list *instructions,
       ir_binop_lshift,
       ir_binop_rshift,
       ir_binop_less,
-      ir_binop_greater,
-      ir_binop_lequal,
+      ir_binop_less,    /* This is correct.  See the ast_greater case below. */
+      ir_binop_gequal,  /* This is correct.  See the ast_lequal case below. */
       ir_binop_gequal,
       ir_binop_all_equal,
       ir_binop_any_nequal,
@@ -1486,6 +1486,15 @@ ast_expression::do_hir(exec_list *instructions,
        */
       assert(type->is_error()
              || (type->is_boolean() && type->is_scalar()));
+
+      /* Like NIR, GLSL IR does not have opcodes for > or <=.  Instead, swap
+       * the arguments and use < or >=.
+       */
+      if (this->oper == ast_greater || this->oper == ast_lequal) {
+         ir_rvalue *const tmp = op[0];
+         op[0] = op[1];
+         op[1] = tmp;
+      }
 
       result = new(ctx) ir_expression(operations[this->oper], type,
                                       op[0], op[1]);
@@ -2361,7 +2370,9 @@ ast_type_specifier::glsl_type(const char **name,
 {
    const struct glsl_type *type;
 
-   if (structure)
+   if (this->type != NULL)
+      type = this->type;
+   else if (structure)
       type = structure->type;
    else
       type = state->symbols->get_type(this->type_name);

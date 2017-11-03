@@ -553,6 +553,13 @@ v3d_lower_nir(struct v3d_compile *c)
         for (int i = 0; i < ARRAY_SIZE(c->key->tex); i++) {
                 for (int j = 0; j < 4; j++)
                         tex_options.swizzles[i][j] = c->key->tex[i].swizzle[j];
+
+                if (c->key->tex[i].clamp_s)
+                        tex_options.saturate_s |= 1 << i;
+                if (c->key->tex[i].clamp_t)
+                        tex_options.saturate_t |= 1 << i;
+                if (c->key->tex[i].clamp_r)
+                        tex_options.saturate_r |= 1 << i;
         }
 
         NIR_PASS_V(c->s, nir_lower_tex, &tex_options);
@@ -562,6 +569,7 @@ static void
 v3d_lower_nir_late(struct v3d_compile *c)
 {
         NIR_PASS_V(c->s, v3d_nir_lower_io, c);
+        NIR_PASS_V(c->s, v3d_nir_lower_txf_ms, c);
         NIR_PASS_V(c->s, nir_lower_idiv);
 }
 
