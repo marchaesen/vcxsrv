@@ -87,7 +87,8 @@ find_initial_value(ir_loop *loop, ir_variable *var)
 
 static int
 calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
-                     enum ir_expression_operation op, bool continue_from_then)
+                     enum ir_expression_operation op, bool continue_from_then,
+                     bool swap_compare_operands)
 {
    if (from == NULL || to == NULL || increment == NULL)
       return -1;
@@ -154,8 +155,9 @@ calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
       ir_expression *const add =
          new(mem_ctx) ir_expression(ir_binop_add, mul->type, mul, from);
 
-      ir_expression *cmp =
-         new(mem_ctx) ir_expression(op, glsl_type::bool_type, add, to);
+      ir_expression *cmp = swap_compare_operands
+         ? new(mem_ctx) ir_expression(op, glsl_type::bool_type, to, add)
+         : new(mem_ctx) ir_expression(op, glsl_type::bool_type, add, to);
       if (continue_from_then)
          cmp = new(mem_ctx) ir_expression(ir_unop_logic_not, cmp);
 
@@ -582,8 +584,6 @@ loop_analysis::visit_leave(ir_loop *ir)
 
       switch (cond->operation) {
       case ir_binop_less:
-      case ir_binop_greater:
-      case ir_binop_lequal:
       case ir_binop_gequal: {
 	 /* The expressions that we care about will either be of the form
 	  * 'counter < limit' or 'limit < counter'.  Figure out which is
@@ -592,18 +592,12 @@ loop_analysis::visit_leave(ir_loop *ir)
 	 ir_rvalue *counter = cond->operands[0]->as_dereference_variable();
 	 ir_constant *limit = cond->operands[1]->as_constant();
 	 enum ir_expression_operation cmp = cond->operation;
+         bool swap_compare_operands = false;
 
 	 if (limit == NULL) {
 	    counter = cond->operands[1]->as_dereference_variable();
 	    limit = cond->operands[0]->as_constant();
-
-	    switch (cmp) {
-	    case ir_binop_less:    cmp = ir_binop_greater; break;
-	    case ir_binop_greater: cmp = ir_binop_less;    break;
-	    case ir_binop_lequal:  cmp = ir_binop_gequal;  break;
-	    case ir_binop_gequal:  cmp = ir_binop_lequal;  break;
-	    default: assert(!"Should not get here.");
-	    }
+            swap_compare_operands = true;
 	 }
 
 	 if ((counter == NULL) || (limit == NULL))
@@ -616,7 +610,8 @@ loop_analysis::visit_leave(ir_loop *ir)
          loop_variable *lv = ls->get(var);
          if (lv != NULL && lv->is_induction_var()) {
             t->iterations = calculate_iterations(init, limit, lv->increment,
-                                                 cmp, t->continue_from_then);
+                                                 cmp, t->continue_from_then,
+                                                 swap_compare_operands);
 
             if (incremented_before_terminator(ir, var, t->ir)) {
                t->iterations--;

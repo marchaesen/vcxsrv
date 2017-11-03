@@ -192,7 +192,7 @@ xf86OpenConsole()
         /* Check that a supported console driver was found */
         if (fd < 0) {
             char cons_drivers[80] = { 0, };
-            for (i = 0; i < sizeof(supported_drivers) / sizeof(char *); i++) {
+            for (i = 0; i < ARRAY_SIZE(supported_drivers); i++) {
                 if (i) {
                     strcat(cons_drivers, ", ");
                 }

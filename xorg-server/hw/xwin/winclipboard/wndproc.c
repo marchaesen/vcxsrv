@@ -529,7 +529,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             int i,j;
             for (i = 0 ; data.targetList[i] != 0; i++)
                 {
-                    for (j = 0; j < sizeof(target_priority_table)/sizeof(struct target_priority); j ++)
+                    for (j = 0; j < ARRAY_SIZE(target_priority_table); j ++)
                         {
                             if ((data.targetList[i] == target_priority_table[j].target) &&
                                 (target_priority_table[j].priority < best_priority))

@@ -790,7 +790,7 @@ make_dead_key(KeySym in)
 {
     int i;
 
-    for (i = 0; i < sizeof(dead_keys) / sizeof(dead_keys[0]); i++)
+    for (i = 0; i < ARRAY_SIZE(dead_keys); i++)
         if (dead_keys[i].normal == in) return dead_keys[i].dead;
 
     return in;
@@ -975,7 +975,7 @@ QuartzReadSystemKeymap(darwinKeyboardInfo *info)
 #if HACK_MISSING
     /* Fix up some things that are normally missing.. */
 
-    for (i = 0; i < sizeof(known_keys) / sizeof(known_keys[0]); i++) {
+    for (i = 0; i < ARRAY_SIZE(known_keys); i++) {
         k = info->keyMap + known_keys[i].keycode * GLYPHS_PER_KEY;
 
         if (k[0] == NoSymbol && k[1] == NoSymbol
@@ -987,8 +987,7 @@ QuartzReadSystemKeymap(darwinKeyboardInfo *info)
 #if HACK_KEYPAD
     /* And some more things. We find the right symbols for the numeric
        keypad, but not the KP_ keysyms. So try to convert known keycodes. */
-    for (i = 0; i < sizeof(known_numeric_keys) / sizeof(known_numeric_keys[0]);
-         i++) {
+    for (i = 0; i < ARRAY_SIZE(known_numeric_keys); i++) {
         k = info->keyMap + known_numeric_keys[i].keycode * GLYPHS_PER_KEY;
 
         if (k[0] == known_numeric_keys[i].normal)
@@ -997,8 +996,7 @@ QuartzReadSystemKeymap(darwinKeyboardInfo *info)
 #endif
 
 #if HACK_BLACKLIST
-    for (i = 0; i < sizeof(keycode_blacklist) / sizeof(keycode_blacklist[0]);
-         i++) {
+    for (i = 0; i < ARRAY_SIZE(keycode_blacklist); i++) {
         k = info->keyMap + keycode_blacklist[i] * GLYPHS_PER_KEY;
         k[0] = k[1] = k[2] = k[3] = NoSymbol;
     }

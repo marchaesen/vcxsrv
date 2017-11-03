@@ -320,7 +320,8 @@ sort_varyings(struct exec_list *var_list)
  * variant lowering.
  */
 void
-st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
+st_finalize_nir(struct st_context *st, struct gl_program *prog,
+                struct gl_shader_program *shader_program, nir_shader *nir)
 {
    struct pipe_screen *screen = st->pipe->screen;
 
@@ -352,27 +353,6 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog, nir_shader *nir)
        /* TODO? */
    } else {
       unreachable("invalid shader type for tgsi bypass\n");
-   }
-
-   struct gl_shader_program *shader_program;
-   switch (nir->info.stage) {
-   case MESA_SHADER_VERTEX:
-      shader_program = ((struct st_vertex_program *)prog)->shader_program;
-      break;
-   case MESA_SHADER_GEOMETRY:
-   case MESA_SHADER_TESS_CTRL:
-   case MESA_SHADER_TESS_EVAL:
-      shader_program = ((struct st_common_program *)prog)->shader_program;
-      break;
-   case MESA_SHADER_FRAGMENT:
-      shader_program = ((struct st_fragment_program *)prog)->shader_program;
-      break;
-   case MESA_SHADER_COMPUTE:
-      shader_program = ((struct st_compute_program *)prog)->shader_program;
-      break;
-   default:
-      assert(!"should not be reached");
-      return;
    }
 
    NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,

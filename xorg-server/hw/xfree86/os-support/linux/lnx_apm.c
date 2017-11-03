@@ -62,8 +62,6 @@ static struct {
 #endif
 };
 
-#define numApmEvents (sizeof(LinuxToXF86) / sizeof(LinuxToXF86[0]))
-
 /*
  * APM is still under construction.
  * I'm not sure if the places where I initialize/deinitialize
@@ -84,12 +82,12 @@ lnxPMGetEventFromOs(int fd, pmEvent * events, int num)
     if (n > num)
         n = num;
     for (i = 0; i < n; i++) {
-        for (j = 0; j < numApmEvents; j++)
+        for (j = 0; j < ARRAY_SIZE(LinuxToXF86); j++)
             if (LinuxToXF86[j].apmLinux == linuxEvents[i]) {
                 events[i] = LinuxToXF86[j].xf86;
                 break;
             }
-        if (j == numApmEvents)
+        if (j == ARRAY_SIZE(LinuxToXF86))
             events[i] = XF86_APM_UNKNOWN;
     }
     return n;

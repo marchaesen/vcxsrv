@@ -101,7 +101,7 @@ private:
 };
 
 static void
-init_gl_program(struct gl_program *prog, GLenum target, bool is_arb_asm)
+init_gl_program(struct gl_program *prog, bool is_arb_asm)
 {
    prog->RefCount = 1;
    prog->Format = GL_PROGRAM_FORMAT_ASCII_ARB;
@@ -109,7 +109,8 @@ init_gl_program(struct gl_program *prog, GLenum target, bool is_arb_asm)
 }
 
 static struct gl_program *
-new_program(struct gl_context *ctx, GLenum target, GLuint id, bool is_arb_asm)
+new_program(UNUSED struct gl_context *ctx, GLenum target,
+            UNUSED GLuint id, bool is_arb_asm)
 {
    switch (target) {
    case GL_VERTEX_PROGRAM_ARB: /* == GL_VERTEX_PROGRAM_NV */
@@ -119,7 +120,7 @@ new_program(struct gl_context *ctx, GLenum target, GLuint id, bool is_arb_asm)
    case GL_FRAGMENT_PROGRAM_ARB:
    case GL_COMPUTE_PROGRAM_NV: {
       struct gl_program *prog = rzalloc(NULL, struct gl_program);
-      init_gl_program(prog, target, is_arb_asm);
+      init_gl_program(prog, is_arb_asm);
       return prog;
    }
    default:

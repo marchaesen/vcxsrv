@@ -57,34 +57,22 @@ static PixmapPtr drmmode_create_pixmap_header(ScreenPtr pScreen, int width, int 
 static Bool
 drmmode_zaphod_string_matches(ScrnInfoPtr scrn, const char *s, char *output_name)
 {
-    int i = 0;
-    char s1[20];
+    char **token = xstrtokenize(s, ", \t\n\r");
+    Bool ret = FALSE;
 
-    do {
-        switch(*s) {
-        case ',':
-            s1[i] = '\0';
-            i = 0;
-            if (strcmp(s1, output_name) == 0)
-                return TRUE;
-            break;
-        case ' ':
-        case '\t':
-        case '\n':
-        case '\r':
-            break;
-        default:
-            s1[i] = *s;
-            i++;
-            break;
-        }
-    } while(*s++);
+    if (!token)
+        return FALSE;
 
-    s1[i] = '\0';
-    if (strcmp(s1, output_name) == 0)
-        return TRUE;
+    for (int i = 0; token[i]; i++) {
+        if (strcmp(token[i], output_name) == 0)
+            ret = TRUE;
 
-    return FALSE;
+        free(token[i]);
+    }
+
+    free(token);
+
+    return ret;
 }
 
 int
@@ -1700,7 +1688,7 @@ drmmode_create_name(ScrnInfoPtr pScrn, drmModeConnectorPtr koutput, char *name,
     return;
 
  fallback:
-    if (koutput->connector_type >= MS_ARRAY_SIZE(output_names))
+    if (koutput->connector_type >= ARRAY_SIZE(output_names))
         snprintf(name, 32, "Unknown%d-%d", koutput->connector_type, koutput->connector_type_id);
     else if (pScrn->is_gpu)
         snprintf(name, 32, "%s-%d-%d", output_names[koutput->connector_type], pScrn->scrnIndex - GPU_SCREEN_OFFSET + 1, koutput->connector_type_id);

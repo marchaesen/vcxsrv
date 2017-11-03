@@ -194,12 +194,26 @@ radv_wsi_image_create(VkDevice device_h,
 		.image = image_h
 	};
 
+	/* Find the first VRAM memory type, or GART for PRIME images. */
+	int memory_type_index = -1;
+	for (int i = 0; i < device->physical_device->memory_properties.memoryTypeCount; ++i) {
+		bool is_local = !!(device->physical_device->memory_properties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		if ((linear && !is_local) || (!linear && is_local)) {
+			memory_type_index = i;
+			break;
+		}
+	}
+
+	/* fallback */
+	if (memory_type_index == -1)
+		memory_type_index = 0;
+
 	result = radv_alloc_memory(device_h,
 				     &(VkMemoryAllocateInfo) {
 					     .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 					     .pNext = &ded_alloc,
 					     .allocationSize = image->size,
-					     .memoryTypeIndex = linear ? 1 : 0,
+					     .memoryTypeIndex = memory_type_index,
 				     },
 				     NULL /* XXX: pAllocator */,
 				     RADV_MEM_IMPLICIT_SYNC,

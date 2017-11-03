@@ -279,6 +279,10 @@ _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
       ralloc_free(prog->sh.BindlessImages);
    }
 
+   if (prog->driver_cache_blob) {
+      ralloc_free(prog->driver_cache_blob);
+   }
+
    ralloc_free(prog);
 }
 

@@ -1799,30 +1799,6 @@ nir_visitor::visit(ir_expression *ir)
          result = nir_slt(&b, srcs[0], srcs[1]);
       }
       break;
-   case ir_binop_greater:
-      if (supports_ints) {
-         if (type_is_float(types[0]))
-            result = nir_flt(&b, srcs[1], srcs[0]);
-         else if (type_is_signed(types[0]))
-            result = nir_ilt(&b, srcs[1], srcs[0]);
-         else
-            result = nir_ult(&b, srcs[1], srcs[0]);
-      } else {
-         result = nir_slt(&b, srcs[1], srcs[0]);
-      }
-      break;
-   case ir_binop_lequal:
-      if (supports_ints) {
-         if (type_is_float(types[0]))
-            result = nir_fge(&b, srcs[1], srcs[0]);
-         else if (type_is_signed(types[0]))
-            result = nir_ige(&b, srcs[1], srcs[0]);
-         else
-            result = nir_uge(&b, srcs[1], srcs[0]);
-      } else {
-         result = nir_slt(&b, srcs[1], srcs[0]);
-      }
-      break;
    case ir_binop_gequal:
       if (supports_ints) {
          if (type_is_float(types[0]))

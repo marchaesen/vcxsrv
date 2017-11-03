@@ -66,8 +66,6 @@ KdDepths kdDepths[] = {
     {32, 32}
 };
 
-#define NUM_KD_DEPTHS (sizeof (kdDepths) / sizeof (kdDepths[0]))
-
 #define KD_DEFAULT_BUTTONS 5
 
 DevPrivateKeyRec kdScreenPrivateKeyRec;
@@ -886,7 +884,7 @@ KdSetPixmapFormats(ScreenInfo * pScreenInfo)
     /*
      * Fill in additional formats
      */
-    for (i = 0; i < NUM_KD_DEPTHS; i++)
+    for (i = 0; i < ARRAY_SIZE(kdDepths); i++)
         if (!depthToBpp[kdDepths[i].depth])
             depthToBpp[kdDepths[i].depth] = kdDepths[i].bpp;
 

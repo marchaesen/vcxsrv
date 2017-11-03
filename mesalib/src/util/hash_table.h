@@ -94,7 +94,7 @@ _mesa_hash_table_random_entry(struct hash_table *ht,
                               bool (*predicate)(struct hash_entry *entry));
 
 uint32_t _mesa_hash_data(const void *data, size_t size);
-uint32_t _mesa_hash_string(const char *key);
+uint32_t _mesa_hash_string(const void *key);
 bool _mesa_key_string_equal(const void *a, const void *b);
 bool _mesa_key_pointer_equal(const void *a, const void *b);
 

@@ -581,8 +581,6 @@ static const RESTYPE CursorRestypes[] = {
     RT_WINDOW, RT_PASSIVEGRAB, RT_CURSOR
 };
 
-#define NUM_CURSOR_RESTYPES (sizeof (CursorRestypes) / sizeof (CursorRestypes[0]))
-
 static Bool
 ReplaceCursorLookup(void *value, XID id, void *closure)
 {
@@ -645,7 +643,7 @@ ReplaceCursor(CursorPtr pCursor, TestCursorFunc testCursor, void *closure)
     for (clientIndex = 0; clientIndex < currentMaxClients; clientIndex++) {
         if (!clients[clientIndex])
             continue;
-        for (resIndex = 0; resIndex < NUM_CURSOR_RESTYPES; resIndex++) {
+        for (resIndex = 0; resIndex < ARRAY_SIZE(CursorRestypes); resIndex++) {
             rcl.type = CursorRestypes[resIndex];
             /*
              * This function walks the entire client resource database

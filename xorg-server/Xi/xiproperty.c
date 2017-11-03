@@ -372,8 +372,7 @@ XIGetKnownProperty(const char *name)
     if (!name)
         return None;
 
-    for (i = 0; i < (sizeof(dev_properties) / sizeof(struct dev_properties));
-         i++) {
+    for (i = 0; i < ARRAY_SIZE(dev_properties); i++) {
         if (strcmp(name, dev_properties[i].name) == 0) {
             if (dev_properties[i].type == None) {
                 dev_properties[i].type =
@@ -393,8 +392,7 @@ XIResetProperties(void)
 {
     int i;
 
-    for (i = 0; i < (sizeof(dev_properties) / sizeof(struct dev_properties));
-         i++)
+    for (i = 0; i < ARRAY_SIZE(dev_properties); i++)
         dev_properties[i].type = None;
 }
 

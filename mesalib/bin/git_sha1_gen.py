@@ -45,3 +45,5 @@ if git_sha1:
                     quit()
         with open(args.output, 'w') as git_sha1_h:
             git_sha1_h.write(new_sha1)
+else:
+    open(args.output, 'w').close()

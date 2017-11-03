@@ -111,8 +111,6 @@ static PixmapFormatRec g_PixmapFormats[] = {
     {32, 32, BITMAP_SCANLINE_PAD}
 };
 
-const int NUMFORMATS = sizeof(g_PixmapFormats) / sizeof(g_PixmapFormats[0]);
-
 static const ExtensionModule xwinExtensions[] = {
 #ifdef GLXEXT
   { GlxExtensionInit, "GLX", &noGlxExtension },
@@ -932,10 +930,10 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     pScreenInfo->bitmapScanlinePad = BITMAP_SCANLINE_PAD;
     pScreenInfo->bitmapScanlineUnit = BITMAP_SCANLINE_UNIT;
     pScreenInfo->bitmapBitOrder = BITMAP_BIT_ORDER;
-    pScreenInfo->numPixmapFormats = NUMFORMATS;
+    pScreenInfo->numPixmapFormats = ARRAY_SIZE(g_PixmapFormats);
 
     /* Describe how we want common pixmap formats padded */
-    for (i = 0; i < NUMFORMATS; i++) {
+    for (i = 0; i < ARRAY_SIZE(g_PixmapFormats); i++) {
         pScreenInfo->formats[i] = g_PixmapFormats[i];
     }
 

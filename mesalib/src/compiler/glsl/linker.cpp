@@ -1255,21 +1255,11 @@ interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
  * Populates a shaders symbol table with all global declarations
  */
 static void
-populate_symbol_table(gl_linked_shader *sh)
+populate_symbol_table(gl_linked_shader *sh, glsl_symbol_table *symbols)
 {
    sh->symbols = new(sh) glsl_symbol_table;
 
-   foreach_in_list(ir_instruction, inst, sh->ir) {
-      ir_variable *var;
-      ir_function *func;
-
-      if ((func = inst->as_function()) != NULL) {
-         sh->symbols->add_function(func);
-      } else if ((var = inst->as_variable()) != NULL) {
-         if (var->data.mode != ir_var_temporary)
-            sh->symbols->add_variable(var);
-      }
-   }
+   _mesa_glsl_copy_symbols_from_table(sh->ir, symbols, sh->symbols);
 }
 
 
@@ -2288,7 +2278,7 @@ link_intrastage_shaders(void *mem_ctx,
 
    link_bindless_layout_qualifiers(prog, shader_list, num_shaders);
 
-   populate_symbol_table(linked);
+   populate_symbol_table(linked, shader_list[0]->symbols);
 
    /* The pointer to the main function in the final linked shader (i.e., the
     * copy of the original shader that contained the main function).

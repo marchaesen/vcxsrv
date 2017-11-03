@@ -29,6 +29,7 @@ BROADCOM_FILES = \
 	compiler/qpu_validate.c \
 	compiler/v3d_compiler.h \
 	compiler/v3d_nir_lower_io.c \
+	compiler/v3d_nir_lower_txf_ms.c \
 	qpu/qpu_disasm.c \
 	qpu/qpu_disasm.h \
 	qpu/qpu_instr.c \

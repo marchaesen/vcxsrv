@@ -571,8 +571,6 @@ static const int offsets[] = {
     offsetof(ColormapRec, devPrivates), /* RT_COLORMAP */
 };
 
-#define NUM_OFFSETS	(sizeof (offsets) / sizeof (offsets[0]))
-
 int
 dixLookupPrivateOffset(RESTYPE type)
 {
@@ -587,7 +585,7 @@ dixLookupPrivateOffset(RESTYPE type)
             return offsets[RT_PIXMAP & TypeMask];
     }
     type = type & TypeMask;
-    if (type < NUM_OFFSETS)
+    if (type < ARRAY_SIZE(offsets))
         return offsets[type];
     return -1;
 }

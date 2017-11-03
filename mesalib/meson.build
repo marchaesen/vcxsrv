@@ -150,7 +150,7 @@ endif
 # TODO: other OSes
 with_dri_platform = 'drm'
 
-# TODO: android platform
+with_platform_android = false
 with_platform_wayland = false
 with_platform_x11 = false
 with_platform_drm = false
@@ -159,6 +159,7 @@ egl_native_platform = ''
 _platforms = get_option('platforms')
 if _platforms != ''
   _split = _platforms.split(',')
+  with_platform_android = _split.contains('android')
   with_platform_x11 = _split.contains('x11')
   with_platform_wayland = _split.contains('wayland')
   with_platform_drm = _split.contains('drm')
@@ -169,7 +170,7 @@ endif
 with_gbm = get_option('gbm')
 if with_gbm == 'auto' and with_dri  # TODO: or gallium
   with_gbm = host_machine.system() == 'linux'
-elif with_gbm == 'yes'
+elif with_gbm == 'true'
   if not ['linux', 'bsd'].contains(host_machine.system())
     error('GBM only supports unix-like platforms')
   endif
@@ -181,7 +182,7 @@ endif
 _egl = get_option('egl')
 if _egl == 'auto'
   with_egl = with_dri and with_shared_glapi and egl_native_platform != ''
-elif _egl == 'yes'
+elif _egl == 'true'
   if not with_dri
     error('EGL requires dri')
   elif not with_shared_glapi
@@ -250,8 +251,8 @@ if _vulkan_drivers != ''
   with_intel_vk = _split.contains('intel')
   with_amd_vk = _split.contains('amd')
   with_any_vk = with_amd_vk or with_intel_vk
-  if not (with_platform_x11 or with_platform_wayland)
-    error('Vulkan requires at least one platform (x11, wayland)')
+  if not (with_platform_x11 or with_platform_wayland or with_platform_android)
+    error('Vulkan requires at least one platform (x11, wayland, android)')
   endif
 endif
 
@@ -263,7 +264,7 @@ if with_dri3 == 'auto'
   else
     with_dri3 = false
  endif
-elif with_dri3 == 'yes'
+elif with_dri3 == 'true'
   with_dri3 = true
 else
   with_dri3 = false
@@ -327,6 +328,14 @@ if with_platform_drm
 endif
 if with_platform_surfaceless
   pre_args += '-DHAVE_SURFACELESS_PLATFORM'
+endif
+if with_platform_android
+  dep_android = [
+    dependency('cutils'),
+    dependency('hardware'),
+    dependency('sync'),
+  ]
+  pre_args += '-DHAVE_ANDROID_PLATFORM'
 endif
 
 prog_python2 = find_program('python2')
@@ -682,9 +691,13 @@ if with_glvnd
 endif
 
 # TODO: make this conditional
-dep_valgrind = dependency('valgrind', required : false)
-if dep_valgrind.found() and with_valgrind
-  pre_args += '-DHAVE_VALGRIND'
+if with_valgrind != 'false'
+  dep_valgrind = dependency('valgrind', required : with_valgrind == 'true')
+  if dep_valgrind.found()
+    pre_args += '-DHAVE_VALGRIND'
+  endif
+else
+  dep_valgrind = []
 endif
 
 # pthread stubs. Lets not and say we didn't
@@ -700,9 +713,13 @@ endif
 
 # TODO: llvm-prefix and llvm-shared-libs
 
-dep_unwind = dependency('libunwind', required : false)
-if dep_unwind.found() and with_libunwind
-  pre_args += '-DHAVE_LIBUNWIND'
+if with_libunwind != 'false'
+  dep_unwind = dependency('libunwind', required : with_libunwind == 'true')
+  if dep_unwind.found()
+    pre_args += '-DHAVE_LIBUNWIND'
+  endif
+else
+  dep_unwind = []
 endif
 
 # TODO: flags for opengl, gles, dri

@@ -744,7 +744,8 @@ private:
                                 ir_expression_operation opcode,
                                 const glsl_type *return_type,
                                 const glsl_type *param0_type,
-                                const glsl_type *param1_type);
+                                const glsl_type *param1_type,
+                                bool swap_operands = false);
 
 #define B0(X) ir_function_signature *_##X();
 #define B1(X) ir_function_signature *_##X(const glsl_type *);
@@ -3634,12 +3635,18 @@ builtin_builder::binop(builtin_available_predicate avail,
                        ir_expression_operation opcode,
                        const glsl_type *return_type,
                        const glsl_type *param0_type,
-                       const glsl_type *param1_type)
+                       const glsl_type *param1_type,
+                       bool swap_operands)
 {
    ir_variable *x = in_var(param0_type, "x");
    ir_variable *y = in_var(param1_type, "y");
    MAKE_SIG(return_type, avail, 2, x, y);
-   body.emit(ret(expr(opcode, x, y)));
+
+   if (swap_operands)
+      body.emit(ret(expr(opcode, y, x)));
+   else
+      body.emit(ret(expr(opcode, x, y)));
+
    return sig;
 }
 
@@ -4972,16 +4979,18 @@ ir_function_signature *
 builtin_builder::_lessThanEqual(builtin_available_predicate avail,
                                 const glsl_type *type)
 {
-   return binop(avail, ir_binop_lequal,
-                glsl_type::bvec(type->vector_elements), type, type);
+   return binop(avail, ir_binop_gequal,
+                glsl_type::bvec(type->vector_elements), type, type,
+                true);
 }
 
 ir_function_signature *
 builtin_builder::_greaterThan(builtin_available_predicate avail,
                               const glsl_type *type)
 {
-   return binop(avail, ir_binop_greater,
-                glsl_type::bvec(type->vector_elements), type, type);
+   return binop(avail, ir_binop_less,
+                glsl_type::bvec(type->vector_elements), type, type,
+                true);
 }
 
 ir_function_signature *

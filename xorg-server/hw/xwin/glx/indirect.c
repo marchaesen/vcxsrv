@@ -88,8 +88,6 @@
 #include <winglobals.h>
 #include <indirect.h>
 
-#define NUM_ELEMENTS(x) (sizeof(x)/ sizeof(x[1]))
-
 /* Not yet in w32api */
 #ifndef PFD_SUPPORT_DIRECTDRAW
 #define PFD_SUPPORT_DIRECTDRAW   0x00002000
@@ -1639,7 +1637,7 @@ fbConfigToPixelFormat(__GLXconfig * mode, PIXELFORMATDESCRIPTOR * pfdret,
     return 0;
 }
 
-#define SET_ATTR_VALUE(attr, value) { attribList[i++] = attr; attribList[i++] = value; assert(i < NUM_ELEMENTS(attribList)); }
+#define SET_ATTR_VALUE(attr, value) { attribList[i++] = attr; attribList[i++] = value; assert(i < ARRAY_SIZE(attribList)); }
 
 static int
 fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig * mode,
@@ -2018,7 +2016,7 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
     memset(result, 0, sizeof(GLXWinConfig) * numConfigs);
     n = 0;
 
-#define ADD_ATTR(a) { attrs[num_attrs++] = a; assert(num_attrs < NUM_ELEMENTS(attrs)); }
+#define ADD_ATTR(a) { attrs[num_attrs++] = a; assert(num_attrs < ARRAY_SIZE(attrs)); }
 
     ADD_ATTR(WGL_DRAW_TO_WINDOW_ARB);
     ADD_ATTR(WGL_DRAW_TO_BITMAP_ARB);

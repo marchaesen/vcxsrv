@@ -267,8 +267,7 @@ winClipboardFlushXEvents(HWND hwnd,
                                           32,
                                           PropModeReplace,
                                           (unsigned char *) atomTargetArr,
-                                          (sizeof(atomTargetArr)
-                                           / sizeof(atomTargetArr[0])));
+                                          ARRAY_SIZE(atomTargetArr));
                 if (iReturn == BadAlloc
                     || iReturn == BadAtom
                     || iReturn == BadMatch

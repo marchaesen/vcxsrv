@@ -1779,6 +1779,9 @@ struct gl_transform_feedback_buffer
 /** Post-link transform feedback info. */
 struct gl_transform_feedback_info
 {
+   /* Was xfb enabled via the api or in shader layout qualifiers */
+   bool api_enabled;
+
    unsigned NumOutputs;
 
    /* Bitmask of active buffer indices. */
@@ -2078,6 +2081,10 @@ struct gl_program
    GLboolean _Used;        /**< Ever used for drawing? Used for debugging */
 
    struct nir_shader *nir;
+
+   /* Saved and restored with metadata. Freed with ralloc. */
+   void *driver_cache_blob;
+   size_t driver_cache_blob_size;
 
    bool is_arb_asm; /** Is this an ARB assembly-style program */
 

@@ -602,8 +602,6 @@ ir_expression_operation = [
    # Binary comparison operators which return a boolean vector.
    # The type of both operands must be equal.
    operation("less", 2, printable_name="<", source_types=numeric_types, dest_type=bool_type, c_expression="{src0} < {src1}"),
-   operation("greater", 2, printable_name=">", source_types=numeric_types, dest_type=bool_type, c_expression="{src0} > {src1}"),
-   operation("lequal", 2, printable_name="<=", source_types=numeric_types, dest_type=bool_type, c_expression="{src0} <= {src1}"),
    operation("gequal", 2, printable_name=">=", source_types=numeric_types, dest_type=bool_type, c_expression="{src0} >= {src1}"),
    operation("equal", 2, printable_name="==", source_types=all_types, dest_type=bool_type, c_expression="{src0} == {src1}"),
    operation("nequal", 2, printable_name="!=", source_types=all_types, dest_type=bool_type, c_expression="{src0} != {src1}"),

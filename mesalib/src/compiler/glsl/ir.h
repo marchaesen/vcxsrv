@@ -457,7 +457,7 @@ public:
     *
     * For the first declaration below, there will be an \c ir_variable named
     * "instance" whose type and whose instance_type will be the same
-    *  \cglsl_type.  For the second declaration, there will be an \c ir_variable
+    * \c glsl_type.  For the second declaration, there will be an \c ir_variable
     * named "f" whose type is float and whose instance_type is B2.
     *
     * "instance" is an interface instance variable, but "f" is not.

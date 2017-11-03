@@ -132,41 +132,17 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
       ast_node *then_statement;
       ast_node *else_statement;
    } selection_rest_statement;
+
+   const glsl_type *type;
 }
 
-%token ATTRIBUTE CONST_TOK BOOL_TOK FLOAT_TOK INT_TOK UINT_TOK DOUBLE_TOK
+%token ATTRIBUTE CONST_TOK
+%token <type> BASIC_TYPE_TOK
 %token BREAK BUFFER CONTINUE DO ELSE FOR IF DISCARD RETURN SWITCH CASE DEFAULT
-%token BVEC2 BVEC3 BVEC4 IVEC2 IVEC3 IVEC4 UVEC2 UVEC3 UVEC4 VEC2 VEC3 VEC4 DVEC2 DVEC3 DVEC4
-%token INT64_TOK UINT64_TOK I64VEC2 I64VEC3 I64VEC4 U64VEC2 U64VEC3 U64VEC4
 %token CENTROID IN_TOK OUT_TOK INOUT_TOK UNIFORM VARYING SAMPLE
 %token NOPERSPECTIVE FLAT SMOOTH
-%token MAT2X2 MAT2X3 MAT2X4
-%token MAT3X2 MAT3X3 MAT3X4
-%token MAT4X2 MAT4X3 MAT4X4
-%token DMAT2X2 DMAT2X3 DMAT2X4
-%token DMAT3X2 DMAT3X3 DMAT3X4
-%token DMAT4X2 DMAT4X3 DMAT4X4
-%token SAMPLER1D SAMPLER2D SAMPLER3D SAMPLERCUBE SAMPLER1DSHADOW SAMPLER2DSHADOW
-%token SAMPLERCUBESHADOW SAMPLER1DARRAY SAMPLER2DARRAY SAMPLER1DARRAYSHADOW
-%token SAMPLER2DARRAYSHADOW SAMPLERCUBEARRAY SAMPLERCUBEARRAYSHADOW
-%token ISAMPLER1D ISAMPLER2D ISAMPLER3D ISAMPLERCUBE
-%token ISAMPLER1DARRAY ISAMPLER2DARRAY ISAMPLERCUBEARRAY
-%token USAMPLER1D USAMPLER2D USAMPLER3D USAMPLERCUBE USAMPLER1DARRAY
-%token USAMPLER2DARRAY USAMPLERCUBEARRAY
-%token SAMPLER2DRECT ISAMPLER2DRECT USAMPLER2DRECT SAMPLER2DRECTSHADOW
-%token SAMPLERBUFFER ISAMPLERBUFFER USAMPLERBUFFER
-%token SAMPLER2DMS ISAMPLER2DMS USAMPLER2DMS
-%token SAMPLER2DMSARRAY ISAMPLER2DMSARRAY USAMPLER2DMSARRAY
-%token SAMPLEREXTERNALOES
-%token IMAGE1D IMAGE2D IMAGE3D IMAGE2DRECT IMAGECUBE IMAGEBUFFER
-%token IMAGE1DARRAY IMAGE2DARRAY IMAGECUBEARRAY IMAGE2DMS IMAGE2DMSARRAY
-%token IIMAGE1D IIMAGE2D IIMAGE3D IIMAGE2DRECT IIMAGECUBE IIMAGEBUFFER
-%token IIMAGE1DARRAY IIMAGE2DARRAY IIMAGECUBEARRAY IIMAGE2DMS IIMAGE2DMSARRAY
-%token UIMAGE1D UIMAGE2D UIMAGE3D UIMAGE2DRECT UIMAGECUBE UIMAGEBUFFER
-%token UIMAGE1DARRAY UIMAGE2DARRAY UIMAGECUBEARRAY UIMAGE2DMS UIMAGE2DMSARRAY
 %token IMAGE1DSHADOW IMAGE2DSHADOW IMAGE1DARRAYSHADOW IMAGE2DARRAYSHADOW
 %token COHERENT VOLATILE RESTRICT READONLY WRITEONLY
-%token ATOMIC_UINT
 %token SHARED
 %token STRUCT VOID_TOK WHILE
 %token <identifier> IDENTIFIER TYPE_IDENTIFIER NEW_IDENTIFIER
@@ -225,7 +201,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %type <type_specifier> type_specifier
 %type <type_specifier> type_specifier_nonarray
 %type <array_specifier> array_specifier
-%type <identifier> basic_type_specifier_nonarray
+%type <type> basic_type_specifier_nonarray
 %type <fully_specified_type> fully_specified_type
 %type <function> function_prototype
 %type <function> function_header
@@ -2231,128 +2207,8 @@ type_specifier_nonarray:
    ;
 
 basic_type_specifier_nonarray:
-   VOID_TOK                 { $$ = "void"; }
-   | FLOAT_TOK              { $$ = "float"; }
-   | DOUBLE_TOK             { $$ = "double"; }
-   | INT_TOK                { $$ = "int"; }
-   | UINT_TOK               { $$ = "uint"; }
-   | BOOL_TOK               { $$ = "bool"; }
-   | VEC2                   { $$ = "vec2"; }
-   | VEC3                   { $$ = "vec3"; }
-   | VEC4                   { $$ = "vec4"; }
-   | BVEC2                  { $$ = "bvec2"; }
-   | BVEC3                  { $$ = "bvec3"; }
-   | BVEC4                  { $$ = "bvec4"; }
-   | IVEC2                  { $$ = "ivec2"; }
-   | IVEC3                  { $$ = "ivec3"; }
-   | IVEC4                  { $$ = "ivec4"; }
-   | UVEC2                  { $$ = "uvec2"; }
-   | UVEC3                  { $$ = "uvec3"; }
-   | UVEC4                  { $$ = "uvec4"; }
-   | DVEC2                  { $$ = "dvec2"; }
-   | DVEC3                  { $$ = "dvec3"; }
-   | DVEC4                  { $$ = "dvec4"; }
-   | MAT2X2                 { $$ = "mat2"; }
-   | MAT2X3                 { $$ = "mat2x3"; }
-   | MAT2X4                 { $$ = "mat2x4"; }
-   | MAT3X2                 { $$ = "mat3x2"; }
-   | MAT3X3                 { $$ = "mat3"; }
-   | MAT3X4                 { $$ = "mat3x4"; }
-   | MAT4X2                 { $$ = "mat4x2"; }
-   | MAT4X3                 { $$ = "mat4x3"; }
-   | MAT4X4                 { $$ = "mat4"; }
-   | DMAT2X2                { $$ = "dmat2"; }
-   | DMAT2X3                { $$ = "dmat2x3"; }
-   | DMAT2X4                { $$ = "dmat2x4"; }
-   | DMAT3X2                { $$ = "dmat3x2"; }
-   | DMAT3X3                { $$ = "dmat3"; }
-   | DMAT3X4                { $$ = "dmat3x4"; }
-   | DMAT4X2                { $$ = "dmat4x2"; }
-   | DMAT4X3                { $$ = "dmat4x3"; }
-   | DMAT4X4                { $$ = "dmat4"; }
-   | SAMPLER1D              { $$ = "sampler1D"; }
-   | SAMPLER2D              { $$ = "sampler2D"; }
-   | SAMPLER2DRECT          { $$ = "sampler2DRect"; }
-   | SAMPLER3D              { $$ = "sampler3D"; }
-   | SAMPLERCUBE            { $$ = "samplerCube"; }
-   | SAMPLEREXTERNALOES     { $$ = "samplerExternalOES"; }
-   | SAMPLER1DSHADOW        { $$ = "sampler1DShadow"; }
-   | SAMPLER2DSHADOW        { $$ = "sampler2DShadow"; }
-   | SAMPLER2DRECTSHADOW    { $$ = "sampler2DRectShadow"; }
-   | SAMPLERCUBESHADOW      { $$ = "samplerCubeShadow"; }
-   | SAMPLER1DARRAY         { $$ = "sampler1DArray"; }
-   | SAMPLER2DARRAY         { $$ = "sampler2DArray"; }
-   | SAMPLER1DARRAYSHADOW   { $$ = "sampler1DArrayShadow"; }
-   | SAMPLER2DARRAYSHADOW   { $$ = "sampler2DArrayShadow"; }
-   | SAMPLERBUFFER          { $$ = "samplerBuffer"; }
-   | SAMPLERCUBEARRAY       { $$ = "samplerCubeArray"; }
-   | SAMPLERCUBEARRAYSHADOW { $$ = "samplerCubeArrayShadow"; }
-   | ISAMPLER1D             { $$ = "isampler1D"; }
-   | ISAMPLER2D             { $$ = "isampler2D"; }
-   | ISAMPLER2DRECT         { $$ = "isampler2DRect"; }
-   | ISAMPLER3D             { $$ = "isampler3D"; }
-   | ISAMPLERCUBE           { $$ = "isamplerCube"; }
-   | ISAMPLER1DARRAY        { $$ = "isampler1DArray"; }
-   | ISAMPLER2DARRAY        { $$ = "isampler2DArray"; }
-   | ISAMPLERBUFFER         { $$ = "isamplerBuffer"; }
-   | ISAMPLERCUBEARRAY      { $$ = "isamplerCubeArray"; }
-   | USAMPLER1D             { $$ = "usampler1D"; }
-   | USAMPLER2D             { $$ = "usampler2D"; }
-   | USAMPLER2DRECT         { $$ = "usampler2DRect"; }
-   | USAMPLER3D             { $$ = "usampler3D"; }
-   | USAMPLERCUBE           { $$ = "usamplerCube"; }
-   | USAMPLER1DARRAY        { $$ = "usampler1DArray"; }
-   | USAMPLER2DARRAY        { $$ = "usampler2DArray"; }
-   | USAMPLERBUFFER         { $$ = "usamplerBuffer"; }
-   | USAMPLERCUBEARRAY      { $$ = "usamplerCubeArray"; }
-   | SAMPLER2DMS            { $$ = "sampler2DMS"; }
-   | ISAMPLER2DMS           { $$ = "isampler2DMS"; }
-   | USAMPLER2DMS           { $$ = "usampler2DMS"; }
-   | SAMPLER2DMSARRAY       { $$ = "sampler2DMSArray"; }
-   | ISAMPLER2DMSARRAY      { $$ = "isampler2DMSArray"; }
-   | USAMPLER2DMSARRAY      { $$ = "usampler2DMSArray"; }
-   | IMAGE1D                { $$ = "image1D"; }
-   | IMAGE2D                { $$ = "image2D"; }
-   | IMAGE3D                { $$ = "image3D"; }
-   | IMAGE2DRECT            { $$ = "image2DRect"; }
-   | IMAGECUBE              { $$ = "imageCube"; }
-   | IMAGEBUFFER            { $$ = "imageBuffer"; }
-   | IMAGE1DARRAY           { $$ = "image1DArray"; }
-   | IMAGE2DARRAY           { $$ = "image2DArray"; }
-   | IMAGECUBEARRAY         { $$ = "imageCubeArray"; }
-   | IMAGE2DMS              { $$ = "image2DMS"; }
-   | IMAGE2DMSARRAY         { $$ = "image2DMSArray"; }
-   | IIMAGE1D               { $$ = "iimage1D"; }
-   | IIMAGE2D               { $$ = "iimage2D"; }
-   | IIMAGE3D               { $$ = "iimage3D"; }
-   | IIMAGE2DRECT           { $$ = "iimage2DRect"; }
-   | IIMAGECUBE             { $$ = "iimageCube"; }
-   | IIMAGEBUFFER           { $$ = "iimageBuffer"; }
-   | IIMAGE1DARRAY          { $$ = "iimage1DArray"; }
-   | IIMAGE2DARRAY          { $$ = "iimage2DArray"; }
-   | IIMAGECUBEARRAY        { $$ = "iimageCubeArray"; }
-   | IIMAGE2DMS             { $$ = "iimage2DMS"; }
-   | IIMAGE2DMSARRAY        { $$ = "iimage2DMSArray"; }
-   | UIMAGE1D               { $$ = "uimage1D"; }
-   | UIMAGE2D               { $$ = "uimage2D"; }
-   | UIMAGE3D               { $$ = "uimage3D"; }
-   | UIMAGE2DRECT           { $$ = "uimage2DRect"; }
-   | UIMAGECUBE             { $$ = "uimageCube"; }
-   | UIMAGEBUFFER           { $$ = "uimageBuffer"; }
-   | UIMAGE1DARRAY          { $$ = "uimage1DArray"; }
-   | UIMAGE2DARRAY          { $$ = "uimage2DArray"; }
-   | UIMAGECUBEARRAY        { $$ = "uimageCubeArray"; }
-   | UIMAGE2DMS             { $$ = "uimage2DMS"; }
-   | UIMAGE2DMSARRAY        { $$ = "uimage2DMSArray"; }
-   | ATOMIC_UINT            { $$ = "atomic_uint"; }
-   | INT64_TOK              { $$ = "int64_t";	   }
-   | I64VEC2                { $$ = "i64vec2";	   }
-   | I64VEC3                { $$ = "i64vec3";	   }
-   | I64VEC4                { $$ = "i64vec4";	   }
-   | UINT64_TOK             { $$ = "uint64_t";	   }
-   | U64VEC2                { $$ = "u64vec2";	   }
-   | U64VEC3                { $$ = "u64vec3";	   }
-   | U64VEC4                { $$ = "u64vec4";	   }
+   VOID_TOK                 { $$ = glsl_type::void_type; }
+   | BASIC_TYPE_TOK         { $$ = $1; };
    ;
 
 precision_qualifier:
@@ -2377,14 +2233,22 @@ struct_specifier:
    STRUCT any_identifier '{' struct_declaration_list '}'
    {
       void *ctx = state->linalloc;
-      $$ = new(ctx) ast_struct_specifier(ctx, $2, $4);
+      $$ = new(ctx) ast_struct_specifier($2, $4);
       $$->set_location_range(@2, @5);
       state->symbols->add_type($2, glsl_type::void_type);
    }
    | STRUCT '{' struct_declaration_list '}'
    {
       void *ctx = state->linalloc;
-      $$ = new(ctx) ast_struct_specifier(ctx, NULL, $3);
+
+      /* All anonymous structs have the same name. This simplifies matching of
+       * globals whose type is an unnamed struct.
+       *
+       * It also avoids a memory leak when the same shader is compiled over and
+       * over again.
+       */
+      $$ = new(ctx) ast_struct_specifier("#anon_struct", $3);
+
       $$->set_location_range(@2, @4);
    }
    ;

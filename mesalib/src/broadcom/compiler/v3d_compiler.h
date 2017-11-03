@@ -229,8 +229,6 @@ enum quniform_contents {
         QUNIFORM_TEXTURE_ARRAY_SIZE,
         QUNIFORM_TEXTURE_LEVELS,
 
-        QUNIFORM_TEXTURE_MSAA_ADDR,
-
         QUNIFORM_UBO_ADDR,
 
         QUNIFORM_TEXRECT_SCALE_X,
@@ -294,8 +292,9 @@ struct v3d_key {
                         struct {
                                 unsigned compare_mode:1;
                                 unsigned compare_func:3;
-                                unsigned wrap_s:3;
-                                unsigned wrap_t:3;
+                                bool clamp_s:1;
+                                bool clamp_t:1;
+                                bool clamp_r:1;
                         };
                         struct {
                                 uint16_t msaa_width, msaa_height;

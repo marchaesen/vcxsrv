@@ -230,7 +230,7 @@ dix_check_grab_values(void)
 static void
 dix_event_to_core(int type)
 {
-    DeviceEvent ev;
+    DeviceEvent ev = {};
     xEvent *core;
     int time;
     int x, y;
@@ -1427,7 +1427,7 @@ include_bit_test_macros(void)
     uint8_t mask[9] = { 0 };
     int i;
 
-    for (i = 0; i < sizeof(mask) / sizeof(mask[0]); i++) {
+    for (i = 0; i < ARRAY_SIZE(mask); i++) {
         assert(BitIsOn(mask, i) == 0);
         SetBit(mask, i);
         assert(BitIsOn(mask, i) == 1);

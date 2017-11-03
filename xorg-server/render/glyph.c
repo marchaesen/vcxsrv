@@ -78,7 +78,7 @@ static GlyphHashSetRec glyphHashSets[] = {
     {536870912, 590559793, 590559791}
 };
 
-#define NGLYPHHASHSETS	(sizeof(glyphHashSets)/sizeof(glyphHashSets[0]))
+#define NGLYPHHASHSETS	ARRAY_SIZE(glyphHashSets)
 
 static GlyphHashRec globalGlyphs[GlyphFormatNum];
 

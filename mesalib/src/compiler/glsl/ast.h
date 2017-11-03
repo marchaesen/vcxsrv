@@ -27,6 +27,7 @@
 
 #include "list.h"
 #include "glsl_parser_extras.h"
+#include "compiler/glsl_types.h"
 
 struct _mesa_glsl_parse_state;
 
@@ -832,8 +833,8 @@ class ast_declarator_list;
 
 class ast_struct_specifier : public ast_node {
 public:
-   ast_struct_specifier(void *lin_ctx, const char *identifier,
-			ast_declarator_list *declarator_list);
+   ast_struct_specifier(const char *identifier,
+                        ast_declarator_list *declarator_list);
    virtual void print(void) const;
 
    virtual ir_rvalue *hir(exec_list *instructions,
@@ -853,7 +854,7 @@ class ast_type_specifier : public ast_node {
 public:
    /** Construct a type specifier from a type name */
    ast_type_specifier(const char *name) 
-      : type_name(name), structure(NULL), array_specifier(NULL),
+      : type(NULL), type_name(name), structure(NULL), array_specifier(NULL),
 	default_precision(ast_precision_none)
    {
       /* empty */
@@ -861,8 +862,15 @@ public:
 
    /** Construct a type specifier from a structure definition */
    ast_type_specifier(ast_struct_specifier *s)
-      : type_name(s->name), structure(s), array_specifier(NULL),
+      : type(NULL), type_name(s->name), structure(s), array_specifier(NULL),
 	default_precision(ast_precision_none)
+   {
+      /* empty */
+   }
+
+   ast_type_specifier(const glsl_type *t)
+      : type(t), type_name(t->name), structure(NULL), array_specifier(NULL),
+        default_precision(ast_precision_none)
    {
       /* empty */
    }
@@ -875,6 +883,7 @@ public:
 
    ir_rvalue *hir(exec_list *, struct _mesa_glsl_parse_state *);
 
+   const struct glsl_type *type;
    const char *type_name;
    ast_struct_specifier *structure;
 

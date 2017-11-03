@@ -68,8 +68,7 @@ XauFileName (void)
     }
     size = strlen (name) + strlen(&slashDotXauthority[1]) + 2;
     if ((size > bsize) || (buf == NULL)) {
-	if (buf)
-	    free (buf);
+	free (buf);
         assert(size > 0);
 	buf = malloc (size);
 	if (!buf) {

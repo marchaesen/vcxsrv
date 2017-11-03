@@ -145,7 +145,7 @@
   <packet code="27" name="End of Tile Marker" cl="R"/>
 
   <packet code="29" name="Store Tile Buffer General" cl="R">
-    <field name="Address" size="32" start="16" type="address"/>
+    <field name="Address" size="24" start="24" type="address"/>
     <field name="Padded height of output image in UIF blocks" size="13" start="11" type="uint"/>
     <field name="XOR UIF" size="1" start="10" type="bool"/>
     <field name="Last Tile of Frame" size="1" start="8" type="bool"/>
@@ -463,6 +463,10 @@
     <field name="BGR dithered" size="1" start="22" type="bool"/>
 
     <field name="Output image format" size="6" start="16" type="uint" prefix="Output Image Format">
+    <!--
+	Formats appear with their channels named from the low bits to
+	the high bits.
+    -->
       <value name="srgb8_alpha8" value="0"/>
       <value name="srgb" value="1"/>
       <value name="rgb10_a2ui" value="2"/>
@@ -528,7 +532,7 @@
   </packet>
 
   <packet code="121" name="Tile Rendering Mode Configuration (Z/Stencil config)" cl="R">
-    <field name="Address" size="32" start="32" type="address"/>
+    <field name="Address" size="26" start="38" type="address"/>
 
     <field name="Padded height of output image in UIF blocks" size="13" start="25" type="uint"/>
 
@@ -543,9 +547,9 @@
 
     <field name="Output image format" size="6" start="16" type="uint" prefix="Output Image Format">
       <value name="depth_component32f" value="0"/>
-      <value name="depth_component24" value="1"/>
+      <value name="depth_component24" value="1"/> <!-- depth low, pad high -->
       <value name="depth_component16" value="2"/>
-      <value name="depth24_stencil8" value="3"/>
+      <value name="depth24_stencil8" value="3"/> <!-- stencil low, depth high -->
     </field>
 
     <field name="Decimate mode" size="2" start="14" type="uint"/>
@@ -767,7 +771,7 @@
     <field name="Gather sample mode" size="1" start="4" type="bool"/>
     <field name="Fetch sample mode" size="1" start="3" type="bool"/>
 
-    <field name="Lookup Type" size="3" start="0" type="bool">
+    <field name="Lookup Type" size="3" start="0" type="uint">
       <value name="Texture 2D" value="0"/>
       <value name="Texture 2D array" value="1"/>
       <value name="Texture 3D" value="2"/>
@@ -779,7 +783,7 @@
   </struct>
 
   <struct name="Texture Uniform Parameter 1 CFG_MODE=1">
-    <field name="Texture state record base address" size="32" start="0" type="address"/>
+    <field name="Texture state record base address" size="28" start="4" type="address"/>
     <field name="Return word 3 of texture data" size="1" start="3" type="bool"/>
     <field name="Return word 2 of texture data" size="1" start="2" type="bool"/>
     <field name="Return word 1 of texture data" size="1" start="1" type="bool"/>
@@ -831,23 +835,27 @@
 
     <field name="Array Stride (64-byte aligned)" size="26" start="32" type="uint"/>
 
-    <field name="Texture base pointer" size="32" start="0" type="address"/>
+    <field name="Texture base pointer" size="30" start="2" type="address"/>
 
     <field name="Minification Filter" size="3" start="1" type="uint"/>
     <field name="Magnification Filter" size="1" start="0" type="uint"/>
   </struct>
 
   <enum name="Texture Data Formats">
+    <!--
+	most formats here have R in the low bits, A in the high bits.
+	Exceptions noted.
+    -->
     <value name="Texture Data Format R8" value="0"/>
     <value name="Texture Data Format R8 SNORM" value="1"/>
     <value name="Texture Data Format RG8" value="2"/>
     <value name="Texture Data Format RG8 SNORM" value="3"/>
     <value name="Texture Data Format RGBA8" value="4"/>
     <value name="Texture Data Format RGBA8 SNORM" value="5"/>
-    <value name="Texture Data Format RGB565" value="6"/>
-    <value name="Texture Data Format RGBA4" value="7"/>
-    <value name="Texture Data Format RGB5_A1" value="8"/>
-    <value name="Texture Data Format RGB10_A2" value="9"/>
+    <value name="Texture Data Format RGB565" value="6"/> <!-- B in low bits -->
+    <value name="Texture Data Format RGBA4" value="7"/> <!-- A low, R high -->
+    <value name="Texture Data Format RGB5_A1" value="8"/> <!-- A low, R high -->
+    <value name="Texture Data Format RGB10_A2" value="9"/> <!-- R low, A high -->
     <value name="Texture Data Format R16" value="10"/>
     <value name="Texture Data Format R16 SNORM" value="11"/>
     <value name="Texture Data Format RG16" value="12"/>
@@ -862,7 +870,7 @@
     <value name="Texture Data Format DEPTH COMP16" value="21"/>
     <value name="Texture Data Format DEPTH COMP24" value="22"/>
     <value name="Texture Data Format DEPTH COMP32F" value="23"/>
-    <value name="Texture Data Format DEPTH24_X8" value="24"/>
+    <value name="Texture Data Format DEPTH24_X8" value="24"/> <!-- X low, D high -->
     <value name="Texture Data Format R4" value="25"/>
     <value name="Texture Data Format R1" value="26"/>
     <!-- generic unfiltered 8-bit sample -->

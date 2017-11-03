@@ -171,7 +171,7 @@
     <field name="Coverage Read Mode" size="1" start="11" type="uint"/>
     <!-- add values -->
     <field name="Coverage Pipe Select" size="1" start="8" type="bool"/>
-    <field name="Rasteriser Oversample Mode" size="2" start="6" type="bool"/>
+    <field name="Rasteriser Oversample Mode" size="2" start="6" type="uint"/>
     <!-- add values -->
     <field name="Coverage Read Type" size="1" start="5" type="uint"/>
     <!-- add values -->

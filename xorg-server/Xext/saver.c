@@ -1268,14 +1268,12 @@ ProcScreenSaverQueryVersion,
         ProcScreenSaverSetAttributes,
         ProcScreenSaverUnsetAttributes, ProcScreenSaverSuspend,};
 
-#define NUM_REQUESTS	((sizeof NormalVector) / (sizeof NormalVector[0]))
-
 static int
 ProcScreenSaverDispatch(ClientPtr client)
 {
     REQUEST(xReq);
 
-    if (stuff->data < NUM_REQUESTS)
+    if (stuff->data < ARRAY_SIZE(NormalVector))
         return (*NormalVector[stuff->data]) (client);
     return BadRequest;
 }
@@ -1360,7 +1358,7 @@ SProcScreenSaverDispatch(ClientPtr client)
 {
     REQUEST(xReq);
 
-    if (stuff->data < NUM_REQUESTS)
+    if (stuff->data < ARRAY_SIZE(NormalVector))
         return (*SwappedVector[stuff->data]) (client);
     return BadRequest;
 }

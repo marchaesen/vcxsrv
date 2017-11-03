@@ -37,14 +37,12 @@ static struct {
 #endif
 };
 
-#define numApmEvents (sizeof(bsdToXF86Array) / sizeof(bsdToXF86Array[0]))
-
 static pmEvent
 bsdToXF86(int type)
 {
     int i;
 
-    for (i = 0; i < numApmEvents; i++) {
+    for (i = 0; i < ARRAY_SIZE(bsdToXF86Array); i++) {
         if (type == bsdToXF86Array[i].apmBsd) {
             return bsdToXF86Array[i].xf86;
         }

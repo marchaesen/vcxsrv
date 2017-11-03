@@ -89,5 +89,5 @@ BEGIN {
 
 END {
 	print "};"
-	printf "const int xf86NumDefaultModes = sizeof(xf86DefaultModes) / sizeof(DisplayModeRec);"
+	printf "const int xf86NumDefaultModes = ARRAY_SIZE(xf86DefaultModes);"
 }

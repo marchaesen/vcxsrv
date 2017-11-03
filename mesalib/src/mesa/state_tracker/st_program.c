@@ -562,7 +562,8 @@ st_create_vp_variant(struct st_context *st,
          vpv->num_inputs++;
       }
 
-      st_finalize_nir(st, &stvp->Base, vpv->tgsi.ir.nir);
+      st_finalize_nir(st, &stvp->Base, stvp->shader_program,
+                      vpv->tgsi.ir.nir);
 
       vpv->driver_shader = pipe->create_vs_state(pipe, &vpv->tgsi);
       /* driver takes ownership of IR: */
@@ -1088,7 +1089,7 @@ st_create_fp_variant(struct st_context *st,
          NIR_PASS_V(tgsi.ir.nir, nir_lower_tex, &options);
       }
 
-      st_finalize_nir(st, &stfp->Base, tgsi.ir.nir);
+      st_finalize_nir(st, &stfp->Base, stfp->shader_program, tgsi.ir.nir);
 
       if (unlikely(key->external.lower_nv12 || key->external.lower_iyuv)) {
          /* This pass needs to happen *after* nir_lower_sampler */
@@ -1638,7 +1639,8 @@ st_get_basic_variant(struct st_context *st,
 	 if (prog->tgsi.type == PIPE_SHADER_IR_NIR) {
 	    tgsi.type = PIPE_SHADER_IR_NIR;
 	    tgsi.ir.nir = nir_shader_clone(NULL, prog->tgsi.ir.nir);
-	    st_finalize_nir(st, &prog->Base, tgsi.ir.nir);
+	    st_finalize_nir(st, &prog->Base, prog->shader_program,
+                            tgsi.ir.nir);
 	 } else
 	    tgsi = prog->tgsi;
          /* fill in new variant */
@@ -1772,7 +1774,7 @@ st_translate_compute_program(struct st_context *st,
                                        MESA_SHADER_COMPUTE);
 
       /* no compute variants: */
-      st_finalize_nir(st, &stcp->Base, nir);
+      st_finalize_nir(st, &stcp->Base, stcp->shader_program, nir);
 
       stcp->tgsi.ir_type = PIPE_SHADER_IR_NIR;
       stcp->tgsi.prog = nir;

@@ -496,7 +496,7 @@ libgallium = static_library(
   ],
   c_args : [c_vis_args, c_msvc_compat_args],
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
-  dependencies : [dep_libdrm, dep_llvm, dep_unwind, dep_dl],
+  dependencies : [dep_libdrm, dep_llvm, dep_unwind, dep_dl, dep_m],
   build_by_default : false,
 )
 

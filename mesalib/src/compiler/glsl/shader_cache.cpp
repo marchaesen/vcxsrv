@@ -1061,7 +1061,18 @@ write_shader_metadata(struct blob *metadata, gl_linked_shader *shader)
                        sizeof(struct gl_bindless_image) - ptr_size);
    }
 
+   blob_write_bytes(metadata, &glprog->sh.fs.BlendSupport,
+                    sizeof(glprog->sh.fs.BlendSupport));
+
    write_shader_parameters(metadata, glprog->Parameters);
+
+   assert((glprog->driver_cache_blob == NULL) ==
+          (glprog->driver_cache_blob_size == 0));
+   blob_write_uint32(metadata, (uint32_t)glprog->driver_cache_blob_size);
+   if (glprog->driver_cache_blob_size > 0) {
+      blob_write_bytes(metadata, glprog->driver_cache_blob,
+                       glprog->driver_cache_blob_size);
+   }
 }
 
 static void
@@ -1114,8 +1125,19 @@ read_shader_metadata(struct blob_reader *metadata,
       }
    }
 
+   blob_copy_bytes(metadata, (uint8_t *) &glprog->sh.fs.BlendSupport,
+                   sizeof(glprog->sh.fs.BlendSupport));
+
    glprog->Parameters = _mesa_new_parameter_list();
    read_shader_parameters(metadata, glprog->Parameters);
+
+   glprog->driver_cache_blob_size = (size_t)blob_read_uint32(metadata);
+   if (glprog->driver_cache_blob_size > 0) {
+      glprog->driver_cache_blob =
+         (uint8_t*)ralloc_size(glprog, glprog->driver_cache_blob_size);
+      blob_copy_bytes(metadata, glprog->driver_cache_blob,
+                      glprog->driver_cache_blob_size);
+   }
 }
 
 static void

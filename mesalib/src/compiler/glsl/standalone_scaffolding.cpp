@@ -100,19 +100,19 @@ _mesa_new_shader(GLuint name, gl_shader_stage stage)
 }
 
 GLbitfield
-_mesa_program_state_flags(const gl_state_index state[STATE_LENGTH])
+_mesa_program_state_flags(UNUSED const gl_state_index state[STATE_LENGTH])
 {
    return 0;
 }
 
 char *
-_mesa_program_state_string(const gl_state_index state[STATE_LENGTH])
+_mesa_program_state_string(UNUSED const gl_state_index state[STATE_LENGTH])
 {
    return NULL;
 }
 
 void
-_mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh)
+_mesa_delete_shader(struct gl_context *, struct gl_shader *sh)
 {
    free((void *)sh->Source);
    free(sh->Label);
@@ -120,7 +120,7 @@ _mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh)
 }
 
 void
-_mesa_delete_linked_shader(struct gl_context *ctx,
+_mesa_delete_linked_shader(struct gl_context *,
                            struct gl_linked_shader *sh)
 {
    ralloc_free(sh);
