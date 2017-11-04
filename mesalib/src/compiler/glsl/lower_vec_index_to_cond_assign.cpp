@@ -128,7 +128,36 @@ ir_vec_index_to_cond_assign_visitor::convert_vector_extract_to_cond_assign(ir_rv
 {
    ir_expression *const expr = ir->as_expression();
 
-   if (expr == NULL || expr->operation != ir_binop_vector_extract)
+   if (expr == NULL)
+      return ir;
+
+   if (expr->operation == ir_unop_interpolate_at_centroid ||
+       expr->operation == ir_binop_interpolate_at_offset ||
+       expr->operation == ir_binop_interpolate_at_sample) {
+      /* Lower interpolateAtXxx(some_vec[idx], ...) to
+       * interpolateAtXxx(some_vec, ...)[idx] before lowering to conditional
+       * assignments, to maintain the rule that the interpolant is an l-value
+       * referring to a (part of a) shader input.
+       *
+       * This is required when idx is dynamic (otherwise it gets lowered to
+       * a swizzle).
+       */
+      ir_expression *const interpolant = expr->operands[0]->as_expression();
+      if (!interpolant || interpolant->operation != ir_binop_vector_extract)
+         return ir;
+
+      ir_rvalue *vec_input = interpolant->operands[0];
+      ir_expression *const vec_interpolate =
+         new(base_ir) ir_expression(expr->operation, vec_input->type,
+                                    vec_input, expr->operands[1]);
+
+      return convert_vec_index_to_cond_assign(ralloc_parent(ir),
+                                              vec_interpolate,
+                                              interpolant->operands[1],
+                                              ir->type);
+   }
+
+   if (expr->operation != ir_binop_vector_extract)
       return ir;
 
    return convert_vec_index_to_cond_assign(ralloc_parent(ir),

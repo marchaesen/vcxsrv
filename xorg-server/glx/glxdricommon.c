@@ -116,12 +116,14 @@ render_type_is_pbuffer_only(unsigned renderType)
 static __GLXconfig *
 createModeFromConfig(const __DRIcoreExtension * core,
                      const __DRIconfig * driConfig,
-                     unsigned int visualType)
+                     unsigned int visualType,
+                     GLboolean duplicateForComp)
 {
     __GLXDRIconfig *config;
     GLint renderType = 0;
     unsigned int attrib, value, drawableType = GLX_PBUFFER_BIT;
     int i;
+
 
     config = calloc(1, sizeof *config);
 
@@ -180,6 +182,28 @@ createModeFromConfig(const __DRIcoreExtension * core,
     config->config.drawableType = drawableType;
     config->config.yInverted = GL_TRUE;
 
+#ifdef COMPOSITE
+    /*
+     * Here we decide what fbconfigs will be duplicated for compositing.
+     * fgbconfigs marked with duplicatedForConf will be reserved for
+     * compositing visuals.
+     * It might look strange to do this decision this late when translation
+     * from a __DRIConfig is already done, but using the __DRIConfig
+     * accessor function becomes worse both with respect to code complexity
+     * and CPU usage.
+     */
+    if (duplicateForComp &&
+        (render_type_is_pbuffer_only(renderType) ||
+         config->config.rgbBits != 32 ||
+         config->config.visualRating != GLX_NONE ||
+         config->config.sampleBuffers != 0)) {
+        free(config);
+        return NULL;
+    }
+
+    config->config.duplicatedForComp = duplicateForComp;
+#endif
+
     return &config->config;
 }
 
@@ -194,20 +218,33 @@ glxConvertConfigs(const __DRIcoreExtension * core,
     head.next = NULL;
 
     for (i = 0; configs[i]; i++) {
-        tail->next = createModeFromConfig(core, configs[i], GLX_TRUE_COLOR);
+        tail->next = createModeFromConfig(core, configs[i], GLX_TRUE_COLOR,
+                                          GL_FALSE);
         if (tail->next == NULL)
             break;
-
         tail = tail->next;
     }
 
     for (i = 0; configs[i]; i++) {
-        tail->next = createModeFromConfig(core, configs[i], GLX_DIRECT_COLOR);
+        tail->next = createModeFromConfig(core, configs[i], GLX_DIRECT_COLOR,
+                                          GL_FALSE);
         if (tail->next == NULL)
             break;
 
         tail = tail->next;
     }
+
+#ifdef COMPOSITE
+    /* Duplicate fbconfigs for use with compositing visuals */
+    for (i = 0; configs[i]; i++) {
+        tail->next = createModeFromConfig(core, configs[i], GLX_TRUE_COLOR,
+                                          GL_TRUE);
+        if (tail->next == NULL)
+            continue;
+
+	tail = tail->next;
+    }
+#endif
 
     return head.next;
 }
