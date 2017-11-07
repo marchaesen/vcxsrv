@@ -1917,7 +1917,7 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig * mode,
 static void
 glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
 {
-    GLXWinConfig *c, *result, *prev = NULL;
+    GLXWinConfig *c, result;
     int numConfigs = 0;
     int i = 0;
     int n = 0;
@@ -1935,21 +1935,19 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
                numConfigs);
 
     /* alloc */
-    result = malloc(sizeof(GLXWinConfig) * numConfigs);
+    c = &result;
+    c->base.next=NULL;
 
-    if (NULL == result) {
-        return;
-    }
-
-    memset(result, 0, sizeof(GLXWinConfig) * numConfigs);
     n = 0;
 
     /* fill in configs */
     for (i = 0; i < numConfigs; i++) {
         int rc;
 
-        c = &(result[i]);
-        c->base.next = NULL;
+        c->base.next = calloc(1, sizeof(GLXWinConfig));
+        c = (GLXWinConfig *)c->base.next;
+        if (c==NULL)
+          continue;
         c->pixelFormatIndex = i + 1;
 
         rc = DescribePixelFormat(hdc, i + 1, sizeof(PIXELFORMATDESCRIPTOR),
@@ -2113,19 +2111,13 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
         c->base.sRGBCapable = 0;
 
         n++;
-
-        // update previous config to point to this config
-        if (prev)
-            prev->base.next = &(c->base);
-
-        prev = c;
     }
 
     GLWIN_DEBUG_MSG
         ("found %d pixelFormats suitable for conversion to fbConfigs", n);
 
     screen->base.numFBConfigs = n;
-    screen->base.fbconfigs = &(result->base);
+    screen->base.fbconfigs = result.base.next;
 }
 
 // helper function to access an attribute value from an attribute value array by attribute
@@ -2155,7 +2147,7 @@ getAttrValue(const int attrs[], int values[], unsigned int num, int attr,
 static void
 glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
 {
-    GLXWinConfig *c, *result, *prev = NULL;
+    GLXWinConfig *c, result;
     int i = 0;
     int n = 0;
 
@@ -2182,13 +2174,9 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
                numConfigs);
 
     /* alloc */
-    result = malloc(sizeof(GLXWinConfig) * numConfigs);
+    c=&result;
+    c->base.next=NULL;
 
-    if (NULL == result) {
-        return;
-    }
-
-    memset(result, 0, sizeof(GLXWinConfig) * numConfigs);
     n = 0;
 
 #define ADD_ATTR(a) { attrs[num_attrs++] = a; assert(num_attrs < ARRAY_SIZE(attrs)); }
@@ -2253,8 +2241,10 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
 
         memset(values,0,sizevalues);
 
-        c = &(result[i]);
-        c->base.next = NULL;
+        c->base.next = calloc(1, sizeof(GLXWinConfig));
+        if (c->base.next == NULL)
+          continue;
+        c = (GLXWinConfig *)c->base.next;
         c->pixelFormatIndex = i + 1;
 
         if (!wglGetPixelFormatAttribivARBWrapper
@@ -2506,14 +2496,8 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
         c->base.sRGBCapable = 0;
 
         n++;
-
-        // update previous config to point to this config
-        if (prev)
-            prev->base.next = &(c->base);
-
-        prev = c;
     }
 
     screen->base.numFBConfigs = n;
-    screen->base.fbconfigs = &(result->base);
+    screen->base.fbconfigs = result.base.next;
 }
