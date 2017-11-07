@@ -781,8 +781,10 @@ v3d_field_iterator_next(struct v3d_field_iterator *iter)
 
         const char *enum_name = NULL;
 
-        int s = iter->field->start;
-        int e = iter->field->end;
+        int group_member_offset =
+                iter_group_offset_bits(iter, iter->group_iter);
+        int s = group_member_offset + iter->field->start;
+        int e = group_member_offset + iter->field->end;
 
         switch (iter->field->type.kind) {
         case V3D_TYPE_UNKNOWN:

@@ -69,6 +69,29 @@
     <value name="TRIANGLE_FAN_TF" value="22"/>
   </enum>
 
+  <enum name="TMU Filter" prefix="V3D_TMU_FILTER">
+    <!-- Names are mip filter, min filter, mag filter -->
+    <value name="MIN_LIN_MIP_NONE_MAG_LIN" value="0"/>
+    <value name="MIN_LIN_MIP_NONE_MAG_NEAR" value="1"/>
+    <value name="MIN_NEAR_MIP_NONE_MAG_LIN" value="2"/>
+    <value name="MIN_NEAR_MIP_NONE_MAG_NEAR" value="3"/>
+
+    <value name="MIN_NEAR_MIP_NEAR_MAG_LIN" value="4"/>
+    <value name="MIN_NEAR_MIP_NEAR_MAG_NEAR" value="5"/>
+    <value name="MIN_NEAR_MIP_LIN_MAG_LIN" value="6"/>
+    <value name="MIN_NEAR_MIP_LIN_MAG_NEAR" value="7"/>
+
+    <value name="MIN_LIN_MIP_NEAR_MAG_LIN" value="8"/>
+    <value name="MIN_LIN_MIP_NEAR_MAG_NEAR" value="9"/>
+    <value name="MIN_LIN_MIP_LIN_MAG_LIN" value="10"/>
+    <value name="MIN_LIN_MIP_LIN_MAG_NEAR" value="11"/>
+
+    <value name="ANISOTROPIC_2_1" value="12"/>
+    <value name="ANISOTROPIC_4_1" value="13"/>
+    <value name="ANISOTROPIC_8_1" value="14"/>
+    <value name="ANISOTROPIC_16_1" value="15"/>
+  </enum>
+
   <packet code="0" name="Halt"/>
   <packet code="1" name="NOP"/>
   <packet code="4" name="Flush"/>
@@ -195,8 +218,7 @@
       <value name="Index type 32-bit" value="2"/>
     </field>
 
-    <field name="mode" size="5" start="0" type="uint">
-    </field>
+    <field name="mode" size="5" start="0" type="Primitive"/>
   </packet>
 
   <packet code="34" name="Indexed Instanced Primitive List" cl="B">
@@ -391,7 +413,7 @@
     <field name="Height (in tiles)" size="12" start="44" type="uint"/>
     <field name="Width (in tiles)" size="12" start="32" type="uint"/>
 
-    <field name="Tile State Data Array Base Address" size="32" start="0" type="address"/>
+    <field name="Tile State Data Array Base Address" size="26" start="6" type="address"/>
 
     <field name="tile allocation block size" size="2" start="4" type="uint">
       <value name="tile allocation block size 64b" value="0"/>
@@ -837,8 +859,7 @@
 
     <field name="Texture base pointer" size="30" start="2" type="address"/>
 
-    <field name="Minification Filter" size="3" start="1" type="uint"/>
-    <field name="Magnification Filter" size="1" start="0" type="uint"/>
+    <field name="Filter" size="4" start="0" type="TMU Filter"/>
   </struct>
 
   <enum name="Texture Data Formats">

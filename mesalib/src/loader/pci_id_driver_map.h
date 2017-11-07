@@ -48,7 +48,7 @@ static const int r600_chip_ids[] = {
 };
 
 static const int radeonsi_chip_ids[] = {
-#define CHIPSET(chip, name, family) chip,
+#define CHIPSET(chip, family) chip,
 #include "pci_ids/radeonsi_pci_ids.h"
 #undef CHIPSET
 };

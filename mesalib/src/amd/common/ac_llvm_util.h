@@ -57,7 +57,12 @@ enum ac_func_attr {
 enum ac_target_machine_options {
 	AC_TM_SUPPORTS_SPILL = (1 << 0),
 	AC_TM_SISCHED = (1 << 1),
+	AC_TM_FORCE_ENABLE_XNACK = (1 << 2),
+	AC_TM_FORCE_DISABLE_XNACK = (1 << 3),
+	AC_TM_PROMOTE_ALLOCA_TO_SCRATCH = (1 << 4),
 };
+
+const char *ac_get_llvm_processor_name(enum radeon_family family);
 LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family, enum ac_target_machine_options tm_options);
 
 LLVMTargetRef ac_get_llvm_target(const char *triple);

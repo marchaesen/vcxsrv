@@ -1165,6 +1165,7 @@ nir_visitor::visit(ir_call *ir)
       case nir_intrinsic_ballot: {
          nir_ssa_dest_init(&instr->instr, &instr->dest,
                            ir->return_deref->type->vector_elements, 64, NULL);
+         instr->num_components = ir->return_deref->type->vector_elements;
 
          ir_rvalue *value = (ir_rvalue *) ir->actual_parameters.get_head();
          instr->src[0] = nir_src_for_ssa(evaluate_rvalue(value));

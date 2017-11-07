@@ -1835,9 +1835,6 @@ typedef struct nir_shader_compiler_options {
    bool lower_extract_byte;
    bool lower_extract_word;
 
-   bool lower_vote_trivial;
-   bool lower_subgroup_masks;
-
    /**
     * Does the driver support real 32-bit integers?  (Otherwise, integers
     * are simulated by floats.)
@@ -1856,8 +1853,6 @@ typedef struct nir_shader_compiler_options {
     * information must be inferred from the list of input nir_variables.
     */
    bool use_interpolated_input_intrinsics;
-
-   unsigned max_subgroup_size;
 
    unsigned max_unroll_iterations;
 } nir_shader_compiler_options;
@@ -2231,6 +2226,15 @@ void nir_ssa_dest_init(nir_instr *instr, nir_dest *dest,
 void nir_ssa_def_init(nir_instr *instr, nir_ssa_def *def,
                       unsigned num_components, unsigned bit_size,
                       const char *name);
+static inline void
+nir_ssa_dest_init_for_type(nir_instr *instr, nir_dest *dest,
+                           const struct glsl_type *type,
+                           const char *name)
+{
+   assert(glsl_type_is_vector_or_scalar(type));
+   nir_ssa_dest_init(instr, dest, glsl_get_components(type),
+                     glsl_get_bit_size(type), name);
+}
 void nir_ssa_def_rewrite_uses(nir_ssa_def *def, nir_src new_src);
 void nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
                                     nir_instr *after_me);
@@ -2478,6 +2482,17 @@ bool nir_lower_samplers(nir_shader *shader,
                         const struct gl_shader_program *shader_program);
 bool nir_lower_samplers_as_deref(nir_shader *shader,
                                  const struct gl_shader_program *shader_program);
+
+typedef struct nir_lower_subgroups_options {
+   uint8_t subgroup_size;
+   uint8_t ballot_bit_size;
+   bool lower_to_scalar:1;
+   bool lower_vote_trivial:1;
+   bool lower_subgroup_masks:1;
+} nir_lower_subgroups_options;
+
+bool nir_lower_subgroups(nir_shader *shader,
+                         const nir_lower_subgroups_options *options);
 
 bool nir_lower_system_values(nir_shader *shader);
 

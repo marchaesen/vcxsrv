@@ -896,7 +896,7 @@ initializeExtensions(__GLXscreen * screen)
 #ifdef __DRI2_FLUSH_CONTROL
         if (strcmp(extensions[i]->name, __DRI2_FLUSH_CONTROL) == 0) {
             __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_ARB_context_flush_control\n");
+                                 "GLX_ARB_context_flush_control");
         }
 #endif
 

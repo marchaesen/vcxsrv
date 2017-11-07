@@ -264,6 +264,18 @@ nir_imm_int64(nir_builder *build, int64_t x)
 }
 
 static inline nir_ssa_def *
+nir_imm_intN_t(nir_builder *build, uint64_t x, unsigned bit_size)
+{
+   nir_const_value v;
+
+   memset(&v, 0, sizeof(v));
+   assert(bit_size <= 64);
+   v.i64[0] = x & (~0ull >> (64 - bit_size));
+
+   return nir_build_imm(build, 1, bit_size, v);
+}
+
+static inline nir_ssa_def *
 nir_imm_ivec4(nir_builder *build, int x, int y, int z, int w)
 {
    nir_const_value v;

@@ -397,7 +397,8 @@ validate_alu_instr(nir_alu_instr *instr, validate_state *state)
 }
 
 static void
-validate_deref_chain(nir_deref *deref, validate_state *state)
+validate_deref_chain(nir_deref *deref, nir_variable_mode mode,
+                     validate_state *state)
 {
    validate_assert(state, deref->child == NULL || ralloc_parent(deref->child) == deref);
 
@@ -405,6 +406,19 @@ validate_deref_chain(nir_deref *deref, validate_state *state)
    while (deref != NULL) {
       switch (deref->deref_type) {
       case nir_deref_type_array:
+         if (mode == nir_var_shared) {
+            /* Shared variables have a bit more relaxed rules because we need
+             * to be able to handle array derefs on vectors.  Fortunately,
+             * nir_lower_io handles these just fine.
+             */
+            validate_assert(state, glsl_type_is_array(parent->type) ||
+                                   glsl_type_is_matrix(parent->type) ||
+                                   glsl_type_is_vector(parent->type));
+         } else {
+            /* Most of NIR cannot handle array derefs on vectors */
+            validate_assert(state, glsl_type_is_array(parent->type) ||
+                                   glsl_type_is_matrix(parent->type));
+         }
          validate_assert(state, deref->type == glsl_get_array_element(parent->type));
          if (nir_deref_as_array(deref)->deref_array_type ==
              nir_deref_array_type_indirect)
@@ -451,7 +465,7 @@ validate_deref_var(void *parent_mem_ctx, nir_deref_var *deref, validate_state *s
 
    validate_var_use(deref->var, state);
 
-   validate_deref_chain(&deref->deref, state);
+   validate_deref_chain(&deref->deref, deref->var->data.mode, state);
 }
 
 static void

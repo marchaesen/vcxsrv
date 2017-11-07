@@ -60,6 +60,10 @@ void
 _mesa_delete_ati_fragment_shader(struct gl_context *ctx, struct ati_fragment_shader *s)
 {
    GLuint i;
+
+   if (s == &DummyShader)
+      return;
+
    for (i = 0; i < MAX_NUM_PASSES_ATI; i++) {
       free(s->Instructions[i]);
       free(s->SetupInst[i]);
@@ -295,7 +299,6 @@ _mesa_DeleteFragmentShaderATI(GLuint id)
       if (prog) {
 	 prog->RefCount--;
 	 if (prog->RefCount <= 0) {
-	    assert(prog != &DummyShader);
             _mesa_delete_ati_fragment_shader(ctx, prog);
 	 }
       }
