@@ -40,6 +40,6 @@ CSRCS = \
         swap_interval.c \
         xfont.c
 
-INCLUDES := $(MHMAKECONF)\mesalib\include . ../composite $(INCLUDES)
+INCLUDES := $(MHMAKECONF)\mesalib\include . ../composite $(INCLUDES) $(MHMAKECONF)\gl\include
 
 load_makefile -f $(MHMAKECONF)\mesalib\src\mapi\glapi\gen\makefile.srcs NORELDBG=1

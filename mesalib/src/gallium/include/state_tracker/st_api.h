@@ -91,6 +91,7 @@ enum st_api_feature
 #define ST_CONTEXT_FLAG_ROBUST_ACCESS       (1 << 2)
 #define ST_CONTEXT_FLAG_RESET_NOTIFICATION_ENABLED (1 << 3)
 #define ST_CONTEXT_FLAG_NO_ERROR            (1 << 4)
+#define ST_CONTEXT_FLAG_RELEASE_NONE	    (1 << 5)
 
 /**
  * Reasons that context creation might fail.

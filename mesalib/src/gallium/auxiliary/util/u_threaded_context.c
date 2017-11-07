@@ -1276,6 +1276,28 @@ tc_improve_map_buffer_flags(struct threaded_context *tc,
                             struct threaded_resource *tres, unsigned usage,
                             unsigned offset, unsigned size)
 {
+   /* Never invalidate inside the driver and never infer "unsynchronized". */
+   unsigned tc_flags = TC_TRANSFER_MAP_NO_INVALIDATE |
+                       TC_TRANSFER_MAP_NO_INFER_UNSYNCHRONIZED;
+
+   /* Prevent a reentry. */
+   if (usage & tc_flags)
+      return usage;
+
+   /* Use the staging upload if it's preferred. */
+   if (usage & (PIPE_TRANSFER_DISCARD_RANGE |
+                PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE) &&
+       !(usage & PIPE_TRANSFER_PERSISTENT) &&
+       /* Try not to decrement the counter if it's not positive. Still racy,
+        * but it makes it harder to wrap the counter from INT_MIN to INT_MAX. */
+       tres->max_forced_staging_uploads > 0 &&
+       p_atomic_dec_return(&tres->max_forced_staging_uploads) >= 0) {
+      usage &= ~(PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE |
+                 PIPE_TRANSFER_UNSYNCHRONIZED);
+
+      return usage | tc_flags | PIPE_TRANSFER_DISCARD_RANGE;
+   }
+
    /* Sparse buffers can't be mapped directly and can't be reallocated
     * (fully invalidated). That may just be a radeonsi limitation, but
     * the threaded context must obey it with radeonsi.
@@ -1295,12 +1317,12 @@ tc_improve_map_buffer_flags(struct threaded_context *tc,
       return usage;
    }
 
+   usage |= tc_flags;
+
    /* Handle CPU reads trivially. */
    if (usage & PIPE_TRANSFER_READ) {
       /* Drivers aren't allowed to do buffer invalidations. */
-      return (usage & ~PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE) |
-             TC_TRANSFER_MAP_NO_INVALIDATE |
-             TC_TRANSFER_MAP_NO_INFER_UNSYNCHRONIZED;
+      return usage & ~PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
    }
 
    /* See if the buffer range being mapped has never been initialized,
@@ -1342,10 +1364,7 @@ tc_improve_map_buffer_flags(struct threaded_context *tc,
       usage |= TC_TRANSFER_MAP_THREADED_UNSYNC; /* notify the driver */
    }
 
-   /* Never invalidate inside the driver and never infer "unsynchronized". */
-   return usage |
-          TC_TRANSFER_MAP_NO_INVALIDATE |
-          TC_TRANSFER_MAP_NO_INFER_UNSYNCHRONIZED;
+   return usage;
 }
 
 static void *

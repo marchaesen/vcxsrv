@@ -40,6 +40,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(x)		(dgettext(GETTEXT_PACKAGE, x))
+#else
+#define dgettext(d, s)	(s)
+#define _(x)		(x)
+#endif
+
 #ifndef HAVE_GETOPT
 #define HAVE_GETOPT 0
 #endif
@@ -71,26 +79,26 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-bVh] [-i index] [-f FORMAT] [--index index] [--brief] [--format FORMAT] [--version] [--help] font-file...\n",
+    fprintf (file, _("usage: %s [-bVh] [-i index] [-f FORMAT] [--index index] [--brief] [--format FORMAT] [--version] [--help] font-file...\n"),
 	     program);
 #else
-    fprintf (file, "usage: %s [-bVh] [-i index] [-f FORMAT] font-file...\n",
+    fprintf (file, _("usage: %s [-bVh] [-i index] [-f FORMAT] font-file...\n"),
 	     program);
 #endif
-    fprintf (file, "Query font files and print resulting pattern(s)\n");
+    fprintf (file, _("Query font files and print resulting pattern(s)\n"));
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
-    fprintf (file, "  -i, --index INDEX    display the INDEX face of each font file only\n");
-    fprintf (file, "  -b, --brief          display font pattern briefly\n");
-    fprintf (file, "  -f, --format=FORMAT  use the given output format\n");
-    fprintf (file, "  -V, --version        display font config version and exit\n");
-    fprintf (file, "  -h, --help           display this help and exit\n");
+    fprintf (file, _("  -i, --index INDEX    display the INDEX face of each font file only\n"));
+    fprintf (file, _("  -b, --brief          display font pattern briefly\n"));
+    fprintf (file, _("  -f, --format=FORMAT  use the given output format\n"));
+    fprintf (file, _("  -V, --version        display font config version and exit\n"));
+    fprintf (file, _("  -h, --help           display this help and exit\n"));
 #else
-    fprintf (file, "  -i INDEX   (index)         display the INDEX face of each font file only\n");
-    fprintf (file, "  -b         (brief)         display font pattern briefly\n");
-    fprintf (file, "  -f FORMAT  (format)        use the given output format\n");
-    fprintf (file, "  -V         (version)       display font config version and exit\n");
-    fprintf (file, "  -h         (help)          display this help and exit\n");
+    fprintf (file, _("  -i INDEX   (index)         display the INDEX face of each font file only\n"));
+    fprintf (file, _("  -b         (brief)         display font pattern briefly\n"));
+    fprintf (file, _("  -f FORMAT  (format)        use the given output format\n"));
+    fprintf (file, _("  -V         (version)       display font config version and exit\n"));
+    fprintf (file, _("  -h         (help)          display this help and exit\n"));
 #endif
     exit (error);
 }
@@ -147,7 +155,7 @@ main (int argc, char **argv)
     {
 	if (!FcFreeTypeQueryAll ((FcChar8*) argv[i], id, NULL, NULL, fs))
 	{
-	    fprintf (stderr, "Can't query face %u of font file %s\n", id, argv[i]);
+	    fprintf (stderr, _("Can't query face %u of font file %s\n"), id, argv[i]);
 	    err = 1;
 	}
     }

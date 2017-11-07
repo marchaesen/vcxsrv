@@ -10,6 +10,7 @@ $(OBJDIR)\fcobjshash.h: $(OBJDIR)\fcobjshash.gperf
 	gperf -m 100 $< > $@
 	python converttype.py $@
 
+DEFINES+=FC_TEMPLATEDIR=\"./conf.avail\"
 
 load_makefile NORELDBG=1 ..\fc-case\makefile
 load_makefile NORELDBG=1 ..\fc-lang\makefile
@@ -26,6 +27,7 @@ CSRCS = \
 	fcformat.c \
 	fcfreetype.c \
 	fcfs.c \
+	fcptrlist.c \
 	fcinit.c \
 	fclang.c \
 	fclist.c \

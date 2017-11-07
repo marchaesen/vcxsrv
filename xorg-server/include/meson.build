@@ -113,7 +113,6 @@ conf_data.set('HAVE_ARC4RANDOM_BUF', cc.has_function('arc4random_buf', dependenc
 conf_data.set('HAVE_BACKTRACE', cc.has_function('backtrace'))
 conf_data.set('HAVE_CBRT', cc.has_function('cbrt'))
 conf_data.set('HAVE_EPOLL_CREATE1', cc.has_function('epoll_create1'))
-conf_data.set('HAVE_FFS', cc.has_function('ffs'))
 conf_data.set('HAVE_GETUID', cc.has_function('getuid'))
 conf_data.set('HAVE_GETEUID', cc.has_function('geteuid'))
 conf_data.set('HAVE_ISSETUGID', cc.has_function('issetugid'))

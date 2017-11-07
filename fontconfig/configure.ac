@@ -90,6 +90,20 @@ PKGCONFIG_REQUIRES=
 PKGCONFIG_REQUIRES_PRIVATELY=
 
 dnl ==========================================================================
+dnl gettext stuff
+dnl ==========================================================================
+GETTEXT_PACKAGE=$PACKAGE
+AC_SUBST(GETTEXT_PACKAGE)
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Gettext package])
+
+AM_GNU_GETTEXT([external])
+
+AC_PATH_PROG(ITSTOOL, [itstool])
+if test -z "$ITSTOOL"; then
+   AC_MSG_ERROR([The itstool were not found. Please install itstool.])
+fi
+
+dnl ==========================================================================
 
 case "$host" in
   *-*-mingw*)
@@ -732,6 +746,7 @@ src/Makefile
 conf.d/Makefile
 fc-cache/Makefile
 fc-cat/Makefile
+fc-conflist/Makefile
 fc-list/Makefile
 fc-match/Makefile
 fc-pattern/Makefile
@@ -740,6 +755,8 @@ fc-scan/Makefile
 fc-validate/Makefile
 doc/Makefile
 doc/version.sgml
+po/Makefile.in
+po-conf/Makefile.in
 test/Makefile
 fontconfig.spec
 fontconfig.pc

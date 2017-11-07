@@ -62,10 +62,6 @@ SOFTWARE.
 #include <X11/Xmd.h>
 #include "servermd.h"
 
-#ifndef HAVE_FFS
-extern int ffs(int);
-#endif
-
 /* MICOPYAREA -- public entry for the CopyArea request
  * For each rectangle in the source region
  *     get the pixels with GetSpans

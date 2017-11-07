@@ -113,6 +113,17 @@ extern pfnSHGetFolderPathA pSHGetFolderPathA;
 #define FcPrivate
 #endif
 
+/* NLS */
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(x)		(dgettext(GETTEXT_PACKAGE, x))
+#else
+#define dgettext(d, s)	(s)
+#define _(x)		(x)
+#endif
+
+#define N_(x)	x
+
 FC_ASSERT_STATIC (sizeof (FcRef) == sizeof (int));
 
 #define FcStrdup(s) ((FcChar8 *) strdup ((const char *) (s)))
@@ -303,6 +314,16 @@ typedef struct _FcEdit {
     FcValueBinding  binding;
 } FcEdit;
 
+typedef void (* FcDestroyFunc) (void *data);
+
+typedef struct _FcPtrList	FcPtrList;
+/* need to sync with FcConfigFileInfoIter at fontconfig.h */
+typedef struct _FcPtrListIter {
+    void *dummy1;
+    void *dummy2;
+    void *dummy3;
+} FcPtrListIter;
+
 typedef enum _FcRuleType {
     FcRuleUnknown, FcRuleTest, FcRuleEdit
 } FcRuleType;
@@ -316,10 +337,14 @@ typedef struct _FcRule {
     } u;
 } FcRule;
 
-typedef struct _FcSubst {
-    struct _FcSubst	*next;
-    FcRule		*rule;
-} FcSubst;
+typedef struct _FcRuleSet {
+    FcRef	ref;
+    FcChar8	*name;
+    FcChar8	*description;
+    FcChar8	*domain;
+    FcBool	enabled;
+    FcPtrList	*subst[FcMatchKindEnd];
+} FcRuleSet;
 
 typedef struct _FcCharLeaf {
     FcChar32	map[256/32];
@@ -496,10 +521,12 @@ struct _FcConfig {
      * Substitution instructions for patterns and fonts;
      * maxObjects is used to allocate appropriate intermediate storage
      * while performing a whole set of substitutions
+     *
+     * 0.. substitutions for patterns
+     * 1.. substitutions for fonts
+     * 2.. substitutions for scanned fonts
      */
-    FcSubst	*substPattern;	    /* substitutions for patterns */
-    FcSubst	*substFont;	    /* substitutions for fonts */
-    FcSubst	*substScan;	    /* substitutions for scanned fonts */
+    FcPtrList	*subst[FcMatchKindEnd];
     int		maxObjects;	    /* maximum number of tests in all substs */
     /*
      * List of patterns used to control font file selection
@@ -529,6 +556,8 @@ struct _FcConfig {
     FcExprPage  *expr_pool;	    /* pool of FcExpr's */
 
     FcChar8     *sysRoot;	    /* override the system root directory */
+    FcStrSet	*availConfigFiles;  /* config files available */
+    FcPtrList	*rulesetList;	    /* List of rulesets being installed */
 };
 
 typedef struct _FcFileTime {
@@ -676,6 +705,29 @@ FcPrivate FcBool
 FcConfigAddCache (FcConfig *config, FcCache *cache,
 		  FcSetName set, FcStrSet *dirSet);
 
+FcPrivate FcRuleSet *
+FcRuleSetCreate (const FcChar8 *name);
+
+FcPrivate void
+FcRuleSetDestroy (FcRuleSet *rs);
+
+FcPrivate void
+FcRuleSetReference (FcRuleSet *rs);
+
+FcPrivate void
+FcRuleSetEnable (FcRuleSet	*rs,
+		 FcBool		flag);
+
+FcPrivate void
+FcRuleSetAddDescription (FcRuleSet	*rs,
+			 const FcChar8	*domain,
+			 const FcChar8	*description);
+
+FcPrivate int
+FcRuleSetAdd (FcRuleSet		*rs,
+	      FcRule		*rule,
+	      FcMatchKind	kind);
+
 /* fcserialize.c */
 FcPrivate intptr_t
 FcAlignSize (intptr_t size);
@@ -791,7 +843,7 @@ FcPrivate void
 FcEditPrint (const FcEdit *edit);
 
 FcPrivate void
-FcSubstPrint (const FcSubst *subst);
+FcRulePrint (const FcRule *rule);
 
 FcPrivate void
 FcCharSetPrint (const FcCharSet *c);
@@ -852,6 +904,42 @@ FcFontSetSerialize (FcSerialize *serialize, const FcFontSet * s);
 FcPrivate FcFontSet *
 FcFontSetDeserialize (const FcFontSet *set);
 
+/* fcplist.c */
+FcPrivate FcPtrList *
+FcPtrListCreate (FcDestroyFunc func);
+
+FcPrivate void
+FcPtrListDestroy (FcPtrList *list);
+
+FcPrivate void
+FcPtrListIterInit (const FcPtrList	*list,
+		   FcPtrListIter	*iter);
+
+FcPrivate void
+FcPtrListIterInitAtLast (FcPtrList	*list,
+			 FcPtrListIter	*iter);
+
+FcPrivate FcBool
+FcPtrListIterNext (const FcPtrList	*list,
+		   FcPtrListIter	*iter);
+
+FcPrivate FcBool
+FcPtrListIterIsValid (const FcPtrList		*list,
+		      const FcPtrListIter	*iter);
+
+FcPrivate void *
+FcPtrListIterGetValue (const FcPtrList		*list,
+		       const FcPtrListIter	*iter);
+
+FcPrivate FcBool
+FcPtrListIterAdd (FcPtrList	*list,
+		  FcPtrListIter	*iter,
+		void		*data);
+
+FcPrivate FcBool
+FcPtrListIterRemove (FcPtrList		*list,
+		     FcPtrListIter	*iter);
+
 /* fcinit.c */
 FcPrivate FcConfig *
 FcInitLoadOwnConfig (FcConfig *config);
@@ -891,6 +979,15 @@ FcNameUnparseLangSet (FcStrBuf *buf, const FcLangSet *ls);
 
 FcPrivate FcChar8 *
 FcNameUnparseEscaped (FcPattern *pat, FcBool escape);
+
+FcPrivate FcBool
+FcConfigParseOnly (FcConfig		*config,
+		   const FcChar8	*name,
+		   FcBool		complain);
+
+FcPrivate FcChar8 *
+FcConfigRealFilename (FcConfig		*config,
+		      const FcChar8	*url);
 
 /* fclist.c */
 

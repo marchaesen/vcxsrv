@@ -79,7 +79,8 @@ AM_CPPFLAGS = 						\
 	$(EXPAT_CFLAGS)					\
 	$(WARN_CFLAGS)					\
 	-DFC_CACHEDIR='"$(FC_CACHEDIR)"'                \
-	-DFONTCONFIG_PATH='"$(BASECONFIGDIR)"'
+	-DFONTCONFIG_PATH='"$(BASECONFIGDIR)"'		\
+	-DFC_TEMPLATEDIR='"$(TEMPLATEDIR)"'
 
 EXTRA_DIST += makealias
 
@@ -137,6 +138,7 @@ libfontconfig_la_SOURCES = \
 	fcformat.c \
 	fcfreetype.c \
 	fcfs.c \
+	fcptrlist.c \
 	fcinit.c \
 	fclang.c \
 	fclist.c \

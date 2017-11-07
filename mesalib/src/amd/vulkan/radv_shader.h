@@ -103,10 +103,6 @@ void
 radv_shader_variant_destroy(struct radv_device *device,
 			    struct radv_shader_variant *variant);
 
-uint32_t
-radv_shader_stage_to_user_data_0(gl_shader_stage stage, enum chip_class chip_class,
-				 bool has_gs, bool has_tess);
-
 const char *
 radv_get_shader_name(struct radv_shader_variant *var, gl_shader_stage stage);
 

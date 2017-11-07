@@ -410,3 +410,38 @@ this function calls FcConfigSetCurrent() internally.
 @SINCE@		2.10.92
 @@
 
+@RET@		void
+@FUNC@		FcConfigFileInfoIterInit
+@TYPE1@		FcConfig *			@ARG1@		config
+@TYPE2@		FcConfigFileInfoIter *		@ARG2@		iter
+@PURPOSE@	Initialize the iterator
+@DESC@
+Initialize 'iter' with the first iterator in the config file information list.
+@SINCE@		2.12.91
+@@
+
+@RET@		FcBool
+@FUNC@		FcConfigFileInfoIterNext
+@TYPE1@		FcConfig *			@ARG1@		config
+@TYPE2@		FcConfigFileInfoIter *		@ARG2@		iter
+@PURPOSE@	Set the iterator to point to the next list
+@DESC@
+Set 'iter' to point to the next node in the config file information list.
+If there is no next node, FcFalse is returned.
+@SINCE@		2.12.91
+@@
+
+@RET@		FcBool
+@FUNC@		FcConfigFileInfoIterGet
+@TYPE1@		FcConfig *			@ARG1@		config
+@TYPE2@		FcConfigFileInfoIter *		@ARG2@		iter
+@TYPE3@		FcChar8 **	     		@ARG3@		name
+@TYPE4@		FcChar8 **			@ARG4@		description
+@TYPE5@		FcBool *			@ARG5@		enabled
+@PURPOSE@	Obtain the configuration file information
+@DESC@
+Obtain the filename, the description and the flag whether it is enabled or not
+for 'iter' where points to current configuration file information.
+If the iterator is invalid, FcFalse is returned.
+@SINCE@		2.12.91
+@@

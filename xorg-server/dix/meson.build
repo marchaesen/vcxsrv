@@ -11,7 +11,6 @@ srcs_dix = [
     'events.c',
     'eventconvert.c',
     'extension.c',
-    'ffs.c',
     'gc.c',
     'getevents.c',
     'globals.c',

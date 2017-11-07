@@ -456,9 +456,9 @@ TraverseTree(WindowPtr pWin, VisitWindowProcPtr func, void *data)
 
 /*****
  * WalkTree
- *   Walk the window tree, for SCREEN, preforming FUNC(pWin, data) on
+ *   Walk the window tree, for SCREEN, performing FUNC(pWin, data) on
  *   each window.  If FUNC returns WT_WALKCHILDREN, traverse the children,
- *   if it returns WT_DONTWALKCHILDREN, dont.  If it returns WT_STOPWALKING
+ *   if it returns WT_DONTWALKCHILDREN, don't.  If it returns WT_STOPWALKING,
  *   exit WalkTree.  Does depth-first traverse.
  *****/
 

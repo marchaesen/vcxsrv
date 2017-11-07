@@ -34,6 +34,10 @@
  * Basic notes:
  *   1. Want compact representations, so we use bitfields.
  *   2. Put bitfields before other (GLfloat) fields.
+ *   3. enum bitfields need to be at least one bit extra in size so the most
+ *      significant bit is zero.  MSVC treats enums as signed so if the high
+ *      bit is set, the value will be interpreted as a negative number.
+ *      That causes trouble in various places.
  */
 
 
@@ -436,8 +440,8 @@ struct pipe_surface
 struct pipe_sampler_view
 {
    struct pipe_reference reference;
-   enum pipe_format format:16;      /**< typed PIPE_FORMAT_x */
-   enum pipe_texture_target target:4; /**< PIPE_TEXTURE_x */
+   enum pipe_format format:15;      /**< typed PIPE_FORMAT_x */
+   enum pipe_texture_target target:5; /**< PIPE_TEXTURE_x */
    unsigned swizzle_r:3;         /**< PIPE_SWIZZLE_x for red component */
    unsigned swizzle_g:3;         /**< PIPE_SWIZZLE_x for green component */
    unsigned swizzle_b:3;         /**< PIPE_SWIZZLE_x for blue component */

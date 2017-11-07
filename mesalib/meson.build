@@ -24,7 +24,7 @@ project(
   version : '17.3.0-devel',
   license : 'MIT',
   meson_version : '>= 0.42',
-  default_options : ['c_std=c99', 'cpp_std=c++11']
+  default_options : ['buildtype=debugoptimized', 'c_std=c99', 'cpp_std=c++11']
 )
 
 # Arguments for the preprocessor, put these in a separate array from the C and
@@ -349,8 +349,8 @@ if cc.get_id() == 'gcc' and cc.version().version_compare('< 4.4.6')
   error('When using GCC, version 4.4.6 or later is required.')
 endif
 
-# Define DEBUG for debug and debugoptimized builds
-if get_option('buildtype').startswith('debug')
+# Define DEBUG for debug builds only (debugoptimized is not included on this one)
+if get_option('buildtype') == 'debug'
   pre_args += '-DDEBUG'
 endif
 

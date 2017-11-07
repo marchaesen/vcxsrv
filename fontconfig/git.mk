@@ -145,13 +145,28 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 				po/Makefile \
 				po/POTFILES \
 				po/stamp-it \
+				po/stamp-po \
 				po/.intltool-merge-cache \
 				"po/*.gmo" \
 				"po/*.mo" \
+				"po/*.sed" \
 				po/$(GETTEXT_PACKAGE).pot \
 				intltool-extract.in \
 				intltool-merge.in \
 				intltool-update.in \
+			; do echo /$$x; done; \
+		fi; \
+		if test  -f $(srcdir)/po-conf/Makefile.in.in; then \
+			for x in \
+				po-conf/Makefile.in \
+				po-conf/Makefile \
+				po-conf/POTFILES \
+				po-conf/stamp-it \
+				po-conf/stamp-po \
+				"po-conf/*.gmo" \
+				"po-conf/*.mo" \
+				"po-conf/*.sed" \
+				po-conf/$(GETTEXT_PACKAGE)-conf.pot \
 			; do echo /$$x; done; \
 		fi; \
 		if test -f $(srcdir)/configure; then \

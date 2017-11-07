@@ -21,7 +21,6 @@ libdix_la_SOURCES = 	\
 	events.c	\
 	eventconvert.c  \
 	extension.c	\
-	ffs.c		\
 	gc.c		\
 	getevents.c	\
 	globals.c	\

@@ -1,6 +1,6 @@
 LIBRARY=libwinglx
 
-INCLUDES += $(OBJDIR) ..\..\..\glx .. ..\..\..
+INCLUDES += $(OBJDIR) ..\..\..\glx .. ..\..\.. $(MHMAKECONF)\gl\include
 DEFINES += GLAPIENTRY=__stdcall _GLAPI_NO_EXPORTS
 
 DEFINES += XWIN_GLX_WINDOWS

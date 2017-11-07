@@ -957,8 +957,8 @@ void radv_CmdCopyQueryPoolResults(
 	uint64_t dest_va = radv_buffer_get_va(dst_buffer->bo);
 	dest_va += dst_buffer->offset + dstOffset;
 
-	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, pool->bo, 8);
-	cmd_buffer->device->ws->cs_add_buffer(cmd_buffer->cs, dst_buffer->bo, 8);
+	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, pool->bo, 8);
+	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, dst_buffer->bo, 8);
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -1084,7 +1084,7 @@ void radv_CmdBeginQuery(
 	uint64_t va = radv_buffer_get_va(pool->bo);
 	va += pool->stride * query;
 
-	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 8);
+	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 8);
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -1125,7 +1125,7 @@ void radv_CmdEndQuery(
 	uint64_t avail_va = va + pool->availability_offset + 4 * query;
 	va += pool->stride * query;
 
-	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 8);
+	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 8);
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -1177,7 +1177,7 @@ void radv_CmdWriteTimestamp(
 	uint64_t avail_va = va + pool->availability_offset + 4 * query;
 	uint64_t query_va = va + pool->stride * query;
 
-	cmd_buffer->device->ws->cs_add_buffer(cs, pool->bo, 5);
+	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 5);
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws, cs, 28);
 

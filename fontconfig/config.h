@@ -16,4 +16,7 @@
 #else
 #define SIZEOF_VOID_P 4
 #endif
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
 

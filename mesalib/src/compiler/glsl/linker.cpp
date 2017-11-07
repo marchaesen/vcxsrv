@@ -1121,10 +1121,16 @@ cross_validate_globals(struct gl_shader_program *prog,
          if (prog->IsES && (prog->data->Version != 310 ||
                             !var->get_interface_type()) &&
              existing->data.precision != var->data.precision) {
-            linker_error(prog, "declarations for %s `%s` have "
-                         "mismatching precision qualifiers\n",
-                         mode_string(var), var->name);
-            return;
+            if ((existing->data.used && var->data.used) || prog->data->Version >= 300) {
+               linker_error(prog, "declarations for %s `%s` have "
+                            "mismatching precision qualifiers\n",
+                            mode_string(var), var->name);
+               return;
+            } else {
+               linker_warning(prog, "declarations for %s `%s` have "
+                              "mismatching precision qualifiers\n",
+                              mode_string(var), var->name);
+            }
          }
       } else
          variables->add_variable(var);

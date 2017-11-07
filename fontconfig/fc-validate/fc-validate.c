@@ -41,6 +41,14 @@
 #include <string.h>
 #include <locale.h>
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(x)		(dgettext(GETTEXT_PACKAGE, x))
+#else
+#define dgettext(d, s)	(s)
+#define _(x)		(x)
+#endif
+
 #ifndef HAVE_GETOPT
 #define HAVE_GETOPT 0
 #endif
@@ -72,26 +80,26 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-Vhv] [-i index] [-l LANG] [--index index] [--lang LANG] [--verbose] [--version] [--help] font-file...\n",
+    fprintf (file, _("usage: %s [-Vhv] [-i index] [-l LANG] [--index index] [--lang LANG] [--verbose] [--version] [--help] font-file...\n"),
 	     program);
 #else
-    fprintf (file, "usage: %s [-Vhv] [-i index] [-l LANG] font-file...\n",
+    fprintf (file, _("usage: %s [-Vhv] [-i index] [-l LANG] font-file...\n"),
 	     program);
 #endif
-    fprintf (file, "Validate font files and print result\n");
+    fprintf (file, _("Validate font files and print result\n"));
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
-    fprintf (file, "  -i, --index INDEX    display the INDEX face of each font file only\n");
-    fprintf (file, "  -l, --lang=LANG      set LANG instead of current locale\n");
-    fprintf (file, "  -v, --verbose        show more detailed information\n");
-    fprintf (file, "  -V, --version        display font config version and exit\n");
-    fprintf (file, "  -h, --help           display this help and exit\n");
+    fprintf (file, _("  -i, --index INDEX    display the INDEX face of each font file only\n"));
+    fprintf (file, _("  -l, --lang=LANG      set LANG instead of current locale\n"));
+    fprintf (file, _("  -v, --verbose        show more detailed information\n"));
+    fprintf (file, _("  -V, --version        display font config version and exit\n"));
+    fprintf (file, _("  -h, --help           display this help and exit\n"));
 #else
-    fprintf (file, "  -i INDEX   (index)        display the INDEX face of each font file only\n");
-    fprintf (file, "  -l LANG    (lang)         set LANG instead of current locale\n");
-    fprintf (file, "  -v         (verbose)      show more detailed information\n");
-    fprintf (file, "  -V         (version)      display font config version and exit\n");
-    fprintf (file, "  -h         (help)         display this help and exit\n");
+    fprintf (file, _("  -i INDEX   (index)        display the INDEX face of each font file only\n"));
+    fprintf (file, _("  -l LANG    (lang)         set LANG instead of current locale\n"));
+    fprintf (file, _("  -v         (verbose)      show more detailed information\n"));
+    fprintf (file, _("  -V         (version)      display font config version and exit\n"));
+    fprintf (file, _("  -h         (help)         display this help and exit\n"));
 #endif
     exit (error);
 }
@@ -156,7 +164,7 @@ main (int argc, char **argv)
 
     if (FT_Init_FreeType (&ftlib))
     {
-	fprintf (stderr, "Can't initalize FreeType library\n");
+	fprintf (stderr, _("Can't initalize FreeType library\n"));
 	return 1;
     }
 
@@ -174,7 +182,7 @@ main (int argc, char **argv)
 	    {
 		if (!index_set && index > 0)
 		    break;
-		fprintf (stderr, "Unable to open %s\n", argv[i]);
+		fprintf (stderr, _("Unable to open %s\n"), argv[i]);
 		err = 1;
 	    }
 	    else
@@ -189,7 +197,7 @@ main (int argc, char **argv)
 		{
 		    FcChar32 ucs4, pos, map[FC_CHARSET_MAP_SIZE];
 
-		    printf ("%s:%d Missing %d glyph(s) to satisfy the coverage for %s language\n",
+		    printf (_("%s:%d Missing %d glyph(s) to satisfy the coverage for %s language\n"),
 			    argv[i], index, count, lang);
 
 		    if (verbose)
@@ -219,7 +227,7 @@ main (int argc, char **argv)
 		}
 		else
 		{
-		    printf ("%s:%d Satisfy the coverage for %s language\n", argv[i], index, lang);
+		    printf (_("%s:%d Satisfy the coverage for %s language\n"), argv[i], index, lang);
 		}
 
 		FcCharSetDestroy (fcs);

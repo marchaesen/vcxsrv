@@ -1,17 +1,18 @@
 gldir = $(includedir)/GL
 gl_HEADERS = \
-	glxint.h \
-	glxmd.h \
-	glxproto.h \
-	glxtokens.h
+	include/GL/glxint.h \
+	include/GL/glxmd.h \
+	include/GL/glxproto.h \
+	include/GL/glxtokens.h
 
 glinternaldir = $(includedir)/GL/internal
 glinternal_HEADERS = \
-	glcore.h
+	include/GL/internal/glcore.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = glproto.pc
 
+EXTRA_DIST = meson.build
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 

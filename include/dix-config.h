@@ -74,9 +74,6 @@
 /* Has libunwind support */
 /* #undef HAVE_LIBUNWIND */
 
-/* Define to 1 if you have the <byteswap.h> header file. */
-#define HAVE_BYTESWAP_H 1
-
 /* Define to 1 if you have the `cbrt' function. */
 #undef HAVE_CBRT
 
@@ -99,9 +96,6 @@
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define HAVE_FCNTL_H 1
-
-/* Define to 1 if you have the `ffs' function. */
-#undef HAVE_FFS
 
 /* Define to 1 if you have the `getdtablesize' function. */
 #define HAVE_GETDTABLESIZE 1
@@ -246,9 +240,6 @@
 /* Define to 1 if you have the <sys/utsname.h> header file. */
 #undef HAVE_SYS_UTSNAME_H
 
-/* Define to 1 if you have the <tslib.h> header file. */
-#undef HAVE_TSLIB_H
-
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
@@ -327,14 +318,8 @@
 /* Enable touchscreen support */
 #undef TOUCHSCREEN
 
-/* Support tslib touchscreen abstraction library */
-#undef TSLIB
-
 /* Support UNIX socket connections */
 #undef UNIXCONN
-
-/* Define to use byteswap macros from <sys/endian.h> */
-#undef USE_SYS_ENDIAN_H
 
 /* unaligned word accesses behave as expected */
 #undef WORKING_UNALIGNED_INT
@@ -473,15 +458,6 @@
 
 /* Define to 1 if the DTrace Xserver provider probes should be built in */
 #undef XSERVER_DTRACE
-
-/* Define to 16-bit byteswap macro */
-#undef bswap_16
-
-/* Define to 32-bit byteswap macro */
-#undef bswap_32
-
-/* Define to 64-bit byteswap macro */
-#undef bswap_64
 
 /* Define to 1 if typeof works with your compiler. */
 #undef HAVE_TYPEOF
