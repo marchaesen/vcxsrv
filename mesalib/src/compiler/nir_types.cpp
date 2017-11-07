@@ -39,6 +39,8 @@ glsl_get_array_element(const glsl_type* type)
 {
    if (type->is_matrix())
       return type->column_type();
+   else if (type->is_vector())
+      return type->get_scalar_type();
    return type->fields.array;
 }
 

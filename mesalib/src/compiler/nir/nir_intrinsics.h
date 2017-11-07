@@ -102,7 +102,7 @@ INTRINSIC(shader_clock, 0, ARR(0), true, 2, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_
  *
  * GLSL functions from ARB_shader_ballot.
  */
-INTRINSIC(ballot, 1, ARR(1), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(ballot, 1, ARR(1), true, 0, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 INTRINSIC(read_invocation, 2, ARR(0, 1), true, 0, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 INTRINSIC(read_first_invocation, 1, ARR(0), true, 0, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 
@@ -350,11 +350,12 @@ SYSTEM_VALUE(layer_id, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(view_index, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(subgroup_size, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(subgroup_invocation, 1, 0, xx, xx, xx)
-SYSTEM_VALUE(subgroup_eq_mask, 1, 0, xx, xx, xx)
-SYSTEM_VALUE(subgroup_ge_mask, 1, 0, xx, xx, xx)
-SYSTEM_VALUE(subgroup_gt_mask, 1, 0, xx, xx, xx)
-SYSTEM_VALUE(subgroup_le_mask, 1, 0, xx, xx, xx)
-SYSTEM_VALUE(subgroup_lt_mask, 1, 0, xx, xx, xx)
+SYSTEM_VALUE(subgroup_eq_mask, 0, 0, xx, xx, xx)
+SYSTEM_VALUE(subgroup_ge_mask, 0, 0, xx, xx, xx)
+SYSTEM_VALUE(subgroup_gt_mask, 0, 0, xx, xx, xx)
+SYSTEM_VALUE(subgroup_le_mask, 0, 0, xx, xx, xx)
+SYSTEM_VALUE(subgroup_lt_mask, 0, 0, xx, xx, xx)
+SYSTEM_VALUE(subgroup_id, 1, 0, xx, xx, xx)
 
 /* Blend constant color values.  Float values are clamped. */
 SYSTEM_VALUE(blend_const_color_r_float, 1, 0, xx, xx, xx)

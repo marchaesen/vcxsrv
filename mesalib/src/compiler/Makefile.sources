@@ -233,11 +233,11 @@ NIR_FILES = \
 	nir/nir_lower_passthrough_edgeflags.c \
 	nir/nir_lower_patch_vertices.c \
 	nir/nir_lower_phis_to_scalar.c \
-	nir/nir_lower_read_invocation_to_scalar.c \
 	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_returns.c \
 	nir/nir_lower_samplers.c \
 	nir/nir_lower_samplers_as_deref.c \
+	nir/nir_lower_subgroups.c \
 	nir/nir_lower_system_values.c \
 	nir/nir_lower_tex.c \
 	nir/nir_lower_to_source_mods.c \
