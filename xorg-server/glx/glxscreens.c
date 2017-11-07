@@ -423,8 +423,15 @@ __glXScreenInit(__GLXscreen * pGlxScreen, ScreenPtr pScreen)
 void
 __glXScreenDestroy(__GLXscreen * screen)
 {
+    __GLXconfig *config, *next;
+
     free(screen->glvnd);
     free(screen->GLXextensions);
     free(screen->GLextensions);
     free(screen->visuals);
+
+    for (config = screen->fbconfigs; config != NULL; config = next) {
+        next = config->next;
+        free(config);
+    }
 }

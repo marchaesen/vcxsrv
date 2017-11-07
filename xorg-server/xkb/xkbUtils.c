@@ -222,7 +222,7 @@ XkbUpdateKeyTypesFromCore(DeviceIntPtr pXDev,
     XkbDescPtr xkb;
     unsigned key, nG, explicit;
     int types[XkbNumKbdGroups];
-    KeySym tsyms[XkbMaxSymsPerKey], *syms;
+    KeySym tsyms[XkbMaxSymsPerKey] = {NoSymbol}, *syms;
     XkbMapChangesPtr mc;
 
     xkb = pXDev->key->xkbInfo->desc;

@@ -280,7 +280,9 @@ typedef struct _FcObjectSet {
 } FcObjectSet;
     
 typedef enum _FcMatchKind {
-    FcMatchPattern, FcMatchFont, FcMatchScan
+    FcMatchPattern, FcMatchFont, FcMatchScan,
+    FcMatchKindEnd,
+    FcMatchKindBegin = FcMatchPattern
 } FcMatchKind;
 
 typedef enum _FcLangResult {
@@ -294,6 +296,12 @@ typedef enum _FcSetName {
     FcSetSystem = 0,
     FcSetApplication = 1
 } FcSetName;
+
+typedef struct _FcConfigFileInfoIter {
+    void	*dummy1;
+    void	*dummy2;
+    void	*dummy3;
+} FcConfigFileInfoIter;
 
 typedef struct _FcAtomic FcAtomic;
 
@@ -450,6 +458,21 @@ FcConfigGetSysRoot (const FcConfig *config);
 FcPublic void
 FcConfigSetSysRoot (FcConfig      *config,
 		    const FcChar8 *sysroot);
+
+FcPublic void
+FcConfigFileInfoIterInit (FcConfig		*config,
+			  FcConfigFileInfoIter	*iter);
+
+FcPublic FcBool
+FcConfigFileInfoIterNext (FcConfig		*config,
+			  FcConfigFileInfoIter	*iter);
+
+FcPublic FcBool
+FcConfigFileInfoIterGet (FcConfig		*config,
+			 FcConfigFileInfoIter	*iter,
+			 FcChar8		**name,
+			 FcChar8		**description,
+			 FcBool			*enabled);
 
 /* fccharset.c */
 FcPublic FcCharSet*

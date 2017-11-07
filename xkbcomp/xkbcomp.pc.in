@@ -1,4 +1,5 @@
 prefix=@prefix@
+bindir=@bindir@
 datarootdir=@datarootdir@
 datadir=@datadir@
 xkbconfigdir=@XKBCONFIGROOT@

@@ -1303,6 +1303,7 @@ MouseDisable(KdPointerInfo * pi)
 static void
 MouseFini(KdPointerInfo * pi)
 {
+    free(pi->driverPrivate);
     ephyrMouse = NULL;
     return;
 }
@@ -1366,6 +1367,7 @@ EphyrKeyboardDisable(KdKeyboardInfo * ki)
 static void
 EphyrKeyboardFini(KdKeyboardInfo * ki)
 {
+    free(ki->driverPrivate);
     ephyrKbd = NULL;
     return;
 }

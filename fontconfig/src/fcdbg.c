@@ -479,6 +479,9 @@ FcTestPrint (const FcTest *test)
     case FcMatchScan:
 	printf ("scan ");
 	break;
+    case FcMatchKindEnd:
+	/* shouldn't be reached */
+	return;
     }
     switch (test->qual) {
     case FcQualAny:
@@ -511,13 +514,12 @@ FcEditPrint (const FcEdit *edit)
 }
 
 void
-FcSubstPrint (const FcSubst *subst)
+FcRulePrint (const FcRule *rule)
 {
-    FcRule *r;
     FcRuleType last_type = FcRuleUnknown;
+    const FcRule *r;
 
-    printf ("match\n");
-    for (r = subst->rule; r; r = r->next)
+    for (r = rule; r; r = r->next)
     {
 	if (last_type != r->type)
 	{

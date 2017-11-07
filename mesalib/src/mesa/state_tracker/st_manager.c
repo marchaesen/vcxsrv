@@ -882,6 +882,9 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
       st_install_device_reset_callback(st);
    }
 
+   if (attribs->flags & ST_CONTEXT_FLAG_RELEASE_NONE)
+       st->ctx->Const.ContextReleaseBehavior = GL_NONE;
+
    /* need to perform version check */
    if (attribs->major > 1 || attribs->minor > 0) {
       /* Is the actual version less than the requested version?

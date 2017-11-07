@@ -752,11 +752,7 @@ static GLboolean
 dri_create_context(gl_api api,
 		   const struct gl_config * visual,
 		   __DRIcontext * cPriv,
-		   unsigned major_version,
-		   unsigned minor_version,
-		   uint32_t flags,
-		   bool notify_reset,
-		   unsigned priority,
+		   const struct __DriverContextConfig *ctx_config,
 		   unsigned *error,
 		   void *sharedContextPrivate)
 {
@@ -770,7 +766,13 @@ dri_create_context(gl_api api,
 
     /* Flag filtering is handled in dri2CreateContextAttribs.
      */
-    (void) flags;
+    (void) ctx_config->flags;
+
+    /* The swrast driver doesn't understand any of the attributes */
+    if (ctx_config->attribute_mask != 0) {
+	*error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
+	return false;
+    }
 
     ctx = CALLOC_STRUCT(dri_context);
     if (ctx == NULL) {
@@ -797,7 +799,7 @@ dri_create_context(gl_api api,
 	goto context_fail;
     }
 
-    driContextSetFlags(mesaCtx, flags);
+    driContextSetFlags(mesaCtx, ctx_config->flags);
 
     /* create module contexts */
     _swrast_CreateContext( mesaCtx );

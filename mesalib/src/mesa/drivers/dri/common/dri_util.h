@@ -67,6 +67,42 @@ extern const __DRIswrastExtension driSWRastExtension;
 extern const __DRIdri2Extension driDRI2Extension;
 extern const __DRI2configQueryExtension dri2ConfigQueryExtension;
 extern const __DRIcopySubBufferExtension driCopySubBufferExtension;
+extern const __DRI2flushControlExtension dri2FlushControlExtension;
+
+/**
+ * Description of the attributes used to create a config.
+ *
+ * This is passed as the context_config parameter to CreateContext. The idea
+ * with this struct is that it can be extended without having to modify all of
+ * the drivers. The first three members (major/minor_version and flags) are
+ * always valid, but the remaining members are only valid if the corresponding
+ * flag is set for the attribute. If the flag is not set then the default
+ * value should be assumed. That way the driver can quickly check if any
+ * attributes were set that it doesn't understand and report an error.
+ */
+struct __DriverContextConfig {
+    /* These members are always valid */
+    unsigned major_version;
+    unsigned minor_version;
+    uint32_t flags;
+
+    /* Flags describing which of the remaining members are valid */
+    uint32_t attribute_mask;
+
+    /* Only valid if __DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY is set */
+    int reset_strategy;
+
+    /* Only valid if __DRIVER_CONTEXT_PRIORITY is set */
+    unsigned priority;
+
+    /* Only valid if __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR is set */
+    int release_behavior;
+};
+
+#define __DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY   (1 << 0)
+#define __DRIVER_CONTEXT_ATTRIB_PRIORITY         (1 << 1)
+#define __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR (1 << 2)
+
 /**
  * Driver callback functions.
  *
@@ -85,11 +121,7 @@ struct __DriverAPIRec {
     GLboolean (*CreateContext)(gl_api api,
                                const struct gl_config *glVis,
                                __DRIcontext *driContextPriv,
-                               unsigned major_version,
-                               unsigned minor_version,
-                               uint32_t flags,
-                               bool notify_reset,
-                               unsigned priority,
+                               const struct __DriverContextConfig *ctx_config,
                                unsigned *error,
                                void *sharedContextPrivate);
 

@@ -302,11 +302,13 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
     const struct gl_config *modes = (config != NULL) ? &config->modes : NULL;
     void *shareCtx = (shared != NULL) ? shared->driverPrivate : NULL;
     gl_api mesa_api;
-    unsigned major_version = 1;
-    unsigned minor_version = 0;
-    uint32_t flags = 0;
-    bool notify_reset = false;
-    unsigned priority = __DRI_CTX_PRIORITY_MEDIUM;
+    struct __DriverContextConfig ctx_config;
+
+    ctx_config.major_version = 1;
+    ctx_config.minor_version = 0;
+    ctx_config.flags = 0;
+    ctx_config.attribute_mask = 0;
+    ctx_config.priority = __DRI_CTX_PRIORITY_MEDIUM;
 
     assert((num_attribs == 0) || (attribs != NULL));
 
@@ -337,21 +339,38 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
     for (unsigned i = 0; i < num_attribs; i++) {
 	switch (attribs[i * 2]) {
 	case __DRI_CTX_ATTRIB_MAJOR_VERSION:
-	    major_version = attribs[i * 2 + 1];
+            ctx_config.major_version = attribs[i * 2 + 1];
 	    break;
 	case __DRI_CTX_ATTRIB_MINOR_VERSION:
-	    minor_version = attribs[i * 2 + 1];
+	    ctx_config.minor_version = attribs[i * 2 + 1];
 	    break;
 	case __DRI_CTX_ATTRIB_FLAGS:
-	    flags = attribs[i * 2 + 1];
+	    ctx_config.flags = attribs[i * 2 + 1];
 	    break;
         case __DRI_CTX_ATTRIB_RESET_STRATEGY:
-            notify_reset = (attribs[i * 2 + 1]
-                            != __DRI_CTX_RESET_NO_NOTIFICATION);
+            if (attribs[i * 2 + 1] != __DRI_CTX_RESET_NO_NOTIFICATION) {
+                ctx_config.attribute_mask |=
+                    __DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY;
+                ctx_config.reset_strategy = attribs[i * 2 + 1];
+            } else {
+                ctx_config.attribute_mask &=
+                    ~__DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY;
+            }
             break;
 	case __DRI_CTX_ATTRIB_PRIORITY:
-	    priority = attribs[i * 2 + 1];
+            ctx_config.attribute_mask |= __DRIVER_CONTEXT_ATTRIB_PRIORITY;
+	    ctx_config.priority = attribs[i * 2 + 1];
 	    break;
+        case __DRI_CTX_ATTRIB_RELEASE_BEHAVIOR:
+            if (attribs[i * 2 + 1] != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH) {
+                ctx_config.attribute_mask |=
+                    __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR;
+                ctx_config.release_behavior = attribs[i * 2 + 1];
+            } else {
+                ctx_config.attribute_mask &=
+                    ~__DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR;
+            }
+            break;
 	default:
 	    /* We can't create a context that satisfies the requirements of an
 	     * attribute that we don't understand.  Return failure.
@@ -366,12 +385,14 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
      * compatibility profile.  This means that we treat a API_OPENGL_COMPAT 3.1 as
      * API_OPENGL_CORE and reject API_OPENGL_COMPAT 3.2+.
      */
-    if (mesa_api == API_OPENGL_COMPAT && major_version == 3 && minor_version == 1)
+    if (mesa_api == API_OPENGL_COMPAT &&
+        ctx_config.major_version == 3 && ctx_config.minor_version == 1)
        mesa_api = API_OPENGL_CORE;
 
     if (mesa_api == API_OPENGL_COMPAT
-        && ((major_version > 3)
-            || (major_version == 3 && minor_version >= 2))) {
+        && ((ctx_config.major_version > 3)
+            || (ctx_config.major_version == 3 &&
+                ctx_config.minor_version >= 2))) {
        *error = __DRI_CTX_ERROR_BAD_API;
        return NULL;
     }
@@ -406,9 +427,9 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
      */
     if (mesa_api != API_OPENGL_COMPAT
         && mesa_api != API_OPENGL_CORE
-        && (flags & ~(__DRI_CTX_FLAG_DEBUG |
-	              __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS |
-	              __DRI_CTX_FLAG_NO_ERROR))) {
+        && (ctx_config.flags & ~(__DRI_CTX_FLAG_DEBUG |
+                                 __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS |
+                                 __DRI_CTX_FLAG_NO_ERROR))) {
 	*error = __DRI_CTX_ERROR_BAD_FLAG;
 	return NULL;
     }
@@ -424,7 +445,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
      *
      * In Mesa, a debug context is the same as a regular context.
      */
-    if ((flags & __DRI_CTX_FLAG_FORWARD_COMPATIBLE) != 0) {
+    if ((ctx_config.flags & __DRI_CTX_FLAG_FORWARD_COMPATIBLE) != 0) {
        mesa_api = API_OPENGL_CORE;
     }
 
@@ -432,13 +453,15 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
                                     | __DRI_CTX_FLAG_FORWARD_COMPATIBLE
                                     | __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS
                                     | __DRI_CTX_FLAG_NO_ERROR);
-    if (flags & ~allowed_flags) {
+    if (ctx_config.flags & ~allowed_flags) {
 	*error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
 	return NULL;
     }
 
     if (!validate_context_version(screen, mesa_api,
-                                  major_version, minor_version, error))
+                                  ctx_config.major_version,
+                                  ctx_config.minor_version,
+                                  error))
        return NULL;
 
     context = calloc(1, sizeof *context);
@@ -454,9 +477,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
     context->driReadablePriv = NULL;
 
     if (!screen->driver->CreateContext(mesa_api, modes, context,
-                                       major_version, minor_version,
-                                       flags, notify_reset, priority,
-                                       error, shareCtx)) {
+                                       &ctx_config, error, shareCtx)) {
         free(context);
         return NULL;
     }
@@ -820,6 +841,10 @@ const __DRI2configQueryExtension dri2ConfigQueryExtension = {
    .configQueryb        = dri2ConfigQueryb,
    .configQueryi        = dri2ConfigQueryi,
    .configQueryf        = dri2ConfigQueryf,
+};
+
+const __DRI2flushControlExtension dri2FlushControlExtension = {
+   .base = { __DRI2_FLUSH_CONTROL, 1 }
 };
 
 void

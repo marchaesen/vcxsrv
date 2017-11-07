@@ -49,6 +49,8 @@ AUTOCONF=${AUTOCONF-autoconf}
 GPERF=${GPERF-gperf}
 PYTHON=${PYTHON-python}
 LIBTOOLIZE_FLAGS="--copy --force"
+GETTEXTIZE=${GETTEXTIZE-gettextize}
+GETTEXTIZE_FLAGS="--force --no-changelog"
 
 DIE=0
 
@@ -84,7 +86,13 @@ if $have_libtool ; then : ; else
 	echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
 	DIE=1
 fi
-
+($GETTEXTIZE --version) < /dev/null > /dev/null 2>&1 || {
+	echo
+	echo "You must have gettext installed to compile $PROJECT."
+	echo "Install the appropriate package for your distribution,"
+	echo "or get the source tarball at  ftp://ftp.gnu.org/pub/gnu/"
+	DIE=1
+}
 ($AUTOCONF --version) < /dev/null > /dev/null 2>&1 || {
 	echo
 	echo "You must have autoconf installed to compile $PROJECT."
@@ -132,6 +140,15 @@ if test -z "$AUTOGEN_SUBDIR_MODE" -a -z "$NOCONFIGURE"; then
                 echo "to pass any to it, please specify them on the $0 command line."
         fi
 fi
+
+[ -f configure.ac~ ] && rm configure.ac~
+echo Running $GETTEXTIZE $GETTEXTIZE_FLAGS
+$GETTEXTIZE $GETTEXTIZE_FLAGS
+# revert changes from gettextize for workaround...
+[ -f configure.ac~ ] && mv configure.ac~ configure.ac
+echo Running $GETTEXTIZE $GETTEXTIZE_FLAGS --po-dir=po-conf
+$GETTEXTIZE $GETTEXTIZE_FLAGS --po-dir=po-conf
+[ -f configure.ac~ ] && mv configure.ac~ configure.ac
 
 echo Running $ACLOCAL $ACLOCAL_FLAGS
 $ACLOCAL $ACLOCAL_FLAGS

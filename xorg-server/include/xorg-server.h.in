@@ -44,9 +44,6 @@
 /* Support SHM */
 #undef HAS_SHM
 
-/* Define to 1 if you have the `ffs' function. */
-#undef HAVE_FFS
-
 /* Define to 1 if you have the `reallocarray' function. */
 #undef HAVE_REALLOCARRAY
 

@@ -541,45 +541,6 @@ radv_shader_variant_destroy(struct radv_device *device,
 	free(variant);
 }
 
-uint32_t
-radv_shader_stage_to_user_data_0(gl_shader_stage stage, enum chip_class chip_class,
-				 bool has_gs, bool has_tess)
-{
-	switch (stage) {
-	case MESA_SHADER_FRAGMENT:
-		return R_00B030_SPI_SHADER_USER_DATA_PS_0;
-	case MESA_SHADER_VERTEX:
-		if (chip_class >= GFX9) {
-			return has_tess ? R_00B430_SPI_SHADER_USER_DATA_LS_0 :
-			       has_gs ? R_00B330_SPI_SHADER_USER_DATA_ES_0 :
-			       R_00B130_SPI_SHADER_USER_DATA_VS_0;
-		}
-		if (has_tess)
-			return R_00B530_SPI_SHADER_USER_DATA_LS_0;
-		else
-			return has_gs ? R_00B330_SPI_SHADER_USER_DATA_ES_0 : R_00B130_SPI_SHADER_USER_DATA_VS_0;
-	case MESA_SHADER_GEOMETRY:
-		return chip_class >= GFX9 ? R_00B330_SPI_SHADER_USER_DATA_ES_0 :
-		                            R_00B230_SPI_SHADER_USER_DATA_GS_0;
-	case MESA_SHADER_COMPUTE:
-		return R_00B900_COMPUTE_USER_DATA_0;
-	case MESA_SHADER_TESS_CTRL:
-		return chip_class >= GFX9 ? R_00B430_SPI_SHADER_USER_DATA_LS_0 :
-		                            R_00B430_SPI_SHADER_USER_DATA_HS_0;
-	case MESA_SHADER_TESS_EVAL:
-		if (chip_class >= GFX9) {
-			return has_gs ? R_00B330_SPI_SHADER_USER_DATA_ES_0 :
-			       R_00B130_SPI_SHADER_USER_DATA_VS_0;
-		}
-		if (has_gs)
-			return R_00B330_SPI_SHADER_USER_DATA_ES_0;
-		else
-			return R_00B130_SPI_SHADER_USER_DATA_VS_0;
-	default:
-		unreachable("unknown shader");
-	}
-}
-
 const char *
 radv_get_shader_name(struct radv_shader_variant *var, gl_shader_stage stage)
 {

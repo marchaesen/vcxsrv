@@ -241,6 +241,12 @@ struct threaded_resource {
     * pointers. */
    bool	is_shared;
    bool is_user_ptr;
+
+   /* If positive, prefer DISCARD_RANGE with a staging buffer over any other
+    * method of CPU access when map flags allow it. Useful for buffers that
+    * are too large for the visible VRAM window.
+    */
+   int max_forced_staging_uploads;
 };
 
 struct threaded_transfer {

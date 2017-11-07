@@ -36,6 +36,14 @@
 #define HAVE_GETOPT 1
 #endif
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(x)		(dgettext(GETTEXT_PACKAGE, x))
+#else
+#define dgettext(d, s)	(s)
+#define _(x)		(x)
+#endif
+
 #ifndef HAVE_GETOPT
 #define HAVE_GETOPT 0
 #endif
@@ -68,28 +76,28 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-vbqVh] [-f FORMAT] [--verbose] [--brief] [--format=FORMAT] [--quiet] [--version] [--help] [pattern] {element ...} \n",
+    fprintf (file, _("usage: %s [-vbqVh] [-f FORMAT] [--verbose] [--brief] [--format=FORMAT] [--quiet] [--version] [--help] [pattern] {element ...} \n"),
 	     program);
 #else
-    fprintf (file, "usage: %s [-vbqVh] [-f FORMAT] [pattern] {element ...} \n",
+    fprintf (file, _("usage: %s [-vbqVh] [-f FORMAT] [pattern] {element ...} \n"),
 	     program);
 #endif
-    fprintf (file, "List fonts matching [pattern]\n");
+    fprintf (file, _("List fonts matching [pattern]\n"));
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
-    fprintf (file, "  -v, --verbose        display entire font pattern verbosely\n");
-    fprintf (file, "  -b, --brief          display entire font pattern briefly\n");
-    fprintf (file, "  -f, --format=FORMAT  use the given output format\n");
-    fprintf (file, "  -q, --quiet          suppress all normal output, exit 1 if no fonts matched\n");
-    fprintf (file, "  -V, --version        display font config version and exit\n");
-    fprintf (file, "  -h, --help           display this help and exit\n");
+    fprintf (file, _("  -v, --verbose        display entire font pattern verbosely\n"));
+    fprintf (file, _("  -b, --brief          display entire font pattern briefly\n"));
+    fprintf (file, _("  -f, --format=FORMAT  use the given output format\n"));
+    fprintf (file, _("  -q, --quiet          suppress all normal output, exit 1 if no fonts matched\n"));
+    fprintf (file, _("  -V, --version        display font config version and exit\n"));
+    fprintf (file, _("  -h, --help           display this help and exit\n"));
 #else
-    fprintf (file, "  -v         (verbose) display entire font pattern verbosely\n");
-    fprintf (file, "  -b         (brief)   display entire font pattern briefly\n");
-    fprintf (file, "  -f FORMAT  (format)  use the given output format\n");
-    fprintf (file, "  -q,        (quiet)   suppress all normal output, exit 1 if no fonts matched\n");
-    fprintf (file, "  -V         (version) display font config version and exit\n");
-    fprintf (file, "  -h         (help)    display this help and exit\n");
+    fprintf (file, _("  -v         (verbose) display entire font pattern verbosely\n"));
+    fprintf (file, _("  -b         (brief)   display entire font pattern briefly\n"));
+    fprintf (file, _("  -f FORMAT  (format)  use the given output format\n"));
+    fprintf (file, _("  -q,        (quiet)   suppress all normal output, exit 1 if no fonts matched\n"));
+    fprintf (file, _("  -V         (version) display font config version and exit\n"));
+    fprintf (file, _("  -h         (help)    display this help and exit\n"));
 #endif
     exit (error);
 }
@@ -148,7 +156,7 @@ main (int argc, char **argv)
 	pat = FcNameParse ((FcChar8 *) argv[i]);
 	if (!pat)
 	{
-	    fputs ("Unable to parse the pattern\n", stderr);
+	    fprintf (stderr, _("Unable to parse the pattern\n"));
 	    return 1;
 	}
 	while (argv[++i])

@@ -37,6 +37,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(x)		(dgettext(GETTEXT_PACKAGE, x))
+#else
+#define dgettext(d, s)	(s)
+#define _(x)		(x)
+#endif
+
 #ifndef HAVE_GETOPT
 #define HAVE_GETOPT 0
 #endif
@@ -68,26 +76,26 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-cdVh] [-f FORMAT] [--config] [--default] [--verbose] [--format=FORMAT] [--version] [--help] [pattern] {element...}\n",
+    fprintf (file, _("usage: %s [-cdVh] [-f FORMAT] [--config] [--default] [--verbose] [--format=FORMAT] [--version] [--help] [pattern] {element...}\n"),
 	     program);
 #else
-    fprintf (file, "usage: %s [-cdVh] [-f FORMAT] [pattern] {element...}\n",
+    fprintf (file, _("usage: %s [-cdVh] [-f FORMAT] [pattern] {element...}\n"),
 	     program);
 #endif
-    fprintf (file, "List best font matching [pattern]\n");
+    fprintf (file, _("List best font matching [pattern]\n"));
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
-    fprintf (file, "  -c, --config         perform config substitution on pattern\n");
-    fprintf (file, "  -d, -default         perform default substitution on pattern\n");
-    fprintf (file, "  -f, --format=FORMAT  use the given output format\n");
-    fprintf (file, "  -V, --version        display font config version and exit\n");
-    fprintf (file, "  -h, --help           display this help and exit\n");
+    fprintf (file, _("  -c, --config         perform config substitution on pattern\n"));
+    fprintf (file, _("  -d, -default         perform default substitution on pattern\n"));
+    fprintf (file, _("  -f, --format=FORMAT  use the given output format\n"));
+    fprintf (file, _("  -V, --version        display font config version and exit\n"));
+    fprintf (file, _("  -h, --help           display this help and exit\n"));
 #else
-    fprintf (file, "  -c,        (config)  perform config substitution on pattern\n");
-    fprintf (file, "  -d,        (default) perform default substitution on pattern\n");
-    fprintf (file, "  -f FORMAT  (format)  use the given output format\n");
-    fprintf (file, "  -V         (version) display font config version and exit\n");
-    fprintf (file, "  -h         (help)    display this help and exit\n");
+    fprintf (file, _("  -c,        (config)  perform config substitution on pattern\n"));
+    fprintf (file, _("  -d,        (default) perform default substitution on pattern\n"));
+    fprintf (file, _("  -f FORMAT  (format)  use the given output format\n"));
+    fprintf (file, _("  -V         (version) display font config version and exit\n"));
+    fprintf (file, _("  -h         (help)    display this help and exit\n"));
 #endif
     exit (error);
 }
@@ -139,7 +147,7 @@ main (int argc, char **argv)
 	pat = FcNameParse ((FcChar8 *) argv[i]);
 	if (!pat)
 	{
-	    fputs ("Unable to parse the pattern\n", stderr);
+	    fprintf (stderr, _("Unable to parse the pattern\n"));
 	    return 1;
 	}
 	while (argv[++i])

@@ -148,13 +148,6 @@ extern Bool NewOutputPending;
 
 extern WorkQueuePtr workQueue;
 
-/* in WaitFor.c */
-#if defined(WIN32) && !defined(__CYGWIN__)
-typedef long int fd_mask;
-#endif
-#define ffs mffs
-extern int mffs(fd_mask);
-
 /* in access.c */
 extern Bool ComputeLocalClient(ClientPtr client);
 

@@ -142,6 +142,7 @@ enum {
 
 struct u_vbuf {
    struct u_vbuf_caps caps;
+   bool has_signed_vb_offset;
 
    struct pipe_context *pipe;
    struct translate_cache *translate_cache;
@@ -310,6 +311,10 @@ u_vbuf_create(struct pipe_context *pipe,
    mgr->cso_cache = cso_cache_create();
    mgr->translate_cache = translate_cache_create();
    memset(mgr->fallback_vbs, ~0, sizeof(mgr->fallback_vbs));
+
+   mgr->has_signed_vb_offset =
+      pipe->screen->get_param(pipe->screen,
+                              PIPE_CAP_SIGNED_VERTEX_BUFFER_OFFSET);
 
    return mgr;
 }
@@ -486,7 +491,8 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
    } else {
       /* Create and map the output buffer. */
       u_upload_alloc(mgr->pipe->stream_uploader,
-                     key->output_stride * start_vertex,
+                     mgr->has_signed_vb_offset ?
+                        0 : key->output_stride * start_vertex,
                      key->output_stride * num_vertices, 4,
                      &out_offset, &out_buffer,
                      (void**)&out_map);
@@ -970,7 +976,9 @@ u_vbuf_upload_buffers(struct u_vbuf *mgr,
       real_vb = &mgr->real_vertex_buffer[i];
       ptr = mgr->vertex_buffer[i].buffer.user;
 
-      u_upload_data(mgr->pipe->stream_uploader, start, end - start, 4,
+      u_upload_data(mgr->pipe->stream_uploader,
+                    mgr->has_signed_vb_offset ? 0 : start,
+                    end - start, 4,
                     ptr + start, &real_vb->buffer_offset, &real_vb->buffer.resource);
       if (!real_vb->buffer.resource)
          return PIPE_ERROR_OUT_OF_MEMORY;

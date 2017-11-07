@@ -459,7 +459,7 @@ ProcRRGetOutputInfo(ClientPtr client)
 
     if (extraLen) {
         rep.length += bytes_to_int32(extraLen);
-        extra = malloc(extraLen);
+        extra = calloc(1, extraLen);
         if (!extra)
             return BadAlloc;
     }

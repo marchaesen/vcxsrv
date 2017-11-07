@@ -86,6 +86,7 @@ FcInitLoadOwnConfig (FcConfig *config)
 
 	return fallback;
     }
+    (void) FcConfigParseOnly (config, (const FcChar8 *)FC_TEMPLATEDIR, FcFalse);
 
     if (config->cacheDirs && config->cacheDirs->num == 0)
     {
