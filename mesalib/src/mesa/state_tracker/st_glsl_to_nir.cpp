@@ -242,14 +242,43 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
 
    nir = glsl_to_nir(shader_program, stage, options);
 
+   /* Make a pass over the IR to add state references for any built-in
+    * uniforms that are used.  This has to be done now (during linking).
+    * Code generation doesn't happen until the first time this shader is
+    * used for rendering.  Waiting until then to generate the parameters is
+    * too late.  At that point, the values for the built-in uniforms won't
+    * get sent to the shader.
+    */
+   nir_foreach_variable(var, &nir->uniforms) {
+      if (strncmp(var->name, "gl_", 3) == 0) {
+         const nir_state_slot *const slots = var->state_slots;
+         assert(var->state_slots != NULL);
+
+         for (unsigned int i = 0; i < var->num_state_slots; i++) {
+            _mesa_add_state_reference(prog->Parameters,
+                                      (gl_state_index *)slots[i].tokens);
+         }
+      }
+   }
+
+   /* Avoid reallocation of the program parameter list, because the uniform
+    * storage is only associated with the original parameter list.
+    * This should be enough for Bitmap and DrawPixels constants.
+    */
+   _mesa_reserve_parameter_storage(prog->Parameters, 8);
+
+   /* This has to be done last.  Any operation the can cause
+    * prog->ParameterValues to get reallocated (e.g., anything that adds a
+    * program constant) has to happen before creating this linkage.
+    */
+   _mesa_associate_uniform_storage(st->ctx, shader_program, prog, true);
+
    NIR_PASS_V(nir, nir_lower_io_to_temporaries,
          nir_shader_get_entrypoint(nir),
          true, true);
    NIR_PASS_V(nir, nir_lower_global_vars_to_local);
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
-   NIR_PASS_V(nir, st_nir_lower_builtin);
-   NIR_PASS_V(nir, nir_lower_atomics, shader_program);
 
    /* fragment shaders may need : */
    if (stage == MESA_SHADER_FRAGMENT) {
@@ -275,6 +304,16 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
          _mesa_add_state_reference(prog->Parameters, wposTransformState);
       }
    }
+
+   NIR_PASS_V(nir, nir_lower_system_values);
+
+   nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
+   prog->info = nir->info;
+
+   st_set_prog_affected_state_flags(prog);
+
+   NIR_PASS_V(nir, st_nir_lower_builtin);
+   NIR_PASS_V(nir, nir_lower_atomics, shader_program);
 
    if (st->ctx->_Shader->Flags & GLSL_DUMP) {
       _mesa_log("\n");
@@ -361,8 +400,6 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
    st_nir_assign_uniform_locations(prog, shader_program,
                                    &nir->uniforms, &nir->num_uniforms);
 
-   NIR_PASS_V(nir, nir_lower_system_values);
-
    if (screen->get_param(screen, PIPE_CAP_NIR_SAMPLERS_AS_DEREF))
       NIR_PASS_V(nir, nir_lower_samplers_as_deref, shader_program);
    else
@@ -374,6 +411,7 @@ st_nir_get_mesa_program(struct gl_context *ctx,
                         struct gl_shader_program *shader_program,
                         struct gl_linked_shader *shader)
 {
+   struct st_context *st = st_context(ctx);
    struct gl_program *prog;
 
    validate_ir_tree(shader->ir);
@@ -382,34 +420,9 @@ st_nir_get_mesa_program(struct gl_context *ctx,
 
    prog->Parameters = _mesa_new_parameter_list();
 
-   do_set_program_inouts(shader->ir, prog, shader->Stage);
-
    _mesa_copy_linked_program_data(shader_program, shader);
    _mesa_generate_parameters_list_for_uniforms(ctx, shader_program, shader,
                                                prog->Parameters);
-
-   /* Make a pass over the IR to add state references for any built-in
-    * uniforms that are used.  This has to be done now (during linking).
-    * Code generation doesn't happen until the first time this shader is
-    * used for rendering.  Waiting until then to generate the parameters is
-    * too late.  At that point, the values for the built-in uniforms won't
-    * get sent to the shader.
-    */
-   foreach_in_list(ir_instruction, node, shader->ir) {
-      ir_variable *var = node->as_variable();
-
-      if ((var == NULL) || (var->data.mode != ir_var_uniform) ||
-          (strncmp(var->name, "gl_", 3) != 0))
-         continue;
-
-      const ir_state_slot *const slots = var->get_state_slots();
-      assert(slots != NULL);
-
-      for (unsigned int i = 0; i < var->get_num_state_slots(); i++) {
-         _mesa_add_state_reference(prog->Parameters,
-                                   (gl_state_index *) slots[i].tokens);
-      }
-   }
 
    if (ctx->_Shader->Flags & GLSL_DUMP) {
       _mesa_log("\n");
@@ -422,18 +435,6 @@ st_nir_get_mesa_program(struct gl_context *ctx,
 
    prog->ExternalSamplersUsed = gl_external_samplers(prog);
    _mesa_update_shader_textures_used(shader_program, prog);
-
-   /* Avoid reallocation of the program parameter list, because the uniform
-    * storage is only associated with the original parameter list.
-    * This should be enough for Bitmap and DrawPixels constants.
-    */
-   _mesa_reserve_parameter_storage(prog->Parameters, 8);
-
-   /* This has to be done last.  Any operation the can cause
-    * prog->ParameterValues to get reallocated (e.g., anything that adds a
-    * program constant) has to happen before creating this linkage.
-    */
-   _mesa_associate_uniform_storage(ctx, shader_program, prog, true);
 
    struct st_vertex_program *stvp;
    struct st_common_program *stp;
@@ -463,6 +464,11 @@ st_nir_get_mesa_program(struct gl_context *ctx,
       assert(!"should not be reached");
       return NULL;
    }
+
+   struct st_common_program *st_comm_prog = (struct st_common_program *)prog;
+   nir_shader *nir = st_glsl_to_nir(st, prog, shader_program, shader->Stage);
+   st_comm_prog->tgsi.type = PIPE_SHADER_IR_NIR;
+   st_comm_prog->tgsi.ir.nir = nir;
 
    return prog;
 }

@@ -3067,6 +3067,8 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
    _mesa_clear_shader_program_data(ctx, prog);
 
+   prog->data = _mesa_create_shader_program_data();
+
    prog->data->LinkStatus = linking_success;
 
    for (i = 0; i < prog->NumShaders; i++) {

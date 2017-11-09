@@ -100,6 +100,9 @@ _mesa_lookup_shader_program_err(struct gl_context *ctx, GLuint name,
 extern struct gl_shader_program *
 _mesa_new_shader_program(GLuint name);
 
+extern struct gl_shader_program_data *
+_mesa_create_shader_program_data(void);
+
 extern void
 _mesa_clear_shader_program_data(struct gl_context *ctx,
                                 struct gl_shader_program *shProg);

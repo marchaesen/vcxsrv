@@ -103,63 +103,63 @@ public:
     // For data surface
     ADDR_E_RETURNCODE ComputeSurfaceInfo(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
-        ADDR2_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
+        ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const;
 
     ADDR_E_RETURNCODE ComputeSurfaceAddrFromCoord(
         const ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
-        ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT* pOut) const;
+        ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const;
 
     ADDR_E_RETURNCODE ComputeSurfaceCoordFromAddr(
-        const ADDR2_COMPUTE_SURFACE_COORDFROMADDR_INPUT*  pIn,
-        ADDR2_COMPUTE_SURFACE_COORDFROMADDR_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_SURFACE_COORDFROMADDR_INPUT* pIn,
+        ADDR2_COMPUTE_SURFACE_COORDFROMADDR_OUTPUT*      pOut) const;
 
     // For HTile
     ADDR_E_RETURNCODE ComputeHtileInfo(
         const ADDR2_COMPUTE_HTILE_INFO_INPUT* pIn,
-        ADDR2_COMPUTE_HTILE_INFO_OUTPUT* pOut) const;
+        ADDR2_COMPUTE_HTILE_INFO_OUTPUT*      pOut) const;
 
     ADDR_E_RETURNCODE ComputeHtileAddrFromCoord(
-        const ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_OUTPUT*      pOut);
 
     ADDR_E_RETURNCODE ComputeHtileCoordFromAddr(
-        const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT*  pIn,
-        ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT* pIn,
+        ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT*      pOut);
 
     // For CMask
     ADDR_E_RETURNCODE ComputeCmaskInfo(
         const ADDR2_COMPUTE_CMASK_INFO_INPUT* pIn,
-        ADDR2_COMPUTE_CMASK_INFO_OUTPUT* pOut) const;
+        ADDR2_COMPUTE_CMASK_INFO_OUTPUT*      pOut) const;
 
     ADDR_E_RETURNCODE ComputeCmaskAddrFromCoord(
-        const ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_OUTPUT*      pOut);
 
     ADDR_E_RETURNCODE ComputeCmaskCoordFromAddr(
-        const ADDR2_COMPUTE_CMASK_COORDFROMADDR_INPUT*  pIn,
-        ADDR2_COMPUTE_CMASK_COORDFROMADDR_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_CMASK_COORDFROMADDR_INPUT* pIn,
+        ADDR2_COMPUTE_CMASK_COORDFROMADDR_OUTPUT*      pOut) const;
 
     // For FMask
     ADDR_E_RETURNCODE ComputeFmaskInfo(
-        const ADDR2_COMPUTE_FMASK_INFO_INPUT*  pIn,
-        ADDR2_COMPUTE_FMASK_INFO_OUTPUT* pOut);
+        const ADDR2_COMPUTE_FMASK_INFO_INPUT* pIn,
+        ADDR2_COMPUTE_FMASK_INFO_OUTPUT*      pOut);
 
     ADDR_E_RETURNCODE ComputeFmaskAddrFromCoord(
-        const ADDR2_COMPUTE_FMASK_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_FMASK_ADDRFROMCOORD_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_FMASK_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_FMASK_ADDRFROMCOORD_OUTPUT*      pOut) const;
 
     ADDR_E_RETURNCODE ComputeFmaskCoordFromAddr(
-        const ADDR2_COMPUTE_FMASK_COORDFROMADDR_INPUT*  pIn,
-        ADDR2_COMPUTE_FMASK_COORDFROMADDR_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_FMASK_COORDFROMADDR_INPUT* pIn,
+        ADDR2_COMPUTE_FMASK_COORDFROMADDR_OUTPUT*      pOut) const;
 
     // For DCC key
     ADDR_E_RETURNCODE ComputeDccInfo(
         const ADDR2_COMPUTE_DCCINFO_INPUT* pIn,
-        ADDR2_COMPUTE_DCCINFO_OUTPUT* pOut) const;
+        ADDR2_COMPUTE_DCCINFO_OUTPUT*      pOut) const;
 
     ADDR_E_RETURNCODE ComputeDccAddrFromCoord(
-        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*      pOut);
 
     // Misc
     ADDR_E_RETURNCODE ComputePipeBankXor(
@@ -196,6 +196,8 @@ protected:
 
     static const UINT_32 PrtAlignment = 64 * 1024;
     static const UINT_32 MaxMacroBits = 20;
+
+    static const UINT_32 MaxMipLevels = 16;
 
     // Checking block size
     BOOL_32 IsBlock256b(AddrSwizzleMode swizzleMode) const
@@ -402,32 +404,32 @@ protected:
     }
 
     virtual ADDR_E_RETURNCODE HwlComputeDccAddrFromCoord(
-        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT* pOut) const
+        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*      pOut)
     {
         ADDR_NOT_IMPLEMENTED();
         return ADDR_NOTSUPPORTED;
     }
 
     virtual ADDR_E_RETURNCODE HwlComputeCmaskAddrFromCoord(
-        const ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_OUTPUT* pOut) const
+        const ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_OUTPUT*      pOut)
     {
         ADDR_NOT_IMPLEMENTED();
         return ADDR_NOTSUPPORTED;
     }
 
     virtual ADDR_E_RETURNCODE HwlComputeHtileAddrFromCoord(
-        const ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_OUTPUT* pOut) const
+        const ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_OUTPUT*      pOut)
     {
         ADDR_NOT_IMPLEMENTED();
         return ADDR_NOTSUPPORTED;
     }
 
     virtual ADDR_E_RETURNCODE HwlComputeHtileCoordFromAddr(
-        const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT*  pIn,
-        ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT* pOut) const
+        const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT* pIn,
+        ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT*      pOut)
     {
         ADDR_NOT_IMPLEMENTED();
         return ADDR_NOTSUPPORTED;
@@ -532,6 +534,14 @@ protected:
         return ADDR_NOTIMPLEMENTED;
     }
 
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceInfoLinear(
+         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
+         ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTIMPLEMENTED;
+    }
+
     virtual ADDR_E_RETURNCODE HwlComputeSurfaceAddrFromCoordTiled(
         const ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
         ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const
@@ -564,12 +574,6 @@ protected:
     ADDR_E_RETURNCODE ComputeSurfaceInfoLinear(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
         ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const;
-
-    ADDR_E_RETURNCODE ComputeSurfaceLinearPadding(
-        const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
-        UINT_32* pMipmap0PaddedWidth,
-        UINT_32* pSlice0PaddedHeight,
-        ADDR2_MIP_INFO* pMipInfo = NULL) const;
 
     ADDR_E_RETURNCODE ComputeSurfaceInfoTiled(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
@@ -757,10 +761,10 @@ protected:
 
     ADDR_E_RETURNCODE ApplyCustomizedPitchHeight(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
-        UINT_32  elementBytes,
-        UINT_32  pitchAlignInElement,
-        UINT_32* pPitch,
-        UINT_32* pHeight) const;
+        UINT_32                                 elementBytes,
+        UINT_32                                 pitchAlignInElement,
+        UINT_32*                                pPitch,
+        UINT_32*                                pHeight) const;
 
     VOID ComputeQbStereoInfo(ADDR2_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
 

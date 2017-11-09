@@ -654,7 +654,7 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->UniformBooleanTrue = FLOAT_AS_UNION(1.0f).u;
 
    /* GL_ARB_sync */
-   consts->MaxServerWaitTimeout = 0x1fff7fffffffULL;
+   consts->MaxServerWaitTimeout = 0x7fffffff7fffffffULL;
 
    /* GL_EXT_provoking_vertex */
    consts->QuadsFollowProvokingVertexConvention = GL_TRUE;

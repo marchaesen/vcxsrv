@@ -35,7 +35,10 @@
 
 #include <string.h>
 
+#include "util/futex.h"
 #include "util/list.h"
+#include "util/macros.h"
+#include "util/u_atomic.h"
 #include "util/u_thread.h"
 
 #ifdef __cplusplus
@@ -45,6 +48,74 @@ extern "C" {
 #define UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY      (1 << 0)
 #define UTIL_QUEUE_INIT_RESIZE_IF_FULL            (1 << 1)
 
+#if defined(__GNUC__) && defined(HAVE_FUTEX)
+#define UTIL_QUEUE_FENCE_FUTEX
+#else
+#define UTIL_QUEUE_FENCE_STANDARD
+#endif
+
+#ifdef UTIL_QUEUE_FENCE_FUTEX
+/* Job completion fence.
+ * Put this into your job structure.
+ */
+struct util_queue_fence {
+   /* The fence can be in one of three states:
+    *  0 - signaled
+    *  1 - unsignaled
+    *  2 - unsignaled, may have waiters
+    */
+   uint32_t val;
+};
+
+static inline void
+util_queue_fence_init(struct util_queue_fence *fence)
+{
+   fence->val = 0;
+}
+
+static inline void
+util_queue_fence_destroy(struct util_queue_fence *fence)
+{
+   assert(fence->val == 0);
+   /* no-op */
+}
+
+static inline void
+util_queue_fence_signal(struct util_queue_fence *fence)
+{
+   uint32_t val = p_atomic_xchg(&fence->val, 0);
+
+   assert(val != 0);
+
+   if (val == 2)
+      futex_wake(&fence->val, INT_MAX);
+}
+
+/**
+ * Move \p fence back into unsignalled state.
+ *
+ * \warning The caller must ensure that no other thread may currently be
+ *          waiting (or about to wait) on the fence.
+ */
+static inline void
+util_queue_fence_reset(struct util_queue_fence *fence)
+{
+#ifdef NDEBUG
+   fence->val = 1;
+#else
+   uint32_t v = p_atomic_xchg(&fence->val, 1);
+   assert(v == 0);
+#endif
+}
+
+static inline bool
+util_queue_fence_is_signalled(struct util_queue_fence *fence)
+{
+   return fence->val == 0;
+}
+#endif
+
+#ifdef UTIL_QUEUE_FENCE_STANDARD
 /* Job completion fence.
  * Put this into your job structure.
  */
@@ -53,6 +124,63 @@ struct util_queue_fence {
    cnd_t cond;
    int signalled;
 };
+
+void util_queue_fence_init(struct util_queue_fence *fence);
+void util_queue_fence_destroy(struct util_queue_fence *fence);
+void util_queue_fence_signal(struct util_queue_fence *fence);
+
+/**
+ * Move \p fence back into unsignalled state.
+ *
+ * \warning The caller must ensure that no other thread may currently be
+ *          waiting (or about to wait) on the fence.
+ */
+static inline void
+util_queue_fence_reset(struct util_queue_fence *fence)
+{
+   assert(fence->signalled);
+   fence->signalled = 0;
+}
+
+static inline bool
+util_queue_fence_is_signalled(struct util_queue_fence *fence)
+{
+   return fence->signalled != 0;
+}
+#endif
+
+void
+_util_queue_fence_wait(struct util_queue_fence *fence);
+
+static inline void
+util_queue_fence_wait(struct util_queue_fence *fence)
+{
+   if (unlikely(!util_queue_fence_is_signalled(fence)))
+      _util_queue_fence_wait(fence);
+}
+
+bool
+_util_queue_fence_wait_timeout(struct util_queue_fence *fence,
+                               int64_t abs_timeout);
+
+/**
+ * Wait for the fence to be signaled with a timeout.
+ *
+ * \param fence the fence
+ * \param abs_timeout the absolute timeout in nanoseconds, relative to the
+ *                    clock provided by os_time_get_nano.
+ *
+ * \return true if the fence was signaled, false if the timeout occurred.
+ */
+static inline bool
+util_queue_fence_wait_timeout(struct util_queue_fence *fence,
+                              int64_t abs_timeout)
+{
+   if (util_queue_fence_is_signalled(fence))
+      return true;
+
+   return _util_queue_fence_wait_timeout(fence, abs_timeout);
+}
 
 typedef void (*util_queue_execute_func)(void *job, int thread_index);
 
@@ -88,8 +216,6 @@ bool util_queue_init(struct util_queue *queue,
                      unsigned num_threads,
                      unsigned flags);
 void util_queue_destroy(struct util_queue *queue);
-void util_queue_fence_init(struct util_queue_fence *fence);
-void util_queue_fence_destroy(struct util_queue_fence *fence);
 
 /* optional cleanup callback is called after fence is signaled: */
 void util_queue_add_job(struct util_queue *queue,
@@ -100,7 +226,8 @@ void util_queue_add_job(struct util_queue *queue,
 void util_queue_drop_job(struct util_queue *queue,
                          struct util_queue_fence *fence);
 
-void util_queue_fence_wait(struct util_queue_fence *fence);
+void util_queue_finish(struct util_queue *queue);
+
 int64_t util_queue_get_thread_time_nano(struct util_queue *queue,
                                         unsigned thread_index);
 
@@ -109,12 +236,6 @@ static inline bool
 util_queue_is_initialized(struct util_queue *queue)
 {
    return queue->threads != NULL;
-}
-
-static inline bool
-util_queue_fence_is_signalled(struct util_queue_fence *fence)
-{
-   return fence->signalled != 0;
 }
 
 /* Convenient structure for monitoring the queue externally and passing

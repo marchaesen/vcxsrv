@@ -44,37 +44,6 @@ namespace V1
 
 /**
 ****************************************************************************************************
-* @brief CI specific settings structure.
-****************************************************************************************************
-*/
-struct CIChipSettings
-{
-    struct
-    {
-        UINT_32 isSeaIsland : 1;
-        UINT_32 isBonaire   : 1;
-        UINT_32 isKaveri    : 1;
-        UINT_32 isSpectre   : 1;
-        UINT_32 isSpooky    : 1;
-        UINT_32 isKalindi   : 1;
-        // Hawaii is GFXIP 7.2
-        UINT_32 isHawaii    : 1;
-
-        // VI
-        UINT_32 isVolcanicIslands : 1;
-        UINT_32 isIceland         : 1;
-        UINT_32 isTonga           : 1;
-        UINT_32 isFiji            : 1;
-        UINT_32 isPolaris10       : 1;
-        UINT_32 isPolaris11       : 1;
-        UINT_32 isPolaris12       : 1;
-        // VI fusion (Carrizo)
-        UINT_32 isCarrizo         : 1;
-    };
-};
-
-/**
-****************************************************************************************************
 * @brief This class is the CI specific address library
 *        function set.
 ****************************************************************************************************
@@ -208,9 +177,8 @@ private:
         const ADDR_COMPUTE_SURFACE_INFO_INPUT*  pIn,
         ADDR_COMPUTE_SURFACE_INFO_OUTPUT*       pOut) const;
 
-    VOID CheckTcCompatibility(
-        const ADDR_TILEINFO* pTileInfo, UINT_32 bpp, AddrTileMode tileMode,
-         AddrTileType tileType, ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
+    BOOL_32 CheckTcCompatibility(const ADDR_TILEINFO* pTileInfo, UINT_32 bpp, AddrTileMode tileMode,
+                                 AddrTileType tileType, const ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
 
     static const UINT_32    MacroTileTableSize = 16;
     static const UINT_32    PrtMacroModeOffset = MacroTileTableSize / 2;
@@ -221,8 +189,6 @@ private:
     ADDR_TILEINFO           m_macroTileTable[MacroTileTableSize];
     UINT_32                 m_noOfMacroEntries;
     BOOL_32                 m_allowNonDispThickModes;
-
-    CIChipSettings          m_settings;
 };
 
 } // V1

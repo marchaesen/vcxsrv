@@ -4077,30 +4077,8 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       }
    }
 
-   if (state->all_invariant && (state->current_function == NULL)) {
-      switch (state->stage) {
-      case MESA_SHADER_VERTEX:
-         if (var->data.mode == ir_var_shader_out)
-            var->data.invariant = true;
-         break;
-      case MESA_SHADER_TESS_CTRL:
-      case MESA_SHADER_TESS_EVAL:
-      case MESA_SHADER_GEOMETRY:
-         if ((var->data.mode == ir_var_shader_in)
-             || (var->data.mode == ir_var_shader_out))
-            var->data.invariant = true;
-         break;
-      case MESA_SHADER_FRAGMENT:
-         if (var->data.mode == ir_var_shader_in)
-            var->data.invariant = true;
-         break;
-      case MESA_SHADER_COMPUTE:
-         /* Invariance isn't meaningful in compute shaders. */
-         break;
-      default:
-         break;
-      }
-   }
+   if (state->all_invariant && var->data.mode == ir_var_shader_out)
+      var->data.invariant = true;
 
    var->data.interpolation =
       interpret_interpolation_qualifier(qual, var->type,
@@ -5260,7 +5238,7 @@ ast_declarator_list::hir(exec_list *instructions,
                      if (var->type->fields.structure[i].type->is_array() ||
                          var->type->fields.structure[i].type->is_record())
                         _mesa_glsl_error(&loc, state,
-                                         "fragement shader input cannot have "
+                                         "fragment shader input cannot have "
                                          "a struct that contains an "
                                          "array or struct");
                   }

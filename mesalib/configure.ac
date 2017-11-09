@@ -111,6 +111,10 @@ dnl Check for progs
 AC_PROG_CPP
 AC_PROG_CC
 AC_PROG_CXX
+dnl add this here, so the help for this environmnet variable is close to
+dnl other CC/CXX flags related help
+AC_ARG_VAR([CXX11_CXXFLAGS], [Compiler flag to enable C++11 support (only needed if not
+                              enabled by default and different  from -std=c++11)])
 AM_PROG_CC_C_O
 AM_PROG_AS
 AX_CHECK_GNU_MAKE
@@ -119,6 +123,7 @@ AC_PROG_SED
 AC_PROG_MKDIR_P
 
 AC_SYS_LARGEFILE
+
 
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
@@ -309,11 +314,11 @@ AC_LANG_POP([C++])
 # - non-Linux/Posix OpenGL portions needs to build on MSVC 2013 (which
 #   supports most of C99)
 # - the rest has no compiler compiler restrictions
-AX_CHECK_COMPILE_FLAG([-Werror=pointer-arith],                 [MSVC2013_COMPAT_CFLAGS="-Werror=pointer-arith"])
-AX_CHECK_COMPILE_FLAG([-Werror=vla],                           [MSVC2013_COMPAT_CFLAGS="-Werror=vla"])
+AX_CHECK_COMPILE_FLAG([-Werror=pointer-arith],                 [MSVC2013_COMPAT_CFLAGS="$MSVC2013_COMPAT_CFLAGS -Werror=pointer-arith"])
+AX_CHECK_COMPILE_FLAG([-Werror=vla],                           [MSVC2013_COMPAT_CFLAGS="$MSVC2013_COMPAT_CFLAGS -Werror=vla"])
 AC_LANG_PUSH([C++])
-AX_CHECK_COMPILE_FLAG([-Werror=pointer-arith],                 [MSVC2013_COMPAT_CXXFLAGS="-Werror=pointer-arith"])
-AX_CHECK_COMPILE_FLAG([-Werror=vla],                           [MSVC2013_COMPAT_CXXFLAGS="-Werror=vla"])
+AX_CHECK_COMPILE_FLAG([-Werror=pointer-arith],                 [MSVC2013_COMPAT_CXXFLAGS="$MSVC2013_COMPAT_CXXFLAGS -Werror=pointer-arith"])
+AX_CHECK_COMPILE_FLAG([-Werror=vla],                           [MSVC2013_COMPAT_CXXFLAGS="$MSVC2013_COMPAT_CXXFLAGS -Werror=vla"])
 AC_LANG_POP([C++])
 
 AC_SUBST([MSVC2013_COMPAT_CFLAGS])
@@ -327,6 +332,56 @@ if test "x$GCC" = xyes; then
     fi
 fi
 
+dnl
+dnl Check whether C++11 is supported, if the environment variable
+dnl CXX11_CXXFLAGS is set it takes precedence.
+dnl
+
+AC_LANG_PUSH([C++])
+
+check_cxx11_available() {
+    output_support=$1
+    AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM([
+             #if !(__cplusplus >= 201103L)
+             #error
+             #endif
+             #include <tuple>
+        ])
+    ], [
+         AC_MSG_RESULT(yes)
+         cxx11_support=yes
+    ], AC_MSG_RESULT(no))
+    eval "$output_support=\$cxx11_support"
+}
+
+HAVE_CXX11=no
+save_CXXFLAGS="$CXXFLAGS"
+
+dnl If the user provides a flag to enable c++11, then we test only this
+if test "x$CXX11_CXXFLAGS" != "x"; then
+   CXXFLAGS="$CXXFLAGS $CXX11_CXXFLAGS"
+   AC_MSG_CHECKING(whether c++11 is enabled by via $CXX11_CXXFLAGS)
+   check_cxx11_available HAVE_CXX11
+else
+   dnl test whether c++11 is enabled by default
+   AC_MSG_CHECKING(whether c++11 is enabled by default)
+   check_cxx11_available HAVE_CXX11
+
+   dnl C++11 not enabled by default, test whether -std=c++11 does the job
+   if test "x$HAVE_CXX11" != "xyes"; then
+       CXX11_CXXFLAGS=-std=c++11
+       CXXFLAGS="$CXXFLAGS $CXX11_CXXFLAGS"
+       AC_MSG_CHECKING(whether c++11 is enabled by via $CXX11_CXXFLAGS)
+       check_cxx11_available HAVE_CXX11
+   fi
+fi
+
+CXXFLAGS="$save_CXXFLAGS"
+AM_CONDITIONAL(HAVE_STD_CXX11, test "x$HAVE_CXX11" = "xyes")
+AC_SUBST(CXX11_CXXFLAGS)
+AC_LANG_POP([C++])
+
 dnl even if the compiler appears to support it, using visibility attributes isn't
 dnl going to do anything useful currently on cygwin apart from emit lots of warnings
 case "$host_os" in
@@ -339,8 +394,8 @@ esac
 AC_SUBST([VISIBILITY_CFLAGS])
 AC_SUBST([VISIBILITY_CXXFLAGS])
 
-AX_CHECK_COMPILE_FLAG([-Wno-override-init],                    [WNO_OVERRIDE_INIT="-Wno-override-init"])         # gcc
-AX_CHECK_COMPILE_FLAG([-Wno-initializer-overrides],            [WNO_OVERRIDE_INIT="-Wno-initializer-overrides"]) # clang
+AX_CHECK_COMPILE_FLAG([-Wno-override-init],                    [WNO_OVERRIDE_INIT="$WNO_OVERRIDE_INIT -Wno-override-init"])         # gcc
+AX_CHECK_COMPILE_FLAG([-Wno-initializer-overrides],            [WNO_OVERRIDE_INIT="$WNO_OVERRIDE_INIT -Wno-initializer-overrides"]) # clang
 AC_SUBST([WNO_OVERRIDE_INIT])
 
 dnl
@@ -880,6 +935,9 @@ if test "x$pthread_stubs_possible" = xyes; then
     PKG_CHECK_MODULES(PTHREADSTUBS, pthread-stubs >= 0.4)
 fi
 
+dnl Check for futex for fast inline simple_mtx_t.
+AC_CHECK_HEADER([linux/futex.h], [DEFINES="$DEFINES -DHAVE_LINUX_FUTEX_H"])
+
 dnl SELinux awareness.
 AC_ARG_ENABLE([selinux],
     [AS_HELP_STRING([--enable-selinux],
@@ -1255,9 +1313,9 @@ AC_ARG_ENABLE([opencl],
 AC_ARG_ENABLE([opencl_icd],
    [AS_HELP_STRING([--enable-opencl-icd],
           [Build an OpenCL ICD library to be loaded by an ICD implementation
-           @<:@default=disabled@:>@])],
+           @<:@default=enabled@:>@])],
     [enable_opencl_icd="$enableval"],
-    [enable_opencl_icd=no])
+    [enable_opencl_icd=yes])
 
 AC_ARG_ENABLE([gallium-tests],
     [AS_HELP_STRING([--enable-gallium-tests],
@@ -1383,17 +1441,9 @@ AC_ARG_ENABLE([libglvnd],
 AM_CONDITIONAL(USE_LIBGLVND, test "x$enable_libglvnd" = xyes)
 
 if test "x$enable_libglvnd" = xyes ; then
-    dnl XXX: update once we can handle more than libGL/glx.
-    dnl Namely: we should error out if neither of the glvnd enabled libraries
-    dnl are built
     case "x$enable_glx" in
-    xno)
-        AC_MSG_ERROR([cannot build libglvnd without GLX])
-        ;;
     xxlib | xgallium-xlib )
         AC_MSG_ERROR([cannot build libgvnd when Xlib-GLX or Gallium-Xlib-GLX is enabled])
-        ;;
-    xdri)
         ;;
     esac
 
@@ -1403,6 +1453,10 @@ if test "x$enable_libglvnd" = xyes ; then
 
     DEFINES="${DEFINES} -DUSE_LIBGLVND=1"
     DEFAULT_GL_LIB_NAME=GLX_mesa
+
+    if test "x$enable_glx" = xno -a "x$enable_egl" = xno; then
+        AC_MSG_ERROR([cannot build libglvnd without GLX or EGL])
+    fi
 fi
 
 AC_ARG_WITH([gl-lib-name],
@@ -2160,7 +2214,9 @@ if test "x$enable_xvmc" = xyes -o \
         "x$enable_vdpau" = xyes -o \
         "x$enable_omx_bellagio" = xyes -o \
         "x$enable_va" = xyes; then
-    PKG_CHECK_MODULES([VL], [x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
+    if echo $platforms | grep -q "x11"; then
+        PKG_CHECK_MODULES([VL], [x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
+    fi
     need_gallium_vl_winsys=yes
 fi
 AM_CONDITIONAL(NEED_GALLIUM_VL_WINSYS, test "x$need_gallium_vl_winsys" = xyes)
@@ -2241,8 +2297,8 @@ if test "x$enable_opencl" = xyes; then
         AC_MSG_ERROR([cannot enable OpenCL without Gallium])
     fi
 
-    if test $GCC_VERSION_MAJOR -lt 4 -o $GCC_VERSION_MAJOR -eq 4 -a $GCC_VERSION_MINOR -lt 7; then
-        AC_MSG_ERROR([gcc >= 4.7 is required to build clover])
+    if test "x$HAVE_CXX11" != "xyes"; then
+       AC_MSG_ERROR([clover requires c++11 support])
     fi
 
     if test "x$have_libclc" = xno; then
@@ -2529,10 +2585,9 @@ if test -n "$with_gallium_drivers"; then
         xswr)
             llvm_require_version $LLVM_REQUIRED_SWR "swr"
 
-            swr_require_cxx_feature_flags "C++11" "__cplusplus >= 201103L" \
-                ",-std=c++11" \
-                SWR_CXX11_CXXFLAGS
-            AC_SUBST([SWR_CXX11_CXXFLAGS])
+            if test "x$HAVE_CXX11" != "xyes"; then
+                AC_MSG_ERROR([swr requires c++11 support])
+            fi
 
             swr_require_cxx_feature_flags "AVX" "defined(__AVX__)" \
                 ",-target-cpu=sandybridge,-mavx,-march=core-avx,-tp=sandybridge" \
@@ -3116,6 +3171,7 @@ defines=`echo $DEFINES | $SED 's/^ *//;s/  */ /;s/ *$//'`
 echo ""
 echo "        CFLAGS:          $cflags"
 echo "        CXXFLAGS:        $cxxflags"
+echo "        CXX11_CXXFLAGS:  $CXX11_CXXFLAGS"
 echo "        LDFLAGS:         $ldflags"
 echo "        Macros:          $defines"
 echo ""

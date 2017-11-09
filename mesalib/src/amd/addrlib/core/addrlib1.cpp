@@ -1281,36 +1281,54 @@ ADDR_E_RETURNCODE Lib::ComputeHtileInfo(
 
         if (returnCode == ADDR_OK)
         {
-            pOut->bpp = ComputeHtileInfo(pIn->flags,
-                                         pIn->pitch,
-                                         pIn->height,
-                                         pIn->numSlices,
-                                         pIn->isLinear,
-                                         isWidth8,
-                                         isHeight8,
-                                         pIn->pTileInfo,
-                                         &pOut->pitch,
-                                         &pOut->height,
-                                         &pOut->htileBytes,
-                                         &pOut->macroWidth,
-                                         &pOut->macroHeight,
-                                         &pOut->sliceSize,
-                                         &pOut->baseAlign);
-
-            if (pIn->flags.tcCompatible && (pIn->numSlices > 1))
+            if (pIn->flags.tcCompatible)
             {
-                pOut->sliceSize = pIn->pitch * pIn->height * 4 / (8 * 8);
+                const UINT_32 sliceSize = pIn->pitch * pIn->height * 4 / (8 * 8);
+                const UINT_32 align     = HwlGetPipes(pIn->pTileInfo) * pIn->pTileInfo->banks * m_pipeInterleaveBytes;
 
-                const UINT_32 align = HwlGetPipes(pIn->pTileInfo) * pIn->pTileInfo->banks * m_pipeInterleaveBytes;
-
-                if ((pOut->sliceSize % align) == 0)
+                if (pIn->numSlices > 1)
                 {
-                    pOut->sliceInterleaved = FALSE;
+                    const UINT_32 surfBytes = (sliceSize * pIn->numSlices);
+
+                    pOut->sliceSize        = sliceSize;
+                    pOut->htileBytes       = pIn->flags.skipTcCompatSizeAlign ?
+                                             surfBytes : PowTwoAlign(surfBytes, align);
+                    pOut->sliceInterleaved = ((sliceSize % align) != 0) ? TRUE : FALSE;
                 }
                 else
                 {
-                    pOut->sliceInterleaved = TRUE;
+                    pOut->sliceSize        = pIn->flags.skipTcCompatSizeAlign ?
+                                             sliceSize : PowTwoAlign(sliceSize, align);
+                    pOut->htileBytes       = pOut->sliceSize;
+                    pOut->sliceInterleaved = FALSE;
                 }
+
+                pOut->nextMipLevelCompressible = ((sliceSize % align) == 0) ? TRUE : FALSE;
+
+                pOut->pitch       = pIn->pitch;
+                pOut->height      = pIn->height;
+                pOut->baseAlign   = align;
+                pOut->macroWidth  = 0;
+                pOut->macroHeight = 0;
+                pOut->bpp         = 32;
+            }
+            else
+            {
+                pOut->bpp = ComputeHtileInfo(pIn->flags,
+                                             pIn->pitch,
+                                             pIn->height,
+                                             pIn->numSlices,
+                                             pIn->isLinear,
+                                             isWidth8,
+                                             isHeight8,
+                                             pIn->pTileInfo,
+                                             &pOut->pitch,
+                                             &pOut->height,
+                                             &pOut->htileBytes,
+                                             &pOut->macroWidth,
+                                             &pOut->macroHeight,
+                                             &pOut->sliceSize,
+                                             &pOut->baseAlign);
             }
         }
     }
@@ -2162,6 +2180,8 @@ VOID Lib::HwlComputeXmaskCoordFromAddr(
 {
     UINT_32 pipe;
     UINT_32 numPipes;
+    UINT_32 numGroupBits;
+    (void)numGroupBits;
     UINT_32 numPipeBits;
     UINT_32 macroTilePitch;
     UINT_32 macroTileHeight;
@@ -2204,6 +2224,7 @@ VOID Lib::HwlComputeXmaskCoordFromAddr(
     //
     // Compute the number of group and pipe bits.
     //
+    numGroupBits = Log2(m_pipeInterleaveBytes);
     numPipeBits  = Log2(numPipes);
 
     UINT_32 groupBits = 8 * m_pipeInterleaveBytes;
@@ -3504,6 +3525,10 @@ VOID Lib::ComputeMipLevel(
     ADDR_COMPUTE_SURFACE_INFO_INPUT* pIn ///< [in,out] Input structure
     ) const
 {
+    // Check if HWL has handled
+    BOOL_32 hwlHandled = FALSE;
+    (void)hwlHandled;
+
     if (ElemLib::IsBlockCompressed(pIn->format))
     {
         if (pIn->mipLevel == 0)
@@ -3517,7 +3542,7 @@ VOID Lib::ComputeMipLevel(
         }
     }
 
-    HwlComputeMipLevel(pIn);
+    hwlHandled = HwlComputeMipLevel(pIn);
 }
 
 /**

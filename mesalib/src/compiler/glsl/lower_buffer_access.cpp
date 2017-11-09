@@ -36,6 +36,7 @@
 #include "main/macros.h"
 #include "util/list.h"
 #include "glsl_parser_extras.h"
+#include "linker.h"
 
 using namespace ir_builder;
 
@@ -58,8 +59,8 @@ lower_buffer_access::emit_access(void *mem_ctx,
                                  ir_variable *base_offset,
                                  unsigned int deref_offset,
                                  bool row_major,
-                                 int matrix_columns,
-                                 unsigned int packing,
+                                 const glsl_type *matrix_type,
+                                 enum glsl_interface_packing packing,
                                  unsigned int write_mask)
 {
    if (deref->type->is_record()) {
@@ -78,7 +79,7 @@ lower_buffer_access::emit_access(void *mem_ctx,
 
          emit_access(mem_ctx, is_write, field_deref, base_offset,
                      deref_offset + field_offset,
-                     row_major, 1, packing,
+                     row_major, NULL, packing,
                      writemask_for_size(field_deref->type->vector_elements));
 
          field_offset += field->type->std140_size(row_major);
@@ -98,7 +99,7 @@ lower_buffer_access::emit_access(void *mem_ctx,
                                               element);
          emit_access(mem_ctx, is_write, element_deref, base_offset,
                      deref_offset + i * array_stride,
-                     row_major, 1, packing,
+                     row_major, NULL, packing,
                      writemask_for_size(element_deref->type->vector_elements));
       }
       return;
@@ -110,42 +111,17 @@ lower_buffer_access::emit_access(void *mem_ctx,
          ir_dereference *col_deref =
             new(mem_ctx) ir_dereference_array(deref->clone(mem_ctx, NULL), col);
 
-         if (row_major) {
-            /* For a row-major matrix, the next column starts at the next
-             * element.
-             */
-            int size_mul = deref->type->is_64bit() ? 8 : 4;
-            emit_access(mem_ctx, is_write, col_deref, base_offset,
-                        deref_offset + i * size_mul,
-                        row_major, deref->type->matrix_columns, packing,
-                        writemask_for_size(col_deref->type->vector_elements));
-         } else {
-            int size_mul;
+         /* For a row-major matrix, the next column starts at the next
+          * element.  Otherwise it is offset by the matrix stride.
+          */
+         const unsigned size_mul = row_major
+            ? (deref->type->is_double() ? 8 : 4)
+            : link_calculate_matrix_stride(deref->type, row_major, packing);
 
-            /* std430 doesn't round up vec2 size to a vec4 size */
-            if (packing == GLSL_INTERFACE_PACKING_STD430 &&
-                deref->type->vector_elements == 2 &&
-                !deref->type->is_64bit()) {
-               size_mul = 8;
-            } else {
-               /* std140 always rounds the stride of arrays (and matrices) to a
-                * vec4, so matrices are always 16 between columns/rows. With
-                * doubles, they will be 32 apart when there are more than 2 rows.
-                *
-                * For both std140 and std430, if the member is a
-                * three-'component vector with components consuming N basic
-                * machine units, the base alignment is 4N. For vec4, base
-                * alignment is 4N.
-                */
-               size_mul = (deref->type->is_64bit() &&
-                           deref->type->vector_elements > 2) ? 32 : 16;
-            }
-
-            emit_access(mem_ctx, is_write, col_deref, base_offset,
-                        deref_offset + i * size_mul,
-                        row_major, deref->type->matrix_columns, packing,
-                        writemask_for_size(col_deref->type->vector_elements));
-         }
+         emit_access(mem_ctx, is_write, col_deref, base_offset,
+                     deref_offset + i * size_mul,
+                     row_major, deref->type, packing,
+                     writemask_for_size(col_deref->type->vector_elements));
       }
       return;
    }
@@ -159,45 +135,14 @@ lower_buffer_access::emit_access(void *mem_ctx,
          is_write ? write_mask : (1 << deref->type->vector_elements) - 1;
       insert_buffer_access(mem_ctx, deref, deref->type, offset, mask, -1);
    } else {
-      unsigned N = deref->type->is_64bit() ? 8 : 4;
-
       /* We're dereffing a column out of a row-major matrix, so we
        * gather the vector from each stored row.
-      */
+       */
       assert(deref->type->is_float() || deref->type->is_double());
+      assert(matrix_type != NULL);
 
-      /* Matrices, row_major or not, are stored as if they were
-       * arrays of vectors of the appropriate size in std140.
-       * Arrays have their strides rounded up to a vec4, so the
-       * matrix stride is always 16. However a double matrix may either be 16
-       * or 32 depending on the number of columns.
-       */
-      assert(matrix_columns <= 4);
-      unsigned matrix_stride = 0;
-      /* Matrix stride for std430 mat2xY matrices are not rounded up to
-       * vec4 size. From OpenGL 4.3 spec, section 7.6.2.2 "Standard Uniform
-       * Block Layout":
-       *
-       * "2. If the member is a two- or four-component vector with components
-       * consuming N basic machine units, the base alignment is 2N or 4N,
-       * respectively." [...]
-       * "4. If the member is an array of scalars or vectors, the base alignment
-       * and array stride are set to match the base alignment of a single array
-       * element, according to rules (1), (2), and (3), and rounded up to the
-       * base alignment of a vec4." [...]
-       * "7. If the member is a row-major matrix with C columns and R rows, the
-       * matrix is stored identically to an array of R row vectors with C
-       * components each, according to rule (4)." [...]
-       * "When using the std430 storage layout, shader storage blocks will be
-       * laid out in buffer storage identically to uniform and shader storage
-       * blocks using the std140 layout, except that the base alignment and
-       * stride of arrays of scalars and vectors in rule 4 and of structures in
-       * rule 9 are not rounded up a multiple of the base alignment of a vec4."
-       */
-      if (packing == GLSL_INTERFACE_PACKING_STD430 && matrix_columns == 2)
-         matrix_stride = 2 * N;
-      else
-         matrix_stride = glsl_align(matrix_columns * N, 16);
+      const unsigned matrix_stride =
+         link_calculate_matrix_stride(matrix_type, row_major, packing);
 
       const glsl_type *deref_type = deref->type->is_float() ?
          glsl_type::float_type : glsl_type::double_type;
@@ -325,13 +270,13 @@ lower_buffer_access::setup_buffer_access(void *mem_ctx,
                                          ir_rvalue **offset,
                                          unsigned *const_offset,
                                          bool *row_major,
-                                         int *matrix_columns,
+                                         const glsl_type **matrix_type,
                                          const glsl_struct_field **struct_field,
                                          enum glsl_interface_packing packing)
 {
    *offset = new(mem_ctx) ir_constant(0u);
    *row_major = is_dereferenced_thing_row_major(deref);
-   *matrix_columns = 1;
+   *matrix_type = NULL;
 
    /* Calculate the offset to the start of the region of the UBO
     * dereferenced by *rvalue.  This may be a variable offset if an
@@ -368,7 +313,7 @@ lower_buffer_access::setup_buffer_access(void *mem_ctx,
             array_stride = 4;
             if (deref_array->array->type->is_64bit())
                array_stride *= 2;
-            *matrix_columns = deref_array->array->type->matrix_columns;
+            *matrix_type = deref_array->array->type;
          } else if (deref_array->type->without_array()->is_interface()) {
             /* We're processing an array dereference of an interface instance
              * array. The thing being dereferenced *must* be a variable

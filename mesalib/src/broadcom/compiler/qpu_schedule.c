@@ -201,12 +201,14 @@ process_waddr_deps(struct schedule_state *state, struct schedule_node *n,
                 case V3D_QPU_WADDR_R0:
                 case V3D_QPU_WADDR_R1:
                 case V3D_QPU_WADDR_R2:
-                case V3D_QPU_WADDR_R3:
-                case V3D_QPU_WADDR_R4:
-                case V3D_QPU_WADDR_R5:
                         add_write_dep(state,
                                       &state->last_r[waddr - V3D_QPU_WADDR_R0],
                                       n);
+                        break;
+                case V3D_QPU_WADDR_R3:
+                case V3D_QPU_WADDR_R4:
+                case V3D_QPU_WADDR_R5:
+                        /* Handled by v3d_qpu_writes_r*() checks below. */
                         break;
 
                 case V3D_QPU_WADDR_VPM:

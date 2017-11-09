@@ -33,12 +33,12 @@ class Coordinate
 {
 public:
     Coordinate();
-    Coordinate(INT_8 c, UINT_32 n);
+    Coordinate(INT_8 c, INT_32 n);
 
-    VOID set(INT_8 c, UINT_32 n);
-    UINT_32 ison(UINT_32 x, UINT_32 y, UINT_32 z = 0, UINT_32 s = 0, UINT_32 m = 0);
-    INT_8 getdim();
-    INT_8 getord();
+    VOID set(INT_8 c, INT_32 n);
+    UINT_32 ison(UINT_32 x, UINT_32 y, UINT_32 z = 0, UINT_32 s = 0, UINT_32 m = 0) const;
+    INT_8   getdim();
+    INT_8   getord();
 
     BOOL_32 operator==(const Coordinate& b);
     BOOL_32 operator<(const Coordinate& b);
@@ -64,7 +64,7 @@ public:
     BOOL_32 Exists(Coordinate& co);
     VOID copyto(CoordTerm& cl);
     UINT_32 getsize();
-    UINT_32 getxor(UINT_32 x, UINT_32 y, UINT_32 z = 0, UINT_32 s = 0, UINT_32 m = 0);
+    UINT_32 getxor(UINT_32 x, UINT_32 y, UINT_32 z = 0, UINT_32 s = 0, UINT_32 m = 0) const;
 
     VOID getsmallest(Coordinate& co);
     UINT_32 Filter(INT_8 f, Coordinate& co, UINT_32 start = 0, INT_8 axis = '\0');
@@ -87,9 +87,9 @@ public:
     BOOL_32 Exists(Coordinate& co);
     VOID resize(UINT_32 n);
     UINT_32 getsize();
-    virtual UINT_64 solve(UINT_32 x, UINT_32 y, UINT_32 z = 0, UINT_32 s = 0, UINT_32 m = 0);
+    virtual UINT_64 solve(UINT_32 x, UINT_32 y, UINT_32 z = 0, UINT_32 s = 0, UINT_32 m = 0) const;
     virtual VOID solveAddr(UINT_64 addr, UINT_32 sliceInM,
-                           UINT_32& x, UINT_32& y, UINT_32& z, UINT_32& s, UINT_32& m);
+                           UINT_32& x, UINT_32& y, UINT_32& z, UINT_32& s, UINT_32& m) const;
 
     VOID copy(CoordEq& o, UINT_32 start = 0, UINT_32 num = 0xFFFFFFFF);
     VOID reverse(UINT_32 start = 0, UINT_32 num = 0xFFFFFFFF);

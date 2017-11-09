@@ -35,7 +35,7 @@
 
 #include "hud/hud_private.h"
 #include "util/list.h"
-#include "os/os_time.h"
+#include "util/os_time.h"
 #include "os/os_thread.h"
 #include "util/u_memory.h"
 #include <stdio.h>

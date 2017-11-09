@@ -30,9 +30,6 @@
 #define EMULATED_THREADS_H_INCLUDED_
 
 #include <time.h>
-#ifdef _MSC_VER
-#include <thr/xtimec.h>  // for xtime
-#endif
 
 #ifndef TIME_UTC
 #define TIME_UTC 1
@@ -43,14 +40,6 @@
 /*---------------------------- types ----------------------------*/
 typedef void (*tss_dtor_t)(void*);
 typedef int (*thrd_start_t)(void*);
-
-#ifndef _MSC_VER
-struct xtime {
-    time_t sec;
-    long nsec;
-};
-typedef struct xtime xtime;
-#endif
 
 
 /*-------------------- enumeration constants --------------------*/

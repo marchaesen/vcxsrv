@@ -12,6 +12,7 @@
 #define U_ATOMIC_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /* Favor OS-provided implementations.
  *
@@ -47,6 +48,8 @@
 #define p_atomic_add(v, i) (void) __atomic_add_fetch((v), (i), __ATOMIC_ACQ_REL)
 #define p_atomic_inc_return(v) __atomic_add_fetch((v), 1, __ATOMIC_ACQ_REL)
 #define p_atomic_dec_return(v) __atomic_sub_fetch((v), 1, __ATOMIC_ACQ_REL)
+#define p_atomic_xchg(v, i) __atomic_exchange_n((v), (i), __ATOMIC_ACQ_REL)
+#define PIPE_NATIVE_ATOMIC_XCHG
 
 #else
 
@@ -220,6 +223,33 @@
 #error "No pipe_atomic implementation selected"
 #endif
 
+#ifndef PIPE_NATIVE_ATOMIC_XCHG
+static inline uint32_t p_atomic_xchg_32(uint32_t *v, uint32_t i)
+{
+   uint32_t actual = p_atomic_read(v);
+   uint32_t expected;
+   do {
+      expected = actual;
+      actual = p_atomic_cmpxchg(v, expected, i);
+   } while (expected != actual);
+   return actual;
+}
 
+static inline uint64_t p_atomic_xchg_64(uint64_t *v, uint64_t i)
+{
+   uint64_t actual = p_atomic_read(v);
+   uint64_t expected;
+   do {
+      expected = actual;
+      actual = p_atomic_cmpxchg(v, expected, i);
+   } while (expected != actual);
+   return actual;
+}
+
+#define p_atomic_xchg(v, i) ((__typeof(*(v))) \
+   sizeof(*(v)) == sizeof(uint32_t) ? p_atomic_xchg_32((uint32_t *)(v), (uint32_t)(i)) : \
+   sizeof(*(v)) == sizeof(uint64_t) ? p_atomic_xchg_64((uint64_t *)(v), (uint64_t)(i)) : \
+                                      (assert(!"should not get here"), 0))
+#endif
 
 #endif /* U_ATOMIC_H */

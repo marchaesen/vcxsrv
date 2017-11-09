@@ -218,7 +218,16 @@ ADDR_E_RETURNCODE Lib::Create(
                 }
                 break;
             case CIASICIDGFXENGINE_ARCTICISLAND:
-                pLib = Gfx9HwlInit(&client);
+                switch (pCreateIn->chipFamily)
+                {
+                    case FAMILY_AI:
+                    case FAMILY_RV:
+                        pLib = Gfx9HwlInit(&client);
+                        break;
+                    default:
+                        ADDR_ASSERT_ALWAYS();
+                        break;
+                }
                 break;
             default:
                 ADDR_ASSERT_ALWAYS();

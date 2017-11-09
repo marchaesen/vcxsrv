@@ -2,13 +2,13 @@ COMMON_HEADER_FILES = \
 	common/gfx9d.h \
 	common/sid.h \
 	common/amd_family.h \
-	common/amd_kernel_code_t.h \
-	common/amdgpu_id.h
+	common/amd_kernel_code_t.h
 
 ADDRLIB_FILES = \
 	addrlib/addrinterface.cpp \
 	addrlib/addrinterface.h \
 	addrlib/addrtypes.h \
+	addrlib/amdgpu_asic_addr.h \
 	addrlib/core/addrcommon.h \
 	addrlib/core/addrelemlib.cpp \
 	addrlib/core/addrelemlib.h \
@@ -25,11 +25,8 @@ ADDRLIB_FILES = \
 	addrlib/gfx9/coord.h \
 	addrlib/gfx9/gfx9addrlib.cpp \
 	addrlib/gfx9/gfx9addrlib.h \
-	addrlib/gfx9/rbmap.cpp \
-	addrlib/gfx9/rbmap.h \
 	addrlib/inc/chip/gfx9/gfx9_gb_reg.h \
 	addrlib/inc/chip/r800/si_gb_reg.h \
-	addrlib/inc/lnx_common_defs.h \
 	addrlib/r800/chip/si_ci_vi_merged_enum.h \
 	addrlib/r800/ciaddrlib.cpp \
 	addrlib/r800/ciaddrlib.h \

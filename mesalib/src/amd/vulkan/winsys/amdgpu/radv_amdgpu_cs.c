@@ -28,7 +28,6 @@
 #include <assert.h>
 
 #include "ac_debug.h"
-#include "amdgpu_id.h"
 #include "radv_radeon_winsys.h"
 #include "radv_amdgpu_cs.h"
 #include "radv_amdgpu_bo.h"

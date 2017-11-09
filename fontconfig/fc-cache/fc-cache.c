@@ -114,7 +114,7 @@ usage (char *program, int error)
     fprintf (file, _("  -V, --version            display font config version and exit\n"));
     fprintf (file, _("  -h, --help               display this help and exit\n"));
 #else
-    fprintf (file, "  -E         (error-on-no-fonts)\n"));
+    fprintf (file, _("  -E         (error-on-no-fonts)\n"));
     fprintf (file, _("                       raise an error if no fonts in a directory\n"));
     fprintf (file, _("  -f         (force)   scan directories with apparently valid caches\n"));
     fprintf (file, _("  -r,   (really force) erase all existing caches, then rescan\n"));

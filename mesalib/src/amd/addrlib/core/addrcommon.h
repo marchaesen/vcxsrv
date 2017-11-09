@@ -36,15 +36,9 @@
 
 #include "addrinterface.h"
 
-// ADDR_LNX_KERNEL_BUILD is for internal build
-// Moved from addrinterface.h so __KERNEL__ is not needed any more
-#if ADDR_LNX_KERNEL_BUILD // || (defined(__GNUC__) && defined(__KERNEL__))
-    #include "lnx_common_defs.h" // ported from cmmqs
-#elif !defined(__APPLE__) || defined(HAVE_TSERVER)
-    #include <assert.h>
-    #include <stdlib.h>
-    #include <string.h>
-#endif
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 #if BRAHMA_BUILD && !defined(DEBUG)
 #ifdef NDEBUG
@@ -170,6 +164,8 @@
 
 #endif // DEBUG
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define ADDR_C_ASSERT(__e) typedef char __ADDR_C_ASSERT__[(__e) ? 1 : -1]
 
 namespace Addr
 {

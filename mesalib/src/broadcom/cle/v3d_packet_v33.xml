@@ -329,6 +329,10 @@
     <field name="Render Target 0 per colour component write masks" size="4" start="0" type="uint"/>
   </packet>
 
+  <packet code="92" name="Occlusion Query Counter">
+    <field name="address" size="32" start="0" type="address"/>
+  </packet>
+
   <packet code="96" name="Configuration Bits">
     <field name="Direct3D Provoking Vertex" size="1" start="21" type="bool"/>
     <field name="Direct3D 'Point-fill' mode" size="1" start="20" type="bool"/>

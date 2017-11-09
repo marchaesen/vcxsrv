@@ -477,14 +477,35 @@ ntq_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                         STATIC_ASSERT(PIPE_SWIZZLE_X == 0);
                         chan = return_values[i / 2];
 
-                        enum v3d_qpu_input_unpack unpack;
-                        if (i & 1)
-                                unpack = V3D_QPU_UNPACK_H;
-                        else
-                                unpack = V3D_QPU_UNPACK_L;
+                        if (nir_alu_type_get_base_type(instr->dest_type) ==
+                            nir_type_float) {
+                                enum v3d_qpu_input_unpack unpack;
+                                if (i & 1)
+                                        unpack = V3D_QPU_UNPACK_H;
+                                else
+                                        unpack = V3D_QPU_UNPACK_L;
 
-                        chan = vir_FMOV(c, chan);
-                        vir_set_unpack(c->defs[chan.index], 0, unpack);
+                                chan = vir_FMOV(c, chan);
+                                vir_set_unpack(c->defs[chan.index], 0, unpack);
+                        } else {
+                                /* If we're unpacking the low field, shift it
+                                 * up to the top first.
+                                 */
+                                if ((i & 1) == 0) {
+                                        chan = vir_SHL(c, chan,
+                                                       vir_uniform_ui(c, 16));
+                                }
+
+                                /* Do proper sign extension to a 32-bit int. */
+                                if (nir_alu_type_get_base_type(instr->dest_type) ==
+                                    nir_type_int) {
+                                        chan = vir_ASR(c, chan,
+                                                       vir_uniform_ui(c, 16));
+                                } else {
+                                        chan = vir_SHR(c, chan,
+                                                       vir_uniform_ui(c, 16));
+                                }
+                        }
                 } else {
                         chan = vir_MOV(c, return_values[i]);
                 }

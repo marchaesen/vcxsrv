@@ -499,7 +499,7 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
    prog->data->NumUniformStorage = blob_read_uint32(metadata);
    prog->data->NumUniformDataSlots = blob_read_uint32(metadata);
 
-   uniforms = rzalloc_array(prog, struct gl_uniform_storage,
+   uniforms = rzalloc_array(prog->data, struct gl_uniform_storage,
                             prog->data->NumUniformStorage);
    prog->data->UniformStorage = uniforms;
 
@@ -955,7 +955,7 @@ read_program_resource_list(struct blob_reader *metadata,
    prog->data->NumProgramResourceList = blob_read_uint32(metadata);
 
    prog->data->ProgramResourceList =
-      ralloc_array(prog, gl_program_resource,
+      ralloc_array(prog->data, gl_program_resource,
                    prog->data->NumProgramResourceList);
 
    for (unsigned i = 0; i < prog->data->NumProgramResourceList; i++) {
@@ -1299,7 +1299,7 @@ shader_cache_read_program_metadata(struct gl_context *ctx,
       return false;
 
    struct disk_cache *cache = ctx->Cache;
-   if (!cache || prog->data->cache_fallback || prog->data->skip_cache)
+   if (!cache || prog->data->skip_cache)
       return false;
 
    /* Include bindings when creating sha1. These bindings change the resulting

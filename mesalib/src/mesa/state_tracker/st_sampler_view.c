@@ -43,24 +43,39 @@
 
 
 /**
- * Try to find a matching sampler view for the given context.
- * If none is found an empty slot is initialized with a
- * template and returned instead.
+ * Set the given view as the current context's view for the texture.
+ *
+ * Overwrites any pre-existing view of the context.
+ *
+ * Takes ownership of the view (i.e., stores the view without incrementing the
+ * reference count).
+ *
+ * \return the view, or NULL on error. In case of error, the reference to the
+ * view is released.
  */
-static struct st_sampler_view *
-st_texture_get_sampler_view(struct st_context *st,
-                            struct st_texture_object *stObj)
+static struct pipe_sampler_view *
+st_texture_set_sampler_view(struct st_context *st,
+                            struct st_texture_object *stObj,
+                            struct pipe_sampler_view *view,
+                            bool glsl130_or_later, bool srgb_skip_decode)
 {
+   struct st_sampler_views *views;
    struct st_sampler_view *free = NULL;
+   struct st_sampler_view *sv;
    GLuint i;
 
-   for (i = 0; i < stObj->num_sampler_views; ++i) {
-      struct st_sampler_view *sv = &stObj->sampler_views[i];
+   simple_mtx_lock(&stObj->validate_mutex);
+   views = stObj->sampler_views;
+
+   for (i = 0; i < views->count; ++i) {
+      sv = &views->views[i];
+
       /* Is the array entry used ? */
       if (sv->view) {
          /* check if the context matches */
          if (sv->view->context == st->pipe) {
-            return sv;
+            pipe_sampler_view_release(st->pipe, &sv->view);
+            goto found;
          }
       } else {
          /* Found a free slot, remember that */
@@ -69,19 +84,98 @@ st_texture_get_sampler_view(struct st_context *st,
    }
 
    /* Couldn't find a slot for our context, create a new one */
+   if (free) {
+      sv = free;
+   } else {
+      if (views->count >= views->max) {
+         /* Allocate a larger container. */
+         unsigned new_max = 2 * views->max;
+         unsigned new_size = sizeof(*views) + new_max * sizeof(views->views[0]);
 
-   if (!free) {
-      /* Haven't even found a free one, resize the array */
-      unsigned new_size = (stObj->num_sampler_views + 1) *
-         sizeof(struct st_sampler_view);
-      stObj->sampler_views = realloc(stObj->sampler_views, new_size);
-      free = &stObj->sampler_views[stObj->num_sampler_views++];
-      free->view = NULL;
+         if (new_max < views->max ||
+             new_max > (UINT_MAX - sizeof(*views)) / sizeof(views->views[0])) {
+            pipe_sampler_view_release(st->pipe, &view);
+            goto out;
+         }
+
+         struct st_sampler_views *new_views = malloc(new_size);
+         if (!new_views) {
+            pipe_sampler_view_release(st->pipe, &view);
+            goto out;
+         }
+
+         new_views->count = views->count;
+         new_views->max = new_max;
+         memcpy(&new_views->views[0], &views->views[0],
+               views->count * sizeof(views->views[0]));
+
+         /* Initialize the pipe_sampler_view pointers to zero so that we don't
+          * have to worry about racing against readers when incrementing
+          * views->count.
+          */
+         memset(&new_views->views[views->count], 0,
+                (new_max - views->count) * sizeof(views->views[0]));
+
+         /* Use memory release semantics to ensure that concurrent readers will
+          * get the correct contents of the new container.
+          *
+          * Also, the write should be atomic, but that's guaranteed anyway on
+          * all supported platforms.
+          */
+         p_atomic_set(&stObj->sampler_views, new_views);
+
+         /* We keep the old container around until the texture object is
+          * deleted, because another thread may still be reading from it. We
+          * double the size of the container each time, so we end up with
+          * at most twice the total memory allocation.
+          */
+         views->next = stObj->sampler_views_old;
+         stObj->sampler_views_old = views;
+
+         views = new_views;
+      }
+
+      sv = &views->views[views->count];
+
+      /* Since modification is guarded by the lock, only the write part of the
+       * increment has to be atomic, and that's already guaranteed on all
+       * supported platforms without using an atomic intrinsic.
+       */
+      views->count++;
    }
 
-   assert(free->view == NULL);
+found:
+   assert(sv->view == NULL);
 
-   return free;
+   sv->glsl130_or_later = glsl130_or_later;
+   sv->srgb_skip_decode = srgb_skip_decode;
+   sv->view = view;
+
+out:
+   simple_mtx_unlock(&stObj->validate_mutex);
+   return view;
+}
+
+
+/**
+ * Return the most-recently validated sampler view for the texture \p stObj
+ * in the given context, if any.
+ *
+ * Performs no additional validation.
+ */
+const struct st_sampler_view *
+st_texture_get_current_sampler_view(const struct st_context *st,
+                                    const struct st_texture_object *stObj)
+{
+   const struct st_sampler_views *views = p_atomic_read(&stObj->sampler_views);
+
+   for (unsigned i = 0; i < views->count; ++i) {
+      const struct st_sampler_view *sv = &views->views[i];
+      if (sv->view && sv->view->context == st->pipe)
+         return sv;
+   }
+
+   return NULL;
 }
 
 
@@ -95,14 +189,17 @@ st_texture_release_sampler_view(struct st_context *st,
 {
    GLuint i;
 
-   for (i = 0; i < stObj->num_sampler_views; ++i) {
-      struct pipe_sampler_view **sv = &stObj->sampler_views[i].view;
+   simple_mtx_lock(&stObj->validate_mutex);
+   struct st_sampler_views *views = stObj->sampler_views;
+   for (i = 0; i < views->count; ++i) {
+      struct pipe_sampler_view **sv = &views->views[i].view;
 
       if (*sv && (*sv)->context == st->pipe) {
          pipe_sampler_view_reference(sv, NULL);
          break;
       }
    }
+   simple_mtx_unlock(&stObj->validate_mutex);
 }
 
 
@@ -116,9 +213,18 @@ st_texture_release_all_sampler_views(struct st_context *st,
 {
    GLuint i;
 
-   /* XXX This should use sampler_views[i]->pipe, not st->pipe */
-   for (i = 0; i < stObj->num_sampler_views; ++i)
-      pipe_sampler_view_release(st->pipe, &stObj->sampler_views[i].view);
+   /* TODO: This happens while a texture is deleted, because the Driver API
+    * is asymmetric: the driver allocates the texture object memory, but
+    * mesa/main frees it.
+    */
+   if (!stObj->sampler_views)
+      return;
+
+   simple_mtx_lock(&stObj->validate_mutex);
+   struct st_sampler_views *views = stObj->sampler_views;
+   for (i = 0; i < views->count; ++i)
+      pipe_sampler_view_release(st->pipe, &views->views[i].view);
+   simple_mtx_unlock(&stObj->validate_mutex);
 }
 
 
@@ -127,7 +233,12 @@ st_texture_free_sampler_views(struct st_texture_object *stObj)
 {
    free(stObj->sampler_views);
    stObj->sampler_views = NULL;
-   stObj->num_sampler_views = 0;
+
+   while (stObj->sampler_views_old) {
+      struct st_sampler_views *views = stObj->sampler_views_old;
+      stObj->sampler_views_old = views->next;
+      free(views);
+   }
 }
 
 
@@ -411,23 +522,21 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
                                        bool glsl130_or_later,
                                        bool ignore_srgb_decode)
 {
-   struct st_sampler_view *sv;
-   struct pipe_sampler_view *view;
+   const struct st_sampler_view *sv;
    bool srgb_skip_decode = false;
-
-   sv = st_texture_get_sampler_view(st, stObj);
-   view = sv->view;
 
    if (!ignore_srgb_decode && samp->sRGBDecode == GL_SKIP_DECODE_EXT)
       srgb_skip_decode = true;
 
-   if (view &&
+   sv = st_texture_get_current_sampler_view(st, stObj);
+
+   if (sv &&
        sv->glsl130_or_later == glsl130_or_later &&
        sv->srgb_skip_decode == srgb_skip_decode) {
       /* Debug check: make sure that the sampler view's parameters are
        * what they're supposed to be.
        */
-      MAYBE_UNUSED struct pipe_sampler_view *view = sv->view;
+      struct pipe_sampler_view *view = sv->view;
       assert(stObj->pt == view->texture);
       assert(!check_sampler_swizzle(st, stObj, view, glsl130_or_later));
       assert(get_sampler_view_format(st, stObj, srgb_skip_decode) == view->format);
@@ -440,18 +549,15 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
       assert(!stObj->layer_override ||
              (stObj->layer_override == view->u.tex.first_layer &&
               stObj->layer_override == view->u.tex.last_layer));
+      return view;
    }
-   else {
-      /* create new sampler view */
-      enum pipe_format format = get_sampler_view_format(st, stObj, srgb_skip_decode);
 
-      sv->glsl130_or_later = glsl130_or_later;
-      sv->srgb_skip_decode = srgb_skip_decode;
-
-      pipe_sampler_view_release(st->pipe, &sv->view);
-      view = sv->view =
+   /* create new sampler view */
+   enum pipe_format format = get_sampler_view_format(st, stObj, srgb_skip_decode);
+   struct pipe_sampler_view *view =
          st_create_texture_sampler_view_from_stobj(st, stObj, format, glsl130_or_later);
-   }
+
+   view = st_texture_set_sampler_view(st, stObj, view, glsl130_or_later, srgb_skip_decode);
 
    return view;
 }
@@ -461,58 +567,65 @@ struct pipe_sampler_view *
 st_get_buffer_sampler_view_from_stobj(struct st_context *st,
                                       struct st_texture_object *stObj)
 {
-   struct st_sampler_view *sv;
+   const struct st_sampler_view *sv;
    struct st_buffer_object *stBuf =
       st_buffer_object(stObj->base.BufferObject);
 
    if (!stBuf || !stBuf->buffer)
       return NULL;
 
-   sv = st_texture_get_sampler_view(st, stObj);
+   sv = st_texture_get_current_sampler_view(st, stObj);
 
    struct pipe_resource *buf = stBuf->buffer;
-   struct pipe_sampler_view *view = sv->view;
 
-   if (view && view->texture == buf) {
-      /* Debug check: make sure that the sampler view's parameters are
-       * what they're supposed to be.
-       */
-      assert(st_mesa_format_to_pipe_format(st, stObj->base._BufferObjectFormat)
+   if (sv) {
+      struct pipe_sampler_view *view = sv->view;
+
+      if (view->texture == buf) {
+         /* Debug check: make sure that the sampler view's parameters are
+          * what they're supposed to be.
+          */
+         assert(st_mesa_format_to_pipe_format(st, stObj->base._BufferObjectFormat)
              == view->format);
-      assert(view->target == PIPE_BUFFER);
-      unsigned base = stObj->base.BufferOffset;
-      MAYBE_UNUSED unsigned size = MIN2(buf->width0 - base,
+         assert(view->target == PIPE_BUFFER);
+         unsigned base = stObj->base.BufferOffset;
+         MAYBE_UNUSED unsigned size = MIN2(buf->width0 - base,
                            (unsigned) stObj->base.BufferSize);
-      assert(view->u.buf.offset == base);
-      assert(view->u.buf.size == size);
-   } else {
-      unsigned base = stObj->base.BufferOffset;
-
-      if (base >= buf->width0)
-         return NULL;
-
-      unsigned size = buf->width0 - base;
-      size = MIN2(size, (unsigned)stObj->base.BufferSize);
-      if (!size)
-         return NULL;
-
-      /* Create a new sampler view. There is no need to clear the entire
-       * structure (consider CPU overhead).
-       */
-      struct pipe_sampler_view templ;
-
-      templ.format =
-         st_mesa_format_to_pipe_format(st, stObj->base._BufferObjectFormat);
-      templ.target = PIPE_BUFFER;
-      templ.swizzle_r = PIPE_SWIZZLE_X;
-      templ.swizzle_g = PIPE_SWIZZLE_Y;
-      templ.swizzle_b = PIPE_SWIZZLE_Z;
-      templ.swizzle_a = PIPE_SWIZZLE_W;
-      templ.u.buf.offset = base;
-      templ.u.buf.size = size;
-
-      pipe_sampler_view_release(st->pipe, &sv->view);
-      view = sv->view = st->pipe->create_sampler_view(st->pipe, buf, &templ);
+         assert(view->u.buf.offset == base);
+         assert(view->u.buf.size == size);
+         return view;
+      }
    }
+
+   unsigned base = stObj->base.BufferOffset;
+
+   if (base >= buf->width0)
+      return NULL;
+
+   unsigned size = buf->width0 - base;
+   size = MIN2(size, (unsigned)stObj->base.BufferSize);
+   if (!size)
+      return NULL;
+
+   /* Create a new sampler view. There is no need to clear the entire
+    * structure (consider CPU overhead).
+    */
+   struct pipe_sampler_view templ;
+
+   templ.format =
+      st_mesa_format_to_pipe_format(st, stObj->base._BufferObjectFormat);
+   templ.target = PIPE_BUFFER;
+   templ.swizzle_r = PIPE_SWIZZLE_X;
+   templ.swizzle_g = PIPE_SWIZZLE_Y;
+   templ.swizzle_b = PIPE_SWIZZLE_Z;
+   templ.swizzle_a = PIPE_SWIZZLE_W;
+   templ.u.buf.offset = base;
+   templ.u.buf.size = size;
+
+   struct pipe_sampler_view *view =
+      st->pipe->create_sampler_view(st->pipe, buf, &templ);
+
+   view = st_texture_set_sampler_view(st, stObj, view, false, false);
+
    return view;
 }

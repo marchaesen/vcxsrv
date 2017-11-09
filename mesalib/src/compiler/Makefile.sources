@@ -130,11 +130,10 @@ LIBGLSL_FILES = \
 	glsl/opt_function_inlining.cpp \
 	glsl/opt_if_simplification.cpp \
 	glsl/opt_minmax.cpp \
-	glsl/opt_noop_swizzle.cpp \
 	glsl/opt_rebalance_tree.cpp \
 	glsl/opt_redundant_jumps.cpp \
 	glsl/opt_structure_splitting.cpp \
-	glsl/opt_swizzle_swizzle.cpp \
+	glsl/opt_swizzle.cpp \
 	glsl/opt_tree_grafting.cpp \
 	glsl/opt_vectorize.cpp \
 	glsl/program.h \

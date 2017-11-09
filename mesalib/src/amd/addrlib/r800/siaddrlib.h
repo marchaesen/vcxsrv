@@ -59,18 +59,36 @@ struct TileConfig
 * @brief SI specific settings structure.
 ****************************************************************************************************
 */
-struct SIChipSettings
+struct SiChipSettings
 {
-    struct
-    {
-        UINT_32 isSouthernIsland    : 1;
-        UINT_32 isTahiti            : 1;
-        UINT_32 isPitCairn          : 1;
-        UINT_32 isCapeVerde         : 1;
-        /// Oland/Hainan are of GFXIP 6.0, similar with SI
-        UINT_32 isOland             : 1;
-        UINT_32 isHainan            : 1;
-    };
+    UINT_32 isSouthernIsland  : 1;
+    UINT_32 isTahiti          : 1;
+    UINT_32 isPitCairn        : 1;
+    UINT_32 isCapeVerde       : 1;
+    // Oland/Hainan are of GFXIP 6.0, similar with SI
+    UINT_32 isOland           : 1;
+    UINT_32 isHainan          : 1;
+
+    // CI
+    UINT_32 isSeaIsland       : 1;
+    UINT_32 isBonaire         : 1;
+    UINT_32 isKaveri          : 1;
+    UINT_32 isSpectre         : 1;
+    UINT_32 isSpooky          : 1;
+    UINT_32 isKalindi         : 1;
+    // Hawaii is GFXIP 7.2
+    UINT_32 isHawaii          : 1;
+
+    // VI
+    UINT_32 isVolcanicIslands : 1;
+    UINT_32 isIceland         : 1;
+    UINT_32 isTonga           : 1;
+    UINT_32 isFiji            : 1;
+    UINT_32 isPolaris10       : 1;
+    UINT_32 isPolaris11       : 1;
+    UINT_32 isPolaris12       : 1;
+    // VI fusion
+    UINT_32 isCarrizo         : 1;
 };
 
 /**
@@ -312,12 +330,12 @@ protected:
 
     UINT_32                 m_uncompressDepthEqIndex;
 
+    SiChipSettings          m_settings;
+
 private:
 
     VOID ReadGbTileMode(UINT_32 regValue, TileConfig* pCfg) const;
     BOOL_32 InitTileSettingTable(const UINT_32 *pSetting, UINT_32 noOfEntries);
-
-    SIChipSettings          m_settings;
 };
 
 } // V1

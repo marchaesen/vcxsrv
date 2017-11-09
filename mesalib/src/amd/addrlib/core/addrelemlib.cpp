@@ -1271,6 +1271,9 @@ VOID ElemLib::RestoreSurfaceInfo(
     UINT_32 height;
     UINT_32 bpp;
 
+    BOOL_32 bBCnFormat = FALSE;
+    (void)bBCnFormat;
+
     ADDR_ASSERT(pBpp != NULL);
     ADDR_ASSERT(pWidth != NULL && pHeight != NULL);
 
@@ -1289,22 +1292,17 @@ VOID ElemLib::RestoreSurfaceInfo(
             break;
         case ADDR_PACKED_GBGR:
         case ADDR_PACKED_BGRG:
-            if (m_pAddrLib->GetChipFamily() >= ADDR_CHIP_FAMILY_AI)
-            {
-                originalBits = bpp / expandX;
-            }
-            else
-            {
-                originalBits = bpp; // 32-bit packed ==> 2 32-bit result
-            }
+            originalBits = bpp; // 32-bit packed ==> 2 32-bit result
             break;
         case ADDR_PACKED_BC1: // Fall through
         case ADDR_PACKED_BC4:
             originalBits = 64;
+            bBCnFormat = TRUE;
             break;
         case ADDR_PACKED_BC2: // Fall through
         case ADDR_PACKED_BC3: // Fall through
         case ADDR_PACKED_BC5:
+            bBCnFormat = TRUE;
             // fall through
         case ADDR_PACKED_ASTC:
         case ADDR_PACKED_ETC2_128BPP:
@@ -1394,27 +1392,11 @@ UINT_32 ElemLib::GetBitsPerPixel(
             break;
         case ADDR_FMT_GB_GR: // treat as FMT_8_8
             elemMode = ADDR_PACKED_GBGR;
-            if (m_pAddrLib->GetChipFamily() >= ADDR_CHIP_FAMILY_AI)
-            {
-                bpp     = 32;
-                expandX = 2;
-            }
-            else
-            {
-                bpp     = 16;
-            }
+            bpp     = 16;
             break;
         case ADDR_FMT_BG_RG: // treat as FMT_8_8
             elemMode = ADDR_PACKED_BGRG;
-            if (m_pAddrLib->GetChipFamily() >= ADDR_CHIP_FAMILY_AI)
-            {
-                bpp     = 32;
-                expandX = 2;
-            }
-            else
-            {
-                bpp     = 16;
-            }
+            bpp     = 16;
             break;
         case ADDR_FMT_8_8_8_8:
         case ADDR_FMT_2_10_10_10:

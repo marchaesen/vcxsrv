@@ -602,6 +602,18 @@ v3d_qpu_magic_waddr_is_tsy(enum v3d_qpu_waddr waddr)
 bool
 v3d_qpu_writes_r3(const struct v3d_qpu_instr *inst)
 {
+        if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
+                if (inst->alu.add.magic_write &&
+                    inst->alu.add.waddr == V3D_QPU_WADDR_R3) {
+                        return true;
+                }
+
+                if (inst->alu.mul.magic_write &&
+                    inst->alu.mul.waddr == V3D_QPU_WADDR_R3) {
+                        return true;
+                }
+        }
+
         return inst->sig.ldvary || inst->sig.ldvpm;
 }
 
@@ -613,12 +625,14 @@ v3d_qpu_writes_r4(const struct v3d_qpu_instr *inst)
 
         if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
                 if (inst->alu.add.magic_write &&
-                    v3d_qpu_magic_waddr_is_sfu(inst->alu.add.waddr)) {
+                    (inst->alu.add.waddr == V3D_QPU_WADDR_R4 ||
+                     v3d_qpu_magic_waddr_is_sfu(inst->alu.add.waddr))) {
                         return true;
                 }
 
                 if (inst->alu.mul.magic_write &&
-                    v3d_qpu_magic_waddr_is_sfu(inst->alu.mul.waddr)) {
+                    (inst->alu.mul.waddr == V3D_QPU_WADDR_R4 ||
+                     v3d_qpu_magic_waddr_is_sfu(inst->alu.mul.waddr))) {
                         return true;
                 }
         }
@@ -629,6 +643,18 @@ v3d_qpu_writes_r4(const struct v3d_qpu_instr *inst)
 bool
 v3d_qpu_writes_r5(const struct v3d_qpu_instr *inst)
 {
+        if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
+                if (inst->alu.add.magic_write &&
+                    inst->alu.add.waddr == V3D_QPU_WADDR_R5) {
+                        return true;
+                }
+
+                if (inst->alu.mul.magic_write &&
+                    inst->alu.mul.waddr == V3D_QPU_WADDR_R5) {
+                        return true;
+                }
+        }
+
         return inst->sig.ldvary || inst->sig.ldunif;
 }
 

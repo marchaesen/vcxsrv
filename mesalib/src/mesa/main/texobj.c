@@ -274,7 +274,7 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
 
    memset(obj, 0, sizeof(*obj));
    /* init the non-zero fields */
-   mtx_init(&obj->Mutex, mtx_plain);
+   simple_mtx_init(&obj->Mutex, mtx_plain);
    obj->RefCount = 1;
    obj->Name = name;
    obj->Target = target;
@@ -411,7 +411,7 @@ _mesa_delete_texture_object(struct gl_context *ctx,
    _mesa_reference_buffer_object(ctx, &texObj->BufferObject, NULL);
 
    /* destroy the mutex -- it may have allocated memory (eg on bsd) */
-   mtx_destroy(&texObj->Mutex);
+   simple_mtx_destroy(&texObj->Mutex);
 
    free(texObj->Label);
 
@@ -554,12 +554,12 @@ _mesa_reference_texobj_(struct gl_texture_object **ptr,
       assert(valid_texture_object(oldTex));
       (void) valid_texture_object; /* silence warning in release builds */
 
-      mtx_lock(&oldTex->Mutex);
+      simple_mtx_lock(&oldTex->Mutex);
       assert(oldTex->RefCount > 0);
       oldTex->RefCount--;
 
       deleteFlag = (oldTex->RefCount == 0);
-      mtx_unlock(&oldTex->Mutex);
+      simple_mtx_unlock(&oldTex->Mutex);
 
       if (deleteFlag) {
          /* Passing in the context drastically changes the driver code for
@@ -579,12 +579,12 @@ _mesa_reference_texobj_(struct gl_texture_object **ptr,
    if (tex) {
       /* reference new texture */
       assert(valid_texture_object(tex));
-      mtx_lock(&tex->Mutex);
+      simple_mtx_lock(&tex->Mutex);
       assert(tex->RefCount > 0);
 
       tex->RefCount++;
       *ptr = tex;
-      mtx_unlock(&tex->Mutex);
+      simple_mtx_unlock(&tex->Mutex);
    }
 }
 
@@ -1051,6 +1051,11 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
       assert(texObj->_MipmapComplete);
 
       ctx->Shared->FallbackTex[tex] = texObj;
+
+      /* Complete the driver's operation in case another context will also
+       * use the same fallback texture. */
+      if (ctx->Driver.Finish)
+         ctx->Driver.Finish(ctx);
    }
    return ctx->Shared->FallbackTex[tex];
 }
@@ -1615,10 +1620,10 @@ bind_texture_object(struct gl_context *ctx, unsigned unit,
     */
    if (targetIndex != TEXTURE_EXTERNAL_INDEX) {
       bool early_out;
-      mtx_lock(&ctx->Shared->Mutex);
+      simple_mtx_lock(&ctx->Shared->Mutex);
       early_out = ((ctx->Shared->RefCount == 1)
                    && (texObj == texUnit->CurrentTex[targetIndex]));
-      mtx_unlock(&ctx->Shared->Mutex);
+      simple_mtx_unlock(&ctx->Shared->Mutex);
       if (early_out) {
          return;
       }

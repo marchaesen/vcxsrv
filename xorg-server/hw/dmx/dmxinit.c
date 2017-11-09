@@ -532,12 +532,12 @@ dmxDisplayInit(DMXScreenInfo * dmxScreen)
     dmxGetPixmapFormats(dmxScreen);
 }
 
-static void dmxAddExtensions(Bool glxSupported)
+static void dmxAddExtensions(void)
 {
     const ExtensionModule dmxExtensions[] = {
         { DMXExtensionInit, DMX_EXTENSION_NAME, NULL },
 #ifdef GLXEXT
-        { GlxExtensionInit, "GLX", &glxSupported },
+        { GlxExtensionInit, "GLX", &noGlxExtension },
 #endif
     };
 
@@ -550,12 +550,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 {
     int i;
     static unsigned long dmxGeneration = 0;
-
-#ifdef GLXEXT
-    static Bool glxSupported = TRUE;
-#else
-    const Bool glxSupported = FALSE;
-#endif
 
     if (dmxGeneration != serverGeneration) {
         int vendrel = VENDOR_RELEASE;
@@ -676,17 +670,17 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 #ifdef GLXEXT
     /* Check if GLX extension exists on all back-end servers */
     for (i = 0; i < dmxNumScreens; i++)
-        glxSupported &= (dmxScreens[i].glxMajorOpcode > 0);
+        noGlxExtension |= (dmxScreens[i].glxMajorOpcode == 0);
 #endif
 
     if (serverGeneration == 1)
-        dmxAddExtensions(glxSupported);
+        dmxAddExtensions();
 
     /* Tell dix layer about the backend displays */
     for (i = 0; i < dmxNumScreens; i++) {
 
 #ifdef GLXEXT
-        if (glxSupported) {
+        if (!noGlxExtension) {
             /*
              * Builds GLX configurations from the list of visuals
              * supported by the back-end server, and give that

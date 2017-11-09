@@ -48,14 +48,16 @@ public:
 
    void emit_access(void *mem_ctx, bool is_write, ir_dereference *deref,
                     ir_variable *base_offset, unsigned int deref_offset,
-                    bool row_major, int matrix_columns,
-                    unsigned int packing, unsigned int write_mask);
+                    bool row_major, const glsl_type *matrix_type,
+                    enum glsl_interface_packing packing,
+                    unsigned int write_mask);
 
    bool is_dereferenced_thing_row_major(const ir_rvalue *deref);
 
    void setup_buffer_access(void *mem_ctx, ir_rvalue *deref,
                             ir_rvalue **offset, unsigned *const_offset,
-                            bool *row_major, int *matrix_columns,
+                            bool *row_major,
+                            const glsl_type **matrix_type,
                             const glsl_struct_field **struct_field,
                             enum glsl_interface_packing packing);
 
