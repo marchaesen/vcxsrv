@@ -35,6 +35,7 @@ AM_DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-glx-tls \
 	--enable-nine \
 	--enable-opencl \
+	--enable-opencl-icd \
 	--enable-opengl \
 	--enable-va \
 	--enable-vdpau \

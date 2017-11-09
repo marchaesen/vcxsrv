@@ -231,8 +231,12 @@ if with_glx != 'disabled'
 endif
 
 with_glvnd = get_option('glvnd')
-if with_glvnd and with_glx != 'dri'
-  message('glvnd requires dri based glx')
+if with_glvnd
+  if with_glx == 'xlib' or with_glx == 'gallium-xlib'
+    error('Cannot build glvnd support for GLX that is not DRI based.')
+  elif with_glx == 'disabled' and not with_egl
+    error('glvnd requires DRI based GLX and/or EGL')
+  endif
 endif
 
 # TODO: toggle for this
@@ -524,7 +528,7 @@ elif cc.has_header_symbol('sys/mkdev.h', 'major')
   pre_args += '-DMAJOR_IN_MKDEV'
 endif
 
-foreach h : ['xlocale.h', 'sys/sysctl.h']
+foreach h : ['xlocale.h', 'sys/sysctl.h', 'linux/futex.h']
   if cc.has_header(h)
     pre_args += '-DHAVE_@0@'.format(h.to_upper().underscorify())
   endif

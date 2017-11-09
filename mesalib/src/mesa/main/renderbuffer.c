@@ -40,7 +40,7 @@ _mesa_init_renderbuffer(struct gl_renderbuffer *rb, GLuint name)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   mtx_init(&rb->Mutex, mtx_plain);
+   simple_mtx_init(&rb->Mutex, mtx_plain);
 
    rb->ClassID = 0;
    rb->Name = name;
@@ -101,7 +101,7 @@ _mesa_new_renderbuffer(struct gl_context *ctx, GLuint name)
 void
 _mesa_delete_renderbuffer(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
-   mtx_destroy(&rb->Mutex);
+   simple_mtx_destroy(&rb->Mutex);
    free(rb->Label);
    free(rb);
 }
@@ -201,11 +201,11 @@ _mesa_reference_renderbuffer_(struct gl_renderbuffer **ptr,
       GLboolean deleteFlag = GL_FALSE;
       struct gl_renderbuffer *oldRb = *ptr;
 
-      mtx_lock(&oldRb->Mutex);
+      simple_mtx_lock(&oldRb->Mutex);
       assert(oldRb->RefCount > 0);
       oldRb->RefCount--;
       deleteFlag = (oldRb->RefCount == 0);
-      mtx_unlock(&oldRb->Mutex);
+      simple_mtx_unlock(&oldRb->Mutex);
 
       if (deleteFlag) {
          GET_CURRENT_CONTEXT(ctx);
@@ -218,9 +218,9 @@ _mesa_reference_renderbuffer_(struct gl_renderbuffer **ptr,
 
    if (rb) {
       /* reference new renderbuffer */
-      mtx_lock(&rb->Mutex);
+      simple_mtx_lock(&rb->Mutex);
       rb->RefCount++;
-      mtx_unlock(&rb->Mutex);
+      simple_mtx_unlock(&rb->Mutex);
       *ptr = rb;
    }
 }

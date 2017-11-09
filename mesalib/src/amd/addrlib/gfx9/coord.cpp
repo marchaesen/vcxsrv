@@ -34,20 +34,20 @@ Coordinate::Coordinate()
     ord = 0;
 }
 
-Coordinate::Coordinate(INT_8 c, UINT_32 n)
+Coordinate::Coordinate(INT_8 c, INT_32 n)
 {
-    set(c,n);
+    set(c, n);
 }
 
-VOID Coordinate::set(INT_8 c, UINT_32 n)
+VOID Coordinate::set(INT_8 c, INT_32 n)
 {
     dim = c;
     ord = static_cast<INT_8>(n);
 }
 
-UINT_32 Coordinate::ison(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m)
+UINT_32 Coordinate::ison(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m) const
 {
-    UINT_32 bit = 1 << (UINT_32)ord;
+    UINT_32 bit = static_cast<UINT_32>(1ull << static_cast<UINT_32>(ord));
     UINT_32 out = 0;
 
     switch (dim)
@@ -234,7 +234,7 @@ UINT_32 CoordTerm::getsize()
     return num_coords;
 }
 
-UINT_32 CoordTerm::getxor(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m)
+UINT_32 CoordTerm::getxor(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m) const
 {
     UINT_32 out = 0;
     for (UINT_32 i = 0; i < num_coords; i++)
@@ -386,7 +386,7 @@ UINT_32 CoordEq::getsize()
     return m_numBits;
 }
 
-UINT_64 CoordEq::solve(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m)
+UINT_64 CoordEq::solve(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m) const
 {
     UINT_64 out = 0;
     for (UINT_32 i = 0; i < m_numBits; i++)
@@ -401,7 +401,7 @@ UINT_64 CoordEq::solve(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m)
 
 VOID CoordEq::solveAddr(
     UINT_64 addr, UINT_32 sliceInM,
-    UINT_32& x, UINT_32& y, UINT_32& z, UINT_32& s, UINT_32& m)
+    UINT_32& x, UINT_32& y, UINT_32& z, UINT_32& s, UINT_32& m) const
 {
     UINT_32 xBitsValid = 0;
     UINT_32 yBitsValid = 0;

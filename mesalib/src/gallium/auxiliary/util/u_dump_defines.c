@@ -29,6 +29,7 @@
 #include "util/u_memory.h"
 #include "util/u_debug.h" 
 #include "util/u_dump.h"
+#include "util/u_math.h"
 
 
 #if 0
@@ -89,6 +90,41 @@ util_dump_enum_continuous(unsigned value,
          return util_dump_enum_continuous(value, ARRAY_SIZE(util_##_name##_names), util_##_name##_names); \
    }
 
+static void
+util_dump_flags_continuous(FILE *stream, unsigned value, unsigned num_names,
+                           const char * const *names)
+{
+   unsigned unknown = 0;
+   bool first = true;
+
+   while (value) {
+      int i = u_bit_scan(&value);
+      if (i >= num_names || !names[i])
+         unknown |= 1u << i;
+      if (!first)
+         fputs("|", stream);
+      fputs(names[i], stream);
+      first = false;
+   }
+
+   if (unknown) {
+      if (!first)
+         fputs("|", stream);
+      fprintf(stream, "%x", unknown);
+      first = false;
+   }
+
+   if (first)
+      fputs("0", stream);
+}
+
+#define DEFINE_UTIL_DUMP_FLAGS_CONTINUOUS(_name) \
+void \
+util_dump_##_name(FILE *stream, unsigned value) \
+{ \
+   util_dump_flags_continuous(stream, value, ARRAY_SIZE(util_##_name##_names), \
+                              util_##_name##_names); \
+}
 
 static const char *
 util_blend_factor_names[] = {
@@ -470,3 +506,20 @@ util_dump_query_value_type(FILE *stream, unsigned value)
 {
    fprintf(stream, "%s", util_str_query_value_type(value, false));
 }
+
+
+static const char * const
+util_transfer_usage_names[] = {
+      "PIPE_TRANSFER_READ",
+      "PIPE_TRANSFER_WRITE",
+      "PIPE_TRANSFER_MAP_DIRECTLY",
+      "PIPE_TRANSFER_DISCARD_RANGE",
+      "PIPE_TRANSFER_DONTBLOCK",
+      "PIPE_TRANSFER_UNSYNCHRONIZED",
+      "PIPE_TRANSFER_FLUSH_EXPLICIT",
+      "PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE",
+      "PIPE_TRANSFER_PERSISTENT",
+      "PIPE_TRANSFER_COHERENT",
+};
+
+DEFINE_UTIL_DUMP_FLAGS_CONTINUOUS(transfer_usage)

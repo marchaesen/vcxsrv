@@ -32,6 +32,8 @@
 #include "util/u_format.h"
 #include "tgsi/tgsi_dump.h"
 
+#include <inttypes.h>
+
 #include "u_dump.h"
 
 
@@ -73,6 +75,14 @@ static void
 util_dump_float(FILE *stream, double value)
 {
    util_stream_writef(stream, "%g", value);
+}
+
+void
+util_dump_ns(FILE *f, uint64_t time)
+{
+   uint64_t secs = time / (1000*1000*1000);
+   unsigned usecs = (time % (1000*1000*1000)) / 1000;
+   fprintf(f, "%"PRIu64".%06us", secs, usecs);
 }
 
 static void
@@ -142,11 +152,11 @@ util_dump_null(FILE *stream)
    fputs("NULL", stream);
 }
 
-static void
+void
 util_dump_ptr(FILE *stream, const void *value)
 {
    if(value)
-      util_stream_writef(stream, "0x%08lx", (unsigned long)(uintptr_t)value);
+      util_stream_writef(stream, "%p", value);
    else
       util_dump_null(stream);
 }
@@ -802,7 +812,7 @@ util_dump_transfer(FILE *stream, const struct pipe_transfer *state)
 
    util_dump_member(stream, ptr, state, resource);
    util_dump_member(stream, uint, state, level);
-   util_dump_member(stream, uint, state, usage);
+   util_dump_member(stream, transfer_usage, state, usage);
    util_dump_member_begin(stream, "box");
    util_dump_box(stream, &state->box);
    util_dump_member_end(stream);

@@ -83,8 +83,6 @@ C_SOURCES := \
 	os/os_process.c \
 	os/os_process.h \
 	os/os_thread.h \
-	os/os_time.c \
-	os/os_time.h \
 	pipebuffer/pb_buffer_fenced.c \
 	pipebuffer/pb_buffer_fenced.h \
 	pipebuffer/pb_buffer.h \
@@ -184,6 +182,8 @@ C_SOURCES := \
 	translate/translate_generic.c \
 	translate/translate_sse.c \
 	util/dbghelp.h \
+	util/u_async_debug.h \
+	util/u_async_debug.c \
 	util/u_bitcast.h \
 	util/u_bitmask.c \
 	util/u_bitmask.h \
@@ -302,7 +302,6 @@ C_SOURCES := \
 	util/u_texture.h \
 	util/u_tile.c \
 	util/u_tile.h \
-	util/u_time.h \
 	util/u_transfer.c \
 	util/u_transfer.h \
 	util/u_threaded_context.c \

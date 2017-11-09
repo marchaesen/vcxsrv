@@ -276,7 +276,7 @@ _mesa_error( struct gl_context *ctx, GLenum error, const char *fmtString, ... )
 
    do_output = should_output(ctx, error, fmtString);
 
-   mtx_lock(&ctx->DebugMutex);
+   simple_mtx_lock(&ctx->DebugMutex);
    if (ctx->Debug) {
       do_log = _mesa_debug_is_message_enabled(ctx->Debug,
                                               MESA_DEBUG_SOURCE_API,
@@ -287,7 +287,7 @@ _mesa_error( struct gl_context *ctx, GLenum error, const char *fmtString, ... )
    else {
       do_log = GL_FALSE;
    }
-   mtx_unlock(&ctx->DebugMutex);
+   simple_mtx_unlock(&ctx->DebugMutex);
 
    if (do_output || do_log) {
       char s[MAX_DEBUG_MESSAGE_LENGTH], s2[MAX_DEBUG_MESSAGE_LENGTH];

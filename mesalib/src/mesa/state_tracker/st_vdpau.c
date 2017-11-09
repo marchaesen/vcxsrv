@@ -262,6 +262,9 @@ st_vdpau_unmap_surface(struct gl_context *ctx, GLenum target, GLenum access,
 
    _mesa_dirty_texobj(ctx, texObj);
 
+   /* NV_vdpau_interop does not specify an explicit synchronization mechanism
+    * between the GL and VDPAU contexts. Provide automatic synchronization here.
+    */
    st_flush(st, NULL, 0);
 }
 

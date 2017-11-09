@@ -132,19 +132,15 @@ cnd_signal(cnd_t *cond)
 
 // 7.25.3.5
 static inline int
-cnd_timedwait(cnd_t *cond, mtx_t *mtx, const xtime *xt)
+cnd_timedwait(cnd_t *cond, mtx_t *mtx, const struct timespec *abs_time)
 {
-    struct timespec abs_time;
     int rt;
 
     assert(mtx != NULL);
     assert(cond != NULL);
-    assert(xt != NULL);
+    assert(abs_time != NULL);
 
-    abs_time.tv_sec = xt->sec;
-    abs_time.tv_nsec = xt->nsec;
-
-    rt = pthread_cond_timedwait(cond, mtx, &abs_time);
+    rt = pthread_cond_timedwait(cond, mtx, abs_time);
     if (rt == ETIMEDOUT)
         return thrd_busy;
     return (rt == 0) ? thrd_success : thrd_error;
@@ -235,24 +231,21 @@ thrd_yield(void);
 
 // 7.25.4.4
 static inline int
-mtx_timedlock(mtx_t *mtx, const xtime *xt)
+mtx_timedlock(mtx_t *mtx, const struct timespec *ts)
 {
     assert(mtx != NULL);
-    assert(xt != NULL);
+    assert(ts != NULL);
 
     {
 #ifdef EMULATED_THREADS_USE_NATIVE_TIMEDLOCK
-    struct timespec ts;
     int rt;
-    ts.tv_sec = xt->sec;
-    ts.tv_nsec = xt->nsec;
-    rt = pthread_mutex_timedlock(mtx, &ts);
+    rt = pthread_mutex_timedlock(mtx, ts);
     if (rt == 0)
         return thrd_success;
     return (rt == ETIMEDOUT) ? thrd_busy : thrd_error;
 #else
     time_t expire = time(NULL);
-    expire += xt->sec;
+    expire += ts->tv_sec;
     while (mtx_trylock(mtx) != thrd_success) {
         time_t now = time(NULL);
         if (expire < now)
@@ -342,13 +335,10 @@ thrd_join(thrd_t thr, int *res)
 
 // 7.25.5.7
 static inline void
-thrd_sleep(const xtime *xt)
+thrd_sleep(const struct timespec *time_point, struct timespec *remaining)
 {
-    struct timespec req;
-    assert(xt);
-    req.tv_sec = xt->sec;
-    req.tv_nsec = xt->nsec;
-    nanosleep(&req, NULL);
+    assert(time_point != NULL);
+    nanosleep(time_point, remaining);
 }
 
 // 7.25.5.8
@@ -392,14 +382,15 @@ tss_set(tss_t key, void *val)
 
 /*-------------------- 7.25.7 Time functions --------------------*/
 // 7.25.6.1
+#if 0
 static inline int
-xtime_get(xtime *xt, int base)
+timespec_get(struct timespec *ts, int base)
 {
-    if (!xt) return 0;
+    if (!ts) return 0;
     if (base == TIME_UTC) {
-        xt->sec = time(NULL);
-        xt->nsec = 0;
+        clock_gettime(CLOCK_REALTIME, ts);
         return base;
     }
     return 0;
 }
+#endif

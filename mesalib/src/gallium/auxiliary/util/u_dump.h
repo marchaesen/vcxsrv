@@ -91,10 +91,19 @@ const char *
 util_str_prim_mode(unsigned value, boolean shortened);
 
 void
+util_dump_ns(FILE *f, uint64_t time);
+
+void
+util_dump_ptr(FILE *stream, const void *value);
+
+void
 util_dump_query_type(FILE *stream, unsigned value);
 
 void
 util_dump_query_value_type(FILE *stream, unsigned value);
+
+void
+util_dump_transfer_usage(FILE *stream, unsigned value);
 
 /*
  * p_state.h, through a FILE

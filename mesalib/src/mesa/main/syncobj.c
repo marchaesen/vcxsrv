@@ -177,7 +177,7 @@ struct gl_sync_object *
 _mesa_get_and_ref_sync(struct gl_context *ctx, GLsync sync, bool incRefCount)
 {
    struct gl_sync_object *syncObj = (struct gl_sync_object *) sync;
-   mtx_lock(&ctx->Shared->Mutex);
+   simple_mtx_lock(&ctx->Shared->Mutex);
    if (syncObj != NULL
       && _mesa_set_search(ctx->Shared->SyncObjects, syncObj) != NULL
       && !syncObj->DeletePending) {
@@ -187,7 +187,7 @@ _mesa_get_and_ref_sync(struct gl_context *ctx, GLsync sync, bool incRefCount)
    } else {
      syncObj = NULL;
    }
-   mtx_unlock(&ctx->Shared->Mutex);
+   simple_mtx_unlock(&ctx->Shared->Mutex);
    return syncObj;
 }
 
@@ -198,17 +198,17 @@ _mesa_unref_sync_object(struct gl_context *ctx, struct gl_sync_object *syncObj,
 {
    struct set_entry *entry;
 
-   mtx_lock(&ctx->Shared->Mutex);
+   simple_mtx_lock(&ctx->Shared->Mutex);
    syncObj->RefCount -= amount;
    if (syncObj->RefCount == 0) {
       entry = _mesa_set_search(ctx->Shared->SyncObjects, syncObj);
       assert (entry != NULL);
       _mesa_set_remove(ctx->Shared->SyncObjects, entry);
-      mtx_unlock(&ctx->Shared->Mutex);
+      simple_mtx_unlock(&ctx->Shared->Mutex);
 
       ctx->Driver.DeleteSyncObject(ctx, syncObj);
    } else {
-      mtx_unlock(&ctx->Shared->Mutex);
+      simple_mtx_unlock(&ctx->Shared->Mutex);
    }
 }
 
@@ -292,9 +292,9 @@ fence_sync(struct gl_context *ctx, GLenum condition, GLbitfield flags)
 
       ctx->Driver.FenceSync(ctx, syncObj, condition, flags);
 
-      mtx_lock(&ctx->Shared->Mutex);
+      simple_mtx_lock(&ctx->Shared->Mutex);
       _mesa_set_add(ctx->Shared->SyncObjects, syncObj);
-      mtx_unlock(&ctx->Shared->Mutex);
+      simple_mtx_unlock(&ctx->Shared->Mutex);
 
       return (GLsync)syncObj;
    }

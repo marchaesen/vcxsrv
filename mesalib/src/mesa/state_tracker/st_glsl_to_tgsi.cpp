@@ -6956,10 +6956,10 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
          linked_prog = st_nir_get_mesa_program(ctx, prog, shader);
       } else {
          linked_prog = get_mesa_program_tgsi(ctx, prog, shader);
+         st_set_prog_affected_state_flags(linked_prog);
       }
 
       if (linked_prog) {
-         st_set_prog_affected_state_flags(linked_prog);
          if (!ctx->Driver.ProgramStringNotify(ctx,
                                               _mesa_shader_stage_to_program(i),
                                               linked_prog)) {

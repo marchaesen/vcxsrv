@@ -471,7 +471,7 @@ _mesa_delete_buffer_object(struct gl_context *ctx,
    bufObj->RefCount = -1000;
    bufObj->Name = ~0;
 
-   mtx_destroy(&bufObj->Mutex);
+   simple_mtx_destroy(&bufObj->Mutex);
    free(bufObj->Label);
    free(bufObj);
 }
@@ -493,11 +493,11 @@ _mesa_reference_buffer_object_(struct gl_context *ctx,
       GLboolean deleteFlag = GL_FALSE;
       struct gl_buffer_object *oldObj = *ptr;
 
-      mtx_lock(&oldObj->Mutex);
+      simple_mtx_lock(&oldObj->Mutex);
       assert(oldObj->RefCount > 0);
       oldObj->RefCount--;
       deleteFlag = (oldObj->RefCount == 0);
-      mtx_unlock(&oldObj->Mutex);
+      simple_mtx_unlock(&oldObj->Mutex);
 
       if (deleteFlag) {
 	 assert(ctx->Driver.DeleteBuffer);
@@ -510,12 +510,12 @@ _mesa_reference_buffer_object_(struct gl_context *ctx,
 
    if (bufObj) {
       /* reference new buffer */
-      mtx_lock(&bufObj->Mutex);
+      simple_mtx_lock(&bufObj->Mutex);
       assert(bufObj->RefCount > 0);
 
       bufObj->RefCount++;
       *ptr = bufObj;
-      mtx_unlock(&bufObj->Mutex);
+      simple_mtx_unlock(&bufObj->Mutex);
    }
 }
 
@@ -547,7 +547,7 @@ _mesa_initialize_buffer_object(struct gl_context *ctx,
                                GLuint name)
 {
    memset(obj, 0, sizeof(struct gl_buffer_object));
-   mtx_init(&obj->Mutex, mtx_plain);
+   simple_mtx_init(&obj->Mutex, mtx_plain);
    obj->RefCount = 1;
    obj->Name = name;
    obj->Usage = GL_STATIC_DRAW_ARB;
@@ -870,7 +870,7 @@ _mesa_init_buffer_objects( struct gl_context *ctx )
    GLuint i;
 
    memset(&DummyBufferObject, 0, sizeof(DummyBufferObject));
-   mtx_init(&DummyBufferObject.Mutex, mtx_plain);
+   simple_mtx_init(&DummyBufferObject.Mutex, mtx_plain);
    DummyBufferObject.RefCount = 1000*1000*1000; /* never delete */
 
    _mesa_reference_buffer_object(ctx, &ctx->Array.ArrayBufferObj,

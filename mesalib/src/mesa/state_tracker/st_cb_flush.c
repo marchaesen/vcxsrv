@@ -50,9 +50,6 @@ void st_flush(struct st_context *st,
               struct pipe_fence_handle **fence,
               unsigned flags)
 {
-   FLUSH_VERTICES(st->ctx, 0);
-   FLUSH_CURRENT(st->ctx, 0);
-
    st_flush_bitmap_cache(st);
 
    st->pipe->flush(st->pipe, fence, flags);

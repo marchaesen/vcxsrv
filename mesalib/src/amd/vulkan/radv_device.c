@@ -39,7 +39,6 @@
 #include <xf86drm.h>
 #include <amdgpu.h>
 #include <amdgpu_drm.h>
-#include "amdgpu_id.h"
 #include "winsys/amdgpu/radv_amdgpu_winsys_public.h"
 #include "ac_llvm_util.h"
 #include "vk_format.h"

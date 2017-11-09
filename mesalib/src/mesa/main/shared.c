@@ -66,7 +66,7 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    if (!shared)
       return NULL;
 
-   mtx_init(&shared->Mutex, mtx_plain);
+   simple_mtx_init(&shared->Mutex, mtx_plain);
 
    shared->DisplayList = _mesa_NewHashTable();
    shared->BitmapAtlas = _mesa_NewHashTable();
@@ -435,7 +435,7 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
       _mesa_DeleteHashTable(shared->MemoryObjects);
    }
 
-   mtx_destroy(&shared->Mutex);
+   simple_mtx_destroy(&shared->Mutex);
    mtx_destroy(&shared->TexMutex);
 
    free(shared);
@@ -459,11 +459,11 @@ _mesa_reference_shared_state(struct gl_context *ctx,
       struct gl_shared_state *old = *ptr;
       GLboolean delete;
 
-      mtx_lock(&old->Mutex);
+      simple_mtx_lock(&old->Mutex);
       assert(old->RefCount >= 1);
       old->RefCount--;
       delete = (old->RefCount == 0);
-      mtx_unlock(&old->Mutex);
+      simple_mtx_unlock(&old->Mutex);
 
       if (delete) {
          free_shared_state(ctx, old);
@@ -474,9 +474,9 @@ _mesa_reference_shared_state(struct gl_context *ctx,
 
    if (state) {
       /* reference new state */
-      mtx_lock(&state->Mutex);
+      simple_mtx_lock(&state->Mutex);
       state->RefCount++;
       *ptr = state;
-      mtx_unlock(&state->Mutex);
+      simple_mtx_unlock(&state->Mutex);
    }
 }

@@ -65,7 +65,9 @@ struct Gfx9ChipSettings
         // Misc configuration bits
         UINT_32 metaBaseAlignFix    : 1;
         UINT_32 depthPipeXorDisable : 1;
-        UINT_32 reserved2           : 30;
+        UINT_32 htileAlignFix       : 1;
+        UINT_32 applyAliasFix       : 1;
+        UINT_32 reserved2           : 28;
     };
 };
 
@@ -79,6 +81,28 @@ enum Gfx9DataType
     Gfx9DataColor,
     Gfx9DataDepthStencil,
     Gfx9DataFmask
+};
+
+/**
+************************************************************************************************************************
+* @brief GFX9 meta equation parameters
+************************************************************************************************************************
+*/
+struct MetaEqParams
+{
+    UINT_32          maxMip;
+    UINT_32          elementBytesLog2;
+    UINT_32          numSamplesLog2;
+    ADDR2_META_FLAGS metaFlag;
+    Gfx9DataType     dataSurfaceType;
+    AddrSwizzleMode  swizzleMode;
+    AddrResourceType resourceType;
+    UINT_32          metaBlkWidthLog2;
+    UINT_32          metaBlkHeightLog2;
+    UINT_32          metaBlkDepthLog2;
+    UINT_32          compBlkWidthLog2;
+    UINT_32          compBlkHeightLog2;
+    UINT_32          compBlkDepthLog2;
 };
 
 /**
@@ -139,31 +163,31 @@ protected:
 
     virtual ADDR_E_RETURNCODE HwlComputeHtileInfo(
         const ADDR2_COMPUTE_HTILE_INFO_INPUT* pIn,
-        ADDR2_COMPUTE_HTILE_INFO_OUTPUT* pOut) const;
+        ADDR2_COMPUTE_HTILE_INFO_OUTPUT*      pOut) const;
 
     virtual ADDR_E_RETURNCODE HwlComputeCmaskInfo(
         const ADDR2_COMPUTE_CMASK_INFO_INPUT* pIn,
-        ADDR2_COMPUTE_CMASK_INFO_OUTPUT* pOut) const;
+        ADDR2_COMPUTE_CMASK_INFO_OUTPUT*      pOut) const;
 
     virtual ADDR_E_RETURNCODE HwlComputeDccInfo(
         const ADDR2_COMPUTE_DCCINFO_INPUT* pIn,
-        ADDR2_COMPUTE_DCCINFO_OUTPUT* pOut) const;
+        ADDR2_COMPUTE_DCCINFO_OUTPUT*      pOut) const;
 
     virtual ADDR_E_RETURNCODE HwlComputeCmaskAddrFromCoord(
-        const ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_OUTPUT*      pOut);
 
     virtual ADDR_E_RETURNCODE HwlComputeHtileAddrFromCoord(
-        const ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_OUTPUT*      pOut);
 
     virtual ADDR_E_RETURNCODE HwlComputeHtileCoordFromAddr(
-        const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT*  pIn,
-        ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT* pIn,
+        ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT*      pOut);
 
     virtual ADDR_E_RETURNCODE HwlComputeDccAddrFromCoord(
-        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT*  pIn,
-        ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT* pOut) const;
+        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn,
+        ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*      pOut);
 
     virtual UINT_32 HwlGetEquationIndex(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
@@ -206,17 +230,7 @@ protected:
 
         if (IsXor(swizzleMode))
         {
-            if (m_settings.isVega10 || m_settings.isRaven)
-            {
-                baseAlign = GetBlockSize(swizzleMode);
-            }
-            else
-            {
-                UINT_32 blockSizeLog2 = GetBlockSizeLog2(swizzleMode);
-                UINT_32 pipeBits = GetPipeXorBits(blockSizeLog2);
-                UINT_32 bankBits = GetBankXorBits(blockSizeLog2);
-                baseAlign = 1 << (Min(blockSizeLog2, m_pipeInterleaveLog2 + pipeBits+ bankBits));
-            }
+            baseAlign = GetBlockSize(swizzleMode);
         }
         else
         {
@@ -246,6 +260,10 @@ protected:
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
     virtual ADDR_E_RETURNCODE HwlComputeSurfaceInfoTiled(
+         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
+         ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const;
+
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceInfoLinear(
          const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
          ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const;
 
@@ -352,6 +370,10 @@ protected:
         return compressBlkDim;
     }
 
+
+    static const UINT_32          MaxSeLog2      = 3;
+    static const UINT_32          MaxRbPerSeLog2 = 2;
+
     static const Dim3d            Block256_3dS[MaxNumOfBpp];
     static const Dim3d            Block256_3dZ[MaxNumOfBpp];
 
@@ -375,6 +397,8 @@ protected:
     // Equation lookup table according to bpp and tile index
     UINT_32                 m_equationLookupTable[MaxRsrcType][MaxSwMode][MaxElementBytesLog2];
 
+    static const UINT_32    MaxCachedMetaEq = 2;
+
 private:
     virtual ADDR_E_RETURNCODE HwlGetMaxAlignments(
         ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut) const;
@@ -382,7 +406,7 @@ private:
     virtual BOOL_32 HwlInitGlobalParams(
         const ADDR_CREATE_INPUT* pCreateIn);
 
-    static VOID GetRbEquation(CoordEq* pRbEq, UINT_32 rbPerSeLog2, UINT_32 seLog2);
+    VOID GetRbEquation(CoordEq* pRbEq, UINT_32 rbPerSeLog2, UINT_32 seLog2) const;
 
     VOID GetDataEquation(CoordEq* pDataEq, Gfx9DataType dataSurfaceType,
                          AddrSwizzleMode swizzleMode, AddrResourceType resourceType,
@@ -393,13 +417,15 @@ private:
                          UINT_32 numSamplesLog2, Gfx9DataType dataSurfaceType,
                          AddrSwizzleMode swizzleMode, AddrResourceType resourceType) const;
 
-    VOID GetMetaEquation(CoordEq* pMetaEq, UINT_32 maxMip,
+    VOID GenMetaEquation(CoordEq* pMetaEq, UINT_32 maxMip,
                          UINT_32 elementBytesLog2, UINT_32 numSamplesLog2,
                          ADDR2_META_FLAGS metaFlag, Gfx9DataType dataSurfaceType,
                          AddrSwizzleMode swizzleMode, AddrResourceType resourceType,
                          UINT_32 metaBlkWidthLog2, UINT_32 metaBlkHeightLog2,
                          UINT_32 metaBlkDepthLog2, UINT_32 compBlkWidthLog2,
                          UINT_32 compBlkHeightLog2, UINT_32 compBlkDepthLog2) const;
+
+    const CoordEq* GetMetaEquation(const MetaEqParams& metaEqParams);
 
     virtual ChipFamily HwlConvertChipFamily(UINT_32 uChipFamily, UINT_32 uChipRevision);
 
@@ -408,7 +434,17 @@ private:
                         UINT_32 mip0Width, UINT_32 mip0Height, UINT_32 mip0Depth,
                         UINT_32* pNumMetaBlkX, UINT_32* pNumMetaBlkY, UINT_32* pNumMetaBlkZ) const;
 
+    ADDR_E_RETURNCODE ComputeSurfaceLinearPadding(
+        const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
+        UINT_32*                                pMipmap0PaddedWidth,
+        UINT_32*                                pSlice0PaddedHeight,
+        ADDR2_MIP_INFO*                         pMipInfo = NULL) const;
+
     Gfx9ChipSettings m_settings;
+
+    CoordEq      m_cachedMetaEq[MaxCachedMetaEq];
+    MetaEqParams m_cachedMetaEqKey[MaxCachedMetaEq];
+    UINT_32      m_metaEqOverrideIndex;
 };
 
 } // V2

@@ -528,7 +528,7 @@ typedef union _ADDR_SURFACE_FLAGS
         UINT_32 preferEquation       : 1; ///< Return equation index without adjusting tile mode
         UINT_32 matchStencilTileCfg  : 1; ///< Select tile index of stencil as well as depth surface
                                           ///  to make sure they share same tile config parameters
-        UINT_32 reserved             : 3; ///< Reserved bits
+        UINT_32 reserved             : 2; ///< Reserved bits
     };
 
     UINT_32 value;
@@ -714,12 +714,6 @@ typedef struct _ADDR_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT
         };
         UINT_32     tileSwizzle;        ///< Combined swizzle, if useCombinedSwizzle is TRUE
     };
-
-#if ADDR_AM_BUILD // These two fields are not valid in SW blt since no HTILE access
-    UINT_32         addr5Swizzle;       ///< ADDR5_SWIZZLE_MASK of DB_DEPTH_INFO
-    BOOL_32         is32ByteTile;       ///< Caller must have access to HTILE buffer and know if
-                                        ///  this tile is compressed to 32B
-#endif
 } ADDR_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT;
 
 /**
@@ -857,8 +851,11 @@ typedef union _ADDR_HTILE_FLAGS
 {
     struct
     {
-        UINT_32 tcCompatible  : 1; ///< Flag indicates surface needs to be shader readable
-        UINT_32 reserved      :31; ///< Reserved bits
+        UINT_32 tcCompatible          : 1;  ///< Flag indicates surface needs to be shader readable
+        UINT_32 skipTcCompatSizeAlign : 1;  ///< Flag indicates that addrLib will not align htile
+                                            ///  size to 256xBankxPipe when computing tc-compatible
+                                            ///  htile info.
+        UINT_32 reserved              : 30; ///< Reserved bits
     };
 
     UINT_32 value;
@@ -915,6 +912,9 @@ typedef struct _ADDR_COMPUTE_HTILE_INFO_OUTPUT
     UINT_64 sliceSize;          ///< Slice size, in bytes.
     BOOL_32 sliceInterleaved;   ///< Flag to indicate if different slice's htile is interleaved
                                 ///  Compute engine clear can't be used if htile is interleaved
+    BOOL_32 nextMipLevelCompressible;   ///< Flag to indicate whether HTILE can be enabled in
+                                        ///  next mip level, it also indicates if memory set based
+                                        ///  fast clear can be used for current mip level.
 } ADDR_COMPUTE_HTILE_INFO_OUTPUT;
 
 /**
@@ -2188,7 +2188,6 @@ ADDR_E_RETURNCODE ADDR_API AddrGetTileIndex(
 
 
 
-
 /**
 ****************************************************************************************************
 *   ADDR_PRT_INFO_INPUT
@@ -2232,6 +2231,8 @@ ADDR_E_RETURNCODE ADDR_API AddrComputePrtInfo(
     ADDR_HANDLE                 hLib,
     const ADDR_PRT_INFO_INPUT*  pIn,
     ADDR_PRT_INFO_OUTPUT*       pOut);
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                     DCC key functions
@@ -2292,6 +2293,8 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeDccInfo(
     ADDR_HANDLE                             hLib,
     const ADDR_COMPUTE_DCCINFO_INPUT*       pIn,
     ADDR_COMPUTE_DCCINFO_OUTPUT*            pOut);
+
+
 
 /**
 ****************************************************************************************************
@@ -2693,10 +2696,8 @@ typedef struct _ADDR2_META_MIP_INFO
 
         struct
         {
-            UINT_32    offset;      ///< metadata offset within one slice,
-                                    ///  the thickness of a slice is meta block depth.
-            UINT_32    sliceSize;   ///< metadata size within one slice,
-                                    ///  the thickness of a slice is meta block depth.
+            UINT_32    offset;
+            UINT_32    sliceSize;
         };
     };
 } ADDR2_META_MIP_INFO;
@@ -2720,9 +2721,7 @@ typedef struct _ADDR2_COMPUTE_HTILE_INFO_INPUT
     UINT_32             unalignedHeight;    ///< Depth surface original height (of mip0)
     UINT_32             numSlices;          ///< Number of slices of depth surface (of mip0)
     UINT_32             numMipLevels;       ///< Total mipmap levels of color surface
-    UINT_32             firstMipIdInTail;   ///< id of the first mip in tail,
-                                            ///  if no mip is in tail, it should be set to
-                                            ///  number of mip levels
+    UINT_32             firstMipIdInTail;
 } ADDR2_COMPUTE_HTILE_INFO_INPUT;
 
 /**
@@ -3308,8 +3307,7 @@ typedef struct _ADDR2_COMPUTE_DCCINFO_INPUT
     UINT_32             numMipLevels;       ///< Total mipmap levels of color surface
     UINT_32             dataSurfaceSize;    ///< The padded size of all slices and mip levels
                                             ///< useful in meta linear case
-    UINT_32             firstMipIdInTail;   ///< The id of first mip in tail, if no mip is in tail,
-                                            ///  it should be number of mip levels
+    UINT_32             firstMipIdInTail;
 } ADDR2_COMPUTE_DCCINFO_INPUT;
 
 /**
@@ -3339,8 +3337,13 @@ typedef struct _ADDR2_COMPUTE_DCCINFO_OUTPUT
     UINT_32    metaBlkHeight;      ///< DCC meta block height
     UINT_32    metaBlkDepth;       ///< DCC meta block depth
 
-    UINT_32    fastClearSizePerSlice;   ///< Size of DCC within a slice should be fast cleared
-    UINT_32    metaBlkNumPerSlice;      ///< Number of metablock within one slice
+    UINT_32    metaBlkNumPerSlice; ///< Number of metablock within one slice
+
+    union
+    {
+        UINT_32 fastClearSizePerSlice;  ///< Size of DCC within a slice should be fast cleared
+        UINT_32 dccRamSliceSize;
+    };
 
     ADDR2_META_MIP_INFO* pMipInfo;      ///< DCC mip information
 } ADDR2_COMPUTE_DCCINFO_OUTPUT;
@@ -3571,7 +3574,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeSubResourceOffsetForSwizzlePattern(
 *   ADDR2_BLOCK_SET
 *
 *   @brief
-*       Bit field that define block type
+*       Bit field that defines block type
 ****************************************************************************************************
 */
 typedef union _ADDR2_BLOCK_SET
@@ -3591,6 +3594,28 @@ typedef union _ADDR2_BLOCK_SET
 
 /**
 ****************************************************************************************************
+*   ADDR2_SWTYPE_SET
+*
+*   @brief
+*       Bit field that defines swizzle type
+****************************************************************************************************
+*/
+typedef union _ADDR2_SWTYPE_SET
+{
+    struct
+    {
+        UINT_32 sw_Z     : 1;   // SW_*_Z_*
+        UINT_32 sw_S     : 1;   // SW_*_S_*
+        UINT_32 sw_D     : 1;   // SW_*_D_*
+        UINT_32 sw_R     : 1;   // SW_*_R_*
+        UINT_32 reserved : 28;
+    };
+
+    UINT_32 value;
+} ADDR2_SWTYPE_SET;
+
+/**
+****************************************************************************************************
 *   ADDR2_GET_PREFERRED_SURF_SETTING_INPUT
 *
 *   @brief
@@ -3607,6 +3632,7 @@ typedef struct _ADDR2_GET_PREFERRED_SURF_SETTING_INPUT
     AddrResrouceLocation  resourceLoction;   ///< Surface heap choice
     ADDR2_BLOCK_SET       forbiddenBlock;    ///< Client can use it to disable some block setting
                                              ///< such as linear for DXTn, tiled for YUV
+    ADDR2_SWTYPE_SET      preferredSwSet;    ///< Client can use it to specify sw type(s) wanted
     BOOL_32               noXor;             ///< Do not use xor mode for this resource
     UINT_32               bpp;               ///< bits per pixel
     UINT_32               width;             ///< Width (of mip0), in pixels
@@ -3632,12 +3658,15 @@ typedef struct _ADDR2_GET_PREFERRED_SURF_SETTING_INPUT
 */
 typedef struct _ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT
 {
-    UINT_32               size;              ///< Size of this structure in bytes
+    UINT_32               size;                 ///< Size of this structure in bytes
 
-    AddrSwizzleMode       swizzleMode;       ///< Suggested swizzle mode to be used
-    AddrResourceType      resourceType;      ///< Suggested resource type to program HW
-    ADDR2_BLOCK_SET       validBlockSet;     ///< Valid block type bit conbination
-    BOOL_32               canXor;            ///< If client can use xor on a valid macro block type
+    AddrSwizzleMode       swizzleMode;          ///< Suggested swizzle mode to be used
+    AddrResourceType      resourceType;         ///< Suggested resource type to program HW
+    ADDR2_BLOCK_SET       validBlockSet;        ///< Valid block type bit conbination
+    BOOL_32               canXor;               ///< If client can use xor on a valid macro block
+                                                ///  type
+    ADDR2_SWTYPE_SET      validSwTypeSet;       ///< Valid swizzle type bit combination
+    ADDR2_SWTYPE_SET      clientPreferredSwSet; ///< Client-preferred swizzle type bit combination
 } ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT;
 
 /**

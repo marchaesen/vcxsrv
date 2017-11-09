@@ -89,9 +89,9 @@ delete_dummy_framebuffer(struct gl_framebuffer *fb)
 void
 _mesa_init_fbobjects(struct gl_context *ctx)
 {
-   mtx_init(&DummyFramebuffer.Mutex, mtx_plain);
-   mtx_init(&DummyRenderbuffer.Mutex, mtx_plain);
-   mtx_init(&IncompleteFramebuffer.Mutex, mtx_plain);
+   simple_mtx_init(&DummyFramebuffer.Mutex, mtx_plain);
+   simple_mtx_init(&DummyRenderbuffer.Mutex, mtx_plain);
+   simple_mtx_init(&IncompleteFramebuffer.Mutex, mtx_plain);
    DummyFramebuffer.Delete = delete_dummy_framebuffer;
    DummyRenderbuffer.Delete = delete_dummy_renderbuffer;
    IncompleteFramebuffer.Delete = delete_dummy_framebuffer;
@@ -558,7 +558,7 @@ _mesa_FramebufferRenderbuffer_sw(struct gl_context *ctx,
 {
    struct gl_renderbuffer_attachment *att;
 
-   mtx_lock(&fb->Mutex);
+   simple_mtx_lock(&fb->Mutex);
 
    att = get_attachment(ctx, fb, attachment, NULL);
    assert(att);
@@ -584,7 +584,7 @@ _mesa_FramebufferRenderbuffer_sw(struct gl_context *ctx,
 
    invalidate_framebuffer(fb);
 
-   mtx_unlock(&fb->Mutex);
+   simple_mtx_unlock(&fb->Mutex);
 }
 
 
@@ -3296,7 +3296,7 @@ _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
 {
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
 
-   mtx_lock(&fb->Mutex);
+   simple_mtx_lock(&fb->Mutex);
    if (texObj) {
       if (attachment == GL_DEPTH_ATTACHMENT &&
           texObj == fb->Attachment[BUFFER_STENCIL].Texture &&
@@ -3355,7 +3355,7 @@ _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
 
    invalidate_framebuffer(fb);
 
-   mtx_unlock(&fb->Mutex);
+   simple_mtx_unlock(&fb->Mutex);
 }
 
 

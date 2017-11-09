@@ -88,6 +88,8 @@ tc_batch_execute(void *job, int thread_index)
 
    tc_batch_check(batch);
 
+   assert(!batch->token);
+
    for (struct tc_call *iter = batch->call; iter != last;
         iter += iter->num_call_slots) {
       tc_assert(iter->sentinel == TC_SENTINEL);
@@ -107,6 +109,11 @@ tc_batch_flush(struct threaded_context *tc)
    tc_batch_check(next);
    tc_debug_check(tc);
    p_atomic_add(&tc->num_offloaded_slots, next->num_total_call_slots);
+
+   if (next->token) {
+      next->token->tc = NULL;
+      tc_unflushed_batch_token_reference(&next->token, NULL);
+   }
 
    util_queue_add_job(&tc->queue, next, &next->fence, tc_batch_execute,
                       NULL);
@@ -162,6 +169,16 @@ tc_add_small_call(struct threaded_context *tc, enum tc_call_id id)
    return tc_add_sized_call(tc, id, 0);
 }
 
+static bool
+tc_is_sync(struct threaded_context *tc)
+{
+   struct tc_batch *last = &tc->batch_slots[tc->last];
+   struct tc_batch *next = &tc->batch_slots[tc->next];
+
+   return util_queue_fence_is_signalled(&last->fence) &&
+          !next->num_total_call_slots;
+}
+
 static void
 _tc_sync(struct threaded_context *tc, const char *info, const char *func)
 {
@@ -178,6 +195,11 @@ _tc_sync(struct threaded_context *tc, const char *info, const char *func)
    }
 
    tc_debug_check(tc);
+
+   if (next->token) {
+      next->token->tc = NULL;
+      tc_unflushed_batch_token_reference(&next->token, NULL);
+   }
 
    /* .. and execute unflushed calls directly. */
    if (next->num_total_call_slots) {
@@ -198,6 +220,24 @@ _tc_sync(struct threaded_context *tc, const char *info, const char *func)
 
 #define tc_sync(tc) _tc_sync(tc, "", __func__)
 #define tc_sync_msg(tc, info) _tc_sync(tc, info, __func__)
+
+/**
+ * Call this from fence_finish for same-context fence waits of deferred fences
+ * that haven't been flushed yet.
+ *
+ * The passed pipe_context must be the one passed to pipe_screen::fence_finish,
+ * i.e., the wrapped one.
+ */
+void
+threaded_context_flush(struct pipe_context *_pipe,
+                       struct tc_unflushed_batch_token *token)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+
+   /* This is called from the state-tracker / application thread. */
+   if (token->tc && token->tc == tc)
+      tc_sync(token->tc);
+}
 
 static void
 tc_set_resource_reference(struct pipe_resource **dst, struct pipe_resource *src)
@@ -298,6 +338,11 @@ tc_create_batch_query(struct pipe_context *_pipe, unsigned num_queries,
 static void
 tc_call_destroy_query(struct pipe_context *pipe, union tc_payload *payload)
 {
+   struct threaded_query *tq = threaded_query(payload->query);
+
+   if (tq->head_unflushed.next)
+      LIST_DEL(&tq->head_unflushed);
+
    pipe->destroy_query(pipe, payload->query);
 }
 
@@ -305,10 +350,6 @@ static void
 tc_destroy_query(struct pipe_context *_pipe, struct pipe_query *query)
 {
    struct threaded_context *tc = threaded_context(_pipe);
-   struct threaded_query *tq = threaded_query(query);
-
-   if (tq->head_unflushed.next)
-      LIST_DEL(&tq->head_unflushed);
 
    tc_add_small_call(tc, TC_CALL_destroy_query)->query = query;
 }
@@ -329,10 +370,21 @@ tc_begin_query(struct pipe_context *_pipe, struct pipe_query *query)
    return true; /* we don't care about the return value for this call */
 }
 
+struct tc_end_query_payload {
+   struct threaded_context *tc;
+   struct pipe_query *query;
+};
+
 static void
 tc_call_end_query(struct pipe_context *pipe, union tc_payload *payload)
 {
-   pipe->end_query(pipe, payload->query);
+   struct tc_end_query_payload *p = (struct tc_end_query_payload *)payload;
+   struct threaded_query *tq = threaded_query(p->query);
+
+   if (!tq->head_unflushed.next)
+      LIST_ADD(&tq->head_unflushed, &p->tc->unflushed_queries);
+
+   pipe->end_query(pipe, p->query);
 }
 
 static bool
@@ -340,13 +392,15 @@ tc_end_query(struct pipe_context *_pipe, struct pipe_query *query)
 {
    struct threaded_context *tc = threaded_context(_pipe);
    struct threaded_query *tq = threaded_query(query);
-   union tc_payload *payload = tc_add_small_call(tc, TC_CALL_end_query);
+   struct tc_end_query_payload *payload =
+      tc_add_struct_typed_call(tc, TC_CALL_end_query, tc_end_query_payload);
 
+   tc_add_small_call(tc, TC_CALL_end_query);
+
+   payload->tc = tc;
    payload->query = query;
 
    tq->flushed = false;
-   if (!tq->head_unflushed.next)
-      LIST_ADD(&tq->head_unflushed, &tc->unflushed_queries);
 
    return true; /* we don't care about the return value for this call */
 }
@@ -367,8 +421,10 @@ tc_get_query_result(struct pipe_context *_pipe,
 
    if (success) {
       tq->flushed = true;
-      if (tq->head_unflushed.next)
+      if (tq->head_unflushed.next) {
+         /* This is safe because it can only happen after we sync'd. */
          LIST_DEL(&tq->head_unflushed);
+      }
    }
    return success;
 }
@@ -1759,6 +1815,16 @@ tc_set_debug_callback(struct pipe_context *_pipe,
 }
 
 static void
+tc_set_log_context(struct pipe_context *_pipe, struct u_log_context *log)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+   struct pipe_context *pipe = tc->pipe;
+
+   tc_sync(tc);
+   pipe->set_log_context(pipe, log);
+}
+
+static void
 tc_create_fence_fd(struct pipe_context *_pipe,
                    struct pipe_fence_handle **fence, int fd)
 {
@@ -1801,22 +1867,97 @@ tc_create_video_buffer(struct pipe_context *_pipe,
  * draw, launch, clear, blit, copy, flush
  */
 
+struct tc_flush_payload {
+   struct threaded_context *tc;
+   struct pipe_fence_handle *fence;
+   unsigned flags;
+};
+
+static void
+tc_flush_queries(struct threaded_context *tc)
+{
+   struct threaded_query *tq, *tmp;
+   LIST_FOR_EACH_ENTRY_SAFE(tq, tmp, &tc->unflushed_queries, head_unflushed) {
+      LIST_DEL(&tq->head_unflushed);
+
+      /* Memory release semantics: due to a possible race with
+       * tc_get_query_result, we must ensure that the linked list changes
+       * are visible before setting tq->flushed.
+       */
+      p_atomic_set(&tq->flushed, true);
+   }
+}
+
+static void
+tc_call_flush(struct pipe_context *pipe, union tc_payload *payload)
+{
+   struct tc_flush_payload *p = (struct tc_flush_payload *)payload;
+   struct pipe_screen *screen = pipe->screen;
+
+   pipe->flush(pipe, p->fence ? &p->fence : NULL, p->flags);
+   screen->fence_reference(screen, &p->fence, NULL);
+
+   if (!(p->flags & PIPE_FLUSH_DEFERRED))
+      tc_flush_queries(p->tc);
+}
+
 static void
 tc_flush(struct pipe_context *_pipe, struct pipe_fence_handle **fence,
          unsigned flags)
 {
    struct threaded_context *tc = threaded_context(_pipe);
    struct pipe_context *pipe = tc->pipe;
-   struct threaded_query *tq, *tmp;
+   struct pipe_screen *screen = pipe->screen;
+   bool async = flags & PIPE_FLUSH_DEFERRED;
 
-   LIST_FOR_EACH_ENTRY_SAFE(tq, tmp, &tc->unflushed_queries, head_unflushed) {
-      tq->flushed = true;
-      LIST_DEL(&tq->head_unflushed);
+   if (flags & PIPE_FLUSH_ASYNC) {
+      struct tc_batch *last = &tc->batch_slots[tc->last];
+
+      /* Prefer to do the flush in the driver thread, but avoid the inter-thread
+       * communication overhead if the driver thread is currently idle and the
+       * caller is going to wait for the fence immediately anyway.
+       */
+      if (!(util_queue_fence_is_signalled(&last->fence) &&
+            (flags & PIPE_FLUSH_HINT_FINISH)))
+         async = true;
    }
 
-   /* TODO: deferred flushes? */
+   if (async && tc->create_fence) {
+      if (fence) {
+         struct tc_unflushed_batch_token *token = NULL;
+         struct tc_batch *next = &tc->batch_slots[tc->next];
+
+         if (!next->token) {
+            next->token = malloc(sizeof(*next->token));
+            if (!next->token)
+               goto out_of_memory;
+
+            pipe_reference_init(&next->token->ref, 1);
+            next->token->tc = tc;
+         }
+
+         screen->fence_reference(screen, fence, tc->create_fence(pipe, token));
+         if (!*fence)
+            goto out_of_memory;
+      }
+
+      struct tc_flush_payload *p =
+         tc_add_struct_typed_call(tc, TC_CALL_flush, tc_flush_payload);
+      p->tc = tc;
+      p->fence = fence ? *fence : NULL;
+      p->flags = flags | TC_FLUSH_ASYNC;
+
+      if (!(flags & PIPE_FLUSH_DEFERRED))
+         tc_batch_flush(tc);
+      return;
+   }
+
+out_of_memory:
    tc_sync_msg(tc, flags & PIPE_FLUSH_END_OF_FRAME ? "end of frame" :
                    flags & PIPE_FLUSH_DEFERRED ? "deferred fence" : "normal");
+
+   if (!(flags & PIPE_FLUSH_DEFERRED))
+      tc_flush_queries(tc);
    pipe->flush(pipe, fence, flags);
 }
 
@@ -2243,6 +2384,41 @@ tc_resource_commit(struct pipe_context *_pipe, struct pipe_resource *res,
 
 
 /********************************************************************
+ * callback
+ */
+
+struct tc_callback_payload {
+   void (*fn)(void *data);
+   void *data;
+};
+
+static void
+tc_call_callback(struct pipe_context *pipe, union tc_payload *payload)
+{
+   struct tc_callback_payload *p = (struct tc_callback_payload *)payload;
+
+   p->fn(p->data);
+}
+
+static void
+tc_callback(struct pipe_context *_pipe, void (*fn)(void *), void *data,
+            bool asap)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+
+   if (asap && tc_is_sync(tc)) {
+      fn(data);
+      return;
+   }
+
+   struct tc_callback_payload *p =
+      tc_add_struct_typed_call(tc, TC_CALL_callback, tc_callback_payload);
+   p->fn = fn;
+   p->data = data;
+}
+
+
+/********************************************************************
  * create & destroy
  */
 
@@ -2264,8 +2440,10 @@ tc_destroy(struct pipe_context *_pipe)
    if (util_queue_is_initialized(&tc->queue)) {
       util_queue_destroy(&tc->queue);
 
-      for (unsigned i = 0; i < TC_MAX_BATCHES; i++)
+      for (unsigned i = 0; i < TC_MAX_BATCHES; i++) {
          util_queue_fence_destroy(&tc->batch_slots[i].fence);
+         assert(!tc->batch_slots[i].token);
+      }
    }
 
    slab_destroy_child(&tc->pool_transfers);
@@ -2296,6 +2474,7 @@ struct pipe_context *
 threaded_context_create(struct pipe_context *pipe,
                         struct slab_parent_pool *parent_transfer_pool,
                         tc_replace_buffer_storage_func replace_buffer,
+                        tc_create_fence_func create_fence,
                         struct threaded_context **out)
 {
    struct threaded_context *tc;
@@ -2330,11 +2509,13 @@ threaded_context_create(struct pipe_context *pipe,
 
    tc->pipe = pipe;
    tc->replace_buffer_storage = replace_buffer;
+   tc->create_fence = create_fence;
    tc->map_buffer_alignment =
       pipe->screen->get_param(pipe->screen, PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT);
    tc->base.priv = pipe; /* priv points to the wrapped driver context */
    tc->base.screen = pipe->screen;
    tc->base.destroy = tc_destroy;
+   tc->base.callback = tc_callback;
 
    tc->base.stream_uploader = u_upload_clone(&tc->base, pipe->stream_uploader);
    if (pipe->stream_uploader == pipe->const_uploader)
@@ -2459,6 +2640,7 @@ threaded_context_create(struct pipe_context *pipe,
    CTX_INIT(get_device_reset_status);
    CTX_INIT(set_device_reset_callback);
    CTX_INIT(dump_debug_state);
+   CTX_INIT(set_log_context);
    CTX_INIT(emit_string_marker);
    CTX_INIT(set_debug_callback);
    CTX_INIT(create_fence_fd);

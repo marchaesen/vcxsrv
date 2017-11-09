@@ -28,7 +28,6 @@
 #include "radv_amdgpu_winsys_public.h"
 #include "radv_amdgpu_surface.h"
 #include "radv_debug.h"
-#include "amdgpu_id.h"
 #include "ac_surface.h"
 #include "xf86drm.h"
 #include <stdio.h>

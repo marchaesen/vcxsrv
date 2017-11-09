@@ -63,7 +63,7 @@ delete_sampler_object(struct gl_context *ctx,
                       struct gl_sampler_object *sampObj)
 {
    _mesa_delete_sampler_handles(ctx, sampObj);
-   mtx_destroy(&sampObj->Mutex);
+   simple_mtx_destroy(&sampObj->Mutex);
    free(sampObj->Label);
    free(sampObj);
 }
@@ -83,11 +83,11 @@ _mesa_reference_sampler_object_(struct gl_context *ctx,
       GLboolean deleteFlag = GL_FALSE;
       struct gl_sampler_object *oldSamp = *ptr;
 
-      mtx_lock(&oldSamp->Mutex);
+      simple_mtx_lock(&oldSamp->Mutex);
       assert(oldSamp->RefCount > 0);
       oldSamp->RefCount--;
       deleteFlag = (oldSamp->RefCount == 0);
-      mtx_unlock(&oldSamp->Mutex);
+      simple_mtx_unlock(&oldSamp->Mutex);
 
       if (deleteFlag)
          delete_sampler_object(ctx, oldSamp);
@@ -98,12 +98,12 @@ _mesa_reference_sampler_object_(struct gl_context *ctx,
 
    if (samp) {
       /* reference new sampler */
-      mtx_lock(&samp->Mutex);
+      simple_mtx_lock(&samp->Mutex);
       assert(samp->RefCount > 0);
 
       samp->RefCount++;
       *ptr = samp;
-      mtx_unlock(&samp->Mutex);
+      simple_mtx_unlock(&samp->Mutex);
    }
 }
 
@@ -114,7 +114,7 @@ _mesa_reference_sampler_object_(struct gl_context *ctx,
 static void
 _mesa_init_sampler_object(struct gl_sampler_object *sampObj, GLuint name)
 {
-   mtx_init(&sampObj->Mutex, mtx_plain);
+   simple_mtx_init(&sampObj->Mutex, mtx_plain);
    sampObj->Name = name;
    sampObj->RefCount = 1;
    sampObj->WrapS = GL_REPEAT;

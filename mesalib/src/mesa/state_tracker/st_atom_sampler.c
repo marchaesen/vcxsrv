@@ -43,6 +43,7 @@
 #include "st_cb_texture.h"
 #include "st_format.h"
 #include "st_atom.h"
+#include "st_sampler_view.h"
 #include "st_texture.h"
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
@@ -164,26 +165,18 @@ st_convert_sampler(const struct st_context *st,
 
       if (st->apply_texture_swizzle_to_border_color) {
          const struct st_texture_object *stobj = st_texture_object_const(texobj);
-         const struct pipe_sampler_view *sv = NULL;
-
-         /* Just search for the first used view. We can do this because the
-            swizzle is per-texture, not per context. */
          /* XXX: clean that up to not use the sampler view at all */
-         for (unsigned i = 0; i < stobj->num_sampler_views; ++i) {
-            if (stobj->sampler_views[i].view) {
-               sv = stobj->sampler_views[i].view;
-               break;
-            }
-         }
+         const struct st_sampler_view *sv = st_texture_get_current_sampler_view(st, stobj);
 
          if (sv) {
+            struct pipe_sampler_view *view = sv->view;
             union pipe_color_union tmp;
             const unsigned char swz[4] =
             {
-               sv->swizzle_r,
-               sv->swizzle_g,
-               sv->swizzle_b,
-               sv->swizzle_a,
+               view->swizzle_r,
+               view->swizzle_g,
+               view->swizzle_b,
+               view->swizzle_a,
             };
 
             st_translate_color(&msamp->BorderColor, &tmp,

@@ -355,6 +355,11 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceAddrFromCoord(
         {
             returnCode = ComputeSurfaceAddrFromCoordTiled(&localIn, pOut);
         }
+
+        if (returnCode == ADDR_OK)
+        {
+            pOut->prtBlockIndex = static_cast<UINT_32>(pOut->addr / (64 * 1024));
+        }
     }
 
     return returnCode;
@@ -460,8 +465,7 @@ ADDR_E_RETURNCODE Lib::ComputeHtileInfo(
 */
 ADDR_E_RETURNCODE Lib::ComputeHtileAddrFromCoord(
     const ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_INPUT*   pIn,    ///< [in] input structure
-    ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_OUTPUT*        pOut    ///< [out] output structure
-    ) const
+    ADDR2_COMPUTE_HTILE_ADDRFROMCOORD_OUTPUT*        pOut)   ///< [out] output structure
 {
     ADDR_E_RETURNCODE returnCode;
 
@@ -492,8 +496,7 @@ ADDR_E_RETURNCODE Lib::ComputeHtileAddrFromCoord(
 */
 ADDR_E_RETURNCODE Lib::ComputeHtileCoordFromAddr(
     const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT*   pIn,    ///< [in] input structure
-    ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT*        pOut    ///< [out] output structure
-    ) const
+    ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT*        pOut)   ///< [out] output structure
 {
     ADDR_E_RETURNCODE returnCode;
 
@@ -560,8 +563,7 @@ ADDR_E_RETURNCODE Lib::ComputeCmaskInfo(
 */
 ADDR_E_RETURNCODE Lib::ComputeCmaskAddrFromCoord(
     const ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_INPUT*   pIn,    ///< [in] input structure
-    ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_OUTPUT*        pOut    ///< [out] output structure
-    ) const
+    ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_OUTPUT*        pOut)   ///< [out] output structure
 {
     ADDR_E_RETURNCODE returnCode;
 
@@ -780,8 +782,7 @@ ADDR_E_RETURNCODE Lib::ComputeDccInfo(
 */
 ADDR_E_RETURNCODE Lib::ComputeDccAddrFromCoord(
     const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn,    ///< [in] input structure
-    ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*      pOut    ///< [out] output structure
-    ) const
+    ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*      pOut)   ///< [out] output structure
 {
     ADDR_E_RETURNCODE returnCode;
 
@@ -1047,77 +1048,7 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceInfoLinear(
      ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut    ///< [out] output structure
      ) const
 {
-    ADDR_E_RETURNCODE returnCode = ADDR_OK;
-
-    UINT_32 pitch = 0;
-    UINT_32 actualHeight = 0;
-    UINT_32 elementBytes = pIn->bpp >> 3;
-    const UINT_32 alignment = pIn->flags.prt ? PrtAlignment : 256;
-
-    if (IsTex1d(pIn->resourceType))
-    {
-        if (pIn->height > 1)
-        {
-            returnCode = ADDR_INVALIDPARAMS;
-        }
-        else
-        {
-            const UINT_32 pitchAlignInElement = alignment / elementBytes;
-            pitch = PowTwoAlign(pIn->width, pitchAlignInElement);
-            actualHeight = pIn->numMipLevels;
-
-            if (pIn->flags.prt == FALSE)
-            {
-                returnCode = ApplyCustomizedPitchHeight(pIn, elementBytes, pitchAlignInElement,
-                                                        &pitch, &actualHeight);
-            }
-
-            if (returnCode == ADDR_OK)
-            {
-                if (pOut->pMipInfo != NULL)
-                {
-                    for (UINT_32 i = 0; i < pIn->numMipLevels; i++)
-                    {
-                        pOut->pMipInfo[i].offset = pitch * elementBytes * i;
-                        pOut->pMipInfo[i].pitch = pitch;
-                        pOut->pMipInfo[i].height = 1;
-                        pOut->pMipInfo[i].depth = 1;
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        returnCode = ComputeSurfaceLinearPadding(pIn, &pitch, &actualHeight, pOut->pMipInfo);
-    }
-
-    if ((pitch == 0) || (actualHeight == 0))
-    {
-        returnCode = ADDR_INVALIDPARAMS;
-    }
-
-    if (returnCode == ADDR_OK)
-    {
-        pOut->pitch = pitch;
-        pOut->height = pIn->height;
-        pOut->numSlices = pIn->numSlices;
-        pOut->mipChainPitch = pitch;
-        pOut->mipChainHeight = actualHeight;
-        pOut->mipChainSlice = pOut->numSlices;
-        pOut->epitchIsHeight = (pIn->numMipLevels > 1) ? TRUE : FALSE;
-        pOut->sliceSize = static_cast<UINT_64>(pOut->pitch) * actualHeight * elementBytes;
-        pOut->surfSize = pOut->sliceSize * pOut->numSlices;
-        pOut->baseAlign = (pIn->swizzleMode == ADDR_SW_LINEAR_GENERAL) ? (pIn->bpp / 8) : alignment;
-        pOut->blockWidth = (pIn->swizzleMode == ADDR_SW_LINEAR_GENERAL) ? 1 : (256 * 8 / pIn->bpp);
-        pOut->blockHeight = 1;
-        pOut->blockSlices = 1;
-    }
-
-    // Post calculation validate
-    ADDR_ASSERT(pOut->sliceSize > 0);
-
-    return returnCode;
+    return HwlComputeSurfaceInfoLinear(pIn, pOut);
 }
 
 /**
@@ -1170,6 +1101,8 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceAddrFromCoordLinear(
     {
         ADDR2_COMPUTE_SURFACE_INFO_INPUT  localIn  = {0};
         ADDR2_COMPUTE_SURFACE_INFO_OUTPUT localOut = {0};
+        ADDR2_MIP_INFO                    mipInfo[MaxMipLevels];
+
         localIn.bpp          = pIn->bpp;
         localIn.flags        = pIn->flags;
         localIn.width        = Max(pIn->unalignedWidth, 1u);
@@ -1177,32 +1110,21 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceAddrFromCoordLinear(
         localIn.numSlices    = Max(pIn->numSlices, 1u);
         localIn.numMipLevels = Max(pIn->numMipLevels, 1u);
         localIn.resourceType = pIn->resourceType;
+
         if (localIn.numMipLevels <= 1)
         {
             localIn.pitchInElement = pIn->pitchInElement;
         }
+
+        localOut.pMipInfo = mipInfo;
+
         returnCode = ComputeSurfaceInfoLinear(&localIn, &localOut);
 
         if (returnCode == ADDR_OK)
         {
-            UINT_32 elementBytes = pIn->bpp >> 3;
-            UINT_64 sliceOffsetInSurf = localOut.sliceSize * pIn->slice;
-            UINT_64 mipOffsetInSlice = 0;
-            UINT_64 offsetInMip = 0;
-
-            if (IsTex1d(pIn->resourceType))
-            {
-                offsetInMip = static_cast<UINT_64>(pIn->x) * elementBytes;
-                mipOffsetInSlice = static_cast<UINT_64>(pIn->mipId) * localOut.pitch * elementBytes;
-            }
-            else
-            {
-                UINT_64 mipStartHeight = SumGeo(localIn.height, pIn->mipId);
-                mipOffsetInSlice = static_cast<UINT_64>(mipStartHeight) * localOut.pitch * elementBytes;
-                offsetInMip = (pIn->y * localOut.pitch + pIn->x) * elementBytes;
-            }
-
-            pOut->addr = sliceOffsetInSurf + mipOffsetInSlice + offsetInMip;
+            pOut->addr        = (localOut.sliceSize * pIn->slice) +
+                                mipInfo[pIn->mipId].offset +
+                                (pIn->y * mipInfo[pIn->mipId].pitch + pIn->x) * (pIn->bpp >> 3);
             pOut->bitPosition = 0;
         }
         else
@@ -1394,73 +1316,6 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceCoordFromAddrTiled(
     ADDR_E_RETURNCODE returnCode = ADDR_NOTIMPLEMENTED;
 
     ADDR_NOT_IMPLEMENTED();
-
-    return returnCode;
-}
-
-/**
-************************************************************************************************************************
-*   Lib::ComputeSurfaceInfoLinear
-*
-*   @brief
-*       Internal function to calculate padding for linear swizzle 2D/3D surface
-*
-*   @return
-*       N/A
-************************************************************************************************************************
-*/
-ADDR_E_RETURNCODE Lib::ComputeSurfaceLinearPadding(
-    const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,    ///< [in] input srtucture
-    UINT_32* pMipmap0PaddedWidth,                   ///< [out] padded width in element
-    UINT_32* pSlice0PaddedHeight,                   ///< [out] padded height for HW
-    ADDR2_MIP_INFO* pMipInfo                        ///< [out] per mip information
-    ) const
-{
-    ADDR_E_RETURNCODE returnCode = ADDR_OK;
-
-    UINT_32 elementBytes = pIn->bpp >> 3;
-    UINT_32 pitchAlignInElement = 0;
-
-    if (pIn->swizzleMode == ADDR_SW_LINEAR_GENERAL)
-    {
-        ADDR_ASSERT(pIn->numMipLevels <= 1);
-        ADDR_ASSERT(pIn->numSlices <= 1);
-        pitchAlignInElement = 1;
-    }
-    else
-    {
-        pitchAlignInElement = (256 / elementBytes);
-    }
-
-    UINT_32 mipChainWidth = PowTwoAlign(pIn->width, pitchAlignInElement);
-    UINT_32 slice0PaddedHeight = pIn->height;
-
-    returnCode = ApplyCustomizedPitchHeight(pIn, elementBytes, pitchAlignInElement,
-                                            &mipChainWidth, &slice0PaddedHeight);
-
-    if (returnCode == ADDR_OK)
-    {
-        UINT_32 mipChainHeight = 0;
-        UINT_32 mipHeight = pIn->height;
-
-        for (UINT_32 i = 0; i < pIn->numMipLevels; i++)
-        {
-            if (pMipInfo != NULL)
-            {
-                pMipInfo[i].offset = mipChainWidth * mipChainHeight * elementBytes;
-                pMipInfo[i].pitch = mipChainWidth;
-                pMipInfo[i].height = mipHeight;
-                pMipInfo[i].depth = 1;
-            }
-
-            mipChainHeight += mipHeight;
-            mipHeight = RoundHalf(mipHeight);
-            mipHeight = Max(mipHeight, 1u);
-        }
-
-        *pMipmap0PaddedWidth = mipChainWidth;
-        *pSlice0PaddedHeight = (pIn->numMipLevels > 1) ? mipChainHeight : slice0PaddedHeight;
-    }
 
     return returnCode;
 }

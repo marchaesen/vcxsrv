@@ -27,7 +27,7 @@
 
 #include "ac_surface.h"
 #include "amd_family.h"
-#include "amdgpu_id.h"
+#include "addrlib/amdgpu_asic_addr.h"
 #include "ac_gpu_info.h"
 #include "util/macros.h"
 #include "util/u_atomic.h"
@@ -49,90 +49,95 @@
 #define CIASICIDGFXENGINE_ARCTICISLAND 0x0000000D
 #endif
 
+static unsigned get_first(unsigned x, unsigned y)
+{
+	return x;
+}
+
 static void addrlib_family_rev_id(enum radeon_family family,
-				  unsigned *addrlib_family,
-				  unsigned *addrlib_revid)
+                                 unsigned *addrlib_family,
+                                 unsigned *addrlib_revid)
 {
 	switch (family) {
 	case CHIP_TAHITI:
 		*addrlib_family = FAMILY_SI;
-		*addrlib_revid = SI_TAHITI_P_A0;
+		*addrlib_revid = get_first(AMDGPU_TAHITI_RANGE);
 		break;
 	case CHIP_PITCAIRN:
 		*addrlib_family = FAMILY_SI;
-		*addrlib_revid = SI_PITCAIRN_PM_A0;
+		*addrlib_revid = get_first(AMDGPU_PITCAIRN_RANGE);
 		break;
 	case CHIP_VERDE:
 		*addrlib_family = FAMILY_SI;
-		*addrlib_revid = SI_CAPEVERDE_M_A0;
+		*addrlib_revid =  get_first(AMDGPU_CAPEVERDE_RANGE);
 		break;
 	case CHIP_OLAND:
 		*addrlib_family = FAMILY_SI;
-		*addrlib_revid = SI_OLAND_M_A0;
+		*addrlib_revid = get_first(AMDGPU_OLAND_RANGE);
 		break;
 	case CHIP_HAINAN:
 		*addrlib_family = FAMILY_SI;
-		*addrlib_revid = SI_HAINAN_V_A0;
+		*addrlib_revid = get_first(AMDGPU_HAINAN_RANGE);
 		break;
 	case CHIP_BONAIRE:
 		*addrlib_family = FAMILY_CI;
-		*addrlib_revid = CI_BONAIRE_M_A0;
+		*addrlib_revid = get_first(AMDGPU_BONAIRE_RANGE);
 		break;
 	case CHIP_KAVERI:
 		*addrlib_family = FAMILY_KV;
-		*addrlib_revid = KV_SPECTRE_A0;
+		*addrlib_revid = get_first(AMDGPU_SPECTRE_RANGE);
 		break;
 	case CHIP_KABINI:
 		*addrlib_family = FAMILY_KV;
-		*addrlib_revid = KB_KALINDI_A0;
+		*addrlib_revid = get_first(AMDGPU_KALINDI_RANGE);
 		break;
 	case CHIP_HAWAII:
 		*addrlib_family = FAMILY_CI;
-		*addrlib_revid = CI_HAWAII_P_A0;
+		*addrlib_revid = get_first(AMDGPU_HAWAII_RANGE);
 		break;
 	case CHIP_MULLINS:
 		*addrlib_family = FAMILY_KV;
-		*addrlib_revid = ML_GODAVARI_A0;
+		*addrlib_revid = get_first(AMDGPU_GODAVARI_RANGE);
 		break;
 	case CHIP_TONGA:
 		*addrlib_family = FAMILY_VI;
-		*addrlib_revid = VI_TONGA_P_A0;
+		*addrlib_revid = get_first(AMDGPU_TONGA_RANGE);
 		break;
 	case CHIP_ICELAND:
 		*addrlib_family = FAMILY_VI;
-		*addrlib_revid = VI_ICELAND_M_A0;
+		*addrlib_revid = get_first(AMDGPU_ICELAND_RANGE);
 		break;
 	case CHIP_CARRIZO:
 		*addrlib_family = FAMILY_CZ;
-		*addrlib_revid = CARRIZO_A0;
+		*addrlib_revid = get_first(AMDGPU_CARRIZO_RANGE);
 		break;
 	case CHIP_STONEY:
 		*addrlib_family = FAMILY_CZ;
-		*addrlib_revid = STONEY_A0;
+		*addrlib_revid = get_first(AMDGPU_STONEY_RANGE);
 		break;
 	case CHIP_FIJI:
 		*addrlib_family = FAMILY_VI;
-		*addrlib_revid = VI_FIJI_P_A0;
+		*addrlib_revid = get_first(AMDGPU_FIJI_RANGE);
 		break;
 	case CHIP_POLARIS10:
 		*addrlib_family = FAMILY_VI;
-		*addrlib_revid = VI_POLARIS10_P_A0;
+		*addrlib_revid = get_first(AMDGPU_POLARIS10_RANGE);
 		break;
 	case CHIP_POLARIS11:
 		*addrlib_family = FAMILY_VI;
-		*addrlib_revid = VI_POLARIS11_M_A0;
+		*addrlib_revid = get_first(AMDGPU_POLARIS11_RANGE);
 		break;
 	case CHIP_POLARIS12:
 		*addrlib_family = FAMILY_VI;
-		*addrlib_revid = VI_POLARIS12_V_A0;
+		*addrlib_revid = get_first(AMDGPU_POLARIS12_RANGE);
 		break;
 	case CHIP_VEGA10:
 		*addrlib_family = FAMILY_AI;
-		*addrlib_revid = AI_VEGA10_P_A0;
+		*addrlib_revid = get_first(AMDGPU_VEGA10_RANGE);
 		break;
 	case CHIP_RAVEN:
 		*addrlib_family = FAMILY_RV;
-		*addrlib_revid = RAVEN_A0;
+		*addrlib_revid = get_first(AMDGPU_RAVEN_RANGE);
 		break;
 	default:
 		fprintf(stderr, "amdgpu: Unknown family.\n");
@@ -167,7 +172,7 @@ ADDR_HANDLE amdgpu_addr_create(const struct radeon_info *info,
 	regValue.gbAddrConfig = amdinfo->gb_addr_cfg;
 	createFlags.value = 0;
 
-	addrlib_family_rev_id(info->family, &addrCreateInput.chipFamily, &addrCreateInput.chipRevision);
+       addrlib_family_rev_id(info->family, &addrCreateInput.chipFamily, &addrCreateInput.chipRevision);
 	if (addrCreateInput.chipFamily == FAMILY_UNKNOWN)
 		return NULL;
 

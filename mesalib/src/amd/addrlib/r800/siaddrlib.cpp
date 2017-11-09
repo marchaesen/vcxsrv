@@ -32,16 +32,9 @@
 */
 
 #include "siaddrlib.h"
-
 #include "si_gb_reg.h"
 
-#include "si_ci_vi_merged_enum.h"
-
-#if BRAHMA_BUILD
-#include "amdgpu_id.h"
-#else
-#include "si_id.h"
-#endif
+#include "amdgpu_asic_addr.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2664,7 +2657,8 @@ ADDR_E_RETURNCODE SiLib::HwlComputeSurfaceInfo(
 
         if ((pIn->numSlices > 1) &&
             (IsMacroTiled(pOut->tileMode) == TRUE) &&
-            (m_chipFamily == ADDR_CHIP_FAMILY_SI))
+            ((m_chipFamily == ADDR_CHIP_FAMILY_SI) ||
+             (IsPrtTileMode(pOut->tileMode) == FALSE)))
         {
             pOut->equationIndex = ADDR_INVALID_EQUATION_INDEX;
         }
@@ -2822,8 +2816,8 @@ VOID SiLib::HwlCheckLastMacroTiledLvl(
 ****************************************************************************************************
 */
 AddrTileMode SiLib::HwlDegradeThickTileMode(
-    AddrTileMode        baseTileMode,   ///< [in] base tile mode
-    UINT_32             numSlices,      ///< [in] current number of slices
+    AddrTileMode        baseTileMode,   ///< base tile mode
+    UINT_32             numSlices,      ///< current number of slices
     UINT_32*            pBytesPerTile   ///< [in,out] pointer to bytes per slice
     ) const
 {
@@ -2963,9 +2957,9 @@ INT_32 SiLib::HwlPostCheckTileIndex(
 ****************************************************************************************************
 */
 ADDR_E_RETURNCODE SiLib::HwlSetupTileCfg(
-    UINT_32         bpp,            ///< [in] Bits per pixel
-    INT_32          index,          ///< [in] Tile index
-    INT_32          macroModeIndex, ///< [in] Index in macro tile mode table(CI)
+    UINT_32         bpp,            ///< Bits per pixel
+    INT_32          index,          ///< Tile index
+    INT_32          macroModeIndex, ///< Index in macro tile mode table(CI)
     ADDR_TILEINFO*  pInfo,          ///< [out] Tile Info
     AddrTileMode*   pMode,          ///< [out] Tile mode
     AddrTileType*   pType           ///< [out] Tile type

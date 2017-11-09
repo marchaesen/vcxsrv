@@ -207,7 +207,7 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
    active_atomic_buffer *abs =
       find_active_atomic_counters(ctx, prog, &num_buffers);
 
-   prog->data->AtomicBuffers = rzalloc_array(prog, gl_active_atomic_buffer,
+   prog->data->AtomicBuffers = rzalloc_array(prog->data, gl_active_atomic_buffer,
                                              num_buffers);
    prog->data->NumAtomicBuffers = num_buffers;
 
@@ -270,7 +270,7 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
          struct gl_program *gl_prog = prog->_LinkedShaders[j]->Program;
          gl_prog->info.num_abos = num_atomic_buffers[j];
          gl_prog->sh.AtomicBuffers =
-            rzalloc_array(prog, gl_active_atomic_buffer *,
+            rzalloc_array(gl_prog, gl_active_atomic_buffer *,
                           num_atomic_buffers[j]);
 
          unsigned intra_stage_idx = 0;

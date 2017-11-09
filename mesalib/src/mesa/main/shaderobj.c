@@ -193,7 +193,6 @@ _mesa_lookup_shader_err(struct gl_context *ctx, GLuint name, const char *caller)
 /*** Shader Program object functions                                ***/
 /**********************************************************************/
 
-
 void
 _mesa_reference_shader_program_data(struct gl_context *ctx,
                                     struct gl_shader_program_data **ptr,
@@ -209,6 +208,12 @@ _mesa_reference_shader_program_data(struct gl_context *ctx,
 
       if (p_atomic_dec_zero(&oldData->RefCount)) {
          assert(ctx);
+         assert(oldData->NumUniformStorage == 0 ||
+                oldData->UniformStorage);
+
+         for (unsigned i = 0; i < oldData->NumUniformStorage; ++i)
+            _mesa_uniform_detach_all_driver_storage(&oldData->UniformStorage[i]);
+
          ralloc_free(oldData);
       }
 
@@ -259,13 +264,15 @@ _mesa_reference_shader_program_(struct gl_context *ctx,
    }
 }
 
-static struct gl_shader_program_data *
-create_shader_program_data()
+struct gl_shader_program_data *
+_mesa_create_shader_program_data()
 {
    struct gl_shader_program_data *data;
    data = rzalloc(NULL, struct gl_shader_program_data);
-   if (data)
+   if (data) {
       data->RefCount = 1;
+      data->InfoLog = ralloc_strdup(data, "");
+   }
 
    return data;
 }
@@ -286,8 +293,6 @@ init_shader_program(struct gl_shader_program *prog)
    prog->TransformFeedback.BufferMode = GL_INTERLEAVED_ATTRIBS;
 
    exec_list_make_empty(&prog->EmptyUniformLocations);
-
-   prog->data->InfoLog = ralloc_strdup(prog->data, "");
 }
 
 /**
@@ -300,7 +305,7 @@ _mesa_new_shader_program(GLuint name)
    shProg = rzalloc(NULL, struct gl_shader_program);
    if (shProg) {
       shProg->Name = name;
-      shProg->data = create_shader_program_data();
+      shProg->data = _mesa_create_shader_program_data();
       if (!shProg->data) {
          ralloc_free(shProg);
          return NULL;
@@ -325,18 +330,7 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
       }
    }
 
-   shProg->data->linked_stages = 0;
-
-   if (shProg->data->UniformStorage && !shProg->data->cache_fallback) {
-      for (unsigned i = 0; i < shProg->data->NumUniformStorage; ++i)
-         _mesa_uniform_detach_all_driver_storage(&shProg->data->
-                                                    UniformStorage[i]);
-      ralloc_free(shProg->data->UniformStorage);
-      shProg->data->NumUniformStorage = 0;
-      shProg->data->UniformStorage = NULL;
-   }
-
-   if (shProg->UniformRemapTable && !shProg->data->cache_fallback) {
+   if (shProg->UniformRemapTable) {
       ralloc_free(shProg->UniformRemapTable);
       shProg->NumUniformRemapTable = 0;
       shProg->UniformRemapTable = NULL;
@@ -347,31 +341,7 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
       shProg->UniformHash = NULL;
    }
 
-   assert(shProg->data->InfoLog != NULL);
-   ralloc_free(shProg->data->InfoLog);
-   shProg->data->InfoLog = ralloc_strdup(shProg->data, "");
-
-   if (!shProg->data->cache_fallback) {
-      ralloc_free(shProg->data->UniformBlocks);
-      shProg->data->UniformBlocks = NULL;
-      shProg->data->NumUniformBlocks = 0;
-
-      ralloc_free(shProg->data->ShaderStorageBlocks);
-      shProg->data->ShaderStorageBlocks = NULL;
-      shProg->data->NumShaderStorageBlocks = 0;
-   }
-
-   if (shProg->data->AtomicBuffers && !shProg->data->cache_fallback) {
-      ralloc_free(shProg->data->AtomicBuffers);
-      shProg->data->AtomicBuffers = NULL;
-      shProg->data->NumAtomicBuffers = 0;
-   }
-
-   if (shProg->data->ProgramResourceList) {
-      ralloc_free(shProg->data->ProgramResourceList);
-      shProg->data->ProgramResourceList = NULL;
-      shProg->data->NumProgramResourceList = 0;
-   }
+   _mesa_reference_shader_program_data(ctx, &shProg->data, NULL);
 }
 
 
@@ -434,8 +404,6 @@ _mesa_delete_shader_program(struct gl_context *ctx,
                             struct gl_shader_program *shProg)
 {
    _mesa_free_shader_program_data(ctx, shProg);
-   if (!shProg->data->cache_fallback)
-      _mesa_reference_shader_program_data(ctx, &shProg->data, NULL);
    ralloc_free(shProg);
 }
 

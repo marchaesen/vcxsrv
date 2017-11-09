@@ -269,7 +269,6 @@ static void
 xwl_drm_init_egl(struct xwl_screen *xwl_screen)
 {
     EGLint major, minor;
-    const char *version;
     static const EGLint config_attribs_core[] = {
         EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
         EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
@@ -304,9 +303,6 @@ xwl_drm_init_egl(struct xwl_screen *xwl_screen)
     }
 
     eglBindAPI(EGL_OPENGL_API);
-
-    version = eglQueryString(xwl_screen->egl_display, EGL_VERSION);
-    ErrorF("glamor: EGL version %s:\n", version);
 
     xwl_screen->egl_context = eglCreateContext(xwl_screen->egl_display,
                                                NULL, EGL_NO_CONTEXT, config_attribs_core);

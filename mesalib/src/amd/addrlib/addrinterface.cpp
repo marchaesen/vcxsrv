@@ -534,11 +534,11 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeDccInfo(
 
     if (pLib != NULL)
     {
-       returnCode = pLib->ComputeDccInfo(pIn, pOut);
+        returnCode = pLib->ComputeDccInfo(pIn, pOut);
     }
     else
     {
-       returnCode = ADDR_ERROR;
+        returnCode = ADDR_ERROR;
     }
 
     return returnCode;

@@ -75,6 +75,17 @@ Configuration macro:
 #error EMULATED_THREADS_USE_NATIVE_CV requires _WIN32_WINNT>=0x0600
 #endif
 
+/* Visual Studio 2015 and later */
+#if _MSC_VER >= 1900
+#define HAVE_TIMESPEC
+#endif
+
+#ifndef HAVE_TIMESPEC
+struct timespec {
+    time_t tv_sec;
+    long tv_nsec;
+};
+#endif
 
 /*---------------------------- macros ----------------------------*/
 #ifdef EMULATED_THREADS_USE_NATIVE_CALL_ONCE
@@ -146,9 +157,9 @@ static unsigned __stdcall impl_thrd_routine(void *p)
     return (unsigned)code;
 }
 
-static DWORD impl_xtime2msec(const xtime *xt)
+static DWORD impl_timespec2msec(const struct timespec *ts)
 {
-    return (DWORD)((xt->sec * 1000U) + (xt->nsec / 1000000L));
+    return (DWORD)((ts->tv_sec * 1000U) + (ts->tv_nsec / 1000000L));
 }
 
 #ifdef EMULATED_THREADS_USE_NATIVE_CALL_ONCE
@@ -206,7 +217,7 @@ static void impl_cond_do_signal(cnd_t *cond, int broadcast)
         ReleaseSemaphore(cond->sem_queue, nsignal, NULL);
 }
 
-static int impl_cond_do_wait(cnd_t *cond, mtx_t *mtx, const xtime *xt)
+static int impl_cond_do_wait(cnd_t *cond, mtx_t *mtx, const struct timespec *ts)
 {
     int nleft = 0;
     int ngone = 0;
@@ -219,7 +230,7 @@ static int impl_cond_do_wait(cnd_t *cond, mtx_t *mtx, const xtime *xt)
 
     mtx_unlock(mtx);
 
-    w = WaitForSingleObject(cond->sem_queue, xt ? impl_xtime2msec(xt) : INFINITE);
+    w = WaitForSingleObject(cond->sem_queue, ts ? impl_timespec2msec(ts) : INFINITE);
     timeout = (w == WAIT_TIMEOUT);
  
     EnterCriticalSection(&cond->monitor);
@@ -378,15 +389,15 @@ cnd_signal(cnd_t *cond)
 
 // 7.25.3.5
 static inline int
-cnd_timedwait(cnd_t *cond, mtx_t *mtx, const xtime *xt)
+cnd_timedwait(cnd_t *cond, mtx_t *mtx, const struct timespec *abs_time)
 {
-    if (!cond || !mtx || !xt) return thrd_error;
+    if (!cond || !mtx || !abs_time) return thrd_error;
 #ifdef EMULATED_THREADS_USE_NATIVE_CV
-    if (SleepConditionVariableCS(&cond->condvar, mtx, impl_xtime2msec(xt)))
+    if (SleepConditionVariableCS(&cond->condvar, mtx, impl_timespec2msec(abs_time)))
         return thrd_success;
     return (GetLastError() == ERROR_TIMEOUT) ? thrd_busy : thrd_error;
 #else
-    return impl_cond_do_wait(cond, mtx, xt);
+    return impl_cond_do_wait(cond, mtx, abs_time);
 #endif
 }
 
@@ -438,12 +449,12 @@ mtx_lock(mtx_t *mtx)
 
 // 7.25.4.4
 static inline int
-mtx_timedlock(mtx_t *mtx, const xtime *xt)
+mtx_timedlock(mtx_t *mtx, const struct timespec *ts)
 {
     time_t expire, now;
-    if (!mtx || !xt) return thrd_error;
+    if (!mtx || !ts) return thrd_error;
     expire = time(NULL);
-    expire += xt->sec;
+    expire += ts->tv_sec;
     while (mtx_trylock(mtx) != thrd_success) {
         now = time(NULL);
         if (expire < now)
@@ -579,10 +590,11 @@ thrd_join(thrd_t thr, int *res)
 
 // 7.25.5.7
 static inline void
-thrd_sleep(const xtime *xt)
+thrd_sleep(const struct timespec *time_point, struct timespec *remaining)
 {
-    assert(xt);
-    Sleep(impl_xtime2msec(xt));
+    assert(time_point);
+    assert(!remaining); /* not implemented */
+    Sleep(impl_timespec2msec(time_point));
 }
 
 // 7.25.5.8
@@ -633,14 +645,16 @@ tss_set(tss_t key, void *val)
 
 /*-------------------- 7.25.7 Time functions --------------------*/
 // 7.25.6.1
+#ifndef HAVE_TIMESPEC
 static inline int
-xtime_get(xtime *xt, int base)
+timespec_get(struct timespec *ts, int base)
 {
-    if (!xt) return 0;
+    if (!ts) return 0;
     if (base == TIME_UTC) {
-        xt->sec = time(NULL);
-        xt->nsec = 0;
+        ts->tv_sec = time(NULL);
+        ts->tv_nsec = 0;
         return base;
     }
     return 0;
 }
+#endif

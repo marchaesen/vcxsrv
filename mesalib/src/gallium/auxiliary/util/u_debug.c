@@ -31,6 +31,7 @@
 
 #include "pipe/p_compiler.h"
 #include "util/u_debug.h"
+#include "util/u_dump.h"
 #include "pipe/p_format.h"
 #include "pipe/p_state.h"
 #include "util/u_inlines.h"
@@ -484,21 +485,9 @@ debug_funclog_enter_exit(const char* f, const int line, const char* file)
 void
 debug_print_transfer_flags(const char *msg, unsigned usage)
 {
-   static const struct debug_named_value names[] = {
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_READ),
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_WRITE),
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_MAP_DIRECTLY),
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_DISCARD_RANGE),
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_DONTBLOCK),
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_UNSYNCHRONIZED),
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_FLUSH_EXPLICIT),
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE),
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_PERSISTENT),
-      DEBUG_NAMED_VALUE(PIPE_TRANSFER_COHERENT),
-      DEBUG_NAMED_VALUE_END
-   };
-
-   debug_printf("%s: %s\n", msg, debug_dump_flags(names, usage));
+   debug_printf("%s: ", msg);
+   util_dump_transfer_usage(stdout, usage);
+   printf("\n");
 }
 
 

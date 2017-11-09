@@ -35,15 +35,7 @@
 
 #include "si_gb_reg.h"
 
-#include "si_ci_vi_merged_enum.h"
-
-#if BRAHMA_BUILD
-#include "amdgpu_id.h"
-#else
-#include "ci_id.h"
-#include "kv_id.h"
-#include "vi_id.h"
-#endif
+#include "amdgpu_asic_addr.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -188,7 +180,6 @@ CiLib::CiLib(const Client* pClient)
     m_allowNonDispThickModes(FALSE)
 {
     m_class = CI_ADDRLIB;
-    memset(&m_settings, 0, sizeof(m_settings));
 }
 
 /**
@@ -450,7 +441,6 @@ BOOL_32 CiLib::HwlInitGlobalParams(
     // read the correct pipes from tile mode table
     if (m_settings.isHawaii)
     {
-        // Hawaii has 16-pipe, see GFXIP_Config_Summary.xls
         m_pipes = 16;
     }
     else if (m_settings.isBonaire || m_settings.isSpectre)
@@ -600,9 +590,9 @@ INT_32 CiLib::HwlPostCheckTileIndex(
 ****************************************************************************************************
 */
 ADDR_E_RETURNCODE CiLib::HwlSetupTileCfg(
-    UINT_32         bpp,            ///< [in] Bits per pixel
-    INT_32          index,          ///< [in] Tile index
-    INT_32          macroModeIndex, ///< [in] Index in macro tile mode table(CI)
+    UINT_32         bpp,            ///< Bits per pixel
+    INT_32          index,          ///< Tile index
+    INT_32          macroModeIndex, ///< Index in macro tile mode table(CI)
     ADDR_TILEINFO*  pInfo,          ///< [out] Tile Info
     AddrTileMode*   pMode,          ///< [out] Tile mode
     AddrTileType*   pType           ///< [out] Tile type
@@ -711,13 +701,12 @@ ADDR_E_RETURNCODE CiLib::HwlComputeSurfaceInfo(
 
     ADDR_E_RETURNCODE retCode = SiLib::HwlComputeSurfaceInfo(pIn, pOut);
 
-
     if ((pIn->mipLevel > 0) &&
         (pOut->tcCompatible == TRUE) &&
         (pOut->tileMode != pIn->tileMode) &&
         (m_settings.isVolcanicIslands == TRUE))
     {
-        CheckTcCompatibility(pOut->pTileInfo, pIn->bpp, pOut->tileMode, pOut->tileType, pOut);
+        pOut->tcCompatible = CheckTcCompatibility(pOut->pTileInfo, pIn->bpp, pOut->tileMode, pOut->tileType, pOut);
     }
 
     if (pOut->macroModeIndex == TileIndexNoMacroIndex)
@@ -1572,7 +1561,7 @@ VOID CiLib::HwlSetupTileInfo(
 
     if (flags.tcCompatible)
     {
-        CheckTcCompatibility(pTileInfo, bpp, tileMode, inTileType, pOut);
+        flags.tcCompatible = CheckTcCompatibility(pTileInfo, bpp, tileMode, inTileType, pOut);
     }
 
     pOut->tcCompatible = flags.tcCompatible;
@@ -2271,19 +2260,21 @@ BOOL_32 CiLib::DepthStencilTileCfgMatch(
 *   CiLib::DepthStencilTileCfgMatch
 *
 *   @brief
-*       Turn off TcCompatible if requirement is not met
+*       Check if tc compatibility is available
 *   @return
-*       N/A
+*       If tc compatibility is not available
 ****************************************************************************************************
 */
-VOID CiLib::CheckTcCompatibility(
-    const ADDR_TILEINFO*              pTileInfo,    ///< [in] input tile info
-    UINT_32                           bpp,          ///< [in] Bits per pixel
-    AddrTileMode                      tileMode,     ///< [in] input tile mode
-    AddrTileType                      tileType,     ///< [in] input tile type
-    ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut          ///< [out] out structure
+BOOL_32 CiLib::CheckTcCompatibility(
+    const ADDR_TILEINFO*                    pTileInfo,    ///< [in] input tile info
+    UINT_32                                 bpp,          ///< [in] Bits per pixel
+    AddrTileMode                            tileMode,     ///< [in] input tile mode
+    AddrTileType                            tileType,     ///< [in] input tile type
+    const ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut          ///< [in] output surf info
     ) const
 {
+    BOOL_32 tcCompatible = TRUE;
+
     if (IsMacroTiled(tileMode))
     {
         if (tileType != ADDR_DEPTH_SAMPLE_ORDER)
@@ -2309,7 +2300,7 @@ VOID CiLib::CheckTcCompatibility(
 
                 if (m_rowSize < colorTileSplit)
                 {
-                    pOut->tcCompatible = FALSE;
+                    tcCompatible = FALSE;
                 }
             }
         }
@@ -2317,8 +2308,10 @@ VOID CiLib::CheckTcCompatibility(
     else
     {
         // Client should not enable tc compatible for linear and 1D tile modes.
-        pOut->tcCompatible = FALSE;
+        tcCompatible = FALSE;
     }
+
+    return tcCompatible;
 }
 
 } // V1

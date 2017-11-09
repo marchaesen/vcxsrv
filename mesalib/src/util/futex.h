@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016 Broadcom
+ * Copyright © 2015 Intel
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,23 +21,36 @@
  * IN THE SOFTWARE.
  */
 
-struct v3d_compiler *
-v3d_compiler_init(void)
-{
-        struct v3d_compile *c = rzalloc(struct v3d_compile);
+#ifndef UTIL_FUTEX_H
+#define UTIL_FUTEX_H
 
-        return c;
+#if defined(HAVE_LINUX_FUTEX_H)
+
+#include <limits.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <linux/futex.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+
+static inline long sys_futex(void *addr1, int op, int val1, const struct timespec *timeout, void *addr2, int val3)
+{
+   return syscall(SYS_futex, addr1, op, val1, timeout, addr2, val3);
 }
 
-void
-v3d_add_qpu_inst(struct v3d_compiler *c, uint64_t inst)
+static inline int futex_wake(uint32_t *addr, int count)
 {
-        if (c->qpu_inst_count >= c->qpu_inst_size) {
-                c->qpu_inst_size = MAX2(c->qpu_inst_size * 2, 16);
-                c->qpu_insts = reralloc(c, c->qpu_insts, uint64_t,
-                                        c->qpu_inst_size_array_size);
-
-        }
-
-        c->qpu_insts[c->qpu_inst_count++] = inst;
+   return sys_futex(addr, FUTEX_WAKE, count, NULL, NULL, 0);
 }
+
+static inline int futex_wait(uint32_t *addr, int32_t value, const struct timespec *timeout)
+{
+   /* FUTEX_WAIT_BITSET with FUTEX_BITSET_MATCH_ANY is equivalent to
+    * FUTEX_WAIT, except that it treats the timeout as absolute. */
+   return sys_futex(addr, FUTEX_WAIT_BITSET, value, timeout, NULL,
+                    FUTEX_BITSET_MATCH_ANY);
+}
+
+#endif
+
+#endif /* UTIL_FUTEX_H */

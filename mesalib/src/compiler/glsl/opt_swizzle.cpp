@@ -22,11 +22,14 @@
  */
 
 /**
- * \file opt_noop_swizzle.cpp
+ * \file opt_swizzle.cpp
+ * Optimize swizzle operations.
  *
- * If a swizzle doesn't change the order or count of components, then
- * remove the swizzle so that other optimization passes see the value
- * behind it.
+ * First, compact a sequence of swizzled swizzles into a single swizzle.
+ *
+ * If the final resulting swizzle doesn't change the order or count of
+ * components, then remove the swizzle so that other optimization passes see
+ * the value behind it.
  */
 
 #include "ir.h"
@@ -36,9 +39,9 @@
 
 namespace {
 
-class ir_noop_swizzle_visitor : public ir_rvalue_visitor {
+class ir_opt_swizzle_visitor : public ir_rvalue_visitor {
 public:
-   ir_noop_swizzle_visitor()
+   ir_opt_swizzle_visitor()
    {
       this->progress = false;
    }
@@ -50,13 +53,46 @@ public:
 } /* unnamed namespace */
 
 void
-ir_noop_swizzle_visitor::handle_rvalue(ir_rvalue **rvalue)
+ir_opt_swizzle_visitor::handle_rvalue(ir_rvalue **rvalue)
 {
    if (!*rvalue)
       return;
 
    ir_swizzle *swiz = (*rvalue)->as_swizzle();
-   if (!swiz || swiz->type != swiz->val->type)
+
+   if (!swiz)
+      return;
+
+   ir_swizzle *swiz2;
+
+   while ((swiz2 = swiz->val->as_swizzle()) != NULL) {
+      int mask2[4];
+
+      memset(&mask2, 0, sizeof(mask2));
+      if (swiz2->mask.num_components >= 1)
+         mask2[0] = swiz2->mask.x;
+      if (swiz2->mask.num_components >= 2)
+         mask2[1] = swiz2->mask.y;
+      if (swiz2->mask.num_components >= 3)
+         mask2[2] = swiz2->mask.z;
+      if (swiz2->mask.num_components >= 4)
+         mask2[3] = swiz2->mask.w;
+
+      if (swiz->mask.num_components >= 1)
+         swiz->mask.x = mask2[swiz->mask.x];
+      if (swiz->mask.num_components >= 2)
+         swiz->mask.y = mask2[swiz->mask.y];
+      if (swiz->mask.num_components >= 3)
+         swiz->mask.z = mask2[swiz->mask.z];
+      if (swiz->mask.num_components >= 4)
+         swiz->mask.w = mask2[swiz->mask.w];
+
+      swiz->val = swiz2->val;
+
+      this->progress = true;
+   }
+
+   if (swiz->type != swiz->val->type)
       return;
 
    int elems = swiz->val->type->vector_elements;
@@ -74,9 +110,9 @@ ir_noop_swizzle_visitor::handle_rvalue(ir_rvalue **rvalue)
 }
 
 bool
-do_noop_swizzle(exec_list *instructions)
+optimize_swizzles(exec_list *instructions)
 {
-   ir_noop_swizzle_visitor v;
+   ir_opt_swizzle_visitor v;
    visit_list_elements(&v, instructions);
 
    return v.progress;

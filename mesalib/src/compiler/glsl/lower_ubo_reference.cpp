@@ -62,7 +62,7 @@ public:
                                 ir_rvalue **offset,
                                 unsigned *const_offset,
                                 bool *row_major,
-                                int *matrix_columns,
+                                const glsl_type **matrix_type,
                                 enum glsl_interface_packing packing);
    uint32_t ssbo_access_params();
    ir_expression *ubo_load(void *mem_ctx, const struct glsl_type *type,
@@ -274,7 +274,7 @@ lower_ubo_reference_visitor::setup_for_load_or_store(void *mem_ctx,
                                                      ir_rvalue **offset,
                                                      unsigned *const_offset,
                                                      bool *row_major,
-                                                     int *matrix_columns,
+                                                     const glsl_type **matrix_type,
                                                      enum glsl_interface_packing packing)
 {
    /* Determine the name of the interface block */
@@ -324,7 +324,7 @@ lower_ubo_reference_visitor::setup_for_load_or_store(void *mem_ctx,
 
    this->struct_field = NULL;
    setup_buffer_access(mem_ctx, deref, offset, const_offset, row_major,
-                       matrix_columns, &this->struct_field, packing);
+                       matrix_type, &this->struct_field, packing);
 }
 
 void
@@ -346,7 +346,7 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
    ir_rvalue *offset = NULL;
    unsigned const_offset;
    bool row_major;
-   int matrix_columns;
+   const glsl_type *matrix_type;
 
    enum glsl_interface_packing packing =
       var->get_interface_type()->
@@ -362,7 +362,7 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
     */
    setup_for_load_or_store(mem_ctx, var, deref,
                            &offset, &const_offset,
-                           &row_major, &matrix_columns,
+                           &row_major, &matrix_type,
                            packing);
    assert(offset);
 
@@ -383,7 +383,7 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
 
    deref = new(mem_ctx) ir_dereference_variable(load_var);
    emit_access(mem_ctx, false, deref, load_offset, const_offset,
-               row_major, matrix_columns, packing, 0);
+               row_major, matrix_type, packing, 0);
    *rvalue = deref;
 
    progress = true;
@@ -562,7 +562,7 @@ lower_ubo_reference_visitor::write_to_memory(void *mem_ctx,
    ir_rvalue *offset = NULL;
    unsigned const_offset;
    bool row_major;
-   int matrix_columns;
+   const glsl_type *matrix_type;
 
    enum glsl_interface_packing packing =
       var->get_interface_type()->
@@ -576,7 +576,7 @@ lower_ubo_reference_visitor::write_to_memory(void *mem_ctx,
     */
    setup_for_load_or_store(mem_ctx, var, deref,
                            &offset, &const_offset,
-                           &row_major, &matrix_columns,
+                           &row_major, &matrix_type,
                            packing);
    assert(offset);
 
@@ -591,7 +591,7 @@ lower_ubo_reference_visitor::write_to_memory(void *mem_ctx,
 
    deref = new(mem_ctx) ir_dereference_variable(write_var);
    emit_access(mem_ctx, true, deref, write_offset, const_offset,
-               row_major, matrix_columns, packing, write_mask);
+               row_major, matrix_type, packing, write_mask);
 }
 
 ir_visitor_status
@@ -744,7 +744,7 @@ lower_ubo_reference_visitor::process_ssbo_unsized_array_length(ir_rvalue **rvalu
    ir_rvalue *base_offset = NULL;
    unsigned const_offset;
    bool row_major;
-   int matrix_columns;
+   const glsl_type *matrix_type;
 
    enum glsl_interface_packing packing =
       var->get_interface_type()->
@@ -760,7 +760,7 @@ lower_ubo_reference_visitor::process_ssbo_unsized_array_length(ir_rvalue **rvalu
     */
    setup_for_load_or_store(mem_ctx, var, deref,
                            &base_offset, &const_offset,
-                           &row_major, &matrix_columns,
+                           &row_major, &matrix_type,
                            packing);
    /* array.length() =
     *  max((buffer_object_size - offset_of_array) / stride_of_array, 0)
@@ -982,7 +982,7 @@ lower_ubo_reference_visitor::lower_ssbo_atomic_intrinsic(ir_call *ir)
    ir_rvalue *offset = NULL;
    unsigned const_offset;
    bool row_major;
-   int matrix_columns;
+   const glsl_type *matrix_type;
 
    enum glsl_interface_packing packing =
       var->get_interface_type()->
@@ -993,11 +993,11 @@ lower_ubo_reference_visitor::lower_ssbo_atomic_intrinsic(ir_call *ir)
 
    setup_for_load_or_store(mem_ctx, var, deref,
                            &offset, &const_offset,
-                           &row_major, &matrix_columns,
+                           &row_major, &matrix_type,
                            packing);
    assert(offset);
    assert(!row_major);
-   assert(matrix_columns == 1);
+   assert(matrix_type == NULL);
 
    ir_rvalue *deref_offset =
       add(offset, new(mem_ctx) ir_constant(const_offset));

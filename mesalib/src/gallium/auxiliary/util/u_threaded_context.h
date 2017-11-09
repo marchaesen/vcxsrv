@@ -108,6 +108,29 @@
  *    The threaded context uses its own buffer invalidation mechanism.
  *
  *
+ * Rules for fences
+ * ----------------
+ *
+ * Flushes will be executed asynchronously in the driver thread if a
+ * create_fence callback is provided. This affects fence semantics as follows.
+ *
+ * When the threaded context wants to perform an asynchronous flush, it will
+ * use the create_fence callback to pre-create the fence from the calling
+ * thread. This pre-created fence will be passed to pipe_context::flush
+ * together with the TC_FLUSH_ASYNC flag.
+ *
+ * The callback receives the unwrapped context as a parameter, but must use it
+ * in a thread-safe way because it is called from a non-driver thread.
+ *
+ * If the threaded_context does not immediately flush the current batch, the
+ * callback also receives a tc_unflushed_batch_token. If fence_finish is called
+ * on the returned fence in the context that created the fence,
+ * threaded_context_flush must be called.
+ *
+ * The driver must implement pipe_context::fence_server_sync properly, since
+ * the threaded context handles PIPE_FLUSH_ASYNC.
+ *
+ *
  * Additional requirements
  * -----------------------
  *
@@ -160,9 +183,13 @@
 
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
+#include "util/u_inlines.h"
 #include "util/u_queue.h"
 #include "util/u_range.h"
 #include "util/slab.h"
+
+struct threaded_context;
+struct tc_unflushed_batch_token;
 
 /* These are transfer flags sent to drivers. */
 /* Never infer whether it's safe to use unsychronized mappings: */
@@ -171,6 +198,10 @@
 #define TC_TRANSFER_MAP_NO_INVALIDATE        (1u << 30)
 /* transfer_map is called from a non-driver thread: */
 #define TC_TRANSFER_MAP_THREADED_UNSYNC      (1u << 31)
+
+/* Custom flush flags sent to drivers. */
+/* fence is pre-populated with a fence created by the create_fence callback */
+#define TC_FLUSH_ASYNC        (1u << 31)
 
 /* Size of the queue = number of batch slots in memory.
  * - 1 batch is always idle and records new commands
@@ -204,6 +235,8 @@
 typedef void (*tc_replace_buffer_storage_func)(struct pipe_context *ctx,
                                                struct pipe_resource *dst,
                                                struct pipe_resource *src);
+typedef struct pipe_fence_handle *(*tc_create_fence_func)(struct pipe_context *ctx,
+                                                          struct tc_unflushed_batch_token *token);
 
 struct threaded_resource {
    struct pipe_resource b;
@@ -264,7 +297,7 @@ struct threaded_query {
    /* The query is added to the list in end_query and removed in flush. */
    struct list_head head_unflushed;
 
-   /* Whether pipe->flush has been called after end_query. */
+   /* Whether pipe->flush has been called in non-deferred mode after end_query. */
    bool flushed;
 };
 
@@ -293,10 +326,21 @@ struct ALIGN16 tc_call {
    union tc_payload payload;
 };
 
+/**
+ * A token representing an unflushed batch.
+ *
+ * See the general rules for fences for an explanation.
+ */
+struct tc_unflushed_batch_token {
+   struct pipe_reference ref;
+   struct threaded_context *tc;
+};
+
 struct tc_batch {
    struct pipe_context *pipe;
    unsigned sentinel;
    unsigned num_total_call_slots;
+   struct tc_unflushed_batch_token *token;
    struct util_queue_fence fence;
    struct tc_call call[TC_CALLS_PER_BATCH];
 };
@@ -306,6 +350,7 @@ struct threaded_context {
    struct pipe_context *pipe;
    struct slab_child_pool pool_transfers;
    tc_replace_buffer_storage_func replace_buffer_storage;
+   tc_create_fence_func create_fence;
    unsigned map_buffer_alignment;
 
    struct list_head unflushed_queries;
@@ -330,7 +375,12 @@ struct pipe_context *
 threaded_context_create(struct pipe_context *pipe,
                         struct slab_parent_pool *parent_transfer_pool,
                         tc_replace_buffer_storage_func replace_buffer,
+                        tc_create_fence_func create_fence,
                         struct threaded_context **out);
+
+void
+threaded_context_flush(struct pipe_context *_pipe,
+                       struct tc_unflushed_batch_token *token);
 
 static inline struct threaded_context *
 threaded_context(struct pipe_context *pipe)
@@ -354,6 +404,15 @@ static inline struct threaded_transfer *
 threaded_transfer(struct pipe_transfer *transfer)
 {
    return (struct threaded_transfer*)transfer;
+}
+
+static inline void
+tc_unflushed_batch_token_reference(struct tc_unflushed_batch_token **dst,
+                                   struct tc_unflushed_batch_token *src)
+{
+   if (pipe_reference((struct pipe_reference *)*dst, (struct pipe_reference *)src))
+      free(*dst);
+   *dst = src;
 }
 
 #endif

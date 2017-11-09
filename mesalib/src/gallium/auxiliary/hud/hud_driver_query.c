@@ -33,7 +33,7 @@
 
 #include "hud/hud_private.h"
 #include "pipe/p_screen.h"
-#include "os/os_time.h"
+#include "util/os_time.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include <stdio.h>

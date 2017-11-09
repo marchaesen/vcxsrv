@@ -13,6 +13,7 @@ MESA_UTIL_FILES := \
 	format_r11g11b10f.h \
 	format_rgb9e5.h \
 	format_srgb.h \
+	futex.h \
 	half_float.c \
 	half_float.h \
 	hash_table.c \
@@ -21,6 +22,8 @@ MESA_UTIL_FILES := \
 	macros.h \
 	mesa-sha1.c \
 	mesa-sha1.h \
+	os_time.c \
+	os_time.h \
 	sha1/sha1.c \
 	sha1/sha1.h \
 	ralloc.c \
@@ -35,6 +38,7 @@ MESA_UTIL_FILES := \
 	set.c \
 	set.h \
 	simple_list.h \
+	simple_mtx.h \
 	slab.c \
 	slab.h \
 	string_buffer.c \
