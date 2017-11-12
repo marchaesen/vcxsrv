@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.2.5 Release Notes / November 10, 2017</h1>
+
+<p>
+Mesa 17.2.5 is a bug fix release which fixes bugs found since the 17.2.4 release.
+</p>
+<p>
+Mesa 17.2.5 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+25b40e72fad64b096c2d8d6fe9579369954debe7970d4ad53e5033c7eec2918b  mesa-17.2.5.tar.gz
+7f7f914b7b9ea0b15f2d9d01a4375e311b0e90e55683b8e8a67ce8691eb1070f  mesa-17.2.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97532">Bug 97532</a> - Regression: GLB 2.7 &amp; Glmark-2 GLES versions segfault due to linker precision error (259fc505) on dead variable</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102680">Bug 102680</a> - [OpenGL CTS] KHR-GL45.shader_ballot_tests.ShaderBallotBitmasks fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102809">Bug 102809</a> - Rust shadows(?) flash random colours</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103142">Bug 103142</a> - R600g+sb: optimizer apparently stuck in an endless loop</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+<p>Andres Gomez (8):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.2.4</li>
+  <li>cherry-ignore: radv: copy indirect lowering settings from radeonsi</li>
+  <li>cherry-ignore: i965: fix blorp stage_prog_data-&gt;param leak</li>
+  <li>cherry-ignore: etnaviv: don't do resolve-in-place without valid TS</li>
+  <li>cherry-ignore: intel/fs: Alloc pull constants off mem_ctx</li>
+  <li>cherry-ignore: added 17.3 nominations.</li>
+  <li>cherry-ignore: automake: include git_sha1.h.in in release tarball</li>
+  <li>Update version to 17.2.5</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (3):</p>
+<ul>
+  <li>radv: Don't expose heaps with 0 memory.</li>
+  <li>radv: Don't use vgpr indexing for outputs on GFX9.</li>
+  <li>radv: Disallow indirect outputs for GS on GFX9 as well.</li>
+</ul>
+
+<p>Dave Airlie (3):</p>
+<ul>
+  <li>i915g: make gears run again.</li>
+  <li>radv: free attachments on end command buffer.</li>
+  <li>radv: add initial copy descriptor support. (v2)</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>vc4: fix release build</li>
+</ul>
+
+<p>Gert Wollny (1):</p>
+<ul>
+  <li>r600/sb: bail out if prepare_alu_group() doesn't find a proper scheduling</li>
+</ul>
+
+<p>Jason Ekstrand (4):</p>
+<ul>
+  <li>spirv: Claim support for the simple memory model</li>
+  <li>i965/blorp: Use blorp_to_isl_format for src_isl_format in blit_miptrees</li>
+  <li>i965/blorp: Use more temporary isl_format variables</li>
+  <li>i965/miptree: Take an isl_format in render_aux_usage</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>mesa: Accept GL_BACK in get_fb0_attachment with ARB_ES3_1_compatibility.</li>
+</ul>
+
+<p>Leo Liu (1):</p>
+<ul>
+  <li>radeon/video: add gfx9 offsets when rejoin the video surface</li>
+</ul>
+
+<p>Marek Olšák (2):</p>
+<ul>
+  <li>st/dri: don't expose modifiers in EGL if the driver doesn't implement them</li>
+  <li>ac/surface/gfx9: don't allow DCC for the smallest mipmap levels</li>
+</ul>
+
+<p>Nanley Chery (1):</p>
+<ul>
+  <li>i965: Check CCS_E compatibility for texture view rendering</li>
+</ul>
+
+<p>Neil Roberts (1):</p>
+<ul>
+  <li>nir/opt_intrinsics: Fix values for gl_SubGroupG{e,t}MaskARB</li>
+</ul>
+
+<p>Nicolai Hähnle (1):</p>
+<ul>
+  <li>amd/common/gfx9: workaround DCC corruption more conservatively</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>i965: unref push_const_bo in intelDestroyContext</li>
+</ul>
+
+<p>Timothy Arceri (1):</p>
+<ul>
+  <li>radv: copy indirect lowering settings from radeonsi</li>
+</ul>
+
+<p>Tomasz Figa (1):</p>
+<ul>
+  <li>glsl: Allow precision mismatch on dead data with GLSL ES 1.00</li>
+</ul>
+
+<p>Topi Pohjolainen (1):</p>
+<ul>
+  <li>intel/compiler/gen9: Pixel shader header only workaround</li>
+</ul>
+
+
+</div>
+</body>
+</html>

@@ -78,6 +78,9 @@ Configuration macro:
 /* Visual Studio 2015 and later */
 #if _MSC_VER >= 1900
 #define HAVE_TIMESPEC
+#define HAVE_TIMESPEC_GET
+#elif defined(__MINGW32__)
+#define HAVE_TIMESPEC
 #endif
 
 #ifndef HAVE_TIMESPEC
@@ -645,7 +648,7 @@ tss_set(tss_t key, void *val)
 
 /*-------------------- 7.25.7 Time functions --------------------*/
 // 7.25.6.1
-#ifndef HAVE_TIMESPEC
+#ifndef HAVE_TIMESPEC_GET
 static inline int
 timespec_get(struct timespec *ts, int base)
 {

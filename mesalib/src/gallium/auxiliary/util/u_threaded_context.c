@@ -395,8 +395,6 @@ tc_end_query(struct pipe_context *_pipe, struct pipe_query *query)
    struct tc_end_query_payload *payload =
       tc_add_struct_typed_call(tc, TC_CALL_end_query, tc_end_query_payload);
 
-   tc_add_small_call(tc, TC_CALL_end_query);
-
    payload->tc = tc;
    payload->query = query;
 

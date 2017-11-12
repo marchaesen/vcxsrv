@@ -59,9 +59,6 @@ subdir('intel')
 subdir('mesa')
 subdir('loader')
 subdir('glx')
-if with_platform_wayland
-  subdir('egl/wayland/wayland-egl')
-endif
 if with_gbm
   subdir('gbm')
 endif
@@ -69,3 +66,17 @@ if with_egl
   subdir('egl')
 endif
 subdir('gallium')
+
+# This must be after at least mesa, glx, and gallium, since libgl will be
+# defined in one of those subdirs depending on the glx provider.
+if with_glx != 'disabled'
+  pkg.generate(
+    name : 'gl',
+    description : 'Mesa OpenGL Library',
+    version : meson.project_version(),
+    libraries : libgl,
+    libraries_private : gl_priv_libs,
+    requires_private : gl_priv_reqs,
+    variables : ['glx_tls=yes'],
+  )
+endif

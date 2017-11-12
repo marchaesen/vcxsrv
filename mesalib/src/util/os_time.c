@@ -40,6 +40,7 @@
 #include "util/u_atomic.h"
 
 #if defined(PIPE_OS_UNIX)
+#  include <unistd.h> /* usleep */
 #  include <time.h> /* timeval */
 #  include <sys/time.h> /* timeval */
 #  include <sched.h> /* sched_yield */

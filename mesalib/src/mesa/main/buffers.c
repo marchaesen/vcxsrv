@@ -170,7 +170,7 @@ draw_buffer_enum_to_bitmask(const struct gl_context *ctx, GLenum buffer)
  * Helper routine used by glReadBuffer.
  * Given a GLenum naming a color buffer, return the index of the corresponding
  * renderbuffer (a BUFFER_* value).
- * return -1 for an invalid buffer.
+ * return BUFFER_NONE for an invalid buffer.
  */
 static gl_buffer_index
 read_buffer_enum_to_index(const struct gl_context *ctx, GLenum buffer)
@@ -719,7 +719,7 @@ _mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
    if (n > 0 && _mesa_bitcount(destMask[0]) > 1) {
       GLuint count = 0, destMask0 = destMask[0];
       while (destMask0) {
-         const int bufIndex = u_bit_scan(&destMask0);
+         const gl_buffer_index bufIndex = u_bit_scan(&destMask0);
          if (fb->_ColorDrawBufferIndexes[count] != bufIndex) {
             updated_drawbuffers(ctx, fb);
             fb->_ColorDrawBufferIndexes[count] = bufIndex;
@@ -733,7 +733,7 @@ _mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
       GLuint count = 0;
       for (buf = 0; buf < n; buf++ ) {
          if (destMask[buf]) {
-            GLint bufIndex = ffs(destMask[buf]) - 1;
+            gl_buffer_index bufIndex = ffs(destMask[buf]) - 1;
             /* only one bit should be set in the destMask[buf] field */
             assert(_mesa_bitcount(destMask[buf]) == 1);
             if (fb->_ColorDrawBufferIndexes[buf] != bufIndex) {
@@ -743,9 +743,9 @@ _mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
             count = buf + 1;
          }
          else {
-            if (fb->_ColorDrawBufferIndexes[buf] != -1) {
+            if (fb->_ColorDrawBufferIndexes[buf] != BUFFER_NONE) {
 	       updated_drawbuffers(ctx, fb);
-               fb->_ColorDrawBufferIndexes[buf] = -1;
+               fb->_ColorDrawBufferIndexes[buf] = BUFFER_NONE;
             }
          }
          fb->ColorDrawBuffer[buf] = buffers[buf];
@@ -753,11 +753,11 @@ _mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
       fb->_NumColorDrawBuffers = count;
    }
 
-   /* set remaining outputs to -1 (GL_NONE) */
+   /* set remaining outputs to BUFFER_NONE */
    for (buf = fb->_NumColorDrawBuffers; buf < ctx->Const.MaxDrawBuffers; buf++) {
-      if (fb->_ColorDrawBufferIndexes[buf] != -1) {
+      if (fb->_ColorDrawBufferIndexes[buf] != BUFFER_NONE) {
          updated_drawbuffers(ctx, fb);
-         fb->_ColorDrawBufferIndexes[buf] = -1;
+         fb->_ColorDrawBufferIndexes[buf] = BUFFER_NONE;
       }
    }
    for (buf = n; buf < ctx->Const.MaxDrawBuffers; buf++) {

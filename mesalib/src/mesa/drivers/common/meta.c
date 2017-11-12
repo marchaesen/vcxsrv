@@ -1655,7 +1655,7 @@ _mesa_meta_drawbuffers_and_colormask(struct gl_context *ctx, GLbitfield mask)
    enums[0] = GL_NONE;
 
    for (int i = 0; i < ctx->DrawBuffer->_NumColorDrawBuffers; i++) {
-      int b = ctx->DrawBuffer->_ColorDrawBufferIndexes[i];
+      gl_buffer_index b = ctx->DrawBuffer->_ColorDrawBufferIndexes[i];
       int colormask_idx = ctx->Extensions.EXT_draw_buffers2 ? i : 0;
 
       if (b < 0 || !(mask & (1 << b)) || is_color_disabled(ctx, colormask_idx))

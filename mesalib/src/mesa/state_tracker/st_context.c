@@ -405,10 +405,14 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    st->has_multi_draw_indirect =
       screen->get_param(screen, PIPE_CAP_MULTI_DRAW_INDIRECT);
 
+   st->has_hw_atomics =
+      screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
+                               PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS) ? true : false;
+
    /* GL limits and extensions */
    st_init_limits(pipe->screen, &ctx->Const, &ctx->Extensions);
    st_init_extensions(pipe->screen, &ctx->Const,
-                      &ctx->Extensions, &st->options);
+                      &ctx->Extensions, &st->options, ctx->API);
 
    if (st_have_perfmon(st)) {
       ctx->Extensions.AMD_performance_monitor = GL_TRUE;
@@ -497,7 +501,10 @@ static void st_init_driver_flags(struct st_context *st)
 
    /* Shader resources */
    f->NewTextureBuffer = ST_NEW_SAMPLER_VIEWS;
-   f->NewAtomicBuffer = ST_NEW_ATOMIC_BUFFER;
+   if (st->has_hw_atomics)
+      f->NewAtomicBuffer = ST_NEW_HW_ATOMICS;
+   else
+      f->NewAtomicBuffer = ST_NEW_ATOMIC_BUFFER;
    f->NewShaderStorageBuffer = ST_NEW_STORAGE_BUFFER;
    f->NewImageUnits = ST_NEW_IMAGE_UNITS;
 

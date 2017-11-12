@@ -659,7 +659,7 @@ _swrast_map_renderbuffers(struct gl_context *ctx)
    }
 
    for (buf = 0; buf < fb->_NumColorDrawBuffers; buf++) {
-      if (fb->_ColorDrawBufferIndexes[buf] >= 0) {
+      if (fb->_ColorDrawBufferIndexes[buf] != BUFFER_NONE) {
          map_attachment(ctx, fb, fb->_ColorDrawBufferIndexes[buf]);
          find_renderbuffer_colortype(fb->_ColorDrawBuffers[buf]);
       }
@@ -690,7 +690,7 @@ _swrast_unmap_renderbuffers(struct gl_context *ctx)
    }
 
    for (buf = 0; buf < fb->_NumColorDrawBuffers; buf++) {
-      if (fb->_ColorDrawBufferIndexes[buf] >= 0) {
+      if (fb->_ColorDrawBufferIndexes[buf] != BUFFER_NONE) {
          unmap_attachment(ctx, fb, fb->_ColorDrawBufferIndexes[buf]);
       }
    }

@@ -34,8 +34,8 @@ option(
 option(
   'dri-drivers',
   type : 'string',
-  value : 'i915,i965,r100,r200,nouveau',
-  description : 'comma separated list of dri drivers to build.'
+  value : 'auto',
+  description : 'comma separated list of dri drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
   'dri-drivers-path',
@@ -46,8 +46,8 @@ option(
 option(
   'gallium-drivers',
   type : 'string',
-  value : 'pl111,radeonsi,nouveau,freedreno,swrast,vc4,etnaviv,imx',
-  description : 'comma separated list of gallium drivers to build.'
+  value : 'auto',
+  description : 'comma separated list of gallium drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
   'gallium-media',
@@ -58,8 +58,8 @@ option(
 option(
   'vulkan-drivers',
   type : 'string',
-  value : 'intel,amd',
-  description : 'comma separated list of vulkan drivers to build.'
+  value : 'auto',
+  description : 'comma separated list of vulkan drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
   'shader-cache',

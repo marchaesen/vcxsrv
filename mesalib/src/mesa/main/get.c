@@ -309,8 +309,6 @@ static const int extra_GLSL_130_es3[] = {
 };
 
 static const int extra_texture_buffer_object[] = {
-   EXTRA_API_GL_CORE,
-   EXTRA_VERSION_31,
    EXT(ARB_texture_buffer_object),
    EXTRA_END
 };

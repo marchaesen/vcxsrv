@@ -38,6 +38,7 @@
 #include "util/futex.h"
 #include "util/list.h"
 #include "util/macros.h"
+#include "util/os_time.h"
 #include "util/u_atomic.h"
 #include "util/u_thread.h"
 
@@ -178,6 +179,11 @@ util_queue_fence_wait_timeout(struct util_queue_fence *fence,
 {
    if (util_queue_fence_is_signalled(fence))
       return true;
+
+   if (abs_timeout == (int64_t)OS_TIMEOUT_INFINITE) {
+      _util_queue_fence_wait(fence);
+      return true;
+   }
 
    return _util_queue_fence_wait_timeout(fence, abs_timeout);
 }

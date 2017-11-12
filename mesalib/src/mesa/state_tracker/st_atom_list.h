@@ -66,6 +66,8 @@ ST_STATE(ST_NEW_GS_SSBOS, st_bind_gs_ssbos)
 ST_STATE(ST_NEW_PIXEL_TRANSFER, st_update_pixel_transfer)
 ST_STATE(ST_NEW_TESS_STATE, st_update_tess)
 
+ST_STATE(ST_NEW_HW_ATOMICS, st_bind_hw_atomic_buffers)
+
 /* this must be done after the vertex program update */
 ST_STATE(ST_NEW_VERTEX_ARRAYS, st_update_array)
 

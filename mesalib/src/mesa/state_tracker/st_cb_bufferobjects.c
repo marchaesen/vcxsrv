@@ -348,7 +348,7 @@ bufferobj_data(struct gl_context *ctx,
    if (st_obj->Base.UsageHistory & USAGE_TEXTURE_BUFFER)
       ctx->NewDriverState |= ST_NEW_SAMPLER_VIEWS | ST_NEW_IMAGE_UNITS;
    if (st_obj->Base.UsageHistory & USAGE_ATOMIC_COUNTER_BUFFER)
-      ctx->NewDriverState |= ST_NEW_ATOMIC_BUFFER;
+      ctx->NewDriverState |= ctx->DriverFlags.NewAtomicBuffer;
 
    return GL_TRUE;
 }

@@ -130,7 +130,7 @@ radv_data.set('libvulkan_radeon_path', libvulkan_radeon.full_path())
 configure_file(
   configuration : radv_data,
   input : 'radeon_icd.json.in',
-  output : 'radeon_icd.@0@.json'.format(target_machine.cpu()),
+  output : 'radeon_icd.@0@.json'.format(host_machine.cpu()),
   install_dir : with_vulkan_icd_dir,
 )
 configure_file(

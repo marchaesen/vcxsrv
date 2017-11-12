@@ -322,6 +322,7 @@ nir_visitor::visit(ir_variable *ir)
    var->data.patch = ir->data.patch;
    var->data.invariant = ir->data.invariant;
    var->data.location = ir->data.location;
+   var->data.stream = ir->data.stream;
    var->data.compact = false;
 
    switch(ir->data.mode) {

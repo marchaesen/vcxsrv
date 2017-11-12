@@ -198,8 +198,8 @@ blit_nearest(struct gl_context *ctx,
    /* Blit to all the draw buffers */
    for (i = 0; i < numDrawBuffers; i++) {
       if (buffer == GL_COLOR_BUFFER_BIT) {
-         int idx = drawFb->_ColorDrawBufferIndexes[i];
-         if (idx == -1)
+         gl_buffer_index idx = drawFb->_ColorDrawBufferIndexes[i];
+         if (idx == BUFFER_NONE)
             continue;
          drawAtt = &drawFb->Attachment[idx];
          drawRb = drawAtt->Renderbuffer;
@@ -569,12 +569,12 @@ blit_linear(struct gl_context *ctx,
    }
 
    for (i = 0; i < drawFb->_NumColorDrawBuffers; i++) {
-      GLint idx = drawFb->_ColorDrawBufferIndexes[i];
+      gl_buffer_index idx = drawFb->_ColorDrawBufferIndexes[i];
       struct gl_renderbuffer_attachment *drawAtt;
       struct gl_renderbuffer *drawRb;
       mesa_format drawFormat;
 
-      if (idx == -1)
+      if (idx == BUFFER_NONE)
          continue;
 
       drawAtt = &drawFb->Attachment[idx];

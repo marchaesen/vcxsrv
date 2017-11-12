@@ -104,7 +104,7 @@ static inline bool u_thread_is_self(thrd_t thread)
  * util_barrier
  */
 
-#if defined(HAVE_PTHREAD)
+#if defined(HAVE_PTHREAD) && !defined(__APPLE__)
 
 typedef pthread_barrier_t util_barrier;
 

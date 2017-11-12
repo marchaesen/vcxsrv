@@ -35,7 +35,7 @@ class exec_info():
     Each of the attributes that is not None must have a valid value.  The
     valid ranges are:
 
-        compatiblity: [10, 30]
+        compatibility: [10, )
         core: [31, )
         es1: [10, 11]
         es2: [20, )
@@ -66,9 +66,8 @@ class exec_info():
         self.es2 = es2
 
 functions = {
-    # OpenGL 3.1 / GL_ARB_texture_buffer_object.  Mesa only exposes this
-    # extension with core profile.
-    "TexBuffer": exec_info(core=31, es2=31),
+    # OpenGL 3.1 / GL_ARB_texture_buffer_object.
+    "TexBuffer": exec_info(compatibility=20, core=31, es2=31),
 
     # OpenGL 3.2 / GL_OES_geometry_shader.
     "FramebufferTexture": exec_info(core=32, es2=31),
@@ -144,9 +143,8 @@ functions = {
     # GetFloati_v also GL_ARB_shader_atomic_counters
     # GetDoublei_v also GL_ARB_shader_atomic_counters
 
-    # OpenGL 4.3 / GL_ARB_texture_buffer_range.  Mesa can expose the extension
-    # with OpenGL 3.1.
-    "TexBufferRange": exec_info(core=31, es2=31),
+    # OpenGL 4.3 / GL_ARB_texture_buffer_range.
+    "TexBufferRange": exec_info(compatibility=20, core=31, es2=31),
 
     # OpenGL 4.3 / GL_ARB_framebuffer_no_attachments.  Mesa can expose the
     # extension with OpenGL 3.0.

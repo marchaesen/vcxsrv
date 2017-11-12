@@ -632,9 +632,10 @@ st_context_flush(struct st_context_iface *stctxi, unsigned flags,
    struct st_context *st = (struct st_context *) stctxi;
    unsigned pipe_flags = 0;
 
-   if (flags & ST_FLUSH_END_OF_FRAME) {
+   if (flags & ST_FLUSH_END_OF_FRAME)
       pipe_flags |= PIPE_FLUSH_END_OF_FRAME;
-   }
+   if (flags & ST_FLUSH_FENCE_FD)
+      pipe_flags |= PIPE_FLUSH_FENCE_FD;
 
    FLUSH_VERTICES(st->ctx, 0);
    FLUSH_CURRENT(st->ctx, 0);
@@ -1177,7 +1178,7 @@ get_version(struct pipe_screen *screen,
    _mesa_init_extensions(&extensions);
 
    st_init_limits(screen, &consts, &extensions);
-   st_init_extensions(screen, &consts, &extensions, options);
+   st_init_extensions(screen, &consts, &extensions, options, api);
 
    return _mesa_get_version(&extensions, &consts, api);
 }

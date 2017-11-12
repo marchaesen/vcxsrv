@@ -563,8 +563,8 @@ update_color_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb)
    fb->_ColorDrawBuffers[0] = NULL;
 
    for (output = 0; output < fb->_NumColorDrawBuffers; output++) {
-      GLint buf = fb->_ColorDrawBufferIndexes[output];
-      if (buf >= 0) {
+      gl_buffer_index buf = fb->_ColorDrawBufferIndexes[output];
+      if (buf != BUFFER_NONE) {
          fb->_ColorDrawBuffers[output] = fb->Attachment[buf].Renderbuffer;
       }
       else {

@@ -19,15 +19,10 @@
 # SOFTWARE.
 
 # TODO: main/tests
-# TODO: xlib_glx
-# TODO: osmesa
-# TODO: asm_offsets
 
 subdir('program')
 subdir('main')
 
-# program files
-# program nir files
 # files shared between classic mesa and gallium mesa
 files_libmesa_common = files(
   'program/arbprogparse.c',
@@ -720,6 +715,9 @@ libmesa_gallium = static_library(
 subdir('drivers/dri')
 if with_osmesa == 'classic'
   subdir('drivers/osmesa')
+endif
+if with_glx == 'xlib'
+  subdir('drivers/x11')
 endif
 if with_tests
   subdir('main/tests')
