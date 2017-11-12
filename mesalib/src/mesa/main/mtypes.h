@@ -2060,6 +2060,7 @@ typedef enum
    PROGRAM_BUFFER,      /**< for shader buffers, compile-time only */
    PROGRAM_MEMORY,      /**< for shared, global and local memory */
    PROGRAM_IMAGE,       /**< for shader images, compile-time only */
+   PROGRAM_HW_ATOMIC,   /**< for hw atomic counters, compile-time only */
    PROGRAM_FILE_MAX
 } gl_register_file;
 
@@ -2532,7 +2533,9 @@ struct gl_linked_shader
    struct glsl_symbol_table *symbols;
 };
 
-static inline GLbitfield gl_external_samplers(struct gl_program *prog)
+
+static inline GLbitfield
+gl_external_samplers(const struct gl_program *prog)
 {
    GLbitfield external_samplers = 0;
    GLbitfield mask = prog->SamplersUsed;
@@ -2545,6 +2548,7 @@ static inline GLbitfield gl_external_samplers(struct gl_program *prog)
 
    return external_samplers;
 }
+
 
 /**
  * Compile status enum. compile_skipped is used to indicate the compile
@@ -3480,8 +3484,8 @@ struct gl_framebuffer
 
    /** Computed from ColorDraw/ReadBuffer above */
    GLuint _NumColorDrawBuffers;
-   GLint _ColorDrawBufferIndexes[MAX_DRAW_BUFFERS]; /**< BUFFER_x or -1 */
-   GLint _ColorReadBufferIndex; /* -1 = None */
+   gl_buffer_index _ColorDrawBufferIndexes[MAX_DRAW_BUFFERS];
+   gl_buffer_index _ColorReadBufferIndex;
    struct gl_renderbuffer *_ColorDrawBuffers[MAX_DRAW_BUFFERS];
    struct gl_renderbuffer *_ColorReadBuffer;
 

@@ -58,6 +58,10 @@ struct ac_shader_abi {
 			     unsigned max_outputs,
 			     LLVMValueRef *addrs);
 
+	void (*emit_vertex)(struct ac_shader_abi *abi,
+			    unsigned stream,
+			    LLVMValueRef *addrs);
+
 	LLVMValueRef (*load_ubo)(struct ac_shader_abi *abi, LLVMValueRef index);
 
 	/**

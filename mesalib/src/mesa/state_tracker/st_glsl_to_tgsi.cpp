@@ -152,6 +152,13 @@ find_array_type(struct inout_decl *decls, unsigned count, unsigned array_id)
    return GLSL_TYPE_ERROR;
 }
 
+struct hwatomic_decl {
+   unsigned location;
+   unsigned binding;
+   unsigned size;
+   unsigned array_id;
+};
+
 struct glsl_to_tgsi_visitor : public ir_visitor {
 public:
    glsl_to_tgsi_visitor();
@@ -176,6 +183,9 @@ public:
    unsigned num_outputs;
    unsigned num_output_arrays;
 
+   struct hwatomic_decl atomic_info[PIPE_MAX_HW_ATOMIC_BUFFERS];
+   unsigned num_atomics;
+   unsigned num_atomic_arrays;
    int num_address_regs;
    uint32_t samplers_used;
    glsl_base_type sampler_types[PIPE_MAX_SAMPLERS];
@@ -3206,24 +3216,66 @@ glsl_to_tgsi_visitor::visit_atomic_counter_intrinsic(ir_call *ir)
    exec_node *param = ir->actual_parameters.get_head();
    ir_dereference *deref = static_cast<ir_dereference *>(param);
    ir_variable *location = deref->variable_referenced();
-
-   st_src_reg buffer(
-         PROGRAM_BUFFER, location->data.binding, GLSL_TYPE_ATOMIC_UINT);
-
+   bool has_hw_atomics = st_context(ctx)->has_hw_atomics;
    /* Calculate the surface offset */
    st_src_reg offset;
    unsigned array_size = 0, base = 0;
    uint16_t index = 0;
+   st_src_reg resource;
 
    get_deref_offsets(deref, &array_size, &base, &index, &offset, false);
 
-   if (offset.file != PROGRAM_UNDEFINED) {
-      emit_asm(ir, TGSI_OPCODE_MUL, st_dst_reg(offset),
-               offset, st_src_reg_for_int(ATOMIC_COUNTER_SIZE));
-      emit_asm(ir, TGSI_OPCODE_ADD, st_dst_reg(offset),
-               offset, st_src_reg_for_int(location->data.offset + index * ATOMIC_COUNTER_SIZE));
+   if (has_hw_atomics) {
+      variable_storage *entry = find_variable_storage(location);
+      st_src_reg buffer(PROGRAM_HW_ATOMIC, 0, GLSL_TYPE_ATOMIC_UINT, location->data.binding);
+
+      if (!entry) {
+         entry = new(mem_ctx) variable_storage(location, PROGRAM_HW_ATOMIC,
+                                               num_atomics);
+         _mesa_hash_table_insert(this->variables, location, entry);
+
+         atomic_info[num_atomics].location = location->data.location;
+         atomic_info[num_atomics].binding = location->data.binding;
+         atomic_info[num_atomics].size = location->type->arrays_of_arrays_size();
+         if (atomic_info[num_atomics].size == 0)
+            atomic_info[num_atomics].size = 1;
+         atomic_info[num_atomics].array_id = 0;
+         num_atomics++;
+      }
+
+      if (offset.file != PROGRAM_UNDEFINED) {
+         if (atomic_info[entry->index].array_id == 0) {
+            num_atomic_arrays++;
+            atomic_info[entry->index].array_id = num_atomic_arrays;
+         }
+         buffer.array_id = atomic_info[entry->index].array_id;
+      }
+
+      buffer.index = index;
+      buffer.index += location->data.offset / ATOMIC_COUNTER_SIZE;
+      buffer.has_index2 = true;
+
+      if (offset.file != PROGRAM_UNDEFINED) {
+         buffer.reladdr = ralloc(mem_ctx, st_src_reg);
+         *buffer.reladdr = offset;
+         emit_arl(ir, sampler_reladdr, offset);
+      }
+      offset = st_src_reg_for_int(0);
+
+      resource = buffer;
    } else {
-      offset = st_src_reg_for_int(location->data.offset + index * ATOMIC_COUNTER_SIZE);
+      st_src_reg buffer(PROGRAM_BUFFER, location->data.binding,
+                        GLSL_TYPE_ATOMIC_UINT);
+
+      if (offset.file != PROGRAM_UNDEFINED) {
+         emit_asm(ir, TGSI_OPCODE_MUL, st_dst_reg(offset),
+                  offset, st_src_reg_for_int(ATOMIC_COUNTER_SIZE));
+         emit_asm(ir, TGSI_OPCODE_ADD, st_dst_reg(offset),
+                  offset, st_src_reg_for_int(location->data.offset + index * ATOMIC_COUNTER_SIZE));
+      } else {
+         offset = st_src_reg_for_int(location->data.offset + index * ATOMIC_COUNTER_SIZE);
+      }
+      resource = buffer;
    }
 
    ir->return_deref->accept(this);
@@ -3286,7 +3338,7 @@ glsl_to_tgsi_visitor::visit_atomic_counter_intrinsic(ir_call *ir)
       inst = emit_asm(ir, opcode, dst, offset, data, data2);
    }
 
-   inst->resource = buffer;
+   inst->resource = resource;
 }
 
 void
@@ -4388,6 +4440,8 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    num_outputs = 0;
    num_input_arrays = 0;
    num_output_arrays = 0;
+   num_atomics = 0;
+   num_atomic_arrays = 0;
    num_immediates = 0;
    num_address_regs = 0;
    samplers_used = 0;
@@ -4588,8 +4642,7 @@ glsl_to_tgsi_visitor::simplify_cmp(void)
 }
 
 static void
-rename_temp_handle_src(struct rename_reg_pair *renames,
-                           struct st_src_reg *src)
+rename_temp_handle_src(struct rename_reg_pair *renames, st_src_reg *src)
 {
    if (src && src->file == PROGRAM_TEMPORARY) {
       int old_idx = src->index;
@@ -5305,6 +5358,7 @@ struct st_translate {
    struct ureg_src buffers[PIPE_MAX_SHADER_BUFFERS];
    struct ureg_src images[PIPE_MAX_SHADER_IMAGES];
    struct ureg_src systemValues[SYSTEM_VALUE_MAX];
+   struct ureg_src hw_atomics[PIPE_MAX_HW_ATOMIC_BUFFERS];
    struct ureg_src shared_memory;
    unsigned *array_sizes;
    struct inout_decl *input_decls;
@@ -5646,6 +5700,11 @@ translate_src(struct st_translate *t, const st_src_reg *src_reg)
       src = t->systemValues[src_reg->index];
       break;
 
+   case PROGRAM_HW_ATOMIC:
+      src = ureg_src_array_register(TGSI_FILE_HW_ATOMIC, src_reg->index,
+                                    src_reg->array_id);
+      break;
+
    default:
       assert(!"unknown src register file");
       return ureg_src_undef();
@@ -5801,6 +5860,8 @@ compile_tgsi_instruction(struct st_translate *t,
          src[0] = t->shared_memory;
       } else if (inst->resource.file == PROGRAM_BUFFER) {
          src[0] = t->buffers[inst->resource.index];
+      } else if (inst->resource.file == PROGRAM_HW_ATOMIC) {
+         src[0] = translate_src(t, &inst->resource);
       } else if (inst->resource.file == PROGRAM_CONSTANT) {
          assert(inst->resource.has_index2);
          src[0] = ureg_src_register(TGSI_FILE_CONSTBUF, inst->resource.index);
@@ -6502,10 +6563,20 @@ st_translate_program(
    {
       struct gl_program *prog = program->prog;
 
-      for (i = 0; i < prog->info.num_abos; i++) {
-         unsigned index = prog->sh.AtomicBuffers[i]->Binding;
-         assert(index < frag_const->MaxAtomicBuffers);
-         t->buffers[index] = ureg_DECL_buffer(ureg, index, true);
+      if (!st_context(ctx)->has_hw_atomics) {
+	 for (i = 0; i < prog->info.num_abos; i++) {
+            unsigned index = prog->sh.AtomicBuffers[i]->Binding;
+            assert(index < frag_const->MaxAtomicBuffers);
+            t->buffers[index] = ureg_DECL_buffer(ureg, index, true);
+         }
+      } else {
+         for (i = 0; i < program->num_atomics; i++) {
+            struct hwatomic_decl *ainfo = &program->atomic_info[i];
+            gl_uniform_storage *uni_storage = &prog->sh.data->UniformStorage[ainfo->location];
+            int base = uni_storage->offset / ATOMIC_COUNTER_SIZE;
+            ureg_DECL_hw_atomic(ureg, base, base + ainfo->size - 1, ainfo->binding,
+                                ainfo->array_id);
+         }
       }
 
       assert(prog->info.num_ssbos <= frag_const->MaxShaderStorageBlocks);

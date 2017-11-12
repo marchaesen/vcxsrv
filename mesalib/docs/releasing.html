@@ -374,6 +374,9 @@ Queued (NUMBER)
 
 AUTHOR (NUMBER):
       COMMIT SUMMARY
+[If applicable:
+Squashed with
+      COMMIT SUMMARY]
 
 For example:
 
@@ -382,16 +385,21 @@ Jonas Pfeil (1):
 Squashed with
       ralloc: don't leave out the alignment factor
 
+
 Rejected (NUMBER)
 =================
-
-Rejected (11)
-=============
 
 AUTHOR (NUMBER):
       SHA     COMMIT SUMMARY
 
 Reason: ...
+
+For example:
+
+Emil Velikov (1)
+      a39ad18 configure.ac: honour LLVM_LIBDIR when linking against LLVM
+
+Reason: The patch was reverted shortly after it was merged.
 </pre>
 
 
@@ -471,6 +479,10 @@ Here is one solution that I've been using.
 		--enable-egl \
 		--with-platforms=x11,drm,wayland,surfaceless
 	make &amp;&amp; DESTDIR=`pwd`/test make install
+
+	# Drop LLVM_CONFIG, if applicable:
+	# unset LLVM_CONFIG
+
 	__glxinfo_cmd='glxinfo 2>&amp;1 | egrep -o "Mesa.*|Gallium.*|.*dri\.so"'
 	__glxgears_cmd='glxgears 2>&amp;1 | grep -v "configuration file"'
 	__es2info_cmd='es2_info 2>&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
@@ -500,8 +512,10 @@ Here is one solution that I've been using.
 	unset LIBGL_DRIVERS_PATH
 	unset LIBGL_DEBUG
 	unset LIBGL_ALWAYS_SOFTWARE
+	unset GALLIUM_DRIVER
 	export VK_ICD_FILENAMES=`pwd`/src/intel/vulkan/dev_icd.json
 	steam steam://rungameid/570  -vconsole -vulkan
+	unset VK_ICD_FILENAMES
 </pre>
 
 <h3>Update version in file VERSION</h3>

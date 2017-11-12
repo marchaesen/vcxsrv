@@ -46,7 +46,7 @@ st_bind_atomics(struct st_context *st, struct gl_program *prog,
 {
    unsigned i;
 
-   if (!prog || !st->pipe->set_shader_buffers)
+   if (!prog || !st->pipe->set_shader_buffers || st->has_hw_atomics)
       return;
 
    for (i = 0; i < prog->sh.data->NumAtomicBuffers; i++) {
@@ -63,7 +63,7 @@ st_bind_atomics(struct st_context *st, struct gl_program *prog,
          sb.buffer_offset = binding->Offset;
          sb.buffer_size = st_obj->buffer->width0 - binding->Offset;
 
-	 /* AutomaticSize is FALSE if the buffer was set with BindBufferRange.
+         /* AutomaticSize is FALSE if the buffer was set with BindBufferRange.
           * Take the minimum just to be sure.
           */
          if (!binding->AutomaticSize)
@@ -127,4 +127,38 @@ st_bind_cs_atomics(struct st_context *st)
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
 
    st_bind_atomics(st, prog, PIPE_SHADER_COMPUTE);
+}
+
+void
+st_bind_hw_atomic_buffers(struct st_context *st)
+{
+   struct pipe_shader_buffer buffers[PIPE_MAX_HW_ATOMIC_BUFFERS];
+   int i;
+
+   if (!st->has_hw_atomics)
+      return;
+
+   for (i = 0; i < st->ctx->Const.MaxAtomicBufferBindings; i++) {
+      struct gl_buffer_binding *binding = &st->ctx->AtomicBufferBindings[i];
+      struct st_buffer_object *st_obj = st_buffer_object(binding->BufferObject);
+      struct pipe_shader_buffer *sb = &buffers[i];
+
+      if (st_obj && st_obj->buffer) {
+        sb->buffer = st_obj->buffer;
+        sb->buffer_offset = binding->Offset;
+        sb->buffer_size = st_obj->buffer->width0 - binding->Offset;
+
+        /* AutomaticSize is FALSE if the buffer was set with BindBufferRange.
+         * Take the minimum just to be sure.
+         */
+        if (!binding->AutomaticSize)
+          sb->buffer_size = MIN2(sb->buffer_size, (unsigned) binding->Size);
+      } else {
+        sb->buffer = NULL;
+        sb->buffer_offset = 0;
+        sb->buffer_size = 0;
+      }
+   }
+
+   st->pipe->set_hw_atomic_buffers(st->pipe, 0, st->ctx->Const.MaxAtomicBufferBindings, buffers);
 }

@@ -3934,14 +3934,13 @@ static LLVMValueRef visit_interp(struct nir_to_llvm_context *ctx,
 }
 
 static void
-visit_emit_vertex(struct nir_to_llvm_context *ctx,
-		  const nir_intrinsic_instr *instr)
+visit_emit_vertex(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addrs)
 {
 	LLVMValueRef gs_next_vertex;
 	LLVMValueRef can_emit;
 	int idx;
+	struct nir_to_llvm_context *ctx = nir_to_llvm_context_from_abi(abi);
 
-	assert(instr->const_index[0] == 0);
 	/* Write vertex attribute values to GSVS ring */
 	gs_next_vertex = LLVMBuildLoad(ctx->builder,
 				       ctx->gs_next_vertex,
@@ -3959,7 +3958,7 @@ visit_emit_vertex(struct nir_to_llvm_context *ctx,
 	/* loop num outputs */
 	idx = 0;
 	for (unsigned i = 0; i < RADEON_LLVM_MAX_OUTPUTS; ++i) {
-		LLVMValueRef *out_ptr = &ctx->nir->outputs[i * 4];
+		LLVMValueRef *out_ptr = &addrs[i * 4];
 		int length = 4;
 		int slot = idx;
 		int slot_inc = 1;
@@ -4197,7 +4196,8 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		result = visit_interp(ctx->nctx, instr);
 		break;
 	case nir_intrinsic_emit_vertex:
-		visit_emit_vertex(ctx->nctx, instr);
+		assert(instr->const_index[0] == 0);
+		ctx->abi->emit_vertex(ctx->abi, 0, ctx->outputs);
 		break;
 	case nir_intrinsic_end_primitive:
 		visit_end_primitive(ctx->nctx, instr);
@@ -6527,6 +6527,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 
 	ctx.abi.inputs = &ctx.inputs[0];
 	ctx.abi.emit_outputs = handle_shader_outputs_post;
+	ctx.abi.emit_vertex = visit_emit_vertex;
 	ctx.abi.load_ssbo = radv_load_ssbo;
 	ctx.abi.load_sampler_desc = radv_get_sampler_desc;
 	ctx.abi.clamp_shadow_reference = false;

@@ -59,6 +59,7 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
    case nir_intrinsic_ssbo_atomic_comp_swap:
    case nir_intrinsic_store_ssbo:
    case nir_intrinsic_load_ssbo:
+   case nir_intrinsic_get_buffer_size:
       /* easy case, keep same opcode and just remap SSBO buffer index: */
       op = instr->intrinsic;
       idx_src = (op == nir_intrinsic_store_ssbo) ? 1 : 0;

@@ -489,7 +489,7 @@ u_format_table_c = custom_target(
 libgallium = static_library(
   'gallium',
   [files_libgallium, u_indices_gen_c, u_unfilled_gen_c, u_format_table_c,
-   nir_opcodes_h],
+   nir_opcodes_h, nir_builder_opcodes_h],
   include_directories : [
     inc_loader, inc_gallium, inc_src, inc_include, include_directories('util')
   ],
