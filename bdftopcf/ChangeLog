@@ -1,3 +1,123 @@
+commit c0b7d0b4a8436145f3fddc78d2452d7c720cce8b
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Nov 7 14:10:52 2017 -0500
+
+    bdftopcf 1.1
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 140f7f6e071a239329d700aa24191a664be2bea2
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Fri Nov 3 14:05:18 2017 -0400
+
+    Import more libXfont 1.x headers
+    
+    The previous commit would build if you had the old headers installed,
+    but building it in a fresh chroot would fail. Import some more junk and
+    fix up the includes appropriately.
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 102696da8737fcb324034f673cd5815f28923311
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Oct 24 13:54:47 2017 -0400
+
+    Import libXfont's BDF-to-PCF code
+    
+    bdftopcf is the only consumer of libXfont 1.x's read/write support, and
+    we'd like 1.x to go away entirely. Copy in the BDF read and PCF write
+    support so there's one fewer consumer of 1.x.
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+    Acked-by: Julien Cristau <jcristau@debian.org>
+
+commit e12c03d50a634a98e4560c7117a3bec3349561e9
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 14:00:20 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit 96dd358a7f921b45c381c42f483e5564ee0b80a7
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit d43135887fce7709084f5d3df9bf1e4c992fbd65
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
+commit 211c077af0cf634aec54b91de7dde916da2da84b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Dec 30 15:14:31 2014 -0800
+
+    bdftopcf 1.0.5
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 234ab38883e36d63e4677d44a759fba829f68393
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jun 1 21:02:04 2014 -0700
+
+    autogen.sh: Honor NOCONFIGURE=1
+    
+    See http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 05a3d1360842f6c530e53dec6480ef21ffc9f5db
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jun 1 21:02:04 2014 -0700
+
+    configure: Drop AM_MAINTAINER_MODE
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit cf81381eac18f1a1f894fd31f2e4def1fbf7d027
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 4 22:29:59 2013 -0800
+
+    Print which option was in error along with usage message
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 2f5ac9eabfc9609bce3aa420a64f29279e626e95
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 4 22:28:19 2013 -0800
+
+    Correct usage message for scanline unit option to be -u, not -s
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+
+commit c8f568f295a11a7be406f170ed77a4c17a19fa7d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jan 19 09:19:11 2013 -0800
+
+    config: Add missing AC_CONFIG_SRCDIR
+    
+    Regroup AC statements under the Autoconf initialization section.
+    Regroup AM statements under the Automake initialization section.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 4759123ce0333e37ca13f3a6c9feed503fb13895
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Mon Jan 14 21:14:56 2013 -0800
