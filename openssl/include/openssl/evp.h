@@ -900,6 +900,9 @@ int EVP_PKEY_security_bits(const EVP_PKEY *pkey);
 int EVP_PKEY_size(EVP_PKEY *pkey);
 int EVP_PKEY_set_type(EVP_PKEY *pkey, int type);
 int EVP_PKEY_set_type_str(EVP_PKEY *pkey, const char *str, int len);
+# ifndef OPENSSL_NO_ENGINE
+int EVP_PKEY_set1_engine(EVP_PKEY *pkey, ENGINE *e);
+# endif
 int EVP_PKEY_assign(EVP_PKEY *pkey, int type, void *key);
 void *EVP_PKEY_get0(const EVP_PKEY *pkey);
 const unsigned char *EVP_PKEY_get0_hmac(const EVP_PKEY *pkey, size_t *len);
@@ -1482,6 +1485,7 @@ int ERR_load_EVP_strings(void);
 # define EVP_F_EVP_PBE_SCRYPT                             181
 # define EVP_F_EVP_PKCS82PKEY                             111
 # define EVP_F_EVP_PKEY2PKCS8                             113
+# define EVP_F_EVP_PKEY_ASN1_ADD0                         168
 # define EVP_F_EVP_PKEY_COPY_PARAMETERS                   103
 # define EVP_F_EVP_PKEY_CTX_CTRL                          137
 # define EVP_F_EVP_PKEY_CTX_CTRL_STR                      150
@@ -1505,6 +1509,7 @@ int ERR_load_EVP_strings(void);
 # define EVP_F_EVP_PKEY_NEW                               106
 # define EVP_F_EVP_PKEY_PARAMGEN                          148
 # define EVP_F_EVP_PKEY_PARAMGEN_INIT                     149
+# define EVP_F_EVP_PKEY_SET1_ENGINE                       187
 # define EVP_F_EVP_PKEY_SIGN                              140
 # define EVP_F_EVP_PKEY_SIGN_INIT                         141
 # define EVP_F_EVP_PKEY_VERIFY                            142
@@ -1565,6 +1570,7 @@ int ERR_load_EVP_strings(void);
 # define EVP_R_OPERATION_NOT_SUPPORTED_FOR_THIS_KEYTYPE   150
 # define EVP_R_OPERATON_NOT_INITIALIZED                   151
 # define EVP_R_PARTIALLY_OVERLAPPING                      162
+# define EVP_R_PKEY_ASN1_METHOD_ALREADY_REGISTERED        164
 # define EVP_R_PRIVATE_KEY_DECODE_ERROR                   145
 # define EVP_R_PRIVATE_KEY_ENCODE_ERROR                   146
 # define EVP_R_PUBLIC_KEY_NOT_RSA                         106

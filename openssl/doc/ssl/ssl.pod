@@ -1,5 +1,7 @@
 =pod
 
+=for comment openssl_manual_section:7
+
 =head1 NAME
 
 ssl - OpenSSL SSL/TLS library
@@ -319,8 +321,6 @@ protocol context defined in the B<SSL_CTX> structure.
 =item int B<SSL_CTX_set_app_data>(SSL_CTX *ctx, void *arg);
 
 =item void B<SSL_CTX_set_cert_store>(SSL_CTX *ctx, X509_STORE *cs);
-
-=item void B<SSL_CTX_set1_cert_store>(SSL_CTX *ctx, X509_STORE *cs);
 
 =item void B<SSL_CTX_set_cert_verify_cb>(SSL_CTX *ctx, int (*cb)(), char *arg)
 

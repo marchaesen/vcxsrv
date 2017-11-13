@@ -72,7 +72,7 @@ SHLIBS={- join(" ", map { shlib($_) } @{$unified_info{libraries}}) -}
 SHLIBPDBS={- join(" ", map { local $shlibext = ".pdb"; shlib($_) } @{$unified_info{libraries}}) -}
 ENGINES={- join(" ", map { dso($_) } @{$unified_info{engines}}) -}
 ENGINEPDBS={- join(" ", map { local $dsoext = ".pdb"; dso($_) } @{$unified_info{engines}}) -}
-PROGRAMS={- join(" ", map { $_.$exeext } @{$unified_info{programs}}) -}
+PROGRAMS={- our @PROGRAMS = map { $_.$exeext } @{$unified_info{programs}}; join(" ", @PROGRAMS) -}
 PROGRAMPDBS={- join(" ", map { $_.".pdb" } @{$unified_info{programs}}) -}
 SCRIPTS={- join(" ", @{$unified_info{scripts}}) -}
 {- output_off() if $disabled{makedepend}; "" -}
@@ -100,16 +100,20 @@ BIN_SCRIPTS=$(BLDDIR)\tools\c_rehash.pl
 MISC_SCRIPTS=$(BLDDIR)\apps\CA.pl $(BLDDIR)\apps\tsget.pl
 {- output_on() if $disabled{apps}; "" -}
 
+APPS_OPENSSL={- use File::Spec::Functions;
+                catfile("apps","openssl") -}
+
 # Do not edit these manually. Use Configure with --prefix or --openssldir
 # to change this!  Short explanation in the top comment in Configure
 INSTALLTOP_dev={- # $prefix is used in the OPENSSLDIR perl snippet
                   #
                   use File::Spec::Functions qw(:DEFAULT splitpath);
-                  our $prefix = $config{prefix} || "$win_installroot\\OpenSSL";
+                  our $prefix = canonpath($config{prefix}
+                                          || "$win_installroot\\OpenSSL");
                   our ($prefix_dev, $prefix_dir, $prefix_file) =
                       splitpath($prefix, 1);
                   $prefix_dev -}
-INSTALLTOP_dir={- $prefix_dir -}
+INSTALLTOP_dir={- canonpath($prefix_dir) -}
 OPENSSLDIR_dev={- #
                   # The logic here is that if no --openssldir was given,
                   # OPENSSLDIR will get the value from $prefix plus "/ssl".
@@ -123,13 +127,13 @@ OPENSSLDIR_dev={- #
                   our $openssldir =
                       $config{openssldir} ?
                           (file_name_is_absolute($config{openssldir}) ?
-                               $config{openssldir}
+                               canonpath($config{openssldir})
                                : catdir($prefix, $config{openssldir}))
-                          : "$win_commonroot\\SSL";
+                          : canonpath("$win_commonroot\\SSL");
                   our ($openssldir_dev, $openssldir_dir, $openssldir_file) =
                       splitpath($openssldir, 1);
                   $openssldir_dev -}
-OPENSSLDIR_dir={- $openssldir_dir -}
+OPENSSLDIR_dir={- canonpath($openssldir_dir) -}
 LIBDIR={- our $libdir = $config{libdir} || "lib";
           $libdir -}
 ENGINESDIR_dev={- use File::Spec::Functions qw(:DEFAULT splitpath);
@@ -137,7 +141,7 @@ ENGINESDIR_dev={- use File::Spec::Functions qw(:DEFAULT splitpath);
                   our ($enginesdir_dev, $enginesdir_dir, $enginesdir_file) =
                       splitpath($enginesdir, 1);
                   $enginesdir_dev -}
-ENGINESDIR_dir={- $enginesdir_dir -}
+ENGINESDIR_dir={- canonpath($enginesdir_dir) -}
 !IF "$(DESTDIR)" != ""
 INSTALLTOP=$(DESTDIR)$(INSTALLTOP_dir)
 OPENSSLDIR=$(DESTDIR)$(OPENSSLDIR_dir)
@@ -200,8 +204,10 @@ build_apps build_tests: build_programs
 test: tests
 {- dependmagic('tests'); -}: build_programs_nodep build_engines_nodep
 	@rem {- output_off() if $disabled{tests}; "" -}
+	-mkdir $(BLDDIR)\test\test-runs
 	set SRCTOP=$(SRCDIR)
 	set BLDTOP=$(BLDDIR)
+	set RESULT_D=$(BLDDIR)\test\test-runs
 	set PERL=$(PERL)
 	set OPENSSL_DEBUG_MEMORY=on
 	"$(PERL)" "$(SRCDIR)\test\run_tests.pl" $(TESTS)
@@ -229,7 +235,9 @@ libclean:
 	-del /Q ossl_static.pdb
 
 clean: libclean
-	-del /Q /F $(PROGRAMS) $(ENGINES) $(SCRIPTS)
+	{- join("\n\t", map { "-del /Q /F $_" } @PROGRAMS) -}
+	-del /Q /F $(ENGINES)
+	-del /Q /F $(SCRIPTS)
 	-del /Q /F $(GENERATED)
 	-del /Q /S /F *.d
 	-del /Q /S /F *.obj

@@ -221,6 +221,14 @@ static int cmd_ECDHParameters(SSL_CONF_CTX *cctx, const char *value)
     EC_KEY *ecdh;
     int nid;
 
+    /* Ignore values supported by 1.0.2 for the automatic selection */
+    if ((cctx->flags & SSL_CONF_FLAG_FILE) &&
+        strcasecmp(value, "+automatic") == 0)
+        return 1;
+    if ((cctx->flags & SSL_CONF_FLAG_CMDLINE) &&
+        strcmp(value, "auto") == 0)
+        return 1;
+
     nid = EC_curve_nist2nid(value);
     if (nid == NID_undef)
         nid = OBJ_sn2nid(value);
@@ -349,6 +357,7 @@ static int cmd_Options(SSL_CONF_CTX *cctx, const char *value)
         SSL_FLAG_TBL_SRV("ECDHSingle", SSL_OP_SINGLE_ECDH_USE),
         SSL_FLAG_TBL("UnsafeLegacyRenegotiation",
                      SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION),
+        SSL_FLAG_TBL_INV("EncryptThenMac", SSL_OP_NO_ENCRYPT_THEN_MAC),
     };
     if (value == NULL)
         return -3;

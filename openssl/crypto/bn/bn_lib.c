@@ -295,10 +295,13 @@ static BN_ULONG *bn_expand_internal(const BIGNUM *b, int words)
         switch (b->top & 3) {
         case 3:
             A[2] = B[2];
+            /* fall thru */
         case 2:
             A[1] = B[1];
+            /* fall thru */
         case 1:
             A[0] = B[0];
+            /* fall thru */
         case 0:
             /* Without the "case 0" some old optimizers got this wrong. */
             ;
@@ -390,15 +393,21 @@ BIGNUM *BN_copy(BIGNUM *a, const BIGNUM *b)
     switch (b->top & 3) {
     case 3:
         A[2] = B[2];
+        /* fall thru */
     case 2:
         A[1] = B[1];
+        /* fall thru */
     case 1:
         A[0] = B[0];
+        /* fall thru */
     case 0:;
     }
 #else
     memcpy(a->d, b->d, sizeof(b->d[0]) * b->top);
 #endif
+
+    if (BN_get_flags(b, BN_FLG_CONSTTIME) != 0)
+        BN_set_flags(a, BN_FLG_CONSTTIME);
 
     a->top = b->top;
     a->neg = b->neg;
@@ -888,7 +897,7 @@ int BN_security_bits(int L, int N)
     int secbits, bits;
     if (L >= 15360)
         secbits = 256;
-    else if (L >= 7690)
+    else if (L >= 7680)
         secbits = 192;
     else if (L >= 3072)
         secbits = 128;

@@ -13,20 +13,6 @@
 #include "dh_locl.h"
 #include <openssl/engine.h>
 
-static const DH_METHOD *default_DH_method = NULL;
-
-void DH_set_default_method(const DH_METHOD *meth)
-{
-    default_DH_method = meth;
-}
-
-const DH_METHOD *DH_get_default_method(void)
-{
-    if (!default_DH_method)
-        default_DH_method = DH_OpenSSL();
-    return default_DH_method;
-}
-
 int DH_set_method(DH *dh, const DH_METHOD *meth)
 {
     /*
@@ -244,13 +230,6 @@ void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key)
 
 int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key)
 {
-    /* If the field pub_key in dh is NULL, the corresponding input
-     * parameters MUST be non-NULL.  The priv_key field may
-     * be left NULL.
-     */
-    if (dh->pub_key == NULL && pub_key == NULL)
-        return 0;
-
     if (pub_key != NULL) {
         BN_free(dh->pub_key);
         dh->pub_key = pub_key;

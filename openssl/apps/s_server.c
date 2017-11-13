@@ -704,13 +704,14 @@ OPTIONS s_server_options[] = {
      "PEM serverinfo file for certificate"},
     {"certform", OPT_CERTFORM, 'F',
      "Certificate format (PEM or DER) PEM default"},
-    {"key", OPT_KEY, '<',
+    {"key", OPT_KEY, 's',
      "Private Key if not in -cert; default is " TEST_CERT},
     {"keyform", OPT_KEYFORM, 'f',
      "Key format (PEM, DER or ENGINE) PEM default"},
     {"pass", OPT_PASS, 's', "Private key file pass phrase source"},
     {"dcert", OPT_DCERT, '<',
      "Second certificate file to use (usually for DSA)"},
+    {"dhparam", OPT_DHPARAM, '<', "DH parameters file to use"},
     {"dcertform", OPT_DCERTFORM, 'F',
      "Second certificate format (PEM or DER) PEM default"},
     {"dkey", OPT_DKEY, '<',
@@ -2853,9 +2854,10 @@ static int www_body(int s, int stype, unsigned char *context)
                 PEM_write_bio_X509(io, peer);
                 X509_free(peer);
                 peer = NULL;
-            } else
+            } else {
                 BIO_puts(io, "no client certificate available\n");
-            BIO_puts(io, "</BODY></HTML>\r\n\r\n");
+            }
+            BIO_puts(io, "</pre></BODY></HTML>\r\n\r\n");
             break;
         } else if ((www == 2 || www == 3)
                    && (strncmp("GET /", buf, 5) == 0)) {
