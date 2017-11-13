@@ -70,7 +70,7 @@ mkfontscale git version
 openssl-1.1.0g
 pixman git version
 presentproto-1.1
-pthreads-w32 cvs version
+pthreads-w32 git version
 randrproto git version
 recordproto-1.14.2
 renderproto-0.11.1
