@@ -29,7 +29,7 @@ map { s/\^// } @conf_files if $^O eq "VMS";
 
 # We hard-code the number of tests to double-check that the globbing above
 # finds all files as expected.
-plan tests => 18;  # = scalar @conf_srcs
+plan tests => 19;  # = scalar @conf_srcs
 
 # Some test results depend on the configuration of enabled protocols. We only
 # verify generated sources in the default configuration.
@@ -76,6 +76,7 @@ my %skip = (
   "15-certstatus.conf" => $no_tls || $no_ocsp,
   "16-dtls-certstatus.conf" => $no_dtls || $no_ocsp,
   "18-dtls-renegotiate.conf" => $no_dtls,
+  "19-mac-then-encrypt.conf" => disabled("tls1_2"),
 );
 
 foreach my $conf (@conf_files) {

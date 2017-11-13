@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2017 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -43,7 +43,10 @@ static struct thread_local_inits_st *ossl_init_get_thread_local(int alloc)
 
     if (local == NULL && alloc) {
         local = OPENSSL_zalloc(sizeof *local);
-        CRYPTO_THREAD_set_local(&threadstopkey, local);
+        if (local != NULL && !CRYPTO_THREAD_set_local(&threadstopkey, local)) {
+            OPENSSL_free(local);
+            return NULL;
+        }
     }
     if (!alloc) {
         CRYPTO_THREAD_set_local(&threadstopkey, NULL);
@@ -356,7 +359,12 @@ void OPENSSL_thread_stop(void)
 
 int ossl_init_thread_start(uint64_t opts)
 {
-    struct thread_local_inits_st *locals = ossl_init_get_thread_local(1);
+    struct thread_local_inits_st *locals;
+
+    if (!OPENSSL_init_crypto(0, NULL))
+        return 0;
+
+    locals = ossl_init_get_thread_local(1);
 
     if (locals == NULL)
         return 0;
@@ -642,7 +650,7 @@ int OPENSSL_atexit(void (*handler)(void))
          * Deliberately leak a reference to the handler. This will force the
          * library/code containing the handler to remain loaded until we run the
          * atexit handler. If -znodelete has been used then this is
-         * unneccessary.
+         * unnecessary.
          */
         {
             DSO *dso = NULL;

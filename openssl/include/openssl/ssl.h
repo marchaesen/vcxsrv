@@ -297,6 +297,8 @@ typedef int (*SSL_verify_cb)(int preverify_ok, X509_STORE_CTX *x509_ctx);
 # define SSL_OP_NO_COMPRESSION                           0x00020000U
 /* Permit unsafe legacy renegotiation */
 # define SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION        0x00040000U
+/* Disable encrypt-then-mac */
+# define SSL_OP_NO_ENCRYPT_THEN_MAC                      0x00080000U
 /*
  * Set on servers to choose the cipher according to the server's preferences
  */
@@ -1158,6 +1160,8 @@ DECLARE_PEM_rw(SSL_SESSION, SSL_SESSION)
 # define SSL_CTRL_GET_TLSEXT_STATUS_REQ_TYPE     127
 # define SSL_CTRL_GET_TLSEXT_STATUS_REQ_CB       128
 # define SSL_CTRL_GET_TLSEXT_STATUS_REQ_CB_ARG   129
+# define SSL_CTRL_GET_MIN_PROTO_VERSION          130
+# define SSL_CTRL_GET_MAX_PROTO_VERSION          131
 # define SSL_CERT_SET_FIRST                      1
 # define SSL_CERT_SET_NEXT                       2
 # define SSL_CERT_SET_SERVER                     3
@@ -1289,10 +1293,18 @@ DECLARE_PEM_rw(SSL_SESSION, SSL_SESSION)
         SSL_CTX_ctrl(ctx, SSL_CTRL_SET_MIN_PROTO_VERSION, version, NULL)
 #define SSL_CTX_set_max_proto_version(ctx, version) \
         SSL_CTX_ctrl(ctx, SSL_CTRL_SET_MAX_PROTO_VERSION, version, NULL)
+#define SSL_CTX_get_min_proto_version(ctx) \
+        SSL_CTX_ctrl(ctx, SSL_CTRL_GET_MIN_PROTO_VERSION, NULL, NULL)
+#define SSL_CTX_get_max_proto_version(ctx) \
+        SSL_CTX_ctrl(ctx, SSL_CTRL_GET_MAX_PROTO_VERSION, NULL, NULL)
 #define SSL_set_min_proto_version(s, version) \
         SSL_ctrl(s, SSL_CTRL_SET_MIN_PROTO_VERSION, version, NULL)
 #define SSL_set_max_proto_version(s, version) \
         SSL_ctrl(s, SSL_CTRL_SET_MAX_PROTO_VERSION, version, NULL)
+#define SSL_get_min_proto_version(s) \
+        SSL_ctrl(s, SSL_CTRL_GET_MIN_PROTO_VERSION, NULL, NULL)
+#define SSL_get_max_proto_version(s) \
+        SSL_ctrl(s, SSL_CTRL_GET_MAX_PROTO_VERSION, NULL, NULL)
 
 #if OPENSSL_API_COMPAT < 0x10100000L
 /* Provide some compatibility macros for removed functionality. */
@@ -1444,7 +1456,7 @@ int SSL_SESSION_up_ref(SSL_SESSION *ses);
 void SSL_SESSION_free(SSL_SESSION *ses);
 __owur int i2d_SSL_SESSION(SSL_SESSION *in, unsigned char **pp);
 __owur int SSL_set_session(SSL *to, SSL_SESSION *session);
-__owur int SSL_CTX_add_session(SSL_CTX *s, SSL_SESSION *c);
+int SSL_CTX_add_session(SSL_CTX *s, SSL_SESSION *c);
 int SSL_CTX_remove_session(SSL_CTX *, SSL_SESSION *c);
 __owur int SSL_CTX_set_generate_session_id(SSL_CTX *, GEN_SESSION_CB);
 __owur int SSL_set_generate_session_id(SSL *, GEN_SESSION_CB);

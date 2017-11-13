@@ -41,6 +41,18 @@ static DSA_METHOD openssl_dsa_meth = {
     NULL
 };
 
+static const DSA_METHOD *default_DSA_method = &openssl_dsa_meth;
+
+void DSA_set_default_method(const DSA_METHOD *meth)
+{
+    default_DSA_method = meth;
+}
+
+const DSA_METHOD *DSA_get_default_method(void)
+{
+    return default_DSA_method;
+}
+
 const DSA_METHOD *DSA_OpenSSL(void)
 {
     return &openssl_dsa_meth;
@@ -136,7 +148,9 @@ static int dsa_sign_setup(DSA *dsa, BN_CTX *ctx_in,
 {
     BN_CTX *ctx = NULL;
     BIGNUM *k, *kinv = NULL, *r = *rp;
+    BIGNUM *l, *m;
     int ret = 0;
+    int q_bits;
 
     if (!dsa->p || !dsa->q || !dsa->g) {
         DSAerr(DSA_F_DSA_SIGN_SETUP, DSA_R_MISSING_PARAMETERS);
@@ -144,7 +158,9 @@ static int dsa_sign_setup(DSA *dsa, BN_CTX *ctx_in,
     }
 
     k = BN_new();
-    if (k == NULL)
+    l = BN_new();
+    m = BN_new();
+    if (k == NULL || l == NULL || m == NULL)
         goto err;
 
     if (ctx_in == NULL) {
@@ -152,6 +168,13 @@ static int dsa_sign_setup(DSA *dsa, BN_CTX *ctx_in,
             goto err;
     } else
         ctx = ctx_in;
+
+    /* Preallocate space */
+    q_bits = BN_num_bits(dsa->q);
+    if (!BN_set_bit(k, q_bits)
+        || !BN_set_bit(l, q_bits)
+        || !BN_set_bit(m, q_bits))
+        goto err;
 
     /* Get random k */
     do {
@@ -179,17 +202,19 @@ static int dsa_sign_setup(DSA *dsa, BN_CTX *ctx_in,
 
     /*
      * We do not want timing information to leak the length of k, so we
-     * compute g^k using an equivalent exponent of fixed length. (This
-     * is a kludge that we need because the BN_mod_exp_mont() does not
-     * let us specify the desired timing behaviour.)
+     * compute G^k using an equivalent scalar of fixed bit-length.
+     *
+     * We unconditionally perform both of these additions to prevent a
+     * small timing information leakage.  We then choose the sum that is
+     * one bit longer than the modulus.
+     *
+     * TODO: revisit the BN_copy aiming for a memory access agnostic
+     * conditional copy.
      */
-
-    if (!BN_add(k, k, dsa->q))
+    if (!BN_add(l, k, dsa->q)
+        || !BN_add(m, l, dsa->q)
+        || !BN_copy(k, BN_num_bits(l) > q_bits ? l : m))
         goto err;
-    if (BN_num_bits(k) <= BN_num_bits(dsa->q)) {
-        if (!BN_add(k, k, dsa->q))
-            goto err;
-    }
 
     if ((dsa)->meth->bn_mod_exp != NULL) {
             if (!dsa->meth->bn_mod_exp(dsa, r, dsa->g, k, dsa->p, ctx,
@@ -217,6 +242,8 @@ static int dsa_sign_setup(DSA *dsa, BN_CTX *ctx_in,
     if (ctx != ctx_in)
         BN_CTX_free(ctx);
     BN_clear_free(k);
+    BN_clear_free(l);
+    BN_clear_free(m);
     return ret;
 }
 

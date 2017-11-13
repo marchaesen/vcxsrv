@@ -113,6 +113,9 @@ BIN_SCRIPTS=$(BLDDIR)/tools/c_rehash
 MISC_SCRIPTS=$(BLDDIR)/apps/CA.pl $(BLDDIR)/apps/tsget
 {- output_on() if $disabled{apps}; "" -}
 
+APPS_OPENSSL={- use File::Spec::Functions;
+                catfile("apps","openssl") -}
+
 # DESTDIR is for package builders so that they can configure for, say,
 # /usr/ and yet have everything installed to /tmp/somedir/usr/.
 # Normally it is left empty.
@@ -241,11 +244,13 @@ test: tests
 {- dependmagic('tests'); -}: build_programs_nodep build_engines_nodep link-utils
 	@ : {- output_off() if $disabled{tests}; "" -}
 	( cd test; \
+	  mkdir -p test-runs; \
 	  SRCTOP=../$(SRCDIR) \
 	  BLDTOP=../$(BLDDIR) \
+	  RESULT_D=test-runs \
 	  PERL="$(PERL)" \
 	  EXE_EXT={- $exeext -} \
-	  OPENSSL_ENGINES=../$(BLDDIR)/engines \
+	  OPENSSL_ENGINES=`cd ../$(BLDDIR)/engines; pwd` \
 	  OPENSSL_DEBUG_MEMORY=on \
 	    $(PERL) ../$(SRCDIR)/test/run_tests.pl $(TESTS) )
 	@ : {- if ($disabled{tests}) { output_on(); } else { output_off(); } "" -}
@@ -592,19 +597,9 @@ doc-nits:
 lint:
 	lint -DLINT $(INCLUDES) $(SRCS)
 
-{- # because the program apps/openssl has object files as sources, and
-   # they then have the corresponding C files as source, we need to chain
-   # the lookups in %unified_info
-   my $apps_openssl = catfile("apps","openssl");
-   our @openssl_source = map { @{$unified_info{sources}->{$_}} }
-                         @{$unified_info{sources}->{$apps_openssl}};
-   ""; -}
 generate_apps:
 	( cd $(SRCDIR); $(PERL) VMS/VMSify-conf.pl \
 				< apps/openssl.cnf > apps/openssl-vms.cnf )
-	( b=`pwd`; cd $(SRCDIR); $(PERL) -I$$b apps/progs.pl \
-					{- join(" ", @openssl_source) -} \
-					> apps/progs.h )
 
 generate_crypto_bn:
 	( cd $(SRCDIR); $(PERL) crypto/bn/bn_prime.pl > crypto/bn/bn_prime.h )
@@ -656,9 +651,12 @@ tags TAGS: FORCE
 
 # Release targets (note: only available on Unix) #####################
 
+# If your tar command doesn't support --owner and --group, make sure to
+# use one that does, for example GNU tar
 TAR_COMMAND=$(TAR) $(TARFLAGS) --owner 0 --group 0 -cvf -
 PREPARE_CMD=:
 tar:
+	set -e; \
 	TMPDIR=/var/tmp/openssl-copy.$$$$; \
 	DISTDIR=$(NAME); \
 	mkdir -p $$TMPDIR/$$DISTDIR; \
@@ -669,12 +667,12 @@ tar:
 	       mkdir -p $$TMPDIR/$$DISTDIR/`dirname $$F`; \
 	       cp $$F $$TMPDIR/$$DISTDIR/$$F; \
 	   done); \
-	(cd $$TMPDIR; \
+	(cd $$TMPDIR/$$DISTDIR; \
 	 $(PREPARE_CMD); \
-	 find $$TMPDIR/$$DISTDIR -type d -print | xargs chmod 755; \
-	 find $$TMPDIR/$$DISTDIR -type f -print | xargs chmod a+r; \
-	 find $$TMPDIR/$$DISTDIR -type f -perm -0100 -print | xargs chmod a+x; \
-	 $(TAR_COMMAND) $$DISTDIR) \
+	 find . -type d -print | xargs chmod 755; \
+	 find . -type f -print | xargs chmod a+r; \
+	 find . -type f -perm -0100 -print | xargs chmod a+x); \
+	(cd $$TMPDIR; $(TAR_COMMAND) $$DISTDIR) \
 	| (cd $(SRCDIR); gzip --best > $(TARFILE).gz); \
 	rm -rf $$TMPDIR
 	cd $(SRCDIR); ls -l $(TARFILE).gz
@@ -900,6 +898,7 @@ EOF
       my $shlib_target = $target{shared_target};
       my $ordinalsfile = defined($args{ordinals}) ? $args{ordinals}->[1] : "";
       my $target = shlib_simple($lib);
+      my $target_full = shlib($lib);
       return <<"EOF"
 # With a build on a Windows POSIX layer (Cygwin or Mingw), we know for a fact
 # that two files get produced, {shlibname}.dll and {libname}.dll.a.
@@ -914,11 +913,11 @@ $target: $lib$libext $deps $ordinalsfile
 		PERL="\$(PERL)" SRCDIR='\$(SRCDIR)' DSTDIR="$libd" \\
 		INSTALLTOP='\$(INSTALLTOP)' LIBDIR='\$(LIBDIR)' \\
 		LIBDEPS='\$(PLIB_LDFLAGS) '"$linklibs"' \$(EX_LIBS)' \\
-		LIBNAME=$libname LIBVERSION=\$(SHLIB_MAJOR).\$(SHLIB_MINOR) \\
-		LIBCOMPATVERSIONS=';\$(SHLIB_VERSION_HISTORY)' \\
+		LIBNAME=$libname SHLIBVERSION=\$(SHLIB_MAJOR).\$(SHLIB_MINOR) \\
+		STLIBNAME=$lib$libext \\
+		SHLIBNAME=$target SHLIBNAME_FULL=$target_full \\
 		CC='\$(CC)' CFLAGS='\$(CFLAGS) \$(LIB_CFLAGS)' \\
-		LDFLAGS='\$(LDFLAGS)' \\
-		SHARED_LDFLAGS='\$(LIB_LDFLAGS)' SHLIB_EXT=$shlibext \\
+		LDFLAGS='\$(LDFLAGS)' SHARED_LDFLAGS='\$(LIB_LDFLAGS)' \\
 		RC='\$(RC)' SHARED_RCFLAGS='\$(RCFLAGS)' \\
 		link_shlib.$shlib_target
 EOF
@@ -931,10 +930,9 @@ EOF
   }
   sub obj2dso {
       my %args = @_;
-      my $lib = $args{lib};
-      my $libd = dirname($lib);
-      my $libn = basename($lib);
-      (my $libname = $libn) =~ s/^lib//;
+      my $dso = $args{lib};
+      my $dsod = dirname($dso);
+      my $dson = basename($dso);
       my $shlibdeps = join("", map { my $d = dirname($_);
                                      my $f = basename($_);
                                      (my $l = $f) =~ s/^lib//;
@@ -942,17 +940,16 @@ EOF
       my $deps = join(" ",compute_lib_depends(@{$args{deps}}));
       my $shlib_target = $target{shared_target};
       my $objs = join(" ", map { $_.$objext } @{$args{objs}});
-      my $target = dso($lib);
+      my $target = dso($dso);
       return <<"EOF";
 $target: $objs $deps
 	\$(MAKE) -f \$(SRCDIR)/Makefile.shared -e \\
 		PLATFORM=\$(PLATFORM) \\
-		PERL="\$(PERL)" SRCDIR='\$(SRCDIR)' DSTDIR="$libd" \\
+		PERL="\$(PERL)" SRCDIR='\$(SRCDIR)' DSTDIR="$dsod" \\
 		LIBDEPS='\$(PLIB_LDFLAGS) '"$shlibdeps"' \$(EX_LIBS)' \\
-		LIBNAME=$libname LDFLAGS='\$(LDFLAGS)' \\
+		SHLIBNAME_FULL=$target LDFLAGS='\$(LDFLAGS)' \\
 		CC='\$(CC)' CFLAGS='\$(CFLAGS) \$(DSO_CFLAGS)' \\
 		SHARED_LDFLAGS='\$(DSO_LDFLAGS)' \\
-		SHLIB_EXT=$dsoext \\
 		LIBEXTRAS="$objs" \\
 		link_dso.$shlib_target
 EOF

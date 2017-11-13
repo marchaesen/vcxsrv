@@ -171,13 +171,30 @@ int do_server(int *accept_sock, const char *host, const char *port,
         if (type == SOCK_STREAM) {
             do {
                 sock = BIO_accept_ex(asock, NULL, 0);
-            } while (sock < 0 && BIO_sock_should_retry(ret));
+            } while (sock < 0 && BIO_sock_should_retry(sock));
             if (sock < 0) {
                 ERR_print_errors(bio_err);
                 BIO_closesocket(asock);
                 break;
             }
             i = (*cb)(sock, type, context);
+            /*
+             * If we ended with an alert being sent, but still with data in the
+             * network buffer to be read, then calling BIO_closesocket() will
+             * result in a TCP-RST being sent. On some platforms (notably
+             * Windows) then this will result in the peer immediately abandoning
+             * the connection including any buffered alert data before it has
+             * had a chance to be read. Shutting down the sending side first,
+             * and then closing the socket sends TCP-FIN first followed by
+             * TCP-RST. This seems to allow the peer to read the alert data.
+             */
+#ifdef _WIN32
+# ifdef SD_SEND
+            shutdown(sock, SD_SEND);
+# endif
+#elif defined(SHUT_WR)
+            shutdown(sock, SHUT_WR);
+#endif
             BIO_closesocket(sock);
         } else {
             i = (*cb)(asock, type, context);
