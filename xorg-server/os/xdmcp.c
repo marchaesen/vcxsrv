@@ -491,9 +491,10 @@ XdmcpRegisterConnection(int type, const char *address, int addrlen)
             }
         }
 #endif
-        if (!fromAddr || memcmp(regAddr, fromAddr, regAddrlen) != 0) {
+        if (!fromAddr) {
             return;
         }
+        address = fromAddr; // Register the from address, otherwise some xdmcp managers decline the connection
     }
     if (ConnectionAddresses.length + 1 == 256)
         return;
