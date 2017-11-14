@@ -90,7 +90,7 @@ load_makefile $(EXTRASTOBUILDDIRS:%$(NOSERVOBJDIR)\=%makefile MAKESERVER=0 DEBUG
 all: $(EXTRASTOBUILD)
 
 load_makefile $(MHMAKECONF)\mesalib\src\makefile MAKESERVER=0 DEBUG=$(DEBUG)
-all: $(MHMAKECONF)\mesalib\src\$(NOSERVOBJDIR)\swrast_dri.lib
+all: $(MHMAKECONF)\mesalib\src\$(NOSERVOBJDIR)\swrast_dri.lib $(MHMAKECONF)\mesalib\src\$(NOSERVOBJDIR)\swrast_dri.dll
 
 all: fonts.src\all xkeyboard-config\all
 

@@ -408,6 +408,7 @@ __glXScreenInit(__GLXscreen * pGlxScreen, ScreenPtr pScreen)
 #endif
         pGlxScreen->visuals[pGlxScreen->numVisuals++] = config;
         initGlxVisual(visual, config);
+        visual->nplanes = depth;  /* sometimes initGlxVisual create a wrong value for nplanes, causing a heap corruption later on */
     }
 
     dixSetPrivate(&pScreen->devPrivates, glxScreenPrivateKey, pGlxScreen);
