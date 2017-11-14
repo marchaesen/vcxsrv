@@ -41,6 +41,13 @@ from The Open Group.
 #include <stdio.h>
 #include <X11/Xos.h>
 
+#ifndef STDIN_FILENO
+#define STDIN_FILENO 0
+#endif
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO 1
+#endif
+
 int
 main(int argc, char *argv[])
 {

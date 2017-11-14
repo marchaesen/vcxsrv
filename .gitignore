@@ -25,3 +25,4 @@ GTAGS
 TAGS
 cscope*
 *~
+.makefile.dep
