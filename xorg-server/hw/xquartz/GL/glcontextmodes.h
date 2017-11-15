@@ -30,8 +30,6 @@
 #ifndef GLCONTEXTMODES_H
 #define GLCONTEXTMODES_H
 
-#include "GL/internal/glcore.h"
-
 #if !defined(IN_MINI_GLX)
 extern GLint
 _gl_convert_from_x_visual_type(int visualType);

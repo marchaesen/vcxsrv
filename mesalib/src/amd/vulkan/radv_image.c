@@ -863,12 +863,11 @@ radv_image_create(VkDevice _device,
 	radv_assert(pCreateInfo->extent.height > 0);
 	radv_assert(pCreateInfo->extent.depth > 0);
 
-	image = vk_alloc2(&device->alloc, alloc, sizeof(*image), 8,
-			    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	image = vk_zalloc2(&device->alloc, alloc, sizeof(*image), 8,
+			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!image)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
-	memset(image, 0, sizeof(*image));
 	image->type = pCreateInfo->imageType;
 	image->info.width = pCreateInfo->extent.width;
 	image->info.height = pCreateInfo->extent.height;

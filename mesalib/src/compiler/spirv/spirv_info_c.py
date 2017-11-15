@@ -51,7 +51,10 @@ def parse_args():
     p.add_argument("out")
     return p.parse_args()
 
-TEMPLATE  = Template(COPYRIGHT + """\
+TEMPLATE  = Template("""\
+/* DO NOT EDIT - This file is generated automatically by spirv_info_c.py script */
+
+""" + COPYRIGHT + """\
 #include "spirv_info.h"
 % for kind,values in info:
 

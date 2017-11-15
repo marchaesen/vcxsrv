@@ -57,5 +57,4 @@ libamdgpu_addrlib = static_library(
     'core', 'inc/chip/gfx9', 'inc/chip/r800', 'gfx9/chip', 'r800/chip',
     '../common', '../../'),
   cpp_args : [cpp_vis_args, '-DBRAHMA_BUILD=1'],
-  build_by_default : false,
 )

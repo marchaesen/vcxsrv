@@ -51,7 +51,6 @@
 #include <glxcontext.h>
 #include <glxext.h>
 #include <glxutil.h>
-#include <GL/internal/glcore.h>
 
 #include "capabilities.h"
 #include "visualConfigs.h"

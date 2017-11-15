@@ -134,7 +134,7 @@ radv_pipeline_scratch_init(struct radv_device *device,
 	if (scratch_bytes_per_wave && max_waves < min_waves) {
 		/* Not really true at this moment, but will be true on first
 		 * execution. Avoid having hanging shaders. */
-		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	}
 	pipeline->scratch_bytes_per_wave = scratch_bytes_per_wave;
 	pipeline->max_waves = max_waves;
@@ -1019,7 +1019,7 @@ static void
 radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 				 const VkGraphicsPipelineCreateInfo *pCreateInfo)
 {
-	radv_cmd_dirty_mask_t states = RADV_CMD_DIRTY_DYNAMIC_ALL;
+	uint32_t states = RADV_CMD_DIRTY_DYNAMIC_ALL;
 	RADV_FROM_HANDLE(radv_render_pass, pass, pCreateInfo->renderPass);
 	struct radv_subpass *subpass = &pass->subpasses[pCreateInfo->subpass];
 
@@ -1290,6 +1290,7 @@ calculate_gs_ring_sizes(struct radv_pipeline *pipeline)
 	if (pipeline->device->physical_device->rad_info.chip_class <= VI)
 		pipeline->graphics.esgs_ring_size = CLAMP(esgs_ring_size, min_esgs_ring_size, max_size);
 
+	pipeline->graphics.gs.vgt_esgs_ring_itemsize = es_info->esgs_itemsize / 4;
 	pipeline->graphics.gsvs_ring_size = MIN2(gsvs_ring_size, max_size);
 }
 
@@ -1545,7 +1546,7 @@ static void calculate_vgt_gs_mode(struct radv_pipeline *pipeline)
 	}
 }
 
-static void calculate_pa_cl_vs_out_cntl(struct radv_pipeline *pipeline)
+static void calculate_vs_outinfo(struct radv_pipeline *pipeline)
 {
 	struct ac_vs_output_info *outinfo = get_vs_output_info(pipeline);
 
@@ -1557,7 +1558,7 @@ static void calculate_pa_cl_vs_out_cntl(struct radv_pipeline *pipeline)
 	bool misc_vec_ena = outinfo->writes_pointsize ||
 		outinfo->writes_layer ||
 		outinfo->writes_viewport_index;
-	pipeline->graphics.pa_cl_vs_out_cntl =
+	pipeline->graphics.vs.pa_cl_vs_out_cntl =
 		S_02881C_USE_VTX_POINT_SIZE(outinfo->writes_pointsize) |
 		S_02881C_USE_VTX_RENDER_TARGET_INDX(outinfo->writes_layer) |
 		S_02881C_USE_VTX_VIEWPORT_INDX(outinfo->writes_viewport_index) |
@@ -1568,6 +1569,21 @@ static void calculate_pa_cl_vs_out_cntl(struct radv_pipeline *pipeline)
 		cull_dist_mask << 8 |
 		clip_dist_mask;
 
+	pipeline->graphics.vs.spi_shader_pos_format =
+		S_02870C_POS0_EXPORT_FORMAT(V_02870C_SPI_SHADER_4COMP) |
+		S_02870C_POS1_EXPORT_FORMAT(outinfo->pos_exports > 1 ?
+					    V_02870C_SPI_SHADER_4COMP :
+					    V_02870C_SPI_SHADER_NONE) |
+		S_02870C_POS2_EXPORT_FORMAT(outinfo->pos_exports > 2 ?
+					    V_02870C_SPI_SHADER_4COMP :
+					    V_02870C_SPI_SHADER_NONE) |
+		S_02870C_POS3_EXPORT_FORMAT(outinfo->pos_exports > 3 ?
+					    V_02870C_SPI_SHADER_4COMP :
+					    V_02870C_SPI_SHADER_NONE);
+
+	pipeline->graphics.vs.spi_vs_out_config = S_0286C4_VS_EXPORT_COUNT(MAX2(1, outinfo->param_exports) - 1);
+	/* only emitted on pre-VI */
+	pipeline->graphics.vs.vgt_reuse_off = S_028AB4_REUSE_OFF(outinfo->writes_viewport_index);
 }
 
 static uint32_t offset_to_ps_input(uint32_t offset, bool flat_shade)
@@ -2093,7 +2109,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 		V_028710_SPI_SHADER_ZERO;
 
 	calculate_vgt_gs_mode(pipeline);
-	calculate_pa_cl_vs_out_cntl(pipeline);
+	calculate_vs_outinfo(pipeline);
 	calculate_ps_inputs(pipeline);
 
 	for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
@@ -2296,12 +2312,11 @@ radv_graphics_pipeline_create(
 	struct radv_pipeline *pipeline;
 	VkResult result;
 
-	pipeline = vk_alloc2(&device->alloc, pAllocator, sizeof(*pipeline), 8,
-			       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	pipeline = vk_zalloc2(&device->alloc, pAllocator, sizeof(*pipeline), 8,
+			      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (pipeline == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
-	memset(pipeline, 0, sizeof(*pipeline));
 	result = radv_pipeline_init(pipeline, device, cache,
 				    pCreateInfo, extra, pAllocator);
 	if (result != VK_SUCCESS) {
@@ -2353,12 +2368,11 @@ static VkResult radv_compute_pipeline_create(
 	struct radv_pipeline *pipeline;
 	VkResult result;
 
-	pipeline = vk_alloc2(&device->alloc, pAllocator, sizeof(*pipeline), 8,
-			       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	pipeline = vk_zalloc2(&device->alloc, pAllocator, sizeof(*pipeline), 8,
+			      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (pipeline == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
-	memset(pipeline, 0, sizeof(*pipeline));
 	pipeline->device = device;
 	pipeline->layout = radv_pipeline_layout_from_handle(pCreateInfo->layout);
 

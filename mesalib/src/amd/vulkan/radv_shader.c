@@ -664,7 +664,7 @@ radv_GetShaderInfoAMD(VkDevice _device,
 	/* Spec doesn't indicate what to do if the stage is invalid, so just
 	 * return no info for this. */
 	if (!variant)
-		return VK_ERROR_FEATURE_NOT_PRESENT;
+		return vk_error(VK_ERROR_FEATURE_NOT_PRESENT);
 
 	switch (infoType) {
 	case VK_SHADER_INFO_TYPE_STATISTICS_AMD:

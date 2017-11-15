@@ -579,6 +579,12 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         }
     }
 
+    if (!epoxy_has_gl_extension("GL_ARB_vertex_array_object") &&
+        !epoxy_has_gl_extension("GL_OES_vertex_array_object")) {
+        ErrorF("GL_{ARB,OES}_vertex_array_object required\n");
+        goto fail;
+    }
+
     glamor_priv->has_rw_pbo = FALSE;
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP)
         glamor_priv->has_rw_pbo = TRUE;
@@ -605,8 +611,6 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP ||
         epoxy_gl_version() >= 30 ||
         epoxy_has_gl_extension("GL_NV_pack_subimage");
-    glamor_priv->has_vertex_array_object =
-        epoxy_has_gl_extension("GL_ARB_vertex_array_object");
     glamor_priv->has_dual_blend =
         epoxy_has_gl_extension("GL_ARB_blend_func_extended");
 

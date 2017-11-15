@@ -206,7 +206,7 @@ radv_pipeline_cache_grow(struct radv_pipeline_cache *cache)
 
 	table = malloc(byte_size);
 	if (table == NULL)
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	cache->hash_table = table;
 	cache->table_size = table_size;

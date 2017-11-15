@@ -754,7 +754,7 @@ VkResult radv_CreateQueryPool(
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
 	if (!pool)
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
 
 	switch(pCreateInfo->queryType) {
@@ -784,7 +784,7 @@ VkResult radv_CreateQueryPool(
 
 	if (!pool->bo) {
 		vk_free2(&device->alloc, pAllocator, pool);
-		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	}
 
 	pool->ptr = device->ws->buffer_map(pool->bo);
@@ -792,7 +792,7 @@ VkResult radv_CreateQueryPool(
 	if (!pool->ptr) {
 		device->ws->buffer_destroy(pool->bo);
 		vk_free2(&device->alloc, pAllocator, pool);
-		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	}
 	memset(pool->ptr, 0, size);
 

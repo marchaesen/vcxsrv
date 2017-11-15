@@ -208,13 +208,6 @@ ephyr_glamor_set_vertices(struct ephyr_glamor *glamor)
     glEnableVertexAttribArray(glamor->texture_shader_texcoord_loc);
 }
 
-static void
-ephyr_glamor_clear_vertices(struct ephyr_glamor *glamor)
-{
-    glDisableVertexAttribArray(glamor->texture_shader_position_loc);
-    glDisableVertexAttribArray(glamor->texture_shader_texcoord_loc);
-}
-
 void
 ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
                               struct pixman_region16 *damage)
@@ -230,13 +223,8 @@ ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
 
     glXMakeCurrent(dpy, glamor->glx_win, glamor->ctx);
 
-    if (glamor->vao) {
-        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &old_vao);
-        glBindVertexArray(glamor->vao);
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, glamor->vbo);
-        ephyr_glamor_set_vertices(glamor);
-    }
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &old_vao);
+    glBindVertexArray(glamor->vao);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(glamor->texture_shader);
@@ -248,10 +236,7 @@ ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
     glBindTexture(GL_TEXTURE_2D, glamor->tex);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-    if (glamor->vao)
-        glBindVertexArray(old_vao);
-    else
-        ephyr_glamor_clear_vertices(glamor);
+    glBindVertexArray(old_vao);
 
     glXSwapBuffers(dpy, glamor->glx_win);
 }
@@ -374,23 +359,17 @@ ephyr_glamor_glx_screen_init(xcb_window_t win)
     glamor->glx_win = glx_win;
     ephyr_glamor_setup_texturing_shader(glamor);
 
-    if (epoxy_has_gl_extension("GL_ARB_vertex_array_object")) {
-        glGenVertexArrays(1, &glamor->vao);
-        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &old_vao);
-        glBindVertexArray(glamor->vao);
-    } else
-        glamor->vao = 0;
+    glGenVertexArrays(1, &glamor->vao);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &old_vao);
+    glBindVertexArray(glamor->vao);
 
     glGenBuffers(1, &glamor->vbo);
 
     glBindBuffer(GL_ARRAY_BUFFER, glamor->vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof (position), position, GL_STATIC_DRAW);
 
-    if (glamor->vao) {
-        ephyr_glamor_set_vertices(glamor);
-        glBindVertexArray(old_vao);
-    } else
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    ephyr_glamor_set_vertices(glamor);
+    glBindVertexArray(old_vao);
 
     return glamor;
 }

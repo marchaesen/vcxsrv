@@ -1805,6 +1805,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
          struct vtn_value *val =
             vtn_push_value(b, w[2], vtn_value_type_sampled_image);
          val->sampled_image = ralloc(b, struct vtn_sampled_image);
+         val->sampled_image->type = base_val->sampled_image->type;
          val->sampled_image->image =
             vtn_pointer_dereference(b, base_val->sampled_image->image, chain);
          val->sampled_image->sampler = base_val->sampled_image->sampler;

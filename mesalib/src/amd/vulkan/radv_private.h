@@ -506,7 +506,7 @@ struct radv_queue {
 	struct radv_device *                         device;
 	struct radeon_winsys_ctx                    *hw_ctx;
 	enum radeon_ctx_priority                     priority;
-	int queue_family_index;
+	uint32_t queue_family_index;
 	int queue_idx;
 
 	uint32_t scratch_size;
@@ -701,8 +701,8 @@ enum radv_cmd_dirty_bits {
 	RADV_CMD_DIRTY_PIPELINE                          = 1 << 9,
 	RADV_CMD_DIRTY_INDEX_BUFFER                      = 1 << 10,
 	RADV_CMD_DIRTY_FRAMEBUFFER                       = 1 << 11,
+	RADV_CMD_DIRTY_VERTEX_BUFFER                     = 1 << 12,
 };
-typedef uint32_t radv_cmd_dirty_mask_t;
 
 enum radv_cmd_flush_bits {
 	RADV_CMD_FLAG_INV_ICACHE = 1 << 0,
@@ -809,10 +809,14 @@ struct radv_attachment_state {
 };
 
 struct radv_cmd_state {
-	bool                                          vb_dirty;
+	/* Vertex descriptors */
+	bool                                          vb_prefetch_dirty;
+	uint64_t                                      vb_va;
+	unsigned                                      vb_size;
+
 	bool                                          push_descriptors_dirty;
 	bool predicating;
-	radv_cmd_dirty_mask_t                         dirty;
+	uint32_t                                      dirty;
 
 	struct radv_pipeline *                        pipeline;
 	struct radv_pipeline *                        emitted_pipeline;
@@ -958,8 +962,7 @@ bool
 radv_cmd_buffer_upload_data(struct radv_cmd_buffer *cmd_buffer,
 			    unsigned size, unsigned alignmnet,
 			    const void *data, unsigned *out_offset);
-void
-radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer);
+
 void radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer);
 void radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer);
 void radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer);
@@ -1110,6 +1113,13 @@ struct radv_vertex_elements_info {
 	uint32_t count;
 };
 
+struct radv_vs_state {
+	uint32_t pa_cl_vs_out_cntl;
+	uint32_t spi_shader_pos_format;
+	uint32_t spi_vs_out_config;
+	uint32_t vgt_reuse_off;
+};
+
 #define SI_GS_PER_ES 128
 
 struct radv_pipeline {
@@ -1137,6 +1147,7 @@ struct radv_pipeline {
 			struct radv_multisample_state ms;
 			struct radv_tessellation_state tess;
 			struct radv_gs_state gs;
+			struct radv_vs_state vs;
 			uint32_t db_shader_control;
 			uint32_t shader_z_format;
 			unsigned prim;
@@ -1150,7 +1161,6 @@ struct radv_pipeline {
 			unsigned gsvs_ring_size;
 			uint32_t ps_input_cntl[32];
 			uint32_t ps_input_cntl_num;
-			uint32_t pa_cl_vs_out_cntl;
 			uint32_t vgt_shader_stages_en;
 			uint32_t vtx_base_sgpr;
 			uint32_t base_ia_multi_vgt_param;

@@ -970,8 +970,8 @@ handle_cea_svd(struct cea_video_block *video, void *data)
     int vid;
 
     vid = video->video_code & 0x7f;
-    if (vid < CEA_VIDEO_MODES_NUM) {
-        Mode = xf86DuplicateMode(CEAVideoModes + vid);
+    if (vid >= 1 && vid <= CEA_VIDEO_MODES_NUM) {
+        Mode = xf86DuplicateMode(CEAVideoModes + (vid - 1));
         *Modes = xf86ModesAdd(*Modes, Mode);
     }
 }
