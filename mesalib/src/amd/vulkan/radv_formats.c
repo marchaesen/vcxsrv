@@ -1144,7 +1144,7 @@ unsupported:
 		.maxResourceSize = 0,
 	};
 
-	return VK_ERROR_FORMAT_NOT_SUPPORTED;
+	return vk_error(VK_ERROR_FORMAT_NOT_SUPPORTED);
 }
 
 VkResult radv_GetPhysicalDeviceImageFormatProperties(

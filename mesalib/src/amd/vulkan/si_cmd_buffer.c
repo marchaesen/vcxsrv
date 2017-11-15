@@ -1126,7 +1126,9 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	                       cmd_buffer->state.flush_bits);
 
 
-	radv_cmd_buffer_trace_emit(cmd_buffer);
+	if (unlikely(cmd_buffer->device->trace_bo))
+		radv_cmd_buffer_trace_emit(cmd_buffer);
+
 	cmd_buffer->state.flush_bits = 0;
 }
 
@@ -1250,7 +1252,8 @@ static void si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer,
 		radeon_emit(cs, 0);
 	}
 
-	radv_cmd_buffer_trace_emit(cmd_buffer);
+	if (unlikely(cmd_buffer->device->trace_bo))
+		radv_cmd_buffer_trace_emit(cmd_buffer);
 }
 
 void si_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va,

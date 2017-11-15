@@ -382,7 +382,7 @@ tss_set(tss_t key, void *val)
 
 /*-------------------- 7.25.7 Time functions --------------------*/
 // 7.25.6.1
-#if 0
+#ifdef __HAIKU__
 static inline int
 timespec_get(struct timespec *ts, int base)
 {

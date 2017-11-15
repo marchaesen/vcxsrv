@@ -1222,7 +1222,6 @@ typedef struct {
     *    - nir_texop_txf_ms
     *    - nir_texop_txs
     *    - nir_texop_lod
-    *    - nir_texop_tg4
     *    - nir_texop_query_levels
     *    - nir_texop_texture_samples
     *    - nir_texop_samples_identical

@@ -525,7 +525,8 @@ void radv_CmdUpdateBuffer(
 		radeon_emit(cmd_buffer->cs, va >> 32);
 		radeon_emit_array(cmd_buffer->cs, pData, words);
 
-		radv_cmd_buffer_trace_emit(cmd_buffer);
+		if (unlikely(cmd_buffer->device->trace_bo))
+			radv_cmd_buffer_trace_emit(cmd_buffer);
 	} else {
 		uint32_t buf_offset;
 		radv_cmd_buffer_upload_data(cmd_buffer, dataSize, 32, pData, &buf_offset);

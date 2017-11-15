@@ -51,11 +51,15 @@ subdir('mapi')
 subdir('compiler')
 subdir('egl/wayland/wayland-drm')
 subdir('vulkan')
-subdir('amd')
+if with_gallium_radeonsi or with_amd_vk
+  subdir('amd')
+endif
 if with_gallium_vc4
   subdir('broadcom')
 endif
-subdir('intel')
+if with_dri_i965 or with_intel_vk
+  subdir('intel')
+endif
 subdir('mesa')
 subdir('loader')
 subdir('glx')

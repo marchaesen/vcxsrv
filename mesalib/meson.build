@@ -154,6 +154,29 @@ if _drivers != ''
   with_gallium = true
 endif
 
+with_intel_vk = false
+with_amd_vk = false
+with_any_vk = false
+_vulkan_drivers = get_option('vulkan-drivers')
+if _vulkan_drivers == 'auto'
+  if not ['darwin', 'windows'].contains(host_machine.system())
+    if host_machine.cpu_family().startswith('x86')
+      _vulkan_drivers = 'amd,intel'
+    else
+      error('Unknown architecture. Please pass -Dvulkan-drivers to set driver options. Patches gladly accepted to fix this.')
+    endif
+  else
+    # No vulkan driver supports windows or macOS currently
+    _vulkan_drivers = ''
+  endif
+endif
+if _vulkan_drivers != ''
+  _split = _vulkan_drivers.split(',')
+  with_intel_vk = _split.contains('intel')
+  with_amd_vk = _split.contains('amd')
+  with_any_vk = with_amd_vk or with_intel_vk
+endif
+
 if with_dri_swrast and with_gallium_softpipe
   error('Only one swrast provider can be built')
 endif
@@ -283,32 +306,6 @@ with_glx_direct = true
 
 if with_vulkan_icd_dir == ''
   with_vulkan_icd_dir = join_paths(get_option('datadir'), 'vulkan/icd.d')
-endif
-
-with_intel_vk = false
-with_amd_vk = false
-with_any_vk = false
-_vulkan_drivers = get_option('vulkan-drivers')
-if _vulkan_drivers == 'auto'
-  if not ['darwin', 'windows'].contains(host_machine.system())
-    if host_machine.cpu_family().startswith('x86')
-      _vulkan_drivers = 'amd,intel'
-    else
-      error('Unknown architecture. Please pass -Dvulkan-drivers to set driver options. Patches gladly accepted to fix this.')
-    endif
-  else
-    # No vulkan driver supports windows or macOS currently
-    _vulkan_drivers = ''
-  endif
-endif
-if _vulkan_drivers != ''
-  _split = _vulkan_drivers.split(',')
-  with_intel_vk = _split.contains('intel')
-  with_amd_vk = _split.contains('amd')
-  with_any_vk = with_amd_vk or with_intel_vk
-  if not (with_platform_x11 or with_platform_wayland or with_platform_android)
-    error('Vulkan requires at least one platform (x11, wayland, android)')
-  endif
 endif
 
 with_dri2 = (with_dri or with_any_vk) and with_dri_platform == 'drm'
@@ -925,7 +922,7 @@ endif
 if dep_m.found()
   gl_priv_libs += '-lm'
 endif
-if dep_dl.found()
+if dep_dl != [] and dep_dl.found()
   gl_priv_libs += '-ldl'
 endif
 

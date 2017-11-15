@@ -566,9 +566,10 @@ validate_explicit_variable_location(struct gl_context *ctx,
       return false;
    }
 
-   if (type->without_array()->is_interface()) {
-      for (unsigned i = 0; i < type->without_array()->length; i++) {
-         glsl_struct_field *field = &type->fields.structure[i];
+   const glsl_type *type_without_array = type->without_array();
+   if (type_without_array->is_interface()) {
+      for (unsigned i = 0; i < type_without_array->length; i++) {
+         glsl_struct_field *field = &type_without_array->fields.structure[i];
          unsigned field_location = field->location -
             (field->patch ? VARYING_SLOT_PATCH0 : VARYING_SLOT_VAR0);
          if (!check_location_aliasing(explicit_locations, var,

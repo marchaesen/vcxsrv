@@ -33,6 +33,7 @@
 
 #include <GL/gl.h>
 #include <GL/internal/dri_interface.h>
+#include <c11/threads.h>
 
 enum loader_dri3_buffer_type {
    loader_dri3_buffer_back = 0,
@@ -159,6 +160,15 @@ struct loader_dri3_drawable {
 
    unsigned int swap_method;
    unsigned int back_format;
+
+   /* Currently protects the following fields:
+    * event_cnd, has_event_waiter,
+    * recv_sbc, ust, msc, recv_msc_serial,
+    * notify_ust, notify_msc
+    */
+   mtx_t mtx;
+   cnd_t event_cnd;
+   bool has_event_waiter;
 };
 
 void

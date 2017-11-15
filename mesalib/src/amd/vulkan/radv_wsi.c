@@ -305,7 +305,7 @@ radv_wsi_create_prime_command_buffers(struct radv_device *device,
 	swapchain->cmd_buffers = vk_alloc(alloc, (sizeof(VkCommandBuffer) * num_cmd_buffers), 8,
 					  VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 	if (!swapchain->cmd_buffers)
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	memset(swapchain->cmd_buffers, 0, sizeof(VkCommandBuffer) * num_cmd_buffers);
 	memset(swapchain->cmd_pools, 0, sizeof(VkCommandPool) * num_pools);

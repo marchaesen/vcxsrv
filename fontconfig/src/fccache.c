@@ -646,7 +646,8 @@ FcCacheOffsetsValid (FcCache *cache)
                 (char *) font > end - sizeof (FcFontSet) ||
                 font->elts_offset < 0 ||
                 font->elts_offset > end - (char *) font ||
-                font->num > (end - (char *) font - font->elts_offset) / sizeof (FcPatternElt))
+                font->num > (end - (char *) font - font->elts_offset) / sizeof (FcPatternElt) ||
+		!FcRefIsConst (&font->ref))
                 return FcFalse;
 
 

@@ -626,7 +626,7 @@ DoMakeCurrent(__GLXclientState * cl,
         /*
          ** Flush the previous context if needed.
          */
-        Bool need_flush = GL_TRUE;
+        Bool need_flush = !prevglxc->isDirect;
 #ifdef GLX_CONTEXT_RELEASE_BEHAVIOR_ARB
         if (prevglxc->releaseBehavior == GLX_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB)
             need_flush = GL_FALSE;

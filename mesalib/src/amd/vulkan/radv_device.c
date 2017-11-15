@@ -184,7 +184,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 
 	fd = open(path, O_RDWR | O_CLOEXEC);
 	if (fd < 0)
-		return VK_ERROR_INCOMPATIBLE_DRIVER;
+		return vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
 
 	version = drmGetVersion(fd);
 	if (!version) {
@@ -196,7 +196,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	if (strcmp(version->name, "amdgpu")) {
 		drmFreeVersion(version);
 		close(fd);
-		return VK_ERROR_INCOMPATIBLE_DRIVER;
+		return vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
 	}
 	drmFreeVersion(version);
 
@@ -317,6 +317,7 @@ static const struct debug_control radv_debug_options[] = {
 	{"vmfaults", RADV_DEBUG_VM_FAULTS},
 	{"zerovram", RADV_DEBUG_ZERO_VRAM},
 	{"syncshaders", RADV_DEBUG_SYNC_SHADERS},
+	{"nosisched", RADV_DEBUG_NO_SISCHED},
 	{NULL, 0}
 };
 
@@ -338,6 +339,24 @@ radv_get_perftest_option_name(int id)
 {
 	assert(id < ARRAY_SIZE(radv_debug_options) - 1);
 	return radv_perftest_options[id].string;
+}
+
+static void
+radv_handle_per_app_options(struct radv_instance *instance,
+			    const VkApplicationInfo *info)
+{
+	const char *name = info ? info->pApplicationName : NULL;
+
+	if (!name)
+		return;
+
+	if (!strcmp(name, "Talos - Linux - 32bit") ||
+	    !strcmp(name, "Talos - Linux - 64bit")) {
+		/* Force enable LLVM sisched for Talos because it looks safe
+		 * and it gives few more FPS.
+		 */
+		instance->perftest_flags |= RADV_PERFTEST_SISCHED;
+	}
 }
 
 VkResult radv_CreateInstance(
@@ -372,12 +391,10 @@ VkResult radv_CreateInstance(
 			return vk_error(VK_ERROR_EXTENSION_NOT_PRESENT);
 	}
 
-	instance = vk_alloc2(&default_alloc, pAllocator, sizeof(*instance), 8,
-			       VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
+	instance = vk_zalloc2(&default_alloc, pAllocator, sizeof(*instance), 8,
+			      VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
 	if (!instance)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
-
-	memset(instance, 0, sizeof(*instance));
 
 	instance->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 
@@ -398,6 +415,16 @@ VkResult radv_CreateInstance(
 
 	instance->perftest_flags = parse_debug_string(getenv("RADV_PERFTEST"),
 						   radv_perftest_options);
+
+	radv_handle_per_app_options(instance, pCreateInfo->pApplicationInfo);
+
+	if (instance->debug_flags & RADV_DEBUG_NO_SISCHED) {
+		/* Disable sisched when the user requests it, this is mostly
+		 * useful when the driver force-enable sisched for the given
+		 * application.
+		 */
+		instance->perftest_flags &= ~RADV_PERFTEST_SISCHED;
+	}
 
 	*pInstance = radv_instance_to_handle(instance);
 
@@ -436,7 +463,7 @@ radv_enumerate_devices(struct radv_instance *instance)
 
 	max_devices = drmGetDevices2(0, devices, ARRAY_SIZE(devices));
 	if (max_devices < 1)
-		return VK_ERROR_INCOMPATIBLE_DRIVER;
+		return vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
 
 	for (unsigned i = 0; i < (unsigned)max_devices; i++) {
 		if (devices[i]->available_nodes & 1 << DRM_NODE_RENDER &&
@@ -884,7 +911,7 @@ radv_get_queue_global_priority(const VkDeviceQueueGlobalPriorityCreateInfoEXT *p
 
 static int
 radv_queue_init(struct radv_device *device, struct radv_queue *queue,
-		int queue_family_index, int idx,
+		uint32_t queue_family_index, int idx,
 		const VkDeviceQueueGlobalPriorityCreateInfoEXT *global_priority)
 {
 	queue->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
@@ -895,7 +922,7 @@ radv_queue_init(struct radv_device *device, struct radv_queue *queue,
 
 	queue->hw_ctx = device->ws->ctx_create(device->ws, queue->priority);
 	if (!queue->hw_ctx)
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	return VK_SUCCESS;
 }
@@ -995,13 +1022,11 @@ VkResult radv_CreateDevice(
 		}
 	}
 
-	device = vk_alloc2(&physical_device->instance->alloc, pAllocator,
-			     sizeof(*device), 8,
-			     VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
+	device = vk_zalloc2(&physical_device->instance->alloc, pAllocator,
+			    sizeof(*device), 8,
+			    VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 	if (!device)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
-
-	memset(device, 0, sizeof(*device));
 
 	device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 	device->instance = physical_device->instance;
@@ -1797,7 +1822,7 @@ fail:
 		queue->device->ws->buffer_destroy(tess_factor_ring_bo);
 	if (tess_offchip_ring_bo && tess_offchip_ring_bo != queue->tess_offchip_ring_bo)
 		queue->device->ws->buffer_destroy(tess_offchip_ring_bo);
-	return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+	return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
 }
 
 static VkResult radv_alloc_sem_counts(struct radv_winsys_sem_counts *counts,
@@ -1821,14 +1846,14 @@ static VkResult radv_alloc_sem_counts(struct radv_winsys_sem_counts *counts,
 	if (counts->syncobj_count) {
 		counts->syncobj = (uint32_t *)malloc(sizeof(uint32_t) * counts->syncobj_count);
 		if (!counts->syncobj)
-			return VK_ERROR_OUT_OF_HOST_MEMORY;
+			return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 	}
 
 	if (counts->sem_count) {
 		counts->sem = (struct radeon_winsys_sem **)malloc(sizeof(struct radeon_winsys_sem *) * counts->sem_count);
 		if (!counts->sem) {
 			free(counts->syncobj);
-			return VK_ERROR_OUT_OF_HOST_MEMORY;
+			return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 		}
 	}
 
@@ -1837,10 +1862,6 @@ static VkResult radv_alloc_sem_counts(struct radv_winsys_sem_counts *counts,
 
 		if (sem->temp_syncobj) {
 			counts->syncobj[syncobj_idx++] = sem->temp_syncobj;
-			if (reset_temp) {
-				/* after we wait on a temp import - drop it */
-				sem->temp_syncobj = 0;
-			}
 		}
 		else if (sem->syncobj)
 			counts->syncobj[syncobj_idx++] = sem->syncobj;
@@ -1859,6 +1880,21 @@ void radv_free_sem_info(struct radv_winsys_sem_info *sem_info)
 	free(sem_info->wait.sem);
 	free(sem_info->signal.syncobj);
 	free(sem_info->signal.sem);
+}
+
+
+static void radv_free_temp_syncobjs(struct radv_device *device,
+				    int num_sems,
+				    const VkSemaphore *sems)
+{
+	for (uint32_t i = 0; i < num_sems; i++) {
+		RADV_FROM_HANDLE(radv_semaphore, sem, sems[i]);
+
+		if (sem->temp_syncobj) {
+			device->ws->destroy_syncobj(device->ws, sem->temp_syncobj);
+			sem->temp_syncobj = 0;
+		}
+	}
 }
 
 VkResult radv_alloc_sem_info(struct radv_winsys_sem_info *sem_info,
@@ -1999,6 +2035,9 @@ VkResult radv_QueueSubmit(
 			}
 		}
 
+		radv_free_temp_syncobjs(queue->device,
+					pSubmits[i].waitSemaphoreCount,
+					pSubmits[i].pWaitSemaphores);
 		radv_free_sem_info(&sem_info);
 		free(cs_array);
 	}
@@ -2227,7 +2266,7 @@ VkResult radv_MapMemory(
 		return VK_SUCCESS;
 	}
 
-	return VK_ERROR_MEMORY_MAP_FAILED;
+	return vk_error(VK_ERROR_MEMORY_MAP_FAILED);
 }
 
 void radv_UnmapMemory(
@@ -2542,15 +2581,14 @@ VkResult radv_CreateFence(
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
 	if (!fence)
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
-	memset(fence, 0, sizeof(*fence));
 	fence->submitted = false;
 	fence->signalled = !!(pCreateInfo->flags & VK_FENCE_CREATE_SIGNALED_BIT);
 	fence->fence = device->ws->create_fence();
 	if (!fence->fence) {
 		vk_free2(&device->alloc, pAllocator, fence);
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 	}
 
 	*pFence = radv_fence_to_handle(fence);
@@ -2666,7 +2704,7 @@ VkResult radv_CreateSemaphore(
 					       sizeof(*sem), 8,
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!sem)
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	sem->temp_syncobj = 0;
 	/* create a syncobject if we are going to export this semaphore */
@@ -2676,14 +2714,14 @@ VkResult radv_CreateSemaphore(
 		int ret = device->ws->create_syncobj(device->ws, &sem->syncobj);
 		if (ret) {
 			vk_free2(&device->alloc, pAllocator, sem);
-			return VK_ERROR_OUT_OF_HOST_MEMORY;
+			return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 		}
 		sem->sem = NULL;
 	} else {
 		sem->sem = device->ws->create_sem(device->ws);
 		if (!sem->sem) {
 			vk_free2(&device->alloc, pAllocator, sem);
-			return VK_ERROR_OUT_OF_HOST_MEMORY;
+			return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 		}
 		sem->syncobj = 0;
 	}
@@ -2721,14 +2759,14 @@ VkResult radv_CreateEvent(
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
 	if (!event)
-		return VK_ERROR_OUT_OF_HOST_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	event->bo = device->ws->buffer_create(device->ws, 8, 8,
 					      RADEON_DOMAIN_GTT,
 					      RADEON_FLAG_VA_UNCACHED | RADEON_FLAG_CPU_ACCESS | RADEON_FLAG_NO_INTERPROCESS_SHARING);
 	if (!event->bo) {
 		vk_free2(&device->alloc, pAllocator, event);
-		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	}
 
 	event->map = (uint64_t*)device->ws->buffer_map(event->bo);
@@ -3506,7 +3544,7 @@ VkResult radv_GetMemoryFdKHR(VkDevice _device,
 
 	bool ret = radv_get_memory_fd(device, memory, pFD);
 	if (ret == false)
-		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+		return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	return VK_SUCCESS;
 }
 
@@ -3521,7 +3559,7 @@ VkResult radv_GetMemoryFdPropertiesKHR(VkDevice _device,
     *
     * Since we only handle opaque handles for now, there are no FD properties.
     */
-   return VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR;
+   return vk_error(VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
 }
 
 VkResult radv_ImportSemaphoreFdKHR(VkDevice _device,
@@ -3530,17 +3568,23 @@ VkResult radv_ImportSemaphoreFdKHR(VkDevice _device,
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	RADV_FROM_HANDLE(radv_semaphore, sem, pImportSemaphoreFdInfo->semaphore);
 	uint32_t syncobj_handle = 0;
+	uint32_t *syncobj_dst = NULL;
 	assert(pImportSemaphoreFdInfo->handleType == VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR);
 
 	int ret = device->ws->import_syncobj(device->ws, pImportSemaphoreFdInfo->fd, &syncobj_handle);
 	if (ret != 0)
-		return VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR;
+		return vk_error(VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
 
 	if (pImportSemaphoreFdInfo->flags & VK_SEMAPHORE_IMPORT_TEMPORARY_BIT_KHR) {
-		sem->temp_syncobj = syncobj_handle;
+		syncobj_dst = &sem->temp_syncobj;
 	} else {
-		sem->syncobj = syncobj_handle;
+		syncobj_dst = &sem->syncobj;
 	}
+
+	if (*syncobj_dst)
+		device->ws->destroy_syncobj(device->ws, *syncobj_dst);
+
+	*syncobj_dst = syncobj_handle;
 	close(pImportSemaphoreFdInfo->fd);
 	return VK_SUCCESS;
 }

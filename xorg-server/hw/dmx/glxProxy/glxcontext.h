@@ -33,8 +33,6 @@
 
 typedef struct __GLXcontextRec __GLXcontext;
 
-#include "GL/internal/glcore.h"
-
 struct __GLXcontextRec {
     /*
      ** list of context structs

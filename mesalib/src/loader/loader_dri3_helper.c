@@ -32,7 +32,6 @@
 
 #include <X11/Xlib-xcb.h>
 
-#include <c11/threads.h>
 #include "loader_dri3_helper.h"
 
 /* From xmlpool/options.h, user exposed so should be stable */
@@ -186,8 +185,11 @@ dri3_fence_await(xcb_connection_t *c, struct loader_dri3_drawable *draw,
 {
    xcb_flush(c);
    xshmfence_await(buffer->shm_fence);
-   if (draw)
+   if (draw) {
+      mtx_lock(&draw->mtx);
       dri3_flush_present_events(draw);
+      mtx_unlock(&draw->mtx);
+   }
 }
 
 static void
@@ -245,6 +247,9 @@ loader_dri3_drawable_fini(struct loader_dri3_drawable *draw)
       xcb_discard_reply(draw->conn, cookie.sequence);
       xcb_unregister_for_special_event(draw->conn, draw->special_event);
    }
+
+   cnd_destroy(&draw->event_cnd);
+   mtx_destroy(&draw->mtx);
 }
 
 int
@@ -276,6 +281,8 @@ loader_dri3_drawable_init(xcb_connection_t *conn,
 
    draw->cur_blit_source = -1;
    draw->back_format = __DRI_IMAGE_FORMAT_NONE;
+   mtx_init(&draw->mtx, mtx_plain);
+   cnd_init(&draw->event_cnd);
 
    if (draw->ext->config)
       draw->ext->config->configQueryi(draw->dri_screen,
@@ -407,13 +414,27 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
 }
 
 static bool
-dri3_wait_for_event(struct loader_dri3_drawable *draw)
+dri3_wait_for_event_locked(struct loader_dri3_drawable *draw)
 {
    xcb_generic_event_t *ev;
    xcb_present_generic_event_t *ge;
 
    xcb_flush(draw->conn);
-   ev = xcb_wait_for_special_event(draw->conn, draw->special_event);
+
+   /* Only have one thread waiting for events at a time */
+   if (draw->has_event_waiter) {
+      cnd_wait(&draw->event_cnd, &draw->mtx);
+      /* Another thread has updated the protected info, so retest. */
+      return true;
+   } else {
+      draw->has_event_waiter = true;
+      /* Allow other threads access to the drawable while we're waiting. */
+      mtx_unlock(&draw->mtx);
+      ev = xcb_wait_for_special_event(draw->conn, draw->special_event);
+      mtx_lock(&draw->mtx);
+      draw->has_event_waiter = false;
+      cnd_broadcast(&draw->event_cnd);
+   }
    if (!ev)
       return false;
    ge = (void *) ev;
@@ -442,19 +463,23 @@ loader_dri3_wait_for_msc(struct loader_dri3_drawable *draw,
                           divisor,
                           remainder);
 
+   mtx_lock(&draw->mtx);
    xcb_flush(draw->conn);
 
    /* Wait for the event */
    if (draw->special_event) {
       while ((int32_t) (msc_serial - draw->recv_msc_serial) > 0) {
-         if (!dri3_wait_for_event(draw))
+         if (!dri3_wait_for_event_locked(draw)) {
+            mtx_unlock(&draw->mtx);
             return false;
+         }
       }
    }
 
    *ust = draw->notify_ust;
    *msc = draw->notify_msc;
    *sbc = draw->recv_sbc;
+   mtx_unlock(&draw->mtx);
 
    return true;
 }
@@ -476,17 +501,21 @@ loader_dri3_wait_for_sbc(struct loader_dri3_drawable *draw,
     *      swaps requested with glXSwapBuffersMscOML for that window have
     *      completed."
     */
+   mtx_lock(&draw->mtx);
    if (!target_sbc)
       target_sbc = draw->send_sbc;
 
    while (draw->recv_sbc < target_sbc) {
-      if (!dri3_wait_for_event(draw))
+      if (!dri3_wait_for_event_locked(draw)) {
+         mtx_unlock(&draw->mtx);
          return 0;
+      }
    }
 
    *ust = draw->ust;
    *msc = draw->msc;
    *sbc = draw->recv_sbc;
+   mtx_unlock(&draw->mtx);
    return 1;
 }
 
@@ -499,16 +528,16 @@ static int
 dri3_find_back(struct loader_dri3_drawable *draw)
 {
    int b;
-   xcb_generic_event_t *ev;
-   xcb_present_generic_event_t *ge;
-   int num_to_consider = draw->num_back;
+   int num_to_consider;
 
+   mtx_lock(&draw->mtx);
    /* Increase the likelyhood of reusing current buffer */
    dri3_flush_present_events(draw);
 
    /* Check whether we need to reuse the current back buffer as new back.
     * In that case, wait until it's not busy anymore.
     */
+   num_to_consider = draw->num_back;
    if (!loader_dri3_have_image_blit(draw) && draw->cur_blit_source != -1) {
       num_to_consider = 1;
       draw->cur_blit_source = -1;
@@ -521,15 +550,14 @@ dri3_find_back(struct loader_dri3_drawable *draw)
 
          if (!buffer || !buffer->busy) {
             draw->cur_back = id;
+            mtx_unlock(&draw->mtx);
             return id;
          }
       }
-      xcb_flush(draw->conn);
-      ev = xcb_wait_for_special_event(draw->conn, draw->special_event);
-      if (!ev)
+      if (!dri3_wait_for_event_locked(draw)) {
+         mtx_unlock(&draw->mtx);
          return -1;
-      ge = (void *) ev;
-      dri3_handle_present_event(draw, ge);
+      }
    }
 }
 
@@ -745,6 +773,9 @@ dri3_flush_present_events(struct loader_dri3_drawable *draw)
    /* Check to see if any configuration changes have occurred
     * since we were last invoked
     */
+   if (draw->has_event_waiter)
+      return;
+
    if (draw->special_event) {
       xcb_generic_event_t    *ev;
 
@@ -774,6 +805,7 @@ loader_dri3_swap_buffers_msc(struct loader_dri3_drawable *draw,
 
    back = dri3_find_back_alloc(draw);
 
+   mtx_lock(&draw->mtx);
    if (draw->is_different_gpu && back) {
       /* Update the linear buffer before presenting the pixmap */
       (void) loader_dri3_blit_image(draw,
@@ -893,6 +925,7 @@ loader_dri3_swap_buffers_msc(struct loader_dri3_drawable *draw,
       if (draw->stamp)
          ++(*draw->stamp);
    }
+   mtx_unlock(&draw->mtx);
 
    draw->ext->flush->invalidate(draw->dri_drawable);
 
@@ -903,11 +936,14 @@ int
 loader_dri3_query_buffer_age(struct loader_dri3_drawable *draw)
 {
    struct loader_dri3_buffer *back = dri3_find_back_alloc(draw);
+   int ret;
 
-   if (!back || back->last_swap == 0)
-      return 0;
+   mtx_lock(&draw->mtx);
+   ret = (!back || back->last_swap == 0) ? 0 :
+      draw->send_sbc - back->last_swap + 1;
+   mtx_unlock(&draw->mtx);
 
-   return draw->send_sbc - back->last_swap + 1;
+   return ret;
 }
 
 /** loader_dri3_open
@@ -1125,6 +1161,7 @@ static int
 dri3_update_drawable(__DRIdrawable *driDrawable,
                      struct loader_dri3_drawable *draw)
 {
+   mtx_lock(&draw->mtx);
    if (draw->first_init) {
       xcb_get_geometry_cookie_t                 geom_cookie;
       xcb_get_geometry_reply_t                  *geom_reply;
@@ -1165,8 +1202,10 @@ dri3_update_drawable(__DRIdrawable *driDrawable,
 
       geom_reply = xcb_get_geometry_reply(draw->conn, geom_cookie, NULL);
 
-      if (!geom_reply)
+      if (!geom_reply) {
+         mtx_unlock(&draw->mtx);
          return false;
+      }
 
       draw->width = geom_reply->width;
       draw->height = geom_reply->height;
@@ -1198,6 +1237,7 @@ dri3_update_drawable(__DRIdrawable *driDrawable,
       if (error) {
          if (error->error_code != BadWindow) {
             free(error);
+            mtx_unlock(&draw->mtx);
             return false;
          }
          draw->is_pixmap = true;
@@ -1206,6 +1246,7 @@ dri3_update_drawable(__DRIdrawable *driDrawable,
       }
    }
    dri3_flush_present_events(draw);
+   mtx_unlock(&draw->mtx);
    return true;
 }
 

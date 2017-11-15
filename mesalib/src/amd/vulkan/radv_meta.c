@@ -147,7 +147,7 @@ radv_meta_restore(const struct radv_meta_saved_state *state,
 		cmd_buffer->state.attachments = state->attachments;
 		cmd_buffer->state.render_area = state->render_area;
 		if (state->subpass)
-			radv_emit_framebuffer_state(cmd_buffer);
+			cmd_buffer->state.dirty |= RADV_CMD_DIRTY_FRAMEBUFFER;
 	}
 }
 

@@ -148,8 +148,7 @@ _mesa_CreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
       _mesa_debug(ctx, "%s(%d, %p)", func, n, memoryObjects);
 
    if (!ctx->Extensions.EXT_memory_object) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glCreateMemoryObjectsEXT(unsupported)");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
 
@@ -195,9 +194,10 @@ _mesa_MemoryObjectParameterivEXT(GLuint memoryObject,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_memory_object *memObj;
 
+   const char *func = "glMemoryObjectParameterivEXT";
+
    if (!ctx->Extensions.EXT_memory_object) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glMemoryObjectParameterivEXT(unsupported)");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
 
@@ -206,8 +206,7 @@ _mesa_MemoryObjectParameterivEXT(GLuint memoryObject,
       return;
 
    if (memObj->Immutable) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glMemoryObjectParameterivEXT(memoryObject is immutable");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(memoryObject is immutable", func);
       return;
    }
 
@@ -224,8 +223,7 @@ _mesa_MemoryObjectParameterivEXT(GLuint memoryObject,
    return;
 
 invalid_pname:
-   _mesa_error(ctx, GL_INVALID_ENUM,
-               "glMemoryObjectParameterivEXT(pname=0x%x)", pname);
+   _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=0x%x)", func, pname);
 }
 
 void GLAPIENTRY
@@ -236,9 +234,10 @@ _mesa_GetMemoryObjectParameterivEXT(GLuint memoryObject,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_memory_object *memObj;
 
+   const char *func = "glMemoryObjectParameterivEXT";
+
    if (!ctx->Extensions.EXT_memory_object) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetMemoryObjectParameterivEXT(unsupported)");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
 
@@ -259,8 +258,7 @@ _mesa_GetMemoryObjectParameterivEXT(GLuint memoryObject,
    return;
 
 invalid_pname:
-   _mesa_error(ctx, GL_INVALID_ENUM,
-               "glGetMemoryObjectParameterivEXT(pname=0x%x)", pname);
+   _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=0x%x)", func, pname);
 }
 
 static struct gl_memory_object *
@@ -611,15 +609,15 @@ _mesa_ImportMemoryFdEXT(GLuint memory,
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   const char *func = "glImportMemoryFdEXT";
+
    if (!ctx->Extensions.EXT_memory_object_fd) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glImportMemoryFdEXT(unsupported)");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
 
    if (handleType != GL_HANDLE_TYPE_OPAQUE_FD_EXT) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glImportMemoryFdEXT(handleType=%u)",
-                  handleType);
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(handleType=%u)", func, handleType);
       return;
    }
 

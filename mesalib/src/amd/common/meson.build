@@ -59,5 +59,4 @@ libamd_common = static_library(
                   dep_valgrind],
   c_args : [c_vis_args],
   cpp_args : [cpp_vis_args],
-  build_by_default : false,
 )

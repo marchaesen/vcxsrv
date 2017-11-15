@@ -197,7 +197,6 @@ typedef struct glamor_screen_private {
     Bool has_unpack_subimage;
     Bool has_rw_pbo;
     Bool use_quads;
-    Bool has_vertex_array_object;
     Bool has_dual_blend;
     Bool has_texture_swizzle;
     Bool is_core_profile;

@@ -360,8 +360,20 @@ st_release_cp_variants(struct st_context *st, struct st_compute_program *stcp)
    *variants = NULL;
 
    if (stcp->tgsi.prog) {
-      ureg_free_tokens(stcp->tgsi.prog);
-      stcp->tgsi.prog = NULL;
+      switch (stcp->tgsi.ir_type) {
+      case PIPE_SHADER_IR_TGSI:
+         ureg_free_tokens(stcp->tgsi.prog);
+         stcp->tgsi.prog = NULL;
+         break;
+      case PIPE_SHADER_IR_NIR:
+         /* pipe driver took ownership of prog */
+         break;
+      case PIPE_SHADER_IR_LLVM:
+      case PIPE_SHADER_IR_NATIVE:
+         /* ??? */
+         stcp->tgsi.prog = NULL;
+         break;
+      }
    }
 }
 
@@ -1306,79 +1318,19 @@ st_translate_program_common(struct st_context *st,
     * Convert Mesa program inputs to TGSI input register semantics.
     */
    for (attr = 0; attr < VARYING_SLOT_MAX; attr++) {
-      if ((prog->info.inputs_read & BITFIELD64_BIT(attr)) != 0) {
-         const GLuint slot = num_inputs++;
+      if ((prog->info.inputs_read & BITFIELD64_BIT(attr)) == 0)
+         continue;
 
-         inputMapping[attr] = slot;
-         inputSlotToAttr[slot] = attr;
+      unsigned slot = num_inputs++;
 
-         switch (attr) {
-         case VARYING_SLOT_PRIMITIVE_ID:
-            assert(tgsi_processor == PIPE_SHADER_GEOMETRY);
-            input_semantic_name[slot] = TGSI_SEMANTIC_PRIMID;
-            input_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_POS:
-            input_semantic_name[slot] = TGSI_SEMANTIC_POSITION;
-            input_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_COL0:
-            input_semantic_name[slot] = TGSI_SEMANTIC_COLOR;
-            input_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_COL1:
-            input_semantic_name[slot] = TGSI_SEMANTIC_COLOR;
-            input_semantic_index[slot] = 1;
-            break;
-         case VARYING_SLOT_FOGC:
-            input_semantic_name[slot] = TGSI_SEMANTIC_FOG;
-            input_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_CLIP_VERTEX:
-            input_semantic_name[slot] = TGSI_SEMANTIC_CLIPVERTEX;
-            input_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_CLIP_DIST0:
-            input_semantic_name[slot] = TGSI_SEMANTIC_CLIPDIST;
-            input_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_CLIP_DIST1:
-            input_semantic_name[slot] = TGSI_SEMANTIC_CLIPDIST;
-            input_semantic_index[slot] = 1;
-            break;
-         case VARYING_SLOT_CULL_DIST0:
-         case VARYING_SLOT_CULL_DIST1:
-            /* these should have been lowered by GLSL */
-            assert(0);
-            break;
-         case VARYING_SLOT_PSIZ:
-            input_semantic_name[slot] = TGSI_SEMANTIC_PSIZE;
-            input_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_TEX0:
-         case VARYING_SLOT_TEX1:
-         case VARYING_SLOT_TEX2:
-         case VARYING_SLOT_TEX3:
-         case VARYING_SLOT_TEX4:
-         case VARYING_SLOT_TEX5:
-         case VARYING_SLOT_TEX6:
-         case VARYING_SLOT_TEX7:
-            if (st->needs_texcoord_semantic) {
-               input_semantic_name[slot] = TGSI_SEMANTIC_TEXCOORD;
-               input_semantic_index[slot] = attr - VARYING_SLOT_TEX0;
-               break;
-            }
-            /* fall through */
-         case VARYING_SLOT_VAR0:
-         default:
-            assert(attr >= VARYING_SLOT_VAR0 ||
-                   (attr >= VARYING_SLOT_TEX0 && attr <= VARYING_SLOT_TEX7));
-            input_semantic_name[slot] = TGSI_SEMANTIC_GENERIC;
-            input_semantic_index[slot] =
-               st_get_generic_varying_index(st, attr);
-            break;
-         }
-      }
+      inputMapping[attr] = slot;
+      inputSlotToAttr[slot] = attr;
+
+      unsigned semantic_name, semantic_index;
+      tgsi_get_gl_varying_semantic(attr, st->needs_texcoord_semantic,
+                                   &semantic_name, &semantic_index);
+      input_semantic_name[slot] = semantic_name;
+      input_semantic_index[slot] = semantic_index;
    }
 
    /* Also add patch inputs. */
@@ -1410,97 +1362,11 @@ st_translate_program_common(struct st_context *st,
 
          outputMapping[attr] = slot;
 
-         switch (attr) {
-         case VARYING_SLOT_POS:
-            assert(slot == 0);
-            output_semantic_name[slot] = TGSI_SEMANTIC_POSITION;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_COL0:
-            output_semantic_name[slot] = TGSI_SEMANTIC_COLOR;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_COL1:
-            output_semantic_name[slot] = TGSI_SEMANTIC_COLOR;
-            output_semantic_index[slot] = 1;
-            break;
-         case VARYING_SLOT_BFC0:
-            output_semantic_name[slot] = TGSI_SEMANTIC_BCOLOR;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_BFC1:
-            output_semantic_name[slot] = TGSI_SEMANTIC_BCOLOR;
-            output_semantic_index[slot] = 1;
-            break;
-         case VARYING_SLOT_FOGC:
-            output_semantic_name[slot] = TGSI_SEMANTIC_FOG;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_PSIZ:
-            output_semantic_name[slot] = TGSI_SEMANTIC_PSIZE;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_CLIP_VERTEX:
-            output_semantic_name[slot] = TGSI_SEMANTIC_CLIPVERTEX;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_CLIP_DIST0:
-            output_semantic_name[slot] = TGSI_SEMANTIC_CLIPDIST;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_CLIP_DIST1:
-            output_semantic_name[slot] = TGSI_SEMANTIC_CLIPDIST;
-            output_semantic_index[slot] = 1;
-            break;
-         case VARYING_SLOT_CULL_DIST0:
-         case VARYING_SLOT_CULL_DIST1:
-            /* these should have been lowered by GLSL */
-            assert(0);
-            break;
-         case VARYING_SLOT_LAYER:
-            output_semantic_name[slot] = TGSI_SEMANTIC_LAYER;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_PRIMITIVE_ID:
-            output_semantic_name[slot] = TGSI_SEMANTIC_PRIMID;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_VIEWPORT:
-            output_semantic_name[slot] = TGSI_SEMANTIC_VIEWPORT_INDEX;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_TESS_LEVEL_OUTER:
-            output_semantic_name[slot] = TGSI_SEMANTIC_TESSOUTER;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_TESS_LEVEL_INNER:
-            output_semantic_name[slot] = TGSI_SEMANTIC_TESSINNER;
-            output_semantic_index[slot] = 0;
-            break;
-         case VARYING_SLOT_TEX0:
-         case VARYING_SLOT_TEX1:
-         case VARYING_SLOT_TEX2:
-         case VARYING_SLOT_TEX3:
-         case VARYING_SLOT_TEX4:
-         case VARYING_SLOT_TEX5:
-         case VARYING_SLOT_TEX6:
-         case VARYING_SLOT_TEX7:
-            if (st->needs_texcoord_semantic) {
-               output_semantic_name[slot] = TGSI_SEMANTIC_TEXCOORD;
-               output_semantic_index[slot] = attr - VARYING_SLOT_TEX0;
-               break;
-            }
-            /* fall through */
-         case VARYING_SLOT_VAR0:
-         default:
-            assert(slot < ARRAY_SIZE(output_semantic_name));
-            assert(attr >= VARYING_SLOT_VAR0 ||
-                   (attr >= VARYING_SLOT_TEX0 && attr <= VARYING_SLOT_TEX7));
-            output_semantic_name[slot] = TGSI_SEMANTIC_GENERIC;
-            output_semantic_index[slot] =
-               st_get_generic_varying_index(st, attr);
-            break;
-         }
+         unsigned semantic_name, semantic_index;
+         tgsi_get_gl_varying_semantic(attr, st->needs_texcoord_semantic,
+                                      &semantic_name, &semantic_index);
+         output_semantic_name[slot] = semantic_name;
+         output_semantic_index[slot] = semantic_index;
       }
    }
 
