@@ -145,23 +145,36 @@ enum {
 
 struct glsl_type {
    GLenum gl_type;
-   glsl_base_type base_type;
+   glsl_base_type base_type:8;
+
+   glsl_base_type sampled_type:8; /**< Type of data returned using this
+                                   * sampler or image.  Only \c
+                                   * GLSL_TYPE_FLOAT, \c GLSL_TYPE_INT,
+                                   * and \c GLSL_TYPE_UINT are valid.
+                                   */
 
    unsigned sampler_dimensionality:4; /**< \see glsl_sampler_dim */
    unsigned sampler_shadow:1;
    unsigned sampler_array:1;
-   unsigned sampled_type:2;    /**< Type of data returned using this
-				* sampler or image.  Only \c
-				* GLSL_TYPE_FLOAT, \c GLSL_TYPE_INT,
-				* and \c GLSL_TYPE_UINT are valid.
-				*/
    unsigned interface_packing:2;
    unsigned interface_row_major:1;
 
+private:
+   glsl_type()
+   {
+      // Dummy constructor, just for the sake of ASSERT_BITFIELD_SIZE.
+   }
+
+public:
    /* Callers of this ralloc-based new need not call delete. It's
     * easier to just ralloc_free 'mem_ctx' (or any of its ancestors). */
    static void* operator new(size_t size)
    {
+      ASSERT_BITFIELD_SIZE(glsl_type, base_type, GLSL_TYPE_ERROR);
+      ASSERT_BITFIELD_SIZE(glsl_type, sampled_type, GLSL_TYPE_ERROR);
+      ASSERT_BITFIELD_SIZE(glsl_type, sampler_dimensionality,
+                           GLSL_SAMPLER_DIM_SUBPASS_MS);
+
       mtx_lock(&glsl_type::mem_mutex);
 
       /* mem_ctx should have been created by the static members */
@@ -874,7 +887,7 @@ private:
    /** Constructor for sampler or image types */
    glsl_type(GLenum gl_type, glsl_base_type base_type,
 	     enum glsl_sampler_dim dim, bool shadow, bool array,
-	     unsigned type, const char *name);
+	     glsl_base_type type, const char *name);
 
    /** Constructor for record types */
    glsl_type(const glsl_struct_field *fields, unsigned num_fields,

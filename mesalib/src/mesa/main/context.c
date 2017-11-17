@@ -390,7 +390,7 @@ one_time_init( struct gl_context *ctx )
 
       _mesa_locale_init();
 
-      _mesa_one_time_init_extension_overrides();
+      _mesa_one_time_init_extension_overrides(ctx);
 
       _mesa_get_cpu_features();
 
@@ -1575,8 +1575,6 @@ handle_first_current(struct gl_context *ctx)
       /* probably in the process of tearing down the context */
       return;
    }
-
-   ctx->Extensions.String = _mesa_make_extension_string(ctx);
 
    check_context_limits(ctx);
 

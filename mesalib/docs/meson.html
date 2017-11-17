@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Compilation and Installation using Meson</title>
+  <link rel="stylesheet" type="text/css" href="mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="contents.html"></iframe>
+<div class="content">
+
+<h1>Compilation and Installation using Meson</h1>
+
+<h2 id="basic">1. Basic Usage</h2>
+
+<p><strong>The Meson build system for Mesa is still under active development,
+and should not be used in production environments.</strong></p>
+
+<p>The meson build is currently only tested on linux, and is known to not work
+on macOS, Windows, and haiku. This will be fixed.</p>
+
+<p>
+The meson program is used to configure the source directory and generates
+either a ninja build file or Visual Studio® build files. The latter must
+be enabled via the --backend switch, as ninja is the default backend on all
+operating systems. Meson only supports out-of-tree builds, and must be passed a
+directory to put built and generated sources into. We'll call that directory
+"build" for examples.
+</p>
+
+<pre>
+    meson build/
+</pre>
+
+<p>
+To see a description of your options you can run <code>meson configure</code>
+along with a build directory to view the selected options for. This will show
+your meson global arguments and project arguments, along with their defaults
+and your local settings.
+
+Moes does not currently support listing options before configure a build
+directory, but this feature is being discussed upstream.
+</p>
+
+<pre>
+    meson configure build/
+</pre>
+
+<p>
+With additional arguments <code>meson configure</code> is used to change
+options on already configured build directory. All options passed to this
+command are in the form -D "command"="value".
+</p>
+
+<pre>
+    meson configure build/ -Dprefix=/tmp/install -Dglx=true
+</pre>
+
+<p>
+Once you've run the initial <code>meson</code> command successfully you can use
+your configured backend to build the project. With ninja, the -C option can be
+be used to point at a directory to build.
+</p>
+
+<pre>
+    ninja -C build/
+</pre>
+
+<p>
+Without arguments, it will produce libGL.so and/or several other libraries
+depending on the options you have chosen. Later, if you want to rebuild for a
+different configuration, you should run <code>ninja clean</code> before
+changing the configuration, or create a new out of tree build directory for
+each configuration you want to build.
+
+http://mesonbuild.com/Using-multiple-build-directories.html
+</p>
+
+<dt><code>Environment Variables</code></dt>
+<dd><p>Meson supports the standard CC and CXX envrionment variables for
+changing the default compiler, and CFLAGS, CXXFLAGS, and LDFLAGS for setting
+options to the compiler and linker.
+
+The default compilers depends on your operating system. Meson supports most of
+the popular compilers, a complete list is available
+<a href="http://mesonbuild.com/Reference-tables.html#compiler-ids">here</a>.
+
+These arguments are consumed and stored by meson when it is initialized or
+re-initialized. Therefore passing them to meson configure will not do anything,
+and passing them to ninja will only do something if ninja decides to
+re-initialze meson, for example, if a meson.build file has been changed.
+Changing these variables will not cause all targets to be rebuilt, so running
+ninja clean is recomended when changing CFLAGS or CXXFLAGS. meson will never
+change compiler in a configured build directory.
+</p>
+
+<pre>
+    CC=clang CXX=clang++ meson build-clang
+    ninja -C build-clang
+    ninja -C build-clang clean
+    touch meson.build
+    CFLAGS=-Wno-typedef-redefinition ninja -C build-clang
+</pre>
+
+<p>Meson also honors DESTDIR for installs</p>
+</dd>
+
+
+<dt><code>LLVM</code></dt>
+<dd><p>Meson includes upstream logic to wrap llvm-config using it's standard
+dependncy interface. It will search $PATH (or %PATH% on windows) for
+llvm-config, so using an LLVM from a non-standard path is as easy as
+<code>PATH=/path/with/llvm-config:$PATH meson build</code>.
+</p></dd>
+</dl>
+
+<dt><code>PKG_CONFIG_PATH</code></dt>
+<dd><p>The
+<code>pkg-config</code> utility is a hard requirement for configuring and
+building Mesa on Linux and *BSD. It is used to search for external libraries
+on the system. This environment variable is used to control the search
+path for <code>pkg-config</code>. For instance, setting
+<code>PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig</code> will search for
+package metadata in <code>/usr/X11R6</code> before the standard
+directories.</p>
+</dd>
+</dl>
+
+<p>
+One of the oddities of meson is that some options are different when passed to
+the <code>meson</code> than to <code>meson configure</code>. These options are
+passed as --option=foo to <code>meson</code>, but -Doption=foo to <code>meson
+configure</code>. Mesa defined options are always passed as -Doption=foo.
+<p>
+
+<p>For those coming from autotools be aware of the following:</p>
+
+<dl>
+<dt><code>--buildtype/-Dbuildtype</code></dt>
+<dd><p>This option will set the compiler debug/optimisation levels to aid
+debugging the Mesa libraries.</p>
+
+<p>Note that in meson this defaults to "debugoptimized", and  not setting it to
+"release" will yield non-optimal performance and binary size. Not using "debug"
+may interfer with debbugging as some code and validation will be optimized
+away.
+</p>
+
+<p> For those wishing to pass their own -O option, use the "plain" buildtype,
+which cuases meson to inject no additional compiler arguments, only those in
+the C/CXXFLAGS and those that mesa itself defines.</p>
+</dd>
+</dl>
+
+<dl>
+<dt><code>-Db_ndebug</code></dt>
+<dd><p>This option controls assertions in meson projects. When set to false
+(the default) assertions are enabled, when set to true they are disabled. This
+is unrelated to the <code>buildtype</code>; setting the latter to
+<code>release</code> will not turn off assertions.
+</p>
+</dd>
+</dl>

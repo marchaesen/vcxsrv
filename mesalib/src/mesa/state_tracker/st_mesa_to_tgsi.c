@@ -164,8 +164,8 @@ src_register(struct st_translate *t,
 /**
  * Map mesa texture target to TGSI texture target.
  */
-unsigned
-st_translate_texture_target(GLuint textarget, GLboolean shadow)
+enum tgsi_texture_type
+st_translate_texture_target(gl_texture_index textarget, GLboolean shadow)
 {
    if (shadow) {
       switch (textarget) {
@@ -223,7 +223,7 @@ st_translate_texture_target(GLuint textarget, GLboolean shadow)
 /**
  * Map GLSL base type to TGSI return type.
  */
-unsigned
+enum tgsi_return_type
 st_translate_texture_type(enum glsl_base_type type)
 {
    switch (type) {

@@ -122,7 +122,6 @@ struct nir_to_llvm_context {
 	LLVMValueRef gs2vs_offset;
 	LLVMValueRef gs_wave_id;
 	LLVMValueRef gs_vtx_offset[6];
-	LLVMValueRef gs_prim_id, gs_invocation_id;
 
 	LLVMValueRef esgs_ring;
 	LLVMValueRef gsvs_ring;
@@ -826,8 +825,8 @@ static void create_function(struct nir_to_llvm_context *ctx,
 
 			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_vtx_offset[0]); // vtx01
 			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_vtx_offset[2]); // vtx23
-			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_prim_id); // prim id
-			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_invocation_id);
+			add_vgpr_argument(&args, ctx->ac.i32, &ctx->abi.gs_prim_id); // prim id
+			add_vgpr_argument(&args, ctx->ac.i32, &ctx->abi.gs_invocation_id);
 			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_vtx_offset[4]);
 
 			if (previous_stage == MESA_SHADER_VERTEX) {
@@ -852,12 +851,12 @@ static void create_function(struct nir_to_llvm_context *ctx,
 			add_sgpr_argument(&args, ctx->ac.i32, &ctx->gs_wave_id); // wave id
 			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_vtx_offset[0]); // vtx0
 			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_vtx_offset[1]); // vtx1
-			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_prim_id); // prim id
+			add_vgpr_argument(&args, ctx->ac.i32, &ctx->abi.gs_prim_id); // prim id
 			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_vtx_offset[2]);
 			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_vtx_offset[3]);
 			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_vtx_offset[4]);
 			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_vtx_offset[5]);
-			add_vgpr_argument(&args, ctx->ac.i32, &ctx->gs_invocation_id);
+			add_vgpr_argument(&args, ctx->ac.i32, &ctx->abi.gs_invocation_id);
 		}
 		break;
 	case MESA_SHADER_FRAGMENT:
@@ -4058,12 +4057,13 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		if (ctx->stage == MESA_SHADER_TESS_CTRL)
 			result = unpack_param(&ctx->ac, ctx->nctx->tcs_rel_ids, 8, 5);
 		else
-			result = ctx->nctx->gs_invocation_id;
+			result = ctx->abi->gs_invocation_id;
 		break;
 	case nir_intrinsic_load_primitive_id:
 		if (ctx->stage == MESA_SHADER_GEOMETRY) {
-			ctx->nctx->shader_info->gs.uses_prim_id = true;
-			result = ctx->nctx->gs_prim_id;
+			if (ctx->nctx)
+				ctx->nctx->shader_info->gs.uses_prim_id = true;
+			result = ctx->abi->gs_prim_id;
 		} else if (ctx->stage == MESA_SHADER_TESS_CTRL) {
 			ctx->nctx->shader_info->tcs.uses_prim_id = true;
 			result = ctx->nctx->tcs_patch_id;

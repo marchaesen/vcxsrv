@@ -127,13 +127,13 @@ public:
    unsigned is_64bit_expanded:1;
    unsigned sampler_base:5;
    unsigned sampler_array_size:6; /**< 1-based size of sampler array, 1 if not array */
-   unsigned tex_target:4; /**< One of TEXTURE_*_INDEX */
+   gl_texture_index tex_target:5;
    glsl_base_type tex_type:5;
    unsigned tex_shadow:1;
-   unsigned image_format:9;
+   enum pipe_format image_format:10;
    unsigned tex_offset_num_offset:3;
    unsigned dead_mask:4; /**< Used in dead code elimination */
-   unsigned buffer_access:3; /**< buffer access type */
+   unsigned buffer_access:3; /**< bitmask of TGSI_MEMORY_x bits */
 
    const struct tgsi_opcode_info *info;
 };

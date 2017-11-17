@@ -332,6 +332,22 @@ struct pipe_context {
                               const struct pipe_shader_buffer *buffers);
 
    /**
+    * Bind an array of hw atomic buffers for use by all shaders.
+    * And buffers that were previously bound to the specified range
+    * will be unbound.
+    *
+    * \param start_slot first buffer slot to bind.
+    * \param count      number of consecutive buffers to bind.
+    * \param buffers    array of pointers to the buffers to bind, it
+    *                   should contain at least \a count elements
+    *                   unless it's NULL, in which case no buffers will
+    *                   be bound.
+    */
+   void (*set_hw_atomic_buffers)(struct pipe_context *,
+                                 unsigned start_slot, unsigned count,
+                                 const struct pipe_shader_buffer *buffers);
+
+   /**
     * Bind an array of images that will be used by a shader.
     * Any images that were previously bound to the specified range
     * will be unbound.
@@ -469,7 +485,13 @@ struct pipe_context {
                         int clear_value_size);
 
    /**
-    * Flush draw commands
+    * Flush draw commands.
+    *
+    * This guarantees that the new fence (if any) will finish in finite time,
+    * unless PIPE_FLUSH_DEFERRED is used.
+    *
+    * Subsequent operations on other contexts of the same screen are guaranteed
+    * to execute after the flushed commands, unless PIPE_FLUSH_ASYNC is used.
     *
     * NOTE: use screen->fence_reference() (or equivalent) to transfer
     * new fence ref to **fence, to ensure that previous fence is unref'd
@@ -508,6 +530,16 @@ struct pipe_context {
                                                      struct pipe_resource *texture,
                                                      const struct pipe_sampler_view *templat);
 
+   /**
+    * Destroy a view on a texture.
+    *
+    * \param ctx the current context
+    * \param view the view to be destroyed
+    *
+    * \note The current context may not be the context in which the view was
+    *       created (view->context). However, the caller must guarantee that
+    *       the context which created the view is still alive.
+    */
    void (*sampler_view_destroy)(struct pipe_context *ctx,
                                 struct pipe_sampler_view *view);
 
@@ -839,6 +871,17 @@ struct pipe_context {
     */
    void (*make_image_handle_resident)(struct pipe_context *ctx, uint64_t handle,
                                       unsigned access, bool resident);
+
+   /**
+    * Call the given function from the driver thread.
+    *
+    * This is set by threaded contexts for use by debugging wrappers.
+    *
+    * \param asap if true, run the callback immediately if there are no pending
+    *             commands to be processed by the driver thread
+    */
+   void (*callback)(struct pipe_context *ctx, void (*fn)(void *), void *data,
+                    bool asap);
 };
 
 

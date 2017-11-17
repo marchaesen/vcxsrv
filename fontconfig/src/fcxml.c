@@ -3254,7 +3254,7 @@ FcConfigParseAndLoadFromMemoryInternal (FcConfig       *config,
 	return FcFalse;
     len = strlen ((const char *) buffer);
     if (FcDebug () & FC_DBG_CONFIG)
-	printf ("\tLoading config file from %s\n", filename);
+	printf ("\t%s config file from %s\n", load ? "Loading" : "Scanning", filename);
 
 #ifdef ENABLE_LIBXML2
     memset(&sax, 0, sizeof(sax));
@@ -3348,7 +3348,7 @@ bail2:
 bail1:
     if (error && complain)
     {
-	FcConfigMessage (0, FcSevereError, "Cannot load config file from %s", filename);
+	FcConfigMessage (0, FcSevereError, "Cannot %s config file from %s", load ? "load" : "scan", filename);
 	return FcFalse;
     }
     return FcTrue;
@@ -3442,9 +3442,9 @@ bail0:
     if (!ret && complain)
     {
 	if (name)
-	    FcConfigMessage (0, FcSevereError, "Cannot load config file \"%s\"", name);
+	    FcConfigMessage (0, FcSevereError, "Cannot %s config file \"%s\"", load ? "load" : "scan", name);
 	else
-	    FcConfigMessage (0, FcSevereError, "Cannot load default config file");
+	    FcConfigMessage (0, FcSevereError, "Cannot %s default config file", load ? "load" : "scan");
 	return FcFalse;
     }
     return FcTrue;

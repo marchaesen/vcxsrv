@@ -578,7 +578,7 @@ foreach h : ['xlocale.h', 'sys/sysctl.h', 'linux/futex.h']
   endif
 endforeach
 
-foreach f : ['strtof', 'mkostemp', 'posix_memalign']
+foreach f : ['strtof', 'mkostemp', 'posix_memalign', 'timespec_get']
   if cc.has_function(f)
     pre_args += '-DHAVE_@0@'.format(f.to_upper())
   endif
@@ -668,7 +668,7 @@ endif
 # TODO: some of these may be conditional
 dep_zlib = dependency('zlib', version : '>= 1.2.3')
 dep_thread = dependency('threads')
-if dep_thread.found() and host_machine.system() == 'linux'
+if dep_thread.found() and host_machine.system() != 'windows'
   pre_args += '-DHAVE_PTHREAD'
 endif
 dep_elf = dependency('libelf', required : false)

@@ -196,7 +196,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	if (strcmp(version->name, "amdgpu")) {
 		drmFreeVersion(version);
 		close(fd);
-		return vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
+		return VK_ERROR_INCOMPATIBLE_DRIVER;
 	}
 	drmFreeVersion(version);
 

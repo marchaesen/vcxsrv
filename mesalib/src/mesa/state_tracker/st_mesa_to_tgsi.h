@@ -30,6 +30,7 @@
 #define ST_MESA_TO_TGSI_H
 
 #include "main/glheader.h"
+#include "main/mtypes.h"
 
 #include "pipe/p_compiler.h"
 #include "pipe/p_defines.h"
@@ -62,10 +63,10 @@ st_translate_mesa_program(
    const ubyte outputSemanticName[],
    const ubyte outputSemanticIndex[]);
 
-unsigned
-st_translate_texture_target(GLuint textarget, GLboolean shadow);
+enum tgsi_texture_type
+st_translate_texture_target(gl_texture_index textarget, GLboolean shadow);
 
-unsigned
+enum tgsi_return_type
 st_translate_texture_type(enum glsl_base_type type);
 
 #if defined __cplusplus

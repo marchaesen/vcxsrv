@@ -51,6 +51,12 @@ It's the fastest software rasterizer for Mesa.
      aptitude install llvm-dev
 </pre>
    <p>
+   If you want development snaptshot builds of LLVM for Debian and derived
+   distributions like Ubuntu, you can use the APT repository at <a
+   href="https://apt.llvm.org/" title="Debian Development packages for LLVM"
+   >apt.llvm.org</a>, which are maintained by Debian's LLVM maintainer.
+   </p>
+   <p>
    For a RPM-based distribution do:
    </p>
 <pre>
@@ -108,10 +114,10 @@ To build everything on Linux invoke scons as:
   scons build=debug libgl-xlib
 </pre>
 
-Alternatively, you can build it with GNU make, if you prefer, by invoking it as
-
+Alternatively, you can build it with autoconf/make with:
 <pre>
-  make linux-llvm
+  ./configure --enable-glx=gallium-xlib --with-gallium-drivers=swrast --disable-dri --disable-gbm --disable-egl
+  make
 </pre>
 
 but the rest of these instructions assume that scons is used.

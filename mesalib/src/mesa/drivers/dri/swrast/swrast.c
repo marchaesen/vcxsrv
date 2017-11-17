@@ -817,6 +817,7 @@ dri_create_context(gl_api api,
     _mesa_meta_init(mesaCtx);
     _mesa_enable_sw_extensions(mesaCtx);
 
+   _mesa_override_extensions(mesaCtx);
     _mesa_compute_version(mesaCtx);
 
     _mesa_initialize_dispatch_tables(mesaCtx);

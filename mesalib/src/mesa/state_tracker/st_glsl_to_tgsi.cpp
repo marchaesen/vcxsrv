@@ -189,10 +189,10 @@ public:
    int num_address_regs;
    uint32_t samplers_used;
    glsl_base_type sampler_types[PIPE_MAX_SAMPLERS];
-   int sampler_targets[PIPE_MAX_SAMPLERS];   /**< One of TGSI_TEXTURE_* */
+   enum tgsi_texture_type sampler_targets[PIPE_MAX_SAMPLERS];
    int images_used;
    int image_targets[PIPE_MAX_SHADER_IMAGES];
-   unsigned image_formats[PIPE_MAX_SHADER_IMAGES];
+   enum pipe_format image_formats[PIPE_MAX_SHADER_IMAGES];
    bool indirect_addr_consts;
    int wpos_transform_const;
 
@@ -2128,10 +2128,10 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
 
    case ir_unop_get_buffer_size: {
       ir_constant *const_offset = ir->operands[0]->as_constant();
+      int buf_base = ctx->st->has_hw_atomics ? 0 : ctx->Const.Program[shader->Stage].MaxAtomicBuffers;
       st_src_reg buffer(
             PROGRAM_BUFFER,
-            ctx->Const.Program[shader->Stage].MaxAtomicBuffers +
-            (const_offset ? const_offset->value.u[0] : 0),
+            buf_base + (const_offset ? const_offset->value.u[0] : 0),
             GLSL_TYPE_UINT);
       if (!const_offset) {
          buffer.reladdr = ralloc(mem_ctx, st_src_reg);
@@ -3352,11 +3352,10 @@ glsl_to_tgsi_visitor::visit_ssbo_intrinsic(ir_call *ir)
    ir_rvalue *offset = ((ir_instruction *)param)->as_rvalue();
 
    ir_constant *const_block = block->as_constant();
-
+   int buf_base = st_context(ctx)->has_hw_atomics ? 0 : ctx->Const.Program[shader->Stage].MaxAtomicBuffers;
    st_src_reg buffer(
          PROGRAM_BUFFER,
-         ctx->Const.Program[shader->Stage].MaxAtomicBuffers +
-         (const_block ? const_block->value.u[0] : 0),
+         buf_base + (const_block ? const_block->value.u[0] : 0),
          GLSL_TYPE_UINT);
 
    if (!const_block) {
@@ -6230,6 +6229,15 @@ st_translate_program(
    assert(numInputs <= ARRAY_SIZE(t->inputs));
    assert(numOutputs <= ARRAY_SIZE(t->outputs));
 
+   ASSERT_BITFIELD_SIZE(st_src_reg, type, GLSL_TYPE_ERROR);
+   ASSERT_BITFIELD_SIZE(st_dst_reg, type, GLSL_TYPE_ERROR);
+   ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, image_format, PIPE_FORMAT_COUNT);
+   ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, tex_target,
+                        (gl_texture_index) (NUM_TEXTURE_TARGETS - 1));
+   ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, image_format,
+                        (enum pipe_format) (PIPE_FORMAT_COUNT - 1));
+   ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, op, TGSI_OPCODE_LAST - 1);
+
    t = CALLOC_STRUCT(st_translate);
    if (!t) {
       ret = PIPE_ERROR_OUT_OF_MEMORY;
@@ -6550,7 +6558,8 @@ st_translate_program(
    /* texture samplers */
    for (i = 0; i < frag_const->MaxTextureImageUnits; i++) {
       if (program->samplers_used & (1u << i)) {
-         unsigned type = st_translate_texture_type(program->sampler_types[i]);
+         enum tgsi_return_type type =
+            st_translate_texture_type(program->sampler_types[i]);
 
          t->samplers[i] = ureg_DECL_sampler(ureg, i);
 
@@ -6581,7 +6590,10 @@ st_translate_program(
 
       assert(prog->info.num_ssbos <= frag_const->MaxShaderStorageBlocks);
       for (i = 0; i < prog->info.num_ssbos; i++) {
-         unsigned index = frag_const->MaxAtomicBuffers + i;
+         unsigned index = i;
+         if (!st_context(ctx)->has_hw_atomics)
+            index += frag_const->MaxAtomicBuffers;
+
          t->buffers[index] = ureg_DECL_buffer(ureg, index, false);
       }
    }
