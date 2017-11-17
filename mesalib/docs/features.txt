@@ -146,19 +146,19 @@ GL 4.1, GLSL 4.10 --- all DONE: i965/gen7+, nvc0, r600, radeonsi
   GL_ARB_viewport_array                                 DONE (i965, nv50, llvmpipe, softpipe)
 
 
-GL 4.2, GLSL 4.20 -- all DONE: i965/gen7+, nvc0, radeonsi
+GL 4.2, GLSL 4.20 -- all DONE: i965/gen7+, nvc0, r600, radeonsi
 
-  GL_ARB_texture_compression_bptc                       DONE (i965, r600)
+  GL_ARB_texture_compression_bptc                       DONE (i965)
   GL_ARB_compressed_texture_pixel_storage               DONE (all drivers)
-  GL_ARB_shader_atomic_counters                         DONE (i965, r600, softpipe)
+  GL_ARB_shader_atomic_counters                         DONE (i965, softpipe)
   GL_ARB_texture_storage                                DONE (all drivers)
-  GL_ARB_transform_feedback_instanced                   DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
-  GL_ARB_base_instance                                  DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
+  GL_ARB_transform_feedback_instanced                   DONE (i965, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_base_instance                                  DONE (i965, nv50, llvmpipe, softpipe, swr)
   GL_ARB_shader_image_load_store                        DONE (i965, softpipe)
   GL_ARB_conservative_depth                             DONE (all drivers that support GLSL 1.30)
   GL_ARB_shading_language_420pack                       DONE (all drivers that support GLSL 1.30)
   GL_ARB_shading_language_packing                       DONE (all drivers)
-  GL_ARB_internalformat_query                           DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
+  GL_ARB_internalformat_query                           DONE (i965, nv50, llvmpipe, softpipe, swr)
   GL_ARB_map_buffer_alignment                           DONE (all drivers)
 
 
@@ -178,7 +178,7 @@ GL 4.3, GLSL 4.30 -- all DONE: i965/gen8+, nvc0, radeonsi
   GL_ARB_multi_draw_indirect                            DONE (i965, r600, llvmpipe, softpipe, swr)
   GL_ARB_program_interface_query                        DONE (all drivers)
   GL_ARB_robust_buffer_access_behavior                  DONE (i965)
-  GL_ARB_shader_image_size                              DONE (i965, softpipe)
+  GL_ARB_shader_image_size                              DONE (i965, r600, softpipe)
   GL_ARB_shader_storage_buffer_object                   DONE (i965, softpipe)
   GL_ARB_stencil_texturing                              DONE (i965/hsw+, nv50, r600, llvmpipe, softpipe, swr)
   GL_ARB_texture_buffer_range                           DONE (nv50, i965, r600, llvmpipe)
@@ -247,8 +247,8 @@ GLES3.1, GLSL ES 3.1 -- all DONE: i965/hsw+, nvc0, radeonsi
   GL_ARB_framebuffer_no_attachments                     DONE (i965/gen7+, r600, softpipe)
   GL_ARB_program_interface_query                        DONE (all drivers)
   GL_ARB_shader_atomic_counters                         DONE (i965/gen7+, r600, softpipe)
-  GL_ARB_shader_image_load_store                        DONE (i965/gen7+, softpipe)
-  GL_ARB_shader_image_size                              DONE (i965/gen7+, softpipe)
+  GL_ARB_shader_image_load_store                        DONE (i965/gen7+, r600, softpipe)
+  GL_ARB_shader_image_size                              DONE (i965/gen7+, r600, softpipe)
   GL_ARB_shader_storage_buffer_object                   DONE (i965/gen7+, softpipe)
   GL_ARB_shading_language_packing                       DONE (all drivers)
   GL_ARB_separate_shader_objects                        DONE (all drivers)

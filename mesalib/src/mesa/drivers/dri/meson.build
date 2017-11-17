@@ -58,6 +58,7 @@ if dri_drivers != []
     filebase : 'dri',
     description : 'Direct Rendering Infrastructure',
     version : meson.project_version(),
+    variables : ['dridriverdir=${prefix}/' + dri_drivers_path],
     requires_private : ['libdrm >= 2.4.75'],  # FIXME: don't hardcode this
   )
 

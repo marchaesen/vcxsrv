@@ -143,6 +143,8 @@ _mesa_GetString( GLenum name )
             _mesa_error(ctx, GL_INVALID_ENUM, "glGetString(GL_EXTENSIONS)");
             return (const GLubyte *) 0;
          }
+         if (!ctx->Extensions.String)
+            ctx->Extensions.String = _mesa_make_extension_string(ctx);
          return (const GLubyte *) ctx->Extensions.String;
       case GL_SHADING_LANGUAGE_VERSION:
          if (ctx->API == API_OPENGLES)

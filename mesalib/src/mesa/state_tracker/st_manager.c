@@ -69,7 +69,6 @@ struct st_manager_private
    mtx_t st_mutex;
 };
 
-static void st_manager_destroy(struct st_manager *);
 
 /**
  * Map an attachment to a buffer index.
@@ -107,6 +106,7 @@ attachment_to_buffer_index(enum st_attachment_type statt)
    return index;
 }
 
+
 /**
  * Map a buffer index to an attachment.
  */
@@ -142,6 +142,7 @@ buffer_index_to_attachment(gl_buffer_index index)
    return statt;
 }
 
+
 /**
  * Make sure a context picks up the latest cached state of the
  * drawables it binds to.
@@ -169,6 +170,7 @@ st_context_validate(struct st_context *st,
        st->read_stamp = stread->stamp;
     }
 }
+
 
 /**
  * Validate a framebuffer to make sure up-to-date pipe_textures are used.
@@ -259,6 +261,7 @@ st_framebuffer_validate(struct st_framebuffer *stfb,
    }
 }
 
+
 /**
  * Update the attachments to validate by looping the existing renderbuffers.
  */
@@ -283,6 +286,7 @@ st_framebuffer_update_attachments(struct st_framebuffer *stfb)
    }
    stfb->stamp++;
 }
+
 
 /**
  * Add a renderbuffer to the framebuffer.  The framebuffer is one that
@@ -347,6 +351,7 @@ st_framebuffer_add_renderbuffer(struct st_framebuffer *stfb,
    return TRUE;
 }
 
+
 /**
  * Intialize a struct gl_config from a visual.
  */
@@ -358,6 +363,7 @@ st_visual_to_context_mode(const struct st_visual *visual,
 
    if (st_visual_have_buffers(visual, ST_ATTACHMENT_BACK_LEFT_MASK))
       mode->doubleBufferMode = GL_TRUE;
+
    if (st_visual_have_buffers(visual,
             ST_ATTACHMENT_FRONT_RIGHT_MASK | ST_ATTACHMENT_BACK_RIGHT_MASK))
       mode->stereoMode = GL_TRUE;
@@ -417,6 +423,7 @@ st_visual_to_context_mode(const struct st_visual *visual,
       mode->samples = visual->samples;
    }
 }
+
 
 /**
  * Create a framebuffer from a manager interface.
@@ -491,6 +498,7 @@ st_framebuffer_create(struct st_context *st,
 
    return stfb;
 }
+
 
 /**
  * Reference a framebuffer.
@@ -625,6 +633,7 @@ st_framebuffers_purge(struct st_context *st)
    }
 }
 
+
 static void
 st_context_flush(struct st_context_iface *stctxi, unsigned flags,
                  struct pipe_fence_handle **fence)
@@ -752,6 +761,7 @@ st_context_teximage(struct st_context_iface *stctxi,
    return TRUE;
 }
 
+
 static void
 st_context_copy(struct st_context_iface *stctxi,
                 struct st_context_iface *stsrci, unsigned mask)
@@ -761,6 +771,7 @@ st_context_copy(struct st_context_iface *stctxi,
 
    _mesa_copy_context(src->ctx, st->ctx, mask);
 }
+
 
 static boolean
 st_context_share(struct st_context_iface *stctxi,
@@ -772,12 +783,14 @@ st_context_share(struct st_context_iface *stctxi,
    return _mesa_share_state(st->ctx, src->ctx);
 }
 
+
 static void
 st_context_destroy(struct st_context_iface *stctxi)
 {
    struct st_context *st = (struct st_context *) stctxi;
    st_destroy_context(st);
 }
+
 
 static void
 st_start_thread(struct st_context_iface *stctxi)
@@ -787,6 +800,7 @@ st_start_thread(struct st_context_iface *stctxi)
    _mesa_glthread_init(st->ctx);
 }
 
+
 static void
 st_thread_finish(struct st_context_iface *stctxi)
 {
@@ -794,6 +808,21 @@ st_thread_finish(struct st_context_iface *stctxi)
 
    _mesa_glthread_finish(st->ctx);
 }
+
+
+static void
+st_manager_destroy(struct st_manager *smapi)
+{
+   struct st_manager_private *smPriv = smapi->st_manager_private;
+
+   if (smPriv && smPriv->stfbi_ht) {
+      _mesa_hash_table_destroy(smPriv->stfbi_ht, NULL);
+      mtx_destroy(&smPriv->st_mutex);
+      free(smPriv);
+      smapi->st_manager_private = NULL;
+   }
+}
+
 
 static struct st_context_iface *
 st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
@@ -858,7 +887,8 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    }
 
    st_visual_to_context_mode(&attribs->visual, &mode);
-   st = st_create_context(api, pipe, &mode, shared_ctx, &attribs->options, no_error);
+   st = st_create_context(api, pipe, &mode, shared_ctx,
+                          &attribs->options, no_error);
    if (!st) {
       *error = ST_CONTEXT_ERROR_NO_MEMORY;
       pipe->destroy(pipe);
@@ -922,14 +952,16 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    return &st->iface;
 }
 
+
 static struct st_context_iface *
 st_api_get_current(struct st_api *stapi)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct st_context *st = (ctx) ? ctx->st : NULL;
+   struct st_context *st = ctx ? ctx->st : NULL;
 
-   return (st) ? &st->iface : NULL;
+   return st ? &st->iface : NULL;
 }
+
 
 static struct st_framebuffer *
 st_framebuffer_reuse_or_create(struct st_context *st,
@@ -939,7 +971,7 @@ st_framebuffer_reuse_or_create(struct st_context *st,
    struct st_framebuffer *cur = NULL, *stfb = NULL;
 
    if (!stfbi)
-	return NULL;
+      return NULL;
 
    /* Check if there is already a framebuffer object for the specified
     * framebuffer interface in this context. If there is one, use it.
@@ -973,6 +1005,7 @@ st_framebuffer_reuse_or_create(struct st_context *st,
 
    return stfb;
 }
+
 
 static boolean
 st_api_make_current(struct st_api *stapi, struct st_context_iface *stctxi,
@@ -1032,10 +1065,12 @@ st_api_make_current(struct st_api *stapi, struct st_context_iface *stctxi,
    return ret;
 }
 
+
 static void
 st_api_destroy(struct st_api *stapi)
 {
 }
+
 
 /**
  * Flush the front buffer if the current context renders to the front buffer.
@@ -1047,7 +1082,8 @@ st_manager_flush_frontbuffer(struct st_context *st)
    struct st_renderbuffer *strb = NULL;
 
    if (stfb)
-      strb = st_renderbuffer(stfb->Base.Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
+      strb = st_renderbuffer(stfb->Base.Attachment[BUFFER_FRONT_LEFT].
+                             Renderbuffer);
 
    /* Do we have a front color buffer and has it been drawn to since last
     * frontbuffer flush?
@@ -1061,6 +1097,7 @@ st_manager_flush_frontbuffer(struct st_context *st)
       st->dirty |= ST_NEW_FB_STATE;
    }
 }
+
 
 /**
  * Re-validate the framebuffers.
@@ -1149,18 +1186,6 @@ st_manager_add_color_renderbuffer(struct st_context *st,
    return TRUE;
 }
 
-static void
-st_manager_destroy(struct st_manager *smapi)
-{
-   struct st_manager_private *smPriv = smapi->st_manager_private;
-
-   if (smPriv && smPriv->stfbi_ht) {
-      _mesa_hash_table_destroy(smPriv->stfbi_ht, NULL);
-      mtx_destroy(&smPriv->st_mutex);
-      free(smPriv);
-      smapi->st_manager_private = NULL;
-   }
-}
 
 static unsigned
 get_version(struct pipe_screen *screen,
@@ -1183,6 +1208,7 @@ get_version(struct pipe_screen *screen,
    return _mesa_get_version(&extensions, &consts, api);
 }
 
+
 static void
 st_api_query_versions(struct st_api *stapi, struct st_manager *sm,
                       struct st_config_options *options,
@@ -1196,6 +1222,7 @@ st_api_query_versions(struct st_api *stapi, struct st_manager *sm,
    *gl_es1_version = get_version(sm->screen, options, API_OPENGLES);
    *gl_es2_version = get_version(sm->screen, options, API_OPENGLES2);
 }
+
 
 static const struct st_api st_gl_api = {
    .name = "Mesa " PACKAGE_VERSION,
@@ -1213,6 +1240,7 @@ static const struct st_api st_gl_api = {
    .get_current = st_api_get_current,
    .destroy_drawable = st_api_destroy_drawable,
 };
+
 
 struct st_api *
 st_gl_api_create(void)
