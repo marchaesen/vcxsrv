@@ -301,22 +301,41 @@ static void
 swrastPutImage(__DRIdrawable * draw, int op,
                int x, int y, int w, int h, char *data, void *loaderPrivate)
 {
-    __GLXDRIdrawable *drawable = loaderPrivate;
-    DrawablePtr pDraw = drawable->base.pDraw;
-    GCPtr gc;
-    __GLXcontext *cx = lastGLContext;
+  __GLXDRIdrawable *drawable = loaderPrivate;
+  DrawablePtr pDraw = drawable->base.pDraw;
+  GCPtr gc;
+  __GLXcontext *cx = lastGLContext;
 
-    if ((gc = GetScratchGC(pDraw->depth, pDraw->pScreen))) {
+#ifdef PANORAMIX
+  if (drawable->base.pAll)
+  {
+    int j;
+
+    for(j = screenInfo.numScreens - 1; j >= 0; j--)
+    {
+      pDraw = drawable->base.pAll[j]->pDraw;
+      if ((gc = GetScratchGC(pDraw->depth, screenInfo.screens[j])))
+      {
         ValidateGC(pDraw, gc);
         gc->ops->PutImage(pDraw, gc, pDraw->depth, x, y, w, h, 0, ZPixmap,
                           data);
         FreeScratchGC(gc);
+      }
+    }
+  }
+  else
+#endif
+    if ((gc = GetScratchGC(pDraw->depth, pDraw->pScreen))) {
+      ValidateGC(pDraw, gc);
+      gc->ops->PutImage(pDraw, gc, pDraw->depth, x, y, w, h, 0, ZPixmap,
+                        data);
+      FreeScratchGC(gc);
     }
 
-    if (cx != lastGLContext) {
-        lastGLContext = cx;
-        cx->makeCurrent(cx);
-    }
+  if (cx != lastGLContext) {
+    lastGLContext = cx;
+    cx->makeCurrent(cx);
+  }
 }
 
 static void
@@ -417,7 +436,7 @@ __glXDRIscreenDestroy(__GLXscreen * baseScreen)
     if (screen->driConfigs) {
         for (i = 0; screen->driConfigs[i] != NULL; i++)
             free((__DRIconfig **) screen->driConfigs[i]);
-        free(screen->driConfigs);
+        free((void*)screen->driConfigs);
     }
 
     free(screen);

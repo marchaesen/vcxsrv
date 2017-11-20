@@ -50,6 +50,11 @@
 
 #include "glfunctions.h"
 
+#ifdef PANORAMIX
+#include "panoramiX.h"
+#include "panoramiXsrv.h"
+#endif
+
 static char GLXServerVendorName[] = "SGI";
 
 _X_HIDDEN int
@@ -507,6 +512,65 @@ __glXGetDrawable(__GLXcontext * glxc, GLXDrawable drawId, ClientPtr client,
         *error = BadMatch;
         return NULL;
     }
+
+#ifdef PANORAMIX
+    if (!noPanoramiXExtension)
+    {
+      PanoramiXRes *draw;
+
+      rc = dixLookupResourceByClass((void **)&draw, drawId, XRC_DRAWABLE, client, DixGetAttrAccess);
+
+      if (rc != Success)
+      {
+        client->errorValue = drawId;
+        *error = (rc == BadValue) ? BadDrawable : rc;
+        return NULL;
+      }
+
+      if (!IS_SHARED_PIXMAP(draw))
+      {
+        int j;
+        __GLXdrawable **ret=malloc(screenInfo.numScreens*sizeof(__GLXdrawable *));
+
+        for (j = screenInfo.numScreens-1; j >= 0; j--)
+        {
+          GLXDrawable drawId = draw->info[j].id;
+
+          rc = dixLookupDrawable(&pDraw, drawId, client, 0, DixGetAttrAccess);
+
+          if (rc != Success || pDraw->type != DRAWABLE_WINDOW)
+          {
+            client->errorValue = drawId;
+            *error = __glXError(GLXBadDrawable);
+            return NULL;
+          }
+
+          if (!validGlxFBConfigForWindow(client, glxc->config, pDraw, error))
+            return NULL;
+
+          __GLXscreen *pGlxScreen = glxGetScreen(screenInfo.screens[j]);
+          pGlxDraw = pGlxScreen->createDrawable(client, pGlxScreen, pDraw, drawId,
+                                                GLX_DRAWABLE_WINDOW, drawId, glxc->config);
+          if (!pGlxDraw)
+          {
+            client->errorValue = drawId;
+            *error = BadMatch;
+            return NULL;
+          }
+
+          /* since we are creating the drawablePrivate, drawId should be new */
+          if (!AddResource(drawId, __glXDrawableRes, pGlxDraw))
+          {
+            *error = BadAlloc;
+            return NULL;
+          }
+          ret[j]=pGlxDraw;
+        }
+        pGlxDraw->pAll=ret;
+        return pGlxDraw;
+      }
+    }
+#endif
 
     /* The drawId wasn't a GLX drawable.  Make sure it's a window and
      * create a GLXWindow for it.  Check that the drawable screen
@@ -1212,13 +1276,19 @@ __glXDrawableInit(__GLXdrawable * drawable,
     drawable->drawId = drawId;
     drawable->config = config;
     drawable->eventMask = 0;
-
+#ifdef PANORAMIX
+    drawable->pAll = NULL;
+#endif
     return GL_TRUE;
 }
 
 void
 __glXDrawableRelease(__GLXdrawable * drawable)
 {
+#ifdef PANORAMIX
+    if (drawable->pAll)
+      free(drawable->pAll);
+#endif
 }
 
 static int
