@@ -249,6 +249,8 @@ util_format_is_supported(enum pipe_format format, unsigned bind)
        util_format_is_float(format)) {
       return FALSE;
    }
+#else
+   (void)bind;
 #endif
 
    return TRUE;

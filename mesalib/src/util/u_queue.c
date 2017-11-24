@@ -113,7 +113,7 @@ do_futex_fence_wait(struct util_queue_fence *fence,
 
       int r = futex_wait(&fence->val, 2, timeout ? &ts : NULL);
       if (timeout && r < 0) {
-         if (errno == -ETIMEDOUT)
+         if (errno == ETIMEDOUT)
             return false;
       }
 

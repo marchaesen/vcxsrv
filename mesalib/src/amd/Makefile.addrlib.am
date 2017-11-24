@@ -33,7 +33,7 @@ addrlib_libamdgpu_addrlib_la_CPPFLAGS = \
 	-DBRAHMA_BUILD=1
 
 addrlib_libamdgpu_addrlib_la_CXXFLAGS = \
-	$(VISIBILITY_CXXFLAGS)
+	$(VISIBILITY_CXXFLAGS) $(CXX11_CXXFLAGS)
 
 noinst_LTLIBRARIES += $(ADDRLIB_LIBS)
 

@@ -66,13 +66,10 @@ RRCrtcCreate(ScreenPtr pScreen, void *devPrivate)
     pScrPriv = rrGetScrPriv(pScreen);
 
     /* make space for the crtc pointer */
-    if (pScrPriv->numCrtcs)
-        crtcs = reallocarray(pScrPriv->crtcs,
-                             pScrPriv->numCrtcs + 1, sizeof(RRCrtcPtr));
-    else
-        crtcs = malloc(sizeof(RRCrtcPtr));
+    crtcs = reallocarray(pScrPriv->crtcs,
+            pScrPriv->numCrtcs + 1, sizeof(RRCrtcPtr));
     if (!crtcs)
-        return FALSE;
+        return NULL;
     pScrPriv->crtcs = crtcs;
 
     crtc = calloc(1, sizeof(RRCrtcRec));
@@ -881,6 +878,7 @@ RRCrtcDestroyResource(void *value, XID pid)
     free(crtc->gammaRed);
     if (crtc->mode)
         RRModeDestroy(crtc->mode);
+    free(crtc->outputs);
     free(crtc);
     return 1;
 }

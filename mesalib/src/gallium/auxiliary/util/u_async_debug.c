@@ -46,7 +46,7 @@ u_async_debug_message(void *data, unsigned *id, enum pipe_debug_type type,
 
    simple_mtx_lock(&adbg->lock);
    if (adbg->count >= adbg->max) {
-      unsigned new_max = MAX2(16, adbg->max * 2);
+      size_t new_max = MAX2(16, adbg->max * 2);
 
       if (new_max < adbg->max ||
           new_max > SIZE_MAX / sizeof(*adbg->messages)) {

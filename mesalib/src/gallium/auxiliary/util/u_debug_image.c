@@ -47,7 +47,7 @@
  */
 void
 debug_dump_image(const char *prefix,
-                 enum pipe_format format, unsigned cpp,
+                 enum pipe_format format, UNUSED unsigned cpp,
                  unsigned width, unsigned height,
                  unsigned stride,
                  const void *data)
@@ -202,7 +202,7 @@ debug_dump_surface_bmp(struct pipe_context *pipe,
 }
 
 void
-debug_dump_transfer_bmp(struct pipe_context *pipe,
+debug_dump_transfer_bmp(UNUSED struct pipe_context *pipe,
                         const char *filename,
                         struct pipe_transfer *transfer, void *ptr)
 {

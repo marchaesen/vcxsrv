@@ -49,7 +49,7 @@ extern "C" {
 #define UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY      (1 << 0)
 #define UTIL_QUEUE_INIT_RESIZE_IF_FULL            (1 << 1)
 
-#if defined(__GNUC__) && defined(HAVE_FUTEX)
+#if defined(__GNUC__) && defined(HAVE_LINUX_FUTEX_H)
 #define UTIL_QUEUE_FENCE_FUTEX
 #else
 #define UTIL_QUEUE_FENCE_STANDARD

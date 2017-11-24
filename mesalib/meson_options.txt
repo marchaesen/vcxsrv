@@ -21,8 +21,8 @@
 option(
   'platforms',
   type : 'string',
-  value : 'x11,wayland,drm,surfaceless',
-  description : 'comma separated list of window systems to support. wayland, x11, surfaceless, drm, etc.'
+  value : 'auto',
+  description : 'comma separated list of window systems to support. If this is set to auto all platforms applicable to the OS will be enabled.'
 )
 option(
   'dri3',
@@ -132,8 +132,9 @@ option(
 )
 option(
   'llvm',
-  type : 'boolean',
-  value : true,
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
   description : 'Build with LLVM support.'
 )
 option(

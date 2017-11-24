@@ -64,7 +64,7 @@ typedef void (*tc_execute)(struct pipe_context *pipe, union tc_payload *payload)
 static const tc_execute execute_func[TC_NUM_CALLS];
 
 static void
-tc_batch_check(struct tc_batch *batch)
+tc_batch_check(MAYBE_UNUSED struct tc_batch *batch)
 {
    tc_assert(batch->sentinel == TC_SENTINEL);
    tc_assert(batch->num_total_call_slots <= TC_CALLS_PER_BATCH);
@@ -80,7 +80,7 @@ tc_debug_check(struct threaded_context *tc)
 }
 
 static void
-tc_batch_execute(void *job, int thread_index)
+tc_batch_execute(void *job, UNUSED int thread_index)
 {
    struct tc_batch *batch = job;
    struct pipe_context *pipe = batch->pipe;
@@ -180,7 +180,7 @@ tc_is_sync(struct threaded_context *tc)
 }
 
 static void
-_tc_sync(struct threaded_context *tc, const char *info, const char *func)
+_tc_sync(struct threaded_context *tc, MAYBE_UNUSED const char *info, MAYBE_UNUSED const char *func)
 {
    struct tc_batch *last = &tc->batch_slots[tc->last];
    struct tc_batch *next = &tc->batch_slots[tc->next];
@@ -211,8 +211,9 @@ _tc_sync(struct threaded_context *tc, const char *info, const char *func)
    if (synced) {
       p_atomic_inc(&tc->num_syncs);
 
-      if (tc_strcmp(func, "tc_destroy") != 0)
+      if (tc_strcmp(func, "tc_destroy") != 0) {
          tc_printf("sync %s %s\n", func, info);
+	  }
    }
 
    tc_debug_check(tc);
@@ -230,13 +231,23 @@ _tc_sync(struct threaded_context *tc, const char *info, const char *func)
  */
 void
 threaded_context_flush(struct pipe_context *_pipe,
-                       struct tc_unflushed_batch_token *token)
+                       struct tc_unflushed_batch_token *token,
+                       bool prefer_async)
 {
    struct threaded_context *tc = threaded_context(_pipe);
 
    /* This is called from the state-tracker / application thread. */
-   if (token->tc && token->tc == tc)
-      tc_sync(token->tc);
+   if (token->tc && token->tc == tc) {
+      struct tc_batch *last = &tc->batch_slots[tc->last];
+
+      /* Prefer to do the flush in the driver thread if it is already
+       * running. That should be better for cache locality.
+       */
+      if (prefer_async || !util_queue_fence_is_signalled(&last->fence))
+         tc_batch_flush(tc);
+      else
+         tc_sync(token->tc);
+   }
 }
 
 static void
@@ -1834,27 +1845,35 @@ tc_create_fence_fd(struct pipe_context *_pipe,
 }
 
 static void
+tc_call_fence_server_sync(struct pipe_context *pipe, union tc_payload *payload)
+{
+   pipe->fence_server_sync(pipe, payload->fence);
+   pipe->screen->fence_reference(pipe->screen, &payload->fence, NULL);
+}
+
+static void
 tc_fence_server_sync(struct pipe_context *_pipe,
                      struct pipe_fence_handle *fence)
 {
    struct threaded_context *tc = threaded_context(_pipe);
-   struct pipe_context *pipe = tc->pipe;
+   struct pipe_screen *screen = tc->pipe->screen;
+   union tc_payload *payload = tc_add_small_call(tc, TC_CALL_fence_server_sync);
 
-   tc_sync(tc);
-   pipe->fence_server_sync(pipe, fence);
+   payload->fence = NULL;
+   screen->fence_reference(screen, &payload->fence, fence);
 }
 
 static struct pipe_video_codec *
-tc_create_video_codec(struct pipe_context *_pipe,
-                      const struct pipe_video_codec *templ)
+tc_create_video_codec(UNUSED struct pipe_context *_pipe,
+                      UNUSED const struct pipe_video_codec *templ)
 {
    unreachable("Threaded context should not be enabled for video APIs");
    return NULL;
 }
 
 static struct pipe_video_buffer *
-tc_create_video_buffer(struct pipe_context *_pipe,
-                       const struct pipe_video_buffer *templ)
+tc_create_video_buffer(UNUSED struct pipe_context *_pipe,
+                       UNUSED const struct pipe_video_buffer *templ)
 {
    unreachable("Threaded context should not be enabled for video APIs");
    return NULL;
@@ -1922,7 +1941,6 @@ tc_flush(struct pipe_context *_pipe, struct pipe_fence_handle **fence,
 
    if (async && tc->create_fence) {
       if (fence) {
-         struct tc_unflushed_batch_token *token = NULL;
          struct tc_batch *next = &tc->batch_slots[tc->next];
 
          if (!next->token) {
@@ -1934,7 +1952,7 @@ tc_flush(struct pipe_context *_pipe, struct pipe_fence_handle **fence,
             next->token->tc = tc;
          }
 
-         screen->fence_reference(screen, fence, tc->create_fence(pipe, token));
+         screen->fence_reference(screen, fence, tc->create_fence(pipe, next->token));
          if (!*fence)
             goto out_of_memory;
       }
@@ -2138,7 +2156,7 @@ static void
 tc_call_generate_mipmap(struct pipe_context *pipe, union tc_payload *payload)
 {
    struct tc_generate_mipmap *p = (struct tc_generate_mipmap *)payload;
-   bool MAYBE_UNUSED result = pipe->generate_mipmap(pipe, p->res, p->format,
+   MAYBE_UNUSED bool result = pipe->generate_mipmap(pipe, p->res, p->format,
                                                     p->base_level,
                                                     p->last_level,
                                                     p->first_layer,
@@ -2391,7 +2409,7 @@ struct tc_callback_payload {
 };
 
 static void
-tc_call_callback(struct pipe_context *pipe, union tc_payload *payload)
+tc_call_callback(UNUSED struct pipe_context *pipe, union tc_payload *payload)
 {
    struct tc_callback_payload *p = (struct tc_callback_payload *)payload;
 

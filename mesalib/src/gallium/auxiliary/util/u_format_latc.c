@@ -100,19 +100,24 @@ util_format_latc1_unorm_fetch_rgba_float(float *dst, const uint8_t *src, unsigne
 }
 
 void
-util_format_latc1_snorm_fetch_rgba_8unorm(uint8_t *dst, const uint8_t *src, unsigned i, unsigned j)
+util_format_latc1_snorm_fetch_rgba_8unorm(UNUSED uint8_t *dst, UNUSED const uint8_t *src,
+                                          UNUSED unsigned i, UNUSED unsigned j)
 {
    fprintf(stderr,"%s\n", __func__);
 }
 
 void
-util_format_latc1_snorm_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height)
+util_format_latc1_snorm_unpack_rgba_8unorm(UNUSED uint8_t *dst_row, UNUSED unsigned dst_stride,
+                                           UNUSED const uint8_t *src_row, UNUSED unsigned src_stride,
+                                           UNUSED unsigned width, UNUSED unsigned height)
 {
    fprintf(stderr,"%s\n", __func__);
 }
 
 void
-util_format_latc1_snorm_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height)
+util_format_latc1_snorm_pack_rgba_8unorm(UNUSED uint8_t *dst_row, UNUSED unsigned dst_stride,
+                                         UNUSED const uint8_t *src_row, UNUSED unsigned src_stride,
+                                         UNUSED unsigned width, UNUSED unsigned height)
 {
    fprintf(stderr,"%s\n", __func__);
 }
@@ -231,19 +236,24 @@ util_format_latc2_unorm_fetch_rgba_float(float *dst, const uint8_t *src, unsigne
 
 
 void
-util_format_latc2_snorm_fetch_rgba_8unorm(uint8_t *dst, const uint8_t *src, unsigned i, unsigned j)
+util_format_latc2_snorm_fetch_rgba_8unorm(UNUSED uint8_t *dst, UNUSED const uint8_t *src,
+                                          UNUSED unsigned i, UNUSED unsigned j)
 {
    fprintf(stderr,"%s\n", __func__);
 }
 
 void
-util_format_latc2_snorm_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height)
+util_format_latc2_snorm_unpack_rgba_8unorm(UNUSED uint8_t *dst_row, UNUSED unsigned dst_stride,
+                                           UNUSED const uint8_t *src_row, UNUSED unsigned src_stride,
+                                           UNUSED unsigned width, UNUSED unsigned height)
 {
    fprintf(stderr,"%s\n", __func__);
 }
 
 void
-util_format_latc2_snorm_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height)
+util_format_latc2_snorm_pack_rgba_8unorm(UNUSED uint8_t *dst_row, UNUSED unsigned dst_stride,
+                                         UNUSED const uint8_t *src_row, UNUSED unsigned src_stride,
+                                         UNUSED unsigned width, UNUSED unsigned height)
 {
    fprintf(stderr,"%s\n", __func__);
 }

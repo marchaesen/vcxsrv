@@ -1431,15 +1431,9 @@ st_translate_geometry_program(struct st_context *st,
 {
    struct ureg_program *ureg;
 
-   if (stgp->shader_program) {
-      nir_shader *nir = st_glsl_to_nir(st, &stgp->Base, stgp->shader_program,
-                                       MESA_SHADER_GEOMETRY);
-
-      stgp->tgsi.type = PIPE_SHADER_IR_NIR;
-      stgp->tgsi.ir.nir = nir;
-
+   /* We have already compiled to NIR so just return */
+   if (stgp->shader_program)
       return true;
-   }
 
    ureg = ureg_create_with_screen(PIPE_SHADER_GEOMETRY, st->pipe->screen);
    if (ureg == NULL)

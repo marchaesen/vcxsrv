@@ -146,7 +146,7 @@ present_register_complete_notify(present_complete_notify_proc proc)
 }
 
 void
-present_send_complete_notify(WindowPtr window, CARD8 kind, CARD8 mode, CARD32 serial, uint64_t ust, uint64_t msc)
+present_send_complete_notify(WindowPtr window, CARD8 kind, CARD8 mode, CARD32 serial, uint64_t ust, uint64_t msc, ClientPtr client)
 {
     present_window_priv_ptr window_priv = present_window_priv(window);
 
@@ -167,7 +167,8 @@ present_send_complete_notify(WindowPtr window, CARD8 kind, CARD8 mode, CARD32 se
         present_event_ptr event;
 
         for (event = window_priv->events; event; event = event->next) {
-            if (event->mask & PresentCompleteNotifyMask) {
+            if (event->mask & PresentCompleteNotifyMask &&
+                client == event->client) {
                 cn.eid = event->id;
                 WriteEventsToClient(event->client, 1, (xEvent *) &cn);
             }

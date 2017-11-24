@@ -55,8 +55,8 @@ debug_reference(const struct pipe_reference* p,
 #else
 
 static inline void
-debug_reference(const struct pipe_reference* p,
-                debug_reference_descriptor get_desc, int change)
+debug_reference(UNUSED const struct pipe_reference* p,
+                UNUSED debug_reference_descriptor get_desc, UNUSED int change)
 {
 }
 

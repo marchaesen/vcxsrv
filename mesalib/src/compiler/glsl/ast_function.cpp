@@ -676,8 +676,13 @@ generate_array_index(void *mem_ctx, exec_list *instructions,
       ir_variable *sub_var = NULL;
       *function_name = array->primary_expression.identifier;
 
-      match_subroutine_by_name(*function_name, actual_parameters,
-                               state, &sub_var);
+      if (!match_subroutine_by_name(*function_name, actual_parameters,
+                                    state, &sub_var)) {
+         _mesa_glsl_error(&loc, state, "Unknown subroutine `%s'",
+                          *function_name);
+         *function_name = NULL; /* indicate error condition to caller */
+         return NULL;
+      }
 
       ir_rvalue *outer_array_idx = idx->hir(instructions, state);
       return new(mem_ctx) ir_dereference_array(sub_var, outer_array_idx);

@@ -146,7 +146,7 @@ glx_gen_depends = files(
 
 glapi_mapi_tmp_h = custom_target(
   'glapi_mapi_tmp.h',
-  input : ['../../mapi_abi.py', 'gl_and_es_API.xml'],
+  input : [mapi_abi_py, 'gl_and_es_API.xml'],
   output : 'glapi_mapi_tmp.h',
   command : [prog_python2, '@INPUT0@', '--printer', 'glapi', '@INPUT1@'],
   depend_files : glapi_gen_depends,

@@ -135,7 +135,7 @@ proc_present_pixmap(ClientPtr client)
             return ret;
     }
 
-    ret = present_pixmap(window, pixmap, stuff->serial, valid, update,
+    ret = present_pixmap(window, pixmap, client, stuff->serial, valid, update,
                          stuff->x_off, stuff->y_off, target_crtc,
                          wait_fence, idle_fence, stuff->options,
                          stuff->target_msc, stuff->divisor, stuff->remainder, notifies, nnotifies);
@@ -171,7 +171,7 @@ proc_present_notify_msc(ClientPtr client)
         }
     }
 
-    return present_notify_msc(window, stuff->serial,
+    return present_notify_msc(window, client, stuff->serial,
                               stuff->target_msc, stuff->divisor, stuff->remainder);
 }
 

@@ -400,6 +400,7 @@ struct pipe_h264_enc_picture_desc
    unsigned idr_pic_id;
    unsigned gop_cnt;
    unsigned pic_order_cnt;
+   unsigned pic_order_cnt_type;
    unsigned ref_idx_l0;
    unsigned ref_idx_l1;
    unsigned gop_size;

@@ -297,7 +297,7 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
       ctx->emit_declaration(ctx, &decl);
    }
 
-   sampIdx = pctx->hasFixedUnit ? pctx->fixedUnit : pctx->freeSampler;
+   sampIdx = pctx->hasFixedUnit ? (int)pctx->fixedUnit : pctx->freeSampler;
 
    /* declare new sampler */
    tgsi_transform_sampler_decl(ctx, sampIdx);

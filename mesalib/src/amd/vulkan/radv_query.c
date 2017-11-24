@@ -1125,7 +1125,9 @@ void radv_CmdEndQuery(
 	uint64_t avail_va = va + pool->availability_offset + 4 * query;
 	va += pool->stride * query;
 
-	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 8);
+	/* Do not need to add the pool BO to the list because the query must
+	 * currently be active, which means the BO is already in the list.
+	 */
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:

@@ -98,7 +98,7 @@ util_copy_rect(ubyte * dst,
    src += src_y * src_stride_pos;
    width *= blocksize;
 
-   if (width == dst_stride && width == src_stride)
+   if (width == dst_stride && width == (unsigned)src_stride)
       memcpy(dst, src, height * width);
    else {
       for (i = 0; i < height; i++) {
@@ -259,7 +259,7 @@ util_resource_copy_region(struct pipe_context *pipe,
    struct pipe_transfer *src_trans, *dst_trans;
    uint8_t *dst_map;
    const uint8_t *src_map;
-   MAYBE_UNUSED enum pipe_format src_format;
+   enum pipe_format src_format;
    enum pipe_format dst_format;
    struct pipe_box src_box, dst_box;
    unsigned src_bs, dst_bs, src_bw, dst_bw, src_bh, dst_bh;
@@ -328,10 +328,10 @@ util_resource_copy_region(struct pipe_context *pipe,
    assert(dst_box.y % dst_bh == 0);
 
    /* check that region boxes are not out of bounds */
-   assert(src_box.x + src_box.width <= u_minify(src->width0, src_level));
-   assert(src_box.y + src_box.height <= u_minify(src->height0, src_level));
-   assert(dst_box.x + dst_box.width <= u_minify(dst->width0, dst_level));
-   assert(dst_box.y + dst_box.height <= u_minify(dst->height0, dst_level));
+   assert(src_box.x + src_box.width <= (int)u_minify(src->width0, src_level));
+   assert(src_box.y + src_box.height <= (int)u_minify(src->height0, src_level));
+   assert(dst_box.x + dst_box.width <= (int)u_minify(dst->width0, dst_level));
+   assert(dst_box.y + dst_box.height <= (int)u_minify(dst->height0, dst_level));
 
    /* check that total number of src, dest bytes match */
    assert((src_box.width / src_bw) * (src_box.height / src_bh) * src_bs ==

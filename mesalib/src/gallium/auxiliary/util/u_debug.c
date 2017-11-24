@@ -444,7 +444,8 @@ int fl_indent = 0;
 const char* fl_function[1024];
 
 int
-debug_funclog_enter(const char* f, const int line, const char* file)
+debug_funclog_enter(const char* f, UNUSED const int line,
+                    UNUSED const char* file)
 {
    int i;
 
@@ -459,7 +460,8 @@ debug_funclog_enter(const char* f, const int line, const char* file)
 }
 
 void
-debug_funclog_exit(const char* f, const int line, const char* file)
+debug_funclog_exit(const char* f, UNUSED const int line,
+                   UNUSED const char* file)
 {
    --fl_indent;
    assert(fl_indent >= 0);
@@ -467,7 +469,8 @@ debug_funclog_exit(const char* f, const int line, const char* file)
 }
 
 void
-debug_funclog_enter_exit(const char* f, const int line, const char* file)
+debug_funclog_enter_exit(const char* f, UNUSED const int line,
+                         UNUSED const char* file)
 {
    int i;
    for (i = 0; i < fl_indent; i++)

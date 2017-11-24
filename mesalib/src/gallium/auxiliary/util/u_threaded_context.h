@@ -309,6 +309,7 @@ union tc_payload {
    struct pipe_query *query;
    struct pipe_resource *resource;
    struct pipe_transfer *transfer;
+   struct pipe_fence_handle *fence;
    uint64_t handle;
 };
 
@@ -380,7 +381,8 @@ threaded_context_create(struct pipe_context *pipe,
 
 void
 threaded_context_flush(struct pipe_context *_pipe,
-                       struct tc_unflushed_batch_token *token);
+                       struct tc_unflushed_batch_token *token,
+                       bool prefer_async);
 
 static inline struct threaded_context *
 threaded_context(struct pipe_context *pipe)
@@ -404,6 +406,14 @@ static inline struct threaded_transfer *
 threaded_transfer(struct pipe_transfer *transfer)
 {
    return (struct threaded_transfer*)transfer;
+}
+
+static inline struct pipe_context *
+threaded_context_unwrap_unsync(struct pipe_context *pipe)
+{
+   if (!pipe || !pipe->priv)
+      return pipe;
+   return (struct pipe_context*)pipe->priv;
 }
 
 static inline void

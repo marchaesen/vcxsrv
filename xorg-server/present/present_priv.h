@@ -52,6 +52,7 @@ struct present_notify {
 struct present_vblank {
     struct xorg_list    window_list;
     struct xorg_list    event_queue;
+    ClientPtr           client;
     ScreenPtr           screen;
     WindowPtr           window;
     PixmapPtr           pixmap;
@@ -155,6 +156,7 @@ present_get_window_priv(WindowPtr window, Bool create);
 int
 present_pixmap(WindowPtr window,
                PixmapPtr pixmap,
+               ClientPtr client,
                CARD32 serial,
                RegionPtr valid,
                RegionPtr update,
@@ -172,6 +174,7 @@ present_pixmap(WindowPtr window,
 
 int
 present_notify_msc(WindowPtr window,
+                   ClientPtr client,
                    CARD32 serial,
                    uint64_t target_msc,
                    uint64_t divisor,
@@ -215,7 +218,7 @@ void
 present_send_config_notify(WindowPtr window, int x, int y, int w, int h, int bw, WindowPtr sibling);
 
 void
-present_send_complete_notify(WindowPtr window, CARD8 kind, CARD8 mode, CARD32 serial, uint64_t ust, uint64_t msc);
+present_send_complete_notify(WindowPtr window, CARD8 kind, CARD8 mode, CARD32 serial, uint64_t ust, uint64_t msc, ClientPtr client);
 
 void
 present_send_idle_notify(WindowPtr window, CARD32 serial, PixmapPtr pixmap, present_fence_ptr idle_fence);

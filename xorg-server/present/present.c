@@ -206,13 +206,13 @@ present_vblank_notify(present_vblank_ptr vblank, CARD8 kind, CARD8 mode, uint64_
     int         n;
 
     if (vblank->window)
-        present_send_complete_notify(vblank->window, kind, mode, vblank->serial, ust, crtc_msc - vblank->msc_offset);
+        present_send_complete_notify(vblank->window, kind, mode, vblank->serial, ust, crtc_msc - vblank->msc_offset, vblank->client);
     for (n = 0; n < vblank->num_notifies; n++) {
         WindowPtr   window = vblank->notifies[n].window;
         CARD32      serial = vblank->notifies[n].serial;
 
         if (window)
-            present_send_complete_notify(window, kind, mode, serial, ust, crtc_msc - vblank->msc_offset);
+            present_send_complete_notify(window, kind, mode, serial, ust, crtc_msc - vblank->msc_offset, vblank->client);
     }
 }
 
@@ -772,6 +772,7 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 int
 present_pixmap(WindowPtr window,
                PixmapPtr pixmap,
+               ClientPtr client,
                CARD32 serial,
                RegionPtr valid,
                RegionPtr update,
@@ -882,6 +883,7 @@ present_pixmap(WindowPtr window,
     xorg_list_append(&vblank->window_list, &window_priv->vblank);
     xorg_list_init(&vblank->event_queue);
 
+    vblank->client = client;
     vblank->screen = screen;
     vblank->window = window;
     vblank->pixmap = pixmap;
@@ -1001,6 +1003,7 @@ present_abort_vblank(ScreenPtr screen, RRCrtcPtr crtc, uint64_t event_id, uint64
 
 int
 present_notify_msc(WindowPtr window,
+                   ClientPtr client,
                    CARD32 serial,
                    uint64_t target_msc,
                    uint64_t divisor,
@@ -1008,6 +1011,7 @@ present_notify_msc(WindowPtr window,
 {
     return present_pixmap(window,
                           NULL,
+                          client,
                           serial,
                           NULL, NULL,
                           0, 0,

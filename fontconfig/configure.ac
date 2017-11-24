@@ -321,9 +321,22 @@ AC_SUBST(FREETYPE_LIBS)
 AC_SUBST(FREETYPE_CFLAGS)
 
 fontconfig_save_libs="$LIBS"
+fontconfig_save_cflags="$CFLAGS"
 LIBS="$LIBS $FREETYPE_LIBS"
+CFLAGS="$CFLAGS $FREETYPE_CFLAGS"
 AC_CHECK_FUNCS(FT_Get_BDF_Property FT_Get_PS_Font_Info FT_Has_PS_Glyph_Names FT_Get_X11_Font_Format)
+
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+	#include <ft2build.h>
+	#include FT_CONFIG_OPTIONS_H
+	#ifndef PCF_CONFIG_OPTION_LONG_FAMILY_NAMES
+	#  error "No pcf long family names support"
+	#endif
+	]])], [have_pcf_long_family_names=yes], [have_pcf_long_family_names=no])
+AM_CONDITIONAL(FREETYPE_PCF_LONG_FAMILY_NAMES, test "x$have_pcf_long_family_names" = xyes)
+
 LIBS="$fontconfig_save_libs"
+CFLAGS="$fontconfig_save_cflags"
 
 #
 # Check expat configuration

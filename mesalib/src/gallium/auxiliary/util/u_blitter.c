@@ -550,7 +550,7 @@ void util_blitter_unset_running_flag(struct blitter_context *blitter)
    blitter->pipe->set_active_query_state(blitter->pipe, true);
 }
 
-static void blitter_check_saved_vertex_states(struct blitter_context_priv *ctx)
+static void blitter_check_saved_vertex_states(MAYBE_UNUSED struct blitter_context_priv *ctx)
 {
    assert(ctx->base.saved_vs != INVALID_PTR);
    assert(!ctx->has_geometry_shader || ctx->base.saved_gs != INVALID_PTR);
@@ -616,7 +616,7 @@ void util_blitter_restore_vertex_states(struct blitter_context *blitter)
    ctx->base.saved_rs_state = INVALID_PTR;
 }
 
-static void blitter_check_saved_fragment_states(struct blitter_context_priv *ctx)
+static void blitter_check_saved_fragment_states(MAYBE_UNUSED struct blitter_context_priv *ctx)
 {
    assert(ctx->base.saved_fs != INVALID_PTR);
    assert(ctx->base.saved_dsa_state != INVALID_PTR);
@@ -655,7 +655,7 @@ void util_blitter_restore_fragment_states(struct blitter_context *blitter)
       pipe->set_viewport_states(pipe, 0, 1, &ctx->base.saved_viewport);
 }
 
-static void blitter_check_saved_fb_state(struct blitter_context_priv *ctx)
+static void blitter_check_saved_fb_state(MAYBE_UNUSED struct blitter_context_priv *ctx)
 {
    assert(ctx->base.saved_fb_state.nr_cbufs != ~0u);
 }
@@ -691,7 +691,7 @@ void util_blitter_restore_fb_state(struct blitter_context *blitter)
    util_unreference_framebuffer_state(&ctx->base.saved_fb_state);
 }
 
-static void blitter_check_saved_textures(struct blitter_context_priv *ctx)
+static void blitter_check_saved_textures(MAYBE_UNUSED struct blitter_context_priv *ctx)
 {
    assert(ctx->base.saved_num_sampler_states != ~0u);
    assert(ctx->base.saved_num_sampler_views != ~0u);
@@ -1488,7 +1488,7 @@ void util_blitter_default_src_texture(struct blitter_context *blitter,
    src_templ->u.tex.first_layer = 0;
    src_templ->u.tex.last_layer =
       src->target == PIPE_TEXTURE_3D ? u_minify(src->depth0, srclevel) - 1
-                                     : src->array_size - 1;
+                                     : (unsigned)(src->array_size - 1);
    src_templ->swizzle_r = PIPE_SWIZZLE_X;
    src_templ->swizzle_g = PIPE_SWIZZLE_Y;
    src_templ->swizzle_b = PIPE_SWIZZLE_Z;
