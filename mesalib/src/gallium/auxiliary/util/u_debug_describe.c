@@ -30,7 +30,7 @@
 #include "util/u_string.h"
 
 void
-debug_describe_reference(char* buf, const struct pipe_reference*ptr)
+debug_describe_reference(char* buf, UNUSED const struct pipe_reference*ptr)
 {
    strcpy(buf, "pipe_object");
 }

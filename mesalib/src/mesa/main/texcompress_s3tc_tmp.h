@@ -182,8 +182,8 @@ static void fetch_2d_texel_rgba_dxt5(GLint srcRowStride, const GLubyte *pixdata,
 
 #define ALPHACUT 127
 
-static void fancybasecolorsearch( GLubyte *blkaddr, GLubyte srccolors[4][4][4], GLubyte *bestcolor[2],
-                           GLint numxpixels, GLint numypixels, GLint type, GLboolean haveAlpha)
+static void fancybasecolorsearch( UNUSED GLubyte *blkaddr, GLubyte srccolors[4][4][4], GLubyte *bestcolor[2],
+                           GLint numxpixels, GLint numypixels, UNUSED GLint type, UNUSED GLboolean haveAlpha)
 {
    /* use same luminance-weighted distance metric to determine encoding as for finding the base colors */
 

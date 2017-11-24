@@ -99,7 +99,7 @@ util_dump_flags_continuous(FILE *stream, unsigned value, unsigned num_names,
 
    while (value) {
       int i = u_bit_scan(&value);
-      if (i >= num_names || !names[i])
+      if (i >= (int)num_names || !names[i])
          unknown |= 1u << i;
       if (!first)
          fputs("|", stream);

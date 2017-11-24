@@ -557,7 +557,7 @@ rrGetScreenResources(ClientPtr client, Bool query)
 
         extraLen = rep.length << 2;
         if (extraLen) {
-            extra = malloc(extraLen);
+            extra = calloc(1, extraLen);
             if (!extra) {
                 free(modes);
                 return BadAlloc;

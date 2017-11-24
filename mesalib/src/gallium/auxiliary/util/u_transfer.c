@@ -81,25 +81,25 @@ void u_default_texture_subdata(struct pipe_context *pipe,
 }
 
 
-boolean u_default_resource_get_handle(struct pipe_screen *screen,
-                                      struct pipe_resource *resource,
-                                      struct winsys_handle *handle)
+boolean u_default_resource_get_handle(UNUSED struct pipe_screen *screen,
+                                      UNUSED struct pipe_resource *resource,
+                                      UNUSED struct winsys_handle *handle)
 {
    return FALSE;
 }
 
 
 
-void u_default_transfer_flush_region( struct pipe_context *pipe,
-                                      struct pipe_transfer *transfer,
-                                      const struct pipe_box *box)
+void u_default_transfer_flush_region(UNUSED struct pipe_context *pipe,
+                                     UNUSED struct pipe_transfer *transfer,
+                                     UNUSED const struct pipe_box *box)
 {
    /* This is a no-op implementation, nothing to do.
     */
 }
 
-void u_default_transfer_unmap( struct pipe_context *pipe,
-                               struct pipe_transfer *transfer )
+void u_default_transfer_unmap(UNUSED struct pipe_context *pipe,
+                              UNUSED struct pipe_transfer *transfer)
 {
 }
 
@@ -111,10 +111,10 @@ u_resource( struct pipe_resource *res )
 }
 
 boolean u_resource_get_handle_vtbl(struct pipe_screen *screen,
-                                   struct pipe_context *ctx,
+                                   UNUSED struct pipe_context *ctx,
                                    struct pipe_resource *resource,
                                    struct winsys_handle *handle,
-                                   unsigned usage)
+                                   UNUSED unsigned usage)
 {
    struct u_resource *ur = u_resource(resource);
    return ur->vtbl->resource_get_handle(screen, resource, handle);

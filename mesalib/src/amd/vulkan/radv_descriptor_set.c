@@ -629,14 +629,15 @@ write_image_descriptor(struct radv_device *device,
 		       const VkDescriptorImageInfo *image_info)
 {
 	RADV_FROM_HANDLE(radv_image_view, iview, image_info->imageView);
+	uint32_t *descriptor;
 
 	if (descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
-		memcpy(dst, iview->storage_descriptor, 8 * 4);
-		memcpy(dst + 8, iview->storage_fmask_descriptor, 8 * 4);
+		descriptor = iview->storage_descriptor;
 	} else {
-		memcpy(dst, iview->descriptor, 8 * 4);
-		memcpy(dst + 8, iview->fmask_descriptor, 8 * 4);
+		descriptor = iview->descriptor;
 	}
+
+	memcpy(dst, descriptor, 16 * 4);
 
 	if (cmd_buffer)
 		radv_cs_add_buffer(device->ws, cmd_buffer->cs, iview->bo, 7);

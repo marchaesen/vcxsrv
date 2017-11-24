@@ -1360,14 +1360,12 @@ struct radv_image_view {
 	uint32_t level_count;
 	VkExtent3D extent; /**< Extent of VkImageViewCreateInfo::baseMipLevel. */
 
-	uint32_t descriptor[8];
-	uint32_t fmask_descriptor[8];
+	uint32_t descriptor[16];
 
 	/* Descriptor for use as a storage image as opposed to a sampled image.
 	 * This has a few differences for cube maps (e.g. type).
 	 */
-	uint32_t storage_descriptor[8];
-	uint32_t storage_fmask_descriptor[8];
+	uint32_t storage_descriptor[16];
 };
 
 struct radv_image_create_info {

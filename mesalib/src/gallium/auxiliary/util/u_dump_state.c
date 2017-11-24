@@ -112,7 +112,7 @@ util_dump_array_end(FILE *stream)
 }
 
 static void
-util_dump_elem_begin(FILE *stream)
+util_dump_elem_begin(UNUSED FILE *stream)
 {
 }
 
@@ -123,7 +123,7 @@ util_dump_elem_end(FILE *stream)
 }
 
 static void
-util_dump_struct_begin(FILE *stream, const char *name)
+util_dump_struct_begin(FILE *stream, UNUSED const char *name)
 {
    fputs("{", stream);
 }

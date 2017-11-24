@@ -71,13 +71,10 @@ RROutputCreate(ScreenPtr pScreen,
 
     pScrPriv = rrGetScrPriv(pScreen);
 
-    if (pScrPriv->numOutputs)
-        outputs = reallocarray(pScrPriv->outputs,
-                               pScrPriv->numOutputs + 1, sizeof(RROutputPtr));
-    else
-        outputs = malloc(sizeof(RROutputPtr));
+    outputs = reallocarray(pScrPriv->outputs,
+                           pScrPriv->numOutputs + 1, sizeof(RROutputPtr));
     if (!outputs)
-        return FALSE;
+        return NULL;
 
     pScrPriv->outputs = outputs;
 

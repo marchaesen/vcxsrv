@@ -1297,7 +1297,7 @@ radv_set_depth_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 	va += image->offset + image->clear_value_offset;
 	unsigned reg_offset = 0, reg_count = 0;
 
-	if (!image->surface.htile_size || !aspects)
+	if (!image->surface.htile_size)
 		return;
 
 	if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
@@ -1308,8 +1308,6 @@ radv_set_depth_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 	}
 	if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)
 		++reg_count;
-
-	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, image->bo, 8);
 
 	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 2 + reg_count, 0));
 	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
@@ -1333,20 +1331,30 @@ static void
 radv_load_depth_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 			   struct radv_image *image)
 {
+	VkImageAspectFlags aspects = vk_format_aspects(image->vk_format);
 	uint64_t va = radv_buffer_get_va(image->bo);
 	va += image->offset + image->clear_value_offset;
+	unsigned reg_offset = 0, reg_count = 0;
 
 	if (!image->surface.htile_size)
 		return;
 
+	if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
+		++reg_count;
+	} else {
+		++reg_offset;
+		va += 4;
+	}
+	if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)
+		++reg_count;
 
 	radeon_emit(cmd_buffer->cs, PKT3(PKT3_COPY_DATA, 4, 0));
 	radeon_emit(cmd_buffer->cs, COPY_DATA_SRC_SEL(COPY_DATA_MEM) |
 				    COPY_DATA_DST_SEL(COPY_DATA_REG) |
-				    COPY_DATA_COUNT_SEL);
+				    (reg_count == 2 ? COPY_DATA_COUNT_SEL : 0));
 	radeon_emit(cmd_buffer->cs, va);
 	radeon_emit(cmd_buffer->cs, va >> 32);
-	radeon_emit(cmd_buffer->cs, R_028028_DB_STENCIL_CLEAR >> 2);
+	radeon_emit(cmd_buffer->cs, (R_028028_DB_STENCIL_CLEAR + 4 * reg_offset) >> 2);
 	radeon_emit(cmd_buffer->cs, 0);
 
 	radeon_emit(cmd_buffer->cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));

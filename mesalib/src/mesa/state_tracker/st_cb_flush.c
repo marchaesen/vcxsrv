@@ -63,7 +63,7 @@ void st_finish( struct st_context *st )
 {
    struct pipe_fence_handle *fence = NULL;
 
-   st_flush(st, &fence, 0);
+   st_flush(st, &fence, PIPE_FLUSH_ASYNC | PIPE_FLUSH_HINT_FINISH);
 
    if(fence) {
       st->pipe->screen->fence_finish(st->pipe->screen, NULL, fence,

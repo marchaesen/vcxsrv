@@ -73,7 +73,9 @@ endif
 if with_glx == 'gallium-xlib'
   subdir('winsys/sw/xlib')
 endif
-subdir('state_trackers/dri')
+if with_dri
+  subdir('state_trackers/dri')
+endif
 if with_osmesa == 'gallium'
   subdir('state_trackers/osmesa')
 endif
@@ -87,7 +89,7 @@ endif
 # TODO: SWR
 # TODO: virgl
 # TODO: clover
-if with_dri and with_gallium
+if with_dri
   subdir('targets/dri')
 endif
 if with_osmesa == 'gallium'

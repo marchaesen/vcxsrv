@@ -106,7 +106,7 @@ u_mmInit(int ofs, int size)
 static struct mem_block *
 SliceBlock(struct mem_block *p, 
            int startofs, int size, 
-           int reserved, int alignment)
+           int reserved, UNUSED int alignment)
 {
    struct mem_block *newblock;
 

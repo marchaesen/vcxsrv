@@ -674,7 +674,7 @@ def generate_format_fetch(format, dst_channel, dst_native_type, dst_suffix):
     name = format.short_name()
 
     print 'static inline void'
-    print 'util_format_%s_fetch_%s(%s *dst, const uint8_t *src, unsigned i, unsigned j)' % (name, dst_suffix, dst_native_type)
+    print 'util_format_%s_fetch_%s(%s *dst, const uint8_t *src, UNUSED unsigned i, UNUSED unsigned j)' % (name, dst_suffix, dst_native_type)
     print '{'
 
     if is_format_supported(format):

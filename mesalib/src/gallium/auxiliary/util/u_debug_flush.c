@@ -151,7 +151,8 @@ debug_flush_item_destroy(struct debug_flush_item *item)
 }
 
 struct debug_flush_ctx *
-debug_flush_ctx_create(boolean catch_reference_of_mapped, unsigned bt_depth)
+debug_flush_ctx_create(UNUSED boolean catch_reference_of_mapped,
+                       unsigned bt_depth)
 {
    struct debug_flush_ctx *fctx = CALLOC_STRUCT(debug_flush_ctx);
 
@@ -315,7 +316,7 @@ out_no_item:
 }
 
 static enum pipe_error
-debug_flush_might_flush_cb(void *key, void *value, void *data)
+debug_flush_might_flush_cb(UNUSED void *key, void *value, void *data)
 {
    struct debug_flush_item *item =
       (struct debug_flush_item *) value;
@@ -356,7 +357,7 @@ debug_flush_might_flush(struct debug_flush_ctx *fctx)
 }
 
 static enum pipe_error
-debug_flush_flush_cb(void *key, void *value, void *data)
+debug_flush_flush_cb(UNUSED void *key, void *value, UNUSED void *data)
 {
    struct debug_flush_item *item =
       (struct debug_flush_item *) value;

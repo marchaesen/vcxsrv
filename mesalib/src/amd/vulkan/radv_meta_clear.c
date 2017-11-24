@@ -614,10 +614,6 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 	const uint32_t samples_log2 = ffs(samples) - 1;
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
 
-	assert(aspects == VK_IMAGE_ASPECT_DEPTH_BIT ||
-	       aspects == VK_IMAGE_ASPECT_STENCIL_BIT ||
-	       aspects == (VK_IMAGE_ASPECT_DEPTH_BIT |
-			   VK_IMAGE_ASPECT_STENCIL_BIT));
 	assert(pass_att != VK_ATTACHMENT_UNUSED);
 
 	if (!(aspects & VK_IMAGE_ASPECT_DEPTH_BIT))

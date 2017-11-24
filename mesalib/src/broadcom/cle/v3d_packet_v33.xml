@@ -939,5 +939,28 @@
     <value name="Texture Data Format ASTC_10x10" value="75"/>
     <value name="Texture Data Format ASTC_12x10" value="76"/>
     <value name="Texture Data Format ASTC_12x12" value="77"/>
+
+    <value name="Texture Data Format R8I" value="96"/>
+    <value name="Texture Data Format R8UI" value="97"/>
+    <value name="Texture Data Format RG8I" value="98"/>
+    <value name="Texture Data Format RG8UI" value="99"/>
+    <value name="Texture Data Format RGBA8I" value="100"/>
+    <value name="Texture Data Format RGBA8UI" value="101"/>
+
+    <value name="Texture Data Format R16I" value="102"/>
+    <value name="Texture Data Format R16UI" value="103"/>
+    <value name="Texture Data Format RG16I" value="104"/>
+    <value name="Texture Data Format RG16UI" value="105"/>
+    <value name="Texture Data Format RGBA16I" value="106"/>
+    <value name="Texture Data Format RGBA16UI" value="107"/>
+
+    <value name="Texture Data Format R32I" value="108"/>
+    <value name="Texture Data Format R32UI" value="109"/>
+    <value name="Texture Data Format RG32I" value="110"/>
+    <value name="Texture Data Format RG32UI" value="111"/>
+    <value name="Texture Data Format RGBA32I" value="112"/>
+    <value name="Texture Data Format RGBA32UI" value="113"/>
+    <value name="Texture Data Format RGB10_A2UI" value="114"/>
+
   </enum>
 </vcxml>
