@@ -1137,4 +1137,27 @@ winOS(void);
  * END DDX and DIX Function Prototypes
  */
 
+HWND myCreateWindowExA( DWORD dwExStyle,
+                        LPCSTR lpClassName,
+                        LPCSTR lpWindowName,
+                        DWORD dwStyle,
+                        int X,
+                        int Y,
+                        int nWidth,
+                        int nHeight,
+                        HWND hWndParent,
+                        HMENU hMenu,
+                        HINSTANCE hInstance,
+                        LPVOID lpParam);
+
+BOOL myDestroyWindow(HWND hWnd);
+int myCreateWindowsThead();
+
+extern HWND g_hMainThreadMsgWnd;
+
+#define WM_ADJUSTXWINDOW   (WM_USER)
+#define WM_REORDERWINDOWS  (WM_USER+1)
+#define WM_POSITIONWINDOW  (WM_USER+2)
+#define WM_CONFIGUREWINDOW (WM_USER+3)
+
 #endif                          /* _WIN_H_ */

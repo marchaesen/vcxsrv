@@ -385,7 +385,7 @@ HandleCustomWM_COMMAND(HWND hwnd, WORD command, winPrivScreenPtr pScreenPriv)
                         winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
                         if (pScreenInfo->fMultiWindow)
                             /* Reflect the changed Z order */
-                            winReorderWindowsMultiWindow();
+                            SendMessage(g_hMainThreadMsgWnd, WM_REORDERWINDOWS, (WPARAM)0, (LPARAM)0);
                     }
                     return TRUE;
 

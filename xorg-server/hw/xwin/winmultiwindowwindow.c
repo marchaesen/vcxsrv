@@ -534,7 +534,7 @@ winCreateWindowsWindow(WindowPtr pWin)
              iY);
 
     /* Create the window */
-    hWnd = CreateWindowExA(dwExStyle,   /* Extended styles */
+    hWnd = myCreateWindowExA(dwExStyle,   /* Extended styles */
                            WINDOW_CLASS_X,      /* Class name */
                            WINDOW_TITLE_X,      /* Window name */
                            dwStyle,     /* Styles */
@@ -601,6 +601,8 @@ winDestroyWindowsWindow(WindowPtr pWin)
     if (pWinPriv->hWnd == NULL)
         return;
 
+    SetProp(pWinPriv->hWnd, WIN_WINDOW_PROP, NULL); 
+
     winInDestroyWindowsWindow = TRUE;
 
     /* Store the info we need to destroy after this window is gone */
@@ -608,7 +610,7 @@ winDestroyWindowsWindow(WindowPtr pWin)
     hIconSm = (HICON) SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_SMALL, 0);
 
     /* Destroy the Windows window */
-    DestroyWindow(pWinPriv->hWnd);
+    myDestroyWindow(pWinPriv->hWnd);
 
     /* Null our handle to the Window so referencing it will cause an error */
     pWinPriv->hWnd = NULL;
@@ -621,13 +623,6 @@ winDestroyWindowsWindow(WindowPtr pWin)
     /* No longer note WGL used on this window */
     pWinPriv->fWglUsed = FALSE;
 #endif
-
-    /* Process all messages on our queue */
-    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-        if (g_hDlgDepthChange == 0 || !IsDialogMessage(g_hDlgDepthChange, &msg)) {
-            DispatchMessage(&msg);
-        }
-    }
 
     winInDestroyWindowsWindow = oldstate;
 

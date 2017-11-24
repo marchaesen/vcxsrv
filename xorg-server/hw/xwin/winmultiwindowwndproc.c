@@ -281,12 +281,11 @@ winRaiseWindow(WindowPtr pWin)
 {
     if (!winInDestroyWindowsWindow && !winInRaiseWindow) {
         BOOL oldstate = winInRaiseWindow;
-        XID vlist[1] = { 0 };
         winInRaiseWindow = TRUE;
         /* Call configure window directly to make sure it gets processed
          * in time
          */
-        ConfigureWindow(pWin, CWStackMode, vlist, serverClient);
+        SendMessage(g_hMainThreadMsgWnd, WM_CONFIGUREWINDOW, (WPARAM)pWin, (LPARAM)CWStackMode);
         winInRaiseWindow = oldstate;
     }
 }
@@ -328,7 +327,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static Bool s_fTracking = FALSE;
     Bool needRestack = FALSE;
     LRESULT ret;
-    static Bool hasEnteredSizeMove = FALSE;
 
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
                          lParam);
@@ -368,6 +366,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     else if (message!=WM_CREATE)
     {
         winDebug("Warning: message 0x%x received when WIN_WINDOW_PROP NULL\n",message);
+        return DefWindowProc(hwnd, message, wParam, lParam);
     }
   #endif
 
@@ -391,7 +390,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          * there can be AlwaysOnTop windows overlapped on the window
          * currently being created.
          */
-        winReorderWindowsMultiWindow();
+        SendMessage(g_hMainThreadMsgWnd, WM_REORDERWINDOWS, (WPARAM)0, (LPARAM)0);
 
         /* Fix a 'round title bar corner background should be transparent not black' problem when first painted */
         {
@@ -460,7 +459,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
 #ifdef XWIN_GLX_WINDOWS
-        if (pWinPriv->fWglUsed) {
+        if (pWinPriv->fWglUsed || pWinPriv->OpenGlWindow) {
             /*
                For regions which are being drawn by GL, the shadow framebuffer doesn't have the
                correct bits, so don't bitblt from the shadow framebuffer
@@ -866,9 +865,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MOVE:
         /* Adjust the X Window to the moved Windows window */
-        if (!hasEnteredSizeMove)
-            winAdjustXWindow(pWin, hwnd);
-        /* else: Wait for WM_EXITSIZEMOVE */
+        SendMessage(g_hMainThreadMsgWnd, WM_ADJUSTXWINDOW, (WPARAM)pWin, (LPARAM)hwnd);
         return 0;
 
     case WM_SHOWWINDOW:
@@ -1018,16 +1015,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          */
         break;
 
-    case WM_ENTERSIZEMOVE:
-        hasEnteredSizeMove = TRUE;
-        return 0;
-
-    case WM_EXITSIZEMOVE:
-        /* Adjust the X Window to the moved Windows window */
-        hasEnteredSizeMove = FALSE;
-        winAdjustXWindow(pWin, hwnd);
-        return 0;
-
     case WM_SIZE:
         /* see dix/window.c */
 #ifdef WINDBG
@@ -1051,24 +1038,16 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                (int) LOWORD(lParam), (int) HIWORD(lParam), buf);
     }
 #endif
-        if (!hasEnteredSizeMove)
-        {
             /* Adjust the X Window to the moved Windows window */
-            winAdjustXWindow (pWin, hwnd);
-            if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
-    }
+            SendMessage(g_hMainThreadMsgWnd, WM_ADJUSTXWINDOW, (WPARAM)pWin, (LPARAM)hwnd);
+            if (wParam == SIZE_MINIMIZED)
+                SendMessage(g_hMainThreadMsgWnd, WM_REORDERWINDOWS, (WPARAM)0, (LPARAM)0);
     /* else: wait for WM_EXITSIZEMOVE */
     return 0; /* end of WM_SIZE handler */
 
     case WM_STYLECHANGED:
       /* when the style changes, adjust the window size so the client area remains the same */
-    {
-      LONG x,y;
-      DrawablePtr pDraw = &pWin->drawable;
-      x =  pDraw->x - wBorderWidth(pWin);
-      y = pDraw->y - wBorderWidth(pWin);
-      winPositionWindowMultiWindow(pWin, x, y);
-    }
+        SendMessage(g_hMainThreadMsgWnd, WM_POSITIONWINDOW, (WPARAM)pWin, (LPARAM)0);
         return 0;
 
     case WM_MOUSEACTIVATE:
@@ -1101,6 +1080,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
      * and so it gets lost. Ensure there stacking order is correct.
      */
     if (needRestack)
-        winReorderWindowsMultiWindow();
+        SendMessage(g_hMainThreadMsgWnd, WM_REORDERWINDOWS, (WPARAM)0, (LPARAM)0);
     return ret;
 }

@@ -113,7 +113,7 @@ const char WIN_SCR_PROP[]=        "vcxsrv_screen_prop_rl";
 void
 winInitializeGlobals(void)
 {
-    g_dwCurrentThreadID = GetCurrentThreadId();
+    g_dwCurrentThreadID = myCreateWindowsThead();
     g_iClipboardWindow = None;
     g_pClipboardDisplay = NULL;
     g_atomLastOwnedSelection = None;

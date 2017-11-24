@@ -277,7 +277,7 @@ winMWExtWMCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
 
     /* Create the window */
     g_fNoConfigureWindow = TRUE;
-    pRLWinPriv->hWnd = CreateWindowExA(WS_EX_TOOLWINDOW,        /* Extended styles */
+    pRLWinPriv->hWnd = myCreateWindowExA(WS_EX_TOOLWINDOW,        /* Extended styles */
                                        pszClass,        /* Class name */
                                        WINDOW_TITLE_X,  /* Window name */
                                        WS_POPUP | WS_CLIPCHILDREN, newX,        /* Horizontal position */
@@ -334,7 +334,7 @@ winMWExtWMDestroyFrame(RootlessFrameID wid)
     pRLWinPriv->fDestroyed = TRUE;
 
     /* Destroy the Windows window */
-    DestroyWindow(pRLWinPriv->hWnd);
+    myDestroyWindow(pRLWinPriv->hWnd);
 
     /* Only if we were able to get the name */
     if (iReturn) {

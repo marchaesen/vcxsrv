@@ -92,7 +92,8 @@ SRCS =	InitInput.c \
 	winrandr.c \
 	$(SRCS_MULTIWINDOWEXTWM) \
 	$(SRCS_XV) \
-	xdmcphostselect.c
+	xdmcphostselect.c \
+	mycreatewindow.c
 
 CSRCS=$(filter %.c,$(SRCS)) $(filter %.y,$(SRCS)) $(filter %.l,$(SRCS))
 CSRCS := $(CSRCS:%.y=%.c)
