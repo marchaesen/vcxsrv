@@ -776,7 +776,7 @@ class CMyWizard : public CWizard
                       remotepassword=std::string(" -pw ")+config.remotepassword;
                     if (!config.privatekey.empty())
                       remotepassword+=std::string(" -i \"")+config.privatekey+"\"";
-                    _snprintf(cmdline,512,"plink -ssh -X%s %s %s",
+                    _snprintf(cmdline,512,"plink -ssh -C -X%s %s %s",
                                 remotepassword.c_str(), host.c_str(),config.remoteprogram.c_str());
                     client += cmdline;
                 }
