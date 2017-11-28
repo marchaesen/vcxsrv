@@ -40,6 +40,12 @@ enum hud_counter {
 };
 
 struct hud_context {
+   int refcount;
+
+   /* Context where queries are executed. */
+   struct pipe_context *record_pipe;
+
+   /* Context where the HUD is drawn: */
    struct pipe_context *pipe;
    struct cso_context *cso;
 
@@ -97,9 +103,10 @@ struct hud_graph {
    /* name and query */
    char name[128];
    void *query_data;
-   void (*begin_query)(struct hud_graph *gr);
-   void (*query_new_value)(struct hud_graph *gr);
-   void (*free_query_data)(void *ptr); /**< do not use ordinary free() */
+   void (*begin_query)(struct hud_graph *gr, struct pipe_context *pipe);
+   void (*query_new_value)(struct hud_graph *gr, struct pipe_context *pipe);
+   /* use this instead of ordinary free() */
+   void (*free_query_data)(void *ptr, struct pipe_context *pipe);
 
    /* mutable variables */
    unsigned num_vertices;
@@ -154,7 +161,7 @@ void hud_thread_busy_install(struct hud_pane *pane, const char *name, bool main)
 void hud_thread_counter_install(struct hud_pane *pane, const char *name,
                                 enum hud_counter counter);
 void hud_pipe_query_install(struct hud_batch_query_context **pbq,
-                            struct hud_pane *pane, struct pipe_context *pipe,
+                            struct hud_pane *pane,
                             const char *name, unsigned query_type,
                             unsigned result_index,
                             uint64_t max_value,
@@ -163,10 +170,13 @@ void hud_pipe_query_install(struct hud_batch_query_context **pbq,
                             unsigned flags);
 boolean hud_driver_query_install(struct hud_batch_query_context **pbq,
                                  struct hud_pane *pane,
-                                 struct pipe_context *pipe, const char *name);
-void hud_batch_query_begin(struct hud_batch_query_context *bq);
-void hud_batch_query_update(struct hud_batch_query_context *bq);
-void hud_batch_query_cleanup(struct hud_batch_query_context **pbq);
+                                 struct pipe_screen *screen, const char *name);
+void hud_batch_query_begin(struct hud_batch_query_context *bq,
+                           struct pipe_context *pipe);
+void hud_batch_query_update(struct hud_batch_query_context *bq,
+                            struct pipe_context *pipe);
+void hud_batch_query_cleanup(struct hud_batch_query_context **pbq,
+                             struct pipe_context *pipe);
 
 #if HAVE_GALLIUM_EXTRA_HUD
 int hud_get_num_nics(bool displayhelp);

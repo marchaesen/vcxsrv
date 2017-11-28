@@ -59,7 +59,7 @@ nir_metadata_preserve(nir_function_impl *impl, nir_metadata preserved)
    impl->valid_metadata &= preserved;
 }
 
-#ifdef DEBUG
+#ifndef NDEBUG
 /**
  * Make sure passes properly invalidate metadata (part 1).
  *

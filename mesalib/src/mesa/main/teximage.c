@@ -122,6 +122,56 @@ adjust_for_oes_float_texture(const struct gl_context *ctx,
    return format;
 }
 
+/**
+ * Returns a corresponding base format for a given internal floating point
+ * format as specifed by OES_texture_float.
+ */
+static GLenum
+oes_float_internal_format(const struct gl_context *ctx,
+                          GLenum format, GLenum type)
+{
+   switch (type) {
+   case GL_FLOAT:
+      if (ctx->Extensions.OES_texture_float) {
+         switch (format) {
+         case GL_RGBA32F:
+            return GL_RGBA;
+         case GL_RGB32F:
+            return GL_RGB;
+         case GL_ALPHA32F_ARB:
+            return GL_ALPHA;
+         case GL_LUMINANCE32F_ARB:
+            return GL_LUMINANCE;
+         case GL_LUMINANCE_ALPHA32F_ARB:
+            return GL_LUMINANCE_ALPHA;
+         default:
+            break;
+         }
+      }
+      break;
+
+   case GL_HALF_FLOAT_OES:
+      if (ctx->Extensions.OES_texture_half_float) {
+         switch (format) {
+         case GL_RGBA16F:
+            return GL_RGBA;
+         case GL_RGB16F:
+            return GL_RGB;
+         case GL_ALPHA16F_ARB:
+            return GL_ALPHA;
+         case GL_LUMINANCE16F_ARB:
+            return GL_LUMINANCE;
+         case GL_LUMINANCE_ALPHA16F_ARB:
+            return GL_LUMINANCE_ALPHA;
+         default:
+            break;
+         }
+      }
+      break;
+   }
+   return format;
+}
+
 
 /**
  * Install gl_texture_image in a gl_texture_object according to the target
@@ -2173,6 +2223,10 @@ texsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
       return GL_TRUE;
    }
 
+   GLenum internalFormat = _mesa_is_gles(ctx) ?
+      oes_float_internal_format(ctx, texImage->InternalFormat, type) :
+      texImage->InternalFormat;
+
    /* OpenGL ES 1.x and OpenGL ES 2.0 impose additional restrictions on the
     * combinations of format, internalFormat, and type that can be used.
     * Formats and types that require additional extensions (e.g., GL_FLOAT
@@ -2180,7 +2234,7 @@ texsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
     */
    if (_mesa_is_gles(ctx) &&
        texture_format_error_check_gles(ctx, format, type,
-                                       texImage->InternalFormat,
+                                       internalFormat,
                                        dimensions, callerName)) {
       return GL_TRUE;
    }

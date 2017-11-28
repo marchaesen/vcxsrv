@@ -56,6 +56,16 @@ extern "C" {
 #endif
 
 
+/** Set a single bit */
+#define BITFIELD_BIT(b)      ((GLbitfield)1 << (b))
+/** Set all bits up to excluding bit b */
+#define BITFIELD_MASK(b)      \
+   ((b) == 32 ? (~(GLbitfield)0) : BITFIELD_BIT(b) - 1)
+/** Set count bits starting from bit b  */
+#define BITFIELD_RANGE(b, count) \
+   (BITFIELD_MASK((b) + (count)) & ~BITFIELD_MASK(b))
+
+
 /**
  * \name 64-bit extension of GLbitfield.
  */
@@ -1507,7 +1517,7 @@ struct gl_vertex_buffer_binding
    GLsizei Stride;                     /**< User-specified stride */
    GLuint InstanceDivisor;             /**< GL_ARB_instanced_arrays */
    struct gl_buffer_object *BufferObj; /**< GL_ARB_vertex_buffer_object */
-   GLbitfield64 _BoundArrays;          /**< Arrays bound to this binding point */
+   GLbitfield _BoundArrays;            /**< Arrays bound to this binding point */
 };
 
 
@@ -1544,13 +1554,13 @@ struct gl_vertex_array_object
    struct gl_vertex_buffer_binding BufferBinding[VERT_ATTRIB_MAX];
 
    /** Mask indicating which vertex arrays have vertex buffer associated. */
-   GLbitfield64 VertexAttribBufferMask;
+   GLbitfield VertexAttribBufferMask;
 
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
-   GLbitfield64 _Enabled;
+   GLbitfield _Enabled;
 
    /** Mask of VERT_BIT_* values indicating changed/dirty arrays */
-   GLbitfield64 NewArrays;
+   GLbitfield NewArrays;
 
    /** The index buffer (also known as the element array buffer in OpenGL). */
    struct gl_buffer_object *IndexBufferObj;
@@ -2877,13 +2887,6 @@ struct gl_shader_program_data
    unsigned NumUniformDataSlots;
    union gl_constant_value *UniformDataSlots;
 
-   /* TODO: This used by Gallium drivers to skip the cache on tgsi fallback.
-    * All structures (gl_program, uniform storage, etc) will get recreated
-    * even though we have already loaded them from cache. We should instead
-    * switch to storing the GLSL metadata and TGSI IR in a single cache item
-    * like the i965 driver does with NIR.
-    */
-   bool skip_cache;
    GLboolean Validated;
 
    /** List of all active resources after linking. */
@@ -4948,7 +4951,7 @@ struct gl_context
 
    GLboolean ViewportInitialized;  /**< has viewport size been initialized? */
 
-   GLbitfield64 varying_vp_inputs;  /**< mask of VERT_BIT_* flags */
+   GLbitfield varying_vp_inputs;  /**< mask of VERT_BIT_* flags */
 
    /** \name Derived state */
    GLbitfield _ImageTransferState;/**< bitwise-or of IMAGE_*_BIT flags */

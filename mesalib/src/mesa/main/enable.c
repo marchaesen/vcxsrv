@@ -64,7 +64,7 @@ static void
 client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
 {
    struct gl_vertex_array_object *vao = ctx->Array.VAO;
-   GLbitfield64 flag;
+   GLbitfield flag;
    GLboolean *var;
 
    switch (cap) {

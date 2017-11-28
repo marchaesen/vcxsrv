@@ -642,10 +642,8 @@ void optimised_move(void *frontend, int, int, int);
 void set_raw_mouse_mode(void *frontend, int);
 void connection_fatal(void *frontend, const char *, ...);
 void nonfatal(const char *, ...);
-void fatalbox(const char *, ...);
 void modalfatalbox(const char *, ...);
 #ifdef macintosh
-#pragma noreturn(fatalbox)
 #pragma noreturn(modalfatalbox)
 #endif
 void do_beep(void *frontend, int);
@@ -1534,6 +1532,7 @@ typedef void (*toplevel_callback_fn_t)(void *ctx);
 void queue_toplevel_callback(toplevel_callback_fn_t fn, void *ctx);
 void run_toplevel_callbacks(void);
 int toplevel_callback_pending(void);
+void delete_callbacks_for_context(void *ctx);
 
 typedef void (*toplevel_callback_notify_fn_t)(void *frontend);
 void request_callback_notifications(toplevel_callback_notify_fn_t notify,

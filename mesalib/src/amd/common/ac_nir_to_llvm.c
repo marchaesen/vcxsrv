@@ -149,6 +149,9 @@ struct nir_to_llvm_context {
 	unsigned tes_primitive_mode;
 	uint64_t tess_outputs_written;
 	uint64_t tess_patch_outputs_written;
+
+	uint32_t tcs_patch_outputs_read;
+	uint64_t tcs_outputs_read;
 };
 
 static inline struct nir_to_llvm_context *
@@ -2789,7 +2792,15 @@ store_tcs_output(struct nir_to_llvm_context *ctx,
 	const unsigned comp = instr->variables[0]->var->data.location_frac;
 	const bool per_vertex = nir_is_per_vertex_io(instr->variables[0]->var, ctx->stage);
 	const bool is_compact = instr->variables[0]->var->data.compact;
+	bool store_lds = true;
 
+	if (instr->variables[0]->var->data.patch) {
+		if (!(ctx->tcs_patch_outputs_read & (1U << instr->variables[0]->var->data.location)))
+			store_lds = false;
+	} else {
+		if (!(ctx->tcs_outputs_read & (1ULL << instr->variables[0]->var->data.location)))
+			store_lds = false;
+	}
 	get_deref_offset(ctx->nir, instr->variables[0],
 			 false, NULL, per_vertex ? &vertex_index : NULL,
 			 &const_index, &indir_index);
@@ -2826,7 +2837,8 @@ store_tcs_output(struct nir_to_llvm_context *ctx,
 			continue;
 		LLVMValueRef value = llvm_extract_elem(&ctx->ac, src, chan - comp);
 
-		ac_lds_store(&ctx->ac, dw_addr, value);
+		if (store_lds || is_tess_factor)
+			ac_lds_store(&ctx->ac, dw_addr, value);
 
 		if (!is_tess_factor && writemask != 0xF)
 			ac_build_buffer_store_dword(&ctx->ac, ctx->hs_ring_tess_offchip, value, 1,
@@ -6550,6 +6562,9 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 			ctx.gs_next_vertex = ac_build_alloca(&ctx.ac, ctx.ac.i32, "gs_next_vertex");
 
 			ctx.gs_max_out_vertices = shaders[i]->info.gs.vertices_out;
+		} else if (shaders[i]->info.stage == MESA_SHADER_TESS_CTRL) {
+			ctx.tcs_outputs_read = shaders[i]->info.outputs_read;
+			ctx.tcs_patch_outputs_read = shaders[i]->info.patch_outputs_read;
 		} else if (shaders[i]->info.stage == MESA_SHADER_TESS_EVAL) {
 			ctx.tes_primitive_mode = shaders[i]->info.tess.primitive_mode;
 		} else if (shaders[i]->info.stage == MESA_SHADER_VERTEX) {

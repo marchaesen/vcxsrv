@@ -299,7 +299,7 @@ recalculate_input_bindings(struct gl_context *ctx)
    const struct gl_array_attributes *array = ctx->Array.VAO->VertexAttrib;
    struct gl_vertex_array *vertexAttrib = ctx->Array.VAO->_VertexAttrib;
    const struct gl_vertex_array **inputs = &exec->array.inputs[0];
-   GLbitfield64 const_inputs = 0x0;
+   GLbitfield const_inputs = 0x0;
    GLuint i;
 
    switch (get_program_mode(ctx)) {

@@ -522,7 +522,7 @@ nir_lower_io(nir_shader *shader, nir_variable_mode modes,
 }
 
 /**
- * Return the offset soruce for a load/store intrinsic.
+ * Return the offset source for a load/store intrinsic.
  */
 nir_src *
 nir_get_io_offset_src(nir_intrinsic_instr *instr)

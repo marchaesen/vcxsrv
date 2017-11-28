@@ -147,9 +147,10 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 
 		/* GRBM_GFX_INDEX has a different offset on SI and CI+ */
 		if (physical_device->rad_info.chip_class < CIK)
-			radeon_set_config_reg(cs, GRBM_GFX_INDEX,
-					      SE_INDEX(se) | SH_BROADCAST_WRITES |
-					      INSTANCE_BROADCAST_WRITES);
+			radeon_set_config_reg(cs, R_00802C_GRBM_GFX_INDEX,
+					      S_00802C_SE_INDEX(se) |
+					      S_00802C_SH_BROADCAST_WRITES(1) |
+					      S_00802C_INSTANCE_BROADCAST_WRITES(1));
 		else
 			radeon_set_uconfig_reg(cs, R_030800_GRBM_GFX_INDEX,
 					       S_030800_SE_INDEX(se) | S_030800_SH_BROADCAST_WRITES(1) |
@@ -161,9 +162,10 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 
 	/* GRBM_GFX_INDEX has a different offset on SI and CI+ */
 	if (physical_device->rad_info.chip_class < CIK)
-		radeon_set_config_reg(cs, GRBM_GFX_INDEX,
-				      SE_BROADCAST_WRITES | SH_BROADCAST_WRITES |
-				      INSTANCE_BROADCAST_WRITES);
+		radeon_set_config_reg(cs, R_00802C_GRBM_GFX_INDEX,
+				      S_00802C_SE_BROADCAST_WRITES(1) |
+				      S_00802C_SH_BROADCAST_WRITES(1) |
+				      S_00802C_INSTANCE_BROADCAST_WRITES(1));
 	else
 		radeon_set_uconfig_reg(cs, R_030800_GRBM_GFX_INDEX,
 				       S_030800_SE_BROADCAST_WRITES(1) | S_030800_SH_BROADCAST_WRITES(1) |

@@ -2139,6 +2139,9 @@ VkResult radv_AllocateCommandBuffers(
 	VkResult result = VK_SUCCESS;
 	uint32_t i;
 
+	memset(pCommandBuffers, 0,
+			sizeof(*pCommandBuffers)*pAllocateInfo->commandBufferCount);
+
 	for (i = 0; i < pAllocateInfo->commandBufferCount; i++) {
 
 		if (!list_empty(&pool->free_cmd_buffers)) {

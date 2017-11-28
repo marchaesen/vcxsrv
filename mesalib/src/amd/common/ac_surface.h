@@ -71,12 +71,12 @@ enum radeon_micro_mode {
 
 struct legacy_surf_level {
     uint64_t                    offset;
-    uint64_t                    slice_size;
-    uint64_t                    dcc_offset;
-    uint64_t                    dcc_fast_clear_size;
-    uint16_t                    nblk_x;
-    uint16_t                    nblk_y;
-    enum radeon_surf_mode       mode;
+    uint32_t                    slice_size_dw; /* in dwords; max = 4GB / 4. */
+    uint32_t                    dcc_offset; /* relative offset within DCC mip tree */
+    uint32_t                    dcc_fast_clear_size;
+    unsigned                    nblk_x:15;
+    unsigned                    nblk_y:15;
+    enum radeon_surf_mode       mode:2;
 };
 
 struct legacy_surf_layout {
@@ -187,8 +187,9 @@ struct radeon_surf {
     uint8_t                     tile_swizzle;
 
     uint64_t                    surf_size;
-    uint64_t                    dcc_size;
-    uint64_t                    htile_size;
+    /* DCC and HTILE are very small. */
+    uint32_t                    dcc_size;
+    uint32_t                    htile_size;
 
     uint32_t                    htile_slice_size;
 

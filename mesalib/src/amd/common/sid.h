@@ -698,13 +698,14 @@
 #define   S_008010_GUI_ACTIVE(x)                                      (((unsigned)(x) & 0x1) << 31)
 #define   G_008010_GUI_ACTIVE(x)                                      (((x) >> 31) & 0x1)
 #define   C_008010_GUI_ACTIVE                                         0x7FFFFFFF
-#define GRBM_GFX_INDEX                                                  0x802C
-#define         INSTANCE_INDEX(x)                                     ((x) << 0)
-#define         SH_INDEX(x)                                           ((x) << 8)
-#define         SE_INDEX(x)                                           ((x) << 16)
-#define         SH_BROADCAST_WRITES                                   (1 << 29)
-#define         INSTANCE_BROADCAST_WRITES                             (1 << 30)
-#define         SE_BROADCAST_WRITES                                   (1 << 31)
+/* not on CIK -- moved to uconfig space */
+#define R_00802C_GRBM_GFX_INDEX                                         0x802C
+#define   S_00802C_INSTANCE_INDEX(x)                                  (((unsigned)(x) & 0xFF) << 0)
+#define   S_00802C_SH_INDEX(x)                                        (((unsigned)(x) & 0xFF) << 8)
+#define   S_00802C_SE_INDEX(x)                                        (((unsigned)(x) & 0xFF) << 16)
+#define   S_00802C_SH_BROADCAST_WRITES(x)                             (((unsigned)(x) & 0x1) << 29)
+#define   S_00802C_INSTANCE_BROADCAST_WRITES(x)                       (((unsigned)(x) & 0x1) << 30)
+#define   S_00802C_SE_BROADCAST_WRITES(x)                             (((unsigned)(x) & 0x1) << 31)
 #define R_0084FC_CP_STRMOUT_CNTL		                        0x0084FC
 #define   S_0084FC_OFFSET_UPDATE_DONE(x)		              (((unsigned)(x) & 0x1) << 0)
 #define R_0085F0_CP_COHER_CNTL                                          0x0085F0
@@ -767,6 +768,7 @@
 #define   C_0085F0_SH_ICACHE_ACTION_ENA                               0xDFFFFFFF
 #define R_0085F4_CP_COHER_SIZE                                          0x0085F4
 #define R_0085F8_CP_COHER_BASE                                          0x0085F8
+/*   */
 #define R_008014_GRBM_STATUS_SE0                                        0x008014
 #define   S_008014_DB_CLEAN(x)                                        (((unsigned)(x) & 0x1) << 1)
 #define   G_008014_DB_CLEAN(x)                                        (((x) >> 1) & 0x1)
@@ -1001,7 +1003,7 @@
 #define   S_0301F0_SH_SD_ACTION_ENA(x)                                (((unsigned)(x) & 0x1) << 31)
 #define   G_0301F0_SH_SD_ACTION_ENA(x)                                (((x) >> 31) & 0x1)
 #define   C_0301F0_SH_SD_ACTION_ENA                                   0x7FFFFFFF
-/*    */
+/* CIK */
 #define R_0301F4_CP_COHER_SIZE                                          0x0301F4
 #define R_0301F8_CP_COHER_BASE                                          0x0301F8
 #define R_0301FC_CP_COHER_STATUS                                        0x0301FC
@@ -1017,6 +1019,7 @@
 #define   S_0301FC_STATUS(x)                                          (((unsigned)(x) & 0x1) << 31)
 #define   G_0301FC_STATUS(x)                                          (((x) >> 31) & 0x1)
 #define   C_0301FC_STATUS                                             0x7FFFFFFF
+/*    */
 #define R_008210_CP_CPC_STATUS                                          0x008210
 #define   S_008210_MEC1_BUSY(x)                                       (((unsigned)(x) & 0x1) << 0)
 #define   G_008210_MEC1_BUSY(x)                                       (((x) >> 0) & 0x1)
@@ -1396,12 +1399,15 @@
 #define   S_0088C4_ES_LIMIT(x)                                        (((unsigned)(x) & 0x1F) << 16)
 #define   G_0088C4_ES_LIMIT(x)                                        (((x) >> 16) & 0x1F)
 #define   C_0088C4_ES_LIMIT                                           0xFFE0FFFF
+/* not on CIK -- moved to uconfig space */
 #define R_0088C8_VGT_ESGS_RING_SIZE                                     0x0088C8
 #define R_0088CC_VGT_GSVS_RING_SIZE                                     0x0088CC
+/*   */
 #define R_0088D4_VGT_GS_VERTEX_REUSE                                    0x0088D4
 #define   S_0088D4_VERT_REUSE(x)                                      (((unsigned)(x) & 0x1F) << 0)
 #define   G_0088D4_VERT_REUSE(x)                                      (((x) >> 0) & 0x1F)
 #define   C_0088D4_VERT_REUSE                                         0xFFFFFFE0
+/* not on CIK -- moved to uconfig space */
 #define R_008958_VGT_PRIMITIVE_TYPE                                     0x008958
 #define   S_008958_PRIM_TYPE(x)                                       (((unsigned)(x) & 0x3F) << 0)
 #define   G_008958_PRIM_TYPE(x)                                       (((x) >> 0) & 0x3F)
@@ -1456,6 +1462,7 @@
 #define   G_0089B0_OFFCHIP_BUFFERING(x)                               (((x) >> 0) & 0x7F)
 #define   C_0089B0_OFFCHIP_BUFFERING                                  0xFFFFFF80
 #define R_0089B8_VGT_TF_MEMORY_BASE                                     0x0089B8
+/*    */
 #define R_008A14_PA_CL_ENHANCE                                          0x008A14
 #define   S_008A14_CLIP_VTX_REORDER_ENA(x)                            (((unsigned)(x) & 0x1) << 0)
 #define   G_008A14_CLIP_VTX_REORDER_ENA(x)                            (((x) >> 0) & 0x1)
@@ -1469,6 +1476,7 @@
 #define   S_008A14_VE_NAN_PROC_DISABLE(x)                             (((unsigned)(x) & 0x1) << 4)
 #define   G_008A14_VE_NAN_PROC_DISABLE(x)                             (((x) >> 4) & 0x1)
 #define   C_008A14_VE_NAN_PROC_DISABLE                                0xFFFFFFEF
+/* not on CIK -- moved to uconfig space */
 #define R_008A60_PA_SU_LINE_STIPPLE_VALUE                               0x008A60
 #define   S_008A60_LINE_STIPPLE_VALUE(x)                              (((unsigned)(x) & 0xFFFFFF) << 0)
 #define   G_008A60_LINE_STIPPLE_VALUE(x)                              (((x) >> 0) & 0xFFFFFF)
@@ -1480,6 +1488,7 @@
 #define   S_008B10_CURRENT_COUNT(x)                                   (((unsigned)(x) & 0xFF) << 8)
 #define   G_008B10_CURRENT_COUNT(x)                                   (((x) >> 8) & 0xFF)
 #define   C_008B10_CURRENT_COUNT                                      0xFFFF00FF
+/*   */
 #define R_008670_CP_STALLED_STAT3                                       0x008670
 #define   S_008670_CE_TO_CSF_NOT_RDY_TO_RCV(x)                        (((unsigned)(x) & 0x1) << 0)
 #define   G_008670_CE_TO_CSF_NOT_RDY_TO_RCV(x)                        (((x) >> 0) & 0x1)
@@ -1892,6 +1901,7 @@
 #define   S_008BF0_DISABLE_DUALGRAD_PERF_OPTIMIZATION(x)              (((unsigned)(x) & 0x1) << 9)
 #define   G_008BF0_DISABLE_DUALGRAD_PERF_OPTIMIZATION(x)              (((x) >> 9) & 0x1)
 #define   C_008BF0_DISABLE_DUALGRAD_PERF_OPTIMIZATION                 0xFFFFFDFF
+/* not on CIK */
 #define R_008C08_SQC_CACHES                                             0x008C08
 #define   S_008C08_INST_INVALIDATE(x)                                 (((unsigned)(x) & 0x1) << 0)
 #define   G_008C08_INST_INVALIDATE(x)                                 (((x) >> 0) & 0x1)
@@ -1946,17 +1956,19 @@
 #define   G_008DFC_ENCODING(x)                                        (((x) >> 26) & 0x3F)
 #define   C_008DFC_ENCODING                                           0x03FFFFFF
 #define     V_008DFC_SQ_ENC_EXP_FIELD                               0x3E
+/* CIK */
 #define R_030E00_TA_CS_BC_BASE_ADDR                                     0x030E00
 #define R_030E04_TA_CS_BC_BASE_ADDR_HI                                  0x030E04
 #define   S_030E04_ADDRESS(x)                                         (((unsigned)(x) & 0xFF) << 0)
 #define   G_030E04_ADDRESS(x)                                         (((x) >> 0) & 0xFF)
 #define   C_030E04_ADDRESS                                            0xFFFFFF00
 #define R_030F00_DB_OCCLUSION_COUNT0_LOW                                0x030F00
-#define R_008F00_SQ_BUF_RSRC_WORD0                                      0x008F00
 #define R_030F04_DB_OCCLUSION_COUNT0_HI                                 0x030F04
 #define   S_030F04_COUNT_HI(x)                                        (((unsigned)(x) & 0x7FFFFFFF) << 0)
 #define   G_030F04_COUNT_HI(x)                                        (((x) >> 0) & 0x7FFFFFFF)
 #define   C_030F04_COUNT_HI                                           0x80000000
+/*    */
+#define R_008F00_SQ_BUF_RSRC_WORD0                                      0x008F00
 #define R_008F04_SQ_BUF_RSRC_WORD1                                      0x008F04
 #define   S_008F04_BASE_ADDRESS_HI(x)                                 (((unsigned)(x) & 0xFFFF) << 0)
 #define   G_008F04_BASE_ADDRESS_HI(x)                                 (((x) >> 0) & 0xFFFF)
@@ -2513,6 +2525,7 @@
 #define   S_0090E8_LSHS_CU_EN(x)                                      (((unsigned)(x) & 0xFFFF) << 0)
 #define   G_0090E8_LSHS_CU_EN(x)                                      (((x) >> 0) & 0xFFFF)
 #define   C_0090E8_LSHS_CU_EN                                         0xFFFF0000
+/* not on CIK */
 #define R_0090EC_SPI_PS_MAX_WAVE_ID                                     0x0090EC
 #define   S_0090EC_MAX_WAVE_ID(x)                                     (((unsigned)(x) & 0xFFF) << 0)
 #define   G_0090EC_MAX_WAVE_ID(x)                                     (((x) >> 0) & 0xFFF)
@@ -2522,7 +2535,7 @@
 #define   S_0090E8_MAX_WAVE_ID(x)                                     (((unsigned)(x) & 0xFFF) << 0)
 #define   G_0090E8_MAX_WAVE_ID(x)                                     (((x) >> 0) & 0xFFF)
 #define   C_0090E8_MAX_WAVE_ID                                        0xFFFFF000
-/*     */
+/* not on CIK */
 #define R_0090F0_SPI_ARB_PRIORITY                                       0x0090F0
 #define   S_0090F0_RING_ORDER_TS0(x)                                  (((unsigned)(x) & 0x07) << 0)
 #define   G_0090F0_RING_ORDER_TS0(x)                                  (((x) >> 0) & 0x07)
@@ -2560,8 +2573,8 @@
 #define   S_00C700_TS3_DUR_MULT(x)                                    (((unsigned)(x) & 0x03) << 18)
 #define   G_00C700_TS3_DUR_MULT(x)                                    (((x) >> 18) & 0x03)
 #define   C_00C700_TS3_DUR_MULT                                       0xFFF3FFFF
-/*     */
-#define R_0090F4_SPI_ARB_CYCLES_0                                       0x0090F4 /* moved to 0xC704 on CIK */
+/* not on CIK */
+#define R_0090F4_SPI_ARB_CYCLES_0                                       0x0090F4 /* moved to 0xC704 on CIK*/
 #define   S_0090F4_TS0_DURATION(x)                                    (((unsigned)(x) & 0xFFFF) << 0)
 #define   G_0090F4_TS0_DURATION(x)                                    (((x) >> 0) & 0xFFFF)
 #define   C_0090F4_TS0_DURATION                                       0xFFFF0000
@@ -2672,7 +2685,9 @@
 #define   S_00936C_EN_B(x)                                            (((unsigned)(x) & 0x1) << 31)
 #define   G_00936C_EN_B(x)                                            (((x) >> 31) & 0x1)
 #define   C_00936C_EN_B                                               0x7FFFFFFF
+/* not on CIK -- moved to uconfig space */
 #define R_00950C_TA_CS_BC_BASE_ADDR                                     0x00950C
+/*   */
 #define R_009858_DB_SUBTILE_CONTROL                                     0x009858
 #define   S_009858_MSAA1_X(x)                                         (((unsigned)(x) & 0x03) << 0)
 #define   G_009858_MSAA1_X(x)                                         (((x) >> 0) & 0x03)
@@ -3588,7 +3603,7 @@
 #define   S_00B824_NUM_THREAD_PARTIAL(x)                              (((unsigned)(x) & 0xFFFF) << 16)
 #define   G_00B824_NUM_THREAD_PARTIAL(x)                              (((x) >> 16) & 0xFFFF)
 #define   C_00B824_NUM_THREAD_PARTIAL                                 0x0000FFFF
-#define R_00B82C_COMPUTE_MAX_WAVE_ID                                    0x00B82C /* moved to 0xCD20 on CIK */
+#define R_00B82C_COMPUTE_MAX_WAVE_ID                                    0x00B82C /* not on CIK -- moved to 0xCD20 */
 #define   S_00B82C_MAX_WAVE_ID(x)                                     (((unsigned)(x) & 0xFFF) << 0)
 #define   G_00B82C_MAX_WAVE_ID(x)                                     (((x) >> 0) & 0xFFF)
 #define   C_00B82C_MAX_WAVE_ID                                        0xFFFFF000
@@ -7791,6 +7806,7 @@
 #define   C_028A7C_MTYPE                                              0xFFFFE7FF
 /*    */
 #define R_028A80_WD_ENHANCE                                             0x028A80
+/* not on CIK */
 #define R_028A84_VGT_PRIMITIVEID_EN                                     0x028A84
 #define   S_028A84_PRIMITIVEID_EN(x)                                  (((unsigned)(x) & 0x1) << 0)
 #define   G_028A84_PRIMITIVEID_EN(x)                                  (((x) >> 0) & 0x1)

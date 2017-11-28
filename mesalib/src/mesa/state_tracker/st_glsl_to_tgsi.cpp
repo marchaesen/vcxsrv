@@ -5252,7 +5252,7 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
          defined = 0;
 
       inst2 = (glsl_to_tgsi_instruction *) inst->next;
-      do {
+      while (!inst2->is_tail_sentinel()) {
          if (inst->op == inst2->op &&
              inst2->dst[defined].file == PROGRAM_UNDEFINED &&
              inst->src[0].file == inst2->src[0].file &&
@@ -5261,9 +5261,9 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
              inst->src[0].swizzle == inst2->src[0].swizzle)
             break;
          inst2 = (glsl_to_tgsi_instruction *) inst2->next;
-      } while (inst2);
+      }
 
-      if (!inst2) {
+      if (inst2->is_tail_sentinel()) {
          /* Undefined destinations are not allowed, substitute with an unused
           * temporary register.
           */

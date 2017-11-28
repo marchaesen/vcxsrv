@@ -991,6 +991,8 @@ struct ssh_tag {
      * agent-forwarding channels live in their channel structure.)
      */
     agent_pending_query *auth_agent_query;
+
+    int need_random_unref;
 };
 
 static const char *ssh_pkt_type(Ssh ssh, int type)
@@ -1352,7 +1354,6 @@ static void ssh1_log_outgoing_packet(Ssh ssh, struct Packet *pkt)
 /*
  * Collect incoming data in the incoming packet buffer.
  * Decipher and verify the packet when it is completely read.
- * Drop SSH1_MSG_DEBUG and SSH1_MSG_IGNORE packets.
  * Update the *data and *datalen variables.
  * Return a Packet structure when a packet is completed.
  */
@@ -7786,6 +7787,8 @@ static int ssh2_try_send(struct ssh_channel *c)
 	ssh2_pkt_addstring_start(pktout);
 	ssh2_pkt_addstring_data(pktout, data, len);
 	ssh2_pkt_send(ssh, pktout);
+        if (!ssh->s)   /* a network error might have closed the socket */
+            break;
 	bufchain_consume(&c->v.v2.outbuffer, len);
 	c->v.v2.remwindow -= len;
     }
@@ -11316,9 +11319,15 @@ static const char *ssh_init(void *frontend_handle, void **backend_handle,
 #endif
 
     random_ref(); /* do this now - may be needed by sharing setup code */
+    ssh->need_random_unref = TRUE;
 
     p = connect_to_host(ssh, host, port, realhost, nodelay, keepalive);
     if (p != NULL) {
+        /* Call random_unref now instead of waiting until the caller
+         * frees this useless Ssh object, in case the caller is
+         * impatient and just exits without bothering, in which case
+         * the random seed won't be re-saved. */
+        ssh->need_random_unref = FALSE;
         random_unref();
 	return p;
     }
@@ -11332,6 +11341,7 @@ static void ssh_free(void *handle)
     struct ssh_channel *c;
     struct ssh_rportfwd *pf;
     struct X11FakeAuth *auth;
+    int need_random_unref;
 
     if (ssh->v1_cipher_ctx)
 	ssh->cipher->free_context(ssh->v1_cipher_ctx);
@@ -11434,9 +11444,11 @@ static void ssh_free(void *handle)
     if (ssh->gsslibs)
 	ssh_gss_cleanup(ssh->gsslibs);
 #endif
+    need_random_unref = ssh->need_random_unref;
     sfree(ssh);
 
-    random_unref();
+    if (need_random_unref)
+        random_unref();
 }
 
 /*

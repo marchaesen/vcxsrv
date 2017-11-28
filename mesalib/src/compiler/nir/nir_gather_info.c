@@ -25,7 +25,8 @@
 #include "nir.h"
 
 static void
-set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len)
+set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len,
+            bool is_output_read)
 {
    for (int i = 0; i < len; i++) {
       assert(var->data.location != -1);
@@ -58,11 +59,20 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len)
          }
       } else {
          assert(var->data.mode == nir_var_shader_out);
-         if (is_patch_generic) {
-            shader->info.patch_outputs_written |= bitfield;
-         } else if (!var->data.read_only) {
-            shader->info.outputs_written |= bitfield;
-         }
+         if (is_output_read) {
+            if (is_patch_generic) {
+               shader->info.patch_outputs_read |= bitfield;
+            } else {
+               shader->info.outputs_read |= bitfield;
+            }
+         } else {
+	    if (is_patch_generic) {
+	       shader->info.patch_outputs_written |= bitfield;
+	    } else if (!var->data.read_only) {
+	       shader->info.outputs_written |= bitfield;
+	    }
+	 }
+
 
          if (var->data.fb_fetch_output)
             shader->info.outputs_read |= bitfield;
@@ -75,7 +85,7 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len)
  * represents a shader input or output.
  */
 static void
-mark_whole_variable(nir_shader *shader, nir_variable *var)
+mark_whole_variable(nir_shader *shader, nir_variable *var, bool is_output_read)
 {
    const struct glsl_type *type = var->type;
 
@@ -88,7 +98,7 @@ mark_whole_variable(nir_shader *shader, nir_variable *var)
       var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
                         : glsl_count_attribute_slots(type, false);
 
-   set_io_mask(shader, var, 0, slots);
+   set_io_mask(shader, var, 0, slots, is_output_read);
 }
 
 static unsigned
@@ -124,7 +134,7 @@ get_io_offset(nir_deref_var *deref)
  * occurs, then nothing will be marked and false will be returned.
  */
 static bool
-try_mask_partial_io(nir_shader *shader, nir_deref_var *deref)
+try_mask_partial_io(nir_shader *shader, nir_deref_var *deref, bool is_output_read)
 {
    nir_variable *var = deref->var;
    const struct glsl_type *type = var->type;
@@ -186,7 +196,7 @@ try_mask_partial_io(nir_shader *shader, nir_deref_var *deref)
       return false;
    }
 
-   set_io_mask(shader, var, offset, elem_width);
+   set_io_mask(shader, var, offset, elem_width, is_output_read);
    return true;
 }
 
@@ -209,8 +219,13 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader)
 
       if (var->data.mode == nir_var_shader_in ||
           var->data.mode == nir_var_shader_out) {
-         if (!try_mask_partial_io(shader, instr->variables[0]))
-            mark_whole_variable(shader, var);
+         bool is_output_read = false;
+         if (var->data.mode == nir_var_shader_out &&
+             instr->intrinsic == nir_intrinsic_load_var)
+            is_output_read = true;
+
+         if (!try_mask_partial_io(shader, instr->variables[0], is_output_read))
+            mark_whole_variable(shader, var, is_output_read);
 
          /* We need to track which input_reads bits correspond to a
           * dvec3/dvec4 input attribute */
@@ -340,6 +355,7 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
    shader->info.inputs_read = 0;
    shader->info.outputs_written = 0;
    shader->info.outputs_read = 0;
+   shader->info.patch_outputs_read = 0;
    shader->info.double_inputs_read = 0;
    shader->info.patch_inputs_read = 0;
    shader->info.patch_outputs_written = 0;

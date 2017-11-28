@@ -35,7 +35,7 @@
 /* Since this file is just a pile of asserts, don't bother compiling it if
  * we're not building a debug build.
  */
-#ifdef DEBUG
+#ifndef NDEBUG
 
 /*
  * Per-register validation state.

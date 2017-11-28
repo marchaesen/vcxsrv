@@ -895,13 +895,13 @@ radv_get_queue_global_priority(const VkDeviceQueueGlobalPriorityCreateInfoEXT *p
 		return RADEON_CTX_PRIORITY_MEDIUM;
 
 	switch(pObj->globalPriority) {
-	case VK_QUEUE_GLOBAL_PRIORITY_REALTIME:
+	case VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT:
 		return RADEON_CTX_PRIORITY_REALTIME;
-	case VK_QUEUE_GLOBAL_PRIORITY_HIGH:
+	case VK_QUEUE_GLOBAL_PRIORITY_HIGH_EXT:
 		return RADEON_CTX_PRIORITY_HIGH;
-	case VK_QUEUE_GLOBAL_PRIORITY_MEDIUM:
+	case VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT:
 		return RADEON_CTX_PRIORITY_MEDIUM;
-	case VK_QUEUE_GLOBAL_PRIORITY_LOW:
+	case VK_QUEUE_GLOBAL_PRIORITY_LOW_EXT:
 		return RADEON_CTX_PRIORITY_LOW;
 	default:
 		unreachable("Illegal global priority value");

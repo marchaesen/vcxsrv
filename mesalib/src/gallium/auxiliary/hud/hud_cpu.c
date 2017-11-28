@@ -144,7 +144,7 @@ struct cpu_info {
 };
 
 static void
-query_cpu_load(struct hud_graph *gr)
+query_cpu_load(struct hud_graph *gr, struct pipe_context *pipe)
 {
    struct cpu_info *info = gr->query_data;
    uint64_t now = os_time_get();
@@ -173,7 +173,7 @@ query_cpu_load(struct hud_graph *gr)
 }
 
 static void
-free_query_data(void *p)
+free_query_data(void *p, struct pipe_context *pipe)
 {
    FREE(p);
 }
@@ -238,7 +238,7 @@ struct thread_info {
 };
 
 static void
-query_api_thread_busy_status(struct hud_graph *gr)
+query_api_thread_busy_status(struct hud_graph *gr, struct pipe_context *pipe)
 {
    struct thread_info *info = gr->query_data;
    int64_t now = os_time_get_nano();
@@ -335,7 +335,7 @@ static unsigned get_counter(struct hud_graph *gr, enum hud_counter counter)
 }
 
 static void
-query_thread_counter(struct hud_graph *gr)
+query_thread_counter(struct hud_graph *gr, struct pipe_context *pipe)
 {
    struct counter_info *info = gr->query_data;
    int64_t now = os_time_get_nano();

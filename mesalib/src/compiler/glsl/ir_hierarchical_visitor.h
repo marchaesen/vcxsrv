@@ -54,7 +54,7 @@ enum ir_visitor_status {
  * returning \c visit_stop), or stop visiting sibling nodes (by returning \c
  * visit_continue_with_parent).
  *
- * These two changes combine to allow nagivation of children to be implemented
+ * These two changes combine to allow navigation of children to be implemented
  * in the composite's \c accept method.  The \c accept method for a leaf-node
  * class will simply call the \c visit method, as usual, and pass its return
  * value on.  The \c accept method for internal-node classes will call the \c

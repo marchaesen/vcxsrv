@@ -89,7 +89,6 @@ arb_input_attrib_string(GLuint index, GLenum progType)
     */
    static const char *const vertAttribs[] = {
       "vertex.position",
-      "vertex.weight",
       "vertex.normal",
       "vertex.color.primary",
       "vertex.color.secondary",
