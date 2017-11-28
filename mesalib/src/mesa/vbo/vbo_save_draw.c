@@ -141,7 +141,7 @@ static void vbo_bind_vertex_list(struct gl_context *ctx,
    GLuint attr;
    GLubyte node_attrsz[VBO_ATTRIB_MAX];  /* copy of node->attrsz[] */
    GLenum node_attrtype[VBO_ATTRIB_MAX];  /* copy of node->attrtype[] */
-   GLbitfield64 varying_inputs = 0x0;
+   GLbitfield varying_inputs = 0x0;
 
    memcpy(node_attrsz, node->attrsz, sizeof(node->attrsz));
    memcpy(node_attrtype, node->attrtype, sizeof(node->attrtype));

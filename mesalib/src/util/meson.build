@@ -134,8 +134,17 @@ if with_tests
     dependencies : [dep_m],
   )
 
+  mesa_sha1_test = executable(
+    'mesa-sha1_test',
+    files('mesa-sha1_test.c'),
+    include_directories : inc_common,
+    link_with : libmesa_util,
+    c_args : [c_msvc_compat_args],
+  )
+
   test('u_atomic', u_atomic_test)
   test('roundeven', roundeven_test)
+  test('mesa-sha1', mesa_sha1_test)
 
   subdir('tests/hash_table')
   subdir('tests/string_buffer')

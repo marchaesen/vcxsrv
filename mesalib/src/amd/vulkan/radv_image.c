@@ -1156,11 +1156,11 @@ void radv_GetImageSubresourceLayout(
 		if (image->type == VK_IMAGE_TYPE_3D)
 			pLayout->size *= u_minify(image->info.depth, level);
 	} else {
-		pLayout->offset = surface->u.legacy.level[level].offset + surface->u.legacy.level[level].slice_size * layer;
+		pLayout->offset = surface->u.legacy.level[level].offset + (uint64_t)surface->u.legacy.level[level].slice_size_dw * 4 * layer;
 		pLayout->rowPitch = surface->u.legacy.level[level].nblk_x * surface->bpe;
-		pLayout->arrayPitch = surface->u.legacy.level[level].slice_size;
-		pLayout->depthPitch = surface->u.legacy.level[level].slice_size;
-		pLayout->size = surface->u.legacy.level[level].slice_size;
+		pLayout->arrayPitch = (uint64_t)surface->u.legacy.level[level].slice_size_dw * 4;
+		pLayout->depthPitch = (uint64_t)surface->u.legacy.level[level].slice_size_dw * 4;
+		pLayout->size = (uint64_t)surface->u.legacy.level[level].slice_size_dw * 4;
 		if (image->type == VK_IMAGE_TYPE_3D)
 			pLayout->size *= u_minify(image->info.depth, level);
 	}

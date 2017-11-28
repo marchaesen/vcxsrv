@@ -32,11 +32,11 @@ It's the fastest software rasterizer for Mesa.
 
 <ul>
 <li>
-   <p>An x86 or amd64 processor; 64-bit mode recommended.</p>
+   <p>For x86 or amd64 processors, 64-bit mode is recommended.</p>
    <p>
    Support for SSE2 is strongly encouraged.  Support for SSE3 and SSE4.1 will
    yield the most efficient code.  The fewer features the CPU has the more
-   likely is that you run into underperforming, buggy, or incomplete code.
+   likely it is that you will run into underperforming, buggy, or incomplete code.
    </p>
    <p>
    See /proc/cpuinfo to know what your CPU supports.
@@ -51,7 +51,7 @@ It's the fastest software rasterizer for Mesa.
      aptitude install llvm-dev
 </pre>
    <p>
-   If you want development snaptshot builds of LLVM for Debian and derived
+   If you want development snapshot builds of LLVM for Debian and derived
    distributions like Ubuntu, you can use the APT repository at <a
    href="https://apt.llvm.org/" title="Debian Development packages for LLVM"
    >apt.llvm.org</a>, which are maintained by Debian's LLVM maintainer.
@@ -234,8 +234,8 @@ build/linux-???-debug/gallium/drivers/llvmpipe:
 </ul>
 
 <p>
-Some of this tests can output results and benchmarks to a tab-separated-file
-for posterior analysis, e.g.:
+Some of these tests can output results and benchmarks to a tab-separated file
+for later analysis, e.g.:
 </p>
 <pre>
   build/linux-x86_64-debug/gallium/drivers/llvmpipe/lp_test_blend -o blend.tsv
@@ -246,8 +246,8 @@ for posterior analysis, e.g.:
 
 <ul>
 <li>
-  When looking to this code by the first time start in lp_state_fs.c, and 
-  then skim through the lp_bld_* functions called in there, and the comments
+  When looking at this code for the first time, start in lp_state_fs.c, and
+  then skim through the lp_bld_* functions called there, and the comments
   at the top of the lp_bld_*.c functions.
 </li>
 <li>

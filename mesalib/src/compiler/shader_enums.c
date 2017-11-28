@@ -91,7 +91,6 @@ gl_vert_attrib_name(gl_vert_attrib attrib)
 {
    static const char *names[] = {
       ENUM(VERT_ATTRIB_POS),
-      ENUM(VERT_ATTRIB_WEIGHT),
       ENUM(VERT_ATTRIB_NORMAL),
       ENUM(VERT_ATTRIB_COLOR0),
       ENUM(VERT_ATTRIB_COLOR1),

@@ -68,7 +68,7 @@ struct state_key {
    unsigned texture_enabled_global:1;
    unsigned fragprog_inputs_read:12;
 
-   GLbitfield64 varying_vp_inputs;
+   GLbitfield varying_vp_inputs;
 
    struct {
       unsigned light_enabled:1;

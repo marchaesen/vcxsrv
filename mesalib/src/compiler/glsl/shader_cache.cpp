@@ -1299,7 +1299,7 @@ shader_cache_read_program_metadata(struct gl_context *ctx,
       return false;
 
    struct disk_cache *cache = ctx->Cache;
-   if (!cache || prog->data->skip_cache)
+   if (!cache)
       return false;
 
    /* Include bindings when creating sha1. These bindings change the resulting

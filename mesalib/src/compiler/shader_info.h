@@ -66,6 +66,8 @@ typedef struct shader_info {
    uint32_t patch_inputs_read;
    /* Which patch outputs are actually written */
    uint32_t patch_outputs_written;
+   /* Which patch outputs are read */
+   uint32_t patch_outputs_read;
 
    /* Whether or not this shader ever uses textureGather() */
    bool uses_texture_gather;

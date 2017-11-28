@@ -41,9 +41,9 @@
 #include "compiler/shader_info.h"
 #include <stdio.h>
 
-#ifdef DEBUG
+#ifndef NDEBUG
 #include "util/debug.h"
-#endif /* DEBUG */
+#endif /* NDEBUG */
 
 #include "nir_opcodes.h"
 
@@ -1364,10 +1364,21 @@ nir_tex_instr_src_size(const nir_tex_instr *instr, unsigned src)
    if (instr->src[src].src_type == nir_tex_src_ms_mcs)
       return 4;
 
-   if (instr->src[src].src_type == nir_tex_src_offset ||
-       instr->src[src].src_type == nir_tex_src_ddx ||
+   if (instr->src[src].src_type == nir_tex_src_ddx ||
        instr->src[src].src_type == nir_tex_src_ddy) {
       if (instr->is_array)
+         return instr->coord_components - 1;
+      else
+         return instr->coord_components;
+   }
+
+   /* Usual APIs don't allow cube + offset, but we allow it, with 2 coords for
+    * the offset, since a cube maps to a single face.
+    */
+   if (instr->src[src].src_type == nir_tex_src_offset) {
+      if (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE)
+         return 2;
+      else if (instr->is_array)
          return instr->coord_components - 1;
       else
          return instr->coord_components;
@@ -2325,7 +2336,7 @@ nir_deref_var *nir_deref_var_clone(const nir_deref_var *deref, void *mem_ctx);
 
 nir_shader *nir_shader_serialize_deserialize(void *mem_ctx, nir_shader *s);
 
-#ifdef DEBUG
+#ifndef NDEBUG
 void nir_validate_shader(nir_shader *shader);
 void nir_metadata_set_validation_flag(nir_shader *shader);
 void nir_metadata_check_validation_flag(nir_shader *shader);
@@ -2366,7 +2377,7 @@ static inline void nir_metadata_check_validation_flag(nir_shader *shader) { (voi
 static inline bool should_clone_nir(void) { return false; }
 static inline bool should_serialize_deserialize_nir(void) { return false; }
 static inline bool should_print_nir(void) { return false; }
-#endif /* DEBUG */
+#endif /* NDEBUG */
 
 #define _PASS(nir, do_pass) do {                                     \
    do_pass                                                           \

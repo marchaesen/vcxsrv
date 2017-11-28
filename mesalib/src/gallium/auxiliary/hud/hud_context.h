@@ -35,13 +35,17 @@ struct pipe_resource;
 struct util_queue_monitoring;
 
 struct hud_context *
-hud_create(struct pipe_context *pipe, struct cso_context *cso);
+hud_create(struct cso_context *cso, struct hud_context *share);
 
 void
-hud_destroy(struct hud_context *hud);
+hud_destroy(struct hud_context *hud, struct cso_context *cso);
 
 void
-hud_draw(struct hud_context *hud, struct pipe_resource *tex);
+hud_run(struct hud_context *hud, struct cso_context *cso,
+        struct pipe_resource *tex);
+
+void
+hud_record_only(struct hud_context *hud, struct pipe_context *pipe);
 
 void
 hud_add_queue_for_monitoring(struct hud_context *hud,

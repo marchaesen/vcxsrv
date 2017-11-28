@@ -177,7 +177,7 @@ vbo_exec_bind_arrays( struct gl_context *ctx )
    struct gl_vertex_array *arrays = exec->vtx.arrays;
    const GLuint *map;
    GLuint attr;
-   GLbitfield64 varying_inputs = 0x0;
+   GLbitfield varying_inputs = 0x0;
    bool swap_pos = false;
 
    /* Install the default (ie Current) attributes first, then overlay

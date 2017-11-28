@@ -74,7 +74,10 @@ hud_draw_colored_prims(struct hud_context *hud, unsigned prim,
    struct cso_context *cso = hud->cso;
    unsigned size = num_vertices * hud->color_prims.vbuf.stride;
 
-   assert(size <= hud->color_prims.buffer_size);
+   /* If a recording context is inactive, don't draw anything. */
+   if (size > hud->color_prims.buffer_size)
+      return;
+
    memcpy(hud->color_prims.vertices, buffer, size);
 
    hud->constants.color[0] = r;
@@ -428,8 +431,8 @@ hud_prepare_vertices(struct hud_context *hud, struct vertex_queue *v,
  * Draw the HUD to the texture \p tex.
  * The texture is usually the back buffer being displayed.
  */
-void
-hud_draw(struct hud_context *hud, struct pipe_resource *tex)
+static void
+hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
 {
    struct cso_context *cso = hud->cso;
    struct pipe_context *pipe = hud->pipe;
@@ -439,7 +442,6 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    const struct pipe_sampler_state *sampler_states[] =
          { &hud->font_sampler_state };
    struct hud_pane *pane;
-   struct hud_graph *gr, *next;
 
    if (!huds_visible)
       return;
@@ -519,76 +521,6 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_samplers(cso, PIPE_SHADER_FRAGMENT, 1, sampler_states);
    cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
 
-   /* prepare vertex buffers */
-   hud_prepare_vertices(hud, &hud->bg, 16 * 256, 2 * sizeof(float));
-   hud_prepare_vertices(hud, &hud->whitelines, 4 * 256, 2 * sizeof(float));
-   hud_prepare_vertices(hud, &hud->text, 16 * 1024, 4 * sizeof(float));
-   hud_prepare_vertices(hud, &hud->color_prims, 32 * 1024, 2 * sizeof(float));
-
-   /* Allocate everything once and divide the storage into 3 portions
-    * manually, because u_upload_alloc can unmap memory from previous calls.
-    */
-   u_upload_alloc(hud->pipe->stream_uploader, 0,
-                  hud->bg.buffer_size +
-                  hud->whitelines.buffer_size +
-                  hud->text.buffer_size +
-                  hud->color_prims.buffer_size,
-                  16, &hud->bg.vbuf.buffer_offset, &hud->bg.vbuf.buffer.resource,
-                  (void**)&hud->bg.vertices);
-   if (!hud->bg.vertices) {
-      goto out;
-   }
-
-   pipe_resource_reference(&hud->whitelines.vbuf.buffer.resource, hud->bg.vbuf.buffer.resource);
-   pipe_resource_reference(&hud->text.vbuf.buffer.resource, hud->bg.vbuf.buffer.resource);
-   pipe_resource_reference(&hud->color_prims.vbuf.buffer.resource, hud->bg.vbuf.buffer.resource);
-
-   hud->whitelines.vbuf.buffer_offset = hud->bg.vbuf.buffer_offset +
-                                        hud->bg.buffer_size;
-   hud->whitelines.vertices = hud->bg.vertices +
-                              hud->bg.buffer_size / sizeof(float);
-
-   hud->text.vbuf.buffer_offset = hud->whitelines.vbuf.buffer_offset +
-                                  hud->whitelines.buffer_size;
-   hud->text.vertices = hud->whitelines.vertices +
-                        hud->whitelines.buffer_size / sizeof(float);
-
-   hud->color_prims.vbuf.buffer_offset = hud->text.vbuf.buffer_offset +
-                                         hud->text.buffer_size;
-   hud->color_prims.vertices = hud->text.vertices +
-                               hud->text.buffer_size / sizeof(float);
-
-   /* prepare all graphs */
-   hud_batch_query_update(hud->batch_query);
-
-   LIST_FOR_EACH_ENTRY(pane, &hud->pane_list, head) {
-      LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
-         gr->query_new_value(gr);
-      }
-
-      if (pane->sort_items) {
-         LIST_FOR_EACH_ENTRY_SAFE(gr, next, &pane->graph_list, head) {
-            /* ignore the last one */
-            if (&gr->head == pane->graph_list.prev)
-               continue;
-
-            /* This is an incremental bubble sort, because we only do one pass
-             * per frame. It will eventually reach an equilibrium.
-             */
-            if (gr->current_value <
-                LIST_ENTRY(struct hud_graph, next, head)->current_value) {
-               LIST_DEL(&gr->head);
-               LIST_ADD(&gr->head, &next->head);
-            }
-         }
-      }
-
-      hud_pane_accumulate_vertices(hud, pane);
-   }
-
-   /* unmap the uploader's vertex buffer before drawing */
-   u_upload_unmap(pipe->stream_uploader);
-
    /* draw accumulated vertices for background quads */
    cso_set_blend(cso, &hud->alpha_blend);
    cso_set_fragment_shader_handle(hud->cso, hud->fs_color);
@@ -648,21 +580,146 @@ hud_draw(struct hud_context *hud, struct pipe_resource *tex)
          hud_pane_draw_colored_objects(hud, pane);
    }
 
-out:
    cso_restore_state(cso);
    cso_restore_constant_buffer_slot0(cso, PIPE_SHADER_VERTEX);
 
    pipe_surface_reference(&surf, NULL);
+}
+
+static void
+hud_start_queries(struct hud_context *hud, struct pipe_context *pipe)
+{
+   struct hud_pane *pane;
+   struct hud_graph *gr;
 
    /* Start queries. */
-   hud_batch_query_begin(hud->batch_query);
+   hud_batch_query_begin(hud->batch_query, pipe);
 
    LIST_FOR_EACH_ENTRY(pane, &hud->pane_list, head) {
       LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
          if (gr->begin_query)
-            gr->begin_query(gr);
+            gr->begin_query(gr, pipe);
       }
    }
+}
+
+/* Stop queries, query results, and record vertices for charts. */
+static void
+hud_stop_queries(struct hud_context *hud, struct pipe_context *pipe)
+{
+   struct hud_pane *pane;
+   struct hud_graph *gr, *next;
+
+   /* prepare vertex buffers */
+   hud_prepare_vertices(hud, &hud->bg, 16 * 256, 2 * sizeof(float));
+   hud_prepare_vertices(hud, &hud->whitelines, 4 * 256, 2 * sizeof(float));
+   hud_prepare_vertices(hud, &hud->text, 16 * 1024, 4 * sizeof(float));
+   hud_prepare_vertices(hud, &hud->color_prims, 32 * 1024, 2 * sizeof(float));
+
+   /* Allocate everything once and divide the storage into 3 portions
+    * manually, because u_upload_alloc can unmap memory from previous calls.
+    */
+   u_upload_alloc(pipe->stream_uploader, 0,
+                  hud->bg.buffer_size +
+                  hud->whitelines.buffer_size +
+                  hud->text.buffer_size +
+                  hud->color_prims.buffer_size,
+                  16, &hud->bg.vbuf.buffer_offset, &hud->bg.vbuf.buffer.resource,
+                  (void**)&hud->bg.vertices);
+   if (!hud->bg.vertices)
+      return;
+
+   pipe_resource_reference(&hud->whitelines.vbuf.buffer.resource, hud->bg.vbuf.buffer.resource);
+   pipe_resource_reference(&hud->text.vbuf.buffer.resource, hud->bg.vbuf.buffer.resource);
+   pipe_resource_reference(&hud->color_prims.vbuf.buffer.resource, hud->bg.vbuf.buffer.resource);
+
+   hud->whitelines.vbuf.buffer_offset = hud->bg.vbuf.buffer_offset +
+                                        hud->bg.buffer_size;
+   hud->whitelines.vertices = hud->bg.vertices +
+                              hud->bg.buffer_size / sizeof(float);
+
+   hud->text.vbuf.buffer_offset = hud->whitelines.vbuf.buffer_offset +
+                                  hud->whitelines.buffer_size;
+   hud->text.vertices = hud->whitelines.vertices +
+                        hud->whitelines.buffer_size / sizeof(float);
+
+   hud->color_prims.vbuf.buffer_offset = hud->text.vbuf.buffer_offset +
+                                         hud->text.buffer_size;
+   hud->color_prims.vertices = hud->text.vertices +
+                               hud->text.buffer_size / sizeof(float);
+
+   /* prepare all graphs */
+   hud_batch_query_update(hud->batch_query, pipe);
+
+   LIST_FOR_EACH_ENTRY(pane, &hud->pane_list, head) {
+      LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
+         gr->query_new_value(gr, pipe);
+      }
+
+      if (pane->sort_items) {
+         LIST_FOR_EACH_ENTRY_SAFE(gr, next, &pane->graph_list, head) {
+            /* ignore the last one */
+            if (&gr->head == pane->graph_list.prev)
+               continue;
+
+            /* This is an incremental bubble sort, because we only do one pass
+             * per frame. It will eventually reach an equilibrium.
+             */
+            if (gr->current_value <
+                LIST_ENTRY(struct hud_graph, next, head)->current_value) {
+               LIST_DEL(&gr->head);
+               LIST_ADD(&gr->head, &next->head);
+            }
+         }
+      }
+
+      hud_pane_accumulate_vertices(hud, pane);
+   }
+
+   /* unmap the uploader's vertex buffer before drawing */
+   u_upload_unmap(pipe->stream_uploader);
+}
+
+/**
+ * Record queries and draw the HUD. The "cso" parameter acts as a filter.
+ * If "cso" is not the recording context, recording is skipped.
+ * If "cso" is not the drawing context, drawing is skipped.
+ * cso == NULL ignores the filter.
+ */
+void
+hud_run(struct hud_context *hud, struct cso_context *cso,
+        struct pipe_resource *tex)
+{
+   struct pipe_context *pipe = cso ? cso_get_pipe_context(cso) : NULL;
+
+   /* If "cso" is the recording or drawing context or NULL, execute
+    * the operation. Otherwise, don't do anything.
+    */
+   if (hud->record_pipe && (!pipe || pipe == hud->record_pipe))
+      hud_stop_queries(hud, hud->record_pipe);
+
+   if (hud->cso && (!cso || cso == hud->cso))
+      hud_draw_results(hud, tex);
+
+   if (hud->record_pipe && (!pipe || pipe == hud->record_pipe))
+      hud_start_queries(hud, hud->record_pipe);
+}
+
+/**
+ * Record query results and assemble vertices if "pipe" is a recording but
+ * not drawing context.
+ */
+void
+hud_record_only(struct hud_context *hud, struct pipe_context *pipe)
+{
+   assert(pipe);
+
+   /* If it's a drawing context, only hud_run() records query results. */
+   if (pipe == hud->pipe || pipe != hud->record_pipe)
+      return;
+
+   hud_stop_queries(hud, hud->record_pipe);
+   hud_start_queries(hud, hud->record_pipe);
 }
 
 static void
@@ -897,11 +954,11 @@ hud_graph_add_value(struct hud_graph *gr, double value)
 }
 
 static void
-hud_graph_destroy(struct hud_graph *graph)
+hud_graph_destroy(struct hud_graph *graph, struct pipe_context *pipe)
 {
    FREE(graph->vertices);
    if (graph->free_query_data)
-      graph->free_query_data(graph->query_data);
+      graph->free_query_data(graph->query_data, pipe);
    if (graph->fd)
       fclose(graph->fd);
    FREE(graph);
@@ -1087,7 +1144,8 @@ has_pipeline_stats_query(struct pipe_screen *screen)
 }
 
 static void
-hud_parse_env_var(struct hud_context *hud, const char *env)
+hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
+                  const char *env)
 {
    unsigned num, i;
    char name_a[256], s[256];
@@ -1231,8 +1289,8 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
       }
 #endif
       else if (strcmp(name, "samples-passed") == 0 &&
-               has_occlusion_query(hud->pipe->screen)) {
-         hud_pipe_query_install(&hud->batch_query, pane, hud->pipe,
+               has_occlusion_query(screen)) {
+         hud_pipe_query_install(&hud->batch_query, pane,
                                 "samples-passed",
                                 PIPE_QUERY_OCCLUSION_COUNTER, 0, 0,
                                 PIPE_DRIVER_QUERY_TYPE_UINT64,
@@ -1240,8 +1298,8 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
                                 0);
       }
       else if (strcmp(name, "primitives-generated") == 0 &&
-               has_streamout(hud->pipe->screen)) {
-         hud_pipe_query_install(&hud->batch_query, pane, hud->pipe,
+               has_streamout(screen)) {
+         hud_pipe_query_install(&hud->batch_query, pane,
                                 "primitives-generated",
                                 PIPE_QUERY_PRIMITIVES_GENERATED, 0, 0,
                                 PIPE_DRIVER_QUERY_TYPE_UINT64,
@@ -1252,7 +1310,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
          boolean processed = FALSE;
 
          /* pipeline statistics queries */
-         if (has_pipeline_stats_query(hud->pipe->screen)) {
+         if (has_pipeline_stats_query(screen)) {
             static const char *pipeline_statistics_names[] =
             {
                "ia-vertices",
@@ -1271,7 +1329,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
                if (strcmp(name, pipeline_statistics_names[i]) == 0)
                   break;
             if (i < ARRAY_SIZE(pipeline_statistics_names)) {
-               hud_pipe_query_install(&hud->batch_query, pane, hud->pipe, name,
+               hud_pipe_query_install(&hud->batch_query, pane, name,
                                       PIPE_QUERY_PIPELINE_STATISTICS, i,
                                       0, PIPE_DRIVER_QUERY_TYPE_UINT64,
                                       PIPE_DRIVER_QUERY_RESULT_TYPE_AVERAGE,
@@ -1282,8 +1340,8 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
 
          /* driver queries */
          if (!processed) {
-            if (!hud_driver_query_install(&hud->batch_query, pane, hud->pipe,
-                                          name)) {
+            if (!hud_driver_query_install(&hud->batch_query, pane,
+                                          screen, name)) {
                fprintf(stderr, "gallium_hud: unknown driver query '%s'\n", name);
                fflush(stderr);
             }
@@ -1509,58 +1567,49 @@ print_help(struct pipe_screen *screen)
    fflush(stdout);
 }
 
-struct hud_context *
-hud_create(struct pipe_context *pipe, struct cso_context *cso)
+static void
+hud_unset_draw_context(struct hud_context *hud)
 {
-   struct pipe_screen *screen = pipe->screen;
-   struct hud_context *hud;
-   struct pipe_sampler_view view_templ;
-   unsigned i;
-   const char *env = debug_get_option("GALLIUM_HUD", NULL);
-#ifdef PIPE_OS_UNIX
-   unsigned signo = debug_get_num_option("GALLIUM_HUD_TOGGLE_SIGNAL", 0);
-   static boolean sig_handled = FALSE;
-   struct sigaction action = {};
-#endif
-   huds_visible = debug_get_bool_option("GALLIUM_HUD_VISIBLE", TRUE);
+   struct pipe_context *pipe = hud->pipe;
 
-   if (!env || !*env)
-      return NULL;
+   if (!pipe)
+      return;
 
-   if (strcmp(env, "help") == 0) {
-      print_help(pipe->screen);
-      return NULL;
+   pipe_sampler_view_reference(&hud->font_sampler_view, NULL);
+
+   if (hud->fs_color) {
+      pipe->delete_fs_state(pipe, hud->fs_color);
+      hud->fs_color = NULL;
+   }
+   if (hud->fs_text) {
+      pipe->delete_fs_state(pipe, hud->fs_text);
+      hud->fs_text = NULL;
+   }
+   if (hud->vs) {
+      pipe->delete_vs_state(pipe, hud->vs);
+      hud->vs = NULL;
    }
 
-   hud = CALLOC_STRUCT(hud_context);
-   if (!hud)
-      return NULL;
+   hud->cso = NULL;
+   hud->pipe = NULL;
+}
 
+static bool
+hud_set_draw_context(struct hud_context *hud, struct cso_context *cso)
+{
+   struct pipe_context *pipe = cso_get_pipe_context(cso);
+
+   assert(!hud->pipe);
    hud->pipe = pipe;
    hud->cso = cso;
 
-   /* font */
-   if (!util_font_create(pipe, UTIL_FONT_FIXED_8X13, &hud->font)) {
-      FREE(hud);
-      return NULL;
-   }
-
-   hud->has_srgb = screen->is_format_supported(screen,
-                                               PIPE_FORMAT_B8G8R8A8_SRGB,
-                                               PIPE_TEXTURE_2D, 0,
-                                               PIPE_BIND_RENDER_TARGET) != 0;
-
-   /* blend state */
-   hud->no_blend.rt[0].colormask = PIPE_MASK_RGBA;
-
-   hud->alpha_blend.rt[0].colormask = PIPE_MASK_RGBA;
-   hud->alpha_blend.rt[0].blend_enable = 1;
-   hud->alpha_blend.rt[0].rgb_func = PIPE_BLEND_ADD;
-   hud->alpha_blend.rt[0].rgb_src_factor = PIPE_BLENDFACTOR_SRC_ALPHA;
-   hud->alpha_blend.rt[0].rgb_dst_factor = PIPE_BLENDFACTOR_INV_SRC_ALPHA;
-   hud->alpha_blend.rt[0].alpha_func = PIPE_BLEND_ADD;
-   hud->alpha_blend.rt[0].alpha_src_factor = PIPE_BLENDFACTOR_ZERO;
-   hud->alpha_blend.rt[0].alpha_dst_factor = PIPE_BLENDFACTOR_ONE;
+   struct pipe_sampler_view view_templ;
+   u_sampler_view_default_template(
+         &view_templ, hud->font.texture, hud->font.texture->format);
+   hud->font_sampler_view = pipe->create_sampler_view(pipe, hud->font.texture,
+                                                      &view_templ);
+   if (!hud->font_sampler_view)
+      goto fail;
 
    /* fragment shader */
    hud->fs_color =
@@ -1589,23 +1638,11 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
 
       if (!tgsi_text_translate(fragment_shader_text, tokens, ARRAY_SIZE(tokens))) {
          assert(0);
-         pipe_resource_reference(&hud->font.texture, NULL);
-         FREE(hud);
-         return NULL;
+         goto fail;
       }
       pipe_shader_state_from_tgsi(&state, tokens);
       hud->fs_text = pipe->create_fs_state(pipe, &state);
    }
-
-   /* rasterizer */
-   hud->rasterizer.half_pixel_center = 1;
-   hud->rasterizer.bottom_edge_rule = 1;
-   hud->rasterizer.depth_clip = 1;
-   hud->rasterizer.line_width = 1;
-   hud->rasterizer.line_last_pixel = 1;
-
-   hud->rasterizer_aa_lines = hud->rasterizer;
-   hud->rasterizer_aa_lines.line_smooth = 1;
 
    /* vertex shader */
    {
@@ -1637,13 +1674,146 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
       struct pipe_shader_state state;
       if (!tgsi_text_translate(vertex_shader_text, tokens, ARRAY_SIZE(tokens))) {
          assert(0);
-         pipe_resource_reference(&hud->font.texture, NULL);
-         FREE(hud);
-         return NULL;
+         goto fail;
       }
       pipe_shader_state_from_tgsi(&state, tokens);
       hud->vs = pipe->create_vs_state(pipe, &state);
    }
+
+   return true;
+
+fail:
+   hud_unset_draw_context(hud);
+   fprintf(stderr, "hud: failed to set a draw context");
+   return false;
+}
+
+static void
+hud_unset_record_context(struct hud_context *hud)
+{
+   struct pipe_context *pipe = hud->record_pipe;
+   struct hud_pane *pane, *pane_tmp;
+   struct hud_graph *graph, *graph_tmp;
+
+   if (!pipe)
+      return;
+
+   LIST_FOR_EACH_ENTRY_SAFE(pane, pane_tmp, &hud->pane_list, head) {
+      LIST_FOR_EACH_ENTRY_SAFE(graph, graph_tmp, &pane->graph_list, head) {
+         LIST_DEL(&graph->head);
+         hud_graph_destroy(graph, pipe);
+      }
+      LIST_DEL(&pane->head);
+      FREE(pane);
+   }
+
+   hud_batch_query_cleanup(&hud->batch_query, pipe);
+   hud->record_pipe = NULL;
+}
+
+static void
+hud_set_record_context(struct hud_context *hud, struct pipe_context *pipe)
+{
+   hud->record_pipe = pipe;
+}
+
+/**
+ * Create the HUD.
+ *
+ * If "share" is non-NULL and GALLIUM_HUD_SHARE=x,y is set, increment the
+ * reference counter of "share", set "cso" as the recording or drawing context
+ * according to the environment variable, and return "share".
+ * This allows sharing the HUD instance within a multi-context share group,
+ * record queries in one context and draw them in another.
+ */
+struct hud_context *
+hud_create(struct cso_context *cso, struct hud_context *share)
+{
+   const char *share_env = debug_get_option("GALLIUM_HUD_SHARE", NULL);
+   unsigned record_ctx = 0, draw_ctx = 0;
+
+   if (share_env && sscanf(share_env, "%u,%u", &record_ctx, &draw_ctx) != 2)
+      share_env = NULL;
+
+   if (share && share_env) {
+      /* All contexts in a share group share the HUD instance.
+       * Only one context can record queries and only one context
+       * can draw the HUD.
+       *
+       * GALLIUM_HUD_SHARE=x,y determines the context indices.
+       */
+      int context_id = p_atomic_inc_return(&share->refcount) - 1;
+
+      if (context_id == record_ctx) {
+         assert(!share->record_pipe);
+         hud_set_record_context(share, cso_get_pipe_context(cso));
+      }
+
+      if (context_id == draw_ctx) {
+         assert(!share->pipe);
+         hud_set_draw_context(share, cso);
+      }
+
+      return share;
+   }
+
+   struct pipe_screen *screen = cso_get_pipe_context(cso)->screen;
+   struct hud_context *hud;
+   unsigned i;
+   const char *env = debug_get_option("GALLIUM_HUD", NULL);
+#ifdef PIPE_OS_UNIX
+   unsigned signo = debug_get_num_option("GALLIUM_HUD_TOGGLE_SIGNAL", 0);
+   static boolean sig_handled = FALSE;
+   struct sigaction action = {};
+#endif
+   huds_visible = debug_get_bool_option("GALLIUM_HUD_VISIBLE", TRUE);
+
+   if (!env || !*env)
+      return NULL;
+
+   if (strcmp(env, "help") == 0) {
+      print_help(screen);
+      return NULL;
+   }
+
+   hud = CALLOC_STRUCT(hud_context);
+   if (!hud)
+      return NULL;
+
+   /* font (the context is only used for the texture upload) */
+   if (!util_font_create(cso_get_pipe_context(cso),
+                         UTIL_FONT_FIXED_8X13, &hud->font)) {
+      FREE(hud);
+      return NULL;
+   }
+
+   hud->refcount = 1;
+   hud->has_srgb = screen->is_format_supported(screen,
+                                               PIPE_FORMAT_B8G8R8A8_SRGB,
+                                               PIPE_TEXTURE_2D, 0,
+                                               PIPE_BIND_RENDER_TARGET) != 0;
+
+   /* blend state */
+   hud->no_blend.rt[0].colormask = PIPE_MASK_RGBA;
+
+   hud->alpha_blend.rt[0].colormask = PIPE_MASK_RGBA;
+   hud->alpha_blend.rt[0].blend_enable = 1;
+   hud->alpha_blend.rt[0].rgb_func = PIPE_BLEND_ADD;
+   hud->alpha_blend.rt[0].rgb_src_factor = PIPE_BLENDFACTOR_SRC_ALPHA;
+   hud->alpha_blend.rt[0].rgb_dst_factor = PIPE_BLENDFACTOR_INV_SRC_ALPHA;
+   hud->alpha_blend.rt[0].alpha_func = PIPE_BLEND_ADD;
+   hud->alpha_blend.rt[0].alpha_src_factor = PIPE_BLENDFACTOR_ZERO;
+   hud->alpha_blend.rt[0].alpha_dst_factor = PIPE_BLENDFACTOR_ONE;
+
+   /* rasterizer */
+   hud->rasterizer.half_pixel_center = 1;
+   hud->rasterizer.bottom_edge_rule = 1;
+   hud->rasterizer.depth_clip = 1;
+   hud->rasterizer.line_width = 1;
+   hud->rasterizer.line_last_pixel = 1;
+
+   hud->rasterizer_aa_lines = hud->rasterizer;
+   hud->rasterizer_aa_lines.line_smooth = 1;
 
    /* vertex elements */
    for (i = 0; i < 2; i++) {
@@ -1651,12 +1821,6 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
       hud->velems[i].src_format = PIPE_FORMAT_R32G32_FLOAT;
       hud->velems[i].vertex_buffer_index = cso_get_aux_vertex_buffer_slot(cso);
    }
-
-   /* sampler view */
-   u_sampler_view_default_template(
-         &view_templ, hud->font.texture, hud->font.texture->format);
-   hud->font_sampler_view = pipe->create_sampler_view(pipe, hud->font.texture,
-                                                      &view_templ);
 
    /* sampler state (for font drawing) */
    hud->font_sampler_state.wrap_s = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
@@ -1686,33 +1850,32 @@ hud_create(struct pipe_context *pipe, struct cso_context *cso)
    }
 #endif
 
-   hud_parse_env_var(hud, env);
+   if (record_ctx == 0)
+      hud_set_record_context(hud, cso_get_pipe_context(cso));
+   if (draw_ctx == 0)
+      hud_set_draw_context(hud, cso);
+
+   hud_parse_env_var(hud, screen, env);
    return hud;
 }
 
+/**
+ * Destroy a HUD. If the HUD has several users, decrease the reference counter
+ * and detach the context from the HUD.
+ */
 void
-hud_destroy(struct hud_context *hud)
+hud_destroy(struct hud_context *hud, struct cso_context *cso)
 {
-   struct pipe_context *pipe = hud->pipe;
-   struct hud_pane *pane, *pane_tmp;
-   struct hud_graph *graph, *graph_tmp;
+   if (!cso || hud->record_pipe == cso_get_pipe_context(cso))
+      hud_unset_record_context(hud);
 
-   LIST_FOR_EACH_ENTRY_SAFE(pane, pane_tmp, &hud->pane_list, head) {
-      LIST_FOR_EACH_ENTRY_SAFE(graph, graph_tmp, &pane->graph_list, head) {
-         LIST_DEL(&graph->head);
-         hud_graph_destroy(graph);
-      }
-      LIST_DEL(&pane->head);
-      FREE(pane);
+   if (!cso || hud->cso == cso)
+      hud_unset_draw_context(hud);
+
+   if (p_atomic_dec_zero(&hud->refcount)) {
+      pipe_resource_reference(&hud->font.texture, NULL);
+      FREE(hud);
    }
-
-   hud_batch_query_cleanup(&hud->batch_query);
-   pipe->delete_fs_state(pipe, hud->fs_color);
-   pipe->delete_fs_state(pipe, hud->fs_text);
-   pipe->delete_vs_state(pipe, hud->vs);
-   pipe_sampler_view_reference(&hud->font_sampler_view, NULL);
-   pipe_resource_reference(&hud->font.texture, NULL);
-   FREE(hud);
 }
 
 void

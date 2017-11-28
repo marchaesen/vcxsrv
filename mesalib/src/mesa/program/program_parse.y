@@ -186,7 +186,6 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 %token TEX_SHADOW1D TEX_SHADOW2D TEX_SHADOWRECT
 %token TEX_ARRAY1D TEX_ARRAY2D TEX_ARRAYSHADOW1D TEX_ARRAYSHADOW2D 
 %token VERTEX VTXATTRIB
-%token WEIGHT
 
 %token <string> IDENTIFIER USED_IDENTIFIER
 %type <string> string
@@ -1007,10 +1006,6 @@ vtxAttribItem: POSITION
 	{
 	   $$ = VERT_ATTRIB_POS;
 	}
-	| WEIGHT vtxOptWeightNum
-	{
-	   $$ = VERT_ATTRIB_WEIGHT;
-	}
 	| NORMAL
 	{
 	   $$ = VERT_ATTRIB_NORMAL;
@@ -1049,7 +1044,6 @@ vtxAttribNum: INTEGER
 	}
 	;
 
-vtxOptWeightNum:  | '[' vtxWeightNum ']';
 vtxWeightNum: INTEGER;
 
 fragAttribItem: POSITION
@@ -2218,9 +2212,30 @@ set_src_reg_swz(struct asm_src_register *r, gl_register_file file, GLint index,
 int
 validate_inputs(struct YYLTYPE *locp, struct asm_parser_state *state)
 {
-   const GLbitfield64 inputs = state->prog->info.inputs_read | state->InputsBound;
+   const GLbitfield inputs = state->prog->info.inputs_read | state->InputsBound;
+   GLbitfield ff_inputs = 0;
 
-   if (((inputs & VERT_BIT_FF_ALL) & (inputs >> VERT_ATTRIB_GENERIC0)) != 0) {
+   /* Since Mesa internal attribute indices are different from
+    * how NV_vertex_program defines attribute aliasing, we have to construct
+    * a separate usage mask based on how the aliasing is defined.
+    *
+    * Note that attribute aliasing is optional if NV_vertex_program is
+    * unsupported.
+    */
+   if (inputs & VERT_BIT_POS)
+      ff_inputs |= 1 << 0;
+   if (inputs & VERT_BIT_NORMAL)
+      ff_inputs |= 1 << 2;
+   if (inputs & VERT_BIT_COLOR0)
+      ff_inputs |= 1 << 3;
+   if (inputs & VERT_BIT_COLOR1)
+      ff_inputs |= 1 << 4;
+   if (inputs & VERT_BIT_FOG)
+      ff_inputs |= 1 << 5;
+
+   ff_inputs |= ((inputs & VERT_BIT_TEX_ALL) >> VERT_ATTRIB_TEX0) << 8;
+
+   if ((ff_inputs & (inputs >> VERT_ATTRIB_GENERIC0)) != 0) {
       yyerror(locp, state, "illegal use of generic attribute and name attribute");
       return 0;
    }

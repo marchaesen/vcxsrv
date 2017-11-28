@@ -58,12 +58,20 @@ class PrintGlTable(gl_XML.gl_print_base):
         print '#endif'
         print ''
         print ''
+        print '#ifdef __cplusplus'
+        print 'extern "C" {'
+        print '#endif'
+        print ''
         print 'struct _glapi_table'
         print '{'
         return
 
     def printRealFooter(self):
         print '};'
+        print ''
+        print '#ifdef __cplusplus'
+        print '}'
+        print '#endif'
         return
 
 
