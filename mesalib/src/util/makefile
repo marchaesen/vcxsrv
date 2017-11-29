@@ -10,6 +10,7 @@ INCLUDES = \
 	$(top_srcdir)/src/mesa \
 	$(top_srcdir)/src/gallium/include \
 	$(top_srcdir)/src/gallium/auxiliary \
+	$(top_srcdir)/src/util \
 
 libmesautil_la_SOURCES = \
 	$(MESA_UTIL_FILES) \
