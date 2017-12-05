@@ -28,6 +28,7 @@ CSRCS = \
 	fcfreetype.c \
 	fcfs.c \
 	fcptrlist.c \
+	fchash.c \
 	fcinit.c \
 	fclang.c \
 	fclist.c \
@@ -42,7 +43,13 @@ CSRCS = \
 	fcstr.c \
 	fcweight.c \
 	fcxml.c \
-	ftglue.c
+	ftglue.c \
+	gen_uuid.c \
+	copy.c \
+	parse.c \
+	pack.c \
+	unpack.c \
+	unparse.c
 
 LIBRARY = libfontconfig
 
@@ -54,7 +61,7 @@ PUBLIC_FILES = \
 PUBLIC_FT_FILES = \
 	..\fontconfig\fcfreetype.h
 
-INCLUDES := .. $(OBJDIR) $(INCLUDES) $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include $(MHMAKECONF)\libxml2\include $(MHMAKECONF)\iconv\include
+INCLUDES := .. uuid $(OBJDIR) $(INCLUDES) $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include $(MHMAKECONF)\libxml2\include $(MHMAKECONF)\iconv\include
 
 fcalias.h fcaliastail.h: makealias.py $(PUBLIC_FILES)
 	python makealias.py . fcalias.h fcaliastail.h $(PUBLIC_FILES)
