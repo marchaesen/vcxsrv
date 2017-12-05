@@ -40,7 +40,6 @@
 #endif
 
 #include "drmmode_display.h"
-#define DRV_ERROR(msg)	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, msg);
 #define MS_LOGLEVEL_DEBUG 4
 
 typedef enum {

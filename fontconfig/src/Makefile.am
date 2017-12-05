@@ -77,6 +77,7 @@ AM_CPPFLAGS = 						\
 	$(ICONV_CFLAGS)					\
 	$(LIBXML2_CFLAGS)				\
 	$(EXPAT_CFLAGS)					\
+	$(UUID_CFLAGS)					\
 	$(WARN_CFLAGS)					\
 	-DFC_CACHEDIR='"$(FC_CACHEDIR)"'                \
 	-DFONTCONFIG_PATH='"$(BASECONFIGDIR)"'		\
@@ -139,6 +140,7 @@ libfontconfig_la_SOURCES = \
 	fcfreetype.c \
 	fcfs.c \
 	fcptrlist.c \
+	fchash.c \
 	fcinit.c \
 	fclang.c \
 	fclist.c \
@@ -165,7 +167,7 @@ lib_LTLIBRARIES = libfontconfig.la
 libfontconfig_la_LDFLAGS =			\
 	-version-info @LIBT_VERSION_INFO@ -no-undefined $(export_symbols)
 
-libfontconfig_la_LIBADD = $(ICONV_LIBS) $(FREETYPE_LIBS) $(LIBXML2_LIBS) $(EXPAT_LIBS)
+libfontconfig_la_LIBADD = $(ICONV_LIBS) $(FREETYPE_LIBS) $(LIBXML2_LIBS) $(EXPAT_LIBS) $(UUID_LIBS)
 
 libfontconfig_la_DEPENDENCIES = $(fontconfig_def_dependency)
 

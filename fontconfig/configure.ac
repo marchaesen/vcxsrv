@@ -339,6 +339,14 @@ LIBS="$fontconfig_save_libs"
 CFLAGS="$fontconfig_save_cflags"
 
 #
+# Check for uuid
+#
+PKG_CHECK_MODULES([UUID], [uuid])
+PKGCONFIG_REQUIRES_PRIVATELY="$PKGCONFIG_REQUIRES_PRIVATELY uuid"
+AC_SUBST(UUID_CFLAGS)
+AC_SUBST(UUID_LIBS)
+
+#
 # Check expat configuration
 #
 AC_ARG_WITH(expat,

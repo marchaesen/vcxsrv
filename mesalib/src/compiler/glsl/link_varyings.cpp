@@ -189,7 +189,8 @@ process_xfb_layout_qualifiers(void *mem_ctx, const gl_linked_shader *sh,
  * matching input to another stage.
  */
 static void
-cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
+cross_validate_types_and_qualifiers(struct gl_context *ctx,
+                                    struct gl_shader_program *prog,
                                     const ir_variable *input,
                                     const ir_variable *output,
                                     gl_shader_stage consumer_stage,
@@ -343,17 +344,30 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
    }
    if (input_interpolation != output_interpolation &&
        prog->data->Version < 440) {
-      linker_error(prog,
-                   "%s shader output `%s' specifies %s "
-                   "interpolation qualifier, "
-                   "but %s shader input specifies %s "
-                   "interpolation qualifier\n",
-                   _mesa_shader_stage_to_string(producer_stage),
-                   output->name,
-                   interpolation_string(output->data.interpolation),
-                   _mesa_shader_stage_to_string(consumer_stage),
-                   interpolation_string(input->data.interpolation));
-      return;
+      if (!ctx->Const.AllowGLSLCrossStageInterpolationMismatch) {
+         linker_error(prog,
+                      "%s shader output `%s' specifies %s "
+                      "interpolation qualifier, "
+                      "but %s shader input specifies %s "
+                      "interpolation qualifier\n",
+                      _mesa_shader_stage_to_string(producer_stage),
+                      output->name,
+                      interpolation_string(output->data.interpolation),
+                      _mesa_shader_stage_to_string(consumer_stage),
+                      interpolation_string(input->data.interpolation));
+         return;
+      } else {
+         linker_warning(prog,
+                        "%s shader output `%s' specifies %s "
+                        "interpolation qualifier, "
+                        "but %s shader input specifies %s "
+                        "interpolation qualifier\n",
+                        _mesa_shader_stage_to_string(producer_stage),
+                        output->name,
+                        interpolation_string(output->data.interpolation),
+                        _mesa_shader_stage_to_string(consumer_stage),
+                        interpolation_string(input->data.interpolation));
+      }
    }
 }
 
@@ -361,7 +375,8 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
  * Validate front and back color outputs against single color input
  */
 static void
-cross_validate_front_and_back_color(struct gl_shader_program *prog,
+cross_validate_front_and_back_color(struct gl_context *ctx,
+                                    struct gl_shader_program *prog,
                                     const ir_variable *input,
                                     const ir_variable *front_color,
                                     const ir_variable *back_color,
@@ -369,11 +384,11 @@ cross_validate_front_and_back_color(struct gl_shader_program *prog,
                                     gl_shader_stage producer_stage)
 {
    if (front_color != NULL && front_color->data.assigned)
-      cross_validate_types_and_qualifiers(prog, input, front_color,
+      cross_validate_types_and_qualifiers(ctx, prog, input, front_color,
                                           consumer_stage, producer_stage);
 
    if (back_color != NULL && back_color->data.assigned)
-      cross_validate_types_and_qualifiers(prog, input, back_color,
+      cross_validate_types_and_qualifiers(ctx, prog, input, back_color,
                                           consumer_stage, producer_stage);
 }
 
@@ -710,7 +725,7 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
          const ir_variable *const back_color =
             parameters.get_variable("gl_BackColor");
 
-         cross_validate_front_and_back_color(prog, input,
+         cross_validate_front_and_back_color(ctx, prog, input,
                                              front_color, back_color,
                                              consumer->Stage, producer->Stage);
       } else if (strcmp(input->name, "gl_SecondaryColor") == 0 && input->data.used) {
@@ -720,7 +735,7 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
          const ir_variable *const back_color =
             parameters.get_variable("gl_BackSecondaryColor");
 
-         cross_validate_front_and_back_color(prog, input,
+         cross_validate_front_and_back_color(ctx, prog, input,
                                              front_color, back_color,
                                              consumer->Stage, producer->Stage);
       } else {
@@ -770,7 +785,7 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
              */
             if (!(input->get_interface_type() &&
                   output->get_interface_type()))
-               cross_validate_types_and_qualifiers(prog, input, output,
+               cross_validate_types_and_qualifiers(ctx, prog, input, output,
                                                    consumer->Stage,
                                                    producer->Stage);
          } else {

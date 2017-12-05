@@ -115,6 +115,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 void ac_compute_driver_uuid(char *uuid, size_t size);
 
 void ac_compute_device_uuid(struct radeon_info *info, char *uuid, size_t size);
+void ac_print_gpu_info(struct radeon_info *info);
 
 #ifdef __cplusplus
 }

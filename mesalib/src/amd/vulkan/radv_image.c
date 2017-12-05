@@ -155,7 +155,8 @@ radv_init_surface(struct radv_device *device,
             (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR) ||
             pCreateInfo->mipLevels > 1 || pCreateInfo->arrayLayers > 1 ||
             device->physical_device->rad_info.chip_class < VI ||
-            create_info->scanout || (device->instance->debug_flags & RADV_DEBUG_NO_DCC))
+            create_info->scanout || (device->instance->debug_flags & RADV_DEBUG_NO_DCC) ||
+	    pCreateInfo->samples >= 2)
 		surface->flags |= RADEON_SURF_DISABLE_DCC;
 	if (create_info->scanout)
 		surface->flags |= RADEON_SURF_SCANOUT;
@@ -805,6 +806,16 @@ radv_image_alloc_htile(struct radv_image *image)
 static inline bool
 radv_image_can_enable_dcc_or_cmask(struct radv_image *image)
 {
+	if (image->info.samples <= 1 &&
+	    image->info.width <= 512 && image->info.height <= 512) {
+		/* Do not enable CMASK or DCC for small surfaces where the cost
+		 * of the eliminate pass can be higher than the benefit of fast
+		 * clear. RadeonSI does this, but the image threshold is
+		 * different.
+		 */
+		return false;
+	}
+
 	return image->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT &&
 	       (image->exclusive || image->queue_family_mask == 1);
 }
@@ -1110,11 +1121,15 @@ radv_CreateImage(VkDevice device,
 		 const VkAllocationCallbacks *pAllocator,
 		 VkImage *pImage)
 {
+	const struct wsi_image_create_info *wsi_info =
+		vk_find_struct_const(pCreateInfo->pNext, WSI_IMAGE_CREATE_INFO_MESA);
+	bool scanout = wsi_info && wsi_info->scanout;
+
 	return radv_image_create(device,
 				 &(struct radv_image_create_info) {
 					 .vk_info = pCreateInfo,
-						 .scanout = false,
-						 },
+					 .scanout = scanout,
+				 },
 				 pAllocator,
 				 pImage);
 }

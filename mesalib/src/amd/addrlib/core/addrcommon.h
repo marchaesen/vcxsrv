@@ -40,7 +40,7 @@
 #include <string.h>
 #include <assert.h>
 
-#if BRAHMA_BUILD && !defined(DEBUG)
+#if !defined(DEBUG)
 #ifdef NDEBUG
 #define DEBUG 0
 #else
@@ -73,18 +73,7 @@
     #define ADDR_ANALYSIS_ASSUME(expr) do { (void)(expr); } while (0)
 #endif
 
-#if BRAHMA_BUILD
-    #define ADDR_ASSERT(__e) assert(__e)
-#elif DEBUG
-    #define ADDR_ASSERT(__e)                                \
-        do {                                                    \
-            ADDR_ANALYSIS_ASSUME(__e);                          \
-            if ( !((__e) ? TRUE : FALSE)) { ADDR_DBG_BREAK(); } \
-        } while (0)
-#else //DEBUG
-    #define ADDR_ASSERT(__e) ADDR_ANALYSIS_ASSUME(__e)
-#endif //DEBUG
-
+#define ADDR_ASSERT(__e) assert(__e)
 #define ADDR_ASSERT_ALWAYS() ADDR_DBG_BREAK()
 #define ADDR_UNHANDLED_CASE() ADDR_ASSERT(!"Unhandled case")
 #define ADDR_NOT_IMPLEMENTED() ADDR_ASSERT(!"Not implemented");

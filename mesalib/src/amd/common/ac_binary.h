@@ -96,5 +96,6 @@ void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 				  struct ac_shader_config *conf,
 				  unsigned symbol_offset,
 				  bool supports_spill);
+void ac_shader_binary_clean(struct ac_shader_binary *b);
 
 #endif /* AC_BINARY_H */

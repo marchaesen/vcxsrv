@@ -36,6 +36,11 @@ ECHO=true
 FCLIST=../fc-list/fc-list$EXEEXT
 FCCACHE=../fc-cache/fc-cache$EXEEXT
 
+which bwrap > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    BWRAP=`which bwrap`
+fi
+
 FONT1=$TESTDIR/4x6.pcf
 FONT2=$TESTDIR/8x16.pcf
 
@@ -46,7 +51,7 @@ check () {
   echo "=" >> out
   $FCLIST - family pixelsize | sort >> out
   tr -d '\015' <out >out.tmp; mv out.tmp out
-  if cmp out $EXPECTED > /dev/null ; then : ; else
+  if cmp out $TESTDIR/$EXPECTED > /dev/null ; then : ; else
     echo "*** Test failed: $TEST"
     echo "*** output is in 'out', expected output in '$EXPECTED'"
     exit 1
@@ -115,5 +120,30 @@ sleep 1
 mkdir $FONTDIR/a
 cp $FONT2 $FONTDIR/a
 check
+
+if [ x"$BWRAP" != "x" ]; then
+dotest "Basic functionality with the bind-mounted cache dir"
+prep
+cp $FONT1 $FONT2 $FONTDIR
+$FCCACHE $FONTDIR
+sleep 1
+ls -l $CACHEDIR > out1
+TESTTMPDIR=`mktemp -d /tmp/fontconfig.XXXXXXXX`
+sed "s!@FONTDIR@!$TESTTMPDIR/fonts!
+s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < $TESTDIR/fonts.conf.in > bind-fonts.conf
+$BWRAP --bind / / --bind $CACHEDIR $TESTTMPDIR/cache.dir --bind $FONTDIR $TESTTMPDIR/fonts --bind .. $TESTTMPDIR/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE $TESTTMPDIR/build/test/bind-fonts.conf $TESTTMPDIR/build/fc-match/fc-match$EXEEXT -f "%{file}\n" ":foundry=Misc" > xxx
+ls -l $CACHEDIR > out2
+if cmp out1 out2 > /dev/null ; then : ; else
+  echo "*** Test failed: $TEST"
+  echo "cache was updated."
+  exit 1
+fi
+if [ x`cat xxx` != "x$TESTTMPDIR/fonts/4x6.pcf" ]; then
+  echo "*** Test failed: $TEST"
+  echo "file property doesn't points to the new place: $TESTTMPDIR/fonts/4x6.pcf"
+  exit 1
+fi
+rm -rf $TESTTMPDIR out1 out2 xxx bind-fonts.conf
+fi
 
 rm -rf $FONTDIR $CACHEFILE $CACHEDIR $FONTCONFIG_FILE out

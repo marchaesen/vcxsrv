@@ -64,6 +64,15 @@ struct ac_shader_abi {
 			    unsigned stream,
 			    LLVMValueRef *addrs);
 
+	LLVMValueRef (*load_inputs)(struct ac_shader_abi *abi,
+				    unsigned location,
+				    unsigned driver_location,
+				    unsigned component,
+				    unsigned num_components,
+				    unsigned vertex_index,
+				    unsigned const_index,
+				    LLVMTypeRef type);
+
 	LLVMValueRef (*load_ubo)(struct ac_shader_abi *abi, LLVMValueRef index);
 
 	/**

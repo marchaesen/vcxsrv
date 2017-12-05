@@ -32,6 +32,7 @@
 #include <pthread.h>
 
 #include "vk_util.h"
+#include "wsi_common_private.h"
 #include "wsi_common_wayland.h"
 #include "wayland-drm-client-protocol.h"
 
@@ -66,10 +67,10 @@ struct wsi_wl_display {
 struct wsi_wayland {
    struct wsi_interface                     base;
 
+   struct wsi_device *wsi;
+
    const VkAllocationCallbacks *alloc;
    VkPhysicalDevice physical_device;
-
-   const struct wsi_callbacks *cbs;
 };
 
 static void
@@ -84,7 +85,7 @@ wsi_wl_display_add_vk_format(struct wsi_wl_display *display, VkFormat format)
    /* Don't add formats that aren't renderable. */
    VkFormatProperties props;
 
-   display->wsi_wl->cbs->get_phys_device_format_properties(display->wsi_wl->physical_device,
+   display->wsi_wl->wsi->GetPhysicalDeviceFormatProperties(display->wsi_wl->physical_device,
                                                            format, &props);
    if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT))
       return;
@@ -399,7 +400,6 @@ wsi_wl_surface_get_support(VkIcdSurfaceBase *surface,
                            const VkAllocationCallbacks *alloc,
                            uint32_t queueFamilyIndex,
                            int local_fd,
-                           bool can_handle_different_gpu,
                            VkBool32* pSupported)
 {
    *pSupported = true;
@@ -556,8 +556,7 @@ VkResult wsi_create_wl_surface(const VkAllocationCallbacks *pAllocator,
 }
 
 struct wsi_wl_image {
-   VkImage image;
-   VkDeviceMemory memory;
+   struct wsi_image                             base;
    struct wl_buffer *                           buffer;
    bool                                         busy;
 };
@@ -582,30 +581,12 @@ struct wsi_wl_swapchain {
    struct wsi_wl_image                          images[0];
 };
 
-static VkResult
-wsi_wl_swapchain_get_images(struct wsi_swapchain *wsi_chain,
-                            uint32_t *pCount, VkImage *pSwapchainImages)
+static struct wsi_image *
+wsi_wl_swapchain_get_wsi_image(struct wsi_swapchain *wsi_chain,
+                               uint32_t image_index)
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
-   uint32_t ret_count;
-   VkResult result;
-
-   if (pSwapchainImages == NULL) {
-      *pCount = chain->base.image_count;
-      return VK_SUCCESS;
-   }
-
-   result = VK_SUCCESS;
-   ret_count = chain->base.image_count;
-   if (chain->base.image_count > *pCount) {
-     ret_count = *pCount;
-     result = VK_INCOMPLETE;
-   }
-
-   for (uint32_t i = 0; i < ret_count; i++)
-      pSwapchainImages[i] = chain->images[i].image;
-
-   return result;
+   return &chain->images[image_index].base;
 }
 
 static VkResult
@@ -725,35 +706,21 @@ wsi_wl_image_init(struct wsi_wl_swapchain *chain,
                   const VkSwapchainCreateInfoKHR *pCreateInfo,
                   const VkAllocationCallbacks* pAllocator)
 {
-   VkDevice vk_device = chain->base.device;
    VkResult result;
-   int fd;
-   uint32_t size;
-   uint32_t row_pitch;
-   uint32_t offset;
-   result = chain->base.image_fns->create_wsi_image(vk_device,
-                                                    pCreateInfo,
-                                                    pAllocator,
-                                                    false,
-                                                    false,
-                                                    &image->image,
-                                                    &image->memory,
-                                                    &size,
-                                                    &offset,
-                                                    &row_pitch,
-                                                    &fd);
+
+   result = wsi_create_native_image(&chain->base, pCreateInfo, &image->base);
    if (result != VK_SUCCESS)
       return result;
 
    image->buffer = wl_drm_create_prime_buffer(chain->drm_wrapper,
-                                              fd, /* name */
+                                              image->base.fd, /* name */
                                               chain->extent.width,
                                               chain->extent.height,
                                               chain->drm_format,
-                                              offset,
-                                              row_pitch,
+                                              image->base.offset,
+                                              image->base.row_pitch,
                                               0, 0, 0, 0 /* unused */);
-   close(fd);
+   close(image->base.fd);
 
    if (!image->buffer)
       goto fail_image;
@@ -763,8 +730,7 @@ wsi_wl_image_init(struct wsi_wl_swapchain *chain,
    return VK_SUCCESS;
 
 fail_image:
-   chain->base.image_fns->free_wsi_image(vk_device, pAllocator,
-                                         image->image, image->memory);
+   wsi_destroy_image(&chain->base, &image->base);
 
    return result;
 }
@@ -778,9 +744,7 @@ wsi_wl_swapchain_destroy(struct wsi_swapchain *wsi_chain,
    for (uint32_t i = 0; i < chain->base.image_count; i++) {
       if (chain->images[i].buffer) {
          wl_buffer_destroy(chain->images[i].buffer);
-         chain->base.image_fns->free_wsi_image(chain->base.device, pAllocator,
-                                               chain->images[i].image,
-                                               chain->images[i].memory);
+         wsi_destroy_image(&chain->base, &chain->images[i].base);
       }
    }
 
@@ -794,6 +758,8 @@ wsi_wl_swapchain_destroy(struct wsi_swapchain *wsi_chain,
    if (chain->display)
       wsi_wl_display_unref(chain->display);
 
+   wsi_swapchain_finish(&chain->base);
+
    vk_free(pAllocator, chain);
 
    return VK_SUCCESS;
@@ -806,7 +772,6 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
                                 int local_fd,
                                 const VkSwapchainCreateInfoKHR* pCreateInfo,
                                 const VkAllocationCallbacks* pAllocator,
-                                const struct wsi_image_fns *image_fns,
                                 struct wsi_swapchain **swapchain_out)
 {
    VkIcdSurfaceWayland *surface = (VkIcdSurfaceWayland *)icd_surface;
@@ -825,6 +790,13 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    if (chain == NULL)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
+   result = wsi_swapchain_init(wsi_device, &chain->base, device,
+                               pCreateInfo, pAllocator);
+   if (result != VK_SUCCESS) {
+      vk_free(pAllocator, chain);
+      return result;
+   }
+
    /* Mark a bunch of stuff as NULL.  This way we can just call
     * destroy_swapchain for cleanup.
     */
@@ -837,15 +809,12 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    bool alpha = pCreateInfo->compositeAlpha ==
                       VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
 
-   chain->base.device = device;
    chain->base.destroy = wsi_wl_swapchain_destroy;
-   chain->base.get_images = wsi_wl_swapchain_get_images;
+   chain->base.get_wsi_image = wsi_wl_swapchain_get_wsi_image;
    chain->base.acquire_next_image = wsi_wl_swapchain_acquire_next_image;
    chain->base.queue_present = wsi_wl_swapchain_queue_present;
-   chain->base.image_fns = image_fns;
    chain->base.present_mode = pCreateInfo->presentMode;
    chain->base.image_count = num_images;
-   chain->base.needs_linear_copy = false;
    chain->extent = pCreateInfo->imageExtent;
    chain->vk_format = pCreateInfo->imageFormat;
    chain->drm_format = wl_drm_format_for_vk_format(chain->vk_format, alpha);
@@ -903,8 +872,7 @@ fail:
 VkResult
 wsi_wl_init_wsi(struct wsi_device *wsi_device,
                 const VkAllocationCallbacks *alloc,
-                VkPhysicalDevice physical_device,
-                const struct wsi_callbacks *cbs)
+                VkPhysicalDevice physical_device)
 {
    struct wsi_wayland *wsi;
    VkResult result;
@@ -918,7 +886,7 @@ wsi_wl_init_wsi(struct wsi_device *wsi_device,
 
    wsi->physical_device = physical_device;
    wsi->alloc = alloc;
-   wsi->cbs = cbs;
+   wsi->wsi = wsi_device;
 
    wsi->base.get_support = wsi_wl_surface_get_support;
    wsi->base.get_capabilities = wsi_wl_surface_get_capabilities;

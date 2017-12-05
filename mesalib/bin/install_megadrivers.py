@@ -44,10 +44,24 @@ def main():
 
     for each in args.drivers:
         driver = os.path.join(to, each)
+
         if os.path.exists(driver):
             os.unlink(driver)
         print('installing {} to {}'.format(args.megadriver, driver))
         os.link(master, driver)
+
+        try:
+            ret = os.getcwd()
+            os.chdir(to)
+
+            name, ext = os.path.splitext(each)
+            while ext != '.so':
+                if os.path.exists(name):
+                    os.unlink(name)
+                os.symlink(driver, name)
+                name, ext = os.path.splitext(name)
+        finally:
+            os.chdir(ret)
     os.unlink(master)
 
 

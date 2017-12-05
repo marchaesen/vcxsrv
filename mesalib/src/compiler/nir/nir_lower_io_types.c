@@ -54,15 +54,11 @@ get_new_var(struct lower_io_types_state *state, nir_variable *var,
    }
 
    /* doesn't already exist, so we need to create a new one: */
-   /* TODO figure out if scalar vs vec, and if float/int/uint/(double?)
-    * do we need to fixup interpolation mode for int vs float components
-    * of a struct, etc..
+   /* TODO figure out if we need to fixup interpolation mode for int vs float
+    * components of a struct, etc..
     */
-   const struct glsl_type *ntype =
-      glsl_vector_type(glsl_get_base_type(deref_type),
-                       glsl_get_vector_elements(deref_type));
    nir_variable *nvar = nir_variable_create(state->shader, var->data.mode,
-                                            ntype, NULL);
+                                            deref_type, NULL);
 
    nvar->name = ralloc_asprintf(nvar, "%s@%u", var->name, off);
    nvar->data = var->data;

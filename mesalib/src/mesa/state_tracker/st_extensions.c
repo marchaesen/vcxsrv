@@ -941,6 +941,8 @@ void st_init_extensions(struct pipe_screen *screen,
 
    consts->dri_config_options_sha1 = options->config_options_sha1;
 
+   consts->AllowGLSLCrossStageInterpolationMismatch = options->allow_glsl_cross_stage_interpolation_mismatch;
+
    if (consts->GLSLVersion >= 400)
       extensions->ARB_gpu_shader5 = GL_TRUE;
    if (consts->GLSLVersion >= 410)

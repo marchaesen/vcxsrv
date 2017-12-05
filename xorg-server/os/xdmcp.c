@@ -797,7 +797,7 @@ XdmcpDeadSession(const char *reason)
     ErrorF("XDM: %s, declaring session dead\n", reason);
     state = XDM_INIT_STATE;
     isItTimeToYield = TRUE;
-    dispatchException |= DE_RESET;
+    dispatchException |= (OneSession ? DE_TERMINATE : DE_RESET);
     TimerCancel(xdmcp_timer);
     timeOutRtx = 0;
     send_packet();

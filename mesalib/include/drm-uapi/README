@@ -13,9 +13,9 @@ $ make headers_install INSTALL_HDR_PATH=/path/to/install
 
 The last update was done at the following kernel commit :
 
-commit 7846b12fe0b5feab5446d892f41b5140c1419109
-Merge: 7ebdb0d d78acfe
+commit ca797d29cd63e7b71b4eea29aff3b1cefd1ecb59
+Merge: 2c1c55cb75a9 010d118c2061
 Author: Dave Airlie <airlied@redhat.com>
-Date:   Tue Aug 29 10:38:14 2017 +1000
+Date:   Mon Dec 4 09:40:35 2017 +1000
 
-    Merge branch 'drm-vmwgfx-next' of git://people.freedesktop.org/~syeh/repos_linux into drm-next
+    Merge tag 'drm-intel-next-2017-11-17-1' of git://anongit.freedesktop.org/drm/drm-intel into drm-next

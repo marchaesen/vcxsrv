@@ -22,7 +22,9 @@ vulkan_wsi_args = []
 vulkan_wsi_deps = []
 
 files_vulkan_wsi = files(
+  'wsi_common.c',
   'wsi_common.h',
+  'wsi_common_private.h',
   'wsi_common_queue.h',
 )
 if with_platform_x11

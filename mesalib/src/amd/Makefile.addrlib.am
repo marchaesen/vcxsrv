@@ -29,8 +29,7 @@ addrlib_libamdgpu_addrlib_la_CPPFLAGS = \
 	-I$(srcdir)/addrlib/inc/chip/gfx9 \
 	-I$(srcdir)/addrlib/inc/chip/r800 \
 	-I$(srcdir)/addrlib/gfx9/chip \
-	-I$(srcdir)/addrlib/r800/chip \
-	-DBRAHMA_BUILD=1
+	-I$(srcdir)/addrlib/r800/chip
 
 addrlib_libamdgpu_addrlib_la_CXXFLAGS = \
 	$(VISIBILITY_CXXFLAGS) $(CXX11_CXXFLAGS)

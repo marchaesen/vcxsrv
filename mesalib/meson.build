@@ -112,6 +112,8 @@ endif
 with_gallium = false
 with_gallium_pl111 = false
 with_gallium_radeonsi = false
+with_gallium_r300 = false
+with_gallium_r600 = false
 with_gallium_nouveau = false
 with_gallium_freedreno = false
 with_gallium_softpipe = false
@@ -119,14 +121,17 @@ with_gallium_vc4 = false
 with_gallium_vc5 = false
 with_gallium_etnaviv = false
 with_gallium_imx = false
+with_gallium_i915 = false
+with_gallium_svga = false
+with_gallium_virgl = false
 _drivers = get_option('gallium-drivers')
 if _drivers == 'auto'
   if not ['darwin', 'windows'].contains(host_machine.system())
     # TODO: PPC, Sparc
     if ['x86', 'x86_64'].contains(host_machine.cpu_family())
-      _drivers = 'radeonsi,nouveau,swrast'
+      _drivers = 'r300,r600,radeonsi,nouveau,virgl,svga,swrast'
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
-      _drivers = 'pl111,vc4,vc5,freedreno,etnaviv,imx,swrast'
+      _drivers = 'pl111,vc4,vc5,freedreno,etnaviv,imx,virgl,svga,swrast'
     else
       error('Unknown architecture. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.')
     endif
@@ -138,6 +143,8 @@ if _drivers != ''
   _split = _drivers.split(',')
   with_gallium_pl111 = _split.contains('pl111')
   with_gallium_radeonsi = _split.contains('radeonsi')
+  with_gallium_r300 = _split.contains('r300')
+  with_gallium_r600 = _split.contains('r600')
   with_gallium_nouveau = _split.contains('nouveau')
   with_gallium_freedreno = _split.contains('freedreno')
   with_gallium_softpipe = _split.contains('swrast')
@@ -145,6 +152,9 @@ if _drivers != ''
   with_gallium_vc5 = _split.contains('vc5')
   with_gallium_etnaviv = _split.contains('etnaviv')
   with_gallium_imx = _split.contains('imx')
+  with_gallium_i915 = _split.contains('i915')
+  with_gallium_svga = _split.contains('svga')
+  with_gallium_virgl = _split.contains('virgl')
   with_gallium = true
 endif
 
@@ -174,12 +184,15 @@ endif
 if with_dri_swrast and with_gallium_softpipe
   error('Only one swrast provider can be built')
 endif
+if with_dri_i915 and with_gallium_i915
+  error('Only one i915 provider can be built')
+endif
 if with_gallium_imx and not with_gallium_etnaviv
   error('IMX driver requires etnaviv driver')
 endif
 
 dep_libdrm_intel = []
-if with_dri_i915
+if with_dri_i915 or with_gallium_i915
   dep_libdrm_intel = dependency('libdrm_intel', version : '>= 2.4.75')
 endif
 
@@ -275,9 +288,13 @@ else
   with_egl = false
 endif
 
-# TODO: or virgl
-if with_egl and with_gallium_radeonsi and not (with_platform_drm or with_platform_surfaceless)
-  error('RadeonSI requires drm or surfaceless platform when using EGL')
+if with_egl and not (with_platform_drm or with_platform_surfaceless)
+  if with_gallium_radeonsi
+    error('RadeonSI requires drm or surfaceless platform when using EGL')
+  endif
+  if with_gallium_virgl
+    error('Virgl requires drm or surfaceless platform when using EGL')
+  endif
 endif
 
 pre_args += '-DGLX_USE_TLS'
@@ -344,21 +361,221 @@ if with_dri or with_gallium
   endif
 endif
 
-with_gallium_xvmc = false
-with_gallium_vdpau = false
-with_gallium_omx = false  # this is bellagio
-with_gallium_va = false
-with_gallium_media = false
+dep_vdpau = []
+_vdpau = get_option('gallium-vdpau')
+if _vdpau == 'auto'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    with_gallium_vdpau = false
+  elif not with_platform_x11
+    with_gallium_vdpau = false
+  elif not (with_gallium_r300 or with_gallium_r600 or with_gallium_radeonsi or
+            with_gallium_nouveau)
+    with_gallium_vdpau = false
+  else
+    dep_vdpau = dependency('vdpau', version : '>= 1.1', required : false)
+    with_gallium_vdpau = dep_vdpau.found()
+  endif
+elif _vdpau == 'true'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    error('VDPAU state tracker can only be build on unix-like OSes.')
+  elif not with_platform_x11
+    error('VDPAU state tracker requires X11 support.')
+    with_gallium_vdpau = false
+  elif not (with_gallium_r300 or with_gallium_r600 or with_gallium_radeonsi or
+            with_gallium_nouveau)
+    error('VDPAU state tracker requires at least one of the following gallium drivers: r300, r600, radeonsi, nouveau.')
+  endif
+  dep_vdpau = dependency('vdpau', version : '>= 1.1')
+  with_gallium_vdpau = true
+else
+  with_gallium_vdpau = false
+endif
+if with_gallium_vdpau
+  dep_vdpau = declare_dependency(
+    compile_args : dep_vdpau.get_pkgconfig_variable('cflags').split()
+  )
+endif
+
+if with_gallium_vdpau
+  pre_args += '-DHAVE_ST_VDPAU'
+endif
+vdpau_drivers_path = get_option('vdpau-libs-path')
+if vdpau_drivers_path == ''
+  vdpau_drivers_path = join_paths(get_option('libdir'), 'vdpau')
+endif
+
+dep_xvmc = []
+_xvmc = get_option('gallium-xvmc')
+if _xvmc == 'auto'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    with_gallium_xvmc = false
+  elif not with_platform_x11
+    with_gallium_xvmc = false
+  elif not (with_gallium_r600 or with_gallium_nouveau)
+    with_gallium_xvmc = false
+  else
+    dep_xvmc = dependency('xvmc', version : '>= 1.0.6', required : false)
+    with_gallium_xvmc = dep_xvmc.found()
+  endif
+elif _xvmc == 'true'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    error('XVMC state tracker can only be build on unix-like OSes.')
+  elif not with_platform_x11
+    error('XVMC state tracker requires X11 support.')
+    with_gallium_xvmc = false
+  elif not (with_gallium_r600 or with_gallium_nouveau)
+    error('XVMC state tracker requires at least one of the following gallium drivers: r600, nouveau.')
+  endif
+  dep_xvmc = dependency('xvmc', version : '>= 1.0.6')
+  with_gallium_xvmc = true
+else
+  with_gallium_xvmc = false
+endif
+if with_gallium_xvmc
+  dep_xvmc = declare_dependency(
+    compile_args : dep_xvmc.get_pkgconfig_variable('cflags').split()
+  )
+endif
+
+xvmc_drivers_path = get_option('xvmc-libs-path')
+if xvmc_drivers_path == ''
+  xvmc_drivers_path = get_option('libdir')
+endif
+
+dep_omx = []
+_omx = get_option('gallium-omx')
+if _omx == 'auto'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    with_gallium_omx = false
+  elif not with_platform_x11
+    with_gallium_omx = false
+  elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
+    with_gallium_omx = false
+  else
+    dep_omx = dependency('libomxil-bellagio', required : false)
+    with_gallium_omx = dep_omx.found()
+  endif
+elif _omx == 'true'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    error('OMX state tracker can only be built on unix-like OSes.')
+  elif not (with_platform_x11 or with_platform_drm)
+    error('OMX state tracker requires X11 or drm platform support.')
+    with_gallium_omx = false
+  elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
+    error('OMX state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
+  endif
+  dep_omx = dependency('libomxil-bellagio')
+  with_gallium_omx = true
+else
+  with_gallium_omx = false
+endif
+
+omx_drivers_path = get_option('omx-libs-path')
+if with_gallium_omx
+  # Figure out where to put the omx driver.
+  # FIXME: this could all be vastly simplified by adding a 'defined_variable'
+  # argument to meson's get_pkgconfig_variable method.
+  if omx_drivers_path == ''
+    _omx_libdir = dep_omx.get_pkgconfig_variable('libdir')
+    _omx_drivers_dir = dep_omx.get_pkgconfig_variable('pluginsdir')
+    if _omx_libdir == get_option('libdir')
+      omx_drivers_path = _omx_drivers_dir
+    else
+      _omx_base_dir = []
+      # This will fail on windows. Does OMX run on windows?
+      _omx_libdir = _omx_libdir.split('/')
+      _omx_drivers_dir = _omx_drivers_dir.split('/')
+      foreach o : _omx_drivers_dir
+        if not _omx_libdir.contains(o)
+          _omx_base_dir += o
+        endif
+      endforeach
+      omx_drivers_path = join_paths(get_option('libdir'), _omx_base_dir)
+    endif
+  endif
+endif
+if with_gallium_omx
+  dep_omx = declare_dependency(
+    compile_args : dep_omx.get_pkgconfig_variable('cflags').split()
+  )
+endif
+
 dep_va = []
-_drivers = get_option('gallium-media')
-if _drivers != ''
-  _split = _drivers.split(',')
-  with_gallium_xvmc = _split.contains('xvmc')
-  with_gallium_vdpau = _split.contains('vdpau')
-  with_gallium_omx = _split.contains('omx')
-  with_gallium_va = _split.contains('va')
-  with_gallium_media = (with_gallium_xvmc or with_gallium_vdpau or
-                        with_gallium_omx or with_gallium_va)
+_va = get_option('gallium-va')
+if _va == 'auto'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    with_gallium_va = false
+  elif not with_platform_x11
+    with_gallium_va = false
+  elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
+    with_gallium_va = false
+  else
+    dep_va = dependency('libva', version : '>= 0.38.0', required : false)
+    with_gallium_va = dep_va.found()
+  endif
+elif _va == 'true'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    error('VA state tracker can only be built on unix-like OSes.')
+  elif not (with_platform_x11 or with_platform_drm)
+    error('VA state tracker requires X11 or drm or wayland platform support.')
+    with_gallium_va = false
+  elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
+    error('VA state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
+  endif
+  dep_va = dependency('libva', version : '>= 0.38.0')
+  with_gallium_va = true
+else
+  with_gallium_va = false
+endif
+if with_gallium_va
+  dep_va = declare_dependency(
+    compile_args : dep_va.get_pkgconfig_variable('cflags').split()
+  )
+endif
+
+va_drivers_path = get_option('va-libs-path')
+if va_drivers_path == ''
+  va_drivers_path = join_paths(get_option('libdir'), 'dri')
+endif
+
+_xa = get_option('gallium-xa')
+if _xa == 'auto'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    with_gallium_xa = false
+  elif not (with_gallium_nouveau or with_gallium_freedreno or with_gallium_i915
+            or with_gallium_svga)
+    with_gallium_xa = false
+  else
+    with_gallium_xa = true
+  endif
+elif _xa == 'true'
+  if not ['linux', 'bsd'].contains(host_machine.system())
+    error('XA state tracker can only be built on unix-like OSes.')
+  elif not (with_gallium_nouveau or with_gallium_freedreno or with_gallium_i915
+            or with_gallium_svga)
+    error('XA state tracker requires at least one of the following gallium drivers: nouveau, freedreno, i915, svga.')
+  endif
+  with_gallium_xa = true
+else
+  with_gallium_xa = false
+endif
+
+d3d_drivers_path = get_option('d3d-drivers-path')
+if d3d_drivers_path == ''
+  d3d_drivers_path = join_paths(get_option('libdir'), 'd3d')
+endif
+
+with_gallium_st_nine =  get_option('gallium-nine')
+if with_gallium_st_nine
+  if not with_gallium_softpipe
+    error('The nine state tracker requires gallium softpipe/llvmpipe.')
+  elif not (with_gallium_radeonsi or with_gallium_nouveau or with_gallium_r600
+            or with_gallium_r300 or with_gallium_svga or with_gallium_i915)
+    error('The nine state tracker requires at least on non-swrast gallium driver.')
+  endif
+  if not with_dri3
+    error('Using nine with wine requires dri3')
+  endif
 endif
 
 gl_pkgconfig_c_flags = []
@@ -375,6 +592,8 @@ if with_platform_x11
     endif
     if with_dri_platform == 'drm'
       pre_args += '-DGLX_USE_DRM'
+    elif with_dri_platform == 'windows'
+      pre_args += '-DGLX_USE_WINDOWSGL'
     endif
   endif
 else
@@ -460,9 +679,13 @@ if cc.compiles('int foo(void) { return 0; } int bar(void) __attribute__((alias("
                name : '__attribute__((alias(...)))')
   pre_args += '-DHAVE_FUNC_ATTRIBUTE_ALIAS'
 endif
+if cc.compiles('int foo(void) __attribute__((__noreturn__));',
+               name : '__attribute__((__noreturn__))')
+  pre_args += '-DHAVE_FUNC_ATTRIBUTE_NORETURN'
+endif
 
 # TODO: this is very incomplete
-if host_machine.system() == 'linux'
+if ['linux', 'cygwin'].contains(host_machine.system())
   pre_args += '-D_GNU_SOURCE'
 endif
 
@@ -484,11 +707,25 @@ endif
 cpp = meson.get_compiler('cpp')
 cpp_args = []
 foreach a : ['-Wall', '-fno-math-errno', '-fno-trapping-math',
-             '-Qunused-arguments', '-Wno-non-virtual-dtor']
+             '-Qunused-arguments']
   if cpp.has_argument(a)
     cpp_args += a
   endif
 endforeach
+
+# For some reason, the test for -Wno-foo always succeeds with gcc, even if the
+# option is not supported. Hence, check for -Wfoo instead.
+if cpp.has_argument('-Wnon-virtual-dtor')
+  cpp_args += '-Wno-non-virtual-dtor'
+endif
+
+no_override_init_args = []
+foreach a : ['override-init', 'initializer-overrides']
+  if cc.has_argument('-W' + a)
+    no_override_init_args += '-Wno-' + a
+  endif
+endforeach
+
 cpp_vis_args = []
 if cpp.has_argument('-fvisibility=hidden')
   cpp_vis_args += '-fvisibility=hidden'
@@ -505,13 +742,6 @@ foreach a : ['-Werror=pointer-arith', '-Werror=vla']
   endif
   if cpp.has_argument(a)
     cpp_msvc_compat_args += a
-  endif
-endforeach
-
-no_override_init_args = []
-foreach a : ['-Wno-override-init', '-Wno-initializer-overrides']
-  if cc.has_argument(a)
-    no_override_init_args += a
   endif
 endforeach
 
@@ -600,7 +830,7 @@ foreach h : ['xlocale.h', 'sys/sysctl.h', 'linux/futex.h']
   endif
 endforeach
 
-foreach f : ['strtof', 'mkostemp', 'posix_memalign', 'timespec_get']
+foreach f : ['strtof', 'mkostemp', 'posix_memalign', 'timespec_get', 'memfd_create']
   if cc.has_function(f)
     pre_args += '-DHAVE_@0@'.format(f.to_upper())
   endif
@@ -695,9 +925,13 @@ dep_thread = dependency('threads')
 if dep_thread.found() and host_machine.system() != 'windows'
   pre_args += '-DHAVE_PTHREAD'
 endif
-dep_elf = dependency('libelf', required : false)
-if not dep_elf.found() and (with_amd_vk or with_gallium_radeonsi) # TODO: clover, r600
-  dep_elf = cc.find_library('elf')
+if with_amd_vk or with_gallium_radeonsi or with_gallium_r600 # TODO: clover
+  dep_elf = dependency('libelf', required : false)
+  if not dep_elf.found()
+    dep_elf = cc.find_library('elf')
+  endif
+else
+  dep_elf = []
 endif
 dep_expat = dependency('expat')
 # this only exists on linux so either this is linux and it will be found, or
@@ -712,7 +946,8 @@ dep_libdrm_freedreno = []
 if with_amd_vk or with_gallium_radeonsi
   dep_libdrm_amdgpu = dependency('libdrm_amdgpu', version : '>= 2.4.88')
 endif
-if with_gallium_radeonsi or with_dri_r100 or with_dri_r200
+if (with_gallium_radeonsi or with_dri_r100 or with_dri_r200 or
+    with_gallium_r300 or with_gallium_r600)
   dep_libdrm_radeon = dependency('libdrm_radeon', version : '>= 2.4.71')
 endif
 if with_gallium_nouveau or with_dri_nouveau
@@ -726,8 +961,11 @@ if with_gallium_freedreno
 endif
 
 llvm_modules = ['bitwriter', 'engine', 'mcdisassembler', 'mcjit']
-if with_amd_vk or with_gallium_radeonsi
+if with_amd_vk or with_gallium_radeonsi or with_gallium_r600
   llvm_modules += ['amdgpu', 'bitreader', 'ipo']
+  if with_gallium_r600
+    llvm_modules += 'asmparser'
+  endif
 endif
 
 _llvm = get_option('llvm')
@@ -861,7 +1099,7 @@ if with_platform_x11
     dep_x11 = dependency('x11')
     dep_xext = dependency('xext')
     dep_xcb = dependency('xcb')
-  elif with_glx == 'dri' and with_dri_platform == 'drm'
+  elif with_glx == 'dri'
     dep_x11 = dependency('x11')
     dep_xext = dependency('xext')
     dep_xdamage = dependency('xdamage', version : '>= 1.1')
@@ -869,9 +1107,13 @@ if with_platform_x11
     dep_xcb_glx = dependency('xcb-glx', version : '>= 1.8.1')
     dep_xxf86vm = dependency('xxf86vm', required : false)
   endif
-  if with_any_vk or (with_glx == 'dri' and with_dri_platform == 'drm')
+  if with_any_vk or with_glx == 'dri' or
+      (with_gallium_vdpau or with_gallium_xvmc or with_gallium_omx or
+       with_gallium_xa)
     dep_xcb = dependency('xcb')
     dep_x11_xcb = dependency('x11-xcb')
+  endif
+  if with_any_vk or (with_glx == 'dri' and with_dri_platform == 'drm')
     dep_xcb_dri2 = dependency('xcb-dri2', version : '>= 1.8')
 
     if with_dri3
@@ -883,7 +1125,9 @@ if with_platform_x11
     endif
   endif
   if with_glx == 'dri'
-    dep_dri2proto = dependency('dri2proto', version : '>= 2.8')
+    if with_dri_platform == 'drm'
+      dep_dri2proto = dependency('dri2proto', version : '>= 2.8')
+    endif
     dep_glproto = dependency('glproto', version : '>= 1.4.14')
   endif
   if with_egl
@@ -891,7 +1135,19 @@ if with_platform_x11
   endif
 endif
 
-# TODO: nine
+if get_option('gallium-extra-hud')
+  pre_args += '-DHAVE_GALLIUM_EXTRA_HUD=1'
+endif
+
+_sensors = get_option('lmsensors')
+if _sensors != 'false'
+  dep_lmsensors = cc.find_library('libsensors', required : _sensors == 'true')
+  if dep_lmsensors.found()
+    pre_args += '-DHAVE_LIBSENSORS=1'
+  endif
+else
+  dep_lmsensors = []
+endif
 
 # TODO: clover
 

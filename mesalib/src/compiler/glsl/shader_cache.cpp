@@ -985,7 +985,7 @@ write_shader_parameters(struct blob *metadata,
       blob_write_bytes(metadata, param->StateIndexes,
                        sizeof(param->StateIndexes));
 
-      i += (param->Size + 3) / 4;
+      i++;
    }
 
    blob_write_bytes(metadata, params->ParameterValues,
@@ -1014,7 +1014,7 @@ read_shader_parameters(struct blob_reader *metadata,
       _mesa_add_parameter(params, type, name, size, data_type,
                           NULL, state_indexes);
 
-      i += (size + 3) / 4;
+      i++;
    }
 
    blob_copy_bytes(metadata, (uint8_t *) params->ParameterValues,

@@ -26,19 +26,16 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
     drmSetVersion sv;
     drmVersionPtr v;
     char *buf;
-    int major, minor, fd;
+    int fd;
     int err = 0;
     Bool paused, server_fd = FALSE;
 
-    major = attribs->major;
-    minor = attribs->minor;
-
-    fd = systemd_logind_take_fd(major, minor, path, &paused);
+    fd = systemd_logind_take_fd(attribs->major, attribs->minor, path, &paused);
     if (fd != -1) {
         if (paused) {
             LogMessage(X_ERROR,
                     "Error systemd-logind returned paused fd for drm node\n");
-            systemd_logind_release_fd(major, minor, -1);
+            systemd_logind_release_fd(attribs->major, attribs->minor, -1);
             return FALSE;
         }
         attribs->fd = fd;

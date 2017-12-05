@@ -392,6 +392,13 @@ typedef struct _FcStrBuf {
     FcChar8 buf_static[16 * sizeof (void *)];
 } FcStrBuf;
 
+typedef struct _FcHashTable	FcHashTable;
+
+typedef FcChar32 (* FcHashFunc)	   (const void *data);
+typedef int	 (* FcCompareFunc) (const void *v1, const void *v2);
+typedef FcBool	 (* FcCopyFunc)	   (const void *src, void **dest);
+
+
 struct _FcCache {
     unsigned int magic;              /* FC_CACHE_MAGIC_MMAP or FC_CACHE_ALLOC */
     int		version;	    /* FC_CACHE_VERSION_NUMBER */
@@ -558,6 +565,8 @@ struct _FcConfig {
     FcChar8     *sysRoot;	    /* override the system root directory */
     FcStrSet	*availConfigFiles;  /* config files available */
     FcPtrList	*rulesetList;	    /* List of rulesets being installed */
+    FcHashTable *uuid_table;	    /* UUID table for cachedirs */
+    FcHashTable *alias_table;	    /* alias table for cachedirs */
 };
 
 typedef struct _FcFileTime {
@@ -586,6 +595,11 @@ struct _FcValuePromotionBuffer {
 };
 
 /* fccache.c */
+
+FcPrivate FcBool
+FcDirCacheCreateUUID (FcChar8  *dir,
+		      FcBool    force,
+		      FcConfig *config);
 
 FcPrivate FcCache *
 FcDirCacheScan (const FcChar8 *dir, FcConfig *config);
@@ -1292,5 +1306,39 @@ FcObjectLookupOtherTypeById (FcObject id);
 
 FcPrivate const FcObjectType *
 FcObjectLookupOtherTypeByName (const char *str);
+
+/* fchash.c */
+FcPrivate FcBool
+FcHashStrCopy (const void  *src,
+	       void       **dest);
+
+FcPrivate FcBool
+FcHashUuidCopy (const void  *src,
+		void       **dest);
+
+FcPrivate void
+FcHashUuidFree (void *data);
+
+FcPrivate FcHashTable *
+FcHashTableCreate (FcHashFunc    hash_func,
+		   FcCompareFunc compare_func,
+		   FcCopyFunc    key_copy_func,
+		   FcCopyFunc    value_copy_func,
+		   FcDestroyFunc key_destroy_func,
+		   FcDestroyFunc value_destroy_func);
+
+FcPrivate void
+FcHashTableDestroy (FcHashTable *table);
+
+FcPrivate FcBool
+FcHashTableFind (FcHashTable  *table,
+		 const void   *key,
+		 void        **value);
+
+FcPrivate FcBool
+FcHashTableAdd (FcHashTable *table,
+		void        *key,
+		void        *value);
+
 
 #endif /* _FC_INT_H_ */

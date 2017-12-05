@@ -178,7 +178,7 @@ void hud_batch_query_update(struct hud_batch_query_context *bq,
 void hud_batch_query_cleanup(struct hud_batch_query_context **pbq,
                              struct pipe_context *pipe);
 
-#if HAVE_GALLIUM_EXTRA_HUD
+#ifdef HAVE_GALLIUM_EXTRA_HUD
 int hud_get_num_nics(bool displayhelp);
 #define NIC_DIRECTION_RX 1
 #define NIC_DIRECTION_TX 2
@@ -199,7 +199,7 @@ int hud_get_num_cpufreq(bool displayhelp);
 void hud_cpufreq_graph_install(struct hud_pane *pane, int cpu_index, unsigned int mode);
 #endif
 
-#if HAVE_LIBSENSORS
+#ifdef HAVE_LIBSENSORS
 int hud_get_num_sensors(bool displayhelp);
 #define SENSORS_TEMP_CURRENT     1
 #define SENSORS_TEMP_CRITICAL    2

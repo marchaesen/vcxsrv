@@ -53,6 +53,17 @@ if dri_drivers != []
     link_args : ['-Wl,--build-id=sha1', ld_args_bsymbolic, ld_args_gc_sections],
   )
 
+  meson.add_install_script(
+    join_paths(meson.source_root(), 'bin/install_megadrivers.py'),
+    libmesa_dri_drivers.full_path(),
+    dri_drivers_path,
+    dri_link,
+  )
+endif
+
+# This needs to be installed if any dri drivers (including gallium dri drivers)
+# are built.
+if with_dri
   pkg.generate(
     name : 'dri',
     filebase : 'dri',
@@ -60,12 +71,5 @@ if dri_drivers != []
     version : meson.project_version(),
     variables : ['dridriverdir=${prefix}/' + dri_drivers_path],
     requires_private : ['libdrm >= 2.4.75'],  # FIXME: don't hardcode this
-  )
-
-  meson.add_install_script(
-    join_paths(meson.source_root(), 'bin/install_megadrivers.py'),
-    libmesa_dri_drivers.full_path(),
-    dri_drivers_path,
-    dri_link,
   )
 endif

@@ -298,3 +298,16 @@ void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 	        conf->scratch_bytes_per_wave = G_00B860_WAVESIZE(wavesize) * 256 * 4;
 	}
 }
+
+void ac_shader_binary_clean(struct ac_shader_binary *b)
+{
+	if (!b)
+		return;
+	FREE(b->code);
+	FREE(b->config);
+	FREE(b->rodata);
+	FREE(b->global_symbol_offsets);
+	FREE(b->relocs);
+	FREE(b->disasm_string);
+	FREE(b->llvm_ir_string);
+}

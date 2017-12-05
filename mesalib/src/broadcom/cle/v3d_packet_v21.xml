@@ -1,4 +1,26 @@
 <vcxml gen="2.1">
+
+  <enum name="Compare Function" prefix="V3D_COMPARE_FUNC">
+    <value name="NEVER" value="0"/>
+    <value name="LESS" value="1"/>
+    <value name="EQUAL" value="2"/>
+    <value name="LEQUAL" value="3"/>
+    <value name="GREATER" value="4"/>
+    <value name="NOTEQUAL" value="5"/>
+    <value name="GEQUAL" value="6"/>
+    <value name="ALWAYS" value="7"/>
+  </enum>
+
+  <enum name="Primitive" prefix="V3D_PRIM">
+    <value name="POINTS" value="0"/>
+    <value name="LINES" value="1"/>
+    <value name="LINE_LOOP" value="2"/>
+    <value name="LINE_STRIP" value="3"/>
+    <value name="TRIANGLES" value="4"/>
+    <value name="TRIANGLE_STRIP" value="5"/>
+    <value name="TRIANGLE_FAN" value="6"/>
+  </enum>
+
   <packet name="Halt" code="0"/>
   <packet name="NOP" code="1"/>
   <packet name="Flush" code="4" cl="B"/>
@@ -109,29 +131,13 @@
       <value name="8-bit" value="0"/>
       <value name="16-bit" value="1"/>
     </field>
-    <field name="Primitive mode" size="4" start="0" type="uint">
-      <value name="points" value="0"/>
-      <value name="lines" value="1"/>
-      <value name="line loop" value="2"/>
-      <value name="line strip" value="3"/>
-      <value name="triangles" value="4"/>
-      <value name="triangles strip" value="5"/>
-      <value name="triangles fan" value="6"/>
-    </field>
+    <field name="Primitive mode" size="4" start="0" type="Primitive"/>
   </packet>
 
   <packet name="Vertex Array Primitives" code="33">
     <field name="Index of First Vertex" size="32" start="40" type="uint"/>
     <field name="Length" size="32" start="8" type="uint"/>
-    <field name="Primitive mode" size="4" start="0" type="uint">
-      <value name="points" value="0"/>
-      <value name="lines" value="1"/>
-      <value name="line loop" value="2"/>
-      <value name="line strip" value="3"/>
-      <value name="triangles" value="4"/>
-      <value name="triangles strip" value="5"/>
-      <value name="triangles fan" value="6"/>
-    </field>
+    <field name="Primitive mode" size="4" start="0" type="Primitive"/>
   </packet>
 
   <packet name="Primitive List Format" cl="R" code="56">
@@ -166,8 +172,7 @@
     <field name="Early Z updates enable" size="1" start="17" type="bool"/>
     <field name="Early Z enable" size="1" start="16" type="bool"/>
     <field name="Z updates enable" size="1" start="15" type="bool"/>
-    <field name="Depth-Test Function" size="3" start="12" type="uint"/>
-    <!-- add values -->
+    <field name="Depth-Test Function" size="3" start="12" type="Compare Function"/>
     <field name="Coverage Read Mode" size="1" start="11" type="uint"/>
     <!-- add values -->
     <field name="Coverage Pipe Select" size="1" start="8" type="bool"/>

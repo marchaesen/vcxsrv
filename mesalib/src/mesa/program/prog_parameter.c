@@ -234,12 +234,10 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
                     const gl_constant_value *values,
                     const gl_state_index state[STATE_LENGTH])
 {
+   assert(0 < size && size <=4);
    const GLuint oldNum = paramList->NumParameters;
-   const GLuint sz4 = (size + 3) / 4; /* no. of new param slots needed */
 
-   assert(size > 0);
-
-   _mesa_reserve_parameter_storage(paramList, sz4);
+   _mesa_reserve_parameter_storage(paramList, 1);
 
    if (!paramList->Parameters ||
        !paramList->ParameterValues) {
@@ -249,44 +247,35 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
       return -1;
    }
 
-   GLuint i, j;
-
-   paramList->NumParameters = oldNum + sz4;
+   paramList->NumParameters = oldNum + 1;
 
    memset(&paramList->Parameters[oldNum], 0,
-          sz4 * sizeof(struct gl_program_parameter));
+          sizeof(struct gl_program_parameter));
 
-   for (i = 0; i < sz4; i++) {
-      struct gl_program_parameter *p = paramList->Parameters + oldNum + i;
-      p->Name = strdup(name ? name : "");
-      p->Type = type;
-      p->Size = size;
-      p->DataType = datatype;
-      if (values) {
-         if (size >= 4) {
-            COPY_4V(paramList->ParameterValues[oldNum + i], values);
-         } else {
-            /* copy 1, 2 or 3 values */
-            assert(size < 4);
-            for (j = 0; j < size; j++) {
-               paramList->ParameterValues[oldNum + i][j].f = values[j].f;
-            }
-            /* fill in remaining positions with zeros */
-            for (; j < 4; j++) {
-               paramList->ParameterValues[oldNum + i][j].f = 0.0f;
-            }
-         }
-         values += 4;
+   struct gl_program_parameter *p = paramList->Parameters + oldNum;
+   p->Name = strdup(name ? name : "");
+   p->Type = type;
+   p->Size = size;
+   p->DataType = datatype;
+
+   if (values) {
+      if (size >= 4) {
+         COPY_4V(paramList->ParameterValues[oldNum], values);
       } else {
-         /* silence valgrind */
-         for (j = 0; j < 4; j++)
-            paramList->ParameterValues[oldNum + i][j].f = 0;
+         /* copy 1, 2 or 3 values */
+         assert(size < 4);
+         for (unsigned j = 0; j < size; j++) {
+            paramList->ParameterValues[oldNum][j].f = values[j].f;
+         }
       }
-      size -= 4;
+   } else {
+      for (unsigned j = 0; j < 4; j++) {
+         paramList->ParameterValues[oldNum][j].f = 0;
+      }
    }
 
    if (state) {
-      for (i = 0; i < STATE_LENGTH; i++)
+      for (unsigned i = 0; i < STATE_LENGTH; i++)
          paramList->Parameters[oldNum].StateIndexes[i] = state[i];
    }
 

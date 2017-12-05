@@ -2431,12 +2431,25 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
    if (type->contains_opaque() && !var->data.bindless)
       return;
 
+   /* Add the uniform to the param list */
    assert(_mesa_lookup_parameter_index(params, name) < 0);
+   int index = _mesa_lookup_parameter_index(params, name);
 
-   unsigned size = storage_type_size(type, var->data.bindless) * 4;
+   unsigned num_params = type->arrays_of_arrays_size();
+   num_params = MAX2(num_params, 1);
+   num_params *= type->without_array()->matrix_columns;
 
-   int index = _mesa_add_parameter(params, PROGRAM_UNIFORM, name, size,
-                                   type->gl_type, NULL, NULL);
+   bool is_dual_slot = type->without_array()->is_dual_slot();
+   if (is_dual_slot)
+      num_params *= 2;
+
+   _mesa_reserve_parameter_storage(params, num_params);
+   index = params->NumParameters;
+   for (unsigned i = 0; i < num_params; i++) {
+      unsigned comps = 4;
+      _mesa_add_parameter(params, PROGRAM_UNIFORM, name, comps,
+                          type->gl_type, NULL, NULL);
+   }
 
    /* The first part of the uniform that's processed determines the base
     * location of the whole uniform (for structures).
