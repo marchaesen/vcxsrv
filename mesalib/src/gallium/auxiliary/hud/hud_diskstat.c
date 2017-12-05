@@ -26,7 +26,7 @@
  *
  **************************************************************************/
 
-#if HAVE_GALLIUM_EXTRA_HUD
+#ifdef HAVE_GALLIUM_EXTRA_HUD
 
 /* Purpose: Reading /sys/block/<*>/stat MB/s read/write throughput per second,
  * displaying on the HUD.

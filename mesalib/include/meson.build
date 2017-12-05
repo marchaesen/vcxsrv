@@ -20,6 +20,7 @@
 
 inc_drm_uapi = include_directories('drm-uapi')
 inc_vulkan = include_directories('vulkan')
+inc_d3d9 = include_directories('D3D9')
 
 if with_gles1
   install_headers(
@@ -34,13 +35,13 @@ if with_gles2
     subdir : 'GLES2',
   )
   install_headers(
-    'GLES3/gl3.h', 'GLES3/gl32.h', 'GLES3/gl32.h', 'GLES3/gl3ext.h',
+    'GLES3/gl3.h', 'GLES3/gl31.h', 'GLES3/gl32.h', 'GLES3/gl3ext.h',
     'GLES3/gl3platform.h',
     subdir : 'GLES3',
   )
 endif
 
-if with_gles1 or with_gles2 # or with_egl
+if with_gles1 or with_gles2 or with_egl
   install_headers('KHR/khrplatform.h', subdir : 'KHR')
 endif
 
@@ -52,7 +53,7 @@ if with_opengl
 endif
 
 if with_glx != 'disabled'
-  install_headers('GL/glx.h', 'GL/glext.h', 'GL/glx_mangle.h', subdir : 'GL')
+  install_headers('GL/glx.h', 'GL/glxext.h', 'GL/glx_mangle.h', subdir : 'GL')
 endif
 
 if with_osmesa != 'none'
@@ -64,5 +65,16 @@ if with_egl
     'EGL/eglext.h', 'EGL/egl.h', 'EGL/eglextchromium.h', 'EGL/eglmesaext.h',
     'EGL/eglplatform.h',
     subdir : 'EGL',
+  )
+endif
+
+if with_dri
+  install_headers('GL/internal/dri_interface.h', subdir : 'GL/internal')
+endif
+
+if with_gallium_st_nine
+  install_headers(
+    'd3dadapter/d3dadapter9.h', 'd3dadapter/drm.h', 'd3dadapter/present.h',
+    subdir : 'd3dadapter',
   )
 endif

@@ -214,16 +214,10 @@ radv_physical_device_init(struct radv_physical_device *device,
 
 	device->local_fd = fd;
 	device->ws->query_info(device->ws, &device->rad_info);
-	result = radv_init_wsi(device);
-	if (result != VK_SUCCESS) {
-		device->ws->destroy(device->ws);
-		goto fail;
-	}
 
 	device->name = get_chip_name(device->rad_info.family);
 
 	if (radv_device_get_cache_uuid(device->rad_info.family, device->cache_uuid)) {
-		radv_finish_wsi(device);
 		device->ws->destroy(device->ws);
 		result = vk_errorf(VK_ERROR_INITIALIZATION_FAILED,
 				   "cannot generate UUID");
@@ -259,6 +253,13 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->has_clear_state = device->rad_info.chip_class >= CIK;
 
 	radv_physical_device_init_mem_types(device);
+
+	result = radv_init_wsi(device);
+	if (result != VK_SUCCESS) {
+		device->ws->destroy(device->ws);
+		goto fail;
+	}
+
 	return VK_SUCCESS;
 
 fail:
@@ -2125,13 +2126,11 @@ bool radv_get_memory_fd(struct radv_device *device,
 					 pFD);
 }
 
-VkResult radv_alloc_memory(VkDevice                        _device,
-			   const VkMemoryAllocateInfo*     pAllocateInfo,
-			   const VkAllocationCallbacks*    pAllocator,
-			   enum radv_mem_flags_bits        mem_flags,
-			   VkDeviceMemory*                 pMem)
+static VkResult radv_alloc_memory(struct radv_device *device,
+				  const VkMemoryAllocateInfo*     pAllocateInfo,
+				  const VkAllocationCallbacks*    pAllocator,
+				  VkDeviceMemory*                 pMem)
 {
-	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_device_memory *mem;
 	VkResult result;
 	enum radeon_bo_domain domain;
@@ -2151,10 +2150,16 @@ VkResult radv_alloc_memory(VkDevice                        _device,
 	const VkMemoryDedicatedAllocateInfoKHR *dedicate_info =
 		vk_find_struct_const(pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO_KHR);
 
+	const struct wsi_memory_allocate_info *wsi_info =
+		vk_find_struct_const(pAllocateInfo->pNext, WSI_MEMORY_ALLOCATE_INFO_MESA);
+
 	mem = vk_alloc2(&device->alloc, pAllocator, sizeof(*mem), 8,
 			  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (mem == NULL)
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+
+	if (wsi_info && wsi_info->implicit_sync)
+		flags |= RADEON_FLAG_IMPLICIT_SYNC;
 
 	if (dedicate_info) {
 		mem->image = radv_image_from_handle(dedicate_info->image);
@@ -2166,7 +2171,9 @@ VkResult radv_alloc_memory(VkDevice                        _device,
 
 	if (import_info) {
 		assert(import_info->handleType ==
-		       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR);
+		       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR ||
+		       import_info->handleType ==
+		       VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
 		mem->bo = device->ws->buffer_from_fd(device->ws, import_info->fd,
 						     NULL, NULL);
 		if (!mem->bo) {
@@ -2192,9 +2199,6 @@ VkResult radv_alloc_memory(VkDevice                        _device,
 
 	if (mem_type_index == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
 		flags |= RADEON_FLAG_GTT_WC;
-
-	if (mem_flags & RADV_MEM_IMPLICIT_SYNC)
-		flags |= RADEON_FLAG_IMPLICIT_SYNC;
 
 	if (!dedicate_info && !import_info)
 		flags |= RADEON_FLAG_NO_INTERPROCESS_SHARING;
@@ -2224,7 +2228,8 @@ VkResult radv_AllocateMemory(
 	const VkAllocationCallbacks*                pAllocator,
 	VkDeviceMemory*                             pMem)
 {
-	return radv_alloc_memory(_device, pAllocateInfo, pAllocator, 0, pMem);
+	RADV_FROM_HANDLE(radv_device, device, _device);
+	return radv_alloc_memory(device, pAllocateInfo, pAllocator, pMem);
 }
 
 void radv_FreeMemory(
@@ -2945,7 +2950,6 @@ radv_initialise_color_surface(struct radv_device *device,
 		cb->cb_color_cmask_slice = iview->image->cmask.slice_tile_max;
 
 		cb->cb_color_attrib |= S_028C74_TILE_MODE_INDEX(tile_mode_index);
-		cb->micro_tile_mode = iview->image->surface.micro_tile_mode;
 
 		if (iview->image->fmask.size) {
 			if (device->physical_device->rad_info.chip_class >= CIK)
@@ -3077,9 +3081,6 @@ radv_initialise_color_surface(struct radv_device *device,
 		cb->cb_color_attrib2 = S_028C68_MIP0_WIDTH(iview->extent.width - 1) |
 			S_028C68_MIP0_HEIGHT(iview->extent.height - 1) |
 			S_028C68_MAX_MIP(iview->image->info.levels - 1);
-
-		cb->gfx9_epitch = S_0287A0_EPITCH(iview->image->surface.u.gfx9.surf.epitch);
-
 	}
 }
 
@@ -3443,7 +3444,7 @@ radv_init_sampler(struct radv_device *device,
 			     S_008F38_XY_MIN_FILTER(radv_tex_filter(pCreateInfo->minFilter, max_aniso)) |
 			     S_008F38_MIP_FILTER(radv_tex_mipfilter(pCreateInfo->mipmapMode)) |
 			     S_008F38_MIP_POINT_PRECLAMP(0) |
-			     S_008F38_DISABLE_LSB_CEIL(1) |
+			     S_008F38_DISABLE_LSB_CEIL(device->physical_device->rad_info.chip_class <= VI) |
 			     S_008F38_FILTER_PREC_FIX(1) |
 			     S_008F38_ANISO_OVERRIDE(is_vi));
 	sampler->state[3] = (S_008F3C_BORDER_COLOR_PTR(0) |
@@ -3538,9 +3539,11 @@ VkResult radv_GetMemoryFdKHR(VkDevice _device,
 
 	assert(pGetFdInfo->sType == VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR);
 
-	/* We support only one handle type. */
+	/* At the moment, we support only the below handle types. */
 	assert(pGetFdInfo->handleType ==
-	       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR);
+	       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR ||
+	       pGetFdInfo->handleType ==
+	       VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
 
 	bool ret = radv_get_memory_fd(device, memory, pFD);
 	if (ret == false)
@@ -3553,13 +3556,21 @@ VkResult radv_GetMemoryFdPropertiesKHR(VkDevice _device,
 				       int fd,
 				       VkMemoryFdPropertiesKHR *pMemoryFdProperties)
 {
-   /* The valid usage section for this function says:
-    *
-    *    "handleType must not be one of the handle types defined as opaque."
-    *
-    * Since we only handle opaque handles for now, there are no FD properties.
-    */
-   return vk_error(VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
+   switch (handleType) {
+   case VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR:
+      pMemoryFdProperties->memoryTypeBits = (1 << RADV_MEM_TYPE_COUNT) - 1;
+      return VK_SUCCESS;
+
+   default:
+      /* The valid usage section for this function says:
+       *
+       *    "handleType must not be one of the handle types defined as
+       *    opaque."
+       *
+       * So opaque handle types fall into the default "unsupported" case.
+       */
+      return vk_error(VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
+   }
 }
 
 VkResult radv_ImportSemaphoreFdKHR(VkDevice _device,

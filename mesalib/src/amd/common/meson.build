@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-inc_amd_common = include_directories('.')
-
 sid_tables_h = custom_target(
   'sid_tables_h',
   input : ['sid_tables.py', 'sid.h', 'gfx9d.h'],

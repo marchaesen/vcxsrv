@@ -1151,8 +1151,10 @@ drmmode_output_detect(xf86OutputPtr output)
 
     drmmode_output->mode_output =
         drmModeGetConnector(drmmode->fd, drmmode_output->output_id);
-    if (!drmmode_output->mode_output)
+    if (!drmmode_output->mode_output) {
+        drmmode_output->output_id = -1;
         return XF86OutputStatusDisconnected;
+    }
 
     switch (drmmode_output->mode_output->connection) {
     case DRM_MODE_CONNECTED:
@@ -1879,7 +1881,7 @@ drmmode_set_pixmap_bo(drmmode_ptr drmmode, PixmapPtr pixmap, drmmode_bo *bo)
         return TRUE;
 
     if (!glamor_egl_create_textured_pixmap_from_gbm_bo(pixmap, bo->gbm)) {
-        xf86DrvMsg(scrn->scrnIndex, X_ERROR, "Failed");
+        xf86DrvMsg(scrn->scrnIndex, X_ERROR, "Failed to create pixmap\n");
         return FALSE;
     }
 #endif
@@ -2204,12 +2206,9 @@ drmmode_setup_colormap(ScreenPtr pScreen, ScrnInfoPtr pScrn)
     if (!miCreateDefColormap(pScreen))
         return FALSE;
     /* all radeons support 10 bit CLUTs */
-    if (!xf86HandleColormaps(pScreen, 256, 10,
-                             drmmode_load_palette, NULL, CMAP_PALETTED_TRUECOLOR
-#if 0                           /* This option messes up text mode! (eich@suse.de) */
-                             | CMAP_LOAD_EVEN_IF_OFFSCREEN
-#endif
-                             | CMAP_RELOAD_ON_MODE_SWITCH))
+    if (!xf86HandleColormaps(pScreen, 256, 10, drmmode_load_palette, NULL,
+                CMAP_PALETTED_TRUECOLOR |
+                CMAP_RELOAD_ON_MODE_SWITCH))
         return FALSE;
     return TRUE;
 }

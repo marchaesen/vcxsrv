@@ -106,11 +106,6 @@ enum radv_mem_type {
 	RADV_MEM_TYPE_COUNT
 };
 
-enum radv_mem_flags_bits {
-	/* enable implicit synchronization when accessing the underlying bo */
-	RADV_MEM_IMPLICIT_SYNC = 1 << 0,
-};
-
 #define radv_printflike(a, b) __attribute__((__format__(__printf__, a, b)))
 
 static inline uint32_t
@@ -988,11 +983,6 @@ void radv_cmd_buffer_trace_emit(struct radv_cmd_buffer *cmd_buffer);
 bool radv_get_memory_fd(struct radv_device *device,
 			struct radv_device_memory *memory,
 			int *pFD);
-VkResult radv_alloc_memory(VkDevice _device,
-			   const VkMemoryAllocateInfo* pAllocateInfo,
-			   const VkAllocationCallbacks* pAllocator,
-			   enum radv_mem_flags_bits flags,
-			   VkDeviceMemory* pMem);
 
 /*
  * Takes x,y,z as exact numbers of invocations, instead of blocks.
@@ -1455,8 +1445,6 @@ struct radv_color_buffer_info {
 	uint32_t cb_color_fmask_slice;
 	uint32_t cb_clear_value0;
 	uint32_t cb_clear_value1;
-	uint32_t micro_tile_mode;
-	uint32_t gfx9_epitch;
 };
 
 struct radv_ds_buffer_info {

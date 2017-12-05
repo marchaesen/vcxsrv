@@ -586,7 +586,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 		info->chip_class >= VI &&
 		!(surf->flags & RADEON_SURF_Z_OR_SBUFFER) &&
 		!(surf->flags & RADEON_SURF_DISABLE_DCC) &&
-		!compressed && AddrDccIn.numSamples <= 1 &&
+		!compressed &&
 		((config->info.array_size == 1 && config->info.depth == 1) ||
 		 config->info.levels == 1);
 
@@ -925,11 +925,8 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 	} else {
 		/* DCC */
 		if (!(surf->flags & RADEON_SURF_DISABLE_DCC) &&
-		    !(surf->flags & RADEON_SURF_SCANOUT) &&
 		    !compressed &&
-		    in->swizzleMode != ADDR_SW_LINEAR &&
-		    /* TODO: We could support DCC with MSAA. */
-		    in->numSamples == 1) {
+		    in->swizzleMode != ADDR_SW_LINEAR) {
 			ADDR2_COMPUTE_DCCINFO_INPUT din = {0};
 			ADDR2_COMPUTE_DCCINFO_OUTPUT dout = {0};
 			ADDR2_META_MIP_INFO meta_mip_info[RADEON_SURF_MAX_LEVELS] = {};

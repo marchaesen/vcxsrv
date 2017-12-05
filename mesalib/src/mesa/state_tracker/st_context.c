@@ -302,7 +302,7 @@ st_init_driver_flags(struct st_context *st)
    /* Shader resources */
    f->NewTextureBuffer = ST_NEW_SAMPLER_VIEWS;
    if (st->has_hw_atomics)
-      f->NewAtomicBuffer = ST_NEW_HW_ATOMICS;
+      f->NewAtomicBuffer = ST_NEW_HW_ATOMICS | ST_NEW_CS_ATOMICS;
    else
       f->NewAtomicBuffer = ST_NEW_ATOMIC_BUFFER;
    f->NewShaderStorageBuffer = ST_NEW_STORAGE_BUFFER;

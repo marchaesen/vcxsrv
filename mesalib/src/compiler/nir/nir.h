@@ -2459,6 +2459,8 @@ void nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
 
 /* Some helpers to do very simple linking */
 bool nir_remove_unused_varyings(nir_shader *producer, nir_shader *consumer);
+void nir_compact_varyings(nir_shader *producer, nir_shader *consumer,
+                          bool default_to_smooth_interp);
 
 typedef enum {
    /* If set, this forces all non-flat fragment shader inputs to be
@@ -2493,6 +2495,8 @@ bool nir_lower_alu_to_scalar(nir_shader *shader);
 bool nir_lower_load_const_to_scalar(nir_shader *shader);
 bool nir_lower_read_invocation_to_scalar(nir_shader *shader);
 bool nir_lower_phis_to_scalar(nir_shader *shader);
+void nir_lower_io_arrays_to_elements(nir_shader *producer, nir_shader *consumer);
+void nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader);
 void nir_lower_io_to_scalar(nir_shader *shader, nir_variable_mode mask);
 void nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask);
 

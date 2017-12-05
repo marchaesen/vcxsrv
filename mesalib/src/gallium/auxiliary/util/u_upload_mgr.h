@@ -52,7 +52,7 @@ extern "C" {
  */
 struct u_upload_mgr *
 u_upload_create(struct pipe_context *pipe, unsigned default_size,
-                unsigned bind, enum pipe_resource_usage usage);
+                unsigned bind, enum pipe_resource_usage usage, unsigned flags);
 
 /**
  * Create the default uploader for pipe_context. Only pipe_context::screen

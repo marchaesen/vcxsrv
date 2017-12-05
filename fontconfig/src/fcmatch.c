@@ -643,9 +643,41 @@ FcFontRenderPrepare (FcConfig	    *config,
 	}
 	else
 	{
+	    if (FcRefIsConst (&font->ref) && fe->object == FC_FILE_OBJECT)
+	    {
+		FcValueListPtr l = FcPatternEltValues (fe);
+		FcChar8 *dir, *alias;
+
+		while (l->value.type != FcTypeString)
+		    l = FcValueListNext (l);
+		if (!l)
+		    goto bail0;
+		dir = FcStrDirname (FcValueString (&l->value));
+		if (FcHashTableFind (config->alias_table, dir, (void **) &alias))
+		{
+		    FcChar8 *base = FcStrBasename (FcValueString (&l->value));
+		    FcChar8 *s = FcStrBuildFilename (alias, base, NULL);
+		    FcValue v;
+
+		    FcStrFree (alias);
+		    FcStrFree (base);
+		    v.type = FcTypeString;
+		    v.u.s = s;
+		    FcPatternObjectAddWithBinding (new, fe->object,
+						   FcValueCanonicalize (&v),
+						   l->binding,
+						   FcTrue);
+		    FcStrFree (s);
+		    FcStrFree (dir);
+		    goto bail0;
+		}
+		else
+		    FcStrFree (dir);
+	    }
 	    FcPatternObjectListAdd (new, fe->object,
 				    FcValueListDuplicate (FcPatternEltValues (fe)),
 				    FcTrue);
+	  bail0:;
 	}
     }
     for (i = 0; i < pat->num; i++)

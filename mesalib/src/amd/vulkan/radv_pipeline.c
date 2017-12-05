@@ -1682,6 +1682,9 @@ radv_link_shaders(struct radv_pipeline *pipeline, nir_shader **shaders)
 	}
 
 	for (int i = 1; i < shader_count; ++i)  {
+		nir_lower_io_arrays_to_elements(ordered_shaders[i],
+						ordered_shaders[i - 1]);
+
 		nir_remove_dead_variables(ordered_shaders[i],
 					  nir_var_shader_out);
 		nir_remove_dead_variables(ordered_shaders[i - 1],
@@ -1828,6 +1831,7 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 		last = i;
 	}
 
+	int prev = -1;
 	for (unsigned i = 0; i < MESA_SHADER_STAGES; ++i) {
 		const VkPipelineShaderStageCreateInfo *stage = pStages[i];
 
@@ -1858,6 +1862,11 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 			nir_lower_io_to_scalar_early(nir[i], mask);
 			radv_optimize_nir(nir[i]);
 		}
+
+		if (prev != -1) {
+			nir_compact_varyings(nir[prev], nir[i], true);
+		}
+		prev = i;
 	}
 
 	if (nir[MESA_SHADER_TESS_CTRL]) {
@@ -1867,10 +1876,7 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 	radv_link_shaders(pipeline, nir);
 
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
-		if (!(device->instance->debug_flags & RADV_DEBUG_DUMP_SHADERS))
-			continue;
-
-		if (modules[i])
+		if (modules[i] && radv_can_dump_shader(device, modules[i]))
 			nir_print_shader(nir[i], stderr);
 	}
 

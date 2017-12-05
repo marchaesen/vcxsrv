@@ -250,6 +250,7 @@ AX_GCC_FUNC_ATTRIBUTE([visibility])
 AX_GCC_FUNC_ATTRIBUTE([warn_unused_result])
 AX_GCC_FUNC_ATTRIBUTE([weak])
 AX_GCC_FUNC_ATTRIBUTE([alias])
+AX_GCC_FUNC_ATTRIBUTE([noreturn])
 
 AM_CONDITIONAL([GEN_ASM_OFFSETS], test "x$GEN_ASM_OFFSETS" = xyes)
 
@@ -394,8 +395,10 @@ esac
 AC_SUBST([VISIBILITY_CFLAGS])
 AC_SUBST([VISIBILITY_CXXFLAGS])
 
-AX_CHECK_COMPILE_FLAG([-Wno-override-init],                    [WNO_OVERRIDE_INIT="$WNO_OVERRIDE_INIT -Wno-override-init"])         # gcc
-AX_CHECK_COMPILE_FLAG([-Wno-initializer-overrides],            [WNO_OVERRIDE_INIT="$WNO_OVERRIDE_INIT -Wno-initializer-overrides"]) # clang
+dnl For some reason, the test for -Wno-foo always succeeds with gcc, even if the
+dnl option is not supported. Hence, check for -Wfoo instead.
+AX_CHECK_COMPILE_FLAG([-Woverride-init],                    [WNO_OVERRIDE_INIT="$WNO_OVERRIDE_INIT -Wno-override-init"])         # gcc
+AX_CHECK_COMPILE_FLAG([-Winitializer-overrides],            [WNO_OVERRIDE_INIT="$WNO_OVERRIDE_INIT -Wno-initializer-overrides"]) # clang
 AC_SUBST([WNO_OVERRIDE_INIT])
 
 dnl
@@ -849,6 +852,7 @@ AC_CHECK_HEADER([sys/sysctl.h], [DEFINES="$DEFINES -DHAVE_SYS_SYSCTL_H"])
 AC_CHECK_FUNC([strtof], [DEFINES="$DEFINES -DHAVE_STRTOF"])
 AC_CHECK_FUNC([mkostemp], [DEFINES="$DEFINES -DHAVE_MKOSTEMP"])
 AC_CHECK_FUNC([timespec_get], [DEFINES="$DEFINES -DHAVE_TIMESPEC_GET"])
+AC_CHECK_FUNC([memfd_create], [DEFINES="$DEFINES -DHAVE_MEMFD_CREATE"])
 
 AC_MSG_CHECKING([whether strtod has locale support])
 AC_LINK_IFELSE([AC_LANG_SOURCE([[

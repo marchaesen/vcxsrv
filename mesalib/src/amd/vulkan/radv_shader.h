@@ -28,6 +28,7 @@
 #ifndef RADV_SHADER_H
 #define RADV_SHADER_H
 
+#include "radv_debug.h"
 #include "radv_private.h"
 
 #include "nir/nir.h"
@@ -111,5 +112,14 @@ radv_shader_dump_stats(struct radv_device *device,
 		       struct radv_shader_variant *variant,
 		       gl_shader_stage stage,
 		       FILE *file);
+
+static inline bool
+radv_can_dump_shader(struct radv_device *device,
+		     struct radv_shader_module *module)
+{
+	/* Only dump non-meta shaders, useful for debugging purposes. */
+	return device->instance->debug_flags & RADV_DEBUG_DUMP_SHADERS &&
+	       module && !module->nir;
+}
 
 #endif

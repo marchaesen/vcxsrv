@@ -26,7 +26,7 @@
  *
  **************************************************************************/
 
-#if HAVE_LIBSENSORS
+#ifdef HAVE_LIBSENSORS
 /* Purpose: Extract lm-sensors data, expose temperature, power, voltage. */
 
 #include "hud/hud_private.h"

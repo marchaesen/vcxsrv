@@ -26,7 +26,7 @@
  *
  **************************************************************************/
 
-#if HAVE_GALLIUM_EXTRA_HUD
+#ifdef HAVE_GALLIUM_EXTRA_HUD
 
 /* Purpose:
  * Reading /sys/devices/system/cpu/cpu?/cpufreq/scaling_???_freq

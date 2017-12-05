@@ -44,6 +44,7 @@ struct u_upload_mgr {
    unsigned default_size;  /* Minimum size of the upload buffer, in bytes. */
    unsigned bind;          /* Bitmask of PIPE_BIND_* flags. */
    enum pipe_resource_usage usage;
+   unsigned flags;
    unsigned map_flags;     /* Bitmask of PIPE_TRANSFER_* flags. */
    boolean map_persistent; /* If persistent mappings are supported. */
 
@@ -57,7 +58,7 @@ struct u_upload_mgr {
 
 struct u_upload_mgr *
 u_upload_create(struct pipe_context *pipe, unsigned default_size,
-                unsigned bind, enum pipe_resource_usage usage)
+                unsigned bind, enum pipe_resource_usage usage, unsigned flags)
 {
    struct u_upload_mgr *upload = CALLOC_STRUCT(u_upload_mgr);
    if (!upload)
@@ -67,6 +68,7 @@ u_upload_create(struct pipe_context *pipe, unsigned default_size,
    upload->default_size = default_size;
    upload->bind = bind;
    upload->usage = usage;
+   upload->flags = flags;
 
    upload->map_persistent =
       pipe->screen->get_param(pipe->screen,
@@ -94,14 +96,14 @@ u_upload_create_default(struct pipe_context *pipe)
                           PIPE_BIND_VERTEX_BUFFER |
                           PIPE_BIND_INDEX_BUFFER |
                           PIPE_BIND_CONSTANT_BUFFER,
-                          PIPE_USAGE_STREAM);
+                          PIPE_USAGE_STREAM, 0);
 }
 
 struct u_upload_mgr *
 u_upload_clone(struct pipe_context *pipe, struct u_upload_mgr *upload)
 {
    return u_upload_create(pipe, upload->default_size, upload->bind,
-                          upload->usage);
+                          upload->usage, upload->flags);
 }
 
 static void
@@ -169,14 +171,15 @@ u_upload_alloc_buffer(struct u_upload_mgr *upload, unsigned min_size)
    buffer.format = PIPE_FORMAT_R8_UNORM; /* want TYPELESS or similar */
    buffer.bind = upload->bind;
    buffer.usage = upload->usage;
+   buffer.flags = upload->flags;
    buffer.width0 = size;
    buffer.height0 = 1;
    buffer.depth0 = 1;
    buffer.array_size = 1;
 
    if (upload->map_persistent) {
-      buffer.flags = PIPE_RESOURCE_FLAG_MAP_PERSISTENT |
-                     PIPE_RESOURCE_FLAG_MAP_COHERENT;
+      buffer.flags |= PIPE_RESOURCE_FLAG_MAP_PERSISTENT |
+                      PIPE_RESOURCE_FLAG_MAP_COHERENT;
    }
 
    upload->buffer = screen->resource_create(screen, &buffer);

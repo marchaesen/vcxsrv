@@ -371,6 +371,28 @@ ac_build_vote_eq(struct ac_llvm_context *ctx, LLVMValueRef value)
 }
 
 LLVMValueRef
+ac_build_varying_gather_values(struct ac_llvm_context *ctx, LLVMValueRef *values,
+			       unsigned value_count, unsigned component)
+{
+	LLVMValueRef vec = NULL;
+
+	if (value_count == 1) {
+		return values[component];
+	} else if (!value_count)
+		unreachable("value_count is 0");
+
+	for (unsigned i = component; i < value_count + component; i++) {
+		LLVMValueRef value = values[i];
+
+		if (!i)
+			vec = LLVMGetUndef( LLVMVectorType(LLVMTypeOf(value), value_count));
+		LLVMValueRef index = LLVMConstInt(ctx->i32, i - component, false);
+		vec = LLVMBuildInsertElement(ctx->builder, vec, value, index, "");
+	}
+	return vec;
+}
+
+LLVMValueRef
 ac_build_gather_values_extended(struct ac_llvm_context *ctx,
 				LLVMValueRef *values,
 				unsigned value_count,

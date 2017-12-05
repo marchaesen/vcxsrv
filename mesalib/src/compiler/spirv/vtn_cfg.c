@@ -30,7 +30,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
 {
    switch (opcode) {
    case SpvOpFunction: {
-      assert(b->func == NULL);
+      vtn_assert(b->func == NULL);
       b->func = rzalloc(b, struct vtn_function);
 
       list_inithead(&b->func->body);
@@ -44,7 +44,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
       const struct vtn_type *func_type =
          vtn_value(b, w[4], vtn_value_type_type)->type;
 
-      assert(func_type->return_type->type == result_type);
+      vtn_assert(func_type->return_type->type == result_type);
 
       nir_function *func =
          nir_function_create(b->shader, ralloc_strdup(b->shader, val->name));
@@ -80,7 +80,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpFunctionParameter: {
       struct vtn_type *type = vtn_value(b, w[1], vtn_value_type_type)->type;
 
-      assert(b->func_param_idx < b->func->impl->num_params);
+      vtn_assert(b->func_param_idx < b->func->impl->num_params);
       nir_variable *param = b->func->impl->params[b->func_param_idx++];
 
       if (type->base_type == vtn_base_type_pointer && type->type == NULL) {
@@ -88,7 +88,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
          vtn_var->type = type->deref;
          vtn_var->var = param;
 
-         assert(vtn_var->type->type == param->type);
+         vtn_assert(vtn_var->type->type == param->type);
 
          struct vtn_type *without_array = vtn_var->type;
          while(glsl_type_is_array(without_array->type))
@@ -124,7 +124,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpLabel: {
-      assert(b->block == NULL);
+      vtn_assert(b->block == NULL);
       b->block = rzalloc(b, struct vtn_block);
       b->block->node.type = vtn_cf_node_type_block;
       b->block->label = w;
@@ -143,7 +143,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpSelectionMerge:
    case SpvOpLoopMerge:
-      assert(b->block && b->block->merge == NULL);
+      vtn_assert(b->block && b->block->merge == NULL);
       b->block->merge = w;
       break;
 
@@ -154,7 +154,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpReturn:
    case SpvOpReturnValue:
    case SpvOpUnreachable:
-      assert(b->block && b->block->branch == NULL);
+      vtn_assert(b->block && b->block->branch == NULL);
       b->block->branch = w;
       b->block = NULL;
       break;
@@ -231,14 +231,15 @@ vtn_order_case(struct vtn_switch *swtch, struct vtn_case *cse)
 }
 
 static enum vtn_branch_type
-vtn_get_branch_type(struct vtn_block *block,
+vtn_get_branch_type(struct vtn_builder *b,
+                    struct vtn_block *block,
                     struct vtn_case *swcase, struct vtn_block *switch_break,
                     struct vtn_block *loop_break, struct vtn_block *loop_cont)
 {
    if (block->switch_case) {
       /* This branch is actually a fallthrough */
-      assert(swcase->fallthrough == NULL ||
-             swcase->fallthrough == block->switch_case);
+      vtn_assert(swcase->fallthrough == NULL ||
+                 swcase->fallthrough == block->switch_case);
       swcase->fallthrough = block->switch_case;
       return vtn_branch_type_switch_fallthrough;
    } else if (block == loop_break) {
@@ -301,7 +302,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          continue;
       }
 
-      assert(block->node.link.next == NULL);
+      vtn_assert(block->node.link.next == NULL);
       list_addtail(&block->node.link, cf_list);
 
       switch (*block->branch & SpvOpCodeMask) {
@@ -309,7 +310,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          struct vtn_block *branch_block =
             vtn_value(b, block->branch[1], vtn_value_type_block)->block;
 
-         block->branch_type = vtn_get_branch_type(branch_block,
+         block->branch_type = vtn_get_branch_type(b, branch_block,
                                                   switch_case, switch_break,
                                                   loop_break, loop_cont);
 
@@ -349,10 +350,10 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
             if_stmt->control = block->merge[2];
          }
 
-         if_stmt->then_type = vtn_get_branch_type(then_block,
+         if_stmt->then_type = vtn_get_branch_type(b, then_block,
                                                   switch_case, switch_break,
                                                   loop_break, loop_cont);
-         if_stmt->else_type = vtn_get_branch_type(else_block,
+         if_stmt->else_type = vtn_get_branch_type(b, else_block,
                                                   switch_case, switch_break,
                                                   loop_break, loop_cont);
 
@@ -367,7 +368,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          } else if (if_stmt->then_type == vtn_branch_type_none &&
                     if_stmt->else_type == vtn_branch_type_none) {
             /* Neither side of the if is something we can short-circuit. */
-            assert((*block->merge & SpvOpCodeMask) == SpvOpSelectionMerge);
+            vtn_assert((*block->merge & SpvOpCodeMask) == SpvOpSelectionMerge);
             struct vtn_block *merge_block =
                vtn_value(b, block->merge[1], vtn_value_type_block)->block;
 
@@ -379,7 +380,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
                                 loop_break, loop_cont, merge_block);
 
             enum vtn_branch_type merge_type =
-               vtn_get_branch_type(merge_block, switch_case, switch_break,
+               vtn_get_branch_type(b, merge_block, switch_case, switch_break,
                                    loop_break, loop_cont);
             if (merge_type == vtn_branch_type_none) {
                block = merge_block;
@@ -404,11 +405,11 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
             }
             continue;
          }
-         unreachable("Should have returned or continued");
+         vtn_fail("Should have returned or continued");
       }
 
       case SpvOpSwitch: {
-         assert((*block->merge & SpvOpCodeMask) == SpvOpSelectionMerge);
+         vtn_assert((*block->merge & SpvOpCodeMask) == SpvOpSelectionMerge);
          struct vtn_block *break_block =
             vtn_value(b, block->merge[1], vtn_value_type_block)->block;
 
@@ -433,7 +434,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
           * information.
           */
          list_for_each_entry(struct vtn_case, cse, &swtch->cases, link) {
-            assert(cse->start_block != break_block);
+            vtn_assert(cse->start_block != break_block);
             vtn_cfg_walk_blocks(b, &cse->body, cse->start_block, cse,
                                 break_block, loop_break, loop_cont, NULL);
          }
@@ -448,13 +449,13 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
             if (case_block == break_block)
                continue;
 
-            assert(case_block->switch_case);
+            vtn_assert(case_block->switch_case);
 
             vtn_order_case(swtch, case_block->switch_case);
          }
 
          enum vtn_branch_type branch_type =
-            vtn_get_branch_type(break_block, switch_case, NULL,
+            vtn_get_branch_type(b, break_block, switch_case, NULL,
                                 loop_break, loop_cont);
 
          if (branch_type != vtn_branch_type_none) {
@@ -462,7 +463,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
              * for the containing loop.  In this case, we need to bail and let
              * the loop parsing code handle the continue properly.
              */
-            assert(branch_type == vtn_branch_type_loop_continue);
+            vtn_assert(branch_type == vtn_branch_type_loop_continue);
             return;
          }
 
@@ -474,7 +475,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          return;
 
       default:
-         unreachable("Unhandled opcode");
+         vtn_fail("Unhandled opcode");
       }
    }
 }
@@ -532,7 +533,7 @@ vtn_handle_phi_second_pass(struct vtn_builder *b, SpvOp opcode,
       return true;
 
    struct hash_entry *phi_entry = _mesa_hash_table_search(b->phi_table, w);
-   assert(phi_entry);
+   vtn_assert(phi_entry);
    nir_variable *phi_var = phi_entry->data;
 
    for (unsigned i = 3; i < count; i += 2) {
@@ -576,7 +577,7 @@ vtn_emit_branch(struct vtn_builder *b, enum vtn_branch_type branch_type,
       break;
    }
    default:
-      unreachable("Invalid branch type");
+      vtn_fail("Invalid branch type");
    }
 }
 
@@ -606,7 +607,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
          if ((*block->branch & SpvOpCodeMask) == SpvOpReturnValue) {
             struct vtn_ssa_value *src = vtn_ssa_value(b, block->branch[1]);
             vtn_local_store(b, src,
-                            nir_deref_var_create(b, b->impl->return_var));
+                            nir_deref_var_create(b, b->nb.impl->return_var));
          }
 
          if (block->branch_type != vtn_branch_type_none) {
@@ -728,7 +729,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
             any = any ? nir_ior(&b->nb, any, cond) : cond;
             conditions[i++] = cond;
          }
-         assert(i == num_cases);
+         vtn_assert(i == num_cases);
 
          /* Now we can walk the list of cases and actually emit code */
          i = 0;
@@ -736,7 +737,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
             /* Figure out the condition */
             nir_ssa_def *cond = conditions[i++];
             if (cse->is_default) {
-               assert(cond == NULL);
+               vtn_assert(cond == NULL);
                cond = nir_inot(&b->nb, any);
             }
             /* Take fallthrough into account */
@@ -751,13 +752,13 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
 
             nir_pop_if(&b->nb, case_if);
          }
-         assert(i == num_cases);
+         vtn_assert(i == num_cases);
 
          break;
       }
 
       default:
-         unreachable("Invalid CF node type");
+         vtn_fail("Invalid CF node type");
       }
    }
 }
@@ -783,4 +784,6 @@ vtn_function_emit(struct vtn_builder *b, struct vtn_function *func,
     */
    if (b->has_loop_continue)
       nir_repair_ssa_impl(func->impl);
+
+   func->emitted = true;
 }

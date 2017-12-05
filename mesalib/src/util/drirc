@@ -160,6 +160,14 @@ TODO: document the other workarounds.
             <option name="glsl_correct_derivatives_after_discard" value="true"/>
         </application>
 
+        <application name="Unreal 4 Editor" executable="UE4Editor">
+            <option name="allow_glsl_cross_stage_interpolation_mismatch" value="true"/>
+        </application>
+
+        <application name="Observer" executable="TheObserver-Linux-Shipping">
+            <option name="allow_glsl_cross_stage_interpolation_mismatch" value="true"/>
+        </application>
+
         <!-- The GL thread whitelist is below, workarounds are above.
              Keep it that way. -->
 

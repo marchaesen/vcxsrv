@@ -6901,6 +6901,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
    struct pipe_screen *pscreen = ctx->st->pipe->screen;
    assert(prog->data->LinkStatus);
 
+   bool use_nir = false;
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
          continue;
@@ -6919,6 +6920,12 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                                                   PIPE_SHADER_CAP_TGSI_LDEXP_SUPPORTED);
       unsigned if_threshold = pscreen->get_shader_param(pscreen, ptarget,
                                                         PIPE_SHADER_CAP_LOWER_IF_THRESHOLD);
+
+      enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
+         pscreen->get_shader_param(pscreen, ptarget,
+                                   PIPE_SHADER_CAP_PREFERRED_IR);
+      if (preferred_ir == PIPE_SHADER_IR_NIR)
+         use_nir = true;
 
       /* If there are forms of indirect addressing that the driver
        * cannot handle, perform the lowering pass.
@@ -7023,24 +7030,17 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
    build_program_resource_list(ctx, prog);
 
+   if (use_nir)
+      return st_link_nir(ctx, prog);
+
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
       if (shader == NULL)
          continue;
 
-      enum pipe_shader_type ptarget =
-         pipe_shader_type_from_mesa(shader->Stage);
-      enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
-         pscreen->get_shader_param(pscreen, ptarget,
-                                   PIPE_SHADER_CAP_PREFERRED_IR);
-
-      struct gl_program *linked_prog = NULL;
-      if (preferred_ir == PIPE_SHADER_IR_NIR) {
-         linked_prog = st_nir_get_mesa_program(ctx, prog, shader);
-      } else {
-         linked_prog = get_mesa_program_tgsi(ctx, prog, shader);
-         st_set_prog_affected_state_flags(linked_prog);
-      }
+      struct gl_program *linked_prog =
+         get_mesa_program_tgsi(ctx, prog, shader);
+      st_set_prog_affected_state_flags(linked_prog);
 
       if (linked_prog) {
          if (!ctx->Driver.ProgramStringNotify(ctx,

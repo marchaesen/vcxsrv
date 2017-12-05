@@ -135,6 +135,10 @@ DRI_CONF_OPT_BEGIN_B(glsl_correct_derivatives_after_discard, def) \
         DRI_CONF_DESC(en,gettext("Implicit and explicit derivatives after a discard behave as if the discard didn't happen")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_ALLOW_GLSL_CROSS_STAGE_INTERPOLATION_MISMATCH(def) \
+DRI_CONF_OPT_BEGIN_B(allow_glsl_cross_stage_interpolation_mismatch, def) \
+        DRI_CONF_DESC(en,gettext("Allow interpolation qualifier mismatch across shader stages")) \
+DRI_CONF_OPT_END
 
 /**
  * \brief Image quality-related options

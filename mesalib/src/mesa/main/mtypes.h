@@ -3718,6 +3718,11 @@ struct gl_constants
    GLboolean AllowGLSLBuiltinVariableRedeclaration;
 
    /**
+    * Allow GLSL interpolation qualifier mismatch across shader stages.
+    */
+   GLboolean AllowGLSLCrossStageInterpolationMismatch;
+
+   /**
     * Allow creating a higher compat profile (version 3.1+) for apps that
     * request it. Be careful when adding that driconf option because some
     * features are unimplemented and might not work correctly.
@@ -4956,7 +4961,8 @@ struct gl_context
    /** \name Derived state */
    GLbitfield _ImageTransferState;/**< bitwise-or of IMAGE_*_BIT flags */
    GLfloat _EyeZDir[3];
-   GLfloat _ModelViewInvScale;
+   GLfloat _ModelViewInvScale; /* may be for model- or eyespace lighting */
+   GLfloat _ModelViewInvScaleEyespace; /* always factor defined in spec */
    GLboolean _NeedEyeCoords;
    GLboolean _ForceEyeCoords; 
 

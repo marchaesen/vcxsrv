@@ -113,6 +113,10 @@ LLVMValueRef ac_build_vote_any(struct ac_llvm_context *ctx, LLVMValueRef value);
 LLVMValueRef ac_build_vote_eq(struct ac_llvm_context *ctx, LLVMValueRef value);
 
 LLVMValueRef
+ac_build_varying_gather_values(struct ac_llvm_context *ctx, LLVMValueRef *values,
+			       unsigned value_count, unsigned component);
+
+LLVMValueRef
 ac_build_gather_values_extended(struct ac_llvm_context *ctx,
 				LLVMValueRef *values,
 				unsigned value_count,

@@ -101,7 +101,7 @@ build_mat_det(struct vtn_builder *b, struct vtn_ssa_value *src)
    case 3: return build_mat3_det(&b->nb, cols);
    case 4: return build_mat4_det(&b->nb, cols);
    default:
-      unreachable("Invalid matrix size");
+      vtn_fail("Invalid matrix size");
    }
 }
 
@@ -413,7 +413,8 @@ build_frexp(nir_builder *b, nir_ssa_def *x, nir_ssa_def **exponent)
 }
 
 static nir_op
-vtn_nir_alu_op_for_spirv_glsl_opcode(enum GLSLstd450 opcode)
+vtn_nir_alu_op_for_spirv_glsl_opcode(struct vtn_builder *b,
+                                     enum GLSLstd450 opcode)
 {
    switch (opcode) {
    case GLSLstd450Round:         return nir_op_fround_even;
@@ -463,7 +464,7 @@ vtn_nir_alu_op_for_spirv_glsl_opcode(enum GLSLstd450 opcode)
    case GLSLstd450UnpackDouble2x32: return nir_op_unpack_64_2x32;
 
    default:
-      unreachable("No NIR equivalent");
+      vtn_fail("No NIR equivalent");
    }
 }
 
@@ -515,7 +516,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    case GLSLstd450ModfStruct: {
       nir_ssa_def *sign = nir_fsign(nb, src[0]);
       nir_ssa_def *abs = nir_fabs(nb, src[0]);
-      assert(glsl_type_is_struct(val->ssa->type));
+      vtn_assert(glsl_type_is_struct(val->ssa->type));
       val->ssa->elems[0]->def = nir_fmul(nb, sign, nir_ffract(nb, abs));
       val->ssa->elems[1]->def = nir_fmul(nb, sign, nir_ffloor(nb, abs));
       return;
@@ -690,7 +691,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    }
 
    case GLSLstd450FrexpStruct: {
-      assert(glsl_type_is_struct(val->ssa->type));
+      vtn_assert(glsl_type_is_struct(val->ssa->type));
       val->ssa->elems[0]->def = build_frexp(nb, src[0],
                                             &val->ssa->elems[1]->def);
       return;
@@ -698,7 +699,8 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
 
    default:
       val->ssa->def =
-         nir_build_alu(&b->nb, vtn_nir_alu_op_for_spirv_glsl_opcode(entrypoint),
+         nir_build_alu(&b->nb,
+                       vtn_nir_alu_op_for_spirv_glsl_opcode(b, entrypoint),
                        src[0], src[1], src[2], NULL);
       return;
    }
@@ -726,7 +728,7 @@ handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
       op = nir_intrinsic_interp_var_at_offset;
       break;
    default:
-      unreachable("Invalid opcode");
+      vtn_fail("Invalid opcode");
    }
 
    nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->nb.shader, op);
@@ -742,7 +744,7 @@ handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
       intrin->src[0] = nir_src_for_ssa(vtn_ssa_value(b, w[6])->def);
       break;
    default:
-      unreachable("Invalid opcode");
+      vtn_fail("Invalid opcode");
    }
 
    intrin->num_components = glsl_get_vector_elements(dest_type);

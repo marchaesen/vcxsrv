@@ -143,13 +143,18 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 				po/Makefile.in.in \
 				po/Makefile.in \
 				po/Makefile \
+				po/Makevars.template \
 				po/POTFILES \
+				po/Rules-quot \
 				po/stamp-it \
 				po/stamp-po \
 				po/.intltool-merge-cache \
+				"po/*~" \
+				"po/*.header" \
 				"po/*.gmo" \
 				"po/*.mo" \
 				"po/*.sed" \
+				"po/*.sin" \
 				po/$(GETTEXT_PACKAGE).pot \
 				intltool-extract.in \
 				intltool-merge.in \
@@ -158,14 +163,20 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 		fi; \
 		if test  -f $(srcdir)/po-conf/Makefile.in.in; then \
 			for x in \
+				po-conf/Makefile.in.in \
 				po-conf/Makefile.in \
 				po-conf/Makefile \
+				po-conf/Makevars.template \
 				po-conf/POTFILES \
+				po-conf/Rules-quot \
 				po-conf/stamp-it \
 				po-conf/stamp-po \
+				"po-conf/*~" \
+				"po-conf/*.header" \
 				"po-conf/*.gmo" \
 				"po-conf/*.mo" \
 				"po-conf/*.sed" \
+				"po-conf/*.sin" \
 				po-conf/$(GETTEXT_PACKAGE)-conf.pot \
 			; do echo /$$x; done; \
 		fi; \
@@ -177,6 +188,7 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 				stamp-h1 \
 				libtool \
 				config.lt \
+				config.rpath \
 			; do echo /$$x; done; \
 		fi; \
 		if test "x$(DEJATOOL)" = x; then :; else \

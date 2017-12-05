@@ -123,6 +123,10 @@ st_bind_tes_atomics(struct st_context *st)
 void
 st_bind_cs_atomics(struct st_context *st)
 {
+   if (st->has_hw_atomics) {
+      st_bind_hw_atomic_buffers(st);
+      return;
+   }
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
 

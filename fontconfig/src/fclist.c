@@ -448,6 +448,41 @@ FcListAppend (FcListHashTable	*table,
 	e = FcPatternObjectFindElt (font, FcObjectFromName (os->objects[o]));
 	if (e)
 	{
+	    if (FcRefIsConst (&font->ref) && !strcmp (os->objects[o], FC_FILE))
+	    {
+		FcChar8 *dir, *alias;
+		FcConfig *config = FcConfigGetCurrent (); /* FIXME: this may need to be exported as API? */
+
+		for (v = FcPatternEltValues (e); v->value.type != FcTypeString; v = FcValueListNext (v));
+		if (!v)
+		    goto bail2;
+		dir = FcStrDirname (FcValueString (&v->value));
+		if (FcHashTableFind (config->alias_table, dir, (void **) &alias))
+		{
+		    FcChar8 *base = FcStrBasename (FcValueString (&v->value));
+		    FcChar8 *s = FcStrBuildFilename (alias, base, NULL);
+		    FcValue vv;
+
+		    FcStrFree (alias);
+		    FcStrFree (base);
+		    vv.type = FcTypeString;
+		    vv.u.s = s;
+		    if (!FcPatternAdd (bucket->pattern,
+				       os->objects[o],
+				       FcValueCanonicalize (&vv),
+				       FcTrue))
+		    {
+			FcStrFree (s);
+			FcStrFree (dir);
+			goto bail2;
+		    }
+		    FcStrFree (s);
+		    FcStrFree (dir);
+		    goto bail3;
+		}
+		else
+		    FcStrFree (dir);
+	    }
 	    for (v = FcPatternEltValues(e), idx = 0; v;
 		 v = FcValueListNext(v), ++idx)
 	    {
@@ -456,6 +491,7 @@ FcListAppend (FcListHashTable	*table,
 				   FcValueCanonicalize(&v->value), defidx != idx))
 		    goto bail2;
 	    }
+	  bail3:;
 	}
     }
     *prev = bucket;

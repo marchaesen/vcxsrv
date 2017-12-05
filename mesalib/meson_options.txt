@@ -50,10 +50,81 @@ option(
   description : 'comma separated list of gallium drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
-  'gallium-media',
+  'gallium-extra-hud',
+  type : 'boolean',
+  value : false,
+  description : 'Enable HUD block/NIC I/O HUD status support',
+)
+option(
+  'gallium-vdpau',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'enable gallium vdpau state tracker.',
+)
+option(
+  'vdpau-libs-path',
   type : 'string',
   value : '',
-  description : 'comma separated list of gallium media APIs to build (omx,va,vdpau,xvmc).'
+  description : 'path to put vdpau libraries. defaults to $libdir/vdpau.'
+)
+option(
+  'gallium-xvmc',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'enable gallium xvmc state tracker.',
+)
+option(
+  'xvmc-libs-path',
+  type : 'string',
+  value : '',
+  description : 'path to put xvmc libraries. defaults to $libdir.'
+)
+option(
+  'gallium-omx',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'enable gallium omx bellagio state tracker.',
+)
+option(
+  'omx-libs-path',
+  type : 'string',
+  value : '',
+  description : 'path to put omx libraries. defaults to omx-bellagio pkg-config pluginsdir.'
+)
+option(
+  'gallium-va',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'enable gallium va state tracker.',
+)
+option(
+  'va-libs-path',
+  type : 'string',
+  value : '',
+  description : 'path to put va libraries. defaults to $libdir/dri.'
+)
+option(
+  'gallium-xa',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'enable gallium xa state tracker.',
+)
+option(
+  'gallium-nine',
+  type : 'boolean',
+  value : false,
+  description : 'build gallium "nine" Direct3D 9.x state tracker.',
+)
+option(
+  'd3d-drivers-path',
+  type : 'string',
+  value : '',
+  description : 'Location of D3D drivers. Default: $libdir/d3d',
 )
 option(
   'vulkan-drivers',
@@ -150,6 +221,13 @@ option(
   value : 'auto',
   choices : ['auto', 'true', 'false'],
   description : 'Use libunwind for stack-traces'
+)
+option(
+  'lmsensors',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'Enable HUD lmsensors support.'
 )
 option(
   'build-tests',
