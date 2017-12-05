@@ -362,13 +362,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         fWMMsgInitialized = TRUE;
 
     }
-    #ifdef _DEBUG
     else if (message!=WM_CREATE)
     {
         winDebug("Warning: message 0x%x received when WIN_WINDOW_PROP NULL\n",message);
         return DefWindowProc(hwnd, message, wParam, lParam);
     }
-  #endif
 
     /* Branch on message type */
     switch (message) {
