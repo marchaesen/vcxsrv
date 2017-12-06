@@ -337,10 +337,13 @@ ir_constant::clone(void *mem_ctx, struct hash_table *ht) const
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_FLOAT16:
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_BOOL:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
    case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_IMAGE:
       return new(mem_ctx) ir_constant(this->type, &this->value);

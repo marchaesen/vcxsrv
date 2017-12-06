@@ -112,7 +112,7 @@ extern GLboolean
 _mesa_is_legal_color_format(const struct gl_context *ctx, GLenum baseFormat);
 
 extern GLenum
-_mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat);
+_mesa_base_fbo_format(const struct gl_context *ctx, GLenum internalFormat);
 
 extern bool
 _mesa_detach_renderbuffer(struct gl_context *ctx,

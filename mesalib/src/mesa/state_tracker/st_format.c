@@ -58,7 +58,8 @@
  * Translate Mesa format to Gallium format.
  */
 enum pipe_format
-st_mesa_format_to_pipe_format(const struct st_context *st, mesa_format mesaFormat)
+st_mesa_format_to_pipe_format(const struct st_context *st,
+                              mesa_format mesaFormat)
 {
    switch (mesaFormat) {
    case MESA_FORMAT_A8B8G8R8_UNORM:
@@ -1687,7 +1688,7 @@ static const struct format_mapping format_map[] = {
       { PIPE_FORMAT_R8G8B8A8_SINT, 0 }
    },
    {
-      { GL_RGB_INTEGER_EXT, 
+      { GL_RGB_INTEGER_EXT,
         GL_BGR_INTEGER_EXT,
         GL_RGB8I_EXT,
         GL_BLUE_INTEGER_EXT, 0 },
@@ -1987,13 +1988,13 @@ find_supported_format(struct pipe_screen *screen,
                       const enum pipe_format formats[],
                       enum pipe_texture_target target,
                       unsigned sample_count,
-                      unsigned tex_usage,
+                      unsigned bindings,
                       boolean allow_dxt)
 {
    uint i;
    for (i = 0; formats[i]; i++) {
       if (screen->is_format_supported(screen, formats[i], target,
-                                      sample_count, tex_usage)) {
+                                      sample_count, bindings)) {
          if (!allow_dxt && util_format_is_s3tc(formats[i])) {
             /* we can't return a dxt format, continue searching */
             continue;
@@ -2004,6 +2005,7 @@ find_supported_format(struct pipe_screen *screen,
    }
    return PIPE_FORMAT_NONE;
 }
+
 
 struct exact_format_mapping
 {
@@ -2040,6 +2042,7 @@ static const struct exact_format_mapping rgbx8888_tbl[] =
    { 0,           0,                              0                          }
 };
 
+
 /**
  * For unsized/base internal formats, we may choose a convenient effective
  * internal format for {format, type}. If one exists, return that, otherwise
@@ -2073,6 +2076,7 @@ find_exact_format(GLint internalFormat, GLenum format, GLenum type)
 
    return PIPE_FORMAT_NONE;
 }
+
 
 /**
  * Given an OpenGL internalFormat value for a texture or surface, return
@@ -2154,13 +2158,13 @@ enum pipe_format
 st_choose_renderbuffer_format(struct st_context *st,
                               GLenum internalFormat, unsigned sample_count)
 {
-   uint usage;
+   unsigned bindings;
    if (_mesa_is_depth_or_stencil_format(internalFormat))
-      usage = PIPE_BIND_DEPTH_STENCIL;
+      bindings = PIPE_BIND_DEPTH_STENCIL;
    else
-      usage = PIPE_BIND_RENDER_TARGET;
+      bindings = PIPE_BIND_RENDER_TARGET;
    return st_choose_format(st, internalFormat, GL_NONE, GL_NONE,
-                           PIPE_TEXTURE_2D, sample_count, usage, FALSE);
+                           PIPE_TEXTURE_2D, sample_count, bindings, FALSE);
 }
 
 
@@ -2173,7 +2177,7 @@ st_choose_renderbuffer_format(struct st_context *st,
  */
 enum pipe_format
 st_choose_matching_format(struct st_context *st, unsigned bind,
-			  GLenum format, GLenum type, GLboolean swapBytes)
+                          GLenum format, GLenum type, GLboolean swapBytes)
 {
    struct pipe_screen *screen = st->pipe->screen;
    mesa_format mesa_format;
@@ -2253,7 +2257,7 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
             internalFormat == GL_RGBA16F ||
             internalFormat == GL_RGB32F ||
             internalFormat == GL_RGBA32F)
-	 bindings |= PIPE_BIND_RENDER_TARGET;
+      bindings |= PIPE_BIND_RENDER_TARGET;
 
    /* GLES allows the driver to choose any format which matches
     * the format+type combo, because GLES only supports unsized internal
@@ -2279,7 +2283,9 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
             return st_pipe_format_to_mesa_format(pFormat);
 
          if (!is_renderbuffer) {
-            /* try choosing format again, this time without render target bindings */
+            /* try choosing format again, this time without render
+             * target bindings.
+             */
             pFormat = st_choose_matching_format(st, PIPE_BIND_SAMPLER_VIEW,
                                                 format, type,
                                                 ctx->Unpack.SwapBytes);
@@ -2369,6 +2375,7 @@ st_QuerySamplesForFormat(struct gl_context *ctx, GLenum target,
    return num_sample_counts;
 }
 
+
 /**
  * ARB_internalformat_query2 driver hook.
  */
@@ -2404,17 +2411,17 @@ st_QueryInternalFormat(struct gl_context *ctx, GLenum target,
        * the driver, and if so return the same internal format, otherwise
        * return GL_NONE.
        */
-      uint usage;
+      unsigned bindings;
       if (_mesa_is_depth_or_stencil_format(internalFormat))
-         usage = PIPE_BIND_DEPTH_STENCIL;
+         bindings = PIPE_BIND_DEPTH_STENCIL;
       else
-         usage = PIPE_BIND_RENDER_TARGET;
+         bindings = PIPE_BIND_RENDER_TARGET;
       enum pipe_format pformat = st_choose_format(st,
                                                   internalFormat,
                                                   GL_NONE,
                                                   GL_NONE,
                                                   PIPE_TEXTURE_2D, 1,
-                                                  usage, FALSE);
+                                                  bindings, FALSE);
       if (pformat)
          params[0] = internalFormat;
       break;
@@ -2427,6 +2434,7 @@ st_QueryInternalFormat(struct gl_context *ctx, GLenum target,
                                           params);
    }
 }
+
 
 /**
  * This is used for translating texture border color and the clear

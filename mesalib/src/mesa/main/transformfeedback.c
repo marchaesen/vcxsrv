@@ -346,7 +346,7 @@ _mesa_compute_max_transform_feedback_vertices(struct gl_context *ctx,
 
          /* Skip any inactive buffers, which have a stride of 0. */
          if (stride == 0)
-	    continue;
+            continue;
 
          max_for_this_buffer = obj->Size[i] / (4 * stride);
          max_index = MIN2(max_index, max_for_this_buffer);
@@ -605,7 +605,7 @@ _mesa_validate_buffer_range_xfb(struct gl_context *ctx,
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(size=%d must be a multiple of "
                   "four)", gl_methd_name, (int) size);
       return false;
-   }  
+   }
 
    if (offset & 0x3) {
       /* OpenGL 4.5 core profile, 6.7, pdf page 103: multiple of 4 */
@@ -732,13 +732,13 @@ _mesa_TransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer)
 
    obj = lookup_transform_feedback_object_err(ctx, xfb,
                                               "glTransformFeedbackBufferBase");
-   if(!obj) {
+   if (!obj) {
       return;
    }
 
    bufObj = lookup_transform_feedback_bufferobj_err(ctx, buffer,
                                               "glTransformFeedbackBufferBase");
-   if(!bufObj) {
+   if (!bufObj) {
       return;
    }
 
@@ -755,13 +755,13 @@ _mesa_TransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer,
 
    obj = lookup_transform_feedback_object_err(ctx, xfb,
                                               "glTransformFeedbackBufferRange");
-   if(!obj) {
+   if (!obj) {
       return;
    }
 
    bufObj = lookup_transform_feedback_bufferobj_err(ctx, buffer,
                                               "glTransformFeedbackBufferRange");
-   if(!bufObj) {
+   if (!bufObj) {
       return;
    }
 
@@ -1337,7 +1337,7 @@ _mesa_GetTransformFeedbackiv(GLuint xfb, GLenum pname, GLint *param)
 
     obj = lookup_transform_feedback_object_err(ctx, xfb,
                                                "glGetTransformFeedbackiv");
-    if(!obj) {
+    if (!obj) {
        return;
     }
 
@@ -1363,7 +1363,7 @@ _mesa_GetTransformFeedbacki_v(GLuint xfb, GLenum pname, GLuint index,
 
    obj = lookup_transform_feedback_object_err(ctx, xfb,
                                               "glGetTransformFeedbacki_v");
-   if(!obj) {
+   if (!obj) {
       return;
    }
 
@@ -1392,7 +1392,7 @@ _mesa_GetTransformFeedbacki64_v(GLuint xfb, GLenum pname, GLuint index,
 
    obj = lookup_transform_feedback_object_err(ctx, xfb,
                                               "glGetTransformFeedbacki64_v");
-   if(!obj) {
+   if (!obj) {
       return;
    }
 

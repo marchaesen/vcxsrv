@@ -30,7 +30,7 @@ template = Template("""
 #include "nir.h"
 
 nir_op
-nir_type_conversion_op(nir_alu_type src, nir_alu_type dst)
+nir_type_conversion_op(nir_alu_type src, nir_alu_type dst, nir_rounding_mode rnd)
 {
    nir_alu_type src_base = (nir_alu_type) nir_alu_type_get_base_type(src);
    nir_alu_type dst_base = (nir_alu_type) nir_alu_type_get_base_type(dst);
@@ -62,9 +62,22 @@ nir_type_conversion_op(nir_alu_type src, nir_alu_type dst)
 %                 endif
 %              endif
                switch (dst_bit_size) {
-%                 for dst_bits in [32, 64]:
+%                 for dst_bits in [16, 32, 64]:
                   case ${dst_bits}:
+%                    if src_t == 'float' and dst_t == 'float' and dst_bits == 16:
+                     switch(rnd) {
+%                       for rnd_t in ['rtne', 'rtz', 'undef']:
+                        case nir_rounding_mode_${rnd_t}:
+                           return ${'nir_op_{0}2{1}{2}_{3}'.format(src_t[0], dst_t[0],
+                                                                   dst_bits, rnd_t)};
+%                       endfor
+                        default:
+                           unreachable("Invalid 16-bit nir rounding mode");
+                     }
+%                    else:
+                     assert(rnd == nir_rounding_mode_undef);
                      return ${'nir_op_{0}2{1}{2}'.format(src_t[0], dst_t[0], dst_bits)};
+%                    endif
 %                 endfor
                   default:
                      unreachable("Invalid nir alu bit size");

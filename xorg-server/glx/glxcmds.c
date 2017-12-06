@@ -223,6 +223,7 @@ __glXdirectContextCreate(__GLXscreen * screen,
     if (context == NULL)
         return NULL;
 
+    context->config = modes;
     context->destroy = __glXdirectContextDestroy;
     context->loseCurrent = __glXdirectContextLoseCurrent;
 
@@ -481,6 +482,18 @@ StartUsingContext(__GLXclientState * cl, __GLXcontext * glxc)
     glxc->currentClient = cl->client;
 }
 
+static __GLXconfig *
+inferConfigForWindow(__GLXscreen *pGlxScreen, WindowPtr pWin)
+{
+    int i, vid = wVisual(pWin);
+
+    for (i = 0; i < pGlxScreen->numVisuals; i++)
+        if (pGlxScreen->visuals[i]->visualID == vid)
+            return pGlxScreen->visuals[i];
+
+    return NULL;
+}
+
 /**
  * This is a helper function to handle the legacy (pre GLX 1.3) cases
  * where passing an X window to glXMakeCurrent is valid.  Given a
@@ -493,11 +506,15 @@ __glXGetDrawable(__GLXcontext * glxc, GLXDrawable drawId, ClientPtr client,
 {
     DrawablePtr pDraw;
     __GLXdrawable *pGlxDraw;
+    __GLXconfig *config;
+    __GLXscreen *pGlxScreen;
     int rc;
 
     if (validGlxDrawable(client, drawId, GLX_DRAWABLE_ANY,
                          DixWriteAccess, &pGlxDraw, &rc)) {
-        if (glxc != NULL && pGlxDraw->config != glxc->config) {
+        if (glxc != NULL &&
+            glxc->config != NULL &&
+            glxc->config != pGlxDraw->config) {
             client->errorValue = drawId;
             *error = BadMatch;
             return NULL;
@@ -589,14 +606,30 @@ __glXGetDrawable(__GLXcontext * glxc, GLXDrawable drawId, ClientPtr client,
         *error = BadMatch;
         return NULL;
     }
+    pGlxScreen = glxc->pGlxScreen;
 
-    if (!validGlxFBConfigForWindow(client, glxc->config, pDraw, error))
+    config = glxc->config;
+    if (!config)
+        config = inferConfigForWindow(pGlxScreen, (WindowPtr)pDraw);
+    if (!config) {
+        /*
+         * If we get here, we've tried to bind a no-config context to a
+         * window without a corresponding fbconfig, presumably because
+         * we don't support GL on it (PseudoColor perhaps). From GLX Section
+         * 3.3.7 "Rendering Contexts":
+         *
+         * "If draw or read are not compatible with ctx a BadMatch error
+         * is generated."
+         */
+        *error = BadMatch;
+        return NULL;
+    }
+
+    if (!validGlxFBConfigForWindow(client, config, pDraw, error))
         return NULL;
 
-    pGlxDraw = glxc->pGlxScreen->createDrawable(client, glxc->pGlxScreen,
-                                                pDraw, drawId,
-                                                GLX_DRAWABLE_WINDOW,
-                                                drawId, glxc->config);
+    pGlxDraw = pGlxScreen->createDrawable(client, pGlxScreen, pDraw, drawId,
+                                          GLX_DRAWABLE_WINDOW, drawId, config);
     if (!pGlxDraw)
     {
         client->errorValue = drawId;
@@ -1793,7 +1826,7 @@ DoQueryContext(__GLXclientState * cl, GLXContextID gcId)
     ClientPtr client = cl->client;
     __GLXcontext *ctx;
     xGLXQueryContextInfoEXTReply reply;
-    #define nProps 3
+    #define nProps 5
     int sendBuf[nProps * 2];
     int nReplyBytes;
     int err;
@@ -1812,9 +1845,13 @@ DoQueryContext(__GLXclientState * cl, GLXContextID gcId)
     sendBuf[0] = GLX_SHARE_CONTEXT_EXT;
     sendBuf[1] = (int) (ctx->share_id);
     sendBuf[2] = GLX_VISUAL_ID_EXT;
-    sendBuf[3] = (int) (ctx->config->visualID);
+    sendBuf[3] = (int) (ctx->config ? ctx->config->visualID : 0);
     sendBuf[4] = GLX_SCREEN_EXT;
     sendBuf[5] = (int) (ctx->pGlxScreen->pScreen->myNum);
+    sendBuf[6] = GLX_FBCONFIG_ID;
+    sendBuf[7] = (int) (ctx->config ? ctx->config->fbconfigID : 0);
+    sendBuf[8] = GLX_RENDER_TYPE;
+    sendBuf[9] = (int) (ctx->config ? ctx->config->renderType : GLX_DONT_CARE);
 
     if (client->swapped) {
         int length = reply.length;

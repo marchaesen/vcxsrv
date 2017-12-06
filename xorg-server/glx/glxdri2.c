@@ -441,6 +441,7 @@ create_driver_context(__GLXDRIcontext * context,
                       int *error)
 {
     context->driContext = NULL;
+    const __DRIconfig *driConfig = config ? config->driConfig : NULL;
 
     if (screen->dri2->base.version >= 3) {
         uint32_t ctx_attribs[4 * 2];
@@ -483,10 +484,8 @@ create_driver_context(__GLXDRIcontext * context,
         }
 
         context->driContext =
-            (*screen->dri2->createContextAttribs)(screen->driScreen,
-                                                  api,
-                                                  config->driConfig,
-                                                  driShare,
+            (*screen->dri2->createContextAttribs)(screen->driScreen, api,
+                                                  driConfig, driShare,
                                                   num_ctx_attribs / 2,
                                                   ctx_attribs,
                                                   &dri_err,
@@ -522,8 +521,7 @@ create_driver_context(__GLXDRIcontext * context,
     }
 
     context->driContext =
-        (*screen->dri2->createNewContext) (screen->driScreen,
-                                           config->driConfig,
+        (*screen->dri2->createNewContext) (screen->driScreen, driConfig,
                                            driShare, context);
 }
 
@@ -552,6 +550,7 @@ __glXDRIscreenCreateContext(__GLXscreen * baseScreen,
         return NULL;
     }
 
+    context->base.config = glxConfig;
     context->base.destroy = __glXDRIcontextDestroy;
     context->base.makeCurrent = __glXDRIcontextMakeCurrent;
     context->base.loseCurrent = __glXDRIcontextLoseCurrent;
@@ -829,6 +828,9 @@ initializeExtensions(__GLXscreen * screen)
 
     __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
     LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
+
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_no_config_context");
+    LogMessage(X_INFO, "AIGLX: enabled GLX_EXT_no_config_context\n");
 
     if (dri->dri2->base.version >= 3) {
         __glXEnableExtension(screen->glx_enable_bits,

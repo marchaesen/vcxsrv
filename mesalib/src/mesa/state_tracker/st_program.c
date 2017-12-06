@@ -1659,7 +1659,10 @@ st_get_cp_variant(struct st_context *st,
       v = CALLOC_STRUCT(st_basic_variant);
       if (v) {
          /* fill in new variant */
-         v->driver_shader = pipe->create_compute_state(pipe, tgsi);
+         struct pipe_compute_state cs = *tgsi;
+         if (tgsi->ir_type == PIPE_SHADER_IR_NIR)
+            cs.prog = nir_shader_clone(NULL, tgsi->prog);
+         v->driver_shader = pipe->create_compute_state(pipe, &cs);
          v->key = key;
 
          /* insert into list */

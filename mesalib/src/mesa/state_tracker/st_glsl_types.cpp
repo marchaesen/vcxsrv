@@ -98,6 +98,9 @@ st_glsl_storage_type_size(const struct glsl_type *type, bool is_bindless)
    case GLSL_TYPE_VOID:
    case GLSL_TYPE_ERROR:
    case GLSL_TYPE_FUNCTION:
+   case GLSL_TYPE_FLOAT16:
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
       assert(!"Invalid type in type_size");
       break;
    }
