@@ -355,10 +355,16 @@ const glsl_type *glsl_type::get_base_type() const
    switch (base_type) {
    case GLSL_TYPE_UINT:
       return uint_type;
+   case GLSL_TYPE_UINT16:
+      return uint16_t_type;
    case GLSL_TYPE_INT:
       return int_type;
+   case GLSL_TYPE_INT16:
+      return int16_t_type;
    case GLSL_TYPE_FLOAT:
       return float_type;
+   case GLSL_TYPE_FLOAT16:
+      return float16_t_type;
    case GLSL_TYPE_DOUBLE:
       return double_type;
    case GLSL_TYPE_BOOL:
@@ -385,10 +391,16 @@ const glsl_type *glsl_type::get_scalar_type() const
    switch (type->base_type) {
    case GLSL_TYPE_UINT:
       return uint_type;
+   case GLSL_TYPE_UINT16:
+      return uint16_t_type;
    case GLSL_TYPE_INT:
       return int_type;
+   case GLSL_TYPE_INT16:
+      return int16_t_type;
    case GLSL_TYPE_FLOAT:
       return float_type;
+   case GLSL_TYPE_FLOAT16:
+      return float16_t_type;
    case GLSL_TYPE_DOUBLE:
       return double_type;
    case GLSL_TYPE_BOOL:
@@ -499,6 +511,18 @@ glsl_type::vec(unsigned components)
 }
 
 const glsl_type *
+glsl_type::f16vec(unsigned components)
+{
+   if (components == 0 || components > 4)
+      return error_type;
+
+   static const glsl_type *const ts[] = {
+      float16_t_type, f16vec2_type, f16vec3_type, f16vec4_type
+   };
+   return ts[components - 1];
+}
+
+const glsl_type *
 glsl_type::dvec(unsigned components)
 {
    if (components == 0 || components > 4)
@@ -575,6 +599,31 @@ glsl_type::u64vec(unsigned components)
 }
 
 const glsl_type *
+glsl_type::i16vec(unsigned components)
+{
+   if (components == 0 || components > 4)
+      return error_type;
+
+   static const glsl_type *const ts[] = {
+      int16_t_type, i16vec2_type, i16vec3_type, i16vec4_type
+   };
+   return ts[components - 1];
+}
+
+
+const glsl_type *
+glsl_type::u16vec(unsigned components)
+{
+   if (components == 0 || components > 4)
+      return error_type;
+
+   static const glsl_type *const ts[] = {
+      uint16_t_type, u16vec2_type, u16vec3_type, u16vec4_type
+   };
+   return ts[components - 1];
+}
+
+const glsl_type *
 glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
 {
    if (base_type == GLSL_TYPE_VOID)
@@ -593,6 +642,8 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
          return ivec(rows);
       case GLSL_TYPE_FLOAT:
          return vec(rows);
+      case GLSL_TYPE_FLOAT16:
+         return f16vec(rows);
       case GLSL_TYPE_DOUBLE:
          return dvec(rows);
       case GLSL_TYPE_BOOL:
@@ -601,11 +652,17 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
          return u64vec(rows);
       case GLSL_TYPE_INT64:
          return i64vec(rows);
+      case GLSL_TYPE_UINT16:
+         return u16vec(rows);
+      case GLSL_TYPE_INT16:
+         return i16vec(rows);
       default:
          return error_type;
       }
    } else {
-      if ((base_type != GLSL_TYPE_FLOAT && base_type != GLSL_TYPE_DOUBLE) || (rows == 1))
+      if ((base_type != GLSL_TYPE_FLOAT &&
+           base_type != GLSL_TYPE_DOUBLE &&
+           base_type != GLSL_TYPE_FLOAT16) || (rows == 1))
          return error_type;
 
       /* GLSL matrix types are named mat{COLUMNS}x{ROWS}.  Only the following
@@ -619,7 +676,8 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
        */
 #define IDX(c,r) (((c-1)*3) + (r-1))
 
-      if (base_type == GLSL_TYPE_DOUBLE) {
+      switch (base_type) {
+      case GLSL_TYPE_DOUBLE: {
          switch (IDX(columns, rows)) {
          case IDX(2,2): return dmat2_type;
          case IDX(2,3): return dmat2x3_type;
@@ -632,7 +690,8 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
          case IDX(4,4): return dmat4_type;
          default: return error_type;
          }
-      } else {
+      }
+      case GLSL_TYPE_FLOAT: {
          switch (IDX(columns, rows)) {
          case IDX(2,2): return mat2_type;
          case IDX(2,3): return mat2x3_type;
@@ -645,6 +704,22 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
          case IDX(4,4): return mat4_type;
          default: return error_type;
          }
+      }
+      case GLSL_TYPE_FLOAT16: {
+         switch (IDX(columns, rows)) {
+         case IDX(2,2): return f16mat2_type;
+         case IDX(2,3): return f16mat2x3_type;
+         case IDX(2,4): return f16mat2x4_type;
+         case IDX(3,2): return f16mat3x2_type;
+         case IDX(3,3): return f16mat3_type;
+         case IDX(3,4): return f16mat3x4_type;
+         case IDX(4,2): return f16mat4x2_type;
+         case IDX(4,3): return f16mat4x3_type;
+         case IDX(4,4): return f16mat4_type;
+         default: return error_type;
+         }
+      }
+      default: return error_type;
       }
    }
 
@@ -1282,7 +1357,10 @@ glsl_type::component_slots() const
    switch (this->base_type) {
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_FLOAT16:
    case GLSL_TYPE_BOOL:
       return this->components();
 
@@ -1371,7 +1449,10 @@ glsl_type::uniform_locations() const
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_FLOAT16:
    case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_BOOL:
@@ -1401,8 +1482,11 @@ glsl_type::varying_count() const
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_FLOAT16:
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_BOOL:
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
       return 1;
@@ -1974,7 +2058,10 @@ glsl_type::count_attribute_slots(bool is_vertex_input) const
    switch (this->base_type) {
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_FLOAT16:
    case GLSL_TYPE_BOOL:
    case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_IMAGE:

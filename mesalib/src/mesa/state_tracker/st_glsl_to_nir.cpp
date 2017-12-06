@@ -431,7 +431,7 @@ set_st_program(struct gl_program *prog,
       stcp = (struct st_compute_program *)prog;
       stcp->shader_program = shader_program;
       stcp->tgsi.ir_type = PIPE_SHADER_IR_NIR;
-      stcp->tgsi.prog = nir_shader_clone(NULL, nir);
+      stcp->tgsi.prog = nir;
       break;
    default:
       unreachable("unknown shader stage");

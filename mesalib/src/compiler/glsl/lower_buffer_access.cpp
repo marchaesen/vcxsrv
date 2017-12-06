@@ -144,8 +144,7 @@ lower_buffer_access::emit_access(void *mem_ctx,
       const unsigned matrix_stride =
          link_calculate_matrix_stride(matrix_type, row_major, packing);
 
-      const glsl_type *deref_type = deref->type->is_float() ?
-         glsl_type::float_type : glsl_type::double_type;
+      const glsl_type *deref_type = deref->type->get_scalar_type();
 
       for (unsigned i = 0; i < deref->type->vector_elements; i++) {
          ir_rvalue *chan_offset =

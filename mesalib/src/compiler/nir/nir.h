@@ -106,6 +106,16 @@ typedef enum {
    nir_var_all             = ~0,
 } nir_variable_mode;
 
+/**
+ * Rounding modes.
+ */
+typedef enum {
+   nir_rounding_mode_undef = 0,
+   nir_rounding_mode_rtne  = 1, /* round to nearest even */
+   nir_rounding_mode_ru    = 2, /* round up */
+   nir_rounding_mode_rd    = 3, /* round down */
+   nir_rounding_mode_rtz   = 4, /* round towards zero */
+} nir_rounding_mode;
 
 typedef union {
    float f32[4];
@@ -719,6 +729,12 @@ nir_get_nir_type_for_glsl_base_type(enum glsl_base_type base_type)
    case GLSL_TYPE_INT:
       return nir_type_int32;
       break;
+   case GLSL_TYPE_UINT16:
+      return nir_type_uint16;
+      break;
+   case GLSL_TYPE_INT16:
+      return nir_type_int16;
+      break;
    case GLSL_TYPE_UINT64:
       return nir_type_uint64;
       break;
@@ -727,6 +743,9 @@ nir_get_nir_type_for_glsl_base_type(enum glsl_base_type base_type)
       break;
    case GLSL_TYPE_FLOAT:
       return nir_type_float32;
+      break;
+   case GLSL_TYPE_FLOAT16:
+      return nir_type_float16;
       break;
    case GLSL_TYPE_DOUBLE:
       return nir_type_float64;
@@ -742,7 +761,8 @@ nir_get_nir_type_for_glsl_type(const struct glsl_type *type)
    return nir_get_nir_type_for_glsl_base_type(glsl_get_base_type(type));
 }
 
-nir_op nir_type_conversion_op(nir_alu_type src, nir_alu_type dst);
+nir_op nir_type_conversion_op(nir_alu_type src, nir_alu_type dst,
+                              nir_rounding_mode rnd);
 
 typedef enum {
    NIR_OP_IS_COMMUTATIVE = (1 << 0),

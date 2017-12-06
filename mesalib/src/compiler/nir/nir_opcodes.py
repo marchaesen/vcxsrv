@@ -179,8 +179,15 @@ for src_t in [tint, tuint, tfloat]:
       else:
          bit_sizes = [8, 16, 32, 64]
       for bit_size in bit_sizes:
-         unop_convert("{0}2{1}{2}".format(src_t[0], dst_t[0], bit_size),
-                      dst_t + str(bit_size), src_t, "src0")
+          if bit_size == 16 and dst_t == tfloat and src_t == tfloat:
+              rnd_modes = ['rtne', 'rtz', 'undef']
+              for rnd_mode in rnd_modes:
+                  unop_convert("{0}2{1}{2}_{3}".format(src_t[0], dst_t[0],
+                                                       bit_size, rnd_mode),
+                               dst_t + str(bit_size), src_t, "src0")
+          else:
+              unop_convert("{0}2{1}{2}".format(src_t[0], dst_t[0], bit_size),
+                           dst_t + str(bit_size), src_t, "src0")
 
 # We'll hand-code the to/from bool conversion opcodes.  Because bool doesn't
 # have multiple bit-sizes, we can always infer the size from the other type.

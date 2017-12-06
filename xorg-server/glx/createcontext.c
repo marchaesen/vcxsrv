@@ -93,7 +93,7 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     __GLXcontext *ctx = NULL;
     __GLXcontext *shareCtx = NULL;
     __GLXscreen *glxScreen;
-    __GLXconfig *config;
+    __GLXconfig *config = NULL;
     int err;
 
     /* The GLX_ARB_create_context_robustness spec says:
@@ -136,8 +136,10 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     if (!validGlxScreen(client, req->screen, &glxScreen, &err))
         return __glXError(GLXBadFBConfig);
 
-    if (!validGlxFBConfig(client, glxScreen, req->fbconfig, &config, &err))
-        return __glXError(GLXBadFBConfig);
+    if (req->fbconfig) {
+        if (!validGlxFBConfig(client, glxScreen, req->fbconfig, &config, &err))
+            return __glXError(GLXBadFBConfig);
+    }
 
     /* Validate the context with which the new context should share resources.
      */
@@ -182,6 +184,9 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
             break;
 
         case GLX_RENDER_TYPE:
+            /* Not valid for GLX_EXT_no_config_context */
+            if (!req->fbconfig)
+                return BadValue;
             render_type = attribs[2 * i + 1];
             break;
 
@@ -205,6 +210,15 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
                 return BadValue;
             break;
 #endif
+
+        case GLX_SCREEN:
+            /* Only valid for GLX_EXT_no_config_context */
+            if (req->fbconfig)
+                return BadValue;
+            /* Must match the value in the request header */
+            if (attribs[2 * i + 1] != req->screen)
+                return BadValue;
+            break;
 
         default:
             if (!req->isDirect)

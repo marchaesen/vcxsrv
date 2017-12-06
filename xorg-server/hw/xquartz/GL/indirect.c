@@ -156,7 +156,7 @@ __glXAquaScreenCreateContext(__GLXscreen *screen,
     memset(context, 0, sizeof *context);
 
     context->base.pGlxScreen = screen;
-
+    context->base.config = conf;
     context->base.destroy = __glXAquaContextDestroy;
     context->base.makeCurrent = __glXAquaContextMakeCurrent;
     context->base.loseCurrent = __glXAquaContextLoseCurrent;

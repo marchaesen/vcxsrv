@@ -224,6 +224,7 @@ struct st_config_options
    boolean allow_higher_compat_version;
    boolean glsl_zero_init;
    boolean force_glsl_abs_sqrt;
+   boolean allow_glsl_cross_stage_interpolation_mismatch;
    unsigned char config_options_sha1[20];
 };
 

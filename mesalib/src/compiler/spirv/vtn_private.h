@@ -276,7 +276,10 @@ struct vtn_type {
    /* The value that declares this type.  Used for finding decorations */
    struct vtn_value *val;
 
-   /* Specifies the length of complex types. */
+   /* Specifies the length of complex types.
+    *
+    * For Workgroup pointers, this is the size of the referenced type.
+    */
    unsigned length;
 
    /* for arrays, matrices and pointers, the array stride */
@@ -327,6 +330,9 @@ struct vtn_type {
 
          /* Storage class for pointers */
          SpvStorageClass storage_class;
+
+         /* Required alignment for pointers */
+         uint32_t align;
       };
 
       /* Members for image types */
@@ -428,13 +434,6 @@ struct vtn_pointer {
    struct nir_ssa_def *offset;
 };
 
-static inline bool
-vtn_pointer_uses_ssa_offset(struct vtn_pointer *ptr)
-{
-   return ptr->mode == vtn_variable_mode_ubo ||
-          ptr->mode == vtn_variable_mode_ssbo;
-}
-
 struct vtn_variable {
    enum vtn_variable_mode mode;
 
@@ -447,6 +446,8 @@ struct vtn_variable {
 
    nir_variable *var;
    nir_variable **members;
+
+   int shared_location;
 
    /**
     * In some early released versions of GLSLang, it implemented all function
@@ -692,6 +693,13 @@ void vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
 
 bool vtn_handle_glsl450_instruction(struct vtn_builder *b, uint32_t ext_opcode,
                                     const uint32_t *words, unsigned count);
+
+static inline uint32_t
+vtn_align_u32(uint32_t v, uint32_t a)
+{
+   assert(a != 0 && a == (a & -a));
+   return (v + a - 1) & ~(a - 1);
+}
 
 static inline uint64_t
 vtn_u64_literal(const uint32_t *w)

@@ -33,7 +33,6 @@
 #include "main/formats.h"
 #include "main/glheader.h"
 
-#include "pipe/p_defines.h"
 #include "pipe/p_format.h"
 
 #ifdef __cplusplus

@@ -5712,7 +5712,8 @@ _mesa_TextureBufferRange(GLuint texture, GLenum internalFormat, GLuint buffer,
 }
 
 GLboolean
-_mesa_is_renderable_texture_format(struct gl_context *ctx, GLenum internalformat)
+_mesa_is_renderable_texture_format(const struct gl_context *ctx,
+                                   GLenum internalformat)
 {
    /* Everything that is allowed for renderbuffers,
     * except for a base format of GL_STENCIL_INDEX, unless supported.
@@ -5778,14 +5779,10 @@ texture_image_multisample(struct gl_context *ctx, GLuint dims,
    }
 
    if (!check_multisample_target(dims, target, dsa)) {
-      if (dsa) {
-         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(target)", func);
-         return;
-      }
-      else {
-         _mesa_error(ctx, GL_INVALID_ENUM, "%s(target)", func);
-         return;
-      }
+      GLenum err = dsa ? GL_INVALID_OPERATION : GL_INVALID_ENUM;
+      _mesa_error(ctx, err, "%s(target=%s)", func,
+                  _mesa_enum_to_string(target));
+      return;
    }
 
    /* check that the specified internalformat is color/depth/stencil-renderable;
@@ -5826,7 +5823,7 @@ texture_image_multisample(struct gl_context *ctx, GLuint dims,
     *    However, if samples is not supported, then no error is generated.
     */
    if (!samplesOK && !_mesa_is_proxy_texture(target)) {
-      _mesa_error(ctx, sample_count_error, "%s(samples)", func);
+      _mesa_error(ctx, sample_count_error, "%s(samples=%d)", func, samples);
       return;
    }
 

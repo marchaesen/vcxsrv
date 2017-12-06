@@ -793,7 +793,7 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
    /* Look for reasons why the attachment might be incomplete */
    if (att->Type == GL_TEXTURE) {
       const struct gl_texture_object *texObj = att->Texture;
-      struct gl_texture_image *texImage;
+      const struct gl_texture_image *texImage;
       GLenum baseFormat;
 
       if (!texObj) {
@@ -1804,7 +1804,7 @@ _mesa_CreateRenderbuffers(GLsizei n, GLuint *renderbuffers)
  * \return the base internal format, or 0 if internalFormat is illegal
  */
 GLenum
-_mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
+_mesa_base_fbo_format(const struct gl_context *ctx, GLenum internalFormat)
 {
    /*
     * Notes: some formats such as alpha, luminance, etc. were added
@@ -3189,8 +3189,7 @@ check_layer(struct gl_context *ctx, GLenum target, GLint layer,
     *     and layer is negative."
     */
    if (layer < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "%s(layer %u < 0)", caller, layer);
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(layer %d < 0)", caller, layer);
       return false;
    }
 
