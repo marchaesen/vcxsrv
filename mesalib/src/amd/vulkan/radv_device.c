@@ -75,32 +75,43 @@ radv_get_device_uuid(struct radeon_info *info, void *uuid)
 	ac_compute_device_uuid(info, uuid, VK_UUID_SIZE);
 }
 
-static const char *
-get_chip_name(enum radeon_family family)
+static void
+radv_get_device_name(enum radeon_family family, char *name, size_t name_len)
 {
+	const char *chip_string;
+	char llvm_string[32] = {};
+
 	switch (family) {
-	case CHIP_TAHITI: return "AMD RADV TAHITI";
-	case CHIP_PITCAIRN: return "AMD RADV PITCAIRN";
-	case CHIP_VERDE: return "AMD RADV CAPE VERDE";
-	case CHIP_OLAND: return "AMD RADV OLAND";
-	case CHIP_HAINAN: return "AMD RADV HAINAN";
-	case CHIP_BONAIRE: return "AMD RADV BONAIRE";
-	case CHIP_KAVERI: return "AMD RADV KAVERI";
-	case CHIP_KABINI: return "AMD RADV KABINI";
-	case CHIP_HAWAII: return "AMD RADV HAWAII";
-	case CHIP_MULLINS: return "AMD RADV MULLINS";
-	case CHIP_TONGA: return "AMD RADV TONGA";
-	case CHIP_ICELAND: return "AMD RADV ICELAND";
-	case CHIP_CARRIZO: return "AMD RADV CARRIZO";
-	case CHIP_FIJI: return "AMD RADV FIJI";
-	case CHIP_POLARIS10: return "AMD RADV POLARIS10";
-	case CHIP_POLARIS11: return "AMD RADV POLARIS11";
-	case CHIP_POLARIS12: return "AMD RADV POLARIS12";
-	case CHIP_STONEY: return "AMD RADV STONEY";
-	case CHIP_VEGA10: return "AMD RADV VEGA";
-	case CHIP_RAVEN: return "AMD RADV RAVEN";
-	default: return "AMD RADV unknown";
+	case CHIP_TAHITI: chip_string = "AMD RADV TAHITI"; break;
+	case CHIP_PITCAIRN: chip_string = "AMD RADV PITCAIRN"; break;
+	case CHIP_VERDE: chip_string = "AMD RADV CAPE VERDE"; break;
+	case CHIP_OLAND: chip_string = "AMD RADV OLAND"; break;
+	case CHIP_HAINAN: chip_string = "AMD RADV HAINAN"; break;
+	case CHIP_BONAIRE: chip_string = "AMD RADV BONAIRE"; break;
+	case CHIP_KAVERI: chip_string = "AMD RADV KAVERI"; break;
+	case CHIP_KABINI: chip_string = "AMD RADV KABINI"; break;
+	case CHIP_HAWAII: chip_string = "AMD RADV HAWAII"; break;
+	case CHIP_MULLINS: chip_string = "AMD RADV MULLINS"; break;
+	case CHIP_TONGA: chip_string = "AMD RADV TONGA"; break;
+	case CHIP_ICELAND: chip_string = "AMD RADV ICELAND"; break;
+	case CHIP_CARRIZO: chip_string = "AMD RADV CARRIZO"; break;
+	case CHIP_FIJI: chip_string = "AMD RADV FIJI"; break;
+	case CHIP_POLARIS10: chip_string = "AMD RADV POLARIS10"; break;
+	case CHIP_POLARIS11: chip_string = "AMD RADV POLARIS11"; break;
+	case CHIP_POLARIS12: chip_string = "AMD RADV POLARIS12"; break;
+	case CHIP_STONEY: chip_string = "AMD RADV STONEY"; break;
+	case CHIP_VEGA10: chip_string = "AMD RADV VEGA"; break;
+	case CHIP_RAVEN: chip_string = "AMD RADV RAVEN"; break;
+	default: chip_string = "AMD RADV unknown"; break;
 	}
+
+	if (HAVE_LLVM > 0) {
+		snprintf(llvm_string, sizeof(llvm_string),
+			 " (LLVM %i.%i.%i)", (HAVE_LLVM >> 8) & 0xff,
+			 HAVE_LLVM & 0xff, MESA_LLVM_VERSION_PATCH);
+	}
+
+	snprintf(name, name_len, "%s%s", chip_string, llvm_string);
 }
 
 static void
@@ -215,7 +226,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->local_fd = fd;
 	device->ws->query_info(device->ws, &device->rad_info);
 
-	device->name = get_chip_name(device->rad_info.family);
+	radv_get_device_name(device->rad_info.family, device->name, sizeof(device->name));
 
 	if (radv_device_get_cache_uuid(device->rad_info.family, device->cache_uuid)) {
 		device->ws->destroy(device->ws);
@@ -3557,7 +3568,7 @@ VkResult radv_GetMemoryFdPropertiesKHR(VkDevice _device,
 				       VkMemoryFdPropertiesKHR *pMemoryFdProperties)
 {
    switch (handleType) {
-   case VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR:
+   case VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT:
       pMemoryFdProperties->memoryTypeBits = (1 << RADV_MEM_TYPE_COUNT) - 1;
       return VK_SUCCESS;
 

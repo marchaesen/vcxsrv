@@ -28,7 +28,8 @@
 #ifndef _NIR_SPIRV_H_
 #define _NIR_SPIRV_H_
 
-#include "nir/nir.h"
+#include "compiler/nir/nir.h"
+#include "compiler/shader_info.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,18 +58,7 @@ struct spirv_to_nir_options {
     */
    bool lower_workgroup_access_to_offsets;
 
-   struct {
-      bool float64;
-      bool image_ms_array;
-      bool tessellation;
-      bool draw_parameters;
-      bool image_read_without_format;
-      bool image_write_without_format;
-      bool int64;
-      bool multiview;
-      bool variable_pointers;
-      bool storage_16bit;
-   } caps;
+   struct spirv_supported_capabilities caps;
 
    struct {
       void (*func)(void *private_data,

@@ -190,6 +190,9 @@ endif
 if with_gallium_imx and not with_gallium_etnaviv
   error('IMX driver requires etnaviv driver')
 endif
+if with_gallium_pl111 and not with_gallium_vc4
+  error('pl111 driver requires vc4 driver')
+endif
 
 dep_libdrm_intel = []
 if with_dri_i915 or with_gallium_i915

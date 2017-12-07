@@ -2329,9 +2329,14 @@ int
 ProcGetPointerControl(ClientPtr client)
 {
     DeviceIntPtr ptr = PickPointer(client);
-    PtrCtrl *ctrl = &ptr->ptrfeed->ctrl;
+    PtrCtrl *ctrl;
     xGetPointerControlReply rep;
     int rc;
+
+    if (ptr->ptrfeed)
+        ctrl = &ptr->ptrfeed->ctrl;
+    else
+        ctrl = &defaultPointerControl;
 
     REQUEST_SIZE_MATCH(xReq);
 

@@ -72,16 +72,16 @@ if with_gallium_freedreno
 else
   driver_freedreno = declare_dependency()
 endif
-if with_gallium_pl111
-  subdir('winsys/pl111/drm')
-else
-  driver_pl111 = declare_dependency()
-endif
 if with_gallium_vc4
   subdir('winsys/vc4/drm')
   subdir('drivers/vc4')
 else
   driver_vc4 = declare_dependency()
+endif
+if with_gallium_pl111
+  subdir('winsys/pl111/drm')
+else
+  driver_pl111 = declare_dependency()
 endif
 if with_gallium_vc5
   subdir('winsys/vc5/drm')

@@ -106,6 +106,15 @@ _mesa_has_##name_str(const struct gl_context *ctx) \
 #include "extensions_table.h"
 #undef EXT
 
+/* Sometimes the driver wants to query the extension override status before
+ * a context is created. These variables are filled with extension override
+ * information before context creation.
+ *
+ * This can be useful during extension bring-up when an extension is
+ * partially implemented, but cannot yet be advertised as supported.
+ *
+ * Use it with care and keep access read-only.
+ */
 extern struct gl_extensions _mesa_extension_override_enables;
 extern struct gl_extensions _mesa_extension_override_disables;
 
