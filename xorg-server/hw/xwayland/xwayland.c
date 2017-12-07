@@ -545,6 +545,8 @@ xwl_unrealize_window(WindowPtr window)
     xorg_list_for_each_entry(xwl_seat, &xwl_screen->seat_list, link) {
         if (xwl_seat->focus_window && xwl_seat->focus_window->window == window)
             xwl_seat->focus_window = NULL;
+        if (xwl_seat->tablet_focus_window && xwl_seat->tablet_focus_window->window == window)
+            xwl_seat->tablet_focus_window = NULL;
         if (xwl_seat->last_xwindow == window)
             xwl_seat->last_xwindow = NullWindow;
         if (xwl_seat->cursor_confinement_window &&

@@ -165,10 +165,12 @@ process_xfb_layout_qualifiers(void *mem_ctx, const gl_linked_shader *sh,
 
          if (var->data.from_named_ifc_block) {
             type = var->get_interface_type();
+
             /* Find the member type before it was altered by lowering */
+            const glsl_type *type_wa = type->without_array();
             member_type =
-               type->fields.structure[type->field_index(var->name)].type;
-            name = ralloc_strdup(NULL, type->without_array()->name);
+               type_wa->fields.structure[type_wa->field_index(var->name)].type;
+            name = ralloc_strdup(NULL, type_wa->name);
          } else {
             type = var->type;
             member_type = NULL;

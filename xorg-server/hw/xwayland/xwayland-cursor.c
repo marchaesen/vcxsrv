@@ -42,7 +42,7 @@ expand_source_and_mask(CursorPtr cursor, CARD32 *data)
         (cursor->foreGreen & 0xff00) | (cursor->foreGreen >> 8);
     bg = ((cursor->backRed & 0xff00) << 8) |
         (cursor->backGreen & 0xff00) | (cursor->backGreen >> 8);
-    stride = (bits->width / 8 + 3) & ~3;
+    stride = BitmapBytePad(bits->width);
     for (y = 0; y < bits->height; y++)
         for (x = 0; x < bits->width; x++) {
             i = y * stride + x / 8;

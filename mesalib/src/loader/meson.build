@@ -41,6 +41,6 @@ libloader = static_library(
    xmlpool_options_h],
   c_args : [c_vis_args, '-DUSE_DRICONF'],
   include_directories : [inc_include, inc_src, inc_util],
-  dependencies : dep_libdrm,
+  dependencies : [dep_libdrm, dep_thread],
   build_by_default : false,
 )

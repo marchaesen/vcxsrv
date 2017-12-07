@@ -1570,22 +1570,36 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
          bool swap;
          nir_alu_type dst_alu_type = nir_get_nir_type_for_glsl_type(val->const_type);
          nir_alu_type src_alu_type = dst_alu_type;
+         unsigned num_components = glsl_get_vector_elements(val->const_type);
+         unsigned bit_size;
+
+         vtn_assert(count <= 7);
+
+         switch (opcode) {
+         case SpvOpSConvert:
+         case SpvOpFConvert:
+            /* We have a source in a conversion */
+            src_alu_type =
+               nir_get_nir_type_for_glsl_type(
+                  vtn_value(b, w[4], vtn_value_type_constant)->const_type);
+            /* We use the bitsize of the conversion source to evaluate the opcode later */
+            bit_size = glsl_get_bit_size(
+               vtn_value(b, w[4], vtn_value_type_constant)->const_type);
+            break;
+         default:
+            bit_size = glsl_get_bit_size(val->const_type);
+         };
+
          nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap,
                                                      src_alu_type,
                                                      dst_alu_type);
-
-         unsigned num_components = glsl_get_vector_elements(val->const_type);
-         unsigned bit_size =
-            glsl_get_bit_size(val->const_type);
-
          nir_const_value src[4];
-         vtn_assert(count <= 7);
+
          for (unsigned i = 0; i < count - 4; i++) {
             nir_constant *c =
                vtn_value(b, w[4 + i], vtn_value_type_constant)->constant;
 
             unsigned j = swap ? 1 - i : i;
-            vtn_assert(bit_size == 32);
             src[j] = c->values[0];
          }
 

@@ -811,7 +811,6 @@ create_put_job(struct disk_cache *cache, const cache_key key,
    return dc_job;
 
 fail:
-   free(dc_job->cache_item_metadata.keys);
    free(dc_job);
 
    return NULL;

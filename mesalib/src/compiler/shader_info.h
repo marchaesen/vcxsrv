@@ -31,6 +31,19 @@
 extern "C" {
 #endif
 
+struct spirv_supported_capabilities {
+   bool float64;
+   bool image_ms_array;
+   bool tessellation;
+   bool draw_parameters;
+   bool image_read_without_format;
+   bool image_write_without_format;
+   bool int64;
+   bool multiview;
+   bool variable_pointers;
+   bool storage_16bit;
+};
+
 typedef struct shader_info {
    const char *name;
 

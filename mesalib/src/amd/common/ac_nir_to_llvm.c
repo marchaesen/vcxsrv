@@ -1426,23 +1426,13 @@ static LLVMValueRef emit_bitfield_insert(struct ac_llvm_context *ctx,
 static LLVMValueRef emit_pack_half_2x16(struct ac_llvm_context *ctx,
 					LLVMValueRef src0)
 {
-	LLVMValueRef const16 = LLVMConstInt(ctx->i32, 16, false);
-	int i;
 	LLVMValueRef comp[2];
 
 	src0 = ac_to_float(ctx, src0);
 	comp[0] = LLVMBuildExtractElement(ctx->builder, src0, ctx->i32_0, "");
 	comp[1] = LLVMBuildExtractElement(ctx->builder, src0, ctx->i32_1, "");
-	for (i = 0; i < 2; i++) {
-		comp[i] = LLVMBuildFPTrunc(ctx->builder, comp[i], ctx->f16, "");
-		comp[i] = LLVMBuildBitCast(ctx->builder, comp[i], ctx->i16, "");
-		comp[i] = LLVMBuildZExt(ctx->builder, comp[i], ctx->i32, "");
-	}
 
-	comp[1] = LLVMBuildShl(ctx->builder, comp[1], const16, "");
-	comp[0] = LLVMBuildOr(ctx->builder, comp[0], comp[1], "");
-
-	return comp[0];
+	return ac_build_cvt_pkrtz_f16(ctx, comp);
 }
 
 static LLVMValueRef emit_unpack_half_2x16(struct ac_llvm_context *ctx,

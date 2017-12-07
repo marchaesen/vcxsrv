@@ -1514,7 +1514,7 @@ tablet_tool_proximity_in(void *data, struct zwp_tablet_tool_v2 *tool,
         return;
 
     xwl_tablet_tool->proximity_in_serial = serial;
-    xwl_seat->focus_window = wl_surface_get_user_data(wl_surface);
+    xwl_seat->tablet_focus_window = wl_surface_get_user_data(wl_surface);
 
     xwl_tablet_tool_set_cursor(xwl_tablet_tool);
 }
@@ -1526,7 +1526,7 @@ tablet_tool_proximity_out(void *data, struct zwp_tablet_tool_v2 *tool)
     struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
 
     xwl_tablet_tool->proximity_in_serial = 0;
-    xwl_seat->focus_window = NULL;
+    xwl_seat->tablet_focus_window = NULL;
 
     xwl_tablet_tool->pressure = 0;
     xwl_tablet_tool->tilt_x = 0;
@@ -1568,11 +1568,11 @@ tablet_tool_motion(void *data, struct zwp_tablet_tool_v2 *tool,
     int sx = wl_fixed_to_int(x);
     int sy = wl_fixed_to_int(y);
 
-    if (!xwl_seat->focus_window)
+    if (!xwl_seat->tablet_focus_window)
         return;
 
-    dx = xwl_seat->focus_window->window->drawable.x;
-    dy = xwl_seat->focus_window->window->drawable.y;
+    dx = xwl_seat->tablet_focus_window->window->drawable.x;
+    dy = xwl_seat->tablet_focus_window->window->drawable.y;
 
     xwl_tablet_tool->x = dx + sx;
     xwl_tablet_tool->y = dy + sy;
@@ -1585,7 +1585,7 @@ tablet_tool_pressure(void *data, struct zwp_tablet_tool_v2 *tool,
     struct xwl_tablet_tool *xwl_tablet_tool = data;
     struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
 
-    if (!xwl_seat->focus_window)
+    if (!xwl_seat->tablet_focus_window)
         return;
 
     /* normalized to 65535 already */
@@ -1605,7 +1605,7 @@ tablet_tool_tilt(void *data, struct zwp_tablet_tool_v2 *tool,
     struct xwl_tablet_tool *xwl_tablet_tool = data;
     struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
 
-    if (!xwl_seat->focus_window)
+    if (!xwl_seat->tablet_focus_window)
         return;
 
     xwl_tablet_tool->tilt_x = wl_fixed_to_double(tilt_x);
@@ -1620,7 +1620,7 @@ tablet_tool_rotation(void *data, struct zwp_tablet_tool_v2 *tool,
     struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
     double rotation = wl_fixed_to_double(angle);
 
-    if (!xwl_seat->focus_window)
+    if (!xwl_seat->tablet_focus_window)
         return;
 
     /* change origin (buttons facing right [libinput +90 degrees]) and
@@ -1639,7 +1639,7 @@ tablet_tool_slider(void *data, struct zwp_tablet_tool_v2 *tool,
     struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
     float position = position_raw / 65535.0;
 
-    if (!xwl_seat->focus_window)
+    if (!xwl_seat->tablet_focus_window)
         return;
 
     xwl_tablet_tool->slider = (position * 1799.0f) - 900.0f;
@@ -1652,7 +1652,7 @@ tablet_tool_wheel(void *data, struct zwp_tablet_tool_v2 *tool,
     struct xwl_tablet_tool *xwl_tablet_tool = data;
     struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
 
-    if (!xwl_seat->focus_window)
+    if (!xwl_seat->tablet_focus_window)
         return;
 
     xwl_tablet_tool->wheel_clicks = clicks;

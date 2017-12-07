@@ -154,6 +154,7 @@ struct xwl_seat {
     struct zwp_tablet_seat_v2 *tablet_seat;
     struct wl_array keys;
     struct xwl_window *focus_window;
+    struct xwl_window *tablet_focus_window;
     uint32_t id;
     uint32_t pointer_enter_serial;
     struct xorg_list link;

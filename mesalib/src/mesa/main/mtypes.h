@@ -99,7 +99,6 @@ struct gl_uniform_storage;
 struct prog_instruction;
 struct gl_program_parameter_list;
 struct set;
-struct set_entry;
 struct vbo_context;
 /*@}*/
 
@@ -3578,7 +3577,6 @@ struct gl_program_constants
    /* GL_ARB_shader_storage_buffer_object */
    GLuint MaxShaderStorageBlocks;
 };
-
 
 /**
  * Constants which may be overridden by device driver during context creation

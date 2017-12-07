@@ -39,6 +39,6 @@ if with_gallium_vc5
     c_args : [c_vis_args, no_override_init_args],
     link_whole : [libbroadcom_compiler, libbroadcom_qpu],
     build_by_default : false,
-    dependencies: dep_valgrind,
+    dependencies: [dep_valgrind, dep_thread],
   )
 endif
