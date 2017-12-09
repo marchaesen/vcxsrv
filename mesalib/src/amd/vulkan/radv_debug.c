@@ -508,7 +508,7 @@ radv_dump_shader(struct radv_pipeline *pipeline,
 		nir_print_shader(shader->nir, f);
 	}
 
-	fprintf(stderr, "DISASM:\n%s\n", shader->disasm_string);
+	fprintf(f, "DISASM:\n%s\n", shader->disasm_string);
 
 	radv_shader_dump_stats(pipeline->device, shader, stage, f);
 }

@@ -20,7 +20,7 @@
 The Gallium llvmpipe driver is a software rasterizer that uses LLVM to
 do runtime code generation.
 Shaders, point/line/triangle rasterization and vertex processing are
-implemented with LLVM IR which is translated to x86 or x86-64 machine
+implemented with LLVM IR which is translated to x86, x86-64, or ppc64le machine
 code.
 Also, the driver is multithreaded to take advantage of multiple CPU cores
 (up to 8 at this time).
@@ -32,18 +32,24 @@ It's the fastest software rasterizer for Mesa.
 
 <ul>
 <li>
-   <p>For x86 or amd64 processors, 64-bit mode is recommended.</p>
    <p>
+   For x86 or amd64 processors, 64-bit mode is recommended.
    Support for SSE2 is strongly encouraged.  Support for SSE3 and SSE4.1 will
    yield the most efficient code.  The fewer features the CPU has the more
    likely it is that you will run into underperforming, buggy, or incomplete code.
+   </p>
+   <p>
+   For ppc64le processors, use of the Altivec feature (the Vector
+   Facility) is recommended if supported; use of the VSX feature (the
+   Vector-Scalar Facility) is recommended if supported AND Mesa is
+   built with LLVM version 4.0 or later.
    </p>
    <p>
    See /proc/cpuinfo to know what your CPU supports.
    </p>
 </li>
 <li>
-   <p>LLVM: version 3.4 recommended; 3.3 or later required.</p>
+   <p>Unless otherwise stated, LLVM version 3.4 is recommended; 3.3 or later is required.</p>
    <p>
    For Linux, on a recent Debian based distribution do:
    </p>

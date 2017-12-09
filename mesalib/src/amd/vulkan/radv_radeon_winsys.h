@@ -80,6 +80,19 @@ enum radeon_ctx_priority {
 	RADEON_CTX_PRIORITY_REALTIME,
 };
 
+enum radeon_value_id {
+	RADEON_TIMESTAMP,
+	RADEON_NUM_BYTES_MOVED,
+	RADEON_NUM_EVICTIONS,
+	RADEON_NUM_VRAM_CPU_PAGE_FAULTS,
+	RADEON_VRAM_USAGE,
+	RADEON_VRAM_VIS_USAGE,
+	RADEON_GTT_USAGE,
+	RADEON_GPU_TEMPERATURE,
+	RADEON_CURRENT_SCLK,
+	RADEON_CURRENT_MCLK,
+};
+
 struct radeon_winsys_cs {
 	unsigned cdw;  /* Number of used dwords. */
 	unsigned max_dw; /* Maximum number of dwords. */
@@ -168,6 +181,9 @@ struct radeon_winsys {
 
 	void (*query_info)(struct radeon_winsys *ws,
 			   struct radeon_info *info);
+
+	uint64_t (*query_value)(struct radeon_winsys *ws,
+				enum radeon_value_id value);
 
 	bool (*read_registers)(struct radeon_winsys *ws, unsigned reg_offset,
 			       unsigned num_registers, uint32_t *out);

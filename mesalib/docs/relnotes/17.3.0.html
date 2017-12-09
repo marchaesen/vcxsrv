@@ -14,7 +14,7 @@
 <iframe src="../contents.html"></iframe>
 <div class="content">
 
-<h1>Mesa 17.3.0 Release Notes / TBD</h1>
+<h1>Mesa 17.3.0 Release Notes / December 8. 2017</h1>
 
 <p>
 Mesa 17.3.0 is a new development release.
@@ -33,7 +33,8 @@ because compatibility contexts are not supported.
 
 <h2>SHA256 checksums</h2>
 <pre>
-TBD.
+0cb1ffe2b4637d80f08df3bdfeb300352dcffd8ff4f6711278639b084e3f07f9  mesa-17.3.0.tar.gz
+29a0a3a6c39990d491a1a58ed5c692e596b3bfc6c01d0b45e0b787116c50c6d9  mesa-17.3.0.tar.xz
 </pre>
 
 
@@ -58,14 +59,187 @@ Note: some of the new features are only available with certain drivers.
 <h2>Bug fixes</h2>
 
 <ul>
-TBD
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=97532">Bug 97532</a> - Regression: GLB 2.7 &amp; Glmark-2 GLES versions segfault due to linker precision error (259fc505) on dead variable</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100438">Bug 100438</a> - glsl/ir.cpp:1376: ir_dereference_variable::ir_dereference_variable(ir_variable*): Assertion `var != NULL' failed.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100613">Bug 100613</a> - Regression in Mesa 17 on s390x (zSystems)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101334">Bug 101334</a> - AMD SI cards: Some vulkan apps freeze the system</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101378">Bug 101378</a> - interpolateAtSample check for input parameter is too strict</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101655">Bug 101655</a> - Explicit sync support for android</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101691">Bug 101691</a> - gfx corruption on windowed 3d-apps running on dGPU</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101709">Bug 101709</a> - [llvmpipe] piglit gl-1.0-scissor-offscreen regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101766">Bug 101766</a> - Assertion `!&quot;invalid type&quot;' failed when constant expression involves literal of different type</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101832">Bug 101832</a> - [PATCH][regression][bisect] Xorg fails to start after f50aa21456d82c8cb6fbaa565835f1acc1720a5d</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101851">Bug 101851</a> - [regression] libEGL_common.a undefined reference to '__gxx_personality_v0'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101867">Bug 101867</a> - Launch options window renders black in Feral Games in current Mesa trunk</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101876">Bug 101876</a> - SIGSEGV when launching Steam</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101910">Bug 101910</a> - [BYT] ES31-CTS.functional.copy_image.non_compressed.viewclass_96_bits.rgb32f_rgb32f</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101925">Bug 101925</a> - playstore/webview crash</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101941">Bug 101941</a> - Getting different output depending on attribute declaration order</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101961">Bug 101961</a> - Serious Sam Fusion hangs system completely</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101981">Bug 101981</a> - Commit ddc32537d6db69198e88ef0dfe19770bf9daa536 breaks rendering in multiple applications</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101982">Bug 101982</a> - Weston crashes when running an OpenGL program on i965</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101983">Bug 101983</a> - [G33] ES2-CTS.functional.shaders.struct.uniform.sampler_nested* regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101989">Bug 101989</a> - ES3-CTS.functional.state_query.integers.viewport_getinteger regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102006">Bug 102006</a> - gstreamer vaapih264enc segfault</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102014">Bug 102014</a> - Mesa git build broken by commit bc7f41e11d325280db12e7b9444501357bc13922</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102015">Bug 102015</a> - [Regression,bisected]: Segfaults with various programs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102024">Bug 102024</a> - FORMAT_FEATURE_SAMPLED_IMAGE_BIT not supported for D16_UNORM and D32_SFLOAT</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102038">Bug 102038</a> - assertion failure in update_framebuffer_size</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102050">Bug 102050</a> - commit b4f639d02a causes build breakage on Android 32bit builds</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102052">Bug 102052</a> - No package 'expat' found</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102062">Bug 102062</a> - Segfault at eglCreateContext in android-x86</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102125">Bug 102125</a> - [softpipe] piglit arb_texture_view-targets regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102148">Bug 102148</a> - Crash when running qopenglwidget example on mesa llvmpipe win32</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102177">Bug 102177</a> - [SKL] ES31-CTS.core.sepshaderobjs.StateInteraction fails sporadically</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102201">Bug 102201</a> - [regression, SI] GPU crash in Unigine Valley</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102241">Bug 102241</a> - gallium/wgl: SwapBuffers freezing regularly with swap interval enabled</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102274">Bug 102274</a> - assertion failure in ir_validate.cpp:240</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102308">Bug 102308</a> - segfault in glCompressedTextureSubImage3D</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102358">Bug 102358</a> - WarThunder freezes at start, with activated vsync (vblank_mode=2)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102377">Bug 102377</a> - PIPE_*_4BYTE_ALIGNED_ONLY caps crashing</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102429">Bug 102429</a> - [regression, SI] Performance decrease in Unigine Valley &amp; Heaven</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102435">Bug 102435</a> - [skl,kbl] [drm] GPU HANG: ecode 9:0:0x86df7cf9, in csgo_linux64 [4947], reason: Hang on rcs, action: reset</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102454">Bug 102454</a> - glibc 2.26 doesn't provide anymore xlocale.h</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102461">Bug 102461</a> - [llvmpipe] piglit glean fragprog1 XPD test 1 regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102467">Bug 102467</a> - src/mesa/state_tracker/st_cb_readpixels.c:178]: (warning) Redundant assignment</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102496">Bug 102496</a> - Frontbuffer rendering corruption on mesa master</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102502">Bug 102502</a> - [bisected] Kodi crashes since commit 707d2e8b - gallium: fold u_trim_pipe_prim call from st/mesa to drivers</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102530">Bug 102530</a> - [bisected] Kodi crashes when launching a stream - commit bd2662bf</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102552">Bug 102552</a> - Null dereference due to not checking return value of util_format_description</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102565">Bug 102565</a> - u_debug_stack.c:114: undefined reference to `_Ux86_64_getcontext'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102573">Bug 102573</a> - fails to build on armel</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102665">Bug 102665</a> - test_glsl_to_tgsi_lifetime.cpp:53:67: error: ‘&gt;&gt;’ should be ‘&gt; &gt;’ within a nested template argument list</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102677">Bug 102677</a> - [OpenGL CTS] KHR-GL45.CommonBugs.CommonBug_PerVertexValidation fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102680">Bug 102680</a> - [OpenGL CTS] KHR-GL45.shader_ballot_tests.ShaderBallotBitmasks fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102685">Bug 102685</a> - piglit.spec.glsl-1_50.compiler.vs-redeclares-pervertex-out-before-global-redeclaration</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102774">Bug 102774</a> - [BDW] [Bisected] Absolute constant buffers break VAAPI in mpv</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102809">Bug 102809</a> - Rust shadows(?) flash random colours</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102844">Bug 102844</a> - memory leak with glDeleteProgram for shader program type GL_COMPUTE_SHADER</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102847">Bug 102847</a> - swr fail to build with llvm-5.0.0</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102852">Bug 102852</a> - Scons: Support the new Scons 3.0.0</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102904">Bug 102904</a> - piglit and gl45 cts linker tests regressed</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102924">Bug 102924</a> - mesa (git version) images too dark</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102940">Bug 102940</a> - Regression: Vulkan KMS rendering crashes since 17.2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102955">Bug 102955</a> - HyperZ related rendering issue in ARK: Survival Evolved</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102999">Bug 102999</a> - [BISECTED,REGRESSION] Failing Android EGL dEQP with RGBA configs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103002">Bug 103002</a> - string_buffer_test.cpp:43: error: ISO C++ forbids initialization of member ‘str1’</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103085">Bug 103085</a> - [ivb byt hsw] piglit.spec.arb_indirect_parameters.tf-count-arrays</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103098">Bug 103098</a> - [OpenGL CTS] KHR-GL45.enhanced_layouts.varying_structure_locations fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103101">Bug 103101</a> - [SKL][bisected] DiRT Rally GPU hang</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103115">Bug 103115</a> - [BSW BXT GLK] dEQP-VK.spirv_assembly.instruction.compute.sconvert.int32_to_int64</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103128">Bug 103128</a> - [softpipe] piglit fs-ldexp regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103142">Bug 103142</a> - R600g+sb: optimizer apparently stuck in an endless loop</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103214">Bug 103214</a> - GLES CTS functional.state_query.indexed.atomic_counter regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103227">Bug 103227</a> - [G965 G45 ILK] ES2-CTS.gtf.GL2ExtensionTests.texture_float.texture_float regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103247">Bug 103247</a> - Performance regression: car chase, manhattan</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103253">Bug 103253</a> - blob.h:138:1: error: unknown type name 'ssize_t'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103265">Bug 103265</a> - [llvmpipe] piglit depth-tex-compare regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103323">Bug 103323</a> - Possible unintended error message in file pixel.c line 286</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103388">Bug 103388</a> - Linking libcltgsi.la (llvm/codegen/libclllvm_la-common.lo) fails with &quot;error: no match for 'operator-'&quot; with GCC-7, Mesa from Git and current LLVM revisions</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103393">Bug 103393</a> - glDispatchComputeGroupSizeARB : gl_GlobalInvocationID.x != gl_WorkGroupID.x * gl_LocalGroupSizeARB.x + gl_LocalInvocationID.x</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103412">Bug 103412</a> - gallium/wgl: Another fix to context creation without prior SetPixelFormat()</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103519">Bug 103519</a> - wayland egl apps crash on start with mesa 17.2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103529">Bug 103529</a> - [GM45] GPU hang with mpv fullscreen (bisected)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103537">Bug 103537</a> - i965: Shadow of Mordor broken since commit 379b24a40d3d34ffdaaeb1b328f50e28ecb01468 on Haswell</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103544">Bug 103544</a> - Graphical glitches r600 in game this war of mine linux native</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103616">Bug 103616</a> - Increased difference from reference image in shaders</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103628">Bug 103628</a> - [BXT, GLK, BSW] KHR-GL46.shader_ballot_tests.ShaderBallotBitmasks</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103759">Bug 103759</a> - plasma desktop corrupted rendering</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103787">Bug 103787</a> - [BDW,BSW] gpu hang on spec.arb_pipeline_statistics_query.arb_pipeline_statistics_query-comp</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103909">Bug 103909</a> - anv_allocator.c:113:1: error: static declaration of ‘memfd_create’ follows non-static declaration</li>
+
 </ul>
 
 <h2>Changes</h2>
 
-<ul>
-TBD
-</ul>
 
 </div>
 </body>

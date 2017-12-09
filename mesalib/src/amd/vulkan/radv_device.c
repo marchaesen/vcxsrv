@@ -2019,6 +2019,8 @@ VkResult radv_QueueSubmit(
 			cs_array[j] = cmd_buffer->cs;
 			if ((cmd_buffer->usage_flags & VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
 				can_patch = false;
+
+			cmd_buffer->status = RADV_CMD_BUFFER_STATUS_PENDING;
 		}
 
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j += advance) {

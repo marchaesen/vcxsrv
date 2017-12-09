@@ -71,6 +71,61 @@ static void radv_amdgpu_winsys_query_info(struct radeon_winsys *rws,
 	*info = ((struct radv_amdgpu_winsys *)rws)->info;
 }
 
+static uint64_t radv_amdgpu_winsys_query_value(struct radeon_winsys *rws,
+					       enum radeon_value_id value)
+{
+	struct radv_amdgpu_winsys *ws = (struct radv_amdgpu_winsys *)rws;
+	struct amdgpu_heap_info heap;
+	uint64_t retval = 0;
+
+	switch (value) {
+	case RADEON_TIMESTAMP:
+		amdgpu_query_info(ws->dev, AMDGPU_INFO_TIMESTAMP, 8, &retval);
+		return retval;
+	case RADEON_NUM_BYTES_MOVED:
+		amdgpu_query_info(ws->dev, AMDGPU_INFO_NUM_BYTES_MOVED,
+				  8, &retval);
+		return retval;
+	case RADEON_NUM_EVICTIONS:
+		amdgpu_query_info(ws->dev, AMDGPU_INFO_NUM_EVICTIONS,
+				  8, &retval);
+		return retval;
+	case RADEON_NUM_VRAM_CPU_PAGE_FAULTS:
+		amdgpu_query_info(ws->dev, AMDGPU_INFO_NUM_VRAM_CPU_PAGE_FAULTS,
+				  8, &retval);
+		return retval;
+	case RADEON_VRAM_USAGE:
+		amdgpu_query_heap_info(ws->dev, AMDGPU_GEM_DOMAIN_VRAM,
+				       0, &heap);
+		return heap.heap_usage;
+	case RADEON_VRAM_VIS_USAGE:
+		amdgpu_query_heap_info(ws->dev, AMDGPU_GEM_DOMAIN_VRAM,
+				       AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED,
+				       &heap);
+		return heap.heap_usage;
+	case RADEON_GTT_USAGE:
+		amdgpu_query_heap_info(ws->dev, AMDGPU_GEM_DOMAIN_GTT,
+				       0, &heap);
+		return heap.heap_usage;
+	case RADEON_GPU_TEMPERATURE:
+		amdgpu_query_sensor_info(ws->dev, AMDGPU_INFO_SENSOR_GPU_TEMP,
+					 4, &retval);
+		return retval;
+	case RADEON_CURRENT_SCLK:
+		amdgpu_query_sensor_info(ws->dev, AMDGPU_INFO_SENSOR_GFX_SCLK,
+					 4, &retval);
+		return retval;
+	case RADEON_CURRENT_MCLK:
+		amdgpu_query_sensor_info(ws->dev, AMDGPU_INFO_SENSOR_GFX_MCLK,
+					 4, &retval);
+		return retval;
+	default:
+		unreachable("invalid query value");
+	}
+
+	return 0;
+}
+
 static bool radv_amdgpu_winsys_read_registers(struct radeon_winsys *rws,
 					      unsigned reg_offset,
 					      unsigned num_registers, uint32_t *out)
@@ -127,6 +182,7 @@ radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags)
 	LIST_INITHEAD(&ws->global_bo_list);
 	pthread_mutex_init(&ws->global_bo_list_lock, NULL);
 	ws->base.query_info = radv_amdgpu_winsys_query_info;
+	ws->base.query_value = radv_amdgpu_winsys_query_value;
 	ws->base.read_registers = radv_amdgpu_winsys_read_registers;
 	ws->base.get_chip_name = radv_amdgpu_winsys_get_chip_name;
 	ws->base.destroy = radv_amdgpu_winsys_destroy;

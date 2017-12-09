@@ -357,5 +357,7 @@ link_set_uniform_initializers(struct gl_shader_program *prog,
       }
    }
 
+   memcpy(prog->data->UniformDataDefaults, prog->data->UniformDataSlots,
+          sizeof(union gl_constant_value) * prog->data->NumUniformDataSlots);
    ralloc_free(mem_ctx);
 }

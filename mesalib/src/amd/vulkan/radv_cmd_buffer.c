@@ -292,6 +292,8 @@ radv_reset_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 		cmd_buffer->gfx9_fence_bo = cmd_buffer->upload.upload_bo;
 	}
 
+	cmd_buffer->status = RADV_CMD_BUFFER_STATUS_INITIAL;
+
 	return cmd_buffer->record_result;
 }
 
@@ -1298,8 +1300,7 @@ radv_set_depth_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 	va += image->offset + image->clear_value_offset;
 	unsigned reg_offset = 0, reg_count = 0;
 
-	if (!image->surface.htile_size)
-		return;
+	assert(image->surface.htile_size);
 
 	if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
 		++reg_count;
@@ -1376,8 +1377,7 @@ radv_set_dcc_need_cmask_elim_pred(struct radv_cmd_buffer *cmd_buffer,
 	uint64_t va = radv_buffer_get_va(image->bo);
 	va += image->offset + image->dcc_pred_offset;
 
-	if (!image->surface.dcc_size)
-		return;
+	assert(image->surface.dcc_size);
 
 	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 4, 0));
 	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
@@ -1398,8 +1398,7 @@ radv_set_color_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 	uint64_t va = radv_buffer_get_va(image->bo);
 	va += image->offset + image->clear_value_offset;
 
-	if (!image->cmask.size && !image->surface.dcc_size)
-		return;
+	assert(image->cmask.size || image->surface.dcc_size);
 
 	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 4, 0));
 	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
@@ -1515,21 +1514,26 @@ static void
 radv_emit_index_buffer(struct radv_cmd_buffer *cmd_buffer)
 {
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
+	struct radv_cmd_state *state = &cmd_buffer->state;
 
-	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
-		radeon_set_uconfig_reg_idx(cs, R_03090C_VGT_INDEX_TYPE,
-					   2, cmd_buffer->state.index_type);
-	} else {
-		radeon_emit(cs, PKT3(PKT3_INDEX_TYPE, 0, 0));
-		radeon_emit(cs, cmd_buffer->state.index_type);
+	if (state->index_type != state->last_index_type) {
+		if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+			radeon_set_uconfig_reg_idx(cs, R_03090C_VGT_INDEX_TYPE,
+						   2, state->index_type);
+		} else {
+			radeon_emit(cs, PKT3(PKT3_INDEX_TYPE, 0, 0));
+			radeon_emit(cs, state->index_type);
+		}
+
+		state->last_index_type = state->index_type;
 	}
 
 	radeon_emit(cs, PKT3(PKT3_INDEX_BASE, 1, 0));
-	radeon_emit(cs, cmd_buffer->state.index_va);
-	radeon_emit(cs, cmd_buffer->state.index_va >> 32);
+	radeon_emit(cs, state->index_va);
+	radeon_emit(cs, state->index_va >> 32);
 
 	radeon_emit(cs, PKT3(PKT3_INDEX_BUFFER_SIZE, 0, 0));
-	radeon_emit(cs, cmd_buffer->state.max_index_count);
+	radeon_emit(cs, state->max_index_count);
 
 	cmd_buffer->state.dirty &= ~RADV_CMD_DIRTY_INDEX_BUFFER;
 }
@@ -2228,14 +2232,20 @@ VkResult radv_BeginCommandBuffer(
 	const VkCommandBufferBeginInfo *pBeginInfo)
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
-	VkResult result;
+	VkResult result = VK_SUCCESS;
 
-	result = radv_reset_cmd_buffer(cmd_buffer);
-	if (result != VK_SUCCESS)
-		return result;
+	if (cmd_buffer->status != RADV_CMD_BUFFER_STATUS_INITIAL) {
+		/* If the command buffer has already been resetted with
+		 * vkResetCommandBuffer, no need to do it again.
+		 */
+		result = radv_reset_cmd_buffer(cmd_buffer);
+		if (result != VK_SUCCESS)
+			return result;
+	}
 
 	memset(&cmd_buffer->state, 0, sizeof(cmd_buffer->state));
 	cmd_buffer->state.last_primitive_reset_en = -1;
+	cmd_buffer->state.last_index_type = -1;
 	cmd_buffer->usage_flags = pBeginInfo->flags;
 
 	/* setup initial configuration into command buffer */
@@ -2270,6 +2280,8 @@ VkResult radv_BeginCommandBuffer(
 
 	if (unlikely(cmd_buffer->device->trace_bo))
 		radv_cmd_buffer_trace_emit(cmd_buffer);
+
+	cmd_buffer->status = RADV_CMD_BUFFER_STATUS_RECORDING;
 
 	return result;
 }
@@ -2538,6 +2550,8 @@ VkResult radv_EndCommandBuffer(
 
 	if (!cmd_buffer->device->ws->cs_finalize(cmd_buffer->cs))
 		return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
+
+	cmd_buffer->status = RADV_CMD_BUFFER_STATUS_EXECUTABLE;
 
 	return cmd_buffer->record_result;
 }
@@ -2848,6 +2862,11 @@ void radv_CmdExecuteCommands(
 		if (secondary->state.last_ia_multi_vgt_param) {
 			primary->state.last_ia_multi_vgt_param =
 				secondary->state.last_ia_multi_vgt_param;
+		}
+
+		if (secondary->state.last_index_type != -1) {
+			primary->state.last_index_type =
+				secondary->state.last_index_type;
 		}
 	}
 
@@ -3233,8 +3252,10 @@ radv_emit_all_graphics_states(struct radv_cmd_buffer *cmd_buffer,
 		 * so the state must be re-emitted before the next indexed
 		 * draw.
 		 */
-		if (cmd_buffer->device->physical_device->rad_info.chip_class >= CIK)
+		if (cmd_buffer->device->physical_device->rad_info.chip_class >= CIK) {
+			cmd_buffer->state.last_index_type = -1;
 			cmd_buffer->state.dirty |= RADV_CMD_DIRTY_INDEX_BUFFER;
+		}
 	}
 
 	radv_cmd_buffer_flush_dynamic_state(cmd_buffer);

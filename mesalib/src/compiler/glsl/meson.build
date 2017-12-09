@@ -181,6 +181,8 @@ files_libglsl = files(
   's_expression.h',
   'string_to_uint_map.cpp',
   'string_to_uint_map.h',
+  'serialize.cpp',
+  'serialize.h',
   'shader_cache.cpp',
   'shader_cache.h',
 )

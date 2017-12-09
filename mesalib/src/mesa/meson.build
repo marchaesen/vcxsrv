@@ -215,6 +215,8 @@ files_libmesa_common = files(
   'main/points.h',
   'main/polygon.c',
   'main/polygon.h',
+  'main/program_binary.c',
+  'main/program_binary.h',
   'main/program_resource.c',
   'main/program_resource.h',
   'main/querymatrix.c',

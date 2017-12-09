@@ -140,6 +140,8 @@ LIBGLSL_FILES = \
 	glsl/propagate_invariance.cpp \
 	glsl/s_expression.cpp \
 	glsl/s_expression.h \
+	glsl/serialize.cpp \
+	glsl/serialize.h \
 	glsl/string_to_uint_map.cpp \
 	glsl/string_to_uint_map.h
 
