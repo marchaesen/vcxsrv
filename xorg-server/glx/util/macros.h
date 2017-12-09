@@ -171,6 +171,12 @@ do {                       \
 #define ATTRIBUTE_RETURNS_NONNULL
 #endif
 
+#ifdef HAVE_FUNC_ATTRIBUTE_NORETURN
+#define NORETURN __attribute__((__noreturn__))
+#else
+#define NORETURN
+#endif
+
 #ifdef __cplusplus
 /**
  * Macro function that evaluates to true if T is a trivially
