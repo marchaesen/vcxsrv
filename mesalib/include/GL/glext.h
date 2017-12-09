@@ -9212,6 +9212,11 @@ GLAPI void APIENTRY glGetPerfQueryInfoINTEL (GLuint queryId, GLuint queryNameLen
 #define GL_PACK_INVERT_MESA               0x8758
 #endif /* GL_MESA_pack_invert */
 
+#ifndef GL_MESA_program_binary_formats
+#define GL_MESA_program_binary_formats 1
+#define GL_PROGRAM_BINARY_FORMAT_MESA     0x875F
+#endif /* GL_MESA_program_binary_formats */
+
 #ifndef GL_MESA_resize_buffers
 #define GL_MESA_resize_buffers 1
 typedef void (APIENTRYP PFNGLRESIZEBUFFERSMESAPROC) (void);

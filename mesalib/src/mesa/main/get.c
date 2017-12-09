@@ -1151,6 +1151,15 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
          }
       }
       break;
+
+   /* GL_ARB_get_program_binary */
+   case GL_PROGRAM_BINARY_FORMATS:
+      assert(ctx->Const.NumProgramBinaryFormats <= 1);
+      v->value_int_n.n = MIN2(ctx->Const.NumProgramBinaryFormats, 1);
+      if (ctx->Const.NumProgramBinaryFormats > 0) {
+         v->value_int_n.ints[0] = GL_PROGRAM_BINARY_FORMAT_MESA;
+      }
+      break;
    }
 }
 

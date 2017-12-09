@@ -1365,6 +1365,9 @@ link_assign_uniform_storage(struct gl_context *ctx,
                                                  prog->data->NumUniformStorage);
       data = rzalloc_array(prog->data->UniformStorage,
                            union gl_constant_value, num_data_slots);
+      prog->data->UniformDataDefaults =
+         rzalloc_array(prog->data->UniformStorage,
+                       union gl_constant_value, num_data_slots);
    } else {
       data = prog->data->UniformDataSlots;
    }

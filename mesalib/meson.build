@@ -1110,9 +1110,9 @@ if with_platform_x11
     dep_xcb_glx = dependency('xcb-glx', version : '>= 1.8.1')
     dep_xxf86vm = dependency('xxf86vm', required : false)
   endif
-  if with_any_vk or with_glx == 'dri' or
-      (with_gallium_vdpau or with_gallium_xvmc or with_gallium_omx or
-       with_gallium_xa)
+  if (with_any_vk or with_glx == 'dri' or
+       (with_gallium_vdpau or with_gallium_xvmc or with_gallium_omx or
+        with_gallium_xa))
     dep_xcb = dependency('xcb')
     dep_x11_xcb = dependency('x11-xcb')
   endif

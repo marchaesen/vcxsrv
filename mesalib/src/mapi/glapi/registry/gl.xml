@@ -5505,7 +5505,7 @@ typedef unsigned int GLhandleARB;
         <enum value="0x875C" name="GL_PROXY_TEXTURE_2D_STACK_MESAX"/>
         <enum value="0x875D" name="GL_TEXTURE_1D_STACK_BINDING_MESAX"/>
         <enum value="0x875E" name="GL_TEXTURE_2D_STACK_BINDING_MESAX"/>
-            <unused start="0x875F" vendor="MESA"/>
+        <enum value="0x875F" name="GL_PROGRAM_BINARY_FORMAT_MESA"/>
     </enums>
 
     <enums namespace="GL" start="0x8760" end="0x883F" vendor="AMD">
@@ -44359,6 +44359,11 @@ typedef unsigned int GLhandleARB;
         <extension name="GL_MESA_pack_invert" supported="gl">
             <require>
                 <enum name="GL_PACK_INVERT_MESA"/>
+            </require>
+        </extension>
+        <extension name="GL_MESA_program_binary_formats" supported="gl|gles2">
+            <require>
+                <enum name="GL_PROGRAM_BINARY_FORMAT_MESA"/>
             </require>
         </extension>
         <extension name="GL_MESA_resize_buffers" supported="gl">

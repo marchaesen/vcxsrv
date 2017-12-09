@@ -61,7 +61,6 @@
 static RESTYPE CursorClientType;
 static RESTYPE CursorHideCountType;
 static RESTYPE CursorWindowType;
-static CursorPtr CursorCurrent[MAXDEVICES];
 
 static DevPrivateKeyRec CursorScreenPrivateKeyRec;
 
@@ -132,10 +131,26 @@ typedef struct _CursorScreen {
 Bool CursorVisible = FALSE;
 Bool EnableCursor = TRUE;
 
+static CursorPtr
+CursorForDevice(DeviceIntPtr pDev)
+{
+    if (pDev && pDev->spriteInfo && pDev->spriteInfo->sprite)
+        return pDev->spriteInfo->sprite->current;
+
+    return NULL;
+}
+
+static CursorPtr
+CursorForClient(ClientPtr client)
+{
+    return CursorForDevice(PickPointer(client));
+}
+
 static Bool
 CursorDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
 {
     CursorScreenPtr cs = GetCursorScreen(pScreen);
+    CursorPtr pOldCursor = CursorForDevice(pDev);
     Bool ret;
     DisplayCursorProcPtr backupProc;
 
@@ -150,11 +165,10 @@ CursorDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
         ret = (*pScreen->DisplayCursor) (pDev, pScreen, pCursor);
     }
 
-    if (pCursor != CursorCurrent[pDev->id]) {
+    if (pCursor != pOldCursor) {
         CursorEventPtr e;
 
         UpdateCurrentTimeIf();
-        CursorCurrent[pDev->id] = pCursor;
         for (e = cursorEvents; e; e = e->next) {
             if ((e->eventMask & XFixesDisplayCursorNotifyMask)) {
                 xXFixesCursorNotifyEvent ev = {
@@ -351,7 +365,7 @@ ProcXFixesGetCursorImage(ClientPtr client)
     int npixels, width, height, rc, x, y;
 
     REQUEST_SIZE_MATCH(xXFixesGetCursorImageReq);
-    pCursor = CursorCurrent[PickPointer(client)->id];
+    pCursor = CursorForClient(client);
     if (!pCursor)
         return BadCursor;
     rc = XaceHook(XACE_RESOURCE_ACCESS, client, pCursor->id, RT_CURSOR,
@@ -500,7 +514,7 @@ ProcXFixesGetCursorImageAndName(ClientPtr client)
     int rc, x, y;
 
     REQUEST_SIZE_MATCH(xXFixesGetCursorImageAndNameReq);
-    pCursor = CursorCurrent[PickPointer(client)->id];
+    pCursor = CursorForClient(client);
     if (!pCursor)
         return BadCursor;
     rc = XaceHook(XACE_RESOURCE_ACCESS, client, pCursor->id, RT_CURSOR,
@@ -872,7 +886,7 @@ ProcXFixesHideCursor(ClientPtr client)
         for (dev = inputInfo.devices; dev; dev = dev->next) {
             if (IsMaster(dev) && IsPointerDevice(dev))
                 CursorDisplayCursor(dev, pWin->drawable.pScreen,
-                                    CursorCurrent[dev->id]);
+                                    CursorForDevice(dev));
         }
     }
 
@@ -967,7 +981,7 @@ CursorFreeHideCount(void *data, XID id)
     deleteCursorHideCount(pChc, pChc->pScreen);
     for (dev = inputInfo.devices; dev; dev = dev->next) {
         if (IsMaster(dev) && IsPointerDevice(dev))
-            CursorDisplayCursor(dev, pScreen, CursorCurrent[dev->id]);
+            CursorDisplayCursor(dev, pScreen, CursorForDevice(dev));
     }
 
     return 1;
