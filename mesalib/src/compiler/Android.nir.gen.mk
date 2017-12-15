@@ -98,3 +98,8 @@ $(intermediates)/nir/nir_opt_algebraic.c: $(nir_opt_algebraic_deps)
 $(intermediates)/spirv/spirv_info.c: $(LOCAL_PATH)/spirv/spirv_info_c.py $(LOCAL_PATH)/spirv/spirv.core.grammar.json
 	@mkdir -p $(dir $@)
 	$(hide) $(MESA_PYTHON2) $^ $@ || ($(RM) $@; false)
+
+$(intermediates)/spirv/vtn_gather_types.c:: $(LOCAL_PATH)/spirv/vtn_gather_types_c.py $(LOCAL_PATH)/spirv/spirv.core.grammar.json
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $^ $@ || ($(RM) $@; false)
+

@@ -231,20 +231,9 @@ vm86_GP_fault(xf86Int10InfoPtr pInt)
 static int
 do_vm86(xf86Int10InfoPtr pInt)
 {
-    int retval, signo;
+    int retval;
 
-    xf86InterceptSignals(&signo);
     retval = vm86_rep(VM86S);
-    xf86InterceptSignals(NULL);
-
-    if (signo >= 0) {
-        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR,
-                   "vm86() syscall generated signal %d.\n", signo);
-        dump_registers(pInt);
-        dump_code(pInt);
-        stack_trace(pInt);
-        return 0;
-    }
 
     switch (VM86_TYPE(retval)) {
     case VM86_UNKNOWN:

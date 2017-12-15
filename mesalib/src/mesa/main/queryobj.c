@@ -822,7 +822,8 @@ get_query_object(struct gl_context *ctx, const char *func,
    if (buf && buf != ctx->Shared->NullBufferObj) {
       bool is_64bit = ptype == GL_INT64_ARB ||
          ptype == GL_UNSIGNED_INT64_ARB;
-      if (!ctx->Extensions.ARB_query_buffer_object) {
+      if (!ctx->Extensions.ARB_query_buffer_object &&
+          !ctx->Extensions.EXT_disjoint_timer_query) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(not supported)", func);
          return;
       }

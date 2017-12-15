@@ -286,6 +286,8 @@ LLVMValueRef ac_build_bfe(struct ac_llvm_context *ctx, LLVMValueRef input,
 			  LLVMValueRef offset, LLVMValueRef width,
 			  bool is_signed);
 
+void ac_build_waitcnt(struct ac_llvm_context *ctx, unsigned simm16);
+
 void ac_get_image_intr_name(const char *base_name,
 			    LLVMTypeRef data_type,
 			    LLVMTypeRef coords_type,

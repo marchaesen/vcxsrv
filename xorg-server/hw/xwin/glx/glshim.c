@@ -106,7 +106,7 @@ int glWinSelectImplementation(int native)
 #define RESOLVED_PROC proc
 
 /* Include generated shims for direct linkage to GL functions which are in the ABI */
-#include "generated_gl_shim.c"
+#include "generated_gl_shim.ic"
 
 /*
   Special wrapper for glAddSwapHintRectWIN for copySubBuffers

@@ -86,8 +86,6 @@ const char *kdGlobalXkbLayout = NULL;
 const char *kdGlobalXkbVariant = NULL;
 const char *kdGlobalXkbOptions = NULL;
 
-static Bool kdCaughtSignal = FALSE;
-
 void
 KdDisableScreen(ScreenPtr pScreen)
 {
@@ -168,9 +166,6 @@ void
 AbortDDX(enum ExitCode error)
 {
     KdDisableScreens();
-
-    if (kdCaughtSignal)
-        OsAbort();
 }
 
 void
@@ -937,13 +932,6 @@ KdAddScreen(ScreenInfo * pScreenInfo,
     AddScreen(KdScreenInit, argc, argv);
 }
 
-static int
-KdSignalWrapper(int signum)
-{
-    kdCaughtSignal = TRUE;
-    return 1;                   /* use generic OS layer cleanup & abort */
-}
-
 void
 KdInitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 {
@@ -984,8 +972,6 @@ KdInitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     for (card = kdCardInfo; card; card = card->next)
         for (screen = card->screenList; screen; screen = screen->next)
             KdAddScreen(pScreenInfo, screen, argc, argv);
-
-    OsRegisterSigWrapper(KdSignalWrapper);
 
 #if defined(CONFIG_UDEV) || defined(CONFIG_HAL)
     if (SeatId) /* Enable input hot-plugging */

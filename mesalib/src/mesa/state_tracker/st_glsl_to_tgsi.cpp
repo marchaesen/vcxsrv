@@ -1341,9 +1341,32 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
    st_dst_reg result_dst;
 
    int vector_elements = ir->operands[0]->type->vector_elements;
-   if (ir->operands[1]) {
+   if (ir->operands[1] &&
+       ir->operation != ir_binop_interpolate_at_offset &&
+       ir->operation != ir_binop_interpolate_at_sample) {
+      st_src_reg *swz_op = NULL;
+      if (vector_elements > ir->operands[1]->type->vector_elements) {
+         assert(ir->operands[1]->type->vector_elements == 1);
+         swz_op = &op[1];
+      } else if (vector_elements < ir->operands[1]->type->vector_elements) {
+         assert(ir->operands[0]->type->vector_elements == 1);
+         swz_op = &op[0];
+      }
+      if (swz_op) {
+         uint16_t swizzle_x = GET_SWZ(swz_op->swizzle, 0);
+         swz_op->swizzle = MAKE_SWIZZLE4(swizzle_x, swizzle_x,
+                                         swizzle_x, swizzle_x);
+      }
       vector_elements = MAX2(vector_elements,
                              ir->operands[1]->type->vector_elements);
+   }
+   if (ir->operands[2] &&
+       ir->operands[2]->type->vector_elements != vector_elements) {
+      /* This can happen with ir_triop_lrp, i.e. glsl mix */
+      assert(ir->operands[2]->type->vector_elements == 1);
+      uint16_t swizzle_x = GET_SWZ(op[2].swizzle, 0);
+      op[2].swizzle = MAKE_SWIZZLE4(swizzle_x, swizzle_x,
+                                    swizzle_x, swizzle_x);
    }
 
    this->result.file = PROGRAM_UNDEFINED;

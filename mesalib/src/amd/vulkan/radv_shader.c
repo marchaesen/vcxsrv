@@ -392,13 +392,18 @@ radv_fill_shader_variant(struct radv_device *device,
 		break;
 	case MESA_SHADER_FRAGMENT:
 		break;
-	case MESA_SHADER_COMPUTE:
+	case MESA_SHADER_COMPUTE: {
+		struct ac_shader_info *info = &variant->info.info;
 		variant->rsrc2 |=
-			S_00B84C_TGID_X_EN(1) | S_00B84C_TGID_Y_EN(1) |
-			S_00B84C_TGID_Z_EN(1) | S_00B84C_TIDIG_COMP_CNT(2) |
-			S_00B84C_TG_SIZE_EN(1) |
+			S_00B84C_TGID_X_EN(info->cs.uses_block_id[0]) |
+			S_00B84C_TGID_Y_EN(info->cs.uses_block_id[1]) |
+			S_00B84C_TGID_Z_EN(info->cs.uses_block_id[2]) |
+			S_00B84C_TIDIG_COMP_CNT(info->cs.uses_thread_id[2] ? 2 :
+						info->cs.uses_thread_id[1] ? 1 : 0) |
+			S_00B84C_TG_SIZE_EN(info->cs.uses_local_invocation_idx) |
 			S_00B84C_LDS_SIZE(variant->config.lds_size);
 		break;
+	}
 	default:
 		unreachable("unsupported shader type");
 		break;

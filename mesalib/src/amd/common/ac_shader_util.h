@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017 Red Hat
+ * Copyright 2012 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,40 +21,13 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef AC_SHADER_INFO_H
-#define AC_SHADER_INFO_H
+#ifndef AC_SHADER_UTIL_H
+#define AC_SHADER_UTIL_H
 
-struct nir_shader;
-struct ac_nir_compiler_options;
+#include <stdbool.h>
 
-struct ac_shader_info {
-	bool needs_push_constants;
-	uint32_t desc_set_used_mask;
-	bool needs_multiview_view_index;
-	struct {
-		bool has_vertex_buffers; /* needs vertex buffers and base/start */
-		bool needs_draw_id;
-		bool needs_instance_id;
-	} vs;
-	struct {
-		bool force_persample;
-		bool needs_sample_positions;
-		bool uses_input_attachments;
-	} ps;
-	struct {
-		bool uses_grid_size;
-		bool uses_block_id[3];
-		bool uses_thread_id[3];
-		bool uses_local_invocation_idx;
-	} cs;
-};
-
-/* A NIR pass to gather all the info needed to optimise the allocation patterns
- * for the RADV user sgprs
- */
-void
-ac_nir_shader_info_pass(struct nir_shader *nir,
-			const struct ac_nir_compiler_options *options,
-			struct ac_shader_info *info);
+unsigned
+ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil,
+			   bool writes_samplemask);
 
 #endif

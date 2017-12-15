@@ -56,6 +56,10 @@ spirv/spirv_info.c: spirv/spirv_info_c.py spirv/spirv.core.grammar.json
 	$(MKDIR_GEN)
 	$(PYTHON_GEN) $(srcdir)/spirv/spirv_info_c.py $(srcdir)/spirv/spirv.core.grammar.json $@ || ($(RM) $@; false)
 
+spirv/vtn_gather_types.c: spirv/vtn_gather_types_c.py spirv/spirv.core.grammar.json
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/spirv/vtn_gather_types_c.py $(srcdir)/spirv/spirv.core.grammar.json $@ || ($(RM) $@; false)
+
 noinst_PROGRAMS += spirv2nir
 
 spirv2nir_SOURCES = \

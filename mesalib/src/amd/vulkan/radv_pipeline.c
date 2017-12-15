@@ -46,6 +46,7 @@
 #include "vk_format.h"
 #include "util/debug.h"
 #include "ac_exp_param.h"
+#include "ac_shader_util.h"
 
 static void
 radv_pipeline_destroy(struct radv_device *device,
@@ -2108,11 +2109,11 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	if (pipeline->device->physical_device->has_rbplus)
 		pipeline->graphics.db_shader_control |= S_02880C_DUAL_QUAD_DISABLE(1);
 
-	pipeline->graphics.shader_z_format =
-		ps->info.fs.writes_sample_mask ? V_028710_SPI_SHADER_32_ABGR :
-		ps->info.fs.writes_stencil ? V_028710_SPI_SHADER_32_GR :
-		ps->info.fs.writes_z ? V_028710_SPI_SHADER_32_R :
-		V_028710_SPI_SHADER_ZERO;
+	unsigned shader_z_format =
+		ac_get_spi_shader_z_format(ps->info.fs.writes_z,
+					   ps->info.fs.writes_stencil,
+					   ps->info.fs.writes_sample_mask);
+	pipeline->graphics.shader_z_format = shader_z_format;
 
 	calculate_vgt_gs_mode(pipeline);
 	calculate_vs_outinfo(pipeline);

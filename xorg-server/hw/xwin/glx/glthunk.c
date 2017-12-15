@@ -84,4 +84,4 @@ glWinResolveHelper(PROC * cache, const char *symbol)
   found using wglGetProcAddress(), but also stdcall so still need wrappers...
 */
 
-#include "generated_gl_thunks.c"
+#include "generated_gl_thunks.ic"

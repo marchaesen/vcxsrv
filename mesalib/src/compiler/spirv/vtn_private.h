@@ -265,6 +265,7 @@ enum vtn_base_type {
    vtn_base_type_pointer,
    vtn_base_type_image,
    vtn_base_type_sampler,
+   vtn_base_type_sampled_image,
    vtn_base_type_function,
 };
 
@@ -345,6 +346,12 @@ struct vtn_type {
 
          /* Access qualifier for storage images */
          SpvAccessQualifier access_qualifier;
+      };
+
+      /* Members for sampled image types */
+      struct {
+         /* For sampled images, the image type */
+         struct vtn_type *image;
       };
 
       /* Members for function types */
@@ -480,14 +487,11 @@ struct vtn_value {
    enum vtn_value_type value_type;
    const char *name;
    struct vtn_decoration *decoration;
+   struct vtn_type *type;
    union {
       void *ptr;
       char *str;
-      struct vtn_type *type;
-      struct {
-         nir_constant *constant;
-         const struct glsl_type *const_type;
-      };
+      nir_constant *constant;
       struct vtn_pointer *pointer;
       struct vtn_image_pointer *image;
       struct vtn_sampled_image *sampled_image;
@@ -622,6 +626,10 @@ vtn_value(struct vtn_builder *b, uint32_t value_id,
    assert(val->value_type == value_type);
    return val;
 }
+
+bool
+vtn_set_instruction_result_type(struct vtn_builder *b, SpvOp opcode,
+                                const uint32_t *w, unsigned count);
 
 struct vtn_ssa_value *vtn_ssa_value(struct vtn_builder *b, uint32_t value_id);
 

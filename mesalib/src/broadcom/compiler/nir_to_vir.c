@@ -627,8 +627,9 @@ static void
 emit_fragment_input(struct v3d_compile *c, int attr, nir_variable *var)
 {
         for (int i = 0; i < glsl_get_vector_elements(var->type); i++) {
-                c->inputs[attr * 4 + i] =
-                        emit_fragment_varying(c, var, i);
+                int chan = var->data.location_frac + i;
+                c->inputs[attr * 4 + chan] =
+                        emit_fragment_varying(c, var, chan);
         }
 }
 
@@ -1482,8 +1483,11 @@ ntq_setup_outputs(struct v3d_compile *c)
                 assert(array_len == 1);
                 (void)array_len;
 
-                for (int i = 0; i < 4; i++)
-                        add_output(c, loc + i, var->data.location, i);
+                for (int i = 0; i < glsl_get_vector_elements(var->type); i++) {
+                        add_output(c, loc + var->data.location_frac + i,
+                                   var->data.location,
+                                   var->data.location_frac + i);
+                }
 
                 if (c->s->info.stage == MESA_SHADER_FRAGMENT) {
                         switch (var->data.location) {

@@ -42,6 +42,7 @@
 #include "main/context.h"
 #include "main/dispatch.h"
 #include "main/enums.h"
+#include "main/glspirv.h"
 #include "main/hash.h"
 #include "main/mtypes.h"
 #include "main/pipelineobj.h"
@@ -965,6 +966,9 @@ get_shaderiv(struct gl_context *ctx, GLuint name, GLenum pname, GLint *params)
    case GL_SHADER_SOURCE_LENGTH:
       *params = shader->Source ? strlen((char *) shader->Source) + 1 : 0;
       break;
+   case GL_SPIR_V_BINARY_ARB:
+      *params = (shader->spirv_data != NULL);
+      break;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetShaderiv(pname)");
       return;
@@ -1056,6 +1060,16 @@ set_shader_source(struct gl_shader *sh, const GLchar *source)
 {
    assert(sh);
 
+   /* The GL_ARB_gl_spirv spec adds the following to the end of the description
+    * of ShaderSource:
+    *
+    *   "If <shader> was previously associated with a SPIR-V module (via the
+    *    ShaderBinary command), that association is broken. Upon successful
+    *    completion of this command the SPIR_V_BINARY_ARB state of <shader>
+    *    is set to FALSE."
+    */
+   _mesa_shader_spirv_data_reference(&sh->spirv_data, NULL);
+
    if (sh->CompileStatus == compile_skipped && !sh->FallbackSource) {
       /* If shader was previously compiled back-up the source in case of cache
        * fallback.
@@ -1082,6 +1096,18 @@ _mesa_compile_shader(struct gl_context *ctx, struct gl_shader *sh)
 {
    if (!sh)
       return;
+
+   /* The GL_ARB_gl_spirv spec says:
+    *
+    *    "Add a new error for the CompileShader command:
+    *
+    *      An INVALID_OPERATION error is generated if the SPIR_V_BINARY_ARB
+    *      state of <shader> is TRUE."
+    */
+   if (sh->spirv_data) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glCompileShader(SPIR-V)");
+      return;
+   }
 
    if (!sh->Source) {
       /* If the user called glCompileShader without first calling
@@ -2137,9 +2163,7 @@ _mesa_ShaderBinary(GLint n, const GLuint* shaders, GLenum binaryformat,
                    const void* binary, GLint length)
 {
    GET_CURRENT_CONTEXT(ctx);
-   (void) shaders;
-   (void) binaryformat;
-   (void) binary;
+   struct gl_shader **sh;
 
    /* Page 68, section 7.2 'Shader Binaries" of the of the OpenGL ES 3.1, and
     * page 88 of the OpenGL 4.5 specs state:
@@ -2150,6 +2174,37 @@ _mesa_ShaderBinary(GLint n, const GLuint* shaders, GLenum binaryformat,
     */
    if (n < 0 || length < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glShaderBinary(count or length < 0)");
+      return;
+   }
+
+   /* Get all shader objects at once so we can make the operation
+    * all-or-nothing.
+    */
+   if (n > SIZE_MAX / sizeof(*sh)) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glShaderBinary(count)");
+      return;
+   }
+
+   sh = alloca(sizeof(*sh) * (size_t)n);
+   if (!sh) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glShaderBinary");
+      return;
+   }
+
+   for (int i = 0; i < n; ++i) {
+      sh[i] = _mesa_lookup_shader_err(ctx, shaders[i], "glShaderBinary");
+      if (!sh[i])
+         return;
+   }
+
+   if (binaryformat == GL_SHADER_BINARY_FORMAT_SPIR_V_ARB) {
+      if (!ctx->Extensions.ARB_gl_spirv) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glShaderBinary(SPIR-V)");
+      } else if (n > 0) {
+         _mesa_spirv_shader_binary(ctx, (unsigned) n, sh, binary,
+                                   (size_t) length);
+      }
+
       return;
    }
 

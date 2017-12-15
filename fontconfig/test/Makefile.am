@@ -16,11 +16,11 @@ TESTS=run-test.sh
 TESTDATA=4x6.pcf 8x16.pcf out.expected fonts.conf.in
 
 if FREETYPE_PCF_LONG_FAMILY_NAMES
-out.expected: $(srcdir)/out.expected-long-family-names
-	cp $(srcdir)/out.expected-long-family-names $(builddir)/out.expected
+$(srcdir)/out.expected: $(srcdir)/out.expected-long-family-names
+	cp $(srcdir)/out.expected-long-family-names $(srcdir)/out.expected
 else
-out.expected: $(srcdir)/out.expected-no-long-family-names
-	cp $(srcdir)/out.expected-no-long-family-names $(builddir)/out.expected
+$(srcdir)/out.expected: $(srcdir)/out.expected-no-long-family-names
+	cp $(srcdir)/out.expected-no-long-family-names $(srcdir)/out.expected
 endif
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_builddir)

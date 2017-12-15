@@ -1,11 +1,145 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.12.6
-                              2017-09-21
+                      Version 2.12.91 (2.13 RC1)
+                              2017-12-14
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.12.91 (2.13 RC1)
+
+Akira TAGOH (37):
+      und_zsye.orth: polish to get for NotoEmoji-Regular.ttf
+      Revert "Keep the same behavior to the return value of FcConfigParseAndLoad"
+      Fix again to keep the same behavior to the return value of FcConfigParseAndLoad
+      cleanup
+      Fix a compiler warning
+      Update libtool revision
+      Bump version to 2.12.6
+      doc: trivial update
+      Add the ruleset description support
+      workaround to avoid modifying by gettextize
+      missing an open parenthesis
+      another workaround to avoid modifying by gettextize...
+      Validate cache more carefully
+      Allow autoreconf through autopoint for gettext things
+      Correct debugging messages to load/scan config
+      Add the check of PCF_CONFIG_OPTION_LONG_FAMILY_NAMES back
+      Use uuid-based cache filename if uuid is assigned to dirs
+      Add new API to find out a font from current search path
+      Replace the font path in FcPattern to what it is actually located.
+      Replace the original path to the new one
+      Replace the path of subdirs in caches as well
+      Don't call FcStat when the alias has already been added
+      Destroy the alias and UUID tables when all of caches is unloaded
+      cleanup
+      abstract hash table functions
+      update
+      Fix memory leak
+      Fix a typo
+      Don't call FcStat when the alias has already been added
+      Add a testcase for bind-mounted cachedir
+      cleanup
+      Use smaller prime for hash size
+      Fix the testcase for env not enabled PCF_CONFIG_OPTION_LONG_FAMILY_NAMES in freetype
+      thread-safe functions in fchash.c
+      Fix distcheck error
+      Fix "make check" fail again
+      Bump the libtool revision
+
+Alban Browaeys (1):
+      Fixes cleanup
+
+Alexander Kanavin (1):
+      src/fcxml.c: avoid double free() of filename
+
+Bastien Nocera (1):
+      conf: Prefer system emoji fonts to third-party ones
+
+Behdad Esfahbod (76):
+      Minor
+      Remove stray printf()
+      [fc-query] Fix linking order
+      Instead of loading glyphs (with FreeType), just check loca table
+      Don't even check loca for glyph outline detection
+      Check for non-empty outline for U+0000..U+001F
+      Add back code for choosing strike, and cleanup
+      Minor: adjust debug output
+      Remove unnecessary check
+      Remove a few unused blanks parameters
+      Remove check that cannot fail
+      Remove use of psnames for charset construction
+      Remove unused variable
+      Remove fc-glyphname
+      Remove blanks facility from the library
+      Remove blanks support from fc-scan
+      Mark more parameters FC_UNUSED
+      Move variables to narrower scope and indent
+      Remove unneeded check
+      Use multiplication instead of division
+      Use inline functions instead of macros for a couple of things
+      Simplify advance-width calculations
+      Inline FcFreeTypeCheckGlyph()
+      Call FT_Get_Advance() only as long as we need to determine font width type
+      Minor
+      Update documentation for removal of blanks
+      Merge branch 'faster'
+      Add FcFreeTypeQueryAll()
+      Document FcFreeTypeQueryAll()
+      Accept NULL in for spacing in FcFreeTypeCharSetAndSpacing()
+      Remove FcCompareSize()
+      Rename FcCompareSizeRange() to FcCompareRange()
+      Rewrite FcCompareRange()
+      In FcSubstituteDefault(), handle size range
+      Check instance-index before accessing array
+      Indent
+      [varfonts] Add FC_FONT_VARIATIONS
+      [varfonts] Add FC_VARIABLE
+      [varfonts] Change id argument in FcFreeTypeQuery* to unsigned int
+      Print ranges as closed as opposed to half-open
+      [varfonts] Change FC_WEIGHT and FC_WIDTH into ranges
+      [varfonts] Query varfonts if id >> 16 == 0x8000
+      Fix instance-num handling in collections
+      [varfonts] Query variable font in FcFreeTypeQueryAll()
+      [varfonts] Fetch optical-size for named instances
+      In RenderPrepare(), handle ranges smartly
+      [fc-query] Remove --ignore-blanks / -b
+      [fc-match/fc-list/fc-query/fc-scan] Add --brief that is like --verbose without charset
+      Add separate match compare function for size
+      Fix range comparision operators implementation
+      Adjust emboldening logic
+      [varfonts] Map from OpenType to Fontconfig weight values
+      Add FcDontCare value to FcBool
+      Implement more config bool operations for boolean types
+      Fix possible div-by-zero
+      [varfonts] Use fvar data even if there's no variation in it
+      Minor
+      Revert "[varfonts] Use fvar data even if there's no variation in it"
+      [varfonts] Minor
+      [varfonts] Comment
+      [varfonts] Don't set style for variable-font pattern
+      [varfonts] Skip named-instance that is equivalent to base font
+      [varfonts] Do not set postscriptname for varfont pattern
+      [varfonts] Don't reopen face for each named instance
+      Separate charset and spacing code
+      [varfonts] Reuse charset for named instances
+      Move whitespace-trimming code to apply to all name-table strings
+      Fix whitespace-trimming loop and empty strings...
+      Whitespace
+      Don't convert nameds to UTF-8 unless we are going to use them
+      Simplify name-table platform mathcing logic
+      Use binary-search for finding name table entries
+      [varfonts] Share lang across named-instances
+      Merge branch 'varfonts2'
+      Require freetype >= 2.8.1
+      Remove assert
+
+David Kaspar [Dee'Kej] (1):
+      conf.d: Drop aliases for (URW)++ fonts
+
+Florian Müllner (1):
+      build: Remove references to deleted file
 
 2.12.6
 

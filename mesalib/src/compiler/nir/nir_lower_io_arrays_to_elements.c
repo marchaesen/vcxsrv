@@ -247,7 +247,7 @@ create_indirects_mask(nir_shader *shader, uint64_t *indirects,
                if (var->data.mode != mode)
                   continue;
 
-               uint64_t loc_mask = 1 << var->data.location;
+               uint64_t loc_mask = ((uint64_t)1) << var->data.location;
                if (var->data.patch) {
                   if (deref_has_indirect(&b, var, intr->variables[0]))
                      patch_indirects[var->data.location_frac] |= loc_mask;
@@ -289,7 +289,7 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                nir_variable *var = intr->variables[0]->var;
 
                /* Skip indirects */
-               uint64_t loc_mask = 1 << var->data.location;
+               uint64_t loc_mask = ((uint64_t)1) << var->data.location;
                if (var->data.patch) {
                   if (patch_indirects[var->data.location_frac] & loc_mask)
                      continue;

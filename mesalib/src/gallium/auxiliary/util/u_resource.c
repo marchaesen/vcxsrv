@@ -42,6 +42,7 @@ util_resource_size(const struct pipe_resource *res)
    unsigned depth = res->depth0;
    unsigned size = 0;
    unsigned level;
+   unsigned samples = MAX2(1, res->nr_samples);
 
    for (level = 0; level <= res->last_level; level++) {
       unsigned slices;
@@ -54,7 +55,7 @@ util_resource_size(const struct pipe_resource *res)
          slices = res->array_size;
 
       size += (util_format_get_nblocksy(res->format, height) *
-               util_format_get_stride(res->format, width) * slices);
+               util_format_get_stride(res->format, width) * slices * samples);
 
       width  = u_minify(width, 1);
       height = u_minify(height, 1);

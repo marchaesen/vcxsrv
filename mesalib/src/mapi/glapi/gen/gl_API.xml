@@ -8400,6 +8400,10 @@
 
 <xi:include href="ARB_gpu_shader_int64.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<!-- ARB extension 179 - 189 -->
+
+<xi:include href="ARB_gl_spirv.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <!-- Non-ARB extensions sorted by extension number. -->
 
 <category name="GL_EXT_blend_color" number="2">
@@ -12940,12 +12944,12 @@
     <enum name="TIME_ELAPSED_EXT" value="0x88BF"/>
     <type name="int64EXT"                  size="8"/>
     <type name="uint64EXT" unsigned="true" size="8"/>
-    <function name="GetQueryObjecti64vEXT" alias="GetQueryObjecti64v">
+    <function name="GetQueryObjecti64vEXT" alias="GetQueryObjecti64v" es2="2.0">
         <param name="id" type="GLuint"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLint64EXT *"/>
     </function>
-    <function name="GetQueryObjectui64vEXT" alias="GetQueryObjectui64v">
+    <function name="GetQueryObjectui64vEXT" alias="GetQueryObjectui64v" es2="2.0">
         <param name="id" type="GLuint"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLuint64EXT *"/>

@@ -32,14 +32,14 @@ unsigned
 util_resource_size(const struct pipe_resource *res);
 
 /**
- * Return true if the resource is an array texture.
+ * Return true if the texture target is an array type.
  *
  * Note that this function returns true for single-layered array textures.
  */
 static inline boolean
-util_resource_is_array_texture(const struct pipe_resource *res)
+util_texture_is_array(enum pipe_texture_target target)
 {
-   switch (res->target) {
+   switch (target) {
    case PIPE_TEXTURE_1D_ARRAY:
    case PIPE_TEXTURE_2D_ARRAY:
    case PIPE_TEXTURE_CUBE_ARRAY:

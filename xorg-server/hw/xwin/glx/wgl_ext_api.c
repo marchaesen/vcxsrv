@@ -69,4 +69,4 @@
  * systems...
  */
 
-#include "generated_wgl_wrappers.c"
+#include "generated_wgl_wrappers.ic"

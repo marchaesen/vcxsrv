@@ -15,7 +15,7 @@ wgl_wrappers = custom_target(
     'gen_wgl_wrappers',
     command: [gen_gl_wrappers_cmd, '-registry', '@INPUT@', '-prefix', 'wgl', '-wrapper', '-preresolve', '-outfile', '@OUTPUT@'],
     input: join_paths(khronos_spec_dir, 'wgl.xml'),
-    output: 'generated_wgl_wrappers.c',
+    output: 'generated_wgl_wrappers.ic',
     depend_files: join_paths(khronos_spec_dir, 'reg.py'),
 )
 
@@ -23,7 +23,7 @@ gl_shim = custom_target(
     'gen_gl_shim',
     command: [gen_gl_wrappers_cmd, '-registry', '@INPUT@', '-shim', '-outfile', '@OUTPUT@'],
     input: join_paths(khronos_spec_dir, 'gl.xml'),
-    output: 'generated_gl_shim.c',
+    output: 'generated_gl_shim.ic',
     depend_files: join_paths(khronos_spec_dir, 'reg.py'),
 )
 
@@ -31,7 +31,7 @@ gl_thunks = custom_target(
     'gen_gl_thunks',
     command: [gen_gl_wrappers_cmd, '-registry', '@INPUT@', '-thunk', '-outfile', '@OUTPUT@'],
     input: join_paths(khronos_spec_dir, 'gl.xml'),
-    output: 'generated_gl_thunks.c',
+    output: 'generated_gl_thunks.ic',
     depend_files: join_paths(khronos_spec_dir, 'reg.py'),
 )
 
@@ -48,9 +48,11 @@ srcs_windows_glx = [
     'winpriv.h',
     'glwindows.h',
     'glshim.c',
+    gl_shim,
     'indirect.c',
     'indirect.h',
     'wgl_ext_api.c',
+    wgl_wrappers,
     'wgl_ext_api.h',
 ]
 
@@ -79,6 +81,7 @@ xwin_glx = static_library(
 
 srcs_wgl_thunk = [
     'glthunk.c',
+    gl_thunks,
 ]
 
 WGLthunk = shared_library(

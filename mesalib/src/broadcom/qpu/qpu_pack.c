@@ -168,7 +168,7 @@ v3d_qpu_sig_unpack(const struct v3d_device_info *devinfo,
 
         /* Signals with zeroed unpacked contents after element 0 are reserved. */
         return (packed_sig == 0 ||
-                memcmp(sig, &v33_sig_map[0], sizeof(*sig) != 0));
+                memcmp(sig, &v33_sig_map[0], sizeof(*sig)) != 0);
 }
 
 bool

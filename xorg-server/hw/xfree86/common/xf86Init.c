@@ -298,16 +298,9 @@ xf86PrivsElevated(void)
 }
 
 static void
-InstallSignalHandlers(void)
+TrapSignals(void)
 {
-    /*
-     * Install signal handler for unexpected signals
-     */
-    xf86Info.caughtSignal = FALSE;
-    if (!xf86Info.notrapSignals) {
-        OsRegisterSigWrapper(xf86SigWrapper);
-    }
-    else {
+    if (xf86Info.notrapSignals) {
         OsSignal(SIGSEGV, SIG_DFL);
         OsSignal(SIGABRT, SIG_DFL);
         OsSignal(SIGILL, SIG_DFL);
@@ -423,7 +416,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             }
         }
 
-        InstallSignalHandlers();
+        TrapSignals();
 
         /* Initialise the loader */
         LoaderInit();
@@ -960,10 +953,6 @@ ddxGiveUp(enum ExitCode error)
     dbus_core_fini();
 
     xf86CloseLog(error);
-
-    /* If an unexpected signal was caught, dump a core for debugging */
-    if (xf86Info.caughtSignal)
-        OsAbort();
 }
 
 /*

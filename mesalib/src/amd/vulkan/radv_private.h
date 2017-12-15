@@ -542,6 +542,7 @@ struct radv_device {
 	bool dfsm_allowed;
 	uint32_t tess_offchip_block_dw_size;
 	uint32_t scratch_waves;
+	uint32_t dispatch_initiator;
 
 	uint32_t gs_table_depth;
 

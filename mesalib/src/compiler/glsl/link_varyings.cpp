@@ -1774,10 +1774,10 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
 
    for (unsigned i = 0; i < this->num_matches; i++) {
       unsigned *location = &generic_location;
-
       const ir_variable *var;
       const glsl_type *type;
       bool is_vertex_input = false;
+
       if (matches[i].consumer_var) {
          var = matches[i].consumer_var;
          type = get_varying_type(var, consumer_stage);
@@ -2044,7 +2044,7 @@ varying_matches::xfb_comparator(const void *x_generic, const void *y_generic)
    const match *x = (const match *) x_generic;
 
    if (x->producer_var != NULL && x->producer_var->data.is_xfb_only)
-         return match_comparator(x_generic, y_generic);
+      return match_comparator(x_generic, y_generic);
 
    /* FIXME: When the comparator returns 0 it means the elements being
     * compared are equivalent. However the qsort documentation says:

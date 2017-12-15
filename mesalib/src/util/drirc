@@ -258,6 +258,9 @@ TODO: document the other workarounds.
         <application name="Spec Ops: The Line (64-bit)" executable="specops">
             <option name="mesa_glthread" value="true"/>
         </application>
+        <application name="Mount and Blade Warband" executable="mb_warband_linux">
+            <option name="mesa_glthread" value="true"/>
+        </application>
     </device>
     <!-- vmwgfx doesn't like full buffer swaps and can't sync to vertical retraces.-->
     <device driver="vmwgfx">

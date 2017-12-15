@@ -2053,16 +2053,6 @@ functions is as follows:
 
 	</para></blockquote>
 
-      <blockquote><para>
-	  <programlisting>
-    Bool xf86CaughtSignal();
-	  </programlisting>
-	  <blockquote><para>
-      Returns <constant>TRUE</constant> if the server has caught a signal,
-      and <constant>FALSE</constant> otherwise.
-	    </para></blockquote>
-
-	</para></blockquote>
     </sect2>
 
     <sect2>

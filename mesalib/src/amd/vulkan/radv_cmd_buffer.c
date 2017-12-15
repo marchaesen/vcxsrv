@@ -2561,6 +2561,9 @@ radv_emit_compute_pipeline(struct radv_cmd_buffer *cmd_buffer)
 {
 	struct radv_shader_variant *compute_shader;
 	struct radv_pipeline *pipeline = cmd_buffer->state.compute_pipeline;
+	struct radv_device *device = cmd_buffer->device;
+	unsigned compute_resource_limits;
+	unsigned waves_per_threadgroup;
 	uint64_t va;
 
 	if (!pipeline || pipeline == cmd_buffer->state.emitted_compute_pipeline)
@@ -2572,7 +2575,7 @@ radv_emit_compute_pipeline(struct radv_cmd_buffer *cmd_buffer)
 	va = radv_buffer_get_va(compute_shader->bo) + compute_shader->bo_offset;
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws,
-							   cmd_buffer->cs, 16);
+							   cmd_buffer->cs, 19);
 
 	radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B830_COMPUTE_PGM_LO, 2);
 	radeon_emit(cmd_buffer->cs, va >> 8);
@@ -2591,6 +2594,30 @@ radv_emit_compute_pipeline(struct radv_cmd_buffer *cmd_buffer)
 	radeon_set_sh_reg(cmd_buffer->cs, R_00B860_COMPUTE_TMPRING_SIZE,
 			  S_00B860_WAVES(pipeline->max_waves) |
 			  S_00B860_WAVESIZE(pipeline->scratch_bytes_per_wave >> 10));
+
+	/* Calculate best compute resource limits. */
+	waves_per_threadgroup =
+		DIV_ROUND_UP(compute_shader->info.cs.block_size[0] *
+			     compute_shader->info.cs.block_size[1] *
+			     compute_shader->info.cs.block_size[2], 64);
+	compute_resource_limits =
+		S_00B854_SIMD_DEST_CNTL(waves_per_threadgroup % 4 == 0);
+
+	if (device->physical_device->rad_info.chip_class >= CIK) {
+		unsigned num_cu_per_se =
+			device->physical_device->rad_info.num_good_compute_units /
+			device->physical_device->rad_info.max_se;
+
+		/* Force even distribution on all SIMDs in CU if the workgroup
+		 * size is 64. This has shown some good improvements if # of
+		 * CUs per SE is not a multiple of 4.
+		 */
+		if (num_cu_per_se % 4 && waves_per_threadgroup == 1)
+			compute_resource_limits |= S_00B854_FORCE_SIMD_DIST(1);
+	}
+
+	radeon_set_sh_reg(cmd_buffer->cs, R_00B854_COMPUTE_RESOURCE_LIMITS,
+			  compute_resource_limits);
 
 	radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B81C_COMPUTE_NUM_THREAD_X, 3);
 	radeon_emit(cmd_buffer->cs,
@@ -3483,28 +3510,15 @@ radv_emit_dispatch_packets(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_pipeline *pipeline = cmd_buffer->state.compute_pipeline;
 	struct radv_shader_variant *compute_shader = pipeline->shaders[MESA_SHADER_COMPUTE];
+	unsigned dispatch_initiator = cmd_buffer->device->dispatch_initiator;
 	struct radeon_winsys *ws = cmd_buffer->device->ws;
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
 	struct ac_userdata_info *loc;
-	unsigned dispatch_initiator;
-	uint8_t grid_used;
-
-	grid_used = compute_shader->info.info.cs.grid_components_used;
 
 	loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_COMPUTE,
 				    AC_UD_CS_GRID_SIZE);
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(ws, cs, 25);
-
-	dispatch_initiator = S_00B800_COMPUTE_SHADER_EN(1) |
-			     S_00B800_FORCE_START_AT_000(1);
-
-	if (cmd_buffer->device->physical_device->rad_info.chip_class >= CIK) {
-		/* If the KMD allows it (there is a KMD hw register for it),
-		 * allow launching waves out-of-order.
-		 */
-		dispatch_initiator |= S_00B800_ORDER_MODE(1);
-	}
 
 	if (info->indirect) {
 		uint64_t va = radv_buffer_get_va(info->indirect->bo);
@@ -3514,7 +3528,7 @@ radv_emit_dispatch_packets(struct radv_cmd_buffer *cmd_buffer,
 		radv_cs_add_buffer(ws, cs, info->indirect->bo, 8);
 
 		if (loc->sgpr_idx != -1) {
-			for (unsigned i = 0; i < grid_used; ++i) {
+			for (unsigned i = 0; i < 3; ++i) {
 				radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
 				radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_MEM) |
 						COPY_DATA_DST_SEL(COPY_DATA_REG));
@@ -3581,15 +3595,13 @@ radv_emit_dispatch_packets(struct radv_cmd_buffer *cmd_buffer,
 
 		if (loc->sgpr_idx != -1) {
 			assert(!loc->indirect);
-			assert(loc->num_sgprs == grid_used);
+			assert(loc->num_sgprs == 3);
 
 			radeon_set_sh_reg_seq(cs, R_00B900_COMPUTE_USER_DATA_0 +
-						  loc->sgpr_idx * 4, grid_used);
+						  loc->sgpr_idx * 4, 3);
 			radeon_emit(cs, blocks[0]);
-			if (grid_used > 1)
-				radeon_emit(cs, blocks[1]);
-			if (grid_used > 2)
-				radeon_emit(cs, blocks[2]);
+			radeon_emit(cs, blocks[1]);
+			radeon_emit(cs, blocks[2]);
 		}
 
 		radeon_emit(cs, PKT3(PKT3_DISPATCH_DIRECT, 3, 0) |

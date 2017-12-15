@@ -77,6 +77,7 @@ header = """/**
 #include "main/eval.h"
 #include "main/externalobjects.h"
 #include "main/get.h"
+#include "main/glspirv.h"
 #include "main/feedback.h"
 #include "main/fog.h"
 #include "main/fbobject.h"
