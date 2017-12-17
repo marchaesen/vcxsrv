@@ -1,0 +1,247 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.2.7 Release Notes / December 14, 2017</h1>
+
+<p>
+Mesa 17.2.7 is a bug fix release which fixes bugs found since the 17.2.6 release.
+</p>
+<p>
+Mesa 17.2.7 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+e8d837a1cd55014e636e9caf6c75cfbe1b3e4be9ab3fa125f5ef38398aa12e97  mesa-17.2.7.tar.gz
+50cfdea8df55045797b4d0409591c04c784d9551c4da09b8178874dbe5a37a68  mesa-17.2.7.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=94739">Bug 94739</a> - Mesa 11.1.2 implementation error: bad format MESA_FORMAT_Z_FLOAT32 in _mesa_unpack_uint_24_8_depth_stencil_row</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101378">Bug 101378</a> - interpolateAtSample check for input parameter is too strict</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102006">Bug 102006</a> - gstreamer vaapih264enc segfault</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102435">Bug 102435</a> - [skl,kbl] [drm] GPU HANG: ecode 9:0:0x86df7cf9, in csgo_linux64 [4947], reason: Hang on rcs, action: reset</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102552">Bug 102552</a> - Null dereference due to not checking return value of util_format_description</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102677">Bug 102677</a> - [OpenGL CTS] KHR-GL45.CommonBugs.CommonBug_PerVertexValidation fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103098">Bug 103098</a> - [OpenGL CTS] KHR-GL45.enhanced_layouts.varying_structure_locations fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103227">Bug 103227</a> - [G965 G45 ILK] ES2-CTS.gtf.GL2ExtensionTests.texture_float.texture_float regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103393">Bug 103393</a> - glDispatchComputeGroupSizeARB : gl_GlobalInvocationID.x != gl_WorkGroupID.x * gl_LocalGroupSizeARB.x + gl_LocalInvocationID.x</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103412">Bug 103412</a> - gallium/wgl: Another fix to context creation without prior SetPixelFormat()</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103616">Bug 103616</a> - Increased difference from reference image in shaders</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103626">Bug 103626</a> - [SNB] ES3-CTS.functional.shaders.precision</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103732">Bug 103732</a> - [swr] often gets stuck in piglit's glx-multi-context-single-window test</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103909">Bug 103909</a> - anv_allocator.c:113:1: error: static declaration of ‘memfd_create’ follows non-static declaration</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103966">Bug 103966</a> - Mesa 17.2.5 implementation error: bad format MESA_FORMAT_Z_FLOAT32 in _mesa_unpack_uint_24_8_depth_stencil_row</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104119">Bug 104119</a> - radv: OpBitFieldInsert produces 0 with a loop counter for Insert</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104143">Bug 104143</a> - r600/sb: clobbers gl_Position -&gt; gl_FragCoord</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Smith (1):</p>
+<ul>
+  <li>radv: Add LLVM version to the device name string</li>
+</ul>
+
+<p>Andres Gomez (2):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.2.6</li>
+  <li>docs: remove bug 103626 from fix list as per 17.2.6</li>
+</ul>
+
+<p>Ben Crocker (2):</p>
+<ul>
+  <li>docs/llvmpipe.html: Minor edits</li>
+  <li>docs/llvmpipe: document ppc64le as alternative architecture to x86.</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>r600/sb: handle jump after target to end of program. (v2)</li>
+</ul>
+
+<p>Denis Pauk (1):</p>
+<ul>
+  <li>gallium/{r600, radeonsi}: Fix segfault with color format (v2)</li>
+</ul>
+
+<p>Eduardo Lima Mitev (3):</p>
+<ul>
+  <li>glsl_parser_extra: Add utility to copy symbols between symbol tables</li>
+  <li>glsl: Use the utility function to copy symbols between symbol tables</li>
+  <li>glsl/linker: Check that re-declared, inter-shader built-in blocks match</li>
+</ul>
+
+<p>Emil Velikov (3):</p>
+<ul>
+  <li>gl_table.py: add extern C guard for the generated glapitable.h</li>
+  <li>cherry-ignore: radeonsi: allow DMABUF exports for local buffers</li>
+  <li>Update version to 17.2.7</li>
+</ul>
+
+<p>Eric Anholt (1):</p>
+<ul>
+  <li>broadcom/vc4: Fix handling of GFXH-515 workaround with a start vertex count.</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>compiler: use NDEBUG to guard asserts</li>
+</ul>
+
+<p>Fabian Bieler (2):</p>
+<ul>
+  <li>glsl: Match order of gl_LightSourceParameters elements.</li>
+  <li>glsl: Fix gl_NormalScale.</li>
+</ul>
+
+<p>Frank Richter (1):</p>
+<ul>
+  <li>gallium/wgl: fix default pixel format issue</li>
+</ul>
+
+<p>George Kyriazis (1):</p>
+<ul>
+  <li>swr: Handle resource across context changes</li>
+</ul>
+
+<p>Gert Wollny (2):</p>
+<ul>
+  <li>r600: Emit EOP for more CF instruction types</li>
+  <li>r600/sb: do not convert if-blocks that contain indirect array access</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>glsl: fix derived cs variables</li>
+</ul>
+
+<p>James Legg (1):</p>
+<ul>
+  <li>nir/opcodes: Fix constant-folding of bitfield_insert</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>i965: Disable regular fast-clears (CCS_D) on gen9+</li>
+</ul>
+
+<p>Juan A. Suarez Romero (1):</p>
+<ul>
+  <li>glsl: add varying resources for arrays of complex types</li>
+</ul>
+
+<p>Julien Isorce (1):</p>
+<ul>
+  <li>st/va: change frame_idx from array to hash table</li>
+</ul>
+
+<p>Kai Wasserbäch (1):</p>
+<ul>
+  <li>docs: Point to apt.llvm.org for development snapshot packages</li>
+</ul>
+
+<p>Kenneth Graunke (3):</p>
+<ul>
+  <li>meta: Initialize depth/clear values on declaration.</li>
+  <li>meta: Fix ClearTexture with GL_DEPTH_COMPONENT.</li>
+  <li>i965: Fix Smooth Point Enables.</li>
+</ul>
+
+<p>Marek Olšák (3):</p>
+<ul>
+  <li>radeonsi: fix layered DCC fast clear</li>
+  <li>radeonsi/gfx9: fix importing shared textures with DCC</li>
+  <li>radeonsi: flush the context after resource_copy_region for buffer exports</li>
+</ul>
+
+<p>Matt Turner (4):</p>
+<ul>
+  <li>i965/fs: Handle negating immediates on MADs when propagating saturates</li>
+  <li>util: Fix SHA1 implementation on big endian</li>
+  <li>util: Fix disk_cache index calculation on big endian</li>
+  <li>i965/fs: Unpack count argument to 64-bit shift ops on Atom</li>
+</ul>
+
+<p>Nicolai Hähnle (3):</p>
+<ul>
+  <li>radeonsi: fix the R600_RESOURCE_FLAG_UNMAPPABLE check</li>
+  <li>glsl: allow any l-value of an input variable as interpolant in interpolateAt*</li>
+  <li>glsl: fix interpolateAtXxx(some_vec[idx], ...) with dynamic idx</li>
+</ul>
+
+<p>Pierre Moreau (1):</p>
+<ul>
+  <li>nvc0/ir: Properly lower 64-bit shifts when the shift value is &gt;32</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>mesa/gles: adjust internal format in glTexSubImage2D error checks</li>
+</ul>
+
+<p>Timothy Arceri (1):</p>
+<ul>
+  <li>glsl: get correct member type when processing xfb ifc arrays</li>
+</ul>
+
+<p>Vadym Shovkoplias (2):</p>
+<ul>
+  <li>intel/blorp: Fix possible NULL pointer dereferencing</li>
+  <li>glx/dri3: Remove unused deviceName variable</li>
+</ul>
+
+<p>Vinson Lee (1):</p>
+<ul>
+  <li>anv: Check if memfd_create is already defined.</li>
+</ul>
+
+
+</div>
+</body>
+</html>

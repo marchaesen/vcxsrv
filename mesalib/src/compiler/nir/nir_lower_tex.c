@@ -101,54 +101,6 @@ project_src(nir_builder *b, nir_tex_instr *tex)
    nir_tex_instr_remove_src(tex, proj_index);
 }
 
-static bool
-lower_offset(nir_builder *b, nir_tex_instr *tex)
-{
-   int offset_index = nir_tex_instr_src_index(tex, nir_tex_src_offset);
-   if (offset_index < 0)
-      return false;
-
-   int coord_index = nir_tex_instr_src_index(tex, nir_tex_src_coord);
-   assert(coord_index >= 0);
-
-   assert(tex->src[offset_index].src.is_ssa);
-   assert(tex->src[coord_index].src.is_ssa);
-   nir_ssa_def *offset = tex->src[offset_index].src.ssa;
-   nir_ssa_def *coord = tex->src[coord_index].src.ssa;
-
-   b->cursor = nir_before_instr(&tex->instr);
-
-   nir_ssa_def *offset_coord;
-   if (nir_tex_instr_src_type(tex, coord_index) == nir_type_float) {
-      assert(tex->sampler_dim == GLSL_SAMPLER_DIM_RECT);
-      offset_coord = nir_fadd(b, coord, nir_i2f32(b, offset));
-   } else {
-      offset_coord = nir_iadd(b, coord, offset);
-   }
-
-   if (tex->is_array) {
-      /* The offset is not applied to the array index */
-      if (tex->coord_components == 2) {
-         offset_coord = nir_vec2(b, nir_channel(b, offset_coord, 0),
-                                    nir_channel(b, coord, 1));
-      } else if (tex->coord_components == 3) {
-         offset_coord = nir_vec3(b, nir_channel(b, offset_coord, 0),
-                                    nir_channel(b, offset_coord, 1),
-                                    nir_channel(b, coord, 2));
-      } else {
-         unreachable("Invalid number of components");
-      }
-   }
-
-   nir_instr_rewrite_src(&tex->instr, &tex->src[coord_index].src,
-                         nir_src_for_ssa(offset_coord));
-
-   nir_tex_instr_remove_src(tex, offset_index);
-
-   return true;
-}
-
-
 static nir_ssa_def *
 get_texture_size(nir_builder *b, nir_tex_instr *tex)
 {
@@ -177,6 +129,62 @@ get_texture_size(nir_builder *b, nir_tex_instr *tex)
    nir_builder_instr_insert(b, &txs->instr);
 
    return nir_i2f32(b, &txs->dest.ssa);
+}
+
+static bool
+lower_offset(nir_builder *b, nir_tex_instr *tex)
+{
+   int offset_index = nir_tex_instr_src_index(tex, nir_tex_src_offset);
+   if (offset_index < 0)
+      return false;
+
+   int coord_index = nir_tex_instr_src_index(tex, nir_tex_src_coord);
+   assert(coord_index >= 0);
+
+   assert(tex->src[offset_index].src.is_ssa);
+   assert(tex->src[coord_index].src.is_ssa);
+   nir_ssa_def *offset = tex->src[offset_index].src.ssa;
+   nir_ssa_def *coord = tex->src[coord_index].src.ssa;
+
+   b->cursor = nir_before_instr(&tex->instr);
+
+   nir_ssa_def *offset_coord;
+   if (nir_tex_instr_src_type(tex, coord_index) == nir_type_float) {
+      if (tex->sampler_dim == GLSL_SAMPLER_DIM_RECT) {
+         offset_coord = nir_fadd(b, coord, nir_i2f32(b, offset));
+      } else {
+         nir_ssa_def *txs = get_texture_size(b, tex);
+         nir_ssa_def *scale = nir_frcp(b, txs);
+
+         offset_coord = nir_fadd(b, coord,
+                                 nir_fmul(b,
+                                          nir_i2f32(b, offset),
+                                          scale));
+      }
+   } else {
+      offset_coord = nir_iadd(b, coord, offset);
+   }
+
+   if (tex->is_array) {
+      /* The offset is not applied to the array index */
+      if (tex->coord_components == 2) {
+         offset_coord = nir_vec2(b, nir_channel(b, offset_coord, 0),
+                                    nir_channel(b, coord, 1));
+      } else if (tex->coord_components == 3) {
+         offset_coord = nir_vec3(b, nir_channel(b, offset_coord, 0),
+                                    nir_channel(b, offset_coord, 1),
+                                    nir_channel(b, coord, 2));
+      } else {
+         unreachable("Invalid number of components");
+      }
+   }
+
+   nir_instr_rewrite_src(&tex->instr, &tex->src[coord_index].src,
+                         nir_src_for_ssa(offset_coord));
+
+   nir_tex_instr_remove_src(tex, offset_index);
+
+   return true;
 }
 
 static void
@@ -516,10 +524,9 @@ lower_gradient_cube_map(nir_builder *b, nir_tex_instr *tex)
 }
 
 static void
-lower_gradient_shadow(nir_builder *b, nir_tex_instr *tex)
+lower_gradient(nir_builder *b, nir_tex_instr *tex)
 {
    assert(tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE);
-   assert(tex->is_shadow);
    assert(tex->op == nir_texop_txd);
    assert(tex->dest.is_ssa);
 
@@ -749,6 +756,7 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
       }
 
       if ((tex->op == nir_texop_txf && options->lower_txf_offset) ||
+          (sat_mask && nir_tex_instr_src_index(tex, nir_tex_src_coord) >= 0) ||
           (tex->sampler_dim == GLSL_SAMPLER_DIM_RECT &&
            options->lower_rect_offset)) {
          progress = lower_offset(b, tex) || progress;
@@ -800,16 +808,19 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
 
       if (tex->op == nir_texop_txd &&
           tex->sampler_dim == GLSL_SAMPLER_DIM_CUBE &&
-          (options->lower_txd_cube_map ||
+          (options->lower_txd ||
+           options->lower_txd_cube_map ||
            (tex->is_shadow && options->lower_txd_shadow))) {
          lower_gradient_cube_map(b, tex);
          progress = true;
          continue;
       }
 
-      if (tex->op == nir_texop_txd && options->lower_txd_shadow &&
-          tex->is_shadow && tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE) {
-         lower_gradient_shadow(b, tex);
+      if (tex->op == nir_texop_txd &&
+          (options->lower_txd ||
+           (options->lower_txd_shadow &&
+            tex->is_shadow && tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE))) {
+         lower_gradient(b, tex);
          progress = true;
          continue;
       }

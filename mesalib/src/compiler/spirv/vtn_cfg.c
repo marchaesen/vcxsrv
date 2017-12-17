@@ -24,6 +24,21 @@
 #include "vtn_private.h"
 #include "nir/nir_vla.h"
 
+static struct vtn_pointer *
+vtn_pointer_for_image_or_sampler_variable(struct vtn_builder *b,
+                                          struct vtn_variable *var)
+{
+   assert(var->type->base_type == vtn_base_type_image ||
+          var->type->base_type == vtn_base_type_sampler);
+
+   struct vtn_type *ptr_type = rzalloc(b, struct vtn_type);
+   ptr_type->base_type = vtn_base_type_pointer;
+   ptr_type->storage_class = SpvStorageClassUniformConstant;
+   ptr_type->deref = var->type;
+
+   return vtn_pointer_for_variable(b, var, ptr_type);
+}
+
 static bool
 vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
                                    const uint32_t *w, unsigned count)
@@ -51,17 +66,31 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
 
       func->num_params = func_type->length;
       func->params = ralloc_array(b->shader, nir_parameter, func->num_params);
-      for (unsigned i = 0; i < func->num_params; i++) {
+      unsigned np = 0;
+      for (unsigned i = 0; i < func_type->length; i++) {
          if (func_type->params[i]->base_type == vtn_base_type_pointer &&
              func_type->params[i]->type == NULL) {
-            func->params[i].type = func_type->params[i]->deref->type;
+            func->params[np].type = func_type->params[i]->deref->type;
+            func->params[np].param_type = nir_parameter_inout;
+            np++;
+         } else if (func_type->params[i]->base_type ==
+                    vtn_base_type_sampled_image) {
+            /* Sampled images are actually two parameters */
+            func->params = reralloc(b->shader, func->params,
+                                    nir_parameter, func->num_params++);
+            func->params[np].type = func_type->params[i]->type;
+            func->params[np].param_type = nir_parameter_in;
+            np++;
+            func->params[np].type = glsl_bare_sampler_type();
+            func->params[np].param_type = nir_parameter_in;
+            np++;
          } else {
-            func->params[i].type = func_type->params[i]->type;
+            func->params[np].type = func_type->params[i]->type;
+            func->params[np].param_type = nir_parameter_in;
+            np++;
          }
-
-         /* TODO: We could do something smarter here. */
-         func->params[i].param_type = nir_parameter_inout;
       }
+      assert(np == func->num_params);
 
       func->return_type = func_type->return_type->type;
 
@@ -111,6 +140,53 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
          param->name = ralloc_strdup(param, val->name);
 
          val->pointer = vtn_pointer_for_variable(b, vtn_var, type);
+      } else if (type->base_type == vtn_base_type_image ||
+                 type->base_type == vtn_base_type_sampler ||
+                 type->base_type == vtn_base_type_sampled_image) {
+         struct vtn_variable *vtn_var = rzalloc(b, struct vtn_variable);
+         vtn_var->type = type;
+         vtn_var->var = param;
+         param->interface_type = param->type;
+
+         if (type->base_type == vtn_base_type_sampled_image) {
+            /* Sampled images are actually two parameters.  The first is the
+             * image and the second is the sampler.
+             */
+            struct vtn_value *val =
+               vtn_push_value(b, w[2], vtn_value_type_sampled_image);
+
+            /* Name the parameter so it shows up nicely in NIR */
+            param->name = ralloc_strdup(param, val->name);
+
+            /* Adjust the type of the image variable to the image type */
+            vtn_var->type = type->image;
+
+            /* Now get the sampler parameter and set up its variable */
+            param = b->func->impl->params[b->func_param_idx++];
+            struct vtn_variable *sampler_var = rzalloc(b, struct vtn_variable);
+            sampler_var->type = rzalloc(b, struct vtn_type);
+            sampler_var->type->base_type = vtn_base_type_sampler;
+            sampler_var->type->type = glsl_bare_sampler_type();
+            sampler_var->var = param;
+            param->interface_type = param->type;
+            param->name = ralloc_strdup(param, val->name);
+
+            val->sampled_image = ralloc(b, struct vtn_sampled_image);
+            val->sampled_image->type = type;
+            val->sampled_image->image =
+               vtn_pointer_for_image_or_sampler_variable(b, vtn_var);
+            val->sampled_image->sampler =
+               vtn_pointer_for_image_or_sampler_variable(b, sampler_var);
+         } else {
+            struct vtn_value *val =
+               vtn_push_value(b, w[2], vtn_value_type_pointer);
+
+            /* Name the parameter so it shows up nicely in NIR */
+            param->name = ralloc_strdup(param, val->name);
+
+            val->pointer =
+               vtn_pointer_for_image_or_sampler_variable(b, vtn_var);
+         }
       } else {
          /* We're a regular SSA value. */
          struct vtn_ssa_value *param_ssa =
@@ -170,7 +246,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
 static void
 vtn_add_case(struct vtn_builder *b, struct vtn_switch *swtch,
              struct vtn_block *break_block,
-             uint32_t block_id, uint32_t val, bool is_default)
+             uint32_t block_id, uint64_t val, bool is_default)
 {
    struct vtn_block *case_block =
       vtn_value(b, block_id, vtn_value_type_block)->block;
@@ -197,7 +273,7 @@ vtn_add_case(struct vtn_builder *b, struct vtn_switch *swtch,
    if (is_default) {
       case_block->switch_case->is_default = true;
    } else {
-      util_dynarray_append(&case_block->switch_case->values, uint32_t, val);
+      util_dynarray_append(&case_block->switch_case->values, uint64_t, val);
    }
 }
 
@@ -425,9 +501,35 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          const uint32_t *branch_end =
             block->branch + (block->branch[0] >> SpvWordCountShift);
 
-         vtn_add_case(b, swtch, break_block, block->branch[2], 0, true);
-         for (const uint32_t *w = block->branch + 3; w < branch_end; w += 2)
-            vtn_add_case(b, swtch, break_block, w[1], w[0], false);
+         struct vtn_value *cond_val = vtn_untyped_value(b, block->branch[1]);
+         vtn_fail_if(!cond_val->type ||
+                     cond_val->type->base_type != vtn_base_type_scalar,
+                     "Selector of OpSelect must have a type of OpTypeInt");
+
+         nir_alu_type cond_type =
+            nir_get_nir_type_for_glsl_type(cond_val->type->type);
+         vtn_fail_if(nir_alu_type_get_base_type(cond_type) != nir_type_int &&
+                     nir_alu_type_get_base_type(cond_type) != nir_type_uint,
+                     "Selector of OpSelect must have a type of OpTypeInt");
+
+         bool is_default = true;
+         for (const uint32_t *w = block->branch + 2; w < branch_end;) {
+            uint64_t literal = 0;
+            if (!is_default) {
+               if (nir_alu_type_get_type_size(cond_type) <= 32) {
+                  literal = *(w++);
+               } else {
+                  assert(nir_alu_type_get_type_size(cond_type) == 64);
+                  literal = vtn_u64_literal(w);
+                  w += 2;
+               }
+            }
+
+            uint32_t block_id = *(w++);
+
+            vtn_add_case(b, swtch, break_block, block_id, literal, is_default);
+            is_default = false;
+         }
 
          /* Now, we go through and walk the blocks.  While we walk through
           * the blocks, we also gather the much-needed fall-through
@@ -719,9 +821,9 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
             }
 
             nir_ssa_def *cond = NULL;
-            util_dynarray_foreach(&cse->values, uint32_t, val) {
-               nir_ssa_def *is_val =
-                  nir_ieq(&b->nb, sel, nir_imm_int(&b->nb, *val));
+            util_dynarray_foreach(&cse->values, uint64_t, val) {
+               nir_ssa_def *imm = nir_imm_intN_t(&b->nb, *val, sel->bit_size);
+               nir_ssa_def *is_val = nir_ieq(&b->nb, sel, imm);
 
                cond = cond ? nir_ior(&b->nb, cond, is_val) : is_val;
             }

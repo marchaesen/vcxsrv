@@ -275,6 +275,11 @@ pickFBConfig(__GLXscreen * pGlxScreen, VisualPtr visual)
         /* If it's the 32-bit RGBA visual, demand a 32-bit fbconfig. */
         if (visual->nplanes == 32 && config->rgbBits != 32)
             continue;
+        /* If it's the 32-bit RGBA visual, do not pick sRGB capable config.
+         * This can cause issues with compositors that are not sRGB aware.
+         */
+        if (visual->nplanes == 32 && config->sRGBCapable == GL_TRUE)
+            continue;
         /* Can't use the same FBconfig for multiple X visuals.  I think. */
         if (config->visualID != 0)
             continue;

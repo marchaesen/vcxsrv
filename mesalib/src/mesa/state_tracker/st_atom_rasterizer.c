@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,14 +22,14 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
  /*
   * Authors:
   *   Keith Whitwell <keithw@vmware.com>
   */
- 
+
 #include "main/macros.h"
 #include "main/framebuffer.h"
 #include "main/state.h"
@@ -42,7 +42,8 @@
 #include "cso_cache/cso_context.h"
 
 
-static GLuint translate_fill( GLenum mode )
+static GLuint
+translate_fill(GLenum mode)
 {
    switch (mode) {
    case GL_POINT:
@@ -60,8 +61,8 @@ static GLuint translate_fill( GLenum mode )
 }
 
 
-
-void st_update_rasterizer( struct st_context *st )
+void
+st_update_rasterizer(struct st_context *st)
 {
    struct gl_context *ctx = st->ctx;
    struct pipe_rasterizer_state *raster = &st->state.rasterizer;
@@ -95,7 +96,7 @@ void st_update_rasterizer( struct st_context *st )
    /* _NEW_LIGHT
     */
    raster->flatshade = ctx->Light.ShadeModel == GL_FLAT;
-      
+
    raster->flatshade_first = ctx->Light.ProvokingVertex ==
                              GL_FIRST_VERTEX_CONVENTION_EXT;
 
@@ -111,13 +112,13 @@ void st_update_rasterizer( struct st_context *st )
    if (ctx->Polygon.CullFlag) {
       switch (ctx->Polygon.CullFaceMode) {
       case GL_FRONT:
-	 raster->cull_face = PIPE_FACE_FRONT;
+         raster->cull_face = PIPE_FACE_FRONT;
          break;
       case GL_BACK:
-	 raster->cull_face = PIPE_FACE_BACK;
+         raster->cull_face = PIPE_FACE_BACK;
          break;
       case GL_FRONT_AND_BACK:
-	 raster->cull_face = PIPE_FACE_FRONT_AND_BACK;
+         raster->cull_face = PIPE_FACE_FRONT_AND_BACK;
          break;
       }
    }
@@ -133,22 +134,22 @@ void st_update_rasterizer( struct st_context *st )
          raster->fill_back = PIPE_POLYGON_MODE_LINE;
       }
       else {
-         raster->fill_front = translate_fill( ctx->Polygon.FrontMode );
-         raster->fill_back = translate_fill( ctx->Polygon.BackMode );
+         raster->fill_front = translate_fill(ctx->Polygon.FrontMode);
+         raster->fill_back = translate_fill(ctx->Polygon.BackMode);
       }
 
       /* Simplify when culling is active:
        */
       if (raster->cull_face & PIPE_FACE_FRONT) {
-	 raster->fill_front = raster->fill_back;
+         raster->fill_front = raster->fill_back;
       }
-      
+
       if (raster->cull_face & PIPE_FACE_BACK) {
-	 raster->fill_back = raster->fill_front;
+         raster->fill_back = raster->fill_front;
       }
    }
 
-   /* _NEW_POLYGON 
+   /* _NEW_POLYGON
     */
    if (ctx->Polygon.OffsetPoint ||
        ctx->Polygon.OffsetLine ||
@@ -176,7 +177,7 @@ void st_update_rasterizer( struct st_context *st )
       if ((ctx->Point.SpriteOrigin == GL_UPPER_LEFT) ^
           (st->state.fb_orientation == Y_0_BOTTOM))
          raster->sprite_coord_mode = PIPE_SPRITE_COORD_UPPER_LEFT;
-      else 
+      else
          raster->sprite_coord_mode = PIPE_SPRITE_COORD_LOWER_LEFT;
 
       /* Coord replacement flags.  If bit 'k' is set that means
@@ -271,6 +272,7 @@ void st_update_rasterizer( struct st_context *st )
    raster->half_pixel_center = 1;
    if (st->state.fb_orientation == Y_0_TOP)
       raster->bottom_edge_rule = 1;
+
    /* _NEW_TRANSFORM */
    if (ctx->Transform.ClipOrigin == GL_UPPER_LEFT)
       raster->bottom_edge_rule ^= 1;

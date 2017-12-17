@@ -439,6 +439,7 @@ ac_build_fdiv(struct ac_llvm_context *ctx,
 {
 	LLVMValueRef ret = LLVMBuildFDiv(ctx->builder, num, den, "");
 
+	/* Use v_rcp_f32 instead of precise division. */
 	if (!LLVMIsConstant(ret))
 		LLVMSetMetadata(ret, ctx->fpmath_md_kind, ctx->fpmath_md_2p5_ulp);
 	return ret;
@@ -1479,6 +1480,15 @@ LLVMValueRef ac_build_bfe(struct ac_llvm_context *ctx, LLVMValueRef input,
 				  ctx->i32, args, 3,
 				  AC_FUNC_ATTR_READNONE |
 				  AC_FUNC_ATTR_LEGACY);
+}
+
+void ac_build_waitcnt(struct ac_llvm_context *ctx, unsigned simm16)
+{
+	LLVMValueRef args[1] = {
+		LLVMConstInt(ctx->i32, simm16, false),
+	};
+	ac_build_intrinsic(ctx, "llvm.amdgcn.s.waitcnt",
+			   ctx->voidt, args, 1, 0);
 }
 
 void ac_get_image_intr_name(const char *base_name,

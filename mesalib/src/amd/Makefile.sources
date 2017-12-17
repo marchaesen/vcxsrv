@@ -46,7 +46,10 @@ AMD_COMPILER_FILES = \
 	common/ac_llvm_util.h \
 	common/ac_shader_abi.h \
 	common/ac_shader_info.c \
-	common/ac_shader_info.h
+	common/ac_shader_info.h \
+	common/ac_shader_util.c \
+	common/ac_shader_util.h
+
 
 AMD_NIR_FILES = \
 	common/ac_nir_to_llvm.c \

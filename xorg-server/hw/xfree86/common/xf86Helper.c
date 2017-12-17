@@ -1429,12 +1429,6 @@ xf86ServerIsOnlyDetecting(void)
 }
 
 Bool
-xf86CaughtSignal(void)
-{
-    return xf86Info.caughtSignal;
-}
-
-Bool
 xf86GetVidModeAllowNonLocal(void)
 {
     return xf86Info.vidModeAllowNonLocal;

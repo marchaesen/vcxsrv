@@ -52,6 +52,7 @@ SOFTWARE.
 #include <X11/X.h>
 #include "os.h"
 #include "osdep.h"
+#include "opaque.h"
 #include <X11/Xos.h>
 #include <signal.h>
 #include <errno.h>
@@ -73,8 +74,6 @@ SOFTWARE.
 #ifndef ADMPATH
 #define ADMPATH "/usr/adm/X%smsgs"
 #endif
-
-extern char *display;
 
 #ifdef RLIMIT_DATA
 int limitDataSpace = -1;
@@ -150,6 +149,9 @@ OsSigHandler(int signo)
         }
     }
 #endif
+
+    if (signo != SIGQUIT)
+        CoreDump = TRUE;
 
     FatalError("Caught signal %d (%s). Server aborting\n",
                signo, strsignal(signo));

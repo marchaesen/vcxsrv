@@ -1101,6 +1101,16 @@ VkResult radv_CreateDevice(
 	device->scratch_waves = MAX2(32 * physical_device->rad_info.num_good_compute_units,
 				     max_threads_per_block / 64);
 
+	device->dispatch_initiator = S_00B800_COMPUTE_SHADER_EN(1) |
+				     S_00B800_FORCE_START_AT_000(1);
+
+	if (device->physical_device->rad_info.chip_class >= CIK) {
+		/* If the KMD allows it (there is a KMD hw register for it),
+		 * allow launching waves out-of-order.
+		 */
+		device->dispatch_initiator |= S_00B800_ORDER_MODE(1);
+	}
+
 	radv_device_init_gs_info(device);
 
 	device->tess_offchip_block_dw_size =
@@ -2162,6 +2172,8 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		vk_find_struct_const(pAllocateInfo->pNext, IMPORT_MEMORY_FD_INFO_KHR);
 	const VkMemoryDedicatedAllocateInfoKHR *dedicate_info =
 		vk_find_struct_const(pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO_KHR);
+	const VkExportMemoryAllocateInfoKHR *export_info =
+		vk_find_struct_const(pAllocateInfo->pNext, EXPORT_MEMORY_ALLOCATE_INFO_KHR);
 
 	const struct wsi_memory_allocate_info *wsi_info =
 		vk_find_struct_const(pAllocateInfo->pNext, WSI_MEMORY_ALLOCATE_INFO_MESA);
@@ -2213,7 +2225,7 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 	if (mem_type_index == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
 		flags |= RADEON_FLAG_GTT_WC;
 
-	if (!dedicate_info && !import_info)
+	if (!dedicate_info && !import_info && (!export_info || !export_info->handleTypes))
 		flags |= RADEON_FLAG_NO_INTERPROCESS_SHARING;
 
 	mem->bo = device->ws->buffer_create(device->ws, alloc_size, device->physical_device->rad_info.max_alignment,

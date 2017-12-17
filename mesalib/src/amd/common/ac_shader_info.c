@@ -43,7 +43,23 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, struct ac_shader_info *info)
 		info->vs.needs_instance_id = true;
 		break;
 	case nir_intrinsic_load_num_work_groups:
-		info->cs.grid_components_used = instr->num_components;
+		info->cs.uses_grid_size = true;
+		break;
+	case nir_intrinsic_load_local_invocation_id:
+	case nir_intrinsic_load_work_group_id: {
+		unsigned mask = nir_ssa_def_components_read(&instr->dest.ssa);
+		while (mask) {
+			unsigned i = u_bit_scan(&mask);
+
+			if (instr->intrinsic == nir_intrinsic_load_work_group_id)
+				info->cs.uses_block_id[i] = true;
+			else
+				info->cs.uses_thread_id[i] = true;
+		}
+		break;
+	}
+	case nir_intrinsic_load_local_invocation_index:
+		info->cs.uses_local_invocation_idx = true;
 		break;
 	case nir_intrinsic_load_sample_id:
 		info->ps.force_persample = true;

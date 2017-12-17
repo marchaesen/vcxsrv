@@ -578,6 +578,13 @@ static const int extra_EXT_provoking_vertex_32[] = {
    EXTRA_END
 };
 
+static const int extra_EXT_disjoint_timer_query[] = {
+   EXTRA_API_ES2,
+   EXTRA_API_ES3,
+   EXT(EXT_disjoint_timer_query),
+   EXTRA_END
+};
+
 
 /* This is the big table describing all the enums we accept in
  * glGet*v().  The table is partitioned into six parts: enums
@@ -1158,6 +1165,16 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       v->value_int_n.n = MIN2(ctx->Const.NumProgramBinaryFormats, 1);
       if (ctx->Const.NumProgramBinaryFormats > 0) {
          v->value_int_n.ints[0] = GL_PROGRAM_BINARY_FORMAT_MESA;
+      }
+      break;
+   /* GL_EXT_disjoint_timer_query */
+   case GL_GPU_DISJOINT_EXT:
+      {
+         simple_mtx_lock(&ctx->Shared->Mutex);
+         v->value_int = ctx->Shared->DisjointOperation;
+         /* Reset state as expected by the spec. */
+         ctx->Shared->DisjointOperation = false;
+         simple_mtx_unlock(&ctx->Shared->Mutex);
       }
       break;
    }

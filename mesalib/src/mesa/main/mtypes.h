@@ -98,6 +98,7 @@ struct st_context;
 struct gl_uniform_storage;
 struct prog_instruction;
 struct gl_program_parameter_list;
+struct gl_shader_spirv_data;
 struct set;
 struct vbo_context;
 /*@}*/
@@ -2645,6 +2646,9 @@ struct gl_shader
    GLuint TransformFeedbackBufferStride[MAX_FEEDBACK_BUFFERS];
 
    struct gl_shader_info info;
+
+   /* ARB_gl_spirv related data */
+   struct gl_shader_spirv_data *spirv_data;
 };
 
 
@@ -3306,6 +3310,14 @@ struct gl_shared_state
    /** EXT_external_objects */
    struct _mesa_HashTable *MemoryObjects;
 
+   /**
+    * Some context in this share group was affected by a disjoint
+    * operation. This operation can be anything that has effects on
+    * values of timer queries in such manner that they become invalid for
+    * performance metrics. As example gpu reset, counter overflow or gpu
+    * frequency changes.
+    */
+   bool DisjointOperation;
 };
 
 
@@ -4074,6 +4086,7 @@ struct gl_extensions
    GLboolean ARB_enhanced_layouts;
    GLboolean ARB_explicit_attrib_location;
    GLboolean ARB_explicit_uniform_location;
+   GLboolean ARB_gl_spirv;
    GLboolean ARB_gpu_shader5;
    GLboolean ARB_gpu_shader_fp64;
    GLboolean ARB_gpu_shader_int64;
@@ -4155,6 +4168,7 @@ struct gl_extensions
    GLboolean EXT_blend_func_separate;
    GLboolean EXT_blend_minmax;
    GLboolean EXT_depth_bounds_test;
+   GLboolean EXT_disjoint_timer_query;
    GLboolean EXT_draw_buffers2;
    GLboolean EXT_framebuffer_multisample;
    GLboolean EXT_framebuffer_multisample_blit_scaled;

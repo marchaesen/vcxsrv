@@ -73,6 +73,22 @@ ddxBeforeReset(void)
 }
 #endif
 
+ _X_NORETURN
+static void _X_ATTRIBUTE_PRINTF(1, 2)
+xwl_give_up(const char *f, ...)
+{
+    va_list args;
+
+    va_start(args, f);
+    VErrorFSigSafe(f, args);
+    va_end(args);
+
+    CloseWellKnownConnections();
+    OsCleanup(TRUE);
+    fflush(stderr);
+    exit(1);
+}
+
 void
 ddxUseMsg(void)
 {
@@ -719,13 +735,13 @@ xwl_read_events (struct xwl_screen *xwl_screen)
 
     ret = wl_display_read_events(xwl_screen->display);
     if (ret == -1)
-        FatalError("failed to read Wayland events: %s\n", strerror(errno));
+        xwl_give_up("failed to read Wayland events: %s\n", strerror(errno));
 
     xwl_screen->prepare_read = 0;
 
     ret = wl_display_dispatch_pending(xwl_screen->display);
     if (ret == -1)
-        FatalError("failed to dispatch Wayland events: %s\n", strerror(errno));
+        xwl_give_up("failed to dispatch Wayland events: %s\n", strerror(errno));
 }
 
 static int
@@ -752,7 +768,7 @@ xwl_dispatch_events (struct xwl_screen *xwl_screen)
            wl_display_prepare_read(xwl_screen->display) == -1) {
         ret = wl_display_dispatch_pending(xwl_screen->display);
         if (ret == -1)
-            FatalError("failed to dispatch Wayland events: %s\n",
+            xwl_give_up("failed to dispatch Wayland events: %s\n",
                        strerror(errno));
     }
 
@@ -761,13 +777,13 @@ xwl_dispatch_events (struct xwl_screen *xwl_screen)
 pollout:
     ready = xwl_display_pollout(xwl_screen, 5);
     if (ready == -1 && errno != EINTR)
-        FatalError("error polling on XWayland fd: %s\n", strerror(errno));
+        xwl_give_up("error polling on XWayland fd: %s\n", strerror(errno));
 
     if (ready > 0)
         ret = wl_display_flush(xwl_screen->display);
 
     if (ret == -1 && errno != EAGAIN)
-        FatalError("failed to write to XWayland fd: %s\n", strerror(errno));
+        xwl_give_up("failed to write to XWayland fd: %s\n", strerror(errno));
 
     xwl_screen->wait_flush = (ready == 0 || ready == -1 || ret == -1);
 }

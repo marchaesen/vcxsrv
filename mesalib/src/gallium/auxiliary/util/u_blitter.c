@@ -1567,7 +1567,7 @@ bool util_blitter_is_copy_supported(struct blitter_context *blitter,
 }
 
 bool util_blitter_is_blit_supported(struct blitter_context *blitter,
-				    const struct pipe_blit_info *info)
+                                    const struct pipe_blit_info *info)
 {
    return is_blit_generic_supported(blitter,
                                     info->dst.resource, info->dst.format,
@@ -1976,7 +1976,7 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
 
 void
 util_blitter_blit(struct blitter_context *blitter,
-		  const struct pipe_blit_info *info)
+                  const struct pipe_blit_info *info)
 {
    struct pipe_resource *dst = info->dst.resource;
    struct pipe_resource *src = info->src.resource;
@@ -2008,7 +2008,7 @@ util_blitter_blit(struct blitter_context *blitter,
 }
 
 void util_blitter_generate_mipmap(struct blitter_context *blitter,
-				  struct pipe_resource *tex,
+                                  struct pipe_resource *tex,
                                   enum pipe_format format,
                                   unsigned base_level, unsigned last_level,
                                   unsigned first_layer, unsigned last_layer)
@@ -2256,10 +2256,10 @@ void util_blitter_clear_depth_stencil(struct blitter_context *blitter,
 
 /* draw a rectangle across a region using a custom dsa stage - for r600g */
 void util_blitter_custom_depth_stencil(struct blitter_context *blitter,
-				       struct pipe_surface *zsurf,
-				       struct pipe_surface *cbsurf,
-				       unsigned sample_mask,
-				       void *dsa_stage, float depth)
+                                       struct pipe_surface *zsurf,
+                                       struct pipe_surface *cbsurf,
+                                       unsigned sample_mask,
+                                       void *dsa_stage, float depth)
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
    struct pipe_context *pipe = ctx->base.pipe;
@@ -2290,11 +2290,11 @@ void util_blitter_custom_depth_stencil(struct blitter_context *blitter,
    fb_state.height = zsurf->height;
    fb_state.nr_cbufs = 1;
    if (cbsurf) {
-	   fb_state.cbufs[0] = cbsurf;
-	   fb_state.nr_cbufs = 1;
+      fb_state.cbufs[0] = cbsurf;
+      fb_state.nr_cbufs = 1;
    } else {
-	   fb_state.cbufs[0] = NULL;
-	   fb_state.nr_cbufs = 0;
+      fb_state.cbufs[0] = NULL;
+      fb_state.nr_cbufs = 0;
    }
    fb_state.zsbuf = zsurf;
    pipe->set_framebuffer_state(pipe, &fb_state);
@@ -2452,13 +2452,13 @@ out:
 
 /* probably radeon specific */
 void util_blitter_custom_resolve_color(struct blitter_context *blitter,
-				       struct pipe_resource *dst,
-				       unsigned dst_level,
-				       unsigned dst_layer,
-				       struct pipe_resource *src,
-				       unsigned src_layer,
-				       unsigned sample_mask,
-				       void *custom_blend,
+                                       struct pipe_resource *dst,
+                                       unsigned dst_level,
+                                       unsigned dst_layer,
+                                       struct pipe_resource *src,
+                                       unsigned src_layer,
+                                       unsigned sample_mask,
+                                       void *custom_blend,
                                        enum pipe_format format)
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;

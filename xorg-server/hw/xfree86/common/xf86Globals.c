@@ -107,7 +107,6 @@ xf86InfoRec xf86Info = {
     .dontZap = FALSE,
     .dontZoom = FALSE,
     .notrapSignals = FALSE,
-    .caughtSignal = FALSE,
     .currentScreen = NULL,
 #ifdef CSRG_BASED
     .consType = -1,

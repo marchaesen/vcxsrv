@@ -847,6 +847,22 @@
     <enum name="FRAGMENT_SHADER_DISCARDS_SAMPLES_EXT" value="0x8A52"/>
 </category>
 
+<!-- 150. GL_EXT_disjoint_timer_query -->
+<category name="GL_EXT_disjoint_timer_query" number="150">
+    <enum name="QUERY_COUNTER_BITS_EXT"     value="0x8864"/>
+    <enum name="CURRENT_QUERY_EXT"          value="0x8865"/>
+    <enum name="QUERY_RESULT_EXT"           value="0x8866"/>
+    <enum name="QUERY_RESULT_AVAILABLE_EXT" value="0x8867"/>
+    <enum name="TIME_ELAPSED_EXT"           value="0x88BF"/>
+    <enum name="TIMESTAMP_EXT"              value="0x8E28"/>
+    <enum name="GPU_DISJOINT_EXT"           value="0x8FBB"/>
+
+    <function name="QueryCounterEXT" alias="QueryCounter" es2="2.0">
+        <param name="id" type="GLuint"/>
+        <param name="target" type="GLenum"/>
+    </function>
+</category>
+
 <!-- 151. GL_EXT_draw_buffers -->
 <category name="GL_EXT_draw_buffers" number="151">
     <function name="DrawBuffersEXT" alias="DrawBuffers" es2="2.0">

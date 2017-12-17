@@ -290,7 +290,8 @@ NIR_FILES = \
 	nir/nir_worklist.h
 
 SPIRV_GENERATED_FILES = \
-	spirv/spirv_info.c
+	spirv/spirv_info.c \
+	spirv/vtn_gather_types.c
 
 SPIRV_FILES = \
 	spirv/GLSL.std.450.h \

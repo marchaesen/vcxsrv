@@ -73,14 +73,20 @@
 
 #define UNWRAP_SCREEN_INFO(x) pScrn->x = pScreenPriv->x
 
-#define SPRITE_PROLOG miPointerScreenPtr PointPriv = \
-    (miPointerScreenPtr)dixLookupPrivate(&pScreen->devPrivates, \
-    miPointerScreenKey); VGAarbiterScreenPtr pScreenPriv = \
-    ((VGAarbiterScreenPtr)dixLookupPrivate(&(pScreen)->devPrivates, \
-    VGAarbiterScreenKey)); PointPriv->spriteFuncs = pScreenPriv->miSprite;
+#define SPRITE_PROLOG                                           \
+    miPointerScreenPtr PointPriv;                               \
+    VGAarbiterScreenPtr pScreenPriv;                            \
+    input_lock();                                               \
+    PointPriv = dixLookupPrivate(&pScreen->devPrivates,         \
+                                 miPointerScreenKey);           \
+    pScreenPriv = dixLookupPrivate(&(pScreen)->devPrivates,     \
+                                   VGAarbiterScreenKey);        \
+    PointPriv->spriteFuncs = pScreenPriv->miSprite;             \
 
-#define SPRITE_EPILOG pScreenPriv->miSprite = PointPriv->spriteFuncs;\
-    PointPriv->spriteFuncs  = &VGAarbiterSpriteFuncs;
+#define SPRITE_EPILOG                                   \
+    pScreenPriv->miSprite = PointPriv->spriteFuncs;     \
+    PointPriv->spriteFuncs  = &VGAarbiterSpriteFuncs;   \
+    input_unlock();
 
 #define WRAP_SPRITE do { pScreenPriv->miSprite = PointPriv->spriteFuncs;\
     	PointPriv->spriteFuncs  = &VGAarbiterSpriteFuncs; 		\

@@ -2619,6 +2619,12 @@ typedef struct nir_lower_tex_options {
     * with lower_txd_cube_map.
     */
    bool lower_txd_shadow;
+
+   /**
+    * If true, lower nir_texop_txd on all samplers to a nir_texop_txl.
+    * Implies lower_txd_cube_map and lower_txd_shadow.
+    */
+   bool lower_txd;
 } nir_lower_tex_options;
 
 bool nir_lower_tex(nir_shader *shader,

@@ -73,6 +73,17 @@
     <param name="clamp" type="GLfloat"/>
   </function>
   <enum name="POLYGON_OFFSET_CLAMP" value="0x8E1B"/>
+
+  <enum name="SHADER_BINARY_FORMAT_SPIR_V" value="0x9551"/>
+  <enum name="SPIR_V_BINARY" value="0x9552"/>
+
+  <function name="SpecializeShader" alias="SpecializeShaderARB">
+    <param name="shader" type="GLuint"/>
+    <param name="pEntryPoint" type="const GLchar *"/>
+    <param name="numSpecializationConstants" type="GLuint"/>
+    <param name="pConstantIndex" type="const GLuint *"/>
+    <param name="pConstantValue" type="const GLuint *"/>
+  </function>
 </category>
 
 </OpenGLAPI>

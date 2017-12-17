@@ -254,6 +254,11 @@ descriptor=[
   [ "POINT_SIZE_ARRAY_BUFFER_BINDING_OES", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
 ]},
 
+# Enums in GLES2, GLES3
+{ "apis": ["GLES2", "GLES3"], "params": [
+  [ "GPU_DISJOINT_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_disjoint_timer_query" ],
+]},
+
 { "apis": ["GL", "GL_CORE", "GLES2"], "params": [
 # == GL_MAX_TEXTURE_COORDS_NV
   [ "MAX_TEXTURE_COORDS_ARB", "CONTEXT_INT(Const.MaxTextureCoordUnits), extra_ARB_fragment_program" ],

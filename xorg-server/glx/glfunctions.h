@@ -1103,6 +1103,7 @@
 #define glUniform4i64vARB(a1, a2, a3) CALL_Uniform4i64vARB(GET_DISPATCH(), (a1, a2, a3))
 #define glUniform4ui64ARB(a1, a2, a3, a4, a5) CALL_Uniform4ui64ARB(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glUniform4ui64vARB(a1, a2, a3) CALL_Uniform4ui64vARB(GET_DISPATCH(), (a1, a2, a3))
+#define glSpecializeShaderARB(a1, a2, a3, a4, a5) CALL_SpecializeShaderARB(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glInvalidateBufferData(a1) CALL_InvalidateBufferData(GET_DISPATCH(), (a1))
 #define glInvalidateBufferSubData(a1, a2, a3) CALL_InvalidateBufferSubData(GET_DISPATCH(), (a1, a2, a3))
 #define glInvalidateFramebuffer(a1, a2, a3) CALL_InvalidateFramebuffer(GET_DISPATCH(), (a1, a2, a3))

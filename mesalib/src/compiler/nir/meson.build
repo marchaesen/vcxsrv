@@ -72,6 +72,14 @@ spirv_info_c = custom_target(
   command : [prog_python2, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
 )
 
+vtn_gather_types_c = custom_target(
+  'vtn_gather_types.c',
+  input : files('../spirv/vtn_gather_types_c.py',
+                '../spirv/spirv.core.grammar.json'),
+  output : 'vtn_gather_types.c',
+  command : [prog_python2, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
+)
+
 files_libnir = files(
   'nir.c',
   'nir.h',
@@ -189,7 +197,8 @@ files_libnir = files(
 libnir = static_library(
   'nir',
   [files_libnir, spirv_info_c, nir_opt_algebraic_c, nir_opcodes_c,
-   nir_opcodes_h, nir_constant_expressions_c, nir_builder_opcodes_h],
+   nir_opcodes_h, nir_constant_expressions_c, nir_builder_opcodes_h,
+   vtn_gather_types_c],
   include_directories : [inc_common, inc_compiler, include_directories('../spirv')],
   c_args : [c_vis_args, c_msvc_compat_args, no_override_init_args],
   link_with : libcompiler,

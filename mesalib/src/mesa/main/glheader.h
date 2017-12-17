@@ -144,6 +144,10 @@ typedef void *GLeglImageOES;
 #define GL_FRAGMENT_SHADER_DISCARDS_SAMPLES_EXT                 0x8A52
 #endif
 
+#ifndef GL_EXT_disjoint_timer_query
+#define GL_GPU_DISJOINT_EXT                                     0x8FBB
+#endif
+
 /* Inexplicably, GL_HALF_FLOAT_OES has a different value than GL_HALF_FLOAT.
  */
 #ifndef GL_HALF_FLOAT_OES

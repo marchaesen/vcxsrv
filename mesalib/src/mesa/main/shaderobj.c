@@ -33,6 +33,7 @@
 #include "compiler/glsl/string_to_uint_map.h"
 #include "main/glheader.h"
 #include "main/context.h"
+#include "main/glspirv.h"
 #include "main/hash.h"
 #include "main/mtypes.h"
 #include "main/shaderapi.h"
@@ -121,6 +122,7 @@ _mesa_new_shader(GLuint name, gl_shader_stage stage)
 void
 _mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh)
 {
+   _mesa_shader_spirv_data_reference(&sh->spirv_data, NULL);
    free((void *)sh->Source);
    free((void *)sh->FallbackSource);
    free(sh->Label);

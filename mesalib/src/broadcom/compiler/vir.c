@@ -541,6 +541,7 @@ static void
 v3d_lower_nir(struct v3d_compile *c)
 {
         struct nir_lower_tex_options tex_options = {
+                .lower_txd = true,
                 .lower_rect = false, /* XXX */
                 .lower_txp = ~0,
                 /* Apply swizzles to all samplers. */

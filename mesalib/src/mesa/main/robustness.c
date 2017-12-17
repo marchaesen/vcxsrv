@@ -145,6 +145,7 @@ _mesa_GetGraphicsResetStatusARB( void )
        */
       if (status != GL_NO_ERROR) {
          ctx->Shared->ShareGroupReset = true;
+         ctx->Shared->DisjointOperation = true;
       } else if (ctx->Shared->ShareGroupReset && !ctx->ShareGroupReset) {
          status = GL_INNOCENT_CONTEXT_RESET_ARB;
       }
