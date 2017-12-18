@@ -121,6 +121,62 @@ mkdir $FONTDIR/a
 cp $FONT2 $FONTDIR/a
 check
 
+dotest "Re-creating .uuid"
+prep
+cp $FONT1 $FONTDIR
+$FCCACHE $FONTDIR
+cat $FONTDIR/.uuid > out1
+$FCCACHE -f $FONTDIR
+cat $FONTDIR/.uuid > out2
+if cmp out1 out2 > /dev/null ; then : ; else
+  echo "*** Test failed: $TEST"
+  echo "*** .uuid was modified unexpectedly"
+  exit 1
+fi
+$FCCACHE -r $FONTDIR
+cat $FONTDIR/.uuid > out2
+if cmp out1 out2 > /dev/null ; then
+  echo "*** Test failed: $TEST"
+  echo "*** .uuid wasn't modified"
+  exit 1
+fi
+rm out1 out2
+
+dotest "Consistency between .uuid and cache name"
+prep
+cp $FONT1 $FONTDIR
+$FCCACHE $FONTDIR
+cat $FONTDIR/.uuid
+$FCCACHE -r $FONTDIR
+uuid=`cat $FONTDIR/.uuid`
+ls $CACHEDIR/$uuid*
+if [ $? != 0 ]; then
+  echo "*** Test failed: $TEST"
+  echo "No cache for $uuid"
+  ls $CACHEDIR
+  exit 1
+fi
+n=`ls -1 $CACHEDIR/*cache-* | wc -l`
+if [ $n != 1 ]; then
+  echo "*** Test failed: $TEST"
+  echo "Unexpected cache was created"
+  ls $CACHEDIR
+  exit 1
+fi
+
+dotest "Keep mtime of the font directory"
+prep
+cp $FONT1 $FONTDIR
+touch -d @0 $FONTDIR
+stat $FONTDIR | grep Modify > out1
+$FCCACHE $FONTDIR
+stat $FONTDIR | grep Modify > out2
+if cmp out1 out2 > /dev/null ; then : ; else
+    echo "*** Test failed: $TEST"
+    echo "mtime was modified"
+    exit 1
+fi
+
 if [ x"$BWRAP" != "x" ]; then
 dotest "Basic functionality with the bind-mounted cache dir"
 prep

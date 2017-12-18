@@ -69,6 +69,7 @@ LOCAL_CFLAGS += \
 	-DHAVE_PTHREAD=1 \
 	-DHAVE_DLADDR \
 	-DHAVE_DL_ITERATE_PHDR \
+	-DHAVE_LINUX_FUTEX_H \
 	-DMAJOR_IN_SYSMACROS \
 	-fvisibility=hidden \
 	-Wno-sign-compare

@@ -324,6 +324,8 @@ files_libgallium = files(
   'util/u_tile.h',
   'util/u_transfer.c',
   'util/u_transfer.h',
+  'util/u_transfer_helper.c',
+  'util/u_transfer_helper.h',
   'util/u_threaded_context.c',
   'util/u_threaded_context.h',
   'util/u_threaded_context_calls.h',

@@ -188,7 +188,10 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 	was_processed = FcTrue;
 
 	if (really_force)
+	{
 	    FcDirCacheUnlink (dir, config);
+	    FcDirCacheCreateUUID ((FcChar8 *) dir, FcTrue, config);
+	}
 
 	cache = NULL;
 	was_valid = FcFalse;

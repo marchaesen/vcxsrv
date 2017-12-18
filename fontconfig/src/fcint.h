@@ -596,11 +596,6 @@ struct _FcValuePromotionBuffer {
 
 /* fccache.c */
 
-FcPrivate FcBool
-FcDirCacheCreateUUID (FcChar8  *dir,
-		      FcBool    force,
-		      FcConfig *config);
-
 FcPrivate FcCache *
 FcDirCacheScan (const FcChar8 *dir, FcConfig *config);
 
@@ -1340,5 +1335,9 @@ FcHashTableAdd (FcHashTable *table,
 		void        *key,
 		void        *value);
 
+FcPrivate FcBool
+FcHashTableReplace (FcHashTable *table,
+		    void        *key,
+		    void        *value);
 
 #endif /* _FC_INT_H_ */

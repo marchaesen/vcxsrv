@@ -20,7 +20,9 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 #include "fcint.h"
+#ifndef _WIN32
 #include <uuid/uuid.h>
+#endif
 
 #define FC_HASH_SIZE 227
 
@@ -54,8 +56,10 @@ FcBool
 FcHashUuidCopy (const void  *src,
 		void       **dest)
 {
+#ifndef _WIN32
     *dest = malloc (sizeof (uuid_t));
     uuid_copy (*dest, src);
+#endif
     return FcTrue;
 }
 
@@ -137,10 +141,11 @@ FcHashTableFind (FcHashTable  *table,
     return FcFalse;
 }
 
-FcBool
-FcHashTableAdd (FcHashTable *table,
-		void        *key,
-		void        *value)
+static FcBool
+FcHashTableAddInternal (FcHashTable *table,
+			void        *key,
+			void        *value,
+			FcBool       replace)
 {
     FcHashBucket **prev, *bucket, *b;
     FcChar32 hash = table->hash_func (key);
@@ -174,10 +179,36 @@ FcHashTableAdd (FcHashTable *table,
 	 (b = fc_atomic_ptr_get (prev)); prev = &(b->next))
     {
 	if (!table->compare_func (bucket->key, key))
+	{
+	    if (replace)
+	    {
+		if (!fc_atomic_ptr_cmpexch (prev, b, bucket))
+		    goto retry;
+		bucket = b;
+	    }
+	    else
+		ret = FcTrue;
 	    goto destroy;
+	}
     }
     if (!fc_atomic_ptr_cmpexch (prev, b, bucket))
 	goto retry;
 
     return FcTrue;
+}
+
+FcBool
+FcHashTableAdd (FcHashTable *table,
+		void        *key,
+		void        *value)
+{
+    return FcHashTableAddInternal (table, key, value, FcFalse);
+}
+
+FcBool
+FcHashTableReplace (FcHashTable *table,
+		    void        *key,
+		    void        *value)
+{
+    return FcHashTableAddInternal (table, key, value, FcTrue);
 }

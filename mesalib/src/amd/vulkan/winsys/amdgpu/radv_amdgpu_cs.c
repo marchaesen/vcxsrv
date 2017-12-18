@@ -1281,6 +1281,43 @@ static void radv_amdgpu_destroy_syncobj(struct radeon_winsys *_ws,
 	amdgpu_cs_destroy_syncobj(ws->dev, handle);
 }
 
+static void radv_amdgpu_reset_syncobj(struct radeon_winsys *_ws,
+				    uint32_t handle)
+{
+	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
+	amdgpu_cs_syncobj_reset(ws->dev, &handle, 1);
+}
+
+static void radv_amdgpu_signal_syncobj(struct radeon_winsys *_ws,
+				    uint32_t handle)
+{
+	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
+	amdgpu_cs_syncobj_signal(ws->dev, &handle, 1);
+}
+
+static bool radv_amdgpu_wait_syncobj(struct radeon_winsys *_ws,
+				    uint32_t handle, uint64_t timeout)
+{
+	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
+	uint32_t tmp;
+
+	/* The timeouts are signed, while vulkan timeouts are unsigned. */
+	timeout = MIN2(timeout, INT64_MAX);
+
+	int ret = amdgpu_cs_syncobj_wait(ws->dev, &handle, 1, timeout,
+					 DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT |
+					 DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL,
+					 &tmp);
+	if (ret == 0) {
+		return true;
+	} else if (ret == -1 && errno == ETIME) {
+		return false;
+	} else {
+		fprintf(stderr, "amdgpu: radv_amdgpu_wait_syncobj failed!\nerrno: %d\n", errno);
+		return false;
+	}
+}
+
 static int radv_amdgpu_export_syncobj(struct radeon_winsys *_ws,
 				      uint32_t syncobj,
 				      int *fd)
@@ -1319,6 +1356,9 @@ void radv_amdgpu_cs_init_functions(struct radv_amdgpu_winsys *ws)
 	ws->base.destroy_sem = radv_amdgpu_destroy_sem;
 	ws->base.create_syncobj = radv_amdgpu_create_syncobj;
 	ws->base.destroy_syncobj = radv_amdgpu_destroy_syncobj;
+	ws->base.reset_syncobj = radv_amdgpu_reset_syncobj;
+	ws->base.signal_syncobj = radv_amdgpu_signal_syncobj;
+	ws->base.wait_syncobj = radv_amdgpu_wait_syncobj;
 	ws->base.export_syncobj = radv_amdgpu_export_syncobj;
 	ws->base.import_syncobj = radv_amdgpu_import_syncobj;
 	ws->base.fence_wait = radv_amdgpu_fence_wait;

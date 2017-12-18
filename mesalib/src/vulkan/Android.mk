@@ -36,12 +36,13 @@ LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 intermediates := $(call local-generated-sources-dir)
 
 LOCAL_C_INCLUDES := \
-	$(MESA_TOP)/include/vulkan
+	$(MESA_TOP)/include/vulkan \
+	$(MESA_TOP)/src/vulkan/util
 
 LOCAL_GENERATED_SOURCES := $(addprefix $(intermediates)/, \
 	$(VULKAN_UTIL_GENERATED_FILES))
 
-LOCAL_SRC_FILES := $(VULKAN_UTIL_FILES)
+LOCAL_SRC_FILES := $(VULKAN_UTIL_FILES) $(VULKAN_WSI_FILES)
 
 vulkan_api_xml = $(MESA_TOP)/src/vulkan/registry/vk.xml
 vk_android_native_buffer_xml = $(MESA_TOP)/src/vulkan/registry/vk_android_native_buffer.xml

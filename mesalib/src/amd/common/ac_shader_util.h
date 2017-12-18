@@ -25,9 +25,18 @@
 #define AC_SHADER_UTIL_H
 
 #include <stdbool.h>
+#include <stdint.h>
+
+#include "amd_family.h"
 
 unsigned
 ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil,
 			   bool writes_samplemask);
+
+unsigned
+ac_get_cb_shader_mask(unsigned spi_shader_col_format);
+
+uint32_t
+ac_vgt_gs_mode(unsigned gs_max_vert_out, enum chip_class chip_class);
 
 #endif

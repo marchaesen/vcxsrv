@@ -595,6 +595,10 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
     uint32_t fb_id = 0;
     drmModeModeInfo kmode;
 
+    output_ids = calloc(sizeof(uint32_t), xf86_config->num_output);
+    if (!output_ids)
+        return FALSE;
+
     saved_mode = crtc->mode;
     saved_x = crtc->x;
     saved_y = crtc->y;
@@ -605,15 +609,7 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
         crtc->x = x;
         crtc->y = y;
         crtc->rotation = rotation;
-    }
 
-    output_ids = calloc(sizeof(uint32_t), xf86_config->num_output);
-    if (!output_ids) {
-        ret = FALSE;
-        goto done;
-    }
-
-    if (mode) {
         for (i = 0; i < xf86_config->num_output; i++) {
             xf86OutputPtr output = xf86_config->output[i];
             drmmode_output_private_ptr drmmode_output;

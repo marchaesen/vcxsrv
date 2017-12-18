@@ -63,3 +63,10 @@ roundeven_test = env.Program(
     source = ['roundeven_test.c'],
 )
 env.UnitTest("roundeven_test", roundeven_test)
+
+env.Prepend(LIBS = [mesautil])
+mesa_sha1_test = env.Program(
+    target = 'mesa-sha1_test',
+    source = ['mesa-sha1_test.c'],
+)
+env.UnitTest("mesa-sha1_test", mesa_sha1_test)
