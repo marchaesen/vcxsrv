@@ -214,6 +214,11 @@ VkResult radv_AcquireNextImageKHR(
 	if (fence && (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)) {
 		fence->submitted = true;
 		fence->signalled = true;
+		if (fence->temp_syncobj) {
+			device->ws->signal_syncobj(device->ws, fence->temp_syncobj);
+		} else if (fence->syncobj) {
+			device->ws->signal_syncobj(device->ws, fence->syncobj);
+		}
 	}
 	return result;
 }

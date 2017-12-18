@@ -30,6 +30,7 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <assert.h>
 #if defined(HAVE_MMAP) || defined(__CYGWIN__)
 #  include <unistd.h>
@@ -37,8 +38,9 @@
 #endif
 #if defined(_WIN32)
 #include <sys/locking.h>
-#endif
+#else
 #include <uuid/uuid.h>
+#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -50,6 +52,7 @@ FcDirCacheCreateUUID (FcChar8  *dir,
 		      FcConfig *config)
 {
     FcBool ret = FcTrue;
+#ifndef _WIN32
     FcChar8 *uuidname;
 
     uuidname = FcStrBuildFilename (dir, ".uuid", NULL);
@@ -62,7 +65,15 @@ FcDirCacheCreateUUID (FcChar8  *dir,
 	int fd;
 	uuid_t uuid;
 	char out[37];
+	FcBool (* hash_add) (FcHashTable *, void*, void*);
+	struct stat statb;
+	struct timeval times[2];
 
+	if (FcStat (dir, &statb) != 0)
+	{
+	    ret = FcFalse;
+	    goto bail1;
+	}
 	atomic = FcAtomicCreate (uuidname);
 	if (!atomic)
 	{
@@ -81,7 +92,11 @@ FcDirCacheCreateUUID (FcChar8  *dir,
 	    goto bail3;
 	}
 	uuid_generate_random (uuid);
-	if (!FcHashTableAdd (config->uuid_table, dir, uuid))
+	if (force)
+	    hash_add = FcHashTableReplace;
+	else
+	    hash_add = FcHashTableAdd;
+	if (!hash_add (config->uuid_table, dir, uuid))
 	{
 	    ret = FcFalse;
 	    goto bail3;
@@ -96,13 +111,33 @@ FcDirCacheCreateUUID (FcChar8  *dir,
 	FcAtomicUnlock (atomic);
     bail2:
 	FcAtomicDestroy (atomic);
+
+	if (ret)
+	{
+	    /* revert mtime of the directory */
+	    times[0].tv_sec = statb.st_atime;
+	    times[1].tv_sec = statb.st_mtime;
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+	    times[0].tv_usec = statb.st_atim.tv_nsec / 1000;
+	    times[1].tv_usec = statb.st_mtim.tv_nsec / 1000;
+#else
+	    times[0].tv_usec = 0;
+	    times[1].tv_usec = 0;
+#endif
+	    if (utimes ((const  char *) dir, times) != 0)
+	    {
+		fprintf (stderr, "Unable to revert mtime: %s\n", dir);
+	    }
+	}
     }
     bail1:
     FcStrFree (uuidname);
+#endif
 
     return ret;
 }
 
+#ifndef _WIN32
 static void
 FcDirCacheReadUUID (FcChar8  *dir,
 		    FcConfig *config)
@@ -142,6 +177,7 @@ FcDirCacheReadUUID (FcChar8  *dir,
     else
 	FcHashUuidFree (u);
 }
+#endif
 
 struct MD5Context {
         FcChar32 buf[4];
@@ -218,6 +254,7 @@ FcDirCacheBasenameMD5 (const FcChar8 *dir, FcChar8 cache_base[CACHEBASE_LEN])
     return cache_base;
 }
 
+#ifndef _WIN32
 static FcChar8 *
 FcDirCacheBasenameUUID (const FcChar8 *dir, FcChar8 cache_base[CACHEBASE_LEN], FcConfig *config)
 {
@@ -237,6 +274,7 @@ FcDirCacheBasenameUUID (const FcChar8 *dir, FcChar8 cache_base[CACHEBASE_LEN], F
     FcStrFree (alias);
     return NULL;
 }
+#endif
 
 FcBool
 FcDirCacheUnlink (const FcChar8 *dir, FcConfig *config)
@@ -247,7 +285,9 @@ FcDirCacheUnlink (const FcChar8 *dir, FcConfig *config)
     FcChar8	*cache_dir;
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
 
+#ifndef _WIN32
     if (!FcDirCacheBasenameUUID (dir, cache_base, config))
+#endif
 	FcDirCacheBasenameMD5 (dir, cache_base);
 
     list = FcStrListCreate (config->cacheDirs);
@@ -324,7 +364,9 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
     }
     FcStrFree (d);
 
+#ifndef _WIN32
     if (!FcDirCacheBasenameUUID (dir, cache_base, config))
+#endif
 	FcDirCacheBasenameMD5 (dir, cache_base);
 
     list = FcStrListCreate (config->cacheDirs);
@@ -915,7 +957,9 @@ FcDirCacheLoad (const FcChar8 *dir, FcConfig *config, FcChar8 **cache_file)
     FcCache *cache = NULL;
     const FcChar8 *d;
 
+#ifndef _WIN32
     FcDirCacheReadUUID ((FcChar8 *) dir, config);
+#endif
     if (!FcDirCacheProcess (config, dir,
 			    FcDirCacheMapHelper,
 			    &cache, cache_file))
@@ -1176,7 +1220,9 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
     if (!cache_dir)
 	return FcFalse;
 
+#ifndef _WIN32
     if (!FcDirCacheBasenameUUID (dir, cache_base, config))
+#endif
 	FcDirCacheBasenameMD5 (dir, cache_base);
     cache_hashed = FcStrBuildFilename (cache_dir, cache_base, NULL);
     if (!cache_hashed)
@@ -1374,7 +1420,9 @@ FcDirCacheLock (const FcChar8 *dir,
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
     int fd = -1;
 
+#ifndef _WIN32
     if (!FcDirCacheBasenameUUID (dir, cache_base, config))
+#endif
 	FcDirCacheBasenameMD5 (dir, cache_base);
     list = FcStrListCreate (config->cacheDirs);
     if (!list)

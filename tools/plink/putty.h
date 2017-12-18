@@ -616,6 +616,35 @@ typedef struct truecolour {
         optionalrgb_equal((c1).bg, (c2).bg))
 
 /*
+ * Enumeration of clipboards. We provide some standard ones cross-
+ * platform, and then permit each platform to extend this enumeration
+ * further by defining PLATFORM_CLIPBOARDS in its own header file.
+ *
+ * CLIP_NULL is a non-clipboard, writes to which are ignored and reads
+ * from which return no data.
+ *
+ * CLIP_LOCAL refers to a buffer within terminal.c, which
+ * unconditionally saves the last data selected in the terminal. In
+ * configurations where a system clipboard is not written
+ * automatically on selection but instead by an explicit UI action,
+ * this is where the code responding to that action can find the data
+ * to write to the clipboard in question.
+ */
+#define CROSS_PLATFORM_CLIPBOARDS(X)                    \
+    X(CLIP_NULL, "null clipboard")                      \
+    X(CLIP_LOCAL, "last text selected in terminal")     \
+    /* end of list */
+
+#define ALL_CLIPBOARDS(X)                       \
+    CROSS_PLATFORM_CLIPBOARDS(X)                \
+    PLATFORM_CLIPBOARDS(X)                      \
+    /* end of list */
+
+#define CLIP_ID(id,name) id,
+enum { ALL_CLIPBOARDS(CLIP_ID) N_CLIPBOARDS };
+#undef CLIP_ID
+
+/*
  * Exports from the front end.
  */
 void request_resize(void *frontend, int, int);
@@ -635,7 +664,8 @@ void free_ctx(Context);
 void palette_set(void *frontend, int, int, int, int);
 void palette_reset(void *frontend);
 int palette_get(void *frontend, int n, int *r, int *g, int *b);
-void write_clip(void *frontend, wchar_t *, int *, truecolour *, int, int);
+void write_clip(void *frontend, int clipboard, wchar_t *, int *,
+                truecolour *, int, int);
 void optimised_move(void *frontend, int, int, int);
 void set_raw_mouse_mode(void *frontend, int);
 void connection_fatal(void *frontend, const char *, ...);
@@ -647,7 +677,7 @@ void modalfatalbox(const char *, ...);
 void do_beep(void *frontend, int);
 void begin_session(void *frontend);
 void sys_cursor(void *frontend, int x, int y);
-void request_paste(void *frontend);
+void frontend_request_paste(void *frontend, int clipboard);
 void frontend_keypress(void *frontend);
 void frontend_echoedit_update(void *frontend, int echo, int edit);
 /* It's the backend's responsibility to invoke this at the start of a
@@ -869,6 +899,13 @@ void cleanup_exit(int);
     X(INT, NONE, rtf_paste) \
     X(INT, NONE, mouse_override) \
     X(INT, INT, wordness) \
+    X(INT, NONE, mouseautocopy) \
+    X(INT, NONE, mousepaste) \
+    X(INT, NONE, ctrlshiftins) \
+    X(INT, NONE, ctrlshiftcv) \
+    X(STR, NONE, mousepaste_custom) \
+    X(STR, NONE, ctrlshiftins_custom) \
+    X(STR, NONE, ctrlshiftcv_custom) \
     /* translations */ \
     X(INT, NONE, vtmode) \
     X(STR, NONE, line_codepage) \
@@ -1051,15 +1088,17 @@ void term_mouse(Terminal *, Mouse_Button, Mouse_Button, Mouse_Action,
 		int,int,int,int,int);
 void term_key(Terminal *, Key_Sym, wchar_t *, size_t, unsigned int,
 	      unsigned int);
-void term_deselect(Terminal *);
+void term_lost_clipboard_ownership(Terminal *, int clipboard);
 void term_update(Terminal *);
 void term_invalidate(Terminal *);
 void term_blink(Terminal *, int set_cursor);
 void term_do_paste(Terminal *, const wchar_t *, int);
 void term_nopaste(Terminal *);
 int term_ldisc(Terminal *, int option);
-void term_copyall(Terminal *);
+void term_copyall(Terminal *, const int *, int);
 void term_reconfig(Terminal *, Conf *);
+void term_request_copy(Terminal *, const int *clipboards, int n_clipboards);
+void term_request_paste(Terminal *, int clipboard);
 void term_seen_key_event(Terminal *); 
 int term_data(Terminal *, int is_stderr, const char *data, int len);
 int term_data_untrusted(Terminal *, const char *data, int len);
@@ -1400,6 +1439,16 @@ enum {
     X11_NAUTHS
 };
 extern const char *const x11_authnames[];  /* declared in x11fwd.c */
+
+/*
+ * An enum for the copy-paste UI action configuration.
+ */
+enum {
+    CLIPUI_NONE,     /* UI action has no copy/paste effect */
+    CLIPUI_IMPLICIT, /* use the default clipboard implicit in mouse actions  */
+    CLIPUI_EXPLICIT, /* use the default clipboard for explicit Copy/Paste */
+    CLIPUI_CUSTOM,   /* use a named clipboard (on systems that support it) */
+};
 
 /*
  * Miscellaneous exports from the platform-specific code.

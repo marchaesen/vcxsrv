@@ -1256,7 +1256,6 @@ struct radv_cmask_info {
 	uint64_t size;
 	unsigned alignment;
 	unsigned slice_tile_max;
-	unsigned base_address_reg;
 };
 
 struct radv_image {
@@ -1558,7 +1557,8 @@ VkResult radv_alloc_sem_info(struct radv_winsys_sem_info *sem_info,
 			     int num_wait_sems,
 			     const VkSemaphore *wait_sems,
 			     int num_signal_sems,
-			     const VkSemaphore *signal_sems);
+			     const VkSemaphore *signal_sems,
+			     VkFence fence);
 void radv_free_sem_info(struct radv_winsys_sem_info *sem_info);
 
 void radv_set_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
@@ -1597,6 +1597,9 @@ struct radv_fence {
 	struct radeon_winsys_fence *fence;
 	bool submitted;
 	bool signalled;
+
+	uint32_t syncobj;
+	uint32_t temp_syncobj;
 };
 
 struct radeon_winsys_sem;

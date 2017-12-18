@@ -416,38 +416,6 @@ static unsigned si_choose_spi_color_format(VkFormat vk_format,
 		return normal;
 }
 
-static unsigned si_get_cb_shader_mask(unsigned spi_shader_col_format)
-{
-	unsigned i, cb_shader_mask = 0;
-
-	for (i = 0; i < 8; i++) {
-		switch ((spi_shader_col_format >> (i * 4)) & 0xf) {
-		case V_028714_SPI_SHADER_ZERO:
-			break;
-		case V_028714_SPI_SHADER_32_R:
-			cb_shader_mask |= 0x1 << (i * 4);
-			break;
-		case V_028714_SPI_SHADER_32_GR:
-			cb_shader_mask |= 0x3 << (i * 4);
-			break;
-		case V_028714_SPI_SHADER_32_AR:
-			cb_shader_mask |= 0x9 << (i * 4);
-			break;
-		case V_028714_SPI_SHADER_FP16_ABGR:
-		case V_028714_SPI_SHADER_UNORM16_ABGR:
-		case V_028714_SPI_SHADER_SNORM16_ABGR:
-		case V_028714_SPI_SHADER_UINT16_ABGR:
-		case V_028714_SPI_SHADER_SINT16_ABGR:
-		case V_028714_SPI_SHADER_32_ABGR:
-			cb_shader_mask |= 0xf << (i * 4);
-			break;
-		default:
-			assert(0);
-		}
-	}
-	return cb_shader_mask;
-}
-
 static void
 radv_pipeline_compute_spi_color_formats(struct radv_pipeline *pipeline,
 					const VkGraphicsPipelineCreateInfo *pCreateInfo,
@@ -477,7 +445,7 @@ radv_pipeline_compute_spi_color_formats(struct radv_pipeline *pipeline,
 		col_format |= cf << (4 * i);
 	}
 
-	blend->cb_shader_mask = si_get_cb_shader_mask(col_format);
+	blend->cb_shader_mask = ac_get_cb_shader_mask(col_format);
 
 	if (blend_mrt0_is_dual_src)
 		col_format |= (col_format & 0xf) << 4;
@@ -1497,30 +1465,6 @@ static const struct radv_prim_vertex_count prim_size_table[] = {
 	[V_008958_DI_PT_2D_TRI_STRIP] = {0, 0},
 };
 
-static uint32_t si_vgt_gs_mode(struct radv_shader_variant *gs,
-                               enum chip_class chip_class)
-{
-	unsigned gs_max_vert_out = gs->info.gs.vertices_out;
-	unsigned cut_mode;
-
-	if (gs_max_vert_out <= 128) {
-		cut_mode = V_028A40_GS_CUT_128;
-	} else if (gs_max_vert_out <= 256) {
-		cut_mode = V_028A40_GS_CUT_256;
-	} else if (gs_max_vert_out <= 512) {
-		cut_mode = V_028A40_GS_CUT_512;
-	} else {
-		assert(gs_max_vert_out <= 1024);
-		cut_mode = V_028A40_GS_CUT_1024;
-	}
-
-	return S_028A40_MODE(V_028A40_GS_SCENARIO_G) |
-	       S_028A40_CUT_MODE(cut_mode)|
-	       S_028A40_ES_WRITE_OPTIMIZE(chip_class <= VI) |
-	       S_028A40_GS_WRITE_OPTIMIZE(1) |
-	       S_028A40_ONCHIP(chip_class >= GFX9 ? 1 : 0);
-}
-
 static struct ac_vs_output_info *get_vs_output_info(struct radv_pipeline *pipeline)
 {
 	if (radv_pipeline_has_gs(pipeline))
@@ -1539,8 +1483,12 @@ static void calculate_vgt_gs_mode(struct radv_pipeline *pipeline)
 	pipeline->graphics.vgt_gs_mode = 0;
 
 	if (radv_pipeline_has_gs(pipeline)) {
-		pipeline->graphics.vgt_gs_mode = si_vgt_gs_mode(pipeline->shaders[MESA_SHADER_GEOMETRY],
-		                                                pipeline->device->physical_device->rad_info.chip_class);
+		struct radv_shader_variant *gs =
+			pipeline->shaders[MESA_SHADER_GEOMETRY];
+
+		pipeline->graphics.vgt_gs_mode =
+			ac_vgt_gs_mode(gs->info.gs.vertices_out,
+				       pipeline->device->physical_device->rad_info.chip_class);
 	} else if (outinfo->export_prim_id) {
 		pipeline->graphics.vgt_gs_mode = S_028A40_MODE(V_028A40_GS_SCENARIO_A);
 		pipeline->graphics.vgt_primitiveid_en = true;
@@ -1769,6 +1717,45 @@ radv_fill_shader_keys(struct ac_shader_variant_key *keys,
 	keys[MESA_SHADER_FRAGMENT].fs.is_int10 = key->is_int10;
 }
 
+static void
+merge_tess_info(struct shader_info *tes_info,
+                const struct shader_info *tcs_info)
+{
+	/* The Vulkan 1.0.38 spec, section 21.1 Tessellator says:
+	 *
+	 *    "PointMode. Controls generation of points rather than triangles
+	 *     or lines. This functionality defaults to disabled, and is
+	 *     enabled if either shader stage includes the execution mode.
+	 *
+	 * and about Triangles, Quads, IsoLines, VertexOrderCw, VertexOrderCcw,
+	 * PointMode, SpacingEqual, SpacingFractionalEven, SpacingFractionalOdd,
+	 * and OutputVertices, it says:
+	 *
+	 *    "One mode must be set in at least one of the tessellation
+	 *     shader stages."
+	 *
+	 * So, the fields can be set in either the TCS or TES, but they must
+	 * agree if set in both.  Our backend looks at TES, so bitwise-or in
+	 * the values from the TCS.
+	 */
+	assert(tcs_info->tess.tcs_vertices_out == 0 ||
+	       tes_info->tess.tcs_vertices_out == 0 ||
+	       tcs_info->tess.tcs_vertices_out == tes_info->tess.tcs_vertices_out);
+	tes_info->tess.tcs_vertices_out |= tcs_info->tess.tcs_vertices_out;
+
+	assert(tcs_info->tess.spacing == TESS_SPACING_UNSPECIFIED ||
+	       tes_info->tess.spacing == TESS_SPACING_UNSPECIFIED ||
+	       tcs_info->tess.spacing == tes_info->tess.spacing);
+	tes_info->tess.spacing |= tcs_info->tess.spacing;
+
+	assert(tcs_info->tess.primitive_mode == 0 ||
+	       tes_info->tess.primitive_mode == 0 ||
+	       tcs_info->tess.primitive_mode == tes_info->tess.primitive_mode);
+	tes_info->tess.primitive_mode |= tcs_info->tess.primitive_mode;
+	tes_info->tess.ccw |= tcs_info->tess.ccw;
+	tes_info->tess.point_mode |= tcs_info->tess.point_mode;
+}
+
 static
 void radv_create_shaders(struct radv_pipeline *pipeline,
                          struct radv_device *device,
@@ -1872,6 +1859,7 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 
 	if (nir[MESA_SHADER_TESS_CTRL]) {
 		nir_lower_tes_patch_vertices(nir[MESA_SHADER_TESS_EVAL], nir[MESA_SHADER_TESS_CTRL]->info.tess.tcs_vertices_out);
+		merge_tess_info(&nir[MESA_SHADER_TESS_EVAL]->info, &nir[MESA_SHADER_TESS_CTRL]->info);
 	}
 
 	radv_link_shaders(pipeline, nir);

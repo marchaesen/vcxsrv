@@ -81,6 +81,7 @@ struct radeon_info {
 	uint32_t                    drm_patchlevel;
 	bool                        has_userptr;
 	bool                        has_syncobj;
+	bool                        has_syncobj_wait;
 	bool                        has_sync_file;
 	bool                        has_ctx_priority;
 

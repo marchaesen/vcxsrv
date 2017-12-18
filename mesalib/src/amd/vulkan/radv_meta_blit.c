@@ -269,8 +269,8 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
                VkOffset3D src_offset_1,
                struct radv_image *dest_image,
                struct radv_image_view *dest_iview,
-               VkOffset3D dest_offset_0,
-               VkOffset3D dest_offset_1,
+               VkOffset2D dest_offset_0,
+               VkOffset2D dest_offset_1,
                VkRect2D dest_box,
                VkFilter blit_filter)
 {
@@ -518,21 +518,6 @@ void radv_CmdBlitImage(
 	for (unsigned r = 0; r < regionCount; r++) {
 		const VkImageSubresourceLayers *src_res = &pRegions[r].srcSubresource;
 		const VkImageSubresourceLayers *dst_res = &pRegions[r].dstSubresource;
-		struct radv_image_view src_iview;
-		radv_image_view_init(&src_iview, cmd_buffer->device,
-				     &(VkImageViewCreateInfo) {
-					     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-						     .image = srcImage,
-						     .viewType = radv_meta_get_view_type(src_image),
-						     .format = src_image->vk_format,
-						     .subresourceRange = {
-						     .aspectMask = src_res->aspectMask,
-						     .baseMipLevel = src_res->mipLevel,
-						     .levelCount = 1,
-						     .baseArrayLayer = src_res->baseArrayLayer,
-						     .layerCount = 1
-					     },
-				     });
 
 		unsigned dst_start, dst_end;
 		if (dest_image->type == VK_IMAGE_TYPE_3D) {
@@ -579,18 +564,17 @@ void radv_CmdBlitImage(
 		dest_box.extent.width = abs(dst_x1 - dst_x0);
 		dest_box.extent.height = abs(dst_y1 - dst_y0);
 
-		struct radv_image_view dest_iview;
 		const unsigned num_layers = dst_end - dst_start;
 		for (unsigned i = 0; i < num_layers; i++) {
-			const VkOffset3D dest_offset_0 = {
+			struct radv_image_view dest_iview, src_iview;
+
+			const VkOffset2D dest_offset_0 = {
 				.x = dst_x0,
 				.y = dst_y0,
-				.z = dst_start + i ,
 			};
-			const VkOffset3D dest_offset_1 = {
+			const VkOffset2D dest_offset_1 = {
 				.x = dst_x1,
 				.y = dst_y1,
-				.z = dst_start + i ,
 			};
 			VkOffset3D src_offset_0 = {
 				.x = src_x0,
@@ -602,9 +586,10 @@ void radv_CmdBlitImage(
 				.y = src_y1,
 				.z = src_start + i * src_z_step,
 			};
-			const uint32_t dest_array_slice =
-				radv_meta_get_iview_layer(dest_image, dst_res,
-							  &dest_offset_0);
+			const uint32_t dest_array_slice = dst_start + i;
+
+			/* 3D images have just 1 layer */
+			const uint32_t src_array_slice = src_image->type == VK_IMAGE_TYPE_3D ? 0 : src_start + i;
 
 			radv_image_view_init(&dest_iview, cmd_buffer->device,
 					     &(VkImageViewCreateInfo) {
@@ -620,6 +605,20 @@ void radv_CmdBlitImage(
 							     .layerCount = 1
 						     },
 					     });
+			radv_image_view_init(&src_iview, cmd_buffer->device,
+					     &(VkImageViewCreateInfo) {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+							.image = srcImage,
+							.viewType = radv_meta_get_view_type(src_image),
+							.format = src_image->vk_format,
+							.subresourceRange = {
+							.aspectMask = src_res->aspectMask,
+							.baseMipLevel = src_res->mipLevel,
+							.levelCount = 1,
+							.baseArrayLayer = src_array_slice,
+							.layerCount = 1
+						},
+					});
 			meta_emit_blit(cmd_buffer,
 				       src_image, &src_iview,
 				       src_offset_0, src_offset_1,

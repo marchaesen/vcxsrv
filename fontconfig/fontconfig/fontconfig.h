@@ -371,6 +371,11 @@ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose);
 FcPublic void
 FcCacheCreateTagFile (const FcConfig *config);
 
+FcPublic FcBool
+FcDirCacheCreateUUID (FcChar8  *dir,
+		      FcBool    force,
+		      FcConfig *config);
+
 /* fccfg.c */
 FcPublic FcChar8 *
 FcConfigHome (void);
