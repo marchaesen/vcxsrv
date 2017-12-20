@@ -88,31 +88,34 @@ radv_amdgpu_winsys_virtual_unmap(struct radv_amdgpu_winsys_bo *bo,
 	radv_amdgpu_winsys_bo_destroy((struct radeon_winsys_bo *)range->bo);
 }
 
+static int bo_comparator(const void *ap, const void *bp) {
+	struct radv_amdgpu_bo *a = *(struct radv_amdgpu_bo *const *)ap;
+	struct radv_amdgpu_bo *b = *(struct radv_amdgpu_bo *const *)bp;
+	return (a > b) ? 1 : (a < b) ? -1 : 0;
+}
+
 static void
 radv_amdgpu_winsys_rebuild_bo_list(struct radv_amdgpu_winsys_bo *bo)
 {
-	bo->bo_count = 0;
-	for (uint32_t i = 0; i < bo->range_count; ++i) {
-		bool found = false;
-		if (!bo->ranges[i].bo)
-			continue;
-
-		for(uint32_t j = 0; j <  bo->bo_count; ++j) {
-			if (bo->bos[j] == bo->ranges[i].bo) {
-				found = true;
-				break;
-			}
-		}
-
-		if (!found) {
-			if (bo->bo_capacity == bo->bo_count) {
-				bo->bos = realloc(bo->bos,
-				                  (bo->bo_capacity + 1) * sizeof(struct radv_amdgpu_bo *));
-				++bo->bo_capacity;
-			}
-			bo->bos[bo->bo_count++] = bo->ranges[i].bo;
-		}
+	if (bo->bo_capacity < bo->range_count) {
+		uint32_t new_count = MAX2(bo->bo_capacity * 2, bo->range_count);
+		bo->bos = realloc(bo->bos, new_count * sizeof(struct radv_amdgpu_winsys_bo *));
+		bo->bo_capacity = new_count;
 	}
+
+	uint32_t temp_bo_count = 0;
+	for (uint32_t i = 0; i < bo->range_count; ++i)
+		if (bo->ranges[i].bo)
+			bo->bos[temp_bo_count++] = bo->ranges[i].bo;
+
+	qsort(bo->bos, temp_bo_count, sizeof(struct radv_amdgpu_winsys_bo *), &bo_comparator);
+
+	uint32_t final_bo_count = 1;
+	for (uint32_t i = 1; i < temp_bo_count; ++i)
+		if (bo->bos[i] != bo->bos[i - 1])
+			bo->bos[final_bo_count++] = bo->bos[i];
+
+	bo->bo_count = final_bo_count;
 }
 
 static void

@@ -182,6 +182,7 @@ FcHashTableAddInternal (FcHashTable *table,
 	{
 	    if (replace)
 	    {
+		bucket->next = b->next;
 		if (!fc_atomic_ptr_cmpexch (prev, b, bucket))
 		    goto retry;
 		bucket = b;
@@ -191,6 +192,7 @@ FcHashTableAddInternal (FcHashTable *table,
 	    goto destroy;
 	}
     }
+    bucket->next = NULL;
     if (!fc_atomic_ptr_cmpexch (prev, b, bucket))
 	goto retry;
 

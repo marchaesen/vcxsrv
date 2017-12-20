@@ -86,7 +86,7 @@ usage (char *program, int error)
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
     fprintf (file, _("  -c, --config         perform config substitution on pattern\n"));
-    fprintf (file, _("  -d, -default         perform default substitution on pattern\n"));
+    fprintf (file, _("  -d, --default        perform default substitution on pattern\n"));
     fprintf (file, _("  -f, --format=FORMAT  use the given output format\n"));
     fprintf (file, _("  -V, --version        display font config version and exit\n"));
     fprintf (file, _("  -h, --help           display this help and exit\n"));

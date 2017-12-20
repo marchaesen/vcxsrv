@@ -184,7 +184,6 @@ FcCompareRange (const FcValue *v1, const FcValue *v2, FcValue *bestValue)
         b1 = e1 = value1.u.d;
 	break;
     case FcTypeRange:
-	abort();
 	b1 = value1.u.r->begin;
 	e1 = value1.u.r->end;
 	break;
@@ -532,9 +531,16 @@ FcFontRenderPrepare (FcConfig	    *config,
     FcPatternElt    *fe, *pe;
     FcValue	    v;
     FcResult	    result;
+    FcBool	    variable = FcFalse;
+    FcStrBuf        variations;
 
     assert (pat != NULL);
     assert (font != NULL);
+
+    FcPatternObjectGetBool (font, FC_VARIABLE_OBJECT, 0, &variable);
+    assert (variable != FcDontCare);
+    if (variable)
+	FcStrBufInit (&variations, NULL, 0);
 
     new = FcPatternCreate ();
     if (!new)
@@ -640,6 +646,39 @@ FcFontRenderPrepare (FcConfig	    *config,
 		return NULL;
 	    }
 	    FcPatternObjectAdd (new, fe->object, v, FcFalse);
+
+	    /* Set font-variations settings for standard axes in variable fonts. */
+	    if (variable &&
+		FcPatternEltValues(fe)->value.type == FcTypeRange &&
+		(fe->object == FC_WEIGHT_OBJECT ||
+		 fe->object == FC_WIDTH_OBJECT ||
+		 fe->object == FC_SIZE_OBJECT))
+	    {
+		double num;
+		FcChar8 temp[128];
+		const char *tag = "    ";
+		assert (v.type == FcTypeDouble);
+		num = v.u.d;
+		if (variations.len)
+		    FcStrBufChar (&variations, ',');
+		switch (fe->object)
+		{
+		    case FC_WEIGHT_OBJECT:
+			tag = "wght";
+			num = FcWeightToOpenType (num);
+			break;
+
+		    case FC_WIDTH_OBJECT:
+			tag = "wdth";
+			break;
+
+		    case FC_SIZE_OBJECT:
+			tag = "opsz";
+			break;
+		}
+		sprintf ((char *) temp, "%4s=%g", tag, num);
+		FcStrBufString (&variations, temp);
+	    }
 	}
 	else
 	{
@@ -653,7 +692,7 @@ FcFontRenderPrepare (FcConfig	    *config,
 		if (!l)
 		    goto bail0;
 		dir = FcStrDirname (FcValueString (&l->value));
-		if (FcHashTableFind (config->alias_table, dir, (void **) &alias))
+		if (config && FcHashTableFind (config->alias_table, dir, (void **) &alias))
 		{
 		    FcChar8 *base = FcStrBasename (FcValueString (&l->value));
 		    FcChar8 *s = FcStrBuildFilename (alias, base, NULL);
@@ -693,6 +732,20 @@ FcFontRenderPrepare (FcConfig	    *config,
 				    FcValueListDuplicate (FcPatternEltValues(pe)),
 				    FcFalse);
 	}
+    }
+
+    if (variable && variations.len)
+    {
+	FcChar8 *vars = NULL;
+	if (FcPatternObjectGetString (new, FC_FONT_VARIATIONS_OBJECT, 0, &vars) == FcResultMatch)
+	{
+	    FcStrBufChar (&variations, ',');
+	    FcStrBufString (&variations, vars);
+	    FcPatternObjectDel (new, FC_FONT_VARIATIONS_OBJECT);
+	}
+
+	FcPatternObjectAddString (new, FC_FONT_VARIATIONS_OBJECT, FcStrBufDoneStatic (&variations));
+	FcStrBufDestroy (&variations);
     }
 
     FcConfigSubstituteWithPat (config, new, pat, FcMatchFont);

@@ -281,6 +281,11 @@ struct radeon_winsys {
 	int (*export_syncobj)(struct radeon_winsys *ws, uint32_t syncobj, int *fd);
 	int (*import_syncobj)(struct radeon_winsys *ws, int fd, uint32_t *syncobj);
 
+	int (*export_syncobj_to_sync_file)(struct radeon_winsys *ws, uint32_t syncobj, int *fd);
+
+	/* Note that this, unlike the normal import, uses an existing syncobj. */
+	int (*import_syncobj_from_sync_file)(struct radeon_winsys *ws, uint32_t syncobj, int fd);
+
 };
 
 static inline void radeon_emit(struct radeon_winsys_cs *cs, uint32_t value)

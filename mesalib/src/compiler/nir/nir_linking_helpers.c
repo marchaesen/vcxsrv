@@ -297,14 +297,15 @@ remap_slots_and_components(struct exec_list *var_list, gl_shader_stage stage,
 
          unsigned location = var->data.location - VARYING_SLOT_VAR0;
          struct varying_loc *new_loc = &remap[location][var->data.location_frac];
+
+         uint64_t slots = (((uint64_t)1 << num_slots) - 1) << var->data.location;
+         if (slots & *slots_used)
+            used_across_stages = true;
+
+         if (slots & *out_slots_read)
+            outputs_read = true;
+
          if (new_loc->location) {
-            uint64_t slots = (((uint64_t)1 << num_slots) - 1) << var->data.location;
-            if (slots & *slots_used)
-               used_across_stages = true;
-
-            if (slots & *out_slots_read)
-               outputs_read = true;
-
             var->data.location = new_loc->location;
             var->data.location_frac = new_loc->component;
          }

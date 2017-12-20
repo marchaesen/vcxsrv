@@ -76,10 +76,28 @@ create_pass(struct radv_device *device,
 }
 
 static VkResult
+create_pipeline_layout(struct radv_device *device, VkPipelineLayout *layout)
+{
+	VkPipelineLayoutCreateInfo pl_create_info = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.setLayoutCount = 0,
+		.pSetLayouts = NULL,
+		.pushConstantRangeCount = 0,
+		.pPushConstantRanges = NULL,
+	};
+
+	return radv_CreatePipelineLayout(radv_device_to_handle(device),
+					 &pl_create_info,
+					 &device->meta_state.alloc,
+					 layout);
+}
+
+static VkResult
 create_pipeline(struct radv_device *device,
                 VkShaderModule vs_module_h,
 		uint32_t samples,
 		VkRenderPass pass,
+		VkPipelineLayout layout,
 		VkPipeline *decompress_pipeline,
 		VkPipeline *resummarize_pipeline)
 {
@@ -165,6 +183,7 @@ create_pipeline(struct radv_device *device,
 				VK_DYNAMIC_STATE_SCISSOR,
 			},
 		},
+		.layout = layout,
 		.renderPass = pass,
 		.subpass = 0,
 	};
@@ -212,6 +231,9 @@ radv_device_finish_meta_depth_decomp_state(struct radv_device *device)
 		radv_DestroyRenderPass(radv_device_to_handle(device),
 				       state->depth_decomp[i].pass,
 				       &state->alloc);
+		radv_DestroyPipelineLayout(radv_device_to_handle(device),
+					   state->depth_decomp[i].p_layout,
+					   &state->alloc);
 		radv_DestroyPipeline(radv_device_to_handle(device),
 				     state->depth_decomp[i].decompress_pipeline,
 				     &state->alloc);
@@ -243,8 +265,14 @@ radv_device_init_meta_depth_decomp_state(struct radv_device *device)
 		if (res != VK_SUCCESS)
 			goto fail;
 
+		res = create_pipeline_layout(device,
+					     &state->depth_decomp[i].p_layout);
+		if (res != VK_SUCCESS)
+			goto fail;
+
 		res = create_pipeline(device, vs_module_h, samples,
 				      state->depth_decomp[i].pass,
+				      state->depth_decomp[i].p_layout,
 				      &state->depth_decomp[i].decompress_pipeline,
 				      &state->depth_decomp[i].resummarize_pipeline);
 		if (res != VK_SUCCESS)

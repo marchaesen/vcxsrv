@@ -1753,7 +1753,8 @@ radv_flush_constants(struct radv_cmd_buffer *cmd_buffer,
 	uint64_t va;
 
 	stages &= cmd_buffer->push_constant_stages;
-	if (!stages || !layout || (!layout->push_constant_size && !layout->dynamic_offset_count))
+	if (!stages ||
+	    (!layout->push_constant_size && !layout->dynamic_offset_count))
 		return;
 
 	if (!radv_cmd_buffer_upload_alloc(cmd_buffer, layout->push_constant_size +

@@ -1336,6 +1336,25 @@ static int radv_amdgpu_import_syncobj(struct radeon_winsys *_ws,
 	return amdgpu_cs_import_syncobj(ws->dev, fd, syncobj);
 }
 
+
+static int radv_amdgpu_export_syncobj_to_sync_file(struct radeon_winsys *_ws,
+                                                   uint32_t syncobj,
+                                                   int *fd)
+{
+	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
+
+	return amdgpu_cs_syncobj_export_sync_file(ws->dev, syncobj, fd);
+}
+
+static int radv_amdgpu_import_syncobj_from_sync_file(struct radeon_winsys *_ws,
+                                                     uint32_t syncobj,
+                                                     int fd)
+{
+	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
+
+	return amdgpu_cs_syncobj_import_sync_file(ws->dev, syncobj, fd);
+}
+
 void radv_amdgpu_cs_init_functions(struct radv_amdgpu_winsys *ws)
 {
 	ws->base.ctx_create = radv_amdgpu_ctx_create;
@@ -1361,5 +1380,7 @@ void radv_amdgpu_cs_init_functions(struct radv_amdgpu_winsys *ws)
 	ws->base.wait_syncobj = radv_amdgpu_wait_syncobj;
 	ws->base.export_syncobj = radv_amdgpu_export_syncobj;
 	ws->base.import_syncobj = radv_amdgpu_import_syncobj;
+	ws->base.export_syncobj_to_sync_file = radv_amdgpu_export_syncobj_to_sync_file;
+	ws->base.import_syncobj_from_sync_file = radv_amdgpu_import_syncobj_from_sync_file;
 	ws->base.fence_wait = radv_amdgpu_fence_wait;
 }

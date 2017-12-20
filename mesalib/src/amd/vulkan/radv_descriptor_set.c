@@ -228,10 +228,13 @@ VkResult radv_CreatePipelineLayout(
 
 	layout->dynamic_offset_count = dynamic_offset_count;
 	layout->push_constant_size = 0;
+	layout->push_constant_stages = 0;
+
 	for (unsigned i = 0; i < pCreateInfo->pushConstantRangeCount; ++i) {
 		const VkPushConstantRange *range = pCreateInfo->pPushConstantRanges + i;
 		layout->push_constant_size = MAX2(layout->push_constant_size,
 						  range->offset + range->size);
+		layout->push_constant_stages |= range->stageFlags;
 	}
 
 	layout->push_constant_size = align(layout->push_constant_size, 16);

@@ -960,7 +960,7 @@ if with_gallium_etnaviv
   dep_libdrm_etnaviv = dependency('libdrm_etnaviv', version : '>= 2.4.82')
 endif
 if with_gallium_freedreno
-  dep_libdrm_freedreno = dependency('libdrm_freedreno', version : '>= 2.4.74')
+  dep_libdrm_freedreno = dependency('libdrm_freedreno', version : '>= 2.4.89')
 endif
 
 llvm_modules = ['bitwriter', 'engine', 'mcdisassembler', 'mcjit']
