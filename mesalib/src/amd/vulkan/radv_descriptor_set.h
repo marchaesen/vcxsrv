@@ -83,6 +83,7 @@ struct radv_pipeline_layout {
 
    uint32_t num_sets;
    uint32_t push_constant_size;
+   VkShaderStageFlags push_constant_stages;
    uint32_t dynamic_offset_count;
 
    unsigned char sha1[20];

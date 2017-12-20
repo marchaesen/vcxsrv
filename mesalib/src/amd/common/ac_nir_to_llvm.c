@@ -94,7 +94,7 @@ struct nir_to_llvm_context {
 	LLVMValueRef push_constants;
 	LLVMValueRef view_index;
 	LLVMValueRef num_work_groups;
-	LLVMValueRef workgroup_ids;
+	LLVMValueRef workgroup_ids[3];
 	LLVMValueRef local_invocation_ids;
 	LLVMValueRef tg_size;
 
@@ -751,7 +751,15 @@ static void create_function(struct nir_to_llvm_context *ctx,
 			add_user_sgpr_argument(&args, ctx->ac.v3i32,
 					       &ctx->num_work_groups);
 		}
-		add_sgpr_argument(&args, ctx->ac.v3i32, &ctx->workgroup_ids);
+
+		for (int i = 0; i < 3; i++) {
+			ctx->workgroup_ids[i] = NULL;
+			if (ctx->shader_info->info.cs.uses_block_id[i]) {
+				add_sgpr_argument(&args, ctx->ac.i32,
+						  &ctx->workgroup_ids[i]);
+			}
+		}
+
 		if (ctx->shader_info->info.cs.uses_local_invocation_idx)
 			add_sgpr_argument(&args, ctx->ac.i32, &ctx->tg_size);
 		add_vgpr_argument(&args, ctx->ac.v3i32, &ctx->local_invocation_ids);
@@ -2803,7 +2811,7 @@ store_tcs_output(struct nir_to_llvm_context *ctx,
 	bool store_lds = true;
 
 	if (instr->variables[0]->var->data.patch) {
-		if (!(ctx->tcs_patch_outputs_read & (1U << instr->variables[0]->var->data.location)))
+		if (!(ctx->tcs_patch_outputs_read & (1U << (instr->variables[0]->var->data.location - VARYING_SLOT_PATCH0))))
 			store_lds = false;
 	} else {
 		if (!(ctx->tcs_outputs_read & (1ULL << instr->variables[0]->var->data.location)))
@@ -4050,7 +4058,14 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 
 	switch (instr->intrinsic) {
 	case nir_intrinsic_load_work_group_id: {
-		result = ctx->nctx->workgroup_ids;
+		LLVMValueRef values[3];
+
+		for (int i = 0; i < 3; i++) {
+			values[i] = ctx->nctx->workgroup_ids[i] ?
+				    ctx->nctx->workgroup_ids[i] : ctx->ac.i32_0;
+		}
+
+		result = ac_build_gather_values(&ctx->ac, values, 3);
 		break;
 	}
 	case nir_intrinsic_load_base_vertex: {

@@ -75,8 +75,26 @@ create_pass(struct radv_device *device)
 }
 
 static VkResult
+create_pipeline_layout(struct radv_device *device, VkPipelineLayout *layout)
+{
+	VkPipelineLayoutCreateInfo pl_create_info = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.setLayoutCount = 0,
+		.pSetLayouts = NULL,
+		.pushConstantRangeCount = 0,
+		.pPushConstantRanges = NULL,
+	};
+
+	return radv_CreatePipelineLayout(radv_device_to_handle(device),
+					 &pl_create_info,
+					 &device->meta_state.alloc,
+					 layout);
+}
+
+static VkResult
 create_pipeline(struct radv_device *device,
-                VkShaderModule vs_module_h)
+		VkShaderModule vs_module_h,
+		VkPipelineLayout layout)
 {
 	VkResult result;
 	VkDevice device_h = radv_device_to_handle(device);
@@ -173,6 +191,7 @@ create_pipeline(struct radv_device *device,
 								VK_DYNAMIC_STATE_SCISSOR,
 							},
 						},
+					        .layout = layout,
 						.renderPass = device->meta_state.fast_clear_flush.pass,
 						.subpass = 0,
 					       },
@@ -218,6 +237,7 @@ create_pipeline(struct radv_device *device,
 								VK_DYNAMIC_STATE_SCISSOR,
 							},
 						},
+						.layout = layout,
 						.renderPass = device->meta_state.fast_clear_flush.pass,
 						.subpass = 0,
 					       },
@@ -245,6 +265,9 @@ radv_device_finish_meta_fast_clear_flush_state(struct radv_device *device)
 
 	radv_DestroyRenderPass(radv_device_to_handle(device),
 			       state->fast_clear_flush.pass, &state->alloc);
+	radv_DestroyPipelineLayout(radv_device_to_handle(device),
+				   state->fast_clear_flush.p_layout,
+				   &state->alloc);
 	radv_DestroyPipeline(radv_device_to_handle(device),
 			     state->fast_clear_flush.cmask_eliminate_pipeline,
 			     &state->alloc);
@@ -269,8 +292,14 @@ radv_device_init_meta_fast_clear_flush_state(struct radv_device *device)
 	if (res != VK_SUCCESS)
 		goto fail;
 
+	res = create_pipeline_layout(device,
+				     &device->meta_state.fast_clear_flush.p_layout);
+	if (res != VK_SUCCESS)
+		goto fail;
+
 	VkShaderModule vs_module_h = radv_shader_module_to_handle(&vs_module);
-	res = create_pipeline(device, vs_module_h);
+	res = create_pipeline(device, vs_module_h,
+			      device->meta_state.fast_clear_flush.p_layout);
 	if (res != VK_SUCCESS)
 		goto fail;
 

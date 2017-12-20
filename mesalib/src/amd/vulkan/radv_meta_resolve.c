@@ -121,6 +121,21 @@ create_pipeline(struct radv_device *device,
 		goto cleanup;
 	}
 
+	VkPipelineLayoutCreateInfo pl_create_info = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.setLayoutCount = 0,
+		.pSetLayouts = NULL,
+		.pushConstantRangeCount = 0,
+		.pPushConstantRanges = NULL,
+	};
+
+	result = radv_CreatePipelineLayout(radv_device_to_handle(device),
+					   &pl_create_info,
+					   &device->meta_state.alloc,
+					   &device->meta_state.resolve.p_layout);
+	if (result != VK_SUCCESS)
+		goto cleanup;
+
 	result = radv_graphics_pipeline_create(device_h,
 					       radv_pipeline_cache_to_handle(&device->meta_state.cache),
 					       &(VkGraphicsPipelineCreateInfo) {
@@ -196,6 +211,7 @@ create_pipeline(struct radv_device *device,
 								VK_DYNAMIC_STATE_SCISSOR,
 							},
 						},
+						.layout = device->meta_state.resolve.p_layout,
 																       .renderPass = device->meta_state.resolve.pass,
 																       .subpass = 0,
 																       },
@@ -222,6 +238,8 @@ radv_device_finish_meta_resolve_state(struct radv_device *device)
 
 	radv_DestroyRenderPass(radv_device_to_handle(device),
 			       state->resolve.pass, &state->alloc);
+	radv_DestroyPipelineLayout(radv_device_to_handle(device),
+				   state->resolve.p_layout, &state->alloc);
 	radv_DestroyPipeline(radv_device_to_handle(device),
 			     state->resolve.pipeline, &state->alloc);
 }

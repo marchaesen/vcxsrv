@@ -434,6 +434,7 @@ struct radv_meta_state {
 	} cleari;
 
 	struct {
+		VkPipelineLayout                          p_layout;
 		VkPipeline                                pipeline;
 		VkRenderPass                              pass;
 	} resolve;
@@ -459,12 +460,14 @@ struct radv_meta_state {
 	} resolve_fragment;
 
 	struct {
+		VkPipelineLayout                          p_layout;
 		VkPipeline                                decompress_pipeline;
 		VkPipeline                                resummarize_pipeline;
 		VkRenderPass                              pass;
 	} depth_decomp[1 + MAX_SAMPLES_LOG2];
 
 	struct {
+		VkPipelineLayout                          p_layout;
 		VkPipeline                                cmask_eliminate_pipeline;
 		VkPipeline                                fmask_decompress_pipeline;
 		VkRenderPass                              pass;

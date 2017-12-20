@@ -817,6 +817,7 @@
   </struct>
 
   <struct name="Texture Shader State">
+    <field name="UIF XOR disable" size="1" start="255" type="bool"/>
     <field name="Level 0 is strictly UIF" size="1" start="254" type="bool"/>
     <field name="Level 0 XOR enable" size="1" start="252" type="bool"/>
     <field name="Level 0 UB_PAD" size="4" start="248" type="uint"/>

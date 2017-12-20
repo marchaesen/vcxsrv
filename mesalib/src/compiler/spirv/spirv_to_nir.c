@@ -3511,10 +3511,27 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
          vtn_fail("Result type of OpSelect must be a scalar, vector, or pointer");
       }
 
-      vtn_fail_if(sel_val->type->type != sel_type,
-                  "Condition type of OpSelect must be a scalar or vector of "
-                  "Boolean type. It must have the same number of components "
-                  "as Result Type");
+      if (unlikely(sel_val->type->type != sel_type)) {
+         if (sel_val->type->type == glsl_bool_type()) {
+            /* This case is illegal but some older versions of GLSLang produce
+             * it.  The GLSLang issue was fixed on March 30, 2017:
+             *
+             * https://github.com/KhronosGroup/glslang/issues/809
+             *
+             * Unfortunately, there are applications in the wild which are
+             * shipping with this bug so it isn't nice to fail on them so we
+             * throw a warning instead.  It's not actually a problem for us as
+             * nir_builder will just splat the condition out which is most
+             * likely what the client wanted anyway.
+             */
+            vtn_warn("Condition type of OpSelect must have the same number "
+                     "of components as Result Type");
+         } else {
+            vtn_fail("Condition type of OpSelect must be a scalar or vector "
+                     "of Boolean type. It must have the same number of "
+                     "components as Result Type");
+         }
+      }
 
       vtn_fail_if(obj1_val->type != res_val->type ||
                   obj2_val->type != res_val->type,

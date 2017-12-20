@@ -2023,6 +2023,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 
 	pipeline->device = device;
 	pipeline->layout = radv_pipeline_layout_from_handle(pCreateInfo->layout);
+	assert(pipeline->layout);
 
 	radv_pipeline_init_dynamic_state(pipeline, pCreateInfo);
 	radv_pipeline_init_blend_state(pipeline, pCreateInfo, extra);
@@ -2370,6 +2371,7 @@ static VkResult radv_compute_pipeline_create(
 
 	pipeline->device = device;
 	pipeline->layout = radv_pipeline_layout_from_handle(pCreateInfo->layout);
+	assert(pipeline->layout);
 
 	pStages[MESA_SHADER_COMPUTE] = &pCreateInfo->stage;
 	radv_create_shaders(pipeline, device, cache, (struct radv_pipeline_key) {0}, pStages);

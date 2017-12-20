@@ -710,7 +710,7 @@ keyboard_handle_keymap(void *data, struct wl_keyboard *keyboard,
     XkbDeviceApplyKeymap(xwl_seat->keyboard, xkb);
 
     master = GetMaster(xwl_seat->keyboard, MASTER_KEYBOARD);
-    if (master && master->lastSlave == xwl_seat->keyboard)
+    if (master)
         XkbDeviceApplyKeymap(master, xkb);
 
     XkbFreeKeyboard(xkb, XkbAllComponentsMask, TRUE);
