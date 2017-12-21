@@ -37,30 +37,9 @@ static LRESULT CALLBACK winMainThreadMsgWindowProc(HWND hwnd, UINT message, WPAR
 {
   switch (message)
   {
-    case WM_ADJUSTXWINDOW:
-      winAdjustXWindow((WindowPtr)wParam, (HWND)lParam);
-      return 0;
-    case WM_REORDERWINDOWS:
-      winReorderWindowsMultiWindow();
-      return 0;
-    case WM_POSITIONWINDOW:
-      {
-        LONG x,y;
-        WindowPtr pWin=(WindowPtr)wParam;
-        DrawablePtr pDraw = &pWin->drawable;
-        x =  pDraw->x - wBorderWidth(pWin);
-        y = pDraw->y - wBorderWidth(pWin);
-        winPositionWindowMultiWindow(pWin, x, y);
-      }
-      return 0;
-    case WM_CONFIGUREWINDOW:
-      {
-        XID vlist[1] = { 0 };
-        WindowPtr pWin=(WindowPtr)wParam;
-        Mask mask=(Mask)lParam;
-        ConfigureWindow(pWin, mask, vlist, serverClient);
-      }
-      return 0;
+    case WM_HANDLEMESSAGE:
+      struct handlemessage *pParams=(struct handlemessage *)wParam;
+      return winTopLevelWindowProcMainThread(pParams->hwnd, pParams->message, pParams->wParam, lParam);
   }
 
   return DefWindowProc(hwnd, message, wParam, lParam);

@@ -1155,9 +1155,15 @@ int myCreateWindowsThead();
 
 extern HWND g_hMainThreadMsgWnd;
 
-#define WM_ADJUSTXWINDOW   (WM_USER)
-#define WM_REORDERWINDOWS  (WM_USER+1)
-#define WM_POSITIONWINDOW  (WM_USER+2)
-#define WM_CONFIGUREWINDOW (WM_USER+3)
+struct handlemessage
+{
+  HWND hwnd;
+  UINT message;
+  WPARAM wParam;
+};
+
+#define WM_HANDLEMESSAGE (WM_USER)
+
+LRESULT CALLBACK winTopLevelWindowProcMainThread(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 #endif                          /* _WIN_H_ */
