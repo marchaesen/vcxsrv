@@ -766,7 +766,7 @@ lower_packed_varyings_visitor::needs_lowering(ir_variable *var)
    /* Override disable_varying_packing if the var is only used by transform
     * feedback. Also override it if transform feedback is enabled and the
     * variable is an array, struct or matrix as the elements of these types
-    * will always has the same interpolation and therefore asre safe to pack.
+    * will always have the same interpolation and therefore are safe to pack.
     */
    const glsl_type *type = var->type;
    if (disable_varying_packing && !var->data.is_xfb_only &&

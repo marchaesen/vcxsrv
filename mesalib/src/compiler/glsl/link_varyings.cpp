@@ -1277,13 +1277,12 @@ parse_tfeedback_decls(struct gl_context *ctx, struct gl_shader_program *prog,
        * feedback of arrays would be useless otherwise.
        */
       for (unsigned j = 0; j < i; ++j) {
-         if (!decls[j].is_varying())
-            continue;
-
-         if (tfeedback_decl::is_same(decls[i], decls[j])) {
-            linker_error(prog, "Transform feedback varying %s specified "
-                         "more than once.", varying_names[i]);
-            return false;
+         if (decls[j].is_varying()) {
+            if (tfeedback_decl::is_same(decls[i], decls[j])) {
+               linker_error(prog, "Transform feedback varying %s specified "
+                            "more than once.", varying_names[i]);
+               return false;
+            }
          }
       }
    }
@@ -1469,13 +1468,13 @@ public:
    ~varying_matches();
    void record(ir_variable *producer_var, ir_variable *consumer_var);
    unsigned assign_locations(struct gl_shader_program *prog,
-                             uint8_t *components,
+                             uint8_t components[],
                              uint64_t reserved_slots);
    void store_locations() const;
 
 private:
    bool is_varying_packing_safe(const glsl_type *type,
-                                const ir_variable *var);
+                                const ir_variable *var) const;
 
    /**
     * If true, this driver disables varying packing, so all varyings need to
@@ -1608,7 +1607,7 @@ varying_matches::~varying_matches()
  */
 bool
 varying_matches::is_varying_packing_safe(const glsl_type *type,
-                                         const ir_variable *var)
+                                         const ir_variable *var) const
 {
    if (consumer_stage == MESA_SHADER_TESS_EVAL ||
        consumer_stage == MESA_SHADER_TESS_CTRL ||
@@ -1743,10 +1742,15 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
 /**
  * Choose locations for all of the variable matches that were previously
  * passed to varying_matches::record().
+ * \param components  returns array[slot] of number of components used
+ *                    per slot (1, 2, 3 or 4)
+ * \param reserved_slots  bitmask indicating which varying slots are already
+ *                        allocated
+ * \return number of slots (4-element vectors) allocated
  */
 unsigned
 varying_matches::assign_locations(struct gl_shader_program *prog,
-                                  uint8_t *components,
+                                  uint8_t components[],
                                   uint64_t reserved_slots)
 {
    /* If packing has been disabled then we cannot safely sort the varyings by
@@ -1771,6 +1775,17 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
    unsigned generic_location = 0;
    unsigned generic_patch_location = MAX_VARYING*4;
    bool previous_var_xfb_only = false;
+   unsigned previous_packing_class = ~0u;
+
+   /* For tranform feedback separate mode, we know the number of attributes
+    * is <= the number of buffers.  So packing isn't critical.  In fact,
+    * packing vec3 attributes can cause trouble because splitting a vec3
+    * effectively creates an additional transform feedback output.  The
+    * extra TFB output may exceed device driver limits.
+    */
+   const bool dont_pack_vec3 =
+      (prog->TransformFeedback.BufferMode == GL_SEPARATE_ATTRIBS &&
+       prog->TransformFeedback.NumVarying > 0);
 
    for (unsigned i = 0; i < this->num_matches; i++) {
       unsigned *location = &generic_location;
@@ -1805,12 +1820,14 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
       if (var->data.must_be_shader_input ||
           (this->disable_varying_packing &&
            !(previous_var_xfb_only && var->data.is_xfb_only)) ||
-          (i > 0 && this->matches[i - 1].packing_class
-          != this->matches[i].packing_class )) {
+          (previous_packing_class != this->matches[i].packing_class) ||
+          (this->matches[i].packing_order == PACKING_ORDER_VEC3 &&
+           dont_pack_vec3)) {
          *location = ALIGN(*location, 4);
       }
 
       previous_var_xfb_only = var->data.is_xfb_only;
+      previous_packing_class = this->matches[i].packing_class;
 
       /* The number of components taken up by this variable. For vertex shader
        * inputs, we use the number of slots * 4, as they have different
@@ -1834,13 +1851,13 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
          const uint64_t slot_mask = ((1ull << slots) - 1) << (*location / 4u);
 
          assert(slots > 0);
-         if (reserved_slots & slot_mask) {
-            *location = ALIGN(*location + 1, 4);
-            slot_end = *location + num_components - 1;
-            continue;
+
+         if ((reserved_slots & slot_mask) == 0) {
+            break;
          }
 
-         break;
+         *location = ALIGN(*location + 1, 4);
+         slot_end = *location + num_components - 1;
       }
 
       if (!var->data.patch && slot_end >= MAX_VARYING * 4u) {
@@ -1982,12 +1999,17 @@ varying_matches::compute_packing_class(const ir_variable *var)
     *
     * Therefore, the packing class depends only on the interpolation type.
     */
-   unsigned packing_class = var->data.centroid | (var->data.sample << 1) |
-                            (var->data.patch << 2) |
-                            (var->data.must_be_shader_input << 3);
-   packing_class *= 8;
-   packing_class += var->is_interpolation_flat()
+   const unsigned interp = var->is_interpolation_flat()
       ? unsigned(INTERP_MODE_FLAT) : var->data.interpolation;
+
+   assert(interp < (1 << 3));
+
+   const unsigned packing_class = (interp << 0) |
+                                  (var->data.centroid << 3) |
+                                  (var->data.sample << 4) |
+                                  (var->data.patch << 5) |
+                                  (var->data.must_be_shader_input << 6);
+
    return packing_class;
 }
 
@@ -2514,11 +2536,9 @@ assign_varying_locations(struct gl_context *ctx,
        */
       foreach_in_list(ir_instruction, node, consumer->ir) {
          ir_variable *const input_var = node->as_variable();
-
-         if (input_var == NULL || input_var->data.mode != ir_var_shader_in)
-            continue;
-
-         matches.record(NULL, input_var);
+         if (input_var && input_var->data.mode == ir_var_shader_in) {
+            matches.record(NULL, input_var);
+         }
       }
    }
 
@@ -2568,12 +2588,11 @@ assign_varying_locations(struct gl_context *ctx,
    matches.store_locations();
 
    for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
-      if (!tfeedback_decls[i].is_varying())
-         continue;
-
-      if (!tfeedback_decls[i].assign_location(ctx, prog)) {
-         _mesa_hash_table_destroy(tfeedback_candidates, NULL);
-         return false;
+      if (tfeedback_decls[i].is_varying()) {
+         if (!tfeedback_decls[i].assign_location(ctx, prog)) {
+            _mesa_hash_table_destroy(tfeedback_candidates, NULL);
+            return false;
+         }
       }
    }
    _mesa_hash_table_destroy(tfeedback_candidates, NULL);
