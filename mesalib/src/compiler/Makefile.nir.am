@@ -120,4 +120,5 @@ EXTRA_DIST += \
 	nir/README \
 	spirv/spirv_info_c.py				\
 	spirv/spirv.core.grammar.json			\
+	spirv/vtn_gather_types_c.py			\
 	SConscript.nir
