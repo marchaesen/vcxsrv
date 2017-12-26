@@ -819,6 +819,29 @@ update_ff_texture_state(struct gl_context *ctx,
    }
 }
 
+static void
+fix_missing_textures_for_atifs(struct gl_context *ctx,
+                               struct gl_program *prog,
+                               BITSET_WORD *enabled_texture_units)
+{
+   GLbitfield mask = prog->SamplersUsed;
+
+   while (mask) {
+      const int s = u_bit_scan(&mask);
+      const int unit = prog->SamplerUnits[s];
+      const gl_texture_index target_index = ffs(prog->TexturesUsed[unit]) - 1;
+
+      if (!ctx->Texture.Unit[unit]._Current) {
+         struct gl_texture_object *texObj =
+            _mesa_get_fallback_texture(ctx, target_index);
+         _mesa_reference_texobj(&ctx->Texture.Unit[unit]._Current, texObj);
+         BITSET_SET(enabled_texture_units, unit);
+         ctx->Texture._MaxEnabledTexImageUnit =
+            MAX2(ctx->Texture._MaxEnabledTexImageUnit, (int)unit);
+      }
+   }
+}
+
 /**
  * \note This routine refers to derived texture matrix values to
  * compute the ENABLE_TEXMAT flags, but is only called on
@@ -874,6 +897,13 @@ _mesa_update_texture_state(struct gl_context *ctx)
    for (i = ctx->Texture._MaxEnabledTexImageUnit + 1; i <= old_max_unit; i++) {
       _mesa_reference_texobj(&ctx->Texture.Unit[i]._Current, NULL);
    }
+
+   /* add fallback texture for SampleMapATI if there is nothing */
+   if (_mesa_ati_fragment_shader_enabled(ctx) &&
+       ctx->ATIFragmentShader.Current->Program)
+      fix_missing_textures_for_atifs(ctx,
+                                     ctx->ATIFragmentShader.Current->Program,
+                                     enabled_texture_units);
 
    if (!prog[MESA_SHADER_FRAGMENT] || !prog[MESA_SHADER_VERTEX])
       update_texgen(ctx);

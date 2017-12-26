@@ -46,6 +46,13 @@ extern void
 _mesa_set_vp_override(struct gl_context *ctx, GLboolean flag);
 
 
+static inline bool
+_mesa_ati_fragment_shader_enabled(const struct gl_context *ctx)
+{
+   return ctx->ATIFragmentShader.Enabled &&
+          ctx->ATIFragmentShader.Current->Instructions[0];
+}
+
 /**
  * Is the secondary color needed?
  */
@@ -67,6 +74,9 @@ _mesa_need_secondary_color(const struct gl_context *ctx)
    if (ctx->FragmentProgram._Current &&
        (ctx->FragmentProgram._Current != ctx->FragmentProgram._TexEnvProgram) &&
        (ctx->FragmentProgram._Current->info.inputs_read & VARYING_BIT_COL1))
+      return GL_TRUE;
+
+   if (_mesa_ati_fragment_shader_enabled(ctx))
       return GL_TRUE;
 
    return GL_FALSE;
@@ -105,13 +115,6 @@ _mesa_arb_fragment_program_enabled(const struct gl_context *ctx)
 {
    return ctx->FragmentProgram.Enabled &&
           ctx->FragmentProgram.Current->arb.Instructions;
-}
-
-static inline bool
-_mesa_ati_fragment_shader_enabled(const struct gl_context *ctx)
-{
-   return ctx->ATIFragmentShader.Enabled &&
-          ctx->ATIFragmentShader.Current->Instructions[0];
 }
 
 #endif

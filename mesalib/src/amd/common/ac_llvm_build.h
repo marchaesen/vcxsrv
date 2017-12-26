@@ -74,13 +74,14 @@ struct ac_llvm_context {
 	LLVMValueRef empty_md;
 
 	enum chip_class chip_class;
+	enum radeon_family family;
 
 	LLVMValueRef lds;
 };
 
 void
 ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context,
-		     enum chip_class chip_class);
+		     enum chip_class chip_class, enum radeon_family family);
 
 unsigned ac_get_type_size(LLVMTypeRef type);
 

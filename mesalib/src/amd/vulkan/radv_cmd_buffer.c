@@ -593,7 +593,8 @@ radv_update_multisample_state(struct radv_cmd_buffer *cmd_buffer,
 	radeon_set_context_reg(cmd_buffer->cs, R_028804_DB_EQAA, ms->db_eqaa);
 	radeon_set_context_reg(cmd_buffer->cs, R_028A4C_PA_SC_MODE_CNTL_1, ms->pa_sc_mode_cntl_1);
 
-	if (old_pipeline && num_samples == old_pipeline->graphics.ms.num_samples)
+	if (old_pipeline && num_samples == old_pipeline->graphics.ms.num_samples &&
+	    old_pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.needs_sample_positions == pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.needs_sample_positions)
 		return;
 
 	radeon_set_context_reg_seq(cmd_buffer->cs, R_028BDC_PA_SC_LINE_CNTL, 2);

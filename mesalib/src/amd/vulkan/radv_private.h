@@ -353,6 +353,22 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device,
 				   const void *const *codes,
 				   const unsigned *code_sizes);
 
+enum radv_blit_ds_layout {
+	RADV_BLIT_DS_LAYOUT_TILE_ENABLE,
+	RADV_BLIT_DS_LAYOUT_TILE_DISABLE,
+	RADV_BLIT_DS_LAYOUT_COUNT,
+};
+
+static inline enum radv_blit_ds_layout radv_meta_blit_ds_to_type(VkImageLayout layout)
+{
+	return (layout == VK_IMAGE_LAYOUT_GENERAL) ? RADV_BLIT_DS_LAYOUT_TILE_DISABLE : RADV_BLIT_DS_LAYOUT_TILE_ENABLE;
+}
+
+static inline VkImageLayout radv_meta_blit_ds_to_layout(enum radv_blit_ds_layout ds_layout)
+{
+	return ds_layout == RADV_BLIT_DS_LAYOUT_TILE_ENABLE ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;
+}
+
 struct radv_meta_state {
 	VkAllocationCallbacks alloc;
 
@@ -385,12 +401,12 @@ struct radv_meta_state {
 		/** Pipeline that blits from a 3D image. */
 		VkPipeline pipeline_3d_src[NUM_META_FS_KEYS];
 
-		VkRenderPass depth_only_rp;
+		VkRenderPass depth_only_rp[RADV_BLIT_DS_LAYOUT_COUNT];
 		VkPipeline depth_only_1d_pipeline;
 		VkPipeline depth_only_2d_pipeline;
 		VkPipeline depth_only_3d_pipeline;
 
-		VkRenderPass stencil_only_rp;
+		VkRenderPass stencil_only_rp[RADV_BLIT_DS_LAYOUT_COUNT];
 		VkPipeline stencil_only_1d_pipeline;
 		VkPipeline stencil_only_2d_pipeline;
 		VkPipeline stencil_only_3d_pipeline;
@@ -401,21 +417,22 @@ struct radv_meta_state {
 	struct {
 		VkRenderPass render_passes[NUM_META_FS_KEYS];
 
-		VkPipelineLayout p_layouts[2];
-		VkDescriptorSetLayout ds_layouts[2];
-		VkPipeline pipelines[2][NUM_META_FS_KEYS];
+		VkPipelineLayout p_layouts[3];
+		VkDescriptorSetLayout ds_layouts[3];
+		VkPipeline pipelines[3][NUM_META_FS_KEYS];
 
-		VkRenderPass depth_only_rp;
-		VkPipeline depth_only_pipeline[2];
+		VkRenderPass depth_only_rp[RADV_BLIT_DS_LAYOUT_COUNT];
+		VkPipeline depth_only_pipeline[3];
 
-		VkRenderPass stencil_only_rp;
-		VkPipeline stencil_only_pipeline[2];
+		VkRenderPass stencil_only_rp[RADV_BLIT_DS_LAYOUT_COUNT];
+		VkPipeline stencil_only_pipeline[3];
 	} blit2d;
 
 	struct {
 		VkPipelineLayout                          img_p_layout;
 		VkDescriptorSetLayout                     img_ds_layout;
 		VkPipeline pipeline;
+		VkPipeline pipeline_3d;
 	} itob;
 	struct {
 		VkPipelineLayout                          img_p_layout;

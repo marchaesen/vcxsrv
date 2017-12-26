@@ -22,7 +22,10 @@
  */
 
 #include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "ac_nir_to_llvm.h"
 #include "ac_shader_util.h"
 #include "sid.h"
 
@@ -104,4 +107,73 @@ ac_vgt_gs_mode(unsigned gs_max_vert_out, enum chip_class chip_class)
 	       S_028A40_ES_WRITE_OPTIMIZE(chip_class <= VI) |
 	       S_028A40_GS_WRITE_OPTIMIZE(1) |
 	       S_028A40_ONCHIP(chip_class >= GFX9 ? 1 : 0);
+}
+
+void
+ac_export_mrt_z(struct ac_llvm_context *ctx, LLVMValueRef depth,
+		LLVMValueRef stencil, LLVMValueRef samplemask,
+		struct ac_export_args *args)
+{
+	unsigned mask = 0;
+	unsigned format = ac_get_spi_shader_z_format(depth != NULL,
+						     stencil != NULL,
+						     samplemask != NULL);
+
+	assert(depth || stencil || samplemask);
+
+	memset(args, 0, sizeof(*args));
+
+	args->valid_mask = 1; /* whether the EXEC mask is valid */
+	args->done = 1; /* DONE bit */
+
+	/* Specify the target we are exporting */
+	args->target = V_008DFC_SQ_EXP_MRTZ;
+
+	args->compr = 0; /* COMP flag */
+	args->out[0] = LLVMGetUndef(ctx->f32); /* R, depth */
+	args->out[1] = LLVMGetUndef(ctx->f32); /* G, stencil test val[0:7], stencil op val[8:15] */
+	args->out[2] = LLVMGetUndef(ctx->f32); /* B, sample mask */
+	args->out[3] = LLVMGetUndef(ctx->f32); /* A, alpha to mask */
+
+	if (format == V_028710_SPI_SHADER_UINT16_ABGR) {
+		assert(!depth);
+		args->compr = 1; /* COMPR flag */
+
+		if (stencil) {
+			/* Stencil should be in X[23:16]. */
+			stencil = ac_to_integer(ctx, stencil);
+			stencil = LLVMBuildShl(ctx->builder, stencil,
+					       LLVMConstInt(ctx->i32, 16, 0), "");
+			args->out[0] = ac_to_float(ctx, stencil);
+			mask |= 0x3;
+		}
+		if (samplemask) {
+			/* SampleMask should be in Y[15:0]. */
+			args->out[1] = samplemask;
+			mask |= 0xc;
+		}
+	} else {
+		if (depth) {
+			args->out[0] = depth;
+			mask |= 0x1;
+		}
+		if (stencil) {
+			args->out[1] = stencil;
+			mask |= 0x2;
+		}
+		if (samplemask) {
+			args->out[2] = samplemask;
+			mask |= 0x4;
+		}
+	}
+
+	/* SI (except OLAND and HAINAN) has a bug that it only looks
+	 * at the X writemask component. */
+	if (ctx->chip_class == SI &&
+	    ctx->family != CHIP_OLAND &&
+	    ctx->family != CHIP_HAINAN)
+		mask |= 0x1;
+
+	/* Specify which components to enable */
+	args->enabled_channels = mask;
 }

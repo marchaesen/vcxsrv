@@ -157,7 +157,8 @@ _tnl_InvalidateState( struct gl_context *ctx, GLuint new_state )
 
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
      if (ctx->Texture._EnabledCoordUnits & (1 << i) ||
-	 (fp && fp->info.inputs_read & VARYING_BIT_TEX(i))) {
+	 (fp && fp->info.inputs_read & VARYING_BIT_TEX(i)) ||
+         _mesa_ati_fragment_shader_enabled(ctx)) {
        tnl->render_inputs_bitset |= BITFIELD64_BIT(_TNL_ATTRIB_TEX(i));
      }
    }

@@ -513,14 +513,13 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
                      "Selector of OpSelect must have a type of OpTypeInt");
 
          bool is_default = true;
-         const uint bitsize = nir_alu_type_get_type_size(cond_type);
          for (const uint32_t *w = block->branch + 2; w < branch_end;) {
             uint64_t literal = 0;
             if (!is_default) {
-               if (bitsize <= 32) {
+               if (nir_alu_type_get_type_size(cond_type) <= 32) {
                   literal = *(w++);
                } else {
-                  assert(bitsize == 64);
+                  assert(nir_alu_type_get_type_size(cond_type) == 64);
                   literal = vtn_u64_literal(w);
                   w += 2;
                }
@@ -545,7 +544,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          /* Finally, we walk over all of the cases one more time and put
           * them in fall-through order.
           */
-         for (const uint32_t *w = block->branch + 2; w < branch_end;) {
+         for (const uint32_t *w = block->branch + 2; w < branch_end; w += 2) {
             struct vtn_block *case_block =
                vtn_value(b, *w, vtn_value_type_block)->block;
 
@@ -555,13 +554,6 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
             vtn_assert(case_block->switch_case);
 
             vtn_order_case(swtch, case_block->switch_case);
-
-            if (bitsize <= 32) {
-               w += 2;
-            } else {
-               assert(bitsize == 64);
-               w += 3;
-            }
          }
 
          enum vtn_branch_type branch_type =

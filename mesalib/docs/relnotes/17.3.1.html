@@ -1,0 +1,191 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.3.1 Release Notes / December 21, 2017</h1>
+
+<p>
+Mesa 17.3.1 is a bug fix release which fixes bugs found since the 17.3.0 release.
+</p>
+<p>
+Mesa 17.3.1 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+b0bb0419dbe3043ed4682a28eaf95721f427ca3f23a3c2a7dc77dbe8a3b6384d  mesa-17.3.1.tar.gz
+9ae607e0998a586fb2c866cfc8e45e6f52d1c56cb1b41288253ea83eada824c1  mesa-17.3.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=94739">Bug 94739</a> - Mesa 11.1.2 implementation error: bad format MESA_FORMAT_Z_FLOAT32 in _mesa_unpack_uint_24_8_depth_stencil_row</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102710">Bug 102710</a> - vkCmdBlitImage with arrayLayers &gt; 1 fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103579">Bug 103579</a> - Vertex shader causes compiler to crash in SPIRV-to-NIR</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103966">Bug 103966</a> - Mesa 17.2.5 implementation error: bad format MESA_FORMAT_Z_FLOAT32 in _mesa_unpack_uint_24_8_depth_stencil_row</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104119">Bug 104119</a> - radv: OpBitFieldInsert produces 0 with a loop counter for Insert</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104143">Bug 104143</a> - r600/sb: clobbers gl_Position -&gt; gl_FragCoord</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Smith (1):</p>
+<ul>
+  <li>radv: Add LLVM version to the device name string</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (3):</p>
+<ul>
+  <li>spirv: Fix loading an entire block at once.</li>
+  <li>radv: Don't advertise VK_EXT_debug_report.</li>
+  <li>radv: Fix multi-layer blits.</li>
+</ul>
+
+<p>Ben Crocker (1):</p>
+<ul>
+  <li>docs/llvmpipe: document ppc64le as alternative architecture to x86.</li>
+</ul>
+
+<p>Brian Paul (2):</p>
+<ul>
+  <li>xlib: call _mesa_warning() instead of fprintf()</li>
+  <li>gallium/aux: include nr_samples in util_resource_size() computation</li>
+</ul>
+
+<p>Bruce Cherniak (1):</p>
+<ul>
+  <li>swr: Fix KNOB_MAX_WORKER_THREADS thread creation override.</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>radv: port merge tess info from anv</li>
+</ul>
+
+<p>Emil Velikov (5):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.3.0</li>
+  <li>util: scons: wire up the sha1 test</li>
+  <li>cherry-ignore: meson: fix strtof locale support check</li>
+  <li>cherry-ignore: util: add mesa-sha1 test to meson</li>
+  <li>Update version to 17.3.1</li>
+</ul>
+
+<p>Eric Anholt (1):</p>
+<ul>
+  <li>broadcom/vc4: Fix handling of GFXH-515 workaround with a start vertex count.</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>compiler: use NDEBUG to guard asserts</li>
+</ul>
+
+<p>Fabian Bieler (2):</p>
+<ul>
+  <li>glsl: Match order of gl_LightSourceParameters elements.</li>
+  <li>glsl: Fix gl_NormalScale.</li>
+</ul>
+
+<p>Gert Wollny (1):</p>
+<ul>
+  <li>r600/sb: do not convert if-blocks that contain indirect array access</li>
+</ul>
+
+<p>James Legg (1):</p>
+<ul>
+  <li>nir/opcodes: Fix constant-folding of bitfield_insert</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>i965: Switch over to fully external-or-not MOCS scheme</li>
+</ul>
+
+<p>Juan A. Suarez Romero (1):</p>
+<ul>
+  <li>travis: disable Meson build</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>meta: Initialize depth/clear values on declaration.</li>
+  <li>meta: Fix ClearTexture with GL_DEPTH_COMPONENT.</li>
+</ul>
+
+<p>Leo Liu (1):</p>
+<ul>
+  <li>radeon/vce: move destroy command before feedback command</li>
+</ul>
+
+<p>Marek Olšák (4):</p>
+<ul>
+  <li>radeonsi: flush the context after resource_copy_region for buffer exports</li>
+  <li>radeonsi: allow DMABUF exports for local buffers</li>
+  <li>winsys/amdgpu: disable local BOs again due to worse performance</li>
+  <li>radeonsi: don't call force_dcc_off for buffers</li>
+</ul>
+
+<p>Matt Turner (2):</p>
+<ul>
+  <li>util: Assume little endian in the absence of platform-specific handling</li>
+  <li>util: Add a SHA1 unit test program</li>
+</ul>
+
+<p>Nicolai Hähnle (1):</p>
+<ul>
+  <li>radeonsi: fix the R600_RESOURCE_FLAG_UNMAPPABLE check</li>
+</ul>
+
+<p>Pierre Moreau (1):</p>
+<ul>
+  <li>nvc0/ir: Properly lower 64-bit shifts when the shift value is &gt;32</li>
+</ul>
+
+<p>Timothy Arceri (1):</p>
+<ul>
+  <li>glsl: get correct member type when processing xfb ifc arrays</li>
+</ul>
+
+<p>Vadym Shovkoplias (2):</p>
+<ul>
+  <li>glx/dri3: Remove unused deviceName variable</li>
+  <li>util/disk_cache: Remove unneeded free() on always null string</li>
+</ul>
+
+
+</div>
+</body>
+</html>

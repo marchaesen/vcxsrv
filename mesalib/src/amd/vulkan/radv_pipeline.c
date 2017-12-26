@@ -1122,7 +1122,7 @@ static void calculate_gfx9_gs_info(const VkGraphicsPipelineCreateInfo *pCreateIn
 	case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY:
 	case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY:
 	case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY:
-		uses_adjacency = false;
+		uses_adjacency = true;
 		break;
 	default:
 		uses_adjacency = false;

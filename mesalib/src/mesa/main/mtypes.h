@@ -2390,10 +2390,14 @@ struct ati_fragment_shader
    GLubyte numArithInstr[2];
    GLubyte regsAssigned[2];
    GLubyte NumPasses;         /**< 1 or 2 */
+   /** Current compile stage: 0 setup pass1, 1 arith pass1, 2 setup pass2, 3 arith pass2 */
    GLubyte cur_pass;
    GLubyte last_optype;
    GLboolean interpinp1;
    GLboolean isValid;
+   /** Array of 2 bit values for each tex unit to remember whether
+    * STR or STQ swizzle was used
+    */
    GLuint swizzlerq;
    struct gl_program *Program;
 };
