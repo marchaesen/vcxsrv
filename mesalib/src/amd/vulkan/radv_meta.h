@@ -109,6 +109,7 @@ struct radv_meta_blit2d_surf {
 	unsigned level;
 	unsigned layer;
 	VkImageAspectFlags aspect_mask;
+	VkImageLayout current_layout;
 };
 
 struct radv_meta_blit2d_buffer {

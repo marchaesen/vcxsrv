@@ -79,6 +79,7 @@ vk_format_for_size(int bs)
 
 static struct radv_meta_blit2d_surf
 blit_surf_for_image_level_layer(struct radv_image *image,
+				VkImageLayout layout,
 				const VkImageSubresourceLayers *subres)
 {
 	VkFormat format = image->vk_format;
@@ -97,6 +98,7 @@ blit_surf_for_image_level_layer(struct radv_image *image,
 		.layer = subres->baseArrayLayer,
 		.image = image,
 		.aspect_mask = subres->aspectMask,
+		.current_layout = layout,
 	};
 }
 
@@ -104,6 +106,7 @@ static void
 meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
                           struct radv_buffer* buffer,
                           struct radv_image* image,
+			  VkImageLayout layout,
                           uint32_t regionCount,
                           const VkBufferImageCopy* pRegions)
 {
@@ -155,6 +158,7 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 		/* Create blit surfaces */
 		struct radv_meta_blit2d_surf img_bsurf =
 			blit_surf_for_image_level_layer(image,
+							layout,
 							&pRegions[r].imageSubresource);
 
 		struct radv_meta_blit2d_buffer buf_bsurf = {
@@ -214,7 +218,7 @@ void radv_CmdCopyBufferToImage(
 	RADV_FROM_HANDLE(radv_image, dest_image, destImage);
 	RADV_FROM_HANDLE(radv_buffer, src_buffer, srcBuffer);
 
-	meta_copy_buffer_to_image(cmd_buffer, src_buffer, dest_image,
+	meta_copy_buffer_to_image(cmd_buffer, src_buffer, dest_image, destImageLayout,
 				  regionCount, pRegions);
 }
 
@@ -222,6 +226,7 @@ static void
 meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
                           struct radv_buffer* buffer,
                           struct radv_image* image,
+			  VkImageLayout layout,
                           uint32_t regionCount,
                           const VkBufferImageCopy* pRegions)
 {
@@ -266,6 +271,7 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 		/* Create blit surfaces */
 		struct radv_meta_blit2d_surf img_info =
 			blit_surf_for_image_level_layer(image,
+							layout,
 							&pRegions[r].imageSubresource);
 
 		struct radv_meta_blit2d_buffer buf_info = {
@@ -318,13 +324,16 @@ void radv_CmdCopyImageToBuffer(
 	RADV_FROM_HANDLE(radv_buffer, dst_buffer, destBuffer);
 
 	meta_copy_image_to_buffer(cmd_buffer, dst_buffer, src_image,
+				  srcImageLayout,
 				  regionCount, pRegions);
 }
 
 static void
 meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 		struct radv_image *src_image,
+		VkImageLayout src_image_layout,
 		struct radv_image *dest_image,
+		VkImageLayout dest_image_layout,
 		uint32_t regionCount,
 		const VkImageCopy *pRegions)
 {
@@ -351,10 +360,12 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 		/* Create blit surfaces */
 		struct radv_meta_blit2d_surf b_src =
 			blit_surf_for_image_level_layer(src_image,
+							src_image_layout,
 							&pRegions[r].srcSubresource);
 
 		struct radv_meta_blit2d_surf b_dst =
 			blit_surf_for_image_level_layer(dest_image,
+							dest_image_layout,
 							&pRegions[r].dstSubresource);
 
 		/* for DCC */
@@ -429,7 +440,9 @@ void radv_CmdCopyImage(
 	RADV_FROM_HANDLE(radv_image, src_image, srcImage);
 	RADV_FROM_HANDLE(radv_image, dest_image, destImage);
 
-	meta_copy_image(cmd_buffer, src_image, dest_image,
+	meta_copy_image(cmd_buffer,
+			src_image, srcImageLayout,
+			dest_image, destImageLayout,
 			regionCount, pRegions);
 }
 
@@ -449,6 +462,7 @@ void radv_blit_to_prime_linear(struct radv_cmd_buffer *cmd_buffer,
 	image_copy.extent.height = image->info.height;
 	image_copy.extent.depth = 1;
 
-	meta_copy_image(cmd_buffer, image, linear_image,
+	meta_copy_image(cmd_buffer, image, VK_IMAGE_LAYOUT_GENERAL, linear_image,
+			VK_IMAGE_LAYOUT_GENERAL,
 			1, &image_copy);
 }

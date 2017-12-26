@@ -127,7 +127,7 @@ radv_init_surface(struct radv_device *device,
 
 	surface->flags |= RADEON_SURF_OPTIMIZE_FOR_SPACE;
 
-	bool dcc_compatible_formats = !radv_is_colorbuffer_format_supported(pCreateInfo->format, &blendable);
+	bool dcc_compatible_formats = radv_is_colorbuffer_format_supported(pCreateInfo->format, &blendable);
 	if (pCreateInfo->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) {
 		const struct  VkImageFormatListCreateInfoKHR *format_list =
 		          (const struct  VkImageFormatListCreateInfoKHR *)
@@ -813,7 +813,7 @@ static inline bool
 radv_image_can_enable_dcc_or_cmask(struct radv_image *image)
 {
 	if (image->info.samples <= 1 &&
-	    image->info.width <= 512 && image->info.height <= 512) {
+	    image->info.width * image->info.height <= 512 * 512) {
 		/* Do not enable CMASK or DCC for small surfaces where the cost
 		 * of the eliminate pass can be higher than the benefit of fast
 		 * clear. RadeonSI does this, but the image threshold is

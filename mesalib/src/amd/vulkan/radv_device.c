@@ -3001,9 +3001,9 @@ si_tile_mode_index(const struct radv_image *image, unsigned level, bool stencil)
 		return image->surface.u.legacy.tiling_index[level];
 }
 
-static uint32_t radv_surface_layer_count(struct radv_image_view *iview)
+static uint32_t radv_surface_max_layer_count(struct radv_image_view *iview)
 {
-	return iview->type == VK_IMAGE_VIEW_TYPE_3D ? iview->extent.depth : iview->layer_count;
+	return iview->type == VK_IMAGE_VIEW_TYPE_3D ? iview->extent.depth : (iview->base_layer + iview->layer_count);
 }
 
 static void
@@ -3084,9 +3084,9 @@ radv_initialise_color_surface(struct radv_device *device,
 	cb->cb_dcc_base = va >> 8;
 	cb->cb_dcc_base |= iview->image->surface.tile_swizzle;
 
-	uint32_t max_slice = radv_surface_layer_count(iview);
+	uint32_t max_slice = radv_surface_max_layer_count(iview) - 1;
 	cb->cb_color_view = S_028C6C_SLICE_START(iview->base_layer) |
-		S_028C6C_SLICE_MAX(iview->base_layer + max_slice - 1);
+		S_028C6C_SLICE_MAX(max_slice);
 
 	if (iview->image->info.samples > 1) {
 		unsigned log_samples = util_logbase2(iview->image->info.samples);
@@ -3231,9 +3231,9 @@ radv_initialise_ds_surface(struct radv_device *device,
 	stencil_format = iview->image->surface.has_stencil ?
 		V_028044_STENCIL_8 : V_028044_STENCIL_INVALID;
 
-	uint32_t max_slice = radv_surface_layer_count(iview);
+	uint32_t max_slice = radv_surface_max_layer_count(iview) - 1;
 	ds->db_depth_view = S_028008_SLICE_START(iview->base_layer) |
-		S_028008_SLICE_MAX(iview->base_layer + max_slice - 1);
+		S_028008_SLICE_MAX(max_slice);
 
 	ds->db_htile_data_base = 0;
 	ds->db_htile_surface = 0;
@@ -3397,7 +3397,7 @@ VkResult radv_CreateFramebuffer(
 		}
 		framebuffer->width = MIN2(framebuffer->width, iview->extent.width);
 		framebuffer->height = MIN2(framebuffer->height, iview->extent.height);
-		framebuffer->layers = MIN2(framebuffer->layers, radv_surface_layer_count(iview));
+		framebuffer->layers = MIN2(framebuffer->layers, radv_surface_max_layer_count(iview));
 	}
 
 	*pFramebuffer = radv_framebuffer_to_handle(framebuffer);

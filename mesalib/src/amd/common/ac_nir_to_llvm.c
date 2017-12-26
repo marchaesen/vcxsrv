@@ -6200,67 +6200,13 @@ si_export_mrt_color(struct nir_to_llvm_context *ctx,
 }
 
 static void
-si_export_mrt_z(struct nir_to_llvm_context *ctx,
-		LLVMValueRef depth, LLVMValueRef stencil,
-		LLVMValueRef samplemask)
+radv_export_mrt_z(struct nir_to_llvm_context *ctx,
+		  LLVMValueRef depth, LLVMValueRef stencil,
+		  LLVMValueRef samplemask)
 {
 	struct ac_export_args args;
 
-	args.enabled_channels = 0;
-	args.valid_mask = 1;
-	args.done = 1;
-	args.target = V_008DFC_SQ_EXP_MRTZ;
-	args.compr = false;
-
-	args.out[0] = LLVMGetUndef(ctx->ac.f32); /* R, depth */
-	args.out[1] = LLVMGetUndef(ctx->ac.f32); /* G, stencil test val[0:7], stencil op val[8:15] */
-	args.out[2] = LLVMGetUndef(ctx->ac.f32); /* B, sample mask */
-	args.out[3] = LLVMGetUndef(ctx->ac.f32); /* A, alpha to mask */
-
-	unsigned format = ac_get_spi_shader_z_format(depth != NULL,
-						     stencil != NULL,
-						     samplemask != NULL);
-
-	if (format == V_028710_SPI_SHADER_UINT16_ABGR) {
-		assert(!depth);
-		args.compr = 1; /* COMPR flag */
-
-		if (stencil) {
-			/* Stencil should be in X[23:16]. */
-			stencil = ac_to_integer(&ctx->ac, stencil);
-			stencil = LLVMBuildShl(ctx->builder, stencil,
-					       LLVMConstInt(ctx->ac.i32, 16, 0), "");
-			args.out[0] = ac_to_float(&ctx->ac, stencil);
-			args.enabled_channels |= 0x3;
-		}
-		if (samplemask) {
-			/* SampleMask should be in Y[15:0]. */
-			args.out[1] = samplemask;
-			args.enabled_channels |= 0xc;
-		}
-	} else {
-		if (depth) {
-			args.out[0] = depth;
-			args.enabled_channels |= 0x1;
-		}
-
-		if (stencil) {
-			args.out[1] = stencil;
-			args.enabled_channels |= 0x2;
-		}
-
-		if (samplemask) {
-			args.out[2] = samplemask;
-			args.enabled_channels |= 0x4;
-		}
-	}
-
-	/* SI (except OLAND and HAINAN) has a bug that it only looks
-	 * at the X writemask component. */
-	if (ctx->options->chip_class == SI &&
-	    ctx->options->family != CHIP_OLAND &&
-	    ctx->options->family != CHIP_HAINAN)
-		args.enabled_channels |= 0x1;
+	ac_export_mrt_z(&ctx->ac, depth, stencil, samplemask, &args);
 
 	ac_build_export(&ctx->ac, &args);
 }
@@ -6308,7 +6254,7 @@ handle_fs_outputs_post(struct nir_to_llvm_context *ctx)
 	for (unsigned i = 0; i < index; i++)
 		ac_build_export(&ctx->ac, &color_args[i]);
 	if (depth || stencil || samplemask)
-		si_export_mrt_z(ctx, depth, stencil, samplemask);
+		radv_export_mrt_z(ctx, depth, stencil, samplemask);
 	else if (!index) {
 		si_export_mrt_color(ctx, NULL, V_008DFC_SQ_EXP_NULL, true, &color_args[0]);
 		ac_build_export(&ctx->ac, &color_args[0]);
@@ -6561,7 +6507,8 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	ctx.context = LLVMContextCreate();
 	ctx.module = LLVMModuleCreateWithNameInContext("shader", ctx.context);
 
-	ac_llvm_context_init(&ctx.ac, ctx.context, options->chip_class);
+	ac_llvm_context_init(&ctx.ac, ctx.context, options->chip_class,
+			     options->family);
 	ctx.ac.module = ctx.module;
 	LLVMSetTarget(ctx.module, options->supports_spill ? "amdgcn-mesa-mesa3d" : "amdgcn--");
 
@@ -6943,7 +6890,8 @@ void ac_create_gs_copy_shader(LLVMTargetMachineRef tm,
 	ctx.options = options;
 	ctx.shader_info = shader_info;
 
-	ac_llvm_context_init(&ctx.ac, ctx.context, options->chip_class);
+	ac_llvm_context_init(&ctx.ac, ctx.context, options->chip_class,
+			     options->family);
 	ctx.ac.module = ctx.module;
 
 	ctx.is_gs_copy_shader = true;

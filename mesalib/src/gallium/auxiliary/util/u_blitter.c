@@ -2077,8 +2077,8 @@ void util_blitter_generate_mipmap(struct blitter_context *blitter,
       srcbox.height = u_minify(tex->height0, src_level);
 
       if (target == PIPE_TEXTURE_3D) {
-         dstbox.depth = util_max_layer(tex, dst_level) + 1;
-         srcbox.depth = util_max_layer(tex, src_level) + 1;
+         dstbox.depth = util_num_layers(tex, dst_level);
+         srcbox.depth = util_num_layers(tex, src_level);
       } else {
          dstbox.z = srcbox.z = first_layer;
          dstbox.depth = srcbox.depth = last_layer - first_layer + 1;
