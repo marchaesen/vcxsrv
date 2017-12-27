@@ -21,7 +21,7 @@
 Name "VcXsrv"
 
 ; The file to write
-OutFile "vcxsrv-debug.1.19.5.0.installer.exe"
+OutFile "vcxsrv-debug.1.19.5.1.installer.exe"
 
 ; The default installation directory
 InstallDir $PROGRAMFILES32\VcXsrv
@@ -32,11 +32,11 @@ InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir"
 
 LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
 
-VIProductVersion "1.19.5.0"
+VIProductVersion "1.19.5.1"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "VcXsrv"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.19.5.0"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.19.5.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.19.5.1"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.19.5.1"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
