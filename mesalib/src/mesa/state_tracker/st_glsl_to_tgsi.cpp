@@ -6254,6 +6254,7 @@ st_translate_program(
 
    ASSERT_BITFIELD_SIZE(st_src_reg, type, GLSL_TYPE_ERROR);
    ASSERT_BITFIELD_SIZE(st_dst_reg, type, GLSL_TYPE_ERROR);
+   ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, tex_type, GLSL_TYPE_ERROR);
    ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, image_format, PIPE_FORMAT_COUNT);
    ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, tex_target,
                         (gl_texture_index) (NUM_TEXTURE_TARGETS - 1));

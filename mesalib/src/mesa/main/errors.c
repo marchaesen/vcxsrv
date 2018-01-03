@@ -327,7 +327,8 @@ _mesa_error( struct gl_context *ctx, GLenum error, const char *fmtString, ... )
    }
 
    /* Set the GL context error state for glGetError. */
-   _mesa_record_error(ctx, error);
+   if (ctx->ErrorValue == GL_NO_ERROR)
+      ctx->ErrorValue = error;
 }
 
 void

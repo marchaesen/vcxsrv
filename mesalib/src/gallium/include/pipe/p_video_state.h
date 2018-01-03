@@ -407,7 +407,6 @@ struct pipe_h264_enc_picture_desc
    unsigned ref_pic_mode;
 
    bool not_referenced;
-   bool is_idr;
    bool enable_vui;
    struct util_hash_table *frame_idx;
 

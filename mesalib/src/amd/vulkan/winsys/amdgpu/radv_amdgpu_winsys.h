@@ -46,6 +46,7 @@ struct radv_amdgpu_winsys {
 	bool batchchain;
 	bool use_ib_bos;
 	bool zero_all_vram_allocs;
+	bool use_local_bos;
 	unsigned num_buffers;
 
 	pthread_mutex_t global_bo_list_lock;

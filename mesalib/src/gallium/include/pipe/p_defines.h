@@ -391,6 +391,15 @@ enum pipe_flush_flags
  */
 #define PIPE_CONTEXT_PREFER_THREADED   (1 << 3)
 
+/**
+ * Create a high priority context.
+ */
+#define PIPE_CONTEXT_HIGH_PRIORITY     (1 << 4)
+
+/**
+ * Create a low priority context.
+ */
+#define PIPE_CONTEXT_LOW_PRIORITY      (1 << 5)
 
 /**
  * Flags for pipe_context::memory_barrier.
@@ -785,7 +794,19 @@ enum pipe_cap
    PIPE_CAP_TILE_RASTER_ORDER,
    PIPE_CAP_MAX_COMBINED_SHADER_OUTPUT_RESOURCES,
    PIPE_CAP_SIGNED_VERTEX_BUFFER_OFFSET,
+   PIPE_CAP_CONTEXT_PRIORITY_MASK,
 };
+
+/**
+ * Possible bits for PIPE_CAP_CONTEXT_PRIORITY_MASK param, which should
+ * return a bitmask of the supported priorities.  If the driver does not
+ * support prioritized contexts, it can return 0.
+ *
+ * Note that these match __DRI2_RENDER_HAS_CONTEXT_PRIORITY_*
+ */
+#define PIPE_CONTEXT_PRIORITY_LOW     (1 << 0)
+#define PIPE_CONTEXT_PRIORITY_MEDIUM  (1 << 1)
+#define PIPE_CONTEXT_PRIORITY_HIGH    (1 << 2)
 
 #define PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_NV50 (1 << 0)
 #define PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_R600 (1 << 1)

@@ -1650,6 +1650,10 @@ FcConfigSubstituteWithPat (FcConfig    *config,
     for (; FcPtrListIterIsValid (s, &iter); FcPtrListIterNext (s, &iter))
     {
 	rs = (FcRuleSet *) FcPtrListIterGetValue (s, &iter);
+	if (FcDebug () & FC_DBG_EDIT)
+	{
+	    printf ("\nRule Set: %s\n", rs->name);
+	}
 	FcPtrListIterInit (rs->subst[kind], &iter2);
 	for (; FcPtrListIterIsValid (rs->subst[kind], &iter2); FcPtrListIterNext (rs->subst[kind], &iter2))
 	{
@@ -2553,7 +2557,7 @@ FcRuleSetAddDescription (FcRuleSet	*rs,
 	FcStrFree (rs->description);
 
     rs->domain = domain ? FcStrdup (domain) : NULL;
-    rs->description = FcStrdup (description);
+    rs->description = description ? FcStrdup (description) : NULL;
 }
 
 int
@@ -2594,7 +2598,7 @@ FcRuleSetAdd (FcRuleSet		*rs,
     }
     if (FcDebug () & FC_DBG_EDIT)
     {
-	printf ("Add Rule ");
+	printf ("Add Rule(kind:%d, name: %s) ", kind, rs->name);
 	FcRulePrint (rule);
     }
     ret = FC_OBJ_ID (n) - FC_MAX_BASE_OBJECT;

@@ -148,8 +148,7 @@ radv_init_surface(struct radv_device *device,
 		}
 	}
 
-	if ((pCreateInfo->usage & (VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-	                           VK_IMAGE_USAGE_STORAGE_BIT)) ||
+	if ((pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) ||
 	    (pCreateInfo->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR) ||
 	    !dcc_compatible_formats ||
             (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR) ||
@@ -240,7 +239,7 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 			       const struct legacy_surf_level *base_level_info,
 			       unsigned base_level, unsigned first_level,
 			       unsigned block_width, bool is_stencil,
-			       uint32_t *state)
+			       bool is_storage_image, uint32_t *state)
 {
 	uint64_t gpu_address = image->bo ? radv_buffer_get_va(image->bo) + image->offset : 0;
 	uint64_t va = gpu_address;
@@ -264,11 +263,12 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 	if (chip_class >= VI) {
 		state[6] &= C_008F28_COMPRESSION_EN;
 		state[7] = 0;
-		if (radv_vi_dcc_enabled(image, first_level)) {
+		if (!is_storage_image && radv_vi_dcc_enabled(image, first_level)) {
 			meta_va = gpu_address + image->dcc_offset;
 			if (chip_class <= VI)
 				meta_va += base_level_info->dcc_offset;
-		} else if(image->tc_compatible_htile && image->surface.htile_size) {
+		} else if(!is_storage_image && image->tc_compatible_htile &&
+		          image->surface.htile_size) {
 			meta_va = gpu_address + image->htile_offset;
 		}
 
@@ -345,7 +345,7 @@ static unsigned radv_tex_dim(VkImageType image_type, VkImageViewType view_type,
 	}
 }
 
-static unsigned gfx9_border_color_swizzle(const unsigned char swizzle[4])
+static unsigned gfx9_border_color_swizzle(const enum vk_swizzle swizzle[4])
 {
 	unsigned bc_swizzle = V_008F20_BC_SWIZZLE_XYZW;
 
@@ -416,12 +416,15 @@ si_make_texture_descriptor(struct radv_device *device,
 		data_format = 0;
 	}
 
-	/* S8 with Z32 HTILE needs a special format. */
+	/* S8 with either Z16 or Z32 HTILE need a special format. */
 	if (device->physical_device->rad_info.chip_class >= GFX9 &&
 	    vk_format == VK_FORMAT_S8_UINT &&
-	    image->tc_compatible_htile)
-		data_format = V_008F14_IMG_DATA_FORMAT_S8_32;
-
+	    image->tc_compatible_htile) {
+		if (image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT)
+			data_format = V_008F14_IMG_DATA_FORMAT_S8_32;
+		else if (image->vk_format == VK_FORMAT_D16_UNORM_S8_UINT)
+			data_format = V_008F14_IMG_DATA_FORMAT_S8_16;
+	}
 	type = radv_tex_dim(image->type, view_type, image->info.array_size, image->info.samples,
 			    is_storage_image, device->physical_device->rad_info.chip_class >= GFX9);
 	if (type == V_008F1C_SQ_RSRC_IMG_1D_ARRAY) {
@@ -456,7 +459,7 @@ si_make_texture_descriptor(struct radv_device *device,
 	state[7] = 0;
 
 	if (device->physical_device->rad_info.chip_class >= GFX9) {
-		unsigned bc_swizzle = gfx9_border_color_swizzle(desc->swizzle);
+		unsigned bc_swizzle = gfx9_border_color_swizzle(swizzle);
 
 		/* Depth is the the last accessible layer on Gfx9.
 		 * The hw doesn't need to know the total number of layers.
@@ -597,7 +600,7 @@ radv_query_opaque_metadata(struct radv_device *device,
 				   desc, NULL);
 
 	si_set_mutable_tex_desc_fields(device, image, &image->surface.u.legacy.level[0], 0, 0,
-				       image->surface.blk_w, false, desc);
+				       image->surface.blk_w, false, false, desc);
 
 	/* Clear the base address and set the relative DCC offset. */
 	desc[0] = 0;
@@ -1010,7 +1013,7 @@ radv_image_view_make_descriptor(struct radv_image_view *iview,
 				       base_level_info,
 				       iview->base_mip,
 				       iview->base_mip,
-				       blk_w, is_stencil, descriptor);
+				       blk_w, is_stencil, is_storage_image, descriptor);
 }
 
 void
@@ -1107,6 +1110,18 @@ bool radv_layout_can_fast_clear(const struct radv_image *image,
 {
 	return layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL &&
 		queue_mask == (1u << RADV_QUEUE_GENERAL);
+}
+
+bool radv_layout_dcc_compressed(const struct radv_image *image,
+			        VkImageLayout layout,
+			        unsigned queue_mask)
+{
+	/* Don't compress compute transfer dst, as image stores are not supported. */
+	if (layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+	    (queue_mask & (1u << RADV_QUEUE_COMPUTE)))
+		return false;
+
+	return image->surface.num_dcc_levels > 0 && layout != VK_IMAGE_LAYOUT_GENERAL;
 }
 
 

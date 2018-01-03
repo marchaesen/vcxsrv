@@ -535,7 +535,7 @@ void radv_meta_build_resolve_shader_core(nir_builder *b,
 		nir_ssa_dest_init(&tex_all_same->instr, &tex_all_same->dest, 1, 32, "tex");
 		nir_builder_instr_insert(b, &tex_all_same->instr);
 
-		nir_ssa_def *all_same = nir_ine(b, &tex_all_same->dest.ssa, nir_imm_int(b, 0));
+		nir_ssa_def *all_same = nir_ieq(b, &tex_all_same->dest.ssa, nir_imm_int(b, 0));
 		nir_if *if_stmt = nir_if_create(b->shader);
 		if_stmt->condition = nir_src_for_ssa(all_same);
 		nir_cf_node_insert(b->cursor, &if_stmt->cf_node);

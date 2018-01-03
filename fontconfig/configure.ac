@@ -90,6 +90,16 @@ PKGCONFIG_REQUIRES=
 PKGCONFIG_REQUIRES_PRIVATELY=
 
 dnl ==========================================================================
+case "$host" in
+  *-*-mingw*)
+    os_win32=yes
+    ;;
+  *)
+    os_win32=no
+esac
+AM_CONDITIONAL(OS_WIN32, test "$os_win32" = "yes")
+
+dnl ==========================================================================
 dnl gettext stuff
 dnl ==========================================================================
 GETTEXT_PACKAGE=$PACKAGE
@@ -99,21 +109,14 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Gettext package])
 AM_GNU_GETTEXT_VERSION([0.19.8])
 AM_GNU_GETTEXT([external])
 
+if test "$os_win32" = "no"; then
 AC_PATH_PROG(ITSTOOL, [itstool])
 if test -z "$ITSTOOL"; then
    AC_MSG_ERROR([The itstool were not found. Please install itstool.])
 fi
+fi
 
 dnl ==========================================================================
-
-case "$host" in
-  *-*-mingw*)
-    os_win32=yes
-    ;;
-  *)
-    os_win32=no
-esac
-AM_CONDITIONAL(OS_WIN32, test "$os_win32" = "yes")
 
 if test "$os_win32" = "yes"; then
   AC_CHECK_PROG(ms_librarian, lib.exe, yes, no)

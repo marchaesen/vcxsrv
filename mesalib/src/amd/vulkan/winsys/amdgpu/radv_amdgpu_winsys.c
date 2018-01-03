@@ -177,6 +177,7 @@ radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags)
 	if (debug_flags & RADV_DEBUG_NO_IBS)
 		ws->use_ib_bos = false;
 
+	ws->use_local_bos = perftest_flags & RADV_PERFTEST_LOCAL_BOS;
 	ws->zero_all_vram_allocs = debug_flags & RADV_DEBUG_ZERO_VRAM;
 	ws->batchchain = !(perftest_flags & RADV_PERFTEST_NO_BATCHCHAIN);
 	LIST_INITHEAD(&ws->global_bo_list);

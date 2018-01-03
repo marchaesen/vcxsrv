@@ -1171,7 +1171,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 {
     FcPattern	    *pat;
     int		    slant = -1;
-    int		    weight = -1;
+    double	    weight = -1;
     int		    width = -1;
     FcBool	    decorative = FcFalse;
     FcBool	    variable = FcFalse;
@@ -1264,8 +1264,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	      {
 		case FT_MAKE_TAG ('w','g','h','t'):
 		  elt = FC_WEIGHT;
-		  min_value = FcWeightFromOpenType (min_value);
-		  max_value = FcWeightFromOpenType (max_value);
+		  min_value = FcWeightFromOpenTypeDouble (min_value);
+		  max_value = FcWeightFromOpenTypeDouble (max_value);
 		  variable_weight = FcTrue;
 		  weight = 0; /* To stop looking for weight. */
 		  break;
@@ -1694,15 +1694,15 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	{
 		/* Work around bad values by cleaning them up before
 		 * multiplying by weight_mult. */
-		weight = FcWeightToOpenType (FcWeightFromOpenType (weight));
+		weight = FcWeightToOpenTypeDouble (FcWeightFromOpenTypeDouble (weight));
 	}
-	weight = FcWeightFromOpenType ((int) (weight * weight_mult + .5));
+	weight = FcWeightFromOpenTypeDouble ((int) (weight * weight_mult + .5));
 	if ((FcDebug() & FC_DBG_SCANV) && weight != -1)
-	    printf ("\tos2 weight class %d multiplier %g maps to weight %d\n",
+	    printf ("\tos2 weight class %d multiplier %g maps to weight %g\n",
 		    os2->usWeightClass, weight_mult, weight);
 
 	/* TODO:
-	 * Add FcWidthFromOpenType and FcWidthToOpenType,
+	 * Add FcWidthFromOpenTypeDouble and FcWidthToOpenTypeDouble,
 	 * and apply width_mult post-conversion? */
 	switch ((int) (os2->usWidthClass * width_mult + .5)) {
 	case 1:	width = FC_WIDTH_ULTRACONDENSED; break;
@@ -1893,7 +1893,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     if (!FcPatternAddInteger (pat, FC_SLANT, slant))
 	goto bail1;
 
-    if (!variable_weight && !FcPatternAddInteger (pat, FC_WEIGHT, weight))
+    if (!variable_weight && !FcPatternAddDouble (pat, FC_WEIGHT, weight))
 	goto bail1;
 
     if (!variable_width && !FcPatternAddInteger (pat, FC_WIDTH, width))

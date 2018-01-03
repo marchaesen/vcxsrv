@@ -966,8 +966,14 @@ FcRangeGetDouble(const FcRange *range, double *begin, double *end);
 FcPublic int
 FcWeightFromOpenType (int ot_weight);
 
+FcPublic double
+FcWeightFromOpenTypeDouble (double ot_weight);
+
 FcPublic int
 FcWeightToOpenType (int fc_weight);
+
+FcPublic double
+FcWeightToOpenTypeDouble (double fc_weight);
 
 /* fcstr.c */
 
