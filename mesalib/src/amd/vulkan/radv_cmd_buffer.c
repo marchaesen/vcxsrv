@@ -1043,6 +1043,21 @@ radv_emit_vgt_vertex_reuse(struct radv_cmd_buffer *cmd_buffer,
 }
 
 static void
+radv_emit_binning_state(struct radv_cmd_buffer *cmd_buffer,
+			   struct radv_pipeline *pipeline)
+{
+	struct radeon_winsys_cs *cs = cmd_buffer->cs;
+
+	if (cmd_buffer->device->physical_device->rad_info.chip_class < GFX9)
+		return;
+
+	radeon_set_context_reg(cs, R_028C44_PA_SC_BINNER_CNTL_0,
+			       pipeline->graphics.bin.pa_sc_binner_cntl_0);
+	radeon_set_context_reg(cs, R_028060_DB_DFSM_CONTROL,
+			       pipeline->graphics.bin.db_dfsm_control);
+}
+
+static void
 radv_emit_graphics_pipeline(struct radv_cmd_buffer *cmd_buffer)
 {
 	struct radv_pipeline *pipeline = cmd_buffer->state.pipeline;
@@ -1059,6 +1074,7 @@ radv_emit_graphics_pipeline(struct radv_cmd_buffer *cmd_buffer)
 	radv_emit_geometry_shader(cmd_buffer, pipeline);
 	radv_emit_fragment_shader(cmd_buffer, pipeline);
 	radv_emit_vgt_vertex_reuse(cmd_buffer, pipeline);
+	radv_emit_binning_state(cmd_buffer, pipeline);
 
 	cmd_buffer->scratch_size_needed =
 	                          MAX2(cmd_buffer->scratch_size_needed,
@@ -1184,10 +1200,20 @@ radv_emit_depth_biais(struct radv_cmd_buffer *cmd_buffer)
 static void
 radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 			 int index,
-			 struct radv_attachment_info *att)
+			 struct radv_attachment_info *att,
+			 struct radv_image *image,
+			 VkImageLayout layout)
 {
 	bool is_vi = cmd_buffer->device->physical_device->rad_info.chip_class >= VI;
 	struct radv_color_buffer_info *cb = &att->cb;
+	uint32_t cb_color_info = cb->cb_color_info;
+
+	if (!radv_layout_dcc_compressed(image, layout,
+	                                radv_image_queue_family_mask(image,
+	                                                             cmd_buffer->queue_family_index,
+	                                                             cmd_buffer->queue_family_index))) {
+		cb_color_info &= C_028C70_DCC_ENABLE;
+	}
 
 	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
 		radeon_set_context_reg_seq(cmd_buffer->cs, R_028C60_CB_COLOR0_BASE + index * 0x3c, 11);
@@ -1195,7 +1221,7 @@ radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 		radeon_emit(cmd_buffer->cs, cb->cb_color_base >> 32);
 		radeon_emit(cmd_buffer->cs, cb->cb_color_attrib2);
 		radeon_emit(cmd_buffer->cs, cb->cb_color_view);
-		radeon_emit(cmd_buffer->cs, cb->cb_color_info);
+		radeon_emit(cmd_buffer->cs, cb_color_info);
 		radeon_emit(cmd_buffer->cs, cb->cb_color_attrib);
 		radeon_emit(cmd_buffer->cs, cb->cb_dcc_control);
 		radeon_emit(cmd_buffer->cs, cb->cb_color_cmask);
@@ -1215,7 +1241,7 @@ radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 		radeon_emit(cmd_buffer->cs, cb->cb_color_pitch);
 		radeon_emit(cmd_buffer->cs, cb->cb_color_slice);
 		radeon_emit(cmd_buffer->cs, cb->cb_color_view);
-		radeon_emit(cmd_buffer->cs, cb->cb_color_info);
+		radeon_emit(cmd_buffer->cs, cb_color_info);
 		radeon_emit(cmd_buffer->cs, cb->cb_color_attrib);
 		radeon_emit(cmd_buffer->cs, cb->cb_dcc_control);
 		radeon_emit(cmd_buffer->cs, cb->cb_color_cmask);
@@ -1461,13 +1487,15 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
 
 		int idx = subpass->color_attachments[i].attachment;
 		struct radv_attachment_info *att = &framebuffer->attachments[idx];
+		struct radv_image *image = att->attachment->image;
+		VkImageLayout layout = subpass->color_attachments[i].layout;
 
 		radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, att->attachment->bo, 8);
 
 		assert(att->attachment->aspect_mask & VK_IMAGE_ASPECT_COLOR_BIT);
-		radv_emit_fb_color_state(cmd_buffer, i, att);
+		radv_emit_fb_color_state(cmd_buffer, i, att, image, layout);
 
-		radv_load_color_clear_regs(cmd_buffer, att->attachment->image, i);
+		radv_load_color_clear_regs(cmd_buffer, image, i);
 	}
 
 	if(subpass->depth_stencil_attachment.attachment != VK_ATTACHMENT_UNUSED) {
@@ -3878,7 +3906,12 @@ static void radv_handle_dcc_image_transition(struct radv_cmd_buffer *cmd_buffer,
 					     const VkImageSubresourceRange *range)
 {
 	if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
-		radv_initialize_dcc(cmd_buffer, image, 0x20202020u);
+		radv_initialize_dcc(cmd_buffer, image,
+		                    radv_layout_dcc_compressed(image, dst_layout, dst_queue_mask) ?
+		                         0x20202020u : 0xffffffffu);
+	} else if (radv_layout_dcc_compressed(image, src_layout, src_queue_mask) &&
+	           !radv_layout_dcc_compressed(image, dst_layout, dst_queue_mask)) {
+		radv_decompress_dcc(cmd_buffer, image, range);
 	} else if (radv_layout_can_fast_clear(image, src_layout, src_queue_mask) &&
 		   !radv_layout_can_fast_clear(image, dst_layout, dst_queue_mask)) {
 		radv_fast_clear_flush_image_inplace(cmd_buffer, image, range);
@@ -4002,7 +4035,7 @@ static void write_event(struct radv_cmd_buffer *cmd_buffer,
 	si_cs_emit_write_event_eop(cs,
 				   cmd_buffer->state.predicating,
 				   cmd_buffer->device->physical_device->rad_info.chip_class,
-				   false,
+				   radv_cmd_buffer_uses_mec(cmd_buffer),
 				   V_028A90_BOTTOM_OF_PIPE_TS, 0,
 				   1, va, 2, value);
 

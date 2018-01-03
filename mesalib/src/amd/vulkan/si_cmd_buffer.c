@@ -518,12 +518,6 @@ si_emit_config(struct radv_physical_device *physical_device,
 			assert(0);
 		}
 
-		radeon_set_context_reg(cs, R_028060_DB_DFSM_CONTROL,
-				       S_028060_PUNCHOUT_MODE(V_028060_FORCE_OFF));
-		/* TODO: Enable the binner: */
-		radeon_set_context_reg(cs, R_028C44_PA_SC_BINNER_CNTL_0,
-				       S_028C44_BINNING_MODE(V_028C44_DISABLE_BINNING_USE_LEGACY_SC) |
-				       S_028C44_DISABLE_START_OF_PRIM(1));
 		radeon_set_context_reg(cs, R_028C48_PA_SC_BINNER_CNTL_1,
 				       S_028C48_MAX_ALLOC_COUNT(MIN2(128, pc_lines / (4 * num_se))) |
 				       S_028C48_MAX_PRIM_PER_BATCH(1023));
@@ -991,6 +985,11 @@ si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
 	if (chip_class >= GFX9 && flush_cb_db) {
 		unsigned cb_db_event, tc_flags;
 
+#if 0
+		/* This breaks a bunch of:
+		   dEQP-VK.renderpass.dedicated_allocation.formats.d32_sfloat_s8_uint.input*.
+		   use the big hammer always.
+		*/
 		/* Set the CB/DB flush event. */
 		switch (flush_cb_db) {
 		case RADV_CMD_FLAG_FLUSH_AND_INV_CB:
@@ -1003,7 +1002,9 @@ si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
 			/* both CB & DB */
 			cb_db_event = V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT;
 		}
-
+#else
+		cb_db_event = V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT;
+#endif
 		/* TC    | TC_WB         = invalidate L2 data
 		 * TC_MD | TC_WB         = invalidate L2 metadata
 		 * TC    | TC_WB | TC_MD = invalidate L2 data & metadata

@@ -200,7 +200,7 @@ struct save_state
  */
 struct temp_texture
 {
-   GLuint TexObj;
+   struct gl_texture_object *tex_obj;
    GLenum Target;         /**< GL_TEXTURE_2D or GL_TEXTURE_RECTANGLE */
    GLsizei MinSize;       /**< Min texture size to allocate */
    GLsizei MaxSize;       /**< Max possible texture size */
@@ -312,8 +312,9 @@ struct fb_tex_blit_state
    GLint baseLevelSave, maxLevelSave;
    struct gl_sampler_object *samp_obj;
    struct gl_sampler_object *samp_obj_save;
+   struct gl_texture_object *tex_obj;
+   struct gl_texture_object *temp_tex_obj;
    GLuint stencilSamplingSave;
-   GLuint tempTex;
 };
 
 
@@ -462,12 +463,9 @@ extern void
 _mesa_meta_fb_tex_blit_end(struct gl_context *ctx, GLenum target,
                            struct fb_tex_blit_state *blit);
 
-extern GLboolean
-_mesa_meta_bind_rb_as_tex_image(struct gl_context *ctx,
-                                struct gl_renderbuffer *rb,
-                                GLuint *tex,
-                                struct gl_texture_object **texObj,
-                                GLenum *target);
+extern struct gl_texture_object *
+_mesa_meta_texture_object_from_renderbuffer(struct gl_context *ctx,
+                                            struct gl_renderbuffer *rb);
 
 struct gl_sampler_object *
 _mesa_meta_setup_sampler(struct gl_context *ctx,

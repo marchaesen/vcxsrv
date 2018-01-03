@@ -60,7 +60,7 @@ struct pipe_box;
 struct pipe_memory_info;
 struct disk_cache;
 struct driOptionCache;
-
+struct u_transfer_helper;
 
 /**
  * Gallium screen/adapter context.  Basically everything
@@ -68,6 +68,12 @@ struct driOptionCache;
  * context.
  */
 struct pipe_screen {
+
+   /**
+    * For drivers using u_transfer_helper:
+    */
+   struct u_transfer_helper *transfer_helper;
+
    void (*destroy)( struct pipe_screen * );
 
    const char *(*get_name)( struct pipe_screen * );

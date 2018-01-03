@@ -47,6 +47,8 @@ enum {
 enum {
 	RADV_PERFTEST_NO_BATCHCHAIN  =   0x1,
 	RADV_PERFTEST_SISCHED        =   0x2,
+	RADV_PERFTEST_LOCAL_BOS      =   0x4,
+	RADV_PERFTEST_BINNING     =   0x8,
 };
 
 bool

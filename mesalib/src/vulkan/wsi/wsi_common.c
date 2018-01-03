@@ -156,6 +156,7 @@ wsi_swapchain_finish(struct wsi_swapchain *chain)
       chain->wsi->DestroyCommandPool(chain->device, chain->cmd_pools[i],
                                      &chain->alloc);
    }
+   vk_free(&chain->alloc, chain->cmd_pools);
 }
 
 static uint32_t

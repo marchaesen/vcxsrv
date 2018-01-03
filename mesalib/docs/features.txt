@@ -208,7 +208,7 @@ GL 4.4, GLSL 4.40 -- all DONE: i965/gen8+, nvc0, radeonsi
 
 GL 4.5, GLSL 4.50 -- all DONE: nvc0, radeonsi
 
-  GL_ARB_ES3_1_compatibility                            DONE (i965/hsw+)
+  GL_ARB_ES3_1_compatibility                            DONE (i965/hsw+, r600)
   GL_ARB_clip_control                                   DONE (freedreno, i965, nv50, r600, llvmpipe, softpipe, swr)
   GL_ARB_conditional_render_inverted                    DONE (freedreno, i965, nv50, r600, llvmpipe, softpipe, swr)
   GL_ARB_cull_distance                                  DONE (i965, nv50, r600, llvmpipe, softpipe, swr)

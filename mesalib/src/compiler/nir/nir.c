@@ -1969,6 +1969,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_subgroup_le_mask;
    case SYSTEM_VALUE_SUBGROUP_LT_MASK:
       return nir_intrinsic_load_subgroup_lt_mask;
+   case SYSTEM_VALUE_LOCAL_GROUP_SIZE:
+      return nir_intrinsic_load_local_group_size;
    default:
       unreachable("system value does not directly correspond to intrinsic");
    }
@@ -2038,6 +2040,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_SUBGROUP_LE_MASK;
    case nir_intrinsic_load_subgroup_lt_mask:
       return SYSTEM_VALUE_SUBGROUP_LT_MASK;
+   case nir_intrinsic_load_local_group_size:
+      return SYSTEM_VALUE_LOCAL_GROUP_SIZE;
    default:
       unreachable("intrinsic doesn't produce a system value");
    }

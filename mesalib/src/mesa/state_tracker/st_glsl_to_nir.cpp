@@ -126,8 +126,9 @@ st_nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
                             gl_shader_stage stage)
 {
    unsigned location = 0;
-   unsigned assigned_locations[VARYING_SLOT_MAX];
+   unsigned assigned_locations[VARYING_SLOT_TESS_MAX];
    uint64_t processed_locs = 0;
+   uint32_t processed_patch_locs = 0;
 
    nir_foreach_variable(var, var_list) {
 
@@ -137,11 +138,24 @@ st_nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
          type = glsl_get_array_element(type);
       }
 
+      bool processed = false;
+      if (var->data.patch) {
+         unsigned patch_loc = var->data.location - VARYING_SLOT_VAR0;
+         if (processed_patch_locs & (1 << patch_loc))
+            processed = true;
+
+         processed_patch_locs |= (1 << patch_loc);
+      } else {
+         if (processed_locs & ((uint64_t)1 << var->data.location))
+            processed = true;
+
+         processed_locs |= ((uint64_t)1 << var->data.location);
+      }
+
       /* Because component packing allows varyings to share the same location
        * we may have already have processed this location.
        */
-      if (var->data.location >= VARYING_SLOT_VAR0 &&
-          processed_locs & ((uint64_t)1 << var->data.location)) {
+      if (processed && var->data.location >= VARYING_SLOT_VAR0) {
          var->data.driver_location = assigned_locations[var->data.location];
          *size += type_size(type);
          continue;
@@ -150,8 +164,6 @@ st_nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
       assigned_locations[var->data.location] = location;
       var->data.driver_location = location;
       location += type_size(type);
-
-      processed_locs |= ((uint64_t)1 << var->data.location);
    }
 
    *size += location;
@@ -262,6 +274,7 @@ st_nir_opts(nir_shader *nir)
    do {
       progress = false;
 
+      NIR_PASS_V(nir, nir_lower_64bit_pack);
       NIR_PASS(progress, nir, nir_copy_prop);
       NIR_PASS(progress, nir, nir_opt_remove_phis);
       NIR_PASS(progress, nir, nir_opt_dce);
@@ -616,6 +629,12 @@ st_link_nir(struct gl_context *ctx,
                               nir, ctx->API != API_OPENGL_COMPAT);
       }
       prev = i;
+   }
+
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      struct gl_linked_shader *shader = shader_program->_LinkedShaders[i];
+      if (shader == NULL)
+         continue;
 
       st_glsl_to_nir_post_opts(st, shader->Program, shader_program);
 

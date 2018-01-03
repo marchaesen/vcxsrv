@@ -8954,9 +8954,15 @@
 #define   S_028C78_MAX_UNCOMPRESSED_BLOCK_SIZE(x)                     (((unsigned)(x) & 0x03) << 2)
 #define   G_028C78_MAX_UNCOMPRESSED_BLOCK_SIZE(x)                     (((x) >> 2) & 0x03)
 #define   C_028C78_MAX_UNCOMPRESSED_BLOCK_SIZE                        0xFFFFFFF3
+#define     V_028C78_MAX_BLOCK_SIZE_64B                               0
+#define     V_028C78_MAX_BLOCK_SIZE_128B                              1
+#define     V_028C78_MAX_BLOCK_SIZE_256B                              2
+
 #define   S_028C78_MIN_COMPRESSED_BLOCK_SIZE(x)                       (((unsigned)(x) & 0x1) << 4)
 #define   G_028C78_MIN_COMPRESSED_BLOCK_SIZE(x)                       (((x) >> 4) & 0x1)
 #define   C_028C78_MIN_COMPRESSED_BLOCK_SIZE                          0xFFFFFFEF
+#define     V_028C78_MIN_BLOCK_SIZE_32B                               0
+#define     V_028C78_MIN_BLOCK_SIZE_64B                               1
 #define   S_028C78_MAX_COMPRESSED_BLOCK_SIZE(x)                       (((unsigned)(x) & 0x03) << 5)
 #define   G_028C78_MAX_COMPRESSED_BLOCK_SIZE(x)                       (((x) >> 5) & 0x03)
 #define   C_028C78_MAX_COMPRESSED_BLOCK_SIZE                          0xFFFFFF9F

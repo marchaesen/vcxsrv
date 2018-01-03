@@ -363,6 +363,7 @@ SYSTEM_VALUE(subgroup_gt_mask, 0, 0, xx, xx, xx)
 SYSTEM_VALUE(subgroup_le_mask, 0, 0, xx, xx, xx)
 SYSTEM_VALUE(subgroup_lt_mask, 0, 0, xx, xx, xx)
 SYSTEM_VALUE(subgroup_id, 1, 0, xx, xx, xx)
+SYSTEM_VALUE(local_group_size, 3, 0, xx, xx, xx)
 
 /* Blend constant color values.  Float values are clamped. */
 SYSTEM_VALUE(blend_const_color_r_float, 1, 0, xx, xx, xx)

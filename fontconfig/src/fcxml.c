@@ -2305,6 +2305,8 @@ FcParseInclude (FcConfigParse *parse)
 #endif
     FcChar8	    *prefix = NULL, *p;
     FcChar8	    *userdir = NULL, *userconf = NULL;
+    FcRuleSet	    *ruleset;
+    FcMatchKind	    k;
 
     s = FcStrBufDoneStatic (&parse->pstack->str);
     if (!s)
@@ -2388,6 +2390,24 @@ FcParseInclude (FcConfigParse *parse)
 		goto userconf;
 	}
     }
+    /* flush the ruleset into the queue */
+    ruleset = parse->ruleset;
+    parse->ruleset = FcRuleSetCreate (ruleset->name);
+    FcRuleSetEnable (parse->ruleset, ruleset->enabled);
+    FcRuleSetAddDescription (parse->ruleset, ruleset->domain, ruleset->description);
+    for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++)
+    {
+	FcPtrListIter iter;
+
+	FcPtrListIterInit (ruleset->subst[k], &iter);
+	if (FcPtrListIterIsValid (ruleset->subst[k], &iter))
+	{
+	    FcPtrListIterInitAtLast (parse->config->subst[k], &iter);
+	    FcRuleSetReference (ruleset);
+	    FcPtrListIterAdd (parse->config->subst[k], &iter, ruleset);
+	}
+    }
+    FcRuleSetDestroy (ruleset);
     if (!FcConfigParseAndLoad (parse->config, s, !ignore_missing))
 	parse->error = FcTrue;
 #ifndef _WIN32
@@ -3352,6 +3372,8 @@ bail1:
 	FcConfigMessage (0, FcSevereError, "Cannot %s config file from %s", load ? "load" : "scan", filename);
 	return FcFalse;
     }
+    if (FcDebug () & FC_DBG_CONFIG)
+	printf ("\t%s config file from %s done\n", load ? "Loading" : "Scanning", filename);
     return FcTrue;
 }
 

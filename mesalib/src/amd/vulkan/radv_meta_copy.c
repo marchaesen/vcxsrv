@@ -88,7 +88,8 @@ blit_surf_for_image_level_layer(struct radv_image *image,
 	else if (subres->aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT)
 		format = vk_format_stencil_only(format);
 
-	if (!image->surface.dcc_size)
+	if (!image->surface.dcc_size &&
+	    !(image->surface.htile_size && image->tc_compatible_htile))
 		format = vk_format_for_size(vk_format_get_blocksize(format));
 
 	return (struct radv_meta_blit2d_surf) {
@@ -368,8 +369,31 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 							dest_image_layout,
 							&pRegions[r].dstSubresource);
 
-		/* for DCC */
-		b_src.format = b_dst.format;
+		uint32_t dst_queue_mask = radv_image_queue_family_mask(dest_image,
+		                                                       cmd_buffer->queue_family_index,
+		                                                       cmd_buffer->queue_family_index);
+		bool dst_compressed = radv_layout_dcc_compressed(dest_image, dest_image_layout, dst_queue_mask);
+		uint32_t src_queue_mask = radv_image_queue_family_mask(src_image,
+		                                                       cmd_buffer->queue_family_index,
+		                                                       cmd_buffer->queue_family_index);
+		bool src_compressed = radv_layout_dcc_compressed(src_image, src_image_layout, src_queue_mask);
+
+		if (!src_compressed || radv_dcc_formats_compatible(b_src.format, b_dst.format)) {
+			b_src.format = b_dst.format;
+		} else if (!dst_compressed) {
+			b_dst.format = b_src.format;
+		} else {
+			radv_decompress_dcc(cmd_buffer, dest_image, &(VkImageSubresourceRange) {
+			                        .aspectMask = pRegions[r].dstSubresource.aspectMask,
+			                        .baseMipLevel = pRegions[r].dstSubresource.mipLevel,
+			                        .levelCount = 1,
+			                        .baseArrayLayer = pRegions[r].dstSubresource.baseArrayLayer,
+			                        .layerCount = pRegions[r].dstSubresource.layerCount,
+			                    });
+			b_dst.format = b_src.format;
+			b_dst.current_layout = VK_IMAGE_LAYOUT_GENERAL;
+		}
+
 
 		/**
 		 * From the Vulkan 1.0.6 spec: 18.4 Copying Data Between Buffers and Images

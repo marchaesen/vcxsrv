@@ -1511,6 +1511,47 @@ delete_textures(struct gl_context *ctx, GLsizei n, const GLuint *textures)
    }
 }
 
+/**
+ * This deletes a texObj without altering the hash table.
+ */
+void
+_mesa_delete_nameless_texture(struct gl_context *ctx,
+                              struct gl_texture_object *texObj)
+{
+   if (!texObj)
+      return;
+
+   FLUSH_VERTICES(ctx, 0);
+
+   _mesa_lock_texture(ctx, texObj);
+   {
+      /* Check if texture is bound to any framebuffer objects.
+       * If so, unbind.
+       * See section 4.4.2.3 of GL_EXT_framebuffer_object.
+       */
+      unbind_texobj_from_fbo(ctx, texObj);
+
+      /* Check if this texture is currently bound to any texture units.
+       * If so, unbind it.
+       */
+      unbind_texobj_from_texunits(ctx, texObj);
+
+      /* Check if this texture is currently bound to any shader
+       * image unit.  If so, unbind it.
+       * See section 3.9.X of GL_ARB_shader_image_load_store.
+       */
+      unbind_texobj_from_image_units(ctx, texObj);
+   }
+   _mesa_unlock_texture(ctx, texObj);
+
+   ctx->NewState |= _NEW_TEXTURE_OBJECT;
+
+   /* Unreference the texobj.  If refcount hits zero, the texture
+    * will be deleted.
+    */
+   _mesa_reference_texobj(&texObj, NULL);
+}
+
 
 void GLAPIENTRY
 _mesa_DeleteTextures_no_error(GLsizei n, const GLuint *textures)
@@ -1651,6 +1692,29 @@ bind_texture_object(struct gl_context *ctx, unsigned unit,
    }
 }
 
+/**
+ * Light-weight bind texture for internal users
+ *
+ * This is really just \c finish_texture_init plus \c bind_texture_object.
+ * This is intended to be used by internal Mesa functions that use
+ * \c _mesa_CreateTexture and need to bind textures (e.g., meta).
+ */
+void
+_mesa_bind_texture(struct gl_context *ctx, GLenum target,
+                   struct gl_texture_object *tex_obj)
+{
+   const GLint targetIndex = _mesa_tex_target_to_index(ctx, target);
+
+   assert(targetIndex >= 0 && targetIndex < NUM_TEXTURE_TARGETS);
+
+   if (tex_obj->Target == 0)
+      finish_texture_init(ctx, target, tex_obj, targetIndex);
+
+   assert(tex_obj->Target == target);
+   assert(tex_obj->TargetIndex == targetIndex);
+
+   bind_texture_object(ctx, ctx->Texture.CurrentUnit, tex_obj);
+}
 
 /**
  * Implement glBindTexture().  Do error checking, look-up or create a new
@@ -1722,7 +1786,6 @@ bind_texture(struct gl_context *ctx, GLenum target, GLuint texName,
 
    bind_texture_object(ctx, ctx->Texture.CurrentUnit, newTexObj);
 }
-
 
 void GLAPIENTRY
 _mesa_BindTexture_no_error(GLenum target, GLuint texName)

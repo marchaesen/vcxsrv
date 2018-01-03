@@ -261,11 +261,12 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 
 			if (aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT) {
 				unsigned fs_key = radv_format_meta_fs_key(dst_temps.iview.vk_format);
+				unsigned dst_layout = radv_meta_dst_layout_from_layout(dst->current_layout);
 
 				radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
 							&(VkRenderPassBeginInfo) {
 								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-									.renderPass = device->meta_state.blit2d.render_passes[fs_key],
+									.renderPass = device->meta_state.blit2d.render_passes[fs_key][dst_layout],
 									.framebuffer = dst_temps.fb,
 									.renderArea = {
 									.offset = { rects[r].dst_x, rects[r].dst_y, },
@@ -611,9 +612,11 @@ radv_device_finish_meta_blit2d_state(struct radv_device *device)
 	struct radv_meta_state *state = &device->meta_state;
 
 	for(unsigned j = 0; j < NUM_META_FS_KEYS; ++j) {
-		radv_DestroyRenderPass(radv_device_to_handle(device),
-				       state->blit2d.render_passes[j],
-				       &state->alloc);
+		for (unsigned k = 0; k < RADV_META_DST_LAYOUT_COUNT; ++k) {
+			radv_DestroyRenderPass(radv_device_to_handle(device),
+			                       state->blit2d.render_passes[j][k],
+			                       &state->alloc);
+		}
 	}
 
 	for (enum radv_blit_ds_layout j = RADV_BLIT_DS_LAYOUT_TILE_ENABLE; j < RADV_BLIT_DS_LAYOUT_COUNT; j++) {
@@ -701,37 +704,41 @@ blit2d_init_color_pipeline(struct radv_device *device,
 		},
 	};
 
-	if (!device->meta_state.blit2d.render_passes[fs_key]) {
-		result = radv_CreateRenderPass(radv_device_to_handle(device),
-					       &(VkRenderPassCreateInfo) {
-						       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-						       .attachmentCount = 1,
-						       .pAttachments = &(VkAttachmentDescription) {
-						       .format = format,
-						       .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-						       .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-						       .initialLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						       .finalLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						       },
-					       .subpassCount = 1,
-					       .pSubpasses = &(VkSubpassDescription) {
-						       .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-						       .inputAttachmentCount = 0,
-						       .colorAttachmentCount = 1,
-						       .pColorAttachments = &(VkAttachmentReference) {
-							       .attachment = 0,
-							       .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	for (unsigned dst_layout = 0; dst_layout < RADV_META_DST_LAYOUT_COUNT; ++dst_layout) {
+		if (!device->meta_state.blit2d.render_passes[fs_key][dst_layout]) {
+			VkImageLayout layout = radv_meta_dst_layout_to_layout(dst_layout);
+
+			result = radv_CreateRenderPass(radv_device_to_handle(device),
+						&(VkRenderPassCreateInfo) {
+							.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+							.attachmentCount = 1,
+							.pAttachments = &(VkAttachmentDescription) {
+							.format = format,
+							.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+							.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+							.initialLayout = layout,
+							.finalLayout = layout,
 							},
-					       .pResolveAttachments = NULL,
-					       .pDepthStencilAttachment = &(VkAttachmentReference) {
-						       .attachment = VK_ATTACHMENT_UNUSED,
-						       .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					       },
-					       .preserveAttachmentCount = 1,
-					       .pPreserveAttachments = (uint32_t[]) { 0 },
-					       },
-					.dependencyCount = 0,
-				 }, &device->meta_state.alloc, &device->meta_state.blit2d.render_passes[fs_key]);
+						.subpassCount = 1,
+						.pSubpasses = &(VkSubpassDescription) {
+							.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+							.inputAttachmentCount = 0,
+							.colorAttachmentCount = 1,
+							.pColorAttachments = &(VkAttachmentReference) {
+								.attachment = 0,
+								.layout = layout,
+								},
+						.pResolveAttachments = NULL,
+						.pDepthStencilAttachment = &(VkAttachmentReference) {
+							.attachment = VK_ATTACHMENT_UNUSED,
+							.layout = layout,
+						},
+						.preserveAttachmentCount = 1,
+						.pPreserveAttachments = (uint32_t[]) { 0 },
+						},
+						.dependencyCount = 0,
+					}, &device->meta_state.alloc, &device->meta_state.blit2d.render_passes[fs_key][dst_layout]);
+		}
 	}
 
 	const VkGraphicsPipelineCreateInfo vk_pipeline_info = {
@@ -790,7 +797,7 @@ blit2d_init_color_pipeline(struct radv_device *device,
 		},
 		.flags = 0,
 		.layout = device->meta_state.blit2d.p_layouts[src_type],
-		.renderPass = device->meta_state.blit2d.render_passes[fs_key],
+		.renderPass = device->meta_state.blit2d.render_passes[fs_key][0],
 		.subpass = 0,
 	};
 
