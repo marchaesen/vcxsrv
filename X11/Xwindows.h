@@ -77,6 +77,16 @@ The Open Group.
 #define ATOM wATOM
 #define BYTE wBYTE
 #define FreeResource wFreeResource
+#ifdef None
+#pragma push_macro("None")
+#define NoneDefined
+#undef None
+#endif
+#ifdef ControlMask
+#pragma push_macro("ControlMask")
+#define ControlMaskDefined
+#undef ControlMask
+#endif
 #include <windows.h>
 #undef NOMINMAX
 #undef Status
@@ -89,6 +99,14 @@ typedef int Status;
 #undef ATOM
 #undef FreeResource
 #undef CreateWindowA
+#ifdef NoneDefined
+#pragma pop_macro("None")
+#undef NoneDefined
+#endif
+#ifdef ControlMaskDefined
+#pragma pop_macro("ControlMask")
+#undef ControlMaskDefined
+#endif
 
 /*
  * Older version of this header used to name the windows API bool type wBOOL,

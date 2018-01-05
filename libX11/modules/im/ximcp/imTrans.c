@@ -64,10 +64,6 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "XimTrans.h"
 #include "XimTrInt.h"
 
-#ifdef WIN32
-#include <X11/Xwindows.h>
-#endif
-
 
 #ifndef XIM_CONNECTION_RETRIES
 #define XIM_CONNECTION_RETRIES 5

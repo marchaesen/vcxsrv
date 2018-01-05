@@ -33,8 +33,8 @@ getspecfiles:
 	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/wgl.xml
 
 $(OBJDIR)\generated_gl_wrappers.c: gen_gl_wrappers.py gl.xml gen_gl_wrappers.py reg.py
-	$(PYTHON3) gen_gl_wrappers.py -outfile $@ -staticwrappers -dispatchheader ../../../glx/dispatch.h
+	python3.6m.exe gen_gl_wrappers.py -outfile $@ -staticwrappers -dispatchheader ../../../glx/dispatch.h
 
 $(OBJDIR)\generated_wgl_wrappers.c: gen_gl_wrappers.py wgl.xml gen_gl_wrappers.py reg.py
-	$(PYTHON3) gen_gl_wrappers.py -outfile $@ -registry wgl.xml -prefix wgl -preresolve
+	python3.6m.exe gen_gl_wrappers.py -outfile $@ -registry wgl.xml -prefix wgl -preresolve
 

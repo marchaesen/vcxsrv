@@ -1,7 +1,3 @@
-ifndef PYTHON3
-$(error Please define PYTHON3 environment variable)
-endif
-
 SHAREDLIB = swrastwgl_dri
 
 INCLUDES += $(OBJDIR) ..\..\.. .. ..\glx $(MHMAKECONF)\gl\include
@@ -15,7 +11,7 @@ CSRCS = swrastwgl_dri.c glwrap.c wgl_ext_api.c
 vpath %.c ../glx
 
 $(OBJDIR)\generated_gl_wrappers.c: ../glx/gen_gl_wrappers.py ../glx/gl.xml ../glx/gen_gl_wrappers.py ../glx/reg.py ../../../glx/dispatch.h
-	$(PYTHON3) ../glx/gen_gl_wrappers.py -outfile $@ -nodbgcount -registry ../glx/gl.xml -staticwrappers -dispatchheader ../../../glx/dispatch.h
+	python3.6m.exe ../glx/gen_gl_wrappers.py -outfile $@ -nodbgcount -registry ../glx/gl.xml -staticwrappers -dispatchheader ../../../glx/dispatch.h
 
 $(OBJDIR)\generated_wgl_wrappers.c: ../glx/gen_gl_wrappers.py ../glx/wgl.xml ../glx/gen_gl_wrappers.py ../glx/reg.py
-	$(PYTHON3) ../glx/gen_gl_wrappers.py -outfile $@ -nodbgcount -registry ../glx/wgl.xml -prefix wgl -preresolve
+	python3.6m.exe ../glx/gen_gl_wrappers.py -outfile $@ -nodbgcount -registry ../glx/wgl.xml -prefix wgl -preresolve

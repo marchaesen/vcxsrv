@@ -26,9 +26,14 @@ check-error 'Please install nasm'
 which MSBuild.exe > /dev/null 2>&1
 check-error 'Please install/set environment for visual studio 2010'
 
-# c;\perl should have a copy of strawberry perl portable edition
+which python.exe > /dev/null 2>&1
+check-error 'Make sure that python.exe is in the PATH. (e.g. cp /usr/bin/python2.7.exe /usr/bin/python.exe)'
+
+# c:\perl should have a copy of strawberry perl portable edition
+which /cygdrive/c/perl/perl/bin/perl.exe > /dev/null 2>&1
+check-error 'Please install strawberry perl portable edition into c:\perl'
 ORIPATH=$PATH
-export PATH=/cygdrive/c/perl/site/bin:/cygdrive/c/perl/perl/bin:/cygdrive/c/perl/bin:$PATH
+export PATH=/cygdrive/c/perl/perl/bin:$PATH
 
 # echo script lines from now one
 #set -v
