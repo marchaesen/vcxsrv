@@ -339,7 +339,7 @@ refptr<loadedmakefile> LOADEDMAKEFILES::find(const loadedmakefile &ToSearch)
 bool loadedmakefile::loadedmakefile_statics::GetSvnRevision(void)
 {
   if (getenv("nosvn"))
-    return true;
+    return false;
 
   // Get the revision of the working copy
   // We do it with the svn info command (do it without path arguments, only current directory, to avoid problems with path names and junctions/links
@@ -349,6 +349,8 @@ bool loadedmakefile::loadedmakefile_statics::GetSvnRevision(void)
   {
     mhmakefileparser Dummy(m_MhMakeConf);
     string SvnCommand=Dummy.SearchCommand("svn",EXEEXT);
+	if (SvnCommand.empty())
+		return false;
     Dummy.OsExeCommand(SvnCommand,string(" info"),false,&Output);
   }
   catch (string Message)
