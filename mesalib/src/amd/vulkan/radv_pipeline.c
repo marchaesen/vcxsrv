@@ -2514,12 +2514,12 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.prim_id_input)
 		pipeline->graphics.ia_switch_on_eoi = true;
 	if (radv_pipeline_has_gs(pipeline) &&
-	    pipeline->shaders[MESA_SHADER_GEOMETRY]->info.gs.uses_prim_id)
+	    pipeline->shaders[MESA_SHADER_GEOMETRY]->info.info.uses_prim_id)
 		pipeline->graphics.ia_switch_on_eoi = true;
 	if (radv_pipeline_has_tess(pipeline)) {
 		/* SWITCH_ON_EOI must be set if PrimID is used. */
-		if (pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.uses_prim_id ||
-		    radv_get_tess_eval_shader(pipeline)->info.tes.uses_prim_id)
+		if (pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.info.uses_prim_id ||
+		    radv_get_tess_eval_shader(pipeline)->info.info.uses_prim_id)
 			pipeline->graphics.ia_switch_on_eoi = true;
 	}
 

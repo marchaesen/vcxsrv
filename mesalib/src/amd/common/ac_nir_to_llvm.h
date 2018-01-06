@@ -191,10 +191,8 @@ struct ac_shader_variant_info {
 			unsigned invocations;
 			unsigned gsvs_vertex_size;
 			unsigned max_gsvs_emit_size;
-			bool uses_prim_id;
 		} gs;
 		struct {
-			bool uses_prim_id;
 			unsigned tcs_vertices_out;
 			/* Which outputs are actually written */
 			uint64_t outputs_written;
@@ -210,7 +208,6 @@ struct ac_shader_variant_info {
 			enum gl_tess_spacing spacing;
 			bool ccw;
 			bool point_mode;
-			bool uses_prim_id;
 		} tes;
 	};
 };

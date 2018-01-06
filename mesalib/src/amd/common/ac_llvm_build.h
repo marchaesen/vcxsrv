@@ -83,6 +83,14 @@ void
 ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context,
 		     enum chip_class chip_class, enum radeon_family family);
 
+int
+ac_get_llvm_num_components(LLVMValueRef value);
+
+LLVMValueRef
+ac_llvm_extract_elem(struct ac_llvm_context *ac,
+		     LLVMValueRef value,
+		     int index);
+
 unsigned ac_get_type_size(LLVMTypeRef type);
 
 LLVMTypeRef ac_to_integer_type(struct ac_llvm_context *ctx, LLVMTypeRef t);
@@ -236,7 +244,10 @@ LLVMValueRef ac_build_imsb(struct ac_llvm_context *ctx,
 LLVMValueRef ac_build_umsb(struct ac_llvm_context *ctx,
 			  LLVMValueRef arg,
 			  LLVMTypeRef dst_type);
-
+LLVMValueRef ac_build_fmin(struct ac_llvm_context *ctx, LLVMValueRef a,
+			   LLVMValueRef b);
+LLVMValueRef ac_build_fmax(struct ac_llvm_context *ctx, LLVMValueRef a,
+			   LLVMValueRef b);
 LLVMValueRef ac_build_umin(struct ac_llvm_context *ctx, LLVMValueRef a, LLVMValueRef b);
 LLVMValueRef ac_build_clamp(struct ac_llvm_context *ctx, LLVMValueRef value);
 

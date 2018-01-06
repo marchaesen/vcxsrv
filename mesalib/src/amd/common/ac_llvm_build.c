@@ -99,6 +99,30 @@ ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context,
 	ctx->empty_md = LLVMMDNodeInContext(ctx->context, NULL, 0);
 }
 
+int
+ac_get_llvm_num_components(LLVMValueRef value)
+{
+	LLVMTypeRef type = LLVMTypeOf(value);
+	unsigned num_components = LLVMGetTypeKind(type) == LLVMVectorTypeKind
+	                              ? LLVMGetVectorSize(type)
+	                              : 1;
+	return num_components;
+}
+
+LLVMValueRef
+ac_llvm_extract_elem(struct ac_llvm_context *ac,
+		     LLVMValueRef value,
+		     int index)
+{
+	if (LLVMGetTypeKind(LLVMTypeOf(value)) != LLVMVectorTypeKind) {
+		assert(index == 0);
+		return value;
+	}
+
+	return LLVMBuildExtractElement(ac->builder, value,
+				       LLVMConstInt(ac->i32, index, false), "");
+}
+
 unsigned
 ac_get_type_size(LLVMTypeRef type)
 {
@@ -1198,6 +1222,22 @@ ac_build_umsb(struct ac_llvm_context *ctx,
 			       LLVMConstInt(ctx->i32, -1, true), msb, "");
 }
 
+LLVMValueRef ac_build_fmin(struct ac_llvm_context *ctx, LLVMValueRef a,
+			   LLVMValueRef b)
+{
+	LLVMValueRef args[2] = {a, b};
+	return ac_build_intrinsic(ctx, "llvm.minnum.f32", ctx->f32, args, 2,
+				  AC_FUNC_ATTR_READNONE);
+}
+
+LLVMValueRef ac_build_fmax(struct ac_llvm_context *ctx, LLVMValueRef a,
+			   LLVMValueRef b)
+{
+	LLVMValueRef args[2] = {a, b};
+	return ac_build_intrinsic(ctx, "llvm.maxnum.f32", ctx->f32, args, 2,
+				  AC_FUNC_ATTR_READNONE);
+}
+
 LLVMValueRef ac_build_umin(struct ac_llvm_context *ctx, LLVMValueRef a,
 			   LLVMValueRef b)
 {
@@ -1208,20 +1248,8 @@ LLVMValueRef ac_build_umin(struct ac_llvm_context *ctx, LLVMValueRef a,
 LLVMValueRef ac_build_clamp(struct ac_llvm_context *ctx, LLVMValueRef value)
 {
 	if (HAVE_LLVM >= 0x0500) {
-		LLVMValueRef max[2] = {
-			value,
-			LLVMConstReal(ctx->f32, 0),
-		};
-		LLVMValueRef min[2] = {
-			LLVMConstReal(ctx->f32, 1),
-		};
-
-		min[1] = ac_build_intrinsic(ctx, "llvm.maxnum.f32",
-					    ctx->f32, max, 2,
-					    AC_FUNC_ATTR_READNONE);
-		return ac_build_intrinsic(ctx, "llvm.minnum.f32",
-					  ctx->f32, min, 2,
-					  AC_FUNC_ATTR_READNONE);
+		return ac_build_fmin(ctx, ac_build_fmax(ctx, value, ctx->f32_0),
+				     ctx->f32_1);
 	}
 
 	LLVMValueRef args[3] = {

@@ -18,7 +18,7 @@ XGETTEXT_OPTIONS = --keyword=_ --keyword=N_
 # or entity, or to disclaim their copyright.  The empty string stands for
 # the public domain; in this case the translators are expected to disclaim
 # their copyright.
-COPYRIGHT_HOLDER = Free Software Foundation, Inc.
+COPYRIGHT_HOLDER = Fontconfig Author(s)
 
 # This tells whether or not to prepend "GNU " prefix to the package
 # name that gets inserted into the header of the $(DOMAIN).pot file.
@@ -76,3 +76,5 @@ PO_DEPENDS_ON_POT = yes
 # "no".  Set this to no if the POT file and PO files are maintained
 # externally.
 DIST_DEPENDS_ON_UPDATE_PO = yes
+
+$(DOMAIN).pot-update: export GETTEXTDATADIR = $(top_srcdir)

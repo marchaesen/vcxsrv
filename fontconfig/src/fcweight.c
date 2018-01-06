@@ -54,27 +54,9 @@ FcWeightFromOpenTypeDouble (double ot_weight)
 {
 	int i;
 
-	/* Loosely based on WPF Font Selection Model's advice. */
-
 	if (ot_weight < 0)
 	    return -1;
-	else if (1 <= ot_weight && ot_weight <= 9)
-	{
-	    /* WPF Font Selection Model says do "ot_weight *= 100",
-	     * but Greg Hitchcock revealed that GDI had a mapping
-	     * reflected below: */
-	    switch ((int) ot_weight) {
-		case 1: ot_weight =  80; break;
-		case 2: ot_weight = 160; break;
-		case 3: ot_weight = 240; break;
-		case 4: ot_weight = 320; break;
-		case 5: ot_weight = 400; break;
-		case 6: ot_weight = 550; break;
-		case 7: ot_weight = 700; break;
-		case 8: ot_weight = 800; break;
-		case 9: ot_weight = 900; break;
-	    }
-	}
+
 	ot_weight = FC_MIN (ot_weight, map[(sizeof (map) / sizeof (map[0])) - 1].ot);
 
 	for (i = 1; ot_weight > map[i].ot; i++)

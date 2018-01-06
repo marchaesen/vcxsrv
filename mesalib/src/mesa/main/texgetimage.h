@@ -44,14 +44,6 @@ _mesa_GetTexSubImage_sw(struct gl_context *ctx,
                         struct gl_texture_image *texImage);
 
 extern void
-_mesa_GetCompressedTexSubImage_sw(struct gl_context *ctx,
-                                  struct gl_texture_image *texImage,
-                                  GLint xoffset, GLint yoffset,
-                                  GLint zoffset, GLsizei width,
-                                  GLint height, GLint depth,
-                                  GLvoid *data);
-
-extern void
 _mesa_get_compressed_texture_image( struct gl_context *ctx,
                                     struct gl_texture_object *texObj,
                                     struct gl_texture_image *texImage,

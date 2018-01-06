@@ -42,6 +42,9 @@ struct ac_shader_abi {
 	LLVMValueRef draw_id;
 	LLVMValueRef vertex_id;
 	LLVMValueRef instance_id;
+	LLVMValueRef tcs_patch_id;
+	LLVMValueRef tcs_rel_ids;
+	LLVMValueRef tes_patch_id;
 	LLVMValueRef gs_prim_id;
 	LLVMValueRef gs_invocation_id;
 	LLVMValueRef frag_pos[4];
@@ -72,6 +75,33 @@ struct ac_shader_abi {
 				    unsigned vertex_index,
 				    unsigned const_index,
 				    LLVMTypeRef type);
+
+	LLVMValueRef (*load_tess_inputs)(struct ac_shader_abi *abi,
+					 LLVMValueRef vertex_index,
+					 LLVMValueRef param_index,
+					 unsigned const_index,
+					 unsigned location,
+					 unsigned driver_location,
+					 unsigned component,
+					 unsigned num_components,
+					 bool is_patch,
+					 bool is_compact);
+
+	void (*store_tcs_outputs)(struct ac_shader_abi *abi,
+				  LLVMValueRef vertex_index,
+				  LLVMValueRef param_index,
+				  unsigned const_index,
+				  unsigned location,
+				  unsigned driver_location,
+				  LLVMValueRef src,
+				  unsigned component,
+				  bool is_patch,
+				  bool is_compact,
+				  unsigned writemask);
+
+	LLVMValueRef (*load_tess_coord)(struct ac_shader_abi *abi,
+					LLVMTypeRef type,
+					unsigned num_components);
 
 	LLVMValueRef (*load_ubo)(struct ac_shader_abi *abi, LLVMValueRef index);
 

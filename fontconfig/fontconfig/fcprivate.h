@@ -123,5 +123,12 @@ _FcObjectSetVapBuild_bail0:						\
     ;									\
 }
 
-#endif /* _FCPRIVATE_H_ */
+#ifndef FC_ATTRIBUTE_VISIBILITY_HIDDEN
+#define FC_ATTRIBUTE_VISIBILITY_HIDDEN __attribute((visibility("hidden")))
+#endif
 
+#ifndef FC_ATTRIBUTE_VISIBILITY_EXPORT
+#define FC_ATTRIBUTE_VISIBILITY_EXPORT __attribute((visibility("default")))
+#endif
+
+#endif /* _FCPRIVATE_H_ */

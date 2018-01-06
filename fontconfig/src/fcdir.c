@@ -289,7 +289,9 @@ FcDirCacheScan (const FcChar8 *dir, FcConfig *config)
     struct stat		dir_stat;
     const FcChar8	*sysroot = FcConfigGetSysRoot (config);
     FcChar8		*d;
+#ifndef _WIN32
     int			fd = -1;
+#endif
 
     if (sysroot)
 	d = FcStrBuildFilename (sysroot, dir, NULL);
@@ -353,7 +355,9 @@ FcDirCacheRescan (const FcChar8 *dir, FcConfig *config)
     FcStrSet *dirs;
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
     FcChar8 *d = NULL;
+#ifndef _WIN32
     int fd = -1;
+#endif
 
     cache = FcDirCacheLoad (dir, config, NULL);
     if (!cache)
