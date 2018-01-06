@@ -277,8 +277,8 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		vce.available_rings ? vce_version : 0;
 	info->has_userptr = true;
 	info->has_syncobj = has_syncobj(fd);
-	info->has_syncobj_wait = info->has_syncobj && info->drm_minor >= 20;
-	info->has_sync_file = info->has_syncobj && info->drm_minor >= 21;
+	info->has_syncobj_wait_for_submit = info->has_syncobj && info->drm_minor >= 20;
+	info->has_fence_to_handle = info->has_syncobj && info->drm_minor >= 21;
 	info->has_ctx_priority = info->drm_minor >= 22;
 	info->num_render_backends = amdinfo->rb_pipes;
 	info->clock_crystal_freq = amdinfo->gpu_counter_freq;
@@ -392,7 +392,7 @@ void ac_print_gpu_info(struct radeon_info *info)
 	       info->drm_minor, info->drm_patchlevel);
 	printf("has_userptr = %i\n", info->has_userptr);
 	printf("has_syncobj = %u\n", info->has_syncobj);
-	printf("has_sync_file = %u\n", info->has_sync_file);
+	printf("has_fence_to_handle = %u\n", info->has_fence_to_handle);
 
 	printf("r600_max_quad_pipes = %i\n", info->r600_max_quad_pipes);
 	printf("max_shader_clock = %i\n", info->max_shader_clock);

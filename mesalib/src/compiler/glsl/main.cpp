@@ -62,7 +62,10 @@ usage_fail(const char *name)
       "Possible options are:\n";
    printf(header, name);
    for (const struct option *o = compiler_opts; o->name != 0; ++o) {
-      printf("    --%s\n", o->name);
+      printf("    --%s", o->name);
+      if (o->has_arg == required_argument)
+         printf(" (mandatory)");
+      printf("\n");
    }
    exit(EXIT_FAILURE);
 }

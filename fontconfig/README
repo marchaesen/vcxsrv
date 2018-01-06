@@ -1,11 +1,40 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.12.91 (2.13 RC1)
-                              2017-12-14
+                      Version 2.12.92 (2.13 RC2)
+                              2018-01-04
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.12.92 (2.13 RC2)
+
+Akira TAGOH (13):
+      cleanup files
+      Update .uuid only when -r is given but not -f.
+      Returns false if key is already available in the table
+      Add missing doc of FcDirCacheCreateUUID
+      Replace uuid in the table properly when -r
+      Add a test case for uuid creation
+      Do not update mtime with creating .uuid
+      Disable uuid related code on Win32
+      Try to get current instance of FcConfig as far as possible
+      do not check the existence of itstool on win32
+      Fix the mis-ordering of ruleset evaluation in a file with include element
+      Fix compiler warnings
+      Add FcReadLink to wrap up readlink impl.
+
+Alexander Larsson (1):
+      fchash: Fix replace
+
+Behdad Esfahbod (7):
+      Don't crash
+      Remove a debug abort()
+      Minor
+      Set font-variations settings for standard axes in variable fonts
+      Let pattern FC_FONT_VARIATIONS override standard axis variations
+      Put back accidentally removed code
+      Add FcWeightTo/FromOpenTypeDouble()
 
 2.12.91 (2.13 RC1)
 

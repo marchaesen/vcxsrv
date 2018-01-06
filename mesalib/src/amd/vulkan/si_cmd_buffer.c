@@ -673,7 +673,8 @@ si_write_scissors(struct radeon_winsys_cs *cs, int first,
 	int i;
 	float scale[3], translate[3], guardband_x = INFINITY, guardband_y = INFINITY;
 	const float max_range = 32767.0f;
-	assert(count);
+	if (!count)
+		return;
 
 	radeon_set_context_reg_seq(cs, R_028250_PA_SC_VPORT_SCISSOR_0_TL + first * 4 * 2, count * 2);
 	for (i = 0; i < count; i++) {
@@ -1005,24 +1006,27 @@ si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
 #else
 		cb_db_event = V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT;
 #endif
-		/* TC    | TC_WB         = invalidate L2 data
-		 * TC_MD | TC_WB         = invalidate L2 metadata
-		 * TC    | TC_WB | TC_MD = invalidate L2 data & metadata
+		/* These are the only allowed combinations. If you need to
+		 * do multiple operations at once, do them separately.
+		 * All operations that invalidate L2 also seem to invalidate
+		 * metadata. Volatile (VOL) and WC flushes are not listed here.
 		 *
-		 * The metadata cache must always be invalidated for coherency
-		 * between CB/DB and shaders. (metadata = HTILE, CMASK, DCC)
-		 *
-		 * TC must be invalidated on GFX9 only if the CB/DB surface is
-		 * not pipe-aligned. If the surface is RB-aligned, it might not
-		 * strictly be pipe-aligned since RB alignment takes precendence.
+		 * TC    | TC_WB         = writeback & invalidate L2 & L1
+		 * TC    | TC_WB | TC_NC = writeback & invalidate L2 for MTYPE == NC
+		 *         TC_WB | TC_NC = writeback L2 for MTYPE == NC
+		 * TC            | TC_NC = invalidate L2 for MTYPE == NC
+		 * TC    | TC_MD         = writeback & invalidate L2 metadata (DCC, etc.)
+		 * TCL1                  = invalidate L1
 		 */
-		tc_flags = EVENT_TC_WB_ACTION_ENA |
-			   EVENT_TC_MD_ACTION_ENA;
+		tc_flags = EVENT_TC_ACTION_ENA |
+		           EVENT_TC_MD_ACTION_ENA;
 
 		/* Ideally flush TC together with CB/DB. */
 		if (flush_bits & RADV_CMD_FLAG_INV_GLOBAL_L2) {
-			tc_flags |= EVENT_TC_ACTION_ENA |
-				    EVENT_TCL1_ACTION_ENA;
+			/* Writeback and invalidate everything in L2 & L1. */
+			tc_flags = EVENT_TC_ACTION_ENA |
+			           EVENT_TC_WB_ACTION_ENA;
+
 
 			/* Clear the flags. */
 		        flush_bits &= ~(RADV_CMD_FLAG_INV_GLOBAL_L2 |

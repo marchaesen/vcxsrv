@@ -47,7 +47,7 @@ retry_locale:
     {
 	is_locale_initialized = FcTrue;
 	if (!fc_atomic_ptr_cmpexch (&static_is_locale_initialized, NULL,
-				    (void *)(long) is_locale_initialized))
+				    (void *)(intptr_t) is_locale_initialized))
 	    goto retry_locale;
 	setlocale (LC_ALL, "");
     }
@@ -2218,7 +2218,7 @@ FcConfigRealFilename (FcConfig		*config,
 
     if (n)
     {
-	char buf[PATH_MAX];
+	FcChar8 buf[PATH_MAX];
 	ssize_t len;
 
 	if (sysroot)
@@ -2227,7 +2227,7 @@ FcConfigRealFilename (FcConfig		*config,
 	    nn = FcStrdup (n);
 	FcStrFree (n);
 
-	if ((len = readlink ((const char *) nn, buf, sizeof (buf) - 1)) != -1)
+	if ((len = FcReadLink (nn, buf, sizeof (buf) - 1)) != -1)
 	{
 	    buf[len] = 0;
 	    FcStrFree (nn);

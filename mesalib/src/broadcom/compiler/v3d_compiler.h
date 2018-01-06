@@ -215,9 +215,9 @@ enum quniform_contents {
          * A reference to a texture config parameter 1 uniform.
          *
          * This is a uniform implicitly loaded with a QPU_W_TMU* write, which
-         * defines texture width, height, filters, and wrap modes.  It will be
-         * found as a parameter to the second QOP_TEX_[STRB] instruction in a
-         * sequence.
+         * has the pointer to the indirect texture state.  Our data[] field
+         * will have a packed p1 value, but the address field will be just
+         * which texture unit's texture should be referenced.
          */
         QUNIFORM_TEXTURE_CONFIG_P1,
 
@@ -317,6 +317,7 @@ struct v3d_fs_key {
         bool sample_alpha_to_coverage;
         bool sample_alpha_to_one;
         bool clamp_color;
+        bool shade_model_flat;
         uint8_t nr_cbufs;
         uint8_t swap_color_rb;
         /* Mask of which render targets need to be written as 32-bit floats */
@@ -417,16 +418,10 @@ struct v3d_compile {
         uint32_t uniforms_array_size;
 
         /* Booleans for whether the corresponding QFILE_VARY[i] is
-         * flat-shaded.  This doesn't count gl_FragColor flat-shading, which is
-         * controlled by shader->color_inputs and rasterizer->flatshade in the
-         * gallium driver.
+         * flat-shaded.  This includes gl_FragColor flat-shading, which is
+         * customized based on the shademodel_flat shader key.
          */
-        BITSET_WORD flat_shade_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
-
-        /* Booleans for whether the corresponding QFILE_VARY[i] uses the
-         * default glShadeModel() behavior.
-         */
-        BITSET_WORD shade_model_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
+        uint32_t flat_shade_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
 
         struct v3d_ubo_range *ubo_ranges;
         bool *ubo_range_used;
@@ -574,14 +569,12 @@ struct v3d_fs_prog_data {
 
         struct v3d_varying_slot input_slots[V3D_MAX_FS_INPUTS];
 
-        /* Bitmask for whether the corresponding input is flat-shaded,
-         * independent of rasterizer (gl_FragColor) flat-shading.
+        /* Array of flat shade flags.
+         *
+         * Each entry is only 24 bits (high 8 bits 0), to match the hardware
+         * packet layout.
          */
-        BITSET_WORD flat_shade_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
-        /* Bitmask for whether the corresponding input uses the default
-         * glShadeModel() behavior.
-         */
-        BITSET_WORD shade_model_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
+        uint32_t flat_shade_flags[((V3D_MAX_FS_INPUTS - 1) / 24) + 1];
 
         bool writes_z;
         bool discard;

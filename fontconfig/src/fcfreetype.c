@@ -1172,7 +1172,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     FcPattern	    *pat;
     int		    slant = -1;
     double	    weight = -1;
-    int		    width = -1;
+    double	    width = -1;
     FcBool	    decorative = FcFalse;
     FcBool	    variable = FcFalse;
     FcBool	    variable_weight = FcFalse;
@@ -1690,21 +1690,12 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     if (os2 && os2->version != 0xffff)
     {
 	weight = os2->usWeightClass;
-	if (weight < 10 && weight_mult != 1.0)
-	{
-		/* Work around bad values by cleaning them up before
-		 * multiplying by weight_mult. */
-		weight = FcWeightToOpenTypeDouble (FcWeightFromOpenTypeDouble (weight));
-	}
-	weight = FcWeightFromOpenTypeDouble ((int) (weight * weight_mult + .5));
+	weight = FcWeightFromOpenTypeDouble (weight * weight_mult);
 	if ((FcDebug() & FC_DBG_SCANV) && weight != -1)
 	    printf ("\tos2 weight class %d multiplier %g maps to weight %g\n",
 		    os2->usWeightClass, weight_mult, weight);
 
-	/* TODO:
-	 * Add FcWidthFromOpenTypeDouble and FcWidthToOpenTypeDouble,
-	 * and apply width_mult post-conversion? */
-	switch ((int) (os2->usWidthClass * width_mult + .5)) {
+	switch (os2->usWidthClass) {
 	case 1:	width = FC_WIDTH_ULTRACONDENSED; break;
 	case 2:	width = FC_WIDTH_EXTRACONDENSED; break;
 	case 3:	width = FC_WIDTH_CONDENSED; break;
@@ -1715,8 +1706,9 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	case 8:	width = FC_WIDTH_EXTRAEXPANDED; break;
 	case 9:	width = FC_WIDTH_ULTRAEXPANDED; break;
 	}
+	width *= width_mult;
 	if ((FcDebug() & FC_DBG_SCANV) && width != -1)
-	    printf ("\tos2 width class %d multiplier %g maps to width %d\n",
+	    printf ("\tos2 width class %d multiplier %g maps to width %g\n",
 		    os2->usWidthClass, width_mult, width);
     }
     if (os2 && (complex_ = FcFontCapabilities(face)))
@@ -1767,7 +1759,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	{
 	    weight = FcIsWeight ((FcChar8 *) psfontinfo.weight);
     	    if (FcDebug() & FC_DBG_SCANV)
-    		printf ("\tType1 weight %s maps to %d\n",
+		printf ("\tType1 weight %s maps to %g\n",
 			psfontinfo.weight, weight);
 	}
 
@@ -1831,7 +1823,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	{
 	    width = FcIsWidth ((FcChar8 *) prop.u.atom);
 	    if (FcDebug () & FC_DBG_SCANV)
-		printf ("\tsetwidth %s maps to %d\n", prop.u.atom, width);
+		printf ("\tsetwidth %s maps to %g\n", prop.u.atom, width);
 	}
     }
 #endif
@@ -1845,13 +1837,13 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	{
 	    weight = FcContainsWeight (style);
 	    if (FcDebug() & FC_DBG_SCANV)
-		printf ("\tStyle %s maps to weight %d\n", style, weight);
+		printf ("\tStyle %s maps to weight %g\n", style, weight);
 	}
 	if (width == -1)
 	{
 	    width = FcContainsWidth (style);
 	    if (FcDebug() & FC_DBG_SCANV)
-		printf ("\tStyle %s maps to width %d\n", style, width);
+		printf ("\tStyle %s maps to width %g\n", style, width);
 	}
 	if (slant == -1)
 	{
@@ -1896,7 +1888,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     if (!variable_weight && !FcPatternAddDouble (pat, FC_WEIGHT, weight))
 	goto bail1;
 
-    if (!variable_width && !FcPatternAddInteger (pat, FC_WIDTH, width))
+    if (!variable_width && !FcPatternAddDouble (pat, FC_WIDTH, width))
 	goto bail1;
 
     if (!FcPatternAddString (pat, FC_FOUNDRY, foundry))
@@ -2178,6 +2170,7 @@ skip:
     } while (!err && (!index_set || face_num == set_face_num) && face_num < num_faces);
 
 bail:
+    free (mm_var);
     FcLangSetDestroy (ls);
     FcCharSetDestroy (cs);
     if (face)

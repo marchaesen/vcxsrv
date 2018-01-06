@@ -327,6 +327,7 @@ get_image_handle(struct gl_context *ctx, struct gl_texture_object *texObj,
    } else {
       imgObj.Layered = GL_FALSE;
       imgObj.Layer = 0;
+      imgObj._Layer = 0;
    }
 
    /* Request a new image handle from the driver. */

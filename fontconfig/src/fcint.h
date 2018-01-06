@@ -822,6 +822,11 @@ FcRandom (void);
 FcPrivate FcBool
 FcMakeDirectory (const FcChar8 *dir);
 
+FcPrivate ssize_t
+FcReadLink (const FcChar8 *pathname,
+	    FcChar8       *buf,
+	    size_t         bufsiz);
+
 /* fcdbg.c */
 
 FcPrivate void

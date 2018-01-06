@@ -714,10 +714,12 @@ v3d_set_fs_prog_data_inputs(struct v3d_compile *c,
         memcpy(prog_data->input_slots, c->input_slots,
                c->num_inputs * sizeof(*c->input_slots));
 
-        memcpy(prog_data->flat_shade_flags, c->flat_shade_flags,
-               sizeof(c->flat_shade_flags));
-        memcpy(prog_data->shade_model_flags, c->shade_model_flags,
-               sizeof(c->shade_model_flags));
+        STATIC_ASSERT(ARRAY_SIZE(prog_data->flat_shade_flags) >
+                      (V3D_MAX_FS_INPUTS - 1) / 24);
+        for (int i = 0; i < V3D_MAX_FS_INPUTS; i++) {
+                if (BITSET_TEST(c->flat_shade_flags, i))
+                        prog_data->flat_shade_flags[i / 24] |= 1 << (i % 24);
+        }
 }
 
 uint64_t *v3d_compile_fs(const struct v3d_compiler *compiler,

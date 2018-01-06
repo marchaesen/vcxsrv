@@ -55,6 +55,10 @@ const char __dri2ConfigOptions[] =
       DRI_CONF_SECTION_PERFORMANCE
          DRI_CONF_VBLANK_MODE(DRI_CONF_VBLANK_DEF_INTERVAL_1)
       DRI_CONF_SECTION_END
+
+      DRI_CONF_SECTION_MISCELLANEOUS
+         DRI_CONF_ALLOW_RGB10_CONFIGS("true")
+      DRI_CONF_SECTION_END
    DRI_CONF_END;
 
 /*****************************************************************/
@@ -144,6 +148,10 @@ driCreateNewScreen2(int scrn, int fd,
     psp->fd = fd;
     psp->myNum = scrn;
 
+    /* Option parsing before ->InitScreen(), as some options apply there. */
+    driParseOptionInfo(&psp->optionInfo, __dri2ConfigOptions);
+    driParseConfigFiles(&psp->optionCache, &psp->optionInfo, psp->myNum, "dri2");
+
     *driver_configs = psp->driver->InitScreen(psp);
     if (*driver_configs == NULL) {
 	free(psp);
@@ -178,10 +186,6 @@ driCreateNewScreen2(int scrn, int fd,
        psp->api_mask |= (1 << __DRI_API_GLES2);
     if (psp->max_gl_es2_version >= 30)
        psp->api_mask |= (1 << __DRI_API_GLES3);
-
-    driParseOptionInfo(&psp->optionInfo, __dri2ConfigOptions);
-    driParseConfigFiles(&psp->optionCache, &psp->optionInfo, psp->myNum, "dri2");
-
 
     return psp;
 }

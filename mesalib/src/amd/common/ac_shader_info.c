@@ -70,6 +70,12 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, struct ac_shader_info *info)
 	case nir_intrinsic_load_view_index:
 		info->needs_multiview_view_index = true;
 		break;
+	case nir_intrinsic_load_invocation_id:
+		info->uses_invocation_id = true;
+		break;
+	case nir_intrinsic_load_primitive_id:
+		info->uses_prim_id = true;
+		break;
 	case nir_intrinsic_vulkan_resource_index:
 		info->desc_set_used_mask |= (1 << nir_intrinsic_desc_set(instr));
 		break;

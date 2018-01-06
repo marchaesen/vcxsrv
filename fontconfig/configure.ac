@@ -33,7 +33,7 @@ dnl This is the package version number, not the shared library
 dnl version.  This same version number must appear in fontconfig/fontconfig.h
 dnl Yes, it is a pain to synchronize version numbers.  Unfortunately, it's
 dnl not possible to extract the version number here from fontconfig.h
-AC_INIT([fontconfig], [2.12.91], [https://bugs.freedesktop.org/enter_bug.cgi?product=fontconfig])
+AC_INIT([fontconfig], [2.12.92], [https://bugs.freedesktop.org/enter_bug.cgi?product=fontconfig])
 AM_INIT_AUTOMAKE([1.11 parallel-tests dist-bzip2])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
@@ -108,13 +108,6 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Gettext package])
 
 AM_GNU_GETTEXT_VERSION([0.19.8])
 AM_GNU_GETTEXT([external])
-
-if test "$os_win32" = "no"; then
-AC_PATH_PROG(ITSTOOL, [itstool])
-if test -z "$ITSTOOL"; then
-   AC_MSG_ERROR([The itstool were not found. Please install itstool.])
-fi
-fi
 
 dnl ==========================================================================
 
@@ -785,6 +778,7 @@ fc-scan/Makefile
 fc-validate/Makefile
 doc/Makefile
 doc/version.sgml
+its/Makefile
 po/Makefile.in
 po-conf/Makefile.in
 test/Makefile

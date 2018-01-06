@@ -37,6 +37,9 @@
 #if HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -254,6 +257,22 @@ FcMakeDirectory (const FcChar8 *dir)
 	ret = FcFalse;
     FcStrFree (parent);
     return ret;
+}
+
+ssize_t
+FcReadLink (const FcChar8 *pathname,
+	    FcChar8       *buf,
+	    size_t         bufsiz)
+{
+#ifdef HAVE_READLINK
+    return readlink ((const char *) pathname, (char *)buf, bufsiz);
+#else
+    /* XXX: this function is only used for FcConfigRealFilename() so far
+     * and returning -1 as an error still just works.
+     */
+    errno = ENOSYS;
+    return -1;
+#endif
 }
 
 #define __fccompat__

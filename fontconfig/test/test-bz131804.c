@@ -46,7 +46,6 @@ comp(const FcChar8 *l1, const FcChar8 *l2)
 int
 main(void)
 {
-    FcLangResult result;
     int i = 1;
 
     /* 1 */

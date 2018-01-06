@@ -411,8 +411,21 @@ radv_fill_shader_variant(struct radv_device *device,
 
 	if (device->physical_device->rad_info.chip_class >= GFX9 &&
 	    stage == MESA_SHADER_GEOMETRY) {
+		struct ac_shader_info *info = &variant->info.info;
+		unsigned gs_vgpr_comp_cnt;
+
+		/* If offsets 4, 5 are used, GS_VGPR_COMP_CNT is ignored and
+		 * VGPR[0:4] are always loaded.
+		 */
+		if (info->uses_invocation_id)
+			gs_vgpr_comp_cnt = 3; /* VGPR3 contains InvocationID. */
+		else if (info->uses_prim_id)
+			gs_vgpr_comp_cnt = 2; /* VGPR2 contains PrimitiveID. */
+		else
+			gs_vgpr_comp_cnt = 1; /* TODO: use input_prim */
+
 		/* TODO: Figure out how many we actually need. */
-		variant->rsrc1 |= S_00B228_GS_VGPR_COMP_CNT(3);
+		variant->rsrc1 |= S_00B228_GS_VGPR_COMP_CNT(gs_vgpr_comp_cnt);
 		variant->rsrc2 |= S_00B22C_ES_VGPR_COMP_CNT(3) |
 		                  S_00B22C_OC_LDS_EN(1);
 	} else if (device->physical_device->rad_info.chip_class >= GFX9 &&
