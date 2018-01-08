@@ -26,6 +26,8 @@ OutFile "vcxsrv-64-debug.1.19.5.1.installer.exe"
 ; The default installation directory
 InstallDir $PROGRAMFILES64\VcXsrv
 
+SetCompressor /SOLID lzma
+
 ; Registry key to check for directory (so if you install again, it will
 ; overwrite the old one automatically)
 InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir_64"
