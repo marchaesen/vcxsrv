@@ -18,11 +18,16 @@
 ;--------------------------------
  !include "FileFunc.nsh"
 
+!define NAME "VcXsrv"
+!define VERSION "1.19.5.1"
+!define UNINSTALL_PUBLISHER "${NAME}"
+!define UNINSTALL_URL "https://github.com/ArcticaProject/vcxsrv"
+
 ; The name of the installer
-Name "VcXsrv"
+Name "${NAME}"
 
 ; The file to write
-OutFile "vcxsrv-64.1.19.5.1.installer.exe"
+OutFile "vcxsrv-64.${VERSION}.installer.exe"
 
 ; The default installation directory
 InstallDir $programfiles64\VcXsrv
@@ -36,10 +41,10 @@ InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir_64"
 LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
 
 VIProductVersion "1.19.5.1"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "VcXsrv"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${NAME}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.19.5.1"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.19.5.1"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${VERSION}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${VERSION}"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
@@ -141,11 +146,12 @@ Section "VcXsrv (required)"
   File /r "..\bitmaps\*.*"
 
   ; Write the installation path into the registry
-  WriteRegStr HKLM SOFTWARE\VcXsrv "Install_Dir_64" $INSTDIR
+  WriteRegStr HKLM SOFTWARE\VcXsrv "Install_Dir_64" "$INSTDIR"
 
   ; Write the uninstall keys for Windows
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayName" "VcXsrv"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayVersion" "1.19.5.1"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayIcon" "$INSTDIR\vcxsrv.exe"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayName" "${NAME}"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayVersion" "${VERSION}"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "Publisher" "marha@users.sourceforge.net"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "UninstallString" '"$INSTDIR\uninstall.exe"'
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "NoModify" 1

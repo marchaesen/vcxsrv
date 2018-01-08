@@ -16,12 +16,14 @@
  *  along with vcxsrv.  If not, see <http://www.gnu.org/licenses/>.
 */
 ;--------------------------------
+!define NAME "VcXsrv"
+!define VERSION "1.19.5.1"
 
 ; The name of the installer
-Name "VcXsrv"
+Name "${NAME}"
 
 ; The file to write
-OutFile "vcxsrv-debug.1.19.5.1.installer.exe"
+OutFile "vcxsrv-debug.${VERSION}.installer.exe"
 
 ; The default installation directory
 InstallDir $PROGRAMFILES32\VcXsrv
@@ -35,10 +37,10 @@ InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir"
 LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
 
 VIProductVersion "1.19.5.1"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "VcXsrv"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${NAME}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.19.5.1"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.19.5.1"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${VERSION}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${VERSION}"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
