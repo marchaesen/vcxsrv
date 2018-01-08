@@ -515,7 +515,6 @@ typedef struct _SpriteInfoRec {
         CursorPtr pCursor;
         ScreenPtr pScreen;
         int elt;
-        CARD32 time;
     } anim;
 } SpriteInfoRec, *SpriteInfoPtr;
 

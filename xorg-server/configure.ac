@@ -997,6 +997,10 @@ int main(int argc, char *argv[[]]) {
     ])], [MONOTONIC_CLOCK=yes], [MONOTONIC_CLOCK=no],
        [MONOTONIC_CLOCK="cross compiling"])
 
+    if test "$MONOTONIC_CLOCK" = "cross compiling"; then
+        AC_CHECK_DECL([CLOCK_MONOTONIC],[MONOTONIC_CLOCK="guessing yes"],[MONOTONIC_CLOCK=no],[#include <time.h>])
+    fi
+
     LIBS="$LIBS_SAVE"
     CPPFLAGS="$CPPFLAGS_SAVE"
 else
@@ -1004,6 +1008,9 @@ else
 fi
 
 AC_MSG_RESULT([$MONOTONIC_CLOCK])
+if test "$MONOTONIC_CLOCK" = "guessing yes"; then
+	MONOTONIC_CLOCK=yes
+fi
 
 if test "x$MONOTONIC_CLOCK" = xyes; then
     AC_DEFINE(MONOTONIC_CLOCK, 1, [Have monotonic clock from clock_gettime()])

@@ -139,8 +139,12 @@ st_nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
       }
 
       bool processed = false;
-      if (var->data.patch) {
-         unsigned patch_loc = var->data.location - VARYING_SLOT_VAR0;
+      if (var->data.patch &&
+          var->data.location != VARYING_SLOT_TESS_LEVEL_INNER &&
+          var->data.location != VARYING_SLOT_TESS_LEVEL_OUTER &&
+          var->data.location != VARYING_SLOT_BOUNDING_BOX0 &&
+          var->data.location != VARYING_SLOT_BOUNDING_BOX1) {
+         unsigned patch_loc = var->data.location - VARYING_SLOT_PATCH0;
          if (processed_patch_locs & (1 << patch_loc))
             processed = true;
 

@@ -84,8 +84,8 @@ Xorg_DEPENDENCIES = $(LOCAL_LIBS)
 Xorg_LDFLAGS = $(LD_EXPORT_SYMBOLS_FLAG)
 
 if SUID_WRAPPER
-wrapdir = $(SUID_WRAPPER_DIR)
-wrap_PROGRAMS = Xorg.wrap
+wrapexecdir = $(SUID_WRAPPER_DIR)
+wrapexec_PROGRAMS = Xorg.wrap
 Xorg_wrap_SOURCES = xorg-wrapper.c
 endif
 

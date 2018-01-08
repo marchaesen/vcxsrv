@@ -462,21 +462,38 @@ FindDMTMode(int hsize, int vsize, int refresh, Bool rb)
  * for modes in this section, but does say that CVT is preferred.
  */
 static DisplayModePtr
-DDCModesFromStandardTiming(struct std_timings *timing, ddc_quirk_t quirks,
+DDCModesFromStandardTiming(DisplayModePtr pool, struct std_timings *timing,
+                           ddc_quirk_t quirks,
                            int timing_level, Bool rb)
 {
     DisplayModePtr Modes = NULL, Mode = NULL;
     int i, hsize, vsize, refresh;
 
     for (i = 0; i < STD_TIMINGS; i++) {
+        DisplayModePtr p = NULL;
         hsize = timing[i].hsize;
         vsize = timing[i].vsize;
         refresh = timing[i].refresh;
 
-        /* HDTV hack, because you can't say 1366 */
+        /* HDTV hack, part one */
         if (refresh == 60 &&
             ((hsize == 1360 && vsize == 765) ||
              (hsize == 1368 && vsize == 769))) {
+            hsize = 1366;
+            vsize = 768;
+        }
+
+        /* If we already have a detailed timing for this size, don't add more */
+        for (p = pool; p; p = p->next) {
+            if (p->HDisplay == hsize && p->VDisplay == vsize &&
+                refresh == round(xf86ModeVRefresh(p)))
+                break;
+        }
+        if (p)
+            continue;
+
+        /* HDTV hack, because you can't say 1366 */
+        if (refresh == 60 && hsize == 1366 && vsize == 768) {
             Mode = xf86CVTMode(1366, 768, 60, FALSE, FALSE);
             Mode->HDisplay = 1366;
             Mode->HSyncStart--;
@@ -1013,7 +1030,8 @@ handle_detailed_modes(struct detailed_monitor_section *det_mon, void *data)
         p->Modes = xf86ModesAdd(p->Modes, Mode);
         break;
     case DS_STD_TIMINGS:
-        Mode = DDCModesFromStandardTiming(det_mon->section.std_t,
+        Mode = DDCModesFromStandardTiming(p->Modes,
+                                          det_mon->section.std_t,
                                           p->quirks, p->timing_level, p->rb);
         p->Modes = xf86ModesAdd(p->Modes, Mode);
         break;
@@ -1065,16 +1083,17 @@ xf86DDCGetModes(int scrnIndex, xf86MonPtr DDC)
     xf86ForEachDetailedBlock(DDC, handle_detailed_modes, &p);
     Modes = p.Modes;
 
+    /* Add cea-extension mode timings */
+    Mode = DDCModesFromCEAExtension(scrnIndex, DDC);
+    Modes = xf86ModesAdd(Modes, Mode);
+
     /* Add established timings */
     Mode = DDCModesFromEstablished(scrnIndex, &DDC->timings1, quirks);
     Modes = xf86ModesAdd(Modes, Mode);
 
     /* Add standard timings */
-    Mode = DDCModesFromStandardTiming(DDC->timings2, quirks, timing_level, rb);
-    Modes = xf86ModesAdd(Modes, Mode);
-
-    /* Add cea-extension mode timings */
-    Mode = DDCModesFromCEAExtension(scrnIndex, DDC);
+    Mode = DDCModesFromStandardTiming(Modes, DDC->timings2, quirks,
+                                      timing_level, rb);
     Modes = xf86ModesAdd(Modes, Mode);
 
     if (quirks & DDC_QUIRK_PREFER_LARGE_60)

@@ -2170,7 +2170,11 @@ skip:
     } while (!err && (!index_set || face_num == set_face_num) && face_num < num_faces);
 
 bail:
+#ifdef HAVE_FT_DONE_MM_VAR
+    FT_Done_MM_Var (ftLibrary, mm_var);
+#else
     free (mm_var);
+#endif
     FcLangSetDestroy (ls);
     FcCharSetDestroy (cs);
     if (face)

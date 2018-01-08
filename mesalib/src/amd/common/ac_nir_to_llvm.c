@@ -671,9 +671,14 @@ declare_vs_input_vgprs(struct nir_to_llvm_context *ctx, struct arg_info *args)
 {
 	add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->abi.vertex_id);
 	if (!ctx->is_gs_copy_shader) {
-		add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->rel_auto_id);
-		add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->vs_prim_id);
-		add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->abi.instance_id);
+		if (ctx->options->key.vs.as_ls) {
+			add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->rel_auto_id);
+			add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->abi.instance_id);
+		} else {
+			add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->abi.instance_id);
+			add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->vs_prim_id);
+		}
+		add_arg(args, ARG_VGPR, ctx->ac.i32, NULL); /* unused */
 	}
 }
 
@@ -5173,8 +5178,13 @@ handle_vs_input_decl(struct nir_to_llvm_context *ctx,
 	if (ctx->options->key.vs.instance_rate_inputs & (1u << index)) {
 		buffer_index = LLVMBuildAdd(ctx->builder, ctx->abi.instance_id,
 					    ctx->abi.start_instance, "");
-		ctx->shader_info->vs.vgpr_comp_cnt = MAX2(3,
-		                            ctx->shader_info->vs.vgpr_comp_cnt);
+		if (ctx->options->key.vs.as_ls) {
+			ctx->shader_info->vs.vgpr_comp_cnt =
+				MAX2(2, ctx->shader_info->vs.vgpr_comp_cnt);
+		} else {
+			ctx->shader_info->vs.vgpr_comp_cnt =
+				MAX2(1, ctx->shader_info->vs.vgpr_comp_cnt);
+		}
 	} else
 		buffer_index = LLVMBuildAdd(ctx->builder, ctx->abi.vertex_id,
 					    ctx->abi.base_vertex, "");
@@ -6698,8 +6708,14 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 			ctx.abi.load_tess_coord = load_tess_coord;
 		} else if (shaders[i]->info.stage == MESA_SHADER_VERTEX) {
 			if (shader_info->info.vs.needs_instance_id) {
-				ctx.shader_info->vs.vgpr_comp_cnt =
-					MAX2(3, ctx.shader_info->vs.vgpr_comp_cnt);
+				if (ctx.ac.chip_class == GFX9 &&
+				    shaders[shader_count - 1]->info.stage == MESA_SHADER_TESS_CTRL) {
+					ctx.shader_info->vs.vgpr_comp_cnt =
+						MAX2(2, ctx.shader_info->vs.vgpr_comp_cnt);
+				} else {
+					ctx.shader_info->vs.vgpr_comp_cnt =
+						MAX2(1, ctx.shader_info->vs.vgpr_comp_cnt);
+				}
 			}
 		} else if (shaders[i]->info.stage == MESA_SHADER_FRAGMENT) {
 			shader_info->fs.can_discard = shaders[i]->info.fs.uses_discard;
@@ -6938,7 +6954,7 @@ ac_fill_shader_info(struct ac_shader_variant_info *shader_info, struct nir_shade
         case MESA_SHADER_VERTEX:
                 shader_info->vs.as_es = options->key.vs.as_es;
                 shader_info->vs.as_ls = options->key.vs.as_ls;
-                /* in LS mode we need at least 1, invocation id needs 3, handled elsewhere */
+                /* in LS mode we need at least 1, invocation id needs 2, handled elsewhere */
                 if (options->key.vs.as_ls)
                         shader_info->vs.vgpr_comp_cnt = MAX2(1, shader_info->vs.vgpr_comp_cnt);
                 break;

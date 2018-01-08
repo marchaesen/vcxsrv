@@ -330,7 +330,10 @@ radv_alloc_shader_memory(struct radv_device *device,
 
 	slab->size = 256 * 1024;
 	slab->bo = device->ws->buffer_create(device->ws, slab->size, 256,
-	                                     RADEON_DOMAIN_VRAM, RADEON_FLAG_NO_INTERPROCESS_SHARING);
+	                                     RADEON_DOMAIN_VRAM,
+					     RADEON_FLAG_NO_INTERPROCESS_SHARING |
+					     device->physical_device->cpdma_prefetch_writes_memory ?
+					             0 : RADEON_FLAG_READ_ONLY);
 	slab->ptr = (char*)device->ws->buffer_map(slab->bo);
 	list_inithead(&slab->shaders);
 
@@ -421,8 +424,10 @@ radv_fill_shader_variant(struct radv_device *device,
 			gs_vgpr_comp_cnt = 3; /* VGPR3 contains InvocationID. */
 		else if (info->uses_prim_id)
 			gs_vgpr_comp_cnt = 2; /* VGPR2 contains PrimitiveID. */
+		else if (variant->info.gs.vertices_in >= 3)
+			gs_vgpr_comp_cnt = 1; /* VGPR1 contains offsets 2, 3 */
 		else
-			gs_vgpr_comp_cnt = 1; /* TODO: use input_prim */
+			gs_vgpr_comp_cnt = 0; /* VGPR0 contains offsets 0, 1 */
 
 		/* TODO: Figure out how many we actually need. */
 		variant->rsrc1 |= S_00B228_GS_VGPR_COMP_CNT(gs_vgpr_comp_cnt);

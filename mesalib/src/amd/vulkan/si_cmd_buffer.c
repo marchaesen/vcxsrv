@@ -568,7 +568,8 @@ cik_create_gfx_config(struct radv_device *device)
 						     cs->cdw * 4, 4096,
 						     RADEON_DOMAIN_GTT,
 						     RADEON_FLAG_CPU_ACCESS|
-						     RADEON_FLAG_NO_INTERPROCESS_SHARING);
+						     RADEON_FLAG_NO_INTERPROCESS_SHARING |
+						     RADEON_FLAG_READ_ONLY);
 	if (!device->gfx_init)
 		goto fail;
 

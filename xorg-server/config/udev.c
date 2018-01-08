@@ -135,7 +135,7 @@ device_added(struct udev_device *udev_device)
 #endif
 
     value = udev_device_get_property_value(udev_device, "ID_INPUT");
-    if (value && !strcmp(value, "0")) {
+    if (!value || !strcmp(value, "0")) {
         LogMessageVerb(X_INFO, 10,
                        "config/udev: ignoring device %s without "
                        "property ID_INPUT set\n", path);
