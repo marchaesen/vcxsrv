@@ -827,10 +827,7 @@ initializeExtensions(__GLXscreen * screen)
     extensions = dri->core->getExtensions(dri->driScreen);
 
     __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
-    LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
-
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_no_config_context");
-    LogMessage(X_INFO, "AIGLX: enabled GLX_EXT_no_config_context\n");
 
     if (dri->dri2->base.version >= 3) {
         __glXEnableExtension(screen->glx_enable_bits,
@@ -841,45 +838,27 @@ initializeExtensions(__GLXscreen * screen)
                              "GLX_EXT_create_context_es_profile");
         __glXEnableExtension(screen->glx_enable_bits,
                              "GLX_EXT_create_context_es2_profile");
-        LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_create_context\n");
-        LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_create_context_profile\n");
-        LogMessage(X_INFO,
-                   "AIGLX: enabled GLX_EXT_create_context_es{,2}_profile\n");
     }
 
     if (DRI2HasSwapControl(pScreen)) {
         __glXEnableExtension(screen->glx_enable_bits, "GLX_INTEL_swap_event");
         __glXEnableExtension(screen->glx_enable_bits, "GLX_SGI_swap_control");
-        LogMessage(X_INFO, "AIGLX: enabled GLX_INTEL_swap_event\n");
-        LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_swap_control\n");
     }
 
     /* enable EXT_framebuffer_sRGB extension (even if there are no sRGB capable fbconfigs) */
-    {
-        __glXEnableExtension(screen->glx_enable_bits,
-                 "GLX_EXT_framebuffer_sRGB");
-        LogMessage(X_INFO, "AIGLX: enabled GLX_EXT_framebuffer_sRGB\n");
-    }
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_framebuffer_sRGB");
 
     /* enable ARB_fbconfig_float extension (even if there are no float fbconfigs) */
-    {
-        __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_fbconfig_float");
-        LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_fbconfig_float\n");
-    }
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_fbconfig_float");
 
     /* enable EXT_fbconfig_packed_float (even if there are no packed float fbconfigs) */
-    {
-        __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_fbconfig_packed_float");
-        LogMessage(X_INFO, "AIGLX: enabled GLX_EXT_fbconfig_packed_float\n");
-    }
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_fbconfig_packed_float");
 
     for (i = 0; extensions[i]; i++) {
         if (strcmp(extensions[i]->name, __DRI_TEX_BUFFER) == 0) {
             dri->texBuffer = (const __DRItexBufferExtension *) extensions[i];
             __glXEnableExtension(screen->glx_enable_bits,
                                  "GLX_EXT_texture_from_pixmap");
-            LogMessage(X_INFO,
-                       "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n");
         }
 
         if (strcmp(extensions[i]->name, __DRI2_FLUSH) == 0 &&
@@ -891,8 +870,6 @@ initializeExtensions(__GLXscreen * screen)
             dri->dri2->base.version >= 3) {
             __glXEnableExtension(screen->glx_enable_bits,
                                  "GLX_ARB_create_context_robustness");
-            LogMessage(X_INFO,
-                       "AIGLX: enabled GLX_ARB_create_context_robustness\n");
         }
 
 #ifdef __DRI2_FLUSH_CONTROL

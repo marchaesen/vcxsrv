@@ -320,7 +320,7 @@ fontconfig_save_libs="$LIBS"
 fontconfig_save_cflags="$CFLAGS"
 LIBS="$LIBS $FREETYPE_LIBS"
 CFLAGS="$CFLAGS $FREETYPE_CFLAGS"
-AC_CHECK_FUNCS(FT_Get_BDF_Property FT_Get_PS_Font_Info FT_Has_PS_Glyph_Names FT_Get_X11_Font_Format)
+AC_CHECK_FUNCS(FT_Get_BDF_Property FT_Get_PS_Font_Info FT_Has_PS_Glyph_Names FT_Get_X11_Font_Format FT_Done_MM_Var)
 
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 	#include <ft2build.h>

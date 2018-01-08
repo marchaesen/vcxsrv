@@ -200,9 +200,10 @@ radv_amdgpu_cs_create(struct radeon_winsys *ws,
 
 	if (cs->ws->use_ib_bos) {
 		cs->ib_buffer = ws->buffer_create(ws, ib_size, 0,
-						RADEON_DOMAIN_GTT,
-						RADEON_FLAG_CPU_ACCESS|
-						  RADEON_FLAG_NO_INTERPROCESS_SHARING);
+						  RADEON_DOMAIN_GTT,
+						  RADEON_FLAG_CPU_ACCESS |
+						  RADEON_FLAG_NO_INTERPROCESS_SHARING |
+						  RADEON_FLAG_READ_ONLY);
 		if (!cs->ib_buffer) {
 			free(cs);
 			return NULL;
@@ -287,8 +288,9 @@ static void radv_amdgpu_cs_grow(struct radeon_winsys_cs *_cs, size_t min_size)
 
 	cs->ib_buffer = cs->ws->base.buffer_create(&cs->ws->base, ib_size, 0,
 						   RADEON_DOMAIN_GTT,
-						   RADEON_FLAG_CPU_ACCESS|
-						   RADEON_FLAG_NO_INTERPROCESS_SHARING);
+						   RADEON_FLAG_CPU_ACCESS |
+						   RADEON_FLAG_NO_INTERPROCESS_SHARING |
+						   RADEON_FLAG_READ_ONLY);
 
 	if (!cs->ib_buffer) {
 		cs->base.cdw = 0;
@@ -877,7 +879,10 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 		}
 		assert(cnt);
 
-		bo = ws->buffer_create(ws, 4 * size, 4096, RADEON_DOMAIN_GTT, RADEON_FLAG_CPU_ACCESS|RADEON_FLAG_NO_INTERPROCESS_SHARING);
+		bo = ws->buffer_create(ws, 4 * size, 4096, RADEON_DOMAIN_GTT,
+				       RADEON_FLAG_CPU_ACCESS |
+				       RADEON_FLAG_NO_INTERPROCESS_SHARING |
+				       RADEON_FLAG_READ_ONLY);
 		ptr = ws->buffer_map(bo);
 
 		if (preamble_cs) {

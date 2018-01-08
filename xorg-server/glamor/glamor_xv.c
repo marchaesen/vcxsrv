@@ -62,6 +62,8 @@ typedef struct tagREF_TRANSFORM {
 static const glamor_facet glamor_facet_xv_planar = {
     .name = "xv_planar",
 
+    .version = 120,
+
     .source_name = "v_texcoord0",
     .vs_vars = ("attribute vec2 position;\n"
                 "attribute vec2 v_texcoord0;\n"

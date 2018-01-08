@@ -486,7 +486,7 @@ XdmcpRegisterConnection(int type, const char *address, int addrlen)
                      IN6_IS_ADDR_V4MAPPED((const struct in6_addr *) address)) {
                 fromAddr = &((struct sockaddr_in *) &FromAddress)->sin_addr;
                 regAddr =
-                    &((struct sockaddr_in6 *) &address)->sin6_addr.s6_addr[12];
+                    &((struct sockaddr_in6 *) address)->sin6_addr.s6_addr[12];
                 regAddrlen = sizeof(struct in_addr);
             }
         }
