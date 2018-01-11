@@ -41,17 +41,14 @@ void
 winWakeupHandler(ScreenPtr pScreen, int iResult)
 {
     MSG msg;
-    int maxCount=5;
 
     /* Process one message from our queue */
-    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+    if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         if ((g_hDlgDepthChange == 0
              || !IsDialogMessage(g_hDlgDepthChange, &msg))
             && (g_hDlgExit == 0 || !IsDialogMessage(g_hDlgExit, &msg))
             && (g_hDlgAbout == 0 || !IsDialogMessage(g_hDlgAbout, &msg))) {
             DispatchMessage(&msg);
         }
-        if (--maxCount<0)
-          break;
     }
 }

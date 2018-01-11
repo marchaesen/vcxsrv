@@ -94,6 +94,4 @@ extern Bool g_fNoConfigureWindow;
 
 extern pthread_mutex_t g_pmTerminating;
 
-extern HINSTANCE g_hInstance;
-
 #endif                          /* WINGLOBALS_H */

@@ -737,7 +737,7 @@ winCloseScreenShadowDDNL(ScreenPtr pScreen)
 
     /* Kill our window */
     if (pScreenPriv->hwndScreen) {
-        myDestroyWindow(pScreenPriv->hwndScreen);
+        DestroyWindow(pScreenPriv->hwndScreen);
         pScreenPriv->hwndScreen = NULL;
     }
 

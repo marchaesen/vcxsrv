@@ -313,69 +313,6 @@ winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
 LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-  switch (message)
-  {
-    /* There are the message that should be handle in the main thread */
-    case WM_MOUSEMOVE:
-    case WM_LBUTTONDBLCLK:
-    case WM_LBUTTONDOWN:
-    case WM_LBUTTONUP:
-    case WM_MBUTTONDBLCLK:
-    case WM_MBUTTONDOWN:
-    case WM_MBUTTONUP:
-    case WM_RBUTTONDBLCLK:
-    case WM_RBUTTONDOWN:
-    case WM_RBUTTONUP:
-    case WM_XBUTTONDBLCLK:
-    case WM_XBUTTONDOWN:
-    case WM_XBUTTONUP:
-    case WM_MOUSEWHEEL:
-    case WM_MOUSEHWHEEL:
-    case WM_SETFOCUS:
-    case WM_KILLFOCUS:
-    case WM_MOVE:
-    case WM_SHOWWINDOW:
-    case WM_WINDOWPOSCHANGED:
-    case WM_SIZE:
-    case WM_STYLECHANGED:
-      struct handlemessage params={hwnd, message, wParam};
-      return SendMessage(g_hMainThreadMsgWnd, WM_HANDLEMESSAGE, (WPARAM)&params, lParam);
-
-      /* The rest should be handled in the window thread */
-    case WM_CREATE:
-    case WM_INIT_SYS_MENU:
-    case WM_SYSCOMMAND:
-    case WM_ERASEBKGND:
-    case WM_INITMENU:
-    case WM_PAINT:
-    case WM_NCMOUSEMOVE:
-    case WM_MOUSELEAVE:
-    case WM_MOUSEACTIVATE:
-    case WM_SYSDEADCHAR:
-    case WM_DEADCHAR:
-    case WM_SYSKEYDOWN:
-    case WM_KEYDOWN:
-    case WM_SYSKEYUP:
-    case WM_KEYUP:
-    case WM_HOTKEY:
-    case WM_ACTIVATE:
-    case WM_ACTIVATEAPP:
-    case WM_CLOSE:
-    case WM_DESTROY:
-    case WM_SIZING:
-    case WM_WINDOWPOSCHANGING:
-    case WM_SETCURSOR:
-      return winTopLevelWindowProcMainThread(hwnd, message, wParam, lParam);
-
-      /* Standard processing */
-    default:
-      return DefWindowProc(hwnd, message, wParam, lParam);
-  }
-}
-
-LRESULT CALLBACK
-winTopLevelWindowProcMainThread(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
     POINT ptMouse;
     HDC hdcUpdate;
     PAINTSTRUCT ps;
@@ -391,6 +328,7 @@ winTopLevelWindowProcMainThread(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     static Bool s_fTracking = FALSE;
     Bool needRestack = FALSE;
     LRESULT ret;
+    static Bool hasEnteredSizeMove = FALSE;
 
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
                          lParam);
@@ -429,7 +367,6 @@ winTopLevelWindowProcMainThread(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     else if (message!=WM_CREATE)
     {
         winDebug("Warning: message 0x%x received when WIN_WINDOW_PROP NULL\n",message);
-        return DefWindowProc(hwnd, message, wParam, lParam);
     }
 
     /* Branch on message type */
@@ -521,7 +458,7 @@ winTopLevelWindowProcMainThread(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
         }
 
 #ifdef XWIN_GLX_WINDOWS
-        if (pWinPriv->fWglUsed || pWinPriv->OpenGlWindow) {
+        if (pWinPriv->fWglUsed) {
             /*
                For regions which are being drawn by GL, the shadow framebuffer doesn't have the
                correct bits, so don't bitblt from the shadow framebuffer
@@ -927,7 +864,9 @@ winTopLevelWindowProcMainThread(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 
     case WM_MOVE:
         /* Adjust the X Window to the moved Windows window */
-        winAdjustXWindow(pWin, hwnd);
+        if (!hasEnteredSizeMove)
+            winAdjustXWindow(pWin, hwnd);
+        /* else: Wait for WM_EXITSIZEMOVE */
         return 0;
 
     case WM_SHOWWINDOW:
@@ -1077,6 +1016,16 @@ winTopLevelWindowProcMainThread(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
          */
         break;
 
+    case WM_ENTERSIZEMOVE:
+        hasEnteredSizeMove = TRUE;
+        return 0;
+
+    case WM_EXITSIZEMOVE:
+        /* Adjust the X Window to the moved Windows window */
+        hasEnteredSizeMove = FALSE;
+        winAdjustXWindow(pWin, hwnd);
+        return 0;
+
     case WM_SIZE:
         /* see dix/window.c */
 #ifdef WINDBG
@@ -1100,9 +1049,12 @@ winTopLevelWindowProcMainThread(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
                (int) LOWORD(lParam), (int) HIWORD(lParam), buf);
     }
 #endif
+        if (!hasEnteredSizeMove)
+        {
             /* Adjust the X Window to the moved Windows window */
             winAdjustXWindow (pWin, hwnd);
             if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
+    }
     /* else: wait for WM_EXITSIZEMOVE */
     return 0; /* end of WM_SIZE handler */
 

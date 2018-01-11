@@ -99,7 +99,7 @@ winCreateBoundingWindowFullScreen(ScreenPtr pScreen)
                  WINDOW_TITLE, HostName, display, (int) pScreenInfo->dwScreen);
     }
     /* Create the window */
-    *phwnd = myCreateWindowExA(0, /* Extended styles */
+    *phwnd = CreateWindowExA(0, /* Extended styles */
                              WINDOW_CLASS,      /* Class name */
                              szTitle,   /* Window name */
                              WS_POPUP, iX,      /* Horizontal position */
@@ -309,7 +309,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
   }
 
     /* Create the window */
-    *phwnd = myCreateWindowExA(0, /* Extended styles */
+    *phwnd = CreateWindowExA(0, /* Extended styles */
                              WINDOW_CLASS,      /* Class name */
                              szTitle,   /* Window name */
                              dwWindowStyle, iPosX,      /* Horizontal position */

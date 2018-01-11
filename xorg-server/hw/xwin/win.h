@@ -1137,33 +1137,4 @@ winOS(void);
  * END DDX and DIX Function Prototypes
  */
 
-HWND myCreateWindowExA( DWORD dwExStyle,
-                        LPCSTR lpClassName,
-                        LPCSTR lpWindowName,
-                        DWORD dwStyle,
-                        int X,
-                        int Y,
-                        int nWidth,
-                        int nHeight,
-                        HWND hWndParent,
-                        HMENU hMenu,
-                        HINSTANCE hInstance,
-                        LPVOID lpParam);
-
-BOOL myDestroyWindow(HWND hWnd);
-int myCreateWindowsThead();
-
-extern HWND g_hMainThreadMsgWnd;
-
-struct handlemessage
-{
-  HWND hwnd;
-  UINT message;
-  WPARAM wParam;
-};
-
-#define WM_HANDLEMESSAGE (WM_USER)
-
-LRESULT CALLBACK winTopLevelWindowProcMainThread(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-
 #endif                          /* _WIN_H_ */
