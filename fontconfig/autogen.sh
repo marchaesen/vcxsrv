@@ -40,15 +40,10 @@ cd $srcdir
 PROJECT=Fontconfig
 TEST_TYPE=-f
 FILE=fontconfig/fontconfig.h
-ACLOCAL=${ACLOCAL-aclocal}
-ACLOCAL_FLAGS="-I m4"
-LIBTOOLIZE=${LIBTOOLIZE-libtoolize}
-AUTOMAKE=${AUTOMAKE-automake}
-AUTOHEADER=${AUTOHEADER-autoheader}
-AUTOCONF=${AUTOCONF-autoconf}
+AUTOPOINT=${AUTOPOINT-autopoint}
+AUTORECONF=${AUTORECONF-autoreconf}
+AUTORECONF_FLAGS="-i"
 GPERF=${GPERF-gperf}
-PYTHON=${PYTHON-python}
-LIBTOOLIZE_FLAGS="--copy --force"
 GETTEXTIZE=${GETTEXTIZE-gettextize}
 GETTEXTIZE_FLAGS="--force --no-changelog"
 
@@ -59,14 +54,6 @@ DIE=0
 	echo "You must have gperf installed to compile $PROJECT."
 	echo "Install the appropriate package for your distribution."
 	echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
-	DIE=1
-}
-
-($PYTHON --version) < /dev/null > /dev/null 2>&1 || {
-	echo
-	echo "You must have python installed to compile $PROJECT."
-	echo "Install the appropriate package for your distribution."
-	echo "or get the source tarball at https://www.python.org/downloads/source/"
 	DIE=1
 }
 
@@ -93,37 +80,20 @@ fi
 	echo "or get the source tarball at  ftp://ftp.gnu.org/pub/gnu/"
 	DIE=1
 }
-($AUTOCONF --version) < /dev/null > /dev/null 2>&1 || {
+($AUTOPOINT --version) < /dev/null > /dev/null 2>&1 || {
 	echo
-	echo "You must have autoconf installed to compile $PROJECT."
-	echo "libtool the appropriate package for your distribution,"
+	echo "You must have autopoint installed to compile $PROJECT."
+	echo "Install the appropriate package for your distribution,"
 	echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
 	DIE=1
 }
-
-have_automake=false
-need_libtoolize=true
-if $AUTOMAKE --version < /dev/null > /dev/null 2>&1 ; then
-	automake_version=`$AUTOMAKE --version | grep 'automake (GNU automake)' | sed 's/^[^0-9]*\(.*\)/\1/'`
-	case $automake_version in
-	   1.2*|1.3*|1.4) 
-		;;
-	   1.4*)
-	   	have_automake=true
-	        need_libtoolize=false
-		;;
-	   *)
-		have_automake=true
-		;;
-	esac
-fi
-if $have_automake ; then : ; else
+($AUTORECONF --version) < /dev/null > /dev/null 2>&1 || {
 	echo
-	echo "You must have automake 1.4-p1 installed to compile $PROJECT."
-	echo "Get ftp://ftp.gnu.org/pub/gnu/automake/automake-1.4-p1.tar.gz"
-	echo "(or a newer version if it is available)"
+	echo "You must have autoreconf installed to compile $PROJECT."
+	echo "Install the appropriate package for your distribution,"
+	echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
 	DIE=1
-fi
+}
 
 if test "$DIE" -eq 1; then
 	exit 1
@@ -141,38 +111,9 @@ if test -z "$AUTOGEN_SUBDIR_MODE" -a -z "$NOCONFIGURE"; then
         fi
 fi
 
-[ -f configure.ac~ ] && rm configure.ac~
-[ -f Makefile.am~ ] && rm Makefile.am~
-echo Running $GETTEXTIZE $GETTEXTIZE_FLAGS
-$GETTEXTIZE $GETTEXTIZE_FLAGS
-# revert changes from gettextize for workaround...
-[ -f configure.ac~ ] && mv configure.ac~ configure.ac
-[ -f Makefile.am~ ] && mv Makefile.am~ Makefile.am
-echo Running $GETTEXTIZE $GETTEXTIZE_FLAGS --po-dir=po-conf
-$GETTEXTIZE $GETTEXTIZE_FLAGS --po-dir=po-conf
-[ -f configure.ac~ ] && mv configure.ac~ configure.ac
-[ -f Makefile.am~ ] && mv Makefile.am~ Makefile.am
+echo Running $AUTORECONF $AUTORECONF_FLAGS
+$AUTORECONF $AUTORECONF_FLAGS
 
-echo Running $ACLOCAL $ACLOCAL_FLAGS
-$ACLOCAL $ACLOCAL_FLAGS
-
-# optionally run autoheader
-if $AUTOHEADER --version  < /dev/null > /dev/null 2>&1; then
-	echo Running $AUTOHEADER
-	$AUTOHEADER
-fi
-
-case $need_libtoolize in
-   true)
-   	echo Running $LIBTOOLIZE $LIBTOOLIZE_FLAGS
-   	$LIBTOOLIZE $LIBTOOLIZE_FLAGS
-	;;
-esac
-
-echo Running $AUTOMAKE -a $am_opt
-$AUTOMAKE -a $am_opt
-echo Running $AUTOCONF
-$AUTOCONF
 cd $ORIGDIR
 
 if test -z "$AUTOGEN_SUBDIR_MODE" -a -z "$NOCONFIGURE"; then

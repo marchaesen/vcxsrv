@@ -2502,7 +2502,7 @@ resize_tes_inputs(struct gl_context *ctx,
       ir->accept(&input_resize_visitor);
    }
 
-   if (tcs || ctx->Const.LowerTESPatchVerticesIn) {
+   if (tcs) {
       /* Convert the gl_PatchVerticesIn system value into a constant, since
        * the value is known at this point.
        */
@@ -2513,20 +2513,8 @@ resize_tes_inputs(struct gl_context *ctx,
             void *mem_ctx = ralloc_parent(var);
             var->data.location = 0;
             var->data.explicit_location = false;
-            if (tcs) {
-               var->data.mode = ir_var_auto;
-               var->constant_value = new(mem_ctx) ir_constant(num_vertices);
-            } else {
-               var->data.mode = ir_var_uniform;
-               var->data.how_declared = ir_var_hidden;
-               var->allocate_state_slots(1);
-               ir_state_slot *slot0 = &var->get_state_slots()[0];
-               slot0->swizzle = SWIZZLE_XXXX;
-               slot0->tokens[0] = STATE_INTERNAL;
-               slot0->tokens[1] = STATE_TES_PATCH_VERTICES_IN;
-               for (int i = 2; i < STATE_LENGTH; i++)
-                  slot0->tokens[i] = 0;
-            }
+            var->data.mode = ir_var_auto;
+            var->constant_value = new(mem_ctx) ir_constant(num_vertices);
          }
       }
    }
@@ -2564,6 +2552,8 @@ find_available_slots(unsigned used_mask, unsigned needed_count)
 }
 
 
+#define SAFE_MASK_FROM_INDEX(i) (((i) >= 32) ? ~0 : ((1 << (i)) - 1))
+
 /**
  * Assign locations for either VS inputs or FS outputs
  *
@@ -2594,8 +2584,7 @@ assign_attribute_or_color_locations(void *mem_ctx,
 
    /* Mark invalid locations as being used.
     */
-   unsigned used_locations = (max_index >= 32)
-      ? ~0 : ~((1 << max_index) - 1);
+   unsigned used_locations = ~SAFE_MASK_FROM_INDEX(max_index);
    unsigned double_storage_locations = 0;
 
    assert((target_index == MESA_SHADER_VERTEX)
@@ -2948,7 +2937,7 @@ assign_attribute_or_color_locations(void *mem_ctx,
 
    if (target_index == MESA_SHADER_VERTEX) {
       unsigned total_attribs_size =
-         _mesa_bitcount(used_locations & ((1 << max_index) - 1)) +
+         _mesa_bitcount(used_locations & SAFE_MASK_FROM_INDEX(max_index)) +
          _mesa_bitcount(double_storage_locations);
       if (total_attribs_size > max_index) {
          linker_error(prog,
@@ -3012,7 +3001,7 @@ assign_attribute_or_color_locations(void *mem_ctx,
     */
    if (target_index == MESA_SHADER_VERTEX) {
       unsigned total_attribs_size =
-         _mesa_bitcount(used_locations & ((1 << max_index) - 1)) +
+         _mesa_bitcount(used_locations & SAFE_MASK_FROM_INDEX(max_index)) +
          _mesa_bitcount(double_storage_locations);
       if (total_attribs_size > max_index) {
          linker_error(prog,

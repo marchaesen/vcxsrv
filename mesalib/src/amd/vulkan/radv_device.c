@@ -627,8 +627,8 @@ void radv_GetPhysicalDeviceProperties(
 	 * there is no set limit, so we just set a pipeline limit. I don't think
 	 * any app is going to hit this soon. */
 	size_t max_descriptor_set_size = ((1ull << 31) - 16 * MAX_DYNAMIC_BUFFERS) /
-	          (32 /* uniform buffer, 32 due to potential space wasted on alignement */ +
-	           32 /* storage buffer, 32 due to potential space wasted on alignement */ +
+	          (32 /* uniform buffer, 32 due to potential space wasted on alignment */ +
+	           32 /* storage buffer, 32 due to potential space wasted on alignment */ +
 	           32 /* sampler, largest when combined with image */ +
 	           64 /* sampled image */ +
 	           64 /* storage image */);
@@ -792,6 +792,12 @@ void radv_GetPhysicalDeviceProperties2KHR(
 			VkPhysicalDevicePointClippingPropertiesKHR *properties =
 			    (VkPhysicalDevicePointClippingPropertiesKHR*)ext;
 			properties->pointClippingBehavior = VK_POINT_CLIPPING_BEHAVIOR_ALL_CLIP_PLANES_KHR;
+			break;
+		}
+		case  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISCARD_RECTANGLE_PROPERTIES_EXT: {
+			VkPhysicalDeviceDiscardRectanglePropertiesEXT *properties =
+			    (VkPhysicalDeviceDiscardRectanglePropertiesEXT*)ext;
+			properties->maxDiscardRectangles = MAX_DISCARD_RECTANGLES;
 			break;
 		}
 		default:

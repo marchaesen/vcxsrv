@@ -69,14 +69,14 @@ FT_BEGIN_HEADER
 
 #define  GET_Byte()      (*stream->cursor++)
 #define  GET_Short()     (stream->cursor += 2, (FT_Short)( \
-				(*(((FT_Byte*)stream->cursor)-2) << 8) | \
-				 *(((FT_Byte*)stream->cursor)-1) \
+				((FT_ULong)*(((FT_Byte*)stream->cursor)-2) << 8) | \
+				 (FT_ULong)*(((FT_Byte*)stream->cursor)-1) \
 			 ))
 #define  GET_Long()      (stream->cursor += 4, (FT_Long)( \
-				(*(((FT_Byte*)stream->cursor)-4) << 24) | \
-				(*(((FT_Byte*)stream->cursor)-3) << 16) | \
-				(*(((FT_Byte*)stream->cursor)-2) << 8) | \
-				 *(((FT_Byte*)stream->cursor)-1) \
+				((FT_ULong)*(((FT_Byte*)stream->cursor)-4) << 24) | \
+				((FT_ULong)*(((FT_Byte*)stream->cursor)-3) << 16) | \
+				((FT_ULong)*(((FT_Byte*)stream->cursor)-2) << 8) | \
+				 (FT_ULong)*(((FT_Byte*)stream->cursor)-1) \
 			 ))
 
 #define  GET_Char()      ((FT_Char)GET_Byte())

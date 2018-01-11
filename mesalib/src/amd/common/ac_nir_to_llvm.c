@@ -597,10 +597,12 @@ static void allocate_user_sgprs(struct nir_to_llvm_context *ctx,
 		break;
 	}
 
-	if (ctx->shader_info->info.needs_push_constants)
+	if (ctx->shader_info->info.loads_push_constants)
 		user_sgpr_info->sgpr_count += 2;
 
-	uint32_t remaining_sgprs = 16 - user_sgpr_info->sgpr_count;
+	uint32_t available_sgprs = ctx->options->chip_class >= GFX9 ? 32 : 16;
+	uint32_t remaining_sgprs = available_sgprs - user_sgpr_info->sgpr_count;
+
 	if (remaining_sgprs / 2 < util_bitcount(ctx->shader_info->info.desc_set_used_mask)) {
 		user_sgpr_info->sgpr_count += 2;
 		user_sgpr_info->indirect_all_descriptor_sets = true;
@@ -638,7 +640,7 @@ declare_global_input_sgprs(struct nir_to_llvm_context *ctx,
 		add_array_arg(args, const_array(type, 32), desc_sets);
 	}
 
-	if (ctx->shader_info->info.needs_push_constants) {
+	if (ctx->shader_info->info.loads_push_constants) {
 		/* 1 for push constants and dynamic descriptors */
 		add_array_arg(args, type, &ctx->push_constants);
 	}
@@ -729,7 +731,7 @@ set_global_input_locs(struct nir_to_llvm_context *ctx, gl_shader_stage stage,
 		ctx->shader_info->need_indirect_descriptor_sets = true;
 	}
 
-	if (ctx->shader_info->info.needs_push_constants) {
+	if (ctx->shader_info->info.loads_push_constants) {
 		set_loc_shader(ctx, AC_UD_PUSH_CONSTANTS, user_sgpr_idx, 2);
 	}
 }
@@ -2578,7 +2580,7 @@ static LLVMValueRef visit_load_buffer(struct ac_nir_context *ctx,
 static LLVMValueRef visit_load_ubo_buffer(struct ac_nir_context *ctx,
                                           const nir_intrinsic_instr *instr)
 {
-	LLVMValueRef results[8], ret;
+	LLVMValueRef ret;
 	LLVMValueRef rsrc = get_src(ctx, instr->src[0]);
 	LLVMValueRef offset = get_src(ctx, instr->src[1]);
 	int num_components = instr->num_components;
@@ -2589,20 +2591,9 @@ static LLVMValueRef visit_load_ubo_buffer(struct ac_nir_context *ctx,
 	if (instr->dest.ssa.bit_size == 64)
 		num_components *= 2;
 
-	for (unsigned i = 0; i < num_components; ++i) {
-		LLVMValueRef params[] = {
-			rsrc,
-			LLVMBuildAdd(ctx->ac.builder, LLVMConstInt(ctx->ac.i32, 4 * i, 0),
-				     offset, "")
-		};
-		results[i] = ac_build_intrinsic(&ctx->ac, "llvm.SI.load.const.v4i32", ctx->ac.f32,
-						params, 2,
-						AC_FUNC_ATTR_READNONE |
-						AC_FUNC_ATTR_LEGACY);
-	}
+	ret = ac_build_buffer_load(&ctx->ac, rsrc, num_components, NULL, offset,
+				   NULL, 0, false, false, true, true);
 
-
-	ret = ac_build_gather_values(&ctx->ac, results, num_components);
 	return LLVMBuildBitCast(ctx->ac.builder, ret,
 	                        get_def_type(ctx, &instr->dest.ssa), "");
 }
@@ -3831,19 +3822,18 @@ static void emit_membar(struct nir_to_llvm_context *ctx,
 		ac_build_waitcnt(&ctx->ac, waitcnt);
 }
 
-static void emit_barrier(struct nir_to_llvm_context *ctx)
+static void emit_barrier(struct ac_llvm_context *ac, gl_shader_stage stage)
 {
 	/* SI only (thanks to a hw bug workaround):
 	 * The real barrier instruction isn’t needed, because an entire patch
 	 * always fits into a single wave.
 	 */
-	if (ctx->options->chip_class == SI &&
-	    ctx->stage == MESA_SHADER_TESS_CTRL) {
-		ac_build_waitcnt(&ctx->ac, LGKM_CNT & VM_CNT);
+	if (ac->chip_class == SI && stage == MESA_SHADER_TESS_CTRL) {
+		ac_build_waitcnt(ac, LGKM_CNT & VM_CNT);
 		return;
 	}
-	ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.s.barrier",
-			   ctx->ac.voidt, NULL, 0, AC_FUNC_ATTR_CONVERGENT);
+	ac_build_intrinsic(ac, "llvm.amdgcn.s.barrier",
+			   ac->voidt, NULL, 0, AC_FUNC_ATTR_CONVERGENT);
 }
 
 static void emit_discard_if(struct ac_nir_context *ctx,
@@ -4176,6 +4166,13 @@ load_tess_coord(struct ac_shader_abi *abi, LLVMTypeRef type,
 	return LLVMBuildBitCast(ctx->builder, result, type, "");
 }
 
+static LLVMValueRef
+load_patch_vertices_in(struct ac_shader_abi *abi)
+{
+	struct nir_to_llvm_context *ctx = nir_to_llvm_context_from_abi(abi);
+	return LLVMConstInt(ctx->ac.i32, ctx->options->key.tcs.input_vertices, false);
+}
+
 static void visit_intrinsic(struct ac_nir_context *ctx,
                             nir_intrinsic_instr *instr)
 {
@@ -4336,7 +4333,7 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		emit_membar(ctx->nctx, instr);
 		break;
 	case nir_intrinsic_barrier:
-		emit_barrier(ctx->nctx);
+		emit_barrier(&ctx->ac, ctx->stage);
 		break;
 	case nir_intrinsic_var_atomic_add:
 	case nir_intrinsic_var_atomic_imin:
@@ -4369,8 +4366,14 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		result = ctx->abi->load_tess_coord(ctx->abi, type, instr->num_components);
 		break;
 	}
+	case nir_intrinsic_load_tess_level_outer:
+		result = ctx->abi->load_tess_level(ctx->abi, VARYING_SLOT_TESS_LEVEL_OUTER);
+		break;
+	case nir_intrinsic_load_tess_level_inner:
+		result = ctx->abi->load_tess_level(ctx->abi, VARYING_SLOT_TESS_LEVEL_INNER);
+		break;
 	case nir_intrinsic_load_patch_vertices_in:
-		result = LLVMConstInt(ctx->ac.i32, ctx->nctx->options->key.tcs.input_vertices, false);
+		result = ctx->abi->load_patch_vertices_in(ctx->abi);
 		break;
 	default:
 		fprintf(stderr, "Unknown intrinsic: ");
@@ -5560,6 +5563,7 @@ setup_locals(struct ac_nir_context *ctx,
 	nir_foreach_variable(variable, &func->impl->locals) {
 		unsigned attrib_count = glsl_count_attribute_slots(variable->type, false);
 		variable->data.driver_location = ctx->num_locals * 4;
+		variable->data.location_frac = 0;
 		ctx->num_locals += attrib_count;
 	}
 	ctx->locals = malloc(4 * ctx->num_locals * sizeof(LLVMValueRef));
@@ -6173,7 +6177,7 @@ write_tess_factors(struct nir_to_llvm_context *ctx)
 	LLVMValueRef lds_base, lds_inner, lds_outer, byteoffset, buffer;
 	LLVMValueRef out[6], vec0, vec1, tf_base, inner[4], outer[4];
 	int i;
-	emit_barrier(ctx);
+	emit_barrier(&ctx->ac, ctx->stage);
 
 	switch (ctx->options->key.tcs.primitive_mode) {
 	case GL_ISOLINES:
@@ -6701,11 +6705,13 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 			ctx.tcs_outputs_read = shaders[i]->info.outputs_read;
 			ctx.tcs_patch_outputs_read = shaders[i]->info.patch_outputs_read;
 			ctx.abi.load_tess_inputs = load_tcs_input;
+			ctx.abi.load_patch_vertices_in = load_patch_vertices_in;
 			ctx.abi.store_tcs_outputs = store_tcs_output;
 		} else if (shaders[i]->info.stage == MESA_SHADER_TESS_EVAL) {
 			ctx.tes_primitive_mode = shaders[i]->info.tess.primitive_mode;
 			ctx.abi.load_tess_inputs = load_tes_input;
 			ctx.abi.load_tess_coord = load_tess_coord;
+			ctx.abi.load_patch_vertices_in = load_patch_vertices_in;
 		} else if (shaders[i]->info.stage == MESA_SHADER_VERTEX) {
 			if (shader_info->info.vs.needs_instance_id) {
 				if (ctx.ac.chip_class == GFX9 &&
@@ -6722,7 +6728,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 		}
 
 		if (i)
-			emit_barrier(&ctx);
+			emit_barrier(&ctx.ac, ctx.stage);
 
 		ac_setup_rings(&ctx);
 
@@ -6979,6 +6985,14 @@ void ac_compile_nir_shader(LLVMTargetMachineRef tm,
 	ac_compile_llvm_module(tm, llvm_module, binary, config, shader_info, nir[0]->info.stage, dump_shader, options->supports_spill);
 	for (int i = 0; i < nir_count; ++i)
 		ac_fill_shader_info(shader_info, nir[i], options);
+
+	/* Determine the ES type (VS or TES) for the GS on GFX9. */
+	if (options->chip_class == GFX9) {
+		if (nir_count == 2 &&
+		    nir[1]->info.stage == MESA_SHADER_GEOMETRY) {
+			shader_info->gs.es_type = nir[0]->info.stage;
+		}
+	}
 }
 
 static void

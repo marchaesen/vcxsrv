@@ -983,11 +983,7 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 
 	return ac_build_intrinsic(ctx, name, types[func], args,
 				  ARRAY_SIZE(args),
-				  /* READNONE means writes can't affect it, while
-				   * READONLY means that writes can affect it. */
-				  can_speculate && HAVE_LLVM >= 0x0400 ?
-					  AC_FUNC_ATTR_READNONE :
-					  AC_FUNC_ATTR_READONLY);
+				  ac_get_load_intr_attribs(can_speculate));
 }
 
 LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
@@ -1007,11 +1003,7 @@ LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
 	return ac_build_intrinsic(ctx,
 				  "llvm.amdgcn.buffer.load.format.v4f32",
 				  ctx->v4f32, args, ARRAY_SIZE(args),
-				  /* READNONE means writes can't affect it, while
-				   * READONLY means that writes can affect it. */
-				  can_speculate && HAVE_LLVM >= 0x0400 ?
-					  AC_FUNC_ATTR_READNONE :
-					  AC_FUNC_ATTR_READONLY);
+				  ac_get_load_intr_attribs(can_speculate));
 }
 
 /**

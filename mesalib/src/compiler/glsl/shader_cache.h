@@ -21,8 +21,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef SHADER_CACHE
-#define SHADER_CACHE
+#ifndef SHADER_CACHE_H
+#define SHADER_CACHE_H
 
 #include "util/disk_cache.h"
 
@@ -34,4 +34,4 @@ bool
 shader_cache_read_program_metadata(struct gl_context *ctx,
                                    struct gl_shader_program *prog);
 
-#endif /* GLSL_SYMBOL_TABLE */
+#endif /* SHADER_CACHE_H */

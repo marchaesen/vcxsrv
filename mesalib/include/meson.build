@@ -78,3 +78,22 @@ if with_gallium_st_nine
     subdir : 'd3dadapter',
   )
 endif
+
+# Only install the headers if we are building a stand alone implementation and
+# not an ICD enabled implementation
+if with_gallium_opencl and not with_opencl_icd
+  install_headers(
+    'CL/cl.h',
+    'CL/cl.hpp',
+    'CL/cl_d3d10.h',
+    'CL/cl_d3d11.h',
+    'CL/cl_dx9_media_sharing.h',
+    'CL/cl_egl.h',
+    'CL/cl_ext.h',
+    'CL/cl_gl.h',
+    'CL/cl_gl_ext.h',
+    'CL/cl_platform.h',
+    'CL/opencl.h',
+    subdir: 'CL'
+  )
+endif

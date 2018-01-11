@@ -1465,11 +1465,11 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
    }
 
    if (val->value_type == vtn_value_type_pointer) {
-      vtn_assert(val->pointer->var == void_var);
-      vtn_assert(val->pointer->chain == NULL);
-      vtn_assert(member == -1);
+      assert(val->pointer->var == void_var);
+      assert(val->pointer->chain == NULL);
+      assert(member == -1);
    } else {
-      vtn_assert(val->value_type == vtn_value_type_type);
+      assert(val->value_type == vtn_value_type_type);
    }
 
    /* Location is odd.  If applied to a split structure, we have to walk the
@@ -1501,7 +1501,7 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
          vtn_var->var->data.location = location;
       } else {
          /* This handles the structure member case */
-         vtn_assert(vtn_var->members);
+         assert(vtn_var->members);
          unsigned length =
             glsl_get_length(glsl_without_array(vtn_var->type->type));
          for (unsigned i = 0; i < length; i++) {
@@ -1514,11 +1514,12 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
       return;
    } else {
       if (vtn_var->var) {
-         vtn_assert(member <= 0);
+         assert(member == -1);
          apply_var_decoration(b, vtn_var->var, dec);
       } else if (vtn_var->members) {
          if (member >= 0) {
-            vtn_assert(vtn_var->members);
+            /* Member decorations must come from a type */
+            assert(val->value_type == vtn_value_type_type);
             apply_var_decoration(b, vtn_var->members[member], dec);
          } else {
             unsigned length =
@@ -1792,7 +1793,8 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       vtn_foreach_decoration(b, val, var_is_patch_cb, &var->patch);
       if (glsl_type_is_array(var->type->type) &&
           glsl_type_is_struct(without_array->type)) {
-         vtn_foreach_decoration(b, without_array->val,
+         vtn_foreach_decoration(b, vtn_value(b, without_array->id,
+                                             vtn_value_type_type),
                                 var_is_patch_cb, &var->patch);
       }
 
@@ -1848,7 +1850,9 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       /* For inputs and outputs, we need to grab locations and builtin
        * information from the interface type.
        */
-      vtn_foreach_decoration(b, interface_type->val, var_decoration_cb, var);
+      vtn_foreach_decoration(b, vtn_value(b, interface_type->id,
+                                          vtn_value_type_type),
+                             var_decoration_cb, var);
       break;
    }
 
@@ -1896,6 +1900,36 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    } else {
       vtn_assert(vtn_pointer_is_external_block(b, val->pointer));
    }
+}
+
+static void
+vtn_assert_types_equal(struct vtn_builder *b, SpvOp opcode,
+                       struct vtn_type *dst_type,
+                       struct vtn_type *src_type)
+{
+   if (dst_type->id == src_type->id)
+      return;
+
+   if (vtn_types_compatible(b, dst_type, src_type)) {
+      /* Early versions of GLSLang would re-emit types unnecessarily and you
+       * would end up with OpLoad, OpStore, or OpCopyMemory opcodes which have
+       * mismatched source and destination types.
+       *
+       * https://github.com/KhronosGroup/glslang/issues/304
+       * https://github.com/KhronosGroup/glslang/issues/307
+       * https://bugs.freedesktop.org/show_bug.cgi?id=104338
+       * https://bugs.freedesktop.org/show_bug.cgi?id=104424
+       */
+      vtn_warn("Source and destination types of %s do not have the same "
+               "ID (but are compatible): %u vs %u",
+                spirv_op_to_string(opcode), dst_type->id, src_type->id);
+      return;
+   }
+
+   vtn_fail("Source and destination types of %s do not match: %s vs. %s",
+            spirv_op_to_string(opcode),
+            glsl_get_type_name(dst_type->type),
+            glsl_get_type_name(src_type->type));
 }
 
 void
@@ -1974,8 +2008,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       struct vtn_value *dest = vtn_value(b, w[1], vtn_value_type_pointer);
       struct vtn_value *src = vtn_value(b, w[2], vtn_value_type_pointer);
 
-      vtn_fail_if(dest->type->deref != src->type->deref,
-                  "Dereferenced pointer types to OpCopyMemory do not match");
+      vtn_assert_types_equal(b, opcode, dest->type->deref, src->type->deref);
 
       vtn_variable_copy(b, dest->pointer, src->pointer);
       break;
@@ -1987,8 +2020,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       struct vtn_value *src_val = vtn_value(b, w[3], vtn_value_type_pointer);
       struct vtn_pointer *src = src_val->pointer;
 
-      vtn_fail_if(res_type != src_val->type->deref,
-                  "Result and pointer types of OpLoad do not match");
+      vtn_assert_types_equal(b, opcode, res_type, src_val->type->deref);
 
       if (src->mode == vtn_variable_mode_image ||
           src->mode == vtn_variable_mode_sampler) {
@@ -2005,8 +2037,30 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       struct vtn_pointer *dest = dest_val->pointer;
       struct vtn_value *src_val = vtn_untyped_value(b, w[2]);
 
-      vtn_fail_if(dest_val->type->deref != src_val->type,
-                  "Value and pointer types of OpStore do not match");
+      /* OpStore requires us to actually have a storage type */
+      vtn_fail_if(dest->type->type == NULL,
+                  "Invalid destination type for OpStore");
+
+      if (glsl_get_base_type(dest->type->type) == GLSL_TYPE_BOOL &&
+          glsl_get_base_type(src_val->type->type) == GLSL_TYPE_UINT) {
+         /* Early versions of GLSLang would use uint types for UBOs/SSBOs but
+          * would then store them to a local variable as bool.  Work around
+          * the issue by doing an implicit conversion.
+          *
+          * https://github.com/KhronosGroup/glslang/issues/170
+          * https://bugs.freedesktop.org/show_bug.cgi?id=104424
+          */
+         vtn_warn("OpStore of value of type OpTypeInt to a pointer to type "
+                  "OpTypeBool.  Doing an implicit conversion to work around "
+                  "the problem.");
+         struct vtn_ssa_value *bool_ssa =
+            vtn_create_ssa_value(b, dest->type->type);
+         bool_ssa->def = nir_i2b(&b->nb, vtn_ssa_value(b, w[2])->def);
+         vtn_variable_store(b, bool_ssa, dest);
+         break;
+      }
+
+      vtn_assert_types_equal(b, opcode, dest_val->type->deref, src_val->type);
 
       if (glsl_type_is_sampler(dest->type->type)) {
          vtn_warn("OpStore of a sampler detected.  Doing on-the-fly copy "

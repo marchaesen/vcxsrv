@@ -1589,7 +1589,6 @@ ast_expression::do_hir(exec_list *instructions,
 
       if (rhs_instructions.is_empty()) {
          result = new(ctx) ir_expression(ir_binop_logic_and, op[0], op[1]);
-         type = result->type;
       } else {
          ir_variable *const tmp = new(ctx) ir_variable(glsl_type::bool_type,
                                                        "and_tmp",
@@ -1611,7 +1610,6 @@ ast_expression::do_hir(exec_list *instructions,
          stmt->else_instructions.push_tail(else_assign);
 
          result = new(ctx) ir_dereference_variable(tmp);
-         type = tmp->type;
       }
       break;
    }
@@ -1625,7 +1623,6 @@ ast_expression::do_hir(exec_list *instructions,
 
       if (rhs_instructions.is_empty()) {
          result = new(ctx) ir_expression(ir_binop_logic_or, op[0], op[1]);
-         type = result->type;
       } else {
          ir_variable *const tmp = new(ctx) ir_variable(glsl_type::bool_type,
                                                        "or_tmp",
@@ -1647,7 +1644,6 @@ ast_expression::do_hir(exec_list *instructions,
          stmt->else_instructions.push_tail(else_assign);
 
          result = new(ctx) ir_dereference_variable(tmp);
-         type = tmp->type;
       }
       break;
    }

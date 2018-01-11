@@ -230,7 +230,8 @@ ir_texture::accept(ir_hierarchical_visitor *v)
       break;
    }
 
-   return (s == visit_stop) ? s : v->visit_leave(this);
+   assert(s == visit_continue);
+   return v->visit_leave(this);
 }
 
 
@@ -414,7 +415,8 @@ ir_emit_vertex::accept(ir_hierarchical_visitor *v)
    if (s != visit_continue)
       return (s == visit_continue_with_parent) ? visit_continue : s;
 
-   return (s == visit_stop) ? s : v->visit_leave(this);
+   assert(s == visit_continue);
+   return v->visit_leave(this);
 }
 
 
@@ -429,7 +431,8 @@ ir_end_primitive::accept(ir_hierarchical_visitor *v)
    if (s != visit_continue)
       return (s == visit_continue_with_parent) ? visit_continue : s;
 
-   return (s == visit_stop) ? s : v->visit_leave(this);
+   assert(s == visit_continue);
+   return v->visit_leave(this);
 }
 
 ir_visitor_status
