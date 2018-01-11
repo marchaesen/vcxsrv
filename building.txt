@@ -1,18 +1,9 @@
 Prerequisits:
-- Visual C++ 2010
-  Visual C++ 2010 Express Edition is probably also ok (not tested)
-- Perl (cygwin perl (http://www.cygwin.com/), strawberry perl (http://strawberryperl.com)  or activestate perl (http://www.activestate.com/activeperl/) )
-- Python (2.7 used: http://www.python.org/) + libxml2 python bindings
-- Gnuwin32 gperf, gawk, gzip, flex, bison (and it's dependancies), sed (and it's dependancies (http://gnuwin32.sourceforge.net/), gperf
-- nasm (http://nasm.sourceforge.net). Make sure the nasm directory is in your path
-- Make sure that the gnuwin32 binaries are in a directory path with no spaces, like 'C:\gnuwin32\bin'
-- Make sure the environment PATH includes the directory where the gnuwin32 binaries are
-- Make sure python, perl are in the environment PATH
-- make sure the command prompt is set for compiling with the visual studio compiler (vcvars32.bat)
+- Visual Studio 2017 Community Edition
+- Strawberry perl portable edition installed in c:\perl
+- Cygwin (install the required tools when errors seen: nasm, flex, bison, python, ....)
 - To build the installer: nsis
 
-Run the command buildall.bat. This will build everything including the installer.
-
-To clean the project tree (uses git) go to the top directory at a command prompt
-and type in 'git clean -dfx'
+Run buildall.sh 1 9 to build the 64-bit version and buildall.sh 0 9 for the 32-bit.
+(The second number on the command line is the number of parallel processes to use)
 
