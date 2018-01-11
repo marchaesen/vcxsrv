@@ -1670,7 +1670,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		bits = os2->ulCodePageRange2;
 		bit = FcCodePageRange[i].bit - 32;
 	    }
-	    if (bits & (1 << bit))
+	    if (bits & (1U << bit))
 	    {
 		/*
 		 * If the font advertises support for multiple
@@ -2378,7 +2378,7 @@ FcFreeTypeCharSet (FT_Face face, FcBlanks *blanks FC_UNUSED)
 			goto bail;
 		}
 		off = ucs4 & 0xff;
-		leaf->map[off >> 5] |= (1 << (off & 0x1f));
+		leaf->map[off >> 5] |= (1U << (off & 0x1f));
 	    }
 
 	    ucs4 = FT_Get_Next_Char (face, ucs4, &glyph);

@@ -191,6 +191,7 @@ struct ac_shader_variant_info {
 			unsigned invocations;
 			unsigned gsvs_vertex_size;
 			unsigned max_gsvs_emit_size;
+			unsigned es_type; /* GFX9: VS or TES */
 		} gs;
 		struct {
 			unsigned tcs_vertices_out;

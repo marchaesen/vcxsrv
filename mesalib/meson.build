@@ -47,6 +47,7 @@ with_valgrind = get_option('valgrind')
 with_libunwind = get_option('libunwind')
 with_asm = get_option('asm')
 with_osmesa = get_option('osmesa')
+with_swr_arches = get_option('swr-arches').split(',')
 if get_option('texture-float')
   pre_args += '-DTEXTURE_FLOAT_ENABLED'
   message('WARNING: Floating-point texture enabled. Please consult docs/patents.txt and your lawyer before building mesa.')
@@ -124,6 +125,7 @@ with_gallium_imx = false
 with_gallium_i915 = false
 with_gallium_svga = false
 with_gallium_virgl = false
+with_gallium_swr = false
 _drivers = get_option('gallium-drivers')
 if _drivers == 'auto'
   if not ['darwin', 'windows'].contains(host_machine.system())
@@ -155,6 +157,7 @@ if _drivers != ''
   with_gallium_i915 = _split.contains('i915')
   with_gallium_svga = _split.contains('svga')
   with_gallium_virgl = _split.contains('virgl')
+  with_gallium_swr = _split.contains('swr')
   with_gallium = true
 endif
 
@@ -181,7 +184,7 @@ if _vulkan_drivers != ''
   with_any_vk = with_amd_vk or with_intel_vk
 endif
 
-if with_dri_swrast and with_gallium_softpipe
+if with_dri_swrast and (with_gallium_softpipe or with_gallium_swr)
   error('Only one swrast provider can be built')
 endif
 if with_dri_i915 and with_gallium_i915
@@ -581,6 +584,22 @@ if with_gallium_st_nine
   endif
 endif
 
+_opencl = get_option('gallium-opencl')
+if _opencl != 'disabled'
+  if not with_gallium
+    error('OpenCL Clover implementation requires at least one gallium driver.')
+  endif
+
+  # TODO: alitvec?
+  dep_clc = dependency('libclc')
+  with_gallium_opencl = true
+  with_opencl_icd = _opencl == 'icd'
+else
+  dep_clc = []
+  with_gallium_opencl = false
+  with_gallium_icd = false
+endif
+
 gl_pkgconfig_c_flags = []
 if with_platform_x11
   if with_any_vk or (with_glx == 'dri' and with_dri_platform == 'drm')
@@ -928,7 +947,7 @@ dep_thread = dependency('threads')
 if dep_thread.found() and host_machine.system() != 'windows'
   pre_args += '-DHAVE_PTHREAD'
 endif
-if with_amd_vk or with_gallium_radeonsi or with_gallium_r600 # TODO: clover
+if with_amd_vk or with_gallium_radeonsi or with_gallium_r600 or with_gallium_opencl
   dep_elf = dependency('libelf', required : false)
   if not dep_elf.found()
     dep_elf = cc.find_library('elf')
@@ -970,12 +989,19 @@ if with_amd_vk or with_gallium_radeonsi or with_gallium_r600
     llvm_modules += 'asmparser'
   endif
 endif
+if with_gallium_opencl
+  llvm_modules += [
+    'all-targets', 'linker', 'coverage', 'instrumentation', 'ipo', 'irreader',
+    'lto', 'option', 'objcarcopts', 'profiledata',
+  ]
+  # TODO: optional modules
+endif
 
 _llvm = get_option('llvm')
 if _llvm == 'auto'
   dep_llvm = dependency(
     'llvm', version : '>= 3.9.0', modules : llvm_modules,
-    required : with_amd_vk or with_gallium_radeonsi,
+    required : with_amd_vk or with_gallium_radeonsi or with_gallium_swr or with_gallium_opencl,
   )
   with_llvm = dep_llvm.found()
 elif _llvm == 'true'
@@ -997,8 +1023,8 @@ if with_llvm
     '-DHAVE_LLVM=0x0@0@@1@@2@'.format(_llvm_version[0], _llvm_version[1], _llvm_patch),
     '-DMESA_LLVM_VERSION_PATCH=@0@'.format(_llvm_patch),
   ]
-elif with_amd_vk or with_gallium_radeonsi
-  error('The following drivers requires LLVM: Radv, RadeonSI. One of these is enabled, but LLVM is disabled.')
+elif with_amd_vk or with_gallium_radeonsi or with_gallium_swr
+  error('The following drivers requires LLVM: Radv, RadeonSI, SWR. One of these is enabled, but LLVM is disabled.')
 endif
 
 dep_glvnd = []
@@ -1152,13 +1178,9 @@ else
   dep_lmsensors = []
 endif
 
-# TODO: clover
-
 # TODO: gallium tests
 
 # TODO: various libdirs
-
-# TODO: swr
 
 # TODO: gallium driver dirs
 

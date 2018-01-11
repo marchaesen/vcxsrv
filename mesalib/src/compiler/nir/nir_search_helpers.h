@@ -115,8 +115,8 @@ is_zero_to_one(nir_alu_instr *instr, unsigned src, unsigned num_components,
 }
 
 static inline bool
-is_not_const(nir_alu_instr *instr, unsigned src, unsigned num_components,
-             const uint8_t *swizzle)
+is_not_const(nir_alu_instr *instr, unsigned src, UNUSED unsigned num_components,
+             UNUSED const uint8_t *swizzle)
 {
    nir_const_value *val = nir_src_as_const_value(instr->src[src].src);
 

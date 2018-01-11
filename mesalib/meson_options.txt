@@ -121,6 +121,13 @@ option(
   description : 'build gallium "nine" Direct3D 9.x state tracker.',
 )
 option(
+  'gallium-opencl',
+  type : 'combo',
+  choices : ['icd', 'standalone', 'disabled'],
+  value : 'disabled',
+  description : 'build gallium "clover" OpenCL state tracker.',
+)
+option(
   'd3d-drivers-path',
   type : 'string',
   value : '',
@@ -260,4 +267,10 @@ option(
   value : '8',
   choices : ['8', '16', '32'],
   description : 'Number of channel bits for OSMesa.'
+)
+option(
+  'swr-arches',
+  type : 'string',
+  value : 'avx,avx2',
+  description : 'Comma delemited swr architectures. choices : avx,avx2,knl,skx'
 )

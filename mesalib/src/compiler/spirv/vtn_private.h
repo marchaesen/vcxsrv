@@ -274,8 +274,8 @@ struct vtn_type {
 
    const struct glsl_type *type;
 
-   /* The value that declares this type.  Used for finding decorations */
-   struct vtn_value *val;
+   /* The SPIR-V id of the given type. */
+   uint32_t id;
 
    /* Specifies the length of complex types.
     *
@@ -364,6 +364,9 @@ struct vtn_type {
       };
    };
 };
+
+bool vtn_types_compatible(struct vtn_builder *b,
+                          struct vtn_type *t1, struct vtn_type *t2);
 
 struct vtn_variable;
 
@@ -531,6 +534,7 @@ struct vtn_builder {
    jmp_buf fail_jump;
 
    const uint32_t *spirv;
+   size_t spirv_word_count;
 
    nir_shader *shader;
    const struct spirv_to_nir_options *options;
@@ -585,14 +589,24 @@ vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
                      struct vtn_type *ptr_type);
 
 static inline struct vtn_value *
+vtn_untyped_value(struct vtn_builder *b, uint32_t value_id)
+{
+   vtn_fail_if(value_id >= b->value_id_bound,
+               "SPIR-V id %u is out-of-bounds", value_id);
+   return &b->values[value_id];
+}
+
+static inline struct vtn_value *
 vtn_push_value(struct vtn_builder *b, uint32_t value_id,
                enum vtn_value_type value_type)
 {
-   assert(value_id < b->value_id_bound);
-   assert(b->values[value_id].value_type == vtn_value_type_invalid);
+   struct vtn_value *val = vtn_untyped_value(b, value_id);
 
-   b->values[value_id].value_type = value_type;
+   vtn_fail_if(val->value_type != vtn_value_type_invalid,
+               "SPIR-V id %u has already been written by another instruction",
+               value_id);
 
+   val->value_type = value_type;
    return &b->values[value_id];
 }
 
@@ -612,18 +626,12 @@ vtn_push_ssa(struct vtn_builder *b, uint32_t value_id,
 }
 
 static inline struct vtn_value *
-vtn_untyped_value(struct vtn_builder *b, uint32_t value_id)
-{
-   assert(value_id < b->value_id_bound);
-   return &b->values[value_id];
-}
-
-static inline struct vtn_value *
 vtn_value(struct vtn_builder *b, uint32_t value_id,
           enum vtn_value_type value_type)
 {
    struct vtn_value *val = vtn_untyped_value(b, value_id);
-   assert(val->value_type == value_type);
+   vtn_fail_if(val->value_type != value_type,
+               "SPIR-V id %u is the wrong kind of value", value_id);
    return val;
 }
 

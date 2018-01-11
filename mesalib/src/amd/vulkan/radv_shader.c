@@ -415,7 +415,16 @@ radv_fill_shader_variant(struct radv_device *device,
 	if (device->physical_device->rad_info.chip_class >= GFX9 &&
 	    stage == MESA_SHADER_GEOMETRY) {
 		struct ac_shader_info *info = &variant->info.info;
-		unsigned gs_vgpr_comp_cnt;
+		unsigned es_type = variant->info.gs.es_type;
+		unsigned gs_vgpr_comp_cnt, es_vgpr_comp_cnt;
+
+		if (es_type == MESA_SHADER_VERTEX) {
+			es_vgpr_comp_cnt = variant->info.vs.vgpr_comp_cnt;
+		} else if (es_type == MESA_SHADER_TESS_EVAL) {
+			es_vgpr_comp_cnt = 3;
+		} else {
+			assert(!"invalid shader ES type");
+		}
 
 		/* If offsets 4, 5 are used, GS_VGPR_COMP_CNT is ignored and
 		 * VGPR[0:4] are always loaded.
@@ -429,10 +438,9 @@ radv_fill_shader_variant(struct radv_device *device,
 		else
 			gs_vgpr_comp_cnt = 0; /* VGPR0 contains offsets 0, 1 */
 
-		/* TODO: Figure out how many we actually need. */
 		variant->rsrc1 |= S_00B228_GS_VGPR_COMP_CNT(gs_vgpr_comp_cnt);
-		variant->rsrc2 |= S_00B22C_ES_VGPR_COMP_CNT(3) |
-		                  S_00B22C_OC_LDS_EN(1);
+		variant->rsrc2 |= S_00B22C_ES_VGPR_COMP_CNT(es_vgpr_comp_cnt) |
+		                  S_00B22C_OC_LDS_EN(es_type == MESA_SHADER_TESS_EVAL);
 	} else if (device->physical_device->rad_info.chip_class >= GFX9 &&
 	    stage == MESA_SHADER_TESS_CTRL)
 		variant->rsrc1 |= S_00B428_LS_VGPR_COMP_CNT(vgpr_comp_cnt);

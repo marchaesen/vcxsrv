@@ -45,6 +45,15 @@ def collect_data(spirv, kind):
 
     return (kind, values)
 
+def collect_opcodes(spirv):
+    values = []
+    for x in spirv["instructions"]:
+        name = x["opname"]
+        assert name.startswith("Op")
+        values.append(name[2:])
+
+    return ("Op", values)
+
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("json")
@@ -78,8 +87,11 @@ if __name__ == "__main__":
 
     spirv_info = json.JSONDecoder().decode(open(pargs.json, "r").read())
 
-    capabilities = collect_data(spirv_info, "Capability")
-    decorations = collect_data(spirv_info, "Decoration")
+    info = [
+        collect_data(spirv_info, "Capability"),
+        collect_data(spirv_info, "Decoration"),
+        collect_opcodes(spirv_info),
+    ]
 
     with open(pargs.out, 'w') as f:
-        f.write(TEMPLATE.render(info=[capabilities, decorations]))
+        f.write(TEMPLATE.render(info=info))
