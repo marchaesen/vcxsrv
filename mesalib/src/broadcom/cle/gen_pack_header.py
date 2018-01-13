@@ -166,6 +166,7 @@ class Field(object):
             return
         else:
             print("#error unhandled type: %s" % self.type)
+            type = "uint32_t"
 
         print("   %-36s %s%s;" % (type, self.name, dim))
 
@@ -362,7 +363,7 @@ class Group(object):
                     args.append(str(field.fractional_size))
                     convert = "__gen_unpack_sfixed"
                 else:
-                    print("/* unhandled field %s, type %s */\n" % (name, field.type))
+                    print("/* unhandled field %s, type %s */\n" % (field.name, field.type))
                     s = None
 
                 print("   values->%s = %s(%s);" % \

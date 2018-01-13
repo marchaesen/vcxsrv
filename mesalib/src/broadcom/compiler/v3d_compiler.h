@@ -33,6 +33,7 @@
 
 #include "util/macros.h"
 #include "common/v3d_debug.h"
+#include "common/v3d_device_info.h"
 #include "compiler/nir/nir.h"
 #include "util/list.h"
 #include "util/u_math.h"
@@ -72,7 +73,6 @@ enum qfile {
          * or physical registers later.
          */
         QFILE_TEMP,
-        QFILE_VARY,
         QFILE_UNIF,
         QFILE_TLB,
         QFILE_TLBU,
@@ -134,6 +134,7 @@ struct qinst {
         struct qreg src[3];
         bool cond_is_exec_mask;
         bool has_implicit_uniform;
+        bool is_last_thrsw;
 
         /* After vir_to_qpu.c: If instr reads a uniform, which uniform from
          * the uncompiled stream it is.
@@ -171,7 +172,7 @@ enum quniform_contents {
         QUNIFORM_USER_CLIP_PLANE,
 
         /**
-         * A reference to a texture config parameter 0 uniform.
+         * A reference to a V3D 3.x texture config parameter 0 uniform.
          *
          * This is a uniform implicitly loaded with a QPU_W_TMU* write, which
          * defines texture type, miplevels, and such.  It will be found as a
@@ -212,7 +213,7 @@ enum quniform_contents {
         QUNIFORM_TEXTURE_CONFIG_P0_32,
 
         /**
-         * A reference to a texture config parameter 1 uniform.
+         * A reference to a V3D 3.x texture config parameter 1 uniform.
          *
          * This is a uniform implicitly loaded with a QPU_W_TMU* write, which
          * has the pointer to the indirect texture state.  Our data[] field
@@ -220,6 +221,13 @@ enum quniform_contents {
          * which texture unit's texture should be referenced.
          */
         QUNIFORM_TEXTURE_CONFIG_P1,
+
+        /* A a V3D 4.x texture config parameter.  The high 8 bits will be
+         * which texture or sampler is being sampled, and the driver must
+         * replace the address field with the appropriate address.
+         */
+        QUNIFORM_TMU_CONFIG_P0,
+        QUNIFORM_TMU_CONFIG_P1,
 
         QUNIFORM_TEXTURE_FIRST_LEVEL,
 
@@ -383,7 +391,8 @@ struct qblock {
 struct v3d_compiler {
         const struct v3d_device_info *devinfo;
         struct ra_regs *regs;
-        unsigned int reg_class[3];
+        unsigned int reg_class_phys[3];
+        unsigned int reg_class_phys_or_acc[3];
 };
 
 struct v3d_compile {
@@ -521,12 +530,16 @@ struct v3d_compile {
         uint32_t program_id;
         uint32_t variant_id;
 
-        /* Set to compile program in threaded FS mode, where SIG_THREAD_SWITCH
-         * is used to hide texturing latency at the cost of limiting ourselves
-         * to the bottom half of physical reg space.
+        /* Set to compile program in in 1x, 2x, or 4x threaded mode, where
+         * SIG_THREAD_SWITCH is used to hide texturing latency at the cost of
+         * limiting ourselves to the part of the physical reg space.
+         *
+         * On V3D 3.x, 2x or 4x divide the physical reg space by 2x or 4x.  On
+         * V3D 4.x, all shaders are 2x threaded, and 4x only divides the
+         * physical reg space in half.
          */
-        bool fs_threaded;
-
+        uint8_t threads;
+        struct qinst *last_thrsw;
         bool last_thrsw_at_top_level;
 
         bool failed;
@@ -546,7 +559,12 @@ struct v3d_prog_data {
         uint32_t ubo_size;
 
         uint8_t num_inputs;
+        uint8_t threads;
 
+        /* For threads > 1, whether the program should be dispatched in the
+         * after-final-THRSW state.
+         */
+        bool single_seg;
 };
 
 struct v3d_vs_prog_data {
@@ -650,10 +668,14 @@ bool vir_is_add(struct qinst *inst);
 bool vir_is_mul(struct qinst *inst);
 bool vir_is_float_input(struct qinst *inst);
 bool vir_depends_on_flags(struct qinst *inst);
-bool vir_writes_r3(struct qinst *inst);
-bool vir_writes_r4(struct qinst *inst);
+bool vir_writes_r3(const struct v3d_device_info *devinfo, struct qinst *inst);
+bool vir_writes_r4(const struct v3d_device_info *devinfo, struct qinst *inst);
 struct qreg vir_follow_movs(struct v3d_compile *c, struct qreg reg);
 uint8_t vir_channels_written(struct qinst *inst);
+struct qreg ntq_get_src(struct v3d_compile *c, nir_src src, int i);
+void ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
+                    struct qreg result);
+void vir_emit_thrsw(struct v3d_compile *c);
 
 void vir_dump(struct v3d_compile *c);
 void vir_dump_inst(struct v3d_compile *c, struct qinst *inst);
@@ -673,7 +695,12 @@ void v3d_nir_lower_io(nir_shader *s, struct v3d_compile *c);
 void v3d_nir_lower_txf_ms(nir_shader *s, struct v3d_compile *c);
 void vir_lower_uniforms(struct v3d_compile *c);
 
-void v3d_vir_to_qpu(struct v3d_compile *c);
+void v3d33_vir_vpm_read_setup(struct v3d_compile *c, int num_components);
+void v3d33_vir_vpm_write_setup(struct v3d_compile *c);
+void v3d33_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr);
+void v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr);
+
+void v3d_vir_to_qpu(struct v3d_compile *c, struct qpu_reg *temp_registers);
 uint32_t v3d_qpu_schedule_instructions(struct v3d_compile *c);
 void qpu_validate(struct v3d_compile *c);
 struct qpu_reg *v3d_register_allocate(struct v3d_compile *c);
@@ -743,6 +770,14 @@ vir_##name##_dest(struct v3d_compile *c, struct qreg dest,               \
         return vir_emit_nondef(c, vir_inst(op, dest, a, b));     \
 }
 
+#define VIR_NODST_0(name, vir_inst, op)                                 \
+static inline struct qinst *                                            \
+vir_##name(struct v3d_compile *c)                                       \
+{                                                                       \
+        return vir_emit_nondef(c, vir_inst(op, c->undef,                \
+                                           c->undef, c->undef));        \
+}
+
 #define VIR_NODST_1(name, vir_inst, op)                                               \
 static inline struct qinst *                                            \
 vir_##name(struct v3d_compile *c, struct qreg a)                        \
@@ -769,6 +804,7 @@ vir_##name(struct v3d_compile *c, struct qreg a, struct qreg b)         \
 #define VIR_M_NODST_2(name) VIR_NODST_2(name, vir_mul_inst, V3D_QPU_M_##name)
 #define VIR_A_NODST_1(name) VIR_NODST_1(name, vir_add_inst, V3D_QPU_A_##name)
 #define VIR_M_NODST_1(name) VIR_NODST_1(name, vir_mul_inst, V3D_QPU_M_##name)
+#define VIR_A_NODST_0(name) VIR_NODST_0(name, vir_add_inst, V3D_QPU_A_##name)
 
 VIR_A_ALU2(FADD)
 VIR_A_ALU2(VFPACK)
@@ -791,6 +827,7 @@ VIR_A_ALU2(OR)
 VIR_A_ALU2(XOR)
 VIR_A_ALU2(VADD)
 VIR_A_ALU2(VSUB)
+VIR_A_ALU2(STVPMV)
 VIR_A_ALU1(NOT)
 VIR_A_ALU1(NEG)
 VIR_A_ALU1(FLAPUSH)
@@ -800,6 +837,8 @@ VIR_A_ALU1(SETMSF)
 VIR_A_ALU1(SETREVF)
 VIR_A_ALU1(TIDX)
 VIR_A_ALU1(EIDX)
+VIR_A_ALU1(LDVPMV_IN)
+VIR_A_ALU1(LDVPMV_OUT)
 
 VIR_A_ALU0(FXCD)
 VIR_A_ALU0(XCD)
@@ -808,6 +847,7 @@ VIR_A_ALU0(YCD)
 VIR_A_ALU0(MSF)
 VIR_A_ALU0(REVF)
 VIR_A_NODST_1(VPMSETUP)
+VIR_A_NODST_0(VPMWT)
 VIR_A_ALU2(FCMP)
 VIR_A_ALU2(VFMAX)
 
@@ -854,18 +894,28 @@ vir_SEL(struct v3d_compile *c, enum v3d_qpu_cond cond,
         return t;
 }
 
-static inline void
-vir_VPM_WRITE(struct v3d_compile *c, struct qreg val)
-{
-        vir_MOV_dest(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_VPM), val);
-}
-
 static inline struct qinst *
 vir_NOP(struct v3d_compile *c)
 {
         return vir_emit_nondef(c, vir_add_inst(V3D_QPU_A_NOP,
                                                c->undef, c->undef, c->undef));
 }
+
+static inline struct qreg
+vir_LDTMU(struct v3d_compile *c)
+{
+        if (c->devinfo->ver >= 41) {
+                struct qinst *ldtmu = vir_add_inst(V3D_QPU_A_NOP, c->undef,
+                                                   c->undef, c->undef);
+                ldtmu->qpu.sig.ldtmu = true;
+
+                return vir_emit_def(c, ldtmu);
+        } else {
+                vir_NOP(c)->qpu.sig.ldtmu = true;
+                return vir_MOV(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_R4));
+        }
+}
+
 /*
 static inline struct qreg
 vir_LOAD_IMM(struct v3d_compile *c, uint32_t val)

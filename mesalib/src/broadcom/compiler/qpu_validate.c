@@ -39,6 +39,10 @@ struct v3d_qpu_validate_state {
         const struct v3d_qpu_instr *last;
         int ip;
         int last_sfu_write;
+        int last_branch_ip;
+        int last_thrsw_ip;
+        bool last_thrsw_found;
+        int thrsw_count;
 };
 
 static void
@@ -60,6 +64,18 @@ fail_instr(struct v3d_qpu_validate_state *state, const char *msg)
 
         fprintf(stderr, "\n");
         abort();
+}
+
+static bool
+in_branch_delay_slots(struct v3d_qpu_validate_state *state)
+{
+        return (state->ip - state->last_branch_ip) < 3;
+}
+
+static bool
+in_thrsw_delay_slots(struct v3d_qpu_validate_state *state)
+{
+        return (state->ip - state->last_thrsw_ip) < 3;
 }
 
 static bool
@@ -85,6 +101,7 @@ qpu_magic_waddr_matches(const struct v3d_qpu_instr *inst,
 static void
 qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
 {
+        const struct v3d_device_info *devinfo = state->c->devinfo;
         const struct v3d_qpu_instr *inst = &qinst->qpu;
 
         if (inst->type != V3D_QPU_INSTR_TYPE_ALU)
@@ -94,7 +111,8 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
          * r5 one instruction later, which is illegal to have
          * together.
          */
-        if (state->last && state->last->sig.ldvary && inst->sig.ldunif) {
+        if (state->last && state->last->sig.ldvary &&
+            (inst->sig.ldunif || inst->sig.ldunifa)) {
                 fail_instr(state, "LDUNIF after a LDVARY");
         }
 
@@ -134,6 +152,19 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
                 }
         }
 
+        if (in_thrsw_delay_slots(state)) {
+                /* There's no way you want to start SFU during the THRSW delay
+                 * slots, since the result would land in the other thread.
+                 */
+                if (sfu_writes) {
+                        fail_instr(state,
+                                   "SFU write started during THRSW delay slots ");
+                }
+
+                if (inst->sig.ldvary)
+                        fail_instr(state, "LDVARY during THRSW delay slots");
+        }
+
         (void)qpu_magic_waddr_matches; /* XXX */
 
         /* SFU r4 results come back two instructions later.  No doing
@@ -143,7 +174,7 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
                 if (v3d_qpu_uses_mux(inst, V3D_QPU_MUX_R4))
                         fail_instr(state, "R4 read too soon after SFU");
 
-                if (v3d_qpu_writes_r4(inst))
+                if (v3d_qpu_writes_r4(devinfo, inst))
                         fail_instr(state, "R4 write too soon after SFU");
 
                 if (sfu_writes)
@@ -168,6 +199,35 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
 
         if (sfu_writes)
                 state->last_sfu_write = state->ip;
+
+        if (inst->sig.thrsw) {
+                if (in_branch_delay_slots(state))
+                        fail_instr(state, "THRSW in a branch delay slot.");
+
+                if (state->last_thrsw_ip == state->ip - 1) {
+                        /* If it's the second THRSW in a row, then it's just a
+                         * last-thrsw signal.
+                         */
+                        if (state->last_thrsw_found)
+                                fail_instr(state, "Two last-THRSW signals");
+                        state->last_thrsw_found = true;
+                } else {
+                        if (in_thrsw_delay_slots(state)) {
+                                fail_instr(state,
+                                           "THRSW too close to another THRSW.");
+                        }
+                        state->thrsw_count++;
+                        state->last_thrsw_ip = state->ip;
+                }
+        }
+
+        if (inst->type == V3D_QPU_INSTR_TYPE_BRANCH) {
+                if (in_branch_delay_slots(state))
+                        fail_instr(state, "branch in a branch delay slot.");
+                if (in_thrsw_delay_slots(state))
+                        fail_instr(state, "branch in a THRSW delay slot.");
+                state->last_branch_ip = state->ip;
+        }
 }
 
 static void
@@ -199,10 +259,22 @@ qpu_validate(struct v3d_compile *c)
         struct v3d_qpu_validate_state state = {
                 .c = c,
                 .last_sfu_write = -10,
+                .last_thrsw_ip = -10,
+                .last_branch_ip = -10,
                 .ip = 0,
         };
 
         vir_for_each_block(block, c) {
                 qpu_validate_block(&state, block);
+        }
+
+        if (state.thrsw_count > 1 && !state.last_thrsw_found) {
+                fail_instr(&state,
+                           "thread switch found without last-THRSW in program");
+        }
+
+        if (state.thrsw_count == 0 ||
+            (state.last_thrsw_found && state.thrsw_count == 1)) {
+                fail_instr(&state, "No program-end THRSW found");
         }
 }

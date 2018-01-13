@@ -189,12 +189,6 @@ v3d_generate_code_block(struct v3d_compile *c,
 
                                 src[i] = qpu_acc(5);
                                 break;
-                        case QFILE_VARY:
-                                temp = new_qpu_nop_before(qinst);
-                                temp->qpu.sig.ldvary = true;
-
-                                src[i] = qpu_acc(3);
-                                break;
                         case QFILE_SMALL_IMM:
                                 abort(); /* XXX */
 #if 0
@@ -255,7 +249,6 @@ v3d_generate_code_block(struct v3d_compile *c,
                         dst = qpu_magic(V3D_QPU_WADDR_TLBU);
                         break;
 
-                case QFILE_VARY:
                 case QFILE_UNIF:
                 case QFILE_SMALL_IMM:
                 case QFILE_LOAD_IMM:
@@ -264,7 +257,14 @@ v3d_generate_code_block(struct v3d_compile *c,
                 }
 
                 if (qinst->qpu.type == V3D_QPU_INSTR_TYPE_ALU) {
-                        if (qinst->qpu.alu.add.op != V3D_QPU_A_NOP) {
+                        if (v3d_qpu_sig_writes_address(c->devinfo,
+                                                       &qinst->qpu.sig)) {
+                                assert(qinst->qpu.alu.add.op == V3D_QPU_A_NOP);
+                                assert(qinst->qpu.alu.mul.op == V3D_QPU_M_NOP);
+
+                                qinst->qpu.sig_addr = dst.index;
+                                qinst->qpu.sig_magic = dst.magic;
+                        } else if (qinst->qpu.alu.add.op != V3D_QPU_A_NOP) {
                                 assert(qinst->qpu.alu.mul.op == V3D_QPU_M_NOP);
                                 if (nsrc >= 1) {
                                         set_src(&qinst->qpu,
@@ -312,12 +312,8 @@ v3d_dump_qpu(struct v3d_compile *c)
 }
 
 void
-v3d_vir_to_qpu(struct v3d_compile *c)
+v3d_vir_to_qpu(struct v3d_compile *c, struct qpu_reg *temp_registers)
 {
-        struct qpu_reg *temp_registers = v3d_register_allocate(c);
-        struct qblock *end_block = list_last_entry(&c->blocks,
-                                                   struct qblock, link);
-
         /* Reset the uniform count to how many will be actually loaded by the
          * generated QPU code.
          */
@@ -325,10 +321,6 @@ v3d_vir_to_qpu(struct v3d_compile *c)
 
         vir_for_each_block(block, c)
                 v3d_generate_code_block(c, block, temp_registers);
-
-        struct qinst *thrsw = vir_nop();
-        list_addtail(&thrsw->link, &end_block->instructions);
-        thrsw->qpu.sig.thrsw = true;
 
         uint32_t cycles = v3d_qpu_schedule_instructions(c);
 

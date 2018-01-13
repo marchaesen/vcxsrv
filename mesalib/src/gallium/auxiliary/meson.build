@@ -490,14 +490,16 @@ u_format_table_c = custom_target(
 
 libgallium = static_library(
   'gallium',
-  [files_libgallium, u_indices_gen_c, u_unfilled_gen_c, u_format_table_c,
-   nir_opcodes_h, nir_builder_opcodes_h],
+  [files_libgallium, u_indices_gen_c, u_unfilled_gen_c, u_format_table_c],
   include_directories : [
     inc_loader, inc_gallium, inc_src, inc_include, include_directories('util')
   ],
   c_args : [c_vis_args, c_msvc_compat_args],
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
-  dependencies : [dep_libdrm, dep_llvm, dep_unwind, dep_dl, dep_m, dep_thread],
+  dependencies : [
+    dep_libdrm, dep_llvm, dep_unwind, dep_dl, dep_m, dep_thread, dep_lmsensors,
+    idep_nir_headers,
+  ],
   build_by_default : false,
 )
 

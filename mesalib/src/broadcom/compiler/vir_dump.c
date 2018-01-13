@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "broadcom/common/v3d_device_info.h"
 #include "v3d_compiler.h"
 
 static void
@@ -28,7 +29,6 @@ vir_print_reg(struct v3d_compile *c, struct qreg reg)
 {
         static const char *files[] = {
                 [QFILE_TEMP] = "t",
-                [QFILE_VARY] = "v",
                 [QFILE_UNIF] = "u",
                 [QFILE_TLB] = "tlb",
                 [QFILE_TLBU] = "tlbu",
@@ -146,20 +146,60 @@ vir_print_reg(struct v3d_compile *c, struct qreg reg)
 }
 
 static void
+vir_dump_sig_addr(const struct v3d_device_info *devinfo,
+                  const struct v3d_qpu_instr *instr)
+{
+        if (devinfo->ver < 41)
+                return;
+
+        if (!instr->sig_magic)
+                fprintf(stderr, ".rf%d", instr->sig_addr);
+        else {
+                const char *name = v3d_qpu_magic_waddr_name(instr->sig_addr);
+                if (name)
+                        fprintf(stderr, ".%s", name);
+                else
+                        fprintf(stderr, ".UNKNOWN%d", instr->sig_addr);
+        }
+}
+
+static void
 vir_dump_sig(struct v3d_compile *c, struct qinst *inst)
 {
         struct v3d_qpu_sig *sig = &inst->qpu.sig;
 
         if (sig->thrsw)
                 fprintf(stderr, "; thrsw");
-        if (sig->ldvary)
+        if (sig->ldvary) {
                 fprintf(stderr, "; ldvary");
+                vir_dump_sig_addr(c->devinfo, &inst->qpu);
+        }
         if (sig->ldvpm)
                 fprintf(stderr, "; ldvpm");
-        if (sig->ldtmu)
+        if (sig->ldtmu) {
                 fprintf(stderr, "; ldtmu");
+                vir_dump_sig_addr(c->devinfo, &inst->qpu);
+        }
+        if (sig->ldtlb) {
+                fprintf(stderr, "; ldtlb");
+                vir_dump_sig_addr(c->devinfo, &inst->qpu);
+        }
+        if (sig->ldtlbu) {
+                fprintf(stderr, "; ldtlbu");
+                vir_dump_sig_addr(c->devinfo, &inst->qpu);
+        }
         if (sig->ldunif)
                 fprintf(stderr, "; ldunif");
+        if (sig->ldunifrf) {
+                fprintf(stderr, "; ldunifrf");
+                vir_dump_sig_addr(c->devinfo, &inst->qpu);
+        }
+        if (sig->ldunifa)
+                fprintf(stderr, "; ldunifa");
+        if (sig->ldunifarf) {
+                fprintf(stderr, "; ldunifarf");
+                vir_dump_sig_addr(c->devinfo, &inst->qpu);
+        }
         if (sig->wrtmuc)
                 fprintf(stderr, "; wrtmuc");
 }

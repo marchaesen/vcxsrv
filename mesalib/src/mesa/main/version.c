@@ -352,6 +352,7 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->ARB_transform_feedback_instanced);
    const bool ver_4_3 = (ver_4_2 &&
                          consts->GLSLVersion >= 430 &&
+                         consts->Program[MESA_SHADER_VERTEX].MaxUniformBlocks >= 14 &&
                          extensions->ARB_ES3_compatibility &&
                          extensions->ARB_arrays_of_arrays &&
                          extensions->ARB_compute_shader &&

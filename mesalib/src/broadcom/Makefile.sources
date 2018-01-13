@@ -1,12 +1,14 @@
 BROADCOM_GENXML_GENERATED_FILES = \
 	cle/v3d_packet_v21_pack.h \
 	cle/v3d_packet_v33_pack.h \
+	cle/v3d_packet_v41_pack.h \
 	cle/v3d_xml.h \
 	$()
 
 BROADCOM_GENXML_XML_FILES = \
 	cle/v3d_packet_v21.xml \
 	cle/v3d_packet_v33.xml \
+	cle/v3d_packet_v41.xml \
 	$()
 
 BROADCOM_FILES = \
@@ -27,6 +29,9 @@ BROADCOM_FILES = \
 	compiler/vir_to_qpu.c \
 	compiler/qpu_schedule.c \
 	compiler/qpu_validate.c \
+	compiler/v3d33_tex.c \
+	compiler/v3d33_vpm_setup.c \
+	compiler/v3d40_tex.c \
 	compiler/v3d_compiler.h \
 	compiler/v3d_nir_lower_io.c \
 	compiler/v3d_nir_lower_txf_ms.c \
@@ -35,6 +40,10 @@ BROADCOM_FILES = \
 	qpu/qpu_instr.c \
 	qpu/qpu_instr.h \
 	qpu/qpu_pack.c \
+	$()
+
+BROADCOM_PER_VERSION_SOURCES = \
+	clif/v3dx_dump.c \
 	$()
 
 BROADCOM_DECODER_FILES = \

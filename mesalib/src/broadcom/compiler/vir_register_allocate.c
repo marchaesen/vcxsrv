@@ -23,6 +23,7 @@
 
 #include "util/ralloc.h"
 #include "util/register_allocate.h"
+#include "common/v3d_device_info.h"
 #include "v3d_compiler.h"
 
 #define QPU_R(i) { .magic = false, .index = i }
@@ -35,27 +36,33 @@
 bool
 vir_init_reg_sets(struct v3d_compiler *compiler)
 {
+        /* Allocate up to 3 regfile classes, for the ways the physical
+         * register file can be divided up for fragment shader threading.
+         */
+        int max_thread_index = (compiler->devinfo->ver >= 40 ? 2 : 3);
+
         compiler->regs = ra_alloc_reg_set(compiler, PHYS_INDEX + PHYS_COUNT,
                                           true);
         if (!compiler->regs)
                 return false;
 
-        /* Allocate 3 regfile classes, for the ways the physical register file
-         * can be divided up for fragment shader threading.
-         */
-        for (int threads = 0; threads < 3; threads++) {
-                compiler->reg_class[threads] =
+        for (int threads = 0; threads < max_thread_index; threads++) {
+                compiler->reg_class_phys_or_acc[threads] =
+                        ra_alloc_reg_class(compiler->regs);
+                compiler->reg_class_phys[threads] =
                         ra_alloc_reg_class(compiler->regs);
 
                 for (int i = PHYS_INDEX;
                      i < PHYS_INDEX + (PHYS_COUNT >> threads); i++) {
                         ra_class_add_reg(compiler->regs,
-                                         compiler->reg_class[threads], i);
+                                         compiler->reg_class_phys_or_acc[threads], i);
+                        ra_class_add_reg(compiler->regs,
+                                         compiler->reg_class_phys[threads], i);
                 }
 
                 for (int i = ACC_INDEX + 0; i < ACC_INDEX + ACC_COUNT; i++) {
                         ra_class_add_reg(compiler->regs,
-                                         compiler->reg_class[threads], i);
+                                         compiler->reg_class_phys_or_acc[threads], i);
                 }
         }
 
@@ -101,6 +108,16 @@ v3d_register_allocate(struct v3d_compile *c)
         struct ra_graph *g = ra_alloc_interference_graph(c->compiler->regs,
                                                          c->num_temps +
                                                          ARRAY_SIZE(acc_nodes));
+        /* Convert 1, 2, 4 threads to 0, 1, 2 index.
+         *
+         * V3D 4.x has double the physical register space, so 64 physical regs
+         * are available at both 1x and 2x threading, and 4x has 32.
+         */
+        int thread_index = ffs(c->threads) - 1;
+        if (c->devinfo->ver >= 40) {
+                if (thread_index >= 1)
+                        thread_index--;
+        }
 
         /* Make some fixed nodes for the accumulators, which we will need to
          * interfere with when ops have implied r3/r4 writes or for the thread
@@ -112,9 +129,6 @@ v3d_register_allocate(struct v3d_compile *c)
                 acc_nodes[i] = c->num_temps + i;
                 ra_set_node_reg(g, acc_nodes[i], ACC_INDEX + i);
         }
-
-        /* Compute the live ranges so we can figure out interference. */
-        vir_calculate_live_intervals(c);
 
         for (uint32_t i = 0; i < c->num_temps; i++) {
                 map[i].temp = i;
@@ -139,7 +153,7 @@ v3d_register_allocate(struct v3d_compile *c)
                  * result to a temp), nothing else can be stored in r3/r4 across
                  * it.
                  */
-                if (vir_writes_r3(inst)) {
+                if (vir_writes_r3(c->devinfo, inst)) {
                         for (int i = 0; i < c->num_temps; i++) {
                                 if (c->temp_start[i] < ip &&
                                     c->temp_end[i] > ip) {
@@ -149,7 +163,7 @@ v3d_register_allocate(struct v3d_compile *c)
                                 }
                         }
                 }
-                if (vir_writes_r4(inst)) {
+                if (vir_writes_r4(c->devinfo, inst)) {
                         for (int i = 0; i < c->num_temps; i++) {
                                 if (c->temp_start[i] < ip &&
                                     c->temp_end[i] > ip) {
@@ -157,6 +171,27 @@ v3d_register_allocate(struct v3d_compile *c)
                                                                  temp_to_node[i],
                                                                  acc_nodes[4]);
                                 }
+                        }
+                }
+
+                if (inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU) {
+                        switch (inst->qpu.alu.add.op) {
+                        case V3D_QPU_A_LDVPMV_IN:
+                        case V3D_QPU_A_LDVPMV_OUT:
+                        case V3D_QPU_A_LDVPMD_IN:
+                        case V3D_QPU_A_LDVPMD_OUT:
+                        case V3D_QPU_A_LDVPMP:
+                        case V3D_QPU_A_LDVPMG_IN:
+                        case V3D_QPU_A_LDVPMG_OUT:
+                                /* LDVPMs only store to temps (the MA flag
+                                 * decides whether the LDVPM is in or out)
+                                 */
+                                assert(inst->dst.file == QFILE_TEMP);
+                                class_bits[inst->dst.index] &= CLASS_BIT_PHYS;
+                                break;
+
+                        default:
+                                break;
                         }
                 }
 
@@ -179,30 +214,31 @@ v3d_register_allocate(struct v3d_compile *c)
                         }
                 }
 
-#if 0
-                switch (inst->op) {
-                case QOP_THRSW:
+                if (inst->qpu.sig.thrsw) {
                         /* All accumulators are invalidated across a thread
                          * switch.
                          */
                         for (int i = 0; i < c->num_temps; i++) {
                                 if (c->temp_start[i] < ip && c->temp_end[i] > ip)
-                                        class_bits[i] &= ~(CLASS_BIT_R0_R3 |
-                                                           CLASS_BIT_R4);
+                                        class_bits[i] &= CLASS_BIT_PHYS;
                         }
-                        break;
-
-                default:
-                        break;
                 }
-#endif
 
                 ip++;
         }
 
         for (uint32_t i = 0; i < c->num_temps; i++) {
-                ra_set_node_class(g, temp_to_node[i],
-                                  c->compiler->reg_class[c->fs_threaded]);
+                if (class_bits[i] == CLASS_BIT_PHYS) {
+                        ra_set_node_class(g, temp_to_node[i],
+                                          c->compiler->reg_class_phys[thread_index]);
+                } else {
+                        assert(class_bits[i] == (CLASS_BIT_PHYS |
+                                                 CLASS_BIT_R0_R2 |
+                                                 CLASS_BIT_R3 |
+                                                 CLASS_BIT_R4));
+                        ra_set_node_class(g, temp_to_node[i],
+                                          c->compiler->reg_class_phys_or_acc[thread_index]);
+                }
         }
 
         for (uint32_t i = 0; i < c->num_temps; i++) {
@@ -218,12 +254,6 @@ v3d_register_allocate(struct v3d_compile *c)
 
         bool ok = ra_allocate(g);
         if (!ok) {
-                if (!c->fs_threaded) {
-                        fprintf(stderr, "Failed to register allocate:\n");
-                        vir_dump(c);
-                }
-
-                c->failed = true;
                 free(temp_registers);
                 return NULL;
         }

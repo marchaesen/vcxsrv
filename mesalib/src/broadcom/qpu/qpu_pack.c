@@ -48,18 +48,10 @@
 
 #define VC5_QPU_SIG_SHIFT                   53
 #define VC5_QPU_SIG_MASK                    QPU_MASK(57, 53)
-# define VC5_QPU_SIG_THRSW_BIT              0x1
-# define VC5_QPU_SIG_LDUNIF_BIT             0x2
-# define VC5_QPU_SIG_LDTMU_BIT              0x4
-# define VC5_QPU_SIG_LDVARY_BIT             0x8
 
 #define VC5_QPU_COND_SHIFT                  46
 #define VC5_QPU_COND_MASK                   QPU_MASK(52, 46)
-
-#define VC5_QPU_COND_IFA                    0
-#define VC5_QPU_COND_IFB                    1
-#define VC5_QPU_COND_IFNA                   2
-#define VC5_QPU_COND_IFNB                   3
+#define VC5_QPU_COND_SIG_MAGIC_ADDR         (1 << 6)
 
 #define VC5_QPU_MM                          QPU_MASK(45, 45)
 #define VC5_QPU_MA                          QPU_MASK(44, 44)
@@ -113,6 +105,9 @@
 
 #define THRSW .thrsw = true
 #define LDUNIF .ldunif = true
+#define LDUNIFRF .ldunifrf = true
+#define LDUNIFA .ldunifa = true
+#define LDUNIFARF .ldunifarf = true
 #define LDTMU .ldtmu = true
 #define LDVARY .ldvary = true
 #define LDVPM .ldvpm = true
@@ -156,6 +151,67 @@ static const struct v3d_qpu_sig v33_sig_map[] = {
         [31] = { SMIMM,                        },
 };
 
+static const struct v3d_qpu_sig v40_sig_map[] = {
+        /*      MISC    R3      R4      R5 */
+        [0]  = {                               },
+        [1]  = { THRSW,                        },
+        [2]  = {                        LDUNIF },
+        [3]  = { THRSW,                 LDUNIF },
+        [4]  = {                LDTMU,         },
+        [5]  = { THRSW,         LDTMU,         },
+        [6]  = {                LDTMU,  LDUNIF },
+        [7]  = { THRSW,         LDTMU,  LDUNIF },
+        [8]  = {        LDVARY,                },
+        [9]  = { THRSW, LDVARY,                },
+        [10] = {        LDVARY,         LDUNIF },
+        [11] = { THRSW, LDVARY,         LDUNIF },
+        /* 12-13 reserved */
+        [14] = { SMIMM, LDVARY,                },
+        [15] = { SMIMM,                        },
+        [16] = {        LDTLB,                 },
+        [17] = {        LDTLBU,                },
+        [18] = {                        WRTMUC },
+        [19] = { THRSW,                 WRTMUC },
+        [20] = {        LDVARY,         WRTMUC },
+        [21] = { THRSW, LDVARY,         WRTMUC },
+        [22] = { UCB,                          },
+        [23] = { ROT,                          },
+        /* 24-30 reserved */
+        [31] = { SMIMM,         LDTMU,         },
+};
+
+static const struct v3d_qpu_sig v41_sig_map[] = {
+        /*      MISC       phys    R5 */
+        [0]  = {                          },
+        [1]  = { THRSW,                   },
+        [2]  = {                   LDUNIF },
+        [3]  = { THRSW,            LDUNIF },
+        [4]  = {           LDTMU,         },
+        [5]  = { THRSW,    LDTMU,         },
+        [6]  = {           LDTMU,  LDUNIF },
+        [7]  = { THRSW,    LDTMU,  LDUNIF },
+        [8]  = {           LDVARY,        },
+        [9]  = { THRSW,    LDVARY,        },
+        [10] = {           LDVARY, LDUNIF },
+        [11] = { THRSW,    LDVARY, LDUNIF },
+        [12] = { LDUNIFRF                 },
+        [13] = { THRSW,    LDUNIFRF       },
+        [14] = { SMIMM,    LDVARY,        },
+        [15] = { SMIMM,                   },
+        [16] = {           LDTLB,         },
+        [17] = {           LDTLBU,        },
+        [18] = {                          WRTMUC },
+        [19] = { THRSW,                   WRTMUC },
+        [20] = {           LDVARY,        WRTMUC },
+        [21] = { THRSW,    LDVARY,        WRTMUC },
+        [22] = { UCB,                     },
+        [23] = { ROT,                     },
+        /* 24-30 reserved */
+        [24] = {                   LDUNIFA},
+        [25] = { LDUNIFARF                },
+        [31] = { SMIMM,            LDTMU, },
+};
+
 bool
 v3d_qpu_sig_unpack(const struct v3d_device_info *devinfo,
                    uint32_t packed_sig,
@@ -164,7 +220,12 @@ v3d_qpu_sig_unpack(const struct v3d_device_info *devinfo,
         if (packed_sig >= ARRAY_SIZE(v33_sig_map))
                 return false;
 
-        *sig = v33_sig_map[packed_sig];
+        if (devinfo->ver >= 41)
+                *sig = v41_sig_map[packed_sig];
+        else if (devinfo->ver == 40)
+                *sig = v40_sig_map[packed_sig];
+        else
+                *sig = v33_sig_map[packed_sig];
 
         /* Signals with zeroed unpacked contents after element 0 are reserved. */
         return (packed_sig == 0 ||
@@ -178,11 +239,79 @@ v3d_qpu_sig_pack(const struct v3d_device_info *devinfo,
 {
         static const struct v3d_qpu_sig *map;
 
-        map = v33_sig_map;
+        if (devinfo->ver >= 41)
+                map = v41_sig_map;
+        else if (devinfo->ver == 40)
+                map = v40_sig_map;
+        else
+                map = v33_sig_map;
 
         for (int i = 0; i < ARRAY_SIZE(v33_sig_map); i++) {
                 if (memcmp(&map[i], sig, sizeof(*sig)) == 0) {
                         *packed_sig = i;
+                        return true;
+                }
+        }
+
+        return false;
+}
+static inline unsigned
+fui( float f )
+{
+        union {float f; unsigned ui;} fi;
+   fi.f = f;
+   return fi.ui;
+}
+
+static const uint32_t small_immediates[] = {
+        0, 1, 2, 3,
+        4, 5, 6, 7,
+        8, 9, 10, 11,
+        12, 13, 14, 15,
+        -16, -15, -14, -13,
+        -12, -11, -10, -9,
+        -8, -7, -6, -5,
+        -4, -3, -2, -1,
+        0x3b800000, /* 2.0^-8 */
+        0x3c000000, /* 2.0^-7 */
+        0x3c800000, /* 2.0^-6 */
+        0x3d000000, /* 2.0^-5 */
+        0x3d800000, /* 2.0^-4 */
+        0x3e000000, /* 2.0^-3 */
+        0x3e800000, /* 2.0^-2 */
+        0x3f000000, /* 2.0^-1 */
+        0x3f800000, /* 2.0^0 */
+        0x40000000, /* 2.0^1 */
+        0x40800000, /* 2.0^2 */
+        0x41000000, /* 2.0^3 */
+        0x41800000, /* 2.0^4 */
+        0x42000000, /* 2.0^5 */
+        0x42800000, /* 2.0^6 */
+        0x43000000, /* 2.0^7 */
+};
+
+bool
+v3d_qpu_small_imm_unpack(const struct v3d_device_info *devinfo,
+                         uint32_t packed_small_immediate,
+                         uint32_t *small_immediate)
+{
+        if (packed_small_immediate >= ARRAY_SIZE(small_immediates))
+                return false;
+
+        *small_immediate = small_immediates[packed_small_immediate];
+        return true;
+}
+
+bool
+v3d_qpu_small_imm_pack(const struct v3d_device_info *devinfo,
+                       uint32_t value,
+                       uint32_t *packed_small_immediate)
+{
+        STATIC_ASSERT(ARRAY_SIZE(small_immediates) == 48);
+
+        for (int i = 0; i < ARRAY_SIZE(small_immediates); i++) {
+                if (small_immediates[i] == value) {
+                        *packed_small_immediate = i;
                         return true;
                 }
         }
@@ -382,11 +511,18 @@ static const struct opcode_desc add_ops[] = {
 
         { 187, 187, 1 << 2, 1 << 0, V3D_QPU_A_MSF },
         { 187, 187, 1 << 2, 1 << 1, V3D_QPU_A_REVF },
-        { 187, 187, 1 << 2, 1 << 2, V3D_QPU_A_VDWWT },
+        { 187, 187, 1 << 2, 1 << 2, V3D_QPU_A_VDWWT, 33 },
+        { 187, 187, 1 << 2, 1 << 2, V3D_QPU_A_IID, 40 },
+        { 187, 187, 1 << 2, 1 << 3, V3D_QPU_A_SAMPID, 40 },
+        { 187, 187, 1 << 2, 1 << 4, V3D_QPU_A_PATCHID, 40 },
         { 187, 187, 1 << 2, 1 << 5, V3D_QPU_A_TMUWT },
         { 187, 187, 1 << 2, 1 << 6, V3D_QPU_A_VPMWT },
 
-        { 187, 187, 1 << 3, ANYMUX, V3D_QPU_A_VPMSETUP },
+        { 187, 187, 1 << 3, ANYMUX, V3D_QPU_A_VPMSETUP, 33 },
+        { 188, 188, 1 << 0, ANYMUX, V3D_QPU_A_LDVPMV_IN, 40 },
+        { 188, 188, 1 << 1, ANYMUX, V3D_QPU_A_LDVPMD_IN, 40 },
+        { 188, 188, 1 << 2, ANYMUX, V3D_QPU_A_LDVPMP, 40 },
+        { 189, 189, ANYMUX, ANYMUX, V3D_QPU_A_LDVPMG_IN, 40 },
 
         /* FIXME: MORE COMPLICATED */
         /* { 190, 191, ANYMUX, ANYMUX, V3D_QPU_A_VFMOVABSNEGNAB }, */
@@ -694,7 +830,24 @@ v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
         instr->alu.add.a = mux_a;
         instr->alu.add.b = mux_b;
         instr->alu.add.waddr = QPU_GET_FIELD(packed_inst, V3D_QPU_WADDR_A);
-        instr->alu.add.magic_write = packed_inst & VC5_QPU_MA;
+
+        instr->alu.add.magic_write = false;
+        if (packed_inst & VC5_QPU_MA) {
+                switch (instr->alu.add.op) {
+                case V3D_QPU_A_LDVPMV_IN:
+                        instr->alu.add.op = V3D_QPU_A_LDVPMV_OUT;
+                        break;
+                case V3D_QPU_A_LDVPMD_IN:
+                        instr->alu.add.op = V3D_QPU_A_LDVPMD_OUT;
+                        break;
+                case V3D_QPU_A_LDVPMG_IN:
+                        instr->alu.add.op = V3D_QPU_A_LDVPMG_OUT;
+                        break;
+                default:
+                        instr->alu.add.magic_write = true;
+                        break;
+                }
+        }
 
         return true;
 }
@@ -743,6 +896,19 @@ v3d_qpu_mul_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
                 }
 
                 break;
+
+        case V3D_QPU_M_VFMUL:
+                instr->alu.mul.output_pack = V3D_QPU_PACK_NONE;
+
+                if (!v3d_qpu_float16_unpack_unpack(((op & 0x7) - 4) & 7,
+                                                   &instr->alu.mul.a_unpack)) {
+                        return false;
+                }
+
+                instr->alu.mul.b_unpack = V3D_QPU_UNPACK_NONE;
+
+                break;
+
         default:
                 instr->alu.mul.output_pack = V3D_QPU_PACK_NONE;
                 instr->alu.mul.a_unpack = V3D_QPU_UNPACK_NONE;
@@ -788,16 +954,36 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
         if (nsrc < 1)
                 mux_a = ffs(desc->mux_a_mask) - 1;
 
+        bool no_magic_write = false;
+
         switch (instr->alu.add.op) {
         case V3D_QPU_A_STVPMV:
                 waddr = 0;
+                no_magic_write = true;
                 break;
         case V3D_QPU_A_STVPMD:
                 waddr = 1;
+                no_magic_write = true;
                 break;
         case V3D_QPU_A_STVPMP:
                 waddr = 2;
+                no_magic_write = true;
                 break;
+
+        case V3D_QPU_A_LDVPMV_IN:
+        case V3D_QPU_A_LDVPMD_IN:
+        case V3D_QPU_A_LDVPMP:
+        case V3D_QPU_A_LDVPMG_IN:
+                assert(!instr->alu.add.magic_write);
+                break;
+
+        case V3D_QPU_A_LDVPMV_OUT:
+        case V3D_QPU_A_LDVPMD_OUT:
+        case V3D_QPU_A_LDVPMG_OUT:
+                assert(!instr->alu.add.magic_write);
+                *packed_instr |= VC5_QPU_MA;
+                break;
+
         default:
                 break;
         }
@@ -923,7 +1109,7 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
         *packed_instr |= QPU_SET_FIELD(mux_b, VC5_QPU_ADD_B);
         *packed_instr |= QPU_SET_FIELD(opcode, VC5_QPU_OP_ADD);
         *packed_instr |= QPU_SET_FIELD(waddr, V3D_QPU_WADDR_A);
-        if (instr->alu.add.magic_write)
+        if (instr->alu.add.magic_write && !no_magic_write)
                 *packed_instr |= VC5_QPU_MA;
 
         return true;
@@ -1002,6 +1188,27 @@ v3d_qpu_mul_pack(const struct v3d_device_info *devinfo,
                 break;
         }
 
+        case V3D_QPU_M_VFMUL: {
+                uint32_t packed;
+
+                if (instr->alu.mul.output_pack != V3D_QPU_PACK_NONE)
+                        return false;
+
+                if (!v3d_qpu_float16_unpack_pack(instr->alu.mul.a_unpack,
+                                                 &packed)) {
+                        return false;
+                }
+                if (instr->alu.mul.a_unpack == V3D_QPU_UNPACK_SWAP_16)
+                        opcode = 8;
+                else
+                        opcode |= (packed + 4) & 7;
+
+                if (instr->alu.mul.b_unpack != V3D_QPU_UNPACK_NONE)
+                        return false;
+
+                break;
+        }
+
         default:
                 break;
         }
@@ -1029,10 +1236,21 @@ v3d_qpu_instr_unpack_alu(const struct v3d_device_info *devinfo,
                                 &instr->sig))
                 return false;
 
-        if (!v3d_qpu_flags_unpack(devinfo,
-                                  QPU_GET_FIELD(packed_instr, VC5_QPU_COND),
-                                  &instr->flags))
-                return false;
+        uint32_t packed_cond = QPU_GET_FIELD(packed_instr, VC5_QPU_COND);
+        if (v3d_qpu_sig_writes_address(devinfo, &instr->sig)) {
+                instr->sig_addr = packed_cond & ~VC5_QPU_COND_SIG_MAGIC_ADDR;
+                instr->sig_magic = packed_cond & VC5_QPU_COND_SIG_MAGIC_ADDR;
+
+                instr->flags.ac = V3D_QPU_COND_NONE;
+                instr->flags.mc = V3D_QPU_COND_NONE;
+                instr->flags.apf = V3D_QPU_PF_NONE;
+                instr->flags.mpf = V3D_QPU_PF_NONE;
+                instr->flags.auf = V3D_QPU_UF_NONE;
+                instr->flags.muf = V3D_QPU_UF_NONE;
+        } else {
+                if (!v3d_qpu_flags_unpack(devinfo, packed_cond, &instr->flags))
+                        return false;
+        }
 
         instr->raddr_a = QPU_GET_FIELD(packed_instr, VC5_QPU_RADDR_A);
         instr->raddr_b = QPU_GET_FIELD(packed_instr, VC5_QPU_RADDR_B);
@@ -1130,9 +1348,28 @@ v3d_qpu_instr_pack_alu(const struct v3d_device_info *devinfo,
                         return false;
 
                 uint32_t flags;
-                if (!v3d_qpu_flags_pack(devinfo, &instr->flags, &flags))
-                        return false;
+                if (v3d_qpu_sig_writes_address(devinfo, &instr->sig)) {
+                        if (instr->flags.ac != V3D_QPU_COND_NONE ||
+                            instr->flags.mc != V3D_QPU_COND_NONE ||
+                            instr->flags.apf != V3D_QPU_PF_NONE ||
+                            instr->flags.mpf != V3D_QPU_PF_NONE ||
+                            instr->flags.auf != V3D_QPU_UF_NONE ||
+                            instr->flags.muf != V3D_QPU_UF_NONE) {
+                                return false;
+                        }
+
+                        flags = instr->sig_addr;
+                        if (instr->sig_magic)
+                                flags |= VC5_QPU_COND_SIG_MAGIC_ADDR;
+                } else {
+                        if (!v3d_qpu_flags_pack(devinfo, &instr->flags, &flags))
+                                return false;
+                }
+
                 *packed_instr |= QPU_SET_FIELD(flags, VC5_QPU_COND);
+        } else {
+                if (v3d_qpu_sig_writes_address(devinfo, &instr->sig))
+                        return false;
         }
 
         return true;

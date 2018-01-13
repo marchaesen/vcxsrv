@@ -25,64 +25,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include "clif_dump.h"
+#include "clif_private.h"
 #include "util/list.h"
 #include "util/ralloc.h"
 
 #include "broadcom/cle/v3d_decoder.h"
 
-#define __gen_user_data void
-#define __gen_address_type uint32_t
-#define __gen_address_offset(reloc) (*reloc)
-#define __gen_emit_reloc(cl, reloc)
-#define __gen_unpack_address(cl, s, e) (__gen_unpack_uint(cl, s, e) << (31 - (e - s)))
-
-enum reloc_worklist_type {
-        reloc_gl_shader_state,
-        reloc_generic_tile_list,
-};
-
-struct reloc_worklist_entry {
-        struct list_head link;
-
-        enum reloc_worklist_type type;
-        uint32_t addr;
-
-        union {
-                struct {
-                        uint32_t num_attrs;
-                } shader_state;
-                struct {
-                        uint32_t end;
-                } generic_tile_list;
-        };
-};
-
-struct clif_dump {
-        const struct v3d_device_info *devinfo;
-        bool (*lookup_vaddr)(void *data, uint32_t addr, void **vaddr);
-        FILE *out;
-        /* Opaque data from the caller that is passed to the callbacks. */
-        void *data;
-
-        struct v3d_spec *spec;
-
-        /* List of struct reloc_worklist_entry */
-        struct list_head worklist;
-};
-
-static void
-out(struct clif_dump *clif, const char *fmt, ...)
-{
-        va_list args;
-
-        va_start(args, fmt);
-        vfprintf(clif->out, fmt, args);
-        va_end(args);
-}
-
-#include "broadcom/cle/v3d_packet_v33_pack.h"
-
-static struct reloc_worklist_entry *
+struct reloc_worklist_entry *
 clif_dump_add_address_to_worklist(struct clif_dump *clif,
                                   enum reloc_worklist_type type,
                                   uint32_t addr)
@@ -132,106 +81,10 @@ static bool
 clif_dump_packet(struct clif_dump *clif, uint32_t offset, const uint8_t *cl,
                  uint32_t *size)
 {
-        struct v3d_group *inst = v3d_spec_find_instruction(clif->spec, cl);
-        if (!inst) {
-                out(clif, "0x%08x: Unknown packet %d!\n", offset, *cl);
-                return false;
-        }
-
-        *size = v3d_group_get_length(inst);
-
-        out(clif, "%s\n", v3d_group_get_name(inst));
-        v3d_print_group(clif->out, inst, 0, cl, "");
-
-        switch (*cl) {
-        case V3D33_GL_SHADER_STATE_opcode: {
-                struct V3D33_GL_SHADER_STATE values;
-                V3D33_GL_SHADER_STATE_unpack(cl, &values);
-
-                struct reloc_worklist_entry *reloc =
-                        clif_dump_add_address_to_worklist(clif,
-                                                          reloc_gl_shader_state,
-                                                          values.address);
-                if (reloc) {
-                        reloc->shader_state.num_attrs =
-                                values.number_of_attribute_arrays;
-                }
-                return true;
-        }
-
-        case V3D33_STORE_MULTI_SAMPLE_RESOLVED_TILE_COLOR_BUFFER_EXTENDED_opcode: {
-                struct V3D33_STORE_MULTI_SAMPLE_RESOLVED_TILE_COLOR_BUFFER_EXTENDED values;
-                V3D33_STORE_MULTI_SAMPLE_RESOLVED_TILE_COLOR_BUFFER_EXTENDED_unpack(cl, &values);
-
-                if (values.last_tile_of_frame)
-                        return false;
-                break;
-        }
-
-        case V3D33_TRANSFORM_FEEDBACK_ENABLE_opcode: {
-                struct V3D33_TRANSFORM_FEEDBACK_ENABLE values;
-                V3D33_TRANSFORM_FEEDBACK_ENABLE_unpack(cl, &values);
-                struct v3d_group *spec = v3d_spec_find_struct(clif->spec,
-                                                              "Transform Feedback Output Data Spec");
-                struct v3d_group *addr = v3d_spec_find_struct(clif->spec,
-                                                              "Transform Feedback Output Address");
-                assert(spec);
-                assert(addr);
-
-                cl += *size;
-
-                for (int i = 0; i < values.number_of_16_bit_output_data_specs_following; i++) {
-                        v3d_print_group(clif->out, spec, 0, cl, "");
-                        cl += v3d_group_get_length(spec);
-                        *size += v3d_group_get_length(spec);
-                }
-
-                for (int i = 0; i < values.number_of_32_bit_output_buffer_address_following; i++) {
-                        v3d_print_group(clif->out, addr, 0, cl, "");
-                        cl += v3d_group_get_length(addr);
-                        *size += v3d_group_get_length(addr);
-                }
-                break;
-        }
-
-        case V3D33_START_ADDRESS_OF_GENERIC_TILE_LIST_opcode: {
-                struct V3D33_START_ADDRESS_OF_GENERIC_TILE_LIST values;
-                V3D33_START_ADDRESS_OF_GENERIC_TILE_LIST_unpack(cl, &values);
-                struct reloc_worklist_entry *reloc =
-                        clif_dump_add_address_to_worklist(clif,
-                                                          reloc_generic_tile_list,
-                                                          values.start);
-                reloc->generic_tile_list.end = values.end;
-                break;
-        }
-
-        case V3D33_HALT_opcode:
-                return false;
-        }
-
-        return true;
-}
-
-static void
-clif_dump_gl_shader_state_record(struct clif_dump *clif,
-                                 struct reloc_worklist_entry *reloc, void *vaddr)
-{
-        struct v3d_group *state = v3d_spec_find_struct(clif->spec,
-                                                       "GL Shader State Record");
-        struct v3d_group *attr = v3d_spec_find_struct(clif->spec,
-                                                      "GL Shader State Attribute Record");
-        assert(state);
-        assert(attr);
-
-        out(clif, "GL Shader State Record at 0x%08x\n", reloc->addr);
-        v3d_print_group(clif->out, state, 0, vaddr, "");
-        vaddr += v3d_group_get_length(state);
-
-        for (int i = 0; i < reloc->shader_state.num_attrs; i++) {
-                out(clif, "  Attribute %d\n", i);
-                v3d_print_group(clif->out, attr, 0, vaddr, "");
-                vaddr += v3d_group_get_length(attr);
-        }
+        if (clif->devinfo->ver >= 41)
+                return v3d41_clif_dump_packet(clif, offset, cl, size);
+        else
+                return v3d33_clif_dump_packet(clif, offset, cl, size);
 }
 
 static void
@@ -283,7 +136,15 @@ clif_process_worklist(struct clif_dump *clif)
 
                 switch (reloc->type) {
                 case reloc_gl_shader_state:
-                        clif_dump_gl_shader_state_record(clif, reloc, vaddr);
+                        if (clif->devinfo->ver >= 41) {
+                                v3d41_clif_dump_gl_shader_state_record(clif,
+                                                                       reloc,
+                                                                       vaddr);
+                        } else {
+                                v3d33_clif_dump_gl_shader_state_record(clif,
+                                                                       reloc,
+                                                                       vaddr);
+                        }
                         break;
                 case reloc_generic_tile_list:
                         clif_dump_cl(clif, reloc->addr,

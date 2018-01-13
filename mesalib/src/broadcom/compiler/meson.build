@@ -30,16 +30,19 @@ libbroadcom_compiler_files = files(
   'vir_to_qpu.c',
   'qpu_schedule.c',
   'qpu_validate.c',
+  'v3d33_tex.c',
+  'v3d40_tex.c',
+  'v3d33_vpm_setup.c',
   'v3d_compiler.h',
   'v3d_nir_lower_io.c',
   'v3d_nir_lower_txf_ms.c',
 )
 
 libbroadcom_compiler = static_library(
-  ['broadcom_compiler', v3d_xml_pack, nir_opcodes_h, nir_builder_opcodes_h],
+  ['broadcom_compiler', v3d_xml_pack],
   libbroadcom_compiler_files,
   include_directories : [inc_common, inc_broadcom],
   c_args : [c_vis_args, no_override_init_args],
-  dependencies : [dep_libdrm, dep_valgrind],
+  dependencies : [dep_libdrm, dep_valgrind, idep_nir_headers],
   build_by_default : false,
 )

@@ -1650,7 +1650,7 @@ nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
 }
 
 uint8_t
-nir_ssa_def_components_read(nir_ssa_def *def)
+nir_ssa_def_components_read(const nir_ssa_def *def)
 {
    uint8_t read_mask = 0;
    nir_foreach_use(use, def) {

@@ -62,7 +62,21 @@ v3d_qpu_disasm_raddr(struct disasm_state *disasm,
         if (mux == V3D_QPU_MUX_A) {
                 append(disasm, "rf%d", instr->raddr_a);
         } else if (mux == V3D_QPU_MUX_B) {
-                append(disasm, "rf%d", instr->raddr_b);
+                if (instr->sig.small_imm) {
+                        uint32_t val;
+                        MAYBE_UNUSED bool ok =
+                                v3d_qpu_small_imm_unpack(disasm->devinfo,
+                                                         instr->raddr_b,
+                                                         &val);
+
+                        if ((int)val >= -16 && (int)val <= 15)
+                                append(disasm, "%d", val);
+                        else
+                                append(disasm, "0x%08x", val);
+                        assert(ok);
+                } else {
+                        append(disasm, "rf%d", instr->raddr_b);
+                }
         } else {
                 append(disasm, "r%d", mux);
         }
@@ -91,7 +105,8 @@ v3d_qpu_disasm_add(struct disasm_state *disasm,
         int num_src = v3d_qpu_add_op_num_src(instr->alu.add.op);
 
         append(disasm, "%s", v3d_qpu_add_op_name(instr->alu.add.op));
-        append(disasm, "%s", v3d_qpu_cond_name(instr->flags.ac));
+        if (!v3d_qpu_sig_writes_address(disasm->devinfo, &instr->sig))
+                append(disasm, "%s", v3d_qpu_cond_name(instr->flags.ac));
         append(disasm, "%s", v3d_qpu_pf_name(instr->flags.apf));
         append(disasm, "%s", v3d_qpu_uf_name(instr->flags.auf));
 
@@ -130,7 +145,8 @@ v3d_qpu_disasm_mul(struct disasm_state *disasm,
         append(disasm, "; ");
 
         append(disasm, "%s", v3d_qpu_mul_op_name(instr->alu.mul.op));
-        append(disasm, "%s", v3d_qpu_cond_name(instr->flags.mc));
+        if (!v3d_qpu_sig_writes_address(disasm->devinfo, &instr->sig))
+                append(disasm, "%s", v3d_qpu_cond_name(instr->flags.mc));
         append(disasm, "%s", v3d_qpu_pf_name(instr->flags.mpf));
         append(disasm, "%s", v3d_qpu_uf_name(instr->flags.muf));
 
@@ -162,6 +178,24 @@ v3d_qpu_disasm_mul(struct disasm_state *disasm,
 }
 
 static void
+v3d_qpu_disasm_sig_addr(struct disasm_state *disasm,
+                        const struct v3d_qpu_instr *instr)
+{
+        if (disasm->devinfo->ver < 41)
+                return;
+
+        if (!instr->sig_magic)
+                append(disasm, ".rf%d", instr->sig_addr);
+        else {
+                const char *name = v3d_qpu_magic_waddr_name(instr->sig_addr);
+                if (name)
+                        append(disasm, ".%s", name);
+                else
+                        append(disasm, ".UNKNOWN%d", instr->sig_addr);
+        }
+}
+
+static void
 v3d_qpu_disasm_sig(struct disasm_state *disasm,
                    const struct v3d_qpu_instr *instr)
 {
@@ -172,6 +206,9 @@ v3d_qpu_disasm_sig(struct disasm_state *disasm,
             !sig->ldvpm &&
             !sig->ldtmu &&
             !sig->ldunif &&
+            !sig->ldunifrf &&
+            !sig->ldunifa &&
+            !sig->ldunifarf &&
             !sig->wrtmuc) {
                 return;
         }
@@ -180,14 +217,36 @@ v3d_qpu_disasm_sig(struct disasm_state *disasm,
 
         if (sig->thrsw)
                 append(disasm, "; thrsw");
-        if (sig->ldvary)
+        if (sig->ldvary) {
                 append(disasm, "; ldvary");
+                v3d_qpu_disasm_sig_addr(disasm, instr);
+        }
         if (sig->ldvpm)
                 append(disasm, "; ldvpm");
-        if (sig->ldtmu)
+        if (sig->ldtmu) {
                 append(disasm, "; ldtmu");
+                v3d_qpu_disasm_sig_addr(disasm, instr);
+        }
+        if (sig->ldtlb) {
+                append(disasm, "; ldtlb");
+                v3d_qpu_disasm_sig_addr(disasm, instr);
+        }
+        if (sig->ldtlbu) {
+                append(disasm, "; ldtlbu");
+                v3d_qpu_disasm_sig_addr(disasm, instr);
+        }
         if (sig->ldunif)
                 append(disasm, "; ldunif");
+        if (sig->ldunifrf) {
+                append(disasm, "; ldunifrf");
+                v3d_qpu_disasm_sig_addr(disasm, instr);
+        }
+        if (sig->ldunifa)
+                append(disasm, "; ldunifa");
+        if (sig->ldunifarf) {
+                append(disasm, "; ldunifarf");
+                v3d_qpu_disasm_sig_addr(disasm, instr);
+        }
         if (sig->wrtmuc)
                 append(disasm, "; wrtmuc");
 }

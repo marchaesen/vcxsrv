@@ -22,8 +22,10 @@ radv_entrypoints = custom_target(
   'radv_entrypoints.[ch]',
   input : ['radv_entrypoints_gen.py', vk_api_xml],
   output : ['radv_entrypoints.h', 'radv_entrypoints.c'],
-  command : [prog_python2, '@INPUT0@', '--xml', '@INPUT1@',
-             '--outdir', meson.current_build_dir()],
+  command : [
+    prog_python2, '@INPUT0@', '--xml', '@INPUT1@', '--outdir',
+    meson.current_build_dir()
+  ],
   depend_files : files('radv_extensions.py'),
 )
 
@@ -31,8 +33,9 @@ radv_extensions_c = custom_target(
   'radv_extensions.c',
   input : ['radv_extensions.py', vk_api_xml],
   output : ['radv_extensions.c'],
-  command : [prog_python2, '@INPUT0@', '--xml', '@INPUT1@',
-             '--out', '@OUTPUT@'],
+  command : [
+    prog_python2, '@INPUT0@', '--xml', '@INPUT1@', '--out', '@OUTPUT@',
+  ],
 )
 
 vk_format_table_c = custom_target(
@@ -111,13 +114,20 @@ endif
 
 libvulkan_radeon = shared_library(
   'vulkan_radeon',
-  [libradv_files, radv_entrypoints, radv_extensions_c, nir_opcodes_h, vk_format_table_c],
-  include_directories : [inc_common, inc_amd, inc_amd_common, inc_compiler,
-                         inc_vulkan_util, inc_vulkan_wsi],
-  link_with : [libamd_common, libamdgpu_addrlib, libvulkan_util,
-               libvulkan_wsi, libnir, libmesa_util],
-  dependencies : [dep_llvm, dep_libdrm_amdgpu, dep_thread, dep_elf, dep_dl,
-                  dep_m, dep_valgrind],
+  [libradv_files, radv_entrypoints, radv_extensions_c, vk_format_table_c],
+  include_directories : [
+    inc_common, inc_amd, inc_amd_common, inc_compiler, inc_vulkan_util,
+    inc_vulkan_wsi,
+  ],
+  link_with : [
+    libamd_common, libamdgpu_addrlib, libvulkan_util, libvulkan_wsi,
+    libmesa_util,
+  ],
+  dependencies : [
+    dep_llvm, dep_libdrm_amdgpu, dep_thread, dep_elf, dep_dl, dep_m,
+    dep_valgrind,
+    idep_nir,
+  ],
   c_args : [c_vis_args, no_override_init_args, radv_flags],
   link_args : [ld_args_bsymbolic, ld_args_gc_sections],
   install : true,
