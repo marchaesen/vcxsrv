@@ -1,5 +1,6 @@
 /*
- * Copyright © 2017 Red Hat
+ * Copyright © 2015 Intel Corporation
+ * Copyright © 2015 Broadcom
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,42 +22,21 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef AC_SHADER_INFO_H
-#define AC_SHADER_INFO_H
+#ifndef V3DX_PACK_H
+#define V3DX_PACK_H
 
-struct nir_shader;
-struct ac_nir_compiler_options;
-
-struct ac_shader_info {
-	bool loads_push_constants;
-	uint32_t desc_set_used_mask;
-	bool needs_multiview_view_index;
-	bool uses_invocation_id;
-	bool uses_prim_id;
-	struct {
-		bool has_vertex_buffers; /* needs vertex buffers and base/start */
-		bool needs_draw_id;
-		bool needs_instance_id;
-	} vs;
-	struct {
-		bool force_persample;
-		bool needs_sample_positions;
-		bool uses_input_attachments;
-	} ps;
-	struct {
-		bool uses_grid_size;
-		bool uses_block_id[3];
-		bool uses_thread_id[3];
-		bool uses_local_invocation_idx;
-	} cs;
-};
-
-/* A NIR pass to gather all the info needed to optimise the allocation patterns
- * for the RADV user sgprs
- */
-void
-ac_nir_shader_info_pass(const struct nir_shader *nir,
-			const struct ac_nir_compiler_options *options,
-			struct ac_shader_info *info);
-
+#ifndef V3D_VERSION
+#  error "The V3D_VERSION macro must be defined"
 #endif
+
+#if (V3D_VERSION == 21)
+#  include "cle/v3d_packet_v21_pack.h"
+#elif (V3D_VERSION == 33)
+#  include "cle/v3d_packet_v33_pack.h"
+#elif (V3D_VERSION == 41)
+#  include "cle/v3d_packet_v41_pack.h"
+#else
+#  error "Need to add a pack header include for this v3d version"
+#endif
+
+#endif /* V3DX_PACK_H */

@@ -2312,6 +2312,9 @@ VkResult radv_BeginCommandBuffer(
 	memset(&cmd_buffer->state, 0, sizeof(cmd_buffer->state));
 	cmd_buffer->state.last_primitive_reset_en = -1;
 	cmd_buffer->state.last_index_type = -1;
+	cmd_buffer->state.last_num_instances = -1;
+	cmd_buffer->state.last_vertex_offset = -1;
+	cmd_buffer->state.last_first_instance = -1;
 	cmd_buffer->usage_flags = pBeginInfo->flags;
 
 	/* setup initial configuration into command buffer */
@@ -2733,6 +2736,10 @@ void radv_CmdBindPipeline(
 		cmd_buffer->state.dirty |= RADV_CMD_DIRTY_PIPELINE;
 		cmd_buffer->push_constant_stages |= pipeline->active_stages;
 
+		/* the new vertex shader might not have the same user regs */
+		cmd_buffer->state.last_first_instance = -1;
+		cmd_buffer->state.last_vertex_offset = -1;
+
 		radv_bind_dynamic_state(cmd_buffer, &pipeline->dynamic_state);
 
 		if (pipeline->graphics.esgs_ring_size > cmd_buffer->esgs_ring_size_needed)
@@ -3003,6 +3010,21 @@ void radv_CmdExecuteCommands(
 				secondary->state.last_ia_multi_vgt_param;
 		}
 
+		if (secondary->state.last_first_instance != -1) {
+			primary->state.last_first_instance =
+				secondary->state.last_first_instance;
+		}
+
+		if (secondary->state.last_num_instances != -1) {
+			primary->state.last_num_instances =
+				secondary->state.last_num_instances;
+		}
+
+		if (secondary->state.last_vertex_offset != -1) {
+			primary->state.last_vertex_offset =
+				secondary->state.last_vertex_offset;
+		}
+
 		if (secondary->state.last_index_type != -1) {
 			primary->state.last_index_type =
 				secondary->state.last_index_type;
@@ -3207,6 +3229,11 @@ radv_cs_emit_indirect_draw_packet(struct radv_cmd_buffer *cmd_buffer,
 	uint32_t base_reg = cmd_buffer->state.pipeline->graphics.vtx_base_sgpr;
 	assert(base_reg);
 
+	/* just reset draw state for vertex data */
+	cmd_buffer->state.last_first_instance = -1;
+	cmd_buffer->state.last_num_instances = -1;
+	cmd_buffer->state.last_vertex_offset = -1;
+
 	if (draw_count == 1 && !count_va && !draw_id_enable) {
 		radeon_emit(cs, PKT3(indexed ? PKT3_DRAW_INDEX_INDIRECT :
 				     PKT3_DRAW_INDIRECT, 3, false));
@@ -3326,15 +3353,25 @@ radv_emit_draw_packets(struct radv_cmd_buffer *cmd_buffer,
 		}
 	} else {
 		assert(state->pipeline->graphics.vtx_base_sgpr);
-		radeon_set_sh_reg_seq(cs, state->pipeline->graphics.vtx_base_sgpr,
-				      state->pipeline->graphics.vtx_emit_num);
-		radeon_emit(cs, info->vertex_offset);
-		radeon_emit(cs, info->first_instance);
-		if (state->pipeline->graphics.vtx_emit_num == 3)
-			radeon_emit(cs, 0);
 
-		radeon_emit(cs, PKT3(PKT3_NUM_INSTANCES, 0, state->predicating));
-		radeon_emit(cs, info->instance_count);
+		if (info->vertex_offset != state->last_vertex_offset ||
+		    info->first_instance != state->last_first_instance) {
+			radeon_set_sh_reg_seq(cs, state->pipeline->graphics.vtx_base_sgpr,
+					      state->pipeline->graphics.vtx_emit_num);
+
+			radeon_emit(cs, info->vertex_offset);
+			radeon_emit(cs, info->first_instance);
+			if (state->pipeline->graphics.vtx_emit_num == 3)
+				radeon_emit(cs, 0);
+			state->last_first_instance = info->first_instance;
+			state->last_vertex_offset = info->vertex_offset;
+		}
+
+		if (state->last_num_instances != info->instance_count) {
+			radeon_emit(cs, PKT3(PKT3_NUM_INSTANCES, 0, state->predicating));
+			radeon_emit(cs, info->instance_count);
+			state->last_num_instances = info->instance_count;
+		}
 
 		if (info->indexed) {
 			int index_size = state->index_type ? 4 : 2;

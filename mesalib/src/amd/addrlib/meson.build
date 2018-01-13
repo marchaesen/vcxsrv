@@ -53,8 +53,11 @@ files_addrlib = files(
 libamdgpu_addrlib = static_library(
   'addrlib',
   files_addrlib,
-  include_directories : include_directories(
-    'core', 'inc/chip/gfx9', 'inc/chip/r800', 'gfx9/chip', 'r800/chip',
-    '../common', '../../'),
+  include_directories : [
+    include_directories(
+      'core', 'inc/chip/gfx9', 'inc/chip/r800', 'gfx9/chip', 'r800/chip',
+    ),
+    inc_amd_common, inc_src,
+  ],
   cpp_args : cpp_vis_args,
 )

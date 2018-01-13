@@ -78,12 +78,13 @@ libglapi_static = static_library(
 )
 
 if not with_shared_glapi and with_tests
-  glapi_static_check_table = executable(
+  test(
     'glapi_static_check_table',
-    'tests/check_table.cpp',
-    link_with : [libglapi_static],
-    dependencies : [idep_gtest],
+    executable(
+      'glapi_static_check_table',
+      'tests/check_table.cpp',
+      link_with : [libglapi_static],
+      dependencies : [idep_gtest],
+    )
   )
-
-  test('glapi_static_check_table', glapi_static_check_table)
 endif

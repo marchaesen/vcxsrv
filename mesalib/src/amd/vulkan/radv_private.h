@@ -913,6 +913,10 @@ struct radv_cmd_state {
 	uint32_t                                      valid_descriptors;
 	uint32_t                                      trace_id;
 	uint32_t                                      last_ia_multi_vgt_param;
+
+	uint32_t last_num_instances;
+	uint32_t last_first_instance;
+	uint32_t last_vertex_offset;
 };
 
 struct radv_cmd_pool {

@@ -21,6 +21,7 @@
 inc_drm_uapi = include_directories('drm-uapi')
 inc_vulkan = include_directories('vulkan')
 inc_d3d9 = include_directories('D3D9')
+inc_gl_internal = include_directories('GL/internal')
 
 if with_gles1
   install_headers(

@@ -20,7 +20,8 @@
 
 v3d_versions = [
   21,
-  33
+  33,
+  41,
 ]
 
 v3d_xml_files = []
@@ -39,14 +40,13 @@ v3d_xml_h = custom_target(
 v3d_xml_pack = []
 foreach f : v3d_xml_files
   _name = '@0@_pack.h'.format(f.split('.')[0])
-  _xml = custom_target(
+  v3d_xml_pack += custom_target(
     _name,
     input : ['gen_pack_header.py', f],
     output : _name,
     command : [prog_python2, '@INPUT@'],
     capture : true,
   )
-  v3d_xml_pack += _xml
 endforeach
 
 libbroadcom_cle = static_library(

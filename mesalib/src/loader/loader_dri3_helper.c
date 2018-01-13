@@ -205,7 +205,6 @@ void
 loader_dri3_set_swap_interval(struct loader_dri3_drawable *draw, int interval)
 {
    draw->swap_interval = interval;
-   dri3_update_num_back(draw);
 }
 
 /** dri3_free_render_buffer
@@ -377,7 +376,6 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
             draw->flipping = false;
             break;
          }
-         dri3_update_num_back(draw);
 
          if (draw->vtable->show_fps)
             draw->vtable->show_fps(draw, ce->ust);
@@ -402,7 +400,8 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
             buf->busy = 0;
 
          if (buf && draw->num_back <= b && b < LOADER_DRI3_MAX_BACK &&
-             draw->cur_blit_source != b) {
+             draw->cur_blit_source != b &&
+             !buf->busy) {
             dri3_free_render_buffer(draw, buf);
             draw->buffers[b] = NULL;
          }
@@ -537,6 +536,7 @@ dri3_find_back(struct loader_dri3_drawable *draw)
    /* Check whether we need to reuse the current back buffer as new back.
     * In that case, wait until it's not busy anymore.
     */
+   dri3_update_num_back(draw);
    num_to_consider = draw->num_back;
    if (!loader_dri3_have_image_blit(draw) && draw->cur_blit_source != -1) {
       num_to_consider = 1;

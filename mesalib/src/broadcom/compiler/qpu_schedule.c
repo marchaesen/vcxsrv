@@ -78,11 +78,13 @@ struct schedule_node_child {
 enum direction { F, R };
 
 struct schedule_state {
+        const struct v3d_device_info *devinfo;
         struct schedule_node *last_r[6];
         struct schedule_node *last_rf[64];
         struct schedule_node *last_sf;
         struct schedule_node *last_vpm_read;
         struct schedule_node *last_tmu_write;
+        struct schedule_node *last_tmu_config;
         struct schedule_node *last_tlb;
         struct schedule_node *last_vpm;
         struct schedule_node *last_unif;
@@ -194,6 +196,16 @@ process_waddr_deps(struct schedule_state *state, struct schedule_node *n,
                 add_write_dep(state, &state->last_rf[waddr], n);
         } else if (v3d_qpu_magic_waddr_is_tmu(waddr)) {
                 add_write_dep(state, &state->last_tmu_write, n);
+                switch (waddr) {
+                case V3D_QPU_WADDR_TMUS:
+                case V3D_QPU_WADDR_TMUSCM:
+                case V3D_QPU_WADDR_TMUSF:
+                case V3D_QPU_WADDR_TMUSLOD:
+                        add_write_dep(state, &state->last_tmu_config, n);
+                        break;
+                default:
+                        break;
+                }
         } else if (v3d_qpu_magic_waddr_is_sfu(waddr)) {
                 /* Handled by v3d_qpu_writes_r4() check. */
         } else {
@@ -265,6 +277,7 @@ process_uf_deps(struct schedule_state *state, struct schedule_node *n,
 static void
 calculate_deps(struct schedule_state *state, struct schedule_node *n)
 {
+        const struct v3d_device_info *devinfo = state->devinfo;
         struct qinst *qinst = n->inst;
         struct v3d_qpu_instr *inst = &qinst->qpu;
 
@@ -306,6 +319,10 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
         case V3D_QPU_A_STVPMD:
         case V3D_QPU_A_STVPMP:
                 add_write_dep(state, &state->last_vpm, n);
+                break;
+
+        case V3D_QPU_A_VPMWT:
+                add_read_dep(state, state->last_vpm, n);
                 break;
 
         case V3D_QPU_A_MSF:
@@ -356,12 +373,16 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
                 process_waddr_deps(state, n, inst->alu.mul.waddr,
                                    inst->alu.mul.magic_write);
         }
+        if (v3d_qpu_sig_writes_address(devinfo, &inst->sig)) {
+                process_waddr_deps(state, n, inst->sig_addr,
+                                   inst->sig_magic);
+        }
 
-        if (v3d_qpu_writes_r3(inst))
+        if (v3d_qpu_writes_r3(devinfo, inst))
                 add_write_dep(state, &state->last_r[3], n);
-        if (v3d_qpu_writes_r4(inst))
+        if (v3d_qpu_writes_r4(devinfo, inst))
                 add_write_dep(state, &state->last_r[4], n);
-        if (v3d_qpu_writes_r5(inst))
+        if (v3d_qpu_writes_r5(devinfo, inst))
                 add_write_dep(state, &state->last_r[5], n);
 
         if (inst->sig.thrsw) {
@@ -378,6 +399,7 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
                 add_write_dep(state, &state->last_tlb, n);
 
                 add_write_dep(state, &state->last_tmu_write, n);
+                add_write_dep(state, &state->last_tmu_config, n);
         }
 
         if (inst->sig.ldtmu) {
@@ -385,6 +407,9 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
                  */
                 add_write_dep(state, &state->last_tmu_write, n);
         }
+
+        if (inst->sig.wrtmuc)
+                add_write_dep(state, &state->last_tmu_config, n);
 
         if (inst->sig.ldtlb | inst->sig.ldtlbu)
                 add_read_dep(state, state->last_tlb, n);
@@ -410,6 +435,7 @@ calculate_forward_deps(struct v3d_compile *c, struct list_head *schedule_list)
         struct schedule_state state;
 
         memset(&state, 0, sizeof(state));
+        state.devinfo = c->devinfo;
         state.dir = F;
 
         list_for_each_entry(struct schedule_node, node, schedule_list, link)
@@ -423,6 +449,7 @@ calculate_reverse_deps(struct v3d_compile *c, struct list_head *schedule_list)
         struct schedule_state state;
 
         memset(&state, 0, sizeof(state));
+        state.devinfo = c->devinfo;
         state.dir = R;
 
         for (node = schedule_list->prev; schedule_list != node; node = node->prev) {
@@ -514,7 +541,8 @@ reads_too_soon_after_write(struct choose_scoreboard *scoreboard,
 }
 
 static bool
-writes_too_soon_after_write(struct choose_scoreboard *scoreboard,
+writes_too_soon_after_write(const struct v3d_device_info *devinfo,
+                            struct choose_scoreboard *scoreboard,
                             struct qinst *qinst)
 {
         const struct v3d_qpu_instr *inst = &qinst->qpu;
@@ -524,7 +552,7 @@ writes_too_soon_after_write(struct choose_scoreboard *scoreboard,
          * occur if a dead SFU computation makes it to scheduling.
          */
         if (scoreboard->tick - scoreboard->last_sfu_write_tick < 2 &&
-            v3d_qpu_writes_r4(inst))
+            v3d_qpu_writes_r4(devinfo, inst))
                 return true;
 
         return false;
@@ -585,15 +613,15 @@ qpu_magic_waddr_is_periph(enum v3d_qpu_waddr waddr)
 static bool
 qpu_accesses_peripheral(const struct v3d_qpu_instr *inst)
 {
+        if (v3d_qpu_uses_vpm(inst))
+                return true;
+
         if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
                 if (inst->alu.add.op != V3D_QPU_A_NOP &&
                     inst->alu.add.magic_write &&
                     qpu_magic_waddr_is_periph(inst->alu.add.waddr)) {
                         return true;
                 }
-
-                if (inst->alu.add.op == V3D_QPU_A_VPMSETUP)
-                        return true;
 
                 if (inst->alu.mul.op != V3D_QPU_M_NOP &&
                     inst->alu.mul.magic_write &&
@@ -605,7 +633,8 @@ qpu_accesses_peripheral(const struct v3d_qpu_instr *inst)
         return (inst->sig.ldvpm ||
                 inst->sig.ldtmu ||
                 inst->sig.ldtlb ||
-                inst->sig.ldtlbu);
+                inst->sig.ldtlbu ||
+                inst->sig.wrtmuc);
 }
 
 static bool
@@ -619,7 +648,11 @@ qpu_merge_inst(const struct v3d_device_info *devinfo,
                 return false;
         }
 
-        /* Can't do more than one peripheral access in an instruction. */
+        /* Can't do more than one peripheral access in an instruction.
+         *
+         * XXX: V3D 4.1 allows TMU read along with a VPM read or write, and
+         * WRTMUC with a TMU magic register write (other than tmuc).
+         */
         if (qpu_accesses_peripheral(a) && qpu_accesses_peripheral(b))
                 return false;
 
@@ -663,6 +696,9 @@ qpu_merge_inst(const struct v3d_device_info *devinfo,
 
         merge.sig.thrsw |= b->sig.thrsw;
         merge.sig.ldunif |= b->sig.ldunif;
+        merge.sig.ldunifrf |= b->sig.ldunifrf;
+        merge.sig.ldunifa |= b->sig.ldunifa;
+        merge.sig.ldunifarf |= b->sig.ldunifarf;
         merge.sig.ldtmu |= b->sig.ldtmu;
         merge.sig.ldvary |= b->sig.ldvary;
         merge.sig.ldvpm |= b->sig.ldvpm;
@@ -672,6 +708,12 @@ qpu_merge_inst(const struct v3d_device_info *devinfo,
         merge.sig.ucb |= b->sig.ucb;
         merge.sig.rotate |= b->sig.rotate;
         merge.sig.wrtmuc |= b->sig.wrtmuc;
+
+        if (v3d_qpu_sig_writes_address(devinfo, &a->sig) &&
+            v3d_qpu_sig_writes_address(devinfo, &b->sig))
+                return false;
+        merge.sig_addr |= b->sig_addr;
+        merge.sig_magic |= b->sig_magic;
 
         uint64_t packed;
         bool ok = v3d_qpu_instr_pack(devinfo, &merge, &packed);
@@ -719,7 +761,7 @@ choose_instruction_to_schedule(const struct v3d_device_info *devinfo,
                 if (reads_too_soon_after_write(scoreboard, n->inst))
                         continue;
 
-                if (writes_too_soon_after_write(scoreboard, n->inst))
+                if (writes_too_soon_after_write(devinfo, scoreboard, n->inst))
                         continue;
 
                 /* "A scoreboard wait must not occur in the first two
@@ -735,7 +777,7 @@ choose_instruction_to_schedule(const struct v3d_device_info *devinfo,
                  * otherwise get scheduled so ldunif and ldvary try to update
                  * r5 in the same tick.
                  */
-                if (inst->sig.ldunif &&
+                if ((inst->sig.ldunif || inst->sig.ldunifa) &&
                     scoreboard->tick == scoreboard->last_ldvary_tick + 1) {
                         continue;
                 }
@@ -985,6 +1027,19 @@ mark_instruction_scheduled(struct list_head *schedule_list,
         }
 }
 
+static void
+insert_scheduled_instruction(struct v3d_compile *c,
+                             struct qblock *block,
+                             struct choose_scoreboard *scoreboard,
+                             struct qinst *inst)
+{
+        list_addtail(&inst->link, &block->instructions);
+
+        update_scoreboard_for_chosen(scoreboard, &inst->qpu);
+        c->qpu_inst_count++;
+        scoreboard->tick++;
+}
+
 static struct qinst *
 vir_nop()
 {
@@ -994,61 +1049,177 @@ vir_nop()
         return qinst;
 }
 
-#if 0
-static struct qinst *
-nop_after(struct qinst *inst)
+static void
+emit_nop(struct v3d_compile *c, struct qblock *block,
+         struct choose_scoreboard *scoreboard)
 {
-        struct qinst *q = vir_nop();
+        insert_scheduled_instruction(c, block, scoreboard, vir_nop());
+}
 
-        list_add(&q->link, &inst->link);
+static bool
+qpu_instruction_valid_in_thrend_slot(struct v3d_compile *c,
+                                     const struct qinst *qinst, int slot)
+{
+        const struct v3d_qpu_instr *inst = &qinst->qpu;
 
-        return q;
+        /* Only TLB Z writes are prohibited in the last slot, but we don't
+         * have those flagged so prohibit all TLB ops for now.
+         */
+        if (slot == 2 && qpu_inst_is_tlb(inst))
+                return false;
+
+        if (slot > 0 && qinst->uniform != ~0)
+                return false;
+
+        if (v3d_qpu_uses_vpm(inst))
+                return false;
+
+        if (inst->sig.ldvary)
+                return false;
+
+        if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
+                /* No writing physical registers at the end. */
+                if (!inst->alu.add.magic_write ||
+                    !inst->alu.mul.magic_write) {
+                        return false;
+                }
+
+                if (c->devinfo->ver < 40 && inst->alu.add.op == V3D_QPU_A_SETMSF)
+                        return false;
+
+                /* RF0-2 might be overwritten during the delay slots by
+                 * fragment shader setup.
+                 */
+                if (inst->raddr_a < 3 &&
+                    (inst->alu.add.a == V3D_QPU_MUX_A ||
+                     inst->alu.add.b == V3D_QPU_MUX_A ||
+                     inst->alu.mul.a == V3D_QPU_MUX_A ||
+                     inst->alu.mul.b == V3D_QPU_MUX_A)) {
+                        return false;
+                }
+
+                if (inst->raddr_b < 3 &&
+                    !inst->sig.small_imm &&
+                    (inst->alu.add.a == V3D_QPU_MUX_B ||
+                     inst->alu.add.b == V3D_QPU_MUX_B ||
+                     inst->alu.mul.a == V3D_QPU_MUX_B ||
+                     inst->alu.mul.b == V3D_QPU_MUX_B)) {
+                        return false;
+                }
+        }
+
+        return true;
+}
+
+static bool
+valid_thrsw_sequence(struct v3d_compile *c,
+                     struct qinst *qinst, int instructions_in_sequence,
+                     bool is_thrend)
+{
+        for (int slot = 0; slot < instructions_in_sequence; slot++) {
+                /* No scheduling SFU when the result would land in the other
+                 * thread.  The simulator complains for safety, though it
+                 * would only occur for dead code in our case.
+                 */
+                if (slot > 0 &&
+                    qinst->qpu.type == V3D_QPU_INSTR_TYPE_ALU &&
+                    (v3d_qpu_magic_waddr_is_sfu(qinst->qpu.alu.add.waddr) ||
+                     v3d_qpu_magic_waddr_is_sfu(qinst->qpu.alu.mul.waddr))) {
+                        return false;
+                }
+
+                if (slot > 0 && qinst->qpu.sig.ldvary)
+                        return false;
+
+                if (is_thrend &&
+                    !qpu_instruction_valid_in_thrend_slot(c, qinst, slot)) {
+                        return false;
+                }
+
+                /* Note that the list is circular, so we can only do this up
+                 * to instructions_in_sequence.
+                 */
+                qinst = (struct qinst *)qinst->link.next;
+        }
+
+        return true;
 }
 
 /**
- * Emits a THRSW/LTHRSW signal in the stream, trying to move it up to pair
- * with another instruction.
+ * Emits a THRSW signal in the stream, trying to move it up to pair with
+ * another instruction.
  */
-static void
+static int
 emit_thrsw(struct v3d_compile *c,
+           struct qblock *block,
            struct choose_scoreboard *scoreboard,
-           const struct v3d_qpu_instr *inst)
+           struct qinst *inst,
+           bool is_thrend)
 {
+        int time = 0;
+
         /* There should be nothing in a thrsw inst being scheduled other than
          * the signal bits.
          */
-        assert(inst->type == V3D_QPU_INSTR_TYPE_ALU);
-        assert(inst->alu.add.op == V3D_QPU_A_NOP);
-        assert(inst->alu.mul.op == V3D_QPU_M_NOP);
+        assert(inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU);
+        assert(inst->qpu.alu.add.op == V3D_QPU_A_NOP);
+        assert(inst->qpu.alu.mul.op == V3D_QPU_M_NOP);
 
-        /* Try to find an earlier scheduled instruction that we can merge the
-         * thrsw into.
-         */
-        int thrsw_ip = c->qpu_inst_count;
-        for (int i = 1; i <= MIN2(c->qpu_inst_count, 3); i++) {
-                uint64_t prev_instr = c->qpu_insts[c->qpu_inst_count - i];
-                uint32_t prev_sig = QPU_GET_FIELD(prev_instr, QPU_SIG);
+        /* Find how far back into previous instructions we can put the THRSW. */
+        int slots_filled = 0;
+        struct qinst *merge_inst = NULL;
+        vir_for_each_inst_rev(prev_inst, block) {
+                struct v3d_qpu_sig sig = prev_inst->qpu.sig;
+                sig.thrsw = true;
+                uint32_t packed_sig;
 
-                if (prev_sig == QPU_SIG_NONE)
-                        thrsw_ip = c->qpu_inst_count - i;
+                if (!v3d_qpu_sig_pack(c->devinfo, &sig, &packed_sig))
+                        break;
+
+                if (!valid_thrsw_sequence(c, prev_inst, slots_filled + 1,
+                                          is_thrend)) {
+                        break;
+                }
+
+                merge_inst = prev_inst;
+                if (++slots_filled == 3)
+                        break;
         }
 
-        if (thrsw_ip != c->qpu_inst_count) {
-                /* Merge the thrsw into the existing instruction. */
-                c->qpu_insts[thrsw_ip] =
-                        QPU_UPDATE_FIELD(c->qpu_insts[thrsw_ip], sig, QPU_SIG);
+        bool needs_free = false;
+        if (merge_inst) {
+                merge_inst->qpu.sig.thrsw = true;
+                needs_free = true;
         } else {
-                qpu_serialize_one_inst(c, inst);
-                update_scoreboard_for_chosen(scoreboard, inst);
+                insert_scheduled_instruction(c, block, scoreboard, inst);
+                time++;
+                slots_filled++;
+                merge_inst = inst;
         }
 
-        /* Fill the delay slots. */
-        while (c->qpu_inst_count < thrsw_ip + 3) {
-                update_scoreboard_for_chosen(scoreboard, v3d_qpu_nop());
-                qpu_serialize_one_inst(c, v3d_qpu_nop());
+        /* Insert any extra delay slot NOPs we need. */
+        for (int i = 0; i < 3 - slots_filled; i++) {
+                emit_nop(c, block, scoreboard);
+                time++;
         }
+
+        /* If we're emitting the last THRSW (other than program end), then
+         * signal that to the HW by emitting two THRSWs in a row.
+         */
+        if (inst->is_last_thrsw) {
+                struct qinst *second_inst =
+                        (struct qinst *)merge_inst->link.next;
+                second_inst->qpu.sig.thrsw = true;
+        }
+
+        /* If we put our THRSW into another instruction, free up the
+         * instruction that didn't end up scheduled into the list.
+         */
+        if (needs_free)
+                free(inst);
+
+        return time;
 }
-#endif
 
 static uint32_t
 schedule_instructions(struct v3d_compile *c,
@@ -1169,40 +1340,24 @@ schedule_instructions(struct v3d_compile *c,
                         free(merge->inst);
                 }
 
-                if (0 && inst->sig.thrsw) {
-                        /* XXX emit_thrsw(c, scoreboard, qinst); */
+                if (inst->sig.thrsw) {
+                        time += emit_thrsw(c, block, scoreboard, qinst, false);
                 } else {
-                        c->qpu_inst_count++;
-                        list_addtail(&qinst->link, &block->instructions);
-                        update_scoreboard_for_chosen(scoreboard, inst);
-                }
+                        insert_scheduled_instruction(c, block,
+                                                     scoreboard, qinst);
 
-                scoreboard->tick++;
-                time++;
-
-                if (inst->type == V3D_QPU_INSTR_TYPE_BRANCH ||
-                    inst->sig.thrsw /* XXX */) {
-                        block->branch_qpu_ip = c->qpu_inst_count - 1;
-                        /* Fill the delay slots.
-                         *
-                         * We should fill these with actual instructions,
-                         * instead, but that will probably need to be done
-                         * after this, once we know what the leading
-                         * instructions of the successors are (so we can
-                         * handle A/B register file write latency)
-                        */
-                        /* XXX: scoreboard */
-                        int slots = (inst->type == V3D_QPU_INSTR_TYPE_BRANCH ?
-                                     3 : 2);
-                        for (int i = 0; i < slots; i++) {
-                                struct qinst *nop = vir_nop();
-                                list_addtail(&nop->link, &block->instructions);
-
-                                update_scoreboard_for_chosen(scoreboard,
-                                                             &nop->qpu);
-                                c->qpu_inst_count++;
-                                scoreboard->tick++;
-                                time++;
+                        if (inst->type == V3D_QPU_INSTR_TYPE_BRANCH) {
+                                block->branch_qpu_ip = c->qpu_inst_count - 1;
+                                /* Fill the delay slots.
+                                 *
+                                 * We should fill these with actual instructions,
+                                 * instead, but that will probably need to be done
+                                 * after this, once we know what the leading
+                                 * instructions of the successors are (so we can
+                                 * handle A/B register file write latency)
+                                 */
+                                for (int i = 0; i < 3; i++)
+                                        emit_nop(c, block, scoreboard);
                         }
                 }
         }
@@ -1310,6 +1465,8 @@ uint32_t
 v3d_qpu_schedule_instructions(struct v3d_compile *c)
 {
         const struct v3d_device_info *devinfo = c->devinfo;
+        struct qblock *end_block = list_last_entry(&c->blocks,
+                                                   struct qblock, link);
 
         /* We reorder the uniforms as we schedule instructions, so save the
          * old data off and replace it.
@@ -1358,6 +1515,11 @@ v3d_qpu_schedule_instructions(struct v3d_compile *c)
 
                 block->end_qpu_ip = c->qpu_inst_count - 1;
         }
+
+        /* Emit the program-end THRSW instruction. */;
+        struct qinst *thrsw = vir_nop();
+        thrsw->qpu.sig.thrsw = true;
+        emit_thrsw(c, end_block, &scoreboard, thrsw, true);
 
         qpu_set_branch_targets(c);
 

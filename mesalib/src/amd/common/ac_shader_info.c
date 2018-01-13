@@ -24,13 +24,15 @@
 #include "ac_shader_info.h"
 #include "ac_nir_to_llvm.h"
 
-static void mark_sampler_desc(nir_variable *var, struct ac_shader_info *info)
+static void mark_sampler_desc(const nir_variable *var,
+			      struct ac_shader_info *info)
 {
 	info->desc_set_used_mask = (1 << var->data.descriptor_set);
 }
 
 static void
-gather_intrinsic_info(nir_intrinsic_instr *instr, struct ac_shader_info *info)
+gather_intrinsic_info(const nir_intrinsic_instr *instr,
+		      struct ac_shader_info *info)
 {
 	switch (instr->intrinsic) {
 	case nir_intrinsic_interp_var_at_sample:
@@ -110,7 +112,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, struct ac_shader_info *info)
 }
 
 static void
-gather_tex_info(nir_tex_instr *instr, struct ac_shader_info *info)
+gather_tex_info(const nir_tex_instr *instr, struct ac_shader_info *info)
 {
 	if (instr->sampler)
 		mark_sampler_desc(instr->sampler->var, info);
@@ -119,7 +121,7 @@ gather_tex_info(nir_tex_instr *instr, struct ac_shader_info *info)
 }
 
 static void
-gather_info_block(nir_block *block, struct ac_shader_info *info)
+gather_info_block(const nir_block *block, struct ac_shader_info *info)
 {
 	nir_foreach_instr(instr, block) {
 		switch (instr->type) {
@@ -136,9 +138,7 @@ gather_info_block(nir_block *block, struct ac_shader_info *info)
 }
 
 static void
-gather_info_input_decl(nir_shader *nir,
-		       const struct ac_nir_compiler_options *options,
-		       nir_variable *var,
+gather_info_input_decl(const nir_shader *nir, const nir_variable *var,
 		       struct ac_shader_info *info)
 {
 	switch (nir->info.stage) {
@@ -151,17 +151,18 @@ gather_info_input_decl(nir_shader *nir,
 }
 
 void
-ac_nir_shader_info_pass(struct nir_shader *nir,
+ac_nir_shader_info_pass(const struct nir_shader *nir,
 			const struct ac_nir_compiler_options *options,
 			struct ac_shader_info *info)
 {
-	struct nir_function *func = (struct nir_function *)exec_list_get_head(&nir->functions);
+	struct nir_function *func =
+		(struct nir_function *)exec_list_get_head_const(&nir->functions);
 
 	if (options->layout->dynamic_offset_count)
 		info->loads_push_constants = true;
 
 	nir_foreach_variable(variable, &nir->inputs)
-		gather_info_input_decl(nir, options, variable, info);
+		gather_info_input_decl(nir, variable, info);
 
 	nir_foreach_block(block, func->impl) {
 		gather_info_block(block, info);

@@ -687,7 +687,6 @@ files_libmesa_common += [
   main_marshal_generated_h,
   main_dispatch_h,
   ir_expression_operation_h,
-  nir_opcodes_h,
   main_remap_helper_h,
   matypes_h,
   sha1_h,
@@ -711,6 +710,7 @@ libmesa_classic = static_library(
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
   include_directories : [inc_common, include_directories('main')],
   link_with : [libglsl, libmesa_sse41],
+  dependencies : idep_nir_headers,
   build_by_default : false,
 )
 
@@ -721,6 +721,7 @@ libmesa_gallium = static_library(
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
   include_directories : [inc_common, include_directories('main')],
   link_with : [libglsl, libmesa_sse41],
+  dependencies : idep_nir_headers,
   build_by_default : false,
 )
 

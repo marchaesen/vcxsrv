@@ -23,91 +23,8 @@
 
 #include <stdlib.h>
 #include "util/macros.h"
+#include "broadcom/common/v3d_device_info.h"
 #include "qpu_instr.h"
-
-#ifndef QPU_MASK
-#define QPU_MASK(high, low) ((((uint64_t)1<<((high)-(low)+1))-1)<<(low))
-/* Using the GNU statement expression extension */
-#define QPU_SET_FIELD(value, field)                                       \
-        ({                                                                \
-                uint64_t fieldval = (uint64_t)(value) << field ## _SHIFT; \
-                assert((fieldval & ~ field ## _MASK) == 0);               \
-                fieldval & field ## _MASK;                                \
-         })
-
-#define QPU_GET_FIELD(word, field) ((uint32_t)(((word)  & field ## _MASK) >> field ## _SHIFT))
-
-#define QPU_UPDATE_FIELD(inst, value, field)                              \
-        (((inst) & ~(field ## _MASK)) | QPU_SET_FIELD(value, field))
-#endif /* QPU_MASK */
-
-#define VC5_QPU_OP_MUL_SHIFT                58
-#define VC5_QPU_OP_MUL_MASK                 QPU_MASK(63, 58)
-
-#define VC5_QPU_SIG_SHIFT                   53
-#define VC5_QPU_SIG_MASK                    QPU_MASK(57, 53)
-# define VC5_QPU_SIG_THRSW_BIT              0x1
-# define VC5_QPU_SIG_LDUNIF_BIT             0x2
-# define VC5_QPU_SIG_LDTMU_BIT              0x4
-# define VC5_QPU_SIG_LDVARY_BIT             0x8
-
-#define VC5_QPU_COND_SHIFT                  46
-#define VC5_QPU_COND_MASK                   QPU_MASK(52, 46)
-
-#define VC5_QPU_COND_IFA                    0
-#define VC5_QPU_COND_IFB                    1
-#define VC5_QPU_COND_IFNA                   2
-#define VC5_QPU_COND_IFNB                   3
-
-#define VC5_QPU_MM                          QPU_MASK(45, 45)
-#define VC5_QPU_MA                          QPU_MASK(44, 44)
-
-#define V3D_QPU_WADDR_M_SHIFT               38
-#define V3D_QPU_WADDR_M_MASK                QPU_MASK(43, 38)
-
-#define VC5_QPU_BRANCH_ADDR_LOW_SHIFT       35
-#define VC5_QPU_BRANCH_ADDR_LOW_MASK        QPU_MASK(55, 35)
-
-#define V3D_QPU_WADDR_A_SHIFT               32
-#define V3D_QPU_WADDR_A_MASK                QPU_MASK(37, 32)
-
-#define VC5_QPU_BRANCH_COND_SHIFT           32
-#define VC5_QPU_BRANCH_COND_MASK            QPU_MASK(34, 32)
-
-#define VC5_QPU_BRANCH_ADDR_HIGH_SHIFT      24
-#define VC5_QPU_BRANCH_ADDR_HIGH_MASK       QPU_MASK(31, 24)
-
-#define VC5_QPU_OP_ADD_SHIFT                24
-#define VC5_QPU_OP_ADD_MASK                 QPU_MASK(31, 24)
-
-#define VC5_QPU_MUL_B_SHIFT                 21
-#define VC5_QPU_MUL_B_MASK                  QPU_MASK(23, 21)
-
-#define VC5_QPU_BRANCH_MSFIGN_SHIFT         21
-#define VC5_QPU_BRANCH_MSFIGN_MASK          QPU_MASK(22, 21)
-
-#define VC5_QPU_MUL_A_SHIFT                 18
-#define VC5_QPU_MUL_A_MASK                  QPU_MASK(20, 18)
-
-#define VC5_QPU_ADD_B_SHIFT                 15
-#define VC5_QPU_ADD_B_MASK                  QPU_MASK(17, 15)
-
-#define VC5_QPU_BRANCH_BDU_SHIFT            15
-#define VC5_QPU_BRANCH_BDU_MASK             QPU_MASK(17, 15)
-
-#define VC5_QPU_BRANCH_UB                   QPU_MASK(14, 14)
-
-#define VC5_QPU_ADD_A_SHIFT                 12
-#define VC5_QPU_ADD_A_MASK                  QPU_MASK(14, 12)
-
-#define VC5_QPU_BRANCH_BDI_SHIFT            12
-#define VC5_QPU_BRANCH_BDI_MASK             QPU_MASK(13, 12)
-
-#define VC5_QPU_RADDR_A_SHIFT               6
-#define VC5_QPU_RADDR_A_MASK                QPU_MASK(11, 6)
-
-#define VC5_QPU_RADDR_B_SHIFT               0
-#define VC5_QPU_RADDR_B_MASK                QPU_MASK(5, 0)
 
 const char *
 v3d_qpu_magic_waddr_name(enum v3d_qpu_waddr waddr)
@@ -137,6 +54,22 @@ v3d_qpu_magic_waddr_name(enum v3d_qpu_waddr waddr)
                 [V3D_QPU_WADDR_LOG] = "log",
                 [V3D_QPU_WADDR_SIN] = "sin",
                 [V3D_QPU_WADDR_RSQRT2] = "rsqrt2",
+                [V3D_QPU_WADDR_TMUC] = "tmuc",
+                [V3D_QPU_WADDR_TMUS] = "tmus",
+                [V3D_QPU_WADDR_TMUT] = "tmut",
+                [V3D_QPU_WADDR_TMUR] = "tmur",
+                [V3D_QPU_WADDR_TMUI] = "tmui",
+                [V3D_QPU_WADDR_TMUB] = "tmub",
+                [V3D_QPU_WADDR_TMUDREF] = "tmudref",
+                [V3D_QPU_WADDR_TMUOFF] = "tmuoff",
+                [V3D_QPU_WADDR_TMUSCM] = "tmuscm",
+                [V3D_QPU_WADDR_TMUSF] = "tmusf",
+                [V3D_QPU_WADDR_TMUSLOD] = "tmuslod",
+                [V3D_QPU_WADDR_TMUHS] = "tmuhs",
+                [V3D_QPU_WADDR_TMUHSCM] = "tmuscm",
+                [V3D_QPU_WADDR_TMUHSF] = "tmuhsf",
+                [V3D_QPU_WADDR_TMUHSLOD] = "tmuhslod",
+                [V3D_QPU_WADDR_R5REP] = "r5rep",
         };
 
         return waddr_magic[waddr];
@@ -196,10 +129,13 @@ v3d_qpu_add_op_name(enum v3d_qpu_add_op op)
                 [V3D_QPU_A_TMUWT] = "tmuwt",
                 [V3D_QPU_A_VPMSETUP] = "vpmsetup",
                 [V3D_QPU_A_VPMWT] = "vpmwt",
-                [V3D_QPU_A_LDVPMV] = "ldvpmv",
-                [V3D_QPU_A_LDVPMD] = "ldvpmd",
+                [V3D_QPU_A_LDVPMV_IN] = "ldvpmv_in",
+                [V3D_QPU_A_LDVPMV_OUT] = "ldvpmv_out",
+                [V3D_QPU_A_LDVPMD_IN] = "ldvpmd_in",
+                [V3D_QPU_A_LDVPMD_OUT] = "ldvpmd_out",
                 [V3D_QPU_A_LDVPMP] = "ldvpmp",
-                [V3D_QPU_A_LDVPMG] = "ldvpmg",
+                [V3D_QPU_A_LDVPMG_IN] = "ldvpmg_in",
+                [V3D_QPU_A_LDVPMG_OUT] = "ldvpmg_out",
                 [V3D_QPU_A_FCMP] = "fcmp",
                 [V3D_QPU_A_VFMAX] = "vfmax",
                 [V3D_QPU_A_FROUND] = "fround",
@@ -459,10 +395,13 @@ static const uint8_t add_op_args[] = {
 
         [V3D_QPU_A_VPMSETUP] = D | A,
 
-        [V3D_QPU_A_LDVPMV] = D | A,
-        [V3D_QPU_A_LDVPMD] = D | A,
+        [V3D_QPU_A_LDVPMV_IN] = D | A,
+        [V3D_QPU_A_LDVPMV_OUT] = D | A,
+        [V3D_QPU_A_LDVPMD_IN] = D | A,
+        [V3D_QPU_A_LDVPMD_OUT] = D | A,
         [V3D_QPU_A_LDVPMP] = D | A,
-        [V3D_QPU_A_LDVPMG] = D | A | B,
+        [V3D_QPU_A_LDVPMG_IN] = D | A | B,
+        [V3D_QPU_A_LDVPMG_OUT] = D | A | B,
 
         /* FIXME: MOVABSNEG */
 
@@ -566,16 +505,11 @@ v3d_qpu_magic_waddr_is_sfu(enum v3d_qpu_waddr waddr)
 bool
 v3d_qpu_magic_waddr_is_tmu(enum v3d_qpu_waddr waddr)
 {
-        switch (waddr) {
-        case V3D_QPU_WADDR_TMU:
-        case V3D_QPU_WADDR_TMUL:
-        case V3D_QPU_WADDR_TMUD:
-        case V3D_QPU_WADDR_TMUA:
-        case V3D_QPU_WADDR_TMUAU:
-                return true;
-        default:
-                return false;
-        }
+        /* XXX: WADDR_TMU changed to UNIFA on 4.x */
+        return ((waddr >= V3D_QPU_WADDR_TMU &&
+                 waddr <= V3D_QPU_WADDR_TMUAU) ||
+                (waddr >= V3D_QPU_WADDR_TMUC &&
+                 waddr <= V3D_QPU_WADDR_TMUHSLOD));
 }
 
 bool
@@ -599,8 +533,52 @@ v3d_qpu_magic_waddr_is_tsy(enum v3d_qpu_waddr waddr)
                 waddr == V3D_QPU_WADDR_SYNCU);
 }
 
+static bool
+v3d_qpu_add_op_uses_vpm(enum  v3d_qpu_add_op op)
+{
+        switch (op) {
+        case V3D_QPU_A_VPMSETUP:
+        case V3D_QPU_A_VPMWT:
+        case V3D_QPU_A_LDVPMV_IN:
+        case V3D_QPU_A_LDVPMV_OUT:
+        case V3D_QPU_A_LDVPMD_IN:
+        case V3D_QPU_A_LDVPMD_OUT:
+        case V3D_QPU_A_LDVPMP:
+        case V3D_QPU_A_LDVPMG_IN:
+        case V3D_QPU_A_LDVPMG_OUT:
+        case V3D_QPU_A_STVPMV:
+        case V3D_QPU_A_STVPMD:
+        case V3D_QPU_A_STVPMP:
+                return true;
+        default:
+                return false;
+        }
+}
+
 bool
-v3d_qpu_writes_r3(const struct v3d_qpu_instr *inst)
+v3d_qpu_uses_vpm(const struct v3d_qpu_instr *inst)
+{
+        if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
+                if (v3d_qpu_add_op_uses_vpm(inst->alu.add.op))
+                        return true;
+
+                if (inst->alu.add.magic_write &&
+                    v3d_qpu_magic_waddr_is_vpm(inst->alu.add.waddr)) {
+                        return true;
+                }
+
+                if (inst->alu.mul.magic_write &&
+                    v3d_qpu_magic_waddr_is_vpm(inst->alu.mul.waddr)) {
+                        return true;
+                }
+        }
+
+        return false;
+}
+
+bool
+v3d_qpu_writes_r3(const struct v3d_device_info *devinfo,
+                  const struct v3d_qpu_instr *inst)
 {
         if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
                 if (inst->alu.add.magic_write &&
@@ -614,11 +592,17 @@ v3d_qpu_writes_r3(const struct v3d_qpu_instr *inst)
                 }
         }
 
+        if (v3d_qpu_sig_writes_address(devinfo, &inst->sig) &&
+            inst->sig_magic && inst->sig_addr == V3D_QPU_WADDR_R3) {
+                return true;
+        }
+
         return inst->sig.ldvary || inst->sig.ldvpm;
 }
 
 bool
-v3d_qpu_writes_r4(const struct v3d_qpu_instr *inst)
+v3d_qpu_writes_r4(const struct v3d_device_info *devinfo,
+                  const struct v3d_qpu_instr *inst)
 {
         if (inst->sig.ldtmu)
                 return true;
@@ -637,11 +621,17 @@ v3d_qpu_writes_r4(const struct v3d_qpu_instr *inst)
                 }
         }
 
+        if (v3d_qpu_sig_writes_address(devinfo, &inst->sig) &&
+            inst->sig_magic && inst->sig_addr == V3D_QPU_WADDR_R4) {
+                return true;
+        }
+
         return false;
 }
 
 bool
-v3d_qpu_writes_r5(const struct v3d_qpu_instr *inst)
+v3d_qpu_writes_r5(const struct v3d_device_info *devinfo,
+                  const struct v3d_qpu_instr *inst)
 {
         if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
                 if (inst->alu.add.magic_write &&
@@ -655,7 +645,12 @@ v3d_qpu_writes_r5(const struct v3d_qpu_instr *inst)
                 }
         }
 
-        return inst->sig.ldvary || inst->sig.ldunif;
+        if (v3d_qpu_sig_writes_address(devinfo, &inst->sig) &&
+            inst->sig_magic && inst->sig_addr == V3D_QPU_WADDR_R5) {
+                return true;
+        }
+
+        return inst->sig.ldvary || inst->sig.ldunif || inst->sig.ldunifa;
 }
 
 bool
@@ -668,4 +663,19 @@ v3d_qpu_uses_mux(const struct v3d_qpu_instr *inst, enum v3d_qpu_mux mux)
                 (add_nsrc > 1 && inst->alu.add.b == mux) ||
                 (mul_nsrc > 0 && inst->alu.mul.a == mux) ||
                 (mul_nsrc > 1 && inst->alu.mul.b == mux));
+}
+
+bool
+v3d_qpu_sig_writes_address(const struct v3d_device_info *devinfo,
+                           const struct v3d_qpu_sig *sig)
+{
+        if (devinfo->ver < 41)
+                return false;
+
+        return (sig->ldunifrf ||
+                sig->ldunifarf ||
+                sig->ldvary ||
+                sig->ldtmu ||
+                sig->ldtlb ||
+                sig->ldtlbu);
 }

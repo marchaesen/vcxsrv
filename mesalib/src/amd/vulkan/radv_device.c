@@ -3815,6 +3815,14 @@ VkResult radv_GetSemaphoreFdKHR(VkDevice _device,
 		break;
 	case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT_KHR:
 		ret = device->ws->export_syncobj_to_sync_file(device->ws, syncobj_handle, pFd);
+		if (!ret) {
+			if (sem->temp_syncobj) {
+				close (sem->temp_syncobj);
+				sem->temp_syncobj = 0;
+			} else {
+				device->ws->reset_syncobj(device->ws, syncobj_handle);
+			}
+		}
 		break;
 	default:
 		unreachable("Unhandled semaphore handle type");
@@ -3896,6 +3904,14 @@ VkResult radv_GetFenceFdKHR(VkDevice _device,
 		break;
 	case VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT_KHR:
 		ret = device->ws->export_syncobj_to_sync_file(device->ws, syncobj_handle, pFd);
+		if (!ret) {
+			if (fence->temp_syncobj) {
+				close (fence->temp_syncobj);
+				fence->temp_syncobj = 0;
+			} else {
+				device->ws->reset_syncobj(device->ws, syncobj_handle);
+			}
+		}
 		break;
 	default:
 		unreachable("Unhandled fence handle type");

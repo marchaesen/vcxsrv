@@ -2277,7 +2277,7 @@ void nir_ssa_def_rewrite_uses(nir_ssa_def *def, nir_src new_src);
 void nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
                                     nir_instr *after_me);
 
-uint8_t nir_ssa_def_components_read(nir_ssa_def *def);
+uint8_t nir_ssa_def_components_read(const nir_ssa_def *def);
 
 /*
  * finds the next basic block in source-code order, returns NULL if there is

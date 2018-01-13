@@ -42,6 +42,9 @@ struct v3d_device_info;
 struct v3d_qpu_sig {
         bool thrsw:1;
         bool ldunif:1;
+        bool ldunifa:1;
+        bool ldunifrf:1;
+        bool ldunifarf:1;
         bool ldtmu:1;
         bool ldvary:1;
         bool ldvpm:1;
@@ -111,6 +114,22 @@ enum v3d_qpu_waddr {
         V3D_QPU_WADDR_LOG = 22,
         V3D_QPU_WADDR_SIN = 23,
         V3D_QPU_WADDR_RSQRT2 = 24,
+        V3D_QPU_WADDR_TMUC = 32,
+        V3D_QPU_WADDR_TMUS = 33,
+        V3D_QPU_WADDR_TMUT = 34,
+        V3D_QPU_WADDR_TMUR = 35,
+        V3D_QPU_WADDR_TMUI = 36,
+        V3D_QPU_WADDR_TMUB = 37,
+        V3D_QPU_WADDR_TMUDREF = 38,
+        V3D_QPU_WADDR_TMUOFF = 39,
+        V3D_QPU_WADDR_TMUSCM = 40,
+        V3D_QPU_WADDR_TMUSF = 41,
+        V3D_QPU_WADDR_TMUSLOD = 42,
+        V3D_QPU_WADDR_TMUHS = 43,
+        V3D_QPU_WADDR_TMUHSCM = 44,
+        V3D_QPU_WADDR_TMUHSF = 45,
+        V3D_QPU_WADDR_TMUHSLOD = 46,
+        V3D_QPU_WADDR_R5REP = 55,
 };
 
 struct v3d_qpu_flags {
@@ -170,10 +189,13 @@ enum v3d_qpu_add_op {
         V3D_QPU_A_TMUWT,
         V3D_QPU_A_VPMSETUP,
         V3D_QPU_A_VPMWT,
-        V3D_QPU_A_LDVPMV,
-        V3D_QPU_A_LDVPMD,
+        V3D_QPU_A_LDVPMV_IN,
+        V3D_QPU_A_LDVPMV_OUT,
+        V3D_QPU_A_LDVPMD_IN,
+        V3D_QPU_A_LDVPMD_OUT,
         V3D_QPU_A_LDVPMP,
-        V3D_QPU_A_LDVPMG,
+        V3D_QPU_A_LDVPMG_IN,
+        V3D_QPU_A_LDVPMG_OUT,
         V3D_QPU_A_FCMP,
         V3D_QPU_A_VFMAX,
         V3D_QPU_A_FROUND,
@@ -347,6 +369,8 @@ struct v3d_qpu_instr {
         enum v3d_qpu_instr_type type;
 
         struct v3d_qpu_sig sig;
+        uint8_t sig_addr;
+        bool sig_magic; /* If the signal writes to a magic address */
         uint8_t raddr_a;
         uint8_t raddr_b;
         struct v3d_qpu_flags flags;
@@ -390,6 +414,16 @@ v3d_qpu_flags_unpack(const struct v3d_device_info *devinfo,
                      struct v3d_qpu_flags *cond);
 
 bool
+v3d_qpu_small_imm_pack(const struct v3d_device_info *devinfo,
+                       uint32_t value,
+                       uint32_t *packed_small_immediate);
+
+bool
+v3d_qpu_small_imm_unpack(const struct v3d_device_info *devinfo,
+                         uint32_t packed_small_immediate,
+                         uint32_t *small_immediate);
+
+bool
 v3d_qpu_instr_pack(const struct v3d_device_info *devinfo,
                    const struct v3d_qpu_instr *instr,
                    uint64_t *packed_instr);
@@ -403,9 +437,15 @@ bool v3d_qpu_magic_waddr_is_tmu(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
 bool v3d_qpu_magic_waddr_is_tlb(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
 bool v3d_qpu_magic_waddr_is_vpm(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
 bool v3d_qpu_magic_waddr_is_tsy(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
-bool v3d_qpu_writes_r3(const struct v3d_qpu_instr *instr) ATTRIBUTE_CONST;
-bool v3d_qpu_writes_r4(const struct v3d_qpu_instr *instr) ATTRIBUTE_CONST;
-bool v3d_qpu_writes_r5(const struct v3d_qpu_instr *instr) ATTRIBUTE_CONST;
+bool v3d_qpu_writes_r3(const struct v3d_device_info *devinfo,
+                       const struct v3d_qpu_instr *instr) ATTRIBUTE_CONST;
+bool v3d_qpu_writes_r4(const struct v3d_device_info *devinfo,
+                       const struct v3d_qpu_instr *instr) ATTRIBUTE_CONST;
+bool v3d_qpu_writes_r5(const struct v3d_device_info *devinfo,
+                       const struct v3d_qpu_instr *instr) ATTRIBUTE_CONST;
 bool v3d_qpu_uses_mux(const struct v3d_qpu_instr *inst, enum v3d_qpu_mux mux);
+bool v3d_qpu_uses_vpm(const struct v3d_qpu_instr *inst);
+bool v3d_qpu_sig_writes_address(const struct v3d_device_info *devinfo,
+                                const struct v3d_qpu_sig *sig) ATTRIBUTE_CONST;
 
 #endif
