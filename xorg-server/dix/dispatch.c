@@ -403,27 +403,27 @@ DisableLimitedSchedulingLatency(void)
         SmartScheduleLatencyLimited = 0;
 }
 
-void
-Dispatch(void)
+Bool isThereSomething(Bool are_ready);
+
+void DispatchQueuedEvents(Bool wait)
 {
-    int result;
-    ClientPtr client;
-    long start_tick;
-
-    nextFreeClientID = 1;
-    nClients = 0;
-
-    SmartScheduleSlice = SmartScheduleInterval;
-    init_client_ready();
-
-    while (!dispatchException) {
+  while (1)
+  {
         if (InputCheckPending()) {
             ProcessInputEvents();
             FlushIfCriticalOutputPending();
         }
 
-        if (!WaitForSomething(clients_are_ready()))
-            continue;
+        if (wait)
+        {
+            if (!WaitForSomething(clients_are_ready()))
+                return;
+        }
+        else
+        {
+            if (!isThereSomething(clients_are_ready()))
+                return;
+        }
 
        /*****************
 	*  Handle events in round robin fashion, doing input between
@@ -431,12 +431,15 @@ Dispatch(void)
 	*****************/
 
         if (!dispatchException && clients_are_ready()) {
+            long start_tick;
+            ClientPtr client;
             client = SmartScheduleClient();
 
             isItTimeToYield = FALSE;
 
             start_tick = SmartScheduleTime;
             while (!isItTimeToYield) {
+                int result;
 #ifdef XSERVER_DTRACE
                 CARD8 StartMajorOp;
 #endif
@@ -538,6 +541,21 @@ Dispatch(void)
                 client->smart_stop_tick = SmartScheduleTime;
         }
         dispatchException &= ~DE_PRIORITYCHANGE;
+  }
+}
+
+void
+Dispatch(void)
+{
+    nextFreeClientID = 1;
+    nClients = 0;
+
+    SmartScheduleSlice = SmartScheduleInterval;
+    init_client_ready();
+
+    while (!dispatchException) {
+        DispatchQueuedEvents(1);
+
     }
 #if defined(DDXBEFORERESET)
     ddxBeforeReset();

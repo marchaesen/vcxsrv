@@ -162,23 +162,20 @@ check_timers(void)
  *     pClientsReady is an array to store ready client->index values into.
  *****************/
 
+static Bool timer_is_running;
+
 Bool
 WaitForSomething(Bool are_ready)
 {
     int i;
     int timeout;
     int pollerr;
-    static Bool were_ready;
-    Bool timer_is_running;
 
-    timer_is_running = were_ready;
-
-    if (were_ready && !are_ready) {
+    if (timer_is_running && !are_ready)
+    {
         timer_is_running = FALSE;
         SmartScheduleStopTimer();
     }
-
-    were_ready = FALSE;
 
 #ifdef BUSFAULT
     busfault_check();
@@ -210,7 +207,6 @@ WaitForSomething(Bool are_ready)
             i = ospoll_wait(server_poll, timeout);
         }
         pollerr = GetErrno();
-        WakeupHandler(i);
         if (i <= 0) {           /* An error or timeout occurred */
             if (dispatchException)
                 return FALSE;
@@ -221,21 +217,102 @@ WaitForSomething(Bool are_ready)
                 if (pollerr == WSAENOTSOCK)
                 {
                   CheckServerConnections(server_poll);
+                  WakeupHandler(i);
+                  are_ready = clients_are_ready();
                   continue; // try again
                 }
             }
-        } else
+        }
+
+        if (InputCheckPending())
+        {
+            WakeupHandler(i);
+            return FALSE;
+        }
+        are_ready = clients_are_ready();
+        if (are_ready)
+        {
+            if (!timer_is_running)
+            {
+                timer_is_running=TRUE;
+                SmartScheduleStartTimer();
+            }
+            WakeupHandler(i);
+            return TRUE;
+        }
+        WakeupHandler(i);
+    }
+}
+
+Bool isThereSomething(Bool are_ready)
+{
+    if (timer_is_running && !are_ready)
+    {
+        timer_is_running = FALSE;
+        SmartScheduleStopTimer();
+    }
+
+#ifdef BUSFAULT
+    busfault_check();
+#endif
+
+    /* We need a while loop here to handle
+       crashed connections and the screen saver timeout */
+    while (1) {
+        int i;
+        int pollerr;
+        int timeout=0;
+        /* deal with any blocked jobs */
+        if (workQueue) {
+            ProcessWorkQueue();
             are_ready = clients_are_ready();
+        }
+
+        if (are_ready)
+            timeout = 0;
+        else
+            timeout = check_timers();
+        BlockHandler(&timeout);
+        if (NewOutputPending)
+            FlushAllOutput();
+        /* keep this check close to select() call to minimize race */
+        if (dispatchException)
+            i = -1;
+        else
+        {
+            i = ospoll_wait(server_poll, 0);
+        }
+        pollerr = GetErrno();
+        if (i <= 0) {           /* An error or timeout occurred */
+            if (dispatchException)
+                return FALSE;
+            if (i < 0) {
+                char szMessage[1024];
+                FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, pollerr, 0, szMessage, 1024, NULL );
+                ErrorF("PollForSomething(): poll: %d %s\n", pollerr, szMessage);
+                if (pollerr == WSAENOTSOCK)
+                {
+                  CheckServerConnections(server_poll);
+                  are_ready = clients_are_ready();
+                  continue; // try again
+                }
+            }
+        }
 
         if (InputCheckPending())
             return FALSE;
 
-        if (are_ready) {
-            were_ready = TRUE;
+        if (clients_are_ready())
+        {
             if (!timer_is_running)
+            {
+                timer_is_running=TRUE;
                 SmartScheduleStartTimer();
+            }
             return TRUE;
         }
+        else
+          return FALSE;
     }
 }
 

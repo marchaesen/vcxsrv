@@ -306,6 +306,9 @@ winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
                                             MOUSE_POLLING_INTERVAL, NULL);
 }
 
+void DispatchQueuedEvents(Bool);
+#define UPDATETIMER 1234
+
 /*
  * winTopLevelWindowProc - Window procedure for all top-level Windows windows.
  */
@@ -864,9 +867,9 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MOVE:
         /* Adjust the X Window to the moved Windows window */
-        if (!hasEnteredSizeMove)
-            winAdjustXWindow(pWin, hwnd);
-        /* else: Wait for WM_EXITSIZEMOVE */
+        winAdjustXWindow(pWin, hwnd);
+        if (hasEnteredSizeMove)
+          DispatchQueuedEvents(0);
         return 0;
 
     case WM_SHOWWINDOW:
@@ -1018,12 +1021,18 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_ENTERSIZEMOVE:
         hasEnteredSizeMove = TRUE;
+        SetTimer(hwnd, UPDATETIMER, 10, NULL);
+        return 0;
+
+    case WM_TIMER:
+        DispatchQueuedEvents(0);
         return 0;
 
     case WM_EXITSIZEMOVE:
         /* Adjust the X Window to the moved Windows window */
         hasEnteredSizeMove = FALSE;
         winAdjustXWindow(pWin, hwnd);
+        KillTimer(hwnd, UPDATETIMER);
         return 0;
 
     case WM_SIZE:
@@ -1049,12 +1058,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                (int) LOWORD(lParam), (int) HIWORD(lParam), buf);
     }
 #endif
-        if (!hasEnteredSizeMove)
-        {
-            /* Adjust the X Window to the moved Windows window */
-            winAdjustXWindow (pWin, hwnd);
-            if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
-    }
+        /* Adjust the X Window to the moved Windows window */
+        winAdjustXWindow (pWin, hwnd);
+        if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
+        if (hasEnteredSizeMove)
+          DispatchQueuedEvents(0);
     /* else: wait for WM_EXITSIZEMOVE */
     return 0; /* end of WM_SIZE handler */
 
