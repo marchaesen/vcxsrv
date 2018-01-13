@@ -171,10 +171,14 @@ do {                       \
 #define ATTRIBUTE_RETURNS_NONNULL
 #endif
 
-#ifdef HAVE_FUNC_ATTRIBUTE_NORETURN
-#define NORETURN __attribute__((__noreturn__))
-#else
-#define NORETURN
+#ifndef NORETURN
+#  ifdef _MSC_VER
+#    define NORETURN __declspec(noreturn)
+#  elif defined HAVE_FUNC_ATTRIBUTE_NORETURN
+#    define NORETURN __attribute__((__noreturn__))
+#  else
+#    define NORETURN
+#  endif
 #endif
 
 #ifdef __cplusplus
