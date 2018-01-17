@@ -40,8 +40,8 @@
 #include "x86emu/x86emui.h"
 #include <stdio.h>
 #include <string.h>
-#ifndef NO_SYS_HEADERS
 #include <stdarg.h>
+#ifndef NO_SYS_HEADERS
 #include <stdlib.h>
 #endif
 
@@ -174,18 +174,14 @@ x86emu_inc_decoded_inst_len(int x)
 }
 
 void
-x86emu_decode_printf(const char *x)
+x86emu_decode_printf(const char *x, ...)
 {
-    sprintf(M.x86.decoded_buf + M.x86.enc_str_pos, "%s", x);
-    M.x86.enc_str_pos += strlen(x);
-}
-
-void
-x86emu_decode_printf2(const char *x, int y)
-{
+    va_list ap;
     char temp[100];
 
-    snprintf(temp, sizeof(temp), x, y);
+    va_start(ap, x);
+    vsnprintf(temp, sizeof(temp), x, ap);
+    va_end(ap);
     sprintf(M.x86.decoded_buf + M.x86.enc_str_pos, "%s", temp);
     M.x86.enc_str_pos += strlen(temp);
 }

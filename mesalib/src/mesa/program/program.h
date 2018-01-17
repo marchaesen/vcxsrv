@@ -40,7 +40,6 @@
 #ifndef PROGRAM_H
 #define PROGRAM_H
 
-#include "main/compiler.h"
 #include "main/mtypes.h"
 
 
@@ -158,6 +157,11 @@ _mesa_shader_stage_to_program(unsigned stage)
    assert(!"Unexpected shader stage in _mesa_shader_stage_to_program");
    return GL_VERTEX_PROGRAM_ARB;
 }
+
+
+GLbitfield
+gl_external_samplers(const struct gl_program *prog);
+
 
 #ifdef __cplusplus
 } /* extern "C" */

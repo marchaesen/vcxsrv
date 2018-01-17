@@ -382,8 +382,7 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
 
          draw->ust = ce->ust;
          draw->msc = ce->msc;
-      } else {
-         draw->recv_msc_serial = ce->serial;
+      } else if (ce->serial == draw->eid) {
          draw->notify_ust = ce->ust;
          draw->notify_msc = ce->msc;
       }
@@ -452,28 +451,29 @@ loader_dri3_wait_for_msc(struct loader_dri3_drawable *draw,
                          int64_t divisor, int64_t remainder,
                          int64_t *ust, int64_t *msc, int64_t *sbc)
 {
-   uint32_t msc_serial;
-
-   msc_serial = ++draw->send_msc_serial;
-   xcb_present_notify_msc(draw->conn,
-                          draw->drawable,
-                          msc_serial,
-                          target_msc,
-                          divisor,
-                          remainder);
+   xcb_void_cookie_t cookie = xcb_present_notify_msc(draw->conn,
+                                                     draw->drawable,
+                                                     draw->eid,
+                                                     target_msc,
+                                                     divisor,
+                                                     remainder);
+   xcb_generic_event_t *ev;
+   unsigned full_sequence;
 
    mtx_lock(&draw->mtx);
    xcb_flush(draw->conn);
 
    /* Wait for the event */
-   if (draw->special_event) {
-      while ((int32_t) (msc_serial - draw->recv_msc_serial) > 0) {
-         if (!dri3_wait_for_event_locked(draw)) {
-            mtx_unlock(&draw->mtx);
-            return false;
-         }
+   do {
+      ev = xcb_wait_for_special_event(draw->conn, draw->special_event);
+      if (!ev) {
+         mtx_unlock(&draw->mtx);
+         return false;
       }
-   }
+
+      full_sequence = ev->full_sequence;
+      dri3_handle_present_event(draw, (void *) ev);
+   } while (full_sequence != cookie.sequence || draw->notify_msc < target_msc);
 
    *ust = draw->notify_ust;
    *msc = draw->notify_msc;

@@ -150,6 +150,9 @@ struct st_fragment_program
    struct gl_shader_program *shader_program;
 
    struct st_fp_variant *variants;
+
+   /* Used by the shader cache and ARB_get_program_binary */
+   unsigned num_tgsi_tokens;
 };
 
 
@@ -222,6 +225,9 @@ struct st_vertex_program
 
    /** SHA1 hash of linked tgsi shader program, used for on-disk cache */
    unsigned char sha1[20];
+
+   /* Used by the shader cache and ARB_get_program_binary */
+   unsigned num_tgsi_tokens;
 };
 
 
@@ -264,6 +270,9 @@ struct st_common_program
 
    /** SHA1 hash of linked tgsi shader program, used for on-disk cache */
    unsigned char sha1[20];
+
+   /* Used by the shader cache and ARB_get_program_binary */
+   unsigned num_tgsi_tokens;
 };
 
 
@@ -284,6 +293,9 @@ struct st_compute_program
 
    /** SHA1 hash of linked tgsi shader program, used for on-disk cache */
    unsigned char sha1[20];
+
+   /* Used by the shader cache and ARB_get_program_binary */
+   unsigned num_tgsi_tokens;
 };
 
 

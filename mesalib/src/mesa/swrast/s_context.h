@@ -43,7 +43,6 @@
 #ifndef S_CONTEXT_H
 #define S_CONTEXT_H
 
-#include "main/compiler.h"
 #include "main/mtypes.h"
 #include "main/texcompress.h"
 #include "program/prog_execute.h"

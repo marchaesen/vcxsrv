@@ -32,7 +32,6 @@
 #define TEXTOBJ_H
 
 
-#include "compiler.h"
 #include "glheader.h"
 #include "mtypes.h"
 #include "samplerobj.h"

@@ -165,19 +165,19 @@ query_sti_load(struct hud_graph *gr)
 
          switch (sti->mode) {
          case SENSORS_TEMP_CURRENT:
-            hud_graph_add_value(gr, (uint64_t) sti->current);
+            hud_graph_add_value(gr, sti->current);
             break;
          case SENSORS_TEMP_CRITICAL:
-            hud_graph_add_value(gr, (uint64_t) sti->critical);
+            hud_graph_add_value(gr, sti->critical);
             break;
          case SENSORS_VOLTAGE_CURRENT:
-            hud_graph_add_value(gr, (uint64_t)(sti->current * 1000));
+            hud_graph_add_value(gr, sti->current * 1000);
             break;
          case SENSORS_CURRENT_CURRENT:
-            hud_graph_add_value(gr, (uint64_t) sti->current);
+            hud_graph_add_value(gr, sti->current);
             break;
          case SENSORS_POWER_CURRENT:
-            hud_graph_add_value(gr, (uint64_t) sti->current);
+            hud_graph_add_value(gr, sti->current);
             break;
          }
 

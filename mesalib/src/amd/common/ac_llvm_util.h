@@ -62,6 +62,12 @@ enum ac_target_machine_options {
 	AC_TM_PROMOTE_ALLOCA_TO_SCRATCH = (1 << 4),
 };
 
+enum ac_float_mode {
+	AC_FLOAT_MODE_DEFAULT,
+	AC_FLOAT_MODE_NO_SIGNED_ZEROS_FP_MATH,
+	AC_FLOAT_MODE_UNSAFE_FP_MATH,
+};
+
 const char *ac_get_llvm_processor_name(enum radeon_family family);
 LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family, enum ac_target_machine_options tm_options);
 
@@ -76,6 +82,9 @@ void ac_dump_module(LLVMModuleRef module);
 
 LLVMValueRef ac_llvm_get_called_value(LLVMValueRef call);
 bool ac_llvm_is_function(LLVMValueRef v);
+
+LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
+				 enum ac_float_mode float_mode);
 
 void
 ac_llvm_add_target_dep_function_attr(LLVMValueRef F,

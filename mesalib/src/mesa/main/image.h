@@ -28,7 +28,6 @@
 
 
 #include "glheader.h"
-#include "compiler.h"
 
 struct gl_context;
 struct gl_pixelstore_attrib;

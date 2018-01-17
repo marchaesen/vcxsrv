@@ -178,7 +178,7 @@ FcHashTableAddInternal (FcHashTable *table,
     for (prev = &table->buckets[hash % FC_HASH_SIZE];
 	 (b = fc_atomic_ptr_get (prev)); prev = &(b->next))
     {
-	if (!table->compare_func (bucket->key, key))
+	if (!table->compare_func (b->key, key))
 	{
 	    if (replace)
 	    {

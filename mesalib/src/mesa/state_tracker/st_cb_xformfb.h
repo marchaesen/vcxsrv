@@ -29,8 +29,6 @@
 #define ST_CB_XFORMFB_H
 
 
-#include "main/compiler.h"
-
 struct dd_function_table;
 struct gl_transform_feedback_object;
 struct pipe_draw_info;

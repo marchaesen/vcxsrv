@@ -66,9 +66,6 @@
 /* Define to 1 if you have the `cbrt' function. */
 #undef HAVE_CBRT
 
-/* Define to 1 if you have the <dbm.h> header file. */
-#undef HAVE_DBM_H
-
 /* Define to 1 if you have the declaration of `program_invocation_short_name', and
    to 0 if you don't. */
 #undef HAVE_DECL_PROGRAM_INVOCATION_SHORT_NAME
@@ -146,17 +143,11 @@
 /* Define to 1 if you have the function pthread_setname_np(pthread_t, const char*) */
 #undef HAVE_PTHREAD_SETNAME_NP_WITH_TID
 
-/* Define to 1 if you have the <ndbm.h> header file. */
-#undef HAVE_NDBM_H
-
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
 
 /* Define to 1 if you have the `reallocarray' function. */
 #undef HAVE_REALLOCARRAY
-
-/* Define to 1 if you have the <rpcsvc/dbm.h> header file. */
-#undef HAVE_RPCSVC_DBM_H
 
 /* Define to 1 if you have the `arc4random_buf' function. */
 #undef HAVE_ARC4RANDOM_BUF

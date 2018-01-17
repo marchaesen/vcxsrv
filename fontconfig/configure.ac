@@ -309,7 +309,7 @@ AC_DEFINE_UNQUOTED(USE_ICONV,$use_iconv,[Use iconv.])
 #
 dnl See http://git.savannah.gnu.org/cgit/freetype/freetype2.git/tree/docs/VERSIONS.TXT for versioning in freetype
 PKG_CHECK_MODULES(FREETYPE, freetype2 >= 21.0.15)
-PKGCONFIG_REQUIRES="$PKGCONFIG_REQUIRES freetype2"
+PKGCONFIG_REQUIRES="$PKGCONFIG_REQUIRES freetype2 >= 21.0.15"
 
 AC_SUBST(FREETYPE_LIBS)
 AC_SUBST(FREETYPE_CFLAGS)
@@ -385,8 +385,12 @@ if test "$enable_libxml2" != "yes"; then
 		else
 			EXPAT_LIBS="-lexpat"
 		fi
+		PKG_EXPAT_CFLAGS=$EXPAT_CFLAGS
+		PKG_EXPAT_LIBS=$EXPAT_LIBS
 	else
 		PKGCONFIG_REQUIRES_PRIVATELY="$PKGCONFIG_REQUIRES_PRIVATELY expat"
+		PKG_EXPAT_CFLAGS=
+		PKG_EXPAT_LIBS=
 	fi
 
 	expatsaved_CPPFLAGS="$CPPFLAGS"
@@ -417,6 +421,8 @@ if test "$enable_libxml2" != "yes"; then
 
 	AC_SUBST(EXPAT_CFLAGS)
 	AC_SUBST(EXPAT_LIBS)
+	AC_SUBST(PKG_EXPAT_CFLAGS)
+	AC_SUBST(PKG_EXPAT_LIBS)
 fi
 
 #
@@ -428,7 +434,7 @@ AC_ARG_ENABLE(libxml2,
 
 if test "$enable_libxml2" = "yes"; then
     PKG_CHECK_MODULES([LIBXML2], [libxml-2.0 >= 2.6])
-    PKGCONFIG_REQUIRES_PRIVATELY="$PKGCONFIG_REQUIRES_PRIVATELY libxml-2.0"
+    PKGCONFIG_REQUIRES_PRIVATELY="$PKGCONFIG_REQUIRES_PRIVATELY libxml-2.0 >= 2.6"
     AC_DEFINE_UNQUOTED(ENABLE_LIBXML2,1,[Use libxml2 instead of Expat])
 
     AC_SUBST(LIBXML2_CFLAGS)

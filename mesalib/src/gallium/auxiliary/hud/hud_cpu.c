@@ -151,7 +151,8 @@ query_cpu_load(struct hud_graph *gr, struct pipe_context *pipe)
 
    if (info->last_time) {
       if (info->last_time + gr->pane->period <= now) {
-         uint64_t cpu_busy, cpu_total, cpu_load;
+         uint64_t cpu_busy, cpu_total;
+         double cpu_load;
 
          get_cpu_stats(info->cpu_index, &cpu_busy, &cpu_total);
 
@@ -258,15 +259,15 @@ query_api_thread_busy_status(struct hud_graph *gr, struct pipe_context *pipe)
                thread_now = 0;
          }
 
-         unsigned percent = (thread_now - info->last_thread_time) * 100 /
+         double percent = (thread_now - info->last_thread_time) * 100.0 /
                             (now - info->last_time);
 
          /* Check if the context changed a thread, so that we don't show
           * a random value. When a thread is changed, the new thread clock
           * is different, which can result in "percent" being very high.
           */
-         if (percent > 100)
-            percent = 0;
+         if (percent > 100.0)
+            percent = 0.0;
          hud_graph_add_value(gr, percent);
 
          info->last_thread_time = thread_now;

@@ -28,7 +28,6 @@
 #ifndef ST_CB_BUFFEROBJECTS_H
 #define ST_CB_BUFFEROBJECTS_H
 
-#include "main/compiler.h"
 #include "main/mtypes.h"
 
 struct dd_function_table;

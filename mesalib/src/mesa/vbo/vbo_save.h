@@ -73,18 +73,32 @@ struct vbo_save_vertex_list {
    fi_type *current_data;
    GLuint current_size;
 
-   GLuint buffer_offset;
-   GLuint count;                /**< vertex count */
+   GLuint buffer_offset;        /**< in bytes */
+   GLuint vertex_count;
    GLuint wrap_count;		/* number of copied vertices at start */
-   GLboolean dangling_attr_ref;	/* current attr implicitly referenced 
-				   outside the list */
+   GLboolean dangling_attr_ref;	/* current attr implicitly referenced
+                                   outside the list */
 
-   struct _mesa_prim *prim;
+   struct _mesa_prim *prims;
    GLuint prim_count;
 
    struct vbo_save_vertex_store *vertex_store;
    struct vbo_save_primitive_store *prim_store;
 };
+
+
+/**
+ * Is the vertex lists's buffer offset an exact multiple of the
+ * vertex size (in bytes)?  This is used to check for a vertex array /
+ * drawing optimization.
+ */
+static inline bool
+aligned_vertex_buffer_offset(const struct vbo_save_vertex_list *node)
+{
+   unsigned vertex_size = node->vertex_size * sizeof(GLfloat); /* in bytes */
+   return vertex_size != 0 && node->buffer_offset % vertex_size == 0;
+}
+
 
 /* These buffers should be a reasonable size to support upload to
  * hardware.  Current vbo implementation will re-upload on any
@@ -108,13 +122,13 @@ struct vbo_save_vertex_list {
  */
 struct vbo_save_vertex_store {
    struct gl_buffer_object *bufferobj;
-   fi_type *buffer;
+   fi_type *buffer_map;
    GLuint used;
    GLuint refcount;
 };
 
 struct vbo_save_primitive_store {
-   struct _mesa_prim buffer[VBO_SAVE_PRIM_SIZE];
+   struct _mesa_prim prims[VBO_SAVE_PRIM_SIZE];
    GLuint used;
    GLuint refcount;
 };
@@ -135,18 +149,17 @@ struct vbo_save_context {
 
    GLboolean out_of_memory;  /**< True if last VBO allocation failed */
 
-   fi_type *buffer;
-   GLuint count;
    GLuint wrap_count;
-   GLuint replay_flags;
+   GLbitfield replay_flags;
 
-   struct _mesa_prim *prim;
+   struct _mesa_prim *prims;
    GLuint prim_count, prim_max;
 
    struct vbo_save_vertex_store *vertex_store;
    struct vbo_save_primitive_store *prim_store;
 
-   fi_type *buffer_ptr;		   /* cursor, points into buffer */
+   fi_type *buffer_map;            /**< Mapping of vertex_store's buffer */
+   fi_type *buffer_ptr;		   /**< cursor, points into buffer_map */
    fi_type vertex[VBO_ATTRIB_MAX*4];	   /* current values */
    fi_type *attrptr[VBO_ATTRIB_MAX];
    GLuint vert_count;
@@ -156,30 +169,32 @@ struct vbo_save_context {
    GLuint opcode_vertex_list;
 
    struct vbo_save_copied_vtx copied;
-   
+
    fi_type *current[VBO_ATTRIB_MAX]; /* points into ctx->ListState */
    GLubyte *currentsz[VBO_ATTRIB_MAX];
 };
 
-void vbo_save_init( struct gl_context *ctx );
-void vbo_save_destroy( struct gl_context *ctx );
-void vbo_save_fallback( struct gl_context *ctx, GLboolean fallback );
+void vbo_save_init(struct gl_context *ctx);
+void vbo_save_destroy(struct gl_context *ctx);
+void vbo_save_fallback(struct gl_context *ctx, GLboolean fallback);
 
 /* save_loopback.c:
  */
-void vbo_loopback_vertex_list( struct gl_context *ctx,
-			       const GLfloat *buffer,
-			       const GLubyte *attrsz,
-			       const struct _mesa_prim *prim,
-			       GLuint prim_count,
-			       GLuint wrap_count,
-			       GLuint vertex_size);
+void vbo_loopback_vertex_list(struct gl_context *ctx,
+                              const GLfloat *buffer,
+                              const GLubyte *attrsz,
+                              const struct _mesa_prim *prim,
+                              GLuint prim_count,
+                              GLuint wrap_count,
+                              GLuint vertex_size);
 
 /* Callbacks:
  */
-void vbo_save_playback_vertex_list( struct gl_context *ctx, void *data );
+void
+vbo_save_playback_vertex_list(struct gl_context *ctx, void *data);
 
-void vbo_save_api_init( struct vbo_save_context *save );
+void
+vbo_save_api_init(struct vbo_save_context *save);
 
 fi_type *
 vbo_save_map_vertex_store(struct gl_context *ctx,

@@ -194,9 +194,14 @@ hud_batch_query_cleanup(struct hud_batch_query_context **pbq,
 
 struct query_info {
    struct hud_batch_query_context *batch;
-   unsigned query_type;
-   unsigned result_index; /* unit depends on query_type */
+   enum pipe_query_type query_type;
+
+   /** index to choose fields in pipe_query_data_pipeline_statistics,
+    * for example.
+    */
+   unsigned result_index;
    enum pipe_driver_query_result_type result_type;
+   enum pipe_driver_query_type type;
 
    /* Ring of queries. If a query is busy, we use another slot. */
    struct pipe_query *query[NUM_QUERIES];
@@ -238,7 +243,13 @@ query_new_value_normal(struct query_info *info, struct pipe_context *pipe)
          uint64_t *res64 = (uint64_t *)&result;
 
          if (query && pipe->get_query_result(pipe, query, FALSE, &result)) {
-            info->results_cumulative += res64[info->result_index];
+            if (info->type == PIPE_DRIVER_QUERY_TYPE_FLOAT) {
+               assert(info->result_index == 0);
+               info->results_cumulative += (uint64_t) (result.f * 1000.0f);
+            }
+            else {
+               info->results_cumulative += res64[info->result_index];
+            }
             info->num_results++;
 
             if (info->tail == info->head)
@@ -307,7 +318,7 @@ query_new_value(struct hud_graph *gr, struct pipe_context *pipe)
    }
 
    if (info->num_results && info->last_time + gr->pane->period <= now) {
-      uint64_t value;
+      double value;
 
       switch (info->result_type) {
       default:
@@ -317,6 +328,10 @@ query_new_value(struct hud_graph *gr, struct pipe_context *pipe)
       case PIPE_DRIVER_QUERY_RESULT_TYPE_CUMULATIVE:
          value = info->results_cumulative;
          break;
+      }
+
+      if (info->type == PIPE_DRIVER_QUERY_TYPE_FLOAT) {
+         value /= 1000.0;
       }
 
       hud_graph_add_value(gr, value);
@@ -346,10 +361,16 @@ free_query_info(void *ptr, struct pipe_context *pipe)
    FREE(info);
 }
 
+
+/**
+ * \param result_index  to select fields of pipe_query_data_pipeline_statistics,
+ *                      for example.
+ */
 void
 hud_pipe_query_install(struct hud_batch_query_context **pbq,
                        struct hud_pane *pane,
-                       const char *name, unsigned query_type,
+                       const char *name,
+                       enum pipe_query_type query_type,
                        unsigned result_index,
                        uint64_t max_value, enum pipe_driver_query_type type,
                        enum pipe_driver_query_result_type result_type,
@@ -373,6 +394,7 @@ hud_pipe_query_install(struct hud_batch_query_context **pbq,
 
    info = gr->query_data;
    info->result_type = result_type;
+   info->type = type;
 
    if (flags & PIPE_DRIVER_QUERY_FLAG_BATCH) {
       if (!batch_query_add(pbq, query_type, &info->result_index))

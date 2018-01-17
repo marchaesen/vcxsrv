@@ -87,6 +87,7 @@ def get_rgbx_to_rgba_map(formats):
 
 TEMPLATE = Template(COPYRIGHT + """
 #include "formats.h"
+#include "util/macros.h"
 
 /**
  * For an sRGB format, return the corresponding linear color space format.

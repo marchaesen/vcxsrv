@@ -28,7 +28,6 @@
 #ifndef ST_CB_EGLIMAGE_H
 #define ST_CB_EGLIMAGE_H
 
-#include "main/compiler.h"
 
 struct dd_function_table;
 

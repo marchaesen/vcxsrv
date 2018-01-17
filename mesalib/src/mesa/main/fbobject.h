@@ -26,7 +26,6 @@
 #ifndef FBOBJECT_H
 #define FBOBJECT_H
 
-#include "compiler.h"
 #include "glheader.h"
 #include <stdbool.h>
 

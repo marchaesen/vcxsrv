@@ -34,6 +34,7 @@
 
 
 #include "main/imports.h"
+#include "main/compiler.h"
 #include "main/context.h"
 
 #include "pipe/p_context.h"

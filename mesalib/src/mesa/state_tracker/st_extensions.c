@@ -417,6 +417,10 @@ void st_init_limits(struct pipe_screen *screen,
    c->GLSLFrontFacingIsSysVal =
       screen->get_param(screen, PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL);
 
+   /* GL_ARB_get_program_binary */
+   if (screen->get_disk_shader_cache && screen->get_disk_shader_cache(screen))
+      c->NumProgramBinaryFormats = 1;
+
    c->MaxAtomicBufferBindings =
           c->Program[MESA_SHADER_FRAGMENT].MaxAtomicBuffers;
 
@@ -956,9 +960,7 @@ void st_init_extensions(struct pipe_screen *screen,
    }
 
    if (consts->GLSLVersion >= 140) {
-      if (screen->get_param(screen, PIPE_CAP_TGSI_ARRAY_COMPONENTS) &&
-         screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                                   PIPE_SHADER_CAP_PREFERRED_IR) == PIPE_SHADER_IR_TGSI)
+      if (screen->get_param(screen, PIPE_CAP_TGSI_ARRAY_COMPONENTS))
          extensions->ARB_enhanced_layouts = GL_TRUE;
    }
 

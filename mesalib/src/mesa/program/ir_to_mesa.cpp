@@ -30,7 +30,6 @@
  */
 
 #include <stdio.h>
-#include "main/compiler.h"
 #include "main/macros.h"
 #include "main/mtypes.h"
 #include "main/shaderapi.h"

@@ -33,6 +33,9 @@
  */
 
 
+#ifdef HAVE_ZLIB
+#include <zlib.h>
+#endif
 #include "crc32.h"
 
 
@@ -111,9 +114,19 @@ util_crc32_table[256] = {
 uint32_t
 util_hash_crc32(const void *data, size_t size)
 {
-   uint8_t *p = (uint8_t *)data;
+   const uint8_t *p = data;
    uint32_t crc = 0xffffffff;
  
+#ifdef HAVE_ZLIB
+   /* Prefer zlib's implementation for better performance.
+    * zlib's uInt is always "unsigned int" while size_t can be 64bit.
+    * Since 1.2.9 there's crc32_z that takes size_t, but use the more
+    * available function to avoid build system complications.
+    */
+   if ((uInt)size == size)
+      return ~crc32(0, data, size);
+#endif
+
    while (size--)
       crc = util_crc32_table[(crc ^ *p++) & 0xff] ^ (crc >> 8);
    

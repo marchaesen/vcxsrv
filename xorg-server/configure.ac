@@ -190,8 +190,6 @@ dnl Find the math libary, then check for cbrt function in it.
 AC_CHECK_LIB(m, sqrt)
 AC_CHECK_FUNCS([cbrt])
 
-AC_CHECK_HEADERS([ndbm.h dbm.h rpcsvc/dbm.h])
-
 dnl AGPGART headers
 AC_CHECK_HEADERS([linux/agpgart.h sys/agpio.h sys/agpgart.h], AGP=yes)
 AM_CONDITIONAL(AGP, [test "x$AGP" = xyes])

@@ -28,8 +28,6 @@
 #ifndef ST_CB_COMPUTE_H
 #define ST_CB_COMPUTE_H
 
-#include "main/compiler.h"
-
 struct dd_function_table;
 
 extern void

@@ -90,15 +90,13 @@ conf_data.set_quoted('SYSCONFDIR', join_paths(get_option('prefix'), get_option('
 conf_data.set('XORG_VERSION_CURRENT', release)
 
 conf_data.set('HASXDMAUTH', get_option('xdm-auth-1'))
+conf_data.set('SECURE_RPC', get_option('secure-rpc'))
 
-conf_data.set('HAVE_DBM_H', cc.has_header('dbm.h'))
 conf_data.set('HAVE_DLFCN_H', cc.has_header('dlfcn.h'))
 conf_data.set('HAVE_EXECINFO_H', cc.has_header('execinfo.h'))
 conf_data.set('HAVE_FCNTL_H', cc.has_header('fcntl.h'))
 conf_data.set('HAVE_FNMATCH_H', cc.has_header('fnmatch.h'))
 conf_data.set('HAVE_LINUX_AGPGART_H', cc.has_header('linux/agpgart.h'))
-conf_data.set('HAVE_NDBM_H', cc.has_header('ndbm.h'))
-conf_data.set('HAVE_RPCSVC_DBM_H', cc.has_header('rpcsvc/dbm.h'))
 conf_data.set('HAVE_STDLIB_H', cc.has_header('stdlib.h'))
 conf_data.set('HAVE_STRING_H', cc.has_header('string.h'))
 conf_data.set('HAVE_STRINGS_H', cc.has_header('strings.h'))
