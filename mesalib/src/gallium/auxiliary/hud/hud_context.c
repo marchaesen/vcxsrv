@@ -224,6 +224,7 @@ number_to_human_readable(double num, enum pipe_driver_query_type type,
    static const char *volt_units[] = {" mV", " V"};
    static const char *amp_units[] = {" mA", " A"};
    static const char *watt_units[] = {" mW", " W"};
+   static const char *float_units[] = {""};
 
    const char **units;
    unsigned max_unit;
@@ -251,6 +252,10 @@ number_to_human_readable(double num, enum pipe_driver_query_type type,
    case PIPE_DRIVER_QUERY_TYPE_TEMPERATURE:
       max_unit = ARRAY_SIZE(temperature_units)-1;
       units = temperature_units;
+      break;
+   case PIPE_DRIVER_QUERY_TYPE_FLOAT:
+      max_unit = ARRAY_SIZE(float_units)-1;
+      units = float_units;
       break;
    case PIPE_DRIVER_QUERY_TYPE_PERCENTAGE:
       max_unit = ARRAY_SIZE(percent_units)-1;

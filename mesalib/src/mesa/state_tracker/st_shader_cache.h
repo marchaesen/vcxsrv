@@ -32,14 +32,23 @@
 extern "C" {
 #endif
 
+void
+st_get_program_binary_driver_sha1(struct gl_context *ctx, uint8_t *sha1);
+
+void
+st_serialise_tgsi_program(struct gl_context *ctx, struct gl_program *prog);
+
+void
+st_deserialise_tgsi_program(struct gl_context *ctx,
+                            struct gl_shader_program *shProg,
+                            struct gl_program *prog);
+
 bool
 st_load_tgsi_from_disk_cache(struct gl_context *ctx,
                              struct gl_shader_program *prog);
 
 void
-st_store_tgsi_in_disk_cache(struct st_context *st, struct gl_program *prog,
-                            struct pipe_shader_state *out_state,
-                            unsigned num_tokens);
+st_store_tgsi_in_disk_cache(struct st_context *st, struct gl_program *prog);
 
 #ifdef __cplusplus
 }

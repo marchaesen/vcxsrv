@@ -25,6 +25,7 @@ option('module_dir', type: 'string',
 option('glx', type: 'boolean', value: true)
 option('xdmcp', type: 'boolean', value: true)
 option('xdm-auth-1', type: 'boolean', value: true)
+option('secure-rpc', type: 'boolean', value: true)
 option('ipv6', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto')
 
 option('xkb_dir', type: 'string')

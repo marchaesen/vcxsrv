@@ -33,12 +33,11 @@
 #include "compiler/shader_info.h"
 #include "ir_uniform.h"
 #include "main/mtypes.h"
-#include "string_to_uint_map.h"
-
-extern "C" {
 #include "main/shaderobj.h"
 #include "program/program.h"
-}
+#include "string_to_uint_map.h"
+#include "util/bitscan.h"
+
 
 static void
 write_subroutines(struct blob *metadata, struct gl_shader_program *prog)

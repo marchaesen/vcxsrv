@@ -75,7 +75,7 @@ vbo_exec_wrap_buffers(struct vbo_exec_context *exec)
       GLuint last_count;
 
       if (_mesa_inside_begin_end(exec->ctx)) {
-	 last_prim->count = exec->vtx.vert_count - last_prim->start;
+         last_prim->count = exec->vtx.vert_count - last_prim->start;
       }
 
       last_count = last_prim->count;
@@ -99,10 +99,10 @@ vbo_exec_wrap_buffers(struct vbo_exec_context *exec)
       /* Execute the buffer and save copied vertices.
        */
       if (exec->vtx.vert_count)
-	 vbo_exec_vtx_flush( exec, GL_FALSE );
+         vbo_exec_vtx_flush(exec, GL_FALSE);
       else {
-	 exec->vtx.prim_count = 0;
-	 exec->vtx.copied.nr = 0;
+         exec->vtx.prim_count = 0;
+         exec->vtx.copied.nr = 0;
       }
 
       /* Emit a glBegin to start the new list.
@@ -110,15 +110,15 @@ vbo_exec_wrap_buffers(struct vbo_exec_context *exec)
       assert(exec->vtx.prim_count == 0);
 
       if (_mesa_inside_begin_end(exec->ctx)) {
-	 exec->vtx.prim[0].mode = exec->ctx->Driver.CurrentExecPrimitive;
-	 exec->vtx.prim[0].begin = 0;
+         exec->vtx.prim[0].mode = exec->ctx->Driver.CurrentExecPrimitive;
+         exec->vtx.prim[0].begin = 0;
          exec->vtx.prim[0].end = 0;
-	 exec->vtx.prim[0].start = 0;
-	 exec->vtx.prim[0].count = 0;
-	 exec->vtx.prim_count++;
+         exec->vtx.prim[0].start = 0;
+         exec->vtx.prim[0].count = 0;
+         exec->vtx.prim_count++;
 
-	 if (exec->vtx.copied.nr == last_count)
-	    exec->vtx.prim[0].begin = last_begin;
+         if (exec->vtx.copied.nr == last_count)
+            exec->vtx.prim[0].begin = last_begin;
       }
    }
 }
@@ -136,7 +136,7 @@ vbo_exec_vtx_wrap(struct vbo_exec_context *exec)
    /* Run pipeline on current vertices, copy wrapped vertices
     * to exec->vtx.copied.
     */
-   vbo_exec_wrap_buffers( exec );
+   vbo_exec_wrap_buffers(exec);
 
    if (!exec->vtx.buffer_ptr) {
       /* probably ran out of memory earlier when allocating the VBO */
@@ -230,7 +230,7 @@ vbo_exec_copy_to_current(struct vbo_exec_context *exec)
    if (ctx->Light.ColorMaterialEnabled &&
        exec->vtx.attrsz[VBO_ATTRIB_COLOR0]) {
       _mesa_update_color_material(ctx,
-				  ctx->Current.Attrib[VBO_ATTRIB_COLOR0]);
+                                  ctx->Current.Attrib[VBO_ATTRIB_COLOR0]);
    }
 }
 
@@ -270,10 +270,11 @@ vbo_exec_copy_from_current(struct vbo_exec_context *exec)
  * to a larger one.  Ex: glTexCoord2f -> glTexCoord4f.
  * We need to go back over the previous 2-component texcoords and insert
  * zero and one values.
+ * \param attr  VBO_ATTRIB_x vertex attribute value
  */
 static void
 vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
-                             GLuint attr, GLuint newSize )
+                             GLuint attr, GLuint newSize)
 {
    struct gl_context *ctx = exec->ctx;
    struct vbo_context *vbo = vbo_context(ctx);
@@ -283,10 +284,12 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
    const GLuint oldSize = exec->vtx.attrsz[attr];
    GLuint i;
 
+   assert(attr < VBO_ATTRIB_MAX);
+
    /* Run pipeline on current vertices, copy wrapped vertices
     * to exec->vtx.copied.
     */
-   vbo_exec_wrap_buffers( exec );
+   vbo_exec_wrap_buffers(exec);
 
    if (unlikely(exec->vtx.copied.nr)) {
       /* We're in the middle of a primitive, keep the old vertex
@@ -301,7 +304,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
        * case when the attribute already exists in the vertex and is
        * having its size increased.
        */
-      vbo_exec_copy_to_current( exec );
+      vbo_exec_copy_to_current(exec);
    }
 
    /* Heuristic: Attempt to isolate attributes received outside
@@ -309,7 +312,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
     */
    if (!_mesa_inside_begin_end(ctx) &&
        !oldSize && lastcount > 8 && exec->vtx.vertex_size) {
-      vbo_exec_copy_to_current( exec );
+      vbo_exec_copy_to_current(exec);
       vbo_reset_all_attr(exec);
    }
 
@@ -328,18 +331,18 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
       fi_type *tmp = exec->vtx.vertex;
 
       for (i = 0 ; i < VBO_ATTRIB_MAX ; i++) {
-	 if (exec->vtx.attrsz[i]) {
-	    exec->vtx.attrptr[i] = tmp;
-	    tmp += exec->vtx.attrsz[i];
-	 }
-	 else
-	    exec->vtx.attrptr[i] = NULL; /* will not be dereferenced */
+         if (exec->vtx.attrsz[i]) {
+            exec->vtx.attrptr[i] = tmp;
+            tmp += exec->vtx.attrsz[i];
+         }
+         else
+            exec->vtx.attrptr[i] = NULL; /* will not be dereferenced */
       }
 
       /* Copy from current to repopulate the vertex with correct
        * values.
        */
-      vbo_exec_copy_from_current( exec );
+      vbo_exec_copy_from_current(exec);
    }
    else {
       /* Just have to append the new attribute at the end */
@@ -362,7 +365,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
          GLbitfield64 enabled = exec->vtx.enabled;
          while (enabled) {
             const int j = u_bit_scan64(&enabled);
-	    GLuint sz = exec->vtx.attrsz[j];
+            GLuint sz = exec->vtx.attrsz[j];
             GLint old_offset = old_attrptr[j] - exec->vtx.vertex;
             GLint new_offset = exec->vtx.attrptr[j] - exec->vtx.vertex;
 
@@ -383,10 +386,10 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
             else {
                COPY_SZ_4V(dest + new_offset, sz, data + old_offset);
             }
-	 }
+         }
 
-	 data += old_vtx_size;
-	 dest += exec->vtx.vertex_size;
+         data += old_vtx_size;
+         dest += exec->vtx.vertex_size;
       }
 
       exec->vtx.buffer_ptr = dest;
@@ -401,6 +404,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
  * For example, we saw a bunch of glTexCoord2f() calls and now we got a
  * glTexCoord4f() call.  We promote the array from size=2 to size=4.
  * \param newSize  size of new vertex (number of 32-bit words).
+ * \param attr  VBO_ATTRIB_x vertex attribute value
  */
 static void
 vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr,
@@ -408,12 +412,14 @@ vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr,
 {
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
+   assert(attr < VBO_ATTRIB_MAX);
+
    if (newSize > exec->vtx.attrsz[attr] ||
        newType != exec->vtx.attrtype[attr]) {
       /* New size is larger.  Need to flush existing vertices and get
        * an enlarged vertex format.
        */
-      vbo_exec_wrap_upgrade_vertex( exec, attr, newSize );
+      vbo_exec_wrap_upgrade_vertex(exec, attr, newSize);
    }
    else if (newSize < exec->vtx.active_sz[attr]) {
       GLuint i;
@@ -447,7 +453,7 @@ vbo_exec_begin_vertices(struct gl_context *ctx)
 {
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
-   vbo_exec_vtx_map( exec );
+   vbo_exec_vtx_map(exec);
 
    assert((ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT) == 0);
    assert(exec->begin_vertices_flags);
@@ -459,15 +465,15 @@ vbo_exec_begin_vertices(struct gl_context *ctx)
 /**
  * This macro is used to implement all the glVertex, glColor, glTexCoord,
  * glVertexAttrib, etc functions.
- * \param A  attribute index
+ * \param A  VBO_ATTRIB_x attribute index
  * \param N  attribute size (1..4)
  * \param T  type (GL_FLOAT, GL_DOUBLE, GL_INT, GL_UNSIGNED_INT)
  * \param C  cast type (fi_type or double)
  * \param V0, V1, v2, V3  attribute value
  */
-#define ATTR_UNION( A, N, T, C, V0, V1, V2, V3 )                        \
-do {									\
-   struct vbo_exec_context *exec = &vbo_context(ctx)->exec;		\
+#define ATTR_UNION(A, N, T, C, V0, V1, V2, V3)                          \
+do {                                                                    \
+   struct vbo_exec_context *exec = &vbo_context(ctx)->exec;             \
    int sz = (sizeof(C) / sizeof(GLfloat));                              \
                                                                         \
    assert(sz == 1 || sz == 2);                                          \
@@ -476,22 +482,22 @@ do {									\
    if (unlikely(exec->vtx.active_sz[A] != N * sz) ||                    \
        unlikely(exec->vtx.attrtype[A] != T)) {                          \
       vbo_exec_fixup_vertex(ctx, A, N * sz, T);                         \
-   }									\
+   }                                                                    \
                                                                         \
    /* store vertex attribute in vertex buffer */                        \
-   {									\
+   {                                                                    \
       C *dest = (C *)exec->vtx.attrptr[A];                              \
-      if (N>0) dest[0] = V0;						\
-      if (N>1) dest[1] = V1;						\
-      if (N>2) dest[2] = V2;						\
-      if (N>3) dest[3] = V3;						\
+      if (N>0) dest[0] = V0;                                            \
+      if (N>1) dest[1] = V1;                                            \
+      if (N>2) dest[2] = V2;                                            \
+      if (N>3) dest[3] = V3;                                            \
       assert(exec->vtx.attrtype[A] == T);                               \
-   }									\
-									\
-   if ((A) == 0) {							\
-      /* This is a glVertex call */					\
-      GLuint i;								\
-									\
+   }                                                                    \
+                                                                        \
+   if ((A) == 0) {                                                      \
+      /* This is a glVertex call */                                     \
+      GLuint i;                                                         \
+                                                                        \
       if (unlikely((ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT) == 0)) { \
          vbo_exec_begin_vertices(ctx);                                  \
       }                                                                 \
@@ -502,17 +508,17 @@ do {									\
       assert(exec->vtx.buffer_ptr);                                     \
                                                                         \
       /* copy 32-bit words */                                           \
-      for (i = 0; i < exec->vtx.vertex_size; i++)			\
-	 exec->vtx.buffer_ptr[i] = exec->vtx.vertex[i];			\
-									\
-      exec->vtx.buffer_ptr += exec->vtx.vertex_size;			\
-									\
-      /* Set FLUSH_STORED_VERTICES to indicate that there's now */	\
-      /* something to draw (not just updating a color or texcoord).*/	\
-      ctx->Driver.NeedFlush |= FLUSH_STORED_VERTICES;			\
-									\
-      if (++exec->vtx.vert_count >= exec->vtx.max_vert)			\
-	 vbo_exec_vtx_wrap( exec );					\
+      for (i = 0; i < exec->vtx.vertex_size; i++)                       \
+         exec->vtx.buffer_ptr[i] = exec->vtx.vertex[i];                 \
+                                                                        \
+      exec->vtx.buffer_ptr += exec->vtx.vertex_size;                    \
+                                                                        \
+      /* Set FLUSH_STORED_VERTICES to indicate that there's now */      \
+      /* something to draw (not just updating a color or texcoord).*/   \
+      ctx->Driver.NeedFlush |= FLUSH_STORED_VERTICES;                   \
+                                                                        \
+      if (++exec->vtx.vert_count >= exec->vtx.max_vert)                 \
+         vbo_exec_vtx_wrap(exec);                                       \
    } else {                                                             \
       /* we now have accumulated per-vertex attributes */               \
       ctx->Driver.NeedFlush |= FLUSH_UPDATE_CURRENT;                    \
@@ -521,7 +527,7 @@ do {									\
 
 
 #undef ERROR
-#define ERROR(err) _mesa_error( ctx, err, __func__ )
+#define ERROR(err) _mesa_error(ctx, err, __func__)
 #define TAG(x) vbo_##x
 
 #include "vbo_attrib_tmp.h"
@@ -591,7 +597,7 @@ vbo_Materialfv(GLenum face, GLenum pname, const GLfloat *params)
       if (*params < 0 || *params > ctx->Const.MaxShininess) {
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glMaterial(invalid shininess: %f out range [0, %f])",
-		     *params, ctx->Const.MaxShininess);
+                     *params, ctx->Const.MaxShininess);
          return;
       }
       if (updateMats & MAT_BIT_FRONT_SHININESS)
@@ -634,11 +640,11 @@ static void
 vbo_exec_FlushVertices_internal(struct vbo_exec_context *exec, GLboolean unmap)
 {
    if (exec->vtx.vert_count || unmap) {
-      vbo_exec_vtx_flush( exec, unmap );
+      vbo_exec_vtx_flush(exec, unmap);
    }
 
    if (exec->vtx.vertex_size) {
-      vbo_exec_copy_to_current( exec );
+      vbo_exec_copy_to_current(exec);
       vbo_reset_all_attr(exec);
    }
 }
@@ -647,102 +653,101 @@ vbo_exec_FlushVertices_internal(struct vbo_exec_context *exec, GLboolean unmap)
 static void GLAPIENTRY
 vbo_exec_EvalCoord1f(GLfloat u)
 {
-   GET_CURRENT_CONTEXT( ctx );
+   GET_CURRENT_CONTEXT(ctx);
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
    {
       GLint i;
       if (exec->eval.recalculate_maps)
-	 vbo_exec_eval_update( exec );
+         vbo_exec_eval_update(exec);
 
       for (i = 0; i <= VBO_ATTRIB_TEX7; i++) {
-	 if (exec->eval.map1[i].map)
-	    if (exec->vtx.active_sz[i] != exec->eval.map1[i].sz)
-	       vbo_exec_fixup_vertex( ctx, i, exec->eval.map1[i].sz, GL_FLOAT );
+         if (exec->eval.map1[i].map)
+            if (exec->vtx.active_sz[i] != exec->eval.map1[i].sz)
+               vbo_exec_fixup_vertex(ctx, i, exec->eval.map1[i].sz, GL_FLOAT);
       }
    }
 
+   memcpy(exec->vtx.copied.buffer, exec->vtx.vertex,
+          exec->vtx.vertex_size * sizeof(GLfloat));
 
-   memcpy( exec->vtx.copied.buffer, exec->vtx.vertex,
-           exec->vtx.vertex_size * sizeof(GLfloat));
+   vbo_exec_do_EvalCoord1f(exec, u);
 
-   vbo_exec_do_EvalCoord1f( exec, u );
-
-   memcpy( exec->vtx.vertex, exec->vtx.copied.buffer,
-           exec->vtx.vertex_size * sizeof(GLfloat));
+   memcpy(exec->vtx.vertex, exec->vtx.copied.buffer,
+          exec->vtx.vertex_size * sizeof(GLfloat));
 }
 
 
 static void GLAPIENTRY
 vbo_exec_EvalCoord2f(GLfloat u, GLfloat v)
 {
-   GET_CURRENT_CONTEXT( ctx );
+   GET_CURRENT_CONTEXT(ctx);
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
    {
       GLint i;
       if (exec->eval.recalculate_maps)
-	 vbo_exec_eval_update( exec );
+         vbo_exec_eval_update(exec);
 
       for (i = 0; i <= VBO_ATTRIB_TEX7; i++) {
-	 if (exec->eval.map2[i].map)
-	    if (exec->vtx.active_sz[i] != exec->eval.map2[i].sz)
-	       vbo_exec_fixup_vertex( ctx, i, exec->eval.map2[i].sz, GL_FLOAT );
+         if (exec->eval.map2[i].map)
+            if (exec->vtx.active_sz[i] != exec->eval.map2[i].sz)
+               vbo_exec_fixup_vertex(ctx, i, exec->eval.map2[i].sz, GL_FLOAT);
       }
 
       if (ctx->Eval.AutoNormal)
-	 if (exec->vtx.active_sz[VBO_ATTRIB_NORMAL] != 3)
-	    vbo_exec_fixup_vertex( ctx, VBO_ATTRIB_NORMAL, 3, GL_FLOAT );
+         if (exec->vtx.active_sz[VBO_ATTRIB_NORMAL] != 3)
+            vbo_exec_fixup_vertex(ctx, VBO_ATTRIB_NORMAL, 3, GL_FLOAT);
    }
 
-   memcpy( exec->vtx.copied.buffer, exec->vtx.vertex,
-           exec->vtx.vertex_size * sizeof(GLfloat));
+   memcpy(exec->vtx.copied.buffer, exec->vtx.vertex,
+          exec->vtx.vertex_size * sizeof(GLfloat));
 
-   vbo_exec_do_EvalCoord2f( exec, u, v );
+   vbo_exec_do_EvalCoord2f(exec, u, v);
 
-   memcpy( exec->vtx.vertex, exec->vtx.copied.buffer,
-           exec->vtx.vertex_size * sizeof(GLfloat));
+   memcpy(exec->vtx.vertex, exec->vtx.copied.buffer,
+          exec->vtx.vertex_size * sizeof(GLfloat));
 }
 
 
 static void GLAPIENTRY
 vbo_exec_EvalCoord1fv(const GLfloat *u)
 {
-   vbo_exec_EvalCoord1f( u[0] );
+   vbo_exec_EvalCoord1f(u[0]);
 }
 
 
 static void GLAPIENTRY
 vbo_exec_EvalCoord2fv(const GLfloat *u)
 {
-   vbo_exec_EvalCoord2f( u[0], u[1] );
+   vbo_exec_EvalCoord2f(u[0], u[1]);
 }
 
 
 static void GLAPIENTRY
 vbo_exec_EvalPoint1(GLint i)
 {
-   GET_CURRENT_CONTEXT( ctx );
+   GET_CURRENT_CONTEXT(ctx);
    GLfloat du = ((ctx->Eval.MapGrid1u2 - ctx->Eval.MapGrid1u1) /
-		 (GLfloat) ctx->Eval.MapGrid1un);
+                 (GLfloat) ctx->Eval.MapGrid1un);
    GLfloat u = i * du + ctx->Eval.MapGrid1u1;
 
-   vbo_exec_EvalCoord1f( u );
+   vbo_exec_EvalCoord1f(u);
 }
 
 
 static void GLAPIENTRY
 vbo_exec_EvalPoint2(GLint i, GLint j)
 {
-   GET_CURRENT_CONTEXT( ctx );
+   GET_CURRENT_CONTEXT(ctx);
    GLfloat du = ((ctx->Eval.MapGrid2u2 - ctx->Eval.MapGrid2u1) /
-		 (GLfloat) ctx->Eval.MapGrid2un);
+                 (GLfloat) ctx->Eval.MapGrid2un);
    GLfloat dv = ((ctx->Eval.MapGrid2v2 - ctx->Eval.MapGrid2v1) /
-		 (GLfloat) ctx->Eval.MapGrid2vn);
+                 (GLfloat) ctx->Eval.MapGrid2vn);
    GLfloat u = i * du + ctx->Eval.MapGrid2u1;
    GLfloat v = j * dv + ctx->Eval.MapGrid2v1;
 
-   vbo_exec_EvalCoord2f( u, v );
+   vbo_exec_EvalCoord2f(u, v);
 }
 
 
@@ -752,7 +757,7 @@ vbo_exec_EvalPoint2(GLint i, GLint j)
 static void GLAPIENTRY
 vbo_exec_Begin(GLenum mode)
 {
-   GET_CURRENT_CONTEXT( ctx );
+   GET_CURRENT_CONTEXT(ctx);
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
    int i;
 
@@ -768,7 +773,7 @@ vbo_exec_Begin(GLenum mode)
    vbo_draw_method(vbo_context(ctx), DRAW_BEGIN_END);
 
    if (ctx->NewState) {
-      _mesa_update_state( ctx );
+      _mesa_update_state(ctx);
 
       CALL_Begin(ctx->Exec, (mode));
       return;
@@ -846,7 +851,7 @@ try_vbo_merge(struct vbo_exec_context *exec)
 static void GLAPIENTRY
 vbo_exec_End(void)
 {
-   GET_CURRENT_CONTEXT( ctx );
+   GET_CURRENT_CONTEXT(ctx);
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
    if (!_mesa_inside_begin_end(ctx)) {
@@ -897,7 +902,7 @@ vbo_exec_End(void)
    ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
 
    if (exec->vtx.prim_count == VBO_MAX_PRIM)
-      vbo_exec_vtx_flush( exec, GL_FALSE );
+      vbo_exec_vtx_flush(exec, GL_FALSE);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);
@@ -917,7 +922,7 @@ vbo_exec_PrimitiveRestartNV(void)
    curPrim = ctx->Driver.CurrentExecPrimitive;
 
    if (curPrim == PRIM_OUTSIDE_BEGIN_END) {
-      _mesa_error( ctx, GL_INVALID_OPERATION, "glPrimitiveRestartNV" );
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glPrimitiveRestartNV");
    }
    else {
       vbo_exec_End();
@@ -1172,7 +1177,7 @@ vbo_exec_vtx_init(struct vbo_exec_context *exec)
    exec->vtx.buffer_map = _mesa_align_malloc(VBO_VERT_BUFFER_SIZE, 64);
    exec->vtx.buffer_ptr = exec->vtx.buffer_map;
 
-   vbo_exec_vtxfmt_init( exec );
+   vbo_exec_vtxfmt_init(exec);
    _mesa_noop_vtxfmt_init(&exec->vtxfmt_noop);
 
    exec->vtx.enabled = 0;
@@ -1201,7 +1206,7 @@ vbo_exec_vtx_init(struct vbo_exec_context *exec)
          array = &arrays[VERT_ATTRIB_FF(i)];
          array->BufferObj = NULL;
          _mesa_reference_buffer_object(ctx, &array->BufferObj,
-                                 vbo->currval[VBO_ATTRIB_POS+i].BufferObj);
+                                       vbo->currval[VBO_ATTRIB_POS+i].BufferObj);
       }
 
       memcpy(arrays + VERT_ATTRIB_GENERIC(0),

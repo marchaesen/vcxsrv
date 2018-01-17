@@ -490,9 +490,12 @@ st_nir_get_mesa_program(struct gl_context *ctx,
    set_st_program(prog, shader_program, nir);
    prog->nir = nir;
 
-   NIR_PASS_V(nir, nir_lower_io_to_temporaries,
-              nir_shader_get_entrypoint(nir),
-              true, true);
+   if (nir->info.stage != MESA_SHADER_TESS_CTRL &&
+       nir->info.stage != MESA_SHADER_TESS_EVAL) {
+      NIR_PASS_V(nir, nir_lower_io_to_temporaries,
+                 nir_shader_get_entrypoint(nir),
+                 true, true);
+   }
    NIR_PASS_V(nir, nir_lower_global_vars_to_local);
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
@@ -665,7 +668,8 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
 
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
-   if (nir->info.stage != MESA_SHADER_TESS_CTRL)
+   if (nir->info.stage != MESA_SHADER_TESS_CTRL &&
+       nir->info.stage != MESA_SHADER_TESS_EVAL)
       NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects);
 
    if (nir->info.stage == MESA_SHADER_VERTEX) {

@@ -29,8 +29,6 @@
 #define ST_CB_RASTERPOS_H
 
 
-#include "main/compiler.h"
-
 struct dd_function_table;
 
 extern void st_init_rasterpos_functions(struct dd_function_table *functions);

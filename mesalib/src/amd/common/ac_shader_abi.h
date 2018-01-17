@@ -76,16 +76,17 @@ struct ac_shader_abi {
 				    unsigned const_index,
 				    LLVMTypeRef type);
 
-	LLVMValueRef (*load_tess_inputs)(struct ac_shader_abi *abi,
-					 LLVMValueRef vertex_index,
-					 LLVMValueRef param_index,
-					 unsigned const_index,
-					 unsigned location,
-					 unsigned driver_location,
-					 unsigned component,
-					 unsigned num_components,
-					 bool is_patch,
-					 bool is_compact);
+	LLVMValueRef (*load_tess_varyings)(struct ac_shader_abi *abi,
+					   LLVMValueRef vertex_index,
+					   LLVMValueRef param_index,
+					   unsigned const_index,
+					   unsigned location,
+					   unsigned driver_location,
+					   unsigned component,
+					   unsigned num_components,
+					   bool is_patch,
+					   bool is_compact,
+					   bool load_inputs);
 
 	void (*store_tcs_outputs)(struct ac_shader_abi *abi,
 				  LLVMValueRef vertex_index,

@@ -385,6 +385,7 @@ VkResult radv_CreateInstance(
 	VkInstance*                                 pInstance)
 {
 	struct radv_instance *instance;
+	VkResult result;
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
 
@@ -425,6 +426,12 @@ VkResult radv_CreateInstance(
 
 	instance->apiVersion = client_version;
 	instance->physicalDeviceCount = -1;
+
+	result = vk_debug_report_instance_init(&instance->debug_report_callbacks);
+	if (result != VK_SUCCESS) {
+		vk_free2(&default_alloc, pAllocator, instance);
+		return vk_error(result);
+	}
 
 	_mesa_locale_init();
 
@@ -467,6 +474,8 @@ void radv_DestroyInstance(
 	VG(VALGRIND_DESTROY_MEMPOOL(instance));
 
 	_mesa_locale_fini();
+
+	vk_debug_report_instance_destroy(&instance->debug_report_callbacks);
 
 	vk_free(&instance->alloc, instance);
 }
@@ -3941,4 +3950,41 @@ void radv_GetPhysicalDeviceExternalFencePropertiesKHR(
 		pExternalFenceProperties->compatibleHandleTypes = 0;
 		pExternalFenceProperties->externalFenceFeatures = 0;
 	}
+}
+
+VkResult
+radv_CreateDebugReportCallbackEXT(VkInstance _instance,
+                                 const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
+                                 const VkAllocationCallbacks* pAllocator,
+                                 VkDebugReportCallbackEXT* pCallback)
+{
+	RADV_FROM_HANDLE(radv_instance, instance, _instance);
+	return vk_create_debug_report_callback(&instance->debug_report_callbacks,
+	                                       pCreateInfo, pAllocator, &instance->alloc,
+	                                       pCallback);
+}
+
+void
+radv_DestroyDebugReportCallbackEXT(VkInstance _instance,
+                                  VkDebugReportCallbackEXT _callback,
+                                  const VkAllocationCallbacks* pAllocator)
+{
+	RADV_FROM_HANDLE(radv_instance, instance, _instance);
+	vk_destroy_debug_report_callback(&instance->debug_report_callbacks,
+	                                 _callback, pAllocator, &instance->alloc);
+}
+
+void
+radv_DebugReportMessageEXT(VkInstance _instance,
+                          VkDebugReportFlagsEXT flags,
+                          VkDebugReportObjectTypeEXT objectType,
+                          uint64_t object,
+                          size_t location,
+                          int32_t messageCode,
+                          const char* pLayerPrefix,
+                          const char* pMessage)
+{
+	RADV_FROM_HANDLE(radv_instance, instance, _instance);
+	vk_debug_report(&instance->debug_report_callbacks, flags, objectType,
+	                object, location, messageCode, pLayerPrefix, pMessage);
 }

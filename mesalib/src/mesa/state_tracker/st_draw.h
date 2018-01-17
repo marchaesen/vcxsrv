@@ -34,7 +34,6 @@
 #ifndef ST_DRAW_H
 #define ST_DRAW_H
 
-#include "main/compiler.h"
 #include "main/glheader.h"
 
 struct _mesa_index_buffer;

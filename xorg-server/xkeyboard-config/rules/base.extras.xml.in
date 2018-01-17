@@ -435,6 +435,17 @@
             <_description>English (Carpalx, full optimization, intl., with AltGr dead keys)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>scn</name>
+            <_description>Sicilian (US keyboard)</_description>
+            <languageList>
+              <iso639Id>eng</iso639Id>
+              <iso639Id>ita</iso639Id>
+              <iso639Id>scn</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -686,6 +697,24 @@
           <configItem>
             <name>sun_type6</name>
             <_description>Arabic (Sun Type 6/7)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>basic_ext</name>
+            <_description>Arabic (with extensions for Arabic-written other languages and European digits preferred)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>basic_ext_digits</name>
+            <_description>Arabic (with extensions for Arabic-written other languages and Arabic digits preferred)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>uga</name>
+            <_description>Ugaritic instead of Arabic</_description>
           </configItem>
         </variant>
       </variantList>

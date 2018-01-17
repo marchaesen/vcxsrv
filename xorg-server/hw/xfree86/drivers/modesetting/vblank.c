@@ -229,7 +229,7 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
             return TRUE;
         }
         if (errno != EBUSY) {
-            ms_drm_abort_seq(scrn, msc);
+            ms_drm_abort_seq(scrn, seq);
             return FALSE;
         }
         ms_flush_drm_events(screen);

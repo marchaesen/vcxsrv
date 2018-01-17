@@ -248,7 +248,6 @@ if with_glx == 'auto'
   elif with_gallium
     # Even when building just gallium drivers the user probably wants dri
     with_glx = 'dri'
-    with_dri = true
   elif with_platform_x11 and with_any_opengl and not with_any_vk
     # The automatic behavior should not be to turn on xlib based glx when
     # building only vulkan drivers
@@ -256,6 +255,11 @@ if with_glx == 'auto'
   else
     with_glx = 'disabled'
   endif
+endif
+if with_glx == 'dri'
+   if with_gallium
+      with_dri = true
+   endif
 endif
 
 if not (with_dri or with_gallium or with_glx == 'xlib' or with_glx == 'gallium-xlib')
@@ -943,6 +947,7 @@ endif
 
 # TODO: some of these may be conditional
 dep_zlib = dependency('zlib', version : '>= 1.2.3')
+pre_args += '-DHAVE_ZLIB'
 dep_thread = dependency('threads')
 if dep_thread.found() and host_machine.system() != 'windows'
   pre_args += '-DHAVE_PTHREAD'

@@ -29,7 +29,6 @@
 #ifndef ST_CB_FBO_H
 #define ST_CB_FBO_H
 
-#include "main/compiler.h"
 #include "main/fbobject.h"
 #include "main/glheader.h"
 #include "main/mtypes.h"

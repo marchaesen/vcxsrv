@@ -1912,7 +1912,7 @@ save_CallLists(GLsizei num, GLenum type, const GLvoid * lists)
       n[1].i = num;
       n[2].e = type;
       save_pointer(&n[3], lists_copy);
-   };
+   }
 
    /* After this, we don't know what state we're in.  Invalidate all
     * cached information previously gathered:

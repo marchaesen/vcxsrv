@@ -28,6 +28,9 @@ for i in $ROOT/symbols/*; do
   id = ENVIRON["id"];
   isDefault = 0;
 }
+/^[[:space:]]*\/\//{
+  next 
+}
 /.*default.*/{
   isDefault = 1;
 }

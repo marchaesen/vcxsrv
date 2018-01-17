@@ -137,10 +137,6 @@ struct loader_dri3_drawable {
    /* Last received UST/MSC values from present notify msc event */
    uint64_t notify_ust, notify_msc;
 
-   /* Serial numbers for tracking wait_for_msc events */
-   uint32_t send_msc_serial;
-   uint32_t recv_msc_serial;
-
    struct loader_dri3_buffer *buffers[LOADER_DRI3_NUM_BUFFERS];
    int cur_back;
    int num_back;

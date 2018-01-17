@@ -2212,7 +2212,7 @@ set_src_reg_swz(struct asm_src_register *r, gl_register_file file, GLint index,
 int
 validate_inputs(struct YYLTYPE *locp, struct asm_parser_state *state)
 {
-   const GLbitfield inputs = state->prog->info.inputs_read | state->InputsBound;
+   const GLbitfield64 inputs = state->prog->info.inputs_read | state->InputsBound;
    GLbitfield ff_inputs = 0;
 
    /* Since Mesa internal attribute indices are different from

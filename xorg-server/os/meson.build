@@ -54,6 +54,10 @@ if get_option('xdmcp')
     srcs_os += 'xdmcp.c'
 endif
 
+if get_option('secure-rpc')
+    srcs_os += 'rpcauth.c'
+endif
+
 libxlibc = []
 if srcs_libc.length() > 0
     libxlibc = static_library('libxlibc',

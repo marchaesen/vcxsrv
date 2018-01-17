@@ -29,8 +29,6 @@
 #define ST_CB_BLIT_H
 
 
-#include "main/compiler.h"
-
 struct dd_function_table;
 struct st_context;
 

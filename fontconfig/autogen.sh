@@ -40,6 +40,7 @@ cd $srcdir
 PROJECT=Fontconfig
 TEST_TYPE=-f
 FILE=fontconfig/fontconfig.h
+LIBTOOLIZE=${LIBTOOLIZE-libtoolize}
 AUTOPOINT=${AUTOPOINT-autopoint}
 AUTORECONF=${AUTORECONF-autoreconf}
 AUTORECONF_FLAGS="-i"

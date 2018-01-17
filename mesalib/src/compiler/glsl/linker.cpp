@@ -1111,6 +1111,29 @@ cross_validate_globals(struct gl_shader_program *prog,
             return;
          }
 
+         /* In OpenGL GLSL 4.20 spec, section 4.3.9, page 57:
+          *
+          *   "It is a link-time error if any particular shader interface
+          *    contains:
+          *
+          *    - two different blocks, each having no instance name, and each
+          *      having a member of the same name, or
+          *
+          *    - a variable outside a block, and a block with no instance name,
+          *      where the variable has the same name as a member in the block."
+          */
+         if (var->data.mode == existing->data.mode &&
+             var->get_interface_type() != existing->get_interface_type()) {
+            linker_error(prog, "declarations for %s `%s` are in "
+                         "%s and %s\n",
+                         mode_string(var), var->name,
+                         existing->get_interface_type() ?
+                           existing->get_interface_type()->name : "outside a block",
+                         var->get_interface_type() ?
+                           var->get_interface_type()->name : "outside a block");
+
+            return;
+         }
          /* Only in GLSL ES 3.10, the precision qualifier should not match
           * between block members defined in matched block names within a
           * shader interface.

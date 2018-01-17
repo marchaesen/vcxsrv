@@ -32,7 +32,6 @@
 #define TEXSTATE_H
 
 
-#include "compiler.h"
 #include "enums.h"
 #include "macros.h"
 #include "mtypes.h"

@@ -1,5 +1,7 @@
 // based on a keyboard map from an 'xkb/symbols/it' file
 // 17 May 2003 Modified by Sebastiano Vigna (vigna@dsi.unimi.it)
+// 03 December 2017 - Added it(intl) and it(scn), please refer to
+//                    Cadèmia Siciliana <l10n@cademiasiciliana.org>
 
 default  partial alphanumeric_keys
 xkb_symbols "basic" {
@@ -366,4 +368,54 @@ partial alphanumeric_keys
 
     key <AB03> { [ c, C, cacute, Cacute ] };
 
+};
+
+partial alphanumeric_keys
+    xkb_symbols "intl" {
+    include "it(basic)"
+    name[Group1] = "Italian (intl., with dead keys)";
+
+    key <AE12> { [ iacute, asciicircum,  asciitilde, dead_circumflex ] };
+
+    key <AD03> { [      e,           E,    EuroSign,           U0259 ] };
+
+    key <AC11> { [ agrave,      degree,  numbersign,           U1D58 ] };
+    key <AC06> { [      h,           H,       U1E25,           U1E24 ] };
+    key <AC04> { [      f,           F,       U0111,           U0110 ] };
+    key <AC03> { [      d,           D,       U1E0D,           U1E0C ] };
+
+    key <AB02> { [      x,           X,       U03C7,           U03A7 ] };
+    key <AB01> { [      z,           Z                               ] };
+
+    key <BKSL> { [ uacute,     section,  dead_grave,      dead_breve ] };
+};
+
+partial alphanumeric_keys
+    xkb_symbols "scn" {
+    include "it(basic)"
+    name[Group1] = "Sicilian";
+
+    key <AE12> { [ iacute, asciicircum,  asciitilde, dead_circumflex ] };
+
+    key <AD09> { [      o,           O, ocircumflex,     Ocircumflex ] };
+    key <AD08> { [      i,           I, icircumflex,     Icircumflex ] };
+    key <AD07> { [      u,           U, ucircumflex,     Ucircumflex ] };
+    key <AD04> { [      r,           R,  ediaeresis,      Ediaeresis ] };
+    key <AD03> { [      e,           E,    EuroSign,     ecircumflex ] };
+
+    key <AC11> { [ agrave,      degree,  numbersign,           U1D58 ] };
+    key <AC04> { [      f,           F,       U0111,           U0110 ] };
+    key <AC03> { [      d,           D,       U1E0D,           U1E0C ] };
+    key <AC02> { [      s,           S,      scaron,          Scaron ] };
+    key <AC01> { [      a,           A, acircumflex,     Acircumflex ] };
+
+    // In our Windows layout, there is no ©, but Ç. Since this character
+    // is available via CapsLock, I decided to keep © in place, as the
+    // Italian layout.
+    key <AB03> { [      c,           C,    ccedilla,       copyright ] };
+    key <AB02> { [      x,           X,       U03C7,           U03A7 ] };
+
+    // Replaced dead_grave by ugrave, since it's common to write mixed
+    // Sicilian - Italian (where we replaced ugrave with uacute)
+    key <BKSL> { [ uacute,     section,      ugrave,      dead_breve ] };
 };

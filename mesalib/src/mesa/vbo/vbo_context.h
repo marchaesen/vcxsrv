@@ -67,8 +67,8 @@ struct vbo_context {
    struct gl_vertex_array currval[VBO_ATTRIB_MAX];
    
    /** Map VERT_ATTRIB_x to VBO_ATTRIB_y */
-   GLuint map_vp_none[VERT_ATTRIB_MAX];
-   GLuint map_vp_arb[VERT_ATTRIB_MAX];
+   GLubyte map_vp_none[VERT_ATTRIB_MAX];
+   GLubyte map_vp_arb[VERT_ATTRIB_MAX];
 
    struct vbo_exec_context exec;
    struct vbo_save_context save;

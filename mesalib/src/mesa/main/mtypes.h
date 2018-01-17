@@ -46,7 +46,6 @@
 #include "compiler/shader_info.h"
 #include "main/formats.h"       /* MESA_FORMAT_COUNT */
 #include "compiler/glsl/list.h"
-#include "util/bitscan.h"
 #include "util/simple_mtx.h"
 #include "util/u_dynarray.h"
 
@@ -2546,22 +2545,6 @@ struct gl_linked_shader
    struct exec_list *fragdata_arrays;
    struct glsl_symbol_table *symbols;
 };
-
-
-static inline GLbitfield
-gl_external_samplers(const struct gl_program *prog)
-{
-   GLbitfield external_samplers = 0;
-   GLbitfield mask = prog->SamplersUsed;
-
-   while (mask) {
-      int idx = u_bit_scan(&mask);
-      if (prog->sh.SamplerTargets[idx] == TEXTURE_EXTERNAL_INDEX)
-         external_samplers |= (1 << idx);
-   }
-
-   return external_samplers;
-}
 
 
 /**

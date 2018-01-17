@@ -1642,6 +1642,24 @@ xkb_symbols "cz_sk_de" {
     include "level3(ralt_switch)"
 };
 
+// 03 December 2017 - Added us(scn), please refer to
+//                    Cadèmia Siciliana <l10n@cademiasiciliana.org>
+partial alphanumeric_keys
+xkb_symbols "scn" {
+
+    include "us(intl)"
+    name[Group1]="Sicilian (US keyboard)";
+
+    key <AD03> { [      e,       E, U0259,       U018F ] };
+    key <AC03> { [      d,       D, U1E0D,       U1E0C ] };
+    key <AC04> { [      f,       F, U0111,       U0110 ] };
+    key <AC06> { [      h,       H, U1E25,       U1E24 ] };
+    key <AB02> { [      x,       X, U03C7,       U03A7 ] };
+    key <AB09> { [ period, greater, U1D58,  dead_caron ] };
+
+    include "level3(ralt_switch)"
+};
+
 // XCompose is out! Unicode combining is in!  For those of us who live
 // on the edge: A keymap using Unicode combining characters instead of
 // deadkeys.  This variation does not deviate from the lame MS-style

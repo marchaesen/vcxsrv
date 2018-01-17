@@ -906,6 +906,7 @@ AC_CHECK_FUNC([posix_memalign], [DEFINES="$DEFINES -DHAVE_POSIX_MEMALIGN"])
 
 dnl Check for zlib
 PKG_CHECK_MODULES([ZLIB], [zlib >= $ZLIB_REQUIRED])
+DEFINES="$DEFINES -DHAVE_ZLIB"
 
 dnl Check for pthreads
 AX_PTHREAD

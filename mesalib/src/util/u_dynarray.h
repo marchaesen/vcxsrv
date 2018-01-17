@@ -28,6 +28,7 @@
 #define U_DYNARRAY_H
 
 #include <stdlib.h>
+#include <string.h>
 #include "ralloc.h"
 
 #ifdef __cplusplus

@@ -200,7 +200,7 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
                     "glGetProgramInterfaceiv(%s pname %s)",
                     _mesa_enum_to_string(programInterface),
                     _mesa_enum_to_string(pname));
-      };
+      }
       break;
    case GL_MAX_NUM_COMPATIBLE_SUBROUTINES:
       switch (programInterface) {

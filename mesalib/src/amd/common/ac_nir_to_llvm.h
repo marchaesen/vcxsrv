@@ -169,7 +169,6 @@ struct ac_shader_variant_info {
 		struct {
 			unsigned num_interp;
 			uint32_t input_mask;
-			unsigned output_mask;
 			uint32_t flat_shaded_mask;
 			bool has_pcoord;
 			bool can_discard;

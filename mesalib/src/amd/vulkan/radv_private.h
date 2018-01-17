@@ -49,6 +49,7 @@
 #include "util/list.h"
 #include "main/macros.h"
 #include "vk_alloc.h"
+#include "vk_debug_report.h"
 
 #include "radv_radeon_winsys.h"
 #include "ac_binary.h"
@@ -296,6 +297,8 @@ struct radv_instance {
 
 	uint64_t debug_flags;
 	uint64_t perftest_flags;
+
+	struct vk_debug_report_instance             debug_report_callbacks;
 };
 
 VkResult radv_init_wsi(struct radv_physical_device *physical_device);
