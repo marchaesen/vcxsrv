@@ -107,17 +107,17 @@ loopback_prim(struct gl_context *ctx,
    GLuint k;
 
    if (0)
-      printf("loopback prim %s(%s,%s) verts %d..%d\n",
+      printf("loopback prim %s(%s,%s) verts %d..%d  vsize %d\n",
              _mesa_lookup_prim_by_nr(prim->mode),
              prim->begin ? "begin" : "..",
              prim->end ? "end" : "..",
-             start, end);
+             start, end,
+             vertex_size);
 
    if (prim->begin) {
       CALL_Begin(GET_DISPATCH(), (prim->mode));
    }
    else {
-      assert(start == 0);
       start += wrap_count;
    }
 

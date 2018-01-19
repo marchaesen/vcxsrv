@@ -31,10 +31,10 @@ radv_entrypoints = custom_target(
 
 radv_extensions_c = custom_target(
   'radv_extensions.c',
-  input : ['radv_extensions.py', vk_api_xml],
+  input : ['radv_extensions.py', vk_api_xml, vk_android_native_buffer_xml],
   output : ['radv_extensions.c'],
   command : [
-    prog_python2, '@INPUT0@', '--xml', '@INPUT1@', '--out', '@OUTPUT@',
+    prog_python2, '@INPUT0@', '--xml', '@INPUT1@', '--xml', '@INPUT2@', '--out', '@OUTPUT@',
   ],
 )
 

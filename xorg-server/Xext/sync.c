@@ -660,7 +660,7 @@ SyncAwaitTriggerFired(SyncTrigger * pTrigger)
              */
             if (overflow)
                 continue;
-            diffgreater = diff >= pAwait->event_threshold;
+            diffgreater = diff > pAwait->event_threshold;
             diffequal = diff == pAwait->event_threshold;
 
             /* "If the test-type is PositiveTransition or

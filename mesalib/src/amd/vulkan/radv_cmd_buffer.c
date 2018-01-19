@@ -4026,7 +4026,9 @@ static void radv_handle_dcc_image_transition(struct radv_cmd_buffer *cmd_buffer,
 					     unsigned dst_queue_mask,
 					     const VkImageSubresourceRange *range)
 {
-	if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+	if (src_layout == VK_IMAGE_LAYOUT_PREINITIALIZED) {
+		radv_initialize_dcc(cmd_buffer, image, 0xffffffffu);
+	} else if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
 		radv_initialize_dcc(cmd_buffer, image,
 		                    radv_layout_dcc_compressed(image, dst_layout, dst_queue_mask) ?
 		                         0x20202020u : 0xffffffffu);

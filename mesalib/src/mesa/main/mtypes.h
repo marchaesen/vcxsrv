@@ -242,7 +242,7 @@ struct gl_config
 
    /* ARB_multisample / SGIS_multisample */
    GLint sampleBuffers;
-   GLint samples;
+   GLuint samples;
 
    /* SGIX_pbuffer / GLX 1.3 */
    GLint maxPbufferWidth;

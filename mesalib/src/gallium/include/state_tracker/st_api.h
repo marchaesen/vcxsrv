@@ -202,7 +202,7 @@ struct st_visual
    enum pipe_format color_format;
    enum pipe_format depth_stencil_format;
    enum pipe_format accum_format;
-   int samples;
+   unsigned samples;
 
    /**
     * Desired render buffer.

@@ -99,6 +99,13 @@ VULKAN_LIB_DEPS += \
 	$(WAYLAND_CLIENT_LIBS)
 endif
 
+if HAVE_PLATFORM_ANDROID
+AM_CPPFLAGS += $(ANDROID_CPPFLAGS)
+AM_CFLAGS += $(ANDROID_CFLAGS)
+VULKAN_LIB_DEPS += $(ANDROID_LIBS)
+VULKAN_SOURCES += $(VULKAN_ANDROID_FILES)
+endif
+
 noinst_LTLIBRARIES = libvulkan_common.la
 libvulkan_common_la_SOURCES = $(VULKAN_SOURCES)
 
@@ -106,11 +113,14 @@ nodist_EXTRA_libvulkan_radeon_la_SOURCES = dummy.cpp
 libvulkan_radeon_la_SOURCES = $(VULKAN_GEM_FILES)
 
 vulkan_api_xml = $(top_srcdir)/src/vulkan/registry/vk.xml
+vk_android_native_buffer_xml = $(top_srcdir)/src/vulkan/registry/vk_android_native_buffer.xml
 
 radv_entrypoints.c: radv_entrypoints_gen.py radv_extensions.py $(vulkan_api_xml)
 	$(MKDIR_GEN)
 	$(AM_V_GEN)$(PYTHON2) $(srcdir)/radv_entrypoints_gen.py \
-		--xml $(vulkan_api_xml) --outdir $(builddir)
+		--xml $(vulkan_api_xml) \
+		--xml $(vk_android_native_buffer_xml) \
+		--outdir $(builddir)
 radv_entrypoints.h: radv_entrypoints.c
 
 radv_extensions.c: radv_extensions.py \
@@ -118,6 +128,7 @@ radv_extensions.c: radv_extensions.py \
 	$(MKDIR_GEN)
 	$(AM_V_GEN)$(PYTHON2) $(srcdir)/radv_extensions.py \
 		--xml $(vulkan_api_xml) \
+		--xml $(vk_android_native_buffer_xml) \
 		--out $@
 
 vk_format_table.c: vk_format_table.py \

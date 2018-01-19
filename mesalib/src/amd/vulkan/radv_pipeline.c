@@ -1726,10 +1726,16 @@ radv_generate_graphics_pipeline_key(struct radv_pipeline *pipeline,
 
 	key.has_multiview_view_index = has_view_index;
 
+	uint32_t binding_input_rate = 0;
+	for (unsigned i = 0; i < input_state->vertexBindingDescriptionCount; ++i) {
+		if (input_state->pVertexBindingDescriptions[i].inputRate)
+			binding_input_rate |= 1u << input_state->pVertexBindingDescriptions[i].binding;
+	}
+
 	for (unsigned i = 0; i < input_state->vertexAttributeDescriptionCount; ++i) {
 		unsigned binding;
 		binding = input_state->pVertexAttributeDescriptions[i].binding;
-		if (input_state->pVertexBindingDescriptions[binding].inputRate)
+		if (binding_input_rate & (1u << binding))
 			key.instance_rate_inputs |= 1u << input_state->pVertexAttributeDescriptions[i].location;
 	}
 

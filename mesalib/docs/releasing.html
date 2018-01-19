@@ -96,7 +96,7 @@ described in the same section.
 
 <p>
 Nomination happens in the mesa-stable@ mailing list. However,
-maintainer is resposible of checking for forgotten candidates in the
+maintainer is responsible of checking for forgotten candidates in the
 master branch. This is achieved by a combination of ad-hoc scripts and
 a casual search for terms such as regression, fix, broken and similar.
 </p>
@@ -272,6 +272,11 @@ It is followed by a brief period (normally 24 or 48 hours) before the actual
 release is made.
 </p>
 
+<p>
+Be aware to add a note to warn about a final release in a series, if
+that is the case.
+</p>
+
 <h2>Terminology used</h2>
 
 <ul><li>Nominated</ul>
@@ -310,6 +315,10 @@ The candidate for the Mesa X.Y.Z is now available. Currently we have:
  - NUMBER queued
  - NUMBER nominated (outstanding)
  - and NUMBER rejected patches
+
+[If applicable:
+Note: this is the final anticipated release in the SERIES series. Users are
+encouraged to migrate to the NEXT_SERIES series in order to obtain future fixes.]
 
 BRIEF SUMMARY OF CHANGES
 
@@ -465,9 +474,9 @@ Here is one solution that I've been using.
 	cd .. &amp;&amp; rm -rf mesa-$__version
 
 	# Test the automake binaries
-	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
 	# Restore LLVM_CONFIG, if applicable:
 	# export LLVM_CONFIG=`echo $save_LLVM_CONFIG`; unset save_LLVM_CONFIG
+	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
 	./configure \
 		--with-dri-drivers=i965,swrast \
 		--with-gallium-drivers=swrast \
@@ -594,7 +603,8 @@ Something like the following steps will do the trick:
 
 <p>
 Also, edit docs/relnotes.html to add a link to the new release notes,
-edit docs/index.html to add a news entry, and remove the version from
+edit docs/index.html to add a news entry and a note in case of the
+last release in a series, and remove the version from
 docs/release-calendar.html. Then commit and push:
 </p>
 
@@ -608,6 +618,11 @@ docs/release-calendar.html. Then commit and push:
 
 <p>
 Use the generated template during the releasing process.
+</p>
+
+<p>
+Again, pay attention to add a note to warn about a final release in a
+series, if that is the case.
 </p>
 
 

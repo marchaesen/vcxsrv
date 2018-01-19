@@ -1312,8 +1312,7 @@ _mesa_simplify_cmp(struct gl_program * program)
  * instructions, temp regs, etc.
  */
 void
-_mesa_optimize_program(struct gl_context *ctx, struct gl_program *program,
-                       void *mem_ctx)
+_mesa_optimize_program(struct gl_program *program, void *mem_ctx)
 {
    GLboolean any_change;
 

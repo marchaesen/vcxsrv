@@ -101,22 +101,9 @@ void st_upload_constants(struct st_context *st, struct gl_program *prog)
 
       _mesa_shader_write_subroutine_indices(st->ctx, stage);
 
-      /* We always need to get a new buffer, to keep the drivers simple and
-       * avoid gratuitous rendering synchronization.
-       * Let's use a user buffer to avoid an unnecessary copy.
-       */
-      if (!st->has_user_constbuf) {
-         cb.buffer = NULL;
-         cb.user_buffer = NULL;
-         u_upload_data(st->pipe->const_uploader, 0, paramBytes,
-                       st->ctx->Const.UniformBufferOffsetAlignment,
-                       params->ParameterValues, &cb.buffer_offset, &cb.buffer);
-         u_upload_unmap(st->pipe->const_uploader);
-      } else {
-         cb.buffer = NULL;
-         cb.user_buffer = params->ParameterValues;
-         cb.buffer_offset = 0;
-      }
+      cb.buffer = NULL;
+      cb.user_buffer = params->ParameterValues;
+      cb.buffer_offset = 0;
       cb.buffer_size = paramBytes;
 
       if (ST_DEBUG & DEBUG_CONSTANTS) {

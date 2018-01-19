@@ -237,7 +237,9 @@ def get_entrypoints(doc, entrypoints_to_defines, start_index):
         if extension.attrib['name'] not in supported:
             continue
 
-        assert extension.attrib['supported'] == 'vulkan'
+        if extension.attrib['supported'] != 'vulkan':
+            continue
+
         for command in extension.findall('./require/command'):
             enabled_commands.add(command.attrib['name'])
 

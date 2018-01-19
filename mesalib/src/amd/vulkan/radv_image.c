@@ -923,29 +923,34 @@ radv_image_create(VkDevice _device,
 	image->size = image->surface.surf_size;
 	image->alignment = image->surface.surf_alignment;
 
-	/* Try to enable DCC first. */
-	if (radv_image_can_enable_dcc(image)) {
-		radv_image_alloc_dcc(image);
-	} else {
-		/* When DCC cannot be enabled, try CMASK. */
-		image->surface.dcc_size = 0;
-		if (radv_image_can_enable_cmask(image)) {
-			radv_image_alloc_cmask(device, image);
-		}
-	}
-
-	/* Try to enable FMASK for multisampled images. */
-	if (radv_image_can_enable_fmask(image)) {
-		radv_image_alloc_fmask(device, image);
-	} else {
-		/* Otherwise, try to enable HTILE for depth surfaces. */
-		if (radv_image_can_enable_htile(image) &&
-		    !(device->instance->debug_flags & RADV_DEBUG_NO_HIZ)) {
-			radv_image_alloc_htile(image);
-			image->tc_compatible_htile = image->surface.flags & RADEON_SURF_TC_COMPATIBLE_HTILE;
+	if (!create_info->no_metadata_planes) {
+		/* Try to enable DCC first. */
+		if (radv_image_can_enable_dcc(image)) {
+			radv_image_alloc_dcc(image);
 		} else {
-			image->surface.htile_size = 0;
+			/* When DCC cannot be enabled, try CMASK. */
+			image->surface.dcc_size = 0;
+			if (radv_image_can_enable_cmask(image)) {
+				radv_image_alloc_cmask(device, image);
+			}
 		}
+
+		/* Try to enable FMASK for multisampled images. */
+		if (radv_image_can_enable_fmask(image)) {
+			radv_image_alloc_fmask(device, image);
+		} else {
+			/* Otherwise, try to enable HTILE for depth surfaces. */
+			if (radv_image_can_enable_htile(image) &&
+			    !(device->instance->debug_flags & RADV_DEBUG_NO_HIZ)) {
+				radv_image_alloc_htile(image);
+				image->tc_compatible_htile = image->surface.flags & RADEON_SURF_TC_COMPATIBLE_HTILE;
+			} else {
+				image->surface.htile_size = 0;
+			}
+		}
+	} else {
+		image->surface.dcc_size = 0;
+		image->surface.htile_size = 0;
 	}
 
 	if (pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT) {
@@ -1142,6 +1147,15 @@ radv_CreateImage(VkDevice device,
 		 const VkAllocationCallbacks *pAllocator,
 		 VkImage *pImage)
 {
+#ifdef ANDROID
+	const VkNativeBufferANDROID *gralloc_info =
+		vk_find_struct_const(pCreateInfo->pNext, NATIVE_BUFFER_ANDROID);
+
+	if (gralloc_info)
+		return radv_image_from_gralloc(device, pCreateInfo, gralloc_info,
+		                              pAllocator, pImage);
+#endif
+
 	const struct wsi_image_create_info *wsi_info =
 		vk_find_struct_const(pCreateInfo->pNext, WSI_IMAGE_CREATE_INFO_MESA);
 	bool scanout = wsi_info && wsi_info->scanout;
@@ -1167,6 +1181,9 @@ radv_DestroyImage(VkDevice _device, VkImage _image,
 
 	if (image->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT)
 		device->ws->buffer_destroy(image->bo);
+
+	if (image->owned_memory != VK_NULL_HANDLE)
+		radv_FreeMemory(_device, image->owned_memory, pAllocator);
 
 	vk_free2(&device->alloc, pAllocator, image);
 }

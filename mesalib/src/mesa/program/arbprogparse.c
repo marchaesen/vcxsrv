@@ -181,7 +181,7 @@ _mesa_parse_arb_vertex_program(struct gl_context *ctx, GLenum target,
       return;
    }
 
-   _mesa_optimize_program(ctx, &prog, program);
+   _mesa_optimize_program(&prog, program);
 
    ralloc_free(program->String);
 
