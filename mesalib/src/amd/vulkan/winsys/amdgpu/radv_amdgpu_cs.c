@@ -175,14 +175,13 @@ static void radv_amdgpu_cs_destroy(struct radeon_winsys_cs *rcs)
 	free(cs);
 }
 
-static boolean radv_amdgpu_init_cs(struct radv_amdgpu_cs *cs,
-				   enum ring_type ring_type)
+static void radv_amdgpu_init_cs(struct radv_amdgpu_cs *cs,
+				enum ring_type ring_type)
 {
 	for (int i = 0; i < ARRAY_SIZE(cs->buffer_hash_table); ++i)
 		cs->buffer_hash_table[i] = -1;
 
 	cs->hw_ip = ring_to_hw_ip(ring_type);
-	return true;
 }
 
 static struct radeon_winsys_cs *

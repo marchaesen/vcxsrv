@@ -424,7 +424,7 @@ radv_fill_shader_variant(struct radv_device *device,
 		} else if (es_type == MESA_SHADER_TESS_EVAL) {
 			es_vgpr_comp_cnt = 3;
 		} else {
-			assert(!"invalid shader ES type");
+			unreachable("invalid shader ES type");
 		}
 
 		/* If offsets 4, 5 are used, GS_VGPR_COMP_CNT is ignored and

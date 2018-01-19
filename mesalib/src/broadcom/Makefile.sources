@@ -13,11 +13,14 @@ BROADCOM_GENXML_XML_FILES = \
 
 BROADCOM_FILES = \
 	cle/v3d_packet_helpers.h \
-	common/v3d_debug.c \
-	common/v3d_debug.h \
+	cle/v3dx_pack.h\
 	clif/clif_dump.c \
 	clif/clif_dump.h \
+	clif/clif_private.h \
+	common/v3d_debug.c \
+	common/v3d_debug.h \
 	common/v3d_device_info.h \
+	common/v3d_macros.h \
 	compiler/nir_to_vir.c \
 	compiler/vir.c \
 	compiler/vir_dump.c \

@@ -497,3 +497,47 @@ partial alphanumeric_keys
        include "sun_vndr/pl(sun_type6)"
 };
 
+------------------------------
+//Glagolica
+partial alphanumeric_keys
+xkb_symbols "glagolica"
+{
+    name[Group1] = "Polish (Glagolica)";
+
+    key <AD01> { [ U2C21, U2C23, any, any ] };//q/Q/Ⱑ/Ⱓ
+    key <AD02> { [ U2C02, U2C19, any, any ] };//w/W/Ⰲ/Ⱉ/
+    key <AD03> { [ U2C05, U2C27, U2C24, U2C25 ] };//e/E/Ⰵ/Ⱗ/Ⱔ/Ⱕ
+    key <AD04> { [ U2C13, U2C13, any, any ] };//r/R/Ⱃ/Ⱃ
+    key <AD05> { [ U2C15, U2C15, any, any ] };//t/T/Ⱅ/Ⱅ
+    key <AD06> { [ U2C09, U2C0A, U2C20, any ] };//y/Y/Ⰹ/Ⰺ/Ⱐ
+    key <AD07> { [ U2C16, U2C16, any, any ] };//u/U/Ⱆ/
+    key <AD08> { [ U2C0B, U2C09, any, any ] };//i/I/Ⰻ/Ⰹ
+    key <AD09> { [ U2C11, U2C19, U2C41, any ] };//o/O/Ⱁ/Ⱉ/ⱁ
+    key <AD10> { [ U2C12, U2C1A, any, any ] };//p/P/Ⱂ/Ⱊ
+    key <AD11> { [ U2C1E, U2C26, any, any ] };//[/{/Ⱎ/Ⱖ
+    key <AD12> { [ U2C1B, U2C29, any, any ] };//]/}/Ⱋ/Ⱙ
+    key <AC01> { [ U2C00, U2C00, U2C28, U2C29 ] };//a/A/Ⰰ/Ⰰ/Ⱘ/Ⱙ
+    key <AC02> { [ U2C14, U2C1E, any, any ] };//[/{/Ⱄ/Ⱎ
+    key <AC03> { [ U2C04, U2C04, any, any ] };//d/D/Ⰴ/Ⰴ
+    key <AC04> { [ U2C17, U2C2A, any, any ] };//f/F/Ⱇ/Ⱚ
+    key <AC05> { [ U2C03, U2C03, any, any ] };//g/G/Ⰳ/Ⰳ
+    key <AC06> { [ U2C18, U2C18, any, any ] };//h/H/Ⱈ/Ⱈ
+    key <AC07> { [ U2C0A, U2C0A, any, any ] };//j/J/Ⰺ/Ⰺ
+    key <AC08> { [ U2C0D, U2C0D, any, any ] };//k/K/Ⰽ/Ⰽ
+    key <AC09> { [ U2C0E, U2C0E, any, any ] };//l/L/Ⰾ/Ⰾ
+    key <AC12> { [ U2C0C, any, any, any ] };//\/|/Ⰼ
+    key <AC10> { [ U2C28, U2C24, any, any ] };//;/:/Ⱘ/Ⱔ
+    key <AC11> { [ U2C06, any, any, any ] };//'/"/Ⰶ
+    key <AB01> { [ U2C08, U2C07, any, any ] };//z/Z/Ⰸ/Ⰷ
+    key <AB02> { [ U2C20, U2C1F, any, any ] };//x/X/Ⱐ/Ⱏ
+    key <AB03> { [ U2C1C, U2C1D, any, any] };//c/C/Ⱌ/Ⱍ
+    key <AB04> { [ U2C02, U2C2B, any, any ] };//v/V/Ⰲ/Ⱛ
+    key <AB05> { [ U2C01, U2C01, any, any ] };//b/B/Ⰱ/Ⰱ
+    key <AB06> { [ U2C10, U2C10, any, any ] };//n/N/Ⱀ/Ⱀ
+    key <AB07> { [ U2C0F, U2C0F, any, any ] };//m/M/Ⰿ/Ⰿ
+
+    include "kpdl(comma)"
+
+    include "level3(ralt_switch)"
+
+};

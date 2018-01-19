@@ -69,6 +69,9 @@ VULKAN_FILES := \
 	vk_format.h \
 	$(RADV_WS_AMDGPU_FILES)
 
+VULKAN_ANDROID_FILES := \
+	radv_android.c
+
 VULKAN_WSI_WAYLAND_FILES := \
 	radv_wsi_wayland.c
 

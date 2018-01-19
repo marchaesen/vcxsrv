@@ -372,8 +372,6 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
 
    st->dirty = ST_ALL_STATES_MASK;
 
-   st->has_user_constbuf =
-      screen->get_param(screen, PIPE_CAP_USER_CONSTANT_BUFFERS);
    st->can_bind_const_buffer_as_vertex =
       screen->get_param(screen, PIPE_CAP_CAN_BIND_CONST_BUFFER_AS_VERTEX);
 

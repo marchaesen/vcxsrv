@@ -240,8 +240,11 @@ loopback_vertex_list(struct gl_context *ctx,
                                  list->vertex_store->bufferobj,
                                  MAP_INTERNAL);
 
+   unsigned buffer_offset =
+      aligned_vertex_buffer_offset(list) ? 0 : list->buffer_offset;
+
    vbo_loopback_vertex_list(ctx,
-                            (const GLfloat *)(buffer + list->buffer_offset),
+                            (const GLfloat *) (buffer + buffer_offset),
                             list->attrsz,
                             list->prims,
                             list->prim_count,

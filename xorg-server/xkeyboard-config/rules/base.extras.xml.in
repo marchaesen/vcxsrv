@@ -476,6 +476,12 @@
             <_description>Polish (Sun Type 6/7)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>glagolica</name>
+            <_description>Polish (Glagolica)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -1140,6 +1146,14 @@
           </configItem>
         </variant>
       </variantList>
+    </layout>
+    <layout>
+      <configItem>
+        <name>trans</name>
+          <!-- Keyboard layouts for transcription and transliteration systems -->
+        <_description>International Phonetic Alphabet</_description>
+      </configItem>
+      <variantList/>
     </layout>
   </layoutList>
   <optionList>

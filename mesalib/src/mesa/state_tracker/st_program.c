@@ -1425,6 +1425,40 @@ st_translate_program_common(struct st_context *st,
    }
 }
 
+/**
+ * Update stream-output info for GS/TCS/TES.  Normally this is done in
+ * st_translate_program_common() but that is not called for glsl_to_nir
+ * case.
+ */
+static void
+st_translate_program_stream_output(struct gl_program *prog,
+                                   struct pipe_stream_output_info *stream_output)
+{
+   if (!prog->sh.LinkedTransformFeedback)
+      return;
+
+   ubyte outputMapping[VARYING_SLOT_TESS_MAX];
+   GLuint attr;
+   uint num_outputs = 0;
+
+   memset(outputMapping, 0, sizeof(outputMapping));
+
+   /*
+    * Determine number of outputs, the (default) output register
+    * mapping and the semantic information for each output.
+    */
+   for (attr = 0; attr < VARYING_SLOT_MAX; attr++) {
+      if (prog->info.outputs_written & BITFIELD64_BIT(attr)) {
+         GLuint slot = num_outputs++;
+
+         outputMapping[attr] = slot;
+      }
+   }
+
+   st_translate_stream_output_info2(prog->sh.LinkedTransformFeedback,
+                                    outputMapping,
+                                    stream_output);
+}
 
 /**
  * Translate a geometry program to create a new variant.
@@ -1436,8 +1470,10 @@ st_translate_geometry_program(struct st_context *st,
    struct ureg_program *ureg;
 
    /* We have already compiled to NIR so just return */
-   if (stgp->shader_program)
+   if (stgp->shader_program) {
+      st_translate_program_stream_output(&stgp->Base, &stgp->tgsi.stream_output);
       return true;
+   }
 
    ureg = ureg_create_with_screen(PIPE_SHADER_GEOMETRY, st->pipe->screen);
    if (ureg == NULL)
@@ -1493,6 +1529,7 @@ st_get_basic_variant(struct st_context *st,
 	    tgsi.ir.nir = nir_shader_clone(NULL, prog->tgsi.ir.nir);
 	    st_finalize_nir(st, &prog->Base, prog->shader_program,
                             tgsi.ir.nir);
+            tgsi.stream_output = prog->tgsi.stream_output;
 	 } else
 	    tgsi = prog->tgsi;
          /* fill in new variant */
@@ -1533,7 +1570,7 @@ st_translate_tessctrl_program(struct st_context *st,
 {
    struct ureg_program *ureg;
 
-   /* We have already compiler to NIR so just return */
+   /* We have already compiled to NIR so just return */
    if (sttcp->shader_program)
       return true;
 
@@ -1562,9 +1599,11 @@ st_translate_tesseval_program(struct st_context *st,
 {
    struct ureg_program *ureg;
 
-   /* We have already compiler to NIR so just return */
-   if (sttep->shader_program)
+   /* We have already compiled to NIR so just return */
+   if (sttep->shader_program) {
+      st_translate_program_stream_output(&sttep->Base, &sttep->tgsi.stream_output);
       return true;
+   }
 
    ureg = ureg_create_with_screen(PIPE_SHADER_TESS_EVAL, st->pipe->screen);
    if (ureg == NULL)

@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.3.3 Release Notes / January 18, 2018</h1>
+
+<p>
+Mesa 17.3.3 is a bug fix release which fixes bugs found since the 17.3.2 release.
+</p>
+<p>
+Mesa 17.3.3 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+c733d37a161501cd81dc9b309ccb613753b98eafc6d35e0847548a6642749772  mesa-17.3.3.tar.gz
+41bac5de0ef6adc1f41a1ec0f80c19e361298ce02fa81b5f9ba4fdca33a9379b  mesa-17.3.3.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104214">Bug 104214</a> - Dota crashes when switching from game to desktop</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104492">Bug 104492</a> - Compute Shader: Wrong alignment when assigning struct value to structured SSBO</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104551">Bug 104551</a> - Check if Mako templates for Python are installed</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Smith (3):</p>
+<ul>
+  <li>anv: Add missing unlock in anv_scratch_pool_alloc</li>
+  <li>anv: Take write mask into account in has_color_buffer_write_enabled</li>
+  <li>anv: Make sure state on primary is correct after CmdExecuteCommands</li>
+</ul>
+
+<p>Andres Gomez (1):</p>
+<ul>
+  <li>anv: Import mako templates only during execution of anv_extensions</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (11):</p>
+<ul>
+  <li>radv: Invert condition for all samples identical during resolve.</li>
+  <li>radv: Flush caches before subpass resolve.</li>
+  <li>radv: Fix fragment resolve destination offset.</li>
+  <li>radv: Use correct framebuffer size for partial FS resolves.</li>
+  <li>radv: Always use fragment resolve if dest uses DCC.</li>
+  <li>Revert "radv/gfx9: fix block compression texture views."</li>
+  <li>radv: Use correct HTILE expanded words.</li>
+  <li>radv: Allow writing 0 scissors.</li>
+  <li>ac/nir: Handle loading data from compact arrays.</li>
+  <li>radv: Invalidate L1 for VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT.</li>
+  <li>ac/nir: Sanitize location_frac for local variables.</li>
+</ul>
+
+<p>Dave Airlie (8):</p>
+<ul>
+  <li>radv: fix events on compute queues.</li>
+  <li>radv: fix pipeline statistics end query on compute queue</li>
+  <li>radv/gfx9: fix 3d image to image transfers on compute queues.</li>
+  <li>radv/gfx9: fix 3d image clears on compute queues</li>
+  <li>radv/gfx9: fix buffer to image for 3d images on compute queues</li>
+  <li>radv/gfx9: fix block compression texture views.</li>
+  <li>radv/gfx9: use a bigger hammer to flush cb/db caches.</li>
+  <li>radv/gfx9: use correct swizzle parameter to work out border swizzle.</li>
+</ul>
+
+<p>Emil Velikov (1):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.3.2</li>
+</ul>
+
+<p>Florian Will (1):</p>
+<ul>
+  <li>glsl: Respect std430 layout in lower_buffer_access</li>
+</ul>
+
+<p>Juan A. Suarez Romero (6):</p>
+<ul>
+  <li>cherry-ignore: intel/fs: Use the original destination region for int MUL lowering</li>
+  <li>cherry-ignore: i965/fs: Use UW types when using V immediates</li>
+  <li>cherry-ignore: main: Clear shader program data whenever ProgramBinary is called</li>
+  <li>cherry-ignore: egl: pass the dri2_dpy to the $plat_teardown functions</li>
+  <li>cherry-ignore: vulkan/wsi: free cmd pools</li>
+  <li>Update version to 17.3.3</li>
+</ul>
+
+<p>Józef Kucia (1):</p>
+<ul>
+  <li>radeonsi: fix alpha-to-coverage if color writes are disabled</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>i965: Require space for MI_BATCHBUFFER_END.</li>
+  <li>i965: Torch public intel_batchbuffer_emit_dword/float helpers.</li>
+</ul>
+
+<p>Lucas Stach (1):</p>
+<ul>
+  <li>etnaviv: disable in-place resolve for non-supertiled surfaces</li>
+</ul>
+
+<p>Samuel Iglesias Gonsálvez (1):</p>
+<ul>
+  <li>anv: VkDescriptorSetLayoutBinding can have descriptorCount == 0</li>
+</ul>
+
+<p>Thomas Hellstrom (1):</p>
+<ul>
+  <li>loader/dri3: Avoid freeing renderbuffers in use</li>
+</ul>
+
+<p>Tim Rowley (1):</p>
+<ul>
+  <li>swr/rast: fix invalid sign masks in avx512 simdlib code</li>
+</ul>
+
+
+</div>
+</body>
+</html>

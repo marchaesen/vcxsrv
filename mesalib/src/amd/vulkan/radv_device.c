@@ -1108,6 +1108,9 @@ VkResult radv_CreateDevice(
 	/* Disabled and not implemented for now. */
 	device->dfsm_allowed = device->pbb_allowed && false;
 
+#ifdef ANDROID
+	device->always_use_syncobj = device->physical_device->rad_info.has_syncobj_wait_for_submit;
+#endif
 
 #if HAVE_LLVM < 0x0400
 	device->llvm_supports_spill = false;
@@ -2679,7 +2682,7 @@ VkResult radv_CreateFence(
 	fence->submitted = false;
 	fence->signalled = !!(pCreateInfo->flags & VK_FENCE_CREATE_SIGNALED_BIT);
 	fence->temp_syncobj = 0;
-	if (handleTypes) {
+	if (device->always_use_syncobj || handleTypes) {
 		int ret = device->ws->create_syncobj(device->ws, &fence->syncobj);
 		if (ret) {
 			vk_free2(&device->alloc, pAllocator, fence);
@@ -2855,7 +2858,7 @@ VkResult radv_CreateSemaphore(
 
 	sem->temp_syncobj = 0;
 	/* create a syncobject if we are going to export this semaphore */
-	if (handleTypes) {
+	if (device->always_use_syncobj || handleTypes) {
 		assert (device->physical_device->rad_info.has_syncobj);
 		int ret = device->ws->create_syncobj(device->ws, &sem->syncobj);
 		if (ret) {
