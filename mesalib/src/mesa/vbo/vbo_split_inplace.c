@@ -30,7 +30,6 @@
 #include "main/mtypes.h"
 #include "main/macros.h"
 #include "main/enums.h"
-#include "main/glformats.h"
 #include "vbo_split.h"
 
 
@@ -60,26 +59,27 @@ struct split_context {
 
 
 
-static void flush_vertex( struct split_context *split )
+static void
+flush_vertex( struct split_context *split)
 {
    struct gl_context *ctx = split->ctx;
    const struct gl_vertex_array **saved_arrays = ctx->Array._DrawArrays;
    struct _mesa_index_buffer ib;
    GLuint i;
 
-   if (!split->dstprim_nr) 
+   if (!split->dstprim_nr)
       return;
 
    if (split->ib) {
       ib = *split->ib;
 
       ib.count = split->max_index - split->min_index + 1;
-      ib.ptr = (const void *)((const char *)ib.ptr + 
+      ib.ptr = (const void *)((const char *)ib.ptr +
                               split->min_index * ib.index_size);
 
       /* Rebase the primitives to save index buffer entries. */
       for (i = 0; i < split->dstprim_nr; i++)
-	 split->dstprim[i].start -= split->min_index;
+         split->dstprim[i].start -= split->min_index;
    }
 
    assert(split->max_index >= split->min_index);
@@ -88,13 +88,13 @@ static void flush_vertex( struct split_context *split )
    ctx->NewDriverState |= ctx->DriverFlags.NewArray;
 
    split->draw(ctx,
-	       split->dstprim,
-	       split->dstprim_nr,
-	       split->ib ? &ib : NULL,
-	       !split->ib,
-	       split->min_index,
-	       split->max_index,
-	       NULL, 0, NULL);
+               split->dstprim,
+               split->dstprim_nr,
+               split->ib ? &ib : NULL,
+               !split->ib,
+               split->min_index,
+               split->max_index,
+               NULL, 0, NULL);
 
    ctx->Array._DrawArrays = saved_arrays;
    ctx->NewDriverState |= ctx->DriverFlags.NewArray;
@@ -105,7 +105,8 @@ static void flush_vertex( struct split_context *split )
 }
 
 
-static struct _mesa_prim *next_outprim( struct split_context *split )
+static struct _mesa_prim *
+next_outprim(struct split_context *split)
 {
    if (split->dstprim_nr == MAX_PRIM-1) {
       flush_vertex(split);
@@ -118,22 +119,26 @@ static struct _mesa_prim *next_outprim( struct split_context *split )
    }
 }
 
-static void update_index_bounds(struct split_context *split,
-				const struct _mesa_prim *prim)
+
+static void
+update_index_bounds(struct split_context *split,
+                    const struct _mesa_prim *prim)
 {
    split->min_index = MIN2(split->min_index, prim->start);
    split->max_index = MAX2(split->max_index, prim->start + prim->count - 1);
 }
 
+
 /* Return the maximum amount of vertices that can be emitted for a
  * primitive starting at 'prim->start', depending on the previous
  * index bounds.
  */
-static GLuint get_max_vertices(struct split_context *split,
-			       const struct _mesa_prim *prim)
+static GLuint
+get_max_vertices(struct split_context *split,
+                 const struct _mesa_prim *prim)
 {
    if ((prim->start > split->min_index &&
-	prim->start - split->min_index >= split->limit) ||
+        prim->start - split->min_index >= split->limit) ||
        (prim->start < split->max_index &&
         split->max_index - prim->start >= split->limit))
       /* "prim" starts too far away from the old range. */
@@ -142,10 +147,12 @@ static GLuint get_max_vertices(struct split_context *split,
    return MIN2(split->min_index, prim->start) + split->limit - prim->start;
 }
 
+
 /* Break large primitives into smaller ones.  If not possible, convert
  * the primitive to indexed and pass to split_elts().
  */
-static void split_prims( struct split_context *split) 
+static void
+split_prims(struct split_context *split)
 {
    GLuint i;
 
@@ -157,103 +164,101 @@ static void split_prims( struct split_context *split)
       GLuint count = prim->count - (prim->count - first) % incr;
 
       if (prim->count < first)
-	 continue;
+         continue;
 
       if ((available < count && !split_inplace) ||
-	  (available < first && split_inplace)) {
-	 flush_vertex(split);
-	 available = get_max_vertices(split, prim);
+          (available < first && split_inplace)) {
+         flush_vertex(split);
+         available = get_max_vertices(split, prim);
       }
-      
-      if (available >= count) {
-	 struct _mesa_prim *outprim = next_outprim(split);
 
-	 *outprim = *prim;
-	 update_index_bounds(split, outprim);
+      if (available >= count) {
+         struct _mesa_prim *outprim = next_outprim(split);
+
+         *outprim = *prim;
+         update_index_bounds(split, outprim);
       }
       else if (split_inplace) {
-	 GLuint j, nr;
+         GLuint j, nr;
 
-	 for (j = 0 ; j < count ; ) {
-	    GLuint remaining = count - j;
-	    struct _mesa_prim *outprim = next_outprim(split);
+         for (j = 0 ; j < count ;) {
+            GLuint remaining = count - j;
+            struct _mesa_prim *outprim = next_outprim(split);
 
-	    nr = MIN2( available, remaining );
-	    nr -= (nr - first) % incr;
+            nr = MIN2(available, remaining);
+            nr -= (nr - first) % incr;
 
-	    outprim->mode = prim->mode;
-	    outprim->begin = (j == 0 && prim->begin);
-	    outprim->end = (nr == remaining && prim->end);
-	    outprim->start = prim->start + j;
-	    outprim->count = nr;
+            outprim->mode = prim->mode;
+            outprim->begin = (j == 0 && prim->begin);
+            outprim->end = (nr == remaining && prim->end);
+            outprim->start = prim->start + j;
+            outprim->count = nr;
             outprim->num_instances = prim->num_instances;
             outprim->base_instance = prim->base_instance;
 
-	    update_index_bounds(split, outprim);
+            update_index_bounds(split, outprim);
 
-	    if (nr == remaining) {
-	       /* Finished. 
-		*/
-	       j += nr;
-	    }
-	    else {
-	       /* Wrapped the primitive: 
-		*/
-	       j += nr - (first - incr);
-	       flush_vertex(split);
-	       available = get_max_vertices(split, prim);
-	    }
-	 }
+            if (nr == remaining) {
+               /* Finished */
+               j += nr;
+            }
+            else {
+               /* Wrapped the primitive */
+               j += nr - (first - incr);
+               flush_vertex(split);
+               available = get_max_vertices(split, prim);
+            }
+         }
       }
       else if (split->ib == NULL) {
-	 /* XXX: could at least send the first max_verts off from the
-	  * inplace buffers.
-	  */
+         /* XXX: could at least send the first max_verts off from the
+          * inplace buffers.
+          */
 
-	 /* else convert to indexed primitive and pass to split_elts,
-	  * which will do the necessary copying and turn it back into a
-	  * vertex primitive for rendering...
-	  */
-	 struct _mesa_index_buffer ib;
-	 struct _mesa_prim tmpprim;
-	 GLuint *elts = malloc(count * sizeof(GLuint));
-	 GLuint j;
-	 
-	 for (j = 0; j < count; j++)
-	    elts[j] = prim->start + j;
+         /* else convert to indexed primitive and pass to split_elts,
+          * which will do the necessary copying and turn it back into a
+          * vertex primitive for rendering...
+          */
+         struct _mesa_index_buffer ib;
+         struct _mesa_prim tmpprim;
+         GLuint *elts = malloc(count * sizeof(GLuint));
+         GLuint j;
 
-	 ib.count = count;
-	 ib.index_size = 4;
-	 ib.obj = split->ctx->Shared->NullBufferObj;
-	 ib.ptr = elts;
+         for (j = 0; j < count; j++)
+            elts[j] = prim->start + j;
 
-	 tmpprim = *prim;
-	 tmpprim.indexed = 1;
-	 tmpprim.start = 0;
-	 tmpprim.count = count;
+         ib.count = count;
+         ib.index_size = 4;
+         ib.obj = split->ctx->Shared->NullBufferObj;
+         ib.ptr = elts;
+
+         tmpprim = *prim;
+         tmpprim.indexed = 1;
+         tmpprim.start = 0;
+         tmpprim.count = count;
          tmpprim.num_instances = 1;
          tmpprim.base_instance = 0;
 
-	 flush_vertex(split);
+         flush_vertex(split);
 
-	 vbo_split_copy(split->ctx,
-			split->array,
-			&tmpprim, 1, 
-			&ib,
-			split->draw,
-			split->limits);
-	    
-	 free(elts);
+         vbo_split_copy(split->ctx,
+                        split->array,
+                        &tmpprim, 1,
+                        &ib,
+                        split->draw,
+                        split->limits);
+
+         free(elts);
       }
       else {
-	 flush_vertex(split);
+         flush_vertex(split);
 
-	 vbo_split_copy(split->ctx,
-			split->array,
-			prim, 1, 
-			split->ib,
-			split->draw,
-			split->limits);
+         vbo_split_copy(split->ctx,
+                        split->array,
+                        prim, 1,
+                        split->ib,
+                        split->draw,
+                        split->limits);
       }
    }
 
@@ -261,15 +266,16 @@ static void split_prims( struct split_context *split)
 }
 
 
-void vbo_split_inplace( struct gl_context *ctx,
-			const struct gl_vertex_array *arrays[],
-			const struct _mesa_prim *prim,
-			GLuint nr_prims,
-			const struct _mesa_index_buffer *ib,
-			GLuint min_index,
-			GLuint max_index,
-			vbo_draw_func draw,
-			const struct split_limits *limits )
+void
+vbo_split_inplace(struct gl_context *ctx,
+                  const struct gl_vertex_array *arrays[],
+                  const struct _mesa_prim *prim,
+                  GLuint nr_prims,
+                  const struct _mesa_index_buffer *ib,
+                  GLuint min_index,
+                  GLuint max_index,
+                  vbo_draw_func draw,
+                  const struct split_limits *limits)
 {
    struct split_context split;
 
@@ -289,7 +295,7 @@ void vbo_split_inplace( struct gl_context *ctx,
    split.limits = limits;
    split.limit = ib ? limits->max_indices : limits->max_verts;
 
-   split_prims( &split );
+   split_prims(&split);
 }
 
 

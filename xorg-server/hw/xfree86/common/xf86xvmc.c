@@ -187,6 +187,7 @@ xf86XvMCScreenInit(ScreenPtr pScreen,
         }
         if (!pAdapt[i].xv_adaptor) {
             /* no adaptor by that name */
+            pScreenPriv->dixinfo = FALSE;
             free(pAdapt);
             return FALSE;
         }

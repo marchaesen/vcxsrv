@@ -499,6 +499,7 @@ InputThreadFini(void)
 
     /* Close the pipe to get the input thread to shut down */
     close(hotplugPipeWrite);
+    input_force_unlock();
     pthread_join(inputThreadInfo->thread, NULL);
 
     xorg_list_for_each_entry_safe(dev, next, &inputThreadInfo->devs, node) {

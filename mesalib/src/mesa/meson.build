@@ -327,7 +327,6 @@ files_libmesa_common = files(
   'vbo/vbo_attrib.h',
   'vbo/vbo_attrib_tmp.h',
   'vbo/vbo_context.c',
-  'vbo/vbo_context.h',
   'vbo/vbo_exec_api.c',
   'vbo/vbo_exec_array.c',
   'vbo/vbo_exec.c',
@@ -721,7 +720,7 @@ libmesa_gallium = static_library(
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
   include_directories : [inc_common, include_directories('main')],
   link_with : [libglsl, libmesa_sse41],
-  dependencies : idep_nir_headers,
+  dependencies : [idep_nir_headers, dep_vdpau],
   build_by_default : false,
 )
 

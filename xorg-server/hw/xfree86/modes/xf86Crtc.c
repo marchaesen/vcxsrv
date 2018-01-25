@@ -2651,6 +2651,14 @@ xf86InitialConfiguration(ScrnInfoPtr scrn, Bool canGrow)
     return success;
 }
 
+/* Turn a CRTC off, using the DPMS function and disabling the cursor */
+static void
+xf86DisableCrtc(xf86CrtcPtr crtc)
+{
+    crtc->funcs->dpms(crtc, DPMSModeOff);
+    xf86_crtc_hide_cursor(crtc);
+}
+
 /*
  * Check the CRTC we're going to map each output to vs. it's current
  * CRTC.  If they don't match, we have to disable the output and the CRTC
@@ -2706,9 +2714,9 @@ xf86PrepareCrtcs(ScrnInfoPtr scrn)
          * we need to disable it
          */
         if (desired_outputs != current_outputs || !desired_outputs)
-            (*crtc->funcs->dpms) (crtc, DPMSModeOff);
+            xf86DisableCrtc(crtc);
 #else
-        (*crtc->funcs->dpms) (crtc, DPMSModeOff);
+        xf86DisableCrtc(crtc);
 #endif
     }
 }
@@ -3004,7 +3012,7 @@ xf86DisableUnusedFunctions(ScrnInfoPtr pScrn)
         xf86CrtcPtr crtc = xf86_config->crtc[c];
 
         if (!crtc->enabled) {
-            crtc->funcs->dpms(crtc, DPMSModeOff);
+            xf86DisableCrtc(crtc);
             memset(&crtc->mode, 0, sizeof(crtc->mode));
             xf86RotateDestroy(crtc);
             crtc->active = FALSE;
@@ -3455,7 +3463,7 @@ xf86DetachAllCrtc(ScrnInfoPtr scrn)
                 RRCrtcDetachScanoutPixmap(crtc->randr_crtc);
 
             /* dpms off */
-            (*crtc->funcs->dpms) (crtc, DPMSModeOff);
+            xf86DisableCrtc(crtc);
             /* force a reset the next time its used */
             crtc->randr_crtc->mode = NULL;
             crtc->mode.HDisplay = 0;

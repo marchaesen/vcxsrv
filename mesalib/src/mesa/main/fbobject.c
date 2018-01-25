@@ -1976,6 +1976,9 @@ _mesa_base_fbo_format(const struct gl_context *ctx, GLenum internalFormat)
                ctx->Extensions.ARB_texture_float) ||
               _mesa_is_gles3(ctx) /* EXT_color_buffer_float */ )
          ? GL_RGBA : 0;
+   case GL_RGB9_E5:
+      return (_mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_shared_exponent)
+         ? GL_RGB: 0;
    case GL_ALPHA16F_ARB:
    case GL_ALPHA32F_ARB:
       return ctx->API == API_OPENGL_COMPAT &&

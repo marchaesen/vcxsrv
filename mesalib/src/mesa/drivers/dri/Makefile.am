@@ -72,6 +72,8 @@ mesa_dri_drivers_la_LIBADD = \
         $(DRI_LIB_DEPS) \
         $()
 
+EXTRA_DIST = meson.build
+
 if NEED_MEGADRIVER
 dri_LTLIBRARIES = mesa_dri_drivers.la
 

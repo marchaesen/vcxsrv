@@ -44,8 +44,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "main/dispatch.h"
 #include "util/bitscan.h"
 
-#include "vbo_context.h"
 #include "vbo_noop.h"
+#include "vbo_private.h"
 
 
 /** ID/name for immediate-mode VBO */

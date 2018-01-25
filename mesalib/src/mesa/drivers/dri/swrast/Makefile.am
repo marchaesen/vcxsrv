@@ -38,3 +38,5 @@ AM_CFLAGS = \
 
 noinst_LTLIBRARIES = libswrast_dri.la
 libswrast_dri_la_SOURCES = $(SWRAST_C_FILES)
+
+EXTRA_DIST = meson.build

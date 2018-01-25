@@ -320,7 +320,7 @@ xf86_set_cursor_colors(ScrnInfoPtr scrn, int bg, int fg)
     }
 }
 
-static void
+void
 xf86_crtc_hide_cursor(xf86CrtcPtr crtc)
 {
     if (crtc->cursor_shown) {

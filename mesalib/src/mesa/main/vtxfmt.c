@@ -34,7 +34,7 @@
 #include "eval.h"
 #include "dlist.h"
 #include "main/dispatch.h"
-#include "vbo/vbo_context.h"
+#include "vbo/vbo.h"
 
 
 /**
@@ -257,8 +257,7 @@ _mesa_install_save_vtxfmt(struct gl_context *ctx, const GLvertexformat *vfmt)
 void
 _mesa_initialize_vbo_vtxfmt(struct gl_context *ctx)
 {
-   struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
-   _mesa_install_exec_vtxfmt(ctx, &exec->vtxfmt);
+   _vbo_install_exec_vtxfmt(ctx);
    if (ctx->API == API_OPENGL_COMPAT) {
       _mesa_install_save_vtxfmt(ctx, &ctx->ListState.ListVtxfmt);
    }

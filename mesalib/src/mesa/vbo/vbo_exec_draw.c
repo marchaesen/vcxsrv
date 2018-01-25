@@ -34,8 +34,8 @@
 #include "main/state.h"
 #include "main/vtxfmt.h"
 
-#include "vbo_context.h"
 #include "vbo_noop.h"
+#include "vbo_private.h"
 
 
 static void
@@ -159,7 +159,7 @@ vbo_copy_vertices(struct vbo_exec_context *exec)
    case PRIM_OUTSIDE_BEGIN_END:
       return 0;
    default:
-      assert(0);
+      unreachable("Unexpected primitive type");
       return 0;
    }
 }
@@ -220,7 +220,7 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
       }
       break;
    default:
-      assert(0);
+      unreachable("Bad vertex program mode");
    }
 
    for (attr = 0; attr < VERT_ATTRIB_MAX ; attr++) {

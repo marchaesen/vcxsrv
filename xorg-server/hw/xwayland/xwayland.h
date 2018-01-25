@@ -46,6 +46,7 @@
 #include "pointer-constraints-unstable-v1-client-protocol.h"
 #include "tablet-unstable-v2-client-protocol.h"
 #include "xwayland-keyboard-grab-unstable-v1-client-protocol.h"
+#include "xdg-output-unstable-v1-client-protocol.h"
 
 struct xwl_screen {
     int width;
@@ -82,6 +83,7 @@ struct xwl_screen {
     struct zwp_relative_pointer_manager_v1 *relative_pointer_manager;
     struct zwp_pointer_constraints_v1 *pointer_constraints;
     struct zwp_xwayland_keyboard_grab_manager_v1 *wp_grab;
+    struct zxdg_output_manager_v1 *xdg_output_manager;
     uint32_t serial;
 
 #define XWL_FORMAT_ARGB8888 (1 << 0)
@@ -259,12 +261,15 @@ struct xwl_tablet_pad {
 struct xwl_output {
     struct xorg_list link;
     struct wl_output *output;
+    struct zxdg_output_v1 *xdg_output;
     uint32_t server_output_id;
     struct xwl_screen *xwl_screen;
     RROutputPtr randr_output;
     RRCrtcPtr randr_crtc;
     int32_t x, y, width, height, refresh;
     Rotation rotation;
+    Bool wl_output_done;
+    Bool xdg_output_done;
 };
 
 struct xwl_pixmap;
@@ -326,6 +331,9 @@ Bool xwl_screen_init_glamor(struct xwl_screen *xwl_screen,
 struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap);
 
 void xwl_screen_release_tablet_manager(struct xwl_screen *xwl_screen);
+
+void xwl_output_get_xdg_output(struct xwl_output *xwl_output);
+void xwl_screen_init_xdg_output(struct xwl_screen *xwl_screen);
 
 #ifdef XV
 /* glamor Xv Adaptor */

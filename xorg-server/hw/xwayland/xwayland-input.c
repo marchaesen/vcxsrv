@@ -1698,6 +1698,7 @@ tablet_tool_button_state(void *data, struct zwp_tablet_tool_v2 *tool,
 
         case 0x113: /* BTN_SIDE    */
         case 0x116: /* BTN_BACK    */
+        case 0x149: /* BTN_STYLUS3 */
             xbtn = 8;
             break;
 

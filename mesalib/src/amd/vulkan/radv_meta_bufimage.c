@@ -901,21 +901,23 @@ radv_device_init_meta_bufimage_state(struct radv_device *device)
 
 	result = radv_device_init_meta_itob_state(device);
 	if (result != VK_SUCCESS)
-		return result;
+		goto fail_itob;
 
 	result = radv_device_init_meta_btoi_state(device);
 	if (result != VK_SUCCESS)
-		goto fail_itob;
+		goto fail_btoi;
 
 	result = radv_device_init_meta_itoi_state(device);
 	if (result != VK_SUCCESS)
-		goto fail_btoi;
+		goto fail_itoi;
 
 	result = radv_device_init_meta_cleari_state(device);
 	if (result != VK_SUCCESS)
-		goto fail_itoi;
+		goto fail_cleari;
 
 	return VK_SUCCESS;
+fail_cleari:
+	radv_device_finish_meta_cleari_state(device);
 fail_itoi:
 	radv_device_finish_meta_itoi_state(device);
 fail_btoi:

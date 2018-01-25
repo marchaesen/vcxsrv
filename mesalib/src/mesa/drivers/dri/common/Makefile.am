@@ -21,7 +21,7 @@
 
 include Makefile.sources
 
-EXTRA_DIST = SConscript
+EXTRA_DIST = SConscript meson.build
 
 AM_CFLAGS = \
 	-I$(top_srcdir)/include \

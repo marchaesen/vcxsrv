@@ -62,6 +62,11 @@ static FcChar8  *__fc_userconf = NULL;
 
 static void
 FcExprDestroy (FcExpr *e);
+static FcBool
+_FcConfigParse (FcConfig	*config,
+		const FcChar8	*name,
+		FcBool		complain,
+		FcBool		load);
 
 void
 FcTestDestroy (FcTest *test)
@@ -557,6 +562,7 @@ typedef struct _FcConfigParse {
     FcPStack        pstack_static[8];
     unsigned int    vstack_static_used;
     FcVStack        vstack_static[64];
+    FcBool          scanOnly;
 } FcConfigParse;
 
 typedef enum _FcConfigSeverity {
@@ -1221,6 +1227,7 @@ FcConfigParseInit (FcConfigParse	*parse,
     parse->config = config;
     parse->ruleset = FcRuleSetCreate (name);
     parse->parser = parser;
+    parse->scanOnly = !enabled;
     FcRuleSetEnable (parse->ruleset, enabled);
 
     return FcTrue;
@@ -2147,7 +2154,7 @@ FcParseDir (FcConfigParse *parse)
 #endif
     if (strlen ((char *) data) == 0)
 	FcConfigMessage (parse, FcSevereWarning, "empty font directory name ignored");
-    else if (!FcStrUsesHome (data) || FcConfigHome ())
+    else if (!parse->scanOnly && (!FcStrUsesHome (data) || FcConfigHome ()))
     {
 	if (!FcConfigAddDir (parse->config, data))
 	    FcConfigMessage (parse, FcSevereError, "out of memory; cannot add directory %s", data);
@@ -2263,7 +2270,7 @@ FcParseCacheDir (FcConfigParse *parse)
 #endif
     if (strlen ((char *) data) == 0)
 	FcConfigMessage (parse, FcSevereWarning, "empty cache directory name ignored");
-    else if (!FcStrUsesHome (data) || FcConfigHome ())
+    else if (!parse->scanOnly && (!FcStrUsesHome (data) || FcConfigHome ()))
     {
 	if (!FcConfigAddCacheDir (parse->config, data))
 	    FcConfigMessage (parse, FcSevereError, "out of memory; cannot add cache directory %s", data);
@@ -2407,7 +2414,7 @@ FcParseInclude (FcConfigParse *parse)
 	}
     }
     FcRuleSetDestroy (ruleset);
-    if (!FcConfigParseAndLoad (parse->config, s, !ignore_missing))
+    if (!_FcConfigParse (parse->config, s, !ignore_missing, !parse->scanOnly))
 	parse->error = FcTrue;
 #ifndef _WIN32
     else
@@ -2760,17 +2767,17 @@ FcParseAcceptRejectFont (FcConfigParse *parse, FcElement element)
     {
 	switch ((int) vstack->tag) {
 	case FcVStackGlob:
-	    if (!FcConfigGlobAdd (parse->config,
-				  vstack->u.string,
-				  element == FcElementAcceptfont))
+	    if (!parse->scanOnly && !FcConfigGlobAdd (parse->config,
+						      vstack->u.string,
+						      element == FcElementAcceptfont))
 	    {
 		FcConfigMessage (parse, FcSevereError, "out of memory");
 	    }
 	    break;
 	case FcVStackPattern:
-	    if (!FcConfigPatternsAdd (parse->config,
-				      vstack->u.pattern,
-				      element == FcElementAcceptfont))
+	    if (!parse->scanOnly && !FcConfigPatternsAdd (parse->config,
+							  vstack->u.pattern,
+							  element == FcElementAcceptfont))
 	    {
 		FcConfigMessage (parse, FcSevereError, "out of memory");
 	    }
@@ -3227,10 +3234,7 @@ FcConfigParseAndLoadDir (FcConfig	*config,
 	qsort (files->strs, files->num, sizeof (FcChar8 *),
 	       (int (*)(const void *, const void *)) FcSortCmpStr);
 	for (i = 0; ret && i < files->num; i++)
-	    if (load)
-		ret = FcConfigParseAndLoad (config, files->strs[i], complain);
-	    else
-		ret = FcConfigParseOnly (config, files->strs[i], complain);
+	    ret = _FcConfigParse (config, files->strs[i], complain, load);
     }
 bail3:
     FcStrSetDestroy (files);

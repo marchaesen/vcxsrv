@@ -118,4 +118,5 @@ EXTRA_DIST = \
 	util/u_format.csv \
 	util/u_format_pack.py \
 	util/u_format_parse.py \
-	util/u_format_table.py
+	util/u_format_table.py \
+	meson.build

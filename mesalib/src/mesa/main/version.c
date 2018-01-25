@@ -516,7 +516,6 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->ARB_texture_float &&
                          extensions->ARB_texture_rg &&
                          extensions->ARB_depth_buffer_float &&
-                         extensions->EXT_draw_buffers2 &&
                          /* extensions->ARB_framebuffer_object && */
                          extensions->EXT_framebuffer_sRGB &&
                          extensions->EXT_packed_float &&
@@ -546,6 +545,7 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->ARB_gpu_shader5 &&
                          extensions->EXT_shader_integer_mix);
    const bool ver_3_2 = (ver_3_1 &&
+                         extensions->EXT_draw_buffers2 &&
                          extensions->KHR_blend_equation_advanced &&
                          extensions->KHR_robustness &&
                          extensions->KHR_texture_compression_astc_ldr &&

@@ -135,7 +135,7 @@ RRDeleteOutputProperty(RROutputPtr output, Atom property)
 int
 RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
                        int format, int mode, unsigned long len,
-                       void *value, Bool sendevent, Bool pending)
+                       const void *value, Bool sendevent, Bool pending)
 {
     RRPropertyPtr prop;
     rrScrPrivPtr pScrPriv = rrGetScrPriv(output->pScreen);
@@ -324,7 +324,7 @@ RRGetOutputProperty(RROutputPtr output, Atom property, Bool pending)
 int
 RRConfigureOutputProperty(RROutputPtr output, Atom property,
                           Bool pending, Bool range, Bool immutable,
-                          int num_values, INT32 *values)
+                          int num_values, const INT32 *values)
 {
     RRPropertyPtr prop = RRQueryOutputProperty(output, property);
     Bool add = FALSE;

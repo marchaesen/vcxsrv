@@ -34,7 +34,7 @@
 #include "main/dispatch.h"
 #include "glapi/glapi.h"
 
-#include "vbo_context.h"
+#include "vbo_private.h"
 
 
 typedef void (*attr_func)(struct gl_context *ctx, GLint index, const GLfloat *);

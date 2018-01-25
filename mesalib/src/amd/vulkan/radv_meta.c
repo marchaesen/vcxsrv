@@ -379,9 +379,9 @@ fail_resolve_fragment:
 fail_resolve_compute:
 	radv_device_finish_meta_fast_clear_flush_state(device);
 fail_fast_clear:
-	radv_device_finish_meta_buffer_state(device);
-fail_query:
 	radv_device_finish_meta_query_state(device);
+fail_query:
+	radv_device_finish_meta_buffer_state(device);
 fail_buffer:
 	radv_device_finish_meta_depth_decomp_state(device);
 fail_depth_decomp:

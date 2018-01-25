@@ -81,13 +81,18 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "main/state.h"
 #include "util/bitscan.h"
 
-#include "vbo_context.h"
 #include "vbo_noop.h"
+#include "vbo_private.h"
 
 
 #ifdef ERROR
 #undef ERROR
 #endif
+
+/**
+ * Display list flag only used by this VBO code.
+ */
+#define DLIST_DANGLING_REFS     0x1
 
 
 /* An interesting VBO number/name to help with debugging */
@@ -174,7 +179,7 @@ copy_vertices(struct gl_context *ctx,
                 sz * sizeof(GLfloat));
       return i;
    default:
-      assert(0);
+      unreachable("Unexpected primitive type");
       return 0;
    }
 }
@@ -558,6 +563,9 @@ compile_vertex_list(struct gl_context *ctx)
       for (unsigned i = 0; i < save->prim_count; i++) {
          save->prims[i].start += start_offset;
       }
+      node->start_vertex = start_offset;
+   } else {
+      node->start_vertex = 0;
    }
 
    /* Reset our structures for the next run of vertices:
@@ -675,8 +683,7 @@ copy_from_current(struct gl_context *ctx)
          save->attrptr[i][0] = save->current[i][0];
          break;
       case 0:
-         assert(0);
-         break;
+         unreachable("Unexpected vertex attribute size");
       }
    }
 }

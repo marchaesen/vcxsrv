@@ -46,7 +46,12 @@ check_PROGRAMS =
 TESTS =
 BUILT_SOURCES =
 CLEANFILES =
-EXTRA_DIST = $(BROADCOM_FILES)
+EXTRA_DIST = \
+	$(BROADCOM_FILES) \
+	meson.build \
+	cle/meson.build \
+	compiler/meson.build \
+	qpu/meson.build
 
 MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
 PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)

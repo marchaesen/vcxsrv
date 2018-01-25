@@ -54,7 +54,11 @@ if get_option('xdmcp')
     srcs_os += 'xdmcp.c'
 endif
 
+rpc_dep = []
 if get_option('secure-rpc')
+    # prefer libtirpc (if available), otherwise assume RPC functions are
+    # provided by libc.
+    rpc_dep = dependency('libtirpc', required: false)
     srcs_os += 'rpcauth.c'
 endif
 
@@ -73,6 +77,7 @@ libxserver_os = static_library('libxserver_os',
         common_dep,
         dl_dep,
         sha1_dep,
+        rpc_dep,
         dependency('xau')
     ],
     link_with: libxlibc,

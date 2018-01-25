@@ -67,6 +67,18 @@ compBlockHandler(ScreenPtr pScreen, void *pTimeout)
     cs->BlockHandler = NULL;
 }
 
+void
+compMarkAncestors(WindowPtr pWin)
+{
+    pWin = pWin->parent;
+    while (pWin) {
+        if (pWin->damagedDescendants)
+            return;
+        pWin->damagedDescendants = TRUE;
+        pWin = pWin->parent;
+    }
+}
+
 static void
 compReportDamage(DamagePtr pDamage, RegionPtr pRegion, void *closure)
 {
@@ -81,14 +93,7 @@ compReportDamage(DamagePtr pDamage, RegionPtr pRegion, void *closure)
     }
     cw->damaged = TRUE;
 
-    /* Mark the ancestors */
-    pWin = pWin->parent;
-    while (pWin) {
-        if (pWin->damagedDescendants)
-            break;
-        pWin->damagedDescendants = TRUE;
-        pWin = pWin->parent;
-    }
+    compMarkAncestors(pWin);
 }
 
 static void

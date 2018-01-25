@@ -97,10 +97,6 @@ SOFTWARE.
 #undef DPMSExtension
 #endif
 
-#ifdef HAVE_XGL_CONFIG_H
-#include <xgl-config.h>
-#endif
-
 #include "misc.h"
 #include "extension.h"
 #include "extinit.h"
@@ -140,7 +136,7 @@ static ExtensionToggle ExtensionToggleList[] = {
     {"MIT-SCREEN-SAVER", &noScreenSaverExtension},
 #endif
 #ifdef MITSHM
-    {SHMNAME, &noMITShmExtension},
+    {"MIT-SHM", &noMITShmExtension},
 #endif
 #ifdef RANDR
     {"RANDR", &noRRExtension},
@@ -237,21 +233,21 @@ static const ExtensionModule staticExtensions[] = {
     {GEExtensionInit, "Generic Event Extension", &noGEExtension},
     {ShapeExtensionInit, "SHAPE", NULL},
 #ifdef MITSHM
-    {ShmExtensionInit, SHMNAME, &noMITShmExtension},
+    {ShmExtensionInit, "MIT-SHM", &noMITShmExtension},
 #endif
     {XInputExtensionInit, "XInputExtension", NULL},
 #ifdef XTEST
-    {XTestExtensionInit, XTestExtensionName, &noTestExtensions},
+    {XTestExtensionInit, "XTEST", &noTestExtensions},
 #endif
     {BigReqExtensionInit, "BIG-REQUESTS", NULL},
     {SyncExtensionInit, "SYNC", NULL},
-    {XkbExtensionInit, XkbName, NULL},
+    {XkbExtensionInit, "XKEYBOARD", NULL},
     {XCMiscExtensionInit, "XC-MISC", NULL},
 #ifdef XCSECURITY
-    {SecurityExtensionInit, SECURITY_EXTENSION_NAME, &noSecurityExtension},
+    {SecurityExtensionInit, "SECURITY", &noSecurityExtension},
 #endif
 #ifdef PANORAMIX
-    {PanoramiXExtensionInit, PANORAMIX_PROTOCOL_NAME, &noPanoramiXExtension},
+    {PanoramiXExtensionInit, "XINERAMA", &noPanoramiXExtension},
 #endif
 #ifdef INXQUARTZ
     /* PseudoramiXExtensionInit must be done before RRExtensionInit, or
@@ -262,7 +258,7 @@ static const ExtensionModule staticExtensions[] = {
     /* must be before Render to layer DisplayCursor correctly */
     {XFixesExtensionInit, "XFIXES", &noXFixesExtension},
 #ifdef XF86BIGFONT
-    {XFree86BigfontExtensionInit, XF86BIGFONTNAME, &noXFree86BigfontExtension},
+    {XFree86BigfontExtensionInit, "XFree86-Bigfont", &noXFree86BigfontExtension},
 #endif
     {RenderExtensionInit, "RENDER", &noRenderExtension},
 #ifdef RANDR
@@ -275,7 +271,7 @@ static const ExtensionModule staticExtensions[] = {
     {DamageExtensionInit, "DAMAGE", &noDamageExtension},
 #endif
 #ifdef SCREENSAVER
-    {ScreenSaverExtensionInit, ScreenSaverName, &noScreenSaverExtension},
+    {ScreenSaverExtensionInit, "MIT-SCREEN-SAVER", &noScreenSaverExtension},
 #endif
 #ifdef DBE
     {DbeExtensionInit, "DOUBLE-BUFFER", &noDbeExtension},
@@ -284,23 +280,23 @@ static const ExtensionModule staticExtensions[] = {
     {RecordExtensionInit, "RECORD", &noTestExtensions},
 #endif
 #ifdef DPMSExtension
-    {DPMSExtensionInit, DPMSExtensionName, &noDPMSExtension},
+    {DPMSExtensionInit, "DPMS", &noDPMSExtension},
 #endif
 #ifdef PRESENT
-    {present_extension_init, PRESENT_NAME, NULL},
+    {present_extension_init, "Present", NULL},
 #endif
 #ifdef DRI3
-    {dri3_extension_init, DRI3_NAME, NULL},
+    {dri3_extension_init, "DRI3", NULL},
 #endif
 #ifdef RES
-    {ResExtensionInit, XRES_NAME, &noResExtension},
+    {ResExtensionInit, "X-Resource", &noResExtension},
 #endif
 #ifdef XV
-    {XvExtensionInit, XvName, &noXvExtension},
-    {XvMCExtensionInit, XvMCName, &noXvExtension},
+    {XvExtensionInit, "XVideo", &noXvExtension},
+    {XvMCExtensionInit, "XVideo-MotionCompensation", &noXvExtension},
 #endif
 #ifdef XSELINUX
-    {SELinuxExtensionInit, SELINUX_EXTENSION_NAME, &noSELinuxExtension},
+    {SELinuxExtensionInit, "SELinux", &noSELinuxExtension},
 #endif
 };
 

@@ -27,5 +27,6 @@ executable(
     srcs_xwinclip,
     link_with: xwin_clipboard,
     link_args: ['-lgdi32', '-lpthread'],
+    dependencies: [dependency('x11')],
     install: true,
 )

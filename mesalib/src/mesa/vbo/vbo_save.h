@@ -74,7 +74,8 @@ struct vbo_save_vertex_list {
    GLuint current_size;
 
    GLuint buffer_offset;        /**< in bytes */
-   GLuint vertex_count;
+   GLuint start_vertex;         /**< first vertex used by any primitive */
+   GLuint vertex_count;         /**< number of vertices in this list */
    GLuint wrap_count;		/* number of copied vertices at start */
    GLboolean dangling_attr_ref;	/* current attr implicitly referenced
                                    outside the list */
@@ -88,7 +89,7 @@ struct vbo_save_vertex_list {
 
 
 /**
- * Is the vertex lists's buffer offset an exact multiple of the
+ * Is the vertex list's buffer offset an exact multiple of the
  * vertex size (in bytes)?  This is used to check for a vertex array /
  * drawing optimization.
  */
@@ -123,7 +124,7 @@ aligned_vertex_buffer_offset(const struct vbo_save_vertex_list *node)
 struct vbo_save_vertex_store {
    struct gl_buffer_object *bufferobj;
    fi_type *buffer_map;
-   GLuint used;
+   GLuint used;           /**< Number of 4-byte words used in buffer */
    GLuint refcount;
 };
 

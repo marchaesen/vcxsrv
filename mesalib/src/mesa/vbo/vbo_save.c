@@ -28,9 +28,8 @@
 
 #include "main/mtypes.h"
 #include "main/bufferobj.h"
-#include "main/imports.h"
 
-#include "vbo_context.h"
+#include "vbo_private.h"
 
 
 /**

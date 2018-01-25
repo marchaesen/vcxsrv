@@ -331,6 +331,8 @@ struct radv_pipeline_key {
 	uint32_t col_format;
 	uint32_t is_int8;
 	uint32_t is_int10;
+	uint8_t log2_ps_iter_samples;
+	uint8_t log2_num_samples;
 	uint32_t multisample : 1;
 	uint32_t has_multiview_view_index : 1;
 };
@@ -478,8 +480,8 @@ struct radv_meta_state {
 
 	struct {
 		VkPipelineLayout                          p_layout;
-		VkPipeline                                pipeline;
-		VkRenderPass                              pass;
+		VkPipeline                                pipeline[NUM_META_FS_KEYS];
+		VkRenderPass                              pass[NUM_META_FS_KEYS];
 	} resolve;
 
 	struct {
@@ -1237,6 +1239,7 @@ struct radv_pipeline {
 			struct radv_binning_state bin;
 			uint32_t db_shader_control;
 			uint32_t shader_z_format;
+			uint32_t spi_baryc_cntl;
 			unsigned prim;
 			unsigned gs_out;
 			uint32_t vgt_gs_mode;

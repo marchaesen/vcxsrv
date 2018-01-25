@@ -29,12 +29,12 @@
  */
 
 #include "main/imports.h"
-#include "main/bufferobj.h"
 #include "main/macros.h"
 #include "main/varray.h"
 
 #include "vbo.h"
-#include "vbo_context.h"
+#include "vbo_private.h"
+
 
 #define UPDATE_MIN2(a, b) (a) = MIN2((a), (b))
 #define UPDATE_MAX2(a, b) (a) = MAX2((a), (b))

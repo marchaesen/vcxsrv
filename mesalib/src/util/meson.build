@@ -112,8 +112,12 @@ libxmlconfig = static_library(
   files_xmlconfig,
   include_directories : inc_common,
   dependencies : [dep_expat, dep_m],
-  c_args : [c_msvc_compat_args, c_vis_args,
-            '-DSYSCONFDIR="@0@"'.format(get_option('sysconfdir'))],
+  c_args : [
+    c_msvc_compat_args, c_vis_args,
+    '-DSYSCONFDIR="@0@"'.format(
+      join_paths(get_option('prefix'), get_option('sysconfdir'))
+    ),
+  ],
   build_by_default : false,
 )
 

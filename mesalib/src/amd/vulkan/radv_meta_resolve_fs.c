@@ -319,16 +319,9 @@ create_resolve_pipeline(struct radv_device *device,
 					       &vk_pipeline_info, &radv_pipeline_info,
 					       &device->meta_state.alloc,
 					       pipeline);
-
 	ralloc_free(vs.nir);
 	ralloc_free(fs.nir);
-	if (result != VK_SUCCESS)
-		goto fail;
 
-	return VK_SUCCESS;
-fail:
-	ralloc_free(vs.nir);
-	ralloc_free(fs.nir);
 	return result;
 }
 
@@ -339,14 +332,19 @@ radv_device_init_meta_resolve_fragment_state(struct radv_device *device)
 
 	res = create_layout(device);
 	if (res != VK_SUCCESS)
-		return res;
+		goto fail;
 
 	for (uint32_t i = 0; i < MAX_SAMPLES_LOG2; ++i) {
 		for (unsigned j = 0; j < ARRAY_SIZE(pipeline_formats); ++j) {
 			res = create_resolve_pipeline(device, i, pipeline_formats[j]);
+			if (res != VK_SUCCESS)
+				goto fail;
 		}
 	}
 
+	return VK_SUCCESS;
+fail:
+	radv_device_finish_meta_resolve_fragment_state(device);
 	return res;
 }
 

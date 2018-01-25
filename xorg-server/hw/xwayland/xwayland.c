@@ -629,6 +629,7 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
     BoxPtr box;
     struct wl_buffer *buffer;
     PixmapPtr pixmap;
+    int i;
 
     assert(!xwl_window->frame_callback);
 
@@ -644,9 +645,20 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
 
     wl_surface_attach(xwl_window->surface, buffer, 0, 0);
 
-    box = RegionExtents(region);
-    wl_surface_damage(xwl_window->surface, box->x1, box->y1,
-                        box->x2 - box->x1, box->y2 - box->y1);
+    /* Arbitrary limit to try to avoid flooding the Wayland
+     * connection. If we flood it too much anyway, this could
+     * abort in libwayland-client.
+     */
+    if (RegionNumRects(region) > 256) {
+        box = RegionExtents(region);
+        wl_surface_damage(xwl_window->surface, box->x1, box->y1,
+                          box->x2 - box->x1, box->y2 - box->y1);
+    } else {
+        box = RegionRects(region);
+        for (i = 0; i < RegionNumRects(region); i++, box++)
+            wl_surface_damage(xwl_window->surface, box->x1, box->y1,
+                              box->x2 - box->x1, box->y2 - box->y1);
+    }
 
     xwl_window->frame_callback = wl_surface_frame(xwl_window->surface);
     wl_callback_add_listener(xwl_window->frame_callback, &frame_listener, xwl_window);
@@ -696,6 +708,11 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
     else if (strcmp(interface, "wl_output") == 0 && version >= 2) {
         if (xwl_output_create(xwl_screen, id))
             xwl_screen->expecting_event++;
+    }
+    else if (strcmp(interface, "zxdg_output_manager_v1") == 0) {
+        xwl_screen->xdg_output_manager =
+            wl_registry_bind(registry, id, &zxdg_output_manager_v1_interface, 1);
+        xwl_screen_init_xdg_output(xwl_screen);
     }
 #ifdef GLAMOR_HAS_GBM
     else if (xwl_screen->glamor &&

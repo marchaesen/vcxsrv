@@ -83,7 +83,8 @@ EXTRA_DIST = \
 	merge_driinfo.py \
 	SConscript \
 	xmlpool.h \
-	sha1/README
+	sha1/README \
+	meson.build
 
 PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 

@@ -29,6 +29,18 @@
 /* this is separate due to sdksyms pulling in extinit.h */
 #ifdef GLXEXT
 extern void GlxExtensionInit(void);
+
+typedef struct __GLXprovider __GLXprovider;
+typedef struct __GLXscreen __GLXscreen;
+struct __GLXprovider {
+    __GLXscreen *(*screenProbe) (ScreenPtr pScreen);
+    const char *name;
+    __GLXprovider *next;
+};
+extern __GLXprovider __glXDRISWRastProvider;
+
+void GlxPushProvider(__GLXprovider * provider);
+
 #endif
 
 #endif
