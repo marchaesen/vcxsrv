@@ -11,7 +11,10 @@ PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
 EXTRA_DIST = \
 	$(top_srcdir)/include/vulkan/vk_android_native_buffer.h \
-	util/gen_enum_to_str.py
+	util/gen_enum_to_str.py \
+	util/meson.build \
+	wsi/meson.build \
+	meson.build
 
 VULKAN_UTIL_SOURCES = \
 	$(VULKAN_UTIL_FILES) \

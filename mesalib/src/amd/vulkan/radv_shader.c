@@ -476,6 +476,8 @@ shader_variant_create(struct radv_device *device,
 
 	options->family = chip_family;
 	options->chip_class = device->physical_device->rad_info.chip_class;
+	options->dump_preoptir = radv_can_dump_shader(device, module) &&
+				 device->instance->debug_flags & RADV_DEBUG_PREOPTIR;
 
 	if (options->supports_spill)
 		tm_options |= AC_TM_SUPPORTS_SPILL;

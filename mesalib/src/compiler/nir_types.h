@@ -102,6 +102,8 @@ glsl_get_bit_size(const struct glsl_type *type)
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_UINT64:
+   case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_SAMPLER:
       return 64;
 
    default:

@@ -270,11 +270,11 @@ struct gl_config
  * \name Bit flags used for updating material values.
  */
 /*@{*/
-#define MAT_ATTRIB_FRONT_AMBIENT           0 
+#define MAT_ATTRIB_FRONT_AMBIENT           0
 #define MAT_ATTRIB_BACK_AMBIENT            1
-#define MAT_ATTRIB_FRONT_DIFFUSE           2 
+#define MAT_ATTRIB_FRONT_DIFFUSE           2
 #define MAT_ATTRIB_BACK_DIFFUSE            3
-#define MAT_ATTRIB_FRONT_SPECULAR          4 
+#define MAT_ATTRIB_FRONT_SPECULAR          4
 #define MAT_ATTRIB_BACK_SPECULAR           5
 #define MAT_ATTRIB_FRONT_EMISSION          6
 #define MAT_ATTRIB_BACK_EMISSION           7
@@ -284,16 +284,12 @@ struct gl_config
 #define MAT_ATTRIB_BACK_INDEXES            11
 #define MAT_ATTRIB_MAX                     12
 
-#define MAT_ATTRIB_AMBIENT(f)  (MAT_ATTRIB_FRONT_AMBIENT+(f))  
-#define MAT_ATTRIB_DIFFUSE(f)  (MAT_ATTRIB_FRONT_DIFFUSE+(f))  
-#define MAT_ATTRIB_SPECULAR(f) (MAT_ATTRIB_FRONT_SPECULAR+(f)) 
-#define MAT_ATTRIB_EMISSION(f) (MAT_ATTRIB_FRONT_EMISSION+(f)) 
+#define MAT_ATTRIB_AMBIENT(f)  (MAT_ATTRIB_FRONT_AMBIENT+(f))
+#define MAT_ATTRIB_DIFFUSE(f)  (MAT_ATTRIB_FRONT_DIFFUSE+(f))
+#define MAT_ATTRIB_SPECULAR(f) (MAT_ATTRIB_FRONT_SPECULAR+(f))
+#define MAT_ATTRIB_EMISSION(f) (MAT_ATTRIB_FRONT_EMISSION+(f))
 #define MAT_ATTRIB_SHININESS(f)(MAT_ATTRIB_FRONT_SHININESS+(f))
-#define MAT_ATTRIB_INDEXES(f)  (MAT_ATTRIB_FRONT_INDEXES+(f))  
-
-#define MAT_INDEX_AMBIENT  0
-#define MAT_INDEX_DIFFUSE  1
-#define MAT_INDEX_SPECULAR 2
+#define MAT_ATTRIB_INDEXES(f)  (MAT_ATTRIB_FRONT_INDEXES+(f))
 
 #define MAT_BIT_FRONT_AMBIENT         (1<<MAT_ATTRIB_FRONT_AMBIENT)
 #define MAT_BIT_BACK_AMBIENT          (1<<MAT_ATTRIB_BACK_AMBIENT)
@@ -309,21 +305,21 @@ struct gl_config
 #define MAT_BIT_BACK_INDEXES          (1<<MAT_ATTRIB_BACK_INDEXES)
 
 
-#define FRONT_MATERIAL_BITS	(MAT_BIT_FRONT_EMISSION | 	\
-				 MAT_BIT_FRONT_AMBIENT |	\
-				 MAT_BIT_FRONT_DIFFUSE | 	\
-				 MAT_BIT_FRONT_SPECULAR |	\
-				 MAT_BIT_FRONT_SHININESS | 	\
-				 MAT_BIT_FRONT_INDEXES)
+#define FRONT_MATERIAL_BITS   (MAT_BIT_FRONT_EMISSION | \
+                               MAT_BIT_FRONT_AMBIENT | \
+                               MAT_BIT_FRONT_DIFFUSE | \
+                               MAT_BIT_FRONT_SPECULAR | \
+                               MAT_BIT_FRONT_SHININESS | \
+                               MAT_BIT_FRONT_INDEXES)
 
-#define BACK_MATERIAL_BITS	(MAT_BIT_BACK_EMISSION |	\
-				 MAT_BIT_BACK_AMBIENT |		\
-				 MAT_BIT_BACK_DIFFUSE |		\
-				 MAT_BIT_BACK_SPECULAR |	\
-				 MAT_BIT_BACK_SHININESS |	\
-				 MAT_BIT_BACK_INDEXES)
+#define BACK_MATERIAL_BITS    (MAT_BIT_BACK_EMISSION | \
+                               MAT_BIT_BACK_AMBIENT | \
+                               MAT_BIT_BACK_DIFFUSE | \
+                               MAT_BIT_BACK_SPECULAR | \
+                               MAT_BIT_BACK_SHININESS | \
+                               MAT_BIT_BACK_INDEXES)
 
-#define ALL_MATERIAL_BITS	(FRONT_MATERIAL_BITS | BACK_MATERIAL_BITS)
+#define ALL_MATERIAL_BITS     (FRONT_MATERIAL_BITS | BACK_MATERIAL_BITS)
 /*@}*/
 
 
@@ -365,7 +361,7 @@ struct gl_light
    GLfloat QuadraticAttenuation;
    GLboolean Enabled;		/**< On/off flag */
 
-   /** 
+   /**
     * \name Derived fields
     */
    /*@{*/
@@ -393,7 +389,7 @@ struct gl_lightmodel
    GLboolean LocalViewer;	/**< Local (or infinite) view point? */
    GLboolean TwoSide;		/**< Two (or one) sided lighting? */
    GLenum ColorControl;		/**< either GL_SINGLE_COLOR
-				 *    or GL_SEPARATE_SPECULAR_COLOR */
+                                     or GL_SEPARATE_SPECULAR_COLOR */
 };
 
 
@@ -430,7 +426,7 @@ struct gl_colorbuffer_attrib
 
    GLenum DrawBuffer[MAX_DRAW_BUFFERS];	/**< Which buffer to draw into */
 
-   /** 
+   /**
     * \name alpha testing
     */
    /*@{*/
@@ -440,7 +436,7 @@ struct gl_colorbuffer_attrib
    GLclampf AlphaRef;			/**< Alpha reference value */
    /*@}*/
 
-   /** 
+   /**
     * \name Blending
     */
    /*@{*/
@@ -485,7 +481,7 @@ struct gl_colorbuffer_attrib
    bool BlendCoherent;
    /*@}*/
 
-   /** 
+   /**
     * \name Logic op
     */
    /*@{*/
@@ -513,7 +509,7 @@ struct gl_current_attrib
    /**
     * \name Current vertex attributes (color, texcoords, etc).
     * \note Values are valid only after FLUSH_VERTICES has been called.
-    * \note Index and Edgeflag current values are stored as floats in the 
+    * \note Index and Edgeflag current values are stored as floats in the
     * SIX and SEVEN attribute slots.
     * \note We need double storage for 64-bit vertex attributes
     */
@@ -552,7 +548,7 @@ struct gl_depthbuffer_attrib
 struct gl_eval_attrib
 {
    /**
-    * \name Enable bits 
+    * \name Enable bits
     */
    /*@{*/
    GLboolean Map1Color4;
@@ -575,7 +571,7 @@ struct gl_eval_attrib
    GLboolean Map2Vertex4;
    GLboolean AutoNormal;
    /*@}*/
-   
+
    /**
     * \name Map Grid endpoints and divisions and calculated du values
     */
@@ -623,9 +619,9 @@ struct gl_fog_attrib
 };
 
 
-/** 
+/**
  * Hint attribute group (GL_HINT_BIT).
- * 
+ *
  * Values are always one of GL_FASTEST, GL_NICEST, or GL_DONT_CARE.
  */
 struct gl_hint_attrib
@@ -668,13 +664,13 @@ struct gl_light_attrib
    GLboolean _ClampVertexColor;
    GLenum ClampVertexColor;             /**< GL_TRUE, GL_FALSE, GL_FIXED_ONLY */
 
-   /** 
-    * Derived state for optimizations: 
+   /**
+    * Derived state for optimizations:
     */
    /*@{*/
    GLbitfield _EnabledLights;	/**< bitmask containing enabled lights */
 
-   GLboolean _NeedEyeCoords;		
+   GLboolean _NeedEyeCoords;
    GLboolean _NeedVertices;		/**< Use fast shader? */
 
    GLfloat _BaseColor[2][3];
@@ -834,6 +830,8 @@ struct gl_scissor_rect
    GLint X, Y;			/**< Lower left corner of box */
    GLsizei Width, Height;	/**< Size of box */
 };
+
+
 struct gl_scissor_attrib
 {
    GLbitfield EnableFlags;	/**< Scissor test enabled? */
@@ -1204,13 +1202,13 @@ struct gl_tex_env_combine_packed
 #define TEXGEN_REFLECTION_MAP_NV 0x8
 #define TEXGEN_NORMAL_MAP_NV     0x10
 
-#define TEXGEN_NEED_NORMALS      (TEXGEN_SPHERE_MAP        | \
-				  TEXGEN_REFLECTION_MAP_NV | \
-				  TEXGEN_NORMAL_MAP_NV)
-#define TEXGEN_NEED_EYE_COORD    (TEXGEN_SPHERE_MAP        | \
-				  TEXGEN_REFLECTION_MAP_NV | \
-				  TEXGEN_NORMAL_MAP_NV     | \
-				  TEXGEN_EYE_LINEAR)
+#define TEXGEN_NEED_NORMALS   (TEXGEN_SPHERE_MAP        | \
+                               TEXGEN_REFLECTION_MAP_NV | \
+                               TEXGEN_NORMAL_MAP_NV)
+#define TEXGEN_NEED_EYE_COORD (TEXGEN_SPHERE_MAP        | \
+                               TEXGEN_REFLECTION_MAP_NV | \
+                               TEXGEN_NORMAL_MAP_NV     | \
+                               TEXGEN_EYE_LINEAR)
 /*@}*/
 
 
@@ -1261,8 +1259,8 @@ struct gl_texture_unit
    /** Current sampler object (GL_ARB_sampler_objects) */
    struct gl_sampler_object *Sampler;
 
-   /** 
-    * \name GL_EXT_texture_env_combine 
+   /**
+    * \name GL_EXT_texture_env_combine
     */
    struct gl_tex_env_combine_state Combine;
 
@@ -1363,10 +1361,10 @@ struct gl_viewport_attrib
 };
 
 
-typedef enum {
+typedef enum
+{
    MAP_USER,
    MAP_INTERNAL,
-
    MAP_COUNT
 } gl_map_buffer_index;
 
@@ -1374,7 +1372,8 @@ typedef enum {
 /**
  * Fields describing a mapped buffer range.
  */
-struct gl_buffer_mapping {
+struct gl_buffer_mapping
+{
    GLbitfield AccessFlags; /**< Mask of GL_MAP_x_BIT flags */
    GLvoid *Pointer;     /**< User-space address of mapping */
    GLintptr Offset;     /**< Mapped offset */
@@ -1385,7 +1384,8 @@ struct gl_buffer_mapping {
 /**
  * Usages we've seen for a buffer object.
  */
-typedef enum {
+typedef enum
+{
    USAGE_UNIFORM_BUFFER = 0x1,
    USAGE_TEXTURE_BUFFER = 0x2,
    USAGE_ATOMIC_COUNTER_BUFFER = 0x4,
@@ -1566,15 +1566,18 @@ struct gl_vertex_array_object
 };
 
 
-/** Used to signal when transitioning from one kind of drawing method
+/**
+ * Used to signal when transitioning from one kind of drawing method
  * to another.
  */
-typedef enum {
+typedef enum
+{
    DRAW_NONE,          /**< Initial value only */
    DRAW_BEGIN_END,
    DRAW_DISPLAY_LIST,
    DRAW_ARRAYS
 } gl_draw_method;
+
 
 /**
  * Enum for the OpenGL APIs we know about and may support.
@@ -1590,6 +1593,7 @@ typedef enum
    API_OPENGL_CORE,
    API_OPENGL_LAST = API_OPENGL_CORE
 } gl_api;
+
 
 /**
  * Vertex array state
@@ -1702,7 +1706,7 @@ struct gl_2d_map
  */
 struct gl_evaluators
 {
-   /** 
+   /**
     * \name 1-D maps
     */
    /*@{*/
@@ -1717,8 +1721,8 @@ struct gl_evaluators
    struct gl_1d_map Map1Texture4;
    /*@}*/
 
-   /** 
-    * \name 2-D maps 
+   /**
+    * \name 2-D maps
     */
    /*@{*/
    struct gl_2d_map Map2Vertex3;
@@ -2023,6 +2027,7 @@ struct gl_bindless_sampler
    GLvoid *data;
 };
 
+
 /**
  * A bindless image object.
  */
@@ -2040,6 +2045,7 @@ struct gl_bindless_image
    /** Pointer to the base of the data. */
    GLvoid *data;
 };
+
 
 /**
  * Names of the various vertex/fragment program register files, etc.
@@ -3040,7 +3046,7 @@ struct gl_shader_program
     * #extension ARB_fragment_coord_conventions: enable
     */
    GLboolean ARB_fragment_coord_conventions_enable;
-};   
+};
 
 
 #define GLSL_DUMP      0x1  /**< Dump shaders to stdout */
@@ -3211,8 +3217,8 @@ struct gl_sync_object
    GLint RefCount;            /**< Reference count */
    GLchar *Label;             /**< GL_KHR_debug */
    GLboolean DeletePending;   /**< Object was deleted while there were still
-			       * live references (e.g., sync not yet finished)
-			       */
+                               * live references (e.g., sync not yet finished)
+                               */
    GLenum SyncCondition;
    GLbitfield Flags;          /**< Flags passed to glFenceSync */
    GLuint StatusFlag:1;       /**< Has the sync object been signaled? */
@@ -3238,7 +3244,7 @@ struct gl_shared_state
 
    /**
     * \name Thread safety and statechange notification for texture
-    * objects. 
+    * objects.
     *
     * \todo Improve the granularity of locking.
     */
@@ -4279,7 +4285,7 @@ struct gl_matrix_stack
 
 
 /**
- * \name Bits for image transfer operations 
+ * \name Bits for image transfer operations
  * \sa __struct gl_contextRec::ImageTransferState.
  */
 /*@{*/
@@ -4290,12 +4296,13 @@ struct gl_matrix_stack
 
 
 /** Pixel Transfer ops */
-#define IMAGE_BITS (IMAGE_SCALE_BIAS_BIT |			\
-		    IMAGE_SHIFT_OFFSET_BIT |			\
-		    IMAGE_MAP_COLOR_BIT)
+#define IMAGE_BITS (IMAGE_SCALE_BIAS_BIT | \
+                    IMAGE_SHIFT_OFFSET_BIT | \
+                    IMAGE_MAP_COLOR_BIT)
+
 
 /**
- * \name Bits to indicate what state has changed.  
+ * \name Bits to indicate what state has changed.
  */
 /*@{*/
 #define _NEW_MODELVIEW         (1u << 0)   /**< gl_context::ModelView */
@@ -4360,23 +4367,12 @@ struct gl_matrix_stack
 #include "dd.h"
 
 
-/**
- * Display list flags.
- * Strictly this is a tnl-private concept, but it doesn't seem
- * worthwhile adding a tnl private structure just to hold this one bit
- * of information:
- */
-#define DLIST_DANGLING_REFS     0x1 
-
-
 /** Opaque declaration of display list payload data type */
 union gl_dlist_node;
 
 
 /**
- * Provide a location where information about a display list can be
- * collected.  Could be extended with driverPrivate structures,
- * etc. in the future.
+ * Per-display list information.
  */
 struct gl_display_list
 {
@@ -4402,7 +4398,7 @@ struct gl_dlist_state
 
    GLubyte ActiveAttribSize[VERT_ATTRIB_MAX];
    GLfloat CurrentAttrib[VERT_ATTRIB_MAX][4];
-   
+
    GLubyte ActiveMaterialSize[MAT_ATTRIB_MAX];
    GLfloat CurrentMaterial[MAT_ATTRIB_MAX][4];
 
@@ -4420,7 +4416,8 @@ struct gl_dlist_state
  * to small enums suitable for use as an array index.
  */
 
-enum mesa_debug_source {
+enum mesa_debug_source
+{
    MESA_DEBUG_SOURCE_API,
    MESA_DEBUG_SOURCE_WINDOW_SYSTEM,
    MESA_DEBUG_SOURCE_SHADER_COMPILER,
@@ -4430,7 +4427,8 @@ enum mesa_debug_source {
    MESA_DEBUG_SOURCE_COUNT
 };
 
-enum mesa_debug_type {
+enum mesa_debug_type
+{
    MESA_DEBUG_TYPE_ERROR,
    MESA_DEBUG_TYPE_DEPRECATED,
    MESA_DEBUG_TYPE_UNDEFINED,
@@ -4443,7 +4441,8 @@ enum mesa_debug_type {
    MESA_DEBUG_TYPE_COUNT
 };
 
-enum mesa_debug_severity {
+enum mesa_debug_severity
+{
    MESA_DEBUG_SEVERITY_LOW,
    MESA_DEBUG_SEVERITY_MEDIUM,
    MESA_DEBUG_SEVERITY_HIGH,
@@ -4790,7 +4789,7 @@ struct gl_context
    /*@}*/
 
    /** \name Renderer attribute groups
-    * 
+    *
     * We define a struct for each attribute group to make pushing and popping
     * attributes easy.  Also it's a good organization.
     */
@@ -4975,7 +4974,7 @@ struct gl_context
    GLfloat _ModelViewInvScale; /* may be for model- or eyespace lighting */
    GLfloat _ModelViewInvScaleEyespace; /* always factor defined in spec */
    GLboolean _NeedEyeCoords;
-   GLboolean _ForceEyeCoords; 
+   GLboolean _ForceEyeCoords;
 
    GLuint TextureStateTimestamp; /**< detect changes to shared state */
 
@@ -5010,7 +5009,7 @@ struct gl_context
    GLboolean TileRasterOrderIncreasingY;
 
    /**
-    * \name Hooks for module contexts.  
+    * \name Hooks for module contexts.
     *
     * These will eventually live in the driver or elsewhere.
     */

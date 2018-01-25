@@ -182,6 +182,21 @@ ms_get_kernel_ust_msc(xf86CrtcPtr crtc,
     drmVBlank vbl;
     int ret;
 
+#ifdef DRM_IOCTL_CRTC_QUEUE_SEQUENCE
+    if (ms->has_queue_sequence || !ms->tried_queue_sequence) {
+        uint64_t ns;
+        ms->tried_queue_sequence = TRUE;
+
+        ret = drmCrtcGetSequence(ms->fd, drmmode_crtc->mode_crtc->crtc_id,
+                                 msc, &ns);
+        if (ret != -1 || errno != ENOTTY) {
+            ms->has_queue_sequence = TRUE;
+            if (ret == 0)
+                *ust = ns / 1000;
+            return ret == 0;
+        }
+    }
+#endif
     /* Get current count */
     vbl.request.type = DRM_VBLANK_RELATIVE | drmmode_crtc->vblank_pipe;
     vbl.request.sequence = 0;
@@ -211,6 +226,35 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
 
     for (;;) {
         /* Queue an event at the specified sequence */
+#ifdef DRM_IOCTL_CRTC_QUEUE_SEQUENCE
+        if (ms->has_queue_sequence || !ms->tried_queue_sequence) {
+            uint32_t drm_flags = 0;
+            uint64_t kernel;
+            uint64_t kernel_queued;
+
+            ms->tried_queue_sequence = TRUE;
+
+            if (flags & MS_QUEUE_RELATIVE)
+                drm_flags |= DRM_CRTC_SEQUENCE_RELATIVE;
+            if (flags & MS_QUEUE_NEXT_ON_MISS)
+                drm_flags |= DRM_CRTC_SEQUENCE_NEXT_ON_MISS;
+
+            kernel = ms_crtc_msc_to_kernel_msc(crtc, msc);
+            ret = drmCrtcQueueSequence(ms->fd, drmmode_crtc->mode_crtc->crtc_id,
+                                       drm_flags,
+                                       kernel, &kernel_queued, seq);
+            if (ret == 0) {
+                if (msc_queued)
+                    *msc_queued = ms_kernel_msc_to_crtc_msc(crtc, kernel_queued);
+                return TRUE;
+            }
+
+            if (ret != -1 || errno != ENOTTY) {
+                ms->has_queue_sequence = TRUE;
+                goto check;
+            }
+        }
+#endif
         vbl.request.type = DRM_VBLANK_EVENT | drmmode_crtc->vblank_pipe;
         if (flags & MS_QUEUE_RELATIVE)
             vbl.request.type |= DRM_VBLANK_RELATIVE;
@@ -228,6 +272,9 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
                 *msc_queued = ms_kernel_msc_to_crtc_msc(crtc, vbl.reply.sequence);
             return TRUE;
         }
+#ifdef DRM_IOCTL_CRTC_QUEUE_SEQUENCE
+    check:
+#endif
         if (errno != EBUSY) {
             ms_drm_abort_seq(scrn, seq);
             return FALSE;
@@ -446,9 +493,10 @@ ms_vblank_screen_init(ScreenPtr screen)
     modesettingEntPtr ms_ent = ms_ent_priv(scrn);
     xorg_list_init(&ms_drm_queue);
 
-    ms->event_context.version = 2;
+    ms->event_context.version = 4;
     ms->event_context.vblank_handler = ms_drm_handler;
     ms->event_context.page_flip_handler = ms_drm_handler;
+    ms->event_context.sequence_handler = ms_drm_sequence_handler;
 
     /* We need to re-register the DRM fd for the synchronisation
      * feedback on every server generation, so perform the

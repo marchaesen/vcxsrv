@@ -130,7 +130,12 @@ install-headers: Makefile
 	done
 
 distcheck-hook:
-	rm -rf build && meson build && ninja -C build && rm -rf build
+	cd $(srcdir) && \
+	meson setup _distcheck_build && \
+	meson configure _distcheck_build && \
+	ninja -C _distcheck_build && \
+	rm -rf _distcheck_build && \
+	cd -
 
 EXTRA_DIST += \
 	meson_options.txt \
@@ -182,6 +187,10 @@ EXTRA_DIST += \
 	hw/xnest/meson.build \
 	hw/xquartz/meson.build \
 	hw/xwayland/meson.build \
+	hw/xwin/dri/meson.build \
+	hw/xwin/glx/meson.build \
+	hw/xwin/meson.build \
+	hw/xwin/winclipboard/meson.build \
 	include/meson.build \
 	meson.build \
 	miext/damage/meson.build \
@@ -194,6 +203,9 @@ EXTRA_DIST += \
 	randr/meson.build \
 	record/meson.build \
 	render/meson.build \
+	test/bigreq/meson.build \
+	test/meson.build \
+	test/sync/meson.build \
 	Xext/meson.build \
 	xfixes/meson.build \
 	Xi/meson.build \

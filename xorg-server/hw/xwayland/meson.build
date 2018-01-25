@@ -19,6 +19,7 @@ pointer_xml = join_paths(protodir, 'unstable', 'pointer-constraints', 'pointer-c
 relative_xml = join_paths(protodir, 'unstable', 'relative-pointer', 'relative-pointer-unstable-v1.xml')
 tablet_xml = join_paths(protodir, 'unstable', 'tablet', 'tablet-unstable-v2.xml')
 kbgrab_xml = join_paths(protodir, 'unstable', 'xwayland-keyboard-grab', 'xwayland-keyboard-grab-unstable-v1.xml')
+xdg_output_xml = join_paths(protodir, 'unstable', 'xdg-output', 'xdg-output-unstable-v1.xml')
 
 client_header = generator(scanner,
     output : '@BASENAME@-client-protocol.h',
@@ -32,10 +33,12 @@ srcs += client_header.process(relative_xml)
 srcs += client_header.process(pointer_xml)
 srcs += client_header.process(tablet_xml)
 srcs += client_header.process(kbgrab_xml)
+srcs += client_header.process(xdg_output_xml)
 srcs += code.process(relative_xml)
 srcs += code.process(pointer_xml)
 srcs += code.process(tablet_xml)
 srcs += code.process(kbgrab_xml)
+srcs += code.process(xdg_output_xml)
 
 xwayland_glamor = []
 if gbm_dep.found()

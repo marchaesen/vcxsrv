@@ -413,7 +413,7 @@ ac_build_varying_gather_values(struct ac_llvm_context *ctx, LLVMValueRef *values
 	for (unsigned i = component; i < value_count + component; i++) {
 		LLVMValueRef value = values[i];
 
-		if (!i)
+		if (i == component)
 			vec = LLVMGetUndef( LLVMVectorType(LLVMTypeOf(value), value_count));
 		LLVMValueRef index = LLVMConstInt(ctx->i32, i - component, false);
 		vec = LLVMBuildInsertElement(ctx->builder, vec, value, index, "");

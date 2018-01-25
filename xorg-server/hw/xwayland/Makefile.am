@@ -59,7 +59,10 @@ Xwayland_built_sources +=					\
 	tablet-unstable-v2-client-protocol.h			\
 	tablet-unstable-v2-protocol.c				\
 	xwayland-keyboard-grab-unstable-v1-protocol.c		\
-	xwayland-keyboard-grab-unstable-v1-client-protocol.h
+	xwayland-keyboard-grab-unstable-v1-client-protocol.h	\
+	xdg-output-unstable-v1-protocol.c			\
+	xdg-output-unstable-v1-client-protocol.h
+
 
 nodist_Xwayland_SOURCES = $(Xwayland_built_sources)
 CLEANFILES = $(Xwayland_built_sources)
@@ -90,6 +93,10 @@ tablet-unstable-v2-client-protocol.h: $(WAYLAND_PROTOCOLS_DATADIR)/unstable/tabl
 xwayland-keyboard-grab-unstable-v1-protocol.c : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/xwayland-keyboard-grab/xwayland-keyboard-grab-unstable-v1.xml
 	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@
 xwayland-keyboard-grab-unstable-v1-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/xwayland-keyboard-grab/xwayland-keyboard-grab-unstable-v1.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
+xdg-output-unstable-v1-protocol.c : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/xdg-output/xdg-output-unstable-v1.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@
+xdg-output-unstable-v1-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/xdg-output/xdg-output-unstable-v1.xml
 	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
 
 %-protocol.c : %.xml

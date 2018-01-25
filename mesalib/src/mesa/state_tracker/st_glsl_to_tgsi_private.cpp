@@ -26,6 +26,7 @@
 #include "st_glsl_to_tgsi_private.h"
 #include <tgsi/tgsi_info.h>
 #include <mesa/program/prog_instruction.h>
+#include <mesa/program/prog_print.h>
 
 static int swizzle_for_type(const glsl_type *type, int component = 0)
 {
@@ -179,6 +180,80 @@ st_src_reg st_src_reg::get_abs()
    return reg;
 }
 
+bool operator == (const st_src_reg& lhs, const st_src_reg& rhs)
+{
+   bool result;
+
+   if (lhs.type != rhs.type ||
+       lhs.file != rhs.file ||
+       lhs.index != rhs.index ||
+       lhs.swizzle != rhs.swizzle ||
+       lhs.index2D != rhs.index2D ||
+       lhs.has_index2 != rhs.has_index2 ||
+       lhs.array_id != rhs.array_id ||
+       lhs.negate != rhs.negate ||
+       lhs.abs != rhs.abs ||
+       lhs.double_reg2 != rhs.double_reg2 ||
+       lhs.is_double_vertex_input != rhs.is_double_vertex_input)
+      return false;
+
+   if (lhs.reladdr) {
+      if (!rhs.reladdr)
+         return false;
+      result = (*lhs.reladdr == *rhs.reladdr);
+   } else {
+      result = !rhs.reladdr;
+   }
+
+   if (lhs.reladdr2) {
+      if (!rhs.reladdr2)
+         return false;
+      result &= (*lhs.reladdr2 == *rhs.reladdr2);
+   } else {
+      result &= !rhs.reladdr2;
+   }
+
+   return result;
+}
+
+static const char swz_txt[] = "xyzw";
+
+std::ostream& operator << (std::ostream& os, const st_src_reg& reg)
+{
+   if (reg.negate)
+      os << "-";
+   if (reg.abs)
+      os << "|";
+
+   os << _mesa_register_file_name(reg.file);
+
+   if (reg.file == PROGRAM_ARRAY) {
+      os << "(" << reg.array_id << ")";
+   }
+   if (reg.has_index2) {
+      os << "[";
+      if (reg.reladdr2) {
+         os << *reg.reladdr2;
+      }
+      os << "+" << reg.index2D << "]";
+   }
+   os << "[";
+   if (reg.reladdr) {
+      os << *reg.reladdr;
+   }
+   os << reg.index << "].";
+   for (int i = 0; i < 4; ++i) {
+      int swz = GET_SWZ(reg.swizzle, i);
+      if (swz < 4)
+         os << swz_txt[swz];
+      else
+         os << "_";
+   }
+   if (reg.abs)
+      os << "|";
+   return os;
+}
+
 st_dst_reg::st_dst_reg(st_src_reg reg)
 {
    this->type = reg.type;
@@ -249,4 +324,95 @@ void st_dst_reg::operator=(const st_dst_reg &reg)
    this->reladdr2 = dup_reladdr(reg.reladdr2);
    this->has_index2 = reg.has_index2;
    this->array_id = reg.array_id;
+}
+
+bool operator == (const st_dst_reg& lhs, const st_dst_reg& rhs)
+{
+   bool result;
+
+   if (lhs.type != rhs.type ||
+       lhs.file != rhs.file ||
+       lhs.index != rhs.index ||
+       lhs.writemask != rhs.writemask ||
+       lhs.index2D != rhs.index2D ||
+       lhs.has_index2 != rhs.has_index2 ||
+       lhs.array_id != rhs.array_id)
+      return false;
+
+   if (lhs.reladdr) {
+      if (!rhs.reladdr)
+         return false;
+      result = (*lhs.reladdr == *rhs.reladdr);
+   } else {
+      result = !rhs.reladdr;
+   }
+
+   if (lhs.reladdr2) {
+      if (!rhs.reladdr2)
+         return false;
+      result &= (*lhs.reladdr2 == *rhs.reladdr2);
+   } else {
+      result &= !rhs.reladdr2;
+   }
+
+   return result;
+}
+
+std::ostream& operator << (std::ostream& os, const st_dst_reg& reg)
+{
+   os << _mesa_register_file_name(reg.file);
+   if (reg.file == PROGRAM_ARRAY) {
+      os << "(" << reg.array_id << ")";
+   }
+   if (reg.has_index2) {
+      os << "[";
+      if (reg.reladdr2) {
+         os << *reg.reladdr2;
+      }
+      os << "+" << reg.index2D << "]";
+   }
+   os << "[";
+   if (reg.reladdr) {
+      os << *reg.reladdr;
+   }
+   os << reg.index << "].";
+   for (int i = 0; i < 4; ++i) {
+      if (1 << i & reg.writemask)
+         os << swz_txt[i];
+      else
+         os << "_";
+   }
+
+   return os;
+}
+
+void glsl_to_tgsi_instruction::print(std::ostream& os) const
+{
+   os << tgsi_get_opcode_name(info->opcode) << " ";
+
+   bool has_operators = false;
+   for (unsigned j = 0; j < num_inst_dst_regs(this); j++) {
+      has_operators = true;
+      if (j > 0)
+         os << ", ";
+      os << dst[j];
+   }
+
+   if (has_operators)
+      os << " := ";
+
+   for (unsigned j = 0; j < num_inst_src_regs(this); j++) {
+      if (j > 0)
+         os << ", ";
+      os << src[j];
+   }
+
+   if (tex_offset_num_offset > 0) {
+      os << ", TEXOFS: ";
+      for (unsigned j = 0; j < tex_offset_num_offset; j++) {
+         if (j > 0)
+            os << ", ";
+         os << tex_offsets[j];
+      }
+   }
 }

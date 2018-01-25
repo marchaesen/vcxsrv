@@ -42,6 +42,7 @@
 #include "util/debug.h"
 using std::cerr;
 using std::setw;
+using std::ostream;
 #endif
 
 /* If <windows.h> is included this is defined and clashes with
@@ -60,6 +61,9 @@ using std::numeric_limits;
 #endif
 
 #ifndef NDEBUG
+/* Prepare to make it possible to specify log file */
+static std::ostream& debug_log = cerr;
+
 /* Helper function to check whether we want to seen debugging output */
 static inline bool is_debug_enabled ()
 {
@@ -99,15 +103,19 @@ public:
    int begin() const;
    int loop_break_line() const;
 
+   const prog_scope *in_else_scope() const;
    const prog_scope *in_ifelse_scope() const;
-   const prog_scope *in_switchcase_scope() const;
+   const prog_scope *in_parent_ifelse_scope() const;
    const prog_scope *innermost_loop() const;
    const prog_scope *outermost_loop() const;
    const prog_scope *enclosing_conditional() const;
 
    bool is_loop() const;
    bool is_in_loop() const;
+   bool is_switchcase_scope_in_loop() const;
    bool is_conditional() const;
+   bool is_child_of(const prog_scope *scope) const;
+   bool is_child_of_ifelse_id_sibling(const prog_scope *scope) const;
 
    bool break_is_for_switchcase() const;
    bool contains_range_of(const prog_scope& other) const;
@@ -138,25 +146,81 @@ private:
    prog_scope *storage;
 };
 
+/* Class to track the access to a component of a temporary register. */
+
 class temp_comp_access {
 public:
    temp_comp_access();
+
    void record_read(int line, prog_scope *scope);
    void record_write(int line, prog_scope *scope);
    lifetime get_required_lifetime();
 private:
    void propagate_lifetime_to_dominant_write_scope();
+   bool conditional_ifelse_write_in_loop() const;
+
+   void record_ifelse_write(const prog_scope& scope);
+   void record_if_write(const prog_scope& scope);
+   void record_else_write(const prog_scope& scope);
 
    prog_scope *last_read_scope;
    prog_scope *first_read_scope;
    prog_scope *first_write_scope;
+
    int first_write;
    int last_read;
    int last_write;
    int first_read;
-   bool keep_for_full_loop;
+
+   /* This member variable tracks the current resolution of conditional writing
+    * to this temporary in IF/ELSE clauses.
+    *
+    * The initial value "conditionality_untouched" indicates that this
+    * temporary has not yet been written to within an if clause.
+    *
+    * A positive (other than "conditionality_untouched") number refers to the
+    * last loop id for which the write was resolved as unconditional. With each
+    * new loop this value will be overwitten by "conditionality_unresolved"
+    * on entering the first IF clause writing this temporary.
+    *
+    * The value "conditionality_unresolved" indicates that no resolution has
+    * been achieved so far. If the variable is set to this value at the end of
+    * the processing of the whole shader it also indicates a conditional write.
+    *
+    * The value "write_is_conditional" marks that the variable is written
+    * conditionally (i.e. not in all relevant IF/ELSE code path pairs) in at
+    * least one loop.
+    */
+   int conditionality_in_loop_id;
+
+   /* Helper constants to make the tracking code more readable. */
+   static const int write_is_conditional = -1;
+   static const int conditionality_unresolved = 0;
+   static const int conditionality_untouched;
+
+   /* A bit field tracking the nexting levels of if-else clauses where the
+    * temporary has (so far) been written to in the if branch, but not in the
+    * else branch.
+    */
+   unsigned int if_scope_write_flags;
+
+   int next_ifelse_nesting_depth;
+   static const int supported_ifelse_nesting_depth = 32;
+
+   /* Tracks the last if scope in which the temporary was written to
+    * without a write in the correspondig else branch. Is also used
+    * to track read-before-write in the according scope.
+    */
+   const prog_scope *current_unpaired_if_write_scope;
+
+   /* Flag to resolve read-before-write in the else scope. */
+   bool was_written_in_current_else_scope;
 };
 
+const int
+temp_comp_access::conditionality_untouched = numeric_limits<int>::max();
+
+/* Class to track the access to all components of a temporary register. */
 class temp_access {
 public:
    temp_access();
@@ -259,6 +323,32 @@ const prog_scope *prog_scope::outermost_loop() const
    return loop;
 }
 
+bool prog_scope::is_child_of_ifelse_id_sibling(const prog_scope *scope) const
+{
+   const prog_scope *my_parent = in_parent_ifelse_scope();
+   while (my_parent) {
+      /* is a direct child? */
+      if (my_parent == scope)
+         return false;
+      /* is a child of the conditions sibling? */
+      if (my_parent->id() == scope->id())
+         return true;
+      my_parent = my_parent->in_parent_ifelse_scope();
+   }
+   return false;
+}
+
+bool prog_scope::is_child_of(const prog_scope *scope) const
+{
+   const prog_scope *my_parent = parent();
+   while (my_parent) {
+      if (my_parent == scope)
+         return true;
+      my_parent = my_parent->parent();
+   }
+   return false;
+}
+
 const prog_scope *prog_scope::enclosing_conditional() const
 {
    if (is_conditional())
@@ -283,6 +373,25 @@ bool prog_scope::is_conditional() const
          scope_type == switch_default_branch;
 }
 
+const prog_scope *prog_scope::in_else_scope() const
+{
+   if (scope_type == else_branch)
+      return this;
+
+   if (parent_scope)
+      return parent_scope->in_else_scope();
+
+   return nullptr;
+}
+
+const prog_scope *prog_scope::in_parent_ifelse_scope() const
+{
+        if (parent_scope)
+                return parent_scope->in_ifelse_scope();
+        else
+                return nullptr;
+}
+
 const prog_scope *prog_scope::in_ifelse_scope() const
 {
    if (scope_type == if_branch ||
@@ -295,16 +404,11 @@ const prog_scope *prog_scope::in_ifelse_scope() const
    return nullptr;
 }
 
-const prog_scope *prog_scope::in_switchcase_scope() const
+bool prog_scope::is_switchcase_scope_in_loop() const
 {
-   if (scope_type == switch_case_branch ||
-       scope_type == switch_default_branch)
-      return this;
-
-   if (parent_scope)
-      return parent_scope->in_switchcase_scope();
-
-   return nullptr;
+   return (scope_type == switch_case_branch ||
+           scope_type == switch_default_branch) &&
+         is_in_loop();
 }
 
 bool prog_scope::break_is_for_switchcase() const
@@ -443,7 +547,12 @@ temp_comp_access::temp_comp_access():
    first_write(-1),
    last_read(-1),
    last_write(-1),
-   first_read(numeric_limits<int>::max())
+   first_read(numeric_limits<int>::max()),
+   conditionality_in_loop_id(conditionality_untouched),
+   if_scope_write_flags(0),
+   next_ifelse_nesting_depth(0),
+   current_unpaired_if_write_scope(nullptr),
+   was_written_in_current_else_scope(false)
 {
 }
 
@@ -456,6 +565,44 @@ void temp_comp_access::record_read(int line, prog_scope *scope)
       first_read = line;
       first_read_scope = scope;
    }
+
+   /* Check whether we are in a condition within a loop */
+   const prog_scope *ifelse_scope = scope->in_ifelse_scope();
+   const prog_scope *enclosing_loop;
+   if (ifelse_scope && (enclosing_loop = ifelse_scope->innermost_loop())) {
+
+      /* If we have either not yet written to this register nor writes are
+       * resolved as unconditional in the enclosing loop then check whether
+       * we read before write in an IF/ELSE branch.
+       */
+      if ((conditionality_in_loop_id != write_is_conditional) &&
+          (conditionality_in_loop_id != enclosing_loop->id())) {
+
+         if (current_unpaired_if_write_scope)  {
+
+            /* Has been written in this or a parent scope? - this makes the temporary
+             * unconditionally set at this point.
+             */
+            if (scope->is_child_of(current_unpaired_if_write_scope))
+               return;
+
+            /* Has been written in the same scope before it was read? */
+            if (ifelse_scope->type() == if_branch) {
+               if (current_unpaired_if_write_scope->id() == scope->id())
+                  return;
+            } else {
+               if (was_written_in_current_else_scope)
+                  return;
+            }
+         }
+
+         /* The temporary was read (conditionally) before it is written, hence
+          * it should survive a loop. This can be signaled like if it were
+          * conditionally written.
+          */
+         conditionality_in_loop_id = write_is_conditional;
+      }
+   }
 }
 
 void temp_comp_access::record_write(int line, prog_scope *scope)
@@ -466,6 +613,135 @@ void temp_comp_access::record_write(int line, prog_scope *scope)
       first_write = line;
       first_write_scope = scope;
    }
+
+   if (conditionality_in_loop_id == write_is_conditional)
+      return;
+
+   /* If the nesting depth is larger than the supported level,
+    * then we assume conditional writes.
+    */
+   if (next_ifelse_nesting_depth >= supported_ifelse_nesting_depth) {
+      conditionality_in_loop_id = write_is_conditional;
+      return;
+   }
+
+   /* If we are in an IF/ELSE scope within a loop and the loop has not
+    * been resolved already, then record this write.
+    */
+   const prog_scope *ifelse_scope = scope->in_ifelse_scope();
+   if (ifelse_scope && ifelse_scope->innermost_loop() &&
+       ifelse_scope->innermost_loop()->id()  != conditionality_in_loop_id)
+      record_ifelse_write(*ifelse_scope);
+}
+
+void temp_comp_access::record_ifelse_write(const prog_scope& scope)
+{
+   if (scope.type() == if_branch) {
+      /* The first write in an IF branch within a loop implies unresolved
+       * conditionality (if it was untouched or unconditional before).
+       */
+      conditionality_in_loop_id = conditionality_unresolved;
+      was_written_in_current_else_scope = false;
+      record_if_write(scope);
+   } else {
+      was_written_in_current_else_scope = true;
+      record_else_write(scope);
+   }
+}
+
+void temp_comp_access::record_if_write(const prog_scope& scope)
+{
+   /* Don't record write if this IF scope if it ...
+    * - is not the first write in this IF scope,
+    * - has already been written in a parent IF scope.
+    * In both cases this write is a secondary write that doesn't contribute
+    * to resolve conditionality.
+    *
+    * Record the write if it
+    * - is the first one (obviously),
+    * - happens in an IF branch that is a child of the ELSE branch of the
+    *   last active IF/ELSE pair. In this case recording this write is used to
+    *   established whether the write is (un-)conditional in the scope enclosing
+    *   this outer IF/ELSE pair.
+    */
+   if (!current_unpaired_if_write_scope ||
+       (current_unpaired_if_write_scope->id() != scope.id() &&
+        scope.is_child_of_ifelse_id_sibling(current_unpaired_if_write_scope)))  {
+      if_scope_write_flags |= 1 << next_ifelse_nesting_depth;
+      current_unpaired_if_write_scope = &scope;
+      next_ifelse_nesting_depth++;
+   }
+}
+
+void temp_comp_access::record_else_write(const prog_scope& scope)
+{
+   int mask = 1 << (next_ifelse_nesting_depth - 1);
+
+   /* If the temporary was written in an IF branch on the same scope level
+    * and this branch is the sibling of this ELSE branch, then we have a
+    * pair of writes that makes write access to this temporary unconditional
+    * in the enclosing scope.
+    */
+
+   if ((if_scope_write_flags & mask) &&
+       (scope.id() == current_unpaired_if_write_scope->id())) {
+          --next_ifelse_nesting_depth;
+         if_scope_write_flags &= ~mask;
+
+         /* The following code deals with propagating unconditionality from
+          * inner levels of nested IF/ELSE to the outer levels like in
+          *
+          * 1: var t;
+          * 2: if (a) {        <- start scope A
+          * 3:    if (b)
+          * 4:         t = ...
+          * 5:    else
+          * 6:         t = ...
+          * 7: } else {        <- start scope B
+          * 8:    if (c)
+          * 9:         t = ...
+          * A:    else         <- start scope C
+          * B:         t = ...
+          * C: }
+          *
+          */
+
+         const prog_scope *parent_ifelse = scope.parent()->in_ifelse_scope();
+
+         if (1 << (next_ifelse_nesting_depth - 1) & if_scope_write_flags) {
+            /* We are at the end of scope C and already recorded a write
+             * within an IF scope (A), the sibling of the parent ELSE scope B,
+             * and it is not yet resolved. Mark that as the last relevant
+             * IF scope. Below the write will be resolved for the A/B
+             * scope pair.
+             */
+            current_unpaired_if_write_scope = parent_ifelse;
+         } else {
+            current_unpaired_if_write_scope = nullptr;
+         }
+
+         /* If some parent is IF/ELSE and in a loop then propagate the
+          * write to that scope. Otherwise the write is unconditional
+          * because it happens in both corresponding IF/ELSE branches
+          * in this loop, and hence, record the loop id to signal the
+          * resolution.
+          */
+         if (parent_ifelse && parent_ifelse->is_in_loop()) {
+            record_ifelse_write(*parent_ifelse);
+         } else {
+            conditionality_in_loop_id = scope.innermost_loop()->id();
+         }
+   } else {
+     /* The temporary was not written in the IF branch corresponding
+      * to this ELSE branch, hence the write is conditional.
+      */
+      conditionality_in_loop_id = write_is_conditional;
+   }
+}
+
+bool temp_comp_access::conditional_ifelse_write_in_loop() const
+{
+   return conditionality_in_loop_id <= conditionality_unresolved;
 }
 
 void temp_comp_access::propagate_lifetime_to_dominant_write_scope()
@@ -509,15 +785,15 @@ lifetime temp_comp_access::get_required_lifetime()
       enclosing_scope_first_read = first_read_scope->outermost_loop();
    }
 
-   /* A conditional write within a nested loop must survive
-    * the outermost loop, but only if it is read outside
-    * the condition scope where we write.
+   /* A conditional write within a (nested) loop must survive the outermost
+    * loop if the last read was not within the same scope.
     */
    const prog_scope *conditional = enclosing_scope_first_write->enclosing_conditional();
-   if (conditional && conditional->is_in_loop() &&
-       !conditional->contains_range_of(*last_read_scope)) {
-      keep_for_full_loop = true;
-      enclosing_scope_first_write = conditional->outermost_loop();
+   if (conditional && !conditional->contains_range_of(*last_read_scope) &&
+       (conditional->is_switchcase_scope_in_loop() ||
+        conditional_ifelse_write_in_loop())) {
+         keep_for_full_loop = true;
+         enclosing_scope_first_write = conditional->outermost_loop();
    }
 
    /* Evaluate the scope that is shared by all: required first write scope,
@@ -598,11 +874,74 @@ public:
    }
 };
 
+class access_recorder {
+public:
+   access_recorder(int _ntemps);
+   ~access_recorder();
+
+   void record_read(const st_src_reg& src, int line, prog_scope *scope);
+   void record_write(const st_dst_reg& src, int line, prog_scope *scope);
+
+   void get_required_lifetimes(struct lifetime *lifetimes);
+private:
+
+   int ntemps;
+   temp_access *acc;
+
+};
+
+access_recorder::access_recorder(int _ntemps):
+   ntemps(_ntemps)
+{
+   acc = new temp_access[ntemps];
+}
+
+access_recorder::~access_recorder()
+{
+   delete[] acc;
+}
+
+void access_recorder::record_read(const st_src_reg& src, int line,
+                                  prog_scope *scope)
+{
+   if (src.file == PROGRAM_TEMPORARY)
+      acc[src.index].record_read(line, scope, src.swizzle);
+
+   if (src.reladdr)
+      record_read(*src.reladdr, line, scope);
+   if (src.reladdr2)
+      record_read(*src.reladdr2, line, scope);
+}
+
+void access_recorder::record_write(const st_dst_reg& dst, int line,
+                                   prog_scope *scope)
+{
+   if (dst.file == PROGRAM_TEMPORARY)
+      acc[dst.index].record_write(line, scope, dst.writemask);
+
+   if (dst.reladdr)
+      record_read(*dst.reladdr, line, scope);
+   if (dst.reladdr2)
+      record_read(*dst.reladdr2, line, scope);
+}
+
+void access_recorder::get_required_lifetimes(struct lifetime *lifetimes)
+{
+   RENAME_DEBUG(debug_log << "========= lifetimes ==============\n");
+   for(int i = 0; i < ntemps; ++i) {
+      RENAME_DEBUG(debug_log<< setw(4) << i);
+      lifetimes[i] = acc[i].get_required_lifetime();
+      RENAME_DEBUG(debug_log << ": [" << lifetimes[i].begin << ", "
+                        << lifetimes[i].end << "]\n");
+   }
+   RENAME_DEBUG(debug_log << "==================================\n\n");
+}
+
 }
 
 #ifndef NDEBUG
 /* Function used for debugging. */
-static void dump_instruction(int line, prog_scope *scope,
+static void dump_instruction(ostream& os, int line, prog_scope *scope,
                              const glsl_to_tgsi_instruction& inst);
 #endif
 
@@ -614,11 +953,10 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
                                       int ntemps, struct lifetime *lifetimes)
 {
    int line = 0;
-   int loop_id = 0;
-   int if_id = 0;
+   int loop_id = 1;
+   int if_id = 1;
    int switch_id = 0;
    bool is_at_end = false;
-   bool ok = true;
    int n_scopes = 1;
 
    /* Count scopes to allocate the needed space without the need for
@@ -636,11 +974,12 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
    }
 
    prog_scope_storage scopes(mem_ctx, n_scopes);
-   temp_access *acc = new temp_access[ntemps];
+
+   access_recorder access(ntemps);
 
    prog_scope *cur_scope = scopes.create(nullptr, outer_scope, 0, 0, line);
 
-   RENAME_DEBUG(cerr << "========= Begin shader ============\n");
+   RENAME_DEBUG(debug_log << "========= Begin shader ============\n");
 
    foreach_in_list(glsl_to_tgsi_instruction, inst, instructions) {
       if (is_at_end) {
@@ -648,7 +987,7 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
          break;
       }
 
-      RENAME_DEBUG(dump_instruction(line, cur_scope, *inst));
+      RENAME_DEBUG(dump_instruction(debug_log, line, cur_scope, *inst));
 
       switch (inst->op) {
       case TGSI_OPCODE_BGNLOOP: {
@@ -665,9 +1004,7 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
       case TGSI_OPCODE_IF:
       case TGSI_OPCODE_UIF: {
          assert(num_inst_src_regs(inst) == 1);
-         const st_src_reg& src = inst->src[0];
-         if (src.file == PROGRAM_TEMPORARY)
-            acc[src.index].record_read(line, cur_scope, src.swizzle);
+         access.record_read(inst->src[0], line, cur_scope);
          cur_scope = scopes.create(cur_scope, if_branch, if_id++,
                                    cur_scope->nesting_depth() + 1, line + 1);
          break;
@@ -693,14 +1030,12 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
       }
       case TGSI_OPCODE_SWITCH: {
          assert(num_inst_src_regs(inst) == 1);
-         const st_src_reg& src = inst->src[0];
          prog_scope *scope = scopes.create(cur_scope, switch_body, switch_id++,
                                            cur_scope->nesting_depth() + 1, line);
          /* We record the read only for the SWITCH statement itself, like it
           * is used by the only consumer of TGSI_OPCODE_SWITCH in tgsi_exec.c.
           */
-         if (src.file == PROGRAM_TEMPORARY)
-            acc[src.index].record_read(line, cur_scope, src.swizzle);
+         access.record_read(inst->src[0], line, cur_scope);
          cur_scope = scope;
          break;
       }
@@ -722,9 +1057,7 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
                                        cur_scope : cur_scope->parent();
 
          assert(num_inst_src_regs(inst) == 1);
-         const st_src_reg& src = inst->src[0];
-         if (src.file == PROGRAM_TEMPORARY)
-            acc[src.index].record_read(line, switch_scope, src.swizzle);
+         access.record_read(inst->src[0], line, switch_scope);
 
          /* Fall through to allocate the scope. */
       }
@@ -760,30 +1093,23 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
           * Since this is not done, we have to bail out here and signal
           * that no register merge will take place.
           */
-         ok = false;
-         goto out;
+         return false;
       default: {
          for (unsigned j = 0; j < num_inst_src_regs(inst); j++) {
-            const st_src_reg& src = inst->src[j];
-            if (src.file == PROGRAM_TEMPORARY)
-               acc[src.index].record_read(line, cur_scope, src.swizzle);
+            access.record_read(inst->src[j], line, cur_scope);
          }
          for (unsigned j = 0; j < inst->tex_offset_num_offset; j++) {
-            const st_src_reg& src = inst->tex_offsets[j];
-            if (src.file == PROGRAM_TEMPORARY)
-               acc[src.index].record_read(line, cur_scope, src.swizzle);
+            access.record_read(inst->tex_offsets[j], line, cur_scope);
          }
          for (unsigned j = 0; j < num_inst_dst_regs(inst); j++) {
-            const st_dst_reg& dst = inst->dst[j];
-            if (dst.file == PROGRAM_TEMPORARY)
-               acc[dst.index].record_write(line, cur_scope, dst.writemask);
+            access.record_write(inst->dst[j], line, cur_scope);
          }
       }
       }
       ++line;
    }
 
-   RENAME_DEBUG(cerr << "==================================\n\n");
+   RENAME_DEBUG(debug_log << "==================================\n\n");
 
    /* Make sure last scope is closed, even though no
     * TGSI_OPCODE_END was given.
@@ -791,18 +1117,8 @@ get_temp_registers_required_lifetimes(void *mem_ctx, exec_list *instructions,
    if (cur_scope->end() < 0)
       cur_scope->set_end(line - 1);
 
-   RENAME_DEBUG(cerr << "========= lifetimes ==============\n");
-   for(int i = 0; i < ntemps; ++i) {
-      RENAME_DEBUG(cerr << setw(4) << i);
-      lifetimes[i] = acc[i].get_required_lifetime();
-      RENAME_DEBUG(cerr << ": [" << lifetimes[i].begin << ", "
-                        << lifetimes[i].end << "]\n");
-   }
-   RENAME_DEBUG(cerr << "==================================\n\n");
-
-out:
-   delete[] acc;
-   return ok;
+   access.get_required_lifetimes(lifetimes);
+   return true;
 }
 
 /* Find the next register between [start, end) that has a life time starting
@@ -911,20 +1227,11 @@ void get_temp_registers_remapping(void *mem_ctx, int ntemps,
 
 /* Code below used for debugging */
 #ifndef NDEBUG
-static const char swizzle_txt[] = "xyzw";
-
-static const char *tgsi_file_names[PROGRAM_FILE_MAX] =  {
-   "TEMP",  "ARRAY",   "IN", "OUT", "STATE", "CONST",
-   "UNIFORM",  "WO", "ADDR", "SAMPLER",  "SV", "UNDEF",
-   "IMM", "BUF",  "MEM",  "IMAGE"
-};
-
 static
-void dump_instruction(int line, prog_scope *scope,
+void dump_instruction(ostream& os, int line, prog_scope *scope,
                       const glsl_to_tgsi_instruction& inst)
 {
-   const struct tgsi_opcode_info *info = tgsi_get_opcode_info(inst.op);
-
+   const struct tgsi_opcode_info *info = inst.info;
    int indent = scope->nesting_depth();
    if ((scope->type() == switch_case_branch ||
         scope->type() == switch_default_branch) &&
@@ -938,74 +1245,8 @@ void dump_instruction(int line, prog_scope *scope,
        info->opcode == TGSI_OPCODE_ENDSWITCH)
       --indent;
 
-   cerr << setw(4) << line << ": ";
-   for (int i = 0; i < indent; ++i)
-      cerr << "    ";
-   cerr << tgsi_get_opcode_name(info->opcode) << " ";
-
-   bool has_operators = false;
-   for (unsigned j = 0; j < num_inst_dst_regs(&inst); j++) {
-      has_operators = true;
-      if (j > 0)
-         cerr << ", ";
-
-      const st_dst_reg& dst = inst.dst[j];
-      cerr << tgsi_file_names[dst.file];
-
-      if (dst.file == PROGRAM_ARRAY)
-         cerr << "(" << dst.array_id << ")";
-
-      cerr << "[" << dst.index << "]";
-
-      if (dst.writemask != TGSI_WRITEMASK_XYZW) {
-         cerr << ".";
-         if (dst.writemask & TGSI_WRITEMASK_X) cerr << "x";
-         if (dst.writemask & TGSI_WRITEMASK_Y) cerr << "y";
-         if (dst.writemask & TGSI_WRITEMASK_Z) cerr << "z";
-         if (dst.writemask & TGSI_WRITEMASK_W) cerr << "w";
-      }
-   }
-   if (has_operators)
-      cerr << " := ";
-
-   for (unsigned j = 0; j < num_inst_src_regs(&inst); j++) {
-      if (j > 0)
-         cerr << ", ";
-
-      const st_src_reg& src = inst.src[j];
-      cerr << tgsi_file_names[src.file]
-           << "[" << src.index << "]";
-      if (src.swizzle != SWIZZLE_XYZW) {
-         cerr << ".";
-         for (int idx = 0; idx < 4; ++idx) {
-            int swz = GET_SWZ(src.swizzle, idx);
-            if (swz < 4) {
-               cerr << swizzle_txt[swz];
-            }
-         }
-      }
-   }
-
-   if (inst.tex_offset_num_offset > 0) {
-      cerr << ", TEXOFS: ";
-      for (unsigned j = 0; j < inst.tex_offset_num_offset; j++) {
-         if (j > 0)
-            cerr << ", ";
-
-         const st_src_reg& src = inst.tex_offsets[j];
-         cerr << tgsi_file_names[src.file]
-               << "[" << src.index << "]";
-         if (src.swizzle != SWIZZLE_XYZW) {
-            cerr << ".";
-            for (int idx = 0; idx < 4; ++idx) {
-               int swz = GET_SWZ(src.swizzle, idx);
-               if (swz < 4) {
-                  cerr << swizzle_txt[swz];
-               }
-            }
-         }
-      }
-   }
-   cerr << "\n";
+   os << setw(4) << line << ": ";
+   os << setw(indent * 4) << " ";
+   os << inst << "\n";
 }
 #endif

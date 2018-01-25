@@ -42,6 +42,9 @@ include Makefile.sources
 
 EXTRA_DIST = \
 	drivers/SConscript \
+	main/meson.build \
+	program/meson.build \
+	meson.build \
 	main/format_fallback.py \
 	main/format_info.py \
 	main/format_pack.py \

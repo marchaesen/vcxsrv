@@ -1656,7 +1656,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
     if (!xf86CrtcScreenInit(pScreen))
         return FALSE;
 
-    if (!miCreateDefColormap(pScreen))
+    if (!drmmode_setup_colormap(pScreen, pScrn))
         return FALSE;
 
     xf86DPMSInit(pScreen, xf86DPMSSet, 0);

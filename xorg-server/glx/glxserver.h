@@ -63,6 +63,7 @@ typedef struct __GLXcontext __GLXcontext;
 #include "glxscreens.h"
 #include "glxdrawable.h"
 #include "glxcontext.h"
+#include "glx_extinit.h"
 
 extern __GLXscreen *glxGetScreen(ScreenPtr pScreen);
 extern __GLXclientState *glxGetClient(ClientPtr pClient);
@@ -80,16 +81,6 @@ extern __GLXcontext *__glXForceCurrent(__GLXclientState *, GLXContextTag,
 int __glXError(int error);
 
 /************************************************************************/
-
-typedef struct __GLXprovider __GLXprovider;
-struct __GLXprovider {
-    __GLXscreen *(*screenProbe) (ScreenPtr pScreen);
-    const char *name;
-    __GLXprovider *next;
-};
-extern __GLXprovider __glXDRISWRastProvider;
-
-void GlxPushProvider(__GLXprovider * provider);
 
 enum {
     GLX_MINIMAL_VISUALS,

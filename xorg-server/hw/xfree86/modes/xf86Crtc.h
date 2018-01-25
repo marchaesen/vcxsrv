@@ -999,6 +999,12 @@ extern _X_EXPORT Bool
  xf86_show_cursors(ScrnInfoPtr scrn);
 
 /**
+ * Called by the driver to turn a single crtc's cursor off
+ */
+extern _X_EXPORT void
+xf86_crtc_hide_cursor(xf86CrtcPtr crtc);
+
+/**
  * Called by the driver to turn cursors off
  */
 extern _X_EXPORT void

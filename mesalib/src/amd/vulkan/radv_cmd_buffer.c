@@ -604,21 +604,6 @@ radv_update_multisample_state(struct radv_cmd_buffer *cmd_buffer,
 	radeon_set_context_reg(cmd_buffer->cs, R_028804_DB_EQAA, ms->db_eqaa);
 	radeon_set_context_reg(cmd_buffer->cs, R_028A4C_PA_SC_MODE_CNTL_1, ms->pa_sc_mode_cntl_1);
 
-	if (old_pipeline && num_samples == old_pipeline->graphics.ms.num_samples &&
-	    old_pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.needs_sample_positions == pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.needs_sample_positions)
-		return;
-
-	radeon_set_context_reg_seq(cmd_buffer->cs, R_028BDC_PA_SC_LINE_CNTL, 2);
-	radeon_emit(cmd_buffer->cs, ms->pa_sc_line_cntl);
-	radeon_emit(cmd_buffer->cs, ms->pa_sc_aa_config);
-
-	radv_cayman_emit_msaa_sample_locs(cmd_buffer->cs, num_samples);
-
-	/* GFX9: Flush DFSM when the AA mode changes. */
-	if (cmd_buffer->device->dfsm_allowed) {
-		radeon_emit(cmd_buffer->cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-		radeon_emit(cmd_buffer->cs, EVENT_TYPE(V_028A90_FLUSH_DFSM) | EVENT_INDEX(0));
-	}
 	if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.needs_sample_positions) {
 		uint32_t offset;
 		struct ac_userdata_info *loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_FRAGMENT, AC_UD_PS_SAMPLE_POS_OFFSET);
@@ -647,6 +632,23 @@ radv_update_multisample_state(struct radv_cmd_buffer *cmd_buffer,
 
 		radeon_set_sh_reg(cmd_buffer->cs, base_reg + loc->sgpr_idx * 4, offset);
 		cmd_buffer->sample_positions_needed = true;
+	}
+
+	if (old_pipeline && num_samples == old_pipeline->graphics.ms.num_samples)
+		return;
+
+	radeon_set_context_reg_seq(cmd_buffer->cs, R_028BDC_PA_SC_LINE_CNTL, 2);
+	radeon_emit(cmd_buffer->cs, ms->pa_sc_line_cntl);
+	radeon_emit(cmd_buffer->cs, ms->pa_sc_aa_config);
+
+	radeon_set_context_reg(cmd_buffer->cs, R_028A48_PA_SC_MODE_CNTL_0, ms->pa_sc_mode_cntl_0);
+
+	radv_cayman_emit_msaa_sample_locs(cmd_buffer->cs, num_samples);
+
+	/* GFX9: Flush DFSM when the AA mode changes. */
+	if (cmd_buffer->device->dfsm_allowed) {
+		radeon_emit(cmd_buffer->cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
+		radeon_emit(cmd_buffer->cs, EVENT_TYPE(V_028A90_FLUSH_DFSM) | EVENT_INDEX(0));
 	}
 }
 
@@ -988,7 +990,6 @@ radv_emit_fragment_shader(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_shader_variant *ps;
 	uint64_t va;
-	unsigned spi_baryc_cntl = S_0286E0_FRONT_FACE_ALL_BITS(1);
 	struct radv_blend_state *blend = &pipeline->graphics.blend;
 	assert (pipeline->shaders[MESA_SHADER_FRAGMENT]);
 
@@ -1010,13 +1011,10 @@ radv_emit_fragment_shader(struct radv_cmd_buffer *cmd_buffer,
 	radeon_set_context_reg(cmd_buffer->cs, R_0286D0_SPI_PS_INPUT_ADDR,
 			       ps->config.spi_ps_input_addr);
 
-	if (ps->info.info.ps.force_persample)
-		spi_baryc_cntl |= S_0286E0_POS_FLOAT_LOCATION(2);
-
 	radeon_set_context_reg(cmd_buffer->cs, R_0286D8_SPI_PS_IN_CONTROL,
 			       S_0286D8_NUM_INTERP(ps->info.fs.num_interp));
 
-	radeon_set_context_reg(cmd_buffer->cs, R_0286E0_SPI_BARYC_CNTL, spi_baryc_cntl);
+	radeon_set_context_reg(cmd_buffer->cs, R_0286E0_SPI_BARYC_CNTL, pipeline->graphics.spi_baryc_cntl);
 
 	radeon_set_context_reg(cmd_buffer->cs, R_028710_SPI_SHADER_Z_FORMAT,
 			       pipeline->graphics.shader_z_format);
@@ -1143,8 +1141,6 @@ radv_emit_scissor(struct radv_cmd_buffer *cmd_buffer)
 			  cmd_buffer->state.dynamic.scissor.scissors,
 			  cmd_buffer->state.dynamic.viewport.viewports,
 			  cmd_buffer->state.emitted_pipeline->graphics.can_use_guardband);
-	radeon_set_context_reg(cmd_buffer->cs, R_028A48_PA_SC_MODE_CNTL_0,
-			       cmd_buffer->state.pipeline->graphics.ms.pa_sc_mode_cntl_0 | S_028A48_VPORT_SCISSOR_ENABLE(count ? 1 : 0));
 }
 
 static void

@@ -32,6 +32,7 @@
 #include <xf86drm.h>
 #include <xf86Crtc.h>
 #include <damage.h>
+#include <X11/extensions/dpmsconst.h>
 
 #ifdef GLAMOR_HAS_GBM
 #define GLAMOR_FOR_XORG 1

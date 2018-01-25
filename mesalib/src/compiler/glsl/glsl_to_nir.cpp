@@ -1640,11 +1640,15 @@ nir_visitor::visit(ir_expression *ir)
    case ir_unop_unpack_half_2x16:
       result = nir_unpack_half_2x16(&b, srcs[0]);
       break;
+   case ir_unop_pack_sampler_2x32:
+   case ir_unop_pack_image_2x32:
    case ir_unop_pack_double_2x32:
    case ir_unop_pack_int_2x32:
    case ir_unop_pack_uint_2x32:
       result = nir_pack_64_2x32(&b, srcs[0]);
       break;
+   case ir_unop_unpack_sampler_2x32:
+   case ir_unop_unpack_image_2x32:
    case ir_unop_unpack_double_2x32:
    case ir_unop_unpack_int_2x32:
    case ir_unop_unpack_uint_2x32:

@@ -624,6 +624,7 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 			      VK_SHADER_STAGE_VERTEX_BIT, 0, 4,
 			      &clear_value.depth);
 
+	uint32_t prev_reference = cmd_buffer->state.dynamic.stencil_reference.front;
 	if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
 		radv_CmdSetStencilReference(cmd_buffer_h, VK_STENCIL_FACE_FRONT_BIT,
 						  clear_value.stencil);
@@ -658,6 +659,11 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 	radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &clear_rect->rect);
 
 	radv_CmdDraw(cmd_buffer_h, 3, clear_rect->layerCount, 0, clear_rect->baseArrayLayer);
+
+	if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
+		radv_CmdSetStencilReference(cmd_buffer_h, VK_STENCIL_FACE_FRONT_BIT,
+						  prev_reference);
+	}
 }
 
 static bool

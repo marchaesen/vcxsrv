@@ -23,7 +23,6 @@
  */
 
 /**
- * \file vbo_context.h
  * \brief VBO builder module datatypes and definitions.
  * \author Keith Whitwell
  */
@@ -47,26 +46,29 @@
 /* True if a primitive can be split without copying of vertices, false
  * otherwise.
  */
-GLboolean split_prim_inplace(GLenum mode, GLuint *first, GLuint *incr);
+GLboolean
+split_prim_inplace(GLenum mode, GLuint *first, GLuint *incr);
 
-void vbo_split_inplace( struct gl_context *ctx,
-			const struct gl_vertex_array *arrays[],
-			const struct _mesa_prim *prim,
-			GLuint nr_prims,
-			const struct _mesa_index_buffer *ib,
-			GLuint min_index,
-			GLuint max_index,
-			vbo_draw_func draw,
-			const struct split_limits *limits );
+void
+vbo_split_inplace(struct gl_context *ctx,
+                  const struct gl_vertex_array *arrays[],
+                  const struct _mesa_prim *prim,
+                  GLuint nr_prims,
+                  const struct _mesa_index_buffer *ib,
+                  GLuint min_index,
+                  GLuint max_index,
+                  vbo_draw_func draw,
+                  const struct split_limits *limits);
 
 /* Requires ib != NULL:
  */
-void vbo_split_copy( struct gl_context *ctx,
-		     const struct gl_vertex_array *arrays[],
-		     const struct _mesa_prim *prim,
-		     GLuint nr_prims,
-		     const struct _mesa_index_buffer *ib,
-		     vbo_draw_func draw,
-		     const struct split_limits *limits );
+void
+vbo_split_copy(struct gl_context *ctx,
+               const struct gl_vertex_array *arrays[],
+               const struct _mesa_prim *prim,
+               GLuint nr_prims,
+               const struct _mesa_index_buffer *ib,
+               vbo_draw_func draw,
+               const struct split_limits *limits);
 
 #endif

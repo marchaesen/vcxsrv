@@ -2640,6 +2640,11 @@ if test -n "$with_gallium_drivers"; then
                AC_MSG_ERROR([swr enabled but no swr architectures selected])
             fi
 
+            # test if more than one swr arch configured
+            if test `echo $swr_archs | wc -w` -eq 1; then
+                HAVE_SWR_BUILTIN=yes
+            fi
+
             HAVE_GALLIUM_SWR=yes
             ;;
         xvc4)
@@ -2689,6 +2694,7 @@ AM_CONDITIONAL(HAVE_SWR_AVX, test "x$HAVE_SWR_AVX" = xyes)
 AM_CONDITIONAL(HAVE_SWR_AVX2, test "x$HAVE_SWR_AVX2" = xyes)
 AM_CONDITIONAL(HAVE_SWR_KNL, test "x$HAVE_SWR_KNL" = xyes)
 AM_CONDITIONAL(HAVE_SWR_SKX, test "x$HAVE_SWR_SKX" = xyes)
+AM_CONDITIONAL(HAVE_SWR_BUILTIN, test "x$HAVE_SWR_BUILTIN" = xyes)
 
 dnl We need to validate some needed dependencies for renderonly drivers.
 
@@ -3153,7 +3159,11 @@ fi
 
 echo ""
 if test "x$HAVE_GALLIUM_SWR" != x; then
-    echo "        SWR archs:       $swr_archs"
+    if test "x$HAVE_SWR_BUILTIN" = xyes; then
+        echo "        SWR archs:       $swr_archs (builtin)"
+    else
+        echo "        SWR archs:       $swr_archs"
+    fi
 fi
 
 dnl Libraries

@@ -58,7 +58,8 @@ EXTRA_DIST = \
 	t_options.h \
 	$(POS) \
 	$(MOS) \
-	SConscript
+	SConscript \
+	meson.build
 
 BUILT_SOURCES = options.h
 CLEANFILES = \

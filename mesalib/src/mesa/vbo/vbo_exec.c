@@ -28,8 +28,9 @@
 
 #include "main/glheader.h"
 #include "main/mtypes.h"
+#include "main/api_arrayelt.h"
 #include "main/vtxfmt.h"
-#include "vbo_context.h"
+#include "vbo_private.h"
 
 
 
@@ -67,71 +68,6 @@ void vbo_exec_destroy( struct gl_context *ctx )
 
    vbo_exec_vtx_destroy( exec );
 }
-
-
-/**
- * Figure out the number of transform feedback primitives that will be output
- * considering the drawing mode, number of vertices, and instance count,
- * assuming that no geometry shading is done and primitive restart is not
- * used.
- *
- * This is used by driver back-ends in implementing the PRIMITIVES_GENERATED
- * and TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN queries.  It is also used to
- * pre-validate draw calls in GLES3 (where draw calls only succeed if there is
- * enough room in the transform feedback buffer for the result).
- */
-size_t
-vbo_count_tessellated_primitives(GLenum mode, GLuint count,
-                                 GLuint num_instances)
-{
-   size_t num_primitives;
-   switch (mode) {
-   case GL_POINTS:
-      num_primitives = count;
-      break;
-   case GL_LINE_STRIP:
-      num_primitives = count >= 2 ? count - 1 : 0;
-      break;
-   case GL_LINE_LOOP:
-      num_primitives = count >= 2 ? count : 0;
-      break;
-   case GL_LINES:
-      num_primitives = count / 2;
-      break;
-   case GL_TRIANGLE_STRIP:
-   case GL_TRIANGLE_FAN:
-   case GL_POLYGON:
-      num_primitives = count >= 3 ? count - 2 : 0;
-      break;
-   case GL_TRIANGLES:
-      num_primitives = count / 3;
-      break;
-   case GL_QUAD_STRIP:
-      num_primitives = count >= 4 ? ((count / 2) - 1) * 2 : 0;
-      break;
-   case GL_QUADS:
-      num_primitives = (count / 4) * 2;
-      break;
-   case GL_LINES_ADJACENCY:
-      num_primitives = count / 4;
-      break;
-   case GL_LINE_STRIP_ADJACENCY:
-      num_primitives = count >= 4 ? count - 3 : 0;
-      break;
-   case GL_TRIANGLES_ADJACENCY:
-      num_primitives = count / 6;
-      break;
-   case GL_TRIANGLE_STRIP_ADJACENCY:
-      num_primitives = count >= 6 ? (count - 4) / 2 : 0;
-      break;
-   default:
-      assert(!"Unexpected primitive type in count_tessellated_primitives");
-      num_primitives = 0;
-      break;
-   }
-   return num_primitives * num_instances;
-}
-
 
 
 /**

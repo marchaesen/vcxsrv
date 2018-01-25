@@ -915,13 +915,13 @@ extern _X_EXPORT int
 
 RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
                        int format, int mode, unsigned long len,
-                       void *value, Bool sendevent, Bool pending);
+                       const void *value, Bool sendevent, Bool pending);
 
 extern _X_EXPORT int
 
 RRConfigureOutputProperty(RROutputPtr output, Atom property,
                           Bool pending, Bool range, Bool immutable,
-                          int num_values, INT32 *values);
+                          int num_values, const INT32 *values);
 extern _X_EXPORT int
  ProcRRChangeOutputProperty(ClientPtr client);
 

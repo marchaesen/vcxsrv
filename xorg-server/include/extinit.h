@@ -69,7 +69,6 @@ extern void DbeExtensionInit(void);
 #endif
 
 #if defined(DPMSExtension)
-#include <X11/extensions/dpmsconst.h>
 extern _X_EXPORT Bool noDPMSExtension;
 extern void DPMSExtensionInit(void);
 #endif
@@ -82,7 +81,6 @@ extern _X_EXPORT Bool noGlxExtension;
 #endif
 
 #ifdef PANORAMIX
-#include <X11/extensions/panoramiXproto.h>
 extern _X_EXPORT Bool noPanoramiXExtension;
 extern void PanoramiXExtensionInit(void);
 #endif
@@ -100,23 +98,18 @@ extern _X_EXPORT Bool noRenderExtension;
 extern void RenderExtensionInit(void);
 
 #if defined(RES)
-#include <X11/extensions/XResproto.h>
 extern _X_EXPORT Bool noResExtension;
 extern void ResExtensionInit(void);
 #endif
 
 #if defined(SCREENSAVER)
-#include <X11/extensions/saver.h>
 extern _X_EXPORT Bool noScreenSaverExtension;
 extern void ScreenSaverExtensionInit(void);
 #endif
 
-#include <X11/extensions/shapeproto.h>
 extern void ShapeExtensionInit(void);
 
 #ifdef MITSHM
-#include <X11/extensions/shm.h>
-#include <X11/extensions/shmproto.h>
 extern _X_EXPORT Bool noMITShmExtension;
 extern void ShmExtensionInit(void);
 #endif
@@ -126,14 +119,11 @@ extern void SyncExtensionInit(void);
 extern void XCMiscExtensionInit(void);
 
 #ifdef XCSECURITY
-#include <X11/extensions/secur.h>
-#include "securitysrv.h"
 extern _X_EXPORT Bool noSecurityExtension;
 extern void SecurityExtensionInit(void);
 #endif
 
 #ifdef XF86BIGFONT
-#include <X11/extensions/xf86bigfproto.h>
 extern _X_EXPORT Bool noXFree86BigfontExtension;
 extern void XFree86BigfontExtensionInit(void);
 #endif
@@ -144,40 +134,29 @@ extern _X_EXPORT Bool noXFixesExtension;
 extern void XFixesExtensionInit(void);
 
 extern void XInputExtensionInit(void);
-extern _X_EXPORT void AssignTypeAndName(DeviceIntPtr dev,
-                                        Atom type,
-                                        const char *name);
 
-#include <X11/extensions/XKB.h>
 extern void XkbExtensionInit(void);
 
 #if defined(XSELINUX)
-#include "xselinux.h"
 extern _X_EXPORT Bool noSELinuxExtension;
 extern void SELinuxExtensionInit(void);
 #endif
 
 #ifdef XTEST
-#include <X11/extensions/xtestconst.h>
-#include <X11/extensions/xtestproto.h>
 extern void XTestExtensionInit(void);
 #endif
 
 #if defined(XV)
-#include <X11/extensions/Xv.h>
-#include <X11/extensions/XvMC.h>
 extern _X_EXPORT Bool noXvExtension;
 extern void XvExtensionInit(void);
 extern void XvMCExtensionInit(void);
 #endif
 
 #if defined(DRI3)
-#include <X11/extensions/dri3proto.h>
 extern void dri3_extension_init(void);
 #endif
 
 #if defined(PRESENT)
-#include <X11/extensions/presentproto.h>
 #include "presentext.h"
 #endif
 

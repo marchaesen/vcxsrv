@@ -36,7 +36,12 @@ EXTRA_DIST = \
 	mapi_abi.py \
 	glapi/SConscript \
 	glapi/registry/gl.xml \
-	shared-glapi/SConscript
+	shared-glapi/SConscript \
+	es1api/meson.build \
+	es2api/meson.build \
+	glapi/meson.build \
+	shared-glapi/meson.build \
+	meson.build
 
 AM_CFLAGS = \
 	$(PTHREAD_CFLAGS) \

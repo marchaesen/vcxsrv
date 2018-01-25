@@ -51,7 +51,7 @@
 #include "texobj.h"
 #include "texstate.h"
 #include "varray.h"
-#include "vbo/vbo_context.h"
+#include "vbo/vbo.h"
 #include "viewport.h"
 #include "blend.h"
 

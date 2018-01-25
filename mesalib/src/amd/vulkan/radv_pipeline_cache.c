@@ -380,6 +380,7 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device,
 
 	char* p = entry->code;
 	struct cache_entry_variant_info info;
+	memset(&info, 0, sizeof(info));
 
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
 		if (!variants[i])

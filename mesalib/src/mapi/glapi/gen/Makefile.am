@@ -90,7 +90,8 @@ EXTRA_DIST= \
 	remap_helper.py \
 	static_data.py \
 	SConscript \
-	gl_API.dtd
+	gl_API.dtd \
+	meson.build
 
 ######################################################################
 

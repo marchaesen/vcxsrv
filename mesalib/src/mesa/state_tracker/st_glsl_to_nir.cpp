@@ -242,18 +242,10 @@ st_nir_assign_uniform_locations(struct gl_program *prog,
          continue;
 
       if (uniform->type->is_sampler() || uniform->type->is_image()) {
-         unsigned val = 0;
-         bool found = shader_program->UniformHash->get(val, uniform->name);
          if (uniform->type->is_sampler())
             loc = shaderidx++;
          else
             loc = imageidx++;
-         assert(found);
-         (void) found; /* silence unused var warning */
-         /* this ensure that nir_lower_samplers looks at the correct
-          * shader_program->UniformStorage[location]:
-          */
-         uniform->data.location = val;
       } else if (strncmp(uniform->name, "gl_", 3) == 0) {
          const gl_state_index *const stateTokens = (gl_state_index *)uniform->state_slots[0].tokens;
          /* This state reference has already been setup by ir_to_mesa, but we'll

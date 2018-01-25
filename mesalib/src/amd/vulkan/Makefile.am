@@ -146,7 +146,8 @@ EXTRA_DIST = \
 	radv_extensions.py \
 	vk_format_layout.csv \
 	vk_format_parse.py \
-	vk_format_table.py
+	vk_format_table.py \
+	meson.build
 
 libvulkan_radeon_la_LIBADD = $(VULKAN_LIB_DEPS)
 

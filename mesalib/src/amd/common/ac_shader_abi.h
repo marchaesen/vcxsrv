@@ -67,6 +67,9 @@ struct ac_shader_abi {
 			    unsigned stream,
 			    LLVMValueRef *addrs);
 
+	void (*emit_primitive)(struct ac_shader_abi *abi,
+			       unsigned stream);
+
 	LLVMValueRef (*load_inputs)(struct ac_shader_abi *abi,
 				    unsigned location,
 				    unsigned driver_location,

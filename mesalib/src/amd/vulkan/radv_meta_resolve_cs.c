@@ -253,22 +253,31 @@ radv_device_init_meta_resolve_compute_state(struct radv_device *device)
 
 	res = create_layout(device);
 	if (res != VK_SUCCESS)
-		return res;
+		goto fail;
 
 	for (uint32_t i = 0; i < MAX_SAMPLES_LOG2; ++i) {
 		uint32_t samples = 1 << i;
 
 		res = create_resolve_pipeline(device, samples, false, false,
 					      &state->resolve_compute.rc[i].pipeline);
+		if (res != VK_SUCCESS)
+			goto fail;
 
 		res = create_resolve_pipeline(device, samples, true, false,
 					      &state->resolve_compute.rc[i].i_pipeline);
+		if (res != VK_SUCCESS)
+			goto fail;
 
 		res = create_resolve_pipeline(device, samples, false, true,
 					      &state->resolve_compute.rc[i].srgb_pipeline);
+		if (res != VK_SUCCESS)
+			goto fail;
 
 	}
 
+	return VK_SUCCESS;
+fail:
+	radv_device_finish_meta_resolve_compute_state(device);
 	return res;
 }
 
