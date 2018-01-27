@@ -520,7 +520,7 @@ standalone_compile_shader(const struct standalone_options *_options,
       } else {
          const gl_shader_stage stage = whole_program->Shaders[0]->Stage;
 
-         whole_program->data->LinkStatus = linking_success;
+         whole_program->data->LinkStatus = LINKING_SUCCESS;
          whole_program->_LinkedShaders[stage] =
             link_intrastage_shaders(whole_program /* mem_ctx */,
                                     ctx,

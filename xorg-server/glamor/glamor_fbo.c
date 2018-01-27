@@ -123,7 +123,10 @@ _glamor_create_tex(glamor_screen_private *glamor_priv,
                    int w, int h, GLenum format)
 {
     unsigned int tex;
+    GLenum iformat = format;
 
+    if (format == GL_RGB10_A2)
+        format = GL_RGBA;
     glamor_make_current(glamor_priv);
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
@@ -132,7 +135,7 @@ _glamor_create_tex(glamor_screen_private *glamor_priv,
     if (format == glamor_priv->one_channel_format && format == GL_RED)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
     glamor_priv->suppress_gl_out_of_memory_logging = true;
-    glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
+    glTexImage2D(GL_TEXTURE_2D, 0, iformat, w, h, 0,
                  format, GL_UNSIGNED_BYTE, NULL);
     glamor_priv->suppress_gl_out_of_memory_logging = false;
 

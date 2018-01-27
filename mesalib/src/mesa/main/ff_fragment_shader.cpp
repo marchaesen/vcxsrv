@@ -1116,7 +1116,7 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
 
    reparent_ir(p.shader->ir, p.shader->ir);
 
-   p.shader->CompileStatus = compile_success;
+   p.shader->CompileStatus = COMPILE_SUCCESS;
    p.shader->Version = state->language_version;
    p.shader_program->Shaders =
       (gl_shader **)malloc(sizeof(*p.shader_program->Shaders));

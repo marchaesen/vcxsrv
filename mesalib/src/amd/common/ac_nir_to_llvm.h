@@ -179,7 +179,6 @@ struct ac_shader_variant_info {
 			bool writes_stencil;
 			bool writes_sample_mask;
 			bool early_fragment_test;
-			bool writes_memory;
 			bool prim_id_input;
 			bool layer_input;
 		} fs;

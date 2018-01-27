@@ -107,52 +107,6 @@ translate_blend(GLenum blend)
    }
 }
 
-
-/**
- * Convert GLenum logicop tokens to pipe tokens.
- */
-static GLuint
-translate_logicop(GLenum logicop)
-{
-   switch (logicop) {
-   case GL_CLEAR:
-      return PIPE_LOGICOP_CLEAR;
-   case GL_NOR:
-      return PIPE_LOGICOP_NOR;
-   case GL_AND_INVERTED:
-      return PIPE_LOGICOP_AND_INVERTED;
-   case GL_COPY_INVERTED:
-      return PIPE_LOGICOP_COPY_INVERTED;
-   case GL_AND_REVERSE:
-      return PIPE_LOGICOP_AND_REVERSE;
-   case GL_INVERT:
-      return PIPE_LOGICOP_INVERT;
-   case GL_XOR:
-      return PIPE_LOGICOP_XOR;
-   case GL_NAND:
-      return PIPE_LOGICOP_NAND;
-   case GL_AND:
-      return PIPE_LOGICOP_AND;
-   case GL_EQUIV:
-      return PIPE_LOGICOP_EQUIV;
-   case GL_NOOP:
-      return PIPE_LOGICOP_NOOP;
-   case GL_OR_INVERTED:
-      return PIPE_LOGICOP_OR_INVERTED;
-   case GL_COPY:
-      return PIPE_LOGICOP_COPY;
-   case GL_OR_REVERSE:
-      return PIPE_LOGICOP_OR_REVERSE;
-   case GL_OR:
-      return PIPE_LOGICOP_OR;
-   case GL_SET:
-      return PIPE_LOGICOP_SET;
-   default:
-      assert("invalid GL token in translate_logicop()" == NULL);
-      return 0;
-   }
-}
-
 /**
  * Figure out if colormasks are different per rt.
  */
@@ -204,7 +158,7 @@ st_update_blend( struct st_context *st )
    if (ctx->Color.ColorLogicOpEnabled) {
       /* logicop enabled */
       blend->logicop_enable = 1;
-      blend->logicop_func = translate_logicop(ctx->Color.LogicOp);
+      blend->logicop_func = ctx->Color._LogicOp;
    }
    else if (ctx->Color.BlendEnabled && !ctx->Color._AdvancedBlendMode) {
       /* blending enabled */

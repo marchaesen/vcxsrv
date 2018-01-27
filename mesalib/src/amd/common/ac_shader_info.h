@@ -42,6 +42,7 @@ struct ac_shader_info {
 		bool force_persample;
 		bool needs_sample_positions;
 		bool uses_input_attachments;
+		bool writes_memory;
 	} ps;
 	struct {
 		bool uses_grid_size;

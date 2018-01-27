@@ -32,6 +32,7 @@
 #include <micmap.h>
 #include <misyncshm.h>
 #include <compositeext.h>
+#include <compint.h>
 #include <glx_extinit.h>
 #include <os.h>
 #include <xserver_poll.h>
@@ -528,6 +529,8 @@ xwl_realize_window(WindowPtr window)
         goto err_surf;
     }
 
+    compRedirectWindow(serverClient, window, CompositeRedirectManual);
+
     DamageRegister(&window->drawable, xwl_window->damage);
     DamageSetReportAfterOp(xwl_window->damage, TRUE);
 
@@ -575,6 +578,8 @@ xwl_unrealize_window(WindowPtr window)
         xwl_seat_clear_touch(xwl_seat, window);
     }
 
+    compUnredirectWindow(serverClient, window, CompositeRedirectManual);
+
     screen->UnrealizeWindow = xwl_screen->UnrealizeWindow;
     ret = (*screen->UnrealizeWindow) (window);
     xwl_screen->UnrealizeWindow = screen->UnrealizeWindow;
@@ -587,8 +592,7 @@ xwl_unrealize_window(WindowPtr window)
     }
 
     wl_surface_destroy(xwl_window->surface);
-    if (RegionNotEmpty(DamageRegion(xwl_window->damage)))
-        xorg_list_del(&xwl_window->link_damage);
+    xorg_list_del(&xwl_window->link_damage);
     DamageUnregister(xwl_window->damage);
     DamageDestroy(xwl_window->damage);
     if (xwl_window->frame_callback)

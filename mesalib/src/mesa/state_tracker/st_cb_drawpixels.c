@@ -375,6 +375,130 @@ alloc_texture(struct st_context *st, GLsizei width, GLsizei height,
 
 
 /**
+ * Search the cache for an image which matches the given parameters.
+ * \return  pipe_resource pointer if found, NULL if not found.
+ */
+static struct pipe_resource *
+search_drawpixels_cache(struct st_context *st,
+                        GLsizei width, GLsizei height,
+                        GLenum format, GLenum type,
+                        const struct gl_pixelstore_attrib *unpack,
+                        const void *pixels)
+{
+   struct pipe_resource *pt = NULL;
+   const GLint bpp = _mesa_bytes_per_pixel(format, type);
+   unsigned i;
+
+   if ((unpack->RowLength != 0 && unpack->RowLength != width) ||
+       unpack->SkipPixels != 0 ||
+       unpack->SkipRows != 0 ||
+       unpack->SwapBytes ||
+       _mesa_is_bufferobj(unpack->BufferObj)) {
+      /* we don't allow non-default pixel unpacking values */
+      return NULL;
+   }
+
+   /* Search cache entries for a match */
+   for (i = 0; i < ARRAY_SIZE(st->drawpix_cache.entries); i++) {
+      struct drawpix_cache_entry *entry = &st->drawpix_cache.entries[i];
+
+      if (width == entry->width &&
+          height == entry->height &&
+          format == entry->format &&
+          type == entry->type &&
+          pixels == entry->user_pointer &&
+          entry->image) {
+         assert(entry->texture);
+
+         /* check if the pixel data is the same */
+         if (memcmp(pixels, entry->image, width * height * bpp) == 0) {
+            /* Success - found a cache match */
+            pipe_resource_reference(&pt, entry->texture);
+            /* refcount of returned texture should be at least two here.  One
+             * reference for the cache to hold on to, one for the caller (which
+             * it will release), and possibly more held by the driver.
+             */
+            assert(pt->reference.count >= 2);
+
+            /* update the age of this entry */
+            entry->age = ++st->drawpix_cache.age;
+
+            return pt;
+         }
+      }
+   }
+
+   /* no cache match found */
+   return NULL;
+}
+
+
+/**
+ * Find the oldest entry in the glDrawPixels cache.  We'll replace this
+ * one when we need to store a new image.
+ */
+static struct drawpix_cache_entry *
+find_oldest_drawpixels_cache_entry(struct st_context *st)
+{
+   unsigned oldest_age = ~0u, oldest_index = ~0u;
+   unsigned i;
+
+   /* Find entry with oldest (lowest) age */
+   for (i = 0; i < ARRAY_SIZE(st->drawpix_cache.entries); i++) {
+      const struct drawpix_cache_entry *entry = &st->drawpix_cache.entries[i];
+      if (entry->age < oldest_age) {
+         oldest_age = entry->age;
+         oldest_index = i;
+      }
+   }
+
+   assert(oldest_index != ~0u);
+
+   return &st->drawpix_cache.entries[oldest_index];
+}
+
+
+/**
+ * Try to save the given glDrawPixels image in the cache.
+ */
+static void
+cache_drawpixels_image(struct st_context *st,
+                       GLsizei width, GLsizei height,
+                       GLenum format, GLenum type,
+                       const struct gl_pixelstore_attrib *unpack,
+                       const void *pixels,
+                       struct pipe_resource *pt)
+{
+   if ((unpack->RowLength == 0 || unpack->RowLength == width) &&
+       unpack->SkipPixels == 0 &&
+       unpack->SkipRows == 0) {
+      const GLint bpp = _mesa_bytes_per_pixel(format, type);
+      struct drawpix_cache_entry *entry =
+         find_oldest_drawpixels_cache_entry(st);
+      assert(entry);
+      entry->width = width;
+      entry->height = height;
+      entry->format = format;
+      entry->type = type;
+      entry->user_pointer = pixels;
+      free(entry->image);
+      entry->image = malloc(width * height * bpp);
+      if (entry->image) {
+         memcpy(entry->image, pixels, width * height * bpp);
+         pipe_resource_reference(&entry->texture, pt);
+         entry->age = ++st->drawpix_cache.age;
+      }
+      else {
+         /* out of memory, free/disable cached texture */
+         entry->width = 0;
+         entry->height = 0;
+         pipe_resource_reference(&entry->texture, NULL);
+      }
+   }
+}
+
+
+/**
  * Make texture containing an image for glDrawPixels image.
  * If 'pixels' is NULL, leave the texture image data undefined.
  */
@@ -392,44 +516,11 @@ make_texture(struct st_context *st,
    GLenum baseInternalFormat;
 
 #if USE_DRAWPIXELS_CACHE
-   const GLint bpp = _mesa_bytes_per_pixel(format, type);
-
-   /* Check if the glDrawPixels() parameters and state matches the cache */
-   if (width == st->drawpix_cache.width &&
-       height == st->drawpix_cache.height &&
-       format == st->drawpix_cache.format &&
-       type == st->drawpix_cache.type &&
-       pixels == st->drawpix_cache.user_pointer &&
-       !_mesa_is_bufferobj(unpack->BufferObj) &&
-       (unpack->RowLength == 0 || unpack->RowLength == width) &&
-       unpack->SkipPixels == 0 &&
-       unpack->SkipRows == 0 &&
-       unpack->SwapBytes == GL_FALSE &&
-       st->drawpix_cache.image) {
-      assert(st->drawpix_cache.texture);
-
-      /* check if the pixel data is the same */
-      if (memcmp(pixels, st->drawpix_cache.image, width * height * bpp) == 0) {
-         /* OK, re-use the cached texture */
-         pipe_resource_reference(&pt, st->drawpix_cache.texture);
-         /* refcount of returned texture should be at least two here.  One
-          * reference for the cache to hold on to, one for the caller (which
-          * it will release), and possibly more held by the driver.
-          */
-         assert(pt->reference.count >= 2);
-         return pt;
-      }
+   pt = search_drawpixels_cache(st, width, height, format, type,
+                                unpack, pixels);
+   if (pt) {
+      return pt;
    }
-
-   /* discard the cached image and texture (if there is one) */
-   st->drawpix_cache.width = 0;
-   st->drawpix_cache.height = 0;
-   st->drawpix_cache.user_pointer = NULL;
-   if (st->drawpix_cache.image) {
-      free(st->drawpix_cache.image);
-      st->drawpix_cache.image = NULL;
-   }
-   pipe_resource_reference(&st->drawpix_cache.texture, NULL);
 #endif
 
    /* Choose a pixel format for the temp texture which will hold the
@@ -522,28 +613,7 @@ make_texture(struct st_context *st,
    _mesa_unmap_pbo_source(ctx, unpack);
 
 #if USE_DRAWPIXELS_CACHE
-   /* Save the glDrawPixels parameter and image in the cache */
-   if ((unpack->RowLength == 0 || unpack->RowLength == width) &&
-       unpack->SkipPixels == 0 &&
-       unpack->SkipRows == 0) {
-      st->drawpix_cache.width = width;
-      st->drawpix_cache.height = height;
-      st->drawpix_cache.format = format;
-      st->drawpix_cache.type = type;
-      st->drawpix_cache.user_pointer = pixels;
-      assert(!st->drawpix_cache.image);
-      st->drawpix_cache.image = malloc(width * height * bpp);
-      if (st->drawpix_cache.image) {
-         memcpy(st->drawpix_cache.image, pixels, width * height * bpp);
-         pipe_resource_reference(&st->drawpix_cache.texture, pt);
-      }
-      else {
-         /* out of memory, free/disable cached texture */
-         st->drawpix_cache.width = 0;
-         st->drawpix_cache.height = 0;
-         pipe_resource_reference(&st->drawpix_cache.texture, NULL);
-      }
-   }
+   cache_drawpixels_image(st, width, height, format, type, unpack, pixels, pt);
 #endif
 
    return pt;
@@ -1658,4 +1728,11 @@ st_destroy_drawpix(struct st_context *st)
       cso_delete_vertex_shader(st->cso_context, st->drawpix.vert_shaders[0]);
    if (st->drawpix.vert_shaders[1])
       cso_delete_vertex_shader(st->cso_context, st->drawpix.vert_shaders[1]);
+
+   /* Free cache data */
+   for (i = 0; i < ARRAY_SIZE(st->drawpix_cache.entries); i++) {
+      struct drawpix_cache_entry *entry = &st->drawpix_cache.entries[i];
+      free(entry->image);
+      pipe_resource_reference(&entry->texture, NULL);
+   }
 }

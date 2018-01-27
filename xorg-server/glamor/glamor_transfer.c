@@ -33,6 +33,10 @@ glamor_format_for_pixmap(PixmapPtr pixmap, GLenum *format, GLenum *type)
         *format = GL_BGRA;
         *type = GL_UNSIGNED_INT_8_8_8_8_REV;
         break;
+    case 30:
+        *format = GL_BGRA;
+        *type = GL_UNSIGNED_INT_2_10_10_10_REV;
+        break;
     case 16:
         *format = GL_RGB;
         *type = GL_UNSIGNED_SHORT_5_6_5;

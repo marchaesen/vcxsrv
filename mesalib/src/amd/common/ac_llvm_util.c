@@ -152,7 +152,6 @@ static LLVMAttribute ac_attr_to_llvm_attr(enum ac_func_attr attr)
 {
    switch (attr) {
    case AC_FUNC_ATTR_ALWAYSINLINE: return LLVMAlwaysInlineAttribute;
-   case AC_FUNC_ATTR_BYVAL: return LLVMByValAttribute;
    case AC_FUNC_ATTR_INREG: return LLVMInRegAttribute;
    case AC_FUNC_ATTR_NOALIAS: return LLVMNoAliasAttribute;
    case AC_FUNC_ATTR_NOUNWIND: return LLVMNoUnwindAttribute;
@@ -170,7 +169,6 @@ static const char *attr_to_str(enum ac_func_attr attr)
 {
    switch (attr) {
    case AC_FUNC_ATTR_ALWAYSINLINE: return "alwaysinline";
-   case AC_FUNC_ATTR_BYVAL: return "byval";
    case AC_FUNC_ATTR_INREG: return "inreg";
    case AC_FUNC_ATTR_NOALIAS: return "noalias";
    case AC_FUNC_ATTR_NOUNWIND: return "nounwind";

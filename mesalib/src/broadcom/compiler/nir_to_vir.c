@@ -969,7 +969,11 @@ emit_frag_end(struct v3d_compile *c)
                 switch (glsl_get_base_type(var->type)) {
                 case GLSL_TYPE_UINT:
                 case GLSL_TYPE_INT:
-                        conf |= TLB_TYPE_I32_COLOR;
+                        /* The F32 vs I32 distinction was dropped in 4.2. */
+                        if (c->devinfo->ver < 42)
+                                conf |= TLB_TYPE_I32_COLOR;
+                        else
+                                conf |= TLB_TYPE_F32_COLOR;
                         conf |= ((num_components - 1) <<
                                  TLB_VEC_SIZE_MINUS_1_SHIFT);
 
@@ -1159,7 +1163,7 @@ emit_vert_end(struct v3d_compile *c)
 
         /* GFXH-1684: VPM writes need to be complete by the end of the shader.
          */
-        if (c->devinfo->ver >= 40 && c->devinfo->ver <= 41)
+        if (c->devinfo->ver >= 40 && c->devinfo->ver <= 42)
                 vir_VPMWT(c);
 }
 

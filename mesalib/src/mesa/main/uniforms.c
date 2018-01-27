@@ -1016,7 +1016,7 @@ _mesa_GetUniformLocation(GLuint programObj, const GLcharARB *name)
     *     "If program has not been successfully linked, the error
     *     INVALID_OPERATION is generated."
     */
-   if (shProg->data->LinkStatus == linking_failure) {
+   if (shProg->data->LinkStatus == LINKING_FAILURE) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
 		  "glGetUniformLocation(program not linked)");
       return -1;

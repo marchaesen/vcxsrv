@@ -549,7 +549,7 @@ struct dd_function_table {
    /** Specify the width of rasterized lines */
    void (*LineWidth)(struct gl_context *ctx, GLfloat width);
    /** Specify a logical pixel operation for color index rendering */
-   void (*LogicOpcode)(struct gl_context *ctx, GLenum opcode);
+   void (*LogicOpcode)(struct gl_context *ctx, enum gl_logicop_mode opcode);
    void (*PointParameterfv)(struct gl_context *ctx, GLenum pname,
                             const GLfloat *params);
    /** Specify the diameter of rasterized points */

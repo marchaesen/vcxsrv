@@ -22,7 +22,7 @@ inc_broadcom = include_directories('.', 'cle')
 
 subdir('cle')
 
-vc5_versions = ['33', '41']
+vc5_versions = ['33', '41', '42']
 
 if with_gallium_vc5
   subdir('compiler')
@@ -32,7 +32,10 @@ if with_gallium_vc5
   foreach ver : vc5_versions
     per_version_libs += static_library(
       'libbroadcom-v' + ver,
-      files('clif/v3dx_dump.c'),
+      [
+        files('clif/v3dx_dump.c'),
+        v3d_xml_pack
+      ],
       include_directories : [inc_common, inc_broadcom, inc_src],
       c_args : [c_vis_args, no_override_init_args, '-DV3D_VERSION=' + ver],
       dependencies: [dep_valgrind, dep_thread],

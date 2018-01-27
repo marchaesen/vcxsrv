@@ -37,7 +37,6 @@ extern "C" {
 
 enum ac_func_attr {
 	AC_FUNC_ATTR_ALWAYSINLINE = (1 << 0),
-	AC_FUNC_ATTR_BYVAL        = (1 << 1),
 	AC_FUNC_ATTR_INREG        = (1 << 2),
 	AC_FUNC_ATTR_NOALIAS      = (1 << 3),
 	AC_FUNC_ATTR_NOUNWIND     = (1 << 4),

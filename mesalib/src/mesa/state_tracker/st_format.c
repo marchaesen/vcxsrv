@@ -2128,8 +2128,9 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
    pf = find_exact_format(internalFormat, format, type);
    if (pf != PIPE_FORMAT_NONE &&
        screen->is_format_supported(screen, pf,
-                                   target, sample_count, bindings))
-      return pf;
+                                   target, sample_count, bindings)) {
+      goto success;
+   }
 
    /* search table for internalFormat */
    for (i = 0; i < ARRAY_SIZE(format_map); i++) {
@@ -2139,15 +2140,27 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
             /* Found the desired internal format.  Find first pipe format
              * which is supported by the driver.
              */
-            return find_supported_format(screen, mapping->pipeFormats,
-                                         target, sample_count, bindings,
-                                         allow_dxt);
+            pf = find_supported_format(screen, mapping->pipeFormats,
+                                       target, sample_count, bindings,
+                                       allow_dxt);
+            goto success;
          }
       }
    }
 
    _mesa_problem(NULL, "unhandled format!\n");
    return PIPE_FORMAT_NONE;
+
+success:
+   if (0) {
+      debug_printf("%s(fmt=%s, type=%s, intFmt=%s) = %s\n",
+                   __FUNCTION__,
+                   _mesa_enum_to_string(format),
+                   _mesa_enum_to_string(type),
+                   _mesa_enum_to_string(internalFormat),
+                   util_format_name(pf));
+   }
+   return pf;
 }
 
 

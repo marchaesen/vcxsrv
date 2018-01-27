@@ -3088,7 +3088,7 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
    prog->data = _mesa_create_shader_program_data();
 
-   prog->data->LinkStatus = linking_success;
+   prog->data->LinkStatus = LINKING_SUCCESS;
 
    for (i = 0; i < prog->NumShaders; i++) {
       if (!prog->Shaders[i]->CompileStatus) {
@@ -3114,21 +3114,21 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       link_shaders(ctx, prog);
    }
 
-   /* If LinkStatus is linking_success, then reset sampler validated to true.
+   /* If LinkStatus is LINKING_SUCCESS, then reset sampler validated to true.
     * Validation happens via the LinkShader call below. If LinkStatus is
-    * linking_skipped, then SamplersValidated will have been restored from the
+    * LINKING_SKIPPED, then SamplersValidated will have been restored from the
     * shader cache.
     */
-   if (prog->data->LinkStatus == linking_success) {
+   if (prog->data->LinkStatus == LINKING_SUCCESS) {
       prog->SamplersValidated = GL_TRUE;
    }
 
    if (prog->data->LinkStatus && !ctx->Driver.LinkShader(ctx, prog)) {
-      prog->data->LinkStatus = linking_failure;
+      prog->data->LinkStatus = LINKING_FAILURE;
    }
 
    /* Return early if we are loading the shader from on-disk cache */
-   if (prog->data->LinkStatus == linking_skipped)
+   if (prog->data->LinkStatus == LINKING_SKIPPED)
       return;
 
    if (ctx->_Shader->Flags & GLSL_DUMP) {

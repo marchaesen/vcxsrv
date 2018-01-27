@@ -514,7 +514,7 @@ static const struct opcode_desc add_ops[] = {
         { 187, 187, 1 << 2, 1 << 2, V3D_QPU_A_VDWWT, 33 },
         { 187, 187, 1 << 2, 1 << 2, V3D_QPU_A_IID, 40 },
         { 187, 187, 1 << 2, 1 << 3, V3D_QPU_A_SAMPID, 40 },
-        { 187, 187, 1 << 2, 1 << 4, V3D_QPU_A_PATCHID, 40 },
+        { 187, 187, 1 << 2, 1 << 4, V3D_QPU_A_BARRIERID, 40 },
         { 187, 187, 1 << 2, 1 << 5, V3D_QPU_A_TMUWT },
         { 187, 187, 1 << 2, 1 << 6, V3D_QPU_A_VPMWT },
 

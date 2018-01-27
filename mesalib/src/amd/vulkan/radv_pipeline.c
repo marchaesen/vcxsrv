@@ -2497,7 +2497,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 
 	unsigned z_order;
 	pipeline->graphics.db_shader_control = 0;
-	if (ps->info.fs.early_fragment_test || !ps->info.fs.writes_memory)
+	if (ps->info.fs.early_fragment_test || !ps->info.info.ps.writes_memory)
 		z_order = V_02880C_EARLY_Z_THEN_LATE_Z;
 	else
 		z_order = V_02880C_LATE_Z;
@@ -2509,8 +2509,8 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 		S_02880C_MASK_EXPORT_ENABLE(ps->info.fs.writes_sample_mask) |
 		S_02880C_Z_ORDER(z_order) |
 		S_02880C_DEPTH_BEFORE_SHADER(ps->info.fs.early_fragment_test) |
-		S_02880C_EXEC_ON_HIER_FAIL(ps->info.fs.writes_memory) |
-		S_02880C_EXEC_ON_NOOP(ps->info.fs.writes_memory);
+		S_02880C_EXEC_ON_HIER_FAIL(ps->info.info.ps.writes_memory) |
+		S_02880C_EXEC_ON_NOOP(ps->info.info.ps.writes_memory);
 
 	if (pipeline->device->physical_device->has_rbplus)
 		pipeline->graphics.db_shader_control |= S_02880C_DUAL_QUAD_DISABLE(1);

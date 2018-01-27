@@ -413,6 +413,43 @@ union gl_color_union
    GLuint ui[4];
 };
 
+/**
+ * Remapped color logical operations
+ *
+ * With the exception of NVIDIA hardware, which consumes the OpenGL enumerants
+ * directly, everything wants this mapping of color logical operations.
+ *
+ * Fun fact: These values are just the bit-reverse of the low-nibble of the GL
+ * enumerant values (i.e., `GL_NOOP & 0x0f` is `b0101' while
+ * \c COLOR_LOGICOP_NOOP is `b1010`).
+ *
+ * Fun fact #2: These values are just an encoding of the operation as a table
+ * of bit values. The result of the logic op is:
+ *
+ *    result_bit = (logic_op >> (2 * src_bit + dst_bit)) & 1
+ *
+ * For the GL enums, the result is:
+ *
+ *    result_bit = logic_op & (1 << (2 * src_bit + dst_bit))
+ */
+enum PACKED gl_logicop_mode {
+   COLOR_LOGICOP_CLEAR = 0,
+   COLOR_LOGICOP_NOR = 1,
+   COLOR_LOGICOP_AND_INVERTED = 2,
+   COLOR_LOGICOP_COPY_INVERTED = 3,
+   COLOR_LOGICOP_AND_REVERSE = 4,
+   COLOR_LOGICOP_INVERT = 5,
+   COLOR_LOGICOP_XOR = 6,
+   COLOR_LOGICOP_NAND = 7,
+   COLOR_LOGICOP_AND = 8,
+   COLOR_LOGICOP_EQUIV = 9,
+   COLOR_LOGICOP_NOOP = 10,
+   COLOR_LOGICOP_OR_INVERTED = 11,
+   COLOR_LOGICOP_COPY = 12,
+   COLOR_LOGICOP_OR_REVERSE = 13,
+   COLOR_LOGICOP_OR = 14,
+   COLOR_LOGICOP_SET = 15
+};
 
 /**
  * Color buffer attribute group (GL_COLOR_BUFFER_BIT).
@@ -446,7 +483,7 @@ struct gl_colorbuffer_attrib
     * control, only on the fixed-pointness of the render target.
     * The query does however depend on fragment color clamping.
     */
-   GLfloat BlendColorUnclamped[4];               /**< Blending color */
+   GLfloat BlendColorUnclamped[4];      /**< Blending color */
    GLfloat BlendColor[4];		/**< Blending color */
 
    struct
@@ -488,16 +525,16 @@ struct gl_colorbuffer_attrib
    GLboolean IndexLogicOpEnabled;	/**< Color index logic op enabled flag */
    GLboolean ColorLogicOpEnabled;	/**< RGBA logic op enabled flag */
    GLenum LogicOp;			/**< Logic operator */
-
+   enum gl_logicop_mode _LogicOp;
    /*@}*/
 
-   GLboolean DitherFlag;		/**< Dither enable flag */
+   GLboolean DitherFlag;           /**< Dither enable flag */
 
-   GLboolean _ClampFragmentColor; /** < with GL_FIXED_ONLY_ARB resolved */
+   GLboolean _ClampFragmentColor;  /** < with GL_FIXED_ONLY_ARB resolved */
    GLenum ClampFragmentColor; /**< GL_TRUE, GL_FALSE or GL_FIXED_ONLY_ARB */
    GLenum ClampReadColor;     /**< GL_TRUE, GL_FALSE or GL_FIXED_ONLY_ARB */
 
-   GLboolean sRGBEnabled;    /**< Framebuffer sRGB blending/updating requested */
+   GLboolean sRGBEnabled;  /**< Framebuffer sRGB blending/updating requested */
 };
 
 
@@ -925,11 +962,11 @@ struct gl_texture_image
 {
    GLint InternalFormat;	/**< Internal format as given by the user */
    GLenum _BaseFormat;		/**< Either GL_RGB, GL_RGBA, GL_ALPHA,
-				 *   GL_LUMINANCE, GL_LUMINANCE_ALPHA,
-				 *   GL_INTENSITY, GL_DEPTH_COMPONENT or
-				 *   GL_DEPTH_STENCIL_EXT only. Used for
-				 *   choosing TexEnv arithmetic.
-				 */
+                                 *   GL_LUMINANCE, GL_LUMINANCE_ALPHA,
+                                 *   GL_INTENSITY, GL_DEPTH_COMPONENT or
+                                 *   GL_DEPTH_STENCIL_EXT only. Used for
+                                 *   choosing TexEnv arithmetic.
+                                 */
    mesa_format TexFormat;         /**< The actual texture memory format */
 
    GLuint Border;		/**< 0 or 1 */
@@ -1009,11 +1046,11 @@ struct gl_sampler_object
  */
 struct gl_texture_object
 {
-   simple_mtx_t Mutex;      /**< for thread safety */
-   GLint RefCount;             /**< reference count */
-   GLuint Name;                /**< the user-visible texture object ID */
-   GLchar *Label;               /**< GL_KHR_debug */
-   GLenum Target;              /**< GL_TEXTURE_1D, GL_TEXTURE_2D, etc. */
+   simple_mtx_t Mutex;           /**< for thread safety */
+   GLint RefCount;               /**< reference count */
+   GLuint Name;                  /**< the user-visible texture object ID */
+   GLchar *Label;                /**< GL_KHR_debug */
+   GLenum Target;                /**< GL_TEXTURE_1D, GL_TEXTURE_2D, etc. */
    gl_texture_index TargetIndex; /**< The gl_texture_unit::CurrentTex index.
                                       Only valid when Target is valid. */
 
@@ -1168,12 +1205,12 @@ struct gl_tex_env_argument
  */
 struct gl_tex_env_combine_packed
 {
-   uint32_t ModeRGB:4;          /**< Effective mode for RGB as 4 bits */
-   uint32_t ModeA:4;            /**< Effective mode for RGB as 4 bits */
-   uint32_t ScaleShiftRGB:2;    /**< 0, 1 or 2 */
-   uint32_t ScaleShiftA:2;      /**< 0, 1 or 2 */
-   uint32_t NumArgsRGB:3;       /**< Number of inputs used for the RGB combiner */
-   uint32_t NumArgsA:3;         /**< Number of inputs used for the A combiner */
+   uint32_t ModeRGB:4;        /**< Effective mode for RGB as 4 bits */
+   uint32_t ModeA:4;          /**< Effective mode for RGB as 4 bits */
+   uint32_t ScaleShiftRGB:2;  /**< 0, 1 or 2 */
+   uint32_t ScaleShiftA:2;    /**< 0, 1 or 2 */
+   uint32_t NumArgsRGB:3;     /**< Number of inputs used for the RGB combiner */
+   uint32_t NumArgsA:3;       /**< Number of inputs used for the A combiner */
    /** Source arguments in a packed manner */
    struct gl_tex_env_argument ArgsRGB[MAX_COMBINER_TERMS];
    struct gl_tex_env_argument ArgsA[MAX_COMBINER_TERMS];
@@ -1375,9 +1412,9 @@ typedef enum
 struct gl_buffer_mapping
 {
    GLbitfield AccessFlags; /**< Mask of GL_MAP_x_BIT flags */
-   GLvoid *Pointer;     /**< User-space address of mapping */
-   GLintptr Offset;     /**< Mapped offset */
-   GLsizeiptr Length;   /**< Mapped length */
+   GLvoid *Pointer;        /**< User-space address of mapping */
+   GLintptr Offset;        /**< Mapped offset */
+   GLsizeiptr Length;      /**< Mapped length */
 };
 
 
@@ -1541,7 +1578,7 @@ struct gl_vertex_array_object
    /**
     * Derived vertex attribute arrays
     *
-    * This is a legacy data structure created from gl_vertex_attrib_array and
+    * This is a legacy data structure created from gl_array_attributes and
     * gl_vertex_buffer_binding, for compatibility with existing driver code.
     */
    struct gl_vertex_array _VertexAttrib[VERT_ATTRIB_MAX];
@@ -2092,7 +2129,8 @@ struct gl_program
    GLint RefCount;
    GLubyte *String;  /**< Null-terminated program text */
 
-   GLenum Target;    /**< GL_VERTEX/FRAGMENT_PROGRAM_ARB, GL_GEOMETRY_PROGRAM_NV */
+   /** GL_VERTEX/FRAGMENT_PROGRAM_ARB, GL_GEOMETRY_PROGRAM_NV */
+   GLenum Target;
    GLenum Format;    /**< String encoding format */
 
    GLboolean _Used;        /**< Ever used for drawing? Used for debugging */
@@ -2108,11 +2146,16 @@ struct gl_program
    /** Is this program written to on disk shader cache */
    bool program_written_to_cache;
 
-   GLbitfield64 SecondaryOutputsWritten; /**< Subset of OutputsWritten outputs written with non-zero index. */
-   GLbitfield TexturesUsed[MAX_COMBINED_TEXTURE_IMAGE_UNITS];  /**< TEXTURE_x_BIT bitmask */
-   GLbitfield SamplersUsed;   /**< Bitfield of which samplers are used */
-   GLbitfield ShadowSamplers; /**< Texture units used for shadow sampling. */
-   GLbitfield ExternalSamplersUsed; /**< Texture units used for samplerExternalOES */
+   /** Subset of OutputsWritten outputs written with non-zero index. */
+   GLbitfield64 SecondaryOutputsWritten;
+   /** TEXTURE_x_BIT bitmask */
+   GLbitfield TexturesUsed[MAX_COMBINED_TEXTURE_IMAGE_UNITS];
+   /** Bitfield of which samplers are used */
+   GLbitfield SamplersUsed;
+   /** Texture units used for shadow sampling. */
+   GLbitfield ShadowSamplers;
+   /** Texture units used for samplerExternalOES */
+   GLbitfield ExternalSamplersUsed;
 
    /* Fragement shader only fields */
    GLboolean OriginUpperLeft;
@@ -2329,7 +2372,8 @@ struct gl_tess_eval_program_state
  */
 struct gl_geometry_program_state
 {
-   /** Currently enabled and valid program (including internal programs
+   /**
+    * Currently enabled and valid program (including internal programs
     * and compiled shader programs).
     */
    struct gl_program *_Current;
@@ -2346,7 +2390,8 @@ struct gl_fragment_program_state
 
    struct gl_program *Current;  /**< User-bound fragment program */
 
-   /** Currently enabled and valid fragment program (including internal
+   /**
+    * Currently enabled and valid fragment program (including internal
     * programs, user-defined fragment programs and GLSL fragment shaders).
     * This is the program we must use when rendering.
     */
@@ -2395,12 +2440,16 @@ struct ati_fragment_shader
    GLubyte numArithInstr[2];
    GLubyte regsAssigned[2];
    GLubyte NumPasses;         /**< 1 or 2 */
-   /** Current compile stage: 0 setup pass1, 1 arith pass1, 2 setup pass2, 3 arith pass2 */
+   /**
+    * Current compile stage: 0 setup pass1, 1 arith pass1,
+    * 2 setup pass2, 3 arith pass2.
+    */
    GLubyte cur_pass;
    GLubyte last_optype;
    GLboolean interpinp1;
    GLboolean isValid;
-   /** Array of 2 bit values for each tex unit to remember whether
+   /**
+    * Array of 2 bit values for each tex unit to remember whether
     * STR or STQ swizzle was used
     */
    GLuint swizzlerq;
@@ -2554,16 +2603,16 @@ struct gl_linked_shader
 
 
 /**
- * Compile status enum. compile_skipped is used to indicate the compile
+ * Compile status enum. COMPILE_SKIPPED is used to indicate the compile
  * was skipped due to the shader matching one that's been seen before by
  * the on-disk cache.
  */
 enum gl_compile_status
 {
-   compile_failure = 0,
-   compile_success,
-   compile_skipped,
-   compiled_no_opts
+   COMPILE_FAILURE = 0,
+   COMPILE_SUCCESS,
+   COMPILE_SKIPPED,
+   COMPILED_NO_OPTS
 };
 
 /**
@@ -2846,14 +2895,14 @@ struct gl_program_resource
 };
 
 /**
- * Link status enum. linking_skipped is used to indicate linking
+ * Link status enum. LINKING_SKIPPED is used to indicate linking
  * was skipped due to the shader being loaded from the on-disk cache.
  */
 enum gl_link_status
 {
-   linking_failure = 0,
-   linking_success,
-   linking_skipped
+   LINKING_FAILURE = 0,
+   LINKING_SUCCESS,
+   LINKING_SKIPPED
 };
 
 /**
@@ -3042,7 +3091,8 @@ struct gl_shader_program
     */
    struct gl_linked_shader *_LinkedShaders[MESA_SHADER_STAGES];
 
-   /* True if any of the fragment shaders attached to this program use:
+   /**
+    * True if any of the fragment shaders attached to this program use:
     * #extension ARB_fragment_coord_conventions: enable
     */
    GLboolean ARB_fragment_coord_conventions_enable;
@@ -3092,11 +3142,9 @@ struct gl_pipeline_object
     */
    struct gl_shader_program *ActiveProgram;
 
-   GLbitfield Flags;                    /**< Mask of GLSL_x flags */
-
-   GLboolean EverBound;                 /**< Has the pipeline object been created */
-
-   GLboolean Validated;                 /**< Pipeline Validation status */
+   GLbitfield Flags;         /**< Mask of GLSL_x flags */
+   GLboolean EverBound;      /**< Has the pipeline object been created */
+   GLboolean Validated;      /**< Pipeline Validation status */
 
    GLchar *InfoLog;
 };
@@ -3109,7 +3157,7 @@ struct gl_pipeline_shader_state
    /** Currently bound pipeline object. See _mesa_BindProgramPipeline() */
    struct gl_pipeline_object *Current;
 
-   /* Default Object to ensure that _Shader is never NULL */
+   /** Default Object to ensure that _Shader is never NULL */
    struct gl_pipeline_object *Default;
 
    /** Pipeline objects */
@@ -3155,7 +3203,8 @@ struct gl_shader_compiler_options
     */
    GLboolean OptimizeForAOS;
 
-   GLboolean LowerBufferInterfaceBlocks; /**< Lower UBO and SSBO access to intrinsics. */
+   /** Lower UBO and SSBO access to intrinsics. */
+   GLboolean LowerBufferInterfaceBlocks;
 
    /** Clamp UBO and SSBO block indices so they don't go out-of-bounds. */
    GLboolean ClampBlockIndicesToArrayBounds;
@@ -3171,7 +3220,7 @@ struct gl_query_object
 {
    GLenum Target;      /**< The query target, when active */
    GLuint Id;          /**< hash table ID/name */
-   GLchar *Label;       /**< GL_KHR_debug */
+   GLchar *Label;      /**< GL_KHR_debug */
    GLuint64EXT Result; /**< the counter */
    GLboolean Active;   /**< inside Begin/EndQuery */
    GLboolean Ready;    /**< result is ready? */
@@ -5072,11 +5121,9 @@ struct gl_memory_info
 #ifdef DEBUG
 extern int MESA_VERBOSE;
 extern int MESA_DEBUG_FLAGS;
-# define MESA_FUNCTION __func__
 #else
 # define MESA_VERBOSE 0
 # define MESA_DEBUG_FLAGS 0
-# define MESA_FUNCTION "a function"
 #endif
 
 
