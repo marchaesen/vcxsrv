@@ -849,6 +849,24 @@ _mesa_AlphaFunc( GLenum func, GLclampf ref )
    }
 }
 
+static const enum gl_logicop_mode color_logicop_mapping[16] = {
+   COLOR_LOGICOP_CLEAR,
+   COLOR_LOGICOP_AND,
+   COLOR_LOGICOP_AND_REVERSE,
+   COLOR_LOGICOP_COPY,
+   COLOR_LOGICOP_AND_INVERTED,
+   COLOR_LOGICOP_NOOP,
+   COLOR_LOGICOP_XOR,
+   COLOR_LOGICOP_OR,
+   COLOR_LOGICOP_NOR,
+   COLOR_LOGICOP_EQUIV,
+   COLOR_LOGICOP_INVERT,
+   COLOR_LOGICOP_OR_REVERSE,
+   COLOR_LOGICOP_COPY_INVERTED,
+   COLOR_LOGICOP_OR_INVERTED,
+   COLOR_LOGICOP_NAND,
+   COLOR_LOGICOP_SET
+};
 
 static ALWAYS_INLINE void
 logic_op(struct gl_context *ctx, GLenum opcode, bool no_error)
@@ -884,9 +902,10 @@ logic_op(struct gl_context *ctx, GLenum opcode, bool no_error)
    FLUSH_VERTICES(ctx, ctx->DriverFlags.NewLogicOp ? 0 : _NEW_COLOR);
    ctx->NewDriverState |= ctx->DriverFlags.NewLogicOp;
    ctx->Color.LogicOp = opcode;
+   ctx->Color._LogicOp = color_logicop_mapping[opcode & 0x0f];
 
    if (ctx->Driver.LogicOpcode)
-      ctx->Driver.LogicOpcode(ctx, opcode);
+      ctx->Driver.LogicOpcode(ctx, ctx->Color._LogicOp);
 }
 
 
@@ -1189,6 +1208,7 @@ void _mesa_init_color( struct gl_context * ctx )
    ctx->Color.IndexLogicOpEnabled = GL_FALSE;
    ctx->Color.ColorLogicOpEnabled = GL_FALSE;
    ctx->Color.LogicOp = GL_COPY;
+   ctx->Color._LogicOp = COLOR_LOGICOP_COPY;
    ctx->Color.DitherFlag = GL_TRUE;
 
    /* GL_FRONT is not possible on GLES. Instead GL_BACK will render to either

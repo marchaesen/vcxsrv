@@ -86,6 +86,20 @@ struct st_bound_handles
    uint64_t *handles;
 };
 
+
+#define NUM_DRAWPIX_CACHE_ENTRIES 4
+
+struct drawpix_cache_entry
+{
+   GLsizei width, height;
+   GLenum format, type;
+   const void *user_pointer;  /**< Last user 'pixels' pointer */
+   void *image;               /**< Copy of the glDrawPixels image data */
+   struct pipe_resource *texture;
+   unsigned age;
+};
+
+
 struct st_context
 {
    struct st_context_iface iface;
@@ -208,12 +222,10 @@ struct st_context
       void *vert_shaders[2];   /**< ureg shaders */
    } drawpix;
 
+   /** Cache of glDrawPixels images */
    struct {
-      GLsizei width, height;
-      GLenum format, type;
-      const void *user_pointer;  /**< Last user 'pixels' pointer */
-      void *image;               /**< Copy of the glDrawPixels image data */
-      struct pipe_resource *texture;
+      struct drawpix_cache_entry entries[NUM_DRAWPIX_CACHE_ENTRIES];
+      unsigned age;
    } drawpix_cache;
 
    /** for glReadPixels */

@@ -137,7 +137,7 @@ meta_compile_shader_with_debug(struct gl_context *ctx, gl_shader_stage stage,
 
    sh = _mesa_new_shader(name, stage);
    sh->Source = strdup(source);
-   sh->CompileStatus = compile_failure;
+   sh->CompileStatus = COMPILE_FAILURE;
    _mesa_compile_shader(ctx, sh);
 
    if (!sh->CompileStatus) {

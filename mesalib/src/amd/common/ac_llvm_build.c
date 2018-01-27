@@ -923,6 +923,43 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 			   AC_FUNC_ATTR_LEGACY);
 }
 
+static LLVMValueRef
+ac_build_buffer_load_common(struct ac_llvm_context *ctx,
+			    LLVMValueRef rsrc,
+			    LLVMValueRef vindex,
+			    LLVMValueRef voffset,
+			    unsigned num_channels,
+			    bool glc,
+			    bool slc,
+			    bool can_speculate,
+			    bool use_format)
+{
+	LLVMValueRef args[] = {
+		LLVMBuildBitCast(ctx->builder, rsrc, ctx->v4i32, ""),
+		vindex ? vindex : LLVMConstInt(ctx->i32, 0, 0),
+		voffset,
+		LLVMConstInt(ctx->i1, glc, 0),
+		LLVMConstInt(ctx->i1, slc, 0)
+	};
+	unsigned func = CLAMP(num_channels, 1, 3) - 1;
+
+	LLVMTypeRef types[] = {ctx->f32, ctx->v2f32, ctx->v4f32};
+	const char *type_names[] = {"f32", "v2f32", "v4f32"};
+	char name[256];
+
+	if (use_format) {
+		snprintf(name, sizeof(name), "llvm.amdgcn.buffer.load.format.%s",
+			 type_names[func]);
+	} else {
+		snprintf(name, sizeof(name), "llvm.amdgcn.buffer.load.%s",
+			 type_names[func]);
+	}
+
+	return ac_build_intrinsic(ctx, name, types[func], args,
+				  ARRAY_SIZE(args),
+				  ac_get_load_intr_attribs(can_speculate));
+}
+
 LLVMValueRef
 ac_build_buffer_load(struct ac_llvm_context *ctx,
 		     LLVMValueRef rsrc,
@@ -967,47 +1004,21 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 		return ac_build_gather_values(ctx, result, num_channels);
 	}
 
-	unsigned func = CLAMP(num_channels, 1, 3) - 1;
-
-	LLVMValueRef args[] = {
-		LLVMBuildBitCast(ctx->builder, rsrc, ctx->v4i32, ""),
-		vindex ? vindex : LLVMConstInt(ctx->i32, 0, 0),
-		offset,
-		LLVMConstInt(ctx->i1, glc, 0),
-		LLVMConstInt(ctx->i1, slc, 0)
-	};
-
-	LLVMTypeRef types[] = {ctx->f32, LLVMVectorType(ctx->f32, 2),
-			       ctx->v4f32};
-	const char *type_names[] = {"f32", "v2f32", "v4f32"};
-	char name[256];
-
-	snprintf(name, sizeof(name), "llvm.amdgcn.buffer.load.%s",
-		 type_names[func]);
-
-	return ac_build_intrinsic(ctx, name, types[func], args,
-				  ARRAY_SIZE(args),
-				  ac_get_load_intr_attribs(can_speculate));
+	return ac_build_buffer_load_common(ctx, rsrc, vindex, offset,
+					   num_channels, glc, slc,
+					   can_speculate, false);
 }
 
 LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
 					 LLVMValueRef rsrc,
 					 LLVMValueRef vindex,
 					 LLVMValueRef voffset,
+					 unsigned num_channels,
 					 bool can_speculate)
 {
-	LLVMValueRef args [] = {
-		LLVMBuildBitCast(ctx->builder, rsrc, ctx->v4i32, ""),
-		vindex,
-		voffset,
-		ctx->i1false, /* glc */
-		ctx->i1false, /* slc */
-	};
-
-	return ac_build_intrinsic(ctx,
-				  "llvm.amdgcn.buffer.load.format.v4f32",
-				  ctx->v4f32, args, ARRAY_SIZE(args),
-				  ac_get_load_intr_attribs(can_speculate));
+	return ac_build_buffer_load_common(ctx, rsrc, vindex, voffset,
+					   num_channels, false, false,
+					   can_speculate, true);
 }
 
 /**
@@ -1864,4 +1875,10 @@ LLVMValueRef ac_find_lsb(struct ac_llvm_context *ctx,
 							   LLVMIntEQ, src0,
 							   ctx->i32_0, ""),
 			       LLVMConstInt(ctx->i32, -1, 0), lsb, "");
+}
+
+LLVMTypeRef ac_array_in_const_addr_space(LLVMTypeRef elem_type)
+{
+	return LLVMPointerType(LLVMArrayType(elem_type, 0),
+			       AC_CONST_ADDR_SPACE);
 }

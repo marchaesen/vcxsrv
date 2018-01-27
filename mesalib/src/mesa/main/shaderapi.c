@@ -870,7 +870,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
    }
    case GL_PROGRAM_SEPARABLE:
       /* If the program has not been linked, return initial value 0. */
-      *params = (shProg->data->LinkStatus == linking_failure) ? 0 : shProg->SeparateShader;
+      *params = (shProg->data->LinkStatus == LINKING_FAILURE) ? 0 : shProg->SeparateShader;
       return;
 
    /* ARB_tessellation_shader */
@@ -1071,7 +1071,7 @@ set_shader_source(struct gl_shader *sh, const GLchar *source)
     */
    _mesa_shader_spirv_data_reference(&sh->spirv_data, NULL);
 
-   if (sh->CompileStatus == compile_skipped && !sh->FallbackSource) {
+   if (sh->CompileStatus == COMPILE_SKIPPED && !sh->FallbackSource) {
       /* If shader was previously compiled back-up the source in case of cache
        * fallback.
        */
@@ -1114,7 +1114,7 @@ _mesa_compile_shader(struct gl_context *ctx, struct gl_shader *sh)
       /* If the user called glCompileShader without first calling
        * glShaderSource, we should fail to compile, but not raise a GL_ERROR.
        */
-      sh->CompileStatus = compile_failure;
+      sh->CompileStatus = COMPILE_FAILURE;
    } else {
       if (ctx->_Shader->Flags & GLSL_DUMP) {
          _mesa_log("GLSL source for %s shader %d:\n",
@@ -1252,7 +1252,7 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
       ralloc_free(filename);
    }
 
-   if (shProg->data->LinkStatus == linking_failure &&
+   if (shProg->data->LinkStatus == LINKING_FAILURE &&
        (ctx->_Shader->Flags & GLSL_REPORT_ERRORS)) {
       _mesa_debug(ctx, "Error linking program %u:\n%s\n",
                   shProg->Name, shProg->data->InfoLog);
@@ -2304,7 +2304,7 @@ _mesa_ProgramBinary(GLuint program, GLenum binaryFormat,
        * Since any value of binaryFormat passed "is not one of those specified as
        * allowable for [this] command, an INVALID_ENUM error is generated."
        */
-      shProg->data->LinkStatus = linking_failure;
+      shProg->data->LinkStatus = LINKING_FAILURE;
       _mesa_error(ctx, GL_INVALID_ENUM, "glProgramBinary");
    } else {
       _mesa_program_binary(ctx, shProg, binaryFormat, binary, length);
@@ -2521,7 +2521,7 @@ _mesa_CreateShaderProgramv(GLenum type, GLsizei count,
 	    /* Possibly... */
 	    if (active-user-defined-varyings-in-linked-program) {
 	       append-error-to-info-log;
-               shProg->data->LinkStatus = linking_failure;
+               shProg->data->LinkStatus = LINKING_FAILURE;
 	    }
 #endif
 	 }

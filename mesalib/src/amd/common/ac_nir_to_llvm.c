@@ -43,9 +43,6 @@ enum radeon_llvm_calling_convention {
 	RADEON_LLVM_AMDGPU_HS = 93,
 };
 
-#define CONST_ADDR_SPACE 2
-#define LOCAL_ADDR_SPACE 3
-
 #define RADEON_LLVM_MAX_INPUTS (VARYING_SLOT_VAR31 + 1)
 #define RADEON_LLVM_MAX_OUTPUTS (VARYING_SLOT_VAR31 + 1)
 
@@ -323,13 +320,12 @@ create_llvm_function(LLVMContextRef ctx, LLVMModuleRef module,
 
 	LLVMSetFunctionCallConv(main_function, RADEON_LLVM_AMDGPU_CS);
 	for (unsigned i = 0; i < args->sgpr_count; ++i) {
+		ac_add_function_attr(ctx, main_function, i + 1, AC_FUNC_ATTR_INREG);
+
 		if (args->array_params_mask & (1 << i)) {
 			LLVMValueRef P = LLVMGetParam(main_function, i);
-			ac_add_function_attr(ctx, main_function, i + 1, AC_FUNC_ATTR_BYVAL);
+			ac_add_function_attr(ctx, main_function, i + 1, AC_FUNC_ATTR_NOALIAS);
 			ac_add_attr_dereferenceable(P, UINT64_MAX);
-		}
-		else {
-			ac_add_function_attr(ctx, main_function, i + 1, AC_FUNC_ATTR_INREG);
 		}
 	}
 
@@ -357,12 +353,6 @@ create_llvm_function(LLVMContextRef ctx, LLVMModuleRef module,
 					   "true");
 	}
 	return main_function;
-}
-
-static LLVMTypeRef const_array(LLVMTypeRef elem_type, int num_elements)
-{
-	return LLVMPointerType(LLVMArrayType(elem_type, num_elements),
-	                       CONST_ADDR_SPACE);
 }
 
 static int get_elem_bits(struct ac_llvm_context *ctx, LLVMTypeRef type)
@@ -651,7 +641,7 @@ declare_global_input_sgprs(struct nir_to_llvm_context *ctx,
 			   struct arg_info *args,
 			   LLVMValueRef *desc_sets)
 {
-	LLVMTypeRef type = const_array(ctx->ac.i8, 1024 * 1024);
+	LLVMTypeRef type = ac_array_in_const_addr_space(ctx->ac.i8);
 	unsigned num_sets = ctx->options->layout ?
 			    ctx->options->layout->num_sets : 0;
 	unsigned stage_mask = 1 << stage;
@@ -668,7 +658,7 @@ declare_global_input_sgprs(struct nir_to_llvm_context *ctx,
 			}
 		}
 	} else {
-		add_array_arg(args, const_array(type, 32), desc_sets);
+		add_array_arg(args, ac_array_in_const_addr_space(type), desc_sets);
 	}
 
 	if (ctx->shader_info->info.loads_push_constants) {
@@ -688,7 +678,7 @@ declare_vs_specific_input_sgprs(struct nir_to_llvm_context *ctx,
 	    (stage == MESA_SHADER_VERTEX ||
 	     (has_previous_stage && previous_stage == MESA_SHADER_VERTEX))) {
 		if (ctx->shader_info->info.vs.has_vertex_buffers) {
-			add_arg(args, ARG_SGPR, const_array(ctx->ac.v4i32, 16),
+			add_arg(args, ARG_SGPR, ac_array_in_const_addr_space(ctx->ac.v4i32),
 				&ctx->vertex_buffers);
 		}
 		add_arg(args, ARG_SGPR, ctx->ac.i32, &ctx->abi.base_vertex);
@@ -803,7 +793,7 @@ static void create_function(struct nir_to_llvm_context *ctx,
 	allocate_user_sgprs(ctx, stage, needs_view_index, &user_sgpr_info);
 
 	if (user_sgpr_info.need_ring_offsets && !ctx->options->supports_spill) {
-		add_arg(&args, ARG_SGPR, const_array(ctx->ac.v4i32, 16),
+		add_arg(&args, ARG_SGPR, ac_array_in_const_addr_space(ctx->ac.v4i32),
 			&ctx->ring_offsets);
 	}
 
@@ -1083,10 +1073,10 @@ static void create_function(struct nir_to_llvm_context *ctx,
 			       &user_sgpr_idx, 2);
 		if (ctx->options->supports_spill) {
 			ctx->ring_offsets = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.implicit.buffer.ptr",
-							       LLVMPointerType(ctx->ac.i8, CONST_ADDR_SPACE),
+							       LLVMPointerType(ctx->ac.i8, AC_CONST_ADDR_SPACE),
 							       NULL, 0, AC_FUNC_ATTR_READNONE);
 			ctx->ring_offsets = LLVMBuildBitCast(ctx->builder, ctx->ring_offsets,
-							     const_array(ctx->ac.v4i32, 16), "");
+							     ac_array_in_const_addr_space(ctx->ac.v4i32), "");
 		}
 	}
 	
@@ -1913,18 +1903,24 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 	case nir_op_fmax:
 		result = emit_intrin_2f_param(&ctx->ac, "llvm.maxnum",
 		                              ac_to_float_type(&ctx->ac, def_type), src[0], src[1]);
-		if (instr->dest.dest.ssa.bit_size == 32)
+		if (ctx->ac.chip_class < GFX9 &&
+		    instr->dest.dest.ssa.bit_size == 32) {
+			/* Only pre-GFX9 chips do not flush denorms. */
 			result = emit_intrin_1f_param(&ctx->ac, "llvm.canonicalize",
 						      ac_to_float_type(&ctx->ac, def_type),
 						      result);
+		}
 		break;
 	case nir_op_fmin:
 		result = emit_intrin_2f_param(&ctx->ac, "llvm.minnum",
 		                              ac_to_float_type(&ctx->ac, def_type), src[0], src[1]);
-		if (instr->dest.dest.ssa.bit_size == 32)
+		if (ctx->ac.chip_class < GFX9 &&
+		    instr->dest.dest.ssa.bit_size == 32) {
+			/* Only pre-GFX9 chips do not flush denorms. */
 			result = emit_intrin_1f_param(&ctx->ac, "llvm.canonicalize",
 						      ac_to_float_type(&ctx->ac, def_type),
 						      result);
+		}
 		break;
 	case nir_op_ffma:
 		result = emit_intrin_3f_param(&ctx->ac, "llvm.fmuladd",
@@ -2309,10 +2305,13 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 					struct ac_image_args *args)
 {
 	if (instr->sampler_dim == GLSL_SAMPLER_DIM_BUF) {
+		unsigned mask = nir_ssa_def_components_read(&instr->dest.ssa);
+
 		return ac_build_buffer_load_format(&ctx->ac,
 						   args->resource,
 						   args->addr,
 						   ctx->ac.i32_0,
+						   util_last_bit(mask),
 						   true);
 	}
 
@@ -4034,7 +4033,7 @@ static LLVMValueRef load_sample_position(struct nir_to_llvm_context *ctx,
 	LLVMValueRef ptr = ac_build_gep0(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->ac.i32, RING_PS_SAMPLE_POSITIONS, false));
 
 	ptr = LLVMBuildBitCast(ctx->builder, ptr,
-			       const_array(ctx->ac.v2f32, 64), "");
+			       ac_array_in_const_addr_space(ctx->ac.v2f32), "");
 
 	sample_id = LLVMBuildAdd(ctx->builder, sample_id, ctx->sample_pos_offset, "");
 	result = ac_build_load_invariant(&ctx->ac, ptr, sample_id);
@@ -4551,18 +4550,27 @@ static LLVMValueRef radv_load_ssbo(struct ac_shader_abi *abi,
 				   LLVMValueRef buffer_ptr, bool write)
 {
 	struct nir_to_llvm_context *ctx = nir_to_llvm_context_from_abi(abi);
+	LLVMValueRef result;
 
-	if (write && ctx->stage == MESA_SHADER_FRAGMENT)
-		ctx->shader_info->fs.writes_memory = true;
+	LLVMSetMetadata(buffer_ptr, ctx->ac.uniform_md_kind, ctx->ac.empty_md);
 
-	return LLVMBuildLoad(ctx->builder, buffer_ptr, "");
+	result = LLVMBuildLoad(ctx->builder, buffer_ptr, "");
+	LLVMSetMetadata(result, ctx->ac.invariant_load_md_kind, ctx->ac.empty_md);
+
+	return result;
 }
 
 static LLVMValueRef radv_load_ubo(struct ac_shader_abi *abi, LLVMValueRef buffer_ptr)
 {
 	struct nir_to_llvm_context *ctx = nir_to_llvm_context_from_abi(abi);
+	LLVMValueRef result;
 
-	return LLVMBuildLoad(ctx->builder, buffer_ptr, "");
+	LLVMSetMetadata(buffer_ptr, ctx->ac.uniform_md_kind, ctx->ac.empty_md);
+
+	result = LLVMBuildLoad(ctx->builder, buffer_ptr, "");
+	LLVMSetMetadata(result, ctx->ac.invariant_load_md_kind, ctx->ac.empty_md);
+
+	return result;
 }
 
 static LLVMValueRef radv_get_sampler_desc(struct ac_shader_abi *abi,
@@ -4584,9 +4592,6 @@ static LLVMValueRef radv_get_sampler_desc(struct ac_shader_abi *abi,
 	LLVMTypeRef type;
 
 	assert(base_index < layout->binding_count);
-
-	if (write && ctx->stage == MESA_SHADER_FRAGMENT)
-		ctx->shader_info->fs.writes_memory = true;
 
 	switch (desc_type) {
 	case AC_DESC_IMAGE:
@@ -4639,7 +4644,7 @@ static LLVMValueRef radv_get_sampler_desc(struct ac_shader_abi *abi,
 	index = LLVMBuildMul(builder, index, LLVMConstInt(ctx->ac.i32, stride / type_size, 0), "");
 
 	list = ac_build_gep0(&ctx->ac, list, LLVMConstInt(ctx->ac.i32, offset, 0));
-	list = LLVMBuildPointerCast(builder, list, const_array(type, 0), "");
+	list = LLVMBuildPointerCast(builder, list, ac_array_in_const_addr_space(type), "");
 
 	return ac_build_load_to_sgpr(&ctx->ac, list, index);
 }
@@ -5361,7 +5366,7 @@ handle_vs_input_decl(struct nir_to_llvm_context *ctx,
 		input = ac_build_buffer_load_format(&ctx->ac, t_list,
 						    buffer_index,
 						    ctx->ac.i32_0,
-						    true);
+						    4, true);
 
 		for (unsigned chan = 0; chan < 4; chan++) {
 			LLVMValueRef llvm_chan = LLVMConstInt(ctx->ac.i32, chan, false);
@@ -5748,7 +5753,7 @@ setup_shared(struct ac_nir_context *ctx,
 			LLVMAddGlobalInAddressSpace(
 			   ctx->ac.module, glsl_to_llvm_type(ctx->nctx, variable->type),
 			   variable->name ? variable->name : "",
-			   LOCAL_ADDR_SPACE);
+			   AC_LOCAL_ADDR_SPACE);
 		_mesa_hash_table_insert(ctx->vars, variable, shared);
 	}
 }

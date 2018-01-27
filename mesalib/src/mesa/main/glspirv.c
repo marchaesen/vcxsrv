@@ -84,7 +84,7 @@ _mesa_spirv_shader_binary(struct gl_context *ctx,
       _mesa_shader_spirv_data_reference(&sh->spirv_data, spirv_data);
       _mesa_spirv_module_reference(&spirv_data->SpirVModule, module);
 
-      sh->CompileStatus = compile_failure;
+      sh->CompileStatus = COMPILE_FAILURE;
 
       free((void *)sh->Source);
       sh->Source = NULL;

@@ -28,11 +28,9 @@
 #define VARRAY_H
 
 
-#include "glheader.h"
+#include "mtypes.h"
 #include "bufferobj.h"
 
-struct gl_vertex_array;
-struct gl_context;
 
 /**
  * Returns a pointer to the vertex attribute data in a client array,
@@ -46,12 +44,13 @@ _mesa_vertex_attrib_address(const struct gl_array_attributes *array,
    if (_mesa_is_bufferobj(binding->BufferObj))
       return (const GLubyte *) (binding->Offset + array->RelativeOffset);
    else
-      return array->Ptr;       
+      return array->Ptr;
 }
+
 
 /**
  * Sets the fields in a gl_vertex_array to values derived from a
- * gl_vertex_attrib_array and a gl_vertex_buffer_binding.
+ * gl_array_attributes and a gl_vertex_buffer_binding.
  */
 static inline void
 _mesa_update_client_array(struct gl_context *ctx,
@@ -71,6 +70,7 @@ _mesa_update_client_array(struct gl_context *ctx,
    dst->_ElementSize = src->_ElementSize;
    _mesa_reference_buffer_object(ctx, &dst->BufferObj, binding->BufferObj);
 }
+
 
 static inline bool
 _mesa_attr_zero_aliases_vertex(const struct gl_context *ctx)
@@ -177,7 +177,7 @@ _mesa_SecondaryColorPointer_no_error(GLint size, GLenum type,
                                      GLsizei stride, const GLvoid *ptr);
 extern void GLAPIENTRY
 _mesa_SecondaryColorPointer(GLint size, GLenum type,
-			       GLsizei stride, const GLvoid *ptr);
+                            GLsizei stride, const GLvoid *ptr);
 
 
 extern void GLAPIENTRY
@@ -193,8 +193,8 @@ _mesa_VertexAttribPointer_no_error(GLuint index, GLint size, GLenum type,
                                    const GLvoid *pointer);
 extern void GLAPIENTRY
 _mesa_VertexAttribPointer(GLuint index, GLint size, GLenum type,
-                             GLboolean normalized, GLsizei stride,
-                             const GLvoid *pointer);
+                          GLboolean normalized, GLsizei stride,
+                          const GLvoid *pointer);
 
 void GLAPIENTRY
 _mesa_VertexAttribIPointer_no_error(GLuint index, GLint size, GLenum type,
@@ -282,35 +282,35 @@ _mesa_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid *pointer);
 
 
 extern void GLAPIENTRY
-_mesa_MultiDrawArrays( GLenum mode, const GLint *first,
-                          const GLsizei *count, GLsizei primcount );
+_mesa_MultiDrawArrays(GLenum mode, const GLint *first,
+                      const GLsizei *count, GLsizei primcount);
 
 extern void GLAPIENTRY
-_mesa_MultiDrawElementsEXT( GLenum mode, const GLsizei *count, GLenum type,
-                            const GLvoid **indices, GLsizei primcount );
+_mesa_MultiDrawElementsEXT(GLenum mode, const GLsizei *count, GLenum type,
+                           const GLvoid **indices, GLsizei primcount);
 
 extern void GLAPIENTRY
-_mesa_MultiDrawElementsBaseVertex( GLenum mode,
-				   const GLsizei *count, GLenum type,
-				   const GLvoid **indices, GLsizei primcount,
-				   const GLint *basevertex);
+_mesa_MultiDrawElementsBaseVertex(GLenum mode,
+                                  const GLsizei *count, GLenum type,
+                                  const GLvoid **indices, GLsizei primcount,
+                                  const GLint *basevertex);
 
 extern void GLAPIENTRY
-_mesa_MultiModeDrawArraysIBM( const GLenum * mode, const GLint * first,
-			      const GLsizei * count,
-			      GLsizei primcount, GLint modestride );
+_mesa_MultiModeDrawArraysIBM(const GLenum * mode, const GLint * first,
+                             const GLsizei * count,
+                             GLsizei primcount, GLint modestride );
 
 
 extern void GLAPIENTRY
-_mesa_MultiModeDrawElementsIBM( const GLenum * mode, const GLsizei * count,
-				GLenum type, const GLvoid * const * indices,
-				GLsizei primcount, GLint modestride );
+_mesa_MultiModeDrawElementsIBM(const GLenum * mode, const GLsizei * count,
+                               GLenum type, const GLvoid * const * indices,
+                               GLsizei primcount, GLint modestride );
 
 extern void GLAPIENTRY
 _mesa_LockArraysEXT(GLint first, GLsizei count);
 
 extern void GLAPIENTRY
-_mesa_UnlockArraysEXT( void );
+_mesa_UnlockArraysEXT(void);
 
 
 extern void GLAPIENTRY
@@ -330,13 +330,13 @@ _mesa_DrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count,
 
 extern void GLAPIENTRY
 _mesa_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
-			     const GLvoid *indices, GLint basevertex);
+                             const GLvoid *indices, GLint basevertex);
 
 extern void GLAPIENTRY
 _mesa_DrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
-				  GLsizei count, GLenum type,
-				  const GLvoid *indices,
-				  GLint basevertex);
+                                  GLsizei count, GLenum type,
+                                  const GLvoid *indices,
+                                  GLint basevertex);
 
 extern void GLAPIENTRY
 _mesa_DrawTransformFeedback(GLenum mode, GLuint name);
@@ -456,7 +456,8 @@ _mesa_VertexArrayBindingDivisor_no_error(GLuint vaobj, GLuint bindingIndex,
                                          GLuint divisor);
 
 extern void GLAPIENTRY
-_mesa_VertexArrayBindingDivisor(GLuint vaobj, GLuint bindingIndex, GLuint divisor);
+_mesa_VertexArrayBindingDivisor(GLuint vaobj, GLuint bindingIndex,
+                                GLuint divisor);
 
 extern void
 _mesa_copy_client_array(struct gl_context *ctx,
@@ -477,9 +478,9 @@ extern void
 _mesa_print_arrays(struct gl_context *ctx);
 
 extern void
-_mesa_init_varray( struct gl_context * ctx );
+_mesa_init_varray(struct gl_context *ctx);
 
-extern void 
+extern void
 _mesa_free_varray_data(struct gl_context *ctx);
 
 #endif

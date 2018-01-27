@@ -77,6 +77,11 @@ bool v3d41_clif_dump_packet(struct clif_dump *clif, uint32_t offset,
 void v3d41_clif_dump_gl_shader_state_record(struct clif_dump *clif,
                                             struct reloc_worklist_entry *reloc,
                                             void *vaddr);
+bool v3d42_clif_dump_packet(struct clif_dump *clif, uint32_t offset,
+                            const uint8_t *cl, uint32_t *size);
+void v3d42_clif_dump_gl_shader_state_record(struct clif_dump *clif,
+                                            struct reloc_worklist_entry *reloc,
+                                            void *vaddr);
 
 static inline void
 out(struct clif_dump *clif, const char *fmt, ...)

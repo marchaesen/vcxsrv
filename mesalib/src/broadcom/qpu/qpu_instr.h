@@ -107,7 +107,7 @@ enum v3d_qpu_waddr {
         V3D_QPU_WADDR_VPMU = 15,
         V3D_QPU_WADDR_SYNC = 16,
         V3D_QPU_WADDR_SYNCU = 17,
-        /* reserved */
+        V3D_QPU_WADDR_SYNCB = 18,
         V3D_QPU_WADDR_RECIP = 19,
         V3D_QPU_WADDR_RSQRT = 20,
         V3D_QPU_WADDR_EXP = 21,
@@ -185,7 +185,7 @@ enum v3d_qpu_add_op {
         V3D_QPU_A_VDWWT,
         V3D_QPU_A_IID,
         V3D_QPU_A_SAMPID,
-        V3D_QPU_A_PATCHID,
+        V3D_QPU_A_BARRIERID,
         V3D_QPU_A_TMUWT,
         V3D_QPU_A_VPMSETUP,
         V3D_QPU_A_VPMWT,

@@ -2051,7 +2051,7 @@ _mesa_GetUnsignedBytevEXT(GLenum pname, GLubyte *data)
    const struct value_desc *d;
    union value v;
    int shift;
-   void *p;
+   void *p = NULL;
    GLsizei size;
    const char *func = "glGetUnsignedBytevEXT";
 

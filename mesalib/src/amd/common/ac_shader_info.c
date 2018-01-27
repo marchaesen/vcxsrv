@@ -31,7 +31,7 @@ static void mark_sampler_desc(const nir_variable *var,
 }
 
 static void
-gather_intrinsic_info(const nir_intrinsic_instr *instr,
+gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		      struct ac_shader_info *info)
 {
 	switch (instr->intrinsic) {
@@ -104,15 +104,43 @@ gather_intrinsic_info(const nir_intrinsic_instr *instr,
 		    dim == GLSL_SAMPLER_DIM_SUBPASS_MS)
 			info->ps.uses_input_attachments = true;
 		mark_sampler_desc(instr->variables[0]->var, info);
+
+		if (nir_intrinsic_image_store ||
+		    nir_intrinsic_image_atomic_add ||
+		    nir_intrinsic_image_atomic_min ||
+		    nir_intrinsic_image_atomic_max ||
+		    nir_intrinsic_image_atomic_and ||
+		    nir_intrinsic_image_atomic_or ||
+		    nir_intrinsic_image_atomic_xor ||
+		    nir_intrinsic_image_atomic_exchange ||
+		    nir_intrinsic_image_atomic_comp_swap) {
+			if (nir->info.stage == MESA_SHADER_FRAGMENT)
+				info->ps.writes_memory = true;
+		}
 		break;
 	}
+	case nir_intrinsic_store_ssbo:
+	case nir_intrinsic_ssbo_atomic_add:
+	case nir_intrinsic_ssbo_atomic_imin:
+	case nir_intrinsic_ssbo_atomic_umin:
+	case nir_intrinsic_ssbo_atomic_imax:
+	case nir_intrinsic_ssbo_atomic_umax:
+	case nir_intrinsic_ssbo_atomic_and:
+	case nir_intrinsic_ssbo_atomic_or:
+	case nir_intrinsic_ssbo_atomic_xor:
+	case nir_intrinsic_ssbo_atomic_exchange:
+	case nir_intrinsic_ssbo_atomic_comp_swap:
+		if (nir->info.stage == MESA_SHADER_FRAGMENT)
+			info->ps.writes_memory = true;
+		break;
 	default:
 		break;
 	}
 }
 
 static void
-gather_tex_info(const nir_tex_instr *instr, struct ac_shader_info *info)
+gather_tex_info(const nir_shader *nir, const nir_tex_instr *instr,
+		struct ac_shader_info *info)
 {
 	if (instr->sampler)
 		mark_sampler_desc(instr->sampler->var, info);
@@ -121,15 +149,16 @@ gather_tex_info(const nir_tex_instr *instr, struct ac_shader_info *info)
 }
 
 static void
-gather_info_block(const nir_block *block, struct ac_shader_info *info)
+gather_info_block(const nir_shader *nir, const nir_block *block,
+		  struct ac_shader_info *info)
 {
 	nir_foreach_instr(instr, block) {
 		switch (instr->type) {
 		case nir_instr_type_intrinsic:
-			gather_intrinsic_info(nir_instr_as_intrinsic(instr), info);
+			gather_intrinsic_info(nir, nir_instr_as_intrinsic(instr), info);
 			break;
 		case nir_instr_type_tex:
-			gather_tex_info(nir_instr_as_tex(instr), info);
+			gather_tex_info(nir, nir_instr_as_tex(instr), info);
 			break;
 		default:
 			break;
@@ -165,6 +194,6 @@ ac_nir_shader_info_pass(const struct nir_shader *nir,
 		gather_info_input_decl(nir, variable, info);
 
 	nir_foreach_block(block, func->impl) {
-		gather_info_block(block, info);
+		gather_info_block(nir, block, info);
 	}
 }

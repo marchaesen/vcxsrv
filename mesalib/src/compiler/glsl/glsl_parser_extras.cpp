@@ -1971,7 +1971,7 @@ opt_shader_and_create_symbol_table(struct gl_context *ctx,
                                    struct glsl_symbol_table *source_symbols,
                                    struct gl_shader *shader)
 {
-   assert(shader->CompileStatus != compile_failure &&
+   assert(shader->CompileStatus != COMPILE_FAILURE &&
           !shader->ir->is_empty());
 
    struct gl_shader_compiler_options *options =
@@ -2048,7 +2048,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
                _mesa_sha1_format(buf, shader->sha1);
                fprintf(stderr, "deferring compile of shader: %s\n", buf);
             }
-            shader->CompileStatus = compile_skipped;
+            shader->CompileStatus = COMPILE_SKIPPED;
 
             free((void *)shader->FallbackSource);
             shader->FallbackSource = NULL;
@@ -2060,14 +2060,14 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
        * shader cache miss. In which case we can skip the compile if its
        * already be done by a previous fallback or the initial compile call.
        */
-      if (shader->CompileStatus == compile_success)
+      if (shader->CompileStatus == COMPILE_SUCCESS)
          return;
 
-      if (shader->CompileStatus == compiled_no_opts) {
+      if (shader->CompileStatus == COMPILED_NO_OPTS) {
          opt_shader_and_create_symbol_table(ctx,
                                             NULL, /* source_symbols */
                                             shader);
-         shader->CompileStatus = compile_success;
+         shader->CompileStatus = COMPILE_SUCCESS;
          return;
       }
    }
@@ -2117,7 +2117,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
       set_shader_inout_layout(shader, state);
 
    shader->symbols = new(shader->ir) glsl_symbol_table;
-   shader->CompileStatus = state->error ? compile_failure : compile_success;
+   shader->CompileStatus = state->error ? COMPILE_FAILURE : COMPILE_SUCCESS;
    shader->InfoLog = state->info_log;
    shader->Version = state->language_version;
    shader->IsES = state->es_shader;
@@ -2130,7 +2130,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
          opt_shader_and_create_symbol_table(ctx, state->symbols, shader);
       else {
          reparent_ir(shader->ir, shader->ir);
-         shader->CompileStatus = compiled_no_opts;
+         shader->CompileStatus = COMPILED_NO_OPTS;
       }
    }
 

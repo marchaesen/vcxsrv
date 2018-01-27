@@ -35,6 +35,7 @@ extern "C" {
 #endif
 
 enum {
+	AC_CONST_ADDR_SPACE = 2, /* CONST is the only address space that selects SMEM loads */
 	AC_LOCAL_ADDR_SPACE = 3,
 };
 
@@ -214,6 +215,7 @@ LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
 					 LLVMValueRef rsrc,
 					 LLVMValueRef vindex,
 					 LLVMValueRef voffset,
+					 unsigned num_channels,
 					 bool can_speculate);
 
 LLVMValueRef
@@ -326,6 +328,9 @@ void ac_lds_store(struct ac_llvm_context *ctx,
 LLVMValueRef ac_find_lsb(struct ac_llvm_context *ctx,
 			 LLVMTypeRef dst_type,
 			 LLVMValueRef src0);
+
+LLVMTypeRef ac_array_in_const_addr_space(LLVMTypeRef elem_type);
+
 #ifdef __cplusplus
 }
 #endif

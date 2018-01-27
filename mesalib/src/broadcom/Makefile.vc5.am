@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES += libbroadcom.la
 noinst_LTLIBRARIES += libbroadcom_v33.la
 noinst_LTLIBRARIES += libbroadcom_v41.la
+noinst_LTLIBRARIES += libbroadcom_v42.la
 
 if USE_VC5_SIMULATOR
 AM_CFLAGS += $(VC5_SIMULATOR_CFLAGS)
@@ -12,6 +13,9 @@ libbroadcom_v33_la_CFLAGS = -DV3D_VERSION=33
 
 libbroadcom_v41_la_SOURCES = $(BROADCOM_PER_VERSION_SOURCES)
 libbroadcom_v41_la_CFLAGS = -DV3D_VERSION=41
+
+libbroadcom_v42_la_SOURCES = $(BROADCOM_PER_VERSION_SOURCES)
+libbroadcom_v42_la_CFLAGS = -DV3D_VERSION=42
 
 libbroadcom_la_SOURCES = $(BROADCOM_FILES)
 

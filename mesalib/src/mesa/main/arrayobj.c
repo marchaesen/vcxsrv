@@ -307,7 +307,7 @@ _mesa_initialize_vao(struct gl_context *ctx,
 
 
 /**
- * Updates the derived gl_vertex_arrays when a gl_vertex_attrib_array
+ * Updates the derived gl_vertex_arrays when a gl_array_attributes
  * or a gl_vertex_buffer_binding has changed.
  */
 void

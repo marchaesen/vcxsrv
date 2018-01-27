@@ -619,6 +619,9 @@ gl_iformat_for_pixmap(PixmapPtr pixmap)
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP &&
         ((pixmap)->drawable.depth == 1 || (pixmap)->drawable.depth == 8)) {
         return glamor_priv->one_channel_format;
+    } else if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP &&
+               (pixmap)->drawable.depth == 30) {
+        return GL_RGB10_A2;
     } else {
         return GL_RGBA;
     }

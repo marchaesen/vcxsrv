@@ -142,10 +142,11 @@ read_stream_out_from_cache(struct blob_reader *blob_reader,
 
 static void
 read_tgsi_from_cache(struct blob_reader *blob_reader,
-                     const struct tgsi_token **tokens)
+                     const struct tgsi_token **tokens,
+                     unsigned *num_tokens)
 {
-   uint32_t num_tokens  = blob_read_uint32(blob_reader);
-   unsigned tokens_size = num_tokens * sizeof(struct tgsi_token);
+   *num_tokens  = blob_read_uint32(blob_reader);
+   unsigned tokens_size = *num_tokens * sizeof(struct tgsi_token);
    *tokens = (const struct tgsi_token*) MALLOC(tokens_size);
    blob_copy_bytes(blob_reader, (uint8_t *) *tokens, tokens_size);
 }
@@ -175,7 +176,8 @@ st_deserialise_tgsi_program(struct gl_context *ctx,
                       sizeof(stvp->result_to_output));
 
       read_stream_out_from_cache(&blob_reader, &stvp->tgsi);
-      read_tgsi_from_cache(&blob_reader, &stvp->tgsi.tokens);
+      read_tgsi_from_cache(&blob_reader, &stvp->tgsi.tokens,
+                           &stvp->num_tgsi_tokens);
 
       if (st->vp == stvp)
          st->dirty |= ST_NEW_VERTEX_PROGRAM(st, stvp);
@@ -189,7 +191,8 @@ st_deserialise_tgsi_program(struct gl_context *ctx,
                                 &sttcp->variants, &sttcp->tgsi);
 
       read_stream_out_from_cache(&blob_reader, &sttcp->tgsi);
-      read_tgsi_from_cache(&blob_reader, &sttcp->tgsi.tokens);
+      read_tgsi_from_cache(&blob_reader, &sttcp->tgsi.tokens,
+                           &sttcp->num_tgsi_tokens);
 
       if (st->tcp == sttcp)
          st->dirty |= sttcp->affected_states;
@@ -203,7 +206,8 @@ st_deserialise_tgsi_program(struct gl_context *ctx,
                                 &sttep->variants, &sttep->tgsi);
 
       read_stream_out_from_cache(&blob_reader, &sttep->tgsi);
-      read_tgsi_from_cache(&blob_reader, &sttep->tgsi.tokens);
+      read_tgsi_from_cache(&blob_reader, &sttep->tgsi.tokens,
+                           &sttep->num_tgsi_tokens);
 
       if (st->tep == sttep)
          st->dirty |= sttep->affected_states;
@@ -217,7 +221,8 @@ st_deserialise_tgsi_program(struct gl_context *ctx,
                                 &stgp->tgsi);
 
       read_stream_out_from_cache(&blob_reader, &stgp->tgsi);
-      read_tgsi_from_cache(&blob_reader, &stgp->tgsi.tokens);
+      read_tgsi_from_cache(&blob_reader, &stgp->tgsi.tokens,
+                           &stgp->num_tgsi_tokens);
 
       if (st->gp == stgp)
          st->dirty |= stgp->affected_states;
@@ -229,7 +234,8 @@ st_deserialise_tgsi_program(struct gl_context *ctx,
 
       st_release_fp_variants(st, stfp);
 
-      read_tgsi_from_cache(&blob_reader, &stfp->tgsi.tokens);
+      read_tgsi_from_cache(&blob_reader, &stfp->tgsi.tokens,
+                           &stfp->num_tgsi_tokens);
 
       if (st->fp == stfp)
          st->dirty |= stfp->affected_states;
@@ -242,7 +248,8 @@ st_deserialise_tgsi_program(struct gl_context *ctx,
       st_release_cp_variants(st, stcp);
 
       read_tgsi_from_cache(&blob_reader,
-                           (const struct tgsi_token**) &stcp->tgsi.prog);
+                           (const struct tgsi_token**) &stcp->tgsi.prog,
+                           &stcp->num_tgsi_tokens);
 
       stcp->tgsi.req_local_mem = stcp->Base.info.cs.shared_size;
       stcp->tgsi.req_private_mem = 0;
@@ -289,7 +296,7 @@ st_load_tgsi_from_disk_cache(struct gl_context *ctx,
    /* If we didn't load the GLSL metadata from cache then we could not have
     * loaded the tgsi either.
     */
-   if (prog->data->LinkStatus != linking_skipped)
+   if (prog->data->LinkStatus != LINKING_SKIPPED)
       return false;
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
