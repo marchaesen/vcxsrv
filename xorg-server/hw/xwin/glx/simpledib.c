@@ -597,7 +597,7 @@ WinMain(
     wndClass.hInstance = hCurrentInst;
     wndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wndClass.hbrBackground = GetStockObject(WHITE_BRUSH);
+    wndClass.hbrBackground = NULL;
     wndClass.lpszMenuName = NULL;
     wndClass.lpszClassName = className;
     RegisterClass(&wndClass);

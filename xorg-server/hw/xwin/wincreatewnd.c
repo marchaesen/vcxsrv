@@ -77,7 +77,7 @@ winCreateBoundingWindowFullScreen(ScreenPtr pScreen)
                           GetSystemMetrics(SM_CXICON),
                           GetSystemMetrics(SM_CYICON), 0);
     wc.hCursor = 0;
-    wc.hbrBackground = 0;
+    wc.hbrBackground = NULL;
     wc.lpszMenuName = NULL;
     wc.lpszClassName = WINDOW_CLASS;
     wc.hIconSm =
@@ -191,7 +191,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
                           GetSystemMetrics(SM_CXICON),
                           GetSystemMetrics(SM_CYICON), 0);
     wc.hCursor = 0;
-    wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+    wc.hbrBackground = NULL;
     wc.lpszMenuName = NULL;
     wc.lpszClassName = WINDOW_CLASS;
     wc.hIconSm =

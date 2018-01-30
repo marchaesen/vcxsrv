@@ -454,7 +454,7 @@ winClipboardCreateMessagingWindow(Display *pDisplay, Window iWindow, ClipboardAt
     wc.hInstance = GetModuleHandle(NULL);
     wc.hIcon = 0;
     wc.hCursor = 0;
-    wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+    wc.hbrBackground = NULL;
     wc.lpszMenuName = NULL;
     wc.lpszClassName = WIN_CLIPBOARD_WINDOW_CLASS;
     wc.hIconSm = 0;

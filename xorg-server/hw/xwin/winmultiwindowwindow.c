@@ -79,7 +79,7 @@ winInitMultiWindowClass(void)
         wcx.hInstance = g_hInstance;
         wcx.hIcon = hIcon;
         wcx.hCursor = 0;
-        wcx.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+        wcx.hbrBackground = NULL;
         wcx.lpszMenuName = NULL;
         wcx.lpszClassName = WINDOW_CLASS_X;
         wcx.hIconSm = hIconSmall;

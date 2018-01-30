@@ -557,7 +557,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
             wc.hInstance = g_hInstance;
             wc.hIcon = 0;
             wc.hCursor = 0;
-            wc.hbrBackground = 0;
+            wc.hbrBackground = NULL;
             wc.lpszMenuName = NULL;
             wc.lpszClassName = WIN_GL_WINDOW_CLASS;
             wc.hIconSm = 0;
