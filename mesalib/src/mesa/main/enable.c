@@ -64,46 +64,46 @@ static void
 client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
 {
    struct gl_vertex_array_object *vao = ctx->Array.VAO;
-   GLbitfield flag;
-   GLboolean *var;
+   GLbitfield vert_attrib_bit;
+   GLboolean *enable_var;
 
    switch (cap) {
       case GL_VERTEX_ARRAY:
-         var = &vao->VertexAttrib[VERT_ATTRIB_POS].Enabled;
-         flag = VERT_BIT_POS;
+         enable_var = &vao->VertexAttrib[VERT_ATTRIB_POS].Enabled;
+         vert_attrib_bit = VERT_BIT_POS;
          break;
       case GL_NORMAL_ARRAY:
-         var = &vao->VertexAttrib[VERT_ATTRIB_NORMAL].Enabled;
-         flag = VERT_BIT_NORMAL;
+         enable_var = &vao->VertexAttrib[VERT_ATTRIB_NORMAL].Enabled;
+         vert_attrib_bit = VERT_BIT_NORMAL;
          break;
       case GL_COLOR_ARRAY:
-         var = &vao->VertexAttrib[VERT_ATTRIB_COLOR0].Enabled;
-         flag = VERT_BIT_COLOR0;
+         enable_var = &vao->VertexAttrib[VERT_ATTRIB_COLOR0].Enabled;
+         vert_attrib_bit = VERT_BIT_COLOR0;
          break;
       case GL_INDEX_ARRAY:
-         var = &vao->VertexAttrib[VERT_ATTRIB_COLOR_INDEX].Enabled;
-         flag = VERT_BIT_COLOR_INDEX;
+         enable_var = &vao->VertexAttrib[VERT_ATTRIB_COLOR_INDEX].Enabled;
+         vert_attrib_bit = VERT_BIT_COLOR_INDEX;
          break;
       case GL_TEXTURE_COORD_ARRAY:
-         var = &vao->VertexAttrib[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)].Enabled;
-         flag = VERT_BIT_TEX(ctx->Array.ActiveTexture);
+         enable_var = &vao->VertexAttrib[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)].Enabled;
+         vert_attrib_bit = VERT_BIT_TEX(ctx->Array.ActiveTexture);
          break;
       case GL_EDGE_FLAG_ARRAY:
-         var = &vao->VertexAttrib[VERT_ATTRIB_EDGEFLAG].Enabled;
-         flag = VERT_BIT_EDGEFLAG;
+         enable_var = &vao->VertexAttrib[VERT_ATTRIB_EDGEFLAG].Enabled;
+         vert_attrib_bit = VERT_BIT_EDGEFLAG;
          break;
       case GL_FOG_COORDINATE_ARRAY_EXT:
-         var = &vao->VertexAttrib[VERT_ATTRIB_FOG].Enabled;
-         flag = VERT_BIT_FOG;
+         enable_var = &vao->VertexAttrib[VERT_ATTRIB_FOG].Enabled;
+         vert_attrib_bit = VERT_BIT_FOG;
          break;
       case GL_SECONDARY_COLOR_ARRAY_EXT:
-         var = &vao->VertexAttrib[VERT_ATTRIB_COLOR1].Enabled;
-         flag = VERT_BIT_COLOR1;
+         enable_var = &vao->VertexAttrib[VERT_ATTRIB_COLOR1].Enabled;
+         vert_attrib_bit = VERT_BIT_COLOR1;
          break;
 
       case GL_POINT_SIZE_ARRAY_OES:
-         var = &vao->VertexAttrib[VERT_ATTRIB_POINT_SIZE].Enabled;
-         flag = VERT_BIT_POINT_SIZE;
+         enable_var = &vao->VertexAttrib[VERT_ATTRIB_POINT_SIZE].Enabled;
+         vert_attrib_bit = VERT_BIT_POINT_SIZE;
          FLUSH_VERTICES(ctx, _NEW_PROGRAM);
          ctx->VertexProgram.PointSizeEnabled = state;
          break;
@@ -124,19 +124,19 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
          goto invalid_enum_error;
    }
 
-   if (*var == state)
+   if (*enable_var == state)
       return;
 
    FLUSH_VERTICES(ctx, _NEW_ARRAY);
 
-   *var = state;
+   *enable_var = state;
 
    if (state)
-      vao->_Enabled |= flag;
+      vao->_Enabled |= vert_attrib_bit;
    else
-      vao->_Enabled &= ~flag;
+      vao->_Enabled &= ~vert_attrib_bit;
 
-   vao->NewArrays |= flag;
+   vao->NewArrays |= vert_attrib_bit;
 
    if (ctx->Driver.Enable) {
       ctx->Driver.Enable( ctx, cap, state );

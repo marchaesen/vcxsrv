@@ -190,7 +190,7 @@ struct save_state
    struct gl_framebuffer *ReadBuffer;
 
    /** MESA_META_DRAW_BUFFERS */
-   GLenum ColorDrawBuffers[MAX_DRAW_BUFFERS];
+   GLenum16 ColorDrawBuffers[MAX_DRAW_BUFFERS];
 };
 
 /**

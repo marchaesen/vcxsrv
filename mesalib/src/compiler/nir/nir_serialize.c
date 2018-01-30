@@ -585,6 +585,7 @@ union packed_tex_data {
       unsigned component:2;
       unsigned has_texture_deref:1;
       unsigned has_sampler_deref:1;
+      unsigned unused:10; /* Mark unused for valgrind. */
    } u;
 };
 

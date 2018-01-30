@@ -43,6 +43,7 @@ extern "C" {
 #endif
 
 
+typedef unsigned short GLenum16; /* custom Mesa type to save space */
 typedef int GLclampx;
 
 

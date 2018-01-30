@@ -1643,12 +1643,8 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
     }
 
     /* Lookup each mode */
-#ifdef RANDR
-    if (!xf86Info.disableRandR
 #ifdef PANORAMIX
-        && noPanoramiXExtension
-#endif
-        )
+    if (noPanoramiXExtension)
         validateAllDefaultModes = TRUE;
 #endif
 

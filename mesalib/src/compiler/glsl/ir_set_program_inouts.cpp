@@ -118,7 +118,7 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
          /* double inputs read is only for vertex inputs */
          if (stage == MESA_SHADER_VERTEX &&
              var->type->without_array()->is_dual_slot())
-            prog->info.double_inputs_read |= bitfield;
+            prog->info.vs.double_inputs_read |= bitfield;
 
          if (stage == MESA_SHADER_FRAGMENT) {
             prog->info.fs.uses_sample_qualifier |= var->data.sample;

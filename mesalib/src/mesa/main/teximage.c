@@ -1787,7 +1787,6 @@ texture_formats_agree(GLenum internalFormat,
  * \param format pixel data format given by the user.
  * \param type pixel data type given by the user.
  * \param internalFormat internal format given by the user.
- * \param dimensions texture image dimensions (must be 1, 2 or 3).
  * \param callerName name of the caller function to print in the error message
  *
  * \return true if a error is found, false otherwise
@@ -1796,8 +1795,7 @@ texture_formats_agree(GLenum internalFormat,
  */
 static bool
 texture_format_error_check_gles(struct gl_context *ctx, GLenum format,
-                                GLenum type, GLenum internalFormat,
-                                GLuint dimensions, const char *callerName)
+                                GLenum type, GLenum internalFormat, const char *callerName)
 {
    GLenum err = _mesa_es3_error_check_format_and_type(ctx, format, type,
                                                       internalFormat);
@@ -1911,9 +1909,11 @@ texture_error_check( struct gl_context *ctx,
     * Formats and types that require additional extensions (e.g., GL_FLOAT
     * requires GL_OES_texture_float) are filtered elsewhere.
     */
+   char bufCallerName[20];
+   snprintf(bufCallerName, 20, "glTexImage%dD", dimensions);
    if (_mesa_is_gles(ctx) &&
-       texture_format_error_check_gles(ctx, format, type, internalFormat,
-                                       dimensions, "glTexImage%dD")) {
+       texture_format_error_check_gles(ctx, format, type,
+                                       internalFormat, bufCallerName)) {
       return GL_TRUE;
    }
 
@@ -2234,8 +2234,7 @@ texsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
     */
    if (_mesa_is_gles(ctx) &&
        texture_format_error_check_gles(ctx, format, type,
-                                       internalFormat,
-                                       dimensions, callerName)) {
+                                       internalFormat, callerName)) {
       return GL_TRUE;
    }
 

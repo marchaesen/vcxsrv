@@ -23,8 +23,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _API_NOOP_H
-#define _API_NOOP_H
+#ifndef VBO_NOOP_H
+#define VBO_NOOP_H
 
 
 #include "main/mtypes.h"
@@ -37,4 +37,4 @@ extern GLboolean
 _mesa_using_noop_vtxfmt(const struct _glapi_table *dispatch);
 
 
-#endif /* _API_NOOP_H */
+#endif /* VBO_NOOP_H */

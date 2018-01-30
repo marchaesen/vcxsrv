@@ -1213,8 +1213,10 @@ inc_include = include_directories('include')
 
 gl_priv_reqs = [
   'x11', 'xext', 'xdamage >= 1.1', 'xfixes', 'x11-xcb', 'xcb',
-  'xcb-glx >= 1.8.1', 'libdrm >= 2.4.75',
-]
+  'xcb-glx >= 1.8.1']
+if dep_libdrm.found()
+  gl_priv_reqs += 'libdrm >= 2.4.75'
+endif
 if dep_xxf86vm != [] and dep_xxf86vm.found()
   gl_priv_reqs += 'xxf86vm'
 endif

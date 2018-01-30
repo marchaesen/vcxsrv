@@ -53,21 +53,21 @@ _mesa_vertex_attrib_address(const struct gl_array_attributes *array,
  * gl_array_attributes and a gl_vertex_buffer_binding.
  */
 static inline void
-_mesa_update_client_array(struct gl_context *ctx,
+_mesa_update_vertex_array(struct gl_context *ctx,
                           struct gl_vertex_array *dst,
-                          const struct gl_array_attributes *src,
+                          const struct gl_array_attributes *attribs,
                           const struct gl_vertex_buffer_binding *binding)
 {
-   dst->Size = src->Size;
-   dst->Type = src->Type;
-   dst->Format = src->Format;
+   dst->Size = attribs->Size;
+   dst->Type = attribs->Type;
+   dst->Format = attribs->Format;
    dst->StrideB = binding->Stride;
-   dst->Ptr = _mesa_vertex_attrib_address(src, binding);
-   dst->Normalized = src->Normalized;
-   dst->Integer = src->Integer;
-   dst->Doubles = src->Doubles;
+   dst->Ptr = _mesa_vertex_attrib_address(attribs, binding);
+   dst->Normalized = attribs->Normalized;
+   dst->Integer = attribs->Integer;
+   dst->Doubles = attribs->Doubles;
    dst->InstanceDivisor = binding->InstanceDivisor;
-   dst->_ElementSize = src->_ElementSize;
+   dst->_ElementSize = attribs->_ElementSize;
    _mesa_reference_buffer_object(ctx, &dst->BufferObj, binding->BufferObj);
 }
 
@@ -77,6 +77,21 @@ _mesa_attr_zero_aliases_vertex(const struct gl_context *ctx)
 {
    return ctx->_AttribZeroAliasesVertex;
 }
+
+
+/**
+ * This specifies the set of vertex arrays used by the driver for drawing.
+ */
+static inline void
+_mesa_set_drawing_arrays(struct gl_context *ctx,
+                         const struct gl_vertex_array **arrays)
+{
+   if (ctx->Array._DrawArrays != arrays) {
+      ctx->Array._DrawArrays = arrays;
+      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+   }
+}
+
 
 extern void
 _mesa_update_array_format(struct gl_context *ctx,
@@ -460,7 +475,7 @@ _mesa_VertexArrayBindingDivisor(GLuint vaobj, GLuint bindingIndex,
                                 GLuint divisor);
 
 extern void
-_mesa_copy_client_array(struct gl_context *ctx,
+_mesa_copy_vertex_array(struct gl_context *ctx,
                         struct gl_vertex_array *dst,
                         struct gl_vertex_array *src);
 

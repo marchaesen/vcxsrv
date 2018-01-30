@@ -299,7 +299,8 @@ draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
    }
 
    /* if we get here, there's no error so set new state */
-   _mesa_drawbuffers(ctx, fb, 1, &buffer, &destMask);
+   const GLenum16 buffer16 = buffer;
+   _mesa_drawbuffers(ctx, fb, 1, &buffer16, &destMask);
 
    /* Call device driver function only if fb is the bound draw buffer */
    if (fb == ctx->DrawBuffer) {
@@ -573,7 +574,11 @@ draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb, GLsizei n,
    }
 
    /* OK, if we get here, there were no errors so set the new state */
-   _mesa_drawbuffers(ctx, fb, n, buffers, destMask);
+   GLenum16 buffers16[MAX_DRAW_BUFFERS];
+   for (int i = 0; i < n; i++)
+      buffers16[i] = buffers[i];
+
+   _mesa_drawbuffers(ctx, fb, n, buffers16, destMask);
 
    /*
     * Call device driver function if fb is the bound draw buffer.
@@ -694,7 +699,8 @@ updated_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb)
  */
 void
 _mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
-                  GLuint n, const GLenum *buffers, const GLbitfield *destMask)
+                  GLuint n, const GLenum16 *buffers,
+                  const GLbitfield *destMask)
 {
    GLbitfield mask[MAX_DRAW_BUFFERS];
    GLuint buf;

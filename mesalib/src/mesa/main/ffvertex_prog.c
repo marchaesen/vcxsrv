@@ -51,6 +51,10 @@
 #define NUM_UNITS MAX2(MAX_TEXTURE_COORD_UNITS, MAX_LIGHTS)
 
 struct state_key {
+   GLbitfield varying_vp_inputs;
+
+   unsigned fragprog_inputs_read:12;
+
    unsigned light_color_material_mask:12;
    unsigned light_global_enabled:1;
    unsigned light_local_viewer:1;
@@ -60,29 +64,22 @@ struct state_key {
    unsigned normalize:1;
    unsigned rescale_normals:1;
 
-   unsigned fog_source_is_depth:1;
    unsigned fog_distance_mode:2;
    unsigned separate_specular:1;
    unsigned point_attenuated:1;
-   unsigned point_array:1;
-   unsigned texture_enabled_global:1;
-   unsigned fragprog_inputs_read:12;
-
-   GLbitfield varying_vp_inputs;
 
    struct {
-      unsigned light_enabled:1;
-      unsigned light_eyepos3_is_zero:1;
-      unsigned light_spotcutoff_is_180:1;
-      unsigned light_attenuated:1;
-      unsigned texunit_really_enabled:1;
-      unsigned texmat_enabled:1;
-      unsigned coord_replace:1;
-      unsigned texgen_enabled:4;
-      unsigned texgen_mode0:4;
-      unsigned texgen_mode1:4;
-      unsigned texgen_mode2:4;
-      unsigned texgen_mode3:4;
+      unsigned char light_enabled:1;
+      unsigned char light_eyepos3_is_zero:1;
+      unsigned char light_spotcutoff_is_180:1;
+      unsigned char light_attenuated:1;
+      unsigned char texmat_enabled:1;
+      unsigned char coord_replace:1;
+      unsigned char texgen_enabled:1;
+      unsigned char texgen_mode0:4;
+      unsigned char texgen_mode1:4;
+      unsigned char texgen_mode2:4;
+      unsigned char texgen_mode3:4;
    } unit[NUM_UNITS];
 };
 
@@ -112,17 +109,22 @@ static GLuint translate_texgen( GLboolean enabled, GLenum mode )
 #define FDM_EYE_RADIAL    0
 #define FDM_EYE_PLANE     1
 #define FDM_EYE_PLANE_ABS 2
+#define FDM_FROM_ARRAY    3
 
-static GLuint translate_fog_distance_mode( GLenum mode )
+static GLuint translate_fog_distance_mode(GLenum source, GLenum mode)
 {
-   switch (mode) {
-   case GL_EYE_RADIAL_NV:
-      return FDM_EYE_RADIAL;
-   case GL_EYE_PLANE:
-      return FDM_EYE_PLANE;
-   default: /* shouldn't happen; fall through to a sensible default */
-   case GL_EYE_PLANE_ABSOLUTE_NV:
-      return FDM_EYE_PLANE_ABS;
+   if (source == GL_FRAGMENT_DEPTH_EXT) {
+      switch (mode) {
+      case GL_EYE_RADIAL_NV:
+         return FDM_EYE_RADIAL;
+      case GL_EYE_PLANE:
+         return FDM_EYE_PLANE;
+      default: /* shouldn't happen; fall through to a sensible default */
+      case GL_EYE_PLANE_ABSOLUTE_NV:
+         return FDM_EYE_PLANE_ABS;
+      }
+   } else {
+      return FDM_FROM_ARRAY;
    }
 }
 
@@ -167,9 +169,6 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
       key->fragprog_inputs_read |= (VARYING_BIT_COL0 | VARYING_BIT_TEX0);
    }
 
-   key->separate_specular = (ctx->Light.Model.ColorControl ==
-			     GL_SEPARATE_SPECULAR_COLOR);
-
    if (ctx->Light.Enabled) {
       key->light_global_enabled = 1;
 
@@ -178,6 +177,9 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
 
       if (ctx->Light.Model.TwoSide)
 	 key->light_twoside = 1;
+
+      if (ctx->Light.Model.ColorControl == GL_SEPARATE_SPECULAR_COLOR)
+         key->separate_specular = 1;
 
       if (ctx->Light.ColorMaterialEnabled) {
 	 key->light_color_material_mask = ctx->Light._ColorMaterialBitmask;
@@ -220,30 +222,20 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
    if (ctx->Transform.RescaleNormals)
       key->rescale_normals = 1;
 
-   if (ctx->Fog.FogCoordinateSource == GL_FRAGMENT_DEPTH_EXT) {
-      key->fog_source_is_depth = 1;
-      key->fog_distance_mode = translate_fog_distance_mode(ctx->Fog.FogDistanceMode);
-   }
+   /* Only distinguish fog parameters if we actually need */
+   if (key->fragprog_inputs_read & VARYING_BIT_FOGC)
+      key->fog_distance_mode =
+         translate_fog_distance_mode(ctx->Fog.FogCoordinateSource,
+                                     ctx->Fog.FogDistanceMode);
 
    if (ctx->Point._Attenuated)
       key->point_attenuated = 1;
-
-   if (ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POINT_SIZE].Enabled)
-      key->point_array = 1;
-
-   if (ctx->Texture._TexGenEnabled ||
-       ctx->Texture._TexMatEnabled ||
-       ctx->Texture._MaxEnabledTexImageUnit != -1)
-      key->texture_enabled_global = 1;
 
    mask = ctx->Texture._EnabledCoordUnits | ctx->Texture._TexGenEnabled
       | ctx->Texture._TexMatEnabled | ctx->Point.CoordReplace;
    while (mask) {
       const int i = u_bit_scan(&mask);
       struct gl_texture_unit *texUnit = &ctx->Texture.Unit[i];
-
-      if (texUnit->_Current)
-	 key->unit[i].texunit_really_enabled = 1;
 
       if (ctx->Point.PointSprite)
 	 if (ctx->Point.CoordReplace & (1u << i))
@@ -1301,32 +1293,28 @@ static void build_fog( struct tnl_program *p )
    struct ureg fog = register_output(p, VARYING_SLOT_FOGC);
    struct ureg input;
 
-   if (p->state->fog_source_is_depth) {
-
-      switch (p->state->fog_distance_mode) {
-      case FDM_EYE_RADIAL: /* Z = sqrt(Xe*Xe + Ye*Ye + Ze*Ze) */
-         input = get_eye_position(p);
-         emit_op2(p, OPCODE_DP3, fog, WRITEMASK_X, input, input);
-         emit_op1(p, OPCODE_RSQ, fog, WRITEMASK_X, fog);
-         emit_op1(p, OPCODE_RCP, fog, WRITEMASK_X, fog);
-         break;
-      case FDM_EYE_PLANE: /* Z = Ze */
-         input = get_eye_position_z(p);
-         emit_op1(p, OPCODE_MOV, fog, WRITEMASK_X, input);
-         break;
-      case FDM_EYE_PLANE_ABS: /* Z = abs(Ze) */
-         input = get_eye_position_z(p);
-         emit_op1(p, OPCODE_ABS, fog, WRITEMASK_X, input);
-         break;
-      default:
-         assert(!"Bad fog mode in build_fog()");
-         break;
-      }
-
-   }
-   else {
+   switch (p->state->fog_distance_mode) {
+   case FDM_EYE_RADIAL: /* Z = sqrt(Xe*Xe + Ye*Ye + Ze*Ze) */
+      input = get_eye_position(p);
+      emit_op2(p, OPCODE_DP3, fog, WRITEMASK_X, input, input);
+      emit_op1(p, OPCODE_RSQ, fog, WRITEMASK_X, fog);
+      emit_op1(p, OPCODE_RCP, fog, WRITEMASK_X, fog);
+      break;
+   case FDM_EYE_PLANE: /* Z = Ze */
+      input = get_eye_position_z(p);
+      emit_op1(p, OPCODE_MOV, fog, WRITEMASK_X, input);
+      break;
+   case FDM_EYE_PLANE_ABS: /* Z = abs(Ze) */
+      input = get_eye_position_z(p);
+      emit_op1(p, OPCODE_ABS, fog, WRITEMASK_X, input);
+      break;
+   case FDM_FROM_ARRAY:
       input = swizzle1(register_input(p, VERT_ATTRIB_FOG), X);
       emit_op1(p, OPCODE_ABS, fog, WRITEMASK_X, input);
+      break;
+   default:
+      assert(!"Bad fog mode in build_fog()");
+      break;
    }
 
    emit_op1(p, OPCODE_MOV, fog, WRITEMASK_YZW, get_identity_param(p));
@@ -1589,7 +1577,7 @@ static void build_tnl_program( struct tnl_program *p )
 
    if (p->state->point_attenuated)
       build_atten_pointsize(p);
-   else if (p->state->point_array)
+   else if (p->state->varying_vp_inputs & VERT_BIT_POINT_SIZE)
       build_array_pointsize(p);
 
    /* Finish up:

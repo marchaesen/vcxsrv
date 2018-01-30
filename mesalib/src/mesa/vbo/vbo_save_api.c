@@ -436,7 +436,9 @@ compile_vertex_list(struct gl_context *ctx)
    /* Duplicate our template, increment refcounts to the storage structs:
     */
    node->enabled = save->enabled;
+   STATIC_ASSERT(sizeof(node->attrsz) == sizeof(save->attrsz));
    memcpy(node->attrsz, save->attrsz, sizeof(node->attrsz));
+   STATIC_ASSERT(sizeof(node->attrtype) == sizeof(save->attrtype));
    memcpy(node->attrtype, save->attrtype, sizeof(node->attrtype));
    node->vertex_size = save->vertex_size;
    node->buffer_offset =

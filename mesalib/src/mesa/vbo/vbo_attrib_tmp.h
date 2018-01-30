@@ -445,14 +445,14 @@ static void GLAPIENTRY
 TAG(Indexf)(GLfloat f)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR1F(VBO_ATTRIB_INDEX, f);
+   ATTR1F(VBO_ATTRIB_COLOR_INDEX, f);
 }
 
 static void GLAPIENTRY
 TAG(Indexfv)(const GLfloat * f)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR1FV(VBO_ATTRIB_INDEX, f);
+   ATTR1FV(VBO_ATTRIB_COLOR_INDEX, f);
 }
 
 
