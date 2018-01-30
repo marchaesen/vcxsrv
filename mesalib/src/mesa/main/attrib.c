@@ -1005,11 +1005,16 @@ _mesa_PopAttrib(void)
                    * user FBO bound, GL_FRONT will be illegal and we'll need
                    * to record that error.  Per OpenGL ARB decision.
                    */
-                  if (multipleBuffers)
-                     _mesa_DrawBuffers(ctx->Const.MaxDrawBuffers,
-                                          color->DrawBuffer);
-                  else
+                  if (multipleBuffers) {
+                     GLenum buffers[MAX_DRAW_BUFFERS];
+
+                     for (unsigned i = 0; i < ctx->Const.MaxDrawBuffers; i++)
+                        buffers[i] = color->DrawBuffer[i];
+
+                     _mesa_DrawBuffers(ctx->Const.MaxDrawBuffers, buffers);
+                  } else {
                      _mesa_DrawBuffer(color->DrawBuffer[0]);
+                  }
                }
                _mesa_set_enable(ctx, GL_ALPHA_TEST, color->AlphaEnabled);
                _mesa_AlphaFunc(color->AlphaFunc, color->AlphaRefUnclamped);
@@ -1498,7 +1503,7 @@ copy_array_object(struct gl_context *ctx,
    /* skip RefCount */
 
    for (i = 0; i < ARRAY_SIZE(src->VertexAttrib); i++) {
-      _mesa_copy_client_array(ctx, &dest->_VertexAttrib[i], &src->_VertexAttrib[i]);
+      _mesa_copy_vertex_array(ctx, &dest->_VertexAttrib[i], &src->_VertexAttrib[i]);
       _mesa_copy_vertex_attrib_array(ctx, &dest->VertexAttrib[i], &src->VertexAttrib[i]);
       _mesa_copy_vertex_buffer_binding(ctx, &dest->BufferBinding[i], &src->BufferBinding[i]);
    }
@@ -1538,9 +1543,8 @@ copy_array_attrib(struct gl_context *ctx,
    /* skip ArrayBufferObj */
    /* skip IndexBufferObj */
 
-   /* Invalidate draw state. It will be updated during the next draw. */
-   dest->DrawMethod = DRAW_NONE;
-   dest->_DrawArrays = NULL;
+   /* Invalidate array state. It will be updated during the next draw. */
+   _mesa_set_drawing_arrays(ctx, NULL);
 }
 
 /**

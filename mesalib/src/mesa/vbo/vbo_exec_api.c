@@ -770,7 +770,7 @@ vbo_exec_Begin(GLenum mode)
       return;
    }
 
-   vbo_draw_method(vbo_context(ctx), DRAW_BEGIN_END);
+   _mesa_set_drawing_arrays(ctx, exec->vtx.inputs);
 
    if (ctx->NewState) {
       _mesa_update_state(ctx);

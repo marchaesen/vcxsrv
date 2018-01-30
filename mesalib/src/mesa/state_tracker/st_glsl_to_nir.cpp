@@ -88,7 +88,7 @@ st_nir_assign_vs_in_locations(struct gl_program *prog, nir_shader *nir)
       if ((prog->info.inputs_read & BITFIELD64_BIT(attr)) != 0) {
          input_to_index[attr] = num_inputs;
          num_inputs++;
-         if ((prog->info.double_inputs_read & BITFIELD64_BIT(attr)) != 0) {
+         if ((prog->info.vs.double_inputs_read & BITFIELD64_BIT(attr)) != 0) {
             /* add placeholder for second part of a double attribute */
             num_inputs++;
          }
@@ -318,6 +318,10 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
       return prog->nir;
 
    nir_shader *nir = glsl_to_nir(shader_program, stage, options);
+
+   nir_variable_mode mask =
+      (nir_variable_mode) (nir_var_shader_in | nir_var_shader_out);
+   nir_remove_dead_variables(nir, mask);
 
    st_nir_opts(nir);
 

@@ -1583,7 +1583,7 @@ handle_first_current(struct gl_context *ctx)
     */
    if (!ctx->HasConfig && _mesa_is_desktop_gl(ctx)) {
       if (ctx->DrawBuffer != _mesa_get_incomplete_framebuffer()) {
-         GLenum buffer;
+         GLenum16 buffer;
 
          if (ctx->DrawBuffer->Visual.doubleBufferMode)
             buffer = GL_BACK;

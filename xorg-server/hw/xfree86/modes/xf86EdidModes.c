@@ -1220,7 +1220,7 @@ xf86EdidMonitorSet(int scrnIndex, MonPtr Monitor, xf86MonPtr DDC)
             Monitor->Modes = Modes;
         }
 
-        xf86PruneDuplicateModes(Monitor->Modes);
+        Monitor->Modes = xf86PruneDuplicateModes(Monitor->Modes);
 
         /* Update pointer to last mode */
         for (Mode = Monitor->Modes; Mode && Mode->next; Mode = Mode->next) {}

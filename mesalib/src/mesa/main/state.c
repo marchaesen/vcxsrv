@@ -357,7 +357,7 @@ _mesa_update_state_locked( struct gl_context *ctx )
    }
 
    if (new_state & _NEW_ARRAY)
-      _mesa_update_vao_client_arrays(ctx, ctx->Array.VAO);
+      _mesa_update_vao_derived_arrays(ctx, ctx->Array.VAO);
 
  out:
    new_prog_state |= update_program_constants(ctx);

@@ -188,12 +188,12 @@ GL 4.3, GLSL 4.30 -- all DONE: i965/gen8+, nvc0, r600, radeonsi
   GL_ARB_vertex_attrib_binding                          DONE (all drivers)
 
 
-GL 4.4, GLSL 4.40 -- all DONE: i965/gen8+, nvc0, radeonsi
+GL 4.4, GLSL 4.40 -- all DONE: i965/gen8+, nvc0, r600, radeonsi
 
   GL_MAX_VERTEX_ATTRIB_STRIDE                           DONE (all drivers)
-  GL_ARB_buffer_storage                                 DONE (freedreno, i965, nv50, r600, llvmpipe, swr)
-  GL_ARB_clear_texture                                  DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
-  GL_ARB_enhanced_layouts                               DONE (i965, nv50, r600, llvmpipe, softpipe)
+  GL_ARB_buffer_storage                                 DONE (freedreno, i965, nv50, llvmpipe, swr)
+  GL_ARB_clear_texture                                  DONE (i965, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_enhanced_layouts                               DONE (i965, nv50, llvmpipe, softpipe)
   - compile-time constant expressions                   DONE
   - explicit byte offsets for blocks                    DONE
   - forced alignment within blocks                      DONE
@@ -202,9 +202,9 @@ GL 4.4, GLSL 4.40 -- all DONE: i965/gen8+, nvc0, radeonsi
   - input/output block locations                        DONE
   GL_ARB_multi_bind                                     DONE (all drivers)
   GL_ARB_query_buffer_object                            DONE (i965/hsw+)
-  GL_ARB_texture_mirror_clamp_to_edge                   DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
-  GL_ARB_texture_stencil8                               DONE (freedreno, i965/hsw+, nv50, r600, llvmpipe, softpipe, swr)
-  GL_ARB_vertex_type_10f_11f_11f_rev                    DONE (i965, nv50, r600, llvmpipe, softpipe, swr)
+  GL_ARB_texture_mirror_clamp_to_edge                   DONE (i965, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_texture_stencil8                               DONE (freedreno, i965/hsw+, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_vertex_type_10f_11f_11f_rev                    DONE (i965, nv50, llvmpipe, softpipe, swr)
 
 GL 4.5, GLSL 4.50 -- all DONE: nvc0, radeonsi
 

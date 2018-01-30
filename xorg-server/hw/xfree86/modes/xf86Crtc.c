@@ -771,9 +771,6 @@ xf86CrtcScreenInit(ScreenPtr screen)
     int c;
 
     /* Rotation */
-    xf86DrvMsg(scrn->scrnIndex, X_INFO,
-               "RandR 1.2 enabled, ignore the following RandR disabled message.\n");
-    xf86DisableRandR();         /* Disable old RandR extension support */
     xf86RandR12Init(screen);
 
     /* support all rotations if every crtc has the shadow alloc funcs */

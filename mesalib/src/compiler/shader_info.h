@@ -67,8 +67,6 @@ typedef struct shader_info {
 
    /* Which inputs are actually read */
    uint64_t inputs_read;
-   /* Which inputs are actually read and are double */
-   uint64_t double_inputs_read;
    /* Which outputs are actually written */
    uint64_t outputs_written;
    /* Which outputs are actually read */
@@ -109,6 +107,14 @@ typedef struct shader_info {
    bool has_transform_feedback_varyings;
 
    union {
+      struct {
+         /* Which inputs are doubles */
+         uint64_t double_inputs;
+
+         /* Which inputs are actually read and are double */
+         uint64_t double_inputs_read;
+      } vs;
+
       struct {
          /** The number of vertices recieves per input primitive */
          unsigned vertices_in;

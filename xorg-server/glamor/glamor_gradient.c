@@ -52,27 +52,33 @@ _glamor_create_getcolor_fs_source(ScreenPtr screen, int stops_count,
 	    "vec4 get_color(float stop_len)\n"\
 	    "{\n"\
 	    "    int i = 0;\n"\
-	    "    float new_alpha; \n"\
+	    "    vec4 stop_color_before;\n"\
 	    "    vec4 gradient_color;\n"\
+	    "    float stop_delta;\n"\
 	    "    float percentage; \n"\
-	    "    for(i = 0; i < n_stop - 1; i++) {\n"\
+	    "    \n"\
+	    "    if(stop_len < stops[0])\n"\
+	    "        return vec4(0.0, 0.0, 0.0, 0.0); \n"\
+	    "    for(i = 1; i < n_stop; i++) {\n"\
 	    "        if(stop_len < stops[i])\n"\
 	    "            break; \n"\
 	    "    }\n"\
+	    "    if(i == n_stop)\n"\
+	    "        return vec4(0.0, 0.0, 0.0, 0.0); \n"\
 	    "    \n"\
-	    "    if(stops[i] - stops[i-1] > 2.0)\n"\
+	    "    stop_color_before = stop_colors[i-1];\n"\
+	    "    stop_delta = stops[i] - stops[i-1];\n"\
+	    "    if(stop_delta > 2.0)\n"\
 	    "        percentage = 0.0;\n" /*For comply with pixman, walker->stepper overflow.*/\
-	    "    else if(stops[i] - stops[i-1] < 0.000001)\n"\
+	    "    else if(stop_delta < 0.000001)\n"\
 	    "        percentage = 0.0;\n"\
 	    "    else \n"\
-	    "        percentage = (stop_len - stops[i-1])/(stops[i] - stops[i-1]);\n"\
-	    "    new_alpha = percentage * stop_colors[i].a + \n"\
-	    "                       (1.0-percentage) * stop_colors[i-1].a; \n"\
-	    "    gradient_color = vec4((percentage * stop_colors[i].rgb \n"\
-	    "                          + (1.0-percentage) * stop_colors[i-1].rgb)*new_alpha, \n"\
-	    "                          new_alpha);\n"\
+	    "        percentage = (stop_len - stops[i-1])/stop_delta;\n"\
 	    "    \n"\
-	    "    return gradient_color;\n"\
+	    "    gradient_color = stop_color_before;\n"\
+	    "    if(percentage != 0.0)\n"\
+	    "        gradient_color += (stop_colors[i] - gradient_color)*percentage;\n"\
+	    "    return vec4(gradient_color.rgb * gradient_color.a, gradient_color.a);\n"\
 	    "}\n"
 
     /* Because the array access for shader is very slow, the performance is very low
@@ -99,73 +105,66 @@ _glamor_create_getcolor_fs_source(ScreenPtr screen, int stops_count,
         "\n"
         "vec4 get_color(float stop_len)\n"
         "{\n"
-        "    float stop_after;\n"
-        "    float stop_before;\n"
         "    vec4 stop_color_before;\n"
         "    vec4 stop_color_after;\n"
-        "    float new_alpha; \n"
         "    vec4 gradient_color;\n"
+        "    float stop_before;\n"
+        "    float stop_delta;\n"
         "    float percentage; \n"
         "    \n"
         "    if((stop_len < stop0) && (n_stop >= 1)) {\n"
-        "        stop_color_before = stop_color0;\n"
-        "        stop_color_after = stop_color0;\n"
-        "        stop_after = stop0;\n"
-        "        stop_before = stop0;\n"
+        "        stop_color_before = vec4(0.0, 0.0, 0.0, 0.0);\n"
+        "        stop_delta = 0.0;\n"
         "    } else if((stop_len < stop1) && (n_stop >= 2)) {\n"
         "        stop_color_before = stop_color0;\n"
         "        stop_color_after = stop_color1;\n"
-        "        stop_after = stop1;\n"
         "        stop_before = stop0;\n"
+        "        stop_delta = stop1 - stop0;\n"
         "    } else if((stop_len < stop2) && (n_stop >= 3)) {\n"
         "        stop_color_before = stop_color1;\n"
         "        stop_color_after = stop_color2;\n"
-        "        stop_after = stop2;\n"
         "        stop_before = stop1;\n"
+        "        stop_delta = stop2 - stop1;\n"
         "    } else if((stop_len < stop3) && (n_stop >= 4)){\n"
         "        stop_color_before = stop_color2;\n"
         "        stop_color_after = stop_color3;\n"
-        "        stop_after = stop3;\n"
         "        stop_before = stop2;\n"
+        "        stop_delta = stop3 - stop2;\n"
         "    } else if((stop_len < stop4) && (n_stop >= 5)){\n"
         "        stop_color_before = stop_color3;\n"
         "        stop_color_after = stop_color4;\n"
-        "        stop_after = stop4;\n"
         "        stop_before = stop3;\n"
+        "        stop_delta = stop4 - stop3;\n"
         "    } else if((stop_len < stop5) && (n_stop >= 6)){\n"
         "        stop_color_before = stop_color4;\n"
         "        stop_color_after = stop_color5;\n"
-        "        stop_after = stop5;\n"
         "        stop_before = stop4;\n"
+        "        stop_delta = stop5 - stop4;\n"
         "    } else if((stop_len < stop6) && (n_stop >= 7)){\n"
         "        stop_color_before = stop_color5;\n"
         "        stop_color_after = stop_color6;\n"
-        "        stop_after = stop6;\n"
         "        stop_before = stop5;\n"
+        "        stop_delta = stop6 - stop5;\n"
         "    } else if((stop_len < stop7) && (n_stop >= 8)){\n"
         "        stop_color_before = stop_color6;\n"
         "        stop_color_after = stop_color7;\n"
-        "        stop_after = stop7;\n"
         "        stop_before = stop6;\n"
+        "        stop_delta = stop7 - stop6;\n"
         "    } else {\n"
-        "        stop_color_before = stop_color7;\n"
-        "        stop_color_after = stop_color7;\n"
-        "        stop_after = stop7;\n"
-        "        stop_before = stop7;\n"
+        "        stop_color_before = vec4(0.0, 0.0, 0.0, 0.0);\n"
+        "        stop_delta = 0.0;\n"
         "    }\n"
-        "    if(stop_after - stop_before > 2.0)\n"
+        "    if(stop_delta > 2.0)\n"
         "        percentage = 0.0;\n" //For comply with pixman, walker->stepper overflow.
-        "    else if(stop_after - stop_before < 0.000001)\n"
+        "    else if(stop_delta < 0.000001)\n"
         "        percentage = 0.0;\n"
-        "    else \n"
-        "        percentage = (stop_len - stop_before)/(stop_after - stop_before);\n"
-        "    new_alpha = percentage * stop_color_after.a + \n"
-        "                       (1.0-percentage) * stop_color_before.a; \n"
-        "    gradient_color = vec4((percentage * stop_color_after.rgb \n"
-        "                          + (1.0-percentage) * stop_color_before.rgb)*new_alpha, \n"
-        "                          new_alpha);\n"
+        "    else\n"
+        "        percentage = (stop_len - stop_before)/stop_delta;\n"
         "    \n"
-        "    return gradient_color;\n"
+        "    gradient_color = stop_color_before;\n"
+        "    if(percentage != 0.0)\n"
+        "        gradient_color += (stop_color_after - gradient_color)*percentage;\n"
+        "    return vec4(gradient_color.rgb * gradient_color.a, gradient_color.a);\n"
         "}\n";
 
     if (use_array) {
@@ -456,18 +455,10 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
 	    "float get_stop_len()\n"\
 	    "{\n"\
 	    "    vec3 tmp = vec3(source_texture.x, source_texture.y, 1.0);\n"\
-	    "    float len_percentage;\n"\
 	    "    float distance;\n"\
 	    "    float _p1_distance;\n"\
 	    "    float _pt_distance;\n"\
 	    "    float y_dist;\n"\
-	    "    float stop_after;\n"\
-	    "    float stop_before;\n"\
-	    "    vec4 stop_color_before;\n"\
-	    "    vec4 stop_color_after;\n"\
-	    "    float new_alpha; \n"\
-	    "    vec4 gradient_color;\n"\
-	    "    float percentage; \n"\
 	    "    vec3 source_texture_trans = transform_mat * tmp;\n"\
 	    "    \n"\
 	    "    if(hor_ver == 0) { \n" /*Normal case.*/\
@@ -482,19 +473,17 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
 	    "        _pt_distance = pt_distance * source_texture_trans.z;\n"\
 	    "    } \n"\
 	    "    \n"\
-	    "    distance = distance - _p1_distance; \n"\
+	    "    distance = (distance - _p1_distance) / _pt_distance;\n"\
 	    "    \n"\
 	    "    if(repeat_type == %d){\n" /* repeat normal*/\
-	    "        distance = mod(distance, _pt_distance);\n"\
+	    "        distance = fract(distance);\n"\
 	    "    }\n"\
 	    "    \n"\
 	    "    if(repeat_type == %d) {\n" /* repeat reflect*/\
-	    "        distance = abs(mod(distance + _pt_distance, 2.0 * _pt_distance) - _pt_distance);\n"\
+	    "        distance = abs(fract(distance * 0.5 + 0.5) * 2.0 - 1.0);\n"\
 	    "    }\n"\
 	    "    \n"\
-	    "    len_percentage = distance/(_pt_distance);\n"\
-	    "    \n"\
-	    "    return len_percentage;\n"\
+	    "    return distance;\n"\
 	    "}\n"\
 	    "\n"\
 	    "void main()\n"\
@@ -759,13 +748,13 @@ _glamor_gradient_set_stops(PicturePtr src_picture, PictGradient *pgradient,
         stop_colors[1] = 0.0;   //G
         stop_colors[2] = 0.0;   //B
         stop_colors[3] = 0.0;   //Alpha
-        n_stops[0] = -(float) INT_MAX;  //should be small enough.
+        n_stops[0] = n_stops[1];
 
         stop_colors[0 + (count - 1) * 4] = 0.0; //R
         stop_colors[1 + (count - 1) * 4] = 0.0; //G
         stop_colors[2 + (count - 1) * 4] = 0.0; //B
         stop_colors[3 + (count - 1) * 4] = 0.0; //Alpha
-        n_stops[count - 1] = (float) INT_MAX;   //should be large enough.
+        n_stops[count - 1] = n_stops[count - 2];
         break;
     case PIXMAN_REPEAT_NORMAL:
         REPEAT_FILL_STOPS(0, count - 2);

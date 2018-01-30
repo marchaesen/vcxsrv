@@ -319,8 +319,8 @@ recalculate_input_bindings(struct gl_context *ctx)
    GLbitfield const_inputs = 0x0;
    GLuint i;
 
-   switch (get_program_mode(ctx)) {
-   case VP_NONE:
+   switch (get_vp_mode(ctx)) {
+   case VP_FF:
       /* When no vertex program is active (or the vertex program is generated
        * from fixed-function state).  We put the material values into the
        * generic slots.  This is the only situation where material values
@@ -351,7 +351,7 @@ recalculate_input_bindings(struct gl_context *ctx)
       }
       break;
 
-   case VP_ARB:
+   case VP_SHADER:
       /* There are no shaders in OpenGL ES 1.x, so this code path should be
        * impossible to reach.  The meta code is careful to not use shaders in
        * ES1.
@@ -369,11 +369,11 @@ recalculate_input_bindings(struct gl_context *ctx)
        */
       if (ctx->API == API_OPENGL_COMPAT) {
          if (array[VERT_ATTRIB_GENERIC0].Enabled)
-            inputs[0] = &vertexAttrib[VERT_ATTRIB_GENERIC0];
+            inputs[VERT_ATTRIB_POS] = &vertexAttrib[VERT_ATTRIB_GENERIC0];
          else if (array[VERT_ATTRIB_POS].Enabled)
-            inputs[0] = &vertexAttrib[VERT_ATTRIB_POS];
+            inputs[VERT_ATTRIB_POS] = &vertexAttrib[VERT_ATTRIB_POS];
          else {
-            inputs[0] = &vbo->currval[VBO_ATTRIB_GENERIC0];
+            inputs[VERT_ATTRIB_POS] = &vbo->currval[VBO_ATTRIB_GENERIC0];
             const_inputs |= VERT_BIT_POS;
          }
 
@@ -444,7 +444,7 @@ vbo_bind_arrays(struct gl_context *ctx)
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;
 
-   vbo_draw_method(vbo, DRAW_ARRAYS);
+   _mesa_set_drawing_arrays(ctx, vbo->exec.array.inputs);
 
    if (exec->array.recalculate_inputs) {
       recalculate_input_bindings(ctx);

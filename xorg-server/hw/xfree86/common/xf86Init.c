@@ -77,6 +77,7 @@
 #include "xf86Xinput.h"
 #include "xf86InPriv.h"
 #include "picturestr.h"
+#include "randrstr.h"
 
 #include "xf86Bus.h"
 #ifdef XSERVER_LIBPCIACCESS
@@ -361,6 +362,16 @@ xf86ScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
     pScrn->pScreen = pScreen;
     return pScrn->ScreenInit (pScreen, argc, argv);
+}
+
+static void
+xf86EnsureRANDR(ScreenPtr pScreen)
+{
+#ifdef RANDR
+        if (!dixPrivateKeyRegistered(rrPrivKey) ||
+            !rrGetScrPriv(pScreen))
+            xf86RandRInit(pScreen);
+#endif
 }
 
 /*
@@ -809,12 +820,12 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
                                      SubPixelHorizontalRGB : SubPixelNone) :
                                     SubPixelUnknown);
         }
-#ifdef RANDR
-        if (!xf86Info.disableRandR)
-            xf86RandRInit(screenInfo.screens[scr_index]);
-        xf86Msg(xf86Info.randRFrom, "RandR %s\n",
-                xf86Info.disableRandR ? "disabled" : "enabled");
-#endif
+
+        /*
+         * If the driver hasn't set up its own RANDR support, install the
+         * fallback support.
+         */
+        xf86EnsureRANDR(xf86Screens[i]->pScreen);
     }
 
     for (i = 0; i < xf86NumGPUScreens; i++)

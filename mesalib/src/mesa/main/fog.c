@@ -78,19 +78,6 @@ _mesa_Fogiv(GLenum pname, const GLint *params )
 }
 
 
-/**
- * Update the gl_fog_attrib::_Scale field.
- */
-static void
-update_fog_scale(struct gl_context *ctx)
-{
-   if (ctx->Fog.End == ctx->Fog.Start)
-      ctx->Fog._Scale = 1.0f;
-   else
-      ctx->Fog._Scale = 1.0f / (ctx->Fog.End - ctx->Fog.Start);
-}
-
-
 void GLAPIENTRY
 _mesa_Fogfv( GLenum pname, const GLfloat *params )
 {
@@ -136,14 +123,12 @@ _mesa_Fogfv( GLenum pname, const GLfloat *params )
             return;
          FLUSH_VERTICES(ctx, _NEW_FOG);
          ctx->Fog.Start = *params;
-         update_fog_scale(ctx);
          break;
       case GL_FOG_END:
          if (ctx->Fog.End == *params)
             return;
          FLUSH_VERTICES(ctx, _NEW_FOG);
          ctx->Fog.End = *params;
-         update_fog_scale(ctx);
          break;
       case GL_FOG_INDEX:
          if (ctx->API != API_OPENGL_COMPAT)
@@ -227,6 +212,5 @@ void _mesa_init_fog( struct gl_context * ctx )
    ctx->Fog.End = 1.0;
    ctx->Fog.ColorSumEnabled = GL_FALSE;
    ctx->Fog.FogCoordinateSource = GL_FRAGMENT_DEPTH_EXT;
-   ctx->Fog._Scale = 1.0f;
    ctx->Fog.FogDistanceMode = GL_EYE_PLANE_ABSOLUTE_NV;
 }

@@ -197,6 +197,7 @@ private:
    static const int write_is_conditional = -1;
    static const int conditionality_unresolved = 0;
    static const int conditionality_untouched;
+   static const int write_is_unconditional;
 
    /* A bit field tracking the nexting levels of if-else clauses where the
     * temporary has (so far) been written to in the if branch, but not in the
@@ -219,6 +220,9 @@ private:
 
 const int
 temp_comp_access::conditionality_untouched = numeric_limits<int>::max();
+
+const int
+temp_comp_access::write_is_unconditional = numeric_limits<int>::max() - 1;
 
 /* Class to track the access to all components of a temporary register. */
 class temp_access {
@@ -566,6 +570,13 @@ void temp_comp_access::record_read(int line, prog_scope *scope)
       first_read_scope = scope;
    }
 
+   /* If the conditionality of the first write is already resolved then
+    * no further checks are required.
+    */
+   if (conditionality_in_loop_id == write_is_unconditional ||
+       conditionality_in_loop_id == write_is_conditional)
+      return;
+
    /* Check whether we are in a condition within a loop */
    const prog_scope *ifelse_scope = scope->in_ifelse_scope();
    const prog_scope *enclosing_loop;
@@ -612,9 +623,20 @@ void temp_comp_access::record_write(int line, prog_scope *scope)
    if (first_write < 0) {
       first_write = line;
       first_write_scope = scope;
+
+      /* If the first write we encounter is not in a conditional branch, or
+       * the conditional write is not within a loop, then this is to be
+       * considered an unconditional dominant write.
+       */
+      const prog_scope *conditional = scope->enclosing_conditional();
+      if (!conditional || !conditional->innermost_loop()) {
+         conditionality_in_loop_id = write_is_unconditional;
+      }
    }
 
-   if (conditionality_in_loop_id == write_is_conditional)
+   /* The conditionality of the first write is already resolved. */
+   if (conditionality_in_loop_id == write_is_unconditional ||
+       conditionality_in_loop_id == write_is_conditional)
       return;
 
    /* If the nesting depth is larger than the supported level,

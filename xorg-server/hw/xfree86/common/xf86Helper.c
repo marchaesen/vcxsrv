@@ -1458,13 +1458,6 @@ xf86GetAllowMouseOpenFail(void)
     return xf86Info.allowMouseOpenFail;
 }
 
-void
-xf86DisableRandR(void)
-{
-    xf86Info.disableRandR = TRUE;
-    xf86Info.randRFrom = X_PROBED;
-}
-
 CARD32
 xf86GetModuleVersion(void *module)
 {

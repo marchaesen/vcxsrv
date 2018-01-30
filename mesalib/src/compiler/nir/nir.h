@@ -1892,6 +1892,12 @@ typedef struct nir_shader_compiler_options {
     */
    bool use_interpolated_input_intrinsics;
 
+   /**
+    * Do vertex shader double inputs use two locations? The Vulkan spec
+    * requires two locations to be used, OpenGL allows a single location.
+    */
+   bool vs_inputs_dual_locations;
+
    unsigned max_unroll_iterations;
 } nir_shader_compiler_options;
 

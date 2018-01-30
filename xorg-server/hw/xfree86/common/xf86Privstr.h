@@ -81,8 +81,6 @@ typedef struct {
     Bool miscModInDevAllowNonLocal;
     Bool useSIGIO;              /* Use SIGIO for handling DRI1 swaps */
     Bool pmFlag;
-    Bool disableRandR;
-    MessageType randRFrom;
     MessageType iglxFrom;
     XF86_GlxVisuals glxVisuals;
     MessageType glxVisualsFrom;

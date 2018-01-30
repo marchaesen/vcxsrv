@@ -101,6 +101,7 @@ enum value_type {
    TYPE_UINT_3,
    TYPE_UINT_4,
    TYPE_INT64,
+   TYPE_ENUM16,
    TYPE_ENUM,
    TYPE_ENUM_2,
    TYPE_BOOLEAN,
@@ -206,12 +207,14 @@ union value {
 
 #define BUFFER_INT(field) BUFFER_FIELD(field, TYPE_INT)
 #define BUFFER_ENUM(field) BUFFER_FIELD(field, TYPE_ENUM)
+#define BUFFER_ENUM16(field) BUFFER_FIELD(field, TYPE_ENUM16)
 #define BUFFER_BOOL(field) BUFFER_FIELD(field, TYPE_BOOLEAN)
 
 #define CONTEXT_INT(field) CONTEXT_FIELD(field, TYPE_INT)
 #define CONTEXT_INT2(field) CONTEXT_FIELD(field, TYPE_INT_2)
 #define CONTEXT_INT64(field) CONTEXT_FIELD(field, TYPE_INT64)
 #define CONTEXT_UINT(field) CONTEXT_FIELD(field, TYPE_UINT)
+#define CONTEXT_ENUM16(field) CONTEXT_FIELD(field, TYPE_ENUM16)
 #define CONTEXT_ENUM(field) CONTEXT_FIELD(field, TYPE_ENUM)
 #define CONTEXT_ENUM2(field) CONTEXT_FIELD(field, TYPE_ENUM_2)
 #define CONTEXT_BOOL(field) CONTEXT_FIELD(field, TYPE_BOOLEAN)
@@ -233,6 +236,7 @@ union value {
 
 #define ARRAY_INT(field) ARRAY_FIELD(field, TYPE_INT)
 #define ARRAY_ENUM(field) ARRAY_FIELD(field, TYPE_ENUM)
+#define ARRAY_ENUM16(field) ARRAY_FIELD(field, TYPE_ENUM16)
 #define ARRAY_BOOL(field) ARRAY_FIELD(field, TYPE_BOOLEAN)
 
 #define EXT(f)					\
@@ -1488,6 +1492,8 @@ get_value_size(enum value_type type, const union value *v)
    case TYPE_INT64:
       return sizeof(GLint64);
       break;
+   case TYPE_ENUM16:
+      return sizeof(GLenum16);
    case TYPE_ENUM:
       return sizeof(GLenum);
    case TYPE_ENUM_2:
@@ -1588,6 +1594,10 @@ _mesa_GetBooleanv(GLenum pname, GLboolean *params)
       params[0] = INT_TO_BOOLEAN(((GLint *) p)[0]);
       break;
 
+   case TYPE_ENUM16:
+      params[0] = INT_TO_BOOLEAN(((GLenum16 *) p)[0]);
+      break;
+
    case TYPE_INT_N:
       for (i = 0; i < v.value_int_n.n; i++)
          params[i] = INT_TO_BOOLEAN(v.value_int_n.ints[i]);
@@ -1679,6 +1689,10 @@ _mesa_GetFloatv(GLenum pname, GLfloat *params)
    case TYPE_INT:
    case TYPE_ENUM:
       params[0] = (GLfloat) (((GLint *) p)[0]);
+      break;
+
+   case TYPE_ENUM16:
+      params[0] = (GLfloat) (((GLenum16 *) p)[0]);
       break;
 
    case TYPE_INT_N:
@@ -1794,6 +1808,10 @@ _mesa_GetIntegerv(GLenum pname, GLint *params)
       params[0] = ((GLint *) p)[0];
       break;
 
+   case TYPE_ENUM16:
+      params[0] = ((GLenum16 *) p)[0];
+      break;
+
    case TYPE_INT_N:
       for (i = 0; i < v.value_int_n.n; i++)
          params[i] = v.value_int_n.ints[i];
@@ -1891,6 +1909,10 @@ _mesa_GetInteger64v(GLenum pname, GLint64 *params)
    case TYPE_INT:
    case TYPE_ENUM:
       params[0] = ((GLint *) p)[0];
+      break;
+
+   case TYPE_ENUM16:
+      params[0] = ((GLenum16 *) p)[0];
       break;
 
    case TYPE_INT_N:
@@ -1996,6 +2018,10 @@ _mesa_GetDoublev(GLenum pname, GLdouble *params)
       params[0] = ((GLint *) p)[0];
       break;
 
+   case TYPE_ENUM16:
+      params[0] = ((GLenum16 *) p)[0];
+      break;
+
    case TYPE_INT_N:
       for (i = 0; i < v.value_int_n.n; i++)
          params[i] = v.value_int_n.ints[i];
@@ -2064,7 +2090,7 @@ _mesa_GetUnsignedBytevEXT(GLenum pname, GLubyte *data)
 
    d = find_value(func, pname, &p, &v);
    size = get_value_size(d->type, &v);
-   if (size >= 0) {
+   if (size <= 0) {
       _mesa_problem(ctx, "invalid value type in GetUnsignedBytevEXT()");
    }
 
@@ -2113,6 +2139,11 @@ _mesa_GetUnsignedBytevEXT(GLenum pname, GLubyte *data)
    case TYPE_MATRIX_T:
       memcpy(data, p, size);
       break;
+   case TYPE_ENUM16: {
+      GLenum e = *(GLenum16 *)p;
+      memcpy(data, &e, sizeof(e));
+      break;
+   }
    default:
       break; /* nothing - GL error was recorded */
    }
@@ -2708,6 +2739,7 @@ _mesa_GetFloati_v(GLenum pname, GLuint index, GLfloat *params)
       params[1] = (GLfloat) v.value_int_4[1];
    case TYPE_INT:
    case TYPE_ENUM:
+   case TYPE_ENUM16:
       params[0] = (GLfloat) v.value_int_4[0];
       break;
 
@@ -2790,6 +2822,7 @@ _mesa_GetDoublei_v(GLenum pname, GLuint index, GLdouble *params)
       params[1] = (GLdouble) v.value_int_4[1];
    case TYPE_INT:
    case TYPE_ENUM:
+   case TYPE_ENUM16:
       params[0] = (GLdouble) v.value_int_4[0];
       break;
 
@@ -2864,6 +2897,7 @@ _mesa_GetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte *data)
    case TYPE_INT_4:
    case TYPE_UINT_4:
    case TYPE_INT64:
+   case TYPE_ENUM16:
    case TYPE_ENUM:
    case TYPE_ENUM_2:
    case TYPE_BOOLEAN:
@@ -2941,6 +2975,10 @@ _mesa_GetFixedv(GLenum pname, GLfixed *params)
    case TYPE_UINT:
    case TYPE_ENUM:
       params[0] = INT_TO_FIXED(((GLint *) p)[0]);
+      break;
+
+   case TYPE_ENUM16:
+      params[0] = INT_TO_FIXED(((GLenum16 *) p)[0]);
       break;
 
    case TYPE_INT_N:

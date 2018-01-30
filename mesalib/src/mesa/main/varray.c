@@ -166,6 +166,7 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
                          struct gl_buffer_object *vbo,
                          GLintptr offset, GLsizei stride)
 {
+   assert(index < ARRAY_SIZE(vao->BufferBinding));
    struct gl_vertex_buffer_binding *binding = &vao->BufferBinding[index];
 
    if (binding->BufferObj != vbo ||
@@ -1064,6 +1065,7 @@ _mesa_enable_vertex_array_attrib(struct gl_context *ctx,
                                  struct gl_vertex_array_object *vao,
                                  unsigned attrib)
 {
+   assert(attrib >= VERT_ATTRIB_GENERIC0);
    assert(attrib < ARRAY_SIZE(vao->VertexAttrib));
 
    if (!vao->VertexAttrib[attrib].Enabled) {
@@ -2792,10 +2794,10 @@ _mesa_VertexArrayBindingDivisor(GLuint vaobj, GLuint bindingIndex,
 
 
 /**
- * Copy one client vertex array to another.
+ * Copy one vertex array to another.
  */
 void
-_mesa_copy_client_array(struct gl_context *ctx,
+_mesa_copy_vertex_array(struct gl_context *ctx,
                         struct gl_vertex_array *dst,
                         struct gl_vertex_array *src)
 {

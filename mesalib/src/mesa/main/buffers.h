@@ -68,7 +68,7 @@ _mesa_NamedFramebufferDrawBuffers(GLuint framebuffer, GLsizei n,
 
 extern void
 _mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
-                  GLuint n, const GLenum *buffers,
+                  GLuint n, const GLenum16 *buffers,
                   const GLbitfield *destMask);
 
 extern void
