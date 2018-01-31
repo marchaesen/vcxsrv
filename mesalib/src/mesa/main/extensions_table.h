@@ -247,6 +247,8 @@ EXT(EXT_read_format_bgra                    , dummy_true                        
 EXT(EXT_rescale_normal                      , dummy_true                             , GLL,  x ,  x ,  x , 1997)
 EXT(EXT_robustness                          , KHR_robustness                         ,  x,   x,   x , ES2, 2011)
 EXT(EXT_secondary_color                     , dummy_true                             , GLL,  x ,  x ,  x , 1999)
+EXT(EXT_semaphore                           , EXT_semaphore                          , GLL, GLC,  x , ES2, 2017)
+EXT(EXT_semaphore_fd                        , EXT_semaphore_fd                       , GLL, GLC,  x , ES2, 2017)
 EXT(EXT_separate_shader_objects             , dummy_true                             ,  x ,  x ,  x , ES2, 2013)
 EXT(EXT_separate_specular_color             , dummy_true                             , GLL,  x ,  x ,  x , 1997)
 EXT(EXT_shader_framebuffer_fetch            , MESA_shader_framebuffer_fetch          ,  x ,  x ,  x , ES2, 2013)

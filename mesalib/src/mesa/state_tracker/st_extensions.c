@@ -26,6 +26,8 @@
  * 
  **************************************************************************/
 
+#include "compiler/nir/nir.h"
+
 #include "main/imports.h"
 #include "main/context.h"
 #include "main/macros.h"
@@ -156,31 +158,49 @@ void st_init_limits(struct pipe_screen *screen,
    for (sh = 0; sh < PIPE_SHADER_TYPES; ++sh) {
       struct gl_shader_compiler_options *options;
       struct gl_program_constants *pc;
+      const nir_shader_compiler_options *nir_options = NULL;
+
+      if (screen->get_compiler_options) {
+         nir_options = (const nir_shader_compiler_options *)
+            screen->get_compiler_options(screen, PIPE_SHADER_IR_NIR, sh);
+      }
 
       switch (sh) {
       case PIPE_SHADER_FRAGMENT:
          pc = &c->Program[MESA_SHADER_FRAGMENT];
          options = &c->ShaderCompilerOptions[MESA_SHADER_FRAGMENT];
+         c->ShaderCompilerOptions[MESA_SHADER_FRAGMENT].NirOptions =
+            nir_options;
          break;
       case PIPE_SHADER_VERTEX:
          pc = &c->Program[MESA_SHADER_VERTEX];
          options = &c->ShaderCompilerOptions[MESA_SHADER_VERTEX];
+         c->ShaderCompilerOptions[MESA_SHADER_VERTEX].NirOptions =
+            nir_options;
          break;
       case PIPE_SHADER_GEOMETRY:
          pc = &c->Program[MESA_SHADER_GEOMETRY];
          options = &c->ShaderCompilerOptions[MESA_SHADER_GEOMETRY];
+         c->ShaderCompilerOptions[MESA_SHADER_GEOMETRY].NirOptions =
+            nir_options;
          break;
       case PIPE_SHADER_TESS_CTRL:
          pc = &c->Program[MESA_SHADER_TESS_CTRL];
          options = &c->ShaderCompilerOptions[MESA_SHADER_TESS_CTRL];
+         c->ShaderCompilerOptions[MESA_SHADER_TESS_CTRL].NirOptions =
+            nir_options;
          break;
       case PIPE_SHADER_TESS_EVAL:
          pc = &c->Program[MESA_SHADER_TESS_EVAL];
          options = &c->ShaderCompilerOptions[MESA_SHADER_TESS_EVAL];
+         c->ShaderCompilerOptions[MESA_SHADER_TESS_EVAL].NirOptions =
+            nir_options;
          break;
       case PIPE_SHADER_COMPUTE:
          pc = &c->Program[MESA_SHADER_COMPUTE];
          options = &c->ShaderCompilerOptions[MESA_SHADER_COMPUTE];
+         c->ShaderCompilerOptions[MESA_SHADER_COMPUTE].NirOptions =
+            nir_options;
 
          if (!screen->get_param(screen, PIPE_CAP_COMPUTE))
             continue;
@@ -671,6 +691,8 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(EXT_draw_buffers2),                PIPE_CAP_INDEP_BLEND_ENABLE               },
       { o(EXT_memory_object),                PIPE_CAP_MEMOBJ                           },
       { o(EXT_memory_object_fd),             PIPE_CAP_MEMOBJ                           },
+      { o(EXT_semaphore),                    PIPE_CAP_FENCE_SIGNAL                     },
+      { o(EXT_semaphore_fd),                 PIPE_CAP_FENCE_SIGNAL                     },
       { o(EXT_texture_array),                PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS         },
       { o(EXT_texture_filter_anisotropic),   PIPE_CAP_ANISOTROPIC_FILTER               },
       { o(EXT_texture_mirror_clamp),         PIPE_CAP_TEXTURE_MIRROR_CLAMP             },

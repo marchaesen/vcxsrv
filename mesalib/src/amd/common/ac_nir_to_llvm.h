@@ -118,6 +118,11 @@ enum ac_ud_index {
 	AC_UD_MAX_UD = AC_UD_TCS_MAX_UD,
 };
 
+/* Interpolation locations */
+#define INTERP_CENTER 0
+#define INTERP_CENTROID 1
+#define INTERP_SAMPLE 2
+
 /* descriptor index into scratch ring offsets */
 #define RING_SCRATCH 0
 #define RING_ESGS_VS 1

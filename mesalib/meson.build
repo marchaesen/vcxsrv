@@ -369,36 +369,33 @@ endif
 
 prog_pkgconfig = find_program('pkg-config')
 
-dep_vdpau = []
 _vdpau = get_option('gallium-vdpau')
-if _vdpau == 'auto'
-  if not system_has_kms_drm
-    with_gallium_vdpau = false
-  elif not with_platform_x11
-    with_gallium_vdpau = false
-  elif not (with_gallium_r300 or with_gallium_r600 or with_gallium_radeonsi or
-            with_gallium_nouveau)
-    with_gallium_vdpau = false
+if not system_has_kms_drm
+  if _vdpau == 'true'
+    error('VDPAU state tracker can only be build on unix-like OSes.')
   else
-    dep_vdpau = dependency('vdpau', version : '>= 1.1', required : false)
-    with_gallium_vdpau = dep_vdpau.found()
+    _vdpau = 'false'
   endif
-elif _vdpau == 'true'
-  if not system_has_kms_drm
-    error('VDPAU state tracker can only be build on DRM/KMS OSes.')
-  elif not with_platform_x11
+elif not with_platform_x11
+  if _vdpau == 'true'
     error('VDPAU state tracker requires X11 support.')
-    with_gallium_vdpau = false
-  elif not (with_gallium_r300 or with_gallium_r600 or with_gallium_radeonsi or
-            with_gallium_nouveau)
-    error('VDPAU state tracker requires at least one of the following gallium drivers: r300, r600, radeonsi, nouveau.')
+  else
+    _vdpau = 'false'
   endif
-  dep_vdpau = dependency('vdpau', version : '>= 1.1')
-  with_gallium_vdpau = true
-else
-  with_gallium_vdpau = false
+elif not (with_gallium_r300 or with_gallium_r600 or with_gallium_radeonsi or
+          with_gallium_nouveau)
+  if _vdpau == 'true'
+    error('VDPAU state tracker requires at least one of the following gallium drivers: r300, r600, radeonsi, nouveau.')
+  else
+    _vdpau = 'false'
+  endif
+elif _vdpau == 'auto'
+  _vdpau = 'true'
 endif
+with_gallium_vdpau = _vdpau == 'true'
+dep_vdpau = []
 if with_gallium_vdpau
+  dep_vdpau = dependency('vdpau', version : '>= 1.1')
   dep_vdpau = declare_dependency(
     compile_args : run_command(prog_pkgconfig, ['vdpau', '--cflags']).stdout().split()
   )
@@ -412,34 +409,32 @@ if vdpau_drivers_path == ''
   vdpau_drivers_path = join_paths(get_option('libdir'), 'vdpau')
 endif
 
-dep_xvmc = []
 _xvmc = get_option('gallium-xvmc')
-if _xvmc == 'auto'
-  if not system_has_kms_drm
-    with_gallium_xvmc = false
-  elif not with_platform_x11
-    with_gallium_xvmc = false
-  elif not (with_gallium_r600 or with_gallium_nouveau)
-    with_gallium_xvmc = false
+if not system_has_kms_drm
+  if _xvmc == 'true'
+    error('XVMC state tracker can only be build on unix-like OSes.')
   else
-    dep_xvmc = dependency('xvmc', version : '>= 1.0.6', required : false)
-    with_gallium_xvmc = dep_xvmc.found()
+    _xvmc = 'false'
   endif
-elif _xvmc == 'true'
-  if not system_has_kms_drm
-    error('XVMC state tracker can only be build on DRM/KMS OSes.')
-  elif not with_platform_x11
+elif not with_platform_x11
+  if _xvmc == 'true'
     error('XVMC state tracker requires X11 support.')
-    with_gallium_xvmc = false
-  elif not (with_gallium_r600 or with_gallium_nouveau)
-    error('XVMC state tracker requires at least one of the following gallium drivers: r600, nouveau.')
+  else
+    _xvmc = 'false'
   endif
-  dep_xvmc = dependency('xvmc', version : '>= 1.0.6')
-  with_gallium_xvmc = true
-else
-  with_gallium_xvmc = false
+elif not (with_gallium_r600 or with_gallium_nouveau)
+  if _xvmc == 'true'
+    error('XVMC state tracker requires at least one of the following gallium drivers: r600, nouveau.')
+  else
+    _xvmc = 'false'
+  endif
+elif _xvmc == 'auto'
+  _xvmc = 'true'
 endif
+with_gallium_xvmc = _xvmc == 'true'
+dep_xvmc = []
 if with_gallium_xvmc
+  dep_xvmc = dependency('xvmc', version : '>= 1.0.6')
   dep_xvmc = declare_dependency(
     compile_args : run_command(prog_pkgconfig, ['xvmc', '--cflags']).stdout().split()
   )
@@ -450,32 +445,32 @@ if xvmc_drivers_path == ''
   xvmc_drivers_path = get_option('libdir')
 endif
 
-dep_omx = []
 _omx = get_option('gallium-omx')
-if _omx == 'auto'
-  if not system_has_kms_drm
-    with_gallium_omx = false
-  elif not with_platform_x11
-    with_gallium_omx = false
-  elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
-    with_gallium_omx = false
+if not system_has_kms_drm
+  if _omx == 'true'
+    error('OMX state tracker can only be built on unix-like OSes.')
   else
-    dep_omx = dependency('libomxil-bellagio', required : false)
-    with_gallium_omx = dep_omx.found()
+    _omx = 'false'
   endif
-elif _omx == 'true'
-  if not system_has_kms_drm
-    error('OMX state tracker can only be built on DRM/KMS OSes.')
-  elif not (with_platform_x11 or with_platform_drm)
+elif not (with_platform_x11 or with_platform_drm)
+  if _omx == 'true'
     error('OMX state tracker requires X11 or drm platform support.')
-    with_gallium_omx = false
-  elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
-    error('OMX state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
+  else
+    _omx = 'false'
   endif
+elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
+  if _omx == 'true'
+    error('OMX state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
+  else
+    _omx = 'false'
+  endif
+elif _omx == 'auto'
+  _omx = 'true'
+endif
+with_gallium_omx = _omx == 'true'
+dep_omx = []
+if with_gallium_omx
   dep_omx = dependency('libomxil-bellagio')
-  with_gallium_omx = true
-else
-  with_gallium_omx = false
 endif
 
 omx_drivers_path = get_option('omx-libs-path')
@@ -508,34 +503,32 @@ if with_gallium_omx
   )
 endif
 
-dep_va = []
 _va = get_option('gallium-va')
-if _va == 'auto'
-  if not system_has_kms_drm
-    with_gallium_va = false
-  elif not with_platform_x11
-    with_gallium_va = false
-  elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
-    with_gallium_va = false
+if not system_has_kms_drm
+  if _va == 'true'
+    error('VA state tracker can only be built on unix-like OSes.')
   else
-    dep_va = dependency('libva', version : '>= 0.38.0', required : false)
-    with_gallium_va = dep_va.found()
+    _va = 'false'
   endif
-elif _va == 'true'
-  if not system_has_kms_drm
-    error('VA state tracker can only be built on DRM/KMS OSes.')
-  elif not (with_platform_x11 or with_platform_drm)
+elif not (with_platform_x11 or with_platform_drm)
+  if _va == 'true'
     error('VA state tracker requires X11 or drm or wayland platform support.')
-    with_gallium_va = false
-  elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
-    error('VA state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
+  else
+    _va = 'false'
   endif
-  dep_va = dependency('libva', version : '>= 0.38.0')
-  with_gallium_va = true
-else
-  with_gallium_va = false
+elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
+  if _va == 'true'
+    error('VA state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
+  else
+    _va = 'false'
+  endif
+elif _va == 'auto'
+  _va = 'true'
 endif
+with_gallium_va = _va == 'true'
+dep_va = []
 if with_gallium_va
+  dep_va = dependency('libva', version : '>= 0.38.0')
   dep_va = declare_dependency(
     compile_args : run_command(prog_pkgconfig, ['libva', '--cflags']).stdout().split()
   )
@@ -547,26 +540,21 @@ if va_drivers_path == ''
 endif
 
 _xa = get_option('gallium-xa')
-if _xa == 'auto'
-  if not system_has_kms_drm
-    with_gallium_xa = false
-  elif not (with_gallium_nouveau or with_gallium_freedreno or with_gallium_i915
-            or with_gallium_svga)
-    with_gallium_xa = false
+if not system_has_kms_drm
+  if _xa == 'true'
+    error('XA state tracker can only be built on unix-like OSes.')
   else
-    with_gallium_xa = true
+    _xa = 'false'
   endif
-elif _xa == 'true'
-  if not system_has_kms_drm
-    error('XA state tracker can only be built on DRM/KMS OSes.')
-  elif not (with_gallium_nouveau or with_gallium_freedreno or with_gallium_i915
-            or with_gallium_svga)
+elif not (with_gallium_nouveau or with_gallium_freedreno or with_gallium_i915
+          or with_gallium_svga)
+  if _xa == 'true'
     error('XA state tracker requires at least one of the following gallium drivers: nouveau, freedreno, i915, svga.')
+  else
+    _xa = 'false'
   endif
-  with_gallium_xa = true
-else
-  with_gallium_xa = false
 endif
+with_gallium_xa = _xa != 'false'
 
 d3d_drivers_path = get_option('d3d-drivers-path')
 if d3d_drivers_path == ''

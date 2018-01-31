@@ -843,8 +843,8 @@ struct gl_point_attrib
 struct gl_polygon_attrib
 {
    GLenum16 FrontFace;		/**< Either GL_CW or GL_CCW */
-   GLenum16 FrontMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
-   GLenum16 BackMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
+   GLenum FrontMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
+   GLenum BackMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
    GLboolean CullFlag;		/**< Culling on/off flag */
    GLboolean SmoothFlag;	/**< True if GL_POLYGON_SMOOTH is enabled */
    GLboolean StippleFlag;	/**< True if GL_POLYGON_STIPPLE is enabled */
@@ -3339,6 +3339,9 @@ struct gl_shared_state
    /** EXT_external_objects */
    struct _mesa_HashTable *MemoryObjects;
 
+   /** EXT_semaphore */
+   struct _mesa_HashTable *SemaphoreObjects;
+
    /**
     * Some context in this share group was affected by a disjoint
     * operation. This operation can be anything that has effects on
@@ -4208,6 +4211,8 @@ struct gl_extensions
    GLboolean EXT_pixel_buffer_object;
    GLboolean EXT_point_parameters;
    GLboolean EXT_provoking_vertex;
+   GLboolean EXT_semaphore;
+   GLboolean EXT_semaphore_fd;
    GLboolean EXT_shader_integer_mix;
    GLboolean EXT_shader_samples_identical;
    GLboolean EXT_stencil_two_side;
@@ -4716,6 +4721,11 @@ struct gl_memory_object
    GLuint Name;            /**< hash table ID/name */
    GLboolean Immutable;    /**< denotes mutability state of parameters */
    GLboolean Dedicated;    /**< import memory from a dedicated allocation */
+};
+
+struct gl_semaphore_object
+{
+   GLuint Name;            /**< hash table ID/name */
 };
 
 /**

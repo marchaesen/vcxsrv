@@ -983,7 +983,7 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 	if (allow_smem && !glc && !slc) {
 		assert(vindex == NULL);
 
-		LLVMValueRef result[4];
+		LLVMValueRef result[8];
 
 		for (int i = 0; i < num_channels; i++) {
 			if (i) {

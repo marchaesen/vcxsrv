@@ -1873,6 +1873,8 @@ typedef struct nir_shader_compiler_options {
    bool lower_extract_byte;
    bool lower_extract_word;
 
+   bool lower_all_io_to_temps;
+
    /**
     * Does the driver support real 32-bit integers?  (Otherwise, integers
     * are simulated by floats.)
@@ -2522,7 +2524,8 @@ bool nir_lower_load_const_to_scalar(nir_shader *shader);
 bool nir_lower_read_invocation_to_scalar(nir_shader *shader);
 bool nir_lower_phis_to_scalar(nir_shader *shader);
 void nir_lower_io_arrays_to_elements(nir_shader *producer, nir_shader *consumer);
-void nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader);
+void nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
+                                                  bool outputs_only);
 void nir_lower_io_to_scalar(nir_shader *shader, nir_variable_mode mask);
 void nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask);
 

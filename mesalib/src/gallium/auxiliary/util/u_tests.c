@@ -502,6 +502,7 @@ test_sync_file_fences(struct pipe_context *ctx)
 {
    struct pipe_screen *screen = ctx->screen;
    bool pass = true;
+   enum pipe_fd_type fd_type = PIPE_FD_TYPE_NATIVE_SYNC;
 
    if (!screen->get_param(screen, PIPE_CAP_NATIVE_FENCE_FD))
       return;
@@ -536,9 +537,9 @@ test_sync_file_fences(struct pipe_context *ctx)
    /* (Re)import all fences. */
    struct pipe_fence_handle *re_buf_fence = NULL, *re_tex_fence = NULL;
    struct pipe_fence_handle *merged_fence = NULL;
-   ctx->create_fence_fd(ctx, &re_buf_fence, buf_fd);
-   ctx->create_fence_fd(ctx, &re_tex_fence, tex_fd);
-   ctx->create_fence_fd(ctx, &merged_fence, merged_fd);
+   ctx->create_fence_fd(ctx, &re_buf_fence, buf_fd, fd_type);
+   ctx->create_fence_fd(ctx, &re_tex_fence, tex_fd, fd_type);
+   ctx->create_fence_fd(ctx, &merged_fence, merged_fd, fd_type);
    pass = pass && re_buf_fence && re_tex_fence && merged_fence;
 
    /* Run another clear after waiting for everything. */

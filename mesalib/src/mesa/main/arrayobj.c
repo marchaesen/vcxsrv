@@ -231,7 +231,7 @@ _mesa_reference_vao_(struct gl_context *ctx,
 static void
 init_array(struct gl_context *ctx,
            struct gl_vertex_array_object *vao,
-           GLuint index, GLint size, GLint type)
+           gl_vert_attrib index, GLint size, GLint type)
 {
    assert(index < ARRAY_SIZE(vao->VertexAttrib));
    struct gl_array_attributes *array = &vao->VertexAttrib[index];

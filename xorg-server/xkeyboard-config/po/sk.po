@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: xkeyboard-config 2.21.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
 "POT-Creation-Date: 2017-09-24 23:24+0100\n"
-"PO-Revision-Date: 2017-10-03 18:09+0100\n"
+"PO-Revision-Date: 2017-10-06 14:42+0100\n"
 "Last-Translator: Zdenko Podobný <zdenop@gmail.com>\n"
 "Language-Team: Slovak <sk-i18n@lists.linux.sk>\n"
 "Language: sk\n"
@@ -2330,7 +2330,7 @@ msgstr "Staro-Maďarské"
 
 #: ../rules/base.xml.in.h:563
 msgid "oldhun"
-msgstr ""
+msgstr "oldhun"
 
 #: ../rules/base.xml.in.h:564
 msgid "Old Hungarian (default)"
@@ -2339,43 +2339,37 @@ msgstr "Staro-Maďarské (štandard)"
 #. Keyboard indicator for Icelandic layouts
 #: ../rules/base.xml.in.h:566
 msgid "is"
-msgstr ""
+msgstr "is"
 
 #: ../rules/base.xml.in.h:567
-#, fuzzy
 msgid "Icelandic"
-msgstr "Island"
+msgstr "Islandské"
 
 #: ../rules/base.xml.in.h:568
-#, fuzzy
 msgid "Icelandic (with Sun dead keys)"
-msgstr "Francúzske, mŕtve klávesy Sun"
+msgstr "Islandské (mŕtve klávesy Sun)"
 
 #: ../rules/base.xml.in.h:569
-#, fuzzy
 msgid "Icelandic (no dead keys)"
-msgstr "Francúzske, mŕtve klávesy Sun"
+msgstr "Islandské (bez mŕtvych kláves)"
 
 #: ../rules/base.xml.in.h:570
-#, fuzzy
 msgid "Icelandic (Macintosh, legacy)"
-msgstr "Francúzske (Macintosh)"
+msgstr "Islandské (Macintosh, zdedené)"
 
 #: ../rules/base.xml.in.h:571
-#, fuzzy
 msgid "Icelandic (Macintosh)"
-msgstr "Francúzske (Macintosh)"
+msgstr "Islandské (Macintosh)"
 
 #: ../rules/base.xml.in.h:572
 #, fuzzy
 msgid "Icelandic (Dvorak)"
-msgstr "Klasické dvorak"
+msgstr "Islandské (Dvorak)"
 
 #. Keyboard indicator for Hebrew layouts
 #: ../rules/base.xml.in.h:574 ../rules/base.extras.xml.in.h:97
-#, fuzzy
 msgid "he"
-msgstr "Che"
+msgstr "he"
 
 #: ../rules/base.xml.in.h:575 ../rules/base.extras.xml.in.h:98
 msgid "Hebrew"
@@ -3845,9 +3839,8 @@ msgid "Left Alt (while pressed)"
 msgstr "Ľavý kláves Alt prepína rozloženie pri stlačení"
 
 #: ../rules/base.xml.in.h:935
-#, fuzzy
 msgid "Left Win (while pressed)"
-msgstr "Ľavý kláves Win prepína rozloženie pri stlačení."
+msgstr "Ľavý Win Win (pri stlačení)"
 
 #: ../rules/base.xml.in.h:936
 msgid "Any Win (while pressed)"
@@ -3908,111 +3901,100 @@ msgid "Both Alt together"
 msgstr "Oba klávesy Alt spolu menia rozloženie"
 
 #: ../rules/base.xml.in.h:950
-#, fuzzy
 msgid "Both Ctrl together"
-msgstr "Oba klávesy Ctrl spolu menia rozloženie"
+msgstr "Oba klávesy Ctrl spolu"
 
 #: ../rules/base.xml.in.h:951
 msgid "Ctrl+Shift"
-msgstr ""
+msgstr "Ctrl+Shift"
 
 #: ../rules/base.xml.in.h:952
 msgid "Left Ctrl+Left Shift"
-msgstr ""
+msgstr "Ľavý Ctrl+Ľavý Shift"
 
 #: ../rules/base.xml.in.h:953
-#, fuzzy
 msgid "Right Ctrl+Right Shift"
-msgstr "Pravý kláves Control funguje ako pravý Alt."
+msgstr "Pravý Ctrl+Pravý Shift"
 
 #: ../rules/base.xml.in.h:954
 msgid "Alt+Ctrl"
-msgstr ""
+msgstr "Alt+Ctrl"
 
 #: ../rules/base.xml.in.h:955
 msgid "Alt+Shift"
-msgstr ""
+msgstr "Alt+Shift"
 
 #: ../rules/base.xml.in.h:956
 msgid "Left Alt+Left Shift"
-msgstr ""
+msgstr "Ľavý Alt+Ľavý Shift"
 
 #: ../rules/base.xml.in.h:957
 msgid "Alt+Space"
-msgstr ""
+msgstr "Alt+Space"
 
 #: ../rules/base.xml.in.h:958
 msgid "Menu"
-msgstr ""
+msgstr "Menu"
 
 #: ../rules/base.xml.in.h:959
-#, fuzzy
 msgid "Left Win"
-msgstr "ľavá ruka"
+msgstr "Ľavý Win"
 
 #: ../rules/base.xml.in.h:960
 msgid "Win+Space"
-msgstr ""
+msgstr "Win+Space"
 
 #: ../rules/base.xml.in.h:961
-#, fuzzy
 msgid "Right Win"
-msgstr "pravá ruka"
+msgstr "Pravý Win"
 
 #: ../rules/base.xml.in.h:962
-#, fuzzy
 msgid "Left Shift"
-msgstr "ľavá ruka"
+msgstr "Ľavý Shift"
 
 #: ../rules/base.xml.in.h:963
-#, fuzzy
 msgid "Right Shift"
-msgstr "pravá ruka"
+msgstr "Pravý Shift"
 
 #: ../rules/base.xml.in.h:964
 msgid "Left Ctrl"
-msgstr ""
+msgstr "Ľavý Ctrl"
 
 #: ../rules/base.xml.in.h:965
-#, fuzzy
 msgid "Right Ctrl"
-msgstr "Pravý Alt je Compose."
+msgstr "Pravý Ctrl"
 
 #: ../rules/base.xml.in.h:966
-#, fuzzy
 msgid "Scroll Lock"
-msgstr "Kláves Scroll Lock mení rozloženie"
+msgstr "ScrollLock"
 
 #: ../rules/base.xml.in.h:967
 msgid "Left Ctrl+Left Win to first layout; Right Ctrl+Menu to second layout"
-msgstr ""
+msgstr "Ľavý Ctrl+Ľavý Win pre prvé rozloženie; Pravý Ctrl+Menu pre druhé rozloženie"
 
 #: ../rules/base.xml.in.h:968
 msgid "Left Ctrl+Left Win"
-msgstr ""
+msgstr "Ľavý Ctrl+Ľavý Win"
 
 #: ../rules/base.xml.in.h:969
-#, fuzzy
 msgid "Key to choose the 3rd level"
-msgstr "Stlačenie klávesu Ponuka vyberá 3. úroveň."
+msgstr "Kláves pre výber 3. úrovni"
 
 #: ../rules/base.xml.in.h:970
 msgid "Any Win"
-msgstr ""
+msgstr "Ktorýkoľvek Win"
 
 #: ../rules/base.xml.in.h:971
 msgid "Any Alt"
-msgstr ""
+msgstr "Ktorýkoľvek Alt"
 
 #: ../rules/base.xml.in.h:972
-#, fuzzy
 msgid "Right Alt; Shift+Right Alt as Compose"
-msgstr "Pravý Alt je Compose."
+msgstr "Pravý Alt; Shift+Pravý Alt ako Compose"
 
 #: ../rules/base.xml.in.h:973
-#, fuzzy
 msgid "Right Alt never chooses 3rd level"
-msgstr "Pravý kláves Alt nikdy nevyberá 3. úroveň."
+msgstr "Pravý Alt nikdy nevyberá 3. úroveň"
 
 #: ../rules/base.xml.in.h:974
 #, fuzzy
@@ -4050,9 +4032,8 @@ msgid "Caps Lock as Ctrl"
 msgstr "Caps Lock je Compose"
 
 #: ../rules/base.xml.in.h:982
-#, fuzzy
 msgid "Left Ctrl as Meta"
-msgstr "Ľavý kláves Ctrl mení rozloženie."
+msgstr "Ľavý Ctrl ako Meta"
 
 #: ../rules/base.xml.in.h:983
 #, fuzzy
@@ -4070,9 +4051,8 @@ msgid "At bottom left"
 msgstr "Kláves Ctrl vľavo dole"
 
 #: ../rules/base.xml.in.h:986
-#, fuzzy
 msgid "Right Ctrl as Right Alt"
-msgstr "Pravý kláves Control funguje ako pravý Alt."
+msgstr "Pravý Ctrl ako pravý Alt"
 
 #: ../rules/base.xml.in.h:987
 msgid "Menu as Right Ctrl"
@@ -4095,22 +4075,20 @@ msgid "Left Alt as Ctrl, Left Ctrl as Win, Left Win as Left Alt"
 msgstr ""
 
 #: ../rules/base.xml.in.h:992
-#, fuzzy
 msgid "Use keyboard LED to show alternative layout"
-msgstr "Použiť LED klávesnice pre zobrazenie alternatívneho rozloženia."
+msgstr "Použiť LED klávesnice pre zobrazenie alternatívneho rozloženia"
 
 #: ../rules/base.xml.in.h:993
 msgid "Num Lock"
-msgstr ""
+msgstr "NumLock"
 
 #: ../rules/base.xml.in.h:994
-#, fuzzy
 msgid "Layout of numeric keypad"
-msgstr "Štandardné klávesy numerickej klávesnice."
+msgstr "Rozloženie numerickej klávesnice"
 
 #: ../rules/base.xml.in.h:995
 msgid "Legacy"
-msgstr ""
+msgstr "Zdedené"
 
 #: ../rules/base.xml.in.h:996
 #, fuzzy
@@ -4138,262 +4116,232 @@ msgstr "Použiť numerickú klávesnicu s doplnkami Unicode (šípky a matematic
 
 #: ../rules/base.xml.in.h:1001
 msgid "Hexadecimal"
-msgstr ""
+msgstr "Hexadecimálny"
 
 #: ../rules/base.xml.in.h:1002
 msgid "ATM/phone-style"
-msgstr ""
+msgstr "ATM/telefónny štýl"
 
 #: ../rules/base.xml.in.h:1003
-#, fuzzy
 msgid "Numeric keypad Delete behavior"
-msgstr "Výber rozloženia numerickej klávesnice"
+msgstr "Správanie sa Delete na numerickej klávesnici"
 
 #: ../rules/base.xml.in.h:1004
 msgid "Legacy key with dot"
-msgstr ""
+msgstr "Zdedený kláves s bodkou"
 
 #. Actually, with KP_SEPARATOR, as the old keypad(comma)
 #: ../rules/base.xml.in.h:1006
 msgid "Legacy key with comma"
-msgstr ""
+msgstr "Zdedený kláves s čiarkou"
 
 #: ../rules/base.xml.in.h:1007
 msgid "Four-level key with dot"
-msgstr ""
+msgstr "Kláves štvrtej úrovne s bodkou"
 
 #: ../rules/base.xml.in.h:1008
 msgid "Four-level key with dot, Latin-9 only"
-msgstr ""
+msgstr "Kláves štvrtej úrovne s bodkou, iba Latin-9"
 
 #: ../rules/base.xml.in.h:1009
 msgid "Four-level key with comma"
-msgstr ""
+msgstr "Kláves štvrtej úrovne s čiarkou"
 
 #: ../rules/base.xml.in.h:1010
 msgid "Four-level key with momayyez"
-msgstr ""
+msgstr "Kláves štvrtej úrovne so znakom momayyez"
 
 #. This assumes the KP_ abstract symbols are actually useful for some apps
 #. The description needs to be rewritten
 #: ../rules/base.xml.in.h:1013
 msgid "Four-level key with abstract separators"
-msgstr ""
+msgstr "Kláves štvrtej úrovne s abstraktnými oddelovačmi"
 
 #: ../rules/base.xml.in.h:1014
 msgid "Semicolon on third level"
-msgstr ""
+msgstr "Bodkočiarka na tretej úrovni"
 
 #: ../rules/base.xml.in.h:1015
-#, fuzzy
 msgid "Caps Lock behavior"
-msgstr "Správanie klávesu Caps Lock"
+msgstr "Správanie sa CapsLock"
 
 #: ../rules/base.xml.in.h:1016
-#, fuzzy
 msgid "Caps Lock uses internal capitalization; Shift \"pauses\" Caps Lock"
-msgstr "Caps Lock používa interný prevod na kapitálky. Shift „pozastaví“ Caps Lock."
+msgstr "CapsLock používa interný prevod na kapitálky. Shift „pozastaví“ Caps Lock"
 
 #: ../rules/base.xml.in.h:1017
-#, fuzzy
 msgid "Caps Lock uses internal capitalization; Shift does not affect Caps Lock"
-msgstr "Caps Lock používa interný prevod na kapitálky. Shift neovplyvňuje Caps Lock."
+msgstr "CapsLock používa interný prevod na kapitálky. Shift neovplyvňuje Caps Lock"
 
 #: ../rules/base.xml.in.h:1018
-#, fuzzy
 msgid "Caps Lock acts as Shift with locking; Shift \"pauses\" Caps Lock"
-msgstr "Caps Lock funguje ako Shift s uzamknutím. Shift „pozastaví“ Caps Lock."
+msgstr "CapsLock funguje ako Shift s uzamknutím. Shift „pozastaví“ Caps Lock"
 
 #: ../rules/base.xml.in.h:1019
-#, fuzzy
 msgid "Caps Lock acts as Shift with locking; Shift does not affect Caps Lock"
-msgstr "Caps Lock funguje ako Shift s uzamknutím. Shift neovplyvňuje Caps Lock."
+msgstr "CapsLock funguje ako Shift s uzamknutím. Shift neovplyvňuje Caps Lock"
 
 #: ../rules/base.xml.in.h:1020
-#, fuzzy
 msgid "Caps Lock toggles normal capitalization of alphabetic characters"
-msgstr "Caps Lock prepne nermálnu kapitalizáciu abecedných znakov."
+msgstr "CapsLock prepne normálnu kapitalizáciu abecedných znakov"
 
 #: ../rules/base.xml.in.h:1021
-#, fuzzy
 msgid "Caps Lock toggles ShiftLock (affects all keys)"
-msgstr "Caps Lock prepne Shift, čím ovplyvní všetky klávesy."
+msgstr "CapsLock prepne ShiftLock (ovplyvní všetky klávesy)"
 
 #: ../rules/base.xml.in.h:1022
-#, fuzzy
 msgid "Swap ESC and Caps Lock"
-msgstr "Vymeniť Control a Caps Lock"
+msgstr "Vymeniť ESC a Caps Lock"
 
 #: ../rules/base.xml.in.h:1023
-#, fuzzy
 msgid "Make Caps Lock an additional Esc"
-msgstr "Urobiť z CapsLock ďalší Ctrl."
+msgstr "Urobiť z CapsLock ďalší Esc"
 
 #: ../rules/base.xml.in.h:1024
-#, fuzzy
 msgid "Make Caps Lock an additional Backspace"
-msgstr "Urobiť z CapsLock ďalší Ctrl."
+msgstr "Urobiť z CapsLock ďalší Backspace"
 
 #: ../rules/base.xml.in.h:1025
-#, fuzzy
 msgid "Make Caps Lock an additional Super"
-msgstr "Urobiť z CapsLock ďalší Ctrl."
+msgstr "Urobiť z CapsLock ďalší Super"
 
 #: ../rules/base.xml.in.h:1026
-#, fuzzy
 msgid "Make Caps Lock an additional Hyper"
-msgstr "Urobiť z CapsLock ďalší Ctrl."
+msgstr "Urobiť z CapsLock ďalší Hyper"
 
 #: ../rules/base.xml.in.h:1027
-#, fuzzy
 msgid "Make Caps Lock an additional Menu key"
-msgstr "Urobiť z CapsLock dodatočný Control"
+msgstr "Urobiť z CapsLock dodatočný Menu kláves"
 
 #: ../rules/base.xml.in.h:1028
-#, fuzzy
 msgid "Make Caps Lock an additional Num Lock"
-msgstr "Urobiť z CapsLock dodatočný Control"
+msgstr "Urobiť z CapsLock dodatočný NumLock"
 
 #: ../rules/base.xml.in.h:1029
-#, fuzzy
 msgid "Caps Lock is also a Ctrl"
-msgstr "Caps Lock je Compose"
+msgstr "CapsLock je tiež Ctrl"
 
 #: ../rules/base.xml.in.h:1030
-#, fuzzy
 msgid "Caps Lock is disabled"
-msgstr "Caps Lock je Compose"
+msgstr "CapsLock je zakázaný"
 
 #: ../rules/base.xml.in.h:1031
 msgid "Alt/Win key behavior"
 msgstr "Chovanie klávesu Alt/Win"
 
 #: ../rules/base.xml.in.h:1032
-#, fuzzy
 msgid "Add the standard behavior to Menu key"
-msgstr "Pridať štandardné chovanie klávesu Ponuka."
+msgstr "Pridať štandardné chovanie klávesu Menu"
 
 #: ../rules/base.xml.in.h:1033
-#, fuzzy
 msgid "Alt and Meta are on Alt"
-msgstr "Alt a Meta sú na klávesoch Alt."
+msgstr "Alt a Meta sú na klávesoch Alt"
 
 #: ../rules/base.xml.in.h:1034
-#, fuzzy
 msgid "Alt is mapped to Win and the usual Alt"
-msgstr "Control je mapovaný na klávesy Win (a zvyčajné klávesy Ctrl)."
+msgstr "Alt je mapovaný na klávesy Win a zvyčajný Alt"
 
 #: ../rules/base.xml.in.h:1035
-#, fuzzy
 msgid "Ctrl is mapped to Win and the usual Ctrl keys"
-msgstr "Control je mapovaný na klávesy Win (a zvyčajné klávesy Ctrl)."
+msgstr "Ctrl je mapovaný na klávesy Win a zvyčajný Ctrl"
 
 #: ../rules/base.xml.in.h:1036
-#, fuzzy
 msgid "Ctrl is mapped to Alt; Alt is mapped to Win"
-msgstr "Meta je mapovaný na ľavý Win-kláves."
+msgstr "Ctrl je mapovaný na Alt; Alt je namapovaný na Win"
 
 #: ../rules/base.xml.in.h:1037
-#, fuzzy
 msgid "Meta is mapped to Win"
-msgstr "Meta je mapovaný na Win-klávesy."
+msgstr "Meta je mapovaný na Win"
 
 #: ../rules/base.xml.in.h:1038
-#, fuzzy
 msgid "Meta is mapped to Left Win"
-msgstr "Meta je mapovaný na ľavý Win-kláves."
+msgstr "Meta je mapovaný na ľavý Win"
 
 #: ../rules/base.xml.in.h:1039
-#, fuzzy
 msgid "Hyper is mapped to Win"
-msgstr "Hyper je mapovaný na Win-klávesy."
+msgstr "Hyper je mapovaný na Win"
 
 #: ../rules/base.xml.in.h:1040
-#, fuzzy
 msgid "Alt is mapped to Right Win, Super to Menu"
-msgstr "Meta je mapovaný na pravý kláves Win a Super na Ponuku."
+msgstr "Alt je mapovaný na pravý Win, Super na Menu"
 
 #: ../rules/base.xml.in.h:1041
-#, fuzzy
 msgid "Left Alt is swapped with Left Win"
-msgstr "Ľavý Alt je vymenený s ľavým klávesom Win."
+msgstr "Ľavý Alt je vymenený s ľavým Win"
 
 #: ../rules/base.xml.in.h:1042
 #, fuzzy
 msgid "Alt is swapped with Win"
-msgstr "Ľavý Alt je vymenený s ľavým klávesom Win."
+msgstr "Alt je vymenený s Win"
 
 #: ../rules/base.xml.in.h:1043
-#, fuzzy
 msgid "Win is mapped to PrtSc and the usual Win"
-msgstr "Control je mapovaný na klávesy Win (a zvyčajné klávesy Ctrl)."
+msgstr "Win je mapovaný na PrtSc a zvyčajný Win"
 
 #: ../rules/base.xml.in.h:1044
 msgid "Position of Compose key"
-msgstr ""
+msgstr "Umiestnenie klávesu Compose"
 
 #: ../rules/base.xml.in.h:1045
 msgid "3rd level of Left Win"
-msgstr ""
+msgstr "3. úroveň ľavého Win"
 
 #: ../rules/base.xml.in.h:1046
 msgid "3rd level of Right Win"
-msgstr ""
+msgstr "3. úroveň pravého Win"
 
 #: ../rules/base.xml.in.h:1047
 msgid "3rd level of Menu"
-msgstr ""
+msgstr "3. úroveň Menu"
 
 #: ../rules/base.xml.in.h:1048
 msgid "3rd level of Left Ctrl"
-msgstr ""
+msgstr "3. úroveň ľavého Ctrl"
 
 #: ../rules/base.xml.in.h:1049
 msgid "3rd level of Right Ctrl"
-msgstr ""
+msgstr "3. úroveň pravého Ctrl"
 
 #: ../rules/base.xml.in.h:1050
 msgid "3rd level of Caps Lock"
-msgstr ""
+msgstr "3. úroveň CapsLock"
 
 #: ../rules/base.xml.in.h:1051
 msgid "3rd level of &lt;Less/Greater&gt;"
-msgstr ""
+msgstr "3. úroveň &lt;Menší/Väčší&gt;"
 
 #: ../rules/base.xml.in.h:1052
 msgid "Pause"
-msgstr ""
+msgstr "Pause"
 
 #: ../rules/base.xml.in.h:1053
 msgid "PrtSc"
-msgstr ""
+msgstr "PrtSc"
 
 #: ../rules/base.xml.in.h:1054
 msgid "Miscellaneous compatibility options"
 msgstr "Dodatočné voľby pre kompatibilitu"
 
 #: ../rules/base.xml.in.h:1055
-#, fuzzy
 msgid "Default numeric keypad keys"
-msgstr "Štandardné klávesy numerickej klávesnice."
+msgstr "Štandardné klávesy numerickej klávesnice"
 
 #: ../rules/base.xml.in.h:1056
 #, fuzzy
 msgid "Numeric keypad always enters digits (as in macOS)"
-msgstr "Numerická klávesnica funguje ako na Mac."
+msgstr "Numerická klávesnica vždy vkladá číslice (ako na macOS)"
 
 #: ../rules/base.xml.in.h:1057
 msgid "Num Lock on: digits; Shift for arrow keys. Num Lock off: arrow keys (as in Windows)"
-msgstr ""
+msgstr "Zapnutý NumLock: číslice, Shift prepne na šípky, vypnutý Num Lock: šípky (jako v MS Windows)"
 
 #: ../rules/base.xml.in.h:1058
 msgid "Shift does not cancel Num Lock, chooses 3rd level instead"
-msgstr ""
+msgstr "Shift neruší NumLock, namiesto toho vyberie 3. úroveň"
 
 #: ../rules/base.xml.in.h:1059
-#, fuzzy
 msgid "Special keys (Ctrl+Alt+&lt;key&gt;) handled in a server"
-msgstr "Špeciálne klávesy (Ctrl+Alt+&lt;key&gt;) spracované na serveru."
+msgstr "Špeciálne klávesy (Ctrl+Alt+&lt;key&gt;) spracované na serveri"
 
 #: ../rules/base.xml.in.h:1060
 msgid "Apple Aluminium: emulate PC keys (PrtSc, Scroll Lock, Pause, Num Lock)"
@@ -4409,9 +4357,8 @@ msgid "Enable extra typographic characters"
 msgstr ""
 
 #: ../rules/base.xml.in.h:1063
-#, fuzzy
 msgid "Both Shift together enable Caps Lock"
-msgstr "Oba klávesy Shift spolu menia rozloženie."
+msgstr "Oba Shift spolu povolia CapsLock"
 
 #: ../rules/base.xml.in.h:1064
 msgid "Both Shift together enable Caps Lock; one Shift key disables it"
@@ -4435,9 +4382,8 @@ msgid "Allow grab and window tree logging"
 msgstr ""
 
 #: ../rules/base.xml.in.h:1069
-#, fuzzy
 msgid "Adding currency signs to certain keys"
-msgstr "Pridať znak euro na isté klávesy."
+msgstr "Pridať znak euro na isté klávesy"
 
 #: ../rules/base.xml.in.h:1070
 msgid "Euro on E"
@@ -4461,9 +4407,8 @@ msgid "Rupee on 4"
 msgstr ""
 
 #: ../rules/base.xml.in.h:1075
-#, fuzzy
 msgid "Key to choose 5th level"
-msgstr "Stlačenie klávesu Ponuka vyberá 3. úroveň."
+msgstr "Kláves pre výber 5. úroveni"
 
 #: ../rules/base.xml.in.h:1076
 msgid "&lt;Less/Greater&gt; chooses 5th level; acts as onetime lock when pressed together with another 5th level chooser"
@@ -4487,9 +4432,8 @@ msgid "Using space key to input non-breaking space"
 msgstr "Použiť klávesu medzera na zadanie znaku nezalomiteľná medzera"
 
 #: ../rules/base.xml.in.h:1081
-#, fuzzy
 msgid "Usual space at any level"
-msgstr "Medzerník dáva obyčajnú medzeru na každej úrovni."
+msgstr "Obyčajná medzera na každej úrovni."
 
 #: ../rules/base.xml.in.h:1082
 msgid "Non-breaking space at the 2nd level"
@@ -4500,28 +4444,25 @@ msgid "Non-breaking space at the 3rd level"
 msgstr ""
 
 #: ../rules/base.xml.in.h:1084
-#, fuzzy
 msgid "Non-breaking space at the 3rd level, nothing at the 4th level"
-msgstr "Medzerník dáva znak nezalomiteľná medzera na tretej úrovni, nič na štvrtej úrovni."
+msgstr "Nezalomiteľná medzera na 3. úrovni, nič na 4. úrovni"
 
 #: ../rules/base.xml.in.h:1085
-#, fuzzy
 msgid "Non-breaking space at the 3rd level, thin non-breaking space at the 4th level"
-msgstr "Medzerník dáva znak nezalomiteľná medzera na tretej úrovni, tenká nezalomiteľná medzera na štvrtej úrovni."
+msgstr "Nezalomiteľná medzera na 3. úrovni, tenká nezalomiteľná medzera na 4. úrovni"
 
 #: ../rules/base.xml.in.h:1086
 msgid "Non-breaking space at the 4th level"
-msgstr ""
+msgstr "Nezalomiteľná medzera na 4. úrovni"
 
 #: ../rules/base.xml.in.h:1087
 #, fuzzy
 msgid "Non-breaking space at the 4th level, thin non-breaking space at the 6th level"
-msgstr "Medzerník dáva znak nezalomiteľná medzera na tretej úrovni, tenká nezalomiteľná medzera na štvrtej úrovni."
+msgstr "Nezalomiteľná medzera na 4. úrovni, tenká nezalomiteľná medzera na 6. úrovni"
 
 #: ../rules/base.xml.in.h:1088
-#, fuzzy
 msgid "Non-breaking space at the 4th level, thin non-breaking space at the 6th level (via Ctrl+Shift)"
-msgstr "Medzerník dáva znak nezalomiteľná medzera na tretej úrovni, tenká nezalomiteľná medzera na štvrtej úrovni."
+msgstr "Nezalomiteľná medzera na 4. úrovni, tenká nezalomiteľná medzera na 6. úrovni (cez Ctrl+Shift)"
 
 #: ../rules/base.xml.in.h:1089
 msgid "Zero-width non-joiner at the 2nd level"
@@ -4540,18 +4481,16 @@ msgid "Zero-width non-joiner at the 2nd level, non-breaking space at the 3rd lev
 msgstr ""
 
 #: ../rules/base.xml.in.h:1093
-#, fuzzy
 msgid "Zero-width non-joiner at the 2nd level, non-breaking space at the 3rd level, nothing at the 4th level"
-msgstr "Medzerník dáva znak nezalomiteľná medzera na tretej úrovni, nič na štvrtej úrovni."
+msgstr ""
 
 #: ../rules/base.xml.in.h:1094
 msgid "Zero-width non-joiner at the 2nd level, non-breaking space at the 3rd level, zero-width joiner at the 4th level"
 msgstr ""
 
 #: ../rules/base.xml.in.h:1095
-#, fuzzy
 msgid "Zero-width non-joiner at the 2nd level, non-breaking space at the 3rd level, thin non-breaking space at the 4th level"
-msgstr "Medzerník dáva znak nezalomiteľná medzera na tretej úrovni, tenká nezalomiteľná medzera na štvrtej úrovni."
+msgstr ""
 
 #: ../rules/base.xml.in.h:1096
 msgid "Zero-width non-joiner at the 3rd level, zero-width joiner at the 4th level"
@@ -4570,9 +4509,8 @@ msgid "NICOLA-F style Backspace"
 msgstr "Backspace v štýle NICOLA-F"
 
 #: ../rules/base.xml.in.h:1100
-#, fuzzy
 msgid "Make Zenkaku Hankaku an additional Esc"
-msgstr "Urobiť z CapsLock ďalší Ctrl."
+msgstr ""
 
 #: ../rules/base.xml.in.h:1101
 msgid "Korean Hangul/Hanja keys"
@@ -4587,9 +4525,8 @@ msgid "Right Alt as Hangul, right Ctrl as Hanja"
 msgstr ""
 
 #: ../rules/base.xml.in.h:1104
-#, fuzzy
 msgid "Right Ctrl as Hangul, right Alt as Hanja"
-msgstr "Pravý kláves Control funguje ako pravý Alt."
+msgstr "Pravý Ctrl ako Hangul, pravý Alt ako Hanja"
 
 #: ../rules/base.xml.in.h:1105
 msgid "Adding Esperanto supersigned letters"

@@ -136,6 +136,8 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
                                           _mesa_key_pointer_equal);
 
    shared->MemoryObjects = _mesa_NewHashTable();
+   shared->SemaphoreObjects = _mesa_NewHashTable();
+
    return shared;
 
 fail:
@@ -316,6 +318,16 @@ delete_memory_object_cb(GLuint id, void *data, void *userData)
    ctx->Driver.DeleteMemoryObject(ctx, memObj);
 }
 
+/**
+ * Callback for deleting a memory object.  Called by _mesa_HashDeleteAll().
+ */
+static void
+delete_semaphore_object_cb(GLuint id, void *data, void *userData)
+{
+   struct gl_semaphore_object *semObj = (struct gl_semaphore_object *) data;
+   struct gl_context *ctx = (struct gl_context *) userData;
+   ctx->Driver.DeleteSemaphoreObject(ctx, semObj);
+}
 
 /**
  * Deallocate a shared state object and all children structures.
@@ -433,6 +445,11 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
    if (shared->MemoryObjects) {
       _mesa_HashDeleteAll(shared->MemoryObjects, delete_memory_object_cb, ctx);
       _mesa_DeleteHashTable(shared->MemoryObjects);
+   }
+
+   if (shared->SemaphoreObjects) {
+      _mesa_HashDeleteAll(shared->SemaphoreObjects, delete_semaphore_object_cb, ctx);
+      _mesa_DeleteHashTable(shared->SemaphoreObjects);
    }
 
    simple_mtx_destroy(&shared->Mutex);

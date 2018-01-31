@@ -792,6 +792,7 @@ enum pipe_cap
    PIPE_CAP_MAX_COMBINED_SHADER_OUTPUT_RESOURCES,
    PIPE_CAP_SIGNED_VERTEX_BUFFER_OFFSET,
    PIPE_CAP_CONTEXT_PRIORITY_MASK,
+   PIPE_CAP_FENCE_SIGNAL,
 };
 
 /**
@@ -1082,6 +1083,12 @@ struct pipe_driver_query_group_info
    const char *name;
    unsigned max_active_queries;
    unsigned num_queries;
+};
+
+enum pipe_fd_type
+{
+   PIPE_FD_TYPE_NATIVE_SYNC,
+   PIPE_FD_TYPE_SYNCOBJ,
 };
 
 enum pipe_debug_type

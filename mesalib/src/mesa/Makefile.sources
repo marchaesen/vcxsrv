@@ -485,6 +485,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_cb_rasterpos.h \
 	state_tracker/st_cb_readpixels.c \
 	state_tracker/st_cb_readpixels.h \
+	state_tracker/st_cb_semaphoreobjects.c \
+	state_tracker/st_cb_semaphoreobjects.h \
 	state_tracker/st_cb_strings.c \
 	state_tracker/st_cb_strings.h \
 	state_tracker/st_cb_syncobj.c \

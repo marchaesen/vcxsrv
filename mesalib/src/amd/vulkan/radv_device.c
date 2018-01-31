@@ -1771,7 +1771,6 @@ radv_get_preamble_cs(struct radv_queue *queue,
 
 		if (i == 0) {
 			si_cs_emit_cache_flush(cs,
-					       false,
 			                       queue->device->physical_device->rad_info.chip_class,
 					       NULL, 0,
 			                       queue->queue_family_index == RING_COMPUTE &&
@@ -1783,7 +1782,6 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			                       RADV_CMD_FLAG_INV_GLOBAL_L2);
 		} else if (i == 1) {
 			si_cs_emit_cache_flush(cs,
-					       false,
 			                       queue->device->physical_device->rad_info.chip_class,
 					       NULL, 0,
 			                       queue->queue_family_index == RING_COMPUTE &&
