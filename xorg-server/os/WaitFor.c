@@ -280,7 +280,7 @@ Bool isThereSomething(Bool are_ready)
             i = -1;
         else
         {
-            i = ospoll_wait(server_poll, 0);
+            i = ospoll_wait(server_poll, 1);
         }
         pollerr = GetErrno();
         if (i <= 0) {           /* An error or timeout occurred */
