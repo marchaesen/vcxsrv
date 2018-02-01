@@ -943,8 +943,8 @@ class CMyWizard : public CWizard
 #ifdef _DEBUG
             printf("killing process!\n");
 #endif
-            // Check if Xsrv is still running, but only when we started a local program
-            if (config.local)
+            // Check if VCXsrv is still running, but only when we started a local program or a client
+            if (config.local || !client.empty())
             {
               DWORD exitcode;
               GetExitCodeProcess(pi.hProcess, &exitcode);
@@ -954,7 +954,7 @@ class CMyWizard : public CWizard
                 if (++counter > 10)
                     TerminateProcess(pi.hProcess, (DWORD)-1);
                 else
-                    // Shutdown Xsrv (the soft way!)
+                    // Shutdown VCXsrv (the soft way!)
                     EnumThreadWindows(pi.dwThreadId, KillWindowsProc, 0);
                 Sleep(500);
                 GetExitCodeProcess(pi.hProcess, &exitcode);
