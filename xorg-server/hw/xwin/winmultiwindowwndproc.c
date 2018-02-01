@@ -332,6 +332,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     Bool needRestack = FALSE;
     LRESULT ret;
     static Bool hasEnteredSizeMove = FALSE;
+    static LPARAM buttonDownParam;
 
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
                          lParam);
@@ -502,6 +503,15 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_MOUSEMOVE:
+        if (wParam & (MK_LBUTTON|MK_RBUTTON|MK_MBUTTON))
+        {
+            if (lParam==buttonDownParam)
+            {
+                buttonDownParam=(LPARAM)-1;
+                return 0;  /* Ignore the mouse since the mouse was not moved wrt the button down click */
+            }
+        }
+
         /* Unpack the client area mouse coordinates */
         ptMouse.x = GET_X_LPARAM(lParam);
         ptMouse.y = GET_Y_LPARAM(lParam);
@@ -605,6 +615,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_LBUTTONDBLCLK:
     case WM_LBUTTONDOWN:
+        buttonDownParam=lParam;
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         g_fButton[0] = TRUE;
@@ -621,6 +632,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MBUTTONDBLCLK:
     case WM_MBUTTONDOWN:
+        buttonDownParam=lParam;
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         g_fButton[1] = TRUE;
@@ -637,6 +649,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_RBUTTONDBLCLK:
     case WM_RBUTTONDOWN:
+        buttonDownParam=lParam;
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         g_fButton[2] = TRUE;
@@ -653,6 +666,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_XBUTTONDBLCLK:
     case WM_XBUTTONDOWN:
+        buttonDownParam=lParam;
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         SetCapture(hwnd);

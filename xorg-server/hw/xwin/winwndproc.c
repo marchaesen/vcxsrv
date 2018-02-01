@@ -156,6 +156,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static UINT s_uTaskbarRestart = 0;
     int iScanCode;
     int i;
+    static LPARAM buttonDownParam;
 
     winDebugWin32Message("winWindowProc", hwnd, message, wParam, lParam);
 
@@ -785,6 +786,14 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     case WM_MOUSEMOVE:
+        if (wParam & (MK_LBUTTON|MK_RBUTTON|MK_MBUTTON))
+        {
+            if (lParam==buttonDownParam)
+            {
+                buttonDownParam=(LPARAM)-1;
+                return 0;  /* Ignore the mouse since the mouse was not moved wrt the button down click */
+            }
+        }
         /* We can't do anything without privates */
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
@@ -872,6 +881,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_LBUTTONDBLCLK:
     case WM_LBUTTONDOWN:
+        buttonDownParam=lParam;
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         if (s_pScreenInfo->fRootless
@@ -895,6 +905,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MBUTTONDBLCLK:
     case WM_MBUTTONDOWN:
+        buttonDownParam=lParam;
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         if (s_pScreenInfo->fRootless
@@ -918,6 +929,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_RBUTTONDBLCLK:
     case WM_RBUTTONDOWN:
+        buttonDownParam=lParam;
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         if (s_pScreenInfo->fRootless
@@ -941,6 +953,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_XBUTTONDBLCLK:
     case WM_XBUTTONDOWN:
+        buttonDownParam=lParam;
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         if (s_pScreenInfo->fRootless

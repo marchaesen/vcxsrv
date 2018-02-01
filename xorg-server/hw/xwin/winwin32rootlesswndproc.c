@@ -339,6 +339,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     PAINTSTRUCT ps;
     LPWINDOWPOS pWinPos = NULL;
     RECT rcClient;
+    static LPARAM buttonDownParam;
 
     /* Check if the Windows window property for our X window pointer is valid */
     if ((pRLWinPriv =
@@ -419,6 +420,14 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_MOUSEMOVE:
+        if (wParam & (MK_LBUTTON|MK_RBUTTON|MK_MBUTTON))
+        {
+            if (lParam==buttonDownParam)
+            {
+                buttonDownParam=(LPARAM)-1;
+                return 0;  /* Ignore the mouse since the mouse was not moved wrt the button down click */
+            }
+        }
 #if CYGMULTIWINDOW_DEBUG && 0
         winDebug("winMWExtWMWindowProc - WM_MOUSEMOVE\n");
 #endif
@@ -521,6 +530,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_LBUTTONDBLCLK:
     case WM_LBUTTONDOWN:
+        buttonDownParam=lParam;
 #if CYGMULTIWINDOW_DEBUG
         winDebug("winMWExtWMWindowProc - WM_LBUTTONDBLCLK\n");
 #endif
@@ -540,6 +550,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MBUTTONDBLCLK:
     case WM_MBUTTONDOWN:
+        buttonDownParam=lParam;
 #if CYGMULTIWINDOW_DEBUG
         winDebug("winMWExtWMWindowProc - WM_MBUTTONDBLCLK\n");
 #endif
@@ -559,6 +570,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_RBUTTONDBLCLK:
     case WM_RBUTTONDOWN:
+        buttonDownParam=lParam;
 #if CYGMULTIWINDOW_DEBUG
         winDebug("winMWExtWMWindowProc - WM_RBUTTONDBLCLK\n");
 #endif
@@ -578,6 +590,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_XBUTTONDBLCLK:
     case WM_XBUTTONDOWN:
+        buttonDownParam=lParam;
         if (pScreenPriv == NULL || pScreenInfo->fIgnoreInput)
             break;
         SetCapture(hwnd);
