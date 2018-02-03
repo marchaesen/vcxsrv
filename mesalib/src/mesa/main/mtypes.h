@@ -1513,6 +1513,21 @@ struct gl_vertex_array
 
 
 /**
+ * Enum for defining the mapping for the position/generic0 attribute.
+ *
+ * Do not change the order of the values as these are used as
+ * array indices.
+ */
+typedef enum
+{
+   ATTRIBUTE_MAP_MODE_IDENTITY, /**< 1:1 mapping */
+   ATTRIBUTE_MAP_MODE_POSITION, /**< get position and generic0 from position */
+   ATTRIBUTE_MAP_MODE_GENERIC0, /**< get position and generic0 from generic0 */
+   ATTRIBUTE_MAP_MODE_MAX       /**< for sizing arrays */
+} gl_attribute_map_mode;
+
+
+/**
  * Attributes to describe a vertex array.
  *
  * Contains the size, type, format and normalization flag,
@@ -1597,6 +1612,9 @@ struct gl_vertex_array_object
 
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
    GLbitfield _Enabled;
+
+   /** Denotes the way the position/generic0 attribute is mapped */
+   gl_attribute_map_mode _AttributeMapMode;
 
    /** Mask of VERT_BIT_* values indicating changed/dirty arrays */
    GLbitfield NewArrays;

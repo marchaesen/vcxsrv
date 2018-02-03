@@ -1071,8 +1071,13 @@ _mesa_enable_vertex_array_attrib(struct gl_context *ctx,
       /* was disabled, now being enabled */
       FLUSH_VERTICES(ctx, _NEW_ARRAY);
       vao->VertexAttrib[attrib].Enabled = GL_TRUE;
-      vao->_Enabled |= VERT_BIT(attrib);
-      vao->NewArrays |= VERT_BIT(attrib);
+      const GLbitfield array_bit = VERT_BIT(attrib);
+      vao->_Enabled |= array_bit;
+      vao->NewArrays |= array_bit;
+
+      /* Update the map mode if needed */
+      if (array_bit & (VERT_BIT_POS|VERT_BIT_GENERIC0))
+         _mesa_update_attribute_map_mode(ctx, vao);
    }
 }
 
@@ -1150,8 +1155,13 @@ disable_vertex_array_attrib(struct gl_context *ctx,
       /* was enabled, now being disabled */
       FLUSH_VERTICES(ctx, _NEW_ARRAY);
       vao->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled = GL_FALSE;
-      vao->_Enabled &= ~VERT_BIT_GENERIC(index);
-      vao->NewArrays |= VERT_BIT_GENERIC(index);
+      const GLbitfield array_bit = VERT_BIT_GENERIC(index);
+      vao->_Enabled &= ~array_bit;
+      vao->NewArrays |= array_bit;
+
+      /* Update the map mode if needed */
+      if (array_bit & (VERT_BIT_POS|VERT_BIT_GENERIC0))
+         _mesa_update_attribute_map_mode(ctx, vao);
    }
 }
 

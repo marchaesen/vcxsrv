@@ -847,6 +847,7 @@ VkResult radv_CreateDescriptorUpdateTemplateKHR(VkDevice _device,
 		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	templ->entry_count = entry_count;
+	templ->bind_point = pCreateInfo->pipelineBindPoint;
 
 	for (i = 0; i < entry_count; i++) {
 		const VkDescriptorUpdateTemplateEntryKHR *entry = &pCreateInfo->pDescriptorUpdateEntries[i];

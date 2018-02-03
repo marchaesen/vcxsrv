@@ -215,8 +215,8 @@ xkb_symbols "evdev" {
 //  key <I251>   {      [ ]       }; // KEY_BRIGHTNESS_CYCLE  --  bright up, max++ == min
 //  key <I252>   {      [ ]       }; // KEY_BRIGHTNESS_ZERO  --  brightness off
 //  key <I253>   {      [ ]       }; // KEY_DISPLAY_OFF  --  turn off display
-//  key <I254>   {      [ ]       }; // KEY_WIMAX
-    key <I255>   {      [ XF86Hibernate         ]       }; // KEY_HIBERNATE
+    key <I254>   {      [ XF86WWAN              ]       }; // KEY_WWAN
+    key <I255>   {      [ XF86RFKill            ]       }; // KEY_RFKILL
 
     key <FK13>   {      [ XF86Tools         ]       };
     key <FK14>   {      [ XF86Launch5       ]       };

@@ -2298,7 +2298,7 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 						   args->addr,
 						   ctx->ac.i32_0,
 						   util_last_bit(mask),
-						   true);
+						   false, true);
 	}
 
 	args->opcode = ac_image_sample;
@@ -3047,7 +3047,6 @@ load_gs_input(struct ac_shader_abi *abi,
 {
 	struct nir_to_llvm_context *ctx = nir_to_llvm_context_from_abi(abi);
 	LLVMValueRef vtx_offset;
-	LLVMValueRef args[9];
 	unsigned param, vtx_offset_param;
 	LLVMValueRef value[4], result;
 
@@ -3065,20 +3064,16 @@ load_gs_input(struct ac_shader_abi *abi,
 			                       LLVMConstInt(ctx->ac.i32, param * 4 + i + const_index, 0), "");
 			value[i] = ac_lds_load(&ctx->ac, dw_addr);
 		} else {
-			args[0] = ctx->esgs_ring;
-			args[1] = vtx_offset;
-			args[2] = LLVMConstInt(ctx->ac.i32, (param * 4 + i + const_index) * 256, false);
-			args[3] = ctx->ac.i32_0;
-			args[4] = ctx->ac.i32_1; /* OFFEN */
-			args[5] = ctx->ac.i32_0; /* IDXEN */
-			args[6] = ctx->ac.i32_1; /* GLC */
-			args[7] = ctx->ac.i32_0; /* SLC */
-			args[8] = ctx->ac.i32_0; /* TFE */
+			LLVMValueRef soffset =
+				LLVMConstInt(ctx->ac.i32,
+					     (param * 4 + i + const_index) * 256,
+					     false);
 
-			value[i] = ac_build_intrinsic(&ctx->ac, "llvm.SI.buffer.load.dword.i32.i32",
-			                              ctx->ac.i32, args, 9,
-			                              AC_FUNC_ATTR_READONLY |
-			                              AC_FUNC_ATTR_LEGACY);
+			value[i] = ac_build_buffer_load(&ctx->ac,
+							ctx->esgs_ring, 1,
+							ctx->ac.i32_0,
+							vtx_offset, soffset,
+							0, 1, 0, true, false);
 		}
 	}
 	result = ac_build_varying_gather_values(&ctx->ac, value, num_components, component);
@@ -3611,14 +3606,19 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 
 	const enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
 	if (dim == GLSL_SAMPLER_DIM_BUF) {
-		params[0] = get_sampler_desc(ctx, instr->variables[0], AC_DESC_BUFFER, NULL, true, false);
-		params[1] = LLVMBuildExtractElement(ctx->ac.builder, get_src(ctx, instr->src[0]),
-						    ctx->ac.i32_0, ""); /* vindex */
-		params[2] = ctx->ac.i32_0; /* voffset */
-		params[3] = ctx->ac.i1false;  /* glc */
-		params[4] = ctx->ac.i1false;  /* slc */
-		res = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.buffer.load.format.v4f32", ctx->ac.v4f32,
-					 params, 5, 0);
+		unsigned mask = nir_ssa_def_components_read(&instr->dest.ssa);
+		unsigned num_channels = util_last_bit(mask);
+		LLVMValueRef rsrc, vindex;
+
+		rsrc = get_sampler_desc(ctx, instr->variables[0], AC_DESC_BUFFER, NULL, true, false);
+		vindex = LLVMBuildExtractElement(ctx->ac.builder, get_src(ctx, instr->src[0]),
+						 ctx->ac.i32_0, "");
+
+		/* TODO: set "glc" and "can_speculate" when OpenGL needs it. */
+		res = ac_build_buffer_load_format(&ctx->ac, rsrc, vindex,
+						  ctx->ac.i32_0, num_channels,
+						  false, false);
+		res = ac_build_expand_to_vec4(&ctx->ac, res, num_channels);
 
 		res = trim_vector(&ctx->ac, res, instr->dest.ssa.num_components);
 		res = ac_to_integer(&ctx->ac, res);
@@ -3635,18 +3635,10 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 		params[0] = get_image_coords(ctx, instr);
 		params[1] = get_sampler_desc(ctx, instr->variables[0], AC_DESC_IMAGE, NULL, true, false);
 		params[2] = LLVMConstInt(ctx->ac.i32, 15, false); /* dmask */
-		if (HAVE_LLVM <= 0x0309) {
-			params[3] = ctx->ac.i1false;  /* r128 */
-			params[4] = da;
-			params[5] = glc;
-			params[6] = slc;
-		} else {
-			LLVMValueRef lwe = ctx->ac.i1false;
-			params[3] = glc;
-			params[4] = slc;
-			params[5] = lwe;
-			params[6] = da;
-		}
+		params[3] = glc;
+		params[4] = slc;
+		params[5] = ctx->ac.i1false;
+		params[6] = da;
 
 		ac_get_image_intr_name("llvm.amdgcn.image.load",
 				       ctx->ac.v4f32, /* vdata */
@@ -3694,18 +3686,10 @@ static void visit_image_store(struct ac_nir_context *ctx,
 		params[1] = get_image_coords(ctx, instr); /* coords */
 		params[2] = get_sampler_desc(ctx, instr->variables[0], AC_DESC_IMAGE, NULL, true, true);
 		params[3] = LLVMConstInt(ctx->ac.i32, 15, false); /* dmask */
-		if (HAVE_LLVM <= 0x0309) {
-			params[4] = ctx->ac.i1false;  /* r128 */
-			params[5] = da;
-			params[6] = glc;
-			params[7] = slc;
-		} else {
-			LLVMValueRef lwe = ctx->ac.i1false;
-			params[4] = glc;
-			params[5] = slc;
-			params[6] = lwe;
-			params[7] = da;
-		}
+		params[4] = glc;
+		params[5] = slc;
+		params[6] = ctx->ac.i1false;
+		params[7] = da;
 
 		ac_get_image_intr_name("llvm.amdgcn.image.store",
 				       LLVMTypeOf(params[0]), /* vdata */
@@ -5356,7 +5340,7 @@ handle_vs_input_decl(struct nir_to_llvm_context *ctx,
 		input = ac_build_buffer_load_format(&ctx->ac, t_list,
 						    buffer_index,
 						    ctx->ac.i32_0,
-						    4, true);
+						    4, false, true);
 
 		for (unsigned chan = 0; chan < 4; chan++) {
 			LLVMValueRef llvm_chan = LLVMConstInt(ctx->ac.i32, chan, false);
@@ -7161,16 +7145,9 @@ void ac_compile_nir_shader(LLVMTargetMachineRef tm,
 static void
 ac_gs_copy_shader_emit(struct nir_to_llvm_context *ctx)
 {
-	LLVMValueRef args[9];
-	args[0] = ctx->gsvs_ring;
-	args[1] = LLVMBuildMul(ctx->builder, ctx->abi.vertex_id, LLVMConstInt(ctx->ac.i32, 4, false), "");
-	args[3] = ctx->ac.i32_0;
-	args[4] = ctx->ac.i32_1;  /* OFFEN */
-	args[5] = ctx->ac.i32_0; /* IDXEN */
-	args[6] = ctx->ac.i32_1;  /* GLC */
-	args[7] = ctx->ac.i32_1;  /* SLC */
-	args[8] = ctx->ac.i32_0; /* TFE */
-
+	LLVMValueRef vtx_offset =
+		LLVMBuildMul(ctx->builder, ctx->abi.vertex_id,
+			     LLVMConstInt(ctx->ac.i32, 4, false), "");
 	int idx = 0;
 
 	for (unsigned i = 0; i < RADEON_LLVM_MAX_OUTPUTS; ++i) {
@@ -7188,16 +7165,16 @@ ac_gs_copy_shader_emit(struct nir_to_llvm_context *ctx)
 		}
 
 		for (unsigned j = 0; j < length; j++) {
-			LLVMValueRef value;
-			args[2] = LLVMConstInt(ctx->ac.i32,
+			LLVMValueRef value, soffset;
+
+			soffset = LLVMConstInt(ctx->ac.i32,
 					       (slot * 4 + j) *
 					       ctx->gs_max_out_vertices * 16 * 4, false);
 
-			value = ac_build_intrinsic(&ctx->ac,
-						   "llvm.SI.buffer.load.dword.i32.i32",
-						   ctx->ac.i32, args, 9,
-						   AC_FUNC_ATTR_READONLY |
-						   AC_FUNC_ATTR_LEGACY);
+			value = ac_build_buffer_load(&ctx->ac, ctx->gsvs_ring,
+						     1, ctx->ac.i32_0,
+						     vtx_offset, soffset,
+						     0, 1, 1, true, false);
 
 			LLVMBuildStore(ctx->builder,
 				       ac_to_float(&ctx->ac, value), ctx->nir->outputs[radeon_llvm_reg_index_soa(i, j)]);

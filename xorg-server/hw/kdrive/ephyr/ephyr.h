@@ -79,6 +79,7 @@ typedef struct _ephyrScrPriv {
     const char *output;         /* Set via -output option */
     unsigned char *fb_data;     /* only used when host bpp != server bpp */
     xcb_shm_segment_info_t shminfo;
+    size_t shmsize;
 
     KdScreenInfo *screen;
     int mynum;                  /* Screen number */

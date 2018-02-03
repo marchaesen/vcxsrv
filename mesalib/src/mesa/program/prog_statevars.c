@@ -598,7 +598,8 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
          return;
 
       case STATE_ADVANCED_BLENDING_MODE:
-         val[0].i = ctx->Color.BlendEnabled ? ctx->Color._AdvancedBlendMode : 0;
+         val[0].i = _mesa_get_advanced_blend_sh_constant(
+                      ctx->Color.BlendEnabled, ctx->Color._AdvancedBlendMode);
          return;
 
       /* XXX: make sure new tokens added here are also handled in the 

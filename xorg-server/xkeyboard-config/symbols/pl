@@ -497,7 +497,6 @@ partial alphanumeric_keys
        include "sun_vndr/pl(sun_type6)"
 };
 
-------------------------------
 //Glagolica
 partial alphanumeric_keys
 xkb_symbols "glagolica"

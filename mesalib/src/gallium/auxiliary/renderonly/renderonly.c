@@ -33,6 +33,7 @@
 
 #include "state_tracker/drm_driver.h"
 #include "pipe/p_screen.h"
+#include "util/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 
@@ -73,7 +74,7 @@ renderonly_create_kms_dumb_buffer_for_resource(struct pipe_resource *rsc,
    struct drm_mode_create_dumb create_dumb = {
       .width = rsc->width0,
       .height = rsc->height0,
-      .bpp = 32,
+      .bpp = util_format_get_blocksizebits(rsc->format),
    };
    struct drm_mode_destroy_dumb destroy_dumb = { };
 

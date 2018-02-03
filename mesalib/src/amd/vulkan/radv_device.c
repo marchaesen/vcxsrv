@@ -1113,11 +1113,7 @@ VkResult radv_CreateDevice(
 	device->always_use_syncobj = device->physical_device->rad_info.has_syncobj_wait_for_submit;
 #endif
 
-#if HAVE_LLVM < 0x0400
-	device->llvm_supports_spill = false;
-#else
 	device->llvm_supports_spill = true;
-#endif
 
 	/* The maximum number of scratch waves. Scratch space isn't divided
 	 * evenly between CUs. The number is only a function of the number of CUs.

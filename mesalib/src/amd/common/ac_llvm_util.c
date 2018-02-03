@@ -46,12 +46,11 @@ static void ac_init_llvm_target()
 	/* Workaround for bug in llvm 4.0 that causes image intrinsics
 	 * to disappear.
 	 * https://reviews.llvm.org/D26348
+	 *
+	 * "mesa" is the prefix for error messages.
 	 */
-	if (HAVE_LLVM >= 0x0400) {
-		/* "mesa" is the prefix for error messages */
-		const char *argv[2] = { "mesa", "-simplifycfg-sink-common=false" };
-		LLVMParseCommandLineOptions(2, argv, NULL);
-	}
+	const char *argv[2] = { "mesa", "-simplifycfg-sink-common=false" };
+	LLVMParseCommandLineOptions(2, argv, NULL);
 }
 
 static once_flag ac_init_llvm_target_once_flag = ONCE_FLAG_INIT;
@@ -146,25 +145,6 @@ LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family, enum ac
 	return tm;
 }
 
-
-#if HAVE_LLVM < 0x0400
-static LLVMAttribute ac_attr_to_llvm_attr(enum ac_func_attr attr)
-{
-   switch (attr) {
-   case AC_FUNC_ATTR_ALWAYSINLINE: return LLVMAlwaysInlineAttribute;
-   case AC_FUNC_ATTR_INREG: return LLVMInRegAttribute;
-   case AC_FUNC_ATTR_NOALIAS: return LLVMNoAliasAttribute;
-   case AC_FUNC_ATTR_NOUNWIND: return LLVMNoUnwindAttribute;
-   case AC_FUNC_ATTR_READNONE: return LLVMReadNoneAttribute;
-   case AC_FUNC_ATTR_READONLY: return LLVMReadOnlyAttribute;
-   default:
-	   fprintf(stderr, "Unhandled function attribute: %x\n", attr);
-	   return 0;
-   }
-}
-
-#else
-
 static const char *attr_to_str(enum ac_func_attr attr)
 {
    switch (attr) {
@@ -183,20 +163,10 @@ static const char *attr_to_str(enum ac_func_attr attr)
    }
 }
 
-#endif
-
 void
 ac_add_function_attr(LLVMContextRef ctx, LLVMValueRef function,
                      int attr_idx, enum ac_func_attr attr)
 {
-#if HAVE_LLVM < 0x0400
-   LLVMAttribute llvm_attr = ac_attr_to_llvm_attr(attr);
-   if (attr_idx == -1) {
-      LLVMAddFunctionAttr(function, llvm_attr);
-   } else {
-      LLVMAddAttribute(LLVMGetParam(function, attr_idx - 1), llvm_attr);
-   }
-#else
    const char *attr_name = attr_to_str(attr);
    unsigned kind_id = LLVMGetEnumAttributeKindForName(attr_name,
                                                       strlen(attr_name));
@@ -206,7 +176,6 @@ ac_add_function_attr(LLVMContextRef ctx, LLVMValueRef function,
       LLVMAddAttributeAtIndex(function, attr_idx, llvm_attr);
    else
       LLVMAddCallSiteAttribute(function, attr_idx, llvm_attr);
-#endif
 }
 
 void ac_add_func_attributes(LLVMContextRef ctx, LLVMValueRef function,

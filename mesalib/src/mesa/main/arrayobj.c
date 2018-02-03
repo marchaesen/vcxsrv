@@ -54,6 +54,135 @@
 #include "util/bitscan.h"
 
 
+const GLubyte
+_mesa_vao_attribute_map[ATTRIBUTE_MAP_MODE_MAX][VERT_ATTRIB_MAX] =
+{
+   /* ATTRIBUTE_MAP_MODE_IDENTITY
+    *
+    * Grab vertex processing attribute VERT_ATTRIB_POS from
+    * the VAO attribute VERT_ATTRIB_POS, and grab vertex processing
+    * attribute VERT_ATTRIB_GENERIC0 from the VAO attribute
+    * VERT_ATTRIB_GENERIC0.
+    */
+   {
+      VERT_ATTRIB_POS,                 /* VERT_ATTRIB_POS */
+      VERT_ATTRIB_NORMAL,              /* VERT_ATTRIB_NORMAL */
+      VERT_ATTRIB_COLOR0,              /* VERT_ATTRIB_COLOR0 */
+      VERT_ATTRIB_COLOR1,              /* VERT_ATTRIB_COLOR1 */
+      VERT_ATTRIB_FOG,                 /* VERT_ATTRIB_FOG */
+      VERT_ATTRIB_COLOR_INDEX,         /* VERT_ATTRIB_COLOR_INDEX */
+      VERT_ATTRIB_EDGEFLAG,            /* VERT_ATTRIB_EDGEFLAG */
+      VERT_ATTRIB_TEX0,                /* VERT_ATTRIB_TEX0 */
+      VERT_ATTRIB_TEX1,                /* VERT_ATTRIB_TEX1 */
+      VERT_ATTRIB_TEX2,                /* VERT_ATTRIB_TEX2 */
+      VERT_ATTRIB_TEX3,                /* VERT_ATTRIB_TEX3 */
+      VERT_ATTRIB_TEX4,                /* VERT_ATTRIB_TEX4 */
+      VERT_ATTRIB_TEX5,                /* VERT_ATTRIB_TEX5 */
+      VERT_ATTRIB_TEX6,                /* VERT_ATTRIB_TEX6 */
+      VERT_ATTRIB_TEX7,                /* VERT_ATTRIB_TEX7 */
+      VERT_ATTRIB_POINT_SIZE,          /* VERT_ATTRIB_POINT_SIZE */
+      VERT_ATTRIB_GENERIC0,            /* VERT_ATTRIB_GENERIC0 */
+      VERT_ATTRIB_GENERIC1,            /* VERT_ATTRIB_GENERIC1 */
+      VERT_ATTRIB_GENERIC2,            /* VERT_ATTRIB_GENERIC2 */
+      VERT_ATTRIB_GENERIC3,            /* VERT_ATTRIB_GENERIC3 */
+      VERT_ATTRIB_GENERIC4,            /* VERT_ATTRIB_GENERIC4 */
+      VERT_ATTRIB_GENERIC5,            /* VERT_ATTRIB_GENERIC5 */
+      VERT_ATTRIB_GENERIC6,            /* VERT_ATTRIB_GENERIC6 */
+      VERT_ATTRIB_GENERIC7,            /* VERT_ATTRIB_GENERIC7 */
+      VERT_ATTRIB_GENERIC8,            /* VERT_ATTRIB_GENERIC8 */
+      VERT_ATTRIB_GENERIC9,            /* VERT_ATTRIB_GENERIC9 */
+      VERT_ATTRIB_GENERIC10,           /* VERT_ATTRIB_GENERIC10 */
+      VERT_ATTRIB_GENERIC11,           /* VERT_ATTRIB_GENERIC11 */
+      VERT_ATTRIB_GENERIC12,           /* VERT_ATTRIB_GENERIC12 */
+      VERT_ATTRIB_GENERIC13,           /* VERT_ATTRIB_GENERIC13 */
+      VERT_ATTRIB_GENERIC14,           /* VERT_ATTRIB_GENERIC14 */
+      VERT_ATTRIB_GENERIC15            /* VERT_ATTRIB_GENERIC15 */
+   },
+
+   /* ATTRIBUTE_MAP_MODE_POSITION
+    *
+    * Grab vertex processing attribute VERT_ATTRIB_POS as well as
+    * vertex processing attribute VERT_ATTRIB_GENERIC0 from the
+    * VAO attribute VERT_ATTRIB_POS.
+    */
+   {
+      VERT_ATTRIB_POS,                 /* VERT_ATTRIB_POS */
+      VERT_ATTRIB_NORMAL,              /* VERT_ATTRIB_NORMAL */
+      VERT_ATTRIB_COLOR0,              /* VERT_ATTRIB_COLOR0 */
+      VERT_ATTRIB_COLOR1,              /* VERT_ATTRIB_COLOR1 */
+      VERT_ATTRIB_FOG,                 /* VERT_ATTRIB_FOG */
+      VERT_ATTRIB_COLOR_INDEX,         /* VERT_ATTRIB_COLOR_INDEX */
+      VERT_ATTRIB_EDGEFLAG,            /* VERT_ATTRIB_EDGEFLAG */
+      VERT_ATTRIB_TEX0,                /* VERT_ATTRIB_TEX0 */
+      VERT_ATTRIB_TEX1,                /* VERT_ATTRIB_TEX1 */
+      VERT_ATTRIB_TEX2,                /* VERT_ATTRIB_TEX2 */
+      VERT_ATTRIB_TEX3,                /* VERT_ATTRIB_TEX3 */
+      VERT_ATTRIB_TEX4,                /* VERT_ATTRIB_TEX4 */
+      VERT_ATTRIB_TEX5,                /* VERT_ATTRIB_TEX5 */
+      VERT_ATTRIB_TEX6,                /* VERT_ATTRIB_TEX6 */
+      VERT_ATTRIB_TEX7,                /* VERT_ATTRIB_TEX7 */
+      VERT_ATTRIB_POINT_SIZE,          /* VERT_ATTRIB_POINT_SIZE */
+      VERT_ATTRIB_POS,                 /* VERT_ATTRIB_GENERIC0 */
+      VERT_ATTRIB_GENERIC1,            /* VERT_ATTRIB_GENERIC1 */
+      VERT_ATTRIB_GENERIC2,            /* VERT_ATTRIB_GENERIC2 */
+      VERT_ATTRIB_GENERIC3,            /* VERT_ATTRIB_GENERIC3 */
+      VERT_ATTRIB_GENERIC4,            /* VERT_ATTRIB_GENERIC4 */
+      VERT_ATTRIB_GENERIC5,            /* VERT_ATTRIB_GENERIC5 */
+      VERT_ATTRIB_GENERIC6,            /* VERT_ATTRIB_GENERIC6 */
+      VERT_ATTRIB_GENERIC7,            /* VERT_ATTRIB_GENERIC7 */
+      VERT_ATTRIB_GENERIC8,            /* VERT_ATTRIB_GENERIC8 */
+      VERT_ATTRIB_GENERIC9,            /* VERT_ATTRIB_GENERIC9 */
+      VERT_ATTRIB_GENERIC10,           /* VERT_ATTRIB_GENERIC10 */
+      VERT_ATTRIB_GENERIC11,           /* VERT_ATTRIB_GENERIC11 */
+      VERT_ATTRIB_GENERIC12,           /* VERT_ATTRIB_GENERIC12 */
+      VERT_ATTRIB_GENERIC13,           /* VERT_ATTRIB_GENERIC13 */
+      VERT_ATTRIB_GENERIC14,           /* VERT_ATTRIB_GENERIC14 */
+      VERT_ATTRIB_GENERIC15            /* VERT_ATTRIB_GENERIC15 */
+   },
+
+   /* ATTRIBUTE_MAP_MODE_GENERIC0
+    *
+    * Grab vertex processing attribute VERT_ATTRIB_POS as well as
+    * vertex processing attribute VERT_ATTRIB_GENERIC0 from the
+    * VAO attribute VERT_ATTRIB_GENERIC0.
+    */
+   {
+      VERT_ATTRIB_GENERIC0,            /* VERT_ATTRIB_POS */
+      VERT_ATTRIB_NORMAL,              /* VERT_ATTRIB_NORMAL */
+      VERT_ATTRIB_COLOR0,              /* VERT_ATTRIB_COLOR0 */
+      VERT_ATTRIB_COLOR1,              /* VERT_ATTRIB_COLOR1 */
+      VERT_ATTRIB_FOG,                 /* VERT_ATTRIB_FOG */
+      VERT_ATTRIB_COLOR_INDEX,         /* VERT_ATTRIB_COLOR_INDEX */
+      VERT_ATTRIB_EDGEFLAG,            /* VERT_ATTRIB_EDGEFLAG */
+      VERT_ATTRIB_TEX0,                /* VERT_ATTRIB_TEX0 */
+      VERT_ATTRIB_TEX1,                /* VERT_ATTRIB_TEX1 */
+      VERT_ATTRIB_TEX2,                /* VERT_ATTRIB_TEX2 */
+      VERT_ATTRIB_TEX3,                /* VERT_ATTRIB_TEX3 */
+      VERT_ATTRIB_TEX4,                /* VERT_ATTRIB_TEX4 */
+      VERT_ATTRIB_TEX5,                /* VERT_ATTRIB_TEX5 */
+      VERT_ATTRIB_TEX6,                /* VERT_ATTRIB_TEX6 */
+      VERT_ATTRIB_TEX7,                /* VERT_ATTRIB_TEX7 */
+      VERT_ATTRIB_POINT_SIZE,          /* VERT_ATTRIB_POINT_SIZE */
+      VERT_ATTRIB_GENERIC0,            /* VERT_ATTRIB_GENERIC0 */
+      VERT_ATTRIB_GENERIC1,            /* VERT_ATTRIB_GENERIC1 */
+      VERT_ATTRIB_GENERIC2,            /* VERT_ATTRIB_GENERIC2 */
+      VERT_ATTRIB_GENERIC3,            /* VERT_ATTRIB_GENERIC3 */
+      VERT_ATTRIB_GENERIC4,            /* VERT_ATTRIB_GENERIC4 */
+      VERT_ATTRIB_GENERIC5,            /* VERT_ATTRIB_GENERIC5 */
+      VERT_ATTRIB_GENERIC6,            /* VERT_ATTRIB_GENERIC6 */
+      VERT_ATTRIB_GENERIC7,            /* VERT_ATTRIB_GENERIC7 */
+      VERT_ATTRIB_GENERIC8,            /* VERT_ATTRIB_GENERIC8 */
+      VERT_ATTRIB_GENERIC9,            /* VERT_ATTRIB_GENERIC9 */
+      VERT_ATTRIB_GENERIC10,           /* VERT_ATTRIB_GENERIC10 */
+      VERT_ATTRIB_GENERIC11,           /* VERT_ATTRIB_GENERIC11 */
+      VERT_ATTRIB_GENERIC12,           /* VERT_ATTRIB_GENERIC12 */
+      VERT_ATTRIB_GENERIC13,           /* VERT_ATTRIB_GENERIC13 */
+      VERT_ATTRIB_GENERIC14,           /* VERT_ATTRIB_GENERIC14 */
+      VERT_ATTRIB_GENERIC15            /* VERT_ATTRIB_GENERIC15 */
+   }
+};
+
+
 /**
  * Look up the array object for the given ID.
  *
@@ -304,6 +433,8 @@ _mesa_initialize_vao(struct gl_context *ctx,
          break;
       }
    }
+
+   vao->_AttributeMapMode = ATTRIBUTE_MAP_MODE_IDENTITY;
 
    _mesa_reference_buffer_object(ctx, &vao->IndexBufferObj,
                                  ctx->Shared->NullBufferObj);

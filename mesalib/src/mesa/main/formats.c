@@ -1568,13 +1568,7 @@ _mesa_format_matches_format_and_type(mesa_format mesa_format,
       if (format == GL_RGBA && type == GL_UNSIGNED_SHORT_4_4_4_4 && !swapBytes)
          return GL_TRUE;
 
-      if (format == GL_RGBA && type == GL_UNSIGNED_SHORT_4_4_4_4_REV && swapBytes)
-         return GL_TRUE;
-
       if (format == GL_ABGR_EXT && type == GL_UNSIGNED_SHORT_4_4_4_4_REV && !swapBytes)
-         return GL_TRUE;
-
-      if (format == GL_ABGR_EXT && type == GL_UNSIGNED_SHORT_4_4_4_4 && swapBytes)
          return GL_TRUE;
 
       return GL_FALSE;

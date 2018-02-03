@@ -56,6 +56,7 @@ header = """/* GLXEXT is the define used in the xserver when the GLX extension i
 #endif
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "main/glheader.h"
 
@@ -144,6 +145,19 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
 
     return disp;
 }
+
+void
+ _glapi_table_patch(struct _glapi_table *table, const char *name, void *wrapper)
+{
+   for (int func_index = 0; func_index < GLAPI_TABLE_COUNT; ++func_index) {
+      if (!strcmp(_glapi_table_func_names[func_index], name)) {
+            ((void **)table)[func_index] = wrapper;
+            return;
+         }
+   }
+   fprintf(stderr, "could not patch %s in dispatch table\\n", name);
+}
+
 """
 
 

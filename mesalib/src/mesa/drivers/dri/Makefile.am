@@ -57,7 +57,7 @@ mesa_dri_drivers_la_LDFLAGS = \
 	-module \
 	-no-undefined \
 	-avoid-version \
-	-Wl,--build-id=sha1 \
+	$(LD_BUILD_ID) \
 	$(BSYMBOLIC) \
 	$(GC_SECTIONS) \
 	$(LD_NO_UNDEFINED)

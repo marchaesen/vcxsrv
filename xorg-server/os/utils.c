@@ -497,7 +497,7 @@ GetTimeInMicros(void)
 #endif
 
     X_GETTIMEOFDAY(&tv);
-    return (CARD64) tv.tv_sec * (CARD64)1000000000 + (CARD64) tv.tv_usec * 1000;
+    return (CARD64) tv.tv_sec * (CARD64)1000000 + (CARD64) tv.tv_usec;
 }
 #endif
 

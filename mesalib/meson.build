@@ -57,6 +57,10 @@ dri_drivers_path = get_option('dri-drivers-path')
 if dri_drivers_path == ''
   dri_drivers_path = join_paths(get_option('libdir'), 'dri')
 endif
+dri_search_path = get_option('dri-search-path')
+if dri_search_path == ''
+  dri_search_path = join_paths(get_option('prefix'), dri_drivers_path)
+endif
 
 with_gles1 = get_option('gles1')
 with_gles2 = get_option('gles2')
@@ -988,15 +992,23 @@ if with_gallium_opencl
   # TODO: optional modules
 endif
 
+if with_amd_vk or with_gallium_radeonsi
+  _llvm_version = '>= 4.0.0'
+elif with_gallium_opencl or with_gallium_swr or with_gallium_r600
+  _llvm_version = '>= 3.9.0'
+else
+  _llvm_version = '>= 3.3.0'
+endif
+
 _llvm = get_option('llvm')
 if _llvm == 'auto'
   dep_llvm = dependency(
-    'llvm', version : '>= 3.9.0', modules : llvm_modules,
+    'llvm', version : _llvm_version, modules : llvm_modules,
     required : with_amd_vk or with_gallium_radeonsi or with_gallium_swr or with_gallium_opencl,
   )
   with_llvm = dep_llvm.found()
 elif _llvm == 'true'
-  dep_llvm = dependency('llvm', version : '>= 3.9.0', modules : llvm_modules)
+  dep_llvm = dependency('llvm', version : _llvm_version, modules : llvm_modules)
   with_llvm = true
 else
   dep_llvm = []
@@ -1019,7 +1031,7 @@ if with_llvm
     '-DMESA_LLVM_VERSION_PATCH=@0@'.format(_llvm_patch),
   ]
 elif with_amd_vk or with_gallium_radeonsi or with_gallium_swr
-  error('The following drivers requires LLVM: Radv, RadeonSI, SWR. One of these is enabled, but LLVM is disabled.')
+  error('The following drivers require LLVM: Radv, RadeonSI, SWR. One of these is enabled, but LLVM is disabled.')
 endif
 
 dep_glvnd = []

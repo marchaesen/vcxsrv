@@ -161,6 +161,9 @@ _glapi_get_proc_name(unsigned int offset);
 #if defined(GLX_USE_APPLEGL) || defined(GLX_USE_WINDOWSGL)
 _GLAPI_EXPORT struct _glapi_table *
 _glapi_create_table_from_handle(void *handle, const char *symbol_prefix);
+
+_GLAPI_EXPORT void
+_glapi_table_patch(struct _glapi_table *, const char *name, void *wrapper);
 #endif
 
 

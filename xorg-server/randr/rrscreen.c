@@ -272,7 +272,7 @@ ProcRRSetScreenSize(ClientPtr client)
             int source_height = mode->mode.height;
             Rotation rotation = crtc->rotation;
 
-            if (rotation == RR_Rotate_90 || rotation == RR_Rotate_270) {
+            if (rotation & (RR_Rotate_90 | RR_Rotate_270)) {
                 source_width = mode->mode.height;
                 source_height = mode->mode.width;
             }

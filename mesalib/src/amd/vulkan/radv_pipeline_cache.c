@@ -241,6 +241,17 @@ radv_pipeline_cache_add_entry(struct radv_pipeline_cache *cache,
 		radv_pipeline_cache_set_entry(cache, entry);
 }
 
+static bool
+radv_is_cache_disabled(struct radv_device *device)
+{
+	/* Pipeline caches can be disabled with RADV_DEBUG=nocache, with
+	 * MESA_GLSL_CACHE_DISABLE=1, and when VK_AMD_shader_info is requested.
+	 */
+	return (device->instance->debug_flags & RADV_DEBUG_NO_CACHE) ||
+	       !device->physical_device->disk_cache ||
+	       device->keep_shader_info;
+}
+
 bool
 radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 					        struct radv_pipeline_cache *cache,
@@ -257,11 +268,10 @@ radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 	entry = radv_pipeline_cache_search_unlocked(cache, sha1);
 
 	if (!entry) {
-		/* Again, don't cache when we want debug info, since this isn't
-		 * present in the cache. */
-		if (!device->physical_device->disk_cache ||
-		    (device->instance->debug_flags & RADV_DEBUG_NO_CACHE) ||
-		    device->keep_shader_info) {
+		/* Don't cache when we want debug info, since this isn't
+		 * present in the cache.
+		 */
+		if (radv_is_cache_disabled(device)) {
 			pthread_mutex_unlock(&cache->mutex);
 			return false;
 		}
@@ -362,6 +372,15 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device,
 		pthread_mutex_unlock(&cache->mutex);
 		return;
 	}
+
+	/* Don't cache when we want debug info, since this isn't
+	 * present in the cache.
+	 */
+	if (radv_is_cache_disabled(device)) {
+		pthread_mutex_unlock(&cache->mutex);
+		return;
+	}
+
 	size_t size = sizeof(*entry);
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i)
 		if (variants[i])

@@ -420,6 +420,8 @@ compile_vertex_list(struct gl_context *ctx)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    struct vbo_save_vertex_list *node;
+   GLuint offset;
+   unsigned i;
 
    /* Allocate space for this structure in the display list currently
     * being compiled.
@@ -443,6 +445,23 @@ compile_vertex_list(struct gl_context *ctx)
    node->vertex_size = save->vertex_size;
    node->buffer_offset =
       (save->buffer_map - save->vertex_store->buffer_map) * sizeof(GLfloat);
+   if (aligned_vertex_buffer_offset(node)) {
+      /* The vertex size is an exact multiple of the buffer offset.
+       * This means that we can use zero-based vertex attribute pointers
+       * and specify the start of the primitive with the _mesa_prim::start
+       * field.  This results in issuing several draw calls with identical
+       * vertex attribute information.  This can result in fewer state
+       * changes in drivers.  In particular, the Gallium CSO module will
+       * filter out redundant vertex buffer changes.
+       */
+      offset = 0;
+   } else {
+      offset = node->buffer_offset;
+   }
+   for (i = 0; i < VBO_ATTRIB_MAX; ++i) {
+      node->offsets[i] = offset;
+      offset += node->attrsz[i] * sizeof(GLfloat);
+   }
    node->vertex_count = save->vert_count;
    node->wrap_count = save->copied.nr;
    node->dangling_attr_ref = save->dangling_attr_ref;

@@ -34,6 +34,13 @@ void
 radv_meta_save(struct radv_meta_saved_state *state,
 	       struct radv_cmd_buffer *cmd_buffer, uint32_t flags)
 {
+	VkPipelineBindPoint bind_point =
+		flags & RADV_META_SAVE_GRAPHICS_PIPELINE ?
+			VK_PIPELINE_BIND_POINT_GRAPHICS :
+			VK_PIPELINE_BIND_POINT_COMPUTE;
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, bind_point);
+
 	assert(flags & (RADV_META_SAVE_GRAPHICS_PIPELINE |
 			RADV_META_SAVE_COMPUTE_PIPELINE));
 
@@ -73,8 +80,8 @@ radv_meta_save(struct radv_meta_saved_state *state,
 	}
 
 	if (state->flags & RADV_META_SAVE_DESCRIPTORS) {
-		if (cmd_buffer->state.valid_descriptors & (1 << 0))
-			state->old_descriptor_set0 = cmd_buffer->descriptors[0];
+		if (descriptors_state->valid & (1 << 0))
+			state->old_descriptor_set0 = descriptors_state->sets[0];
 		else
 			state->old_descriptor_set0 = NULL;
 	}
@@ -97,6 +104,11 @@ void
 radv_meta_restore(const struct radv_meta_saved_state *state,
 		  struct radv_cmd_buffer *cmd_buffer)
 {
+	VkPipelineBindPoint bind_point =
+		state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE ?
+			VK_PIPELINE_BIND_POINT_GRAPHICS :
+			VK_PIPELINE_BIND_POINT_COMPUTE;
+
 	if (state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE) {
 		radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
 				     VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -127,7 +139,8 @@ radv_meta_restore(const struct radv_meta_saved_state *state,
 	}
 
 	if (state->flags & RADV_META_SAVE_DESCRIPTORS) {
-		radv_set_descriptor_set(cmd_buffer, state->old_descriptor_set0, 0);
+		radv_set_descriptor_set(cmd_buffer, bind_point,
+					state->old_descriptor_set0, 0);
 	}
 
 	if (state->flags & RADV_META_SAVE_CONSTANTS) {

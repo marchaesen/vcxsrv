@@ -1195,7 +1195,6 @@ shm_tmpfile(void)
 {
 #ifdef SHMDIR
 	int	fd;
-	int	flags;
 	char	template[] = SHMDIR "/shmfd-XXXXXX";
 #ifdef O_TMPFILE
 	fd = open(SHMDIR, O_TMPFILE|O_RDWR|O_CLOEXEC|O_EXCL, 0666);
@@ -1205,15 +1204,21 @@ shm_tmpfile(void)
 	}
 	ErrorF ("Not using O_TMPFILE\n");
 #endif
+#ifdef HAVE_MKOSTEMP
+	fd = mkostemp(template, O_CLOEXEC);
+#else
 	fd = mkstemp(template);
+#endif
 	if (fd < 0)
 		return -1;
 	unlink(template);
-	flags = fcntl(fd, F_GETFD);
+#ifndef HAVE_MKOSTEMP
+	int flags = fcntl(fd, F_GETFD);
 	if (flags != -1) {
 		flags |= FD_CLOEXEC;
 		(void) fcntl(fd, F_SETFD, &flags);
 	}
+#endif
 	return fd;
 #else
         return -1;

@@ -42,9 +42,9 @@ enum ac_func_attr {
 	AC_FUNC_ATTR_NOUNWIND     = (1 << 4),
 	AC_FUNC_ATTR_READNONE     = (1 << 5),
 	AC_FUNC_ATTR_READONLY     = (1 << 6),
-	AC_FUNC_ATTR_WRITEONLY    = HAVE_LLVM >= 0x0400 ? (1 << 7) : 0,
-	AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY = HAVE_LLVM >= 0x0400 ? (1 << 8) : 0,
-	AC_FUNC_ATTR_CONVERGENT = HAVE_LLVM >= 0x0400 ? (1 << 9) : 0,
+	AC_FUNC_ATTR_WRITEONLY    = (1 << 7),
+	AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY = (1 << 8),
+	AC_FUNC_ATTR_CONVERGENT = (1 << 9),
 
 	/* Legacy intrinsic that needs attributes on function declarations
 	 * and they must match the internal LLVM definition exactly, otherwise
@@ -94,16 +94,14 @@ ac_get_load_intr_attribs(bool can_speculate)
 {
 	/* READNONE means writes can't affect it, while READONLY means that
 	 * writes can affect it. */
-	return can_speculate && HAVE_LLVM >= 0x0400 ?
-				 AC_FUNC_ATTR_READNONE :
-				 AC_FUNC_ATTR_READONLY;
+	return can_speculate ? AC_FUNC_ATTR_READNONE :
+			       AC_FUNC_ATTR_READONLY;
 }
 
 static inline unsigned
 ac_get_store_intr_attribs(bool writeonly_memory)
 {
-	return writeonly_memory && HAVE_LLVM >= 0x0400 ?
-				  AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY :
+	return writeonly_memory ? AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY :
 				  AC_FUNC_ATTR_WRITEONLY;
 }
 

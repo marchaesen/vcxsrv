@@ -270,6 +270,10 @@ st_nir_opts(nir_shader *nir)
    do {
       progress = false;
 
+      NIR_PASS_V(nir, nir_lower_vars_to_ssa);
+      NIR_PASS_V(nir, nir_lower_alu_to_scalar);
+      NIR_PASS_V(nir, nir_lower_phis_to_scalar);
+
       NIR_PASS_V(nir, nir_lower_64bit_pack);
       NIR_PASS(progress, nir, nir_copy_prop);
       NIR_PASS(progress, nir, nir_opt_remove_phis);
@@ -316,6 +320,22 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
    nir_variable_mode mask =
       (nir_variable_mode) (nir_var_shader_in | nir_var_shader_out);
    nir_remove_dead_variables(nir, mask);
+
+   if (options->lower_all_io_to_temps ||
+       nir->info.stage == MESA_SHADER_VERTEX ||
+       nir->info.stage == MESA_SHADER_GEOMETRY) {
+      NIR_PASS_V(nir, nir_lower_io_to_temporaries,
+                 nir_shader_get_entrypoint(nir),
+                 true, true);
+   } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
+      NIR_PASS_V(nir, nir_lower_io_to_temporaries,
+                 nir_shader_get_entrypoint(nir),
+                 true, false);
+   }
+
+   NIR_PASS_V(nir, nir_lower_global_vars_to_local);
+   NIR_PASS_V(nir, nir_split_var_copies);
+   NIR_PASS_V(nir, nir_lower_var_copies);
 
    st_nir_opts(nir);
 
@@ -481,22 +501,6 @@ st_nir_get_mesa_program(struct gl_context *ctx,
 
    set_st_program(prog, shader_program, nir);
    prog->nir = nir;
-
-   if (options->lower_all_io_to_temps ||
-       nir->info.stage == MESA_SHADER_VERTEX ||
-       nir->info.stage == MESA_SHADER_GEOMETRY) {
-      NIR_PASS_V(nir, nir_lower_io_to_temporaries,
-                 nir_shader_get_entrypoint(nir),
-                 true, true);
-   } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
-      NIR_PASS_V(nir, nir_lower_io_to_temporaries,
-                 nir_shader_get_entrypoint(nir),
-                 true, false);
-   }
-
-   NIR_PASS_V(nir, nir_lower_global_vars_to_local);
-   NIR_PASS_V(nir, nir_split_var_copies);
-   NIR_PASS_V(nir, nir_lower_var_copies);
 }
 
 static void

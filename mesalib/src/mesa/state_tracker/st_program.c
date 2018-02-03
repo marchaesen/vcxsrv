@@ -368,7 +368,6 @@ st_release_cp_variants(struct st_context *st, struct st_compute_program *stcp)
       case PIPE_SHADER_IR_NIR:
          /* pipe driver took ownership of prog */
          break;
-      case PIPE_SHADER_IR_LLVM:
       case PIPE_SHADER_IR_NATIVE:
          /* ??? */
          stcp->tgsi.prog = NULL;

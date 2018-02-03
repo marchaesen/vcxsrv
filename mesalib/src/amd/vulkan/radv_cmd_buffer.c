@@ -261,7 +261,10 @@ radv_cmd_buffer_destroy(struct radv_cmd_buffer *cmd_buffer)
 	if (cmd_buffer->upload.upload_bo)
 		cmd_buffer->device->ws->buffer_destroy(cmd_buffer->upload.upload_bo);
 	cmd_buffer->device->ws->cs_destroy(cmd_buffer->cs);
-	free(cmd_buffer->push_descriptors.set.mapped_ptr);
+
+	for (unsigned i = 0; i < VK_PIPELINE_BIND_POINT_RANGE_SIZE; i++)
+		free(cmd_buffer->descriptors[i].push_set.set.mapped_ptr);
+
 	vk_free(&cmd_buffer->pool->alloc, cmd_buffer);
 }
 
@@ -294,6 +297,12 @@ radv_reset_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 	cmd_buffer->record_result = VK_SUCCESS;
 
 	cmd_buffer->ring_offsets_idx = -1;
+
+	for (unsigned i = 0; i < VK_PIPELINE_BIND_POINT_RANGE_SIZE; i++) {
+		cmd_buffer->descriptors[i].dirty = 0;
+		cmd_buffer->descriptors[i].valid = 0;
+		cmd_buffer->descriptors[i].push_dirty = false;
+	}
 
 	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
 		void *fence_ptr;
@@ -490,21 +499,27 @@ radv_save_pipeline(struct radv_cmd_buffer *cmd_buffer,
 }
 
 void radv_set_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
+			     VkPipelineBindPoint bind_point,
 			     struct radv_descriptor_set *set,
 			     unsigned idx)
 {
-	cmd_buffer->descriptors[idx] = set;
-	if (set)
-		cmd_buffer->state.valid_descriptors |= (1u << idx);
-	else
-		cmd_buffer->state.valid_descriptors &= ~(1u << idx);
-	cmd_buffer->state.descriptors_dirty |= (1u << idx);
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, bind_point);
 
+	descriptors_state->sets[idx] = set;
+	if (set)
+		descriptors_state->valid |= (1u << idx);
+	else
+		descriptors_state->valid &= ~(1u << idx);
+	descriptors_state->dirty |= (1u << idx);
 }
 
 static void
-radv_save_descriptors(struct radv_cmd_buffer *cmd_buffer)
+radv_save_descriptors(struct radv_cmd_buffer *cmd_buffer,
+		      VkPipelineBindPoint bind_point)
 {
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, bind_point);
 	struct radv_device *device = cmd_buffer->device;
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
 	uint32_t data[MAX_SETS * 2] = {};
@@ -515,8 +530,8 @@ radv_save_descriptors(struct radv_cmd_buffer *cmd_buffer)
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(device->ws,
 							   cmd_buffer->cs, 4 + MAX_SETS * 2);
 
-	for_each_bit(i, cmd_buffer->state.valid_descriptors) {
-		struct radv_descriptor_set *set = cmd_buffer->descriptors[i];
+	for_each_bit(i, descriptors_state->valid) {
+		struct radv_descriptor_set *set = descriptors_state->sets[i];
 		data[i * 2] = (uintptr_t)set;
 		data[i * 2 + 1] = (uintptr_t)set >> 32;
 	}
@@ -1257,9 +1272,12 @@ radv_emit_descriptor_set_userdata(struct radv_cmd_buffer *cmd_buffer,
 }
 
 static void
-radv_flush_push_descriptors(struct radv_cmd_buffer *cmd_buffer)
+radv_flush_push_descriptors(struct radv_cmd_buffer *cmd_buffer,
+			    VkPipelineBindPoint bind_point)
 {
-	struct radv_descriptor_set *set = &cmd_buffer->push_descriptors.set;
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, bind_point);
+	struct radv_descriptor_set *set = &descriptors_state->push_set.set;
 	unsigned bo_offset;
 
 	if (!radv_cmd_buffer_upload_data(cmd_buffer, set->size, 32,
@@ -1272,8 +1290,11 @@ radv_flush_push_descriptors(struct radv_cmd_buffer *cmd_buffer)
 }
 
 static void
-radv_flush_indirect_descriptor_sets(struct radv_cmd_buffer *cmd_buffer)
+radv_flush_indirect_descriptor_sets(struct radv_cmd_buffer *cmd_buffer,
+				    VkPipelineBindPoint bind_point)
 {
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, bind_point);
 	uint32_t size = MAX_SETS * 2 * 4;
 	uint32_t offset;
 	void *ptr;
@@ -1285,8 +1306,8 @@ radv_flush_indirect_descriptor_sets(struct radv_cmd_buffer *cmd_buffer)
 	for (unsigned i = 0; i < MAX_SETS; i++) {
 		uint32_t *uptr = ((uint32_t *)ptr) + i * 2;
 		uint64_t set_va = 0;
-		struct radv_descriptor_set *set = cmd_buffer->descriptors[i];
-		if (cmd_buffer->state.valid_descriptors & (1u << i))
+		struct radv_descriptor_set *set = descriptors_state->sets[i];
+		if (descriptors_state->valid & (1u << i))
 			set_va = set->va;
 		uptr[0] = set_va & 0xffffffff;
 		uptr[1] = set_va >> 32;
@@ -1326,35 +1347,40 @@ static void
 radv_flush_descriptors(struct radv_cmd_buffer *cmd_buffer,
 		       VkShaderStageFlags stages)
 {
+	VkPipelineBindPoint bind_point = stages & VK_SHADER_STAGE_COMPUTE_BIT ?
+					 VK_PIPELINE_BIND_POINT_COMPUTE :
+					 VK_PIPELINE_BIND_POINT_GRAPHICS;
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, bind_point);
 	unsigned i;
 
-	if (!cmd_buffer->state.descriptors_dirty)
+	if (!descriptors_state->dirty)
 		return;
 
-	if (cmd_buffer->state.push_descriptors_dirty)
-		radv_flush_push_descriptors(cmd_buffer);
+	if (descriptors_state->push_dirty)
+		radv_flush_push_descriptors(cmd_buffer, bind_point);
 
 	if ((cmd_buffer->state.pipeline && cmd_buffer->state.pipeline->need_indirect_descriptor_sets) ||
 	    (cmd_buffer->state.compute_pipeline && cmd_buffer->state.compute_pipeline->need_indirect_descriptor_sets)) {
-		radv_flush_indirect_descriptor_sets(cmd_buffer);
+		radv_flush_indirect_descriptor_sets(cmd_buffer, bind_point);
 	}
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws,
 	                                                   cmd_buffer->cs,
 	                                                   MAX_SETS * MESA_SHADER_STAGES * 4);
 
-	for_each_bit(i, cmd_buffer->state.descriptors_dirty) {
-		struct radv_descriptor_set *set = cmd_buffer->descriptors[i];
-		if (!(cmd_buffer->state.valid_descriptors & (1u << i)))
+	for_each_bit(i, descriptors_state->dirty) {
+		struct radv_descriptor_set *set = descriptors_state->sets[i];
+		if (!(descriptors_state->valid & (1u << i)))
 			continue;
 
 		radv_emit_descriptor_set_userdata(cmd_buffer, stages, set, i);
 	}
-	cmd_buffer->state.descriptors_dirty = 0;
-	cmd_buffer->state.push_descriptors_dirty = false;
+	descriptors_state->dirty = 0;
+	descriptors_state->push_dirty = false;
 
 	if (unlikely(cmd_buffer->device->trace_bo))
-		radv_save_descriptors(cmd_buffer);
+		radv_save_descriptors(cmd_buffer, bind_point);
 
 	assert(cmd_buffer->cs->cdw <= cdw_max);
 }
@@ -1977,11 +2003,12 @@ void radv_CmdBindIndexBuffer(
 
 static void
 radv_bind_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
+			 VkPipelineBindPoint bind_point,
 			 struct radv_descriptor_set *set, unsigned idx)
 {
 	struct radeon_winsys *ws = cmd_buffer->device->ws;
 
-	radv_set_descriptor_set(cmd_buffer, set, idx);
+	radv_set_descriptor_set(cmd_buffer, bind_point, set, idx);
 	if (!set)
 		return;
 
@@ -2012,7 +2039,7 @@ void radv_CmdBindDescriptorSets(
 	for (unsigned i = 0; i < descriptorSetCount; ++i) {
 		unsigned idx = i + firstSet;
 		RADV_FROM_HANDLE(radv_descriptor_set, set, pDescriptorSets[i]);
-		radv_bind_descriptor_set(cmd_buffer, set, idx);
+		radv_bind_descriptor_set(cmd_buffer, pipelineBindPoint, set, idx);
 
 		for(unsigned j = 0; j < set->layout->dynamic_offset_count; ++j, ++dyn_idx) {
 			unsigned idx = j + layout->set[i + firstSet].dynamic_offset_start;
@@ -2038,26 +2065,29 @@ void radv_CmdBindDescriptorSets(
 
 static bool radv_init_push_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
                                           struct radv_descriptor_set *set,
-                                          struct radv_descriptor_set_layout *layout)
+                                          struct radv_descriptor_set_layout *layout,
+					  VkPipelineBindPoint bind_point)
 {
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, bind_point);
 	set->size = layout->size;
 	set->layout = layout;
 
-	if (cmd_buffer->push_descriptors.capacity < set->size) {
+	if (descriptors_state->push_set.capacity < set->size) {
 		size_t new_size = MAX2(set->size, 1024);
-		new_size = MAX2(new_size, 2 * cmd_buffer->push_descriptors.capacity);
+		new_size = MAX2(new_size, 2 * descriptors_state->push_set.capacity);
 		new_size = MIN2(new_size, 96 * MAX_PUSH_DESCRIPTORS);
 
 		free(set->mapped_ptr);
 		set->mapped_ptr = malloc(new_size);
 
 		if (!set->mapped_ptr) {
-			cmd_buffer->push_descriptors.capacity = 0;
+			descriptors_state->push_set.capacity = 0;
 			cmd_buffer->record_result = VK_ERROR_OUT_OF_HOST_MEMORY;
 			return false;
 		}
 
-		cmd_buffer->push_descriptors.capacity = new_size;
+		descriptors_state->push_set.capacity = new_size;
 	}
 
 	return true;
@@ -2093,7 +2123,7 @@ void radv_meta_push_descriptor_set(
 	                            radv_descriptor_set_to_handle(push_set),
 	                            descriptorWriteCount, pDescriptorWrites, 0, NULL);
 
-	radv_set_descriptor_set(cmd_buffer, push_set, set);
+	radv_set_descriptor_set(cmd_buffer, pipelineBindPoint, push_set, set);
 }
 
 void radv_CmdPushDescriptorSetKHR(
@@ -2106,19 +2136,23 @@ void radv_CmdPushDescriptorSetKHR(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_pipeline_layout, layout, _layout);
-	struct radv_descriptor_set *push_set = &cmd_buffer->push_descriptors.set;
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, pipelineBindPoint);
+	struct radv_descriptor_set *push_set = &descriptors_state->push_set.set;
 
 	assert(layout->set[set].layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
 
-	if (!radv_init_push_descriptor_set(cmd_buffer, push_set, layout->set[set].layout))
+	if (!radv_init_push_descriptor_set(cmd_buffer, push_set,
+					   layout->set[set].layout,
+					   pipelineBindPoint))
 		return;
 
 	radv_update_descriptor_sets(cmd_buffer->device, cmd_buffer,
 	                            radv_descriptor_set_to_handle(push_set),
 	                            descriptorWriteCount, pDescriptorWrites, 0, NULL);
 
-	radv_set_descriptor_set(cmd_buffer, push_set, set);
-	cmd_buffer->state.push_descriptors_dirty = true;
+	radv_set_descriptor_set(cmd_buffer, pipelineBindPoint, push_set, set);
+	descriptors_state->push_dirty = true;
 }
 
 void radv_CmdPushDescriptorSetWithTemplateKHR(
@@ -2130,18 +2164,23 @@ void radv_CmdPushDescriptorSetWithTemplateKHR(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_pipeline_layout, layout, _layout);
-	struct radv_descriptor_set *push_set = &cmd_buffer->push_descriptors.set;
+	RADV_FROM_HANDLE(radv_descriptor_update_template, templ, descriptorUpdateTemplate);
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, templ->bind_point);
+	struct radv_descriptor_set *push_set = &descriptors_state->push_set.set;
 
 	assert(layout->set[set].layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
 
-	if (!radv_init_push_descriptor_set(cmd_buffer, push_set, layout->set[set].layout))
+	if (!radv_init_push_descriptor_set(cmd_buffer, push_set,
+					   layout->set[set].layout,
+					   templ->bind_point))
 		return;
 
 	radv_update_descriptor_set_with_template(cmd_buffer->device, cmd_buffer, push_set,
 						 descriptorUpdateTemplate, pData);
 
-	radv_set_descriptor_set(cmd_buffer, push_set, set);
-	cmd_buffer->state.push_descriptors_dirty = true;
+	radv_set_descriptor_set(cmd_buffer, templ->bind_point, push_set, set);
+	descriptors_state->push_dirty = true;
 }
 
 void radv_CmdPushConstants(VkCommandBuffer commandBuffer,
@@ -2198,9 +2237,13 @@ radv_emit_compute_pipeline(struct radv_cmd_buffer *cmd_buffer)
 		radv_save_pipeline(cmd_buffer, pipeline, RING_COMPUTE);
 }
 
-static void radv_mark_descriptor_sets_dirty(struct radv_cmd_buffer *cmd_buffer)
+static void radv_mark_descriptor_sets_dirty(struct radv_cmd_buffer *cmd_buffer,
+					    VkPipelineBindPoint bind_point)
 {
-	cmd_buffer->state.descriptors_dirty |= cmd_buffer->state.valid_descriptors;
+	struct radv_descriptor_state *descriptors_state =
+		radv_get_descriptors_state(cmd_buffer, bind_point);
+
+	descriptors_state->dirty |= descriptors_state->valid;
 }
 
 void radv_CmdBindPipeline(
@@ -2215,7 +2258,7 @@ void radv_CmdBindPipeline(
 	case VK_PIPELINE_BIND_POINT_COMPUTE:
 		if (cmd_buffer->state.compute_pipeline == pipeline)
 			return;
-		radv_mark_descriptor_sets_dirty(cmd_buffer);
+		radv_mark_descriptor_sets_dirty(cmd_buffer, pipelineBindPoint);
 
 		cmd_buffer->state.compute_pipeline = pipeline;
 		cmd_buffer->push_constant_stages |= VK_SHADER_STAGE_COMPUTE_BIT;
@@ -2223,7 +2266,7 @@ void radv_CmdBindPipeline(
 	case VK_PIPELINE_BIND_POINT_GRAPHICS:
 		if (cmd_buffer->state.pipeline == pipeline)
 			return;
-		radv_mark_descriptor_sets_dirty(cmd_buffer);
+		radv_mark_descriptor_sets_dirty(cmd_buffer, pipelineBindPoint);
 
 		cmd_buffer->state.pipeline = pipeline;
 		if (!pipeline)
@@ -2533,7 +2576,8 @@ void radv_CmdExecuteCommands(
 	primary->state.dirty |= RADV_CMD_DIRTY_PIPELINE |
 				RADV_CMD_DIRTY_INDEX_BUFFER |
 				RADV_CMD_DIRTY_DYNAMIC_ALL;
-	radv_mark_descriptor_sets_dirty(primary);
+	radv_mark_descriptor_sets_dirty(primary, VK_PIPELINE_BIND_POINT_GRAPHICS);
+	radv_mark_descriptor_sets_dirty(primary, VK_PIPELINE_BIND_POINT_COMPUTE);
 }
 
 VkResult radv_CreateCommandPool(

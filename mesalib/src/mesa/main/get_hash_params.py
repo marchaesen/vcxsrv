@@ -783,7 +783,7 @@ descriptor=[
   [ "EDGE_FLAG_ARRAY_COUNT_EXT", "CONST(0), NO_EXTRA" ],
 
 # GL_ARB_texture_compression
-  [ "TEXTURE_COMPRESSION_HINT_ARB", "CONTEXT_INT(Hint.TextureCompression), NO_EXTRA" ],
+  [ "TEXTURE_COMPRESSION_HINT_ARB", "CONTEXT_ENUM16(Hint.TextureCompression), NO_EXTRA" ],
 
 # GL_EXT_compiled_vertex_array
   [ "ARRAY_ELEMENT_LOCK_FIRST_EXT", "CONTEXT_INT(Array.LockFirst), NO_EXTRA" ],

@@ -716,12 +716,14 @@ _mesa_WaitSemaphoreEXT(GLuint semaphore,
                        const GLenum *srcLayouts)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct gl_semaphore_object *semObj;
-   struct gl_buffer_object **bufObjs;
-   struct gl_texture_object **texObjs;
+   struct gl_semaphore_object *semObj = NULL;
+   struct gl_buffer_object **bufObjs = NULL;
+   struct gl_texture_object **texObjs = NULL;
+
+   const char *func = "glWaitSemaphoreEXT";
 
    if (!ctx->Extensions.EXT_semaphore) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glWaitSemaphoreEXT(unsupported)");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
 
@@ -734,12 +736,24 @@ _mesa_WaitSemaphoreEXT(GLuint semaphore,
    FLUSH_VERTICES(ctx, 0);
    FLUSH_CURRENT(ctx, 0);
 
-   bufObjs = alloca(sizeof(struct gl_buffer_object **) * numBufferBarriers);
+   bufObjs = malloc(sizeof(struct gl_buffer_object **) * numBufferBarriers);
+   if (!bufObjs) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numBufferBarriers=%u)",
+                  func, numBufferBarriers);
+      goto end;
+   }
+
    for (unsigned i = 0; i < numBufferBarriers; i++) {
       bufObjs[i] = _mesa_lookup_bufferobj(ctx, buffers[i]);
    }
 
-   texObjs = alloca(sizeof(struct gl_texture_object **) * numTextureBarriers);
+   texObjs = malloc(sizeof(struct gl_texture_object **) * numTextureBarriers);
+   if (!texObjs) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numTextureBarriers=%u)",
+                  func, numTextureBarriers);
+      goto end;
+   }
+
    for (unsigned i = 0; i < numTextureBarriers; i++) {
       texObjs[i] = _mesa_lookup_texture(ctx, textures[i]);
    }
@@ -748,6 +762,10 @@ _mesa_WaitSemaphoreEXT(GLuint semaphore,
                                          numBufferBarriers, bufObjs,
                                          numTextureBarriers, texObjs,
                                          srcLayouts);
+
+end:
+   free(bufObjs);
+   free(texObjs);
 }
 
 void GLAPIENTRY
@@ -759,12 +777,14 @@ _mesa_SignalSemaphoreEXT(GLuint semaphore,
                          const GLenum *dstLayouts)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct gl_semaphore_object *semObj;
-   struct gl_buffer_object **bufObjs;
-   struct gl_texture_object **texObjs;
+   struct gl_semaphore_object *semObj = NULL;
+   struct gl_buffer_object **bufObjs = NULL;
+   struct gl_texture_object **texObjs = NULL;
+
+   const char *func = "glSignalSemaphoreEXT";
 
    if (!ctx->Extensions.EXT_semaphore) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glSignalSemaphoreEXT(unsupported)");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
 
@@ -777,12 +797,24 @@ _mesa_SignalSemaphoreEXT(GLuint semaphore,
    FLUSH_VERTICES(ctx, 0);
    FLUSH_CURRENT(ctx, 0);
 
-   bufObjs = alloca(sizeof(struct gl_buffer_object **) * numBufferBarriers);
+   bufObjs = malloc(sizeof(struct gl_buffer_object **) * numBufferBarriers);
+   if (!bufObjs) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numBufferBarriers=%u)",
+                  func, numBufferBarriers);
+      goto end;
+   }
+
    for (unsigned i = 0; i < numBufferBarriers; i++) {
       bufObjs[i] = _mesa_lookup_bufferobj(ctx, buffers[i]);
    }
 
-   texObjs = alloca(sizeof(struct gl_texture_object **) * numTextureBarriers);
+   texObjs = malloc(sizeof(struct gl_texture_object **) * numTextureBarriers);
+   if (!texObjs) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numTextureBarriers=%u)",
+                  func, numTextureBarriers);
+      goto end;
+   }
+
    for (unsigned i = 0; i < numTextureBarriers; i++) {
       texObjs[i] = _mesa_lookup_texture(ctx, textures[i]);
    }
@@ -791,6 +823,10 @@ _mesa_SignalSemaphoreEXT(GLuint semaphore,
                                            numBufferBarriers, bufObjs,
                                            numTextureBarriers, texObjs,
                                            dstLayouts);
+
+end:
+   free(bufObjs);
+   free(texObjs);
 }
 
 void GLAPIENTRY

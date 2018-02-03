@@ -92,7 +92,7 @@ RRMonitorSetFromServer(RRCrtcPtr crtc, RRMonitorPtr monitor)
     monitor->name = RRMonitorCrtcName(crtc);
     monitor->pScreen = crtc->pScreen;
     monitor->numOutputs = crtc->numOutputs;
-    monitor->outputs = calloc(crtc->numOutputs, sizeof(RRCrtc));
+    monitor->outputs = calloc(crtc->numOutputs, sizeof(RROutput));
     if (!monitor->outputs)
         return FALSE;
     for (o = 0; o < crtc->numOutputs; o++)

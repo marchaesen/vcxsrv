@@ -138,7 +138,7 @@ static GLboolean check_active_shininess( struct gl_context *ctx,
        (key->light_color_material_mask & (1 << attr)))
       return GL_TRUE;
 
-   if (key->varying_vp_inputs & VERT_BIT_GENERIC(attr))
+   if (key->varying_vp_inputs & VERT_BIT_MAT(attr))
       return GL_TRUE;
 
    if (ctx->Light.Material.Attrib[attr][0] != 0.0F)
@@ -851,7 +851,8 @@ static void set_material_flags( struct tnl_program *p )
 	 p->color_materials = p->state->light_color_material_mask;
    }
 
-   p->materials |= (p->state->varying_vp_inputs >> VERT_ATTRIB_GENERIC0);
+   p->materials |= ((p->state->varying_vp_inputs & VERT_BIT_MAT_ALL)
+                    >> VERT_ATTRIB_MAT(0));
 }
 
 
@@ -866,7 +867,7 @@ static struct ureg get_material( struct tnl_program *p, GLuint side,
       /* Put material values in the GENERIC slots -- they are not used
        * for anything in fixed function mode.
        */
-      return register_input( p, attrib + VERT_ATTRIB_GENERIC0 );
+      return register_input( p, VERT_ATTRIB_MAT(attrib) );
    }
    else
       return register_param3( p, STATE_MATERIAL, side, property );
