@@ -609,6 +609,16 @@
     <ClCompile Include="src\type1\t1afm.c" />
     <ClCompile Include="src\psaux\t1cmap.c" />
     <ClCompile Include="src\psaux\t1decode.c" />
+    <ClCompile Include="src\psaux\psft.c" />
+    <ClCompile Include="src\psaux\cffdecode.c" />
+    <ClCompile Include="src\psaux\psfont.c" />
+    <ClCompile Include="src\psaux\psintrp.c" />
+    <ClCompile Include="src\psaux\pshints.c" />
+    <ClCompile Include="src\psaux\psarrst.c" />
+    <ClCompile Include="src\psaux\psstack.c" />
+    <ClCompile Include="src\psaux\psblues.c" />
+    <ClCompile Include="src\psaux\psread.c" />
+    <ClCompile Include="src\psaux\pserror.c" />
     <ClCompile Include="src\type1\t1driver.c" />
     <ClCompile Include="src\type1\t1gload.c" />
     <ClCompile Include="src\type1\t1load.c" />
