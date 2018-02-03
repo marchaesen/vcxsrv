@@ -1,0 +1,1484 @@
+Changes in 1.19.6.0
+-------------------
+  git updates until 3/2/2018 of the following packages
+     xserver
+     mesa
+     fontconfig
+     xkeyboard-config
+  upgraded to following packages
+     freetype 2.9
+
+- Multiwindow mode: Now do it another way to solve problem of content of windows not being updated during resizing or moving
+- Do not use a background brush when it is not needed
+- xlaunch: Also terminate vcxsrv when the remote client terminates
+- Solved problem of sending a mouse move between button down and up without the mouse being moved
+
+Changes in 1.19.5.2
+-------------------
+  git updates until 11/1/2018 of the following packages
+     xserver
+     mesa
+     fontconfig
+     pixman
+
+- Revert "Multiwindow mode: solved problem of content of windows not being updated during resizing or moving"
+- Enabled lzma compression in installer
+- Build with latest version of Visual Studio 2017 Community Edition
+
+Changes in 1.19.5.1
+-------------------
+  git updates until 27/12/2017 of the following packages
+     xserver
+     mesa
+     putty
+     fontconfig
+
+- Solved problem of right click menu immediately being close after right click
+
+Changes in 1.19.5.0
+-------------------
+  git updates until 9/12/2017 of the following packages
+     xserver
+     mesa
+     putty
+     fontconfig
+     libXau
+  upgraded to following packages
+     libXfont2-2.0.3
+     bdftopcf-1.1
+     openssl-1.1.0g
+
+- Solved problem of gl output not shown on second screen with +xinerama and -nowgl (xdmcp)
+  (wgl still has this problem)
+- Multiwindow mode: solved problem of content of windows not being updated during resizing or moving
+- Solved possible heap corruption when using multiple screens and xinerama via xdmcp
+- Solved problem of trying to connect via xdmcp when -from is given
+- Solved crash when closing native glx screen
+
+
+Changes in 1.19.3.4
+-------------------
+  git updates until 29/10/2017 of the following packages
+     xserver
+     mesa
+     putty
+     fontconfig
+     xkeyboard-config
+     libXau
+  upgraded to following packages
+     freetype-2.8.1$
+     libXfont2-2.0.2
+     zlib-1.2.11
+
+Changes in 1.19.3.3
+-------------------
+  git updates until 26/9/2017 of the following packages
+     xserver
+     mesa
+     fontconfig
+     xkeyboard-config
+
+- Added xcb-util-errors-1.0 (Used to give better error message)
+- Solved problem of menu being show under taskbar
+- Solved problem of not being able to connect via xdmcp
+  (Problem introduced in the xserver commit that changed the CARD64 type to int64_t in Xext)
+
+Changes in 1.19.3.2
+-------------------
+  git updates until 20/9/2017 of the following packages
+     xserver
+     mesa
+     fontconfig
+
+- Added menu item to move windows that are off screen back into the screen
+- Solved possible deadlock in DeleteTimerQueueTimer
+- Solved problem of window caption not shown on some multi-monitor setups
+- When xdmcp selection dialog box is active, display windows cursor on all screens
+
+Changes in 1.19.3.1
+-------------------
+  git updates until 11/9/2017 of the following packages
+     xserver
+     mesa
+     fontconfig
+
+- Solved problem of locally installed default fonts not being used/installed.
+- Added checking if all client connections are valid again when a socket error occurs
+
+Changes in 1.19.3.0
+-------------------
+  git updates until 6/9/2017 of the following packages
+     xserver
+     mesa
+     libxcb
+     libxcb/xcb-proto
+     glproto
+     libX11
+     pthreads
+     xkbcomp
+     xkeyboard-config
+     plink
+     libXdmcp
+     fontconfig
+  Upgraded to follwowing packages:
+     openssl 1.1.0f
+     freetype 2.8
+     xauth 1.0.10
+     presentproto-1.1
+
+- Do not considure 'Cannot move old log file...' as a fatal error anymore
+- Solved problem of xdmcp selection windows not always shown
+- Switch to Visual Studio 2017 for building
+- Avoid that WaitForSomething takes 100 % of the cpu
+
+Changes in 1.19.2.0
+-------------------
+  git updates until 6/3/2017 of the following packages
+     mesa
+     xserver
+     libX11
+     libXau
+     libXdmcp
+     libXext
+     libXft
+     libXinerama
+     libXmu
+     libfontenc
+     libxcb
+     libxcb/xcb-proto
+     xkbcomp
+     xkeyboard-config
+     mkfontscale
+     libxtrans
+     plink
+     fontconfig
+     pixman
+     libxtrans
+     putty
+     libXfont2
+  Upgraded to follwowing packages:
+     inputproto-2.3.2
+     libXfixes-5.0.3
+     libXrender-0.9.10
+     xproto-7.0.31
+     freetype 2.7.1
+     openssl 1.1.0c
+     zlib-1.2.10
+
+Do not use forward slash in the preferences filename. Problem reported by Tom Rake (Ticket 40)
+Solved crash in glx code Solved lock-up because of select returning 10038 error code
+
+Changes in 1.18.3.0
+-------------------
+  git updates until 27/6/2016 of the following packages
+     mesa
+     xserver
+     libxcb
+     libxcb/xcb-proto
+     xkeyboard-config
+     mkfontscale
+     libxtrans
+     plink
+     fontconfig
+
+Added -silent-dup-error option again
+
+Changes in 1.18.1.1
+-------------------
+  git updates until 14/3/2016 of the following packages
+     mesa
+     xserver
+     libX11
+     fontconfig
+
+Do not consider it a fatal error when the old log file cannot be removed.
+Solved problem of some multiwindow windows not getting a caption. (main window of iceweasal).
+
+Changes in 1.18.1.0
+-------------------
+- Update the following packages:
+     openssl-1.0.2g
+     freetype-2.6.3
+  git updates until 7/3/2016 of the following packages
+     mesa
+     xserver
+     libXExt
+     xkeyboard-config
+     putty
+     libX11
+     libXdmcp
+     libxcb-proto
+     pixman
+     xkbcomp
+For the 64-bit installer use the 64-bit registry
+Do not consider it an error anymore when multiple network interfaces are detected and -from is not specified. Just print a warning message to specify the interface in case of problems
+
+Changes in 1.17.5.1
+-------------------
+- Update the following packages:
+     openssl-1.0.2e
+     kbproto-1.0.7
+     libXaw-1.0.13
+     libXrender-0.9.9
+     libXt-1.1.5
+     xhost-1.0.7
+     xproto-7.0.28
+     font-util-1.3.1
+  git updates until 30/11/2015 of the following packages
+     mesa
+     xserver
+     fontconfig
+     libxtrans
+     libX11
+
+Changes in 1.17.5.0
+-------------------
+- Update the following packages:
+     git updates until 30/11/2015 of the following packages
+     mesa
+     xserver
+     fontconfig
+     plink
+     libxtrans
+
+Changes in 1.17.4.0
+-------------------
+- Update the following packages:
+     git updates until 19/11/2015 of the following packages
+     mesa
+     xserver
+     plink
+     libX11
+     xcb-proto
+     libxcb
+     pixman
+     fontconfig
+     xkbcomp
+     randrproto
+     libxtrans
+
+Changes in 1.17.2.0
+-------------------
+- Update the following packages:
+     git updates until 30/07/2015 of the following packages
+     mesa
+     fontconfig
+     libX11
+     libxcb
+     xcb-proto
+     pixman
+     xserver
+     xkeyboard-config
+     randrproto
+     libfontenc
+xlaunch: Make sure all output of plink is shown when the remote command shows output
+
+Changes in 1.17.0.0
+-------------------
+- Update the following packages:
+     git updates until 30/04/2015 of the following packages
+     mesa
+     libxcb
+     libxcb/xcb-proto
+     fontconfig
+     libX11
+     xserver
+     xkbcomp
+     xkeyboard-config
+     pixman
+     randrproto
+     libXdmcp
+     libXmu
+     libfontenc
+     xwininfo
+     openssl-1.0.2a
+     freetype 2.5.5
+     libXfixes-5.0
+     xcalc-1.0.6
+     xproto-7.0.27
+
+Changes in 1.16.2.0
+-------------------
+- Update the following packages:
+     git updates until 12/11/2014 of the following packages
+          mesa
+          libxcb
+          libxcb/xcb-proto
+     fontconfig
+     libX11
+     xserver
+     xkbcomp
+     xkeyboard-config
+     pixman
+     openssl-1.0.1j
+
+Changes in 1.16.1.0
+-------------------
+- Update the following packages:
+     git updates until 12/10/2014 of the following packages
+          mesa
+          libxcb
+          libxcb/xcb-proto
+          libX11
+          libXext
+          xkeyboard-config
+          xserver
+          fontconfig
+          mkfontscale
+          pixman
+          plink
+          libxtrans
+          xkeyboard-config
+     libXfont 1.5.0
+     openssl-1.0.1i
+
+Changes in 1.15.2.0
+-------------------
+- Update the following packages:
+     git updates until 5/07/2014 of the following packages
+          mesa
+          libxcb
+          xkeyboard-config
+          xserver
+          fontconfig
+          pixman
+          xwininfo
+          libX11
+          plink
+          libxcb
+          xcb-proto
+          mkfontscale
+     freetype 2.5.3
+     libXfont 1.4.8
+     openssl 1.0.1h
+
+Changes in 1.15.0.2
+-------------------
+- Update the following packages:
+     git updates until 1/05/2014 of the following packages
+          mesa
+          libxcb
+          xkeyboard-config
+          xserver
+          libxtrans
+          fontconfig
+          xcb-proto
+          pixman
+     plink revision 10184
+- Solved problem with notab and noframe styles
+
+CChanges in 1.15.0.1
+-------------------
+- Update the following packages:
+     git updates until 31/03/2014 of the following packages
+          mesa
+          libxtrans
+          fontconfig
+          xserver
+     libXfont-1.4.7
+     xproto-7.0.25
+
+Changes in 1.15.0
+-----------------
+- Update the following packages:
+     git updates until 25/03/2014 of the following packages
+          xserver
+          mesa
+          libxcb
+          xcb-proto
+          xkeyboard-config
+          randsrproto
+          fontconfig
+          libX11
+          libXext
+          xkbcomp
+          libxtrans
+- Solved problem of silent-dup-error not always being checked correctly
+- Now taskbar with notab can be specified in system.XWinrc
+- Also install a default X0.hosts file
+
+Changes in 1.14.5
+-----------------
+- Update the following packages:
+     git updates until 22/12/2013 of the following packages
+          xserver
+          mesa
+          pixman
+          mkfontscale
+          libxtrans
+          fontconfig
+          glproto
+          libX11
+          libxcb
+          xcbproto
+          xkeyboard-config
+          libXinerama
+          libXmu
+
+Changes in 1.14.4
+-----------------
+- Update the following packages:
+     git updates until 21/11/2013 of the following packages
+          xserver
+          mesa
+          pixman
+          fontconfig
+          libXau
+          xkeyboard-config
+          libxcb
+          libxcb/xcb-proto
+          libX11
+          libXdmcp
+          libXext
+          libfontenc
+          libXinerama
+          xkbcomp
+          xextproto
+          randrproto
+          glproto
+          mkfontscale
+          xwininfo
+          libXft
+          libXmu
+          libxtrans
+          mkfontscale
+     libXpm-3.5.11
+     libXaw-1.0.12
+     libXfont-1.4.6
+     libXrender-0.9.8
+     xproto-7.0.24
+     inputproto-2.3
+     xclock-1.0.7
+     xhost-1.0.6
+     zlib-1.2.8
+- Added expat-2.1.0
+- Added presentproto-1.0
+- Now compiled with Visual Studio 2013 Express Edition
+- mesa: Solved freeing of invalid pointer
+
+Changes in 1.14.3
+-----------------
+- Update the following packages:
+     git updates until 19/09/2013 of the following packages
+          xserver
+          mesa
+          pixman
+          libXmu
+          xkeyboard-config
+          libX11
+          xkbcomp
+          fontconfig
+          libxcb
+          libxcb/xcb-proto
+          libXdmcp
+          libXext
+- Now compiled with Visual Studio 2012 Express Edition
+
+Changes in 1.14.2.1
+-------------------
+- Update the following packages:
+     git updates until 26/07/2013 of the following packages
+          xserver
+          mesa
+          libxcb
+          libxcb/xcb-proto
+          fontconfig
+          libXext
+          libX11
+          libxtrans
+          xkbcomp
+          mkfontscale
+          libXmu
+     libxml 2.9.1
+- gen_gl_wrappers: now use the opengl xml specification files as input
+- Now also release 64-bit version
+
+Changes in 1.14.2.0
+-------------------
+- Update the following packages:
+     git updates until 21/06/2013 of the following packages
+          mesa
+          xkeyboard-config
+          xserver
+          pixman
+          libX11
+          mkfontscale
+          libXmu
+          xwininfo
+          fontconfig
+          libxcb
+          libxcb/xcb-proto
+          libXau
+          libfontenc
+          libXext
+          libXinerama
+          xkbcomp
+          libXdmcp
+          xrdb
+     freetype-2.5.0.1
+- wgl: do not use transparent windows for the opengl windows
+- Solved problem of logverbosity parameter not taking into account
+
+Changes in 1.13.2.0
+-------------------
+- Update the following packages:
+     git updates until 13/02/2013 of the following packages
+          mesa
+          xkeyboard-config
+          xserver
+          pixman
+          fontconfig
+          libX11
+          libXft
+          libXau
+          xkbcomp
+          mkfontscale
+          libXdmcp
+          libXmu
+          xwininfo
+          libxtrans
+          libXinerama
+          libfontenc
+          libXext
+          glproto
+          libxcb
+     cvs update until 13/02/2013 of pthreads
+     inputproto 2.2.99.1
+     bdftopcf 1.0.4
+     xcalc 1.0.5
+     openssl-1.0.1e
+     freetype-2.4.11
+
+- xlaunch: solved problem of prompt not being shown in xp
+- Use fonts.conf file in fontconfig
+- xlaunch: Use dialog for prompting for password input instead of console
+
+Changes in 1.13.1.0
+-------------------
+- Update the following packages:
+     git updates until 05/12/2012 of the following packages
+          mesa
+          xkeyboard-config
+          xserver
+          pixman
+          xkbcomp
+          libX11
+          libXdmcp
+          libxcb
+          xkeyboard-config
+          fontconfig
+
+- Solved problem of dxtn.dll not loaded anymore
+- xlaunch: Allow specifying a key file in putty format when starting a
+  remote program. When the private key is password protected a
+  terminal window will pop up where this password can be entered
+  (except when a password is specified in the xlaunch config file)
+- xlaunch: when no password specified, a password can be entered in
+  the console window that will popup when the plink asks for a password
+- Now plink is a real console application in the release build (no -console
+    option anymore)
+- Added buildscript to compile from cygwin terminal
+- plink: when writing to stderr, flush immediately so that the error
+  output is seen immediately instead of at the end of the program
+
+
+Changes in 1.13.0.0
+-------------------
+- Update the following packages:
+     git updates until 22/10/2012 of the following packages
+          mesa
+          xkeyboard-config
+          xserver
+          pixman
+          libX11
+          xwininfo
+          fontconfig
+          libXau
+          libXext
+          libxcb
+          randrproto
+- Reverted xorg commit bafbd99080be49a17be97d2cc758fbe623369945
+  Gave problems in vcsrv on multiple monitors
+- Removed printing milli-seconds in log file
+- Changed fatal error message
+- Initialize the log file a little bit earlier in the startup process
+- Too long env variables: Instead of giving a fatal error just remove
+  the env variables that are too long
+- Solved problem of finding valid open socket in case ipv6 is not installed
+  and display number -1 is passed.
+- Make sure that version info is print to log file
+
+Changes in 1.12.99.0
+-------------------
+- Update the following packages:
+     git updates until 22/8/2012 of the following packages
+          fontconfig
+          mesa
+          xkeyboard-config
+          xserver
+          pixman
+          libxcb
+          randrproto
+          libX11
+          libXext
+    zlib-1.2.7
+- Compiled the following modules as dlls:
+          zlib
+          libX11
+          libXau
+          libxcb
+          libXmu
+          libXext
+- Installer: Make installing debug version optional
+- Solved problem of using wrong name for log file when -displayfd is used
+- Fixed problem in Win32TempDir of returning NULL in case TEMP env variable
+  is not defined and TMP is
+- winProcessXEventsTimeout: improved accuracy of timeout
+- winUpdateWindowPosition: do not assume WS_EX_APPWINDOW style
+- multiwindow: do not ignore the windows key. Now the windows key can
+               be used as the meta key in emacs
+- Solved possible crash in winMultiWindowGetClassHint because second
+          string is not always null terminated
+
+Changes in 1.12.2.0
+-------------------
+- Update the following packages:
+     git updates until 15/6/2012 of the following packages
+          fontconfig
+          mesa
+          xkeyboard-config
+          xserver
+          pixman
+          libX11
+          libXau
+          libXext
+          libxcb
+          libfontenc
+          glproto
+    freetype-2.4.10
+    libXaw-1.0.11
+    openssl-1.0.1c
+- xserver: added support for -displayfd option
+- xserver: made sure that the maximum number of clients is back at 1024
+
+Changes in 1.12.0.1
+-------------------
+- Update the following packages:
+     git updates until 10/4/2012 of the following packages
+          fontconfig
+          mesa
+          xkeyboard-config
+          xserver
+          pixman
+     openssl-1.0.1
+     bigreqsproto-1.1.2
+     fontsproto-2.1.2
+     recordproto-1.14.2
+     scrnsaverproto-1.2.2
+     xcmiscproto-1.2.2
+     libXt-1.1.3
+     xhost-1.0.5
+     kbproto-1.0.6
+     libXrender-0.9.7
+     libxkbfile-1.0.8
+     freetype-2.4.9
+     libXaw-1.0.10
+     libXpm-3.5.10
+     xproto-7.0.23
+
+- Solved problem when specifying -fullscreen on command line because default
+  resizing behaviour was changed to resize (which is not allowed in
+  fullscreen)
+
+Changes in 1.12.0.0
+-------------------
+- Update the following packages:
+     git updates until 30/3/2012 of the following packages
+          mesa
+          xserver
+          libxcb
+          libX11
+          pixman
+          xkeyboard-config
+          fontconfig
+          mkfontscale
+          xkbcomp
+          mesa
+          libXau
+          libXdmcp
+          libXext
+          libXft
+          libXinerama
+          libXmu
+     font-util-1.3.0
+     xclock-1.0.6
+     libXfont-1.4.5
+     inputproto-2.2
+     freetype-2.4.9
+
+- Remove unused WindowExposuresProcPtr storage in screen privates
+- Return error when bitsperpixel is less then 24
+- Added taskbar grouping for windows 7
+- Solved possible crashes when drawable cannot be created.
+
+
+Changes in 1.11.4.0
+-------------------
+- Update the following packages:
+     git updates until 30/1/2012 of the following packages
+          mesa
+          xserver
+          libxcb
+          libX11
+          pixman
+          xkeyboard-config
+          xwininfo
+          mkfontscale
+          libxtrans
+          libXdmcp
+     plink svn update until 30/1/2012
+     inputproto-2.1.99.5
+     xf86bigfontproto-1.2.0
+     openssl-1.0.0g
+- Added xhost-1.0.4 application
+- Added xauth-1.0.6 application
+- Implemented Implemented  prgrbs ungrab clsgrb and prwins keyboard actions
+- Enable the keyboard options grab:break_actions by default
+- Enabled XFree86 BigFont extension
+- Solved possible crash in multiwindow mode
+- glx: added safety against the use of a null pointer
+
+Changes in 1.11.3.0
+-------------------
+- Update the following packages:
+     git updates until 17/12/2011 of the following packages
+          mesa
+          xserver
+          libxtrans
+          libX11
+          pixman
+          libxcb
+          glproto
+          xkeyboard-config
+
+- Added -parentprocessid command line option
+
+Changes in 1.11.2.0
+-------------------
+- Update the following packages:
+     git updates until 18/11/2011 of the following packages
+          mesa
+          xserver
+          pixman
+          libxcb
+          libX11
+          libXext
+          xkeyboard-config
+          libXmu
+          libxtrans
+          libXdmcp
+          libXau
+          libXft
+          libXinerama
+          libfontenc
+          xwininfo
+          libXmu
+          mkfontscale
+          fontconfig
+     freetype 2.4.8
+     openssl-1.0.0e
+     inputproto-2.1.99.1
+
+Changes in 1.11.0.0
+-------------------
+- Update the following packages:
+     git updates until 5/9/2011 of the following packages
+          mesa
+          xserver
+          pixman
+          libxcb
+          libX11
+          libXext
+          xkeyboard-config
+          randrproto
+          xwininfo
+          libXmu
+     libXfont-1.4.4
+     freetype 2.4.6
+- Installer: installation of fonts is optional now
+- xserver: Use AllocDevicePair for create the mouse and keyboard devices
+- xserver: Solved problem of window not taking the default window position when
+           created.
+
+Changes in 1.10.3.0
+-------------------
+- Update the following packages:
+     git updates until 18/7/2011 of the following packages
+          mesa
+          xserver
+          pixman
+          libX11
+     freetype 2.4.5
+     inputproto-2.0.2
+     xproto-7.0.22
+     resourceproto-1.2.0
+     pthreads cvs version until 18/7/2011
+
+- Fixed regression in wgl implementation in multi-window mode
+
+Changes in 1.10.3.0
+-------------------
+- Update the following packages:
+     git updates until 11/7/2011 of the following packages
+          mesa
+          xserver
+          pixman
+          mkfontscale
+          xkeyboard-config
+          libX11
+          libXext
+          libXmu
+          xkbcomp
+          libXdmcp
+          libxtrans
+          x11proto
+          fontconfig
+          xwininfo
+- Increased number of clients to 1024
+- Also show the cursor in the main window when the xdmcp host selection dialog is shown
+
+Changes in 1.10.1.1
+-------------------
+- Update the following packages:
+     glproto git update until 24/5/2011
+     libfontenc git update until 24/5/2011
+     libxcb git update until 24/5/2011
+     pixman git update until 24/5/2011
+     xkeyboard-config git update until 24/5/2011
+     mesa git update until 24/5/2011
+     xserver git update until 24/5/2011
+     xcb-proto git update until 24/5/2011
+     mkfontscale git update until 24/5/2011
+- xkeyboard-config: Solved problem with Alt Gr key on some keyboards (e.g. belgian)
+
+
+Changes in 1.10.1.0
+-------------------
+- Update the following packages:
+     mesa git update until 5/5/2011
+     xserver git update until 5/5/2011
+     xkeyboard-config git update until 5/5/2011
+     libxcb git update until 5/5/2011
+     xkbcomp git update until 5/5/2011
+     libXext git update until 5/5/2011
+     libXmu git update until 5/5/2011
+     libX11 git update until 5/5/2011
+     libXdmcp git update until 5/5/2011
+     xextproto git update until 5/5/2011
+     libxtrans git update until 5/5/2011
+     pixman git update until 5/5/2011
+     glproto git update until 5/5/2011
+     openssl-1.0.0d
+- wgl; Solved crash because of pointer usages after memory has been freed.
+
+
+Changes in 1.10.0.1
+-------------------
+- Update the following packages:
+     xserver git update until 29/3/2011
+     mesa git update until 29/3/2011
+     xkeyboard-config git update until 29/3/2011
+     libX11 git update until 29/3/2011
+     pixman git update until 29/3/2011
+     libxcb git update until 29/3/2011
+     fontconfig git update until 29/3/2011
+     glproto git update until 29/3/2011
+     libXau git update until 29/3/2011
+     libXft git update until 29/3/2011
+     libXmu git update until 29/3/2011
+     libfontenc git update until 29/3/2011
+     mkfontscale git update until 29/3/2011
+     randrproto git update until 29/3/2011
+     xtrans git update until 29/3/2011
+     xwininfo git update until 29/3/2011
+     xproto-7.0.21 git update until 29/3/2011
+     xineramaproto-1.2.1
+     libXt-1.1.1
+     libxkbfile-1.0.7
+     libXpm-3.5.9
+     libXfont-1.4.3
+     libXaw-1.0.9
+     bdftopcf-1.0.3
+     encodings-1.0.4
+     fixesproto-5.0
+     font-adobe-100dpi-1.0.3
+     font-adobe-75dpi-1.0.3
+     font-adobe-utopia-100dpi-1.0.4
+     font-adobe-utopia-75dpi-1.0.4
+     font-adobe-utopia-type1-1.0.4
+     font-alias-1.0.3
+     font-arabic-misc-1.0.3
+     font-bh-100dpi-1.0.3
+     font-bh-75dpi-1.0.3
+     font-bh-lucidatypewriter-100dpi-1.0.3
+     font-bh-lucidatypewriter-75dpi-1.0.3
+     font-bh-ttf-1.0.3
+     font-bh-type1-1.0.3
+     font-bitstream-100dpi-1.0.3
+     font-bitstream-75dpi-1.0.3
+     font-bitstream-speedo-1.0.2
+     font-bitstream-type1-1.0.3
+     font-cronyx-cyrillic-1.0.3
+     font-cursor-misc-1.0.3
+     font-daewoo-misc-1.0.3
+     font-dec-misc-1.0.3
+     font-ibm-type1-1.0.3
+     font-isas-misc-1.0.3
+     font-jis-misc-1.0.3
+     font-micro-misc-1.0.3
+     font-misc-cyrillic-1.0.3
+     font-misc-ethiopic-1.0.3
+     font-misc-meltho-1.0.3
+     font-misc-misc-1.1.2
+     font-mutt-misc-1.0.3
+     font-schumacher-misc-1.1.2
+     font-screen-cyrillic-1.0.4
+     font-sony-misc-1.0.3
+     font-sun-misc-1.0.3
+     font-util-1.2.0
+     font-winitzki-cyrillic-1.0.3
+     font-xfree86-type1-1.0.4
+- Added ipv6 support
+- Solved past problem in windows when used with x2goclient (with -clipboard)
+- Solved problem of GetKeyState not always returning the correct state in WM_SETFOCUS
+- Delay calling winInitializeModeKeyStates until the keyboard device has been started
+- Solved possible crash due to NULL pointer access
+
+Changes in 1.10.0.0
+-------------------
+- Update the following packages:
+     xserver git update until 8/3/2011
+     xkeyboard-config git update until 8/3/2011
+     pixman git update until 8/3/2011
+     libX11 git update until 8/3/2011
+     mesa git update until 8/3/2011
+     randrproto git update until 8/3/2011
+     Xextproto git update until 8/3/2011
+     libxcb git update until 8/3/2011
+- Solved errors when used with xmodmap
+- xlaunch:
+    . removed dependency on msxml 4.0
+      libxml2 is now used for parsing the xml input file
+    . added possibility to only map the CLIPBOARD selection to the-RECORD-extension
+      windows clipboard
+    . fixed problems when starting a client (local and remote)
+    . added option to set disable access control
+    . added option to terminate vcxsrv on server reset (xdmcp)
+- xserver: Made winOverrideStyle thread safe
+- xserver: Synchronize Xserver glx/rensize.c with mesa src/glx/compsize.c
+- native glx: Handle failure to get any fbconfigs more gracefully
+- vcxsrv: added -[no]clipboardprimary. Can be used to only map the CLIPBOARD
+          selection to the windows clipboard
+
+Changes in 1.9.4.1
+------------------
+- Update the following packages:
+     xkeyboard-config git update until 16/2/2011
+     pixman git update until 16/2/2011
+     xkbcomp git update until 16/2/2011
+     mesa git update until 16/2/2011
+- Solved problem of wrongly generated error message in vcxsrv_dbg
+- Solved problem of a window being created with an Y coordinate of 0x8000000.
+- xdmcp: Solved display problem when multiple monitor setup changes
+- When XDMCP -from is specified, only register the requested address
+- Only call XSupportsLocale in one place. Switch to a known locale when it fails
+- Type cast width to short to avoid type cast exception in debug version when width is negative.
+- multiwindow; Solved possible crash because the pixmap buffer was not
+  correct anymore after moving a window
+
+Changes in 1.9.4.0
+------------------
+- Update the following packages:
+     xserver git update until 10/2/2011
+     libXext
+     libXau
+     libX11
+     pixman
+     mesa
+     libfontenc
+     libXinerama
+- xdmcp: add host connected to in the title of the main window
+- Solved a crash in multiwindow mode due to a stack overflow (possible endless recursion)
+
+Changes in 1.9.3.1
+------------------
+- Update the following packages:
+     xserver git update until 2/2/2011
+     pixman git update until 2/2/2011
+     libX11 git update until 2/2/2011
+     xkeyboard-config git update until 2/2/2011
+     libxcb git update until 2/2/2011
+     mesa git update until 2/2/2011
+     xkbcomp git update until 2/2/2011
+     libfontenc git update until 2/2/2011
+     libXau git update until 2/2/2011
+     libXinerama git update until 2/2/2011
+     libXdmcp git update until 2/2/2011
+     plink: updated to putty revision 9080
+     freetype 2.4.4
+     openssl-1.0.0c
+     cvs update pthreads
+- Added following packages
+     xbitmaps-1.1.1
+     libXft-2.2.0
+     fontconfig-2.8.0
+     libXrender-0.9.6
+     windowswmproto-1.0.4
+- Prevent crash with remote font servers
+- Use winUpdateFBPointer() in winshaddd.c rather than duplicating it inline
+- VS2008 is not actively supported anymore
+- Search for bitmaps in the current directory in stead of the HOME directory on windows
+- Search for XtErrorDB in current directory
+- added XtErrorDB file
+- Added xclock application files
+- Do not include dllmain for static library
+- Solved possible crash due to not initialised pointer
+- Use other default bitmap dir
+- Solved problem of app icon not being loaded
+- Enabled XRENDER in xclock
+- Use .Xdefaults file in current directory
+- Also install xclock and xclock-color
+- solved problem of -resize not working when window was maximised
+- Xlaunch: solved problem of Wgl setting not being saved in configuration file
+- Enabled ROOTLESS option in dix
+- Solved problem of using an unitialised variable.
+- release build: main should also pass the penv argument
+- Enabled global optimisation in release build: linker is a lot slower but it should give better performance
+- Added host selection menu in case -broadcast is given on the command line
+
+Changes in 1.9.3.0
+------------------
+- Update the following packages:
+     xserver git update until 9/1/2011
+     pixman git update until 9/1/2011
+     libX11 git update until 9/1/2011
+     libXext git update until 9/1/2011
+     xkeyboard-config git update until 9/1/2011
+     libxcb git update until 9/1/2011
+     libfontenc update until 9/1/2011
+     xextproto git update until 9/1/2011
+     libXdmcp git update until 9/1/2011
+     randrproto git update until 9/1/2011
+     mesa git update until 9/1/2011
+     bigreqsproto-1.1.1
+     compositeproto-0.4.2
+     damageproto-1.2.1
+     fixesproto-4.1.2
+     fontsproto-2.1.1
+     inputproto-2.0.1
+     randrproto-1.3.2
+     recordproto-1.14.1
+     scrnsaverproto-1.2.1
+     xcmiscproto-1.2.1
+     xproto-7.0.20
+     xtrans 1.2.6
+     xcalc-1.0.4.1
+
+- updated to 9025 of putty
+- Added dxtn.dll (compression functions used in mesa)
+- mesa: solved opengl problem whan opengl is enabled in java
+
+Changes in 1.9.2.0
+------------------
+- Update the following packages:
+     xserver git update until 4/11/2010
+     libxcb git update until 4/11/2010
+     libfontenc git update until 4/11/2010
+     pixman git update until 4/11/2010
+     xcb-proto git update until 4/11/2010
+     libX11 git update until 4/11/2010
+     libXdmcp git update until 4/11/2010
+     xkbcomp git update until 4/11/2010
+- Fixed regression in libxcb introduced in 1.9.0.0
+- Give clipboard window a name
+
+Changes in 1.9.0.902
+--------------------
+- Update the following packages:
+     xserver git update until 18/10/2010
+     xkeyboard-config git update until 18/10/2010
+     pixman git update until 18/10/2010
+     libX11 git update until 18/10/2010
+     libXau git update until 18/10/2010
+     libXinerama git update until 18/10/2010
+     glproto-1.4.12
+     kbproto-1.0.5
+     renderproto-0.11.1
+     xclock-1.0.5
+     xextproto-7.1.2
+     xproto-7.0.18
+     xwininfo-1.1.0
+     font-mutt-misc-1.0.2
+     font-sun-misc-1.0.2
+- Cleaned ddraw code and solved problem of screen disappearing when monitor setup changes
+- Solved problem when having multiple netword cards
+- multiwindow: only make the window visible when it is not inputonly
+- Update gl.spec
+
+Changes in 1.9.0.2
+------------------
+- Update the following packages:
+     xserver git update until 21/9/2010
+     pixman git update until 21/9/2010
+     libX11 git update until 21/9/2010
+- Solved a number of problems with native opengl mode (-wgl)
+- Native opengl: updated to the latest opengl spec files
+- glx: synchronised with version of mesa currently used
+- Implemented smart schedule timer
+- Solved possible lockup when closing down
+
+Changes in 1.9.0.1
+------------------
+- Update the following packages:
+     xserver git update until 11/9/2010
+     pixman git update until 11/9/2010
+     libX11 git update until 11/9/2010
+- Solved regression swrast_dri.dll not working anymore
+- xlaunch: Make sure xdmcp is never selected in multiwindow mode
+
+Changes in 1.9.0.0
+------------------
+- Update the following packages:
+     xserver git update until 4/9/2010
+     xkeyboard-config
+     libX11
+     pixman
+     libxcb
+     xkeyboard-config
+- synchronised glx with mesa version
+- make sure process exits when clipboard thread or multiwindow thread closes
+- added support for some multimedia keys
+
+Changes in 1.8.99.906
+---------------------
+- Update the following packages:
+     mesa-7.8.2
+     freetype 2.4.2
+     libX11 git update until 20/8/2010
+     libXdmcp git update until 20/8/2010
+     libXext git update until 20/8/2010
+     libXau
+     pixman
+     libxcb git update until 20/8/2010
+     xserver git update until 20/8/2010
+     xkeyboard-config git update until 20/8/2010
+     libXinerama git update until 20/8/2010
+- Fix a GDI bitmap resource leak of window icons
+- Internal WM workaround for Java AWT bug
+- Add a keycode mapping for VK_OEM_8 which can be issued by Canadian Multilingual
+  Standard layout
+- Update mapping for Canadian keyboard layouts
+  0x00000c0c "Canadian French (legacy)" => layout ca variant fr-legacy
+  0x00001009 "Canadian French" => layout ca variant fr
+  0x00011009 "Canadian Multilingual Standard" => layout ca variant multix
+- Cleanup in rootless code
+- xkbcomp: avoid needless recompilation when switching between debug and release
+- fixed wrong library name for freetype library
+
+
+Changes in 1.8.99.904
+---------------------
+- Update the following packages:
+     libXfont-1.4.2
+     libX11 git update until 11/7/2010
+     libXext git update until 11/7/2010
+     libxcb git update until 11/7/2010
+     xserver git update until 11/7/2010
+     xkeyboard-config git update until 11/7/2010
+     libXinerama git update until 11/7/2010
+- Solved possible dead-lock when exiting vcxsrv (when x-selection active)
+- Solved possible crash in _XReadEvents function
+
+Changes in 1.8.99.901
+---------------------
+- Update the following packages:
+     openssl-1.0.0a
+     mesa-7.8.1
+     xserver git update until 17/6/2010
+     libxcb git update until 17/6/2010
+     libXext git update until 17/6/2010
+     libX11 git update until 17/6/2010
+     xkeyboard-config git update until 17/6/2010
+
+Changes in 1.8.1
+----------------
+- Update the following packages:
+     xserver git update until 12/5/2010 (1.8.1)
+     Updated to xproto-7.0.17
+     xkeyboard-config git update until 17/5/2010
+     libxcb git update until 17/5/2010
+     Made it possible to compile with VS2010
+
+Changes in 1.8.0
+----------------
+- Update the following packages:
+     pixman-0.18.0
+     xorg-server-1.8.0
+     xkeyboard-config git update till 1/4/2010
+     mesa 7.8
+     freetype-2.3.12
+     openssl 1.0.0
+
+Changes in 1.7.99.902
+---------------------
+- Update the following packages:
+         pixman-0.17.10
+         xserver git update till 16/3/2010
+         xkeyboard-config git update till 16/3/2010
+         mesa 7.7
+         libXt-1.0.8
+- Added terminus-font-4.30
+- libwinmain: Make sure that control C only kills the process when a new console is created.
+- Solved problem when path environment variable was larger then 1024 bytes
+- Solved possible crash of accessing a null pointer
+- Enabled XCSECURITY
+- Solved 'ceil' undefined warning
+- Solved '_XSERVTransWSAStartup' undefined warning
+- Solved problem of some windows not being sizeable in multiwindow mode
+
+Changes in 1.7.99.901
+---------------------
+- Update the following packages:
+         pixman-0.17.6
+         xorg-server-1.7.99.901
+         xserver git update till 15/2/2010
+- Solved .xlaunch file extension registry problem in vista
+- Added opengl option in xlaunch
+- Added showin of log file in menu
+- Removed NATIVEGDI compilation (is currently not working)
+- Solved problem of certain windows not being sizeable in multiwindow mode
+- Also handle MappingNotify event in clipboard thread
+
+
+Changes in 1.7.99.6
+-------------------
+- Update the following packages:
+         libX11-1.3.3
+         pixman-0.17.4
+         glproto-1.4.11
+         xserver git update till 25/1/2010
+- Added patches for bug http://bugs.freedesktop.org/show_bug.cgi?id=20500
+  0001-dix-EventToCore-needs-to-copy-the-root-window-too.patch
+  0001-Re-enable-the-RECORD-extension.patch
+- Solved a possible crash in closing down the screen due to use on an uninitialised pointer.
+- Solved problem in drawing of wide lines. Occured when plotting in octave.
+
+
+Changes in 1.7.99.5
+-------------------
+- Update the following packages:
+         freetype-2.3.11
+         mesa_7_6_1_rc1
+         xserver git update till 5/1/2010
+- Fixed problem of clipboard client being shutdown when connecting through xdmcp.
+- Always use screen 0 to start windows clients.
+- Multiwindow: solved problem of window not having the correct size.
+
+
+Changes in 1.7.99.4
+-------------------
+- Update the following packages:
+         libxcb-1.5
+         xcb-proto-1.6
+         xserver git update till 17/12/2009
+- Use swrast_dri_dbg.dll when running vcxsrv_dbg.exe
+- Added native opengl with the -wgl option
+
+
+Changes in 1.7.99.3
+-------------------
+- Update the following packages:
+         pixman-0.17.2
+
+- Switch to the git master branch for xserver
+- Added cygwin-aiglx branch of git://anongit.freedesktop.org/~jturney/xserver
+  to have native opengl rendering. Only working with -multiwindow and
+  when export LIBGL_ALWAYS_INDIRECT
+- vcxsrv.exe: When the first parameter is -console, the output is also written
+  to the console.
+- xinerama: solved endless loop problem when moving the cursor from one screen to there
+  other.
+- vcxsrv.exe: Set the current directory always to the directory where vcxsrv.exe is
+  installed, so the fonts are always found.
+
+Changes in 1.7.99.2
+-------------------
+- Added the following packages:
+        xwininfo-1.0.5
+        xcalc-1.0.2
+        xclock-1.0.4
+        libXmu-1.0.5
+        libXaw-1.0.7
+        libXpm-3.5.8
+        libXext-1.1.1
+        libXt-1.0.7
+- Solved some building problems in the makefiles when building from cmd.exe
+- Do not open command window when running release build
+- Solved incorrect behaviour of writev in case the first send succeeded and the second returned with an error.
+- Solved crash in dix\colormap.c because wrong map was adjusted when the number of visuals was reallocated.
+
+Changes in 1.7.99.1
+-------------------
+- Updated to the following packages
+        libX11-1.3.2
+        xorg-server-1.7.99.1
+        xtrans-1.2.5
+        font-util-1.1.1
+- Now complete locale directory is build and packaged.
+- solved possible problem in xcb: Make sure the winsock library
+  and pthread library are initialised.
+- Solved problem of local fonts not being registered. This caused certain
+  application not to start (like xcalc)
+
+Changes in 1.7.0.1
+------------------
+- Updated to the following packages
+        encodings-1.0.3
+        font-adobe-75dpi-1.0.1
+        font-adobe-100dpi-1.0.1
+        font-adobe-utopia-75dpi-1.0.2
+        font-adobe-utopia-100dpi-1.0.2
+        font-adobe-utopia-type1-1.0.2
+        font-alias-1.0.2
+        font-arabic-misc-1.0.1
+        font-bh-75dpi-1.0.1
+        font-bh-100dpi-1.0.1
+        font-bh-lucidatypewriter-75dpi-1.0.1
+        font-bh-lucidatypewriter-100dpi-1.0.1
+        font-bh-ttf-1.0.1
+        font-bh-type1-1.0.1
+        font-bitstream-75dpi-1.0.1
+        font-bitstream-100dpi-1.0.1
+        font-bitstream-speedo-1.0.1
+        font-bitstream-type1-1.0.1
+        font-cronyx-cyrillic-1.0.1
+        font-cursor-misc-1.0.1
+        font-daewoo-misc-1.0.1
+        font-dec-misc-1.0.1
+        font-ibm-type1-1.0.1
+        font-isas-misc-1.0.1
+        font-jis-misc-1.0.1
+        font-micro-misc-1.0.1
+        font-misc-cyrillic-1.0.1
+        font-misc-ethiopic-1.0.1
+        font-misc-meltho-1.0.1
+        font-misc-misc-1.1.0
+        font-mutt-misc-1.0.1
+        font-schumacher-misc-1.1.0
+        font-screen-cyrillic-1.0.2
+        font-sony-misc-1.0.1
+        font-sun-misc-1.0.1
+        font-util-1.1.0
+        font-winitzki-cyrillic-1.0.1
+        font-xfree86-type1-1.0.2
+        libXfont-1.4.1
+        mkfontscale-1.0.7
+- Added mesa 7.6. Opengl is working now.
+- Bug fix in miClipPictureSrc function.
+
+Changes in 1.7.0
+----------------
+- Updated to the following packages:
+        fixesproto-4.1.1
+        randrproto-1.3.1
+        libxkbfile-1.0.6
+        xkeyboard-config-1.7
+        pixman-0.16.2
+        libX11-1.3
+        libXinerama-1.1
+        xkbcomp-1.1.1
+        recordproto-1.14
+        xineramaproto-1.2
+        inputproto-2.0
+        compositeproto-0.4.1
+        xorg-server-1.7.0
+- Removed most tracing in release version. Use vcxsrv_dbg when you want a log of tracing.
+- Also install xerrordb file.
+- Make sure the temporary file gets deleted after keyboard compilation.
+- Take for the log file the same verbosity as for the screen.
+- Change trace buffer from static to local to avoid problems in multithreaded tracing.
+- Print some more information in X error handler.
+- Solved run-time downcast errors in debug version.
+- Solved error: XSetWindowBorderWidth can only be called if the window class is different from InputOnly
+- Make it possible to overrule XSERVER_DTRACE in the makefiles
+- Call XSelectInput when a window is mapped and not when it is created.
+  (There seems to be windows which created and destroyed soon without being
+   mapped to real windows. This was causing some errors.)
+
+
+Changes in 1.1.2
+----------------
+- Updated to the following packages:
+        xorg-server-1.6.99.902
+        xproto-7.0.16
+        libXdmcp-1.0.3
+        bdftopcf-1.0.2
+- Solved endless looping when clipboardthread is restarted due to winioerrhandler.
+  Caused an unexpected exit of the server when the -clipboard option was specified.
+- Solved possible crash upon server restart because some global pointers
+  were not initialised back to 0
+
+Changes in 1.1.1
+----------------
+- Updated to the following packages:
+        xorg-server-1.6.99.901
+        xkeyboard-config-1.6.99
+- Enabled support for xinerama
+- Rewritten part of the clipboard code (sometimes clipboard was
+  not working as expected)
+  One problem remains (clipboard thread exiting at startup.). This
+  one is hard to solve since no known recipy to reproduce.
+- Now also install the debug version of the executable (vcxsrv_dbg).
+  This version has some more logging and error checking.
+- Solved stack corruption in QueryMonitor. Now use multimon.h
+- Bug solved in xcb_conn.c: use closesocket instead of close.
+- Also display the number of active clients in the tray icon tooltip text.
+
+Changes in 1.1.0
+----------------
+- Updated to the following packages:
+        libX11-1.2.99.901.tar.gz
+        xtrans-1.2.4.tar.gz
+        fontsproto-2.1.0.tar.gz
+        damageproto-1.2.0.tar.gz
+        xcmiscproto-1.2.0.tar.gz
+        bigreqsproto-1.1.0.tar.gz
+        scrnsaverproto-1.2.0.tar.gz
+        resourceproto-1.1.0.tar.gz
+        xextproto-7.1.1.tar.gz
+        recordproto-1.13.99.1.tar.gz
+        inputproto-1.9.99.902.tar.gz
+        font-util-1.0.2.tar.gz
+        xorg-server-1.6.99.900.tar.gz
+- Make sure clipboard thread is cleaned up correctly on error.
+  Solved clipboard thread exits causing the clipboard not to be working.
+- Solved some errors in the fonts directory due to makefile problems
+
+Changes in 1.0.2
+----------------
+
+- installer: Do not show details by default
+- xlaunch: show message box when display number is nto filled in.
+- BUG: Solved right mouse button not working in multi window mode.
+- Added plink tool in installation.
+- Xlaunch is now a windows application in stead of a console application
+
+Changes in 1.0.1
+----------------
+
+- installer: make sure the latest version of the installed MSVC run-time is used.
+- BUG: Solved mouse wheel not behaving correctly (especially when there are multiple monitors)
+- locale: swith to the version of libX11/nls/C/makefile
+- clipboard: solved paste problem from X to windows (in Vista)
+- xkbcomp/listing.c: Solved uninitialised variable error in WIN32
+- xkbdata.src/symbols/level3: Removed warning when compiling for be keyboard.
