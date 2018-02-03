@@ -96,7 +96,7 @@ _mesa_set_drawing_arrays(struct gl_context *ctx,
 extern void
 _mesa_update_array_format(struct gl_context *ctx,
                           struct gl_vertex_array_object *vao,
-                          GLuint attrib, GLint size, GLenum type,
+                          gl_vert_attrib attrib, GLint size, GLenum type,
                           GLenum format, GLboolean normalized,
                           GLboolean integer, GLboolean doubles,
                           GLuint relativeOffset);
@@ -104,7 +104,7 @@ _mesa_update_array_format(struct gl_context *ctx,
 extern void
 _mesa_enable_vertex_array_attrib(struct gl_context *ctx,
                                  struct gl_vertex_array_object *vao,
-                                 unsigned attrib);
+                                 gl_vert_attrib attrib);
 
 extern void
 _mesa_bind_vertex_buffer(struct gl_context *ctx,

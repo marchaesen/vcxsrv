@@ -41,7 +41,13 @@ option(
   'dri-drivers-path',
   type : 'string',
   value : '',
-  description : 'Location of dri drivers. Default: $libdir/dri.'
+  description : 'Location to install dri drivers. Default: $libdir/dri.'
+)
+option(
+  'dri-search-path',
+  type : 'string',
+  value : '',
+  description : 'Locations to search for dri drivers, passed as colon separated list. Default: dri-drivers-path.'
 )
 option(
   'gallium-drivers',

@@ -60,6 +60,7 @@
 #include "st_cb_program.h"
 #include "st_cb_queryobj.h"
 #include "st_cb_readpixels.h"
+#include "st_cb_semaphoreobjects.h"
 #include "st_cb_texture.h"
 #include "st_cb_xformfb.h"
 #include "st_cb_flush.h"
@@ -734,6 +735,7 @@ st_init_driver_functions(struct pipe_screen *screen,
    st_init_query_functions(functions);
    st_init_cond_render_functions(functions);
    st_init_readpixels_functions(functions);
+   st_init_semaphoreobject_functions(functions);
    st_init_texture_functions(functions);
    st_init_texture_barrier_functions(functions);
    st_init_flush_functions(screen, functions);

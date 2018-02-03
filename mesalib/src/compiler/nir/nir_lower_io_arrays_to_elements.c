@@ -346,7 +346,8 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
 }
 
 void
-nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader)
+nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
+                                             bool outputs_only)
 {
    struct hash_table *split_inputs =
       _mesa_hash_table_create(NULL, _mesa_hash_pointer,
@@ -360,19 +361,22 @@ nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader)
    lower_io_arrays_to_elements(shader, nir_var_shader_out, indirects,
                                patch_indirects, split_outputs, true);
 
-   lower_io_arrays_to_elements(shader, nir_var_shader_in, indirects,
-                               patch_indirects, split_inputs, true);
+   if (!outputs_only) {
+      lower_io_arrays_to_elements(shader, nir_var_shader_in, indirects,
+                                  patch_indirects, split_inputs, true);
 
-   /* Remove old input from the shaders inputs list */
-   struct hash_entry *entry;
-   hash_table_foreach(split_inputs, entry) {
-      nir_variable *var = (nir_variable *) entry->key;
-      exec_node_remove(&var->node);
+      /* Remove old input from the shaders inputs list */
+      struct hash_entry *entry;
+      hash_table_foreach(split_inputs, entry) {
+         nir_variable *var = (nir_variable *) entry->key;
+         exec_node_remove(&var->node);
 
-      free(entry->data);
+         free(entry->data);
+      }
    }
 
    /* Remove old output from the shaders outputs list */
+   struct hash_entry *entry;
    hash_table_foreach(split_outputs, entry) {
       nir_variable *var = (nir_variable *) entry->key;
       exec_node_remove(&var->node);

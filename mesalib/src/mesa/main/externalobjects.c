@@ -23,6 +23,8 @@
 
 #include "macros.h"
 #include "mtypes.h"
+#include "bufferobj.h"
+#include "context.h"
 #include "externalobjects.h"
 #include "teximage.h"
 #include "texobj.h"
@@ -545,22 +547,144 @@ _mesa_TextureStorageMem1DEXT(GLuint texture,
                          memory, offset, "glTextureStorageMem1DEXT");
 }
 
+/**
+ * Used as a placeholder for semaphore objects between glGenSemaphoresEXT()
+ * and glImportSemaphoreFdEXT(), so that glIsSemaphoreEXT() can work correctly.
+ */
+static struct gl_semaphore_object DummySemaphoreObject;
+
+/**
+ * Delete a semaphore object.  Called via ctx->Driver.DeleteSemaphore().
+ * Not removed from hash table here.
+ */
+void
+_mesa_delete_semaphore_object(struct gl_context *ctx,
+                              struct gl_semaphore_object *semObj)
+{
+   if (semObj != &DummySemaphoreObject)
+      free(semObj);
+}
+
+/**
+ * Initialize a semaphore object to default values.
+ */
+void
+_mesa_initialize_semaphore_object(struct gl_context *ctx,
+                                  struct gl_semaphore_object *obj,
+                                  GLuint name)
+{
+   memset(obj, 0, sizeof(struct gl_semaphore_object));
+   obj->Name = name;
+}
+
 void GLAPIENTRY
 _mesa_GenSemaphoresEXT(GLsizei n, GLuint *semaphores)
 {
+   GET_CURRENT_CONTEXT(ctx);
 
+   const char *func = "glGenSemaphoresEXT";
+
+   if (MESA_VERBOSE & (VERBOSE_API))
+      _mesa_debug(ctx, "%s(%d, %p)", func, n, semaphores);
+
+   if (!ctx->Extensions.EXT_semaphore) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
+
+   if (n < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(n < 0)", func);
+      return;
+   }
+
+   if (!semaphores)
+      return;
+
+   _mesa_HashLockMutex(ctx->Shared->SemaphoreObjects);
+   GLuint first = _mesa_HashFindFreeKeyBlock(ctx->Shared->SemaphoreObjects, n);
+   if (first) {
+      for (GLsizei i = 0; i < n; i++) {
+         semaphores[i] = first + i;
+         _mesa_HashInsertLocked(ctx->Shared->SemaphoreObjects,
+                                semaphores[i], &DummySemaphoreObject);
+      }
+   }
+
+   _mesa_HashUnlockMutex(ctx->Shared->SemaphoreObjects);
 }
 
 void GLAPIENTRY
 _mesa_DeleteSemaphoresEXT(GLsizei n, const GLuint *semaphores)
 {
+   GET_CURRENT_CONTEXT(ctx);
 
+   const char *func = "glDeleteSemaphoresEXT";
+
+   if (MESA_VERBOSE & (VERBOSE_API)) {
+      _mesa_debug(ctx, "%s(%d, %p)\n", func, n, semaphores);
+   }
+
+   if (!ctx->Extensions.EXT_semaphore) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
+
+   if (n < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(n < 0)", func);
+      return;
+   }
+
+   if (!semaphores)
+      return;
+
+   _mesa_HashLockMutex(ctx->Shared->SemaphoreObjects);
+   for (GLint i = 0; i < n; i++) {
+      if (semaphores[i] > 0) {
+         struct gl_semaphore_object *delObj
+            = _mesa_lookup_semaphore_object_locked(ctx, semaphores[i]);
+
+         if (delObj) {
+            _mesa_HashRemoveLocked(ctx->Shared->SemaphoreObjects,
+                                   semaphores[i]);
+            ctx->Driver.DeleteSemaphoreObject(ctx, delObj);
+         }
+      }
+   }
+   _mesa_HashUnlockMutex(ctx->Shared->SemaphoreObjects);
 }
 
 GLboolean GLAPIENTRY
 _mesa_IsSemaphoreEXT(GLuint semaphore)
 {
-   return GL_FALSE;
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.EXT_semaphore) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glIsSemaphoreEXT(unsupported)");
+      return GL_FALSE;
+   }
+
+   struct gl_semaphore_object *obj =
+      _mesa_lookup_semaphore_object(ctx, semaphore);
+
+   return obj ? GL_TRUE : GL_FALSE;
+}
+
+/**
+ * Helper that outputs the correct error status for parameter
+ * calls where no pnames are defined
+ */
+static void
+semaphore_parameter_stub(const char* func, GLenum pname)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.EXT_semaphore) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
+
+   /* EXT_semaphore and EXT_semaphore_fd define no parameters */
+   _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=0x%x)", func, pname);
 }
 
 void GLAPIENTRY
@@ -568,7 +692,9 @@ _mesa_SemaphoreParameterui64vEXT(GLuint semaphore,
                                  GLenum pname,
                                  const GLuint64 *params)
 {
+   const char *func = "glSemaphoreParameterui64vEXT";
 
+   semaphore_parameter_stub(func, pname);
 }
 
 void GLAPIENTRY
@@ -576,7 +702,9 @@ _mesa_GetSemaphoreParameterui64vEXT(GLuint semaphore,
                                     GLenum pname,
                                     GLuint64 *params)
 {
+   const char *func = "glGetSemaphoreParameterui64vEXT";
 
+   semaphore_parameter_stub(func, pname);
 }
 
 void GLAPIENTRY
@@ -587,7 +715,57 @@ _mesa_WaitSemaphoreEXT(GLuint semaphore,
                        const GLuint *textures,
                        const GLenum *srcLayouts)
 {
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_semaphore_object *semObj = NULL;
+   struct gl_buffer_object **bufObjs = NULL;
+   struct gl_texture_object **texObjs = NULL;
 
+   const char *func = "glWaitSemaphoreEXT";
+
+   if (!ctx->Extensions.EXT_semaphore) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
+
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
+
+   semObj = _mesa_lookup_semaphore_object(ctx, semaphore);
+   if (!semObj)
+      return;
+
+   FLUSH_VERTICES(ctx, 0);
+   FLUSH_CURRENT(ctx, 0);
+
+   bufObjs = malloc(sizeof(struct gl_buffer_object **) * numBufferBarriers);
+   if (!bufObjs) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numBufferBarriers=%u)",
+                  func, numBufferBarriers);
+      goto end;
+   }
+
+   for (unsigned i = 0; i < numBufferBarriers; i++) {
+      bufObjs[i] = _mesa_lookup_bufferobj(ctx, buffers[i]);
+   }
+
+   texObjs = malloc(sizeof(struct gl_texture_object **) * numTextureBarriers);
+   if (!texObjs) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numTextureBarriers=%u)",
+                  func, numTextureBarriers);
+      goto end;
+   }
+
+   for (unsigned i = 0; i < numTextureBarriers; i++) {
+      texObjs[i] = _mesa_lookup_texture(ctx, textures[i]);
+   }
+
+   ctx->Driver.ServerWaitSemaphoreObject(ctx, semObj,
+                                         numBufferBarriers, bufObjs,
+                                         numTextureBarriers, texObjs,
+                                         srcLayouts);
+
+end:
+   free(bufObjs);
+   free(texObjs);
 }
 
 void GLAPIENTRY
@@ -598,7 +776,57 @@ _mesa_SignalSemaphoreEXT(GLuint semaphore,
                          const GLuint *textures,
                          const GLenum *dstLayouts)
 {
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_semaphore_object *semObj = NULL;
+   struct gl_buffer_object **bufObjs = NULL;
+   struct gl_texture_object **texObjs = NULL;
 
+   const char *func = "glSignalSemaphoreEXT";
+
+   if (!ctx->Extensions.EXT_semaphore) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
+
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
+
+   semObj = _mesa_lookup_semaphore_object(ctx, semaphore);
+   if (!semObj)
+      return;
+
+   FLUSH_VERTICES(ctx, 0);
+   FLUSH_CURRENT(ctx, 0);
+
+   bufObjs = malloc(sizeof(struct gl_buffer_object **) * numBufferBarriers);
+   if (!bufObjs) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numBufferBarriers=%u)",
+                  func, numBufferBarriers);
+      goto end;
+   }
+
+   for (unsigned i = 0; i < numBufferBarriers; i++) {
+      bufObjs[i] = _mesa_lookup_bufferobj(ctx, buffers[i]);
+   }
+
+   texObjs = malloc(sizeof(struct gl_texture_object **) * numTextureBarriers);
+   if (!texObjs) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numTextureBarriers=%u)",
+                  func, numTextureBarriers);
+      goto end;
+   }
+
+   for (unsigned i = 0; i < numTextureBarriers; i++) {
+      texObjs[i] = _mesa_lookup_texture(ctx, textures[i]);
+   }
+
+   ctx->Driver.ServerSignalSemaphoreObject(ctx, semObj,
+                                           numBufferBarriers, bufObjs,
+                                           numTextureBarriers, texObjs,
+                                           dstLayouts);
+
+end:
+   free(bufObjs);
+   free(texObjs);
 }
 
 void GLAPIENTRY
@@ -617,7 +845,7 @@ _mesa_ImportMemoryFdEXT(GLuint memory,
    }
 
    if (handleType != GL_HANDLE_TYPE_OPAQUE_FD_EXT) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(handleType=%u)", func, handleType);
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(handleType=%u)", func, handleType);
       return;
    }
 
@@ -634,5 +862,33 @@ _mesa_ImportSemaphoreFdEXT(GLuint semaphore,
                            GLenum handleType,
                            GLint fd)
 {
+   GET_CURRENT_CONTEXT(ctx);
 
+   const char *func = "glImportSemaphoreFdEXT";
+
+   if (!ctx->Extensions.EXT_semaphore_fd) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
+      return;
+   }
+
+   if (handleType != GL_HANDLE_TYPE_OPAQUE_FD_EXT) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(handleType=%u)", func, handleType);
+      return;
+   }
+
+   struct gl_semaphore_object *semObj = _mesa_lookup_semaphore_object(ctx,
+                                                                      semaphore);
+   if (!semObj)
+      return;
+
+   if (semObj == &DummySemaphoreObject) {
+      semObj = ctx->Driver.NewSemaphoreObject(ctx, semaphore);
+      if (!semObj) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
+         return;
+      }
+      _mesa_HashInsert(ctx->Shared->SemaphoreObjects, semaphore, semObj);
+   }
+
+   ctx->Driver.ImportSemaphoreFd(ctx, semObj, fd);
 }

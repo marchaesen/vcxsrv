@@ -89,6 +89,7 @@ xshmfence_dep = dependency('xshmfence', version: '>= 1.1', required: false)
 
 pixman_dep = dependency('pixman-1')
 libbsd_dep = dependency('libbsd', required: false)
+xkbcomp_dep = dependency('xkbcomp', required: false)
 xkbfile_dep = dependency('xkbfile')
 xfont2_dep = dependency('xfont2', version: '>= 2.0')
 nettle_dep = dependency('nettle')
@@ -99,17 +100,23 @@ dbus_dep = dependency('dbus-1', version: '>= 1.0', required: dbus_required)
 # Resolve default values of some options
 xkb_dir = get_option('xkb_dir')
 if xkb_dir == ''
-    xkb_dir = join_paths(get_option('prefix'), 'share/X11/xkb')
+    xkb_dir = xkbcomp_dep.get_pkgconfig_variable('xkbconfigdir')
+    if xkb_dir == ''
+        xkb_dir = join_paths(get_option('prefix'), 'share/X11/xkb')
+    endif
 endif
 
 xkb_output_dir = get_option('xkb_output_dir')
 if xkb_output_dir == ''
-    xkb_output_dir = join_paths(get_option('prefix'), 'share/X11/xkb/compiled')
+    xkb_output_dir = join_paths(xkb_dir, 'compiled')
 endif
 
 xkb_bin_dir = get_option('xkb_bin_dir')
 if xkb_bin_dir == ''
-    xkb_bin_dir = join_paths(get_option('prefix'), get_option('bindir'))
+    xkb_bin_dir = xkbcomp_dep.get_pkgconfig_variable('bindir')
+    if xkb_bin_dir == ''
+        xkb_bin_dir = join_paths(get_option('prefix'), get_option('bindir'))
+    endif
 endif
 
 hal_option = get_option('hal')

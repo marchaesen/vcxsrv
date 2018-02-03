@@ -535,6 +535,8 @@ files_libmesa_gallium = files(
   'state_tracker/st_cb_readpixels.h',
   'state_tracker/st_cb_strings.c',
   'state_tracker/st_cb_strings.h',
+  'state_tracker/st_cb_semaphoreobjects.c',
+  'state_tracker/st_cb_semaphoreobjects.h',
   'state_tracker/st_cb_syncobj.c',
   'state_tracker/st_cb_syncobj.h',
   'state_tracker/st_cb_texturebarrier.c',

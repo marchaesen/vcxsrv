@@ -103,8 +103,8 @@ dnl LLVM versions
 LLVM_REQUIRED_GALLIUM=3.3.0
 LLVM_REQUIRED_OPENCL=3.9.0
 LLVM_REQUIRED_R600=3.9.0
-LLVM_REQUIRED_RADEONSI=3.9.0
-LLVM_REQUIRED_RADV=3.9.0
+LLVM_REQUIRED_RADEONSI=4.0.0
+LLVM_REQUIRED_RADV=4.0.0
 LLVM_REQUIRED_SWR=3.9.0
 
 dnl Check for progs
@@ -684,6 +684,19 @@ AC_LINK_IFELSE(
     [have_ld_dynamic_list=no; AC_MSG_RESULT(no)])
 LDFLAGS=$save_LDFLAGS
 AM_CONDITIONAL(HAVE_LD_DYNAMIC_LIST, test "$have_ld_dynamic_list" = "yes")
+
+dnl
+dnl OSX linker does not support build-id
+dnl
+case "$host_os" in
+darwin*)
+    LD_BUILD_ID=""
+    ;;
+*)
+    LD_BUILD_ID="-Wl,--build-id=sha1"
+    ;;
+esac
+AC_SUBST([LD_BUILD_ID])
 
 dnl
 dnl compatibility symlinks
@@ -1270,10 +1283,10 @@ AC_ARG_ENABLE([xa],
     [enable_xa=no])
 AC_ARG_ENABLE([gbm],
    [AS_HELP_STRING([--enable-gbm],
-         [enable gbm library @<:@default=yes except cygwin@:>@])],
+         [enable gbm library @<:@default=yes except cygwin and macOS@:>@])],
    [enable_gbm="$enableval"],
    [case "$host_os" in
-       cygwin*)
+       cygwin* | darwin*)
           enable_gbm=no
           ;;
        *)

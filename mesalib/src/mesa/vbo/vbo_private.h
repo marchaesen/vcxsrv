@@ -45,10 +45,6 @@ struct _mesa_prim;
 struct vbo_context {
    struct gl_vertex_array currval[VBO_ATTRIB_MAX];
 
-   /** Map VERT_ATTRIB_x to VBO_ATTRIB_y */
-   GLubyte map_vp_none[VERT_ATTRIB_MAX];
-   GLubyte map_vp_arb[VERT_ATTRIB_MAX];
-
    struct vbo_exec_context exec;
    struct vbo_save_context save;
 
@@ -79,7 +75,8 @@ vbo_context(struct gl_context *ctx)
  */
 enum vp_mode {
    VP_FF,    /**< legacy / fixed function */
-   VP_SHADER /**< ARB vertex program or GLSL vertex shader */
+   VP_SHADER, /**< ARB vertex program or GLSL vertex shader */
+   VP_MODE_MAX /**< for sizing arrays */
 };
 
 
@@ -96,6 +93,15 @@ get_vp_mode( struct gl_context *ctx )
    else
       return VP_SHADER;
 }
+
+
+/**
+ * Array to apply the fixed function material aliasing map to
+ * an attribute value used in vbo processing inputs to an attribute
+ * as they appear in the vao.
+ */
+extern const GLubyte
+_vbo_attribute_alias_map[VP_MODE_MAX][VERT_ATTRIB_MAX];
 
 
 /**

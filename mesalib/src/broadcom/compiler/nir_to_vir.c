@@ -528,7 +528,9 @@ ntq_emit_comparison(struct v3d_compile *c, struct qreg *dest,
                     nir_alu_instr *sel_instr)
 {
         struct qreg src0 = ntq_get_alu_src(c, compare_instr, 0);
-        struct qreg src1 = ntq_get_alu_src(c, compare_instr, 1);
+        struct qreg src1;
+        if (nir_op_infos[compare_instr->op].num_inputs > 1)
+                src1 = ntq_get_alu_src(c, compare_instr, 1);
         bool cond_invert = false;
 
         switch (compare_instr->op) {
@@ -1874,6 +1876,7 @@ nir_to_vir(struct v3d_compile *c)
 }
 
 const nir_shader_compiler_options v3d_nir_options = {
+        .lower_all_io_to_temps = true,
         .lower_extract_byte = true,
         .lower_extract_word = true,
         .lower_bitfield_insert = true,

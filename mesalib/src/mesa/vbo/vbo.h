@@ -119,6 +119,43 @@ void
 vbo_save_EndCallList(struct gl_context *ctx);
 
 
+/**
+ * For indirect array drawing:
+ *
+ *    typedef struct {
+ *       GLuint count;
+ *       GLuint primCount;
+ *       GLuint first;
+ *       GLuint baseInstance; // in GL 4.2 and later, must be zero otherwise
+ *    } DrawArraysIndirectCommand;
+ *
+ * For indirect indexed drawing:
+ *
+ *    typedef struct {
+ *       GLuint count;
+ *       GLuint primCount;
+ *       GLuint firstIndex;
+ *       GLint  baseVertex;
+ *       GLuint baseInstance; // in GL 4.2 and later, must be zero otherwise
+ *    } DrawElementsIndirectCommand;
+ */
+
+
+/**
+ * Draw a number of primitives.
+ * \param prims  array [nr_prims] describing what to draw (prim type,
+ *               vertex count, first index, instance count, etc).
+ * \param ib  index buffer for indexed drawing, NULL for array drawing
+ * \param index_bounds_valid  are min_index and max_index valid?
+ * \param min_index  lowest vertex index used
+ * \param max_index  highest vertex index used
+ * \param tfb_vertcount  describes TFB output, or NULL
+ * \param stream  If called via DrawTransformFeedback, specifies the vertex
+ *                stream buffer from which to get the vertex count
+ * \param indirect  If any prims are indirect, this specifies the buffer
+ *                  to find the "DrawArrays/ElementsIndirectCommand" data.
+ *                  This may be deprecated in the future
+ */
 typedef void (*vbo_draw_func)(struct gl_context *ctx,
                               const struct _mesa_prim *prims,
                               GLuint nr_prims,
@@ -131,6 +168,22 @@ typedef void (*vbo_draw_func)(struct gl_context *ctx,
                               struct gl_buffer_object *indirect);
 
 
+/**
+ * Draw a primitive, getting the vertex count, instance count, start
+ * vertex, etc. from a buffer object.
+ * \param mode  GL_POINTS, GL_LINES, GL_TRIANGLE_STRIP, etc.
+ * \param indirect_data  buffer to get "DrawArrays/ElementsIndirectCommand" data
+ * \param indirect_offset  offset of first primitive in indrect_data buffer
+ * \param draw_count  number of primitives to draw
+ * \param stride  stride, in bytes, between "DrawArrays/ElementsIndirectCommand"
+ *                objects
+ * \param indirect_draw_count_buffer  if non-NULL specifies a buffer to get the
+ *                                    real draw_count value.  Used for
+ *                                    GL_ARB_indirect_parameters.
+ * \param indirect_draw_count_offset  offset to the draw_count value in
+ *                                    indirect_draw_count_buffer
+ * \param ib  index buffer for indexed drawing, NULL otherwise.
+ */
 typedef void (*vbo_indirect_draw_func)(
    struct gl_context *ctx,
    GLuint mode,
@@ -138,8 +191,8 @@ typedef void (*vbo_indirect_draw_func)(
    GLsizeiptr indirect_offset,
    unsigned draw_count,
    unsigned stride,
-   struct gl_buffer_object *indirect_params,
-   GLsizeiptr indirect_params_offset,
+   struct gl_buffer_object *indirect_draw_count_buffer,
+   GLsizeiptr indirect_draw_count_offset,
    const struct _mesa_index_buffer *ib);
 
 

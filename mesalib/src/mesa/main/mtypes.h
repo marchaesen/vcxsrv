@@ -843,8 +843,8 @@ struct gl_point_attrib
 struct gl_polygon_attrib
 {
    GLenum16 FrontFace;		/**< Either GL_CW or GL_CCW */
-   GLenum16 FrontMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
-   GLenum16 BackMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
+   GLenum FrontMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
+   GLenum BackMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
    GLboolean CullFlag;		/**< Culling on/off flag */
    GLboolean SmoothFlag;	/**< True if GL_POLYGON_SMOOTH is enabled */
    GLboolean StippleFlag;	/**< True if GL_POLYGON_STIPPLE is enabled */
@@ -1513,6 +1513,21 @@ struct gl_vertex_array
 
 
 /**
+ * Enum for defining the mapping for the position/generic0 attribute.
+ *
+ * Do not change the order of the values as these are used as
+ * array indices.
+ */
+typedef enum
+{
+   ATTRIBUTE_MAP_MODE_IDENTITY, /**< 1:1 mapping */
+   ATTRIBUTE_MAP_MODE_POSITION, /**< get position and generic0 from position */
+   ATTRIBUTE_MAP_MODE_GENERIC0, /**< get position and generic0 from generic0 */
+   ATTRIBUTE_MAP_MODE_MAX       /**< for sizing arrays */
+} gl_attribute_map_mode;
+
+
+/**
  * Attributes to describe a vertex array.
  *
  * Contains the size, type, format and normalization flag,
@@ -1597,6 +1612,9 @@ struct gl_vertex_array_object
 
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
    GLbitfield _Enabled;
+
+   /** Denotes the way the position/generic0 attribute is mapped */
+   gl_attribute_map_mode _AttributeMapMode;
 
    /** Mask of VERT_BIT_* values indicating changed/dirty arrays */
    GLbitfield NewArrays;
@@ -3339,6 +3357,9 @@ struct gl_shared_state
    /** EXT_external_objects */
    struct _mesa_HashTable *MemoryObjects;
 
+   /** EXT_semaphore */
+   struct _mesa_HashTable *SemaphoreObjects;
+
    /**
     * Some context in this share group was affected by a disjoint
     * operation. This operation can be anything that has effects on
@@ -4208,6 +4229,8 @@ struct gl_extensions
    GLboolean EXT_pixel_buffer_object;
    GLboolean EXT_point_parameters;
    GLboolean EXT_provoking_vertex;
+   GLboolean EXT_semaphore;
+   GLboolean EXT_semaphore_fd;
    GLboolean EXT_shader_integer_mix;
    GLboolean EXT_shader_samples_identical;
    GLboolean EXT_stencil_two_side;
@@ -4716,6 +4739,11 @@ struct gl_memory_object
    GLuint Name;            /**< hash table ID/name */
    GLboolean Immutable;    /**< denotes mutability state of parameters */
    GLboolean Dedicated;    /**< import memory from a dedicated allocation */
+};
+
+struct gl_semaphore_object
+{
+   GLuint Name;            /**< hash table ID/name */
 };
 
 /**

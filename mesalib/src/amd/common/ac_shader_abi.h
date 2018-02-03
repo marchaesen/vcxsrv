@@ -26,6 +26,8 @@
 
 #include <llvm-c/Core.h>
 
+#include "compiler/shader_enums.h"
+
 enum ac_descriptor_type {
 	AC_DESC_IMAGE,
 	AC_DESC_FMASK,
@@ -51,6 +53,7 @@ struct ac_shader_abi {
 	LLVMValueRef front_face;
 	LLVMValueRef ancillary;
 	LLVMValueRef sample_coverage;
+	LLVMValueRef prim_mask;
 
 	/* For VS and PS: pre-loaded shader inputs.
 	 *
@@ -143,6 +146,13 @@ struct ac_shader_abi {
 					  LLVMValueRef index,
 					  enum ac_descriptor_type desc_type,
 					  bool image, bool write);
+
+	LLVMValueRef (*lookup_interp_param)(struct ac_shader_abi *abi,
+					    enum glsl_interp_mode interp,
+					    unsigned location);
+
+	LLVMValueRef (*load_sample_position)(struct ac_shader_abi *abi,
+					     LLVMValueRef sample_id);
 
 	/* Whether to clamp the shadow reference value to [0,1]on VI. Radeonsi currently
 	 * uses it due to promoting D16 to D32, but radv needs it off. */

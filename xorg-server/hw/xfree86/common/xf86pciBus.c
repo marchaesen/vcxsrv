@@ -1449,11 +1449,7 @@ xf86PciConfigureNewDev(void *busData, struct pci_device *pVideo,
 
     pVideo = (struct pci_device *) busData;
 
-    if (pVideo->bus < 256)
-        snprintf(busnum, sizeof(busnum), "%d", pVideo->bus);
-    else
-        snprintf(busnum, sizeof(busnum), "%d@%d",
-                 pVideo->bus & 0x00ff, pVideo->bus >> 8);
+    snprintf(busnum, sizeof(busnum), "%d", pVideo->bus);
 
     XNFasprintf(&tmp, "PCI:%s:%d:%d",
                 busnum, pVideo->dev, pVideo->func);

@@ -505,23 +505,31 @@ struct pipe_context {
                  unsigned flags);
 
    /**
-    * Create a fence from a native sync fd.
+    * Create a fence from a fd.
     *
     * This is used for importing a foreign/external fence fd.
     *
     * \param fence  if not NULL, an old fence to unref and transfer a
     *    new fence reference to
-    * \param fd     native fence fd
+    * \param fd     fd representing the fence object
+    * \param type   indicates which fence types backs fd
     */
    void (*create_fence_fd)(struct pipe_context *pipe,
                            struct pipe_fence_handle **fence,
-                           int fd);
+                           int fd,
+                           enum pipe_fd_type type);
 
    /**
     * Insert commands to have GPU wait for fence to be signaled.
     */
    void (*fence_server_sync)(struct pipe_context *pipe,
                              struct pipe_fence_handle *fence);
+
+   /**
+    * Insert commands to have the GPU signal a fence.
+    */
+   void (*fence_server_signal)(struct pipe_context *pipe,
+                               struct pipe_fence_handle *fence);
 
    /**
     * Create a view on a texture to be used by a shader stage.

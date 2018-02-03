@@ -57,6 +57,26 @@ _mesa_lookup_memory_object_locked(struct gl_context *ctx, GLuint memory)
       _mesa_HashLookupLocked(ctx->Shared->MemoryObjects, memory);
 }
 
+static inline struct gl_semaphore_object *
+_mesa_lookup_semaphore_object(struct gl_context *ctx, GLuint semaphore)
+{
+   if (!semaphore)
+      return NULL;
+
+   return (struct gl_semaphore_object *)
+      _mesa_HashLookup(ctx->Shared->SemaphoreObjects, semaphore);
+}
+
+static inline struct gl_semaphore_object *
+_mesa_lookup_semaphore_object_locked(struct gl_context *ctx, GLuint semaphore)
+{
+   if (!semaphore)
+      return NULL;
+
+   return (struct gl_semaphore_object *)
+      _mesa_HashLookupLocked(ctx->Shared->SemaphoreObjects, semaphore);
+}
+
 extern void
 _mesa_init_memory_object_functions(struct dd_function_table *driver);
 
@@ -65,7 +85,16 @@ _mesa_initialize_memory_object(struct gl_context *ctx,
                                struct gl_memory_object *obj,
                                GLuint name);
 extern void
-_mesa_delete_memory_object(struct gl_context *ctx, struct gl_memory_object *mo);
+_mesa_delete_memory_object(struct gl_context *ctx,
+                           struct gl_memory_object *semObj);
+
+extern void
+_mesa_initialize_semaphore_object(struct gl_context *ctx,
+                                  struct gl_semaphore_object *obj,
+                                  GLuint name);
+extern void
+_mesa_delete_semaphore_object(struct gl_context *ctx,
+                              struct gl_semaphore_object *semObj);
 
 extern void GLAPIENTRY
 _mesa_DeleteMemoryObjectsEXT(GLsizei n, const GLuint *memoryObjects);

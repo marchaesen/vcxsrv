@@ -511,10 +511,13 @@ update_front(DrawablePtr draw, DRI2BufferPtr front)
     ms_dri2_buffer_private_ptr priv = front->driverPrivate;
     CARD32 size;
     CARD16 pitch;
+    int name;
 
-    front->name = glamor_name_from_pixmap(pixmap, &pitch, &size);
-    if (front->name < 0)
+    name = glamor_name_from_pixmap(pixmap, &pitch, &size);
+    if (name < 0)
         return FALSE;
+
+    front->name = name;
 
     (*screen->DestroyPixmap) (priv->pixmap);
     front->pitch = pixmap->devKind;

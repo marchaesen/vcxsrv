@@ -720,6 +720,7 @@ struct radv_descriptor_update_template_entry {
 
 struct radv_descriptor_update_template {
 	uint32_t entry_count;
+	VkPipelineBindPoint bind_point;
 	struct radv_descriptor_update_template_entry entry[0];
 };
 
@@ -882,13 +883,20 @@ struct radv_attachment_state {
 	VkImageLayout                                current_layout;
 };
 
+struct radv_descriptor_state {
+	struct radv_descriptor_set *sets[MAX_SETS];
+	uint32_t dirty;
+	uint32_t valid;
+	struct radv_push_descriptor_set push_set;
+	bool push_dirty;
+};
+
 struct radv_cmd_state {
 	/* Vertex descriptors */
 	bool                                          vb_prefetch_dirty;
 	uint64_t                                      vb_va;
 	unsigned                                      vb_size;
 
-	bool                                          push_descriptors_dirty;
 	bool predicating;
 	uint32_t                                      dirty;
 
@@ -916,8 +924,6 @@ struct radv_cmd_state {
 	enum radv_cmd_flush_bits                     flush_bits;
 	unsigned                                     active_occlusion_queries;
 	float					     offset_scale;
-	uint32_t                                      descriptors_dirty;
-	uint32_t                                      valid_descriptors;
 	uint32_t                                      trace_id;
 	uint32_t                                      last_ia_multi_vgt_param;
 
@@ -968,9 +974,9 @@ struct radv_cmd_buffer {
 	uint8_t push_constants[MAX_PUSH_CONSTANTS_SIZE];
 	uint32_t dynamic_buffers[4 * MAX_DYNAMIC_BUFFERS];
 	VkShaderStageFlags push_constant_stages;
-	struct radv_push_descriptor_set push_descriptors;
 	struct radv_descriptor_set meta_push_descriptors;
-	struct radv_descriptor_set *descriptors[MAX_SETS];
+
+	struct radv_descriptor_state descriptors[VK_PIPELINE_BIND_POINT_RANGE_SIZE];
 
 	struct radv_cmd_buffer_upload upload;
 
@@ -1021,7 +1027,6 @@ void si_emit_wait_fence(struct radeon_winsys_cs *cs,
 			uint64_t va, uint32_t ref,
 			uint32_t mask);
 void si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
-			    bool predicated,
 			    enum chip_class chip_class,
 			    uint32_t *fence_ptr, uint64_t va,
 			    bool is_mec,
@@ -1077,6 +1082,15 @@ bool radv_get_memory_fd(struct radv_device *device,
 			struct radv_device_memory *memory,
 			int *pFD);
 
+static inline struct radv_descriptor_state *
+radv_get_descriptors_state(struct radv_cmd_buffer *cmd_buffer,
+			   VkPipelineBindPoint bind_point)
+{
+	assert(bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS ||
+	       bind_point == VK_PIPELINE_BIND_POINT_COMPUTE);
+	return &cmd_buffer->descriptors[bind_point];
+}
+
 /*
  * Takes x,y,z as exact numbers of invocations, instead of blocks.
  *
@@ -1127,32 +1141,7 @@ mesa_to_vk_shader_stage(gl_shader_stage mesa_stage)
 	     stage = __builtin_ffs(__tmp) - 1, __tmp;			\
 	     __tmp &= ~(1 << (stage)))
 
-struct radv_depth_stencil_state {
-	uint32_t db_depth_control;
-	uint32_t db_stencil_control;
-	uint32_t db_render_control;
-	uint32_t db_render_override2;
-};
-
-struct radv_blend_state {
-	uint32_t cb_color_control;
-	uint32_t cb_target_mask;
-	uint32_t sx_mrt_blend_opt[8];
-	uint32_t cb_blend_control[8];
-
-	uint32_t spi_shader_col_format;
-	uint32_t cb_shader_mask;
-	uint32_t db_alpha_to_mask;
-};
-
 unsigned radv_format_meta_fs_key(VkFormat format);
-
-struct radv_raster_state {
-	uint32_t pa_cl_clip_cntl;
-	uint32_t spi_interp_control;
-	uint32_t pa_su_vtx_cntl;
-	uint32_t pa_su_sc_mode_cntl;
-};
 
 struct radv_multisample_state {
 	uint32_t db_eqaa;
@@ -1169,25 +1158,6 @@ struct radv_prim_vertex_count {
 	uint8_t incr;
 };
 
-struct radv_tessellation_state {
-	uint32_t ls_hs_config;
-	uint32_t tcs_in_layout;
-	uint32_t tcs_out_layout;
-	uint32_t tcs_out_offsets;
-	uint32_t offchip_layout;
-	unsigned num_patches;
-	unsigned lds_size;
-	unsigned num_tcs_input_cp;
-	uint32_t tf_param;
-};
-
-struct radv_gs_state {
-	uint32_t vgt_gs_onchip_cntl;
-	uint32_t vgt_gs_max_prims_per_subgroup;
-	uint32_t vgt_esgs_ring_itemsize;
-	uint32_t lds_size;
-};
-
 struct radv_vertex_elements_info {
 	uint32_t rsrc_word3[MAX_VERTEX_ATTRIBS];
 	uint32_t format_size[MAX_VERTEX_ATTRIBS];
@@ -1196,16 +1166,13 @@ struct radv_vertex_elements_info {
 	uint32_t count;
 };
 
-struct radv_vs_state {
-	uint32_t pa_cl_vs_out_cntl;
-	uint32_t spi_shader_pos_format;
-	uint32_t spi_vs_out_config;
-	uint32_t vgt_reuse_off;
-};
-
-struct radv_binning_state {
-	uint32_t pa_sc_binner_cntl_0;
-	uint32_t db_dfsm_control;
+struct radv_ia_multi_vgt_param_helpers {
+	uint32_t base;
+	bool partial_es_wave;
+	uint8_t primgroup_size;
+	bool wd_switch_on_eop;
+	bool ia_switch_on_eoi;
+	bool partial_vs_wave;
 };
 
 #define SI_GS_PER_ES 128
@@ -1222,6 +1189,8 @@ struct radv_pipeline {
 	struct radv_shader_variant *gs_copy_shader;
 	VkShaderStageFlags                           active_stages;
 
+	struct radeon_winsys_cs                      cs;
+
 	struct radv_vertex_elements_info             vertex_elements;
 
 	uint32_t                                     binding_stride[MAX_VBS];
@@ -1229,39 +1198,17 @@ struct radv_pipeline {
 	uint32_t user_data_0[MESA_SHADER_STAGES];
 	union {
 		struct {
-			struct radv_blend_state blend;
-			struct radv_depth_stencil_state ds;
-			struct radv_raster_state raster;
 			struct radv_multisample_state ms;
-			struct radv_tessellation_state tess;
-			struct radv_gs_state gs;
-			struct radv_vs_state vs;
-			struct radv_binning_state bin;
-			uint32_t db_shader_control;
-			uint32_t shader_z_format;
 			uint32_t spi_baryc_cntl;
-			unsigned prim;
-			unsigned gs_out;
-			uint32_t vgt_gs_mode;
-			bool vgt_primitiveid_en;
 			bool prim_restart_enable;
-			bool partial_es_wave;
-			uint8_t primgroup_size;
 			unsigned esgs_ring_size;
 			unsigned gsvs_ring_size;
-			uint32_t ps_input_cntl[32];
-			uint32_t ps_input_cntl_num;
-			uint32_t vgt_shader_stages_en;
 			uint32_t vtx_base_sgpr;
-			uint32_t base_ia_multi_vgt_param;
-			bool wd_switch_on_eop;
-			bool ia_switch_on_eoi;
-			bool partial_vs_wave;
+			struct radv_ia_multi_vgt_param_helpers ia_multi_vgt_param;
 			uint8_t vtx_emit_num;
-			uint32_t vtx_reuse_depth;
 			struct radv_prim_vertex_count prim_vertex_count;
  			bool can_use_guardband;
-			uint32_t pa_sc_cliprect_rule;
+			uint32_t needed_dynamic_state;
 		} graphics;
 	};
 
@@ -1269,12 +1216,12 @@ struct radv_pipeline {
 	unsigned scratch_bytes_per_wave;
 };
 
-static inline bool radv_pipeline_has_gs(struct radv_pipeline *pipeline)
+static inline bool radv_pipeline_has_gs(const struct radv_pipeline *pipeline)
 {
 	return pipeline->shaders[MESA_SHADER_GEOMETRY] ? true : false;
 }
 
-static inline bool radv_pipeline_has_tess(struct radv_pipeline *pipeline)
+static inline bool radv_pipeline_has_tess(const struct radv_pipeline *pipeline)
 {
 	return pipeline->shaders[MESA_SHADER_TESS_CTRL] ? true : false;
 }
@@ -1665,6 +1612,7 @@ VkResult radv_alloc_sem_info(struct radv_winsys_sem_info *sem_info,
 void radv_free_sem_info(struct radv_winsys_sem_info *sem_info);
 
 void radv_set_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
+			     VkPipelineBindPoint bind_point,
 			     struct radv_descriptor_set *set,
 			     unsigned idx);
 

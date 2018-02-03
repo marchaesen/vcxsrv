@@ -396,9 +396,39 @@ matrix:
             - libexpat1-dev
             - libx11-xcb-dev
             - libelf-dev
+    - env:
+        - LABEL="macOS make"
+        - BUILD=make
+        - MAKEFLAGS="-j4"
+        - MAKE_CHECK_COMMAND="make check"
+        - DRI_LOADERS="--with-platforms=x11 --disable-egl"
+      os: osx
+
+before_install:
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install python3 ninja expat gettext
+      # Set PATH for homebrew pip3 installs
+      PATH="$HOME/Library/Python/3.6/bin:${PATH}"
+      # Set PKG_CONFIG_PATH for keg-only expat
+      PKG_CONFIG_PATH="/usr/local/opt/expat/lib/pkgconfig:${PKG_CONFIG_PATH}"
+      # Set PATH for keg-only gettext
+      PATH="/usr/local/opt/gettext/bin:${PATH}"
+
+      # Install xquartz for prereqs ...
+      XQUARTZ_VERSION="2.7.11"
+      wget -nv https://dl.bintray.com/xquartz/downloads/XQuartz-${XQUARTZ_VERSION}.dmg
+      hdiutil attach XQuartz-${XQUARTZ_VERSION}.dmg
+      sudo installer -pkg /Volumes/XQuartz-${XQUARTZ_VERSION}/XQuartz.pkg -target /
+      hdiutil detach /Volumes/XQuartz-${XQUARTZ_VERSION}
+      # ... and set paths
+      PATH="/opt/X11/bin:${PATH}"
+      PKG_CONFIG_PATH="/opt/X11/share/pkgconfig:/opt/X11/lib/pkgconfig:${PKG_CONFIG_PATH}"
+      ACLOCAL="aclocal -I /opt/X11/share/aclocal -I /usr/local/share/aclocal"
+    fi
 
 install:
-  - pip install --user mako
+  - pip2 install --user mako
 
   # Install the latest meson from pip, since the version in the ubuntu repos is
   # often quite old.
@@ -419,62 +449,64 @@ install:
   # Install dependencies where we require specific versions (or where
   # disallowed by Travis CI's package whitelisting).
 
-  - wget $XORG_RELEASES/util/$XORGMACROS_VERSION.tar.bz2
-  - tar -jxvf $XORGMACROS_VERSION.tar.bz2
-  - (cd $XORGMACROS_VERSION && ./configure --prefix=$HOME/prefix && make install)
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      wget $XORG_RELEASES/util/$XORGMACROS_VERSION.tar.bz2
+      tar -jxvf $XORGMACROS_VERSION.tar.bz2
+      (cd $XORGMACROS_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  - wget $XORG_RELEASES/proto/$GLPROTO_VERSION.tar.bz2
-  - tar -jxvf $GLPROTO_VERSION.tar.bz2
-  - (cd $GLPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
+      wget $XORG_RELEASES/proto/$GLPROTO_VERSION.tar.bz2
+      tar -jxvf $GLPROTO_VERSION.tar.bz2
+      (cd $GLPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  - wget $XORG_RELEASES/proto/$DRI2PROTO_VERSION.tar.bz2
-  - tar -jxvf $DRI2PROTO_VERSION.tar.bz2
-  - (cd $DRI2PROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
+      wget $XORG_RELEASES/proto/$DRI2PROTO_VERSION.tar.bz2
+      tar -jxvf $DRI2PROTO_VERSION.tar.bz2
+      (cd $DRI2PROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  - wget $XCB_RELEASES/$XCBPROTO_VERSION.tar.bz2
-  - tar -jxvf $XCBPROTO_VERSION.tar.bz2
-  - (cd $XCBPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
+      wget $XCB_RELEASES/$XCBPROTO_VERSION.tar.bz2
+      tar -jxvf $XCBPROTO_VERSION.tar.bz2
+      (cd $XCBPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  - wget $XCB_RELEASES/$LIBXCB_VERSION.tar.bz2
-  - tar -jxvf $LIBXCB_VERSION.tar.bz2
-  - (cd $LIBXCB_VERSION && ./configure --prefix=$HOME/prefix && make install)
+      wget $XCB_RELEASES/$LIBXCB_VERSION.tar.bz2
+      tar -jxvf $LIBXCB_VERSION.tar.bz2
+      (cd $LIBXCB_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  - wget $XORG_RELEASES/lib/$LIBPCIACCESS_VERSION.tar.bz2
-  - tar -jxvf $LIBPCIACCESS_VERSION.tar.bz2
-  - (cd $LIBPCIACCESS_VERSION && ./configure --prefix=$HOME/prefix && make install)
+      wget $XORG_RELEASES/lib/$LIBPCIACCESS_VERSION.tar.bz2
+      tar -jxvf $LIBPCIACCESS_VERSION.tar.bz2
+      (cd $LIBPCIACCESS_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  - wget http://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
-  - tar -jxvf $LIBDRM_VERSION.tar.bz2
-  - (cd $LIBDRM_VERSION && ./configure --prefix=$HOME/prefix --enable-vc4 --enable-freedreno --enable-etnaviv-experimental-api && make install)
+      wget http://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
+      tar -jxvf $LIBDRM_VERSION.tar.bz2
+      (cd $LIBDRM_VERSION && ./configure --prefix=$HOME/prefix --enable-vc4 --enable-freedreno --enable-etnaviv-experimental-api && make install)
 
-  - wget $XORG_RELEASES/lib/$LIBXSHMFENCE_VERSION.tar.bz2
-  - tar -jxvf $LIBXSHMFENCE_VERSION.tar.bz2
-  - (cd $LIBXSHMFENCE_VERSION && ./configure --prefix=$HOME/prefix && make install)
+      wget $XORG_RELEASES/lib/$LIBXSHMFENCE_VERSION.tar.bz2
+      tar -jxvf $LIBXSHMFENCE_VERSION.tar.bz2
+      (cd $LIBXSHMFENCE_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  - wget http://people.freedesktop.org/~aplattner/vdpau/$LIBVDPAU_VERSION.tar.bz2
-  - tar -jxvf $LIBVDPAU_VERSION.tar.bz2
-  - (cd $LIBVDPAU_VERSION && ./configure --prefix=$HOME/prefix && make install)
+      wget http://people.freedesktop.org/~aplattner/vdpau/$LIBVDPAU_VERSION.tar.bz2
+      tar -jxvf $LIBVDPAU_VERSION.tar.bz2
+      (cd $LIBVDPAU_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  - wget http://www.freedesktop.org/software/vaapi/releases/libva/$LIBVA_VERSION.tar.bz2
-  - tar -jxvf $LIBVA_VERSION.tar.bz2
-  - (cd $LIBVA_VERSION && ./configure --prefix=$HOME/prefix --disable-wayland --disable-dummy-driver && make install)
+      wget http://www.freedesktop.org/software/vaapi/releases/libva/$LIBVA_VERSION.tar.bz2
+      tar -jxvf $LIBVA_VERSION.tar.bz2
+      (cd $LIBVA_VERSION && ./configure --prefix=$HOME/prefix --disable-wayland --disable-dummy-driver && make install)
 
-  - wget $WAYLAND_RELEASES/$LIBWAYLAND_VERSION.tar.xz
-  - tar -axvf $LIBWAYLAND_VERSION.tar.xz
-  - (cd $LIBWAYLAND_VERSION && ./configure --prefix=$HOME/prefix --enable-libraries --without-host-scanner --disable-documentation --disable-dtd-validation && make install)
+      wget $WAYLAND_RELEASES/$LIBWAYLAND_VERSION.tar.xz
+      tar -axvf $LIBWAYLAND_VERSION.tar.xz
+      (cd $LIBWAYLAND_VERSION && ./configure --prefix=$HOME/prefix --enable-libraries --without-host-scanner --disable-documentation --disable-dtd-validation && make install)
 
-  - wget $WAYLAND_RELEASES/$WAYLAND_PROTOCOLS_VERSION.tar.xz
-  - tar -axvf $WAYLAND_PROTOCOLS_VERSION.tar.xz
-  - (cd $WAYLAND_PROTOCOLS_VERSION && ./configure --prefix=$HOME/prefix && make install)
+      wget $WAYLAND_RELEASES/$WAYLAND_PROTOCOLS_VERSION.tar.xz
+      tar -axvf $WAYLAND_PROTOCOLS_VERSION.tar.xz
+      (cd $WAYLAND_PROTOCOLS_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-  # Meson requires ninja >= 1.6, but trusty has 1.3.x
-  - wget https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-linux.zip;
-  - unzip ninja-linux.zip
-  - mv ninja $HOME/prefix/bin/
+      # Meson requires ninja >= 1.6, but trusty has 1.3.x
+      wget https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-linux.zip
+      unzip ninja-linux.zip
+      mv ninja $HOME/prefix/bin/
 
-  # Generate the header since one is missing on the Travis instance
-  - mkdir -p linux
-  - printf "%s\n" \
+      # Generate this header since one is missing on the Travis instance
+      mkdir -p linux
+      printf "%s\n" \
            "#ifndef _LINUX_MEMFD_H" \
            "#define _LINUX_MEMFD_H" \
            "" \
@@ -485,6 +517,7 @@ install:
            "#define MFD_ALLOW_SEALING       0x0002U" \
            "" \
            "#endif /* _LINUX_MEMFD_H */" > linux/memfd.h
+    fi
 
 script:
   - if test "x$BUILD" = xmake; then

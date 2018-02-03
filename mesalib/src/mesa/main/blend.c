@@ -535,7 +535,8 @@ _mesa_BlendEquation( GLenum mode )
       return;
    }
 
-   _mesa_flush_vertices_for_blend_state(ctx);
+   _mesa_flush_vertices_for_blend_adv(ctx, ctx->Color.BlendEnabled,
+                                      advanced_mode);
 
    for (buf = 0; buf < numBuffers; buf++) {
       ctx->Color.Blend[buf].EquationRGB = mode;
@@ -560,7 +561,8 @@ blend_equationi(struct gl_context *ctx, GLuint buf, GLenum mode,
        ctx->Color.Blend[buf].EquationA == mode)
       return;  /* no change */
 
-   _mesa_flush_vertices_for_blend_state(ctx);
+   _mesa_flush_vertices_for_blend_adv(ctx, ctx->Color.BlendEnabled,
+                                      advanced_mode);
    ctx->Color.Blend[buf].EquationRGB = mode;
    ctx->Color.Blend[buf].EquationA = mode;
    ctx->Color._BlendEquationPerBuffer = GL_TRUE;

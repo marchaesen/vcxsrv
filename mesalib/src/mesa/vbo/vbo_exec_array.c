@@ -313,42 +313,25 @@ recalculate_input_bindings(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;
-   const struct gl_array_attributes *array = ctx->Array.VAO->VertexAttrib;
-   struct gl_vertex_array *vertexAttrib = ctx->Array.VAO->_VertexAttrib;
+   const struct gl_vertex_array_object *vao = ctx->Array.VAO;
+   const struct gl_vertex_array *vertexAttrib = vao->_VertexAttrib;
    const struct gl_vertex_array **inputs = &exec->array.inputs[0];
-   GLbitfield const_inputs = 0x0;
-   GLuint i;
 
-   switch (get_vp_mode(ctx)) {
+   /* May shuffle the position and generic0 bits around */
+   GLbitfield vp_inputs = _mesa_get_vao_vp_inputs(vao);
+
+   const enum vp_mode program_mode = get_vp_mode(ctx);
+   const GLubyte *const map = _vbo_attribute_alias_map[program_mode];
+   switch (program_mode) {
    case VP_FF:
       /* When no vertex program is active (or the vertex program is generated
        * from fixed-function state).  We put the material values into the
-       * generic slots.  This is the only situation where material values
-       * are available as per-vertex attributes.
+       * generic slots.  Since the vao has no material arrays, mute these
+       * slots from the enabled arrays so that the current material values
+       * are pulled instead of the vao arrays.
        */
-      for (i = 0; i < VERT_ATTRIB_FF_MAX; i++) {
-         if (array[VERT_ATTRIB_FF(i)].Enabled)
-            inputs[i] = &vertexAttrib[VERT_ATTRIB_FF(i)];
-         else {
-            inputs[i] = &vbo->currval[VBO_ATTRIB_POS + i];
-            const_inputs |= VERT_BIT(i);
-         }
-      }
+      vp_inputs &= VERT_BIT_FF_ALL;
 
-      for (i = 0; i < MAT_ATTRIB_MAX; i++) {
-         inputs[VERT_ATTRIB_GENERIC(i)] =
-            &vbo->currval[VBO_ATTRIB_MAT_FRONT_AMBIENT + i];
-         const_inputs |= VERT_BIT_GENERIC(i);
-      }
-
-      /* Could use just about anything, just to fill in the empty
-       * slots:
-       */
-      for (i = MAT_ATTRIB_MAX; i < VERT_ATTRIB_GENERIC_MAX; i++) {
-         inputs[VERT_ATTRIB_GENERIC(i)] =
-            &vbo->currval[VBO_ATTRIB_GENERIC0 + i];
-         const_inputs |= VERT_BIT_GENERIC(i);
-      }
       break;
 
    case VP_SHADER:
@@ -367,66 +350,30 @@ recalculate_input_bindings(struct gl_context *ctx)
        * In all other APIs, only the generic attributes exist, and none of the
        * slots are considered "magic."
        */
-      if (ctx->API == API_OPENGL_COMPAT) {
-         if (array[VERT_ATTRIB_GENERIC0].Enabled)
-            inputs[VERT_ATTRIB_POS] = &vertexAttrib[VERT_ATTRIB_GENERIC0];
-         else if (array[VERT_ATTRIB_POS].Enabled)
-            inputs[VERT_ATTRIB_POS] = &vertexAttrib[VERT_ATTRIB_POS];
-         else {
-            inputs[VERT_ATTRIB_POS] = &vbo->currval[VBO_ATTRIB_GENERIC0];
-            const_inputs |= VERT_BIT_POS;
-         }
 
-         for (i = 1; i < VERT_ATTRIB_FF_MAX; i++) {
-            if (array[VERT_ATTRIB_FF(i)].Enabled)
-               inputs[i] = &vertexAttrib[VERT_ATTRIB_FF(i)];
-            else {
-               inputs[i] = &vbo->currval[VBO_ATTRIB_POS + i];
-               const_inputs |= VERT_BIT_FF(i);
-            }
-         }
-
-         for (i = 1; i < VERT_ATTRIB_GENERIC_MAX; i++) {
-            if (array[VERT_ATTRIB_GENERIC(i)].Enabled)
-               inputs[VERT_ATTRIB_GENERIC(i)] =
-                  &vertexAttrib[VERT_ATTRIB_GENERIC(i)];
-            else {
-               inputs[VERT_ATTRIB_GENERIC(i)] =
-                  &vbo->currval[VBO_ATTRIB_GENERIC0 + i];
-               const_inputs |= VERT_BIT_GENERIC(i);
-            }
-         }
-
-         inputs[VERT_ATTRIB_GENERIC0] = inputs[0];
-      } else {
-         /* Other parts of the code assume that inputs[0] through
-          * inputs[VERT_ATTRIB_FF_MAX] will be non-NULL.  However, in OpenGL
-          * ES 2.0+ or OpenGL core profile, none of these arrays should ever
-          * be enabled.
-          */
-         for (i = 0; i < VERT_ATTRIB_FF_MAX; i++) {
-            assert(!array[VERT_ATTRIB_FF(i)].Enabled);
-
-            inputs[i] = &vbo->currval[VBO_ATTRIB_POS + i];
-            const_inputs |= VERT_BIT_FF(i);
-         }
-
-         for (i = 0; i < VERT_ATTRIB_GENERIC_MAX; i++) {
-            if (array[VERT_ATTRIB_GENERIC(i)].Enabled)
-               inputs[VERT_ATTRIB_GENERIC(i)] =
-                  &vertexAttrib[VERT_ATTRIB_GENERIC(i)];
-            else {
-               inputs[VERT_ATTRIB_GENERIC(i)] =
-                  &vbo->currval[VBO_ATTRIB_GENERIC0 + i];
-               const_inputs |= VERT_BIT_GENERIC(i);
-            }
-         }
-      }
+      /* Other parts of the code assume that inputs[VERT_ATTRIB_POS] through
+       * inputs[VERT_ATTRIB_FF_MAX] will be non-NULL.  However, in OpenGL
+       * ES 2.0+ or OpenGL core profile, none of these arrays should ever
+       * be enabled.
+       */
+      if (ctx->API != API_OPENGL_COMPAT)
+         vp_inputs &= VERT_BIT_GENERIC_ALL;
 
       break;
+   default:
+      assert(0);
    }
 
-   _mesa_set_varying_vp_inputs(ctx, VERT_BIT_ALL & (~const_inputs));
+   const gl_attribute_map_mode mode = vao->_AttributeMapMode;
+   const GLubyte *const vao_map = _mesa_vao_attribute_map[mode];
+   for (unsigned vp_attrib = 0; vp_attrib < VERT_ATTRIB_MAX; ++vp_attrib) {
+      if (unlikely(vp_inputs & VERT_BIT(vp_attrib)))
+         inputs[vp_attrib] = &vertexAttrib[vao_map[vp_attrib]];
+      else
+         inputs[vp_attrib] = &vbo->currval[map[vp_attrib]];
+   }
+
+   _mesa_set_varying_vp_inputs(ctx, vp_inputs);
    ctx->NewDriverState |= ctx->DriverFlags.NewArray;
 }
 
@@ -1803,7 +1750,7 @@ static void
 vbo_validated_multidrawarraysindirectcount(struct gl_context *ctx,
                                            GLenum mode,
                                            GLintptr indirect,
-                                           GLintptr drawcount,
+                                           GLintptr drawcount_offset,
                                            GLsizei maxdrawcount,
                                            GLsizei stride)
 {
@@ -1818,7 +1765,7 @@ vbo_validated_multidrawarraysindirectcount(struct gl_context *ctx,
    vbo->draw_indirect_prims(ctx, mode,
                             ctx->DrawIndirectBuffer, offset,
                             maxdrawcount, stride,
-                            ctx->ParameterBuffer, drawcount, NULL);
+                            ctx->ParameterBuffer, drawcount_offset, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH)
       _mesa_flush(ctx);
@@ -1829,7 +1776,7 @@ static void
 vbo_validated_multidrawelementsindirectcount(struct gl_context *ctx,
                                              GLenum mode, GLenum type,
                                              GLintptr indirect,
-                                             GLintptr drawcount,
+                                             GLintptr drawcount_offset,
                                              GLsizei maxdrawcount,
                                              GLsizei stride)
 {
@@ -1852,7 +1799,7 @@ vbo_validated_multidrawelementsindirectcount(struct gl_context *ctx,
    vbo->draw_indirect_prims(ctx, mode,
                             ctx->DrawIndirectBuffer, offset,
                             maxdrawcount, stride,
-                            ctx->ParameterBuffer, drawcount, &ib);
+                            ctx->ParameterBuffer, drawcount_offset, &ib);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH)
       _mesa_flush(ctx);
@@ -1861,7 +1808,7 @@ vbo_validated_multidrawelementsindirectcount(struct gl_context *ctx,
 
 static void GLAPIENTRY
 vbo_exec_MultiDrawArraysIndirectCount(GLenum mode, GLintptr indirect,
-                                      GLintptr drawcount,
+                                      GLintptr drawcount_offset,
                                       GLsizei maxdrawcount, GLsizei stride)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -1870,7 +1817,7 @@ vbo_exec_MultiDrawArraysIndirectCount(GLenum mode, GLintptr indirect,
       _mesa_debug(ctx, "glMultiDrawArraysIndirectCountARB"
                   "(%s, %lx, %lx, %i, %i)\n",
                   _mesa_enum_to_string(mode),
-                  (unsigned long) indirect, (unsigned long) drawcount,
+                  (unsigned long) indirect, (unsigned long) drawcount_offset,
                   maxdrawcount, stride);
 
    /* If <stride> is zero, the array elements are treated as tightly packed. */
@@ -1884,7 +1831,8 @@ vbo_exec_MultiDrawArraysIndirectCount(GLenum mode, GLintptr indirect,
          _mesa_update_state(ctx);
    } else {
       if (!_mesa_validate_MultiDrawArraysIndirectCount(ctx, mode,
-                                                       indirect, drawcount,
+                                                       indirect,
+                                                       drawcount_offset,
                                                        maxdrawcount, stride))
          return;
    }
@@ -1892,14 +1840,16 @@ vbo_exec_MultiDrawArraysIndirectCount(GLenum mode, GLintptr indirect,
    if (skip_validated_draw(ctx))
       return;
 
-   vbo_validated_multidrawarraysindirectcount(ctx, mode, indirect, drawcount,
+   vbo_validated_multidrawarraysindirectcount(ctx, mode, indirect,
+                                              drawcount_offset,
                                               maxdrawcount, stride);
 }
 
 
 static void GLAPIENTRY
 vbo_exec_MultiDrawElementsIndirectCount(GLenum mode, GLenum type,
-                                        GLintptr indirect, GLintptr drawcount,
+                                        GLintptr indirect,
+                                        GLintptr drawcount_offset,
                                         GLsizei maxdrawcount, GLsizei stride)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -1908,7 +1858,7 @@ vbo_exec_MultiDrawElementsIndirectCount(GLenum mode, GLenum type,
       _mesa_debug(ctx, "glMultiDrawElementsIndirectCountARB"
                   "(%s, %s, %lx, %lx, %i, %i)\n",
                   _mesa_enum_to_string(mode), _mesa_enum_to_string(type),
-                  (unsigned long) indirect, (unsigned long) drawcount,
+                  (unsigned long) indirect, (unsigned long) drawcount_offset,
                   maxdrawcount, stride);
 
    /* If <stride> is zero, the array elements are treated as tightly packed. */
@@ -1922,7 +1872,8 @@ vbo_exec_MultiDrawElementsIndirectCount(GLenum mode, GLenum type,
          _mesa_update_state(ctx);
    } else {
       if (!_mesa_validate_MultiDrawElementsIndirectCount(ctx, mode, type,
-                                                         indirect, drawcount,
+                                                         indirect,
+                                                         drawcount_offset,
                                                          maxdrawcount, stride))
          return;
    }
@@ -1931,7 +1882,7 @@ vbo_exec_MultiDrawElementsIndirectCount(GLenum mode, GLenum type,
       return;
 
    vbo_validated_multidrawelementsindirectcount(ctx, mode, type, indirect,
-                                                drawcount, maxdrawcount,
+                                                drawcount_offset, maxdrawcount,
                                                 stride);
 }
 

@@ -154,21 +154,48 @@ extern void
 _mesa_init_color( struct gl_context * ctx );
 
 
+static inline enum gl_advanced_blend_mode
+_mesa_get_advanced_blend_sh_constant(GLbitfield blend_enabled,
+                                     enum gl_advanced_blend_mode mode)
+{
+   return blend_enabled ? mode : BLEND_NONE;
+}
+
+static inline bool
+_mesa_advanded_blend_sh_constant_changed(struct gl_context *ctx,
+                                         GLbitfield new_blend_enabled,
+                                         enum gl_advanced_blend_mode new_mode)
+{
+   return _mesa_get_advanced_blend_sh_constant(new_blend_enabled, new_mode) !=
+          _mesa_get_advanced_blend_sh_constant(ctx->Color.BlendEnabled,
+                                               ctx->Color._AdvancedBlendMode);
+}
+
 static inline void
 _mesa_flush_vertices_for_blend_state(struct gl_context *ctx)
 {
-   /* The advanced blend mode needs _NEW_COLOR to update the state constant,
-    * so we have to set it. This is inefficient.
-    * This should only be done for states that affect the state constant.
-    * It shouldn't be done for other blend states.
-    */
-   if (_mesa_has_KHR_blend_equation_advanced(ctx) ||
-       !ctx->DriverFlags.NewBlend) {
+   if (!ctx->DriverFlags.NewBlend) {
       FLUSH_VERTICES(ctx, _NEW_COLOR);
    } else {
       FLUSH_VERTICES(ctx, 0);
+      ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
    }
-   ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
+}
+
+static inline void
+_mesa_flush_vertices_for_blend_adv(struct gl_context *ctx,
+                                   GLbitfield new_blend_enabled,
+                                   enum gl_advanced_blend_mode new_mode)
+{
+   /* The advanced blend mode needs _NEW_COLOR to update the state constant. */
+   if (_mesa_has_KHR_blend_equation_advanced(ctx) &&
+       _mesa_advanded_blend_sh_constant_changed(ctx, new_blend_enabled,
+                                                new_mode)) {
+      FLUSH_VERTICES(ctx, _NEW_COLOR);
+      ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
+      return;
+   }
+   _mesa_flush_vertices_for_blend_state(ctx);
 }
 
 #endif

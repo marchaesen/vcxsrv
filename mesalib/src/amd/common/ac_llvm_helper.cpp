@@ -65,20 +65,12 @@ bool ac_is_sgpr_param(LLVMValueRef arg)
 
 LLVMValueRef ac_llvm_get_called_value(LLVMValueRef call)
 {
-#if HAVE_LLVM >= 0x0309
 	return LLVMGetCalledValue(call);
-#else
-	return llvm::wrap(llvm::CallSite(llvm::unwrap<llvm::Instruction>(call)).getCalledValue());
-#endif
 }
 
 bool ac_llvm_is_function(LLVMValueRef v)
 {
-#if HAVE_LLVM >= 0x0309
 	return LLVMGetValueKind(v) == LLVMFunctionValueKind;
-#else
-	return llvm::isa<llvm::Function>(llvm::unwrap(v));
-#endif
 }
 
 LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
@@ -86,7 +78,6 @@ LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
 {
 	LLVMBuilderRef builder = LLVMCreateBuilderInContext(ctx);
 
-#if HAVE_LLVM >= 0x0308
 	llvm::FastMathFlags flags;
 
 	switch (float_mode) {
@@ -105,7 +96,6 @@ LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
 		llvm::unwrap(builder)->setFastMathFlags(flags);
 		break;
 	}
-#endif
 
 	return builder;
 }
