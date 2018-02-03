@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    The FreeType PostScript name services (specification).               */
 /*                                                                         */
-/*  Copyright 2003-2017 by                                                 */
+/*  Copyright 2003-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -19,7 +19,7 @@
 #ifndef SVPOSTNM_H_
 #define SVPOSTNM_H_
 
-#include <internal/ftserv.h>
+#include FT_INTERNAL_SERVICE_H
 
 
 FT_BEGIN_HEADER

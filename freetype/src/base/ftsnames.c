@@ -7,7 +7,7 @@
 /*                                                                         */
 /*    This is _not_ used to retrieve glyph names!                          */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -23,8 +23,8 @@
 #include FT_INTERNAL_DEBUG_H
 
 #include FT_SFNT_NAMES_H
-#include <internal/tttypes.h>
-#include <internal/ftstream.h>
+#include FT_INTERNAL_TRUETYPE_TYPES_H
+#include FT_INTERNAL_STREAM_H
 
 
 #ifdef TT_CONFIG_OPTION_SFNT_NAMES

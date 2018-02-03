@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Type 42 objects manager (specification).                             */
 /*                                                                         */
-/*  Copyright 2002-2017 by                                                 */
+/*  Copyright 2002-2018 by                                                 */
 /*  Roberto Alameda.                                                       */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -20,14 +20,14 @@
 #define T42OBJS_H_
 
 #include <ft2build.h>
-#include <freetype.h>
-#include <t1tables.h>
-#include <internal/t1types.h>
+#include FT_FREETYPE_H
+#include FT_TYPE1_TABLES_H
+#include FT_INTERNAL_TYPE1_TYPES_H
 #include "t42types.h"
-#include <internal/ftobjs.h>
-#include <internal/ftdriver.h>
-#include <internal/services/svpscmap.h>
-#include <internal/pshints.h>
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_DRIVER_H
+#include FT_SERVICE_POSTSCRIPT_CMAPS_H
+#include FT_INTERNAL_POSTSCRIPT_HINTS_H
 
 
 FT_BEGIN_HEADER

@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Memory debugger (body).                                              */
 /*                                                                         */
-/*  Copyright 2001-2017 by                                                 */
+/*  Copyright 2001-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -18,8 +18,8 @@
 
 #include <ft2build.h>
 #include FT_CONFIG_CONFIG_H
-#include <internal/ftdebug.h>
-#include <internal/ftmemory.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_MEMORY_H
 #include FT_SYSTEM_H
 #include FT_ERRORS_H
 #include FT_TYPES_H
@@ -826,7 +826,7 @@
     FT_Int       result = 0;
 
 
-    if ( getenv( "FT2_DEBUG_MEMORY" ) )
+    if ( ft_getenv( "FT2_DEBUG_MEMORY" ) )
     {
       table = ft_mem_table_new( memory );
       if ( table )
@@ -839,7 +839,7 @@
         memory->realloc = ft_mem_debug_realloc;
         memory->free    = ft_mem_debug_free;
 
-        p = getenv( "FT2_ALLOC_TOTAL_MAX" );
+        p = ft_getenv( "FT2_ALLOC_TOTAL_MAX" );
         if ( p )
         {
           FT_Long  total_max = ft_strtol( p, NULL, 10 );
@@ -852,7 +852,7 @@
           }
         }
 
-        p = getenv( "FT2_ALLOC_COUNT_MAX" );
+        p = ft_getenv( "FT2_ALLOC_COUNT_MAX" );
         if ( p )
         {
           FT_Long  total_count = ft_strtol( p, NULL, 10 );
@@ -865,7 +865,7 @@
           }
         }
 
-        p = getenv( "FT2_KEEP_ALIVE" );
+        p = ft_getenv( "FT2_KEEP_ALIVE" );
         if ( p )
         {
           FT_Long  keep_alive = ft_strtol( p, NULL, 10 );

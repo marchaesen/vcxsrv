@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    The FreeType OpenType validation service (specification).            */
 /*                                                                         */
-/*  Copyright 2004-2017 by                                                 */
+/*  Copyright 2004-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -20,7 +20,7 @@
 #define SVOTVAL_H_
 
 #include FT_OPENTYPE_VALIDATE_H
-#include <freetype/internal/ftvalid.h>
+#include FT_INTERNAL_VALIDATE_H
 
 FT_BEGIN_HEADER
 

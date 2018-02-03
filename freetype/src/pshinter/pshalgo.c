@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    PostScript hinting algorithm (body).                                 */
 /*                                                                         */
-/*  Copyright 2001-2017 by                                                 */
+/*  Copyright 2001-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used        */
@@ -17,16 +17,16 @@
 
 
 #include <ft2build.h>
-#include <internal/ftobjs.h>
-#include <internal/ftdebug.h>
-#include <internal/ftcalc.h>
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_CALC_H
 #include "pshalgo.h"
 
 #include "pshnterr.h"
 
 
 #undef  FT_COMPONENT
-#define FT_COMPONENT  trace_pshalgo2
+#define FT_COMPONENT  trace_pshalgo
 
 
 #ifdef DEBUG_HINTER

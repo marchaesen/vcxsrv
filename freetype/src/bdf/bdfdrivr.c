@@ -26,9 +26,9 @@ THE SOFTWARE.
 
 #include <ft2build.h>
 
-#include <internal/ftdebug.h>
-#include <internal/ftstream.h>
-#include <internal/ftobjs.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_OBJECTS_H
 #include FT_BDF_H
 #include FT_TRUETYPE_IDS_H
 
@@ -813,7 +813,7 @@ THE SOFTWARE.
 
     bitmap->rows  = glyph.bbx.height;
     bitmap->width = glyph.bbx.width;
-    if ( glyph.bpr > INT_MAX )
+    if ( glyph.bpr > FT_INT_MAX )
       FT_TRACE1(( "BDF_Glyph_Load: too large pitch %d is truncated\n",
                    glyph.bpr ));
     bitmap->pitch = (int)glyph.bpr; /* same as FT_Bitmap.pitch */

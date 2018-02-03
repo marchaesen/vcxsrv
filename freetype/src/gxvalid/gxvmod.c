@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType's TrueTypeGX/AAT validation module implementation (body).   */
 /*                                                                         */
-/*  Copyright 2004-2017 by                                                 */
+/*  Copyright 2004-2018 by                                                 */
 /*  suzuki toshiya, Masatake YAMATO, Red Hat K.K.,                         */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
@@ -29,7 +29,7 @@
 #include FT_TRUETYPE_TABLES_H
 #include FT_TRUETYPE_TAGS_H
 #include FT_GX_VALIDATE_H
-#include <freetype/internal/ftobjs.h>
+#include FT_INTERNAL_OBJECTS_H
 #include FT_SERVICE_GX_VALIDATE_H
 
 #include "gxvmod.h"

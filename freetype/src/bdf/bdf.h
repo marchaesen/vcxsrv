@@ -31,8 +31,8 @@
  */
 
 #include <ft2build.h>
-#include <internal/ftobjs.h>
-#include <internal/ftstream.h>
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_STREAM_H
 #include FT_INTERNAL_HASH_H
 
 

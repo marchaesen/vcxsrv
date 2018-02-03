@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    The FreeType glyph rasterizer (body).                                */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -64,7 +64,7 @@
 
 #include <ft2build.h>
 #include "ftraster.h"
-#include <internal/ftcalc.h>   /* for FT_MulDiv and FT_MulDiv_No_Round */
+#include FT_INTERNAL_CALC_H   /* for FT_MulDiv and FT_MulDiv_No_Round */
 
 #include "rastpic.h"
 
@@ -227,8 +227,8 @@
 #else /* !STANDALONE_ */
 
 
-#include <internal/ftobjs.h>
-#include <internal/ftdebug.h>        /* for FT_TRACE, FT_ERROR, and FT_THROW */
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_DEBUG_H       /* for FT_TRACE, FT_ERROR, and FT_THROW */
 
 #include "rasterrs.h"
 

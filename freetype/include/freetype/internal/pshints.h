@@ -6,7 +6,7 @@
 /*    recorders (specification only).  These are used to support native    */
 /*    T1/T2 hints in the `type1', `cid', and `cff' font drivers.           */
 /*                                                                         */
-/*  Copyright 2001-2017 by                                                 */
+/*  Copyright 2001-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -23,8 +23,8 @@
 
 
 #include <ft2build.h>
-#include <freetype.h>
-#include <t1tables.h>
+#include FT_FREETYPE_H
+#include FT_TYPE1_TABLES_H
 
 
 FT_BEGIN_HEADER

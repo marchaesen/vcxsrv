@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    High-level SFNT driver interface (body).                             */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <internal/ftdebug.h>
-#include <internal/sfnt.h>
-#include <internal/ftobjs.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_SFNT_H
+#include FT_INTERNAL_OBJECTS_H
 #include FT_TRUETYPE_IDS_H
 
 #include "sfdriver.h"
@@ -862,7 +862,8 @@
                        NULL,
                        &mm_var );
 
-    if ( FT_IS_NAMED_INSTANCE( FT_FACE( face ) ) )
+    if ( FT_IS_NAMED_INSTANCE( FT_FACE( face ) ) &&
+         !FT_IS_VARIATION( FT_FACE( face ) )     )
     {
       SFNT_Service  sfnt = (SFNT_Service)face->sfnt;
 
@@ -1029,7 +1030,9 @@
       return face->postscript_name;
 
 #ifdef TT_CONFIG_OPTION_GX_VAR_SUPPORT
-    if ( face->blend )
+    if ( face->blend                                 &&
+         ( FT_IS_NAMED_INSTANCE( FT_FACE( face ) ) ||
+           FT_IS_VARIATION( FT_FACE( face ) )      ) )
     {
       face->postscript_name = sfnt_get_var_ps_name( face );
       return face->postscript_name;

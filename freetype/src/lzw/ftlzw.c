@@ -8,7 +8,7 @@
 /*  be used to parse compressed PCF fonts, as found with many X11 server   */
 /*  distributions.                                                         */
 /*                                                                         */
-/*  Copyright 2004-2017 by                                                 */
+/*  Copyright 2004-2018 by                                                 */
 /*  Albert Chin-A-Young.                                                   */
 /*                                                                         */
 /*  based on code in `src/gzip/ftgzip.c'                                   */
@@ -22,9 +22,9 @@
 /***************************************************************************/
 
 #include <ft2build.h>
-#include <internal/ftmemory.h>
-#include <internal/ftstream.h>
-#include <internal/ftdebug.h>
+#include FT_INTERNAL_MEMORY_H
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_DEBUG_H
 #include FT_LZW_H
 #include FT_CONFIG_STANDARD_LIBRARY_H
 

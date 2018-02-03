@@ -4,8 +4,8 @@
  */
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/psaux.h>
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_POSTSCRIPT_AUX_H
 
   void dump_fontinfo( AFM_FontInfo  fi )
   {

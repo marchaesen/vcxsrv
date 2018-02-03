@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    The FreeType position independent code services for sfnt module.     */
 /*                                                                         */
-/*  Copyright 2009-2017 by                                                 */
+/*  Copyright 2009-2018 by                                                 */
 /*  Oran Agra and Mickey Gabel.                                            */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -20,7 +20,7 @@
 #define SFNTPIC_H_
 
 
-#include <internal/ftpic.h>
+#include FT_INTERNAL_PIC_H
 
 
 #ifndef FT_CONFIG_OPTION_PIC
@@ -47,8 +47,8 @@
 #include FT_SERVICE_BDF_H
 #endif
 
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_STREAM_H
 #include FT_INTERNAL_SFNT_H
 #include "ttcmap.h"
 

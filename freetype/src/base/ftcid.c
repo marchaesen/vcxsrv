@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType API for accessing CID font information.                     */
 /*                                                                         */
-/*  Copyright 2007-2017 by                                                 */
+/*  Copyright 2007-2018 by                                                 */
 /*  Derek Clegg and Michael Toftdal.                                       */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -17,8 +17,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/cid.h>
-#include <freetype/internal/ftobjs.h>
+#include FT_CID_H
+#include FT_INTERNAL_OBJECTS_H
 #include FT_SERVICE_CID_H
 
 

@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType outline management (body).                                  */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -25,10 +25,10 @@
 
 #include <ft2build.h>
 #include FT_OUTLINE_H
-#include <internal/ftobjs.h>
-#include <internal/ftcalc.h>
-#include <internal/ftdebug.h>
-#include <fttrigon.h>
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_CALC_H
+#include FT_INTERNAL_DEBUG_H
+#include FT_TRIGONOMETRY_H
 
 
   /*************************************************************************/
@@ -540,8 +540,8 @@
 
     for ( n = 0; n < outline->n_points; n++ )
     {
-      vec->x += xOffset;
-      vec->y += yOffset;
+      vec->x = ADD_LONG( vec->x, xOffset );
+      vec->y = ADD_LONG( vec->y, yOffset );
       vec++;
     }
   }

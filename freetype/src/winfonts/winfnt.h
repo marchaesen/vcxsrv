@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType font driver for Windows FNT/FON files                       */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*  Copyright 2007 Dmitry Timoshkov for Codeweavers                        */
 /*                                                                         */
@@ -22,8 +22,8 @@
 
 
 #include <ft2build.h>
-#include <ftwinfnt.h>
-#include <internal/ftdriver.h>
+#include FT_WINFONTS_H
+#include FT_INTERNAL_DRIVER_H
 
 
 FT_BEGIN_HEADER

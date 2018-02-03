@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Embedded resource forks accessor (specification).                    */
 /*                                                                         */
-/*  Copyright 2004-2017 by                                                 */
+/*  Copyright 2004-2018 by                                                 */
 /*  Masatake YAMATO and Redhat K.K.                                        */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -26,7 +26,7 @@
 
 
 #include <ft2build.h>
-#include <internal/ftobjs.h>
+#include FT_INTERNAL_OBJECTS_H
 
 
 FT_BEGIN_HEADER

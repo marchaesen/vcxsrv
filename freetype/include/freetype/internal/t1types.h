@@ -5,7 +5,7 @@
 /*    Basic Type1/Type2 type definitions and interface (specification      */
 /*    only).                                                               */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -22,11 +22,11 @@
 
 
 #include <ft2build.h>
-#include <t1tables.h>
-#include <internal/pshints.h>
-#include <internal/ftserv.h>
-#include <internal/fthash.h>
-#include <internal/services/svpscmap.h>
+#include FT_TYPE1_TABLES_H
+#include FT_INTERNAL_POSTSCRIPT_HINTS_H
+#include FT_INTERNAL_SERVICE_H
+#include FT_INTERNAL_HASH_H
+#include FT_SERVICE_POSTSCRIPT_CMAPS_H
 
 
 FT_BEGIN_HEADER

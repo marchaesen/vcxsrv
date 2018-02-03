@@ -27,9 +27,9 @@ THE SOFTWARE.
 
 #include <ft2build.h>
 
-#include <internal/ftdebug.h>
-#include <internal/ftstream.h>
-#include <internal/ftobjs.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_OBJECTS_H
 
 #include "pcf.h"
 #include "pcfread.h"
@@ -840,7 +840,7 @@ THE SOFTWARE.
     FT_TRACE4(( "pcf_get_bitmaps:\n"
                 "  format: 0x%lX\n"
                 "          (%s, %s,\n"
-                "           padding=%d bits, scanning=%d bits)\n",
+                "           padding=%d bit%s, scanning=%d bit%s)\n",
                 format,
                 PCF_BYTE_ORDER( format ) == MSBFirst
                   ? "most significant byte first"
@@ -849,7 +849,9 @@ THE SOFTWARE.
                   ? "most significant bit first"
                   : "least significant bit first",
                 8 << PCF_GLYPH_PAD_INDEX( format ),
-                8 << PCF_SCAN_UNIT_INDEX( format ) ));
+                ( 8 << PCF_GLYPH_PAD_INDEX( format ) ) == 1 ? "" : "s",
+                8 << PCF_SCAN_UNIT_INDEX( format ),
+                ( 8 << PCF_SCAN_UNIT_INDEX( format ) ) == 1 ? "" : "s" ));
 
     if ( !PCF_FORMAT_MATCH( format, PCF_DEFAULT_FORMAT ) )
       return FT_THROW( Invalid_File_Format );

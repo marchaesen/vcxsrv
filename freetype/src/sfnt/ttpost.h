@@ -5,7 +5,7 @@
 /*    PostScript name table processing for TrueType and OpenType fonts     */
 /*    (specification).                                                     */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -23,7 +23,7 @@
 
 #include <ft2build.h>
 #include FT_CONFIG_CONFIG_H
-#include <internal/tttypes.h>
+#include FT_INTERNAL_TRUETYPE_TYPES_H
 
 
 FT_BEGIN_HEADER

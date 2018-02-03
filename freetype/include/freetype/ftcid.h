@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType API for accessing CID font information (specification).     */
 /*                                                                         */
-/*  Copyright 2007-2017 by                                                 */
+/*  Copyright 2007-2018 by                                                 */
 /*  Dereg Clegg and Michael Toftdal.                                       */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -20,7 +20,7 @@
 #define FTCID_H_
 
 #include <ft2build.h>
-#include <freetype/freetype.h>
+#include FT_FREETYPE_H
 
 #ifdef FREETYPE_H
 #error "freetype.h of FreeType 1 has been loaded!"
@@ -87,7 +87,7 @@ FT_BEGIN_HEADER
   FT_Get_CID_Registry_Ordering_Supplement( FT_Face       face,
                                            const char*  *registry,
                                            const char*  *ordering,
-                                           FT_Int       *supplement);
+                                           FT_Int       *supplement );
 
 
   /**********************************************************************

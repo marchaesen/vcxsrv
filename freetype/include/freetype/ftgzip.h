@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Gzip-compressed stream support.                                      */
 /*                                                                         */
-/*  Copyright 2002-2017 by                                                 */
+/*  Copyright 2002-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -20,7 +20,7 @@
 #define FTGZIP_H_
 
 #include <ft2build.h>
-#include <freetype.h>
+#include FT_FREETYPE_H
 
 #ifdef FREETYPE_H
 #error "freetype.h of FreeType 1 has been loaded!"
@@ -129,6 +129,9 @@ FT_BEGIN_HEADER
   * @note:
   *   This function may return `FT_Err_Unimplemented_Feature' if your build
   *   of FreeType was not compiled with zlib support.
+  *
+  * @since:
+  *   2.5.1
   */
   FT_EXPORT( FT_Error )
   FT_Gzip_Uncompress( FT_Memory       memory,

@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    TrueType Subpixel Hinting.                                           */
 /*                                                                         */
-/*  Copyright 2010-2017 by                                                 */
+/*  Copyright 2010-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,13 +16,13 @@
 /***************************************************************************/
 
 #include <ft2build.h>
-#include <internal/ftdebug.h>
-#include <internal/ftcalc.h>
-#include <internal/ftstream.h>
-#include <internal/sfnt.h>
-#include <tttags.h>
-#include <ftoutln.h>
-#include FT_TRUETYPE_DRIVER_H
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_CALC_H
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_SFNT_H
+#include FT_TRUETYPE_TAGS_H
+#include FT_OUTLINE_H
+#include FT_DRIVER_H
 
 #include "ttsubpix.h"
 
@@ -753,24 +753,24 @@
 
 
     /* Does font name match rule family? */
-    if ( strcmp( detected_font_name, rule_font_name ) == 0 )
+    if ( ft_strcmp( detected_font_name, rule_font_name ) == 0 )
       return TRUE;
 
     /* Is font name a wildcard ""? */
-    if ( strcmp( rule_font_name, "" ) == 0 )
+    if ( ft_strcmp( rule_font_name, "" ) == 0 )
       return TRUE;
 
     /* Is font name contained in a class list? */
     for ( i = 0; i < FAMILY_CLASS_RULES_SIZE; i++ )
     {
-      if ( strcmp( FAMILY_CLASS_Rules[i].name, rule_font_name ) == 0 )
+      if ( ft_strcmp( FAMILY_CLASS_Rules[i].name, rule_font_name ) == 0 )
       {
         for ( j = 0; j < SPH_MAX_CLASS_MEMBERS; j++ )
         {
-          if ( strcmp( FAMILY_CLASS_Rules[i].member[j], "" ) == 0 )
+          if ( ft_strcmp( FAMILY_CLASS_Rules[i].member[j], "" ) == 0 )
             continue;
-          if ( strcmp( FAMILY_CLASS_Rules[i].member[j],
-                       detected_font_name ) == 0 )
+          if ( ft_strcmp( FAMILY_CLASS_Rules[i].member[j],
+                          detected_font_name ) == 0 )
             return TRUE;
         }
       }
@@ -788,24 +788,24 @@
 
 
     /* Does font style match rule style? */
-    if ( strcmp( detected_font_style, rule_font_style ) == 0 )
+    if ( ft_strcmp( detected_font_style, rule_font_style ) == 0 )
       return TRUE;
 
     /* Is font style a wildcard ""? */
-    if ( strcmp( rule_font_style, "" ) == 0 )
+    if ( ft_strcmp( rule_font_style, "" ) == 0 )
       return TRUE;
 
     /* Is font style contained in a class list? */
     for ( i = 0; i < STYLE_CLASS_RULES_SIZE; i++ )
     {
-      if ( strcmp( STYLE_CLASS_Rules[i].name, rule_font_style ) == 0 )
+      if ( ft_strcmp( STYLE_CLASS_Rules[i].name, rule_font_style ) == 0 )
       {
         for ( j = 0; j < SPH_MAX_CLASS_MEMBERS; j++ )
         {
-          if ( strcmp( STYLE_CLASS_Rules[i].member[j], "" ) == 0 )
+          if ( ft_strcmp( STYLE_CLASS_Rules[i].member[j], "" ) == 0 )
             continue;
-          if ( strcmp( STYLE_CLASS_Rules[i].member[j],
-                       detected_font_style ) == 0 )
+          if ( ft_strcmp( STYLE_CLASS_Rules[i].member[j],
+                          detected_font_style ) == 0 )
             return TRUE;
         }
       }

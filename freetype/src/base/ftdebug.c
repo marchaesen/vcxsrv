@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Debugging and logging component (body).                              */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -42,8 +42,8 @@
 
 
 #include <ft2build.h>
-#include <freetype.h>
-#include <internal/ftdebug.h>
+#include FT_FREETYPE_H
+#include FT_INTERNAL_DEBUG_H
 
 
 #ifdef FT_DEBUG_LEVEL_ERROR
@@ -161,7 +161,7 @@
   FT_BASE_DEF( void )
   ft_debug_init( void )
   {
-    const char*  ft2_debug = getenv( "FT2_DEBUG" );
+    const char*  ft2_debug = ft_getenv( "FT2_DEBUG" );
 
 
     if ( ft2_debug )

@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    The FreeType font format service (specification only).               */
 /*                                                                         */
-/*  Copyright 2003-2017 by                                                 */
+/*  Copyright 2003-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -19,7 +19,7 @@
 #ifndef SVFNTFMT_H_
 #define SVFNTFMT_H_
 
-#include <internal/ftserv.h>
+#include FT_INTERNAL_SERVICE_H
 
 
 FT_BEGIN_HEADER

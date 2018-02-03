@@ -34,9 +34,9 @@
 #include <ft2build.h>
 
 #include FT_FREETYPE_H
-#include <internal/ftdebug.h>
-#include <internal/ftstream.h>
-#include <internal/ftobjs.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_OBJECTS_H
 
 #include "bdf.h"
 #include "bdferror.h"
@@ -705,11 +705,11 @@
 
     for ( v = 0; sbitset( ddigits, *s ); s++ )
     {
-      if ( v < ( ULONG_MAX - 9 ) / 10 )
+      if ( v < ( FT_ULONG_MAX - 9 ) / 10 )
         v = v * 10 + a2i[(int)*s];
       else
       {
-        v = ULONG_MAX;
+        v = FT_ULONG_MAX;
         break;
       }
     }
@@ -738,11 +738,11 @@
 
     for ( v = 0; sbitset( ddigits, *s ); s++ )
     {
-      if ( v < ( LONG_MAX - 9 ) / 10 )
+      if ( v < ( FT_LONG_MAX - 9 ) / 10 )
         v = v * 10 + a2i[(int)*s];
       else
       {
-        v = LONG_MAX;
+        v = FT_LONG_MAX;
         break;
       }
     }
@@ -763,11 +763,11 @@
 
     for ( v = 0; sbitset( ddigits, *s ); s++ )
     {
-      if ( v < ( USHRT_MAX - 9 ) / 10 )
+      if ( v < ( FT_USHORT_MAX - 9 ) / 10 )
         v = (unsigned short)( v * 10 + a2i[(int)*s] );
       else
       {
-        v = USHRT_MAX;
+        v = FT_USHORT_MAX;
         break;
       }
     }

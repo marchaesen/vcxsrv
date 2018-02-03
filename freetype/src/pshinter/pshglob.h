@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    PostScript hinter global hinting management.                         */
 /*                                                                         */
-/*  Copyright 2001-2017 by                                                 */
+/*  Copyright 2001-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -20,8 +20,8 @@
 #define PSHGLOB_H_
 
 
-#include <freetype.h>
-#include <internal/pshints.h>
+#include FT_FREETYPE_H
+#include FT_INTERNAL_POSTSCRIPT_HINTS_H
 
 
 FT_BEGIN_HEADER

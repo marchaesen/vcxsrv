@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Amiga-specific FreeType low-level system interface (body).           */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, Werner Lemberg and Detlef Würkner.       */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -96,7 +96,7 @@ Free_VecPooled( APTR  poolHeader,
 
 #include <ft2build.h>
 #include FT_CONFIG_CONFIG_H
-#include <freetype/internal/ftdebug.h>
+#include FT_INTERNAL_DEBUG_H
 #include FT_SYSTEM_H
 #include FT_ERRORS_H
 #include FT_TYPES_H

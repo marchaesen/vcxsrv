@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    TrueType character mapping table (cmap) support (specification).     */
 /*                                                                         */
-/*  Copyright 2002-2017 by                                                 */
+/*  Copyright 2002-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -21,8 +21,8 @@
 
 
 #include <ft2build.h>
-#include <internal/tttypes.h>
-#include <internal/ftvalid.h>
+#include FT_INTERNAL_TRUETYPE_TYPES_H
+#include FT_INTERNAL_VALIDATE_H
 #include FT_SERVICE_TT_CMAP_H
 
 FT_BEGIN_HEADER

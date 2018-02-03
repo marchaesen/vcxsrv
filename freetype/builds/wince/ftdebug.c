@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Debugging and logging component for WinCE (body).                    */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -42,7 +42,7 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
+#include FT_INTERNAL_DEBUG_H
 
 
 #ifdef FT_DEBUG_LEVEL_ERROR
@@ -79,7 +79,7 @@
 
 
     va_start( ap, fmt );
-    vprintf( fmt, ap );
+    vfprintf( stderr, fmt, ap );
     /* send the string to the debugger as well */
     vsprintf( buf, fmt, ap );
     OutputDebugStringEx( buf );

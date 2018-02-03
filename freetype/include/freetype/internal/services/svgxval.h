@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType API for validating TrueTypeGX/AAT tables (specification).   */
 /*                                                                         */
-/*  Copyright 2004-2017 by                                                 */
+/*  Copyright 2004-2018 by                                                 */
 /*  Masatake YAMATO, Red Hat K.K.,                                         */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
@@ -29,7 +29,7 @@
 #define SVGXVAL_H_
 
 #include FT_GX_VALIDATE_H
-#include <freetype/internal/ftvalid.h>
+#include FT_INTERNAL_VALIDATE_H
 
 FT_BEGIN_HEADER
 

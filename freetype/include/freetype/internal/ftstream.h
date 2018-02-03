@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Stream handling (specification).                                     */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -22,7 +22,7 @@
 
 #include <ft2build.h>
 #include FT_SYSTEM_H
-#include <internal/ftobjs.h>
+#include FT_INTERNAL_OBJECTS_H
 
 
 FT_BEGIN_HEADER
@@ -165,8 +165,8 @@ FT_BEGIN_HEADER
 #define FT_BYTE_U32( p, i, s )  ( FT_UINT32( FT_BYTE_( p, i ) ) << (s) )
 
 
-#define FT_PEEK_SHORT( p )  FT_INT16( FT_BYTE_U16( p, 0, 8) | \
-                                      FT_BYTE_U16( p, 1, 0) )
+#define FT_PEEK_SHORT( p )  FT_INT16( FT_BYTE_U16( p, 0, 8 ) | \
+                                      FT_BYTE_U16( p, 1, 0 ) )
 
 #define FT_PEEK_USHORT( p )  FT_UINT16( FT_BYTE_U16( p, 0, 8 ) | \
                                         FT_BYTE_U16( p, 1, 0 ) )

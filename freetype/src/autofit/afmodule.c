@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Auto-fitter module implementation (body).                            */
 /*                                                                         */
-/*  Copyright 2003-2017 by                                                 */
+/*  Copyright 2003-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -54,9 +54,9 @@
   void*  _af_debug_hints = _af_debug_hints_rec;
 #endif
 
-#include <internal/ftobjs.h>
-#include <internal/ftdebug.h>
-#include FT_AUTOHINTER_H
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_DEBUG_H
+#include FT_DRIVER_H
 #include FT_SERVICE_PROPERTIES_H
 
 

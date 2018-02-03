@@ -29,7 +29,7 @@ THE SOFTWARE.
 #define BDFDRIVR_H_
 
 #include <ft2build.h>
-#include <internal/ftdriver.h>
+#include FT_INTERNAL_DRIVER_H
 
 #include "bdf.h"
 

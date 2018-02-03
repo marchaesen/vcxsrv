@@ -27,9 +27,9 @@ THE SOFTWARE.
 
 #include <ft2build.h>
 
-#include <internal/ftdebug.h>
-#include <internal/ftstream.h>
-#include <internal/ftobjs.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_OBJECTS_H
 #include FT_GZIP_H
 #include FT_LZW_H
 #include FT_BZIP2_H
@@ -50,7 +50,7 @@ THE SOFTWARE.
 #include FT_SERVICE_BDF_H
 #include FT_SERVICE_FONT_FORMAT_H
 #include FT_SERVICE_PROPERTIES_H
-#include FT_PCF_DRIVER_H
+#include FT_DRIVER_H
 
 
   /*************************************************************************/
