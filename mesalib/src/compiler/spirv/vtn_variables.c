@@ -1837,7 +1837,15 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
                interface_type->members[i]->type;
             var->members[i]->data.mode = nir_mode;
             var->members[i]->data.patch = var->patch;
+
+            if (initializer) {
+               assert(i < initializer->num_elements);
+               var->members[i]->constant_initializer =
+                  nir_constant_clone(initializer->elements[i], var->members[i]);
+            }
          }
+
+         initializer = NULL;
       } else {
          var->var = rzalloc(b->shader, nir_variable);
          var->var->name = ralloc_strdup(var->var, val->name);

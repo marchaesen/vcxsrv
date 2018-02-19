@@ -53,4 +53,9 @@ _mesa_get_driver_uuid(struct gl_context *ctx, GLint *uuid);
 extern void
 _mesa_get_device_uuid(struct gl_context *ctx, GLint *uuid);
 
+extern int
+_mesa_get_shading_language_version(const struct gl_context *ctx,
+                                   int index,
+                                   char **versionOut);
+
 #endif /* VERSION_H */

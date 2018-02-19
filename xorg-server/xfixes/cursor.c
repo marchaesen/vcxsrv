@@ -134,8 +134,11 @@ Bool EnableCursor = TRUE;
 static CursorPtr
 CursorForDevice(DeviceIntPtr pDev)
 {
-    if (pDev && pDev->spriteInfo && pDev->spriteInfo->sprite)
+    if (pDev && pDev->spriteInfo && pDev->spriteInfo->sprite) {
+        if (pDev->spriteInfo->anim.pCursor)
+            return pDev->spriteInfo->anim.pCursor;
         return pDev->spriteInfo->sprite->current;
+    }
 
     return NULL;
 }

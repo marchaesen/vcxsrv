@@ -34,9 +34,13 @@
 extern "C" {
 #endif
 
+#define HAVE_32BIT_POINTERS (HAVE_LLVM >= 0x0700)
+
 enum {
-	AC_CONST_ADDR_SPACE = 2, /* CONST is the only address space that selects SMEM loads */
+	/* CONST is the only address space that selects SMEM loads */
+	AC_CONST_ADDR_SPACE = HAVE_LLVM >= 0x700 ? 4 : 2,
 	AC_LOCAL_ADDR_SPACE = 3,
+	AC_CONST_32BIT_ADDR_SPACE = 6, /* same as CONST, but the pointer type has 32 bits */
 };
 
 struct ac_llvm_context {
@@ -50,6 +54,7 @@ struct ac_llvm_context {
 	LLVMTypeRef i16;
 	LLVMTypeRef i32;
 	LLVMTypeRef i64;
+	LLVMTypeRef intptr;
 	LLVMTypeRef f16;
 	LLVMTypeRef f32;
 	LLVMTypeRef f64;
@@ -92,6 +97,9 @@ ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context,
 int
 ac_get_llvm_num_components(LLVMValueRef value);
 
+int
+ac_get_elem_bits(struct ac_llvm_context *ctx, LLVMTypeRef type);
+
 LLVMValueRef
 ac_llvm_extract_elem(struct ac_llvm_context *ac,
 		     LLVMValueRef value,
@@ -118,6 +126,8 @@ ac_build_phi(struct ac_llvm_context *ctx, LLVMTypeRef type,
 
 void ac_build_optimization_barrier(struct ac_llvm_context *ctx,
 				   LLVMValueRef *pvgpr);
+
+LLVMValueRef ac_build_shader_clock(struct ac_llvm_context *ctx);
 
 LLVMValueRef ac_build_ballot(struct ac_llvm_context *ctx, LLVMValueRef value);
 
@@ -277,6 +287,8 @@ struct ac_export_args {
 
 void ac_build_export(struct ac_llvm_context *ctx, struct ac_export_args *a);
 
+void ac_build_export_null(struct ac_llvm_context *ctx);
+
 enum ac_image_opcode {
 	ac_image_sample,
 	ac_image_gather4,
@@ -347,6 +359,7 @@ LLVMValueRef ac_find_lsb(struct ac_llvm_context *ctx,
 			 LLVMValueRef src0);
 
 LLVMTypeRef ac_array_in_const_addr_space(LLVMTypeRef elem_type);
+LLVMTypeRef ac_array_in_const32_addr_space(LLVMTypeRef elem_type);
 
 #ifdef __cplusplus
 }

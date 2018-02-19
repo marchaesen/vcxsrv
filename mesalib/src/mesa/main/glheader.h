@@ -42,8 +42,11 @@
 extern "C" {
 #endif
 
+/* Custom Mesa types to save space. */
+typedef unsigned short GLenum16;
+typedef unsigned char GLbitfield8;
+typedef unsigned short GLbitfield16;
 
-typedef unsigned short GLenum16; /* custom Mesa type to save space */
 typedef int GLclampx;
 
 

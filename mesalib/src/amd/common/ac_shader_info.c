@@ -27,7 +27,7 @@
 static void mark_sampler_desc(const nir_variable *var,
 			      struct ac_shader_info *info)
 {
-	info->desc_set_used_mask = (1 << var->data.descriptor_set);
+	info->desc_set_used_mask |= (1 << var->data.descriptor_set);
 }
 
 static void
@@ -133,6 +133,19 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		if (nir->info.stage == MESA_SHADER_FRAGMENT)
 			info->ps.writes_memory = true;
 		break;
+	case nir_intrinsic_load_var:
+		if (nir->info.stage == MESA_SHADER_VERTEX) {
+			nir_deref_var *dvar = instr->variables[0];
+			nir_variable *var = dvar->var;
+
+			if (var->data.mode == nir_var_shader_in) {
+				unsigned idx = var->data.location;
+				uint8_t mask =
+					nir_ssa_def_components_read(&instr->dest.ssa);
+				info->vs.input_usage_mask[idx] |= mask;
+			}
+		}
+		break;
 	default:
 		break;
 	}
@@ -167,12 +180,71 @@ gather_info_block(const nir_shader *nir, const nir_block *block,
 }
 
 static void
+gather_info_input_decl_vs(const nir_shader *nir, const nir_variable *var,
+			  struct ac_shader_info *info)
+{
+	int idx = var->data.location;
+
+	if (idx >= VERT_ATTRIB_GENERIC0 && idx <= VERT_ATTRIB_GENERIC15)
+		info->vs.has_vertex_buffers = true;
+}
+
+static void
+gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
+			  struct ac_shader_info *info)
+{
+	const struct glsl_type *type = glsl_without_array(var->type);
+
+	if (glsl_get_base_type(type) == GLSL_TYPE_FLOAT) {
+		if (var->data.sample)
+			info->ps.force_persample = true;
+	}
+}
+
+static void
 gather_info_input_decl(const nir_shader *nir, const nir_variable *var,
 		       struct ac_shader_info *info)
 {
 	switch (nir->info.stage) {
 	case MESA_SHADER_VERTEX:
-		info->vs.has_vertex_buffers = true;
+		gather_info_input_decl_vs(nir, var, info);
+		break;
+	case MESA_SHADER_FRAGMENT:
+		gather_info_input_decl_ps(nir, var, info);
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+gather_info_output_decl_ps(const nir_shader *nir, const nir_variable *var,
+			   struct ac_shader_info *info)
+{
+	int idx = var->data.location;
+
+	switch (idx) {
+	case FRAG_RESULT_DEPTH:
+		info->ps.writes_z = true;
+		break;
+	case FRAG_RESULT_STENCIL:
+		info->ps.writes_stencil = true;
+		break;
+	case FRAG_RESULT_SAMPLE_MASK:
+		info->ps.writes_sample_mask = true;
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+gather_info_output_decl(const nir_shader *nir, const nir_variable *var,
+			struct ac_shader_info *info)
+{
+	switch (nir->info.stage) {
+	case MESA_SHADER_FRAGMENT:
+		gather_info_output_decl_ps(nir, var, info);
 		break;
 	default:
 		break;
@@ -196,4 +268,7 @@ ac_nir_shader_info_pass(const struct nir_shader *nir,
 	nir_foreach_block(block, func->impl) {
 		gather_info_block(nir, block, info);
 	}
+
+	nir_foreach_variable(variable, &nir->outputs)
+		gather_info_output_decl(nir, variable, info);
 }

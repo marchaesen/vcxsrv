@@ -702,7 +702,7 @@ DoConfigure(void)
 
     xf86DoConfigurePass1 = FALSE;
 
-    dev2screen = xnfcalloc(xf86NumDrivers, sizeof(int));
+    dev2screen = xnfcalloc(nDevToConfig, sizeof(int));
 
     {
         Bool *driverProbed = xnfcalloc(xf86NumDrivers, sizeof(Bool));
@@ -774,7 +774,8 @@ DoConfigure(void)
 
         ConfiguredMonitor = NULL;
 
-        if ((*xf86Screens[dev2screen[j]]->PreInit) (xf86Screens[dev2screen[j]],
+        if ((*xf86Screens[dev2screen[j]]->PreInit) &&
+            (*xf86Screens[dev2screen[j]]->PreInit) (xf86Screens[dev2screen[j]],
                                                     PROBE_DETECT) &&
             ConfiguredMonitor) {
             monitor_ptr = configureDDCMonitorSection(j);

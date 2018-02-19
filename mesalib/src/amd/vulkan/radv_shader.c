@@ -114,6 +114,45 @@ void radv_DestroyShaderModule(
 	vk_free2(&device->alloc, pAllocator, module);
 }
 
+bool
+radv_lower_indirect_derefs(struct nir_shader *nir,
+                           struct radv_physical_device *device)
+{
+	/* While it would be nice not to have this flag, we are constrained
+	 * by the reality that LLVM 5.0 doesn't have working VGPR indexing
+	 * on GFX9.
+	 */
+	bool llvm_has_working_vgpr_indexing =
+		device->rad_info.chip_class <= VI;
+
+	/* TODO: Indirect indexing of GS inputs is unimplemented.
+	 *
+	 * TCS and TES load inputs directly from LDS or offchip memory, so
+	 * indirect indexing is trivial.
+	 */
+	nir_variable_mode indirect_mask = 0;
+	if (nir->info.stage == MESA_SHADER_GEOMETRY ||
+	    (nir->info.stage != MESA_SHADER_TESS_CTRL &&
+	     nir->info.stage != MESA_SHADER_TESS_EVAL &&
+	     !llvm_has_working_vgpr_indexing)) {
+		indirect_mask |= nir_var_shader_in;
+	}
+	if (!llvm_has_working_vgpr_indexing &&
+	    nir->info.stage != MESA_SHADER_TESS_CTRL)
+		indirect_mask |= nir_var_shader_out;
+
+	/* TODO: We shouldn't need to do this, however LLVM isn't currently
+	 * smart enough to handle indirects without causing excess spilling
+	 * causing the gpu to hang.
+	 *
+	 * See the following thread for more details of the problem:
+	 * https://lists.freedesktop.org/archives/mesa-dev/2017-July/162106.html
+	 */
+	indirect_mask |= nir_var_local;
+
+	return nir_lower_indirect_derefs(nir, indirect_mask);
+}
+
 void
 radv_optimize_nir(struct nir_shader *shader)
 {
@@ -148,6 +187,8 @@ radv_optimize_nir(struct nir_shader *shader)
                         NIR_PASS(progress, shader, nir_opt_loop_unroll, 0);
                 }
         } while (progress);
+
+        NIR_PASS(progress, shader, nir_opt_shrink_load);
 }
 
 nir_shader *
@@ -252,40 +293,6 @@ radv_shader_compile_to_nir(struct radv_device *device,
 
 	nir_shader_gather_info(nir, entry_point->impl);
 
-	/* While it would be nice not to have this flag, we are constrained
-	 * by the reality that LLVM 5.0 doesn't have working VGPR indexing
-	 * on GFX9.
-	 */
-	bool llvm_has_working_vgpr_indexing =
-		device->physical_device->rad_info.chip_class <= VI;
-
-	/* TODO: Indirect indexing of GS inputs is unimplemented.
-	 *
-	 * TCS and TES load inputs directly from LDS or offchip memory, so
-	 * indirect indexing is trivial.
-	 */
-	nir_variable_mode indirect_mask = 0;
-	if (nir->info.stage == MESA_SHADER_GEOMETRY ||
-	    (nir->info.stage != MESA_SHADER_TESS_CTRL &&
-	     nir->info.stage != MESA_SHADER_TESS_EVAL &&
-	     !llvm_has_working_vgpr_indexing)) {
-		indirect_mask |= nir_var_shader_in;
-	}
-	if (!llvm_has_working_vgpr_indexing &&
-	    nir->info.stage != MESA_SHADER_TESS_CTRL)
-		indirect_mask |= nir_var_shader_out;
-
-	/* TODO: We shouldn't need to do this, however LLVM isn't currently
-	 * smart enough to handle indirects without causing excess spilling
-	 * causing the gpu to hang.
-	 *
-	 * See the following thread for more details of the problem:
-	 * https://lists.freedesktop.org/archives/mesa-dev/2017-July/162106.html
-	 */
-	indirect_mask |= nir_var_local;
-
-	nir_lower_indirect_derefs(nir, indirect_mask);
-
 	static const nir_lower_tex_options tex_options = {
 	  .lower_txp = ~0,
 	};
@@ -296,6 +303,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	nir_lower_var_copies(nir);
 	nir_lower_global_vars_to_local(nir);
 	nir_remove_dead_variables(nir, nir_var_local);
+	radv_lower_indirect_derefs(nir, device->physical_device);
 	radv_optimize_nir(nir);
 
 	return nir;

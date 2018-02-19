@@ -1,0 +1,275 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.3.4 Release Notes / January 15, 2018</h1>
+
+<p>
+Mesa 17.3.4 is a bug fix release which fixes bugs found since the 17.3.3 release.
+</p>
+<p>
+Mesa 17.3.4 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+2d3a4c3cbc995b3e192361dce710d8c749e046e7575aa1b7d8fc9e6b4df28f84  mesa-17.3.4.tar.gz
+71f995e233bc5df1a0dd46c980d1720106e7f82f02d61c1ca50854b5e02590d0  mesa-17.3.4.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90311">Bug 90311</a> - Fail to build libglx with clang at linking stage</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101442">Bug 101442</a> - Piglit shaders&#64;ssa&#64;fs-if-def-else-break fails with sb but passes with R600_DEBUG=nosb</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102435">Bug 102435</a> - [skl,kbl] [drm] GPU HANG: ecode 9:0:0x86df7cf9, in csgo_linux64 [4947], reason: Hang on rcs, action: reset</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103006">Bug 103006</a> - [OpenGL CTS] [HSW] KHR-GL45.vertex_attrib_binding.basic-inputL-case1</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103626">Bug 103626</a> - [SNB] ES3-CTS.functional.shaders.precision</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104163">Bug 104163</a> - [GEN9+] 2-3% perf drop in GfxBench Manhattan 3.1 from &quot;i965: Disable regular fast-clears (CCS_D) on gen9+&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104383">Bug 104383</a> - [KBL] Intel GPU hang with firefox</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104411">Bug 104411</a> - [CCS] lemonbar-xft GPU hang</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104487">Bug 104487</a> - [KBL] portal2_linux GPU hang</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104711">Bug 104711</a> - [skl CCS] Oxenfree (unity engine game) hangs GPU</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104741">Bug 104741</a> - Graphic corruption for Android apps Telegram and KineMaster</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104745">Bug 104745</a> - HEVC VDPAU decoding broken on RX 460 with UVD Firmware v1.130</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104818">Bug 104818</a> - mesa fails to build on ia64</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Andres Gomez (1):</p>
+<ul>
+  <li>i965: perform 2 uploads with dual slot *64*PASSTHRU formats on gen&lt;8</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (10):</p>
+<ul>
+  <li>radv: Fix ordering issue in meta memory allocation failure path.</li>
+  <li>radv: Fix memory allocation failure path in compute resolve init.</li>
+  <li>radv: Fix freeing meta state if the device pipeline cache fails to allocate.</li>
+  <li>radv: Fix fragment resolve init memory allocation failure paths.</li>
+  <li>radv: Fix bufimage failure deallocation.</li>
+  <li>radv: Init variant entry with memset.</li>
+  <li>radv: Don't allow 3d or 1d depth/stencil textures.</li>
+  <li>ac/nir: Use instance_rate_inputs per attribute, not per variable.</li>
+  <li>ac/nir: Use correct 32-bit component writemask for 64-bit SSBO stores.</li>
+  <li>ac/nir: Fix vector extraction if source vector has &gt;4 elements.</li>
+</ul>
+
+<p>Boyuan Zhang (2):</p>
+<ul>
+  <li>radeon/vcn: add and manage render picture list</li>
+  <li>radeon/uvd: add and manage render picture list</li>
+</ul>
+
+<p>Chuck Atkins (1):</p>
+<ul>
+  <li>configure.ac: add missing llvm dependencies to .pc files</li>
+</ul>
+
+<p>Dave Airlie (10):</p>
+<ul>
+  <li>r600/sb: fix a bug emitting ar load from a constant.</li>
+  <li>ac/nir: account for view index in the user sgpr allocation.</li>
+  <li>radv: add fs_key meta format support to resolve passes.</li>
+  <li>radv: don't use hw resolve for integer image formats</li>
+  <li>radv: don't use hw resolves for r16g16 norm formats.</li>
+  <li>radv: move spi_baryc_cntl to pipeline</li>
+  <li>r600/sb: insert the else clause when we might depart from a loop</li>
+  <li>radv: don't enable tc compat for d32s8 + 4/8 samples (v1.1)</li>
+  <li>radv/gfx9: fix block compression texture views. (v2)</li>
+  <li>virgl: also remove dimension on indirect.</li>
+</ul>
+
+<p>Eleni Maria Stea (1):</p>
+<ul>
+  <li>mesa: Fix function pointers initialization in status tracker</li>
+</ul>
+
+<p>Emil Velikov (18):</p>
+<ul>
+  <li>cherry-ignore: i965: Accept CONTEXT_ATTRIB_PRIORITY for brwCreateContext</li>
+  <li>cherry-ignore: swr: refactor swr_create_screen to allow for proper cleanup on error</li>
+  <li>cherry-ignore: anv: add explicit 18.0 only nominations</li>
+  <li>cherry-ignore: radv: fix sample_mask_in loading. (v3.1)</li>
+  <li>cherry-ignore: meson: multiple fixes</li>
+  <li>cherry-ignore: swr/rast: support llvm 3.9 type declarations</li>
+  <li>Revert "cherry-ignore: intel/fs: Use the original destination region for int MUL lowering"</li>
+  <li>cherry-ignore: ac/nir: set amdgpu.uniform and invariant.load for UBOs</li>
+  <li>cherry-ignore: add gen10 fixes</li>
+  <li>cherry-ignore: add r600/amdgpu 18.0 nominations</li>
+  <li>cherry-ignore: add i965 shader cache fixes</li>
+  <li>cherry-ignore: nir: mark unused space in packed_tex_data</li>
+  <li>radv: Stop advertising VK_KHX_multiview</li>
+  <li>cherry-ignore: radv: Don't expose VK_KHX_multiview on android.</li>
+  <li>configure.ac: correct driglx-direct help text</li>
+  <li>cherry-ignore: add meson fix</li>
+  <li>cherry-ignore: add a few more meson fixes</li>
+  <li>Update version to 17.3.4</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>radeon: remove left over dead code</li>
+</ul>
+
+<p>Gert Wollny (1):</p>
+<ul>
+  <li>r600/shader: Initialize max_driver_temp_used correctly for the first time</li>
+</ul>
+
+<p>Grazvydas Ignotas (2):</p>
+<ul>
+  <li>st/va: release held locks in error paths</li>
+  <li>st/vdpau: release held lock in error path</li>
+</ul>
+
+<p>Igor Gnatenko (1):</p>
+<ul>
+  <li>link mesautil with pthreads</li>
+</ul>
+
+<p>Indrajit Das (4):</p>
+<ul>
+  <li>st/omx_bellagio: Update default intra matrix per MPEG2 spec</li>
+  <li>radeon/uvd: update quantiser matrices only when requested</li>
+  <li>radeon/vcn: update quantiser matrices only when requested</li>
+  <li>st/va: clear pointers for mpeg2 quantiser matrices</li>
+</ul>
+
+<p>Jason Ekstrand (19):</p>
+<ul>
+  <li>i965: Call brw_cache_flush_for_render in predraw_resolve_framebuffer</li>
+  <li>i965: Add more precise cache tracking helpers</li>
+  <li>i965/blorp: Add more destination flushing</li>
+  <li>i965: Track the depth and render caches separately</li>
+  <li>i965: Track format and aux usage in the render cache</li>
+  <li>Re-enable regular fast-clears (CCS_D) on gen9+</li>
+  <li>i965/miptree: Refactor CCS_E and CCS_D cases in render_aux_usage</li>
+  <li>i965/miptree: Add an explicit tiling parameter to create_for_bo</li>
+  <li>i965/miptree: Use the tiling from the modifier instead of the BO</li>
+  <li>i965/bufmgr: Add a create_from_prime_tiled function</li>
+  <li>i965: Set tiling on BOs imported with modifiers</li>
+  <li>i965/miptree: Take an aux_usage in prepare/finish_render</li>
+  <li>i965/miptree: Add an aux_disabled parameter to render_aux_usage</li>
+  <li>i965/surface_state: Drop brw_aux_surface_disabled</li>
+  <li>intel/fs: Use the original destination region for int MUL lowering</li>
+  <li>anv/pipeline: Don't look at blend state unless we have an attachment</li>
+  <li>anv/cmd_buffer: Re-emit the pipeline at every subpass</li>
+  <li>anv: Stop advertising VK_KHX_multiview</li>
+  <li>i965: Call prepare_external after implicit window-system MSAA resolves</li>
+</ul>
+
+<p>Jon Turney (3):</p>
+<ul>
+  <li>configure: Default to gbm=no on osx</li>
+  <li>glx/apple: include util/debug.h for env_var_as_boolean prototype</li>
+  <li>glx/apple: locate dispatch table functions to wrap by name</li>
+</ul>
+
+<p>José Fonseca (1):</p>
+<ul>
+  <li>svga: Prevent use after free.</li>
+</ul>
+
+<p>Juan A. Suarez Romero (1):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.3.3</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>i965: Bind null render targets for shadow sampling + color.</li>
+  <li>i965: Bump official kernel requirement to Linux v3.9.</li>
+</ul>
+
+<p>Lucas Stach (2):</p>
+<ul>
+  <li>etnaviv: dirty TS state when framebuffer has changed</li>
+  <li>renderonly: fix dumb BO allocation for non 32bpp formats</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>radeonsi: don't ignore pitch for imported textures</li>
+</ul>
+
+<p>Matthew Nicholls (2):</p>
+<ul>
+  <li>radv: restore previous stencil reference after depth-stencil clear</li>
+  <li>radv: remove predication on cache flushes</li>
+</ul>
+
+<p>Maxin B. John (1):</p>
+<ul>
+  <li>anv_icd.py: improve reproducible builds</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>winsys/radeon: Compute is_displayable in surf_drm_to_winsys</li>
+</ul>
+
+<p>Roland Scheidegger (1):</p>
+<ul>
+  <li>r600: don't do stack workarounds for hemlock</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>radv: create pipeline layout objects for all meta operations</li>
+</ul>
+
+<p>Samuel Thibault (1):</p>
+<ul>
+  <li>glx: fix non-dri build</li>
+</ul>
+
+<p>Timothy Arceri (2):</p>
+<ul>
+  <li>ac: fix buffer overflow bug in 64bit SSBO loads</li>
+  <li>ac: fix visit_ssa_undef() for doubles</li>
+</ul>
+
+
+</div>
+</body>
+</html>

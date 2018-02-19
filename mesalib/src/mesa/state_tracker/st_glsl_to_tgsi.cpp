@@ -191,7 +191,7 @@ public:
    glsl_base_type sampler_types[PIPE_MAX_SAMPLERS];
    enum tgsi_texture_type sampler_targets[PIPE_MAX_SAMPLERS];
    int images_used;
-   int image_targets[PIPE_MAX_SHADER_IMAGES];
+   enum tgsi_texture_type image_targets[PIPE_MAX_SHADER_IMAGES];
    enum pipe_format image_formats[PIPE_MAX_SHADER_IMAGES];
    bool indirect_addr_consts;
    int wpos_transform_const;
@@ -1135,7 +1135,6 @@ glsl_to_tgsi_visitor::visit(ir_variable *ir)
 
       for (unsigned int i = 0; i < ir->get_num_state_slots(); i++) {
          int index = _mesa_add_state_reference(this->prog->Parameters,
-                                               (gl_state_index *)
                                                slots[i].tokens);
 
          if (storage->file == PROGRAM_STATE_VAR) {
@@ -1497,7 +1496,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
        * is a FBO or the window system buffer, respectively.
        * It is then multiplied with the source operand of DDY.
        */
-      static const gl_state_index transform_y_state[STATE_LENGTH]
+      static const gl_state_index16 transform_y_state[STATE_LENGTH]
          = { STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM };
 
       unsigned transform_y_index =
@@ -2115,7 +2114,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
       break;
    case ir_binop_interpolate_at_offset: {
       /* The y coordinate needs to be flipped for the default fb */
-      static const gl_state_index transform_y_state[STATE_LENGTH]
+      static const gl_state_index16 transform_y_state[STATE_LENGTH]
          = { STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM };
 
       unsigned transform_y_index =
@@ -5456,7 +5455,7 @@ struct st_translate {
 };
 
 /** Map Mesa's SYSTEM_VALUE_x to TGSI_SEMANTIC_x */
-unsigned
+enum tgsi_semantic
 _mesa_sysval_to_semantic(unsigned sysval)
 {
    switch (sysval) {
@@ -5863,7 +5862,7 @@ compile_tgsi_instruction(struct st_translate *t,
 
    int num_dst;
    int num_src;
-   unsigned tex_target = 0;
+   enum tgsi_texture_type tex_target = TGSI_TEXTURE_BUFFER;
 
    num_dst = num_inst_dst_regs(inst);
    num_src = num_inst_src_regs(inst);
@@ -6249,7 +6248,7 @@ sort_inout_decls_by_slot(struct inout_decl *decls,
    std::sort(decls, decls + count, sorter);
 }
 
-static unsigned
+static enum tgsi_interpolate_mode
 st_translate_interp(enum glsl_interp_mode glsl_qual, GLuint varying)
 {
    switch (glsl_qual) {
@@ -6367,19 +6366,20 @@ st_translate_program(
                tgsi_usage_mask = TGSI_WRITEMASK_XYZW;
          }
 
-         unsigned interp_mode = 0;
-         unsigned interp_location = 0;
+         enum tgsi_interpolate_mode interp_mode = TGSI_INTERPOLATE_CONSTANT;
+         enum tgsi_interpolate_loc interp_location = TGSI_INTERPOLATE_LOC_CENTER;
          if (procType == PIPE_SHADER_FRAGMENT) {
             assert(interpMode);
             interp_mode = interpMode[slot] != TGSI_INTERPOLATE_COUNT ?
-               interpMode[slot] :
+               (enum tgsi_interpolate_mode) interpMode[slot] :
                st_translate_interp(decl->interp, inputSlotToAttr[slot]);
 
-            interp_location = decl->interp_loc;
+            interp_location = (enum tgsi_interpolate_loc) decl->interp_loc;
          }
 
          src = ureg_DECL_fs_input_cyl_centroid_layout(ureg,
-                  inputSemanticName[slot], inputSemanticIndex[slot],
+                  (enum tgsi_semantic) inputSemanticName[slot],
+                  inputSemanticIndex[slot],
                   interp_mode, 0, interp_location, slot, tgsi_usage_mask,
                   decl->array_id, decl->size);
 
@@ -6433,7 +6433,8 @@ st_translate_program(
          }
 
          dst = ureg_DECL_output_layout(ureg,
-                     outputSemanticName[slot], outputSemanticIndex[slot],
+                     (enum tgsi_semantic) outputSemanticName[slot],
+                     outputSemanticIndex[slot],
                      decl->gs_out_streams,
                      slot, tgsi_usage_mask, decl->array_id, decl->size);
 
@@ -6535,7 +6536,7 @@ st_translate_program(
 
       for (i = 0; sysInputs; i++) {
          if (sysInputs & (1 << i)) {
-            unsigned semName = _mesa_sysval_to_semantic(i);
+            enum tgsi_semantic semName = _mesa_sysval_to_semantic(i);
 
             t->systemValues[i] = ureg_DECL_system_value(ureg, semName, 0);
 
@@ -6864,7 +6865,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    if (shader->Stage == MESA_SHADER_FRAGMENT &&
        (prog->info.inputs_read & VARYING_BIT_POS ||
         prog->info.system_values_read & (1 << SYSTEM_VALUE_FRAG_COORD))) {
-      static const gl_state_index wposTransformState[STATE_LENGTH] = {
+      static const gl_state_index16 wposTransformState[STATE_LENGTH] = {
          STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM
       };
 
@@ -6982,15 +6983,20 @@ extern "C" {
 GLboolean
 st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 {
+   struct pipe_screen *pscreen = ctx->st->pipe->screen;
+
+   enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
+      pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX,
+                                PIPE_SHADER_CAP_PREFERRED_IR);
+   bool use_nir = preferred_ir == PIPE_SHADER_IR_NIR;
+
    /* Return early if we are loading the shader from on-disk cache */
-   if (st_load_tgsi_from_disk_cache(ctx, prog)) {
+   if (st_load_ir_from_disk_cache(ctx, prog, use_nir)) {
       return GL_TRUE;
    }
 
-   struct pipe_screen *pscreen = ctx->st->pipe->screen;
    assert(prog->data->LinkStatus);
 
-   bool use_nir = false;
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
          continue;
@@ -7009,12 +7015,6 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                                                   PIPE_SHADER_CAP_TGSI_LDEXP_SUPPORTED);
       unsigned if_threshold = pscreen->get_shader_param(pscreen, ptarget,
                                                         PIPE_SHADER_CAP_LOWER_IF_THRESHOLD);
-
-      enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
-         pscreen->get_shader_param(pscreen, ptarget,
-                                   PIPE_SHADER_CAP_PREFERRED_IR);
-      if (preferred_ir == PIPE_SHADER_IR_NIR)
-         use_nir = true;
 
       /* If there are forms of indirect addressing that the driver
        * cannot handle, perform the lowering pass.

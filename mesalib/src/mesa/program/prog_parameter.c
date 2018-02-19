@@ -232,7 +232,7 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
                     gl_register_file type, const char *name,
                     GLuint size, GLenum datatype,
                     const gl_constant_value *values,
-                    const gl_state_index state[STATE_LENGTH])
+                    const gl_state_index16 state[STATE_LENGTH])
 {
    assert(0 < size && size <=4);
    const GLuint oldNum = paramList->NumParameters;
@@ -352,7 +352,7 @@ _mesa_add_typed_unnamed_constant(struct gl_program_parameter_list *paramList,
  */
 GLint
 _mesa_add_state_reference(struct gl_program_parameter_list *paramList,
-                          const gl_state_index stateTokens[STATE_LENGTH])
+                          const gl_state_index16 stateTokens[STATE_LENGTH])
 {
    const GLuint size = 4; /* XXX fix */
    char *name;
@@ -361,15 +361,15 @@ _mesa_add_state_reference(struct gl_program_parameter_list *paramList,
    /* Check if the state reference is already in the list */
    for (index = 0; index < (GLint) paramList->NumParameters; index++) {
       if (!memcmp(paramList->Parameters[index].StateIndexes,
-                  stateTokens, STATE_LENGTH * sizeof(gl_state_index))) {
+                  stateTokens,
+                  sizeof(paramList->Parameters[index].StateIndexes))) {
          return index;
       }
    }
 
    name = _mesa_program_state_string(stateTokens);
    index = _mesa_add_parameter(paramList, PROGRAM_STATE_VAR, name,
-                               size, GL_NONE,
-                               NULL, (gl_state_index *) stateTokens);
+                               size, GL_NONE, NULL, stateTokens);
    paramList->StateFlags |= _mesa_program_state_flags(stateTokens);
 
    /* free name string here since we duplicated it in add_parameter() */

@@ -104,6 +104,10 @@ void
 radv_shader_variant_destroy(struct radv_device *device,
 			    struct radv_shader_variant *variant);
 
+bool
+radv_lower_indirect_derefs(struct nir_shader *nir,
+                           struct radv_physical_device *device);
+
 const char *
 radv_get_shader_name(struct radv_shader_variant *var, gl_shader_stage stage);
 

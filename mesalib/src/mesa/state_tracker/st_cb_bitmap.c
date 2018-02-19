@@ -224,10 +224,10 @@ setup_render_state(struct gl_context *ctx,
    {
       struct pipe_sampler_state *samplers[PIPE_MAX_SAMPLERS];
       uint num = MAX2(fpv->bitmap_sampler + 1,
-                      st->state.num_samplers[PIPE_SHADER_FRAGMENT]);
+                      st->state.num_frag_samplers);
       uint i;
-      for (i = 0; i < st->state.num_samplers[PIPE_SHADER_FRAGMENT]; i++) {
-         samplers[i] = &st->state.samplers[PIPE_SHADER_FRAGMENT][i];
+      for (i = 0; i < st->state.num_frag_samplers; i++) {
+         samplers[i] = &st->state.frag_samplers[i];
       }
       if (atlas)
          samplers[fpv->bitmap_sampler] = &st->bitmap.atlas_sampler;
@@ -242,7 +242,7 @@ setup_render_state(struct gl_context *ctx,
       struct pipe_sampler_view *sampler_views[PIPE_MAX_SAMPLERS];
       uint num = MAX2(fpv->bitmap_sampler + 1,
                       st->state.num_sampler_views[PIPE_SHADER_FRAGMENT]);
-      memcpy(sampler_views, st->state.sampler_views[PIPE_SHADER_FRAGMENT],
+      memcpy(sampler_views, st->state.frag_sampler_views,
              sizeof(sampler_views));
       sampler_views[fpv->bitmap_sampler] = sv;
       cso_set_sampler_views(cso, PIPE_SHADER_FRAGMENT, num, sampler_views);
@@ -626,7 +626,7 @@ st_Bitmap(struct gl_context *ctx, GLint x, GLint y,
    if ((st->dirty | ctx->NewDriverState) & ~ST_NEW_CONSTANTS &
        ST_PIPELINE_RENDER_STATE_MASK ||
        st->gfx_shaders_may_be_dirty) {
-      st_validate_state(st, ST_PIPELINE_RENDER);
+      st_validate_state(st, ST_PIPELINE_META);
    }
 
    if (UseBitmapCache && accum_bitmap(ctx, x, y, width, height, unpack, bitmap))
@@ -681,7 +681,7 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
 
    st_flush_bitmap_cache(st);
 
-   st_validate_state(st, ST_PIPELINE_RENDER);
+   st_validate_state(st, ST_PIPELINE_META);
    st_invalidate_readpix_cache(st);
 
    sv = st_create_texture_sampler_view(pipe, stObj->pt);

@@ -337,7 +337,8 @@ static void texgen( struct gl_context *ctx,
    struct vertex_buffer *VB = &tnl->vb;
    GLvector4f *in = VB->AttribPtr[VERT_ATTRIB_TEX0 + unit];
    GLvector4f *out = &store->texcoord[unit];
-   const struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
+   const struct gl_fixedfunc_texture_unit *texUnit =
+      &ctx->Texture.FixedFuncUnit[unit];
    const GLvector4f *obj = VB->AttribPtr[_TNL_ATTRIB_POS];
    const GLvector4f *eye = VB->EyePtr;
    const GLvector4f *normal = VB->AttribPtr[_TNL_ATTRIB_NORMAL];
@@ -489,10 +490,10 @@ static GLboolean run_texgen_stage( struct gl_context *ctx,
       return GL_TRUE;
 
    for (i = 0 ; i < ctx->Const.MaxTextureCoordUnits ; i++) {
-      struct gl_texture_unit *texUnit = &ctx->Texture.Unit[i];
+      struct gl_fixedfunc_texture_unit *texUnit =
+         &ctx->Texture.FixedFuncUnit[i];
 
       if (texUnit->TexGenEnabled) {
-
 	 store->TexgenFunc[i]( ctx, store, i );
 
          VB->AttribPtr[VERT_ATTRIB_TEX0 + i] = &store->texcoord[i];
@@ -513,7 +514,8 @@ static void validate_texgen_stage( struct gl_context *ctx,
       return;
 
    for (i = 0 ; i < ctx->Const.MaxTextureCoordUnits ; i++) {
-      struct gl_texture_unit *texUnit = &ctx->Texture.Unit[i];
+      struct gl_fixedfunc_texture_unit *texUnit =
+         &ctx->Texture.FixedFuncUnit[i];
 
       if (texUnit->TexGenEnabled) {
 	 GLuint sz;

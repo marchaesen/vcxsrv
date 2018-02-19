@@ -195,6 +195,9 @@ createModeFromConfig(const __DRIcoreExtension * core,
     if (duplicateForComp &&
         (render_type_is_pbuffer_only(renderType) ||
          config->config.rgbBits != 32 ||
+         config->config.redBits != 8 ||
+         config->config.greenBits != 8 ||
+         config->config.blueBits != 8 ||
          config->config.visualRating != GLX_NONE ||
          config->config.sampleBuffers != 0)) {
         free(config);

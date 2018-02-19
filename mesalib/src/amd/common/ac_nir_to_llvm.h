@@ -150,7 +150,6 @@ struct ac_vs_output_info {
 	bool writes_layer;
 	bool writes_viewport_index;
 	bool export_prim_id;
-	uint32_t export_mask;
 	unsigned pos_exports;
 };
 
@@ -180,9 +179,6 @@ struct ac_shader_variant_info {
 			uint32_t flat_shaded_mask;
 			bool has_pcoord;
 			bool can_discard;
-			bool writes_z;
-			bool writes_stencil;
-			bool writes_sample_mask;
 			bool early_fragment_test;
 			bool prim_id_input;
 			bool layer_input;
@@ -236,8 +232,7 @@ void ac_create_gs_copy_shader(LLVMTargetMachineRef tm,
 			      const struct ac_nir_compiler_options *options,
 			      bool dump_shader);
 
-struct nir_to_llvm_context;
 void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
-		      struct nir_shader *nir, struct nir_to_llvm_context *nctx);
+		      struct nir_shader *nir);
 
 #endif /* AC_NIR_TO_LLVM_H */

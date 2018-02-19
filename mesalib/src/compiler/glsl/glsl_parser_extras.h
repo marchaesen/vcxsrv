@@ -711,6 +711,8 @@ struct _mesa_glsl_parse_state {
     */
    bool OES_EGL_image_external_enable;
    bool OES_EGL_image_external_warn;
+   bool OES_EGL_image_external_essl3_enable;
+   bool OES_EGL_image_external_essl3_warn;
    bool OES_geometry_point_size_enable;
    bool OES_geometry_point_size_warn;
    bool OES_geometry_shader_enable;

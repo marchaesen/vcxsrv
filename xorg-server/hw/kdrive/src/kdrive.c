@@ -30,6 +30,7 @@
 #ifdef RANDR
 #include <randrstr.h>
 #endif
+#include "glx_extinit.h"
 
 #ifdef XV
 #include "kxv.h"
@@ -972,6 +973,8 @@ KdInitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     for (card = kdCardInfo; card; card = card->next)
         for (screen = card->screenList; screen; screen = screen->next)
             KdAddScreen(pScreenInfo, screen, argc, argv);
+
+    xorgGlxCreateVendor();
 
 #if defined(CONFIG_UDEV) || defined(CONFIG_HAL)
     if (SeatId) /* Enable input hot-plugging */

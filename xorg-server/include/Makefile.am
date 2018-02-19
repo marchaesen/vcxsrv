@@ -27,6 +27,7 @@ sdk_HEADERS =		\
 	gcstruct.h	\
 	globals.h	\
 	glx_extinit.h	\
+	glxvndabi.h	\
 	input.h		\
 	inputstr.h	\
 	list.h		\

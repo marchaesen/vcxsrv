@@ -198,4 +198,14 @@ _mesa_flush_vertices_for_blend_adv(struct gl_context *ctx,
    _mesa_flush_vertices_for_blend_state(ctx);
 }
 
+static inline GLbitfield
+_mesa_replicate_colormask(GLbitfield mask0, unsigned num_buffers)
+{
+   GLbitfield mask = mask0;
+
+   for (unsigned i = 1; i < num_buffers; i++)
+      mask |= mask0 << (i * 4);
+   return mask;
+}
+
 #endif

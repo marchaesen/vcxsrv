@@ -113,7 +113,6 @@ static PixmapFormatRec g_PixmapFormats[] = {
 
 static const ExtensionModule xwinExtensions[] = {
 #ifdef GLXEXT
-  { GlxExtensionInit, "GLX", &noGlxExtension },
 #ifdef XWIN_WINDOWS_DRI
   { WindowsDRIExtensionInit, "Windows-DRI", &noDriExtension },
 #endif

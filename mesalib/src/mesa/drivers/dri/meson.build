@@ -53,7 +53,7 @@ if dri_drivers != []
     dependencies : [
       dep_selinux, dep_libdrm, dep_expat, dep_m, dep_thread, dep_dl, idep_nir,
     ],
-    link_args : ['-Wl,--build-id=sha1', ld_args_bsymbolic, ld_args_gc_sections],
+    link_args : [ld_args_build_id, ld_args_bsymbolic, ld_args_gc_sections],
   )
 
   meson.add_install_script(

@@ -10,7 +10,6 @@ ST_STATE(ST_NEW_VS_STATE, st_update_vp)
 
 ST_STATE(ST_NEW_POLY_STIPPLE, st_update_polygon_stipple)
 ST_STATE(ST_NEW_WINDOW_RECTANGLES, st_update_window_rectangles)
-ST_STATE(ST_NEW_BLEND, st_update_blend)
 ST_STATE(ST_NEW_BLEND_COLOR, st_update_blend_color)
 
 ST_STATE(ST_NEW_VS_SAMPLER_VIEWS, st_update_vertex_textures)
@@ -33,6 +32,7 @@ ST_STATE(ST_NEW_GS_IMAGES, st_bind_gs_images)
 ST_STATE(ST_NEW_FS_IMAGES, st_bind_fs_images)
 
 ST_STATE(ST_NEW_FB_STATE, st_update_framebuffer_state) /* depends on update_*_texture and bind_*_images */
+ST_STATE(ST_NEW_BLEND, st_update_blend) /* depends on update_framebuffer_state */
 ST_STATE(ST_NEW_RASTERIZER, st_update_rasterizer) /* depends on update_framebuffer_state */
 ST_STATE(ST_NEW_SAMPLE_MASK, st_update_sample_mask) /* depends on update_framebuffer_state */
 ST_STATE(ST_NEW_SAMPLE_SHADING, st_update_sample_shading)

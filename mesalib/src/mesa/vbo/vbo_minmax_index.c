@@ -115,7 +115,7 @@ vbo_get_minmax_cached(struct gl_buffer_object *bufferObj,
    if (!vbo_use_minmax_cache(bufferObj))
       return GL_FALSE;
 
-   simple_mtx_lock(&bufferObj->Mutex);
+   simple_mtx_lock(&bufferObj->MinMaxCacheMutex);
 
    if (bufferObj->MinMaxCacheDirty) {
       /* Disable the cache permanently for this BO if the number of hits
@@ -166,7 +166,7 @@ out_invalidate:
    }
 
 out_disable:
-   simple_mtx_unlock(&bufferObj->Mutex);
+   simple_mtx_unlock(&bufferObj->MinMaxCacheMutex);
    return found;
 }
 
@@ -184,7 +184,7 @@ vbo_minmax_cache_store(struct gl_context *ctx,
    if (!vbo_use_minmax_cache(bufferObj))
       return;
 
-   simple_mtx_lock(&bufferObj->Mutex);
+   simple_mtx_lock(&bufferObj->MinMaxCacheMutex);
 
    if (!bufferObj->MinMaxCache) {
       bufferObj->MinMaxCache =
@@ -223,7 +223,7 @@ vbo_minmax_cache_store(struct gl_context *ctx,
       free(entry);
 
 out:
-   simple_mtx_unlock(&bufferObj->Mutex);
+   simple_mtx_unlock(&bufferObj->MinMaxCacheMutex);
 }
 
 

@@ -670,6 +670,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    /* OES extensions go here, sorted alphabetically.
     */
    EXT(OES_EGL_image_external),
+   EXT(OES_EGL_image_external_essl3),
    EXT(OES_geometry_point_size),
    EXT(OES_geometry_shader),
    EXT(OES_gpu_shader5),

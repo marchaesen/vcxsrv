@@ -452,10 +452,15 @@ files_libgalliumvl = files(
   'vl/vl_zscan.h',
 )
 
+vlwinsys_deps = []
 files_libgalliumvlwinsys = files('vl/vl_winsys.h')
 if with_dri2
   files_libgalliumvlwinsys += files('vl/vl_winsys_dri.c')
   if with_dri3
+    vlwinsys_deps += [
+      dep_xcb_sync, dep_xcb_present, dep_xshmfence, dep_xcb_xfixes,
+      dep_xcb_dri3, 
+    ]
     files_libgalliumvlwinsys += files('vl/vl_winsys_dri3.c')
   endif
 endif
@@ -526,6 +531,6 @@ libgalliumvlwinsys = static_library(
   'galliumvlwinsys',
   files_libgalliumvlwinsys,
   include_directories : [inc_gallium, inc_include, inc_loader, inc_src],
-  dependencies : [dep_libdrm],
+  dependencies : [dep_libdrm, vlwinsys_deps],
   build_by_default : false,
 )

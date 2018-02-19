@@ -254,19 +254,18 @@ st_MapTextureImage(struct gl_context *ctx,
 {
    struct st_context *st = st_context(ctx);
    struct st_texture_image *stImage = st_texture_image(texImage);
-   unsigned pipeMode;
    GLubyte *map;
    struct pipe_transfer *transfer;
 
-   pipeMode = 0x0;
-   if (mode & GL_MAP_READ_BIT)
-      pipeMode |= PIPE_TRANSFER_READ;
-   if (mode & GL_MAP_WRITE_BIT)
-      pipeMode |= PIPE_TRANSFER_WRITE;
-   if (mode & GL_MAP_INVALIDATE_RANGE_BIT)
-      pipeMode |= PIPE_TRANSFER_DISCARD_RANGE;
+   /* Check for unexpected flags */
+   assert((mode & ~(GL_MAP_READ_BIT |
+                    GL_MAP_WRITE_BIT |
+                    GL_MAP_INVALIDATE_RANGE_BIT)) == 0);
 
-   map = st_texture_image_map(st, stImage, pipeMode, x, y, slice, w, h, 1,
+   const enum pipe_transfer_usage transfer_flags =
+      st_access_flags_to_transfer_flags(mode, false);
+
+   map = st_texture_image_map(st, stImage, transfer_flags, x, y, slice, w, h, 1,
                               &transfer);
    if (map) {
       if (st_etc_fallback(st, texImage)) {

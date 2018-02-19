@@ -39,15 +39,23 @@ static FcConfig *
 FcInitFallbackConfig (const FcChar8 *sysroot)
 {
     FcConfig	*config;
+    const FcChar8 *fallback = (const FcChar8 *) ""	\
+	"<fontconfig>" \
+	"  <dir>" FC_DEFAULT_FONTS "</dir>" \
+	"  <dir prefix=\"xdg\">fonts</dir>" \
+	"  <cachedir>" FC_CACHEDIR "</cachedir>" \
+	"  <cachedir prefix=\"xdg\">fontconfig</cachedir>" \
+	"  <include ignore_missing=\"yes\" prefix=\"xdg\">fontconfig/conf.d</include>" \
+	"  <include ignore_missing=\"yes\" prefix=\"xdg\">fontconfig/fonts.conf</include>" \
+	"</fontconfig>";
 
     config = FcConfigCreate ();
     if (!config)
 	goto bail0;
     FcConfigSetSysRoot (config, sysroot);
-    if (!FcConfigAddDir (config, (FcChar8 *) FC_DEFAULT_FONTS))
+    if (!FcConfigParseAndLoadFromMemory (config, fallback, FcFalse))
 	goto bail1;
-    if (!FcConfigAddCacheDir (config, (FcChar8 *) FC_CACHEDIR))
-	goto bail1;
+
     return config;
 
 bail1:

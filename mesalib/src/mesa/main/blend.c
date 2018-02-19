@@ -974,33 +974,23 @@ _mesa_ColorMask( GLboolean red, GLboolean green,
                  GLboolean blue, GLboolean alpha )
 {
    GET_CURRENT_CONTEXT(ctx);
-   GLubyte tmp[4];
-   GLuint i;
-   GLboolean flushed;
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glColorMask(%d, %d, %d, %d)\n",
                   red, green, blue, alpha);
 
-   /* Shouldn't have any information about channel depth in core mesa
-    * -- should probably store these as the native booleans:
-    */
-   tmp[RCOMP] = red    ? 0xff : 0x0;
-   tmp[GCOMP] = green  ? 0xff : 0x0;
-   tmp[BCOMP] = blue   ? 0xff : 0x0;
-   tmp[ACOMP] = alpha  ? 0xff : 0x0;
+   GLbitfield mask = (!!red) |
+                     ((!!green) << 1) |
+                     ((!!blue) << 2) |
+                     ((!!alpha) << 3);
+   mask = _mesa_replicate_colormask(mask, ctx->Const.MaxDrawBuffers);
 
-   flushed = GL_FALSE;
-   for (i = 0; i < ctx->Const.MaxDrawBuffers; i++) {
-      if (!TEST_EQ_4V(tmp, ctx->Color.ColorMask[i])) {
-         if (!flushed) {
-            FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR);
-            ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
-         }
-         flushed = GL_TRUE;
-         COPY_4UBV(ctx->Color.ColorMask[i], tmp);
-      }
-   }
+   if (ctx->Color.ColorMask == mask)
+      return;
+
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR);
+   ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
+   ctx->Color.ColorMask = mask;
 
    if (ctx->Driver.ColorMask)
       ctx->Driver.ColorMask( ctx, red, green, blue, alpha );
@@ -1014,7 +1004,6 @@ void GLAPIENTRY
 _mesa_ColorMaski(GLuint buf, GLboolean red, GLboolean green,
                  GLboolean blue, GLboolean alpha)
 {
-   GLubyte tmp[4];
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE & VERBOSE_API)
@@ -1026,20 +1015,18 @@ _mesa_ColorMaski(GLuint buf, GLboolean red, GLboolean green,
       return;
    }
 
-   /* Shouldn't have any information about channel depth in core mesa
-    * -- should probably store these as the native booleans:
-    */
-   tmp[RCOMP] = red    ? 0xff : 0x0;
-   tmp[GCOMP] = green  ? 0xff : 0x0;
-   tmp[BCOMP] = blue   ? 0xff : 0x0;
-   tmp[ACOMP] = alpha  ? 0xff : 0x0;
+   GLbitfield mask = (!!red) |
+                     ((!!green) << 1) |
+                     ((!!blue) << 2) |
+                     ((!!alpha) << 3);
 
-   if (TEST_EQ_4V(tmp, ctx->Color.ColorMask[buf]))
+   if (GET_COLORMASK(ctx->Color.ColorMask, buf) == mask)
       return;
 
    FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR);
    ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
-   COPY_4UBV(ctx->Color.ColorMask[buf], tmp);
+   ctx->Color.ColorMask &= ~(0xf << (4 * buf));
+   ctx->Color.ColorMask |= mask << (4 * buf);
 }
 
 
@@ -1190,7 +1177,7 @@ void _mesa_init_color( struct gl_context * ctx )
 
    /* Color buffer group */
    ctx->Color.IndexMask = ~0u;
-   memset(ctx->Color.ColorMask, 0xff, sizeof(ctx->Color.ColorMask));
+   ctx->Color.ColorMask = 0xffffffff;
    ctx->Color.ClearIndex = 0;
    ASSIGN_4V( ctx->Color.ClearColor.f, 0, 0, 0, 0 );
    ctx->Color.AlphaEnabled = GL_FALSE;

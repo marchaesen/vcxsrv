@@ -118,7 +118,7 @@ color_buffer_writes_enabled(const struct gl_context *ctx, unsigned idx)
 
    if (rb) {
       for (c = 0; c < 4; c++) {
-         if (ctx->Color.ColorMask[idx][c] &&
+         if (GET_COLORMASK_BIT(ctx->Color.ColorMask, idx, c) &&
              _mesa_format_has_color_component(rb->Format, c)) {
             return true;
          }

@@ -235,7 +235,8 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
       | ctx->Texture._TexMatEnabled | ctx->Point.CoordReplace;
    while (mask) {
       const int i = u_bit_scan(&mask);
-      struct gl_texture_unit *texUnit = &ctx->Texture.Unit[i];
+      struct gl_fixedfunc_texture_unit *texUnit =
+         &ctx->Texture.FixedFuncUnit[i];
 
       if (ctx->Point.PointSprite)
 	 if (ctx->Point.CoordReplace & (1u << i))
@@ -412,7 +413,7 @@ static struct ureg register_param5(struct tnl_program *p,
 				   GLint s3,
                                    GLint s4)
 {
-   gl_state_index tokens[STATE_LENGTH];
+   gl_state_index16 tokens[STATE_LENGTH];
    GLint idx;
    tokens[0] = s0;
    tokens[1] = s1;

@@ -1288,7 +1288,10 @@ loader_dri3_create_image(xcb_connection_t *c,
 
    ret = image->fromPlanar(image_planar, 0, loaderPrivate);
 
-   image->destroyImage(image_planar);
+   if (!ret)
+      ret = image_planar;
+   else
+      image->destroyImage(image_planar);
 
    return ret;
 }

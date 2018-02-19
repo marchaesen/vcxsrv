@@ -40,6 +40,7 @@
 #include "mtypes.h"
 #include "enums.h"
 #include "texstate.h"
+#include "varray.h"
 
 
 
@@ -58,55 +59,56 @@ update_derived_primitive_restart_state(struct gl_context *ctx)
       || ctx->Array.PrimitiveRestartFixedIndex;
 }
 
+
+/**
+ * Helper to enable/disable VAO client-side state.
+ */
+static void
+vao_state(struct gl_context *ctx, gl_vert_attrib attr, GLboolean state)
+{
+   if (state)
+      _mesa_enable_vertex_array_attrib(ctx, ctx->Array.VAO, attr);
+   else
+      _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attr);
+}
+
+
 /**
  * Helper to enable/disable client-side state.
  */
 static void
 client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
 {
-   struct gl_vertex_array_object *vao = ctx->Array.VAO;
-   GLbitfield vert_attrib_bit;
-   GLboolean *enable_var;
-
    switch (cap) {
       case GL_VERTEX_ARRAY:
-         enable_var = &vao->VertexAttrib[VERT_ATTRIB_POS].Enabled;
-         vert_attrib_bit = VERT_BIT_POS;
+         vao_state(ctx, VERT_ATTRIB_POS, state);
          break;
       case GL_NORMAL_ARRAY:
-         enable_var = &vao->VertexAttrib[VERT_ATTRIB_NORMAL].Enabled;
-         vert_attrib_bit = VERT_BIT_NORMAL;
+         vao_state(ctx, VERT_ATTRIB_NORMAL, state);
          break;
       case GL_COLOR_ARRAY:
-         enable_var = &vao->VertexAttrib[VERT_ATTRIB_COLOR0].Enabled;
-         vert_attrib_bit = VERT_BIT_COLOR0;
+         vao_state(ctx, VERT_ATTRIB_COLOR0, state);
          break;
       case GL_INDEX_ARRAY:
-         enable_var = &vao->VertexAttrib[VERT_ATTRIB_COLOR_INDEX].Enabled;
-         vert_attrib_bit = VERT_BIT_COLOR_INDEX;
+         vao_state(ctx, VERT_ATTRIB_COLOR_INDEX, state);
          break;
       case GL_TEXTURE_COORD_ARRAY:
-         enable_var = &vao->VertexAttrib[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)].Enabled;
-         vert_attrib_bit = VERT_BIT_TEX(ctx->Array.ActiveTexture);
+         vao_state(ctx, VERT_ATTRIB_TEX(ctx->Array.ActiveTexture), state);
          break;
       case GL_EDGE_FLAG_ARRAY:
-         enable_var = &vao->VertexAttrib[VERT_ATTRIB_EDGEFLAG].Enabled;
-         vert_attrib_bit = VERT_BIT_EDGEFLAG;
+         vao_state(ctx, VERT_ATTRIB_EDGEFLAG, state);
          break;
       case GL_FOG_COORDINATE_ARRAY_EXT:
-         enable_var = &vao->VertexAttrib[VERT_ATTRIB_FOG].Enabled;
-         vert_attrib_bit = VERT_BIT_FOG;
+         vao_state(ctx, VERT_ATTRIB_FOG, state);
          break;
       case GL_SECONDARY_COLOR_ARRAY_EXT:
-         enable_var = &vao->VertexAttrib[VERT_ATTRIB_COLOR1].Enabled;
-         vert_attrib_bit = VERT_BIT_COLOR1;
+         vao_state(ctx, VERT_ATTRIB_COLOR1, state);
          break;
 
       case GL_POINT_SIZE_ARRAY_OES:
-         enable_var = &vao->VertexAttrib[VERT_ATTRIB_POINT_SIZE].Enabled;
-         vert_attrib_bit = VERT_BIT_POINT_SIZE;
          FLUSH_VERTICES(ctx, _NEW_PROGRAM);
          ctx->VertexProgram.PointSizeEnabled = state;
+         vao_state(ctx, VERT_ATTRIB_POINT_SIZE, state);
          break;
 
       /* GL_NV_primitive_restart */
@@ -124,24 +126,6 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
       default:
          goto invalid_enum_error;
    }
-
-   if (*enable_var == state)
-      return;
-
-   FLUSH_VERTICES(ctx, _NEW_ARRAY);
-
-   *enable_var = state;
-
-   if (state)
-      vao->_Enabled |= vert_attrib_bit;
-   else
-      vao->_Enabled &= ~vert_attrib_bit;
-
-   vao->NewArrays |= vert_attrib_bit;
-
-   /* Something got en/disabled, so update the map mode */
-   if (vert_attrib_bit & (VERT_BIT_POS|VERT_BIT_GENERIC0))
-      _mesa_update_attribute_map_mode(ctx, vao);
 
    if (ctx->Driver.Enable) {
       ctx->Driver.Enable( ctx, cap, state );
@@ -202,7 +186,7 @@ _mesa_DisableClientState( GLenum cap )
  * Note that we'll set GL_INVALID_OPERATION and return NULL if the active
  * texture unit is higher than the number of supported coordinate units.
  */
-static struct gl_texture_unit *
+static struct gl_fixedfunc_texture_unit *
 get_texcoord_unit(struct gl_context *ctx)
 {
    if (ctx->Texture.CurrentUnit >= ctx->Const.MaxTextureCoordUnits) {
@@ -210,7 +194,7 @@ get_texcoord_unit(struct gl_context *ctx)
       return NULL;
    }
    else {
-      return &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
+      return &ctx->Texture.FixedFuncUnit[ctx->Texture.CurrentUnit];
    }
 }
 
@@ -223,7 +207,11 @@ get_texcoord_unit(struct gl_context *ctx)
 static GLboolean
 enable_texture(struct gl_context *ctx, GLboolean state, GLbitfield texBit)
 {
-   struct gl_texture_unit *texUnit = _mesa_get_current_tex_unit(ctx);
+   struct gl_fixedfunc_texture_unit *texUnit =
+      _mesa_get_current_fixedfunc_tex_unit(ctx);
+   if (!texUnit)
+      return GL_FALSE;
+
    const GLbitfield newenabled = state
       ? (texUnit->Enabled | texBit) : (texUnit->Enabled & ~texBit);
 
@@ -764,7 +752,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_TEXTURE_GEN_R:
       case GL_TEXTURE_GEN_Q:
          {
-            struct gl_texture_unit *texUnit = get_texcoord_unit(ctx);
+            struct gl_fixedfunc_texture_unit *texUnit = get_texcoord_unit(ctx);
 
             if (ctx->API != API_OPENGL_COMPAT)
                goto invalid_enum_error;
@@ -785,7 +773,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_TEXTURE_GEN_STR_OES:
          /* disable S, T, and R at the same time */
          {
-            struct gl_texture_unit *texUnit = get_texcoord_unit(ctx);
+            struct gl_fixedfunc_texture_unit *texUnit = get_texcoord_unit(ctx);
 
             if (ctx->API != API_OPENGLES)
                goto invalid_enum_error;
@@ -1304,8 +1292,12 @@ _mesa_IsEnabledi( GLenum cap, GLuint index )
 static GLboolean
 is_texture_enabled(struct gl_context *ctx, GLbitfield bit)
 {
-   const struct gl_texture_unit *const texUnit =
-       &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
+   const struct gl_fixedfunc_texture_unit *const texUnit =
+      _mesa_get_current_fixedfunc_tex_unit(ctx);
+
+   if (!texUnit)
+      return GL_FALSE;
+
    return (texUnit->Enabled & bit) ? GL_TRUE : GL_FALSE;
 }
 
@@ -1522,7 +1514,8 @@ _mesa_IsEnabled( GLenum cap )
       case GL_TEXTURE_GEN_R:
       case GL_TEXTURE_GEN_Q:
          {
-            const struct gl_texture_unit *texUnit = get_texcoord_unit(ctx);
+            const struct gl_fixedfunc_texture_unit *texUnit =
+               get_texcoord_unit(ctx);
 
             if (ctx->API != API_OPENGL_COMPAT)
                goto invalid_enum_error;
@@ -1535,7 +1528,8 @@ _mesa_IsEnabled( GLenum cap )
          return GL_FALSE;
       case GL_TEXTURE_GEN_STR_OES:
          {
-            const struct gl_texture_unit *texUnit = get_texcoord_unit(ctx);
+            const struct gl_fixedfunc_texture_unit *texUnit =
+               get_texcoord_unit(ctx);
 
             if (ctx->API != API_OPENGLES)
                goto invalid_enum_error;

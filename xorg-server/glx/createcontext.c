@@ -123,8 +123,6 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     if (req->length != expected_size)
         return BadLength;
 
-    LEGAL_NEW_RESOURCE(req->context, client);
-
     /* The GLX_ARB_create_context spec says:
      *
      *     "* If <config> is not a valid GLXFBConfig, GLXBadFBConfig is

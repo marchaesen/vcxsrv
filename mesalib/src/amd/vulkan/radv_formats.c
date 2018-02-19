@@ -1177,16 +1177,28 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties(
 
 static void
 get_external_image_format_properties(const VkPhysicalDeviceImageFormatInfo2KHR *pImageFormatInfo,
+				     VkExternalMemoryHandleTypeFlagBitsKHR handleType,
 				     VkExternalMemoryPropertiesKHR *external_properties)
 {
 	VkExternalMemoryFeatureFlagBitsKHR flags = 0;
 	VkExternalMemoryHandleTypeFlagsKHR export_flags = 0;
 	VkExternalMemoryHandleTypeFlagsKHR compat_flags = 0;
-	switch (pImageFormatInfo->type) {
-	case VK_IMAGE_TYPE_2D:
-		flags = VK_EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY_BIT_KHR|VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT_KHR|VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT_KHR;
-		compat_flags = export_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR |
-					      VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
+	switch (handleType) {
+	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR:
+	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT:
+		switch (pImageFormatInfo->type) {
+		case VK_IMAGE_TYPE_2D:
+			flags = VK_EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY_BIT_KHR|VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT_KHR|VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT_KHR;
+			compat_flags = export_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR |
+						      VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
+			break;
+		default:
+			break;
+		}
+		break;
+	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
+		flags = VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT_KHR;
+		compat_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
 		break;
 	default:
 		break;
@@ -1246,7 +1258,9 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2KHR(
 		switch (external_info->handleType) {
 		case VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR:
 		case VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT:
-			get_external_image_format_properties(base_info, &external_props->externalMemoryProperties);
+		case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
+			get_external_image_format_properties(base_info, external_info->handleType,
+			                                     &external_props->externalMemoryProperties);
 			break;
 		default:
 			/* From the Vulkan 1.0.42 spec:
@@ -1319,6 +1333,10 @@ void radv_GetPhysicalDeviceExternalBufferPropertiesKHR(
 		        VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT_KHR;
 		compat_flags = export_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR |
 					      VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
+		break;
+	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
+		flags = VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT_KHR;
+		compat_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
 		break;
 	default:
 		break;

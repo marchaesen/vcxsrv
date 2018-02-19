@@ -62,7 +62,8 @@ spirv2nir = executable(
   include_directories : [inc_common, inc_nir, include_directories('spirv')],
   link_with : libmesa_util,
   c_args : [c_vis_args, c_msvc_compat_args, no_override_init_args],
-  build_by_default : false,
+  build_by_default : with_tools.contains('nir'),
+  install : with_tools.contains('nir'),
 )
 
 subdir('glsl')

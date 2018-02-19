@@ -403,6 +403,11 @@ matrix:
         - MAKE_CHECK_COMMAND="make check"
         - DRI_LOADERS="--with-platforms=x11 --disable-egl"
       os: osx
+    - env:
+        - LABEL="macOS meson"
+        - BUILD=meson
+        - MESON_OPTIONS="-Degl=false"
+      os: osx
 
 before_install:
   - |

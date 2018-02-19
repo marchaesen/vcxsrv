@@ -24,6 +24,7 @@ Xwayland_SOURCES =				\
 Xwayland_LDADD =				\
 	$(glamor_lib)				\
 	$(XWAYLAND_LIBS)			\
+	$(top_builddir)/glx/libglxvnd.la	\
 	$(XWAYLAND_SYS_LIBS)			\
 	$(top_builddir)/Xext/libXvidmode.la	\
 	$(XSERVER_SYS_LIBS)

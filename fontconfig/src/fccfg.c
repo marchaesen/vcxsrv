@@ -520,14 +520,6 @@ FcConfigAddFontDir (FcConfig	    *config,
     return FcStrSetAddFilename (config->fontDirs, d);
 }
 
-FcBool
-FcConfigAddDir (FcConfig	    *config,
-		const FcChar8	    *d)
-{
-    return (FcConfigAddConfigDir (config, d) &&
-	    FcConfigAddFontDir (config, d));
-}
-
 FcStrList *
 FcConfigGetFontDirs (FcConfig	*config)
 {

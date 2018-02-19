@@ -36,6 +36,7 @@
  */
 
 #include "extension_string.h"
+#include "glxvndabi.h"
 
 typedef struct __GLXconfig __GLXconfig;
 struct __GLXconfig {

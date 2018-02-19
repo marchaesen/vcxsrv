@@ -276,7 +276,8 @@ xf86platformProbe(void)
 {
     int i;
     Bool pci = TRUE;
-    XF86ConfOutputClassPtr cl;
+    XF86ConfOutputClassPtr cl, cl_head = (xf86configptr) ?
+            xf86configptr->conf_outputclass_lst : NULL;
     char *old_path, *path = NULL;
 
     config_odev_probe(xf86PlatformDeviceProbe);
@@ -296,7 +297,7 @@ xf86platformProbe(void)
          * Deal with OutputClass ModulePath directives, these must be
          * processed before we do any module loading.
          */
-        for (cl = xf86configptr->conf_outputclass_lst; cl; cl = cl->list.next) {
+        for (cl = cl_head; cl; cl = cl->list.next) {
             if (!OutputClassMatches(cl, &xf86_platform_devices[i]))
                 continue;
 
@@ -317,7 +318,7 @@ xf86platformProbe(void)
     /* First see if there is an OutputClass match marking a device as primary */
     for (i = 0; i < xf86_num_platform_devices; i++) {
         struct xf86_platform_device *dev = &xf86_platform_devices[i];
-        for (cl = xf86configptr->conf_outputclass_lst; cl; cl = cl->list.next) {
+        for (cl = cl_head; cl; cl = cl->list.next) {
             if (!OutputClassMatches(cl, dev))
                 continue;
 

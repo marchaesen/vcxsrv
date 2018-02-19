@@ -58,7 +58,18 @@ build_id_find_nhdr_callback(struct dl_phdr_info *info, size_t size, void *data_)
 {
    struct callback_data *data = data_;
 
-   if ((void *)info->dlpi_addr != data->dli_fbase)
+   /* Calculate address where shared object is mapped into the process space.
+    * (Using the base address and the virtual address of the first LOAD segment)
+    */
+   void *map_start = NULL;
+   for (unsigned i = 0; i < info->dlpi_phnum; i++) {
+      if (info->dlpi_phdr[i].p_type == PT_LOAD) {
+         map_start = (void *)(info->dlpi_addr + info->dlpi_phdr[i].p_vaddr);
+         break;
+      }
+   }
+
+   if (map_start != data->dli_fbase)
       return 0;
 
    for (unsigned i = 0; i < info->dlpi_phnum; i++) {

@@ -465,6 +465,7 @@ st_translate_vertex_program(struct st_context *st,
                                           &stvp->tgsi.stream_output);
       }
 
+      st_store_ir_in_disk_cache(st, &stvp->Base, true);
       return true;
    }
 
@@ -538,7 +539,7 @@ st_translate_vertex_program(struct st_context *st,
 
    if (stvp->glsl_to_tgsi) {
       stvp->glsl_to_tgsi = NULL;
-      st_store_tgsi_in_disk_cache(st, &stvp->Base);
+      st_store_ir_in_disk_cache(st, &stvp->Base, false);
    }
 
    return stvp->tgsi.tokens != NULL;
@@ -899,9 +900,11 @@ st_translate_fragment_program(struct st_context *st,
       }
    }
 
-   /* We have already compiler to NIR so just return */
-   if (stfp->shader_program)
+   /* We have already compiled to NIR so just return */
+   if (stfp->shader_program) {
+      st_store_ir_in_disk_cache(st, &stfp->Base, true);
       return true;
+   }
 
    ureg = ureg_create_with_screen(PIPE_SHADER_FRAGMENT, st->pipe->screen);
    if (ureg == NULL)
@@ -995,7 +998,7 @@ st_translate_fragment_program(struct st_context *st,
 
    if (stfp->glsl_to_tgsi) {
       stfp->glsl_to_tgsi = NULL;
-      st_store_tgsi_in_disk_cache(st, &stfp->Base);
+      st_store_ir_in_disk_cache(st, &stfp->Base, false);
    }
 
    return stfp->tgsi.tokens != NULL;
@@ -1010,11 +1013,11 @@ st_create_fp_variant(struct st_context *st,
    struct st_fp_variant *variant = CALLOC_STRUCT(st_fp_variant);
    struct pipe_shader_state tgsi = {0};
    struct gl_program_parameter_list *params = stfp->Base.Parameters;
-   static const gl_state_index texcoord_state[STATE_LENGTH] =
+   static const gl_state_index16 texcoord_state[STATE_LENGTH] =
       { STATE_INTERNAL, STATE_CURRENT_ATTRIB, VERT_ATTRIB_TEX0 };
-   static const gl_state_index scale_state[STATE_LENGTH] =
+   static const gl_state_index16 scale_state[STATE_LENGTH] =
       { STATE_INTERNAL, STATE_PT_SCALE };
-   static const gl_state_index bias_state[STATE_LENGTH] =
+   static const gl_state_index16 bias_state[STATE_LENGTH] =
       { STATE_INTERNAL, STATE_PT_BIAS };
 
    if (!variant)
@@ -1411,7 +1414,7 @@ st_translate_program_common(struct st_context *st,
                                    outputMapping,
                                    &out_state->stream_output);
 
-   st_store_tgsi_in_disk_cache(st, prog);
+   st_store_ir_in_disk_cache(st, prog, false);
 
    if ((ST_DEBUG & DEBUG_TGSI) && (ST_DEBUG & DEBUG_MESA)) {
       _mesa_print_program(prog);
@@ -1471,6 +1474,7 @@ st_translate_geometry_program(struct st_context *st,
    /* We have already compiled to NIR so just return */
    if (stgp->shader_program) {
       st_translate_program_stream_output(&stgp->Base, &stgp->tgsi.stream_output);
+      st_store_ir_in_disk_cache(st, &stgp->Base, true);
       return true;
    }
 
@@ -1570,8 +1574,10 @@ st_translate_tessctrl_program(struct st_context *st,
    struct ureg_program *ureg;
 
    /* We have already compiled to NIR so just return */
-   if (sttcp->shader_program)
+   if (sttcp->shader_program) {
+      st_store_ir_in_disk_cache(st, &sttcp->Base, true);
       return true;
+   }
 
    ureg = ureg_create_with_screen(PIPE_SHADER_TESS_CTRL, st->pipe->screen);
    if (ureg == NULL)
@@ -1601,6 +1607,7 @@ st_translate_tesseval_program(struct st_context *st,
    /* We have already compiled to NIR so just return */
    if (sttep->shader_program) {
       st_translate_program_stream_output(&sttep->Base, &sttep->tgsi.stream_output);
+      st_store_ir_in_disk_cache(st, &sttep->Base, true);
       return true;
    }
 
@@ -1647,11 +1654,13 @@ st_translate_compute_program(struct st_context *st,
    struct ureg_program *ureg;
    struct pipe_shader_state prog;
 
+   stcp->tgsi.req_local_mem = stcp->Base.info.cs.shared_size;
+
    if (stcp->shader_program) {
       /* no compute variants: */
       st_finalize_nir(st, &stcp->Base, stcp->shader_program,
                       (struct nir_shader *) stcp->tgsi.prog);
-
+      st_store_ir_in_disk_cache(st, &stcp->Base, true);
       return true;
    }
 
@@ -1663,7 +1672,6 @@ st_translate_compute_program(struct st_context *st,
                                PIPE_SHADER_COMPUTE, &prog);
 
    stcp->tgsi.ir_type = PIPE_SHADER_IR_TGSI;
-   stcp->tgsi.req_local_mem = stcp->Base.info.cs.shared_size;
    stcp->tgsi.req_private_mem = 0;
    stcp->tgsi.req_input_mem = 0;
 

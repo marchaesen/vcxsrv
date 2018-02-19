@@ -1,11 +1,43 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.12.92 (2.13 RC2)
-                              2018-01-04
+                      Version 2.12.93 (2.13 RC3)
+                              2018-02-15
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.12.93 (2.13 RC3)
+
+Akira TAGOH (12):
+      trivial fix
+      Add files to enable ITS support in gettext
+      Use the native ITS support in gettext
+      Remove POTFILES.in until new release of gettext is coming...
+      export GETTEXTDATADIR to refer the local .its/.loc file instead of using --its option
+      clean up
+      Do not add cflags and libs coming from pkg-config file.
+      Revert some removal from 7ac6af6
+      Take effects on dir, cachedir, acceptfont, and rejectfont only when loading
+      Do not mix up font dirs into the list of config dirs
+      Ensure the user config dir is available in the list of config dirs on the fallback config
+      Add missing files to ship
+
+Alexander Larsson (1):
+      FcHashTableAddInternal: Compare against the right key
+
+Behdad Esfahbod (5):
+      Remove hack for OS/2 weights 1..9
+      Support FC_WIDTH as double as well
+      Fix leak
+      Use FT_Done_MM_Var if available
+      Fix undefined-behavior signed shifts
+
+Olivier Crête (1):
+      Fix cross-compilation by passing CPPFLAGS to CPP
+
+Tom Anderson (1):
+      Allow overriding symbol visibility.
 
 2.12.92 (2.13 RC2)
 

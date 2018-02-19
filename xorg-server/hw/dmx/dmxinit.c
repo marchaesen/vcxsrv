@@ -536,9 +536,6 @@ static void dmxAddExtensions(void)
 {
     const ExtensionModule dmxExtensions[] = {
         { DMXExtensionInit, DMX_EXTENSION_NAME, NULL },
-#ifdef GLXEXT
-        { GlxExtensionInit, "GLX", &noGlxExtension },
-#endif
     };
 
     LoadExtensionList(dmxExtensions, ARRAY_SIZE(dmxExtensions), TRUE);
@@ -640,7 +637,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     for (i = 0; i < dmxNumScreens; i++)
         dmxDisplayInit(&dmxScreens[i]);
 
-#if PANORAMIX
+#ifdef PANORAMIX
     /* Register a Xinerama callback which will run from within
      * PanoramiXCreateConnectionBlock.  We can use the callback to
      * determine if Xinerama is loaded and to check the visuals

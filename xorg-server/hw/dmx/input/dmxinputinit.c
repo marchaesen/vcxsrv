@@ -981,6 +981,8 @@ dmxInputInit(DMXInputInfo * dmxInput)
         dmxLogInput(dmxInput, "Using dummy input\n");
     }
     else {
+        int found;
+
         for (i = 1; i < dmxArgC(a); i++) {
             switch (hasXkb) {
             case 1:
@@ -1015,8 +1017,6 @@ dmxInputInit(DMXInputInfo * dmxInput)
                 }
             }
         }
-
-        int found;
 
         for (found = 0, i = 0; i < dmxNumScreens; i++) {
             if (dmxPropertySameDisplay(&dmxScreens[i], name)) {

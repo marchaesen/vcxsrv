@@ -110,25 +110,10 @@ __glXregisterPresentCompleteNotify(void);
 */
 struct __GLXclientStateRec {
     /*
-     ** Whether this structure is currently being used to support a client.
-     */
-    Bool inUse;
-
-    /*
      ** Buffer for returned data.
      */
     GLbyte *returnBuf;
     GLint returnBufSize;
-
-    /*
-     ** Keep track of large rendering commands, which span multiple requests.
-     */
-    GLint largeCmdBytesSoFar;   /* bytes received so far        */
-    GLint largeCmdBytesTotal;   /* total bytes expected         */
-    GLint largeCmdRequestsSoFar;        /* requests received so far     */
-    GLint largeCmdRequestsTotal;        /* total requests expected      */
-    GLbyte *largeCmdBuf;
-    GLint largeCmdBufSize;
 
     /* Back pointer to X client record */
     ClientPtr client;

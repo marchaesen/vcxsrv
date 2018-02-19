@@ -203,6 +203,16 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline )
       pipeline_mask = ST_PIPELINE_CLEAR_STATE_MASK;
       break;
 
+   case ST_PIPELINE_META:
+      if (st->gfx_shaders_may_be_dirty) {
+         check_program_state(st);
+         st->gfx_shaders_may_be_dirty = false;
+      }
+
+      st_manager_validate_framebuffers(st);
+      pipeline_mask = ST_PIPELINE_META_STATE_MASK;
+      break;
+
    case ST_PIPELINE_UPDATE_FRAMEBUFFER:
       st_manager_validate_framebuffers(st);
       pipeline_mask = ST_PIPELINE_UPDATE_FB_STATE_MASK;

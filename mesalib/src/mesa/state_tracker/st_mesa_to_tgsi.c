@@ -622,7 +622,7 @@ emit_wpos_adjustment(struct gl_context *ctx,
     * Need to replace instances of INPUT[WPOS] with temp T
     * where T = INPUT[WPOS] by y is inverted.
     */
-   static const gl_state_index wposTransformState[STATE_LENGTH]
+   static const gl_state_index16 wposTransformState[STATE_LENGTH]
       = { STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM, 0, 0, 0 };
 
    /* XXX: note we are modifying the incoming shader here!  Need to

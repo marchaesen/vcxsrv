@@ -736,7 +736,7 @@ _mesa_WaitSemaphoreEXT(GLuint semaphore,
    FLUSH_VERTICES(ctx, 0);
    FLUSH_CURRENT(ctx, 0);
 
-   bufObjs = malloc(sizeof(struct gl_buffer_object **) * numBufferBarriers);
+   bufObjs = malloc(sizeof(struct gl_buffer_object *) * numBufferBarriers);
    if (!bufObjs) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numBufferBarriers=%u)",
                   func, numBufferBarriers);
@@ -747,7 +747,7 @@ _mesa_WaitSemaphoreEXT(GLuint semaphore,
       bufObjs[i] = _mesa_lookup_bufferobj(ctx, buffers[i]);
    }
 
-   texObjs = malloc(sizeof(struct gl_texture_object **) * numTextureBarriers);
+   texObjs = malloc(sizeof(struct gl_texture_object *) * numTextureBarriers);
    if (!texObjs) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numTextureBarriers=%u)",
                   func, numTextureBarriers);
@@ -797,7 +797,7 @@ _mesa_SignalSemaphoreEXT(GLuint semaphore,
    FLUSH_VERTICES(ctx, 0);
    FLUSH_CURRENT(ctx, 0);
 
-   bufObjs = malloc(sizeof(struct gl_buffer_object **) * numBufferBarriers);
+   bufObjs = malloc(sizeof(struct gl_buffer_object *) * numBufferBarriers);
    if (!bufObjs) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numBufferBarriers=%u)",
                   func, numBufferBarriers);
@@ -808,7 +808,7 @@ _mesa_SignalSemaphoreEXT(GLuint semaphore,
       bufObjs[i] = _mesa_lookup_bufferobj(ctx, buffers[i]);
    }
 
-   texObjs = malloc(sizeof(struct gl_texture_object **) * numTextureBarriers);
+   texObjs = malloc(sizeof(struct gl_texture_object *) * numTextureBarriers);
    if (!texObjs) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s(numTextureBarriers=%u)",
                   func, numTextureBarriers);

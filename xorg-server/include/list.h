@@ -211,7 +211,8 @@ xorg_list_del(struct xorg_list *entry)
  * Example:
  * xorg_list_is_empty(&bar->list_of_foos);
  *
- * @return True if the list contains one or more elements or False otherwise.
+ * @return True if the list is empty or False if the list contains one or more
+ * elements.
  */
 static inline int
 xorg_list_is_empty(struct xorg_list *head)

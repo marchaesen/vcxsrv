@@ -126,6 +126,32 @@ type_to_bit(const struct gl_context *ctx, GLenum type)
 
 
 /**
+ * Depending on the position and generic0 attributes enable flags select
+ * the one that is used for both attributes.
+ * The generic0 attribute takes precedence.
+ */
+static inline void
+update_attribute_map_mode(const struct gl_context *ctx,
+                          struct gl_vertex_array_object *vao)
+{
+   /*
+    * There is no need to change the mapping away from the
+    * identity mapping if we are not in compat mode.
+    */
+   if (ctx->API != API_OPENGL_COMPAT)
+      return;
+   /* The generic0 attribute superseeds the position attribute */
+   const GLbitfield enabled = vao->_Enabled;
+   if (enabled & VERT_BIT_GENERIC0)
+      vao->_AttributeMapMode = ATTRIBUTE_MAP_MODE_GENERIC0;
+   else if (enabled & VERT_BIT_POS)
+      vao->_AttributeMapMode = ATTRIBUTE_MAP_MODE_POSITION;
+   else
+      vao->_AttributeMapMode = ATTRIBUTE_MAP_MODE_IDENTITY;
+}
+
+
+/**
  * Sets the BufferBindingIndex field for the vertex attribute given by
  * attribIndex.
  */
@@ -142,6 +168,8 @@ vertex_attrib_binding(struct gl_context *ctx,
 
       if (_mesa_is_bufferobj(vao->BufferBinding[bindingIndex].BufferObj))
          vao->VertexAttribBufferMask |= array_bit;
+      else
+         vao->VertexAttribBufferMask &= ~array_bit;
 
       FLUSH_VERTICES(ctx, _NEW_ARRAY);
 
@@ -150,7 +178,7 @@ vertex_attrib_binding(struct gl_context *ctx,
 
       array->BufferBindingIndex = bindingIndex;
 
-      vao->NewArrays |= array_bit;
+      vao->NewArrays |= vao->_Enabled & array_bit;
    }
 }
 
@@ -185,7 +213,7 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
       else
          vao->VertexAttribBufferMask |= binding->_BoundArrays;
 
-      vao->NewArrays |= binding->_BoundArrays;
+      vao->NewArrays |= vao->_Enabled & binding->_BoundArrays;
    }
 }
 
@@ -206,7 +234,7 @@ vertex_binding_divisor(struct gl_context *ctx,
    if (binding->InstanceDivisor != divisor) {
       FLUSH_VERTICES(ctx, _NEW_ARRAY);
       binding->InstanceDivisor = divisor;
-      vao->NewArrays |= binding->_BoundArrays;
+      vao->NewArrays |= vao->_Enabled & binding->_BoundArrays;
    }
 }
 
@@ -316,7 +344,7 @@ _mesa_update_array_format(struct gl_context *ctx,
    array->RelativeOffset = relativeOffset;
    array->_ElementSize = elementSize;
 
-   vao->NewArrays |= VERT_BIT(attrib);
+   vao->NewArrays |= vao->_Enabled & VERT_BIT(attrib);
    ctx->NewState |= _NEW_ARRAY;
 }
 
@@ -1077,7 +1105,7 @@ _mesa_enable_vertex_array_attrib(struct gl_context *ctx,
 
       /* Update the map mode if needed */
       if (array_bit & (VERT_BIT_POS|VERT_BIT_GENERIC0))
-         _mesa_update_attribute_map_mode(ctx, vao);
+         update_attribute_map_mode(ctx, vao);
    }
 }
 
@@ -1144,24 +1172,24 @@ _mesa_EnableVertexArrayAttrib_no_error(GLuint vaobj, GLuint index)
 }
 
 
-static void
-disable_vertex_array_attrib(struct gl_context *ctx,
-                            struct gl_vertex_array_object *vao,
-                            GLuint index)
+void
+_mesa_disable_vertex_array_attrib(struct gl_context *ctx,
+                                  struct gl_vertex_array_object *vao,
+                                  gl_vert_attrib attrib)
 {
-   assert(VERT_ATTRIB_GENERIC(index) < ARRAY_SIZE(vao->VertexAttrib));
+   assert(attrib < ARRAY_SIZE(vao->VertexAttrib));
 
-   if (vao->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled) {
+   if (vao->VertexAttrib[attrib].Enabled) {
       /* was enabled, now being disabled */
       FLUSH_VERTICES(ctx, _NEW_ARRAY);
-      vao->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled = GL_FALSE;
-      const GLbitfield array_bit = VERT_BIT_GENERIC(index);
+      vao->VertexAttrib[attrib].Enabled = GL_FALSE;
+      const GLbitfield array_bit = VERT_BIT(attrib);
       vao->_Enabled &= ~array_bit;
       vao->NewArrays |= array_bit;
 
       /* Update the map mode if needed */
       if (array_bit & (VERT_BIT_POS|VERT_BIT_GENERIC0))
-         _mesa_update_attribute_map_mode(ctx, vao);
+         update_attribute_map_mode(ctx, vao);
    }
 }
 
@@ -1176,7 +1204,8 @@ _mesa_DisableVertexAttribArray(GLuint index)
       return;
    }
 
-   disable_vertex_array_attrib(ctx, ctx->Array.VAO, index);
+   const gl_vert_attrib attrib = VERT_ATTRIB_GENERIC(index);
+   _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attrib);
 }
 
 
@@ -1184,7 +1213,8 @@ void GLAPIENTRY
 _mesa_DisableVertexAttribArray_no_error(GLuint index)
 {
    GET_CURRENT_CONTEXT(ctx);
-   disable_vertex_array_attrib(ctx, ctx->Array.VAO, index);
+   const gl_vert_attrib attrib = VERT_ATTRIB_GENERIC(index);
+   _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attrib);
 }
 
 
@@ -1210,7 +1240,8 @@ _mesa_DisableVertexArrayAttrib(GLuint vaobj, GLuint index)
       return;
    }
 
-   disable_vertex_array_attrib(ctx, vao, index);
+   const gl_vert_attrib attrib = VERT_ATTRIB_GENERIC(index);
+   _mesa_disable_vertex_array_attrib(ctx, vao, attrib);
 }
 
 
@@ -1219,7 +1250,8 @@ _mesa_DisableVertexArrayAttrib_no_error(GLuint vaobj, GLuint index)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_vertex_array_object *vao = _mesa_lookup_vao(ctx, vaobj);
-   disable_vertex_array_attrib(ctx, vao, index);
+   const gl_vert_attrib attrib = VERT_ATTRIB_GENERIC(index);
+   _mesa_disable_vertex_array_attrib(ctx, vao, attrib);
 }
 
 

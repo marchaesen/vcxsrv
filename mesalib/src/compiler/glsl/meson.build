@@ -230,7 +230,8 @@ glsl_compiler = executable(
   dependencies : [dep_clock, dep_thread],
   include_directories : [inc_common],
   link_with : [libglsl_standalone],
-  build_by_default : false,
+  build_by_default : with_tools.contains('glsl'),
+  install : with_tools.contains('glsl'),
 )
 
 glsl_test = executable(
@@ -242,7 +243,8 @@ glsl_test = executable(
   include_directories : [inc_common],
   dependencies : [dep_clock, dep_thread],
   link_with : [libglsl, libglsl_standalone, libglsl_util],
-  build_by_default : false,
+  build_by_default : with_tools.contains('glsl'),
+  install : with_tools.contains('glsl'),
 )
 
 if with_tests

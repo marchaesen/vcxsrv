@@ -91,7 +91,7 @@ get_file_value(const char *fn, uint64_t *KHz)
 }
 
 static void
-query_cfi_load(struct hud_graph *gr)
+query_cfi_load(struct hud_graph *gr, struct pipe_context *pipe)
 {
    struct cpufreq_info *cfi = gr->query_data;
 

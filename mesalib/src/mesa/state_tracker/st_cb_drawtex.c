@@ -120,7 +120,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    st_flush_bitmap_cache(st);
    st_invalidate_readpix_cache(st);
 
-   st_validate_state(st, ST_PIPELINE_RENDER);
+   st_validate_state(st, ST_PIPELINE_META);
 
    /* determine if we need vertex color */
    if (ctx->FragmentProgram._Current->info.inputs_read & VARYING_BIT_COL0)

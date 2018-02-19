@@ -2,7 +2,7 @@ if DRI2
 GLXDRI_LIBRARY = libglxdri.la
 endif
 
-noinst_LTLIBRARIES = libglx.la $(GLXDRI_LIBRARY)
+noinst_LTLIBRARIES = libglx.la $(GLXDRI_LIBRARY) libglxvnd.la
 
 AM_CFLAGS = \
 	@DIX_CFLAGS@ \
@@ -83,3 +83,9 @@ libglx_la_SOURCES = \
         xfont.c
 
 libglx_la_LIBADD = $(DLOPEN_LIBS)
+
+libglxvnd_la_SOURCES = \
+	vndcmds.c \
+	vndext.c \
+	vndservermapping.c \
+	vndservervendor.c

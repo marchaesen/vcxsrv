@@ -258,12 +258,17 @@ update_shader_samplers(struct st_context *st,
    GLbitfield free_slots = ~prog->SamplersUsed;
    GLbitfield external_samplers_used = prog->ExternalSamplersUsed;
    unsigned unit, num_samplers;
+   struct pipe_sampler_state local_samplers[PIPE_MAX_SAMPLERS];
    const struct pipe_sampler_state *states[PIPE_MAX_SAMPLERS];
 
    if (samplers_used == 0x0) {
-      *out_num_samplers = 0;
+      if (out_num_samplers)
+         *out_num_samplers = 0;
       return;
    }
+
+   if (!samplers)
+      samplers = local_samplers;
 
    num_samplers = util_last_bit(samplers_used);
 
@@ -320,7 +325,9 @@ update_shader_samplers(struct st_context *st,
    }
 
    cso_set_samplers(st->cso_context, shader_stage, num_samplers, states);
-   *out_num_samplers = num_samplers;
+
+   if (out_num_samplers)
+      *out_num_samplers = num_samplers;
 }
 
 
@@ -331,9 +338,7 @@ st_update_vertex_samplers(struct st_context *st)
 
    update_shader_samplers(st,
                           PIPE_SHADER_VERTEX,
-                          ctx->VertexProgram._Current,
-                          st->state.samplers[PIPE_SHADER_VERTEX],
-                          &st->state.num_samplers[PIPE_SHADER_VERTEX]);
+                          ctx->VertexProgram._Current, NULL, NULL);
 }
 
 
@@ -345,9 +350,7 @@ st_update_tessctrl_samplers(struct st_context *st)
    if (ctx->TessCtrlProgram._Current) {
       update_shader_samplers(st,
                              PIPE_SHADER_TESS_CTRL,
-                             ctx->TessCtrlProgram._Current,
-                             st->state.samplers[PIPE_SHADER_TESS_CTRL],
-                             &st->state.num_samplers[PIPE_SHADER_TESS_CTRL]);
+                             ctx->TessCtrlProgram._Current, NULL, NULL);
    }
 }
 
@@ -360,9 +363,7 @@ st_update_tesseval_samplers(struct st_context *st)
    if (ctx->TessEvalProgram._Current) {
       update_shader_samplers(st,
                              PIPE_SHADER_TESS_EVAL,
-                             ctx->TessEvalProgram._Current,
-                             st->state.samplers[PIPE_SHADER_TESS_EVAL],
-                             &st->state.num_samplers[PIPE_SHADER_TESS_EVAL]);
+                             ctx->TessEvalProgram._Current, NULL, NULL);
    }
 }
 
@@ -375,9 +376,7 @@ st_update_geometry_samplers(struct st_context *st)
    if (ctx->GeometryProgram._Current) {
       update_shader_samplers(st,
                              PIPE_SHADER_GEOMETRY,
-                             ctx->GeometryProgram._Current,
-                             st->state.samplers[PIPE_SHADER_GEOMETRY],
-                             &st->state.num_samplers[PIPE_SHADER_GEOMETRY]);
+                             ctx->GeometryProgram._Current, NULL, NULL);
    }
 }
 
@@ -390,8 +389,8 @@ st_update_fragment_samplers(struct st_context *st)
    update_shader_samplers(st,
                           PIPE_SHADER_FRAGMENT,
                           ctx->FragmentProgram._Current,
-                          st->state.samplers[PIPE_SHADER_FRAGMENT],
-                          &st->state.num_samplers[PIPE_SHADER_FRAGMENT]);
+                          st->state.frag_samplers,
+                          &st->state.num_frag_samplers);
 }
 
 
@@ -403,8 +402,6 @@ st_update_compute_samplers(struct st_context *st)
    if (ctx->ComputeProgram._Current) {
       update_shader_samplers(st,
                              PIPE_SHADER_COMPUTE,
-                             ctx->ComputeProgram._Current,
-                             st->state.samplers[PIPE_SHADER_COMPUTE],
-                             &st->state.num_samplers[PIPE_SHADER_COMPUTE]);
+                             ctx->ComputeProgram._Current, NULL, NULL);
    }
 }

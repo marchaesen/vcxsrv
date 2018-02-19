@@ -370,6 +370,8 @@ TNL_FILES = \
 	tnl/tnl.h \
 	tnl/t_pipeline.c \
 	tnl/t_pipeline.h \
+	tnl/t_rebase.c \
+	tnl/t_rebase.h \
 	tnl/t_vb_cliptmp.h \
 	tnl/t_vb_fog.c \
 	tnl/t_vb_light.c \
@@ -405,7 +407,6 @@ VBO_FILES = \
 	vbo/vbo_noop.h \
 	vbo/vbo_primitive_restart.c \
 	vbo/vbo_private.h \
-	vbo/vbo_rebase.c \
 	vbo/vbo_save_api.c \
 	vbo/vbo_save.c \
 	vbo/vbo_save_draw.c \

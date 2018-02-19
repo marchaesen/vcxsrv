@@ -32,6 +32,7 @@
 #include "extensions.h"
 #include "mtypes.h"
 #include "macros.h"
+#include "version.h"
 
 /**
  * Return the string for a glGetString(GL_SHADING_LANGUAGE_VERSION) query.
@@ -186,6 +187,25 @@ _mesa_GetStringi(GLenum name, GLuint index)
          return (const GLubyte *) 0;
       }
       return _mesa_get_enabled_extension(ctx, index);
+   case GL_SHADING_LANGUAGE_VERSION:
+      {
+         char *version;
+         int num;
+         if (!_mesa_is_desktop_gl(ctx) || ctx->Version < 43) {
+            _mesa_error(ctx, GL_INVALID_ENUM,
+                        "glGetStringi(GL_SHADING_LANGUAGE_VERSION): "
+                        "supported only in GL4.3 and later");
+            return (const GLubyte *) 0;
+         }
+         num = _mesa_get_shading_language_version(ctx, index, &version);
+         if (index >= num) {
+            _mesa_error(ctx, GL_INVALID_VALUE,
+                        "glGetStringi(GL_SHADING_LANGUAGE_VERSION, index=%d)",
+                        index);
+            return (const GLubyte *) 0;
+         }
+         return (const GLubyte *) version;
+      }
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetStringi");
       return (const GLubyte *) 0;

@@ -56,6 +56,7 @@ executable(
         libxserver_xkb_stubs,
         libxserver_xi_stubs,
         libxserver_glx,
+        libglxvnd,
     ],
     install: true,
 )

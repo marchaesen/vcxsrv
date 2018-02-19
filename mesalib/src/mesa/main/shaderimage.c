@@ -464,6 +464,8 @@ _mesa_init_image_units(struct gl_context *ctx)
 {
    unsigned i;
 
+   ASSERT_BITFIELD_SIZE(struct gl_image_unit, Format, MESA_FORMAT_COUNT);
+
    for (i = 0; i < ARRAY_SIZE(ctx->ImageUnits); ++i)
       ctx->ImageUnits[i] = _mesa_default_image_unit(ctx);
 }

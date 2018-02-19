@@ -27,6 +27,7 @@
 
 
 #include "main/glheader.h"
+#include "compiler/shader_enums.h"
 
 
 #ifdef __cplusplus
@@ -36,12 +37,6 @@ extern "C" {
 
 struct gl_context;
 struct gl_program_parameter_list;
-
-/**
- * Number of STATE_* values we need to address any GL state.
- * Used to dimension arrays.
- */
-#define STATE_LENGTH 5
 
 
 /**
@@ -138,18 +133,17 @@ typedef enum gl_state_index_ {
 } gl_state_index;
 
 
-
 extern void
 _mesa_load_state_parameters(struct gl_context *ctx,
                             struct gl_program_parameter_list *paramList);
 
 
 extern GLbitfield
-_mesa_program_state_flags(const gl_state_index state[STATE_LENGTH]);
+_mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH]);
 
 
 extern char *
-_mesa_program_state_string(const gl_state_index state[STATE_LENGTH]);
+_mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH]);
 
 
 

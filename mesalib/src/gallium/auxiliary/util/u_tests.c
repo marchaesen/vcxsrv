@@ -147,7 +147,7 @@ util_set_passthrough_vertex_shader(struct cso_context *cso,
                                    struct pipe_context *ctx,
                                    bool window_space)
 {
-   static const uint vs_attribs[] = {
+   static const enum tgsi_semantic vs_attribs[] = {
       TGSI_SEMANTIC_POSITION,
       TGSI_SEMANTIC_GENERIC
    };

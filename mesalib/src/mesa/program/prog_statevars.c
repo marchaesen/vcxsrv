@@ -54,7 +54,7 @@
  * The program parser will produce the state[] values.
  */
 static void
-_mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
+_mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
                   gl_constant_value *val)
 {
    GLfloat *value = &val->f;
@@ -215,28 +215,28 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
          /* state[2] is the texgen attribute */
          switch (state[2]) {
          case STATE_TEXGEN_EYE_S:
-            COPY_4V(value, ctx->Texture.Unit[unit].GenS.EyePlane);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenS.EyePlane);
             return;
          case STATE_TEXGEN_EYE_T:
-            COPY_4V(value, ctx->Texture.Unit[unit].GenT.EyePlane);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenT.EyePlane);
             return;
          case STATE_TEXGEN_EYE_R:
-            COPY_4V(value, ctx->Texture.Unit[unit].GenR.EyePlane);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenR.EyePlane);
             return;
          case STATE_TEXGEN_EYE_Q:
-            COPY_4V(value, ctx->Texture.Unit[unit].GenQ.EyePlane);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenQ.EyePlane);
             return;
          case STATE_TEXGEN_OBJECT_S:
-            COPY_4V(value, ctx->Texture.Unit[unit].GenS.ObjectPlane);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenS.ObjectPlane);
             return;
          case STATE_TEXGEN_OBJECT_T:
-            COPY_4V(value, ctx->Texture.Unit[unit].GenT.ObjectPlane);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenT.ObjectPlane);
             return;
          case STATE_TEXGEN_OBJECT_R:
-            COPY_4V(value, ctx->Texture.Unit[unit].GenR.ObjectPlane);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenR.ObjectPlane);
             return;
          case STATE_TEXGEN_OBJECT_Q:
-            COPY_4V(value, ctx->Texture.Unit[unit].GenQ.ObjectPlane);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenQ.ObjectPlane);
             return;
          default:
             _mesa_problem(ctx, "Invalid texgen state in fetch_state");
@@ -248,9 +248,9 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
          /* state[1] is the texture unit */
          const GLuint unit = (GLuint) state[1];
          if (_mesa_get_clamp_fragment_color(ctx, ctx->DrawBuffer))
-            COPY_4V(value, ctx->Texture.Unit[unit].EnvColor);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].EnvColor);
          else
-            COPY_4V(value, ctx->Texture.Unit[unit].EnvColorUnclamped);
+            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].EnvColorUnclamped);
       }
       return;
    case STATE_FOG_COLOR:
@@ -628,7 +628,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
  * some GL state has changed.
  */
 GLbitfield
-_mesa_program_state_flags(const gl_state_index state[STATE_LENGTH])
+_mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
 {
    switch (state[0]) {
    case STATE_MATERIAL:
@@ -948,7 +948,7 @@ append_index(char *dst, GLint index)
  * Use free() to deallocate the string.
  */
 char *
-_mesa_program_state_string(const gl_state_index state[STATE_LENGTH])
+_mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH])
 {
    char str[1000] = "";
    char tmp[30];

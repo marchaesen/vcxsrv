@@ -539,7 +539,7 @@ affine_span(struct gl_context *ctx, SWspan *span,
 
 #define SETUP_CODE							\
    struct affine_info info;						\
-   struct gl_texture_unit *unit = ctx->Texture.Unit+0;			\
+   struct gl_fixedfunc_texture_unit *unit = ctx->Texture.FixedFuncUnit+0; \
    const struct gl_texture_object *obj = 				\
       ctx->Texture.Unit[0].CurrentTex[TEXTURE_2D_INDEX];		\
    const struct gl_texture_image *texImg = 				\
@@ -808,7 +808,7 @@ fast_persp_span(struct gl_context *ctx, SWspan *span,
 
 #define SETUP_CODE							\
    struct persp_info info;						\
-   const struct gl_texture_unit *unit = ctx->Texture.Unit+0;		\
+   const struct gl_fixedfunc_texture_unit *unit = ctx->Texture.FixedFuncUnit+0; \
    const struct gl_texture_object *obj = 				\
       ctx->Texture.Unit[0].CurrentTex[TEXTURE_2D_INDEX];		\
    const struct gl_texture_image *texImg = 				\
@@ -1027,10 +1027,10 @@ _swrast_choose_triangle( struct gl_context *ctx )
           !_mesa_stencil_is_enabled(ctx) &&
           depthRb &&
           depthRb->Format == MESA_FORMAT_Z_UNORM16) {
-         if (ctx->Color.ColorMask[0][0] == 0 &&
-	     ctx->Color.ColorMask[0][1] == 0 &&
-	     ctx->Color.ColorMask[0][2] == 0 &&
-	     ctx->Color.ColorMask[0][3] == 0) {
+         if (GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 0) == 0 &&
+	     GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 1) == 0 &&
+	     GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 2) == 0 &&
+	     GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 3) == 0) {
             USE(occlusion_zless_16_triangle);
             return;
          }
@@ -1066,7 +1066,7 @@ _swrast_choose_triangle( struct gl_context *ctx )
          format = texImg ? texImg->TexFormat : MESA_FORMAT_NONE;
          minFilter = texObj2D ? samp->MinFilter : GL_NONE;
          magFilter = texObj2D ? samp->MagFilter : GL_NONE;
-         envMode = ctx->Texture.Unit[0].EnvMode;
+         envMode = ctx->Texture.FixedFuncUnit[0].EnvMode;
 
          /* First see if we can use an optimized 2-D texture function */
          if (ctx->Texture._EnabledCoordUnits == 0x1
@@ -1085,8 +1085,8 @@ _swrast_choose_triangle( struct gl_context *ctx )
              && minFilter == magFilter
              && ctx->Light.Model.ColorControl == GL_SINGLE_COLOR
              && !swrast->_FogEnabled
-             && ctx->Texture.Unit[0].EnvMode != GL_COMBINE_EXT
-             && ctx->Texture.Unit[0].EnvMode != GL_COMBINE4_NV) {
+             && ctx->Texture.FixedFuncUnit[0].EnvMode != GL_COMBINE_EXT
+             && ctx->Texture.FixedFuncUnit[0].EnvMode != GL_COMBINE4_NV) {
 	    if (ctx->Hint.PerspectiveCorrection==GL_FASTEST) {
 	       if (minFilter == GL_NEAREST
 		   && format == MESA_FORMAT_BGR_UNORM8

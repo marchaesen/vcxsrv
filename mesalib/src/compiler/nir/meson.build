@@ -162,6 +162,7 @@ files_libnir = files(
   'nir_opt_move_comparisons.c',
   'nir_opt_peephole_select.c',
   'nir_opt_remove_phis.c',
+  'nir_opt_shrink_load.c',
   'nir_opt_trivial_continues.c',
   'nir_opt_undef.c',
   'nir_phi_builder.c',

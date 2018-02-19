@@ -975,7 +975,7 @@ static void
 read_shader_parameters(struct blob_reader *metadata,
                        struct gl_program_parameter_list *params)
 {
-   gl_state_index state_indexes[STATE_LENGTH];
+   gl_state_index16 state_indexes[STATE_LENGTH];
    uint32_t i = 0;
    uint32_t num_parameters = blob_read_uint32(metadata);
 

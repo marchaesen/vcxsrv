@@ -116,8 +116,8 @@ radv_init_surface(struct radv_device *device,
 		    pCreateInfo->mipLevels <= 1 &&
 		    device->physical_device->rad_info.chip_class >= VI &&
 		    ((pCreateInfo->format == VK_FORMAT_D32_SFLOAT ||
-		      /* for some reason TC compat with 4/8 samples breaks some cts tests - disable for now */
-		      (pCreateInfo->samples < 4 && pCreateInfo->format == VK_FORMAT_D32_SFLOAT_S8_UINT)) ||
+		      /* for some reason TC compat with 2/4/8 samples breaks some cts tests - disable for now */
+		      (pCreateInfo->samples < 2 && pCreateInfo->format == VK_FORMAT_D32_SFLOAT_S8_UINT)) ||
 		     (device->physical_device->rad_info.chip_class >= GFX9 &&
 		      pCreateInfo->format == VK_FORMAT_D16_UNORM)))
 			surface->flags |= RADEON_SURF_TC_COMPATIBLE_HTILE;

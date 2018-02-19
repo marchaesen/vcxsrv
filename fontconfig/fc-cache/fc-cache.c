@@ -383,7 +383,7 @@ main (int argc, char **argv)
 	FcStrSetDestroy (dirs);
     }
     else
-	list = FcConfigGetConfigDirs (config);
+	list = FcConfigGetFontDirs (config);
 
     if ((processed_dirs = FcStrSetCreate()) == NULL) {
 	fprintf(stderr, _("Out of Memory\n"));

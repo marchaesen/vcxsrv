@@ -149,9 +149,10 @@ vbo_save_EndCallList(struct gl_context *ctx);
  * \param index_bounds_valid  are min_index and max_index valid?
  * \param min_index  lowest vertex index used
  * \param max_index  highest vertex index used
- * \param tfb_vertcount  describes TFB output, or NULL
- * \param stream  If called via DrawTransformFeedback, specifies the vertex
- *                stream buffer from which to get the vertex count
+ * \param tfb_vertcount  if non-null, indicates which transform feedback
+ *                       object has the vertex count.
+ * \param tfb_stream  If called via DrawTransformFeedbackStream, specifies the
+ *                    vertex stream buffer from which to get the vertex count.
  * \param indirect  If any prims are indirect, this specifies the buffer
  *                  to find the "DrawArrays/ElementsIndirectCommand" data.
  *                  This may be deprecated in the future
@@ -164,7 +165,7 @@ typedef void (*vbo_draw_func)(struct gl_context *ctx,
                               GLuint min_index,
                               GLuint max_index,
                               struct gl_transform_feedback_object *tfb_vertcount,
-                              unsigned stream,
+                              unsigned tfb_stream,
                               struct gl_buffer_object *indirect);
 
 
@@ -223,17 +224,6 @@ vbo_split_prims(struct gl_context *ctx,
                 GLuint max_index,
                 vbo_draw_func draw,
                 const struct split_limits *limits);
-
-
-void
-vbo_rebase_prims(struct gl_context *ctx,
-                 const struct gl_vertex_array *arrays[],
-                 const struct _mesa_prim *prim,
-                 GLuint nr_prims,
-                 const struct _mesa_index_buffer *ib,
-                 GLuint min_index,
-                 GLuint max_index,
-                 vbo_draw_func draw);
 
 
 void

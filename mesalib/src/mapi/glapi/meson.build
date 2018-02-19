@@ -82,9 +82,10 @@ if not with_shared_glapi and with_tests
     'glapi_static_check_table',
     executable(
       'glapi_static_check_table',
-      'tests/check_table.cpp',
+      ['tests/check_table.cpp', glapitable_h],
+      include_directories : [inc_include, inc_src, inc_mesa, inc_mapi],
       link_with : [libglapi_static],
-      dependencies : [idep_gtest],
+      dependencies : [idep_gtest, dep_thread],
     )
   )
 endif

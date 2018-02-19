@@ -187,7 +187,13 @@ clear_color_buffers(struct gl_context *ctx)
       if (rb == NULL)
 	 continue;
 
-      clear_rgba_buffer(ctx, rb, ctx->Color.ColorMask[buf]);
+      const GLubyte colormask[4] = {
+         GET_COLORMASK_BIT(ctx->Color.ColorMask, buf, 0) ? 0xff : 0,
+         GET_COLORMASK_BIT(ctx->Color.ColorMask, buf, 1) ? 0xff : 0,
+         GET_COLORMASK_BIT(ctx->Color.ColorMask, buf, 2) ? 0xff : 0,
+         GET_COLORMASK_BIT(ctx->Color.ColorMask, buf, 3) ? 0xff : 0,
+      };
+      clear_rgba_buffer(ctx, rb, colormask);
    }
 }
 

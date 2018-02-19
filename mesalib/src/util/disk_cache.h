@@ -50,6 +50,14 @@ typedef uint8_t cache_key[CACHE_KEY_SIZE];
 #define CACHE_ITEM_TYPE_UNKNOWN  0x0
 #define CACHE_ITEM_TYPE_GLSL     0x1
 
+typedef void
+(*disk_cache_put_cb) (const void *key, signed long keySize,
+                      const void *value, signed long valueSize);
+
+typedef signed long
+(*disk_cache_get_cb) (const void *key, signed long keySize,
+                      void *value, signed long valueSize);
+
 struct cache_item_metadata {
    /**
     * The cache item type. This could be used to identify a GLSL cache item,
@@ -207,6 +215,10 @@ void
 disk_cache_compute_key(struct disk_cache *cache, const void *data, size_t size,
                        cache_key key);
 
+void
+disk_cache_set_callbacks(struct disk_cache *cache, disk_cache_put_cb put,
+                         disk_cache_get_cb get);
+
 #else
 
 static inline struct disk_cache *
@@ -256,6 +268,13 @@ disk_cache_has_key(struct disk_cache *cache, const cache_key key)
 static inline void
 disk_cache_compute_key(struct disk_cache *cache, const void *data, size_t size,
                        const cache_key key)
+{
+   return;
+}
+
+static inline void
+disk_cache_set_callbacks(struct disk_cache *cache, disk_cache_put_cb put,
+                         disk_cache_get_cb get)
 {
    return;
 }

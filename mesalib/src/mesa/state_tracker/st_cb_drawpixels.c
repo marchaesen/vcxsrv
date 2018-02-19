@@ -196,7 +196,7 @@ static void *
 make_passthrough_vertex_shader(struct st_context *st, 
                                GLboolean passColor)
 {
-   const unsigned texcoord_semantic = st->needs_texcoord_semantic ?
+   const enum tgsi_semantic texcoord_semantic = st->needs_texcoord_semantic ?
       TGSI_SEMANTIC_TEXCOORD : TGSI_SEMANTIC_GENERIC;
 
    if (!st->drawpix.vert_shaders[passColor]) {
@@ -736,11 +736,11 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
          const struct pipe_sampler_state *samplers[PIPE_MAX_SAMPLERS];
          uint num = MAX3(fpv->drawpix_sampler + 1,
                          fpv->pixelmap_sampler + 1,
-                         st->state.num_samplers[PIPE_SHADER_FRAGMENT]);
+                         st->state.num_frag_samplers);
          uint i;
 
-         for (i = 0; i < st->state.num_samplers[PIPE_SHADER_FRAGMENT]; i++)
-            samplers[i] = &st->state.samplers[PIPE_SHADER_FRAGMENT][i];
+         for (i = 0; i < st->state.num_frag_samplers; i++)
+            samplers[i] = &st->state.frag_samplers[i];
 
          samplers[fpv->drawpix_sampler] = &sampler;
          if (sv[1])
@@ -763,7 +763,7 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
                       fpv->pixelmap_sampler + 1,
                       st->state.num_sampler_views[PIPE_SHADER_FRAGMENT]);
 
-      memcpy(sampler_views, st->state.sampler_views[PIPE_SHADER_FRAGMENT],
+      memcpy(sampler_views, st->state.frag_sampler_views,
              sizeof(sampler_views));
 
       sampler_views[fpv->drawpix_sampler] = sv[0];
@@ -1147,7 +1147,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
    st_flush_bitmap_cache(st);
    st_invalidate_readpix_cache(st);
 
-   st_validate_state(st, ST_PIPELINE_RENDER);
+   st_validate_state(st, ST_PIPELINE_META);
 
    /* Limit the size of the glDrawPixels to the max texture size.
     * Strictly speaking, that's not correct but since we don't handle
@@ -1514,7 +1514,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    st_flush_bitmap_cache(st);
    st_invalidate_readpix_cache(st);
 
-   st_validate_state(st, ST_PIPELINE_RENDER);
+   st_validate_state(st, ST_PIPELINE_META);
 
    if (type == GL_DEPTH_STENCIL) {
       /* XXX make this more efficient */

@@ -247,7 +247,7 @@ st_nir_assign_uniform_locations(struct gl_program *prog,
          else
             loc = imageidx++;
       } else if (strncmp(uniform->name, "gl_", 3) == 0) {
-         const gl_state_index *const stateTokens = (gl_state_index *)uniform->state_slots[0].tokens;
+         const gl_state_index16 *const stateTokens = uniform->state_slots[0].tokens;
          /* This state reference has already been setup by ir_to_mesa, but we'll
           * get the same index back here.
           */
@@ -365,7 +365,7 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
 
          for (unsigned int i = 0; i < var->num_state_slots; i++) {
             _mesa_add_state_reference(prog->Parameters,
-                                      (gl_state_index *)slots[i].tokens);
+                                      slots[i].tokens);
          }
       }
    }
@@ -471,8 +471,6 @@ st_nir_get_mesa_program(struct gl_context *ctx,
                         struct gl_linked_shader *shader)
 {
    struct st_context *st = st_context(ctx);
-   const nir_shader_compiler_options *options =
-      ctx->Const.ShaderCompilerOptions[shader->Program->info.stage].NirOptions;
    struct gl_program *prog;
 
    validate_ir_tree(shader->ir);
@@ -600,7 +598,7 @@ st_link_nir(struct gl_context *ctx,
 
       /* fragment shaders may need : */
       if (nir->info.stage == MESA_SHADER_FRAGMENT) {
-         static const gl_state_index wposTransformState[STATE_LENGTH] = {
+         static const gl_state_index16 wposTransformState[STATE_LENGTH] = {
             STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM
          };
          nir_lower_wpos_ytransform_options wpos_options = { { 0 } };

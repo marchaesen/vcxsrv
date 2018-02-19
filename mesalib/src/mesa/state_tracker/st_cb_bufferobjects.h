@@ -55,6 +55,10 @@ st_buffer_object(struct gl_buffer_object *obj)
 }
 
 
+enum pipe_transfer_usage
+st_access_flags_to_transfer_flags(GLbitfield access, bool wholeBuffer);
+
+
 extern void
 st_init_bufferobject_functions(struct pipe_screen *screen,
                                struct dd_function_table *functions);
