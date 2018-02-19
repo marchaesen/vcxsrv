@@ -263,27 +263,23 @@ _mesa_gl_compressed_format_base_format(GLenum format)
 GLuint
 _mesa_get_compressed_formats(struct gl_context *ctx, GLint *formats)
 {
+   GLint discard_formats[100];
    GLuint n = 0;
+
+   if (!formats) {
+      formats = discard_formats;
+   }
+
    if (_mesa_is_desktop_gl(ctx) &&
        ctx->Extensions.TDFX_texture_compression_FXT1) {
-      if (formats) {
-         formats[n++] = GL_COMPRESSED_RGB_FXT1_3DFX;
-         formats[n++] = GL_COMPRESSED_RGBA_FXT1_3DFX;
-      }
-      else {
-         n += 2;
-      }
+      formats[n++] = GL_COMPRESSED_RGB_FXT1_3DFX;
+      formats[n++] = GL_COMPRESSED_RGBA_FXT1_3DFX;
    }
 
    if (ctx->Extensions.EXT_texture_compression_s3tc) {
-      if (formats) {
-         formats[n++] = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
-         formats[n++] = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-         formats[n++] = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-      }
-      else {
-         n += 3;
-      }
+      formats[n++] = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+      formats[n++] = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+      formats[n++] = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
 
       /* The ES and desktop GL specs diverge here.
        *
@@ -315,11 +311,7 @@ _mesa_get_compressed_formats(struct gl_context *ctx, GLint *formats)
        * Note that the addition is only to the OpenGL ES specification!
        */
       if (_mesa_is_gles(ctx)) {
-         if (formats) {
-            formats[n++] = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-         } else {
-            n += 1;
-         }
+         formats[n++] = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
       }
    }
 
@@ -332,54 +324,36 @@ _mesa_get_compressed_formats(struct gl_context *ctx, GLint *formats)
     */
    if (_mesa_is_gles(ctx)
        && ctx->Extensions.OES_compressed_ETC1_RGB8_texture) {
-      if (formats) {
-         formats[n++] = GL_ETC1_RGB8_OES;
-      }
-      else {
-         n += 1;
-      }
+      formats[n++] = GL_ETC1_RGB8_OES;
    }
 
    if (ctx->API == API_OPENGLES) {
-      if (formats) {
-	 formats[n++] = GL_PALETTE4_RGB8_OES;
-	 formats[n++] = GL_PALETTE4_RGBA8_OES;
-	 formats[n++] = GL_PALETTE4_R5_G6_B5_OES;
-	 formats[n++] = GL_PALETTE4_RGBA4_OES;
-	 formats[n++] = GL_PALETTE4_RGB5_A1_OES;
-	 formats[n++] = GL_PALETTE8_RGB8_OES;
-	 formats[n++] = GL_PALETTE8_RGBA8_OES;
-	 formats[n++] = GL_PALETTE8_R5_G6_B5_OES;
-	 formats[n++] = GL_PALETTE8_RGBA4_OES;
-	 formats[n++] = GL_PALETTE8_RGB5_A1_OES;
-      }
-      else {
-	 n += 10;
-      }
+      formats[n++] = GL_PALETTE4_RGB8_OES;
+      formats[n++] = GL_PALETTE4_RGBA8_OES;
+      formats[n++] = GL_PALETTE4_R5_G6_B5_OES;
+      formats[n++] = GL_PALETTE4_RGBA4_OES;
+      formats[n++] = GL_PALETTE4_RGB5_A1_OES;
+      formats[n++] = GL_PALETTE8_RGB8_OES;
+      formats[n++] = GL_PALETTE8_RGBA8_OES;
+      formats[n++] = GL_PALETTE8_R5_G6_B5_OES;
+      formats[n++] = GL_PALETTE8_RGBA4_OES;
+      formats[n++] = GL_PALETTE8_RGB5_A1_OES;
    }
 
    if (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility) {
-      if (formats) {
-         formats[n++] = GL_COMPRESSED_RGB8_ETC2;
-         formats[n++] = GL_COMPRESSED_RGBA8_ETC2_EAC;
-         formats[n++] = GL_COMPRESSED_R11_EAC;
-         formats[n++] = GL_COMPRESSED_RG11_EAC;
-         formats[n++] = GL_COMPRESSED_SIGNED_R11_EAC;
-         formats[n++] = GL_COMPRESSED_SIGNED_RG11_EAC;
-         formats[n++] = GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
-      } else {
-         n += 7;
-      }
+      formats[n++] = GL_COMPRESSED_RGB8_ETC2;
+      formats[n++] = GL_COMPRESSED_RGBA8_ETC2_EAC;
+      formats[n++] = GL_COMPRESSED_R11_EAC;
+      formats[n++] = GL_COMPRESSED_RG11_EAC;
+      formats[n++] = GL_COMPRESSED_SIGNED_R11_EAC;
+      formats[n++] = GL_COMPRESSED_SIGNED_RG11_EAC;
+      formats[n++] = GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
    }
 
    if (_mesa_is_gles3(ctx)) {
-      if (formats) {
-         formats[n++] = GL_COMPRESSED_SRGB8_ETC2;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC;
-         formats[n++] = GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
-      } else {
-         n += 3;
-      }
+      formats[n++] = GL_COMPRESSED_SRGB8_ETC2;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC;
+      formats[n++] = GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
    }
 
    /* The KHR_texture_compression_astc_hdr spec says:
@@ -387,91 +361,84 @@ _mesa_get_compressed_formats(struct gl_context *ctx, GLint *formats)
     *    "Interactions with OpenGL 4.2
     *
     *        OpenGL 4.2 supports the feature that compressed textures can be
-    *        compressed online, by passing the compressed texture format enum as
-    *        the internal format when uploading a texture using TexImage1D,
+    *        compressed online, by passing the compressed texture format enum
+    *        as the internal format when uploading a texture using TexImage1D,
     *        TexImage2D or TexImage3D (see Section 3.9.3, Texture Image
     *        Specification, subsection Encoding of Special Internal Formats).
     *
-    *        Due to the complexity of the ASTC compression algorithm, it is not
-    *        usually suitable for online use, and therefore ASTC support will be
-    *        limited to pre-compressed textures only. Where on-device compression
-    *        is required, a domain-specific limited compressor will typically
-    *        be used, and this is therefore not suitable for implementation in
-    *        the driver.
+    *        Due to the complexity of the ASTC compression algorithm, it is
+    *        not usually suitable for online use, and therefore ASTC support
+    *        will be limited to pre-compressed textures only. Where on-device
+    *        compression is required, a domain-specific limited compressor
+    *        will typically be used, and this is therefore not suitable for
+    *        implementation in the driver.
     *
     *        In particular, the ASTC format specifiers will not be added to
     *        Table 3.14, and thus will not be accepted by the TexImage*D
     *        functions, and will not be returned by the (already deprecated)
     *        COMPRESSED_TEXTURE_FORMATS query."
     *
-    * The ES and the desktop specs diverge here. In OpenGL ES, the COMPRESSED_TEXTURE_FORMATS
-    * query returns the set of supported specific compressed formats.
+    * The ES and the desktop specs diverge here. In OpenGL ES, the
+    * COMPRESSED_TEXTURE_FORMATS query returns the set of supported specific
+    * compressed formats.
     */
    if (ctx->API == API_OPENGLES2 &&
        ctx->Extensions.KHR_texture_compression_astc_ldr) {
-      if (formats) {
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_4x4_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x4_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x5_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x5_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x6_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_8x5_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_8x6_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_8x8_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_10x5_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_10x6_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_10x8_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_10x10_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_12x10_KHR;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_12x12_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR;
-      }
-      else {
-         n += 28;
-      }
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_4x4_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x4_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x5_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x5_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x6_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_8x5_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_8x6_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_8x8_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_10x5_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_10x6_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_10x8_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_10x10_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_12x10_KHR;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_12x12_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR;
    }
 
    if (_mesa_is_gles3(ctx) &&
        ctx->Extensions.OES_texture_compression_astc) {
-      if (formats) {
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_3x3x3_OES;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_4x3x3_OES;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_4x4x3_OES;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_4x4x4_OES;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x4x4_OES;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x5x4_OES;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x5x5_OES;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x5x5_OES;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x6x5_OES;
-         formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x6x6_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_3x3x3_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x3x3_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x3_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x4_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4x4_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x4_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x5_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5x5_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x5_OES;
-         formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES;
-      }
-      else {
-         n += 20;
-      }
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_3x3x3_OES;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_4x3x3_OES;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_4x4x3_OES;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_4x4x4_OES;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x4x4_OES;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x5x4_OES;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x5x5_OES;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x5x5_OES;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x6x5_OES;
+      formats[n++] = GL_COMPRESSED_RGBA_ASTC_6x6x6_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_3x3x3_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x3x3_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x3_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x4_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4x4_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x4_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x5_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5x5_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x5_OES;
+      formats[n++] = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES;
    }
+
+   assert(n <= ARRAY_SIZE(discard_formats));
 
    return n;
 }
@@ -676,7 +643,8 @@ _mesa_glenum_to_compressed_format(GLenum format)
  * internal format unchanged.
  */
 GLenum
-_mesa_compressed_format_to_glenum(struct gl_context *ctx, mesa_format mesaFormat)
+_mesa_compressed_format_to_glenum(struct gl_context *ctx,
+                                  mesa_format mesaFormat)
 {
    switch (mesaFormat) {
    case MESA_FORMAT_RGB_FXT1:
@@ -934,7 +902,7 @@ _mesa_decompress_image(mesa_format format, GLuint width, GLuint height,
       _mesa_problem(NULL, "Unexpected format in _mesa_decompress_image()");
       return;
    }
- 
+
    stride = srcRowStride * bh / bytes;
 
    for (j = 0; j < height; j++) {

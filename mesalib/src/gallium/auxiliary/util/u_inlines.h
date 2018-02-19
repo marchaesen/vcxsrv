@@ -284,6 +284,27 @@ pipe_buffer_create( struct pipe_screen *screen,
 }
 
 
+static inline struct pipe_resource *
+pipe_buffer_create_const0(struct pipe_screen *screen,
+                          unsigned bind,
+                          enum pipe_resource_usage usage,
+                          unsigned size)
+{
+   struct pipe_resource buffer;
+   memset(&buffer, 0, sizeof buffer);
+   buffer.target = PIPE_BUFFER;
+   buffer.format = PIPE_FORMAT_R8_UNORM;
+   buffer.bind = bind;
+   buffer.usage = usage;
+   buffer.flags = screen->get_param(screen, PIPE_CAP_CONSTBUF0_FLAGS);
+   buffer.width0 = size;
+   buffer.height0 = 1;
+   buffer.depth0 = 1;
+   buffer.array_size = 1;
+   return screen->resource_create(screen, &buffer);
+}
+
+
 /**
  * Map a range of a resource.
  * \param offset  start of region, in bytes 

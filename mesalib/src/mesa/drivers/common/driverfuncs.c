@@ -232,10 +232,10 @@ _mesa_init_driver_state(struct gl_context *ctx)
                                  ctx->Color.Blend[0].DstA);
 
    ctx->Driver.ColorMask(ctx,
-                         ctx->Color.ColorMask[0][RCOMP],
-                         ctx->Color.ColorMask[0][GCOMP],
-                         ctx->Color.ColorMask[0][BCOMP],
-                         ctx->Color.ColorMask[0][ACOMP]);
+                         GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 0),
+                         GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 1),
+                         GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 2),
+                         GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 3));
 
    ctx->Driver.CullFace(ctx, ctx->Polygon.CullFaceMode);
    ctx->Driver.DepthFunc(ctx, ctx->Depth.Func);

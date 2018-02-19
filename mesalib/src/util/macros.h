@@ -137,8 +137,9 @@ do {                       \
 #endif
 
 /* Forced function inlining */
+/* Note: Clang also sets __GNUC__ (see other cases below) */
 #ifndef ALWAYS_INLINE
-#  if defined(__GNUC__) || defined(__clang__)
+#  if defined(__GNUC__)
 #    define ALWAYS_INLINE inline __attribute__((always_inline))
 #  elif defined(_MSC_VER)
 #    define ALWAYS_INLINE __forceinline

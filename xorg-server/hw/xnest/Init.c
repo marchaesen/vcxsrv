@@ -47,6 +47,13 @@ is" without express or implied warranty.
 
 Bool xnestDoFullGeneration = True;
 
+#ifdef GLXEXT
+void
+GlxExtensionInit(void)
+{
+}
+#endif
+
 void
 InitOutput(ScreenInfo * screen_info, int argc, char *argv[])
 {

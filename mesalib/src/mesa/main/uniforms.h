@@ -505,7 +505,7 @@ _mesa_flush_vertices_for_uniforms(struct gl_context *ctx,
 
 struct gl_builtin_uniform_element {
    const char *field;
-   int tokens[STATE_LENGTH];
+   gl_state_index16 tokens[STATE_LENGTH];
    int swizzle;
 };
 

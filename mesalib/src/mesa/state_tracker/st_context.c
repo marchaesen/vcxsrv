@@ -254,7 +254,7 @@ st_invalidate_state(struct gl_context *ctx)
 static void
 st_destroy_context_priv(struct st_context *st, bool destroy_pipe)
 {
-   uint shader, i;
+   uint i;
 
    st_destroy_atoms(st);
    st_destroy_draw(st);
@@ -267,11 +267,9 @@ st_destroy_context_priv(struct st_context *st, bool destroy_pipe)
    st_destroy_bound_texture_handles(st);
    st_destroy_bound_image_handles(st);
 
-   for (shader = 0; shader < ARRAY_SIZE(st->state.sampler_views); shader++) {
-      for (i = 0; i < ARRAY_SIZE(st->state.sampler_views[0]); i++) {
-         pipe_sampler_view_release(st->pipe,
-                                   &st->state.sampler_views[shader][i]);
-      }
+   for (i = 0; i < ARRAY_SIZE(st->state.frag_sampler_views); i++) {
+      pipe_sampler_view_release(st->pipe,
+                                &st->state.frag_sampler_views[i]);
    }
 
    /* free glReadPixels cache data */
@@ -760,6 +758,17 @@ st_init_driver_functions(struct pipe_screen *screen,
 
    /* GL_ARB_get_program_binary */
    functions->GetProgramBinaryDriverSHA1 = st_get_program_binary_driver_sha1;
-   functions->ProgramBinarySerializeDriverBlob = st_serialise_tgsi_program;
-   functions->ProgramBinaryDeserializeDriverBlob = st_deserialise_tgsi_program;
+
+   enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
+      screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
+                               PIPE_SHADER_CAP_PREFERRED_IR);
+   if (preferred_ir == PIPE_SHADER_IR_NIR) {
+      functions->ProgramBinarySerializeDriverBlob = st_serialise_nir_program;
+      functions->ProgramBinaryDeserializeDriverBlob =
+         st_deserialise_nir_program;
+   } else {
+      functions->ProgramBinarySerializeDriverBlob = st_serialise_tgsi_program;
+      functions->ProgramBinaryDeserializeDriverBlob =
+         st_deserialise_tgsi_program;
+   }
 }

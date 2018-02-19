@@ -40,6 +40,7 @@
 #include "cso_cache/cso_context.h"
 
 #include "framebuffer.h"
+#include "main/blend.h"
 #include "main/macros.h"
 
 /**
@@ -111,26 +112,26 @@ translate_blend(GLenum blend)
  * Figure out if colormasks are different per rt.
  */
 static GLboolean
-colormask_per_rt(const struct gl_context *ctx)
+colormask_per_rt(const struct gl_context *ctx, unsigned num_cb)
 {
-   /* a bit suboptimal have to compare lots of values */
-   unsigned i;
-   for (i = 1; i < ctx->Const.MaxDrawBuffers; i++) {
-      if (memcmp(ctx->Color.ColorMask[0], ctx->Color.ColorMask[i], 4)) {
-         return GL_TRUE;
-      }
-   }
-   return GL_FALSE;
+   GLbitfield full_mask = _mesa_replicate_colormask(0xf, num_cb);
+   GLbitfield repl_mask0 =
+      _mesa_replicate_colormask(GET_COLORMASK(ctx->Color.ColorMask, 0),
+                                num_cb);
+
+   return (ctx->Color.ColorMask & full_mask) != repl_mask0;
 }
 
 /**
  * Figure out if blend enables/state are different per rt.
  */
 static GLboolean
-blend_per_rt(const struct gl_context *ctx)
+blend_per_rt(const struct gl_context *ctx, unsigned num_cb)
 {
-   if (ctx->Color.BlendEnabled &&
-      (ctx->Color.BlendEnabled != ((1U << ctx->Const.MaxDrawBuffers) - 1))) {
+   GLbitfield cb_mask = u_bit_consecutive(0, num_cb);
+   GLbitfield blend_enabled = ctx->Color.BlendEnabled & cb_mask;
+
+   if (blend_enabled && blend_enabled != cb_mask) {
       /* This can only happen if GL_EXT_draw_buffers2 is enabled */
       return GL_TRUE;
    }
@@ -146,15 +147,21 @@ st_update_blend( struct st_context *st )
 {
    struct pipe_blend_state *blend = &st->state.blend;
    const struct gl_context *ctx = st->ctx;
+   unsigned num_cb = st->state.fb_num_cb;
    unsigned num_state = 1;
    unsigned i, j;
 
    memset(blend, 0, sizeof(*blend));
 
-   if (blend_per_rt(ctx) || colormask_per_rt(ctx)) {
-      num_state = ctx->Const.MaxDrawBuffers;
+   if (num_cb > 1 &&
+       (blend_per_rt(ctx, num_cb) || colormask_per_rt(ctx, num_cb))) {
+      num_state = num_cb;
       blend->independent_blend_enable = 1;
    }
+
+   for (i = 0; i < num_state; i++)
+      blend->rt[i].colormask = GET_COLORMASK(ctx->Color.ColorMask, i);
+
    if (ctx->Color.ColorLogicOpEnabled) {
       /* logicop enabled */
       blend->logicop_enable = 1;
@@ -163,12 +170,14 @@ st_update_blend( struct st_context *st )
    else if (ctx->Color.BlendEnabled && !ctx->Color._AdvancedBlendMode) {
       /* blending enabled */
       for (i = 0, j = 0; i < num_state; i++) {
+         if (!(ctx->Color.BlendEnabled & (1 << i)) ||
+             !blend->rt[i].colormask)
+            continue;
 
-         blend->rt[i].blend_enable = (ctx->Color.BlendEnabled >> i) & 0x1;
-
-         if (ctx->Extensions.ARB_draw_buffers_blend)
+	 if (ctx->Extensions.ARB_draw_buffers_blend)
             j = i;
 
+         blend->rt[i].blend_enable = 1;
          blend->rt[i].rgb_func =
             translate_blend(ctx->Color.Blend[j].EquationRGB);
 
@@ -204,18 +213,6 @@ st_update_blend( struct st_context *st )
    }
    else {
       /* no blending / logicop */
-   }
-
-   /* Colormask - maybe reverse these bits? */
-   for (i = 0; i < num_state; i++) {
-      if (ctx->Color.ColorMask[i][0])
-         blend->rt[i].colormask |= PIPE_MASK_R;
-      if (ctx->Color.ColorMask[i][1])
-         blend->rt[i].colormask |= PIPE_MASK_G;
-      if (ctx->Color.ColorMask[i][2])
-         blend->rt[i].colormask |= PIPE_MASK_B;
-      if (ctx->Color.ColorMask[i][3])
-         blend->rt[i].colormask |= PIPE_MASK_A;
    }
 
    blend->dither = ctx->Color.DitherFlag;

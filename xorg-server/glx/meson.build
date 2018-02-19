@@ -53,3 +53,24 @@ srcs_glxdri2 = []
 if build_dri2 or build_dri3
     srcs_glxdri2 = files('glxdri2.c')
 endif
+
+srcs_vnd = [
+    'vndcmds.c',
+    'vndext.c',
+    'vndservermapping.c',
+    'vndservervendor.c',
+]
+
+libglxvnd = ''
+if build_glx
+    libglxvnd = static_library('libglxvnd',
+	srcs_vnd,
+	include_directories: inc,
+        dependencies: [
+            common_dep,
+            dl_dep,
+            dependency('glproto', version: '>= 1.4.17'),
+            dependency('gl', version: '>= 9.2.0'),
+        ],
+    )
+endif

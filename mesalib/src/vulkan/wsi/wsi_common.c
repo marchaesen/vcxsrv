@@ -429,8 +429,10 @@ wsi_create_prime_image(const struct wsi_swapchain *chain,
       vk_zalloc(&chain->alloc,
                 sizeof(VkCommandBuffer) * wsi->queue_family_count, 8,
                 VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-   if (!image->prime.blit_cmd_buffers)
+   if (!image->prime.blit_cmd_buffers) {
+      result = VK_ERROR_OUT_OF_HOST_MEMORY;
       goto fail;
+   }
 
    for (uint32_t i = 0; i < wsi->queue_family_count; i++) {
       const VkCommandBufferAllocateInfo cmd_buffer_info = {

@@ -57,6 +57,20 @@ option('vbe', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Xorg VBE module')
 option('vgahw', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Xorg VGA access module')
+option('dpms', type: 'boolean', value: true,
+       description: 'Xorg DPMS extension')
+option('xf86bigfont', type: 'boolean', value: false,
+       description: 'XF86 Big Font extension')
+option('screensaver', type: 'boolean', value: true,
+       description: 'ScreenSaver extension')
+option('xres', type: 'boolean', value: true,
+       description: 'XRes extension')
+option('xace', type: 'boolean', value: true,
+       description: 'X-ACE extension')
+option('xinerama', type: 'boolean', value: true,
+       description: 'Xinerama extension')
+option('xcsecurity', type: 'boolean', value: false,
+       description: 'Security extension')
 
 option('dri1', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
 option('dri2', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')

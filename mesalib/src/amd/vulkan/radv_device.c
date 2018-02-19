@@ -810,6 +810,12 @@ void radv_GetPhysicalDeviceProperties2KHR(
 			properties->maxDiscardRectangles = MAX_DISCARD_RECTANGLES;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT: {
+			VkPhysicalDeviceExternalMemoryHostPropertiesEXT *properties =
+			    (VkPhysicalDeviceExternalMemoryHostPropertiesEXT *) ext;
+			properties->minImportedHostPointerAlignment = 4096;
+			break;
+		}
 		default:
 			break;
 		}
@@ -921,6 +927,33 @@ void radv_GetPhysicalDeviceMemoryProperties2KHR(
 {
 	return radv_GetPhysicalDeviceMemoryProperties(physicalDevice,
 						      &pMemoryProperties->memoryProperties);
+}
+
+VkResult radv_GetMemoryHostPointerPropertiesEXT(
+	VkDevice                                    _device,
+	VkExternalMemoryHandleTypeFlagBitsKHR       handleType,
+	const void                                 *pHostPointer,
+	VkMemoryHostPointerPropertiesEXT           *pMemoryHostPointerProperties)
+{
+	RADV_FROM_HANDLE(radv_device, device, _device);
+
+	switch (handleType)
+	{
+	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT: {
+		const struct radv_physical_device *physical_device = device->physical_device;
+		uint32_t memoryTypeBits = 0;
+		for (int i = 0; i < physical_device->memory_properties.memoryTypeCount; i++) {
+			if (physical_device->mem_type_indices[i] == RADV_MEM_TYPE_GTT_CACHED) {
+				memoryTypeBits = (1 << i);
+				break;
+			}
+		}
+		pMemoryHostPointerProperties->memoryTypeBits = memoryTypeBits;
+		return VK_SUCCESS;
+	}
+	default:
+		return VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR;
+	}
 }
 
 static enum radeon_ctx_priority
@@ -2246,6 +2279,8 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		vk_find_struct_const(pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO_KHR);
 	const VkExportMemoryAllocateInfoKHR *export_info =
 		vk_find_struct_const(pAllocateInfo->pNext, EXPORT_MEMORY_ALLOCATE_INFO_KHR);
+	const VkImportMemoryHostPointerInfoEXT *host_ptr_info =
+		vk_find_struct_const(pAllocateInfo->pNext, IMPORT_MEMORY_HOST_POINTER_INFO_EXT);
 
 	const struct wsi_memory_allocate_info *wsi_info =
 		vk_find_struct_const(pAllocateInfo->pNext, WSI_MEMORY_ALLOCATE_INFO_MESA);
@@ -2266,6 +2301,8 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		mem->buffer = NULL;
 	}
 
+	mem->user_ptr = NULL;
+
 	if (import_info) {
 		assert(import_info->handleType ==
 		       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR ||
@@ -2278,6 +2315,20 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 			goto fail;
 		} else {
 			close(import_info->fd);
+			goto out_success;
+		}
+	}
+
+	if (host_ptr_info) {
+		assert(host_ptr_info->handleType == VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT);
+		assert(mem_type_index == RADV_MEM_TYPE_GTT_CACHED);
+		mem->bo = device->ws->buffer_from_ptr(device->ws, host_ptr_info->pHostPointer,
+		                                      pAllocateInfo->allocationSize);
+		if (!mem->bo) {
+			result = VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR;
+			goto fail;
+		} else {
+			mem->user_ptr = host_ptr_info->pHostPointer;
 			goto out_success;
 		}
 	}
@@ -2362,7 +2413,11 @@ VkResult radv_MapMemory(
 		return VK_SUCCESS;
 	}
 
-	*ppData = device->ws->buffer_map(mem->bo);
+	if (mem->user_ptr)
+		*ppData = mem->user_ptr;
+	else
+		*ppData = device->ws->buffer_map(mem->bo);
+
 	if (*ppData) {
 		*ppData += offset;
 		return VK_SUCCESS;
@@ -2381,7 +2436,8 @@ void radv_UnmapMemory(
 	if (mem == NULL)
 		return;
 
-	device->ws->buffer_unmap(mem->bo);
+	if (mem->user_ptr == NULL)
+		device->ws->buffer_unmap(mem->bo);
 }
 
 VkResult radv_FlushMappedMemoryRanges(

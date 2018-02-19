@@ -1525,9 +1525,16 @@ radv_link_shaders(struct radv_pipeline *pipeline, nir_shader **shaders)
 							   ordered_shaders[i - 1]);
 
 		if (progress) {
-			nir_lower_global_vars_to_local(ordered_shaders[i]);
+			if (nir_lower_global_vars_to_local(ordered_shaders[i])) {
+				radv_lower_indirect_derefs(ordered_shaders[i],
+				                           pipeline->device->physical_device);
+			}
 			radv_optimize_nir(ordered_shaders[i]);
-			nir_lower_global_vars_to_local(ordered_shaders[i - 1]);
+
+			if (nir_lower_global_vars_to_local(ordered_shaders[i - 1])) {
+				radv_lower_indirect_derefs(ordered_shaders[i - 1],
+				                           pipeline->device->physical_device);
+			}
 			radv_optimize_nir(ordered_shaders[i - 1]);
 		}
 	}
@@ -2810,10 +2817,10 @@ radv_compute_db_shader_control(const struct radv_device *device,
 	else
 		z_order = V_02880C_LATE_Z;
 
-	return  S_02880C_Z_EXPORT_ENABLE(ps->info.fs.writes_z) |
-		S_02880C_STENCIL_TEST_VAL_EXPORT_ENABLE(ps->info.fs.writes_stencil) |
+	return  S_02880C_Z_EXPORT_ENABLE(ps->info.info.ps.writes_z) |
+		S_02880C_STENCIL_TEST_VAL_EXPORT_ENABLE(ps->info.info.ps.writes_stencil) |
 		S_02880C_KILL_ENABLE(!!ps->info.fs.can_discard) |
-		S_02880C_MASK_EXPORT_ENABLE(ps->info.fs.writes_sample_mask) |
+		S_02880C_MASK_EXPORT_ENABLE(ps->info.info.ps.writes_sample_mask) |
 		S_02880C_Z_ORDER(z_order) |
 		S_02880C_DEPTH_BEFORE_SHADER(ps->info.fs.early_fragment_test) |
 		S_02880C_EXEC_ON_HIER_FAIL(ps->info.info.ps.writes_memory) |
@@ -2853,9 +2860,9 @@ radv_pipeline_generate_fragment_shader(struct radeon_winsys_cs *cs,
 	radeon_set_context_reg(cs, R_0286E0_SPI_BARYC_CNTL, pipeline->graphics.spi_baryc_cntl);
 
 	radeon_set_context_reg(cs, R_028710_SPI_SHADER_Z_FORMAT,
-	                       ac_get_spi_shader_z_format(ps->info.fs.writes_z,
-	                                                  ps->info.fs.writes_stencil,
-	                                                  ps->info.fs.writes_sample_mask));
+	                       ac_get_spi_shader_z_format(ps->info.info.ps.writes_z,
+	                                                  ps->info.info.ps.writes_stencil,
+	                                                  ps->info.info.ps.writes_sample_mask));
 
 	if (pipeline->device->dfsm_allowed) {
 		/* optimise this? */
@@ -3183,9 +3190,9 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	 */
 	struct radv_shader_variant *ps = pipeline->shaders[MESA_SHADER_FRAGMENT];
 	if (!blend.spi_shader_col_format) {
-		if (!ps->info.fs.writes_z &&
-		    !ps->info.fs.writes_stencil &&
-		    !ps->info.fs.writes_sample_mask)
+		if (!ps->info.info.ps.writes_z &&
+		    !ps->info.info.ps.writes_stencil &&
+		    !ps->info.info.ps.writes_sample_mask)
 			blend.spi_shader_col_format = V_028714_SPI_SHADER_32_R;
 	}
 

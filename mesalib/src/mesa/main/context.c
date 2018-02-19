@@ -1264,8 +1264,10 @@ _mesa_initialize_context(struct gl_context *ctx,
        * GL_OES_texture_cube_map says
        * "Initially all texture generation modes are set to REFLECTION_MAP_OES"
        */
-      for (i = 0; i < MAX_TEXTURE_UNITS; i++) {
-         struct gl_texture_unit *texUnit = &ctx->Texture.Unit[i];
+      for (i = 0; i < ARRAY_SIZE(ctx->Texture.FixedFuncUnit); i++) {
+         struct gl_fixedfunc_texture_unit *texUnit =
+            &ctx->Texture.FixedFuncUnit[i];
+
          texUnit->GenS.Mode = GL_REFLECTION_MAP_NV;
          texUnit->GenT.Mode = GL_REFLECTION_MAP_NV;
          texUnit->GenR.Mode = GL_REFLECTION_MAP_NV;

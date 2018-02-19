@@ -50,7 +50,7 @@
 #include <X11/extensions/XIproto.h>
 #include "exevents.h"
 #include "extinit.h"
-
+#include "glx_extinit.h"
 #include "xserver-properties.h"
 
 #include <sys/types.h>
@@ -669,6 +669,8 @@ InitOutput(ScreenInfo *pScreenInfo, int argc, char **argv)
     for (i = 0; i < darwinScreensFound; i++) {
         AddScreen(DarwinScreenInit, argc, argv);
     }
+
+    xorgGlxCreateVendor();
 
     DarwinAdjustScreenOrigins(pScreenInfo);
 }

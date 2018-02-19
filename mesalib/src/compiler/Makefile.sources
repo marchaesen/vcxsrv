@@ -268,6 +268,7 @@ NIR_FILES = \
 	nir/nir_opt_move_comparisons.c \
 	nir/nir_opt_peephole_select.c \
 	nir/nir_opt_remove_phis.c \
+	nir/nir_opt_shrink_load.c \
 	nir/nir_opt_trivial_continues.c \
 	nir/nir_opt_undef.c \
 	nir/nir_phi_builder.c \

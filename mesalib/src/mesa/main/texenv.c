@@ -48,7 +48,7 @@
 /** Set texture env mode */
 static void
 set_env_mode(struct gl_context *ctx,
-             struct gl_texture_unit *texUnit,
+             struct gl_fixedfunc_texture_unit *texUnit,
              GLenum mode)
 {
    GLboolean legal;
@@ -88,7 +88,7 @@ set_env_mode(struct gl_context *ctx,
 
 static void
 set_env_color(struct gl_context *ctx,
-              struct gl_texture_unit *texUnit,
+              struct gl_fixedfunc_texture_unit *texUnit,
               const GLfloat *color)
 {
    if (TEST_EQ_4V(color, texUnit->EnvColorUnclamped))
@@ -105,7 +105,7 @@ set_env_color(struct gl_context *ctx,
 /** Set an RGB or A combiner mode/function */
 static void
 set_combiner_mode(struct gl_context *ctx,
-                  struct gl_texture_unit *texUnit,
+                  struct gl_fixedfunc_texture_unit *texUnit,
                   GLenum pname, GLenum mode)
 {
    GLboolean legal;
@@ -171,7 +171,7 @@ set_combiner_mode(struct gl_context *ctx,
 /** Set an RGB or A combiner source term */
 static void
 set_combiner_source(struct gl_context *ctx,
-                    struct gl_texture_unit *texUnit,
+                    struct gl_fixedfunc_texture_unit *texUnit,
                     GLenum pname, GLenum param)
 {
    GLuint term;
@@ -261,7 +261,7 @@ set_combiner_source(struct gl_context *ctx,
 /** Set an RGB or A combiner operand term */
 static void
 set_combiner_operand(struct gl_context *ctx,
-                     struct gl_texture_unit *texUnit,
+                     struct gl_fixedfunc_texture_unit *texUnit,
                      GLenum pname, GLenum param)
 {
    GLuint term;
@@ -342,7 +342,7 @@ set_combiner_operand(struct gl_context *ctx,
 
 static void
 set_combiner_scale(struct gl_context *ctx,
-                   struct gl_texture_unit *texUnit,
+                   struct gl_fixedfunc_texture_unit *texUnit,
                    GLenum pname, GLfloat scale)
 {
    GLuint shift;
@@ -386,7 +386,6 @@ void GLAPIENTRY
 _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
 {
    const GLint iparam0 = (GLint) param[0];
-   struct gl_texture_unit *texUnit;
    GLuint maxUnit;
    GET_CURRENT_CONTEXT(ctx);
 
@@ -397,9 +396,19 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
       return;
    }
 
-   texUnit = _mesa_get_current_tex_unit(ctx);
-
    if (target == GL_TEXTURE_ENV) {
+      struct gl_fixedfunc_texture_unit *texUnit =
+         _mesa_get_current_fixedfunc_tex_unit(ctx);
+
+      /* The GL spec says that we should report an error if the unit is greater
+       * than GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, but in practice, only
+       * fixed-function units are usable. This is probably a spec bug.
+       * Ignore glTexEnv(GL_TEXTURE_ENV) calls for non-fixed-func units,
+       * because we don't want to process calls that have no effect.
+       */
+      if (!texUnit)
+         return;
+
       switch (pname) {
       case GL_TEXTURE_ENV_MODE:
          set_env_mode(ctx, texUnit, (GLenum) iparam0);
@@ -441,6 +450,9 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
       }
    }
    else if (target == GL_TEXTURE_FILTER_CONTROL_EXT) {
+      struct gl_texture_unit *texUnit =
+         _mesa_get_current_tex_unit(ctx);
+
       if (pname == GL_TEXTURE_LOD_BIAS_EXT) {
 	 if (texUnit->LodBias == param[0])
 	    return;
@@ -547,7 +559,8 @@ _mesa_TexEnviv( GLenum target, GLenum pname, const GLint *param )
  * \return  value of queried pname or -1 if error.
  */
 static GLint
-get_texenvi(struct gl_context *ctx, const struct gl_texture_unit *texUnit,
+get_texenvi(struct gl_context *ctx,
+            const struct gl_fixedfunc_texture_unit *texUnit,
             GLenum pname)
 {
    switch (pname) {
@@ -632,7 +645,6 @@ void GLAPIENTRY
 _mesa_GetTexEnvfv( GLenum target, GLenum pname, GLfloat *params )
 {
    GLuint maxUnit;
-   const struct gl_texture_unit *texUnit;
    GET_CURRENT_CONTEXT(ctx);
 
    maxUnit = (target == GL_POINT_SPRITE_NV && pname == GL_COORD_REPLACE_NV)
@@ -642,9 +654,19 @@ _mesa_GetTexEnvfv( GLenum target, GLenum pname, GLfloat *params )
       return;
    }
 
-   texUnit = _mesa_get_current_tex_unit(ctx);
-
    if (target == GL_TEXTURE_ENV) {
+      struct gl_fixedfunc_texture_unit *texUnit =
+         _mesa_get_current_fixedfunc_tex_unit(ctx);
+
+      /* The GL spec says that we should report an error if the unit is greater
+       * than GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, but in practice, only
+       * fixed-function units are usable. This is probably a spec bug.
+       * Ignore calls for non-fixed-func units, because we don't process
+       * glTexEnv for them either.
+       */
+      if (!texUnit)
+         return;
+
       if (pname == GL_TEXTURE_ENV_COLOR) {
          if(ctx->NewState & (_NEW_BUFFERS | _NEW_FRAG_CLAMP))
             _mesa_update_state(ctx);
@@ -661,6 +683,8 @@ _mesa_GetTexEnvfv( GLenum target, GLenum pname, GLfloat *params )
       }
    }
    else if (target == GL_TEXTURE_FILTER_CONTROL_EXT) {
+      const struct gl_texture_unit *texUnit = _mesa_get_current_tex_unit(ctx);
+
       if (pname == GL_TEXTURE_LOD_BIAS_EXT) {
          *params = texUnit->LodBias;
       }
@@ -698,7 +722,6 @@ void GLAPIENTRY
 _mesa_GetTexEnviv( GLenum target, GLenum pname, GLint *params )
 {
    GLuint maxUnit;
-   const struct gl_texture_unit *texUnit;
    GET_CURRENT_CONTEXT(ctx);
 
    maxUnit = (target == GL_POINT_SPRITE_NV && pname == GL_COORD_REPLACE_NV)
@@ -708,9 +731,19 @@ _mesa_GetTexEnviv( GLenum target, GLenum pname, GLint *params )
       return;
    }
 
-   texUnit = _mesa_get_current_tex_unit(ctx);
-
    if (target == GL_TEXTURE_ENV) {
+      struct gl_fixedfunc_texture_unit *texUnit =
+         _mesa_get_current_fixedfunc_tex_unit(ctx);
+
+      /* The GL spec says that we should report an error if the unit is greater
+       * than GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, but in practice, only
+       * fixed-function units are usable. This is probably a spec bug.
+       * Ignore calls for non-fixed-func units, because we don't process
+       * glTexEnv for them either.
+       */
+      if (!texUnit)
+         return;
+
       if (pname == GL_TEXTURE_ENV_COLOR) {
          params[0] = FLOAT_TO_INT( texUnit->EnvColor[0] );
          params[1] = FLOAT_TO_INT( texUnit->EnvColor[1] );
@@ -725,6 +758,8 @@ _mesa_GetTexEnviv( GLenum target, GLenum pname, GLint *params )
       }
    }
    else if (target == GL_TEXTURE_FILTER_CONTROL_EXT) {
+      const struct gl_texture_unit *texUnit = _mesa_get_current_tex_unit(ctx);
+
       if (pname == GL_TEXTURE_LOD_BIAS_EXT) {
          *params = (GLint) texUnit->LodBias;
       }

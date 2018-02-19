@@ -104,14 +104,11 @@ static PixmapFormatRec g_PixmapFormats[] = {
     {32, 32, BITMAP_SCANLINE_PAD}
 };
 
+#if defined(GLXEXT) && defined(XWIN_WINDOWS_DRI)
 static const ExtensionModule xwinExtensions[] = {
-#ifdef GLXEXT
-  { GlxExtensionInit, "GLX", &noGlxExtension },
-#ifdef XWIN_WINDOWS_DRI
   { WindowsDRIExtensionInit, "Windows-DRI", &noDriExtension },
-#endif
-#endif
 };
+#endif
 
 /*
  * XwinExtensionInit
@@ -127,7 +124,11 @@ void XwinExtensionInit(void)
     }
 #endif
 
+#if defined(GLXEXT) && defined(XWIN_WINDOWS_DRI)
     LoadExtensionList(xwinExtensions, ARRAY_SIZE(xwinExtensions), TRUE);
+#else
+    LoadExtensionList(NULL, 0, TRUE);
+#endif
 }
 
 #if defined(DDXBEFORERESET)
@@ -1047,7 +1048,9 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
             setlocale(LC_ALL, "C");
           }
 
+        xorgGlxCreateVendor();
     }
+
 
     winDebug("InitOutput - Returning.\n");
 }

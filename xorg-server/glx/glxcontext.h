@@ -113,6 +113,16 @@ struct __GLXcontext {
     GLint selectBufSize;        /* number of elements allocated */
 
     /*
+     ** Keep track of large rendering commands, which span multiple requests.
+     */
+    GLint largeCmdBytesSoFar;   /* bytes received so far        */
+    GLint largeCmdBytesTotal;   /* total bytes expected         */
+    GLint largeCmdRequestsSoFar;        /* requests received so far     */
+    GLint largeCmdRequestsTotal;        /* total requests expected      */
+    GLbyte *largeCmdBuf;
+    GLint largeCmdBufSize;
+
+    /*
      ** The drawable private this context is bound to
      */
     __GLXdrawable *drawPriv;

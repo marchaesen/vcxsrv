@@ -374,8 +374,8 @@ _mesa_PushAttrib(GLbitfield mask)
       attr->SampleAlphaToOne = ctx->Multisample.SampleAlphaToOne;
       attr->SampleCoverage = ctx->Multisample.SampleCoverage;
       for (i = 0; i < ctx->Const.MaxTextureUnits; i++) {
-         attr->Texture[i] = ctx->Texture.Unit[i].Enabled;
-         attr->TexGen[i] = ctx->Texture.Unit[i].TexGenEnabled;
+         attr->Texture[i] = ctx->Texture.FixedFuncUnit[i].Enabled;
+         attr->TexGen[i] = ctx->Texture.FixedFuncUnit[i].TexGenEnabled;
       }
       /* GL_ARB_vertex_program */
       attr->VertexProgram = ctx->VertexProgram.Enabled;
@@ -718,7 +718,7 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib *enable)
       const GLbitfield enabled = enable->Texture[i];
       const GLbitfield genEnabled = enable->TexGen[i];
 
-      if (ctx->Texture.Unit[i].Enabled != enabled) {
+      if (ctx->Texture.FixedFuncUnit[i].Enabled != enabled) {
          _mesa_ActiveTexture(GL_TEXTURE0 + i);
 
          _mesa_set_enable(ctx, GL_TEXTURE_1D, !!(enabled & TEXTURE_1D_BIT));
@@ -734,7 +734,7 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib *enable)
          }
       }
 
-      if (ctx->Texture.Unit[i].TexGenEnabled != genEnabled) {
+      if (ctx->Texture.FixedFuncUnit[i].TexGenEnabled != genEnabled) {
          _mesa_ActiveTexture(GL_TEXTURE0 + i);
          _mesa_set_enable(ctx, GL_TEXTURE_GEN_S, !!(genEnabled & S_BIT));
          _mesa_set_enable(ctx, GL_TEXTURE_GEN_T, !!(genEnabled & T_BIT));
@@ -758,7 +758,8 @@ pop_texture_group(struct gl_context *ctx, struct texture_state *texstate)
    _mesa_lock_context_textures(ctx);
 
    for (u = 0; u < ctx->Const.MaxTextureUnits; u++) {
-      const struct gl_texture_unit *unit = &texstate->Texture.Unit[u];
+      const struct gl_fixedfunc_texture_unit *unit =
+         &texstate->Texture.FixedFuncUnit[u];
       GLuint tgt;
 
       _mesa_ActiveTexture(GL_TEXTURE0_ARB + u);
@@ -785,7 +786,9 @@ pop_texture_group(struct gl_context *ctx, struct texture_state *texstate)
       _mesa_TexGenfv(GL_Q, GL_OBJECT_PLANE, unit->GenQ.ObjectPlane);
       /* Eye plane done differently to avoid re-transformation */
       {
-         struct gl_texture_unit *destUnit = &ctx->Texture.Unit[u];
+         struct gl_fixedfunc_texture_unit *destUnit =
+            &ctx->Texture.FixedFuncUnit[u];
+
          COPY_4FV(destUnit->GenS.EyePlane, unit->GenS.EyePlane);
          COPY_4FV(destUnit->GenT.EyePlane, unit->GenT.EyePlane);
          COPY_4FV(destUnit->GenR.EyePlane, unit->GenR.EyePlane);
@@ -802,7 +805,7 @@ pop_texture_group(struct gl_context *ctx, struct texture_state *texstate)
       _mesa_set_enable(ctx, GL_TEXTURE_GEN_R, !!(unit->TexGenEnabled & R_BIT));
       _mesa_set_enable(ctx, GL_TEXTURE_GEN_Q, !!(unit->TexGenEnabled & Q_BIT));
       _mesa_TexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS,
-                    unit->LodBias);
+		    texstate->Texture.Unit[u].LodBias);
       _mesa_TexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB,
                     unit->Combine.ModeRGB);
       _mesa_TexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA,
@@ -967,19 +970,19 @@ _mesa_PopAttrib(void)
                                 color->ClearColor.f[3]);
                _mesa_IndexMask(color->IndexMask);
                if (!ctx->Extensions.EXT_draw_buffers2) {
-                  _mesa_ColorMask((GLboolean) (color->ColorMask[0][0] != 0),
-                                  (GLboolean) (color->ColorMask[0][1] != 0),
-                                  (GLboolean) (color->ColorMask[0][2] != 0),
-                                  (GLboolean) (color->ColorMask[0][3] != 0));
+                  _mesa_ColorMask(GET_COLORMASK_BIT(color->ColorMask, 0, 0),
+                                  GET_COLORMASK_BIT(color->ColorMask, 0, 1),
+                                  GET_COLORMASK_BIT(color->ColorMask, 0, 2),
+                                  GET_COLORMASK_BIT(color->ColorMask, 0, 3));
                }
                else {
                   GLuint i;
                   for (i = 0; i < ctx->Const.MaxDrawBuffers; i++) {
                      _mesa_ColorMaski(i,
-                                  (GLboolean) (color->ColorMask[i][0] != 0),
-                                  (GLboolean) (color->ColorMask[i][1] != 0),
-                                  (GLboolean) (color->ColorMask[i][2] != 0),
-                                  (GLboolean) (color->ColorMask[i][3] != 0));
+                                      GET_COLORMASK_BIT(color->ColorMask, i, 0),
+                                      GET_COLORMASK_BIT(color->ColorMask, i, 1),
+                                      GET_COLORMASK_BIT(color->ColorMask, i, 2),
+                                      GET_COLORMASK_BIT(color->ColorMask, i, 3));
                   }
                }
                {
@@ -1503,7 +1506,7 @@ copy_array_object(struct gl_context *ctx,
    /* skip RefCount */
 
    for (i = 0; i < ARRAY_SIZE(src->VertexAttrib); i++) {
-      _mesa_copy_vertex_array(ctx, &dest->_VertexAttrib[i], &src->_VertexAttrib[i]);
+      _mesa_copy_vertex_array(ctx, &dest->_VertexArray[i], &src->_VertexArray[i]);
       _mesa_copy_vertex_attrib_array(ctx, &dest->VertexAttrib[i], &src->VertexAttrib[i]);
       _mesa_copy_vertex_buffer_binding(ctx, &dest->BufferBinding[i], &src->BufferBinding[i]);
    }

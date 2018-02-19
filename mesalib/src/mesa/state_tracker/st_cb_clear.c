@@ -226,14 +226,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
             if (!(clear_buffers & (PIPE_CLEAR_COLOR0 << i)))
                continue;
 
-            if (ctx->Color.ColorMask[i][0])
-               blend.rt[i].colormask |= PIPE_MASK_R;
-            if (ctx->Color.ColorMask[i][1])
-               blend.rt[i].colormask |= PIPE_MASK_G;
-            if (ctx->Color.ColorMask[i][2])
-               blend.rt[i].colormask |= PIPE_MASK_B;
-            if (ctx->Color.ColorMask[i][3])
-               blend.rt[i].colormask |= PIPE_MASK_A;
+            blend.rt[i].colormask = GET_COLORMASK(ctx->Color.ColorMask, i);
          }
 
          if (ctx->Color.DitherFlag)
@@ -338,32 +331,6 @@ is_window_rectangle_enabled(struct gl_context *ctx)
 
 
 /**
- * Return if all of the color channels are masked.
- */
-static inline GLboolean
-is_color_disabled(struct gl_context *ctx, int i)
-{
-   return !ctx->Color.ColorMask[i][0] &&
-          !ctx->Color.ColorMask[i][1] &&
-          !ctx->Color.ColorMask[i][2] &&
-          !ctx->Color.ColorMask[i][3];
-}
-
-
-/**
- * Return if any of the color channels are masked.
- */
-static inline GLboolean
-is_color_masked(struct gl_context *ctx, int i)
-{
-   return !ctx->Color.ColorMask[i][0] ||
-          !ctx->Color.ColorMask[i][1] ||
-          !ctx->Color.ColorMask[i][2] ||
-          !ctx->Color.ColorMask[i][3];
-}
-
-
-/**
  * Return if all of the stencil bits are masked.
  */
 static inline GLboolean
@@ -423,12 +390,12 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
             if (!strb || !strb->surface)
                continue;
 
-            if (is_color_disabled(ctx, colormask_index))
+            if (!GET_COLORMASK(ctx->Color.ColorMask, colormask_index))
                continue;
 
             if (is_scissor_enabled(ctx, rb) ||
                 is_window_rectangle_enabled(ctx) ||
-                is_color_masked(ctx, colormask_index))
+                GET_COLORMASK(ctx->Color.ColorMask, colormask_index) != 0xf)
                quad_buffers |= PIPE_CLEAR_COLOR0 << i;
             else
                clear_buffers |= PIPE_CLEAR_COLOR0 << i;

@@ -440,8 +440,8 @@ create_driver_context(__GLXDRIcontext * context,
                       const uint32_t *attribs,
                       int *error)
 {
-    context->driContext = NULL;
     const __DRIconfig *driConfig = config ? config->driConfig : NULL;
+    context->driContext = NULL;
 
     if (screen->dri2->base.version >= 3) {
         uint32_t ctx_attribs[4 * 2];

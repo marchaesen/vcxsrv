@@ -659,10 +659,6 @@ FcConfigAddFontDir (FcConfig	    *config,
 		    const FcChar8   *d);
 
 FcPrivate FcBool
-FcConfigAddDir (FcConfig	*config,
-		const FcChar8	*d);
-
-FcPrivate FcBool
 FcConfigAddCacheDir (FcConfig	    *config,
 		     const FcChar8  *d);
 

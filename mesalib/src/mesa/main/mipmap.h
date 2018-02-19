@@ -28,6 +28,10 @@
 
 #include "mtypes.h"
 
+unsigned
+_mesa_compute_num_levels(struct gl_context *ctx,
+                         struct gl_texture_object *texObj,
+                         GLenum target);
 
 extern void
 _mesa_generate_mipmap_level(GLenum target,

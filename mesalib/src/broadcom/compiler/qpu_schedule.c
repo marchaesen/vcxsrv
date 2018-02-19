@@ -1268,6 +1268,13 @@ schedule_instructions(struct v3d_compile *c,
                         fprintf(stderr, "\n");
                 }
 
+                /* We can't mark_instruction_scheduled() the chosen inst until
+                 * we're done identifying instructions to merge, so put the
+                 * merged instructions on a list for a moment.
+                 */
+                struct list_head merged_list;
+                list_inithead(&merged_list);
+
                 /* Schedule this instruction onto the QPU list. Also try to
                  * find an instruction to pair with it.
                  */
@@ -1277,13 +1284,14 @@ schedule_instructions(struct v3d_compile *c,
                         mark_instruction_scheduled(schedule_list, time,
                                                    chosen, true);
 
-                        merge = choose_instruction_to_schedule(devinfo,
+                        while ((merge =
+                                choose_instruction_to_schedule(devinfo,
                                                                scoreboard,
                                                                schedule_list,
-                                                               chosen);
-                        if (merge) {
+                                                               chosen))) {
                                 time = MAX2(merge->unblocked_time, time);
                                 list_del(&merge->link);
+                                list_addtail(&merge->link, &merged_list);
                                 (void)qpu_merge_inst(devinfo, inst,
                                                      inst, &merge->inst->qpu);
                                 if (merge->inst->uniform != -1) {
@@ -1329,8 +1337,8 @@ schedule_instructions(struct v3d_compile *c,
                  * DAG edge as we do so.
                  */
                 mark_instruction_scheduled(schedule_list, time, chosen, false);
-
-                if (merge) {
+                list_for_each_entry(struct schedule_node, merge, &merged_list,
+                                    link) {
                         mark_instruction_scheduled(schedule_list, time, merge,
                                                    false);
 

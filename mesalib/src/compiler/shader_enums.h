@@ -48,6 +48,14 @@ typedef enum
    MESA_SHADER_COMPUTE = 5,
 } gl_shader_stage;
 
+/**
+ * Number of STATE_* values we need to address any GL state.
+ * Used to dimension arrays.
+ */
+#define STATE_LENGTH 5
+
+typedef short gl_state_index16; /* see enum gl_state_index */
+
 const char *gl_shader_stage_name(gl_shader_stage stage);
 
 /**

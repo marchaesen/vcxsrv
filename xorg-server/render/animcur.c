@@ -133,7 +133,7 @@ AnimCurTimerNotify(OsTimerPtr timer, CARD32 now, void *arg)
     ScreenPtr pScreen = dev->spriteInfo->anim.pScreen;
     AnimCurScreenPtr as = GetAnimCurScreen(pScreen);
 
-    AnimCurPtr ac = GetAnimCur(dev->spriteInfo->anim.pCursor);
+    AnimCurPtr ac = GetAnimCur(dev->spriteInfo->sprite->current);
     int elt = (dev->spriteInfo->anim.elt + 1) % ac->nelt;
     DisplayCursorProcPtr DisplayCursor = pScreen->DisplayCursor;
 
@@ -147,6 +147,7 @@ AnimCurTimerNotify(OsTimerPtr timer, CARD32 now, void *arg)
     pScreen->DisplayCursor = DisplayCursor;
 
     dev->spriteInfo->anim.elt = elt;
+    dev->spriteInfo->anim.pCursor = ac->elts[elt].pCursor;
 
     return ac->elts[elt].delay;
 }
@@ -154,7 +155,7 @@ AnimCurTimerNotify(OsTimerPtr timer, CARD32 now, void *arg)
 static void
 AnimCurCancelTimer(DeviceIntPtr pDev)
 {
-    CursorPtr cur = pDev->spriteInfo->anim.pCursor;
+    CursorPtr cur = pDev->spriteInfo->sprite->current;
 
     if (IsAnimCur(cur))
         TimerCancel(GetAnimCur(cur)->timer);
@@ -171,7 +172,7 @@ AnimCurDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
 
     Unwrap(as, pScreen, DisplayCursor);
     if (IsAnimCur(pCursor)) {
-        if (pCursor != pDev->spriteInfo->anim.pCursor) {
+        if (pCursor != pDev->spriteInfo->sprite->current) {
             AnimCurPtr ac = GetAnimCur(pCursor);
 
             AnimCurCancelTimer(pDev);

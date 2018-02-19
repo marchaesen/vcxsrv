@@ -153,6 +153,10 @@ if !SPECIAL_DTRACE_OBJECTS
 tests_LDADD += $(top_builddir)/os/libos.la
 endif
 
+if GLX
+tests_LDADD += $(top_builddir)/glx/libglxvnd.la
+endif
+
 BUILT_SOURCES = sdksyms.c
 CLEANFILES += sdksyms.c
 

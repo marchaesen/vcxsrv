@@ -46,6 +46,7 @@
 #include "texstore.h"
 #include "transformfeedback.h"
 #include "varray.h"
+#include "util/u_atomic.h"
 
 
 /* Debug flags */
@@ -471,7 +472,7 @@ _mesa_delete_buffer_object(struct gl_context *ctx,
    bufObj->RefCount = -1000;
    bufObj->Name = ~0;
 
-   simple_mtx_destroy(&bufObj->Mutex);
+   simple_mtx_destroy(&bufObj->MinMaxCacheMutex);
    free(bufObj->Label);
    free(bufObj);
 }
@@ -490,16 +491,9 @@ _mesa_reference_buffer_object_(struct gl_context *ctx,
 {
    if (*ptr) {
       /* Unreference the old buffer */
-      GLboolean deleteFlag = GL_FALSE;
       struct gl_buffer_object *oldObj = *ptr;
 
-      simple_mtx_lock(&oldObj->Mutex);
-      assert(oldObj->RefCount > 0);
-      oldObj->RefCount--;
-      deleteFlag = (oldObj->RefCount == 0);
-      simple_mtx_unlock(&oldObj->Mutex);
-
-      if (deleteFlag) {
+      if (p_atomic_dec_zero(&oldObj->RefCount)) {
 	 assert(ctx->Driver.DeleteBuffer);
          ctx->Driver.DeleteBuffer(ctx, oldObj);
       }
@@ -510,12 +504,8 @@ _mesa_reference_buffer_object_(struct gl_context *ctx,
 
    if (bufObj) {
       /* reference new buffer */
-      simple_mtx_lock(&bufObj->Mutex);
-      assert(bufObj->RefCount > 0);
-
-      bufObj->RefCount++;
+      p_atomic_inc(&bufObj->RefCount);
       *ptr = bufObj;
-      simple_mtx_unlock(&bufObj->Mutex);
    }
 }
 
@@ -547,11 +537,11 @@ _mesa_initialize_buffer_object(struct gl_context *ctx,
                                GLuint name)
 {
    memset(obj, 0, sizeof(struct gl_buffer_object));
-   simple_mtx_init(&obj->Mutex, mtx_plain);
    obj->RefCount = 1;
    obj->Name = name;
    obj->Usage = GL_STATIC_DRAW_ARB;
 
+   simple_mtx_init(&obj->MinMaxCacheMutex, mtx_plain);
    if (get_no_minmax_cache())
       obj->UsageHistory |= USAGE_DISABLE_MINMAX_CACHE;
 }
@@ -870,7 +860,7 @@ _mesa_init_buffer_objects( struct gl_context *ctx )
    GLuint i;
 
    memset(&DummyBufferObject, 0, sizeof(DummyBufferObject));
-   simple_mtx_init(&DummyBufferObject.Mutex, mtx_plain);
+   simple_mtx_init(&DummyBufferObject.MinMaxCacheMutex, mtx_plain);
    DummyBufferObject.RefCount = 1000*1000*1000; /* never delete */
 
    _mesa_reference_buffer_object(ctx, &ctx->Array.ArrayBufferObj,

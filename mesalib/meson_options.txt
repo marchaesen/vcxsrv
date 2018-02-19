@@ -280,3 +280,9 @@ option(
   value : 'avx,avx2',
   description : 'Comma delemited swr architectures. choices : avx,avx2,knl,skx'
 )
+option(
+  'tools',
+  type : 'string',
+  value : '',
+  description : 'Comma delimited list of tools to build. choices : freedreno,glsl,intel,nir,nouveau or all'
+)

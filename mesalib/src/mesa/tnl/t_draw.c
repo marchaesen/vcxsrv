@@ -38,6 +38,7 @@
 #include "util/half_float.h"
 
 #include "t_context.h"
+#include "t_rebase.h"
 #include "tnl.h"
 
 
@@ -461,9 +462,9 @@ void _tnl_draw_prims(struct gl_context *ctx,
    if (min_index) {
       /* We always translate away calls with min_index != 0. 
        */
-      vbo_rebase_prims( ctx, arrays, prim, nr_prims, ib, 
-			min_index, max_index,
-			_tnl_draw_prims );
+      t_rebase_prims( ctx, arrays, prim, nr_prims, ib,
+                      min_index, max_index,
+                      _tnl_draw_prims );
       return;
    }
    else if ((GLint)max_index + max_basevertex > max) {

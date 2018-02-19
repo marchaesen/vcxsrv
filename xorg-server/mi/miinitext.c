@@ -106,128 +106,6 @@ SOFTWARE.
 #include "micmap.h"
 #include "globals.h"
 
-/* The following is only a small first step towards run-time
- * configurable extensions.
- */
-typedef struct {
-    const char *name;
-    Bool *disablePtr;
-} ExtensionToggle;
-
-static ExtensionToggle ExtensionToggleList[] = {
-    /* sort order is extension name string as shown in xdpyinfo */
-    {"Generic Events", &noGEExtension},
-#ifdef COMPOSITE
-    {"Composite", &noCompositeExtension},
-#endif
-#ifdef DAMAGE
-    {"DAMAGE", &noDamageExtension},
-#endif
-#ifdef DBE
-    {"DOUBLE-BUFFER", &noDbeExtension},
-#endif
-#ifdef DPMSExtension
-    {"DPMS", &noDPMSExtension},
-#endif
-#ifdef GLXEXT
-    {"GLX", &noGlxExtension},
-#endif
-#ifdef SCREENSAVER
-    {"MIT-SCREEN-SAVER", &noScreenSaverExtension},
-#endif
-#ifdef MITSHM
-    {"MIT-SHM", &noMITShmExtension},
-#endif
-#ifdef RANDR
-    {"RANDR", &noRRExtension},
-#endif
-    {"RENDER", &noRenderExtension},
-#ifdef XCSECURITY
-    {"SECURITY", &noSecurityExtension},
-#endif
-#ifdef RES
-    {"X-Resource", &noResExtension},
-#endif
-#ifdef XF86BIGFONT
-    {"XFree86-Bigfont", &noXFree86BigfontExtension},
-#endif
-#ifdef XORGSERVER
-#ifdef XFreeXDGA
-    {"XFree86-DGA", &noXFree86DGAExtension},
-#endif
-#ifdef XF86DRI
-    {"XFree86-DRI", &noXFree86DRIExtension},
-#endif
-#ifdef XF86VIDMODE
-    {"XFree86-VidModeExtension", &noXFree86VidModeExtension},
-#endif
-#endif
-    {"XFIXES", &noXFixesExtension},
-#ifdef PANORAMIX
-    {"XINERAMA", &noPanoramiXExtension},
-#endif
-    {"XInputExtension", NULL},
-    {"XKEYBOARD", NULL},
-#ifdef XSELINUX
-    {"SELinux", &noSELinuxExtension},
-#endif
-    {"XTEST", &noTestExtensions},
-#ifdef XV
-    {"XVideo", &noXvExtension},
-#endif
-};
-
-Bool
-EnableDisableExtension(const char *name, Bool enable)
-{
-    ExtensionToggle *ext;
-    int i;
-
-    for (i = 0; i < ARRAY_SIZE(ExtensionToggleList); i++) {
-        ext = &ExtensionToggleList[i];
-        if (strcmp(name, ext->name) == 0) {
-            if (ext->disablePtr != NULL) {
-                *ext->disablePtr = !enable;
-                return TRUE;
-            }
-            else {
-                /* Extension is always on, impossible to disable */
-                return enable;  /* okay if they wanted to enable,
-                                   fail if they tried to disable */
-            }
-        }
-    }
-
-    return FALSE;
-}
-
-void
-EnableDisableExtensionError(const char *name, Bool enable)
-{
-    ExtensionToggle *ext;
-    int i;
-    Bool found = FALSE;
-
-    for (i = 0; i < ARRAY_SIZE(ExtensionToggleList); i++) {
-        ext = &ExtensionToggleList[i];
-        if ((strcmp(name, ext->name) == 0) && (ext->disablePtr == NULL)) {
-            ErrorF("[mi] Extension \"%s\" can not be disabled\n", name);
-            found = TRUE;
-            break;
-        }
-    }
-    if (found == FALSE)
-        ErrorF("[mi] Extension \"%s\" is not recognized\n", name);
-    ErrorF("[mi] Only the following extensions can be run-time %s:\n",
-           enable ? "enabled" : "disabled");
-    for (i = 0; i < ARRAY_SIZE(ExtensionToggleList); i++) {
-        ext = &ExtensionToggleList[i];
-        if (ext->disablePtr != NULL) {
-            ErrorF("[mi]    %s\n", ext->name);
-        }
-    }
-}
-
 /* List of built-in (statically linked) extensions */
 static const ExtensionModule staticExtensions[] = {
     {GEExtensionInit, "Generic Event Extension", &noGEExtension},
@@ -298,7 +176,61 @@ static const ExtensionModule staticExtensions[] = {
 #ifdef XSELINUX
     {SELinuxExtensionInit, "SELinux", &noSELinuxExtension},
 #endif
+#ifdef GLXEXT
+    {GlxExtensionInit, "GLX", &noGlxExtension},
+#endif
 };
+
+Bool
+EnableDisableExtension(const char *name, Bool enable)
+{
+    const ExtensionModule *ext;
+    int i;
+
+    for (i = 0; i < ARRAY_SIZE(staticExtensions); i++) {
+        ext = &staticExtensions[i];
+        if (strcmp(name, ext->name) == 0) {
+            if (ext->disablePtr != NULL) {
+                *ext->disablePtr = !enable;
+                return TRUE;
+            }
+            else {
+                /* Extension is always on, impossible to disable */
+                return enable;  /* okay if they wanted to enable,
+                                   fail if they tried to disable */
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+void
+EnableDisableExtensionError(const char *name, Bool enable)
+{
+    const ExtensionModule *ext;
+    int i;
+    Bool found = FALSE;
+
+    for (i = 0; i < ARRAY_SIZE(staticExtensions); i++) {
+        ext = &staticExtensions[i];
+        if ((strcmp(name, ext->name) == 0) && (ext->disablePtr == NULL)) {
+            ErrorF("[mi] Extension \"%s\" can not be disabled\n", name);
+            found = TRUE;
+            break;
+        }
+    }
+    if (found == FALSE)
+        ErrorF("[mi] Extension \"%s\" is not recognized\n", name);
+    ErrorF("[mi] Only the following extensions can be run-time %s:\n",
+           enable ? "enabled" : "disabled");
+    for (i = 0; i < ARRAY_SIZE(staticExtensions); i++) {
+        ext = &staticExtensions[i];
+        if (ext->disablePtr != NULL) {
+            ErrorF("[mi]    %s\n", ext->name);
+        }
+    }
+}
 
 static ExtensionModule *ExtensionModuleList = NULL;
 static int numExtensionModules = 0;

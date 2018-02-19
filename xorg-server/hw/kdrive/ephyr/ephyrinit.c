@@ -59,25 +59,9 @@ InitCard(char *name)
 }
 
 #ifndef _MSC_VER
-static const ExtensionModule ephyrExtensions[] = {
-#ifdef GLXEXT
- { GlxExtensionInit, "GLX", &noGlxExtension },
-#endif
-};
-
-static
-void ephyrExtensionInit(void)
-{
-    LoadExtensionList(ephyrExtensions, ARRAY_SIZE(ephyrExtensions), TRUE);
-}
-
-
 void
 InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 {
-    if (serverGeneration == 1)
-        ephyrExtensionInit();
-
     KdInitOutput(pScreenInfo, argc, argv);
 }
 

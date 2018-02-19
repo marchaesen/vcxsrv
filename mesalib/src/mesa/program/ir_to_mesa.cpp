@@ -663,7 +663,7 @@ ir_to_mesa_visitor::visit(ir_variable *ir)
 
       for (unsigned int i = 0; i < ir->get_num_state_slots(); i++) {
 	 int index = _mesa_add_state_reference(this->prog->Parameters,
-					       (gl_state_index *)slots[i].tokens);
+					       slots[i].tokens);
 
 	 if (storage->file == PROGRAM_STATE_VAR) {
 	    if (storage->index == -1) {

@@ -159,6 +159,8 @@ typedef struct shader_info {
 
          bool post_depth_coverage;
 
+         bool pixel_center_integer;
+
          /** gl_FragDepth layout for ARB_conservative_depth. */
          enum gl_frag_depth_layout depth_layout;
       } fs;

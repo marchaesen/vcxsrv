@@ -2157,7 +2157,7 @@ FcParseDir (FcConfigParse *parse)
 	FcConfigMessage (parse, FcSevereWarning, "empty font directory name ignored");
     else if (!parse->scanOnly && (!FcStrUsesHome (data) || FcConfigHome ()))
     {
-	if (!FcConfigAddDir (parse->config, data))
+	if (!FcConfigAddFontDir (parse->config, data))
 	    FcConfigMessage (parse, FcSevereError, "out of memory; cannot add directory %s", data);
     }
     FcStrBufDestroy (&parse->pstack->str);
@@ -3207,7 +3207,10 @@ FcConfigParseAndLoadDir (FcConfig	*config,
 
     if (FcDebug () & FC_DBG_CONFIG)
 	printf ("\tScanning config dir %s\n", dir);
-	
+
+    if (load)
+	FcConfigAddConfigDir (config, dir);
+
     while (ret && (e = readdir (d)))
     {
 	int d_len;

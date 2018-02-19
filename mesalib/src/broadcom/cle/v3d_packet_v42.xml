@@ -757,7 +757,7 @@
     <field name="Vertex shader has separate input and output VPM blocks" size="1" start="11" type="bool"/>
     <field name="Fragment shader uses real pixel centre W in addition to centroid W2" size="1" start="12" type="bool"/>
     <field name="Enable Sample Rate Shading" size="1" start="13" type="bool"/>
-    <field name="Any shader reads hardwrae-written Primitive ID" size="1" start="14" type="bool"/>
+    <field name="Any shader reads hardware-written Primitive ID" size="1" start="14" type="bool"/>
     <field name="Insert Primitive ID as first varying to fragment shader" size="1" start="15" type="bool"/>
     <field name="Turn off scoreboard" size="1" start="16" type="bool"/>
     <field name="Do scoreboard wait on first thread switch" size="1" start="17" type="bool"/>

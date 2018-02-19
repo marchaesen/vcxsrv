@@ -235,8 +235,8 @@ st_indirect_draw_vbo(struct gl_context *ctx,
                      GLsizeiptr indirect_offset,
                      unsigned draw_count,
                      unsigned stride,
-                     struct gl_buffer_object *indirect_params,
-                     GLsizeiptr indirect_params_offset,
+                     struct gl_buffer_object *indirect_draw_count,
+                     GLsizeiptr indirect_draw_count_offset,
                      const struct _mesa_index_buffer *ib)
 {
    struct st_context *st = st_context(ctx);
@@ -283,7 +283,7 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    if (!st->has_multi_draw_indirect) {
       int i;
 
-      assert(!indirect_params);
+      assert(!indirect_draw_count);
       indirect.draw_count = 1;
       for (i = 0; i < draw_count; i++) {
          info.drawid = i;
@@ -293,9 +293,10 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    } else {
       indirect.draw_count = draw_count;
       indirect.stride = stride;
-      if (indirect_params) {
-         indirect.indirect_draw_count = st_buffer_object(indirect_params)->buffer;
-         indirect.indirect_draw_count_offset = indirect_params_offset;
+      if (indirect_draw_count) {
+         indirect.indirect_draw_count =
+            st_buffer_object(indirect_draw_count)->buffer;
+         indirect.indirect_draw_count_offset = indirect_draw_count_offset;
       }
       cso_draw_vbo(st->cso_context, &info);
    }

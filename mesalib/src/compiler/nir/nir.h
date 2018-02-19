@@ -89,7 +89,7 @@ struct nir_instr;
  * \sa nir_variable::state_slots
  */
 typedef struct {
-   int tokens[5];
+   gl_state_index16 tokens[STATE_LENGTH];
    int swizzle;
 } nir_state_slot;
 
@@ -2653,7 +2653,7 @@ void nir_lower_passthrough_edgeflags(nir_shader *shader);
 void nir_lower_tes_patch_vertices(nir_shader *tes, unsigned patch_vertices);
 
 typedef struct nir_lower_wpos_ytransform_options {
-   int state_tokens[5];
+   gl_state_index16 state_tokens[STATE_LENGTH];
    bool fs_coord_origin_upper_left :1;
    bool fs_coord_origin_lower_left :1;
    bool fs_coord_pixel_center_integer :1;
@@ -2665,9 +2665,9 @@ bool nir_lower_wpos_ytransform(nir_shader *shader,
 bool nir_lower_wpos_center(nir_shader *shader, const bool for_sample_shading);
 
 typedef struct nir_lower_drawpixels_options {
-   int texcoord_state_tokens[5];
-   int scale_state_tokens[5];
-   int bias_state_tokens[5];
+   gl_state_index16 texcoord_state_tokens[STATE_LENGTH];
+   gl_state_index16 scale_state_tokens[STATE_LENGTH];
+   gl_state_index16 bias_state_tokens[STATE_LENGTH];
    unsigned drawpix_sampler;
    unsigned pixelmap_sampler;
    bool pixel_maps :1;
@@ -2769,6 +2769,8 @@ bool nir_opt_move_comparisons(nir_shader *shader);
 bool nir_opt_peephole_select(nir_shader *shader, unsigned limit);
 
 bool nir_opt_remove_phis(nir_shader *shader);
+
+bool nir_opt_shrink_load(nir_shader *shader);
 
 bool nir_opt_trivial_continues(nir_shader *shader);
 

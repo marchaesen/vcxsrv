@@ -42,6 +42,7 @@
 
 <category name="4.3">
   <enum name="SHADER_STORAGE_BARRIER_BIT"                value="0x2000" />
+  <enum name="NUM_SHADING_LANGUAGE_VERSIONS"             value="0x82E9" />
   <enum name="MAX_COMBINED_SHADER_OUTPUT_RESOURCES"      value="0x8F39" />
   <enum name="SHADER_STORAGE_BUFFER"                     value="0x90D2"/>
   <enum name="SHADER_STORAGE_BUFFER_BINDING"             value="0x90D3"/>

@@ -23,6 +23,7 @@
  */
 
 #include "pipe/p_defines.h"
+#include "pipe/p_shader_tokens.h"
 #include "main/mtypes.h"
 
 #ifdef __cplusplus
@@ -66,7 +67,7 @@ st_translate_stream_output_info2(struct gl_transform_feedback_info *info,
                                 const ubyte outputMapping[],
                                 struct pipe_stream_output_info *so);
 
-unsigned
+enum tgsi_semantic
 _mesa_sysval_to_semantic(unsigned sysval);
 
 #ifdef __cplusplus

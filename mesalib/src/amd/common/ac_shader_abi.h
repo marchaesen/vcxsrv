@@ -28,6 +28,8 @@
 
 #include "compiler/shader_enums.h"
 
+#define AC_LLVM_MAX_OUTPUTS (VARYING_SLOT_VAR31 + 1)
+
 enum ac_descriptor_type {
 	AC_DESC_IMAGE,
 	AC_DESC_FMASK,
@@ -54,6 +56,17 @@ struct ac_shader_abi {
 	LLVMValueRef ancillary;
 	LLVMValueRef sample_coverage;
 	LLVMValueRef prim_mask;
+	/* CS */
+	LLVMValueRef local_invocation_ids;
+	LLVMValueRef num_work_groups;
+	LLVMValueRef workgroup_ids[3];
+	LLVMValueRef tg_size;
+
+	/* Vulkan only */
+	LLVMValueRef push_constants;
+	LLVMValueRef view_index;
+
+	LLVMValueRef outputs[AC_LLVM_MAX_OUTPUTS * 4];
 
 	/* For VS and PS: pre-loaded shader inputs.
 	 *
@@ -106,9 +119,7 @@ struct ac_shader_abi {
 				  bool is_compact,
 				  unsigned writemask);
 
-	LLVMValueRef (*load_tess_coord)(struct ac_shader_abi *abi,
-					LLVMTypeRef type,
-					unsigned num_components);
+	LLVMValueRef (*load_tess_coord)(struct ac_shader_abi *abi);
 
 	LLVMValueRef (*load_patch_vertices_in)(struct ac_shader_abi *abi);
 
@@ -147,12 +158,28 @@ struct ac_shader_abi {
 					  enum ac_descriptor_type desc_type,
 					  bool image, bool write);
 
+	/**
+	 * Load a Vulkan-specific resource.
+	 *
+	 * \param index resource index
+	 * \param desc_set descriptor set
+	 * \param binding descriptor set binding
+	 */
+	LLVMValueRef (*load_resource)(struct ac_shader_abi *abi,
+				      LLVMValueRef index,
+				      unsigned desc_set,
+				      unsigned binding);
+
 	LLVMValueRef (*lookup_interp_param)(struct ac_shader_abi *abi,
 					    enum glsl_interp_mode interp,
 					    unsigned location);
 
 	LLVMValueRef (*load_sample_position)(struct ac_shader_abi *abi,
 					     LLVMValueRef sample_id);
+
+	LLVMValueRef (*load_local_group_size)(struct ac_shader_abi *abi);
+
+	LLVMValueRef (*load_sample_mask_in)(struct ac_shader_abi *abi);
 
 	/* Whether to clamp the shadow reference value to [0,1]on VI. Radeonsi currently
 	 * uses it due to promoting D16 to D32, but radv needs it off. */

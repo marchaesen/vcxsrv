@@ -29,9 +29,20 @@ subdir('drivers/noop')
 subdir('drivers/trace')
 subdir('drivers/rbug')
 subdir('winsys/sw/null')
-subdir('winsys/sw/dri')
-subdir('winsys/sw/kms-dri')
+if with_dri
+  subdir('winsys/sw/dri')
+else
+  libswdri = []
+endif
+if with_gallium_drisw_kms
+  subdir('winsys/sw/kms-dri')
+else
+  libswkmsdri = []
+endif
 subdir('winsys/sw/wrapper')
+if with_platform_haiku
+  subdir('winsys/sw/hgl')
+endif
 if with_gallium_swr
   if meson.version().version_compare('< 0.44.0')
     error('SWR requires meson 0.44.0 or greater.')
@@ -145,6 +156,9 @@ endif
 if with_gallium_st_nine
   subdir('state_trackers/nine')
 endif
+if with_platform_haiku
+  subdir('state_trackers/hgl')
+endif
 if with_gallium_opencl
   # TODO: this isn't really clover specific, but ATM clover is the only
   # consumer
@@ -183,6 +197,9 @@ if with_gallium_va
 endif
 if with_gallium_xa
   subdir('targets/xa')
+endif
+if with_platform_haiku
+  subdir('targets/haiku-softpipe')
 endif
 if with_gallium_st_nine
   subdir('targets/d3dadapter9')

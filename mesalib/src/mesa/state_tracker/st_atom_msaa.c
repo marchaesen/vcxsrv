@@ -77,5 +77,5 @@ st_update_sample_shading(struct st_context *st)
       return;
 
    cso_set_min_samples(st->cso_context,
-         _mesa_get_min_invocations_per_fragment(st->ctx, &st->fp->Base, false));
+         _mesa_get_min_invocations_per_fragment(st->ctx, &st->fp->Base));
 }

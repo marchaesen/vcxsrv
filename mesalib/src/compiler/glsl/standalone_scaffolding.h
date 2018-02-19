@@ -69,11 +69,11 @@ _mesa_shader_debug(struct gl_context *ctx, GLenum type, GLuint *id,
                    const char *msg);
 
 extern "C" GLbitfield
-_mesa_program_state_flags(const gl_state_index state[STATE_LENGTH]);
+_mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH]);
 
 
 extern "C" char *
-_mesa_program_state_string(const gl_state_index state[STATE_LENGTH]);
+_mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH]);
 
 static inline gl_shader_stage
 _mesa_shader_enum_to_shader_stage(GLenum v)

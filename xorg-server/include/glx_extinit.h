@@ -27,9 +27,8 @@
 #define GLX_EXT_INIT_H
 
 /* this is separate due to sdksyms pulling in extinit.h */
+/* XXX this comment no longer makes sense i think */
 #ifdef GLXEXT
-extern void GlxExtensionInit(void);
-
 typedef struct __GLXprovider __GLXprovider;
 typedef struct __GLXscreen __GLXscreen;
 struct __GLXprovider {
@@ -40,7 +39,10 @@ struct __GLXprovider {
 extern __GLXprovider __glXDRISWRastProvider;
 
 void GlxPushProvider(__GLXprovider * provider);
-
+Bool xorgGlxCreateVendor(void);
+#else
+static inline Bool xorgGlxCreateVendor(void) { return TRUE; }
 #endif
+
 
 #endif

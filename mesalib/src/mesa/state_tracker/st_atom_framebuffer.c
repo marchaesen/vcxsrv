@@ -216,4 +216,5 @@ st_update_framebuffer_state( struct st_context *st )
    st->state.fb_height = framebuffer.height;
    st->state.fb_num_samples = util_framebuffer_get_num_samples(&framebuffer);
    st->state.fb_num_layers = util_framebuffer_get_num_layers(&framebuffer);
+   st->state.fb_num_cb = framebuffer.nr_cbufs;
 }

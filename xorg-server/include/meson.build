@@ -163,13 +163,13 @@ conf_data.set('BIGREQS', '1')
 conf_data.set('COMPOSITE', '1')
 conf_data.set('DAMAGE', '1')
 conf_data.set('DBE', '1')
-conf_data.set('DPMSExtension', '1')
+conf_data.set('DPMSExtension', build_dpms)
 conf_data.set('DRI2', build_dri2)
 conf_data.set('DRI3', build_dri3)
 conf_data.set_quoted('DRI_DRIVER_PATH', dri_dep.get_pkgconfig_variable('dridriverdir'))
 conf_data.set('HAS_SHM', '1')
 conf_data.set('MITSHM', build_mitshm)
-conf_data.set('PANORAMIX', '1')
+conf_data.set('PANORAMIX', build_xinerama)
 conf_data.set('PRESENT', '1')
 conf_data.set('RANDR', '1')
 conf_data.set('RES', build_res)
@@ -323,6 +323,7 @@ if build_xorg
             'gcstruct.h',
             'globals.h',
             'glx_extinit.h',
+            'glxvndabi.h',
             'input.h',
             'inputstr.h',
             'list.h',

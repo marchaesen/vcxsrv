@@ -427,7 +427,7 @@ usamplerCubeArray TYPE_WITH_ALT(400, 310, 400, 320, yyextra->ARB_texture_cube_ma
 samplerCubeArrayShadow   TYPE_WITH_ALT(400, 310, 400, 320, yyextra->ARB_texture_cube_map_array_enable || yyextra->OES_texture_cube_map_array_enable || yyextra->EXT_texture_cube_map_array_enable, glsl_type::samplerCubeArrayShadow_type);
 
 samplerExternalOES		{
-			  if (yyextra->OES_EGL_image_external_enable) {
+			  if (yyextra->OES_EGL_image_external_enable || yyextra->OES_EGL_image_external_essl3_enable) {
 			     yylval->type = glsl_type::samplerExternalOES_type;
 			     return BASIC_TYPE_TOK;
 			  } else

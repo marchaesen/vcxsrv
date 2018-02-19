@@ -143,6 +143,7 @@ enum value_extra {
    EXTRA_VERSION_31,
    EXTRA_VERSION_32,
    EXTRA_VERSION_40,
+   EXTRA_VERSION_43,
    EXTRA_API_GL,
    EXTRA_API_GL_CORE,
    EXTRA_API_ES2,
@@ -522,6 +523,7 @@ extra_NV_primitive_restart[] = {
 static const int extra_version_30[] = { EXTRA_VERSION_30, EXTRA_END };
 static const int extra_version_31[] = { EXTRA_VERSION_31, EXTRA_END };
 static const int extra_version_32[] = { EXTRA_VERSION_32, EXTRA_END };
+static const int extra_version_43[] = { EXTRA_VERSION_43, EXTRA_END };
 
 static const int extra_gl30_es3[] = {
     EXTRA_VERSION_30,
@@ -677,10 +679,10 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
 
    case GL_COLOR_WRITEMASK:
-      v->value_int_4[0] = ctx->Color.ColorMask[0][RCOMP] ? 1 : 0;
-      v->value_int_4[1] = ctx->Color.ColorMask[0][GCOMP] ? 1 : 0;
-      v->value_int_4[2] = ctx->Color.ColorMask[0][BCOMP] ? 1 : 0;
-      v->value_int_4[3] = ctx->Color.ColorMask[0][ACOMP] ? 1 : 0;
+      v->value_int_4[0] = GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 0);
+      v->value_int_4[1] = GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 1);
+      v->value_int_4[2] = GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 2);
+      v->value_int_4[3] = GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 3);
       break;
 
    case GL_EDGE_FLAG:
@@ -1084,6 +1086,10 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
          v->value_int = 0;
       }
       break;
+   /* GL 4.3 */
+   case GL_NUM_SHADING_LANGUAGE_VERSIONS:
+      v->value_int = _mesa_get_shading_language_version(ctx, -1, NULL);
+      break;
    /* GL_ARB_draw_indirect */
    case GL_DRAW_INDIRECT_BUFFER_BINDING:
       v->value_int = ctx->DrawIndirectBuffer->Name;
@@ -1222,6 +1228,16 @@ check_extra(struct gl_context *ctx, const char *func, const struct value_desc *d
       case EXTRA_VERSION_32:
          api_check = GL_TRUE;
          if (version >= 32)
+            api_found = GL_TRUE;
+         break;
+      case EXTRA_VERSION_40:
+         api_check = GL_TRUE;
+         if (version >= 40)
+            api_found = GL_TRUE;
+         break;
+      case EXTRA_VERSION_43:
+         api_check = TRUE;
+         if (_mesa_is_desktop_gl(ctx) && version >= 43)
             api_found = GL_TRUE;
          break;
       case EXTRA_NEW_FRAG_CLAMP:
@@ -1390,7 +1406,6 @@ static const struct value_desc *
 find_value(const char *func, GLenum pname, void **p, union value *v)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct gl_texture_unit *unit;
    int mask, hash;
    const struct value_desc *d;
    int api;
@@ -1445,8 +1460,10 @@ find_value(const char *func, GLenum pname, void **p, union value *v)
       *p = ((char *) ctx->Array.VAO + d->offset);
       return d;
    case LOC_TEXUNIT:
-      unit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
-      *p = ((char *) unit + d->offset);
+      if (ctx->Texture.CurrentUnit < ARRAY_SIZE(ctx->Texture.FixedFuncUnit)) {
+         unsigned index = ctx->Texture.CurrentUnit;
+         *p = ((char *)&ctx->Texture.FixedFuncUnit[index] + d->offset);
+      }
       return d;
    case LOC_CUSTOM:
       find_custom_value(ctx, d, v);
@@ -2262,10 +2279,10 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
          goto invalid_value;
       if (!ctx->Extensions.EXT_draw_buffers2)
          goto invalid_enum;
-      v->value_int_4[0] = ctx->Color.ColorMask[index][RCOMP] ? 1 : 0;
-      v->value_int_4[1] = ctx->Color.ColorMask[index][GCOMP] ? 1 : 0;
-      v->value_int_4[2] = ctx->Color.ColorMask[index][BCOMP] ? 1 : 0;
-      v->value_int_4[3] = ctx->Color.ColorMask[index][ACOMP] ? 1 : 0;
+      v->value_int_4[0] = GET_COLORMASK_BIT(ctx->Color.ColorMask, index, 0);
+      v->value_int_4[1] = GET_COLORMASK_BIT(ctx->Color.ColorMask, index, 1);
+      v->value_int_4[2] = GET_COLORMASK_BIT(ctx->Color.ColorMask, index, 2);
+      v->value_int_4[3] = GET_COLORMASK_BIT(ctx->Color.ColorMask, index, 3);
       return TYPE_INT_4;
 
    case GL_SCISSOR_BOX:

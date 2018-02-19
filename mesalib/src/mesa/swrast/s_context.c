@@ -65,10 +65,7 @@ _swrast_update_rasterflags( struct gl_context *ctx )
    if (ctx->Scissor.EnableFlags)          rasterMask |= CLIP_BIT;
    if (_mesa_stencil_is_enabled(ctx))     rasterMask |= STENCIL_BIT;
    for (i = 0; i < ctx->Const.MaxDrawBuffers; i++) {
-      if (!ctx->Color.ColorMask[i][0] ||
-          !ctx->Color.ColorMask[i][1] ||
-          !ctx->Color.ColorMask[i][2] ||
-          !ctx->Color.ColorMask[i][3]) {
+      if (GET_COLORMASK(ctx->Color.ColorMask, i) != 0xf) {
          rasterMask |= MASKING_BIT;
          break;
       }
@@ -96,10 +93,7 @@ _swrast_update_rasterflags( struct gl_context *ctx )
    }
 
    for (i = 0; i < ctx->Const.MaxDrawBuffers; i++) {
-      if (ctx->Color.ColorMask[i][0] +
-          ctx->Color.ColorMask[i][1] +
-          ctx->Color.ColorMask[i][2] +
-          ctx->Color.ColorMask[i][3] == 0) {
+      if (GET_COLORMASK(ctx->Color.ColorMask, i) == 0) {
          rasterMask |= MULTI_DRAW_BIT; /* all RGBA channels disabled */
          break;
       }
@@ -191,7 +185,7 @@ _swrast_update_texture_env( struct gl_context *ctx )
 
    for (i = 0; i < ctx->Const.MaxTextureUnits; i++) {
       const struct gl_tex_env_combine_state *combine =
-         ctx->Texture.Unit[i]._CurrentCombine;
+         ctx->Texture.FixedFuncUnit[i]._CurrentCombine;
       GLuint term;
       for (term = 0; term < combine->_NumArgsRGB; term++) {
          if (combine->SourceRGB[term] == GL_PRIMARY_COLOR) {

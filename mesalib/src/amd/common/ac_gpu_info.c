@@ -226,6 +226,12 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		return false;
 	}
 
+	r = amdgpu_query_sw_info(dev, amdgpu_sw_info_address32_hi, &info->address32_hi);
+	if (r) {
+		fprintf(stderr, "amdgpu: amdgpu_query_sw_info(address32_hi) failed.\n");
+		return false;
+	}
+
 	/* Set chip identification. */
 	info->pci_id = amdinfo->asic_id; /* TODO: is this correct? */
 	info->vce_harvest_config = amdinfo->vce_harvest_config;
@@ -371,6 +377,7 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("max_alloc_size = %i MB\n",
 	       (int)DIV_ROUND_UP(info->max_alloc_size, 1024*1024));
 	printf("min_alloc_size = %u\n", info->min_alloc_size);
+	printf("address32_hi = %u\n", info->address32_hi);
 	printf("has_dedicated_vram = %u\n", info->has_dedicated_vram);
 	printf("has_virtual_memory = %i\n", info->has_virtual_memory);
 	printf("gfx_ib_pad_with_type2 = %i\n", info->gfx_ib_pad_with_type2);

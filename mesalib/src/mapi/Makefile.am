@@ -92,7 +92,8 @@ check_PROGRAMS += shared-glapi-test
 shared_glapi_test_SOURCES = shared-glapi/tests/check_table.cpp
 shared_glapi_test_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-I$(top_srcdir)/src/gtest/include
+	-I$(top_srcdir)/src/gtest/include \
+	-I$(top_srcdir)/src/mesa
 shared_glapi_test_LDADD = \
 	$(top_builddir)/src/mapi/shared-glapi/libglapi.la \
 	$(top_builddir)/src/gtest/libgtest.la
@@ -154,7 +155,8 @@ check_PROGRAMS += glapi-test
 glapi_test_SOURCES = glapi/tests/check_table.cpp
 glapi_test_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-I$(top_srcdir)/src/gtest/include
+	-I$(top_srcdir)/src/gtest/include \
+	-I$(top_srcdir)/src/mesa
 
 glapi_test_LDADD = \
 	$(top_builddir)/src/mapi/glapi/libglapi.la \

@@ -51,7 +51,7 @@
 #include "main/imports.h"
 #include "main/mtypes.h"
 
-#include "vbo.h"
+#include "t_rebase.h"
 
 
 #define REBASE(TYPE) 						\
@@ -100,14 +100,14 @@ REBASE(GLubyte)
  *    - can't save time by trying to upload half a vbo - typically it is
  *      all or nothing.
  */
-void vbo_rebase_prims( struct gl_context *ctx,
-		       const struct gl_vertex_array *arrays[],
-		       const struct _mesa_prim *prim,
-		       GLuint nr_prims,
-		       const struct _mesa_index_buffer *ib,
-		       GLuint min_index,
-		       GLuint max_index,
-		       vbo_draw_func draw )
+void t_rebase_prims( struct gl_context *ctx,
+                     const struct gl_vertex_array *arrays[],
+                     const struct _mesa_prim *prim,
+                     GLuint nr_prims,
+                     const struct _mesa_index_buffer *ib,
+                     GLuint min_index,
+                     GLuint max_index,
+                     vbo_draw_func draw )
 {
    struct gl_vertex_array tmp_arrays[VERT_ATTRIB_MAX];
    const struct gl_vertex_array *tmp_array_pointers[VERT_ATTRIB_MAX];

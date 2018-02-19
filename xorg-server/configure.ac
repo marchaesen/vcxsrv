@@ -1295,7 +1295,7 @@ if test "x$GLX" = xyes; then
 	PKG_CHECK_MODULES([GL], $GLPROTO $LIBGL)
 	AC_SUBST(XLIB_CFLAGS)
 	AC_DEFINE(GLXEXT, 1, [Build GLX extension])
-	GLX_LIBS='$(top_builddir)/glx/libglx.la'
+	GLX_LIBS='$(top_builddir)/glx/libglx.la $(top_builddir)/glx/libglxvnd.la'
 	GLX_SYS_LIBS="$GLX_SYS_LIBS $GL_LIBS"
 else
         GLX=no
@@ -2305,7 +2305,7 @@ XEPHYR_INCS=
 AM_CONDITIONAL(KDRIVE, [test x$KDRIVE = xyes])
 
 if test "$KDRIVE" = yes; then
-    XEPHYR_REQUIRED_LIBS="xau xdmcp xcb xcb-shape xcb-render xcb-renderutil xcb-aux xcb-image xcb-icccm xcb-shm >= 1.9 xcb-keysyms xcb-randr xcb-xkb"
+    XEPHYR_REQUIRED_LIBS="xau xdmcp xcb xcb-shape xcb-render xcb-renderutil xcb-aux xcb-image xcb-icccm xcb-shm >= 1.9.3 xcb-keysyms xcb-randr xcb-xkb"
     if test "x$XV" = xyes; then
         XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS xcb-xv"
     fi

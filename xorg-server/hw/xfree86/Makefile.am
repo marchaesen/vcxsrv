@@ -14,6 +14,10 @@ DRI3_BUILDDIR = $(top_builddir)/dri3
 DRI3_LIB = $(DRI3_BUILDDIR)/libdri3.la
 endif
 
+if GLX
+GLXVND_LIB = $(top_builddir)/glx/libglxvnd.la
+endif
+
 if GLAMOR_EGL
 GLAMOR_EGL_SUBDIR = glamor_egl
 endif
@@ -70,6 +74,7 @@ LOCAL_LIBS = \
             $(DRI_LIB) \
             $(DRI2_LIB) \
 	    $(DRI3_LIB) \
+	    $(GLXVND_LIB) \
 	    $(top_builddir)/miext/sync/libsync.la \
             $(top_builddir)/mi/libmi.la \
             $(top_builddir)/os/libos.la \

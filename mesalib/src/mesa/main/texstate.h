@@ -54,6 +54,24 @@ _mesa_get_current_tex_unit(struct gl_context *ctx)
    return _mesa_get_tex_unit(ctx, ctx->Texture.CurrentUnit);
 }
 
+
+/**
+ * Return pointer to current fixed-func texture unit.
+ * This the texture unit set by glActiveTexture(), not glClientActiveTexture().
+ * \return NULL if the current unit is not a fixed-func texture unit
+ */
+static inline struct gl_fixedfunc_texture_unit *
+_mesa_get_current_fixedfunc_tex_unit(struct gl_context *ctx)
+{
+   unsigned unit = ctx->Texture.CurrentUnit;
+
+   if (unit >= ARRAY_SIZE(ctx->Texture.FixedFuncUnit))
+      return NULL;
+
+   return &ctx->Texture.FixedFuncUnit[unit];
+}
+
+
 static inline GLuint
 _mesa_max_tex_unit(struct gl_context *ctx)
 {

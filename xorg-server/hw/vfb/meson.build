@@ -15,7 +15,8 @@ xvfb_server = executable(
         libxserver,
         libxserver_xkb_stubs,
         libxserver_xi_stubs,
-        libxserver_glx
+        libxserver_glx,
+        libglxvnd,
     ],
     install: true,
 )

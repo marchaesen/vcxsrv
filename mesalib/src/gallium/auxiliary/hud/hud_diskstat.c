@@ -117,7 +117,7 @@ get_file_values(const char *fn, struct stat_s *s)
 }
 
 static void
-query_dsi_load(struct hud_graph *gr)
+query_dsi_load(struct hud_graph *gr, struct pipe_context *pipe)
 {
    /* The framework calls us periodically, compensate for the
     * calling interval accordingly when reporting per second.

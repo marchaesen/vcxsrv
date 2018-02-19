@@ -234,7 +234,7 @@ descriptor=[
 # GL_ARB_texture_cube_map
   [ "TEXTURE_CUBE_MAP_ARB", "LOC_CUSTOM, TYPE_BOOLEAN, 0, NO_EXTRA" ],
 # S, T, and R are always set at the same time
-  [ "TEXTURE_GEN_STR_OES", "LOC_TEXUNIT, TYPE_BIT_0, offsetof(struct gl_texture_unit, TexGenEnabled), NO_EXTRA" ],
+  [ "TEXTURE_GEN_STR_OES", "LOC_TEXUNIT, TYPE_BIT_0, offsetof(struct gl_fixedfunc_texture_unit, TexGenEnabled), NO_EXTRA" ],
 
 # GL_ARB_multisample
   [ "MULTISAMPLE_ARB", "CONTEXT_BOOL(Multisample.Enabled), NO_EXTRA" ],
@@ -543,6 +543,9 @@ descriptor=[
 
   # GL_ARB_texture_cube_map_array
   [ "TEXTURE_BINDING_CUBE_MAP_ARRAY_ARB", "LOC_CUSTOM, TYPE_INT, TEXTURE_CUBE_ARRAY_INDEX, extra_ARB_texture_cube_map_array_OES_texture_cube_map_array" ],
+
+  # GL_NUM_SHADING_LANGUAGE_VERSIONS
+  [ "NUM_SHADING_LANGUAGE_VERSIONS", "LOC_CUSTOM, TYPE_INT, 0, extra_version_43" ],
 ]},
 
 # Enums in OpenGL Core profile and ES 3.0
@@ -760,10 +763,10 @@ descriptor=[
   [ "TEXTURE_3D", "LOC_CUSTOM, TYPE_BOOLEAN, NO_OFFSET, NO_EXTRA" ],
   [ "TEXTURE_BINDING_1D", "LOC_CUSTOM, TYPE_INT, TEXTURE_1D_INDEX, NO_EXTRA" ],
   [ "TEXTURE_BINDING_1D_ARRAY", "LOC_CUSTOM, TYPE_INT, TEXTURE_1D_ARRAY_INDEX, extra_EXT_texture_array" ],
-  [ "TEXTURE_GEN_S", "LOC_TEXUNIT, TYPE_BIT_0, offsetof(struct gl_texture_unit, TexGenEnabled), NO_EXTRA" ],
-  [ "TEXTURE_GEN_T", "LOC_TEXUNIT, TYPE_BIT_1, offsetof(struct gl_texture_unit, TexGenEnabled), NO_EXTRA" ],
-  [ "TEXTURE_GEN_R", "LOC_TEXUNIT, TYPE_BIT_2, offsetof(struct gl_texture_unit, TexGenEnabled), NO_EXTRA" ],
-  [ "TEXTURE_GEN_Q", "LOC_TEXUNIT, TYPE_BIT_3, offsetof(struct gl_texture_unit, TexGenEnabled), NO_EXTRA" ],
+  [ "TEXTURE_GEN_S", "LOC_TEXUNIT, TYPE_BIT_0, offsetof(struct gl_fixedfunc_texture_unit, TexGenEnabled), NO_EXTRA" ],
+  [ "TEXTURE_GEN_T", "LOC_TEXUNIT, TYPE_BIT_1, offsetof(struct gl_fixedfunc_texture_unit, TexGenEnabled), NO_EXTRA" ],
+  [ "TEXTURE_GEN_R", "LOC_TEXUNIT, TYPE_BIT_2, offsetof(struct gl_fixedfunc_texture_unit, TexGenEnabled), NO_EXTRA" ],
+  [ "TEXTURE_GEN_Q", "LOC_TEXUNIT, TYPE_BIT_3, offsetof(struct gl_fixedfunc_texture_unit, TexGenEnabled), NO_EXTRA" ],
   [ "UNPACK_LSB_FIRST", "CONTEXT_BOOL(Unpack.LsbFirst), NO_EXTRA" ],
   [ "UNPACK_SWAP_BYTES", "CONTEXT_BOOL(Unpack.SwapBytes), NO_EXTRA" ],
   [ "ZOOM_X", "CONTEXT_FLOAT(Pixel.ZoomX), NO_EXTRA" ],

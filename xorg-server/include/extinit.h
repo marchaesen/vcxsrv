@@ -78,6 +78,7 @@ extern void GEExtensionInit(void);
 
 #ifdef GLXEXT
 extern _X_EXPORT Bool noGlxExtension;
+extern void GlxExtensionInit(void);
 #endif
 
 #ifdef PANORAMIX

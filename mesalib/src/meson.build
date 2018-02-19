@@ -64,7 +64,12 @@ if with_dri_i965 or with_intel_vk
 endif
 subdir('mesa')
 subdir('loader')
-subdir('glx')
+if with_platform_haiku
+  subdir('hgl')
+endif
+if with_glx != 'disabled'
+  subdir('glx')
+endif
 if with_gbm
   subdir('gbm')
 else

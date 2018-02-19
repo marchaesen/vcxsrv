@@ -284,16 +284,34 @@ print_draw_arrays(struct gl_context *ctx,
                                                  MAP_INTERNAL);
          int offset = (int) (GLintptr)
             _mesa_vertex_attrib_address(array, binding);
+
+	 unsigned multiplier;
+	 switch (array->Type) {
+	 case GL_DOUBLE:
+	 case GL_INT64_ARB:
+	 case GL_UNSIGNED_INT64_ARB:
+	    multiplier = 2;
+	    break;
+	 default:
+	    multiplier = 1;
+	 }
+
          float *f = (float *) (p + offset);
          int *k = (int *) f;
-         int i;
-         int n = (count * binding->Stride) / 4;
+	 int i = 0;
+	 int n = (count - 1) * (binding->Stride / (4 * multiplier))
+	   + array->Size;
          if (n > 32)
             n = 32;
          printf("  Data at offset %d:\n", offset);
-         for (i = 0; i < n; i++) {
-            printf("    float[%d] = 0x%08x %f\n", i, k[i], f[i]);
-         }
+	 do {
+	    if (multiplier == 2)
+	       printf("    double[%d] = 0x%016llx %lf\n", i,
+		      ((unsigned long long *) k)[i], ((double *) f)[i]);
+	    else
+	       printf("    float[%d] = 0x%08x %f\n", i, k[i], f[i]);
+	    i++;
+	 } while (i < n);
          ctx->Driver.UnmapBuffer(ctx, bufObj, MAP_INTERNAL);
       }
    }
@@ -314,7 +332,7 @@ recalculate_input_bindings(struct gl_context *ctx)
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;
    const struct gl_vertex_array_object *vao = ctx->Array.VAO;
-   const struct gl_vertex_array *vertexAttrib = vao->_VertexAttrib;
+   const struct gl_vertex_array *vertexAttrib = vao->_VertexArray;
    const struct gl_vertex_array **inputs = &exec->array.inputs[0];
 
    /* May shuffle the position and generic0 bits around */
@@ -1398,6 +1416,14 @@ vbo_exec_MultiDrawElementsBaseVertex(GLenum mode,
 }
 
 
+/**
+ * Draw a GL primitive using a vertex count obtained from transform feedback.
+ * \param mode  the type of GL primitive to draw
+ * \param obj  the transform feedback object to use
+ * \param stream  index of the transform feedback stream from which to
+ *                get the primitive count.
+ * \param numInstances  number of instances to draw
+ */
 static void
 vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
                             struct gl_transform_feedback_object *obj,

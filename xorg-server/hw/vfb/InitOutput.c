@@ -957,26 +957,11 @@ vfbScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
 }                               /* end vfbScreenInit */
 
-static const ExtensionModule vfbExtensions[] = {
-#ifdef GLXEXT
-    { GlxExtensionInit, "GLX", &noGlxExtension },
-#endif
-};
-
-static
-void vfbExtensionInit(void)
-{
-    LoadExtensionList(vfbExtensions, ARRAY_SIZE(vfbExtensions), TRUE);
-}
-
 void
 InitOutput(ScreenInfo * screen_info, int argc, char **argv)
 {
     int i;
     int NumFormats = 0;
-
-    if (serverGeneration == 1)
-        vfbExtensionInit();
 
     /* initialize pixmap formats */
 
@@ -1001,6 +986,8 @@ InitOutput(ScreenInfo * screen_info, int argc, char **argv)
 #endif
         vfbPixmapDepths[32] = TRUE;
     }
+
+    xorgGlxCreateVendor();
 
     for (i = 1; i <= 32; i++) {
         if (vfbPixmapDepths[i]) {

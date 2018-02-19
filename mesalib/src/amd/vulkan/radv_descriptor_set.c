@@ -518,7 +518,7 @@ VkResult radv_AllocateDescriptorSets(
 
 	VkResult result = VK_SUCCESS;
 	uint32_t i;
-	struct radv_descriptor_set *set;
+	struct radv_descriptor_set *set = NULL;
 
 	/* allocate a set of buffers for each shader to contain descriptors */
 	for (i = 0; i < pAllocateInfo->descriptorSetCount; i++) {

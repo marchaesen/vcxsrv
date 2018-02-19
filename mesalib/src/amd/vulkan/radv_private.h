@@ -646,6 +646,7 @@ struct radv_device_memory {
 	uint32_t                                     type_index;
 	VkDeviceSize                                 map_size;
 	void *                                       map;
+	void *                                       user_ptr;
 };
 
 

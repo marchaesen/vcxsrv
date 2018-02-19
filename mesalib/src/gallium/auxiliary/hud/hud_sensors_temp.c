@@ -154,7 +154,7 @@ find_sti_by_name(const char *n, unsigned int mode)
 }
 
 static void
-query_sti_load(struct hud_graph *gr)
+query_sti_load(struct hud_graph *gr, struct pipe_context *pipe)
 {
    struct sensors_temp_info *sti = gr->query_data;
    uint64_t now = os_time_get();

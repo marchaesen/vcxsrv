@@ -406,6 +406,11 @@ nir_visitor::visit(ir_variable *ir)
    var->data.pixel_center_integer = ir->data.pixel_center_integer;
    var->data.location_frac = ir->data.location_frac;
 
+   if (var->data.pixel_center_integer) {
+      assert(shader->info.stage == MESA_SHADER_FRAGMENT);
+      shader->info.fs.pixel_center_integer = true;
+   }
+
    switch (ir->data.depth_layout) {
    case ir_depth_layout_none:
       var->data.depth_layout = nir_depth_layout_none;

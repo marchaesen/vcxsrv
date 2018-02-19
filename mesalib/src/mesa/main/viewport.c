@@ -51,9 +51,8 @@ clamp_viewport(struct gl_context *ctx, GLfloat *x, GLfloat *y,
     *     determined by calling GetFloatv with the symbolic constant
     *     VIEWPORT_BOUNDS_RANGE (see section 6.1)."
     */
-   if (ctx->Extensions.ARB_viewport_array ||
-       (ctx->Extensions.OES_viewport_array &&
-        _mesa_is_gles31(ctx))) {
+   if (_mesa_has_ARB_viewport_array(ctx) ||
+       _mesa_has_OES_viewport_array(ctx)) {
       *x = CLAMP(*x,
                  ctx->Const.ViewportBounds.Min, ctx->Const.ViewportBounds.Max);
       *y = CLAMP(*y,

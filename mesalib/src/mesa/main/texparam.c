@@ -208,7 +208,7 @@ comp_to_swizzle(GLenum comp)
 
 
 static void
-set_swizzle_component(GLuint *swizzle, GLuint comp, GLuint swz)
+set_swizzle_component(GLushort *swizzle, GLuint comp, GLuint swz)
 {
    assert(comp < 4);
    assert(swz <= SWIZZLE_NIL);

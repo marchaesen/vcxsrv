@@ -40,6 +40,14 @@ CSRCS = \
         swap_interval.c \
         xfont.c
 
+libglxvnd_la_SOURCES = \
+	vndcmds.c \
+	vndext.c \
+	vndservermapping.c \
+	vndservervendor.c
+
+CSRCS += $(libglxvnd_la_SOURCES)
+
 INCLUDES := $(MHMAKECONF)\mesalib\include . ../composite $(INCLUDES) $(MHMAKECONF)\gl\include
 
 load_makefile -f $(MHMAKECONF)\mesalib\src\mapi\glapi\gen\makefile.srcs NORELDBG=1
