@@ -288,8 +288,10 @@ st_new_renderbuffer_fb(enum pipe_format format, unsigned samples, boolean sw)
 
    switch (format) {
    case PIPE_FORMAT_B10G10R10A2_UNORM:
+   case PIPE_FORMAT_R10G10B10A2_UNORM:
       strb->Base.InternalFormat = GL_RGB10_A2;
       break;
+   case PIPE_FORMAT_R10G10B10X2_UNORM:
    case PIPE_FORMAT_B10G10R10X2_UNORM:
       strb->Base.InternalFormat = GL_RGB10;
       break;

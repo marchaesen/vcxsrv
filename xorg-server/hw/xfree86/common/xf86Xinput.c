@@ -1181,7 +1181,7 @@ xf86CheckMotionEvent4DGA(DeviceIntPtr device, int is_absolute,
 {
     int stolen = 0;
 
-#if XFreeXDGA
+#ifdef XFreeXDGA
     ScreenPtr scr = NULL;
     int idx = 0, i;
 
@@ -1375,7 +1375,7 @@ xf86PostButtonEventM(DeviceIntPtr device,
             flags = POINTER_RELATIVE | POINTER_ACCELERATE;
     }
 
-#if XFreeXDGA
+#ifdef XFreeXDGA
     if (miPointerGetScreen(device)) {
         int index = miPointerGetScreen(device)->myNum;
 
@@ -1406,7 +1406,7 @@ xf86PostKeyEventP(DeviceIntPtr device,
 void
 xf86PostKeyEventM(DeviceIntPtr device, unsigned int key_code, int is_down)
 {
-#if XFreeXDGA
+#ifdef XFreeXDGA
     DeviceIntPtr pointer;
 
     /* Some pointers send key events, paired device is wrong then. */

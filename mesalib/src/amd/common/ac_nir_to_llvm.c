@@ -1068,8 +1068,6 @@ static void create_function(struct radv_shader_context *ctx,
 			set_loc_shader(ctx, AC_UD_VS_LS_TCS_IN_LAYOUT,
 				       &user_sgpr_idx, 1);
 		}
-		if (ctx->options->key.vs.as_ls)
-			ac_declare_lds_as_pointer(&ctx->ac);
 		break;
 	case MESA_SHADER_TESS_CTRL:
 		set_vs_specific_input_locs(ctx, stage, has_previous_stage,
@@ -1080,7 +1078,6 @@ static void create_function(struct radv_shader_context *ctx,
 		set_loc_shader(ctx, AC_UD_TCS_OFFCHIP_LAYOUT, &user_sgpr_idx, 4);
 		if (ctx->abi.view_index)
 			set_loc_shader(ctx, AC_UD_VIEW_INDEX, &user_sgpr_idx, 1);
-		ac_declare_lds_as_pointer(&ctx->ac);
 		break;
 	case MESA_SHADER_TESS_EVAL:
 		set_loc_shader(ctx, AC_UD_TES_OFFCHIP_LAYOUT, &user_sgpr_idx, 1);
@@ -1102,8 +1099,6 @@ static void create_function(struct radv_shader_context *ctx,
 			       &user_sgpr_idx, 2);
 		if (ctx->abi.view_index)
 			set_loc_shader(ctx, AC_UD_VIEW_INDEX, &user_sgpr_idx, 1);
-		if (has_previous_stage)
-			ac_declare_lds_as_pointer(&ctx->ac);
 		break;
 	case MESA_SHADER_FRAGMENT:
 		if (ctx->shader_info->info.ps.needs_sample_positions) {
@@ -1113,6 +1108,13 @@ static void create_function(struct radv_shader_context *ctx,
 		break;
 	default:
 		unreachable("Shader stage not implemented");
+	}
+
+	if (stage == MESA_SHADER_TESS_CTRL ||
+	    (stage == MESA_SHADER_VERTEX && ctx->options->key.vs.as_ls) ||
+	    /* GFX9 has the ESGS ring buffer in LDS. */
+	    (stage == MESA_SHADER_GEOMETRY && has_previous_stage)) {
+		ac_declare_lds_as_pointer(&ctx->ac);
 	}
 
 	ctx->shader_info->num_user_sgprs = user_sgpr_idx;

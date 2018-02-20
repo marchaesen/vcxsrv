@@ -41,6 +41,30 @@
 #include "st_program.h"
 
 static void
+st_binding_to_sb(struct gl_buffer_binding *binding,
+                 struct pipe_shader_buffer *sb)
+{
+   struct st_buffer_object *st_obj =
+      st_buffer_object(binding->BufferObject);
+
+   if (st_obj && st_obj->buffer) {
+     sb->buffer = st_obj->buffer;
+     sb->buffer_offset = binding->Offset;
+     sb->buffer_size = st_obj->buffer->width0 - binding->Offset;
+
+     /* AutomaticSize is FALSE if the buffer was set with BindBufferRange.
+      * Take the minimum just to be sure.
+      */
+     if (!binding->AutomaticSize)
+       sb->buffer_size = MIN2(sb->buffer_size, (unsigned) binding->Size);
+   } else {
+     sb->buffer = NULL;
+     sb->buffer_offset = 0;
+     sb->buffer_size = 0;
+   }
+}
+
+static void
 st_bind_atomics(struct st_context *st, struct gl_program *prog,
                 enum pipe_shader_type shader_type)
 {
@@ -52,23 +76,9 @@ st_bind_atomics(struct st_context *st, struct gl_program *prog,
    for (i = 0; i < prog->sh.data->NumAtomicBuffers; i++) {
       struct gl_active_atomic_buffer *atomic =
          &prog->sh.data->AtomicBuffers[i];
-      struct gl_buffer_binding *binding =
-         &st->ctx->AtomicBufferBindings[atomic->Binding];
-      struct st_buffer_object *st_obj =
-         st_buffer_object(binding->BufferObject);
-      struct pipe_shader_buffer sb = { 0 };
+      struct pipe_shader_buffer sb;
 
-      if (st_obj && st_obj->buffer) {
-         sb.buffer = st_obj->buffer;
-         sb.buffer_offset = binding->Offset;
-         sb.buffer_size = st_obj->buffer->width0 - binding->Offset;
-
-         /* AutomaticSize is FALSE if the buffer was set with BindBufferRange.
-          * Take the minimum just to be sure.
-          */
-         if (!binding->AutomaticSize)
-            sb.buffer_size = MIN2(sb.buffer_size, (unsigned) binding->Size);
-      }
+      st_binding_to_sb(&st->ctx->AtomicBufferBindings[atomic->Binding], &sb);
 
       st->pipe->set_shader_buffers(st->pipe, shader_type,
                                    atomic->Binding, 1, &sb);
@@ -142,27 +152,8 @@ st_bind_hw_atomic_buffers(struct st_context *st)
    if (!st->has_hw_atomics)
       return;
 
-   for (i = 0; i < st->ctx->Const.MaxAtomicBufferBindings; i++) {
-      struct gl_buffer_binding *binding = &st->ctx->AtomicBufferBindings[i];
-      struct st_buffer_object *st_obj = st_buffer_object(binding->BufferObject);
-      struct pipe_shader_buffer *sb = &buffers[i];
-
-      if (st_obj && st_obj->buffer) {
-        sb->buffer = st_obj->buffer;
-        sb->buffer_offset = binding->Offset;
-        sb->buffer_size = st_obj->buffer->width0 - binding->Offset;
-
-        /* AutomaticSize is FALSE if the buffer was set with BindBufferRange.
-         * Take the minimum just to be sure.
-         */
-        if (!binding->AutomaticSize)
-          sb->buffer_size = MIN2(sb->buffer_size, (unsigned) binding->Size);
-      } else {
-        sb->buffer = NULL;
-        sb->buffer_offset = 0;
-        sb->buffer_size = 0;
-      }
-   }
+   for (i = 0; i < st->ctx->Const.MaxAtomicBufferBindings; i++)
+      st_binding_to_sb(&st->ctx->AtomicBufferBindings[i], &buffers[i]);
 
    st->pipe->set_hw_atomic_buffers(st->pipe, 0, st->ctx->Const.MaxAtomicBufferBindings, buffers);
 }

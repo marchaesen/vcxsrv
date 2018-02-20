@@ -904,7 +904,6 @@ hostx_screen_init(KdScreenInfo *screen,
 #ifdef _MSC_VER
 	  __asm int 3;
 #else
-            xcb_shm_detach(HostX.conn, scrpriv->shminfo.shmseg);
             xcb_image_destroy(scrpriv->ximg);
             hostx_destroy_shm_segment(&scrpriv->shminfo, scrpriv->shmsize);
 #endif

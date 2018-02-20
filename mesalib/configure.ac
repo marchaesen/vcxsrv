@@ -105,7 +105,7 @@ LLVM_REQUIRED_OPENCL=3.9.0
 LLVM_REQUIRED_R600=3.9.0
 LLVM_REQUIRED_RADEONSI=4.0.0
 LLVM_REQUIRED_RADV=4.0.0
-LLVM_REQUIRED_SWR=3.9.0
+LLVM_REQUIRED_SWR=4.0.0
 
 dnl Check for progs
 AC_PROG_CPP
@@ -939,10 +939,10 @@ dnl In practise that should be sufficient for all platforms, since any
 dnl platforms build with GCC and Clang support the flag.
 PTHREAD_LIBS="$PTHREAD_LIBS -pthread"
 
-dnl pthread-stubs is mandatory on BSD platforms, due to the nature of the
+dnl pthread-stubs is mandatory on some BSD platforms, due to the nature of the
 dnl project. Even then there's a notable issue as described in the project README
 case "$host_os" in
-linux* | cygwin* | darwin* | solaris* | *-gnu* | gnu*)
+linux* | cygwin* | darwin* | solaris* | *-gnu* | gnu* | openbsd*)
     pthread_stubs_possible="no"
     ;;
 * )
@@ -2695,8 +2695,8 @@ if test -n "$with_gallium_drivers"; then
 fi
 
 # XXX: Keep in sync with LLVM_REQUIRED_SWR
-AM_CONDITIONAL(SWR_INVALID_LLVM_VERSION, test "x$LLVM_VERSION" != x3.9.0 -a \
-                                              "x$LLVM_VERSION" != x3.9.1)
+AM_CONDITIONAL(SWR_INVALID_LLVM_VERSION, test "x$LLVM_VERSION" != x4.0.0 -a \
+                                              "x$LLVM_VERSION" != x4.0.1)
 
 if test "x$enable_llvm" = "xyes" -a "$with_gallium_drivers"; then
     llvm_require_version $LLVM_REQUIRED_GALLIUM "gallium"

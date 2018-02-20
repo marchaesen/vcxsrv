@@ -1026,6 +1026,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
         }
     }
 
+    xorgGlxCreateVendor();
+
     /* Generate a cookie used by internal clients for authorization */
     if (g_fXdmcpEnabled || g_fAuthEnabled)
         winGenerateAuthorization();
@@ -1047,10 +1049,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
             ErrorF ("Warning: Locale not supported by X, falling back to 'C' locale.\n");
             setlocale(LC_ALL, "C");
           }
-
-        xorgGlxCreateVendor();
     }
-
 
     winDebug("InitOutput - Returning.\n");
 }

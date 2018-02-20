@@ -1,0 +1,66 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.3.5 Release Notes / February 19, 2018</h1>
+
+<p>
+Mesa 17.3.5 is a bug fix release which fixes bugs found since the 17.3.4 release.
+</p>
+<p>
+Mesa 17.3.5 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+bc1ee20366aae2affc37c89228f871f438136f70252005e9f842169bde976788  mesa-17.3.5.tar.gz
+eb9228fc8aaa71e0205c1481c5b157752ebaec9b646b030d27478e25a6d7936a  mesa-17.3.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Emil Velikov (2):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.3.4</li>
+  <li>Update version to 17.3.5</li>
+</ul>
+
+<p>James Legg (1):</p>
+<ul>
+  <li>ac/nir: Fix conflict resolution typo in handle_vs_input_decl</li>
+</ul>
+
+
+</div>
+</body>
+</html>

@@ -81,7 +81,6 @@ dri2proto_dep = dependency('dri2proto', version: '>= 2.8', required: get_option(
 dri3proto_dep = dependency('dri3proto', version: '>= 1.0', required: get_option('dri3') == 'true')
 xineramaproto_dep = dependency('xineramaproto')
 xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0')
-xf86dgaproto_dep = dependency('xf86dgaproto', version: '>= 2.0.99.1', required: false)
 xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1', required: false)
 windowswmproto_dep = dependency('windowswmproto', required: false)
 applewmproto_dep = dependency('applewmproto', version: '>= 1.4', required: false)
@@ -353,13 +352,28 @@ if build_xsecurity
     endif
 endif
 
+build_xv = get_option('xv')
+build_xvmc = get_option('xvmc')
+if not build_xv
+    build_xvmc = false
+endif
+
+build_dga = false
+if get_option('dga') == 'auto'
+    xf86dgaproto_dep = dependency('xf86dgaproto', version: '>= 2.0.99.1', required: false)
+    if xf86dgaproto_dep.found()
+        build_dga = true
+    endif
+elif get_option('dga') == 'true'
+    xf86dgaproto_dep = dependency('xf86dgaproto', version: '>= 2.0.99.1', required: true)
+    build_dga = true
+endif
+
 # XXX: Allow configuration of these.
 build_apm = false
 build_acpi = false
 build_mitshm = true
 build_xselinux = false
-build_xv = true
-build_dga = false
 build_xf86vidmode = xf86vidmodeproto_dep.found()
 
 m_dep = cc.find_library('m', required : false)

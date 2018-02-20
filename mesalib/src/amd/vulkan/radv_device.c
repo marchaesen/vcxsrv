@@ -183,6 +183,37 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 	device->memory_properties.memoryTypeCount = type_count;
 }
 
+static void
+radv_handle_env_var_force_family(struct radv_physical_device *device)
+{
+	const char *family = getenv("RADV_FORCE_FAMILY");
+	unsigned i;
+
+	if (!family)
+		return;
+
+	for (i = CHIP_TAHITI; i < CHIP_LAST; i++) {
+		if (!strcmp(family, ac_get_llvm_processor_name(i))) {
+			/* Override family and chip_class. */
+			device->rad_info.family = i;
+
+			if (i >= CHIP_VEGA10)
+				device->rad_info.chip_class = GFX9;
+			else if (i >= CHIP_TONGA)
+				device->rad_info.chip_class = VI;
+			else if (i >= CHIP_BONAIRE)
+				device->rad_info.chip_class = CIK;
+			else
+				device->rad_info.chip_class = SI;
+
+			return;
+		}
+	}
+
+	fprintf(stderr, "radv: Unknown family: %s\n", family);
+	exit(1);
+}
+
 static VkResult
 radv_physical_device_init(struct radv_physical_device *device,
 			  struct radv_instance *instance,
@@ -225,6 +256,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 
 	device->local_fd = fd;
 	device->ws->query_info(device->ws, &device->rad_info);
+
+	radv_handle_env_var_force_family(device);
 
 	radv_get_device_name(device->rad_info.family, device->name, sizeof(device->name));
 

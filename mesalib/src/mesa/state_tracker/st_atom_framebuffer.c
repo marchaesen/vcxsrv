@@ -172,6 +172,9 @@ st_update_framebuffer_state( struct st_context *st )
     * Depth/Stencil renderbuffer/surface.
     */
    strb = st_renderbuffer(fb->Attachment[BUFFER_DEPTH].Renderbuffer);
+   if (!strb)
+      strb = st_renderbuffer(fb->Attachment[BUFFER_STENCIL].Renderbuffer);
+
    if (strb) {
       if (strb->is_rtt) {
          /* rendering to a GL texture, may have to update surface */
@@ -180,19 +183,8 @@ st_update_framebuffer_state( struct st_context *st )
       framebuffer.zsbuf = strb->surface;
       update_framebuffer_size(&framebuffer, strb->surface);
    }
-   else {
-      strb = st_renderbuffer(fb->Attachment[BUFFER_STENCIL].Renderbuffer);
-      if (strb) {
-         if (strb->is_rtt) {
-            /* rendering to a GL texture, may have to update surface */
-            st_update_renderbuffer_surface(st, strb);
-         }
-         framebuffer.zsbuf = strb->surface;
-         update_framebuffer_size(&framebuffer, strb->surface);
-      }
-      else
-         framebuffer.zsbuf = NULL;
-   }
+   else
+      framebuffer.zsbuf = NULL;
 
 #ifdef DEBUG
    /* Make sure the resource binding flags were set properly */
