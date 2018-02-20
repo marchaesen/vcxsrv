@@ -78,6 +78,7 @@ xorg_backtrace(void)
             break;
         }
 
+        off = 0;
         ret = unw_get_proc_name(&cursor, procname, 256, &off);
         if (ret && ret != -UNW_ENOMEM) {
             if (ret != -UNW_EUNSPEC)

@@ -29,7 +29,7 @@ typedef struct _DeviceChangedEvent DeviceChangedEvent;
 typedef struct _TouchOwnershipEvent TouchOwnershipEvent;
 typedef struct _BarrierEvent BarrierEvent;
 
-#if XFreeXDGA
+#ifdef XFreeXDGA
 typedef struct _DGAEvent DGAEvent;
 #endif
 typedef struct _RawDeviceEvent RawDeviceEvent;

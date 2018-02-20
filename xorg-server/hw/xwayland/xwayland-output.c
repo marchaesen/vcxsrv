@@ -126,7 +126,7 @@ output_get_new_size(struct xwl_output *xwl_output,
 {
     int output_width, output_height;
 
-    if (need_rotate && (xwl_output->rotation & (RR_Rotate_0 | RR_Rotate_180))) {
+    if (!need_rotate || (xwl_output->rotation & (RR_Rotate_0 | RR_Rotate_180))) {
         output_width = xwl_output->width;
         output_height = xwl_output->height;
     } else {
@@ -220,7 +220,7 @@ apply_output_change(struct xwl_output *xwl_output)
     xwl_output->xdg_output_done = FALSE;
 
     /* xdg-output sends output size in compositor space. so already rotated */
-    need_rotate = (xwl_output->xdg_output != NULL);
+    need_rotate = (xwl_output->xdg_output == NULL);
 
     randr_mode = xwayland_cvt(xwl_output->width, xwl_output->height,
                               xwl_output->refresh / 1000.0, 0, 0);
@@ -390,7 +390,7 @@ xwl_output_remove(struct xwl_output *xwl_output)
     struct xwl_output *it;
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
     int width = 0, height = 0;
-    Bool need_rotate = (xwl_output->xdg_output != NULL);
+    Bool need_rotate = (xwl_output->xdg_output == NULL);
 
     RRCrtcDestroy(xwl_output->randr_crtc);
     RROutputDestroy(xwl_output->randr_output);

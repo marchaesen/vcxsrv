@@ -200,7 +200,7 @@ struct _DeviceChangedEvent {
     } keys;
 };
 
-#if XFreeXDGA
+#ifdef XFreeXDGA
 /**
  * DGAEvent, used by DGA to intercept and emulate input events.
  */
@@ -287,7 +287,7 @@ union _InternalEvent {
     DeviceChangedEvent changed_event;
     TouchOwnershipEvent touch_ownership_event;
     BarrierEvent barrier_event;
-#if XFreeXDGA
+#ifdef XFreeXDGA
     DGAEvent dga_event;
 #endif
     RawDeviceEvent raw_event;

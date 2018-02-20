@@ -1012,6 +1012,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
         }
     }
 
+    xorgGlxCreateVendor();
+
     /* Generate a cookie used by internal clients for authorization */
     if (g_fXdmcpEnabled || g_fAuthEnabled)
         winGenerateAuthorization();

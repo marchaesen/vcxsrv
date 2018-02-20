@@ -993,6 +993,8 @@ dri3_cpp_for_format(uint32_t format) {
    case  __DRI_IMAGE_FORMAT_XBGR8888:
    case  __DRI_IMAGE_FORMAT_XRGB2101010:
    case  __DRI_IMAGE_FORMAT_ARGB2101010:
+   case  __DRI_IMAGE_FORMAT_XBGR2101010:
+   case  __DRI_IMAGE_FORMAT_ABGR2101010:
    case  __DRI_IMAGE_FORMAT_SARGB8:
       return 4;
    case  __DRI_IMAGE_FORMAT_NONE:
@@ -1020,6 +1022,8 @@ image_format_to_fourcc(int format)
    case __DRI_IMAGE_FORMAT_XBGR8888: return __DRI_IMAGE_FOURCC_XBGR8888;
    case __DRI_IMAGE_FORMAT_XRGB2101010: return __DRI_IMAGE_FOURCC_XRGB2101010;
    case __DRI_IMAGE_FORMAT_ARGB2101010: return __DRI_IMAGE_FOURCC_ARGB2101010;
+   case __DRI_IMAGE_FORMAT_XBGR2101010: return __DRI_IMAGE_FOURCC_XBGR2101010;
+   case __DRI_IMAGE_FORMAT_ABGR2101010: return __DRI_IMAGE_FOURCC_ABGR2101010;
    }
    return 0;
 }
@@ -1314,6 +1318,7 @@ dri3_get_pixmap_buffer(__DRIdrawable *driDrawable, unsigned int format,
    xcb_sync_fence_t                     sync_fence;
    struct xshmfence                     *shm_fence;
    int                                  fence_fd;
+   __DRIscreen                          *cur_screen;
 
    if (buffer)
       return buffer;
@@ -1344,8 +1349,17 @@ dri3_get_pixmap_buffer(__DRIdrawable *driDrawable, unsigned int format,
    if (!bp_reply)
       goto no_image;
 
+   /* Get the currently-bound screen or revert to using the drawable's screen if
+    * no contexts are currently bound. The latter case is at least necessary for
+    * obs-studio, when using Window Capture (Xcomposite) as a Source.
+    */
+   cur_screen = draw->vtable->get_dri_screen();
+   if (!cur_screen) {
+       cur_screen = draw->dri_screen;
+   }
+
    buffer->image = loader_dri3_create_image(draw->conn, bp_reply, format,
-                                            draw->dri_screen, draw->ext->image,
+                                            cur_screen, draw->ext->image,
                                             buffer);
    if (!buffer->image)
       goto no_image;

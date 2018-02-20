@@ -71,6 +71,12 @@ option('xinerama', type: 'boolean', value: true,
        description: 'Xinerama extension')
 option('xcsecurity', type: 'boolean', value: false,
        description: 'Security extension')
+option('xv', type: 'boolean', value: true,
+       description: 'Xv extension')
+option('xvmc', type: 'boolean', value: true,
+       description: 'XvMC extension')
+option('dga', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
+       description: 'DGA extension')
 
 option('dri1', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
 option('dri2', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')

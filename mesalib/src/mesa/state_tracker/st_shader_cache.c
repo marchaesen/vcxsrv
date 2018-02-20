@@ -215,6 +215,7 @@ st_deserialise_ir_program(struct gl_context *ctx,
          stvp->tgsi.type = PIPE_SHADER_IR_NIR;
          stvp->shader_program = shProg;
          stvp->tgsi.ir.nir = nir_deserialize(NULL, options, &blob_reader);
+         prog->nir = stvp->tgsi.ir.nir;
       } else {
          read_tgsi_from_cache(&blob_reader, &stvp->tgsi.tokens,
                               &stvp->num_tgsi_tokens);
@@ -237,6 +238,7 @@ st_deserialise_ir_program(struct gl_context *ctx,
          sttcp->tgsi.type = PIPE_SHADER_IR_NIR;
          sttcp->shader_program = shProg;
          sttcp->tgsi.ir.nir = nir_deserialize(NULL, options, &blob_reader);
+         prog->nir = sttcp->tgsi.ir.nir;
       } else {
          read_tgsi_from_cache(&blob_reader, &sttcp->tgsi.tokens,
                               &sttcp->num_tgsi_tokens);
@@ -259,6 +261,7 @@ st_deserialise_ir_program(struct gl_context *ctx,
          sttep->tgsi.type = PIPE_SHADER_IR_NIR;
          sttep->shader_program = shProg;
          sttep->tgsi.ir.nir = nir_deserialize(NULL, options, &blob_reader);
+         prog->nir = sttep->tgsi.ir.nir;
       } else {
          read_tgsi_from_cache(&blob_reader, &sttep->tgsi.tokens,
                               &sttep->num_tgsi_tokens);
@@ -281,6 +284,7 @@ st_deserialise_ir_program(struct gl_context *ctx,
          stgp->tgsi.type = PIPE_SHADER_IR_NIR;
          stgp->shader_program = shProg;
          stgp->tgsi.ir.nir = nir_deserialize(NULL, options, &blob_reader);
+         prog->nir = stgp->tgsi.ir.nir;
       } else {
          read_tgsi_from_cache(&blob_reader, &stgp->tgsi.tokens,
                               &stgp->num_tgsi_tokens);
@@ -300,6 +304,7 @@ st_deserialise_ir_program(struct gl_context *ctx,
          stfp->tgsi.type = PIPE_SHADER_IR_NIR;
          stfp->shader_program = shProg;
          stfp->tgsi.ir.nir = nir_deserialize(NULL, options, &blob_reader);
+         prog->nir = stfp->tgsi.ir.nir;
       } else {
          read_tgsi_from_cache(&blob_reader, &stfp->tgsi.tokens,
                               &stfp->num_tgsi_tokens);
@@ -319,6 +324,7 @@ st_deserialise_ir_program(struct gl_context *ctx,
          stcp->tgsi.ir_type = PIPE_SHADER_IR_NIR;
          stcp->shader_program = shProg;
          stcp->tgsi.prog = nir_deserialize(NULL, options, &blob_reader);
+         prog->nir = (nir_shader *) stcp->tgsi.prog;
       } else {
          read_tgsi_from_cache(&blob_reader,
                               (const struct tgsi_token**) &stcp->tgsi.prog,
