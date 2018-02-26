@@ -289,7 +289,7 @@ do {                       \
  * Macro for declaring an explicit conversion operator.  Defaults to an
  * implicit conversion if C++11 is not supported.
  */
-#if __cplusplus >= 201103L
+#if __cplusplus >= 201103L || _MSC_VER
 #define EXPLICIT_CONVERSION explicit
 #elif defined(__cplusplus)
 #define EXPLICIT_CONVERSION
