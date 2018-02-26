@@ -38,6 +38,7 @@ xkb_symbols "basic" {
 	key <AD01> { [       NoSymbol,       NoSymbol, periodcentered                 ] };
 	key <AD02> { [       NoSymbol,       NoSymbol,          U03DB,          U03DA ] };
 	key <AD04> { [       NoSymbol,       NoSymbol,     registered,          U03F1 ] };
+	key <AD06> { [       NoSymbol,       NoSymbol,          U03D2,          U03D2 ] };
 	key <AD07> { [       NoSymbol,       NoSymbol,          U03D1,          U03F4 ] };
 	key <AD08> { [       NoSymbol,       NoSymbol,          U037B,          U03FD ] };
 	key <AD10> { [       NoSymbol,       NoSymbol,          U03E1,          U03E0 ] };
@@ -47,8 +48,11 @@ xkb_symbols "basic" {
 	key <AE02> { [       NoSymbol,       NoSymbol,        onehalf,    twosuperior ] };
 	key <AE03> { [       NoSymbol,       NoSymbol,       sterling,  threesuperior ] };
 	key <AE04> { [       NoSymbol,       NoSymbol,     onequarter,  threequarters ] };
-	key <AE07> { [       NoSymbol,       NoSymbol,          U03F0                 ] };
+	key <AE06> { [       NoSymbol,       NoSymbol,          U03F0                 ] };
+	key <AE07> { [       NoSymbol,       NoSymbol,          U03D7,          U03CF ] };
+	key <AE08> { [       NoSymbol,       NoSymbol,          U20AF                 ] };
 	key <AE10> { [       NoSymbol,       NoSymbol,         degree                 ] };
+	key <AE11> { [       NoSymbol,       NoSymbol,      plusminus                 ] };
 };
 
 partial alphanumeric_keys alternate_group
@@ -193,6 +197,48 @@ xkb_symbols "nodeadkeys" {
     name[Group1] = "Greek (no dead keys)";
 
     key <AC10> { [ semicolon, colon ] }; // ; :
+};
+
+// Greek layout rearranged as Colemak
+
+partial alphanumeric_keys alternate_group
+xkb_symbols "colemak" {
+
+    include "gr(basic)"
+
+    name[Group1] = "Greek (Colemak)";
+
+    key <AD01> { [             semicolon,          colon, periodcentered             ] };
+    key <AD02> { [ Greek_finalsmallsigma,    Greek_SIGMA,          U03DB,      U03DA ] };
+    key <AD03> { [             Greek_phi,      Greek_PHI,          U03D5             ] };
+    key <AD04> { [              Greek_pi,       Greek_PI,          U03E1,      U03E0 ] };
+    key <AD05> { [           Greek_gamma,    Greek_GAMMA,          U03DD,      U03DC ] };
+    key <AD06> { [              Greek_xi,       Greek_XI,          U037C,      U03FE ] };
+    key <AD07> { [           Greek_lamda,    Greek_LAMDA,          U03F2,      U03F9 ] };
+    key <AD08> { [           Greek_theta,    Greek_THETA,          U03D1,      U03F4 ] };
+    key <AD09> { [         Greek_upsilon,  Greek_UPSILON,          U03D2,      U03D2 ] };
+    key <AD10> { [            dead_acute, dead_diaeresis,     dead_acute, dead_psili ] };
+
+    key <AC01> { [           Greek_alpha,    Greek_ALPHA                             ] };
+    key <AC02> { [             Greek_rho,      Greek_RHO,     registered,      U03F1 ] };
+    key <AC03> { [           Greek_sigma,    Greek_SIGMA                             ] };
+    key <AC04> { [             Greek_tau,      Greek_TAU                             ] };
+    key <AC05> { [           Greek_delta,    Greek_DELTA,      downarrow,    uparrow ] };
+    key <AC06> { [             Greek_eta,      Greek_ETA                             ] };
+    key <AC07> { [              Greek_nu,       Greek_NU,          U0374,      U0375 ] };
+    key <AC08> { [         Greek_epsilon,  Greek_EPSILON,       EuroSign             ] };
+    key <AC09> { [            Greek_iota,     Greek_IOTA,          U037B,      U03FD ] };
+    key <AC10> { [         Greek_omicron,  Greek_OMICRON                             ] };
+
+    key <AB01> { [            Greek_zeta,     Greek_ZETA,          U037D,      U03FF ] };
+    key <AB02> { [             Greek_chi,      Greek_CHI,     rightarrow,  leftarrow ] };
+    key <AB03> { [             Greek_psi,      Greek_PSI,      copyright             ] };
+    key <AB04> { [           Greek_omega,    Greek_OMEGA,          U03D6             ] };
+    key <AB05> { [            Greek_beta,     Greek_BETA,          U03D0             ] };
+    key <AB06> { [           Greek_kappa,    Greek_KAPPA,          U03DF,      U03DE ] };
+    key <AB07> { [              Greek_mu,       Greek_MU,          U03FB,      U03FA ] };
+
+    key <CAPS> { [             BackSpace,      BackSpace,      BackSpace,  BackSpace ] };
 };
 
 // EXTRAS:

@@ -66,6 +66,7 @@ struct vbo_save_vertex_list {
    GLenum16 attrtype[VBO_ATTRIB_MAX];
    GLuint offsets[VBO_ATTRIB_MAX];
    GLuint vertex_size;  /**< size in GLfloats */
+   struct gl_vertex_array_object *VAO[VP_MODE_MAX];
 
    /* Copy of the final vertex from node->vertex_store->bufferobj.
     * Keep this in regular (non-VBO) memory to avoid repeated
@@ -140,14 +141,13 @@ struct vbo_save_context {
    struct gl_context *ctx;
    GLvertexformat vtxfmt;
    GLvertexformat vtxfmt_noop;  /**< Used if out_of_memory is true */
-   struct gl_vertex_array arrays[VBO_ATTRIB_MAX];
-   const struct gl_vertex_array *inputs[VBO_ATTRIB_MAX];
 
    GLbitfield64 enabled; /**< mask of enabled vbo arrays. */
    GLubyte attrsz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
    GLenum16 attrtype[VBO_ATTRIB_MAX];  /**< GL_FLOAT, GL_INT, etc */
    GLubyte active_sz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
    GLuint vertex_size;  /**< size in GLfloats */
+   struct gl_vertex_array_object *VAO[VP_MODE_MAX];
 
    GLboolean out_of_memory;  /**< True if last VBO allocation failed */
 

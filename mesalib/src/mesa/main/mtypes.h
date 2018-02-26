@@ -1608,6 +1608,13 @@ struct gl_vertex_array_object
    GLboolean EverBound;
 
    /**
+    * Marked to true if the object is shared between contexts and immutable.
+    * Then reference counting is done using atomics and thread safe.
+    * Is used for dlist VAOs.
+    */
+   bool SharedAndImmutable;
+
+   /**
     * Derived vertex attribute arrays
     *
     * This is a legacy data structure created from gl_array_attributes and
@@ -1690,6 +1697,28 @@ struct gl_array_attrib
 
    /* GL_ARB_vertex_buffer_object */
    struct gl_buffer_object *ArrayBufferObj;
+
+   /**
+    * Vertex array object that is used with the currently active draw command.
+    * The _DrawVAO is either set to the currently bound VAO for array type
+    * draws or to internal VAO's set up by the vbo module to execute immediate
+    * mode or display list draws.
+    */
+   struct gl_vertex_array_object *_DrawVAO;
+   /**
+    * The VERT_BIT_* bits effectively enabled from the current _DrawVAO.
+    * This is always a subset of _mesa_get_vao_vp_inputs(_DrawVAO)
+    * but may omit those arrays that shall not be referenced by the current
+    * gl_vertex_program_state::_VPMode. For example the generic attributes are
+    * maked out form the _DrawVAO's enabled arrays when a fixed function
+    * array draw is executed.
+    */
+   GLbitfield _DrawVAOEnabledAttribs;
+   /**
+    * Initially or if the VAO referenced by _DrawVAO is deleted the _DrawVAO
+    * pointer is set to the _EmptyVAO which is just an empty VAO all the time.
+    */
+   struct gl_vertex_array_object *_EmptyVAO;
 
    /**
     * Vertex arrays as consumed by a driver.
@@ -2137,6 +2166,19 @@ typedef enum
 
 
 /**
+ * Current vertex processing mode: fixed function vs. shader.
+ * In reality, fixed function is probably implemented by a shader but that's
+ * not what we care about here.
+ */
+typedef enum
+{
+   VP_MODE_FF,     /**< legacy / fixed function */
+   VP_MODE_SHADER, /**< ARB vertex program or GLSL vertex shader */
+   VP_MODE_MAX     /**< for sizing arrays */
+} gl_vertex_processing_mode;
+
+
+/**
  * Base class for any kind of program object
  */
 struct gl_program
@@ -2362,6 +2404,17 @@ struct gl_vertex_program_state
    struct gl_program_cache *Cache;
 
    GLboolean _Overriden;
+
+   /**
+    * If we have a vertex program, a TNL program or no program at all.
+    * Note that this value should be kept up to date all the time,
+    * nevertheless its correctness is asserted in _mesa_update_state.
+    * The reason is to avoid calling _mesa_update_state twice we need
+    * this value on draw *before* actually calling _mesa_update_state.
+    * Also it should need to get recomputed only on changes to the
+    * vertex program which are heavyweight already.
+    */
+   gl_vertex_processing_mode _VPMode;
 };
 
 /**
@@ -4124,6 +4177,7 @@ struct gl_extensions
    GLboolean ARB_clear_texture;
    GLboolean ARB_clip_control;
    GLboolean ARB_color_buffer_float;
+   GLboolean ARB_compatibility;
    GLboolean ARB_compute_shader;
    GLboolean ARB_compute_variable_group_size;
    GLboolean ARB_conditional_render_inverted;
@@ -4297,8 +4351,8 @@ struct gl_extensions
    GLboolean KHR_texture_compression_astc_sliced_3d;
    GLboolean MESA_tile_raster_order;
    GLboolean MESA_pack_invert;
-   GLboolean MESA_shader_framebuffer_fetch;
-   GLboolean MESA_shader_framebuffer_fetch_non_coherent;
+   GLboolean EXT_shader_framebuffer_fetch;
+   GLboolean EXT_shader_framebuffer_fetch_non_coherent;
    GLboolean MESA_shader_integer_functions;
    GLboolean MESA_ycbcr_texture;
    GLboolean NV_conditional_render;

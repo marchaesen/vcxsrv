@@ -321,6 +321,8 @@ optimizations = [
    (('~fexp2', ('fmul', ('flog2', a), b)), ('fpow', a, b), '!options->lower_fpow'), # 2^(lg2(a)*b) = a^b
    (('~fexp2', ('fadd', ('fmul', ('flog2', a), b), ('fmul', ('flog2', c), d))),
     ('~fmul', ('fpow', a, b), ('fpow', c, d)), '!options->lower_fpow'), # 2^(lg2(a) * b + lg2(c) + d) = a^b * c^d
+   (('~fexp2', ('fmul', ('flog2', a), 2.0)), ('fmul', a, a)),
+   (('~fexp2', ('fmul', ('flog2', a), 4.0)), ('fmul', ('fmul', a, a), ('fmul', a, a))),
    (('~fpow', a, 1.0), a),
    (('~fpow', a, 2.0), ('fmul', a, a)),
    (('~fpow', a, 4.0), ('fmul', ('fmul', a, a), ('fmul', a, a))),
@@ -334,7 +336,7 @@ optimizations = [
    (('~flog2', ('frcp', a)), ('fneg', ('flog2', a))),
    (('~flog2', ('frsq', a)), ('fmul', -0.5, ('flog2', a))),
    (('~flog2', ('fpow', a, b)), ('fmul', b, ('flog2', a))),
-   (('~fmul', ('fexp2', a), ('fexp2', b)), ('fexp2', ('fadd', a, b))),
+   (('~fmul', ('fexp2(is_used_once)', a), ('fexp2(is_used_once)', b)), ('fexp2', ('fadd', a, b))),
    # Division and reciprocal
    (('~fdiv', 1.0, a), ('frcp', a)),
    (('fdiv', a, b), ('fmul', a, ('frcp', b)), 'options->lower_fdiv'),

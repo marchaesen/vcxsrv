@@ -7056,7 +7056,8 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       do_mat_op_to_vec(ir);
 
       if (stage == MESA_SHADER_FRAGMENT)
-         lower_blend_equation_advanced(shader);
+         lower_blend_equation_advanced(
+            shader, ctx->Extensions.KHR_blend_equation_advanced_coherent);
 
       lower_instructions(ir,
                          MOD_TO_FLOOR |

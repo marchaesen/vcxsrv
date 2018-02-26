@@ -27,6 +27,7 @@
 
 
 #include "main/glheader.h"
+#include "main/arrayobj.h"
 #include "main/mtypes.h"
 #include "main/api_arrayelt.h"
 #include "main/vtxfmt.h"
@@ -34,7 +35,7 @@
 
 const GLubyte
 _vbo_attribute_alias_map[VP_MODE_MAX][VERT_ATTRIB_MAX] = {
-   /* VP_FF: */
+   /* VP_MODE_FF: */
    {
       VBO_ATTRIB_POS,                 /* VERT_ATTRIB_POS */
       VBO_ATTRIB_NORMAL,              /* VERT_ATTRIB_NORMAL */
@@ -70,7 +71,7 @@ _vbo_attribute_alias_map[VP_MODE_MAX][VERT_ATTRIB_MAX] = {
       VBO_ATTRIB_MAT_BACK_INDEXES     /* VERT_ATTRIB_GENERIC15 */
    },
 
-   /* VP_SHADER: */
+   /* VP_MODE_SHADER: */
    {
       VBO_ATTRIB_POS,                 /* VERT_ATTRIB_POS */
       VBO_ATTRIB_NORMAL,              /* VERT_ATTRIB_NORMAL */
@@ -239,4 +240,86 @@ vbo_merge_prims(struct _mesa_prim *p0, const struct _mesa_prim *p1)
 
    p0->count += p1->count;
    p0->end = p1->end;
+}
+
+
+void
+_vbo_init_inputs(struct vbo_inputs *inputs)
+{
+   inputs->current = 0;
+   inputs->vertex_processing_mode = VP_MODE_FF;
+}
+
+
+/**
+ * Update the vbo_inputs's arrays to point to the vao->_VertexArray arrays
+ * according to the 'enable' bitmask.
+ * \param enable  bitfield of VERT_BIT_x flags.
+ */
+static inline void
+update_vao_inputs(struct gl_context *ctx,
+                  struct vbo_inputs *inputs, GLbitfield enable)
+{
+   const struct gl_vertex_array_object *vao = ctx->Array._DrawVAO;
+
+   /* Make sure we process only arrays enabled in the VAO */
+   assert((enable & ~_mesa_get_vao_vp_inputs(vao)) == 0);
+
+   /* Fill in the client arrays from the VAO */
+   const GLubyte *const map = _mesa_vao_attribute_map[vao->_AttributeMapMode];
+   const struct gl_vertex_array *array = vao->_VertexArray;
+   const struct gl_vertex_array **iarray = &inputs->inputs[0];
+   while (enable) {
+      const int attr = u_bit_scan(&enable);
+      iarray[attr] = &array[map[attr]];
+   }
+}
+
+
+/**
+ * Update the vbo_inputs's arrays to point to the vbo->currval arrays
+ * according to the 'current' bitmask.
+ * \param current  bitfield of VERT_BIT_x flags.
+ */
+static inline void
+update_current_inputs(struct gl_context *ctx,
+                      struct vbo_inputs *inputs, GLbitfield current)
+{
+   gl_vertex_processing_mode mode = ctx->VertexProgram._VPMode;
+
+   /* All previously non current array pointers need update. */
+   GLbitfield mask = current & ~inputs->current;
+   /* On mode change, the slots aliasing with materials need update too */
+   if (mode != inputs->vertex_processing_mode)
+      mask |= current & VERT_BIT_MAT_ALL;
+
+   struct vbo_context *vbo = vbo_context(ctx);
+   const struct gl_vertex_array *const currval = &vbo->currval[0];
+   const struct gl_vertex_array **iarray = &inputs->inputs[0];
+   const GLubyte *const map = _vbo_attribute_alias_map[mode];
+   while (mask) {
+      const int attr = u_bit_scan(&mask);
+      iarray[attr] = &currval[map[attr]];
+   }
+
+   inputs->current = current;
+   inputs->vertex_processing_mode = mode;
+}
+
+
+/**
+ * Update the vbo_inputs's arrays to point to the vao->_VertexArray and
+ * vbo->currval arrays according to Array._DrawVAO and
+ * Array._DrawVAOEnableAttribs.
+ */
+void
+_vbo_update_inputs(struct gl_context *ctx, struct vbo_inputs *inputs)
+{
+   const GLbitfield enable = ctx->Array._DrawVAOEnabledAttribs;
+
+   /* Update array input pointers */
+   update_vao_inputs(ctx, inputs, enable);
+
+   /* The rest must be current inputs. */
+   update_current_inputs(ctx, inputs, ~enable & VERT_BIT_ALL);
 }

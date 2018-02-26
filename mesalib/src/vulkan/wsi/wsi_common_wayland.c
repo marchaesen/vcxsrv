@@ -31,10 +31,13 @@
 #include <string.h>
 #include <pthread.h>
 
+#include <drm_fourcc.h>
+
 #include "vk_util.h"
 #include "wsi_common_private.h"
 #include "wsi_common_wayland.h"
 #include "wayland-drm-client-protocol.h"
+#include "linux-dmabuf-unstable-v1-client-protocol.h"
 
 #include <util/hash_table.h>
 #include <util/u_vector.h>
@@ -53,10 +56,16 @@ struct wsi_wl_display {
    struct wl_display *                          wl_display_wrapper;
    struct wl_event_queue *                      queue;
    struct wl_drm *                              drm;
+   struct zwp_linux_dmabuf_v1 *                 dmabuf;
 
    struct wsi_wayland *wsi_wl;
    /* Vector of VkFormats supported */
    struct u_vector                            formats;
+
+   struct {
+      struct u_vector                           argb8888;
+      struct u_vector                           xrgb8888;
+   } modifiers;
 
    uint32_t                                     capabilities;
 
@@ -224,6 +233,53 @@ static const struct wl_drm_listener drm_listener = {
 };
 
 static void
+dmabuf_handle_format(void *data, struct zwp_linux_dmabuf_v1 *dmabuf,
+                     uint32_t format)
+{
+   /* Formats are implicitly advertised by the modifier event, so we ignore
+    * them here. */
+}
+
+static void
+dmabuf_handle_modifier(void *data, struct zwp_linux_dmabuf_v1 *dmabuf,
+                       uint32_t format, uint32_t modifier_hi,
+                       uint32_t modifier_lo)
+{
+   struct wsi_wl_display *display = data;
+   uint64_t *mod = NULL;
+
+   /* If we're not fetching formats, don't fetch modifiers either. */
+   if (display->formats.element_size == 0)
+      return;
+
+   if (modifier_hi == (DRM_FORMAT_MOD_INVALID >> 32) &&
+       modifier_lo == (DRM_FORMAT_MOD_INVALID & 0xffffffff))
+      return;
+
+   switch (format) {
+   case WL_DRM_FORMAT_ARGB8888:
+      mod = u_vector_add(&display->modifiers.argb8888);
+      break;
+   case WL_DRM_FORMAT_XRGB8888:
+      mod = u_vector_add(&display->modifiers.xrgb8888);
+      break;
+   default:
+      break;
+   }
+
+   if (!mod)
+      return;
+
+   *mod = (uint64_t) modifier_hi << 32;
+   *mod |= (uint64_t) (modifier_lo & 0xffffffff);
+}
+
+static const struct zwp_linux_dmabuf_v1_listener dmabuf_listener = {
+   dmabuf_handle_format,
+   dmabuf_handle_modifier,
+};
+
+static void
 registry_handle_global(void *data, struct wl_registry *registry,
                        uint32_t name, const char *interface, uint32_t version)
 {
@@ -237,6 +293,11 @@ registry_handle_global(void *data, struct wl_registry *registry,
 
       if (display->drm)
          wl_drm_add_listener(display->drm, &drm_listener, display);
+   } else if (strcmp(interface, "zwp_linux_dmabuf_v1") == 0 && version >= 3) {
+      display->dmabuf =
+         wl_registry_bind(registry, name, &zwp_linux_dmabuf_v1_interface, 3);
+      zwp_linux_dmabuf_v1_add_listener(display->dmabuf, &dmabuf_listener,
+                                       display);
    }
 }
 
@@ -277,7 +338,9 @@ wsi_wl_display_init(struct wsi_wayland *wsi_wl,
    display->wl_display = wl_display;
 
    if (get_format_list) {
-      if (!u_vector_init(&display->formats, sizeof(VkFormat), 8)) {
+      if (!u_vector_init(&display->formats, sizeof(VkFormat), 8) ||
+          !u_vector_init(&display->modifiers.argb8888, sizeof(uint64_t), 32) ||
+          !u_vector_init(&display->modifiers.xrgb8888, sizeof(uint64_t), 32)) {
          result = VK_ERROR_OUT_OF_HOST_MEMORY;
          goto fail;
       }
@@ -706,21 +769,75 @@ wsi_wl_image_init(struct wsi_wl_swapchain *chain,
                   const VkSwapchainCreateInfoKHR *pCreateInfo,
                   const VkAllocationCallbacks* pAllocator)
 {
+   struct wsi_wl_display *display = chain->display;
+   const uint64_t *modifiers = NULL;
+   uint32_t num_modifiers = 0;
    VkResult result;
 
-   result = wsi_create_native_image(&chain->base, pCreateInfo, &image->base);
+   if (display->dmabuf && chain->base.wsi->supports_modifiers) {
+      switch (chain->drm_format) {
+      case WL_DRM_FORMAT_ARGB8888:
+         modifiers = u_vector_tail(&display->modifiers.argb8888);
+         num_modifiers = u_vector_length(&display->modifiers.argb8888);
+         break;
+      case WL_DRM_FORMAT_XRGB8888:
+         modifiers = u_vector_tail(&display->modifiers.xrgb8888);
+         num_modifiers = u_vector_length(&display->modifiers.xrgb8888);
+         break;
+      default:
+         break;
+      }
+   }
+
+   result = wsi_create_native_image(&chain->base, pCreateInfo,
+                                    num_modifiers > 0 ? 1 : 0,
+                                    &num_modifiers, &modifiers,
+                                    &image->base);
+
    if (result != VK_SUCCESS)
       return result;
 
-   image->buffer = wl_drm_create_prime_buffer(chain->drm_wrapper,
-                                              image->base.fd, /* name */
-                                              chain->extent.width,
-                                              chain->extent.height,
-                                              chain->drm_format,
-                                              image->base.offset,
-                                              image->base.row_pitch,
-                                              0, 0, 0, 0 /* unused */);
-   close(image->base.fd);
+   if (image->base.drm_modifier != DRM_FORMAT_MOD_INVALID) {
+      /* Only request modifiers if we have dmabuf, else it must be implicit. */
+      assert(display->dmabuf);
+
+      struct zwp_linux_buffer_params_v1 *params =
+         zwp_linux_dmabuf_v1_create_params(display->dmabuf);
+      wl_proxy_set_queue((struct wl_proxy *) params, chain->display->queue);
+
+      for (int i = 0; i < image->base.num_planes; i++) {
+         zwp_linux_buffer_params_v1_add(params,
+                                        image->base.fds[i],
+                                        i,
+                                        image->base.offsets[i],
+                                        image->base.row_pitches[i],
+                                        image->base.drm_modifier >> 32,
+                                        image->base.drm_modifier & 0xffffffff);
+         close(image->base.fds[i]);
+      }
+
+      image->buffer =
+         zwp_linux_buffer_params_v1_create_immed(params,
+                                                 chain->extent.width,
+                                                 chain->extent.height,
+                                                 chain->drm_format,
+                                                 0);
+      zwp_linux_buffer_params_v1_destroy(params);
+   } else {
+      /* Without passing modifiers, we can't have multi-plane RGB images. */
+      assert(image->base.num_planes == 1);
+
+      image->buffer =
+         wl_drm_create_prime_buffer(chain->drm_wrapper,
+                                    image->base.fds[0], /* name */
+                                    chain->extent.width,
+                                    chain->extent.height,
+                                    chain->drm_format,
+                                    image->base.offsets[0],
+                                    image->base.row_pitches[0],
+                                    0, 0, 0, 0 /* unused */);
+      close(image->base.fds[0]);
+   }
 
    if (!image->buffer)
       goto fail_image;

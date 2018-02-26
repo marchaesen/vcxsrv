@@ -11,7 +11,9 @@ VULKAN_WSI_WAYLAND_FILES := \
 
 VULKAN_WSI_WAYLAND_GENERATED_FILES := \
 	wsi/wayland-drm-protocol.c \
-	wsi/wayland-drm-client-protocol.h
+	wsi/wayland-drm-client-protocol.h \
+	wsi/linux-dmabuf-unstable-v1-protocol.c \
+	wsi/linux-dmabuf-unstable-v1-client-protocol.h
 
 VULKAN_WSI_X11_FILES := \
 	wsi/wsi_common_x11.c \

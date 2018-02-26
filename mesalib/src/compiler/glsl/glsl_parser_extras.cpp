@@ -616,6 +616,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_ES3_2_compatibility),
    EXT(ARB_arrays_of_arrays),
    EXT(ARB_bindless_texture),
+   EXT(ARB_compatibility),
    EXT(ARB_compute_shader),
    EXT(ARB_compute_variable_group_size),
    EXT(ARB_conservative_depth),
@@ -706,6 +707,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT_AEP(EXT_primitive_bounding_box),
    EXT(EXT_separate_shader_objects),
    EXT(EXT_shader_framebuffer_fetch),
+   EXT(EXT_shader_framebuffer_fetch_non_coherent),
    EXT(EXT_shader_integer_mix),
    EXT_AEP(EXT_shader_io_blocks),
    EXT(EXT_shader_samples_identical),
@@ -1010,7 +1012,7 @@ _mesa_ast_process_interface_block(YYLTYPE *locp,
                            "an instance name are not allowed");
    }
 
-   uint64_t interface_type_mask;
+   ast_type_qualifier::bitset_t interface_type_mask;
    struct ast_type_qualifier temp_type_qualifier;
 
    /* Get a bitmask containing only the in/out/uniform/buffer
@@ -1029,7 +1031,7 @@ _mesa_ast_process_interface_block(YYLTYPE *locp,
     * production rule guarantees that only one bit will be set (and
     * it will be in/out/uniform).
     */
-   uint64_t block_interface_qualifier = q.flags.i;
+   ast_type_qualifier::bitset_t block_interface_qualifier = q.flags.i;
 
    block->default_layout.flags.i |= block_interface_qualifier;
 

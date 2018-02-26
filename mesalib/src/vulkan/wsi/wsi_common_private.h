@@ -35,10 +35,12 @@ struct wsi_image {
       VkCommandBuffer *blit_cmd_buffers;
    } prime;
 
-   uint32_t size;
-   uint32_t offset;
-   uint32_t row_pitch;
-   int fd;
+   uint64_t drm_modifier;
+   int num_planes;
+   uint32_t sizes[4];
+   uint32_t offsets[4];
+   uint32_t row_pitches[4];
+   int fds[4];
 };
 
 struct wsi_swapchain {
@@ -79,6 +81,9 @@ void wsi_swapchain_finish(struct wsi_swapchain *chain);
 VkResult
 wsi_create_native_image(const struct wsi_swapchain *chain,
                         const VkSwapchainCreateInfoKHR *pCreateInfo,
+                        uint32_t num_modifier_lists,
+                        const uint32_t *num_modifiers,
+                        const uint64_t *const *modifiers,
                         struct wsi_image *image);
 
 VkResult

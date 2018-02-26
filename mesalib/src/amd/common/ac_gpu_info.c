@@ -98,7 +98,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 {
 	struct amdgpu_buffer_size_alignments alignment_info = {};
 	struct amdgpu_heap_info vram, vram_vis, gtt;
-	struct drm_amdgpu_info_hw_ip dma = {}, compute = {}, uvd = {}, vce = {}, vcn_dec = {}, vcn_enc = {};
+	struct drm_amdgpu_info_hw_ip dma = {}, compute = {}, uvd = {}, uvd_enc = {}, vce = {}, vcn_dec = {}, vcn_enc = {};
 	uint32_t vce_version = 0, vce_feature = 0, uvd_version = 0, uvd_feature = 0;
 	int r, i, j;
 	drmDevicePtr devinfo;
@@ -164,6 +164,14 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	if (r) {
 		fprintf(stderr, "amdgpu: amdgpu_query_hw_ip_info(uvd) failed.\n");
 		return false;
+	}
+
+	if (info->drm_major == 3 && info->drm_minor >= 17) {
+		r = amdgpu_query_hw_ip_info(dev, AMDGPU_HW_IP_UVD_ENC, 0, &uvd_enc);
+		if (r) {
+			fprintf(stderr, "amdgpu: amdgpu_query_hw_ip_info(uvd_enc) failed.\n");
+			return false;
+		}
 	}
 
 	if (info->drm_major == 3 && info->drm_minor >= 17) {
@@ -281,6 +289,8 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		uvd.available_rings ? uvd_version : 0;
 	info->vce_fw_version =
 		vce.available_rings ? vce_version : 0;
+	info->uvd_enc_supported =
+		uvd_enc.available_rings ? true : false;
 	info->has_userptr = true;
 	info->has_syncobj = has_syncobj(fd);
 	info->has_syncobj_wait_for_submit = info->has_syncobj && info->drm_minor >= 20;

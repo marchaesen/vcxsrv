@@ -129,7 +129,9 @@ radv_extensions.c: radv_extensions.py \
 	$(AM_V_GEN)$(PYTHON2) $(srcdir)/radv_extensions.py \
 		--xml $(vulkan_api_xml) \
 		--xml $(vk_android_native_buffer_xml) \
-		--out $@
+		--out-c radv_extensions.c \
+		--out-h radv_extensions.h
+radv_extensions.h: radv_extensions.c
 
 vk_format_table.c: vk_format_table.py \
 		   vk_format_parse.py \

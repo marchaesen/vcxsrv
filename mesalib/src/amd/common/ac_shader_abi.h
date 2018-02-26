@@ -96,6 +96,7 @@ struct ac_shader_abi {
 				    LLVMTypeRef type);
 
 	LLVMValueRef (*load_tess_varyings)(struct ac_shader_abi *abi,
+					   LLVMTypeRef type,
 					   LLVMValueRef vertex_index,
 					   LLVMValueRef param_index,
 					   unsigned const_index,

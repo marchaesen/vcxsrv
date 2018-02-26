@@ -100,6 +100,7 @@ _mesa_init_program(struct gl_context *ctx)
                            ctx->Shared->DefaultFragmentProgram);
    assert(ctx->FragmentProgram.Current);
    ctx->FragmentProgram.Cache = _mesa_new_program_cache();
+   ctx->VertexProgram._VPMode = VP_MODE_FF;
 
    /* XXX probably move this stuff */
    ctx->ATIFragmentShader.Enabled = GL_FALSE;

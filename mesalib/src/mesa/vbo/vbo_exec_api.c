@@ -758,7 +758,8 @@ static void GLAPIENTRY
 vbo_exec_Begin(GLenum mode)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
+   struct vbo_context *vbo = vbo_context(ctx);
+   struct vbo_exec_context *exec = &vbo->exec;
    int i;
 
    if (_mesa_inside_begin_end(ctx)) {
@@ -769,8 +770,6 @@ vbo_exec_Begin(GLenum mode)
    if (!_mesa_valid_prim_mode(ctx, mode, "glBegin")) {
       return;
    }
-
-   _mesa_set_drawing_arrays(ctx, exec->vtx.inputs);
 
    if (ctx->NewState) {
       _mesa_update_state(ctx);
@@ -1162,7 +1161,6 @@ void
 vbo_exec_vtx_init(struct vbo_exec_context *exec)
 {
    struct gl_context *ctx = exec->ctx;
-   struct vbo_context *vbo = vbo_context(ctx);
    GLuint i;
 
    /* Allocate a buffer object.  Will just reuse this object
@@ -1189,38 +1187,6 @@ vbo_exec_vtx_init(struct vbo_exec_context *exec)
       assert(i < ARRAY_SIZE(exec->vtx.active_sz));
       exec->vtx.active_sz[i] = 0;
    }
-   for (i = 0 ; i < VERT_ATTRIB_MAX; i++) {
-      assert(i < ARRAY_SIZE(exec->vtx.inputs));
-      assert(i < ARRAY_SIZE(exec->vtx.arrays));
-      exec->vtx.inputs[i] = &exec->vtx.arrays[i];
-   }
-
-   {
-      struct gl_vertex_array *arrays = exec->vtx.arrays;
-      unsigned i;
-
-      memcpy(arrays, &vbo->currval[VBO_ATTRIB_POS],
-             VERT_ATTRIB_FF_MAX * sizeof(arrays[0]));
-      for (i = 0; i < VERT_ATTRIB_FF_MAX; ++i) {
-         struct gl_vertex_array *array;
-         array = &arrays[VERT_ATTRIB_FF(i)];
-         array->BufferObj = NULL;
-         _mesa_reference_buffer_object(ctx, &array->BufferObj,
-                                       vbo->currval[VBO_ATTRIB_POS+i].BufferObj);
-      }
-
-      memcpy(arrays + VERT_ATTRIB_GENERIC(0),
-             &vbo->currval[VBO_ATTRIB_GENERIC0],
-             VERT_ATTRIB_GENERIC_MAX * sizeof(arrays[0]));
-
-      for (i = 0; i < VERT_ATTRIB_GENERIC_MAX; ++i) {
-         struct gl_vertex_array *array;
-         array = &arrays[VERT_ATTRIB_GENERIC(i)];
-         array->BufferObj = NULL;
-         _mesa_reference_buffer_object(ctx, &array->BufferObj,
-                           vbo->currval[VBO_ATTRIB_GENERIC0+i].BufferObj);
-      }
-   }
 
    exec->vtx.vertex_size = 0;
 
@@ -1233,7 +1199,6 @@ vbo_exec_vtx_destroy(struct vbo_exec_context *exec)
 {
    /* using a real VBO for vertex data */
    struct gl_context *ctx = exec->ctx;
-   unsigned i;
 
    /* True VBOs should already be unmapped
     */
@@ -1245,14 +1210,6 @@ vbo_exec_vtx_destroy(struct vbo_exec_context *exec)
          exec->vtx.buffer_map = NULL;
          exec->vtx.buffer_ptr = NULL;
       }
-   }
-
-   /* Drop any outstanding reference to the vertex buffer
-    */
-   for (i = 0; i < ARRAY_SIZE(exec->vtx.arrays); i++) {
-      _mesa_reference_buffer_object(ctx,
-                                    &exec->vtx.arrays[i].BufferObj,
-                                    NULL);
    }
 
    /* Free the vertex buffer.  Unmap first if needed.

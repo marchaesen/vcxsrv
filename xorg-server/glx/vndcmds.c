@@ -387,12 +387,13 @@ static int dispatch_GLXVendorPriv(ClientPtr client)
         // we'll still add an entry to the dispatch table, so that we don't
         // have to look it up again later.
         disp = (GlxVendorPrivDispatch *) malloc(sizeof(GlxVendorPrivDispatch));
+        if (disp == NULL) {
+            return BadAlloc;
+        }
+
         disp->proc = GetVendorDispatchFunc(stuff->glxCode,
                                            GlxCheckSwap(client,
                                                         stuff->vendorCode));
-        if (disp->proc == NULL) {
-            disp->proc = DispatchBadRequest;
-        }
     }
     return disp->proc(client);
 }

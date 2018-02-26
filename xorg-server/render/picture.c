@@ -148,17 +148,17 @@ typedef struct _formatInit {
     CARD8 depth;
 } FormatInitRec, *FormatInitPtr;
 
-static int
-addFormat(FormatInitRec formats[256], int nformat, CARD32 format, CARD8 depth)
+static void
+addFormat(FormatInitRec formats[256], int *nformat, CARD32 format, CARD8 depth)
 {
     int n;
 
-    for (n = 0; n < nformat; n++)
+    for (n = 0; n < *nformat; n++)
         if (formats[n].format == format && formats[n].depth == depth)
-            return nformat;
-    formats[nformat].format = format;
-    formats[nformat].depth = depth;
-    return ++nformat;
+            return;
+    formats[*nformat].format = format;
+    formats[*nformat].depth = depth;
+    ++*nformat;
 }
 
 #define Mask(n) ((1 << (n)) - 1)
@@ -166,7 +166,7 @@ addFormat(FormatInitRec formats[256], int nformat, CARD32 format, CARD8 depth)
 static PictFormatPtr
 PictureCreateDefaultFormats(ScreenPtr pScreen, int *nformatp)
 {
-    int nformats, f;
+    int nformats = 0, f;
     PictFormatPtr pFormats;
     FormatInitRec formats[1024];
     CARD32 format;
@@ -239,18 +239,18 @@ PictureCreateDefaultFormats(ScreenPtr pScreen, int *nformatp)
             }
             if (type != PICT_TYPE_OTHER) {
                 format = PICT_FORMAT(bpp, type, 0, r, g, b);
-                nformats = addFormat(formats, nformats, format, depth);
+                addFormat(formats, &nformats, format, depth);
             }
             break;
         case StaticColor:
         case PseudoColor:
             format = PICT_VISFORMAT(bpp, PICT_TYPE_COLOR, v);
-            nformats = addFormat(formats, nformats, format, depth);
+            addFormat(formats, &nformats, format, depth);
             break;
         case StaticGray:
         case GrayScale:
             format = PICT_VISFORMAT(bpp, PICT_TYPE_GRAY, v);
-            nformats = addFormat(formats, nformats, format, depth);
+            addFormat(formats, &nformats, format, depth);
             break;
         }
     }
@@ -265,58 +265,34 @@ PictureCreateDefaultFormats(ScreenPtr pScreen, int *nformatp)
         case 16:
             /* depth 12 formats */
             if (pDepth->depth >= 12) {
-                nformats = addFormat(formats, nformats,
-                                     PICT_x4r4g4b4, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_x4b4g4r4, pDepth->depth);
+                addFormat(formats, &nformats, PICT_x4r4g4b4, pDepth->depth);
+                addFormat(formats, &nformats, PICT_x4b4g4r4, pDepth->depth);
             }
             /* depth 15 formats */
             if (pDepth->depth >= 15) {
-                nformats = addFormat(formats, nformats,
-                                     PICT_x1r5g5b5, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_x1b5g5r5, pDepth->depth);
+                addFormat(formats, &nformats, PICT_x1r5g5b5, pDepth->depth);
+                addFormat(formats, &nformats, PICT_x1b5g5r5, pDepth->depth);
             }
             /* depth 16 formats */
             if (pDepth->depth >= 16) {
-                nformats = addFormat(formats, nformats,
-                                     PICT_a1r5g5b5, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_a1b5g5r5, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_r5g6b5, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_b5g6r5, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_a4r4g4b4, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_a4b4g4r4, pDepth->depth);
-            }
-            break;
-        case 24:
-            if (pDepth->depth >= 24) {
-                nformats = addFormat(formats, nformats,
-                                     PICT_r8g8b8, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_b8g8r8, pDepth->depth);
+                addFormat(formats, &nformats, PICT_a1r5g5b5, pDepth->depth);
+                addFormat(formats, &nformats, PICT_a1b5g5r5, pDepth->depth);
+                addFormat(formats, &nformats, PICT_r5g6b5, pDepth->depth);
+                addFormat(formats, &nformats, PICT_b5g6r5, pDepth->depth);
+                addFormat(formats, &nformats, PICT_a4r4g4b4, pDepth->depth);
+                addFormat(formats, &nformats, PICT_a4b4g4r4, pDepth->depth);
             }
             break;
         case 32:
             if (pDepth->depth >= 24) {
-                nformats = addFormat(formats, nformats,
-                                     PICT_x8r8g8b8, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_x8b8g8r8, pDepth->depth);
+                addFormat(formats, &nformats, PICT_x8r8g8b8, pDepth->depth);
+                addFormat(formats, &nformats, PICT_x8b8g8r8, pDepth->depth);
             }
             if (pDepth->depth >= 30) {
-                nformats = addFormat(formats, nformats,
-                                     PICT_a2r10g10b10, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_x2r10g10b10, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_a2b10g10r10, pDepth->depth);
-                nformats = addFormat(formats, nformats,
-                                     PICT_x2b10g10r10, pDepth->depth);
+                addFormat(formats, &nformats, PICT_a2r10g10b10, pDepth->depth);
+                addFormat(formats, &nformats, PICT_x2r10g10b10, pDepth->depth);
+                addFormat(formats, &nformats, PICT_a2b10g10r10, pDepth->depth);
+                addFormat(formats, &nformats, PICT_x2b10g10r10, pDepth->depth);
             }
             break;
         }

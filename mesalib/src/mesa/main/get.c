@@ -575,7 +575,7 @@ static const int extra_core_ARB_color_buffer_float_and_new_buffers[] = {
 static const int extra_EXT_shader_framebuffer_fetch[] = {
    EXTRA_API_ES2,
    EXTRA_API_ES3,
-   EXT(MESA_shader_framebuffer_fetch),
+   EXT(EXT_shader_framebuffer_fetch),
    EXTRA_END
 };
 
@@ -2555,7 +2555,7 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
    case GL_SAMPLER_BINDING: {
       struct gl_sampler_object *samp;
 
-      if (ctx->API != API_OPENGL_CORE)
+      if (!_mesa_is_desktop_gl(ctx) || ctx->Version < 33)
          goto invalid_enum;
       if (index >= _mesa_max_tex_unit(ctx))
          goto invalid_value;

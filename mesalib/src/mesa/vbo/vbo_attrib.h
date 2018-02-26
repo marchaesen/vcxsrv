@@ -113,8 +113,8 @@ enum vbo_attrib {
                      VBO_ATTRIB_LAST_MATERIAL - VBO_ATTRIB_FIRST_MATERIAL + 1)
 
 /** Shift to move legacy material attribs into generic slots */
-#define VBO_MATERIAL_SHIFT (VBO_ATTRIB_FIRST_MATERIAL - VBO_ATTRIB_GENERIC0)
-
+#define VBO_MATERIAL_SHIFT \
+   (VBO_ATTRIB_LAST_MATERIAL - VBO_ATTRIB_FIRST_MATERIAL + 1)
 
 
 

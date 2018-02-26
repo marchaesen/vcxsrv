@@ -110,17 +110,16 @@ static char *loader_get_dri_config_device_id(void)
 
 static char *drm_construct_id_path_tag(drmDevicePtr device)
 {
-#define PCI_ID_PATH_TAG_LENGTH sizeof("pci-xxxx_xx_xx_x")
    char *tag = NULL;
 
    if (device->bustype == DRM_BUS_PCI) {
-        tag = calloc(PCI_ID_PATH_TAG_LENGTH, sizeof(char));
-        if (tag == NULL)
-            return NULL;
-
-        snprintf(tag, PCI_ID_PATH_TAG_LENGTH, "pci-%04x_%02x_%02x_%1u",
-                 device->businfo.pci->domain, device->businfo.pci->bus,
-                 device->businfo.pci->dev, device->businfo.pci->func);
+      if (asprintf(&tag, "pci-%04x_%02x_%02x_%1u",
+                   device->businfo.pci->domain,
+                   device->businfo.pci->bus,
+                   device->businfo.pci->dev,
+                   device->businfo.pci->func) < 0) {
+         return NULL;
+      }
    }
    return tag;
 }

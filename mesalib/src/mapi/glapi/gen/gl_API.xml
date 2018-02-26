@@ -12886,6 +12886,12 @@
 
 <xi:include href="EXT_window_rectangles.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<!-- 520. GL_EXT_shader_framebuffer_fetch -->
+<category name="GL_EXT_shader_framebuffer_fetch" number="520">
+    <enum name="FRAGMENT_SHADER_DISCARDS_SAMPLES_EXT" value="0x8A52"/>
+    <function name="FramebufferFetchBarrierEXT" es2="2.0"/>
+</category>
+
 <!-- Unnumbered extensions sorted by name. -->
 
 <category name="GL_ATI_blend_equation_separate">

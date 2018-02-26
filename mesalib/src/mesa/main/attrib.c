@@ -57,6 +57,7 @@
 #include "viewport.h"
 #include "mtypes.h"
 #include "main/dispatch.h"
+#include "state.h"
 #include "hash.h"
 #include <stdbool.h>
 
@@ -1548,6 +1549,7 @@ copy_array_attrib(struct gl_context *ctx,
 
    /* Invalidate array state. It will be updated during the next draw. */
    _mesa_set_drawing_arrays(ctx, NULL);
+   _mesa_set_draw_vao(ctx, ctx->Array._EmptyVAO, 0);
 }
 
 /**

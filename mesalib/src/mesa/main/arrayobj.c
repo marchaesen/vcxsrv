@@ -49,9 +49,11 @@
 #include "arrayobj.h"
 #include "macros.h"
 #include "mtypes.h"
+#include "state.h"
 #include "varray.h"
 #include "main/dispatch.h"
 #include "util/bitscan.h"
+#include "util/u_atomic.h"
 
 
 const GLubyte
@@ -330,10 +332,16 @@ _mesa_reference_vao_(struct gl_context *ctx,
       /* Unreference the old array object */
       struct gl_vertex_array_object *oldObj = *ptr;
 
-      assert(oldObj->RefCount > 0);
-      oldObj->RefCount--;
+      bool deleteFlag;
+      if (oldObj->SharedAndImmutable) {
+         deleteFlag = p_atomic_dec_zero(&oldObj->RefCount);
+      } else {
+         assert(oldObj->RefCount > 0);
+         oldObj->RefCount--;
+         deleteFlag = (oldObj->RefCount == 0);
+      }
 
-      if (oldObj->RefCount == 0)
+      if (deleteFlag)
          _mesa_delete_vao(ctx, oldObj);
 
       *ptr = NULL;
@@ -342,9 +350,13 @@ _mesa_reference_vao_(struct gl_context *ctx,
 
    if (vao) {
       /* reference new array object */
-      assert(vao->RefCount > 0);
+      if (vao->SharedAndImmutable) {
+         p_atomic_inc(&vao->RefCount);
+      } else {
+         assert(vao->RefCount > 0);
+         vao->RefCount++;
+      }
 
-      vao->RefCount++;
       *ptr = vao;
    }
 }
@@ -406,6 +418,7 @@ _mesa_initialize_vao(struct gl_context *ctx,
    vao->Name = name;
 
    vao->RefCount = 1;
+   vao->SharedAndImmutable = false;
 
    /* Init the individual arrays */
    for (i = 0; i < ARRAY_SIZE(vao->VertexAttrib); i++) {
@@ -451,6 +464,9 @@ _mesa_update_vao_derived_arrays(struct gl_context *ctx,
 {
    GLbitfield arrays = vao->NewArrays;
 
+   /* Make sure we do not run into problems with shared objects */
+   assert(!vao->SharedAndImmutable || vao->NewArrays == 0);
+
    while (arrays) {
       const int attrib = u_bit_scan(&arrays);
       struct gl_vertex_array *array = &vao->_VertexArray[attrib];
@@ -461,6 +477,16 @@ _mesa_update_vao_derived_arrays(struct gl_context *ctx,
 
       _mesa_update_vertex_array(ctx, array, attribs, buffer_binding);
    }
+}
+
+
+void
+_mesa_set_vao_immutable(struct gl_context *ctx,
+                        struct gl_vertex_array_object *vao)
+{
+   _mesa_update_vao_derived_arrays(ctx, vao);
+   vao->NewArrays = 0;
+   vao->SharedAndImmutable = true;
 }
 
 
@@ -578,6 +604,7 @@ bind_vertex_array(struct gl_context *ctx, GLuint id, bool no_error)
     * deleted.
     */
    _mesa_set_drawing_arrays(ctx, NULL);
+   _mesa_set_draw_vao(ctx, ctx->Array._EmptyVAO, 0);
 
    ctx->NewState |= _NEW_ARRAY;
    _mesa_reference_vao(ctx, &ctx->Array.VAO, newObj);
@@ -629,6 +656,8 @@ delete_vertex_arrays(struct gl_context *ctx, GLsizei n, const GLuint *ids)
 
          if (ctx->Array.LastLookedUpVAO == obj)
             _mesa_reference_vao(ctx, &ctx->Array.LastLookedUpVAO, NULL);
+         if (ctx->Array._DrawVAO == obj)
+            _mesa_set_draw_vao(ctx, ctx->Array._EmptyVAO, 0);
 
          /* Unreference the array object. 
           * If refcount hits zero, the object will be deleted.

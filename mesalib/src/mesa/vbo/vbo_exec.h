@@ -76,7 +76,6 @@ struct vbo_exec_context
    struct gl_context *ctx;
    GLvertexformat vtxfmt;
    GLvertexformat vtxfmt_noop;
-   GLboolean validating; /**< if we're in the middle of state validation */
 
    struct {
       struct gl_buffer_object *bufferobj;
@@ -102,14 +101,6 @@ struct vbo_exec_context
 
       /** pointers into the current 'vertex' array, declared above */
       fi_type *attrptr[VBO_ATTRIB_MAX];
-
-      struct gl_vertex_array arrays[VERT_ATTRIB_MAX];
-
-      /* According to program mode, the values above plus current
-       * values are squashed down to the 32 attributes passed to the
-       * vertex program below:
-       */
-      const struct gl_vertex_array *inputs[VERT_ATTRIB_MAX];
    } vtx;
 
    struct {
@@ -119,11 +110,6 @@ struct vbo_exec_context
    } eval;
 
    struct {
-      /* Arrays and current values manipulated according to program
-       * mode, etc.  These are the attributes as seen by vertex
-       * programs:
-       */
-      const struct gl_vertex_array *inputs[VERT_ATTRIB_MAX];
       GLboolean recalculate_inputs;
    } array;
 

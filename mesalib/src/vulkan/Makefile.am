@@ -36,6 +36,7 @@ libvulkan_util_la_SOURCES = $(VULKAN_UTIL_SOURCES)
 AM_CPPFLAGS = \
 	$(DEFINES) \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/include/drm-uapi \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/vulkan/util \
 	-I$(top_srcdir)/src/gallium/auxiliary \
@@ -67,6 +68,16 @@ wsi/wayland-drm-protocol.c : $(WL_DRM_XML)
 	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@
 
 wsi/wayland-drm-client-protocol.h : $(WL_DRM_XML)
+	$(MKDIR_GEN)
+	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
+
+WL_DMABUF_XML = $(WAYLAND_PROTOCOLS_DATADIR)/unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml
+
+wsi/linux-dmabuf-unstable-v1-protocol.c : $(WL_DMABUF_XML)
+	$(MKDIR_GEN)
+	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@
+
+wsi/linux-dmabuf-unstable-v1-client-protocol.h : $(WL_DMABUF_XML)
 	$(MKDIR_GEN)
 	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
 

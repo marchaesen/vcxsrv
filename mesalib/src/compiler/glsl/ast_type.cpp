@@ -270,6 +270,7 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    input_layout_mask.flags.q.precise = 1;
    input_layout_mask.flags.q.sample = 1;
    input_layout_mask.flags.q.smooth = 1;
+   input_layout_mask.flags.q.non_coherent = 1;
 
    if (state->has_bindless()) {
       /* Allow to use image qualifiers with shader inputs/outputs. */
@@ -775,7 +776,7 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
                     "%s '%s':"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
                     message, name,
                     bad.flags.q.invariant ? " invariant" : "",
                     bad.flags.q.precise ? " precise" : "",
@@ -838,7 +839,8 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
                     bad.flags.q.bindless_image ? " bindless_image" : "",
                     bad.flags.q.bound_sampler ? " bound_sampler" : "",
                     bad.flags.q.bound_image ? " bound_image" : "",
-                    bad.flags.q.post_depth_coverage ? " post_depth_coverage" : "");
+                    bad.flags.q.post_depth_coverage ? " post_depth_coverage" : "",
+                    bad.flags.q.non_coherent ? " noncoherent" : "");
    return false;
 }
 

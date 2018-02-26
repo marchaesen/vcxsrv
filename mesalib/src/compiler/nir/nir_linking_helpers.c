@@ -283,7 +283,6 @@ remap_slots_and_components(struct exec_list *var_list, gl_shader_stage stage,
       if (var->data.location >= VARYING_SLOT_VAR0 &&
           var->data.location - VARYING_SLOT_VAR0 < 32) {
          assert(var->data.location - VARYING_SLOT_VAR0 < 32);
-         assert(remap[var->data.location - VARYING_SLOT_VAR0] >= 0);
 
          const struct glsl_type *type = var->type;
          if (nir_is_per_vertex_io(var, stage)) {
