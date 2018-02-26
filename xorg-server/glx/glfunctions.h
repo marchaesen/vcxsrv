@@ -1395,6 +1395,7 @@
 #define glWaitSemaphoreEXT(a1, a2, a3, a4, a5, a6) CALL_WaitSemaphoreEXT(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
 #define glImportMemoryFdEXT(a1, a2, a3, a4) CALL_ImportMemoryFdEXT(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glImportSemaphoreFdEXT(a1, a2, a3) CALL_ImportSemaphoreFdEXT(GET_DISPATCH(), (a1, a2, a3))
+#define glFramebufferFetchBarrierEXT() CALL_FramebufferFetchBarrierEXT(GET_DISPATCH(), ())
 #define glStencilFuncSeparateATI(a1, a2, a3, a4) CALL_StencilFuncSeparateATI(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glProgramEnvParameters4fvEXT(a1, a2, a3, a4) CALL_ProgramEnvParameters4fvEXT(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glProgramLocalParameters4fvEXT(a1, a2, a3, a4) CALL_ProgramLocalParameters4fvEXT(GET_DISPATCH(), (a1, a2, a3, a4))

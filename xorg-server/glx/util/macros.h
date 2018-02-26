@@ -285,4 +285,14 @@ do {                       \
 #define MIN3( A, B, C ) ((A) < (B) ? MIN2(A, C) : MIN2(B, C))
 #define MAX3( A, B, C ) ((A) > (B) ? MAX2(A, C) : MAX2(B, C))
 
+/**
+ * Macro for declaring an explicit conversion operator.  Defaults to an
+ * implicit conversion if C++11 is not supported.
+ */
+#if __cplusplus >= 201103L
+#define EXPLICIT_CONVERSION explicit
+#elif defined(__cplusplus)
+#define EXPLICIT_CONVERSION
+#endif
+
 #endif /* UTIL_MACROS_H */
