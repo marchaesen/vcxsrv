@@ -37,6 +37,7 @@
 #include "main/mtypes.h"
 #include "main/arbprogram.h"
 #include "main/shaderapi.h"
+#include "main/state.h"
 #include "program/arbprogparse.h"
 #include "program/program.h"
 #include "program/prog_print.h"
@@ -132,6 +133,8 @@ _mesa_BindProgramARB(GLenum target, GLuint id)
    else if (target == GL_FRAGMENT_PROGRAM_ARB) {
       _mesa_reference_program(ctx, &ctx->FragmentProgram.Current, newProg);
    }
+
+   _mesa_update_vertex_processing_mode(ctx);
 
    /* Never null pointers */
    assert(ctx->VertexProgram.Current);
@@ -368,6 +371,8 @@ _mesa_ProgramStringARB(GLenum target, GLenum format, GLsizei len,
                      "glProgramStringARB(rejected by driver");
       }
    }
+
+   _mesa_update_vertex_processing_mode(ctx);
 
    if (ctx->_Shader->Flags & GLSL_DUMP) {
       const char *shader_type =

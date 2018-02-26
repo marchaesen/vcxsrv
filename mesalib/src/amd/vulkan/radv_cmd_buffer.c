@@ -3440,8 +3440,8 @@ void radv_CmdEndRenderPass(
 
 /*
  * For HTILE we have the following interesting clear words:
- *   0x0000030f: Uncompressed for depth+stencil HTILE.
- *   0x0000000f: Uncompressed for depth only HTILE.
+ *   0xfffff30f: Uncompressed, full depth range, for depth+stencil HTILE
+ *   0xfffc000f: Uncompressed, full depth range, for depth only HTILE.
  *   0xfffffff0: Clear depth to 1.0
  *   0x00000000: Clear depth to 0.0
  */
@@ -3489,7 +3489,7 @@ static void radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffe
 		radv_initialize_htile(cmd_buffer, image, range, 0);
 	} else if (!radv_layout_is_htile_compressed(image, src_layout, src_queue_mask) &&
 	           radv_layout_is_htile_compressed(image, dst_layout, dst_queue_mask)) {
-		uint32_t clear_value = vk_format_is_stencil(image->vk_format) ? 0x30f : 0xf;
+		uint32_t clear_value = vk_format_is_stencil(image->vk_format) ? 0xfffff30f : 0xfffc000f;
 		radv_initialize_htile(cmd_buffer, image, range, clear_value);
 	} else if (radv_layout_is_htile_compressed(image, src_layout, src_queue_mask) &&
 	           !radv_layout_is_htile_compressed(image, dst_layout, dst_queue_mask)) {

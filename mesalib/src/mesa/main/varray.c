@@ -155,11 +155,11 @@ update_attribute_map_mode(const struct gl_context *ctx,
  * Sets the BufferBindingIndex field for the vertex attribute given by
  * attribIndex.
  */
-static void
-vertex_attrib_binding(struct gl_context *ctx,
-                      struct gl_vertex_array_object *vao,
-                      gl_vert_attrib attribIndex,
-                      GLuint bindingIndex)
+void
+_mesa_vertex_attrib_binding(struct gl_context *ctx,
+                            struct gl_vertex_array_object *vao,
+                            gl_vert_attrib attribIndex,
+                            GLuint bindingIndex, bool flush_vertices)
 {
    struct gl_array_attributes *array = &vao->VertexAttrib[attribIndex];
 
@@ -171,7 +171,9 @@ vertex_attrib_binding(struct gl_context *ctx,
       else
          vao->VertexAttribBufferMask &= ~array_bit;
 
-      FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      if (flush_vertices) {
+         FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      }
 
       vao->BufferBinding[array->BufferBindingIndex]._BoundArrays &= ~array_bit;
       vao->BufferBinding[bindingIndex]._BoundArrays |= array_bit;
@@ -192,7 +194,7 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
                          struct gl_vertex_array_object *vao,
                          GLuint index,
                          struct gl_buffer_object *vbo,
-                         GLintptr offset, GLsizei stride)
+                         GLintptr offset, GLsizei stride, bool flush_vertices)
 {
    assert(index < ARRAY_SIZE(vao->BufferBinding));
    struct gl_vertex_buffer_binding *binding = &vao->BufferBinding[index];
@@ -200,8 +202,9 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
    if (binding->BufferObj != vbo ||
        binding->Offset != offset ||
        binding->Stride != stride) {
-
-      FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      if (flush_vertices) {
+         FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      }
 
       _mesa_reference_buffer_object(ctx, &binding->BufferObj, vbo);
 
@@ -519,7 +522,7 @@ validate_array(struct gl_context *ctx, const char *func,
       return;
    }
 
-   if (ctx->API == API_OPENGL_CORE && ctx->Version >= 44 &&
+   if (_mesa_is_desktop_gl(ctx) && ctx->Version >= 44 &&
        stride > ctx->Const.MaxVertexAttribStride) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(stride=%d > "
                   "GL_MAX_VERTEX_ATTRIB_STRIDE)", func, stride);
@@ -592,7 +595,7 @@ update_array(struct gl_context *ctx,
                              normalized, integer, doubles, 0);
 
    /* Reset the vertex attrib binding */
-   vertex_attrib_binding(ctx, vao, attrib, attrib);
+   _mesa_vertex_attrib_binding(ctx, vao, attrib, attrib, true);
 
    /* The Stride and Ptr fields are not set by update_array_format() */
    struct gl_array_attributes *array = &vao->VertexAttrib[attrib];
@@ -603,7 +606,7 @@ update_array(struct gl_context *ctx,
    GLsizei effectiveStride = stride != 0 ? stride : array->_ElementSize;
    _mesa_bind_vertex_buffer(ctx, vao, attrib,
                             ctx->Array.ArrayBufferObj, (GLintptr) ptr,
-                            effectiveStride);
+                            effectiveStride, true);
 }
 
 void GLAPIENTRY
@@ -1091,13 +1094,16 @@ _mesa_VertexAttribLPointer(GLuint index, GLint size, GLenum type,
 void
 _mesa_enable_vertex_array_attrib(struct gl_context *ctx,
                                  struct gl_vertex_array_object *vao,
-                                 gl_vert_attrib attrib)
+                                 gl_vert_attrib attrib, bool flush_vertices)
 {
    assert(attrib < ARRAY_SIZE(vao->VertexAttrib));
 
    if (!vao->VertexAttrib[attrib].Enabled) {
       /* was disabled, now being enabled */
-      FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      if (flush_vertices) {
+         FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      }
+
       vao->VertexAttrib[attrib].Enabled = GL_TRUE;
       const GLbitfield array_bit = VERT_BIT(attrib);
       vao->_Enabled |= array_bit;
@@ -1120,7 +1126,8 @@ enable_vertex_array_attrib(struct gl_context *ctx,
       return;
    }
 
-   _mesa_enable_vertex_array_attrib(ctx, vao, VERT_ATTRIB_GENERIC(index));
+   _mesa_enable_vertex_array_attrib(ctx, vao,
+                                    VERT_ATTRIB_GENERIC(index), true);
 }
 
 
@@ -1138,7 +1145,7 @@ _mesa_EnableVertexAttribArray_no_error(GLuint index)
 {
    GET_CURRENT_CONTEXT(ctx);
    _mesa_enable_vertex_array_attrib(ctx, ctx->Array.VAO,
-                                    VERT_ATTRIB_GENERIC(index));
+                                    VERT_ATTRIB_GENERIC(index), true);
 }
 
 
@@ -1168,20 +1175,24 @@ _mesa_EnableVertexArrayAttrib_no_error(GLuint vaobj, GLuint index)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_vertex_array_object *vao = _mesa_lookup_vao(ctx, vaobj);
-   _mesa_enable_vertex_array_attrib(ctx, vao, VERT_ATTRIB_GENERIC(index));
+   _mesa_enable_vertex_array_attrib(ctx, vao,
+                                    VERT_ATTRIB_GENERIC(index), true);
 }
 
 
 void
 _mesa_disable_vertex_array_attrib(struct gl_context *ctx,
                                   struct gl_vertex_array_object *vao,
-                                  gl_vert_attrib attrib)
+                                  gl_vert_attrib attrib, bool flush_vertices)
 {
    assert(attrib < ARRAY_SIZE(vao->VertexAttrib));
 
    if (vao->VertexAttrib[attrib].Enabled) {
       /* was enabled, now being disabled */
-      FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      if (flush_vertices) {
+         FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      }
+
       vao->VertexAttrib[attrib].Enabled = GL_FALSE;
       const GLbitfield array_bit = VERT_BIT(attrib);
       vao->_Enabled &= ~array_bit;
@@ -1205,7 +1216,7 @@ _mesa_DisableVertexAttribArray(GLuint index)
    }
 
    const gl_vert_attrib attrib = VERT_ATTRIB_GENERIC(index);
-   _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attrib);
+   _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attrib, true);
 }
 
 
@@ -1214,7 +1225,7 @@ _mesa_DisableVertexAttribArray_no_error(GLuint index)
 {
    GET_CURRENT_CONTEXT(ctx);
    const gl_vert_attrib attrib = VERT_ATTRIB_GENERIC(index);
-   _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attrib);
+   _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attrib, true);
 }
 
 
@@ -1241,7 +1252,7 @@ _mesa_DisableVertexArrayAttrib(GLuint vaobj, GLuint index)
    }
 
    const gl_vert_attrib attrib = VERT_ATTRIB_GENERIC(index);
-   _mesa_disable_vertex_array_attrib(ctx, vao, attrib);
+   _mesa_disable_vertex_array_attrib(ctx, vao, attrib, true);
 }
 
 
@@ -1251,7 +1262,7 @@ _mesa_DisableVertexArrayAttrib_no_error(GLuint vaobj, GLuint index)
    GET_CURRENT_CONTEXT(ctx);
    struct gl_vertex_array_object *vao = _mesa_lookup_vao(ctx, vaobj);
    const gl_vert_attrib attrib = VERT_ATTRIB_GENERIC(index);
-   _mesa_disable_vertex_array_attrib(ctx, vao, attrib);
+   _mesa_disable_vertex_array_attrib(ctx, vao, attrib, true);
 }
 
 
@@ -2022,7 +2033,7 @@ _mesa_VertexAttribDivisor_no_error(GLuint index, GLuint divisor)
     *       VertexAttribBinding(index, index);
     *       VertexBindingDivisor(index, divisor);"
     */
-   vertex_attrib_binding(ctx, vao, genericIndex, genericIndex);
+   _mesa_vertex_attrib_binding(ctx, vao, genericIndex, genericIndex, true);
    vertex_binding_divisor(ctx, vao, genericIndex, divisor);
 }
 
@@ -2064,7 +2075,7 @@ _mesa_VertexAttribDivisor(GLuint index, GLuint divisor)
     *       VertexAttribBinding(index, index);
     *       VertexBindingDivisor(index, divisor);"
     */
-   vertex_attrib_binding(ctx, vao, genericIndex, genericIndex);
+   _mesa_vertex_attrib_binding(ctx, vao, genericIndex, genericIndex, true);
    vertex_binding_divisor(ctx, vao, genericIndex, divisor);
 }
 
@@ -2108,7 +2119,7 @@ vertex_array_vertex_buffer(struct gl_context *ctx,
    }
 
    _mesa_bind_vertex_buffer(ctx, vao, VERT_ATTRIB_GENERIC(bindingIndex),
-                            vbo, offset, stride);
+                            vbo, offset, stride, true);
 }
 
 
@@ -2155,7 +2166,7 @@ vertex_array_vertex_buffer_err(struct gl_context *ctx,
       return;
    }
 
-   if (((ctx->API == API_OPENGL_CORE && ctx->Version >= 44) || _mesa_is_gles31(ctx)) &&
+   if (((_mesa_is_desktop_gl(ctx) && ctx->Version >= 44) || _mesa_is_gles31(ctx)) &&
        stride > ctx->Const.MaxVertexAttribStride) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(stride=%d > "
                   "GL_MAX_VERTEX_ATTRIB_STRIDE)", func, stride);
@@ -2260,7 +2271,7 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
 
       for (i = 0; i < count; i++)
          _mesa_bind_vertex_buffer(ctx, vao, VERT_ATTRIB_GENERIC(first + i),
-                                  vbo, 0, 16);
+                                  vbo, 0, 16, true);
 
       return;
    }
@@ -2309,7 +2320,7 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
             continue;
          }
 
-         if (ctx->API == API_OPENGL_CORE && ctx->Version >= 44 &&
+         if (_mesa_is_desktop_gl(ctx) && ctx->Version >= 44 &&
              strides[i] > ctx->Const.MaxVertexAttribStride) {
             _mesa_error(ctx, GL_INVALID_VALUE,
                         "%s(strides[%u]=%d > "
@@ -2334,7 +2345,7 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
       }
 
       _mesa_bind_vertex_buffer(ctx, vao, VERT_ATTRIB_GENERIC(first + i),
-                               vbo, offsets[i], strides[i]);
+                               vbo, offsets[i], strides[i], true);
    }
 
    _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
@@ -2666,9 +2677,9 @@ vertex_array_attrib_binding(struct gl_context *ctx,
 
    assert(VERT_ATTRIB_GENERIC(attribIndex) < ARRAY_SIZE(vao->VertexAttrib));
 
-   vertex_attrib_binding(ctx, vao,
-                         VERT_ATTRIB_GENERIC(attribIndex),
-                         VERT_ATTRIB_GENERIC(bindingIndex));
+   _mesa_vertex_attrib_binding(ctx, vao,
+                               VERT_ATTRIB_GENERIC(attribIndex),
+                               VERT_ATTRIB_GENERIC(bindingIndex), true);
 }
 
 
@@ -2676,9 +2687,9 @@ void GLAPIENTRY
 _mesa_VertexAttribBinding_no_error(GLuint attribIndex, GLuint bindingIndex)
 {
    GET_CURRENT_CONTEXT(ctx);
-   vertex_attrib_binding(ctx, ctx->Array.VAO,
-                         VERT_ATTRIB_GENERIC(attribIndex),
-                         VERT_ATTRIB_GENERIC(bindingIndex));
+   _mesa_vertex_attrib_binding(ctx, ctx->Array.VAO,
+                               VERT_ATTRIB_GENERIC(attribIndex),
+                               VERT_ATTRIB_GENERIC(bindingIndex), true);
 }
 
 
@@ -2712,9 +2723,9 @@ _mesa_VertexArrayAttribBinding_no_error(GLuint vaobj, GLuint attribIndex,
    GET_CURRENT_CONTEXT(ctx);
 
    struct gl_vertex_array_object *vao = _mesa_lookup_vao(ctx, vaobj);
-   vertex_attrib_binding(ctx, vao,
-                         VERT_ATTRIB_GENERIC(attribIndex),
-                         VERT_ATTRIB_GENERIC(bindingIndex));
+   _mesa_vertex_attrib_binding(ctx, vao,
+                               VERT_ATTRIB_GENERIC(attribIndex),
+                               VERT_ATTRIB_GENERIC(bindingIndex), true);
 }
 
 
@@ -2925,6 +2936,8 @@ _mesa_init_varray(struct gl_context *ctx)
 {
    ctx->Array.DefaultVAO = _mesa_new_vao(ctx, 0);
    _mesa_reference_vao(ctx, &ctx->Array.VAO, ctx->Array.DefaultVAO);
+   ctx->Array._EmptyVAO = _mesa_new_vao(ctx, ~0u);
+   _mesa_reference_vao(ctx, &ctx->Array._DrawVAO, ctx->Array._EmptyVAO);
    ctx->Array.ActiveTexture = 0;   /* GL_ARB_multitexture */
 
    ctx->Array.Objects = _mesa_NewHashTable();

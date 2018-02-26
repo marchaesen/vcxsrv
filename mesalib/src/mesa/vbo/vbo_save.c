@@ -27,6 +27,7 @@
 
 
 #include "main/mtypes.h"
+#include "main/arrayobj.h"
 #include "main/bufferobj.h"
 
 #include "vbo_private.h"
@@ -44,32 +45,8 @@ void vbo_save_init( struct gl_context *ctx )
 
    vbo_save_api_init( save );
 
-   {
-      struct gl_vertex_array *arrays = save->arrays;
-      unsigned i;
-
-      memcpy(arrays, &vbo->currval[VBO_ATTRIB_POS],
-             VERT_ATTRIB_FF_MAX * sizeof(arrays[0]));
-      for (i = 0; i < VERT_ATTRIB_FF_MAX; ++i) {
-         struct gl_vertex_array *array;
-         array = &arrays[VERT_ATTRIB_FF(i)];
-         array->BufferObj = NULL;
-         _mesa_reference_buffer_object(ctx, &arrays->BufferObj,
-                                       vbo->currval[VBO_ATTRIB_POS+i].BufferObj);
-      }
-
-      memcpy(arrays + VERT_ATTRIB_GENERIC(0),
-             &vbo->currval[VBO_ATTRIB_GENERIC0],
-             VERT_ATTRIB_GENERIC_MAX * sizeof(arrays[0]));
-
-      for (i = 0; i < VERT_ATTRIB_GENERIC_MAX; ++i) {
-         struct gl_vertex_array *array;
-         array = &arrays[VERT_ATTRIB_GENERIC(i)];
-         array->BufferObj = NULL;
-         _mesa_reference_buffer_object(ctx, &array->BufferObj,
-                           vbo->currval[VBO_ATTRIB_GENERIC0+i].BufferObj);
-      }
-   }
+   for (gl_vertex_processing_mode vpm = VP_MODE_FF; vpm < VP_MODE_MAX; ++vpm)
+      save->VAO[vpm] = NULL;
 
    ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
 }
@@ -79,7 +56,9 @@ void vbo_save_destroy( struct gl_context *ctx )
 {
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_save_context *save = &vbo->save;
-   GLuint i;
+
+   for (gl_vertex_processing_mode vpm = VP_MODE_FF; vpm < VP_MODE_MAX; ++vpm)
+      _mesa_reference_vao(ctx, &save->VAO[vpm], NULL);
 
    if (save->prim_store) {
       if ( --save->prim_store->refcount == 0 ) {
@@ -92,10 +71,6 @@ void vbo_save_destroy( struct gl_context *ctx )
          free(save->vertex_store);
          save->vertex_store = NULL;
       }
-   }
-
-   for (i = 0; i < VBO_ATTRIB_MAX; i++) {
-      _mesa_reference_buffer_object(ctx, &save->arrays[i].BufferObj, NULL);
    }
 }
 

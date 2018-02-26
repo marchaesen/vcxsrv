@@ -129,57 +129,14 @@ playback_copy_to_current(struct gl_context *ctx,
 
 
 /**
- * Treat the vertex storage as a VBO, define vertex arrays pointing
- * into it:
+ * Set the appropriate VAO to draw.
  */
 static void
 bind_vertex_list(struct gl_context *ctx,
                  const struct vbo_save_vertex_list *node)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
-   struct vbo_save_context *save = &vbo->save;
-   struct gl_vertex_array *arrays = save->arrays;
-   GLuint attr;
-   GLbitfield varying_inputs = 0x0;
-
-   const enum vp_mode program_mode = get_vp_mode(ctx);
-   const GLubyte * const map = _vbo_attribute_alias_map[program_mode];
-
-   /* Grab VERT_ATTRIB_{POS,GENERIC0} from VBO_ATTRIB_POS */
-   const gl_attribute_map_mode mode = ATTRIBUTE_MAP_MODE_POSITION;
-   const GLubyte *const array_map = _mesa_vao_attribute_map[mode];
-   for (attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
-      const GLuint src = map[array_map[attr]];
-      const GLubyte size = node->attrsz[src];
-
-      if (size == 0) {
-         save->inputs[attr] = &vbo->currval[map[attr]];
-      } else {
-         struct gl_vertex_array *array = &arrays[attr];
-         const GLenum16 type = node->attrtype[src];
-
-         /* override the default array set above */
-         save->inputs[attr] = array;
-
-         array->Ptr = (const GLubyte *) NULL + node->offsets[src];
-         array->Size = size;
-         array->StrideB = node->vertex_size * sizeof(GLfloat);
-         array->Type = type;
-         array->Integer = vbo_attrtype_to_integer_flag(type);
-         array->Format = GL_RGBA;
-         array->_ElementSize = size * sizeof(GLfloat);
-         _mesa_reference_buffer_object(ctx,
-                                       &array->BufferObj,
-                                       node->vertex_store->bufferobj);
-
-         assert(array->BufferObj->Name);
-
-         varying_inputs |= VERT_BIT(attr);
-      }
-   }
-
-   _mesa_set_varying_vp_inputs(ctx, varying_inputs);
-   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+   const gl_vertex_processing_mode mode = ctx->VertexProgram._VPMode;
+   _mesa_set_draw_vao(ctx, node->VAO[mode], _vbo_get_vao_filter(mode));
 }
 
 
@@ -257,6 +214,9 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data)
          goto end;
       }
 
+      bind_vertex_list(ctx, node);
+
+      /* Need that at least one time. */
       if (ctx->NewState)
          _mesa_update_state(ctx);
 
@@ -270,14 +230,11 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data)
          return;
       }
 
-      bind_vertex_list(ctx, node);
+      /* Finally update the inputs array */
+      _vbo_update_inputs(ctx, &vbo->draw_arrays);
+      _mesa_set_drawing_arrays(ctx, vbo->draw_arrays.inputs);
 
-      _mesa_set_drawing_arrays(ctx, vbo->save.inputs);
-
-      /* Again...
-       */
-      if (ctx->NewState)
-         _mesa_update_state(ctx);
+      assert(ctx->NewState == 0);
 
       if (node->vertex_count > 0) {
          GLuint min_index = node->start_vertex;

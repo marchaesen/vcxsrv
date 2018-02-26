@@ -580,11 +580,11 @@ _mesa_get_version(const struct gl_extensions *extensions,
 {
    switch (api) {
    case API_OPENGL_COMPAT:
-      /* Disable GLSL 1.40 and later for legacy contexts.
-       * This disallows creation of the GL 3.1 compatibility context. */
+      /* Disable higher GLSL versions for legacy contexts.
+       * This disallows creation of higher compatibility contexts. */
       if (!consts->AllowHigherCompatVersion) {
-         if (consts->GLSLVersion > 130) {
-            consts->GLSLVersion = 130;
+         if (consts->GLSLVersion > 140) {
+            consts->GLSLVersion = 140;
          }
       }
       /* fall through */
@@ -607,7 +607,7 @@ void
 _mesa_compute_version(struct gl_context *ctx)
 {
    if (ctx->Version)
-      return;
+      goto done;
 
    ctx->Version = _mesa_get_version(&ctx->Extensions, &ctx->Const, ctx->API);
    ctx->Extensions.Version = ctx->Version;
@@ -615,7 +615,7 @@ _mesa_compute_version(struct gl_context *ctx)
    /* Make sure that the GLSL version lines up with the GL version. In some
     * cases it can be too high, e.g. if an extension is missing.
     */
-   if (ctx->API == API_OPENGL_CORE) {
+   if (_mesa_is_desktop_gl(ctx) && ctx->Version >= 31) {
       switch (ctx->Version) {
       case 31:
          ctx->Const.GLSLVersion = 140;
@@ -651,6 +651,10 @@ _mesa_compute_version(struct gl_context *ctx)
       create_version_string(ctx, "OpenGL ES ");
       break;
    }
+
+done:
+   if (ctx->API == API_OPENGL_COMPAT && ctx->Version >= 31)
+      ctx->Extensions.ARB_compatibility = GL_TRUE;
 }
 
 

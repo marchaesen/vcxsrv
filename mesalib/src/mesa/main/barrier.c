@@ -127,12 +127,25 @@ _mesa_BlendBarrier(void)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.MESA_shader_framebuffer_fetch_non_coherent &&
-       !ctx->Extensions.KHR_blend_equation_advanced) {
+   if (!ctx->Extensions.KHR_blend_equation_advanced) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glBlendBarrier(not supported)");
       return;
    }
 
-   ctx->Driver.BlendBarrier(ctx);
+   ctx->Driver.FramebufferFetchBarrier(ctx);
+}
+
+void GLAPIENTRY
+_mesa_FramebufferFetchBarrierEXT(void)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.EXT_shader_framebuffer_fetch_non_coherent) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glFramebufferFetchBarrierEXT(not supported)");
+      return;
+   }
+
+   ctx->Driver.FramebufferFetchBarrier(ctx);
 }

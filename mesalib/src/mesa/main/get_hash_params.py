@@ -441,10 +441,9 @@ descriptor=[
 ]},
 
 { "apis": ["GLES", "GLES2"], "params": [
-# GL_EXT_shader_framebuffer_fetch.  Should be true if the MESA framebuffer
-# fetch extension is supported since the latter imposes no restrictions on
-# non-uniform per-sample discard.
-  [ "FRAGMENT_SHADER_DISCARDS_SAMPLES_EXT", "CONTEXT_BOOL(Extensions.MESA_shader_framebuffer_fetch), extra_EXT_shader_framebuffer_fetch" ],
+# GL_EXT_shader_framebuffer_fetch.  Should be true for most modern hardware
+# supporting sample shading.
+  [ "FRAGMENT_SHADER_DISCARDS_SAMPLES_EXT", "CONTEXT_BOOL(Extensions.EXT_shader_framebuffer_fetch), extra_EXT_shader_framebuffer_fetch" ],
 # GL_OES_EGL_image_external
   [ "TEXTURE_BINDING_EXTERNAL_OES", "LOC_CUSTOM, TYPE_INT, TEXTURE_EXTERNAL_INDEX, extra_OES_EGL_image_external" ],
   [ "TEXTURE_EXTERNAL_OES", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_OES_EGL_image_external" ],

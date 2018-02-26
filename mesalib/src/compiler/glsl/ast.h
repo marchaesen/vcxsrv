@@ -28,6 +28,7 @@
 #include "list.h"
 #include "glsl_parser_extras.h"
 #include "compiler/glsl_types.h"
+#include "util/bitset.h"
 
 struct _mesa_glsl_parse_state;
 
@@ -473,8 +474,11 @@ enum {
 
 struct ast_type_qualifier {
    DECLARE_RALLOC_CXX_OPERATORS(ast_type_qualifier);
+   DECLARE_BITSET_T(bitset_t, 128);
 
-   union {
+   union flags {
+      flags() : i(0) {}
+
       struct {
 	 unsigned invariant:1;
          unsigned precise:1;
@@ -631,12 +635,17 @@ struct ast_type_qualifier {
          unsigned bound_sampler:1;
          unsigned bound_image:1;
          /** \} */
+
+         /** \name Layout qualifiers for GL_EXT_shader_framebuffer_fetch_non_coherent */
+         /** \{ */
+         unsigned non_coherent:1;
+         /** \} */
       }
       /** \brief Set of flags, accessed by name. */
       q;
 
       /** \brief Set of flags, accessed as a bitmask. */
-      uint64_t i;
+      bitset_t i;
    } flags;
 
    /** Precision of the type (highp/medium/lowp). */

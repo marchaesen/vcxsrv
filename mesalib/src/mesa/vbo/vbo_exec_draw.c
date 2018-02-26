@@ -33,6 +33,7 @@
 #include "main/context.h"
 #include "main/enums.h"
 #include "main/state.h"
+#include "main/varray.h"
 #include "main/vtxfmt.h"
 
 #include "vbo_noop.h"
@@ -173,60 +174,73 @@ static void
 vbo_exec_bind_arrays(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
+   struct gl_vertex_array_object *vao = vbo->VAO;
    struct vbo_exec_context *exec = &vbo->exec;
-   struct gl_vertex_array *arrays = exec->vtx.arrays;
-   GLuint attr;
-   GLbitfield varying_inputs = 0x0;
 
-   const enum vp_mode program_mode = get_vp_mode(exec->ctx);
-   const GLubyte * const map = _vbo_attribute_alias_map[program_mode];
-
-   /* Grab VERT_ATTRIB_{POS,GENERIC0} from VBO_ATTRIB_POS */
-   const gl_attribute_map_mode mode = ATTRIBUTE_MAP_MODE_POSITION;
-   const GLubyte *const array_map = _mesa_vao_attribute_map[mode];
-   for (attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
-      const GLuint src = map[array_map[attr]];
-      const GLubyte size = exec->vtx.attrsz[src];
-
-      if (size == 0) {
-         exec->vtx.inputs[attr] = &vbo->currval[map[attr]];
-      } else {
-         GLsizeiptr offset = (GLbyte *)exec->vtx.attrptr[src] -
-            (GLbyte *)exec->vtx.vertex;
-
-         /* override the default array set above */
-         assert(attr < ARRAY_SIZE(exec->vtx.inputs));
-         assert(attr < ARRAY_SIZE(exec->vtx.arrays)); /* arrays[] */
-         exec->vtx.inputs[attr] = &arrays[attr];
-
-         if (_mesa_is_bufferobj(exec->vtx.bufferobj)) {
-            /* a real buffer obj: Ptr is an offset, not a pointer */
-            assert(exec->vtx.bufferobj->Mappings[MAP_INTERNAL].Pointer);
-            assert(offset >= 0);
-            arrays[attr].Ptr = (GLubyte *)
-               exec->vtx.bufferobj->Mappings[MAP_INTERNAL].Offset + offset;
-         }
-         else {
-            /* Ptr into ordinary app memory */
-            arrays[attr].Ptr = (GLubyte *)exec->vtx.buffer_map + offset;
-         }
-         arrays[attr].Size = size;
-         arrays[attr].StrideB = exec->vtx.vertex_size * sizeof(GLfloat);
-         const GLenum16 type = exec->vtx.attrtype[src];
-         arrays[attr].Type = type;
-         arrays[attr].Integer = vbo_attrtype_to_integer_flag(type);
-         arrays[attr].Format = GL_RGBA;
-         arrays[attr]._ElementSize = size * sizeof(GLfloat);
-         _mesa_reference_buffer_object(ctx,
-                                       &arrays[attr].BufferObj,
-                                       exec->vtx.bufferobj);
-
-         varying_inputs |= VERT_BIT(attr);
-      }
+   GLintptr buffer_offset;
+   if (_mesa_is_bufferobj(exec->vtx.bufferobj)) {
+      assert(exec->vtx.bufferobj->Mappings[MAP_INTERNAL].Pointer);
+      buffer_offset = exec->vtx.bufferobj->Mappings[MAP_INTERNAL].Offset;
+   } else {
+      /* Ptr into ordinary app memory */
+      buffer_offset = (GLbyte *)exec->vtx.buffer_map - (GLbyte *)NULL;
    }
 
-   _mesa_set_varying_vp_inputs(ctx, varying_inputs);
+   const gl_vertex_processing_mode mode = ctx->VertexProgram._VPMode;
+
+   /* Compute the bitmasks of vao_enabled arrays */
+   GLbitfield vao_enabled = _vbo_get_vao_enabled_from_vbo(mode, exec->vtx.enabled);
+
+   /* At first disable arrays no longer needed */
+   GLbitfield mask = vao->_Enabled & ~vao_enabled;
+   while (mask) {
+      const int vao_attr = u_bit_scan(&mask);
+      _mesa_disable_vertex_array_attrib(ctx, vao, vao_attr, false);
+   }
+   assert((~vao_enabled & vao->_Enabled) == 0);
+
+   /* Bind the buffer object */
+   _mesa_bind_vertex_buffer(ctx, vao, 0, exec->vtx.bufferobj, buffer_offset,
+                            exec->vtx.vertex_size*sizeof(GLfloat), false);
+
+   /* Retrieve the mapping from VBO_ATTRIB to VERT_ATTRIB space
+    * Note that the position/generic0 aliasing is done in the VAO.
+    */
+   const GLubyte *const vao_to_vbo_map = _vbo_attribute_alias_map[mode];
+   /* Now set the enabled arrays */
+   mask = vao_enabled;
+   while (mask) {
+      const int vao_attr = u_bit_scan(&mask);
+      const GLubyte vbo_attr = vao_to_vbo_map[vao_attr];
+
+      const GLubyte size = exec->vtx.attrsz[vbo_attr];
+      const GLenum16 type = exec->vtx.attrtype[vbo_attr];
+      const GLuint offset = (GLuint)((GLbyte *)exec->vtx.attrptr[vbo_attr] -
+                                     (GLbyte *)exec->vtx.vertex);
+
+      /* Set and enable */
+      _vbo_set_attrib_format(ctx, vao, vao_attr, buffer_offset,
+                             size, type, offset);
+      if ((vao->_Enabled & VERT_BIT(vao_attr)) == 0)
+         _mesa_enable_vertex_array_attrib(ctx, vao, vao_attr, false);
+
+      /* The vao is initially created with all bindings set to 0. */
+      assert(vao->VertexAttrib[vao_attr].BufferBindingIndex == 0);
+   }
+   assert(vao_enabled == vao->_Enabled);
+   assert(!_mesa_is_bufferobj(exec->vtx.bufferobj) ||
+          (vao_enabled & ~vao->VertexAttribBufferMask) == 0);
+
+   _mesa_update_vao_derived_arrays(ctx, vao);
+   vao->NewArrays = 0;
+
+   _mesa_set_draw_vao(ctx, vao, _vbo_get_vao_filter(mode));
+   /* The exec VAO is not immutable, so we need to set manually */
    ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+
+   _mesa_set_drawing_arrays(ctx, vbo->draw_arrays.inputs);
+   /* Finally update the inputs array */
+   _vbo_update_inputs(ctx, &vbo->draw_arrays);
 }
 
 
@@ -377,6 +391,8 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec, GLboolean keepUnmapped)
             _mesa_update_state(ctx);
 
          vbo_exec_vtx_unmap(exec);
+
+         assert(ctx->NewState == 0);
 
          if (0)
             printf("%s %d %d\n", __func__, exec->vtx.prim_count,

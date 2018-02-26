@@ -57,6 +57,7 @@
 #include "ac_gpu_info.h"
 #include "ac_surface.h"
 #include "radv_descriptor_set.h"
+#include "radv_extensions.h"
 
 #include <llvm-c/TargetMachine.h>
 
@@ -254,7 +255,11 @@ void radv_loge_v(const char *format, va_list va);
 		return;					\
 	} while (0)
 
-void *radv_lookup_entrypoint(const char *name);
+void *radv_lookup_entrypoint_unchecked(const char *name);
+void *radv_lookup_entrypoint_checked(const char *name,
+                                    uint32_t core_version,
+                                    const struct radv_instance_extension_table *instance,
+                                    const struct radv_device_extension_table *device);
 
 struct radv_physical_device {
 	VK_LOADER_DATA                              _loader_data;
@@ -285,6 +290,8 @@ struct radv_physical_device {
 
 	VkPhysicalDeviceMemoryProperties memory_properties;
 	enum radv_mem_type mem_type_indices[RADV_MEM_TYPE_COUNT];
+
+	struct radv_device_extension_table supported_extensions;
 };
 
 struct radv_instance {
@@ -300,6 +307,8 @@ struct radv_instance {
 	uint64_t perftest_flags;
 
 	struct vk_debug_report_instance             debug_report_callbacks;
+
+	struct radv_instance_extension_table enabled_extensions;
 };
 
 VkResult radv_init_wsi(struct radv_physical_device *physical_device);
@@ -636,6 +645,8 @@ struct radv_device {
 
 	/* For detecting VM faults reported by dmesg. */
 	uint64_t dmesg_timestamp;
+
+	struct radv_device_extension_table enabled_extensions;
 };
 
 struct radv_device_memory {

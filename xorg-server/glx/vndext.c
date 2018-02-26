@@ -277,26 +277,26 @@ GlxFreeServerImports(GlxServerImports *imports)
 }
 
 _X_EXPORT const GlxServerExports glxServer = {
-    GLXSERVER_VENDOR_ABI_MAJOR_VERSION, // majorVersion
-    GLXSERVER_VENDOR_ABI_MINOR_VERSION, // minorVersion
+    .majorVersion = 0,
+    .minorVersion = 0,
 
-    &vndInitCallbackList,
+    .extensionInitCallback = &vndInitCallbackList,
 
-    GlxAllocateServerImports, // allocateServerImports
-    GlxFreeServerImports, // freeServerImports
+    .allocateServerImports = GlxAllocateServerImports,
+    .freeServerImports = GlxFreeServerImports,
 
-    GlxCreateVendor, // createVendor
-    GlxDestroyVendor, // destroyVendor
-    GlxSetScreenVendor, // setScreenVendor
+    .createVendor = GlxCreateVendor,
+    .destroyVendor = GlxDestroyVendor,
+    .setScreenVendor = GlxSetScreenVendor,
 
-    GlxAddXIDMap, // addXIDMap
-    GlxGetXIDMap, // getXIDMap
-    GlxRemoveXIDMap, // removeXIDMap
-    GlxGetContextTag, // getContextTag
-    GlxSetContextTagPrivate, // setContextTagPrivate
-    GlxGetContextTagPrivate, // getContextTagPrivate
-    GlxGetVendorForScreen, // getVendorForScreen
-    GlxForwardRequest, // forwardRequest
+    .addXIDMap = GlxAddXIDMap,
+    .getXIDMap = GlxGetXIDMap,
+    .removeXIDMap = GlxRemoveXIDMap,
+    .getContextTag = GlxGetContextTag,
+    .setContextTagPrivate = GlxSetContextTagPrivate,
+    .getContextTagPrivate = GlxGetContextTagPrivate,
+    .getVendorForScreen = GlxGetVendorForScreen,
+    .forwardRequest =  GlxForwardRequest,
 };
 
 const GlxServerExports *

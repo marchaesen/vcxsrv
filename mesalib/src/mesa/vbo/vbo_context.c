@@ -30,6 +30,8 @@
 #include "math/m_eval.h"
 #include "main/vtxfmt.h"
 #include "main/api_arrayelt.h"
+#include "main/arrayobj.h"
+#include "main/varray.h"
 #include "vbo.h"
 #include "vbo_private.h"
 
@@ -206,11 +208,15 @@ vbo_exec_invalidate_state(struct gl_context *ctx)
    struct vbo_exec_context *exec = &vbo->exec;
 
    if (ctx->NewState & (_NEW_PROGRAM | _NEW_ARRAY)) {
-      if (!exec->validating)
-         exec->array.recalculate_inputs = GL_TRUE;
+      exec->array.recalculate_inputs = GL_TRUE;
 
       _ae_invalidate_state(ctx);
    }
+   /* If _mesa_update_state is called in a non draw code path,
+    * changes in the VAO need to be captured.
+    */
+   if (ctx->Array.VAO->NewArrays)
+      exec->array.recalculate_inputs = GL_TRUE;
 
    if (ctx->NewState & _NEW_EVAL)
       exec->eval.recalculate_maps = GL_TRUE;
@@ -234,6 +240,7 @@ _vbo_CreateContext(struct gl_context *ctx)
    init_legacy_currval(ctx);
    init_generic_currval(ctx);
    init_mat_currval(ctx);
+   _vbo_init_inputs(&vbo->draw_arrays);
    vbo_set_indirect_draw_func(ctx, vbo_draw_indirect_prims);
 
    /* make sure all VBO_ATTRIB_ values can fit in an unsigned byte */
@@ -246,6 +253,11 @@ _vbo_CreateContext(struct gl_context *ctx)
    vbo_exec_init(ctx);
    if (ctx->API == API_OPENGL_COMPAT)
       vbo_save_init(ctx);
+
+   vbo->VAO = _mesa_new_vao(ctx, ~((GLuint)0));
+   /* The exec VAO assumes to have all arributes bound to binding 0 */
+   for (unsigned i = 0; i < VERT_ATTRIB_MAX; ++i)
+      _mesa_vertex_attrib_binding(ctx, vbo->VAO, i, 0, false);
 
    _math_init_eval();
 
@@ -273,6 +285,7 @@ _vbo_DestroyContext(struct gl_context *ctx)
       vbo_exec_destroy(ctx);
       if (ctx->API == API_OPENGL_COMPAT)
          vbo_save_destroy(ctx);
+      _mesa_reference_vao(ctx, &vbo->VAO, NULL);
       free(vbo);
       ctx->vbo_context = NULL;
    }

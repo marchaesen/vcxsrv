@@ -25,7 +25,7 @@ if with_platform_x11 and with_dri3
     'loader_dri3_helper',
     ['loader_dri3_helper.c', 'loader_dri3_helper.h'],
     c_args : c_vis_args,
-    include_directories : inc_include,
+    include_directories : [inc_include, inc_src],
     dependencies : [
       dep_libdrm, dep_xcb_dri3, dep_xcb_present, dep_xcb_sync, dep_xshmfence,
     ],

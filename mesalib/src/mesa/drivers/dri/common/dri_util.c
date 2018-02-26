@@ -381,14 +381,6 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
 	}
     }
 
-    /* Mesa does not support the GL_ARB_compatibilty extension or the
-     * compatibility profile.  This means that we treat a API_OPENGL_COMPAT 3.1 as
-     * API_OPENGL_CORE and reject API_OPENGL_COMPAT 3.2+.
-     */
-    if (mesa_api == API_OPENGL_COMPAT &&
-        ctx_config.major_version == 3 && ctx_config.minor_version == 1)
-       mesa_api = API_OPENGL_CORE;
-
     if (mesa_api == API_OPENGL_COMPAT
         && ((ctx_config.major_version > 3)
             || (ctx_config.major_version == 3 &&

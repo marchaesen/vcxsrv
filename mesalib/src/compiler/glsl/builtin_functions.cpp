@@ -104,7 +104,7 @@ static bool
 compatibility_vs_only(const _mesa_glsl_parse_state *state)
 {
    return state->stage == MESA_SHADER_VERTEX &&
-          state->language_version <= 130 &&
+          (state->compat_shader || state->ARB_compatibility_enable) &&
           !state->es_shader;
 }
 

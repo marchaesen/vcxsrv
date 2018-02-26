@@ -26,8 +26,8 @@ Mesa 18.1.0 implements the OpenGL 4.5 API, but the version reported by
 glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
 glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
 Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
-4.5 is <strong>only</strong> available if requested at context creation
-because compatibility contexts are not supported.
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
 </p>
 
 
@@ -44,9 +44,13 @@ Note: some of the new features are only available with certain drivers.
 </p>
 
 <ul>
+<li>OpenGL 3.1 with ARB_compatibility on nv50, nvc0, r600, radeonsi, softpipe, llvmpipe, svga</li>
 <li>GL_ARB_bindless_texture on nvc0/maxwell+</li>
 <li>GL_EXT_semaphore on radeonsi</li>
 <li>GL_EXT_semaphore_fd on radeonsi</li>
+<li>GL_EXT_shader_framebuffer_fetch on i965 on desktop GL (GLES was already supported)</li>
+<li>GL_EXT_shader_framebuffer_fetch_non_coherent on i965</li>
+<li>Disk shader cache support for i965 enabled by default</li>
 </ul>
 
 <h2>Bug fixes</h2>

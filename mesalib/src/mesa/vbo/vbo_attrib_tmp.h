@@ -150,7 +150,7 @@ static inline float conv_i10_to_norm_float(const struct gl_context *ctx, int i10
     * is used in every case.  They remove equation 2.2 completely.
     */
    if (_mesa_is_gles3(ctx) ||
-       (ctx->API == API_OPENGL_CORE && ctx->Version >= 42)) {
+       (_mesa_is_desktop_gl(ctx) && ctx->Version >= 42)) {
       /* Equation 2.3 above. */
       float f = ((float) val.x) / 511.0F;
       return MAX2(f, -1.0f);
@@ -166,7 +166,7 @@ static inline float conv_i2_to_norm_float(const struct gl_context *ctx, int i2)
    val.x = i2;
 
    if (_mesa_is_gles3(ctx) ||
-       (ctx->API == API_OPENGL_CORE && ctx->Version >= 42)) {
+       (_mesa_is_desktop_gl(ctx) && ctx->Version >= 42)) {
       /* Equation 2.3 above. */
       float f = (float) val.x;
       return MAX2(f, -1.0f);

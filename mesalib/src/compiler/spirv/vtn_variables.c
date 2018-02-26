@@ -1332,6 +1332,15 @@ apply_var_decoration(struct vtn_builder *b, nir_variable *nir_var,
       nir_var->data.read_only = true;
       nir_var->data.image.read_only = true;
       break;
+   case SpvDecorationRestrict:
+      nir_var->data.image.restrict_flag = true;
+      break;
+   case SpvDecorationVolatile:
+      nir_var->data.image._volatile = true;
+      break;
+   case SpvDecorationCoherent:
+      nir_var->data.image.coherent = true;
+      break;
    case SpvDecorationComponent:
       nir_var->data.location_frac = dec->literals[0];
       break;
@@ -1378,10 +1387,7 @@ apply_var_decoration(struct vtn_builder *b, nir_variable *nir_var,
    case SpvDecorationRowMajor:
    case SpvDecorationColMajor:
    case SpvDecorationMatrixStride:
-   case SpvDecorationRestrict:
    case SpvDecorationAliased:
-   case SpvDecorationVolatile:
-   case SpvDecorationCoherent:
    case SpvDecorationUniform:
    case SpvDecorationStream:
    case SpvDecorationOffset:

@@ -68,6 +68,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 #include "main/glheader.h"
+#include "main/arrayobj.h"
 #include "main/bufferobj.h"
 #include "main/context.h"
 #include "main/dlist.h"
@@ -79,6 +80,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "main/vtxfmt.h"
 #include "main/dispatch.h"
 #include "main/state.h"
+#include "main/varray.h"
 #include "util/bitscan.h"
 
 #include "vbo_noop.h"
@@ -411,6 +413,112 @@ convert_line_loop_to_strip(struct vbo_save_context *save,
 }
 
 
+/* Compare the present vao if it has the same setup. */
+static bool
+compare_vao(gl_vertex_processing_mode mode,
+            const struct gl_vertex_array_object *vao,
+            const struct gl_buffer_object *bo, GLintptr buffer_offset,
+            GLuint stride, GLbitfield64 vao_enabled,
+            const GLubyte size[VBO_ATTRIB_MAX],
+            const GLenum16 type[VBO_ATTRIB_MAX],
+            const GLuint offset[VBO_ATTRIB_MAX])
+{
+   if (!vao)
+      return false;
+
+   /* If the enabled arrays are not the same we are not equal. */
+   if (vao_enabled != vao->_Enabled)
+      return false;
+
+   /* Check the buffer binding at 0 */
+   if (vao->BufferBinding[0].BufferObj != bo)
+      return false;
+   /* BufferBinding[0].Offset != buffer_offset is checked per attribute */
+   if (vao->BufferBinding[0].Stride != stride)
+      return false;
+   assert(vao->BufferBinding[0].InstanceDivisor == 0);
+
+   /* Retrieve the mapping from VBO_ATTRIB to VERT_ATTRIB space */
+   const GLubyte *const vao_to_vbo_map = _vbo_attribute_alias_map[mode];
+
+   /* Now check the enabled arrays */
+   GLbitfield mask = vao_enabled;
+   while (mask) {
+      const int attr = u_bit_scan(&mask);
+      const unsigned char vbo_attr = vao_to_vbo_map[attr];
+      const GLenum16 tp = type[vbo_attr];
+      const GLintptr off = offset[vbo_attr] + buffer_offset;
+      const struct gl_array_attributes *attrib = &vao->VertexAttrib[attr];
+      if (attrib->RelativeOffset + vao->BufferBinding[0].Offset != off)
+         return false;
+      if (attrib->Type != tp)
+         return false;
+      if (attrib->Size != size[vbo_attr])
+         return false;
+      assert(attrib->Format == GL_RGBA);
+      assert(attrib->Enabled == GL_TRUE);
+      assert(attrib->Normalized == GL_FALSE);
+      assert(attrib->Integer == vbo_attrtype_to_integer_flag(tp));
+      assert(attrib->Doubles == vbo_attrtype_to_double_flag(tp));
+      assert(attrib->BufferBindingIndex == 0);
+   }
+
+   return true;
+}
+
+
+/* Create or reuse the vao for the vertex processing mode. */
+static void
+update_vao(struct gl_context *ctx,
+           gl_vertex_processing_mode mode,
+           struct gl_vertex_array_object **vao,
+           struct gl_buffer_object *bo, GLintptr buffer_offset,
+           GLuint stride, GLbitfield64 vbo_enabled,
+           const GLubyte size[VBO_ATTRIB_MAX],
+           const GLenum16 type[VBO_ATTRIB_MAX],
+           const GLuint offset[VBO_ATTRIB_MAX])
+{
+   /* Compute the bitmasks of vao_enabled arrays */
+   GLbitfield vao_enabled = _vbo_get_vao_enabled_from_vbo(mode, vbo_enabled);
+
+   /*
+    * Check if we can possibly reuse the exisiting one.
+    * In the long term we should reset them when something changes.
+    */
+   if (compare_vao(mode, *vao, bo, buffer_offset, stride,
+                   vao_enabled, size, type, offset))
+      return;
+
+   /* The initial refcount is 1 */
+   _mesa_reference_vao(ctx, vao, NULL);
+   *vao = _mesa_new_vao(ctx, ~((GLuint)0));
+
+   /* Bind the buffer object at binding point 0 */
+   _mesa_bind_vertex_buffer(ctx, *vao, 0, bo, buffer_offset, stride, false);
+
+   /* Retrieve the mapping from VBO_ATTRIB to VERT_ATTRIB space
+    * Note that the position/generic0 aliasing is done in the VAO.
+    */
+   const GLubyte *const vao_to_vbo_map = _vbo_attribute_alias_map[mode];
+   /* Now set the enable arrays */
+   GLbitfield mask = vao_enabled;
+   while (mask) {
+      const int vao_attr = u_bit_scan(&mask);
+      const GLubyte vbo_attr = vao_to_vbo_map[vao_attr];
+
+      _vbo_set_attrib_format(ctx, *vao, vao_attr, buffer_offset,
+                             size[vbo_attr], type[vbo_attr], offset[vbo_attr]);
+      _mesa_vertex_attrib_binding(ctx, *vao, vao_attr, 0, false);
+      _mesa_enable_vertex_array_attrib(ctx, *vao, vao_attr, false);
+   }
+   assert(vao_enabled == (*vao)->_Enabled);
+   assert((vao_enabled & ~(*vao)->VertexAttribBufferMask) == 0);
+
+   /* Finalize and freeze the VAO */
+   _mesa_set_vao_immutable(ctx, *vao);
+}
+
+
 /**
  * Insert the active immediate struct onto the display list currently
  * being built.
@@ -420,6 +528,7 @@ compile_vertex_list(struct gl_context *ctx)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    struct vbo_save_vertex_list *node;
+   GLintptr buffer_offset = 0;
    GLuint offset;
    unsigned i;
 
@@ -469,6 +578,20 @@ compile_vertex_list(struct gl_context *ctx)
    node->prim_count = save->prim_count;
    node->vertex_store = save->vertex_store;
    node->prim_store = save->prim_store;
+
+   /* Create a pair of VAOs for the possible VERTEX_PROCESSING_MODEs
+    * Note that this may reuse the previous one of possible.
+    */
+   for (gl_vertex_processing_mode vpm = VP_MODE_FF; vpm < VP_MODE_MAX; ++vpm) {
+      /* create or reuse the vao */
+      update_vao(ctx, vpm, &save->VAO[vpm],
+                 node->vertex_store->bufferobj, buffer_offset,
+                 node->vertex_size*sizeof(GLfloat), node->enabled,
+                 node->attrsz, node->attrtype, node->offsets);
+      /* Reference the vao in the dlist */
+      node->VAO[vpm] = NULL;
+      _mesa_reference_vao(ctx, &node->VAO[vpm], save->VAO[vpm]);
+   }
 
    node->vertex_store->refcount++;
    node->prim_store->refcount++;
@@ -1700,7 +1823,9 @@ static void
 vbo_destroy_vertex_list(struct gl_context *ctx, void *data)
 {
    struct vbo_save_vertex_list *node = (struct vbo_save_vertex_list *) data;
-   (void) ctx;
+
+   for (gl_vertex_processing_mode vpm = VP_MODE_FF; vpm < VP_MODE_MAX; ++vpm)
+      _mesa_reference_vao(ctx, &node->VAO[vpm], NULL);
 
    if (--node->vertex_store->refcount == 0)
       free_vertex_store(ctx, node->vertex_store);
@@ -1773,7 +1898,6 @@ void
 vbo_save_api_init(struct vbo_save_context *save)
 {
    struct gl_context *ctx = save->ctx;
-   GLuint i;
 
    save->opcode_vertex_list =
       _mesa_dlist_alloc_opcode(ctx,
@@ -1785,8 +1909,4 @@ vbo_save_api_init(struct vbo_save_context *save)
    vtxfmt_init(ctx);
    current_init(ctx);
    _mesa_noop_vtxfmt_init(&save->vtxfmt_noop);
-
-   /* These will actually get set again when binding/drawing */
-   for (i = 0; i < VBO_ATTRIB_MAX; i++)
-      save->inputs[i] = &save->arrays[i];
 }

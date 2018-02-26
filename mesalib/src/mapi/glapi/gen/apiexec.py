@@ -291,5 +291,5 @@ functions = {
     "ProgramUniform4ui64vARB": exec_info(core=31),
 
     # GL_ARB_bindless_texture
-    "GetVertexAttribLui64vARB": exec_info(core=31),
+    "GetVertexAttribLui64vARB": exec_info(compatibility=30, core=31),
 }

@@ -116,7 +116,8 @@ class VkVersion:
         return '.'.join(ver_list)
 
     def c_vk_version(self):
-        ver_list = [str(self.major), str(self.minor), str(self.patch)]
+        patch = self.patch if self.patch is not None else 0
+        ver_list = [str(self.major), str(self.minor), str(patch)]
         return 'VK_MAKE_VERSION(' + ', '.join(ver_list) + ')'
 
     def __int_ver(self):
@@ -162,7 +163,50 @@ def _init_exts_from_xml(xml):
         ext = ext_name_map[ext_name]
         ext.type = ext_elem.attrib['type']
 
-_TEMPLATE = Template(COPYRIGHT + """
+_TEMPLATE_H = Template(COPYRIGHT + """
+#ifndef RADV_EXTENSIONS_H
+#define RADV_EXTENSIONS_H
+
+enum {
+   RADV_INSTANCE_EXTENSION_COUNT = ${len(instance_extensions)},
+   RADV_DEVICE_EXTENSION_COUNT = ${len(device_extensions)},
+};
+
+struct radv_instance_extension_table {
+   union {
+      bool extensions[RADV_INSTANCE_EXTENSION_COUNT];
+      struct {
+%for ext in instance_extensions:
+        bool ${ext.name[3:]};
+%endfor
+      };
+   };
+};
+
+struct radv_device_extension_table {
+   union {
+      bool extensions[RADV_DEVICE_EXTENSION_COUNT];
+      struct {
+%for ext in device_extensions:
+        bool ${ext.name[3:]};
+%endfor
+      };
+   };
+};
+
+const VkExtensionProperties radv_instance_extensions[RADV_INSTANCE_EXTENSION_COUNT];
+const VkExtensionProperties radv_device_extensions[RADV_DEVICE_EXTENSION_COUNT];
+const struct radv_instance_extension_table radv_supported_instance_extensions;
+
+
+struct radv_physical_device;
+
+void radv_fill_device_extension_table(const struct radv_physical_device *device,
+                                      struct radv_device_extension_table* table);
+#endif
+""")
+
+_TEMPLATE_C = Template(COPYRIGHT + """
 #include "radv_private.h"
 
 #include "vk_util.h"
@@ -189,35 +233,30 @@ _TEMPLATE = Template(COPYRIGHT + """
                          VK_USE_PLATFORM_XCB_KHR || \\
                          VK_USE_PLATFORM_XLIB_KHR)
 
-bool
-radv_instance_extension_supported(const char *name)
-{
+const VkExtensionProperties radv_instance_extensions[RADV_INSTANCE_EXTENSION_COUNT] = {
 %for ext in instance_extensions:
-    if (strcmp(name, "${ext.name}") == 0)
-        return ${ext.enable};
+   {"${ext.name}", ${ext.ext_version}},
 %endfor
-    return false;
-}
+};
 
-VkResult radv_EnumerateInstanceExtensionProperties(
-    const char*                                 pLayerName,
-    uint32_t*                                   pPropertyCount,
-    VkExtensionProperties*                      pProperties)
-{
-    VK_OUTARRAY_MAKE(out, pProperties, pPropertyCount);
+const VkExtensionProperties radv_device_extensions[RADV_DEVICE_EXTENSION_COUNT] = {
+%for ext in device_extensions:
+   {"${ext.name}", ${ext.ext_version}},
+%endfor
+};
 
+const struct radv_instance_extension_table radv_supported_instance_extensions = {
 %for ext in instance_extensions:
-    if (${ext.enable}) {
-        vk_outarray_append(&out, prop) {
-            *prop = (VkExtensionProperties) {
-                .extensionName = "${ext.name}",
-                .specVersion = ${ext.ext_version},
-            };
-        }
-    }
+   .${ext.name[3:]} = ${ext.enable},
 %endfor
+};
 
-    return vk_outarray_status(&out);
+void radv_fill_device_extension_table(const struct radv_physical_device *device,
+                                      struct radv_device_extension_table* table)
+{
+%for ext in device_extensions:
+   table->${ext.name[3:]} = ${ext.enable};
+%endfor
 }
 
 uint32_t
@@ -225,46 +264,12 @@ radv_physical_device_api_version(struct radv_physical_device *dev)
 {
     return ${MAX_API_VERSION.c_vk_version()};
 }
-
-bool
-radv_physical_device_extension_supported(struct radv_physical_device *device,
-                                        const char *name)
-{
-%for ext in device_extensions:
-    if (strcmp(name, "${ext.name}") == 0)
-        return ${ext.enable};
-%endfor
-    return false;
-}
-
-VkResult radv_EnumerateDeviceExtensionProperties(
-    VkPhysicalDevice                            physicalDevice,
-    const char*                                 pLayerName,
-    uint32_t*                                   pPropertyCount,
-    VkExtensionProperties*                      pProperties)
-{
-    RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
-    VK_OUTARRAY_MAKE(out, pProperties, pPropertyCount);
-    (void)device;
-
-%for ext in device_extensions:
-    if (${ext.enable}) {
-        vk_outarray_append(&out, prop) {
-            *prop = (VkExtensionProperties) {
-                .extensionName = "${ext.name}",
-                .specVersion = ${ext.ext_version},
-            };
-        }
-    }
-%endfor
-
-    return vk_outarray_status(&out);
-}
 """)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--out', help='Output C file.', required=True)
+    parser.add_argument('--out-c', help='Output C file.', required=True)
+    parser.add_argument('--out-h', help='Output H file.', required=True)
     parser.add_argument('--xml',
                         help='Vulkan API XML file.',
                         required=True,
@@ -284,5 +289,7 @@ if __name__ == '__main__':
         'device_extensions': [e for e in EXTENSIONS if e.type == 'device'],
     }
 
-    with open(args.out, 'w') as f:
-        f.write(_TEMPLATE.render(**template_env))
+    with open(args.out_c, 'w') as f:
+        f.write(_TEMPLATE_C.render(**template_env))
+    with open(args.out_h, 'w') as f:
+        f.write(_TEMPLATE_H.render(**template_env))

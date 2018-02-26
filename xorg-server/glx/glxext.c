@@ -497,11 +497,11 @@ xorgGlxServerPreInit(const ExtensionEntry *extEntry)
     return glxGeneration == serverGeneration;
 }
 
-static GlxServerVendor *glvnd_vendor = NULL;
-
 static GlxServerVendor *
 xorgGlxInitGLVNDVendor(void)
 {
+    static GlxServerVendor *glvnd_vendor = NULL;
+
     if (glvnd_vendor == NULL) {
         GlxServerImports *imports = NULL;
         imports = glxServer.allocateServerImports();
@@ -521,6 +521,7 @@ xorgGlxInitGLVNDVendor(void)
 static void
 xorgGlxServerInit(CallbackListPtr *pcbl, void *param, void *ext)
 {
+    GlxServerVendor *glvnd_vendor;
     const ExtensionEntry *extEntry = ext;
     int i;
 
@@ -528,7 +529,8 @@ xorgGlxServerInit(CallbackListPtr *pcbl, void *param, void *ext)
         return;
     }
 
-    if (!xorgGlxInitGLVNDVendor()) {
+    glvnd_vendor = xorgGlxInitGLVNDVendor();
+    if (!glvnd_vendor) {
         return;
     }
 

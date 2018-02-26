@@ -33,6 +33,7 @@
 #include <X11/Xlib-xcb.h>
 
 #include "loader_dri3_helper.h"
+#include "util/macros.h"
 
 /* From xmlpool/options.h, user exposed so should be stable */
 #define DRI_CONF_VBLANK_NEVER 0
@@ -195,7 +196,7 @@ dri3_fence_await(xcb_connection_t *c, struct loader_dri3_drawable *draw,
 static void
 dri3_update_num_back(struct loader_dri3_drawable *draw)
 {
-   if (draw->flipping)
+   if (draw->last_present_mode == XCB_PRESENT_COMPLETE_MODE_FLIP)
       draw->num_back = 3;
    else
       draw->num_back = 2;
@@ -233,7 +234,7 @@ loader_dri3_drawable_fini(struct loader_dri3_drawable *draw)
 
    draw->ext->core->destroyDrawable(draw->dri_drawable);
 
-   for (i = 0; i < LOADER_DRI3_NUM_BUFFERS; i++) {
+   for (i = 0; i < ARRAY_SIZE(draw->buffers); i++) {
       if (draw->buffers[i])
          dri3_free_render_buffer(draw, draw->buffers[i]);
    }
@@ -368,14 +369,8 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
          draw->recv_sbc = (draw->send_sbc & 0xffffffff00000000LL) | ce->serial;
          if (draw->recv_sbc > draw->send_sbc)
             draw->recv_sbc -= 0x100000000;
-         switch (ce->mode) {
-         case XCB_PRESENT_COMPLETE_MODE_FLIP:
-            draw->flipping = true;
-            break;
-         case XCB_PRESENT_COMPLETE_MODE_COPY:
-            draw->flipping = false;
-            break;
-         }
+
+         draw->last_present_mode = ce->mode;
 
          if (draw->vtable->show_fps)
             draw->vtable->show_fps(draw, ce->ust);
@@ -392,7 +387,7 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
       xcb_present_idle_notify_event_t *ie = (void *) ge;
       int b;
 
-      for (b = 0; b < sizeof(draw->buffers) / sizeof(draw->buffers[0]); b++) {
+      for (b = 0; b < ARRAY_SIZE(draw->buffers); b++) {
          struct loader_dri3_buffer *buf = draw->buffers[b];
 
          if (buf && buf->pixmap == ie->pixmap)

@@ -104,6 +104,7 @@ SOFTWARE.
 #include "nonsdk_extinit.h"
 #endif
 #include "micmap.h"
+#include "os.h"
 #include "globals.h"
 
 /* List of built-in (statically linked) extensions */
@@ -260,6 +261,9 @@ InitExtensions(int argc, char *argv[])
         ext = &ExtensionModuleList[i];
         if (ext->initFunc != NULL &&
             (ext->disablePtr == NULL || !*ext->disablePtr)) {
+            LogMessageVerb(X_INFO, 3, "Initializing extension %s\n",
+                           ext->name);
+
             (ext->initFunc) ();
         }
     }

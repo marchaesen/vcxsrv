@@ -177,15 +177,18 @@ update_program(struct gl_context *ctx)
     */
    if (vsProg) {
       /* Use GLSL vertex shader */
+      assert(VP_MODE_SHADER == ctx->VertexProgram._VPMode);
       _mesa_reference_program(ctx, &ctx->VertexProgram._Current, vsProg);
    }
    else if (_mesa_arb_vertex_program_enabled(ctx)) {
       /* Use user-defined vertex program */
+      assert(VP_MODE_SHADER == ctx->VertexProgram._VPMode);
       _mesa_reference_program(ctx, &ctx->VertexProgram._Current,
                               ctx->VertexProgram.Current);
    }
    else if (ctx->VertexProgram._MaintainTnlProgram) {
       /* Use vertex program generated from fixed-function state */
+      assert(VP_MODE_FF == ctx->VertexProgram._VPMode);
       _mesa_reference_program(ctx, &ctx->VertexProgram._Current,
                               _mesa_get_fixed_func_vertex_program(ctx));
       _mesa_reference_program(ctx, &ctx->VertexProgram._TnlProgram,
@@ -193,6 +196,7 @@ update_program(struct gl_context *ctx)
    }
    else {
       /* no vertex program */
+      assert(VP_MODE_FF == ctx->VertexProgram._VPMode);
       _mesa_reference_program(ctx, &ctx->VertexProgram._Current, NULL);
    }
 
@@ -455,4 +459,52 @@ _mesa_set_vp_override(struct gl_context *ctx, GLboolean flag)
        */
       ctx->NewState |= _NEW_PROGRAM;
    }
+}
+
+
+/**
+ * Update ctx->VertexProgram._VPMode.
+ * This is to distinguish whether we're running
+ *   a vertex program/shader,
+ *   a fixed-function TNL program or
+ *   a fixed function vertex transformation without any program.
+ */
+void
+_mesa_update_vertex_processing_mode(struct gl_context *ctx)
+{
+   if (ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX])
+      ctx->VertexProgram._VPMode = VP_MODE_SHADER;
+   else if (_mesa_arb_vertex_program_enabled(ctx))
+      ctx->VertexProgram._VPMode = VP_MODE_SHADER;
+   else
+      ctx->VertexProgram._VPMode = VP_MODE_FF;
+}
+
+
+/**
+ * Set the _DrawVAO and the net enabled arrays.
+ * The vao->_Enabled bitmask is transformed due to position/generic0
+ * as stored in vao->_AttributeMapMode. Then the filter bitmask is applied
+ * to filter out arrays unwanted for the currently executed draw operation.
+ * For example, the generic attributes are masked out form the _DrawVAO's
+ * enabled arrays when a fixed function array draw is executed.
+ */
+void
+_mesa_set_draw_vao(struct gl_context *ctx, struct gl_vertex_array_object *vao,
+                   GLbitfield filter)
+{
+   struct gl_vertex_array_object **ptr = &ctx->Array._DrawVAO;
+   if (*ptr != vao) {
+      _mesa_reference_vao_(ctx, ptr, vao);
+      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+   } else if (vao->NewArrays) {
+      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+   }
+
+   /* May shuffle the position and generic0 bits around, filter out unwanted */
+   const GLbitfield enabled = filter & _mesa_get_vao_vp_inputs(vao);
+   if (ctx->Array._DrawVAOEnabledAttribs != enabled)
+      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+   ctx->Array._DrawVAOEnabledAttribs = enabled;
+   _mesa_set_varying_vp_inputs(ctx, enabled);
 }

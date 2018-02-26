@@ -50,6 +50,7 @@
 #include "main/program_binary.h"
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
+#include "main/state.h"
 #include "main/transformfeedback.h"
 #include "main/uniforms.h"
 #include "compiler/glsl/glsl_parser_extras.h"
@@ -667,7 +668,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
    /* True if geometry shaders (of the form that was adopted into GLSL 1.50
     * and GL 3.2) are available in this context
     */
-   const bool has_core_gs = _mesa_has_geometry_shaders(ctx);
+   const bool has_gs = _mesa_has_geometry_shaders(ctx);
    const bool has_tess = _mesa_has_tessellation(ctx);
 
    /* Are uniform buffer objects available in this context?
@@ -768,7 +769,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       *params = shProg->TransformFeedback.BufferMode;
       return;
    case GL_GEOMETRY_VERTICES_OUT:
-      if (!has_core_gs)
+      if (!has_gs)
          break;
       if (check_gs_query(ctx, shProg)) {
          *params = shProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->
@@ -776,7 +777,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       }
       return;
    case GL_GEOMETRY_SHADER_INVOCATIONS:
-      if (!has_core_gs || !ctx->Extensions.ARB_gpu_shader5)
+      if (!has_gs || !ctx->Extensions.ARB_gpu_shader5)
          break;
       if (check_gs_query(ctx, shProg)) {
          *params = shProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->
@@ -784,7 +785,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       }
       return;
    case GL_GEOMETRY_INPUT_TYPE:
-      if (!has_core_gs)
+      if (!has_gs)
          break;
       if (check_gs_query(ctx, shProg)) {
          *params = shProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->
@@ -792,7 +793,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       }
       return;
    case GL_GEOMETRY_OUTPUT_TYPE:
-      if (!has_core_gs)
+      if (!has_gs)
          break;
       if (check_gs_query(ctx, shProg)) {
          *params = shProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->
@@ -1257,6 +1258,8 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
       _mesa_debug(ctx, "Error linking program %u:\n%s\n",
                   shProg->Name, shProg->data->InfoLog);
    }
+
+   _mesa_update_vertex_processing_mode(ctx);
 
    /* debug code */
    if (0) {
@@ -2066,6 +2069,8 @@ use_program(GLuint program, bool no_error)
             _mesa_BindProgramPipeline(ctx->Pipeline.Current->Name);
       }
    }
+
+   _mesa_update_vertex_processing_mode(ctx);
 }
 
 
@@ -2432,6 +2437,8 @@ _mesa_use_program(struct gl_context *ctx, gl_shader_stage stage,
                                      &shTarget->ReferencedPrograms[stage],
                                      shProg);
       _mesa_reference_program(ctx, target, prog);
+      if (stage == MESA_SHADER_VERTEX)
+         _mesa_update_vertex_processing_mode(ctx);
       return;
    }
 

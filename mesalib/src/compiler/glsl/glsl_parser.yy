@@ -96,6 +96,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %parse-param {struct _mesa_glsl_parse_state *state}
 
 %union {
+   YYSTYPE() {}
    int n;
    int64_t n64;
    float real;
@@ -1584,6 +1585,12 @@ layout_qualifier_id:
                              "qualifier `%s` requires "
                              "ARB_bindless_texture", $1);
          }
+      }
+
+      if (!$$.flags.i &&
+          state->EXT_shader_framebuffer_fetch_non_coherent_enable) {
+         if (match_layout_qualifier($1, "noncoherent", state) == 0)
+            $$.flags.q.non_coherent = 1;
       }
 
       if (!$$.flags.i) {

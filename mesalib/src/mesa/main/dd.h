@@ -963,15 +963,15 @@ struct dd_function_table {
    /** @} */
 
    /**
-    * GL_MESA_shader_framebuffer_fetch_non_coherent rendering barrier.
+    * GL_EXT_shader_framebuffer_fetch_non_coherent rendering barrier.
     *
     * On return from this function any framebuffer contents written by
     * previous draw commands are guaranteed to be visible from subsequent
     * fragment shader invocations using the
-    * MESA_shader_framebuffer_fetch_non_coherent interface.
+    * EXT_shader_framebuffer_fetch_non_coherent interface.
     */
    /** @{ */
-   void (*BlendBarrier)(struct gl_context *ctx);
+   void (*FramebufferFetchBarrier)(struct gl_context *ctx);
    /** @} */
 
    /**

@@ -441,7 +441,7 @@ private:
 builtin_variable_generator::builtin_variable_generator(
    exec_list *instructions, struct _mesa_glsl_parse_state *state)
    : instructions(instructions), state(state), symtab(state->symbols),
-     compatibility(state->compat_shader || !state->is_version(140, 100)),
+     compatibility(state->compat_shader || state->ARB_compatibility_enable),
      bool_t(glsl_type::bool_type), int_t(glsl_type::int_type),
      uint_t(glsl_type::uint_type),
      uint64_t(glsl_type::uint64_t_type),
@@ -1194,6 +1194,7 @@ builtin_variable_generator::generate_fs_special_vars()
       var->data.precision = GLSL_PRECISION_MEDIUM;
       var->data.read_only = 1;
       var->data.fb_fetch_output = 1;
+      var->data.memory_coherent = 1;
    }
 
    if (state->es_shader && state->language_version == 100 && state->EXT_blend_func_extended_enable) {

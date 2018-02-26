@@ -842,11 +842,6 @@
     </function>
 </category>
 
-<!-- 122. GL_EXT_shader_framebuffer_fetch -->
-<category name="GL_EXT_shader_framebuffer_fetch" number="122">
-    <enum name="FRAGMENT_SHADER_DISCARDS_SAMPLES_EXT" value="0x8A52"/>
-</category>
-
 <!-- 150. GL_EXT_disjoint_timer_query -->
 <category name="GL_EXT_disjoint_timer_query" number="150">
     <enum name="QUERY_COUNTER_BITS_EXT"     value="0x8864"/>

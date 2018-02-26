@@ -116,7 +116,6 @@ struct loader_dri3_drawable {
    uint8_t have_back;
    uint8_t have_fake_front;
    uint8_t is_pixmap;
-   uint8_t flipping;
 
    /* Information about the GPU owning the buffer */
    __DRIscreen *dri_screen;
@@ -157,6 +156,7 @@ struct loader_dri3_drawable {
 
    unsigned int swap_method;
    unsigned int back_format;
+   xcb_present_complete_mode_t last_present_mode;
 
    /* Currently protects the following fields:
     * event_cnd, has_event_waiter,
