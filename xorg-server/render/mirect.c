@@ -91,8 +91,6 @@ miCompositeRects(CARD8 op,
                  PicturePtr pDst,
                  xRenderColor * color, int nRect, xRectangle *rects)
 {
-    ScreenPtr pScreen = pDst->pDrawable->pScreen;
-
     if (color->alpha == 0xffff) {
         if (op == PictOpOver)
             op = PictOpSrc;
@@ -108,61 +106,18 @@ miCompositeRects(CARD8 op,
                          pDst->alphaOrigin.x, pDst->alphaOrigin.y);
     }
     else {
-        PictFormatPtr rgbaFormat;
-        PixmapPtr pPixmap;
-        PicturePtr pSrc;
-        xRectangle one;
         int error;
-        Pixel pixel;
-        GCPtr pGC;
-        ChangeGCVal gcvals[2];
-        XID tmpval[1];
+        PicturePtr pSrc = CreateSolidPicture(0, color, &error);
 
-        rgbaFormat = PictureMatchFormat(pScreen, 32, PICT_a8r8g8b8);
-        if (!rgbaFormat)
-            goto bail1;
+        if (pSrc) {
+            while (nRect--) {
+                CompositePicture(op, pSrc, 0, pDst, 0, 0, 0, 0,
+                                 rects->x, rects->y,
+                                 rects->width, rects->height);
+                rects++;
+            }
 
-        pPixmap = (*pScreen->CreatePixmap) (pScreen, 1, 1, rgbaFormat->depth,
-                                            CREATE_PIXMAP_USAGE_SCRATCH);
-        if (!pPixmap)
-            goto bail2;
-
-        miRenderColorToPixel(rgbaFormat, color, &pixel);
-
-        pGC = GetScratchGC(rgbaFormat->depth, pScreen);
-        if (!pGC)
-            goto bail3;
-        gcvals[0].val = GXcopy;
-        gcvals[1].val = pixel;
-
-        ChangeGC(NullClient, pGC, GCFunction | GCForeground, gcvals);
-        ValidateGC(&pPixmap->drawable, pGC);
-        one.x = 0;
-        one.y = 0;
-        one.width = 1;
-        one.height = 1;
-        (*pGC->ops->PolyFillRect) (&pPixmap->drawable, pGC, 1, &one);
-
-        tmpval[0] = xTrue;
-        pSrc = CreatePicture(0, &pPixmap->drawable, rgbaFormat,
-                             CPRepeat, tmpval, serverClient, &error);
-
-        if (!pSrc)
-            goto bail4;
-
-        while (nRect--) {
-            CompositePicture(op, pSrc, 0, pDst, 0, 0, 0, 0,
-                             rects->x, rects->y, rects->width, rects->height);
-            rects++;
+            FreePicture((void *) pSrc, 0);
         }
-
-        FreePicture((void *) pSrc, 0);
- bail4:
-        FreeScratchGC(pGC);
- bail3:
-        (*pScreen->DestroyPixmap) (pPixmap);
- bail2:
- bail1:
-        ;
     }
 }

@@ -357,6 +357,8 @@ initializeExtensions(__GLXscreen * screen)
         __glXEnableExtension(screen->glx_enable_bits,
                              "GLX_ARB_create_context");
         __glXEnableExtension(screen->glx_enable_bits,
+                             "GLX_ARB_create_context_no_error");
+        __glXEnableExtension(screen->glx_enable_bits,
                              "GLX_ARB_create_context_profile");
         __glXEnableExtension(screen->glx_enable_bits,
                              "GLX_EXT_create_context_es_profile");

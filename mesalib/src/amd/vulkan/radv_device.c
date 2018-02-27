@@ -880,7 +880,6 @@ static void radv_get_physical_device_queue_family_properties(
 	int num_queue_families = 1;
 	int idx;
 	if (pdevice->rad_info.num_compute_rings > 0 &&
-	    pdevice->rad_info.chip_class >= CIK &&
 	    !(pdevice->instance->debug_flags & RADV_DEBUG_NO_COMPUTE_QUEUE))
 		num_queue_families++;
 
@@ -907,7 +906,6 @@ static void radv_get_physical_device_queue_family_properties(
 	}
 
 	if (pdevice->rad_info.num_compute_rings > 0 &&
-	    pdevice->rad_info.chip_class >= CIK &&
 	    !(pdevice->instance->debug_flags & RADV_DEBUG_NO_COMPUTE_QUEUE)) {
 		if (*pCount > idx) {
 			*pQueueFamilyProperties[idx] = (VkQueueFamilyProperties) {
@@ -1066,10 +1064,8 @@ radv_queue_finish(struct radv_queue *queue)
 		queue->device->ws->buffer_destroy(queue->esgs_ring_bo);
 	if (queue->gsvs_ring_bo)
 		queue->device->ws->buffer_destroy(queue->gsvs_ring_bo);
-	if (queue->tess_factor_ring_bo)
-		queue->device->ws->buffer_destroy(queue->tess_factor_ring_bo);
-	if (queue->tess_offchip_ring_bo)
-		queue->device->ws->buffer_destroy(queue->tess_offchip_ring_bo);
+	if (queue->tess_rings_bo)
+		queue->device->ws->buffer_destroy(queue->tess_rings_bo);
 	if (queue->compute_scratch_bo)
 		queue->device->ws->buffer_destroy(queue->compute_scratch_bo);
 }
@@ -1396,22 +1392,22 @@ fill_geom_tess_rings(struct radv_queue *queue,
 		     uint32_t gsvs_ring_size,
 		     struct radeon_winsys_bo *gsvs_ring_bo,
 		     uint32_t tess_factor_ring_size,
-		     struct radeon_winsys_bo *tess_factor_ring_bo,
+		     uint32_t tess_offchip_ring_offset,
 		     uint32_t tess_offchip_ring_size,
-		     struct radeon_winsys_bo *tess_offchip_ring_bo)
+		     struct radeon_winsys_bo *tess_rings_bo)
 {
 	uint64_t esgs_va = 0, gsvs_va = 0;
-	uint64_t tess_factor_va = 0, tess_offchip_va = 0;
+	uint64_t tess_va = 0, tess_offchip_va = 0;
 	uint32_t *desc = &map[4];
 
 	if (esgs_ring_bo)
 		esgs_va = radv_buffer_get_va(esgs_ring_bo);
 	if (gsvs_ring_bo)
 		gsvs_va = radv_buffer_get_va(gsvs_ring_bo);
-	if (tess_factor_ring_bo)
-		tess_factor_va = radv_buffer_get_va(tess_factor_ring_bo);
-	if (tess_offchip_ring_bo)
-		tess_offchip_va = radv_buffer_get_va(tess_offchip_ring_bo);
+	if (tess_rings_bo) {
+		tess_va = radv_buffer_get_va(tess_rings_bo);
+		tess_offchip_va = tess_va + tess_offchip_ring_offset;
+	}
 
 	/* stride 0, num records - size, add tid, swizzle, elsize4,
 	   index stride 64 */
@@ -1488,8 +1484,8 @@ fill_geom_tess_rings(struct radv_queue *queue,
 		S_008F0C_ADD_TID_ENABLE(true);
 	desc += 4;
 
-	desc[0] = tess_factor_va;
-	desc[1] = S_008F04_BASE_ADDRESS_HI(tess_factor_va >> 32) |
+	desc[0] = tess_va;
+	desc[1] = S_008F04_BASE_ADDRESS_HI(tess_va >> 32) |
 		S_008F04_STRIDE(0) |
 		S_008F04_SWIZZLE_ENABLE(false);
 	desc[2] = tess_factor_ring_size;
@@ -1598,13 +1594,13 @@ radv_get_preamble_cs(struct radv_queue *queue,
 	struct radeon_winsys_bo *compute_scratch_bo = NULL;
 	struct radeon_winsys_bo *esgs_ring_bo = NULL;
 	struct radeon_winsys_bo *gsvs_ring_bo = NULL;
-	struct radeon_winsys_bo *tess_factor_ring_bo = NULL;
-	struct radeon_winsys_bo *tess_offchip_ring_bo = NULL;
+	struct radeon_winsys_bo *tess_rings_bo = NULL;
 	struct radeon_winsys_cs *dest_cs[3] = {0};
 	bool add_tess_rings = false, add_sample_positions = false;
 	unsigned tess_factor_ring_size = 0, tess_offchip_ring_size = 0;
 	unsigned max_offchip_buffers;
 	unsigned hs_offchip_param = 0;
+	unsigned tess_offchip_ring_offset;
 	uint32_t ring_bo_flags = RADEON_FLAG_NO_CPU_ACCESS | RADEON_FLAG_NO_INTERPROCESS_SHARING;
 	if (!queue->has_tess_rings) {
 		if (needs_tess_rings)
@@ -1617,6 +1613,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 	tess_factor_ring_size = 32768 * queue->device->physical_device->rad_info.max_se;
 	hs_offchip_param = radv_get_hs_offchip_param(queue->device,
 						     &max_offchip_buffers);
+	tess_offchip_ring_offset = align(tess_factor_ring_size, 64 * 1024);
 	tess_offchip_ring_size = max_offchip_buffers *
 		queue->device->tess_offchip_block_dw_size * 4;
 
@@ -1684,33 +1681,25 @@ radv_get_preamble_cs(struct radv_queue *queue,
 	}
 
 	if (add_tess_rings) {
-		tess_factor_ring_bo = queue->device->ws->buffer_create(queue->device->ws,
-								       tess_factor_ring_size,
-								       256,
-								       RADEON_DOMAIN_VRAM,
-								       ring_bo_flags);
-		if (!tess_factor_ring_bo)
-			goto fail;
-		tess_offchip_ring_bo = queue->device->ws->buffer_create(queue->device->ws,
-								       tess_offchip_ring_size,
-								       256,
-								       RADEON_DOMAIN_VRAM,
-									ring_bo_flags);
-		if (!tess_offchip_ring_bo)
+		tess_rings_bo = queue->device->ws->buffer_create(queue->device->ws,
+								 tess_offchip_ring_offset + tess_offchip_ring_size,
+								 256,
+								 RADEON_DOMAIN_VRAM,
+								 ring_bo_flags);
+		if (!tess_rings_bo)
 			goto fail;
 	} else {
-		tess_factor_ring_bo = queue->tess_factor_ring_bo;
-		tess_offchip_ring_bo = queue->tess_offchip_ring_bo;
+		tess_rings_bo = queue->tess_rings_bo;
 	}
 
 	if (scratch_bo != queue->scratch_bo ||
 	    esgs_ring_bo != queue->esgs_ring_bo ||
 	    gsvs_ring_bo != queue->gsvs_ring_bo ||
-	    tess_factor_ring_bo != queue->tess_factor_ring_bo ||
-	    tess_offchip_ring_bo != queue->tess_offchip_ring_bo || add_sample_positions) {
+	    tess_rings_bo != queue->tess_rings_bo ||
+	    add_sample_positions) {
 		uint32_t size = 0;
 		if (gsvs_ring_bo || esgs_ring_bo ||
-		    tess_factor_ring_bo || tess_offchip_ring_bo || add_sample_positions) {
+		    tess_rings_bo || add_sample_positions) {
 			size = 112; /* 2 dword + 2 padding + 4 dword * 6 */
 			if (add_sample_positions)
 				size += 256; /* 32+16+8+4+2+1 samples * 4 * 2 = 248 bytes. */
@@ -1748,11 +1737,8 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		if (gsvs_ring_bo)
 			radv_cs_add_buffer(queue->device->ws, cs, gsvs_ring_bo, 8);
 
-		if (tess_factor_ring_bo)
-			radv_cs_add_buffer(queue->device->ws, cs, tess_factor_ring_bo, 8);
-
-		if (tess_offchip_ring_bo)
-			radv_cs_add_buffer(queue->device->ws, cs, tess_offchip_ring_bo, 8);
+		if (tess_rings_bo)
+			radv_cs_add_buffer(queue->device->ws, cs, tess_rings_bo, 8);
 
 		if (descriptor_bo)
 			radv_cs_add_buffer(queue->device->ws, cs, descriptor_bo, 8);
@@ -1768,18 +1754,20 @@ radv_get_preamble_cs(struct radv_queue *queue,
 				map[1] = rsrc1;
 			}
 
-			if (esgs_ring_bo || gsvs_ring_bo || tess_factor_ring_bo || tess_offchip_ring_bo ||
+			if (esgs_ring_bo || gsvs_ring_bo || tess_rings_bo ||
 			    add_sample_positions)
 				fill_geom_tess_rings(queue, map, add_sample_positions,
 						     esgs_ring_size, esgs_ring_bo,
 						     gsvs_ring_size, gsvs_ring_bo,
-						     tess_factor_ring_size, tess_factor_ring_bo,
-						     tess_offchip_ring_size, tess_offchip_ring_bo);
+						     tess_factor_ring_size,
+						     tess_offchip_ring_offset,
+						     tess_offchip_ring_size,
+						     tess_rings_bo);
 
 			queue->device->ws->buffer_unmap(descriptor_bo);
 		}
 
-		if (esgs_ring_bo || gsvs_ring_bo || tess_factor_ring_bo || tess_offchip_ring_bo) {
+		if (esgs_ring_bo || gsvs_ring_bo || tess_rings_bo)  {
 			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
 			radeon_emit(cs, EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
 			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
@@ -1798,8 +1786,8 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			}
 		}
 
-		if (tess_factor_ring_bo) {
-			uint64_t tf_va = radv_buffer_get_va(tess_factor_ring_bo);
+		if (tess_rings_bo) {
+			uint64_t tf_va = radv_buffer_get_va(tess_rings_bo);
 			if (queue->device->physical_device->rad_info.chip_class >= CIK) {
 				radeon_set_uconfig_reg(cs, R_030938_VGT_TF_RING_SIZE,
 						       S_030938_SIZE(tess_factor_ring_size / 4));
@@ -1929,12 +1917,8 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		queue->gsvs_ring_size = gsvs_ring_size;
 	}
 
-	if (tess_factor_ring_bo != queue->tess_factor_ring_bo) {
-		queue->tess_factor_ring_bo = tess_factor_ring_bo;
-	}
-
-	if (tess_offchip_ring_bo != queue->tess_offchip_ring_bo) {
-		queue->tess_offchip_ring_bo = tess_offchip_ring_bo;
+	if (tess_rings_bo != queue->tess_rings_bo) {
+		queue->tess_rings_bo = tess_rings_bo;
 		queue->has_tess_rings = true;
 	}
 
@@ -1968,10 +1952,8 @@ fail:
 		queue->device->ws->buffer_destroy(esgs_ring_bo);
 	if (gsvs_ring_bo && gsvs_ring_bo != queue->gsvs_ring_bo)
 		queue->device->ws->buffer_destroy(gsvs_ring_bo);
-	if (tess_factor_ring_bo && tess_factor_ring_bo != queue->tess_factor_ring_bo)
-		queue->device->ws->buffer_destroy(tess_factor_ring_bo);
-	if (tess_offchip_ring_bo && tess_offchip_ring_bo != queue->tess_offchip_ring_bo)
-		queue->device->ws->buffer_destroy(tess_offchip_ring_bo);
+	if (tess_rings_bo && tess_rings_bo != queue->tess_rings_bo)
+		queue->device->ws->buffer_destroy(tess_rings_bo);
 	return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
 }
 

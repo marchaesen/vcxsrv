@@ -601,10 +601,8 @@ format_for_depth(int depth)
     default:
     case 24:
         return PICT_x8r8g8b8;
-#if XORG_VERSION_CURRENT >= 10699900
     case 30:
         return PICT_x2r10g10b10;
-#endif
     case 32:
         return PICT_a8r8g8b8;
     }
@@ -669,7 +667,6 @@ glamor_get_rgba_from_pixel(CARD32 pixel,
         gshift = rbits;
         bshift = gshift + gbits;
         ashift = bshift + bbits;
-#if XORG_VERSION_CURRENT >= 10699900
     }
     else if (PICT_FORMAT_TYPE(format) == PICT_TYPE_BGRA) {
         ashift = 0;
@@ -678,7 +675,6 @@ glamor_get_rgba_from_pixel(CARD32 pixel,
             rshift = PICT_FORMAT_BPP(format) - (rbits + gbits + bbits);
         gshift = rshift + rbits;
         bshift = gshift + gbits;
-#endif
     }
     else {
         return FALSE;
@@ -708,6 +704,15 @@ glamor_get_rgba_from_pixel(CARD32 pixel,
         *alpha = 1;
 
     return TRUE;
+}
+
+static inline void
+glamor_get_rgba_from_color(const xRenderColor *color, float rgba[4])
+{
+    rgba[0] = color->red   / (float)UINT16_MAX;
+    rgba[1] = color->green / (float)UINT16_MAX;
+    rgba[2] = color->blue  / (float)UINT16_MAX;
+    rgba[3] = color->alpha / (float)UINT16_MAX;
 }
 
 inline static Bool

@@ -68,6 +68,7 @@ typedef struct pixman_transform PictTransform, *PictTransformPtr;
 typedef struct _PictSolidFill {
     unsigned int type;
     CARD32 color;
+    xRenderColor fullcolor;
 } PictSolidFill, *PictSolidFillPtr;
 
 typedef struct _PictGradientStop {

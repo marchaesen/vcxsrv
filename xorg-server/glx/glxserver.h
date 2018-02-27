@@ -50,6 +50,10 @@
 #include <GL/glext.h>
 #include <GL/glxproto.h>
 
+#ifndef GLX_CONTEXT_OPENGL_NO_ERROR_ARB
+#define GLX_CONTEXT_OPENGL_NO_ERROR_ARB 0x31B3
+#endif
+
 /*
 ** GLX resources.
 */

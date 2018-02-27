@@ -1685,12 +1685,12 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
 #ifdef GLAMOR_HAS_GBM
     if (ms->drmmode.glamor) {
-        if (!ms_dri2_screen_init(pScreen)) {
+        if (!(ms->drmmode.dri2_enable = ms_dri2_screen_init(pScreen))) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
                        "Failed to initialize the DRI2 extension.\n");
         }
 
-        if (!ms_present_screen_init(pScreen)) {
+        if (!(ms->drmmode.present_enable = ms_present_screen_init(pScreen))) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
                        "Failed to initialize the Present extension.\n");
         }
@@ -1783,7 +1783,7 @@ CloseScreen(ScreenPtr pScreen)
     ms_ent->assigned_crtcs = 0;
 
 #ifdef GLAMOR_HAS_GBM
-    if (ms->drmmode.glamor) {
+    if (ms->drmmode.dri2_enable) {
         ms_dri2_close_screen(pScreen);
     }
 #endif

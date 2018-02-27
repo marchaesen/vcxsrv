@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.3.5 Release Notes / February 19, 2018</h1>
+
+<p>
+Mesa 17.3.6 is a bug fix release which fixes bugs found since the 17.3.5 release.
+</p>
+<p>
+Mesa 17.3.6 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+d5e10ea3f0d11b06d2b0b235bba372a04278c39bc0e712090bda1f61842db188  mesa-17.3.6.tar.gz
+e5915680d44ac9d05defdec529db7459ac9edd441c9845266eff2e2d3e57fbf8  mesa-17.3.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104383">Bug 104383</a> - [KBL] Intel GPU hang with firefox</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104411">Bug 104411</a> - [CCS] lemonbar-xft GPU hang</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104546">Bug 104546</a> - Crash happens when running compute pipeline after calling glxMakeCurrent two times</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Emil Velikov (2):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.3.5</li>
+  <li>Update version to 17.3.6</li>
+</ul>
+
+<p>Jason Ekstrand (4):</p>
+<ul>
+  <li>i965/draw: Do resolves properly for textures used by TXF</li>
+  <li>i965: Replace draw_aux_buffer_disabled with draw_aux_usage</li>
+  <li>i965/draw: Set NEW_AUX_STATE when draw aux changes</li>
+  <li>i965: Stop disabling aux during texture preparation</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>i965: Don't disable CCS for RT dependencies when dispatching compute.</li>
+</ul>
+
+<p>Topi Pohjolainen (1):</p>
+<ul>
+  <li>i965: Don't try to disable render aux buffers for compute</li>
+</ul>
+
+</div>
+</body>
+</html>
+

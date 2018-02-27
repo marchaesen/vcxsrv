@@ -218,6 +218,10 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
                 return BadValue;
             break;
 
+        case GLX_CONTEXT_OPENGL_NO_ERROR_ARB:
+            /* ignore */
+            break;
+
         default:
             if (!req->isDirect)
                 return BadValue;

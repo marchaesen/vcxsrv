@@ -220,20 +220,10 @@ static pixman_image_t *
 create_solid_fill_image(PicturePtr pict)
 {
     PictSolidFill *solid = &pict->pSourcePict->solidFill;
-    pixman_color_t color;
-    CARD32 a, r, g, b;
+    /* pixman_color_t and xRenderColor have the same layout */
+    pixman_color_t *color = (pixman_color_t *)&solid->fullcolor;
 
-    a = (solid->color & 0xff000000) >> 24;
-    r = (solid->color & 0x00ff0000) >> 16;
-    g = (solid->color & 0x0000ff00) >> 8;
-    b = (solid->color & 0x000000ff) >> 0;
-
-    color.alpha = (a << 8) | a;
-    color.red = (r << 8) | r;
-    color.green = (g << 8) | g;
-    color.blue = (b << 8) | b;
-
-    return pixman_image_create_solid_fill(&color);
+    return pixman_image_create_solid_fill(color);
 }
 
 static pixman_image_t *

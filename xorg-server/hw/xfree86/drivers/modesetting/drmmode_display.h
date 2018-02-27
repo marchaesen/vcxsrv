@@ -83,6 +83,9 @@ typedef struct {
 
     Bool dri2_flipping;
     Bool present_flipping;
+
+    Bool dri2_enable;
+    Bool present_enable;
 } drmmode_rec, *drmmode_ptr;
 
 typedef struct {
