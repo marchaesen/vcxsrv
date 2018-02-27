@@ -294,16 +294,14 @@ if not (with_dri or with_gallium or with_glx == 'xlib' or with_glx == 'gallium-x
   with_shared_glapi = false
 endif
 
-with_gbm = get_option('gbm')
-if with_gbm == 'auto' and with_dri  # TODO: or gallium
-  with_gbm = system_has_kms_drm
-elif with_gbm == 'true'
-  if not system_has_kms_drm
-    error('GBM only supports DRM/KMS platforms')
-  endif
-  with_gbm = true
+_gbm = get_option('gbm')
+if _gbm == 'auto'
+  with_gbm = system_has_kms_drm and with_dri
 else
-  with_gbm = false
+  with_gbm = _gbm == 'true'
+endif
+if with_gbm and not system_has_kms_drm
+  error('GBM only supports DRM/KMS platforms')
 endif
 
 _egl = get_option('egl')
@@ -373,11 +371,11 @@ if with_vulkan_icd_dir == ''
 endif
 
 with_dri2 = (with_dri or with_any_vk) and with_dri_platform == 'drm'
-with_dri3 = get_option('dri3')
-if with_dri3 == 'auto'
+_dri3 = get_option('dri3')
+if _dri3 == 'auto'
   with_dri3 = system_has_kms_drm and with_dri2
 else
-  with_dri3 = with_dri3 == 'true'
+  with_dri3 = _dri3 == 'true'
 endif
 
 if with_any_vk and (with_platform_x11 and not with_dri3)
@@ -1255,6 +1253,9 @@ if dep_dl != [] and dep_dl.found()
 endif
 
 pkg = import('pkgconfig')
+
+env_test = environment()
+env_test.set('NM', find_program('nm').path())
 
 subdir('include')
 subdir('bin')

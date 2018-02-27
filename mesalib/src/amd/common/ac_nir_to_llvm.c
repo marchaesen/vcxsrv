@@ -1797,16 +1797,16 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = emit_int_cmp(&ctx->ac, LLVMIntUGE, src[0], src[1]);
 		break;
 	case nir_op_feq:
-		result = emit_float_cmp(&ctx->ac, LLVMRealUEQ, src[0], src[1]);
+		result = emit_float_cmp(&ctx->ac, LLVMRealOEQ, src[0], src[1]);
 		break;
 	case nir_op_fne:
 		result = emit_float_cmp(&ctx->ac, LLVMRealUNE, src[0], src[1]);
 		break;
 	case nir_op_flt:
-		result = emit_float_cmp(&ctx->ac, LLVMRealULT, src[0], src[1]);
+		result = emit_float_cmp(&ctx->ac, LLVMRealOLT, src[0], src[1]);
 		break;
 	case nir_op_fge:
-		result = emit_float_cmp(&ctx->ac, LLVMRealUGE, src[0], src[1]);
+		result = emit_float_cmp(&ctx->ac, LLVMRealOGE, src[0], src[1]);
 		break;
 	case nir_op_fabs:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.fabs",
@@ -5082,9 +5082,11 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 			address[count++] = coords[1];
 		}
 		if (instr->coord_components > 2) {
-			/* This seems like a bit of a hack - but it passes Vulkan CTS with it */
-			if (instr->sampler_dim != GLSL_SAMPLER_DIM_3D &&
-			    instr->sampler_dim != GLSL_SAMPLER_DIM_CUBE &&
+			if ((instr->sampler_dim == GLSL_SAMPLER_DIM_2D ||
+			     instr->sampler_dim == GLSL_SAMPLER_DIM_MS ||
+			     instr->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS ||
+			     instr->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS_MS) &&
+			    instr->is_array &&
 			    instr->op != nir_texop_txf) {
 				coords[2] = apply_round_slice(&ctx->ac, coords[2]);
 			}

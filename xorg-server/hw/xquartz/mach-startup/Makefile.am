@@ -47,6 +47,7 @@ X11_bin_LDFLAGS =  \
 if GLX
 X11_bin_DEPENDENCIES += \
 	$(top_builddir)/hw/xquartz/GL/libCGLCore.la \
+	$(top_builddir)/glx/libglxvnd.la \
 	$(top_builddir)/glx/libglx.la
 
 X11_bin_LDFLAGS += \

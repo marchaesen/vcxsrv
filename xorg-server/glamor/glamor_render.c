@@ -828,13 +828,11 @@ glamor_composite_choose_shader(CARD8 op,
         source_solid_color[3] = 0.0;
     }
     else if (!source->pDrawable) {
-        if (source->pSourcePict->type == SourcePictTypeSolidFill) {
+        SourcePictPtr sp = source->pSourcePict;
+        if (sp->type == SourcePictTypeSolidFill) {
             key.source = SHADER_SOURCE_SOLID;
-            glamor_get_rgba_from_pixel(source->pSourcePict->solidFill.color,
-                                       &source_solid_color[0],
-                                       &source_solid_color[1],
-                                       &source_solid_color[2],
-                                       &source_solid_color[3], PICT_a8r8g8b8);
+            glamor_get_rgba_from_color(&sp->solidFill.fullcolor,
+                                       source_solid_color);
         }
         else
             goto fail;
@@ -848,13 +846,11 @@ glamor_composite_choose_shader(CARD8 op,
 
     if (mask) {
         if (!mask->pDrawable) {
-            if (mask->pSourcePict->type == SourcePictTypeSolidFill) {
+            SourcePictPtr sp = mask->pSourcePict;
+            if (sp->type == SourcePictTypeSolidFill) {
                 key.mask = SHADER_MASK_SOLID;
-                glamor_get_rgba_from_pixel
-                    (mask->pSourcePict->solidFill.color,
-                     &mask_solid_color[0],
-                     &mask_solid_color[1],
-                     &mask_solid_color[2], &mask_solid_color[3], PICT_a8r8g8b8);
+                glamor_get_rgba_from_color(&sp->solidFill.fullcolor,
+                                           mask_solid_color);
             }
             else
                 goto fail;

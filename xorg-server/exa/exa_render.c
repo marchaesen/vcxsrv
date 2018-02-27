@@ -291,7 +291,9 @@ exaTryDriverSolidFill(PicturePtr pSrc,
         pixel = exaGetPixmapFirstPixel(pSrcPix);
     }
     else
-        pixel = pSrc->pSourcePict->solidFill.color;
+        miRenderColorToPixel(pSrc->pFormat,
+                             &pSrc->pSourcePict->solidFill.fullcolor,
+                             &pixel);
 
     if (!exaGetRGBAFromPixel(pixel, &red, &green, &blue, &alpha,
                              pSrc->pFormat, pSrc->format) ||

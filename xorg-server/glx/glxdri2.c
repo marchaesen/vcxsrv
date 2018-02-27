@@ -42,10 +42,10 @@
 #include <xf86.h>
 #include <dri2.h>
 
+#include <GL/glxtokens.h>
 #include "glxserver.h"
 #include "glxutil.h"
 #include "glxdricommon.h"
-#include <GL/glxtokens.h>
 
 #include "extension_string.h"
 
@@ -401,6 +401,12 @@ dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
                 *error = BadValue;
                 return FALSE;
             }
+            break;
+        case GLX_SCREEN:
+            /* already checked for us */
+            break;
+        case GLX_CONTEXT_OPENGL_NO_ERROR_ARB:
+            /* ignore */
             break;
         default:
             /* If an unknown attribute is received, fail.
@@ -832,6 +838,8 @@ initializeExtensions(__GLXscreen * screen)
     if (dri->dri2->base.version >= 3) {
         __glXEnableExtension(screen->glx_enable_bits,
                              "GLX_ARB_create_context");
+        __glXEnableExtension(screen->glx_enable_bits,
+                             "GLX_ARB_create_context_no_error");
         __glXEnableExtension(screen->glx_enable_bits,
                              "GLX_ARB_create_context_profile");
         __glXEnableExtension(screen->glx_enable_bits,

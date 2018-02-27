@@ -59,5 +59,9 @@ $(LOCAL_GENERATED_SOURCES): $(MESA_TOP)/src/vulkan/util/gen_enum_to_str.py \
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
         $(intermediates)
 
+ifeq ($(filter $(MESA_ANDROID_MAJOR_VERSION), 4 5 6 7),)
+LOCAL_SHARED_LIBRARIES += libnativewindow
+endif
+
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
