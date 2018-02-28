@@ -142,23 +142,6 @@ __bitset_next_set(unsigned i, BITSET_WORD *tmp,
  * it as, and N is the number of bits in the bitset.
  */
 #define DECLARE_BITSET_T(T, N) struct T {                       \
-      /* XXX - Replace this with an implicitly-defined          \
-       * constructor when support for C++11 defaulted           \
-       * constructors can be assumed (available on GCC 4.4 and  \
-       * later) in order to make the object trivially           \
-       * constructible like a fundamental integer type for      \
-       * convenience.                                           \
-       */                                                       \
-      T()                                                       \
-      {                                                         \
-      }                                                         \
-                                                                \
-      T(BITSET_WORD x)                                          \
-      {                                                         \
-         for (unsigned i = 0; i < BITSET_WORDS(N); i++, x = 0)  \
-            words[i] = x;                                       \
-      }                                                         \
-                                                                \
       EXPLICIT_CONVERSION                                       \
       operator bool() const                                     \
       {                                                         \
@@ -166,6 +149,13 @@ __bitset_next_set(unsigned i, BITSET_WORD *tmp,
             if (words[i])                                       \
                return true;                                     \
          return false;                                          \
+      }                                                         \
+                                                                \
+      T &                                                       \
+      operator=(int x)                                          \
+      {                                                         \
+         const T c = {{ (BITSET_WORD)x }};                      \
+         return *this = c;                                      \
       }                                                         \
                                                                 \
       friend bool                                               \
@@ -178,6 +168,19 @@ __bitset_next_set(unsigned i, BITSET_WORD *tmp,
       operator!=(const T &b, const T &c)                        \
       {                                                         \
          return !(b == c);                                      \
+      }                                                         \
+                                                                \
+      friend bool                                               \
+      operator==(const T &b, int x)                             \
+      {                                                         \
+         const T c = {{ (BITSET_WORD)x }};                      \
+         return b == c;                                         \
+      }                                                         \
+                                                                \
+      friend bool                                               \
+      operator!=(const T &b, int x)                             \
+      {                                                         \
+         return !(b == x);                                      \
       }                                                         \
                                                                 \
       friend T                                                  \

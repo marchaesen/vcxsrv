@@ -270,7 +270,8 @@ glamor_make_pixmap_exportable(PixmapPtr pixmap)
     }
 
     bo = gbm_bo_create(glamor_egl->gbm, width, height,
-                       GBM_FORMAT_ARGB8888,
+                       (pixmap->drawable.depth == 30) ?
+                       GBM_FORMAT_ARGB2101010 : GBM_FORMAT_ARGB8888,
 #ifdef GLAMOR_HAS_GBM_LINEAR
                        (pixmap->usage_hint == CREATE_PIXMAP_USAGE_SHARED ?
                         GBM_BO_USE_LINEAR : 0) |

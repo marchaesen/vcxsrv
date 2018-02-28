@@ -141,7 +141,7 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 			if (var->data.mode == nir_var_shader_in) {
 				unsigned idx = var->data.location;
 				uint8_t mask =
-					nir_ssa_def_components_read(&instr->dest.ssa);
+					nir_ssa_def_components_read(&instr->dest.ssa) << var->data.location_frac;
 				info->vs.input_usage_mask[idx] |= mask;
 			}
 		}

@@ -156,7 +156,8 @@ drmmode_create_bo(drmmode_ptr drmmode, drmmode_bo *bo,
 #ifdef GLAMOR_HAS_GBM
     if (drmmode->glamor) {
         bo->gbm = gbm_bo_create(drmmode->gbm, width, height,
-                                GBM_FORMAT_ARGB8888,
+                                drmmode->scrn->depth == 30 ?
+                                GBM_FORMAT_ARGB2101010 : GBM_FORMAT_ARGB8888,
                                 GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT);
         return bo->gbm != NULL;
     }
@@ -1509,6 +1510,29 @@ drmmode_output_create_resources(xf86OutputPtr output)
         j++;
     }
 
+    /* Create CONNECTOR_ID property */
+    {
+        Atom    name = MakeAtom("CONNECTOR_ID", 12, TRUE);
+        INT32   value = mode_output->connector_id;
+
+        if (name != BAD_RESOURCE) {
+            err = RRConfigureOutputProperty(output->randr_output, name,
+                                            FALSE, FALSE, TRUE,
+                                            1, &value);
+            if (err != 0) {
+                xf86DrvMsg(output->scrn->scrnIndex, X_ERROR,
+                           "RRConfigureOutputProperty error, %d\n", err);
+            }
+            err = RRChangeOutputProperty(output->randr_output, name,
+                                         XA_INTEGER, 32, PropModeReplace, 1,
+                                         &value, FALSE, FALSE);
+            if (err != 0) {
+                xf86DrvMsg(output->scrn->scrnIndex, X_ERROR,
+                           "RRChangeOutputProperty error, %d\n", err);
+            }
+        }
+    }
+
     for (i = 0; i < drmmode_output->num_props; i++) {
         drmmode_prop_ptr p = &drmmode_output->props[i];
 
@@ -1768,6 +1792,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
     drmmode_output_private_ptr drmmode_output;
     char name[32];
     int i;
+    Bool nonDesktop = FALSE;
     drmModePropertyBlobPtr path_blob = NULL;
     const char *s;
     koutput =
@@ -1776,6 +1801,9 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
         return 0;
 
     path_blob = koutput_get_prop_blob(drmmode->fd, koutput, "PATH");
+    i = koutput_get_prop_idx(drmmode->fd, koutput, DRM_MODE_PROP_RANGE, RR_PROPERTY_NON_DESKTOP);
+    if (i >= 0)
+        nonDesktop = koutput->prop_values[i] != 0;
 
     drmmode_create_name(pScrn, koutput, name, path_blob);
 
@@ -1794,6 +1822,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
             drmmode_output = output->driver_private;
             drmmode_output->output_id = mode_res->connectors[num];
             drmmode_output->mode_output = koutput;
+            output->non_desktop = nonDesktop;
             return 1;
         }
     }
@@ -1844,6 +1873,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
     output->interlaceAllowed = TRUE;
     output->doubleScanAllowed = TRUE;
     output->driver_private = drmmode_output;
+    output->non_desktop = nonDesktop;
 
     output->possible_crtcs = 0x7f;
     for (i = 0; i < koutput->count_encoders; i++) {
@@ -2055,8 +2085,152 @@ drmmode_xf86crtc_resize(ScrnInfoPtr scrn, int width, int height)
     return FALSE;
 }
 
+static void
+drmmode_validate_leases(ScrnInfoPtr scrn)
+{
+    ScreenPtr screen = scrn->pScreen;
+    rrScrPrivPtr scr_priv = rrGetScrPriv(screen);
+    modesettingPtr ms = modesettingPTR(scrn);
+    drmmode_ptr drmmode = &ms->drmmode;
+    drmModeLesseeListPtr lessees;
+    RRLeasePtr lease, next;
+    int l;
+
+    /* We can't talk to the kernel about leases when VT switched */
+    if (!scrn->vtSema)
+        return;
+
+    lessees = drmModeListLessees(drmmode->fd);
+    if (!lessees)
+        return;
+
+    xorg_list_for_each_entry_safe(lease, next, &scr_priv->leases, list) {
+        drmmode_lease_private_ptr lease_private = lease->devPrivate;
+
+        for (l = 0; l < lessees->count; l++) {
+            if (lessees->lessees[l] == lease_private->lessee_id)
+                break;
+        }
+
+        /* check to see if the lease has gone away */
+        if (l == lessees->count) {
+            free(lease_private);
+            lease->devPrivate = NULL;
+            xf86CrtcLeaseTerminated(lease);
+        }
+    }
+
+    free(lessees);
+}
+
+static int
+drmmode_create_lease(RRLeasePtr lease, int *fd)
+{
+    ScreenPtr screen = lease->screen;
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+    modesettingPtr ms = modesettingPTR(scrn);
+    drmmode_ptr drmmode = &ms->drmmode;
+    int ncrtc = lease->numCrtcs;
+    int noutput = lease->numOutputs;
+    int nobjects;
+    int c, o;
+    int i;
+    int lease_fd;
+    uint32_t *objects;
+    drmmode_lease_private_ptr   lease_private;
+
+    nobjects = ncrtc + noutput;
+
+    if (nobjects == 0)
+        return BadValue;
+
+    lease_private = calloc(1, sizeof (drmmode_lease_private_rec));
+    if (!lease_private)
+        return BadAlloc;
+
+    objects = xallocarray(nobjects, sizeof (uint32_t));
+
+    if (!objects) {
+        free(lease_private);
+        return BadAlloc;
+    }
+
+    i = 0;
+
+    /* Add CRTC ids */
+    for (c = 0; c < ncrtc; c++) {
+        xf86CrtcPtr crtc = lease->crtcs[c]->devPrivate;
+        drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
+
+        objects[i++] = drmmode_crtc->mode_crtc->crtc_id;
+    }
+
+    /* Add connector ids */
+
+    for (o = 0; o < noutput; o++) {
+        xf86OutputPtr   output = lease->outputs[o]->devPrivate;
+        drmmode_output_private_ptr drmmode_output = output->driver_private;
+
+        objects[i++] = drmmode_output->mode_output->connector_id;
+    }
+
+    /* call kernel to create lease */
+    assert (i == nobjects);
+
+    lease_fd = drmModeCreateLease(drmmode->fd, objects, nobjects, 0, &lease_private->lessee_id);
+
+    free(objects);
+
+    if (lease_fd < 0) {
+        free(lease_private);
+        return BadMatch;
+    }
+
+    lease->devPrivate = lease_private;
+
+    xf86CrtcLeaseStarted(lease);
+
+    *fd = lease_fd;
+    return Success;
+}
+
+static void
+drmmode_terminate_lease(RRLeasePtr lease)
+{
+    ScreenPtr screen = lease->screen;
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+    modesettingPtr ms = modesettingPTR(scrn);
+    drmmode_ptr drmmode = &ms->drmmode;
+    drmmode_lease_private_ptr lease_private = lease->devPrivate;
+
+    if (drmModeRevokeLease(drmmode->fd, lease_private->lessee_id) == 0) {
+        free(lease_private);
+        lease->devPrivate = NULL;
+        xf86CrtcLeaseTerminated(lease);
+    }
+}
+
+void
+drmmode_terminate_leases(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
+{
+    ScreenPtr screen = xf86ScrnToScreen(pScrn);
+    rrScrPrivPtr scr_priv = rrGetScrPriv(screen);
+    RRLeasePtr lease, next;
+
+    xorg_list_for_each_entry_safe(lease, next, &scr_priv->leases, list) {
+        drmmode_lease_private_ptr lease_private = lease->devPrivate;
+        drmModeRevokeLease(drmmode->fd, lease_private->lessee_id);
+        free(lease_private);
+        lease->devPrivate = NULL;
+        RRLeaseTerminated(lease);
+        RRLeaseFree(lease);
+    }
+}
+
 static const xf86CrtcConfigFuncsRec drmmode_xf86crtc_config_funcs = {
-    drmmode_xf86crtc_resize
+    .resize = drmmode_xf86crtc_resize,
+    .create_lease = drmmode_create_lease,
+    .terminate_lease = drmmode_terminate_lease
 };
 
 Bool
@@ -2192,6 +2366,10 @@ drmmode_set_desired_modes(ScrnInfoPtr pScrn, drmmode_ptr drmmode, Bool set_hw)
                 return FALSE;
         }
     }
+
+    /* Validate leases on VT re-entry */
+    drmmode_validate_leases(pScrn);
+
     return TRUE;
 }
 
@@ -2262,13 +2440,17 @@ drmmode_load_palette(ScrnInfoPtr pScrn, int numColors,
 Bool
 drmmode_setup_colormap(ScreenPtr pScreen, ScrnInfoPtr pScrn)
 {
-    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, 0, "Initializing kms color map\n");
+    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, 0,
+                   "Initializing kms color map for depth %d, %d bpc.\n",
+                   pScrn->depth, pScrn->rgbBits);
     if (!miCreateDefColormap(pScreen))
         return FALSE;
-    /* all radeons support 10 bit CLUTs */
-    if (!xf86HandleColormaps(pScreen, 256, 10, drmmode_load_palette, NULL,
-                CMAP_PALETTED_TRUECOLOR |
-                CMAP_RELOAD_ON_MODE_SWITCH))
+
+    /* Adapt color map size and depth to color depth of screen. */
+    if (!xf86HandleColormaps(pScreen, 1 << pScrn->rgbBits, 10,
+                             drmmode_load_palette, NULL,
+                             CMAP_PALETTED_TRUECOLOR |
+                             CMAP_RELOAD_ON_MODE_SWITCH))
         return FALSE;
     return TRUE;
 }
@@ -2392,6 +2574,9 @@ drmmode_handle_uevents(int fd, void *closure)
         changed = TRUE;
         drmmode_output_init(scrn, drmmode, mode_res, i, TRUE, 0);
     }
+
+    /* Check to see if a lessee has disappeared */
+    drmmode_validate_leases(scrn);
 
     if (changed) {
         RRSetChanged(xf86ScrnToScreen(scrn));

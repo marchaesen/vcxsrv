@@ -404,8 +404,8 @@ binop("umul_high", tuint32, commutative,
       "(uint32_t)(((uint64_t) src0 * (uint64_t) src1) >> 32)")
 
 binop("fdiv", tfloat, "", "src0 / src1")
-binop("idiv", tint, "", "src0 / src1")
-binop("udiv", tuint, "", "src0 / src1")
+binop("idiv", tint, "", "src1 == 0 ? 0 : (src0 / src1)")
+binop("udiv", tuint, "", "src1 == 0 ? 0 : (src0 / src1)")
 
 # returns a boolean representing the carry resulting from the addition of
 # the two unsigned arguments.

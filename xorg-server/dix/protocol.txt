@@ -149,6 +149,7 @@ R031 GLX:CreateWindow
 R032 GLX:DeleteWindow
 R033 GLX:SetClientInfoARB
 R034 GLX:CreateContextAttribsARB
+R035 GLX:SetClientInfo2ARB
 R101 GLX:NewList
 R102 GLX:EndList
 R103 GLX:DeleteLists

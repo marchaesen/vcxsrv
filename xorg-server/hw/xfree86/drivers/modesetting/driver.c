@@ -934,6 +934,7 @@ PreInit(ScrnInfoPtr pScrn, int flags)
     case 15:
     case 16:
     case 24:
+    case 30:
         break;
     default:
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -1803,6 +1804,9 @@ CloseScreen(ScreenPtr pScreen)
         free(ms->drmmode.shadow_fb2);
         ms->drmmode.shadow_fb2 = NULL;
     }
+
+    drmmode_terminate_leases(pScrn, &ms->drmmode);
+
     drmmode_uevent_fini(pScrn, &ms->drmmode);
 
     drmmode_free_bos(pScrn, &ms->drmmode);

@@ -23,6 +23,7 @@
 #include "randrstr.h"
 #include "propertyst.h"
 #include "swaprep.h"
+#include <X11/Xatom.h>
 
 static int
 DeliverPropertyEvent(WindowPtr pWin, void *value)
@@ -131,6 +132,29 @@ RRDeleteOutputProperty(RROutputPtr output, Atom property)
         }
 }
 
+static void
+RRNoticePropertyChange(RROutputPtr output, Atom property, RRPropertyValuePtr value)
+{
+    const char *non_desktop_str = RR_PROPERTY_NON_DESKTOP;
+    Atom non_desktop_prop = MakeAtom(non_desktop_str, strlen(non_desktop_str), FALSE);
+
+    if (property == non_desktop_prop) {
+        if (value->type == XA_INTEGER && value->format == 32 && value->size >= 1) {
+            uint32_t     nonDesktopData;
+            Bool        nonDesktop;
+
+            memcpy(&nonDesktopData, value->data, sizeof (nonDesktopData));
+            nonDesktop = nonDesktopData != 0;
+
+            if (nonDesktop != output->nonDesktop) {
+                output->nonDesktop = nonDesktop;
+                RROutputChanged(output, 0);
+                RRTellChanged(output->pScreen);
+            }
+        }
+    }
+}
+
 int
 RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
                        int format, int mode, unsigned long len,
@@ -233,6 +257,9 @@ RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
 
     if (pending && prop->is_pending)
         output->pendingProperties = TRUE;
+
+    if (!(pending && prop->is_pending))
+        RRNoticePropertyChange(output, prop->propertyName, prop_value);
 
     if (sendevent) {
         xRROutputPropertyNotifyEvent event;
@@ -482,6 +509,9 @@ ProcRRConfigureOutputProperty(ClientPtr client)
 
     VERIFY_RR_OUTPUT(stuff->output, output, DixReadAccess);
 
+    if (RROutputIsLeased(output))
+        return BadAccess;
+
     num_valid =
         stuff->length - bytes_to_int32(sizeof(xRRConfigureOutputPropertyReq));
     return RRConfigureOutputProperty(output, stuff->property, stuff->pending,
@@ -551,6 +581,9 @@ ProcRRDeleteOutputProperty(ClientPtr client)
     REQUEST_SIZE_MATCH(xRRDeleteOutputPropertyReq);
     UpdateCurrentTime();
     VERIFY_RR_OUTPUT(stuff->output, output, DixReadAccess);
+
+    if (RROutputIsLeased(output))
+        return BadAccess;
 
     if (!ValidAtom(stuff->property)) {
         client->errorValue = stuff->property;

@@ -481,8 +481,6 @@ struct ast_type_qualifier {
    DECLARE_BITSET_T(bitset_t, 128);
 
    union flags {
-      flags() : i(0) {}
-
       struct {
 	 unsigned invariant:1;
          unsigned precise:1;

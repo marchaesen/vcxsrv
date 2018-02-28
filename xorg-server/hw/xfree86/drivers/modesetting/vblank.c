@@ -189,7 +189,7 @@ ms_get_kernel_ust_msc(xf86CrtcPtr crtc,
 
         ret = drmCrtcGetSequence(ms->fd, drmmode_crtc->mode_crtc->crtc_id,
                                  msc, &ns);
-        if (ret != -1 || errno != ENOTTY) {
+        if (ret != -1 || (errno != ENOTTY && errno != EINVAL)) {
             ms->has_queue_sequence = TRUE;
             if (ret == 0)
                 *ust = ns / 1000;
@@ -246,10 +246,11 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
             if (ret == 0) {
                 if (msc_queued)
                     *msc_queued = ms_kernel_msc_to_crtc_msc(crtc, kernel_queued);
+                ms->has_queue_sequence = TRUE;
                 return TRUE;
             }
 
-            if (ret != -1 || errno != ENOTTY) {
+            if (ret != -1 || (errno != ENOTTY && errno != EINVAL)) {
                 ms->has_queue_sequence = TRUE;
                 goto check;
             }

@@ -143,6 +143,10 @@ typedef struct {
     int enc_clone_mask;
 } drmmode_output_private_rec, *drmmode_output_private_ptr;
 
+typedef struct {
+    uint32_t    lessee_id;
+} drmmode_lease_private_rec, *drmmode_lease_private_ptr;
+
 typedef struct _msPixmapPriv {
     uint32_t fb_id;
     struct dumb_bo *backing_bo; /* if this pixmap is backed by a dumb bo */
@@ -190,6 +194,8 @@ extern Bool drmmode_setup_colormap(ScreenPtr pScreen, ScrnInfoPtr pScrn);
 
 extern void drmmode_uevent_init(ScrnInfoPtr scrn, drmmode_ptr drmmode);
 extern void drmmode_uevent_fini(ScrnInfoPtr scrn, drmmode_ptr drmmode);
+
+extern void drmmode_terminate_leases(ScrnInfoPtr scrn, drmmode_ptr drmmode);
 
 Bool drmmode_create_initial_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 void *drmmode_map_front_bo(drmmode_ptr drmmode);
