@@ -773,6 +773,7 @@ static Bool
 glamor_render_format_is_supported(PictFormatShort format)
 {
     switch (format) {
+    case PICT_x2r10g10b10:
     case PICT_a8r8g8b8:
     case PICT_x8r8g8b8:
     case PICT_a8:

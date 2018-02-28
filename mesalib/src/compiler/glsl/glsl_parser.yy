@@ -96,7 +96,6 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %parse-param {struct _mesa_glsl_parse_state *state}
 
 %union {
-   YYSTYPE() {}
    int n;
    int64_t n64;
    float real;

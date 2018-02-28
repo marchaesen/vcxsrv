@@ -736,7 +736,6 @@ struct radv_descriptor_update_template {
 };
 
 struct radv_buffer {
-	struct radv_device *                          device;
 	VkDeviceSize                                 size;
 
 	VkBufferUsageFlags                           usage;

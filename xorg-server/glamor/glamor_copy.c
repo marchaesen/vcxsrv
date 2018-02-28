@@ -78,6 +78,15 @@ use_copyplane(PixmapPtr dst, GCPtr gc, glamor_program *prog, void *arg)
 
     /* XXX handle 2 10 10 10 and 1555 formats; presumably the pixmap private knows this? */
     switch (args->src_pixmap->drawable.depth) {
+    case 30:
+        glUniform4ui(prog->bitplane_uniform,
+                     (args->bitplane >> 20) & 0x3ff,
+                     (args->bitplane >> 10) & 0x3ff,
+                     (args->bitplane      ) & 0x3ff,
+                     0);
+
+        glUniform4f(prog->bitmul_uniform, 0x3ff, 0x3ff, 0x3ff, 0);
+        break;
     case 24:
         glUniform4ui(prog->bitplane_uniform,
                      (args->bitplane >> 16) & 0xff,

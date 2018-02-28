@@ -59,7 +59,7 @@ endforeach
 add_global_arguments(common_wflags, language : 'c')
 
 xproto_dep = dependency('xproto', version: '>= 7.0.31')
-randrproto_dep = dependency('randrproto', version: '>= 1.5.0')
+randrproto_dep = dependency('randrproto', version: '>= 1.6.0')
 renderproto_dep = dependency('renderproto', version: '>= 0.11')
 xextproto_dep = dependency('xextproto', version: '>= 7.2.99.901')
 inputproto_dep = dependency('inputproto', version: '>= 2.3')
@@ -154,7 +154,7 @@ if (host_machine.system() != 'darwin' and
         xwayland_dep = [
             dependency('wayland-client', version: '>= 1.3.0', required: xwayland_required),
             dependency('wayland-protocols', version: '>= 1.10', required: xwayland_required),
-            dependency('libdrm', version: '>= 2.3.1', required: xwayland_required),
+            dependency('libdrm', version: '>= 2.4.89', required: xwayland_required),
             dependency('epoxy', required: xwayland_required),
         ]
 

@@ -344,11 +344,13 @@ xf86_hide_cursors(ScrnInfoPtr scrn)
     }
 }
 
-static Bool
+Bool
 xf86_crtc_show_cursor(xf86CrtcPtr crtc)
 {
-    if (!crtc->cursor_in_range)
+    if (!crtc->cursor_in_range) {
+        crtc->funcs->hide_cursor(crtc);
         return TRUE;
+    }
 
     if (!crtc->cursor_shown)
         crtc->cursor_shown = xf86_driver_show_cursor(crtc);

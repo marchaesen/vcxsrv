@@ -560,8 +560,8 @@ def ldexp(f, exp, bits):
    return ('fmul', ('fmul', f, pow2_1), pow2_2)
 
 optimizations += [
-   (('ldexp@32', 'x', 'exp'), ldexp('x', 'exp', 32)),
-   (('ldexp@64', 'x', 'exp'), ldexp('x', 'exp', 64)),
+   (('ldexp@32', 'x', 'exp'), ldexp('x', 'exp', 32), 'options->lower_ldexp'),
+   (('ldexp@64', 'x', 'exp'), ldexp('x', 'exp', 64), 'options->lower_ldexp'),
 ]
 
 # Unreal Engine 4 demo applications open-codes bitfieldReverse()

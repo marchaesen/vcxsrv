@@ -613,6 +613,29 @@ SProcRRDeleteMonitor(ClientPtr client) {
     return ProcRandrVector[stuff->randrReqType] (client);
 }
 
+static int _X_COLD
+SProcRRCreateLease(ClientPtr client) {
+    REQUEST(xRRCreateLeaseReq);
+
+    REQUEST_AT_LEAST_SIZE(xRRCreateLeaseReq);
+    swaps(&stuff->length);
+    swapl(&stuff->window);
+    swaps(&stuff->nCrtcs);
+    swaps(&stuff->nOutputs);
+    SwapRestL(stuff);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int _X_COLD
+SProcRRFreeLease(ClientPtr client) {
+    REQUEST(xRRFreeLeaseReq);
+
+    REQUEST_SIZE_MATCH(xRRFreeLeaseReq);
+    swaps(&stuff->length);
+    swapl(&stuff->lid);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
 int (*SProcRandrVector[RRNumberRequests]) (ClientPtr) = {
     SProcRRQueryVersion,        /* 0 */
 /* we skip 1 to make old clients fail pretty immediately */
@@ -662,7 +685,11 @@ int (*SProcRandrVector[RRNumberRequests]) (ClientPtr) = {
         SProcRRChangeProviderProperty,  /* 39 */
         SProcRRDeleteProviderProperty,  /* 40 */
         SProcRRGetProviderProperty,     /* 41 */
+/* V1.5 additions */
         SProcRRGetMonitors,            /* 42 */
         SProcRRSetMonitor,             /* 43 */
         SProcRRDeleteMonitor,          /* 44 */
+/* V1.6 additions */
+        SProcRRCreateLease,            /* 45 */
+        SProcRRFreeLease,              /* 46 */
 };

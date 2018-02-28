@@ -254,7 +254,7 @@ xf86CrtcSetModeTransform(xf86CrtcPtr crtc, DisplayModePtr mode,
     RRTransformRec saved_transform;
     Bool saved_transform_present;
 
-    crtc->enabled = xf86CrtcInUse(crtc);
+    crtc->enabled = xf86CrtcInUse(crtc) && !RRCrtcIsLeased(crtc->randr_crtc);;
 
     /* We only hit this if someone explicitly sends a "disabled" modeset. */
     if (!crtc->enabled) {
@@ -411,6 +411,10 @@ xf86CrtcSetOrigin(xf86CrtcPtr crtc, int x, int y)
 
     crtc->x = x;
     crtc->y = y;
+
+    if (RRCrtcIsLeased(crtc->randr_crtc))
+        return;
+
     if (crtc->funcs->set_origin) {
         if (!xf86CrtcRotate(crtc))
             return;
@@ -538,9 +542,9 @@ xf86OutputEnabled(xf86OutputPtr output, Bool strict)
         return FALSE;
     }
 
-    /* If not, try to only light up the ones we know are connected */
+    /* If not, try to only light up the ones we know are connected which are supposed to be on the desktop */
     if (strict) {
-        enable = output->status == XF86OutputStatusConnected;
+        enable = output->status == XF86OutputStatusConnected && !output->non_desktop;
     }
     /* But if that fails, try to light up even outputs we're unsure of */
     else {
@@ -2652,6 +2656,9 @@ xf86InitialConfiguration(ScrnInfoPtr scrn, Bool canGrow)
 static void
 xf86DisableCrtc(xf86CrtcPtr crtc)
 {
+    if (RRCrtcIsLeased(crtc->randr_crtc))
+        return;
+
     crtc->funcs->dpms(crtc, DPMSModeOff);
     xf86_crtc_hide_cursor(crtc);
 }
@@ -2670,6 +2677,9 @@ xf86PrepareOutputs(ScrnInfoPtr scrn)
     for (o = 0; o < config->num_output; o++) {
         xf86OutputPtr output = config->output[o];
 
+        if (RROutputIsLeased(output->randr_output))
+            continue;
+
 #if RANDR_GET_CRTC_INTERFACE
         /* Disable outputs that are unused or will be re-routed */
         if (!output->funcs->get_crtc ||
@@ -2687,11 +2697,14 @@ xf86PrepareCrtcs(ScrnInfoPtr scrn)
     int c;
 
     for (c = 0; c < config->num_crtc; c++) {
-#if RANDR_GET_CRTC_INTERFACE
         xf86CrtcPtr crtc = config->crtc[c];
+#if RANDR_GET_CRTC_INTERFACE
         xf86OutputPtr output = NULL;
         uint32_t desired_outputs = 0, current_outputs = 0;
         int o;
+
+        if (RRCrtcIsLeased(crtc->randr_crtc))
+            continue;
 
         for (o = 0; o < config->num_output; o++) {
             output = config->output[o];
@@ -2713,6 +2726,9 @@ xf86PrepareCrtcs(ScrnInfoPtr scrn)
         if (desired_outputs != current_outputs || !desired_outputs)
             xf86DisableCrtc(crtc);
 #else
+        if (RRCrtcIsLeased(crtc->randr_crtc))
+            continue;
+
         xf86DisableCrtc(crtc);
 #endif
     }
@@ -2948,7 +2964,7 @@ xf86DPMSSet(ScrnInfoPtr scrn, int mode, int flags)
         for (i = 0; i < config->num_output; i++) {
             xf86OutputPtr output = config->output[i];
 
-            if (output->crtc != NULL)
+            if (!RROutputIsLeased(output->randr_output) && output->crtc != NULL)
                 (*output->funcs->dpms) (output, mode);
         }
     }
@@ -2964,7 +2980,7 @@ xf86DPMSSet(ScrnInfoPtr scrn, int mode, int flags)
         for (i = 0; i < config->num_output; i++) {
             xf86OutputPtr output = config->output[i];
 
-            if (output->crtc != NULL)
+            if (!RROutputIsLeased(output->randr_output) && output->crtc != NULL)
                 (*output->funcs->dpms) (output, mode);
         }
     }

@@ -805,7 +805,8 @@ glamor_fd_from_pixmap(ScreenPtr screen,
     switch (pixmap_priv->type) {
     case GLAMOR_TEXTURE_DRM:
     case GLAMOR_TEXTURE_ONLY:
-        if (!glamor_pixmap_ensure_fbo(pixmap, GL_RGBA, 0))
+        if (!glamor_pixmap_ensure_fbo(pixmap, pixmap->drawable.depth == 30 ?
+                                      GL_RGB10_A2 : GL_RGBA, 0))
             return -1;
         return glamor_egl_dri3_fd_name_from_tex(screen,
                                                 pixmap,
@@ -845,7 +846,8 @@ glamor_name_from_pixmap(PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
     switch (pixmap_priv->type) {
     case GLAMOR_TEXTURE_DRM:
     case GLAMOR_TEXTURE_ONLY:
-        if (!glamor_pixmap_ensure_fbo(pixmap, GL_RGBA, 0))
+        if (!glamor_pixmap_ensure_fbo(pixmap, pixmap->drawable.depth == 30 ?
+                                      GL_RGB10_A2 : GL_RGBA, 0))
             return -1;
         return glamor_egl_dri3_fd_name_from_tex(pixmap->drawable.pScreen,
                                                 pixmap,

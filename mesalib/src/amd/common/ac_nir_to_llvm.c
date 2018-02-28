@@ -1437,8 +1437,9 @@ static LLVMValueRef emit_f2b(struct ac_llvm_context *ctx,
 			     LLVMValueRef src0)
 {
 	src0 = ac_to_float(ctx, src0);
+	LLVMValueRef zero = LLVMConstNull(LLVMTypeOf(src0));
 	return LLVMBuildSExt(ctx->builder,
-			     LLVMBuildFCmp(ctx->builder, LLVMRealUNE, src0, ctx->f32_0, ""),
+			     LLVMBuildFCmp(ctx->builder, LLVMRealUNE, src0, zero, ""),
 			     ctx->i32, "");
 }
 
@@ -1457,8 +1458,9 @@ static LLVMValueRef emit_b2i(struct ac_llvm_context *ctx,
 static LLVMValueRef emit_i2b(struct ac_llvm_context *ctx,
 			     LLVMValueRef src0)
 {
+	LLVMValueRef zero = LLVMConstNull(LLVMTypeOf(src0));
 	return LLVMBuildSExt(ctx->builder,
-			     LLVMBuildICmp(ctx->builder, LLVMIntNE, src0, ctx->i32_0, ""),
+			     LLVMBuildICmp(ctx->builder, LLVMIntNE, src0, zero, ""),
 			     ctx->i32, "");
 }
 
@@ -1611,9 +1613,9 @@ static LLVMValueRef emit_ddxy(struct ac_nir_context *ctx,
 	int idx;
 	LLVMValueRef result;
 
-	if (op == nir_op_fddx_fine || op == nir_op_fddx)
+	if (op == nir_op_fddx_fine)
 		mask = AC_TID_MASK_LEFT;
-	else if (op == nir_op_fddy_fine || op == nir_op_fddy)
+	else if (op == nir_op_fddy_fine)
 		mask = AC_TID_MASK_TOP;
 	else
 		mask = AC_TID_MASK_TOP_LEFT;
@@ -1904,6 +1906,13 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 	case nir_op_ffma:
 		result = emit_intrin_3f_param(&ctx->ac, "llvm.fmuladd",
 		                              ac_to_float_type(&ctx->ac, def_type), src[0], src[1], src[2]);
+		break;
+	case nir_op_ldexp:
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		if (ac_get_elem_bits(&ctx->ac, LLVMTypeOf(src[0])) == 32)
+			result = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.ldexp.f32", ctx->ac.f32, src, 2, AC_FUNC_ATTR_READNONE);
+		else
+			result = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.ldexp.f64", ctx->ac.f64, src, 2, AC_FUNC_ATTR_READNONE);
 		break;
 	case nir_op_ibitfield_extract:
 		result = emit_bitfield_extract(&ctx->ac, true, src);
@@ -4387,11 +4396,15 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		break;
 	}
 	case nir_intrinsic_load_base_vertex: {
-		result = ctx->abi->base_vertex;
+		result = ctx->abi->load_base_vertex(ctx->abi);
 		break;
 	}
 	case nir_intrinsic_load_local_group_size:
 		result = ctx->abi->load_local_group_size(ctx->abi);
+		break;
+	case nir_intrinsic_load_vertex_id:
+		result = LLVMBuildAdd(ctx->ac.builder, ctx->abi->vertex_id,
+				      ctx->abi->base_vertex, "");
 		break;
 	case nir_intrinsic_load_vertex_id_zero_base: {
 		result = ctx->abi->vertex_id;
@@ -4626,6 +4639,11 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	if (result) {
 		_mesa_hash_table_insert(ctx->defs, &instr->dest.ssa, result);
 	}
+}
+
+static LLVMValueRef radv_load_base_vertex(struct ac_shader_abi *abi)
+{
+	return abi->base_vertex;
 }
 
 static LLVMValueRef radv_load_ssbo(struct ac_shader_abi *abi,
@@ -6925,6 +6943,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 						MAX2(1, ctx.shader_info->vs.vgpr_comp_cnt);
 				}
 			}
+			ctx.abi.load_base_vertex = radv_load_base_vertex;
 		} else if (shaders[i]->info.stage == MESA_SHADER_FRAGMENT) {
 			shader_info->fs.can_discard = shaders[i]->info.fs.uses_discard;
 			ctx.abi.lookup_interp_param = lookup_interp_param;

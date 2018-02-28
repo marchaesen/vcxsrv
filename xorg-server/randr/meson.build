@@ -3,6 +3,7 @@ srcs_randr = [
     'rrcrtc.c',
     'rrdispatch.c',
     'rrinfo.c',
+    'rrlease.c',
     'rrmode.c',
     'rrmonitor.c',
     'rroutput.c',

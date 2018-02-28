@@ -97,6 +97,7 @@ st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
 
       img->resource = stObj->pt;
       img->u.tex.level = u->Level + stObj->base.MinLevel;
+      assert(img->u.tex.level <= img->resource->last_level);
       if (stObj->pt->target == PIPE_TEXTURE_3D) {
          if (u->Layered) {
             img->u.tex.first_layer = 0;

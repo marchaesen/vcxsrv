@@ -357,6 +357,9 @@ ProcRRAddOutputMode(ClientPtr client)
     VERIFY_RR_OUTPUT(stuff->output, output, DixReadAccess);
     VERIFY_RR_MODE(stuff->mode, mode, DixUseAccess);
 
+    if (RROutputIsLeased(output))
+        return BadAccess;
+
     return RROutputAddUserMode(output, mode);
 }
 
@@ -370,6 +373,9 @@ ProcRRDeleteOutputMode(ClientPtr client)
     REQUEST_SIZE_MATCH(xRRDeleteOutputModeReq);
     VERIFY_RR_OUTPUT(stuff->output, output, DixReadAccess);
     VERIFY_RR_MODE(stuff->mode, mode, DixUseAccess);
+
+    if (RROutputIsLeased(output))
+        return BadAccess;
 
     return RROutputDeleteUserMode(output, mode);
 }

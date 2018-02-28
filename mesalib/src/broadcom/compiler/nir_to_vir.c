@@ -1893,6 +1893,7 @@ const nir_shader_compiler_options v3d_nir_options = {
         .lower_fpow = true,
         .lower_fsat = true,
         .lower_fsqrt = true,
+        .lower_ldexp = true,
         .native_integers = true,
 };
 

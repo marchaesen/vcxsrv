@@ -267,7 +267,7 @@ ProcRRSetScreenSize(ClientPtr client)
         RRCrtcPtr crtc = pScrPriv->crtcs[i];
         RRModePtr mode = crtc->mode;
 
-        if (mode) {
+        if (!RRCrtcIsLeased(crtc) && mode) {
             int source_width = mode->mode.width;
             int source_height = mode->mode.height;
             Rotation rotation = crtc->rotation;
