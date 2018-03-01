@@ -2360,7 +2360,7 @@ def _c_request_helper(self, name, void, regular, aux=False, reply_fds=False):
         num_fds_expr.append('%d' % (num_fds_fixed))
     if len(num_fds_expr) > 0:
         num_fds = '+'.join(num_fds_expr)
-        _c('    int fds[%s];' % (num_fds))
+        _c('    int *fds=(int*)_alloca(%s*sizeof(int));' % (num_fds))
         _c('    int fd_index = 0;')
     else:
         num_fds = None
