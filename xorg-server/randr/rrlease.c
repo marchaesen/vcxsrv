@@ -302,11 +302,13 @@ ProcRRCreateLease(ClientPtr client)
         return BadAlloc;
     }
 
+#ifdef XTRANS_SEND_FDS
     if (WriteFdToClient(client, fd, TRUE) < 0) {
         RRTerminateLease(lease);
         close(fd);
         return BadAlloc;
     }
+#endif
 
     RRLeaseChangeState(lease, RRLeaseCreating, RRLeaseRunning);
 

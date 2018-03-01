@@ -460,16 +460,15 @@ static void
 RRDeliverResourceEvent(ClientPtr client, WindowPtr pWin)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;
-    xRRResourceChangeNotifyEvent re;
 
     rrScrPriv(pScreen);
 
-
-        re.type = RRNotify + RREventBase;
-        re.subCode = RRNotify_ResourceChange;
-        re.timestamp = pScrPriv->lastSetTime.milliseconds;
-        re.window = pWin->drawable.id;
-
+    xRRResourceChangeNotifyEvent re = {
+        .type = RRNotify + RREventBase,
+        .subCode = RRNotify_ResourceChange,
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .window = pWin->drawable.id
+    };
 
     WriteEventsToClient(client, 1, (xEvent *) &re);
 }
