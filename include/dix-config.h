@@ -47,7 +47,7 @@
 #define DPMSExtension 1
 
 /* Build DRI3 extension */
-/* #undef DRI3 */
+#undef DRI3
 
 /* Build GLX extension */
 #define GLXEXT
@@ -72,13 +72,10 @@
 #undef HAVE_BACKTRACE
 
 /* Has libunwind support */
-/* #undef HAVE_LIBUNWIND */
+#undef HAVE_LIBUNWIND
 
 /* Define to 1 if you have the `cbrt' function. */
 #undef HAVE_CBRT
-
-/* Define to 1 if you have the <dbm.h> header file. */
-#undef HAVE_DBM_H
 
 /* Define to 1 if you have the declaration of `program_invocation_short_name', and
    to 0 if you don't. */
@@ -130,6 +127,9 @@
 /* Build a standalone xpbproxy */
 #undef STANDALONE_XPBPROXY
 
+/* Define to 1 if you have the `bsd' library (-lbsd). */
+#undef HAVE_LIBBSD
+
 /* Define to 1 if you have the `m' library (-lm). */
 #define HAVE_LIBM 1
 
@@ -145,11 +145,17 @@
 /* Define to 1 if you have the <linux/fb.h> header file. */
 #undef HAVE_LINUX_FB_H
 
+/* Define to 1 if you have the `mkostemp' function. */
+#undef HAVE_MKOSTEMP
+
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
 
-/* Define to 1 if you have the <ndbm.h> header file. */
-#undef HAVE_NDBM_H
+/* Define to 1 if you have the function pthread_setname_np(const char*) */
+#undef HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID
+
+/* Define to 1 if you have the function pthread_setname_np(pthread_t, const char*) */
+#undef HAVE_PTHREAD_SETNAME_NP_WITH_TID
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
@@ -157,8 +163,8 @@
 /* Define to 1 if you have the `reallocarray' function. */
 #undef HAVE_REALLOCARRAY
 
-/* Define to 1 if you have the <rpcsvc/dbm.h> header file. */
-#undef HAVE_RPCSVC_DBM_H
+/* Define to 1 if you have the `arc4random_buf' function. */
+#undef HAVE_ARC4RANDOM_BUF
 
 /* Define to use libc SHA1 functions */
 #undef HAVE_SHA1_IN_LIBC
@@ -240,6 +246,9 @@
 /* Define to 1 if you have the <sys/utsname.h> header file. */
 #undef HAVE_SYS_UTSNAME_H
 
+/* Define to 1 if you have the `timingsafe_memcmp' function. */
+#undef HAVE_TIMINGSAFE_MEMCMP
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
@@ -314,9 +323,6 @@
 
 /* Support TCP socket connections */
 #define TCPCONN 1
-
-/* Enable touchscreen support */
-#undef TOUCHSCREEN
 
 /* Support UNIX socket connections */
 #undef UNIXCONN
@@ -399,9 +405,6 @@
 /* Vendor name */
 #define XVENDORNAME "The VcXsrv Project"
 
-/* Endian order */
-#ifndef X_BYTE_ORDER
-
 /* Number of bits in a file offset, on hosts where this is settable. */
 #undef _FILE_OFFSET_BITS
 
@@ -465,9 +468,6 @@
 /* Define to __typeof__ if your compiler spells it that way. */
 #undef typeof
 
-/* The compiler supported TLS storage class, prefering initial-exec if tls_model is supported */
-#undef TLS
-
 /* Correctly set _XSERVER64 for OSX fat binaries */
 #ifdef __APPLE__
 #include "dix-config-apple-verbatim.h"
@@ -511,6 +511,9 @@
 /* Build glamor/gbm has linear support */
 #undef GLAMOR_HAS_GBM_LINEAR
 
+/* Build glamor use new drmGetDeviceNameFromFD2 */
+#undef GLAMOR_HAS_DRM_NAME_FROM_FD_2
+
 /* byte order */
 #define _X_BYTE_ORDER X_LITTLE_ENDIAN
 /* Deal with multiple architecture compiles on Mac OS X */
@@ -521,7 +524,6 @@
 #define X_BYTE_ORDER X_BIG_ENDIAN
 #else
 #define X_BYTE_ORDER X_LITTLE_ENDIAN
-#endif
 #endif
 #endif
 
@@ -545,6 +547,12 @@
 
 /* Use input thread */
 #undef INPUTTHREAD
+
+/* Have poll() */
+#undef HAVE_POLL
+
+/* Have epoll_create1() */
+#undef HAVE_EPOLL_CREATE1
 
 #include <X11/Xwinsock.h>
 #include <X11/Xwindows.h>
