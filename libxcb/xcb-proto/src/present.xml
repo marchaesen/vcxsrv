@@ -23,7 +23,7 @@ OF THIS SOFTWARE.
 -->
 
 <xcb header="present" extension-xname="Present" extension-name="Present"
-  major-version="1" minor-version="0">
+  major-version="1" minor-version="2">
   <import>xproto</import>
   <import>randr</import>
   <import>xfixes</import>
@@ -51,6 +51,7 @@ OF THIS SOFTWARE.
     <item name="Async"><bit>0</bit></item>
     <item name="Copy"><bit>1</bit></item>
     <item name="UST"><bit>2</bit></item>
+    <item name="Suboptimal"><bit>3</bit></item>
   </enum>
 
   <enum name="Capability">
@@ -69,6 +70,7 @@ OF THIS SOFTWARE.
     <item name="Copy"><value>0</value></item>
     <item name="Flip"><value>1</value></item>
     <item name="Skip"><value>2</value></item>
+    <item name="SuboptimalCopy"><value>3</value></item>
   </enum>
 
   <struct name="Notify">

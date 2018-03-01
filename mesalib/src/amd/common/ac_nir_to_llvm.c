@@ -3991,10 +3991,10 @@ visit_store_shared(struct ac_nir_context *ctx,
 
 static LLVMValueRef visit_var_atomic(struct ac_nir_context *ctx,
 				     const nir_intrinsic_instr *instr,
-				     LLVMValueRef ptr)
+				     LLVMValueRef ptr, int src_idx)
 {
 	LLVMValueRef result;
-	LLVMValueRef src = get_src(ctx, instr->src[0]);
+	LLVMValueRef src = get_src(ctx, instr->src[src_idx]);
 
 	if (instr->intrinsic == nir_intrinsic_var_atomic_comp_swap ||
 	    instr->intrinsic == nir_intrinsic_shared_atomic_comp_swap) {
@@ -4574,8 +4574,8 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	case nir_intrinsic_shared_atomic_xor:
 	case nir_intrinsic_shared_atomic_exchange:
 	case nir_intrinsic_shared_atomic_comp_swap: {
-		LLVMValueRef ptr = get_memory_ptr(ctx, instr->src[1]);
-		result = visit_var_atomic(ctx, instr, ptr);
+		LLVMValueRef ptr = get_memory_ptr(ctx, instr->src[0]);
+		result = visit_var_atomic(ctx, instr, ptr, 1);
 		break;
 	}
 	case nir_intrinsic_var_atomic_add:
@@ -4589,7 +4589,7 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	case nir_intrinsic_var_atomic_exchange:
 	case nir_intrinsic_var_atomic_comp_swap: {
 		LLVMValueRef ptr = build_gep_for_deref(ctx, instr->variables[0]);
-		result = visit_var_atomic(ctx, instr, ptr);
+		result = visit_var_atomic(ctx, instr, ptr, 0);
 		break;
 	}
 	case nir_intrinsic_interp_var_at_centroid:
@@ -5105,7 +5105,7 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 			     instr->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS ||
 			     instr->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS_MS) &&
 			    instr->is_array &&
-			    instr->op != nir_texop_txf) {
+			    instr->op != nir_texop_txf && instr->op != nir_texop_txf_ms) {
 				coords[2] = apply_round_slice(&ctx->ac, coords[2]);
 			}
 			address[count++] = coords[2];
@@ -5638,12 +5638,6 @@ handle_fs_inputs(struct radv_shader_context *ctx,
 		}
 	}
 	ctx->shader_info->fs.num_interp = index;
-	if (ctx->input_mask & (1 << VARYING_SLOT_PNTC))
-		ctx->shader_info->fs.has_pcoord = true;
-	if (ctx->input_mask & (1 << VARYING_SLOT_PRIMITIVE_ID))
-		ctx->shader_info->fs.prim_id_input = true;
-	if (ctx->input_mask & (1 << VARYING_SLOT_LAYER))
-		ctx->shader_info->fs.layer_input = true;
 	ctx->shader_info->fs.input_mask = ctx->input_mask >> VARYING_SLOT_VAR0;
 
 	if (ctx->shader_info->info.needs_multiview_view_index)

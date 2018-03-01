@@ -177,11 +177,8 @@ struct ac_shader_variant_info {
 			unsigned num_interp;
 			uint32_t input_mask;
 			uint32_t flat_shaded_mask;
-			bool has_pcoord;
 			bool can_discard;
 			bool early_fragment_test;
-			bool prim_id_input;
-			bool layer_input;
 		} fs;
 		struct {
 			unsigned block_size[3];

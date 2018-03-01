@@ -1779,9 +1779,9 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 
 		/* TODO: These are no longer used as keys we should refactor this */
 		keys[MESA_SHADER_VERTEX].vs.export_prim_id =
-		        pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.prim_id_input;
+		        pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.prim_id_input;
 		keys[MESA_SHADER_TESS_EVAL].tes.export_prim_id =
-		        pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.prim_id_input;
+		        pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.prim_id_input;
 	}
 
 	if (device->physical_device->rad_info.chip_class >= GFX9 && modules[MESA_SHADER_TESS_CTRL]) {
@@ -2750,7 +2750,7 @@ radv_pipeline_generate_ps_inputs(struct radeon_winsys_cs *cs,
 
 	unsigned ps_offset = 0;
 
-	if (ps->info.fs.prim_id_input) {
+	if (ps->info.info.ps.prim_id_input) {
 		unsigned vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID];
 		if (vs_offset != AC_EXP_PARAM_UNDEFINED) {
 			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
@@ -2758,7 +2758,9 @@ radv_pipeline_generate_ps_inputs(struct radeon_winsys_cs *cs,
 		}
 	}
 
-	if (ps->info.fs.layer_input) {
+	if (ps->info.info.ps.layer_input ||
+	    ps->info.info.ps.uses_input_attachments ||
+	    ps->info.info.needs_multiview_view_index) {
 		unsigned vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_LAYER];
 		if (vs_offset != AC_EXP_PARAM_UNDEFINED)
 			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
@@ -2767,7 +2769,7 @@ radv_pipeline_generate_ps_inputs(struct radeon_winsys_cs *cs,
 		++ps_offset;
 	}
 
-	if (ps->info.fs.has_pcoord) {
+	if (ps->info.info.ps.has_pcoord) {
 		unsigned val;
 		val = S_028644_PT_SPRITE_TEX(1) | S_028644_OFFSET(0x20);
 		ps_input_cntl[ps_offset] = val;
@@ -3026,7 +3028,7 @@ radv_compute_ia_multi_vgt_param_helpers(struct radv_pipeline *pipeline,
 	}
 
 	ia_multi_vgt_param.ia_switch_on_eoi = false;
-	if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.fs.prim_id_input)
+	if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.prim_id_input)
 		ia_multi_vgt_param.ia_switch_on_eoi = true;
 	if (radv_pipeline_has_gs(pipeline) &&
 	    pipeline->shaders[MESA_SHADER_GEOMETRY]->info.info.uses_prim_id)

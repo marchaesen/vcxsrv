@@ -2890,17 +2890,32 @@ void radv_DestroyFence(
 	vk_free2(&device->alloc, pAllocator, fence);
 }
 
+
+static uint64_t radv_get_current_time()
+{
+	struct timespec tv;
+	clock_gettime(CLOCK_MONOTONIC, &tv);
+	return tv.tv_nsec + tv.tv_sec*1000000000ull;
+}
+
 static uint64_t radv_get_absolute_timeout(uint64_t timeout)
 {
-	uint64_t current_time;
-	struct timespec tv;
-
-	clock_gettime(CLOCK_MONOTONIC, &tv);
-	current_time = tv.tv_nsec + tv.tv_sec*1000000000ull;
+	uint64_t current_time = radv_get_current_time();
 
 	timeout = MIN2(UINT64_MAX - current_time, timeout);
 
 	return current_time + timeout;
+}
+
+
+static bool radv_all_fences_plain_and_submitted(uint32_t fenceCount, const VkFence *pFences)
+{
+	for (uint32_t i = 0; i < fenceCount; ++i) {
+		RADV_FROM_HANDLE(radv_fence, fence, pFences[i]);
+		if (fence->syncobj || fence->temp_syncobj || (!fence->signalled && !fence->submitted))
+			return false;
+	}
+	return true;
 }
 
 VkResult radv_WaitForFences(
@@ -2913,8 +2928,55 @@ VkResult radv_WaitForFences(
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	timeout = radv_get_absolute_timeout(timeout);
 
+	if (device->always_use_syncobj) {
+		uint32_t *handles = malloc(sizeof(uint32_t) * fenceCount);
+		if (!handles)
+			return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+
+		for (uint32_t i = 0; i < fenceCount; ++i) {
+			RADV_FROM_HANDLE(radv_fence, fence, pFences[i]);
+			handles[i] = fence->temp_syncobj ? fence->temp_syncobj : fence->syncobj;
+		}
+
+		bool success = device->ws->wait_syncobj(device->ws, handles, fenceCount, waitAll, timeout);
+
+		free(handles);
+		return success ? VK_SUCCESS : VK_TIMEOUT;
+	}
+
 	if (!waitAll && fenceCount > 1) {
-		fprintf(stderr, "radv: WaitForFences without waitAll not implemented yet\n");
+		/* Not doing this by default for waitAll, due to needing to allocate twice. */
+		if (device->physical_device->rad_info.drm_minor >= 10 && radv_all_fences_plain_and_submitted(fenceCount, pFences)) {
+			uint32_t wait_count = 0;
+			struct radeon_winsys_fence **fences = malloc(sizeof(struct radeon_winsys_fence *) * fenceCount);
+			if (!fences)
+				return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+
+			for (uint32_t i = 0; i < fenceCount; ++i) {
+				RADV_FROM_HANDLE(radv_fence, fence, pFences[i]);
+
+				if (fence->signalled) {
+					free(fences);
+					return VK_SUCCESS;
+				}
+
+				fences[wait_count++] = fence->fence;
+			}
+
+			bool success = device->ws->fences_wait(device->ws, fences, wait_count,
+							       waitAll, timeout - radv_get_current_time());
+
+			free(fences);
+			return success ? VK_SUCCESS : VK_TIMEOUT;
+		}
+
+		while(radv_get_current_time() <= timeout) {
+			for (uint32_t i = 0; i < fenceCount; ++i) {
+				if (radv_GetFenceStatus(_device, pFences[i]) == VK_SUCCESS)
+					return VK_SUCCESS;
+			}
+		}
+		return VK_TIMEOUT;
 	}
 
 	for (uint32_t i = 0; i < fenceCount; ++i) {
@@ -2922,13 +2984,13 @@ VkResult radv_WaitForFences(
 		bool expired = false;
 
 		if (fence->temp_syncobj) {
-			if (!device->ws->wait_syncobj(device->ws, fence->temp_syncobj, timeout))
+			if (!device->ws->wait_syncobj(device->ws, &fence->temp_syncobj, 1, true, timeout))
 				return VK_TIMEOUT;
 			continue;
 		}
 
 		if (fence->syncobj) {
-			if (!device->ws->wait_syncobj(device->ws, fence->syncobj, timeout))
+			if (!device->ws->wait_syncobj(device->ws, &fence->syncobj, 1, true, timeout))
 				return VK_TIMEOUT;
 			continue;
 		}
@@ -2936,8 +2998,17 @@ VkResult radv_WaitForFences(
 		if (fence->signalled)
 			continue;
 
-		if (!fence->submitted)
-			return VK_TIMEOUT;
+		if (!fence->submitted) {
+			while(radv_get_current_time() <= timeout && !fence->submitted)
+				/* Do nothing */;
+
+			if (!fence->submitted)
+				return VK_TIMEOUT;
+
+			/* Recheck as it may have been set by submitting operations. */
+			if (fence->signalled)
+				continue;
+		}
 
 		expired = device->ws->fence_wait(device->ws, fence->fence, true, timeout);
 		if (!expired)
@@ -2980,12 +3051,12 @@ VkResult radv_GetFenceStatus(VkDevice _device, VkFence _fence)
 	RADV_FROM_HANDLE(radv_fence, fence, _fence);
 
 	if (fence->temp_syncobj) {
-			bool success = device->ws->wait_syncobj(device->ws, fence->temp_syncobj, 0);
+			bool success = device->ws->wait_syncobj(device->ws, &fence->temp_syncobj, 1, true, 0);
 			return success ? VK_SUCCESS : VK_NOT_READY;
 	}
 
 	if (fence->syncobj) {
-			bool success = device->ws->wait_syncobj(device->ws, fence->syncobj, 0);
+			bool success = device->ws->wait_syncobj(device->ws, &fence->syncobj, 1, true, 0);
 			return success ? VK_SUCCESS : VK_NOT_READY;
 	}
 

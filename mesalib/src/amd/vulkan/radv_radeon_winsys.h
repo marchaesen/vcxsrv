@@ -270,6 +270,11 @@ struct radeon_winsys {
 			   struct radeon_winsys_fence *fence,
 			   bool absolute,
 			   uint64_t timeout);
+	bool (*fences_wait)(struct radeon_winsys *ws,
+			    struct radeon_winsys_fence *const *fences,
+			    uint32_t fence_count,
+			    bool wait_all,
+			    uint64_t timeout);
 
 	/* old semaphores - non shareable */
 	struct radeon_winsys_sem *(*create_sem)(struct radeon_winsys *ws);
@@ -281,7 +286,8 @@ struct radeon_winsys {
 
 	void (*reset_syncobj)(struct radeon_winsys *ws, uint32_t handle);
 	void (*signal_syncobj)(struct radeon_winsys *ws, uint32_t handle);
-	bool (*wait_syncobj)(struct radeon_winsys *ws, uint32_t handle, uint64_t timeout);
+	bool (*wait_syncobj)(struct radeon_winsys *ws, const uint32_t *handles, uint32_t handle_count,
+			     bool wait_all, uint64_t timeout);
 
 	int (*export_syncobj)(struct radeon_winsys *ws, uint32_t syncobj, int *fd);
 	int (*import_syncobj)(struct radeon_winsys *ws, int fd, uint32_t *syncobj);

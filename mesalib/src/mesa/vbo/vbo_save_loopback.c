@@ -81,8 +81,8 @@ static attr_func vert_attrfunc[4] = {
 
 
 struct loopback_attr {
-   GLint index;
-   GLint sz;
+   enum vbo_attrib index;
+   GLuint offset;
    attr_func func;
 };
 
@@ -94,17 +94,15 @@ struct loopback_attr {
  */
 static void
 loopback_prim(struct gl_context *ctx,
-              const GLfloat *buffer,
+              const GLubyte *buffer,
               const struct _mesa_prim *prim,
               GLuint wrap_count,
-              GLuint vertex_size,
+              GLuint stride,
               const struct loopback_attr *la, GLuint nr)
 {
-   GLint start = prim->start;
-   GLint end = start + prim->count;
-   const GLfloat *data;
-   GLint j;
-   GLuint k;
+   GLuint start = prim->start;
+   const GLuint end = start + prim->count;
+   const GLubyte *data;
 
    if (0)
       printf("loopback prim %s(%s,%s) verts %d..%d  vsize %d\n",
@@ -112,7 +110,7 @@ loopback_prim(struct gl_context *ctx,
              prim->begin ? "begin" : "..",
              prim->end ? "end" : "..",
              start, end,
-             vertex_size);
+             stride);
 
    if (prim->begin) {
       CALL_Begin(GET_DISPATCH(), (prim->mode));
@@ -121,20 +119,13 @@ loopback_prim(struct gl_context *ctx,
       start += wrap_count;
    }
 
-   data = buffer + start * vertex_size;
+   data = buffer + start * stride;
 
-   for (j = start; j < end; j++) {
-      const GLfloat *tmp = data + la[0].sz;
+   for (GLuint j = start; j < end; j++) {
+      for (GLuint k = 0; k < nr; k++)
+         la[k].func(ctx, la[k].index, (const GLfloat *)(data + la[k].offset));
 
-      for (k = 1; k < nr; k++) {
-         la[k].func(ctx, la[k].index, tmp);
-         tmp += la[k].sz;
-      }
-
-      /* Fire the vertex
-       */
-      la[0].func(ctx, VBO_ATTRIB_POS, data);
-      data = tmp;
+      data += stride;
    }
 
    if (prim->end) {
@@ -167,36 +158,80 @@ loopback_weak_prim(struct gl_context *ctx,
 }
 
 
+static inline void
+append_attr(GLuint *nr, struct loopback_attr la[], int i, int shift,
+            const struct gl_vertex_array_object *vao)
+{
+   la[*nr].index = shift + i;
+   la[*nr].offset = vao->VertexAttrib[i].RelativeOffset;
+   la[*nr].func = vert_attrfunc[vao->VertexAttrib[i].Size - 1];
+   (*nr)++;
+}
+
+
 void
-vbo_loopback_vertex_list(struct gl_context *ctx,
-                         const GLfloat *buffer,
-                         const GLubyte *attrsz,
-                         const struct _mesa_prim *prim,
-                         GLuint prim_count,
-                         GLuint wrap_count,
-                         GLuint vertex_size)
+_vbo_loopback_vertex_list(struct gl_context *ctx,
+                          const struct vbo_save_vertex_list* node)
 {
    struct loopback_attr la[VBO_ATTRIB_MAX];
-   GLuint i, nr = 0;
+   GLuint nr = 0;
 
    /* All Legacy, NV, ARB and Material attributes are routed through
     * the NV attributes entrypoints:
     */
-   for (i = 0; i < VBO_ATTRIB_MAX; i++) {
-      if (attrsz[i]) {
-         la[nr].index = i;
-         la[nr].sz = attrsz[i];
-         la[nr].func = vert_attrfunc[attrsz[i]-1];
-         nr++;
-      }
+   const struct gl_vertex_array_object *vao = node->VAO[VP_MODE_FF];
+   GLbitfield mask = vao->_Enabled & VERT_BIT_MAT_ALL;
+   while (mask) {
+      const int i = u_bit_scan(&mask);
+      append_attr(&nr, la, i, VBO_MATERIAL_SHIFT, vao);
    }
 
-   for (i = 0; i < prim_count; i++) {
-      if ((prim[i].mode & VBO_SAVE_PRIM_WEAK) &&
-          _mesa_inside_begin_end(ctx)) {
-         loopback_weak_prim(ctx, &prim[i]);
+   vao = node->VAO[VP_MODE_SHADER];
+   mask = vao->_Enabled & ~(VERT_BIT_POS | VERT_BIT_GENERIC0);
+   while (mask) {
+      const int i = u_bit_scan(&mask);
+      append_attr(&nr, la, i, 0, vao);
+   }
+
+   /* The last in the list should be the vertex provoking attribute */
+   if (vao->_Enabled & VERT_BIT_GENERIC0) {
+      append_attr(&nr, la, VERT_ATTRIB_GENERIC0, 0, vao);
+   } else if (vao->_Enabled & VERT_BIT_POS) {
+      append_attr(&nr, la, VERT_ATTRIB_POS, 0, vao);
+   }
+
+   const GLuint wrap_count = node->wrap_count;
+   const GLuint stride = _vbo_save_get_stride(node);
+   const GLubyte *buffer = NULL;
+   if (0 < nr) {
+      /* Compute the minimal offset into the vertex buffer object */
+      GLuint offset = ~0u;
+      for (GLuint i = 0; i < nr; ++i)
+         offset = MIN2(offset, la[i].offset);
+      for (GLuint i = 0; i < nr; ++i)
+         la[i].offset -= offset;
+
+      /* Get the mapped base pointer, assert sufficient mapping */
+      struct gl_buffer_object *bufferobj = vao->BufferBinding[0].BufferObj;
+      assert(bufferobj && bufferobj->Mappings[MAP_INTERNAL].Pointer);
+      buffer = bufferobj->Mappings[MAP_INTERNAL].Pointer;
+      assert(bufferobj->Mappings[MAP_INTERNAL].Offset
+             <= vao->BufferBinding[0].Offset + offset
+             + stride*(_vbo_save_get_min_index(node) + wrap_count));
+      buffer += vao->BufferBinding[0].Offset + offset
+         - bufferobj->Mappings[MAP_INTERNAL].Offset;
+      assert(stride*(_vbo_save_get_vertex_count(node) - wrap_count)
+             <= bufferobj->Mappings[MAP_INTERNAL].Length);
+   }
+
+   /* Replay the primitives */
+   const struct _mesa_prim *prims = node->prims;
+   const GLuint prim_count = node->prim_count;
+   for (GLuint i = 0; i < prim_count; i++) {
+      if ((prims[i].mode & VBO_SAVE_PRIM_WEAK) && _mesa_inside_begin_end(ctx)) {
+         loopback_weak_prim(ctx, &prims[i]);
       } else {
-         loopback_prim(ctx, buffer, &prim[i], wrap_count, vertex_size, la, nr);
+         loopback_prim(ctx, buffer, &prims[i], wrap_count, stride, la, nr);
       }
    }
 }

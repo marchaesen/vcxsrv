@@ -154,6 +154,39 @@ static bool radv_amdgpu_fence_wait(struct radeon_winsys *_ws,
 	return false;
 }
 
+
+static bool radv_amdgpu_fences_wait(struct radeon_winsys *_ws,
+			      struct radeon_winsys_fence *const *_fences,
+			      uint32_t fence_count,
+			      bool wait_all,
+			      uint64_t timeout)
+{
+	struct amdgpu_cs_fence *fences = malloc(sizeof(struct amdgpu_cs_fence) * fence_count);
+	int r;
+	uint32_t expired = 0, first = 0;
+
+	if (!fences)
+		return false;
+
+	for (uint32_t i = 0; i < fence_count; ++i)
+		fences[i] = ((struct radv_amdgpu_fence *)_fences[i])->fence;
+
+	/* Now use the libdrm query. */
+	r = amdgpu_cs_wait_fences(fences, fence_count, wait_all,
+	                          timeout, &expired, &first);
+
+	free(fences);
+	if (r) {
+		fprintf(stderr, "amdgpu: amdgpu_cs_wait_fences failed.\n");
+		return false;
+	}
+
+	if (expired)
+		return true;
+
+	return false;
+}
+
 static void radv_amdgpu_cs_destroy(struct radeon_winsys_cs *rcs)
 {
 	struct radv_amdgpu_cs *cs = radv_amdgpu_cs(rcs);
@@ -1299,8 +1332,8 @@ static void radv_amdgpu_signal_syncobj(struct radeon_winsys *_ws,
 	amdgpu_cs_syncobj_signal(ws->dev, &handle, 1);
 }
 
-static bool radv_amdgpu_wait_syncobj(struct radeon_winsys *_ws,
-				    uint32_t handle, uint64_t timeout)
+static bool radv_amdgpu_wait_syncobj(struct radeon_winsys *_ws, const uint32_t *handles,
+                                     uint32_t handle_count, bool wait_all, uint64_t timeout)
 {
 	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
 	uint32_t tmp;
@@ -1308,9 +1341,9 @@ static bool radv_amdgpu_wait_syncobj(struct radeon_winsys *_ws,
 	/* The timeouts are signed, while vulkan timeouts are unsigned. */
 	timeout = MIN2(timeout, INT64_MAX);
 
-	int ret = amdgpu_cs_syncobj_wait(ws->dev, &handle, 1, timeout,
+	int ret = amdgpu_cs_syncobj_wait(ws->dev, (uint32_t*)handles, handle_count, timeout,
 					 DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT |
-					 DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL,
+					 (wait_all ? DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL : 0),
 					 &tmp);
 	if (ret == 0) {
 		return true;
@@ -1387,4 +1420,5 @@ void radv_amdgpu_cs_init_functions(struct radv_amdgpu_winsys *ws)
 	ws->base.export_syncobj_to_sync_file = radv_amdgpu_export_syncobj_to_sync_file;
 	ws->base.import_syncobj_from_sync_file = radv_amdgpu_import_syncobj_from_sync_file;
 	ws->base.fence_wait = radv_amdgpu_fence_wait;
+	ws->base.fences_wait = radv_amdgpu_fences_wait;
 }

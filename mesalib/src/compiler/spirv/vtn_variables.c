@@ -683,12 +683,9 @@ vtn_type_block_size(struct vtn_builder *b, struct vtn_type *type)
       if (cols > 1) {
          vtn_assert(type->stride > 0);
          return type->stride * cols;
-      } else if (base_type == GLSL_TYPE_DOUBLE ||
-		 base_type == GLSL_TYPE_UINT64 ||
-		 base_type == GLSL_TYPE_INT64) {
-         return glsl_get_vector_elements(type->type) * 8;
       } else {
-         return glsl_get_vector_elements(type->type) * 4;
+         unsigned type_size = glsl_get_bit_size(type->type) / 8;
+         return glsl_get_vector_elements(type->type) * type_size;
       }
    }
 
@@ -756,8 +753,6 @@ _vtn_load_store_tail(struct vtn_builder *b, nir_intrinsic_op op, bool load,
    }
 
    if (op == nir_intrinsic_load_push_constant) {
-      vtn_assert(access_offset % 4 == 0);
-
       nir_intrinsic_set_base(instr, access_offset);
       nir_intrinsic_set_range(instr, access_size);
    }
