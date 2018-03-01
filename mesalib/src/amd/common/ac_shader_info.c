@@ -194,6 +194,21 @@ gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
 			  struct ac_shader_info *info)
 {
 	const struct glsl_type *type = glsl_without_array(var->type);
+	int idx = var->data.location;
+
+	switch (idx) {
+	case VARYING_SLOT_PNTC:
+		info->ps.has_pcoord = true;
+		break;
+	case VARYING_SLOT_PRIMITIVE_ID:
+		info->ps.prim_id_input = true;
+		break;
+	case VARYING_SLOT_LAYER:
+		info->ps.layer_input = true;
+		break;
+	default:
+		break;
+	}
 
 	if (glsl_get_base_type(type) == GLSL_TYPE_FLOAT) {
 		if (var->data.sample)

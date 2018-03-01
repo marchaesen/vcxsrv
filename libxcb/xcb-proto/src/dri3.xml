@@ -23,7 +23,7 @@ OF THIS SOFTWARE.
 -->
 
 <xcb header="dri3" extension-xname="DRI3" extension-name="DRI3"
-  major-version="1" minor-version="0">
+  major-version="1" minor-version="2">
   <import>xproto</import>
 
   <!-- Types -->
@@ -94,4 +94,73 @@ OF THIS SOFTWARE.
     </reply>
   </request>
 
+  <!-- v1.2 -->
+  <request name="GetSupportedModifiers" opcode="6">
+    <field type="CARD32" name="window" />
+    <field type="CARD8" name="depth"/>
+    <field type="CARD8" name="bpp"/>
+    <pad bytes="2"/>
+    <reply>
+      <required_start_align align="8" />
+      <pad bytes="1" />
+      <field type="CARD32" name="num_window_modifiers" />
+      <field type="CARD32" name="num_screen_modifiers" />
+      <pad bytes="16" />
+      <list type="CARD64" name="window_modifiers">
+        <fieldref>num_window_modifiers</fieldref>
+      </list>
+      <list type="CARD64" name="screen_modifiers">
+        <fieldref>num_screen_modifiers</fieldref>
+      </list>
+    </reply>
+  </request>
+
+  <request name="PixmapFromBuffers" opcode="7">
+    <required_start_align align="8" />
+    <field type="PIXMAP" name="pixmap" />
+    <field type="WINDOW" name="window" />
+    <field type="CARD8" name="num_buffers" />
+    <pad bytes="3" />
+    <field type="CARD16" name="width" />
+    <field type="CARD16" name="height" />
+    <field type="CARD32" name="stride0" />
+    <field type="CARD32" name="offset0" />
+    <field type="CARD32" name="stride1" />
+    <field type="CARD32" name="offset1" />
+    <field type="CARD32" name="stride2" />
+    <field type="CARD32" name="offset2" />
+    <field type="CARD32" name="stride3" />
+    <field type="CARD32" name="offset3" />
+    <field type="CARD8" name="depth" />
+    <field type="CARD8" name="bpp" />
+    <pad bytes="2" />
+    <field type="CARD64" name="modifier" />
+    <list type="fd" name="buffers">
+      <fieldref>num_buffers</fieldref>
+    </list>
+  </request>
+
+  <request name="BuffersFromPixmap" opcode="8">
+    <field type="PIXMAP" name="pixmap" />
+    <reply>
+      <required_start_align align="8" />
+      <field type="CARD8" name="nfd"/>
+      <field type="CARD16" name="width" />
+      <field type="CARD16" name="height" />
+      <pad bytes="4"/>
+      <field type="CARD64" name="modifier" />
+      <field type="CARD8" name="depth" />
+      <field type="CARD8" name="bpp" />
+      <pad bytes="6"/>
+      <list type="CARD32" name="strides">
+        <fieldref>nfd</fieldref>
+      </list>
+      <list type="CARD32" name="offsets">
+        <fieldref>nfd</fieldref>
+      </list>
+      <list type="fd" name="buffers">
+        <fieldref>nfd</fieldref>
+      </list>
+    </reply>
+  </request>
 </xcb>

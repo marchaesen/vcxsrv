@@ -63,6 +63,10 @@ cat > sdksyms.c << EOF
 # include "panoramiX.h"
 #endif
 
+/* glx/Makefile.am */
+#ifdef GLX
+#include "vndserver.h"
+#endif
 
 /* hw/xfree86/int10/Makefile.am -- module */
 /*

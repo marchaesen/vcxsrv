@@ -267,7 +267,6 @@ struct pipe_shader_state
    /* TODO move tokens into union. */
    const struct tgsi_token *tokens;
    union {
-      void *llvm;
       void *native;
       void *nir;
    } ir;

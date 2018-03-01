@@ -49,6 +49,9 @@ struct ac_shader_info {
 		bool writes_z;
 		bool writes_stencil;
 		bool writes_sample_mask;
+		bool has_pcoord;
+		bool prim_id_input;
+		bool layer_input;
 	} ps;
 	struct {
 		bool uses_grid_size;

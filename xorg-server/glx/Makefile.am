@@ -12,8 +12,7 @@ AM_CFLAGS = \
 	@GLX_DEFINES@ \
 	@GLX_ARCH_DEFINES@
 
-# none yet
-#sdk_HEADERS =
+sdk_HEADERS = vndserver.h
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/hw/xfree86/os-support \
@@ -88,4 +87,7 @@ libglxvnd_la_SOURCES = \
 	vndcmds.c \
 	vndext.c \
 	vndservermapping.c \
+	vndservervendor.h \
 	vndservervendor.c
+
+EXTRA_DIST = vnd_dispatch_stubs.c
