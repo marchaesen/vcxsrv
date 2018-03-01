@@ -50,6 +50,7 @@
 #define RRCrtc CARD32
 #define RRProvider CARD32
 #define RRModeFlags CARD32
+#define RRLease CARD32
 
 #define Rotation CARD16
 #define SizeID CARD16
@@ -836,6 +837,46 @@ typedef struct {
 #define sz_xRRGetProviderPropertyReply	32
 
 /*
+ * Additions for V1.6
+ */
+
+typedef struct {
+    CARD8	reqType;
+    CARD8	randrReqType;
+    CARD16	length B16;
+    Window	window B32;
+    RRLease	lid B32;
+    CARD16	nCrtcs B16;
+    CARD16	nOutputs B16;
+} xRRCreateLeaseReq;
+#define sz_xRRCreateLeaseReq	16
+
+typedef struct {
+    BYTE	type;
+    CARD8	nfd;
+    CARD16	sequenceNumber B16;
+    CARD32	length B32;
+    CARD32	pad2 B32;
+    CARD32	pad3 B32;
+    CARD32	pad4 B32;
+    CARD32	pad5 B32;
+    CARD32	pad6 B32;
+    CARD32	pad7 B32;
+} xRRCreateLeaseReply;
+#define sz_xRRCreateLeaseReply		32
+
+typedef struct {
+    CARD8	reqType;
+    CARD8	randrReqType;
+    CARD16	length B16;
+    RRLease	lid B32;
+    BYTE	terminate;
+    CARD8	pad1;
+    CARD16	pad2 B16;
+} xRRFreeLeaseReq;
+#define sz_xRRFreeLeaseReq		12
+
+/*
  * event
  */
 typedef struct {
@@ -947,6 +988,22 @@ typedef struct {
     CARD32 pad5 B32;
 } xRRResourceChangeNotifyEvent;
 #define sz_xRRResourceChangeNotifyEvent	32
+
+typedef struct {
+    CARD8 type;				/* always evBase + RRNotify */
+    CARD8 subCode;			/* RRNotify_Lease */
+    CARD16 sequenceNumber B16;
+    Time timestamp B32;			/* time resource was changed */
+    Window window B32;			/* window requesting notification */
+    RRLease lease B32;
+    CARD8 created;			/* created/deleted */
+    CARD8 pad0;
+    CARD16 pad1 B16;
+    CARD32 pad2 B32;
+    CARD32 pad3 B32;
+    CARD32 pad4 B32;
+} xRRLeaseNotifyEvent;
+#define sz_xRRLeaseNotifyEvent		32
 
 typedef struct {
     CARD8	reqType;

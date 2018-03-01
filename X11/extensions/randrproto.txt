@@ -1,6 +1,6 @@
 	       The X Resize, Rotate and Reflect Extension
-			     Version 1.5.0
-			       2015-03-14
+			     Version 1.6.0
+			       2017-04-01
 
 			      Jim Gettys
 			   Jim.Gettys@hp.com
@@ -9,9 +9,7 @@
 			Hewlett Packard Company
 
 			     Keith Packard
-			keith.packard@intel.com
-		     Open Source Technology Center
-			   Intel Corporation
+			  keithp@keithp.com
 
 1. Introduction
 
@@ -194,6 +192,25 @@ XID BadMatch when a RandR output disappears. This is to clarify that
 going forward the X server will not remove outputs dynamically,
 just mark them as disconnected.
 
+1.6. Introduction to version 1.6 of the extension
+
+Version 1.6 adds resource leasing and non desktop output management.
+
+ • A “Lease” is a collection of crtcs and outputs which are made
+   available to a client for direct access via kernel KMS and DRM
+   APIs. This is done by passing a suitable file descriptor back to
+   the client which has access to those resources. While leased, those
+   resources aren't used by the X server.
+
+ • A “non-desktop” output is a device which should not normally be
+   considered as part of the desktop environment. Head-mounted
+   displays and the Apple "Touch Bar" are examples of such
+   devices. A desktop environment should be able to discover which
+   outputs are connected to such devices and, by default, not present
+   normal desktop applications on them. This is done by having
+   RRGetOutputInfo report such devices as Disconnected while reporting
+   all other information about the device correctly.
+
 1.99 Acknowledgments
 
 Our thanks to the contributors to the design found on the xpert mailing
@@ -280,6 +297,8 @@ Mode
 	A value for a MODE argument does not name a defined MODE.
 Provider
 	A value for a PROVIDER argument does not name a defined PROVIDER.
+Lease
+	A value for a LEASE argument does not name a defined LEASE
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
@@ -424,6 +443,12 @@ MONITORINFO { name: ATOM
 	      width-in-millimeters: CARD32
 	      height-in-millimeters: CARD32
 	      outputs: LISTofOUTPUT }
+
+			      ❧❧❧❧❧❧❧❧❧❧❧
+
+5.7. Protocol Types added in version 1.6 of the extension
+
+LEASE { XID }
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
@@ -756,6 +781,12 @@ dynamic changes in the display environment.
 	monitor in some way; for fixed-pixel devices, this would generally
 	indicate which modes match the resolution of the output device.
 
+	Changes in version 1.6 of the protocol:
+
+	When a “non-desktop” device is connected, the 'connection'
+	field will report Disconnected but the remaining fields will
+	report information about the connected device.
+
 ┌───
     RRListOutputProperties
 	output:OUTPUT
@@ -766,6 +797,12 @@ dynamic changes in the display environment.
 
 	This request returns the atoms of properties currently defined on
 	the output.
+
+	Changes in version 1.6 of the protocol:
+
+	When a “non-desktop” device is connected, the property list
+	will be correct for the device, even though RRGetOutputInfo
+	reports the device as disconnected.
 
 ┌───
     RRQueryOutputProperty
@@ -797,6 +834,12 @@ dynamic changes in the display environment.
 	If 'immutable' is TRUE, then the property configuration cannot be
 	changed by clients. Immutable properties are interpreted by the X
 	server.
+
+	Changes in version 1.6 of the protocol:
+
+	When a “non-desktop” device is connected, the property information
+	will be correct for the device, even though RRGetOutputInfo
+	reports the device as disconnected.
 
 ┌───
     RRConfigureOutputProperty
@@ -915,6 +958,12 @@ dynamic changes in the display environment.
 	number of trailing unread bytes in the stored property.  If delete
 	is True and the bytes-after is zero, the property is also deleted
 	from the output, and a RROutputPropertyNotify event is generated.
+
+	Changes in version 1.6 of the protocol:
+
+	When a “non-desktop” device is connected, the property value
+	will be correct for the device, even though RRGetOutputInfo
+	reports the device as disconnected.
 
 ┌───
     RRCreateMode
@@ -1674,6 +1723,57 @@ dynamic changes in the display environment.
 	window of the screen.
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
+
+7.6. Extension Requests added in version 1.6 of the extension.
+
+┌───
+    RRCreateLease
+	window : WINDOW
+	lid: LEASE
+	crtcs: LISTofCRTC
+	outputs: LISTofOUTPUT
+     ▶
+	nfd: CARD8
+	lease: FD
+└───
+	Errors: IdChoice, Window, Access, Value, CRTC, Output
+
+	Creates a new Lease called 'lid' for the specified crtcs and
+	outputs from the screen defined by 'window'. Returns a KMS/DRM
+	file descriptor which can control the leased objects directly
+	through the kernel. While leased, all resources will appear to
+	be 'useless' to clients other than the leasing client as
+	follows:
+
+	• Crtcs are reported as having no 'possible-outputs' and all
+	  other values reported as if the crtc were disabled.
+
+	• Outputs are reported as having no crtcs they can be
+	  connected to, no clones they can share a crtc with, will
+	  report a connection status of Disconnected, and will show
+	  the current crtc as if it were disabled.
+
+	The lease remains in effect until the file descriptor is
+	closed, even if the client holding the lease disconnects from
+	the X server.
+
+	Returns an Access error if any of the named resources are
+	already leased to another client.
+
+┌───
+    RRFreeLease
+	lid: LEASE
+	terminate: BOOL
+└───
+	Errors: Lease
+
+	Frees the reference to the lease 'lid'. If 'terminate' is
+	true, then the lease is terminated and all leased resources
+	returned to the X server. If 'terminate' is false, then the
+	lease remains in effect, but the X server no longer has a name
+	for it.
+
+			      ❧❧❧❧❧❧❧❧❧❧❧
 8. Extension Events
 
 Clients MAY select for ConfigureNotify on the root window to be
@@ -1753,6 +1853,12 @@ factors, such as re-cabling a monitor, etc.
 	occurred on, 'window' is window selecting for this event. The
 	precise change can be detected by examining the new state of the
 	system.
+
+	Changes in version 1.6 of the protocol:
+
+	When a “non-desktop” device is connected, this event will be
+	delivered when the connection status of the output changes,
+	however the 'connection' value will be set to 'Disconnected'.
 
 ┌───
     RROutputPropertyNotify:
@@ -1855,6 +1961,21 @@ factors, such as re-cabling a monitor, etc.
 	created or destroyed. Querying the list of available resources
 	with RRGetScreenResources and RRGetProviders will return the new set.
 
+8.3 Events added in version 1.6 of the RandR extension
+
+┌───
+    RRLeaseNotify:
+	timestamp : TIMESTAMP		time screen was reconfigured
+	window : WINDOW			window requesting notification
+	lease : LEASE			lease
+	created : BOOL			created/destroyed indicator
+└───
+
+	This event is generated whenever a lease has been created or
+	destroyed and is sent to requesting clients. 'timestamp'
+	indicates when the change happend.  'window' is the window
+	selecting for this event.
+
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
 9. Properties
@@ -1877,6 +1998,13 @@ versions of the RandR extension MAY provide these properties as well,
 as long as the semantics are not altered.  Clients SHOULD fall back
 gracefully to lower version functionality, though, if the driver
 doesn't handle a mandatory property correctly.
+
+Changes in version 1.6 of the protocol:
+
+When a “non-desktop” device is connected, the property information
+will be correct for the device, even though RRGetOutputInfo
+reports the device as disconnected. The “non-desktop” property will be
+set to 1 for such devices and not present on other devices.
 
 9.1 Known properties
 
@@ -1977,6 +2105,29 @@ doesn't handle a mandatory property correctly.
 	Raw EDID data from the device attached to the according
 	output. Should include main EDID data and all extension
 	blocks. Previously known as EdidData.
+
+    “non-desktop”	aka RR_PROPERTY_NON_DESKTOP
+	Type:			INTEGER
+	Format:			32
+	Num items:		1
+	Flags			Immutable
+	Range/List:		0-1
+
+	Indicates whether the device attached to this output should not
+	be considered part of the normal desktop. When set to 0 or not
+	present, the output should be presented as part of the
+	desktop.
+
+	When set to 1, the output should not be presented as part of
+	the desktop. To not present an output as part of the desktop,
+	the normal desktop environment should not be shown on this
+	output, nor should desktop applications be positioned on it.
+
+	When set to 1, RRGetOutputInfo will always report connection status
+	Disconnected, but RROutputChangeNotify events will still be
+	delivered when the connection status changes and all other
+	information about the output and connected device will be
+	reported correctly.
 
     "SignalFormat"		aka RR_PROPERTY_SIGNAL_FORMAT
 	Type:			ATOM
@@ -2168,6 +2319,13 @@ GUID				yes		not mandatory
 Property			Immutable	Mandatory since
 ────────			─────────	───────────────
 TILE				yes		not mandatory
+
+9.8 Properties introduced with version 1.6 of the RandR extension
+
+Property			Immutable	Mandatory since
+────────			─────────	───────────────
+non-desktop			yes		not mandatory
+
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
 10. Extension Versioning
@@ -2206,6 +2364,8 @@ list of what each version provided:
 
 	1.5: Added Monitors
 
+	1.6: Added Leases and non-desktop output information.
+
 Compatibility between 0.0 and 1.0 was *NOT* preserved, and 0.0 clients
 will fail against 1.0 servers. The wire encoding op-codes were
 changed for GetScreenInfo to ensure this failure in a relatively
@@ -2214,7 +2374,7 @@ graceful way. Version 1.1 servers and clients are cross compatible with
 compatibility from this point. Version 1.2 offers an extended model of the
 system with multiple output support. Version 1.3 adds a cheap version of
 GetScreenResources to avoid expensive DDC operations, CRTC transformations,
-panning, and the primary output concept. Versions 1.2 through 1.4 are
+panning, and the primary output concept. Versions 1.2 through 1.6 are
 backward-compatible with 1.1.
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
@@ -2286,6 +2446,7 @@ A.1 Common Types
 	0x0010	ProviderChangeNotifyMask 	Added in version 1.4
 	0x0020	ProviderPropertyNotifyMask	Added in version 1.4
 	0x0040	ResourceChangeNotifyMask	Added in version 1.4
+	0x0080  LeaseNotifyMask                 Added in version 1.6
 
 └───
       Event select mask for RRSelectInput

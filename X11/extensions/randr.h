@@ -40,11 +40,11 @@ typedef unsigned long	XRandrModeFlags;
 
 #define RANDR_NAME		"RANDR"
 #define RANDR_MAJOR		1
-#define RANDR_MINOR		5
+#define RANDR_MINOR		6
 
-#define RRNumberErrors		4
+#define RRNumberErrors		5
 #define RRNumberEvents		2
-#define RRNumberRequests	45
+#define RRNumberRequests	47
 
 #define X_RRQueryVersion	0
 /* we skip 1 to make old clients fail pretty immediately */
@@ -109,6 +109,10 @@ typedef unsigned long	XRandrModeFlags;
 #define X_RRSetMonitor		      43
 #define X_RRDeleteMonitor	      44
 
+/* v1.6 */
+#define X_RRCreateLease		      45
+#define X_RRFreeLease		      46
+
 /* Event selection bits */
 #define RRScreenChangeNotifyMask  (1L << 0)
 /* V1.2 additions */
@@ -119,6 +123,8 @@ typedef unsigned long	XRandrModeFlags;
 #define RRProviderChangeNotifyMask   (1L << 4)
 #define RRProviderPropertyNotifyMask (1L << 5)
 #define RRResourceChangeNotifyMask   (1L << 6)
+/* V1.6 additions */
+#define RRLeaseNotifyMask            (1L << 7)
 
 /* Event codes */
 #define RRScreenChangeNotify	0
@@ -131,6 +137,8 @@ typedef unsigned long	XRandrModeFlags;
 #define  RRNotify_ProviderChange    3
 #define  RRNotify_ProviderProperty  4
 #define  RRNotify_ResourceChange    5
+/* V1.6 additions */
+#define  RRNotify_Lease             6
 /* used in the rotation field; rotation and reflection in 0.1 proto. */
 #define RR_Rotate_0		1
 #define RR_Rotate_90		2
@@ -172,6 +180,7 @@ typedef unsigned long	XRandrModeFlags;
 #define BadRRCrtc		1
 #define BadRRMode		2
 #define BadRRProvider		3
+#define BadRRLease		4
 
 /* Conventional RandR output properties */
 
@@ -187,6 +196,7 @@ typedef unsigned long	XRandrModeFlags;
 #define RR_PROPERTY_BORDER_DIMENSIONS	"BorderDimensions"
 #define RR_PROPERTY_GUID		"GUID"
 #define RR_PROPERTY_RANDR_TILE		"TILE"
+#define RR_PROPERTY_NON_DESKTOP		"non-desktop"
 
 /* roles this device can carry out */
 #define RR_Capability_None 0
