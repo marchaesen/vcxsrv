@@ -95,6 +95,12 @@ typedef uint32_t xcb_window_t;
 
 #define NUM_DEPTH_CLEAR_PIPELINES 3
 
+/*
+ * This is the point we switch from using CP to compute shader
+ * for certain buffer operations.
+ */
+#define RADV_BUFFER_OPS_CS_THRESHOLD 4096
+
 enum radv_mem_heap {
 	RADV_MEM_HEAP_VRAM,
 	RADV_MEM_HEAP_VRAM_CPU_ACCESS,
@@ -1003,6 +1009,11 @@ struct radv_cmd_buffer {
 	uint32_t gfx9_fence_offset;
 	struct radeon_winsys_bo *gfx9_fence_bo;
 	uint32_t gfx9_fence_idx;
+
+	/**
+	 * Whether a query pool has been resetted and we have to flush caches.
+	 */
+	bool pending_reset_query;
 };
 
 struct radv_image;
@@ -1601,6 +1612,7 @@ struct radv_query_pool {
 	struct radeon_winsys_bo *bo;
 	uint32_t stride;
 	uint32_t availability_offset;
+	uint64_t size;
 	char *ptr;
 	VkQueryType type;
 	uint32_t pipeline_stats_mask;

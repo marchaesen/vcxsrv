@@ -602,6 +602,8 @@ RRTellChanged(ScreenPtr pScreen)
 
     if (pScreen->isGPU) {
         master = pScreen->current_master;
+        if (!master)
+            return;
         mastersp = rrGetScrPriv(master);
     }
     else {

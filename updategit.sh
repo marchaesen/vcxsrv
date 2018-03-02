@@ -12,7 +12,6 @@ if [ ! -d xkbcomp          ]; then git clone git://anongit.freedesktop.org/xorg/
 if [ ! -d pixman           ]; then git clone git://anongit.freedesktop.org/pixman                     ; fi
 if [ ! -d xextproto        ]; then git clone git://anongit.freedesktop.org/xorg/proto/xextproto       ; fi
 if [ ! -d randrproto       ]; then git clone git://anongit.freedesktop.org/xorg/proto/randrproto      ; fi
-if [ ! -d glproto          ]; then git clone git://anongit.freedesktop.org/xorg/proto/glproto         ; fi
 if [ ! -d mkfontscale      ]; then git clone git://anongit.freedesktop.org/xorg/app/mkfontscale       ; fi
 if [ ! -d xwininfo         ]; then git clone git://anongit.freedesktop.org/xorg/app/xwininfo          ; fi
 if [ ! -d libXft           ]; then git clone git://anongit.freedesktop.org/xorg/lib/libXft            ; fi
@@ -37,7 +36,6 @@ if [ -d xkbcomp          ]; then echo Updating xkbcomp          ; pushd xkbcomp 
 if [ -d pixman           ]; then echo Updating pixman           ; pushd pixman          > /dev/null ; git pull; popd > /dev/null ; fi
 if [ -d xextproto        ]; then echo Updating xextproto        ; pushd xextproto       > /dev/null ; git pull; popd > /dev/null ; fi
 if [ -d randrproto       ]; then echo Updating randrproto       ; pushd randrproto      > /dev/null ; git pull; popd > /dev/null ; fi
-if [ -d glproto          ]; then echo Updating glproto          ; pushd glproto         > /dev/null ; git pull; popd > /dev/null ; fi
 if [ -d mkfontscale      ]; then echo Updating mkfontscale      ; pushd mkfontscale     > /dev/null ; git pull; popd > /dev/null ; fi
 if [ -d xwininfo         ]; then echo Updating xwininfo         ; pushd xwininfo        > /dev/null ; git pull; popd > /dev/null ; fi
 if [ -d libXft           ]; then echo Updating libXft           ; pushd libXft          > /dev/null ; git pull; popd > /dev/null ; fi
@@ -61,7 +59,6 @@ if [ -d pthreads         ]; then echo Updating pthreads         ; pushd pthreads
 ../vcxsrv.released/synchronise.py -e pixman ../vcxsrv.released/pixman
 ../vcxsrv.released/synchronise.py xextproto ../vcxsrv.released/X11/extensions --skip-dir=specs --skip-file=COPYING --skip-file=docbook.am --skip-file=autogen.sh --skip-file=configure.ac --skip-file=Makefile.am --skip-file=README --skip-file=.gitignore
 ../vcxsrv.released/synchronise.py randrproto ../vcxsrv.released/X11/extensions --skip-file=autogen.sh --skip-file=configure.ac --skip-file=COPYING --skip-file=Makefile.am --skip-file=README --skip-file=.gitignore
-../vcxsrv.released/synchronise.py -e glproto            ../vcxsrv.released/gl
 ../vcxsrv.released/synchronise.py -e mkfontscale        ../vcxsrv.released/mkfontscale
 ../vcxsrv.released/synchronise.py -e xwininfo           ../vcxsrv.released/apps/xwininfo
 ../vcxsrv.released/synchronise.py -e fontconfig         ../vcxsrv.released/fontconfig
@@ -88,7 +85,6 @@ if [ -d xkbcomp          ]; then  pushd xkbcomp         > /dev/null ; echo "xkbc
 if [ -d pixman           ]; then  pushd pixman          > /dev/null ; echo "pixman          " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d xextproto        ]; then  pushd xextproto       > /dev/null ; echo "xextproto       " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d randrproto       ]; then  pushd randrproto      > /dev/null ; echo "randrproto      " `git log | head -n1`; popd > /dev/null ; fi
-if [ -d glproto          ]; then  pushd glproto         > /dev/null ; echo "glproto         " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d mkfontscale      ]; then  pushd mkfontscale     > /dev/null ; echo "mkfontscale     " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d xwininfo         ]; then  pushd xwininfo        > /dev/null ; echo "xwininfo        " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d libXft           ]; then  pushd libXft          > /dev/null ; echo "libXft          " `git log | head -n1`; popd > /dev/null ; fi

@@ -790,9 +790,26 @@ else
 endif
 
 # Check for GCC style atomics
+dep_atomic = declare_dependency()
+
 if cc.compiles('int main() { int n; return __atomic_load_n(&n, __ATOMIC_ACQUIRE); }',
                name : 'GCC atomic builtins')
   pre_args += '-DUSE_GCC_ATOMIC_BUILTINS'
+
+  # Not all atomic calls can be turned into lock-free instructions, in which
+  # GCC will make calls into the libatomic library. Check whether we need to
+  # link with -latomic.
+  #
+  # This can happen for 64-bit atomic operations on 32-bit architectures such
+  # as ARM.
+  if not cc.links('''#include <stdint.h>
+                     int main() {
+                       uint64_t n;
+                       return (int)__atomic_load_n(&n, __ATOMIC_ACQUIRE);
+                     }''',
+                  name : 'GCC atomic builtins required -latomic')
+    dep_atomic = cc.find_library('atomic')
+  endif
 endif
 if not cc.links('''#include <stdint.h>
                    uint64_t v;
@@ -1037,7 +1054,14 @@ if with_llvm
   # that for our version checks.
   # svn suffixes are stripped by meson as of 0.43, and git suffixes are
   # strippped as of 0.44, but we support older meson versions.
-  _llvm_patch = _llvm_version[2]
+
+  # 3 digits versions in LLVM only started from 3.4.1 on
+  if dep_llvm.version().version_compare('>= 3.4.1')
+    _llvm_patch = _llvm_version[2]
+  else
+    _llvm_patch = '0'
+  endif
+
   if _llvm_patch.endswith('svn')
     _llvm_patch = _llvm_patch.split('s')[0]
   elif _llvm_patch.contains('git')

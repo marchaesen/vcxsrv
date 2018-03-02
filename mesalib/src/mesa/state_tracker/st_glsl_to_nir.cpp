@@ -127,8 +127,10 @@ st_nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
 {
    unsigned location = 0;
    unsigned assigned_locations[VARYING_SLOT_TESS_MAX];
-   uint64_t processed_locs = 0;
-   uint32_t processed_patch_locs = 0;
+   uint64_t processed_locs[2] = {0};
+
+   const int base = stage == MESA_SHADER_FRAGMENT ?
+      (int) FRAG_RESULT_DATA0 : (int) VARYING_SLOT_VAR0;
 
    nir_foreach_variable(var, var_list) {
 
@@ -138,28 +140,22 @@ st_nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
          type = glsl_get_array_element(type);
       }
 
+      /* Builtins don't allow component packing so we only need to worry about
+       * user defined varyings sharing the same location.
+       */
       bool processed = false;
-      if (var->data.patch &&
-          var->data.location != VARYING_SLOT_TESS_LEVEL_INNER &&
-          var->data.location != VARYING_SLOT_TESS_LEVEL_OUTER &&
-          var->data.location != VARYING_SLOT_BOUNDING_BOX0 &&
-          var->data.location != VARYING_SLOT_BOUNDING_BOX1) {
-         unsigned patch_loc = var->data.location - VARYING_SLOT_PATCH0;
-         if (processed_patch_locs & (1 << patch_loc))
+      if (var->data.location >= base) {
+         unsigned glsl_location = var->data.location - base;
+         if (processed_locs[var->data.index] & ((uint64_t)1 << glsl_location))
             processed = true;
-
-         processed_patch_locs |= (1 << patch_loc);
-      } else {
-         if (processed_locs & ((uint64_t)1 << var->data.location))
-            processed = true;
-
-         processed_locs |= ((uint64_t)1 << var->data.location);
+         else
+            processed_locs[var->data.index] |= ((uint64_t)1 << glsl_location);
       }
 
       /* Because component packing allows varyings to share the same location
        * we may have already have processed this location.
        */
-      if (processed && var->data.location >= VARYING_SLOT_VAR0) {
+      if (processed) {
          var->data.driver_location = assigned_locations[var->data.location];
          *size += type_size(type);
          continue;

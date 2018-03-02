@@ -4,12 +4,6 @@
 #include "sid.h"
 #include "radv_cs.h"
 
-/*
- * This is the point we switch from using CP to compute shader
- * for certain buffer operations.
- */
-#define RADV_BUFFER_OPS_CS_THRESHOLD 4096
-
 static nir_shader *
 build_buffer_fill_shader(struct radv_device *dev)
 {

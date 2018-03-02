@@ -34,6 +34,8 @@ matrix:
         - LABEL="meson Vulkan"
         - BUILD=meson
         - MESON_OPTIONS="-Ddri-drivers= -Dgallium-drivers="
+        - LLVM_VERSION=4.0
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
       addons:
         apt:
           sources:
@@ -573,8 +575,28 @@ script:
       scons $SCONS_TARGET && eval $SCONS_CHECK_COMMAND;
     fi
 
-  - if test "x$BUILD" = xmeson; then
-      export CFLAGS="$CFLAGS -isystem`pwd`";
-      meson _build $MESON_OPTIONS;
-      ninja -C _build;
+  - |
+    if test "x$BUILD" = xmeson; then
+
+      # Travis CI has moved to LLVM 5.0, and meson is detecting
+      # automatically the available version in /usr/local/bin based on
+      # the PATH env variable order preference.
+      #
+      # As for 0.44.x, Meson cannot receive the path to the
+      # llvm-config binary as a configuration parameter. See
+      # https://github.com/mesonbuild/meson/issues/2887 and
+      # https://github.com/dcbaker/meson/commit/7c8b6ee3fa42f43c9ac7dcacc61a77eca3f1bcef
+      #
+      # We want to use the custom (APT) installed version. Therefore,
+      # let's make Meson find our wanted version sooner than the one
+      # at /usr/local/bin
+      #
+      # Once this is corrected, we would still need a patch similar
+      # to:
+      # https://lists.freedesktop.org/archives/mesa-dev/2017-December/180217.html
+      test -f /usr/bin/$LLVM_CONFIG && ln -s /usr/bin/$LLVM_CONFIG $HOME/prefix/bin/llvm-config
+
+      export CFLAGS="$CFLAGS -isystem`pwd`"
+      meson _build $MESON_OPTIONS
+      ninja -C _build
     fi
