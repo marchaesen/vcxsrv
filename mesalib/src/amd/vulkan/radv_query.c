@@ -748,7 +748,6 @@ VkResult radv_CreateQueryPool(
 	VkQueryPool*                                pQueryPool)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
-	uint64_t size;
 	struct radv_query_pool *pool = vk_alloc2(&device->alloc, pAllocator,
 					       sizeof(*pool), 8,
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
@@ -774,12 +773,12 @@ VkResult radv_CreateQueryPool(
 	pool->type = pCreateInfo->queryType;
 	pool->pipeline_stats_mask = pCreateInfo->pipelineStatistics;
 	pool->availability_offset = pool->stride * pCreateInfo->queryCount;
-	size = pool->availability_offset;
+	pool->size = pool->availability_offset;
 	if (pCreateInfo->queryType == VK_QUERY_TYPE_TIMESTAMP ||
 	    pCreateInfo->queryType == VK_QUERY_TYPE_PIPELINE_STATISTICS)
-		size += 4 * pCreateInfo->queryCount;
+		pool->size += 4 * pCreateInfo->queryCount;
 
-	pool->bo = device->ws->buffer_create(device->ws, size,
+	pool->bo = device->ws->buffer_create(device->ws, pool->size,
 					     64, RADEON_DOMAIN_GTT, RADEON_FLAG_NO_INTERPROCESS_SHARING);
 
 	if (!pool->bo) {
@@ -794,7 +793,7 @@ VkResult radv_CreateQueryPool(
 		vk_free2(&device->alloc, pAllocator, pool);
 		return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	}
-	memset(pool->ptr, 0, size);
+	memset(pool->ptr, 0, pool->size);
 
 	*pQueryPool = radv_query_pool_to_handle(pool);
 	return VK_SUCCESS;
@@ -1058,17 +1057,23 @@ void radv_CmdResetQueryPool(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
-	struct radv_cmd_state *state = &cmd_buffer->state;
+	uint32_t flush_bits = 0;
 
-	state->flush_bits |= radv_fill_buffer(cmd_buffer, pool->bo,
-					      firstQuery * pool->stride,
-					      queryCount * pool->stride, 0);
+	flush_bits |= radv_fill_buffer(cmd_buffer, pool->bo,
+				       firstQuery * pool->stride,
+				       queryCount * pool->stride, 0);
 
 	if (pool->type == VK_QUERY_TYPE_TIMESTAMP ||
 	    pool->type == VK_QUERY_TYPE_PIPELINE_STATISTICS) {
-		state->flush_bits |= radv_fill_buffer(cmd_buffer, pool->bo,
-						      pool->availability_offset + firstQuery * 4,
-						      queryCount * 4, 0);
+		flush_bits |= radv_fill_buffer(cmd_buffer, pool->bo,
+					       pool->availability_offset + firstQuery * 4,
+					       queryCount * 4, 0);
+	}
+
+	if (flush_bits) {
+		/* Only need to flush caches for the compute shader path. */
+		cmd_buffer->pending_reset_query = true;
+		cmd_buffer->state.flush_bits |= flush_bits;
 	}
 }
 
@@ -1085,6 +1090,18 @@ void radv_CmdBeginQuery(
 	va += pool->stride * query;
 
 	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 8);
+
+	if (cmd_buffer->pending_reset_query) {
+		if (pool->size >= RADV_BUFFER_OPS_CS_THRESHOLD) {
+			/* Only need to flush caches if the query pool size is
+			 * large enough to be resetted using the compute shader
+			 * path. Small pools don't need any cache flushes
+			 * because we use a CP dma clear.
+			 */
+			si_emit_cache_flush(cmd_buffer);
+			cmd_buffer->pending_reset_query = false;
+		}
+	}
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:

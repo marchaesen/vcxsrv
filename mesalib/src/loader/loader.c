@@ -120,6 +120,33 @@ static char *drm_construct_id_path_tag(drmDevicePtr device)
                    device->businfo.pci->func) < 0) {
          return NULL;
       }
+   } else if (device->bustype == DRM_BUS_PLATFORM ||
+              device->bustype == DRM_BUS_HOST1X) {
+      char *fullname, *name, *address;
+
+      if (device->bustype == DRM_BUS_PLATFORM)
+         fullname = device->businfo.platform->fullname;
+      else
+         fullname = device->businfo.host1x->fullname;
+
+      name = strrchr(fullname, '/');
+      if (!name)
+         name = strdup(fullname);
+      else
+         name = strdup(name + 1);
+
+      address = strchr(name, '@');
+      if (address) {
+         *address++ = '\0';
+
+         if (asprintf(&tag, "platform-%s_%s", address, name) < 0)
+            tag = NULL;
+      } else {
+         if (asprintf(&tag, "platform-%s", name) < 0)
+            tag = NULL;
+      }
+
+      free(name);
    }
    return tag;
 }

@@ -102,7 +102,7 @@ libmesa_util = static_library(
   'mesa_util',
   [files_mesa_util, format_srgb],
   include_directories : inc_common,
-  dependencies : [dep_zlib, dep_clock, dep_thread],
+  dependencies : [dep_zlib, dep_clock, dep_thread, dep_atomic],
   c_args : [c_msvc_compat_args, c_vis_args],
   build_by_default : false
 )

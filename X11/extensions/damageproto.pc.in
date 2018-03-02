@@ -1,9 +1,0 @@
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-libdir=@libdir@
-includedir=@includedir@
-
-Name: DamageProto
-Description: Damage extension headers
-Version: @PACKAGE_VERSION@
-Cflags: -I${includedir}

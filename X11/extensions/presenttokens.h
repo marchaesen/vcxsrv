@@ -25,7 +25,7 @@
 
 #define PRESENT_NAME			"Present"
 #define PRESENT_MAJOR			1
-#define PRESENT_MINOR			0
+#define PRESENT_MINOR			2
 
 #define PresentNumberErrors		0
 #define PresentNumberEvents		0
@@ -44,10 +44,12 @@
 #define PresentOptionAsync              (1 << 0)
 #define PresentOptionCopy               (1 << 1)
 #define PresentOptionUST                (1 << 2)
+#define PresentOptionSuboptimal         (1 << 3)
 
 #define PresentAllOptions       (PresentOptionAsync | \
                                  PresentOptionCopy | \
-                                 PresentOptionUST)
+                                 PresentOptionUST | \
+                                 PresentOptionSuboptimal)
 
 /* Present capabilities */
 
@@ -94,8 +96,9 @@
 
 /* Complete Modes */
 
-#define PresentCompleteModeCopy         0
-#define PresentCompleteModeFlip         1
-#define PresentCompleteModeSkip         2
+#define PresentCompleteModeCopy           0
+#define PresentCompleteModeFlip           1
+#define PresentCompleteModeSkip           2
+#define PresentCompleteModeSuboptimalCopy 3
 
 #endif

@@ -2160,6 +2160,10 @@ typedef struct {
 #define X_GLXCreateContextAttribsARB     34
 #define X_GLXSetClientInfo2ARB           35
 
+/* typo compatibility with older headers */
+#define X_GLXCreateContextAtrribsARB     34
+#define X_GLXSetConfigInfo2ARB           35
+
 /* Opcodes for single commands (part of GLX command space) */
 
 #define X_GLsop_NewList                    101

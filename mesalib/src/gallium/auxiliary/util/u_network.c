@@ -9,8 +9,7 @@
 #  include <winsock2.h>
 #  include <windows.h>
 #  include <ws2tcpip.h>
-#elif defined(PIPE_OS_LINUX) || defined(PIPE_OS_HAIKU) || \
-   defined(PIPE_OS_APPLE) || defined(PIPE_OS_CYGWIN) || defined(PIPE_OS_SOLARIS)
+#elif defined(PIPE_OS_UNIX)
 #  include <sys/socket.h>
 #  include <netinet/in.h>
 #  include <unistd.h>
@@ -58,8 +57,7 @@ u_socket_close(int s)
    if (s < 0)
       return;
 
-#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_HAIKU) \
-    || defined(PIPE_OS_APPLE) || defined(PIPE_OS_SOLARIS)
+#if defined(PIPE_OS_UNIX)
    shutdown(s, SHUT_RDWR);
    close(s);
 #elif defined(PIPE_SUBSYSTEM_WINDOWS_USER)
@@ -181,8 +179,7 @@ u_socket_listen_on_port(uint16_t portnum)
 void
 u_socket_block(int s, boolean block)
 {
-#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_HAIKU) \
-    || defined(PIPE_OS_APPLE) || defined(PIPE_OS_SOLARIS)
+#if defined(PIPE_OS_UNIX)
    int old = fcntl(s, F_GETFL, 0);
    if (old == -1)
       return;

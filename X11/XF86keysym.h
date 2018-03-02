@@ -197,6 +197,13 @@
 
 #define XF86XK_AudioMicMute	0x1008FFB2   /* Mute the Mic from the system */
 
+#define XF86XK_Keyboard		0x1008FFB3   /* User defined keyboard related action */
+
+#define XF86XK_WWAN		0x1008FFB4   /* Toggle WWAN (LTE, UMTS, etc.) radio */
+#define XF86XK_RFKill		0x1008FFB5   /* Toggle radios on/off */
+
+#define XF86XK_AudioPreset	0x1008FFB6   /* Select equalizer preset, e.g. theatre-mode */
+
 /* Keys for special action keys (hot keys) */
 /* Virtual terminals on some operating systems */
 #define XF86XK_Switch_VT_1	0x1008FE01

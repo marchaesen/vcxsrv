@@ -137,7 +137,8 @@ write_variable(write_ctx *ctx, const nir_variable *var)
    write_add_object(ctx, var);
    encode_type_to_blob(ctx->blob, var->type);
    blob_write_uint32(ctx->blob, !!(var->name));
-   blob_write_string(ctx->blob, var->name);
+   if (var->name)
+      blob_write_string(ctx->blob, var->name);
    blob_write_bytes(ctx->blob, (uint8_t *) &var->data, sizeof(var->data));
    blob_write_uint32(ctx->blob, var->num_state_slots);
    blob_write_bytes(ctx->blob, (uint8_t *) var->state_slots,

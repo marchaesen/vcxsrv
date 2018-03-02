@@ -3998,7 +3998,7 @@ static LLVMValueRef visit_var_atomic(struct ac_nir_context *ctx,
 
 	if (instr->intrinsic == nir_intrinsic_var_atomic_comp_swap ||
 	    instr->intrinsic == nir_intrinsic_shared_atomic_comp_swap) {
-		LLVMValueRef src1 = get_src(ctx, instr->src[1]);
+		LLVMValueRef src1 = get_src(ctx, instr->src[src_idx + 1]);
 		result = LLVMBuildAtomicCmpXchg(ctx->ac.builder,
 						ptr, src, src1,
 						LLVMAtomicOrderingSequentiallyConsistent,
