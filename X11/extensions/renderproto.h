@@ -1,6 +1,4 @@
 /*
- * $XFree86: xc/include/extensions/renderproto.h,v 1.12 2002/09/26 02:56:48 keithp Exp $
- *
  * Copyright © 2000 SuSE, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and its

@@ -24,6 +24,8 @@ SOFTWARE.
 #ifndef FONT_H
 #define FONT_H
 
+#include <X11/Xfuncproto.h>
+
 #ifndef BitmapFormatByteOrderMask
 #include	"fsmasks.h"
 #endif
@@ -144,7 +146,7 @@ extern void		    CacheFontPattern (
     int /* patlen */,
     FontPtr /* pFont */
 );
-extern FontResolutionPtr GetClientResolutions(
+extern _X_EXPORT FontResolutionPtr GetClientResolutions(
     int * /* num */
 );
 

@@ -23,9 +23,12 @@ authorization from The XFree86 Project Inc..
 #ifndef _FONTPROTO_H
 #define _FONTPROTO_H
 
+#include <X11/Xfuncproto.h>
+
 /* Externally provided functions required by libXfont */
 
-extern int RegisterFPEFunctions ( NameCheckFunc name_func, 
+extern _X_EXPORT int RegisterFPEFunctions (
+				  NameCheckFunc name_func,
 				  InitFpeFunc init_func, 
 				  FreeFpeFunc free_func, 
 				  ResetFpeFunc reset_func, 
@@ -41,26 +44,26 @@ extern int RegisterFPEFunctions ( NameCheckFunc name_func,
 				  NextLaFunc next_list_alias_func, 
 				  SetPathFunc set_path_func);
 
-extern int GetDefaultPointSize ( void );
+extern _X_EXPORT int GetDefaultPointSize ( void );
 
-extern int init_fs_handlers ( FontPathElementPtr fpe, 
-			      BlockHandlerProcPtr block_handler);
-extern void remove_fs_handlers ( FontPathElementPtr fpe, 
-				 BlockHandlerProcPtr block_handler, 
-				 Bool all );
+extern _X_EXPORT int init_fs_handlers ( FontPathElementPtr fpe,
+                                        BlockHandlerProcPtr block_handler);
+extern _X_EXPORT void remove_fs_handlers ( FontPathElementPtr fpe,
+                                           BlockHandlerProcPtr block_handler,
+                                           Bool all );
 
-extern int client_auth_generation ( ClientPtr client );
+extern _X_EXPORT int client_auth_generation ( ClientPtr client );
 
 #ifndef ___CLIENTSIGNAL_DEFINED___
 #define ___CLIENTSIGNAL_DEFINED___
 extern Bool ClientSignal ( ClientPtr client );
 #endif /* ___CLIENTSIGNAL_DEFINED___ */
 
-extern void DeleteFontClientID ( Font id );
-extern Font GetNewFontClientID ( void );
-extern int StoreFontClientFont ( FontPtr pfont, Font id );
-extern void FontFileRegisterFpeFunctions ( void );
-extern void FontFileCheckRegisterFpeFunctions ( void );
+extern _X_EXPORT void DeleteFontClientID ( Font id );
+extern _X_EXPORT Font GetNewFontClientID ( void );
+extern _X_EXPORT int StoreFontClientFont ( FontPtr pfont, Font id );
+extern _X_EXPORT void FontFileRegisterFpeFunctions ( void );
+extern _X_EXPORT void FontFileCheckRegisterFpeFunctions ( void );
 
 extern Bool XpClientIsBitmapClient ( ClientPtr client );
 extern Bool XpClientIsPrintClient( ClientPtr client, FontPathElementPtr fpe );
