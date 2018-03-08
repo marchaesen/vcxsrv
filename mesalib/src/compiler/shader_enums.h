@@ -397,6 +397,14 @@ typedef enum
    SYSTEM_VALUE_SUBGROUP_LT_MASK,
    /*@}*/
 
+   /**
+    * Builtin variables added by VK_KHR_subgroups
+    */
+   /*@{*/
+   SYSTEM_VALUE_NUM_SUBGROUPS,
+   SYSTEM_VALUE_SUBGROUP_ID,
+   /*@}*/
+
    /*@}*/
 
    /**
@@ -557,6 +565,9 @@ typedef enum
    SYSTEM_VALUE_NUM_WORK_GROUPS,
    SYSTEM_VALUE_LOCAL_GROUP_SIZE,
    /*@}*/
+
+   /** Required for VK_KHR_device_group */
+   SYSTEM_VALUE_DEVICE_INDEX,
 
    /** Required for VK_KHX_multiview */
    SYSTEM_VALUE_VIEW_INDEX,

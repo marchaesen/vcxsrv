@@ -41,6 +41,16 @@
 
 #include "shader_enums.h"
 
+#define AC_LLVM_INITIAL_CF_DEPTH 4
+
+/* Data for if/else/endif and bgnloop/endloop control flow structures.
+ */
+struct ac_llvm_flow {
+	/* Loop exit or next part of if/else/endif. */
+	LLVMBasicBlockRef next_block;
+	LLVMBasicBlockRef loop_entry_block;
+};
+
 /* Initialize module-independent parts of the context.
  *
  * The caller is responsible for initializing ctx::module and ctx::builder.
@@ -103,6 +113,14 @@ ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context,
 							"amdgpu.uniform", 14);
 
 	ctx->empty_md = LLVMMDNodeInContext(ctx->context, NULL, 0);
+}
+
+void
+ac_llvm_context_dispose(struct ac_llvm_context *ctx)
+{
+	free(ctx->flow);
+	ctx->flow = NULL;
+	ctx->flow_depth_max = 0;
 }
 
 int
@@ -1686,6 +1704,74 @@ void ac_build_waitcnt(struct ac_llvm_context *ctx, unsigned simm16)
 			   ctx->voidt, args, 1, 0);
 }
 
+LLVMValueRef ac_build_fract(struct ac_llvm_context *ctx, LLVMValueRef src0,
+			    unsigned bitsize)
+{
+	LLVMTypeRef type;
+	char *intr;
+
+	if (bitsize == 32) {
+		intr = "llvm.floor.f32";
+		type = ctx->f32;
+	} else {
+		intr = "llvm.floor.f64";
+		type = ctx->f64;
+	}
+
+	LLVMValueRef params[] = {
+		src0,
+	};
+	LLVMValueRef floor = ac_build_intrinsic(ctx, intr, type, params, 1,
+						AC_FUNC_ATTR_READNONE);
+	return LLVMBuildFSub(ctx->builder, src0, floor, "");
+}
+
+LLVMValueRef ac_build_isign(struct ac_llvm_context *ctx, LLVMValueRef src0,
+			    unsigned bitsize)
+{
+	LLVMValueRef cmp, val, zero, one;
+	LLVMTypeRef type;
+
+	if (bitsize == 32) {
+		type = ctx->i32;
+		zero = ctx->i32_0;
+		one = ctx->i32_1;
+	} else {
+		type = ctx->i64;
+		zero = ctx->i64_0;
+		one = ctx->i64_1;
+	}
+
+	cmp = LLVMBuildICmp(ctx->builder, LLVMIntSGT, src0, zero, "");
+	val = LLVMBuildSelect(ctx->builder, cmp, one, src0, "");
+	cmp = LLVMBuildICmp(ctx->builder, LLVMIntSGE, val, zero, "");
+	val = LLVMBuildSelect(ctx->builder, cmp, val, LLVMConstInt(type, -1, true), "");
+	return val;
+}
+
+LLVMValueRef ac_build_fsign(struct ac_llvm_context *ctx, LLVMValueRef src0,
+			    unsigned bitsize)
+{
+	LLVMValueRef cmp, val, zero, one;
+	LLVMTypeRef type;
+
+	if (bitsize == 32) {
+		type = ctx->f32;
+		zero = ctx->f32_0;
+		one = ctx->f32_1;
+	} else {
+		type = ctx->f64;
+		zero = ctx->f64_0;
+		one = ctx->f64_1;
+	}
+
+	cmp = LLVMBuildFCmp(ctx->builder, LLVMRealOGT, src0, zero, "");
+	val = LLVMBuildSelect(ctx->builder, cmp, one, src0, "");
+	cmp = LLVMBuildFCmp(ctx->builder, LLVMRealOGE, val, zero, "");
+	val = LLVMBuildSelect(ctx->builder, cmp, val, LLVMConstReal(type, -1.0), "");
+	return val;
+}
+
 void ac_get_image_intr_name(const char *base_name,
 			    LLVMTypeRef data_type,
 			    LLVMTypeRef coords_type,
@@ -1709,6 +1795,7 @@ void ac_get_image_intr_name(const char *base_name,
 }
 
 #define AC_EXP_TARGET (HAVE_LLVM >= 0x0500 ? 0 : 3)
+#define AC_EXP_ENABLED_CHANNELS (HAVE_LLVM >= 0x0500 ? 1 : 0)
 #define AC_EXP_OUT0 (HAVE_LLVM >= 0x0500 ? 2 : 5)
 
 enum ac_ir_type {
@@ -1781,7 +1868,8 @@ static bool ac_eliminate_const_output(uint8_t *vs_output_param_offset,
 	return true;
 }
 
-static bool ac_eliminate_duplicated_output(uint8_t *vs_output_param_offset,
+static bool ac_eliminate_duplicated_output(struct ac_llvm_context *ctx,
+					   uint8_t *vs_output_param_offset,
 					   uint32_t num_outputs,
 					   struct ac_vs_exports *processed,
 				           struct ac_vs_exp_inst *exp)
@@ -1833,6 +1921,10 @@ static bool ac_eliminate_duplicated_output(uint8_t *vs_output_param_offset,
 	 */
 	struct ac_vs_exp_inst *match = &processed->exp[p];
 
+	/* Get current enabled channels mask. */
+	LLVMValueRef arg = LLVMGetOperand(match->inst, AC_EXP_ENABLED_CHANNELS);
+	unsigned enabled_channels = LLVMConstIntGetZExtValue(arg);
+
 	while (copy_back_channels) {
 		unsigned chan = u_bit_scan(&copy_back_channels);
 
@@ -1840,6 +1932,13 @@ static bool ac_eliminate_duplicated_output(uint8_t *vs_output_param_offset,
 		LLVMSetOperand(match->inst, AC_EXP_OUT0 + chan,
 			       exp->chan[chan].value);
 		match->chan[chan] = exp->chan[chan];
+
+		/* Update number of enabled channels because the original mask
+		 * is not always 0xf.
+		 */
+		enabled_channels |= (1 << chan);
+		LLVMSetOperand(match->inst, AC_EXP_ENABLED_CHANNELS,
+			       LLVMConstInt(ctx->i32, enabled_channels, 0));
 	}
 
 	/* The PARAM export is duplicated. Kill it. */
@@ -1927,7 +2026,8 @@ void ac_optimize_vs_outputs(struct ac_llvm_context *ctx,
 			/* Eliminate constant and duplicated PARAM exports. */
 			if (ac_eliminate_const_output(vs_output_param_offset,
 						      num_outputs, &exp) ||
-			    ac_eliminate_duplicated_output(vs_output_param_offset,
+			    ac_eliminate_duplicated_output(ctx,
+							   vs_output_param_offset,
 							   num_outputs, &exports,
 							   &exp)) {
 				removed_any = true;
@@ -2063,4 +2163,175 @@ LLVMTypeRef ac_array_in_const32_addr_space(LLVMTypeRef elem_type)
 
 	return LLVMPointerType(LLVMArrayType(elem_type, 0),
 			       AC_CONST_32BIT_ADDR_SPACE);
+}
+
+static struct ac_llvm_flow *
+get_current_flow(struct ac_llvm_context *ctx)
+{
+	if (ctx->flow_depth > 0)
+		return &ctx->flow[ctx->flow_depth - 1];
+	return NULL;
+}
+
+static struct ac_llvm_flow *
+get_innermost_loop(struct ac_llvm_context *ctx)
+{
+	for (unsigned i = ctx->flow_depth; i > 0; --i) {
+		if (ctx->flow[i - 1].loop_entry_block)
+			return &ctx->flow[i - 1];
+	}
+	return NULL;
+}
+
+static struct ac_llvm_flow *
+push_flow(struct ac_llvm_context *ctx)
+{
+	struct ac_llvm_flow *flow;
+
+	if (ctx->flow_depth >= ctx->flow_depth_max) {
+		unsigned new_max = MAX2(ctx->flow_depth << 1,
+					AC_LLVM_INITIAL_CF_DEPTH);
+
+		ctx->flow = realloc(ctx->flow, new_max * sizeof(*ctx->flow));
+		ctx->flow_depth_max = new_max;
+	}
+
+	flow = &ctx->flow[ctx->flow_depth];
+	ctx->flow_depth++;
+
+	flow->next_block = NULL;
+	flow->loop_entry_block = NULL;
+	return flow;
+}
+
+static void set_basicblock_name(LLVMBasicBlockRef bb, const char *base,
+				int label_id)
+{
+	char buf[32];
+	snprintf(buf, sizeof(buf), "%s%d", base, label_id);
+	LLVMSetValueName(LLVMBasicBlockAsValue(bb), buf);
+}
+
+/* Append a basic block at the level of the parent flow.
+ */
+static LLVMBasicBlockRef append_basic_block(struct ac_llvm_context *ctx,
+					    const char *name)
+{
+	assert(ctx->flow_depth >= 1);
+
+	if (ctx->flow_depth >= 2) {
+		struct ac_llvm_flow *flow = &ctx->flow[ctx->flow_depth - 2];
+
+		return LLVMInsertBasicBlockInContext(ctx->context,
+						     flow->next_block, name);
+	}
+
+	LLVMValueRef main_fn =
+		LLVMGetBasicBlockParent(LLVMGetInsertBlock(ctx->builder));
+	return LLVMAppendBasicBlockInContext(ctx->context, main_fn, name);
+}
+
+/* Emit a branch to the given default target for the current block if
+ * applicable -- that is, if the current block does not already contain a
+ * branch from a break or continue.
+ */
+static void emit_default_branch(LLVMBuilderRef builder,
+				LLVMBasicBlockRef target)
+{
+	if (!LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(builder)))
+		 LLVMBuildBr(builder, target);
+}
+
+void ac_build_bgnloop(struct ac_llvm_context *ctx, int label_id)
+{
+	struct ac_llvm_flow *flow = push_flow(ctx);
+	flow->loop_entry_block = append_basic_block(ctx, "LOOP");
+	flow->next_block = append_basic_block(ctx, "ENDLOOP");
+	set_basicblock_name(flow->loop_entry_block, "loop", label_id);
+	LLVMBuildBr(ctx->builder, flow->loop_entry_block);
+	LLVMPositionBuilderAtEnd(ctx->builder, flow->loop_entry_block);
+}
+
+void ac_build_break(struct ac_llvm_context *ctx)
+{
+	struct ac_llvm_flow *flow = get_innermost_loop(ctx);
+	LLVMBuildBr(ctx->builder, flow->next_block);
+}
+
+void ac_build_continue(struct ac_llvm_context *ctx)
+{
+	struct ac_llvm_flow *flow = get_innermost_loop(ctx);
+	LLVMBuildBr(ctx->builder, flow->loop_entry_block);
+}
+
+void ac_build_else(struct ac_llvm_context *ctx, int label_id)
+{
+	struct ac_llvm_flow *current_branch = get_current_flow(ctx);
+	LLVMBasicBlockRef endif_block;
+
+	assert(!current_branch->loop_entry_block);
+
+	endif_block = append_basic_block(ctx, "ENDIF");
+	emit_default_branch(ctx->builder, endif_block);
+
+	LLVMPositionBuilderAtEnd(ctx->builder, current_branch->next_block);
+	set_basicblock_name(current_branch->next_block, "else", label_id);
+
+	current_branch->next_block = endif_block;
+}
+
+void ac_build_endif(struct ac_llvm_context *ctx, int label_id)
+{
+	struct ac_llvm_flow *current_branch = get_current_flow(ctx);
+
+	assert(!current_branch->loop_entry_block);
+
+	emit_default_branch(ctx->builder, current_branch->next_block);
+	LLVMPositionBuilderAtEnd(ctx->builder, current_branch->next_block);
+	set_basicblock_name(current_branch->next_block, "endif", label_id);
+
+	ctx->flow_depth--;
+}
+
+void ac_build_endloop(struct ac_llvm_context *ctx, int label_id)
+{
+	struct ac_llvm_flow *current_loop = get_current_flow(ctx);
+
+	assert(current_loop->loop_entry_block);
+
+	emit_default_branch(ctx->builder, current_loop->loop_entry_block);
+
+	LLVMPositionBuilderAtEnd(ctx->builder, current_loop->next_block);
+	set_basicblock_name(current_loop->next_block, "endloop", label_id);
+	ctx->flow_depth--;
+}
+
+static void if_cond_emit(struct ac_llvm_context *ctx, LLVMValueRef cond,
+			 int label_id)
+{
+	struct ac_llvm_flow *flow = push_flow(ctx);
+	LLVMBasicBlockRef if_block;
+
+	if_block = append_basic_block(ctx, "IF");
+	flow->next_block = append_basic_block(ctx, "ELSE");
+	set_basicblock_name(if_block, "if", label_id);
+	LLVMBuildCondBr(ctx->builder, cond, if_block, flow->next_block);
+	LLVMPositionBuilderAtEnd(ctx->builder, if_block);
+}
+
+void ac_build_if(struct ac_llvm_context *ctx, LLVMValueRef value,
+		 int label_id)
+{
+	LLVMValueRef cond = LLVMBuildFCmp(ctx->builder, LLVMRealUNE,
+					  value, ctx->f32_0, "");
+	if_cond_emit(ctx, cond, label_id);
+}
+
+void ac_build_uif(struct ac_llvm_context *ctx, LLVMValueRef value,
+		  int label_id)
+{
+	LLVMValueRef cond = LLVMBuildICmp(ctx->builder, LLVMIntNE,
+					  ac_to_integer(ctx, value),
+					  ctx->i32_0, "");
+	if_cond_emit(ctx, cond, label_id);
 }

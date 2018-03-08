@@ -460,10 +460,11 @@ before_install:
 install:
   - pip2 install --user mako
 
-  # Install the latest meson from pip, since the version in the ubuntu repos is
-  # often quite old.
+  # Install a more modern meson from pip, since the version in the
+  # ubuntu repos is often quite old. Avoid >=0.45.0 as it needs python
+  # 3.5+
   - if test "x$BUILD" = xmeson; then
-      pip3 install --user meson;
+      pip3 install --user "meson<0.45.0";
     fi
 
   # Since libdrm gets updated in configure.ac regularly, try to pick up the

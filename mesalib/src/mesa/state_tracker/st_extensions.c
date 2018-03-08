@@ -75,7 +75,8 @@ static int _clamp(int a, int min, int max)
  * Note that we have to limit/clamp against Mesa's internal limits too.
  */
 void st_init_limits(struct pipe_screen *screen,
-                    struct gl_constants *c, struct gl_extensions *extensions)
+                    struct gl_constants *c, struct gl_extensions *extensions,
+                    gl_api api)
 {
    int supported_irs;
    unsigned sh;
@@ -437,8 +438,14 @@ void st_init_limits(struct pipe_screen *screen,
    c->GLSLFrontFacingIsSysVal =
       screen->get_param(screen, PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL);
 
-   /* GL_ARB_get_program_binary */
-   if (screen->get_disk_shader_cache && screen->get_disk_shader_cache(screen))
+   /* GL_ARB_get_program_binary
+    *
+    * The QT framework has a bug in their shader program cache, which is built
+    * on GL_ARB_get_program_binary. In an effort to allow them to fix the bug
+    * we don't enable more than 1 binary format for compatibility profiles.
+    */
+   if (api != API_OPENGL_COMPAT &&
+       screen->get_disk_shader_cache && screen->get_disk_shader_cache(screen))
       c->NumProgramBinaryFormats = 1;
 
    c->MaxAtomicBufferBindings =

@@ -163,6 +163,7 @@ struct ac_shader_variant_info {
 	unsigned num_user_sgprs;
 	unsigned num_input_sgprs;
 	unsigned num_input_vgprs;
+	unsigned private_mem_vgprs;
 	bool need_indirect_descriptor_sets;
 	struct {
 		struct {
@@ -229,7 +230,11 @@ void ac_create_gs_copy_shader(LLVMTargetMachineRef tm,
 			      const struct ac_nir_compiler_options *options,
 			      bool dump_shader);
 
+void ac_lower_indirect_derefs(struct nir_shader *nir, enum chip_class);
+
 void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
 		      struct nir_shader *nir);
+
+bool ac_lower_subgroups(struct nir_shader *shader);
 
 #endif /* AC_NIR_TO_LLVM_H */

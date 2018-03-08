@@ -373,6 +373,9 @@ vtn_handle_extension(struct vtn_builder *b, SpvOp opcode,
       struct vtn_value *val = vtn_push_value(b, w[1], vtn_value_type_extension);
       if (strcmp((const char *)&w[2], "GLSL.std.450") == 0) {
          val->ext_handler = vtn_handle_glsl450_instruction;
+      } else if ((strcmp((const char *)&w[2], "SPV_AMD_gcn_shader") == 0)
+                && (b->options && b->options->exts.AMD_gcn_shader)) {
+         val->ext_handler = vtn_handle_amd_gcn_shader_instruction;
       } else {
          vtn_fail("Unsupported extension");
       }
@@ -2957,36 +2960,132 @@ vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
 }
 
 static void
+vtn_emit_barrier(struct vtn_builder *b, nir_intrinsic_op op)
+{
+   nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->shader, op);
+   nir_builder_instr_insert(&b->nb, &intrin->instr);
+}
+
+static void
+vtn_emit_memory_barrier(struct vtn_builder *b, SpvScope scope,
+                        SpvMemorySemanticsMask semantics)
+{
+   static const SpvMemorySemanticsMask all_memory_semantics =
+      SpvMemorySemanticsUniformMemoryMask |
+      SpvMemorySemanticsWorkgroupMemoryMask |
+      SpvMemorySemanticsAtomicCounterMemoryMask |
+      SpvMemorySemanticsImageMemoryMask;
+
+   /* If we're not actually doing a memory barrier, bail */
+   if (!(semantics & all_memory_semantics))
+      return;
+
+   /* GL and Vulkan don't have these */
+   vtn_assert(scope != SpvScopeCrossDevice);
+
+   if (scope == SpvScopeSubgroup)
+      return; /* Nothing to do here */
+
+   if (scope == SpvScopeWorkgroup) {
+      vtn_emit_barrier(b, nir_intrinsic_group_memory_barrier);
+      return;
+   }
+
+   /* There's only two scopes thing left */
+   vtn_assert(scope == SpvScopeInvocation || scope == SpvScopeDevice);
+
+   if ((semantics & all_memory_semantics) == all_memory_semantics) {
+      vtn_emit_barrier(b, nir_intrinsic_memory_barrier);
+      return;
+   }
+
+   /* Issue a bunch of more specific barriers */
+   uint32_t bits = semantics;
+   while (bits) {
+      SpvMemorySemanticsMask semantic = 1 << u_bit_scan(&bits);
+      switch (semantic) {
+      case SpvMemorySemanticsUniformMemoryMask:
+         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_buffer);
+         break;
+      case SpvMemorySemanticsWorkgroupMemoryMask:
+         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_shared);
+         break;
+      case SpvMemorySemanticsAtomicCounterMemoryMask:
+         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_atomic_counter);
+         break;
+      case SpvMemorySemanticsImageMemoryMask:
+         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_image);
+         break;
+      default:
+         break;;
+      }
+   }
+}
+
+static void
 vtn_handle_barrier(struct vtn_builder *b, SpvOp opcode,
                    const uint32_t *w, unsigned count)
 {
-   nir_intrinsic_op intrinsic_op;
    switch (opcode) {
    case SpvOpEmitVertex:
    case SpvOpEmitStreamVertex:
-      intrinsic_op = nir_intrinsic_emit_vertex;
-      break;
    case SpvOpEndPrimitive:
-   case SpvOpEndStreamPrimitive:
-      intrinsic_op = nir_intrinsic_end_primitive;
+   case SpvOpEndStreamPrimitive: {
+      nir_intrinsic_op intrinsic_op;
+      switch (opcode) {
+      case SpvOpEmitVertex:
+      case SpvOpEmitStreamVertex:
+         intrinsic_op = nir_intrinsic_emit_vertex;
+         break;
+      case SpvOpEndPrimitive:
+      case SpvOpEndStreamPrimitive:
+         intrinsic_op = nir_intrinsic_end_primitive;
+         break;
+      default:
+         unreachable("Invalid opcode");
+      }
+
+      nir_intrinsic_instr *intrin =
+         nir_intrinsic_instr_create(b->shader, intrinsic_op);
+
+      switch (opcode) {
+      case SpvOpEmitStreamVertex:
+      case SpvOpEndStreamPrimitive:
+         nir_intrinsic_set_stream_id(intrin, w[1]);
+         break;
+      default:
+         break;
+      }
+
+      nir_builder_instr_insert(&b->nb, &intrin->instr);
       break;
-   case SpvOpMemoryBarrier:
-      intrinsic_op = nir_intrinsic_memory_barrier;
-      break;
-   case SpvOpControlBarrier:
-      intrinsic_op = nir_intrinsic_barrier;
-      break;
-   default:
-      vtn_fail("unknown barrier instruction");
    }
 
-   nir_intrinsic_instr *intrin =
-      nir_intrinsic_instr_create(b->shader, intrinsic_op);
+   case SpvOpMemoryBarrier: {
+      SpvScope scope = vtn_constant_value(b, w[1])->values[0].u32[0];
+      SpvMemorySemanticsMask semantics =
+         vtn_constant_value(b, w[2])->values[0].u32[0];
+      vtn_emit_memory_barrier(b, scope, semantics);
+      return;
+   }
 
-   if (opcode == SpvOpEmitStreamVertex || opcode == SpvOpEndStreamPrimitive)
-      nir_intrinsic_set_stream_id(intrin, w[1]);
+   case SpvOpControlBarrier: {
+      SpvScope execution_scope =
+         vtn_constant_value(b, w[1])->values[0].u32[0];
+      if (execution_scope == SpvScopeWorkgroup)
+         vtn_emit_barrier(b, nir_intrinsic_barrier);
 
-   nir_builder_instr_insert(&b->nb, &intrin->instr);
+      SpvScope memory_scope =
+         vtn_constant_value(b, w[2])->values[0].u32[0];
+      SpvMemorySemanticsMask memory_semantics =
+         vtn_constant_value(b, w[3])->values[0].u32[0];
+      vtn_emit_memory_barrier(b, memory_scope, memory_semantics);
+      break;
+   }
+
+   default:
+      unreachable("unknown barrier instruction");
+   }
 }
 
 static unsigned
@@ -3094,6 +3193,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpSourceExtension:
    case SpvOpSourceContinued:
    case SpvOpExtension:
+   case SpvOpModuleProcessed:
       /* Unhandled, but these are for debug so that's ok. */
       break;
 
@@ -3187,9 +3287,38 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(image_write_without_format, cap);
          break;
 
+      case SpvCapabilityDeviceGroup:
+         spv_check_supported(device_group, cap);
+         break;
+
       case SpvCapabilityMultiView:
          spv_check_supported(multiview, cap);
          break;
+
+      case SpvCapabilityGroupNonUniform:
+         spv_check_supported(subgroup_basic, cap);
+         break;
+
+      case SpvCapabilityGroupNonUniformVote:
+         spv_check_supported(subgroup_vote, cap);
+         break;
+
+      case SpvCapabilitySubgroupBallotKHR:
+      case SpvCapabilityGroupNonUniformBallot:
+         spv_check_supported(subgroup_ballot, cap);
+         break;
+
+      case SpvCapabilityGroupNonUniformShuffle:
+      case SpvCapabilityGroupNonUniformShuffleRelative:
+         spv_check_supported(subgroup_shuffle, cap);
+         break;
+
+      case SpvCapabilityGroupNonUniformQuad:
+         spv_check_supported(subgroup_quad, cap);
+
+      case SpvCapabilityGroupNonUniformArithmetic:
+      case SpvCapabilityGroupNonUniformClustered:
+         spv_check_supported(subgroup_arithmetic, cap);
 
       case SpvCapabilityVariablePointersStorageBuffer:
       case SpvCapabilityVariablePointers:
@@ -3201,6 +3330,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityStoragePushConstant16:
       case SpvCapabilityStorageInputOutput16:
          spv_check_supported(storage_16bit, cap);
+         break;
+
+      case SpvCapabilityShaderViewportIndexLayerEXT:
+         spv_check_supported(shader_viewport_index_layer, cap);
          break;
 
       default:
@@ -3766,6 +3899,43 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpControlBarrier:
    case SpvOpMemoryBarrier:
       vtn_handle_barrier(b, opcode, w, count);
+      break;
+
+   case SpvOpGroupNonUniformElect:
+   case SpvOpGroupNonUniformAll:
+   case SpvOpGroupNonUniformAny:
+   case SpvOpGroupNonUniformAllEqual:
+   case SpvOpGroupNonUniformBroadcast:
+   case SpvOpGroupNonUniformBroadcastFirst:
+   case SpvOpGroupNonUniformBallot:
+   case SpvOpGroupNonUniformInverseBallot:
+   case SpvOpGroupNonUniformBallotBitExtract:
+   case SpvOpGroupNonUniformBallotBitCount:
+   case SpvOpGroupNonUniformBallotFindLSB:
+   case SpvOpGroupNonUniformBallotFindMSB:
+   case SpvOpGroupNonUniformShuffle:
+   case SpvOpGroupNonUniformShuffleXor:
+   case SpvOpGroupNonUniformShuffleUp:
+   case SpvOpGroupNonUniformShuffleDown:
+   case SpvOpGroupNonUniformIAdd:
+   case SpvOpGroupNonUniformFAdd:
+   case SpvOpGroupNonUniformIMul:
+   case SpvOpGroupNonUniformFMul:
+   case SpvOpGroupNonUniformSMin:
+   case SpvOpGroupNonUniformUMin:
+   case SpvOpGroupNonUniformFMin:
+   case SpvOpGroupNonUniformSMax:
+   case SpvOpGroupNonUniformUMax:
+   case SpvOpGroupNonUniformFMax:
+   case SpvOpGroupNonUniformBitwiseAnd:
+   case SpvOpGroupNonUniformBitwiseOr:
+   case SpvOpGroupNonUniformBitwiseXor:
+   case SpvOpGroupNonUniformLogicalAnd:
+   case SpvOpGroupNonUniformLogicalOr:
+   case SpvOpGroupNonUniformLogicalXor:
+   case SpvOpGroupNonUniformQuadBroadcast:
+   case SpvOpGroupNonUniformQuadSwap:
+      vtn_handle_subgroup(b, opcode, w, count);
       break;
 
    default:

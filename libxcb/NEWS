@@ -1,3 +1,12 @@
+Release 1.13 (2018-02-28)
+=========================
+* Add support for variable-sized lists of FDs
+* Poll for events when blocking waiting for special events
+* xinput: Enable XInput extension by default
+* ge: Add explicit support for GenericEvent extension
+* Fix documentation warnings from clang
+* Cosmetic cleanups
+
 Release 1.12 (2016-05-18)
 =========================
 * configure: Various fixes for dri3 and FD passing support

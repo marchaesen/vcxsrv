@@ -639,6 +639,12 @@ bool
 vtn_set_instruction_result_type(struct vtn_builder *b, SpvOp opcode,
                                 const uint32_t *w, unsigned count);
 
+static inline nir_constant *
+vtn_constant_value(struct vtn_builder *b, uint32_t value_id)
+{
+   return vtn_value(b, value_id, vtn_value_type_constant)->constant;
+}
+
 struct vtn_ssa_value *vtn_ssa_value(struct vtn_builder *b, uint32_t value_id);
 
 struct vtn_ssa_value *vtn_create_ssa_value(struct vtn_builder *b,
@@ -707,6 +713,9 @@ nir_op vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
 void vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
                     const uint32_t *w, unsigned count);
 
+void vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
+                         const uint32_t *w, unsigned count);
+
 bool vtn_handle_glsl450_instruction(struct vtn_builder *b, uint32_t ext_opcode,
                                     const uint32_t *words, unsigned count);
 
@@ -722,5 +731,8 @@ vtn_u64_literal(const uint32_t *w)
 {
    return (uint64_t)w[1] << 32 | w[0];
 }
+
+bool vtn_handle_amd_gcn_shader_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+                                           const uint32_t *words, unsigned count);
 
 #endif /* _VTN_PRIVATE_H_ */

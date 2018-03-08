@@ -389,7 +389,8 @@ struct bool32_vec {
 
 % for name, op in sorted(opcodes.iteritems()):
 static nir_const_value
-evaluate_${name}(MAYBE_UNUSED unsigned num_components, unsigned bit_size,
+evaluate_${name}(MAYBE_UNUSED unsigned num_components,
+                 ${"UNUSED" if op_bit_sizes(op) is None else ""} unsigned bit_size,
                  MAYBE_UNUSED nir_const_value *_src)
 {
    nir_const_value _dst_val = { {0, } };

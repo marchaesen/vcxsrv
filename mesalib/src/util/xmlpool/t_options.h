@@ -346,6 +346,11 @@ DRI_CONF_OPT_BEGIN_B(glx_disable_oml_sync_control, def) \
    DRI_CONF_DESC(en, gettext("Disable the GLX_OML_sync_control extension")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_DISABLE_SGI_VIDEO_SYNC(def) \
+DRI_CONF_OPT_BEGIN_B(glx_disable_sgi_video_sync, def) \
+   DRI_CONF_DESC(en, gettext("Disable the GLX_SGI_video_sync extension")) \
+DRI_CONF_OPT_END
+
 
 /**
  * \brief Software-fallback options.  To allow using features (like

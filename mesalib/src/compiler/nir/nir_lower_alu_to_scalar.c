@@ -96,6 +96,8 @@ lower_alu_instr_scalar(nir_alu_instr *instr, nir_builder *b)
    case nir_op_vec4:
    case nir_op_vec3:
    case nir_op_vec2:
+   case nir_op_cube_face_coord:
+   case nir_op_cube_face_index:
       /* We don't need to scalarize these ops, they're the ones generated to
        * group up outputs into a value that can be SSAed.
        */

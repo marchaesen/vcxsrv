@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libxcb],[1.12],
+AC_INIT([libxcb],[1.13],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xcb],
         [libxcb])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -50,7 +50,7 @@ fi
 AC_SUBST(HTML_CHECK_RESULT)
 
 # Checks for pkg-config packages
-PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.12)
+PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.13)
 NEEDED="pthread-stubs xau >= 0.99.2"
 PKG_CHECK_MODULES(NEEDED, $NEEDED)
 

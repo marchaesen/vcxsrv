@@ -62,8 +62,9 @@ Xwayland_built_sources +=					\
 	xwayland-keyboard-grab-unstable-v1-protocol.c		\
 	xwayland-keyboard-grab-unstable-v1-client-protocol.h	\
 	xdg-output-unstable-v1-protocol.c			\
-	xdg-output-unstable-v1-client-protocol.h
-
+	xdg-output-unstable-v1-client-protocol.h		\
+	linux-dmabuf-unstable-v1-client-protocol.h		\
+	linux-dmabuf-unstable-v1-protocol.c
 
 nodist_Xwayland_SOURCES = $(Xwayland_built_sources)
 CLEANFILES = $(Xwayland_built_sources)
@@ -98,6 +99,11 @@ xwayland-keyboard-grab-unstable-v1-client-protocol.h : $(WAYLAND_PROTOCOLS_DATAD
 xdg-output-unstable-v1-protocol.c : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/xdg-output/xdg-output-unstable-v1.xml
 	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@
 xdg-output-unstable-v1-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/xdg-output/xdg-output-unstable-v1.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
+
+linux-dmabuf-unstable-v1-protocol.c : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) code < $< > $@
+linux-dmabuf-unstable-v1-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml
 	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
 
 %-protocol.c : %.xml

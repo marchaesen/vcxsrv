@@ -1,4 +1,4 @@
-# Copyright © 2017 Intel Corporation
+# Copyright © 2017-2018 Intel Corporation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,8 @@ project(
   meson_version : '>= 0.42',
   default_options : ['buildtype=debugoptimized', 'c_std=c99', 'cpp_std=c++11']
 )
+
+system_has_kms_drm = ['openbsd', 'netbsd', 'freebsd', 'dragonfly', 'linux'].contains(host_machine.system())
 
 # Arguments for the preprocessor, put these in a separate array from the C and
 # C++ (cpp in meson terminology) arguments since they need to be added to the
@@ -172,6 +174,13 @@ if _drivers != ''
   with_gallium_virgl = _split.contains('virgl')
   with_gallium_swr = _split.contains('swr')
   with_gallium = true
+  if system_has_kms_drm
+    _glx = get_option('glx')
+    _egl = get_option('egl')
+    if _glx == 'dri' or _egl == 'true' or (_glx == 'disabled' and _egl != 'false')
+      with_dri = true
+    endif
+  endif
 endif
 
 with_intel_vk = false
@@ -216,8 +225,6 @@ dep_libdrm_intel = []
 if with_dri_i915 or with_gallium_i915
   dep_libdrm_intel = dependency('libdrm_intel', version : '>= 2.4.75')
 endif
-
-system_has_kms_drm = ['openbsd', 'netbsd', 'freebsd', 'dragonfly', 'linux'].contains(host_machine.system())
 
 if host_machine.system() == 'darwin'
   with_dri_platform = 'apple'
@@ -272,6 +279,7 @@ if with_glx == 'auto'
   elif with_gallium
     # Even when building just gallium drivers the user probably wants dri
     with_glx = 'dri'
+    with_dri = true
   elif with_platform_x11 and with_any_opengl and not with_any_vk
     # The automatic behavior should not be to turn on xlib based glx when
     # building only vulkan drivers
@@ -279,11 +287,6 @@ if with_glx == 'auto'
   else
     with_glx = 'disabled'
   endif
-endif
-if with_glx == 'dri'
-   if with_gallium
-      with_dri = true
-   endif
 endif
 
 if not (with_dri or with_gallium or with_glx == 'xlib' or with_glx == 'gallium-xlib')
@@ -314,6 +317,8 @@ elif _egl == 'true'
     error('EGL requires shared-glapi')
   elif egl_native_platform == ''
     error('No platforms specified, consider -Dplatforms=drm,x11 at least')
+  elif not ['disabled', 'dri'].contains(with_glx)
+    error('EGL requires dri, but a GLX is being built without dri')
   endif
   with_egl = true
 else
@@ -464,34 +469,63 @@ endif
 
 _omx = get_option('gallium-omx')
 if not system_has_kms_drm
-  if _omx == 'true'
-    error('OMX state tracker can only be built on unix-like OSes.')
+  if ['auto', 'disabled'].contains(_omx)
+    _omx = 'disabled'
   else
-    _omx = 'false'
+    error('OMX state tracker can only be built on unix-like OSes.')
   endif
 elif not (with_platform_x11 or with_platform_drm)
-  if _omx == 'true'
-    error('OMX state tracker requires X11 or drm platform support.')
+  if ['auto', 'disabled'].contains(_omx)
+    _omx = 'disabled'
   else
-    _omx = 'false'
+    error('OMX state tracker requires X11 or drm platform support.')
   endif
 elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
-  if _omx == 'true'
-    error('OMX state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
+  if ['auto', 'disabled'].contains(_omx)
+    _omx = 'disabled'
   else
-    _omx = 'false'
+    error('OMX state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
   endif
-elif _omx == 'auto'
-  _omx = 'true'
 endif
-with_gallium_omx = _omx == 'true'
+with_gallium_omx = _omx
 dep_omx = []
-if with_gallium_omx
-  dep_omx = dependency('libomxil-bellagio')
+dep_omx_other = []
+if with_gallium_omx == 'bellagio' or with_gallium_omx == 'auto'
+  dep_omx = dependency(
+    'libomxil-bellagio', required : with_gallium_omx == 'bellagio'
+  )
+  if dep_omx.found()
+    pre_args += '-DENABLE_ST_OMX_BELLAGIO'
+    with_gallium_omx = 'bellagio'
+  endif
+endif
+if with_gallium_omx == 'tizonia' or with_gallium_omx == 'auto'
+  if not (with_dri and with_egl)
+    if with_gallium_omx == 'tizonia'
+      error('OMX-Tizonia state tracker requires dri and egl')
+    else
+      with_gallium_omx == 'disabled'
+    endif
+  else
+    dep_omx = dependency(
+      'libtizonia', version : '>= 0.10.0',
+      required : with_gallium_omx == 'tizonia',
+    )
+    dep_omx_other = [
+      dependency('libtizplatform', required : with_gallium_omx == 'tizonia'),
+      dependency('tizilheaders', required : with_gallium_omx == 'tizonia'),
+    ]
+    if dep_omx.found() and dep_omx_other[0].found() and dep_omx_other[1].found()
+      pre_args += '-DENABLE_ST_OMX_TIZONIA'
+      with_gallium_omx = 'tizonia'
+    else
+      with_gallium_omx = 'disabled'
+    endif
+  endif
 endif
 
 omx_drivers_path = get_option('omx-libs-path')
-if with_gallium_omx
+if with_gallium_omx != 'disabled'
   # Figure out where to put the omx driver.
   # FIXME: this could all be vastly simplified by adding a 'defined_variable'
   # argument to meson's get_pkgconfig_variable method.
@@ -604,7 +638,7 @@ endif
 
 gl_pkgconfig_c_flags = []
 if with_platform_x11
-  if with_any_vk or (with_glx == 'dri' and with_dri_platform == 'drm')
+  if with_any_vk or with_egl or (with_glx == 'dri' and with_dri_platform == 'drm')
     pre_args += '-DHAVE_X11_PLATFORM'
   endif
   if with_glx == 'xlib' or with_glx == 'gallium-xlib'
@@ -1008,7 +1042,7 @@ if with_gallium_etnaviv
   dep_libdrm_etnaviv = dependency('libdrm_etnaviv', version : '>= 2.4.82')
 endif
 if with_gallium_freedreno
-  dep_libdrm_freedreno = dependency('libdrm_freedreno', version : '>= 2.4.89')
+  dep_libdrm_freedreno = dependency('libdrm_freedreno', version : '>= 2.4.91')
 endif
 
 llvm_modules = ['bitwriter', 'engine', 'mcdisassembler', 'mcjit']
@@ -1185,12 +1219,12 @@ if with_platform_x11
     dep_xxf86vm = dependency('xxf86vm', required : false)
   endif
   if (with_any_vk or with_glx == 'dri' or
-       (with_gallium_vdpau or with_gallium_xvmc or with_gallium_omx or
-        with_gallium_xa))
+       (with_gallium_vdpau or with_gallium_xvmc or with_gallium_va or
+        with_gallium_omx != 'disabled'))
     dep_xcb = dependency('xcb')
     dep_x11_xcb = dependency('x11-xcb')
   endif
-  if with_any_vk or (with_glx == 'dri' and with_dri_platform == 'drm')
+  if with_any_vk or with_egl or (with_glx == 'dri' and with_dri_platform == 'drm')
     dep_xcb_dri2 = dependency('xcb-dri2', version : '>= 1.8')
 
     if with_dri3
@@ -1207,7 +1241,9 @@ if with_platform_x11
     endif
     dep_glproto = dependency('glproto', version : '>= 1.4.14')
   endif
-  if with_egl
+  if (with_egl or (
+      with_gallium_vdpau or with_gallium_xvmc or with_gallium_xa or
+      with_gallium_omx != 'disabled'))
     dep_xcb_xfixes = dependency('xcb-xfixes')
   endif
 endif

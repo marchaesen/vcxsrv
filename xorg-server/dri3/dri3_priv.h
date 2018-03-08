@@ -34,10 +34,20 @@
 
 extern DevPrivateKeyRec dri3_screen_private_key;
 
+typedef struct dri3_dmabuf_format {
+    uint32_t                    format;
+    uint32_t                    num_modifiers;
+    uint64_t                   *modifiers;
+} dri3_dmabuf_format_rec, *dri3_dmabuf_format_ptr;
+
 typedef struct dri3_screen_priv {
     CloseScreenProcPtr          CloseScreen;
     ConfigNotifyProcPtr         ConfigNotify;
     DestroyWindowProcPtr        DestroyWindow;
+
+    Bool                        formats_cached;
+    CARD32                      num_formats;
+    dri3_dmabuf_format_ptr      formats;
 
     dri3_screen_info_ptr        info;
 } dri3_screen_priv_rec, *dri3_screen_priv_ptr;
@@ -69,10 +79,21 @@ int
 dri3_open(ClientPtr client, ScreenPtr screen, RRProviderPtr provider, int *fd);
 
 int
-dri3_pixmap_from_fd(PixmapPtr *ppixmap, ScreenPtr screen, int fd,
-                    CARD16 width, CARD16 height, CARD16 stride, CARD8 depth, CARD8 bpp);
+dri3_pixmap_from_fds(PixmapPtr *ppixmap, ScreenPtr screen, CARD8 num_fds, int *fds,
+                     CARD16 width, CARD16 height, CARD32 *strides, CARD32 *offsets,
+                     CARD8 depth, CARD8 bpp, CARD64 modifier);
 
 int
-dri3_fd_from_pixmap(int *pfd, PixmapPtr pixmap, CARD16 *stride, CARD32 *size);
+dri3_fds_from_pixmap(PixmapPtr pixmap, int *fds,
+                     CARD32 *strides, CARD32 *offsets,
+                     CARD64 *modifier);
+
+int
+dri3_get_supported_modifiers(ScreenPtr screen, DrawablePtr drawable,
+                             CARD8 depth, CARD8 bpp,
+                             CARD32 *num_drawable_modifiers,
+                             CARD64 **drawable_modifiers,
+                             CARD32 *num_screen_modifiers,
+                             CARD64 **screen_modifiers);
 
 #endif /* _DRI3PRIV_H_ */

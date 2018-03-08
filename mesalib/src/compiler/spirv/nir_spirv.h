@@ -59,6 +59,7 @@ struct spirv_to_nir_options {
    bool lower_workgroup_access_to_offsets;
 
    struct spirv_supported_capabilities caps;
+   struct spirv_supported_extensions exts;
 
    struct {
       void (*func)(void *private_data,

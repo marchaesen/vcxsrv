@@ -53,7 +53,6 @@ conf_data.set('HAS_APERTURE_DRV', host_machine.system() == 'openbsd')
 # XXX: BUNDLE_ID_PREFIX
 # XXX: HAVE_LIBDISPATCH
 conf_data.set_quoted('OSNAME', 'Linux') # XXX
-conf_data.set('HAVE_SYSV_IPC', '1') # XXX
 conf_data.set('HAVE_INPUTTHREAD', '1') # XXX
 conf_data.set('HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID', '1') # XXX
 conf_data.set('HAVE_LIBBSD', libbsd_dep.found())
@@ -74,13 +73,21 @@ conf_data.set_quoted('SHMDIR', '/tmp')
 
 conf_data.set('HAVE_XSHMFENCE', xshmfence_dep.found())
 conf_data.set('WITH_LIBDRM', libdrm_dep.found())
+conf_data.set('GLAMOR_HAS_DRM_ATOMIC',
+              libdrm_dep.found() and libdrm_dep.version().version_compare('>= 2.4.62'))
 conf_data.set('GLAMOR_HAS_DRM_NAME_FROM_FD_2',
               libdrm_dep.found() and libdrm_dep.version().version_compare('>= 2.4.74'))
+conf_data.set('GLAMOR_HAS_DRM_MODIFIERS',
+              libdrm_dep.found() and libdrm_dep.version().version_compare('>= 2.4.83'))
+conf_data.set('GLAMOR_HAS_EGL_QUERY_DMABUF',
+              epoxy_dep.found() and epoxy_dep.version().version_compare('>= 1.4.4'))
 conf_data.set('GLXEXT', build_glx)
 conf_data.set('GLAMOR', build_glamor)
 conf_data.set('GLAMOR_HAS_GBM', gbm_dep.found())
 conf_data.set('GLAMOR_HAS_GBM_LINEAR',
               gbm_dep.found() and gbm_dep.version().version_compare('>= 10.6'))
+conf_data.set('GBM_BO_WITH_MODIFIERS',
+              gbm_dep.found() and gbm_dep.version().version_compare('>= 17.1'))
 
 conf_data.set_quoted('SERVER_MISC_CONFIG_PATH', serverconfigdir)
 conf_data.set_quoted('PROJECTROOT', get_option('prefix'))
@@ -168,7 +175,7 @@ conf_data.set('DPMSExtension', build_dpms)
 conf_data.set('DRI2', build_dri2)
 conf_data.set('DRI3', build_dri3)
 conf_data.set_quoted('DRI_DRIVER_PATH', dri_dep.get_pkgconfig_variable('dridriverdir'))
-conf_data.set('HAS_SHM', '1')
+conf_data.set('HAS_SHM', build_mitshm)
 conf_data.set('MITSHM', build_mitshm)
 conf_data.set('PANORAMIX', build_xinerama)
 conf_data.set('PRESENT', '1')
@@ -197,6 +204,9 @@ conf_data.set('XvExtension', build_xv)
 conf_data.set('XvMCExtension', build_xvmc)
 
 conf_data.set('HAVE_SHA1_IN_LIBNETTLE', '1') # XXX
+
+conf_data.set('HAVE_APM', build_apm or build_acpi)
+conf_data.set('HAVE_ACPI', build_acpi)
 
 enable_debugging = get_option('buildtype') == 'debug'
 conf_data.set('DEBUG', enable_debugging)
@@ -255,6 +265,7 @@ xorg_data.set('XSERVER_LIBPCIACCESS', get_option('pciaccess'))
 xorg_data.set_quoted('PCI_TXT_IDS_PATH', '')
 xorg_data.set('XSERVER_PLATFORM_BUS', build_udev)
 xorg_data.set('WSCONS_SUPPORT', host_machine.system() == 'netbsd' or host_machine.system() == 'openbsd')
+xorg_data.set('XF86PM', build_apm or build_acpi)
 
 if host_machine.system() == 'freebsd' or host_machine.system() == 'dragonflybsd'
     if host_machine.cpu_family() == 'x86' or host_machine.cpu_family() == 'x86_64'

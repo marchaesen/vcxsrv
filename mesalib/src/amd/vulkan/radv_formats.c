@@ -1026,7 +1026,7 @@ void radv_GetPhysicalDeviceFormatProperties(
 						   pFormatProperties);
 }
 
-void radv_GetPhysicalDeviceFormatProperties2KHR(
+void radv_GetPhysicalDeviceFormatProperties2(
 	VkPhysicalDevice                            physicalDevice,
 	VkFormat                                    format,
 	VkFormatProperties2KHR*                         pFormatProperties)
@@ -1211,7 +1211,7 @@ get_external_image_format_properties(const VkPhysicalDeviceImageFormatInfo2KHR *
 	};
 }
 
-VkResult radv_GetPhysicalDeviceImageFormatProperties2KHR(
+VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 	VkPhysicalDevice                            physicalDevice,
 	const VkPhysicalDeviceImageFormatInfo2KHR  *base_info,
 	VkImageFormatProperties2KHR                *base_props)
@@ -1308,7 +1308,7 @@ void radv_GetPhysicalDeviceSparseImageFormatProperties(
 	*pNumProperties = 0;
 }
 
-void radv_GetPhysicalDeviceSparseImageFormatProperties2KHR(
+void radv_GetPhysicalDeviceSparseImageFormatProperties2(
 	VkPhysicalDevice                            physicalDevice,
 	const VkPhysicalDeviceSparseImageFormatInfo2KHR* pFormatInfo,
 	uint32_t                                   *pPropertyCount,
@@ -1318,7 +1318,7 @@ void radv_GetPhysicalDeviceSparseImageFormatProperties2KHR(
 	*pPropertyCount = 0;
 }
 
-void radv_GetPhysicalDeviceExternalBufferPropertiesKHR(
+void radv_GetPhysicalDeviceExternalBufferProperties(
 	VkPhysicalDevice                            physicalDevice,
 	const VkPhysicalDeviceExternalBufferInfoKHR *pExternalBufferInfo,
 	VkExternalBufferPropertiesKHR               *pExternalBufferProperties)

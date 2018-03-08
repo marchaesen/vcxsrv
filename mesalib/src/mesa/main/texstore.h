@@ -56,8 +56,8 @@
  */
 #define TEXSTORE_PARAMS \
 	struct gl_context *ctx, GLuint dims, \
-	GLenum baseInternalFormat, \
-	mesa_format dstFormat, \
+        MAYBE_UNUSED GLenum baseInternalFormat, \
+        MAYBE_UNUSED mesa_format dstFormat, \
         GLint dstRowStride, \
         GLubyte **dstSlices, \
 	GLint srcWidth, GLint srcHeight, GLint srcDepth, \
@@ -65,6 +65,20 @@
 	const GLvoid *srcAddr, \
 	const struct gl_pixelstore_attrib *srcPacking
 
+/* This macro must be kept in sync with TEXSTORE_PARAMS.  It is used in the
+ * few places where none of the parameters are used (i.e., the ETC texstore
+ * functions).
+ */
+#define UNUSED_TEXSTORE_PARAMS                                          \
+        UNUSED struct gl_context *ctx, UNUSED GLuint dims,              \
+        UNUSED GLenum baseInternalFormat,                               \
+        UNUSED mesa_format dstFormat,                                   \
+        UNUSED GLint dstRowStride,                                      \
+        UNUSED GLubyte **dstSlices,                                     \
+        UNUSED GLint srcWidth, UNUSED GLint srcHeight, UNUSED GLint srcDepth, \
+        UNUSED GLenum srcFormat, UNUSED GLenum srcType,                 \
+        UNUSED const GLvoid *srcAddr,                                   \
+        UNUSED const struct gl_pixelstore_attrib *srcPacking
 
 extern GLboolean
 _mesa_texstore(TEXSTORE_PARAMS);

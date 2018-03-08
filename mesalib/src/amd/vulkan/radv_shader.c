@@ -53,6 +53,7 @@ static const struct nir_shader_compiler_options nir_options = {
 	.lower_scmp = true,
 	.lower_flrp32 = true,
 	.lower_flrp64 = true,
+	.lower_device_index_to_zero = true,
 	.lower_fsat = true,
 	.lower_fdiv = true,
 	.lower_sub = true,
@@ -113,45 +114,6 @@ void radv_DestroyShaderModule(
 		return;
 
 	vk_free2(&device->alloc, pAllocator, module);
-}
-
-bool
-radv_lower_indirect_derefs(struct nir_shader *nir,
-                           struct radv_physical_device *device)
-{
-	/* While it would be nice not to have this flag, we are constrained
-	 * by the reality that LLVM 5.0 doesn't have working VGPR indexing
-	 * on GFX9.
-	 */
-	bool llvm_has_working_vgpr_indexing =
-		device->rad_info.chip_class <= VI;
-
-	/* TODO: Indirect indexing of GS inputs is unimplemented.
-	 *
-	 * TCS and TES load inputs directly from LDS or offchip memory, so
-	 * indirect indexing is trivial.
-	 */
-	nir_variable_mode indirect_mask = 0;
-	if (nir->info.stage == MESA_SHADER_GEOMETRY ||
-	    (nir->info.stage != MESA_SHADER_TESS_CTRL &&
-	     nir->info.stage != MESA_SHADER_TESS_EVAL &&
-	     !llvm_has_working_vgpr_indexing)) {
-		indirect_mask |= nir_var_shader_in;
-	}
-	if (!llvm_has_working_vgpr_indexing &&
-	    nir->info.stage != MESA_SHADER_TESS_CTRL)
-		indirect_mask |= nir_var_shader_out;
-
-	/* TODO: We shouldn't need to do this, however LLVM isn't currently
-	 * smart enough to handle indirects without causing excess spilling
-	 * causing the gpu to hang.
-	 *
-	 * See the following thread for more details of the problem:
-	 * https://lists.freedesktop.org/archives/mesa-dev/2017-July/162106.html
-	 */
-	indirect_mask |= nir_var_local;
-
-	return nir_lower_indirect_derefs(nir, indirect_mask);
 }
 
 void
@@ -242,6 +204,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		}
 		const struct spirv_to_nir_options spirv_options = {
 			.caps = {
+				.device_group = true,
 				.draw_parameters = true,
 				.float64 = true,
 				.image_read_without_format = true,
@@ -249,7 +212,11 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.tessellation = true,
 				.int64 = true,
 				.multiview = true,
+				.subgroup_basic = true,
 				.variable_pointers = true,
+			},
+			.exts = {
+				.AMD_gcn_shader = true,
 			},
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,
@@ -304,7 +271,16 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	nir_lower_var_copies(nir);
 	nir_lower_global_vars_to_local(nir);
 	nir_remove_dead_variables(nir, nir_var_local);
-	radv_lower_indirect_derefs(nir, device->physical_device);
+	ac_lower_indirect_derefs(nir, device->physical_device->rad_info.chip_class);
+	nir_lower_subgroups(nir, &(struct nir_lower_subgroups_options) {
+			.subgroup_size = 64,
+			.ballot_bit_size = 64,
+			.lower_to_scalar = 1,
+			.lower_subgroup_masks = 1,
+			.lower_shuffle = 1,
+			.lower_quad =  1,
+		});
+
 	radv_optimize_nir(nir);
 
 	return nir;
@@ -666,13 +642,15 @@ generate_shader_stats(struct radv_device *device,
 				   "VGPRS: %d\n"
 				   "Spilled SGPRs: %d\n"
 				   "Spilled VGPRs: %d\n"
+				   "PrivMem VGPRS: %d\n"
 				   "Code Size: %d bytes\n"
 				   "LDS: %d blocks\n"
 				   "Scratch: %d bytes per wave\n"
 				   "Max Waves: %d\n"
 				   "********************\n\n\n",
 				   conf->num_sgprs, conf->num_vgprs,
-				   conf->spilled_sgprs, conf->spilled_vgprs, variant->code_size,
+				   conf->spilled_sgprs, conf->spilled_vgprs,
+				   variant->info.private_mem_vgprs, variant->code_size,
 				   conf->lds_size, conf->scratch_bytes_per_wave,
 				   max_simd_waves);
 }

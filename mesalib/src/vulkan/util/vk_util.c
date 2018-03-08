@@ -47,3 +47,23 @@ uint32_t vk_get_driver_version(void)
    }
    return VK_MAKE_VERSION(major, minor, patch);
 }
+
+uint32_t vk_get_version_override(void)
+{
+   const char *str = getenv("MESA_VK_VERSION_OVERRIDE");
+   if (str == NULL)
+      return 0;
+
+   const char *minor_str = strchr(str, '.');
+   const char *patch_str = minor_str ? strchr(minor_str + 1, '.') : NULL;
+
+   int major = atoi(str);
+   int minor = minor_str ? atoi(minor_str + 1) : 0;
+   int patch = patch_str ? atoi(patch_str + 1) : 0;
+
+   /* Do some basic version sanity checking */
+   if (major < 1 || minor < 0 || patch < 0 || minor > 1023 || patch > 4095)
+      return 0;
+
+   return VK_MAKE_VERSION(major, minor, patch);
+}

@@ -2627,6 +2627,8 @@ ProcXkbSetMap(ClientPtr client)
     if (rc != Success)
         return rc;
 
+    DeviceIntPtr master = GetMaster(dev, MASTER_KEYBOARD);
+
     if (stuff->deviceSpec == XkbUseCoreKbd) {
         DeviceIntPtr other;
 
@@ -2642,9 +2644,21 @@ ProcXkbSetMap(ClientPtr client)
                 }
             }
         }
+    } else {
+        DeviceIntPtr other;
+
+        for (other = inputInfo.devices; other; other = other->next) {
+            if (other != dev && GetMaster(other, MASTER_KEYBOARD) != dev &&
+                (other != master || dev != master->lastSlave))
+                continue;
+
+            rc = _XkbSetMapChecks(client, other, stuff, tmp);
+            if (rc != Success)
+                return rc;
+        }
     }
 
-    /* We know now that we will succed with the SetMap. In theory anyway. */
+    /* We know now that we will succeed with the SetMap. In theory anyway. */
     rc = _XkbSetMap(client, dev, stuff, tmp);
     if (rc != Success)
         return rc;
@@ -2664,6 +2678,16 @@ ProcXkbSetMap(ClientPtr client)
                    set all other devices, hoping that at least they stay in
                    sync. */
             }
+        }
+    } else {
+        DeviceIntPtr other;
+
+        for (other = inputInfo.devices; other; other = other->next) {
+            if (other != dev && GetMaster(other, MASTER_KEYBOARD) != dev &&
+                (other != master || dev != master->lastSlave))
+                continue;
+
+            _XkbSetMap(client, other, stuff, tmp); //ignore rc
         }
     }
 

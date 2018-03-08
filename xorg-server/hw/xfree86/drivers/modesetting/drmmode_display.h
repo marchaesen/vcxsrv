@@ -36,7 +36,43 @@
 
 struct gbm_device;
 
+enum drmmode_plane_property {
+    DRMMODE_PLANE_TYPE = 0,
+    DRMMODE_PLANE_FB_ID,
+    DRMMODE_PLANE_IN_FORMATS,
+    DRMMODE_PLANE_CRTC_ID,
+    DRMMODE_PLANE_SRC_X,
+    DRMMODE_PLANE_SRC_Y,
+    DRMMODE_PLANE_SRC_W,
+    DRMMODE_PLANE_SRC_H,
+    DRMMODE_PLANE_CRTC_X,
+    DRMMODE_PLANE_CRTC_Y,
+    DRMMODE_PLANE_CRTC_W,
+    DRMMODE_PLANE_CRTC_H,
+    DRMMODE_PLANE__COUNT
+};
+
+enum drmmode_plane_type {
+    DRMMODE_PLANE_TYPE_PRIMARY = 0,
+    DRMMODE_PLANE_TYPE_CURSOR,
+    DRMMODE_PLANE_TYPE_OVERLAY,
+    DRMMODE_PLANE_TYPE__COUNT
+};
+
+enum drmmode_connector_property {
+    DRMMODE_CONNECTOR_CRTC_ID,
+    DRMMODE_CONNECTOR__COUNT
+};
+
+enum drmmode_crtc_property {
+    DRMMODE_CRTC_ACTIVE,
+    DRMMODE_CRTC_MODE_ID,
+    DRMMODE_CRTC__COUNT
+};
+
 typedef struct {
+    uint32_t width;
+    uint32_t height;
     struct dumb_bo *dumb;
 #ifdef GLAMOR_HAS_GBM
     struct gbm_bo *gbm;
@@ -89,6 +125,31 @@ typedef struct {
 } drmmode_rec, *drmmode_ptr;
 
 typedef struct {
+    const char *name;
+    Bool valid;
+    uint64_t value;
+} drmmode_prop_enum_info_rec, *drmmode_prop_enum_info_ptr;
+
+typedef struct {
+    const char *name;
+    uint32_t prop_id;
+    unsigned int num_enum_values;
+    drmmode_prop_enum_info_rec *enum_values;
+} drmmode_prop_info_rec, *drmmode_prop_info_ptr;
+
+typedef struct {
+    drmModeModeInfo mode_info;
+    uint32_t blob_id;
+    struct xorg_list entry;
+} drmmode_mode_rec, *drmmode_mode_ptr;
+
+typedef struct {
+    uint32_t format;
+    uint32_t num_modifiers;
+    uint64_t *modifiers;
+} drmmode_format_rec, *drmmode_format_ptr;
+
+typedef struct {
     drmmode_ptr drmmode;
     drmModeCrtcPtr mode_crtc;
     uint32_t vblank_pipe;
@@ -96,6 +157,13 @@ typedef struct {
     struct dumb_bo *cursor_bo;
     Bool cursor_up;
     uint16_t lut_r[256], lut_g[256], lut_b[256];
+
+    drmmode_prop_info_rec props[DRMMODE_CRTC__COUNT];
+    drmmode_prop_info_rec props_plane[DRMMODE_PLANE__COUNT];
+    uint32_t plane_id;
+    drmmode_mode_ptr current_mode;
+    uint32_t num_formats;
+    drmmode_format_rec *formats;
 
     drmmode_bo rotate_bo;
     unsigned rotate_fb_id;
@@ -117,6 +185,7 @@ typedef struct {
     /** @} */
 
     Bool need_modeset;
+    struct xorg_list mode_list;
 
     Bool enable_flipping;
     Bool flipping_active;
@@ -137,8 +206,10 @@ typedef struct {
     drmModePropertyBlobPtr edid_blob;
     drmModePropertyBlobPtr tile_blob;
     int dpms_enum_id;
+    int dpms;
     int num_props;
     drmmode_prop_ptr props;
+    drmmode_prop_info_rec props_connector[DRMMODE_CONNECTOR__COUNT];
     int enc_mask;
     int enc_clone_mask;
 } drmmode_output_private_rec, *drmmode_output_private_ptr;
@@ -170,6 +241,10 @@ extern DevPrivateKeyRec msPixmapPrivateKeyRec;
 
 #define msGetPixmapPriv(drmmode, p) ((msPixmapPrivPtr)dixGetPrivateAddr(&(p)->devPrivates, &(drmmode)->pixmapPrivateKeyRec))
 
+Bool drmmode_is_format_supported(ScrnInfoPtr scrn, uint32_t format,
+                                 uint64_t modifier);
+int drmmode_bo_import(drmmode_ptr drmmode, drmmode_bo *bo,
+                      uint32_t *fb_id);
 int drmmode_bo_destroy(drmmode_ptr drmmode, drmmode_bo *bo);
 uint32_t drmmode_bo_get_pitch(drmmode_bo *bo);
 uint32_t drmmode_bo_get_handle(drmmode_bo *bo);
@@ -188,6 +263,7 @@ Bool drmmode_SharedPixmapFlip(PixmapPtr frontTarget, xf86CrtcPtr crtc,
 void drmmode_DisableSharedPixmapFlipping(xf86CrtcPtr crtc, drmmode_ptr drmmode);
 
 extern Bool drmmode_pre_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int cpp);
+extern Bool drmmode_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 void drmmode_adjust_frame(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int x, int y);
 extern Bool drmmode_set_desired_modes(ScrnInfoPtr pScrn, drmmode_ptr drmmode, Bool set_hw);
 extern Bool drmmode_setup_colormap(ScreenPtr pScreen, ScrnInfoPtr pScrn);
@@ -205,6 +281,10 @@ void drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmmode,
                              int *depth, int *bpp);
 
 void drmmode_copy_fb(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
+
+int drmmode_crtc_set_fb(xf86CrtcPtr crtc, DisplayModePtr mode, uint32_t fb_id,
+                        int x, int y, uint32_t flags, void *data);
+
 #ifndef DRM_CAP_DUMB_PREFERRED_DEPTH
 #define DRM_CAP_DUMB_PREFERRED_DEPTH 3
 #endif

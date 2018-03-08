@@ -24,6 +24,7 @@
 #    Jason Ekstrand (jason@jlekstrand.net)
 
 import nir_algebraic
+import itertools
 
 # Convenience variables
 a = 'a'
@@ -152,6 +153,28 @@ optimizations = [
 
    (('fge', ('fneg', ('b2f', a)), 0.0), ('inot', a)),
 
+   (('~flt', ('fadd', a, b), a), ('flt', b, 0.0)),
+   (('~fge', ('fadd', a, b), a), ('fge', b, 0.0)),
+   (('~feq', ('fadd', a, b), a), ('feq', b, 0.0)),
+   (('~fne', ('fadd', a, b), a), ('fne', b, 0.0)),
+
+   # Cannot remove the addition from ilt or ige due to overflow.
+   (('ieq', ('iadd', a, b), a), ('ieq', b, 0)),
+   (('ine', ('iadd', a, b), a), ('ine', b, 0)),
+
+   # fmin(-b2f(a), b) >= 0.0
+   # -b2f(a) >= 0.0 && b >= 0.0
+   # -b2f(a) == 0.0 && b >= 0.0    -b2f can only be 0 or -1, never >0
+   # b2f(a) == 0.0 && b >= 0.0
+   # a == False && b >= 0.0
+   # !a && b >= 0.0
+   #
+   # The fge in the second replacement is not a typo.  I leave the proof that
+   # "fmin(-b2f(a), b) >= 0 <=> fmin(-b2f(a), b) == 0" as an exercise for the
+   # reader.
+   (('fge', ('fmin', ('fneg', ('b2f', a)), b), 0.0), ('iand', ('inot', a), ('fge', b, 0.0))),
+   (('feq', ('fmin', ('fneg', ('b2f', a)), b), 0.0), ('iand', ('inot', a), ('fge', b, 0.0))),
+
    # 0.0 < fabs(a)
    # fabs(a) > 0.0
    # fabs(a) != 0.0 because fabs(a) must be >= 0
@@ -163,13 +186,24 @@ optimizations = [
    (('fmin',                        ('b2f(is_used_once)', a),           ('b2f', b)),           ('b2f', ('iand', a, b))),
    (('fmin', ('fneg(is_used_once)', ('b2f(is_used_once)', a)), ('fneg', ('b2f', b))), ('fneg', ('b2f', ('iand', a, b)))),
 
+   # fmin(b2f(a), b)
+   # bcsel(a, fmin(b2f(a), b), fmin(b2f(a), b))
+   # bcsel(a, fmin(b2f(True), b), fmin(b2f(False), b))
+   # bcsel(a, fmin(1.0, b), fmin(0.0, b))
+   #
+   # Since b is a constant, constant folding will eliminate the fmin and the
+   # fmax.  If b is > 1.0, the bcsel will be replaced with a b2f.
+   (('fmin', ('b2f', a), '#b'), ('bcsel', a, ('fmin', b, 1.0), ('fmin', b, 0.0))),
+
    # ignore this opt when the result is used by a bcsel or if so we can make
    # use of conditional modifiers on supported hardware.
    (('flt(is_not_used_by_conditional)', ('fadd(is_used_once)', a, ('fneg', b)), 0.0), ('flt', a, b)),
 
    (('fge', ('fneg', ('fabs', a)), 0.0), ('feq', a, 0.0)),
-   (('bcsel', ('flt', b, a), b, a), ('fmin', a, b)),
-   (('bcsel', ('flt', a, b), b, a), ('fmax', a, b)),
+   (('~bcsel', ('flt', b, a), b, a), ('fmin', a, b)),
+   (('~bcsel', ('flt', a, b), b, a), ('fmax', a, b)),
+   (('~bcsel', ('fge', a, b), b, a), ('fmin', a, b)),
+   (('~bcsel', ('fge', b, a), b, a), ('fmax', a, b)),
    (('bcsel', ('inot', a), b, c), ('bcsel', a, c, b)),
    (('bcsel', a, ('bcsel', a, b, c), d), ('bcsel', a, b, d)),
    (('bcsel', a, True, 'b@bool'), ('ior', a, b)),
@@ -357,6 +391,7 @@ optimizations = [
    (('bcsel@32', a, -0.0, -1.0), ('fneg', ('b2f', ('inot', a)))),
    (('bcsel', True, b, c), b),
    (('bcsel', False, b, c), c),
+   (('bcsel', a, ('b2f(is_used_once)', b), ('b2f', c)), ('b2f', ('bcsel', a, b, c))),
    # The result of this should be hit by constant propagation and, in the
    # next round of opt_algebraic, get picked up by one of the above two.
    (('bcsel', '#a', b, c), ('bcsel', ('ine', 'a', 0), b, c)),
@@ -519,6 +554,14 @@ optimizations = [
                                            127.0))),
      'options->lower_unpack_snorm_4x8'),
 ]
+
+invert = {'feq': 'fne', 'fne': 'feq', 'fge': 'flt', 'flt': 'fge' }
+
+for left, right in list(itertools.combinations(invert.keys(), 2)) + zip(invert.keys(), invert.keys()):
+   optimizations.append((('inot', ('ior(is_used_once)', (left, a, b), (right, c, d))),
+                         ('iand', (invert[left], a, b), (invert[right], c, d))))
+   optimizations.append((('inot', ('iand(is_used_once)', (left, a, b), (right, c, d))),
+                         ('ior', (invert[left], a, b), (invert[right], c, d))))
 
 def fexp2i(exp, bits):
    # We assume that exp is already in the right range.

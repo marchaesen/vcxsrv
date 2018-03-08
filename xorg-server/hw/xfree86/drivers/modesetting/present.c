@@ -214,7 +214,8 @@ static Bool
 ms_present_check_flip(RRCrtcPtr crtc,
                       WindowPtr window,
                       PixmapPtr pixmap,
-                      Bool sync_flip)
+                      Bool sync_flip,
+                      PresentFlipReason *reason)
 {
     ScreenPtr screen = window->drawable.pScreen;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
@@ -222,6 +223,9 @@ ms_present_check_flip(RRCrtcPtr crtc,
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
     int num_crtcs_on = 0;
     int i;
+#ifdef GLAMOR_HAS_DRM_MODIFIERS
+    struct gbm_bo *gbm;
+#endif
 
     if (!ms->drmmode.pageflip)
         return FALSE;
@@ -248,8 +252,26 @@ ms_present_check_flip(RRCrtcPtr crtc,
         return FALSE;
 
     /* Check stride, can't change that on flip */
-    if (pixmap->devKind != drmmode_bo_get_pitch(&ms->drmmode.front_bo))
+    if (!ms->atomic_modeset &&
+        pixmap->devKind != drmmode_bo_get_pitch(&ms->drmmode.front_bo))
         return FALSE;
+
+#ifdef GLAMOR_HAS_DRM_MODIFIERS
+    /* Check if buffer format/modifier is supported by all active CRTCs */
+    gbm = glamor_gbm_bo_from_pixmap(screen, pixmap);
+    if (gbm) {
+        uint32_t format;
+        uint64_t modifier;
+
+        format = gbm_bo_get_format(gbm);
+        modifier = gbm_bo_get_modifier(gbm);
+        if (!drmmode_is_format_supported(scrn, format, modifier)) {
+            if (reason)
+                *reason = PRESENT_FLIP_REASON_BUFFER_FORMAT;
+            return FALSE;
+        }
+    }
+#endif
 
     /* Make sure there's a bo we can get to */
     /* XXX: actually do this.  also...is it sufficient?
@@ -279,7 +301,7 @@ ms_present_flip(RRCrtcPtr crtc,
     Bool ret;
     struct ms_present_vblank_event *event;
 
-    if (!ms_present_check_flip(crtc, screen->root, pixmap, sync_flip))
+    if (!ms_present_check_flip(crtc, screen->root, pixmap, sync_flip, NULL))
         return FALSE;
 
     event = calloc(1, sizeof(struct ms_present_vblank_event));
@@ -322,7 +344,7 @@ ms_present_unflip(ScreenPtr screen, uint64_t event_id)
     event->event_id = event_id;
     event->unflip = TRUE;
 
-    if (ms_present_check_flip(NULL, screen->root, pixmap, TRUE) &&
+    if (ms_present_check_flip(NULL, screen->root, pixmap, TRUE, NULL) &&
         ms_do_pageflip(screen, pixmap, event, -1, FALSE,
                        ms_present_flip_handler, ms_present_flip_abort)) {
         return;
@@ -367,7 +389,8 @@ static present_screen_info_rec ms_present_screen_info = {
 
     .capabilities = PresentCapabilityNone,
 #ifdef GLAMOR_HAS_GBM
-    .check_flip = ms_present_check_flip,
+    .check_flip = NULL,
+    .check_flip2 = ms_present_check_flip,
     .flip = ms_present_flip,
     .unflip = ms_present_unflip,
 #endif

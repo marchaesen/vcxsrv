@@ -417,6 +417,9 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 			.height = img_extent_el.height,
 		};
 
+		if (src_image->type == VK_IMAGE_TYPE_3D)
+			b_src.layer = src_offset_el.z;
+
 		if (dest_image->type == VK_IMAGE_TYPE_3D)
 			b_dst.layer = dst_offset_el.z;
 

@@ -30,6 +30,7 @@ if build_glamor
     xephyr_glamor += glamor
     xephyr_glamor += glamor_egl_stubs
     xephyr_dep += dependency('x11-xcb')
+    xephyr_dep += epoxy_dep
 endif
 
 if build_xv

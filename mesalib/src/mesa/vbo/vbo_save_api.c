@@ -542,11 +542,18 @@ compile_vertex_list(struct gl_context *ctx)
 
    /* Duplicate our template, increment refcounts to the storage structs:
     */
+   GLintptr old_offset = 0;
+   if (save->VAO[0]) {
+      old_offset = save->VAO[0]->BufferBinding[0].Offset
+         + save->VAO[0]->VertexAttrib[VERT_ATTRIB_POS].RelativeOffset;
+   }
    const GLsizei stride = save->vertex_size*sizeof(GLfloat);
    GLintptr buffer_offset =
        (save->buffer_map - save->vertex_store->buffer_map) * sizeof(GLfloat);
+   assert(old_offset <= buffer_offset);
+   const GLintptr offset_diff = buffer_offset - old_offset;
    GLuint start_offset = 0;
-   if (0 < buffer_offset && 0 < stride && buffer_offset % stride == 0) {
+   if (offset_diff > 0 && stride > 0 && offset_diff % stride == 0) {
       /* The vertex size is an exact multiple of the buffer offset.
        * This means that we can use zero-based vertex attribute pointers
        * and specify the start of the primitive with the _mesa_prim::start
@@ -558,8 +565,9 @@ compile_vertex_list(struct gl_context *ctx)
       /* We cannot immediately update the primitives as some methods below
        * still need the uncorrected start vertices
        */
-      start_offset = buffer_offset/stride;
-      buffer_offset = 0;
+      start_offset = offset_diff/stride;
+      assert(old_offset == buffer_offset - offset_diff);
+      buffer_offset = old_offset;
    }
    GLuint offsets[VBO_ATTRIB_MAX];
    for (unsigned i = 0, offset = 0; i < VBO_ATTRIB_MAX; ++i) {
@@ -666,6 +674,9 @@ compile_vertex_list(struct gl_context *ctx)
        */
       free_vertex_store(ctx, save->vertex_store);
       save->vertex_store = NULL;
+      /* When we have a new vbo, we will for sure need a new vao */
+      for (gl_vertex_processing_mode vpm = 0; vpm < VP_MODE_MAX; ++vpm)
+         _mesa_reference_vao(ctx, &save->VAO[vpm], NULL);
 
       /* Allocate and map new store:
        */

@@ -86,6 +86,7 @@
 
 #include <X11/X.h>
 #include "xf86Modes.h"
+#include "xf86Crtc.h"
 #include "os.h"
 #include "servermd.h"
 #include "globals.h"

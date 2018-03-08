@@ -44,6 +44,7 @@ AMD_COMPILER_FILES = \
 	common/ac_llvm_helper.cpp \
 	common/ac_llvm_util.c \
 	common/ac_llvm_util.h \
+	common/ac_lower_subgroups.c \
 	common/ac_shader_abi.h \
 	common/ac_shader_info.c \
 	common/ac_shader_info.h \

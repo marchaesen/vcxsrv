@@ -91,8 +91,8 @@ option(
   'gallium-omx',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
-  description : 'enable gallium omx bellagio state tracker.',
+  choices : ['auto', 'disabled', 'bellagio', 'tizonia'],
+  description : 'enable gallium omx state tracker.',
 )
 option(
   'omx-libs-path',

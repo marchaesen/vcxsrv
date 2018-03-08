@@ -13,7 +13,7 @@ libxserver_present = static_library('libxserver_present',
     include_directories: inc,
     dependencies: [
         common_dep,
-        dependency('presentproto', version: '>= 1.0')
+        dependency('presentproto', version: '>= 1.1')
     ],
     c_args: '-DHAVE_XORG_CONFIG_H'
 )

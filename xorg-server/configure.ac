@@ -729,7 +729,7 @@ SCRNSAVERPROTO="scrnsaverproto >= 1.1"
 RESOURCEPROTO="resourceproto >= 1.2.0"
 DRIPROTO="xf86driproto >= 2.1.0"
 DRI2PROTO="dri2proto >= 2.8"
-DRI3PROTO="dri3proto >= 1.0"
+DRI3PROTO="dri3proto >= 1.2"
 XINERAMAPROTO="xineramaproto"
 BIGFONTPROTO="xf86bigfontproto >= 1.2.0"
 DGAPROTO="xf86dgaproto >= 2.0.99.1"
@@ -753,7 +753,7 @@ DAMAGEPROTO="damageproto >= 1.1"
 XCMISCPROTO="xcmiscproto >= 1.2.0"
 BIGREQSPROTO="bigreqsproto >= 1.1.0"
 XTRANS="xtrans >= 1.3.5"
-PRESENTPROTO="presentproto >= 1.0"
+PRESENTPROTO="presentproto >= 1.1"
 
 dnl List of libraries that require a specific version
 LIBAPPLEWM="applewm >= 1.4"
@@ -1281,12 +1281,7 @@ AM_CONDITIONAL(DRI3, test "x$DRI3" = xyes)
 if test "x$DRI" = xyes || test "x$DRI2" = xyes || test "x$DRI3" = xyes || test "x$CONFIG_UDEV_KMS" = xyes; then
 	if test "x$DRM" = xyes; then
 		AC_DEFINE(WITH_LIBDRM, 1, [Building with libdrm support])
-		if test "x$DRI2" = xyes; then
-			dnl 2.4.65 is required for drmGetDevice
-			PKG_CHECK_MODULES([LIBDRM], libdrm >= 2.4.65)
-		else
-			PKG_CHECK_MODULES([LIBDRM], $LIBDRM)
-		fi
+		PKG_CHECK_MODULES([LIBDRM], $LIBDRM)
 	fi
 fi
 
@@ -2092,6 +2087,10 @@ if test "x$GLAMOR" = xyes; then
 	AC_DEFINE(GLAMOR, 1, [Build glamor])
 	PKG_CHECK_MODULES([GLAMOR], [epoxy])
 
+	PKG_CHECK_EXISTS(epoxy >= 1.4.4,
+			 [AC_DEFINE(GLAMOR_HAS_EGL_QUERY_DMABUF, 1, [Have GLAMOR_HAS_EGL_QUERY_DMABUF])],
+			 [])
+
 	PKG_CHECK_MODULES(GBM, "$LIBGBM", [GBM=yes], [GBM=no])
 	if test "x$GBM" = xyes; then
 		AC_DEFINE(GLAMOR_HAS_GBM, 1,
@@ -2100,14 +2099,25 @@ if test "x$GLAMOR" = xyes; then
 			[AC_DEFINE(GLAMOR_HAS_GBM_LINEAR, 1, [Have GBM_BO_USE_LINEAR])], [],
 			[#include <stdlib.h>
 			 #include <gbm.h>])
+		dnl 17.1.0 is required for gbm_bo_create_with_modifiers
+		PKG_CHECK_EXISTS(gbm >= 17.1.0,
+				 [AC_DEFINE(GBM_BO_WITH_MODIFIERS, 1, [Have gbm_bo_create_with_modifiers])],
+				 [])
 	else
 		if test "x$XORG" = xyes; then
 			AC_MSG_ERROR([Glamor for Xorg requires $LIBGBM])
 		fi
 	fi
 
+	PKG_CHECK_EXISTS(libdrm >= 2.4.62,
+			 [AC_DEFINE(GLAMOR_HAS_DRM_ATOMIC, 1, [libdrm supports atomic API])],
+			 [])
 	PKG_CHECK_EXISTS(libdrm >= 2.4.74,
 			 [AC_DEFINE(GLAMOR_HAS_DRM_NAME_FROM_FD_2, 1, [Have GLAMOR_HAS_DRM_NAME_FROM_FD_2])],
+			 [])
+
+	PKG_CHECK_EXISTS(libdrm >= 2.4.83,
+			 [AC_DEFINE(GLAMOR_HAS_DRM_MODIFIERS, 1, [Have GLAMOR_HAS_DRM_MODIFIERS])],
 			 [])
 fi
 AM_CONDITIONAL([GLAMOR_EGL], [test "x$GBM" = xyes])

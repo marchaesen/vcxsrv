@@ -106,6 +106,18 @@ INTRINSIC(ballot, 1, ARR(1), true, 0, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMIN
 INTRINSIC(read_invocation, 2, ARR(0, 1), true, 0, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 INTRINSIC(read_first_invocation, 1, ARR(0), true, 0, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 
+/** Additional SPIR-V ballot intrinsics
+ *
+ * These correspond to the SPIR-V opcodes
+ *
+ *    OpGroupUniformElect
+ *    OpSubgroupFirstInvocationKHR
+ */
+INTRINSIC(elect, 0, ARR(0), true, 1, 0, 0, xx, xx, xx,
+          NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(first_invocation, 0, ARR(0), true, 1, 0, 0, xx, xx, xx,
+          NIR_INTRINSIC_CAN_ELIMINATE)
+
 /*
  * Memory barrier with semantics analogous to the compute shader
  * groupMemoryBarrier(), memoryBarrierAtomicCounter(), memoryBarrierBuffer(),
@@ -123,7 +135,54 @@ INTRINSIC(discard_if, 1, ARR(1), false, 0, 0, 0, xx, xx, xx, 0)
 /** ARB_shader_group_vote intrinsics */
 INTRINSIC(vote_any, 1, ARR(1), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 INTRINSIC(vote_all, 1, ARR(1), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
-INTRINSIC(vote_eq,  1, ARR(1), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(vote_feq, 1, ARR(0), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(vote_ieq, 1, ARR(0), true, 1, 0, 0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+
+/** Ballot ALU operations from SPIR-V.
+ *
+ * These operations work like their ALU counterparts except that the operate
+ * on a uvec4 which is treated as a 128bit integer.  Also, they are, in
+ * general, free to ignore any bits which are above the subgroup size.
+ */
+INTRINSIC(ballot_bitfield_extract, 2, ARR(4, 1), true, 1, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(ballot_bit_count_reduce, 1, ARR(4), true, 1, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(ballot_bit_count_inclusive, 1, ARR(4), true, 1, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(ballot_bit_count_exclusive, 1, ARR(4), true, 1, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(ballot_find_lsb, 1, ARR(4), true, 1, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(ballot_find_msb, 1, ARR(4), true, 1, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+
+/** Shuffle operations from SPIR-V. */
+INTRINSIC(shuffle, 2, ARR(0, 1), true, 0, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(shuffle_xor, 2, ARR(0, 1), true, 0, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(shuffle_up, 2, ARR(0, 1), true, 0, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(shuffle_down, 2, ARR(0, 1), true, 0, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+
+/** Quad operations from SPIR-V. */
+INTRINSIC(quad_broadcast, 2, ARR(0, 1), true, 0, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(quad_swap_horizontal, 1, ARR(0), true, 0, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(quad_swap_vertical, 1, ARR(0), true, 0, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(quad_swap_diagonal, 1, ARR(0), true, 0, 0,
+          0, xx, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+
+INTRINSIC(reduce, 1, ARR(0), true, 0, 0,
+          2, REDUCTION_OP, CLUSTER_SIZE, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(inclusive_scan, 1, ARR(0), true, 0, 0,
+          1, REDUCTION_OP, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(exclusive_scan, 1, ARR(0), true, 0, 0,
+          1, REDUCTION_OP, xx, xx, NIR_INTRINSIC_CAN_ELIMINATE)
 
 /**
  * Basic Geometry Shader intrinsics.
@@ -362,6 +421,7 @@ SYSTEM_VALUE(subgroup_ge_mask, 0, 0, xx, xx, xx)
 SYSTEM_VALUE(subgroup_gt_mask, 0, 0, xx, xx, xx)
 SYSTEM_VALUE(subgroup_le_mask, 0, 0, xx, xx, xx)
 SYSTEM_VALUE(subgroup_lt_mask, 0, 0, xx, xx, xx)
+SYSTEM_VALUE(num_subgroups, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(subgroup_id, 1, 0, xx, xx, xx)
 SYSTEM_VALUE(local_group_size, 3, 0, xx, xx, xx)
 

@@ -464,12 +464,12 @@ ReadRequestFromClient(ClientPtr client)
     return needed;
 }
 
-#if XTRANS_SEND_FDS
 int
 ReadFdFromClient(ClientPtr client)
 {
     int fd = -1;
 
+#if XTRANS_SEND_FDS
     if (client->req_fds > 0) {
         OsCommPtr oc = (OsCommPtr) client->osPrivate;
 
@@ -477,17 +477,22 @@ ReadFdFromClient(ClientPtr client)
         fd = _XSERVTransRecvFd(oc->trans_conn);
     } else
         LogMessage(X_ERROR, "Request asks for FD without setting req_fds\n");
+#endif
+
     return fd;
 }
 
 int
 WriteFdToClient(ClientPtr client, int fd, Bool do_close)
 {
+#if XTRANS_SEND_FDS
     OsCommPtr oc = (OsCommPtr) client->osPrivate;
 
     return _XSERVTransSendFd(oc->trans_conn, fd, do_close);
-}
+#else
+    return -1;
 #endif
+}
 
 /*****************************************************************
  * InsertFakeRequest
