@@ -33,10 +33,8 @@
  * to give about the same results. Around 5 instructions per node.  But some
  * loops that would unroll with GLSL IR fail to unroll if we set this to 25 so
  * we set it to 26.
- * This was bumped to 96 because it unrolled more loops with a positive
- * effect (vulkan ssao demo).
  */
-#define LOOP_UNROLL_LIMIT 96
+#define LOOP_UNROLL_LIMIT 26
 
 /* Prepare this loop for unrolling by first converting to lcssa and then
  * converting the phis from the loops first block and the block that follows

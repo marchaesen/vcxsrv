@@ -281,6 +281,7 @@ typedef struct glamor_screen_private {
     int radial_max_nstops;
 
     struct glamor_saved_procs saved_procs;
+    GetDrawableModifiersFuncPtr get_drawable_modifiers;
     int flags;
     ScreenPtr screen;
     int dri3_enabled;

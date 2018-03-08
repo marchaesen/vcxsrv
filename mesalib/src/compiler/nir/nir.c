@@ -27,7 +27,9 @@
 
 #include "nir.h"
 #include "nir_control_flow_private.h"
+#include "util/half_float.h"
 #include <assert.h>
+#include <math.h>
 
 nir_shader *
 nir_shader_create(void *mem_ctx,
@@ -891,6 +893,72 @@ nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref)
    }
 
    return load;
+}
+
+static nir_const_value
+const_value_float(double d, unsigned bit_size)
+{
+   nir_const_value v;
+   switch (bit_size) {
+   case 16: v.u16[0] = _mesa_float_to_half(d);  break;
+   case 32: v.f32[0] = d;                       break;
+   case 64: v.f64[0] = d;                       break;
+   default:
+      unreachable("Invalid bit size");
+   }
+   return v;
+}
+
+static nir_const_value
+const_value_int(int64_t i, unsigned bit_size)
+{
+   nir_const_value v;
+   switch (bit_size) {
+   case 8:  v.i8[0]  = i;  break;
+   case 16: v.i16[0] = i;  break;
+   case 32: v.i32[0] = i;  break;
+   case 64: v.i64[0] = i;  break;
+   default:
+      unreachable("Invalid bit size");
+   }
+   return v;
+}
+
+nir_const_value
+nir_alu_binop_identity(nir_op binop, unsigned bit_size)
+{
+   const int64_t max_int = (1ull << (bit_size - 1)) - 1;
+   const int64_t min_int = -max_int - 1;
+   switch (binop) {
+   case nir_op_iadd:
+      return const_value_int(0, bit_size);
+   case nir_op_fadd:
+      return const_value_float(0, bit_size);
+   case nir_op_imul:
+      return const_value_int(1, bit_size);
+   case nir_op_fmul:
+      return const_value_float(1, bit_size);
+   case nir_op_imin:
+      return const_value_int(max_int, bit_size);
+   case nir_op_umin:
+      return const_value_int(~0ull, bit_size);
+   case nir_op_fmin:
+      return const_value_float(INFINITY, bit_size);
+   case nir_op_imax:
+      return const_value_int(min_int, bit_size);
+   case nir_op_umax:
+      return const_value_int(0, bit_size);
+   case nir_op_fmax:
+      return const_value_float(-INFINITY, bit_size);
+   case nir_op_iand:
+      return const_value_int(~0ull, bit_size);
+   case nir_op_ior:
+      return const_value_int(0, bit_size);
+   case nir_op_ixor:
+      return const_value_int(0, bit_size);
+   default:
+      unreachable("Invalid reduction operation");
+   }
 }
 
 nir_function_impl *
@@ -1969,6 +2037,10 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_subgroup_le_mask;
    case SYSTEM_VALUE_SUBGROUP_LT_MASK:
       return nir_intrinsic_load_subgroup_lt_mask;
+   case SYSTEM_VALUE_NUM_SUBGROUPS:
+      return nir_intrinsic_load_num_subgroups;
+   case SYSTEM_VALUE_SUBGROUP_ID:
+      return nir_intrinsic_load_subgroup_id;
    case SYSTEM_VALUE_LOCAL_GROUP_SIZE:
       return nir_intrinsic_load_local_group_size;
    default:
@@ -2040,6 +2112,10 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_SUBGROUP_LE_MASK;
    case nir_intrinsic_load_subgroup_lt_mask:
       return SYSTEM_VALUE_SUBGROUP_LT_MASK;
+   case nir_intrinsic_load_num_subgroups:
+      return SYSTEM_VALUE_NUM_SUBGROUPS;
+   case nir_intrinsic_load_subgroup_id:
+      return SYSTEM_VALUE_SUBGROUP_ID;
    case nir_intrinsic_load_local_group_size:
       return SYSTEM_VALUE_LOCAL_GROUP_SIZE;
    default:

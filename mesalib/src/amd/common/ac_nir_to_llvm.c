@@ -1338,76 +1338,6 @@ static LLVMValueRef emit_iabs(struct ac_llvm_context *ctx,
 			       LLVMBuildNeg(ctx->builder, src0, ""));
 }
 
-static LLVMValueRef emit_fsign(struct ac_llvm_context *ctx,
-			       LLVMValueRef src0,
-			       unsigned bitsize)
-{
-	LLVMValueRef cmp, val, zero, one;
-	LLVMTypeRef type;
-
-	if (bitsize == 32) {
-		type = ctx->f32;
-		zero = ctx->f32_0;
-		one = ctx->f32_1;
-	} else {
-		type = ctx->f64;
-		zero = ctx->f64_0;
-		one = ctx->f64_1;
-	}
-
-	cmp = LLVMBuildFCmp(ctx->builder, LLVMRealOGT, src0, zero, "");
-	val = LLVMBuildSelect(ctx->builder, cmp, one, src0, "");
-	cmp = LLVMBuildFCmp(ctx->builder, LLVMRealOGE, val, zero, "");
-	val = LLVMBuildSelect(ctx->builder, cmp, val, LLVMConstReal(type, -1.0), "");
-	return val;
-}
-
-static LLVMValueRef emit_isign(struct ac_llvm_context *ctx,
-			       LLVMValueRef src0, unsigned bitsize)
-{
-	LLVMValueRef cmp, val, zero, one;
-	LLVMTypeRef type;
-
-	if (bitsize == 32) {
-		type = ctx->i32;
-		zero = ctx->i32_0;
-		one = ctx->i32_1;
-	} else {
-		type = ctx->i64;
-		zero = ctx->i64_0;
-		one = ctx->i64_1;
-	}
-
-	cmp = LLVMBuildICmp(ctx->builder, LLVMIntSGT, src0, zero, "");
-	val = LLVMBuildSelect(ctx->builder, cmp, one, src0, "");
-	cmp = LLVMBuildICmp(ctx->builder, LLVMIntSGE, val, zero, "");
-	val = LLVMBuildSelect(ctx->builder, cmp, val, LLVMConstInt(type, -1, true), "");
-	return val;
-}
-
-static LLVMValueRef emit_ffract(struct ac_llvm_context *ctx,
-				LLVMValueRef src0, unsigned bitsize)
-{
-	LLVMTypeRef type;
-	char *intr;
-
-	if (bitsize == 32) {
-		intr = "llvm.floor.f32";
-		type = ctx->f32;
-	} else {
-		intr = "llvm.floor.f64";
-		type = ctx->f64;
-	}
-
-	LLVMValueRef fsrc0 = ac_to_float(ctx, src0);
-	LLVMValueRef params[] = {
-		fsrc0,
-	};
-	LLVMValueRef floor = ac_build_intrinsic(ctx, intr, type, params, 1,
-						AC_FUNC_ATTR_READNONE);
-	return LLVMBuildFSub(ctx->builder, fsrc0, floor, "");
-}
-
 static LLVMValueRef emit_uint_carry(struct ac_llvm_context *ctx,
 				    const char *intrin,
 				    LLVMValueRef src0, LLVMValueRef src1)
@@ -1673,6 +1603,10 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 	case nir_op_unpack_half_2x16:
 		src_components = 1;
 		break;
+	case nir_op_cube_face_coord:
+	case nir_op_cube_face_index:
+		src_components = 3;
+		break;
 	default:
 		src_components = num_components;
 		break;
@@ -1830,11 +1764,13 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = emit_minmax_int(&ctx->ac, LLVMIntULT, src[0], src[1]);
 		break;
 	case nir_op_isign:
-		result = emit_isign(&ctx->ac, src[0], instr->dest.dest.ssa.bit_size);
+		result = ac_build_isign(&ctx->ac, src[0],
+					instr->dest.dest.ssa.bit_size);
 		break;
 	case nir_op_fsign:
 		src[0] = ac_to_float(&ctx->ac, src[0]);
-		result = emit_fsign(&ctx->ac, src[0], instr->dest.dest.ssa.bit_size);
+		result = ac_build_fsign(&ctx->ac, src[0],
+					instr->dest.dest.ssa.bit_size);
 		break;
 	case nir_op_ffloor:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.floor",
@@ -1853,7 +1789,9 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		                              ac_to_float_type(&ctx->ac, def_type),src[0]);
 		break;
 	case nir_op_ffract:
-		result = emit_ffract(&ctx->ac, src[0], instr->dest.dest.ssa.bit_size);
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		result = ac_build_fract(&ctx->ac, src[0],
+					instr->dest.dest.ssa.bit_size);
 		break;
 	case nir_op_fsin:
 		result = emit_intrin_1f_param(&ctx->ac, "llvm.sin",
@@ -2078,6 +2016,30 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		tmp = LLVMBuildInsertElement(ctx->ac.builder, tmp,
 					     src[1], ctx->ac.i32_1, "");
 		result = LLVMBuildBitCast(ctx->ac.builder, tmp, ctx->ac.i64, "");
+		break;
+	}
+
+	case nir_op_cube_face_coord: {
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		LLVMValueRef results[2];
+		LLVMValueRef in[3];
+		for (unsigned chan = 0; chan < 3; chan++)
+			in[chan] = ac_llvm_extract_elem(&ctx->ac, src[0], chan);
+		results[0] = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.cubetc",
+						ctx->ac.f32, in, 3, AC_FUNC_ATTR_READNONE);
+		results[1] = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.cubesc",
+						ctx->ac.f32, in, 3, AC_FUNC_ATTR_READNONE);
+		result = ac_build_gather_values(&ctx->ac, results, 2);
+		break;
+	}
+
+	case nir_op_cube_face_index: {
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		LLVMValueRef in[3];
+		for (unsigned chan = 0; chan < 3; chan++)
+			in[chan] = ac_llvm_extract_elem(&ctx->ac, src[0], chan);
+		result = ac_build_intrinsic(&ctx->ac,  "llvm.amdgcn.cubeid",
+						ctx->ac.f32, in, 3, AC_FUNC_ATTR_READNONE);
 		break;
 	}
 
@@ -3202,8 +3164,8 @@ static LLVMValueRef visit_load_var(struct ac_nir_context *ctx,
 
 			return ctx->abi->load_inputs(ctx->abi, instr->variables[0]->var->data.location,
 						     instr->variables[0]->var->data.driver_location,
-						     instr->variables[0]->var->data.location_frac, ve,
-						     vertex_index, const_index, type);
+						     instr->variables[0]->var->data.location_frac,
+						     instr->num_components, vertex_index, const_index, type);
 		}
 
 		for (unsigned chan = comp; chan < ve + comp; chan++) {
@@ -3910,6 +3872,12 @@ static void emit_barrier(struct ac_llvm_context *ac, gl_shader_stage stage)
 			   ac->voidt, NULL, 0, AC_FUNC_ATTR_CONVERGENT);
 }
 
+static void radv_emit_kill(struct ac_shader_abi *abi, LLVMValueRef visible)
+{
+	struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
+	ac_build_kill_if_false(&ctx->ac, visible);
+}
+
 static void emit_discard(struct ac_nir_context *ctx,
 			 const nir_intrinsic_instr *instr)
 {
@@ -3924,7 +3892,7 @@ static void emit_discard(struct ac_nir_context *ctx,
 		cond = LLVMConstInt(ctx->ac.i1, false, 0);
 	}
 
-	ac_build_kill_if_false(&ctx->ac, cond);
+	ctx->abi->emit_kill(ctx->abi, cond);
 }
 
 static LLVMValueRef
@@ -3947,6 +3915,46 @@ visit_load_local_invocation_index(struct ac_nir_context *ctx)
 			      LLVMConstInt(ctx->ac.i32, 0xfc0, false), "");
 
 	return LLVMBuildAdd(ctx->ac.builder, result, thread_id, "");
+}
+
+static LLVMValueRef
+visit_load_subgroup_id(struct ac_nir_context *ctx)
+{
+	if (ctx->stage == MESA_SHADER_COMPUTE) {
+		LLVMValueRef result;
+		result = LLVMBuildAnd(ctx->ac.builder, ctx->abi->tg_size,
+				LLVMConstInt(ctx->ac.i32, 0xfc0, false), "");
+		return LLVMBuildLShr(ctx->ac.builder, result,  LLVMConstInt(ctx->ac.i32, 6, false), "");
+	} else {
+		return LLVMConstInt(ctx->ac.i32, 0, false);
+	}
+}
+
+static LLVMValueRef
+visit_load_num_subgroups(struct ac_nir_context *ctx)
+{
+	if (ctx->stage == MESA_SHADER_COMPUTE) {
+		return LLVMBuildAnd(ctx->ac.builder, ctx->abi->tg_size,
+		                    LLVMConstInt(ctx->ac.i32, 0x3f, false), "");
+	} else {
+		return LLVMConstInt(ctx->ac.i32, 1, false);
+	}
+}
+
+static LLVMValueRef
+visit_first_invocation(struct ac_nir_context *ctx)
+{
+	LLVMValueRef active_set = ac_build_ballot(&ctx->ac, ctx->ac.i32_1);
+
+	/* The second argument is whether cttz(0) should be defined, but we do not care. */
+	LLVMValueRef args[] = {active_set, LLVMConstInt(ctx->ac.i1, 0, false)};
+	LLVMValueRef result =  ac_build_intrinsic(&ctx->ac,
+	                                          "llvm.cttz.i64",
+	                                          ctx->ac.i64, args, 2,
+	                                          AC_FUNC_ATTR_NOUNWIND |
+	                                          AC_FUNC_ATTR_READNONE);
+
+	return LLVMBuildTrunc(ctx->ac.builder, result, ctx->ac.i32, "");
 }
 
 static LLVMValueRef
@@ -4104,9 +4112,13 @@ static LLVMValueRef load_sample_position(struct ac_shader_abi *abi,
 static LLVMValueRef load_sample_pos(struct ac_nir_context *ctx)
 {
 	LLVMValueRef values[2];
+	LLVMValueRef pos[2];
 
-	values[0] = emit_ffract(&ctx->ac, ctx->abi->frag_pos[0], 32);
-	values[1] = emit_ffract(&ctx->ac, ctx->abi->frag_pos[1], 32);
+	pos[0] = ac_to_float(&ctx->ac, ctx->abi->frag_pos[0]);
+	pos[1] = ac_to_float(&ctx->ac, ctx->abi->frag_pos[1]);
+
+	values[0] = ac_build_fract(&ctx->ac, pos[0], 32);
+	values[1] = ac_build_fract(&ctx->ac, pos[1], 32);
 	return ac_build_gather_values(&ctx->ac, values, 2);
 }
 
@@ -4473,6 +4485,15 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	case nir_intrinsic_load_local_invocation_index:
 		result = visit_load_local_invocation_index(ctx);
 		break;
+	case nir_intrinsic_load_subgroup_id:
+		result = visit_load_subgroup_id(ctx);
+		break;
+	case nir_intrinsic_load_num_subgroups:
+		result = visit_load_num_subgroups(ctx);
+		break;
+	case nir_intrinsic_first_invocation:
+		result = visit_first_invocation(ctx);
+		break;
 	case nir_intrinsic_load_push_constant:
 		result = visit_load_push_constant(ctx, instr);
 		break;
@@ -4622,11 +4643,6 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	}
 	case nir_intrinsic_vote_any: {
 		LLVMValueRef tmp = ac_build_vote_any(&ctx->ac, get_src(ctx, instr->src[0]));
-		result = LLVMBuildSExt(ctx->ac.builder, tmp, ctx->ac.i32, "");
-		break;
-	}
-	case nir_intrinsic_vote_eq: {
-		LLVMValueRef tmp = ac_build_vote_eq(&ctx->ac, get_src(ctx, instr->src[0]));
 		result = LLVMBuildSExt(ctx->ac.builder, tmp, ctx->ac.i32, "");
 		break;
 	}
@@ -5132,8 +5148,7 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 	}
 
 	/* Pack LOD */
-	if (lod && ((instr->op == nir_texop_txl && !lod_is_zero) ||
-		    instr->op == nir_texop_txf)) {
+	if (lod && ((instr->op == nir_texop_txl || instr->op == nir_texop_txf) && !lod_is_zero)) {
 		address[count++] = lod;
 	} else if (instr->op == nir_texop_txf_ms && sample_index) {
 		address[count++] = sample_index;
@@ -5291,17 +5306,15 @@ static void visit_ssa_undef(struct ac_nir_context *ctx,
 	_mesa_hash_table_insert(ctx->defs, &instr->def, undef);
 }
 
-static void visit_jump(struct ac_nir_context *ctx,
+static void visit_jump(struct ac_llvm_context *ctx,
 		       const nir_jump_instr *instr)
 {
 	switch (instr->type) {
 	case nir_jump_break:
-		LLVMBuildBr(ctx->ac.builder, ctx->break_block);
-		LLVMClearInsertionPosition(ctx->ac.builder);
+		ac_build_break(ctx);
 		break;
 	case nir_jump_continue:
-		LLVMBuildBr(ctx->ac.builder, ctx->continue_block);
-		LLVMClearInsertionPosition(ctx->ac.builder);
+		ac_build_continue(ctx);
 		break;
 	default:
 		fprintf(stderr, "Unknown NIR jump instr: ");
@@ -5339,7 +5352,7 @@ static void visit_block(struct ac_nir_context *ctx, nir_block *block)
 			visit_ssa_undef(ctx, nir_instr_as_ssa_undef(instr));
 			break;
 		case nir_instr_type_jump:
-			visit_jump(ctx, nir_instr_as_jump(instr));
+			visit_jump(&ctx->ac, nir_instr_as_jump(instr));
 			break;
 		default:
 			fprintf(stderr, "Unknown NIR instr type: ");
@@ -5356,56 +5369,34 @@ static void visit_if(struct ac_nir_context *ctx, nir_if *if_stmt)
 {
 	LLVMValueRef value = get_src(ctx, if_stmt->condition);
 
-	LLVMValueRef fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(ctx->ac.builder));
-	LLVMBasicBlockRef merge_block =
-	    LLVMAppendBasicBlockInContext(ctx->ac.context, fn, "");
-	LLVMBasicBlockRef if_block =
-	    LLVMAppendBasicBlockInContext(ctx->ac.context, fn, "");
-	LLVMBasicBlockRef else_block = merge_block;
-	if (!exec_list_is_empty(&if_stmt->else_list))
-		else_block = LLVMAppendBasicBlockInContext(
-		    ctx->ac.context, fn, "");
+	nir_block *then_block =
+		(nir_block *) exec_list_get_head(&if_stmt->then_list);
 
-	LLVMValueRef cond = LLVMBuildICmp(ctx->ac.builder, LLVMIntNE, value,
-	                                  ctx->ac.i32_0, "");
-	LLVMBuildCondBr(ctx->ac.builder, cond, if_block, else_block);
+	ac_build_uif(&ctx->ac, value, then_block->index);
 
-	LLVMPositionBuilderAtEnd(ctx->ac.builder, if_block);
 	visit_cf_list(ctx, &if_stmt->then_list);
-	if (LLVMGetInsertBlock(ctx->ac.builder))
-		LLVMBuildBr(ctx->ac.builder, merge_block);
 
 	if (!exec_list_is_empty(&if_stmt->else_list)) {
-		LLVMPositionBuilderAtEnd(ctx->ac.builder, else_block);
+		nir_block *else_block =
+			(nir_block *) exec_list_get_head(&if_stmt->else_list);
+
+		ac_build_else(&ctx->ac, else_block->index);
 		visit_cf_list(ctx, &if_stmt->else_list);
-		if (LLVMGetInsertBlock(ctx->ac.builder))
-			LLVMBuildBr(ctx->ac.builder, merge_block);
 	}
 
-	LLVMPositionBuilderAtEnd(ctx->ac.builder, merge_block);
+	ac_build_endif(&ctx->ac, then_block->index);
 }
 
 static void visit_loop(struct ac_nir_context *ctx, nir_loop *loop)
 {
-	LLVMValueRef fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(ctx->ac.builder));
-	LLVMBasicBlockRef continue_parent = ctx->continue_block;
-	LLVMBasicBlockRef break_parent = ctx->break_block;
+	nir_block *first_loop_block =
+		(nir_block *) exec_list_get_head(&loop->body);
 
-	ctx->continue_block =
-	    LLVMAppendBasicBlockInContext(ctx->ac.context, fn, "");
-	ctx->break_block =
-	    LLVMAppendBasicBlockInContext(ctx->ac.context, fn, "");
+	ac_build_bgnloop(&ctx->ac, first_loop_block->index);
 
-	LLVMBuildBr(ctx->ac.builder, ctx->continue_block);
-	LLVMPositionBuilderAtEnd(ctx->ac.builder, ctx->continue_block);
 	visit_cf_list(ctx, &loop->body);
 
-	if (LLVMGetInsertBlock(ctx->ac.builder))
-		LLVMBuildBr(ctx->ac.builder, ctx->continue_block);
-	LLVMPositionBuilderAtEnd(ctx->ac.builder, ctx->break_block);
-
-	ctx->continue_block = continue_parent;
-	ctx->break_block = break_parent;
+	ac_build_endloop(&ctx->ac, first_loop_block->index);
 }
 
 static void visit_cf_list(struct ac_nir_context *ctx,
@@ -5862,11 +5853,12 @@ setup_shared(struct ac_nir_context *ctx,
 static void
 si_llvm_init_export_args(struct radv_shader_context *ctx,
 			 LLVMValueRef *values,
+			 unsigned enabled_channels,
 			 unsigned target,
 			 struct ac_export_args *args)
 {
-	/* Default is 0xf. Adjusted below depending on the format. */
-	args->enabled_channels = 0xf;
+	/* Specify the channels that are enabled. */
+	args->enabled_channels = enabled_channels;
 
 	/* Specify whether the EXEC mask represents the valid mask */
 	args->valid_mask = 0;
@@ -5979,17 +5971,21 @@ si_llvm_init_export_args(struct radv_shader_context *ctx,
 
 	memcpy(&args->out[0], values, sizeof(values[0]) * 4);
 
-	for (unsigned i = 0; i < 4; ++i)
+	for (unsigned i = 0; i < 4; ++i) {
+		if (!(args->enabled_channels & (1 << i)))
+			continue;
+
 		args->out[i] = ac_to_float(&ctx->ac, args->out[i]);
+	}
 }
 
 static void
 radv_export_param(struct radv_shader_context *ctx, unsigned index,
-		  LLVMValueRef *values)
+		  LLVMValueRef *values, unsigned enabled_channels)
 {
 	struct ac_export_args args;
 
-	si_llvm_init_export_args(ctx, values,
+	si_llvm_init_export_args(ctx, values, enabled_channels,
 				 V_008DFC_SQ_EXP_PARAM + index, &args);
 	ac_build_export(&ctx->ac, &args);
 }
@@ -6046,13 +6042,13 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 
 		if (ctx->num_output_clips + ctx->num_output_culls > 4) {
 			target = V_008DFC_SQ_EXP_POS + 3;
-			si_llvm_init_export_args(ctx, &slots[4], target, &args);
+			si_llvm_init_export_args(ctx, &slots[4], 0xf, target, &args);
 			memcpy(&pos_args[target - V_008DFC_SQ_EXP_POS],
 			       &args, sizeof(args));
 		}
 
 		target = V_008DFC_SQ_EXP_POS + 2;
-		si_llvm_init_export_args(ctx, &slots[0], target, &args);
+		si_llvm_init_export_args(ctx, &slots[0], 0xf, target, &args);
 		memcpy(&pos_args[target - V_008DFC_SQ_EXP_POS],
 		       &args, sizeof(args));
 
@@ -6063,7 +6059,7 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 		for (unsigned j = 0; j < 4; j++)
 			pos_values[j] = radv_load_output(ctx, VARYING_SLOT_POS, j);
 	}
-	si_llvm_init_export_args(ctx, pos_values, V_008DFC_SQ_EXP_POS, &pos_args[0]);
+	si_llvm_init_export_args(ctx, pos_values, 0xf, V_008DFC_SQ_EXP_POS, &pos_args[0]);
 
 	if (ctx->output_mask & (1ull << VARYING_SLOT_PSIZ)) {
 		outinfo->writes_pointsize = true;
@@ -6149,7 +6145,23 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 		for (unsigned j = 0; j < 4; j++)
 			values[j] = ac_to_float(&ctx->ac, radv_load_output(ctx, i, j));
 
-		radv_export_param(ctx, param_count, values);
+		unsigned output_usage_mask;
+
+		if (ctx->stage == MESA_SHADER_VERTEX &&
+		    !ctx->is_gs_copy_shader) {
+			output_usage_mask =
+				ctx->shader_info->info.vs.output_usage_mask[i];
+		} else if (ctx->stage == MESA_SHADER_TESS_EVAL) {
+			output_usage_mask =
+				ctx->shader_info->info.tes.output_usage_mask[i];
+		} else {
+			/* Enable all channels for the GS copy shader because
+			 * we don't know the output usage mask currently.
+			 */
+			output_usage_mask = 0xf;
+		}
+
+		radv_export_param(ctx, param_count, values, output_usage_mask);
 
 		outinfo->vs_output_param_offset[i] = param_count++;
 	}
@@ -6163,7 +6175,7 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 		for (unsigned j = 1; j < 4; j++)
 			values[j] = ctx->ac.f32_0;
 
-		radv_export_param(ctx, param_count, values);
+		radv_export_param(ctx, param_count, values, 0xf);
 
 		outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID] = param_count++;
 		outinfo->export_prim_id = true;
@@ -6527,17 +6539,13 @@ handle_tcs_outputs_post(struct radv_shader_context *ctx)
 
 static bool
 si_export_mrt_color(struct radv_shader_context *ctx,
-		    LLVMValueRef *color, unsigned index, bool is_last,
+		    LLVMValueRef *color, unsigned index,
 		    struct ac_export_args *args)
 {
 	/* Export */
-	si_llvm_init_export_args(ctx, color,
+	si_llvm_init_export_args(ctx, color, 0xf,
 				 V_008DFC_SQ_EXP_MRT + index, args);
-
-	if (is_last) {
-		args->valid_mask = 1; /* whether the EXEC mask is valid */
-		args->done = 1; /* DONE bit */
-	} else if (!args->enabled_channels)
+	if (!args->enabled_channels)
 		return false; /* unnecessary NULL export */
 
 	return true;
@@ -6564,7 +6572,6 @@ handle_fs_outputs_post(struct radv_shader_context *ctx)
 
 	for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
 		LLVMValueRef values[4];
-		bool last = false;
 
 		if (!(ctx->output_mask & (1ull << i)))
 			continue;
@@ -6576,14 +6583,9 @@ handle_fs_outputs_post(struct radv_shader_context *ctx)
 			values[j] = ac_to_float(&ctx->ac,
 						radv_load_output(ctx, i, j));
 
-		if (!ctx->shader_info->info.ps.writes_z &&
-		    !ctx->shader_info->info.ps.writes_stencil &&
-		    !ctx->shader_info->info.ps.writes_sample_mask)
-			last = ctx->output_mask <= ((1ull << (i + 1)) - 1);
-
 		bool ret = si_export_mrt_color(ctx, values,
 					       i - FRAG_RESULT_DATA0,
-					       last, &color_args[index]);
+					       &color_args[index]);
 		if (ret)
 			index++;
 	}
@@ -6600,6 +6602,19 @@ handle_fs_outputs_post(struct radv_shader_context *ctx)
 	if (ctx->shader_info->info.ps.writes_sample_mask) {
 		samplemask = ac_to_float(&ctx->ac,
 					 radv_load_output(ctx, FRAG_RESULT_SAMPLE_MASK, 0));
+	}
+
+	/* Set the DONE bit on last non-null color export only if Z isn't
+	 * exported.
+	 */
+	if (index > 0 &&
+	    !ctx->shader_info->info.ps.writes_z &&
+	    !ctx->shader_info->info.ps.writes_stencil &&
+	    !ctx->shader_info->info.ps.writes_sample_mask) {
+		unsigned last = index - 1;
+
+               color_args[last].valid_mask = 1; /* whether the EXEC mask is valid */
+               color_args[last].done = 1; /* DONE bit */
 	}
 
 	/* Export PS outputs. */
@@ -6679,6 +6694,8 @@ static void ac_llvm_finalize_module(struct radv_shader_context *ctx)
 
 	LLVMDisposeBuilder(ctx->ac.builder);
 	LLVMDisposePassManager(passmgr);
+
+	ac_llvm_context_dispose(&ctx->ac);
 }
 
 static void
@@ -6799,6 +6816,9 @@ void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
 	struct ac_nir_context ctx = {};
 	struct nir_function *func;
 
+	/* Last minute passes for both radv & radeonsi */
+	ac_lower_subgroups(nir);
+
 	ctx.ac = *ac;
 	ctx.abi = abi;
 
@@ -6841,7 +6861,8 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
                                        struct nir_shader *const *shaders,
                                        int shader_count,
                                        struct ac_shader_variant_info *shader_info,
-                                       const struct ac_nir_compiler_options *options)
+                                       const struct ac_nir_compiler_options *options,
+				       bool dump_shader)
 {
 	struct radv_shader_context ctx = {0};
 	unsigned i;
@@ -6943,6 +6964,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 			ctx.abi.lookup_interp_param = lookup_interp_param;
 			ctx.abi.load_sample_position = load_sample_position;
 			ctx.abi.load_sample_mask_in = load_sample_mask_in;
+			ctx.abi.emit_kill = radv_emit_kill;
 		}
 
 		if (i)
@@ -7007,6 +7029,11 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 
 	if (shader_count == 1)
 		ac_nir_eliminate_const_vs_outputs(&ctx);
+
+	if (dump_shader) {
+		ctx.shader_info->private_mem_vgprs =
+			ac_count_scratch_private_memory(ctx.main_function);
+	}
 
 	return ctx.ac.module;
 }
@@ -7201,7 +7228,7 @@ void ac_compile_nir_shader(LLVMTargetMachineRef tm,
 {
 
 	LLVMModuleRef llvm_module = ac_translate_nir_to_llvm(tm, nir, nir_count, shader_info,
-	                                                     options);
+	                                                     options, dump_shader);
 
 	ac_compile_llvm_module(tm, llvm_module, binary, config, shader_info, nir[0]->info.stage, dump_shader, options->supports_spill);
 	for (int i = 0; i < nir_count; ++i)
@@ -7311,4 +7338,41 @@ void ac_create_gs_copy_shader(LLVMTargetMachineRef tm,
 	ac_compile_llvm_module(tm, ctx.ac.module, binary, config, shader_info,
 			       MESA_SHADER_VERTEX,
 			       dump_shader, options->supports_spill);
+}
+
+void
+ac_lower_indirect_derefs(struct nir_shader *nir, enum chip_class chip_class)
+{
+	/* While it would be nice not to have this flag, we are constrained
+	 * by the reality that LLVM 5.0 doesn't have working VGPR indexing
+	 * on GFX9.
+	 */
+	bool llvm_has_working_vgpr_indexing = chip_class <= VI;
+
+	/* TODO: Indirect indexing of GS inputs is unimplemented.
+	 *
+	 * TCS and TES load inputs directly from LDS or offchip memory, so
+	 * indirect indexing is trivial.
+	 */
+	nir_variable_mode indirect_mask = 0;
+	if (nir->info.stage == MESA_SHADER_GEOMETRY ||
+	    (nir->info.stage != MESA_SHADER_TESS_CTRL &&
+	     nir->info.stage != MESA_SHADER_TESS_EVAL &&
+	     !llvm_has_working_vgpr_indexing)) {
+		indirect_mask |= nir_var_shader_in;
+	}
+	if (!llvm_has_working_vgpr_indexing &&
+	    nir->info.stage != MESA_SHADER_TESS_CTRL)
+		indirect_mask |= nir_var_shader_out;
+
+	/* TODO: We shouldn't need to do this, however LLVM isn't currently
+	 * smart enough to handle indirects without causing excess spilling
+	 * causing the gpu to hang.
+	 *
+	 * See the following thread for more details of the problem:
+	 * https://lists.freedesktop.org/archives/mesa-dev/2017-July/162106.html
+	 */
+	indirect_mask |= nir_var_local;
+
+	nir_lower_indirect_derefs(nir, indirect_mask);
 }

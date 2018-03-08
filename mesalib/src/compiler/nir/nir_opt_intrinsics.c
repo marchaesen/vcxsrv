@@ -50,7 +50,8 @@ opt_intrinsics_impl(nir_function_impl *impl)
             if (nir_src_as_const_value(intrin->src[0]))
                replacement = nir_ssa_for_src(&b, intrin->src[0], 1);
             break;
-         case nir_intrinsic_vote_eq:
+         case nir_intrinsic_vote_feq:
+         case nir_intrinsic_vote_ieq:
             if (nir_src_as_const_value(intrin->src[0]))
                replacement = nir_imm_int(&b, NIR_TRUE);
             break;

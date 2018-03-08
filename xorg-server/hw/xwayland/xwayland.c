@@ -728,7 +728,11 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
 #ifdef GLAMOR_HAS_GBM
     else if (xwl_screen->glamor &&
              strcmp(interface, "wl_drm") == 0 && version >= 2) {
-        xwl_screen_init_glamor(xwl_screen, id, version);
+        xwl_screen_set_drm_interface(xwl_screen, id, version);
+    }
+    else if (xwl_screen->glamor &&
+             strcmp(interface, "zwp_linux_dmabuf_v1") == 0 && version >= 3) {
+        xwl_screen_set_dmabuf_interface(xwl_screen, id, version);
     }
 #endif
 }

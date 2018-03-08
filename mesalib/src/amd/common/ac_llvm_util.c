@@ -24,10 +24,12 @@
  */
 /* based on pieces from si_pipe.c and radeon_llvm_emit.c */
 #include "ac_llvm_util.h"
+#include "ac_llvm_build.h"
 #include "util/bitscan.h"
 #include <llvm-c/Core.h>
 #include <llvm-c/Support.h>
 #include "c11/threads.h"
+#include "util/u_math.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -200,10 +202,39 @@ ac_dump_module(LLVMModuleRef module)
 
 void
 ac_llvm_add_target_dep_function_attr(LLVMValueRef F,
-				     const char *name, int value)
+				     const char *name, unsigned value)
 {
 	char str[16];
 
-	snprintf(str, sizeof(str), "%i", value);
+	snprintf(str, sizeof(str), "0x%x", value);
 	LLVMAddTargetDependentFunctionAttr(F, name, str);
+}
+
+unsigned
+ac_count_scratch_private_memory(LLVMValueRef function)
+{
+	unsigned private_mem_vgprs = 0;
+
+	/* Process all LLVM instructions. */
+	LLVMBasicBlockRef bb = LLVMGetFirstBasicBlock(function);
+	while (bb) {
+		LLVMValueRef next = LLVMGetFirstInstruction(bb);
+
+		while (next) {
+			LLVMValueRef inst = next;
+			next = LLVMGetNextInstruction(next);
+
+			if (LLVMGetInstructionOpcode(inst) != LLVMAlloca)
+				continue;
+
+			LLVMTypeRef type = LLVMGetElementType(LLVMTypeOf(inst));
+			/* No idea why LLVM aligns allocas to 4 elements. */
+			unsigned alignment = LLVMGetAlignment(inst);
+			unsigned dw_size = align(ac_get_type_size(type) / 4, alignment);
+			private_mem_vgprs += dw_size;
+		}
+		bb = LLVMGetNextBasicBlock(bb);
+	}
+
+	return private_mem_vgprs;
 }

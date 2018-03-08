@@ -138,27 +138,6 @@ if with_gallium_virgl
 else
   driver_virgl = declare_dependency()
 endif
-if with_gallium_vdpau
-  subdir('state_trackers/vdpau')
-endif
-if with_gallium_xvmc
-  subdir('state_trackers/xvmc')
-endif
-if with_gallium_omx
-  subdir('state_trackers/omx_bellagio')
-endif
-if with_gallium_va
-  subdir('state_trackers/va')
-endif
-if with_gallium_xa
-  subdir('state_trackers/xa')
-endif
-if with_gallium_st_nine
-  subdir('state_trackers/nine')
-endif
-if with_platform_haiku
-  subdir('state_trackers/hgl')
-endif
 if with_gallium_opencl
   # TODO: this isn't really clover specific, but ATM clover is the only
   # consumer
@@ -184,24 +163,31 @@ if with_glx == 'gallium-xlib'
   subdir('targets/libgl-xlib')
 endif
 if with_gallium_vdpau
+  subdir('state_trackers/vdpau')
   subdir('targets/vdpau')
 endif
 if with_gallium_xvmc
+  subdir('state_trackers/xvmc')
   subdir('targets/xvmc')
 endif
-if with_gallium_omx
-  subdir('targets/omx-bellagio')
+if with_gallium_omx != 'disabled'
+  subdir('state_trackers/omx')
+  subdir('targets/omx')
 endif
 if with_gallium_va
+  subdir('state_trackers/va')
   subdir('targets/va')
 endif
 if with_gallium_xa
+  subdir('state_trackers/xa')
   subdir('targets/xa')
 endif
 if with_platform_haiku
+  subdir('state_trackers/hgl')
   subdir('targets/haiku-softpipe')
 endif
 if with_gallium_st_nine
+  subdir('state_trackers/nine')
   subdir('targets/d3dadapter9')
 endif
 # TODO: tests

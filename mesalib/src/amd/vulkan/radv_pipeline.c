@@ -1527,14 +1527,14 @@ radv_link_shaders(struct radv_pipeline *pipeline, nir_shader **shaders)
 
 		if (progress) {
 			if (nir_lower_global_vars_to_local(ordered_shaders[i])) {
-				radv_lower_indirect_derefs(ordered_shaders[i],
-				                           pipeline->device->physical_device);
+				ac_lower_indirect_derefs(ordered_shaders[i],
+				                         pipeline->device->physical_device->rad_info.chip_class);
 			}
 			radv_optimize_nir(ordered_shaders[i]);
 
 			if (nir_lower_global_vars_to_local(ordered_shaders[i - 1])) {
-				radv_lower_indirect_derefs(ordered_shaders[i - 1],
-				                           pipeline->device->physical_device);
+				ac_lower_indirect_derefs(ordered_shaders[i - 1],
+				                         pipeline->device->physical_device->rad_info.chip_class);
 			}
 			radv_optimize_nir(ordered_shaders[i - 1]);
 		}

@@ -27,6 +27,11 @@
 #include "randrstr.h"
 #include "presentext.h"
 
+typedef enum {
+    PRESENT_FLIP_REASON_UNKNOWN,
+    PRESENT_FLIP_REASON_BUFFER_FORMAT
+} PresentFlipReason;
+
 typedef struct present_vblank present_vblank_rec, *present_vblank_ptr;
 
 /* Return the current CRTC for 'window'.
@@ -59,6 +64,10 @@ typedef void (*present_flush_ptr) (WindowPtr window);
  */
 typedef Bool (*present_check_flip_ptr) (RRCrtcPtr crtc, WindowPtr window, PixmapPtr pixmap, Bool sync_flip);
 
+/* Same as 'check_flip' but it can return a 'reason' why the flip would fail.
+ */
+typedef Bool (*present_check_flip2_ptr) (RRCrtcPtr crtc, WindowPtr window, PixmapPtr pixmap, Bool sync_flip, PresentFlipReason *reason);
+
 /* Flip pixmap, return false if it didn't happen.
  *
  * 'crtc' is to be used for any necessary synchronization.
@@ -83,7 +92,7 @@ typedef Bool (*present_flip_ptr) (RRCrtcPtr crtc,
 typedef void (*present_unflip_ptr) (ScreenPtr screen,
                                     uint64_t event_id);
 
-#define PRESENT_SCREEN_INFO_VERSION        0
+#define PRESENT_SCREEN_INFO_VERSION        1
 
 typedef struct present_screen_info {
     uint32_t                            version;
@@ -97,6 +106,7 @@ typedef struct present_screen_info {
     present_check_flip_ptr              check_flip;
     present_flip_ptr                    flip;
     present_unflip_ptr                  unflip;
+    present_check_flip2_ptr             check_flip2;
 
 } present_screen_info_rec, *present_screen_info_ptr;
 
@@ -124,5 +134,8 @@ typedef void (*present_complete_notify_proc)(WindowPtr window,
 
 extern _X_EXPORT void
 present_register_complete_notify(present_complete_notify_proc proc);
+
+extern _X_EXPORT Bool
+present_can_window_flip(WindowPtr window);
 
 #endif /* _PRESENT_H_ */

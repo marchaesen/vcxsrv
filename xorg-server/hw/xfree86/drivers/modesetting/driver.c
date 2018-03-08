@@ -1018,6 +1018,12 @@ PreInit(ScrnInfoPtr pScrn, int flags)
     }
 #endif
 
+#ifdef GLAMOR_HAS_DRM_ATOMIC
+    ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+    ret |= drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 1);
+    ms->atomic_modeset = (ret == 0);
+#endif
+
     if (drmmode_pre_init(pScrn, &ms->drmmode, pScrn->bitsPerPixel / 8) == FALSE) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "KMS setup failed\n");
         goto fail;
@@ -1595,15 +1601,11 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
     fbPictureInit(pScreen, NULL, 0);
 
-#ifdef GLAMOR_HAS_GBM
-    if (ms->drmmode.glamor) {
-        if (!glamor_init(pScreen, GLAMOR_USE_EGL_SCREEN)) {
-            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-                       "Failed to initialize glamor at ScreenInit() time.\n");
-            return FALSE;
-        }
+    if (drmmode_init(pScrn, &ms->drmmode) == FALSE) {
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                   "Failed to initialize glamor at ScreenInit() time.\n");
+        return FALSE;
     }
-#endif
 
     if (ms->drmmode.shadow_enable && !msShadowInit(pScreen)) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "shadow fb init failed\n");

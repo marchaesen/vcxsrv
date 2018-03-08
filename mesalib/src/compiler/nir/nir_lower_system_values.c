@@ -133,6 +133,11 @@ convert_block(nir_block *block, nir_builder *b)
          break;
       }
 
+      case SYSTEM_VALUE_DEVICE_INDEX:
+         if (b->shader->options->lower_device_index_to_zero)
+            sysval = nir_imm_int(b, 0);
+         break;
+
       default:
          break;
       }

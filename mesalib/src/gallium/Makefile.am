@@ -155,7 +155,11 @@ SUBDIRS += state_trackers/glx/xlib targets/libgl-xlib
 endif
 
 if HAVE_ST_OMX_BELLAGIO
-SUBDIRS += state_trackers/omx_bellagio targets/omx-bellagio
+SUBDIRS += state_trackers/omx targets/omx
+endif
+
+if HAVE_ST_OMX_TIZONIA
+SUBDIRS += state_trackers/omx targets/omx
 endif
 
 if HAVE_GALLIUM_OSMESA

@@ -152,18 +152,40 @@ class VkEnum(object):
         self.name = name
         # Maps numbers to names
         self.values = values or dict()
+        self.name_to_value = dict()
 
     def add_value(self, name, value=None,
-                  extension=None, offset=None,
+                  extnum=None, offset=None,
                   error=False):
-        assert value is not None or extension is not None
+        assert value is not None or extnum is not None
         if value is None:
-            value = 1000000000 + (extension.number - 1) * 1000 + offset
+            value = 1000000000 + (extnum - 1) * 1000 + offset
             if error:
                 value = -value
 
+        self.name_to_value[name] = value
         if value not in self.values:
             self.values[value] = name
+        elif len(self.values[value]) > len(name):
+            self.values[value] = name
+
+    def add_value_from_xml(self, elem, extension=None):
+        if 'value' in elem.attrib:
+            self.add_value(elem.attrib['name'],
+                           value=int(elem.attrib['value']))
+        elif 'alias' in elem.attrib:
+            self.add_value(elem.attrib['name'],
+                           value=self.name_to_value[elem.attrib['alias']])
+        else:
+            error = 'dir' in elem.attrib and elem.attrib['dir'] == '-'
+            if 'extnumber' in elem.attrib:
+                extnum = int(elem.attrib['extnumber'])
+            else:
+                extnum = extension.number
+            self.add_value(elem.attrib['name'],
+                           extnum=extnum,
+                           offset=int(elem.attrib['offset']),
+                           error=error)
 
 
 def parse_xml(enum_factory, ext_factory, filename):
@@ -178,8 +200,12 @@ def parse_xml(enum_factory, ext_factory, filename):
     for enum_type in xml.findall('./enums[@type="enum"]'):
         enum = enum_factory(enum_type.attrib['name'])
         for value in enum_type.findall('./enum'):
-            enum.add_value(value.attrib['name'],
-                           value=int(value.attrib['value']))
+            enum.add_value_from_xml(value)
+
+    for value in xml.findall('./feature/require/enum[@extends]'):
+        enum = enum_factory.get(value.attrib['extends'])
+        if enum is not None:
+            enum.add_value_from_xml(value)
 
     for ext_elem in xml.findall('./extensions/extension[@supported="vulkan"]'):
         extension = ext_factory(ext_elem.attrib['name'],
@@ -187,17 +213,8 @@ def parse_xml(enum_factory, ext_factory, filename):
 
         for value in ext_elem.findall('./require/enum[@extends]'):
             enum = enum_factory.get(value.attrib['extends'])
-            if enum is None:
-                continue
-            if 'value' in value.attrib:
-                enum.add_value(value.attrib['name'],
-                               value=int(value.attrib['value']))
-            else:
-                error = 'dir' in value.attrib and value.attrib['dir'] == '-'
-                enum.add_value(value.attrib['name'],
-                               extension=extension,
-                               offset=int(value.attrib['offset']),
-                               error=error)
+            if enum is not None:
+                enum.add_value_from_xml(value, extension)
 
 
 def main():

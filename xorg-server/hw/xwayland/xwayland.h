@@ -47,6 +47,13 @@
 #include "tablet-unstable-v2-client-protocol.h"
 #include "xwayland-keyboard-grab-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
+#include "linux-dmabuf-unstable-v1-client-protocol.h"
+
+struct xwl_format {
+    uint32_t format;
+    int num_modifiers;
+    uint64_t *modifiers;
+};
 
 struct xwl_screen {
     int width;
@@ -96,12 +103,16 @@ struct xwl_screen {
     char *device_name;
     int drm_fd;
     int fd_render_node;
+    int drm_authenticated;
     struct wl_drm *drm;
-    uint32_t formats;
+    struct zwp_linux_dmabuf_v1 *dmabuf;
+    uint32_t num_formats;
+    struct xwl_format *formats;
     uint32_t capabilities;
     void *egl_display, *egl_context;
     struct gbm_device *gbm;
     struct glamor_context *glamor_ctx;
+    int dmabuf_capable;
 
     Atom allow_commits_prop;
 };
@@ -326,8 +337,10 @@ struct wl_buffer *xwl_shm_pixmap_get_wl_buffer(PixmapPtr pixmap);
 
 Bool xwl_glamor_init(struct xwl_screen *xwl_screen);
 
-Bool xwl_screen_init_glamor(struct xwl_screen *xwl_screen,
-                         uint32_t id, uint32_t version);
+Bool xwl_screen_set_drm_interface(struct xwl_screen *xwl_screen,
+                                  uint32_t id, uint32_t version);
+Bool xwl_screen_set_dmabuf_interface(struct xwl_screen *xwl_screen,
+                                     uint32_t id, uint32_t version);
 struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap);
 
 void xwl_screen_release_tablet_manager(struct xwl_screen *xwl_screen);

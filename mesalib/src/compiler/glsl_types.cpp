@@ -28,23 +28,12 @@
 #include "util/hash_table.h"
 
 
-mtx_t glsl_type::mem_mutex = _MTX_INITIALIZER_NP;
 mtx_t glsl_type::hash_mutex = _MTX_INITIALIZER_NP;
 hash_table *glsl_type::array_types = NULL;
 hash_table *glsl_type::record_types = NULL;
 hash_table *glsl_type::interface_types = NULL;
 hash_table *glsl_type::function_types = NULL;
 hash_table *glsl_type::subroutine_types = NULL;
-void *glsl_type::mem_ctx = NULL;
-
-void
-glsl_type::init_ralloc_type_ctx(void)
-{
-   if (glsl_type::mem_ctx == NULL) {
-      glsl_type::mem_ctx = ralloc_context(NULL);
-      assert(glsl_type::mem_ctx != NULL);
-   }
-}
 
 glsl_type::glsl_type(GLenum gl_type,
                      glsl_base_type base_type, unsigned vector_elements,
@@ -63,13 +52,16 @@ glsl_type::glsl_type(GLenum gl_type,
    STATIC_ASSERT((unsigned(GLSL_TYPE_INT)   & 3) == unsigned(GLSL_TYPE_INT));
    STATIC_ASSERT((unsigned(GLSL_TYPE_FLOAT) & 3) == unsigned(GLSL_TYPE_FLOAT));
 
-   mtx_lock(&glsl_type::mem_mutex);
+   ASSERT_BITFIELD_SIZE(glsl_type, base_type, GLSL_TYPE_ERROR);
+   ASSERT_BITFIELD_SIZE(glsl_type, sampled_type, GLSL_TYPE_ERROR);
+   ASSERT_BITFIELD_SIZE(glsl_type, sampler_dimensionality,
+                        GLSL_SAMPLER_DIM_SUBPASS_MS);
 
-   init_ralloc_type_ctx();
+   this->mem_ctx = ralloc_context(NULL);
+   assert(this->mem_ctx != NULL);
+
    assert(name != NULL);
    this->name = ralloc_strdup(this->mem_ctx, name);
-
-   mtx_unlock(&glsl_type::mem_mutex);
 
    /* Neither dimension is zero or both dimensions are zero.
     */
@@ -86,13 +78,11 @@ glsl_type::glsl_type(GLenum gl_type, glsl_base_type base_type,
    sampler_array(array), interface_packing(0),
    interface_row_major(0), length(0)
 {
-   mtx_lock(&glsl_type::mem_mutex);
+   this->mem_ctx = ralloc_context(NULL);
+   assert(this->mem_ctx != NULL);
 
-   init_ralloc_type_ctx();
    assert(name != NULL);
    this->name = ralloc_strdup(this->mem_ctx, name);
-
-   mtx_unlock(&glsl_type::mem_mutex);
 
    memset(& fields, 0, sizeof(fields));
 
@@ -110,9 +100,9 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
 {
    unsigned int i;
 
-   mtx_lock(&glsl_type::mem_mutex);
+   this->mem_ctx = ralloc_context(NULL);
+   assert(this->mem_ctx != NULL);
 
-   init_ralloc_type_ctx();
    assert(name != NULL);
    this->name = ralloc_strdup(this->mem_ctx, name);
    this->fields.structure = ralloc_array(this->mem_ctx,
@@ -123,8 +113,6 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].name = ralloc_strdup(this->fields.structure,
                                                      fields[i].name);
    }
-
-   mtx_unlock(&glsl_type::mem_mutex);
 }
 
 glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
@@ -140,9 +128,9 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
 {
    unsigned int i;
 
-   mtx_lock(&glsl_type::mem_mutex);
+   this->mem_ctx = ralloc_context(NULL);
+   assert(this->mem_ctx != NULL);
 
-   init_ralloc_type_ctx();
    assert(name != NULL);
    this->name = ralloc_strdup(this->mem_ctx, name);
    this->fields.structure = rzalloc_array(this->mem_ctx,
@@ -152,8 +140,6 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].name = ralloc_strdup(this->fields.structure,
                                                      fields[i].name);
    }
-
-   mtx_unlock(&glsl_type::mem_mutex);
 }
 
 glsl_type::glsl_type(const glsl_type *return_type,
@@ -167,9 +153,8 @@ glsl_type::glsl_type(const glsl_type *return_type,
 {
    unsigned int i;
 
-   mtx_lock(&glsl_type::mem_mutex);
-
-   init_ralloc_type_ctx();
+   this->mem_ctx = ralloc_context(NULL);
+   assert(this->mem_ctx != NULL);
 
    this->fields.parameters = rzalloc_array(this->mem_ctx,
                                            glsl_function_param, num_params + 1);
@@ -185,8 +170,6 @@ glsl_type::glsl_type(const glsl_type *return_type,
       this->fields.parameters[i + 1].in = params[i].in;
       this->fields.parameters[i + 1].out = params[i].out;
    }
-
-   mtx_unlock(&glsl_type::mem_mutex);
 }
 
 glsl_type::glsl_type(const char *subroutine_name) :
@@ -197,12 +180,16 @@ glsl_type::glsl_type(const char *subroutine_name) :
    vector_elements(1), matrix_columns(1),
    length(0)
 {
-   mtx_lock(&glsl_type::mem_mutex);
+   this->mem_ctx = ralloc_context(NULL);
+   assert(this->mem_ctx != NULL);
 
-   init_ralloc_type_ctx();
    assert(subroutine_name != NULL);
    this->name = ralloc_strdup(this->mem_ctx, subroutine_name);
-   mtx_unlock(&glsl_type::mem_mutex);
+}
+
+glsl_type::~glsl_type()
+{
+    ralloc_free(this->mem_ctx);
 }
 
 bool
@@ -416,6 +403,17 @@ const glsl_type *glsl_type::get_scalar_type() const
 }
 
 
+static void
+hash_free_type_function(struct hash_entry *entry)
+{
+   glsl_type *type = (glsl_type *) entry->data;
+
+   if (type->is_array())
+      free((void*)entry->key);
+
+   delete type;
+}
+
 void
 _mesa_glsl_release_types(void)
 {
@@ -424,32 +422,29 @@ _mesa_glsl_release_types(void)
     * necessary.
     */
    if (glsl_type::array_types != NULL) {
-      _mesa_hash_table_destroy(glsl_type::array_types, NULL);
+      _mesa_hash_table_destroy(glsl_type::array_types, hash_free_type_function);
       glsl_type::array_types = NULL;
    }
 
    if (glsl_type::record_types != NULL) {
-      _mesa_hash_table_destroy(glsl_type::record_types, NULL);
+      _mesa_hash_table_destroy(glsl_type::record_types, hash_free_type_function);
       glsl_type::record_types = NULL;
    }
 
    if (glsl_type::interface_types != NULL) {
-      _mesa_hash_table_destroy(glsl_type::interface_types, NULL);
+      _mesa_hash_table_destroy(glsl_type::interface_types, hash_free_type_function);
       glsl_type::interface_types = NULL;
    }
 
    if (glsl_type::function_types != NULL) {
-      _mesa_hash_table_destroy(glsl_type::function_types, NULL);
+      _mesa_hash_table_destroy(glsl_type::function_types, hash_free_type_function);
       glsl_type::function_types = NULL;
    }
 
    if (glsl_type::subroutine_types != NULL) {
-      _mesa_hash_table_destroy(glsl_type::subroutine_types, NULL);
+      _mesa_hash_table_destroy(glsl_type::subroutine_types, hash_free_type_function);
       glsl_type::subroutine_types = NULL;
    }
-
-   ralloc_free(glsl_type::mem_ctx);
-   glsl_type::mem_ctx = NULL;
 }
 
 
@@ -473,9 +468,10 @@ glsl_type::glsl_type(const glsl_type *array, unsigned length) :
     */
    const unsigned name_length = strlen(array->name) + 10 + 3;
 
-   mtx_lock(&glsl_type::mem_mutex);
+   this->mem_ctx = ralloc_context(NULL);
+   assert(this->mem_ctx != NULL);
+
    char *const n = (char *) ralloc_size(this->mem_ctx, name_length);
-   mtx_unlock(&glsl_type::mem_mutex);
 
    if (length == 0)
       snprintf(n, name_length, "%s[]", array->name);
@@ -970,7 +966,7 @@ glsl_type::get_array_instance(const glsl_type *base, unsigned array_size)
       const glsl_type *t = new glsl_type(base, array_size);
 
       entry = _mesa_hash_table_insert(array_types,
-                                      ralloc_strdup(mem_ctx, key),
+                                      strdup(key),
                                       (void *) t);
    }
 

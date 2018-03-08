@@ -814,7 +814,7 @@ nir_visitor::visit(ir_call *ir)
          op = nir_intrinsic_vote_all;
          break;
       case ir_intrinsic_vote_eq:
-         op = nir_intrinsic_vote_eq;
+         op = nir_intrinsic_vote_ieq;
          break;
       case ir_intrinsic_ballot:
          op = nir_intrinsic_ballot;
@@ -1163,8 +1163,9 @@ nir_visitor::visit(ir_call *ir)
       }
       case nir_intrinsic_vote_any:
       case nir_intrinsic_vote_all:
-      case nir_intrinsic_vote_eq: {
+      case nir_intrinsic_vote_ieq: {
          nir_ssa_dest_init(&instr->instr, &instr->dest, 1, 32, NULL);
+         instr->num_components = 1;
 
          ir_rvalue *value = (ir_rvalue *) ir->actual_parameters.get_head();
          instr->src[0] = nir_src_for_ssa(evaluate_rvalue(value));

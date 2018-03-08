@@ -163,45 +163,12 @@ struct glsl_type {
    unsigned interface_row_major:1;
 
 private:
-   glsl_type()
+   glsl_type() : mem_ctx(NULL)
    {
       // Dummy constructor, just for the sake of ASSERT_BITFIELD_SIZE.
    }
 
 public:
-   /* Callers of this ralloc-based new need not call delete. It's
-    * easier to just ralloc_free 'mem_ctx' (or any of its ancestors). */
-   static void* operator new(size_t size)
-   {
-      ASSERT_BITFIELD_SIZE(glsl_type, base_type, GLSL_TYPE_ERROR);
-      ASSERT_BITFIELD_SIZE(glsl_type, sampled_type, GLSL_TYPE_ERROR);
-      ASSERT_BITFIELD_SIZE(glsl_type, sampler_dimensionality,
-                           GLSL_SAMPLER_DIM_SUBPASS_MS);
-
-      mtx_lock(&glsl_type::mem_mutex);
-
-      /* mem_ctx should have been created by the static members */
-      assert(glsl_type::mem_ctx != NULL);
-
-      void *type;
-
-      type = ralloc_size(glsl_type::mem_ctx, size);
-      assert(type != NULL);
-
-      mtx_unlock(&glsl_type::mem_mutex);
-
-      return type;
-   }
-
-   /* If the user *does* call delete, that's OK, we will just
-    * ralloc_free in that case. */
-   static void operator delete(void *type)
-   {
-      mtx_lock(&glsl_type::mem_mutex);
-      ralloc_free(type);
-      mtx_unlock(&glsl_type::mem_mutex);
-   }
-
    /**
     * \name Vector and matrix element counts
     *
@@ -873,19 +840,16 @@ public:
       return (bool) interface_row_major;
    }
 
+   ~glsl_type();
+
 private:
 
-   static mtx_t mem_mutex;
    static mtx_t hash_mutex;
 
    /**
-    * ralloc context for all glsl_type allocations
-    *
-    * Set on the first call to \c glsl_type::new.
+    * ralloc context for the type itself.
     */
-   static void *mem_ctx;
-
-   void init_ralloc_type_ctx(void);
+   void *mem_ctx;
 
    /** Constructor for vector and matrix types */
    glsl_type(GLenum gl_type,

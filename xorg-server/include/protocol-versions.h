@@ -48,7 +48,7 @@
 
 /* DRI3 */
 #define SERVER_DRI3_MAJOR_VERSION               1
-#define SERVER_DRI3_MINOR_VERSION               0
+#define SERVER_DRI3_MINOR_VERSION               2
 
 /* DMX */
 #define SERVER_DMX_MAJOR_VERSION		2
@@ -69,7 +69,7 @@
 
 /* Present */
 #define SERVER_PRESENT_MAJOR_VERSION            1
-#define SERVER_PRESENT_MINOR_VERSION            0
+#define SERVER_PRESENT_MINOR_VERSION            1
 
 /* RandR */
 #define SERVER_RANDR_MAJOR_VERSION		1

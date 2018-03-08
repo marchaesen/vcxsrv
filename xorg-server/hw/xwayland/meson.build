@@ -12,7 +12,7 @@ srcs = [
 scanner_dep = dependency('wayland-scanner', native: true)
 scanner = find_program(scanner_dep.get_pkgconfig_variable('wayland_scanner'))
 
-protocols_dep = dependency('wayland-protocols')
+protocols_dep = dependency('wayland-protocols', version: '>= 1.8')
 protodir = protocols_dep.get_pkgconfig_variable('pkgdatadir')
 
 pointer_xml = join_paths(protodir, 'unstable', 'pointer-constraints', 'pointer-constraints-unstable-v1.xml')
@@ -20,6 +20,7 @@ relative_xml = join_paths(protodir, 'unstable', 'relative-pointer', 'relative-po
 tablet_xml = join_paths(protodir, 'unstable', 'tablet', 'tablet-unstable-v2.xml')
 kbgrab_xml = join_paths(protodir, 'unstable', 'xwayland-keyboard-grab', 'xwayland-keyboard-grab-unstable-v1.xml')
 xdg_output_xml = join_paths(protodir, 'unstable', 'xdg-output', 'xdg-output-unstable-v1.xml')
+dmabuf_xml = join_paths(protodir, 'unstable', 'linux-dmabuf', 'linux-dmabuf-unstable-v1.xml')
 
 client_header = generator(scanner,
     output : '@BASENAME@-client-protocol.h',
@@ -34,11 +35,13 @@ srcs += client_header.process(pointer_xml)
 srcs += client_header.process(tablet_xml)
 srcs += client_header.process(kbgrab_xml)
 srcs += client_header.process(xdg_output_xml)
+srcs += client_header.process(dmabuf_xml)
 srcs += code.process(relative_xml)
 srcs += code.process(pointer_xml)
 srcs += code.process(tablet_xml)
 srcs += code.process(kbgrab_xml)
 srcs += code.process(xdg_output_xml)
+srcs += code.process(dmabuf_xml)
 
 xwayland_glamor = []
 if gbm_dep.found()

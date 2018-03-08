@@ -87,7 +87,7 @@ LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
 
 void
 ac_llvm_add_target_dep_function_attr(LLVMValueRef F,
-				     const char *name, int value);
+				     const char *name, unsigned value);
 
 static inline unsigned
 ac_get_load_intr_attribs(bool can_speculate)
@@ -104,6 +104,9 @@ ac_get_store_intr_attribs(bool writeonly_memory)
 	return writeonly_memory ? AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY :
 				  AC_FUNC_ATTR_WRITEONLY;
 }
+
+unsigned
+ac_count_scratch_private_memory(LLVMValueRef function);
 
 #ifdef __cplusplus
 }

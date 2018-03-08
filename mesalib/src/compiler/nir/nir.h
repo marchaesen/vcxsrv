@@ -1081,6 +1081,16 @@ typedef enum {
     */
    NIR_INTRINSIC_INTERP_MODE = 9,
 
+   /**
+    * A binary nir_op to use when performing a reduction or scan operation
+    */
+   NIR_INTRINSIC_REDUCTION_OP = 10,
+
+   /**
+    * Cluster size for reduction operations
+    */
+   NIR_INTRINSIC_CLUSTER_SIZE = 11,
+
    NIR_INTRINSIC_NUM_INDEX_FLAGS,
 
 } nir_intrinsic_index_flag;
@@ -1149,6 +1159,8 @@ INTRINSIC_IDX_ACCESSORS(desc_set, DESC_SET, unsigned)
 INTRINSIC_IDX_ACCESSORS(binding, BINDING, unsigned)
 INTRINSIC_IDX_ACCESSORS(component, COMPONENT, unsigned)
 INTRINSIC_IDX_ACCESSORS(interp_mode, INTERP_MODE, unsigned)
+INTRINSIC_IDX_ACCESSORS(reduction_op, REDUCTION_OP, unsigned)
+INTRINSIC_IDX_ACCESSORS(cluster_size, CLUSTER_SIZE, unsigned)
 
 /**
  * \group texture information
@@ -1888,6 +1900,8 @@ typedef struct nir_shader_compiler_options {
 
    bool lower_cs_local_index_from_id;
 
+   bool lower_device_index_to_zero;
+
    /**
     * Should nir_lower_io() create load_interpolated_input intrinsics?
     *
@@ -2049,6 +2063,8 @@ bool nir_deref_foreach_leaf(nir_deref_var *deref,
 
 nir_load_const_instr *
 nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref);
+
+nir_const_value nir_alu_binop_identity(nir_op binop, unsigned bit_size);
 
 /**
  * NIR Cursors and Instruction Insertion API
@@ -2542,6 +2558,8 @@ typedef struct nir_lower_subgroups_options {
    bool lower_to_scalar:1;
    bool lower_vote_trivial:1;
    bool lower_subgroup_masks:1;
+   bool lower_shuffle:1;
+   bool lower_quad:1;
 } nir_lower_subgroups_options;
 
 bool nir_lower_subgroups(nir_shader *shader,

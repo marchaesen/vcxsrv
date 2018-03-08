@@ -1187,12 +1187,20 @@ vtn_get_builtin_location(struct vtn_builder *b,
          *mode = nir_var_shader_in;
       else if (b->shader->info.stage == MESA_SHADER_GEOMETRY)
          *mode = nir_var_shader_out;
+      else if (b->options && b->options->caps.shader_viewport_index_layer &&
+               (b->shader->info.stage == MESA_SHADER_VERTEX ||
+                b->shader->info.stage == MESA_SHADER_TESS_EVAL))
+         *mode = nir_var_shader_out;
       else
          vtn_fail("invalid stage for SpvBuiltInLayer");
       break;
    case SpvBuiltInViewportIndex:
       *location = VARYING_SLOT_VIEWPORT;
       if (b->shader->info.stage == MESA_SHADER_GEOMETRY)
+         *mode = nir_var_shader_out;
+      else if (b->options && b->options->caps.shader_viewport_index_layer &&
+               (b->shader->info.stage == MESA_SHADER_VERTEX ||
+                b->shader->info.stage == MESA_SHADER_TESS_EVAL))
          *mode = nir_var_shader_out;
       else if (b->shader->info.stage == MESA_SHADER_FRAGMENT)
          *mode = nir_var_shader_in;
@@ -1285,8 +1293,48 @@ vtn_get_builtin_location(struct vtn_builder *b,
       *location = SYSTEM_VALUE_DRAW_ID;
       set_mode_system_value(b, mode);
       break;
+   case SpvBuiltInSubgroupSize:
+      *location = SYSTEM_VALUE_SUBGROUP_SIZE;
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInSubgroupId:
+      *location = SYSTEM_VALUE_SUBGROUP_ID;
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInSubgroupLocalInvocationId:
+      *location = SYSTEM_VALUE_SUBGROUP_INVOCATION;
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInNumSubgroups:
+      *location = SYSTEM_VALUE_NUM_SUBGROUPS;
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInDeviceIndex:
+      *location = SYSTEM_VALUE_DEVICE_INDEX;
+      set_mode_system_value(b, mode);
+      break;
    case SpvBuiltInViewIndex:
       *location = SYSTEM_VALUE_VIEW_INDEX;
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInSubgroupEqMask:
+      *location = SYSTEM_VALUE_SUBGROUP_EQ_MASK,
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInSubgroupGeMask:
+      *location = SYSTEM_VALUE_SUBGROUP_GE_MASK,
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInSubgroupGtMask:
+      *location = SYSTEM_VALUE_SUBGROUP_GT_MASK,
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInSubgroupLeMask:
+      *location = SYSTEM_VALUE_SUBGROUP_LE_MASK,
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInSubgroupLtMask:
+      *location = SYSTEM_VALUE_SUBGROUP_LT_MASK,
       set_mode_system_value(b, mode);
       break;
    default:

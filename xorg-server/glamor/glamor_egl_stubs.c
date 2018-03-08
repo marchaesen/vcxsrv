@@ -36,10 +36,18 @@ glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
 }
 
 int
-glamor_egl_dri3_fd_name_from_tex(ScreenPtr screen,
-                                 PixmapPtr pixmap,
-                                 unsigned int tex,
-                                 Bool want_name, CARD16 *stride, CARD32 *size)
+glamor_egl_fd_name_from_pixmap(ScreenPtr screen,
+                               PixmapPtr pixmap,
+                               CARD16 *stride, CARD32 *size)
+{
+    return -1;
+}
+
+
+int
+glamor_egl_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
+                           uint32_t *offsets, uint32_t *strides,
+                           uint64_t *modifier)
 {
     return 0;
 }

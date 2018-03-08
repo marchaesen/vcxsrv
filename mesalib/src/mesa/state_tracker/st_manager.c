@@ -1207,7 +1207,7 @@ get_version(struct pipe_screen *screen,
    _mesa_init_constants(&consts, api);
    _mesa_init_extensions(&extensions);
 
-   st_init_limits(screen, &consts, &extensions);
+   st_init_limits(screen, &consts, &extensions, api);
    st_init_extensions(screen, &consts, &extensions, options, api);
 
    return _mesa_get_version(&extensions, &consts, api);

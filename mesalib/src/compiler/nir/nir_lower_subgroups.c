@@ -28,6 +28,21 @@
  * \file nir_opt_intrinsics.c
  */
 
+static nir_ssa_def *
+ballot_type_to_uint(nir_builder *b, nir_ssa_def *value, unsigned bit_size)
+{
+   /* We only use this on uvec4 types */
+   assert(value->num_components == 4 && value->bit_size == 32);
+
+   if (bit_size == 32) {
+      return nir_channel(b, value, 0);
+   } else {
+      assert(bit_size == 64);
+      return nir_pack_64_2x32_split(b, nir_channel(b, value, 0),
+                                       nir_channel(b, value, 1));
+   }
+}
+
 /* Converts a uint32_t or uint64_t value to uint64_t or uvec4 */
 static nir_ssa_def *
 uint_to_ballot_type(nir_builder *b, nir_ssa_def *value,
@@ -65,7 +80,7 @@ uint_to_ballot_type(nir_builder *b, nir_ssa_def *value,
 }
 
 static nir_ssa_def *
-lower_read_invocation_to_scalar(nir_builder *b, nir_intrinsic_instr *intrin)
+lower_subgroup_op_to_scalar(nir_builder *b, nir_intrinsic_instr *intrin)
 {
    /* This is safe to call on scalar things but it would be silly */
    assert(intrin->dest.ssa.num_components > 1);
@@ -84,8 +99,13 @@ lower_read_invocation_to_scalar(nir_builder *b, nir_intrinsic_instr *intrin)
       /* value */
       chan_intrin->src[0] = nir_src_for_ssa(nir_channel(b, value, i));
       /* invocation */
-      if (intrin->intrinsic == nir_intrinsic_read_invocation)
+      if (nir_intrinsic_infos[intrin->intrinsic].num_srcs > 1) {
+         assert(nir_intrinsic_infos[intrin->intrinsic].num_srcs == 2);
          nir_src_copy(&chan_intrin->src[1], &intrin->src[1], chan_intrin);
+      }
+
+      chan_intrin->const_index[0] = intrin->const_index[0];
+      chan_intrin->const_index[1] = intrin->const_index[1];
 
       nir_builder_instr_insert(b, &chan_intrin->instr);
 
@@ -93,6 +113,94 @@ lower_read_invocation_to_scalar(nir_builder *b, nir_intrinsic_instr *intrin)
    }
 
    return nir_vec(b, reads, intrin->num_components);
+}
+
+static nir_ssa_def *
+lower_vote_eq_to_scalar(nir_builder *b, nir_intrinsic_instr *intrin)
+{
+   assert(intrin->src[0].is_ssa);
+   nir_ssa_def *value = intrin->src[0].ssa;
+
+   nir_ssa_def *result = NULL;
+   for (unsigned i = 0; i < intrin->num_components; i++) {
+      nir_intrinsic_instr *chan_intrin =
+         nir_intrinsic_instr_create(b->shader, intrin->intrinsic);
+      nir_ssa_dest_init(&chan_intrin->instr, &chan_intrin->dest,
+                        1, intrin->dest.ssa.bit_size, NULL);
+      chan_intrin->num_components = 1;
+      chan_intrin->src[0] = nir_src_for_ssa(nir_channel(b, value, i));
+      nir_builder_instr_insert(b, &chan_intrin->instr);
+
+      if (result) {
+         result = nir_iand(b, result, &chan_intrin->dest.ssa);
+      } else {
+         result = &chan_intrin->dest.ssa;
+      }
+   }
+
+   return result;
+}
+
+static nir_ssa_def *
+lower_shuffle(nir_builder *b, nir_intrinsic_instr *intrin,
+              bool lower_to_scalar)
+{
+   nir_ssa_def *index = nir_load_subgroup_invocation(b);
+   switch (intrin->intrinsic) {
+   case nir_intrinsic_shuffle_xor:
+      assert(intrin->src[1].is_ssa);
+      index = nir_ixor(b, index, intrin->src[1].ssa);
+      break;
+   case nir_intrinsic_shuffle_up:
+      assert(intrin->src[1].is_ssa);
+      index = nir_isub(b, index, intrin->src[1].ssa);
+      break;
+   case nir_intrinsic_shuffle_down:
+      assert(intrin->src[1].is_ssa);
+      index = nir_iadd(b, index, intrin->src[1].ssa);
+      break;
+   case nir_intrinsic_quad_broadcast:
+      assert(intrin->src[1].is_ssa);
+      index = nir_ior(b, nir_iand(b, index, nir_imm_int(b, ~0x3)),
+                         intrin->src[1].ssa);
+      break;
+   case nir_intrinsic_quad_swap_horizontal:
+      /* For Quad operations, subgroups are divided into quads where
+       * (invocation % 4) is the index to a square arranged as follows:
+       *
+       *    +---+---+
+       *    | 0 | 1 |
+       *    +---+---+
+       *    | 2 | 3 |
+       *    +---+---+
+       */
+      index = nir_ixor(b, index, nir_imm_int(b, 0x1));
+      break;
+   case nir_intrinsic_quad_swap_vertical:
+      index = nir_ixor(b, index, nir_imm_int(b, 0x2));
+      break;
+   case nir_intrinsic_quad_swap_diagonal:
+      index = nir_ixor(b, index, nir_imm_int(b, 0x3));
+      break;
+   default:
+      unreachable("Invalid intrinsic");
+   }
+
+   nir_intrinsic_instr *shuffle =
+      nir_intrinsic_instr_create(b->shader, nir_intrinsic_shuffle);
+   shuffle->num_components = intrin->num_components;
+   nir_src_copy(&shuffle->src[0], &intrin->src[0], shuffle);
+   shuffle->src[1] = nir_src_for_ssa(index);
+   nir_ssa_dest_init(&shuffle->instr, &shuffle->dest,
+                     intrin->dest.ssa.num_components,
+                     intrin->dest.ssa.bit_size, NULL);
+
+   if (lower_to_scalar && shuffle->num_components > 1) {
+      return lower_subgroup_op_to_scalar(b, shuffle);
+   } else {
+      nir_builder_instr_insert(b, &shuffle->instr);
+      return &shuffle->dest.ssa;
+   }
 }
 
 static nir_ssa_def *
@@ -106,9 +214,13 @@ lower_subgroups_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
          return nir_ssa_for_src(b, intrin->src[0], 1);
       break;
 
-   case nir_intrinsic_vote_eq:
+   case nir_intrinsic_vote_feq:
+   case nir_intrinsic_vote_ieq:
       if (options->lower_vote_trivial)
          return nir_imm_int(b, NIR_TRUE);
+
+      if (options->lower_to_scalar && intrin->num_components > 1)
+         return lower_vote_eq_to_scalar(b, intrin);
       break;
 
    case nir_intrinsic_load_subgroup_size:
@@ -119,7 +231,7 @@ lower_subgroups_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
    case nir_intrinsic_read_invocation:
    case nir_intrinsic_read_first_invocation:
       if (options->lower_to_scalar && intrin->num_components > 1)
-         return lower_read_invocation_to_scalar(b, intrin);
+         return lower_subgroup_op_to_scalar(b, intrin);
       break;
 
    case nir_intrinsic_load_subgroup_eq_mask:
@@ -186,6 +298,89 @@ lower_subgroups_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
                                  intrin->dest.ssa.num_components,
                                  intrin->dest.ssa.bit_size);
    }
+
+   case nir_intrinsic_ballot_bitfield_extract:
+   case nir_intrinsic_ballot_bit_count_reduce:
+   case nir_intrinsic_ballot_find_lsb:
+   case nir_intrinsic_ballot_find_msb: {
+      assert(intrin->src[0].is_ssa);
+      nir_ssa_def *int_val = ballot_type_to_uint(b, intrin->src[0].ssa,
+                                                 options->ballot_bit_size);
+      switch (intrin->intrinsic) {
+      case nir_intrinsic_ballot_bitfield_extract:
+         assert(intrin->src[1].is_ssa);
+         return nir_i2b(b, nir_iand(b, nir_ushr(b, int_val,
+                                                   intrin->src[1].ssa),
+                                       nir_imm_int(b, 1)));
+      case nir_intrinsic_ballot_bit_count_reduce:
+         return nir_bit_count(b, int_val);
+      case nir_intrinsic_ballot_find_lsb:
+         return nir_find_lsb(b, int_val);
+      case nir_intrinsic_ballot_find_msb:
+         return nir_ufind_msb(b, int_val);
+      default:
+         unreachable("you seriously can't tell this is unreachable?");
+      }
+   }
+
+   case nir_intrinsic_ballot_bit_count_exclusive:
+   case nir_intrinsic_ballot_bit_count_inclusive: {
+      nir_ssa_def *count = nir_load_subgroup_invocation(b);
+      nir_ssa_def *mask = nir_imm_intN_t(b, ~0ull, options->ballot_bit_size);
+      if (intrin->intrinsic == nir_intrinsic_ballot_bit_count_inclusive) {
+         const unsigned bits = options->ballot_bit_size;
+         mask = nir_ushr(b, mask, nir_isub(b, nir_imm_int(b, bits - 1), count));
+      } else {
+         mask = nir_inot(b, nir_ishl(b, mask, count));
+      }
+
+      assert(intrin->src[0].is_ssa);
+      nir_ssa_def *int_val = ballot_type_to_uint(b, intrin->src[0].ssa,
+                                                 options->ballot_bit_size);
+
+      return nir_bit_count(b, nir_iand(b, int_val, mask));
+   }
+
+   case nir_intrinsic_elect: {
+      nir_intrinsic_instr *first =
+         nir_intrinsic_instr_create(b->shader,
+                                    nir_intrinsic_first_invocation);
+      nir_ssa_dest_init(&first->instr, &first->dest, 1, 32, NULL);
+      nir_builder_instr_insert(b, &first->instr);
+
+      return nir_ieq(b, nir_load_subgroup_invocation(b), &first->dest.ssa);
+   }
+
+   case nir_intrinsic_shuffle:
+      if (options->lower_to_scalar && intrin->num_components > 1)
+         return lower_subgroup_op_to_scalar(b, intrin);
+      break;
+
+   case nir_intrinsic_shuffle_xor:
+   case nir_intrinsic_shuffle_up:
+   case nir_intrinsic_shuffle_down:
+      if (options->lower_shuffle)
+         return lower_shuffle(b, intrin, options->lower_to_scalar);
+      else if (options->lower_to_scalar && intrin->num_components > 1)
+         return lower_subgroup_op_to_scalar(b, intrin);
+      break;
+
+   case nir_intrinsic_quad_broadcast:
+   case nir_intrinsic_quad_swap_horizontal:
+   case nir_intrinsic_quad_swap_vertical:
+   case nir_intrinsic_quad_swap_diagonal:
+      if (options->lower_quad)
+         return lower_shuffle(b, intrin, options->lower_to_scalar);
+      else if (options->lower_to_scalar && intrin->num_components > 1)
+         return lower_subgroup_op_to_scalar(b, intrin);
+      break;
+
+   case nir_intrinsic_reduce:
+   case nir_intrinsic_inclusive_scan:
+   case nir_intrinsic_exclusive_scan:
+      if (options->lower_to_scalar && intrin->num_components > 1)
+         return lower_subgroup_op_to_scalar(b, intrin);
+      break;
 
    default:
       break;

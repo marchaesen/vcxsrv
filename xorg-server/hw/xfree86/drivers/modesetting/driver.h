@@ -105,6 +105,7 @@ typedef struct _modesettingRec {
      * Page flipping stuff.
      *  @{
      */
+    Bool atomic_modeset;
     /** @} */
 
     DamagePtr damage;

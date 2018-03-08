@@ -619,6 +619,8 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_BINDING] = "binding",
       [NIR_INTRINSIC_COMPONENT] = "component",
       [NIR_INTRINSIC_INTERP_MODE] = "interp_mode",
+      [NIR_INTRINSIC_REDUCTION_OP] = "reduction_op",
+      [NIR_INTRINSIC_CLUSTER_SIZE] = "cluster_size",
    };
    for (unsigned idx = 1; idx < NIR_INTRINSIC_NUM_INDEX_FLAGS; idx++) {
       if (!info->index_map[idx])
@@ -631,6 +633,9 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
          for (unsigned i = 0; i < 4; i++)
             if ((wrmask >> i) & 1)
                fprintf(fp, "%c", "xyzw"[i]);
+      } else if (idx == NIR_INTRINSIC_REDUCTION_OP) {
+         nir_op reduction_op = nir_intrinsic_reduction_op(instr);
+         fprintf(fp, " reduction_op=%s", nir_op_infos[reduction_op].name);
       } else {
          unsigned off = info->index_map[idx] - 1;
          assert(index_name[idx]);  /* forgot to update index_name table? */

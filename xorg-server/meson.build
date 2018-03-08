@@ -78,7 +78,7 @@ scrnsaverproto_dep = dependency('scrnsaverproto', version: '>= 1.1')
 resourceproto_dep = dependency('resourceproto', version: '>= 1.2.0')
 xf86driproto_dep = dependency('xf86driproto', version: '>= 2.1.0', required: get_option('dri1') == 'true')
 dri2proto_dep = dependency('dri2proto', version: '>= 2.8', required: get_option('dri2') == 'true')
-dri3proto_dep = dependency('dri3proto', version: '>= 1.0', required: get_option('dri3') == 'true')
+dri3proto_dep = dependency('dri3proto', version: '>= 1.2', required: get_option('dri3') == 'true')
 xineramaproto_dep = dependency('xineramaproto')
 xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0')
 xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1', required: false)
@@ -262,9 +262,11 @@ else
     build_glamor = get_option('glamor') == 'true'
 endif
 
-gbm_dep = dependency('', required:false)
+gbm_dep = dependency('', required: false)
+epoxy_dep = dependency('', required: false)
 if build_glamor
     gbm_dep = dependency('gbm', version: '>= 10.2', required: false)
+    epoxy_dep = dependency('epoxy', required: false)
 endif
 
 # XXX: Add more sha1 options, because Linux is about choice
@@ -301,16 +303,8 @@ else
 endif
 
 libdrm_required = (get_option('dri1') == 'true') or (get_option('dri2') == 'true') or (get_option('dri3') == 'true')
-libdrm_dep = dependency('libdrm', version: '>= 2.3.1', required: libdrm_required)
-build_modesetting = false
-if libdrm_dep.found()
-  if build_dri2
-    # 2.4.65 is required for drmGetDevice
-    dependency('libdrm', version: '>= 2.4.65')
-  endif
-  # 2.4.46 is required for cursor hotspot support.
-  build_modesetting = libdrm_dep.version().version_compare('>= 2.4.46')
-endif
+libdrm_dep = dependency('libdrm', version: '>= 2.4.89', required: libdrm_required)
+build_modesetting = libdrm_dep.found()
 
 build_vbe = false
 if get_option('vbe') == 'auto'
@@ -369,10 +363,32 @@ elif get_option('dga') == 'true'
     build_dga = true
 endif
 
-# XXX: Allow configuration of these.
 build_apm = false
+if (get_option('linux_apm') == true and
+   host_machine.system() == 'linux')
+    if cc.has_header('linux/apm_bios.h')
+        build_apm = true
+    endif
+endif
+
 build_acpi = false
-build_mitshm = true
+if (get_option('linux_acpi') == true and
+   host_machine.system() == 'linux')
+    if (host_machine.cpu() == 'x86' or
+       host_machine.cpu() == 'x86_64' or
+       host_machine.cpu() == 'ia64')
+        build_acpi = true
+    endif
+endif
+
+build_mitshm = false
+if get_option('mitshm') == 'auto'
+    build_mitshm = cc.has_header('sys/shm.h')
+elif get_option('mitshm') == 'true'
+    build_mitshm = true
+endif
+
+# XXX: Allow configuration of these.
 build_xselinux = false
 build_xf86vidmode = xf86vidmodeproto_dep.found()
 

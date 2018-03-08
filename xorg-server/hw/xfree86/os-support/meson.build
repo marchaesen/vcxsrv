@@ -40,7 +40,6 @@ if host_machine.system() == 'linux'
         endif
     endif
 
-    os_support_flags += '-DHAVE_SYSV_IPC'
 elif host_machine.system() == 'solaris'
     srcs_xorg_os_support += [
         'solaris/sun_apm.c',
@@ -72,7 +71,6 @@ elif host_machine.system() == 'solaris'
         error('Unknown CPU family for Solaris build')
     endif
 
-    os_support_flags += '-DHAVE_SYSV_IPC'
 elif host_machine.system().endswith('bsd')
     srcs_xorg_os_support += [
         'bsd/bsd_VTsw.c',
