@@ -384,6 +384,11 @@ void util_blitter_custom_resolve_color(struct blitter_context *blitter,
                                        void *custom_blend,
                                        enum pipe_format format);
 
+/* Used by vc4 for 8/16-bit linear-to-tiled blits */
+void util_blitter_custom_shader(struct blitter_context *blitter,
+                                struct pipe_surface *dstsurf,
+                                void *custom_vs, void *custom_fs);
+
 /* The functions below should be used to save currently bound constant state
  * objects inside a driver. The objects are automatically restored at the end
  * of the util_blitter_{clear, copy_region, fill_region} functions and then

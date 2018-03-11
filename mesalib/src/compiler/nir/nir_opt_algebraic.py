@@ -125,6 +125,14 @@ optimizations = [
    (('ffma', a, b, c), ('fadd', ('fmul', a, b), c), 'options->lower_ffma'),
    (('~fadd', ('fmul', a, b), c), ('ffma', a, b, c), 'options->fuse_ffma'),
 
+   (('fdot4', ('vec4', a, b,   c,   1.0), d), ('fdph',  ('vec3', a, b, c), d)),
+   (('fdot4', ('vec4', a, 0.0, 0.0, 0.0), b), ('fmul', a, b)),
+   (('fdot4', ('vec4', a, b,   0.0, 0.0), c), ('fdot2', ('vec2', a, b), c)),
+   (('fdot4', ('vec4', a, b,   c,   0.0), d), ('fdot3', ('vec3', a, b, c), d)),
+
+   (('fdot3', ('vec3', a, 0.0, 0.0), b), ('fmul', a, b)),
+   (('fdot3', ('vec3', a, b,   0.0), c), ('fdot2', ('vec2', a, b), c)),
+
    # (a * #b + #c) << #d
    # ((a * #b) << #d) + (#c << #d)
    # (a * (#b << #d)) + (#c << #d)
@@ -401,6 +409,7 @@ optimizations = [
 
    # Conversions
    (('i2b', ('b2i', a)), a),
+   (('i2b', 'a@bool'), a),
    (('f2i32', ('ftrunc', a)), ('f2i32', a)),
    (('f2u32', ('ftrunc', a)), ('f2u32', a)),
    (('i2b', ('ineg', a)), ('i2b', a)),

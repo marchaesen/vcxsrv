@@ -142,10 +142,9 @@ BUILT_SOURCES = $(VULKAN_GENERATED_FILES)
 CLEANFILES = $(BUILT_SOURCES) dev_icd.json radeon_icd.@host_cpu@.json
 EXTRA_DIST = \
 	$(top_srcdir)/include/vulkan/vk_icd.h \
-	dev_icd.json.in \
-	radeon_icd.json.in \
 	radv_entrypoints_gen.py \
 	radv_extensions.py \
+	radv_icd.py \
 	vk_format_layout.csv \
 	vk_format_parse.py \
 	vk_format_table.py \
@@ -169,14 +168,12 @@ icdconf_DATA = radeon_icd.@host_cpu@.json
 # The following is used for development purposes, by setting VK_ICD_FILENAMES.
 noinst_DATA = dev_icd.json
 
-dev_icd.json : dev_icd.json.in
-	$(AM_V_GEN) $(SED) \
-		-e "s#@libvulkan_radeon_path@#${abs_top_builddir}/${LIB_DIR}/libvulkan_radeon.so#" \
-		< $(srcdir)/dev_icd.json.in > $@
+dev_icd.json : radv_extensions.py radv_icd.py
+	$(AM_V_GEN)$(PYTHON2) $(srcdir)/radv_icd.py \
+		--lib-path="${abs_top_builddir}/${LIB_DIR}" --out $@
 
-radeon_icd.@host_cpu@.json : radeon_icd.json.in
-	$(AM_V_GEN) $(SED) \
-		-e "s#@install_libdir@#${libdir}#" \
-		< $(srcdir)/radeon_icd.json.in > $@
+radeon_icd.@host_cpu@.json : radv_extensions.py radv_icd.py
+	$(AM_V_GEN)$(PYTHON2) $(srcdir)/radv_icd.py \
+		--lib-path="${libdir}" --out $@
 
 include $(top_srcdir)/install-lib-links.mk

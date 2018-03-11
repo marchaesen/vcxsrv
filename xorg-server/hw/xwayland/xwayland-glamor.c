@@ -69,6 +69,8 @@ wl_drm_format_for_depth(int depth)
         return WL_DRM_FORMAT_RGB565;
     case 24:
         return WL_DRM_FORMAT_XRGB8888;
+    case 30:
+        return WL_DRM_FORMAT_ARGB2101010;
     default:
         ErrorF("unexpected depth: %d\n", depth);
     case 32:
@@ -84,6 +86,8 @@ gbm_format_for_depth(int depth)
         return GBM_FORMAT_RGB565;
     case 24:
         return GBM_FORMAT_XRGB8888;
+    case 30:
+        return GBM_FORMAT_ARGB2101010;
     default:
         ErrorF("unexpected depth: %d\n", depth);
     case 32:

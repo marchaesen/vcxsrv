@@ -53,20 +53,17 @@ check_size(const GLfloat *attr)
  * Helper for initializing a vertex array.
  */
 static void
-init_array(struct gl_context *ctx, struct gl_vertex_array *array,
+init_array(struct gl_context *ctx, struct gl_array_attributes *attrib,
            unsigned size, const void *pointer)
 {
-   memset(array, 0, sizeof(*array));
+   memset(attrib, 0, sizeof(*attrib));
 
-   array->Size = size;
-   array->Type = GL_FLOAT;
-   array->Format = GL_RGBA;
-   array->StrideB = 0;
-   array->_ElementSize = array->Size * sizeof(GLfloat);
-   array->Ptr = pointer;
-
-   _mesa_reference_buffer_object(ctx, &array->BufferObj,
-                                 ctx->Shared->NullBufferObj);
+   attrib->Size = size;
+   attrib->Type = GL_FLOAT;
+   attrib->Format = GL_RGBA;
+   attrib->Stride = 0;
+   attrib->_ElementSize = size * sizeof(GLfloat);
+   attrib->Ptr = pointer;
 }
 
 
@@ -80,15 +77,15 @@ init_legacy_currval(struct gl_context *ctx)
    struct vbo_context *vbo = vbo_context(ctx);
    GLuint i;
 
-   /* Set up a constant (StrideB == 0) array for each current
+   /* Set up a constant (Stride == 0) array for each current
     * attribute:
     */
    for (i = 0; i < VERT_ATTRIB_FF_MAX; i++) {
-      struct gl_vertex_array *array = &vbo->currval[VERT_ATTRIB_FF(i)];
+      const unsigned attr = VERT_ATTRIB_FF(i);
+      struct gl_array_attributes *attrib = &vbo->current[attr];
 
-      init_array(ctx, array,
-                 check_size(ctx->Current.Attrib[i]),
-                 ctx->Current.Attrib[i]);
+      init_array(ctx, attrib, check_size(ctx->Current.Attrib[attr]),
+                 ctx->Current.Attrib[attr]);
    }
 }
 
@@ -100,9 +97,10 @@ init_generic_currval(struct gl_context *ctx)
    GLuint i;
 
    for (i = 0; i < VERT_ATTRIB_GENERIC_MAX; i++) {
-      struct gl_vertex_array *array = &vbo->currval[VBO_ATTRIB_GENERIC0 + i];
+      const unsigned attr = VBO_ATTRIB_GENERIC0 + i;
+      struct gl_array_attributes *attrib = &vbo->current[attr];
 
-      init_array(ctx, array, 1, ctx->Current.Attrib[VERT_ATTRIB_GENERIC0 + i]);
+      init_array(ctx, attrib, 1, ctx->Current.Attrib[attr]);
    }
 }
 
@@ -117,8 +115,8 @@ init_mat_currval(struct gl_context *ctx)
     * attribute:
     */
    for (i = 0; i < MAT_ATTRIB_MAX; i++) {
-      struct gl_vertex_array *array =
-         &vbo->currval[VBO_ATTRIB_MAT_FRONT_AMBIENT + i];
+      const unsigned attr = VBO_ATTRIB_MAT_FRONT_AMBIENT + i;
+      struct gl_array_attributes *attrib = &vbo->current[attr];
       unsigned size;
 
       /* Size is fixed for the material attributes, for others will
@@ -138,7 +136,7 @@ init_mat_currval(struct gl_context *ctx)
          break;
       }
 
-      init_array(ctx, array, size, ctx->Light.Material.Attrib[i]);
+      init_array(ctx, attrib, size, ctx->Light.Material.Attrib[i]);
    }
 }
 
@@ -237,6 +235,11 @@ _vbo_CreateContext(struct gl_context *ctx)
       return GL_FALSE;
    }
 
+   vbo->binding.Offset = 0;
+   vbo->binding.Stride = 0;
+   vbo->binding.InstanceDivisor = 0;
+   _mesa_reference_buffer_object(ctx, &vbo->binding.BufferObj,
+                                 ctx->Shared->NullBufferObj);
    init_legacy_currval(ctx);
    init_generic_currval(ctx);
    init_mat_currval(ctx);
@@ -276,11 +279,8 @@ _vbo_DestroyContext(struct gl_context *ctx)
    }
 
    if (vbo) {
-      GLuint i;
 
-      for (i = 0; i < VBO_ATTRIB_MAX; i++) {
-         _mesa_reference_buffer_object(ctx, &vbo->currval[i].BufferObj, NULL);
-      }
+      _mesa_reference_buffer_object(ctx, &vbo->binding.BufferObj, NULL);
 
       vbo_exec_destroy(ctx);
       if (ctx->API == API_OPENGL_COMPAT)

@@ -89,6 +89,8 @@ if (with_gles1 or with_gles2) and not with_opengl
   error('building OpenGL ES without OpenGL is not supported.')
 endif
 
+system_has_kms_drm = ['openbsd', 'netbsd', 'freebsd', 'dragonfly', 'linux'].contains(host_machine.system())
+
 with_dri = false
 with_dri_i915 = false
 with_dri_i965 = false
@@ -98,7 +100,7 @@ with_dri_nouveau = false
 with_dri_swrast = false
 _drivers = get_option('dri-drivers')
 if _drivers == 'auto'
-  if host_machine.system() == 'linux'
+  if system_has_kms_drm
     # TODO: PPC, Sparc
     if ['x86', 'x86_64'].contains(host_machine.cpu_family())
       _drivers = 'i915,i965,r100,r200,nouveau'
@@ -135,18 +137,19 @@ with_gallium_vc4 = false
 with_gallium_vc5 = false
 with_gallium_etnaviv = false
 with_gallium_imx = false
+with_gallium_tegra = false
 with_gallium_i915 = false
 with_gallium_svga = false
 with_gallium_virgl = false
 with_gallium_swr = false
 _drivers = get_option('gallium-drivers')
 if _drivers == 'auto'
-  if host_machine.system() == 'linux'
+  if system_has_kms_drm
     # TODO: PPC, Sparc
     if ['x86', 'x86_64'].contains(host_machine.cpu_family())
       _drivers = 'r300,r600,radeonsi,nouveau,virgl,svga,swrast'
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
-      _drivers = 'pl111,vc4,vc5,freedreno,etnaviv,imx,virgl,svga,swrast'
+      _drivers = 'pl111,vc4,vc5,freedreno,etnaviv,imx,nouveau,tegra,virgl,svga,swrast'
     else
       error('Unknown architecture. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.')
     endif
@@ -169,6 +172,7 @@ if _drivers != ''
   with_gallium_vc5 = _split.contains('vc5')
   with_gallium_etnaviv = _split.contains('etnaviv')
   with_gallium_imx = _split.contains('imx')
+  with_gallium_tegra = _split.contains('tegra')
   with_gallium_i915 = _split.contains('i915')
   with_gallium_svga = _split.contains('svga')
   with_gallium_virgl = _split.contains('virgl')
@@ -188,7 +192,7 @@ with_amd_vk = false
 with_any_vk = false
 _vulkan_drivers = get_option('vulkan-drivers')
 if _vulkan_drivers == 'auto'
-  if host_machine.system() == 'linux'
+  if system_has_kms_drm
     if host_machine.cpu_family().startswith('x86')
       _vulkan_drivers = 'amd,intel'
     else
@@ -219,6 +223,9 @@ if with_gallium_imx and not with_gallium_etnaviv
 endif
 if with_gallium_pl111 and not with_gallium_vc4
   error('pl111 driver requires vc4 driver')
+endif
+if with_gallium_tegra and not with_gallium_nouveau
+  error('tegra driver requires nouveau driver')
 endif
 
 dep_libdrm_intel = []
@@ -1229,8 +1236,8 @@ if with_platform_x11
 
     if with_dri3
       pre_args += '-DHAVE_DRI3'
-      dep_xcb_dri3 = dependency('xcb-dri3')
-      dep_xcb_present = dependency('xcb-present')
+      dep_xcb_dri3 = dependency('xcb-dri3', version : '>= 1.13')
+      dep_xcb_present = dependency('xcb-present', version: '>= 1.13')
       dep_xcb_sync = dependency('xcb-sync')
       dep_xshmfence = dependency('xshmfence', version : '>= 1.1')
     endif

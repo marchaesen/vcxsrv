@@ -5910,22 +5910,27 @@ si_llvm_init_export_args(struct radv_shader_context *ctx,
 			break;
 
 		case V_028714_SPI_SHADER_FP16_ABGR:
+			args->enabled_channels = 0x5;
 			packf = ac_build_cvt_pkrtz_f16;
 			break;
 
 		case V_028714_SPI_SHADER_UNORM16_ABGR:
+			args->enabled_channels = 0x5;
 			packf = ac_build_cvt_pknorm_u16;
 			break;
 
 		case V_028714_SPI_SHADER_SNORM16_ABGR:
+			args->enabled_channels = 0x5;
 			packf = ac_build_cvt_pknorm_i16;
 			break;
 
 		case V_028714_SPI_SHADER_UINT16_ABGR:
+			args->enabled_channels = 0x5;
 			packi = ac_build_cvt_pk_u16;
 			break;
 
 		case V_028714_SPI_SHADER_SINT16_ABGR:
+			args->enabled_channels = 0x5;
 			packi = ac_build_cvt_pk_i16;
 			break;
 

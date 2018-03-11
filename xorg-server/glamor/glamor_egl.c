@@ -464,6 +464,8 @@ gbm_format_for_depth(CARD8 depth)
         return GBM_FORMAT_RGB565;
     case 24:
         return GBM_FORMAT_XRGB8888;
+    case 30:
+        return GBM_FORMAT_ARGB2101010;
     default:
         ErrorF("unexpected depth: %d\n", depth);
     case 32:

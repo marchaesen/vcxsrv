@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <xf86drm.h>
+#include <drm_fourcc.h>
 #include "util/hash_table.h"
 
 #include "vk_util.h"
@@ -50,6 +51,7 @@
 
 struct wsi_x11_connection {
    bool has_dri3;
+   bool has_dri3_modifiers;
    bool has_present;
    bool is_proprietary_x11;
 };
@@ -128,6 +130,8 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
 {
    xcb_query_extension_cookie_t dri3_cookie, pres_cookie, amd_cookie, nv_cookie;
    xcb_query_extension_reply_t *dri3_reply, *pres_reply, *amd_reply, *nv_reply;
+   bool has_dri3_v1_2 = false;
+   bool has_present_v1_2 = false;
 
    struct wsi_x11_connection *wsi_conn =
       vk_alloc(alloc, sizeof(*wsi_conn), 8,
@@ -136,7 +140,7 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
       return NULL;
 
    dri3_cookie = xcb_query_extension(conn, 4, "DRI3");
-   pres_cookie = xcb_query_extension(conn, 7, "PRESENT");
+   pres_cookie = xcb_query_extension(conn, 7, "Present");
 
    /* We try to be nice to users and emit a warning if they try to use a
     * Vulkan application on a system without DRI3 enabled.  However, this ends
@@ -164,7 +168,30 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
    }
 
    wsi_conn->has_dri3 = dri3_reply->present != 0;
+   if (wsi_conn->has_dri3) {
+      xcb_dri3_query_version_cookie_t ver_cookie;
+      xcb_dri3_query_version_reply_t *ver_reply;
+
+      ver_cookie = xcb_dri3_query_version(conn, 1, 2);
+      ver_reply = xcb_dri3_query_version_reply(conn, ver_cookie, NULL);
+      has_dri3_v1_2 =
+         (ver_reply->major_version > 1 || ver_reply->minor_version >= 2);
+      free(ver_reply);
+   }
+
    wsi_conn->has_present = pres_reply->present != 0;
+   if (wsi_conn->has_present) {
+      xcb_present_query_version_cookie_t ver_cookie;
+      xcb_present_query_version_reply_t *ver_reply;
+
+      ver_cookie = xcb_present_query_version(conn, 1, 2);
+      ver_reply = xcb_present_query_version_reply(conn, ver_cookie, NULL);
+      has_present_v1_2 =
+        (ver_reply->major_version > 1 || ver_reply->minor_version >= 2);
+      free(ver_reply);
+   }
+
+   wsi_conn->has_dri3_modifiers = has_dri3_v1_2 && has_present_v1_2;
    wsi_conn->is_proprietary_x11 = false;
    if (amd_reply && amd_reply->present)
       wsi_conn->is_proprietary_x11 = true;
@@ -620,6 +647,8 @@ struct x11_image {
 struct x11_swapchain {
    struct wsi_swapchain                        base;
 
+   bool                                         has_dri3_modifiers;
+
    xcb_connection_t *                           conn;
    xcb_window_t                                 window;
    xcb_gc_t                                     gc;
@@ -634,6 +663,7 @@ struct x11_swapchain {
 
    bool                                         threaded;
    VkResult                                     status;
+   xcb_present_complete_mode_t                  last_present_mode;
    struct wsi_queue                             present_queue;
    struct wsi_queue                             acquire_queue;
    pthread_t                                    queue_manager;
@@ -666,6 +696,14 @@ x11_swapchain_result(struct x11_swapchain *chain, VkResult result)
    /* Return temporary errors, but don't persist them. */
    if (result == VK_TIMEOUT || result == VK_NOT_READY)
       return result;
+
+   /* Suboptimal isn't an error, but is a status which sticks to the swapchain
+    * and is always returned rather than success.
+    */
+   if (result == VK_SUBOPTIMAL_KHR) {
+      chain->status = result;
+      return result;
+   }
 
    /* No changes, so return the last status. */
    return chain->status;
@@ -715,7 +753,26 @@ x11_handle_dri3_present_event(struct x11_swapchain *chain,
       xcb_present_complete_notify_event_t *complete = (void *) event;
       if (complete->kind == XCB_PRESENT_COMPLETE_KIND_PIXMAP)
          chain->last_present_msc = complete->msc;
-      break;
+
+      VkResult result = VK_SUCCESS;
+
+      /* The winsys is now trying to flip directly and cannot due to our
+       * configuration. Request the user reallocate.
+       */
+      if (complete->mode == XCB_PRESENT_COMPLETE_MODE_SUBOPTIMAL_COPY &&
+          chain->last_present_mode != XCB_PRESENT_COMPLETE_MODE_SUBOPTIMAL_COPY)
+         result = VK_SUBOPTIMAL_KHR;
+
+      /* When we go from flipping to copying, the odds are very likely that
+       * we could reallocate in a more optimal way if we didn't have to care
+       * about scanout, so we always do this.
+       */
+      if (complete->mode == XCB_PRESENT_COMPLETE_MODE_COPY &&
+          chain->last_present_mode == XCB_PRESENT_COMPLETE_MODE_FLIP)
+         result = VK_SUBOPTIMAL_KHR;
+
+      chain->last_present_mode = complete->mode;
+      return result;
    }
 
    default:
@@ -851,6 +908,9 @@ x11_present_to_x11(struct x11_swapchain *chain, uint32_t image_index,
    if (chain->base.present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
       options |= XCB_PRESENT_OPTION_ASYNC;
 
+   if (chain->has_dri3_modifiers)
+      options |= XCB_PRESENT_OPTION_SUBOPTIMAL;
+
    xshmfence_reset(image->shm_fence);
 
    ++chain->send_sbc;
@@ -966,7 +1026,9 @@ static VkResult
 x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
                const VkSwapchainCreateInfoKHR *pCreateInfo,
                const VkAllocationCallbacks* pAllocator,
-               struct x11_image *image)
+               const uint64_t *const *modifiers,
+               const uint32_t *num_modifiers,
+               int num_tranches, struct x11_image *image)
 {
    xcb_void_cookie_t cookie;
    VkResult result;
@@ -976,28 +1038,57 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
       result = wsi_create_prime_image(&chain->base, pCreateInfo, &image->base);
    } else {
       result = wsi_create_native_image(&chain->base, pCreateInfo,
-                                       0, NULL, NULL, &image->base);
+                                       num_tranches, num_modifiers, modifiers,
+                                       &image->base);
    }
    if (result < 0)
       return result;
 
    image->pixmap = xcb_generate_id(chain->conn);
 
-   /* Without passing modifiers, we can't have multi-plane RGB images. */
-   assert(image->base.num_planes == 1);
+   if (image->base.drm_modifier != DRM_FORMAT_MOD_INVALID) {
+      /* If the image has a modifier, we must have DRI3 v1.1. */
+      assert(chain->has_dri3_modifiers);
 
-   cookie =
-      xcb_dri3_pixmap_from_buffer_checked(chain->conn,
-                                          image->pixmap,
-                                          chain->window,
-                                          image->base.sizes[0],
-                                          pCreateInfo->imageExtent.width,
-                                          pCreateInfo->imageExtent.height,
-                                          image->base.row_pitches[0],
-                                          chain->depth, bpp,
-                                          image->base.fds[0]);
+      cookie =
+         xcb_dri3_pixmap_from_buffers_checked(chain->conn,
+                                              image->pixmap,
+                                              chain->window,
+                                              image->base.num_planes,
+                                              pCreateInfo->imageExtent.width,
+                                              pCreateInfo->imageExtent.height,
+                                              image->base.row_pitches[0],
+                                              image->base.offsets[0],
+                                              image->base.row_pitches[1],
+                                              image->base.offsets[1],
+                                              image->base.row_pitches[2],
+                                              image->base.offsets[2],
+                                              image->base.row_pitches[3],
+                                              image->base.offsets[3],
+                                              chain->depth, bpp,
+                                              image->base.drm_modifier,
+                                              image->base.fds);
+   } else {
+      /* Without passing modifiers, we can't have multi-plane RGB images. */
+      assert(image->base.num_planes == 1);
+
+      cookie =
+         xcb_dri3_pixmap_from_buffer_checked(chain->conn,
+                                             image->pixmap,
+                                             chain->window,
+                                             image->base.sizes[0],
+                                             pCreateInfo->imageExtent.width,
+                                             pCreateInfo->imageExtent.height,
+                                             image->base.row_pitches[0],
+                                             chain->depth, bpp,
+                                             image->base.fds[0]);
+   }
+
    xcb_discard_reply(chain->conn, cookie.sequence);
-   image->base.fds[0] = -1; /* XCB has now taken ownership of the FD */
+
+   /* XCB has now taken ownership of the FDs. */
+   for (int i = 0; i < image->base.num_planes; i++)
+      image->base.fds[i] = -1;
 
    int fence_fd = xshmfence_alloc_shm();
    if (fence_fd < 0)
@@ -1046,6 +1137,82 @@ x11_image_finish(struct x11_swapchain *chain,
    xcb_discard_reply(chain->conn, cookie.sequence);
 
    wsi_destroy_image(&chain->base, &image->base);
+}
+
+static void
+wsi_x11_get_dri3_modifiers(struct wsi_x11_connection *wsi_conn,
+                           xcb_connection_t *conn, xcb_window_t window,
+                           uint8_t depth, uint8_t bpp,
+                           VkCompositeAlphaFlagsKHR vk_alpha,
+                           uint64_t **modifiers_in, uint32_t *num_modifiers_in,
+                           uint32_t *num_tranches_in,
+                           const VkAllocationCallbacks *pAllocator)
+{
+   if (!wsi_conn->has_dri3_modifiers)
+      goto out;
+
+   xcb_generic_error_t *error = NULL;
+   xcb_dri3_get_supported_modifiers_cookie_t mod_cookie =
+      xcb_dri3_get_supported_modifiers(conn, window, depth, bpp);
+   xcb_dri3_get_supported_modifiers_reply_t *mod_reply =
+      xcb_dri3_get_supported_modifiers_reply(conn, mod_cookie, &error);
+   free(error);
+
+   if (!mod_reply || (mod_reply->num_window_modifiers == 0 &&
+                      mod_reply->num_screen_modifiers == 0)) {
+      free(mod_reply);
+      goto out;
+   }
+
+   uint32_t n = 0;
+   uint32_t counts[2];
+   uint64_t *modifiers[2];
+
+   if (mod_reply->num_window_modifiers) {
+      counts[n] = mod_reply->num_window_modifiers;
+      modifiers[n] = vk_alloc(pAllocator,
+                              counts[n] * sizeof(uint64_t),
+                              8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      if (!modifiers[n]) {
+         free(mod_reply);
+         goto out;
+      }
+
+      memcpy(modifiers[n],
+             xcb_dri3_get_supported_modifiers_window_modifiers(mod_reply),
+             counts[n] * sizeof(uint64_t));
+      n++;
+   }
+
+   if (mod_reply->num_screen_modifiers) {
+      counts[n] = mod_reply->num_screen_modifiers;
+      modifiers[n] = vk_alloc(pAllocator,
+                              counts[n] * sizeof(uint64_t),
+                              8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      if (!modifiers[n]) {
+	 if (n > 0)
+            vk_free(pAllocator, modifiers[0]);
+         free(mod_reply);
+         goto out;
+      }
+
+      memcpy(modifiers[n],
+             xcb_dri3_get_supported_modifiers_screen_modifiers(mod_reply),
+             counts[n] * sizeof(uint64_t));
+      n++;
+   }
+
+   for (int i = 0; i < n; i++) {
+      modifiers_in[i] = modifiers[i];
+      num_modifiers_in[i] = counts[i];
+   }
+   *num_tranches_in = n;
+
+   free(mod_reply);
+   return;
+
+out:
+   *num_tranches_in = 0;
 }
 
 static VkResult
@@ -1097,8 +1264,13 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
 
    const unsigned num_images = pCreateInfo->minImageCount;
 
-   /* Check for whether or not we have a window up-front */
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
+   struct wsi_x11_connection *wsi_conn =
+      wsi_x11_get_connection(wsi_device, pAllocator, conn);
+   if (!wsi_conn)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+   /* Check for whether or not we have a window up-front */
    xcb_window_t window = x11_surface_get_window(icd_surface);
    xcb_get_geometry_reply_t *geometry =
       xcb_get_geometry_reply(conn, xcb_get_geometry(conn, window), NULL);
@@ -1132,6 +1304,19 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    chain->last_present_msc = 0;
    chain->threaded = false;
    chain->status = VK_SUCCESS;
+   chain->has_dri3_modifiers = wsi_conn->has_dri3_modifiers;
+
+   /* If we are reallocating from an old swapchain, then we inherit its
+    * last completion mode, to ensure we don't get into reallocation
+    * cycles. If we are starting anew, we set 'COPY', as that is the only
+    * mode which provokes reallocation when anything changes, to make
+    * sure we have the most optimal allocation.
+    */
+   struct x11_swapchain *old_chain = (void *) pCreateInfo->oldSwapchain;
+   if (old_chain)
+      chain->last_present_mode = old_chain->last_present_mode;
+   else
+      chain->last_present_mode = XCB_PRESENT_COMPLETE_MODE_COPY;
 
    if (!wsi_x11_check_dri3_compatible(conn, local_fd))
        chain->base.use_prime_blit = true;
@@ -1163,9 +1348,20 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
                           (uint32_t []) { 0 });
    xcb_discard_reply(chain->conn, cookie.sequence);
 
+   uint64_t *modifiers[2] = {NULL, NULL};
+   uint32_t num_modifiers[2] = {0, 0};
+   uint32_t num_tranches = 0;
+   if (wsi_device->supports_modifiers)
+      wsi_x11_get_dri3_modifiers(wsi_conn, conn, window, chain->depth, 32,
+                                 pCreateInfo->compositeAlpha,
+                                 modifiers, num_modifiers, &num_tranches,
+                                 pAllocator);
+
    uint32_t image = 0;
    for (; image < chain->base.image_count; image++) {
       result = x11_image_init(device, chain, pCreateInfo, pAllocator,
+                              (const uint64_t *const *)modifiers,
+                              num_modifiers, num_tranches,
                               &chain->images[image]);
       if (result != VK_SUCCESS)
          goto fail_init_images;
@@ -1202,6 +1398,8 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       }
    }
 
+   for (int i = 0; i < 2; i++)
+      vk_free(pAllocator, modifiers[i]);
    *swapchain_out = &chain->base;
 
    return VK_SUCCESS;
@@ -1211,6 +1409,9 @@ fail_init_images:
       x11_image_finish(chain, pAllocator, &chain->images[j]);
 
 fail_register:
+   for (int i = 0; i < 2; i++)
+      vk_free(pAllocator, modifiers[i]);
+
    xcb_unregister_for_special_event(chain->conn, chain->special_event);
 
    wsi_swapchain_finish(&chain->base);

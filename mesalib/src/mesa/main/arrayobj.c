@@ -284,9 +284,6 @@ unbind_array_object_vbos(struct gl_context *ctx, struct gl_vertex_array_object *
 
    for (i = 0; i < ARRAY_SIZE(obj->BufferBinding); i++)
       _mesa_reference_buffer_object(ctx, &obj->BufferBinding[i].BufferObj, NULL);
-
-   for (i = 0; i < ARRAY_SIZE(obj->_VertexArray); i++)
-      _mesa_reference_buffer_object(ctx, &obj->_VertexArray[i].BufferObj, NULL);
 }
 
 
@@ -462,21 +459,8 @@ void
 _mesa_update_vao_derived_arrays(struct gl_context *ctx,
                                 struct gl_vertex_array_object *vao)
 {
-   GLbitfield arrays = vao->NewArrays;
-
    /* Make sure we do not run into problems with shared objects */
    assert(!vao->SharedAndImmutable || vao->NewArrays == 0);
-
-   while (arrays) {
-      const int attrib = u_bit_scan(&arrays);
-      struct gl_vertex_array *array = &vao->_VertexArray[attrib];
-      const struct gl_array_attributes *attribs =
-         &vao->VertexAttrib[attrib];
-      const struct gl_vertex_buffer_binding *buffer_binding =
-         &vao->BufferBinding[attribs->BufferBindingIndex];
-
-      _mesa_update_vertex_array(ctx, array, attribs, buffer_binding);
-   }
 }
 
 

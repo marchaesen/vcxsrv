@@ -48,37 +48,6 @@ _mesa_vertex_attrib_address(const struct gl_array_attributes *array,
 }
 
 
-/**
- * Sets the fields in a gl_vertex_array to values derived from a
- * gl_array_attributes and a gl_vertex_buffer_binding.
- */
-static inline void
-_mesa_update_vertex_array(struct gl_context *ctx,
-                          struct gl_vertex_array *dst,
-                          const struct gl_array_attributes *attribs,
-                          const struct gl_vertex_buffer_binding *binding)
-{
-   if (attribs->Enabled) {
-      dst->Size = attribs->Size;
-      dst->Type = attribs->Type;
-      dst->Format = attribs->Format;
-      dst->StrideB = binding->Stride;
-      dst->Ptr = _mesa_vertex_attrib_address(attribs, binding);
-      dst->Normalized = attribs->Normalized;
-      dst->Integer = attribs->Integer;
-      dst->Doubles = attribs->Doubles;
-      dst->InstanceDivisor = binding->InstanceDivisor;
-      dst->_ElementSize = attribs->_ElementSize;
-      _mesa_reference_buffer_object(ctx, &dst->BufferObj, binding->BufferObj);
-   } else {
-      /* Disabled arrays shall not be consumed */
-      dst->Size = 0;
-      dst->Ptr = NULL;
-      _mesa_reference_buffer_object(ctx, &dst->BufferObj, NULL);
-   }
-}
-
-
 static inline bool
 _mesa_attr_zero_aliases_vertex(const struct gl_context *ctx)
 {
@@ -91,7 +60,7 @@ _mesa_attr_zero_aliases_vertex(const struct gl_context *ctx)
  */
 static inline void
 _mesa_set_drawing_arrays(struct gl_context *ctx,
-                         const struct gl_vertex_array **arrays)
+                         const struct gl_vertex_array *arrays)
 {
    if (ctx->Array._DrawArrays != arrays) {
       ctx->Array._DrawArrays = arrays;
@@ -495,10 +464,18 @@ extern void GLAPIENTRY
 _mesa_VertexArrayBindingDivisor(GLuint vaobj, GLuint bindingIndex,
                                 GLuint divisor);
 
-extern void
-_mesa_copy_vertex_array(struct gl_context *ctx,
-                        struct gl_vertex_array *dst,
-                        struct gl_vertex_array *src);
+
+/**
+ * Shallow copy one vertex array to another.
+ */
+static inline void
+_mesa_copy_vertex_array(struct gl_vertex_array *dst,
+                        const struct gl_vertex_array *src)
+{
+   dst->VertexAttrib = src->VertexAttrib;
+   dst->BufferBinding = src->BufferBinding;
+}
+
 
 extern void
 _mesa_copy_vertex_attrib_array(struct gl_context *ctx,

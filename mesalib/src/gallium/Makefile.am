@@ -89,6 +89,11 @@ if HAVE_GALLIUM_SWR
 SUBDIRS += drivers/swr
 endif
 
+## tegra
+if HAVE_GALLIUM_TEGRA
+SUBDIRS += drivers/tegra winsys/tegra/drm
+endif
+
 ## vc4/rpi
 if HAVE_GALLIUM_VC4
 SUBDIRS += drivers/vc4 winsys/vc4/drm

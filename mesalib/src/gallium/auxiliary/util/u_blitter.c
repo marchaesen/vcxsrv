@@ -129,6 +129,8 @@ struct blitter_context_priv
    unsigned dst_width;
    unsigned dst_height;
 
+   void *custom_vs;
+
    bool has_geometry_shader;
    bool has_tessellation;
    bool has_layered;
@@ -2555,6 +2557,68 @@ void util_blitter_custom_color(struct blitter_context *blitter,
    blitter_set_common_draw_rect_state(ctx, false);
    blitter_set_dst_dimensions(ctx, dstsurf->width, dstsurf->height);
    blitter->draw_rectangle(blitter, ctx->velem_state, get_vs_passthrough_pos,
+                           0, 0, dstsurf->width, dstsurf->height,
+                           0, 1, UTIL_BLITTER_ATTRIB_NONE, NULL);
+
+   util_blitter_restore_vertex_states(blitter);
+   util_blitter_restore_fragment_states(blitter);
+   util_blitter_restore_fb_state(blitter);
+   util_blitter_restore_render_cond(blitter);
+   util_blitter_unset_running_flag(blitter);
+}
+
+static void *get_custom_vs(struct blitter_context *blitter)
+{
+   struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
+
+   return ctx->custom_vs;
+}
+
+/**
+ * Performs a custom blit to the destination surface, using the VS and FS
+ * provided.
+ *
+ * Used by vc4 for the 8-bit linear-to-tiled blit.
+ */
+void util_blitter_custom_shader(struct blitter_context *blitter,
+                                struct pipe_surface *dstsurf,
+                                void *custom_vs, void *custom_fs)
+{
+   struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
+   struct pipe_context *pipe = ctx->base.pipe;
+   struct pipe_framebuffer_state fb_state;
+
+   ctx->custom_vs = custom_vs;
+
+   assert(dstsurf->texture);
+   if (!dstsurf->texture)
+      return;
+
+   /* check the saved state */
+   util_blitter_set_running_flag(blitter);
+   blitter_check_saved_vertex_states(ctx);
+   blitter_check_saved_fragment_states(ctx);
+   blitter_check_saved_fb_state(ctx);
+   blitter_disable_render_cond(ctx);
+
+   /* bind states */
+   pipe->bind_blend_state(pipe, ctx->blend[PIPE_MASK_RGBA][0]);
+   pipe->bind_depth_stencil_alpha_state(pipe, ctx->dsa_keep_depth_stencil);
+   pipe->bind_fs_state(pipe, custom_fs);
+   pipe->set_sample_mask(pipe, (1ull << MAX2(1, dstsurf->texture->nr_samples)) - 1);
+
+   /* set a framebuffer state */
+   fb_state.width = dstsurf->width;
+   fb_state.height = dstsurf->height;
+   fb_state.nr_cbufs = 1;
+   fb_state.cbufs[0] = dstsurf;
+   fb_state.zsbuf = 0;
+   pipe->set_framebuffer_state(pipe, &fb_state);
+   pipe->set_sample_mask(pipe, ~0);
+
+   blitter_set_common_draw_rect_state(ctx, false);
+   blitter_set_dst_dimensions(ctx, dstsurf->width, dstsurf->height);
+   blitter->draw_rectangle(blitter, ctx->velem_state, get_custom_vs,
                            0, 0, dstsurf->width, dstsurf->height,
                            0, 1, UTIL_BLITTER_ATTRIB_NONE, NULL);
 

@@ -17,8 +17,8 @@ env:
     - DRI2PROTO_VERSION=dri2proto-2.8
     - LIBPCIACCESS_VERSION=libpciaccess-0.13.4
     - LIBDRM_VERSION=libdrm-2.4.74
-    - XCBPROTO_VERSION=xcb-proto-1.11
-    - LIBXCB_VERSION=libxcb-1.11
+    - XCBPROTO_VERSION=xcb-proto-1.13
+    - LIBXCB_VERSION=libxcb-1.13
     - LIBXSHMFENCE_VERSION=libxshmfence-1.2
     - LIBVDPAU_VERSION=libvdpau-1.1
     - LIBVA_VERSION=libva-1.6.2

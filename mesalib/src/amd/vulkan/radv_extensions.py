@@ -31,7 +31,7 @@ import xml.etree.cElementTree as et
 
 from mako.template import Template
 
-MAX_API_VERSION = '1.1.0'
+MAX_API_VERSION = '1.1.70'
 
 class Extension:
     def __init__(self, name, ext_version, enable):
@@ -274,7 +274,7 @@ uint32_t
 radv_physical_device_api_version(struct radv_physical_device *dev)
 {
     if (!ANDROID && dev->rad_info.has_syncobj_wait_for_submit)
-        return VK_MAKE_VERSION(1, 1, 0);
+        return VK_MAKE_VERSION(1, 1, 70);
     return VK_MAKE_VERSION(1, 0, 68);
 }
 """)

@@ -44,7 +44,8 @@ struct _mesa_prim;
 
 
 struct vbo_context {
-   struct gl_vertex_array currval[VBO_ATTRIB_MAX];
+   struct gl_vertex_buffer_binding binding;
+   struct gl_array_attributes current[VBO_ATTRIB_MAX];
    /* The array of inputs used for _DrawVAO draws. */
    struct vbo_inputs draw_arrays;
 

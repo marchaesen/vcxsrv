@@ -45,7 +45,7 @@ AM_DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-libunwind \
 	--with-platforms=x11,wayland,drm,surfaceless \
 	--with-dri-drivers=i915,i965,nouveau,radeon,r200,swrast \
-	--with-gallium-drivers=i915,nouveau,r300,pl111,r600,radeonsi,freedreno,svga,swrast,vc4,virgl,swr,etnaviv,imx \
+	--with-gallium-drivers=i915,nouveau,r300,pl111,r600,radeonsi,freedreno,svga,swrast,vc4,tegra,virgl,swr,etnaviv,imx \
 	--with-vulkan-drivers=intel,radeon
 
 ACLOCAL_AMFLAGS = -I m4

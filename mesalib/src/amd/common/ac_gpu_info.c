@@ -98,7 +98,10 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 {
 	struct amdgpu_buffer_size_alignments alignment_info = {};
 	struct amdgpu_heap_info vram, vram_vis, gtt;
-	struct drm_amdgpu_info_hw_ip dma = {}, compute = {}, uvd = {}, uvd_enc = {}, vce = {}, vcn_dec = {}, vcn_enc = {};
+	struct drm_amdgpu_info_hw_ip dma = {}, compute = {}, uvd = {};
+	struct drm_amdgpu_info_hw_ip uvd_enc = {}, vce = {}, vcn_dec = {};
+	struct drm_amdgpu_info_hw_ip vcn_enc = {}, gfx = {};
+	struct amdgpu_gds_resource_info gds = {};
 	uint32_t vce_version = 0, vce_feature = 0, uvd_version = 0, uvd_feature = 0;
 	int r, i, j;
 	drmDevicePtr devinfo;
@@ -151,6 +154,12 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	r = amdgpu_query_hw_ip_info(dev, AMDGPU_HW_IP_DMA, 0, &dma);
 	if (r) {
 		fprintf(stderr, "amdgpu: amdgpu_query_hw_ip_info(dma) failed.\n");
+		return false;
+	}
+
+	r = amdgpu_query_hw_ip_info(dev, AMDGPU_HW_IP_GFX, 0, &gfx);
+	if (r) {
+		fprintf(stderr, "amdgpu: amdgpu_query_hw_ip_info(gfx) failed.\n");
 		return false;
 	}
 
@@ -240,6 +249,12 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		return false;
 	}
 
+	r = amdgpu_query_gds_info(dev, &gds);
+	if (r) {
+		fprintf(stderr, "amdgpu: amdgpu_query_gds_info failed.\n");
+		return false;
+	}
+
 	/* Set chip identification. */
 	info->pci_id = amdinfo->asic_id; /* TODO: is this correct? */
 	info->vce_harvest_config = amdinfo->vce_harvest_config;
@@ -275,6 +290,8 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	info->gart_size = gtt.heap_size;
 	info->vram_size = vram.heap_size;
 	info->vram_vis_size = vram_vis.heap_size;
+	info->gds_size = gds.gds_total_size;
+	info->gds_gfx_partition_size = gds.gds_gfx_partition_size;
 	/* The kernel can split large buffers in VRAM but not in GTT, so large
 	 * allocations can fail or cause buffer movement failures in the kernel.
 	 */
@@ -340,6 +357,18 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	if (info->chip_class == SI)
 		info->gfx_ib_pad_with_type2 = TRUE;
 
+	unsigned ib_align = 0;
+	ib_align = MAX2(ib_align, gfx.ib_start_alignment);
+	ib_align = MAX2(ib_align, compute.ib_start_alignment);
+	ib_align = MAX2(ib_align, dma.ib_start_alignment);
+	ib_align = MAX2(ib_align, uvd.ib_start_alignment);
+	ib_align = MAX2(ib_align, uvd_enc.ib_start_alignment);
+	ib_align = MAX2(ib_align, vce.ib_start_alignment);
+	ib_align = MAX2(ib_align, vcn_dec.ib_start_alignment);
+	ib_align = MAX2(ib_align, vcn_enc.ib_start_alignment);
+       assert(ib_align);
+	info->ib_start_alignment = ib_align;
+
 	return true;
 }
 
@@ -384,6 +413,8 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("gart_size = %i MB\n", (int)DIV_ROUND_UP(info->gart_size, 1024*1024));
 	printf("vram_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_size, 1024*1024));
 	printf("vram_vis_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_vis_size, 1024*1024));
+	printf("gds_size = %u kB\n", info->gds_size / 1024);
+	printf("gds_gfx_partition_size = %u kB\n", info->gds_gfx_partition_size / 1024);
 	printf("max_alloc_size = %i MB\n",
 	       (int)DIV_ROUND_UP(info->max_alloc_size, 1024*1024));
 	printf("min_alloc_size = %u\n", info->min_alloc_size);
@@ -392,6 +423,7 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("has_virtual_memory = %i\n", info->has_virtual_memory);
 	printf("gfx_ib_pad_with_type2 = %i\n", info->gfx_ib_pad_with_type2);
 	printf("has_hw_decode = %u\n", info->has_hw_decode);
+       printf("ib_start_alignment = %u\n", info->ib_start_alignment);
 	printf("num_sdma_rings = %i\n", info->num_sdma_rings);
 	printf("num_compute_rings = %u\n", info->num_compute_rings);
 	printf("uvd_fw_version = %u\n", info->uvd_fw_version);
