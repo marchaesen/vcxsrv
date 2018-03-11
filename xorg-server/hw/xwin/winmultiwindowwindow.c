@@ -871,6 +871,9 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
 #define WIDTH(rc) (rc.right - rc.left)
 #define HEIGHT(rc) (rc.bottom - rc.top)
 
+    if( !pWin->realized) //  IZI  Window is being destroyed?
+        return 0;
+
     winDebug("winAdjustXWindow\n");
 
     if (IsIconic(hwnd)) {
