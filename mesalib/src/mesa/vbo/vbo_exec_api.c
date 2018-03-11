@@ -174,7 +174,7 @@ vbo_exec_copy_to_current(struct vbo_exec_context *exec)
       /* Note: the exec->vtx.current[i] pointers point into the
        * ctx->Current.Attrib and ctx->Light.Material.Attrib arrays.
        */
-      GLfloat *current = (GLfloat *)vbo->currval[i].Ptr;
+      GLfloat *current = (GLfloat *)vbo->current[i].Ptr;
       fi_type tmp[8]; /* space for doubles */
       int dmul = 1;
 
@@ -195,7 +195,7 @@ vbo_exec_copy_to_current(struct vbo_exec_context *exec)
                                      exec->vtx.attrtype[i]);
       }
 
-      if (exec->vtx.attrtype[i] != vbo->currval[i].Type ||
+      if (exec->vtx.attrtype[i] != vbo->current[i].Type ||
           memcmp(current, tmp, 4 * sizeof(GLfloat) * dmul) != 0) {
          memcpy(current, tmp, 4 * sizeof(GLfloat) * dmul);
 
@@ -205,13 +205,13 @@ vbo_exec_copy_to_current(struct vbo_exec_context *exec)
           * directly.
           */
          /* Size here is in components - not bytes */
-         vbo->currval[i].Size = exec->vtx.attrsz[i] / dmul;
-         vbo->currval[i]._ElementSize =
-            vbo->currval[i].Size * sizeof(GLfloat) * dmul;
-         vbo->currval[i].Type = exec->vtx.attrtype[i];
-         vbo->currval[i].Integer =
+         vbo->current[i].Size = exec->vtx.attrsz[i] / dmul;
+         vbo->current[i]._ElementSize =
+            vbo->current[i].Size * sizeof(GLfloat) * dmul;
+         vbo->current[i].Type = exec->vtx.attrtype[i];
+         vbo->current[i].Integer =
             vbo_attrtype_to_integer_flag(exec->vtx.attrtype[i]);
-         vbo->currval[i].Doubles =
+         vbo->current[i].Doubles =
             vbo_attrtype_to_double_flag(exec->vtx.attrtype[i]);
 
          /* This triggers rather too much recalculation of Mesa state
@@ -248,10 +248,10 @@ vbo_exec_copy_from_current(struct vbo_exec_context *exec)
    for (i = VBO_ATTRIB_POS + 1; i < VBO_ATTRIB_MAX; i++) {
       if (exec->vtx.attrtype[i] == GL_DOUBLE ||
           exec->vtx.attrtype[i] == GL_UNSIGNED_INT64_ARB) {
-         memcpy(exec->vtx.attrptr[i], vbo->currval[i].Ptr,
+         memcpy(exec->vtx.attrptr[i], vbo->current[i].Ptr,
                 exec->vtx.attrsz[i] * sizeof(GLfloat));
       } else {
-         const fi_type *current = (fi_type *) vbo->currval[i].Ptr;
+         const fi_type *current = (fi_type *) vbo->current[i].Ptr;
          switch (exec->vtx.attrsz[i]) {
          case 4: exec->vtx.attrptr[i][3] = current[3];
          case 3: exec->vtx.attrptr[i][2] = current[2];
@@ -379,7 +379,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
                                               exec->vtx.attrtype[j]);
                   COPY_SZ_4V(dest + new_offset, newSize, tmp);
                } else {
-                  fi_type *current = (fi_type *)vbo->currval[j].Ptr;
+                  fi_type *current = (fi_type *)vbo->current[j].Ptr;
                   COPY_SZ_4V(dest + new_offset, sz, current);
                }
             }

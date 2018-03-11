@@ -138,7 +138,8 @@ static void check_program_state( struct st_context *st )
 
 static void check_attrib_edgeflag(struct st_context *st)
 {
-   const struct gl_vertex_array **arrays = st->ctx->Array._DrawArrays;
+   const struct gl_vertex_array *arrays = st->ctx->Array._DrawArrays;
+   const struct gl_vertex_buffer_binding *binding;
    GLboolean vertdata_edgeflags, edgeflag_culls_prims, edgeflags_enabled;
    struct gl_program *vp = st->ctx->VertexProgram._Current;
 
@@ -148,8 +149,8 @@ static void check_attrib_edgeflag(struct st_context *st)
    edgeflags_enabled = st->ctx->Polygon.FrontMode != GL_FILL ||
                        st->ctx->Polygon.BackMode != GL_FILL;
 
-   vertdata_edgeflags = edgeflags_enabled &&
-                        arrays[VERT_ATTRIB_EDGEFLAG]->StrideB != 0;
+   binding = arrays[VERT_ATTRIB_EDGEFLAG].BufferBinding;
+   vertdata_edgeflags = edgeflags_enabled && binding->Stride != 0;
    if (vertdata_edgeflags != st->vertdata_edgeflags) {
       st->vertdata_edgeflags = vertdata_edgeflags;
       if (vp)

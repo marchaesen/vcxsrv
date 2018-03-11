@@ -52,7 +52,7 @@ copy_vao(struct gl_context *ctx, const struct gl_vertex_array_object *vao,
    while (mask) {
       const int i = u_bit_scan(&mask);
       const struct gl_array_attributes *attrib = &vao->VertexAttrib[i];
-      struct gl_vertex_array *currval = &vbo->currval[shift + i];
+      struct gl_array_attributes *currval = &vbo->current[shift + i];
       const GLubyte size = attrib->Size;
       const GLenum16 type = attrib->Type;
       fi_type tmp[4];

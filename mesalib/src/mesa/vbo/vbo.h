@@ -216,7 +216,7 @@ struct split_limits
 
 void
 vbo_split_prims(struct gl_context *ctx,
-                const struct gl_vertex_array *arrays[],
+                const struct gl_vertex_array *arrays,
                 const struct _mesa_prim *prim,
                 GLuint nr_prims,
                 const struct _mesa_index_buffer *ib,
@@ -266,7 +266,7 @@ struct vbo_inputs
     * current values. The array of pointers is updated incrementally
     * based on the current and vertex_processing_mode values below.
     */
-   const struct gl_vertex_array *inputs[VERT_ATTRIB_MAX];
+   struct gl_vertex_array inputs[VERT_ATTRIB_MAX];
    /** Those VERT_BIT_'s where the inputs array point to current values. */
    GLbitfield current;
    /** Store which aliasing current values - generics or materials - are set. */

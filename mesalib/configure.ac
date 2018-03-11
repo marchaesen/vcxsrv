@@ -92,7 +92,9 @@ WAYLAND_REQUIRED=1.11
 WAYLAND_PROTOCOLS_REQUIRED=1.8
 XCB_REQUIRED=1.9.3
 XCBDRI2_REQUIRED=1.8
+XCBDRI3_REQUIRED=1.13
 XCBGLX_REQUIRED=1.8.1
+XCBPRESENT_REQUIRED=1.13
 XDAMAGE_REQUIRED=1.1
 XSHMFENCE_REQUIRED=1.1
 XVMC_REQUIRED=1.0.6
@@ -1357,7 +1359,7 @@ GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
 AC_ARG_WITH([gallium-drivers],
     [AS_HELP_STRING([--with-gallium-drivers@<:@=DIRS...@:>@],
         [comma delimited Gallium drivers list, e.g.
-        "i915,nouveau,r300,r600,radeonsi,freedreno,pl111,svga,swrast,swr,vc4,vc5,virgl,etnaviv,imx"
+        "i915,nouveau,r300,r600,radeonsi,freedreno,pl111,svga,swrast,swr,tegra,vc4,vc5,virgl,etnaviv,imx"
         @<:@default=r300,r600,svga,swrast@:>@])],
     [with_gallium_drivers="$withval"],
     [with_gallium_drivers="$GALLIUM_DRIVERS_DEFAULT"])
@@ -1849,7 +1851,7 @@ fi
 if test x"$enable_dri3" = xyes; then
     DEFINES="$DEFINES -DHAVE_DRI3"
 
-    dri3_modules="x11-xcb xcb >= $XCB_REQUIRED xcb-dri3 xcb-xfixes xcb-present xcb-sync xshmfence >= $XSHMFENCE_REQUIRED"
+    dri3_modules="x11-xcb xcb >= $XCB_REQUIRED xcb-dri3 >= $XCBDRI3_REQUIRED xcb-xfixes xcb-present >= $XCBPRESENT_REQUIRED xcb-sync xshmfence >= $XSHMFENCE_REQUIRED"
     PKG_CHECK_MODULES([XCB_DRI3], [$dri3_modules])
 fi
 
@@ -2631,6 +2633,10 @@ if test -n "$with_gallium_drivers"; then
        ximx)
             HAVE_GALLIUM_IMX=yes
             ;;
+        xtegra)
+            HAVE_GALLIUM_TEGRA=yes
+            require_libdrm "tegra"
+            ;;
         xswrast)
             HAVE_GALLIUM_SOFTPIPE=yes
             if test "x$enable_llvm" = xyes; then
@@ -2755,6 +2761,9 @@ if test "x$HAVE_GALLIUM_VC4" != xyes -a "x$HAVE_GALLIUM_PL111" = xyes  ; then
     AC_MSG_ERROR([Building with pl111 requires vc4])
 fi
 
+if test "x$HAVE_GALLIUM_NOUVEAU" != xyes -a "x$HAVE_GALLIUM_TEGRA" = xyes; then
+    AC_MSG_ERROR([Building with tegra requires nouveau])
+fi
 
 detect_old_buggy_llvm() {
     dnl llvm-config may not give the right answer when llvm is a built as a
@@ -2854,6 +2863,7 @@ AM_CONDITIONAL(HAVE_GALLIUM_NOUVEAU, test "x$HAVE_GALLIUM_NOUVEAU" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_FREEDRENO, test "x$HAVE_GALLIUM_FREEDRENO" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_ETNAVIV, test "x$HAVE_GALLIUM_ETNAVIV" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_IMX, test "x$HAVE_GALLIUM_IMX" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_TEGRA, test "x$HAVE_GALLIUM_TEGRA" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SOFTPIPE, test "x$HAVE_GALLIUM_SOFTPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_LLVMPIPE, test "x$HAVE_GALLIUM_LLVMPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SWR, test "x$HAVE_GALLIUM_SWR" = xyes)
@@ -3006,6 +3016,7 @@ AC_CONFIG_FILES([Makefile
                  src/gallium/drivers/softpipe/Makefile
                  src/gallium/drivers/svga/Makefile
                  src/gallium/drivers/swr/Makefile
+                 src/gallium/drivers/tegra/Makefile
                  src/gallium/drivers/trace/Makefile
                  src/gallium/drivers/etnaviv/Makefile
                  src/gallium/drivers/imx/Makefile
@@ -3056,6 +3067,7 @@ AC_CONFIG_FILES([Makefile
                  src/gallium/winsys/sw/null/Makefile
                  src/gallium/winsys/sw/wrapper/Makefile
                  src/gallium/winsys/sw/xlib/Makefile
+                 src/gallium/winsys/tegra/drm/Makefile
                  src/gallium/winsys/vc4/drm/Makefile
                  src/gallium/winsys/vc5/drm/Makefile
                  src/gallium/winsys/virgl/drm/Makefile

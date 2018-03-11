@@ -119,6 +119,12 @@ if with_gallium_imx
 else
   driver_imx = declare_dependency()
 endif
+if with_gallium_tegra
+  subdir('winsys/tegra/drm')
+  subdir('drivers/tegra')
+else
+  driver_tegra = declare_dependency()
+endif
 if with_gallium_i915
   subdir('winsys/i915/drm')
   subdir('drivers/i915')

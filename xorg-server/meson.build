@@ -279,20 +279,22 @@ endif
 
 build_glx = get_option('glx')
 
+libdrm_dep = dependency('libdrm', version: '>= 2.4.89', required: false)
+
 if get_option('dri1') == 'auto'
-    build_dri1 = xf86driproto_dep.found()
+    build_dri1 = xf86driproto_dep.found() and libdrm_dep.found()
 else
     build_dri1 = get_option('dri1') == 'true'
 endif
 
 if get_option('dri2') == 'auto'
-    build_dri2 = dri2proto_dep.found()
+    build_dri2 = dri2proto_dep.found() and libdrm_dep.found()
 else
     build_dri2 = get_option('dri2') == 'true'
 endif
 
 if get_option('dri3') == 'auto'
-    build_dri3 = dri3proto_dep.found() and xshmfence_dep.found()
+    build_dri3 = dri3proto_dep.found() and xshmfence_dep.found() and libdrm_dep.found()
 else
     build_dri3 = get_option('dri3') == 'true'
     if build_dri3
@@ -302,8 +304,11 @@ else
     endif
 endif
 
-libdrm_required = (get_option('dri1') == 'true') or (get_option('dri2') == 'true') or (get_option('dri3') == 'true')
-libdrm_dep = dependency('libdrm', version: '>= 2.4.89', required: libdrm_required)
+libdrm_required = build_dri1 or build_dri2 or build_dri3
+if not libdrm_dep.found() and libdrm_required
+    error('DRI requested, but LIBDRM not found')
+endif
+
 build_modesetting = libdrm_dep.found()
 
 build_vbe = false

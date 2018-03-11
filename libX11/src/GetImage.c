@@ -105,14 +105,16 @@ XImage *XGetImage (
 	    planes = 1;
 	}
 
-	if (!image)
+	if (!image) {
 	    Xfree(data);
-	if (planes < 1 || image->height < 1 || image->bytes_per_line < 1 ||
-	    INT_MAX / image->height <= image->bytes_per_line ||
-	    INT_MAX / planes <= image->height * image->bytes_per_line ||
-	    nbytes < planes * image->height * image->bytes_per_line) {
-	    XDestroyImage(image);
-	    image = NULL;
+	} else {
+            if (planes < 1 || image->height < 1 || image->bytes_per_line < 1 ||
+                INT_MAX / image->height <= image->bytes_per_line ||
+                INT_MAX / planes <= image->height * image->bytes_per_line ||
+                nbytes < planes * image->height * image->bytes_per_line) {
+                XDestroyImage(image);
+                image = NULL;
+            }
 	}
 	UnlockDisplay(dpy);
 	SyncHandle();

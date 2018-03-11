@@ -267,11 +267,14 @@ update_vao_inputs(struct gl_context *ctx,
 
    /* Fill in the client arrays from the VAO */
    const GLubyte *const map = _mesa_vao_attribute_map[vao->_AttributeMapMode];
-   const struct gl_vertex_array *array = vao->_VertexArray;
-   const struct gl_vertex_array **iarray = &inputs->inputs[0];
+   const struct gl_array_attributes *attribs = &vao->VertexAttrib[0];
+   const struct gl_vertex_buffer_binding *bindings = &vao->BufferBinding[0];
    while (enable) {
       const int attr = u_bit_scan(&enable);
-      iarray[attr] = &array[map[attr]];
+      struct gl_vertex_array *input = &inputs->inputs[attr];
+      const struct gl_array_attributes *attrib = &attribs[map[attr]];
+      input->VertexAttrib = attrib;
+      input->BufferBinding = &bindings[attrib->BufferBindingIndex];
    }
 }
 
@@ -294,12 +297,13 @@ update_current_inputs(struct gl_context *ctx,
       mask |= current & VERT_BIT_MAT_ALL;
 
    struct vbo_context *vbo = vbo_context(ctx);
-   const struct gl_vertex_array *const currval = &vbo->currval[0];
-   const struct gl_vertex_array **iarray = &inputs->inputs[0];
+   const struct gl_array_attributes *const currval = &vbo->current[0];
    const GLubyte *const map = _vbo_attribute_alias_map[mode];
    while (mask) {
       const int attr = u_bit_scan(&mask);
-      iarray[attr] = &currval[map[attr]];
+      struct gl_vertex_array *input = &inputs->inputs[attr];
+      input->VertexAttrib = &currval[map[attr]];
+      input->BufferBinding = &vbo->binding;
    }
 
    inputs->current = current;

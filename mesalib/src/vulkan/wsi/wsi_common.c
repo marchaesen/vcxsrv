@@ -82,20 +82,20 @@ wsi_device_init(struct wsi_device *wsi,
 #ifdef VK_USE_PLATFORM_XCB_KHR
    result = wsi_x11_init_wsi(wsi, alloc);
    if (result != VK_SUCCESS)
-      return result;
+      goto fail;
 #endif
 
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
    result = wsi_wl_init_wsi(wsi, alloc, pdevice);
-   if (result != VK_SUCCESS) {
-#ifdef VK_USE_PLATFORM_XCB_KHR
-      wsi_x11_finish_wsi(wsi, alloc);
-#endif
-      return result;
-   }
+   if (result != VK_SUCCESS)
+      goto fail;
 #endif
 
    return VK_SUCCESS;
+
+fail:
+   wsi_device_finish(wsi, alloc);
+   return result;
 }
 
 void

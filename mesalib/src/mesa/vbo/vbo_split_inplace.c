@@ -41,7 +41,7 @@
  */
 struct split_context {
    struct gl_context *ctx;
-   const struct gl_vertex_array **array;
+   const struct gl_vertex_array *array;
    const struct _mesa_prim *prim;
    GLuint nr_prims;
    const struct _mesa_index_buffer *ib;
@@ -63,7 +63,7 @@ static void
 flush_vertex( struct split_context *split)
 {
    struct gl_context *ctx = split->ctx;
-   const struct gl_vertex_array **saved_arrays = ctx->Array._DrawArrays;
+   const struct gl_vertex_array *saved_arrays = ctx->Array._DrawArrays;
    struct _mesa_index_buffer ib;
    GLuint i;
 
@@ -268,7 +268,7 @@ split_prims(struct split_context *split)
 
 void
 vbo_split_inplace(struct gl_context *ctx,
-                  const struct gl_vertex_array *arrays[],
+                  const struct gl_vertex_array *arrays,
                   const struct _mesa_prim *prim,
                   GLuint nr_prims,
                   const struct _mesa_index_buffer *ib,

@@ -60,8 +60,9 @@ struct rastpos_stage
    struct gl_context *ctx;            /**< Rendering context */
 
    /* vertex attrib info we can setup once and re-use */
+   struct gl_vertex_buffer_binding binding;
+   struct gl_array_attributes attrib[VERT_ATTRIB_MAX];
    struct gl_vertex_array array[VERT_ATTRIB_MAX];
-   const struct gl_vertex_array *arrays[VERT_ATTRIB_MAX];
    struct _mesa_prim prim;
 };
 
@@ -193,15 +194,16 @@ new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
    rs->stage.destroy = rastpos_destroy;
    rs->ctx = ctx;
 
+   rs->binding.Stride = 0;
+   rs->binding.BufferObj = NULL;
    for (i = 0; i < ARRAY_SIZE(rs->array); i++) {
-      rs->array[i].Size = 4;
-      rs->array[i].Type = GL_FLOAT;
-      rs->array[i].Format = GL_RGBA;
-      rs->array[i].StrideB = 0;
-      rs->array[i].Ptr = (GLubyte *) ctx->Current.Attrib[i];
-      rs->array[i].Normalized = GL_TRUE;
-      rs->array[i].BufferObj = NULL;
-      rs->arrays[i] = &rs->array[i];
+      rs->attrib[i].Size = 4;
+      rs->attrib[i].Type = GL_FLOAT;
+      rs->attrib[i].Format = GL_RGBA;
+      rs->attrib[i].Ptr = (GLubyte *) ctx->Current.Attrib[i];
+      rs->attrib[i].Normalized = GL_TRUE;
+      rs->array[i].BufferBinding = &rs->binding;
+      rs->array[i].VertexAttrib = &rs->attrib[i];
    }
 
    rs->prim.mode = GL_POINTS;
@@ -222,7 +224,7 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    struct st_context *st = st_context(ctx);
    struct draw_context *draw = st_get_draw_context(st);
    struct rastpos_stage *rs;
-   const struct gl_vertex_array **saved_arrays = ctx->Array._DrawArrays;
+   const struct gl_vertex_array *saved_arrays = ctx->Array._DrawArrays;
 
    if (!st->draw)
       return;
@@ -258,13 +260,13 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    /* All vertex attribs but position were previously initialized above.
     * Just plug in position pointer now.
     */
-   rs->array[0].Ptr = (GLubyte *) v;
+   rs->attrib[0].Ptr = (GLubyte *) v;
 
    /* Draw the point.
     *
     * Don't set DriverFlags.NewArray.
     * st_feedback_draw_vbo doesn't check for that flag. */
-   ctx->Array._DrawArrays = rs->arrays;
+   ctx->Array._DrawArrays = rs->array;
    st_feedback_draw_vbo(ctx, &rs->prim, 1, NULL, GL_TRUE, 0, 1,
                         NULL, 0, NULL);
    ctx->Array._DrawArrays = saved_arrays;

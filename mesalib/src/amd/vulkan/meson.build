@@ -134,18 +134,30 @@ libvulkan_radeon = shared_library(
   install : true,
 )
 
-radv_data = configuration_data()
-radv_data.set('install_libdir', join_paths(get_option('prefix'), get_option('libdir')))
-radv_data.set('libvulkan_radeon_path', libvulkan_radeon.full_path())
-
-configure_file(
-  configuration : radv_data,
-  input : 'radeon_icd.json.in',
+radeon_icd = custom_target(
+  'radeon_icd',
+  input : 'radv_icd.py',
   output : 'radeon_icd.@0@.json'.format(host_machine.cpu()),
+  command : [
+    prog_python2, '@INPUT@',
+    '--lib-path', join_paths(get_option('prefix'), get_option('libdir')),
+    '--out', '@OUTPUT@',
+  ],
+  depend_files : files('radv_extensions.py'),
+  build_by_default : true,
   install_dir : with_vulkan_icd_dir,
+  install : true,
 )
-configure_file(
-  configuration : radv_data,
-  input : 'dev_icd.json.in',
-  output : 'dev_icd.json'
+
+radv_dev_icd = custom_target(
+  'radv_dev_icd',
+  input : 'radv_icd.py',
+  output : 'dev_icd.json',
+  command : [
+    prog_python2, '@INPUT@', '--lib-path', meson.current_build_dir(),
+    '--out', '@OUTPUT@'
+  ],
+  depend_files : files('radv_extensions.py'),
+  build_by_default : true,
+  install : false,
 )

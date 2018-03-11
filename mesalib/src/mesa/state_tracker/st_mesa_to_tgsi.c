@@ -951,9 +951,9 @@ st_translate_mesa_program(struct gl_context *ctx,
 
    /* Declare misc input registers
     */
-   GLbitfield sysInputs = program->info.system_values_read;
+   GLbitfield64 sysInputs = program->info.system_values_read;
    for (i = 0; sysInputs; i++) {
-      if (sysInputs & (1 << i)) {
+      if (sysInputs & (1ull << i)) {
          unsigned semName = _mesa_sysval_to_semantic(i);
 
          t->systemValues[i] = ureg_DECL_system_value(ureg, semName, 0);
@@ -985,7 +985,7 @@ st_translate_mesa_program(struct gl_context *ctx,
              semName == TGSI_SEMANTIC_POSITION)
             emit_wpos(st_context(ctx), t, program, ureg);
 
-          sysInputs &= ~(1 << i);
+          sysInputs &= ~(1ull << i);
       }
    }
 

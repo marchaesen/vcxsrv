@@ -2845,27 +2845,6 @@ _mesa_VertexArrayBindingDivisor(GLuint vaobj, GLuint bindingIndex,
 }
 
 
-/**
- * Copy one vertex array to another.
- */
-void
-_mesa_copy_vertex_array(struct gl_context *ctx,
-                        struct gl_vertex_array *dst,
-                        struct gl_vertex_array *src)
-{
-   dst->Size = src->Size;
-   dst->Type = src->Type;
-   dst->Format = src->Format;
-   dst->StrideB = src->StrideB;
-   dst->Ptr = src->Ptr;
-   dst->Normalized = src->Normalized;
-   dst->Integer = src->Integer;
-   dst->Doubles = src->Doubles;
-   dst->InstanceDivisor = src->InstanceDivisor;
-   dst->_ElementSize = src->_ElementSize;
-   _mesa_reference_buffer_object(ctx, &dst->BufferObj, src->BufferObj);
-}
-
 void
 _mesa_copy_vertex_attrib_array(struct gl_context *ctx,
                                struct gl_array_attributes *dst,
