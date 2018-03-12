@@ -240,12 +240,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       vbuffers[attr].stride = binding->Stride; /* in bytes */
       velements[attr].instance_divisor = 0;
       velements[attr].vertex_buffer_index = attr;
-      velements[attr].src_format =
-         st_pipe_vertex_format(attrib->Type,
-                               attrib->Size,
-                               attrib->Format,
-                               attrib->Normalized,
-                               attrib->Integer);
+      velements[attr].src_format = st_pipe_vertex_format(attrib);
       assert(velements[attr].src_format);
 
       /* tell draw about this attribute */

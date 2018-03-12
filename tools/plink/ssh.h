@@ -258,11 +258,14 @@ void hmacmd5_key(void *handle, void const *key, int len);
 void hmacmd5_do_hmac(void *handle, unsigned char const *blk, int len,
 		     unsigned char *hmac);
 
-typedef struct {
+int supports_sha_ni(void);
+
+typedef struct SHA_State {
     uint32 h[5];
     unsigned char block[64];
     int blkused;
     uint32 lenhi, lenlo;
+    void (*sha1)(struct SHA_State * s, const unsigned char *p, int len);
 } SHA_State;
 void SHA_Init(SHA_State * s);
 void SHA_Bytes(SHA_State * s, const void *p, int len);
@@ -271,11 +274,12 @@ void SHA_Simple(const void *p, int len, unsigned char *output);
 
 void hmac_sha1_simple(void *key, int keylen, void *data, int datalen,
 		      unsigned char *output);
-typedef struct {
+typedef struct SHA256_State {
     uint32 h[8];
     unsigned char block[64];
     int blkused;
     uint32 lenhi, lenlo;
+    void (*sha256)(struct SHA256_State * s, const unsigned char *p, int len);
 } SHA256_State;
 void SHA256_Init(SHA256_State * s);
 void SHA256_Bytes(SHA256_State * s, const void *p, int len);
@@ -500,6 +504,37 @@ extern int ssh_fallback_cmd(void *handle);
 
 #ifndef MSCRYPTOAPI
 void SHATransform(word32 * digest, word32 * data);
+#endif
+
+/*
+ * Check of compiler version
+ */
+#ifdef _FORCE_SHA_NI
+#   define COMPILER_SUPPORTS_SHA_NI
+#elif defined(__clang__)
+#   if (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 8)) && (defined(__x86_64__) || defined(__i386))
+#       define COMPILER_SUPPORTS_SHA_NI
+#   endif
+#elif defined(__GNUC__)
+#    if ((__GNUC__ >= 5) && (defined(__x86_64__) || defined(__i386)))
+#       define COMPILER_SUPPORTS_SHA_NI
+#    endif
+#elif defined (_MSC_VER)
+#   if (defined(_M_X64) || defined(_M_IX86)) && _MSC_VER >= 1900
+#      define COMPILER_SUPPORTS_SHA_NI
+#   endif
+#endif
+
+#ifdef _FORCE_SOFTWARE_SHA
+#   undef COMPILER_SUPPORTS_SHA_NI
+#endif
+
+#if defined(__clang__)
+#   if !__has_attribute(target)
+/* If clang is old enough not to support __attribute__((target(...)))
+ * as used below, then we can't use this code after all. */
+#      undef COMPILER_SUPPORTS_SHA_NI
+#   endif
 #endif
 
 int random_byte(void);

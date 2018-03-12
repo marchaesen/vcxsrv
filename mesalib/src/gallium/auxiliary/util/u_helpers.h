@@ -57,6 +57,9 @@ void
 util_end_pipestat_query(struct pipe_context *ctx, struct pipe_query *q,
                         FILE *f);
 
+void
+util_wait_for_idle(struct pipe_context *ctx);
+
 #ifdef __cplusplus
 }
 #endif

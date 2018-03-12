@@ -330,13 +330,37 @@ FcNameConvert (FcType type, FcChar8 *string)
     case FcTypeRange:
 	if (sscanf ((char *) string, "[%lg %lg]", &b, &e) != 2)
 	{
-	    v.u.d = strtod ((char *) string, &p);
-	    if (p != NULL && p[0] != 0)
+	    char *sc, *ec;
+	    size_t len = strlen ((const char *) string);
+	    int si, ei;
+
+	    sc = malloc (len);
+	    ec = malloc (len);
+	    if (sc && ec && sscanf ((char *) string, "[%s %[^]]]", sc, ec) == 2)
 	    {
-		v.type = FcTypeVoid;
-		break;
+		if (FcNameConstant ((const FcChar8 *) sc, &si) &&
+		    FcNameConstant ((const FcChar8 *) ec, &ei))
+		    v.u.r =  FcRangeCreateDouble (si, ei);
+		else
+		    goto bail1;
 	    }
-	    v.type = FcTypeDouble;
+	    else
+	    {
+	    bail1:
+		v.type = FcTypeDouble;
+		if (FcNameConstant (string, &si))
+		{
+		    v.u.d = (double) si;
+		} else {
+		    v.u.d = strtod ((char *) string, &p);
+		    if (p != NULL && p[0] != 0)
+			v.type = FcTypeVoid;
+		}
+	    }
+	    if (sc)
+		free (sc);
+	    if (ec)
+		free (ec);
 	}
 	else
 	    v.u.r = FcRangeCreateDouble (b, e);

@@ -454,7 +454,6 @@ if test "x$GCC_ATOMIC_BUILTINS_SUPPORTED" = x1; then
         LIBATOMIC_LIBS="-latomic"
     fi
 fi
-AM_CONDITIONAL([GCC_ATOMIC_BUILTINS_SUPPORTED], [test x$GCC_ATOMIC_BUILTINS_SUPPORTED = x1])
 AC_SUBST([LIBATOMIC_LIBS])
 
 dnl Check if host supports 64-bit atomics

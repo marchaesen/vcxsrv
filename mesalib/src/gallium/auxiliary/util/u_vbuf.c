@@ -448,7 +448,7 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
          map -= (ptrdiff_t)vb->stride * min_index;
       }
 
-      tr->set_buffer(tr, i, map, vb->stride, ~0);
+      tr->set_buffer(tr, i, map, vb->stride, info->max_index);
    }
 
    /* Translate. */

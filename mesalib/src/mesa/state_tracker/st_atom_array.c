@@ -237,13 +237,18 @@ static const uint16_t vertex_formats[][4][4] = {
  * Return a PIPE_FORMAT_x for the given GL datatype and size.
  */
 enum pipe_format
-st_pipe_vertex_format(GLenum type, GLuint size, GLenum format,
-                      GLboolean normalized, GLboolean integer)
+st_pipe_vertex_format(const struct gl_array_attributes *attrib)
 {
+   const GLubyte size = attrib->Size;
+   const GLenum16 format = attrib->Format;
+   const bool normalized = attrib->Normalized;
+   const bool integer = attrib->Integer;
+   GLenum16 type = attrib->Type;
    unsigned index;
 
    assert(size >= 1 && size <= 4);
    assert(format == GL_RGBA || format == GL_BGRA);
+   assert(attrib->_ElementSize == _mesa_bytes_per_vertex_attrib(size, type));
 
    switch (type) {
    case GL_HALF_FLOAT_OES:
@@ -532,14 +537,8 @@ setup_interleaved_attribs(struct st_context *st,
       ptr = _mesa_vertex_attrib_address(attrib, binding);
 
       src_offset = (unsigned) (ptr - low_addr);
-      assert(attrib->_ElementSize ==
-             _mesa_bytes_per_vertex_attrib(attrib->Size, attrib->Type));
 
-      src_format = st_pipe_vertex_format(attrib->Type,
-                                         attrib->Size,
-                                         attrib->Format,
-                                         attrib->Normalized,
-                                         attrib->Integer);
+      src_format = st_pipe_vertex_format(attrib);
 
       init_velement_lowered(vp, velements, src_offset, src_format,
                             binding->InstanceDivisor, 0,
@@ -623,8 +622,6 @@ setup_non_interleaved_attribs(struct st_context *st,
       attrib = array->VertexAttrib;
       stride = binding->Stride;
       bufobj = binding->BufferObj;
-      assert(attrib->_ElementSize ==
-             _mesa_bytes_per_vertex_attrib(attrib->Size, attrib->Type));
 
       if (_mesa_is_bufferobj(bufobj)) {
          /* Attribute data is in a VBO.
@@ -688,11 +685,7 @@ setup_non_interleaved_attribs(struct st_context *st,
       /* common-case setup */
       vbuffer[bufidx].stride = stride; /* in bytes */
 
-      src_format = st_pipe_vertex_format(attrib->Type,
-                                         attrib->Size,
-                                         attrib->Format,
-                                         attrib->Normalized,
-                                         attrib->Integer);
+      src_format = st_pipe_vertex_format(attrib);
 
       init_velement_lowered(vp, velements, 0, src_format,
                             binding->InstanceDivisor, bufidx,
