@@ -2306,30 +2306,6 @@ get_tex_parameterIiv(struct gl_context *ctx,
    }
 }
 
-static void
-get_tex_parameterIuiv(struct gl_context *ctx,
-                      struct gl_texture_object *obj,
-                      GLenum pname, GLuint *params, bool dsa)
-{
-   switch (pname) {
-   case GL_TEXTURE_BORDER_COLOR:
-      COPY_4V(params, obj->Sampler.BorderColor.i);
-      break;
-   default:
-      {
-         GLint ip[4];
-         get_tex_parameteriv(ctx, obj, pname, ip, dsa);
-         params[0] = ip[0];
-         if (pname == GL_TEXTURE_SWIZZLE_RGBA_EXT ||
-             pname == GL_TEXTURE_CROP_RECT_OES) {
-            params[1] = ip[1];
-            params[2] = ip[2];
-            params[3] = ip[3];
-         }
-      }
-   }
-}
-
 void GLAPIENTRY
 _mesa_GetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
 {
@@ -2382,7 +2358,7 @@ _mesa_GetTexParameterIuiv(GLenum target, GLenum pname, GLuint *params)
    if (!texObj)
       return;
 
-   get_tex_parameterIuiv(ctx, texObj, pname, params, false);
+   get_tex_parameterIiv(ctx, texObj, pname, (GLint *) params, false);
 }
 
 
@@ -2436,5 +2412,5 @@ _mesa_GetTextureParameterIuiv(GLuint texture, GLenum pname, GLuint *params)
    if (!texObj)
       return;
 
-   get_tex_parameterIuiv(ctx, texObj, pname, params, true);
+   get_tex_parameterIiv(ctx, texObj, pname, (GLint *) params, true);
 }

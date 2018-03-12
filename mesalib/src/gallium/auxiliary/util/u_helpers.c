@@ -118,6 +118,7 @@ util_upload_index_buffer(struct pipe_context *pipe,
    return *out_buffer != NULL;
 }
 
+/* This is a helper for hardware bring-up. Don't remove. */
 struct pipe_query *
 util_begin_pipestat_query(struct pipe_context *ctx)
 {
@@ -130,6 +131,7 @@ util_begin_pipestat_query(struct pipe_context *ctx)
    return q;
 }
 
+/* This is a helper for hardware bring-up. Don't remove. */
 void
 util_end_pipestat_query(struct pipe_context *ctx, struct pipe_query *q,
                         FILE *f)
@@ -166,4 +168,14 @@ util_end_pipestat_query(struct pipe_context *ctx, struct pipe_query *q,
            stats.hs_invocations,
            stats.ds_invocations,
            stats.cs_invocations);
+}
+
+/* This is a helper for hardware bring-up. Don't remove. */
+void
+util_wait_for_idle(struct pipe_context *ctx)
+{
+   struct pipe_fence_handle *fence = NULL;
+
+   ctx->flush(ctx, &fence, 0);
+   ctx->screen->fence_finish(ctx->screen, NULL, fence, PIPE_TIMEOUT_INFINITE);
 }
