@@ -142,10 +142,10 @@ mat_times_scalar(struct vtn_builder *b,
 {
    struct vtn_ssa_value *dest = vtn_create_ssa_value(b, mat->type);
    for (unsigned i = 0; i < glsl_get_matrix_columns(mat->type); i++) {
-      if (glsl_get_base_type(mat->type) == GLSL_TYPE_FLOAT)
-         dest->elems[i]->def = nir_fmul(&b->nb, mat->elems[i]->def, scalar);
-      else
+      if (glsl_base_type_is_integer(glsl_get_base_type(mat->type)))
          dest->elems[i]->def = nir_imul(&b->nb, mat->elems[i]->def, scalar);
+      else
+         dest->elems[i]->def = nir_fmul(&b->nb, mat->elems[i]->def, scalar);
    }
 
    return dest;

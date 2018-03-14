@@ -28,6 +28,8 @@
 
 #include "compiler/shader_enums.h"
 
+struct nir_variable;
+
 #define AC_LLVM_MAX_OUTPUTS (VARYING_SLOT_VAR31 + 1)
 
 enum ac_descriptor_type {
@@ -111,15 +113,11 @@ struct ac_shader_abi {
 					   bool load_inputs);
 
 	void (*store_tcs_outputs)(struct ac_shader_abi *abi,
+				  const struct nir_variable *var,
 				  LLVMValueRef vertex_index,
 				  LLVMValueRef param_index,
 				  unsigned const_index,
-				  unsigned location,
-				  unsigned driver_location,
 				  LLVMValueRef src,
-				  unsigned component,
-				  bool is_patch,
-				  bool is_compact,
 				  unsigned writemask);
 
 	LLVMValueRef (*load_tess_coord)(struct ac_shader_abi *abi);

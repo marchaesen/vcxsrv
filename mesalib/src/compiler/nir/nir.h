@@ -2557,6 +2557,7 @@ typedef struct nir_lower_subgroups_options {
    uint8_t ballot_bit_size;
    bool lower_to_scalar:1;
    bool lower_vote_trivial:1;
+   bool lower_vote_eq_to_ballot:1;
    bool lower_subgroup_masks:1;
    bool lower_shuffle:1;
    bool lower_quad:1;

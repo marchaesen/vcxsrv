@@ -53,12 +53,14 @@ VULKAN_FILES := \
 	radv_meta_resolve.c \
 	radv_meta_resolve_cs.c \
 	radv_meta_resolve_fs.c \
+	radv_nir_to_llvm.c \
 	radv_pass.c \
 	radv_pipeline.c \
 	radv_pipeline_cache.c \
 	radv_private.h \
 	radv_radeon_winsys.h \
 	radv_shader.c \
+	radv_shader_info.c \
 	radv_shader.h \
 	radv_query.c \
 	radv_util.c \

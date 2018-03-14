@@ -1126,8 +1126,8 @@ calculate_gs_info(const VkGraphicsPipelineCreateInfo *pCreateInfo,
                        const struct radv_pipeline *pipeline)
 {
 	struct radv_gs_state gs = {0};
-	struct ac_shader_variant_info *gs_info = &pipeline->shaders[MESA_SHADER_GEOMETRY]->info;
-	struct ac_es_output_info *es_info;
+	struct radv_shader_variant_info *gs_info = &pipeline->shaders[MESA_SHADER_GEOMETRY]->info;
+	struct radv_es_output_info *es_info;
 	if (pipeline->device->physical_device->rad_info.chip_class >= GFX9)
 		es_info = radv_pipeline_has_tess(pipeline) ? &gs_info->tes.es_info : &gs_info->vs.es_info;
 	else
@@ -1254,7 +1254,7 @@ calculate_gs_ring_sizes(struct radv_pipeline *pipeline, const struct radv_gs_sta
 	unsigned alignment = 256 * num_se;
 	/* The maximum size is 63.999 MB per SE. */
 	unsigned max_size = ((unsigned)(63.999 * 1024 * 1024) & ~255) * num_se;
-	struct ac_shader_variant_info *gs_info = &pipeline->shaders[MESA_SHADER_GEOMETRY]->info;
+	struct radv_shader_variant_info *gs_info = &pipeline->shaders[MESA_SHADER_GEOMETRY]->info;
 
 	/* Calculate the minimum size. */
 	unsigned min_esgs_ring_size = align(gs->vgt_esgs_ring_itemsize * 4 * gs_vertex_reuse *
@@ -1478,7 +1478,7 @@ static const struct radv_prim_vertex_count prim_size_table[] = {
 	[V_008958_DI_PT_2D_TRI_STRIP] = {0, 0},
 };
 
-static const struct ac_vs_output_info *get_vs_output_info(const struct radv_pipeline *pipeline)
+static const struct radv_vs_output_info *get_vs_output_info(const struct radv_pipeline *pipeline)
 {
 	if (radv_pipeline_has_gs(pipeline))
 		return &pipeline->gs_copy_shader->info.vs.outinfo;
@@ -1589,7 +1589,7 @@ radv_generate_graphics_pipeline_key(struct radv_pipeline *pipeline,
 }
 
 static void
-radv_fill_shader_keys(struct ac_shader_variant_key *keys,
+radv_fill_shader_keys(struct radv_shader_variant_key *keys,
                       const struct radv_pipeline_key *key,
                       nir_shader **nir)
 {
@@ -1672,7 +1672,7 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 	nir_shader *nir[MESA_SHADER_STAGES] = {0};
 	void *codes[MESA_SHADER_STAGES] = {0};
 	unsigned code_sizes[MESA_SHADER_STAGES] = {0};
-	struct ac_shader_variant_key keys[MESA_SHADER_STAGES] = {{{{0}}}};
+	struct radv_shader_variant_key keys[MESA_SHADER_STAGES] = {{{{0}}}};
 	unsigned char hash[20], gs_copy_hash[20];
 
 	for (unsigned i = 0; i < MESA_SHADER_STAGES; ++i) {
@@ -1787,7 +1787,7 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 	if (device->physical_device->rad_info.chip_class >= GFX9 && modules[MESA_SHADER_TESS_CTRL]) {
 		if (!pipeline->shaders[MESA_SHADER_TESS_CTRL]) {
 			struct nir_shader *combined_nir[] = {nir[MESA_SHADER_VERTEX], nir[MESA_SHADER_TESS_CTRL]};
-			struct ac_shader_variant_key key = keys[MESA_SHADER_TESS_CTRL];
+			struct radv_shader_variant_key key = keys[MESA_SHADER_TESS_CTRL];
 			key.tcs.vs_key = keys[MESA_SHADER_VERTEX].vs;
 			pipeline->shaders[MESA_SHADER_TESS_CTRL] = radv_shader_variant_create(device, modules[MESA_SHADER_TESS_CTRL], combined_nir, 2,
 			                                                                      pipeline->layout,
@@ -2383,7 +2383,7 @@ radv_pipeline_generate_multisample_state(struct radeon_winsys_cs *cs,
 
 	if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.needs_sample_positions) {
 		uint32_t offset;
-		struct ac_userdata_info *loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_FRAGMENT, AC_UD_PS_SAMPLE_POS_OFFSET);
+		struct radv_userdata_info *loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_FRAGMENT, AC_UD_PS_SAMPLE_POS_OFFSET);
 		uint32_t base_reg = pipeline->user_data_0[MESA_SHADER_FRAGMENT];
 		if (loc->sgpr_idx == -1)
 			return;
@@ -2415,7 +2415,7 @@ static void
 radv_pipeline_generate_vgt_gs_mode(struct radeon_winsys_cs *cs,
                                    const struct radv_pipeline *pipeline)
 {
-	const struct ac_vs_output_info *outinfo = get_vs_output_info(pipeline);
+	const struct radv_vs_output_info *outinfo = get_vs_output_info(pipeline);
 
 	uint32_t vgt_primitiveid_en = false;
 	uint32_t vgt_gs_mode = 0;
@@ -2448,7 +2448,7 @@ radv_pipeline_generate_hw_vs(struct radeon_winsys_cs *cs,
 	radeon_emit(cs, shader->rsrc1);
 	radeon_emit(cs, shader->rsrc2);
 
-	const struct ac_vs_output_info *outinfo = get_vs_output_info(pipeline);
+	const struct radv_vs_output_info *outinfo = get_vs_output_info(pipeline);
 	unsigned clip_dist_mask, cull_dist_mask, total_mask;
 	clip_dist_mask = outinfo->clip_dist_mask;
 	cull_dist_mask = outinfo->cull_dist_mask;
@@ -2609,7 +2609,7 @@ radv_pipeline_generate_tess_shaders(struct radeon_winsys_cs *cs,
 		radeon_set_context_reg(cs, R_028B58_VGT_LS_HS_CONFIG,
 				       tess->ls_hs_config);
 
-	struct ac_userdata_info *loc;
+	struct radv_userdata_info *loc;
 
 	loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_TESS_CTRL, AC_UD_TCS_OFFCHIP_LAYOUT);
 	if (loc->sgpr_idx != -1) {
@@ -2705,7 +2705,7 @@ radv_pipeline_generate_geometry_shader(struct radeon_winsys_cs *cs,
 
 	radv_pipeline_generate_hw_vs(cs, pipeline, pipeline->gs_copy_shader);
 
-	struct ac_userdata_info *loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_GEOMETRY,
+	struct radv_userdata_info *loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_GEOMETRY,
 							     AC_UD_GS_VS_RING_STRIDE_ENTRIES);
 	if (loc->sgpr_idx != -1) {
 		uint32_t stride = gs->info.gs.max_gsvs_emit_size;
@@ -2745,7 +2745,7 @@ radv_pipeline_generate_ps_inputs(struct radeon_winsys_cs *cs,
                                  struct radv_pipeline *pipeline)
 {
 	struct radv_shader_variant *ps = pipeline->shaders[MESA_SHADER_FRAGMENT];
-	const struct ac_vs_output_info *outinfo = get_vs_output_info(pipeline);
+	const struct radv_vs_output_info *outinfo = get_vs_output_info(pipeline);
 	uint32_t ps_input_cntl[32];
 
 	unsigned ps_offset = 0;
@@ -3220,7 +3220,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	for (uint32_t i = 0; i < MESA_SHADER_STAGES; i++)
 		pipeline->user_data_0[i] = radv_pipeline_stage_to_user_data_0(pipeline, i, device->physical_device->rad_info.chip_class);
 
-	struct ac_userdata_info *loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_VERTEX,
+	struct radv_userdata_info *loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_VERTEX,
 							     AC_UD_VS_BASE_VERTEX_START_INSTANCE);
 	if (loc->sgpr_idx != -1) {
 		pipeline->graphics.vtx_base_sgpr = pipeline->user_data_0[MESA_SHADER_VERTEX];

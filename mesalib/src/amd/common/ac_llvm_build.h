@@ -390,6 +390,20 @@ void ac_build_if(struct ac_llvm_context *ctx, LLVMValueRef value,
 void ac_build_uif(struct ac_llvm_context *ctx, LLVMValueRef value,
 		  int lable_id);
 
+LLVMValueRef ac_build_alloca(struct ac_llvm_context *ac, LLVMTypeRef type,
+			     const char *name);
+LLVMValueRef ac_build_alloca_undef(struct ac_llvm_context *ac, LLVMTypeRef type,
+				   const char *name);
+
+LLVMValueRef ac_cast_ptr(struct ac_llvm_context *ctx, LLVMValueRef ptr,
+			 LLVMTypeRef type);
+
+LLVMValueRef ac_trim_vector(struct ac_llvm_context *ctx, LLVMValueRef value,
+			    unsigned count);
+
+LLVMValueRef ac_unpack_param(struct ac_llvm_context *ctx, LLVMValueRef param,
+			     unsigned rshift, unsigned bitwidth);
+
 #ifdef __cplusplus
 }
 #endif

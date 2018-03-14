@@ -20,19 +20,19 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+#include "radv_private.h"
+#include "radv_shader.h"
 #include "nir/nir.h"
-#include "ac_shader_info.h"
-#include "ac_nir_to_llvm.h"
 
 static void mark_sampler_desc(const nir_variable *var,
-			      struct ac_shader_info *info)
+			      struct radv_shader_info *info)
 {
 	info->desc_set_used_mask |= (1 << var->data.descriptor_set);
 }
 
 static void
 gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
-		      struct ac_shader_info *info)
+		      struct radv_shader_info *info)
 {
 	switch (instr->intrinsic) {
 	case nir_intrinsic_interp_var_at_sample:
@@ -173,7 +173,7 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 
 static void
 gather_tex_info(const nir_shader *nir, const nir_tex_instr *instr,
-		struct ac_shader_info *info)
+		struct radv_shader_info *info)
 {
 	if (instr->sampler)
 		mark_sampler_desc(instr->sampler->var, info);
@@ -183,7 +183,7 @@ gather_tex_info(const nir_shader *nir, const nir_tex_instr *instr,
 
 static void
 gather_info_block(const nir_shader *nir, const nir_block *block,
-		  struct ac_shader_info *info)
+		  struct radv_shader_info *info)
 {
 	nir_foreach_instr(instr, block) {
 		switch (instr->type) {
@@ -201,7 +201,7 @@ gather_info_block(const nir_shader *nir, const nir_block *block,
 
 static void
 gather_info_input_decl_vs(const nir_shader *nir, const nir_variable *var,
-			  struct ac_shader_info *info)
+			  struct radv_shader_info *info)
 {
 	int idx = var->data.location;
 
@@ -211,7 +211,7 @@ gather_info_input_decl_vs(const nir_shader *nir, const nir_variable *var,
 
 static void
 gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
-			  struct ac_shader_info *info)
+			  struct radv_shader_info *info)
 {
 	const struct glsl_type *type = glsl_without_array(var->type);
 	int idx = var->data.location;
@@ -238,7 +238,7 @@ gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
 
 static void
 gather_info_input_decl(const nir_shader *nir, const nir_variable *var,
-		       struct ac_shader_info *info)
+		       struct radv_shader_info *info)
 {
 	switch (nir->info.stage) {
 	case MESA_SHADER_VERTEX:
@@ -254,7 +254,7 @@ gather_info_input_decl(const nir_shader *nir, const nir_variable *var,
 
 static void
 gather_info_output_decl_ps(const nir_shader *nir, const nir_variable *var,
-			   struct ac_shader_info *info)
+			   struct radv_shader_info *info)
 {
 	int idx = var->data.location;
 
@@ -275,7 +275,7 @@ gather_info_output_decl_ps(const nir_shader *nir, const nir_variable *var,
 
 static void
 gather_info_output_decl(const nir_shader *nir, const nir_variable *var,
-			struct ac_shader_info *info)
+			struct radv_shader_info *info)
 {
 	switch (nir->info.stage) {
 	case MESA_SHADER_FRAGMENT:
@@ -287,9 +287,9 @@ gather_info_output_decl(const nir_shader *nir, const nir_variable *var,
 }
 
 void
-ac_nir_shader_info_pass(const struct nir_shader *nir,
-			const struct ac_nir_compiler_options *options,
-			struct ac_shader_info *info)
+radv_nir_shader_info_pass(const struct nir_shader *nir,
+			  const struct radv_nir_compiler_options *options,
+			  struct radv_shader_info *info)
 {
 	struct nir_function *func =
 		(struct nir_function *)exec_list_get_head_const(&nir->functions);

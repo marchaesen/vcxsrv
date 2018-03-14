@@ -18,11 +18,20 @@
 
 <h2 id="basic">1. Basic Usage</h2>
 
-<p><strong>The Meson build system for Mesa is still under active development,
-and should not be used in production environments.</strong></p>
+<p><strong>The Meson build system is generally considered stable and ready
+for production</strong></p>
 
-<p>The meson build is currently only tested on linux, and is known to not work
-on macOS, Windows, and haiku. This will be fixed.</p>
+<p>The meson build is tested on on Linux, macOS, Cygwin and Haiku, it should
+work on FreeBSD, DragonflyBSD, NetBSD, and OpenBSD.</p>
+
+<p><strong>Mesa requires Meson >= 0.42.0 to build in general.</strong>
+
+Additionaly, to build the Clover OpenCL state tracker or the OpenSWR driver
+meson 0.44.0 or greater is required.
+
+Some older versions of meson do not check that they are too old and will error
+out in odd ways.
+</p>
 
 <p>
 The meson program is used to configure the source directory and generates
@@ -111,6 +120,7 @@ change compiler in a configured build directory.
 </dd>
 
 
+<dl>
 <dt><code>LLVM</code></dt>
 <dd><p>Meson includes upstream logic to wrap llvm-config using it's standard
 dependncy interface. It will search $PATH (or %PATH% on windows) for
@@ -119,15 +129,15 @@ llvm-config, so using an LLVM from a non-standard path is as easy as
 </p></dd>
 </dl>
 
+<dl>
 <dt><code>PKG_CONFIG_PATH</code></dt>
 <dd><p>The
 <code>pkg-config</code> utility is a hard requirement for configuring and
-building Mesa on Linux and *BSD. It is used to search for external libraries
-on the system. This environment variable is used to control the search
-path for <code>pkg-config</code>. For instance, setting
-<code>PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig</code> will search for
-package metadata in <code>/usr/X11R6</code> before the standard
-directories.</p>
+building Mesa on Unix-like systems. It is used to search for external libraries
+on the system. This environment variable is used to control the search path for
+<code>pkg-config</code>. For instance, setting
+<code>PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig</code> will search for package
+metadata in <code>/usr/X11R6</code> before the standard directories.</p>
 </dd>
 </dl>
 
@@ -151,9 +161,9 @@ may interfer with debbugging as some code and validation will be optimized
 away.
 </p>
 
-<p> For those wishing to pass their own -O option, use the "plain" buildtype,
-which cuases meson to inject no additional compiler arguments, only those in
-the C/CXXFLAGS and those that mesa itself defines.</p>
+<p> For those wishing to pass their own optimization flags, use the "plain"
+buildtype, which causes meson to inject no additional compiler arguments, only
+those in the C/CXXFLAGS and those that mesa itself defines.</p>
 </dd>
 </dl>
 

@@ -32,7 +32,7 @@
 #include "ac_nir_to_llvm.h"
 
 struct cache_entry_variant_info {
-	struct ac_shader_variant_info variant_info;
+	struct radv_shader_variant_info variant_info;
 	struct ac_shader_config config;
 	uint32_t rsrc1, rsrc2;
 };

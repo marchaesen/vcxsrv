@@ -1249,9 +1249,9 @@ static inline bool radv_pipeline_has_tess(const struct radv_pipeline *pipeline)
 	return pipeline->shaders[MESA_SHADER_TESS_CTRL] ? true : false;
 }
 
-struct ac_userdata_info *radv_lookup_user_sgpr(struct radv_pipeline *pipeline,
-					       gl_shader_stage stage,
-					       int idx);
+struct radv_userdata_info *radv_lookup_user_sgpr(struct radv_pipeline *pipeline,
+						 gl_shader_stage stage,
+						 int idx);
 
 struct radv_shader_variant *radv_get_vertex_shader(struct radv_pipeline *pipeline);
 
@@ -1676,6 +1676,34 @@ struct radv_fence {
 	uint32_t syncobj;
 	uint32_t temp_syncobj;
 };
+
+/* radv_nir_to_llvm.c */
+struct radv_shader_variant_info;
+struct radv_nir_compiler_options;
+
+void radv_compile_gs_copy_shader(LLVMTargetMachineRef tm,
+				 struct nir_shader *geom_shader,
+				 struct ac_shader_binary *binary,
+				 struct ac_shader_config *config,
+				 struct radv_shader_variant_info *shader_info,
+				 const struct radv_nir_compiler_options *options,
+				 bool dump_shader);
+
+void radv_compile_nir_shader(LLVMTargetMachineRef tm,
+			     struct ac_shader_binary *binary,
+			     struct ac_shader_config *config,
+			     struct radv_shader_variant_info *shader_info,
+			     struct nir_shader *const *nir,
+			     int nir_count,
+			     const struct radv_nir_compiler_options *options,
+			     bool dump_shader);
+
+/* radv_shader_info.h */
+struct radv_shader_info;
+
+void radv_nir_shader_info_pass(const struct nir_shader *nir,
+			       const struct radv_nir_compiler_options *options,
+			       struct radv_shader_info *info);
 
 struct radeon_winsys_sem;
 
