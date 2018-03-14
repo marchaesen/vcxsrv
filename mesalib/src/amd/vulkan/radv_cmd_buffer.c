@@ -540,7 +540,7 @@ radv_save_descriptors(struct radv_cmd_buffer *cmd_buffer,
 	radv_emit_write_data_packet(cs, va, MAX_SETS * 2, data);
 }
 
-struct ac_userdata_info *
+struct radv_userdata_info *
 radv_lookup_user_sgpr(struct radv_pipeline *pipeline,
 		      gl_shader_stage stage,
 		      int idx)
@@ -567,7 +567,7 @@ radv_emit_userdata_address(struct radv_cmd_buffer *cmd_buffer,
 			   gl_shader_stage stage,
 			   int idx, uint64_t va)
 {
-	struct ac_userdata_info *loc = radv_lookup_user_sgpr(pipeline, stage, idx);
+	struct radv_userdata_info *loc = radv_lookup_user_sgpr(pipeline, stage, idx);
 	uint32_t base_reg = pipeline->user_data_0[stage];
 	if (loc->sgpr_idx == -1)
 		return;
@@ -1236,7 +1236,7 @@ emit_stage_descriptor_set_userdata(struct radv_cmd_buffer *cmd_buffer,
 				   uint64_t va,
 				   gl_shader_stage stage)
 {
-	struct ac_userdata_info *desc_set_loc = &pipeline->shaders[stage]->info.user_sgprs_locs.descriptor_sets[idx];
+	struct radv_userdata_info *desc_set_loc = &pipeline->shaders[stage]->info.user_sgprs_locs.descriptor_sets[idx];
 	uint32_t base_reg = pipeline->user_data_0[stage];
 
 	if (desc_set_loc->sgpr_idx == -1 || desc_set_loc->indirect)
@@ -2290,7 +2290,7 @@ void radv_CmdBindPipeline(
 			cmd_buffer->tess_rings_needed = true;
 
 		if (radv_pipeline_has_gs(pipeline)) {
-			struct ac_userdata_info *loc = radv_lookup_user_sgpr(cmd_buffer->state.pipeline, MESA_SHADER_GEOMETRY,
+			struct radv_userdata_info *loc = radv_lookup_user_sgpr(cmd_buffer->state.pipeline, MESA_SHADER_GEOMETRY,
 									     AC_UD_SCRATCH_RING_OFFSETS);
 			if (cmd_buffer->ring_offsets_idx == -1)
 				cmd_buffer->ring_offsets_idx = loc->sgpr_idx;
@@ -2716,7 +2716,7 @@ static void radv_emit_view_index(struct radv_cmd_buffer *cmd_buffer, unsigned in
 	for (unsigned stage = 0; stage < MESA_SHADER_STAGES; ++stage) {
 		if (!pipeline->shaders[stage])
 			continue;
-		struct ac_userdata_info *loc = radv_lookup_user_sgpr(pipeline, stage, AC_UD_VIEW_INDEX);
+		struct radv_userdata_info *loc = radv_lookup_user_sgpr(pipeline, stage, AC_UD_VIEW_INDEX);
 		if (loc->sgpr_idx == -1)
 			continue;
 		uint32_t base_reg = pipeline->user_data_0[stage];
@@ -2724,7 +2724,7 @@ static void radv_emit_view_index(struct radv_cmd_buffer *cmd_buffer, unsigned in
 
 	}
 	if (pipeline->gs_copy_shader) {
-		struct ac_userdata_info *loc = &pipeline->gs_copy_shader->info.user_sgprs_locs.shader_data[AC_UD_VIEW_INDEX];
+		struct radv_userdata_info *loc = &pipeline->gs_copy_shader->info.user_sgprs_locs.shader_data[AC_UD_VIEW_INDEX];
 		if (loc->sgpr_idx != -1) {
 			uint32_t base_reg = R_00B130_SPI_SHADER_USER_DATA_VS_0;
 			radeon_set_sh_reg(cmd_buffer->cs, base_reg + loc->sgpr_idx * 4, index);
@@ -3207,7 +3207,7 @@ radv_emit_dispatch_packets(struct radv_cmd_buffer *cmd_buffer,
 	unsigned dispatch_initiator = cmd_buffer->device->dispatch_initiator;
 	struct radeon_winsys *ws = cmd_buffer->device->ws;
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
-	struct ac_userdata_info *loc;
+	struct radv_userdata_info *loc;
 
 	loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_COMPUTE,
 				    AC_UD_CS_GRID_SIZE);

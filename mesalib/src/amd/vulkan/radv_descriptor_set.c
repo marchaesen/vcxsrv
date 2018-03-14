@@ -137,7 +137,6 @@ VkResult radv_CreateDescriptorSetLayout(
 		}
 
 		set_layout->size = align(set_layout->size, alignment);
-		assert(binding->descriptorCount > 0);
 		set_layout->binding[b].type = binding->descriptorType;
 		set_layout->binding[b].array_size = binding->descriptorCount;
 		set_layout->binding[b].offset = set_layout->size;

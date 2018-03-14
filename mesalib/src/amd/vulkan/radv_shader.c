@@ -383,7 +383,7 @@ radv_fill_shader_variant(struct radv_device *device,
 	case MESA_SHADER_FRAGMENT:
 		break;
 	case MESA_SHADER_COMPUTE: {
-		struct ac_shader_info *info = &variant->info.info;
+		struct radv_shader_info *info = &variant->info.info;
 		variant->rsrc2 |=
 			S_00B84C_TGID_X_EN(info->cs.uses_block_id[0]) |
 			S_00B84C_TGID_Y_EN(info->cs.uses_block_id[1]) |
@@ -401,7 +401,7 @@ radv_fill_shader_variant(struct radv_device *device,
 
 	if (device->physical_device->rad_info.chip_class >= GFX9 &&
 	    stage == MESA_SHADER_GEOMETRY) {
-		struct ac_shader_info *info = &variant->info.info;
+		struct radv_shader_info *info = &variant->info.info;
 		unsigned es_type = variant->info.gs.es_type;
 		unsigned gs_vgpr_comp_cnt, es_vgpr_comp_cnt;
 
@@ -444,7 +444,7 @@ shader_variant_create(struct radv_device *device,
 		      struct nir_shader * const *shaders,
 		      int shader_count,
 		      gl_shader_stage stage,
-		      struct ac_nir_compiler_options *options,
+		      struct radv_nir_compiler_options *options,
 		      bool gs_copy_shader,
 		      void **code_out,
 		      unsigned *code_size_out)
@@ -473,12 +473,13 @@ shader_variant_create(struct radv_device *device,
 
 	if (gs_copy_shader) {
 		assert(shader_count == 1);
-		ac_create_gs_copy_shader(tm, *shaders, &binary, &variant->config,
-					 &variant->info, options, dump_shaders);
+		radv_compile_gs_copy_shader(tm, *shaders, &binary,
+					    &variant->config, &variant->info,
+					    options, dump_shaders);
 	} else {
-		ac_compile_nir_shader(tm, &binary, &variant->config,
-				      &variant->info, shaders, shader_count, options,
-				      dump_shaders);
+		radv_compile_nir_shader(tm, &binary, &variant->config,
+					&variant->info, shaders, shader_count,
+					options, dump_shaders);
 	}
 
 	LLVMDisposeTargetMachine(tm);
@@ -516,11 +517,11 @@ radv_shader_variant_create(struct radv_device *device,
 			   struct nir_shader *const *shaders,
 			   int shader_count,
 			   struct radv_pipeline_layout *layout,
-			   const struct ac_shader_variant_key *key,
+			   const struct radv_shader_variant_key *key,
 			   void **code_out,
 			   unsigned *code_size_out)
 {
-	struct ac_nir_compiler_options options = {0};
+	struct radv_nir_compiler_options options = {0};
 
 	options.layout = layout;
 	if (key)
@@ -540,7 +541,7 @@ radv_create_gs_copy_shader(struct radv_device *device,
 			   unsigned *code_size_out,
 			   bool multiview)
 {
-	struct ac_nir_compiler_options options = {0};
+	struct radv_nir_compiler_options options = {0};
 
 	options.key.has_multiview_view_index = multiview;
 

@@ -2335,3 +2335,79 @@ void ac_build_uif(struct ac_llvm_context *ctx, LLVMValueRef value,
 					  ctx->i32_0, "");
 	if_cond_emit(ctx, cond, label_id);
 }
+
+LLVMValueRef ac_build_alloca(struct ac_llvm_context *ac, LLVMTypeRef type,
+			     const char *name)
+{
+	LLVMBuilderRef builder = ac->builder;
+	LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
+	LLVMValueRef function = LLVMGetBasicBlockParent(current_block);
+	LLVMBasicBlockRef first_block = LLVMGetEntryBasicBlock(function);
+	LLVMValueRef first_instr = LLVMGetFirstInstruction(first_block);
+	LLVMBuilderRef first_builder = LLVMCreateBuilderInContext(ac->context);
+	LLVMValueRef res;
+
+	if (first_instr) {
+		LLVMPositionBuilderBefore(first_builder, first_instr);
+	} else {
+		LLVMPositionBuilderAtEnd(first_builder, first_block);
+	}
+
+	res = LLVMBuildAlloca(first_builder, type, name);
+	LLVMBuildStore(builder, LLVMConstNull(type), res);
+
+	LLVMDisposeBuilder(first_builder);
+
+	return res;
+}
+
+LLVMValueRef ac_build_alloca_undef(struct ac_llvm_context *ac,
+				   LLVMTypeRef type, const char *name)
+{
+	LLVMValueRef ptr = ac_build_alloca(ac, type, name);
+	LLVMBuildStore(ac->builder, LLVMGetUndef(type), ptr);
+	return ptr;
+}
+
+LLVMValueRef ac_cast_ptr(struct ac_llvm_context *ctx, LLVMValueRef ptr,
+                         LLVMTypeRef type)
+{
+	int addr_space = LLVMGetPointerAddressSpace(LLVMTypeOf(ptr));
+	return LLVMBuildBitCast(ctx->builder, ptr,
+	                        LLVMPointerType(type, addr_space), "");
+}
+
+LLVMValueRef ac_trim_vector(struct ac_llvm_context *ctx, LLVMValueRef value,
+			    unsigned count)
+{
+	unsigned num_components = ac_get_llvm_num_components(value);
+	if (count == num_components)
+		return value;
+
+	LLVMValueRef masks[] = {
+	    LLVMConstInt(ctx->i32, 0, false), LLVMConstInt(ctx->i32, 1, false),
+	    LLVMConstInt(ctx->i32, 2, false), LLVMConstInt(ctx->i32, 3, false)};
+
+	if (count == 1)
+		return LLVMBuildExtractElement(ctx->builder, value, masks[0],
+		                               "");
+
+	LLVMValueRef swizzle = LLVMConstVector(masks, count);
+	return LLVMBuildShuffleVector(ctx->builder, value, value, swizzle, "");
+}
+
+LLVMValueRef ac_unpack_param(struct ac_llvm_context *ctx, LLVMValueRef param,
+			     unsigned rshift, unsigned bitwidth)
+{
+	LLVMValueRef value = param;
+	if (rshift)
+		value = LLVMBuildLShr(ctx->builder, value,
+				      LLVMConstInt(ctx->i32, rshift, false), "");
+
+	if (rshift + bitwidth < 32) {
+		unsigned mask = (1 << bitwidth) - 1;
+		value = LLVMBuildAnd(ctx->builder, value,
+				     LLVMConstInt(ctx->i32, mask, false), "");
+	}
+	return value;
+}

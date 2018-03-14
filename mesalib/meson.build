@@ -912,7 +912,7 @@ elif cc.has_header_symbol('sys/mkdev.h', 'major')
 endif
 
 foreach h : ['xlocale.h', 'sys/sysctl.h', 'linux/futex.h']
-  if cc.has_header(h)
+  if cc.compiles('#include <@0@>'.format(h), name : '@0@ works'.format(h))
     pre_args += '-DHAVE_@0@'.format(h.to_upper().underscorify())
   endif
 endforeach

@@ -2925,6 +2925,7 @@ vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpCompositeConstruct: {
       unsigned elems = count - 3;
+      assume(elems >= 1);
       if (glsl_type_is_vector_or_scalar(type)) {
          nir_ssa_def *srcs[4];
          for (unsigned i = 0; i < elems; i++)
