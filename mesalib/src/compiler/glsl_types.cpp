@@ -620,6 +620,31 @@ glsl_type::u16vec(unsigned components)
 }
 
 const glsl_type *
+glsl_type::i8vec(unsigned components)
+{
+   if (components == 0 || components > 4)
+      return error_type;
+
+   static const glsl_type *const ts[] = {
+      int8_t_type, i8vec2_type, i8vec3_type, i8vec4_type
+   };
+   return ts[components - 1];
+}
+
+
+const glsl_type *
+glsl_type::u8vec(unsigned components)
+{
+   if (components == 0 || components > 4)
+      return error_type;
+
+   static const glsl_type *const ts[] = {
+      uint8_t_type, u8vec2_type, u8vec3_type, u8vec4_type
+   };
+   return ts[components - 1];
+}
+
+const glsl_type *
 glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
 {
    if (base_type == GLSL_TYPE_VOID)
@@ -652,6 +677,10 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
          return u16vec(rows);
       case GLSL_TYPE_INT16:
          return i16vec(rows);
+      case GLSL_TYPE_UINT8:
+         return u8vec(rows);
+      case GLSL_TYPE_INT8:
+         return i8vec(rows);
       default:
          return error_type;
       }
@@ -1353,6 +1382,8 @@ glsl_type::component_slots() const
    switch (this->base_type) {
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
    case GLSL_TYPE_UINT16:
    case GLSL_TYPE_INT16:
    case GLSL_TYPE_FLOAT:
@@ -2054,6 +2085,8 @@ glsl_type::count_attribute_slots(bool is_vertex_input) const
    switch (this->base_type) {
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
    case GLSL_TYPE_UINT16:
    case GLSL_TYPE_INT16:
    case GLSL_TYPE_FLOAT:

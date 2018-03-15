@@ -297,6 +297,8 @@ vtn_ssa_offset_pointer_dereference(struct vtn_builder *b,
       case GLSL_TYPE_INT:
       case GLSL_TYPE_UINT16:
       case GLSL_TYPE_INT16:
+      case GLSL_TYPE_UINT8:
+      case GLSL_TYPE_INT8:
       case GLSL_TYPE_UINT64:
       case GLSL_TYPE_INT64:
       case GLSL_TYPE_FLOAT:
@@ -413,6 +415,8 @@ vtn_pointer_to_deref(struct vtn_builder *b, struct vtn_pointer *ptr)
       case GLSL_TYPE_INT:
       case GLSL_TYPE_UINT16:
       case GLSL_TYPE_INT16:
+      case GLSL_TYPE_UINT8:
+      case GLSL_TYPE_INT8:
       case GLSL_TYPE_UINT64:
       case GLSL_TYPE_INT64:
       case GLSL_TYPE_FLOAT:
@@ -624,6 +628,8 @@ vtn_pointer_to_offset(struct vtn_builder *b, struct vtn_pointer *ptr,
          case GLSL_TYPE_INT:
          case GLSL_TYPE_UINT16:
          case GLSL_TYPE_INT16:
+         case GLSL_TYPE_UINT8:
+         case GLSL_TYPE_INT8:
          case GLSL_TYPE_UINT64:
          case GLSL_TYPE_INT64:
          case GLSL_TYPE_FLOAT:
@@ -672,6 +678,8 @@ vtn_type_block_size(struct vtn_builder *b, struct vtn_type *type)
    case GLSL_TYPE_INT:
    case GLSL_TYPE_UINT16:
    case GLSL_TYPE_INT16:
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_FLOAT:
@@ -802,6 +810,8 @@ _vtn_block_load_store(struct vtn_builder *b, nir_intrinsic_op op, bool load,
    case GLSL_TYPE_INT:
    case GLSL_TYPE_UINT16:
    case GLSL_TYPE_INT16:
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_FLOAT:
@@ -987,6 +997,8 @@ _vtn_variable_load_store(struct vtn_builder *b, bool load,
    case GLSL_TYPE_INT:
    case GLSL_TYPE_UINT16:
    case GLSL_TYPE_INT16:
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_FLOAT:
@@ -1071,6 +1083,8 @@ _vtn_variable_copy(struct vtn_builder *b, struct vtn_pointer *dest,
    case GLSL_TYPE_INT:
    case GLSL_TYPE_UINT16:
    case GLSL_TYPE_INT16:
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_FLOAT:

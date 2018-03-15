@@ -2,24 +2,28 @@ language: c
 cache: ccache
 
 matrix:
- include:
-   - os: linux
-     dist: trusty
-     services: docker
-   - os: osx
-
-before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull anholt/xserver-travis ; fi
+  include:
+    - os: linux
+      dist: trusty
+      services: docker
+      env: DISTRO=rawhide:v3
+    - os: osx
+      osx_image: xcode9.2
+      env: DISTRO=xcode9.2
+    - os: osx
+      osx_image: xcode8.3
+      env: DISTRO=xcode8.3
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then HOMEBREW_NO_AUTO_UPDATE=1 brew install ccache ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then HOMEBREW_NO_AUTO_UPDATE=1 brew install ccache ; fi
 
 before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM anholt/xserver-travis:v7 > Dockerfile ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit . ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull nwnk/xserver-travis-$DISTRO ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM nwnk/xserver-travis-$DISTRO > Dockerfile ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit . ; fi
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run --volume $HOME/.ccache:/root/.ccache withgit /bin/sh -c "cd /root && ./test/scripts/build-travis-deps.sh" ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./test/scripts/build-travis-osx.sh ; fi
-  - ccache -s
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run --volume $HOME/.ccache:/root/.ccache withgit /bin/sh -c "cd /root && ./test/scripts/build-travis-deps.sh" ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./test/scripts/build-travis-osx.sh ; fi
+    - ccache -s

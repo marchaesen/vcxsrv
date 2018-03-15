@@ -124,6 +124,12 @@ public:
       ralloc_free(mem_ctx);
    }
 
+   void clone_acp(hash_table *lhs, hash_table *rhs)
+   {
+      lhs_ht = _mesa_hash_table_clone(lhs, mem_ctx);
+      rhs_ht = _mesa_hash_table_clone(rhs, mem_ctx);
+   }
+
    void create_acp()
    {
       lhs_ht = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
@@ -136,19 +142,6 @@ public:
    {
       _mesa_hash_table_destroy(lhs_ht, NULL);
       _mesa_hash_table_destroy(rhs_ht, NULL);
-   }
-
-   void populate_acp(hash_table *lhs, hash_table *rhs)
-   {
-      struct hash_entry *entry;
-
-      hash_table_foreach(lhs, entry) {
-         _mesa_hash_table_insert(lhs_ht, entry->key, entry->data);
-      }
-
-      hash_table_foreach(rhs, entry) {
-         _mesa_hash_table_insert(rhs_ht, entry->key, entry->data);
-      }
    }
 
    void handle_loop(ir_loop *, bool keep_acp);
@@ -395,10 +388,8 @@ ir_copy_propagation_elements_visitor::handle_if_block(exec_list *instructions)
    this->kills = new(mem_ctx) exec_list;
    this->killed_all = false;
 
-   create_acp();
-
    /* Populate the initial acp with a copy of the original */
-   populate_acp(orig_lhs_ht, orig_rhs_ht);
+   clone_acp(orig_lhs_ht, orig_rhs_ht);
 
    visit_list_elements(this, instructions);
 
@@ -454,11 +445,11 @@ ir_copy_propagation_elements_visitor::handle_loop(ir_loop *ir, bool keep_acp)
    this->kills = new(mem_ctx) exec_list;
    this->killed_all = false;
 
-   create_acp();
-
    if (keep_acp) {
       /* Populate the initial acp with a copy of the original */
-      populate_acp(orig_lhs_ht, orig_rhs_ht);
+      clone_acp(orig_lhs_ht, orig_rhs_ht);
+   } else {
+      create_acp();
    }
 
    visit_list_elements(this, &ir->body_instructions);

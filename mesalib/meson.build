@@ -1036,7 +1036,7 @@ dep_libdrm_nouveau = []
 dep_libdrm_etnaviv = []
 dep_libdrm_freedreno = []
 if with_amd_vk or with_gallium_radeonsi
-  dep_libdrm_amdgpu = dependency('libdrm_amdgpu', version : '>= 2.4.90')
+  dep_libdrm_amdgpu = dependency('libdrm_amdgpu', version : '>= 2.4.91')
 endif
 if (with_gallium_radeonsi or with_dri_r100 or with_dri_r200 or
     with_gallium_r300 or with_gallium_r600)

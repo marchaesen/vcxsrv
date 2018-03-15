@@ -63,6 +63,7 @@ struct copy_context {
    struct {
       GLuint attr;
       GLuint size;
+      const struct gl_vertex_array *array;
       const GLubyte *src_ptr;
 
       struct gl_vertex_buffer_binding dstbinding;
@@ -258,7 +259,7 @@ elt(struct copy_context *copy, GLuint elt_idx)
       GLuint i;
 
       for (i = 0; i < copy->nr_varying; i++) {
-         const struct gl_vertex_array *srcarray = &copy->array[i];
+         const struct gl_vertex_array *srcarray = copy->varying[i].array;
          const struct gl_vertex_buffer_binding* srcbinding
             = srcarray->BufferBinding;
          const GLubyte *srcptr
@@ -449,6 +450,7 @@ replay_init(struct copy_context *copy)
          GLuint j = copy->nr_varying++;
 
          copy->varying[j].attr = i;
+         copy->varying[j].array = &copy->array[i];
          copy->varying[j].size = attr_size(attrib);
          copy->vertex_size += attr_size(attrib);
 
@@ -520,7 +522,7 @@ replay_init(struct copy_context *copy)
    /* Setup new vertex arrays to point into the output buffer:
     */
    for (offset = 0, i = 0; i < copy->nr_varying; i++) {
-      const struct gl_vertex_array *src = &copy->array[i];
+      const struct gl_vertex_array *src = copy->varying[i].array;
       const struct gl_array_attributes *srcattr = src->VertexAttrib;
       struct gl_vertex_array *dst = &copy->dstarray[i];
       struct gl_vertex_buffer_binding *dstbind = &copy->varying[i].dstbinding;
@@ -576,7 +578,7 @@ replay_finish(struct copy_context *copy)
    /* Unmap VBO's */
    for (i = 0; i < copy->nr_varying; i++) {
       struct gl_buffer_object *vbo =
-         copy->array[i].BufferBinding->BufferObj;
+         copy->varying[i].array->BufferBinding->BufferObj;
       if (_mesa_is_bufferobj(vbo) && _mesa_bufferobj_mapped(vbo, MAP_INTERNAL))
          ctx->Driver.UnmapBuffer(ctx, vbo, MAP_INTERNAL);
    }

@@ -275,7 +275,7 @@ vtn_handle_bitcast(struct vtn_builder *b, struct vtn_ssa_value *dest,
 nir_op
 vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
                                 SpvOp opcode, bool *swap,
-                                nir_alu_type src, nir_alu_type dst)
+                                unsigned src_bit_size, unsigned dst_bit_size)
 {
    /* Indicates that the first two arguments should be swapped.  This is
     * used for implementing greater-than and less-than-or-equal.
@@ -355,9 +355,43 @@ vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
    case SpvOpConvertSToF:
    case SpvOpConvertUToF:
    case SpvOpSConvert:
-   case SpvOpFConvert:
-      return nir_type_conversion_op(src, dst, nir_rounding_mode_undef);
+   case SpvOpFConvert: {
+      nir_alu_type src_type;
+      nir_alu_type dst_type;
 
+      switch (opcode) {
+      case SpvOpConvertFToS:
+         src_type = nir_type_float;
+         dst_type = nir_type_int;
+         break;
+      case SpvOpConvertFToU:
+         src_type = nir_type_float;
+         dst_type = nir_type_uint;
+         break;
+      case SpvOpFConvert:
+         src_type = dst_type = nir_type_float;
+         break;
+      case SpvOpConvertSToF:
+         src_type = nir_type_int;
+         dst_type = nir_type_float;
+         break;
+      case SpvOpSConvert:
+         src_type = dst_type = nir_type_int;
+         break;
+      case SpvOpConvertUToF:
+         src_type = nir_type_uint;
+         dst_type = nir_type_float;
+         break;
+      case SpvOpUConvert:
+         src_type = dst_type = nir_type_uint;
+         break;
+      default:
+         unreachable("Invalid opcode");
+      }
+      src_type |= src_bit_size;
+      dst_type |= dst_bit_size;
+      return nir_type_conversion_op(src_type, dst_type, nir_rounding_mode_undef);
+   }
    /* Derivatives: */
    case SpvOpDPdx:         return nir_op_fddx;
    case SpvOpDPdy:         return nir_op_fddy;
@@ -541,10 +575,10 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
    case SpvOpFUnordLessThanEqual:
    case SpvOpFUnordGreaterThanEqual: {
       bool swap;
-      nir_alu_type src_alu_type = nir_get_nir_type_for_glsl_type(vtn_src[0]->type);
-      nir_alu_type dst_alu_type = nir_get_nir_type_for_glsl_type(type);
+      unsigned src_bit_size = glsl_get_bit_size(vtn_src[0]->type);
+      unsigned dst_bit_size = glsl_get_bit_size(type);
       nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap,
-                                                  src_alu_type, dst_alu_type);
+                                                  src_bit_size, dst_bit_size);
 
       if (swap) {
          nir_ssa_def *tmp = src[0];
@@ -568,10 +602,10 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
    case SpvOpFOrdLessThanEqual:
    case SpvOpFOrdGreaterThanEqual: {
       bool swap;
-      nir_alu_type src_alu_type = nir_get_nir_type_for_glsl_type(vtn_src[0]->type);
-      nir_alu_type dst_alu_type = nir_get_nir_type_for_glsl_type(type);
+      unsigned src_bit_size = glsl_get_bit_size(vtn_src[0]->type);
+      unsigned dst_bit_size = glsl_get_bit_size(type);
       nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap,
-                                                  src_alu_type, dst_alu_type);
+                                                  src_bit_size, dst_bit_size);
 
       if (swap) {
          nir_ssa_def *tmp = src[0];
@@ -606,10 +640,10 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
 
    default: {
       bool swap;
-      nir_alu_type src_alu_type = nir_get_nir_type_for_glsl_type(vtn_src[0]->type);
-      nir_alu_type dst_alu_type = nir_get_nir_type_for_glsl_type(type);
+      unsigned src_bit_size = glsl_get_bit_size(vtn_src[0]->type);
+      unsigned dst_bit_size = glsl_get_bit_size(type);
       nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap,
-                                                  src_alu_type, dst_alu_type);
+                                                  src_bit_size, dst_bit_size);
 
       if (swap) {
          nir_ssa_def *tmp = src[0];

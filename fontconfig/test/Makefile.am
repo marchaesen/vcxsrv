@@ -55,6 +55,10 @@ check_PROGRAMS += test-bz96676
 test_bz96676_LDADD = $(top_builddir)/src/libfontconfig.la
 TESTS += test-bz96676
 
+check_PROGRAMS += test-name-parse
+test_name_parse_LDADD = $(top_builddir)/src/libfontconfig.la
+TESTS += test-name-parse
+
 EXTRA_DIST=run-test.sh $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 
 CLEANFILES=out fonts.conf

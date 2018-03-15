@@ -1215,9 +1215,18 @@ static int
 ProcScreenSaverSuspend(ClientPtr client)
 {
     ScreenSaverSuspensionPtr *prev, this;
+    BOOL suspend;
 
     REQUEST(xScreenSaverSuspendReq);
     REQUEST_SIZE_MATCH(xScreenSaverSuspendReq);
+
+    /*
+     * Old versions of XCB encode suspend as 1 byte followed by three
+     * pad bytes (which are always cleared), instead of a 4 byte
+     * value. Be compatible by just checking for a non-zero value in
+     * all 32-bits.
+     */
+    suspend = stuff->suspend != 0;
 
     /* Check if this client is suspending the screensaver */
     for (prev = &suspendingClients; (this = *prev); prev = &this->next)
@@ -1225,7 +1234,7 @@ ProcScreenSaverSuspend(ClientPtr client)
             break;
 
     if (this) {
-        if (stuff->suspend == TRUE)
+        if (suspend == TRUE)
             this->count++;
         else if (--this->count == 0)
             FreeResource(this->clientResource, RT_NONE);
@@ -1234,7 +1243,7 @@ ProcScreenSaverSuspend(ClientPtr client)
     }
 
     /* If we get to this point, this client isn't suspending the screensaver */
-    if (stuff->suspend == FALSE)
+    if (suspend == FALSE)
         return Success;
 
     /*
@@ -1348,6 +1357,7 @@ SProcScreenSaverSuspend(ClientPtr client)
     REQUEST(xScreenSaverSuspendReq);
 
     swaps(&stuff->length);
+    swapl(&stuff->suspend);
     REQUEST_SIZE_MATCH(xScreenSaverSuspendReq);
     return ProcScreenSaverSuspend(client);
 }

@@ -106,6 +106,7 @@ RROutputCreate(ScreenPtr pScreen,
     output->properties = NULL;
     output->pendingProperties = FALSE;
     output->changed = FALSE;
+    output->nonDesktop = FALSE;
     output->devPrivate = devPrivate;
 
     if (!AddResource(output->id, RROutputType, (void *) output))
