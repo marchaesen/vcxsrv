@@ -1106,6 +1106,7 @@ radv_get_queue_global_priority(const VkDeviceQueueGlobalPriorityCreateInfoEXT *p
 static int
 radv_queue_init(struct radv_device *device, struct radv_queue *queue,
 		uint32_t queue_family_index, int idx,
+		VkDeviceQueueCreateFlags flags,
 		const VkDeviceQueueGlobalPriorityCreateInfoEXT *global_priority)
 {
 	queue->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
@@ -1113,6 +1114,7 @@ radv_queue_init(struct radv_device *device, struct radv_queue *queue,
 	queue->queue_family_index = queue_family_index;
 	queue->queue_idx = idx;
 	queue->priority = radv_get_queue_global_priority(global_priority);
+	queue->flags = flags;
 
 	queue->hw_ctx = device->ws->ctx_create(device->ws, queue->priority);
 	if (!queue->hw_ctx)
@@ -1266,7 +1268,9 @@ VkResult radv_CreateDevice(
 		device->queue_count[qfi] = queue_create->queueCount;
 
 		for (unsigned q = 0; q < queue_create->queueCount; q++) {
-			result = radv_queue_init(device, &device->queues[qfi][q], qfi, q, global_priority);
+			result = radv_queue_init(device, &device->queues[qfi][q],
+						 qfi, q, queue_create->flags,
+						 global_priority);
 			if (result != VK_SUCCESS)
 				goto fail;
 		}
@@ -1318,10 +1322,15 @@ VkResult radv_CreateDevice(
 		device->physical_device->rad_info.max_se >= 2;
 
 	if (getenv("RADV_TRACE_FILE")) {
+		const char *filename = getenv("RADV_TRACE_FILE");
+
 		keep_shader_info = true;
 
 		if (!radv_init_trace(device))
 			goto fail;
+
+		fprintf(stderr, "Trace file will be dumped to %s\n", filename);
+		radv_dump_enabled_options(device, stderr);
 	}
 
 	device->keep_shader_info = keep_shader_info;
@@ -1454,8 +1463,23 @@ void radv_GetDeviceQueue2(
 	VkQueue*                                    pQueue)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
+	struct radv_queue *queue;
 
-	*pQueue = radv_queue_to_handle(&device->queues[pQueueInfo->queueFamilyIndex][pQueueInfo->queueIndex]);
+	queue = &device->queues[pQueueInfo->queueFamilyIndex][pQueueInfo->queueIndex];
+	if (pQueueInfo->flags != queue->flags) {
+		/* From the Vulkan 1.1.70 spec:
+		 *
+		 * "The queue returned by vkGetDeviceQueue2 must have the same
+		 * flags value from this structure as that used at device
+		 * creation time in a VkDeviceQueueCreateInfo instance. If no
+		 * matching flags were specified at device creation time then
+		 * pQueue will return VK_NULL_HANDLE."
+		 */
+		*pQueue = VK_NULL_HANDLE;
+		return;
+	}
+
+	*pQueue = radv_queue_to_handle(queue);
 }
 
 void radv_GetDeviceQueue(

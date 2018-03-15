@@ -340,6 +340,18 @@ glsl_uint16_t_type(void)
 }
 
 const glsl_type *
+glsl_int8_t_type(void)
+{
+   return glsl_type::int8_t_type;
+}
+
+const glsl_type *
+glsl_uint8_t_type(void)
+{
+   return glsl_type::uint8_t_type;
+}
+
+const glsl_type *
 glsl_bool_type(void)
 {
    return glsl_type::bool_type;

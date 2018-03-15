@@ -310,6 +310,19 @@ active_texture(GLenum texture, bool no_error)
       }
    }
 
+
+   /* The below flush call seems useless because
+    * gl_context::Texture::CurrentUnit is not used by
+    * _mesa_update_texture_state() and friends.
+    *
+    * However removing the flush
+    * introduced some blinking textures in UT2004. More investigation is
+    * needed to find the root cause.
+    *
+    * https://bugs.freedesktop.org/show_bug.cgi?id=105436
+    */
+   FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
+
    ctx->Texture.CurrentUnit = texUnit;
    if (ctx->Transform.MatrixMode == GL_TEXTURE) {
       /* update current stack pointer */

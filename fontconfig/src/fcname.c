@@ -490,6 +490,10 @@ FcNameParse (const FcChar8 *name)
 			if (!FcPatternAddBool (pat, c->object, c->value))
 			    goto bail2;
 			break;
+		    case FcTypeRange:
+			if (!FcPatternAddInteger (pat, c->object, c->value))
+			    goto bail2;
+			break;
 		    default:
 			break;
 		    }

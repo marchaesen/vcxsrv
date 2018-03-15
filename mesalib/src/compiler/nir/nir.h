@@ -735,6 +735,10 @@ nir_get_nir_type_for_glsl_base_type(enum glsl_base_type base_type)
    case GLSL_TYPE_INT16:
       return nir_type_int16;
       break;
+   case GLSL_TYPE_UINT8:
+      return nir_type_uint8;
+   case GLSL_TYPE_INT8:
+      return nir_type_int8;
    case GLSL_TYPE_UINT64:
       return nir_type_uint64;
       break;

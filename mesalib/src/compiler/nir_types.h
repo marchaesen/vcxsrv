@@ -99,6 +99,10 @@ glsl_get_bit_size(const struct glsl_type *type)
    case GLSL_TYPE_INT16:
       return 16;
 
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
+      return 8;
+
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_UINT64:
@@ -145,6 +149,8 @@ const struct glsl_type *glsl_int64_t_type(void);
 const struct glsl_type *glsl_uint64_t_type(void);
 const struct glsl_type *glsl_int16_t_type(void);
 const struct glsl_type *glsl_uint16_t_type(void);
+const struct glsl_type *glsl_int8_t_type(void);
+const struct glsl_type *glsl_uint8_t_type(void);
 const struct glsl_type *glsl_bool_type(void);
 
 const struct glsl_type *glsl_scalar_type(enum glsl_base_type base_type);

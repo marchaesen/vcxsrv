@@ -63,6 +63,8 @@ enum glsl_base_type {
    GLSL_TYPE_FLOAT,
    GLSL_TYPE_FLOAT16,
    GLSL_TYPE_DOUBLE,
+   GLSL_TYPE_UINT8,
+   GLSL_TYPE_INT8,
    GLSL_TYPE_UINT16,
    GLSL_TYPE_INT16,
    GLSL_TYPE_UINT64,
@@ -231,6 +233,8 @@ public:
    static const glsl_type *u64vec(unsigned components);
    static const glsl_type *i16vec(unsigned components);
    static const glsl_type *u16vec(unsigned components);
+   static const glsl_type *i8vec(unsigned components);
+   static const glsl_type *u8vec(unsigned components);
    /**@}*/
 
    /**

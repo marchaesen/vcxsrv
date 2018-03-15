@@ -37,10 +37,11 @@ meta_image_block_size(const struct radv_image *image)
  */
 static struct VkExtent3D
 meta_region_extent_el(const struct radv_image *image,
+                      const VkImageType imageType,
                       const struct VkExtent3D *extent)
 {
 	const VkExtent3D block = meta_image_block_size(image);
-	return radv_sanitize_image_extent(image->type, (VkExtent3D) {
+	return radv_sanitize_image_extent(imageType, (VkExtent3D) {
 			.width  = DIV_ROUND_UP(extent->width , block.width),
 				.height = DIV_ROUND_UP(extent->height, block.height),
 				.depth  = DIV_ROUND_UP(extent->depth , block.depth),
@@ -146,11 +147,11 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 			pRegions[r].bufferImageHeight : pRegions[r].imageExtent.height,
 		};
 		const VkExtent3D buf_extent_el =
-			meta_region_extent_el(image, &bufferExtent);
+			meta_region_extent_el(image, image->type, &bufferExtent);
 
 		/* Start creating blit rect */
 		const VkExtent3D img_extent_el =
-			meta_region_extent_el(image, &pRegions[r].imageExtent);
+			meta_region_extent_el(image, image->type, &pRegions[r].imageExtent);
 		struct radv_meta_blit2d_rect rect = {
 			.width = img_extent_el.width,
 			.height =  img_extent_el.height,
@@ -259,11 +260,11 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 			pRegions[r].bufferImageHeight : pRegions[r].imageExtent.height,
 		};
 		const VkExtent3D buf_extent_el =
-			meta_region_extent_el(image, &bufferExtent);
+			meta_region_extent_el(image, image->type, &bufferExtent);
 
 		/* Start creating blit rect */
 		const VkExtent3D img_extent_el =
-			meta_region_extent_el(image, &pRegions[r].imageExtent);
+			meta_region_extent_el(image, image->type, &pRegions[r].imageExtent);
 		struct radv_meta_blit2d_rect rect = {
 			.width = img_extent_el.width,
 			.height =  img_extent_el.height,
@@ -408,8 +409,18 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 			meta_region_offset_el(dest_image, &pRegions[r].dstOffset);
 		const VkOffset3D src_offset_el =
 			meta_region_offset_el(src_image, &pRegions[r].srcOffset);
+
+		/*
+		 * From Vulkan 1.0.68, "Copying Data Between Images":
+		 *    "When copying between compressed and uncompressed formats
+		 *     the extent members represent the texel dimensions of the
+		 *     source image and not the destination."
+		 * However, we must use the destination image type to avoid
+		 * clamping depth when copying multiple layers of a 2D image to
+		 * a 3D image.
+		 */
 		const VkExtent3D img_extent_el =
-			meta_region_extent_el(dest_image, &pRegions[r].extent);
+			meta_region_extent_el(src_image, dest_image->type, &pRegions[r].extent);
 
 		/* Start creating blit rect */
 		struct radv_meta_blit2d_rect rect = {

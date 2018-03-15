@@ -214,9 +214,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.multiview = true,
 				.subgroup_basic = true,
 				.variable_pointers = true,
-			},
-			.exts = {
-				.AMD_gcn_shader = true,
+				.gcn_shader = true,
 			},
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,
@@ -450,7 +448,6 @@ shader_variant_create(struct radv_device *device,
 		      unsigned *code_size_out)
 {
 	enum radeon_family chip_family = device->physical_device->rad_info.family;
-	bool dump_shaders = radv_can_dump_shader(device, module);
 	enum ac_target_machine_options tm_options = 0;
 	struct radv_shader_variant *variant;
 	struct ac_shader_binary binary;
@@ -462,8 +459,10 @@ shader_variant_create(struct radv_device *device,
 
 	options->family = chip_family;
 	options->chip_class = device->physical_device->rad_info.chip_class;
-	options->dump_preoptir = radv_can_dump_shader(device, module) &&
+	options->dump_shader = radv_can_dump_shader(device, module);
+	options->dump_preoptir = options->dump_shader &&
 				 device->instance->debug_flags & RADV_DEBUG_PREOPTIR;
+	options->record_llvm_ir = device->keep_shader_info;
 
 	if (options->supports_spill)
 		tm_options |= AC_TM_SUPPORTS_SPILL;
@@ -475,11 +474,11 @@ shader_variant_create(struct radv_device *device,
 		assert(shader_count == 1);
 		radv_compile_gs_copy_shader(tm, *shaders, &binary,
 					    &variant->config, &variant->info,
-					    options, dump_shaders);
+					    options);
 	} else {
 		radv_compile_nir_shader(tm, &binary, &variant->config,
 					&variant->info, shaders, shader_count,
-					options, dump_shaders);
+					options);
 	}
 
 	LLVMDisposeTargetMachine(tm);
@@ -499,6 +498,7 @@ shader_variant_create(struct radv_device *device,
 
 	if (device->keep_shader_info) {
 		variant->disasm_string = binary.disasm_string;
+		variant->llvm_ir_string = binary.llvm_ir_string;
 		if (!gs_copy_shader && !module->nir) {
 			variant->nir = *shaders;
 			variant->spirv = (uint32_t *)module->data;
@@ -562,6 +562,7 @@ radv_shader_variant_destroy(struct radv_device *device,
 
 	ralloc_free(variant->nir);
 	free(variant->disasm_string);
+	free(variant->llvm_ir_string);
 	free(variant);
 }
 

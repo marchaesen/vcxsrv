@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 #
 # based on instructions for building xorg-server in https://www.xquartz.org/Developer-Info.html
 #
@@ -15,13 +18,22 @@ hdiutil detach /Volumes/XQuartz-${XQUARTZ_VERSION}
 export PATH="/opt/X11/bin:${PATH}"
 export PKG_CONFIG_PATH="/opt/X11/share/pkgconfig:/opt/X11/lib/pkgconfig:${PKG_CONFIG_PATH}"
 export ACLOCAL="aclocal -I /opt/X11/share/aclocal -I /usr/local/share/aclocal"
-export CFLAGS="-Wall -O0 -ggdb3 -arch i386 -arch x86_64 -pipe"
+export CFLAGS="-Wall -O2 -ggdb3 -arch i386 -arch x86_64 -pipe"
 export CXXFLAGS=$CFLAGS
 export OBJCFLAGS=$CFLAGS
 export LDFLAGS=$CFLAGS
 
 # travis currently requires explicit ccache setup on OSX
 export PATH="/usr/local/opt/ccache/libexec:$PATH"
+
+# need newer xorgproto
+pushd $HOME
+git clone git://anongit.freedesktop.org/git/xorg/proto/xorgproto
+cd xorgproto
+autoreconf -fvi
+./configure --prefix=/opt/X11
+sudo make install
+popd
 
 # build
 autoreconf -fvi

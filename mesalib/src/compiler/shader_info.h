@@ -51,11 +51,7 @@ struct spirv_supported_capabilities {
    bool subgroup_quad;
    bool subgroup_shuffle;
    bool subgroup_vote;
-};
-
-/* The supported extensions which add extended instructions */
-struct spirv_supported_extensions {
-   bool AMD_gcn_shader;
+   bool gcn_shader;
 };
 
 typedef struct shader_info {

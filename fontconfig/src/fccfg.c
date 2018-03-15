@@ -26,7 +26,6 @@
 
 #include "fcint.h"
 #include <dirent.h>
-#include <locale.h>
 #include <sys/types.h>
 
 #if defined (_WIN32) && !defined (R_OK)
@@ -39,24 +38,7 @@ static FcConfig *
 FcConfigEnsure (void)
 {
     FcConfig	*config;
-    FcBool	is_locale_initialized;
-    static void *static_is_locale_initialized;
-retry_locale:
-    is_locale_initialized = (intptr_t) fc_atomic_ptr_get (&static_is_locale_initialized);
-    if (!is_locale_initialized)
-    {
-	char *loc;
-
-	is_locale_initialized = FcTrue;
-	if (!fc_atomic_ptr_cmpexch (&static_is_locale_initialized, NULL,
-				    (void *)(intptr_t) is_locale_initialized))
-	    goto retry_locale;
-
-	loc = setlocale (LC_ALL, NULL);
-	if (!loc || strcmp (loc, "C") == 0)
-	    setlocale (LC_ALL, "");
-    }
-retry_config:
+retry:
     config = fc_atomic_ptr_get (&_fcConfig);
     if (!config)
     {
@@ -64,7 +46,7 @@ retry_config:
 
 	if (!fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config)) {
 	    FcConfigDestroy (config);
-	    goto retry_config;
+	    goto retry;
 	}
     }
     return config;
