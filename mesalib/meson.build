@@ -1236,8 +1236,13 @@ if with_platform_x11
 
     if with_dri3
       pre_args += '-DHAVE_DRI3'
-      dep_xcb_dri3 = dependency('xcb-dri3', version : '>= 1.13')
-      dep_xcb_present = dependency('xcb-present', version: '>= 1.13')
+      dep_xcb_dri3 = dependency('xcb-dri3')
+      dep_xcb_present = dependency('xcb-present')
+      # until xcb-dri3 has been around long enough to make a hard-dependency:
+      if (dep_xcb_dri3.version().version_compare('>= 1.13') and
+          dep_xcb_present.version().version_compare('>= 1.13'))
+        pre_args += '-DHAVE_DRI3_MODIFIERS'
+      endif
       dep_xcb_sync = dependency('xcb-sync')
       dep_xshmfence = dependency('xshmfence', version : '>= 1.1')
     endif

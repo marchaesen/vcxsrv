@@ -389,6 +389,7 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
 	 /* If the server tells us that our allocation is suboptimal, we
           * reallocate once.
           */
+#ifdef HAVE_DRI3_MODIFIERS
          if (ce->mode == XCB_PRESENT_COMPLETE_MODE_SUBOPTIMAL_COPY &&
              draw->last_present_mode != ce->mode) {
             for (int b = 0; b < ARRAY_SIZE(draw->buffers); b++) {
@@ -396,7 +397,7 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
                   draw->buffers[b]->reallocate = true;
             }
          }
-
+#endif
          draw->last_present_mode = ce->mode;
 
          if (draw->vtable->show_fps)
@@ -903,10 +904,10 @@ loader_dri3_swap_buffers_msc(struct loader_dri3_drawable *draw,
        */
       if (!loader_dri3_have_image_blit(draw) && draw->cur_blit_source != -1)
          options |= XCB_PRESENT_OPTION_COPY;
-
+#ifdef HAVE_DRI3_MODIFIERS
       if (draw->multiplanes_available)
          options |= XCB_PRESENT_OPTION_SUBOPTIMAL;
-
+#endif
       back->busy = 1;
       back->last_swap = draw->send_sbc;
       xcb_present_pixmap(draw->conn,
@@ -1053,6 +1054,7 @@ image_format_to_fourcc(int format)
    return 0;
 }
 
+#ifdef HAVE_DRI3_MODIFIERS
 static bool
 has_supported_modifier(struct loader_dri3_drawable *draw, unsigned int format,
                        uint64_t *modifiers, uint32_t count)
@@ -1087,6 +1089,7 @@ has_supported_modifier(struct loader_dri3_drawable *draw, unsigned int format,
    free(supported_modifiers);
    return found;
 }
+#endif
 
 /** loader_dri3_alloc_render_buffer
  *
@@ -1132,6 +1135,7 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
       goto no_image;
 
    if (!draw->is_different_gpu) {
+#ifdef HAVE_DRI3_MODIFIERS
       if (draw->multiplanes_available &&
           draw->ext->image->base.version >= 15 &&
           draw->ext->image->queryDmaBufModifiers &&
@@ -1195,7 +1199,7 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
                                                                     buffer);
          free(modifiers);
       }
-
+#endif
       if (!buffer->image)
          buffer->image = draw->ext->image->createImage(draw->dri_screen,
                                                        width, height,
@@ -1272,6 +1276,7 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
    pixmap = xcb_generate_id(draw->conn);
    if (draw->multiplanes_available &&
        buffer->modifier != DRM_FORMAT_MOD_INVALID) {
+#ifdef HAVE_DRI3_MODIFIERS
       xcb_dri3_pixmap_from_buffers(draw->conn,
                                    pixmap,
                                    draw->drawable,
@@ -1284,6 +1289,7 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
                                    depth, buffer->cpp * 8,
                                    buffer->modifier,
                                    buffer_fds);
+#endif
    } else {
       xcb_dri3_pixmap_from_buffer(draw->conn,
                                   pixmap,
@@ -1473,6 +1479,7 @@ loader_dri3_create_image(xcb_connection_t *c,
    return ret;
 }
 
+#ifdef HAVE_DRI3_MODIFIERS
 __DRIimage *
 loader_dri3_create_image_from_buffers(xcb_connection_t *c,
                                       xcb_dri3_buffers_from_pixmap_reply_t *bp_reply,
@@ -1514,6 +1521,7 @@ loader_dri3_create_image_from_buffers(xcb_connection_t *c,
 
    return ret;
 }
+#endif
 
 /** dri3_get_pixmap_buffer
  *
@@ -1567,7 +1575,7 @@ dri3_get_pixmap_buffer(__DRIdrawable *driDrawable, unsigned int format,
                           (sync_fence = xcb_generate_id(draw->conn)),
                           false,
                           fence_fd);
-
+#ifdef HAVE_DRI3_MODIFIERS
    if (draw->multiplanes_available &&
        draw->ext->image->base.version >= 15 &&
        draw->ext->image->createImageFromDmaBufs2) {
@@ -1586,7 +1594,9 @@ dri3_get_pixmap_buffer(__DRIdrawable *driDrawable, unsigned int format,
       width = bps_reply->width;
       height = bps_reply->height;
       free(bps_reply);
-   } else {
+   } else
+#endif
+   {
       xcb_dri3_buffer_from_pixmap_cookie_t bp_cookie;
       xcb_dri3_buffer_from_pixmap_reply_t *bp_reply;
 
