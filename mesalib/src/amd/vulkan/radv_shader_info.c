@@ -30,6 +30,23 @@ static void mark_sampler_desc(const nir_variable *var,
 	info->desc_set_used_mask |= (1 << var->data.descriptor_set);
 }
 
+static void mark_ls_output(struct radv_shader_info *info,
+			   uint32_t param, int num_slots)
+{
+	uint64_t mask = (1ull << num_slots) - 1ull;
+	info->vs.ls_outputs_written |= (mask << param);
+}
+
+static void mark_tess_output(struct radv_shader_info *info,
+			     bool is_patch, uint32_t param, int num_slots)
+{
+	uint64_t mask = (1ull << num_slots) - 1ull;
+	if (is_patch)
+		info->tcs.patch_outputs_written |= (mask << param);
+	else
+		info->tcs.outputs_written |= (mask << param);
+}
+
 static void
 gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		      struct radv_shader_info *info)
@@ -73,6 +90,8 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		break;
 	case nir_intrinsic_load_view_index:
 		info->needs_multiview_view_index = true;
+		if (nir->info.stage == MESA_SHADER_FRAGMENT)
+			info->ps.layer_input = true;
 		break;
 	case nir_intrinsic_load_invocation_id:
 		info->uses_invocation_id = true;
@@ -162,6 +181,17 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 			} else if (nir->info.stage == MESA_SHADER_TESS_EVAL) {
 				info->tes.output_usage_mask[idx] |=
 					instr->const_index[0] << comp;
+			} else if (nir->info.stage == MESA_SHADER_TESS_CTRL) {
+				unsigned param = shader_io_get_unique_index(idx);
+				const struct glsl_type *type = var->type;
+				if (!var->data.patch)
+					type = glsl_get_array_element(var->type);
+				unsigned slots =
+					var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
+					: glsl_count_attribute_slots(type, false);
+				if (idx == VARYING_SLOT_CLIP_DIST0)
+					slots = (nir->info.clip_distance_array_size + nir->info.cull_distance_array_size > 4) ? 2 : 1;
+				mark_tess_output(info, var->data.patch, param, slots);
 			}
 		}
 		break;
@@ -253,6 +283,18 @@ gather_info_input_decl(const nir_shader *nir, const nir_variable *var,
 }
 
 static void
+gather_info_output_decl_ls(const nir_shader *nir, const nir_variable *var,
+			   struct radv_shader_info *info)
+{
+	int idx = var->data.location;
+	unsigned param = shader_io_get_unique_index(idx);
+	int num_slots = glsl_count_attribute_slots(var->type, false);
+	if (idx == VARYING_SLOT_CLIP_DIST0)
+		num_slots = (nir->info.clip_distance_array_size + nir->info.cull_distance_array_size > 4) ? 2 : 1;
+	mark_ls_output(info, param, num_slots);
+}
+
+static void
 gather_info_output_decl_ps(const nir_shader *nir, const nir_variable *var,
 			   struct radv_shader_info *info)
 {
@@ -275,11 +317,16 @@ gather_info_output_decl_ps(const nir_shader *nir, const nir_variable *var,
 
 static void
 gather_info_output_decl(const nir_shader *nir, const nir_variable *var,
-			struct radv_shader_info *info)
+			struct radv_shader_info *info,
+			const struct radv_nir_compiler_options *options)
 {
 	switch (nir->info.stage) {
 	case MESA_SHADER_FRAGMENT:
 		gather_info_output_decl_ps(nir, var, info);
+		break;
+	case MESA_SHADER_VERTEX:
+		if (options->key.vs.as_ls)
+			gather_info_output_decl_ls(nir, var, info);
 		break;
 	default:
 		break;
@@ -305,5 +352,5 @@ radv_nir_shader_info_pass(const struct nir_shader *nir,
 	}
 
 	nir_foreach_variable(variable, &nir->outputs)
-		gather_info_output_decl(nir, variable, info);
+		gather_info_output_decl(nir, variable, info, options);
 }

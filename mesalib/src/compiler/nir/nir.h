@@ -2791,6 +2791,8 @@ bool nir_opt_loop_unroll(nir_shader *shader, nir_variable_mode indirect_mask);
 
 bool nir_opt_move_comparisons(nir_shader *shader);
 
+bool nir_opt_move_load_ubo(nir_shader *shader);
+
 bool nir_opt_peephole_select(nir_shader *shader, unsigned limit);
 
 bool nir_opt_remove_phis(nir_shader *shader);

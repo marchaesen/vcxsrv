@@ -160,6 +160,7 @@ files_libnir = files(
   'nir_opt_intrinsics.c',
   'nir_opt_loop_unroll.c',
   'nir_opt_move_comparisons.c',
+  'nir_opt_move_load_ubo.c',
   'nir_opt_peephole_select.c',
   'nir_opt_remove_phis.c',
   'nir_opt_shrink_load.c',

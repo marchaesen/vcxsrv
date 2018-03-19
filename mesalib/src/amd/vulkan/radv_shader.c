@@ -152,6 +152,7 @@ radv_optimize_nir(struct nir_shader *shader)
         } while (progress);
 
         NIR_PASS(progress, shader, nir_opt_shrink_load);
+        NIR_PASS(progress, shader, nir_opt_move_load_ubo);
 }
 
 nir_shader *
@@ -463,6 +464,7 @@ shader_variant_create(struct radv_device *device,
 	options->dump_preoptir = options->dump_shader &&
 				 device->instance->debug_flags & RADV_DEBUG_PREOPTIR;
 	options->record_llvm_ir = device->keep_shader_info;
+	options->tess_offchip_block_dw_size = device->tess_offchip_block_dw_size;
 
 	if (options->supports_spill)
 		tm_options |= AC_TM_SUPPORTS_SPILL;

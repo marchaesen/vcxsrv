@@ -759,9 +759,11 @@ x11_handle_dri3_present_event(struct x11_swapchain *chain,
       /* The winsys is now trying to flip directly and cannot due to our
        * configuration. Request the user reallocate.
        */
+#ifdef HAVE_DRI3_MODIFIERS
       if (complete->mode == XCB_PRESENT_COMPLETE_MODE_SUBOPTIMAL_COPY &&
           chain->last_present_mode != XCB_PRESENT_COMPLETE_MODE_SUBOPTIMAL_COPY)
          result = VK_SUBOPTIMAL_KHR;
+#endif
 
       /* When we go from flipping to copying, the odds are very likely that
        * we could reallocate in a more optimal way if we didn't have to care
@@ -908,8 +910,10 @@ x11_present_to_x11(struct x11_swapchain *chain, uint32_t image_index,
    if (chain->base.present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
       options |= XCB_PRESENT_OPTION_ASYNC;
 
+#ifdef HAVE_DRI3_MODIFIERS
    if (chain->has_dri3_modifiers)
       options |= XCB_PRESENT_OPTION_SUBOPTIMAL;
+#endif
 
    xshmfence_reset(image->shm_fence);
 
@@ -1046,8 +1050,9 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
 
    image->pixmap = xcb_generate_id(chain->conn);
 
+#ifdef HAVE_DRI3_MODIFIERS
    if (image->base.drm_modifier != DRM_FORMAT_MOD_INVALID) {
-      /* If the image has a modifier, we must have DRI3 v1.1. */
+      /* If the image has a modifier, we must have DRI3 v1.2. */
       assert(chain->has_dri3_modifiers);
 
       cookie =
@@ -1068,7 +1073,9 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
                                               chain->depth, bpp,
                                               image->base.drm_modifier,
                                               image->base.fds);
-   } else {
+   } else
+#endif
+   {
       /* Without passing modifiers, we can't have multi-plane RGB images. */
       assert(image->base.num_planes == 1);
 
@@ -1151,6 +1158,7 @@ wsi_x11_get_dri3_modifiers(struct wsi_x11_connection *wsi_conn,
    if (!wsi_conn->has_dri3_modifiers)
       goto out;
 
+#ifdef HAVE_DRI3_MODIFIERS
    xcb_generic_error_t *error = NULL;
    xcb_dri3_get_supported_modifiers_cookie_t mod_cookie =
       xcb_dri3_get_supported_modifiers(conn, window, depth, bpp);
@@ -1210,7 +1218,7 @@ wsi_x11_get_dri3_modifiers(struct wsi_x11_connection *wsi_conn,
 
    free(mod_reply);
    return;
-
+#endif
 out:
    *num_tranches_in = 0;
 }
@@ -1398,7 +1406,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       }
    }
 
-   for (int i = 0; i < 2; i++)
+   for (int i = 0; i < ARRAY_SIZE(modifiers); i++)
       vk_free(pAllocator, modifiers[i]);
    *swapchain_out = &chain->base;
 
@@ -1409,7 +1417,7 @@ fail_init_images:
       x11_image_finish(chain, pAllocator, &chain->images[j]);
 
 fail_register:
-   for (int i = 0; i < 2; i++)
+   for (int i = 0; i < ARRAY_SIZE(modifiers); i++)
       vk_free(pAllocator, modifiers[i]);
 
    xcb_unregister_for_special_event(chain->conn, chain->special_event);

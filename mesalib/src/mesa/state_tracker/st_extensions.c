@@ -36,6 +36,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
+#include "tgsi/tgsi_from_mesa.h"
 #include "util/u_math.h"
 
 #include "st_context.h"
@@ -166,52 +167,18 @@ void st_init_limits(struct pipe_screen *screen,
             screen->get_compiler_options(screen, PIPE_SHADER_IR_NIR, sh);
       }
 
-      switch (sh) {
-      case PIPE_SHADER_FRAGMENT:
-         pc = &c->Program[MESA_SHADER_FRAGMENT];
-         options = &c->ShaderCompilerOptions[MESA_SHADER_FRAGMENT];
-         c->ShaderCompilerOptions[MESA_SHADER_FRAGMENT].NirOptions =
-            nir_options;
-         break;
-      case PIPE_SHADER_VERTEX:
-         pc = &c->Program[MESA_SHADER_VERTEX];
-         options = &c->ShaderCompilerOptions[MESA_SHADER_VERTEX];
-         c->ShaderCompilerOptions[MESA_SHADER_VERTEX].NirOptions =
-            nir_options;
-         break;
-      case PIPE_SHADER_GEOMETRY:
-         pc = &c->Program[MESA_SHADER_GEOMETRY];
-         options = &c->ShaderCompilerOptions[MESA_SHADER_GEOMETRY];
-         c->ShaderCompilerOptions[MESA_SHADER_GEOMETRY].NirOptions =
-            nir_options;
-         break;
-      case PIPE_SHADER_TESS_CTRL:
-         pc = &c->Program[MESA_SHADER_TESS_CTRL];
-         options = &c->ShaderCompilerOptions[MESA_SHADER_TESS_CTRL];
-         c->ShaderCompilerOptions[MESA_SHADER_TESS_CTRL].NirOptions =
-            nir_options;
-         break;
-      case PIPE_SHADER_TESS_EVAL:
-         pc = &c->Program[MESA_SHADER_TESS_EVAL];
-         options = &c->ShaderCompilerOptions[MESA_SHADER_TESS_EVAL];
-         c->ShaderCompilerOptions[MESA_SHADER_TESS_EVAL].NirOptions =
-            nir_options;
-         break;
-      case PIPE_SHADER_COMPUTE:
-         pc = &c->Program[MESA_SHADER_COMPUTE];
-         options = &c->ShaderCompilerOptions[MESA_SHADER_COMPUTE];
-         c->ShaderCompilerOptions[MESA_SHADER_COMPUTE].NirOptions =
-            nir_options;
+      const gl_shader_stage stage = tgsi_processor_to_shader_stage(sh);
+      pc = &c->Program[stage];
+      options = &c->ShaderCompilerOptions[stage];
+      c->ShaderCompilerOptions[stage].NirOptions = nir_options;
 
+      if (sh == PIPE_SHADER_COMPUTE) {
          if (!screen->get_param(screen, PIPE_CAP_COMPUTE))
             continue;
          supported_irs =
             screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_SUPPORTED_IRS);
          if (!(supported_irs & (1 << PIPE_SHADER_IR_TGSI)))
             continue;
-         break;
-      default:
-         assert(0);
       }
 
       pc->MaxTextureImageUnits =

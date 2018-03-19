@@ -34,6 +34,7 @@
 #include "tgsi/tgsi_dump.h"
 #include "tgsi/tgsi_info.h"
 #include "tgsi/tgsi_scan.h"
+#include "tgsi/tgsi_from_mesa.h"
 
 #define SWIZ(X, Y, Z, W) (unsigned[4]){      \
       TGSI_SWIZZLE_##X,                      \
@@ -1884,21 +1885,6 @@ ttn_add_output_stores(struct ttn_compile *c)
          store->src[1] = nir_src_for_ssa(nir_imm_int(b, 0));
          nir_builder_instr_insert(b, &store->instr);
       }
-   }
-}
-
-static gl_shader_stage
-tgsi_processor_to_shader_stage(unsigned processor)
-{
-   switch (processor) {
-   case PIPE_SHADER_FRAGMENT:  return MESA_SHADER_FRAGMENT;
-   case PIPE_SHADER_VERTEX:    return MESA_SHADER_VERTEX;
-   case PIPE_SHADER_GEOMETRY:  return MESA_SHADER_GEOMETRY;
-   case PIPE_SHADER_TESS_CTRL: return MESA_SHADER_TESS_CTRL;
-   case PIPE_SHADER_TESS_EVAL: return MESA_SHADER_TESS_EVAL;
-   case PIPE_SHADER_COMPUTE:   return MESA_SHADER_COMPUTE;
-   default:
-      unreachable("invalid TGSI processor");
    }
 }
 

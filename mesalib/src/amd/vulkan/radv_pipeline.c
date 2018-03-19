@@ -62,10 +62,6 @@ struct radv_blend_state {
 
 struct radv_tessellation_state {
 	uint32_t ls_hs_config;
-	uint32_t tcs_in_layout;
-	uint32_t tcs_out_layout;
-	uint32_t tcs_out_offsets;
-	uint32_t offchip_layout;
 	unsigned num_patches;
 	unsigned lds_size;
 	uint32_t tf_param;
@@ -1310,67 +1306,17 @@ static struct radv_tessellation_state
 calculate_tess_state(struct radv_pipeline *pipeline,
 		     const VkGraphicsPipelineCreateInfo *pCreateInfo)
 {
-	unsigned num_tcs_input_cp = pCreateInfo->pTessellationState->patchControlPoints;
-	unsigned num_tcs_output_cp, num_tcs_inputs, num_tcs_outputs;
-	unsigned num_tcs_patch_outputs;
-	unsigned input_vertex_size, output_vertex_size, pervertex_output_patch_size;
-	unsigned input_patch_size, output_patch_size, output_patch0_offset;
-	unsigned lds_size, hardware_lds_size;
-	unsigned perpatch_output_offset;
+	unsigned num_tcs_input_cp;
+	unsigned num_tcs_output_cp;
+	unsigned lds_size;
 	unsigned num_patches;
 	struct radv_tessellation_state tess = {0};
 
-	/* This calculates how shader inputs and outputs among VS, TCS, and TES
-	 * are laid out in LDS. */
-	num_tcs_inputs = util_last_bit64(radv_get_vertex_shader(pipeline)->info.vs.outputs_written);
-
-	num_tcs_outputs = util_last_bit64(pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.outputs_written); //tcs->outputs_written
+	num_tcs_input_cp = pCreateInfo->pTessellationState->patchControlPoints;
 	num_tcs_output_cp = pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.tcs_vertices_out; //TCS VERTICES OUT
-	num_tcs_patch_outputs = util_last_bit64(pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.patch_outputs_written);
+	num_patches = pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.num_patches;
 
-	/* Ensure that we only need one wave per SIMD so we don't need to check
-	 * resource usage. Also ensures that the number of tcs in and out
-	 * vertices per threadgroup are at most 256.
-	 */
-	input_vertex_size = num_tcs_inputs * 16;
-	output_vertex_size = num_tcs_outputs * 16;
-
-	input_patch_size = num_tcs_input_cp * input_vertex_size;
-
-	pervertex_output_patch_size = num_tcs_output_cp * output_vertex_size;
-	output_patch_size = pervertex_output_patch_size + num_tcs_patch_outputs * 16;
-	/* Ensure that we only need one wave per SIMD so we don't need to check
-	 * resource usage. Also ensures that the number of tcs in and out
-	 * vertices per threadgroup are at most 256.
-	 */
-	num_patches = 64 / MAX2(num_tcs_input_cp, num_tcs_output_cp) * 4;
-
-	/* Make sure that the data fits in LDS. This assumes the shaders only
-	 * use LDS for the inputs and outputs.
-	 */
-	hardware_lds_size = pipeline->device->physical_device->rad_info.chip_class >= CIK ? 65536 : 32768;
-	num_patches = MIN2(num_patches, hardware_lds_size / (input_patch_size + output_patch_size));
-
-	/* Make sure the output data fits in the offchip buffer */
-	num_patches = MIN2(num_patches,
-			    (pipeline->device->tess_offchip_block_dw_size * 4) /
-			    output_patch_size);
-
-	/* Not necessary for correctness, but improves performance. The
-	 * specific value is taken from the proprietary driver.
-	 */
-	num_patches = MIN2(num_patches, 40);
-
-	/* SI bug workaround - limit LS-HS threadgroups to only one wave. */
-	if (pipeline->device->physical_device->rad_info.chip_class == SI) {
-		unsigned one_wave = 64 / MAX2(num_tcs_input_cp, num_tcs_output_cp);
-		num_patches = MIN2(num_patches, one_wave);
-	}
-
-	output_patch0_offset = input_patch_size * num_patches;
-	perpatch_output_offset = output_patch0_offset + pervertex_output_patch_size;
-
-	lds_size = output_patch0_offset + output_patch_size * num_patches;
+	lds_size = pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.lds_size;
 
 	if (pipeline->device->physical_device->rad_info.chip_class >= CIK) {
 		assert(lds_size <= 65536);
@@ -1382,15 +1328,6 @@ calculate_tess_state(struct radv_pipeline *pipeline,
 	si_multiwave_lds_size_workaround(pipeline->device, &lds_size);
 
 	tess.lds_size = lds_size;
-
-	tess.tcs_in_layout = (input_patch_size / 4) |
-		((input_vertex_size / 4) << 13);
-	tess.tcs_out_layout = (output_patch_size / 4) |
-		((output_vertex_size / 4) << 13);
-	tess.tcs_out_offsets = (output_patch0_offset / 16) |
-		((perpatch_output_offset / 16) << 16);
-	tess.offchip_layout = (pervertex_output_patch_size * num_patches << 16) |
-		num_patches;
 
 	tess.ls_hs_config = S_028B58_NUM_PATCHES(num_patches) |
 		S_028B58_HS_NUM_INPUT_CP(num_tcs_input_cp) |
@@ -1597,6 +1534,7 @@ radv_fill_shader_keys(struct radv_shader_variant_key *keys,
 
 	if (nir[MESA_SHADER_TESS_CTRL]) {
 		keys[MESA_SHADER_VERTEX].vs.as_ls = true;
+		keys[MESA_SHADER_TESS_CTRL].tcs.num_inputs = 0;
 		keys[MESA_SHADER_TESS_CTRL].tcs.input_vertices = key->tess_input_vertices;
 		keys[MESA_SHADER_TESS_CTRL].tcs.primitive_mode = nir[MESA_SHADER_TESS_EVAL]->info.tess.primitive_mode;
 
@@ -1780,8 +1718,12 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 		/* TODO: These are no longer used as keys we should refactor this */
 		keys[MESA_SHADER_VERTEX].vs.export_prim_id =
 		        pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.prim_id_input;
+		keys[MESA_SHADER_VERTEX].vs.export_layer_id =
+		        pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.layer_input;
 		keys[MESA_SHADER_TESS_EVAL].tes.export_prim_id =
 		        pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.prim_id_input;
+		keys[MESA_SHADER_TESS_EVAL].tes.export_layer_id =
+		        pipeline->shaders[MESA_SHADER_FRAGMENT]->info.info.ps.layer_input;
 	}
 
 	if (device->physical_device->rad_info.chip_class >= GFX9 && modules[MESA_SHADER_TESS_CTRL]) {
@@ -1795,6 +1737,8 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 			                                                                      &code_sizes[MESA_SHADER_TESS_CTRL]);
 		}
 		modules[MESA_SHADER_VERTEX] = NULL;
+		keys[MESA_SHADER_TESS_EVAL].tes.num_patches = pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.num_patches;
+		keys[MESA_SHADER_TESS_EVAL].tes.tcs_num_outputs = util_last_bit64(pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.info.tcs.outputs_written);
 	}
 
 	if (device->physical_device->rad_info.chip_class >= GFX9 && modules[MESA_SHADER_GEOMETRY]) {
@@ -1811,6 +1755,13 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
 		if(modules[i] && !pipeline->shaders[i]) {
+			if (i == MESA_SHADER_TESS_CTRL) {
+				keys[MESA_SHADER_TESS_CTRL].tcs.num_inputs = util_last_bit64(pipeline->shaders[MESA_SHADER_VERTEX]->info.info.vs.ls_outputs_written);
+			}
+			if (i == MESA_SHADER_TESS_EVAL) {
+				keys[MESA_SHADER_TESS_EVAL].tes.num_patches = pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.num_patches;
+				keys[MESA_SHADER_TESS_EVAL].tes.tcs_num_outputs = util_last_bit64(pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.info.tcs.outputs_written);
+			}
 			pipeline->shaders[i] = radv_shader_variant_create(device, modules[i], &nir[i], 1,
 									  pipeline->layout,
 									  keys + i, &codes[i],
@@ -2608,40 +2559,6 @@ radv_pipeline_generate_tess_shaders(struct radeon_winsys_cs *cs,
 	else
 		radeon_set_context_reg(cs, R_028B58_VGT_LS_HS_CONFIG,
 				       tess->ls_hs_config);
-
-	struct radv_userdata_info *loc;
-
-	loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_TESS_CTRL, AC_UD_TCS_OFFCHIP_LAYOUT);
-	if (loc->sgpr_idx != -1) {
-		uint32_t base_reg = pipeline->user_data_0[MESA_SHADER_TESS_CTRL];
-		assert(loc->num_sgprs == 4);
-		assert(!loc->indirect);
-		radeon_set_sh_reg_seq(cs, base_reg + loc->sgpr_idx * 4, 4);
-		radeon_emit(cs, tess->offchip_layout);
-		radeon_emit(cs, tess->tcs_out_offsets);
-		radeon_emit(cs, tess->tcs_out_layout);
-		radeon_emit(cs, tess->tcs_in_layout);
-	}
-
-	loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_TESS_EVAL, AC_UD_TES_OFFCHIP_LAYOUT);
-	if (loc->sgpr_idx != -1) {
-		uint32_t base_reg = pipeline->user_data_0[MESA_SHADER_TESS_EVAL];
-		assert(loc->num_sgprs == 1);
-		assert(!loc->indirect);
-
-		radeon_set_sh_reg(cs, base_reg + loc->sgpr_idx * 4,
-				  tess->offchip_layout);
-	}
-
-	loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_VERTEX, AC_UD_VS_LS_TCS_IN_LAYOUT);
-	if (loc->sgpr_idx != -1) {
-		uint32_t base_reg = pipeline->user_data_0[MESA_SHADER_VERTEX];
-		assert(loc->num_sgprs == 1);
-		assert(!loc->indirect);
-
-		radeon_set_sh_reg(cs, base_reg + loc->sgpr_idx * 4,
-				  tess->tcs_in_layout);
-	}
 }
 
 static void
@@ -2704,22 +2621,6 @@ radv_pipeline_generate_geometry_shader(struct radeon_winsys_cs *cs,
 	}
 
 	radv_pipeline_generate_hw_vs(cs, pipeline, pipeline->gs_copy_shader);
-
-	struct radv_userdata_info *loc = radv_lookup_user_sgpr(pipeline, MESA_SHADER_GEOMETRY,
-							     AC_UD_GS_VS_RING_STRIDE_ENTRIES);
-	if (loc->sgpr_idx != -1) {
-		uint32_t stride = gs->info.gs.max_gsvs_emit_size;
-		uint32_t num_entries = 64;
-		bool is_vi = pipeline->device->physical_device->rad_info.chip_class >= VI;
-
-		if (is_vi)
-			num_entries *= stride;
-
-		stride = S_008F04_STRIDE(stride);
-		radeon_set_sh_reg_seq(cs, R_00B230_SPI_SHADER_USER_DATA_GS_0 + loc->sgpr_idx * 4, 2);
-		radeon_emit(cs, stride);
-		radeon_emit(cs, num_entries);
-	}
 }
 
 static uint32_t offset_to_ps_input(uint32_t offset, bool flat_shade)

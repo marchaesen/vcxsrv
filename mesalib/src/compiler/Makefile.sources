@@ -266,6 +266,7 @@ NIR_FILES = \
 	nir/nir_opt_intrinsics.c \
 	nir/nir_opt_loop_unroll.c \
 	nir/nir_opt_move_comparisons.c \
+	nir/nir_opt_move_load_ubo.c \
 	nir/nir_opt_peephole_select.c \
 	nir/nir_opt_remove_phis.c \
 	nir/nir_opt_shrink_load.c \
