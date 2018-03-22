@@ -147,6 +147,8 @@ struct gfx9_surf_layout {
 
     uint32_t                    fmask_alignment;
     uint32_t                    cmask_alignment;
+
+    uint8_t                     fmask_tile_swizzle;
 };
 
 struct radeon_surf {
@@ -175,7 +177,8 @@ struct radeon_surf {
     /* Tile swizzle can be OR'd with low bits of the BASE_256B address.
      * The value is the same for all mipmap levels. Supported tile modes:
      * - GFX6: Only macro tiling.
-     * - GFX9: Only *_X swizzle modes. Level 0 must not be in the mip tail.
+     * - GFX9: Only *_X and *_T swizzle modes. Level 0 must not be in the mip
+     *   tail.
      *
      * Only these surfaces are allowed to set it:
      * - color (if it doesn't have to be displayable)
@@ -218,6 +221,7 @@ struct ac_surf_info {
 	uint8_t levels;
 	uint16_t array_size;
 	uint32_t *surf_index; /* Set a monotonic counter for tile swizzling. */
+	uint32_t *fmask_surf_index; /* GFX9+ */
 };
 
 struct ac_surf_config {

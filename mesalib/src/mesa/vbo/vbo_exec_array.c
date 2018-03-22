@@ -361,30 +361,6 @@ enabled_filter(const struct gl_context *ctx)
 
 
 /**
- * Examine the enabled vertex arrays to set the exec->array.inputs[] values.
- * These will point to the arrays to actually use for drawing.  Some will
- * be user-provided arrays, other will be zero-stride const-valued arrays.
- */
-static void
-vbo_bind_arrays(struct gl_context *ctx)
-{
-   struct vbo_context *vbo = vbo_context(ctx);
-   struct vbo_exec_context *exec = &vbo->exec;
-
-   _mesa_set_drawing_arrays(ctx, vbo->draw_arrays.inputs);
-
-   if (exec->array.recalculate_inputs) {
-      /* Finally update the inputs array */
-      _vbo_update_inputs(ctx, &vbo->draw_arrays);
-      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
-      exec->array.recalculate_inputs = GL_FALSE;
-
-      assert(ctx->NewState == 0);
-   }
-}
-
-
-/**
  * Helper function called by the other DrawArrays() functions below.
  * This is where we handle primitive restart for drawing non-indexed
  * arrays.  If primitive restart is enabled, it typically means
@@ -395,13 +371,10 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
                 GLsizei count, GLuint numInstances, GLuint baseInstance,
                 GLuint drawID)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_prim prim;
 
    if (skip_validated_draw(ctx))
       return;
-
-   vbo_bind_arrays(ctx);
 
    /* OpenGL 4.5 says that primitive restart is ignored with non-indexed
     * draws.
@@ -417,8 +390,8 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
    prim.start = start;
    prim.count = count;
 
-   vbo->draw_prims(ctx, &prim, 1, NULL,
-                   GL_TRUE, start, start + count - 1, NULL, 0, NULL);
+   ctx->Driver.Draw(ctx, &prim, 1, NULL,
+                    GL_TRUE, start, start + count - 1, NULL, 0, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);
@@ -808,7 +781,6 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
                                 GLint basevertex, GLuint numInstances,
                                 GLuint baseInstance)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_index_buffer ib;
    struct _mesa_prim prim;
 
@@ -819,8 +791,6 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
 
    if (skip_draw_elements(ctx, count, indices))
       return;
-
-   vbo_bind_arrays(ctx);
 
    ib.count = count;
    ib.index_size = sizeof_ib_type(type);
@@ -872,8 +842,8 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
     * for the latter case elsewhere.
     */
 
-   vbo->draw_prims(ctx, &prim, 1, &ib,
-                   index_bounds_valid, start, end, NULL, 0, NULL);
+   ctx->Driver.Draw(ctx, &prim, 1, &ib,
+                    index_bounds_valid, start, end, NULL, 0, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);
@@ -1237,7 +1207,6 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
                                 const GLvoid * const *indices,
                                 GLsizei primcount, const GLint *basevertex)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_index_buffer ib;
    struct _mesa_prim *prim;
    unsigned int index_type_size = sizeof_ib_type(type);
@@ -1253,8 +1222,6 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glMultiDrawElements");
       return;
    }
-
-   vbo_bind_arrays(ctx);
 
    min_index_ptr = (uintptr_t) indices[0];
    max_index_ptr = 0;
@@ -1323,8 +1290,8 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
             prim[i].basevertex = 0;
       }
 
-      vbo->draw_prims(ctx, prim, primcount, &ib,
-                      false, 0, ~0, NULL, 0, NULL);
+      ctx->Driver.Draw(ctx, prim, primcount, &ib,
+                       false, 0, ~0, NULL, 0, NULL);
    }
    else {
       /* render one prim at a time */
@@ -1353,7 +1320,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
          else
             prim[0].basevertex = 0;
 
-         vbo->draw_prims(ctx, prim, 1, &ib, false, 0, ~0, NULL, 0, NULL);
+         ctx->Driver.Draw(ctx, prim, 1, &ib, false, 0, ~0, NULL, 0, NULL);
       }
    }
 
@@ -1431,7 +1398,6 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
                             struct gl_transform_feedback_object *obj,
                             GLuint stream, GLuint numInstances)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_prim prim;
 
    if (_mesa_is_no_error_enabled(ctx)) {
@@ -1462,8 +1428,6 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
    if (skip_validated_draw(ctx))
       return;
 
-   vbo_bind_arrays(ctx);
-
    /* init most fields to zero */
    memset(&prim, 0, sizeof(prim));
    prim.begin = 1;
@@ -1477,7 +1441,7 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
     * (like in DrawArrays), but we have no way to know how many vertices
     * will be rendered. */
 
-   vbo->draw_prims(ctx, &prim, 1, NULL, GL_FALSE, 0, ~0, obj, stream, NULL);
+   ctx->Driver.Draw(ctx, &prim, 1, NULL, GL_FALSE, 0, ~0, obj, stream, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);
@@ -1561,11 +1525,7 @@ static void
 vbo_validated_drawarraysindirect(struct gl_context *ctx,
                                  GLenum mode, const GLvoid *indirect)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
-
-   vbo_bind_arrays(ctx);
-
-   vbo->draw_indirect_prims(ctx, mode,
+   ctx->Driver.DrawIndirect(ctx, mode,
                             ctx->DrawIndirectBuffer, (GLsizeiptr) indirect,
                             1 /* draw_count */ , 16 /* stride */ ,
                             NULL, 0, NULL);
@@ -1581,15 +1541,12 @@ vbo_validated_multidrawarraysindirect(struct gl_context *ctx,
                                       const GLvoid *indirect,
                                       GLsizei primcount, GLsizei stride)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
    GLsizeiptr offset = (GLsizeiptr) indirect;
 
    if (primcount == 0)
       return;
 
-   vbo_bind_arrays(ctx);
-
-   vbo->draw_indirect_prims(ctx, mode, ctx->DrawIndirectBuffer, offset,
+   ctx->Driver.DrawIndirect(ctx, mode, ctx->DrawIndirectBuffer, offset,
                             primcount, stride, NULL, 0, NULL);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH)
@@ -1602,17 +1559,14 @@ vbo_validated_drawelementsindirect(struct gl_context *ctx,
                                    GLenum mode, GLenum type,
                                    const GLvoid *indirect)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_index_buffer ib;
-
-   vbo_bind_arrays(ctx);
 
    ib.count = 0;                /* unknown */
    ib.index_size = sizeof_ib_type(type);
    ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = NULL;
 
-   vbo->draw_indirect_prims(ctx, mode,
+   ctx->Driver.DrawIndirect(ctx, mode,
                             ctx->DrawIndirectBuffer, (GLsizeiptr) indirect,
                             1 /* draw_count */ , 20 /* stride */ ,
                             NULL, 0, &ib);
@@ -1628,14 +1582,11 @@ vbo_validated_multidrawelementsindirect(struct gl_context *ctx,
                                         const GLvoid *indirect,
                                         GLsizei primcount, GLsizei stride)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_index_buffer ib;
    GLsizeiptr offset = (GLsizeiptr) indirect;
 
    if (primcount == 0)
       return;
-
-   vbo_bind_arrays(ctx);
 
    /* NOTE: IndexBufferObj is guaranteed to be a VBO. */
 
@@ -1644,7 +1595,7 @@ vbo_validated_multidrawelementsindirect(struct gl_context *ctx,
    ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = NULL;
 
-   vbo->draw_indirect_prims(ctx, mode,
+   ctx->Driver.DrawIndirect(ctx, mode,
                             ctx->DrawIndirectBuffer, offset,
                             primcount, stride, NULL, 0, &ib);
 
@@ -1802,15 +1753,12 @@ vbo_validated_multidrawarraysindirectcount(struct gl_context *ctx,
                                            GLsizei maxdrawcount,
                                            GLsizei stride)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
    GLsizeiptr offset = indirect;
 
    if (maxdrawcount == 0)
       return;
 
-   vbo_bind_arrays(ctx);
-
-   vbo->draw_indirect_prims(ctx, mode,
+   ctx->Driver.DrawIndirect(ctx, mode,
                             ctx->DrawIndirectBuffer, offset,
                             maxdrawcount, stride,
                             ctx->ParameterBuffer, drawcount_offset, NULL);
@@ -1828,14 +1776,11 @@ vbo_validated_multidrawelementsindirectcount(struct gl_context *ctx,
                                              GLsizei maxdrawcount,
                                              GLsizei stride)
 {
-   struct vbo_context *vbo = vbo_context(ctx);
    struct _mesa_index_buffer ib;
    GLsizeiptr offset = (GLsizeiptr) indirect;
 
    if (maxdrawcount == 0)
       return;
-
-   vbo_bind_arrays(ctx);
 
    /* NOTE: IndexBufferObj is guaranteed to be a VBO. */
 
@@ -1844,7 +1789,7 @@ vbo_validated_multidrawelementsindirectcount(struct gl_context *ctx,
    ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = NULL;
 
-   vbo->draw_indirect_prims(ctx, mode,
+   ctx->Driver.DrawIndirect(ctx, mode,
                             ctx->DrawIndirectBuffer, offset,
                             maxdrawcount, stride,
                             ctx->ParameterBuffer, drawcount_offset, &ib);

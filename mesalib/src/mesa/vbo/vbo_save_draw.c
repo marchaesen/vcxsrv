@@ -206,22 +206,13 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data)
          return;
       }
 
-      /* Finally update the inputs array */
-      _vbo_update_inputs(ctx, &vbo->draw_arrays);
-      _mesa_set_drawing_arrays(ctx, vbo->draw_arrays.inputs);
-
       assert(ctx->NewState == 0);
 
       if (node->vertex_count > 0) {
          GLuint min_index = _vbo_save_get_min_index(node);
          GLuint max_index = _vbo_save_get_max_index(node);
-         vbo->draw_prims(ctx,
-                         node->prims,
-                         node->prim_count,
-                         NULL,
-                         GL_TRUE,
-                         min_index, max_index,
-                         NULL, 0, NULL);
+         ctx->Driver.Draw(ctx, node->prims, node->prim_count, NULL, GL_TRUE,
+                          min_index, max_index, NULL, 0, NULL);
       }
    }
 

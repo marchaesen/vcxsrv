@@ -60,12 +60,12 @@
  * }
  * ...
  *
- * Finally, we also handle removing useless loops, i.e. loops with no side
- * effects and without any definitions that are used elsewhere. This case is a
- * little different from the first two in that the code is actually run (it
- * just never does anything), but there are similar issues with needing to
- * be careful with restarting after deleting the cf_node (see dead_cf_list())
- * so this is a convenient place to remove them.
+ * Finally, we also handle removing useless loops and ifs, i.e. loops and ifs
+ * with no side effects and without any definitions that are used
+ * elsewhere. This case is a little different from the first two in that the
+ * code is actually run (it just never does anything), but there are similar
+ * issues with needing to be careful with restarting after deleting the
+ * cf_node (see dead_cf_list()) so this is a convenient place to remove them.
  */
 
 static void
@@ -136,6 +136,12 @@ static bool
 cf_node_has_side_effects(nir_cf_node *node)
 {
    nir_foreach_block_in_cf_node(block, node) {
+      bool inside_loop = node->type == nir_cf_node_loop;
+      for (nir_cf_node *n = &block->cf_node; !inside_loop && n != node; n = n->parent) {
+         if (n->type == nir_cf_node_loop)
+            inside_loop = true;
+      }
+
       nir_foreach_instr(instr, block) {
          if (instr->type == nir_instr_type_call)
             return true;
@@ -143,10 +149,13 @@ cf_node_has_side_effects(nir_cf_node *node)
          /* Return instructions can cause us to skip over other side-effecting
           * instructions after the loop, so consider them to have side effects
           * here.
+          *
+          * When the block is not inside a loop, break and continue might also
+          * cause a skip.
           */
 
          if (instr->type == nir_instr_type_jump &&
-             nir_instr_as_jump(instr)->type == nir_jump_return)
+             (!inside_loop || nir_instr_as_jump(instr)->type == nir_jump_return))
             return true;
 
          if (instr->type != nir_instr_type_intrinsic)
@@ -171,36 +180,37 @@ def_not_live_out(nir_ssa_def *def, void *state)
 }
 
 /*
- * Test if a loop is dead. A loop is dead if:
+ * Test if a loop node or if node is dead. Such nodes are dead if:
  *
  * 1) It has no side effects (i.e. intrinsics which could possibly affect the
  * state of the program aside from producing an SSA value, indicated by a lack
  * of NIR_INTRINSIC_CAN_ELIMINATE).
  *
- * 2) It has no phi nodes after it, since those indicate values inside the
- * loop being used after the loop.
+ * 2) It has no phi instructions after it, since those indicate values inside
+ * the node being used after the node.
  *
- * 3) If there are no phi nodes after the loop, then the only way a value
- * defined inside the loop can be used outside the loop is if its definition
- * dominates the block after the loop. If none of the definitions that
- * dominate the loop exit are used outside the loop, then the loop is dead
- * and it can be deleted.
+ * 3) None of the values defined inside the node is used outside the node,
+ * i.e. none of the definitions that dominate the node exit are used outside.
+ *
+ * If those conditions hold, then the node is dead and can be deleted.
  */
 
 static bool
-loop_is_dead(nir_loop *loop)
+node_is_dead(nir_cf_node *node)
 {
-   nir_block *before = nir_cf_node_as_block(nir_cf_node_prev(&loop->cf_node));
-   nir_block *after = nir_cf_node_as_block(nir_cf_node_next(&loop->cf_node));
+   assert(node->type == nir_cf_node_loop || node->type == nir_cf_node_if);
+
+   nir_block *before = nir_cf_node_as_block(nir_cf_node_prev(node));
+   nir_block *after = nir_cf_node_as_block(nir_cf_node_next(node));
 
    if (!exec_list_is_empty(&after->instr_list) &&
        nir_block_first_instr(after)->type == nir_instr_type_phi)
       return false;
 
-   if (cf_node_has_side_effects(&loop->cf_node))
+   if (cf_node_has_side_effects(node))
       return false;
 
-   nir_function_impl *impl = nir_cf_node_get_function(&loop->cf_node);
+   nir_function_impl *impl = nir_cf_node_get_function(node);
    nir_metadata_require(impl, nir_metadata_live_ssa_defs |
                               nir_metadata_dominance);
 
@@ -220,6 +230,11 @@ dead_cf_block(nir_block *block)
 {
    nir_if *following_if = nir_block_get_following_if(block);
    if (following_if) {
+      if (node_is_dead(&following_if->cf_node)) {
+         nir_cf_node_remove(&following_if->cf_node);
+         return true;
+      }
+
       nir_const_value *const_value =
          nir_src_as_const_value(following_if->condition);
 
@@ -234,7 +249,7 @@ dead_cf_block(nir_block *block)
    if (!following_loop)
       return false;
 
-   if (!loop_is_dead(following_loop))
+   if (!node_is_dead(&following_loop->cf_node))
       return false;
 
    nir_cf_node_remove(&following_loop->cf_node);

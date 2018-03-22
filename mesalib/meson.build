@@ -104,6 +104,8 @@ if _drivers == 'auto'
     # TODO: PPC, Sparc
     if ['x86', 'x86_64'].contains(host_machine.cpu_family())
       _drivers = 'i915,i965,r100,r200,nouveau'
+    elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
+      _drivers = ''
     else
       error('Unknown architecture. Please pass -Ddri-drivers to set driver options. Patches gladly accepted to fix this.')
     endif
@@ -149,7 +151,7 @@ if _drivers == 'auto'
     if ['x86', 'x86_64'].contains(host_machine.cpu_family())
       _drivers = 'r300,r600,radeonsi,nouveau,virgl,svga,swrast'
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
-      _drivers = 'pl111,vc4,vc5,freedreno,etnaviv,imx,nouveau,tegra,virgl,svga,swrast'
+      _drivers = 'pl111,vc4,vc5,freedreno,etnaviv,imx,nouveau,tegra,virgl,swrast'
     else
       error('Unknown architecture. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.')
     endif
@@ -494,44 +496,47 @@ elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
     error('OMX state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
   endif
 endif
-with_gallium_omx = _omx
 dep_omx = []
 dep_omx_other = []
-if with_gallium_omx == 'bellagio' or with_gallium_omx == 'auto'
+if ['auto', 'bellagio'].contains(_omx)
   dep_omx = dependency(
-    'libomxil-bellagio', required : with_gallium_omx == 'bellagio'
+    'libomxil-bellagio', required : _omx == 'bellagio'
   )
   if dep_omx.found()
-    pre_args += '-DENABLE_ST_OMX_BELLAGIO'
     with_gallium_omx = 'bellagio'
   endif
 endif
-if with_gallium_omx == 'tizonia' or with_gallium_omx == 'auto'
-  if not (with_dri and with_egl)
-    if with_gallium_omx == 'tizonia'
-      error('OMX-Tizonia state tracker requires dri and egl')
-    else
-      with_gallium_omx == 'disabled'
-    endif
-  else
+if ['auto', 'tizonia'].contains(_omx)
+  if with_dri and with_egl
     dep_omx = dependency(
       'libtizonia', version : '>= 0.10.0',
-      required : with_gallium_omx == 'tizonia',
+      required : _omx == 'tizonia',
     )
     dep_omx_other = [
-      dependency('libtizplatform', required : with_gallium_omx == 'tizonia'),
-      dependency('tizilheaders', required : with_gallium_omx == 'tizonia'),
+      dependency('libtizplatform', required : _omx == 'tizonia'),
+      dependency('tizilheaders', required : _omx == 'tizonia'),
     ]
     if dep_omx.found() and dep_omx_other[0].found() and dep_omx_other[1].found()
-      pre_args += '-DENABLE_ST_OMX_TIZONIA'
       with_gallium_omx = 'tizonia'
-    else
-      with_gallium_omx = 'disabled'
     endif
+  elif _omx == 'tizonia'
+    error('OMX-Tizonia state tracker requires dri and egl')
   endif
 endif
+if _omx == 'auto'
+  with_gallium_omx = 'disabled'
+else
+  with_gallium_omx = _omx
+endif
+
+pre_args += [
+  '-DENABLE_ST_OMX_BELLAGIO=' + (with_gallium_omx == 'bellagio' ? '1' : '0'),
+  '-DENABLE_ST_OMX_TIZONIA=' + (with_gallium_omx == 'tizonia' ? '1' : '0'),
+]
+
 
 omx_drivers_path = get_option('omx-libs-path')
+
 if with_gallium_omx != 'disabled'
   # Figure out where to put the omx driver.
   # FIXME: this could all be vastly simplified by adding a 'defined_variable'
@@ -759,7 +764,9 @@ if ['linux', 'cygwin'].contains(host_machine.system())
   pre_args += '-D_GNU_SOURCE'
 endif
 
-# Check for generic C arguments
+# Check for generic C/C++ arguments
+cpp = meson.get_compiler('cpp')
+cpp_args = []
 c_args = []
 foreach a : ['-Wall', '-Werror=implicit-function-declaration',
              '-Werror=missing-prototypes', '-fno-math-errno',
@@ -767,21 +774,14 @@ foreach a : ['-Wall', '-Werror=implicit-function-declaration',
   if cc.has_argument(a)
     c_args += a
   endif
+  if cpp.has_argument(a)
+    cpp_args += a
+  endif
 endforeach
 c_vis_args = []
 if cc.has_argument('-fvisibility=hidden')
   c_vis_args += '-fvisibility=hidden'
 endif
-
-# Check for generic C++ arguments
-cpp = meson.get_compiler('cpp')
-cpp_args = []
-foreach a : ['-Wall', '-fno-math-errno', '-fno-trapping-math',
-             '-Qunused-arguments']
-  if cpp.has_argument(a)
-    cpp_args += a
-  endif
-endforeach
 
 # For some reason, the test for -Wno-foo always succeeds with gcc, even if the
 # option is not supported. Hence, check for -Wfoo instead.

@@ -1077,33 +1077,12 @@ void radv_CmdResetQueryPool(
 	}
 }
 
-void radv_CmdBeginQuery(
-    VkCommandBuffer                             commandBuffer,
-    VkQueryPool                                 queryPool,
-    uint32_t                                    query,
-    VkQueryControlFlags                         flags)
+static void emit_begin_query(struct radv_cmd_buffer *cmd_buffer,
+			     uint64_t va,
+			     VkQueryType query_type)
 {
-	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
-	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
-	uint64_t va = radv_buffer_get_va(pool->bo);
-	va += pool->stride * query;
-
-	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 8);
-
-	if (cmd_buffer->pending_reset_query) {
-		if (pool->size >= RADV_BUFFER_OPS_CS_THRESHOLD) {
-			/* Only need to flush caches if the query pool size is
-			 * large enough to be resetted using the compute shader
-			 * path. Small pools don't need any cache flushes
-			 * because we use a CP dma clear.
-			 */
-			si_emit_cache_flush(cmd_buffer);
-			cmd_buffer->pending_reset_query = false;
-		}
-	}
-
-	switch (pool->type) {
+	switch (query_type) {
 	case VK_QUERY_TYPE_OCCLUSION:
 		radeon_check_space(cmd_buffer->device->ws, cs, 7);
 
@@ -1127,26 +1106,15 @@ void radv_CmdBeginQuery(
 	default:
 		unreachable("beginning unhandled query type");
 	}
+
 }
 
-
-void radv_CmdEndQuery(
-    VkCommandBuffer                             commandBuffer,
-    VkQueryPool                                 queryPool,
-    uint32_t                                    query)
+static void emit_end_query(struct radv_cmd_buffer *cmd_buffer,
+			   uint64_t va, uint64_t avail_va,
+			   VkQueryType query_type)
 {
-	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
-	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
-	uint64_t va = radv_buffer_get_va(pool->bo);
-	uint64_t avail_va = va + pool->availability_offset + 4 * query;
-	va += pool->stride * query;
-
-	/* Do not need to add the pool BO to the list because the query must
-	 * currently be active, which means the BO is already in the list.
-	 */
-
-	switch (pool->type) {
+	switch (query_type) {
 	case VK_QUERY_TYPE_OCCLUSION:
 		radeon_check_space(cmd_buffer->device->ws, cs, 14);
 
@@ -1182,6 +1150,73 @@ void radv_CmdEndQuery(
 	}
 }
 
+void radv_CmdBeginQuery(
+    VkCommandBuffer                             commandBuffer,
+    VkQueryPool                                 queryPool,
+    uint32_t                                    query,
+    VkQueryControlFlags                         flags)
+{
+	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
+	struct radeon_winsys_cs *cs = cmd_buffer->cs;
+	uint64_t va = radv_buffer_get_va(pool->bo);
+
+	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 8);
+
+	if (cmd_buffer->pending_reset_query) {
+		if (pool->size >= RADV_BUFFER_OPS_CS_THRESHOLD) {
+			/* Only need to flush caches if the query pool size is
+			 * large enough to be resetted using the compute shader
+			 * path. Small pools don't need any cache flushes
+			 * because we use a CP dma clear.
+			 */
+			si_emit_cache_flush(cmd_buffer);
+			cmd_buffer->pending_reset_query = false;
+		}
+	}
+
+	va += pool->stride * query;
+
+	emit_begin_query(cmd_buffer, va, pool->type);
+
+	/*
+	 * For multiview we have to emit a query for each bit in the mask,
+	 * however the first query we emit will get the totals for all the
+	 * operations, so we don't want to get a real value in the other
+	 * queries. This emits a fake begin/end sequence so the waiting
+	 * code gets a completed query value and doesn't hang, but the
+	 * query returns 0.
+	 */
+	if (cmd_buffer->state.subpass && cmd_buffer->state.subpass->view_mask) {
+		uint64_t avail_va = va + pool->availability_offset + 4 * query;
+
+		for (unsigned i = 0; i < util_bitcount(cmd_buffer->state.subpass->view_mask); i++) {
+			va += pool->stride;
+			avail_va += 4;
+			emit_begin_query(cmd_buffer, va, pool->type);
+			emit_end_query(cmd_buffer, va, avail_va, pool->type);
+		}
+	}
+}
+
+
+void radv_CmdEndQuery(
+    VkCommandBuffer                             commandBuffer,
+    VkQueryPool                                 queryPool,
+    uint32_t                                    query)
+{
+	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
+	uint64_t va = radv_buffer_get_va(pool->bo);
+	uint64_t avail_va = va + pool->availability_offset + 4 * query;
+	va += pool->stride * query;
+
+	/* Do not need to add the pool BO to the list because the query must
+	 * currently be active, which means the BO is already in the list.
+	 */
+	emit_end_query(cmd_buffer, va, avail_va, pool->type);
+}
+
 void radv_CmdWriteTimestamp(
     VkCommandBuffer                             commandBuffer,
     VkPipelineStageFlagBits                     pipelineStage,
@@ -1198,42 +1233,49 @@ void radv_CmdWriteTimestamp(
 
 	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 5);
 
-	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws, cs, 28);
+	int num_queries = 1;
+	if (cmd_buffer->state.subpass && cmd_buffer->state.subpass->view_mask)
+		num_queries = util_bitcount(cmd_buffer->state.subpass->view_mask);
 
-	switch(pipelineStage) {
-	case VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT:
-		radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
-		radeon_emit(cs, COPY_DATA_COUNT_SEL | COPY_DATA_WR_CONFIRM |
-		                COPY_DATA_SRC_SEL(COPY_DATA_TIMESTAMP) |
-		                COPY_DATA_DST_SEL(V_370_MEM_ASYNC));
-		radeon_emit(cs, 0);
-		radeon_emit(cs, 0);
-		radeon_emit(cs, query_va);
-		radeon_emit(cs, query_va >> 32);
+	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws, cs, 28 * num_queries);
 
-		radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 3, 0));
-		radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
-		                S_370_WR_CONFIRM(1) |
-		                S_370_ENGINE_SEL(V_370_ME));
-		radeon_emit(cs, avail_va);
-		radeon_emit(cs, avail_va >> 32);
-		radeon_emit(cs, 1);
-		break;
-	default:
-		si_cs_emit_write_event_eop(cs,
-					   false,
-					   cmd_buffer->device->physical_device->rad_info.chip_class,
-					   mec,
-					   V_028A90_BOTTOM_OF_PIPE_TS, 0,
-					   3, query_va, 0, 0);
-		si_cs_emit_write_event_eop(cs,
-					   false,
-					   cmd_buffer->device->physical_device->rad_info.chip_class,
-					   mec,
-					   V_028A90_BOTTOM_OF_PIPE_TS, 0,
-					   1, avail_va, 0, 1);
-		break;
+	for (unsigned i = 0; i < num_queries; i++) {
+		switch(pipelineStage) {
+		case VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT:
+			radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
+			radeon_emit(cs, COPY_DATA_COUNT_SEL | COPY_DATA_WR_CONFIRM |
+				    COPY_DATA_SRC_SEL(COPY_DATA_TIMESTAMP) |
+				    COPY_DATA_DST_SEL(V_370_MEM_ASYNC));
+			radeon_emit(cs, 0);
+			radeon_emit(cs, 0);
+			radeon_emit(cs, query_va);
+			radeon_emit(cs, query_va >> 32);
+
+			radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 3, 0));
+			radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+				    S_370_WR_CONFIRM(1) |
+				    S_370_ENGINE_SEL(V_370_ME));
+			radeon_emit(cs, avail_va);
+			radeon_emit(cs, avail_va >> 32);
+			radeon_emit(cs, 1);
+			break;
+		default:
+			si_cs_emit_write_event_eop(cs,
+						   false,
+						   cmd_buffer->device->physical_device->rad_info.chip_class,
+						   mec,
+						   V_028A90_BOTTOM_OF_PIPE_TS, 0,
+						   3, query_va, 0, 0);
+			si_cs_emit_write_event_eop(cs,
+						   false,
+						   cmd_buffer->device->physical_device->rad_info.chip_class,
+						   mec,
+						   V_028A90_BOTTOM_OF_PIPE_TS, 0,
+						   1, avail_va, 0, 1);
+			break;
+		}
+		query_va += pool->stride;
+		avail_va += 4;
 	}
-
 	assert(cmd_buffer->cs->cdw <= cdw_max);
 }

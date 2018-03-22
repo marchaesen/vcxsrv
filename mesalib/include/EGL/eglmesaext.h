@@ -34,13 +34,6 @@ extern "C" {
 
 #include <EGL/eglplatform.h>
 
-#ifdef EGL_MESA_drm_image
-/* Mesa's extension to EGL_MESA_drm_image... */
-#ifndef EGL_DRM_BUFFER_USE_CURSOR_MESA
-#define EGL_DRM_BUFFER_USE_CURSOR_MESA		0x0004
-#endif
-#endif
-
 #ifndef EGL_WL_bind_wayland_display
 #define EGL_WL_bind_wayland_display 1
 

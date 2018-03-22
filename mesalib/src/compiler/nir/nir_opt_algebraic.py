@@ -183,6 +183,11 @@ optimizations = [
    (('fge', ('fmin', ('fneg', ('b2f', a)), b), 0.0), ('iand', ('inot', a), ('fge', b, 0.0))),
    (('feq', ('fmin', ('fneg', ('b2f', a)), b), 0.0), ('iand', ('inot', a), ('fge', b, 0.0))),
 
+   (('feq', ('b2f', a), 0.0), ('inot', a)),
+   (('fne', ('b2f', a), 0.0), a),
+   (('ieq', ('b2i', a), 0),   ('inot', a)),
+   (('ine', ('b2i', a), 0),   a),
+
    # 0.0 < fabs(a)
    # fabs(a) > 0.0
    # fabs(a) != 0.0 because fabs(a) must be >= 0

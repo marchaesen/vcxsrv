@@ -165,13 +165,11 @@ do_queue_flip_on_crtc(modesettingPtr ms, xf86CrtcPtr crtc,
 {
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
 
-#ifdef GLAMOR_HAS_DRM_ATOMIC
     if (ms->atomic_modeset) {
         flags |= DRM_MODE_ATOMIC_NONBLOCK;
         return drmmode_crtc_set_fb(crtc, NULL, ms->drmmode.fb_id, 0, 0, flags,
                                    (void *) (uintptr_t) seq);
     }
-#endif
 
     return drmModePageFlip(ms->fd, drmmode_crtc->mode_crtc->crtc_id,
                            ms->drmmode.fb_id, flags,

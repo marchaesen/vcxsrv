@@ -1011,6 +1011,8 @@ st_translate_mesa_program(struct gl_context *ctx,
       }
 
       for (i = 0; i < program->Parameters->NumParameters; i++) {
+         unsigned pvo = program->Parameters->ParameterValueOffset[i];
+
          switch (program->Parameters->Parameters[i].Type) {
          case PROGRAM_STATE_VAR:
          case PROGRAM_UNIFORM:
@@ -1025,12 +1027,12 @@ st_translate_mesa_program(struct gl_context *ctx,
              */
          case PROGRAM_CONSTANT:
             if (program->arb.IndirectRegisterFiles & PROGRAM_ANY_CONST)
-               t->constants[i] = ureg_DECL_constant(ureg, i);
+               t->constants[i] = ureg_DECL_constant( ureg, i );
             else
-               t->constants[i] =
+               t->constants[i] = 
                   ureg_DECL_immediate(ureg,
                                       (const float *)
-                                      program->Parameters->ParameterValues[i],
+                                      program->Parameters->ParameterValues + pvo,
                                       4);
             break;
          default:

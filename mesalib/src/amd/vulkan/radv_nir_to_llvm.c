@@ -2357,13 +2357,13 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 		for (unsigned j = 1; j < 4; j++)
 			values[j] = ctx->ac.f32_0;
 
-		radv_export_param(ctx, param_count, values, 0xf);
+		radv_export_param(ctx, param_count, values, 0x1);
 
 		outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID] = param_count++;
 		outinfo->export_prim_id = true;
 	}
 
-	if (export_layer_id) {
+	if (export_layer_id && layer_value) {
 		LLVMValueRef values[4];
 
 		values[0] = layer_value;

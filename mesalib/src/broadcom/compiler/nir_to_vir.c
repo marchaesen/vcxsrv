@@ -198,14 +198,11 @@ ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
                 if (c->execute.file != QFILE_NULL) {
                         last_inst->dst.index = qregs[chan].index;
 
-                        /* Set the flags to the current exec mask.  To insert
-                         * the flags push, we temporarily remove our SSA
-                         * instruction.
+                        /* Set the flags to the current exec mask.
                          */
-                        list_del(&last_inst->link);
+                        c->cursor = vir_before_inst(last_inst);
                         vir_PF(c, c->execute, V3D_QPU_PF_PUSHZ);
-                        list_addtail(&last_inst->link,
-                                     &c->cur_block->instructions);
+                        c->cursor = vir_after_inst(last_inst);
 
                         vir_set_cond(last_inst, V3D_QPU_COND_IFA);
                         last_inst->cond_is_exec_mask = true;
@@ -253,13 +250,6 @@ vir_SAT(struct v3d_compile *c, struct qreg val)
         return vir_FMAX(c,
                         vir_FMIN(c, val, vir_uniform_f(c, 1.0)),
                         vir_uniform_f(c, 0.0));
-}
-
-static struct qreg
-ntq_umul(struct v3d_compile *c, struct qreg src0, struct qreg src1)
-{
-        vir_MULTOP(c, src0, src1);
-        return vir_UMUL24(c, src0, src1);
 }
 
 static struct qreg
@@ -765,7 +755,7 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                 break;
 
         case nir_op_imul:
-                result = ntq_umul(c, src[0], src[1]);
+                result = vir_UMUL(c, src[0], src[1]);
                 break;
 
         case nir_op_seq:
@@ -1933,7 +1923,7 @@ vir_remove_thrsw(struct v3d_compile *c)
         c->last_thrsw = NULL;
 }
 
-static void
+void
 vir_emit_last_thrsw(struct v3d_compile *c)
 {
         /* On V3D before 4.1, we need a TMU op to be outstanding when thread
@@ -2021,16 +2011,16 @@ v3d_nir_to_vir(struct v3d_compile *c)
                 fprintf(stderr, "\n");
         }
 
-        /* Compute the live ranges so we can figure out interference. */
-        vir_calculate_live_intervals(c);
-
         /* Attempt to allocate registers for the temporaries.  If we fail,
          * reduce thread count and try again.
          */
         int min_threads = (c->devinfo->ver >= 41) ? 2 : 1;
         struct qpu_reg *temp_registers;
         while (true) {
-                temp_registers = v3d_register_allocate(c);
+                bool spilled;
+                temp_registers = v3d_register_allocate(c, &spilled);
+                if (spilled)
+                        continue;
 
                 if (temp_registers)
                         break;

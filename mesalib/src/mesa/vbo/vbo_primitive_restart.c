@@ -177,8 +177,6 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
    GLuint sub_end_index;
    GLuint restart_index = _mesa_primitive_restart_index(ctx, ib->index_size);
    struct _mesa_prim temp_prim;
-   struct vbo_context *vbo = vbo_context(ctx);
-   vbo_draw_func draw_prims_func = vbo->draw_prims;
    GLboolean map_ib = ib->obj->Name && !ib->obj->Mappings[MAP_INTERNAL].Pointer;
    void *ptr;
 
@@ -249,13 +247,13 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
             temp_prim.count = MIN2(sub_end_index, end_index) - temp_prim.start;
             if ((temp_prim.start == sub_prim->start) &&
                 (temp_prim.count == sub_prim->count)) {
-               draw_prims_func(ctx, &temp_prim, 1, ib,
-                               GL_TRUE, sub_prim->min_index, sub_prim->max_index,
-                               NULL, 0, NULL);
+               ctx->Driver.Draw(ctx, &temp_prim, 1, ib, GL_TRUE,
+                                sub_prim->min_index, sub_prim->max_index,
+                                NULL, 0, NULL);
             } else {
-               draw_prims_func(ctx, &temp_prim, 1, ib,
-                               GL_FALSE, -1, -1,
-                               NULL, 0, NULL);
+               ctx->Driver.Draw(ctx, &temp_prim, 1, ib,
+                                GL_FALSE, -1, -1,
+                                NULL, 0, NULL);
             }
          }
          if (sub_end_index >= end_index) {

@@ -461,6 +461,12 @@ _mesa_update_vao_derived_arrays(struct gl_context *ctx,
 {
    /* Make sure we do not run into problems with shared objects */
    assert(!vao->SharedAndImmutable || vao->NewArrays == 0);
+
+   /*
+    * Stay tuned, the next series scans for duplicate bindings in this
+    * function. So that drivers can easily know the minimum unique set
+    * of bindings.
+    */
 }
 
 

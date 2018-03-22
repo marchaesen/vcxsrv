@@ -950,6 +950,7 @@ write_shader_parameters(struct blob *metadata,
                         struct gl_program_parameter_list *params)
 {
    blob_write_uint32(metadata, params->NumParameters);
+   blob_write_uint32(metadata, params->NumParameterValues);
    uint32_t i = 0;
 
    while (i < params->NumParameters) {
@@ -966,7 +967,10 @@ write_shader_parameters(struct blob *metadata,
    }
 
    blob_write_bytes(metadata, params->ParameterValues,
-                    sizeof(gl_constant_value) * 4 * params->NumParameters);
+                    sizeof(gl_constant_value) * params->NumParameterValues);
+
+   blob_write_bytes(metadata, params->ParameterValueOffset,
+                    sizeof(uint32_t) * params->NumParameters);
 
    blob_write_uint32(metadata, params->StateFlags);
 }
@@ -978,6 +982,7 @@ read_shader_parameters(struct blob_reader *metadata,
    gl_state_index16 state_indexes[STATE_LENGTH];
    uint32_t i = 0;
    uint32_t num_parameters = blob_read_uint32(metadata);
+   uint32_t num_parameters_values = blob_read_uint32(metadata);
 
    _mesa_reserve_parameter_storage(params, num_parameters);
    while (i < num_parameters) {
@@ -989,13 +994,16 @@ read_shader_parameters(struct blob_reader *metadata,
                       sizeof(state_indexes));
 
       _mesa_add_parameter(params, type, name, size, data_type,
-                          NULL, state_indexes);
+                          NULL, state_indexes, false);
 
       i++;
    }
 
    blob_copy_bytes(metadata, (uint8_t *) params->ParameterValues,
-                    sizeof(gl_constant_value) * 4 * params->NumParameters);
+                   sizeof(gl_constant_value) * num_parameters_values);
+
+   blob_copy_bytes(metadata, (uint8_t *) params->ParameterValueOffset,
+                   sizeof(uint32_t) * num_parameters);
 
    params->StateFlags = blob_read_uint32(metadata);
 }
@@ -1163,6 +1171,8 @@ extern "C" void
 serialize_glsl_program(struct blob *blob, struct gl_context *ctx,
                        struct gl_shader_program *prog)
 {
+   blob_write_bytes(blob, prog->data->sha1, sizeof(prog->data->sha1));
+
    write_uniforms(blob, prog);
 
    write_hash_tables(blob, prog);
@@ -1218,6 +1228,8 @@ deserialize_glsl_program(struct blob_reader *blob, struct gl_context *ctx,
       return false;
 
    assert(prog->data->UniformStorage == NULL);
+
+   blob_copy_bytes(blob, prog->data->sha1, sizeof(prog->data->sha1));
 
    read_uniforms(blob, prog);
 

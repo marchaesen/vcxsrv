@@ -29,11 +29,15 @@
  * point by 1.
  */
 
-#include "nir.h"
-#include "nir_builder.h"
+#include "compiler/nir/nir.h"
+#include "compiler/nir/nir_builder.h"
+#include "st_nir.h"
+
+#include "program/prog_parameter.h"
 
 static bool
-lower_instr(nir_intrinsic_instr *instr, nir_builder *b)
+lower_instr(nir_intrinsic_instr *instr, nir_builder *b,
+            const struct gl_program_parameter_list *params)
 {
    b->cursor = nir_before_instr(&instr->instr);
 
@@ -46,10 +50,12 @@ lower_instr(nir_intrinsic_instr *instr, nir_builder *b)
    }
 
    if (instr->intrinsic == nir_intrinsic_load_uniform) {
+      unsigned pvo = params->ParameterValueOffset[nir_intrinsic_base(instr)];
+
       nir_ssa_def *ubo_idx = nir_imm_int(b, 0);
       nir_ssa_def *ubo_offset =
-         nir_imul(b, nir_imm_int(b, 16),
-                  nir_iadd(b, nir_imm_int(b, nir_intrinsic_base(instr)),
+         nir_iadd(b, nir_imm_int(b, 4 * pvo),
+                  nir_imul(b, nir_imm_int(b, 4),
                            nir_ssa_for_src(b, instr->src[0], 1)));
 
       nir_intrinsic_instr *load =
@@ -71,7 +77,8 @@ lower_instr(nir_intrinsic_instr *instr, nir_builder *b)
 }
 
 bool
-nir_lower_uniforms_to_ubo(nir_shader *shader)
+st_nir_lower_uniforms_to_ubo(nir_shader *shader,
+                             const struct gl_program_parameter_list *params)
 {
    bool progress = false;
 
@@ -83,7 +90,7 @@ nir_lower_uniforms_to_ubo(nir_shader *shader)
             nir_foreach_instr_safe(instr, block) {
                if (instr->type == nir_instr_type_intrinsic)
                   progress |= lower_instr(nir_instr_as_intrinsic(instr),
-                                          &builder);
+                                          &builder, params);
             }
          }
 

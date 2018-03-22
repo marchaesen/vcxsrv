@@ -55,6 +55,7 @@
 #include "tnl/tnl.h"
 #include "swrast/swrast.h"
 #include "swrast/s_renderbuffer.h"
+#include "vbo/vbo.h"
 
 #include "driverfuncs.h"
 #include "meta.h"
@@ -118,6 +119,10 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
 
    /* ATI_fragment_shader */
    driver->NewATIfs = NULL;
+
+   /* Draw functions */
+   driver->Draw = _vbo_draw;
+   driver->DrawIndirect = _vbo_draw_indirect;
 
    /* simple state commands */
    driver->AlphaFunc = NULL;

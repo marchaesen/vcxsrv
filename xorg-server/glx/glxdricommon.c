@@ -282,22 +282,52 @@ glxProbeDriver(const char *driverName,
     char filename[PATH_MAX];
     char *get_extensions_name;
     const __DRIextension **extensions = NULL;
+    const char *path = NULL;
+
+    /* Search in LIBGL_DRIVERS_PATH if we're not setuid. */
+    if (!PrivsElevated())
+        path = getenv("LIBGL_DRIVERS_PATH");
+
+    if (!path)
+        path = dri_driver_path;
+
+    do {
+        const char *next;
+        int path_len;
+
+        next = strchr(path, ':');
+        if (next) {
+            path_len = next - path;
+            next++;
+        } else {
+            path_len = strlen(path);
+            next = NULL;
+        }
 
 #ifdef _MSC_VER
-#define DLLNAME "%s%s_dri.dll"
-    snprintf(filename, sizeof filename, DLLNAME,
-             dri_driver_path, driverName);
+#define DLLNAME "%.*s%s_dri.dll"
+        snprintf(filename, sizeof filename, DLLNAME, path_len, path,
+                 driverName);
 
-    driver = LoadLibrary(filename);
+        driver = LoadLibrary(filename);
 #else
-    snprintf(filename, sizeof filename, "%s/%s_dri.so",
-             dri_driver_path, driverName);
+        snprintf(filename, sizeof filename, "%.*s/%s_dri.so", path_len, path,
+                 driverName);
 
-    driver = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+        driver = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
 #endif
-    if (driver == NULL) {
+        if (driver != NULL)
+            break;
+
         LogMessage(X_ERROR, "AIGLX error: dlopen of %s failed (%s)\n",
                    filename, dlerror());
+
+        path = next;
+    } while (path);
+
+    if (driver == NULL) {
+        LogMessage(X_ERROR, "AIGLX error: unable to load driver %s\n",
+                  driverName);
         goto cleanup_failure;
     }
 

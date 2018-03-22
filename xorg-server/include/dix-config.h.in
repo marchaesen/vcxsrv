@@ -491,15 +491,6 @@
 /* GBM has modifiers support */
 #undef GBM_BO_WITH_MODIFIERS
 
-/* Build glamor use new drmGetDeviceNameFromFD2 */
-#undef GLAMOR_HAS_DRM_NAME_FROM_FD_2
-
-/* Glamor should use atomic DRM API */
-#undef GLAMOR_HAS_DRM_ATOMIC
-
-/* Glamor can retrieve supported DRM formats/modifiers */
-#undef GLAMOR_HAS_DRM_MODIFIERS
-
 /* Glamor can use eglQueryDmaBuf* functions */
 #undef GLAMOR_HAS_EGL_QUERY_DMABUF
 

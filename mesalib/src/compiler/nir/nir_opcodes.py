@@ -214,6 +214,9 @@ unop("fquantize2f16", tfloat, "(fabs(src0) < ldexpf(1.0, -14)) ? copysignf(0.0f,
 unop("fsin", tfloat, "bit_size == 64 ? sin(src0) : sinf(src0)")
 unop("fcos", tfloat, "bit_size == 64 ? cos(src0) : cosf(src0)")
 
+# dfrexp
+unop_convert("frexp_exp", tint32, tfloat64, "frexp(src0, &dst);")
+unop_convert("frexp_sig", tfloat64, tfloat64, "int n; dst = frexp(src0, &n);")
 
 # Partial derivatives.
 

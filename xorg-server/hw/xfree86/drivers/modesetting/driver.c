@@ -227,7 +227,7 @@ check_outputs(int fd, int *count)
         *count = res->count_connectors;
 
     ret = res->count_connectors > 0;
-#if defined(DRM_CAP_PRIME) && defined(GLAMOR_HAS_GBM_LINEAR)
+#if defined(GLAMOR_HAS_GBM_LINEAR)
     if (ret == FALSE) {
         uint64_t value = 0;
         if (drmGetCap(fd, DRM_CAP_PRIME, &value) == 0 &&
@@ -798,14 +798,6 @@ msShouldDoubleShadow(ScrnInfoPtr pScrn, modesettingPtr ms)
     return ret;
 }
 
-#ifndef DRM_CAP_CURSOR_WIDTH
-#define DRM_CAP_CURSOR_WIDTH 0x8
-#endif
-
-#ifndef DRM_CAP_CURSOR_HEIGHT
-#define DRM_CAP_CURSOR_HEIGHT 0x9
-#endif
-
 static Bool
 ms_get_drm_master_fd(ScrnInfoPtr pScrn)
 {
@@ -1009,7 +1001,6 @@ PreInit(ScrnInfoPtr pScrn, int flags)
         xf86ReturnOptValBool(ms->drmmode.Options, OPTION_PAGEFLIP, TRUE);
 
     pScrn->capabilities = 0;
-#ifdef DRM_CAP_PRIME
     ret = drmGetCap(ms->fd, DRM_CAP_PRIME, &value);
     if (ret == 0) {
         if (connector_count && (value & DRM_PRIME_CAP_IMPORT)) {
@@ -1022,13 +1013,10 @@ PreInit(ScrnInfoPtr pScrn, int flags)
             pScrn->capabilities |= RR_Capability_SourceOutput | RR_Capability_SourceOffload;
 #endif
     }
-#endif
 
-#ifdef GLAMOR_HAS_DRM_ATOMIC
     ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
     ret |= drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 1);
     ms->atomic_modeset = (ret == 0);
-#endif
 
     if (drmmode_pre_init(pScrn, &ms->drmmode, pScrn->bitsPerPixel / 8) == FALSE) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "KMS setup failed\n");

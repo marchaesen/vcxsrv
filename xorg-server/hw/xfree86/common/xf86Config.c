@@ -2275,7 +2275,7 @@ xf86HandleConfigFile(Bool autoconfig)
         MessageType filefrom = X_DEFAULT;
         MessageType dirfrom = X_DEFAULT;
 
-        if (!xf86PrivsElevated()) {
+        if (!PrivsElevated()) {
             filesearch = ALL_CONFIGPATH;
             dirsearch = ALL_CONFIGDIRPATH;
         }

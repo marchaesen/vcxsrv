@@ -223,9 +223,7 @@ ms_present_check_flip(RRCrtcPtr crtc,
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
     int num_crtcs_on = 0;
     int i;
-#ifdef GLAMOR_HAS_DRM_MODIFIERS
     struct gbm_bo *gbm;
-#endif
 
     if (!ms->drmmode.pageflip)
         return FALSE;
@@ -256,7 +254,8 @@ ms_present_check_flip(RRCrtcPtr crtc,
         pixmap->devKind != drmmode_bo_get_pitch(&ms->drmmode.front_bo))
         return FALSE;
 
-#ifdef GLAMOR_HAS_DRM_MODIFIERS
+    // XXX: Runtime check modifiers_supported?
+#ifdef GBM_BO_WITH_MODIFIERS
     /* Check if buffer format/modifier is supported by all active CRTCs */
     gbm = glamor_gbm_bo_from_pixmap(screen, pixmap);
     if (gbm) {

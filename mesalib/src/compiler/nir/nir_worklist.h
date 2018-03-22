@@ -30,6 +30,8 @@
 #define _NIR_WORKLIST_
 
 #include "nir.h"
+#include "util/set.h"
+#include "util/u_vector.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,6 +84,71 @@ void nir_block_worklist_push_tail(nir_block_worklist *w, nir_block *block);
 nir_block *nir_block_worklist_peek_tail(const nir_block_worklist *w);
 
 nir_block *nir_block_worklist_pop_tail(nir_block_worklist *w);
+
+
+/*
+ * This worklist implementation, in contrast to the block worklist, does not
+ * have unique entries, meaning a nir_instr can be inserted more than once
+ * into the worklist. It uses u_vector to keep the overhead and memory
+ * footprint at a minimum.
+ *
+ * Making it unique by using a set was tested, but for the single usecase
+ * (nir_opt_dce) it did not improve speed. There we check the pass_flag bit
+ * and abort immediately if there's nothing to do, so the added overhead of
+ * the set was higher than just processing the few extra entries.
+ */
+
+typedef struct {
+   struct u_vector instr_vec;
+} nir_instr_worklist;
+
+static inline nir_instr_worklist *
+nir_instr_worklist_create() {
+   nir_instr_worklist *wl = malloc(sizeof(nir_instr_worklist));
+   u_vector_init(&wl->instr_vec, sizeof(struct nir_instr *),
+                 sizeof(struct nir_instr *) * 8);
+   return wl;
+}
+
+static inline uint32_t
+nir_instr_worklist_length(nir_instr_worklist *wl)
+{
+   return u_vector_length(&wl->instr_vec);
+}
+
+static inline bool
+nir_instr_worklist_empty(nir_instr_worklist *wl)
+{
+   return nir_instr_worklist_length(wl) == 0;
+}
+
+static inline void
+nir_instr_worklist_destroy(nir_instr_worklist *wl)
+{
+   u_vector_finish(&wl->instr_vec);
+   free(wl);
+}
+
+static inline void
+nir_instr_worklist_push_tail(nir_instr_worklist *wl, nir_instr *instr)
+{
+   struct nir_instr **vec_instr = u_vector_add(&wl->instr_vec);
+   *vec_instr = instr;
+}
+
+static inline nir_instr *
+nir_instr_worklist_pop_head(nir_instr_worklist *wl)
+{
+   struct nir_instr **vec_instr = u_vector_remove(&wl->instr_vec);
+
+   if (vec_instr == NULL)
+      return NULL;
+
+   return *vec_instr;
+}
+
+#define nir_instr_worklist_foreach(wl, instr)                    \
+   while ((instr = nir_instr_worklist_pop_head(wl)))
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -231,16 +231,7 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
    assert(!_mesa_is_bufferobj(exec->vtx.bufferobj) ||
           (vao_enabled & ~vao->VertexAttribBufferMask) == 0);
 
-   _mesa_update_vao_derived_arrays(ctx, vao);
-   vao->NewArrays = 0;
-
    _mesa_set_draw_vao(ctx, vao, _vbo_get_vao_filter(mode));
-   /* The exec VAO is not immutable, so we need to set manually */
-   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
-
-   _mesa_set_drawing_arrays(ctx, vbo->draw_arrays.inputs);
-   /* Finally update the inputs array */
-   _vbo_update_inputs(ctx, &vbo->draw_arrays);
 }
 
 
@@ -398,14 +389,9 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec, GLboolean keepUnmapped)
             printf("%s %d %d\n", __func__, exec->vtx.prim_count,
                    exec->vtx.vert_count);
 
-         vbo_context(ctx)->draw_prims(ctx,
-                                      exec->vtx.prim,
-                                      exec->vtx.prim_count,
-                                      NULL,
-                                      GL_TRUE,
-                                      0,
-                                      exec->vtx.vert_count - 1,
-                                      NULL, 0, NULL);
+         ctx->Driver.Draw(ctx, exec->vtx.prim, exec->vtx.prim_count,
+                          NULL, GL_TRUE, 0, exec->vtx.vert_count - 1,
+                          NULL, 0, NULL);
 
          /* Get new storage -- unless asked not to. */
          if (!keepUnmapped)

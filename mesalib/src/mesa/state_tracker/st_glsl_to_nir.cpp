@@ -37,6 +37,7 @@
 #include "main/uniforms.h"
 
 #include "st_context.h"
+#include "st_glsl_types.h"
 #include "st_program.h"
 
 #include "compiler/nir/nir.h"
@@ -218,7 +219,8 @@ st_nir_lookup_parameter_index(const struct gl_program_parameter_list *params,
 }
 
 static void
-st_nir_assign_uniform_locations(struct gl_program *prog,
+st_nir_assign_uniform_locations(struct gl_context *ctx,
+                                struct gl_program *prog,
                                 struct gl_shader_program *shader_program,
                                 struct exec_list *uniform_list, unsigned *size)
 {
@@ -247,7 +249,21 @@ st_nir_assign_uniform_locations(struct gl_program *prog,
          /* This state reference has already been setup by ir_to_mesa, but we'll
           * get the same index back here.
           */
-         loc = _mesa_add_state_reference(prog->Parameters, stateTokens);
+
+         unsigned comps;
+         const struct glsl_type *type = glsl_without_array(uniform->type);
+         if (glsl_type_is_struct(type)) {
+            comps = 4;
+         } else {
+            comps = glsl_get_vector_elements(type);
+         }
+
+         if (ctx->Const.PackedDriverUniformStorage) {
+            loc = _mesa_add_sized_state_reference(prog->Parameters,
+                                                  stateTokens, comps, false);
+         } else {
+            loc = _mesa_add_state_reference(prog->Parameters, stateTokens);
+         }
       } else {
          loc = st_nir_lookup_parameter_index(prog->Parameters, uniform->name);
       }
@@ -359,9 +375,26 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
          const nir_state_slot *const slots = var->state_slots;
          assert(var->state_slots != NULL);
 
+         const struct glsl_type *type = glsl_without_array(var->type);
          for (unsigned int i = 0; i < var->num_state_slots; i++) {
-            _mesa_add_state_reference(prog->Parameters,
-                                      slots[i].tokens);
+            unsigned comps;
+            if (glsl_type_is_struct(type)) {
+               /* Builtin struct require specical handling for now we just
+                * make all members vec4. See st_nir_lower_builtin.
+                */
+               comps = 4;
+            } else {
+               comps = glsl_get_vector_elements(type);
+            }
+
+            if (st->ctx->Const.PackedDriverUniformStorage) {
+               _mesa_add_sized_state_reference(prog->Parameters,
+                                               slots[i].tokens,
+                                               comps, false);
+            } else {
+               _mesa_add_state_reference(prog->Parameters,
+                                         slots[i].tokens);
+            }
          }
       }
    }
@@ -381,7 +414,7 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
    st_set_prog_affected_state_flags(prog);
 
    NIR_PASS_V(nir, st_nir_lower_builtin);
-   NIR_PASS_V(nir, nir_lower_atomics, shader_program);
+   NIR_PASS_V(nir, nir_lower_atomics, shader_program, true);
 
    if (st->ctx->_Shader->Flags & GLSL_DUMP) {
       _mesa_log("\n");
@@ -717,8 +750,14 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
    NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,
          st->ctx->Const.Program[nir->info.stage].MaxAtomicBuffers);
 
-   st_nir_assign_uniform_locations(prog, shader_program,
+   st_nir_assign_uniform_locations(st->ctx, prog, shader_program,
                                    &nir->uniforms, &nir->num_uniforms);
+
+   if (st->ctx->Const.PackedDriverUniformStorage) {
+      NIR_PASS_V(nir, nir_lower_io, nir_var_uniform, st_glsl_type_dword_size,
+                 (nir_lower_io_options)0);
+      NIR_PASS_V(nir, st_nir_lower_uniforms_to_ubo, prog->Parameters);
+   }
 
    if (screen->get_param(screen, PIPE_CAP_NIR_SAMPLERS_AS_DEREF))
       NIR_PASS_V(nir, nir_lower_samplers_as_deref, shader_program);

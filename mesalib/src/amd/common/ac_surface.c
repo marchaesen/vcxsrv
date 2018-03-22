@@ -849,6 +849,7 @@ gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib,
 }
 
 static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
+				const struct ac_surf_config *config,
 				struct radeon_surf *surf, bool compressed,
 				ADDR2_COMPUTE_SURFACE_INFO_INPUT *in)
 {
@@ -923,6 +924,37 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 		surf->htile_slice_size = hout.sliceSize;
 		surf->htile_alignment = hout.baseAlign;
 	} else {
+		/* Compute tile swizzle for the color surface.
+		 * All *_X and *_T modes can use the swizzle.
+		 */
+		if (config->info.surf_index &&
+		    in->swizzleMode >= ADDR_SW_64KB_Z_T &&
+		    !out.mipChainInTail &&
+		    !(surf->flags & RADEON_SURF_SHAREABLE) &&
+		    (in->numSamples > 1 || !(surf->flags & RADEON_SURF_SCANOUT))) {
+			ADDR2_COMPUTE_PIPEBANKXOR_INPUT xin = {0};
+			ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT xout = {0};
+
+			xin.size = sizeof(ADDR2_COMPUTE_PIPEBANKXOR_INPUT);
+			xout.size = sizeof(ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT);
+
+			xin.surfIndex = p_atomic_inc_return(config->info.surf_index) - 1;
+			xin.flags = in->flags;
+			xin.swizzleMode = in->swizzleMode;
+			xin.resourceType = in->resourceType;
+			xin.format = in->format;
+			xin.numSamples = in->numSamples;
+			xin.numFrags = in->numFrags;
+
+			ret = Addr2ComputePipeBankXor(addrlib, &xin, &xout);
+			if (ret != ADDR_OK)
+				return ret;
+
+			assert(xout.pipeBankXor <=
+			       u_bit_consecutive(0, sizeof(surf->tile_swizzle) * 8));
+			surf->tile_swizzle = xout.pipeBankXor;
+		}
+
 		/* DCC */
 		if (!(surf->flags & RADEON_SURF_DISABLE_DCC) &&
 		    !compressed &&
@@ -1018,6 +1050,34 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 			surf->u.gfx9.fmask.epitch = fout.pitch - 1;
 			surf->u.gfx9.fmask_size = fout.fmaskBytes;
 			surf->u.gfx9.fmask_alignment = fout.baseAlign;
+
+			/* Compute tile swizzle for the FMASK surface. */
+			if (config->info.fmask_surf_index &&
+			    fin.swizzleMode >= ADDR_SW_64KB_Z_T &&
+			    !(surf->flags & RADEON_SURF_SHAREABLE)) {
+				ADDR2_COMPUTE_PIPEBANKXOR_INPUT xin = {0};
+				ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT xout = {0};
+
+				xin.size = sizeof(ADDR2_COMPUTE_PIPEBANKXOR_INPUT);
+				xout.size = sizeof(ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT);
+
+				/* This counter starts from 1 instead of 0. */
+				xin.surfIndex = p_atomic_inc_return(config->info.fmask_surf_index);
+				xin.flags = in->flags;
+				xin.swizzleMode = in->swizzleMode;
+				xin.resourceType = in->resourceType;
+				xin.format = in->format;
+				xin.numSamples = in->numSamples;
+				xin.numFrags = in->numFrags;
+
+				ret = Addr2ComputePipeBankXor(addrlib, &xin, &xout);
+				if (ret != ADDR_OK)
+					return ret;
+
+				assert(xout.pipeBankXor <=
+				       u_bit_consecutive(0, sizeof(surf->u.gfx9.fmask_tile_swizzle) * 8));
+				surf->u.gfx9.fmask_tile_swizzle = xout.pipeBankXor;
+			}
 		}
 
 		/* CMASK */
@@ -1084,6 +1144,25 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 			assert(0);
 		}
 	} else {
+		switch (surf->bpe) {
+		case 1:
+			AddrSurfInfoIn.format = ADDR_FMT_8;
+			break;
+		case 2:
+			AddrSurfInfoIn.format = ADDR_FMT_16;
+			break;
+		case 4:
+			AddrSurfInfoIn.format = ADDR_FMT_32;
+			break;
+		case 8:
+			AddrSurfInfoIn.format = ADDR_FMT_32_32;
+			break;
+		case 16:
+			AddrSurfInfoIn.format = ADDR_FMT_32_32_32_32;
+			break;
+		default:
+			assert(0);
+		}
 		AddrSurfInfoIn.bpp = surf->bpe * 8;
 	}
 
@@ -1155,7 +1234,8 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	surf->u.gfx9.cmask_size = 0;
 
 	/* Calculate texture layout information. */
-	r = gfx9_compute_miptree(addrlib, surf, compressed, &AddrSurfInfoIn);
+	r = gfx9_compute_miptree(addrlib, config, surf, compressed,
+				 &AddrSurfInfoIn);
 	if (r)
 		return r;
 
@@ -1172,7 +1252,8 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 		} else
 			AddrSurfInfoIn.flags.depth = 0;
 
-		r = gfx9_compute_miptree(addrlib, surf, compressed, &AddrSurfInfoIn);
+		r = gfx9_compute_miptree(addrlib, config, surf, compressed,
+					 &AddrSurfInfoIn);
 		if (r)
 			return r;
 	}

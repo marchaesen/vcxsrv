@@ -354,10 +354,17 @@ vir_get_temp(struct v3d_compile *c)
         if (c->num_temps > c->defs_array_size) {
                 uint32_t old_size = c->defs_array_size;
                 c->defs_array_size = MAX2(old_size * 2, 16);
+
                 c->defs = reralloc(c, c->defs, struct qinst *,
                                    c->defs_array_size);
                 memset(&c->defs[old_size], 0,
                        sizeof(c->defs[0]) * (c->defs_array_size - old_size));
+
+                c->spillable = reralloc(c, c->spillable,
+                                        BITSET_WORD,
+                                        BITSET_WORDS(c->defs_array_size));
+                for (int i = old_size; i < c->defs_array_size; i++)
+                        BITSET_SET(c->spillable, i);
         }
 
         return reg;
@@ -418,7 +425,17 @@ vir_branch_inst(enum v3d_qpu_branch_cond cond, struct qreg src)
 static void
 vir_emit(struct v3d_compile *c, struct qinst *inst)
 {
-        list_addtail(&inst->link, &c->cur_block->instructions);
+        switch (c->cursor.mode) {
+        case vir_cursor_add:
+                list_add(&inst->link, c->cursor.link);
+                break;
+        case vir_cursor_addtail:
+                list_addtail(&inst->link, c->cursor.link);
+                break;
+        }
+
+        c->cursor = vir_after_inst(inst);
+        c->live_intervals_valid = false;
 }
 
 /* Updates inst to write to a new temporary, emits it, and notes the def. */
@@ -468,6 +485,7 @@ void
 vir_set_emit_block(struct v3d_compile *c, struct qblock *block)
 {
         c->cur_block = block;
+        c->cursor = vir_after_block(block);
         list_addtail(&block->link, &c->blocks);
 }
 
@@ -643,6 +661,7 @@ v3d_set_prog_data(struct v3d_compile *c,
 {
         prog_data->threads = c->threads;
         prog_data->single_seg = !c->last_thrsw;
+        prog_data->spill_size = c->spill_size;
 
         v3d_set_prog_data_uniforms(c, prog_data);
         v3d_set_prog_data_ubo(c, prog_data);
@@ -737,6 +756,36 @@ v3d_set_fs_prog_data_inputs(struct v3d_compile *c,
         }
 }
 
+static void
+v3d_fixup_fs_output_types(struct v3d_compile *c)
+{
+        nir_foreach_variable(var, &c->s->outputs) {
+                uint32_t mask = 0;
+
+                switch (var->data.location) {
+                case FRAG_RESULT_COLOR:
+                        mask = ~0;
+                        break;
+                case FRAG_RESULT_DATA0:
+                case FRAG_RESULT_DATA1:
+                case FRAG_RESULT_DATA2:
+                case FRAG_RESULT_DATA3:
+                        mask = 1 << (var->data.location - FRAG_RESULT_DATA0);
+                        break;
+                }
+
+                if (c->fs_key->int_color_rb & mask) {
+                        var->type =
+                                glsl_vector_type(GLSL_TYPE_INT,
+                                                 glsl_get_components(var->type));
+                } else if (c->fs_key->uint_color_rb & mask) {
+                        var->type =
+                                glsl_vector_type(GLSL_TYPE_UINT,
+                                                 glsl_get_components(var->type));
+                }
+        }
+}
+
 uint64_t *v3d_compile_fs(const struct v3d_compiler *compiler,
                          struct v3d_fs_key *key,
                          struct v3d_fs_prog_data *prog_data,
@@ -748,6 +797,9 @@ uint64_t *v3d_compile_fs(const struct v3d_compiler *compiler,
                                                  program_id, variant_id);
 
         c->fs_key = key;
+
+        if (key->int_color_rb || key->uint_color_rb)
+                v3d_fixup_fs_output_types(c);
 
         v3d_lower_nir(c);
 
@@ -791,8 +843,12 @@ vir_remove_instruction(struct v3d_compile *c, struct qinst *qinst)
         if (qinst->dst.file == QFILE_TEMP)
                 c->defs[qinst->dst.index] = NULL;
 
+        assert(&qinst->link != c->cursor.link);
+
         list_del(&qinst->link);
         free(qinst);
+
+        c->live_intervals_valid = false;
 }
 
 struct qreg
@@ -818,6 +874,10 @@ vir_follow_movs(struct v3d_compile *c, struct qreg reg)
 void
 vir_compile_destroy(struct v3d_compile *c)
 {
+        /* Defuse the assert that we aren't removing the cursor's instruction.
+         */
+        c->cursor.link = NULL;
+
         vir_for_each_block(block, c) {
                 while (!list_empty(&block->instructions)) {
                         struct qinst *qinst =
@@ -867,15 +927,23 @@ vir_PF(struct v3d_compile *c, struct qreg src, enum v3d_qpu_pf pf)
 {
         struct qinst *last_inst = NULL;
 
-        if (!list_empty(&c->cur_block->instructions))
+        if (!list_empty(&c->cur_block->instructions)) {
                 last_inst = (struct qinst *)c->cur_block->instructions.prev;
+
+                /* Can't stuff the PF into the last last inst if our cursor
+                 * isn't pointing after it.
+                 */
+                struct vir_cursor after_inst = vir_after_inst(last_inst);
+                if (c->cursor.mode != after_inst.mode ||
+                    c->cursor.link != after_inst.link)
+                        last_inst = NULL;
+        }
 
         if (src.file != QFILE_TEMP ||
             !c->defs[src.index] ||
             last_inst != c->defs[src.index]) {
                 /* XXX: Make the MOV be the appropriate type */
                 last_inst = vir_MOV_dest(c, vir_reg(QFILE_NULL, 0), src);
-                last_inst = (struct qinst *)c->cur_block->instructions.prev;
         }
 
         vir_set_pf(last_inst, pf);

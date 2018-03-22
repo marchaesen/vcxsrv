@@ -248,6 +248,12 @@ enum quniform_contents {
 
         QUNIFORM_ALPHA_REF,
         QUNIFORM_SAMPLE_MASK,
+
+        /**
+         * Returns the the offset of the scratch buffer for register spilling.
+         */
+        QUNIFORM_SPILL_OFFSET,
+        QUNIFORM_SPILL_SIZE_PER_THREAD,
 };
 
 struct v3d_varying_slot {
@@ -330,6 +336,11 @@ struct v3d_fs_key {
         uint8_t swap_color_rb;
         /* Mask of which render targets need to be written as 32-bit floats */
         uint8_t f32_color_rb;
+        /* Masks of which render targets need to be written as ints/uints.
+         * Used by gallium to work around lost information in TGSI.
+         */
+        uint8_t int_color_rb;
+        uint8_t uint_color_rb;
         uint8_t alpha_test_func;
         uint8_t logicop_func;
         uint32_t point_sprite_mask;
@@ -383,6 +394,48 @@ struct qblock {
         int start_ip, end_ip;
         /** @} */
 };
+
+/** Which util/list.h add mode we should use when inserting an instruction. */
+enum vir_cursor_mode {
+        vir_cursor_add,
+        vir_cursor_addtail,
+};
+
+/**
+ * Tracking structure for where new instructions should be inserted.  Create
+ * with one of the vir_after_inst()-style helper functions.
+ *
+ * This does not protect against removal of the block or instruction, so we
+ * have an assert in instruction removal to try to catch it.
+ */
+struct vir_cursor {
+        enum vir_cursor_mode mode;
+        struct list_head *link;
+};
+
+static inline struct vir_cursor
+vir_before_inst(struct qinst *inst)
+{
+        return (struct vir_cursor){ vir_cursor_addtail, &inst->link };
+}
+
+static inline struct vir_cursor
+vir_after_inst(struct qinst *inst)
+{
+        return (struct vir_cursor){ vir_cursor_add, &inst->link };
+}
+
+static inline struct vir_cursor
+vir_before_block(struct qblock *block)
+{
+        return (struct vir_cursor){ vir_cursor_add, &block->instructions };
+}
+
+static inline struct vir_cursor
+vir_after_block(struct qblock *block)
+{
+        return (struct vir_cursor){ vir_cursor_addtail, &block->instructions };
+}
 
 /**
  * Compiler state saved across compiler invocations, for any expensive global
@@ -464,6 +517,20 @@ struct v3d_compile {
         uint8_t vattr_sizes[V3D_MAX_VS_INPUTS];
         uint32_t num_vpm_writes;
 
+        /* Size in bytes of registers that have been spilled. This is how much
+         * space needs to be available in the spill BO per thread per QPU.
+         */
+        uint32_t spill_size;
+        /* Shader-db stats for register spilling. */
+        uint32_t spills, fills;
+        /**
+         * Register spilling's per-thread base address, shared between each
+         * spill/fill's addressing calculations.
+         */
+        struct qreg spill_base;
+        /* Bit vector of which temps may be spilled */
+        BITSET_WORD *spillable;
+
         /**
          * Array of the VARYING_SLOT_* of all FS QFILE_VARY reads.
          *
@@ -486,6 +553,7 @@ struct v3d_compile {
 
         /* Live ranges of temps. */
         int *temp_start, *temp_end;
+        bool live_intervals_valid;
 
         uint32_t *uniform_data;
         enum quniform_contents *uniform_contents;
@@ -500,6 +568,7 @@ struct v3d_compile {
         struct qreg undef;
         uint32_t num_temps;
 
+        struct vir_cursor cursor;
         struct list_head blocks;
         int next_block_index;
         struct qblock *cur_block;
@@ -557,6 +626,7 @@ struct v3d_prog_data {
         struct v3d_ubo_range *ubo_ranges;
         uint32_t num_ubo_ranges;
         uint32_t ubo_size;
+        uint32_t spill_size;
 
         uint8_t num_inputs;
         uint8_t threads;
@@ -654,6 +724,7 @@ void vir_set_unpack(struct qinst *inst, int src,
                     enum v3d_qpu_input_unpack unpack);
 
 struct qreg vir_get_temp(struct v3d_compile *c);
+void vir_emit_last_thrsw(struct v3d_compile *c);
 void vir_calculate_live_intervals(struct v3d_compile *c);
 bool vir_has_implicit_uniform(struct qinst *inst);
 int vir_get_implicit_uniform_src(struct qinst *inst);
@@ -703,7 +774,7 @@ void v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr);
 void v3d_vir_to_qpu(struct v3d_compile *c, struct qpu_reg *temp_registers);
 uint32_t v3d_qpu_schedule_instructions(struct v3d_compile *c);
 void qpu_validate(struct v3d_compile *c);
-struct qpu_reg *v3d_register_allocate(struct v3d_compile *c);
+struct qpu_reg *v3d_register_allocate(struct v3d_compile *c, bool *spilled);
 bool vir_init_reg_sets(struct v3d_compiler *compiler);
 
 void vir_PF(struct v3d_compile *c, struct qreg src, enum v3d_qpu_pf pf);
@@ -835,8 +906,8 @@ VIR_A_ALU1(FLBPUSH)
 VIR_A_ALU1(FLBPOP)
 VIR_A_ALU1(SETMSF)
 VIR_A_ALU1(SETREVF)
-VIR_A_ALU1(TIDX)
-VIR_A_ALU1(EIDX)
+VIR_A_ALU0(TIDX)
+VIR_A_ALU0(EIDX)
 VIR_A_ALU1(LDVPMV_IN)
 VIR_A_ALU1(LDVPMV_OUT)
 
@@ -914,6 +985,13 @@ vir_LDTMU(struct v3d_compile *c)
                 vir_NOP(c)->qpu.sig.ldtmu = true;
                 return vir_MOV(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_R4));
         }
+}
+
+static inline struct qreg
+vir_UMUL(struct v3d_compile *c, struct qreg src0, struct qreg src1)
+{
+        vir_MULTOP(c, src0, src1);
+        return vir_UMUL24(c, src0, src1);
 }
 
 /*

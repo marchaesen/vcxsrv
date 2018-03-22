@@ -36,6 +36,8 @@ struct nir_shader;
 void st_nir_lower_builtin(struct nir_shader *shader);
 void st_nir_lower_tex_src_plane(struct nir_shader *shader, unsigned free_slots,
                                 unsigned lower_2plane, unsigned lower_3plane);
+bool st_nir_lower_uniforms_to_ubo(struct nir_shader *shader,
+                                  const struct gl_program_parameter_list *params);
 
 void st_finalize_nir(struct st_context *st, struct gl_program *prog,
                      struct gl_shader_program *shader_program,

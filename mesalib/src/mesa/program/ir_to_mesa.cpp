@@ -2449,10 +2449,26 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
 
    _mesa_reserve_parameter_storage(params, num_params);
    index = params->NumParameters;
-   for (unsigned i = 0; i < num_params; i++) {
-      unsigned comps = 4;
-      _mesa_add_parameter(params, PROGRAM_UNIFORM, name, comps,
-                          type->gl_type, NULL, NULL);
+
+   if (ctx->Const.PackedDriverUniformStorage) {
+      for (unsigned i = 0; i < num_params; i++) {
+         unsigned dmul = type->without_array()->is_64bit() ? 2 : 1;
+         unsigned comps = type->without_array()->vector_elements * dmul;
+         if (is_dual_slot) {
+            if (i & 0x1)
+               comps -= 4;
+            else
+               comps = 4;
+         }
+
+         _mesa_add_parameter(params, PROGRAM_UNIFORM, name, comps,
+                             type->gl_type, NULL, NULL, false);
+      }
+   } else {
+      for (unsigned i = 0; i < num_params; i++) {
+         _mesa_add_parameter(params, PROGRAM_UNIFORM, name, 4,
+                             type->gl_type, NULL, NULL, true);
+      }
    }
 
    /* The first part of the uniform that's processed determines the base
@@ -2527,7 +2543,13 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
       if (location != last_location) {
          enum gl_uniform_driver_format format = uniform_native;
          unsigned columns = 0;
-         int dmul = 4 * sizeof(float);
+
+         int dmul;
+         if (ctx->Const.PackedDriverUniformStorage && !prog->is_arb_asm) {
+            dmul = storage->type->vector_elements * sizeof(float);
+         } else {
+            dmul = 4 * sizeof(float);
+         }
 
          switch (storage->type->base_type) {
          case GLSL_TYPE_UINT64:
@@ -2582,9 +2604,10 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
             break;
          }
 
+         unsigned pvo = params->ParameterValueOffset[i];
          _mesa_uniform_attach_driver_storage(storage, dmul * columns, dmul,
                                              format,
-                                             &params->ParameterValues[i]);
+                                             &params->ParameterValues[pvo]);
 
          /* When a bindless sampler/image is bound to a texture/image unit, we
           * have to overwrite the constant value by the resident handle
@@ -2601,11 +2624,11 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
                if (storage->type->without_array()->is_sampler()) {
                   assert(unit >= 0 && unit < prog->sh.NumBindlessSamplers);
                   prog->sh.BindlessSamplers[unit].data =
-                     &params->ParameterValues[i] + j;
+                     &params->ParameterValues[pvo] + 4 * j;
                } else if (storage->type->without_array()->is_image()) {
                   assert(unit >= 0 && unit < prog->sh.NumBindlessImages);
                   prog->sh.BindlessImages[unit].data =
-                     &params->ParameterValues[i] + j;
+                     &params->ParameterValues[pvo] + 4 * j;
                }
             }
          }
@@ -2616,8 +2639,24 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
           */
          if (propagate_to_storage) {
             unsigned array_elements = MAX2(1, storage->array_elements);
-            _mesa_propagate_uniforms_to_driver_storage(storage, 0,
-                                                       array_elements);
+            if (ctx->Const.PackedDriverUniformStorage && !prog->is_arb_asm &&
+                (storage->is_bindless || !storage->type->contains_opaque())) {
+               const int dmul = storage->type->is_64bit() ? 2 : 1;
+               const unsigned components =
+                  storage->type->vector_elements *
+                  storage->type->matrix_columns;
+
+               for (unsigned s = 0; s < storage->num_driver_storage; s++) {
+                  gl_constant_value *uni_storage = (gl_constant_value *)
+                     storage->driver_storage[s].data;
+                  memcpy(uni_storage, storage->storage,
+                         sizeof(storage->storage[0]) * components *
+                         array_elements * dmul);
+               }
+            } else {
+               _mesa_propagate_uniforms_to_driver_storage(storage, 0,
+                                                          array_elements);
+            }
          }
 
 	      last_location = location;

@@ -71,11 +71,12 @@ void st_upload_constants(struct st_context *st, struct gl_program *prog)
       unsigned c;
 
       for (c = 0; c < MAX_NUM_FRAGMENT_CONSTANTS_ATI; c++) {
+         unsigned offset = params->ParameterValueOffset[c];
          if (ati_fs->LocalConstDef & (1 << c))
-            memcpy(params->ParameterValues[c],
+            memcpy(params->ParameterValues + offset,
                    ati_fs->Constants[c], sizeof(GLfloat) * 4);
          else
-            memcpy(params->ParameterValues[c],
+            memcpy(params->ParameterValues + offset,
                    st->ctx->ATIFragmentShader.GlobalConstants[c], sizeof(GLfloat) * 4);
       }
    }

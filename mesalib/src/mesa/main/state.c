@@ -360,9 +360,6 @@ _mesa_update_state_locked( struct gl_context *ctx )
          update_program(ctx);
    }
 
-   if (new_state & _NEW_ARRAY)
-      _mesa_update_vao_derived_arrays(ctx, ctx->Array.VAO);
-
  out:
    new_prog_state |= update_program_constants(ctx);
 
@@ -377,7 +374,6 @@ _mesa_update_state_locked( struct gl_context *ctx )
     */
    ctx->Driver.UpdateState(ctx);
    ctx->NewState = 0;
-   ctx->Array.VAO->NewArrays = 0x0;
 }
 
 
@@ -462,6 +458,28 @@ _mesa_set_vp_override(struct gl_context *ctx, GLboolean flag)
 }
 
 
+static void
+set_new_array(struct gl_context *ctx)
+{
+   _vbo_set_recalculate_inputs(ctx);
+   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+}
+
+
+static void
+set_vertex_processing_mode(struct gl_context *ctx, gl_vertex_processing_mode m)
+{
+   if (ctx->VertexProgram._VPMode == m)
+      return;
+
+   /* On change we may get new maps into the current values */
+   set_new_array(ctx);
+
+   /* Finally memorize the value */
+   ctx->VertexProgram._VPMode = m;
+}
+
+
 /**
  * Update ctx->VertexProgram._VPMode.
  * This is to distinguish whether we're running
@@ -473,11 +491,11 @@ void
 _mesa_update_vertex_processing_mode(struct gl_context *ctx)
 {
    if (ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX])
-      ctx->VertexProgram._VPMode = VP_MODE_SHADER;
+      set_vertex_processing_mode(ctx, VP_MODE_SHADER);
    else if (_mesa_arb_vertex_program_enabled(ctx))
-      ctx->VertexProgram._VPMode = VP_MODE_SHADER;
+      set_vertex_processing_mode(ctx, VP_MODE_SHADER);
    else
-      ctx->VertexProgram._VPMode = VP_MODE_FF;
+      set_vertex_processing_mode(ctx, VP_MODE_FF);
 }
 
 
@@ -494,17 +512,28 @@ _mesa_set_draw_vao(struct gl_context *ctx, struct gl_vertex_array_object *vao,
                    GLbitfield filter)
 {
    struct gl_vertex_array_object **ptr = &ctx->Array._DrawVAO;
+   bool new_array = false;
    if (*ptr != vao) {
       _mesa_reference_vao_(ctx, ptr, vao);
-      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
-   } else if (vao->NewArrays) {
-      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+
+      new_array = true;
+   }
+
+   if (vao->NewArrays) {
+      _mesa_update_vao_derived_arrays(ctx, vao);
+      vao->NewArrays = 0;
+
+      new_array = true;
    }
 
    /* May shuffle the position and generic0 bits around, filter out unwanted */
    const GLbitfield enabled = filter & _mesa_get_vao_vp_inputs(vao);
    if (ctx->Array._DrawVAOEnabledAttribs != enabled)
-      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+      new_array = true;
+
+   if (new_array)
+      set_new_array(ctx);
+
    ctx->Array._DrawVAOEnabledAttribs = enabled;
    _mesa_set_varying_vp_inputs(ctx, enabled);
 }

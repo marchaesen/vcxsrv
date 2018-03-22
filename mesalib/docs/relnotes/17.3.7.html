@@ -1,0 +1,312 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 17.3.7 Release Notes / March 21, 2018</h1>
+
+<p>
+Mesa 17.3.7 is a bug fix release which fixes bugs found since the 17.3.7 release.
+</p>
+<p>
+Mesa 17.3.7 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+f08de6d0ccb3dbca04b44790d85c3ff9e7b1cc4189d1b7c7167e5ba7d98736c0  mesa-17.3.7.tar.gz
+0595904a8fba65a8fe853a84ad3c940205503b94af41e8ceed245fada777ac1e  mesa-17.3.7.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103007">Bug 103007</a> - [OpenGL CTS] [HSW] KHR-GL45.gpu_shader_fp64.fp64.max_uniform_components fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103988">Bug 103988</a> - Intermittent piglit failures with shader cache enabled</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104302">Bug 104302</a> - Wolfenstein 2 (2017) under wine graphical artifacting on RADV</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104381">Bug 104381</a> - swr fails to build since llvm-svn r321257</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104625">Bug 104625</a> - semicolon after if</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104642">Bug 104642</a> - Android: NULL pointer dereference with i965 mesa-dev, seems build_id_length related</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104654">Bug 104654</a> - r600/sb: Alien Isolation GPU lock</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104905">Bug 104905</a> - SpvOpFOrdEqual doesn't return correct results for NaNs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104915">Bug 104915</a> - Indexed SHADING_LANGUAGE_VERSION query not supported</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104923">Bug 104923</a> - anv: Dota2 rendering corruption</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105013">Bug 105013</a> - [regression] GLX+VA-API+clutter-gst video playback is corrupt with Mesa 17.3 (but is fine with 17.2)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105029">Bug 105029</a> - simdlib_512_avx512.inl:371:57: error: could not convert ‘_mm512_mask_blend_epi32((__mmask16)(ImmT), a, b)’ from ‘__m512i’ {aka ‘__vector(8) long long int’} to ‘SIMDImpl::SIMD512Impl::Float’</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105098">Bug 105098</a> - [RADV] GPU freeze with simple Vulkan App</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105103">Bug 105103</a> - Wayland master causes Mesa to fail to compile</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105224">Bug 105224</a> - Webgl Pointclouds flickers</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105255">Bug 105255</a> - Waiting for fences without waitAll is not implemented</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105271">Bug 105271</a> - WebGL2 shader crashes i965_dri.so 17.3.3</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105436">Bug 105436</a> - Blinking textures in UT2004 [bisected]</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Smith (1):</p>
+<ul>
+  <li>radv: Fix CmdCopyImage between uncompressed and compressed images</li>
+</ul>
+
+<p>Andriy Khulap (1):</p>
+<ul>
+  <li>i965: Fix RELOC_WRITE typo in brw_store_data_imm64()</li>
+</ul>
+
+<p>Anuj Phogat (1):</p>
+<ul>
+  <li>isl: Don't use surface format R32_FLOAT for typed atomic integer operations</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (6):</p>
+<ul>
+  <li>radv: Always lower indirect derefs after nir_lower_global_vars_to_local.</li>
+  <li>radeonsi: Export signalled sync file instead of -1.</li>
+  <li>radv: Implement WaitForFences with !waitAll.</li>
+  <li>radv: Implement waiting on non-submitted fences.</li>
+  <li>radv: Fix copying from 3D images starting at non-zero depth.</li>
+  <li>radv: Increase the number of dynamic uniform buffers.</li>
+</ul>
+
+<p>Brian Paul (1):</p>
+<ul>
+  <li>mesa: add missing switch case for EXTRA_VERSION_40 in check_extra()</li>
+</ul>
+
+<p>Chuck Atkins (1):</p>
+<ul>
+  <li>glx: Properly handle cases where screen creation fails</li>
+</ul>
+
+<p>Daniel Stone (3):</p>
+<ul>
+  <li>i965: Fix bugs in intel_from_planar</li>
+  <li>egl/wayland: Fix ARGB/XRGB transposition in config map</li>
+  <li>egl/wayland: Always use in-tree wayland-egl-backend.h</li>
+</ul>
+
+<p>Dave Airlie (9):</p>
+<ul>
+  <li>r600: fix cubemap arrays</li>
+  <li>r600/sb/cayman: fix indirect ubo access on cayman</li>
+  <li>r600: fix xfb stream check.</li>
+  <li>ac/nir: to integer the args to bcsel.</li>
+  <li>r600/cayman: fix fragcood loading recip generation.</li>
+  <li>radv: don't support tc-compat on multisample d32s8 at all.</li>
+  <li>virgl: remap query types to hw support.</li>
+  <li>ac/nir: don't apply slice rounding on txf_ms</li>
+  <li>r600: implement callstack workaround for evergreen.</li>
+</ul>
+
+<p>Dylan Baker (2):</p>
+<ul>
+  <li>glapi/check_table: Remove 'extern "C"' block</li>
+  <li>glapi: remove APPLE extensions from test</li>
+</ul>
+
+<p>Emil Velikov (1):</p>
+<ul>
+  <li>docs: add sha256 checksums for 17.3.6</li>
+</ul>
+
+<p>Eric Anholt (4):</p>
+<ul>
+  <li>mesa: Drop incorrect A4B4G4R4 _mesa_format_matches_format_and_type() cases.</li>
+  <li>ac/nir: Fix compiler warning about uninitialized dw_addr.</li>
+  <li>glsl/tests: Fix strict aliasing warning about int64/double.</li>
+  <li>glsl/tests: Fix a compiler warning about signed/unsigned loop comparison.</li>
+</ul>
+
+<p>Francisco Jerez (1):</p>
+<ul>
+  <li>i965: Fix KHR_blend_equation_advanced with some render targets.</li>
+</ul>
+
+<p>Frank Binns (1):</p>
+<ul>
+  <li>egl/dri2: fix segfault when display initialisation fails</li>
+</ul>
+
+<p>George Kyriazis (1):</p>
+<ul>
+  <li>swr/rast: blend_epi32() should return Integer, not Float</li>
+</ul>
+
+<p>Gert Wollny (1):</p>
+<ul>
+  <li>r600: Take ALU_EXTENDED into account when evaluating jump offsets</li>
+</ul>
+
+<p>Gurchetan Singh (1):</p>
+<ul>
+  <li>mesa: don't clamp just based on ARB_viewport_array extension</li>
+</ul>
+
+<p>Iago Toral Quiroga (2):</p>
+<ul>
+  <li>i965/sbe: fix number of inputs for active components</li>
+  <li>i965/vec4: use a temp register to compute offsets for pull loads</li>
+</ul>
+
+<p>James Legg (1):</p>
+<ul>
+  <li>radv: Really use correct HTILE expanded words.</li>
+</ul>
+
+<p>Jason Ekstrand (3):</p>
+<ul>
+  <li>intel/isl: Add an isl_color_value_is_zero helper</li>
+  <li>vulkan/wsi/x11: Set OUT_OF_DATE if wait_for_special_event fails</li>
+  <li>intel/fs: Set up sampler message headers in the visitor on gen7+</li>
+</ul>
+
+<p>Jonathan Gray (1):</p>
+<ul>
+  <li>configure.ac: pthread-stubs not present on OpenBSD</li>
+</ul>
+
+<p>Jordan Justen (3):</p>
+<ul>
+  <li>i965: Create new program cache bo when clearing the program cache</li>
+  <li>program: Don't reset SamplersValidated when restoring from shader cache</li>
+  <li>intel/vulkan: Hard code CS scratch_ids_per_subslice for Cherryview</li>
+</ul>
+
+<p>Juan A. Suarez Romero (14):</p>
+<ul>
+  <li>cherry-ignore: Explicit 18.0 only nominations</li>
+  <li>cherry-ignore: r600/compute: only mark buffer/image state dirty for fragment shaders</li>
+  <li>cherry-ignore: anv: Move setting current_pipeline to cmd_state_init</li>
+  <li>cherry-ignore: anv: Be more careful about fast-clear colors</li>
+  <li>cherry-ignore: Add patches that has a specific version for 17.3</li>
+  <li>cherry-ignore: r600: Take ALU_EXTENDED into account when evaluating jump offsets</li>
+  <li>cherry-ignore: intel/compiler: Memory fence commit must always be enabled for gen10+</li>
+  <li>cherry-ignore: i965: Avoid problems from referencing orphaned BOs after growing.</li>
+  <li>cherry-ignore: include all Meson related fixes</li>
+  <li>cherry-ignore: ac/shader: fix vertex input with components.</li>
+  <li>cherry-ignore: i965: Use absolute addressing for constant buffer 0 on Kernel 4.16+.</li>
+  <li>cherry-ignore: anv/image: Separate modifiers from legacy scanout</li>
+  <li>cherry-ignore: glsl: Fix memory leak with known glsl_type instances</li>
+  <li>Update version to 17.3.7</li>
+</ul>
+
+<p>Karol Herbst (1):</p>
+<ul>
+  <li>nvir/nvc0: fix legalizing of ld unlock c0[0x10000]</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>i965: Emit CS stall before MEDIA_VFE_STATE.</li>
+</ul>
+
+<p>Lionel Landwerlin (1):</p>
+<ul>
+  <li>i965: perf: ensure reading config IDs from sysfs isn't interrupted</li>
+</ul>
+
+<p>Marek Olšák (2):</p>
+<ul>
+  <li>radeonsi: align command buffer starting address to fix some Raven hangs</li>
+  <li>configure.ac: blacklist libdrm 2.4.90</li>
+</ul>
+
+<p>Michal Navratil (1):</p>
+<ul>
+  <li>winsys/amdgpu: allow non page-aligned size bo creation from pointer</li>
+</ul>
+
+<p>Samuel Iglesias Gonsálvez (1):</p>
+<ul>
+  <li>glsl/linker: fix bug when checking precision qualifier</li>
+</ul>
+
+<p>Samuel Pitoiset (2):</p>
+<ul>
+  <li>ac/nir: use ordered float comparisons except for not equal</li>
+  <li>Revert "mesa: do not trigger _NEW_TEXTURE_STATE in glActiveTexture()"</li>
+</ul>
+
+<p>Stephan Gerhold (1):</p>
+<ul>
+  <li>util/build-id: Fix address comparison for binaries with LOAD vaddr &gt; 0</li>
+</ul>
+
+<p>Thomas Hellstrom (2):</p>
+<ul>
+  <li>svga: Fix a leftover debug hack</li>
+  <li>loader_dri3/glx/egl: Reinstate the loader_dri3_vtable get_dri_screen callback</li>
+</ul>
+
+<p>Tim Rowley (1):</p>
+<ul>
+  <li>swr/rast: fix MemoryBuffer build break for llvm-6</li>
+</ul>
+
+<p>Timothy Arceri (1):</p>
+<ul>
+  <li>nir: fix interger divide by zero crash during constant folding</li>
+</ul>
+
+<p>Tobias Droste (1):</p>
+<ul>
+  <li>gallivm: Use new LLVM fast-math-flags API</li>
+</ul>
+
+<p>Vadym Shovkoplias (1):</p>
+<ul>
+  <li>mesa: add glsl version query (v4)</li>
+</ul>
+
+<p>Vinson Lee (1):</p>
+<ul>
+  <li>swr/rast: Fix macOS macro.</li>
+</ul>
+
+
+</div>
+</body>
+</html>
+

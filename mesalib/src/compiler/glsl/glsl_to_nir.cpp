@@ -1612,6 +1612,8 @@ nir_visitor::visit(ir_expression *ir)
    case ir_unop_ceil:  result = nir_fceil(&b, srcs[0]); break;
    case ir_unop_floor: result = nir_ffloor(&b, srcs[0]); break;
    case ir_unop_fract: result = nir_ffract(&b, srcs[0]); break;
+   case ir_unop_frexp_exp: result = nir_frexp_exp(&b, srcs[0]); break;
+   case ir_unop_frexp_sig: result = nir_frexp_sig(&b, srcs[0]); break;
    case ir_unop_round_even: result = nir_fround_even(&b, srcs[0]); break;
    case ir_unop_sin:   result = nir_fsin(&b, srcs[0]); break;
    case ir_unop_cos:   result = nir_fcos(&b, srcs[0]); break;
