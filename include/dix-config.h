@@ -511,8 +511,11 @@
 /* Build glamor/gbm has linear support */
 #undef GLAMOR_HAS_GBM_LINEAR
 
-/* Build glamor use new drmGetDeviceNameFromFD2 */
-#undef GLAMOR_HAS_DRM_NAME_FROM_FD_2
+/* GBM has modifiers support */
+#undef GBM_BO_WITH_MODIFIERS
+
+/* Glamor can use eglQueryDmaBuf* functions */
+#undef GLAMOR_HAS_EGL_QUERY_DMABUF
 
 /* byte order */
 #define _X_BYTE_ORDER X_LITTLE_ENDIAN
