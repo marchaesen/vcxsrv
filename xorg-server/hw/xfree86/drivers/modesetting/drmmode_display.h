@@ -285,11 +285,4 @@ void drmmode_copy_fb(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 int drmmode_crtc_set_fb(xf86CrtcPtr crtc, DisplayModePtr mode, uint32_t fb_id,
                         int x, int y, uint32_t flags, void *data);
 
-#ifndef DRM_CAP_DUMB_PREFERRED_DEPTH
-#define DRM_CAP_DUMB_PREFERRED_DEPTH 3
-#endif
-#ifndef DRM_CAP_DUMB_PREFER_SHADOW
-#define DRM_CAP_DUMB_PREFER_SHADOW 4
-#endif
-
 #endif

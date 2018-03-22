@@ -1852,7 +1852,7 @@ if test x"$enable_dri3" = xyes; then
 
     dri3_modules="x11-xcb xcb >= $XCB_REQUIRED xcb-dri3 xcb-xfixes xcb-present xcb-sync xshmfence >= $XSHMFENCE_REQUIRED"
     PKG_CHECK_MODULES([XCB_DRI3], [$dri3_modules])
-    dri3_modifier_modules="xcb-dri3 >= $XCBDRI3_MODIFIERS_REQUIRED xcb-present >= $XCBPRESENT_MODIFIERS_REQUIRES"
+    dri3_modifier_modules="xcb-dri3 >= $XCBDRI3_MODIFIERS_REQUIRED xcb-present >= $XCBPRESENT_MODIFIERS_REQUIRED"
     PKG_CHECK_MODULES([XCB_DRI3_MODIFIERS], [$dri3_modifier_modules], [have_dri3_modifiers=yes], [have_dri3_modifiers=no])
 
     if test "x$have_dri3_modifiers" == xyes; then
@@ -2286,6 +2286,8 @@ if test "x$enable_omx_bellagio" = xyes; then
     PKG_CHECK_MODULES([OMX_BELLAGIO], [libomxil-bellagio >= $LIBOMXIL_BELLAGIO_REQUIRED])
     gallium_st="$gallium_st omx_bellagio"
     AC_DEFINE([ENABLE_ST_OMX_BELLAGIO], 1, [Use Bellagio for OMX IL])
+else
+    AC_DEFINE([ENABLE_ST_OMX_BELLAGIO], 0)
 fi
 AM_CONDITIONAL(HAVE_ST_OMX_BELLAGIO, test "x$enable_omx_bellagio" = xyes)
 
@@ -2299,6 +2301,8 @@ if test "x$enable_omx_tizonia" = xyes; then
                        libtizplatform >= $LIBOMXIL_TIZONIA_REQUIRED])
     gallium_st="$gallium_st omx_tizonia"
     AC_DEFINE([ENABLE_ST_OMX_TIZONIA], 1, [Use Tizoina for OMX IL])
+else
+    AC_DEFINE([ENABLE_ST_OMX_TIZONIA], 0)
 fi
 AM_CONDITIONAL(HAVE_ST_OMX_TIZONIA, test "x$enable_omx_tizonia" = xyes)
 

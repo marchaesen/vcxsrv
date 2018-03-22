@@ -1274,9 +1274,9 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
       buffer->modifier = DRM_FORMAT_MOD_INVALID;
 
    pixmap = xcb_generate_id(draw->conn);
+#ifdef HAVE_DRI3_MODIFIERS
    if (draw->multiplanes_available &&
        buffer->modifier != DRM_FORMAT_MOD_INVALID) {
-#ifdef HAVE_DRI3_MODIFIERS
       xcb_dri3_pixmap_from_buffers(draw->conn,
                                    pixmap,
                                    draw->drawable,
@@ -1289,8 +1289,9 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
                                    depth, buffer->cpp * 8,
                                    buffer->modifier,
                                    buffer_fds);
+   } else
 #endif
-   } else {
+   {
       xcb_dri3_pixmap_from_buffer(draw->conn,
                                   pixmap,
                                   draw->drawable,

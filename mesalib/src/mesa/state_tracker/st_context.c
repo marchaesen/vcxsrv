@@ -433,6 +433,9 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
    if (no_error)
       ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
 
+   ctx->Const.PackedDriverUniformStorage =
+      screen->get_param(screen, PIPE_CAP_PACKED_UNIFORMS);
+
    st->has_stencil_export =
       screen->get_param(screen, PIPE_CAP_SHADER_STENCIL_EXPORT);
    st->has_shader_model3 = screen->get_param(screen, PIPE_CAP_SM3);
@@ -748,6 +751,10 @@ st_init_driver_functions(struct pipe_screen *screen,
 
    if (screen->get_param(screen, PIPE_CAP_STRING_MARKER))
       functions->EmitStringMarker = st_emit_string_marker;
+
+   /* For now call through these into the vbo_set_draw_func... */
+   functions->Draw = _vbo_draw;
+   functions->DrawIndirect = _vbo_draw_indirect;
 
    functions->Enable = st_Enable;
    functions->UpdateState = st_invalidate_state;

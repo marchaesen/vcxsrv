@@ -182,7 +182,6 @@ ms_get_kernel_ust_msc(xf86CrtcPtr crtc,
     drmVBlank vbl;
     int ret;
 
-#ifdef DRM_IOCTL_CRTC_QUEUE_SEQUENCE
     if (ms->has_queue_sequence || !ms->tried_queue_sequence) {
         uint64_t ns;
         ms->tried_queue_sequence = TRUE;
@@ -196,7 +195,6 @@ ms_get_kernel_ust_msc(xf86CrtcPtr crtc,
             return ret == 0;
         }
     }
-#endif
     /* Get current count */
     vbl.request.type = DRM_VBLANK_RELATIVE | drmmode_crtc->vblank_pipe;
     vbl.request.sequence = 0;
@@ -226,7 +224,6 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
 
     for (;;) {
         /* Queue an event at the specified sequence */
-#ifdef DRM_IOCTL_CRTC_QUEUE_SEQUENCE
         if (ms->has_queue_sequence || !ms->tried_queue_sequence) {
             uint32_t drm_flags = 0;
             uint64_t kernel;
@@ -255,7 +252,6 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
                 goto check;
             }
         }
-#endif
         vbl.request.type = DRM_VBLANK_EVENT | drmmode_crtc->vblank_pipe;
         if (flags & MS_QUEUE_RELATIVE)
             vbl.request.type |= DRM_VBLANK_RELATIVE;
@@ -273,9 +269,7 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
                 *msc_queued = ms_kernel_msc_to_crtc_msc(crtc, vbl.reply.sequence);
             return TRUE;
         }
-#ifdef DRM_IOCTL_CRTC_QUEUE_SEQUENCE
     check:
-#endif
         if (errno != EBUSY) {
             ms_drm_abort_seq(scrn, seq);
             return FALSE;

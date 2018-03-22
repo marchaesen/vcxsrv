@@ -122,8 +122,10 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 
 		enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
 		if (dim == GLSL_SAMPLER_DIM_SUBPASS ||
-		    dim == GLSL_SAMPLER_DIM_SUBPASS_MS)
+		    dim == GLSL_SAMPLER_DIM_SUBPASS_MS) {
+			info->ps.layer_input = true;
 			info->ps.uses_input_attachments = true;
+		}
 		mark_sampler_desc(instr->variables[0]->var, info);
 
 		if (nir_intrinsic_image_store ||

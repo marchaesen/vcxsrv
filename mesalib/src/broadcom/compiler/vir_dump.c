@@ -321,7 +321,7 @@ vir_dump(struct v3d_compile *c)
         vir_for_each_block(block, c) {
                 fprintf(stderr, "BLOCK %d:\n", block->index);
                 vir_for_each_inst(inst, block) {
-                        if (c->temp_start) {
+                        if (c->live_intervals_valid) {
                                 bool first = true;
 
                                 for (int i = 0; i < c->num_temps; i++) {
@@ -342,7 +342,7 @@ vir_dump(struct v3d_compile *c)
                                         fprintf(stderr, " ");
                         }
 
-                        if (c->temp_end) {
+                        if (c->live_intervals_valid) {
                                 bool first = true;
 
                                 for (int i = 0; i < c->num_temps; i++) {

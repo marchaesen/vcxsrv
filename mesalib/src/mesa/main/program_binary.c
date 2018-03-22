@@ -287,5 +287,5 @@ _mesa_program_binary(struct gl_context *ctx, struct gl_shader_program *sh_prog,
       return;
    }
 
-   sh_prog->data->LinkStatus = LINKING_SUCCESS;
+   sh_prog->data->LinkStatus = LINKING_SKIPPED;
 }

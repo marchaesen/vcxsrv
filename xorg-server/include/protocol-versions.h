@@ -69,7 +69,7 @@
 
 /* Present */
 #define SERVER_PRESENT_MAJOR_VERSION            1
-#define SERVER_PRESENT_MINOR_VERSION            1
+#define SERVER_PRESENT_MINOR_VERSION            2
 
 /* RandR */
 #define SERVER_RANDR_MAJOR_VERSION		1

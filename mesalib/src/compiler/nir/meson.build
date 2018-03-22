@@ -138,7 +138,6 @@ files_libnir = files(
   'nir_lower_tex.c',
   'nir_lower_to_source_mods.c',
   'nir_lower_two_sided_color.c',
-  'nir_lower_uniforms_to_ubo.c',
   'nir_lower_vars_to_ssa.c',
   'nir_lower_var_copies.c',
   'nir_lower_vec_to_movs.c',

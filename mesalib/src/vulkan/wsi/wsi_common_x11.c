@@ -168,6 +168,7 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
    }
 
    wsi_conn->has_dri3 = dri3_reply->present != 0;
+#ifdef HAVE_DRI3_MODIFIERS
    if (wsi_conn->has_dri3) {
       xcb_dri3_query_version_cookie_t ver_cookie;
       xcb_dri3_query_version_reply_t *ver_reply;
@@ -178,8 +179,10 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
          (ver_reply->major_version > 1 || ver_reply->minor_version >= 2);
       free(ver_reply);
    }
+#endif
 
    wsi_conn->has_present = pres_reply->present != 0;
+#ifdef HAVE_DRI3_MODIFIERS
    if (wsi_conn->has_present) {
       xcb_present_query_version_cookie_t ver_cookie;
       xcb_present_query_version_reply_t *ver_reply;
@@ -190,6 +193,7 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
         (ver_reply->major_version > 1 || ver_reply->minor_version >= 2);
       free(ver_reply);
    }
+#endif
 
    wsi_conn->has_dri3_modifiers = has_dri3_v1_2 && has_present_v1_2;
    wsi_conn->is_proprietary_x11 = false;

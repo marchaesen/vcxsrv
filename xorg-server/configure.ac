@@ -1999,8 +1999,7 @@ if test "x$XORG" = xyes; then
 	fi
 
 	if test "x$DRM" = xyes; then
-		dnl 2.4.46 is required for cursor hotspot support.
-		PKG_CHECK_EXISTS(libdrm >= 2.4.46, XORG_DRIVER_MODESETTING=yes, XORG_DRIVER_MODESETTING=no)
+		XORG_DRIVER_MODESETTING=yes
 	fi
 
 	AC_SUBST([XORG_LIBS])
@@ -2108,17 +2107,6 @@ if test "x$GLAMOR" = xyes; then
 			AC_MSG_ERROR([Glamor for Xorg requires $LIBGBM])
 		fi
 	fi
-
-	PKG_CHECK_EXISTS(libdrm >= 2.4.62,
-			 [AC_DEFINE(GLAMOR_HAS_DRM_ATOMIC, 1, [libdrm supports atomic API])],
-			 [])
-	PKG_CHECK_EXISTS(libdrm >= 2.4.74,
-			 [AC_DEFINE(GLAMOR_HAS_DRM_NAME_FROM_FD_2, 1, [Have GLAMOR_HAS_DRM_NAME_FROM_FD_2])],
-			 [])
-
-	PKG_CHECK_EXISTS(libdrm >= 2.4.83,
-			 [AC_DEFINE(GLAMOR_HAS_DRM_MODIFIERS, 1, [Have GLAMOR_HAS_DRM_MODIFIERS])],
-			 [])
 fi
 AM_CONDITIONAL([GLAMOR_EGL], [test "x$GBM" = xyes])
 

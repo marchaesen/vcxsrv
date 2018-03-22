@@ -272,14 +272,44 @@ glxProbeDriver(const char *driverName,
     char filename[PATH_MAX];
     char *get_extensions_name;
     const __DRIextension **extensions = NULL;
+    const char *path = NULL;
 
-    snprintf(filename, sizeof filename, "%s/%s_dri.so",
-             dri_driver_path, driverName);
+    /* Search in LIBGL_DRIVERS_PATH if we're not setuid. */
+    if (!PrivsElevated())
+        path = getenv("LIBGL_DRIVERS_PATH");
 
-    driver = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
-    if (driver == NULL) {
+    if (!path)
+        path = dri_driver_path;
+
+    do {
+        const char *next;
+        int path_len;
+
+        next = strchr(path, ':');
+        if (next) {
+            path_len = next - path;
+            next++;
+        } else {
+            path_len = strlen(path);
+            next = NULL;
+        }
+
+        snprintf(filename, sizeof filename, "%.*s/%s_dri.so", path_len, path,
+                 driverName);
+
+        driver = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+        if (driver != NULL)
+            break;
+
         LogMessage(X_ERROR, "AIGLX error: dlopen of %s failed (%s)\n",
                    filename, dlerror());
+
+        path = next;
+    } while (path);
+
+    if (driver == NULL) {
+        LogMessage(X_ERROR, "AIGLX error: unable to load driver %s\n",
+                  driverName);
         goto cleanup_failure;
     }
 

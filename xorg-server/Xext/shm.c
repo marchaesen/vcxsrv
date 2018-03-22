@@ -1199,7 +1199,7 @@ shm_tmpfile(void)
 #ifdef O_TMPFILE
 	fd = open(SHMDIR, O_TMPFILE|O_RDWR|O_CLOEXEC|O_EXCL, 0666);
 	if (fd >= 0) {
-		ErrorF ("Using O_TMPFILE\n");
+		DebugF ("Using O_TMPFILE\n");
 		return fd;
 	}
 	ErrorF ("Not using O_TMPFILE\n");

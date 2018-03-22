@@ -244,7 +244,7 @@ extern DevPrivateKeyRec exaScreenPrivateKeyRec;
 }
 #else
 #define swap(priv, real, mem) {\
-    void *tmp = priv->Saved##mem; \
+    const void *tmp = priv->Saved##mem; \
     priv->Saved##mem = real->mem; \
     real->mem = tmp; \
 }

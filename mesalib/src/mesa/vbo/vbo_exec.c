@@ -244,6 +244,13 @@ vbo_merge_prims(struct _mesa_prim *p0, const struct _mesa_prim *p1)
 
 
 void
+_vbo_set_recalculate_inputs(struct gl_context *ctx)
+{
+   vbo_context(ctx)->exec.array.recalculate_inputs = GL_TRUE;
+}
+
+
+void
 _vbo_init_inputs(struct vbo_inputs *inputs)
 {
    inputs->current = 0;

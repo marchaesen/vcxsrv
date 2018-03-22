@@ -728,6 +728,17 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = ac_build_fdiv(&ctx->ac, instr->dest.dest.ssa.bit_size == 32 ? ctx->ac.f32_1 : ctx->ac.f64_1,
 				       result);
 		break;
+	case nir_op_frexp_exp:
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		result = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.frexp.exp.i32.f64",
+					    ctx->ac.i32, src, 1, AC_FUNC_ATTR_READNONE);
+
+		break;
+	case nir_op_frexp_sig:
+		src[0] = ac_to_float(&ctx->ac, src[0]);
+		result = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.frexp.mant.f64",
+					    ctx->ac.f64, src, 1, AC_FUNC_ATTR_READNONE);
+		break;
 	case nir_op_fmax:
 		result = emit_intrin_2f_param(&ctx->ac, "llvm.maxnum",
 		                              ac_to_float_type(&ctx->ac, def_type), src[0], src[1]);

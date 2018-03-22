@@ -588,13 +588,8 @@ get_instruction_priority(const struct v3d_qpu_instr *inst)
         next_score++;
 
         /* Schedule texture read setup early to hide their latency better. */
-        if (inst->type == V3D_QPU_INSTR_TYPE_ALU &&
-            ((inst->alu.add.magic_write &&
-              v3d_qpu_magic_waddr_is_tmu(inst->alu.add.waddr)) ||
-             (inst->alu.mul.magic_write &&
-              v3d_qpu_magic_waddr_is_tmu(inst->alu.mul.waddr)))) {
+        if (v3d_qpu_writes_tmu(inst))
                 return next_score;
-        }
         next_score++;
 
         return baseline_score;

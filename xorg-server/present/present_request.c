@@ -41,7 +41,19 @@ proc_present_query_version(ClientPtr client)
     };
 
     REQUEST_SIZE_MATCH(xPresentQueryVersionReq);
-    (void) stuff;
+    /* From presentproto:
+     *
+     * The client sends the highest supported version to the server
+     * and the server sends the highest version it supports, but no
+     * higher than the requested version.
+     */
+
+    if (rep.majorVersion > stuff->majorVersion ||
+        rep.minorVersion > stuff->minorVersion) {
+        rep.majorVersion = stuff->majorVersion;
+        rep.minorVersion = stuff->minorVersion;
+    }
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);

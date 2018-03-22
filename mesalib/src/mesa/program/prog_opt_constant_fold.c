@@ -90,8 +90,9 @@ src_regs_are_same(const struct prog_src_register *a,
 static void
 get_value(struct gl_program *prog, struct prog_src_register *r, float *data)
 {
+   unsigned pvo = prog->Parameters->ParameterValueOffset[r->Index];
    const gl_constant_value *const value =
-      prog->Parameters->ParameterValues[r->Index];
+      prog->Parameters->ParameterValues + pvo;
 
    data[0] = value[GET_SWZ(r->Swizzle, 0)].f;
    data[1] = value[GET_SWZ(r->Swizzle, 1)].f;

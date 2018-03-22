@@ -366,6 +366,9 @@ System(const char *cmdline);
 #define Fclose(a) fclose(a)
 #endif
 
+extern _X_EXPORT Bool
+PrivsElevated(void);
+
 extern _X_EXPORT void
 CheckUserParameters(int argc, char **argv, char **envp);
 extern _X_EXPORT void

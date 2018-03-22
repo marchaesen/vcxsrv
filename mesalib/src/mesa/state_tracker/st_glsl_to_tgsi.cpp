@@ -6591,6 +6591,8 @@ st_translate_program(
       t->num_constants = proginfo->Parameters->NumParameters;
 
       for (i = 0; i < proginfo->Parameters->NumParameters; i++) {
+         unsigned pvo = proginfo->Parameters->ParameterValueOffset[i];
+
          switch (proginfo->Parameters->Parameters[i].Type) {
          case PROGRAM_STATE_VAR:
          case PROGRAM_UNIFORM:
@@ -6608,7 +6610,7 @@ st_translate_program(
                t->constants[i] = ureg_DECL_constant(ureg, i);
             else
                t->constants[i] = emit_immediate(t,
-                                                proginfo->Parameters->ParameterValues[i],
+                                                proginfo->Parameters->ParameterValues + pvo,
                                                 proginfo->Parameters->Parameters[i].DataType,
                                                 4);
             break;

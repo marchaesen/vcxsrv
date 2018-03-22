@@ -38,7 +38,7 @@
 static bool
 lower_instr(nir_intrinsic_instr *instr,
             const struct gl_shader_program *shader_program,
-            nir_shader *shader)
+            nir_shader *shader, bool use_binding_as_idx)
 {
    nir_intrinsic_op op;
    switch (instr->intrinsic) {
@@ -98,9 +98,12 @@ lower_instr(nir_intrinsic_instr *instr,
    void *mem_ctx = ralloc_parent(instr);
    unsigned uniform_loc = instr->variables[0]->var->data.location;
 
+   unsigned idx = use_binding_as_idx ?
+      instr->variables[0]->var->data.binding :
+      shader_program->data->UniformStorage[uniform_loc].opaque[shader->info.stage].index;
+
    nir_intrinsic_instr *new_instr = nir_intrinsic_instr_create(mem_ctx, op);
-   nir_intrinsic_set_base(new_instr,
-      shader_program->data->UniformStorage[uniform_loc].opaque[shader->info.stage].index);
+   nir_intrinsic_set_base(new_instr, idx);
 
    nir_load_const_instr *offset_const =
       nir_load_const_instr_create(mem_ctx, 1, 32);
@@ -174,7 +177,8 @@ lower_instr(nir_intrinsic_instr *instr,
 
 bool
 nir_lower_atomics(nir_shader *shader,
-                  const struct gl_shader_program *shader_program)
+                  const struct gl_shader_program *shader_program,
+                  bool use_binding_as_idx)
 {
    bool progress = false;
 
@@ -184,7 +188,8 @@ nir_lower_atomics(nir_shader *shader,
             nir_foreach_instr_safe(instr, block) {
                if (instr->type == nir_instr_type_intrinsic)
                   progress |= lower_instr(nir_instr_as_intrinsic(instr),
-                                          shader_program, shader);
+                                          shader_program, shader,
+                                          use_binding_as_idx);
             }
          }
 

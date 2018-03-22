@@ -5472,8 +5472,8 @@ texture_buffer_range(struct gl_context *ctx,
    GLsizeiptr oldSize = texObj->BufferSize;
    mesa_format format;
 
-   /* NOTE: ARB_texture_buffer_object has interactions with
-    * the compatibility profile that are not implemented.
+   /* NOTE: ARB_texture_buffer_object might not be supported in
+    * the compatibility profile.
     */
    if (!_mesa_has_ARB_texture_buffer_object(ctx) &&
        !_mesa_has_OES_texture_buffer(ctx)) {
