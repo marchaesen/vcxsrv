@@ -1207,7 +1207,6 @@ struct radv_pipeline {
 
 	struct radv_pipeline_layout *                 layout;
 
-	bool                                         needs_data_cache;
 	bool					     need_indirect_descriptor_sets;
 	struct radv_shader_variant *                 shaders[MESA_SHADER_STAGES];
 	struct radv_shader_variant *gs_copy_shader;

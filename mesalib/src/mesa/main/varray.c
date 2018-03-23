@@ -162,6 +162,7 @@ _mesa_vertex_attrib_binding(struct gl_context *ctx,
                             GLuint bindingIndex, bool flush_vertices)
 {
    struct gl_array_attributes *array = &vao->VertexAttrib[attribIndex];
+   assert(!vao->SharedAndImmutable);
 
    if (array->BufferBindingIndex != bindingIndex) {
       const GLbitfield array_bit = VERT_BIT(attribIndex);
@@ -197,6 +198,7 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
                          GLintptr offset, GLsizei stride, bool flush_vertices)
 {
    assert(index < ARRAY_SIZE(vao->BufferBinding));
+   assert(!vao->SharedAndImmutable);
    struct gl_vertex_buffer_binding *binding = &vao->BufferBinding[index];
 
    if (binding->BufferObj != vbo ||
@@ -233,6 +235,7 @@ vertex_binding_divisor(struct gl_context *ctx,
 {
    struct gl_vertex_buffer_binding *binding =
       &vao->BufferBinding[bindingIndex];
+   assert(!vao->SharedAndImmutable);
 
    if (binding->InstanceDivisor != divisor) {
       FLUSH_VERTICES(ctx, _NEW_ARRAY);
@@ -333,6 +336,7 @@ _mesa_update_array_format(struct gl_context *ctx,
    struct gl_array_attributes *const array = &vao->VertexAttrib[attrib];
    GLint elementSize;
 
+   assert(!vao->SharedAndImmutable);
    assert(size <= 4);
 
    elementSize = _mesa_bytes_per_vertex_attrib(size, type);
@@ -1097,6 +1101,7 @@ _mesa_enable_vertex_array_attrib(struct gl_context *ctx,
                                  gl_vert_attrib attrib, bool flush_vertices)
 {
    assert(attrib < ARRAY_SIZE(vao->VertexAttrib));
+   assert(!vao->SharedAndImmutable);
 
    if (!vao->VertexAttrib[attrib].Enabled) {
       /* was disabled, now being enabled */
@@ -1186,6 +1191,7 @@ _mesa_disable_vertex_array_attrib(struct gl_context *ctx,
                                   gl_vert_attrib attrib, bool flush_vertices)
 {
    assert(attrib < ARRAY_SIZE(vao->VertexAttrib));
+   assert(!vao->SharedAndImmutable);
 
    if (vao->VertexAttrib[attrib].Enabled) {
       /* was enabled, now being disabled */

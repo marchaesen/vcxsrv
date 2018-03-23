@@ -728,14 +728,19 @@ uint64_t *v3d_compile_vs(const struct v3d_compiler *compiler,
                 prog_data->vpm_input_size += c->vattr_sizes[i];
         }
 
-        /* Input/output segment size are in 8x32-bit multiples. */
-        prog_data->vpm_input_size = align(prog_data->vpm_input_size, 8) / 8;
-        prog_data->vpm_output_size = align(c->num_vpm_writes, 8) / 8;
-
         prog_data->uses_vid = (s->info.system_values_read &
                                (1ull << SYSTEM_VALUE_VERTEX_ID));
         prog_data->uses_iid = (s->info.system_values_read &
                                (1ull << SYSTEM_VALUE_INSTANCE_ID));
+
+        if (prog_data->uses_vid)
+                prog_data->vpm_input_size++;
+        if (prog_data->uses_iid)
+                prog_data->vpm_input_size++;
+
+        /* Input/output segment size are in 8x32-bit multiples. */
+        prog_data->vpm_input_size = align(prog_data->vpm_input_size, 8) / 8;
+        prog_data->vpm_output_size = align(c->num_vpm_writes, 8) / 8;
 
         return v3d_return_qpu_insts(c, final_assembly_size);
 }

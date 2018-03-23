@@ -113,7 +113,7 @@ build_nir_itob_compute_shader(struct radv_device *dev, bool is_3d)
 	nir_ssa_def *coord = nir_vec4(&b, tmp, tmp, tmp, tmp);
 
 	nir_ssa_def *outval = &tex->dest.ssa;
-	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_store);
+	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_var_store);
 	store->src[0] = nir_src_for_ssa(coord);
 	store->src[1] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
 	store->src[2] = nir_src_for_ssa(outval);
@@ -338,7 +338,7 @@ build_nir_btoi_compute_shader(struct radv_device *dev, bool is_3d)
 	nir_builder_instr_insert(&b, &tex->instr);
 
 	nir_ssa_def *outval = &tex->dest.ssa;
-	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_store);
+	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_var_store);
 	store->src[0] = nir_src_for_ssa(img_coord);
 	store->src[1] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
 	store->src[2] = nir_src_for_ssa(outval);
@@ -552,7 +552,7 @@ build_nir_itoi_compute_shader(struct radv_device *dev, bool is_3d)
 	nir_builder_instr_insert(&b, &tex->instr);
 
 	nir_ssa_def *outval = &tex->dest.ssa;
-	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_store);
+	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_var_store);
 	store->src[0] = nir_src_for_ssa(dst_coord);
 	store->src[1] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
 	store->src[2] = nir_src_for_ssa(outval);
@@ -748,7 +748,7 @@ build_nir_cleari_compute_shader(struct radv_device *dev, bool is_3d)
 	comps[3] = nir_imm_int(&b, 0);
 	global_id = nir_vec(&b, comps, 4);
 
-	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_store);
+	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_var_store);
 	store->src[0] = nir_src_for_ssa(global_id);
 	store->src[1] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
 	store->src[2] = nir_src_for_ssa(&clear_val->dest.ssa);

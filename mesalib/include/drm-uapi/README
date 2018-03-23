@@ -13,9 +13,9 @@ $ make headers_install INSTALL_HDR_PATH=/path/to/install
 
 The last update was done at the following kernel commit :
 
-commit ca797d29cd63e7b71b4eea29aff3b1cefd1ecb59
-Merge: 2c1c55cb75a9 010d118c2061
+commit 78230c46ec0a91dd4256c9e54934b3c7095a7ee3
+Merge: b65bd4031156 037f03155b7d
 Author: Dave Airlie <airlied@redhat.com>
-Date:   Mon Dec 4 09:40:35 2017 +1000
+Date:   Wed Mar 21 14:07:03 2018 +1000
 
-    Merge tag 'drm-intel-next-2017-11-17-1' of git://anongit.freedesktop.org/drm/drm-intel into drm-next
+    Merge tag 'omapdrm-4.17' of git://git.kernel.org/pub/scm/linux/kernel/git/tomba/linux into drm-next

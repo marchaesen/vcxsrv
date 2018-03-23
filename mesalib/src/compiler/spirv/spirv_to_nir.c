@@ -2353,7 +2353,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
 
    nir_intrinsic_op op;
    switch (opcode) {
-#define OP(S, N) case SpvOp##S: op = nir_intrinsic_image_##N; break;
+#define OP(S, N) case SpvOp##S: op = nir_intrinsic_image_var_##N; break;
    OP(ImageQuerySize,         size)
    OP(ImageRead,              load)
    OP(ImageWrite,             store)
@@ -2433,7 +2433,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
 
       unsigned dest_components =
          nir_intrinsic_infos[intrin->intrinsic].dest_components;
-      if (intrin->intrinsic == nir_intrinsic_image_size) {
+      if (intrin->intrinsic == nir_intrinsic_image_var_size) {
          dest_components = intrin->num_components =
             glsl_get_vector_elements(type->type);
       }

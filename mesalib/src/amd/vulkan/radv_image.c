@@ -63,6 +63,46 @@ radv_choose_tiling(struct radv_device *device,
 
 	return RADEON_SURF_MODE_2D;
 }
+
+static bool
+radv_image_is_tc_compat_htile(struct radv_device *device,
+			      const VkImageCreateInfo *pCreateInfo)
+{
+	/* TC-compat HTILE is only available for GFX8+. */
+	if (device->physical_device->rad_info.chip_class < VI)
+		return false;
+
+	if (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT)
+		return false;
+
+	if (pCreateInfo->flags & (VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT |
+				  VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR))
+		return false;
+
+	if (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR)
+		return false;
+
+	if (pCreateInfo->mipLevels > 1)
+		return false;
+
+	/* FIXME: for some reason TC compat with 2/4/8 samples breaks some cts
+	 * tests - disable for now */
+	if (pCreateInfo->samples >= 2 &&
+	    pCreateInfo->format == VK_FORMAT_D32_SFLOAT_S8_UINT)
+		return false;
+
+	/* GFX9 supports both 32-bit and 16-bit depth surfaces, while GFX8 only
+	 * supports 32-bit. Though, it's possible to enable TC-compat for
+	 * 16-bit depth surfaces if no Z planes are compressed.
+	 */
+	if (pCreateInfo->format != VK_FORMAT_D32_SFLOAT_S8_UINT &&
+	    pCreateInfo->format != VK_FORMAT_D32_SFLOAT &&
+	    pCreateInfo->format != VK_FORMAT_D16_UNORM)
+		return false;
+
+	return true;
+}
+
 static int
 radv_init_surface(struct radv_device *device,
 		  struct radeon_surf *surface,
@@ -109,17 +149,7 @@ radv_init_surface(struct radv_device *device,
 
 	if (is_depth) {
 		surface->flags |= RADEON_SURF_ZBUFFER;
-		if (!(pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) &&
-		    !(pCreateInfo->flags & (VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT |
-		                            VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR)) &&
-		    pCreateInfo->tiling != VK_IMAGE_TILING_LINEAR &&
-		    pCreateInfo->mipLevels <= 1 &&
-		    device->physical_device->rad_info.chip_class >= VI &&
-		    ((pCreateInfo->format == VK_FORMAT_D32_SFLOAT ||
-		      /* for some reason TC compat with 2/4/8 samples breaks some cts tests - disable for now */
-		      (pCreateInfo->samples < 2 && pCreateInfo->format == VK_FORMAT_D32_SFLOAT_S8_UINT)) ||
-		     (device->physical_device->rad_info.chip_class >= GFX9 &&
-		      pCreateInfo->format == VK_FORMAT_D16_UNORM)))
+		if (radv_image_is_tc_compat_htile(device, pCreateInfo))
 			surface->flags |= RADEON_SURF_TC_COMPATIBLE_HTILE;
 	}
 

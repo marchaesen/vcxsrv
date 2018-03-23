@@ -183,17 +183,17 @@ lower_intrinsic(nir_intrinsic_instr *instr,
                 struct lower_samplers_as_deref_state *state,
                 nir_builder *b)
 {
-   if (instr->intrinsic == nir_intrinsic_image_load ||
-       instr->intrinsic == nir_intrinsic_image_store ||
-       instr->intrinsic == nir_intrinsic_image_atomic_add ||
-       instr->intrinsic == nir_intrinsic_image_atomic_min ||
-       instr->intrinsic == nir_intrinsic_image_atomic_max ||
-       instr->intrinsic == nir_intrinsic_image_atomic_and ||
-       instr->intrinsic == nir_intrinsic_image_atomic_or ||
-       instr->intrinsic == nir_intrinsic_image_atomic_xor ||
-       instr->intrinsic == nir_intrinsic_image_atomic_exchange ||
-       instr->intrinsic == nir_intrinsic_image_atomic_comp_swap ||
-       instr->intrinsic == nir_intrinsic_image_size) {
+   if (instr->intrinsic == nir_intrinsic_image_var_load ||
+       instr->intrinsic == nir_intrinsic_image_var_store ||
+       instr->intrinsic == nir_intrinsic_image_var_atomic_add ||
+       instr->intrinsic == nir_intrinsic_image_var_atomic_min ||
+       instr->intrinsic == nir_intrinsic_image_var_atomic_max ||
+       instr->intrinsic == nir_intrinsic_image_var_atomic_and ||
+       instr->intrinsic == nir_intrinsic_image_var_atomic_or ||
+       instr->intrinsic == nir_intrinsic_image_var_atomic_xor ||
+       instr->intrinsic == nir_intrinsic_image_var_atomic_exchange ||
+       instr->intrinsic == nir_intrinsic_image_var_atomic_comp_swap ||
+       instr->intrinsic == nir_intrinsic_image_var_size) {
       b->cursor = nir_before_instr(&instr->instr);
       lower_deref(instr->variables[0], state, b);
       return true;

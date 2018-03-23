@@ -117,20 +117,6 @@ struct drm_tegra_waitchk {
 	__u32 thresh;
 };
 
-#define DRM_TEGRA_FENCE_WAIT	(1 << 0)
-#define DRM_TEGRA_FENCE_EMIT	(1 << 1)
-#define DRM_TEGRA_FENCE_FD	(1 << 2)
-#define DRM_TEGRA_FENCE_FLAGS	(DRM_TEGRA_FENCE_WAIT | \
-				 DRM_TEGRA_FENCE_EMIT | \
-				 DRM_TEGRA_FENCE_FD)
-
-struct drm_tegra_fence {
-	__u32 handle;
-	__u32 flags;
-};
-
-#define DRM_TEGRA_SUBMIT_FLAGS	0
-
 struct drm_tegra_submit {
 	__u64 context;
 	__u32 num_syncpts;
@@ -143,11 +129,9 @@ struct drm_tegra_submit {
 	__u64 cmdbufs;
 	__u64 relocs;
 	__u64 waitchks;
-	__u32 flags;
-	__u32 num_fences;
-	__u64 fences;
+	__u32 fence;		/* Return value */
 
-	__u32 reserved[2];	/* future expansion */
+	__u32 reserved[5];	/* future expansion */
 };
 
 #define DRM_TEGRA_GEM_TILING_MODE_PITCH 0
@@ -222,4 +206,4 @@ struct drm_tegra_gem_get_flags {
 }
 #endif
 
-#endif /* _TEGRA_DRM_H_ */
+#endif

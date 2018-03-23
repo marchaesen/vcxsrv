@@ -82,8 +82,8 @@ struct _XimCacheStruct {
     DTCharIndex     mbused;
     DTCharIndex     wcused;
     DTCharIndex     utf8used;
-    char            fname[1];
-    /* char encoding[1] */
+    char            fname[];
+    /* char encoding[] */
 };
 
 static struct  _XimCacheStruct* _XimCache_mmap = NULL;
@@ -281,7 +281,7 @@ _XimReadCachedDefaultTree(
     assert (m->id == XIM_CACHE_MAGIC);
     assert (m->version == XIM_CACHE_VERSION);
     if (size != m->size ||
-	size < XOffsetOf (struct _XimCacheStruct, fname) + namelen + encodinglen) {
+	size < sizeof (struct _XimCacheStruct) + namelen + encodinglen) {
 	fprintf (stderr, "Ignoring broken XimCache %s [%s]\n", name, encoding);
         munmap (m, size);
         return False;
@@ -442,7 +442,7 @@ _XimWriteCachedDefaultTree(
     int   fd;
     FILE *fp;
     struct _XimCacheStruct *m;
-    int   msize = (XOffsetOf(struct _XimCacheStruct, fname)
+    int   msize = (sizeof(struct _XimCacheStruct)
 		   + strlen(name) + strlen(encoding) + 2
 		   + XIM_CACHE_TREE_ALIGNMENT-1) & -XIM_CACHE_TREE_ALIGNMENT;
     DefTreeBase *b = &im->private.local.base;

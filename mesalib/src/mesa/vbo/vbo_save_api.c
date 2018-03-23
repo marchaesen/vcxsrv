@@ -493,6 +493,7 @@ update_vao(struct gl_context *ctx,
    *vao = _mesa_new_vao(ctx, ~((GLuint)0));
 
    /* Bind the buffer object at binding point 0 */
+   assert(stride <= ctx->Const.MaxVertexAttribStride);
    _mesa_bind_vertex_buffer(ctx, *vao, 0, bo, buffer_offset, stride, false);
 
    /* Retrieve the mapping from VBO_ATTRIB to VERT_ATTRIB space
@@ -504,6 +505,7 @@ update_vao(struct gl_context *ctx,
    while (mask) {
       const int vao_attr = u_bit_scan(&mask);
       const GLubyte vbo_attr = vao_to_vbo_map[vao_attr];
+      assert(offset[vbo_attr] <= ctx->Const.MaxVertexAttribRelativeOffset);
 
       _vbo_set_attrib_format(ctx, *vao, vao_attr, buffer_offset,
                              size[vbo_attr], type[vbo_attr], offset[vbo_attr]);
