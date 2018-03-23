@@ -252,20 +252,20 @@ ATOMIC3(atomic_counter_comp_swap)
  * either one or two additional scalar arguments with the same meaning as in
  * the ARB_shader_image_load_store specification.
  */
-INTRINSIC(image_load, 2, ARR(4, 1), true, 4, 1, 0, xx, xx, xx,
+INTRINSIC(image_var_load, 2, ARR(4, 1), true, 4, 1, 0, xx, xx, xx,
           NIR_INTRINSIC_CAN_ELIMINATE)
-INTRINSIC(image_store, 3, ARR(4, 1, 4), false, 0, 1, 0, xx, xx, xx, 0)
-INTRINSIC(image_atomic_add, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
-INTRINSIC(image_atomic_min, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
-INTRINSIC(image_atomic_max, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
-INTRINSIC(image_atomic_and, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
-INTRINSIC(image_atomic_or, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
-INTRINSIC(image_atomic_xor, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
-INTRINSIC(image_atomic_exchange, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
-INTRINSIC(image_atomic_comp_swap, 4, ARR(4, 1, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
-INTRINSIC(image_size, 0, ARR(0), true, 0, 1, 0, xx, xx, xx,
+INTRINSIC(image_var_store, 3, ARR(4, 1, 4), false, 0, 1, 0, xx, xx, xx, 0)
+INTRINSIC(image_var_atomic_add, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
+INTRINSIC(image_var_atomic_min, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
+INTRINSIC(image_var_atomic_max, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
+INTRINSIC(image_var_atomic_and, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
+INTRINSIC(image_var_atomic_or, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
+INTRINSIC(image_var_atomic_xor, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
+INTRINSIC(image_var_atomic_exchange, 3, ARR(4, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
+INTRINSIC(image_var_atomic_comp_swap, 4, ARR(4, 1, 1, 1), true, 1, 1, 0, xx, xx, xx, 0)
+INTRINSIC(image_var_size, 0, ARR(0), true, 0, 1, 0, xx, xx, xx,
           NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
-INTRINSIC(image_samples, 0, ARR(0), true, 1, 1, 0, xx, xx, xx,
+INTRINSIC(image_var_samples, 0, ARR(0), true, 1, 1, 0, xx, xx, xx,
           NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
 
 /*

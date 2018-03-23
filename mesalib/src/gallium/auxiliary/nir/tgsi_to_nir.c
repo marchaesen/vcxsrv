@@ -773,8 +773,8 @@ ttn_get_src(struct ttn_compile *c, struct tgsi_full_src_register *tgsi_fsrc,
 {
    nir_builder *b = &c->build;
    struct tgsi_src_register *tgsi_src = &tgsi_fsrc->Register;
-   unsigned tgsi_opcode = c->token->FullInstruction.Instruction.Opcode;
-   unsigned tgsi_src_type = tgsi_opcode_infer_src_type(tgsi_opcode, src_idx);
+   enum tgsi_opcode opcode = c->token->FullInstruction.Instruction.Opcode;
+   unsigned tgsi_src_type = tgsi_opcode_infer_src_type(opcode, src_idx);
    bool src_is_float = !(tgsi_src_type == TGSI_TYPE_SIGNED ||
                          tgsi_src_type == TGSI_TYPE_UNSIGNED);
    nir_alu_src src;

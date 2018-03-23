@@ -1103,9 +1103,31 @@ emit_vpm_write_setup(struct v3d_compile *c)
         v3d33_vir_vpm_write_setup(c);
 }
 
+/**
+ * Sets up c->outputs[c->output_position_index] for the vertex shader
+ * epilogue, if an output vertex position wasn't specified in the user's
+ * shader.  This may be the case for transform feedback with rasterizer
+ * discard enabled.
+ */
+static void
+setup_default_position(struct v3d_compile *c)
+{
+        if (c->output_position_index != -1)
+                return;
+
+        c->output_position_index = c->outputs_array_size;
+        for (int i = 0; i < 4; i++) {
+                add_output(c,
+                           c->output_position_index + i,
+                           VARYING_SLOT_POS, i);
+        }
+}
+
 static void
 emit_vert_end(struct v3d_compile *c)
 {
+        setup_default_position(c);
+
         uint32_t vpm_index = 0;
         struct qreg rcp_w = vir_SFU(c, V3D_QPU_WADDR_RECIP,
                                     c->outputs[c->output_position_index + 3]);

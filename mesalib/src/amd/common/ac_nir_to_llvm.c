@@ -2246,35 +2246,35 @@ static LLVMValueRef visit_image_atomic(struct ac_nir_context *ctx,
 	bool is_unsigned = glsl_get_sampler_result_type(type) == GLSL_TYPE_UINT;
 
 	switch (instr->intrinsic) {
-	case nir_intrinsic_image_atomic_add:
+	case nir_intrinsic_image_var_atomic_add:
 		atomic_name = "add";
 		break;
-	case nir_intrinsic_image_atomic_min:
+	case nir_intrinsic_image_var_atomic_min:
 		atomic_name = is_unsigned ? "umin" : "smin";
 		break;
-	case nir_intrinsic_image_atomic_max:
+	case nir_intrinsic_image_var_atomic_max:
 		atomic_name = is_unsigned ? "umax" : "smax";
 		break;
-	case nir_intrinsic_image_atomic_and:
+	case nir_intrinsic_image_var_atomic_and:
 		atomic_name = "and";
 		break;
-	case nir_intrinsic_image_atomic_or:
+	case nir_intrinsic_image_var_atomic_or:
 		atomic_name = "or";
 		break;
-	case nir_intrinsic_image_atomic_xor:
+	case nir_intrinsic_image_var_atomic_xor:
 		atomic_name = "xor";
 		break;
-	case nir_intrinsic_image_atomic_exchange:
+	case nir_intrinsic_image_var_atomic_exchange:
 		atomic_name = "swap";
 		break;
-	case nir_intrinsic_image_atomic_comp_swap:
+	case nir_intrinsic_image_var_atomic_comp_swap:
 		atomic_name = "cmpswap";
 		break;
 	default:
 		abort();
 	}
 
-	if (instr->intrinsic == nir_intrinsic_image_atomic_comp_swap)
+	if (instr->intrinsic == nir_intrinsic_image_var_atomic_comp_swap)
 		params[param_count++] = get_src(ctx, instr->src[3]);
 	params[param_count++] = get_src(ctx, instr->src[2]);
 
@@ -2906,26 +2906,26 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	case nir_intrinsic_store_shared:
 		visit_store_shared(ctx, instr);
 		break;
-	case nir_intrinsic_image_samples:
+	case nir_intrinsic_image_var_samples:
 		result = visit_image_samples(ctx, instr);
 		break;
-	case nir_intrinsic_image_load:
+	case nir_intrinsic_image_var_load:
 		result = visit_image_load(ctx, instr);
 		break;
-	case nir_intrinsic_image_store:
+	case nir_intrinsic_image_var_store:
 		visit_image_store(ctx, instr);
 		break;
-	case nir_intrinsic_image_atomic_add:
-	case nir_intrinsic_image_atomic_min:
-	case nir_intrinsic_image_atomic_max:
-	case nir_intrinsic_image_atomic_and:
-	case nir_intrinsic_image_atomic_or:
-	case nir_intrinsic_image_atomic_xor:
-	case nir_intrinsic_image_atomic_exchange:
-	case nir_intrinsic_image_atomic_comp_swap:
+	case nir_intrinsic_image_var_atomic_add:
+	case nir_intrinsic_image_var_atomic_min:
+	case nir_intrinsic_image_var_atomic_max:
+	case nir_intrinsic_image_var_atomic_and:
+	case nir_intrinsic_image_var_atomic_or:
+	case nir_intrinsic_image_var_atomic_xor:
+	case nir_intrinsic_image_var_atomic_exchange:
+	case nir_intrinsic_image_var_atomic_comp_swap:
 		result = visit_image_atomic(ctx, instr);
 		break;
-	case nir_intrinsic_image_size:
+	case nir_intrinsic_image_var_size:
 		result = visit_image_size(ctx, instr);
 		break;
 	case nir_intrinsic_shader_clock:

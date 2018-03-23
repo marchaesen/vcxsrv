@@ -295,6 +295,7 @@ SPIRV_GENERATED_FILES = \
 	spirv/vtn_gather_types.c
 
 SPIRV_FILES = \
+	spirv/GLSL.ext.AMD.h \
 	spirv/GLSL.std.450.h \
 	spirv/nir_spirv.h \
 	spirv/spirv.h \

@@ -23,6 +23,10 @@ include Makefile.sources
 
 noinst_HEADERS = \
 	$(top_srcdir)/include/vulkan/vk_platform.h \
+	$(top_srcdir)/include/vulkan/vulkan_core.h \
+	$(top_srcdir)/include/vulkan/vulkan_wayland.h \
+	$(top_srcdir)/include/vulkan/vulkan_xcb.h \
+	$(top_srcdir)/include/vulkan/vulkan_xlib.h \
 	$(top_srcdir)/include/vulkan/vulkan.h
 
 lib_LTLIBRARIES = libvulkan_radeon.la

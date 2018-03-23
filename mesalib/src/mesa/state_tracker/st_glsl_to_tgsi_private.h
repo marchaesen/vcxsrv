@@ -131,7 +131,7 @@ public:
    /** Pointer to the ir source this tree came fe02549fdrom for debugging */
    ir_instruction *ir;
 
-   unsigned op:8; /**< TGSI opcode */
+   enum tgsi_opcode op:10; /**< TGSI opcode */
    unsigned precise:1;
    unsigned saturate:1;
    unsigned is_64bit_expanded:1;

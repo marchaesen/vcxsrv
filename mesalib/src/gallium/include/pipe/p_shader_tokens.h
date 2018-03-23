@@ -333,284 +333,286 @@ struct tgsi_property_data {
    unsigned Data;
 };
 
-/* TGSI opcodes.  
- * 
+/* TGSI opcodes.
+ *
  * For more information on semantics of opcodes and
  * which APIs are known to use which opcodes, see
  * gallium/docs/source/tgsi.rst
  */
-#define TGSI_OPCODE_ARL                 0
-#define TGSI_OPCODE_MOV                 1
-#define TGSI_OPCODE_LIT                 2
-#define TGSI_OPCODE_RCP                 3
-#define TGSI_OPCODE_RSQ                 4
-#define TGSI_OPCODE_EXP                 5
-#define TGSI_OPCODE_LOG                 6
-#define TGSI_OPCODE_MUL                 7
-#define TGSI_OPCODE_ADD                 8
-#define TGSI_OPCODE_DP3                 9
-#define TGSI_OPCODE_DP4                 10
-#define TGSI_OPCODE_DST                 11
-#define TGSI_OPCODE_MIN                 12
-#define TGSI_OPCODE_MAX                 13
-#define TGSI_OPCODE_SLT                 14
-#define TGSI_OPCODE_SGE                 15
-#define TGSI_OPCODE_MAD                 16
-#define TGSI_OPCODE_TEX_LZ              17
-#define TGSI_OPCODE_LRP                 18
-#define TGSI_OPCODE_FMA                 19
-#define TGSI_OPCODE_SQRT                20
-#define TGSI_OPCODE_LDEXP               21
-#define TGSI_OPCODE_F2U64               22
-#define TGSI_OPCODE_F2I64               23
-#define TGSI_OPCODE_FRC                 24
-#define TGSI_OPCODE_TXF_LZ              25
-#define TGSI_OPCODE_FLR                 26
-#define TGSI_OPCODE_ROUND               27
-#define TGSI_OPCODE_EX2                 28
-#define TGSI_OPCODE_LG2                 29
-#define TGSI_OPCODE_POW                 30
-/* gap */
-#define TGSI_OPCODE_U2I64               32
-#define TGSI_OPCODE_CLOCK               33
-#define TGSI_OPCODE_I2I64               34
-/* gap */
-#define TGSI_OPCODE_COS                 36
-#define TGSI_OPCODE_DDX                 37
-#define TGSI_OPCODE_DDY                 38
-#define TGSI_OPCODE_KILL                39 /* unconditional */
-#define TGSI_OPCODE_PK2H                40
-#define TGSI_OPCODE_PK2US               41
-#define TGSI_OPCODE_PK4B                42
-#define TGSI_OPCODE_PK4UB               43
-#define TGSI_OPCODE_D2U64               44
-#define TGSI_OPCODE_SEQ                 45
-#define TGSI_OPCODE_D2I64               46
-#define TGSI_OPCODE_SGT                 47
-#define TGSI_OPCODE_SIN                 48
-#define TGSI_OPCODE_SLE                 49
-#define TGSI_OPCODE_SNE                 50
-#define TGSI_OPCODE_U642D               51
-#define TGSI_OPCODE_TEX                 52
-#define TGSI_OPCODE_TXD                 53
-#define TGSI_OPCODE_TXP                 54
-#define TGSI_OPCODE_UP2H                55
-#define TGSI_OPCODE_UP2US               56
-#define TGSI_OPCODE_UP4B                57
-#define TGSI_OPCODE_UP4UB               58
-#define TGSI_OPCODE_U642F               59
-#define TGSI_OPCODE_I642F               60
-#define TGSI_OPCODE_ARR                 61
-#define TGSI_OPCODE_I642D               62
-#define TGSI_OPCODE_CAL                 63
-#define TGSI_OPCODE_RET                 64
-#define TGSI_OPCODE_SSG                 65 /* SGN */
-#define TGSI_OPCODE_CMP                 66
-/* gap */
-#define TGSI_OPCODE_TXB                 68
-#define TGSI_OPCODE_FBFETCH             69
-#define TGSI_OPCODE_DIV                 70
-#define TGSI_OPCODE_DP2                 71
-#define TGSI_OPCODE_TXL                 72
-#define TGSI_OPCODE_BRK                 73
-#define TGSI_OPCODE_IF                  74
-#define TGSI_OPCODE_UIF                 75
-#define TGSI_OPCODE_READ_INVOC          76
-#define TGSI_OPCODE_ELSE                77
-#define TGSI_OPCODE_ENDIF               78
+enum tgsi_opcode {
+   TGSI_OPCODE_ARL                = 0,
+   TGSI_OPCODE_MOV                = 1,
+   TGSI_OPCODE_LIT                = 2,
+   TGSI_OPCODE_RCP                = 3,
+   TGSI_OPCODE_RSQ                = 4,
+   TGSI_OPCODE_EXP                = 5,
+   TGSI_OPCODE_LOG                = 6,
+   TGSI_OPCODE_MUL                = 7,
+   TGSI_OPCODE_ADD                = 8,
+   TGSI_OPCODE_DP3                = 9,
+   TGSI_OPCODE_DP4                = 10,
+   TGSI_OPCODE_DST                = 11,
+   TGSI_OPCODE_MIN                = 12,
+   TGSI_OPCODE_MAX                = 13,
+   TGSI_OPCODE_SLT                = 14,
+   TGSI_OPCODE_SGE                = 15,
+   TGSI_OPCODE_MAD                = 16,
+   TGSI_OPCODE_TEX_LZ             = 17,
+   TGSI_OPCODE_LRP                = 18,
+   TGSI_OPCODE_FMA                = 19,
+   TGSI_OPCODE_SQRT               = 20,
+   TGSI_OPCODE_LDEXP              = 21,
+   TGSI_OPCODE_F2U64              = 22,
+   TGSI_OPCODE_F2I64              = 23,
+   TGSI_OPCODE_FRC                = 24,
+   TGSI_OPCODE_TXF_LZ             = 25,
+   TGSI_OPCODE_FLR                = 26,
+   TGSI_OPCODE_ROUND              = 27,
+   TGSI_OPCODE_EX2                = 28,
+   TGSI_OPCODE_LG2                = 29,
+   TGSI_OPCODE_POW                = 30,
+   /* gap */
+   TGSI_OPCODE_U2I64              = 32,
+   TGSI_OPCODE_CLOCK              = 33,
+   TGSI_OPCODE_I2I64              = 34,
+   /* gap */
+   TGSI_OPCODE_COS                = 36,
+   TGSI_OPCODE_DDX                = 37,
+   TGSI_OPCODE_DDY                = 38,
+   TGSI_OPCODE_KILL               = 39 /* unconditional */,
+   TGSI_OPCODE_PK2H               = 40,
+   TGSI_OPCODE_PK2US              = 41,
+   TGSI_OPCODE_PK4B               = 42,
+   TGSI_OPCODE_PK4UB              = 43,
+   TGSI_OPCODE_D2U64              = 44,
+   TGSI_OPCODE_SEQ                = 45,
+   TGSI_OPCODE_D2I64              = 46,
+   TGSI_OPCODE_SGT                = 47,
+   TGSI_OPCODE_SIN                = 48,
+   TGSI_OPCODE_SLE                = 49,
+   TGSI_OPCODE_SNE                = 50,
+   TGSI_OPCODE_U642D              = 51,
+   TGSI_OPCODE_TEX                = 52,
+   TGSI_OPCODE_TXD                = 53,
+   TGSI_OPCODE_TXP                = 54,
+   TGSI_OPCODE_UP2H               = 55,
+   TGSI_OPCODE_UP2US              = 56,
+   TGSI_OPCODE_UP4B               = 57,
+   TGSI_OPCODE_UP4UB              = 58,
+   TGSI_OPCODE_U642F              = 59,
+   TGSI_OPCODE_I642F              = 60,
+   TGSI_OPCODE_ARR                = 61,
+   TGSI_OPCODE_I642D              = 62,
+   TGSI_OPCODE_CAL                = 63,
+   TGSI_OPCODE_RET                = 64,
+   TGSI_OPCODE_SSG                = 65 /* SGN */,
+   TGSI_OPCODE_CMP                = 66,
+   /* gap */
+   TGSI_OPCODE_TXB                = 68,
+   TGSI_OPCODE_FBFETCH            = 69,
+   TGSI_OPCODE_DIV                = 70,
+   TGSI_OPCODE_DP2                = 71,
+   TGSI_OPCODE_TXL                = 72,
+   TGSI_OPCODE_BRK                = 73,
+   TGSI_OPCODE_IF                 = 74,
+   TGSI_OPCODE_UIF                = 75,
+   TGSI_OPCODE_READ_INVOC         = 76,
+   TGSI_OPCODE_ELSE               = 77,
+   TGSI_OPCODE_ENDIF              = 78,
+   TGSI_OPCODE_DDX_FINE           = 79,
+   TGSI_OPCODE_DDY_FINE           = 80,
+   /* gap */
+   TGSI_OPCODE_CEIL               = 83,
+   TGSI_OPCODE_I2F                = 84,
+   TGSI_OPCODE_NOT                = 85,
+   TGSI_OPCODE_TRUNC              = 86,
+   TGSI_OPCODE_SHL                = 87,
+   TGSI_OPCODE_BALLOT             = 88,
+   TGSI_OPCODE_AND                = 89,
+   TGSI_OPCODE_OR                 = 90,
+   TGSI_OPCODE_MOD                = 91,
+   TGSI_OPCODE_XOR                = 92,
+   /* gap */
+   TGSI_OPCODE_TXF                = 94,
+   TGSI_OPCODE_TXQ                = 95,
+   TGSI_OPCODE_CONT               = 96,
+   TGSI_OPCODE_EMIT               = 97,
+   TGSI_OPCODE_ENDPRIM            = 98,
+   TGSI_OPCODE_BGNLOOP            = 99,
+   TGSI_OPCODE_BGNSUB             = 100,
+   TGSI_OPCODE_ENDLOOP            = 101,
+   TGSI_OPCODE_ENDSUB             = 102,
+   /* gap */
+   TGSI_OPCODE_TXQS               = 104,
+   TGSI_OPCODE_RESQ               = 105,
+   TGSI_OPCODE_READ_FIRST         = 106,
+   TGSI_OPCODE_NOP                = 107,
 
-#define TGSI_OPCODE_DDX_FINE            79
-#define TGSI_OPCODE_DDY_FINE            80
-/* gap */
-#define TGSI_OPCODE_CEIL                83
-#define TGSI_OPCODE_I2F                 84
-#define TGSI_OPCODE_NOT                 85
-#define TGSI_OPCODE_TRUNC               86
-#define TGSI_OPCODE_SHL                 87
-#define TGSI_OPCODE_BALLOT              88
-#define TGSI_OPCODE_AND                 89
-#define TGSI_OPCODE_OR                  90
-#define TGSI_OPCODE_MOD                 91
-#define TGSI_OPCODE_XOR                 92
-/* gap */
-#define TGSI_OPCODE_TXF                 94
-#define TGSI_OPCODE_TXQ                 95
-#define TGSI_OPCODE_CONT                96
-#define TGSI_OPCODE_EMIT                97
-#define TGSI_OPCODE_ENDPRIM             98
-#define TGSI_OPCODE_BGNLOOP             99
-#define TGSI_OPCODE_BGNSUB              100
-#define TGSI_OPCODE_ENDLOOP             101
-#define TGSI_OPCODE_ENDSUB              102
-/* gap */
-#define TGSI_OPCODE_TXQS                104
-#define TGSI_OPCODE_RESQ                105
-#define TGSI_OPCODE_READ_FIRST          106
-#define TGSI_OPCODE_NOP                 107
+   TGSI_OPCODE_FSEQ               = 108,
+   TGSI_OPCODE_FSGE               = 109,
+   TGSI_OPCODE_FSLT               = 110,
+   TGSI_OPCODE_FSNE               = 111,
 
-#define TGSI_OPCODE_FSEQ                108
-#define TGSI_OPCODE_FSGE                109
-#define TGSI_OPCODE_FSLT                110
-#define TGSI_OPCODE_FSNE                111
-
-#define TGSI_OPCODE_MEMBAR              112
+   TGSI_OPCODE_MEMBAR             = 112,
                                 /* gap */
-#define TGSI_OPCODE_KILL_IF             116  /* conditional kill */
-#define TGSI_OPCODE_END                 117  /* aka HALT */
-#define TGSI_OPCODE_DFMA                118
-#define TGSI_OPCODE_F2I                 119
-#define TGSI_OPCODE_IDIV                120
-#define TGSI_OPCODE_IMAX                121
-#define TGSI_OPCODE_IMIN                122
-#define TGSI_OPCODE_INEG                123
-#define TGSI_OPCODE_ISGE                124
-#define TGSI_OPCODE_ISHR                125
-#define TGSI_OPCODE_ISLT                126
-#define TGSI_OPCODE_F2U                 127
-#define TGSI_OPCODE_U2F                 128
-#define TGSI_OPCODE_UADD                129
-#define TGSI_OPCODE_UDIV                130
-#define TGSI_OPCODE_UMAD                131
-#define TGSI_OPCODE_UMAX                132
-#define TGSI_OPCODE_UMIN                133
-#define TGSI_OPCODE_UMOD                134
-#define TGSI_OPCODE_UMUL                135
-#define TGSI_OPCODE_USEQ                136
-#define TGSI_OPCODE_USGE                137
-#define TGSI_OPCODE_USHR                138
-#define TGSI_OPCODE_USLT                139
-#define TGSI_OPCODE_USNE                140
-#define TGSI_OPCODE_SWITCH              141
-#define TGSI_OPCODE_CASE                142
-#define TGSI_OPCODE_DEFAULT             143
-#define TGSI_OPCODE_ENDSWITCH           144
+   TGSI_OPCODE_KILL_IF            = 116  /* conditional kill */,
+   TGSI_OPCODE_END                = 117  /* aka HALT */,
+   TGSI_OPCODE_DFMA               = 118,
+   TGSI_OPCODE_F2I                = 119,
+   TGSI_OPCODE_IDIV               = 120,
+   TGSI_OPCODE_IMAX               = 121,
+   TGSI_OPCODE_IMIN               = 122,
+   TGSI_OPCODE_INEG               = 123,
+   TGSI_OPCODE_ISGE               = 124,
+   TGSI_OPCODE_ISHR               = 125,
+   TGSI_OPCODE_ISLT               = 126,
+   TGSI_OPCODE_F2U                = 127,
+   TGSI_OPCODE_U2F                = 128,
+   TGSI_OPCODE_UADD               = 129,
+   TGSI_OPCODE_UDIV               = 130,
+   TGSI_OPCODE_UMAD               = 131,
+   TGSI_OPCODE_UMAX               = 132,
+   TGSI_OPCODE_UMIN               = 133,
+   TGSI_OPCODE_UMOD               = 134,
+   TGSI_OPCODE_UMUL               = 135,
+   TGSI_OPCODE_USEQ               = 136,
+   TGSI_OPCODE_USGE               = 137,
+   TGSI_OPCODE_USHR               = 138,
+   TGSI_OPCODE_USLT               = 139,
+   TGSI_OPCODE_USNE               = 140,
+   TGSI_OPCODE_SWITCH             = 141,
+   TGSI_OPCODE_CASE               = 142,
+   TGSI_OPCODE_DEFAULT            = 143,
+   TGSI_OPCODE_ENDSWITCH          = 144,
 
-/* resource related opcodes */
-#define TGSI_OPCODE_SAMPLE              145
-#define TGSI_OPCODE_SAMPLE_I            146
-#define TGSI_OPCODE_SAMPLE_I_MS         147
-#define TGSI_OPCODE_SAMPLE_B            148
-#define TGSI_OPCODE_SAMPLE_C            149
-#define TGSI_OPCODE_SAMPLE_C_LZ         150
-#define TGSI_OPCODE_SAMPLE_D            151
-#define TGSI_OPCODE_SAMPLE_L            152
-#define TGSI_OPCODE_GATHER4             153
-#define TGSI_OPCODE_SVIEWINFO           154
-#define TGSI_OPCODE_SAMPLE_POS          155
-#define TGSI_OPCODE_SAMPLE_INFO         156
+   /* resource related opcodes */
+   TGSI_OPCODE_SAMPLE             = 145,
+   TGSI_OPCODE_SAMPLE_I           = 146,
+   TGSI_OPCODE_SAMPLE_I_MS        = 147,
+   TGSI_OPCODE_SAMPLE_B           = 148,
+   TGSI_OPCODE_SAMPLE_C           = 149,
+   TGSI_OPCODE_SAMPLE_C_LZ        = 150,
+   TGSI_OPCODE_SAMPLE_D           = 151,
+   TGSI_OPCODE_SAMPLE_L           = 152,
+   TGSI_OPCODE_GATHER4            = 153,
+   TGSI_OPCODE_SVIEWINFO          = 154,
+   TGSI_OPCODE_SAMPLE_POS         = 155,
+   TGSI_OPCODE_SAMPLE_INFO        = 156,
 
-#define TGSI_OPCODE_UARL                157
-#define TGSI_OPCODE_UCMP                158
-#define TGSI_OPCODE_IABS                159
-#define TGSI_OPCODE_ISSG                160
+   TGSI_OPCODE_UARL               = 157,
+   TGSI_OPCODE_UCMP               = 158,
+   TGSI_OPCODE_IABS               = 159,
+   TGSI_OPCODE_ISSG               = 160,
 
-#define TGSI_OPCODE_LOAD                161
-#define TGSI_OPCODE_STORE               162
-/* gap */
-#define TGSI_OPCODE_BARRIER             166
+   TGSI_OPCODE_LOAD               = 161,
+   TGSI_OPCODE_STORE              = 162,
+   /* gap */
+   TGSI_OPCODE_BARRIER            = 166,
 
-#define TGSI_OPCODE_ATOMUADD            167
-#define TGSI_OPCODE_ATOMXCHG            168
-#define TGSI_OPCODE_ATOMCAS             169
-#define TGSI_OPCODE_ATOMAND             170
-#define TGSI_OPCODE_ATOMOR              171
-#define TGSI_OPCODE_ATOMXOR             172
-#define TGSI_OPCODE_ATOMUMIN            173
-#define TGSI_OPCODE_ATOMUMAX            174
-#define TGSI_OPCODE_ATOMIMIN            175
-#define TGSI_OPCODE_ATOMIMAX            176
+   TGSI_OPCODE_ATOMUADD           = 167,
+   TGSI_OPCODE_ATOMXCHG           = 168,
+   TGSI_OPCODE_ATOMCAS            = 169,
+   TGSI_OPCODE_ATOMAND            = 170,
+   TGSI_OPCODE_ATOMOR             = 171,
+   TGSI_OPCODE_ATOMXOR            = 172,
+   TGSI_OPCODE_ATOMUMIN           = 173,
+   TGSI_OPCODE_ATOMUMAX           = 174,
+   TGSI_OPCODE_ATOMIMIN           = 175,
+   TGSI_OPCODE_ATOMIMAX           = 176,
 
-/* to be used for shadow cube map compares */
-#define TGSI_OPCODE_TEX2                177
-#define TGSI_OPCODE_TXB2                178
-#define TGSI_OPCODE_TXL2                179
+   /* to be used for shadow cube map compares */
+   TGSI_OPCODE_TEX2               = 177,
+   TGSI_OPCODE_TXB2               = 178,
+   TGSI_OPCODE_TXL2               = 179,
 
-#define TGSI_OPCODE_IMUL_HI             180
-#define TGSI_OPCODE_UMUL_HI             181
+   TGSI_OPCODE_IMUL_HI            = 180,
+   TGSI_OPCODE_UMUL_HI            = 181,
 
-#define TGSI_OPCODE_TG4                 182
+   TGSI_OPCODE_TG4                = 182,
 
-#define TGSI_OPCODE_LODQ                183
+   TGSI_OPCODE_LODQ               = 183,
 
-#define TGSI_OPCODE_IBFE                184
-#define TGSI_OPCODE_UBFE                185
-#define TGSI_OPCODE_BFI                 186
-#define TGSI_OPCODE_BREV                187
-#define TGSI_OPCODE_POPC                188
-#define TGSI_OPCODE_LSB                 189
-#define TGSI_OPCODE_IMSB                190
-#define TGSI_OPCODE_UMSB                191
+   TGSI_OPCODE_IBFE               = 184,
+   TGSI_OPCODE_UBFE               = 185,
+   TGSI_OPCODE_BFI                = 186,
+   TGSI_OPCODE_BREV               = 187,
+   TGSI_OPCODE_POPC               = 188,
+   TGSI_OPCODE_LSB                = 189,
+   TGSI_OPCODE_IMSB               = 190,
+   TGSI_OPCODE_UMSB               = 191,
 
-#define TGSI_OPCODE_INTERP_CENTROID     192
-#define TGSI_OPCODE_INTERP_SAMPLE       193
-#define TGSI_OPCODE_INTERP_OFFSET       194
+   TGSI_OPCODE_INTERP_CENTROID    = 192,
+   TGSI_OPCODE_INTERP_SAMPLE      = 193,
+   TGSI_OPCODE_INTERP_OFFSET      = 194,
 
-/* sm5 marked opcodes are supported in D3D11 optionally - also DMOV, DMOVC */
-#define TGSI_OPCODE_F2D                 195 /* SM5 */
-#define TGSI_OPCODE_D2F                 196
-#define TGSI_OPCODE_DABS                197
-#define TGSI_OPCODE_DNEG                198 /* SM5 */
-#define TGSI_OPCODE_DADD                199 /* SM5 */
-#define TGSI_OPCODE_DMUL                200 /* SM5 */
-#define TGSI_OPCODE_DMAX                201 /* SM5 */
-#define TGSI_OPCODE_DMIN                202 /* SM5 */
-#define TGSI_OPCODE_DSLT                203 /* SM5 */
-#define TGSI_OPCODE_DSGE                204 /* SM5 */
-#define TGSI_OPCODE_DSEQ                205 /* SM5 */
-#define TGSI_OPCODE_DSNE                206 /* SM5 */
-#define TGSI_OPCODE_DRCP                207 /* eg, cayman */
-#define TGSI_OPCODE_DSQRT               208 /* eg, cayman also has DRSQ */
-#define TGSI_OPCODE_DMAD                209
-#define TGSI_OPCODE_DFRAC               210 /* eg, cayman */
-#define TGSI_OPCODE_DLDEXP              211 /* eg, cayman */
-#define TGSI_OPCODE_DFRACEXP            212 /* eg, cayman */
-#define TGSI_OPCODE_D2I                 213
-#define TGSI_OPCODE_I2D                 214
-#define TGSI_OPCODE_D2U                 215
-#define TGSI_OPCODE_U2D                 216
-#define TGSI_OPCODE_DRSQ                217 /* eg, cayman also has DRSQ */
-#define TGSI_OPCODE_DTRUNC              218 /* nvc0 */
-#define TGSI_OPCODE_DCEIL               219 /* nvc0 */
-#define TGSI_OPCODE_DFLR                220 /* nvc0 */
-#define TGSI_OPCODE_DROUND              221 /* nvc0 */
-#define TGSI_OPCODE_DSSG                222
+   /* sm5 marked opcodes are supported in D3D11 optionally - also DMOV, DMOVC */
+   TGSI_OPCODE_F2D                = 195 /* SM5 */,
+   TGSI_OPCODE_D2F                = 196,
+   TGSI_OPCODE_DABS               = 197,
+   TGSI_OPCODE_DNEG               = 198 /* SM5 */,
+   TGSI_OPCODE_DADD               = 199 /* SM5 */,
+   TGSI_OPCODE_DMUL               = 200 /* SM5 */,
+   TGSI_OPCODE_DMAX               = 201 /* SM5 */,
+   TGSI_OPCODE_DMIN               = 202 /* SM5 */,
+   TGSI_OPCODE_DSLT               = 203 /* SM5 */,
+   TGSI_OPCODE_DSGE               = 204 /* SM5 */,
+   TGSI_OPCODE_DSEQ               = 205 /* SM5 */,
+   TGSI_OPCODE_DSNE               = 206 /* SM5 */,
+   TGSI_OPCODE_DRCP               = 207 /* eg, cayman */,
+   TGSI_OPCODE_DSQRT              = 208 /* eg, cayman also has DRSQ */,
+   TGSI_OPCODE_DMAD               = 209,
+   TGSI_OPCODE_DFRAC              = 210 /* eg, cayman */,
+   TGSI_OPCODE_DLDEXP             = 211 /* eg, cayman */,
+   TGSI_OPCODE_DFRACEXP           = 212 /* eg, cayman */,
+   TGSI_OPCODE_D2I                = 213,
+   TGSI_OPCODE_I2D                = 214,
+   TGSI_OPCODE_D2U                = 215,
+   TGSI_OPCODE_U2D                = 216,
+   TGSI_OPCODE_DRSQ               = 217 /* eg, cayman also has DRSQ */,
+   TGSI_OPCODE_DTRUNC             = 218 /* nvc0 */,
+   TGSI_OPCODE_DCEIL              = 219 /* nvc0 */,
+   TGSI_OPCODE_DFLR               = 220 /* nvc0 */,
+   TGSI_OPCODE_DROUND             = 221 /* nvc0 */,
+   TGSI_OPCODE_DSSG               = 222,
 
-#define TGSI_OPCODE_VOTE_ANY            223
-#define TGSI_OPCODE_VOTE_ALL            224
-#define TGSI_OPCODE_VOTE_EQ             225
+   TGSI_OPCODE_VOTE_ANY           = 223,
+   TGSI_OPCODE_VOTE_ALL           = 224,
+   TGSI_OPCODE_VOTE_EQ            = 225,
 
-#define TGSI_OPCODE_U64SEQ              226
-#define TGSI_OPCODE_U64SNE              227
-#define TGSI_OPCODE_I64SLT              228
-#define TGSI_OPCODE_U64SLT              229
-#define TGSI_OPCODE_I64SGE              230
-#define TGSI_OPCODE_U64SGE              231
+   TGSI_OPCODE_U64SEQ             = 226,
+   TGSI_OPCODE_U64SNE             = 227,
+   TGSI_OPCODE_I64SLT             = 228,
+   TGSI_OPCODE_U64SLT             = 229,
+   TGSI_OPCODE_I64SGE             = 230,
+   TGSI_OPCODE_U64SGE             = 231,
 
-#define TGSI_OPCODE_I64MIN              232
-#define TGSI_OPCODE_U64MIN              233
-#define TGSI_OPCODE_I64MAX              234
-#define TGSI_OPCODE_U64MAX              235
+   TGSI_OPCODE_I64MIN             = 232,
+   TGSI_OPCODE_U64MIN             = 233,
+   TGSI_OPCODE_I64MAX             = 234,
+   TGSI_OPCODE_U64MAX             = 235,
 
-#define TGSI_OPCODE_I64ABS              236
-#define TGSI_OPCODE_I64SSG              237
-#define TGSI_OPCODE_I64NEG              238
+   TGSI_OPCODE_I64ABS             = 236,
+   TGSI_OPCODE_I64SSG             = 237,
+   TGSI_OPCODE_I64NEG             = 238,
 
-#define TGSI_OPCODE_U64ADD              239
-#define TGSI_OPCODE_U64MUL              240
-#define TGSI_OPCODE_U64SHL              241
-#define TGSI_OPCODE_I64SHR              242
-#define TGSI_OPCODE_U64SHR              243
+   TGSI_OPCODE_U64ADD             = 239,
+   TGSI_OPCODE_U64MUL             = 240,
+   TGSI_OPCODE_U64SHL             = 241,
+   TGSI_OPCODE_I64SHR             = 242,
+   TGSI_OPCODE_U64SHR             = 243,
 
-#define TGSI_OPCODE_I64DIV              244
-#define TGSI_OPCODE_U64DIV              245
-#define TGSI_OPCODE_I64MOD              246
-#define TGSI_OPCODE_U64MOD              247
+   TGSI_OPCODE_I64DIV             = 244,
+   TGSI_OPCODE_U64DIV             = 245,
+   TGSI_OPCODE_I64MOD             = 246,
+   TGSI_OPCODE_U64MOD             = 247,
 
-#define TGSI_OPCODE_DDIV                248
+   TGSI_OPCODE_DDIV               = 248,
 
-#define TGSI_OPCODE_LOD                 249
+   TGSI_OPCODE_LOD                = 249,
 
-#define TGSI_OPCODE_LAST                250
+   TGSI_OPCODE_LAST               = 250,
+};
+
 
 /**
  * Opcode is the operation code to execute. A given operation defines the

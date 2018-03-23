@@ -3597,6 +3597,45 @@ radv_initialise_color_surface(struct radv_device *device,
 	}
 }
 
+static unsigned
+radv_calc_decompress_on_z_planes(struct radv_device *device,
+				 struct radv_image_view *iview)
+{
+	unsigned max_zplanes = 0;
+
+	assert(iview->image->tc_compatible_htile);
+
+	if (device->physical_device->rad_info.chip_class >= GFX9) {
+		/* Default value for 32-bit depth surfaces. */
+		max_zplanes = 4;
+
+		if (iview->vk_format == VK_FORMAT_D16_UNORM &&
+		    iview->image->info.samples > 1)
+			max_zplanes = 2;
+
+		max_zplanes = max_zplanes + 1;
+	} else {
+		if (iview->vk_format == VK_FORMAT_D16_UNORM) {
+			/* Do not enable Z plane compression for 16-bit depth
+			 * surfaces because isn't supported on GFX8. Only
+			 * 32-bit depth surfaces are supported by the hardware.
+			 * This allows to maintain shader compatibility and to
+			 * reduce the number of depth decompressions.
+			 */
+			max_zplanes = 1;
+		} else {
+			if (iview->image->info.samples <= 1)
+				max_zplanes = 5;
+			else if (iview->image->info.samples <= 4)
+				max_zplanes = 3;
+			else
+				max_zplanes = 2;
+		}
+	}
+
+	return max_zplanes;
+}
+
 static void
 radv_initialise_ds_surface(struct radv_device *device,
 			   struct radv_ds_buffer_info *ds,
@@ -3667,14 +3706,11 @@ radv_initialise_ds_surface(struct radv_device *device,
 			ds->db_z_info |= S_028038_TILE_SURFACE_ENABLE(1);
 
 			if (iview->image->tc_compatible_htile) {
-				unsigned max_zplanes = 4;
+				unsigned max_zplanes =
+					radv_calc_decompress_on_z_planes(device, iview);
 
-				if (iview->vk_format == VK_FORMAT_D16_UNORM  &&
-				    iview->image->info.samples > 1)
-					max_zplanes = 2;
-
-				ds->db_z_info |= S_028038_DECOMPRESS_ON_N_ZPLANES(max_zplanes + 1) |
-					  S_028038_ITERATE_FLUSH(1);
+				ds->db_z_info |= S_028038_DECOMPRESS_ON_N_ZPLANES(max_zplanes) |
+						 S_028038_ITERATE_FLUSH(1);
 				ds->db_stencil_info |= S_02803C_ITERATE_FLUSH(1);
 			}
 
@@ -3752,14 +3788,11 @@ radv_initialise_ds_surface(struct radv_device *device,
 			ds->db_htile_surface = S_028ABC_FULL_CACHE(1);
 
 			if (iview->image->tc_compatible_htile) {
-				ds->db_htile_surface |= S_028ABC_TC_COMPATIBLE(1);
+				unsigned max_zplanes =
+					radv_calc_decompress_on_z_planes(device, iview);
 
-				if (iview->image->info.samples <= 1)
-					ds->db_z_info |= S_028040_DECOMPRESS_ON_N_ZPLANES(5);
-				else if (iview->image->info.samples <= 4)
-					ds->db_z_info |= S_028040_DECOMPRESS_ON_N_ZPLANES(3);
-				else
-					ds->db_z_info|= S_028040_DECOMPRESS_ON_N_ZPLANES(2);
+				ds->db_htile_surface |= S_028ABC_TC_COMPATIBLE(1);
+				ds->db_z_info |= S_028040_DECOMPRESS_ON_N_ZPLANES(max_zplanes);
 			}
 		}
 	}

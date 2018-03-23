@@ -200,8 +200,10 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
    assert((~vao_enabled & vao->_Enabled) == 0);
 
    /* Bind the buffer object */
+   const GLuint stride = exec->vtx.vertex_size*sizeof(GLfloat);
+   assert(stride <= ctx->Const.MaxVertexAttribStride);
    _mesa_bind_vertex_buffer(ctx, vao, 0, exec->vtx.bufferobj, buffer_offset,
-                            exec->vtx.vertex_size*sizeof(GLfloat), false);
+                            stride, false);
 
    /* Retrieve the mapping from VBO_ATTRIB to VERT_ATTRIB space
     * Note that the position/generic0 aliasing is done in the VAO.
@@ -217,6 +219,7 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
       const GLenum16 type = exec->vtx.attrtype[vbo_attr];
       const GLuint offset = (GLuint)((GLbyte *)exec->vtx.attrptr[vbo_attr] -
                                      (GLbyte *)exec->vtx.vertex);
+      assert(offset <= ctx->Const.MaxVertexAttribRelativeOffset);
 
       /* Set and enable */
       _vbo_set_attrib_format(ctx, vao, vao_attr, buffer_offset,

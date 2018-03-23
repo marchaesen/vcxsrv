@@ -38,7 +38,7 @@ struct ureg_program;
 
 enum pipe_error st_translate_program(
    struct gl_context *ctx,
-   uint procType,
+   enum pipe_shader_type procType,
    struct ureg_program *ureg,
    struct glsl_to_tgsi_visitor *program,
    const struct gl_program *proginfo,
