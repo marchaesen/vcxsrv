@@ -366,15 +366,17 @@ glsl_scalar_type(enum glsl_base_type base_type)
 const glsl_type *
 glsl_vector_type(enum glsl_base_type base_type, unsigned components)
 {
-   assert(components > 1 && components <= 4);
-   return glsl_type::get_instance(base_type, components, 1);
+   const glsl_type *t = glsl_type::get_instance(base_type, components, 1);
+   assert(t != glsl_type::error_type);
+   return t;
 }
 
 const glsl_type *
 glsl_matrix_type(enum glsl_base_type base_type, unsigned rows, unsigned columns)
 {
-   assert(rows > 1 && rows <= 4 && columns >= 1 && columns <= 4);
-   return glsl_type::get_instance(base_type, rows, columns);
+   const glsl_type *t = glsl_type::get_instance(base_type, rows, columns);
+   assert(t != glsl_type::error_type);
+   return t;
 }
 
 const glsl_type *

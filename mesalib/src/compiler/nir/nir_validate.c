@@ -294,7 +294,9 @@ validate_ssa_def(nir_ssa_def *def, validate_state *state)
 
    validate_assert(state, def->parent_instr == state->instr);
 
-   validate_assert(state, def->num_components <= 4);
+   validate_assert(state, (def->num_components <= 4) ||
+                          (def->num_components == 8) ||
+                          (def->num_components == 16));
 
    list_validate(&def->uses);
    list_validate(&def->if_uses);

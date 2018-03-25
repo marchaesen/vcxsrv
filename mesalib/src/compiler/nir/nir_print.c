@@ -85,7 +85,9 @@ print_register(nir_register *reg, print_state *state)
       fprintf(fp, "r%u", reg->index);
 }
 
-static const char *sizes[] = { "error", "vec1", "vec2", "vec3", "vec4" };
+static const char *sizes[] = { "error", "vec1", "vec2", "vec3", "vec4",
+                               "error", "error", "error", "vec8",
+                               "error", "error", "error", "vec16"};
 
 static void
 print_register_decl(nir_register *reg, print_state *state)
