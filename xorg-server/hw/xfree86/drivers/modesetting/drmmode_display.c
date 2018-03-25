@@ -1632,8 +1632,11 @@ drmmode_crtc_destroy(xf86CrtcPtr crtc)
 {
     drmmode_mode_ptr iterator, next;
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
+    modesettingPtr ms = modesettingPTR(crtc->scrn);
 
-    // XXX: if (!...->atomic_modeset) return;
+    if (!ms->atomic_modeset)
+        return;
+
     drmmode_prop_info_free(drmmode_crtc->props_plane, DRMMODE_PLANE__COUNT);
     xorg_list_for_each_entry_safe(iterator, next, &drmmode_crtc->mode_list, entry) {
         drm_mode_destroy(crtc, iterator);
@@ -1872,7 +1875,6 @@ drmmode_crtc_create_planes(xf86CrtcPtr crtc, int num)
         drmmode_crtc->num_formats = best_kplane->count_formats;
         drmmode_crtc->formats = calloc(sizeof(drmmode_format_rec),
                                        best_kplane->count_formats);
-        // XXX: Runtime check modifiers_supported or it's implied by the successfull blob creation?
         if (blob_id) {
             populate_format_modifiers(crtc, best_kplane, blob_id);
         }
@@ -1894,6 +1896,7 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res
     xf86CrtcPtr crtc;
     drmmode_crtc_private_ptr drmmode_crtc;
     modesettingEntPtr ms_ent = ms_ent_priv(pScrn);
+    modesettingPtr ms = modesettingPTR(pScrn);
     drmModeObjectPropertiesPtr props;
     static const drmmode_prop_info_rec crtc_props[] = {
         [DRMMODE_CRTC_ACTIVE] = { .name = "ACTIVE" },
@@ -1911,20 +1914,20 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res
     drmmode_crtc->vblank_pipe = drmmode_crtc_vblank_pipe(num);
     xorg_list_init(&drmmode_crtc->mode_list);
 
-    // XXX: if (...->atomic_modeset) {
-    props = drmModeObjectGetProperties(drmmode->fd, mode_res->crtcs[num],
-                                       DRM_MODE_OBJECT_CRTC);
-    if (!props || !drmmode_prop_info_copy(drmmode_crtc->props, crtc_props,
-                                          DRMMODE_CRTC__COUNT, 0)) {
-        xf86CrtcDestroy(crtc);
-        return 0;
-    }
+    if (ms->atomic_modeset) {
+        props = drmModeObjectGetProperties(drmmode->fd, mode_res->crtcs[num],
+                                           DRM_MODE_OBJECT_CRTC);
+        if (!props || !drmmode_prop_info_copy(drmmode_crtc->props, crtc_props,
+                                              DRMMODE_CRTC__COUNT, 0)) {
+            xf86CrtcDestroy(crtc);
+            return 0;
+        }
 
-    drmmode_prop_info_update(drmmode, drmmode_crtc->props,
-                             DRMMODE_CRTC__COUNT, props);
-    drmModeFreeObjectProperties(props);
-    drmmode_crtc_create_planes(crtc, num);
-    // XXX: }
+        drmmode_prop_info_update(drmmode, drmmode_crtc->props,
+                                 DRMMODE_CRTC__COUNT, props);
+        drmModeFreeObjectProperties(props);
+        drmmode_crtc_create_planes(crtc, num);
+    }
 
     /* Hide any cursors which may be active from previous users */
     drmModeSetCursor(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id, 0, 0, 0);
@@ -2244,18 +2247,19 @@ drmmode_output_dpms(xf86OutputPtr output, int mode)
 {
     drmmode_output_private_ptr drmmode_output = output->driver_private;
     xf86CrtcPtr crtc = output->crtc;
+    modesettingPtr ms = modesettingPTR(crtc->scrn);
     drmModeConnectorPtr koutput = drmmode_output->mode_output;
     drmmode_ptr drmmode = drmmode_output->drmmode;
 
     if (!koutput)
         return;
 
-    // XXX: if (...->atomic_modeset) {
-    drmmode_output->dpms = mode;
-    // XXX: } else {
-    drmModeConnectorSetProperty(drmmode->fd, koutput->connector_id,
-                                drmmode_output->dpms_enum_id, mode);
-    // XXX: }
+    if (ms->atomic_modeset) {
+        drmmode_output->dpms = mode;
+    } else {
+        drmModeConnectorSetProperty(drmmode->fd, koutput->connector_id,
+                                    drmmode_output->dpms_enum_id, mode);
+    }
 
     if (crtc) {
         drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
@@ -2596,6 +2600,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
 {
     xf86OutputPtr output;
     xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
+    modesettingPtr ms = modesettingPTR(pScrn);
     drmModeConnectorPtr koutput;
     drmModeEncoderPtr *kencoders = NULL;
     drmmode_output_private_ptr drmmode_output;
@@ -2696,20 +2701,22 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
     /* work out the possible clones later */
     output->possible_clones = 0;
 
-    // XXX: if (...->atomic_modeset) {
-    if (!drmmode_prop_info_copy(drmmode_output->props_connector, connector_props,
-                                DRMMODE_CONNECTOR__COUNT, 0)) {
-        goto out_free_encoders;
+    if (ms->atomic_modeset) {
+        if (!drmmode_prop_info_copy(drmmode_output->props_connector,
+                                    connector_props, DRMMODE_CONNECTOR__COUNT,
+                                    0)) {
+            goto out_free_encoders;
+        }
+        props = drmModeObjectGetProperties(drmmode->fd,
+                                           drmmode_output->output_id,
+                                           DRM_MODE_OBJECT_CONNECTOR);
+        drmmode_prop_info_update(drmmode, drmmode_output->props_connector,
+                                 DRMMODE_CONNECTOR__COUNT, props);
+    } else {
+        drmmode_output->dpms_enum_id =
+            koutput_get_prop_id(drmmode->fd, koutput, DRM_MODE_PROP_ENUM,
+                                "DPMS");
     }
-    props = drmModeObjectGetProperties(drmmode->fd,
-                                       drmmode_output->output_id,
-                                       DRM_MODE_OBJECT_CONNECTOR);
-    drmmode_prop_info_update(drmmode, drmmode_output->props_connector,
-                             DRMMODE_CONNECTOR__COUNT, props);
-    // XXX: } else {
-    drmmode_output->dpms_enum_id =
-        koutput_get_prop_id(drmmode->fd, koutput, DRM_MODE_PROP_ENUM, "DPMS");
-    // XXX: }
 
     if (dynamic)
         output->randr_output = RROutputCreate(xf86ScrnToScreen(pScrn), output->name, strlen(output->name), output);

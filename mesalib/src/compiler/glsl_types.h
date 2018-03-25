@@ -223,6 +223,7 @@ public:
     * Convenience accessors for vector types (shorter than get_instance()).
     * @{
     */
+   static const glsl_type *vec(unsigned components, const glsl_type *const ts[]);
    static const glsl_type *vec(unsigned components);
    static const glsl_type *f16vec(unsigned components);
    static const glsl_type *dvec(unsigned components);

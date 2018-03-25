@@ -1519,7 +1519,7 @@ TRANS(SocketINETConnect) (XtransConnInfo ciptr,
 	    tmpaddr = INADDR_NONE;
 	}
 
-	prmsg (4,"SocketINETConnect() inet_addr(%s) = %x\n", host, tmpaddr);
+	prmsg (4,"SocketINETConnect() inet_addr(%s) = %lx\n", host, tmpaddr);
 
 	if (tmpaddr == INADDR_NONE) {
 	    if ((hostp = _XGethostbyname(host,hparams)) == NULL) {

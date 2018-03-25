@@ -493,155 +493,104 @@ glsl_type::glsl_type(const glsl_type *array, unsigned length) :
    this->name = n;
 }
 
+const glsl_type *
+glsl_type::vec(unsigned components, const glsl_type *const ts[])
+{
+   unsigned n = components;
+
+   if (components == 8)
+      n = 5;
+   else if (components == 16)
+      n = 6;
+
+   if (n == 0 || n > 6)
+      return error_type;
+
+   return ts[n - 1];
+}
+
+#define VECN(components, sname, vname) ({        \
+      static const glsl_type *const ts[] = {     \
+         sname ## _type, vname ## 2_type,        \
+         vname ## 3_type, vname ## 4_type,       \
+         vname ## 8_type, vname ## 16_type,      \
+      };                                         \
+      glsl_type::vec(components, ts);            \
+   })
 
 const glsl_type *
 glsl_type::vec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      float_type, vec2_type, vec3_type, vec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, float, vec);
 }
 
 const glsl_type *
 glsl_type::f16vec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      float16_t_type, f16vec2_type, f16vec3_type, f16vec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, float16_t, f16vec);
 }
 
 const glsl_type *
 glsl_type::dvec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      double_type, dvec2_type, dvec3_type, dvec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, double, dvec);
 }
 
 const glsl_type *
 glsl_type::ivec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      int_type, ivec2_type, ivec3_type, ivec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, int, ivec);
 }
-
 
 const glsl_type *
 glsl_type::uvec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      uint_type, uvec2_type, uvec3_type, uvec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, uint, uvec);
 }
-
 
 const glsl_type *
 glsl_type::bvec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      bool_type, bvec2_type, bvec3_type, bvec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, bool, bvec);
 }
-
 
 const glsl_type *
 glsl_type::i64vec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      int64_t_type, i64vec2_type, i64vec3_type, i64vec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, int64_t, i64vec);
 }
 
 
 const glsl_type *
 glsl_type::u64vec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      uint64_t_type, u64vec2_type, u64vec3_type, u64vec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, uint64_t, u64vec);
 }
 
 const glsl_type *
 glsl_type::i16vec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      int16_t_type, i16vec2_type, i16vec3_type, i16vec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, int16_t, i16vec);
 }
 
 
 const glsl_type *
 glsl_type::u16vec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      uint16_t_type, u16vec2_type, u16vec3_type, u16vec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, uint16_t, u16vec);
 }
 
 const glsl_type *
 glsl_type::i8vec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      int8_t_type, i8vec2_type, i8vec3_type, i8vec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, int8_t, i8vec);
 }
 
 
 const glsl_type *
 glsl_type::u8vec(unsigned components)
 {
-   if (components == 0 || components > 4)
-      return error_type;
-
-   static const glsl_type *const ts[] = {
-      uint8_t_type, u8vec2_type, u8vec3_type, u8vec4_type
-   };
-   return ts[components - 1];
+   return VECN(components, uint8_t, u8vec);
 }
 
 const glsl_type *
@@ -649,9 +598,6 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
 {
    if (base_type == GLSL_TYPE_VOID)
       return void_type;
-
-   if ((rows < 1) || (rows > 4) || (columns < 1) || (columns > 4))
-      return error_type;
 
    /* Treat GLSL vectors as Nx1 matrices.
     */
