@@ -45,6 +45,12 @@ present_get_window_priv(WindowPtr window, Bool create)
         return NULL;
     xorg_list_init(&window_priv->vblank);
     xorg_list_init(&window_priv->notifies);
+
+    xorg_list_init(&window_priv->exec_queue);
+    xorg_list_init(&window_priv->flip_queue);
+    xorg_list_init(&window_priv->idle_queue);
+
+    window_priv->window = window;
     window_priv->crtc = PresentCrtcNeverSet;
     dixSetPrivate(&window->devPrivates, &present_window_private_key, window_priv);
     return window_priv;
@@ -58,7 +64,7 @@ present_close_screen(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
-    present_flip_destroy(screen);
+    screen_priv->flip_destroy(screen);
 
     unwrap(screen_priv, screen, CloseScreen);
     (*screen->CloseScreen) (screen);
@@ -72,11 +78,13 @@ present_close_screen(ScreenPtr screen)
 static void
 present_free_window_vblank(WindowPtr window)
 {
+    ScreenPtr                   screen = window->drawable.pScreen;
+    present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
     present_window_priv_ptr     window_priv = present_window_priv(window);
     present_vblank_ptr          vblank, tmp;
 
     xorg_list_for_each_entry_safe(vblank, tmp, &window_priv->vblank, window_list) {
-        present_abort_vblank(window->drawable.pScreen, vblank->crtc, vblank->event_id, vblank->target_msc);
+        screen_priv->abort_vblank(window->drawable.pScreen, window, vblank->crtc, vblank->event_id, vblank->target_msc);
         present_vblank_destroy(vblank);
     }
 }
@@ -101,6 +109,32 @@ present_clear_window_flip(WindowPtr window)
     }
 }
 
+static void
+present_wnmd_clear_window_flip(WindowPtr window)
+{
+    present_window_priv_ptr     window_priv = present_window_priv(window);
+    present_vblank_ptr          vblank, tmp;
+
+    if (window_priv->flip_pending) {
+        present_wnmd_set_abort_flip(window);
+        window_priv->flip_pending->window = NULL;
+    }
+
+    xorg_list_for_each_entry_safe(vblank, tmp, &window_priv->idle_queue, event_queue) {
+        present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
+        /* The pixmap will be destroyed by freeing the window resources. */
+        vblank->pixmap = NULL;
+        present_vblank_destroy(vblank);
+    }
+
+    vblank = window_priv->flip_active;
+    if (vblank) {
+        present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
+        present_vblank_destroy(vblank);
+    }
+    window_priv->flip_active = NULL;
+}
+
 /*
  * Hook the close window function to clean up our window private
  */
@@ -116,7 +150,12 @@ present_destroy_window(WindowPtr window)
         present_clear_window_notifies(window);
         present_free_events(window);
         present_free_window_vblank(window);
-        present_clear_window_flip(window);
+
+        if (screen_priv->wnmd_info)
+            present_wnmd_clear_window_flip(window);
+        else
+            present_clear_window_flip(window);
+
         free(window_priv);
     }
     unwrap(screen_priv, screen, DestroyWindow);
@@ -161,18 +200,15 @@ present_clip_notify(WindowPtr window, int dx, int dy)
     ScreenPtr screen = window->drawable.pScreen;
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
-    present_check_flip_window(window);
+    screen_priv->check_flip_window(window);
     unwrap(screen_priv, screen, ClipNotify)
     if (screen->ClipNotify)
         screen->ClipNotify (window, dx, dy);
     wrap(screen_priv, screen, ClipNotify, present_clip_notify);
 }
 
-/*
- * Initialize a screen for use with present
- */
-int
-present_screen_init(ScreenPtr screen, present_screen_info_ptr info)
+static Bool
+present_screen_register_priv_keys(void)
 {
     if (!dixRegisterPrivateKey(&present_screen_private_key, PRIVATE_SCREEN, 0))
         return FALSE;
@@ -180,19 +216,65 @@ present_screen_init(ScreenPtr screen, present_screen_info_ptr info)
     if (!dixRegisterPrivateKey(&present_window_private_key, PRIVATE_WINDOW, 0))
         return FALSE;
 
+    return TRUE;
+}
+
+static present_screen_priv_ptr
+present_screen_priv_init(ScreenPtr screen)
+{
+    present_screen_priv_ptr screen_priv;
+
+    screen_priv = calloc(1, sizeof (present_screen_priv_rec));
+    if (!screen_priv)
+        return NULL;
+
+    wrap(screen_priv, screen, CloseScreen, present_close_screen);
+    wrap(screen_priv, screen, DestroyWindow, present_destroy_window);
+    wrap(screen_priv, screen, ConfigNotify, present_config_notify);
+    wrap(screen_priv, screen, ClipNotify, present_clip_notify);
+
+    dixSetPrivate(&screen->devPrivates, &present_screen_private_key, screen_priv);
+
+    return screen_priv;
+}
+
+/*
+ * Initialize a screen for use with present in window flip mode (wnmd)
+ */
+int
+present_wnmd_screen_init(ScreenPtr screen, present_wnmd_info_ptr info)
+{
+    if (!present_screen_register_priv_keys())
+        return FALSE;
+
     if (!present_screen_priv(screen)) {
-        present_screen_priv_ptr screen_priv = calloc(1, sizeof (present_screen_priv_rec));
+        present_screen_priv_ptr screen_priv = present_screen_priv_init(screen);
         if (!screen_priv)
             return FALSE;
 
-        wrap(screen_priv, screen, CloseScreen, present_close_screen);
-        wrap(screen_priv, screen, DestroyWindow, present_destroy_window);
-        wrap(screen_priv, screen, ConfigNotify, present_config_notify);
-        wrap(screen_priv, screen, ClipNotify, present_clip_notify);
+        screen_priv->wnmd_info = info;
+        present_wnmd_init_mode_hooks(screen_priv);
+    }
+
+    return TRUE;
+}
+
+/*
+ * Initialize a screen for use with present in default screen flip mode (scmd)
+ */
+int
+present_screen_init(ScreenPtr screen, present_screen_info_ptr info)
+{
+    if (!present_screen_register_priv_keys())
+        return FALSE;
+
+    if (!present_screen_priv(screen)) {
+        present_screen_priv_ptr screen_priv = present_screen_priv_init(screen);
+        if (!screen_priv)
+            return FALSE;
 
         screen_priv->info = info;
-
-        dixSetPrivate(&screen->devPrivates, &present_screen_private_key, screen_priv);
+        present_scmd_init_mode_hooks(screen_priv);
 
         present_fake_screen_init(screen);
     }

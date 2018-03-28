@@ -44,3 +44,8 @@ libxserver_main = static_library('libxserver_main',
     include_directories: inc,
     dependencies: common_dep,
 )
+
+install_data(
+    'protocol.txt',
+    install_dir: serverconfigdir,
+)

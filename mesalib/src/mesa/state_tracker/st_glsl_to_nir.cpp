@@ -133,6 +133,7 @@ st_nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
    const int base = stage == MESA_SHADER_FRAGMENT ?
       (int) FRAG_RESULT_DATA0 : (int) VARYING_SLOT_VAR0;
 
+   int UNUSED last_loc = 0;
    nir_foreach_variable(var, var_list) {
 
       const struct glsl_type *type = var->type;
@@ -141,30 +142,61 @@ st_nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
          type = glsl_get_array_element(type);
       }
 
+      unsigned var_size = type_size(type);
+
       /* Builtins don't allow component packing so we only need to worry about
        * user defined varyings sharing the same location.
        */
       bool processed = false;
       if (var->data.location >= base) {
          unsigned glsl_location = var->data.location - base;
-         if (processed_locs[var->data.index] & ((uint64_t)1 << glsl_location))
-            processed = true;
-         else
-            processed_locs[var->data.index] |= ((uint64_t)1 << glsl_location);
+
+         for (unsigned i = 0; i < var_size; i++) {
+            if (processed_locs[var->data.index] &
+                ((uint64_t)1 << (glsl_location + i)))
+               processed = true;
+            else
+               processed_locs[var->data.index] |=
+                  ((uint64_t)1 << (glsl_location + i));
+         }
       }
 
       /* Because component packing allows varyings to share the same location
        * we may have already have processed this location.
        */
       if (processed) {
-         var->data.driver_location = assigned_locations[var->data.location];
+         unsigned driver_location = assigned_locations[var->data.location];
+         var->data.driver_location = driver_location;
          *size += type_size(type);
+
+         /* An array may be packed such that is crosses multiple other arrays
+          * or variables, we need to make sure we have allocated the elements
+          * consecutively if the previously proccessed var was shorter than
+          * the current array we are processing.
+          *
+          * NOTE: The code below assumes the var list is ordered in ascending
+          * location order.
+          */
+         assert(last_loc <= var->data.location);
+         last_loc = var->data.location;
+         unsigned last_slot_location = driver_location + var_size;
+         if (last_slot_location > location) {
+            unsigned num_unallocated_slots = last_slot_location - location;
+            unsigned first_unallocated_slot = var_size - num_unallocated_slots;
+            for (unsigned i = first_unallocated_slot; i < num_unallocated_slots; i++) {
+               assigned_locations[var->data.location + i] = location;
+               location++;
+            }
+         }
          continue;
       }
 
-      assigned_locations[var->data.location] = location;
+      for (unsigned i = 0; i < var_size; i++) {
+         assigned_locations[var->data.location + i] = location + i;
+      }
+
       var->data.driver_location = location;
-      location += type_size(type);
+      location += var_size;
    }
 
    *size += location;
@@ -239,7 +271,8 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
           uniform->interface_type != NULL)
          continue;
 
-      if (uniform->type->is_sampler() || uniform->type->is_image()) {
+      if (!uniform->data.bindless &&
+          (uniform->type->is_sampler() || uniform->type->is_image())) {
          if (uniform->type->is_sampler())
             loc = shaderidx++;
          else

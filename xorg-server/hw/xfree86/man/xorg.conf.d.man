@@ -1,1 +1,1 @@
-.so man__filemansuffix__/xorg.conf.__filemansuffix__
+.so man@filemansuffix@/xorg.conf.@filemansuffix@

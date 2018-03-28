@@ -295,6 +295,8 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceInfo(
 
     ADDR_ASSERT(pOut->surfSize != 0);
 
+    ValidBaseAlignments(pOut->baseAlign);
+
     return returnCode;
 }
 
@@ -447,6 +449,8 @@ ADDR_E_RETURNCODE Lib::ComputeHtileInfo(
     else
     {
         returnCode = HwlComputeHtileInfo(pIn, pOut);
+
+        ValidMetaBaseAlignments(pOut->baseAlign);
     }
 
     return returnCode;
@@ -545,6 +549,8 @@ ADDR_E_RETURNCODE Lib::ComputeCmaskInfo(
     else
     {
         returnCode = HwlComputeCmaskInfo(pIn, pOut);
+
+        ValidMetaBaseAlignments(pOut->baseAlign);
     }
 
     return returnCode;
@@ -688,6 +694,8 @@ ADDR_E_RETURNCODE Lib::ComputeFmaskInfo(
         }
     }
 
+    ValidBaseAlignments(pOut->baseAlign);
+
     return returnCode;
 }
 
@@ -764,6 +772,8 @@ ADDR_E_RETURNCODE Lib::ComputeDccInfo(
     else
     {
         returnCode = HwlComputeDccInfo(pIn, pOut);
+
+        ValidMetaBaseAlignments(pOut->dccRamBaseAlign);
     }
 
     return returnCode;

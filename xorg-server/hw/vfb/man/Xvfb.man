@@ -26,7 +26,7 @@
 .\"
 .\" $XFree86: xc/programs/Xserver/hw/vfb/Xvfb.man,v 1.9 2001/12/14 19:59:45 dawes Exp $
 .\"
-.TH XVFB 1 __xorgversion__
+.TH XVFB 1 @xorgversion@
 .SH NAME
 Xvfb \- virtual framebuffer X server for X Version 11
 .SH SYNOPSIS
@@ -120,6 +120,6 @@ xwud -in /var/tmp/Xvfb_screen0
 Displays screen 0 of the server started by the preceding example.
 .SH "SEE ALSO"
 .PP
-X(__miscmansuffix__), Xserver(1), xwd(1), xwud(1), XWDFile.h
+X(@miscmansuffix@), Xserver(1), xwd(1), xwud(1), XWDFile.h
 .SH AUTHORS
 David P. Wiggins, The Open Group, Inc.

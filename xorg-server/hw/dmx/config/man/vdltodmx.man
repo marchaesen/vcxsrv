@@ -26,7 +26,7 @@
 .\" Authors:
 .\"   Rickard E. (Rik) Faith <faith@redhat.com>
 .\"
-.TH vdltodmx 1 __vendorversion__
+.TH vdltodmx 1 @vendorversion@
 .SH NAME
 vdltodmx - dmx configuration file parser and printer
 .SH SYNOPSIS

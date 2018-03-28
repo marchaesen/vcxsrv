@@ -79,4 +79,5 @@ EXTRA_DIST = 	\
 	swapreq.h \
 	systemd-logind.h \
         vidmodestr.h \
+	xorg-server.h.meson.in \
 	xsha1.h

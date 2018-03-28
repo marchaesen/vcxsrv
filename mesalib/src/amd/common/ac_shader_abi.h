@@ -157,7 +157,8 @@ struct ac_shader_abi {
 					  unsigned constant_index,
 					  LLVMValueRef index,
 					  enum ac_descriptor_type desc_type,
-					  bool image, bool write);
+					  bool image, bool write,
+					  bool bindless);
 
 	/**
 	 * Load a Vulkan-specific resource.

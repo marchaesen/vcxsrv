@@ -61,3 +61,10 @@ executable(
     ],
     install: true,
 )
+
+xephyr_man = configure_file(
+    input: 'man/Xephyr.man',
+    output: 'Xephyr.1',
+    configuration: manpage_config,
+)
+install_man(xephyr_man)

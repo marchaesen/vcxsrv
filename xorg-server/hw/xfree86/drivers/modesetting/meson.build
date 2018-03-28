@@ -36,6 +36,12 @@ if gbm_dep.found()
 endif
 symbol_test_args += join_paths(xorg_build_root, 'drivers', 'modesetting', 'modesetting_drv.so')
 
+install_man(configure_file(
+    input: 'modesetting.man',
+    output: 'modesetting.4',
+    configuration: manpage_config,
+))
+
 test('modesetting symbol test',
     xorg_symbol_test,
     args: symbol_test_args,

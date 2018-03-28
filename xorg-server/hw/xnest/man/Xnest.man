@@ -27,7 +27,7 @@
 .\"
 .\" $XFree86: xc/programs/Xserver/hw/xnest/Xnest.man,v 1.6 2001/01/27 18:21:00 dawes Exp $
 .\"
-.TH Xnest __appmansuffix__ __xorgversion__
+.TH Xnest @appmansuffix@ @xorgversion@
 .SH NAME
 Xnest \- a nested X server
 .SH SYNOPSIS
@@ -52,7 +52,7 @@ appears to be a conventional server.
 .B Xnest
 supports all standard options of the sample server implementation.
 For more details, please see
-.BR Xserver (__appmansuffix__).
+.BR Xserver (@appmansuffix@).
 The following additional arguments are supported as well.
 .TP
 .BI "\-display " string
@@ -113,7 +113,7 @@ The class of the default visual of the nested server need not be the same as the
 class of the default visual of the real server, but it must be supported by the
 real server.
 Use
-.BR xdpyinfo (__appmansuffix__)
+.BR xdpyinfo (@appmansuffix@)
 to obtain a list of supported visual classes on the real server before starting
 .BR Xnest .
 If the user chooses a static class, all the colors in the default color map will
@@ -127,7 +127,7 @@ The depth of the default visual of the nested server need not be the same as the
 depth of the default visual of the real server, but it must be supported by the
 real server.
 Use
-.BR xdpyinfo (__appmansuffix__)
+.BR xdpyinfo (@appmansuffix@)
 to obtain a list of supported visual depths on the real server before starting
 .BR Xnest .
 .TP
@@ -149,7 +149,7 @@ This option specifies the geometry parameters for the top-level
 .B Xnest
 window.
 See \(lqGEOMETRY SPECIFICATIONS\(rq in
-.BR X (__miscmansuffix__)
+.BR X (@miscmansuffix@)
 for a discusson of this option's syntax.
 This window corresponds to the root window of the nested server.
 The width
@@ -200,7 +200,7 @@ specification.
 For example,
 .B xterm \-display :1.1
 will open an
-.BR xterm (__appmansuffix__)
+.BR xterm (@appmansuffix@)
 client in the nested server with the display number
 .B :1
 on the second screen.
@@ -249,7 +249,7 @@ as the root window instead of creating a window.
 Starting up
 .B Xnest
 is just as simple as starting up
-.BR xclock (__appmansuffix__)
+.BR xclock (@appmansuffix@)
 from a terminal emulator.
 If a user wishes to run
 .B Xnest
@@ -385,7 +385,7 @@ file system which makes the two font paths mutually incompatible.
 Thus, if there is a font in the local font path of the nested server, there is
 no guarantee that this font exists in the remote font path of the real server.
 The
-.BR xlsfonts (__appmansuffix__)
+.BR xlsfonts (@appmansuffix@)
 client, if run on the nested server, will list fonts in the local font path and,
 if run on the real server, will list fonts in the remote font path.
 Before a font can be successfully opened by the nested server, it has to exist
@@ -423,6 +423,6 @@ Probably has some memory leaks.
 .SH AUTHOR
 Davor Matic, MIT X Consortium
 .SH "SEE ALSO"
-.BR Xserver (__appmansuffix__),
-.BR xdpyinfo (__appmansuffix__),
-.BR X (__miscmansuffix__)
+.BR Xserver (@appmansuffix@),
+.BR xdpyinfo (@appmansuffix@),
+.BR X (@miscmansuffix@)

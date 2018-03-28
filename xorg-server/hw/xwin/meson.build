@@ -165,3 +165,10 @@ install_data(
     'system.XWinrc',
     install_dir: join_paths(get_option('sysconfdir'), 'X11')
 )
+
+xwin_man = configure_file(
+    input: 'man/XWin.man',
+    output: 'XWin.1',
+    configuration: manpage_config,
+)
+install_man(xwin_man)

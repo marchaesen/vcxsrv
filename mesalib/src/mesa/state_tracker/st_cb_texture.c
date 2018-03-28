@@ -2281,6 +2281,31 @@ fallback_copy_texsubimage(struct gl_context *ctx,
    pipe->transfer_unmap(pipe, src_trans);
 }
 
+static bool
+st_can_copyteximage_using_blit(const struct gl_texture_image *texImage,
+                               const struct gl_renderbuffer *rb)
+{
+   GLenum tex_baseformat = _mesa_get_format_base_format(texImage->TexFormat);
+
+   /* We don't blit to a teximage where the GL base format doesn't match the
+    * texture's chosen format, except in the case of a GL_RGB texture
+    * represented with GL_RGBA (where the alpha channel is just being
+    * dropped).
+    */
+   if (texImage->_BaseFormat != tex_baseformat &&
+       ((texImage->_BaseFormat != GL_RGB || tex_baseformat != GL_RGBA))) {
+      return false;
+   }
+
+   /* We can't blit from a RB where the GL base format doesn't match the RB's
+    * chosen format (for example, GL RGB or ALPHA with rb->Format of an RGBA
+    * type, because the other channels will be undefined).
+    */
+   if (rb->_BaseFormat != _mesa_get_format_base_format(rb->Format))
+      return false;
+
+   return true;
+}
 
 /**
  * Do a CopyTex[Sub]Image1/2/3D() using a hardware (blit) path if possible.
@@ -2324,12 +2349,7 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
       goto fallback;
    }
 
-   /* The base internal format must match the mesa format, so make sure
-    * e.g. an RGB internal format is really allocated as RGB and not as RGBA.
-    */
-   if (texImage->_BaseFormat !=
-       _mesa_get_format_base_format(texImage->TexFormat) ||
-       rb->_BaseFormat != _mesa_get_format_base_format(rb->Format)) {
+   if (!st_can_copyteximage_using_blit(texImage, rb)) {
       goto fallback;
    }
 

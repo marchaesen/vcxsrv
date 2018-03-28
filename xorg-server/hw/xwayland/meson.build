@@ -1,5 +1,6 @@
 srcs = [
     'xwayland.c',
+    'xwayland-present.c',
     'xwayland-input.c',
     'xwayland-cursor.c',
     'xwayland-shm.c',

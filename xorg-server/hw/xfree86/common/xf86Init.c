@@ -165,10 +165,6 @@ xf86PrintBanner(void)
 #ifdef XORG_CUSTOM_VERSION
     xf86ErrorFVerb(0, " (%s)", XORG_CUSTOM_VERSION);
 #endif
-#ifndef XORG_DATE
-#define XORG_DATE "Unknown"
-#endif
-    xf86ErrorFVerb(0, "\nRelease Date: %s\n", XORG_DATE);
     xf86ErrorFVerb(0, "X Protocol Version %d, Revision %d\n",
                    X_PROTOCOL, X_PROTOCOL_REVISION);
     xf86ErrorFVerb(0, "Build Operating System: %s %s\n", OSNAME, OSVENDOR);

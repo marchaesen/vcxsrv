@@ -13,6 +13,10 @@ dmx_examples = [
     ['dmxaddscreen', [dmx_dep]],
     ['dmxrmscreen', [dmx_dep]],
     ['dmxaddinput', [dmx_dep]],
+    ['dmxrminput', [dmx_dep]],
+]
+
+noinst_dmx_examples = [
     ['xinput', [dmx_dep, dependency('xi')]],
     ['xtest', [dependency('xtst')]],
     ['evi', []],
@@ -25,7 +29,23 @@ foreach ex: dmx_examples
     bin = ex[0]
     extra_dep = ex[1]
 
-    executable(bin, bin + '.c', dependencies: [dmxexamples_dep, extra_dep])
+    executable(
+        bin,
+        bin + '.c',
+        dependencies: [dmxexamples_dep, extra_dep],
+        install: true
+    )
+endforeach
+
+foreach ex: noinst_dmx_examples
+    bin = ex[0]
+    extra_dep = ex[1]
+
+    executable(
+        bin,
+        bin + '.c',
+        dependencies: [dmxexamples_dep, extra_dep],
+    )
 endforeach
 
 if cc.has_header('linux/input.h')

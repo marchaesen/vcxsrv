@@ -1,4 +1,4 @@
-.TH GTF 1 __vendorversion__
+.TH GTF 1 @vendorversion@
 .SH NAME
 gtf - calculate VESA GTF mode lines
 .SH SYNOPSIS
@@ -15,7 +15,7 @@ is a utility for calculating VESA GTF modes.  Given the desired
 horizontal and vertical resolutions and refresh rate (in Hz), the parameters
 for a matching VESA GTF mode are printed out.  Two output formats are
 supported: mode lines suitable for the Xorg
-.B xorg.conf(__filemansuffix__)
+.B xorg.conf(@filemansuffix@)
 file, and mode parameters suitable for the Linux
 .B fbset(8)
 utility.
@@ -34,7 +34,7 @@ default format.
 Print the mode parameters in a format suitable for
 .BR fbset(8) .
 .SH "SEE ALSO"
-xorg.conf(__filemansuffix__), cvt(__appmansuffix__)
+xorg.conf(@filemansuffix@), cvt(@appmansuffix@)
 .SH AUTHOR
 Andy Ritger.
 .PP

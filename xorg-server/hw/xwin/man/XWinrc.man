@@ -1,4 +1,4 @@
-.TH XWIN __filemansuffix__ __vendorversion__
+.TH XWIN @filemansuffix@ @vendorversion@
 
 
 .SH NAME
@@ -10,7 +10,7 @@ The X Server for the X Window System on the Cygwin/X environment
 running on Microsoft Windows, \fIXWin\fP can be optionally configured
 with the \fIXWinrc\fP file.  A system-wide configuration file should
 be placed in \fI
-__sysconfdir__/X11/system.XWinrc\fP, a per-user file
+@sysconfdir@/X11/system.XWinrc\fP, a per-user file
 should be put at \fI$HOME/.XWinrc\fP.  The \fIsystem.XWinrc\fP file is
 read only if no \fI$HOME/.XWinrc\fP exist.
 .PP

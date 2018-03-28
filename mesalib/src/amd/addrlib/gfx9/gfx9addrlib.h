@@ -55,19 +55,19 @@ struct Gfx9ChipSettings
         UINT_32 isArcticIsland      : 1;
         UINT_32 isVega10            : 1;
         UINT_32 isRaven             : 1;
-        UINT_32 reserved0           : 29;
+        UINT_32 isVega12            : 1;
 
         // Display engine IP version name
         UINT_32 isDce12             : 1;
         UINT_32 isDcn1              : 1;
-        UINT_32 reserved1           : 29;
 
         // Misc configuration bits
         UINT_32 metaBaseAlignFix    : 1;
         UINT_32 depthPipeXorDisable : 1;
         UINT_32 htileAlignFix       : 1;
         UINT_32 applyAliasFix       : 1;
-        UINT_32 reserved2           : 28;
+        UINT_32 htileCacheRbConflict: 1;
+        UINT_32 reserved2           : 27;
     };
 };
 
@@ -120,9 +120,6 @@ public:
         VOID* pMem = Object::ClientAlloc(sizeof(Gfx9Lib), pClient);
         return (pMem != NULL) ? new (pMem) Gfx9Lib(pClient) : NULL;
     }
-
-    virtual BOOL_32 IsValidDisplaySwizzleMode(
-        const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
 protected:
     Gfx9Lib(const Client* pClient);
@@ -224,7 +221,7 @@ protected:
         AddrSwizzleMode swMode,
         UINT_32 elementBytesLog2) const;
 
-    virtual UINT_32 HwlComputeSurfaceBaseAlign(AddrSwizzleMode swizzleMode) const
+    UINT_32 ComputeSurfaceBaseAlignTiled(AddrSwizzleMode swizzleMode) const
     {
         UINT_32 baseAlign;
 
@@ -400,11 +397,11 @@ protected:
     static const UINT_32    MaxCachedMetaEq = 2;
 
 private:
-    virtual ADDR_E_RETURNCODE HwlGetMaxAlignments(
-        ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut) const;
+    virtual UINT_32 HwlComputeMaxBaseAlignments() const;
 
-    virtual BOOL_32 HwlInitGlobalParams(
-        const ADDR_CREATE_INPUT* pCreateIn);
+    virtual UINT_32 HwlComputeMaxMetaBaseAlignments() const;
+
+    virtual BOOL_32 HwlInitGlobalParams(const ADDR_CREATE_INPUT* pCreateIn);
 
     VOID GetRbEquation(CoordEq* pRbEq, UINT_32 rbPerSeLog2, UINT_32 seLog2) const;
 
@@ -433,6 +430,8 @@ private:
                         BOOL_32 dataThick, ADDR2_META_MIP_INFO* pInfo,
                         UINT_32 mip0Width, UINT_32 mip0Height, UINT_32 mip0Depth,
                         UINT_32* pNumMetaBlkX, UINT_32* pNumMetaBlkY, UINT_32* pNumMetaBlkZ) const;
+
+    BOOL_32 IsValidDisplaySwizzleMode(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
     ADDR_E_RETURNCODE ComputeSurfaceLinearPadding(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,

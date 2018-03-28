@@ -920,6 +920,8 @@ read_pixels_es3_error_check(GLenum format, GLenum type,
    case GL_RGBA:
       if (type == GL_FLOAT && data_type == GL_FLOAT)
          return GL_NO_ERROR; /* EXT_color_buffer_float */
+      if (type == GL_HALF_FLOAT && data_type == GL_FLOAT)
+         return GL_NO_ERROR;
       if (type == GL_UNSIGNED_BYTE && data_type == GL_UNSIGNED_NORMALIZED)
          return GL_NO_ERROR;
       if (internalFormat == GL_RGB10_A2 &&

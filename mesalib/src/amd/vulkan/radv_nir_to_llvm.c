@@ -1699,7 +1699,8 @@ static LLVMValueRef radv_get_sampler_desc(struct ac_shader_abi *abi,
 					  unsigned constant_index,
 					  LLVMValueRef index,
 					  enum ac_descriptor_type desc_type,
-					  bool image, bool write)
+					  bool image, bool write,
+					  bool bindless)
 {
 	struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
 	LLVMValueRef list = ctx->descriptor_sets[descriptor_set];

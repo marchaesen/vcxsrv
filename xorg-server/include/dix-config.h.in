@@ -310,9 +310,6 @@
 /* Support UNIX socket connections */
 #undef UNIXCONN
 
-/* unaligned word accesses behave as expected */
-#undef WORKING_UNALIGNED_INT
-
 /* Build X string registry */
 #undef XREGISTRY
 
@@ -346,14 +343,8 @@
 /* Support Xinerama extension */
 #undef XINERAMA
 
-/* Vendor release */
-#undef XORG_RELEASE
-
 /* Current Xorg version */
 #undef XORG_VERSION_CURRENT
-
-/* Xorg release date */
-#undef XORG_DATE
 
 /* Build Xv Extension */
 #undef XvExtension

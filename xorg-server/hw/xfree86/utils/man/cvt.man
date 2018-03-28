@@ -1,4 +1,4 @@
-.TH CVT 1 __vendorversion__
+.TH CVT 1 @vendorversion@
 .SH NAME
 cvt - calculate VESA CVT mode lines
 .SH SYNOPSIS
@@ -13,7 +13,7 @@ cvt - calculate VESA CVT mode lines
 is a utility for calculating VESA Coordinated Video Timing modes.  Given the
 desired horizontal and vertical resolutions, a modeline adhering to the CVT
 standard is printed. This modeline can be included in Xorg
-.B xorg.conf(__filemansuffix__)
+.B xorg.conf(@filemansuffix@)
 .
 
 .SH OPTIONS
@@ -31,7 +31,7 @@ Create a mode with reduced blanking.  This allows for higher frequency signals,
 with a lower or equal dotclock. Not for Cathode Ray Tube based displays though.
 
 .SH "SEE ALSO"
-xorg.conf(__filemansuffix__), gtf(__appmansuffix__)
+xorg.conf(@filemansuffix@), gtf(@appmansuffix@)
 .SH AUTHOR
 Luc Verhaegen.
 .PP

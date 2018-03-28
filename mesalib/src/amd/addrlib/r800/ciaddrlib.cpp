@@ -736,7 +736,7 @@ ADDR_E_RETURNCODE CiLib::HwlComputeSurfaceInfo(
 
                 SiLib::HwlComputeSurfaceInfo(&localIn, pOut);
 
-                ADDR_ASSERT(((MinDepth2DThinIndex <= pOut->tileIndex) && (MaxDepth2DThinIndex >= pOut->tileIndex)) || pOut->tileIndex == Depth1DThinIndex);
+                ADDR_ASSERT((MinDepth2DThinIndex <= pOut->tileIndex) && (MaxDepth2DThinIndex >= pOut->tileIndex));
 
                 depthStencil2DTileConfigMatch = DepthStencilTileCfgMatch(pIn, pOut);
             }
@@ -2157,29 +2157,27 @@ VOID CiLib::HwlPadDimensions(
 
 /**
 ****************************************************************************************************
-*   CiLib::HwlGetMaxAlignments
+*   CiLib::HwlComputeMaxBaseAlignments
 *
 *   @brief
 *       Gets maximum alignments
 *   @return
-*       ADDR_E_RETURNCODE
+*       maximum alignments
 ****************************************************************************************************
 */
-ADDR_E_RETURNCODE CiLib::HwlGetMaxAlignments(
-    ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut    ///< [out] output structure
-    ) const
+UINT_32 CiLib::HwlComputeMaxBaseAlignments() const
 {
     const UINT_32 pipes = HwlGetPipes(&m_tileTable[0].info);
 
     // Initial size is 64 KiB for PRT.
-    UINT_64 maxBaseAlign = 64 * 1024;
+    UINT_32 maxBaseAlign = 64 * 1024;
 
     for (UINT_32 i = 0; i < m_noOfMacroEntries; i++)
     {
         // The maximum tile size is 16 byte-per-pixel and either 8-sample or 8-slice.
         UINT_32 tileSize = m_macroTileTable[i].tileSplitBytes;
 
-        UINT_64 baseAlign = tileSize * pipes * m_macroTileTable[i].banks *
+        UINT_32 baseAlign = tileSize * pipes * m_macroTileTable[i].banks *
                             m_macroTileTable[i].bankWidth * m_macroTileTable[i].bankHeight;
 
         if (baseAlign > maxBaseAlign)
@@ -2188,12 +2186,32 @@ ADDR_E_RETURNCODE CiLib::HwlGetMaxAlignments(
         }
     }
 
-    if (pOut != NULL)
+    return maxBaseAlign;
+}
+
+/**
+****************************************************************************************************
+*   CiLib::HwlComputeMaxMetaBaseAlignments
+*
+*   @brief
+*       Gets maximum alignments for metadata
+*   @return
+*       maximum alignments for metadata
+****************************************************************************************************
+*/
+UINT_32 CiLib::HwlComputeMaxMetaBaseAlignments() const
+{
+    UINT_32 maxBank = 1;
+
+    for (UINT_32 i = 0; i < m_noOfMacroEntries; i++)
     {
-        pOut->baseAlign = maxBaseAlign;
+        if ((m_settings.isVolcanicIslands) && IsMacroTiled(m_tileTable[i].mode))
+        {
+            maxBank = Max(maxBank, m_macroTileTable[i].banks);
+        }
     }
 
-    return ADDR_OK;
+    return SiLib::HwlComputeMaxMetaBaseAlignments() * maxBank;
 }
 
 /**

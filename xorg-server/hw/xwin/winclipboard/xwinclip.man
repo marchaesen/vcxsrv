@@ -1,4 +1,4 @@
-.TH xwinclip 1 __xorgversion__
+.TH xwinclip 1 @xorgversion@
 .SH NAME
 xwinclip - An X11 and Windows clipboard integration tool
 

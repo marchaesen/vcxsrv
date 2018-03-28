@@ -1,5 +1,6 @@
-/*
- * Copyright © 2014 Intel Corporation
+
+template = """\
+/* Copyright (C) 2018 Red Hat
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,39 +20,41 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Connor Abbott (cwabbott0@gmail.com)
- *
  */
 
-#include "nir.h"
+#ifndef _NIR_INTRINSICS_
+#define _NIR_INTRINSICS_
 
-#define OPCODE(name) nir_intrinsic_##name
+<% opcode_names = sorted(INTR_OPCODES) %>
 
-#define INTRINSIC(_name, _num_srcs, _src_components, _has_dest, \
-                  _dest_components, _num_variables, _num_indices, \
-                  idx0, idx1, idx2, _flags) \
-{ \
-   .name = #_name, \
-   .num_srcs = _num_srcs, \
-   .src_components = _src_components, \
-   .has_dest = _has_dest, \
-   .dest_components = _dest_components, \
-   .num_variables = _num_variables, \
-   .num_indices = _num_indices, \
-   .index_map = { \
-      [NIR_INTRINSIC_ ## idx0] = 1, \
-      [NIR_INTRINSIC_ ## idx1] = 2, \
-      [NIR_INTRINSIC_ ## idx2] = 3, \
-   }, \
-   .flags = _flags \
-},
+typedef enum {
+% for name in opcode_names:
+   nir_intrinsic_${name},
+% endfor
 
-#define NIR_INTRINSIC_xx 0
+   nir_last_intrinsic = nir_intrinsic_${opcode_names[-1]},
+   nir_num_intrinsics = nir_last_intrinsic + 1
+} nir_intrinsic_op;
 
-#define LAST_INTRINSIC(name)
+#endif /* _NIR_INTRINSICS_ */"""
 
-const nir_intrinsic_info nir_intrinsic_infos[nir_num_intrinsics] = {
-#include "nir_intrinsics.h"
-};
+from nir_intrinsics import INTR_OPCODES
+from mako.template import Template
+import argparse
+import os
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--outdir', required=True,
+                        help='Directory to put the generated files in')
+
+    args = parser.parse_args()
+
+    path = os.path.join(args.outdir, 'nir_intrinsics.h')
+    with open(path, 'wb') as f:
+        f.write(Template(template).render(INTR_OPCODES=INTR_OPCODES))
+
+if __name__ == '__main__':
+    main()
+

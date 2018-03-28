@@ -936,7 +936,16 @@ u_vbuf_upload_buffers(struct u_vbuf *mgr,
          size = mgr->ve->src_format_size[i];
       } else if (instance_div) {
          /* Per-instance attrib. */
-         unsigned count = (num_instances + instance_div - 1) / instance_div;
+
+         /* Figure out how many instances we'll render given instance_div.  We
+          * can't use the typical div_round_up() pattern because the CTS uses
+          * instance_div = ~0 for a test, which overflows div_round_up()'s
+          * addition.
+          */
+         unsigned count = num_instances / instance_div;
+         if (count * instance_div != num_instances)
+            count++;
+
          first += vb->stride * start_instance;
          size = vb->stride * (count - 1) + mgr->ve->src_format_size[i];
       } else {

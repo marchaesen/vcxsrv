@@ -1,21 +1,21 @@
 .\" shorthand for double quote that works everywhere.
 .ds q \N'34'
-.TH xorg.conf __filemansuffix__ __vendorversion__
+.TH xorg.conf @filemansuffix@ @vendorversion@
 .SH NAME
-xorg.conf, __xconfigdir__ \- configuration files for
+xorg.conf, @xconfigdir@ \- configuration files for
 Xorg X server
 .SH INTRODUCTION
 .B Xorg
 supports several mechanisms for supplying/obtaining configuration and
 run-time parameters: command line options, environment variables, the
-xorg.conf and __xconfigdir__ configuration files, auto-detection,
+xorg.conf and @xconfigdir@ configuration files, auto-detection,
 and fallback defaults. When the same information is supplied in more
 than one way, the highest precedence mechanism is used. The list of
 mechanisms is ordered from highest precedence to lowest. Note that not
 all parameters can be supplied via all methods. The available command
 line options and environment variables (and some defaults) are
-described in the Xserver(__appmansuffix__) and
-Xorg(__appmansuffix__) manual pages. Most configuration file
+described in the Xserver(@appmansuffix@) and
+Xorg(@appmansuffix@) manual pages. Most configuration file
 parameters, with their defaults, are described below. Driver and module
 specific configuration parameters are described in the relevant driver
 or module manual page.
@@ -26,7 +26,7 @@ uses a configuration file called
 and files ending in the suffix
 .I .conf
 from the directory
-.I __xconfigdir__
+.I @xconfigdir@
 for its initial setup.
 The
 .I xorg.conf
@@ -36,15 +36,15 @@ server is started as a normal user:
 .RS 4
 .nf
 .IR /etc/X11/ <cmdline>
-.IR __projectroot__/etc/X11/ <cmdline>
+.IR @projectroot@/etc/X11/ <cmdline>
 .IB /etc/X11/ $XORGCONFIG
-.IB __projectroot__/etc/X11/ $XORGCONFIG
+.IB @projectroot@/etc/X11/ $XORGCONFIG
 .I /etc/X11/xorg.conf
 .I /etc/xorg.conf
-.IR __projectroot__/etc/X11/xorg.conf. <hostname>
-.I __projectroot__/etc/X11/xorg.conf
-.IR __projectroot__/lib/X11/xorg.conf. <hostname>
-.I __projectroot__/lib/X11/xorg.conf
+.IR @projectroot@/etc/X11/xorg.conf. <hostname>
+.I @projectroot@/etc/X11/xorg.conf
+.IR @projectroot@/lib/X11/xorg.conf. <hostname>
+.I @projectroot@/lib/X11/xorg.conf
 .fi
 .RE
 .PP
@@ -58,7 +58,7 @@ is the relative path (with no \(lq..\(rq components) specified by that
 environment variable, and
 .I <hostname>
 is the machine's hostname as reported by
-.BR gethostname (__libmansuffix__).
+.BR gethostname (@libmansuffix@).
 .PP
 When the Xorg server is started by the \(lqroot\(rq user, the config file
 search locations are as follows:
@@ -67,16 +67,16 @@ search locations are as follows:
 .nf
 <cmdline>
 .IR /etc/X11/ <cmdline>
-.IR __projectroot__/etc/X11/ <cmdline>
+.IR @projectroot@/etc/X11/ <cmdline>
 .B $XORGCONFIG
 .IB /etc/X11/ $XORGCONFIG
-.IB __projectroot__/etc/X11/ $XORGCONFIG
+.IB @projectroot@/etc/X11/ $XORGCONFIG
 .I /etc/X11/xorg.conf
 .I /etc/xorg.conf
-.IR __projectroot__/etc/X11/xorg.conf. <hostname>
-.I __projectroot__/etc/X11/xorg.conf
-.IR __projectroot__/lib/X11/xorg.conf. <hostname>
-.I __projectroot__/lib/X11/xorg.conf
+.IR @projectroot@/etc/X11/xorg.conf. <hostname>
+.I @projectroot@/etc/X11/xorg.conf
+.IR @projectroot@/lib/X11/xorg.conf. <hostname>
+.I @projectroot@/lib/X11/xorg.conf
 .fi
 .RE
 .PP
@@ -93,7 +93,7 @@ is the path specified by that environment variable (usually the home
 directory), and
 .I <hostname>
 is the machine's hostname as reported by
-.BR gethostname (__libmansuffix__).
+.BR gethostname (@libmansuffix@).
 .PP
 Additional configuration files are searched for in the following
 directories when the server is started as a normal user:
@@ -101,9 +101,9 @@ directories when the server is started as a normal user:
 .RS 4
 .nf
 .IR /etc/X11/ <cmdline>
-.IR __sysconfdir__/X11/ <cmdline>
-.I /etc/X11/__xconfigdir__
-.I __sysconfdir__/X11/__xconfigdir__
+.IR @sysconfdir@/X11/ <cmdline>
+.I /etc/X11/@xconfigdir@
+.I @sysconfdir@/X11/@xconfigdir@
 .fi
 .RE
 .PP
@@ -120,9 +120,9 @@ config directory search locations are as follows:
 .nf
 <cmdline>
 .IR /etc/X11/ <cmdline>
-.IR __sysconfdir__/X11/ <cmdline>
-.I /etc/X11/__xconfigdir__
-.I __sysconfdir__/X11/__xconfigdir__
+.IR @sysconfdir@/X11/ <cmdline>
+.I /etc/X11/@xconfigdir@
+.I @sysconfdir@/X11/@xconfigdir@
 .fi
 .RE
 .PP
@@ -140,14 +140,14 @@ These files are found in the following directory:
 .PP
 .RS 4
 .nf
-.I __datadir__/X11/__xconfigdir__
+.I @datadir@/X11/@xconfigdir@
 .fi
 .RE
 .PP
 The
 .I xorg.conf
 and
-.I __xconfigdir__
+.I @xconfigdir@
 files are composed of a number of sections which may be present in any order,
 or omitted to use default configuration values.
 Each section has the form:
@@ -330,9 +330,9 @@ The
 .B Files
 section is used to specify some path names required by the server.
 Some of these paths can also be set from the command line (see
-.BR Xserver (__appmansuffix__)
+.BR Xserver (@appmansuffix@)
 and
-.BR Xorg (__appmansuffix__)).
+.BR Xorg (@appmansuffix@)).
 The command line settings override the values specified in the config
 file.
 The
@@ -413,12 +413,12 @@ font path elements (which can be set inside a catalogue directory):
 .PP
 .RS 4
 .nf
-.I __datadir__/fonts/X11/misc/
-.I __datadir__/fonts/X11/TTF/
-.I __datadir__/fonts/X11/OTF/
-.I __datadir__/fonts/X11/Type1/
-.I __datadir__/fonts/X11/100dpi/
-.I __datadir__/fonts/X11/75dpi/
+.I @datadir@/fonts/X11/misc/
+.I @datadir@/fonts/X11/TTF/
+.I @datadir@/fonts/X11/OTF/
+.I @datadir@/fonts/X11/Type1/
+.I @datadir@/fonts/X11/100dpi/
+.I @datadir@/fonts/X11/75dpi/
 .fi
 .RE
 .PP
@@ -436,7 +436,7 @@ entries may be specified, and they will be concatenated to build the
 module search path used by the server.  The default module path is
 .PP
 .RS 11
-__modulepath__
+@modulepath@
 .RE
 .\" The LogFile keyword is not currently implemented
 .ig
@@ -446,7 +446,7 @@ sets the name of the Xorg server log file.
 The default log file name when running as root is
 .PP
 .RS 11
-.RI __logdir__/Xorg. <n> .log
+.RI @logdir@/Xorg. <n> .log
 .RE
 and for non root it is
 .RS 11
@@ -465,7 +465,7 @@ sets the base directory for keyboard layout files.  The
 command line option can be used to override this.  The default directory is
 .PP
 .RS 11
-__xkbdir__
+@xkbdir@
 .RE
 .SH "SERVERFLAGS SECTION"
 In addition to options specific to this section (described below), the
@@ -553,9 +553,9 @@ extension) to connect from another host.
 Default: off.
 .TP 7
 .BI "Option \*qAllowMouseOpenFail\*q  \*q" boolean \*q
-This tells the mousedrv(__drivermansuffix__) and vmmouse(__drivermansuffix__)
+This tells the mousedrv(@drivermansuffix@) and vmmouse(@drivermansuffix@)
 drivers to not report failure if the mouse device can't be opened/initialised.
-It has no effect on the evdev(__drivermansuffix__) or other drivers.
+It has no effect on the evdev(@drivermansuffix@) or other drivers.
 Default: false.
 .TP 7
 .BI "Option \*qBlankTime\*q  \*q" time \*q
@@ -567,7 +567,7 @@ is in minutes.
 This is equivalent to the Xorg server's
 .B \-s
 flag, and the value can be changed at run\-time with
-.BR xset(__appmansuffix__).
+.BR xset(@appmansuffix@).
 Default: 10 minutes.
 .TP 7
 .BI "Option \*qStandbyTime\*q  \*q" time \*q
@@ -576,7 +576,7 @@ sets the inactivity timeout for the
 phase of DPMS mode.
 .I time
 is in minutes, and the value can be changed at run\-time with
-.BR xset(__appmansuffix__).
+.BR xset(@appmansuffix@).
 Default: 10 minutes.
 This is only suitable for VESA DPMS compatible monitors, and may not be
 supported by all video drivers.
@@ -590,7 +590,7 @@ sets the inactivity timeout for the
 phase of DPMS mode.
 .I time
 is in minutes, and the value can be changed at run\-time with
-.BR xset(__appmansuffix__).
+.BR xset(@appmansuffix@).
 Default: 10 minutes.
 This is only suitable for VESA DPMS compatible monitors, and may not be
 supported by all video drivers.
@@ -604,7 +604,7 @@ sets the inactivity timeout for the
 phase of DPMS mode.
 .I time
 is in minutes, and the value can be changed at run\-time with
-.BR xset(__appmansuffix__).
+.BR xset(@appmansuffix@).
 Default: 10 minutes.
 This is only suitable for VESA DPMS compatible monitors, and may not be
 supported by all video drivers.
@@ -754,7 +754,7 @@ subdirectory under:
 .PP
 .RS 4
 .nf
-__modulepath__
+@modulepath@
 .fi
 .RE
 .PP
@@ -871,11 +871,11 @@ or
 command line options, or if it is selected implicitly as the core pointer
 or keyboard device in the absence of such explicit references.
 The most commonly used input drivers are
-.BR evdev (__drivermansuffix__)
+.BR evdev (@drivermansuffix@)
 on Linux systems, and
-.BR kbd (__drivermansuffix__)
+.BR kbd (@drivermansuffix@)
 and
-.BR mousedrv (__drivermansuffix__)
+.BR mousedrv (@drivermansuffix@)
 on other platforms.
 .PP
 .PP
@@ -2159,7 +2159,7 @@ formats.
 This may also be specified from the command line with the
 .B \-weight
 option (see
-.BR Xorg(__appmansuffix__)).
+.BR Xorg(@appmansuffix@)).
 .TP 7
 .BI "Virtual  " "xdim ydim"
 This optional entry specifies the virtual screen resolution to be used.
@@ -2210,7 +2210,7 @@ built-in VESA standard modes.
 .BI "Visual  \*q" visual\-name \*q
 This optional entry sets the default root visual type.
 This may also be specified from the command line (see the
-.BR Xserver(__appmansuffix__)
+.BR Xserver(@appmansuffix@)
 man page).
 The visual types available for depth 8 are (default is
 .BR PseudoColor ):
@@ -2509,79 +2509,79 @@ The data therein is not used in this release.
 .PP
 .SH "SEE ALSO"
 General:
-.BR X (__miscmansuffix__),
-.BR Xserver (__appmansuffix__),
-.BR Xorg (__appmansuffix__),
-.BR cvt (__appmansuffix__),
-.BR gtf (__appmansuffix__).
+.BR X (@miscmansuffix@),
+.BR Xserver (@appmansuffix@),
+.BR Xorg (@appmansuffix@),
+.BR cvt (@appmansuffix@),
+.BR gtf (@appmansuffix@).
 .PP
 .B "Not all modules or interfaces are available on all platforms."
 .PP
 Display drivers:
-.BR apm (__drivermansuffix__),
-.BR ati (__drivermansuffix__),
-.BR chips (__drivermansuffix__),
-.BR cirrus (__drivermansuffix__),
-.BR cyrix (__drivermansuffix__),
-.BR fbdev (__drivermansuffix__),
-.BR glide (__drivermansuffix__),
-.BR glint (__drivermansuffix__),
-.BR i128 (__drivermansuffix__),
-.BR i740 (__drivermansuffix__),
-.BR imstt (__drivermansuffix__),
-.BR intel (__drivermansuffix__),
-.BR mga (__drivermansuffix__),
-.BR neomagic (__drivermansuffix__),
-.BR nv (__drivermansuffix__),
-.BR openchrome (__drivermansuffix__),
-.BR r128 (__drivermansuffix__),
-.BR radeon (__drivermansuffix__),
-.BR rendition (__drivermansuffix__),
-.BR savage (__drivermansuffix__),
-.BR s3virge (__drivermansuffix__),
-.BR siliconmotion (__drivermansuffix__),
-.BR sis (__drivermansuffix__),
-.BR sisusb (__drivermansuffix__),
-.BR sunbw2 (__drivermansuffix__),
-.BR suncg14 (__drivermansuffix__),
-.BR suncg3 (__drivermansuffix__),
-.BR suncg6 (__drivermansuffix__),
-.BR sunffb (__drivermansuffix__),
-.BR sunleo (__drivermansuffix__),
-.BR suntcx (__drivermansuffix__),
-.BR tdfx (__drivermansuffix__),
-.\" .BR tga (__drivermansuffix__),
-.BR trident (__drivermansuffix__),
-.BR tseng (__drivermansuffix__),
-.BR vesa (__drivermansuffix__),
-.BR vmware (__drivermansuffix__),
-.BR voodoo (__drivermansuffix__),
-.BR wsfb (__drivermansuffix__),
-.BR xgi (__drivermansuffix__),
-.BR xgixp (__drivermansuffix__).
+.BR apm (@drivermansuffix@),
+.BR ati (@drivermansuffix@),
+.BR chips (@drivermansuffix@),
+.BR cirrus (@drivermansuffix@),
+.BR cyrix (@drivermansuffix@),
+.BR fbdev (@drivermansuffix@),
+.BR glide (@drivermansuffix@),
+.BR glint (@drivermansuffix@),
+.BR i128 (@drivermansuffix@),
+.BR i740 (@drivermansuffix@),
+.BR imstt (@drivermansuffix@),
+.BR intel (@drivermansuffix@),
+.BR mga (@drivermansuffix@),
+.BR neomagic (@drivermansuffix@),
+.BR nv (@drivermansuffix@),
+.BR openchrome (@drivermansuffix@),
+.BR r128 (@drivermansuffix@),
+.BR radeon (@drivermansuffix@),
+.BR rendition (@drivermansuffix@),
+.BR savage (@drivermansuffix@),
+.BR s3virge (@drivermansuffix@),
+.BR siliconmotion (@drivermansuffix@),
+.BR sis (@drivermansuffix@),
+.BR sisusb (@drivermansuffix@),
+.BR sunbw2 (@drivermansuffix@),
+.BR suncg14 (@drivermansuffix@),
+.BR suncg3 (@drivermansuffix@),
+.BR suncg6 (@drivermansuffix@),
+.BR sunffb (@drivermansuffix@),
+.BR sunleo (@drivermansuffix@),
+.BR suntcx (@drivermansuffix@),
+.BR tdfx (@drivermansuffix@),
+.\" .BR tga (@drivermansuffix@),
+.BR trident (@drivermansuffix@),
+.BR tseng (@drivermansuffix@),
+.BR vesa (@drivermansuffix@),
+.BR vmware (@drivermansuffix@),
+.BR voodoo (@drivermansuffix@),
+.BR wsfb (@drivermansuffix@),
+.BR xgi (@drivermansuffix@),
+.BR xgixp (@drivermansuffix@).
 .PP
 Input drivers:
-.BR acecad (__drivermansuffix__),
-.BR citron (__drivermansuffix__),
-.BR elographics (__drivermansuffix__),
-.BR evdev (__drivermansuffix__),
-.BR fpit (__drivermansuffix__),
-.BR joystick (__drivermansuffix__),
-.BR kbd (__drivermansuffix__),
-.BR libinput (__drivermansuffix__),
-.BR mousedrv (__drivermansuffix__),
-.BR mutouch (__drivermansuffix__),
-.BR penmount (__drivermansuffix__),
-.BR synaptics (__drivermansuffix__),
-.BR vmmouse (__drivermansuffix__),
-.BR void (__drivermansuffix__),
-.BR wacom (__drivermansuffix__).
+.BR acecad (@drivermansuffix@),
+.BR citron (@drivermansuffix@),
+.BR elographics (@drivermansuffix@),
+.BR evdev (@drivermansuffix@),
+.BR fpit (@drivermansuffix@),
+.BR joystick (@drivermansuffix@),
+.BR kbd (@drivermansuffix@),
+.BR libinput (@drivermansuffix@),
+.BR mousedrv (@drivermansuffix@),
+.BR mutouch (@drivermansuffix@),
+.BR penmount (@drivermansuffix@),
+.BR synaptics (@drivermansuffix@),
+.BR vmmouse (@drivermansuffix@),
+.BR void (@drivermansuffix@),
+.BR wacom (@drivermansuffix@).
 .PP
 Other modules and interfaces:
-.BR exa (__drivermansuffix__),
-.BR fbdevhw (__drivermansuffix__),
-.\" .BR shadowfb (__drivermansuffix__),
-.BR v4l (__drivermansuffix__).
+.BR exa (@drivermansuffix@),
+.BR fbdevhw (@drivermansuffix@),
+.\" .BR shadowfb (@drivermansuffix@),
+.BR v4l (@drivermansuffix@).
 .br
 .SH AUTHORS
 This manual page was largely rewritten by David Dawes

@@ -20,3 +20,9 @@ xvfb_server = executable(
     ],
     install: true,
 )
+
+install_man(configure_file(
+    input: 'man/Xvfb.man',
+    output: 'Xvfb.1',
+    configuration: manpage_config,
+))

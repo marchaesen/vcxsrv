@@ -32,13 +32,21 @@ nir_libnir_la_SOURCES =					\
 	$(SPIRV_GENERATED_FILES) 			\
 	$(NIR_GENERATED_FILES)
 
-nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py
+nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py nir/nir_intrinsics.py
 	$(MKDIR_GEN)
 	$(PYTHON_GEN) $(srcdir)/nir/nir_builder_opcodes_h.py > $@ || ($(RM) $@; false)
 
 nir/nir_constant_expressions.c: nir/nir_opcodes.py nir/nir_constant_expressions.py
 	$(MKDIR_GEN)
 	$(PYTHON_GEN) $(srcdir)/nir/nir_constant_expressions.py > $@ || ($(RM) $@; false)
+
+nir/nir_intrinsics.h: nir/nir_intrinsics.py nir/nir_intrinsics_h.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/nir/nir_intrinsics_h.py --outdir nir || ($(RM) $@; false)
+
+nir/nir_intrinsics.c: nir/nir_intrinsics.py nir/nir_intrinsics_c.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/nir/nir_intrinsics_c.py --outdir nir || ($(RM) $@; false)
 
 nir/nir_opcodes.h: nir/nir_opcodes.py nir/nir_opcodes_h.py
 	$(MKDIR_GEN)
@@ -112,6 +120,9 @@ EXTRA_DIST += \
 	nir/nir_algebraic.py				\
 	nir/nir_builder_opcodes_h.py			\
 	nir/nir_constant_expressions.py			\
+	nir/nir_intrinsics.py				\
+	nir/nir_intrinsics_c.py				\
+	nir/nir_intrinsics_h.py				\
 	nir/nir_opcodes.py				\
 	nir/nir_opcodes_c.py				\
 	nir/nir_opcodes_h.py				\

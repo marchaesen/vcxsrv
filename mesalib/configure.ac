@@ -3127,6 +3127,9 @@ $SED -i -e 's/brw_blorp.cpp/brw_blorp.c/' src/mesa/drivers/dri/i965/.deps/brw_bl
 rm -f src/compiler/spirv/spirv_info.lo
 echo "# dummy" > src/compiler/spirv/.deps/spirv_info.Plo
 
+rm -f src/compiler/nir/.deps/nir_intrinsics.Plo
+echo "# dummy" > src/compiler/nir/.deps/nir_intrinsics.Plo
+
 dnl
 dnl Output some configuration info for the user
 dnl

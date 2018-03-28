@@ -101,9 +101,6 @@
 /* Support UNIX socket connections */
 #undef UNIXCONN
 
-/* unaligned word accesses behave as expected */
-#undef WORKING_UNALIGNED_INT
-
 /* Support XCMisc extension */
 #undef XCMISC
 
@@ -128,9 +125,6 @@
 /* XKB default rules */
 #undef XKB_DFLT_RULES
 
-/* Support loadable input and output drivers */
-#undef XLOADABLE
-
 /* Build DRI extension */
 #undef XF86DRI
 
@@ -139,9 +133,6 @@
 
 /* Build Xorg server */
 #undef XORGSERVER
-
-/* Vendor release */
-#undef XORG_RELEASE
 
 /* Current Xorg version */
 #undef XORG_VERSION_CURRENT

@@ -1,4 +1,4 @@
-.TH XWIN 1 __vendorversion__
+.TH XWIN 1 @vendorversion@
 .SH NAME
 XWin \- X Server for the Cygwin environment on Microsoft Windows
 
@@ -293,7 +293,7 @@ and debugging purposes.
 .TP 8
 .B "\-logfile \fIfilename\fP"
 Change the server log file from the default of \fI
-__logdir__/XWin.n.log\fP,
+@logdir@/XWin.n.log\fP,
 where \fIn\fP is the display number of the XWin server, to \fIfilename\fP.
 .TP 8
 .B "\-logverbose \fIlevel\fP"
@@ -319,10 +319,10 @@ These options configure the xkeyboard extension to load
 a particular keyboard map as the X server starts.  The behavior is similar
 to the \fIsetxkbmap\fP(1) program.
 
-See the \fIxkeyboard-config\fP(__miscmansuffix__) manual page for a list of
+See the \fIxkeyboard-config\fP(@miscmansuffix@) manual page for a list of
 keyboard configurations.
 
-The keyboard layout data is located at \fI__datadir__/X11/xkb/\fP.  Additional information
+The keyboard layout data is located at \fI@datadir@/X11/xkb/\fP.  Additional information
 can be found in the README files there and in the \fIsetxkbmap\fP(1) manual page.
 
 For example, in order to load a German layout for a pc105 keyboard, use the options:
@@ -352,13 +352,13 @@ visual to operate in TrueColor modes.
 As it runs \fIXWin\fP writes messages indicating the most relevant events
 to  the console
 from which it was called and to a log file that by default is located at \fI
-__logdir__/XWin.0.log\fP.  This file is mainly for debugging purposes.
+@logdir@/XWin.0.log\fP.  This file is mainly for debugging purposes.
 
 
 .SH PREFERENCES FILE
 On startup \fIXWin\fP looks for the file \fI$HOME/.XWinrc\fP or, if
 the previous file does not exist, \fI
-__sysconfdir__/X11/system.XWinrc\fP.  \fI.XWinrc\fP allows setting
+@sysconfdir@/X11/system.XWinrc\fP.  \fI.XWinrc\fP allows setting
 preferences for the following:
 .br
 * To include items into the menu associated with the \fIXWin\fP icon
@@ -382,8 +382,8 @@ Need some examples
 
 
 .SH "SEE ALSO"
-X(__miscmansuffix__), Xserver(1), xdm(1), xinit(1), XWinrc(__filemansuffix__),
-setxkbmap(1), xkeyboard-config(__miscmansuffix__).
+X(@miscmansuffix@), Xserver(1), xdm(1), xinit(1), XWinrc(@filemansuffix@),
+setxkbmap(1), xkeyboard-config(@miscmansuffix@).
 
 
 .SH BUGS

@@ -208,9 +208,7 @@ optimizations = [
    # fmax.  If b is > 1.0, the bcsel will be replaced with a b2f.
    (('fmin', ('b2f', a), '#b'), ('bcsel', a, ('fmin', b, 1.0), ('fmin', b, 0.0))),
 
-   # ignore this opt when the result is used by a bcsel or if so we can make
-   # use of conditional modifiers on supported hardware.
-   (('flt(is_not_used_by_conditional)', ('fadd(is_used_once)', a, ('fneg', b)), 0.0), ('flt', a, b)),
+   (('flt', ('fadd(is_used_once)', a, ('fneg', b)), 0.0), ('flt', a, b)),
 
    (('fge', ('fneg', ('fabs', a)), 0.0), ('feq', a, 0.0)),
    (('~bcsel', ('flt', b, a), b, a), ('fmin', a, b)),

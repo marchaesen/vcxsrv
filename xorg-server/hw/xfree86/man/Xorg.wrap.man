@@ -1,4 +1,4 @@
-.\" Xwrapper.wrap.__appmansuffix__
+.\" Xwrapper.wrap.@appmansuffix@
 .\"
 .\" Copyright 2014 Red Hat, Inc.
 .\"
@@ -26,14 +26,14 @@
 .\"
 .\" shorthand for double quote that works everywhere.
 .ds q \N'34'
-.TH Xorg.wrap __appmansuffix__ __xorgversion__
+.TH Xorg.wrap @appmansuffix@ @xorgversion@
 .SH NAME
 Xorg.wrap \- Xorg X server binary wrapper
 .SH DESCRIPTION
 The Xorg X server may need root rights to function properly. To start the
 Xorg X server with these rights your system is using a suid root wrapper
-installed as __suid_wrapper_dir__/Xorg.wrap which will execute the real
-X server which is installed as __suid_wrapper_dir__/Xorg.
+installed as @suid_wrapper_dir@/Xorg.wrap which will execute the real
+X server which is installed as @suid_wrapper_dir@/Xorg.
 .PP
 By default Xorg.wrap will autodetect if root rights are necessary, and
 if not it will drop its elevated rights before starting the real X server.
@@ -42,7 +42,7 @@ sessions on a physical console.
 
 .SH CONFIG FILE
 Xorg.wrap's default behavior can be overridden from the
-\fI__sysconfdir__/X11/Xwrapper.config\fP config file. Lines starting with a
+\fI@sysconfdir@/X11/Xwrapper.config\fP config file. Lines starting with a
 \fB#\fP in Xwrapper.config are considered comments and will be ignored. Any
 other non empty lines must take the form of \fBkey\fP = \fIvalue\fP.
 .TP 8

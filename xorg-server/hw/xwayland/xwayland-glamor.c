@@ -158,7 +158,10 @@ xwl_glamor_create_pixmap_for_bo(ScreenPtr screen, struct gbm_bo *bo, int depth)
 }
 
 struct wl_buffer *
-xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap)
+xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap,
+                                unsigned short width,
+                                unsigned short height,
+                                Bool *created)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(pixmap->drawable.pScreen);
     struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
@@ -169,8 +172,16 @@ xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap)
     uint64_t modifier;
     int i;
 
-    if (xwl_pixmap->buffer)
+    if (xwl_pixmap->buffer) {
+        /* Buffer already exists. Return it and inform caller if interested. */
+        if (created)
+            *created = FALSE;
         return xwl_pixmap->buffer;
+    }
+
+    /* Buffer does not exist yet. Create now and inform caller if interested. */
+    if (created)
+        *created = TRUE;
 
     if (!xwl_pixmap->bo)
        return NULL;
@@ -205,16 +216,16 @@ xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap)
 
         xwl_pixmap->buffer =
            zwp_linux_buffer_params_v1_create_immed(params,
-                                                   pixmap->drawable.width,
-                                                   pixmap->drawable.height,
+                                                   width,
+                                                   height,
                                                    wl_drm_format_for_depth(pixmap->drawable.depth),
                                                    0);
         zwp_linux_buffer_params_v1_destroy(params);
     } else if (num_planes == 1) {
         xwl_pixmap->buffer =
             wl_drm_create_prime_buffer(xwl_screen->drm, prime_fd,
-                                       pixmap->drawable.width,
-                                       pixmap->drawable.height,
+                                       width,
+                                       height,
                                        wl_drm_format_for_depth(pixmap->drawable.depth),
                                        0, gbm_bo_get_stride(xwl_pixmap->bo),
                                        0, 0,

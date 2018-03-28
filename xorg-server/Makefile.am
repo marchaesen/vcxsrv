@@ -140,6 +140,7 @@ distcheck-hook:
 EXTRA_DIST += \
 	meson_options.txt \
 	include/xorg-config.h.meson.in \
+	include/xwin-config.h.meson.in \
 	hw/xfree86/loader/symbol-test.c \
 	hw/xfree86/common/xf86Build.sh \
 	composite/meson.build \
@@ -204,8 +205,10 @@ EXTRA_DIST += \
 	record/meson.build \
 	render/meson.build \
 	test/bigreq/meson.build \
+	test/bigreq/request-length.c \
 	test/meson.build \
 	test/sync/meson.build \
+	test/sync/sync.c \
 	Xext/meson.build \
 	xfixes/meson.build \
 	Xi/meson.build \
