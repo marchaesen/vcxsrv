@@ -480,12 +480,6 @@ protected:
         return HwlGetEquationIndex(pIn, pOut);
     }
 
-    virtual UINT_32 HwlComputeSurfaceBaseAlign(AddrSwizzleMode swizzleMode) const
-    {
-        ADDR_NOT_IMPLEMENTED();
-        return 0;
-    }
-
     virtual ADDR_E_RETURNCODE HwlComputePipeBankXor(
         const ADDR2_COMPUTE_PIPEBANKXOR_INPUT* pIn,
         ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT*      pOut) const

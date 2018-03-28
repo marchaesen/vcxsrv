@@ -33,7 +33,7 @@
  * necessary to implement this interface is orchestrated by the
  * individual target building this entity.
  *
- * For instance, the graw-xlib target includes code to implent these
+ * For instance, the graw-xlib target includes code to implement these
  * interfaces on top of the X window system.
  *
  * Programs using this interface may additionally benefit from some of

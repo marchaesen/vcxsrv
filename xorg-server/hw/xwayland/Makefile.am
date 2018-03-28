@@ -11,6 +11,7 @@ Xwayland_CFLAGS =				\
 
 Xwayland_SOURCES =				\
 	xwayland.c				\
+	xwayland-present.c			\
 	xwayland-input.c			\
 	xwayland-cursor.c			\
 	xwayland-shm.c				\

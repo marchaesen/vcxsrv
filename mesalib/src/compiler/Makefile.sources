@@ -182,6 +182,8 @@ LIBGLCPP_GENERATED_FILES = \
 NIR_GENERATED_FILES = \
 	nir/nir_builder_opcodes.h \
 	nir/nir_constant_expressions.c \
+	nir/nir_intrinsics.c \
+	nir/nir_intrinsics.h \
 	nir/nir_opcodes.c \
 	nir/nir_opcodes.h \
 	nir/nir_opt_algebraic.c
@@ -202,8 +204,6 @@ NIR_FILES = \
 	nir/nir_inline_functions.c \
 	nir/nir_instr_set.c \
 	nir/nir_instr_set.h \
-	nir/nir_intrinsics.c \
-	nir/nir_intrinsics.h \
 	nir/nir_linking_helpers.c \
 	nir/nir_liveness.c \
 	nir/nir_loop_analyze.c \

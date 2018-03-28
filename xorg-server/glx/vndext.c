@@ -40,7 +40,8 @@
 #include "vndservervendor.h"
 
 int GlxErrorBase = 0;
-static CallbackListPtr vndInitCallbackList;
+static CallbackListRec vndInitCallbackList;
+static CallbackListPtr vndInitCallbackListPtr = &vndInitCallbackList;
 static DevPrivateKeyRec glvXGLVScreenPrivKey;
 static DevPrivateKeyRec glvXGLVClientPrivKey;
 
@@ -187,6 +188,14 @@ GLXReset(ExtensionEntry *extEntry)
     GlxVendorExtensionReset(extEntry);
     GlxDispatchReset();
     GlxMappingReset();
+
+    if ((dispatchException & DE_TERMINATE) == DE_TERMINATE) {
+        while (vndInitCallbackList.list != NULL) {
+            CallbackPtr next = vndInitCallbackList.list->next;
+            free(vndInitCallbackList.list);
+            vndInitCallbackList.list = next;
+        }
+    }
 }
 
 void
@@ -220,7 +229,7 @@ GlxExtensionInit(void)
     }
 
     GlxErrorBase = extEntry->errorBase;
-    CallCallbacks(&vndInitCallbackList, extEntry);
+    CallCallbacks(&vndInitCallbackListPtr, extEntry);
 }
 
 static int
@@ -280,7 +289,7 @@ _X_EXPORT const GlxServerExports glxServer = {
     .majorVersion = 0,
     .minorVersion = 0,
 
-    .extensionInitCallback = &vndInitCallbackList,
+    .extensionInitCallback = &vndInitCallbackListPtr,
 
     .allocateServerImports = GlxAllocateServerImports,
     .freeServerImports = GlxFreeServerImports,

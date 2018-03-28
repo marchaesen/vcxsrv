@@ -1064,7 +1064,6 @@ create_pixmap_for_fbcon(drmmode_ptr drmmode, ScrnInfoPtr pScrn, int fbcon_id)
 {
     PixmapPtr pixmap = drmmode->fbcon_pixmap;
     drmModeFBPtr fbcon;
-    struct drm_gem_flink flink;
     ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     Bool ret;
 
@@ -1079,12 +1078,6 @@ create_pixmap_for_fbcon(drmmode_ptr drmmode, ScrnInfoPtr pScrn, int fbcon_id)
         fbcon->width != pScrn->virtualX ||
         fbcon->height != pScrn->virtualY)
         goto out_free_fb;
-
-    flink.handle = fbcon->handle;
-    if (ioctl(drmmode->fd, DRM_IOCTL_GEM_FLINK, &flink) < 0) {
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Couldn't flink fbcon handle\n");
-        goto out_free_fb;
-    }
 
     pixmap = drmmode_create_pixmap_header(pScreen, fbcon->width,
                                           fbcon->height, fbcon->depth,

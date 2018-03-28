@@ -428,6 +428,8 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceInfo(
         }
     }
 
+    ValidBaseAlignments(pOut->baseAlign);
+
     return returnCode;
 }
 
@@ -895,6 +897,8 @@ ADDR_E_RETURNCODE Lib::ComputeFmaskInfo(
         }
     }
 
+    ValidBaseAlignments(pOut->baseAlign);
+
     return returnCode;
 }
 
@@ -1333,6 +1337,8 @@ ADDR_E_RETURNCODE Lib::ComputeHtileInfo(
         }
     }
 
+    ValidMetaBaseAlignments(pOut->baseAlign);
+
     return returnCode;
 }
 
@@ -1399,6 +1405,8 @@ ADDR_E_RETURNCODE Lib::ComputeCmaskInfo(
         }
     }
 
+    ValidMetaBaseAlignments(pOut->baseAlign);
+
     return returnCode;
 }
 
@@ -1443,9 +1451,11 @@ ADDR_E_RETURNCODE Lib::ComputeDccInfo(
             pIn = &input;
         }
 
-        if (ADDR_OK == ret)
+        if (ret == ADDR_OK)
         {
             ret = HwlComputeDccInfo(pIn, pOut);
+
+            ValidMetaBaseAlignments(pOut->dccRamBaseAlign);
         }
     }
 
@@ -3652,7 +3662,7 @@ VOID Lib::OptimizeTileMode(
                         tileMode = (thickness == 1) ?
                                    ADDR_TM_1D_TILED_THIN1 : ADDR_TM_1D_TILED_THICK;
                     }
-                    else if (thickness > 1)
+                    else if ((thickness > 1) && (pInOut->flags.disallowLargeThickDegrade == 0))
                     {
                         // As in the following HwlComputeSurfaceInfo, thick modes may be degraded to
                         // thinner modes, we should re-evaluate whether the corresponding

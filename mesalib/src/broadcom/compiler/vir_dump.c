@@ -71,6 +71,7 @@ vir_print_reg(struct v3d_compile *c, struct qreg reg)
                 break;
 
         case QFILE_TLB:
+        case QFILE_TLBU:
                 fprintf(stderr, "%s", files[reg.file]);
                 break;
 

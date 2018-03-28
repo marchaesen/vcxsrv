@@ -8,19 +8,19 @@ AM_TESTS_ENVIRONMENT= \
 	EXEEXT=${EXEEXT}; export EXEEXT; \
 	$(NULL)
 
-BUILT_SOURCES = out.expected
+BUILT_SOURCES = $(builddir)/out.expected
 
 SH_LOG_COMPILER = sh
 TESTS=run-test.sh
 
-TESTDATA=4x6.pcf 8x16.pcf out.expected fonts.conf.in
+TESTDATA=4x6.pcf 8x16.pcf fonts.conf.in
 
 if FREETYPE_PCF_LONG_FAMILY_NAMES
-$(srcdir)/out.expected: $(srcdir)/out.expected-long-family-names
-	cp $(srcdir)/out.expected-long-family-names $(srcdir)/out.expected
+$(builddir)/out.expected: $(srcdir)/out.expected-long-family-names Makefile
+	cp $(srcdir)/out.expected-long-family-names $(builddir)/out.expected
 else
-$(srcdir)/out.expected: $(srcdir)/out.expected-no-long-family-names
-	cp $(srcdir)/out.expected-no-long-family-names $(srcdir)/out.expected
+$(builddir)/out.expected: $(srcdir)/out.expected-no-long-family-names Makefile
+	cp $(srcdir)/out.expected-no-long-family-names $(builddir)/out.expected
 endif
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_builddir)
@@ -61,8 +61,6 @@ TESTS += test-name-parse
 
 EXTRA_DIST=run-test.sh $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 
-CLEANFILES=out fonts.conf
-
-MAINTAINERCLEANFILES=out.expected
+CLEANFILES=out fonts.conf out.expected
 
 -include $(top_srcdir)/git.mk

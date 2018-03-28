@@ -100,7 +100,8 @@ radv_get_device_name(enum radeon_family family, char *name, size_t name_len)
 	case CHIP_POLARIS11: chip_string = "AMD RADV POLARIS11"; break;
 	case CHIP_POLARIS12: chip_string = "AMD RADV POLARIS12"; break;
 	case CHIP_STONEY: chip_string = "AMD RADV STONEY"; break;
-	case CHIP_VEGA10: chip_string = "AMD RADV VEGA"; break;
+	case CHIP_VEGA10: chip_string = "AMD RADV VEGA10"; break;
+	case CHIP_VEGA12: chip_string = "AMD RADV VEGA12"; break;
 	case CHIP_RAVEN: chip_string = "AMD RADV RAVEN"; break;
 	default: chip_string = "AMD RADV unknown"; break;
 	}
@@ -290,7 +291,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 	if (device->rad_info.family == CHIP_STONEY ||
 	    device->rad_info.chip_class >= GFX9) {
 		device->has_rbplus = true;
-		device->rbplus_allowed = device->rad_info.family == CHIP_STONEY;
+		device->rbplus_allowed = device->rad_info.family == CHIP_STONEY ||
+					 device->rad_info.family == CHIP_VEGA12;
 	}
 
 	/* The mere presense of CLEAR_STATE in the IB causes random GPU hangs
@@ -1174,6 +1176,7 @@ radv_device_init_gs_info(struct radv_device *device)
 	case CHIP_POLARIS11:
 	case CHIP_POLARIS12:
 	case CHIP_VEGA10:
+	case CHIP_VEGA12:
 	case CHIP_RAVEN:
 		device->gs_table_depth = 32;
 		return;

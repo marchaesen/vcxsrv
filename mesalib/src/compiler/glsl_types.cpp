@@ -509,89 +509,30 @@ glsl_type::vec(unsigned components, const glsl_type *const ts[])
    return ts[n - 1];
 }
 
-#define VECN(components, sname, vname) ({        \
-      static const glsl_type *const ts[] = {     \
-         sname ## _type, vname ## 2_type,        \
-         vname ## 3_type, vname ## 4_type,       \
-         vname ## 8_type, vname ## 16_type,      \
-      };                                         \
-      glsl_type::vec(components, ts);            \
-   })
-
-const glsl_type *
-glsl_type::vec(unsigned components)
-{
-   return VECN(components, float, vec);
+#define VECN(components, sname, vname)           \
+const glsl_type *                                \
+glsl_type:: vname (unsigned components)          \
+{                                                \
+   static const glsl_type *const ts[] = {        \
+      sname ## _type, vname ## 2_type,           \
+      vname ## 3_type, vname ## 4_type,          \
+      vname ## 8_type, vname ## 16_type,         \
+   };                                            \
+   return glsl_type::vec(components, ts);        \
 }
 
-const glsl_type *
-glsl_type::f16vec(unsigned components)
-{
-   return VECN(components, float16_t, f16vec);
-}
-
-const glsl_type *
-glsl_type::dvec(unsigned components)
-{
-   return VECN(components, double, dvec);
-}
-
-const glsl_type *
-glsl_type::ivec(unsigned components)
-{
-   return VECN(components, int, ivec);
-}
-
-const glsl_type *
-glsl_type::uvec(unsigned components)
-{
-   return VECN(components, uint, uvec);
-}
-
-const glsl_type *
-glsl_type::bvec(unsigned components)
-{
-   return VECN(components, bool, bvec);
-}
-
-const glsl_type *
-glsl_type::i64vec(unsigned components)
-{
-   return VECN(components, int64_t, i64vec);
-}
-
-
-const glsl_type *
-glsl_type::u64vec(unsigned components)
-{
-   return VECN(components, uint64_t, u64vec);
-}
-
-const glsl_type *
-glsl_type::i16vec(unsigned components)
-{
-   return VECN(components, int16_t, i16vec);
-}
-
-
-const glsl_type *
-glsl_type::u16vec(unsigned components)
-{
-   return VECN(components, uint16_t, u16vec);
-}
-
-const glsl_type *
-glsl_type::i8vec(unsigned components)
-{
-   return VECN(components, int8_t, i8vec);
-}
-
-
-const glsl_type *
-glsl_type::u8vec(unsigned components)
-{
-   return VECN(components, uint8_t, u8vec);
-}
+VECN(components, float, vec)
+VECN(components, float16_t, f16vec)
+VECN(components, double, dvec)
+VECN(components, int, ivec)
+VECN(components, uint, uvec)
+VECN(components, bool, bvec)
+VECN(components, int64_t, i64vec)
+VECN(components, uint64_t, u64vec)
+VECN(components, int16_t, i16vec)
+VECN(components, uint16_t, u16vec)
+VECN(components, int8_t, i8vec)
+VECN(components, uint8_t, u8vec)
 
 const glsl_type *
 glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)

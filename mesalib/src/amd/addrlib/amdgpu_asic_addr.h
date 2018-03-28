@@ -85,6 +85,7 @@
 #define AMDGPU_STONEY_RANGE     0x61, 0xFF
 
 #define AMDGPU_VEGA10_RANGE     0x01, 0x14
+#define AMDGPU_VEGA12_RANGE     0x14, 0x28
 
 #define AMDGPU_RAVEN_RANGE      0x01, 0x81
 
@@ -123,6 +124,8 @@
 
 #define ASICREV_IS_VEGA10_M(r)         ASICREV_IS(r, VEGA10)
 #define ASICREV_IS_VEGA10_P(r)         ASICREV_IS(r, VEGA10)
+#define ASICREV_IS_VEGA12_P(r)         ASICREV_IS(r, VEGA12)
+#define ASICREV_IS_VEGA12_p(r)         ASICREV_IS(r, VEGA12)
 
 #define ASICREV_IS_RAVEN(r)            ASICREV_IS(r, RAVEN)
 

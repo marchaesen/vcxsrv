@@ -26,7 +26,7 @@
 .\" Authors:
 .\"   Rickard E. (Rik) Faith <faith@redhat.com>
 .\"
-.TH xdmxconfig 1 __vendorversion__
+.TH xdmxconfig 1 @vendorversion@
 .SH NAME
 xdmxconfig - a graphical configuration tool for Xdmx configuration files
 .SH SYNOPSIS

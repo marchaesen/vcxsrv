@@ -64,7 +64,8 @@ EXTRA_DIST = \
 	meson_options.txt \
 	bin/meson.build \
 	include/meson.build \
-	bin/install_megadrivers.py
+	bin/install_megadrivers.py \
+	bin/meson_get_version.py
 
 noinst_HEADERS = \
 	include/c99_alloca.h \

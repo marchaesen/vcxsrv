@@ -3468,22 +3468,20 @@ VOID SiLib::HwlSelectTileMode(
 
 /**
 ****************************************************************************************************
-*   SiLib::HwlGetMaxAlignments
+*   SiLib::HwlComputeMaxBaseAlignments
 *
 *   @brief
 *       Gets maximum alignments
 *   @return
-*       ADDR_E_RETURNCODE
+*       maximum alignments
 ****************************************************************************************************
 */
-ADDR_E_RETURNCODE SiLib::HwlGetMaxAlignments(
-    ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut    ///< [out] output structure
-    ) const
+UINT_32 SiLib::HwlComputeMaxBaseAlignments() const
 {
     const UINT_32 pipes = HwlGetPipes(&m_tileTable[0].info);
 
     // Initial size is 64 KiB for PRT.
-    UINT_64 maxBaseAlign = 64 * 1024;
+    UINT_32 maxBaseAlign = 64 * 1024;
 
     for (UINT_32 i = 0; i < m_noOfEntries; i++)
     {
@@ -3494,7 +3492,7 @@ ADDR_E_RETURNCODE SiLib::HwlGetMaxAlignments(
             UINT_32 tileSize = Min(m_tileTable[i].info.tileSplitBytes,
                                    MicroTilePixels * 8 * 16);
 
-            UINT_64 baseAlign = tileSize * pipes * m_tileTable[i].info.banks *
+            UINT_32 baseAlign = tileSize * pipes * m_tileTable[i].info.banks *
                                 m_tileTable[i].info.bankWidth * m_tileTable[i].info.bankHeight;
 
             if (baseAlign > maxBaseAlign)
@@ -3504,12 +3502,29 @@ ADDR_E_RETURNCODE SiLib::HwlGetMaxAlignments(
         }
     }
 
-    if (pOut != NULL)
+    return maxBaseAlign;
+}
+
+/**
+****************************************************************************************************
+*   SiLib::HwlComputeMaxMetaBaseAlignments
+*
+*   @brief
+*       Gets maximum alignments for metadata
+*   @return
+*       maximum alignments for metadata
+****************************************************************************************************
+*/
+UINT_32 SiLib::HwlComputeMaxMetaBaseAlignments() const
+{
+    UINT_32 maxPipe = 1;
+
+    for (UINT_32 i = 0; i < m_noOfEntries; i++)
     {
-        pOut->baseAlign = maxBaseAlign;
+        maxPipe = Max(maxPipe, HwlGetPipes(&m_tileTable[i].info));
     }
 
-    return ADDR_OK;
+    return m_pipeInterleaveBytes * maxPipe;
 }
 
 /**

@@ -94,7 +94,7 @@ BUILT_SOURCES = $(ALIAS_FILES) \
 	../fc-case/fccase.h \
 	../fc-lang/fclang.h \
 	stamp-fcstdint \
-	fcobjshash.h \
+	$(builddir)/fcobjshash.h \
 	fcobjshash.gperf
 
 noinst_PROGRAMS = fcarch
@@ -119,7 +119,7 @@ stamp-fcobjshash.gperf: fcobjshash.gperf.h fcobjs.h
 	' - > $@.tmp && \
 	mv -f $@.tmp fcobjshash.gperf && touch $@ || ( $(RM) $@.tmp && false )
 
-fcobjshash.h: Makefile fcobjshash.gperf
+$(builddir)/fcobjshash.h: Makefile fcobjshash.gperf
 	$(AM_V_GEN) $(GPERF) --pic -m 100 fcobjshash.gperf > $@.tmp && \
 	mv -f $@.tmp $@ || ( $(RM) $@.tmp && false )
 
@@ -151,7 +151,6 @@ libfontconfig_la_SOURCES = \
 	fcname.c \
 	fcobjs.c \
 	fcobjs.h \
-	fcobjshash.h \
 	fcpat.c \
 	fcrange.c \
 	fcserialize.c \
@@ -201,12 +200,15 @@ stamp-fcstdint: $(top_builddir)/config.status
 	$(SHELL) ./config.status src/fcstdint.h
 	@touch $@
 
-CLEANFILES = $(ALIAS_FILES) fontconfig.def
+CLEANFILES =		\
+	$(ALIAS_FILES)	\
+	fontconfig.def	\
+	$(builddir)/fcobjshash.h
+
 DISTCLEANFILES = 	\
 	stamp-fcstdint	\
 	fcstdint.h	\
 	stamp-fcobjshash.gperf	\
-	fcobjshash.h	\
 	fcobjshash.gperf
 
 fontconfig.def: $(PUBLIC_FILES) $(PUBLIC_FT_FILES)

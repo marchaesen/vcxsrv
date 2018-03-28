@@ -28,7 +28,30 @@ subdir('input')
 subdir('examples')
 # XXX: subdir('doc')
 # XXX: subdir('doxygen')
-# XXX: subdir('man')
+
+install_man(configure_file(
+    input: 'man/Xdmx.man',
+    output: 'Xdmx.1',
+    configuration: manpage_config,
+))
+
+install_man(configure_file(
+    input: 'config/man/dmxtodmx.man',
+    output: 'dmxtodmx.1',
+    configuration: manpage_config,
+))
+
+install_man(configure_file(
+    input: 'config/man/vdltodmx.man',
+    output: 'vdltodmx.1',
+    configuration: manpage_config,
+))
+
+install_man(configure_file(
+    input: 'config/man/xdmxconfig.man',
+    output: 'xdmxconfig.1',
+    configuration: manpage_config,
+))
 
 dmx_dep = [
     common_dep,

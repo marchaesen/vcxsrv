@@ -528,7 +528,8 @@ typedef union _ADDR_SURFACE_FLAGS
         UINT_32 preferEquation       : 1; ///< Return equation index without adjusting tile mode
         UINT_32 matchStencilTileCfg  : 1; ///< Select tile index of stencil as well as depth surface
                                           ///  to make sure they share same tile config parameters
-        UINT_32 reserved             : 2; ///< Reserved bits
+        UINT_32 disallowLargeThickDegrade   : 1;    ///< Disallow large thick tile degrade
+        UINT_32 reserved             : 1; ///< Reserved bits
     };
 
     UINT_32 value;
@@ -2273,7 +2274,7 @@ typedef struct _ADDR_COMPUTE_DCCINFO_INPUT
 typedef struct _ADDR_COMPUTE_DCCINFO_OUTPUT
 {
     UINT_32 size;                 ///< Size of this structure in bytes
-    UINT_64 dccRamBaseAlign;      ///< Base alignment of dcc key
+    UINT_32 dccRamBaseAlign;      ///< Base alignment of dcc key
     UINT_64 dccRamSize;           ///< Size of dcc key
     UINT_64 dccFastClearSize;     ///< Size of dcc key portion that can be fast cleared
     BOOL_32 subLvlCompressible;   ///< Whether sub resource is compressiable
@@ -2298,17 +2299,17 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeDccInfo(
 
 /**
 ****************************************************************************************************
-*   ADDR_GET_MAX_ALIGNMENTS_OUTPUT
+*   ADDR_GET_MAX_ALINGMENTS_OUTPUT
 *
 *   @brief
 *       Output structure of AddrGetMaxAlignments
 ****************************************************************************************************
 */
-typedef struct _ADDR_GET_MAX_ALIGNMENTS_OUTPUT
+typedef struct _ADDR_GET_MAX_ALINGMENTS_OUTPUT
 {
     UINT_32 size;                   ///< Size of this structure in bytes
-    UINT_64 baseAlign;              ///< Maximum base alignment in bytes
-} ADDR_GET_MAX_ALIGNMENTS_OUTPUT;
+    UINT_32 baseAlign;              ///< Maximum base alignment in bytes
+} ADDR_GET_MAX_ALINGMENTS_OUTPUT;
 
 /**
 ****************************************************************************************************
@@ -2320,9 +2321,19 @@ typedef struct _ADDR_GET_MAX_ALIGNMENTS_OUTPUT
 */
 ADDR_E_RETURNCODE ADDR_API AddrGetMaxAlignments(
     ADDR_HANDLE                     hLib,
-    ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut);
+    ADDR_GET_MAX_ALINGMENTS_OUTPUT* pOut);
 
-
+/**
+****************************************************************************************************
+*   AddrGetMaxMetaAlignments
+*
+*   @brief
+*       Gets maximnum alignments for metadata
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API AddrGetMaxMetaAlignments(
+    ADDR_HANDLE                     hLib,
+    ADDR_GET_MAX_ALINGMENTS_OUTPUT* pOut);
 
 /**
 ****************************************************************************************************
@@ -2366,22 +2377,25 @@ typedef union _ADDR2_SURFACE_FLAGS
 {
     struct
     {
-        UINT_32 color         :  1; ///< This resource is a color buffer, can be used with RTV
-        UINT_32 depth         :  1; ///< Thie resource is a depth buffer, can be used with DSV
-        UINT_32 stencil       :  1; ///< Thie resource is a stencil buffer, can be used with DSV
-        UINT_32 fmask         :  1; ///< This is an fmask surface
-        UINT_32 overlay       :  1; ///< This is an overlay surface
-        UINT_32 display       :  1; ///< This resource is displable, can be used with DRV
-        UINT_32 prt           :  1; ///< This is a partially resident texture
-        UINT_32 qbStereo      :  1; ///< This is a quad buffer stereo surface
-        UINT_32 interleaved   :  1; ///< Special flag for interleaved YUV surface padding
-        UINT_32 texture       :  1; ///< This resource can be used with SRV
-        UINT_32 unordered     :  1; ///< This resource can be used with UAV
-        UINT_32 rotated       :  1; ///< This resource is rotated and displable
-        UINT_32 needEquation  :  1; ///< This resource needs equation to be generated if possible
-        UINT_32 opt4space     :  1; ///< This resource should be optimized for space
-        UINT_32 minimizeAlign :  1; ///< This resource should use minimum alignment
-        UINT_32 reserved      : 17; ///< Reserved bits
+        UINT_32 color             :  1; ///< This resource is a color buffer, can be used with RTV
+        UINT_32 depth             :  1; ///< Thie resource is a depth buffer, can be used with DSV
+        UINT_32 stencil           :  1; ///< Thie resource is a stencil buffer, can be used with DSV
+        UINT_32 fmask             :  1; ///< This is an fmask surface
+        UINT_32 overlay           :  1; ///< This is an overlay surface
+        UINT_32 display           :  1; ///< This resource is displable, can be used with DRV
+        UINT_32 prt               :  1; ///< This is a partially resident texture
+        UINT_32 qbStereo          :  1; ///< This is a quad buffer stereo surface
+        UINT_32 interleaved       :  1; ///< Special flag for interleaved YUV surface padding
+        UINT_32 texture           :  1; ///< This resource can be used with SRV
+        UINT_32 unordered         :  1; ///< This resource can be used with UAV
+        UINT_32 rotated           :  1; ///< This resource is rotated and displable
+        UINT_32 needEquation      :  1; ///< This resource needs equation to be generated if possible
+        UINT_32 opt4space         :  1; ///< This resource should be optimized for space
+        UINT_32 minimizeAlign     :  1; ///< This resource should use minimum alignment
+        UINT_32 noMetadata        :  1; ///< This resource has no metadata
+        UINT_32 metaRbUnaligned   :  1; ///< This resource has rb unaligned metadata
+        UINT_32 metaPipeUnaligned :  1; ///< This resource has pipe unaligned metadata
+        UINT_32 reserved          : 14; ///< Reserved bits
     };
 
     UINT_32 value;

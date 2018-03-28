@@ -85,6 +85,7 @@ xorg_common = static_library('xorg_common',
         common_dep,
         dbus_dep,
         pciaccess_dep,
+        libdrm_dep,
     ],
     c_args: xorg_c_args,
 )

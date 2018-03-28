@@ -100,11 +100,13 @@ BOOL_32 EgBasedLib::DispatchComputeSurfaceInfo(
 
     ADDR_TILEINFO       tileInfoDef   = {0};
     ADDR_TILEINFO*      pTileInfo     = &tileInfoDef;
-
-    UINT_32             padDims = 0;
+    UINT_32             padDims       = 0;
     BOOL_32             valid;
 
-    tileMode = DegradeLargeThickTile(tileMode, bpp);
+    if (pIn->flags.disallowLargeThickDegrade == 0)
+    {
+        tileMode = DegradeLargeThickTile(tileMode, bpp);
+    }
 
     // Only override numSamples for NI above
     if (m_chipFamily >= ADDR_CHIP_FAMILY_NI)

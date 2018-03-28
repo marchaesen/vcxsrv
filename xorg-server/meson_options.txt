@@ -19,8 +19,9 @@ option('builder_addr', type: 'string', description: 'Builder address', value: 'x
 option('builder_string', type: 'string', description: 'Additional builder string')
 
 option('log_dir', type: 'string')
-option('module_dir', type: 'string',
+option('module_dir', type: 'string', value: 'xorg/modules',
        description: 'X.Org modules directory')
+option('default_font_path', type: 'string')
 
 option('glx', type: 'boolean', value: true)
 option('xdmcp', type: 'boolean', value: true)
@@ -45,7 +46,8 @@ option('os_vendor', type: 'string', value: '')
 option('int10', type: 'combo', choices: ['stub', 'x86emu', 'vm86', 'auto', 'false'],
        value: 'auto',
        description: 'Xorg int10 backend (default: usually x86emu)')
-
+option('suid_wrapper', type: 'boolean', value: 'false',
+       description: 'SUID wrapper for legacy driver support')
 option('pciaccess', type: 'boolean', value: 'true',
        description: 'Xorg pciaccess support')
 option('udev', type: 'boolean', value: 'true')

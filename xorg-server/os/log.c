@@ -296,7 +296,7 @@ LogInit(const char *fname, const char *backup)
 void
 LogSetDisplay(void)
 {
-    if (saved_log_fname) {
+    if (saved_log_fname && strstr(saved_log_fname, "%s")) {
         char *logFileName;
 
         logFileName = LogFilePrep(saved_log_fname, saved_log_backup, display);

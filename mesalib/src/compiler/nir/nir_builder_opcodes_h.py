@@ -41,9 +41,31 @@ nir_${name}(nir_builder *build, ${src_decl_list(opcode.num_inputs)})
 }
 % endfor
 
+/* Generic builder for system values. */
+static inline nir_ssa_def *
+nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index)
+{
+   nir_intrinsic_instr *load = nir_intrinsic_instr_create(build->shader, op);
+   load->num_components = nir_intrinsic_infos[op].dest_components;
+   load->const_index[0] = index;
+   nir_ssa_dest_init(&load->instr, &load->dest,
+                     nir_intrinsic_infos[op].dest_components, 32, NULL);
+   nir_builder_instr_insert(build, &load->instr);
+   return &load->dest.ssa;
+}
+
+% for name, opcode in filter(lambda v: v[1].sysval, sorted(INTR_OPCODES.iteritems())):
+static inline nir_ssa_def *
+nir_${name}(nir_builder *build)
+{
+   return nir_load_system_value(build, nir_intrinsic_${name}, 0);
+}
+% endfor
+
 #endif /* _NIR_BUILDER_OPCODES_ */"""
 
 from nir_opcodes import opcodes
+from nir_intrinsics import INTR_OPCODES
 from mako.template import Template
 
-print Template(template).render(opcodes=opcodes)
+print Template(template).render(opcodes=opcodes, INTR_OPCODES=INTR_OPCODES)

@@ -1,7 +1,7 @@
 .\" $XdotOrg: xserver/xorg/hw/xfree86/doc/man/Xorg.man.pre,v 1.3 2005/07/04 18:41:01 ajax Exp $
 .\" shorthand for double quote that works everywhere.
 .ds q \N'34'
-.TH Xorg __appmansuffix__ __vendorversion__
+.TH Xorg @appmansuffix@ @vendorversion@
 .SH NAME
 Xorg - X11R7 X server
 .SH SYNOPSIS
@@ -33,8 +33,8 @@ free/OpenSource UNIX-like systems such as Linux, FreeBSD, NetBSD,
 OpenBSD, and Solaris.  Commercial UNIX operating systems such as
 UnixWare are also supported.  Other supported operating systems include
 GNU Hurd.  Mac OS X is supported with the
-Xquartz(__appmansuffix__) X server.  Win32/Cygwin is supported with the
-XWin(__appmansuffix__) X server.
+Xquartz(@appmansuffix@) X server.  Win32/Cygwin is supported with the
+XWin(@appmansuffix@) X server.
 .PP
 .SH "NETWORK CONNECTIONS"
 .B Xorg
@@ -45,7 +45,7 @@ byte-streams:
 On most platforms, the "Local" connection type is a UNIX-domain socket.
 On some System V platforms, the "local" connection types also include
 STREAMS pipes, named pipes, and some other mechanisms.  See the
-"LOCAL CONNECTIONS" section of X(__miscmansuffix__) for details.
+"LOCAL CONNECTIONS" section of X(@miscmansuffix@) for details.
 .TP 4
 .I TCP/IP
 .B Xorg
@@ -61,20 +61,20 @@ option (see the Xserver(1) man page for details).
 .B Xorg
 supports several mechanisms for supplying/obtaining configuration and
 run-time parameters: command line options, environment variables, the
-xorg.conf(__filemansuffix__) configuration files, auto-detection, and
+xorg.conf(@filemansuffix@) configuration files, auto-detection, and
 fallback defaults.  When the same information is supplied in more than
 one way, the highest precedence mechanism is used.  The list of mechanisms
 is ordered from highest precedence to lowest.  Note that not all parameters
 can be supplied via all methods.  The available command line options
 and environment variables (and some defaults) are described here and in
-the Xserver(__appmansuffix__) manual page.  Most configuration file
+the Xserver(@appmansuffix@) manual page.  Most configuration file
 parameters, with their defaults, are described in the
-xorg.conf(__filemansuffix__) manual page.  Driver and module specific
+xorg.conf(@filemansuffix@) manual page.  Driver and module specific
 configuration parameters are described in the relevant driver or module
 manual page.
 .PP
 In addition to the normal server options described in the
-Xserver(__appmansuffix__) manual page,
+Xserver(@appmansuffix@) manual page,
 .B Xorg
 accepts the following command line switches:
 .TP 8
@@ -92,14 +92,14 @@ as Linux, BSD, OpenSolaris, SVR3, and SVR4.
 Allow the server to start up even if the mouse device can't be opened
 or initialised.  This is equivalent to the
 .B AllowMouseOpenFail
-xorg.conf(__filemansuffix__) file option.
+xorg.conf(@filemansuffix@) file option.
 .TP 8
 .B \-allowNonLocalXvidtune
 Make the VidMode extension available to remote clients.  This allows
 the xvidtune client to connect from another host.  This is equivalent
 to the
 .B AllowNonLocalXvidtune
-xorg.conf(__filemansuffix__) file option.  By default non-local
+xorg.conf(@filemansuffix@) file option.  By default non-local
 connections are not allowed.
 .TP 8
 .BI \-bgamma " value"
@@ -139,7 +139,7 @@ config directory search path for all other users.
 When this option is specified, the
 .B Xorg
 server loads all video driver modules, probes for available hardware,
-and writes out an initial xorg.conf(__filemansuffix__) file based on
+and writes out an initial xorg.conf(@filemansuffix@) file based on
 what was detected.  This option currently has some problems on some
 platforms, but in most cases it is a good way to bootstrap the
 configuration process.  This option is only available when the server
@@ -159,7 +159,7 @@ Disable the parts of the VidMode extension (used by the xvidtune
 client) that can be used to change the video modes.  This is equivalent
 to the
 .B DisableVidModeExtension
-xorg.conf(__filemansuffix__) file option.
+xorg.conf(@filemansuffix@) file option.
 .TP 8
 .B \-fbbpp \fIn\fP
 Sets the number of framebuffer bits per pixel.  You should only set this
@@ -226,7 +226,7 @@ want to use systemd-logind integration you must specify this option.
 Not all platforms support (or can use) this option.
 .TP 8
 .BI \-keyboard " keyboard-name"
-Use the xorg.conf(__filemansuffix__) file
+Use the xorg.conf(@filemansuffix@) file
 .B InputDevice
 section called
 .I keyboard-name
@@ -238,7 +238,7 @@ section and this option, the first relevant
 section is used for the core keyboard.
 .TP 8
 .BI \-layout " layout-name"
-Use the xorg.conf(__filemansuffix__) file
+Use the xorg.conf(@filemansuffix@) file
 .B Layout
 section called
 .IR layout-name .
@@ -252,7 +252,7 @@ Use the file called
 as the
 .B Xorg
 server log file.  The default log file when running as root is
-.BI __logdir__/Xorg. n .log
+.BI @logdir@/Xorg. n .log
 and for non root it is
 .BI $XDG_DATA_HOME/xorg/Xorg. n .log
 where
@@ -291,7 +291,7 @@ Disable the automatic switching on X server reset and shutdown to the
 VT that was active when the server started, if supported by the OS.
 .TP 8
 .BI \-pointer " pointer-name"
-Use the xorg.conf(__filemansuffix__) file
+Use the xorg.conf(@filemansuffix@) file
 .B InputDevice
 section called
 .I pointer-name
@@ -321,7 +321,7 @@ options.
 Share virtual terminals with another X server, if supported by the OS.
 .TP 8
 .BI \-screen " screen-name"
-Use the xorg.conf(__filemansuffix__) file
+Use the xorg.conf(@filemansuffix@) file
 .B Screen
 section called
 .IR screen-name .
@@ -385,7 +385,7 @@ keymap.
 Immediately kills the server -- no questions asked. It can be disabled by
 setting the
 .B DontZap
-xorg.conf(__filemansuffix__) file option to a TRUE value.
+xorg.conf(@filemansuffix@) file option to a TRUE value.
 .PP
 .RS 8
 It should be noted that zapping is triggered by the
@@ -399,20 +399,20 @@ but can be enabled with the XKB option
 Change video mode to next one specified in the configuration file.
 This can be disabled with the
 .B DontZoom
-xorg.conf(__filemansuffix__) file option.
+xorg.conf(@filemansuffix@) file option.
 .TP 8
 .B Ctrl+Alt+Keypad-Minus
 Change video mode to previous one specified in the configuration file.
 This can be disabled with the
 .B DontZoom
-xorg.conf(__filemansuffix__) file option.
+xorg.conf(@filemansuffix@) file option.
 .TP 8
 .B Ctrl+Alt+F1...F12
 For systems with virtual terminal support, these keystroke
 combinations are used to switch to virtual terminals 1 through 12,
 respectively.  This can be disabled with the
 .B DontVTSwitch
-xorg.conf(__filemansuffix__) file option.
+xorg.conf(@filemansuffix@) file option.
 .SH CONFIGURATION
 .B Xorg
 typically uses a configuration file called
@@ -420,9 +420,9 @@ typically uses a configuration file called
 and configuration files with the suffix
 .I .conf
 in a directory called
-.B __xconfigdir__
+.B @xconfigdir@
 for its initial setup.
-Refer to the xorg.conf(__filemansuffix__) manual page for information
+Refer to the xorg.conf(@filemansuffix@) manual page for information
 about the format of this file.
 .PP
 .B Xorg
@@ -430,7 +430,7 @@ has a mechanism for automatically generating a built-in configuration
 at run-time when no
 .B xorg.conf
 file or
-.B __xconfigdir__
+.B @xconfigdir@
 files are present.  The current version of this automatic configuration
 mechanism works in two ways.
 .PP
@@ -454,7 +454,7 @@ supported by Xorg.  Enhancements are planned for future releases.
 The
 .B Xorg
 server config files can be found in a range of locations.  These are
-documented fully in the xorg.conf(__filemansuffix__) manual page.  The
+documented fully in the xorg.conf(@filemansuffix@) manual page.  The
 most commonly used locations are shown here.
 .TP 30
 .B /etc/X11/xorg.conf
@@ -466,95 +466,95 @@ Server configuration file.
 .B /etc/xorg.conf
 Server configuration file.
 .TP 30
-.B __projectroot__/etc/xorg.conf
+.B @projectroot@/etc/xorg.conf
 Server configuration file.
 .TP 30
-.B __projectroot__/lib/X11/xorg.conf
+.B @projectroot@/lib/X11/xorg.conf
 Server configuration file.
 .TP 30
-.B /etc/X11/__xconfigdir__
+.B /etc/X11/@xconfigdir@
 Server configuration directory.
 .TP 30
-.B /etc/X11/__xconfigdir__-4
+.B /etc/X11/@xconfigdir@-4
 Server configuration directory.
 .TP 30
-.B /etc/__xconfigdir__
+.B /etc/@xconfigdir@
 Server configuration directory.
 .TP 30
-.B __projectroot__/etc/__xconfigdir__
+.B @projectroot@/etc/@xconfigdir@
 Server configuration directory.
 .TP 30
-.B __projectroot__/lib/X11/__xconfigdir__
+.B @projectroot@/lib/X11/@xconfigdir@
 Server configuration directory.
 .TP 30
-.BI __logdir__/Xorg. n .log
+.BI @logdir@/Xorg. n .log
 Server log file for display
 .IR n .
 .TP 30
-.B __projectroot__/bin/\(**
+.B @projectroot@/bin/\(**
 Client binaries.
 .TP 30
-.B __projectroot__/include/\(**
+.B @projectroot@/include/\(**
 Header files.
 .TP 30
-.B __projectroot__/lib/\(**
+.B @projectroot@/lib/\(**
 Libraries.
 .TP 30
-.B __datadir__/fonts/X11/\(**
+.B @datadir@/fonts/X11/\(**
 Fonts.
 .TP 30
-.B __projectroot__/share/X11/XErrorDB
+.B @projectroot@/share/X11/XErrorDB
 Client error message database.
 .TP 30
-.B __projectroot__/lib/X11/app-defaults/\(**
+.B @projectroot@/lib/X11/app-defaults/\(**
 Client resource specifications.
 .TP 30
-.B __mandir__/man?/\(**
+.B @mandir@/man?/\(**
 Manual pages.
 .TP 30
 .BI /etc/X n .hosts
 Initial access control list for display
 .IR n .
 .SH "SEE ALSO"
-X(__miscmansuffix__), Xserver(__appmansuffix__), xdm(__appmansuffix__), xinit(__appmansuffix__),
-xorg.conf(__filemansuffix__), xvidtune(__appmansuffix__),
-xkeyboard-config (__miscmansuffix__),
-apm(__drivermansuffix__),
-ati(__drivermansuffix__),
-chips(__drivermansuffix__),
-cirrus(__drivermansuffix__),
-cyrix(__drivermansuffix__),
-fbdev(__drivermansuffix__),
-glide(__drivermansuffix__),
-glint(__drivermansuffix__),
-i128(__drivermansuffix__),
-i740(__drivermansuffix__),
-imstt(__drivermansuffix__),
-intel(__drivermansuffix__),
-mga(__drivermansuffix__),
-neomagic(__drivermansuffix__),
-nsc(__drivermansuffix__),
-nv(__drivermansuffix__),
-openchrome (__drivermansuffix__),
-r128(__drivermansuffix__),
-rendition(__drivermansuffix__),
-s3virge(__drivermansuffix__),
-siliconmotion(__drivermansuffix__),
-sis(__drivermansuffix__),
-sunbw2(__drivermansuffix__),
-suncg14(__drivermansuffix__),
-suncg3(__drivermansuffix__),
-suncg6(__drivermansuffix__),
-sunffb(__drivermansuffix__),
-sunleo(__drivermansuffix__),
-suntcx(__drivermansuffix__),
-tdfx(__drivermansuffix__),
-tga(__drivermansuffix__),
-trident(__drivermansuffix__),
-tseng(__drivermansuffix__),
-v4l(__drivermansuffix__),
-vesa(__drivermansuffix__),
-vmware(__drivermansuffix__),
+X(@miscmansuffix@), Xserver(@appmansuffix@), xdm(@appmansuffix@), xinit(@appmansuffix@),
+xorg.conf(@filemansuffix@), xvidtune(@appmansuffix@),
+xkeyboard-config (@miscmansuffix@),
+apm(@drivermansuffix@),
+ati(@drivermansuffix@),
+chips(@drivermansuffix@),
+cirrus(@drivermansuffix@),
+cyrix(@drivermansuffix@),
+fbdev(@drivermansuffix@),
+glide(@drivermansuffix@),
+glint(@drivermansuffix@),
+i128(@drivermansuffix@),
+i740(@drivermansuffix@),
+imstt(@drivermansuffix@),
+intel(@drivermansuffix@),
+mga(@drivermansuffix@),
+neomagic(@drivermansuffix@),
+nsc(@drivermansuffix@),
+nv(@drivermansuffix@),
+openchrome (@drivermansuffix@),
+r128(@drivermansuffix@),
+rendition(@drivermansuffix@),
+s3virge(@drivermansuffix@),
+siliconmotion(@drivermansuffix@),
+sis(@drivermansuffix@),
+sunbw2(@drivermansuffix@),
+suncg14(@drivermansuffix@),
+suncg3(@drivermansuffix@),
+suncg6(@drivermansuffix@),
+sunffb(@drivermansuffix@),
+sunleo(@drivermansuffix@),
+suntcx(@drivermansuffix@),
+tdfx(@drivermansuffix@),
+tga(@drivermansuffix@),
+trident(@drivermansuffix@),
+tseng(@drivermansuffix@),
+v4l(@drivermansuffix@),
+vesa(@drivermansuffix@),
+vmware(@drivermansuffix@),
 .br
 Web site
 .IR <http://www.x.org> .

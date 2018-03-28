@@ -1793,7 +1793,7 @@ visit_store_var(struct ac_nir_context *ctx,
 	int idx = instr->variables[0]->var->data.driver_location;
 	unsigned comp = instr->variables[0]->var->data.location_frac;
 	LLVMValueRef src = ac_to_float(&ctx->ac, get_src(ctx, instr->src[0]));
-	int writemask = instr->const_index[0] << comp;
+	int writemask = instr->const_index[0];
 	LLVMValueRef indir_index;
 	unsigned const_index;
 	get_deref_offset(ctx, instr->variables[0], false,
@@ -1807,6 +1807,8 @@ visit_store_var(struct ac_nir_context *ctx,
 
 		writemask = widen_mask(writemask, 2);
 	}
+
+	writemask = writemask << comp;
 
 	switch (instr->variables[0]->var->data.mode) {
 	case nir_var_shader_out:
@@ -3028,6 +3030,7 @@ static LLVMValueRef get_sampler_desc(struct ac_nir_context *ctx,
 	unsigned constant_index = 0;
 	unsigned descriptor_set;
 	unsigned base_index;
+	bool bindless = false;
 
 	if (!deref) {
 		assert(tex_instr && !image);
@@ -3061,14 +3064,20 @@ static LLVMValueRef get_sampler_desc(struct ac_nir_context *ctx,
 			tail = &child->deref;
 		}
 		descriptor_set = deref->var->data.descriptor_set;
-		base_index = deref->var->data.binding;
+
+		if (deref->var->data.bindless) {
+			bindless = deref->var->data.bindless;
+			base_index = deref->var->data.driver_location;
+		} else {
+			base_index = deref->var->data.binding;
+		}
 	}
 
 	return ctx->abi->load_sampler_desc(ctx->abi,
 					  descriptor_set,
 					  base_index,
 					  constant_index, index,
-					  desc_type, image, write);
+					  desc_type, image, write, bindless);
 }
 
 static void set_tex_fetch_args(struct ac_llvm_context *ctx,

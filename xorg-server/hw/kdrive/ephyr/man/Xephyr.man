@@ -13,7 +13,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.TH Xephyr __appmansuffix__ __vendorversion__
+.TH Xephyr @appmansuffix@ @vendorversion@
 .SH NAME
 Xephyr - X server outputting to a window on a pre-existing X display
 .SH SYNOPSIS
@@ -39,7 +39,7 @@ uses the host X server window as "framebuffer" via fast SHM XImages.
 It also has support for "visually" debugging what the server is
 painting.
 .SH OPTIONS
-The server accepts all the standard options of Xserver(__appmansuffix__)
+The server accepts all the standard options of Xserver(@appmansuffix@)
 and the following additional options:
 .TP 8
 .BI -screen " width" x height
@@ -91,6 +91,6 @@ Keyboard handling is basic but works.
 .IP \(bu 2
 Mouse button 5 probably won't work.
 .SH "SEE ALSO"
-X(__miscmansuffix__), Xserver(__appmansuffix__)
+X(@miscmansuffix@), Xserver(@appmansuffix@)
 .SH AUTHOR
 Matthew Allum <mallum@o-hand.com> 2004
