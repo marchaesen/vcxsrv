@@ -108,7 +108,7 @@ winCreateBoundingWindowFullScreen(ScreenPtr pScreen)
                              iHeight,   /* Bottom edge */
                              (HWND) NULL,       /* No parent or owner window */
                              (HMENU) NULL,      /* No menu */
-                             GetModuleHandle(NULL),     /* Instance handle */
+                             g_hInstance,     /* Instance handle */
                              pScreenPriv);      /* ScreenPrivates */
 
     /* Hide the window */
@@ -318,7 +318,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
                              iHeight,   /* Bottom edge */
                              (HWND) NULL,       /* No parent or owner window */
                              (HMENU) NULL,      /* No menu */
-                             GetModuleHandle(NULL),     /* Instance handle */
+                             g_hInstance,     /* Instance handle */
                              pScreenPriv);      /* ScreenPrivates */
     if (*phwnd == NULL) {
         ErrorF("winCreateBoundingWindowWindowed - CreateWindowEx () failed\n");

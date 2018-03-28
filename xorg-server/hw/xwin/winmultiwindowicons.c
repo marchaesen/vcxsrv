@@ -335,40 +335,6 @@ NetWMToWinIconThreshold(uint32_t * icon)
     return result;
 }
 
-static HICON
-NetWMToWinIcon(int bpp, uint32_t * icon)
-{
-    static bool hasIconAlphaChannel = FALSE;
-    static bool versionChecked = FALSE;
-
-    if (!versionChecked) {
-        OSVERSIONINFOEX osvi = { 0 };
-        ULONGLONG dwlConditionMask = 0;
-
-        osvi.dwOSVersionInfoSize = sizeof(osvi);
-        osvi.dwMajorVersion = 5;
-        osvi.dwMinorVersion = 1;
-
-        /* Windows versions later than XP have icon alpha channel suport, 2000 does not */
-        VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION,
-                          VER_GREATER_EQUAL);
-        VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION,
-                          VER_GREATER_EQUAL);
-        hasIconAlphaChannel =
-            VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION,
-                              dwlConditionMask);
-        versionChecked = TRUE;
-
-        winDebug("OS has icon alpha channel support: %s\n",
-               hasIconAlphaChannel ? "yes" : "no");
-    }
-
-    if (hasIconAlphaChannel && (bpp == 32))
-        return NetWMToWinIconAlpha(icon);
-    else
-        return NetWMToWinIconThreshold(icon);
-}
-
 /*
  * Attempt to create a custom icon from the WM_HINTS bitmaps
  */
@@ -442,7 +408,7 @@ winXIconToHICON(xcb_connection_t *conn, xcb_window_t id, int iconSize)
             if (icon[0] == iconSize && icon[1] == iconSize) {
                 winDebug("winXIconToHICON: selected %d x %d NetIcon\n",
                          iconSize, iconSize);
-                hIcon = NetWMToWinIcon(bpp, icon);
+                hIcon = (bpp == 32) ? NetWMToWinIconAlpha(icon) : NetWMToWinIconThreshold(icon);
                 break;
             }
             /* Otherwise, find the biggest icon and let Windows scale the size */
@@ -457,7 +423,7 @@ winXIconToHICON(xcb_connection_t *conn, xcb_window_t id, int iconSize)
                 ("winXIconToHICON: selected %u x %u NetIcon for scaling to %d x %d\n",
                  biggest_icon[0], biggest_icon[1], iconSize, iconSize);
 
-            hIcon = NetWMToWinIcon(bpp, biggest_icon);
+            hIcon = (bpp == 32) ? NetWMToWinIconAlpha(biggest_icon) : NetWMToWinIconThreshold(biggest_icon);
         }
 
         free(reply);
@@ -588,34 +554,40 @@ winUpdateIcon(HWND hWnd, xcb_connection_t *conn, Window id, HICON hIconNew)
 {
     HICON hIcon, hIconSmall = NULL, hIconOld;
 
-    if (hIconNew)
-      {
+    if (hIconNew) {
         /* Start with the icon from preferences, if any */
         hIcon = hIconNew;
         hIconSmall = hIconNew;
-      }
-    else
-      {
+    } else {
         /* If we still need an icon, try and get the icon from WM_HINTS */
         hIcon = winXIconToHICON(conn, id, GetSystemMetrics(SM_CXICON));
         hIconSmall = winXIconToHICON(conn, id, GetSystemMetrics(SM_CXSMICON));
-      }
-
-    /* If we got the small, but not the large one swap them */
-    if (!hIcon && hIconSmall) {
-        hIcon = hIconSmall;
-        hIconSmall = NULL;
+        /* If we got the small, but not the large one swap them */
+        if (!hIcon && hIconSmall) {
+            hIcon = hIconSmall;
+            hIconSmall = NULL;
+        }
     }
 
-    /* Set the large icon */
-    hIconOld = (HICON) SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM) hIcon);
-    /* Delete the old icon if its not the default */
-    winDestroyIcon(hIconOld);
+    /* If we still need an icon, use the default one */
+    if (!hIcon) {
+        hIcon = g_hIconX;
+        hIconSmall = g_hSmallIconX;
+    }
 
-    /* Same for the small icon */
-    hIconOld =
-        (HICON) SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM) hIconSmall);
-    winDestroyIcon(hIconOld);
+    if (hIcon) {
+        /* Set the large icon */
+        hIconOld = (HICON) SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM) hIcon);
+        /* Delete the old icon if its not the default */
+        winDestroyIcon(hIconOld);
+    }
+
+    if (hIconSmall) {
+        /* Same for the small icon */
+        hIconOld =
+            (HICON) SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM) hIconSmall);
+        winDestroyIcon(hIconOld);
+    }
 }
 
 void

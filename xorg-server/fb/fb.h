@@ -69,7 +69,7 @@
 #define FBPREFIX(x) fb##x
 #define WRITE(ptr, val) (*(ptr) = (val))
 #define READ(ptr) (*(ptr))
-#define MEMCPY_WRAPPED(dst, src, size) memcpy((dst), (src), (size))
+#define MEMCPY_WRAPPED(dst, src, size) memmove((dst), (src), (size))
 #define MEMSET_WRAPPED(dst, val, size) memset((dst), (val), (size))
 
 #endif

@@ -251,29 +251,29 @@ const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
 {
     if (af == AF_INET)
     {
-	struct sockaddr_in in;
-	memset(&in, 0, sizeof(in));
-	in.sin_family = AF_INET;
-	memcpy(&in.sin_addr, src, sizeof(struct in_addr));
-	if (getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST) != 0)
-	{
-	    errno = WSAGetLastError();
-	    return NULL;
-	}
-	else return dst;
+        struct sockaddr_in in;
+        memset(&in, 0, sizeof(in));
+        in.sin_family = AF_INET;
+        memcpy(&in.sin_addr, src, sizeof(struct in_addr));
+        if (getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST) != 0)
+        {
+            errno = WSAGetLastError();
+            return NULL;
+        }
+        else return dst;
     }
     else if (af == AF_INET6)
     {
-	struct sockaddr_in6 in;
-	memset(&in, 0, sizeof(in));
-	in.sin6_family = AF_INET6;
-	memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
-	if (getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST) != 0)
-	{
-	    errno = WSAGetLastError();
-	    return NULL;
-	}
-	else return dst;
+        struct sockaddr_in6 in;
+        memset(&in, 0, sizeof(in));
+        in.sin6_family = AF_INET6;
+        memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
+        if (getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST) != 0)
+        {
+            errno = WSAGetLastError();
+            return NULL;
+        }
+        else return dst;
     }
     errno = WSAEAFNOSUPPORT;
     return NULL;
@@ -285,39 +285,39 @@ int inet_pton(int af, const char *src, void *dst)
     int sslen = sizeof(ss);
     if (af == AF_INET)
     {
-	struct in_addr out;
-	char buffer[INET_ADDRSTRLEN + 1];
-	strncpy (buffer, src, INET_ADDRSTRLEN);
-	buffer [INET_ADDRSTRLEN] = '\0';
-	if (WSAStringToAddressA(buffer, AF_INET, NULL, (struct sockaddr*)&ss, &sslen) == SOCKET_ERROR)
-	{
-	    errno = WSAGetLastError();
-	    return 0;
-	}
-	else
-	{
-	    out = ((struct sockaddr_in *)&ss)->sin_addr;
-	    memcpy (dst, &out, sizeof(struct in_addr));
-	    return 1;
-	}
+        struct in_addr out;
+        char buffer[INET_ADDRSTRLEN + 1];
+        strncpy (buffer, src, INET_ADDRSTRLEN);
+        buffer [INET_ADDRSTRLEN] = '\0';
+        if (WSAStringToAddressA(buffer, AF_INET, NULL, (struct sockaddr*)&ss, &sslen) == SOCKET_ERROR)
+        {
+            errno = WSAGetLastError();
+            return 0;
+        }
+        else
+        {
+            out = ((struct sockaddr_in *)&ss)->sin_addr;
+            memcpy (dst, &out, sizeof(struct in_addr));
+            return 1;
+        }
     }
     else if (af == AF_INET6)
     {
-	struct in6_addr out6;
-	char buffer6[INET6_ADDRSTRLEN + 1];
-	strncpy (buffer6, src, INET6_ADDRSTRLEN);
-	buffer6 [INET6_ADDRSTRLEN] = '\0';
-	if (WSAStringToAddressA(buffer6, AF_INET6, NULL, (struct sockaddr*)&ss, &sslen) == SOCKET_ERROR)
-	{
-	    errno = WSAGetLastError();
-	    return 0;
-	}
-	else
-	{
-	    out6 = ((struct sockaddr_in6 *)&ss)->sin6_addr;
-	    memcpy (dst, &out6, sizeof(struct in6_addr));
-	    return 1;
-	}
+        struct in6_addr out6;
+        char buffer6[INET6_ADDRSTRLEN + 1];
+        strncpy (buffer6, src, INET6_ADDRSTRLEN);
+        buffer6 [INET6_ADDRSTRLEN] = '\0';
+        if (WSAStringToAddressA(buffer6, AF_INET6, NULL, (struct sockaddr*)&ss, &sslen) == SOCKET_ERROR)
+        {
+            errno = WSAGetLastError();
+            return 0;
+        }
+        else
+        {
+            out6 = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+            memcpy (dst, &out6, sizeof(struct in6_addr));
+            return 1;
+        }
     }
     errno = WSAEAFNOSUPPORT;
     return -1;
@@ -1111,9 +1111,15 @@ ResetHosts(const char *display)
                     (family == FamilyWild)) {
                     struct addrinfo *addresses;
                     struct addrinfo *a;
+                    struct addrinfo hints;
                     int f;
 
-                    if (getaddrinfo(hostname, NULL, NULL, &addresses) == 0) {
+                    ZeroMemory(&hints, sizeof(hints));
+                    if (family == FamilyInternet)
+                        hints.ai_family = AF_INET;
+                    else if (family == FamilyInternet6)
+                        hints.ai_family = AF_INET6;
+                    if (getaddrinfo(hostname, NULL, &hints, &addresses) == 0) {
                         for (a = addresses; a != NULL; a = a->ai_next) {
                             len = a->ai_addrlen;
                             f = ConvertAddr(a->ai_addr, &len,
@@ -1420,6 +1426,9 @@ ForEachHostInFamily(int family, Bool (*func) (unsigned char *addr,
 {
     HOST *host;
 
+    if (family == FamilyLocal)
+        return TRUE;            /* No FamilyLocal in Xming */
+
     for (host = validhosts; host; host = host->next)
         if (family == host->family && func(host->addr, host->len, closure))
             return TRUE;
@@ -1446,7 +1455,7 @@ NewHost(int family, const void *addr, int len, int addingLocalHosts)
         }
     }
     MakeHost(host, len)
-        if (!host)
+    if (!host)
         return FALSE;
     host->family = family;
     host->len = len;
@@ -1890,6 +1899,7 @@ siHostnameAddrMatch(int family, void *addr, int len,
         char hostname[SI_HOSTNAME_MAXLEN];
         struct addrinfo *addresses;
         struct addrinfo *a;
+        struct addrinfo hints;
         int f, hostaddrlen;
         void *hostaddr = NULL;
 
@@ -1898,7 +1908,12 @@ siHostnameAddrMatch(int family, void *addr, int len,
 
         strlcpy(hostname, siAddr, siAddrLen + 1);
 
-        if (getaddrinfo(hostname, NULL, NULL, &addresses) == 0) {
+        ZeroMemory(&hints, sizeof(hints));
+        if (family == FamilyInternet)
+            hints.ai_family = AF_INET;
+        else if (family == FamilyInternet6)
+            hints.ai_family = AF_INET6;
+        if (getaddrinfo(hostname, NULL, &hints, &addresses) == 0) {
             for (a = addresses; a != NULL; a = a->ai_next) {
                 hostaddrlen = a->ai_addrlen;
                 f = ConvertAddr(a->ai_addr, &hostaddrlen, &hostaddr);

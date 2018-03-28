@@ -135,6 +135,7 @@ winInitializeScreenDefaults(void)
     defaultScreenInfo.fRootless = FALSE;
     defaultScreenInfo.fMultiWindow = FALSE;
     defaultScreenInfo.fMultiMonitorOverride = FALSE;
+    defaultScreenInfo.fCompositeWM = FALSE;
     defaultScreenInfo.fMultipleMonitors = FALSE;
     defaultScreenInfo.fLessPointer = FALSE;
     defaultScreenInfo.iResizeMode = resizeDefault;
@@ -607,6 +608,16 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
 
     /*
+     * Look for the '-compositewm' argument
+     */
+    if (IS_OPTION("-compositewm")) {
+        screenInfoPtr->fCompositeWM = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
      * Look for the '-multiplemonitors' argument
      */
     if (IS_OPTION("-multiplemonitors")
@@ -926,7 +937,21 @@ ddxProcessArgument(int argc, char *argv[], int i)
      * Look for the '-auth' argument
      */
     if (IS_OPTION("-auth")) {
+        HANDLE hFile;
+        char *pszFile;
+        CHECK_ARGS(1);
         g_fAuthEnabled = TRUE;
+        pszFile = argv[++i];
+        hFile = CreateFile(pszFile,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+        if (hFile == INVALID_HANDLE_VALUE)
+            winMessageBoxF("This authorization file for the -auth option could not be opened...\n"
+                           "\"%s\"\n"
+                           "You should use an \"Xauthority\" file in your HOME directory.\n"
+                           "\nIgnoring and continuing.\n",
+                           MB_ICONINFORMATION,
+                           pszFile);
+        else
+          CloseHandle(hFile);
         return 0;               /* Let DIX parse this again */
     }
 

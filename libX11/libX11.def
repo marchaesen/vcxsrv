@@ -230,6 +230,7 @@ EXPORTS
   XMapWindow
   XMatchVisualInfo
   XMaxRequestSize
+  XExtendedMaxRequestSize
   XmbDrawImageString
   XmbDrawString
   XmbLookupString

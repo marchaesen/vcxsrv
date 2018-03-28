@@ -106,6 +106,7 @@ typedef struct
     Atom atomUTF8String;
     Atom atomCompoundText;
     Atom atomTargets;
+    Atom atomIncr;
 } ClipboardAtoms;
 
 /* Modern clipboard API functions */
@@ -140,6 +141,8 @@ typedef struct
 {
   Bool fUseUnicode;
   Atom *targetList;
+  unsigned char *incr;
+  unsigned long int incrsize;
 } ClipboardConversionData;
 
 int

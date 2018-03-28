@@ -103,6 +103,7 @@ Atom g_atomLastOwnedSelection = None;
 const char WIN_WINDOW_PROP[]=     "vcxsrv_window_prop_rl";
 const char WIN_WID_PROP[]=        "vcxsrv_wid_prop_rl";
 const char WIN_NEEDMANAGE_PROP[]= "vcxsrv_override_redirect_prop_rl";
+const char WIN_STATE_PROP[]=      "vcxsrv_state_prop_rl";
 const char WIN_SCR_PROP[]=        "vcxsrv_screen_prop_rl";
 
 /*

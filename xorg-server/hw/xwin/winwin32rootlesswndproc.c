@@ -282,9 +282,7 @@ IsMouseActive(WindowPtr pWin)
     struct _Window *pwin;
     struct _Property *prop;
 
-    /* XXX We're getting inputInfo.poniter here, but this might be really wrong.
-     * Which pointer's current window do we want? */
-    WindowPtr pRoot = GetCurrentRootWindow(inputInfo.pointer);
+    WindowPtr pRoot = GetCurrentRootWindow(g_pwinPointer);
 
     if (!pWin) {
         ErrorF("IsMouseActive - pWin was NULL use default value:%d\n",
@@ -447,8 +445,8 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         /* Has the mouse pointer crossed screens? */
-        if (pScreen != miPointerGetScreen(inputInfo.pointer))
-             miPointerSetScreen(inputInfo.pointer, pScreenInfo->dwScreen,
+        if (pScreen != miPointerGetScreen(g_pwinPointer))
+             miPointerSetScreen(g_pwinPointer, pScreenInfo->dwScreen,
                                 ptMouse.x - pScreenInfo->dwXOffset,
                                 ptMouse.y - pScreenInfo->dwYOffset);
 
@@ -711,17 +709,18 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     pRLWinPriv->hdcShadow,
                     ps.rcPaint.left, ps.rcPaint.top, SRCCOPY)) {
             LPVOID lpMsgBuf;
+            DWORD errcode = GetLastError();
 
             /* Display a fancy error message */
             FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                           FORMAT_MESSAGE_FROM_SYSTEM |
                           FORMAT_MESSAGE_IGNORE_INSERTS,
                           NULL,
-                          GetLastError(),
+                          errcode,
                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                           (LPTSTR) &lpMsgBuf, 0, NULL);
 
-            ErrorF("winMWExtWMWindowProc - BitBlt failed: %s\n",
+            if (errcode) ErrorF("winMWExtWMWindowProc - BitBlt failed: %s\n",
                    (LPSTR) lpMsgBuf);
             LocalFree(lpMsgBuf);
         }
@@ -898,26 +897,6 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                                                 wBorderWidth(pWin) * 2);
                 }
                 else if (!(pWinPos->flags & SWP_NOMOVE)) {
-                    winDebug("\tmove\n");
-
-                    winMWExtWMMoveResizeXWindow(pWin,
-                                                rcClient.left -
-                                                wBorderWidth(pWin)
-                                                -
-                                                GetSystemMetrics
-                                                (SM_XVIRTUALSCREEN),
-                                                rcClient.top -
-                                                wBorderWidth(pWin)
-                                                -
-                                                GetSystemMetrics
-                                                (SM_YVIRTUALSCREEN),
-                                                rcClient.right - rcClient.left -
-                                                wBorderWidth(pWin) * 2,
-                                                rcClient.bottom - rcClient.top -
-                                                wBorderWidth(pWin) * 2);
-                }
-                else if (!(pWinPos->flags & SWP_NOMOVE)) {
-                    winDebug("\tmove\n");
 
                     winMWExtWMMoveXWindow(pWin,
                                           rcClient.left - wBorderWidth(pWin)

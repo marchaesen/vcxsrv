@@ -44,6 +44,29 @@
 static HMODULE g_hmodShell32Dll = NULL;
 static SHGETPROPERTYSTOREFORWINDOWPROC g_pSHGetPropertyStoreForWindow = NULL;
 
+extern void winPropertyStoreInit(void);
+
+extern void winPropertyStoreDestroy(void);
+
+extern void winSetAppUserModelID(HWND hWnd, char *AppID);
+
+static void
+RemoveWhitespaceAndTruncate(HWND hWnd, char *AppID)
+{
+    char *p;
+    size_t len = strlen(AppID);
+
+    for (p = AppID; *p; p++, len--) {
+        while (isspace(*p))
+            memmove(p, p + 1, len--);
+    }
+    if (strlen(AppID) > 128) {
+        AppID[128] = '\0';
+        ErrorF("RemoveWhitespaceAndTruncate - AppUserModelID truncated for window 0x%p.\n",
+               hWnd);
+    }
+}
+
 void
 winPropertyStoreInit(void)
 {
@@ -91,13 +114,13 @@ winSetAppUserModelID(HWND hWnd, const char *AppID)
         return;
     }
 
-    winDebug("winSetAppUserMOdelID - hwnd 0x%p appid '%s'\n", hWnd, AppID);
-
     hr = g_pSHGetPropertyStoreForWindow(hWnd, &IID_IPropertyStore,
                                         (void **) &pps);
     if (SUCCEEDED(hr) && pps) {
         PropVariantInit(&pv);
         if (AppID) {
+            RemoveWhitespaceAndTruncate(hWnd, AppID);
+            winDebug("winSetAppUserMOdelID - hwnd 0x%p appid '%s'\n", hWnd, AppID);
             pv.vt = VT_LPWSTR;
             hr = SHStrDupA(AppID, &pv.pwszVal);
         }

@@ -3338,17 +3338,14 @@ ProcKillClient(ClientPtr client)
 
     rc = dixLookupClient(&killclient, stuff->id, client, DixDestroyAccess);
     if (rc == Success) {
-        CloseDownClient(killclient);
         if (client == killclient) {
-            /* force yield and return Success, so that Dispatch()
-             * doesn't try to touch client
-             */
+            MarkClientException(client);
             isItTimeToYield = TRUE;
         }
-        return Success;
+        else
+            CloseDownClient(killclient);
     }
-    else
-        return rc;
+    return rc;
 }
 
 int

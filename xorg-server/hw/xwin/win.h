@@ -70,7 +70,7 @@
 /*
  * Number of times to call Restore in an attempt to restore the primary surface
  */
-#define WIN_REGAIN_SURFACE_RETRIES		1
+#define WIN_REGAIN_SURFACE_RETRIES		2
 
 /*
  * Build a supported display depths mask by shifting one to the left
@@ -232,6 +232,8 @@ typedef Bool (*winFinishScreenInitProcPtr) (int, ScreenPtr, int, char **);
 
 typedef Bool (*winBltExposedRegionsProcPtr) (ScreenPtr);
 
+typedef Bool (*winBltExposedWindowRegionProcPtr) (ScreenPtr, WindowPtr);
+
 typedef Bool (*winActivateAppProcPtr) (ScreenPtr);
 
 typedef Bool (*winRedrawScreenProcPtr) (ScreenPtr pScreen);
@@ -252,18 +254,6 @@ typedef Bool (*winCreatePrimarySurfaceProcPtr) (ScreenPtr);
 typedef Bool (*winReleasePrimarySurfaceProcPtr) (ScreenPtr);
 
 typedef Bool (*winCreateScreenResourcesProc) (ScreenPtr);
-
-/*
- * Pixmap privates
- */
-
-typedef struct {
-    HDC hdcSelected;
-    HBITMAP hBitmap;
-    BYTE *pbBits;
-    DWORD dwScanlineBytes;
-    BITMAPINFOHEADER *pbmih;
-} winPrivPixmapRec, *winPrivPixmapPtr;
 
 /*
  * Colormap privates
@@ -359,6 +349,7 @@ typedef struct {
 #endif
     Bool fRootless;
     Bool fMultiWindow;
+    Bool fCompositeWM;
     Bool fMultiMonitorOverride;
     Bool fMultipleMonitors;
     Bool fLessPointer;
@@ -457,6 +448,7 @@ typedef struct _winPrivScreenRec {
     winCreateBoundingWindowProcPtr pwinCreateBoundingWindow;
     winFinishScreenInitProcPtr pwinFinishScreenInit;
     winBltExposedRegionsProcPtr pwinBltExposedRegions;
+    winBltExposedWindowRegionProcPtr pwinBltExposedWindowRegion;
     winActivateAppProcPtr pwinActivateApp;
     winRedrawScreenProcPtr pwinRedrawScreen;
     winRealizeInstalledPaletteProcPtr pwinRealizeInstalledPalette;

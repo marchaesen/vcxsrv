@@ -1276,10 +1276,13 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_GIVEUP:
+        /* Delete the tray Icon */
+        if (!s_pScreenInfo->fNoTrayIcon && s_pScreenPriv->hiconNotifyIcon != NULL)
+            winDeleteNotifyIcon(s_pScreenPriv);
         /* Tell X that we are giving up */
         if (s_pScreenInfo->fMultiWindow)
             winDeinitMultiWindowWM();
-        g_fClipboardStarted=FALSE; /* This is to avoid dead-locls caused by the clipboard thread still doing some stuff */
+        g_fClipboardStarted=FALSE; /* This is to avoid dead-locks caused by the clipboard thread still doing some stuff */
         GiveUp(0);
         return 0;
 

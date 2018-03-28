@@ -76,6 +76,8 @@ libxcb/src/xcb.h                                  include/xcb/xcb.h
 libxcb/src/xc_misc.h                              include/xcb/xc_misc.h
 libxcb/src/bigreq.h                               include/xcb/bigreq.h
 libxcb/src/xproto.h                               include/xcb/xproto.h
+libxcb/src/composite.h                            include/xcb/composite.h
+libxcb/src/xfixes.h                               include/xcb/xfixes.h
 libxcb/src/xcb_windefs.h                          include/xcb/xcb_windefs.h
 libxcb/src/shape.h                                include/xcb/shape.h
 libxcb/src/xcb_icccm.h                            include/xcb/xcb_icccm.h

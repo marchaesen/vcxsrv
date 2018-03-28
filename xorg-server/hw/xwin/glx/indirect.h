@@ -65,7 +65,6 @@ struct __GLXWinDrawable {
     HBITMAP hDIB;
     HBITMAP hOldDIB;            /* original DIB for DC */
     void *pOldBits;             /* original pBits for this drawable's pixmap */
-
 };
 
 struct __GLXWinScreen {
@@ -76,6 +75,7 @@ struct __GLXWinScreen {
     Bool has_WGL_ARB_pbuffer;
     Bool has_WGL_ARB_render_texture;
     Bool has_WGL_ARB_make_current_read;
+    Bool has_WGL_ARB_framebuffer_sRGB;
 
     /* wrapped screen functions */
     RealizeWindowProcPtr RealizeWindow;

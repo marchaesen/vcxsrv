@@ -806,6 +806,7 @@ XkbProcessArguments(int argc, char *argv[], int i)
         }
         return j;
     }
+#ifndef _MSC_VER
     if ((strcmp(argv[i], "-ardelay") == 0) || (strcmp(argv[i], "-ar1") == 0)) { /* -ardelay int */
         if (++i >= argc)
             UseMsg();
@@ -820,6 +821,7 @@ XkbProcessArguments(int argc, char *argv[], int i)
             XkbDfltRepeatInterval = (long) atoi(argv[i]);
         return 2;
     }
+#endif
     return 0;
 }
 
@@ -829,6 +831,8 @@ XkbUseMsg(void)
     ErrorF
         ("[+-]accessx [ timeout [ timeout_mask [ feedback [ options_mask] ] ] ]\n");
     ErrorF("                       enable/disable accessx key sequences\n");
+#ifndef _MSC_VER
     ErrorF("-ardelay               set XKB autorepeat delay\n");
     ErrorF("-arinterval            set XKB autorepeat interval\n");
+#endif
 }

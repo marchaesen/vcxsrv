@@ -2,10 +2,12 @@ LIBRARY libxcb
 EXPORTS
   InitWSA
   xcb_allow_events
+  xcb_composite_redirect_subwindows
   xcb_connect
   xcb_connect_to_display_with_auth_info
   xcb_connection_has_error
   xcb_create_glyph_cursor
+  xcb_delete_property
   xcb_depth_next
   xcb_depth_visuals_iterator
   xcb_discard_reply
@@ -42,6 +44,8 @@ EXPORTS
   xcb_parse_display
   xcb_poll_for_event
   xcb_poll_for_reply
+  xcb_query_extension
+  xcb_query_extension_reply
   xcb_query_extension_unchecked
   xcb_query_pointer
   xcb_query_pointer_reply

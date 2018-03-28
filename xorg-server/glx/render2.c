@@ -235,18 +235,18 @@ __glXDisp_DrawArrays(GLbyte * pc)
             break;
         case GL_SECONDARY_COLOR_ARRAY:
         {
-            PFNGLSECONDARYCOLORPOINTERPROC SecondaryColorPointerEXT =
-                __glGetProcAddress("glSecondaryColorPointerEXT");
+            PFNGLSECONDARYCOLORPOINTERPROC SecondaryColorPointer =
+                __glGetProcAddress("glSecondaryColorPointer");
             glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
-            SecondaryColorPointerEXT(numVals, datatype, stride, pc);
+            SecondaryColorPointer(numVals, datatype, stride, pc);
             break;
         }
         case GL_FOG_COORD_ARRAY:
         {
-            PFNGLFOGCOORDPOINTERPROC FogCoordPointerEXT =
-                __glGetProcAddress("glFogCoordPointerEXT");
+            PFNGLFOGCOORDPOINTERPROC FogCoordPointer =
+                __glGetProcAddress("glFogCoordPointer");
             glEnableClientState(GL_FOG_COORD_ARRAY);
-            FogCoordPointerEXT(datatype, stride, pc);
+            FogCoordPointer(datatype, stride, pc);
             break;
         }
         default:

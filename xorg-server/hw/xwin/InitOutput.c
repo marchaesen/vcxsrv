@@ -72,6 +72,9 @@ typedef HRESULT  (__stdcall *  SHGETFOLDERPATHPROC)(HWND hwndOwner,
  * Function prototypes
  */
 
+static Bool
+ winCheckDisplayNumber(void);
+
 void
  winLogCommandLine(int argc, char *argv[]);
 
@@ -736,7 +739,16 @@ winUseMsg(void)
     ErrorF("-clipupdates num_boxes\n"
            "\tUse a clipping region to constrain shadow update blits to\n"
            "\tthe updated region when num_boxes, or more, are in the\n"
-           "\tupdated region.\n");
+           "\tupdated region.  Diminished effect on current Windows\n"
+           "\tversions because they already group GDI operations together\n"
+           "\tin a batch, which has a similar effect.\n");
+
+    ErrorF("-compositewm\n"
+           "\tEXPERIMENTAL: for use in -multiwindow mode.\n"
+           "\tUse Composite extension redirection to maintain a bitmap\n"
+           "\timage of each top-level X window, so window contents which\n"
+           "\tare occluded show correctly in Taskbar and Task Switcher\n"
+           "\tpreviews.\n");
 
 #ifdef XWIN_XF86CONFIG
     ErrorF("-config\n" "\tSpecify a configuration file.\n");
@@ -803,7 +815,9 @@ winUseMsg(void)
            "\tUse the entire virtual screen if multiple\n"
            "\tmonitors are present.\n");
 
-    ErrorF("-multiwindow\n" "\tRun the server in multi-window mode.\n");
+    ErrorF("-multiwindow\n"
+           "\tRun the server in multiwindow mode.  Not to be used\n"
+           "\ttogether with -rootless or -fullscreen.\n");
 
 #ifdef XWIN_MULTIWINDOWEXTWM
     ErrorF("-mwextwm\n"
@@ -812,10 +826,10 @@ winUseMsg(void)
 
     ErrorF("-nodecoration\n"
            "\tDo not draw a window border, title bar, etc.  Windowed\n"
-           "\tmode only.\n");
+           "\tmode only i.e. ignored when -fullscreen specified.\n");
 
     ErrorF("-nounicodeclipboard\n"
-           "\tDo not use Unicode clipboard even if on a NT-based platform.\n");
+           "\tDisable Unicode in the clipboard.\n");
 
     ErrorF("-[no]primary\n"
            "\tWhen clipboard integration is enabled, map the X11 PRIMARY selection\n"
@@ -825,12 +839,15 @@ winUseMsg(void)
            "\tSpecify an optional refresh rate to use in fullscreen mode\n"
            "\twith a DirectDraw engine.\n");
 
-    ErrorF("-resize=none|scrollbars|randr"
+    ErrorF("-resize=none|scrollbars|randr\n"
            "\tIn windowed mode, [don't] allow resizing of the window. 'scrollbars'\n"
            "\tmode gives the window scrollbars as needed, 'randr' mode uses the RANR\n"
            "\textension to resize the X screen.  'randr' is the default.\n");
 
-    ErrorF("-rootless\n" "\tRun the server in rootless mode.\n");
+    ErrorF("-rootless\n"
+           "\tUse a transparent root window with an external window\n"
+           "\tmanager (such as openbox).  Not to be used with\n"
+           "\t-multiwindow or with -fullscreen.\n");
 
     ErrorF("-screen scr_num [width height [x y] | [[WxH[+X+Y]][@m]] ]\n"
            "\tEnable screen scr_num and optionally specify a width and\n"
@@ -847,12 +864,14 @@ winUseMsg(void)
            "\tcursor instead.\n");
 
     ErrorF("-[no]trayicon\n"
-           "\tDo not create a tray icon.  Default is to create one\n"
-           "\ticon per screen.  You can globally disable tray icons with\n"
-           "\t-notrayicon, then enable it for specific screens with\n"
-           "\t-trayicon for those screens.\n");
+           "\tDo not create a notification area icon.  Default is to create\n"
+           "\tone icon per screen.  You can globally disable notification area\n"
+           "\ticons with -notrayicon, then enable them for specific screens\n"
+           "\twith -trayicon for those screens.\n");
 
-    ErrorF("-[no]unixkill\n" "\tCtrl+Alt+Backspace exits the X Server.\n");
+    ErrorF("-[no]unixkill\n"
+           "\tCtrl-Alt-Backspace exits the X Server. The Ctrl-Alt-Backspace\n"
+           "\tkey combo is disabled by default.\n");
 
     ErrorF("-[no]wgl\n"
            "\tEnable the GLX extension to use the native Windows WGL interface for hardware-accelerated OpenGL\n");
@@ -863,20 +882,22 @@ winUseMsg(void)
     ErrorF("-[no]winkill\n" "\tAlt+F4 exits the X Server.\n");
 
     ErrorF("-xkblayout XKBLayout\n"
-           "\tEquivalent to XKBLayout in XF86Config files.\n"
+           "\tSet the layout to use for XKB.  This defaults to a layout\n"
+           "\tmatching your current layout from Windows or us (i.e. USA)\n"
+           "\tif no matching layout was found.\n"
            "\tFor example: -xkblayout de\n");
 
     ErrorF("-xkbmodel XKBModel\n"
-           "\tEquivalent to XKBModel in XF86Config files.\n");
+           "\tSet the model to use for XKB.  This defaults to pc105.\n");
 
     ErrorF("-xkboptions XKBOptions\n"
-           "\tEquivalent to XKBOptions in XF86Config files.\n");
+           "\tSet the options to use for XKB.  This defaults to not set.\n");
 
     ErrorF("-xkbrules XKBRules\n"
-           "\tEquivalent to XKBRules in XF86Config files.\n");
+           "\tSet the rules to use for XKB.  This defaults to xorg.\n");
 
     ErrorF("-xkbvariant XKBVariant\n"
-           "\tEquivalent to XKBVariant in XF86Config files.\n"
+           "\tSet the variant to use for XKB.  This defaults to not set.\n"
            "\tFor example: -xkbvariant nodeadkeys\n");
 }
 
@@ -925,6 +946,12 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     if (serverGeneration == 1 && !winValidateArgs()) {
         FatalError("InitOutput - Invalid command-line arguments found.  "
                    "Exiting.\n");
+    }
+
+    /* Check for duplicate invocation on same display number. */
+    if (serverGeneration == 1 && !winCheckDisplayNumber()) {
+        FatalError("InitOutput - Another X server is already running display-"
+                   "number :%d\n", atoi(display));
     }
 
 #ifdef XWIN_XF86CONFIG
@@ -1052,4 +1079,72 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     }
 
     winDebug("InitOutput - Returning.\n");
+}
+
+/*
+ * winCheckDisplayNumber - Check if another instance of Cygwin/X is
+ * already running on the same display number.  If no one exists,
+ * make a mutex to prevent new instances from running on the same display.
+ *
+ * return FALSE if the display number is already used.
+ */
+
+static Bool
+winCheckDisplayNumber(void)
+{
+    int nDisp;
+    HANDLE mutex;
+    char name[MAX_PATH];
+    const char *pszPrefix = 0;
+    OSVERSIONINFO osvi = { 0 };
+
+    /* Check display range */
+    nDisp = atoi(display);
+    if (nDisp < 0 || nDisp > 65535 - X_TCP_PORT) {
+        ErrorF("winCheckDisplayNumber - Bad display number: %d\n", nDisp);
+        return FALSE;
+    }
+
+    /* Set first character of mutex name to null */
+    name[0] = '\0';
+
+    /* Get operating system version information */
+    osvi.dwOSVersionInfoSize = sizeof(osvi);
+    GetVersionEx(&osvi);
+
+    /* Want a mutex shared among all terminals on NT > 4.0 */
+    if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT && osvi.dwMajorVersion >= 5) {
+        pszPrefix = "Global\\";
+    }
+
+    /* Setup Cygwin/X specific part of name */
+    snprintf(name, sizeof(name), "%sCYGWINX_DISPLAY:%d", pszPrefix, nDisp);
+
+    /* Windows automatically releases the mutex when this process exits */
+    mutex = CreateMutex(NULL, FALSE, name);
+    if (!mutex) {
+        LPVOID lpMsgBuf;
+
+        /* Display a fancy error message */
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                      FORMAT_MESSAGE_FROM_SYSTEM |
+                      FORMAT_MESSAGE_IGNORE_INSERTS,
+                      NULL,
+                      GetLastError(),
+                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                      (LPTSTR) &lpMsgBuf, 0, NULL);
+        ErrorF("winCheckDisplayNumber - CreateMutex failed: %s\n",
+               (LPSTR) lpMsgBuf);
+        LocalFree(lpMsgBuf);
+
+        return FALSE;
+    }
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        ErrorF("winCheckDisplayNumber - "
+               "Xming or Cygwin/X is already running display-number :%d\n",
+               nDisp);
+        return FALSE;
+    }
+
+    return TRUE;
 }

@@ -1035,7 +1035,7 @@ winInstallColormapShadowDDNL(ColormapPtr pColormap)
     /* Install the DirectDraw palette on the primary surface */
     ddrval = IDirectDrawSurface4_SetPalette(pScreenPriv->pddsPrimary4,
                                             pCmapPriv->lpDDPalette);
-    if (FAILED(ddrval)) {
+    if (FAILED(ddrval) && ddrval != DDERR_SURFACELOST) {
         ErrorF("winInstallColormapShadowDDNL - Failed installing the "
                "DirectDraw palette.\n");
         return FALSE;
@@ -1188,6 +1188,7 @@ winSetEngineFunctionsShadowDDNL(ScreenPtr pScreen)
         pScreenPriv->pwinCreateBoundingWindow = winCreateBoundingWindowWindowed;
     pScreenPriv->pwinFinishScreenInit = winFinishScreenInitFB;
     pScreenPriv->pwinBltExposedRegions = winBltExposedRegionsShadowDDNL;
+    pScreenPriv->pwinBltExposedWindowRegion = NULL;
     pScreenPriv->pwinActivateApp = winActivateAppShadowDDNL;
     pScreenPriv->pwinRedrawScreen = winRedrawScreenShadowDDNL;
     pScreenPriv->pwinRealizeInstalledPalette

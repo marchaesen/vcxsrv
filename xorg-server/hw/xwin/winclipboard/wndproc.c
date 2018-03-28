@@ -87,7 +87,6 @@ winProcessXEventsTimeout(HWND hwnd, Window iWindow, Display * pDisplay,
     int iConnNumber;
     struct timeval tv;
     int iReturn;
-    DWORD dwStopTime = GetTickCount() + iTimeoutSec * 1000;
 
     winDebug("winProcessXEventsTimeout () - pumping X events for %d seconds\n",
              iTimeoutSec);
@@ -118,7 +117,7 @@ winProcessXEventsTimeout(HWND hwnd, Window iWindow, Display * pDisplay,
         FD_SET(iConnNumber, &fdsRead);
 
         /* Adjust timeout */
-        remainingTime = dwStopTime - GetTickCount();
+        remainingTime = iTimeoutSec * 1000;
         tv.tv_sec = remainingTime / 1000;
         tv.tv_usec = (remainingTime % 1000) * 1000;
         winDebug("winProcessXEventsTimeout () - %ld milliseconds left\n",
@@ -378,6 +377,36 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                      "Clipboard does not contain CF_TEXT nor "
                      "CF_UNICODETEXT.\n");
 
+            winDebug("winClipboardWindowProc: %d formats\n",
+                     CountClipboardFormats());
+
+            if (OpenClipboard(hwnd)) {
+                unsigned int format = 0;
+
+                do {
+                    format = EnumClipboardFormats(format);
+                    if (GetLastError() != ERROR_SUCCESS) {
+                        winDebug
+                            ("winClipboardWindowProc: EnumClipboardFormats failed %08x\n",
+                             (unsigned int)GetLastError());
+                    }
+                    if (format > 0xc000) {
+                        char buff[256];
+
+                        GetClipboardFormatName(format, buff, 256);
+                        winDebug("winClipboardWindowProc: %d %s\n", format,
+                                 buff);
+                    }
+                    else if (format > 0)
+                        winDebug("winClipboardWindowProc: %d\n", format);
+                } while (format != 0);
+                CloseClipboard();
+            }
+            else {
+                winDebug
+                    ("WindowProc: could not open clipboard to enumerate formats\n");
+            }
+
             /*
              * We need to make sure that the X Server has processed
              * previous XSetSelectionOwner messages.
@@ -515,6 +544,9 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Process X events */
         data.fUseUnicode = fConvertToUnicode;
+        data.incr = NULL;
+        data.incrsize = 0;
+
         iReturn = winProcessXEventsTimeout(hwnd,
                                            iWindow,
                                            pDisplay,
@@ -538,10 +570,10 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             struct target_priority target_priority_table[] =
                 {
-                    { atoms->atomCompoundText, 0 },
 #ifdef X_HAVE_UTF8_STRING
-                    { atoms->atomUTF8String,   1 },
+                    { atoms->atomUTF8String,   0 },
 #endif
+                    { atoms->atomCompoundText, 1 },
                     { XA_STRING,               2 },
                 };
 

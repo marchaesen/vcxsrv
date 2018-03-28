@@ -484,7 +484,7 @@ winCreateWindowsWindow(WindowPtr pWin)
       }
     }
 
-    winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX,
+    winDebug("winCreateWindowsWindow - 1 - %dx%d @ %dx%d\n", iWidth, iHeight, iX,
              iY);
 
     if (winMultiWindowGetTransientFor(pWin, &daddyId)) {
@@ -498,16 +498,30 @@ winCreateWindowsWindow(WindowPtr pWin)
                 }
         }
     }
-    else {
+    else if (!pWin->overrideRedirect) {
         /* Default positions if none specified */
         if (!winMultiWindowGetWMNormalHints(pWin, &hints))
             hints.flags = 0;
-        if (!(hints.flags & (USPosition | PPosition)) &&
-            !pWin->overrideRedirect) {
+
+
+        if ((hints.flags & USPosition) ||
+            ((hints.flags & PPosition) &&
+             ((pWin->drawable.x - pWin->borderWidth != 0) ||
+              (pWin->drawable.y - pWin->borderWidth != 0)))) {
+            /*
+              Always respect user specified position, respect program
+              specified position if it's not the origin
+            */
+        }
+        else {
+            /* Use default position */
             iX = CW_USEDEFAULT;
             iY = CW_USEDEFAULT;
         }
     }
+
+    winDebug("winCreateWindowsWindow - 2 - %dx%d @ %dx%d\n", iWidth,
+             iHeight, iX, iY);
 
     /* Make it WS_OVERLAPPED in create call since WS_POPUP doesn't support */
     /* CW_USEDEFAULT, change back to popup after creation */
@@ -530,7 +544,7 @@ winCreateWindowsWindow(WindowPtr pWin)
     iHeight = rc.bottom - rc.top;
     iWidth = rc.right - rc.left;
 
-    winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX,
+    winDebug("winCreateWindowsWindow - 3 - %dx%d @ %dx%d\n", iWidth, iHeight, iX,
              iY);
 
     /* Create the window */
@@ -544,7 +558,7 @@ winCreateWindowsWindow(WindowPtr pWin)
                            iHeight,     /* Bottom edge */
                            hFore,       /* Null or Parent window if transient */
                            (HMENU) NULL,        /* No menu */
-                           GetModuleHandle(NULL),       /* Instance handle */
+                           g_hInstance,       /* Instance handle */
                            pWin);       /* ScreenPrivates */
     if (hWnd == NULL) {
         ErrorF("winCreateWindowsWindow - CreateWindowExA () failed: %d\n",
@@ -565,7 +579,7 @@ winCreateWindowsWindow(WindowPtr pWin)
     SetWindowPos(hWnd, 0, 0, 0, 0, 0,
                  SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE |
                  SWP_NOACTIVATE);
-  
+
     /* Make sure it gets the proper system menu for a WS_POPUP, too */
     GetSystemMenu(hWnd, TRUE);
 
@@ -660,9 +674,6 @@ winUpdateWindowsWindow(WindowPtr pWin)
         /* Display the window without activating it */
         if (pWin->drawable.class != InputOnly)
             ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
-
-        /* Send first paint message */
-        UpdateWindow(pWinPriv->hWnd);
     }
     else if (hWnd != NULL) {
         if (pWinPriv->fWglUsed) {
@@ -689,9 +700,13 @@ winUpdateWindowsWindow(WindowPtr pWin)
                 offsetx=0;
                 offsety=0;
             }
-            winDebug ("-winUpdateWindowsWindow: %x changing parent to %x and moving to %d,%d\n",pWinPriv->hWnd,hParentWnd,pWin->drawable.x-offsetx,pWin->drawable.y-offsety);
-            SetParent(pWinPriv->hWnd,hParentWnd);
-            SetWindowPos(pWinPriv->hWnd,NULL,pWin->drawable.x-offsetx,pWin->drawable.y-offsety,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW);
+            if (hParentWnd == NULL)
+                winDestroyWindowsWindow (pWin);
+            else {
+                winDebug ("-winUpdateWindowsWindow: %x changing parent to %x and moving to %d,%d\n",pWinPriv->hWnd,hParentWnd,pWin->drawable.x-offsetx,pWin->drawable.y-offsety);
+                SetParent(pWinPriv->hWnd,hParentWnd);
+                SetWindowPos(pWinPriv->hWnd,NULL,pWin->drawable.x-offsetx,pWin->drawable.y-offsety,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW);
+            }
         }
         else {
             /* Destroy the Windows window if its parents are destroyed */

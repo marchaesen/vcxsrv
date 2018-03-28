@@ -72,6 +72,7 @@ typedef int pid_t;
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_aux.h>
+#include <xcb/composite.h>
 #include <xcb/xcb_errors.h>
 
 /* We need the native HWND atom for intWM, so for consistency use the
@@ -99,6 +100,9 @@ extern void winSetAuthorization(void);
 #define WIN_MSG_QUEUE_FNAME	"/dev/windows"
 #endif
 
+#define HINT_MAX	(1L<<0)
+#define HINT_MIN	(1L<<1)
+
 /*
  * Local structures
  */
@@ -125,7 +129,12 @@ typedef struct _WMInfo {
     xcb_atom_t atmPrivMap;
     xcb_atom_t atmUtf8String;
     xcb_atom_t atmNetWmName;
+    xcb_atom_t atmCurrentDesktop;
+    xcb_atom_t atmNumberDesktops;
+    xcb_atom_t atmDesktopNames;
+    xcb_atom_t atmWmState;
     xcb_ewmh_connection_t ewmh;
+    Bool fCompositeWM;
 } WMInfoRec, *WMInfoPtr;
 
 typedef struct _WMProcArgRec {
@@ -179,7 +188,7 @@ static Bool
 CheckAnotherWindowManager(xcb_connection_t *conn, DWORD dwScreen);
 
 static void
- winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle);
+ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle, unsigned long *maxmin);
 
 void
  winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
@@ -229,11 +238,11 @@ MessageName(winWMMessagePtr msg)
     case WM_WM_CHANGE_STATE:
       return "WM_WM_CHANGE_STATE";
       break;
-    case WM_WM_MAP2:
-      return "WM_WM_MAP2";
+    case WM_WM_MAP_UNMANAGED:
+      return "WM_WM_MAP_UNMANAGED";
       break;
-    case WM_WM_MAP3:
-      return "WM_WM_MAP3";
+    case WM_WM_MAP_MANAGED:
+      return "WM_WM_MAP_MANAGED";
       break;
     case WM_WM_HINTS_EVENT:
       return "WM_WM_HINTS_EVENT";
@@ -684,18 +693,22 @@ UpdateIcon(WMInfoPtr pWMInfo, xcb_window_t iWindow)
  */
 
 static void
-UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow)
+UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, unsigned long *maxmin)
 {
     HWND hWnd;
     HWND zstyle = HWND_NOTOPMOST;
     UINT flags;
+
+    /* If window isn't override-redirect */
+    if (IsOverrideRedirect(pWMInfo->conn, iWindow))
+        return;
 
     hWnd = getHwnd(pWMInfo, iWindow);
     if (!hWnd)
         return;
 
     /* Determine the Window style, which determines borders and clipping region... */
-    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle);
+    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle, maxmin);
     winUpdateWindowPosition(hWnd, &zstyle);
 
     /* Apply the updated window style, without changing it's show or activation state */
@@ -720,21 +733,148 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow)
 
 /*
  * Updates the state of a HWND
- * (only minimization supported at the moment)
  */
 
 static void
-UpdateState(WMInfoPtr pWMInfo, xcb_window_t iWindow)
+UpdateState(WMInfoPtr pWMInfo, xcb_window_t iWindow, int state)
 {
     HWND hWnd;
+    int current_state = -1;
 
-    winDebug("UpdateState: iWindow 0x%08x\n", (int)iWindow);
+    winDebug("UpdateState: iWindow 0x%08x %d\n", (int)iWindow, state);
 
     hWnd = getHwnd(pWMInfo, iWindow);
-    if (!hWnd)
-        return;
+    if (hWnd)
+        {
+            // Keep track of the Window state, do nothing if it's not changing
+            current_state = (intptr_t)GetProp(hWnd, WIN_STATE_PROP);
 
-    ShowWindow(hWnd, SW_MINIMIZE);
+            if (current_state == state)
+                return;
+
+            SetProp(hWnd, WIN_STATE_PROP, (HANDLE)(intptr_t)state);
+
+            switch (state)
+                {
+                case XCB_ICCCM_WM_STATE_ICONIC:
+                    ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
+                    break;
+
+#define XCB_ICCCM_WM_STATE_ZOOM 2
+                case XCB_ICCCM_WM_STATE_ZOOM:
+                    // There doesn't seem to be a SW_SHOWMAXNOACTIVE.  Hopefully
+                    // always activating a maximized window isn't so bad...
+                    ShowWindow(hWnd, SW_SHOWMAXIMIZED);
+                    break;
+
+                case XCB_ICCCM_WM_STATE_NORMAL:
+                    ShowWindow(hWnd, SW_SHOWNOACTIVATE);
+                    break;
+
+                case XCB_ICCCM_WM_STATE_WITHDRAWN:
+                    ShowWindow(hWnd, SW_HIDE);
+                    break;
+                }
+        }
+
+    // Update WM_STATE property
+    {
+        // ZoomState is obsolete in ICCCM, so map it to NormalState
+        int icccm_state = state;
+        int icccm_current_state = current_state;
+
+        if (icccm_state == XCB_ICCCM_WM_STATE_ZOOM)
+            icccm_state = XCB_ICCCM_WM_STATE_NORMAL;
+
+        if (icccm_current_state == XCB_ICCCM_WM_STATE_ZOOM)
+            icccm_current_state = XCB_ICCCM_WM_STATE_NORMAL;
+
+        // Don't change property unnecessarily
+        //
+        // (Note that we do not take notice of WM_STATE PropertyNotify, only
+        // WM_CHANGE_STATE ClientMessage, so this should not cause the state to
+        // change itself)
+        if (icccm_current_state != icccm_state)
+            {
+                struct
+                {
+                    CARD32 state;
+                    XID     icon;
+                } wmstate;
+
+                wmstate.state = icccm_state;
+                wmstate.icon = None;
+
+                xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
+                                    iWindow, pWMInfo->atmWmState,
+                                    pWMInfo->atmWmState, 32,
+                                    sizeof(wmstate)/sizeof(int),
+                                    (unsigned char *) &wmstate);
+            }
+    }
+
+    // Update _NET_WM_STATE property
+    if (state == XCB_ICCCM_WM_STATE_WITHDRAWN) {
+        xcb_delete_property(pWMInfo->conn, iWindow, pWMInfo->ewmh._NET_WM_STATE);
+    }
+    else {
+        xcb_get_property_cookie_t cookie;
+        xcb_get_property_reply_t *reply;
+
+        cookie = xcb_get_property(pWMInfo->conn, FALSE, iWindow,
+                                  pWMInfo->ewmh._NET_WM_STATE,
+                                  XCB_ATOM_ATOM,
+                                  0, INT_MAX);
+        reply = xcb_get_property_reply(pWMInfo->conn, cookie, NULL);
+        if (reply) {
+            int nitems = xcb_get_property_value_length(reply)/sizeof(xcb_atom_t);
+            xcb_atom_t *pAtom = xcb_get_property_value(reply);
+            unsigned long i, o = 0;
+            xcb_atom_t *netwmstate=alloca((nitems + 2)*sizeof(xcb_atom_t));
+            Bool changed = FALSE;
+
+            // Make a copy with _NET_WM_HIDDEN, _NET_WM_MAXIMIZED_{VERT,HORZ}
+            // removed
+            for (i = 0; i < nitems; i++) {
+                if ((pAtom[i] != pWMInfo->ewmh._NET_WM_STATE_HIDDEN) &&
+                    (pAtom[i] != pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT) &&
+                    (pAtom[i] != pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ))
+                    netwmstate[o++] = pAtom[i];
+            }
+            free(reply);
+
+            // if iconized, add _NET_WM_HIDDEN
+            if (state == XCB_ICCCM_WM_STATE_ICONIC) {
+                netwmstate[o++] = pWMInfo->ewmh._NET_WM_STATE_HIDDEN;
+            }
+
+            // if maximized, add  _NET_WM_MAXIMIZED_{VERT,HORZ}
+            if (state == XCB_ICCCM_WM_STATE_ZOOM) {
+                netwmstate[o++] = pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT;
+                netwmstate[o++] = pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ;
+            }
+
+            // Don't change property unnecessarily
+            if (nitems != o)
+                changed = TRUE;
+            else
+                for (i = 0; i < nitems; i++)
+                    {
+                        if (pAtom[i] != netwmstate[i])
+                            {
+                                changed = TRUE;
+                                break;
+                            }
+                    }
+
+            if (changed)
+                xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
+                                    iWindow,
+                                    pWMInfo->ewmh._NET_WM_STATE,
+                                    XCB_ATOM_ATOM, 32,
+                                    o, (unsigned char *) &netwmstate);
+        }
+    }
 }
 
 #if 0
@@ -789,7 +929,7 @@ winMultiWindowWMProc(void *pArg)
     WMInfoPtr pWMInfo = pProcArg->pWMInfo;
 
     pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
-  
+
     /* Initialize the Window Manager */
     winInitMultiWindowWM(pWMInfo, pProcArg);
 
@@ -832,7 +972,7 @@ winMultiWindowWMProc(void *pArg)
             }
             break;
 
-        case WM_WM_MAP2:
+        case WM_WM_MAP_UNMANAGED:
             /* Put a note as to the HWND associated with this Window */
             xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
                                 pNode->msg.iWindow, pWMInfo->atmPrivMap,
@@ -841,7 +981,10 @@ winMultiWindowWMProc(void *pArg)
 
             break;
 
-        case WM_WM_MAP3:
+        case WM_WM_MAP_MANAGED:
+          {
+            unsigned long maxmin = 0;
+
             /* Put a note as to the HWND associated with this Window */
             xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
                                 pNode->msg.iWindow, pWMInfo->atmPrivMap,
@@ -849,8 +992,7 @@ winMultiWindowWMProc(void *pArg)
                                 sizeof(HWND)/4, &(pNode->msg.hwndWindow));
 
             UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateStyle(pWMInfo, pNode->msg.iWindow);
-
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin);
 
             /* Reshape */
             {
@@ -863,6 +1005,19 @@ winMultiWindowWMProc(void *pArg)
             }
 
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
+            /* Establish initial state */
+            UpdateState(pWMInfo, pNode->msg.iWindow, XCB_ICCCM_WM_STATE_NORMAL);
+
+            /*
+              It only makes sense to apply minimize/maximize override as the
+              initial state, otherwise that state can't be changed.
+            */
+            if (maxmin & HINT_MAX)
+                SendMessage(pNode->msg.hwndWindow, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+            else if (maxmin & HINT_MIN)
+                SendMessage(pNode->msg.hwndWindow, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+          }
+
             break;
 
         case WM_WM_UNMAP:
@@ -932,16 +1087,14 @@ winMultiWindowWMProc(void *pArg)
 
         case WM_WM_HINTS_EVENT:
             {
-            /* Don't do anything if this is an override-redirect window */
-            if (IsOverrideRedirect(pWMInfo->conn, pNode->msg.iWindow))
-              break;
+            unsigned long maxmin = 0;
 
-            UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin);
             }
             break;
 
         case WM_WM_CHANGE_STATE:
-            UpdateState(pWMInfo, pNode->msg.iWindow);
+            UpdateState(pWMInfo, pNode->msg.iWindow, pNode->msg.dwID);
             break;
 
         default:
@@ -1043,6 +1196,8 @@ winMultiWindowXMsgProc(void *pArg)
     xcb_atom_t atmWindowState, atmMotifWmHints, atmWindowType, atmNormalHints;
     int iReturn;
     xcb_auth_info_t *auth_info;
+    xcb_screen_t *root_screen;
+    xcb_window_t root_window_id;
 
     pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
 
@@ -1119,11 +1274,10 @@ winMultiWindowXMsgProc(void *pArg)
         pthread_exit(NULL);
     }
 
+    /* Get root window id */
+    root_screen = xcb_aux_get_screen(pProcArg->conn, pProcArg->dwScreen);
+    root_window_id = root_screen->root;
     {
-        /* Get root window id */
-        xcb_screen_t *root_screen = xcb_aux_get_screen(pProcArg->conn, pProcArg->dwScreen);
-        xcb_window_t root_window_id = root_screen->root;
-
         /* Set WM_ICON_SIZE property indicating desired icon sizes */
         typedef struct {
             uint32_t min_width, min_height;
@@ -1152,14 +1306,39 @@ winMultiWindowXMsgProc(void *pArg)
     atmNormalHints = intern_atom(pProcArg->conn, "WM_NORMAL_HINTS");
 
     /*
-       iiimxcf had a bug until 2009-04-27, assuming that the
-       WM_STATE atom exists, causing clients to fail with
-       a BadAtom X error if it doesn't.
-
-       Since this is on in the default Solaris 10 install,
-       workaround this by making sure it does exist...
+      Enable Composite extension and redirect subwindows of the root window
      */
-    intern_atom(pProcArg->conn, "WM_STATE");
+    if (pProcArg->pWMInfo->fCompositeWM) {
+        const char *extension_name = "Composite";
+        xcb_query_extension_cookie_t cookie;
+        xcb_query_extension_reply_t *reply;
+
+        cookie = xcb_query_extension(pProcArg->conn, strlen(extension_name), extension_name);
+        reply = xcb_query_extension_reply(pProcArg->conn, cookie, NULL);
+
+        if (reply && (reply->present)) {
+            xcb_composite_redirect_subwindows(pProcArg->conn,
+                                              root_window_id,
+                                              XCB_COMPOSITE_REDIRECT_AUTOMATIC);
+
+            /*
+              We use automatic updating of the root window for two
+              reasons:
+
+              1) redirected window contents are mirrored to the root
+              window so that the root window draws correctly when shown.
+
+              2) updating the root window causes damage against the
+              shadow framebuffer, which ultimately causes WM_PAINT to be
+              sent to the affected window(s) to cause the damage regions
+              to be redrawn.
+            */
+
+            ErrorF("Using Composite redirection\n");
+
+            free(reply);
+        }
+    }
 
     /* Loop until we explicitly break out */
     while (1) {
@@ -1265,6 +1444,16 @@ winMultiWindowXMsgProc(void *pArg)
                 }
             }
         }
+        else if (type == XCB_UNMAP_NOTIFY) {
+            xcb_unmap_notify_event_t *notify = (xcb_unmap_notify_event_t *)event;
+
+            memset(&msg, 0, sizeof(msg));
+            msg.msg = WM_WM_CHANGE_STATE;
+            msg.iWindow = notify->window;
+            msg.dwID = XCB_ICCCM_WM_STATE_WITHDRAWN;
+
+            winSendMessageToWM(pProcArg->pWMInfo, &msg);
+        }
         else if (type == XCB_CONFIGURE_NOTIFY) {
             if (!send_event) {
                 /*
@@ -1290,6 +1479,15 @@ winMultiWindowXMsgProc(void *pArg)
         }
         else if (type ==  XCB_PROPERTY_NOTIFY) {
             xcb_property_notify_event_t *notify = (xcb_property_notify_event_t *)event;
+
+            xcb_get_atom_name_cookie_t cookie = xcb_get_atom_name(pProcArg->conn, notify->atom);
+            xcb_get_atom_name_reply_t *reply = xcb_get_atom_name_reply(pProcArg->conn, cookie, NULL);
+            if (reply) {
+                winDebug("winMultiWindowXMsgProc: PropertyNotify %.*s\n",
+                         xcb_get_atom_name_name_length(reply),
+                         xcb_get_atom_name_name(reply));
+                free(reply);
+            }
 
             if ((notify->atom == atmWmName) ||
                 (notify->atom == atmNetWmName)) {
@@ -1342,8 +1540,50 @@ winMultiWindowXMsgProc(void *pArg)
 
                 msg.msg = WM_WM_CHANGE_STATE;
                 msg.iWindow = client_msg->window;
+                msg.dwID = client_msg->data.data32[0];
 
                 winSendMessageToWM(pProcArg->pWMInfo, &msg);
+            }
+            else if (client_msg->type == pProcArg->pWMInfo->ewmh._NET_WM_STATE) {
+                int action = client_msg->data.data32[0];
+                int state = -1;
+
+                if (action == XCB_EWMH_WM_STATE_ADD) {
+                    if ((client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT) &&
+                        (client_msg->data.data32[2] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ))
+                        state = XCB_ICCCM_WM_STATE_ZOOM;
+
+                    if ((client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ) &&
+                        (client_msg->data.data32[2] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT))
+                        state = XCB_ICCCM_WM_STATE_ZOOM;
+
+                    if (client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_HIDDEN)
+                        state = XCB_ICCCM_WM_STATE_ICONIC;
+                }
+                else if (action == XCB_EWMH_WM_STATE_REMOVE) {
+                    if ((client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT) &&
+                        (client_msg->data.data32[2] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ))
+                        state = XCB_ICCCM_WM_STATE_NORMAL;
+
+                    if ((client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ) &&
+                        (client_msg->data.data32[2] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT))
+                        state = XCB_ICCCM_WM_STATE_NORMAL;
+
+                    if (client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_HIDDEN)
+                        state = XCB_ICCCM_WM_STATE_NORMAL;
+                }
+                else {
+                    ErrorF("winMultiWindowXMsgProc: ClientMEssage _NET_WM_STATE unsupported action %d\n", action);
+                }
+
+                if (state != -1) {
+                    memset(&msg, 0, sizeof(msg));
+                    msg.msg = WM_WM_CHANGE_STATE;
+                    msg.iWindow = client_msg->window;
+                    msg.dwID = state;
+
+                    winSendMessageToWM(pProcArg->pWMInfo, &msg);
+                }
             }
         }
 
@@ -1369,7 +1609,7 @@ winInitWM(void **ppWMInfo,
           pthread_t * ptWMProc,
           pthread_t * ptXMsgProc,
           pthread_mutex_t * ppmServerStarted,
-          int dwScreen, HWND hwndScreen)
+          int dwScreen, HWND hwndScreen, Bool compositeWM)
 {
     WMProcArgPtr pArg = malloc(sizeof(WMProcArgRec));
     WMInfoPtr pWMInfo = malloc(sizeof(WMInfoRec));
@@ -1391,6 +1631,7 @@ winInitWM(void **ppWMInfo,
 
     /* Set a return pointer to the Window Manager info structure */
     *ppWMInfo = pWMInfo;
+    pWMInfo->fCompositeWM = compositeWM;
 
     /* Setup the argument structure for the thread function */
     pArg->dwScreen = dwScreen;
@@ -1437,6 +1678,8 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     char pszDisplay[512];
     int iReturn;
     xcb_auth_info_t *auth_info;
+    xcb_screen_t *root_screen;
+    xcb_window_t root_window_id;
 
     winDebug("winInitMultiWindowWM - Hello\n");
 
@@ -1508,6 +1751,10 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     pWMInfo->atmPrivMap = intern_atom(pWMInfo->conn, WINDOWSWM_NATIVE_HWND);
     pWMInfo->atmUtf8String = intern_atom(pWMInfo->conn, "UTF8_STRING");
     pWMInfo->atmNetWmName = intern_atom(pWMInfo->conn, "_NET_WM_NAME");
+    pWMInfo->atmCurrentDesktop = intern_atom(pWMInfo->conn, "_NET_CURRENT_DESKTOP");
+    pWMInfo->atmNumberDesktops = intern_atom(pWMInfo->conn, "_NET_NUMBER_OF_DESKTOPS");
+    pWMInfo->atmDesktopNames = intern_atom(pWMInfo->conn, "__NET_DESKTOP_NAMES");
+    pWMInfo->atmWmState = intern_atom(pWMInfo->conn, "WM_STATE");
 
     /* Initialization for the xcb_ewmh and EWMH atoms */
     {
@@ -1532,6 +1779,8 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
                     pWMInfo->ewmh._NET_WM_STATE_ABOVE,
                     pWMInfo->ewmh._NET_WM_STATE_BELOW,
                     pWMInfo->ewmh._NET_WM_STATE_SKIP_TASKBAR,
+                    pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT,
+                    pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ,
                 };
 
             xcb_ewmh_set_supported(&pWMInfo->ewmh, pProcArg->dwScreen,
@@ -1540,6 +1789,32 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
         else {
             ErrorF("winInitMultiWindowWM - xcb_ewmh_init_atoms() failed\n");
         }
+    }
+
+    /* Get root window id */
+    root_screen = xcb_aux_get_screen(pWMInfo->conn, pProcArg->dwScreen);
+    root_window_id = root_screen->root;
+
+    /*
+      Set root window properties for describing multiple desktops to describe
+      the one desktop we have
+    */
+    {
+        int data;
+        const char buf[] = "Desktop";
+
+        data = 0;
+        xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE, root_window_id,
+                            pWMInfo->atmCurrentDesktop, XCB_ATOM_CARDINAL, 32,
+                            1, &data);
+        data = 1;
+        xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE, root_window_id,
+                            pWMInfo->atmNumberDesktops, XCB_ATOM_CARDINAL, 32,
+                            1, &data);
+
+        xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE, root_window_id,
+                            pWMInfo->atmDesktopNames, pWMInfo->atmUtf8String, 8,
+                            strlen(buf), (unsigned char *) buf);
     }
 
     /*
@@ -1555,9 +1830,6 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
         uint32_t mask = XCB_CW_CURSOR;
         uint32_t value_list = cursor;
 
-        xcb_screen_t *root_screen = xcb_aux_get_screen(pWMInfo->conn, pProcArg->dwScreen);
-        xcb_window_t window = root_screen->root;
-
         static const uint16_t fgred = 0, fggreen = 0, fgblue = 0;
         static const uint16_t bgred = 0xFFFF, bggreen = 0xFFFF, bgblue = 0xFFFF;
 
@@ -1567,7 +1839,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
                                 shape, shape + 1,
                                 fgred, fggreen, fgblue, bgred, bggreen, bgblue);
 
-        xcb_change_window_attributes(pWMInfo->conn, window, mask, &value_list);
+        xcb_change_window_attributes(pWMInfo->conn, root_window_id, mask, &value_list);
 
         xcb_free_cursor(pWMInfo->conn, cursor);
         xcb_close_font(pWMInfo->conn, font);
@@ -1674,14 +1946,10 @@ winDeinitMultiWindowWM(void)
 #define HINT_NOMINIMIZE (1L<<5)
 #define HINT_NOSYSMENU  (1L<<6)
 #define HINT_SKIPTASKBAR (1L<<7)
-/* These two are used on their own */
-#define HINT_MAX	(1L<<0)
-#define HINT_MIN	(1L<<1)
 
 static void
-winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
+winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle, unsigned long *maxmin)
 {
-
     xcb_connection_t *conn = pWMInfo->conn;
     static xcb_atom_t windowState, motif_wm_hints;
     static xcb_atom_t hiddenState, fullscreenState, belowState, aboveState,
@@ -1689,8 +1957,11 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
     static xcb_atom_t splashType;
     static int generation;
 
-    unsigned long hint = 0, maxmin = 0;
+    unsigned long hint = HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION;
+    unsigned long taskbar = 0;
     unsigned long style, exStyle;
+
+    *maxmin = 0;
 
     if (!hWnd)
         return;
@@ -1716,19 +1987,28 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
         int i;
         int nitems = xcb_get_property_value_length(reply)/sizeof(xcb_atom_t);
         xcb_atom_t *pAtom = xcb_get_property_value(reply);
+        Bool verMax = FALSE;
+        Bool horMax = FALSE;
 
             for (i = 0; i < nitems; i++) {
                 if (pAtom[i] == skiptaskbarState)
                     hint |= HINT_SKIPTASKBAR;
                 if (pAtom[i] == hiddenState)
-                    maxmin |= HINT_MIN;
+                    *maxmin |= HINT_MIN;
                 else if (pAtom[i] == fullscreenState)
-                    maxmin |= HINT_MAX;
+                    *maxmin |= HINT_MAX;
                 if (pAtom[i] == belowState)
                     *zstyle = HWND_BOTTOM;
                 else if (pAtom[i] == aboveState)
                     *zstyle = HWND_TOPMOST;
+                if (pAtom[i] == pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT)
+                  verMax = TRUE;
+                if (pAtom[i] == pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ)
+                  horMax = TRUE;
             }
+
+            if (verMax && horMax)
+              *maxmin |= HINT_MAX;
 
             free(reply);
       }
@@ -1742,15 +2022,17 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
         MwmHints *mwm_hint = xcb_get_property_value(reply);
         if (mwm_hint && (nitems >= PropMwmHintsElements) &&
             (mwm_hint->flags & MwmHintsDecorations)) {
-            if (!mwm_hint->decorations)
+            if (!mwm_hint->decorations) {
+                hint &= ~(HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION);
                 hint |= (HINT_NOFRAME | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
+            }
             else if (!(mwm_hint->decorations & MwmDecorAll)) {
-                if (mwm_hint->decorations & MwmDecorBorder)
-                    hint |= HINT_BORDER;
-                if (mwm_hint->decorations & MwmDecorHandle)
-                    hint |= HINT_SIZEBOX;
-                if (mwm_hint->decorations & MwmDecorTitle)
-                    hint |= HINT_CAPTION;
+                if (!(mwm_hint->decorations & MwmDecorBorder))
+                    hint &= ~HINT_BORDER;
+                if (!(mwm_hint->decorations & MwmDecorHandle))
+                    hint &= ~HINT_SIZEBOX;
+                if (!(mwm_hint->decorations & MwmDecorTitle))
+                    hint &= ~HINT_CAPTION;
                 if (!(mwm_hint->decorations & MwmDecorMenu))
                     hint |= HINT_NOSYSMENU;
                 if (!(mwm_hint->decorations & MwmDecorMinimize))
@@ -1776,11 +2058,13 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
       if (xcb_ewmh_get_wm_window_type_reply(&pWMInfo->ewmh, cookie, &type, NULL)) {
         for (i = 0; i < type.atoms_len; i++) {
             if (type.atoms[i] ==  pWMInfo->ewmh._NET_WM_WINDOW_TYPE_DOCK) {
-                hint = (hint & ~HINT_NOFRAME) | HINT_SKIPTASKBAR | HINT_SIZEBOX;
+                hint &= ~(HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION | HINT_NOFRAME);
+                hint |= (HINT_SKIPTASKBAR | HINT_SIZEBOX);
                 *zstyle = HWND_TOPMOST;
             }
             else if ((type.atoms[i] == pWMInfo->ewmh._NET_WM_WINDOW_TYPE_SPLASH)
                      || (type.atoms[i] == splashType)) {
+                hint &= ~(HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION);
                 hint |= (HINT_SKIPTASKBAR | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
                 *zstyle = HWND_TOPMOST;
             }
@@ -1794,8 +2078,14 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
 
         cookie = xcb_icccm_get_wm_normal_hints(conn, iWindow);
         if (xcb_icccm_get_wm_normal_hints_reply(conn, cookie, &size_hints, NULL)) {
-            if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
+            /* Notwithstanding MwmDecorHandle, if we have a border, and
+               WM_NORMAL_HINTS indicates the window should be resizeable, let
+               the window have a resizing border.  This is necessary for windows
+               with gtk3+ 3.14 csd. */
+            if (hint & HINT_BORDER)
+                hint |= HINT_SIZEBOX;
 
+            if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
                 /* Not maximizable if a maximum size is specified, and that size
                    is smaller (in either dimension) than the screen size */
                 if ((size_hints.max_width < GetSystemMetrics(SM_CXVIRTUALSCREEN))
@@ -1808,8 +2098,10 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
                        don't bother with a resizing frame
                      */
                     if ((size_hints.min_width == size_hints.max_width)
-                        && (size_hints.min_height == size_hints.max_height))
+                        && (size_hints.min_height == size_hints.max_height)) {
+                        hint |= HINT_NOMAXIMIZE;
                         hint = (hint & ~HINT_SIZEBOX);
+                    }
                 }
             }
         }
@@ -1824,43 +2116,48 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
         char *window_name = 0;
         char *res_name = 0;
         char *res_class = 0;
+        char *rand_id = 0;
 
         GetClassNames(pWMInfo, iWindow, &res_name, &res_class, &window_name);
 
         style = STYLE_NONE;
         style = winOverrideStyle(res_name, res_class, window_name);
+        taskbar = winOverrideTaskbar(res_name, res_class, window_name);
 
-#define APPLICATION_ID_FORMAT	"%s.xwin.%s"
-#define APPLICATION_ID_UNKNOWN "unknown"
-        if (res_class) {
-            asprintf(&application_id, APPLICATION_ID_FORMAT, XVENDORNAME,
-                     res_class);
+        if (taskbar & TASKBAR_NEWTAB) {
+            int irand_id;
+            srand((unsigned)time(NULL));
+            irand_id = rand();
+            asprintf(&rand_id, "%d", irand_id);
         }
-        else {
-            asprintf(&application_id, APPLICATION_ID_FORMAT, XVENDORNAME,
-                     APPLICATION_ID_UNKNOWN);
-        }
+        /* AppUserModelID in the following form CompanyName.ProductName.SubProduct.VersionInformation
+           VersionInformation is set random with NEWTAB and to display-number normally. No spaces allowed. */
+        asprintf(&application_id,
+                 "%s.%s.%s.%s",
+                 XVENDORNAME,
+                 PROJECT_NAME,
+                 (res_class) ? res_class :
+                 (res_name) ? res_name :
+                 (window_name) ? window_name : "SubProductUnknown",
+                 (taskbar & TASKBAR_NEWTAB) ? rand_id :
+                 (getenv("DISNO")) ? getenv("DISNO") : 0);
         winSetAppUserModelID(hWnd, application_id);
 
         free(application_id);
         free(res_name);
         free(res_class);
         free(window_name);
+        free(rand_id);
     }
 
     if (style & STYLE_TOPMOST)
         *zstyle = HWND_TOPMOST;
     else if (style & STYLE_MAXIMIZE)
-        maxmin = (hint & ~HINT_MIN) | HINT_MAX;
+        *maxmin = (hint & ~HINT_MIN) | HINT_MAX;
     else if (style & STYLE_MINIMIZE)
-        maxmin = (hint & ~HINT_MAX) | HINT_MIN;
+        *maxmin = (hint & ~HINT_MAX) | HINT_MIN;
     else if (style & STYLE_BOTTOM)
         *zstyle = HWND_BOTTOM;
-
-    if (maxmin & HINT_MAX)
-        SendMessage(hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
-    else if (maxmin & HINT_MIN)
-        SendMessage(hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
 
     if (style & STYLE_NOTITLE)
         hint =
@@ -1874,6 +2171,9 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
         hint =
             (hint & ~HINT_BORDER & ~HINT_CAPTION & ~HINT_SIZEBOX) |
             HINT_NOFRAME;
+
+    if (taskbar & TASKBAR_NOTAB)
+        hint |= HINT_SKIPTASKBAR;
 
     /* Now apply styles to window */
     style = GetWindowLongPtr(hWnd, GWL_STYLE);

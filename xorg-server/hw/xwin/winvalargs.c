@@ -67,12 +67,11 @@ winValidateArgs(void)
      *    XWin -screen 1 -screen 2
      */
     if (!isEveryScreenExplicit()) {
-        ErrorF("winValidateArgs - Malformed set of screen parameter(s).  "
-               "Screens must be specified consecutively starting with "
-               "screen 0.  That is, you cannot have only a screen 1, nor "
-               "could you have screen 0 and screen 2.  You instead must "
-               "have screen 0, or screen 0 and screen 1, respectively.  "
-               "You can specify as many screens as you want.\n");
+        ErrorF("winValidateArgs - Malformed set of screen parameter(s).\n"
+               "\t\tScreens must be specified consecutively starting with screen 0.\n"
+               "\t\tThat is, you cannot have only a screen 1, nor could you have screen 0 and screen 2.\n"
+               "\t\tYou instead must have screen 0, or screen 0 and screen 1, respectively.\n"
+               "\t\tYou can specify as many screens as you want.\n");
         return FALSE;
     }
 
@@ -167,6 +166,14 @@ winValidateArgs(void)
             ErrorF("winValidateArgs - -fullscreen is invalid with "
                    "-scrollbars, -resize, -nodecoration, or -lesspointer.\n");
             return FALSE;
+        }
+
+        /* Ignore -swcursor if -multiwindow -compositewm is requested */
+        if (g_ScreenInfo[i].fMultiWindow && g_ScreenInfo[i].fCompositeWM) {
+            if (g_fSoftwareCursor) {
+                g_fSoftwareCursor = FALSE;
+                ErrorF("Ignoring -swcursor due to -compositewm\n");
+            }
         }
     }
 

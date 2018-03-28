@@ -681,15 +681,15 @@ ConfineToShape(DeviceIntPtr pDev, RegionPtr shape, int *px, int *py)
         x += incx;
         if (x >= box.x2) {
             incx = -1;
-            x = *px - 1;
+            x = min(box.x2,*px) - 1;
         }
         else if (x < box.x1) {
             incx = 1;
-            x = *px;
+            x = max(box.x1,*px);
             y += incy;
             if (y >= box.y2) {
                 incy = -1;
-                y = *py - 1;
+                y = min(box.y2,*py) - 1;
             }
             else if (y < box.y1)
                 return;         /* should never get here! */

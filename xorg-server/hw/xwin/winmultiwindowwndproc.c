@@ -47,6 +47,7 @@
 #include "inputstr.h"
 
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
+extern void winSetAppUserModelID(HWND hWnd, char *AppID);
 
 #ifdef XKB
 #ifndef XKB_IN_SERVER
@@ -309,6 +310,35 @@ winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
 void DispatchQueuedEvents(Bool);
 #define UPDATETIMER 1234
 
+static
+void
+winAdjustXWindowState(winPrivScreenPtr s_pScreenPriv, winWMMessageRec *wmMsg)
+{
+    /* Do nothing if window has not yet been given initial state */
+    if (!GetProp(wmMsg->hwndWindow, WIN_STATE_PROP))
+        return;
+
+    wmMsg->msg = WM_WM_CHANGE_STATE;
+    if (IsIconic(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 3; // IconicState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsZoomed(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 2; // ZoomState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsWindowVisible(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 1; // NormalState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+     }
+    else {
+        /* Only the client, not the user can Withdraw windows, so it doesn't make
+           much sense to handle that state here, and anything else is an
+           unanticapted state. */
+        ErrorF("winAdjustXWindowState - Unknown state for %p\n", wmMsg->hwndWindow);
+    }
+}
+
 /*
  * winTopLevelWindowProc - Window procedure for all top-level Windows windows.
  */
@@ -317,7 +347,6 @@ LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     POINT ptMouse;
-    HDC hdcUpdate;
     PAINTSTRUCT ps;
     WindowPtr pWin = NULL;
     winPrivWinPtr pWinPriv = NULL;
@@ -449,17 +478,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_PAINT:
         /* Only paint if our window handle is valid */
-        if (hwndScreen == NULL)
+        if (hwnd == NULL)
             break;
-
-        /* BeginPaint gives us an hdc that clips to the invalidated region */
-        hdcUpdate = BeginPaint(hwnd, &ps);
-        /* Avoid the BitBlt's if the PAINTSTRUCT is bogus */
-        if (ps.rcPaint.right == 0 && ps.rcPaint.bottom == 0 &&
-            ps.rcPaint.left == 0 && ps.rcPaint.top == 0) {
-            EndPaint(hwnd, &ps);
-            return 0;
-        }
 
 #ifdef XWIN_GLX_WINDOWS
         if (pWinPriv->fWglUsed) {
@@ -470,36 +490,15 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                XXX: For now, just leave it alone, but ideally we want to send an expose event to
                the window so it really redraws the affected region...
              */
+            BeginPaint(hwnd, &ps);
             ValidateRect(hwnd, &(ps.rcPaint));
+            EndPaint(hwnd, &ps);
         }
         else
 #endif
-            /* Try to copy from the shadow buffer */
-        if (!BitBlt(hdcUpdate,
-                        ps.rcPaint.left, ps.rcPaint.top,
-                        ps.rcPaint.right - ps.rcPaint.left,
-                        ps.rcPaint.bottom - ps.rcPaint.top,
-                        s_pScreenPriv->hdcShadow,
-                        ps.rcPaint.left + pWin->drawable.x,
-                        ps.rcPaint.top + pWin->drawable.y, SRCCOPY)) {
-            LPVOID lpMsgBuf;
-
-            /* Display a fancy error message */
-            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS,
-                          NULL,
-                          GetLastError(),
-                          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                          (LPTSTR) &lpMsgBuf, 0, NULL);
-
-            ErrorF("winTopLevelWindowProc - BitBlt failed: %s\n",
-                   (LPSTR) lpMsgBuf);
-            LocalFree(lpMsgBuf);
-        }
-
-        /* EndPaint frees the DC */
-        EndPaint(hwnd, &ps);
+            /* Call the engine dependent repainter */
+            if (*s_pScreenPriv->pwinBltExposedWindowRegion)
+                (*s_pScreenPriv->pwinBltExposedWindowRegion) (s_pScreen, pWin);
         return 0;
 
     case WM_MOUSEMOVE:
@@ -876,6 +875,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         RemoveProp(hwnd, WIN_WINDOW_PROP);
         RemoveProp(hwnd, WIN_WID_PROP);
         RemoveProp(hwnd, WIN_NEEDMANAGE_PROP);
+        RemoveProp(hwnd, WIN_STATE_PROP);
 
         break;
 
@@ -926,7 +926,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     }
                 }
             }
-            wmMsg.msg = WM_WM_MAP3;
+            wmMsg.msg = WM_WM_MAP_MANAGED;
         }
         else {                  /* It is an overridden window so make it top of Z stack */
 
@@ -943,7 +943,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                                      SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
                 }
             }
-            wmMsg.msg = WM_WM_MAP2;
+            wmMsg.msg = WM_WM_MAP_UNMANAGED;
         }
 
         /* Tell our Window Manager thread to map the window */
@@ -1047,6 +1047,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         hasEnteredSizeMove = FALSE;
         winAdjustXWindow(pWin, hwnd);
         KillTimer(hwnd, UPDATETIMER);
+        if (fWMMsgInitialized)
+            winAdjustXWindowState(s_pScreenPriv, &wmMsg);
         return 0;
 
     case WM_SIZE:
@@ -1074,9 +1076,12 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
         /* Adjust the X Window to the moved Windows window */
         winAdjustXWindow (pWin, hwnd);
-        if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
+        if (fWMMsgInitialized)
+            winAdjustXWindowState(s_pScreenPriv, &wmMsg);
+        if (wParam == SIZE_MINIMIZED)
+            winReorderWindowsMultiWindow();
         if (hasEnteredSizeMove)
-          DispatchQueuedEvents(0);
+            DispatchQueuedEvents(0);
     /* else: wait for WM_EXITSIZEMOVE */
     return 0; /* end of WM_SIZE handler */
 
