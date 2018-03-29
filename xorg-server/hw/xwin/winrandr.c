@@ -255,7 +255,7 @@ winRandRInit(ScreenPtr pScreen)
 
         crtc->rotations = RR_Rotate_0;
 
-        output = RROutputCreate(pScreen, "virtual", 7, NULL);
+        output = RROutputCreate(pScreen, "default", 7, NULL);
         if (!output)
             return FALSE;
 
@@ -275,12 +275,6 @@ winRandRInit(ScreenPtr pScreen)
         /* Ensure we have space for exactly one mode */
         output->modes = malloc(sizeof(RRModePtr));
         output->modes[0] = NULL;
-
-        /* Set mode to current display size */
-        winRandRUpdateMode(pScreen, output);        /* Make up some physical dimensions */
-
-        output->mmWidth = (pScreen->width * 25.4)/monitorResolution;
-        output->mmHeight = (pScreen->height * 25.4)/monitorResolution;
 
         /* Allocate and make up a (fixed, linear) gamma ramp */
         {
