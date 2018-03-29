@@ -1157,18 +1157,25 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	} else {
 		switch (surf->bpe) {
 		case 1:
+			assert(!(surf->flags & RADEON_SURF_ZBUFFER));
 			AddrSurfInfoIn.format = ADDR_FMT_8;
 			break;
 		case 2:
+			assert(surf->flags & RADEON_SURF_ZBUFFER ||
+			       !(surf->flags & RADEON_SURF_SBUFFER));
 			AddrSurfInfoIn.format = ADDR_FMT_16;
 			break;
 		case 4:
+			assert(surf->flags & RADEON_SURF_ZBUFFER ||
+			       !(surf->flags & RADEON_SURF_SBUFFER));
 			AddrSurfInfoIn.format = ADDR_FMT_32;
 			break;
 		case 8:
+			assert(!(surf->flags & RADEON_SURF_Z_OR_SBUFFER));
 			AddrSurfInfoIn.format = ADDR_FMT_32_32;
 			break;
 		case 16:
+			assert(!(surf->flags & RADEON_SURF_Z_OR_SBUFFER));
 			AddrSurfInfoIn.format = ADDR_FMT_32_32_32_32;
 			break;
 		default:
@@ -1258,6 +1265,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	if (surf->flags & RADEON_SURF_SBUFFER) {
 		AddrSurfInfoIn.flags.stencil = 1;
 		AddrSurfInfoIn.bpp = 8;
+		AddrSurfInfoIn.format = ADDR_FMT_8;
 
 		if (!AddrSurfInfoIn.flags.depth) {
 			r = gfx9_get_preferred_swizzle_mode(addrlib, &AddrSurfInfoIn, false,

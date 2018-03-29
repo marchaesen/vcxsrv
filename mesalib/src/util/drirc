@@ -269,6 +269,21 @@ TODO: document the other workarounds.
         <application name="Mount and Blade Warband" executable="mb_warband_linux">
             <option name="mesa_glthread" value="true"/>
         </application>
+
+        <!-- around 18% performance increase in min and avg fps, max fps capped at 60fps. -->
+        <application name="Medieval II: Total War" executable="Medieval2">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+
+        <!-- min fps ~21 ===> ~27 while standing still in game, also higher gpu load. -->
+        <application name="Carnivores: Dinosaur Hunter Reborn (wine)" executable="Carnivores-master.exe">
+            <option name="mesa_glthread" value="true"/>
+        </application>
+
+        <!-- around 30% increase in avg fps -->
+        <application name="Far Cry 2 (wine)" executable="farcry2.exe">
+            <option name="mesa_glthread" value="true"/>
+        </application>
     </device>
     <!-- vmwgfx doesn't like full buffer swaps and can't sync to vertical retraces.-->
     <device driver="vmwgfx">

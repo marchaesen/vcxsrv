@@ -1082,6 +1082,30 @@ LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
 					   can_speculate, true);
 }
 
+LLVMValueRef ac_build_buffer_load_format_gfx9_safe(struct ac_llvm_context *ctx,
+                                                  LLVMValueRef rsrc,
+                                                  LLVMValueRef vindex,
+                                                  LLVMValueRef voffset,
+                                                  unsigned num_channels,
+                                                  bool glc,
+                                                  bool can_speculate)
+{
+	LLVMValueRef elem_count = LLVMBuildExtractElement(ctx->builder, rsrc, LLVMConstInt(ctx->i32, 2, 0), "");
+	LLVMValueRef stride = LLVMBuildExtractElement(ctx->builder, rsrc, LLVMConstInt(ctx->i32, 1, 0), "");
+	stride = LLVMBuildLShr(ctx->builder, stride, LLVMConstInt(ctx->i32, 16, 0), "");
+
+	LLVMValueRef new_elem_count = LLVMBuildSelect(ctx->builder,
+	                                              LLVMBuildICmp(ctx->builder, LLVMIntUGT, elem_count, stride, ""),
+	                                              elem_count, stride, "");
+
+	LLVMValueRef new_rsrc = LLVMBuildInsertElement(ctx->builder, rsrc, new_elem_count,
+	                                               LLVMConstInt(ctx->i32, 2, 0), "");
+
+	return ac_build_buffer_load_common(ctx, new_rsrc, vindex, voffset,
+	                                   num_channels, glc, false,
+	                                   can_speculate, true);
+}
+
 /**
  * Set range metadata on an instruction.  This can only be used on load and
  * call instructions.  If you know an instruction can only produce the values

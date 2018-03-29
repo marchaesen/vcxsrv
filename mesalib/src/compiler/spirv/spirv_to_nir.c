@@ -378,6 +378,9 @@ vtn_handle_extension(struct vtn_builder *b, SpvOp opcode,
       } else if ((strcmp((const char *)&w[2], "SPV_AMD_gcn_shader") == 0)
                 && (b->options && b->options->caps.gcn_shader)) {
          val->ext_handler = vtn_handle_amd_gcn_shader_instruction;
+      } else if ((strcmp((const char *)&w[2], "SPV_AMD_shader_trinary_minmax") == 0)
+                && (b->options && b->options->caps.trinary_minmax)) {
+         val->ext_handler = vtn_handle_amd_shader_trinary_minmax_instruction;
       } else {
          vtn_fail("Unsupported extension");
       }

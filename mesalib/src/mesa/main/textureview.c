@@ -304,7 +304,8 @@ initialize_texture_fields(struct gl_context *ctx,
                           struct gl_texture_object *texObj,
                           GLint levels,
                           GLsizei width, GLsizei height, GLsizei depth,
-                          GLenum internalFormat, mesa_format texFormat)
+                          GLenum internalFormat, mesa_format texFormat,
+                          GLuint numSamples, GLboolean fixedSampleLocations)
 {
    const GLuint numFaces = _mesa_num_tex_faces(target);
    GLint level, levelWidth = width, levelHeight = height, levelDepth = depth;
@@ -326,9 +327,10 @@ initialize_texture_fields(struct gl_context *ctx,
             return GL_FALSE;
          }
 
-         _mesa_init_teximage_fields(ctx, texImage,
+         _mesa_init_teximage_fields_ms(ctx, texImage,
                                     levelWidth, levelHeight, levelDepth,
-                                    0, internalFormat, texFormat);
+                                    0, internalFormat, texFormat,
+                                    numSamples, fixedSampleLocations);
       }
 
       _mesa_next_mipmap_level_size(target, 0,
@@ -676,7 +678,9 @@ texture_view(struct gl_context *ctx, struct gl_texture_object *origTexObj,
 
    if (!initialize_texture_fields(ctx, target, texObj, newViewNumLevels,
                                   width, height, depth,
-                                  internalformat, texFormat)) {
+                                  internalformat, texFormat,
+                                  origTexImage->NumSamples,
+                                  origTexImage->FixedSampleLocations)) {
       return; /* Already recorded error */
    }
 

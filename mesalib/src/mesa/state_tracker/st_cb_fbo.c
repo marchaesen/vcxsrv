@@ -509,13 +509,9 @@ st_render_texture(struct gl_context *ctx,
                   struct gl_renderbuffer_attachment *att)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
    struct gl_renderbuffer *rb = att->Renderbuffer;
    struct st_renderbuffer *strb = st_renderbuffer(rb);
    struct pipe_resource *pt;
-
-   if (!st_finalize_texture(ctx, pipe, att->Texture, att->CubeMapFace))
-      return;
 
    pt = get_teximage_resource(att->Texture,
                               att->CubeMapFace,

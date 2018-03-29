@@ -837,8 +837,8 @@ clear_teximage_fields(struct gl_texture_image *img)
  * Fills in the fields of \p img with the given information.
  * Note: width, height and depth include the border.
  */
-static void
-init_teximage_fields_ms(struct gl_context *ctx,
+void
+_mesa_init_teximage_fields_ms(struct gl_context *ctx,
                         struct gl_texture_image *img,
                         GLsizei width, GLsizei height, GLsizei depth,
                         GLint border, GLenum internalFormat,
@@ -950,8 +950,8 @@ _mesa_init_teximage_fields(struct gl_context *ctx,
                            GLint border, GLenum internalFormat,
                            mesa_format format)
 {
-   init_teximage_fields_ms(ctx, img, width, height, depth, border,
-                           internalFormat, format, 0, GL_TRUE);
+   _mesa_init_teximage_fields_ms(ctx, img, width, height, depth, border,
+                                 internalFormat, format, 0, GL_TRUE);
 }
 
 
@@ -5891,9 +5891,9 @@ texture_image_multisample(struct gl_context *ctx, GLuint dims,
 
    if (_mesa_is_proxy_texture(target)) {
       if (samplesOK && dimensionsOK && sizeOK) {
-         init_teximage_fields_ms(ctx, texImage, width, height, depth, 0,
-                                 internalformat, texFormat,
-                                 samples, fixedsamplelocations);
+         _mesa_init_teximage_fields_ms(ctx, texImage, width, height, depth, 0,
+                                       internalformat, texFormat,
+                                       samples, fixedsamplelocations);
       }
       else {
          /* clear all image fields */
@@ -5920,9 +5920,9 @@ texture_image_multisample(struct gl_context *ctx, GLuint dims,
 
       ctx->Driver.FreeTextureImageBuffer(ctx, texImage);
 
-      init_teximage_fields_ms(ctx, texImage, width, height, depth, 0,
-                              internalformat, texFormat,
-                              samples, fixedsamplelocations);
+      _mesa_init_teximage_fields_ms(ctx, texImage, width, height, depth, 0,
+                                    internalformat, texFormat,
+                                    samples, fixedsamplelocations);
 
       if (width > 0 && height > 0 && depth > 0) {
          if (memObj) {

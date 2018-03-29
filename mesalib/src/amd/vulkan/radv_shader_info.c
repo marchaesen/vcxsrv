@@ -47,6 +47,46 @@ static void mark_tess_output(struct radv_shader_info *info,
 		info->tcs.outputs_written |= (mask << param);
 }
 
+static void get_deref_offset(nir_deref_var *deref, unsigned *const_out)
+{
+	nir_deref *tail = &deref->deref;
+	unsigned const_offset = 0;
+
+	if (deref->var->data.compact) {
+		assert(tail->child->deref_type == nir_deref_type_array);
+		assert(glsl_type_is_scalar(glsl_without_array(deref->var->type)));
+
+		nir_deref_array *deref_array = nir_deref_as_array(tail->child);
+		/* We always lower indirect dereferences for "compact" array vars. */
+		assert(deref_array->deref_array_type == nir_deref_array_type_direct);
+
+		*const_out = deref_array->base_offset;
+		return;
+	}
+
+	while (tail->child != NULL) {
+		const struct glsl_type *parent_type = tail->type;
+		tail = tail->child;
+
+		if (tail->deref_type == nir_deref_type_array) {
+			nir_deref_array *deref_array = nir_deref_as_array(tail);
+			unsigned size = glsl_count_attribute_slots(tail->type, false);
+
+			const_offset += size * deref_array->base_offset;
+		} else if (tail->deref_type == nir_deref_type_struct) {
+			nir_deref_struct *deref_struct = nir_deref_as_struct(tail);
+
+			for (unsigned i = 0; i < deref_struct->index; i++) {
+				const struct glsl_type *ft = glsl_get_struct_field(parent_type, i);
+				const_offset += glsl_count_attribute_slots(ft, false);
+			}
+		} else
+			unreachable("unsupported deref type");
+	}
+
+	*const_out = const_offset;
+}
+
 static void
 gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		      struct radv_shader_info *info)
@@ -174,15 +214,23 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		nir_variable *var = dvar->var;
 
 		if (var->data.mode == nir_var_shader_out) {
+			unsigned attrib_count = glsl_count_attribute_slots(var->type, false);
 			unsigned idx = var->data.location;
 			unsigned comp = var->data.location_frac;
+			unsigned const_offset = 0;
+
+			get_deref_offset(dvar, &const_offset);
 
 			if (nir->info.stage == MESA_SHADER_VERTEX) {
-				info->vs.output_usage_mask[idx] |=
-					instr->const_index[0] << comp;
+				for (unsigned i = 0; i < attrib_count; i++) {
+					info->vs.output_usage_mask[idx + i + const_offset] |=
+						instr->const_index[0] << comp;
+				}
 			} else if (nir->info.stage == MESA_SHADER_TESS_EVAL) {
-				info->tes.output_usage_mask[idx] |=
-					instr->const_index[0] << comp;
+				for (unsigned i = 0; i < attrib_count; i++) {
+					info->tes.output_usage_mask[idx + i + const_offset] |=
+						instr->const_index[0] << comp;
+				}
 			} else if (nir->info.stage == MESA_SHADER_TESS_CTRL) {
 				unsigned param = shader_io_get_unique_index(idx);
 				const struct glsl_type *type = var->type;
