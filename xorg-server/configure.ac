@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.19.99.901, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2018-02-28"
-RELEASE_NAME="Broccoli Rabe Lasagna"
+AC_INIT([xorg-server], 1.19.99.902, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2018-03-28"
+RELEASE_NAME="Ceci Garganelli"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -471,9 +471,9 @@ AC_ARG_WITH(default-font-path, AS_HELP_STRING([--with-default-font-path=PATH], [
 AC_MSG_CHECKING([for default font path])
 AC_MSG_RESULT([$FONTPATH])
 
-AC_ARG_WITH(xkb-path,         AS_HELP_STRING([--with-xkb-path=PATH], [Path to XKB base dir (default: ${datadir}/X11/xkb)]),
+AC_ARG_WITH(xkb-path,         AS_HELP_STRING([--with-xkb-path=PATH], [Path to XKB base dir (default: auto)]),
 				[ XKBPATH="$withval" ],
-				[ XKBPATH="${datadir}/X11/xkb" ])
+				[ XKBPATH="auto" ])
 AC_ARG_WITH(xkb-output,       AS_HELP_STRING([--with-xkb-output=PATH], [Path to XKB output dir (default: ${datadir}/X11/xkb/compiled)]),
 				[ XKBOUTPUT="$withval" ],
 				[ XKBOUTPUT="compiled" ])
@@ -1391,11 +1391,19 @@ AM_CONDITIONAL(INT10MODULE, test "x$INT10MODULE" = xyes)
 
 AC_DEFINE(SHAPE, 1, [Support SHAPE extension])
 
+if test "x$XKBPATH" = "xauto"; then
+    XKBPATH=$(pkg-config --variable datadir xkbcomp || echo ${datadir})/X11/xkb
+fi
+
 AC_DEFINE_DIR(XKB_BASE_DIRECTORY, XKBPATH, [Path to XKB data])
 AC_ARG_WITH(xkb-bin-directory,
-				AS_HELP_STRING([--with-xkb-bin-directory=DIR], [Directory containing xkbcomp program (default: ${bindir})]),
+				AS_HELP_STRING([--with-xkb-bin-directory=DIR], [Directory containing xkbcomp program (default: auto)]),
 				[XKB_BIN_DIRECTORY="$withval"],
-				[XKB_BIN_DIRECTORY="$bindir"])
+				[XKB_BIN_DIRECTORY="auto"])
+
+if test "x$XKB_BIN_DIRECTORY" = "xauto"; then
+    XKB_BIN_DIRECTORY=$(pkg-config --variable bindir xkbcomp || echo ${bindir})
+fi
 
 AC_DEFINE_DIR(XKB_BIN_DIRECTORY, XKB_BIN_DIRECTORY, [Path to XKB bin dir])
 

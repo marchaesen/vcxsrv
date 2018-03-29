@@ -3068,6 +3068,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	ctx.abi.load_sampler_desc = radv_get_sampler_desc;
 	ctx.abi.load_resource = radv_load_resource;
 	ctx.abi.clamp_shadow_reference = false;
+	ctx.abi.gfx9_stride_size_workaround = ctx.ac.chip_class == GFX9;
 
 	if (shader_count >= 2)
 		ac_init_exec_full_mask(&ctx.ac);

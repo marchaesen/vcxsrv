@@ -143,6 +143,8 @@ GL_API void GL_APIENTRY glTexParameterx (GLenum target, GLenum pname, GLfixed pa
 GL_API void GL_APIENTRY glTexParameterxv (GLenum target, GLenum pname, const GLfixed *params);
 GL_API void GL_APIENTRY glTranslatex (GLfixed x, GLfixed y, GLfixed z);
 GL_API void GL_APIENTRY glPointSizePointerOES (GLenum type, GLsizei stride, const GLvoid *pointer);
+GL_API void GL_APIENTRY glBlendBarrier (void);
+GL_API void GL_APIENTRY glPrimitiveBoundingBox (GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW);
 
 /* Enable frame pointer elimination on Windows, otherwise forgetting to add
  * APIENTRY to _mesa_* entrypoints will not cause crashes on debug builds, as

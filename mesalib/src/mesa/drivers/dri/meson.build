@@ -69,7 +69,7 @@ endif
 if with_dri
   dri_req_private = []
   if dep_libdrm.found()
-    dri_req_private = ['libdrm >= 2.4.75']  # FIXME: don't hardcode this
+    dri_req_private = ['libdrm >= ' + dep_libdrm.version()]
   endif
 
   pkg.generate(

@@ -97,6 +97,7 @@ typedef struct {
     MessageType dri2From;
 
     Bool autoAddGPU;
+    const char *debug;
 } xf86InfoRec, *xf86InfoPtr;
 
 /* ISC's cc can't handle ~ of UL constants, so explicitly type cast them. */

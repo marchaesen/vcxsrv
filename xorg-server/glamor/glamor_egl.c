@@ -35,6 +35,7 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <xf86.h>
+#include <xf86Priv.h>
 #include <xf86drm.h>
 #define EGL_DISPLAY_NO_X_MESA
 
@@ -960,7 +961,8 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
                                 "EGL_EXT_image_dma_buf_import") &&
         epoxy_has_egl_extension(glamor_egl->display,
                                 "EGL_EXT_image_dma_buf_import_modifiers"))
-        glamor_egl->dmabuf_capable = TRUE;
+        glamor_egl->dmabuf_capable = !!strstr(xf86Info.debug,
+                                              "dmabuf_capable");
 #endif
 
     glamor_egl->saved_free_screen = scrn->FreeScreen;

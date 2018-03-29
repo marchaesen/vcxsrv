@@ -661,6 +661,20 @@ triop("flrp", tfloat, "src0 * (1 - src2) + src1 * src2")
 
 
 triop("fcsel", tfloat32, "(src0 != 0.0f) ? src1 : src2")
+
+# 3 way min/max/med
+triop("fmin3", tfloat, "fminf(src0, fminf(src1, src2))")
+triop("imin3", tint, "MIN2(src0, MIN2(src1, src2))")
+triop("umin3", tuint, "MIN2(src0, MIN2(src1, src2))")
+
+triop("fmax3", tfloat, "fmaxf(src0, fmaxf(src1, src2))")
+triop("imax3", tint, "MAX2(src0, MAX2(src1, src2))")
+triop("umax3", tuint, "MAX2(src0, MAX2(src1, src2))")
+
+triop("fmed3", tfloat, "fmaxf(fminf(fmaxf(src0, src1), src2), fminf(src0, src1))")
+triop("imed3", tint, "MAX2(MIN2(MAX2(src0, src1), src2), MIN2(src0, src1))")
+triop("umed3", tuint, "MAX2(MIN2(MAX2(src0, src1), src2), MIN2(src0, src1))")
+
 opcode("bcsel", 0, tuint, [0, 0, 0],
       [tbool, tuint, tuint], "", "src0 ? src1 : src2")
 

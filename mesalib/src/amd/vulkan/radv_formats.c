@@ -541,6 +541,35 @@ static bool radv_is_zs_format_supported(VkFormat format)
 	return radv_translate_dbformat(format) != V_028040_Z_INVALID || format == VK_FORMAT_S8_UINT;
 }
 
+static bool radv_is_filter_minmax_format_supported(VkFormat format)
+{
+	/* From the Vulkan spec 1.1.71:
+	 *
+	 * "The following formats must support the
+	 *  VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT feature with
+	 *  VK_IMAGE_TILING_OPTIMAL, if they support
+	 *  VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT."
+	 */
+	/* TODO: enable more formats. */
+	switch (format) {
+	case VK_FORMAT_R8_UNORM:
+	case VK_FORMAT_R8_SNORM:
+	case VK_FORMAT_R16_UNORM:
+	case VK_FORMAT_R16_SNORM:
+	case VK_FORMAT_R16_SFLOAT:
+	case VK_FORMAT_R32_SFLOAT:
+	case VK_FORMAT_D16_UNORM:
+	case VK_FORMAT_X8_D24_UNORM_PACK32:
+	case VK_FORMAT_D32_SFLOAT:
+	case VK_FORMAT_D16_UNORM_S8_UINT:
+	case VK_FORMAT_D24_UNORM_S8_UINT:
+	case VK_FORMAT_D32_SFLOAT_S8_UINT:
+		return true;
+	default:
+		return false;
+	}
+}
+
 static void
 radv_physical_device_get_format_properties(struct radv_physical_device *physical_device,
 					   VkFormat format,
@@ -578,6 +607,9 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 			tiled |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
 			         VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
 
+			if (radv_is_filter_minmax_format_supported(format))
+				 tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT;
+
 			/* GFX9 doesn't support linear depth surfaces */
 			if (physical_device->rad_info.chip_class >= GFX9)
 				linear = 0;
@@ -589,6 +621,10 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 				VK_FORMAT_FEATURE_BLIT_SRC_BIT;
 			tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
 				VK_FORMAT_FEATURE_BLIT_SRC_BIT;
+
+			if (radv_is_filter_minmax_format_supported(format))
+				 tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT;
+
 			if (linear_sampling) {
 				linear |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
 				tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;

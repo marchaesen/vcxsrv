@@ -130,6 +130,14 @@ _mesa_init_teximage_fields(struct gl_context *ctx,
                            GLsizei width, GLsizei height, GLsizei depth,
                            GLint border, GLenum internalFormat,
                            mesa_format format);
+extern void
+_mesa_init_teximage_fields_ms(struct gl_context *ctx,
+                              struct gl_texture_image *img,
+                              GLsizei width, GLsizei height, GLsizei depth,
+                              GLint border, GLenum internalFormat,
+                              mesa_format format,
+                              GLuint numSamples,
+                              GLboolean fixedSampleLocations);
 
 
 extern mesa_format

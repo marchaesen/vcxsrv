@@ -230,11 +230,6 @@ if with_gallium_tegra and not with_gallium_nouveau
   error('tegra driver requires nouveau driver')
 endif
 
-dep_libdrm_intel = []
-if with_dri_i915 or with_gallium_i915
-  dep_libdrm_intel = dependency('libdrm_intel', version : '>= 2.4.75')
-endif
-
 if host_machine.system() == 'darwin'
   with_dri_platform = 'apple'
 elif ['windows', 'cygwin'].contains(host_machine.system())
@@ -1005,16 +1000,6 @@ else
   dep_clock = cc.find_library('rt')
 endif
 
-with_gallium_drisw_kms = false
-dep_libdrm = dependency('libdrm', version : '>= 2.4.75',
-                        required : with_dri2 or with_dri3)
-if dep_libdrm.found()
-  pre_args += '-DHAVE_LIBDRM'
-  if with_dri_platform == 'drm' and with_dri
-    with_gallium_drisw_kms = true
-  endif
-endif
-
 # TODO: some of these may be conditional
 dep_zlib = dependency('zlib', version : '>= 1.2.3')
 pre_args += '-DHAVE_ZLIB'
@@ -1035,26 +1020,64 @@ dep_expat = dependency('expat')
 # its not linux and and wont
 dep_m = cc.find_library('m', required : false)
 
+# Check for libdrm. various drivers have different libdrm version requirements,
+# but we always want to use the same version for all libdrm modules. That means
+# even if driver foo requires 2.4.0 and driver bar requires 2.4.3, if foo and
+# bar are both on use 2.4.3 for both of them
 dep_libdrm_amdgpu = []
 dep_libdrm_radeon = []
 dep_libdrm_nouveau = []
 dep_libdrm_etnaviv = []
 dep_libdrm_freedreno = []
-if with_amd_vk or with_gallium_radeonsi
-  dep_libdrm_amdgpu = dependency('libdrm_amdgpu', version : '>= 2.4.91')
-endif
-if (with_gallium_radeonsi or with_dri_r100 or with_dri_r200 or
-    with_gallium_r300 or with_gallium_r600)
-  dep_libdrm_radeon = dependency('libdrm_radeon', version : '>= 2.4.71')
-endif
-if with_gallium_nouveau or with_dri_nouveau
-  dep_libdrm_nouveau = dependency('libdrm_nouveau', version : '>= 2.4.66')
-endif
-if with_gallium_etnaviv
-  dep_libdrm_etnaviv = dependency('libdrm_etnaviv', version : '>= 2.4.82')
-endif
-if with_gallium_freedreno
-  dep_libdrm_freedreno = dependency('libdrm_freedreno', version : '>= 2.4.91')
+dep_libdrm_intel = []
+
+_drm_amdgpu_ver = '2.4.91'
+_drm_radeon_ver = '2.4.71'
+_drm_nouveau_ver = '2.4.66'
+_drm_etnaviv_ver = '2.4.82'
+_drm_freedreno_ver = '2.4.91'
+_drm_intel_ver = '2.4.75'
+_drm_ver = '2.4.75'
+
+_libdrm_checks = [
+  ['intel', with_dri_i915 or with_gallium_i915],
+  ['amdgpu', with_amd_vk or with_gallium_radeonsi],
+  ['radeon', (with_gallium_radeonsi or with_dri_r100 or with_dri_r200 or
+              with_gallium_r300 or with_gallium_r600)],
+  ['nouveau', (with_gallium_nouveau or with_dri_nouveau)],
+  ['etnaviv', with_gallium_etnaviv],
+  ['freedreno', with_gallium_freedreno],
+]
+
+# Loop over the enables versions and get the highest libdrm requirement for all
+# active drivers.
+foreach d : _libdrm_checks
+  ver = get_variable('_drm_@0@_ver'.format(d[0]))
+  if d[1] and ver.version_compare('>' + _drm_ver)
+    _drm_ver = ver
+  endif
+endforeach
+
+# Then get each libdrm module
+foreach d : _libdrm_checks
+  if d[1]
+    set_variable(
+      'dep_libdrm_' + d[0],
+      dependency('libdrm_' + d[0], version : '>=' + _drm_ver)
+    )
+  endif
+endforeach
+
+with_gallium_drisw_kms = false
+dep_libdrm = dependency(
+  'libdrm', version : '>=' + _drm_ver,
+  required : with_dri2 or with_dri3
+)
+if dep_libdrm.found()
+  pre_args += '-DHAVE_LIBDRM'
+  if with_dri_platform == 'drm' and with_dri
+    with_gallium_drisw_kms = true
+  endif
 endif
 
 llvm_modules = ['bitwriter', 'engine', 'mcdisassembler', 'mcjit']

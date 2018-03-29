@@ -146,7 +146,8 @@ st_glsl_type_dword_size(const struct glsl_type *type)
    case GLSL_TYPE_ERROR:
    case GLSL_TYPE_INTERFACE:
    case GLSL_TYPE_FUNCTION:
-      unreachable("not reached");
+   default:
+      unreachable("invalid type in st_glsl_type_dword_size()");
    }
 
    return 0;

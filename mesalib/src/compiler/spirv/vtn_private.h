@@ -735,4 +735,6 @@ vtn_u64_literal(const uint32_t *w)
 bool vtn_handle_amd_gcn_shader_instruction(struct vtn_builder *b, uint32_t ext_opcode,
                                            const uint32_t *words, unsigned count);
 
+bool vtn_handle_amd_shader_trinary_minmax_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+						      const uint32_t *words, unsigned count);
 #endif /* _VTN_PRIVATE_H_ */

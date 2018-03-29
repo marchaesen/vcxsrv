@@ -645,6 +645,7 @@ typedef enum {
     FLAG_AUTO_ADD_GPU,
     FLAG_MAX_CLIENTS,
     FLAG_IGLX,
+    FLAG_DEBUG,
 } FlagValues;
 
 /**
@@ -701,6 +702,8 @@ static OptionInfoRec FlagOptions[] = {
     {FLAG_MAX_CLIENTS, "MaxClients", OPTV_INTEGER,
      {0}, FALSE },
     {FLAG_IGLX, "IndirectGLX", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_DEBUG, "Debug", OPTV_STRING,
      {0}, FALSE},
     {-1, NULL, OPTV_NONE,
      {0}, FALSE},
@@ -849,6 +852,8 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
         }
     }
 #endif
+
+    xf86Info.debug = xf86GetOptValString(FlagOptions, FLAG_DEBUG);
 
     /* if we're not hotplugging, force some input devices to exist */
     xf86Info.forceInputDevices = !(xf86Info.autoAddDevices &&
