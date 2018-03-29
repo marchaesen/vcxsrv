@@ -743,8 +743,9 @@ winUseMsg(void)
            "\tversions because they already group GDI operations together\n"
            "\tin a batch, which has a similar effect.\n");
 
-    ErrorF("-compositewm\n"
-           "\tEXPERIMENTAL: for use in -multiwindow mode.\n"
+    ErrorF("-[no]compositewm\n"
+           "\tEnable [Disable] Composite extension. Default is enabled.\n"
+           "\tUsed in -multiwindow mode.\n"
            "\tUse Composite extension redirection to maintain a bitmap\n"
            "\timage of each top-level X window, so window contents which\n"
            "\tare occluded show correctly in Taskbar and Task Switcher\n"

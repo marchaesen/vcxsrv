@@ -135,7 +135,7 @@ winInitializeScreenDefaults(void)
     defaultScreenInfo.fRootless = FALSE;
     defaultScreenInfo.fMultiWindow = FALSE;
     defaultScreenInfo.fMultiMonitorOverride = FALSE;
-    defaultScreenInfo.fCompositeWM = FALSE;
+    defaultScreenInfo.fCompositeWM = TRUE;
     defaultScreenInfo.fMultipleMonitors = FALSE;
     defaultScreenInfo.fLessPointer = FALSE;
     defaultScreenInfo.iResizeMode = resizeDefault;
@@ -612,6 +612,16 @@ ddxProcessArgument(int argc, char *argv[], int i)
      */
     if (IS_OPTION("-compositewm")) {
         screenInfoPtr->fCompositeWM = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
+     * Look for the '-compositewm' argument
+     */
+    if (IS_OPTION("-nocompositewm")) {
+        screenInfoPtr->fCompositeWM = FALSE;
 
         /* Indicate that we have processed this argument */
         return 1;
