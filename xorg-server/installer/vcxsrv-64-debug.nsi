@@ -17,7 +17,7 @@
 */
 ;--------------------------------
 !define NAME "VcXsrv"
-!define VERSION "1.19.6.0"
+!define VERSION "1.19.6.2"
 
 ; The name of the installer
 Name "${NAME}"
@@ -36,7 +36,7 @@ InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir_64"
 
 LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
 
-VIProductVersion "1.19.5.1"
+VIProductVersion "${VERSION}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${NAME}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${VERSION}"
