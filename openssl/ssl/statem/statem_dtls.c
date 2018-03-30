@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2005-2018 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -369,6 +369,15 @@ int dtls_get_message(SSL *s, int *mt, unsigned long *len)
     if (s->version != DTLS1_BAD_VER) {
         p -= DTLS1_HM_HEADER_LENGTH;
         msg_len += DTLS1_HM_HEADER_LENGTH;
+    }
+
+    /*
+     * If receiving Finished, record MAC of prior handshake messages for
+     * Finished verification.
+     */
+    if (*mt == SSL3_MT_FINISHED && !ssl3_take_mac(s)) {
+        /* SSLfatal() already called */
+        return 0;
     }
 
     if (!ssl3_finish_mac(s, p, msg_len))
@@ -901,9 +910,14 @@ int dtls_construct_change_cipher_spec(SSL *s)
 }
 
 #ifndef OPENSSL_NO_SCTP
+/*
+ * Wait for a dry event. Should only be called at a point in the handshake
+ * where we are not expecting any data from the peer (except possibly an alert).
+ */
 WORK_STATE dtls_wait_for_dry(SSL *s)
 {
     int ret;
+    long len;
 
     /* read app data until dry event */
     ret = BIO_dgram_sctp_wait_for_dry(SSL_get_wbio(s));
@@ -911,6 +925,20 @@ WORK_STATE dtls_wait_for_dry(SSL *s)
         return WORK_ERROR;
 
     if (ret == 0) {
+        /*
+         * We're not expecting any more messages from the peer at this point -
+         * but we could get an alert. If an alert is waiting then we will never
+         * return successfully. Therefore we attempt to read a message. This
+         * should never succeed but will process any waiting alerts.
+         */
+        if (dtls_get_reassembled_message(s, &len)) {
+            /* The call succeeded! This should never happen */
+            SSLerr(SSL_F_DTLS_WAIT_FOR_DRY, SSL_R_UNEXPECTED_MESSAGE);
+            ssl3_send_alert(s, SSL3_AL_FATAL, SSL_AD_UNEXPECTED_MESSAGE);
+            ossl_statem_set_error(s);
+            return WORK_ERROR;
+        }
+
         s->s3->in_read_app_data = 2;
         s->rwstate = SSL_READING;
         BIO_clear_retry_flags(SSL_get_rbio(s));

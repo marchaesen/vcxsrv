@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -234,11 +234,11 @@ int dsaparam_main(int argc, char **argv)
                             "\n");
         BIO_printf(bio_out, "    if (dsa == NULL)\n"
                             "        return NULL;\n");
-        BIO_printf(bio_out, "    dsa->p = BN_bin2bn(dsap_%d, sizeof (dsap_%d), NULL);\n",
+        BIO_printf(bio_out, "    dsa->p = BN_bin2bn(dsap_%d, sizeof(dsap_%d), NULL);\n",
                bits_p, bits_p);
-        BIO_printf(bio_out, "    dsa->q = BN_bin2bn(dsaq_%d, sizeof (dsaq_%d), NULL);\n",
+        BIO_printf(bio_out, "    dsa->q = BN_bin2bn(dsaq_%d, sizeof(dsaq_%d), NULL);\n",
                bits_p, bits_p);
-        BIO_printf(bio_out, "    dsa->g = BN_bin2bn(dsag_%d, sizeof (dsag_%d), NULL);\n",
+        BIO_printf(bio_out, "    dsa->g = BN_bin2bn(dsag_%d, sizeof(dsag_%d), NULL);\n",
                bits_p, bits_p);
         BIO_printf(bio_out, "    if (!dsa->p || !dsa->q || !dsa->g) {\n"
                             "        DSA_free(dsa);\n"
@@ -247,6 +247,9 @@ int dsaparam_main(int argc, char **argv)
                             "    return(dsa);\n}\n");
         OPENSSL_free(data);
     }
+
+    if (outformat == FORMAT_ASN1 && genkey)
+        noout = 1;
 
     if (!noout) {
         if (outformat == FORMAT_ASN1)

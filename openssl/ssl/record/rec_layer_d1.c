@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2005-2018 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -541,7 +541,7 @@ int dtls1_read_bytes(SSL *s, int type, int *recvd_type, unsigned char *buf,
         unsigned int *dest_len = NULL;
 
         if (SSL3_RECORD_get_type(rr) == SSL3_RT_HANDSHAKE) {
-            dest_maxlen = sizeof s->rlayer.d->handshake_fragment;
+            dest_maxlen = sizeof(s->rlayer.d->handshake_fragment);
             dest = s->rlayer.d->handshake_fragment;
             dest_len = &s->rlayer.d->handshake_fragment_len;
         } else if (SSL3_RECORD_get_type(rr) == SSL3_RT_ALERT) {
@@ -646,6 +646,7 @@ int dtls1_read_bytes(SSL *s, int type, int *recvd_type, unsigned char *buf,
                             s->msg_callback_arg);
 
         if (SSL_is_init_finished(s) &&
+            (s->options & SSL_OP_NO_RENEGOTIATION) == 0 &&
             !(s->s3->flags & SSL3_FLAGS_NO_RENEGOTIATE_CIPHERS) &&
             !s->s3->renegotiate) {
             s->d1->handshake_read_seq++;
@@ -678,11 +679,33 @@ int dtls1_read_bytes(SSL *s, int type, int *recvd_type, unsigned char *buf,
                     }
                 }
             }
+        } else {
+            SSL3_RECORD_set_length(rr, 0);
+            ssl3_send_alert(s, SSL3_AL_WARNING, SSL_AD_NO_RENEGOTIATION);
         }
         /*
          * we either finished a handshake or ignored the request, now try
          * again to obtain the (application) data we were asked for
          */
+        goto start;
+    }
+
+    /*
+     * If we are a server and get a client hello when renegotiation isn't
+     * allowed send back a no renegotiation alert and carry on.
+     */
+    if (s->server
+            && SSL_is_init_finished(s)
+            && s->rlayer.d->handshake_fragment_len >= DTLS1_HM_HEADER_LENGTH
+            && s->rlayer.d->handshake_fragment[0] == SSL3_MT_CLIENT_HELLO
+            && s->s3->previous_client_finished_len != 0
+            && ((!s->s3->send_connection_binding
+                    && (s->options
+                        & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION) == 0)
+                || (s->options & SSL_OP_NO_RENEGOTIATION) != 0)) {
+        s->rlayer.d->handshake_fragment_len = 0;
+        SSL3_RECORD_set_length(rr, 0);
+        ssl3_send_alert(s, SSL3_AL_WARNING, SSL_AD_NO_RENEGOTIATION);
         goto start;
     }
 
@@ -770,7 +793,7 @@ int dtls1_read_bytes(SSL *s, int type, int *recvd_type, unsigned char *buf,
             s->rwstate = SSL_NOTHING;
             s->s3->fatal_alert = alert_descr;
             SSLerr(SSL_F_DTLS1_READ_BYTES, SSL_AD_REASON_OFFSET + alert_descr);
-            BIO_snprintf(tmp, sizeof tmp, "%d", alert_descr);
+            BIO_snprintf(tmp, sizeof(tmp), "%d", alert_descr);
             ERR_add_error_data(2, "SSL alert number ", tmp);
             s->shutdown |= SSL_RECEIVED_SHUTDOWN;
             SSL_CTX_remove_session(s->session_ctx, s->session);

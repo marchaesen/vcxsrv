@@ -201,6 +201,10 @@ build_programs_nodep: $(PROGRAMS) $(SCRIPTS)
 # Kept around for backward compatibility
 build_apps build_tests: build_programs
 
+# Convenience target to prebuild all generated files, not just the mandatory
+# ones
+build_all_generated: $(GENERATED_MANDATORY) $(GENERATED)
+
 test: tests
 {- dependmagic('tests'); -}: build_programs_nodep build_engines_nodep
 	@rem {- output_off() if $disabled{tests}; "" -}
@@ -209,6 +213,7 @@ test: tests
 	set BLDTOP=$(BLDDIR)
 	set RESULT_D=$(BLDDIR)\test\test-runs
 	set PERL=$(PERL)
+	set OPENSSL_ENGINES=$(MAKEDIR)\engines
 	set OPENSSL_DEBUG_MEMORY=on
 	"$(PERL)" "$(SRCDIR)\test\run_tests.pl" $(TESTS)
 	@rem {- if ($disabled{tests}) { output_on(); } else { output_off(); } "" -}
@@ -231,6 +236,7 @@ libclean:
 	"$(PERL)" -e "map { m/(.*)\.dll$$/; unlink glob """$$1.*"""; } @ARGV" $(SHLIBS)
 	"$(PERL)" -e "map { m/(.*)\.dll$$/; unlink glob """apps/$$1.*"""; } @ARGV" $(SHLIBS)
 	"$(PERL)" -e "map { m/(.*)\.dll$$/; unlink glob """test/$$1.*"""; } @ARGV" $(SHLIBS)
+	"$(PERL)" -e "map { m/(.*)\.dll$$/; unlink glob """fuzz/$$1.*"""; } @ARGV" $(SHLIBS)
 	-del /Q /F $(LIBS)
 	-del /Q ossl_static.pdb
 
@@ -363,7 +369,8 @@ configdata.pm: "$(SRCDIR)\Configure" {- join(" ", map { '"'.$_.'"' } @{$config{b
   sub generatesrc {
       my %args = @_;
       (my $target = $args{src}) =~ s/\.[sS]$/.asm/;
-      my $generator = '"'.join('" "', @{$args{generator}}).'"';
+      my ($gen0, @gens) = @{$args{generator}};
+      my $generator = '"'.$gen0.'"'.join('', map { " $_" } @gens);
       my $generator_incs = join("", map { " -I \"$_\"" } @{$args{generator_incs}});
       my $incs = join("", map { " /I \"$_\"" } @{$args{incs}});
       my $deps = @{$args{deps}} ?
@@ -453,9 +460,7 @@ s/^Note: including file: *//;
 END { print '$obj$objext: ',join(" ", sort keys \%collect),"\\n" }
 <<
 $obj$objext: $obj$depext
-	\$(CC) $incs \$(CFLAGS) $ecflags -c \$(COUTFLAG)\$\@ @<<
-$srcs
-<<
+	\$(CC) $incs \$(CFLAGS) $ecflags -c \$(COUTFLAG)\$\@ $srcs
 EOF
     return <<"EOF"	if ($disabled{makedepend});
 $obj$objext: $deps
@@ -501,8 +506,10 @@ $objs $shlib.res$linklibs \$(EX_LIBS)
 	   \$(MT) \$(MTFLAGS) \$(MTINFLAG)$shlib$shlibext.manifest \$(MTOUTFLAG)$shlib$shlibext
 	IF EXIST apps\\$shlib$shlibext DEL /Q /F apps\\$shlib$shlibext
 	IF EXIST test\\$shlib$shlibext DEL /Q /F test\\$shlib$shlibext
+	IF EXIST fuzz\\$shlib$shlibext DEL /Q /F fuzz\\$shlib$shlibext
 	COPY $shlib$shlibext apps
 	COPY $shlib$shlibext test
+	COPY $shlib$shlibext fuzz
 EOF
  }
  sub obj2dso {
