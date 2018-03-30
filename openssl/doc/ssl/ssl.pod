@@ -91,6 +91,12 @@ includes both more private SSL headers and headers from the B<crypto> library.
 Whenever you need hard-core details on the internals of the SSL API, look
 inside this header file.
 
+OPENSSL_VERSION_AT_LEAST(major,minor) can be
+used in C<#if> statements in order to determine which version of the library is
+being used. This can be used to either enable optional features at compile
+time, or work around issues with a previous version.
+See L<OPENSSL_VERSION_NUMBER(3)>.
+
 =item B<ssl2.h>
 
 Unused. Present for backwards compatibility only.
@@ -819,7 +825,7 @@ L<DTLSv1_listen(3)>
 
 =head1 HISTORY
 
-B<SSLv2_client_method>, B<SSLv2_server_method> and B<SSLv2_method> where removed
+B<SSLv2_client_method>, B<SSLv2_server_method> and B<SSLv2_method> were removed
 in OpenSSL 1.1.0.
 
 The return type of B<SSL_copy_session_id> was changed from void to int in
@@ -827,7 +833,7 @@ OpenSSL 1.1.0.
 
 =head1 COPYRIGHT
 
-Copyright 2000-2017 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2000-2018 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the OpenSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

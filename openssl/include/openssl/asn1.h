@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -1051,6 +1051,7 @@ int ERR_load_ASN1_strings(void);
 # define ASN1_R_MSTRING_NOT_UNIVERSAL                     139
 # define ASN1_R_MSTRING_WRONG_TAG                         140
 # define ASN1_R_NESTED_ASN1_STRING                        197
+# define ASN1_R_NESTED_TOO_DEEP                           201
 # define ASN1_R_NON_HEX_CHARACTERS                        141
 # define ASN1_R_NOT_ASCII_FORMAT                          190
 # define ASN1_R_NOT_ENOUGH_DATA                           142

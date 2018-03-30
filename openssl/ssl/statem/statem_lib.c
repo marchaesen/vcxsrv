@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -95,21 +95,15 @@ int tls_construct_finished(SSL *s, const char *sender, int slen)
     return 1;
 }
 
-#ifndef OPENSSL_NO_NEXTPROTONEG
 /*
  * ssl3_take_mac calculates the Finished MAC for the handshakes messages seen
  * to far.
  */
-static void ssl3_take_mac(SSL *s)
+int ssl3_take_mac(SSL *s)
 {
     const char *sender;
     int slen;
-    /*
-     * If no new cipher setup return immediately: other functions will set
-     * the appropriate error.
-     */
-    if (s->s3->tmp.new_cipher == NULL)
-        return;
+
     if (!s->server) {
         sender = s->method->ssl3_enc->server_finished_label;
         slen = s->method->ssl3_enc->server_finished_label_len;
@@ -118,12 +112,17 @@ static void ssl3_take_mac(SSL *s)
         slen = s->method->ssl3_enc->client_finished_label_len;
     }
 
-    s->s3->tmp.peer_finish_md_len = s->method->ssl3_enc->final_finish_mac(s,
-                                                                          sender,
-                                                                          slen,
-                                                                          s->s3->tmp.peer_finish_md);
+    s->s3->tmp.peer_finish_md_len =
+        s->method->ssl3_enc->final_finish_mac(s, sender, slen,
+                                              s->s3->tmp.peer_finish_md);
+
+    if (s->s3->tmp.peer_finish_md_len == 0) {
+        SSLerr(SSL_F_SSL3_TAKE_MAC, ERR_R_INTERNAL_ERROR);
+        return 0;
+    }
+
+    return 1;
 }
-#endif
 
 MSG_PROCESS_RETURN tls_process_change_cipher_spec(SSL *s, PACKET *pkt)
 {
@@ -273,15 +272,6 @@ unsigned long ssl3_output_cert_chain(SSL *s, CERT_PKEY *cpk)
 WORK_STATE tls_finish_handshake(SSL *s, WORK_STATE wst)
 {
     void (*cb) (const SSL *ssl, int type, int val) = NULL;
-
-#ifndef OPENSSL_NO_SCTP
-    if (SSL_IS_DTLS(s) && BIO_dgram_is_sctp(SSL_get_wbio(s))) {
-        WORK_STATE ret;
-        ret = dtls_wait_for_dry(s);
-        if (ret != WORK_FINISHED_CONTINUE)
-            return ret;
-    }
-#endif
 
     /* clean a few things up */
     ssl3_cleanup_key_block(s);
@@ -465,14 +455,15 @@ int tls_get_message_body(SSL *s, unsigned long *len)
         n -= i;
     }
 
-#ifndef OPENSSL_NO_NEXTPROTONEG
     /*
      * If receiving Finished, record MAC of prior handshake messages for
      * Finished verification.
      */
-    if (*s->init_buf->data == SSL3_MT_FINISHED)
-        ssl3_take_mac(s);
-#endif
+    if (*(s->init_buf->data) == SSL3_MT_FINISHED && !ssl3_take_mac(s)) {
+        /* SSLfatal() already called */
+        *len = 0;
+        return 0;
+    }
 
     /* Feed this message into MAC computation. */
     if (RECORD_LAYER_is_sslv2_record(&s->rlayer)) {

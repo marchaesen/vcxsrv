@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2018 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -196,7 +196,21 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (OpenSSL_version_num() != OPENSSL_VERSION_NUMBER) {
+    /*
+     * The bits that COMPATIBILITY_MASK lets through MUST be the same in
+     * the library and in the application.
+     * The bits that are masked away MUST be a larger or equal number in
+     * the library compared to the application.
+     */
+# define COMPATIBILITY_MASK 0xfff00000L
+    if ((OpenSSL_version_num() & COMPATIBILITY_MASK)
+        != (OPENSSL_VERSION_NUMBER & COMPATIBILITY_MASK)) {
+        printf("Unexpected library version loaded\n");
+        return 1;
+    }
+
+    if ((OpenSSL_version_num() & ~COMPATIBILITY_MASK)
+        < (OPENSSL_VERSION_NUMBER & ~COMPATIBILITY_MASK)) {
         printf("Unexpected library version loaded\n");
         return 1;
     }
