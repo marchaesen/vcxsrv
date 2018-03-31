@@ -95,9 +95,15 @@ emit_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
    if (src == NULL) {
       /* This is a load instruction */
       nir_intrinsic_instr *load =
-         nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_var);
+         nir_intrinsic_instr_create(b->shader, orig_instr->intrinsic);
       load->num_components = orig_instr->num_components;
       load->variables[0] = nir_deref_var_clone(deref, load);
+
+      /* Copy over any sources.  This is needed for interp_var_at */
+      for (unsigned i = 0;
+           i < nir_intrinsic_infos[orig_instr->intrinsic].num_srcs; i++)
+         nir_src_copy(&load->src[i], &orig_instr->src[i], load);
+
       unsigned bit_size = orig_instr->dest.ssa.bit_size;
       nir_ssa_dest_init(&load->instr, &load->dest,
                         load->num_components, bit_size, NULL);
@@ -142,6 +148,9 @@ lower_indirect_block(nir_block *block, nir_builder *b,
 
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
       if (intrin->intrinsic != nir_intrinsic_load_var &&
+          intrin->intrinsic != nir_intrinsic_interp_var_at_centroid &&
+          intrin->intrinsic != nir_intrinsic_interp_var_at_sample &&
+          intrin->intrinsic != nir_intrinsic_interp_var_at_offset &&
           intrin->intrinsic != nir_intrinsic_store_var)
          continue;
 
@@ -158,7 +167,7 @@ lower_indirect_block(nir_block *block, nir_builder *b,
 
       b->cursor = nir_before_instr(&intrin->instr);
 
-      if (intrin->intrinsic == nir_intrinsic_load_var) {
+      if (intrin->intrinsic != nir_intrinsic_store_var) {
          nir_ssa_def *result;
          emit_load_store(b, intrin, intrin->variables[0],
                          &intrin->variables[0]->deref, &result, NULL);

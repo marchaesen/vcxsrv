@@ -24,6 +24,7 @@
 #ifndef GLSPIRV_H
 #define GLSPIRV_H
 
+#include "compiler/nir/nir.h"
 #include "mtypes.h"
 
 #ifdef __cplusplus
@@ -75,6 +76,16 @@ void
 _mesa_spirv_shader_binary(struct gl_context *ctx,
                           unsigned n, struct gl_shader **shaders,
                           const void* binary, size_t length);
+
+void
+_mesa_spirv_link_shaders(struct gl_context *ctx,
+                         struct gl_shader_program *prog);
+
+nir_shader *
+_mesa_spirv_to_nir(struct gl_context *ctx,
+                   const struct gl_shader_program *prog,
+                   gl_shader_stage stage,
+                   const nir_shader_compiler_options *options);
 
 /**
  * \name API functions

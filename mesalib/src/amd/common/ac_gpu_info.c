@@ -333,8 +333,8 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	}
 	info->has_virtual_memory = true;
 
-	assert(util_is_power_of_two(dma.available_rings + 1));
-	assert(util_is_power_of_two(compute.available_rings + 1));
+	assert(util_is_power_of_two_or_zero(dma.available_rings + 1));
+	assert(util_is_power_of_two_or_zero(compute.available_rings + 1));
 
 	info->num_sdma_rings = util_bitcount(dma.available_rings);
 	info->num_compute_rings = util_bitcount(compute.available_rings);

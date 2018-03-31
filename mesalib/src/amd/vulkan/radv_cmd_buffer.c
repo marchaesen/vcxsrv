@@ -1180,15 +1180,18 @@ void radv_set_db_count_control(struct radv_cmd_buffer *cmd_buffer)
 			db_count_control = S_028004_ZPASS_INCREMENT_DISABLE(1);
 		}
 	} else {
+		const struct radv_subpass *subpass = cmd_buffer->state.subpass;
+		uint32_t sample_rate = subpass ? util_logbase2(subpass->max_sample_count) : 0;
+
 		if (cmd_buffer->device->physical_device->rad_info.chip_class >= CIK) {
 			db_count_control = S_028004_PERFECT_ZPASS_COUNTS(1) |
-				S_028004_SAMPLE_RATE(0) | /* TODO: set this to the number of samples of the current framebuffer */
+				S_028004_SAMPLE_RATE(sample_rate) |
 				S_028004_ZPASS_ENABLE(1) |
 				S_028004_SLICE_EVEN_ENABLE(1) |
 				S_028004_SLICE_ODD_ENABLE(1);
 		} else {
 			db_count_control = S_028004_PERFECT_ZPASS_COUNTS(1) |
-				S_028004_SAMPLE_RATE(0); /* TODO: set this to the number of samples of the current framebuffer */
+				S_028004_SAMPLE_RATE(sample_rate);
 		}
 	}
 

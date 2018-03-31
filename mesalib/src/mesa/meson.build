@@ -343,10 +343,6 @@ files_libmesa_common = files(
   'vbo/vbo_save_draw.c',
   'vbo/vbo_save.h',
   'vbo/vbo_save_loopback.c',
-  'vbo/vbo_split.c',
-  'vbo/vbo_split_copy.c',
-  'vbo/vbo_split.h',
-  'vbo/vbo_split_inplace.c',
   'x86/common_x86.c',
 )
 
@@ -366,6 +362,10 @@ files_libmesa_classic = files(
   'tnl/t_pipeline.c',
   'tnl/t_pipeline.h',
   'tnl/t_rebase.c',
+  'tnl/t_split.c',
+  'tnl/t_split_copy.c',
+  'tnl/t_split.h',
+  'tnl/t_split_inplace.c',
   'tnl/t_vb_cliptmp.h',
   'tnl/t_vb_fog.c',
   'tnl/t_vb_light.c',

@@ -28,6 +28,7 @@
 #include "sid.h"
 #include "nir/nir.h"
 #include "util/bitscan.h"
+#include "util/u_math.h"
 #include "ac_shader_abi.h"
 #include "ac_shader_util.h"
 

@@ -29,46 +29,46 @@
 
 
 /**
- * \mainpage The VBO splitter
+ * \mainpage The TNL splitter
  *
- * This is the private data used internally to the vbo_split_prims()
- * helper function.  Nobody outside the vbo_split* files needs to
+ * This is the private data used internally to the _tnl_split_prims()
+ * helper function.  Nobody outside the _tnl_split* files needs to
  * include or know about this structure.
  */
 
 
-#ifndef _VBO_SPLIT_H
-#define _VBO_SPLIT_H
+#ifndef _TNL_SPLIT_H
+#define _TNL_SPLIT_H
 
-#include "vbo.h"
+#include "tnl.h"
 
 
 /* True if a primitive can be split without copying of vertices, false
  * otherwise.
  */
 GLboolean
-split_prim_inplace(GLenum mode, GLuint *first, GLuint *incr);
+_tnl_split_prim_inplace(GLenum mode, GLuint *first, GLuint *incr);
 
 void
-vbo_split_inplace(struct gl_context *ctx,
-                  const struct gl_vertex_array arrays[],
-                  const struct _mesa_prim *prim,
-                  GLuint nr_prims,
-                  const struct _mesa_index_buffer *ib,
-                  GLuint min_index,
-                  GLuint max_index,
-                  vbo_draw_func draw,
-                  const struct split_limits *limits);
+_tnl_split_inplace(struct gl_context *ctx,
+                   const struct gl_vertex_array arrays[],
+                   const struct _mesa_prim *prim,
+                   GLuint nr_prims,
+                   const struct _mesa_index_buffer *ib,
+                   GLuint min_index,
+                   GLuint max_index,
+                   tnl_draw_func draw,
+                   const struct split_limits *limits);
 
 /* Requires ib != NULL:
  */
 void
-vbo_split_copy(struct gl_context *ctx,
-               const struct gl_vertex_array arrays[],
-               const struct _mesa_prim *prim,
-               GLuint nr_prims,
-               const struct _mesa_index_buffer *ib,
-               vbo_draw_func draw,
-               const struct split_limits *limits);
+_tnl_split_copy(struct gl_context *ctx,
+                const struct gl_vertex_array arrays[],
+                const struct _mesa_prim *prim,
+                GLuint nr_prims,
+                const struct _mesa_index_buffer *ib,
+                tnl_draw_func draw,
+                const struct split_limits *limits);
 
 #endif

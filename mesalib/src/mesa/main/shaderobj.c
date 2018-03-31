@@ -137,6 +137,7 @@ void
 _mesa_delete_linked_shader(struct gl_context *ctx,
                            struct gl_linked_shader *sh)
 {
+   _mesa_shader_spirv_data_reference(&sh->spirv_data, NULL);
    _mesa_reference_program(ctx, &sh->Program, NULL);
    ralloc_free(sh);
 }

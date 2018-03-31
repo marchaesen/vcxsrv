@@ -35,6 +35,7 @@
 #include "main/mtypes.h"
 #include "main/macros.h"
 #include "main/enums.h"
+#include "main/varray.h"
 #include "util/half_float.h"
 
 #include "t_context.h"
@@ -422,11 +423,10 @@ static void unmap_vbos( struct gl_context *ctx,
 }
 
 
-/* This is the main entrypoint into the slimmed-down software tnl
- * module.  In a regular swtnl driver, this can be plugged straight
- * into the vbo->Driver.DrawPrims() callback.
+/* This is the main workhorse doing all the rendering work.
  */
 void _tnl_draw_prims(struct gl_context *ctx,
+                     const struct gl_vertex_array *arrays,
 			 const struct _mesa_prim *prim,
 			 GLuint nr_prims,
 			 const struct _mesa_index_buffer *ib,
@@ -438,7 +438,6 @@ void _tnl_draw_prims(struct gl_context *ctx,
 			 struct gl_buffer_object *indirect)
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-   const struct gl_vertex_array *arrays = ctx->Array._DrawArrays;
    const GLuint TEST_SPLIT = 0;
    const GLint max = TEST_SPLIT ? 8 : tnl->vb.Size - MAX_CLIPPED_VERTICES;
    GLint max_basevertex = prim->basevertex;
@@ -487,10 +486,10 @@ void _tnl_draw_prims(struct gl_context *ctx,
       /* This will split the buffers one way or another and
        * recursively call back into this function.
        */
-      vbo_split_prims( ctx, arrays, prim, nr_prims, ib, 
-		       0, max_index + prim->basevertex,
-		       _tnl_draw_prims,
-		       &limits );
+      _tnl_split_prims( ctx, arrays, prim, nr_prims, ib,
+                        0, max_index + prim->basevertex,
+                        _tnl_draw_prims,
+                        &limits );
    }
    else {
       /* May need to map a vertex buffer object for every attribute plus
@@ -537,3 +536,41 @@ void _tnl_draw_prims(struct gl_context *ctx,
    }
 }
 
+
+void
+_tnl_bind_inputs( struct gl_context *ctx )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   _mesa_set_drawing_arrays(ctx, tnl->draw_arrays.inputs);
+   _vbo_update_inputs(ctx, &tnl->draw_arrays);
+}
+
+
+/* This is the main entrypoint into the slimmed-down software tnl
+ * module.  In a regular swtnl driver, this can be plugged straight
+ * into the ctx->Driver.Draw() callback.
+ */
+void
+_tnl_draw(struct gl_context *ctx,
+          const struct _mesa_prim *prim, GLuint nr_prims,
+          const struct _mesa_index_buffer *ib,
+          GLboolean index_bounds_valid, GLuint min_index, GLuint max_index,
+          struct gl_transform_feedback_object *tfb_vertcount,
+          unsigned stream, struct gl_buffer_object *indirect)
+{
+   /* Update TNLcontext::draw_arrays and set that pointer
+    * into Array._DrawArrays.
+    */
+   _tnl_bind_inputs(ctx);
+
+   _tnl_draw_prims(ctx, ctx->Array._DrawArrays, prim, nr_prims, ib,
+                   index_bounds_valid, min_index, max_index,
+                   tfb_vertcount, stream, indirect);
+}
+
+
+void
+_tnl_init_driver_draw_function(struct dd_function_table *functions)
+{
+   functions->Draw = _tnl_draw;
+}

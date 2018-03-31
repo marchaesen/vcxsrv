@@ -513,7 +513,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
                      "Selector of OpSelect must have a type of OpTypeInt");
 
          bool is_default = true;
-         const uint bitsize = nir_alu_type_get_type_size(cond_type);
+         const unsigned bitsize = nir_alu_type_get_type_size(cond_type);
          for (const uint32_t *w = block->branch + 2; w < branch_end;) {
             uint64_t literal = 0;
             if (!is_default) {

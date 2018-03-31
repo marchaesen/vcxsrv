@@ -638,13 +638,13 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 				tiled |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
 			}
 		}
-		if (tiled && util_is_power_of_two(vk_format_get_blocksize(format)) && !scaled) {
+		if (tiled && util_is_power_of_two_or_zero(vk_format_get_blocksize(format)) && !scaled) {
 			tiled |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
 			         VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
 		}
 	}
 
-	if (linear && util_is_power_of_two(vk_format_get_blocksize(format)) && !scaled) {
+	if (linear && util_is_power_of_two_or_zero(vk_format_get_blocksize(format)) && !scaled) {
 		linear |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
 		          VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
 	}

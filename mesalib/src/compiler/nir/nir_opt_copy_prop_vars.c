@@ -349,21 +349,6 @@ store_to_entry(struct copy_prop_var_state *state, struct copy_entry *entry,
    }
 }
 
-/* Remove an instruction and return a cursor pointing to where it was */
-static nir_cursor
-instr_remove_cursor(nir_instr *instr)
-{
-   nir_cursor cursor;
-   nir_instr *prev = nir_instr_prev(instr);
-   if (prev) {
-      cursor = nir_after_instr(prev);
-   } else {
-      cursor = nir_before_block(instr->block);
-   }
-   nir_instr_remove(instr);
-   return cursor;
-}
-
 /* Do a "load" from an SSA-based entry return it in "value" as a value with a
  * single SSA def.  Because an entry could reference up to 4 different SSA
  * defs, a vecN operation may be inserted to combine them into a single SSA
@@ -396,7 +381,7 @@ load_from_ssa_entry_value(struct copy_prop_var_state *state,
 
    if (all_same) {
       /* Our work here is done */
-      b->cursor = instr_remove_cursor(&intrin->instr);
+      b->cursor = nir_instr_remove(&intrin->instr);
       intrin->instr.block = NULL;
       return true;
    }
@@ -594,7 +579,7 @@ load_from_deref_entry_value(struct copy_prop_var_state *state,
       value_tail->child = nir_deref_clone(src_tail->child, value_tail);
    }
 
-   b->cursor = instr_remove_cursor(&intrin->instr);
+   b->cursor = nir_instr_remove(&intrin->instr);
 
    return true;
 }

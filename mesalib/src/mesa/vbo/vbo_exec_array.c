@@ -39,8 +39,6 @@
 #include "main/macros.h"
 #include "main/transformfeedback.h"
 
-#include "vbo_private.h"
-
 
 /**
  * Check that element 'j' of the array has reasonable data.

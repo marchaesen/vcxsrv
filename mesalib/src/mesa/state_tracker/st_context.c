@@ -382,7 +382,6 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
 
    st_init_atoms(st);
    st_init_clear(st);
-   st_init_draw(st);
    st_init_pbo_helpers(st);
 
    /* Choose texture target for glDrawPixels, glBitmap, renderbuffers */
@@ -551,6 +550,9 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
    /* Initialize context's winsys buffers list */
    LIST_INITHEAD(&st->winsys_buffers);
 
+   /* Keep our list of gl_vertex_array inputs */
+   _vbo_init_inputs(&st->draw_arrays);
+
    return st;
 }
 
@@ -715,6 +717,7 @@ st_init_driver_functions(struct pipe_screen *screen,
    _mesa_init_shader_object_functions(functions);
    _mesa_init_sampler_object_functions(functions);
 
+   st_init_draw_functions(functions);
    st_init_blit_functions(functions);
    st_init_bufferobject_functions(screen, functions);
    st_init_clear_functions(functions);
@@ -751,10 +754,6 @@ st_init_driver_functions(struct pipe_screen *screen,
 
    if (screen->get_param(screen, PIPE_CAP_STRING_MARKER))
       functions->EmitStringMarker = st_emit_string_marker;
-
-   /* For now call through these into the vbo_set_draw_func... */
-   functions->Draw = _vbo_draw;
-   functions->DrawIndirect = _vbo_draw_indirect;
 
    functions->Enable = st_Enable;
    functions->UpdateState = st_invalidate_state;

@@ -35,6 +35,7 @@
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
+#include "main/glspirv.h"
 #include "compiler/glsl/ast.h"
 #include "compiler/glsl/ir.h"
 #include "compiler/glsl/ir_expression_flattening.h"
@@ -3154,7 +3155,10 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
    }
 
    if (prog->data->LinkStatus) {
-      link_shaders(ctx, prog);
+      if (!spirv)
+         link_shaders(ctx, prog);
+      else
+         _mesa_spirv_link_shaders(ctx, prog);
    }
 
    /* If LinkStatus is LINKING_SUCCESS, then reset sampler validated to true.

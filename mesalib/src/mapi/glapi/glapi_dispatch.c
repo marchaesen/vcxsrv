@@ -97,6 +97,13 @@
  */
 #include <GLES/glplatform.h>
 
+
+/* Redefine GL_API to avoid MSVC/MinGW warnings about different dllimport
+ * attributes for these prototypes vs those in the GLES/gl.h header.
+ */
+#undef GL_API
+#define GL_API KEYWORD1
+
 GL_API void GL_APIENTRY glClearDepthf (GLclampf depth);
 GL_API void GL_APIENTRY glClipPlanef (GLenum plane, const GLfloat *equation);
 GL_API void GL_APIENTRY glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar);

@@ -109,10 +109,6 @@ struct vbo_exec_context
       struct vbo_exec_eval2_map map2[VERT_ATTRIB_MAX];
    } eval;
 
-   struct {
-      GLboolean recalculate_inputs;
-   } array;
-
    /* Which flags to set in vbo_exec_begin_vertices() */
    GLbitfield begin_vertices_flags;
 

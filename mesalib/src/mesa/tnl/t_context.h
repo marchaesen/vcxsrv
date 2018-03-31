@@ -536,6 +536,9 @@ typedef struct
    struct tnl_shine_tab *_ShineTable[2]; /**< Active shine tables */
    struct tnl_shine_tab *_ShineTabList;  /**< MRU list of inactive shine tables */
    /**@}*/
+
+   /* The list of gl_vertex_array inputs. */
+   struct vbo_inputs draw_arrays;
 } TNLcontext;
 
 

@@ -49,16 +49,16 @@
 
 #include "main/glheader.h"
 #include "main/mtypes.h"
+#include "vbo/vbo.h"
 
-#include "vbo_split.h"
-#include "vbo.h"
+#include "t_split.h"
 
 
 /* True if a primitive can be split without copying of vertices, false
  * otherwise.
  */
 GLboolean
-split_prim_inplace(GLenum mode, GLuint *first, GLuint *incr)
+_tnl_split_prim_inplace(GLenum mode, GLuint *first, GLuint *incr)
 {
    switch (mode) {
    case GL_POINTS:
@@ -99,15 +99,15 @@ split_prim_inplace(GLenum mode, GLuint *first, GLuint *incr)
 
 
 void
-vbo_split_prims(struct gl_context *ctx,
-                const struct gl_vertex_array arrays[],
-                const struct _mesa_prim *prim,
-                GLuint nr_prims,
-                const struct _mesa_index_buffer *ib,
-                GLuint min_index,
-                GLuint max_index,
-                vbo_draw_func draw,
-                const struct split_limits *limits)
+_tnl_split_prims(struct gl_context *ctx,
+                 const struct gl_vertex_array arrays[],
+                 const struct _mesa_prim *prim,
+                 GLuint nr_prims,
+                 const struct _mesa_index_buffer *ib,
+                 GLuint min_index,
+                 GLuint max_index,
+                 tnl_draw_func draw,
+                 const struct split_limits *limits)
 {
    if (ib) {
       if (limits->max_indices == 0) {
@@ -127,15 +127,15 @@ vbo_split_prims(struct gl_context *ctx,
           * in turn.  Use a vertex cache to preserve some of the
           * sharing from the original index list.
           */
-         vbo_split_copy(ctx, arrays, prim, nr_prims, ib, draw, limits);
+         _tnl_split_copy(ctx, arrays, prim, nr_prims, ib, draw, limits);
       }
       else if (ib->count > limits->max_indices) {
          /* The index buffer is too large for hardware.  Try to split
           * on whole-primitive boundaries, otherwise try to split the
           * individual primitives.
           */
-         vbo_split_inplace(ctx, arrays, prim, nr_prims, ib,
-                           min_index, max_index, draw, limits);
+         _tnl_split_inplace(ctx, arrays, prim, nr_prims, ib,
+                            min_index, max_index, draw, limits);
       }
       else {
          /* Why were we called? */
@@ -148,8 +148,8 @@ vbo_split_prims(struct gl_context *ctx,
           * module).  Try to split on whole-primitive boundaries,
           * otherwise try to split the individual primitives.
           */
-         vbo_split_inplace(ctx, arrays, prim, nr_prims, ib,
-                           min_index, max_index, draw, limits);
+         _tnl_split_inplace(ctx, arrays, prim, nr_prims, ib,
+                            min_index, max_index, draw, limits);
       }
       else {
          /* Why were we called? */

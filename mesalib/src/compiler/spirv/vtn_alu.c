@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include <math.h>
 #include "vtn_private.h"
 
 /*

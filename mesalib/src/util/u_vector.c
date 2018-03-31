@@ -37,8 +37,8 @@
 int
 u_vector_init(struct u_vector *vector, uint32_t element_size, uint32_t size)
 {
-   assert(util_is_power_of_two(size));
-   assert(element_size < size && util_is_power_of_two(element_size));
+   assert(util_is_power_of_two_nonzero(size));
+   assert(element_size < size && util_is_power_of_two_nonzero(element_size));
 
    vector->head = 0;
    vector->tail = 0;

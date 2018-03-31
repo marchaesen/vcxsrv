@@ -783,6 +783,7 @@ dri_create_context(gl_api api,
     /* build table of device driver functions */
     _mesa_init_driver_functions(&functions);
     swrast_init_driver_functions(&functions);
+    _tnl_init_driver_draw_function(&functions);
 
     if (share) {
 	sharedCtx = &share->Base;

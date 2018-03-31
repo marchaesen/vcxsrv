@@ -211,7 +211,7 @@ XSetCommand (
 	int argc)
 {
 	register int i;
-	register int nbytes;
+	size_t nbytes;
 	register char *buf, *bp;
 	for (i = 0, nbytes = 0; i < argc; i++) {
 		nbytes += safestrlen(argv[i]) + 1;
@@ -295,7 +295,7 @@ XSetClassHint(
 {
 	char *class_string;
 	char *s;
-	int len_nm, len_cl;
+	size_t len_nm, len_cl;
 
 	len_nm = safestrlen(classhint->res_name);
 	len_cl = safestrlen(classhint->res_class);

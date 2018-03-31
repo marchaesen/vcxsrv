@@ -59,7 +59,7 @@ extern "C" {
 #define BITFIELD_BIT(b)      ((GLbitfield)1 << (b))
 /** Set all bits up to excluding bit b */
 #define BITFIELD_MASK(b)      \
-   ((b) == 32 ? (~(GLbitfield)0) : BITFIELD_BIT(b) - 1)
+   ((b) == 32 ? (~(GLbitfield)0) : BITFIELD_BIT((b) % 32) - 1)
 /** Set count bits starting from bit b  */
 #define BITFIELD_RANGE(b, count) \
    (BITFIELD_MASK((b) + (count)) & ~BITFIELD_MASK(b))
@@ -2651,6 +2651,14 @@ struct gl_linked_shader
    struct exec_list *packed_varyings;
    struct exec_list *fragdata_arrays;
    struct glsl_symbol_table *symbols;
+
+   /**
+    * ARB_gl_spirv related data.
+    *
+    * This is actually a reference to the gl_shader::spirv_data, which
+    * stores information that is also needed during linking.
+    */
+   struct gl_shader_spirv_data *spirv_data;
 };
 
 
@@ -4135,6 +4143,9 @@ struct gl_constants
 
    /** Is the drivers uniform storage packed or padded to 16 bytes. */
    bool PackedDriverUniformStorage;
+
+   /** GL_ARB_gl_spirv */
+   struct spirv_supported_capabilities SpirVCapabilities;
 };
 
 

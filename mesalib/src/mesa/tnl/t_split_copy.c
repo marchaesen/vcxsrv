@@ -38,9 +38,10 @@
 #include "main/macros.h"
 #include "main/mtypes.h"
 #include "main/varray.h"
+#include "vbo/vbo.h"
 
-#include "vbo_split.h"
-#include "vbo.h"
+#include "t_split.h"
+#include "tnl.h"
 
 
 #define ELT_TABLE_SIZE 16
@@ -56,7 +57,7 @@ struct copy_context {
    const struct _mesa_prim *prim;
    GLuint nr_prims;
    const struct _mesa_index_buffer *ib;
-   vbo_draw_func draw;
+   tnl_draw_func draw;
 
    const struct split_limits *limits;
 
@@ -179,7 +180,6 @@ static void
 flush(struct copy_context *copy)
 {
    struct gl_context *ctx = copy->ctx;
-   const struct gl_vertex_array *saved_arrays = ctx->Array._DrawArrays;
    GLuint i;
 
    /* Set some counters:
@@ -198,10 +198,8 @@ flush(struct copy_context *copy)
    (void) dump_draw_info;
 #endif
 
-   ctx->Array._DrawArrays = copy->dstarray;
-   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
-
    copy->draw(ctx,
+              copy->dstarray,
               copy->dstprim,
               copy->dstprim_nr,
               &copy->dstib,
@@ -209,9 +207,6 @@ flush(struct copy_context *copy)
               0,
               copy->dstbuf_nr - 1,
               NULL, 0, NULL);
-
-   ctx->Array._DrawArrays = saved_arrays;
-   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
 
    /* Reset all pointers:
     */
@@ -389,7 +384,7 @@ replay_elts(struct copy_context *copy)
          break;
 
       default:
-         (void)split_prim_inplace(prim->mode, &first, &incr);
+         (void)_tnl_split_prim_inplace(prim->mode, &first, &incr);
 
          j = 0;
          while (j != prim->count) {
@@ -595,13 +590,13 @@ replay_finish(struct copy_context *copy)
  * Split VBO into smaller pieces, draw the pieces.
  */
 void
-vbo_split_copy(struct gl_context *ctx,
-               const struct gl_vertex_array *arrays,
-               const struct _mesa_prim *prim,
-               GLuint nr_prims,
-               const struct _mesa_index_buffer *ib,
-               vbo_draw_func draw,
-               const struct split_limits *limits)
+_tnl_split_copy(struct gl_context *ctx,
+                const struct gl_vertex_array *arrays,
+                const struct _mesa_prim *prim,
+                GLuint nr_prims,
+                const struct _mesa_index_buffer *ib,
+                tnl_draw_func draw,
+                const struct split_limits *limits)
 {
    struct copy_context copy;
    GLuint i, this_nr_prims;
