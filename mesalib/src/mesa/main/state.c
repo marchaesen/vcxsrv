@@ -459,21 +459,13 @@ _mesa_set_vp_override(struct gl_context *ctx, GLboolean flag)
 
 
 static void
-set_new_array(struct gl_context *ctx)
-{
-   _vbo_set_recalculate_inputs(ctx);
-   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
-}
-
-
-static void
 set_vertex_processing_mode(struct gl_context *ctx, gl_vertex_processing_mode m)
 {
    if (ctx->VertexProgram._VPMode == m)
       return;
 
    /* On change we may get new maps into the current values */
-   set_new_array(ctx);
+   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
 
    /* Finally memorize the value */
    ctx->VertexProgram._VPMode = m;
@@ -532,7 +524,7 @@ _mesa_set_draw_vao(struct gl_context *ctx, struct gl_vertex_array_object *vao,
       new_array = true;
 
    if (new_array)
-      set_new_array(ctx);
+      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
 
    ctx->Array._DrawVAOEnabledAttribs = enabled;
    _mesa_set_varying_vp_inputs(ctx, enabled);

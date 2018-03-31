@@ -71,8 +71,10 @@ void _vtn_warn(struct vtn_builder *b, const char *file, unsigned line,
  * So long as these two things continue to hold, we can easily longjmp back to
  * spirv_to_nir(), clean up the builder, and return NULL.
  */
-void _vtn_fail(struct vtn_builder *b, const char *file, unsigned line,
-               const char *fmt, ...) NORETURN PRINTFLIKE(4, 5);
+NORETURN void
+_vtn_fail(struct vtn_builder *b, const char *file, unsigned line,
+             const char *fmt, ...) PRINTFLIKE(4, 5);
+
 #define vtn_fail(...) _vtn_fail(b, __FILE__, __LINE__, __VA_ARGS__)
 
 /** Fail if the given expression evaluates to true */
@@ -228,7 +230,7 @@ struct vtn_function {
    SpvFunctionControlMask control;
 };
 
-typedef bool (*vtn_instruction_handler)(struct vtn_builder *, uint32_t,
+typedef bool (*vtn_instruction_handler)(struct vtn_builder *, SpvOp,
                                         const uint32_t *, unsigned);
 
 void vtn_build_cfg(struct vtn_builder *b, const uint32_t *words,
@@ -716,13 +718,23 @@ void vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
 void vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
                          const uint32_t *w, unsigned count);
 
-bool vtn_handle_glsl450_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+bool vtn_handle_glsl450_instruction(struct vtn_builder *b, SpvOp ext_opcode,
                                     const uint32_t *words, unsigned count);
+
+struct vtn_builder* vtn_create_builder(const uint32_t *words, size_t word_count,
+                                       gl_shader_stage stage, const char *entry_point_name,
+                                       const struct spirv_to_nir_options *options);
+
+void vtn_handle_entry_point(struct vtn_builder *b, const uint32_t *w,
+                            unsigned count);
+
+void vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
+                           const uint32_t *w, unsigned count);
 
 static inline uint32_t
 vtn_align_u32(uint32_t v, uint32_t a)
 {
-   assert(a != 0 && a == (a & -a));
+   assert(a != 0 && a == (a & -((int32_t) a)));
    return (v + a - 1) & ~(a - 1);
 }
 
@@ -732,9 +744,9 @@ vtn_u64_literal(const uint32_t *w)
    return (uint64_t)w[1] << 32 | w[0];
 }
 
-bool vtn_handle_amd_gcn_shader_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+bool vtn_handle_amd_gcn_shader_instruction(struct vtn_builder *b, SpvOp ext_opcode,
                                            const uint32_t *words, unsigned count);
 
-bool vtn_handle_amd_shader_trinary_minmax_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+bool vtn_handle_amd_shader_trinary_minmax_instruction(struct vtn_builder *b, SpvOp ext_opcode,
 						      const uint32_t *words, unsigned count);
 #endif /* _VTN_PRIVATE_H_ */

@@ -31,7 +31,7 @@
 #ifndef BITSET_H
 #define BITSET_H
 
-#include "util/u_math.h"
+#include "util/bitscan.h"
 
 /****************************************************************************
  * generic bitset implementation

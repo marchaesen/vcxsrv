@@ -40,6 +40,7 @@
 #include "main/imports.h"
 #include "main/context.h"
 #include "main/feedback.h"
+#include "main/varray.h"
 
 #include "vbo/vbo.h"
 
@@ -272,6 +273,34 @@ draw_glselect_stage(struct gl_context *ctx, struct draw_context *draw)
 
 
 static void
+feedback_draw_vbo(struct gl_context *ctx,
+                  const struct _mesa_prim *prims,
+                  GLuint nr_prims,
+                  const struct _mesa_index_buffer *ib,
+                  GLboolean index_bounds_valid,
+                  GLuint min_index,
+                  GLuint max_index,
+                  struct gl_transform_feedback_object *tfb_vertcount,
+                  unsigned stream,
+                  struct gl_buffer_object *indirect)
+{
+   struct st_context *st = st_context(ctx);
+
+   /* The initial pushdown of the inputs array into the drivers */
+   _mesa_set_drawing_arrays(ctx, st->draw_arrays.inputs);
+   _vbo_update_inputs(ctx, &st->draw_arrays);
+
+   /* The above needs to happen outside of st_feedback_draw_vbo,
+    * since st_RasterPossets _DrawArrays and does not want that to be
+    * overwritten by _mesa_set_drawing_arrays.
+    */
+   st_feedback_draw_vbo(ctx, prims, nr_prims, ib, index_bounds_valid,
+                        min_index, max_index, tfb_vertcount,
+                        stream, indirect);
+}
+
+
+static void
 st_RenderMode(struct gl_context *ctx, GLenum newMode )
 {
    struct st_context *st = st_context(ctx);
@@ -282,14 +311,14 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
 
    if (newMode == GL_RENDER) {
       /* restore normal VBO draw function */
-      st_init_draw(st);
+      st_init_draw_functions(&ctx->Driver);
    }
    else if (newMode == GL_SELECT) {
       if (!st->selection_stage)
          st->selection_stage = draw_glselect_stage(ctx, draw);
       draw_set_rasterize_stage(draw, st->selection_stage);
       /* Plug in new vbo draw function */
-      vbo_set_draw_func(ctx, st_feedback_draw_vbo);
+      ctx->Driver.Draw = feedback_draw_vbo;
    }
    else {
       struct gl_program *vp = st->ctx->VertexProgram._Current;
@@ -298,7 +327,7 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
          st->feedback_stage = draw_glfeedback_stage(ctx, draw);
       draw_set_rasterize_stage(draw, st->feedback_stage);
       /* Plug in new vbo draw function */
-      vbo_set_draw_func(ctx, st_feedback_draw_vbo);
+      ctx->Driver.Draw = feedback_draw_vbo;
       /* need to generate/use a vertex program that emits pos/color/tex */
       if (vp)
          st->dirty |= ST_NEW_VERTEX_PROGRAM(st, st_vertex_program(vp));

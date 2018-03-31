@@ -466,7 +466,7 @@ vtn_foreach_execution_mode(struct vtn_builder *b, struct vtn_value *value,
    }
 }
 
-static void
+void
 vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
                       const uint32_t *w, unsigned count)
 {
@@ -2086,8 +2086,9 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
          (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_offset);
 
       if (operands & SpvImageOperandsConstOffsetsMask) {
+         nir_tex_src none = {0};
          gather_offsets = vtn_ssa_value(b, w[idx++]);
-         (*p++) = (nir_tex_src){};
+         (*p++) = none;
       }
 
       if (operands & SpvImageOperandsSampleMask) {
@@ -3191,6 +3192,24 @@ stage_for_execution_model(struct vtn_builder *b, SpvExecutionModel model)
                   spirv_capability_to_string(cap));     \
    } while(0)
 
+
+void
+vtn_handle_entry_point(struct vtn_builder *b, const uint32_t *w,
+                       unsigned count)
+{
+   struct vtn_value *entry_point = &b->values[w[2]];
+   /* Let this be a name label regardless */
+   unsigned name_words;
+   entry_point->name = vtn_string_literal(b, &w[3], count - 3, &name_words);
+
+   if (strcmp(entry_point->name, b->entry_point_name) != 0 ||
+       stage_for_execution_model(b, w[1]) != b->entry_point_stage)
+      return;
+
+   vtn_assert(b->entry_point == NULL);
+   b->entry_point = entry_point;
+}
+
 static bool
 vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
                                 const uint32_t *w, unsigned count)
@@ -3379,20 +3398,9 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
                  w[2] == SpvMemoryModelGLSL450);
       break;
 
-   case SpvOpEntryPoint: {
-      struct vtn_value *entry_point = &b->values[w[2]];
-      /* Let this be a name label regardless */
-      unsigned name_words;
-      entry_point->name = vtn_string_literal(b, &w[3], count - 3, &name_words);
-
-      if (strcmp(entry_point->name, b->entry_point_name) != 0 ||
-          stage_for_execution_model(b, w[1]) != b->entry_point_stage)
-         break;
-
-      vtn_assert(b->entry_point == NULL);
-      b->entry_point = entry_point;
+   case SpvOpEntryPoint:
+      vtn_handle_entry_point(b, w, count);
       break;
-   }
 
    case SpvOpString:
       vtn_push_value(b, w[1], vtn_value_type_string)->str =
@@ -3972,14 +3980,12 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    return true;
 }
 
-nir_function *
-spirv_to_nir(const uint32_t *words, size_t word_count,
-             struct nir_spirv_specialization *spec, unsigned num_spec,
-             gl_shader_stage stage, const char *entry_point_name,
-             const struct spirv_to_nir_options *options,
-             const nir_shader_compiler_options *nir_options)
+struct vtn_builder*
+vtn_create_builder(const uint32_t *words, size_t word_count,
+                   gl_shader_stage stage, const char *entry_point_name,
+                   const struct spirv_to_nir_options *options)
 {
-   /* Initialize the stn_builder object */
+   /* Initialize the vtn_builder object */
    struct vtn_builder *b = rzalloc(NULL, struct vtn_builder);
    b->spirv = words;
    b->spirv_word_count = word_count;
@@ -3991,14 +3997,6 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    b->entry_point_name = entry_point_name;
    b->options = options;
 
-   /* See also _vtn_fail() */
-   if (setjmp(b->fail_jump)) {
-      ralloc_free(b);
-      return NULL;
-   }
-
-   const uint32_t *word_end = words + word_count;
-
    /* Handle the SPIR-V header (first 4 dwords)  */
    vtn_assert(word_count > 5);
 
@@ -4008,10 +4006,37 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    unsigned value_id_bound = words[3];
    vtn_assert(words[4] == 0);
 
-   words+= 5;
-
    b->value_id_bound = value_id_bound;
    b->values = rzalloc_array(b, struct vtn_value, value_id_bound);
+
+   return b;
+}
+
+nir_function *
+spirv_to_nir(const uint32_t *words, size_t word_count,
+             struct nir_spirv_specialization *spec, unsigned num_spec,
+             gl_shader_stage stage, const char *entry_point_name,
+             const struct spirv_to_nir_options *options,
+             const nir_shader_compiler_options *nir_options)
+
+{
+   const uint32_t *word_end = words + word_count;
+
+   struct vtn_builder *b = vtn_create_builder(words, word_count,
+                                              stage, entry_point_name,
+                                              options);
+
+   if (b == NULL)
+      return NULL;
+
+   /* See also _vtn_fail() */
+   if (setjmp(b->fail_jump)) {
+      ralloc_free(b);
+      return NULL;
+   }
+
+   /* Skip the SPIR-V header, handled at vtn_create_builder */
+   words+= 5;
 
    /* Handle all the preamble instructions */
    words = vtn_foreach_instruction(b, words, word_end,

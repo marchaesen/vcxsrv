@@ -119,109 +119,6 @@ void
 vbo_save_EndCallList(struct gl_context *ctx);
 
 
-/**
- * For indirect array drawing:
- *
- *    typedef struct {
- *       GLuint count;
- *       GLuint primCount;
- *       GLuint first;
- *       GLuint baseInstance; // in GL 4.2 and later, must be zero otherwise
- *    } DrawArraysIndirectCommand;
- *
- * For indirect indexed drawing:
- *
- *    typedef struct {
- *       GLuint count;
- *       GLuint primCount;
- *       GLuint firstIndex;
- *       GLint  baseVertex;
- *       GLuint baseInstance; // in GL 4.2 and later, must be zero otherwise
- *    } DrawElementsIndirectCommand;
- */
-
-
-/**
- * Draw a number of primitives.
- * \param prims  array [nr_prims] describing what to draw (prim type,
- *               vertex count, first index, instance count, etc).
- * \param ib  index buffer for indexed drawing, NULL for array drawing
- * \param index_bounds_valid  are min_index and max_index valid?
- * \param min_index  lowest vertex index used
- * \param max_index  highest vertex index used
- * \param tfb_vertcount  if non-null, indicates which transform feedback
- *                       object has the vertex count.
- * \param tfb_stream  If called via DrawTransformFeedbackStream, specifies the
- *                    vertex stream buffer from which to get the vertex count.
- * \param indirect  If any prims are indirect, this specifies the buffer
- *                  to find the "DrawArrays/ElementsIndirectCommand" data.
- *                  This may be deprecated in the future
- */
-typedef void (*vbo_draw_func)(struct gl_context *ctx,
-                              const struct _mesa_prim *prims,
-                              GLuint nr_prims,
-                              const struct _mesa_index_buffer *ib,
-                              GLboolean index_bounds_valid,
-                              GLuint min_index,
-                              GLuint max_index,
-                              struct gl_transform_feedback_object *tfb_vertcount,
-                              unsigned tfb_stream,
-                              struct gl_buffer_object *indirect);
-
-
-/**
- * Draw a primitive, getting the vertex count, instance count, start
- * vertex, etc. from a buffer object.
- * \param mode  GL_POINTS, GL_LINES, GL_TRIANGLE_STRIP, etc.
- * \param indirect_data  buffer to get "DrawArrays/ElementsIndirectCommand" data
- * \param indirect_offset  offset of first primitive in indrect_data buffer
- * \param draw_count  number of primitives to draw
- * \param stride  stride, in bytes, between "DrawArrays/ElementsIndirectCommand"
- *                objects
- * \param indirect_draw_count_buffer  if non-NULL specifies a buffer to get the
- *                                    real draw_count value.  Used for
- *                                    GL_ARB_indirect_parameters.
- * \param indirect_draw_count_offset  offset to the draw_count value in
- *                                    indirect_draw_count_buffer
- * \param ib  index buffer for indexed drawing, NULL otherwise.
- */
-typedef void (*vbo_indirect_draw_func)(
-   struct gl_context *ctx,
-   GLuint mode,
-   struct gl_buffer_object *indirect_data,
-   GLsizeiptr indirect_offset,
-   unsigned draw_count,
-   unsigned stride,
-   struct gl_buffer_object *indirect_draw_count_buffer,
-   GLsizeiptr indirect_draw_count_offset,
-   const struct _mesa_index_buffer *ib);
-
-
-
-
-/* Utility function to cope with various constraints on tnl modules or
- * hardware.  This can be used to split an incoming set of arrays and
- * primitives against the following constraints:
- *    - Maximum number of indices in index buffer.
- *    - Maximum number of vertices referenced by index buffer.
- *    - Maximum hardware vertex buffer size.
- */
-struct split_limits
-{
-   GLuint max_verts;
-   GLuint max_indices;
-   GLuint max_vb_size;		/* bytes */
-};
-
-
-void
-_vbo_draw(struct gl_context *ctx, const struct _mesa_prim *prims,
-               GLuint nr_prims, const struct _mesa_index_buffer *ib,
-               GLboolean index_bounds_valid, GLuint min_index, GLuint max_index,
-               struct gl_transform_feedback_object *tfb_vertcount,
-               unsigned tfb_stream, struct gl_buffer_object *indirect);
-
-
 void
 _vbo_draw_indirect(struct gl_context *ctx, GLuint mode,
                         struct gl_buffer_object *indirect_data,
@@ -230,18 +127,6 @@ _vbo_draw_indirect(struct gl_context *ctx, GLuint mode,
                         struct gl_buffer_object *indirect_draw_count_buffer,
                         GLsizeiptr indirect_draw_count_offset,
                         const struct _mesa_index_buffer *ib);
-
-
-void
-vbo_split_prims(struct gl_context *ctx,
-                const struct gl_vertex_array *arrays,
-                const struct _mesa_prim *prim,
-                GLuint nr_prims,
-                const struct _mesa_index_buffer *ib,
-                GLuint min_index,
-                GLuint max_index,
-                vbo_draw_func draw,
-                const struct split_limits *limits);
 
 
 void
@@ -257,13 +142,6 @@ vbo_use_buffer_objects(struct gl_context *ctx);
 
 void
 vbo_always_unmap_buffers(struct gl_context *ctx);
-
-void
-vbo_set_draw_func(struct gl_context *ctx, vbo_draw_func func);
-
-void
-vbo_set_indirect_draw_func(struct gl_context *ctx,
-                           vbo_indirect_draw_func func);
 
 void
 vbo_sw_primitive_restart(struct gl_context *ctx,
@@ -290,15 +168,6 @@ struct vbo_inputs
    /** Store which aliasing current values - generics or materials - are set. */
    gl_vertex_processing_mode vertex_processing_mode;
 };
-
-
-/**
- * Set the recalculate_inputs flag.
- * The method should in the longer run be replaced with listening for the
- * DriverFlags.NewArray flag in NewDriverState. But for now ...
- */
-void
-_vbo_set_recalculate_inputs(struct gl_context *ctx);
 
 
 /**

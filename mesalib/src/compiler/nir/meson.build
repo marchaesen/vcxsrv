@@ -83,21 +83,6 @@ nir_intrinsics_c = custom_target(
   depend_files : files('nir_intrinsics.py'),
 )
 
-spirv_info_c = custom_target(
-  'spirv_info.c',
-  input : files('../spirv/spirv_info_c.py', '../spirv/spirv.core.grammar.json'),
-  output : 'spirv_info.c',
-  command : [prog_python2, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
-)
-
-vtn_gather_types_c = custom_target(
-  'vtn_gather_types.c',
-  input : files('../spirv/vtn_gather_types_c.py',
-                '../spirv/spirv.core.grammar.json'),
-  output : 'vtn_gather_types.c',
-  command : [prog_python2, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
-)
-
 files_libnir = files(
   'nir.c',
   'nir.h',
@@ -201,6 +186,7 @@ files_libnir = files(
   'nir_worklist.h',
   '../spirv/GLSL.ext.AMD.h',
   '../spirv/GLSL.std.450.h',
+  '../spirv/gl_spirv.c',
   '../spirv/nir_spirv.h',
   '../spirv/spirv.h',
   '../spirv/spirv_info.h',

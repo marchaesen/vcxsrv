@@ -1,0 +1,54 @@
+import common
+
+Import('*')
+
+from sys import executable as python_cmd
+
+env = env.Clone()
+
+env.MSVC2013Compat()
+
+env.Prepend(CPPPATH = [
+    '#include',
+    '#src',
+    '#src/mapi',
+    '#src/mesa',
+    '#src/gallium/include',
+    '#src/gallium/auxiliary',
+    '#src/compiler/nir',
+    '#src/compiler/spirv',
+])
+
+# Make generated headers reachable from the include path.
+env.Prepend(CPPPATH = [Dir('.').abspath, Dir('nir').abspath])
+env.Prepend(CPPPATH = [Dir('.').abspath, Dir('spirv').abspath])
+
+# spirv generated sources
+
+env.CodeGenerate(
+    target = 'spirv/spirv_info.c',
+    script = 'spirv/spirv_info_c.py',
+    source = ['spirv/spirv.core.grammar.json'],
+    command = python_cmd + ' $SCRIPT $SOURCE $TARGET'
+)
+
+env.CodeGenerate(
+    target = 'spirv/vtn_gather_types.c',
+    script = 'spirv/vtn_gather_types_c.py',
+    source = ['spirv/spirv.core.grammar.json'],
+    command = python_cmd + ' $SCRIPT $SOURCE $TARGET'
+)
+
+# parse Makefile.sources
+source_lists = env.ParseSourceList('Makefile.sources')
+
+spirv_sources = source_lists['SPIRV_FILES']
+spirv_sources += source_lists['SPIRV_GENERATED_FILES']
+
+spirv = env.ConvenienceLibrary(
+    target = 'spirv',
+    source = spirv_sources,
+)
+
+env.Alias('spirv', spirv)
+Export('spirv')

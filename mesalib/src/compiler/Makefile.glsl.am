@@ -54,7 +54,7 @@ check_PROGRAMS +=					\
 	glsl/tests/sampler-types-test			\
 	glsl/tests/uniform-initializer-test
 
-noinst_PROGRAMS = glsl_compiler
+noinst_PROGRAMS += glsl_compiler
 
 glsl_tests_blob_test_SOURCES =				\
 	glsl/tests/blob_test.c

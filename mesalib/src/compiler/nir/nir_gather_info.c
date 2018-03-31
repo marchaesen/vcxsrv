@@ -250,7 +250,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader)
          if (shader->info.stage == MESA_SHADER_VERTEX &&
              var->data.mode == nir_var_shader_in &&
              glsl_type_is_dual_slot(glsl_without_array(var->type))) {
-            for (uint i = 0; i < glsl_count_attribute_slots(var->type, false); i++) {
+            for (unsigned i = 0; i < glsl_count_attribute_slots(var->type, false); i++) {
                int idx = var->data.location + i;
                shader->info.vs.double_inputs |= BITFIELD64_BIT(idx);
             }

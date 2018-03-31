@@ -33,7 +33,6 @@
 #include "main/varray.h"
 
 #include "vbo.h"
-#include "vbo_private.h"
 
 
 #define UPDATE_MIN2(a, b) (a) = MIN2((a), (b))

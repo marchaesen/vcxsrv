@@ -127,7 +127,6 @@ vbo_exec_init(struct gl_context *ctx)
    /* The aelt_context state should still be dirty from its creation */
    assert(_ae_is_state_dirty(ctx));
 
-   exec->array.recalculate_inputs = GL_TRUE;
    exec->eval.recalculate_maps = GL_TRUE;
 }
 
@@ -240,13 +239,6 @@ vbo_merge_prims(struct _mesa_prim *p0, const struct _mesa_prim *p1)
 
    p0->count += p1->count;
    p0->end = p1->end;
-}
-
-
-void
-_vbo_set_recalculate_inputs(struct gl_context *ctx)
-{
-   vbo_context(ctx)->exec.array.recalculate_inputs = GL_TRUE;
 }
 
 

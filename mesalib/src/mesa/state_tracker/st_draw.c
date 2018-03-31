@@ -145,6 +145,10 @@ st_draw_vbo(struct gl_context *ctx,
    unsigned i;
    unsigned start = 0;
 
+   /* The initial pushdown of the inputs array into the drivers */
+   _mesa_set_drawing_arrays(ctx, st->draw_arrays.inputs);
+   _vbo_update_inputs(ctx, &st->draw_arrays);
+
    prepare_draw(st, ctx);
 
    if (st->vertex_array_out_of_memory)
@@ -243,6 +247,10 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    struct pipe_draw_info info;
    struct pipe_draw_indirect_info indirect;
 
+   /* The initial pushdown of the inputs array into the drivers */
+   _mesa_set_drawing_arrays(ctx, st->draw_arrays.inputs);
+   _vbo_update_inputs(ctx, &st->draw_arrays);
+
    assert(stride);
    prepare_draw(st, ctx);
 
@@ -304,12 +312,10 @@ st_indirect_draw_vbo(struct gl_context *ctx,
 
 
 void
-st_init_draw(struct st_context *st)
+st_init_draw_functions(struct dd_function_table *functions)
 {
-   struct gl_context *ctx = st->ctx;
-
-   vbo_set_draw_func(ctx, st_draw_vbo);
-   vbo_set_indirect_draw_func(ctx, st_indirect_draw_vbo);
+   functions->Draw = st_draw_vbo;
+   functions->DrawIndirect = st_indirect_draw_vbo;
 }
 
 

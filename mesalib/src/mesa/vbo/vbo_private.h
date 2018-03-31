@@ -46,24 +46,11 @@ struct _mesa_prim;
 struct vbo_context {
    struct gl_vertex_buffer_binding binding;
    struct gl_array_attributes current[VBO_ATTRIB_MAX];
-   /* The array of inputs used for _DrawVAO draws. */
-   struct vbo_inputs draw_arrays;
 
    struct gl_vertex_array_object *VAO;
 
    struct vbo_exec_context exec;
    struct vbo_save_context save;
-
-   /* Callback into the driver.  This must always succeed, the driver
-    * is responsible for initiating any fallback actions required:
-    */
-   vbo_draw_func draw_prims;
-
-   /* Optional callback for indirect draws. This allows multidraws to not be
-    * broken up, as well as for the actual count to be passed in as a separate
-    * indirect parameter.
-    */
-   vbo_indirect_draw_func draw_indirect_prims;
 };
 
 

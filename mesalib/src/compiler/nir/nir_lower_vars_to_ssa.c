@@ -464,7 +464,7 @@ lower_copies_to_load_store(struct deref_node *node,
 
          struct set_entry *arg_entry = _mesa_set_search(arg_node->copies, copy);
          assert(arg_entry);
-         _mesa_set_remove(node->copies, arg_entry);
+         _mesa_set_remove(arg_node->copies, arg_entry);
       }
 
       nir_instr_remove(&copy->instr);

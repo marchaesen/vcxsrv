@@ -30,7 +30,9 @@
 #include "main/mtypes.h"
 #include "main/macros.h"
 #include "main/enums.h"
-#include "vbo_split.h"
+#include "vbo/vbo.h"
+
+#include "t_split.h"
 
 
 #define MAX_PRIM 32
@@ -47,7 +49,7 @@ struct split_context {
    const struct _mesa_index_buffer *ib;
    GLuint min_index;
    GLuint max_index;
-   vbo_draw_func draw;
+   tnl_draw_func draw;
 
    const struct split_limits *limits;
    GLuint limit;
@@ -63,7 +65,6 @@ static void
 flush_vertex( struct split_context *split)
 {
    struct gl_context *ctx = split->ctx;
-   const struct gl_vertex_array *saved_arrays = ctx->Array._DrawArrays;
    struct _mesa_index_buffer ib;
    GLuint i;
 
@@ -84,10 +85,8 @@ flush_vertex( struct split_context *split)
 
    assert(split->max_index >= split->min_index);
 
-   ctx->Array._DrawArrays = split->array;
-   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
-
    split->draw(ctx,
+               split->array,
                split->dstprim,
                split->dstprim_nr,
                split->ib ? &ib : NULL,
@@ -95,9 +94,6 @@ flush_vertex( struct split_context *split)
                split->min_index,
                split->max_index,
                NULL, 0, NULL);
-
-   ctx->Array._DrawArrays = saved_arrays;
-   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
 
    split->dstprim_nr = 0;
    split->min_index = ~0;
@@ -159,7 +155,8 @@ split_prims(struct split_context *split)
    for (i = 0; i < split->nr_prims; i++) {
       const struct _mesa_prim *prim = &split->prim[i];
       GLuint first, incr;
-      GLboolean split_inplace = split_prim_inplace(prim->mode, &first, &incr);
+      GLboolean split_inplace =
+         _tnl_split_prim_inplace(prim->mode, &first, &incr);
       GLuint available = get_max_vertices(split, prim);
       GLuint count = prim->count - (prim->count - first) % incr;
 
@@ -241,24 +238,24 @@ split_prims(struct split_context *split)
 
          flush_vertex(split);
 
-         vbo_split_copy(split->ctx,
-                        split->array,
-                        &tmpprim, 1,
-                        &ib,
-                        split->draw,
-                        split->limits);
+         _tnl_split_copy(split->ctx,
+                         split->array,
+                         &tmpprim, 1,
+                         &ib,
+                         split->draw,
+                         split->limits);
 
          free(elts);
       }
       else {
          flush_vertex(split);
 
-         vbo_split_copy(split->ctx,
-                        split->array,
-                        prim, 1,
-                        split->ib,
-                        split->draw,
-                        split->limits);
+         _tnl_split_copy(split->ctx,
+                         split->array,
+                         prim, 1,
+                         split->ib,
+                         split->draw,
+                         split->limits);
       }
    }
 
@@ -267,15 +264,15 @@ split_prims(struct split_context *split)
 
 
 void
-vbo_split_inplace(struct gl_context *ctx,
-                  const struct gl_vertex_array *arrays,
-                  const struct _mesa_prim *prim,
-                  GLuint nr_prims,
-                  const struct _mesa_index_buffer *ib,
-                  GLuint min_index,
-                  GLuint max_index,
-                  vbo_draw_func draw,
-                  const struct split_limits *limits)
+_tnl_split_inplace(struct gl_context *ctx,
+                   const struct gl_vertex_array *arrays,
+                   const struct _mesa_prim *prim,
+                   GLuint nr_prims,
+                   const struct _mesa_index_buffer *ib,
+                   GLuint min_index,
+                   GLuint max_index,
+                   tnl_draw_func draw,
+                   const struct split_limits *limits)
 {
    struct split_context split;
 

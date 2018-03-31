@@ -25,7 +25,7 @@
 #ifndef _T_REBASE_H_
 #define _T_REBASE_H_
 
-#include "vbo/vbo.h"
+#include "tnl.h"
 
 void t_rebase_prims( struct gl_context *ctx,
                      const struct gl_vertex_array *arrays,
@@ -34,6 +34,6 @@ void t_rebase_prims( struct gl_context *ctx,
                      const struct _mesa_index_buffer *ib,
                      GLuint min_index,
                      GLuint max_index,
-                     vbo_draw_func draw );
+                     tnl_draw_func draw );
 
 #endif

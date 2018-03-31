@@ -1527,9 +1527,9 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
 
    /* Check for NPOT texture support. */
    if (!screen->get_param(screen, PIPE_CAP_NPOT_TEXTURES) &&
-       (!util_is_power_of_two(src_templ.width0) ||
-        !util_is_power_of_two(src_templ.height0) ||
-        !util_is_power_of_two(src_templ.depth0))) {
+       (!util_is_power_of_two_or_zero(src_templ.width0) ||
+        !util_is_power_of_two_or_zero(src_templ.height0) ||
+        !util_is_power_of_two_or_zero(src_templ.depth0))) {
       goto fallback;
    }
 

@@ -369,7 +369,7 @@ nir_visitor::visit(ir_variable *ir)
       /* Mark all the locations that require two slots */
       if (shader->info.stage == MESA_SHADER_VERTEX &&
           glsl_type_is_dual_slot(glsl_without_array(var->type))) {
-         for (uint i = 0; i < glsl_count_attribute_slots(var->type, true); i++) {
+         for (unsigned i = 0; i < glsl_count_attribute_slots(var->type, true); i++) {
             uint64_t bitfield = BITFIELD64_BIT(var->data.location + i);
             shader->info.vs.double_inputs |= bitfield;
          }

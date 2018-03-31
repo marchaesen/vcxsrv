@@ -28,12 +28,7 @@
 #define _NIR_SEARCH_HELPERS_
 
 #include "nir.h"
-
-static inline bool
-__is_power_of_two(unsigned int x)
-{
-   return ((x != 0) && !(x & (x - 1)));
-}
+#include "util/bitscan.h"
 
 static inline bool
 is_pos_power_of_two(nir_alu_instr *instr, unsigned src, unsigned num_components,
@@ -50,11 +45,11 @@ is_pos_power_of_two(nir_alu_instr *instr, unsigned src, unsigned num_components,
       case nir_type_int:
          if (val->i32[swizzle[i]] < 0)
             return false;
-         if (!__is_power_of_two(val->i32[swizzle[i]]))
+         if (!util_is_power_of_two_nonzero(val->i32[swizzle[i]]))
             return false;
          break;
       case nir_type_uint:
-         if (!__is_power_of_two(val->u32[swizzle[i]]))
+         if (!util_is_power_of_two_nonzero(val->u32[swizzle[i]]))
             return false;
          break;
       default:
@@ -80,7 +75,7 @@ is_neg_power_of_two(nir_alu_instr *instr, unsigned src, unsigned num_components,
       case nir_type_int:
          if (val->i32[swizzle[i]] > 0)
             return false;
-         if (!__is_power_of_two(abs(val->i32[swizzle[i]])))
+         if (!util_is_power_of_two_nonzero(abs(val->i32[swizzle[i]])))
             return false;
          break;
       default:

@@ -25,6 +25,7 @@
  *
  */
 
+#include <math.h>
 #include "vtn_private.h"
 #include "GLSL.std.450.h"
 
@@ -809,7 +810,7 @@ handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
 }
 
 bool
-vtn_handle_glsl450_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+vtn_handle_glsl450_instruction(struct vtn_builder *b, SpvOp ext_opcode,
                                const uint32_t *w, unsigned count)
 {
    switch ((enum GLSLstd450)ext_opcode) {

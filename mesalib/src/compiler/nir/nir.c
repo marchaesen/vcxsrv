@@ -28,6 +28,7 @@
 #include "nir.h"
 #include "nir_control_flow_private.h"
 #include "util/half_float.h"
+#include <limits.h>
 #include <assert.h>
 #include <math.h>
 
@@ -1158,7 +1159,7 @@ remove_defs_uses(nir_instr *instr)
    nir_foreach_src(instr, remove_use_cb, instr);
 }
 
-void nir_instr_remove(nir_instr *instr)
+void nir_instr_remove_v(nir_instr *instr)
 {
    remove_defs_uses(instr);
    exec_node_remove(&instr->node);

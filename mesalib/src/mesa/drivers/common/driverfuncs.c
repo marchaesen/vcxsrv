@@ -121,7 +121,7 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->NewATIfs = NULL;
 
    /* Draw functions */
-   driver->Draw = _vbo_draw;
+   driver->Draw = NULL;
    driver->DrawIndirect = _vbo_draw_indirect;
 
    /* simple state commands */

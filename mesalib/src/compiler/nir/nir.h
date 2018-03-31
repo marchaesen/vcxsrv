@@ -632,9 +632,21 @@ nir_src_bit_size(nir_src src)
 }
 
 static inline unsigned
+nir_src_num_components(nir_src src)
+{
+   return src.is_ssa ? src.ssa->num_components : src.reg.reg->num_components;
+}
+
+static inline unsigned
 nir_dest_bit_size(nir_dest dest)
 {
    return dest.is_ssa ? dest.ssa.bit_size : dest.reg.reg->bit_size;
+}
+
+static inline unsigned
+nir_dest_num_components(nir_dest dest)
+{
+   return dest.is_ssa ? dest.ssa.num_components : dest.reg.reg->num_components;
 }
 
 void nir_src_copy(nir_src *dest, const nir_src *src, void *instr_or_if);
@@ -2262,7 +2274,21 @@ nir_instr_insert_after_cf_list(struct exec_list *list, nir_instr *after)
    nir_instr_insert(nir_after_cf_list(list), after);
 }
 
-void nir_instr_remove(nir_instr *instr);
+void nir_instr_remove_v(nir_instr *instr);
+
+static inline nir_cursor
+nir_instr_remove(nir_instr *instr)
+{
+   nir_cursor cursor;
+   nir_instr *prev = nir_instr_prev(instr);
+   if (prev) {
+      cursor = nir_after_instr(prev);
+   } else {
+      cursor = nir_before_block(instr->block);
+   }
+   nir_instr_remove_v(instr);
+   return cursor;
+}
 
 /** @} */
 

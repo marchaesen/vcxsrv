@@ -492,8 +492,13 @@ update_vao(struct gl_context *ctx,
    _mesa_reference_vao(ctx, vao, NULL);
    *vao = _mesa_new_vao(ctx, ~((GLuint)0));
 
+   /*
+    * assert(stride <= ctx->Const.MaxVertexAttribStride);
+    * MaxVertexAttribStride is not set for drivers that does not
+    * expose GL 44 or GLES 31.
+    */
+
    /* Bind the buffer object at binding point 0 */
-   assert(stride <= ctx->Const.MaxVertexAttribStride);
    _mesa_bind_vertex_buffer(ctx, *vao, 0, bo, buffer_offset, stride, false);
 
    /* Retrieve the mapping from VBO_ATTRIB to VERT_ATTRIB space

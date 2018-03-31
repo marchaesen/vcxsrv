@@ -27,7 +27,7 @@ struct util_ringbuffer *util_ringbuffer_create( unsigned dwords )
    if (!ring)
       return NULL;
 
-   assert(util_is_power_of_two(dwords));
+   assert(util_is_power_of_two_or_zero(dwords));
    
    ring->buf = MALLOC( dwords * sizeof(unsigned) );
    if (ring->buf == NULL)

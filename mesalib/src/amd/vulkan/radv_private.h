@@ -1586,6 +1586,7 @@ struct radv_subpass {
 	struct radv_subpass_barrier                  start_barrier;
 
 	uint32_t                                     view_mask;
+	VkSampleCountFlagBits                        max_sample_count;
 };
 
 struct radv_render_pass_attachment {

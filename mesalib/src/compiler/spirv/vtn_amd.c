@@ -27,7 +27,7 @@
 #include "GLSL.ext.AMD.h"
 
 bool
-vtn_handle_amd_gcn_shader_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+vtn_handle_amd_gcn_shader_instruction(struct vtn_builder *b, SpvOp ext_opcode,
                                       const uint32_t *w, unsigned count)
 {
    const struct glsl_type *dest_type =
@@ -57,7 +57,7 @@ vtn_handle_amd_gcn_shader_instruction(struct vtn_builder *b, uint32_t ext_opcode
 }
 
 bool
-vtn_handle_amd_shader_trinary_minmax_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+vtn_handle_amd_shader_trinary_minmax_instruction(struct vtn_builder *b, SpvOp ext_opcode,
                                                  const uint32_t *w, unsigned count)
 {
    struct nir_builder *nb = &b->nb;
