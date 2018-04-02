@@ -25,7 +25,11 @@ glsl_libglcpp_la_SOURCES =				\
 	glsl/glcpp/glcpp-lex.c				\
 	glsl/glcpp/glcpp-parse.c			\
 	glsl/glcpp/glcpp-parse.h			\
-	$(LIBGLCPP_FILES)
+	$(LIBGLCPP_FILES) \
+  $(SPIRV_FILES) \
+	$(SPIRV_GENERATED_FILES) \
+  $(NIR_FILES) \
+	$(NIR_GENERATED_FILES)
 
 glsl_libglsl_la_SOURCES =				\
 	$(LIBGLSL_GENERATED_FILES)			\
@@ -46,7 +50,7 @@ CSRCS += $(notdir $(subst /,$/,$(glsl_libglsl_la_SOURCES)))
 CSRCS += $(notdir $(subst /,$/,$(glsl_libglcpp_la_SOURCES)))
 CSRCS := $(CSRCS:%.h=)
 
-vpath %.c glsl:glsl/glcpp
+vpath %.c glsl:spirv:nir:glsl/glcpp
 vpath %.cpp glsl
 
 load_makefile -f makefile.srcs NORELDBG=1
