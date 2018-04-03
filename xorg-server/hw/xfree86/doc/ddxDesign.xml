@@ -820,13 +820,11 @@ Here is what <function>InitOutput()</function> does:
       like probing for other details such as the amount of memory
       installed, etc.  It is recommended that the
       <function>xf86MatchPciInstances()</function> helper function be used
-      for identifying matching PCI devices, and similarly the
-      <function>xf86MatchIsaInstances()</function> for ISA (non-PCI) devices
+      for identifying matching PCI devices
       (see the <link linkend="rac">RAC</link> section).  These helpers also
       checks and claims the appropriate entity.  When not using the
       helper, that should be done with <function>xf86CheckPciSlot()</function>
-      and <function>xf86ClaimPciSlot()</function> for PCI devices and
-      <function>xf86ClaimIsaSlot()</function> for ISA devices (see the
+      and <function>xf86ClaimPciSlot()</function> for PCI devices (see the
       <link linkend="rac">RAC</link> section).
 	</para>
 
@@ -1107,16 +1105,6 @@ Here is what <function>InitOutput()</function> does:
       Helper functions for some of these things are provided at the
       XFree86 common level, and the driver can choose to make use of
       them.
-	    </para>
-
-	    <para>
-      All additional resources that the screen needs must be registered
-      here.  This should be done with
-      <function>xf86RegisterResources()</function>.  If some of the fixed
-      resources registered in the Probe phase are not needed or not
-      decoded by the hardware when in the OPERATING server state, their
-      status should be updated with
-      <function>xf86SetOperatingState()</function>.
 	    </para>
 
 	    <para>
@@ -2496,53 +2484,6 @@ xorg.conf file to the devices:
 
 	    </blockquote></para></blockquote>
 
-	<blockquote><para>
-	    <programlisting>
-    int xf86MatchIsaInstances(const char *driverName,
-                              SymTabPtr chipsets, IsaChipsets *ISAchipsets,
-                              DriverPtr drvp, FindIsaDevProc FindIsaDevice,
-                              GDevPtr *devList, int numDevs,
-                              int **foundEntities);
-	    </programlisting>
-	    <blockquote><para>
-      This function finds matches between ISA cards that a driver supports
-      and config file device sections.  It is intended for use in the
-      <function>ChipProbe()</function> function of drivers for ISA cards.
-      <parameter>devList</parameter> and <parameter>numDevs</parameter> are
-      typically those found from calling <function>xf86MatchDevice()</function>,
-      and represent the active config file device sections relevant to
-      the driver.  <parameter>ISAchipsets</parameter> is a table that provides
-      a mapping between the driver's internal chipset tokens and the
-      resource classes.  <parameter>FindIsaDevice</parameter> is a
-      driver-provided function that probes the hardware and returns the
-      chipset token corresponding to what was detected, and
-      <constant>-1</constant> if nothing was detected.
-	      </para>
-
-	      <para>
-      If the config file device section contains a chipset entry, then
-      it is checked against the <parameter>chipsets</parameter> list.  When
-      no chipset entry is present, the <parameter>FindIsaDevice</parameter>
-      function is called instead.
-	      </para>
-
-	      <para>
-      Entity index numbers for confirmed matches are returned as an
-      array via <parameter>foundEntities</parameter>.  The chipset token and
-      device section for each match are found in the
-      <structname>EntityInfoRec</structname> referenced by the indices.
-	      </para>
-
-	      <para>
-      The function return value is the number of confirmed matches.  A
-      return value of <constant>-1</constant> indicates an internal error.
-      The returned <parameter>foundEntities</parameter> array should be freed
-      by the driver with <function>xfree()</function> when it is no longer
-      needed in cases where the return value is greater than zero.
-	      </para>
-
-	    </blockquote></para></blockquote>
-
 	<para>
 These two helper functions make use of several core functions that are
 available at the driver level:
@@ -2577,18 +2518,6 @@ available at the driver level:
       <parameter>device</parameter>, <parameter>func</parameter> values.  If they
       match <constant>TRUE</constant> is returned, and <constant>FALSE</constant>
       if they don't.
-	      </para>
-
-	    </blockquote></para></blockquote>
-
-	<blockquote><para>
-	    <programlisting>
-    Bool xf86ParseIsaBusString(const char *busID);
-	    </programlisting>
-	    <blockquote><para>
-      Compares a <parameter>BusID</parameter> string with the ISA bus ID string
-      ("ISA" or "ISA:").  If they match <constant>TRUE</constant> is returned,
-      and <constant>FALSE</constant> if they don't.
 	      </para>
 
 	    </blockquote></para></blockquote>
@@ -2632,30 +2561,6 @@ available at the driver level:
 
 	    </blockquote></para></blockquote>
 
-	<blockquote><para>
-	    <programlisting>
-    int xf86ClaimIsaSlot(DriverPtr drvp, int chipset,
-                         GDevPtr dev, Bool active);
-	    </programlisting>
-	    <blockquote><para>
-      This allocates an entity record entity and initialise the data
-      structures.  The return value is the index of the newly allocated
-      entity record.
-	      </para>
-
-	    </blockquote></para></blockquote>
-
-	<blockquote><para>
-	    <programlisting>
-    Bool xf86IsPrimaryIsa(void);
-	    </programlisting>
-	    <blockquote><para>
-      This function returns <constant>TRUE</constant> if the primary card is
-      an ISA (non-PCI) device, and <constant>FALSE</constant> otherwise.
-	      </para>
-
-	    </blockquote></para></blockquote>
-
 	<para>
 Two helper functions are provided to aid configuring entities:
 	</para>
@@ -2683,20 +2588,6 @@ The
 	<para>
 These two helper functions make use of several core functions that are
 available at the driver level:
-
-	  <blockquote><para>
-	      <programlisting>
-    void xf86ClaimFixedResources(resList list, int entityIndex);
-	      </programlisting>
-	      <blockquote><para>
-      This function registers the non-relocatable resources which cannot
-      be disabled and which therefore would cause the server to fail
-      immediately if they were found to conflict.  It also records
-      non-relocatable but sharable resources for processing after the
-      <function>Probe()</function> phase.
-		</para>
-
-	      </blockquote></para></blockquote>
 
 	  <blockquote><para>
 	      <programlisting>
@@ -2777,52 +2668,6 @@ Several functions are provided to simplify resource registration:
 	      </blockquote></para></blockquote>
 	</para>
 
-	<para>
-The primary function for registration of resources is:
-	  <blockquote><para>
-	      <programlisting>
-    resPtr xf86RegisterResources(int entityIndex, resList list,
-                                 int access);
-	      </programlisting>
-	      <blockquote><para>
-      This function tries to register the resources in
-      <parameter>list</parameter>.  If list is <constant>NULL</constant> it tries
-      to determine the resources automatically.  This only works for
-      entities that provide a generic way to read out the resource ranges
-      they decode.  So far this is only the case for PCI devices.  By
-      default the PCI resources are registered as shared
-      (<constant>ResShared</constant>) if the driver wants to set a different
-      access type it can do so by specifying the access flags in the
-      third argument.  A value of <constant>0</constant> means to use the
-      default settings.  If for any reason the resource broker is not
-      able to register some of the requested resources the function will
-      return a pointer to a list of the failed ones.  In this case the
-      driver may be able to move the resource to different locations.
-      In case of PCI bus entities this is done by passing the list of
-      failed resources to <function>xf86ReallocatePciResources()</function>.
-      When the registration succeeds, the return value is
-      <constant>NULL</constant>.
-		</para>
-
-	      </blockquote></para></blockquote>
-	  </para>
-
-	<blockquote><para>
-	    <programlisting>
-    resPtr xf86ReallocatePciResources(int entityIndex, resPtr pRes);
-	    </programlisting>
-	    <blockquote><para>
-      This function takes a list of PCI resources that need to be
-      reallocated and returns <constant>NULL</constant> when all relocations are
-      successful.
-      <function>xf86RegisterResources()</function> should be called again to
-      register the relocated resources with the broker.
-      If the reallocation fails, a list of the resources that could not be
-      relocated is returned.
-	      </para>
-
-	    </blockquote></para></blockquote>
-
 <para>
 Two functions are provided to obtain a resource range of a given type:
 	  <blockquote><para>
@@ -2881,93 +2726,6 @@ Two functions are provided to obtain a resource range of a given type:
 	</para>
 
 	<para>
-The driver may replace the generic access control functions for an entity.
-This is done with the <function>xf86SetAccessFuncs()</function>:
-	  <blockquote><para>
-	      <programlisting>
-    void xf86SetAccessFuncs(EntityInfoPtr pEnt,
-                            xf86SetAccessFuncPtr funcs,
-                            xf86SetAccessFuncPtr oldFuncs);
-	      </programlisting>
-     with:
-	      <programlisting>
-      typedef struct {
-          xf86AccessPtr mem;
-          xf86AccessPtr io;
-          xf86AccessPtr io_mem;
-      } xf86SetAccessFuncRec, *xf86SetAccessFuncPtr;
-	      </programlisting>
-	      <blockquote><para>
-      The driver can pass three functions: one for I/O access, one for
-      memory access and one for combined memory and I/O access.  If the
-      memory access and combined access functions are identical the
-      common level assumes that the memory access cannot be controlled
-      independently of I/O access, if the I/O access function and the
-      combined access functions are the same it is assumed that I/O can
-      not be controlled independently.  If memory and I/O have to be
-      controlled together all three values should be the same.  If a
-      non <constant>NULL</constant> value is passed as third argument it is
-      interpreted as an address where to store the old access record.
-      If the third argument is <constant>NULL</constant> it will be assumed
-      that the generic access should be enabled before replacing the
-      access functions.  Otherwise it will be disabled.  The driver may
-      enable them itself using the returned values.  It should do this
-      from its replacement access functions as the generic access may
-      be disabled by the common level on certain occasions.  If replacement
-      functions are specified they must control all resources of the
-      specific type registered for the entity.
-		</para>
-
-	      </blockquote></para></blockquote>
-	</para>
-
-	<para>
-To find out if a specific resource range conflicts with another
-resource the <function>xf86ChkConflict()</function> function may be used:
-	  <blockquote><para>
-	      <programlisting>
-    memType xf86ChkConflict(resRange *rgp, int entityIndex);
-	      </programlisting>
-	      <blockquote><para>
-      This function checks if the resource range <parameter>rgp</parameter> of
-      for the specified entity conflicts with with another resource.
-      If a conflict is found, the address of the start of the conflict
-      is returned.  The return value is zero when there is no conflict.
-		</para>
-
-	      </blockquote></para></blockquote>
-	</para>
-
-	<para>
-The OPERATING state properties of previously registered fixed resources
-can be set with the <function>xf86SetOperatingState()</function> function:
-	  <blockquote><para>
-	      <programlisting>
-    resPtr xf86SetOperatingState(resList list, int entityIndex,
-                                 int mask);
-	      </programlisting>
-	      <blockquote><para>
-      This function is used to set the status of a resource during
-      OPERATING state.  <parameter>list</parameter> holds a list to which
-      <parameter>mask</parameter> is to be applied.  The parameter
-      <parameter>mask</parameter> may have the value <constant>ResUnusedOpr</constant>
-      and <constant>ResDisableOpr</constant>.  The first one should be used
-      if a resource isn't used by the driver during OPERATING state
-      although it is decoded by the device, while the latter one indicates
-      that the resource is not decoded during OPERATING state.  Note
-      that the resource ranges have to match those specified during
-      registration.  If a range has been specified starting at
-      <literal remap="tt">A</literal> and ending at <literal remap="tt">B</literal> and suppose
-      <literal remap="tt">C</literal> us a value satisfying
-      <literal remap="tt">A&nbsp;&lt;&nbsp;C&nbsp;&lt;&nbsp;B</literal> one may not
-      specify the resource range <literal remap="tt">(A,B)</literal> by splitting it
-      into two ranges <literal remap="tt">(A,C)</literal> and <literal remap="tt">(C,B)</literal>.
-		</para>
-
-	      </blockquote></para></blockquote>
-	</para>
-
-	<para>
 The following two functions are provided for special cases:
 	  <blockquote><para>
 	      <programlisting>
@@ -2978,17 +2736,6 @@ The following two functions are provided for special cases:
       only makes sense if a screen has more than one entity assigned or
       the screen is to be deleted.  No test is made if the screen has
       any entities left.
-		</para>
-
-	      </blockquote></para></blockquote>
-
-	  <blockquote><para>
-	      <programlisting>
-    void xf86DeallocateResourcesForEntity(int entityIndex, long type);
-	      </programlisting>
-	      <blockquote><para>
-      This function deallocates all resources of a given type registered
-      for a certain entity from the resource broker list.
 		</para>
 
 	      </blockquote></para></blockquote>

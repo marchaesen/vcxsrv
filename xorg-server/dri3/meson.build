@@ -4,6 +4,10 @@ srcs_dri3 = [
 	'dri3_screen.c',
 ]
 
+hdrs_dri3 = [
+	'dri3.h',
+]
+
 libxserver_dri3 = []
 if build_dri3
     libxserver_dri3 = static_library('libxserver_dri3',
@@ -13,3 +17,5 @@ if build_dri3
         c_args: '-DHAVE_XORG_CONFIG_H'
         )
 endif
+
+install_data(hdrs_dri3, install_dir: xorgsdkdir)

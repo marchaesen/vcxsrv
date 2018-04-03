@@ -423,6 +423,7 @@ if build_xorg
             'xkbsrv.h',
             'xkbstr.h',
             'xkbrules.h',
+            'Xprintf.h',
             'xserver_poll.h',
             'xserver-properties.h',
         ],

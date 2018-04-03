@@ -960,9 +960,13 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
     if (epoxy_has_egl_extension(glamor_egl->display,
                                 "EGL_EXT_image_dma_buf_import") &&
         epoxy_has_egl_extension(glamor_egl->display,
-                                "EGL_EXT_image_dma_buf_import_modifiers"))
-        glamor_egl->dmabuf_capable = !!strstr(xf86Info.debug,
-                                              "dmabuf_capable");
+                                "EGL_EXT_image_dma_buf_import_modifiers")) {
+       if (xf86Info.debug != NULL)
+           glamor_egl->dmabuf_capable = !!strstr(xf86Info.debug,
+                                                "dmabuf_capable");
+        else
+            glamor_egl->dmabuf_capable = FALSE;
+    }
 #endif
 
     glamor_egl->saved_free_screen = scrn->FreeScreen;

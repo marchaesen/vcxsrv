@@ -257,10 +257,7 @@ copy_prop_instr(nir_instr *instr)
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
       for (unsigned i = 0;
            i < nir_intrinsic_infos[intrin->intrinsic].num_srcs; i++) {
-         unsigned num_components =
-            nir_intrinsic_infos[intrin->intrinsic].src_components[i];
-         if (!num_components)
-            num_components = intrin->num_components;
+         unsigned num_components = nir_intrinsic_src_components(intrin, i);
 
          while (copy_prop_src(&intrin->src[i], instr, NULL, num_components))
             progress = true;

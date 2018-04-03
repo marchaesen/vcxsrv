@@ -711,7 +711,8 @@ void st_init_extensions(struct pipe_screen *screen,
 
       { { o(EXT_framebuffer_sRGB) },
         { PIPE_FORMAT_A8B8G8R8_SRGB,
-          PIPE_FORMAT_B8G8R8A8_SRGB },
+          PIPE_FORMAT_B8G8R8A8_SRGB,
+          PIPE_FORMAT_R8G8B8A8_SRGB },
          GL_TRUE }, /* at least one format must be supported */
 
       { { o(EXT_packed_float) },

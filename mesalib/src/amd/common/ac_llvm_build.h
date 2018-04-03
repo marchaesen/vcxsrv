@@ -414,6 +414,9 @@ LLVMValueRef ac_trim_vector(struct ac_llvm_context *ctx, LLVMValueRef value,
 LLVMValueRef ac_unpack_param(struct ac_llvm_context *ctx, LLVMValueRef param,
 			     unsigned rshift, unsigned bitwidth);
 
+void ac_apply_fmask_to_sample(struct ac_llvm_context *ac, LLVMValueRef fmask,
+			      LLVMValueRef *addr, bool is_array_tex);
+
 #ifdef __cplusplus
 }
 #endif

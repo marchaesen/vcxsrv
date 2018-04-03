@@ -3,7 +3,7 @@ project('xserver', 'c',
             'buildtype=debugoptimized',
             'c_std=gnu99',
         ],
-        version: '1.19.99.902',
+        version: '1.19.99.903',
         meson_version: '>= 0.42.0',
 )
 add_project_arguments('-DHAVE_DIX_CONFIG_H', language: 'c')
@@ -477,7 +477,6 @@ inc = include_directories(
     'randr',
     'render',
     'xfixes',
-    xproto_dep.get_pkgconfig_variable('includedir')
 )
 
 glx_inc = include_directories('glx')
@@ -625,9 +624,13 @@ if build_xorg
         ).stdout()
     )
 
+    sdk_required_modules = [
+      'pixman-1 >= 0.27.2',
+    ]
+
     # XXX this isn't trying very hard, but hard enough.
     sdkconfig.set('PACKAGE_VERSION', meson.project_version())
-    sdkconfig.set('SDK_REQUIRED_MODULES', '')
+    sdkconfig.set('SDK_REQUIRED_MODULES', ' '.join(sdk_required_modules))
     sdkconfig.set('symbol_visibility', '-fvisibility=hidden')
     sdkconfig.set('XORG_DRIVER_LIBS', '')
 

@@ -269,7 +269,7 @@ GLES3.1, GLSL ES 3.1 -- all DONE: i965/hsw+, nvc0, r600, radeonsi
 GLES3.2, GLSL ES 3.2 -- all DONE: i965/gen9+
 
   GL_EXT_color_buffer_float                             DONE (all drivers)
-  GL_KHR_blend_equation_advanced                        DONE (i965, nvc0)
+  GL_KHR_blend_equation_advanced                        DONE (i965, nvc0, radeonsi)
   GL_KHR_debug                                          DONE (all drivers)
   GL_KHR_robustness                                     DONE (i965, nvc0, radeonsi)
   GL_KHR_texture_compression_astc_ldr                   DONE (freedreno, i965/gen9+)
