@@ -3126,7 +3126,7 @@ void
 _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 {
    unsigned int i;
-   bool spirv;
+   bool spirv = false;
 
    _mesa_clear_shader_program_data(ctx, prog);
 

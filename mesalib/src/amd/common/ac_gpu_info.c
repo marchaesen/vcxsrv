@@ -322,6 +322,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		info->clock_crystal_freq = 1;
 	}
 	info->tcc_cache_line_size = 64; /* TC L2 line size on GCN */
+	info->gb_addr_config = amdinfo->gb_addr_cfg;
 	if (info->chip_class == GFX9) {
 		info->num_tile_pipes = 1 << G_0098F8_NUM_PIPES(amdinfo->gb_addr_cfg);
 		info->pipe_interleave_bytes =
@@ -331,7 +332,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		info->pipe_interleave_bytes =
 			256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX6(amdinfo->gb_addr_cfg);
 	}
-	info->has_virtual_memory = true;
+	info->r600_has_virtual_memory = true;
 
 	assert(util_is_power_of_two_or_zero(dma.available_rings + 1));
 	assert(util_is_power_of_two_or_zero(compute.available_rings + 1));
@@ -404,59 +405,118 @@ void ac_compute_device_uuid(struct radeon_info *info, char *uuid, size_t size)
 
 void ac_print_gpu_info(struct radeon_info *info)
 {
-	printf("pci (domain:bus:dev.func): %04x:%02x:%02x.%x\n",
+	printf("Device info:\n");
+	printf("    pci (domain:bus:dev.func): %04x:%02x:%02x.%x\n",
 	       info->pci_domain, info->pci_bus,
 	       info->pci_dev, info->pci_func);
-	printf("pci_id = 0x%x\n", info->pci_id);
-	printf("family = %i\n", info->family);
-	printf("chip_class = %i\n", info->chip_class);
-	printf("pte_fragment_size = %u\n", info->pte_fragment_size);
-	printf("gart_page_size = %u\n", info->gart_page_size);
-	printf("gart_size = %i MB\n", (int)DIV_ROUND_UP(info->gart_size, 1024*1024));
-	printf("vram_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_size, 1024*1024));
-	printf("vram_vis_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_vis_size, 1024*1024));
-	printf("gds_size = %u kB\n", info->gds_size / 1024);
-	printf("gds_gfx_partition_size = %u kB\n", info->gds_gfx_partition_size / 1024);
-	printf("max_alloc_size = %i MB\n",
+	printf("    pci_id = 0x%x\n", info->pci_id);
+	printf("    family = %i\n", info->family);
+	printf("    chip_class = %i\n", info->chip_class);
+	printf("    num_compute_rings = %u\n", info->num_compute_rings);
+	printf("    num_sdma_rings = %i\n", info->num_sdma_rings);
+	printf("    clock_crystal_freq = %i\n", info->clock_crystal_freq);
+	printf("    tcc_cache_line_size = %u\n", info->tcc_cache_line_size);
+
+	printf("Memory info:\n");
+	printf("    pte_fragment_size = %u\n", info->pte_fragment_size);
+	printf("    gart_page_size = %u\n", info->gart_page_size);
+	printf("    gart_size = %i MB\n", (int)DIV_ROUND_UP(info->gart_size, 1024*1024));
+	printf("    vram_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_size, 1024*1024));
+	printf("    vram_vis_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_vis_size, 1024*1024));
+	printf("    gds_size = %u kB\n", info->gds_size / 1024);
+	printf("    gds_gfx_partition_size = %u kB\n", info->gds_gfx_partition_size / 1024);
+	printf("    max_alloc_size = %i MB\n",
 	       (int)DIV_ROUND_UP(info->max_alloc_size, 1024*1024));
-	printf("min_alloc_size = %u\n", info->min_alloc_size);
-	printf("address32_hi = %u\n", info->address32_hi);
-	printf("has_dedicated_vram = %u\n", info->has_dedicated_vram);
-	printf("has_virtual_memory = %i\n", info->has_virtual_memory);
-	printf("gfx_ib_pad_with_type2 = %i\n", info->gfx_ib_pad_with_type2);
-	printf("has_hw_decode = %u\n", info->has_hw_decode);
-       printf("ib_start_alignment = %u\n", info->ib_start_alignment);
-	printf("num_sdma_rings = %i\n", info->num_sdma_rings);
-	printf("num_compute_rings = %u\n", info->num_compute_rings);
-	printf("uvd_fw_version = %u\n", info->uvd_fw_version);
-	printf("vce_fw_version = %u\n", info->vce_fw_version);
-	printf("me_fw_version = %i\n", info->me_fw_version);
-	printf("me_fw_feature = %i\n", info->me_fw_feature);
-	printf("pfp_fw_version = %i\n", info->pfp_fw_version);
-	printf("pfp_fw_feature = %i\n", info->pfp_fw_feature);
-	printf("ce_fw_version = %i\n", info->ce_fw_version);
-	printf("ce_fw_feature = %i\n", info->ce_fw_feature);
-	printf("vce_harvest_config = %i\n", info->vce_harvest_config);
-	printf("clock_crystal_freq = %i\n", info->clock_crystal_freq);
-	printf("tcc_cache_line_size = %u\n", info->tcc_cache_line_size);
-	printf("drm = %i.%i.%i\n", info->drm_major,
+	printf("    min_alloc_size = %u\n", info->min_alloc_size);
+	printf("    address32_hi = %u\n", info->address32_hi);
+	printf("    has_dedicated_vram = %u\n", info->has_dedicated_vram);
+
+	printf("CP info:\n");
+	printf("    gfx_ib_pad_with_type2 = %i\n", info->gfx_ib_pad_with_type2);
+	printf("    ib_start_alignment = %u\n", info->ib_start_alignment);
+	printf("    me_fw_version = %i\n", info->me_fw_version);
+	printf("    me_fw_feature = %i\n", info->me_fw_feature);
+	printf("    pfp_fw_version = %i\n", info->pfp_fw_version);
+	printf("    pfp_fw_feature = %i\n", info->pfp_fw_feature);
+	printf("    ce_fw_version = %i\n", info->ce_fw_version);
+	printf("    ce_fw_feature = %i\n", info->ce_fw_feature);
+
+	printf("Multimedia info:\n");
+	printf("    has_hw_decode = %u\n", info->has_hw_decode);
+	printf("    uvd_enc_supported = %u\n", info->uvd_enc_supported);
+	printf("    uvd_fw_version = %u\n", info->uvd_fw_version);
+	printf("    vce_fw_version = %u\n", info->vce_fw_version);
+	printf("    vce_harvest_config = %i\n", info->vce_harvest_config);
+
+	printf("Kernel info:\n");
+	printf("    drm = %i.%i.%i\n", info->drm_major,
 	       info->drm_minor, info->drm_patchlevel);
-	printf("has_userptr = %i\n", info->has_userptr);
-	printf("has_syncobj = %u\n", info->has_syncobj);
-	printf("has_fence_to_handle = %u\n", info->has_fence_to_handle);
+	printf("    has_userptr = %i\n", info->has_userptr);
+	printf("    has_syncobj = %u\n", info->has_syncobj);
+	printf("    has_syncobj_wait_for_submit = %u\n", info->has_syncobj_wait_for_submit);
+	printf("    has_fence_to_handle = %u\n", info->has_fence_to_handle);
+	printf("    has_ctx_priority = %u\n", info->has_ctx_priority);
+	printf("    has_local_buffers = %u\n", info->has_local_buffers);
 
-	printf("r600_max_quad_pipes = %i\n", info->r600_max_quad_pipes);
-	printf("max_shader_clock = %i\n", info->max_shader_clock);
-	printf("num_good_compute_units = %i\n", info->num_good_compute_units);
-	printf("max_se = %i\n", info->max_se);
-	printf("max_sh_per_se = %i\n", info->max_sh_per_se);
+	printf("Shader core info:\n");
+	printf("    max_shader_clock = %i\n", info->max_shader_clock);
+	printf("    num_good_compute_units = %i\n", info->num_good_compute_units);
+	printf("    max_se = %i\n", info->max_se);
+	printf("    max_sh_per_se = %i\n", info->max_sh_per_se);
 
-	printf("r600_gb_backend_map = %i\n", info->r600_gb_backend_map);
-	printf("r600_gb_backend_map_valid = %i\n", info->r600_gb_backend_map_valid);
-	printf("r600_num_banks = %i\n", info->r600_num_banks);
-	printf("num_render_backends = %i\n", info->num_render_backends);
-	printf("num_tile_pipes = %i\n", info->num_tile_pipes);
-	printf("pipe_interleave_bytes = %i\n", info->pipe_interleave_bytes);
-	printf("enabled_rb_mask = 0x%x\n", info->enabled_rb_mask);
-	printf("max_alignment = %u\n", (unsigned)info->max_alignment);
+	printf("Render backend info:\n");
+	printf("    num_render_backends = %i\n", info->num_render_backends);
+	printf("    num_tile_pipes = %i\n", info->num_tile_pipes);
+	printf("    pipe_interleave_bytes = %i\n", info->pipe_interleave_bytes);
+	printf("    enabled_rb_mask = 0x%x\n", info->enabled_rb_mask);
+	printf("    max_alignment = %u\n", (unsigned)info->max_alignment);
+
+	printf("GB_ADDR_CONFIG:\n");
+	if (info->chip_class >= GFX9) {
+		printf("    num_pipes = %u\n",
+		       1 << G_0098F8_NUM_PIPES(info->gb_addr_config));
+		printf("    pipe_interleave_size = %u\n",
+		       256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config));
+		printf("    max_compressed_frags = %u\n",
+		       1 << G_0098F8_MAX_COMPRESSED_FRAGS(info->gb_addr_config));
+		printf("    bank_interleave_size = %u\n",
+		       1 << G_0098F8_BANK_INTERLEAVE_SIZE(info->gb_addr_config));
+		printf("    num_banks = %u\n",
+		       1 << G_0098F8_NUM_BANKS(info->gb_addr_config));
+		printf("    shader_engine_tile_size = %u\n",
+		       16 << G_0098F8_SHADER_ENGINE_TILE_SIZE(info->gb_addr_config));
+		printf("    num_shader_engines = %u\n",
+		       1 << G_0098F8_NUM_SHADER_ENGINES_GFX9(info->gb_addr_config));
+		printf("    num_gpus = %u (raw)\n",
+		       G_0098F8_NUM_GPUS_GFX9(info->gb_addr_config));
+		printf("    multi_gpu_tile_size = %u (raw)\n",
+		       G_0098F8_MULTI_GPU_TILE_SIZE(info->gb_addr_config));
+		printf("    num_rb_per_se = %u\n",
+		       1 << G_0098F8_NUM_RB_PER_SE(info->gb_addr_config));
+		printf("    row_size = %u\n",
+		       1024 << G_0098F8_ROW_SIZE(info->gb_addr_config));
+		printf("    num_lower_pipes = %u (raw)\n",
+		       G_0098F8_NUM_LOWER_PIPES(info->gb_addr_config));
+		printf("    se_enable = %u (raw)\n",
+		       G_0098F8_SE_ENABLE(info->gb_addr_config));
+	} else {
+		printf("    num_pipes = %u\n",
+		       1 << G_0098F8_NUM_PIPES(info->gb_addr_config));
+		printf("    pipe_interleave_size = %u\n",
+		       256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX6(info->gb_addr_config));
+		printf("    bank_interleave_size = %u\n",
+		       1 << G_0098F8_BANK_INTERLEAVE_SIZE(info->gb_addr_config));
+		printf("    num_shader_engines = %u\n",
+		       1 << G_0098F8_NUM_SHADER_ENGINES_GFX6(info->gb_addr_config));
+		printf("    shader_engine_tile_size = %u\n",
+		       16 << G_0098F8_SHADER_ENGINE_TILE_SIZE(info->gb_addr_config));
+		printf("    num_gpus = %u (raw)\n",
+		       G_0098F8_NUM_GPUS_GFX6(info->gb_addr_config));
+		printf("    multi_gpu_tile_size = %u (raw)\n",
+		       G_0098F8_MULTI_GPU_TILE_SIZE(info->gb_addr_config));
+		printf("    row_size = %u\n",
+		       1024 << G_0098F8_ROW_SIZE(info->gb_addr_config));
+		printf("    num_lower_pipes = %u (raw)\n",
+		       G_0098F8_NUM_LOWER_PIPES(info->gb_addr_config));
+	}
 }

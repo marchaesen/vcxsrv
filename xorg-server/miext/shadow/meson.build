@@ -25,8 +25,14 @@ srcs_miext_shadow = [
     'shrotate.c',
 ]
 
+hdrs_miext_shadow = [
+    'shadow.h',
+]
+
 libxserver_miext_shadow = static_library('libxserver_miext_shadow',
     srcs_miext_shadow,
     include_directories: inc,
     dependencies: common_dep,
 )
+
+install_data(hdrs_miext_shadow, install_dir: xorgsdkdir)

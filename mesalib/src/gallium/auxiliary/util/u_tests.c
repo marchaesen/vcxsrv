@@ -44,7 +44,8 @@
 
 static struct pipe_resource *
 util_create_texture2d(struct pipe_screen *screen, unsigned width,
-                      unsigned height, enum pipe_format format)
+                      unsigned height, enum pipe_format format,
+                      unsigned num_samples)
 {
    struct pipe_resource templ = {{0}};
 
@@ -53,6 +54,7 @@ util_create_texture2d(struct pipe_screen *screen, unsigned width,
    templ.height0 = height;
    templ.depth0 = 1;
    templ.array_size = 1;
+   templ.nr_samples = num_samples;
    templ.format = format;
    templ.usage = PIPE_USAGE_DEFAULT;
    templ.bind = PIPE_BIND_SAMPLER_VIEW |
@@ -188,6 +190,20 @@ util_draw_fullscreen_quad(struct cso_context *cso)
    util_draw_user_vertex_buffer(cso, vertices, PIPE_PRIM_QUADS, 4, 2);
 }
 
+static void
+util_draw_fullscreen_quad_fill(struct cso_context *cso,
+                               float r, float g, float b, float a)
+{
+   float vertices[] = {
+     -1, -1, 0, 1,   r, g, b, a,
+     -1,  1, 0, 1,   r, g, b, a,
+      1,  1, 0, 1,   r, g, b, a,
+      1, -1, 0, 1,   r, g, b, a,
+   };
+   util_set_interleaved_vertex_elements(cso, 2);
+   util_draw_user_vertex_buffer(cso, vertices, PIPE_PRIM_QUADS, 4, 2);
+}
+
 /**
  * Probe and test if the rectangle contains the expected color.
  *
@@ -306,7 +322,7 @@ tgsi_vs_window_space_position(struct pipe_context *ctx)
 
    cso = cso_create_context(ctx, 0);
    cb = util_create_texture2d(ctx->screen, 256, 256,
-                              PIPE_FORMAT_R8G8B8A8_UNORM);
+                              PIPE_FORMAT_R8G8B8A8_UNORM, 0);
    util_set_common_states_and_clear(cso, ctx, cb);
 
    /* Fragment shader. */
@@ -366,7 +382,7 @@ null_sampler_view(struct pipe_context *ctx, unsigned tgsi_tex_target)
 
    cso = cso_create_context(ctx, 0);
    cb = util_create_texture2d(ctx->screen, 256, 256,
-                              PIPE_FORMAT_R8G8B8A8_UNORM);
+                              PIPE_FORMAT_R8G8B8A8_UNORM, 0);
    util_set_common_states_and_clear(cso, ctx, cb);
 
    ctx->set_sampler_views(ctx, PIPE_SHADER_FRAGMENT, 0, 1, NULL);
@@ -409,7 +425,7 @@ util_test_constant_buffer(struct pipe_context *ctx,
 
    cso = cso_create_context(ctx, 0);
    cb = util_create_texture2d(ctx->screen, 256, 256,
-                              PIPE_FORMAT_R8G8B8A8_UNORM);
+                              PIPE_FORMAT_R8G8B8A8_UNORM, 0);
    util_set_common_states_and_clear(cso, ctx, cb);
 
    pipe_set_constant_buffer(ctx, PIPE_SHADER_FRAGMENT, 0, constbuf);
@@ -465,7 +481,7 @@ null_fragment_shader(struct pipe_context *ctx)
 
    cso = cso_create_context(ctx, 0);
    cb = util_create_texture2d(ctx->screen, 256, 256,
-                              PIPE_FORMAT_R8G8B8A8_UNORM);
+                              PIPE_FORMAT_R8G8B8A8_UNORM, 0);
    util_set_common_states_and_clear(cso, ctx, cb);
 
    /* No rasterization. */
@@ -511,7 +527,7 @@ test_sync_file_fences(struct pipe_context *ctx)
    struct pipe_resource *buf =
       pipe_buffer_create(screen, 0, PIPE_USAGE_DEFAULT, 1024 * 1024);
    struct pipe_resource *tex =
-      util_create_texture2d(screen, 4096, 1024, PIPE_FORMAT_R8_UNORM);
+      util_create_texture2d(screen, 4096, 1024, PIPE_FORMAT_R8_UNORM, 0);
    struct pipe_fence_handle *buf_fence = NULL, *tex_fence = NULL;
 
    /* Run 2 clears, get fencess. */
@@ -594,30 +610,71 @@ test_sync_file_fences(struct pipe_context *ctx)
 }
 
 static void
-test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch)
+test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
+                     unsigned num_samples)
 {
    struct cso_context *cso;
    struct pipe_resource *cb;
-   void *fs, *vs;
    struct pipe_sampler_view *view = NULL;
+   char name[256];
    const char *text;
 
+   assert(num_samples >= 1 && num_samples <= 8);
+
+   snprintf(name, sizeof(name), "%s: %s, %u samples", __func__,
+            use_fbfetch ? "FBFETCH" : "sampler", MAX2(num_samples, 1));
+
    if (!ctx->screen->get_param(ctx->screen, PIPE_CAP_TEXTURE_BARRIER)) {
-      util_report_result_helper(SKIP, "%s: %s", __func__,
-                                use_fbfetch ? "FBFETCH" : "sampler");
+      util_report_result_helper(SKIP, name);
       return;
    }
    if (use_fbfetch &&
        !ctx->screen->get_param(ctx->screen, PIPE_CAP_TGSI_FS_FBFETCH)) {
-      util_report_result_helper(SKIP, "%s: %s", __func__,
-                                use_fbfetch ? "FBFETCH" : "sampler");
+      util_report_result_helper(SKIP, name);
       return;
    }
 
    cso = cso_create_context(ctx, 0);
    cb = util_create_texture2d(ctx->screen, 256, 256,
-                              PIPE_FORMAT_R8G8B8A8_UNORM);
+                              PIPE_FORMAT_R8G8B8A8_UNORM, num_samples);
    util_set_common_states_and_clear(cso, ctx, cb);
+
+   /* Clear each sample to a different value. */
+   if (num_samples > 1) {
+      void *fs =
+         util_make_fragment_passthrough_shader(ctx, TGSI_SEMANTIC_GENERIC,
+                                               TGSI_INTERPOLATE_LINEAR, TRUE);
+      cso_set_fragment_shader_handle(cso, fs);
+
+      /* Vertex shader. */
+      void *vs = util_set_passthrough_vertex_shader(cso, ctx, false);
+
+      for (int i = 0; i < num_samples / 2; i++) {
+         float value;
+
+         /* 2 consecutive samples should have the same color to test MSAA
+          * compression properly.
+          */
+         if (num_samples == 2) {
+            value = 0.1;
+         } else {
+            /* The average value must be 0.1 */
+            static const float values[] = {
+               0.0, 0.2, 0.05, 0.15
+            };
+            value = values[i];
+         }
+
+         ctx->set_sample_mask(ctx, 0x3 << (i * 2));
+         util_draw_fullscreen_quad_fill(cso, value, value, value, value);
+      }
+      ctx->set_sample_mask(ctx, ~0);
+
+      cso_set_vertex_shader_handle(cso, NULL);
+      cso_set_fragment_shader_handle(cso, NULL);
+      ctx->delete_vs_state(ctx, vs);
+      ctx->delete_fs_state(ctx, fs);
+   }
 
    if (use_fbfetch) {
       /* Fragment shader. */
@@ -641,20 +698,37 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch)
       ctx->set_sampler_views(ctx, PIPE_SHADER_FRAGMENT, 0, 1, &view);
 
       /* Fragment shader. */
-      text = "FRAG\n"
-             "DCL SV[0], POSITION\n"
-             "DCL SAMP[0]\n"
-             "DCL SVIEW[0], 2D, FLOAT\n"
-             "DCL OUT[0], COLOR[0]\n"
-             "DCL TEMP[0]\n"
-             "IMM[0] FLT32 { 0.1, 0.2, 0.3, 0.4}\n"
-             "IMM[1] INT32 { 0, 0, 0, 0}\n"
+      if (num_samples > 1) {
+         text = "FRAG\n"
+                "DCL SV[0], POSITION\n"
+                "DCL SV[1], SAMPLEID\n"
+                "DCL SAMP[0]\n"
+                "DCL SVIEW[0], 2D_MSAA, FLOAT\n"
+                "DCL OUT[0], COLOR[0]\n"
+                "DCL TEMP[0]\n"
+                "IMM[0] FLT32 { 0.1, 0.2, 0.3, 0.4}\n"
 
-             "F2I TEMP[0].xy, SV[0].xyyy\n"
-             "MOV TEMP[0].z, IMM[1].xxxx\n"
-             "TXF TEMP[0], TEMP[0].xyzz, SAMP[0], 2D\n"
-             "ADD OUT[0], TEMP[0], IMM[0]\n"
-             "END\n";
+                "F2I TEMP[0].xy, SV[0].xyyy\n"
+                "MOV TEMP[0].w, SV[1].xxxx\n"
+                "TXF TEMP[0], TEMP[0], SAMP[0], 2D_MSAA\n"
+                "ADD OUT[0], TEMP[0], IMM[0]\n"
+                "END\n";
+      } else {
+         text = "FRAG\n"
+                "DCL SV[0], POSITION\n"
+                "DCL SAMP[0]\n"
+                "DCL SVIEW[0], 2D, FLOAT\n"
+                "DCL OUT[0], COLOR[0]\n"
+                "DCL TEMP[0]\n"
+                "IMM[0] FLT32 { 0.1, 0.2, 0.3, 0.4}\n"
+                "IMM[1] INT32 { 0, 0, 0, 0}\n"
+
+                "F2I TEMP[0].xy, SV[0].xyyy\n"
+                "MOV TEMP[0].zw, IMM[1]\n"
+                "TXF TEMP[0], TEMP[0], SAMP[0], 2D\n"
+                "ADD OUT[0], TEMP[0], IMM[0]\n"
+                "END\n";
+      }
    }
 
    struct tgsi_token tokens[1000];
@@ -662,20 +736,19 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch)
 
    if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
       assert(0);
-      util_report_result_helper(FAIL, "%s: %s", __func__,
-                                use_fbfetch ? "FBFETCH" : "sampler");
+      util_report_result_helper(FAIL, name);
       return;
    }
    pipe_shader_state_from_tgsi(&state, tokens);
-#if 0
-   tgsi_dump(state.tokens, 0);
-#endif
 
-   fs = ctx->create_fs_state(ctx, &state);
+   void *fs = ctx->create_fs_state(ctx, &state);
    cso_set_fragment_shader_handle(cso, fs);
 
    /* Vertex shader. */
-   vs = util_set_passthrough_vertex_shader(cso, ctx, false);
+   void *vs = util_set_passthrough_vertex_shader(cso, ctx, false);
+
+   if (num_samples > 1 && !use_fbfetch)
+      ctx->set_min_samples(ctx, num_samples);
 
    for (int i = 0; i < 2; i++) {
       ctx->texture_barrier(ctx,
@@ -683,8 +756,21 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch)
                                          PIPE_TEXTURE_BARRIER_SAMPLER);
       util_draw_fullscreen_quad(cso);
    }
+   if (num_samples > 1 && !use_fbfetch)
+      ctx->set_min_samples(ctx, 1);
 
-   /* Probe pixels. */
+   /* Probe pixels.
+    *
+    * For single sample:
+    *   result = 0.1 (clear) + (0.1, 0.2, 0.3, 0.4) * 2 = (0.3, 0.5, 0.7, 0.9)
+    *
+    * For MSAA 4x:
+    *   sample0 = 0.0 (clear) + (0.1, 0.2, 0.3, 0.4) * 2 = (0.2, 0.4, 0.6, 0.8)
+    *   sample1 = sample0
+    *   sample2 = 0.2 (clear) + (0.1, 0.2, 0.3, 0.4) * 2 = (0.4, 0.6, 0.8, 1.0)
+    *   sample3 = sample2
+    *   resolved = sum(sample[0:3]) / 4 = (0.3, 0.5, 0.7, 0.9)
+    */
    static const float expected[] = {0.3, 0.5, 0.7, 0.9};
    bool pass = util_probe_rect_rgba(ctx, cb, 0, 0,
                                     cb->width0, cb->height0, expected);
@@ -696,8 +782,7 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch)
    pipe_sampler_view_reference(&view, NULL);
    pipe_resource_reference(&cb, NULL);
 
-   util_report_result_helper(pass, "%s: %s", __func__,
-                             use_fbfetch ? "FBFETCH" : "sampler");
+   util_report_result_helper(pass, name);
 }
 
 /**
@@ -715,8 +800,11 @@ util_run_tests(struct pipe_screen *screen)
    null_sampler_view(ctx, TGSI_TEXTURE_BUFFER);
    util_test_constant_buffer(ctx, NULL);
    test_sync_file_fences(ctx);
-   test_texture_barrier(ctx, false);
-   test_texture_barrier(ctx, true);
+
+   for (int i = 1; i <= 8; i = i * 2)
+      test_texture_barrier(ctx, false, i);
+   for (int i = 1; i <= 8; i = i * 2)
+      test_texture_barrier(ctx, true, i);
 
    ctx->destroy(ctx);
 

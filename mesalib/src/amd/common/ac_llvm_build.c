@@ -2435,3 +2435,59 @@ LLVMValueRef ac_unpack_param(struct ac_llvm_context *ctx, LLVMValueRef param,
 	}
 	return value;
 }
+
+/* Adjust the sample index according to FMASK.
+ *
+ * For uncompressed MSAA surfaces, FMASK should return 0x76543210,
+ * which is the identity mapping. Each nibble says which physical sample
+ * should be fetched to get that sample.
+ *
+ * For example, 0x11111100 means there are only 2 samples stored and
+ * the second sample covers 3/4 of the pixel. When reading samples 0
+ * and 1, return physical sample 0 (determined by the first two 0s
+ * in FMASK), otherwise return physical sample 1.
+ *
+ * The sample index should be adjusted as follows:
+ *   addr[sample_index] = (fmask >> (addr[sample_index] * 4)) & 0xF;
+ */
+void ac_apply_fmask_to_sample(struct ac_llvm_context *ac, LLVMValueRef fmask,
+			      LLVMValueRef *addr, bool is_array_tex)
+{
+	struct ac_image_args fmask_load = {};
+	fmask_load.opcode = ac_image_load;
+	fmask_load.resource = fmask;
+	fmask_load.dmask = 0xf;
+	fmask_load.da = is_array_tex;
+
+	LLVMValueRef fmask_addr[4];
+	memcpy(fmask_addr, addr, sizeof(fmask_addr[0]) * 3);
+	fmask_addr[3] = LLVMGetUndef(ac->i32);
+
+	fmask_load.addr = ac_build_gather_values(ac, fmask_addr,
+						 is_array_tex ? 4 : 2);
+
+	LLVMValueRef fmask_value = ac_build_image_opcode(ac, &fmask_load);
+	fmask_value = LLVMBuildExtractElement(ac->builder, fmask_value,
+					      ac->i32_0, "");
+
+	/* Apply the formula. */
+	unsigned sample_chan = is_array_tex ? 3 : 2;
+	LLVMValueRef final_sample;
+	final_sample = LLVMBuildMul(ac->builder, addr[sample_chan],
+				    LLVMConstInt(ac->i32, 4, 0), "");
+	final_sample = LLVMBuildLShr(ac->builder, fmask_value, final_sample, "");
+	final_sample = LLVMBuildAnd(ac->builder, final_sample,
+				    LLVMConstInt(ac->i32, 0xF, 0), "");
+
+	/* Don't rewrite the sample index if WORD1.DATA_FORMAT of the FMASK
+	 * resource descriptor is 0 (invalid),
+	 */
+	LLVMValueRef tmp;
+	tmp = LLVMBuildBitCast(ac->builder, fmask, ac->v8i32, "");
+	tmp = LLVMBuildExtractElement(ac->builder, tmp, ac->i32_1, "");
+	tmp = LLVMBuildICmp(ac->builder, LLVMIntNE, tmp, ac->i32_0, "");
+
+	/* Replace the MSAA sample index. */
+	addr[sample_chan] = LLVMBuildSelect(ac->builder, tmp, final_sample,
+					    addr[sample_chan], "");
+}

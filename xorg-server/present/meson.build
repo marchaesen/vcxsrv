@@ -12,6 +12,11 @@ srcs_present = [
     'present_wnmd.c',
 ]
 
+hdrs_present = [
+    'present.h',
+    'presentext.h',
+]
+
 libxserver_present = static_library('libxserver_present',
     srcs_present,
     include_directories: inc,
@@ -21,3 +26,5 @@ libxserver_present = static_library('libxserver_present',
     ],
     c_args: '-DHAVE_XORG_CONFIG_H'
 )
+
+install_data(hdrs_present, install_dir: xorgsdkdir)

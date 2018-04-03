@@ -1146,6 +1146,28 @@ typedef struct {
 
 extern const nir_intrinsic_info nir_intrinsic_infos[nir_num_intrinsics];
 
+static inline unsigned
+nir_intrinsic_src_components(nir_intrinsic_instr *intr, unsigned srcn)
+{
+   const nir_intrinsic_info *info = &nir_intrinsic_infos[intr->intrinsic];
+   assert(srcn < info->num_srcs);
+   if (info->src_components[srcn])
+      return info->src_components[srcn];
+   else
+      return intr->num_components;
+}
+
+static inline unsigned
+nir_intrinsic_dest_components(nir_intrinsic_instr *intr)
+{
+   const nir_intrinsic_info *info = &nir_intrinsic_infos[intr->intrinsic];
+   if (!info->has_dest)
+      return 0;
+   else if (info->dest_components)
+      return info->dest_components;
+   else
+      return intr->num_components;
+}
 
 #define INTRINSIC_IDX_ACCESSORS(name, flag, type)                             \
 static inline type                                                            \

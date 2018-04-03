@@ -67,6 +67,9 @@ if srcs_libc.length() > 0
     libxlibc = static_library('libxlibc',
         srcs_libc,
         include_directories: inc,
+        dependencies: [
+            xproto_dep,
+        ],
     )
 endif
 

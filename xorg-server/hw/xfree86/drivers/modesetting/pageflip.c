@@ -167,7 +167,7 @@ do_queue_flip_on_crtc(modesettingPtr ms, xf86CrtcPtr crtc,
 
     if (ms->atomic_modeset) {
         flags |= DRM_MODE_ATOMIC_NONBLOCK;
-        return drmmode_crtc_set_fb(crtc, NULL, ms->drmmode.fb_id, 0, 0, flags,
+        return drmmode_crtc_set_fb(crtc, NULL, ms->drmmode.fb_id, crtc->x, crtc->y, flags,
                                    (void *) (uintptr_t) seq);
     }
 

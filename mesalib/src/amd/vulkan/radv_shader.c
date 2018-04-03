@@ -217,6 +217,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.variable_pointers = true,
 				.gcn_shader = true,
 				.trinary_minmax = true,
+				.shader_viewport_index_layer = true,
 			},
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,

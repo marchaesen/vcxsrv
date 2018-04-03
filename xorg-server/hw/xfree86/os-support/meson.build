@@ -4,6 +4,13 @@ srcs_xorg_os_support = [
     'shared/sigio.c',
     'shared/vidmem.c',
 ]
+
+hdrs_xorg_os_support = [
+    'bus/xf86Pci.h',
+    'xf86_OSlib.h',
+    'xf86_OSproc.h'
+]
+
 os_support_flags = ['-DUSESTDRES']
 
 if get_option('pciaccess')
@@ -135,4 +142,4 @@ xorg_os_support = static_library('xorg_os_support',
     c_args: xorg_c_args,
 )
 
-install_data('bus/xf86Pci.h', install_dir: xorgsdkdir)
+install_data(hdrs_xorg_os_support, install_dir: xorgsdkdir)

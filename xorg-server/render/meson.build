@@ -12,8 +12,17 @@ srcs_render = [
     'render.c',
 ]
 
+hdrs_render = [
+    'glyphstr.h',
+    'mipict.h',
+    'picture.h',
+    'picturestr.h',
+]
+
 libxserver_render = static_library('libxserver_render',
     srcs_render,
     include_directories: inc,
     dependencies: common_dep,
 )
+
+install_data(hdrs_render, install_dir: xorgsdkdir)

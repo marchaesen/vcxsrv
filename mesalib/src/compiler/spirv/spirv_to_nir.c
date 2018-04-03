@@ -2434,8 +2434,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_ssa);
       struct vtn_type *type = vtn_value(b, w[1], vtn_value_type_type)->type;
 
-      unsigned dest_components =
-         nir_intrinsic_infos[intrin->intrinsic].dest_components;
+      unsigned dest_components = nir_intrinsic_dest_components(intrin);
       if (intrin->intrinsic == nir_intrinsic_image_var_size) {
          dest_components = intrin->num_components =
             glsl_get_vector_elements(type->type);

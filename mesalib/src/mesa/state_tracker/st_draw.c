@@ -177,6 +177,13 @@ st_draw_vbo(struct gl_context *ctx,
          /* indices are in a real VBO */
          info.has_user_indices = false;
          info.index.resource = st_buffer_object(bufobj)->buffer;
+
+         /* Return if the bound element array buffer doesn't have any backing
+          * storage. (nothing to do)
+          */
+         if (!info.index.resource)
+            return;
+
          start = pointer_to_offset(ib->ptr) / info.index_size;
       } else {
          /* indices are in user space memory */

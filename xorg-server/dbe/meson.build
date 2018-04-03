@@ -3,8 +3,14 @@ srcs_dbe = [
 	'midbe.c',
 ]
 
+hdrs_dbe = [
+	'dbestruct.h',
+]
+
 libxserver_dbe = static_library('libxserver_dbe',
 	srcs_dbe,
 	include_directories: inc,
 	dependencies: common_dep,
 )
+
+install_data(hdrs_dbe, install_dir: xorgsdkdir)

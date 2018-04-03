@@ -483,10 +483,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
 
    unsigned num_srcs = nir_intrinsic_infos[instr->intrinsic].num_srcs;
    for (unsigned i = 0; i < num_srcs; i++) {
-      unsigned components_read =
-         nir_intrinsic_infos[instr->intrinsic].src_components[i];
-      if (components_read == 0)
-         components_read = instr->num_components;
+      unsigned components_read = nir_intrinsic_src_components(instr, i);
 
       validate_assert(state, components_read > 0);
 
@@ -499,10 +496,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
    }
 
    if (nir_intrinsic_infos[instr->intrinsic].has_dest) {
-      unsigned components_written =
-         nir_intrinsic_infos[instr->intrinsic].dest_components;
-      if (components_written == 0)
-         components_written = instr->num_components;
+      unsigned components_written = nir_intrinsic_dest_components(instr);
 
       validate_assert(state, components_written > 0);
 

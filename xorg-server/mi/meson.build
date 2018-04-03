@@ -29,6 +29,19 @@ srcs_mi = [
     'mizerline.c',
 ]
 
+hdrs_mi = [
+  'micmap.h',
+  'micoord.h',
+  'migc.h',
+  'mi.h',
+  'miline.h',
+  'mioverlay.h',
+  'mipointer.h',
+  'mipointrst.h',
+  'mistruct.h',
+  'mizerarc.h',
+]
+
 libxserver_mi = static_library('libxserver_mi',
     srcs_mi,
     include_directories: inc,
@@ -37,3 +50,5 @@ libxserver_mi = static_library('libxserver_mi',
         m_dep,
     ],
 )
+
+install_data(hdrs_mi, install_dir: xorgsdkdir)
