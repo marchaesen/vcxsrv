@@ -212,10 +212,7 @@ proc_dri3_buffer_from_pixmap(ClientPtr client)
         .length = 0,
     };
     int rc;
-    int num_fds;
-    int fds[4];
-    uint32_t strides[4], offsets[4];
-    uint64_t modifier;
+    int fd;
     PixmapPtr pixmap;
 
     REQUEST_SIZE_MATCH(xDRI3BufferFromPixmapReq);
@@ -231,12 +228,9 @@ proc_dri3_buffer_from_pixmap(ClientPtr client)
     rep.depth = pixmap->drawable.depth;
     rep.bpp = pixmap->drawable.bitsPerPixel;
 
-    num_fds = dri3_fds_from_pixmap(pixmap, fds, strides, offsets, &modifier);
-    if (num_fds != 1)
+    fd = dri3_fd_from_pixmap(pixmap, &rep.stride, &rep.size);
+    if (fd == -1)
         return BadPixmap;
-
-    rep.stride = (CARD16) strides[0];
-    rep.size = rep.stride * rep.height;
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
@@ -246,8 +240,8 @@ proc_dri3_buffer_from_pixmap(ClientPtr client)
         swaps(&rep.height);
         swaps(&rep.stride);
     }
-    if (WriteFdToClient(client, fds[0], TRUE) < 0) {
-        close(fds[0]);
+    if (WriteFdToClient(client, fd, TRUE) < 0) {
+        close(fd);
         return BadAlloc;
     }
 

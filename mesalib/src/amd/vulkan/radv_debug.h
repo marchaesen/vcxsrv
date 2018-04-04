@@ -50,6 +50,7 @@ enum {
 	RADV_PERFTEST_SISCHED        =   0x2,
 	RADV_PERFTEST_LOCAL_BOS      =   0x4,
 	RADV_PERFTEST_BINNING     =   0x8,
+	RADV_PERFTEST_OUT_OF_ORDER   =  0x10,
 };
 
 bool

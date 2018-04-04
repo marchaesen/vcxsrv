@@ -317,8 +317,12 @@ wsi_wl_display_finish(struct wsi_wl_display *display)
    assert(display->refcount == 0);
 
    u_vector_finish(&display->formats);
+   u_vector_finish(&display->modifiers.argb8888);
+   u_vector_finish(&display->modifiers.xrgb8888);
    if (display->drm)
       wl_drm_destroy(display->drm);
+   if (display->dmabuf)
+      zwp_linux_dmabuf_v1_destroy(display->dmabuf);
    if (display->wl_display_wrapper)
       wl_proxy_wrapper_destroy(display->wl_display_wrapper);
    if (display->queue)

@@ -163,17 +163,8 @@ static Bool
 do_queue_flip_on_crtc(modesettingPtr ms, xf86CrtcPtr crtc,
                       uint32_t flags, uint32_t seq)
 {
-    drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
-
-    if (ms->atomic_modeset) {
-        flags |= DRM_MODE_ATOMIC_NONBLOCK;
-        return drmmode_crtc_set_fb(crtc, NULL, ms->drmmode.fb_id, crtc->x, crtc->y, flags,
-                                   (void *) (uintptr_t) seq);
-    }
-
-    return drmModePageFlip(ms->fd, drmmode_crtc->mode_crtc->crtc_id,
-                           ms->drmmode.fb_id, flags,
-                           (void *) (uintptr_t) seq);
+    return drmmode_crtc_flip(crtc, ms->drmmode.fb_id, flags,
+                             (void *) (uintptr_t) seq);
 }
 
 static Bool

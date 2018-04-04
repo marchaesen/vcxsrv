@@ -307,6 +307,12 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->has_scissor_bug = device->rad_info.family == CHIP_VEGA10 ||
 				  device->rad_info.family == CHIP_RAVEN;
 
+	/* Out-of-order primitive rasterization. */
+	device->has_out_of_order_rast = device->rad_info.chip_class >= VI &&
+					device->rad_info.max_se >= 2;
+	device->out_of_order_rast_allowed = device->has_out_of_order_rast &&
+					    (device->instance->perftest_flags & RADV_PERFTEST_OUT_OF_ORDER);
+
 	radv_physical_device_init_mem_types(device);
 	radv_fill_device_extension_table(device, &device->supported_extensions);
 
@@ -391,6 +397,7 @@ static const struct debug_control radv_perftest_options[] = {
 	{"sisched", RADV_PERFTEST_SISCHED},
 	{"localbos", RADV_PERFTEST_LOCAL_BOS},
 	{"binning", RADV_PERFTEST_BINNING},
+	{"outoforderrast", RADV_PERFTEST_OUT_OF_ORDER},
 	{NULL, 0}
 };
 
@@ -1921,7 +1928,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 						       tf_va >> 8);
 				if (queue->device->physical_device->rad_info.chip_class >= GFX9) {
 					radeon_set_uconfig_reg(cs, R_030944_VGT_TF_MEMORY_BASE_HI,
-							       tf_va >> 40);
+							       S_030944_BASE_HI(tf_va >> 40));
 				}
 				radeon_set_uconfig_reg(cs, R_03093C_VGT_HS_OFFCHIP_PARAM, hs_offchip_param);
 			} else {

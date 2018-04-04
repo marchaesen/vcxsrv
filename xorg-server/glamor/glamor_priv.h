@@ -341,6 +341,7 @@ typedef struct glamor_pixmap_private {
     Bool prepared;
 #ifdef GLAMOR_HAS_GBM
     EGLImageKHR image;
+    Bool used_modifiers;
 #endif
     /** block width of this large pixmap. */
     int block_w;

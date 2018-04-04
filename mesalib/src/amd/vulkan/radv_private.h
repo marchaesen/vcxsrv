@@ -291,6 +291,9 @@ struct radv_physical_device {
 	bool cpdma_prefetch_writes_memory;
 	bool has_scissor_bug;
 
+	bool has_out_of_order_rast;
+	bool out_of_order_rast_allowed;
+
 	/* This is the drivers on-disk cache used as a fallback as opposed to
 	 * the pipeline cache defined by apps.
 	 */
@@ -1232,6 +1235,7 @@ struct radv_pipeline {
 			struct radv_prim_vertex_count prim_vertex_count;
  			bool can_use_guardband;
 			uint32_t needed_dynamic_state;
+			bool disable_out_of_order_rast_for_occlusion;
 		} graphics;
 	};
 

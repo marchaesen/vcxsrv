@@ -84,6 +84,9 @@ dri3_pixmap_from_fds(PixmapPtr *ppixmap, ScreenPtr screen, CARD8 num_fds, int *f
                      CARD8 depth, CARD8 bpp, CARD64 modifier);
 
 int
+dri3_fd_from_pixmap(PixmapPtr pixmap, CARD16 *stride, CARD32 *size);
+
+int
 dri3_fds_from_pixmap(PixmapPtr pixmap, int *fds,
                      CARD32 *strides, CARD32 *offsets,
                      CARD64 *modifier);

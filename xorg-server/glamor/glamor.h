@@ -391,7 +391,8 @@ extern _X_EXPORT Bool glamor_egl_create_textured_pixmap(PixmapPtr pixmap,
  */
 extern _X_EXPORT Bool
  glamor_egl_create_textured_pixmap_from_gbm_bo(PixmapPtr pixmap,
-                                               struct gbm_bo *bo);
+                                               struct gbm_bo *bo,
+                                               Bool used_modifiers);
 
 #endif
 
