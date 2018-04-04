@@ -230,6 +230,7 @@ lower_vec_to_movs_block(nir_block *block, nir_function_impl *impl)
          continue; /* The loop */
       }
 
+      bool vec_had_ssa_dest = vec->dest.dest.is_ssa;
       if (vec->dest.dest.is_ssa) {
          /* Since we insert multiple MOVs, we have a register destination. */
          nir_register *reg = nir_local_reg_create(impl);
@@ -263,7 +264,11 @@ lower_vec_to_movs_block(nir_block *block, nir_function_impl *impl)
          if (!(vec->dest.write_mask & (1 << i)))
             continue;
 
-         if (!(finished_write_mask & (1 << i)))
+         /* Coalescing moves the register writes from the vec up to the ALU
+          * instruction in the source.  We can only do this if the original
+          * vecN had an SSA destination.
+          */
+         if (vec_had_ssa_dest && !(finished_write_mask & (1 << i)))
             finished_write_mask |= try_coalesce(vec, i);
 
          if (!(finished_write_mask & (1 << i)))

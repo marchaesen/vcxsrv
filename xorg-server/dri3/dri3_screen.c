@@ -30,6 +30,7 @@
 #include <misyncshm.h>
 #include <randrstr.h>
 #include <drm_fourcc.h>
+#include <unistd.h>
 
 static inline Bool has_open(dri3_screen_info_ptr info) {
     if (info == NULL)
@@ -122,6 +123,45 @@ dri3_fds_from_pixmap(PixmapPtr pixmap, int *fds,
     } else {
         return 0;
     }
+}
+
+int
+dri3_fd_from_pixmap(PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
+{
+    ScreenPtr                   screen = pixmap->drawable.pScreen;
+    dri3_screen_priv_ptr        ds = dri3_screen_priv(screen);
+    dri3_screen_info_ptr        info = ds->info;
+    CARD32                      strides[4];
+    CARD32                      offsets[4];
+    CARD64                      modifier;
+    int                         fds[4];
+    int                         num_fds;
+
+    if (!info)
+        return -1;
+
+    /* Preferentially use the old interface, allowing the implementation to
+     * ensure the buffer is in a single-plane format which doesn't need
+     * modifiers. */
+    if (info->fd_from_pixmap != NULL)
+        return (*info->fd_from_pixmap)(screen, pixmap, stride, size);
+
+    if (info->version < 2 || info->fds_from_pixmap == NULL)
+        return -1;
+
+    /* If using the new interface, make sure that it's a single plane starting
+     * at 0 within the BO. We don't check the modifier, as the client may
+     * have an auxiliary mechanism for determining the modifier itself. */
+    num_fds = info->fds_from_pixmap(screen, pixmap, fds, strides, offsets,
+                                    &modifier);
+    if (num_fds != 1 || offsets[0] != 0) {
+        int i;
+        for (i = 0; i < num_fds; i++)
+            close(fds[i]);
+        return -1;
+    }
+
+    return fds[0];
 }
 
 static int

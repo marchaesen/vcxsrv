@@ -25,6 +25,7 @@
  *    Keith Whitwell <keithw@vmware.com>
  */
 
+#include "c99_alloca.h"
 #include "main/mtypes.h"
 #include "main/bufferobj.h"
 #include "math/m_eval.h"

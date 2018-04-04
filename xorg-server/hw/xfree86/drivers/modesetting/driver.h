@@ -106,6 +106,7 @@ typedef struct _modesettingRec {
      *  @{
      */
     Bool atomic_modeset;
+    Bool pending_modeset;
     /** @} */
 
     DamagePtr damage;

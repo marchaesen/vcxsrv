@@ -2242,6 +2242,24 @@ do_common_optimization(exec_list *ir, bool linked,
             loop_progress = false;
             loop_progress |= do_constant_propagation(ir);
             loop_progress |= do_if_simplification(ir);
+
+            /* Some drivers only call do_common_optimization() once rather
+             * than in a loop. So we must call do_lower_jumps() after
+             * unrolling a loop because for drivers that use LLVM validation
+             * will fail if a jump is not the last instruction in the block.
+             * For example the following will fail LLVM validation:
+             *
+             *   (loop (
+             *      ...
+             *   break
+             *   (assign  (x) (var_ref v124)  (expression int + (var_ref v124)
+             *      (constant int (1)) ) )
+             *   ))
+             */
+            loop_progress |= do_lower_jumps(ir, true, true,
+                                            options->EmitNoMainReturn,
+                                            options->EmitNoCont,
+                                            options->EmitNoLoops);
          }
          progress |= loop_progress;
       }
