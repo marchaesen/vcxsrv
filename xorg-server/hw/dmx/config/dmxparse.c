@@ -382,7 +382,7 @@ dmxConfigCreateOption(DMXConfigTokenPtr pStart,
         if (p->string) {
             int len = strlen(p->string);
 
-            strncpy(option->string + offset, p->string, len);
+            memcpy(option->string + offset, p->string, len);
             offset += len;
             if (p->next)
                 option->string[offset++] = ' ';

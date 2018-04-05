@@ -84,7 +84,7 @@ dmxPropertyIdentifier(void)
     /* RATS: These buffers are only used in
      * length-limited calls. */
     char hostname[256];
-    static char buf[128];
+    static char buf[512];
     static int initialized = 0;
 
     if (initialized++)
@@ -346,7 +346,7 @@ dmxPropertyWindow(DMXScreenInfo * dmxScreen)
     Display *dpy = dmxScreen->beDisplay;
     Window win = dmxScreen->scrnWin;
     DMXScreenInfo *other;
-    char buf[128];              /* RATS: only used with snprintf */
+    char buf[1024];              /* RATS: only used with snprintf */
 
     if (!dpy)
         return;                 /* FIXME: What should be done here if Xdmx is started

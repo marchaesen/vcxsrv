@@ -136,7 +136,7 @@ miHandleExposures(DrawablePtr pSrcDrawable, DrawablePtr pDstDrawable,
                                    the window background
                                  */
     WindowPtr pSrcWin;
-    BoxRec expBox;
+    BoxRec expBox = { 0, };
     Bool extents;
 
     /* avoid work if we can */

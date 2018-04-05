@@ -1231,7 +1231,7 @@ transformRelative(DeviceIntPtr dev, ValuatorMask *mask)
 static void
 transformAbsolute(DeviceIntPtr dev, ValuatorMask *mask)
 {
-    double x, y, ox, oy;
+    double x, y, ox = 0.0, oy = 0.0;
     int has_x, has_y;
 
     has_x = valuator_mask_isset(mask, 0);
