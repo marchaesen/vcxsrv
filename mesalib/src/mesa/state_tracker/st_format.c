@@ -2545,6 +2545,8 @@ st_translate_color(const union gl_color_union *colorIn,
          out[0] = out[1] = out[2] = in[0];
          out[3] = in[3];
          break;
+      /* Stencil border is tricky on some hw. Help drivers a little here. */
+      case GL_STENCIL_INDEX:
       case GL_INTENSITY:
          out[0] = out[1] = out[2] = out[3] = in[0];
          break;

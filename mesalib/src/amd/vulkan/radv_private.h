@@ -915,12 +915,13 @@ struct radv_descriptor_state {
 
 struct radv_cmd_state {
 	/* Vertex descriptors */
-	bool                                          vb_prefetch_dirty;
 	uint64_t                                      vb_va;
 	unsigned                                      vb_size;
 
 	bool predicating;
 	uint32_t                                      dirty;
+
+	uint32_t                                      prefetch_L2_mask;
 
 	struct radv_pipeline *                        pipeline;
 	struct radv_pipeline *                        emitted_pipeline;

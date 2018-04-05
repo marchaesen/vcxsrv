@@ -58,7 +58,7 @@ def main():
             while ext != '.so':
                 if os.path.exists(name):
                     os.unlink(name)
-                os.symlink(driver, name)
+                os.symlink(each, name)
                 name, ext = os.path.splitext(name)
         finally:
             os.chdir(ret)

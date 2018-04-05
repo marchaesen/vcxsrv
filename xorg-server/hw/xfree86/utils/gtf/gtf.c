@@ -238,7 +238,7 @@ print_fb_mode(mode * m)
     printf("    # PCLK: %.2f MHz, H: %.2f kHz, V: %.2f Hz\n",
            m->pclk, m->h_freq, m->v_freq);
     printf("    geometry %d %d %d %d 32\n", m->hr, m->vr, m->hr, m->vr);
-    printf("    timings %d %d %d %d %d %d %d\n", (int) rint(1000000.0 / m->pclk),       /* pixclock in picoseconds */
+    printf("    timings %d %d %d %d %d %d %d\n", (int)lrint(1000000.0 / m->pclk),       /* pixclock in picoseconds */
            m->hfl - m->hse,     /* left margin (in pixels) */
            m->hss - m->hr,      /* right margin (in pixels) */
            m->vfl - m->vse,     /* upper margin (in pixel lines) */

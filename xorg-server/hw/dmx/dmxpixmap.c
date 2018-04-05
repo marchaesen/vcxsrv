@@ -205,7 +205,7 @@ dmxBitmapToRegion(PixmapPtr pPixmap)
     RegionPtr pReg, pTmpReg;
     int x, y;
     unsigned long previousPixel, currentPixel;
-    BoxRec Box;
+    BoxRec Box = { 0, };
     Bool overlap;
 
     if (!dmxScreen->beDisplay) {

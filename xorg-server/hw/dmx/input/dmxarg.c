@@ -114,30 +114,17 @@ dmxArgC(dmxArg a)
 dmxArg
 dmxArgParse(const char *string)
 {
-    char *tmp;
-    char *start, *pt;
+    int i = 0;
     dmxArg a = dmxArgCreate();
-    int done;
-    int len;
 
     if (!string)
         return a;
 
-    len = strlen(string) + 2;
-    tmp = malloc(len);
-    strncpy(tmp, string, len);
+    a->argv = (const char **)xstrtokenize(string, ",");
+    if (a->argv)
+        for (i = 0; a->argv[i] != NULL; i++);
+    a->argc = i;
 
-    for (start = pt = tmp, done = 0; !done && *pt; start = ++pt) {
-        for (; *pt && *pt != ','; pt++);
-        if (!*pt)
-            done = 1;
-        *pt = '\0';
-        dmxArgAdd(a, start);
-    }
-    if (!done)
-        dmxArgAdd(a, "");       /* Final comma */
-
-    free(tmp);
     return a;
 }
 

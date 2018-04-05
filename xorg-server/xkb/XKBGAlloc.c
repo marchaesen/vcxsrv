@@ -588,7 +588,8 @@ XkbAddGeomKeyAlias(XkbGeometryPtr geom, char *aliasStr, char *realStr)
          i++, alias++) {
         if (strncmp(alias->alias, aliasStr, XkbKeyNameLength) == 0) {
             memset(alias->real, 0, XkbKeyNameLength);
-            strncpy(alias->real, realStr, XkbKeyNameLength);
+            memcpy(alias->real, realStr,
+                   min(XkbKeyNameLength, strlen(realStr)));
             return alias;
         }
     }
@@ -598,8 +599,8 @@ XkbAddGeomKeyAlias(XkbGeometryPtr geom, char *aliasStr, char *realStr)
     }
     alias = &geom->key_aliases[geom->num_key_aliases];
     memset(alias, 0, sizeof(XkbKeyAliasRec));
-    strncpy(alias->alias, aliasStr, XkbKeyNameLength);
-    strncpy(alias->real, realStr, XkbKeyNameLength);
+    memcpy(alias->alias, aliasStr, min(XkbKeyNameLength, strlen(aliasStr)));
+    memcpy(alias->real, realStr, min(XkbKeyNameLength, strlen(realStr)));
     geom->num_key_aliases++;
     return alias;
 }
@@ -814,8 +815,8 @@ XkbAddGeomOverlayKey(XkbOverlayPtr overlay,
         (_XkbAllocOverlayKeys(row, 1) != Success))
         return NULL;
     key = &row->keys[row->num_keys];
-    strncpy(key->under.name, under, XkbKeyNameLength);
-    strncpy(key->over.name, over, XkbKeyNameLength);
+    memcpy(key->under.name, under, min(XkbKeyNameLength, strlen(under)));
+    memcpy(key->over.name, over, min(XkbKeyNameLength, strlen(over)));
     row->num_keys++;
     return key;
 }

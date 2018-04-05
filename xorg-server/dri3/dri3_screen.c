@@ -161,6 +161,8 @@ dri3_fd_from_pixmap(PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
         return -1;
     }
 
+    *stride = strides[0];
+    *size = size[0];
     return fds[0];
 }
 
