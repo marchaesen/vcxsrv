@@ -101,4 +101,4 @@ EXTRA_DIST += \
 	nir/tests \
 	nir/README \
 	SConscript.nir \
-	SConstript.spirv
+	SConscript.spirv

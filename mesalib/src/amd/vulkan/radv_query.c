@@ -1079,7 +1079,8 @@ void radv_CmdResetQueryPool(
 
 static void emit_begin_query(struct radv_cmd_buffer *cmd_buffer,
 			     uint64_t va,
-			     VkQueryType query_type)
+			     VkQueryType query_type,
+			     VkQueryControlFlags flags)
 {
 	struct radeon_winsys_cs *cs = cmd_buffer->cs;
 	switch (query_type) {
@@ -1087,8 +1088,27 @@ static void emit_begin_query(struct radv_cmd_buffer *cmd_buffer,
 		radeon_check_space(cmd_buffer->device->ws, cs, 7);
 
 		++cmd_buffer->state.active_occlusion_queries;
-		if (cmd_buffer->state.active_occlusion_queries == 1)
+		if (cmd_buffer->state.active_occlusion_queries == 1) {
+			if (flags & VK_QUERY_CONTROL_PRECISE_BIT) {
+				/* This is the first occlusion query, enable
+				 * the hint if the precision bit is set.
+				 */
+				cmd_buffer->state.perfect_occlusion_queries_enabled = true;
+			}
+
 			radv_set_db_count_control(cmd_buffer);
+		} else {
+			if ((flags & VK_QUERY_CONTROL_PRECISE_BIT) &&
+			    !cmd_buffer->state.perfect_occlusion_queries_enabled) {
+				/* This is not the first query, but this one
+				 * needs to enable precision, DB_COUNT_CONTROL
+				 * has to be updated accordingly.
+				 */
+				cmd_buffer->state.perfect_occlusion_queries_enabled = true;
+
+				radv_set_db_count_control(cmd_buffer);
+			}
+		}
 
 		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
 		radeon_emit(cs, EVENT_TYPE(V_028A90_ZPASS_DONE) | EVENT_INDEX(1));
@@ -1119,8 +1139,14 @@ static void emit_end_query(struct radv_cmd_buffer *cmd_buffer,
 		radeon_check_space(cmd_buffer->device->ws, cs, 14);
 
 		cmd_buffer->state.active_occlusion_queries--;
-		if (cmd_buffer->state.active_occlusion_queries == 0)
+		if (cmd_buffer->state.active_occlusion_queries == 0) {
+			/* Reset the perfect occlusion queries hint now that no
+			 * queries are active.
+			 */
+			cmd_buffer->state.perfect_occlusion_queries_enabled = false;
+
 			radv_set_db_count_control(cmd_buffer);
+		}
 
 		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
 		radeon_emit(cs, EVENT_TYPE(V_028A90_ZPASS_DONE) | EVENT_INDEX(1));
@@ -1177,7 +1203,7 @@ void radv_CmdBeginQuery(
 
 	va += pool->stride * query;
 
-	emit_begin_query(cmd_buffer, va, pool->type);
+	emit_begin_query(cmd_buffer, va, pool->type, flags);
 
 	/*
 	 * For multiview we have to emit a query for each bit in the mask,
@@ -1193,7 +1219,7 @@ void radv_CmdBeginQuery(
 		for (unsigned i = 0; i < util_bitcount(cmd_buffer->state.subpass->view_mask); i++) {
 			va += pool->stride;
 			avail_va += 4;
-			emit_begin_query(cmd_buffer, va, pool->type);
+			emit_begin_query(cmd_buffer, va, pool->type, flags);
 			emit_end_query(cmd_buffer, va, avail_va, pool->type);
 		}
 	}

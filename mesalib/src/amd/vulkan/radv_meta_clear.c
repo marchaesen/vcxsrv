@@ -553,12 +553,12 @@ static bool depth_view_can_fast_clear(struct radv_cmd_buffer *cmd_buffer,
 	    clear_rect->rect.extent.width != iview->extent.width ||
 	    clear_rect->rect.extent.height != iview->extent.height)
 		return false;
-	if (iview->image->tc_compatible_htile &&
+	if (radv_image_is_tc_compat_htile(iview->image) &&
 	    (((aspects & VK_IMAGE_ASPECT_DEPTH_BIT) && clear_value.depth != 0.0 &&
 	      clear_value.depth != 1.0) ||
 	     ((aspects & VK_IMAGE_ASPECT_STENCIL_BIT) && clear_value.stencil != 0)))
 		return false;
-	if (iview->image->surface.htile_size &&
+	if (radv_image_has_htile(iview->image) &&
 	    iview->base_mip == 0 &&
 	    iview->base_layer == 0 &&
 	    radv_layout_is_htile_compressed(iview->image, layout, queue_mask) &&
@@ -682,7 +682,7 @@ emit_fast_htile_clear(struct radv_cmd_buffer *cmd_buffer,
 	VkImageAspectFlags aspects = clear_att->aspectMask;
 	uint32_t clear_word, flush_bits;
 
-	if (!iview->image->surface.htile_size)
+	if (!radv_image_has_htile(iview->image))
 		return false;
 
 	if (cmd_buffer->device->instance->debug_flags & RADV_DEBUG_NO_FAST_CLEARS)
@@ -859,6 +859,40 @@ fail:
 	return res;
 }
 
+static uint32_t
+radv_get_cmask_fast_clear_value(const struct radv_image *image)
+{
+	uint32_t value = 0; /* Default value when no DCC. */
+
+	/* The fast-clear value is different for images that have both DCC and
+	 * CMASK metadata.
+	 */
+	if (radv_image_has_dcc(image)) {
+		/* DCC fast clear with MSAA should clear CMASK to 0xC. */
+		return image->info.samples > 1 ? 0xcccccccc : 0xffffffff;
+	}
+
+	return value;
+}
+
+uint32_t
+radv_clear_cmask(struct radv_cmd_buffer *cmd_buffer,
+		 struct radv_image *image, uint32_t value)
+{
+	return radv_fill_buffer(cmd_buffer, image->bo,
+				image->offset + image->cmask.offset,
+				image->cmask.size, value);
+}
+
+uint32_t
+radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer,
+	       struct radv_image *image, uint32_t value)
+{
+	return radv_fill_buffer(cmd_buffer, image->bo,
+				image->offset + image->dcc_offset,
+				image->surface.dcc_size, value);
+}
+
 static void vi_get_fast_clear_parameters(VkFormat format,
 					 const VkClearColorValue *clear_value,
 					 uint32_t* reset_value,
@@ -952,9 +986,10 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	const struct radv_image_view *iview = fb->attachments[pass_att].attachment;
 	VkClearColorValue clear_value = clear_att->clearValue.color;
 	uint32_t clear_color[2], flush_bits;
+	uint32_t cmask_clear_value;
 	bool ret;
 
-	if (!iview->image->cmask.size && !iview->image->surface.dcc_size)
+	if (!radv_image_has_cmask(iview->image) && !radv_image_has_dcc(iview->image))
 		return false;
 
 	if (cmd_buffer->device->instance->debug_flags & RADV_DEBUG_NO_FAST_CLEARS)
@@ -995,7 +1030,7 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		goto fail;
 
 	/* RB+ doesn't work with CMASK fast clear on Stoney. */
-	if (!iview->image->surface.dcc_size &&
+	if (!radv_image_has_dcc(iview->image) &&
 	    cmd_buffer->device->physical_device->rad_info.family == CHIP_STONEY)
 		goto fail;
 
@@ -1012,23 +1047,24 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	} else
 		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
 		                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+
+	cmask_clear_value = radv_get_cmask_fast_clear_value(iview->image);
+
 	/* clear cmask buffer */
-	if (iview->image->surface.dcc_size) {
+	if (radv_image_has_dcc(iview->image)) {
 		uint32_t reset_value;
 		bool can_avoid_fast_clear_elim;
 		vi_get_fast_clear_parameters(iview->image->vk_format,
 					     &clear_value, &reset_value,
 					     &can_avoid_fast_clear_elim);
 
-		flush_bits = radv_fill_buffer(cmd_buffer, iview->image->bo,
-					      iview->image->offset + iview->image->dcc_offset,
-					      iview->image->surface.dcc_size, reset_value);
+		flush_bits = radv_clear_dcc(cmd_buffer, iview->image, reset_value);
+
 		radv_set_dcc_need_cmask_elim_pred(cmd_buffer, iview->image,
 						  !can_avoid_fast_clear_elim);
 	} else {
-		flush_bits = radv_fill_buffer(cmd_buffer, iview->image->bo,
-					      iview->image->offset + iview->image->cmask.offset,
-					      iview->image->cmask.size, 0);
+		flush_bits = radv_clear_cmask(cmd_buffer, iview->image,
+					      cmask_clear_value);
 	}
 
 	if (post_flush) {

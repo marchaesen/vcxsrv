@@ -961,6 +961,46 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->filterMinmaxSingleComponentFormats = true;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD: {
+			VkPhysicalDeviceShaderCorePropertiesAMD *properties =
+				(VkPhysicalDeviceShaderCorePropertiesAMD *)ext;
+
+			/* Shader engines. */
+			properties->shaderEngineCount =
+				pdevice->rad_info.max_se;
+			properties->shaderArraysPerEngineCount =
+				pdevice->rad_info.max_sh_per_se;
+			properties->computeUnitsPerShaderArray =
+				pdevice->rad_info.num_good_compute_units /
+					(pdevice->rad_info.max_se *
+					 pdevice->rad_info.max_sh_per_se);
+			properties->simdPerComputeUnit = 4;
+			properties->wavefrontsPerSimd =
+				pdevice->rad_info.family == CHIP_TONGA ||
+				pdevice->rad_info.family == CHIP_ICELAND ||
+				pdevice->rad_info.family == CHIP_POLARIS10 ||
+				pdevice->rad_info.family == CHIP_POLARIS11 ||
+				pdevice->rad_info.family == CHIP_POLARIS12 ? 8 : 10;
+			properties->wavefrontSize = 64;
+
+			/* SGPR. */
+			properties->sgprsPerSimd =
+				radv_get_num_physical_sgprs(pdevice);
+			properties->minSgprAllocation =
+				pdevice->rad_info.chip_class >= VI ? 16 : 8;
+			properties->maxSgprAllocation =
+				pdevice->rad_info.family == CHIP_TONGA ||
+				pdevice->rad_info.family == CHIP_ICELAND ? 96 : 104;
+			properties->sgprAllocationGranularity =
+				pdevice->rad_info.chip_class >= VI ? 16 : 8;
+
+			/* VGPR. */
+			properties->vgprsPerSimd = RADV_NUM_PHYSICAL_VGPRS;
+			properties->minVgprAllocation = 4;
+			properties->maxVgprAllocation = 256;
+			properties->vgprAllocationGranularity = 4;
+			break;
+		}
 		default:
 			break;
 		}
@@ -3463,7 +3503,7 @@ radv_initialise_color_surface(struct radv_device *device,
 
 		cb->cb_color_attrib |= S_028C74_TILE_MODE_INDEX(tile_mode_index);
 
-		if (iview->image->fmask.size) {
+		if (radv_image_has_fmask(iview->image)) {
 			if (device->physical_device->rad_info.chip_class >= CIK)
 				cb->cb_color_pitch |= S_028C64_FMASK_TILE_MAX(iview->image->fmask.pitch_in_pixels / 8 - 1);
 			cb->cb_color_attrib |= S_028C74_FMASK_TILE_MODE_INDEX(iview->image->fmask.tile_mode_index);
@@ -3498,7 +3538,7 @@ radv_initialise_color_surface(struct radv_device *device,
 			S_028C74_NUM_FRAGMENTS(log_samples);
 	}
 
-	if (iview->image->fmask.size) {
+	if (radv_image_has_fmask(iview->image)) {
 		va = radv_buffer_get_va(iview->bo) + iview->image->offset + iview->image->fmask.offset;
 		cb->cb_color_fmask = va >> 8;
 		cb->cb_color_fmask |= iview->image->fmask.tile_swizzle;
@@ -3548,7 +3588,7 @@ radv_initialise_color_surface(struct radv_device *device,
 				    format != V_028C70_COLOR_24_8) |
 		S_028C70_NUMBER_TYPE(ntype) |
 		S_028C70_ENDIAN(endian);
-	if ((iview->image->info.samples > 1) && iview->image->fmask.size) {
+	if (radv_image_has_fmask(iview->image)) {
 		cb->cb_color_info |= S_028C70_COMPRESSION(1);
 		if (device->physical_device->rad_info.chip_class == SI) {
 			unsigned fmask_bankh = util_logbase2(iview->image->fmask.bank_height);
@@ -3556,11 +3596,11 @@ radv_initialise_color_surface(struct radv_device *device,
 		}
 	}
 
-	if (iview->image->cmask.size &&
+	if (radv_image_has_cmask(iview->image) &&
 	    !(device->instance->debug_flags & RADV_DEBUG_NO_FAST_CLEARS))
 		cb->cb_color_info |= S_028C70_FAST_CLEAR(1);
 
-	if (radv_vi_dcc_enabled(iview->image, iview->base_mip))
+	if (radv_dcc_enabled(iview->image, iview->base_mip))
 		cb->cb_color_info |= S_028C70_DCC_ENABLE(1);
 
 	if (device->physical_device->rad_info.chip_class >= VI) {
@@ -3597,7 +3637,7 @@ radv_initialise_color_surface(struct radv_device *device,
 	}
 
 	/* This must be set for fast clear to work without FMASK. */
-	if (!iview->image->fmask.size &&
+	if (!radv_image_has_fmask(iview->image) &&
 	    device->physical_device->rad_info.chip_class == SI) {
 		unsigned bankh = util_logbase2(iview->image->surface.u.legacy.bankh);
 		cb->cb_color_attrib |= S_028C74_FMASK_BANK_HEIGHT(bankh);
@@ -3622,7 +3662,7 @@ radv_calc_decompress_on_z_planes(struct radv_device *device,
 {
 	unsigned max_zplanes = 0;
 
-	assert(iview->image->tc_compatible_htile);
+	assert(radv_image_is_tc_compat_htile(iview->image));
 
 	if (device->physical_device->rad_info.chip_class >= GFX9) {
 		/* Default value for 32-bit depth surfaces. */
@@ -3724,7 +3764,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 		if (radv_htile_enabled(iview->image, level)) {
 			ds->db_z_info |= S_028038_TILE_SURFACE_ENABLE(1);
 
-			if (iview->image->tc_compatible_htile) {
+			if (radv_image_is_tc_compat_htile(iview->image)) {
 				unsigned max_zplanes =
 					radv_calc_decompress_on_z_planes(device, iview);
 
@@ -3752,7 +3792,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 		z_offs += iview->image->surface.u.legacy.level[level].offset;
 		s_offs += iview->image->surface.u.legacy.stencil_level[level].offset;
 
-		ds->db_depth_info = S_02803C_ADDR5_SWIZZLE_MASK(!iview->image->tc_compatible_htile);
+		ds->db_depth_info = S_02803C_ADDR5_SWIZZLE_MASK(!radv_image_is_tc_compat_htile(iview->image));
 		ds->db_z_info = S_028040_FORMAT(format) | S_028040_ZRANGE_PRECISION(1);
 		ds->db_stencil_info = S_028044_FORMAT(stencil_format);
 
@@ -3797,7 +3837,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 			ds->db_z_info |= S_028040_TILE_SURFACE_ENABLE(1);
 
 			if (!iview->image->surface.has_stencil &&
-			    !iview->image->tc_compatible_htile)
+			    !radv_image_is_tc_compat_htile(iview->image))
 				/* Use all of the htile_buffer for depth if there's no stencil. */
 				ds->db_stencil_info |= S_028044_TILE_STENCIL_DISABLE(1);
 
@@ -3806,7 +3846,7 @@ radv_initialise_ds_surface(struct radv_device *device,
 			ds->db_htile_data_base = va >> 8;
 			ds->db_htile_surface = S_028ABC_FULL_CACHE(1);
 
-			if (iview->image->tc_compatible_htile) {
+			if (radv_image_is_tc_compat_htile(iview->image)) {
 				unsigned max_zplanes =
 					radv_calc_decompress_on_z_planes(device, iview);
 

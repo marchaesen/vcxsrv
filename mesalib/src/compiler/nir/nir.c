@@ -212,6 +212,9 @@ nir_function_create(nir_shader *shader, const char *name)
    return func;
 }
 
+/* NOTE: if the instruction you are copying a src to is already added
+ * to the IR, use nir_instr_rewrite_src() instead.
+ */
 void nir_src_copy(nir_src *dest, const nir_src *src, void *mem_ctx)
 {
    dest->is_ssa = src->is_ssa;

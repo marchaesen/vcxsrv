@@ -294,11 +294,16 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
          if (ctx->Const.PackedDriverUniformStorage) {
             loc = _mesa_add_sized_state_reference(prog->Parameters,
                                                   stateTokens, comps, false);
+            loc = prog->Parameters->ParameterValueOffset[loc];
          } else {
             loc = _mesa_add_state_reference(prog->Parameters, stateTokens);
          }
       } else {
          loc = st_nir_lookup_parameter_index(prog->Parameters, uniform->name);
+
+         if (ctx->Const.PackedDriverUniformStorage) {
+            loc = prog->Parameters->ParameterValueOffset[loc];
+         }
       }
 
       uniform->data.driver_location = loc;
@@ -645,7 +650,7 @@ st_link_nir(struct gl_context *ctx,
          mask = (nir_variable_mode)(mask | nir_var_shader_out);
 
       nir_shader *nir = shader->Program->nir;
-      nir_lower_io_to_scalar_early(nir, mask);
+      NIR_PASS_V(nir, nir_lower_io_to_scalar_early, mask);
       st_nir_opts(nir);
    }
 
@@ -804,7 +809,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
    if (st->ctx->Const.PackedDriverUniformStorage) {
       NIR_PASS_V(nir, nir_lower_io, nir_var_uniform, st_glsl_type_dword_size,
                  (nir_lower_io_options)0);
-      NIR_PASS_V(nir, st_nir_lower_uniforms_to_ubo, prog->Parameters);
+      NIR_PASS_V(nir, st_nir_lower_uniforms_to_ubo);
    }
 
    if (screen->get_param(screen, PIPE_CAP_NIR_SAMPLERS_AS_DEREF))

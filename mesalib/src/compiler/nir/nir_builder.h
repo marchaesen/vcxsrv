@@ -526,6 +526,12 @@ nir_ssa_for_alu_src(nir_builder *build, nir_alu_instr *instr, unsigned srcn)
 }
 
 static inline nir_ssa_def *
+nir_load_reg(nir_builder *build, nir_register *reg)
+{
+   return nir_ssa_for_src(build, nir_src_for_reg(reg), reg->num_components);
+}
+
+static inline nir_ssa_def *
 nir_load_var(nir_builder *build, nir_variable *var)
 {
    const unsigned num_components = glsl_get_vector_elements(var->type);

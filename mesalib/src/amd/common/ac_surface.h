@@ -219,6 +219,7 @@ struct ac_surf_info {
 	uint32_t depth;
 	uint8_t samples;
 	uint8_t levels;
+	uint8_t num_channels; /* heuristic for displayability */
 	uint16_t array_size;
 	uint32_t *surf_index; /* Set a monotonic counter for tile swizzling. */
 	uint32_t *fmask_surf_index; /* GFX9+ */

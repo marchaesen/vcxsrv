@@ -446,7 +446,7 @@ void radv_CmdResolveImage(
 	if (src_image->info.array_size > 1)
 		radv_finishme("vkCmdResolveImage: multisample array images");
 
-	if (dest_image->surface.dcc_size) {
+	if (radv_image_has_dcc(dest_image)) {
 		radv_initialize_dcc(cmd_buffer, dest_image, 0xffffffff);
 	}
 	unsigned fs_key = radv_format_meta_fs_key(dest_image->vk_format);
@@ -648,7 +648,7 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 
 		struct radv_image *dst_img = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment->image;
 
-		if (dst_img->surface.dcc_size) {
+		if (radv_image_has_dcc(dst_img)) {
 			radv_initialize_dcc(cmd_buffer, dst_img, 0xffffffff);
 			cmd_buffer->state.attachments[dest_att.attachment].current_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}

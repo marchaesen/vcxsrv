@@ -35,6 +35,7 @@
 #include <GL/glxtokens.h>
 #include <GL/internal/dri_interface.h>
 #include <os.h>
+#include "extinit.h"
 #include "glxserver.h"
 #include "glxext.h"
 #include "glxcontext.h"
@@ -183,28 +184,30 @@ createModeFromConfig(const __DRIcoreExtension * core,
     config->config.yInverted = GL_TRUE;
 
 #ifdef COMPOSITE
-    /*
-     * Here we decide what fbconfigs will be duplicated for compositing.
-     * fgbconfigs marked with duplicatedForConf will be reserved for
-     * compositing visuals.
-     * It might look strange to do this decision this late when translation
-     * from a __DRIConfig is already done, but using the __DRIConfig
-     * accessor function becomes worse both with respect to code complexity
-     * and CPU usage.
-     */
-    if (duplicateForComp &&
-        (render_type_is_pbuffer_only(renderType) ||
-         config->config.rgbBits != 32 ||
-         config->config.redBits != 8 ||
-         config->config.greenBits != 8 ||
-         config->config.blueBits != 8 ||
-         config->config.visualRating != GLX_NONE ||
-         config->config.sampleBuffers != 0)) {
-        free(config);
-        return NULL;
-    }
+    if (!noCompositeExtension) {
+        /*
+        * Here we decide what fbconfigs will be duplicated for compositing.
+        * fgbconfigs marked with duplicatedForConf will be reserved for
+        * compositing visuals.
+        * It might look strange to do this decision this late when translation
+        * from a __DRIConfig is already done, but using the __DRIConfig
+        * accessor function becomes worse both with respect to code complexity
+        * and CPU usage.
+        */
+        if (duplicateForComp &&
+            (render_type_is_pbuffer_only(renderType) ||
+            config->config.rgbBits != 32 ||
+            config->config.redBits != 8 ||
+            config->config.greenBits != 8 ||
+            config->config.blueBits != 8 ||
+            config->config.visualRating != GLX_NONE ||
+            config->config.sampleBuffers != 0)) {
+            free(config);
+            return NULL;
+        }
 
-    config->config.duplicatedForComp = duplicateForComp;
+        config->config.duplicatedForComp = duplicateForComp;
+    }
 #endif
 
     return &config->config;
@@ -238,14 +241,16 @@ glxConvertConfigs(const __DRIcoreExtension * core,
     }
 
 #ifdef COMPOSITE
-    /* Duplicate fbconfigs for use with compositing visuals */
-    for (i = 0; configs[i]; i++) {
-        tail->next = createModeFromConfig(core, configs[i], GLX_TRUE_COLOR,
-                                          GL_TRUE);
-        if (tail->next == NULL)
-            continue;
+    if (!noCompositeExtension) {
+        /* Duplicate fbconfigs for use with compositing visuals */
+        for (i = 0; configs[i]; i++) {
+            tail->next = createModeFromConfig(core, configs[i], GLX_TRUE_COLOR,
+                                            GL_TRUE);
+            if (tail->next == NULL)
+                continue;
 
-	tail = tail->next;
+            tail = tail->next;
+        }
     }
 #endif
 

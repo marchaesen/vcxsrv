@@ -40,34 +40,34 @@ struct lower_io_state {
 };
 
 static void
-emit_copies(nir_cursor cursor, nir_shader *shader, struct exec_list *new_vars,
-          struct exec_list *old_vars)
+emit_copies(nir_cursor cursor, nir_shader *shader, struct exec_list *dest_vars,
+            struct exec_list *src_vars)
 {
-   assert(exec_list_length(new_vars) == exec_list_length(old_vars));
+   assert(exec_list_length(dest_vars) == exec_list_length(src_vars));
 
-   foreach_two_lists(new_node, new_vars, old_node, old_vars) {
-      nir_variable *newv = exec_node_data(nir_variable, new_node, node);
-      nir_variable *temp = exec_node_data(nir_variable, old_node, node);
+   foreach_two_lists(dest_node, dest_vars, src_node, src_vars) {
+      nir_variable *dest = exec_node_data(nir_variable, dest_node, node);
+      nir_variable *src = exec_node_data(nir_variable, src_node, node);
 
       /* No need to copy the contents of a non-fb_fetch_output output variable
        * to the temporary allocated for it, since its initial value is
        * undefined.
        */
-      if (temp->data.mode == nir_var_shader_out &&
-          !temp->data.fb_fetch_output)
+      if (src->data.mode == nir_var_shader_out &&
+          !src->data.fb_fetch_output)
          continue;
 
       /* Can't copy the contents of the temporary back to a read-only
        * interface variable.  The value of the temporary won't have been
        * modified by the shader anyway.
        */
-      if (newv->data.read_only)
+      if (dest->data.read_only)
          continue;
 
       nir_intrinsic_instr *copy =
          nir_intrinsic_instr_create(shader, nir_intrinsic_copy_var);
-      copy->variables[0] = nir_deref_var_create(copy, newv);
-      copy->variables[1] = nir_deref_var_create(copy, temp);
+      copy->variables[0] = nir_deref_var_create(copy, dest);
+      copy->variables[1] = nir_deref_var_create(copy, src);
 
       nir_instr_insert(cursor, &copy->instr);
    }

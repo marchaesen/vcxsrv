@@ -1562,7 +1562,7 @@ DoFocusEvents(DeviceIntPtr pDev, WindowPtr from, WindowPtr to, int mode)
     if (!IsKeyboardDevice(pDev))
         return;
 
-    if (from == to)
+    if (from == to && mode != NotifyGrab && mode != NotifyUngrab)
         return;
 
     CoreFocusEvents(pDev, from, to, mode);

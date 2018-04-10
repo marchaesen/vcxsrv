@@ -157,7 +157,8 @@ static bool
 lower_sampler(nir_tex_instr *instr, struct lower_samplers_as_deref_state *state,
               nir_builder *b)
 {
-   if (!instr->texture)
+   if (!instr->texture || instr->texture->var->data.bindless ||
+       instr->texture->var->data.mode != nir_var_uniform)
       return false;
 
    /* In GLSL, we only fill out the texture field.  The sampler is inferred */
@@ -195,6 +196,11 @@ lower_intrinsic(nir_intrinsic_instr *instr,
        instr->intrinsic == nir_intrinsic_image_var_atomic_comp_swap ||
        instr->intrinsic == nir_intrinsic_image_var_size) {
       b->cursor = nir_before_instr(&instr->instr);
+
+      if (instr->variables[0]->var->data.bindless ||
+          instr->variables[0]->var->data.mode != nir_var_uniform)
+         return false;
+
       lower_deref(instr->variables[0], state, b);
       return true;
    }
