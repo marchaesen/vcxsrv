@@ -4096,7 +4096,11 @@ glsl_to_tgsi_visitor::get_deref_offsets(ir_dereference *ir,
 st_src_reg
 glsl_to_tgsi_visitor::canonicalize_gather_offset(st_src_reg offset)
 {
-   if (offset.reladdr || offset.reladdr2) {
+   if (offset.reladdr || offset.reladdr2 ||
+       offset.has_index2 ||
+       offset.file == PROGRAM_UNIFORM ||
+       offset.file == PROGRAM_CONSTANT ||
+       offset.file == PROGRAM_STATE_VAR) {
       st_src_reg tmp = get_temp(glsl_type::ivec2_type);
       st_dst_reg tmp_dst = st_dst_reg(tmp);
       tmp_dst.writemask = WRITEMASK_XY;

@@ -164,11 +164,9 @@ driCreateNewScreen2(int scrn, int fd,
 
     api = API_OPENGL_COMPAT;
     if (_mesa_override_gl_version_contextless(&consts, &api, &version)) {
-       if (api == API_OPENGL_CORE) {
-          psp->max_gl_core_version = version;
-       } else {
+       psp->max_gl_core_version = version;
+       if (api == API_OPENGL_COMPAT)
           psp->max_gl_compat_version = version;
-       }
     }
 
     psp->api_mask = 0;
@@ -380,6 +378,16 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
 	    return NULL;
 	}
     }
+
+    /* The specific Mesa driver may not support the GL_ARB_compatibilty
+     * extension or the compatibility profile.  In that case, we treat an
+     * API_OPENGL_COMPAT 3.1 as API_OPENGL_CORE. We reject API_OPENGL_COMPAT
+     * 3.2+ in any case.
+     */
+    if (mesa_api == API_OPENGL_COMPAT &&
+        ctx_config.major_version == 3 && ctx_config.minor_version == 1 &&
+        screen->max_gl_compat_version < 31)
+       mesa_api = API_OPENGL_CORE;
 
     if (mesa_api == API_OPENGL_COMPAT
         && ((ctx_config.major_version > 3)

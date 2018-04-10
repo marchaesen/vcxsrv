@@ -61,6 +61,7 @@ RESTYPE __glXContextRes;
 RESTYPE __glXDrawableRes;
 
 static DevPrivateKeyRec glxClientPrivateKeyRec;
+static GlxServerVendor *glvnd_vendor = NULL;
 
 #define glxClientPrivateKey (&glxClientPrivateKeyRec)
 
@@ -322,6 +323,10 @@ GetGLXDrawableBytes(void *value, XID id, ResourceSizePtr size)
 static void
 xorgGlxCloseExtension(const ExtensionEntry *extEntry)
 {
+    if (glvnd_vendor != NULL) {
+        glxServer.destroyVendor(glvnd_vendor);
+        glvnd_vendor = NULL;
+    }
     lastGLContext = NULL;
 }
 
@@ -502,11 +507,9 @@ xorgGlxServerPreInit(const ExtensionEntry *extEntry)
     return glxGeneration == serverGeneration;
 }
 
-static GlxServerVendor *
+static void
 xorgGlxInitGLVNDVendor(void)
 {
-    static GlxServerVendor *glvnd_vendor = NULL;
-
     if (glvnd_vendor == NULL) {
         GlxServerImports *imports = NULL;
         imports = glxServer.allocateServerImports();
@@ -520,13 +523,11 @@ xorgGlxInitGLVNDVendor(void)
             glxServer.freeServerImports(imports);
         }
     }
-    return glvnd_vendor;
 }
 
 static void
 xorgGlxServerInit(CallbackListPtr *pcbl, void *param, void *ext)
 {
-    GlxServerVendor *glvnd_vendor;
     const ExtensionEntry *extEntry = ext;
     int i;
 
@@ -534,7 +535,7 @@ xorgGlxServerInit(CallbackListPtr *pcbl, void *param, void *ext)
         return;
     }
 
-    glvnd_vendor = xorgGlxInitGLVNDVendor();
+    xorgGlxInitGLVNDVendor();
     if (!glvnd_vendor) {
         return;
     }

@@ -74,7 +74,6 @@ else
 endif
 if with_gallium_radeonsi
   subdir('winsys/amdgpu/drm')
-  subdir('drivers/radeon')
   subdir('drivers/radeonsi')
 else
   driver_radeonsi = declare_dependency()

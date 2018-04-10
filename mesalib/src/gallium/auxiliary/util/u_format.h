@@ -557,6 +557,18 @@ util_format_is_depth_and_stencil(enum pipe_format format)
           util_format_has_stencil(desc);
 }
 
+static inline boolean
+util_format_is_yuv(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   assert(desc);
+   if (!desc) {
+      return FALSE;
+   }
+
+   return desc->colorspace == UTIL_FORMAT_COLORSPACE_YUV;
+}
 
 /**
  * Calculates the depth format type based upon the incoming format description.

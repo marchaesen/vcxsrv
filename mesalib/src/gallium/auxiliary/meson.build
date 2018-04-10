@@ -339,7 +339,7 @@ files_libgallium = files(
   'nir/tgsi_to_nir.h',
 )
 
-if dep_libdrm != [] and dep_libdrm.found()
+if dep_libdrm.found()
   files_libgallium += files(
     'renderonly/renderonly.c',
     'renderonly/renderonly.h',

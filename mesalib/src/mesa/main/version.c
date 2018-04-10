@@ -134,16 +134,26 @@ create_version_string(struct gl_context *ctx, const char *prefix)
 }
 
 /**
- * Override the context's version and/or API type if the
- * environment variable MESA_GL_VERSION_OVERRIDE is set.
+ * Override the context's version and/or API type if the environment variables
+ * MESA_GL_VERSION_OVERRIDE or MESA_GLES_VERSION_OVERRIDE are set.
  *
  * Example uses of MESA_GL_VERSION_OVERRIDE:
  *
- * 2.1: select a compatibility (non-Core) profile with GL version 2.1
- * 3.0: select a compatibility (non-Core) profile with GL version 3.0
- * 3.0FC: select a Core+Forward Compatible profile with GL version 3.0
- * 3.1: select a Core profile with GL version 3.1
- * 3.1FC: select a Core+Forward Compatible profile with GL version 3.1
+ * 2.1: select a compatibility (non-Core) profile with GL version 2.1.
+ * 3.0: select a compatibility (non-Core) profile with GL version 3.0.
+ * 3.0FC: select a Core+Forward Compatible profile with GL version 3.0.
+ * 3.1: select GL version 3.1 with GL_ARB_compatibility enabled per the driver default.
+ * 3.1FC: select GL version 3.1 with forward compatibility and GL_ARB_compatibility disabled.
+ * 3.1COMPAT: select GL version 3.1 with GL_ARB_compatibility enabled.
+ * X.Y: override GL version to X.Y without changing the profile.
+ * X.YFC: select a Core+Forward Compatible profile with GL version X.Y.
+ * X.YCOMPAT: select a Compatibility profile with GL version X.Y.
+ *
+ * Example uses of MESA_GLES_VERSION_OVERRIDE:
+ *
+ * 2.0: select GLES version 2.0.
+ * 3.0: select GLES version 3.0.
+ * 3.1: select GLES version 3.1.
  */
 bool
 _mesa_override_gl_version_contextless(struct gl_constants *consts,
@@ -157,17 +167,12 @@ _mesa_override_gl_version_contextless(struct gl_constants *consts,
    if (version > 0) {
       *versionOut = version;
 
-      /* If the API is a desktop API, adjust the context flags.  We may also
-       * need to modify the API depending on the version.  For example, Mesa
-       * does not support a GL 3.3 compatibility profile.
-       */
+      /* Modify the API and context flags as needed. */
       if (*apiOut == API_OPENGL_CORE || *apiOut == API_OPENGL_COMPAT) {
          if (version >= 30 && fwd_context) {
             *apiOut = API_OPENGL_CORE;
             consts->ContextFlags |= GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
-         } else if (version >= 31 && !compat_context) {
-            *apiOut = API_OPENGL_CORE;
-         } else {
+         } else if (compat_context) {
             *apiOut = API_OPENGL_COMPAT;
          }
       }

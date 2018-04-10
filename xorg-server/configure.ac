@@ -2391,6 +2391,10 @@ if test "x$XWAYLAND" = xyes; then
 	AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner],,
 		     [${WAYLAND_PREFIX}/bin$PATH_SEPARATOR$PATH])
 
+        PKG_CHECK_MODULES(WAYLAND_SCANNER, [wayland-scanner >= 1.14.91],
+                          AC_SUBST(SCANNER_ARG, 'private-code'),
+                          AC_SUBST(SCANNER_ARG, 'code'))
+
 	AC_SUBST(WAYLAND_PROTOCOLS_DATADIR, `$PKG_CONFIG --variable=pkgdatadir wayland-protocols`)
 fi
 

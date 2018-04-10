@@ -528,8 +528,6 @@ loop_unroll_visitor::visit_leave(ir_loop *ir)
    unsigned term_count = 0;
    bool first_term_then_continue = false;
    foreach_in_list(loop_terminator, t, &ls->terminators) {
-      assert(term_count < 2);
-
       ir_if *ir_if = t->ir->as_if();
       assert(ir_if != NULL);
 

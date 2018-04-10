@@ -79,7 +79,7 @@ LIBDRM_INTEL_REQUIRED=2.4.75
 LIBDRM_NVVIEUX_REQUIRED=2.4.66
 LIBDRM_NOUVEAU_REQUIRED=2.4.66
 LIBDRM_FREEDRENO_REQUIRED=2.4.91
-LIBDRM_ETNAVIV_REQUIRED=2.4.82
+LIBDRM_ETNAVIV_REQUIRED=2.4.89
 
 dnl Versions for external dependencies
 DRI2PROTO_REQUIRED=2.8
@@ -2868,7 +2868,6 @@ AM_CONDITIONAL(HAVE_GALLIUM_PL111, test "x$HAVE_GALLIUM_PL111" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_R300, test "x$HAVE_GALLIUM_R300" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_R600, test "x$HAVE_GALLIUM_R600" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_RADEONSI, test "x$HAVE_GALLIUM_RADEONSI" = xyes)
-AM_CONDITIONAL(HAVE_GALLIUM_RADEON_COMMON, test "x$HAVE_GALLIUM_RADEONSI" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_NOUVEAU, test "x$HAVE_GALLIUM_NOUVEAU" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_FREEDRENO, test "x$HAVE_GALLIUM_FREEDRENO" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_ETNAVIV, test "x$HAVE_GALLIUM_ETNAVIV" = xyes)
@@ -3020,7 +3019,6 @@ AC_CONFIG_FILES([Makefile
                  src/gallium/drivers/pl111/Makefile
                  src/gallium/drivers/r300/Makefile
                  src/gallium/drivers/r600/Makefile
-                 src/gallium/drivers/radeon/Makefile
                  src/gallium/drivers/radeonsi/Makefile
                  src/gallium/drivers/rbug/Makefile
                  src/gallium/drivers/softpipe/Makefile

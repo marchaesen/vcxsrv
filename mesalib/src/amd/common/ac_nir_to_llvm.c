@@ -38,6 +38,8 @@ struct ac_nir_context {
 
 	gl_shader_stage stage;
 
+	LLVMValueRef *ssa_defs;
+
 	struct hash_table *defs;
 	struct hash_table *phis;
 	struct hash_table *vars;
@@ -87,8 +89,7 @@ static LLVMTypeRef get_def_type(struct ac_nir_context *ctx,
 static LLVMValueRef get_src(struct ac_nir_context *nir, nir_src src)
 {
 	assert(src.is_ssa);
-	struct hash_entry *entry = _mesa_hash_table_search(nir->defs, src.ssa);
-	return (LLVMValueRef)entry->data;
+	return nir->ssa_defs[src.ssa->index];
 }
 
 static LLVMValueRef
@@ -1028,8 +1029,7 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 	if (result) {
 		assert(instr->dest.dest.is_ssa);
 		result = ac_to_integer(&ctx->ac, result);
-		_mesa_hash_table_insert(ctx->defs, &instr->dest.dest.ssa,
-		                        result);
+		ctx->ssa_defs[instr->dest.dest.ssa.index] = result;
 	}
 }
 
@@ -1062,7 +1062,7 @@ static void visit_load_const(struct ac_nir_context *ctx,
 	} else
 		value = values[0];
 
-	_mesa_hash_table_insert(ctx->defs, &instr->def, value);
+	ctx->ssa_defs[instr->def.index] = value;
 }
 
 static LLVMValueRef
@@ -3095,7 +3095,7 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		break;
 	}
 	if (result) {
-		_mesa_hash_table_insert(ctx->defs, &instr->dest.ssa, result);
+		ctx->ssa_defs[instr->dest.ssa.index] = result;
 	}
 }
 
@@ -3596,7 +3596,7 @@ write_result:
 	if (result) {
 		assert(instr->dest.is_ssa);
 		result = ac_to_integer(&ctx->ac, result);
-		_mesa_hash_table_insert(ctx->defs, &instr->dest.ssa, result);
+		ctx->ssa_defs[instr->dest.ssa.index] = result;
 	}
 }
 
@@ -3606,7 +3606,7 @@ static void visit_phi(struct ac_nir_context *ctx, nir_phi_instr *instr)
 	LLVMTypeRef type = get_def_type(ctx, &instr->dest.ssa);
 	LLVMValueRef result = LLVMBuildPhi(ctx->ac.builder, type, "");
 
-	_mesa_hash_table_insert(ctx->defs, &instr->dest.ssa, result);
+	ctx->ssa_defs[instr->dest.ssa.index] = result;
 	_mesa_hash_table_insert(ctx->phis, instr, result);
 }
 
@@ -3644,7 +3644,7 @@ static void visit_ssa_undef(struct ac_nir_context *ctx,
 	else {
 		undef = LLVMGetUndef(LLVMVectorType(type, num_components));
 	}
-	_mesa_hash_table_insert(ctx->defs, &instr->def, undef);
+	ctx->ssa_defs[instr->def.index] = undef;
 }
 
 static void visit_jump(struct ac_llvm_context *ctx,
@@ -3927,6 +3927,9 @@ void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
 
 	func = (struct nir_function *)exec_list_get_head(&nir->functions);
 
+	nir_index_ssa_defs(func->impl);
+	ctx.ssa_defs = calloc(func->impl->ssa_alloc, sizeof(LLVMValueRef));
+
 	setup_locals(&ctx, func);
 
 	if (nir->info.stage == MESA_SHADER_COMPUTE)
@@ -3940,6 +3943,7 @@ void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
 				      ctx.abi->outputs);
 
 	free(ctx.locals);
+	free(ctx.ssa_defs);
 	ralloc_free(ctx.defs);
 	ralloc_free(ctx.phis);
 	ralloc_free(ctx.vars);

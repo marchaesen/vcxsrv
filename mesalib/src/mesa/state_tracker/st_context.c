@@ -714,7 +714,6 @@ void
 st_init_driver_functions(struct pipe_screen *screen,
                          struct dd_function_table *functions)
 {
-   _mesa_init_shader_object_functions(functions);
    _mesa_init_sampler_object_functions(functions);
 
    st_init_draw_functions(functions);

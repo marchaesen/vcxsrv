@@ -24,10 +24,13 @@ not started
 
 # OpenGL Core and Compatibility context support
 
-Some drivers do not support the Compatibility profile or ARB_compatibility.
-Such drivers are limited to OpenGL 3.0 if the Core profile is not requested
-by applications. Some of the later GL features are exposed in the 3.0 context
-as extensions.
+Some drivers do not support the Compatibility profile or the
+ARB_compatibility extensions.  If an application does not request a
+specific version without the forward-compatiblity flag, such drivers
+will be limited to OpenGL 3.0.  If an application requests OpenGL 3.1,
+it will get a context that may or may not have the ARB_compatibility
+extension enabled.  Some of the later GL features are exposed in the 3.0
+context as extensions.
 
 
 Feature                                                 Status
@@ -232,7 +235,7 @@ GL 4.6, GLSL 4.60
   GL_ARB_shader_group_vote                              DONE (i965, nvc0, radeonsi)
   GL_ARB_spirv_extensions                               in progress (Nicolai Hähnle, Ian Romanick)
   GL_ARB_texture_filter_anisotropic                     DONE (freedreno, i965, nv50, nvc0, r600, radeonsi, softpipe (*), llvmpipe (*))
-  GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+, radeonsi, llvmpipe, softpipe)
+  GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+, nvc0, radeonsi, llvmpipe, softpipe)
   GL_KHR_no_error                                       DONE (all drivers)
 
 (*) softpipe and llvmpipe advertise 16x anisotropy but simply ignore the setting

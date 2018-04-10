@@ -55,4 +55,5 @@ CLEANFILES += \
 
 EXTRA_DIST += \
 	spirv/spirv_info_c.py				\
-	spirv/spirv.core.grammar.json
+	spirv/spirv.core.grammar.json			\
+	spirv/vtn_gather_types_c.py

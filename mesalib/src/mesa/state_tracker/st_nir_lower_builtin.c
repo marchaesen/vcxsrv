@@ -216,7 +216,7 @@ lower_builtin_block(lower_builtin_state *state, nir_block *block)
        * to remove'd var.  And we have to remove the original uniform
        * var since we don't want it to get uniform space allocated.
        */
-      exec_node_remove(&intrin->instr.node);
+      nir_instr_remove(&intrin->instr);
    }
 
    return true;

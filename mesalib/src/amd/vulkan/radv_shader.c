@@ -597,15 +597,6 @@ radv_get_shader_name(struct radv_shader_variant *var, gl_shader_stage stage)
 	};
 }
 
-static uint32_t
-get_total_sgprs(struct radv_device *device)
-{
-	if (device->physical_device->rad_info.chip_class >= VI)
-		return 800;
-	else
-		return 512;
-}
-
 static void
 generate_shader_stats(struct radv_device *device,
 		      struct radv_shader_variant *variant,
@@ -637,10 +628,14 @@ generate_shader_stats(struct radv_device *device,
 	}
 
 	if (conf->num_sgprs)
-		max_simd_waves = MIN2(max_simd_waves, get_total_sgprs(device) / conf->num_sgprs);
+		max_simd_waves =
+			MIN2(max_simd_waves,
+			     radv_get_num_physical_sgprs(device->physical_device) / conf->num_sgprs);
 
 	if (conf->num_vgprs)
-		max_simd_waves = MIN2(max_simd_waves, 256 / conf->num_vgprs);
+		max_simd_waves =
+			MIN2(max_simd_waves,
+			     RADV_NUM_PHYSICAL_VGPRS / conf->num_vgprs);
 
 	/* LDS is 64KB per CU (4 SIMDs), divided into 16KB blocks per SIMD
 	 * that PS can use.
@@ -719,8 +714,8 @@ radv_GetShaderInfoAMD(VkDevice _device,
 
 			VkShaderStatisticsInfoAMD statistics = {};
 			statistics.shaderStageMask = shaderStage;
-			statistics.numPhysicalVgprs = 256;
-			statistics.numPhysicalSgprs = get_total_sgprs(device);
+			statistics.numPhysicalVgprs = RADV_NUM_PHYSICAL_VGPRS;
+			statistics.numPhysicalSgprs = radv_get_num_physical_sgprs(device->physical_device);
 			statistics.numAvailableSgprs = statistics.numPhysicalSgprs;
 
 			if (stage == MESA_SHADER_COMPUTE) {

@@ -77,10 +77,13 @@ ht_destroy(HashTable ht)
     for (c = 0; c < numBuckets; ++c) {
         xorg_list_for_each_entry_safe(it, tmp, &ht->buckets[c], l) {
             xorg_list_del(&it->l);
+            free(it->key);
+            free(it->data);
             free(it);
         }
     }
     free(ht->buckets);
+    free(ht);
 }
 
 static Bool

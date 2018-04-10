@@ -27,9 +27,16 @@ client_header = generator(scanner,
     output : '@BASENAME@-client-protocol.h',
     arguments : ['client-header', '@INPUT@', '@OUTPUT@']
 )
+
+if scanner_dep.version().version_compare('>= 1.14.91')
+    scanner_argument = 'private-code'
+else
+    scanner_argument = 'code'
+endif
+
 code = generator(scanner,
     output : '@BASENAME@-protocol.c',
-    arguments : ['code', '@INPUT@', '@OUTPUT@']
+    arguments : [scanner_argument, '@INPUT@', '@OUTPUT@']
 )
 srcs += client_header.process(relative_xml)
 srcs += client_header.process(pointer_xml)

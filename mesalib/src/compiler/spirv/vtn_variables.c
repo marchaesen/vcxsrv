@@ -1276,8 +1276,8 @@ vtn_get_builtin_location(struct vtn_builder *b,
       set_mode_system_value(b, mode);
       break;
    case SpvBuiltInWorkgroupSize:
-      /* This should already be handled */
-      vtn_fail("unsupported builtin");
+      *location = SYSTEM_VALUE_LOCAL_GROUP_SIZE;
+      set_mode_system_value(b, mode);
       break;
    case SpvBuiltInWorkgroupId:
       *location = SYSTEM_VALUE_WORK_GROUP_ID;
@@ -1406,19 +1406,6 @@ apply_var_decoration(struct vtn_builder *b, nir_variable *nir_var,
       break;
    case SpvDecorationBuiltIn: {
       SpvBuiltIn builtin = dec->literals[0];
-
-      if (builtin == SpvBuiltInWorkgroupSize) {
-         /* This shouldn't be a builtin.  It's actually a constant. */
-         nir_var->data.mode = nir_var_global;
-         nir_var->data.read_only = true;
-
-         nir_constant *c = rzalloc(nir_var, nir_constant);
-         c->values[0].u32[0] = b->shader->info.cs.local_size[0];
-         c->values[0].u32[1] = b->shader->info.cs.local_size[1];
-         c->values[0].u32[2] = b->shader->info.cs.local_size[2];
-         nir_var->constant_initializer = c;
-         break;
-      }
 
       nir_variable_mode mode = nir_var->data.mode;
       vtn_get_builtin_location(b, builtin, &nir_var->data.location, &mode);

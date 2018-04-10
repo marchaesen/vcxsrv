@@ -340,7 +340,7 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_meta_state *meta_state = &cmd_buffer->device->meta_state;
 	VkPipeline pipeline_h;
 
-	if (!image->surface.htile_size)
+	if (!radv_image_has_htile(image))
 		return;
 
 	radv_meta_save(&saved_state, cmd_buffer,
