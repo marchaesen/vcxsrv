@@ -388,19 +388,8 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_meta_saved_state saved_state;
 
-	for (uint32_t r = 0; r < region_count; ++r) {
-		const VkImageResolve *region = &regions[r];
-		const uint32_t src_base_layer =
-			radv_meta_get_iview_layer(src_image, &region->srcSubresource,
-						  &region->srcOffset);
-		VkImageSubresourceRange range;
-		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		range.baseMipLevel = region->srcSubresource.mipLevel;
-		range.levelCount = 1;
-		range.baseArrayLayer = src_base_layer;
-		range.layerCount = region->srcSubresource.layerCount;
-		radv_fast_clear_flush_image_inplace(cmd_buffer, src_image, &range);
-	}
+	radv_decompress_resolve_src(cmd_buffer, src_image,
+				    region_count, regions);
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_COMPUTE_PIPELINE |
@@ -504,24 +493,7 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 	                                RADV_CMD_FLAG_INV_GLOBAL_L2 |
 	                                RADV_CMD_FLAG_INV_VMEM_L1;
 
-	for (uint32_t i = 0; i < subpass->color_count; ++i) {
-		VkAttachmentReference src_att = subpass->color_attachments[i];
-		VkAttachmentReference dest_att = subpass->resolve_attachments[i];
-
-		if (src_att.attachment == VK_ATTACHMENT_UNUSED ||
-		    dest_att.attachment == VK_ATTACHMENT_UNUSED)
-			continue;
-
-		struct radv_image_view *src_iview = cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment;
-
-		VkImageSubresourceRange range;
-		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		range.baseMipLevel = 0;
-		range.levelCount = 1;
-		range.baseArrayLayer = 0;
-		range.layerCount = 1;
-		radv_fast_clear_flush_image_inplace(cmd_buffer, src_iview->image, &range);
-	}
+	radv_decompress_resolve_subpass_src(cmd_buffer);
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_COMPUTE_PIPELINE |

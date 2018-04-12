@@ -191,6 +191,13 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 				      uint32_t region_count,
 				      const VkImageResolve *regions);
 
+void radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer);
+
+void radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
+				 struct radv_image *src_image,
+				 uint32_t region_count,
+				 const VkImageResolve *regions);
+
 void radv_blit_to_prime_linear(struct radv_cmd_buffer *cmd_buffer,
 			       struct radv_image *image,
 			       struct radv_image *linear_image);

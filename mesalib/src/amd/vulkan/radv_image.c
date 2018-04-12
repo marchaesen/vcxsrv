@@ -1241,7 +1241,7 @@ bool radv_layout_dcc_compressed(const struct radv_image *image,
 	    (queue_mask & (1u << RADV_QUEUE_COMPUTE)))
 		return false;
 
-	return image->surface.num_dcc_levels > 0 && layout != VK_IMAGE_LAYOUT_GENERAL;
+	return radv_image_has_dcc(image) && layout != VK_IMAGE_LAYOUT_GENERAL;
 }
 
 

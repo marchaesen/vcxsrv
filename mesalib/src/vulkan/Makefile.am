@@ -4,13 +4,11 @@ noinst_LTLIBRARIES = libvulkan_wsi.la libvulkan_util.la
 
 vulkan_includedir = $(includedir)/vulkan
 vulkan_api_xml = $(top_srcdir)/src/vulkan/registry/vk.xml
-vk_android_native_buffer_xml = $(top_srcdir)/src/vulkan/registry/vk_android_native_buffer.xml
 
 MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
 PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
 
 EXTRA_DIST = \
-	$(top_srcdir)/include/vulkan/vk_android_native_buffer.h \
 	util/gen_enum_to_str.py \
 	util/meson.build \
 	wsi/meson.build \
@@ -21,11 +19,10 @@ VULKAN_UTIL_SOURCES = \
 	$(VULKAN_UTIL_GENERATED_FILES)
 
 util/vk_enum_to_str.c util/vk_enum_to_str.h: util/gen_enum_to_str.py \
-		$(vulkan_api_xml) $(vk_android_native_buffer_xml)
+		$(vulkan_api_xml)
 	$(MKDIR_GEN)
 	$(PYTHON_GEN) $(srcdir)/util/gen_enum_to_str.py \
 	    --xml $(vulkan_api_xml) \
-	    --xml $(vk_android_native_buffer_xml) \
 	    --outdir $(top_builddir)/src/vulkan/util
 
 libvulkan_util_la_SOURCES = $(VULKAN_UTIL_SOURCES)

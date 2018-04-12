@@ -647,10 +647,10 @@ xwl_dri3_open_client(ClientPtr client,
 
 _X_EXPORT PixmapPtr
 glamor_pixmap_from_fds(ScreenPtr screen,
-                         CARD8 num_fds, int *fds,
-                         CARD16 width, CARD16 height,
-                         CARD32 *strides, CARD32 *offsets,
-                         CARD8 depth, CARD8 bpp, uint64_t modifier)
+                       CARD8 num_fds, const int *fds,
+                       CARD16 width, CARD16 height,
+                       const CARD32 *strides, const CARD32 *offsets,
+                       CARD8 depth, CARD8 bpp, uint64_t modifier)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     struct gbm_bo *bo = NULL;
@@ -704,8 +704,6 @@ glamor_pixmap_from_fds(ScreenPtr screen,
     return pixmap;
 
 error:
-    for (i = 0; i < num_fds; i++)
-       close(fds[i]);
     return NULL;
 }
 
@@ -752,19 +750,18 @@ glamor_get_formats(ScreenPtr screen,
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     int i;
 
+    /* Explicitly zero the count as the caller may ignore the return value */
+    *num_formats = 0;
+
     if (!xwl_screen->dmabuf_capable || !xwl_screen->dmabuf)
         return FALSE;
 
-    if (xwl_screen->num_formats == 0) {
-       *num_formats = 0;
+    if (xwl_screen->num_formats == 0)
        return TRUE;
-    }
 
     *formats = calloc(xwl_screen->num_formats, sizeof(CARD32));
-    if (*formats == NULL) {
-        *num_formats = 0;
+    if (*formats == NULL)
         return FALSE;
-    }
 
     for (i = 0; i < xwl_screen->num_formats; i++)
        (*formats)[i] = xwl_screen->formats[i].format;
@@ -781,13 +778,14 @@ glamor_get_modifiers(ScreenPtr screen, CARD32 format,
     struct xwl_format *xwl_format = NULL;
     int i;
 
+    /* Explicitly zero the count as the caller may ignore the return value */
+    *num_modifiers = 0;
+
     if (!xwl_screen->dmabuf_capable || !xwl_screen->dmabuf)
         return FALSE;
 
-    if (xwl_screen->num_formats == 0) {
-       *num_modifiers = 0;
-       return TRUE;
-    }
+    if (xwl_screen->num_formats == 0)
+        return TRUE;
 
     for (i = 0; i < xwl_screen->num_formats; i++) {
        if (xwl_screen->formats[i].format == format) {
@@ -796,16 +794,12 @@ glamor_get_modifiers(ScreenPtr screen, CARD32 format,
        }
     }
 
-    if (!xwl_format) {
-	*num_modifiers = 0;
+    if (!xwl_format)
         return FALSE;
-    }
 
     *modifiers = calloc(xwl_format->num_modifiers, sizeof(uint64_t));
-    if (*modifiers == NULL) {
-        *num_modifiers = 0;
+    if (*modifiers == NULL)
         return FALSE;
-    }
 
     for (i = 0; i < xwl_format->num_modifiers; i++)
        (*modifiers)[i] = xwl_format->modifiers[i];
@@ -815,7 +809,7 @@ glamor_get_modifiers(ScreenPtr screen, CARD32 format,
 }
 
 
-static dri3_screen_info_rec xwl_dri3_info = {
+static const dri3_screen_info_rec xwl_dri3_info = {
     .version = 2,
     .open = NULL,
     .pixmap_from_fds = glamor_pixmap_from_fds,

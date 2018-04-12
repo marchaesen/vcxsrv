@@ -621,7 +621,7 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 		struct radv_image *dst_img = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment->image;
 		struct radv_image *src_img = cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment->image;
 
-		radv_pick_resolve_method_images(dst_img, src_img, dest_att.layout, cmd_buffer, &resolve_method);
+		radv_pick_resolve_method_images(src_img, dst_img, dest_att.layout, cmd_buffer, &resolve_method);
 		if (resolve_method == RESOLVE_FRAGMENT) {
 			break;
 		}
@@ -669,4 +669,62 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 
 	cmd_buffer->state.subpass = subpass;
 	radv_meta_restore(&saved_state, cmd_buffer);
+}
+
+/**
+ * Decompress CMask/FMask before resolving a multisampled source image inside a
+ * subpass.
+ */
+void
+radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
+{
+	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
+	struct radv_framebuffer *fb = cmd_buffer->state.framebuffer;
+
+	for (uint32_t i = 0; i < subpass->color_count; ++i) {
+		VkAttachmentReference src_att = subpass->color_attachments[i];
+		VkAttachmentReference dest_att = subpass->resolve_attachments[i];
+
+		if (src_att.attachment == VK_ATTACHMENT_UNUSED ||
+		    dest_att.attachment == VK_ATTACHMENT_UNUSED)
+			continue;
+
+		struct radv_image_view *src_iview =
+			fb->attachments[src_att.attachment].attachment;
+
+		VkImageSubresourceRange range;
+		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		range.baseMipLevel = 0;
+		range.levelCount = 1;
+		range.baseArrayLayer = 0;
+		range.layerCount = 1;
+
+		radv_fast_clear_flush_image_inplace(cmd_buffer,
+						    src_iview->image, &range);
+	}
+}
+
+/**
+ * Decompress CMask/FMask before resolving a multisampled source image.
+ */
+void
+radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
+			    struct radv_image *src_image,
+			    uint32_t region_count,
+			    const VkImageResolve *regions)
+{
+	for (uint32_t r = 0; r < region_count; ++r) {
+		const VkImageResolve *region = &regions[r];
+		const uint32_t src_base_layer =
+			radv_meta_get_iview_layer(src_image, &region->srcSubresource,
+						  &region->srcOffset);
+		VkImageSubresourceRange range;
+		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		range.baseMipLevel = region->srcSubresource.mipLevel;
+		range.levelCount = 1;
+		range.baseArrayLayer = src_base_layer;
+		range.layerCount = region->srcSubresource.layerCount;
+
+		radv_fast_clear_flush_image_inplace(cmd_buffer, src_image, &range);
+	}
 }

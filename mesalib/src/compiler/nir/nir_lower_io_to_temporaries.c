@@ -31,6 +31,7 @@
  */
 
 #include "nir.h"
+#include "nir_builder.h"
 
 struct lower_io_state {
    nir_shader *shader;
@@ -40,7 +41,7 @@ struct lower_io_state {
 };
 
 static void
-emit_copies(nir_cursor cursor, nir_shader *shader, struct exec_list *dest_vars,
+emit_copies(nir_builder *b, struct exec_list *dest_vars,
             struct exec_list *src_vars)
 {
    assert(exec_list_length(dest_vars) == exec_list_length(src_vars));
@@ -64,18 +65,16 @@ emit_copies(nir_cursor cursor, nir_shader *shader, struct exec_list *dest_vars,
       if (dest->data.read_only)
          continue;
 
-      nir_intrinsic_instr *copy =
-         nir_intrinsic_instr_create(shader, nir_intrinsic_copy_var);
-      copy->variables[0] = nir_deref_var_create(copy, dest);
-      copy->variables[1] = nir_deref_var_create(copy, src);
-
-      nir_instr_insert(cursor, &copy->instr);
+      nir_copy_var(b, dest, src);
    }
 }
 
 static void
 emit_output_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
 {
+   nir_builder b;
+   nir_builder_init(&b, impl);
+
    if (state->shader->info.stage == MESA_SHADER_GEOMETRY) {
       /* For geometry shaders, we have to emit the output copies right
        * before each EmitVertex call.
@@ -87,16 +86,14 @@ emit_output_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
 
             nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
             if (intrin->intrinsic == nir_intrinsic_emit_vertex) {
-               nir_cursor cursor = nir_before_instr(&intrin->instr);
-               emit_copies(cursor, state->shader, &state->shader->outputs,
-                           &state->old_outputs);
+               b.cursor = nir_before_instr(&intrin->instr);
+               emit_copies(&b, &state->shader->outputs, &state->old_outputs);
             }
          }
       }
    } else if (impl == state->entrypoint) {
-      nir_cursor cursor = nir_before_block(nir_start_block(impl));
-      emit_copies(cursor, state->shader, &state->old_outputs,
-                  &state->shader->outputs);
+      b.cursor = nir_before_block(nir_start_block(impl));
+      emit_copies(&b, &state->old_outputs, &state->shader->outputs);
 
       /* For all other shader types, we need to do the copies right before
        * the jumps to the end block.
@@ -104,9 +101,8 @@ emit_output_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
       struct set_entry *block_entry;
       set_foreach(impl->end_block->predecessors, block_entry) {
          struct nir_block *block = (void *)block_entry->key;
-         nir_cursor cursor = nir_after_block_before_jump(block);
-         emit_copies(cursor, state->shader, &state->shader->outputs,
-                     &state->old_outputs);
+         b.cursor = nir_after_block_before_jump(block);
+         emit_copies(&b, &state->shader->outputs, &state->old_outputs);
       }
    }
 }
@@ -115,9 +111,10 @@ static void
 emit_input_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
 {
    if (impl == state->entrypoint) {
-      nir_cursor cursor = nir_before_block(nir_start_block(impl));
-      emit_copies(cursor, state->shader, &state->old_inputs,
-                  &state->shader->inputs);
+      nir_builder b;
+      nir_builder_init(&b, impl);
+      b.cursor = nir_before_block(nir_start_block(impl));
+      emit_copies(&b, &state->old_inputs, &state->shader->inputs);
    }
 }
 

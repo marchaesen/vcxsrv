@@ -761,7 +761,7 @@ unsigned ac_get_wave_info(struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP])
 	char line[2000];
 	unsigned num_waves = 0;
 
-	FILE *p = popen("umr -wa", "r");
+	FILE *p = popen("umr -O halt_waves -wa", "r");
 	if (!p)
 		return 0;
 

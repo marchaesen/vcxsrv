@@ -217,45 +217,42 @@ get_deref_node(nir_deref_var *deref, struct lower_variables_state *state)
 }
 
 /* \sa foreach_deref_node_match */
-static bool
+static void
 foreach_deref_node_worker(struct deref_node *node, nir_deref *deref,
-                          bool (* cb)(struct deref_node *node,
+                          void (* cb)(struct deref_node *node,
                                       struct lower_variables_state *state),
                           struct lower_variables_state *state)
 {
    if (deref->child == NULL) {
-      return cb(node, state);
-   } else {
-      switch (deref->child->deref_type) {
-      case nir_deref_type_array: {
-         nir_deref_array *arr = nir_deref_as_array(deref->child);
-         assert(arr->deref_array_type == nir_deref_array_type_direct);
-         if (node->children[arr->base_offset] &&
-             !foreach_deref_node_worker(node->children[arr->base_offset],
-                                        deref->child, cb, state))
-            return false;
+      cb(node, state);
+      return;
+   }
 
-         if (node->wildcard &&
-             !foreach_deref_node_worker(node->wildcard,
-                                        deref->child, cb, state))
-            return false;
+   switch (deref->child->deref_type) {
+   case nir_deref_type_array: {
+      nir_deref_array *arr = nir_deref_as_array(deref->child);
+      assert(arr->deref_array_type == nir_deref_array_type_direct);
 
-         return true;
+      if (node->children[arr->base_offset]) {
+         foreach_deref_node_worker(node->children[arr->base_offset],
+                                   deref->child, cb, state);
       }
+      if (node->wildcard)
+         foreach_deref_node_worker(node->wildcard, deref->child, cb, state);
+      break;
+   }
 
-      case nir_deref_type_struct: {
-         nir_deref_struct *str = nir_deref_as_struct(deref->child);
-         if (node->children[str->index] &&
-             !foreach_deref_node_worker(node->children[str->index],
-                                        deref->child, cb, state))
-            return false;
-
-         return true;
+   case nir_deref_type_struct: {
+      nir_deref_struct *str = nir_deref_as_struct(deref->child);
+      if (node->children[str->index]) {
+         foreach_deref_node_worker(node->children[str->index],
+                                   deref->child, cb, state);
       }
+      break;
+   }
 
-      default:
-         unreachable("Invalid deref child type");
-      }
+   default:
+      unreachable("Invalid deref child type");
    }
 }
 
@@ -271,9 +268,9 @@ foreach_deref_node_worker(struct deref_node *node, nir_deref *deref,
  * The given deref must be a full-length and fully qualified (no wildcards
  * or indirects) deref chain.
  */
-static bool
+static void
 foreach_deref_node_match(nir_deref_var *deref,
-                         bool (* cb)(struct deref_node *node,
+                         void (* cb)(struct deref_node *node,
                                      struct lower_variables_state *state),
                          struct lower_variables_state *state)
 {
@@ -282,9 +279,9 @@ foreach_deref_node_match(nir_deref_var *deref,
    struct deref_node *node = get_deref_node(&var_deref, state);
 
    if (node == NULL)
-      return false;
+      return;
 
-   return foreach_deref_node_worker(node, &deref->deref, cb, state);
+   foreach_deref_node_worker(node, &deref->deref, cb, state);
 }
 
 /* \sa deref_may_be_aliased */
@@ -298,14 +295,15 @@ deref_may_be_aliased_node(struct deref_node *node, nir_deref *deref,
       switch (deref->child->deref_type) {
       case nir_deref_type_array: {
          nir_deref_array *arr = nir_deref_as_array(deref->child);
-         if (arr->deref_array_type == nir_deref_array_type_indirect)
-            return true;
+
+         /* This is a child of one of the derefs in direct_deref_nodes,
+          * so we know it is direct.
+          */
+         assert(arr->deref_array_type == nir_deref_array_type_direct);
 
          /* If there is an indirect at this level, we're aliased. */
          if (node->indirect)
             return true;
-
-         assert(arr->deref_array_type == nir_deref_array_type_direct);
 
          if (node->children[arr->base_offset] &&
              deref_may_be_aliased_node(node->children[arr->base_offset],
@@ -406,47 +404,46 @@ register_copy_instr(nir_intrinsic_instr *copy_instr,
    }
 }
 
-/* Registers all variable uses in the given block. */
-static bool
-register_variable_uses_block(nir_block *block,
-                             struct lower_variables_state *state)
+static void
+register_variable_uses(nir_function_impl *impl,
+                       struct lower_variables_state *state)
 {
-   nir_foreach_instr_safe(instr, block) {
-      if (instr->type != nir_instr_type_intrinsic)
-         continue;
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->type != nir_instr_type_intrinsic)
+            continue;
 
-      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
-      switch (intrin->intrinsic) {
-      case nir_intrinsic_load_var:
-         register_load_instr(intrin, state);
-         break;
+         switch (intrin->intrinsic) {
+         case nir_intrinsic_load_var:
+            register_load_instr(intrin, state);
+            break;
 
-      case nir_intrinsic_store_var:
-         register_store_instr(intrin, state);
-         break;
+         case nir_intrinsic_store_var:
+            register_store_instr(intrin, state);
+            break;
 
-      case nir_intrinsic_copy_var:
-         register_copy_instr(intrin, state);
-         break;
+         case nir_intrinsic_copy_var:
+            register_copy_instr(intrin, state);
+            break;
 
-      default:
-         continue;
+         default:
+            continue;
+         }
       }
    }
-
-   return true;
 }
 
 /* Walks over all of the copy instructions to or from the given deref_node
  * and lowers them to load/store intrinsics.
  */
-static bool
+static void
 lower_copies_to_load_store(struct deref_node *node,
                            struct lower_variables_state *state)
 {
    if (!node->copies)
-      return true;
+      return;
 
    struct set_entry *copy_entry;
    set_foreach(node->copies, copy_entry) {
@@ -471,8 +468,6 @@ lower_copies_to_load_store(struct deref_node *node,
    }
 
    node->copies = NULL;
-
-   return true;
 }
 
 /* Performs variable renaming
@@ -654,9 +649,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
    /* Build the initial deref structures and direct_deref_nodes table */
    state.add_to_direct_deref_nodes = true;
 
-   nir_foreach_block(block, impl) {
-      register_variable_uses_block(block, &state);
-   }
+   register_variable_uses(impl, &state);
 
    bool progress = false;
 
@@ -696,9 +689,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
     * added load/store instructions are registered.  We need this
     * information for phi node insertion below.
     */
-   nir_foreach_block(block, impl) {
-      register_variable_uses_block(block, &state);
-   }
+   register_variable_uses(impl, &state);
 
    state.phi_builder = nir_phi_builder_create(state.impl);
 

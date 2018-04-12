@@ -2543,17 +2543,15 @@ radv_pipeline_generate_blend_state(struct radeon_winsys_cs *cs,
 
 		radeon_set_context_reg_seq(cs, R_028760_SX_MRT0_BLEND_OPT, 8);
 		radeon_emit_array(cs, blend->sx_mrt_blend_opt, 8);
-
-		radeon_set_context_reg_seq(cs, R_028754_SX_PS_DOWNCONVERT, 3);
-		radeon_emit(cs, 0);	/* R_028754_SX_PS_DOWNCONVERT */
-		radeon_emit(cs, 0);	/* R_028758_SX_BLEND_OPT_EPSILON */
-		radeon_emit(cs, 0);	/* R_02875C_SX_BLEND_OPT_CONTROL */
 	}
 
 	radeon_set_context_reg(cs, R_028714_SPI_SHADER_COL_FORMAT, blend->spi_shader_col_format);
 
 	radeon_set_context_reg(cs, R_028238_CB_TARGET_MASK, blend->cb_target_mask);
 	radeon_set_context_reg(cs, R_02823C_CB_SHADER_MASK, blend->cb_shader_mask);
+
+	pipeline->graphics.col_format = blend->spi_shader_col_format;
+	pipeline->graphics.cb_target_mask = blend->cb_target_mask;
 }
 
 
@@ -2993,6 +2991,9 @@ radv_compute_db_shader_control(const struct radv_device *device,
 	else
 		z_order = V_02880C_LATE_Z;
 
+	bool disable_rbplus = device->physical_device->has_rbplus &&
+	                      !device->physical_device->rbplus_allowed;
+
 	return  S_02880C_Z_EXPORT_ENABLE(ps->info.info.ps.writes_z) |
 		S_02880C_STENCIL_TEST_VAL_EXPORT_ENABLE(ps->info.info.ps.writes_stencil) |
 		S_02880C_KILL_ENABLE(!!ps->info.fs.can_discard) |
@@ -3001,7 +3002,7 @@ radv_compute_db_shader_control(const struct radv_device *device,
 		S_02880C_DEPTH_BEFORE_SHADER(ps->info.fs.early_fragment_test) |
 		S_02880C_EXEC_ON_HIER_FAIL(ps->info.info.ps.writes_memory) |
 		S_02880C_EXEC_ON_NOOP(ps->info.info.ps.writes_memory) |
-		S_02880C_DUAL_QUAD_DISABLE(!!device->physical_device->has_rbplus);
+		S_02880C_DUAL_QUAD_DISABLE(disable_rbplus);
 }
 
 static void

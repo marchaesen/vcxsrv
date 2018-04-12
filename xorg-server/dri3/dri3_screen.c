@@ -32,44 +32,32 @@
 #include <drm_fourcc.h>
 #include <unistd.h>
 
-static inline Bool has_open(dri3_screen_info_ptr info) {
-    if (info == NULL)
-        return FALSE;
-
-    return info->open != NULL ||
-        (info->version >= 1 && info->open_client != NULL);
-}
-
 int
 dri3_open(ClientPtr client, ScreenPtr screen, RRProviderPtr provider, int *fd)
 {
     dri3_screen_priv_ptr        ds = dri3_screen_priv(screen);
-    dri3_screen_info_ptr        info = ds->info;
-    int                         rc;
+    const dri3_screen_info_rec *info = ds->info;
 
-    if (!has_open(info))
+    if (info == NULL)
         return BadMatch;
 
     if (info->version >= 1 && info->open_client != NULL)
-        rc = (*info->open_client) (client, screen, provider, fd);
-    else
-        rc = (*info->open) (screen, provider, fd);
+        return (*info->open_client) (client, screen, provider, fd);
+    if (info->open != NULL)
+        return (*info->open) (screen, provider, fd);
 
-    if (rc != Success)
-        return rc;
-
-    return Success;
+    return BadMatch;
 }
 
 int
 dri3_pixmap_from_fds(PixmapPtr *ppixmap, ScreenPtr screen,
-                     CARD8 num_fds, int *fds,
+                     CARD8 num_fds, const int *fds,
                      CARD16 width, CARD16 height,
-                     CARD32 *strides, CARD32 *offsets,
+                     const CARD32 *strides, const CARD32 *offsets,
                      CARD8 depth, CARD8 bpp, CARD64 modifier)
 {
     dri3_screen_priv_ptr        ds = dri3_screen_priv(screen);
-    dri3_screen_info_ptr        info = ds->info;
+    const dri3_screen_info_rec *info = ds->info;
     PixmapPtr                   pixmap;
 
     if (!info)
@@ -100,7 +88,7 @@ dri3_fds_from_pixmap(PixmapPtr pixmap, int *fds,
 {
     ScreenPtr                   screen = pixmap->drawable.pScreen;
     dri3_screen_priv_ptr        ds = dri3_screen_priv(screen);
-    dri3_screen_info_ptr        info = ds->info;
+    const dri3_screen_info_rec *info = ds->info;
 
     if (!info)
         return 0;
@@ -130,7 +118,7 @@ dri3_fd_from_pixmap(PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
 {
     ScreenPtr                   screen = pixmap->drawable.pScreen;
     dri3_screen_priv_ptr        ds = dri3_screen_priv(screen);
-    dri3_screen_info_ptr        info = ds->info;
+    const dri3_screen_info_rec  *info = ds->info;
     CARD32                      strides[4];
     CARD32                      offsets[4];
     CARD64                      modifier;
@@ -170,9 +158,11 @@ static int
 cache_formats_and_modifiers(ScreenPtr screen)
 {
     dri3_screen_priv_ptr        ds = dri3_screen_priv(screen);
-    dri3_screen_info_ptr        info = ds->info;
-    CARD32                     *formats = NULL;
-    CARD64                     *modifiers = NULL;
+    const dri3_screen_info_rec *info = ds->info;
+    CARD32                      num_formats;
+    CARD32                     *formats;
+    CARD32                      num_modifiers;
+    CARD64                     *modifiers;
     int                         i;
 
     if (ds->formats_cached)
@@ -188,34 +178,36 @@ cache_formats_and_modifiers(ScreenPtr screen)
         return Success;
     }
 
-    (*info->get_formats) (screen, &ds->num_formats, &formats);
-    ds->formats = calloc(ds->num_formats, sizeof(dri3_dmabuf_format_rec));
+    if (!info->get_formats(screen, &num_formats, &formats))
+        return BadAlloc;
+
+    if (!num_formats) {
+        ds->num_formats = 0;
+        ds->formats_cached = TRUE;
+        return Success;
+    }
+
+    ds->formats = calloc(num_formats, sizeof(dri3_dmabuf_format_rec));
     if (!ds->formats)
         return BadAlloc;
 
-    for (i = 0; i < ds->num_formats; i++) {
+    for (i = 0; i < num_formats; i++) {
         dri3_dmabuf_format_ptr iter = &ds->formats[i];
 
+        if (!info->get_modifiers(screen, formats[i],
+                                 &num_modifiers,
+                                 &modifiers))
+            continue;
+
+        if (!num_modifiers)
+            continue;
+
         iter->format = formats[i];
-        (*info->get_modifiers) (screen, formats[i],
-                                &iter->num_modifiers,
-                                &modifiers);
-
-        iter->modifiers = malloc(iter->num_modifiers * sizeof(CARD64));
-        if (iter->modifiers == NULL)
-            goto error;
-
-        memcpy(iter->modifiers, modifiers,
-               iter->num_modifiers * sizeof(CARD64));
-        goto done;
-
-error:
-        iter->num_modifiers = 0;
-        free(iter->modifiers);
-done:
-        free(modifiers);
+        iter->num_modifiers = num_modifiers;
+        iter->modifiers = modifiers;
     }
-    free(formats);
+
+    ds->num_formats = i;
     ds->formats_cached = TRUE;
 
     return Success;
@@ -230,7 +222,7 @@ dri3_get_supported_modifiers(ScreenPtr screen, DrawablePtr drawable,
                              CARD64 **screen_modifiers)
 {
     dri3_screen_priv_ptr        ds = dri3_screen_priv(screen);
-    dri3_screen_info_ptr        info = ds->info;
+    const dri3_screen_info_rec *info = ds->info;
     int                         i, j;
     int                         ret;
     CARD32                      num_drawable_mods;
@@ -265,10 +257,13 @@ dri3_get_supported_modifiers(ScreenPtr screen, DrawablePtr drawable,
         return Success;
     }
 
-    if (info->get_drawable_modifiers)
-        (*info->get_drawable_modifiers) (drawable, format,
-                                         &num_drawable_mods,
-                                         &drawable_mods);
+    if (!info->get_drawable_modifiers ||
+        !info->get_drawable_modifiers(drawable, format,
+                                      &num_drawable_mods,
+                                      &drawable_mods)) {
+        num_drawable_mods = 0;
+        drawable_mods = NULL;
+    }
 
     /* We're allocating slightly more memory than necessary but it reduces
      * the complexity of finding the intersection set.

@@ -45,7 +45,7 @@ dri3_close_screen(ScreenPtr screen)
 }
 
 Bool
-dri3_screen_init(ScreenPtr screen, dri3_screen_info_ptr info)
+dri3_screen_init(ScreenPtr screen, const dri3_screen_info_rec *info)
 {
     dri3_screen_generation = serverGeneration;
 

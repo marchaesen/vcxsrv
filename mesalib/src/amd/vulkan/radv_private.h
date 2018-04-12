@@ -1238,6 +1238,10 @@ struct radv_pipeline {
  			bool can_use_guardband;
 			uint32_t needed_dynamic_state;
 			bool disable_out_of_order_rast_for_occlusion;
+
+			/* Used for rbplus */
+			uint32_t col_format;
+			uint32_t cb_target_mask;
 		} graphics;
 	};
 

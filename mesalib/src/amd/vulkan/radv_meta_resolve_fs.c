@@ -457,19 +457,9 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 	unsigned fs_key = radv_format_meta_fs_key(dest_image->vk_format);
 	unsigned dst_layout = radv_meta_dst_layout_from_layout(dest_image_layout);
 	VkRenderPass rp;
-	for (uint32_t r = 0; r < region_count; ++r) {
-		const VkImageResolve *region = &regions[r];
-		const uint32_t src_base_layer =
-			radv_meta_get_iview_layer(src_image, &region->srcSubresource,
-						  &region->srcOffset);
-		VkImageSubresourceRange range;
-		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		range.baseMipLevel = region->srcSubresource.mipLevel;
-		range.levelCount = 1;
-		range.baseArrayLayer = src_base_layer;
-		range.layerCount = region->srcSubresource.layerCount;
-		radv_fast_clear_flush_image_inplace(cmd_buffer, src_image, &range);
-	}
+
+	radv_decompress_resolve_src(cmd_buffer, src_image,
+				    region_count, regions);
 
 	rp = device->meta_state.resolve_fragment.rc[samples_log2].render_pass[fs_key][dst_layout];
 
@@ -618,6 +608,8 @@ radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer)
 	                                RADV_CMD_FLAG_INV_GLOBAL_L2 |
 	                                RADV_CMD_FLAG_INV_VMEM_L1;
 
+	radv_decompress_resolve_subpass_src(cmd_buffer);
+
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
 		VkAttachmentReference src_att = subpass->color_attachments[i];
 		VkAttachmentReference dest_att = subpass->resolve_attachments[i];
@@ -628,16 +620,6 @@ radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer)
 
 		struct radv_image_view *dest_iview = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment;
 		struct radv_image_view *src_iview = cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment;
-
-		{
-			VkImageSubresourceRange range;
-			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			range.baseMipLevel = 0;
-			range.levelCount = 1;
-			range.baseArrayLayer = 0;
-			range.layerCount = 1;
-			radv_fast_clear_flush_image_inplace(cmd_buffer, src_iview->image, &range);
-		}
 
 		struct radv_subpass resolve_subpass = {
 			.color_count = 1,
