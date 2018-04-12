@@ -731,8 +731,8 @@ winUseMsg(void)
 
     ErrorF("-[no]clipboard\n"
            "\tEnable [disable] the clipboard integration. Default is enabled.\n");
-  ErrorF ("-[no]clipboardprimary\n"
-	  "\t[Do not] map the PRIMARY selection to the windows clipboard.\n"
+    ErrorF ("-noprimary\n"
+	        "\tDo not map the PRIMARY selection to the windows clipboard.\n"
           "\tThe CLIPBOARD selection is always mapped if -clipboard is enabled.\n"
           "\tDefault is mapped.\n");
 
