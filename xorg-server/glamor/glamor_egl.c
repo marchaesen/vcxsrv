@@ -514,9 +514,9 @@ gbm_format_for_depth(CARD8 depth)
 
 _X_EXPORT PixmapPtr
 glamor_pixmap_from_fds(ScreenPtr screen,
-                       CARD8 num_fds, int *fds,
+                       CARD8 num_fds, const int *fds,
                        CARD16 width, CARD16 height,
-                       CARD32 *strides, CARD32 *offsets,
+                       const CARD32 *strides, const CARD32 *offsets,
                        CARD8 depth, CARD8 bpp,
                        uint64_t modifier)
 {
@@ -596,30 +596,26 @@ glamor_get_formats(ScreenPtr screen,
     struct glamor_egl_screen_private *glamor_egl;
     EGLint num;
 
+    /* Explicitly zero the count as the caller may ignore the return value */
+    *num_formats = 0;
+
     glamor_egl = glamor_egl_get_screen_private(xf86ScreenToScrn(screen));
 
     if (!glamor_egl->dmabuf_capable)
         return FALSE;
 
-    if (!eglQueryDmaBufFormatsEXT(glamor_egl->display, 0, NULL, &num)) {
-        *num_formats = 0;
+    if (!eglQueryDmaBufFormatsEXT(glamor_egl->display, 0, NULL, &num))
         return FALSE;
-    }
 
-    if (num == 0) {
-        *num_formats = 0;
+    if (num == 0)
         return TRUE;
-    }
 
     *formats = calloc(num, sizeof(CARD32));
-    if (*formats == NULL) {
-        *num_formats = 0;
+    if (*formats == NULL)
         return FALSE;
-    }
 
     if (!eglQueryDmaBufFormatsEXT(glamor_egl->display, num,
                                   (EGLint *) *formats, &num)) {
-        *num_formats = 0;
         free(*formats);
         return FALSE;
     }
@@ -640,31 +636,27 @@ glamor_get_modifiers(ScreenPtr screen, CARD32 format,
     struct glamor_egl_screen_private *glamor_egl;
     EGLint num;
 
+    /* Explicitly zero the count as the caller may ignore the return value */
+    *num_modifiers = 0;
+
     glamor_egl = glamor_egl_get_screen_private(xf86ScreenToScrn(screen));
 
     if (!glamor_egl->dmabuf_capable)
         return FALSE;
 
     if (!eglQueryDmaBufModifiersEXT(glamor_egl->display, format, 0, NULL,
-                                    NULL, &num)) {
-        *num_modifiers = 0;
+                                    NULL, &num))
         return FALSE;
-    }
 
-    if (num == 0) {
-        *num_modifiers = 0;
+    if (num == 0)
         return TRUE;
-    }
 
     *modifiers = calloc(num, sizeof(uint64_t));
-    if (*modifiers == NULL) {
-        *num_modifiers = 0;
+    if (*modifiers == NULL)
         return FALSE;
-    }
 
     if (!eglQueryDmaBufModifiersEXT(glamor_egl->display, format, num,
                                     (EGLuint64KHR *) *modifiers, NULL, &num)) {
-        *num_modifiers = 0;
         free(*modifiers);
         return FALSE;
     }
@@ -797,7 +789,7 @@ glamor_dri3_open_client(ClientPtr client,
     return Success;
 }
 
-static dri3_screen_info_rec glamor_dri3_info = {
+static const dri3_screen_info_rec glamor_dri3_info = {
     .version = 2,
     .open_client = glamor_dri3_open_client,
     .pixmap_from_fds = glamor_pixmap_from_fds,

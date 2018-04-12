@@ -620,8 +620,11 @@ _mesa_compute_version(struct gl_context *ctx)
    /* Make sure that the GLSL version lines up with the GL version. In some
     * cases it can be too high, e.g. if an extension is missing.
     */
-   if (_mesa_is_desktop_gl(ctx) && ctx->Version >= 31) {
+   if (_mesa_is_desktop_gl(ctx)) {
       switch (ctx->Version) {
+      case 30:
+         ctx->Const.GLSLVersion = 130;
+         break;
       case 31:
          ctx->Const.GLSLVersion = 140;
          break;
@@ -629,7 +632,8 @@ _mesa_compute_version(struct gl_context *ctx)
          ctx->Const.GLSLVersion = 150;
          break;
       default:
-         ctx->Const.GLSLVersion = ctx->Version * 10;
+         if (ctx->Version >= 33)
+            ctx->Const.GLSLVersion = ctx->Version * 10;
          break;
       }
    }

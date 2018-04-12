@@ -293,7 +293,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 	    device->rad_info.chip_class >= GFX9) {
 		device->has_rbplus = true;
 		device->rbplus_allowed = device->rad_info.family == CHIP_STONEY ||
-					 device->rad_info.family == CHIP_VEGA12;
+					 device->rad_info.family == CHIP_VEGA12 ||
+		                         device->rad_info.family == CHIP_RAVEN;
 	}
 
 	/* The mere presense of CLEAR_STATE in the IB causes random GPU hangs
@@ -3449,6 +3450,57 @@ static uint32_t radv_surface_max_layer_count(struct radv_image_view *iview)
 	return iview->type == VK_IMAGE_VIEW_TYPE_3D ? iview->extent.depth : (iview->base_layer + iview->layer_count);
 }
 
+static uint32_t
+radv_init_dcc_control_reg(struct radv_device *device,
+			  struct radv_image_view *iview)
+{
+	unsigned max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_256B;
+	unsigned min_compressed_block_size = V_028C78_MIN_BLOCK_SIZE_32B;
+	unsigned max_compressed_block_size;
+	unsigned independent_64b_blocks;
+
+	if (device->physical_device->rad_info.chip_class < VI)
+		return 0;
+
+	if (iview->image->info.samples > 1) {
+		if (iview->image->surface.bpe == 1)
+			max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
+		else if (iview->image->surface.bpe == 2)
+			max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_128B;
+	}
+
+	if (!device->physical_device->rad_info.has_dedicated_vram) {
+		/* amdvlk: [min-compressed-block-size] should be set to 32 for
+		 * dGPU and 64 for APU because all of our APUs to date use
+		 * DIMMs which have a request granularity size of 64B while all
+		 * other chips have a 32B request size.
+		 */
+		min_compressed_block_size = V_028C78_MIN_BLOCK_SIZE_64B;
+	}
+
+	if (iview->image->usage & (VK_IMAGE_USAGE_SAMPLED_BIT |
+				   VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+				   VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)) {
+		/* If this DCC image is potentially going to be used in texture
+		 * fetches, we need some special settings.
+		 */
+		independent_64b_blocks = 1;
+		max_compressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
+	} else {
+		/* MAX_UNCOMPRESSED_BLOCK_SIZE must be >=
+		 * MAX_COMPRESSED_BLOCK_SIZE. Set MAX_COMPRESSED_BLOCK_SIZE as
+		 * big as possible for better compression state.
+		 */
+		independent_64b_blocks = 0;
+		max_compressed_block_size = max_uncompressed_block_size;
+	}
+
+	return S_028C78_MAX_UNCOMPRESSED_BLOCK_SIZE(max_uncompressed_block_size) |
+	       S_028C78_MAX_COMPRESSED_BLOCK_SIZE(max_compressed_block_size) |
+	       S_028C78_MIN_COMPRESSED_BLOCK_SIZE(min_compressed_block_size) |
+	       S_028C78_INDEPENDENT_64B_BLOCKS(independent_64b_blocks);
+}
+
 static void
 radv_initialise_color_surface(struct radv_device *device,
 			      struct radv_color_buffer_info *cb,
@@ -3603,38 +3655,7 @@ radv_initialise_color_surface(struct radv_device *device,
 	if (radv_dcc_enabled(iview->image, iview->base_mip))
 		cb->cb_color_info |= S_028C70_DCC_ENABLE(1);
 
-	if (device->physical_device->rad_info.chip_class >= VI) {
-		unsigned max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_256B;
-		unsigned min_compressed_block_size = V_028C78_MIN_BLOCK_SIZE_32B;
-		unsigned independent_64b_blocks = 0;
-		unsigned max_compressed_block_size;
-
-		/* amdvlk: [min-compressed-block-size] should be set to 32 for dGPU and
-		   64 for APU because all of our APUs to date use DIMMs which have
-		   a request granularity size of 64B while all other chips have a
-		   32B request size */
-		if (!device->physical_device->rad_info.has_dedicated_vram)
-			min_compressed_block_size = V_028C78_MIN_BLOCK_SIZE_64B;
-
-		if (iview->image->info.samples > 1) {
-			if (iview->image->surface.bpe == 1)
-				max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
-			else if (iview->image->surface.bpe == 2)
-				max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_128B;
-		}
-
-		if (iview->image->usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-		                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)) {
-			independent_64b_blocks = 1;
-			max_compressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
-		} else
-			max_compressed_block_size = max_uncompressed_block_size;
-
-		cb->cb_dcc_control = S_028C78_MAX_UNCOMPRESSED_BLOCK_SIZE(max_uncompressed_block_size) |
-			S_028C78_MAX_COMPRESSED_BLOCK_SIZE(max_compressed_block_size) |
-			S_028C78_MIN_COMPRESSED_BLOCK_SIZE(min_compressed_block_size) |
-			S_028C78_INDEPENDENT_64B_BLOCKS(independent_64b_blocks);
-	}
+	cb->cb_dcc_control = radv_init_dcc_control_reg(device, iview);
 
 	/* This must be set for fast clear to work without FMASK. */
 	if (!radv_image_has_fmask(iview->image) &&

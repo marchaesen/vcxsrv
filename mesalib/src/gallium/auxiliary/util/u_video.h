@@ -79,6 +79,10 @@ u_reduce_video_profile(enum pipe_video_profile profile)
       case PIPE_VIDEO_PROFILE_JPEG_BASELINE:
          return PIPE_VIDEO_FORMAT_JPEG;
 
+      case PIPE_VIDEO_PROFILE_VP9_PROFILE0:
+      case PIPE_VIDEO_PROFILE_VP9_PROFILE2:
+         return PIPE_VIDEO_FORMAT_VP9;
+
       default:
          return PIPE_VIDEO_FORMAT_UNKNOWN;
    }

@@ -49,7 +49,7 @@ typedef struct dri3_screen_priv {
     CARD32                      num_formats;
     dri3_dmabuf_format_ptr      formats;
 
-    dri3_screen_info_ptr        info;
+    const dri3_screen_info_rec *info;
 } dri3_screen_priv_rec, *dri3_screen_priv_ptr;
 
 #define wrap(priv,real,mem,func) {\
@@ -79,8 +79,10 @@ int
 dri3_open(ClientPtr client, ScreenPtr screen, RRProviderPtr provider, int *fd);
 
 int
-dri3_pixmap_from_fds(PixmapPtr *ppixmap, ScreenPtr screen, CARD8 num_fds, int *fds,
-                     CARD16 width, CARD16 height, CARD32 *strides, CARD32 *offsets,
+dri3_pixmap_from_fds(PixmapPtr *ppixmap, ScreenPtr screen,
+                     CARD8 num_fds, const int *fds,
+                     CARD16 width, CARD16 height,
+                     const CARD32 *strides, const CARD32 *offsets,
                      CARD8 depth, CARD8 bpp, CARD64 modifier);
 
 int

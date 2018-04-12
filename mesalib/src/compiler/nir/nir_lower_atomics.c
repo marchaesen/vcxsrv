@@ -183,18 +183,26 @@ nir_lower_atomics(nir_shader *shader,
    bool progress = false;
 
    nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_foreach_block(block, function->impl) {
-            nir_foreach_instr_safe(instr, block) {
-               if (instr->type == nir_instr_type_intrinsic)
-                  progress |= lower_instr(nir_instr_as_intrinsic(instr),
-                                          shader_program, shader,
-                                          use_binding_as_idx);
-            }
-         }
+      if (!function->impl)
+         continue;
 
+      bool impl_progress = false;
+
+      nir_foreach_block(block, function->impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type != nir_instr_type_intrinsic)
+               continue;
+
+            impl_progress |= lower_instr(nir_instr_as_intrinsic(instr),
+                                         shader_program, shader,
+                                         use_binding_as_idx);
+         }
+      }
+
+      if (impl_progress) {
          nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                                nir_metadata_dominance);
+         progress = true;
       }
    }
 

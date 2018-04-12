@@ -352,7 +352,8 @@ VL_SOURCES := \
 	vl/vl_video_buffer.h \
 	vl/vl_vlc.h \
 	vl/vl_zscan.c \
-	vl/vl_zscan.h
+	vl/vl_zscan.h \
+	vl/vl_probs_table.h
 
 # XXX: Nuke this as our dri targets no longer depend on VL.
 VL_WINSYS_SOURCES := \

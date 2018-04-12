@@ -625,8 +625,6 @@ static void
 radv_emit_shader_prefetch(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_shader_variant *shader)
 {
-	struct radeon_winsys *ws = cmd_buffer->device->ws;
-	struct radeon_winsys_cs *cs = cmd_buffer->cs;
 	uint64_t va;
 
 	if (!shader)
@@ -634,7 +632,6 @@ radv_emit_shader_prefetch(struct radv_cmd_buffer *cmd_buffer,
 
 	va = radv_buffer_get_va(shader->bo) + shader->bo_offset;
 
-	radv_cs_add_buffer(ws, cs, shader->bo, 8);
 	si_cp_dma_prefetch(cmd_buffer, va, shader->code_size);
 }
 
@@ -682,6 +679,142 @@ radv_emit_prefetch_L2(struct radv_cmd_buffer *cmd_buffer,
 }
 
 static void
+radv_emit_rbplus_state(struct radv_cmd_buffer *cmd_buffer)
+{
+	if (!cmd_buffer->device->physical_device->rbplus_allowed)
+		return;
+
+	struct radv_pipeline *pipeline = cmd_buffer->state.pipeline;
+	struct radv_framebuffer *framebuffer = cmd_buffer->state.framebuffer;
+	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
+
+	unsigned sx_ps_downconvert = 0;
+	unsigned sx_blend_opt_epsilon = 0;
+	unsigned sx_blend_opt_control = 0;
+
+	for (unsigned i = 0; i < subpass->color_count; ++i) {
+		if (subpass->color_attachments[i].attachment == VK_ATTACHMENT_UNUSED)
+			continue;
+
+		int idx = subpass->color_attachments[i].attachment;
+		struct radv_color_buffer_info *cb = &framebuffer->attachments[idx].cb;
+
+		unsigned format = G_028C70_FORMAT(cb->cb_color_info);
+		unsigned swap = G_028C70_COMP_SWAP(cb->cb_color_info);
+		uint32_t spi_format = (pipeline->graphics.col_format >> (i * 4)) & 0xf;
+		uint32_t colormask = (pipeline->graphics.cb_target_mask >> (i * 4)) & 0xf;
+
+		bool has_alpha, has_rgb;
+
+		/* Set if RGB and A are present. */
+		has_alpha = !G_028C74_FORCE_DST_ALPHA_1(cb->cb_color_attrib);
+
+		if (format == V_028C70_COLOR_8 ||
+		    format == V_028C70_COLOR_16 ||
+		    format == V_028C70_COLOR_32)
+			has_rgb = !has_alpha;
+		else
+			has_rgb = true;
+
+		/* Check the colormask and export format. */
+		if (!(colormask & 0x7))
+			has_rgb = false;
+		if (!(colormask & 0x8))
+			has_alpha = false;
+
+		if (spi_format == V_028714_SPI_SHADER_ZERO) {
+			has_rgb = false;
+			has_alpha = false;
+		}
+
+		/* Disable value checking for disabled channels. */
+		if (!has_rgb)
+			sx_blend_opt_control |= S_02875C_MRT0_COLOR_OPT_DISABLE(1) << (i * 4);
+		if (!has_alpha)
+			sx_blend_opt_control |= S_02875C_MRT0_ALPHA_OPT_DISABLE(1) << (i * 4);
+
+		/* Enable down-conversion for 32bpp and smaller formats. */
+		switch (format) {
+		case V_028C70_COLOR_8:
+		case V_028C70_COLOR_8_8:
+		case V_028C70_COLOR_8_8_8_8:
+			/* For 1 and 2-channel formats, use the superset thereof. */
+			if (spi_format == V_028714_SPI_SHADER_FP16_ABGR ||
+			    spi_format == V_028714_SPI_SHADER_UINT16_ABGR ||
+			    spi_format == V_028714_SPI_SHADER_SINT16_ABGR) {
+				sx_ps_downconvert |= V_028754_SX_RT_EXPORT_8_8_8_8 << (i * 4);
+				sx_blend_opt_epsilon |= V_028758_8BIT_FORMAT << (i * 4);
+			}
+			break;
+
+		case V_028C70_COLOR_5_6_5:
+			if (spi_format == V_028714_SPI_SHADER_FP16_ABGR) {
+				sx_ps_downconvert |= V_028754_SX_RT_EXPORT_5_6_5 << (i * 4);
+				sx_blend_opt_epsilon |= V_028758_6BIT_FORMAT << (i * 4);
+			}
+			break;
+
+		case V_028C70_COLOR_1_5_5_5:
+			if (spi_format == V_028714_SPI_SHADER_FP16_ABGR) {
+				sx_ps_downconvert |= V_028754_SX_RT_EXPORT_1_5_5_5 << (i * 4);
+				sx_blend_opt_epsilon |= V_028758_5BIT_FORMAT << (i * 4);
+			}
+			break;
+
+		case V_028C70_COLOR_4_4_4_4:
+			if (spi_format == V_028714_SPI_SHADER_FP16_ABGR) {
+				sx_ps_downconvert |= V_028754_SX_RT_EXPORT_4_4_4_4 << (i * 4);
+				sx_blend_opt_epsilon |= V_028758_4BIT_FORMAT << (i * 4);
+			}
+			break;
+
+		case V_028C70_COLOR_32:
+			if (swap == V_028C70_SWAP_STD &&
+			    spi_format == V_028714_SPI_SHADER_32_R)
+				sx_ps_downconvert |= V_028754_SX_RT_EXPORT_32_R << (i * 4);
+			else if (swap == V_028C70_SWAP_ALT_REV &&
+				 spi_format == V_028714_SPI_SHADER_32_AR)
+				sx_ps_downconvert |= V_028754_SX_RT_EXPORT_32_A << (i * 4);
+			break;
+
+		case V_028C70_COLOR_16:
+		case V_028C70_COLOR_16_16:
+			/* For 1-channel formats, use the superset thereof. */
+			if (spi_format == V_028714_SPI_SHADER_UNORM16_ABGR ||
+			    spi_format == V_028714_SPI_SHADER_SNORM16_ABGR ||
+			    spi_format == V_028714_SPI_SHADER_UINT16_ABGR ||
+			    spi_format == V_028714_SPI_SHADER_SINT16_ABGR) {
+				if (swap == V_028C70_SWAP_STD ||
+				    swap == V_028C70_SWAP_STD_REV)
+					sx_ps_downconvert |= V_028754_SX_RT_EXPORT_16_16_GR << (i * 4);
+				else
+					sx_ps_downconvert |= V_028754_SX_RT_EXPORT_16_16_AR << (i * 4);
+			}
+			break;
+
+		case V_028C70_COLOR_10_11_11:
+			if (spi_format == V_028714_SPI_SHADER_FP16_ABGR) {
+				sx_ps_downconvert |= V_028754_SX_RT_EXPORT_10_11_11 << (i * 4);
+				sx_blend_opt_epsilon |= V_028758_11BIT_FORMAT << (i * 4);
+			}
+			break;
+
+		case V_028C70_COLOR_2_10_10_10:
+			if (spi_format == V_028714_SPI_SHADER_FP16_ABGR) {
+				sx_ps_downconvert |= V_028754_SX_RT_EXPORT_2_10_10_10 << (i * 4);
+				sx_blend_opt_epsilon |= V_028758_10BIT_FORMAT << (i * 4);
+			}
+			break;
+		}
+	}
+
+	radeon_set_context_reg_seq(cmd_buffer->cs, R_028754_SX_PS_DOWNCONVERT, 3);
+	radeon_emit(cmd_buffer->cs, sx_ps_downconvert);
+	radeon_emit(cmd_buffer->cs, sx_blend_opt_epsilon);
+	radeon_emit(cmd_buffer->cs, sx_blend_opt_control);
+}
+
+static void
 radv_emit_graphics_pipeline(struct radv_cmd_buffer *cmd_buffer)
 {
 	struct radv_pipeline *pipeline = cmd_buffer->state.pipeline;
@@ -701,6 +834,18 @@ radv_emit_graphics_pipeline(struct radv_cmd_buffer *cmd_buffer)
 		cmd_buffer->state.dirty |= RADV_CMD_DIRTY_DYNAMIC_SCISSOR;
 
 	radeon_emit_array(cmd_buffer->cs, pipeline->cs.buf, pipeline->cs.cdw);
+
+	for (unsigned i = 0; i < MESA_SHADER_COMPUTE; i++) {
+		if (!pipeline->shaders[i])
+			continue;
+
+		radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs,
+				   pipeline->shaders[i]->bo, 8);
+	}
+
+	if (radv_pipeline_has_gs(pipeline))
+		radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs,
+				   pipeline->gs_copy_shader->bo, 8);
 
 	if (unlikely(cmd_buffer->device->trace_bo))
 		radv_save_pipeline(cmd_buffer, pipeline, RING_GFX);
@@ -2280,6 +2425,9 @@ radv_emit_compute_pipeline(struct radv_cmd_buffer *cmd_buffer)
 	                          MAX2(cmd_buffer->compute_scratch_size_needed,
 	                               pipeline->max_waves * pipeline->scratch_bytes_per_wave);
 
+	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs,
+			   pipeline->shaders[MESA_SHADER_COMPUTE]->bo, 8);
+
 	if (unlikely(cmd_buffer->device->trace_bo))
 		radv_save_pipeline(cmd_buffer, pipeline, RING_COMPUTE);
 }
@@ -2993,6 +3141,10 @@ static void
 radv_emit_all_graphics_states(struct radv_cmd_buffer *cmd_buffer,
 			      const struct radv_draw_info *info)
 {
+	if ((cmd_buffer->state.dirty & RADV_CMD_DIRTY_FRAMEBUFFER) ||
+	    cmd_buffer->state.emitted_pipeline != cmd_buffer->state.pipeline)
+		radv_emit_rbplus_state(cmd_buffer);
+
 	if (cmd_buffer->state.dirty & RADV_CMD_DIRTY_PIPELINE)
 		radv_emit_graphics_pipeline(cmd_buffer);
 

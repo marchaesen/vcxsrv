@@ -49,11 +49,11 @@ typedef PixmapPtr (*dri3_pixmap_from_fd_proc) (ScreenPtr screen,
 
 typedef PixmapPtr (*dri3_pixmap_from_fds_proc) (ScreenPtr screen,
                                                 CARD8 num_fds,
-                                                int *fds,
+                                                const int *fds,
                                                 CARD16 width,
                                                 CARD16 height,
-                                                CARD32 *strides,
-                                                CARD32 *offsets,
+                                                const CARD32 *strides,
+                                                const CARD32 *offsets,
                                                 CARD8 depth,
                                                 CARD8 bpp,
                                                 CARD64 modifier);
@@ -104,7 +104,7 @@ typedef struct dri3_screen_info {
 } dri3_screen_info_rec, *dri3_screen_info_ptr;
 
 extern _X_EXPORT Bool
-dri3_screen_init(ScreenPtr screen, dri3_screen_info_ptr info);
+dri3_screen_init(ScreenPtr screen, const dri3_screen_info_rec *info);
 
 extern _X_EXPORT int
 dri3_send_open_reply(ClientPtr client, int fd);
