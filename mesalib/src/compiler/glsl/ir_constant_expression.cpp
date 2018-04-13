@@ -34,12 +34,12 @@
  */
 
 #include <math.h>
-#include "main/core.h" /* for MAX2, MIN2, CLAMP */
 #include "util/rounding.h" /* for _mesa_roundeven */
 #include "util/half_float.h"
 #include "ir.h"
 #include "compiler/glsl_types.h"
 #include "util/hash_table.h"
+#include "main/imports.h"
 
 static float
 dot_f(ir_constant *op0, ir_constant *op1)

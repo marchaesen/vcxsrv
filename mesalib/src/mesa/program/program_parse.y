@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "main/errors.h"
 #include "main/mtypes.h"
 #include "main/imports.h"
 #include "program/program.h"

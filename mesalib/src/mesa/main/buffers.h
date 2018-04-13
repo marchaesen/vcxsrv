@@ -34,7 +34,7 @@
 
 
 #include "glheader.h"
-#include "mtypes.h"
+#include "menums.h"
 
 struct gl_context;
 struct gl_framebuffer;

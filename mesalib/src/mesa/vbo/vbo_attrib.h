@@ -32,8 +32,6 @@
 #ifndef VBO_ATTRIB_H
 #define VBO_ATTRIB_H
 
-#include "main/mtypes.h"
-
 /*
  * Note: The first 32 attributes match the VERT_ATTRIB_* definitions.
  * However, we have extra attributes for storing per-vertex glMaterial

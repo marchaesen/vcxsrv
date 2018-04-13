@@ -34,8 +34,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef VBO_EXEC_H
 #define VBO_EXEC_H
 
-
-#include "main/mtypes.h"
+#include "main/dd.h"
 #include "main/imports.h"
 #include "vbo.h"
 #include "vbo_attrib.h"

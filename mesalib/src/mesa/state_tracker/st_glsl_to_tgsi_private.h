@@ -26,10 +26,11 @@
 #ifndef ST_GLSL_TO_TGSI_PRIVATE_H
 #define ST_GLSL_TO_TGSI_PRIVATE_H
 
-#include <mesa/main/mtypes.h>
-#include <compiler/glsl_types.h>
-#include <compiler/glsl/ir.h>
-#include <tgsi/tgsi_info.h>
+#include "mesa/main/mtypes.h"
+#include "program/prog_parameter.h"
+#include "compiler/glsl_types.h"
+#include "compiler/glsl/ir.h"
+#include "tgsi/tgsi_info.h"
 #include <ostream>
 
 int swizzle_for_size(int size);

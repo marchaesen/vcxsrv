@@ -120,7 +120,6 @@
  *
  * \author Ian Romanick <ian.d.romanick@intel.com>
  */
-#include "main/core.h"
 #include "ir.h"
 #include "glsl_parser_extras.h"
 #include "linker.h"

@@ -36,8 +36,10 @@
 
 
 #include "c99_math.h"
+#include "main/errors.h"
 #include "main/glheader.h"
 #include "main/macros.h"
+#include "main/mtypes.h"
 #include "prog_execute.h"
 #include "prog_instruction.h"
 #include "prog_parameter.h"

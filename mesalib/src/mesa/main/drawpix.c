@@ -34,7 +34,6 @@
 #include "image.h"
 #include "pbo.h"
 #include "state.h"
-#include "dispatch.h"
 #include "glformats.h"
 #include "fbobject.h"
 

@@ -39,12 +39,14 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "glheader.h"
-#include "mtypes.h"
+#include "menums.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct gl_context;
 
 extern void
 _mesa_warning( struct gl_context *gc, const char *fmtString, ... ) PRINTFLIKE(2, 3);

@@ -30,6 +30,7 @@
 #include "glsl_symbol_table.h"
 #include "linker.h"
 #include "main/macros.h"
+#include "main/mtypes.h"
 #include "util/hash_table.h"
 
 

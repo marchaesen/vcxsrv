@@ -50,6 +50,7 @@
 #include "ir_rvalue_visitor.h"
 #include "ir.h"
 #include "program/prog_instruction.h" /* For WRITEMASK_* */
+#include "main/mtypes.h"
 
 #define GLSL_CLIP_VAR_NAME "gl_ClipDistanceMESA"
 

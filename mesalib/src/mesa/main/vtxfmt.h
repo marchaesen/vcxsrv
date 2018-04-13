@@ -33,11 +33,13 @@
 #ifndef _VTXFMT_H_
 #define _VTXFMT_H_
 
-#include "mtypes.h"
+#include "dd.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct gl_context;
 
 extern void _mesa_install_exec_vtxfmt( struct gl_context *ctx, const GLvertexformat *vfmt );
 extern void _mesa_install_save_vtxfmt( struct gl_context *ctx, const GLvertexformat *vfmt );

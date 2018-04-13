@@ -28,7 +28,6 @@
 #include "main/imports.h"
 #include "main/format_pack.h"
 #include "main/format_unpack.h"
-#include "main/core.h"
 #include "main/stencil.h"
 
 #include "s_context.h"

@@ -29,7 +29,7 @@
 #ifndef COPYIMAGE_H
 #define COPYIMAGE_H
 
-#include "mtypes.h"
+#include "glheader.h"
 
 #ifdef __cplusplus
 extern "C" {

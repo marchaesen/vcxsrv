@@ -38,7 +38,6 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "main/dispatch.h"
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"

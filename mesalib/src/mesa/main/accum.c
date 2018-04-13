@@ -33,7 +33,6 @@
 #include "macros.h"
 #include "state.h"
 #include "mtypes.h"
-#include "main/dispatch.h"
 
 
 void GLAPIENTRY

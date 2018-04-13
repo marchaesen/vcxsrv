@@ -33,7 +33,6 @@
 #include "list.h"
 #include "ir_visitor.h"
 #include "ir_hierarchical_visitor.h"
-#include "main/mtypes.h"
 
 #ifdef __cplusplus
 

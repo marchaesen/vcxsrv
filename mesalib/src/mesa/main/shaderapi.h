@@ -29,7 +29,7 @@
 
 
 #include "glheader.h"
-
+#include "compiler/shader_enums.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,6 +38,11 @@ extern "C" {
 
 struct _glapi_table;
 struct gl_context;
+struct gl_linked_shader;
+struct gl_pipeline_object;
+struct gl_program;
+struct gl_program_resource;
+struct gl_shader;
 struct gl_shader_program;
 
 extern GLbitfield

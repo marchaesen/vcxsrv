@@ -34,6 +34,7 @@
 
 #include "glheader.h"
 #include "imports.h"
+#include "c11/threads.h"
 
 /**
  * Magic GLuint object name that gets stored outside of the struct hash_table.

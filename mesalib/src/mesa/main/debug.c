@@ -24,6 +24,7 @@
  */
 
 #include <stdio.h>
+#include "errors.h"
 #include "mtypes.h"
 #include "attrib.h"
 #include "enums.h"

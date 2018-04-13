@@ -42,6 +42,7 @@
 #include "program.h"
 #include "ir_reader.h"
 #include "standalone_scaffolding.h"
+#include "main/mtypes.h"
 
 using namespace std;
 

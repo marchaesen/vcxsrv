@@ -2387,9 +2387,11 @@ if test "x$XWAYLAND" = xyes; then
 		AC_MSG_ERROR([Xwayland requires CLOCK_MONOTONIC support.])
 	fi
 
-	WAYLAND_PREFIX=`$PKG_CONFIG --variable=prefix wayland-client`
-	AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner],,
-		     [${WAYLAND_PREFIX}/bin$PATH_SEPARATOR$PATH])
+	AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner])
+	if test "x$WAYLAND_SCANNER" = x; then
+		PKG_CHECK_MODULES(WAYLAND_SCANNER, [wayland-scanner])
+		AC_SUBST(WAYLAND_SCANNER, `$PKG_CONFIG --variable=wayland_scanner wayland-scanner`)
+	fi
 
         PKG_CHECK_MODULES(WAYLAND_SCANNER, [wayland-scanner >= 1.14.91],
                           AC_SUBST(SCANNER_ARG, 'private-code'),

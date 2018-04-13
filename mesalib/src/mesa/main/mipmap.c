@@ -27,6 +27,7 @@
  * \file mipmap.c  mipmap generation and teximage resizing functions.
  */
 
+#include "errors.h"
 #include "imports.h"
 #include "formats.h"
 #include "glformats.h"

@@ -55,9 +55,13 @@
 
 #include <GL/gl.h>
 #include <GL/internal/dri_interface.h>
-#include "main/mtypes.h"
+#include "main/menums.h"
+#include "main/formats.h"
 #include "util/xmlconfig.h"
 #include <stdbool.h>
+
+struct gl_config;
+struct gl_context;
 
 /**
  * Extensions.

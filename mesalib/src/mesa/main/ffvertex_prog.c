@@ -33,6 +33,7 @@
  */
 
 
+#include "main/errors.h"
 #include "main/glheader.h"
 #include "main/mtypes.h"
 #include "main/macros.h"

@@ -43,6 +43,7 @@
 #include "linker.h"
 #include "program/prog_statevars.h"
 #include "builtin_functions.h"
+#include "main/mtypes.h"
 
 using namespace ir_builder;
 

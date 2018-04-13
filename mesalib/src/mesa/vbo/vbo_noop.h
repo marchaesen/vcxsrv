@@ -26,9 +26,9 @@
 #ifndef VBO_NOOP_H
 #define VBO_NOOP_H
 
+#include "main/dd.h"
 
-#include "main/mtypes.h"
-
+struct _glapi_table;
 
 extern void
 _mesa_noop_vtxfmt_init(GLvertexformat *vfmt);

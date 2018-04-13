@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include "main/bufferobj.h"
 #include "main/enums.h"
+#include "main/errors.h"
 #include "main/fbobject.h"
 #include "main/formats.h"
 #include "main/format_utils.h"

@@ -24,8 +24,6 @@
 #ifndef _GLTHREAD_H
 #define _GLTHREAD_H
 
-#include "main/mtypes.h"
-
 /* The size of one batch and the maximum size of one call.
  *
  * This should be as low as possible, so that:
@@ -50,6 +48,7 @@
 #include "util/u_queue.h"
 
 enum marshal_dispatch_cmd_id;
+struct gl_context;
 
 /** A single batch of commands queued up for execution. */
 struct glthread_batch

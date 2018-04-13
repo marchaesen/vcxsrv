@@ -35,7 +35,6 @@
 #include "mtypes.h"
 #include "rastpos.h"
 #include "state.h"
-#include "main/dispatch.h"
 #include "main/viewport.h"
 #include "util/bitscan.h"
 

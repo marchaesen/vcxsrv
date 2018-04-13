@@ -61,8 +61,6 @@
 
 #include "main/compiler.h"
 #include "main/mtypes.h"
-#include "program/prog_parameter.h"
-#include "program/program.h"
 
 struct lower_samplers_as_deref_state {
    nir_shader *shader;

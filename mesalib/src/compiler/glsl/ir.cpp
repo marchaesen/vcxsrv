@@ -21,7 +21,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 #include <string.h>
-#include "main/core.h" /* for MAX2 */
 #include "ir.h"
 #include "compiler/glsl_types.h"
 #include "glsl_parser_extras.h"

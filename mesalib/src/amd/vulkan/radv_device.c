@@ -1002,6 +1002,12 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->vgprAllocationGranularity = 4;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT: {
+			VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT *properties =
+				(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT *)ext;
+			properties->maxVertexAttribDivisor = UINT32_MAX;
+			break;
+		}
 		default:
 			break;
 		}

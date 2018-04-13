@@ -289,6 +289,9 @@ xwl_cursor_warped_to(DeviceIntPtr device,
     if (!xwl_seat)
         xwl_seat = xwl_screen_get_default_seat(xwl_screen);
 
+    if (!window)
+        window = XYToWindow(sprite, x, y);
+
     xwl_window = xwl_window_of_top(window);
     if (!xwl_window && xwl_seat->focus_window) {
         focus = xwl_seat->focus_window->window;

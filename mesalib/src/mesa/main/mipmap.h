@@ -26,7 +26,10 @@
 #ifndef MIPMAP_H
 #define MIPMAP_H
 
-#include "mtypes.h"
+#include "glheader.h"
+
+struct gl_context;
+struct gl_texture_object;
 
 unsigned
 _mesa_compute_num_levels(struct gl_context *ctx,

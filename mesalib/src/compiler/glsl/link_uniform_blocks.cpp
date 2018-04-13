@@ -21,13 +21,14 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "main/core.h"
 #include "ir.h"
 #include "linker.h"
 #include "ir_uniform.h"
 #include "link_uniform_block_active_visitor.h"
 #include "util/hash_table.h"
 #include "program.h"
+#include "main/errors.h"
+#include "main/mtypes.h"
 
 namespace {
 

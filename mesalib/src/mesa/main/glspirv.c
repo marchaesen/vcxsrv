@@ -24,6 +24,7 @@
 #include "glspirv.h"
 #include "errors.h"
 #include "shaderobj.h"
+#include "mtypes.h"
 
 #include "compiler/nir/nir.h"
 #include "compiler/spirv/nir_spirv.h"

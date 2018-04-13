@@ -41,7 +41,6 @@
 #include <c99_alloca.h>
 #include "main/glheader.h"
 #include "main/context.h"
-#include "main/dispatch.h"
 #include "main/enums.h"
 #include "main/glspirv.h"
 #include "main/hash.h"

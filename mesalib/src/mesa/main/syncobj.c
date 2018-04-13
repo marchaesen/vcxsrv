@@ -61,7 +61,6 @@
 #include "context.h"
 #include "macros.h"
 #include "get.h"
-#include "dispatch.h"
 #include "mtypes.h"
 #include "util/hash_table.h"
 #include "util/set.h"

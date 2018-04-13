@@ -34,7 +34,6 @@
 #include "glheader.h"
 #include "context.h"
 #include "convolve.h"
-#include "main/dispatch.h"
 
 
 void GLAPIENTRY

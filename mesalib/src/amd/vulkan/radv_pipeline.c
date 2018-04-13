@@ -48,6 +48,7 @@
 #include "util/debug.h"
 #include "ac_exp_param.h"
 #include "ac_shader_util.h"
+#include "main/menums.h"
 
 struct radv_blend_state {
 	uint32_t blend_enable_4bit;
@@ -1743,22 +1744,38 @@ radv_generate_graphics_pipeline_key(struct radv_pipeline *pipeline,
 {
 	const VkPipelineVertexInputStateCreateInfo *input_state =
 	                                         pCreateInfo->pVertexInputState;
+	const VkPipelineVertexInputDivisorStateCreateInfoEXT *divisor_state =
+		vk_find_struct_const(input_state->pNext, PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT);
+
 	struct radv_pipeline_key key;
 	memset(&key, 0, sizeof(key));
 
 	key.has_multiview_view_index = has_view_index;
 
 	uint32_t binding_input_rate = 0;
+	uint32_t instance_rate_divisors[MAX_VERTEX_ATTRIBS];
 	for (unsigned i = 0; i < input_state->vertexBindingDescriptionCount; ++i) {
-		if (input_state->pVertexBindingDescriptions[i].inputRate)
-			binding_input_rate |= 1u << input_state->pVertexBindingDescriptions[i].binding;
+		if (input_state->pVertexBindingDescriptions[i].inputRate) {
+			unsigned binding = input_state->pVertexBindingDescriptions[i].binding;
+			binding_input_rate |= 1u << binding;
+			instance_rate_divisors[binding] = 1;
+		}
+	}
+	if (divisor_state) {
+		for (unsigned i = 0; i < divisor_state->vertexBindingDivisorCount; ++i) {
+			instance_rate_divisors[divisor_state->pVertexBindingDivisors[i].binding] =
+				divisor_state->pVertexBindingDivisors[i].divisor;
+		}
 	}
 
 	for (unsigned i = 0; i < input_state->vertexAttributeDescriptionCount; ++i) {
 		unsigned binding;
 		binding = input_state->pVertexAttributeDescriptions[i].binding;
-		if (binding_input_rate & (1u << binding))
-			key.instance_rate_inputs |= 1u << input_state->pVertexAttributeDescriptions[i].location;
+		if (binding_input_rate & (1u << binding)) {
+			unsigned location = input_state->pVertexAttributeDescriptions[i].location;
+			key.instance_rate_inputs |= 1u << location;
+			key.instance_rate_divisors[location] = instance_rate_divisors[binding];
+		}
 	}
 
 	if (pCreateInfo->pTessellationState)
@@ -1787,6 +1804,8 @@ radv_fill_shader_keys(struct radv_shader_variant_key *keys,
                       nir_shader **nir)
 {
 	keys[MESA_SHADER_VERTEX].vs.instance_rate_inputs = key->instance_rate_inputs;
+	for (unsigned i = 0; i < MAX_VERTEX_ATTRIBS; ++i)
+		keys[MESA_SHADER_VERTEX].vs.instance_rate_divisors[i] = key->instance_rate_divisors[i];
 
 	if (nir[MESA_SHADER_TESS_CTRL]) {
 		keys[MESA_SHADER_VERTEX].vs.as_ls = true;

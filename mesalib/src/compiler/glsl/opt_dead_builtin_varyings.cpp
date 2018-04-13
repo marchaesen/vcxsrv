@@ -46,13 +46,13 @@
  * The same is done for the gl_FragData fragment shader output.
  */
 
-#include "main/core.h" /* for snprintf and ARRAY_SIZE */
 #include "ir.h"
 #include "ir_rvalue_visitor.h"
 #include "ir_optimization.h"
 #include "ir_print_visitor.h"
 #include "compiler/glsl_types.h"
 #include "link_varyings.h"
+#include "main/mtypes.h"
 
 namespace {
 

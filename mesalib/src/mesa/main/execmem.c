@@ -34,7 +34,7 @@
 #include <stdio.h>
 #include "imports.h"
 #include "execmem.h"
-
+#include "c11/threads.h"
 
 
 #if defined(__linux__) || defined(__OpenBSD__) || defined(_NetBSD__) || defined(__sun) || defined(__HAIKU__)

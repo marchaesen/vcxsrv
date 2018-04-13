@@ -28,7 +28,9 @@
 #define PIXELTRANSFER_H
 
 
-#include "mtypes.h"
+#include "glheader.h"
+
+struct gl_context;
 
 
 extern void

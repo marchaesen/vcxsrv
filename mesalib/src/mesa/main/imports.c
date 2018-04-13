@@ -48,7 +48,6 @@
 #include "util/rounding.h" /* for _mesa_roundeven */
 #include "imports.h"
 #include "context.h"
-#include "mtypes.h"
 #include "version.h"
 
 #ifdef _GNU_SOURCE

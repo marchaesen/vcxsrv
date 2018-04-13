@@ -32,6 +32,7 @@
 #include "compiler/nir/nir_control_flow.h"
 #include "compiler/nir/nir_builder.h"
 #include "main/imports.h"
+#include "main/mtypes.h"
 
 /*
  * pass to lower GLSL IR to NIR

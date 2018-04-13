@@ -31,7 +31,7 @@
 #define STANDALONE_SCAFFOLDING_H
 
 #include <assert.h>
-#include "main/mtypes.h"
+#include "main/menums.h"
 #include "program/prog_statevars.h"
 
 extern "C" void

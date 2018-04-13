@@ -41,7 +41,6 @@
 #include "pipe/p_defines.h"
 #include "cso_cache/cso_context.h"
 
-#include "main/core.h"
 #include "main/stencil.h"
 
 

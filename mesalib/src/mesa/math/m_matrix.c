@@ -35,6 +35,7 @@
 
 
 #include "c99_math.h"
+#include "main/errors.h"
 #include "main/glheader.h"
 #include "main/imports.h"
 #include "main/macros.h"

@@ -415,7 +415,8 @@ BEGIN {
 	sub(/[^a-zA-Z0-9_].*/, "", symbol);
 
 	#print;
-	printf("    (void *) &%-50s /* %s:%s */\n", symbol ",", header, line);
+	if (symbol != "")
+	    printf("    (void *) &%-50s /* %s:%s */\n", symbol ",", header, line);
     }
 }
 

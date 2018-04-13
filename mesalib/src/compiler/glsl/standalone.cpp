@@ -43,6 +43,7 @@
 #include "ir_builder_print_visitor.h"
 #include "builtin_functions.h"
 #include "opt_add_neg_to_sub.h"
+#include "main/mtypes.h"
 
 class dead_variable_visitor : public ir_hierarchical_visitor {
 public:

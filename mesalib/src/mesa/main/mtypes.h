@@ -39,6 +39,7 @@
 #include "c11/threads.h"
 
 #include "main/glheader.h"
+#include "main/menums.h"
 #include "main/config.h"
 #include "glapi/glapi.h"
 #include "math/m_matrix.h"	/* GLmatrix */
@@ -53,33 +54,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-/** Set a single bit */
-#define BITFIELD_BIT(b)      ((GLbitfield)1 << (b))
-/** Set all bits up to excluding bit b */
-#define BITFIELD_MASK(b)      \
-   ((b) == 32 ? (~(GLbitfield)0) : BITFIELD_BIT((b) % 32) - 1)
-/** Set count bits starting from bit b  */
-#define BITFIELD_RANGE(b, count) \
-   (BITFIELD_MASK((b) + (count)) & ~BITFIELD_MASK(b))
-
-
-/**
- * \name 64-bit extension of GLbitfield.
- */
-/*@{*/
-typedef GLuint64 GLbitfield64;
-
-/** Set a single bit */
-#define BITFIELD64_BIT(b)      ((GLbitfield64)1 << (b))
-/** Set all bits up to excluding bit b */
-#define BITFIELD64_MASK(b)      \
-   ((b) == 64 ? (~(GLbitfield64)0) : BITFIELD64_BIT(b) - 1)
-/** Set count bits starting from bit b  */
-#define BITFIELD64_RANGE(b, count) \
-   (BITFIELD64_MASK((b) + (count)) & ~BITFIELD64_MASK(b))
-
 
 #define GET_COLORMASK_BIT(mask, buf, chan) (((mask) >> (4 * (buf) + (chan))) & 0x1)
 #define GET_COLORMASK(mask, buf) (((mask) >> (4 * (buf))) & 0xf)
@@ -134,34 +108,6 @@ _mesa_varying_slot_in_fs(gl_varying_slot slot)
       return GL_TRUE;
    }
 }
-
-/**
- * Indexes for all renderbuffers
- */
-typedef enum
-{
-   /* the four standard color buffers */
-   BUFFER_FRONT_LEFT,
-   BUFFER_BACK_LEFT,
-   BUFFER_FRONT_RIGHT,
-   BUFFER_BACK_RIGHT,
-   BUFFER_DEPTH,
-   BUFFER_STENCIL,
-   BUFFER_ACCUM,
-   /* optional aux buffer */
-   BUFFER_AUX0,
-   /* generic renderbuffers */
-   BUFFER_COLOR0,
-   BUFFER_COLOR1,
-   BUFFER_COLOR2,
-   BUFFER_COLOR3,
-   BUFFER_COLOR4,
-   BUFFER_COLOR5,
-   BUFFER_COLOR6,
-   BUFFER_COLOR7,
-   BUFFER_COUNT,
-   BUFFER_NONE = -1,
-} gl_buffer_index;
 
 /**
  * Bit flags for all renderbuffers
@@ -417,43 +363,6 @@ union gl_color_union
    GLuint ui[4];
 };
 
-/**
- * Remapped color logical operations
- *
- * With the exception of NVIDIA hardware, which consumes the OpenGL enumerants
- * directly, everything wants this mapping of color logical operations.
- *
- * Fun fact: These values are just the bit-reverse of the low-nibble of the GL
- * enumerant values (i.e., `GL_NOOP & 0x0f` is `b0101' while
- * \c COLOR_LOGICOP_NOOP is `b1010`).
- *
- * Fun fact #2: These values are just an encoding of the operation as a table
- * of bit values. The result of the logic op is:
- *
- *    result_bit = (logic_op >> (2 * src_bit + dst_bit)) & 1
- *
- * For the GL enums, the result is:
- *
- *    result_bit = logic_op & (1 << (2 * src_bit + dst_bit))
- */
-enum PACKED gl_logicop_mode {
-   COLOR_LOGICOP_CLEAR = 0,
-   COLOR_LOGICOP_NOR = 1,
-   COLOR_LOGICOP_AND_INVERTED = 2,
-   COLOR_LOGICOP_COPY_INVERTED = 3,
-   COLOR_LOGICOP_AND_REVERSE = 4,
-   COLOR_LOGICOP_INVERT = 5,
-   COLOR_LOGICOP_XOR = 6,
-   COLOR_LOGICOP_NAND = 7,
-   COLOR_LOGICOP_AND = 8,
-   COLOR_LOGICOP_EQUIV = 9,
-   COLOR_LOGICOP_NOOP = 10,
-   COLOR_LOGICOP_OR_INVERTED = 11,
-   COLOR_LOGICOP_COPY = 12,
-   COLOR_LOGICOP_OR_REVERSE = 13,
-   COLOR_LOGICOP_OR = 14,
-   COLOR_LOGICOP_SET = 15
-};
 
 /**
  * Color buffer attribute group (GL_COLOR_BUFFER_BIT).
@@ -915,29 +824,6 @@ struct gl_stencil_attrib
    GLuint WriteMask[3];		/**< Write mask */
    GLuint Clear;		/**< Clear value */
 };
-
-
-/**
- * An index for each type of texture object.  These correspond to the GL
- * texture target enums, such as GL_TEXTURE_2D, GL_TEXTURE_CUBE_MAP, etc.
- * Note: the order is from highest priority to lowest priority.
- */
-typedef enum
-{
-   TEXTURE_2D_MULTISAMPLE_INDEX,
-   TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX,
-   TEXTURE_CUBE_ARRAY_INDEX,
-   TEXTURE_BUFFER_INDEX,
-   TEXTURE_2D_ARRAY_INDEX,
-   TEXTURE_1D_ARRAY_INDEX,
-   TEXTURE_EXTERNAL_INDEX,
-   TEXTURE_CUBE_INDEX,
-   TEXTURE_3D_INDEX,
-   TEXTURE_RECT_INDEX,
-   TEXTURE_2D_INDEX,
-   TEXTURE_1D_INDEX,
-   NUM_TEXTURE_TARGETS
-} gl_texture_index;
 
 
 /**
@@ -1411,14 +1297,6 @@ struct gl_viewport_attrib
 };
 
 
-typedef enum
-{
-   MAP_USER,
-   MAP_INTERNAL,
-   MAP_COUNT
-} gl_map_buffer_index;
-
-
 /**
  * Fields describing a mapped buffer range.
  */
@@ -1626,22 +1504,6 @@ struct gl_vertex_array_object
    /** The index buffer (also known as the element array buffer in OpenGL). */
    struct gl_buffer_object *IndexBufferObj;
 };
-
-
-/**
- * Enum for the OpenGL APIs we know about and may support.
- *
- * NOTE: This must match the api_enum table in
- * src/mesa/main/get_hash_generator.py
- */
-typedef enum
-{
-   API_OPENGL_COMPAT,      /* legacy / compatibility contexts */
-   API_OPENGLES,
-   API_OPENGLES2,
-   API_OPENGL_CORE,
-   API_OPENGL_LAST = API_OPENGL_CORE
-} gl_api;
 
 
 /**
@@ -2110,39 +1972,6 @@ struct gl_bindless_image
    /** Pointer to the base of the data. */
    GLvoid *data;
 };
-
-
-/**
- * Names of the various vertex/fragment program register files, etc.
- *
- * NOTE: first four tokens must fit into 2 bits (see t_vb_arbprogram.c)
- * All values should fit in a 4-bit field.
- *
- * NOTE: PROGRAM_STATE_VAR, PROGRAM_CONSTANT, and PROGRAM_UNIFORM can all be
- * considered to be "uniform" variables since they can only be set outside
- * glBegin/End.  They're also all stored in the same Parameters array.
- */
-typedef enum
-{
-   PROGRAM_TEMPORARY,   /**< machine->Temporary[] */
-   PROGRAM_ARRAY,       /**< Arrays & Matrixes */
-   PROGRAM_INPUT,       /**< machine->Inputs[] */
-   PROGRAM_OUTPUT,      /**< machine->Outputs[] */
-   PROGRAM_STATE_VAR,   /**< gl_program->Parameters[] */
-   PROGRAM_CONSTANT,    /**< gl_program->Parameters[] */
-   PROGRAM_UNIFORM,     /**< gl_program->Parameters[] */
-   PROGRAM_WRITE_ONLY,  /**< A dummy, write-only register */
-   PROGRAM_ADDRESS,     /**< machine->AddressReg */
-   PROGRAM_SAMPLER,     /**< for shader samplers, compile-time only */
-   PROGRAM_SYSTEM_VALUE,/**< InstanceId, PrimitiveID, etc. */
-   PROGRAM_UNDEFINED,   /**< Invalid/TBD value */
-   PROGRAM_IMMEDIATE,   /**< Immediate value, used by TGSI */
-   PROGRAM_BUFFER,      /**< for shader buffers, compile-time only */
-   PROGRAM_MEMORY,      /**< for shared, global and local memory */
-   PROGRAM_IMAGE,       /**< for shader images, compile-time only */
-   PROGRAM_HW_ATOMIC,   /**< for hw atomic counters, compile-time only */
-   PROGRAM_FILE_MAX
-} gl_register_file;
 
 
 /**
@@ -4530,48 +4359,6 @@ struct gl_dlist_state
       GLenum16 ShadeModel;
    } Current;
 };
-
-/** @{
- *
- * These are a mapping of the GL_ARB_debug_output/GL_KHR_debug enums
- * to small enums suitable for use as an array index.
- */
-
-enum mesa_debug_source
-{
-   MESA_DEBUG_SOURCE_API,
-   MESA_DEBUG_SOURCE_WINDOW_SYSTEM,
-   MESA_DEBUG_SOURCE_SHADER_COMPILER,
-   MESA_DEBUG_SOURCE_THIRD_PARTY,
-   MESA_DEBUG_SOURCE_APPLICATION,
-   MESA_DEBUG_SOURCE_OTHER,
-   MESA_DEBUG_SOURCE_COUNT
-};
-
-enum mesa_debug_type
-{
-   MESA_DEBUG_TYPE_ERROR,
-   MESA_DEBUG_TYPE_DEPRECATED,
-   MESA_DEBUG_TYPE_UNDEFINED,
-   MESA_DEBUG_TYPE_PORTABILITY,
-   MESA_DEBUG_TYPE_PERFORMANCE,
-   MESA_DEBUG_TYPE_OTHER,
-   MESA_DEBUG_TYPE_MARKER,
-   MESA_DEBUG_TYPE_PUSH_GROUP,
-   MESA_DEBUG_TYPE_POP_GROUP,
-   MESA_DEBUG_TYPE_COUNT
-};
-
-enum mesa_debug_severity
-{
-   MESA_DEBUG_SEVERITY_LOW,
-   MESA_DEBUG_SEVERITY_MEDIUM,
-   MESA_DEBUG_SEVERITY_HIGH,
-   MESA_DEBUG_SEVERITY_NOTIFICATION,
-   MESA_DEBUG_SEVERITY_COUNT
-};
-
-/** @} */
 
 /**
  * Driver-specific state flags.

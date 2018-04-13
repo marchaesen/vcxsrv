@@ -34,6 +34,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "errors.h"
 #include "glheader.h"
 #include "hash.h"
 #include "util/hash_table.h"

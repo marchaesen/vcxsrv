@@ -53,13 +53,13 @@
 #include "ir_uniform.h"
 #include "linker.h"
 #include "link_varyings.h"
-#include "main/core.h"
 #include "nir.h"
 #include "program.h"
 #include "serialize.h"
 #include "shader_cache.h"
 #include "util/mesa-sha1.h"
 #include "string_to_uint_map.h"
+#include "main/mtypes.h"
 
 extern "C" {
 #include "main/enums.h"

@@ -43,6 +43,7 @@
 #define VG(x)
 #endif
 
+#include "c11/threads.h"
 #include <amdgpu.h>
 #include "compiler/shader_enums.h"
 #include "util/macros.h"
@@ -347,6 +348,7 @@ struct radv_pipeline_cache {
 
 struct radv_pipeline_key {
 	uint32_t instance_rate_inputs;
+	uint32_t instance_rate_divisors[MAX_VERTEX_ATTRIBS];
 	unsigned tess_input_vertices;
 	uint32_t col_format;
 	uint32_t is_int8;

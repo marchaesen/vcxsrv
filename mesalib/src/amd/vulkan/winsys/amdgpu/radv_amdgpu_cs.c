@@ -26,6 +26,8 @@
 #include <amdgpu.h>
 #include <amdgpu_drm.h>
 #include <assert.h>
+#include <pthread.h>
+#include <errno.h>
 
 #include "ac_debug.h"
 #include "radv_radeon_winsys.h"

@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "main/mtypes.h"
 #include "nir.h"
+#include "main/menums.h"
 
 static void
 set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len,

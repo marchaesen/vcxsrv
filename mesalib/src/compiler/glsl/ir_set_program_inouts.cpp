@@ -34,10 +34,10 @@
  * from the GLSL IR.
  */
 
-#include "main/core.h" /* for struct gl_program */
 #include "ir.h"
 #include "ir_visitor.h"
 #include "compiler/glsl_types.h"
+#include "main/mtypes.h"
 
 namespace {
 

@@ -25,7 +25,7 @@
 #include "ast.h"
 #include "compiler/glsl_types.h"
 #include "ir.h"
-#include "main/core.h" /* for MIN2 */
+#include "main/mtypes.h"
 #include "main/shaderobj.h"
 #include "builtin_functions.h"
 

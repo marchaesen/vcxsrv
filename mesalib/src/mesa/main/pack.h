@@ -28,8 +28,10 @@
 #define PACK_H
 
 
-#include "mtypes.h"
+#include "glheader.h"
 
+struct gl_context;
+struct gl_pixelstore_attrib;
 
 extern void
 _mesa_unpack_polygon_stipple(const GLubyte *pattern, GLuint dest[32],

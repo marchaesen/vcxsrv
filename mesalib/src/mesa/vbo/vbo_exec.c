@@ -28,7 +28,6 @@
 
 #include "main/glheader.h"
 #include "main/arrayobj.h"
-#include "main/mtypes.h"
 #include "main/api_arrayelt.h"
 #include "main/vtxfmt.h"
 #include "vbo_private.h"
