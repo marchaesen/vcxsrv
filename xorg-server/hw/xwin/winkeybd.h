@@ -39,10 +39,8 @@
 
 #define		WIN_KEYMAP_COLS		3
 
-/* ASCII column, rows 33 through 40 are for Speech Recognition with
- * num-lock asserted.
- * Rows 160 through 165 correspond to software-generated codes, which
- * may not be associated with the appropriate scan code/extended bit
+/* Rows 160 through 165 correspond to software-generated codes, which
+ * may not be associated with the appropriate scan code.
  */
 const int
  g_iKeyMap[] = {
@@ -80,14 +78,14 @@ const int
     /* 30 */ 0, 0, 0,
     /* 31 */ 0, 0, 0,
     /* 32 */ 0, 0, 0,
-    /* 33 */	VK_PRIOR,	KEY_KP_9,	KEY_PgUp,
-    /* 34 */	VK_NEXT,	KEY_KP_3,	KEY_PgDown,
-    /* 35 */	VK_END,		KEY_KP_1,	KEY_End,
-    /* 36 */	VK_HOME,	KEY_KP_7,	KEY_Home,
-    /* 37 */	VK_LEFT,	KEY_KP_4,	KEY_Left,
-    /* 38 */	VK_UP,		KEY_KP_8,	KEY_Up,
-    /* 39 */	VK_RIGHT,	KEY_KP_6,	KEY_Right,
-    /* 40 */	VK_DOWN,	KEY_KP_2,	KEY_Down,
+    /* 33 */ VK_PRIOR, 0, KEY_PgUp,
+    /* 34 */ VK_NEXT, 0, KEY_PgDown,
+    /* 35 */ VK_END, 0, KEY_End,
+    /* 36 */ VK_HOME, 0, KEY_Home,
+    /* 37 */ VK_LEFT, 0, KEY_Left,
+    /* 38 */ VK_UP, 0, KEY_Up,
+    /* 39 */ VK_RIGHT, 0, KEY_Right,
+    /* 40 */ VK_DOWN, 0, KEY_Down,
     /* 41 */ 0, 0, 0,
     /* 42 */ 0, 0, 0,
     /* 43 */ 0, 0, 0,
@@ -207,12 +205,12 @@ const int
     /* 157 */ 0, 0, 0,
     /* 158 */ 0, 0, 0,
     /* 159 */ 0, 0, 0,
-    /* 160 */	VK_LSHIFT,	KEY_ShiftL,	KEY_ShiftL,
-    /* 161 */	VK_RSHIFT,	KEY_ShiftR,	KEY_ShiftR,
-    /* 162 */	VK_LCONTROL,	KEY_LCtrl,	KEY_LCtrl,
-    /* 163 */	VK_RCONTROL,	KEY_RCtrl,	KEY_RCtrl,
-    /* 164 */	VK_LMENU,	KEY_Alt,	KEY_Alt,
-    /* 165 */	VK_RMENU,	KEY_AltLang,	KEY_AltLang,
+    /* 160 */ VK_LSHIFT, KEY_ShiftL, 0,
+    /* 161 */ VK_RSHIFT, KEY_ShiftR, 0,
+    /* 162 */ VK_LCONTROL, KEY_LCtrl, 0,
+    /* 163 */ VK_RCONTROL, KEY_RCtrl, 0,
+    /* 164 */ VK_LMENU, KEY_Alt, 0,
+    /* 165 */ VK_RMENU, KEY_AltLang, 0,
     /* 166 */ 0, 0, 0,
     /* 167 */ 0, 0, 0,
     /* 168 */ 0, 0, 0,
@@ -270,7 +268,7 @@ const int
     /* 220 */ 0, 0, 0,
     /* 221 */ 0, 0, 0,
     /* 222 */ 0, 0, 0,
-    /* 223 */ VK_OEM_8, 0, KEY_RCtrl,
+                                        /* 223 */ VK_OEM_8, 0, KEY_RCtrl,
                                         /* at least on Canadian Multilingual Standard layout */
     /* 224 */ 0, 0, 0,
     /* 225 */ 0, 0, 0,
@@ -303,7 +301,7 @@ const int
     /* 252 */ 0, 0, 0,
     /* 253 */ 0, 0, 0,
     /* 254 */ 0, 0, 0,
-    /* 255 */ VK_FN, 0, KEY_Fn
+                                /* 255 */ VK_FN, 0, KEY_Fn
                                 /* Most keyboards don't generate a scancode for Fn, but a few do... */
 };
 
