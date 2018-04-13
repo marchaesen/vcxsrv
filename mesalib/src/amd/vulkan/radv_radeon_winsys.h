@@ -29,6 +29,7 @@
 #ifndef RADV_RADEON_WINSYS_H
 #define RADV_RADEON_WINSYS_H
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>

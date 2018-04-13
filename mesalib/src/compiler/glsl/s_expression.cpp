@@ -25,6 +25,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
+#include <stdlib.h>
 #include "s_expression.h"
 
 s_symbol::s_symbol(const char *str, size_t n)

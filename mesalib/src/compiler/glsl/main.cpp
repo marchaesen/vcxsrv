@@ -21,6 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
 
@@ -33,7 +34,6 @@
  * offline compile GLSL code and examine the resulting GLSL IR.
  */
 
-#include "main/mtypes.h"
 #include "standalone.h"
 
 static struct standalone_options options;

@@ -31,9 +31,9 @@
 #ifndef DD_INCLUDED
 #define DD_INCLUDED
 
-/* THIS FILE ONLY INCLUDED BY mtypes.h !!!!! */
-
 #include "glheader.h"
+#include "formats.h"
+#include "menums.h"
 
 struct gl_bitmap_atlas;
 struct gl_buffer_object;
@@ -50,6 +50,8 @@ struct gl_shader_program;
 struct gl_texture_image;
 struct gl_texture_object;
 struct gl_memory_info;
+struct gl_transform_feedback_object;
+struct ati_fragment_shader;
 struct util_queue_monitoring;
 struct _mesa_prim;
 struct _mesa_index_buffer;

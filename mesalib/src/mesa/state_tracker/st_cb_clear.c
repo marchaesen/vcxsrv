@@ -33,6 +33,7 @@
   *   Michel Dänzer
   */
 
+#include "main/errors.h"
 #include "main/glheader.h"
 #include "main/accum.h"
 #include "main/formats.h"

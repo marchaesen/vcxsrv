@@ -30,6 +30,11 @@
 
 #include "shader_enums.h"
 #include "blob.h"
+#include "c11/threads.h"
+
+#ifdef __cplusplus
+#include "main/config.h"
+#endif
 
 struct glsl_type;
 
@@ -146,7 +151,7 @@ enum {
 #ifdef __cplusplus
 #include "GL/gl.h"
 #include "util/ralloc.h"
-#include "main/mtypes.h" /* for gl_texture_index, C++'s enum rules are broken */
+#include "main/menums.h" /* for gl_texture_index, C++'s enum rules are broken */
 
 struct glsl_type {
    GLenum gl_type;

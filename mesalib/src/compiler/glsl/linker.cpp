@@ -66,7 +66,6 @@
 
 #include <ctype.h>
 #include "util/strndup.h"
-#include "main/core.h"
 #include "glsl_symbol_table.h"
 #include "glsl_parser_extras.h"
 #include "ir.h"
@@ -84,8 +83,10 @@
 #include "builtin_functions.h"
 #include "shader_cache.h"
 
+#include "main/imports.h"
 #include "main/shaderobj.h"
 #include "main/enums.h"
+#include "main/mtypes.h"
 
 
 namespace {

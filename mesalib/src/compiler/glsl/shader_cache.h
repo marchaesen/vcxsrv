@@ -26,6 +26,9 @@
 
 #include "util/disk_cache.h"
 
+struct gl_context;
+struct gl_shader_program;
+
 void
 shader_cache_write_program_metadata(struct gl_context *ctx,
                                     struct gl_shader_program *prog);

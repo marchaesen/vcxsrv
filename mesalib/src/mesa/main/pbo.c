@@ -31,6 +31,7 @@
 
 
 
+#include "errors.h"
 #include "glheader.h"
 #include "bufferobj.h"
 #include "glformats.h"

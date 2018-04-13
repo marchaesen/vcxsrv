@@ -24,11 +24,13 @@
 #ifndef TEXTUREBINDLESS_H
 #define TEXTUREBINDLESS_H
 
-#include "mtypes.h"
+#include "glheader.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct gl_context;
 
 /**
  * \name Internal functions

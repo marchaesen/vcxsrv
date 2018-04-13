@@ -40,7 +40,7 @@
 #ifndef PROGRAM_H
 #define PROGRAM_H
 
-#include "main/mtypes.h"
+#include "prog_parameter.h"
 
 
 #ifdef __cplusplus

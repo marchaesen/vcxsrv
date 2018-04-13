@@ -48,6 +48,7 @@
 
 #include <stdio.h>
 #include "main/bufferobj.h"
+#include "main/errors.h"
 #include "main/glheader.h"
 #include "main/imports.h"
 #include "main/mtypes.h"

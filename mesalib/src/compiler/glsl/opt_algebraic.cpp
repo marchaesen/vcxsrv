@@ -34,6 +34,7 @@
 #include "ir_optimization.h"
 #include "ir_builder.h"
 #include "compiler/glsl_types.h"
+#include "main/mtypes.h"
 
 using namespace ir_builder;
 

@@ -35,7 +35,6 @@
 #include "state.h"
 #include "teximage.h"
 #include "texstate.h"
-#include "main/dispatch.h"
 
 
 void GLAPIENTRY

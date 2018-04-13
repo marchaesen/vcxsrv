@@ -34,6 +34,7 @@
 #include "texstore.h"
 #include "macros.h"
 #include "image.h"
+#include "mtypes.h"
 
 #define BLOCK_SIZE 4
 #define N_PARTITIONS 64

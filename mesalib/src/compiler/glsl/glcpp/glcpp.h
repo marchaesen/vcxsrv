@@ -27,13 +27,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "main/mtypes.h"
+#include "main/menums.h"
 
 #include "util/ralloc.h"
 
 #include "util/hash_table.h"
 
 #include "util/string_buffer.h"
+
+struct gl_context;
 
 #define yyscan_t void*
 

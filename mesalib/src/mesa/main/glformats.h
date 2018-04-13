@@ -36,6 +36,8 @@
 extern "C" {
 #endif
 
+struct gl_context;
+
 extern void
 _mesa_compute_component_mapping(GLenum inFormat, GLenum outFormat, GLubyte *map);
 

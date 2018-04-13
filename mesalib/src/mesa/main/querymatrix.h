@@ -25,7 +25,7 @@
 #define QUERYMATRIX_H
 
 
-#include "mtypes.h"
+#include "glheader.h"
 
 
 /*

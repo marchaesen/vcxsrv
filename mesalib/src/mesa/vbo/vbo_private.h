@@ -35,7 +35,6 @@
 #include "vbo/vbo_attrib.h"
 #include "vbo/vbo_exec.h"
 #include "vbo/vbo_save.h"
-#include "main/mtypes.h"
 #include "main/varray.h"
 
 

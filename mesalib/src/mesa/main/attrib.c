@@ -56,7 +56,6 @@
 #include "varray.h"
 #include "viewport.h"
 #include "mtypes.h"
-#include "main/dispatch.h"
 #include "state.h"
 #include "hash.h"
 #include <stdbool.h>

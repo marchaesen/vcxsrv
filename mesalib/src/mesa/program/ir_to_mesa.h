@@ -31,8 +31,11 @@ extern "C" {
 #endif
 
 struct gl_context;
+struct gl_program;
 struct gl_shader;
 struct gl_shader_program;
+struct gl_linked_shader;
+struct gl_program_parameter_list;
 
 void _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog);
 GLboolean _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog);

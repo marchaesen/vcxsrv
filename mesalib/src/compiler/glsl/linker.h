@@ -25,6 +25,10 @@
 #ifndef GLSL_LINKER_H
 #define GLSL_LINKER_H
 
+struct gl_shader_program;
+struct gl_shader;
+struct gl_linked_shader;
+
 extern bool
 link_function_calls(gl_shader_program *prog, gl_linked_shader *main,
                     gl_shader **shader_list, unsigned num_shaders);

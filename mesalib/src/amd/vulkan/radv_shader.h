@@ -57,6 +57,7 @@ struct radv_shader_module {
 
 struct radv_vs_variant_key {
 	uint32_t instance_rate_inputs;
+	uint32_t instance_rate_divisors[MAX_VERTEX_ATTRIBS];
 	uint32_t as_es:1;
 	uint32_t as_ls:1;
 	uint32_t export_prim_id:1;

@@ -21,7 +21,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "main/core.h"
 #include "ir.h"
 #include "linker.h"
 #include "ir_uniform.h"
@@ -29,6 +28,7 @@
 #include "program.h"
 #include "string_to_uint_map.h"
 #include "ir_array_refcount.h"
+#include "main/mtypes.h"
 
 /**
  * \file link_uniforms.cpp

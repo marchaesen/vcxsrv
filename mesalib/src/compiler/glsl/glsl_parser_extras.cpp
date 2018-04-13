@@ -26,7 +26,6 @@
 #include <string.h>
 #include <assert.h>
 
-#include "main/core.h" /* for struct gl_context */
 #include "main/context.h"
 #include "main/debug_output.h"
 #include "main/formats.h"

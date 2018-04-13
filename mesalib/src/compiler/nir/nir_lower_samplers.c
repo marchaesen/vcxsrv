@@ -29,8 +29,6 @@
 
 #include "main/compiler.h"
 #include "main/mtypes.h"
-#include "program/prog_parameter.h"
-#include "program/program.h"
 
 /* Calculate the sampler index based on array indicies and also
  * calculate the base uniform location for struct members.

@@ -32,6 +32,7 @@
 
 #include "util/mesa-sha1.h"
 #include "util/ralloc.h"
+#include <string.h>
 
 #define STRING_CONF_MAXLEN 25
 

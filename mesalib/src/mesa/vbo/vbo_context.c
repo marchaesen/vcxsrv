@@ -26,7 +26,7 @@
  */
 
 #include "c99_alloca.h"
-#include "main/mtypes.h"
+#include "main/errors.h"
 #include "main/bufferobj.h"
 #include "math/m_eval.h"
 #include "main/vtxfmt.h"

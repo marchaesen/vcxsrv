@@ -37,6 +37,7 @@
 #include "main/macros.h"
 #include "util/list.h"
 #include "glsl_parser_extras.h"
+#include "main/mtypes.h"
 
 using namespace ir_builder;
 

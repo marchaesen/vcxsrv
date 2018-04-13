@@ -25,6 +25,7 @@
  *    Keith Whitwell <keithw@vmware.com> Brian Paul
  */
 
+#include "main/errors.h"
 #include "main/imports.h"
 #include "main/bufferobj.h"
 #include "main/mtypes.h"

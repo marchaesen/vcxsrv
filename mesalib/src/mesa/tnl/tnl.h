@@ -33,6 +33,9 @@
 struct gl_vertex_array;
 struct gl_context;
 struct gl_program;
+struct gl_buffer_object;
+struct gl_transform_feedback_object;
+struct dd_function_table;
 
 
 /* These are the public-access functions exported from tnl.  (A few

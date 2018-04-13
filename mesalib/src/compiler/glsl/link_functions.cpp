@@ -21,7 +21,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "main/core.h"
 #include "glsl_symbol_table.h"
 #include "glsl_parser_extras.h"
 #include "ir.h"
@@ -29,6 +28,7 @@
 #include "util/set.h"
 #include "util/hash_table.h"
 #include "linker.h"
+#include "main/mtypes.h"
 
 static ir_function_signature *
 find_matching_signature(const char *name, const exec_list *actual_parameters,

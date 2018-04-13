@@ -51,6 +51,7 @@
  */
 
 
+#include "errors.h"
 #include "glheader.h"
 #include "bufferobj.h"
 #include "format_pack.h"

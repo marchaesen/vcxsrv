@@ -49,6 +49,7 @@
 #include "ir_rvalue_visitor.h"
 #include "ir.h"
 #include "program/prog_instruction.h" /* For WRITEMASK_* */
+#include "main/mtypes.h"
 
 namespace {
 

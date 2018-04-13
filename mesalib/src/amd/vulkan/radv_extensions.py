@@ -93,6 +93,7 @@ EXTENSIONS = [
     Extension('VK_EXT_global_priority',                   1, 'device->rad_info.has_ctx_priority'),
     Extension('VK_EXT_sampler_filter_minmax',             1, 'device->rad_info.chip_class >= CIK'),
     Extension('VK_EXT_shader_viewport_index_layer',       1, True),
+    Extension('VK_EXT_vertex_attribute_divisor',          1, True),
     Extension('VK_AMD_draw_indirect_count',               1, True),
     Extension('VK_AMD_gcn_shader',                        1, True),
     Extension('VK_AMD_rasterization_order',               1, 'device->has_out_of_order_rast'),

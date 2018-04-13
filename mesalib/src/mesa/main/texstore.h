@@ -36,9 +36,13 @@
 #define TEXSTORE_H
 
 
-#include "mtypes.h"
+#include "glheader.h"
 #include "formats.h"
+#include "util/macros.h"
 
+struct gl_context;
+struct gl_pixelstore_attrib;
+struct gl_texture_image;
 
 /**
  * This macro defines the (many) parameters to the texstore functions.

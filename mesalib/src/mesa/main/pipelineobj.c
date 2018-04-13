@@ -34,7 +34,6 @@
 #include <stdbool.h>
 #include "main/glheader.h"
 #include "main/context.h"
-#include "main/dispatch.h"
 #include "main/enums.h"
 #include "main/hash.h"
 #include "main/mtypes.h"

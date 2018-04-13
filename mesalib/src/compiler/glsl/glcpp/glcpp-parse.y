@@ -29,8 +29,7 @@
 #include <inttypes.h>
 
 #include "glcpp.h"
-#include "main/core.h" /* for struct gl_extensions */
-#include "main/mtypes.h" /* for gl_api enum */
+#include "main/mtypes.h"
 
 static void
 yyerror(YYLTYPE *locp, glcpp_parser_t *parser, const char *error);

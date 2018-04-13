@@ -28,6 +28,7 @@
 #include "compiler/glsl/ir_uniform.h"
 #include "nir.h"
 #include "main/config.h"
+#include "main/mtypes.h"
 #include <assert.h>
 
 /*

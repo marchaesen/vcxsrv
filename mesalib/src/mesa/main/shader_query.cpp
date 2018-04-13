@@ -29,7 +29,6 @@
  */
 
 #include "main/context.h"
-#include "main/core.h"
 #include "main/enums.h"
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"

@@ -41,6 +41,7 @@
 #include "texcompress.h"
 #include "texcompress_etc.h"
 #include "texstore.h"
+#include "config.h"
 #include "macros.h"
 #include "format_unpack.h"
 #include "util/format_srgb.h"

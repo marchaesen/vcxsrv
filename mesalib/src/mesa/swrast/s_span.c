@@ -32,6 +32,7 @@
  */
 
 #include "c99_math.h"
+#include "main/errors.h"
 #include "main/glheader.h"
 #include "main/format_pack.h"
 #include "main/format_unpack.h"

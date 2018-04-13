@@ -26,7 +26,6 @@
 #include "glheader.h"
 #include "context.h"
 #include "histogram.h"
-#include "main/dispatch.h"
 
 
 /**********************************************************************

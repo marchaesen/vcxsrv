@@ -28,7 +28,7 @@
 #ifndef ST_MANAGER_H
 #define ST_MANAGER_H
 
-#include "main/mtypes.h"
+#include "main/menums.h"
 
 #include "pipe/p_compiler.h"
 

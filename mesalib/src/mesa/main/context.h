@@ -49,6 +49,7 @@
 #define CONTEXT_H
 
 
+#include "errors.h"
 #include "imports.h"
 #include "extensions.h"
 #include "mtypes.h"

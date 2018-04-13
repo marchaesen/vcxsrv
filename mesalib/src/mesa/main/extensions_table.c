@@ -23,7 +23,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "main/mtypes.h"
 #include "main/extensions.h"
 
 /**

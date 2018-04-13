@@ -41,7 +41,6 @@
 #include <string.h>
 #include "compiler.h"
 #include "glheader.h"
-#include "errors.h"
 #include "util/bitscan.h"
 
 #ifdef __cplusplus

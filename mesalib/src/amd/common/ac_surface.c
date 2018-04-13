@@ -865,9 +865,12 @@ gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib,
 	sin.numSamples = in->numSamples;
 	sin.numFrags = in->numFrags;
 
-	if (flags & RADEON_SURF_SCANOUT)
+	if (flags & RADEON_SURF_SCANOUT) {
 		sin.preferredSwSet.sw_D = 1;
-	else if (in->flags.depth || in->flags.stencil || is_fmask)
+		/* Raven only allows S for displayable surfaces with < 64 bpp, so
+		 * allow it as fallback */
+		sin.preferredSwSet.sw_S = 1;
+	} else if (in->flags.depth || in->flags.stencil || is_fmask)
 		sin.preferredSwSet.sw_Z = 1;
 	else
 		sin.preferredSwSet.sw_S = 1;

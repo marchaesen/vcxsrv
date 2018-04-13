@@ -34,6 +34,7 @@
 #include <string.h>
 #include "util/ralloc.h"
 #include "util/strtod.h"
+#include "main/mtypes.h"
 
 void
 _mesa_warning(struct gl_context *ctx, const char *fmt, ...)

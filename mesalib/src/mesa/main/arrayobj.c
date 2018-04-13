@@ -51,7 +51,6 @@
 #include "mtypes.h"
 #include "state.h"
 #include "varray.h"
-#include "main/dispatch.h"
 #include "util/bitscan.h"
 #include "util/u_atomic.h"
 

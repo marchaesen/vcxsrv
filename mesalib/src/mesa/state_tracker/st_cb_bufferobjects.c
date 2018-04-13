@@ -33,6 +33,7 @@
 
 #include <inttypes.h>  /* for PRId64 macro */
 
+#include "main/errors.h"
 #include "main/imports.h"
 #include "main/mtypes.h"
 #include "main/arrayobj.h"

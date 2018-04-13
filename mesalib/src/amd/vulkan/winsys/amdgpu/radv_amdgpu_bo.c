@@ -33,6 +33,8 @@
 #include <amdgpu.h>
 #include <amdgpu_drm.h>
 #include <inttypes.h>
+#include <pthread.h>
+#include <unistd.h>
 
 #include "util/u_atomic.h"
 

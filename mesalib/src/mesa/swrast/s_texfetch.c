@@ -33,6 +33,7 @@
  */
 
 
+#include "main/errors.h"
 #include "main/macros.h"
 #include "main/texcompress.h"
 #include "main/texcompress_fxt1.h"

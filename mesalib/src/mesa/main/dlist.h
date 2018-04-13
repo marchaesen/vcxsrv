@@ -33,8 +33,8 @@
 #define DLIST_H
 
 #include <stdio.h>
-#include "main/mtypes.h"
 
+struct gl_context;
 
 /**
  * Describes the location and size of a glBitmap image in a texture atlas.

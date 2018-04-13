@@ -55,7 +55,6 @@ MAIN_FILES = \
 	main/convolve.h \
 	main/copyimage.c \
 	main/copyimage.h \
-	main/core.h \
 	main/cpuinfo.c \
 	main/cpuinfo.h \
 	main/dd.h \
@@ -148,6 +147,7 @@ MAIN_FILES = \
 	main/mipmap.h \
 	main/mm.c \
 	main/mm.h \
+	main/menums.h \
 	main/mtypes.h \
 	main/multisample.c \
 	main/multisample.h \
