@@ -586,7 +586,7 @@ union		KEYWORD(110, 100, 0, 0, UNION);
 enum		KEYWORD(110, 100, 0, 0, ENUM);
 typedef		KEYWORD(110, 100, 0, 0, TYPEDEF);
 template	KEYWORD(110, 100, 0, 0, TEMPLATE);
-this		KEYWORD(110, 100, 0, 0, THIS);
+this		KEYWORD(110, 100, 0, 0, KW_THIS);
 packed		KEYWORD_WITH_ALT(110, 100, 140, 300, yyextra->ARB_uniform_buffer_object_enable, PACKED_TOK);
 goto		KEYWORD(110, 100, 0, 0, GOTO);
 switch		KEYWORD(110, 100, 130, 300, SWITCH);

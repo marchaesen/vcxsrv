@@ -170,7 +170,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %token DOT_TOK
    /* Reserved words that are not actually used in the grammar.
     */
-%token ASM CLASS UNION ENUM TYPEDEF TEMPLATE THIS PACKED_TOK GOTO
+%token ASM CLASS UNION ENUM TYPEDEF TEMPLATE KW_THIS PACKED_TOK GOTO
 %token INLINE_TOK NOINLINE PUBLIC_TOK STATIC EXTERN EXTERNAL
 %token LONG_TOK SHORT_TOK HALF FIXED_TOK UNSIGNED INPUT_TOK
 %token HVEC2 HVEC3 HVEC4 FVEC2 FVEC3 FVEC4
