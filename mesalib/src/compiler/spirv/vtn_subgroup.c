@@ -277,6 +277,8 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       case 2:
          op = nir_intrinsic_quad_swap_diagonal;
          break;
+      default:
+         vtn_fail("Invalid constant value in OpGroupNonUniformQuadSwap");
       }
       vtn_build_subgroup_instr(b, op, val->ssa, vtn_ssa_value(b, w[4]),
                                NULL, 0, 0);

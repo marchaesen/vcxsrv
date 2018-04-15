@@ -14,10 +14,8 @@ SConscript('auxiliary/pipe-loader/SConscript')
 # These are common and work across all platforms
 SConscript([
     'drivers/llvmpipe/SConscript',
-    'drivers/rbug/SConscript',
     'drivers/softpipe/SConscript',
     'drivers/svga/SConscript',
-    'drivers/trace/SConscript',
     'drivers/swr/SConscript',
 ])
 

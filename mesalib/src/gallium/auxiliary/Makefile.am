@@ -108,6 +108,9 @@ endif # NEED_GALLIUM_VL
 
 EXTRA_DIST = \
 	SConscript \
+	driver_rbug/README \
+	driver_trace/README \
+	driver_trace/trace.xsl \
 	indices/u_indices.c \
 	indices/u_unfilled_indices.c \
 	indices/u_indices_gen.py \

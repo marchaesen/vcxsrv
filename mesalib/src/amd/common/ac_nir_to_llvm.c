@@ -2805,36 +2805,12 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		result = ac_build_ballot(&ctx->ac, get_src(ctx, instr->src[0]));
 		break;
 	case nir_intrinsic_read_invocation:
-	case nir_intrinsic_read_first_invocation: {
-		LLVMValueRef args[2];
-
-		/* Value */
-		args[0] = get_src(ctx, instr->src[0]);
-
-		unsigned num_args;
-		const char *intr_name;
-		if (instr->intrinsic == nir_intrinsic_read_invocation) {
-			num_args = 2;
-			intr_name = "llvm.amdgcn.readlane";
-
-			/* Invocation */
-			args[1] = get_src(ctx, instr->src[1]);
-		} else {
-			num_args = 1;
-			intr_name = "llvm.amdgcn.readfirstlane";
-		}
-
-		/* We currently have no other way to prevent LLVM from lifting the icmp
-		 * calls to a dominating basic block.
-		 */
-		ac_build_optimization_barrier(&ctx->ac, &args[0]);
-
-		result = ac_build_intrinsic(&ctx->ac, intr_name,
-					    ctx->ac.i32, args, num_args,
-					    AC_FUNC_ATTR_READNONE |
-					    AC_FUNC_ATTR_CONVERGENT);
+		result = ac_build_readlane(&ctx->ac, get_src(ctx, instr->src[0]),
+				get_src(ctx, instr->src[1]));
 		break;
-	}
+	case nir_intrinsic_read_first_invocation:
+		result = ac_build_readlane(&ctx->ac, get_src(ctx, instr->src[0]), NULL);
+		break;
 	case nir_intrinsic_load_subgroup_invocation:
 		result = ac_get_thread_id(&ctx->ac);
 		break;
@@ -3088,6 +3064,41 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		result = LLVMBuildSExt(ctx->ac.builder, tmp, ctx->ac.i32, "");
 		break;
 	}
+	case nir_intrinsic_shuffle:
+		result = ac_build_shuffle(&ctx->ac, get_src(ctx, instr->src[0]),
+				get_src(ctx, instr->src[1]));
+		break;
+	case nir_intrinsic_reduce:
+		result = ac_build_reduce(&ctx->ac,
+				get_src(ctx, instr->src[0]),
+				instr->const_index[0],
+				instr->const_index[1]);
+		break;
+	case nir_intrinsic_inclusive_scan:
+		result = ac_build_inclusive_scan(&ctx->ac,
+				get_src(ctx, instr->src[0]),
+				instr->const_index[0]);
+		break;
+	case nir_intrinsic_exclusive_scan:
+		result = ac_build_exclusive_scan(&ctx->ac,
+				get_src(ctx, instr->src[0]),
+				instr->const_index[0]);
+		break;
+	case nir_intrinsic_quad_broadcast: {
+		unsigned lane = nir_src_as_const_value(instr->src[1])->u32[0];
+		result = ac_build_quad_swizzle(&ctx->ac, get_src(ctx, instr->src[0]),
+				lane, lane, lane, lane);
+		break;
+	}
+	case nir_intrinsic_quad_swap_horizontal:
+		result = ac_build_quad_swizzle(&ctx->ac, get_src(ctx, instr->src[0]), 1, 0, 3 ,2);
+		break;
+	case nir_intrinsic_quad_swap_vertical:
+		result = ac_build_quad_swizzle(&ctx->ac, get_src(ctx, instr->src[0]), 2, 3, 0 ,1);
+		break;
+	case nir_intrinsic_quad_swap_diagonal:
+		result = ac_build_quad_swizzle(&ctx->ac, get_src(ctx, instr->src[0]), 3, 2, 1 ,0);
+		break;
 	default:
 		fprintf(stderr, "Unknown intrinsic: ");
 		nir_print_instr(&instr->instr, stderr);

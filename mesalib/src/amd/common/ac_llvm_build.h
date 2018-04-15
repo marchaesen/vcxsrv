@@ -27,7 +27,7 @@
 
 #include <stdbool.h>
 #include <llvm-c/TargetMachine.h>
-
+#include "compiler/nir/nir.h"
 #include "amd_family.h"
 
 #ifdef __cplusplus
@@ -416,6 +416,34 @@ LLVMValueRef ac_unpack_param(struct ac_llvm_context *ctx, LLVMValueRef param,
 
 void ac_apply_fmask_to_sample(struct ac_llvm_context *ac, LLVMValueRef fmask,
 			      LLVMValueRef *addr, bool is_array_tex);
+
+LLVMValueRef
+ac_build_ds_swizzle(struct ac_llvm_context *ctx, LLVMValueRef src, unsigned mask);
+
+LLVMValueRef
+ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef lane);
+
+LLVMValueRef
+ac_build_writelane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef value, LLVMValueRef lane);
+
+LLVMValueRef
+ac_build_mbcnt(struct ac_llvm_context *ctx, LLVMValueRef mask);
+
+LLVMValueRef
+ac_build_inclusive_scan(struct ac_llvm_context *ctx, LLVMValueRef src, nir_op op);
+
+LLVMValueRef
+ac_build_exclusive_scan(struct ac_llvm_context *ctx, LLVMValueRef src, nir_op op);
+
+LLVMValueRef
+ac_build_reduce(struct ac_llvm_context *ctx, LLVMValueRef src, nir_op op, unsigned cluster_size);
+
+LLVMValueRef
+ac_build_quad_swizzle(struct ac_llvm_context *ctx, LLVMValueRef src,
+		unsigned lane0, unsigned lane1, unsigned lane2, unsigned lane3);
+
+LLVMValueRef
+ac_build_shuffle(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef index);
 
 #ifdef __cplusplus
 }

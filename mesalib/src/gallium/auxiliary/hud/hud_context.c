@@ -399,6 +399,26 @@ hud_pane_accumulate_vertices(struct hud_context *hud,
 }
 
 static void
+hud_pane_accumulate_vertices_simple(struct hud_context *hud,
+                                    const struct hud_pane *pane)
+{
+   struct hud_graph *gr;
+   unsigned i;
+   char str[32];
+
+   /* draw info below the pane */
+   i = 0;
+   LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
+      unsigned x = pane->x1;
+      unsigned y = pane->y_simple + i*hud->font.glyph_height;
+
+      number_to_human_readable(gr->current_value, pane->type, str);
+      hud_draw_string(hud, x, y, "%s: %s", gr->name, str);
+      i++;
+   }
+}
+
+static void
 hud_pane_draw_colored_objects(struct hud_context *hud,
                               const struct hud_pane *pane)
 {
@@ -547,6 +567,23 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    }
    pipe_resource_reference(&hud->bg.vbuf.buffer.resource, NULL);
 
+   /* draw accumulated vertices for text */
+   if (hud->text.num_vertices) {
+      cso_set_vertex_buffers(cso, cso_get_aux_vertex_buffer_slot(cso), 1,
+                             &hud->text.vbuf);
+      cso_set_fragment_shader_handle(hud->cso, hud->fs_text);
+      cso_draw_arrays(cso, PIPE_PRIM_QUADS, 0, hud->text.num_vertices);
+   }
+   pipe_resource_reference(&hud->text.vbuf.buffer.resource, NULL);
+
+   if (hud->simple) {
+      cso_restore_state(cso);
+      cso_restore_constant_buffer_slot0(cso, PIPE_SHADER_VERTEX);
+
+      pipe_surface_reference(&surf, NULL);
+      return;
+   }
+
    /* draw accumulated vertices for white lines */
    cso_set_blend(cso, &hud->no_blend);
 
@@ -568,17 +605,8 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    }
    pipe_resource_reference(&hud->whitelines.vbuf.buffer.resource, NULL);
 
-   /* draw accumulated vertices for text */
-   cso_set_blend(cso, &hud->alpha_blend);
-   if (hud->text.num_vertices) {
-      cso_set_vertex_buffers(cso, cso_get_aux_vertex_buffer_slot(cso), 1,
-                             &hud->text.vbuf);
-      cso_set_fragment_shader_handle(hud->cso, hud->fs_text);
-      cso_draw_arrays(cso, PIPE_PRIM_QUADS, 0, hud->text.num_vertices);
-   }
-   pipe_resource_reference(&hud->text.vbuf.buffer.resource, NULL);
-
    /* draw the rest */
+   cso_set_blend(cso, &hud->alpha_blend);
    cso_set_rasterizer(cso, &hud->rasterizer_aa_lines);
    LIST_FOR_EACH_ENTRY(pane, &hud->pane_list, head) {
       if (pane)
@@ -678,7 +706,10 @@ hud_stop_queries(struct hud_context *hud, struct pipe_context *pipe)
          }
       }
 
-      hud_pane_accumulate_vertices(hud, pane);
+      if (hud->simple)
+         hud_pane_accumulate_vertices_simple(hud, pane);
+      else
+         hud_pane_accumulate_vertices(hud, pane);
    }
 
    /* unmap the uploader's vertex buffer before drawing */
@@ -842,6 +873,7 @@ hud_pane_update_dyn_ceiling(struct hud_graph *gr, struct hud_pane *pane)
 static struct hud_pane *
 hud_pane_create(struct hud_context *hud,
                 unsigned x1, unsigned y1, unsigned x2, unsigned y2,
+                unsigned y_simple,
                 unsigned period, uint64_t max_value, uint64_t ceiling,
                 boolean dyn_ceiling, boolean sort_items)
 {
@@ -855,6 +887,7 @@ hud_pane_create(struct hud_context *hud,
    pane->y1 = y1;
    pane->x2 = x2;
    pane->y2 = y2;
+   pane->y_simple = y_simple;
    pane->inner_x1 = x1 + 1;
    pane->inner_x2 = x2 - 1;
    pane->inner_y1 = y1 + 1;
@@ -1156,7 +1189,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
    char name_a[256], s[256];
    char *name;
    struct hud_pane *pane = NULL;
-   unsigned x = 10, y = 10;
+   unsigned x = 10, y = 10, y_simple = 10;
    unsigned width = 251, height = 100;
    unsigned period = 500 * 1000;  /* default period (1/2 second) */
    uint64_t ceiling = UINT64_MAX;
@@ -1165,6 +1198,11 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
    boolean reset_colors = false;
    boolean sort_items = false;
    const char *period_env;
+
+   if (util_strncmp(env, "simple,", 7) == 0) {
+      hud->simple = true;
+      env += 7;
+   }
 
    /*
     * The GALLIUM_HUD_PERIOD env var sets the graph update rate.
@@ -1194,8 +1232,8 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
      column_width = width > column_width ? width : column_width;
 
       if (!pane) {
-         pane = hud_pane_create(hud, x, y, x + width, y + height, period, 10,
-                                ceiling, dyn_ceiling, sort_items);
+         pane = hud_pane_create(hud, x, y, x + width, y + height, y_simple,
+                                period, 10, ceiling, dyn_ceiling, sort_items);
          if (!pane)
             return;
       }
@@ -1414,6 +1452,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
             break;
 
          y += height + hud->font.glyph_height * (pane->num_graphs + 2);
+         y_simple += hud->font.glyph_height * (pane->num_graphs + 1);
          height = 100;
 
          if (pane && pane->num_graphs) {
@@ -1425,6 +1464,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
       case ';':
          env++;
          y = 10;
+         y_simple = 10;
          x += column_width + hud->font.glyph_width * 9;
          height = 100;
 
@@ -1512,6 +1552,10 @@ print_help(struct pipe_screen *screen)
    puts("  If 'c' and 'd' modifiers are used simultaneously, both are in effect:");
    puts("  the Y axis does not go above the restriction imposed by 'c' while");
    puts("  still adjusting the value of the Y axis down when appropriate.");
+   puts("");
+   puts("  You can change behavior of the whole HUD by adding these options at");
+   puts("  the beginning of the environment variable:");
+   puts("  'simple,' disables all the fancy stuff and only draws text.");
    puts("");
    puts("  Example: GALLIUM_HUD=\".w256.h64.x1600.y520.d.c1000fps+cpu,.datom-count\"");
    puts("");

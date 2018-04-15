@@ -21,6 +21,11 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+
+#ifndef _MSC_VER
+#include <unistd.h>
+#endif
+
 #include "main/glheader.h"
 #include "main/imports.h"
 #include "program/prog_instruction.h"

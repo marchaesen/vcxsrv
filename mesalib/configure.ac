@@ -3011,21 +3011,17 @@ AC_CONFIG_FILES([Makefile
                  src/gallium/auxiliary/Makefile
                  src/gallium/auxiliary/pipe-loader/Makefile
                  src/gallium/drivers/freedreno/Makefile
-                 src/gallium/drivers/ddebug/Makefile
                  src/gallium/drivers/i915/Makefile
                  src/gallium/drivers/llvmpipe/Makefile
-                 src/gallium/drivers/noop/Makefile
                  src/gallium/drivers/nouveau/Makefile
                  src/gallium/drivers/pl111/Makefile
                  src/gallium/drivers/r300/Makefile
                  src/gallium/drivers/r600/Makefile
                  src/gallium/drivers/radeonsi/Makefile
-                 src/gallium/drivers/rbug/Makefile
                  src/gallium/drivers/softpipe/Makefile
                  src/gallium/drivers/svga/Makefile
                  src/gallium/drivers/swr/Makefile
                  src/gallium/drivers/tegra/Makefile
-                 src/gallium/drivers/trace/Makefile
                  src/gallium/drivers/etnaviv/Makefile
                  src/gallium/drivers/imx/Makefile
                  src/gallium/drivers/vc4/Makefile
