@@ -210,6 +210,7 @@ glamor_xv_query_image_attributes(int id,
     switch (id) {
     case FOURCC_YV12:
     case FOURCC_I420:
+        *w = ALIGN(*w, 2);
         *h = ALIGN(*h, 2);
         size = ALIGN(*w, 4);
         if (pitches)

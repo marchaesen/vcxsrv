@@ -33,6 +33,11 @@
 #include <stdlib.h>
 #include "glsl_symbol_table.h"
 
+/* THIS is a macro defined somewhere deep in the Windows MSVC header files.
+ * Undefine it here to avoid collision with the lexer's THIS token.
+ */
+#undef THIS
+
 struct gl_context;
 
 struct glsl_switch_state {

@@ -92,6 +92,7 @@ enum radeon_family {
     CHIP_POLARIS10,
     CHIP_POLARIS11,
     CHIP_POLARIS12,
+    CHIP_VEGAM,
     CHIP_VEGA10,
     CHIP_VEGA12,
     CHIP_RAVEN,

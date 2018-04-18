@@ -940,8 +940,14 @@ void radv_GetPhysicalDeviceProperties2(
 			    (VkPhysicalDeviceSubgroupProperties*)ext;
 			properties->subgroupSize = 64;
 			properties->supportedStages = VK_SHADER_STAGE_ALL;
-			properties->supportedOperations = VK_SUBGROUP_FEATURE_BASIC_BIT;
-			properties->quadOperationsInAllStages = false;
+			properties->supportedOperations =
+							VK_SUBGROUP_FEATURE_BASIC_BIT |
+							VK_SUBGROUP_FEATURE_BALLOT_BIT |
+							VK_SUBGROUP_FEATURE_QUAD_BIT |
+							VK_SUBGROUP_FEATURE_SHUFFLE_BIT |
+							VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT |
+							VK_SUBGROUP_FEATURE_VOTE_BIT;
+			properties->quadOperationsInAllStages = true;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES: {

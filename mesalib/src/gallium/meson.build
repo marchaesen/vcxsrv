@@ -1,5 +1,5 @@
 # Copyright © 2017 Dylan Baker
-# Copyright © 2017 Intel Corporation
+# Copyright © 2017-2018 Intel Corporation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,6 @@ inc_gallium_winsys = include_directories('winsys')
 
 subdir('auxiliary')
 subdir('auxiliary/pipe-loader')
-subdir('drivers/ddebug')
-subdir('drivers/noop')
-subdir('drivers/trace')
-subdir('drivers/rbug')
 subdir('winsys/sw/null')
 if with_dri
   subdir('winsys/sw/dri')
@@ -195,4 +191,10 @@ if with_gallium_st_nine
   subdir('state_trackers/nine')
   subdir('targets/d3dadapter9')
 endif
-# TODO: tests
+if with_tests
+  subdir('targets/graw-null')
+  if with_glx == 'gallium-xlib'
+    subdir('targets/graw-xlib')
+  endif
+  subdir('tests')
+endif

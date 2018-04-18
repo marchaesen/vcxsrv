@@ -131,6 +131,10 @@ static void addrlib_family_rev_id(enum radeon_family family,
 		*addrlib_family = FAMILY_VI;
 		*addrlib_revid = get_first(AMDGPU_POLARIS12_RANGE);
 		break;
+	case CHIP_VEGAM:
+		*addrlib_family = FAMILY_VI;
+		*addrlib_revid = get_first(AMDGPU_VEGAM_RANGE);
+		break;
 	case CHIP_VEGA10:
 		*addrlib_family = FAMILY_AI;
 		*addrlib_revid = get_first(AMDGPU_VEGA10_RANGE);

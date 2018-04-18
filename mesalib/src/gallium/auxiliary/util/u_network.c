@@ -20,7 +20,7 @@
 #endif
 
 boolean
-u_socket_init()
+u_socket_init(void)
 {
 #if defined(PIPE_SUBSYSTEM_WINDOWS_USER)
    WORD wVersionRequested;
@@ -44,7 +44,7 @@ u_socket_init()
 }
 
 void
-u_socket_stop()
+u_socket_stop(void)
 {
 #if defined(PIPE_SUBSYSTEM_WINDOWS_USER)
    WSACleanup();

@@ -401,6 +401,7 @@ ChipFamily CiLib::HwlConvertChipFamily(
             m_settings.isPolaris10       = ASICREV_IS_POLARIS10_P(uChipRevision);
             m_settings.isPolaris11       = ASICREV_IS_POLARIS11_M(uChipRevision);
             m_settings.isPolaris12       = ASICREV_IS_POLARIS12_V(uChipRevision);
+            m_settings.isVegaM           = ASICREV_IS_VEGAM_P(uChipRevision);
             family = ADDR_CHIP_FAMILY_VI;
             break;
         case FAMILY_CZ:
@@ -469,6 +470,10 @@ BOOL_32 CiLib::HwlInitGlobalParams(
     else if (m_settings.isPolaris11 || m_settings.isPolaris12)
     {
         m_pipes = 4;
+    }
+    else if (m_settings.isVegaM)
+    {
+        m_pipes = 16;
     }
 
     if (valid)

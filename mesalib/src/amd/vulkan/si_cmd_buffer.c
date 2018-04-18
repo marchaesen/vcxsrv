@@ -663,10 +663,10 @@ static VkRect2D si_scissor_from_viewport(const VkViewport *viewport)
 
 	get_viewport_xform(viewport, scale, translate);
 
-	rect.offset.x = translate[0] - abs(scale[0]);
-	rect.offset.y = translate[1] - abs(scale[1]);
-	rect.extent.width = ceilf(translate[0] + abs(scale[0])) - rect.offset.x;
-	rect.extent.height = ceilf(translate[1] + abs(scale[1])) - rect.offset.y;
+	rect.offset.x = translate[0] - fabs(scale[0]);
+	rect.offset.y = translate[1] - fabs(scale[1]);
+	rect.extent.width = ceilf(translate[0] + fabs(scale[0])) - rect.offset.x;
+	rect.extent.height = ceilf(translate[1] + fabs(scale[1])) - rect.offset.y;
 
 	return rect;
 }

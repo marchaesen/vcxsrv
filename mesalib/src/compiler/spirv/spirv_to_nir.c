@@ -3361,10 +3361,12 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityGroupNonUniformQuad:
          spv_check_supported(subgroup_quad, cap);
+         break;
 
       case SpvCapabilityGroupNonUniformArithmetic:
       case SpvCapabilityGroupNonUniformClustered:
          spv_check_supported(subgroup_arithmetic, cap);
+         break;
 
       case SpvCapabilityVariablePointersStorageBuffer:
       case SpvCapabilityVariablePointers:

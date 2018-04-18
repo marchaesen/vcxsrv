@@ -41,6 +41,7 @@ enum hud_counter {
 
 struct hud_context {
    int refcount;
+   bool simple;
 
    /* Context where queries are executed. */
    struct pipe_context *record_pipe;
@@ -118,7 +119,7 @@ struct hud_graph {
 struct hud_pane {
    struct list_head head;
    struct hud_context *hud;
-   unsigned x1, y1, x2, y2;
+   unsigned x1, y1, x2, y2, y_simple;
    unsigned inner_x1;
    unsigned inner_y1;
    unsigned inner_x2;

@@ -612,8 +612,6 @@ struct dd_function_table {
    void (*DepthRange)(struct gl_context *ctx);
    /** Specify the current buffer for writing */
    void (*DrawBuffer)( struct gl_context *ctx, GLenum buffer );
-   /** Specify the buffers for writing for fragment programs*/
-   void (*DrawBuffers)(struct gl_context *ctx, GLsizei n, const GLenum *buffers);
    /** Enable or disable server-side gl capabilities */
    void (*Enable)(struct gl_context *ctx, GLenum cap, GLboolean state);
    /** Specify fog parameters */

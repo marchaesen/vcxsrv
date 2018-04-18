@@ -73,13 +73,9 @@ xwl_present_reset_timer(struct xwl_window *xwl_window)
 }
 
 void
-xwl_present_cleanup(WindowPtr window)
+xwl_present_cleanup(struct xwl_window *xwl_window, WindowPtr window)
 {
-    struct xwl_window           *xwl_window = xwl_window_of_top(window);
-    struct xwl_present_event    *event, *tmp;
-
-    if (!xwl_window)
-        return;
+    struct xwl_present_event *event, *tmp;
 
     if (xwl_window->present_window == window) {
         if (xwl_window->present_frame_callback) {
@@ -91,18 +87,14 @@ xwl_present_cleanup(WindowPtr window)
 
     /* Clear remaining events */
     xorg_list_for_each_entry_safe(event, tmp, &xwl_window->present_event_list, list) {
-        if (event->present_window == window) {
-            xorg_list_del(&event->list);
-            free(event);
-        }
+        xorg_list_del(&event->list);
+        free(event);
     }
 
     /* Clear remaining buffer releases and inform Present about free ressources */
     xorg_list_for_each_entry_safe(event, tmp, &xwl_window->present_release_queue, list) {
-        if (event->present_window == window) {
-            xorg_list_del(&event->list);
-            event->abort = TRUE;
-        }
+        xorg_list_del(&event->list);
+        event->abort = TRUE;
     }
 
     /* Clear timer */
@@ -258,7 +250,7 @@ static const struct wl_callback_listener xwl_present_sync_listener = {
 static RRCrtcPtr
 xwl_present_get_crtc(WindowPtr present_window)
 {
-    struct xwl_window *xwl_window = xwl_window_of_top(present_window);
+    struct xwl_window *xwl_window = xwl_window_from_window(present_window);
     if (xwl_window == NULL)
         return NULL;
 
@@ -268,7 +260,7 @@ xwl_present_get_crtc(WindowPtr present_window)
 static int
 xwl_present_get_ust_msc(WindowPtr present_window, uint64_t *ust, uint64_t *msc)
 {
-    struct xwl_window *xwl_window = xwl_window_of_top(present_window);
+    struct xwl_window *xwl_window = xwl_window_from_window(present_window);
     if (!xwl_window)
         return BadAlloc;
     *ust = xwl_window->present_ust;
@@ -297,7 +289,7 @@ xwl_present_queue_vblank(WindowPtr present_window,
                          uint64_t event_id,
                          uint64_t msc)
 {
-    struct xwl_window *xwl_window = xwl_window_of_top(present_window);
+    struct xwl_window *xwl_window = xwl_window_from_window(present_window);
     struct xwl_present_event *event;
 
     if (!xwl_window)
@@ -337,7 +329,7 @@ xwl_present_abort_vblank(WindowPtr present_window,
                          uint64_t event_id,
                          uint64_t msc)
 {
-    struct xwl_window *xwl_window = xwl_window_of_top(present_window);
+    struct xwl_window *xwl_window = xwl_window_from_window(present_window);
     struct xwl_present_event *event, *tmp;
 
     if (!xwl_window)
@@ -374,7 +366,7 @@ xwl_present_check_flip2(RRCrtcPtr crtc,
                         Bool sync_flip,
                         PresentFlipReason *reason)
 {
-    struct xwl_window *xwl_window = xwl_window_of_top(present_window);
+    struct xwl_window *xwl_window = xwl_window_from_window(present_window);
 
     if (!xwl_window)
         return FALSE;
@@ -415,7 +407,7 @@ xwl_present_flip(WindowPtr present_window,
                  Bool sync_flip,
                  RegionPtr damage)
 {
-    struct xwl_window           *xwl_window = xwl_window_of_top(present_window);
+    struct xwl_window           *xwl_window = xwl_window_from_window(present_window);
     BoxPtr                      present_box, damage_box;
     Bool                        buffer_created;
     struct wl_buffer            *buffer;
@@ -485,7 +477,7 @@ xwl_present_flip(WindowPtr present_window,
 static void
 xwl_present_flips_stop(WindowPtr window)
 {
-    struct xwl_window *xwl_window = xwl_window_of_top(window);
+    struct xwl_window *xwl_window = xwl_window_from_window(window);
 
     if (!xwl_window)
         return;

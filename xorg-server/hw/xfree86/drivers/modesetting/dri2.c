@@ -749,7 +749,7 @@ ms_dri2_schedule_wait_msc(ClientPtr client, DrawablePtr draw, CARD64 target_msc,
             target_msc = current_msc;
 
         ret = ms_queue_vblank(crtc, MS_QUEUE_ABSOLUTE, target_msc, &queued_msc, seq);
-        if (ret) {
+        if (!ret) {
             static int limit = 5;
             if (limit) {
                 xf86DrvMsg(scrn->scrnIndex, X_WARNING,

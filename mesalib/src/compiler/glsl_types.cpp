@@ -344,10 +344,14 @@ const glsl_type *glsl_type::get_base_type() const
       return uint_type;
    case GLSL_TYPE_UINT16:
       return uint16_t_type;
+   case GLSL_TYPE_UINT8:
+      return uint8_t_type;
    case GLSL_TYPE_INT:
       return int_type;
    case GLSL_TYPE_INT16:
       return int16_t_type;
+   case GLSL_TYPE_INT8:
+      return int8_t_type;
    case GLSL_TYPE_FLOAT:
       return float_type;
    case GLSL_TYPE_FLOAT16:
@@ -374,32 +378,11 @@ const glsl_type *glsl_type::get_scalar_type() const
    while (type->base_type == GLSL_TYPE_ARRAY)
       type = type->fields.array;
 
-   /* Handle vectors and matrices */
-   switch (type->base_type) {
-   case GLSL_TYPE_UINT:
-      return uint_type;
-   case GLSL_TYPE_UINT16:
-      return uint16_t_type;
-   case GLSL_TYPE_INT:
-      return int_type;
-   case GLSL_TYPE_INT16:
-      return int16_t_type;
-   case GLSL_TYPE_FLOAT:
-      return float_type;
-   case GLSL_TYPE_FLOAT16:
-      return float16_t_type;
-   case GLSL_TYPE_DOUBLE:
-      return double_type;
-   case GLSL_TYPE_BOOL:
-      return bool_type;
-   case GLSL_TYPE_UINT64:
-      return uint64_t_type;
-   case GLSL_TYPE_INT64:
-      return int64_t_type;
-   default:
-      /* Handle everything else */
+   const glsl_type *scalar_type = type->get_base_type();
+   if (scalar_type == error_type)
       return type;
-   }
+
+   return scalar_type;
 }
 
 
@@ -1366,7 +1349,9 @@ glsl_type::uniform_locations() const
    case GLSL_TYPE_FLOAT16:
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_UINT8:
    case GLSL_TYPE_INT16:
+   case GLSL_TYPE_INT8:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_BOOL:
@@ -1400,7 +1385,9 @@ glsl_type::varying_count() const
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_BOOL:
    case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_UINT8:
    case GLSL_TYPE_INT16:
+   case GLSL_TYPE_INT8:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
       return 1;

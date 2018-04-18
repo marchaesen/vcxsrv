@@ -11,7 +11,6 @@ Xwayland_CFLAGS =				\
 
 Xwayland_SOURCES =				\
 	xwayland.c				\
-	xwayland-present.c			\
 	xwayland-input.c			\
 	xwayland-cursor.c			\
 	xwayland-shm.c				\
@@ -35,7 +34,8 @@ Xwayland_built_sources =
 
 if GLAMOR_EGL
 Xwayland_SOURCES += 				\
-	xwayland-glamor.c
+	xwayland-glamor.c			\
+	xwayland-present.c
 if XV
 Xwayland_SOURCES += 				\
 	xwayland-glamor-xv.c

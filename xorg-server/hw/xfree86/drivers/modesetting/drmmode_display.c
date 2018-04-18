@@ -998,18 +998,18 @@ static Bool
 drmmode_create_bo(drmmode_ptr drmmode, drmmode_bo *bo,
                   unsigned width, unsigned height, unsigned bpp)
 {
-    uint32_t format;
-
-    if (drmmode->scrn->depth == 30)
-        format = GBM_FORMAT_ARGB2101010;
-    else
-        format = GBM_FORMAT_ARGB8888;
-
     bo->width = width;
     bo->height = height;
 
 #ifdef GLAMOR_HAS_GBM
     if (drmmode->glamor) {
+        uint32_t format;
+
+        if (drmmode->scrn->depth == 30)
+            format = GBM_FORMAT_ARGB2101010;
+        else
+            format = GBM_FORMAT_ARGB8888;
+
 #ifdef GBM_BO_WITH_MODIFIERS
         uint32_t num_modifiers;
         uint64_t *modifiers = NULL;

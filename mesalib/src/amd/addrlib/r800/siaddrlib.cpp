@@ -611,6 +611,29 @@ ADDR_E_RETURNCODE SiLib::ComputePipeEquation(
             break;
     }
 
+    if (m_settings.isVegaM && (pEquation->numBits == 4))
+    {
+        ADDR_CHANNEL_SETTING addeMsb = pAddr[0];
+        ADDR_CHANNEL_SETTING xor1Msb = pXor1[0];
+        ADDR_CHANNEL_SETTING xor2Msb = pXor2[0];
+
+        pAddr[0] = pAddr[1];
+        pXor1[0] = pXor1[1];
+        pXor2[0] = pXor2[1];
+
+        pAddr[1] = pAddr[2];
+        pXor1[1] = pXor1[2];
+        pXor2[1] = pXor2[2];
+
+        pAddr[2] = pAddr[3];
+        pXor1[2] = pXor1[3];
+        pXor2[2] = pXor2[3];
+
+        pAddr[3] = addeMsb;
+        pXor1[3] = xor1Msb;
+        pXor2[3] = xor2Msb;
+    }
+
     for (UINT_32 i = 0; i < pEquation->numBits; i++)
     {
         if (pAddr[i].value == 0)
@@ -754,6 +777,16 @@ UINT_32 SiLib::ComputePipeFromCoord(
             ADDR_UNHANDLED_CASE();
             break;
     }
+
+    if (m_settings.isVegaM && (numPipes == 16))
+    {
+        UINT_32 pipeMsb = pipeBit0;
+        pipeBit0 = pipeBit1;
+        pipeBit1 = pipeBit2;
+        pipeBit2 = pipeBit3;
+        pipeBit3 = pipeMsb;
+    }
+
     pipe = pipeBit0 | (pipeBit1 << 1) | (pipeBit2 << 2) | (pipeBit3 << 3);
 
     UINT_32 microTileThickness = Thickness(tileMode);

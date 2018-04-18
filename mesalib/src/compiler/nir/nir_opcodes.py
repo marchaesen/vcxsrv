@@ -308,17 +308,17 @@ dst = 0;
 for (unsigned bit = 0; bit < 32; bit++)
    dst |= ((src0 >> bit) & 1) << (31 - bit);
 """)
-unop("bit_count", tuint32, """
+unop_convert("bit_count", tuint32, tuint, """
 dst = 0;
-for (unsigned bit = 0; bit < 32; bit++) {
+for (unsigned bit = 0; bit < bit_size; bit++) {
    if ((src0 >> bit) & 1)
       dst++;
 }
 """)
 
-unop_convert("ufind_msb", tint32, tuint32, """
+unop_convert("ufind_msb", tint32, tuint, """
 dst = -1;
-for (int bit = 31; bit >= 0; bit--) {
+for (int bit = bit_size - 1; bit >= 0; bit--) {
    if ((src0 >> bit) & 1) {
       dst = bit;
       break;
@@ -340,9 +340,9 @@ for (int bit = 31; bit >= 0; bit--) {
 }
 """)
 
-unop("find_lsb", tint32, """
+unop_convert("find_lsb", tint32, tint, """
 dst = -1;
-for (unsigned bit = 0; bit < 32; bit++) {
+for (unsigned bit = 0; bit < bit_size; bit++) {
    if ((src0 >> bit) & 1) {
       dst = bit;
       break;
