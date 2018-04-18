@@ -647,12 +647,12 @@ inline void exec_node::insert_before(exec_list *before)
 #endif
 
 #define foreach_in_list(__type, __inst, __list)      \
-   for (__type *(__inst) = (__type *)(__list)->head_sentinel.next; \
+   for (__type *__inst = (__type *)(__list)->head_sentinel.next; \
         !(__inst)->is_tail_sentinel();               \
         (__inst) = (__type *)(__inst)->next)
 
 #define foreach_in_list_reverse(__type, __inst, __list)   \
-   for (__type *(__inst) = (__type *)(__list)->tail_sentinel.prev; \
+   for (__type *__inst = (__type *)(__list)->tail_sentinel.prev; \
         !(__inst)->is_head_sentinel();                    \
         (__inst) = (__type *)(__inst)->prev)
 

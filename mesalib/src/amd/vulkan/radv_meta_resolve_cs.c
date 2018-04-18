@@ -517,18 +517,4 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 	}
 
 	radv_meta_restore(&saved_state, cmd_buffer);
-
-	for (uint32_t i = 0; i < subpass->color_count; ++i) {
-		VkAttachmentReference dest_att = subpass->resolve_attachments[i];
-		struct radv_image *dst_img = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment->image;
-		if (dest_att.attachment == VK_ATTACHMENT_UNUSED)
-			continue;
-		VkImageSubresourceRange range;
-		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		range.baseMipLevel = 0;
-		range.levelCount = 1;
-		range.baseArrayLayer = 0;
-		range.layerCount = 1;
-		radv_fast_clear_flush_image_inplace(cmd_buffer, dst_img, &range);
-	}
 }

@@ -161,12 +161,7 @@ def _init_exts_from_xml(xml):
             continue
 
         ext = ext_name_map[ext_name]
-        if ext_name == 'VK_ANDROID_native_buffer':
-            # VK_ANDROID_native_buffer is missing the type specifier.  Just
-            # hard-code it to be a device extension for now.
-            ext.type = 'device'
-        else:
-            ext.type = ext_elem.attrib['type']
+        ext.type = ext_elem.attrib['type']
 
 _TEMPLATE_H = Template(COPYRIGHT + """
 #ifndef RADV_EXTENSIONS_H

@@ -55,4 +55,20 @@ glcpp = executable(
   build_by_default : false,
 )
 
-# TODO: figure out how to make all of these tests work.
+if with_tests
+  modes = ['unix', 'windows', 'oldmac', 'bizarro']
+  if dep_valgrind != [] and dep_valgrind.found()
+    modes += ['valgrind']
+  endif
+
+  foreach m : modes
+    test(
+      'glcpp test (@0@)'.format(m),
+      find_program('tests/glcpp_test.py'),
+      args : [
+        glcpp, join_paths(meson.current_source_dir(), 'tests'),
+        '--@0@'.format(m),
+      ],
+    )
+  endforeach
+endif

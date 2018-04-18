@@ -127,7 +127,7 @@ struct xwl_window {
     struct xorg_list link_damage;
     struct wl_callback *frame_callback;
     Bool allow_commits;
-
+#ifdef GLAMOR_HAS_GBM
     /* present */
     RRCrtcPtr present_crtc_fake;
     struct xorg_list present_link;
@@ -143,8 +143,10 @@ struct xwl_window {
 
     struct xorg_list present_event_list;
     struct xorg_list present_release_queue;
+#endif
 };
 
+#ifdef GLAMOR_HAS_GBM
 struct xwl_present_event {
     uint64_t event_id;
     uint64_t target_msc;
@@ -159,6 +161,7 @@ struct xwl_present_event {
 
     struct xorg_list list;
 };
+#endif
 
 #define MODIFIER_META 0x01
 
@@ -358,7 +361,7 @@ RRModePtr xwayland_cvt(int HDisplay, int VDisplay,
 void xwl_pixmap_set_private(PixmapPtr pixmap, struct xwl_pixmap *xwl_pixmap);
 struct xwl_pixmap *xwl_pixmap_get(PixmapPtr pixmap);
 
-struct xwl_window *xwl_window_of_top(WindowPtr window);
+struct xwl_window *xwl_window_from_window(WindowPtr window);
 
 Bool xwl_shm_create_screen_resources(ScreenPtr screen);
 PixmapPtr xwl_shm_create_pixmap(ScreenPtr screen, int width, int height,
@@ -378,8 +381,10 @@ struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap,
                                                   unsigned short height,
                                                   Bool *created);
 
+#ifdef GLAMOR_HAS_GBM
 Bool xwl_present_init(ScreenPtr screen);
-void xwl_present_cleanup(WindowPtr window);
+void xwl_present_cleanup(struct xwl_window *xwl_window, WindowPtr window);
+#endif
 
 void xwl_screen_release_tablet_manager(struct xwl_screen *xwl_screen);
 

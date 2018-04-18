@@ -689,18 +689,15 @@ radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
 		    dest_att.attachment == VK_ATTACHMENT_UNUSED)
 			continue;
 
-		struct radv_image_view *src_iview =
-			fb->attachments[src_att.attachment].attachment;
+		struct radv_image *src_image =
+			fb->attachments[src_att.attachment].attachment->image;
 
-		VkImageSubresourceRange range;
-		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		range.baseMipLevel = 0;
-		range.levelCount = 1;
-		range.baseArrayLayer = 0;
-		range.layerCount = 1;
+		VkImageResolve region = {};
+		region.srcSubresource.baseArrayLayer = 0;
+		region.srcSubresource.mipLevel = 0;
+		region.srcSubresource.layerCount = 1;
 
-		radv_fast_clear_flush_image_inplace(cmd_buffer,
-						    src_iview->image, &range);
+		radv_decompress_resolve_src(cmd_buffer, src_image, 1, &region);
 	}
 }
 

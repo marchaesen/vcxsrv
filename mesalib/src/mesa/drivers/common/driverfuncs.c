@@ -134,7 +134,6 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->ColorMaterial = NULL;
    driver->CullFace = NULL;
    driver->DrawBuffer = NULL;
-   driver->DrawBuffers = NULL;
    driver->FrontFace = NULL;
    driver->DepthFunc = NULL;
    driver->DepthMask = NULL;

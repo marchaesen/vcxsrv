@@ -564,10 +564,11 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
       val->ssa->def = nir_fne(&b->nb, src[0], src[0]);
       break;
 
-   case SpvOpIsInf:
-      val->ssa->def = nir_ieq(&b->nb, nir_fabs(&b->nb, src[0]),
-                                      nir_imm_float(&b->nb, INFINITY));
+   case SpvOpIsInf: {
+      nir_ssa_def *inf = nir_imm_floatN_t(&b->nb, INFINITY, src[0]->bit_size);
+      val->ssa->def = nir_ieq(&b->nb, nir_fabs(&b->nb, src[0]), inf);
       break;
+   }
 
    case SpvOpFUnordEqual:
    case SpvOpFUnordNotEqual:

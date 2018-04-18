@@ -228,6 +228,19 @@ nir_imm_double(nir_builder *build, double x)
 }
 
 static inline nir_ssa_def *
+nir_imm_floatN_t(nir_builder *build, double x, unsigned bit_size)
+{
+   switch (bit_size) {
+   case 32:
+      return nir_imm_float(build, x);
+   case 64:
+      return nir_imm_double(build, x);
+   }
+
+   unreachable("unknown float immediate bit size");
+}
+
+static inline nir_ssa_def *
 nir_imm_vec4(nir_builder *build, float x, float y, float z, float w)
 {
    nir_const_value v;

@@ -193,10 +193,9 @@ WaitForSomething(Bool are_ready)
             are_ready = clients_are_ready();
         }
 
+        timeout = check_timers();
         if (are_ready)
             timeout = 0;
-        else
-            timeout = check_timers();
 
         BlockHandler(&timeout);
         if (NewOutputPending)

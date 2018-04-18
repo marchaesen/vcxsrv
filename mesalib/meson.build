@@ -1305,8 +1305,6 @@ else
   dep_lmsensors = null_dep
 endif
 
-# TODO: gallium tests
-
 # TODO: various libdirs
 
 # TODO: gallium driver dirs

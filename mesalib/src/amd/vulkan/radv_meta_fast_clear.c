@@ -667,7 +667,7 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 					&cmd_buffer->pool->alloc);
 
 	}
-	if (radv_image_has_dcc(image)) {
+	if (!decompress_dcc && radv_image_has_dcc(image)) {
 		cmd_buffer->state.predicating = false;
 		radv_emit_set_predication_state_from_image(cmd_buffer, image, false);
 	}

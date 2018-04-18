@@ -180,6 +180,12 @@ lower_returns_in_block(nir_block *block, struct lower_returns_state *state)
 
    nir_instr_remove(&jump->instr);
 
+   /* If this is a return in the last block of the function there is nothing
+    * more to do once its removed.
+    */
+   if (block == nir_impl_last_block(state->builder.impl))
+      return true;
+
    nir_builder *b = &state->builder;
 
    /* Set the return flag */

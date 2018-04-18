@@ -1290,9 +1290,9 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 
 	  for (i = 0; i < master->num_axis; i++)
 	  {
-	      double min_value = master->axis[i].minimum / (double) (1 << 16);
-	      double def_value = master->axis[i].def / (double) (1 << 16);
-	      double max_value = master->axis[i].maximum / (double) (1 << 16);
+	      double min_value = master->axis[i].minimum / (double) (1U << 16);
+	      double def_value = master->axis[i].def / (double) (1U << 16);
+	      double max_value = master->axis[i].maximum / (double) (1U << 16);
 	      const char *elt = NULL;
 
 	      if (min_value > def_value || def_value > max_value || min_value == max_value)
@@ -1349,8 +1349,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 
 	  for (i = 0; i < master->num_axis; i++)
 	  {
-	      double value = instance->coords[i] / (double) (1 << 16);
-	      double default_value = master->axis[i].def / (double) (1 << 16);
+	      double value = instance->coords[i] / (double) (1U << 16);
+	      double default_value = master->axis[i].def / (double) (1U << 16);
 	      double mult = default_value ? value / default_value : 1;
 	      //printf ("named-instance, axis %d tag %lx value %g\n", i, master->axis[i].tag, value);
 	      switch (master->axis[i].tag)

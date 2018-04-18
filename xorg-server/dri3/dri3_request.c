@@ -481,7 +481,7 @@ proc_dri3_buffers_from_pixmap(ClientPtr client)
     int i;
     PixmapPtr pixmap;
 
-    REQUEST_SIZE_MATCH(xDRI3BufferFromPixmapReq);
+    REQUEST_SIZE_MATCH(xDRI3BuffersFromPixmapReq);
     rc = dixLookupResourceByType((void **) &pixmap, stuff->pixmap, RT_PIXMAP,
                                  client, DixWriteAccess);
     if (rc != Success) {
@@ -497,6 +497,8 @@ proc_dri3_buffers_from_pixmap(ClientPtr client)
     rep.length = bytes_to_int32(num_fds * 2 * sizeof(CARD32));
     rep.width = pixmap->drawable.width;
     rep.height = pixmap->drawable.height;
+    rep.depth = pixmap->drawable.depth;
+    rep.bpp = pixmap->drawable.bitsPerPixel;
     rep.modifier = modifier;
 
     if (client->swapped) {

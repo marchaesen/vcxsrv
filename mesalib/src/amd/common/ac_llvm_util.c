@@ -112,6 +112,7 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
 		return "polaris10";
 	case CHIP_POLARIS11:
 	case CHIP_POLARIS12:
+	case CHIP_VEGAM:
 		return "polaris11";
 	case CHIP_VEGA10:
 	case CHIP_VEGA12:

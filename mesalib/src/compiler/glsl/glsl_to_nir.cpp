@@ -1832,7 +1832,7 @@ nir_visitor::visit(ir_expression *ir)
          else
             result = nir_uge(&b, srcs[0], srcs[1]);
       } else {
-         result = nir_slt(&b, srcs[0], srcs[1]);
+         result = nir_sge(&b, srcs[0], srcs[1]);
       }
       break;
    case ir_binop_equal:

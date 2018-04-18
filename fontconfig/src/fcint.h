@@ -242,7 +242,7 @@ typedef enum _FcOp {
 } FcOp;
 
 typedef enum _FcOpFlags {
-	FcOpFlagIgnoreBlanks = 1 << 0
+	FcOpFlagIgnoreBlanks = 1U << 0
 } FcOpFlags;
 
 #define FC_OP_GET_OP(_x_)	((_x_) & 0xffff)
