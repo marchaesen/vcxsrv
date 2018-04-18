@@ -693,7 +693,7 @@ UpdateIcon(WMInfoPtr pWMInfo, xcb_window_t iWindow)
  */
 
 static void
-UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, unsigned long *maxmin)
+UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, unsigned long *maxmin, int extra)
 {
     HWND hWnd;
     HWND zstyle = HWND_NOTOPMOST;
@@ -709,13 +709,15 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, unsigned long *maxmin)
 
     /* Determine the Window style, which determines borders and clipping region... */
     winApplyHints(pWMInfo, iWindow, hWnd, &zstyle, maxmin);
-    winUpdateWindowPosition(hWnd, &zstyle);
-
-    /* Apply the updated window style, without changing it's show or activation state */
-    flags = SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE;
-    if (zstyle == HWND_NOTOPMOST)
-        flags |= SWP_NOZORDER | SWP_NOOWNERZORDER;
-    SetWindowPos(hWnd, NULL, 0, 0, 0, 0, flags);
+    if (extra)
+    {
+      winUpdateWindowPosition(hWnd, &zstyle);
+      /* Apply the updated window style, without changing it's show or activation state */
+      flags = SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE;
+      if (zstyle == HWND_NOTOPMOST)
+          flags |= SWP_NOZORDER | SWP_NOOWNERZORDER;
+      SetWindowPos(hWnd, NULL, 0, 0, 0, 0, flags);
+    }
 
     /*
        Use the WS_EX_TOOLWINDOW style to remove window from Alt-Tab window switcher
@@ -992,7 +994,7 @@ winMultiWindowWMProc(void *pArg)
                                 sizeof(HWND)/4, &(pNode->msg.hwndWindow));
 
             UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin, 1);
 
             /* Reshape */
             {
@@ -1089,7 +1091,7 @@ winMultiWindowWMProc(void *pArg)
             {
             unsigned long maxmin = 0;
 
-            UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin, 0);
             }
             break;
 
@@ -1960,6 +1962,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
     unsigned long hint = HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION;
     unsigned long taskbar = 0;
     unsigned long style, exStyle;
+    unsigned long oristyle, oriexStyle;
 
     *maxmin = 0;
 
@@ -2179,6 +2182,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
     style = GetWindowLongPtr(hWnd, GWL_STYLE);
     if (!style)
         return;                 /* GetWindowLongPointer returns 0 on failure, we hope this isn't a valid style */
+    oristyle = style;
 
     style &= ~WS_CAPTION & ~WS_SIZEBOX; /* Just in case */
 
@@ -2201,7 +2205,6 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
         style = style & ~WS_SYSMENU;
 
     if (hint & HINT_SKIPTASKBAR) {
-        winShowWindowOnTaskbar(hWnd, FALSE);
         style = style & ~WS_MINIMIZEBOX;        /* window will become lost if minimized */
     }
 
@@ -2211,14 +2214,24 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
         return;
     }
 
-    SetWindowLongPtr(hWnd, GWL_STYLE, style);
+    if (style!=oristyle)
+    {
+        if (hint & HINT_SKIPTASKBAR) {
+            winShowWindowOnTaskbar(hWnd, FALSE);
+        }
+        SetWindowLongPtr(hWnd, GWL_STYLE, style);
+    }
 
     exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+    oriexStyle=exStyle;
     if (hint & HINT_SKIPTASKBAR)
         exStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
     else
         exStyle = (exStyle & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW;
-    SetWindowLongPtr(hWnd, GWL_EXSTYLE, exStyle);
+    if (exStyle!=oriexStyle)
+    {
+      SetWindowLongPtr(hWnd, GWL_EXSTYLE, exStyle);
+    }
 
     winDebug
         ("winApplyHints: iWindow 0x%08x hints 0x%08x style 0x%08x exstyle 0x%08x\n",
