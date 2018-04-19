@@ -373,7 +373,7 @@
 #undef XORG_RELEASE
 
 /* Current Xorg version */
-#define XORG_VERSION_CURRENT (((1) * 10000000) + ((19) * 100000) + ((6) * 1000) + 3)
+#define XORG_VERSION_CURRENT (((1) * 10000000) + ((19) * 100000) + ((6) * 1000) + 4)
 
 /* Xorg release date */
 #define XORG_DATE "16 November 2015"
