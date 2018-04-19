@@ -71,18 +71,19 @@ void
 RRSendConfigNotify(ScreenPtr pScreen)
 {
     WindowPtr pWin = pScreen->root;
-    xEvent event;
-    event.u.configureNotify.window = pWin->drawable.id;
-    event.u.configureNotify.aboveSibling = None;
-    event.u.configureNotify.x = 0;
-    event.u.configureNotify.y = 0;
+    xEvent event = {
+        .u.configureNotify.window = pWin->drawable.id,
+        .u.configureNotify.aboveSibling = None,
+        .u.configureNotify.x = 0,
+        .u.configureNotify.y = 0,
 
     /* XXX xinerama stuff ? */
 
-    event.u.configureNotify.width = pWin->drawable.width;
-    event.u.configureNotify.height = pWin->drawable.height;
-    event.u.configureNotify.borderWidth = wBorderWidth(pWin);
-    event.u.configureNotify.override = pWin->overrideRedirect;
+        .u.configureNotify.width = pWin->drawable.width,
+        .u.configureNotify.height = pWin->drawable.height,
+        .u.configureNotify.borderWidth = wBorderWidth(pWin),
+        .u.configureNotify.override = pWin->overrideRedirect
+    };
     event.u.u.type = ConfigureNotify;
     DeliverEvents(pWin, &event, 1, NullWindow);
 }
@@ -91,21 +92,20 @@ void
 RRDeliverScreenEvent(ClientPtr client, WindowPtr pWin, ScreenPtr pScreen)
 {
     rrScrPriv(pScreen);
-    xRRScreenChangeNotifyEvent se;
     RRCrtcPtr crtc = pScrPriv->numCrtcs ? pScrPriv->crtcs[0] : NULL;
     WindowPtr pRoot = pScreen->root;
 
+    xRRScreenChangeNotifyEvent se = {
+        .type = RRScreenChangeNotify + RREventBase,
+        .rotation = (CARD8) (crtc ? crtc->rotation : RR_Rotate_0),
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .configTimestamp = pScrPriv->lastConfigTime.milliseconds,
+        .root = pRoot->drawable.id,
+        .window = pWin->drawable.id,
+        .subpixelOrder = PictureGetSubpixelOrder(pScreen),
 
-    se.type = RRScreenChangeNotify + RREventBase;
-    se.rotation = (CARD8) (crtc ? crtc->rotation : RR_Rotate_0);
-    se.timestamp = pScrPriv->lastSetTime.milliseconds;
-    se.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
-    se.root = pRoot->drawable.id;
-    se.window = pWin->drawable.id;
-    se.subpixelOrder = PictureGetSubpixelOrder(pScreen);
-
-    se.sizeID = RR10CurrentSizeID(pScreen);
-
+        .sizeID = RR10CurrentSizeID(pScreen)
+    };
 
     if (se.rotation & (RR_Rotate_90 | RR_Rotate_270)) {
         se.widthInPixels = pScreen->height;
@@ -204,11 +204,12 @@ ProcRRGetScreenSizeRange(ClientPtr client)
     pScreen = pWin->drawable.pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
 
-
-    rep.type = X_Reply;
-    rep.pad = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
+    rep = (xRRGetScreenSizeRangeReply) {
+        .type = X_Reply,
+        .pad = 0,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
 
     if (pScrPriv) {
         if (!RRGetInfo(pScreen, FALSE))
@@ -406,17 +407,17 @@ rrGetMultiScreenResources(ClientPtr client, Bool query, ScreenPtr pScreen)
     }
 
     pScrPriv = rrGetScrPriv(pScreen);
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.timestamp = pScrPriv->lastSetTime.milliseconds;
-    rep.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
-    rep.nCrtcs = total_crtcs;
-    rep.nOutputs = total_outputs;
-    rep.nModes = total_modes;
-    rep.nbytesNames = total_name_len;
-
+    rep = (xRRGetScreenResourcesReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .configTimestamp = pScrPriv->lastConfigTime.milliseconds,
+        .nCrtcs = total_crtcs,
+        .nOutputs = total_outputs,
+        .nModes = total_modes,
+        .nbytesNames = total_name_len
+    };
 
     rep.length = (total_crtcs + total_outputs +
                   total_modes * bytes_to_int32(SIZEOF(xRRModeInfo)) +
@@ -503,7 +504,6 @@ rrGetScreenResources(ClientPtr client, Bool query)
 
     pScreen = pWin->drawable.pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
-    rep.pad = 0;
 
     if (query && pScrPriv)
         if (!RRGetInfo(pScreen, query))
@@ -513,17 +513,17 @@ rrGetScreenResources(ClientPtr client, Bool query)
         return rrGetMultiScreenResources(client, query, pScreen);
 
     if (!pScrPriv) {
-
-        rep.type = X_Reply;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.timestamp = currentTime.milliseconds;
-        rep.configTimestamp = currentTime.milliseconds;
-        rep.nCrtcs = 0;
-        rep.nOutputs = 0;
-        rep.nModes = 0;
-        rep.nbytesNames = 0;
-
+        rep = (xRRGetScreenResourcesReply) {
+            .type = X_Reply,
+            .sequenceNumber = client->sequence,
+            .length = 0,
+            .timestamp = currentTime.milliseconds,
+            .configTimestamp = currentTime.milliseconds,
+            .nCrtcs = 0,
+            .nOutputs = 0,
+            .nModes = 0,
+            .nbytesNames = 0
+        };
         extra = NULL;
         extraLen = 0;
     }
@@ -535,16 +535,17 @@ rrGetScreenResources(ClientPtr client, Bool query)
         if (!modes)
             return BadAlloc;
 
-
-        rep.type = X_Reply;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.timestamp = pScrPriv->lastSetTime.milliseconds;
-        rep.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
-        rep.nCrtcs = pScrPriv->numCrtcs;
-        rep.nOutputs = pScrPriv->numOutputs;
-        rep.nModes = num_modes;
-        rep.nbytesNames = 0;
+        rep = (xRRGetScreenResourcesReply) {
+            .type = X_Reply,
+            .sequenceNumber = client->sequence,
+            .length = 0,
+            .timestamp = pScrPriv->lastSetTime.milliseconds,
+            .configTimestamp = pScrPriv->lastConfigTime.milliseconds,
+            .nCrtcs = pScrPriv->numCrtcs,
+            .nOutputs = pScrPriv->numOutputs,
+            .nModes = num_modes,
+            .nbytesNames = 0
+        };
 
 
         for (i = 0; i < num_modes; i++)
@@ -770,7 +771,6 @@ ProcRRGetScreenInfo(ClientPtr client)
 
     pScreen = pWin->drawable.pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
-    rep.pad = 0;
 
     if (pScrPriv)
         if (!RRGetInfo(pScreen, TRUE))
@@ -779,20 +779,20 @@ ProcRRGetScreenInfo(ClientPtr client)
     output = RRFirstOutput(pScreen);
 
     if (!pScrPriv || !output) {
-
-        rep.type = X_Reply;
-        rep.setOfRotations = RR_Rotate_0;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.root = pWin->drawable.pScreen->root->drawable.id;
-        rep.timestamp = currentTime.milliseconds;
-        rep.configTimestamp = currentTime.milliseconds;
-        rep.nSizes = 0;
-        rep.sizeID = 0;
-        rep.rotation = RR_Rotate_0;
-        rep.rate = 0;
-        rep.nrateEnts = 0;
-        
+        rep = (xRRGetScreenInfoReply) {
+            .type = X_Reply,
+            .setOfRotations = RR_Rotate_0,
+            .sequenceNumber = client->sequence,
+            .length = 0,
+            .root = pWin->drawable.pScreen->root->drawable.id,
+            .timestamp = currentTime.milliseconds,
+            .configTimestamp = currentTime.milliseconds,
+            .nSizes = 0,
+            .sizeID = 0,
+            .rotation = RR_Rotate_0,
+            .rate = 0,
+            .nrateEnts = 0
+        };
         extra = 0;
         extraLen = 0;
     }
@@ -809,19 +809,20 @@ ProcRRGetScreenInfo(ClientPtr client)
         if (!pData)
             return BadAlloc;
 
-
-        rep.type = X_Reply;
-        rep.setOfRotations = output->crtc->rotations;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.root = pWin->drawable.pScreen->root->drawable.id;
-        rep.timestamp = pScrPriv->lastSetTime.milliseconds;
-        rep.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
-        rep.rotation = output->crtc->rotation;
-        rep.nSizes = pData->nsize;
-        rep.nrateEnts = pData->nrefresh + pData->nsize;
-        rep.sizeID = pData->size;
-        rep.rate = pData->refresh;
+        rep = (xRRGetScreenInfoReply) {
+            .type = X_Reply,
+            .setOfRotations = output->crtc->rotations,
+            .sequenceNumber = client->sequence,
+            .length = 0,
+            .root = pWin->drawable.pScreen->root->drawable.id,
+            .timestamp = pScrPriv->lastSetTime.milliseconds,
+            .configTimestamp = pScrPriv->lastConfigTime.milliseconds,
+            .rotation = output->crtc->rotation,
+            .nSizes = pData->nsize,
+            .nrateEnts = pData->nrefresh + pData->nsize,
+            .sizeID = pData->size,
+            .rate = pData->refresh
+        };
 
         extraLen = rep.nSizes * sizeof(xScreenSizes);
         if (has_rate)
@@ -1107,16 +1108,17 @@ ProcRRSetScreenConfig(ClientPtr client)
 
     free(pData);
 
+    rep = (xRRSetScreenConfigReply) {
+        .type = X_Reply,
+        .status = status,
+        .sequenceNumber = client->sequence,
+        .length = 0,
 
-    rep.type = X_Reply;
-    rep.status = status;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-
-    rep.newTimestamp = pScrPriv->lastSetTime.milliseconds;
-    rep.newConfigTimestamp = pScrPriv->lastConfigTime.milliseconds;
-    rep.root = pDraw->pScreen->root->drawable.id;
-
+        .newTimestamp = pScrPriv->lastSetTime.milliseconds,
+        .newConfigTimestamp = pScrPriv->lastConfigTime.milliseconds,
+        .root = pDraw->pScreen->root->drawable.id,
+        /* .subpixelOrder = ?? */
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);

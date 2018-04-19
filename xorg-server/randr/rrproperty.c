@@ -66,13 +66,14 @@ RRDestroyOutputProperty(RRPropertyPtr prop)
 static void
 RRDeleteProperty(RROutputRec * output, RRPropertyRec * prop)
 {
-    xRROutputPropertyNotifyEvent event;
-    event.type = RREventBase + RRNotify;
-    event.subCode = RRNotify_OutputProperty;
-    event.output = output->id;
-    event.state = PropertyDelete;
-    event.atom = prop->propertyName;
-    event.timestamp = currentTime.milliseconds;
+    xRROutputPropertyNotifyEvent event = {
+        .type = RREventBase + RRNotify,
+        .subCode = RRNotify_OutputProperty,
+        .output = output->id,
+        .state = PropertyDelete,
+        .atom = prop->propertyName,
+        .timestamp = currentTime.milliseconds
+    };
 
     RRDeliverPropertyEvent(output->pScreen, (xEvent *) &event);
 
@@ -262,13 +263,14 @@ RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
         RRNoticePropertyChange(output, prop->propertyName, prop_value);
 
     if (sendevent) {
-        xRROutputPropertyNotifyEvent event;
-        event.type = RREventBase + RRNotify;
-        event.subCode = RRNotify_OutputProperty;
-        event.output = output->id;
-        event.state = PropertyNewValue;
-        event.atom = prop->propertyName;
-        event.timestamp = currentTime.milliseconds;
+        xRROutputPropertyNotifyEvent event = {
+            .type = RREventBase + RRNotify,
+            .subCode = RRNotify_OutputProperty,
+            .output = output->id,
+            .state = PropertyNewValue,
+            .atom = prop->propertyName,
+            .timestamp = currentTime.milliseconds
+        };
         RRDeliverPropertyEvent(output->pScreen, (xEvent *) &event);
     }
     return Success;
@@ -426,12 +428,12 @@ ProcRRListOutputProperties(ClientPtr client)
         if (!(pAtoms = xallocarray(numProps, sizeof(Atom))))
             return BadAlloc;
 
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = bytes_to_int32(numProps * sizeof(Atom));
-    rep.nAtoms = numProps;
-
+    rep = (xRRListOutputPropertiesReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = bytes_to_int32(numProps * sizeof(Atom)),
+        .nAtoms = numProps
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
@@ -475,13 +477,14 @@ ProcRRQueryOutputProperty(ClientPtr client)
             return BadAlloc;
     }
 
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = prop->num_valid;
-    rep.pending = prop->is_pending;
-    rep.range = prop->range;
-    rep.immutable = prop->immutable;
+    rep = (xRRQueryOutputPropertyReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = prop->num_valid,
+        .pending = prop->is_pending,
+        .range = prop->range,
+        .immutable = prop->immutable
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
@@ -639,10 +642,10 @@ ProcRRGetOutputProperty(ClientPtr client)
         if (prop->propertyName == stuff->property)
             break;
 
-
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
-
+    reply = (xRRGetOutputPropertyReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence
+    };
     if (!prop) {
         reply.nItems = 0;
         reply.length = 0;
@@ -719,14 +722,14 @@ ProcRRGetOutputProperty(ClientPtr client)
     reply.propertyType = prop_value->type;
 
     if (stuff->delete && (reply.bytesAfter == 0)) {
-        xRROutputPropertyNotifyEvent event;
-        event.type = RREventBase + RRNotify;
-        event.subCode = RRNotify_OutputProperty;
-        event.output = output->id;
-        event.state = PropertyDelete;
-        event.atom = prop->propertyName;
-        event.timestamp = currentTime.milliseconds;
-
+        xRROutputPropertyNotifyEvent event = {
+            .type = RREventBase + RRNotify,
+            .subCode = RRNotify_OutputProperty,
+            .output = output->id,
+            .state = PropertyDelete,
+            .atom = prop->propertyName,
+            .timestamp = currentTime.milliseconds
+        };
         RRDeliverPropertyEvent(output->pScreen, (xEvent *) &event);
     }
 

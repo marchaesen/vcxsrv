@@ -312,11 +312,12 @@ ProcRRCreateMode(ClientPtr client)
     if (!mode)
         return error;
 
-    memset(&rep, 0, sizeof(rep));
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.mode = mode->mode.id;
+    rep = (xRRCreateModeReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .mode = mode->mode.id
+	};
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
