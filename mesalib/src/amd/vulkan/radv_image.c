@@ -133,8 +133,12 @@ radv_use_dcc_for_image(struct radv_device *device,
 	if (create_info->scanout)
 		return false;
 
+	/* FIXME: DCC for MSAA with 4x and 8x samples doesn't work yet. */
+	if (pCreateInfo->samples > 2)
+		return false;
+
 	/* TODO: Enable DCC for MSAA textures. */
-	if (pCreateInfo->samples >= 2)
+	if (!device->physical_device->dcc_msaa_allowed)
 		return false;
 
 	/* Determine if the formats are DCC compatible. */
@@ -997,6 +1001,13 @@ radv_image_create(VkDevice _device,
 		/* Try to enable DCC first. */
 		if (radv_image_can_enable_dcc(image)) {
 			radv_image_alloc_dcc(image);
+			if (image->info.samples > 1) {
+				/* CMASK should be enabled because DCC fast
+				 * clear with MSAA needs it.
+				 */
+				assert(radv_image_can_enable_cmask(image));
+				radv_image_alloc_cmask(device, image);
+			}
 		} else {
 			/* When DCC cannot be enabled, try CMASK. */
 			image->surface.dcc_size = 0;

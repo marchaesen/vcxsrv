@@ -589,9 +589,9 @@ This is an example of a system-wide configuration file
 	Names not including any well known alias are given 'sans-serif'
 --&gt;
 &lt;match target="pattern"&gt;
-	&lt;test qual="all" name="family" mode="not_eq"&gt;&lt;string&gt;sans-serif&lt;/string&gt;&lt;/test&gt;
-	&lt;test qual="all" name="family" mode="not_eq"&gt;&lt;string&gt;serif&lt;/string&gt;&lt;/test&gt;
-	&lt;test qual="all" name="family" mode="not_eq"&gt;&lt;string&gt;monospace&lt;/string&gt;&lt;/test&gt;
+	&lt;test qual="all" name="family" compare="not_eq"&gt;&lt;string&gt;sans-serif&lt;/string&gt;&lt;/test&gt;
+	&lt;test qual="all" name="family" compare="not_eq"&gt;&lt;string&gt;serif&lt;/string&gt;&lt;/test&gt;
+	&lt;test qual="all" name="family" compare="not_eq"&gt;&lt;string&gt;monospace&lt;/string&gt;&lt;/test&gt;
 	&lt;edit name="family" mode="append_last"&gt;&lt;string&gt;sans-serif&lt;/string&gt;&lt;/edit&gt;
 &lt;/match&gt;
 
@@ -653,7 +653,7 @@ This is an example of a system-wide configuration file
 	add 'monospace' as the alternative
 --&gt;
 &lt;match target="pattern"&gt;
-	&lt;test name="family" mode="eq"&gt;
+	&lt;test name="family" compare="eq"&gt;
 		&lt;string&gt;Courier New&lt;/string&gt;
 	&lt;/test&gt;
 	&lt;edit name="family" mode="prepend"&gt;
@@ -661,7 +661,7 @@ This is an example of a system-wide configuration file
 	&lt;/edit&gt;
 &lt;/match&gt;
 &lt;match target="pattern"&gt;
-	&lt;test name="family" mode="eq"&gt;
+	&lt;test name="family" compare="eq"&gt;
 		&lt;string&gt;Courier&lt;/string&gt;
 	&lt;/test&gt;
 	&lt;edit name="family" mode="prepend"&gt;

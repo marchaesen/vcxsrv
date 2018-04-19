@@ -388,7 +388,7 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_meta_saved_state saved_state;
 
-	radv_decompress_resolve_src(cmd_buffer, src_image,
+	radv_decompress_resolve_src(cmd_buffer, src_image, src_image_layout,
 				    region_count, regions);
 
 	radv_meta_save(&saved_state, cmd_buffer,
@@ -515,6 +515,9 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 			     &(VkOffset2D) { 0, 0 },
 			     &(VkExtent2D) { fb->width, fb->height });
 	}
+
+	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+	                                RADV_CMD_FLAG_INV_VMEM_L1;
 
 	radv_meta_restore(&saved_state, cmd_buffer);
 }

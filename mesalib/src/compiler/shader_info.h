@@ -53,6 +53,8 @@ struct spirv_supported_capabilities {
    bool subgroup_vote;
    bool gcn_shader;
    bool trinary_minmax;
+   bool descriptor_array_dynamic_indexing;
+   bool runtime_descriptor_array;
 };
 
 typedef struct shader_info {

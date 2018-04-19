@@ -222,6 +222,8 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.gcn_shader = true,
 				.trinary_minmax = true,
 				.shader_viewport_index_layer = true,
+				.descriptor_array_dynamic_indexing = true,
+				.runtime_descriptor_array = true,
 			},
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,
@@ -618,6 +620,7 @@ generate_shader_stats(struct radv_device *device,
 	case CHIP_POLARIS10:
 	case CHIP_POLARIS11:
 	case CHIP_POLARIS12:
+	case CHIP_VEGAM:
 		max_simd_waves = 8;
 		break;
 	default:

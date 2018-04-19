@@ -279,6 +279,10 @@ si_set_raster_config(struct radv_physical_device *physical_device,
 		raster_config = 0x16000012;
 		raster_config_1 = 0x00000000;
 		break;
+	case CHIP_VEGAM:
+		raster_config = 0x3a00161a;
+		raster_config_1 = 0x0000002e;
+		break;
 	case CHIP_TONGA:
 		raster_config = 0x16000012;
 		raster_config_1 = 0x0000002a;
