@@ -276,6 +276,12 @@ winRandRInit(ScreenPtr pScreen)
         output->modes = malloc(sizeof(RRModePtr));
         output->modes[0] = NULL;
 
+        winRandRUpdateMode(pScreen, output);
+
+        /* Make up some physical dimensions */
+        output->mmWidth = (pScreen->width * 25.4)/monitorResolution;
+        output->mmHeight = (pScreen->height * 25.4)/monitorResolution;        /* Allocate and make up a (fixed, linear) gamma ramp */
+
         /* Allocate and make up a (fixed, linear) gamma ramp */
         {
             int i;
