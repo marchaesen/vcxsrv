@@ -697,7 +697,8 @@ radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
 		region.srcSubresource.mipLevel = 0;
 		region.srcSubresource.layerCount = 1;
 
-		radv_decompress_resolve_src(cmd_buffer, src_image, 1, &region);
+		radv_decompress_resolve_src(cmd_buffer, src_image,
+					    src_att.layout, 1, &region);
 	}
 }
 
@@ -707,6 +708,7 @@ radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
 void
 radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
 			    struct radv_image *src_image,
+			    VkImageLayout src_image_layout,
 			    uint32_t region_count,
 			    const VkImageResolve *regions)
 {
@@ -722,6 +724,17 @@ radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
 		range.baseArrayLayer = src_base_layer;
 		range.layerCount = region->srcSubresource.layerCount;
 
-		radv_fast_clear_flush_image_inplace(cmd_buffer, src_image, &range);
+		uint32_t queue_mask =
+			radv_image_queue_family_mask(src_image,
+						     cmd_buffer->queue_family_index,
+						     cmd_buffer->queue_family_index);
+
+		if (radv_layout_dcc_compressed(src_image, src_image_layout,
+					       queue_mask)) {
+			radv_decompress_dcc(cmd_buffer, src_image, &range);
+		} else {
+			radv_fast_clear_flush_image_inplace(cmd_buffer,
+							    src_image, &range);
+		}
 	}
 }

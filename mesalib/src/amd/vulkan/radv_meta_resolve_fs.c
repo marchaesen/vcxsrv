@@ -458,7 +458,7 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 	unsigned dst_layout = radv_meta_dst_layout_from_layout(dest_image_layout);
 	VkRenderPass rp;
 
-	radv_decompress_resolve_src(cmd_buffer, src_image,
+	radv_decompress_resolve_src(cmd_buffer, src_image, src_image_layout,
 				    region_count, regions);
 
 	rp = device->meta_state.resolve_fragment.rc[samples_log2].render_pass[fs_key][dst_layout];

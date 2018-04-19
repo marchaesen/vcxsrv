@@ -7124,6 +7124,11 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
          } while (progress);
       }
 
+      /* Do this again to lower ir_binop_vector_extract introduced
+       * by optimization passes.
+       */
+      do_vec_index_to_cond_assign(ir);
+
       validate_ir_tree(ir);
    }
 

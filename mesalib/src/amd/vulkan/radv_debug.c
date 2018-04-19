@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <sys/utsname.h>
 
+#include "util/mesa-sha1.h"
 #include "sid.h"
 #include "gfx9d.h"
 #include "ac_debug.h"
@@ -249,7 +250,6 @@ radv_dump_descriptor_set(enum chip_class chip_class,
 	fprintf(f, "\tshader_stages: %x\n", layout->shader_stages);
 	fprintf(f, "\tdynamic_shader_stages: %x\n",
 		layout->dynamic_shader_stages);
-	fprintf(f, "\tbuffer_count: %d\n", layout->buffer_count);
 	fprintf(f, "\tdynamic_offset_count: %d\n",
 		layout->dynamic_offset_count);
 	fprintf(f, "\n");
@@ -265,8 +265,6 @@ radv_dump_descriptor_set(enum chip_class chip_class,
 			layout->binding[i].array_size);
 		fprintf(f, "\t\toffset: %d\n",
 			layout->binding[i].offset);
-		fprintf(f, "\t\tbuffer_offset: %d\n",
-			layout->binding[i].buffer_offset);
 		fprintf(f, "\t\tdynamic_offset_offset: %d\n",
 			layout->binding[i].dynamic_offset_offset);
 		fprintf(f, "\t\tdynamic_offset_count: %d\n",
@@ -499,7 +497,13 @@ radv_dump_shader(struct radv_pipeline *pipeline,
 	fprintf(f, "%s:\n\n", radv_get_shader_name(shader, stage));
 
 	if (shader->spirv) {
-		fprintf(f, "SPIRV:\n");
+		unsigned char sha1[21];
+		char sha1buf[41];
+
+		_mesa_sha1_compute(shader->spirv, shader->spirv_size, sha1);
+		_mesa_sha1_format(sha1buf, sha1);
+
+		fprintf(f, "SPIRV (sha1: %s):\n", sha1buf);
 		radv_print_spirv(shader->spirv, shader->spirv_size, f);
 	}
 

@@ -3255,7 +3255,8 @@ radv_compute_ia_multi_vgt_param_helpers(struct radv_pipeline *pipeline,
 				    device->physical_device->rad_info.family == CHIP_FIJI ||
 				    device->physical_device->rad_info.family == CHIP_POLARIS10 ||
 				    device->physical_device->rad_info.family == CHIP_POLARIS11 ||
-				    device->physical_device->rad_info.family == CHIP_POLARIS12)
+				    device->physical_device->rad_info.family == CHIP_POLARIS12 ||
+				    device->physical_device->rad_info.family == CHIP_VEGAM)
 					ia_multi_vgt_param.partial_vs_wave = true;
 			} else {
 				ia_multi_vgt_param.partial_vs_wave = true;

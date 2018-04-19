@@ -2206,10 +2206,6 @@ radv_bind_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
 
 	assert(!(set->layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
 
-	for (unsigned j = 0; j < set->layout->buffer_count; ++j)
-		if (set->descriptors[j])
-			radv_cs_add_buffer(ws, cmd_buffer->cs, set->descriptors[j], 7);
-
 	if(set->bo)
 		radv_cs_add_buffer(ws, cmd_buffer->cs, set->bo, 8);
 }
@@ -2228,6 +2224,8 @@ void radv_CmdBindDescriptorSets(
 	RADV_FROM_HANDLE(radv_pipeline_layout, layout, _layout);
 	unsigned dyn_idx = 0;
 
+	const bool no_dynamic_bounds = cmd_buffer->device->instance->debug_flags & RADV_DEBUG_NO_DYNAMIC_BOUNDS;
+
 	for (unsigned i = 0; i < descriptorSetCount; ++i) {
 		unsigned idx = i + firstSet;
 		RADV_FROM_HANDLE(radv_descriptor_set, set, pDescriptorSets[i]);
@@ -2242,7 +2240,7 @@ void radv_CmdBindDescriptorSets(
 			uint64_t va = range->va + pDynamicOffsets[dyn_idx];
 			dst[0] = va;
 			dst[1] = S_008F04_BASE_ADDRESS_HI(va >> 32);
-			dst[2] = range->size;
+			dst[2] = no_dynamic_bounds ? 0xffffffffu : range->size;
 			dst[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
 			         S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
 			         S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |

@@ -195,6 +195,7 @@ void radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer);
 
 void radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
 				 struct radv_image *src_image,
+				 VkImageLayout src_image_layout,
 				 uint32_t region_count,
 				 const VkImageResolve *regions);
 

@@ -295,6 +295,9 @@ struct radv_physical_device {
 	bool has_out_of_order_rast;
 	bool out_of_order_rast_allowed;
 
+	/* Whether DCC should be enabled for MSAA textures. */
+	bool dcc_msaa_allowed;
+
 	/* This is the drivers on-disk cache used as a fallback as opposed to
 	 * the pipeline cache defined by apps.
 	 */
@@ -598,6 +601,12 @@ struct radv_queue {
 	struct radeon_winsys_cs *continue_preamble_cs;
 };
 
+struct radv_bo_list {
+	struct radv_winsys_bo_list list;
+	unsigned capacity;
+	pthread_mutex_t mutex;
+};
+
 struct radv_device {
 	VK_LOADER_DATA                              _loader_data;
 
@@ -660,6 +669,8 @@ struct radv_device {
 	uint64_t dmesg_timestamp;
 
 	struct radv_device_extension_table enabled_extensions;
+
+	struct radv_bo_list bo_list;
 };
 
 struct radv_device_memory {
@@ -687,8 +698,6 @@ struct radv_descriptor_set {
 	uint64_t va;
 	uint32_t *mapped_ptr;
 	struct radv_descriptor_range *dynamic_descriptors;
-
-	struct radeon_winsys_bo *descriptors[0];
 };
 
 struct radv_push_descriptor_set
