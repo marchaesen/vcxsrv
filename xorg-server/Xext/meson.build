@@ -23,8 +23,12 @@ if build_mitshm
     hdrs_xext += ['shmint.h']
 endif
 
+if build_hashtable
+    srcs_xext += 'hashtable.c'
+endif
+
 if build_res
-    srcs_xext += ['hashtable.c', 'xres.c']
+    srcs_xext += 'xres.c'
 endif
 
 if build_screensaver

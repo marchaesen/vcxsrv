@@ -193,7 +193,8 @@ debug_backtrace_print(FILE *f,
             frame_ip(&backtrace[i]));
    }
 }
-
+#elif defined(ANDROID)
+   /* Not implemented here; see u_debug_stack_android.cpp */
 #else /* ! HAVE_LIBUNWIND */
 
 #if defined(PIPE_OS_WINDOWS)

@@ -144,7 +144,7 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 		gart_index = device->memory_properties.memoryHeapCount++;
 		device->memory_properties.memoryHeaps[gart_index] = (VkMemoryHeap) {
 			.size = device->rad_info.gart_size,
-			.flags = 0,
+			.flags = device->rad_info.has_dedicated_vram ? 0 : VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
 		};
 	}
 
@@ -161,7 +161,8 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 		device->mem_type_indices[type_count] = RADV_MEM_TYPE_GTT_WRITE_COMBINE;
 		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
 			.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+			(device->rad_info.has_dedicated_vram ? 0 : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
 			.heapIndex = gart_index,
 		};
 	}
@@ -179,7 +180,8 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
 			.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-			VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+			VK_MEMORY_PROPERTY_HOST_CACHED_BIT |
+			(device->rad_info.has_dedicated_vram ? 0 : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
 			.heapIndex = gart_index,
 		};
 	}
@@ -1302,8 +1304,14 @@ radv_bo_list_finish(struct radv_bo_list *bo_list)
 	pthread_mutex_destroy(&bo_list->mutex);
 }
 
-static VkResult radv_bo_list_add(struct radv_bo_list *bo_list, struct radeon_winsys_bo *bo)
+static VkResult radv_bo_list_add(struct radv_device *device,
+				 struct radeon_winsys_bo *bo)
 {
+	struct radv_bo_list *bo_list = &device->bo_list;
+
+	if (unlikely(!device->use_global_bo_list))
+		return VK_SUCCESS;
+
 	pthread_mutex_lock(&bo_list->mutex);
 	if (bo_list->list.count == bo_list->capacity) {
 		unsigned capacity = MAX2(4, bo_list->capacity * 2);
@@ -1323,8 +1331,14 @@ static VkResult radv_bo_list_add(struct radv_bo_list *bo_list, struct radeon_win
 	return VK_SUCCESS;
 }
 
-static void radv_bo_list_remove(struct radv_bo_list *bo_list, struct radeon_winsys_bo *bo)
+static void radv_bo_list_remove(struct radv_device *device,
+				struct radeon_winsys_bo *bo)
 {
+	struct radv_bo_list *bo_list = &device->bo_list;
+
+	if (unlikely(!device->use_global_bo_list))
+		return;
+
 	pthread_mutex_lock(&bo_list->mutex);
 	for(unsigned i = 0; i < bo_list->list.count; ++i) {
 		if (bo_list->list.bos[i] == bo) {
@@ -1433,6 +1447,12 @@ VkResult radv_CreateDevice(
 	}
 
 	keep_shader_info = device->enabled_extensions.AMD_shader_info;
+
+	/* With update after bind we can't attach bo's to the command buffer
+	 * from the descriptor set anymore, so we have to use a global BO list.
+	 */
+	device->use_global_bo_list =
+		device->enabled_extensions.EXT_descriptor_indexing;
 
 	mtx_init(&device->shader_slab_mutex, mtx_plain);
 	list_inithead(&device->shader_slabs);
@@ -2506,14 +2526,16 @@ VkResult radv_QueueSubmit(
 			sem_info.cs_emit_wait = j == 0;
 			sem_info.cs_emit_signal = j + advance == pSubmits[i].commandBufferCount;
 
-			pthread_mutex_lock(&queue->device->bo_list.mutex);
+			if (unlikely(queue->device->use_global_bo_list))
+				pthread_mutex_lock(&queue->device->bo_list.mutex);
 
 			ret = queue->device->ws->cs_submit(ctx, queue->queue_idx, cs_array + j,
 							advance, initial_preamble, continue_preamble_cs,
 							&sem_info, &queue->device->bo_list.list,
 							can_patch, base_fence);
 
-			pthread_mutex_unlock(&queue->device->bo_list.mutex);
+			if (unlikely(queue->device->use_global_bo_list))
+				pthread_mutex_unlock(&queue->device->bo_list.mutex);
 
 			if (ret) {
 				radv_loge("failed to submit CS %d\n", i);
@@ -2761,7 +2783,7 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		mem->type_index = mem_type_index;
 	}
 
-	result = radv_bo_list_add(&device->bo_list, mem->bo);
+	result = radv_bo_list_add(device, mem->bo);
 	if (result != VK_SUCCESS)
 		goto fail_bo;
 
@@ -2798,7 +2820,7 @@ void radv_FreeMemory(
 	if (mem == NULL)
 		return;
 
-	radv_bo_list_remove(&device->bo_list, mem->bo);
+	radv_bo_list_remove(device, mem->bo);
 	device->ws->buffer_destroy(mem->bo);
 	mem->bo = NULL;
 

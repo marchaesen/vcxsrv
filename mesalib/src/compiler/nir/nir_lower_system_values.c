@@ -115,7 +115,7 @@ convert_block(nir_block *block, nir_builder *b)
          if (b->shader->options->vertex_id_zero_based) {
             sysval = nir_iadd(b,
                               nir_load_vertex_id_zero_base(b),
-                              nir_load_base_vertex(b));
+                              nir_load_first_vertex(b));
          } else {
             sysval = nir_load_vertex_id(b);
          }

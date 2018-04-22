@@ -32,7 +32,8 @@ LOCAL_SRC_FILES := \
 	$(C_SOURCES) \
 	$(NIR_SOURCES) \
 	$(RENDERONLY_SOURCES) \
-	$(VL_STUB_SOURCES)
+	$(VL_STUB_SOURCES) \
+	util/u_debug_stack_android.cpp
 
 LOCAL_C_INCLUDES := \
 	$(GALLIUM_TOP)/auxiliary/util

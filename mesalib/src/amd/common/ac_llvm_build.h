@@ -313,25 +313,63 @@ enum ac_image_opcode {
 	ac_image_gather4,
 	ac_image_load,
 	ac_image_load_mip,
+	ac_image_store,
+	ac_image_store_mip,
 	ac_image_get_lod,
 	ac_image_get_resinfo,
+	ac_image_atomic,
+	ac_image_atomic_cmpswap,
+};
+
+enum ac_atomic_op {
+	ac_atomic_swap,
+	ac_atomic_add,
+	ac_atomic_sub,
+	ac_atomic_smin,
+	ac_atomic_umin,
+	ac_atomic_smax,
+	ac_atomic_umax,
+	ac_atomic_and,
+	ac_atomic_or,
+	ac_atomic_xor,
+};
+
+enum ac_image_dim {
+	ac_image_1d,
+	ac_image_2d,
+	ac_image_3d,
+	ac_image_cube, // includes cube arrays
+	ac_image_1darray,
+	ac_image_2darray,
+	ac_image_2dmsaa,
+	ac_image_2darraymsaa,
+};
+
+/* These cache policy bits match the definitions used by the LLVM intrinsics. */
+enum ac_image_cache_policy {
+	ac_glc = 1 << 0,
+	ac_slc = 1 << 1,
 };
 
 struct ac_image_args {
-	enum ac_image_opcode opcode;
-	bool level_zero;
-	bool bias;
-	bool lod;
-	bool deriv;
-	bool compare;
-	bool offset;
+	enum ac_image_opcode opcode : 4;
+	enum ac_atomic_op atomic : 4; /* for the ac_image_atomic opcode */
+	enum ac_image_dim dim : 3;
+	unsigned dmask : 4;
+	unsigned cache_policy : 2;
+	bool unorm : 1;
+	bool level_zero : 1;
+	unsigned attributes; /* additional call-site specific AC_FUNC_ATTRs */
 
 	LLVMValueRef resource;
 	LLVMValueRef sampler;
-	LLVMValueRef addr;
-	unsigned dmask;
-	bool unorm;
-	bool da;
+	LLVMValueRef data[2]; /* data[0] is source data (vector); data[1] is cmp for cmpswap */
+	LLVMValueRef offset;
+	LLVMValueRef bias;
+	LLVMValueRef compare;
+	LLVMValueRef derivs[6];
+	LLVMValueRef coords[4];
+	LLVMValueRef lod; // also used by ac_image_get_resinfo
 };
 
 LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
@@ -362,12 +400,6 @@ LLVMValueRef ac_build_isign(struct ac_llvm_context *ctx, LLVMValueRef src0,
 
 LLVMValueRef ac_build_fsign(struct ac_llvm_context *ctx, LLVMValueRef src0,
 			    unsigned bitsize);
-
-void ac_get_image_intr_name(const char *base_name,
-			    LLVMTypeRef data_type,
-			    LLVMTypeRef coords_type,
-			    LLVMTypeRef rsrc_type,
-			    char *out_name, unsigned out_len);
 
 void ac_optimize_vs_outputs(struct ac_llvm_context *ac,
 			    LLVMValueRef main_fn,

@@ -250,6 +250,7 @@ radv_dump_descriptor_set(enum chip_class chip_class,
 	fprintf(f, "\tshader_stages: %x\n", layout->shader_stages);
 	fprintf(f, "\tdynamic_shader_stages: %x\n",
 		layout->dynamic_shader_stages);
+	fprintf(f, "\tbuffer_count: %d\n", layout->buffer_count);
 	fprintf(f, "\tdynamic_offset_count: %d\n",
 		layout->dynamic_offset_count);
 	fprintf(f, "\n");
@@ -265,6 +266,8 @@ radv_dump_descriptor_set(enum chip_class chip_class,
 			layout->binding[i].array_size);
 		fprintf(f, "\t\toffset: %d\n",
 			layout->binding[i].offset);
+		fprintf(f, "\t\tbuffer_offset: %d\n",
+			layout->binding[i].buffer_offset);
 		fprintf(f, "\t\tdynamic_offset_offset: %d\n",
 			layout->binding[i].dynamic_offset_offset);
 		fprintf(f, "\t\tdynamic_offset_count: %d\n",

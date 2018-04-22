@@ -504,6 +504,20 @@ typedef enum
    SYSTEM_VALUE_BASE_VERTEX,
 
    /**
+    * Depending on the type of the draw call (indexed or non-indexed),
+    * is the value of \c basevertex passed to \c glDrawElementsBaseVertex and
+    * similar, or is the value of \c first passed to \c glDrawArrays and
+    * similar.
+    *
+    * \note
+    * It can be used to calculate the \c SYSTEM_VALUE_VERTEX_ID as
+    * \c SYSTEM_VALUE_VERTEX_ID_ZERO_BASE plus \c SYSTEM_VALUE_FIRST_VERTEX.
+    *
+    * \sa SYSTEM_VALUE_VERTEX_ID_ZERO_BASE, SYSTEM_VALUE_VERTEX_ID
+    */
+   SYSTEM_VALUE_FIRST_VERTEX,
+
+   /**
     * Value of \c baseinstance passed to instanced draw entry points
     *
     * \sa SYSTEM_VALUE_INSTANCE_ID

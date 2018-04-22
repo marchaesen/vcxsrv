@@ -77,7 +77,7 @@ xwl_present_cleanup(struct xwl_window *xwl_window, WindowPtr window)
 {
     struct xwl_present_event *event, *tmp;
 
-    if (xwl_window->present_window == window) {
+    if (xwl_window->present_window == window || xwl_window->window == window) {
         if (xwl_window->present_frame_callback) {
             wl_callback_destroy(xwl_window->present_frame_callback);
             xwl_window->present_frame_callback = NULL;

@@ -64,6 +64,7 @@ EXTRA_DIST = \
 	glsl/tests/meson.build \
 	glsl/meson.build \
 	nir/meson.build \
+	spirv/meson.build \
 	meson.build
 
 MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)

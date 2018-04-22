@@ -2206,6 +2206,12 @@ radv_bind_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
 
 	assert(!(set->layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
 
+	if (!cmd_buffer->device->use_global_bo_list) {
+		for (unsigned j = 0; j < set->layout->buffer_count; ++j)
+			if (set->descriptors[j])
+				radv_cs_add_buffer(ws, cmd_buffer->cs, set->descriptors[j], 7);
+	}
+
 	if(set->bo)
 		radv_cs_add_buffer(ws, cmd_buffer->cs, set->bo, 8);
 }

@@ -76,6 +76,45 @@ build_store_values_extended(struct ac_llvm_context *ac,
 	}
 }
 
+static enum ac_image_dim
+get_ac_sampler_dim(const struct ac_llvm_context *ctx, enum glsl_sampler_dim dim,
+		   bool is_array)
+{
+	switch (dim) {
+	case GLSL_SAMPLER_DIM_1D:
+		if (ctx->chip_class >= GFX9)
+			return is_array ? ac_image_2darray : ac_image_2d;
+		return is_array ? ac_image_1darray : ac_image_1d;
+	case GLSL_SAMPLER_DIM_2D:
+	case GLSL_SAMPLER_DIM_RECT:
+	case GLSL_SAMPLER_DIM_SUBPASS:
+	case GLSL_SAMPLER_DIM_EXTERNAL:
+		return is_array ? ac_image_2darray : ac_image_2d;
+	case GLSL_SAMPLER_DIM_3D:
+		return ac_image_3d;
+	case GLSL_SAMPLER_DIM_CUBE:
+		return ac_image_cube;
+	case GLSL_SAMPLER_DIM_MS:
+	case GLSL_SAMPLER_DIM_SUBPASS_MS:
+		return is_array ? ac_image_2darraymsaa : ac_image_2dmsaa;
+	default:
+		unreachable("bad sampler dim");
+	}
+}
+
+static enum ac_image_dim
+get_ac_image_dim(const struct ac_llvm_context *ctx, enum glsl_sampler_dim sdim,
+		 bool is_array)
+{
+	enum ac_image_dim dim = get_ac_sampler_dim(ctx, sdim, is_array);
+
+	if (dim == ac_image_cube ||
+	    (ctx->chip_class <= VI && dim == ac_image_3d))
+		dim = ac_image_2darray;
+
+	return dim;
+}
+
 static LLVMTypeRef get_def_type(struct ac_nir_context *ctx,
                                 const nir_ssa_def *def)
 {
@@ -1091,47 +1130,28 @@ get_buffer_size(struct ac_nir_context *ctx, LLVMValueRef descriptor, bool in_ele
 	return size;
 }
 
-/**
- * Given the i32 or vNi32 \p type, generate the textual name (e.g. for use with
- * intrinsic names).
- */
-static void build_int_type_name(
-	LLVMTypeRef type,
-	char *buf, unsigned bufsize)
-{
-	assert(bufsize >= 6);
-
-	if (LLVMGetTypeKind(type) == LLVMVectorTypeKind)
-		snprintf(buf, bufsize, "v%ui32",
-			 LLVMGetVectorSize(type));
-	else
-		strcpy(buf, "i32");
-}
-
 static LLVMValueRef lower_gather4_integer(struct ac_llvm_context *ctx,
 					  struct ac_image_args *args,
 					  const nir_tex_instr *instr)
 {
 	enum glsl_base_type stype = glsl_get_sampler_result_type(instr->texture->var->type);
-	LLVMValueRef coord = args->addr;
 	LLVMValueRef half_texel[2];
 	LLVMValueRef compare_cube_wa = NULL;
 	LLVMValueRef result;
-	int c;
-	unsigned coord_vgpr_index = (unsigned)args->offset + (unsigned)args->compare;
 
 	//TODO Rect
 	{
 		struct ac_image_args txq_args = { 0 };
 
-		txq_args.da = instr->is_array || instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE;
+		txq_args.dim = get_ac_sampler_dim(ctx, instr->sampler_dim, instr->is_array);
 		txq_args.opcode = ac_image_get_resinfo;
 		txq_args.dmask = 0xf;
-		txq_args.addr = ctx->i32_0;
+		txq_args.lod = ctx->i32_0;
 		txq_args.resource = args->resource;
+		txq_args.attributes = AC_FUNC_ATTR_READNONE;
 		LLVMValueRef size = ac_build_image_opcode(ctx, &txq_args);
 
-		for (c = 0; c < 2; c++) {
+		for (unsigned c = 0; c < 2; c++) {
 			half_texel[c] = LLVMBuildExtractElement(ctx->builder, size,
 								LLVMConstInt(ctx->i32, c, false), "");
 			half_texel[c] = LLVMBuildUIToFP(ctx->builder, half_texel[c], ctx->f32, "");
@@ -1141,18 +1161,13 @@ static LLVMValueRef lower_gather4_integer(struct ac_llvm_context *ctx,
 		}
 	}
 
-	LLVMValueRef orig_coords = args->addr;
+	LLVMValueRef orig_coords[2] = { args->coords[0], args->coords[1] };
 
-	for (c = 0; c < 2; c++) {
+	for (unsigned c = 0; c < 2; c++) {
 		LLVMValueRef tmp;
-		LLVMValueRef index = LLVMConstInt(ctx->i32, coord_vgpr_index + c, 0);
-		tmp = LLVMBuildExtractElement(ctx->builder, coord, index, "");
-		tmp = LLVMBuildBitCast(ctx->builder, tmp, ctx->f32, "");
-		tmp = LLVMBuildFAdd(ctx->builder, tmp, half_texel[c], "");
-		tmp = LLVMBuildBitCast(ctx->builder, tmp, ctx->i32, "");
-		coord = LLVMBuildInsertElement(ctx->builder, coord, tmp, index, "");
+		tmp = LLVMBuildBitCast(ctx->builder, args->coords[c], ctx->f32, "");
+		args->coords[c] = LLVMBuildFAdd(ctx->builder, tmp, half_texel[c], "");
 	}
-
 
 	/*
 	 * Apparantly cube has issue with integer types that the workaround doesn't solve,
@@ -1197,16 +1212,20 @@ static LLVMValueRef lower_gather4_integer(struct ac_llvm_context *ctx,
 		args->resource = LLVMBuildInsertElement(ctx->builder, args->resource, tmp2, ctx->i32_1, "");
 
 		/* don't modify the coordinates for this case */
-		coord = LLVMBuildSelect(ctx->builder, compare_cube_wa, orig_coords, coord, "");
+		for (unsigned c = 0; c < 2; ++c)
+			args->coords[c] = LLVMBuildSelect(
+				ctx->builder, compare_cube_wa,
+				orig_coords[c], args->coords[c], "");
 	}
-	args->addr = coord;
+
+	args->attributes = AC_FUNC_ATTR_READNONE;
 	result = ac_build_image_opcode(ctx, args);
 
 	if (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE) {
 		LLVMValueRef tmp, tmp2;
 
 		/* if the cube workaround is in place, f2i the result. */
-		for (c = 0; c < 4; c++) {
+		for (unsigned c = 0; c < 4; c++) {
 			tmp = LLVMBuildExtractElement(ctx->builder, result, LLVMConstInt(ctx->i32, c, false), "");
 			if (stype == GLSL_TYPE_UINT)
 				tmp2 = LLVMBuildFPToUI(ctx->builder, tmp, ctx->i32, "");
@@ -1224,7 +1243,6 @@ static LLVMValueRef lower_gather4_integer(struct ac_llvm_context *ctx,
 
 static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 					const nir_tex_instr *instr,
-					bool lod_is_zero,
 					struct ac_image_args *args)
 {
 	if (instr->sampler_dim == GLSL_SAMPLER_DIM_BUF) {
@@ -1233,14 +1251,14 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 		if (ctx->abi->gfx9_stride_size_workaround) {
 			return ac_build_buffer_load_format_gfx9_safe(&ctx->ac,
 			                                             args->resource,
-			                                             args->addr,
+			                                             args->coords[0],
 			                                             ctx->ac.i32_0,
 			                                             util_last_bit(mask),
 			                                             false, true);
 		} else {
 			return ac_build_buffer_load_format(&ctx->ac,
 			                                   args->resource,
-			                                   args->addr,
+			                                   args->coords[0],
 			                                   ctx->ac.i32_0,
 			                                   util_last_bit(mask),
 			                                   false, true);
@@ -1248,37 +1266,28 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 	}
 
 	args->opcode = ac_image_sample;
-	args->compare = instr->is_shadow;
 
 	switch (instr->op) {
 	case nir_texop_txf:
 	case nir_texop_txf_ms:
 	case nir_texop_samples_identical:
-		args->opcode = lod_is_zero ||
+		args->opcode = args->level_zero ||
 			       instr->sampler_dim == GLSL_SAMPLER_DIM_MS ?
 					ac_image_load : ac_image_load_mip;
-		args->compare = false;
-		args->offset = false;
-		break;
-	case nir_texop_txb:
-		args->bias = true;
-		break;
-	case nir_texop_txl:
-		if (lod_is_zero)
-			args->level_zero = true;
-		else
-			args->lod = true;
+		args->level_zero = false;
 		break;
 	case nir_texop_txs:
 	case nir_texop_query_levels:
 		args->opcode = ac_image_get_resinfo;
+		if (!args->lod)
+			args->lod = ctx->ac.i32_0;
+		args->level_zero = false;
 		break;
 	case nir_texop_tex:
-		if (ctx->stage != MESA_SHADER_FRAGMENT)
+		if (ctx->stage != MESA_SHADER_FRAGMENT) {
+			assert(!args->lod);
 			args->level_zero = true;
-		break;
-	case nir_texop_txd:
-		args->deriv = true;
+		}
 		break;
 	case nir_texop_tg4:
 		args->opcode = ac_image_gather4;
@@ -1286,8 +1295,6 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 		break;
 	case nir_texop_lod:
 		args->opcode = ac_image_get_lod;
-		args->compare = false;
-		args->offset = false;
 		break;
 	default:
 		break;
@@ -1299,6 +1306,8 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 			return lower_gather4_integer(&ctx->ac, args, instr);
 		}
 	}
+
+	args->attributes = AC_FUNC_ATTR_READNONE;
 	return ac_build_image_opcode(&ctx->ac, args);
 }
 
@@ -2007,20 +2016,6 @@ static int image_type_to_components_count(enum glsl_sampler_dim dim, bool array)
 	return 0;
 }
 
-static bool
-glsl_is_array_image(const struct glsl_type *type)
-{
-	const enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
-
-	if (glsl_sampler_type_is_array(type))
-		return true;
-
-	return dim == GLSL_SAMPLER_DIM_CUBE ||
-	       dim == GLSL_SAMPLER_DIM_3D ||
-	       dim == GLSL_SAMPLER_DIM_SUBPASS ||
-	       dim == GLSL_SAMPLER_DIM_SUBPASS_MS;
-}
-
 
 /* Adjust the sample index according to FMASK.
  *
@@ -2042,23 +2037,19 @@ static LLVMValueRef adjust_sample_index_using_fmask(struct ac_llvm_context *ctx,
 						    LLVMValueRef sample_index,
 						    LLVMValueRef fmask_desc_ptr)
 {
-	LLVMValueRef fmask_load_address[4];
+	struct ac_image_args args = {0};
 	LLVMValueRef res;
 
-	fmask_load_address[0] = coord_x;
-	fmask_load_address[1] = coord_y;
-	if (coord_z) {
-		fmask_load_address[2] = coord_z;
-		fmask_load_address[3] = LLVMGetUndef(ctx->i32);
-	}
-
-	struct ac_image_args args = {0};
+	args.coords[0] = coord_x;
+	args.coords[1] = coord_y;
+	if (coord_z)
+		args.coords[2] = coord_z;
 
 	args.opcode = ac_image_load;
-	args.da = coord_z ? true : false;
+	args.dim = coord_z ? ac_image_2darray : ac_image_2d;
 	args.resource = fmask_desc_ptr;
 	args.dmask = 0xf;
-	args.addr = ac_build_gather_values(ctx, fmask_load_address, coord_z ? 4 : 2);
+	args.attributes = AC_FUNC_ATTR_READNONE;
 
 	res = ac_build_image_opcode(ctx, &args);
 
@@ -2099,18 +2090,29 @@ static LLVMValueRef adjust_sample_index_using_fmask(struct ac_llvm_context *ctx,
 	return sample_index;
 }
 
-static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
-				     const nir_intrinsic_instr *instr)
+static bool
+glsl_is_array_image(const struct glsl_type *type)
+{
+	const enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
+
+	if (glsl_sampler_type_is_array(type))
+		return true;
+
+	return dim == GLSL_SAMPLER_DIM_SUBPASS ||
+	       dim == GLSL_SAMPLER_DIM_SUBPASS_MS;
+}
+
+static void get_image_coords(struct ac_nir_context *ctx,
+			     const nir_intrinsic_instr *instr,
+			     struct ac_image_args *args)
 {
 	const struct glsl_type *type = glsl_without_array(instr->variables[0]->var->type);
 
 	LLVMValueRef src0 = get_src(ctx, instr->src[0]);
-	LLVMValueRef coords[4];
 	LLVMValueRef masks[] = {
 		LLVMConstInt(ctx->ac.i32, 0, false), LLVMConstInt(ctx->ac.i32, 1, false),
 		LLVMConstInt(ctx->ac.i32, 2, false), LLVMConstInt(ctx->ac.i32, 3, false),
 	};
-	LLVMValueRef res;
 	LLVMValueRef sample_index = ac_llvm_extract_elem(&ctx->ac, get_src(ctx, instr->src[1]), 0);
 
 	int count;
@@ -2150,45 +2152,43 @@ static LLVMValueRef get_image_coords(struct ac_nir_context *ctx,
 	}
 	if (count == 1 && !gfx9_1d) {
 		if (instr->src[0].ssa->num_components)
-			res = LLVMBuildExtractElement(ctx->ac.builder, src0, masks[0], "");
+			args->coords[0] = LLVMBuildExtractElement(ctx->ac.builder, src0, masks[0], "");
 		else
-			res = src0;
+			args->coords[0] = src0;
 	} else {
 		int chan;
 		if (is_ms)
 			count--;
 		for (chan = 0; chan < count; ++chan) {
-			coords[chan] = ac_llvm_extract_elem(&ctx->ac, src0, chan);
+			args->coords[chan] = ac_llvm_extract_elem(&ctx->ac, src0, chan);
 		}
 		if (add_frag_pos) {
-			for (chan = 0; chan < 2; ++chan)
-				coords[chan] = LLVMBuildAdd(ctx->ac.builder, coords[chan], LLVMBuildFPToUI(ctx->ac.builder, ctx->abi->frag_pos[chan],
+			for (chan = 0; chan < 2; ++chan) {
+				args->coords[chan] = LLVMBuildAdd(
+					ctx->ac.builder, args->coords[chan],
+					LLVMBuildFPToUI(
+						ctx->ac.builder, ctx->abi->frag_pos[chan],
 						ctx->ac.i32, ""), "");
-			coords[2] = ac_to_integer(&ctx->ac, ctx->abi->inputs[ac_llvm_reg_index_soa(VARYING_SLOT_LAYER, 0)]);
+			}
+			args->coords[2] = ac_to_integer(&ctx->ac,
+				ctx->abi->inputs[ac_llvm_reg_index_soa(VARYING_SLOT_LAYER, 0)]);
 			count++;
 		}
 
 		if (gfx9_1d) {
 			if (is_array) {
-				coords[2] = coords[1];
-				coords[1] = ctx->ac.i32_0;
+				args->coords[2] = args->coords[1];
+				args->coords[1] = ctx->ac.i32_0;
 			} else
-				coords[1] = ctx->ac.i32_0;
+				args->coords[1] = ctx->ac.i32_0;
 			count++;
 		}
 
 		if (is_ms) {
-			coords[count] = sample_index;
+			args->coords[count] = sample_index;
 			count++;
 		}
-
-		if (count == 3) {
-			coords[3] = LLVMGetUndef(ctx->ac.i32);
-			count = 4;
-		}
-		res = ac_build_gather_values(&ctx->ac, coords, count);
 	}
-	return res;
 }
 
 static LLVMValueRef get_image_buffer_descriptor(struct ac_nir_context *ctx,
@@ -2213,9 +2213,7 @@ static LLVMValueRef get_image_buffer_descriptor(struct ac_nir_context *ctx,
 static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 				     const nir_intrinsic_instr *instr)
 {
-	LLVMValueRef params[7];
 	LLVMValueRef res;
-	char intrinsic_name[64];
 	const nir_variable *var = instr->variables[0]->var;
 	const struct glsl_type *type = var->type;
 
@@ -2243,26 +2241,19 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 		res = ac_trim_vector(&ctx->ac, res, instr->dest.ssa.num_components);
 		res = ac_to_integer(&ctx->ac, res);
 	} else {
-		LLVMValueRef da = glsl_is_array_image(type) ? ctx->ac.i1true : ctx->ac.i1false;
-		LLVMValueRef slc = ctx->ac.i1false;
+		struct ac_image_args args = {};
+		args.opcode = ac_image_load;
+		get_image_coords(ctx, instr, &args);
+		args.resource = get_sampler_desc(ctx, instr->variables[0],
+						 AC_DESC_IMAGE, NULL, true, false);
+		args.dim = get_ac_image_dim(&ctx->ac, glsl_get_sampler_dim(type),
+					    glsl_is_array_image(type));
+		args.dmask = 15;
+		args.attributes = AC_FUNC_ATTR_READONLY;
+		if (var->data.image._volatile || var->data.image.coherent)
+			args.cache_policy |= ac_glc;
 
-		params[0] = get_image_coords(ctx, instr);
-		params[1] = get_sampler_desc(ctx, instr->variables[0], AC_DESC_IMAGE, NULL, true, false);
-		params[2] = LLVMConstInt(ctx->ac.i32, 15, false); /* dmask */
-		params[3] = (var->data.image._volatile || var->data.image.coherent) ?
-			    ctx->ac.i1true : ctx->ac.i1false;
-		params[4] = slc;
-		params[5] = ctx->ac.i1false;
-		params[6] = da;
-
-		ac_get_image_intr_name("llvm.amdgcn.image.load",
-				       ctx->ac.v4f32, /* vdata */
-				       LLVMTypeOf(params[0]), /* coords */
-				       LLVMTypeOf(params[1]), /* rsrc */
-				       intrinsic_name, sizeof(intrinsic_name));
-
-		res = ac_build_intrinsic(&ctx->ac, intrinsic_name, ctx->ac.v4f32,
-					 params, 7, AC_FUNC_ATTR_READONLY);
+		res = ac_build_image_opcode(&ctx->ac, &args);
 	}
 	return ac_to_integer(&ctx->ac, res);
 }
@@ -2271,7 +2262,6 @@ static void visit_image_store(struct ac_nir_context *ctx,
 			      nir_intrinsic_instr *instr)
 {
 	LLVMValueRef params[8];
-	char intrinsic_name[64];
 	const nir_variable *var = instr->variables[0]->var;
 	const struct glsl_type *type = glsl_without_array(var->type);
 	const enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
@@ -2293,27 +2283,19 @@ static void visit_image_store(struct ac_nir_context *ctx,
 		ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.buffer.store.format.v4f32", ctx->ac.voidt,
 				   params, 6, 0);
 	} else {
-		LLVMValueRef da = glsl_is_array_image(type) ? ctx->ac.i1true : ctx->ac.i1false;
-		LLVMValueRef slc = ctx->ac.i1false;
+		struct ac_image_args args = {};
+		args.opcode = ac_image_store;
+		args.data[0] = ac_to_float(&ctx->ac, get_src(ctx, instr->src[2]));
+		get_image_coords(ctx, instr, &args);
+		args.resource = get_sampler_desc(ctx, instr->variables[0],
+						 AC_DESC_IMAGE, NULL, true, false);
+		args.dim = get_ac_image_dim(&ctx->ac, glsl_get_sampler_dim(type),
+					    glsl_is_array_image(type));
+		args.dmask = 15;
+		if (force_glc || var->data.image._volatile || var->data.image.coherent)
+			args.cache_policy |= ac_glc;
 
-		params[0] = ac_to_float(&ctx->ac, get_src(ctx, instr->src[2]));
-		params[1] = get_image_coords(ctx, instr); /* coords */
-		params[2] = get_sampler_desc(ctx, instr->variables[0], AC_DESC_IMAGE, NULL, true, true);
-		params[3] = LLVMConstInt(ctx->ac.i32, 15, false); /* dmask */
-		params[4] = (force_glc || var->data.image._volatile || var->data.image.coherent) ?
-			    ctx->ac.i1true : ctx->ac.i1false;
-		params[5] = slc;
-		params[6] = ctx->ac.i1false;
-		params[7] = da;
-
-		ac_get_image_intr_name("llvm.amdgcn.image.store",
-				       LLVMTypeOf(params[0]), /* vdata */
-				       LLVMTypeOf(params[1]), /* coords */
-				       LLVMTypeOf(params[2]), /* rsrc */
-				       intrinsic_name, sizeof(intrinsic_name));
-
-		ac_build_intrinsic(&ctx->ac, intrinsic_name, ctx->ac.voidt,
-				   params, 8, 0);
+		ac_build_image_opcode(&ctx->ac, &args);
 	}
 
 }
@@ -2325,8 +2307,10 @@ static LLVMValueRef visit_image_atomic(struct ac_nir_context *ctx,
 	int param_count = 0;
 	const nir_variable *var = instr->variables[0]->var;
 
+	bool cmpswap = instr->intrinsic == nir_intrinsic_image_var_atomic_comp_swap;
 	const char *atomic_name;
 	char intrinsic_name[41];
+	enum ac_atomic_op atomic_subop;
 	const struct glsl_type *type = glsl_without_array(var->type);
 	MAYBE_UNUSED int length;
 
@@ -2335,33 +2319,41 @@ static LLVMValueRef visit_image_atomic(struct ac_nir_context *ctx,
 	switch (instr->intrinsic) {
 	case nir_intrinsic_image_var_atomic_add:
 		atomic_name = "add";
+		atomic_subop = ac_atomic_add;
 		break;
 	case nir_intrinsic_image_var_atomic_min:
 		atomic_name = is_unsigned ? "umin" : "smin";
+		atomic_subop = is_unsigned ? ac_atomic_umin : ac_atomic_smin;
 		break;
 	case nir_intrinsic_image_var_atomic_max:
 		atomic_name = is_unsigned ? "umax" : "smax";
+		atomic_subop = is_unsigned ? ac_atomic_umax : ac_atomic_smax;
 		break;
 	case nir_intrinsic_image_var_atomic_and:
 		atomic_name = "and";
+		atomic_subop = ac_atomic_and;
 		break;
 	case nir_intrinsic_image_var_atomic_or:
 		atomic_name = "or";
+		atomic_subop = ac_atomic_or;
 		break;
 	case nir_intrinsic_image_var_atomic_xor:
 		atomic_name = "xor";
+		atomic_subop = ac_atomic_xor;
 		break;
 	case nir_intrinsic_image_var_atomic_exchange:
 		atomic_name = "swap";
+		atomic_subop = ac_atomic_swap;
 		break;
 	case nir_intrinsic_image_var_atomic_comp_swap:
 		atomic_name = "cmpswap";
+		atomic_subop = 0; /* not used */
 		break;
 	default:
 		abort();
 	}
 
-	if (instr->intrinsic == nir_intrinsic_image_var_atomic_comp_swap)
+	if (cmpswap)
 		params[param_count++] = get_src(ctx, instr->src[3]);
 	params[param_count++] = get_src(ctx, instr->src[2]);
 
@@ -2374,25 +2366,25 @@ static LLVMValueRef visit_image_atomic(struct ac_nir_context *ctx,
 
 		length = snprintf(intrinsic_name, sizeof(intrinsic_name),
 				  "llvm.amdgcn.buffer.atomic.%s", atomic_name);
+
+		assert(length < sizeof(intrinsic_name));
+		return ac_build_intrinsic(&ctx->ac, intrinsic_name, ctx->ac.i32,
+					  params, param_count, 0);
 	} else {
-		char coords_type[8];
+		struct ac_image_args args = {};
+		args.opcode = cmpswap ? ac_image_atomic_cmpswap : ac_image_atomic;
+		args.atomic = atomic_subop;
+		args.data[0] = params[0];
+		if (cmpswap)
+			args.data[1] = params[1];
+		get_image_coords(ctx, instr, &args);
+		args.resource = get_sampler_desc(ctx, instr->variables[0],
+						 AC_DESC_IMAGE, NULL, true, false);
+		args.dim = get_ac_image_dim(&ctx->ac, glsl_get_sampler_dim(type),
+					    glsl_is_array_image(type));
 
-		LLVMValueRef coords = params[param_count++] = get_image_coords(ctx, instr);
-		params[param_count++] = get_sampler_desc(ctx, instr->variables[0], AC_DESC_IMAGE,
-							 NULL, true, true);
-		params[param_count++] = ctx->ac.i1false; /* r128 */
-		params[param_count++] = glsl_is_array_image(type) ? ctx->ac.i1true : ctx->ac.i1false;      /* da */
-		params[param_count++] = ctx->ac.i1false;  /* slc */
-
-		build_int_type_name(LLVMTypeOf(coords),
-				    coords_type, sizeof(coords_type));
-
-		length = snprintf(intrinsic_name, sizeof(intrinsic_name),
-				  "llvm.amdgcn.image.atomic.%s.%s", atomic_name, coords_type);
+		return ac_build_image_opcode(&ctx->ac, &args);
 	}
-
-	assert(length < sizeof(intrinsic_name));
-	return ac_build_intrinsic(&ctx->ac, intrinsic_name, ctx->ac.i32, params, param_count, 0);
 }
 
 static LLVMValueRef visit_image_samples(struct ac_nir_context *ctx,
@@ -2402,12 +2394,14 @@ static LLVMValueRef visit_image_samples(struct ac_nir_context *ctx,
 	const struct glsl_type *type = glsl_without_array(var->type);
 
 	struct ac_image_args args = { 0 };
-	args.da = glsl_is_array_image(type);
+	args.dim = get_ac_sampler_dim(&ctx->ac, glsl_get_sampler_dim(type),
+				      glsl_sampler_type_is_array(type));
 	args.dmask = 0xf;
 	args.resource = get_sampler_desc(ctx, instr->variables[0],
 					 AC_DESC_IMAGE, NULL, true, false);
 	args.opcode = ac_image_get_resinfo;
-	args.addr = ctx->ac.i32_0;
+	args.lod = ctx->ac.i32_0;
+	args.attributes = AC_FUNC_ATTR_READNONE;
 
 	return ac_build_image_opcode(&ctx->ac, &args);
 }
@@ -2426,11 +2420,13 @@ static LLVMValueRef visit_image_size(struct ac_nir_context *ctx,
 
 	struct ac_image_args args = { 0 };
 
-	args.da = glsl_is_array_image(type);
+	args.dim = get_ac_image_dim(&ctx->ac, glsl_get_sampler_dim(type),
+				    glsl_sampler_type_is_array(type));
 	args.dmask = 0xf;
 	args.resource = get_sampler_desc(ctx, instr->variables[0], AC_DESC_IMAGE, NULL, true, false);
 	args.opcode = ac_image_get_resinfo;
-	args.addr = ctx->ac.i32_0;
+	args.lod = ctx->ac.i32_0;
+	args.attributes = AC_FUNC_ATTR_READNONE;
 
 	res = ac_build_image_opcode(&ctx->ac, &args);
 
@@ -2631,6 +2627,7 @@ static LLVMValueRef visit_var_atomic(struct ac_nir_context *ctx,
 						LLVMAtomicOrderingSequentiallyConsistent,
 						LLVMAtomicOrderingSequentiallyConsistent,
 						false);
+		result = LLVMBuildExtractValue(ctx->ac.builder, result, 0, "");
 	} else {
 		LLVMAtomicRMWBinOp op;
 		switch (instr->intrinsic) {
@@ -2830,10 +2827,10 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		result = ac_build_gather_values(&ctx->ac, values, 3);
 		break;
 	}
-	case nir_intrinsic_load_base_vertex: {
+	case nir_intrinsic_load_base_vertex:
+	case nir_intrinsic_load_first_vertex:
 		result = ctx->abi->load_base_vertex(ctx->abi);
 		break;
-	}
 	case nir_intrinsic_load_local_group_size:
 		result = ctx->abi->load_local_group_size(ctx->abi);
 		break;
@@ -3175,41 +3172,6 @@ static LLVMValueRef get_sampler_desc(struct ac_nir_context *ctx,
 					  desc_type, image, write, bindless);
 }
 
-static void set_tex_fetch_args(struct ac_llvm_context *ctx,
-			       struct ac_image_args *args,
-			       const nir_tex_instr *instr,
-			       nir_texop op,
-			       LLVMValueRef res_ptr, LLVMValueRef samp_ptr,
-			       LLVMValueRef *param, unsigned count,
-			       unsigned dmask)
-{
-	unsigned is_rect = 0;
-	bool da = instr->is_array || instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE;
-
-	if (op == nir_texop_lod)
-		da = false;
-	/* Pad to power of two vector */
-	while (count < util_next_power_of_two(count))
-		param[count++] = LLVMGetUndef(ctx->i32);
-
-	if (count > 1)
-		args->addr = ac_build_gather_values(ctx, param, count);
-	else
-		args->addr = param[0];
-
-	args->resource = res_ptr;
-	args->sampler = samp_ptr;
-
-	if (instr->sampler_dim == GLSL_SAMPLER_DIM_BUF && op == nir_texop_txf) {
-		args->addr = param[0];
-		return;
-	}
-
-	args->dmask = dmask;
-	args->unorm = is_rect;
-	args->da = da;
-}
-
 /* Disable anisotropic filtering if BASE_LEVEL == LAST_LEVEL.
  *
  * SI-CI:
@@ -3274,43 +3236,41 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 {
 	LLVMValueRef result = NULL;
 	struct ac_image_args args = { 0 };
-	unsigned dmask = 0xf;
-	LLVMValueRef address[16];
-	LLVMValueRef coords[5];
-	LLVMValueRef coord = NULL, lod = NULL, comparator = NULL;
-	LLVMValueRef bias = NULL, offsets = NULL;
-	LLVMValueRef res_ptr, samp_ptr, fmask_ptr = NULL, sample_index = NULL;
+	LLVMValueRef fmask_ptr = NULL, sample_index = NULL;
 	LLVMValueRef ddx = NULL, ddy = NULL;
-	LLVMValueRef derivs[6];
-	unsigned chan, count = 0;
-	unsigned const_src = 0, num_deriv_comp = 0;
-	bool lod_is_zero = false;
+	unsigned offset_src = 0;
 
-	tex_fetch_ptrs(ctx, instr, &res_ptr, &samp_ptr, &fmask_ptr);
+	tex_fetch_ptrs(ctx, instr, &args.resource, &args.sampler, &fmask_ptr);
 
 	for (unsigned i = 0; i < instr->num_srcs; i++) {
 		switch (instr->src[i].src_type) {
-		case nir_tex_src_coord:
-			coord = get_src(ctx, instr->src[i].src);
+		case nir_tex_src_coord: {
+			LLVMValueRef coord = get_src(ctx, instr->src[i].src);
+			for (unsigned chan = 0; chan < instr->coord_components; ++chan)
+				args.coords[chan] = ac_llvm_extract_elem(&ctx->ac, coord, chan);
 			break;
+		}
 		case nir_tex_src_projector:
 			break;
 		case nir_tex_src_comparator:
-			comparator = get_src(ctx, instr->src[i].src);
+			if (instr->is_shadow)
+				args.compare = get_src(ctx, instr->src[i].src);
 			break;
 		case nir_tex_src_offset:
-			offsets = get_src(ctx, instr->src[i].src);
-			const_src = i;
+			args.offset = get_src(ctx, instr->src[i].src);
+			offset_src = i;
 			break;
 		case nir_tex_src_bias:
-			bias = get_src(ctx, instr->src[i].src);
+			if (instr->op == nir_texop_txb)
+				args.bias = get_src(ctx, instr->src[i].src);
 			break;
 		case nir_tex_src_lod: {
 			nir_const_value *val = nir_src_as_const_value(instr->src[i].src);
 
 			if (val && val->i32[0] == 0)
-				lod_is_zero = true;
-			lod = get_src(ctx, instr->src[i].src);
+				args.level_zero = true;
+			else
+				args.lod = get_src(ctx, instr->src[i].src);
 			break;
 		}
 		case nir_tex_src_ms_index:
@@ -3320,7 +3280,6 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 			break;
 		case nir_tex_src_ddx:
 			ddx = get_src(ctx, instr->src[i].src);
-			num_deriv_comp = instr->src[i].src.ssa->num_components;
 			break;
 		case nir_tex_src_ddy:
 			ddy = get_src(ctx, instr->src[i].src);
@@ -3334,13 +3293,13 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 	}
 
 	if (instr->op == nir_texop_txs && instr->sampler_dim == GLSL_SAMPLER_DIM_BUF) {
-		result = get_buffer_size(ctx, res_ptr, true);
+		result = get_buffer_size(ctx, args.resource, true);
 		goto write_result;
 	}
 
 	if (instr->op == nir_texop_texture_samples) {
 		LLVMValueRef res, samples, is_msaa;
-		res = LLVMBuildBitCast(ctx->ac.builder, res_ptr, ctx->ac.v8i32, "");
+		res = LLVMBuildBitCast(ctx->ac.builder, args.resource, ctx->ac.v8i32, "");
 		samples = LLVMBuildExtractElement(ctx->ac.builder, res,
 						  LLVMConstInt(ctx->ac.i32, 3, false), "");
 		is_msaa = LLVMBuildLShr(ctx->ac.builder, samples,
@@ -3362,18 +3321,14 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		goto write_result;
 	}
 
-	if (coord)
-		for (chan = 0; chan < instr->coord_components; chan++)
-			coords[chan] = ac_llvm_extract_elem(&ctx->ac, coord, chan);
-
-	if (offsets && instr->op != nir_texop_txf) {
+	if (args.offset && instr->op != nir_texop_txf) {
 		LLVMValueRef offset[3], pack;
-		for (chan = 0; chan < 3; ++chan)
+		for (unsigned chan = 0; chan < 3; ++chan)
 			offset[chan] = ctx->ac.i32_0;
 
-		args.offset = true;
-		for (chan = 0; chan < ac_get_llvm_num_components(offsets); chan++) {
-			offset[chan] = ac_llvm_extract_elem(&ctx->ac, offsets, chan);
+		unsigned num_components = ac_get_llvm_num_components(args.offset);
+		for (unsigned chan = 0; chan < num_components; chan++) {
+			offset[chan] = ac_llvm_extract_elem(&ctx->ac, args.offset, chan);
 			offset[chan] = LLVMBuildAnd(ctx->ac.builder, offset[chan],
 						    LLVMConstInt(ctx->ac.i32, 0x3f, false), "");
 			if (chan)
@@ -3382,31 +3337,18 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		}
 		pack = LLVMBuildOr(ctx->ac.builder, offset[0], offset[1], "");
 		pack = LLVMBuildOr(ctx->ac.builder, pack, offset[2], "");
-		address[count++] = pack;
-
-	}
-	/* pack LOD bias value */
-	if (instr->op == nir_texop_txb && bias) {
-		address[count++] = bias;
+		args.offset = pack;
 	}
 
-	/* Pack depth comparison value */
-	if (instr->is_shadow && comparator) {
-		LLVMValueRef z = ac_to_float(&ctx->ac,
-		                             ac_llvm_extract_elem(&ctx->ac, comparator, 0));
-
-		/* TC-compatible HTILE on radeonsi promotes Z16 and Z24 to Z32_FLOAT,
-		 * so the depth comparison value isn't clamped for Z16 and
-		 * Z24 anymore. Do it manually here.
-		 *
-		 * It's unnecessary if the original texture format was
-		 * Z32_FLOAT, but we don't know that here.
-		 */
-		if (ctx->ac.chip_class == VI && ctx->abi->clamp_shadow_reference)
-			z = ac_build_clamp(&ctx->ac, z);
-
-		address[count++] = z;
-	}
+	/* TC-compatible HTILE on radeonsi promotes Z16 and Z24 to Z32_FLOAT,
+	 * so the depth comparison value isn't clamped for Z16 and
+	 * Z24 anymore. Do it manually here.
+	 *
+	 * It's unnecessary if the original texture format was
+	 * Z32_FLOAT, but we don't know that here.
+	 */
+	if (args.compare && ctx->ac.chip_class == VI && ctx->abi->clamp_shadow_reference)
+		args.compare = ac_build_clamp(&ctx->ac, ac_to_float(&ctx->ac, args.compare));
 
 	/* pack derivatives */
 	if (ddx || ddy) {
@@ -3414,7 +3356,6 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		switch (instr->sampler_dim) {
 		case GLSL_SAMPLER_DIM_3D:
 		case GLSL_SAMPLER_DIM_CUBE:
-			num_deriv_comp = 3;
 			num_src_deriv_channels = 3;
 			num_dest_deriv_channels = 3;
 			break;
@@ -3422,121 +3363,76 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		default:
 			num_src_deriv_channels = 2;
 			num_dest_deriv_channels = 2;
-			num_deriv_comp = 2;
 			break;
 		case GLSL_SAMPLER_DIM_1D:
 			num_src_deriv_channels = 1;
 			if (ctx->ac.chip_class >= GFX9) {
 				num_dest_deriv_channels = 2;
-				num_deriv_comp = 2;
 			} else {
 				num_dest_deriv_channels = 1;
-				num_deriv_comp = 1;
 			}
 			break;
 		}
 
 		for (unsigned i = 0; i < num_src_deriv_channels; i++) {
-			derivs[i] = ac_to_float(&ctx->ac, ac_llvm_extract_elem(&ctx->ac, ddx, i));
-			derivs[num_dest_deriv_channels + i] = ac_to_float(&ctx->ac, ac_llvm_extract_elem(&ctx->ac, ddy, i));
+			args.derivs[i] = ac_to_float(&ctx->ac,
+				ac_llvm_extract_elem(&ctx->ac, ddx, i));
+			args.derivs[num_dest_deriv_channels + i] = ac_to_float(&ctx->ac,
+				ac_llvm_extract_elem(&ctx->ac, ddy, i));
 		}
 		for (unsigned i = num_src_deriv_channels; i < num_dest_deriv_channels; i++) {
-			derivs[i] = ctx->ac.f32_0;
-			derivs[num_dest_deriv_channels + i] = ctx->ac.f32_0;
+			args.derivs[i] = ctx->ac.f32_0;
+			args.derivs[num_dest_deriv_channels + i] = ctx->ac.f32_0;
 		}
 	}
 
-	if (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE && coord) {
-		for (chan = 0; chan < instr->coord_components; chan++)
-			coords[chan] = ac_to_float(&ctx->ac, coords[chan]);
+	if (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE && args.coords[0]) {
+		for (unsigned chan = 0; chan < instr->coord_components; chan++)
+			args.coords[chan] = ac_to_float(&ctx->ac, args.coords[chan]);
 		if (instr->coord_components == 3)
-			coords[3] = LLVMGetUndef(ctx->ac.f32);
+			args.coords[3] = LLVMGetUndef(ctx->ac.f32);
 		ac_prepare_cube_coords(&ctx->ac,
 			instr->op == nir_texop_txd, instr->is_array,
-			instr->op == nir_texop_lod, coords, derivs);
-		if (num_deriv_comp)
-			num_deriv_comp--;
+			instr->op == nir_texop_lod, args.coords, args.derivs);
 	}
 
-	if (ddx || ddy) {
-		for (unsigned i = 0; i < num_deriv_comp * 2; i++)
-			address[count++] = derivs[i];
+	/* Texture coordinates fixups */
+	if (instr->coord_components > 2 &&
+	    (instr->sampler_dim == GLSL_SAMPLER_DIM_2D ||
+	     instr->sampler_dim == GLSL_SAMPLER_DIM_MS ||
+	     instr->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS ||
+	     instr->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS_MS) &&
+	    instr->is_array &&
+	    instr->op != nir_texop_txf && instr->op != nir_texop_txf_ms) {
+		args.coords[2] = apply_round_slice(&ctx->ac, args.coords[2]);
 	}
 
-	/* Pack texture coordinates */
-	if (coord) {
-		address[count++] = coords[0];
-		if (instr->coord_components > 1) {
-			if (instr->sampler_dim == GLSL_SAMPLER_DIM_1D && instr->is_array && instr->op != nir_texop_txf) {
-				coords[1] = apply_round_slice(&ctx->ac, coords[1]);
-			}
-			address[count++] = coords[1];
-		}
-		if (instr->coord_components > 2) {
-			if ((instr->sampler_dim == GLSL_SAMPLER_DIM_2D ||
-			     instr->sampler_dim == GLSL_SAMPLER_DIM_MS ||
-			     instr->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS ||
-			     instr->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS_MS) &&
-			    instr->is_array &&
-			    instr->op != nir_texop_txf && instr->op != nir_texop_txf_ms) {
-				coords[2] = apply_round_slice(&ctx->ac, coords[2]);
-			}
-			address[count++] = coords[2];
-		}
-
-		if (ctx->ac.chip_class >= GFX9) {
-			LLVMValueRef filler;
-			if (instr->op == nir_texop_txf)
-				filler = ctx->ac.i32_0;
-			else
-				filler = LLVMConstReal(ctx->ac.f32, 0.5);
-
-			if (instr->sampler_dim == GLSL_SAMPLER_DIM_1D) {
-				/* No nir_texop_lod, because it does not take a slice
-				 * even with array textures. */
-				if (instr->is_array && instr->op != nir_texop_lod ) {
-					address[count] = address[count - 1];
-					address[count - 1] = filler;
-					count++;
-				} else
-					address[count++] = filler;
-			}
-		}
-	}
-
-	/* Pack LOD */
-	if (lod && ((instr->op == nir_texop_txl || instr->op == nir_texop_txf) && !lod_is_zero)) {
-		address[count++] = lod;
-	} else if (instr->op == nir_texop_txf_ms && sample_index) {
-		address[count++] = sample_index;
-	} else if(instr->op == nir_texop_txs) {
-		count = 0;
-		if (lod)
-			address[count++] = lod;
+	if (ctx->ac.chip_class >= GFX9 &&
+	    instr->sampler_dim == GLSL_SAMPLER_DIM_1D &&
+	    instr->op != nir_texop_lod) {
+		LLVMValueRef filler;
+		if (instr->op == nir_texop_txf)
+			filler = ctx->ac.i32_0;
 		else
-			address[count++] = ctx->ac.i32_0;
+			filler = LLVMConstReal(ctx->ac.f32, 0.5);
+
+		if (instr->is_array)
+			args.coords[2] = args.coords[1];
+		args.coords[1] = filler;
 	}
 
-	for (chan = 0; chan < count; chan++) {
-		address[chan] = LLVMBuildBitCast(ctx->ac.builder,
-						 address[chan], ctx->ac.i32, "");
-	}
+	/* Pack sample index */
+	if (instr->op == nir_texop_txf_ms && sample_index)
+		args.coords[instr->coord_components] = sample_index;
 
 	if (instr->op == nir_texop_samples_identical) {
-		LLVMValueRef txf_address[4];
 		struct ac_image_args txf_args = { 0 };
-		unsigned txf_count = count;
-		memcpy(txf_address, address, sizeof(txf_address));
+		memcpy(txf_args.coords, args.coords, sizeof(txf_args.coords));
 
-		if (!instr->is_array)
-			txf_address[2] = ctx->ac.i32_0;
-		txf_address[3] = ctx->ac.i32_0;
-
-		set_tex_fetch_args(&ctx->ac, &txf_args, instr, nir_texop_txf,
-				   fmask_ptr, NULL,
-				   txf_address, txf_count, 0xf);
-
-		result = build_tex_intrinsic(ctx, instr, false, &txf_args);
+		txf_args.dmask = 0xf;
+		txf_args.resource = fmask_ptr;
+		txf_args.dim = instr->is_array ? ac_image_2darray : ac_image_2d;
+		result = build_tex_intrinsic(ctx, instr, &txf_args);
 
 		result = LLVMBuildExtractElement(ctx->ac.builder, result, ctx->ac.i32_0, "");
 		result = emit_int_cmp(&ctx->ac, LLVMIntEQ, result, ctx->ac.i32_0);
@@ -3546,42 +3442,38 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 	if (instr->sampler_dim == GLSL_SAMPLER_DIM_MS &&
 	    instr->op != nir_texop_txs) {
 		unsigned sample_chan = instr->is_array ? 3 : 2;
-		address[sample_chan] = adjust_sample_index_using_fmask(&ctx->ac,
-								       address[0],
-								       address[1],
-								       instr->is_array ? address[2] : NULL,
-								       address[sample_chan],
-								       fmask_ptr);
+		args.coords[sample_chan] = adjust_sample_index_using_fmask(
+			&ctx->ac, args.coords[0], args.coords[1],
+			instr->is_array ? args.coords[2] : NULL,
+			args.coords[sample_chan], fmask_ptr);
 	}
 
-	if (offsets && instr->op == nir_texop_txf) {
+	if (args.offset && instr->op == nir_texop_txf) {
 		nir_const_value *const_offset =
-			nir_src_as_const_value(instr->src[const_src].src);
-		int num_offsets = instr->src[const_src].src.ssa->num_components;
+			nir_src_as_const_value(instr->src[offset_src].src);
+		int num_offsets = instr->src[offset_src].src.ssa->num_components;
 		assert(const_offset);
 		num_offsets = MIN2(num_offsets, instr->coord_components);
-		if (num_offsets > 2)
-			address[2] = LLVMBuildAdd(ctx->ac.builder,
-						  address[2], LLVMConstInt(ctx->ac.i32, const_offset->i32[2], false), "");
-		if (num_offsets > 1)
-			address[1] = LLVMBuildAdd(ctx->ac.builder,
-						  address[1], LLVMConstInt(ctx->ac.i32, const_offset->i32[1], false), "");
-		address[0] = LLVMBuildAdd(ctx->ac.builder,
-					  address[0], LLVMConstInt(ctx->ac.i32, const_offset->i32[0], false), "");
-
+		for (unsigned i = 0; i < num_offsets; ++i) {
+			args.coords[i] = LLVMBuildAdd(
+				ctx->ac.builder, args.coords[i],
+				LLVMConstInt(ctx->ac.i32, const_offset->i32[i], false), "");
+		}
+		args.offset = NULL;
 	}
 
 	/* TODO TG4 support */
+	args.dmask = 0xf;
 	if (instr->op == nir_texop_tg4) {
 		if (instr->is_shadow)
-			dmask = 1;
+			args.dmask = 1;
 		else
-			dmask = 1 << instr->component;
+			args.dmask = 1 << instr->component;
 	}
-	set_tex_fetch_args(&ctx->ac, &args, instr, instr->op,
-			   res_ptr, samp_ptr, address, count, dmask);
 
-	result = build_tex_intrinsic(ctx, instr, lod_is_zero, &args);
+	if (instr->sampler_dim != GLSL_SAMPLER_DIM_BUF)
+		args.dim = get_ac_sampler_dim(&ctx->ac, instr->sampler_dim, instr->is_array);
+	result = build_tex_intrinsic(ctx, instr, &args);
 
 	if (instr->op == nir_texop_query_levels)
 		result = LLVMBuildExtractElement(ctx->ac.builder, result, LLVMConstInt(ctx->ac.i32, 3, false), "");
