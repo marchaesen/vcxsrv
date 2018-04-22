@@ -37,6 +37,7 @@
 #include "util/bitscan.h"
 #include "util/macros.h"
 #include "util/u_atomic.h"
+#include "util/u_math.h"
 #include "sid.h"
 
 #include "shader_enums.h"
@@ -1445,33 +1446,132 @@ void ac_build_export_null(struct ac_llvm_context *ctx)
 	ac_build_export(ctx, &args);
 }
 
+static unsigned ac_num_coords(enum ac_image_dim dim)
+{
+	switch (dim) {
+	case ac_image_1d:
+		return 1;
+	case ac_image_2d:
+	case ac_image_1darray:
+		 return 2;
+	case ac_image_3d:
+	case ac_image_cube:
+	case ac_image_2darray:
+	case ac_image_2dmsaa:
+		return 3;
+	case ac_image_2darraymsaa:
+		return 4;
+	default:
+		unreachable("ac_num_coords: bad dim");
+	}
+}
+
+static unsigned ac_num_derivs(enum ac_image_dim dim)
+{
+	switch (dim) {
+	case ac_image_1d:
+	case ac_image_1darray:
+		return 2;
+	case ac_image_2d:
+	case ac_image_2darray:
+	case ac_image_cube:
+		return 4;
+	case ac_image_3d:
+		return 6;
+	case ac_image_2dmsaa:
+	case ac_image_2darraymsaa:
+	default:
+		unreachable("derivatives not supported");
+	}
+}
+
 LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 				   struct ac_image_args *a)
 {
-	LLVMValueRef args[11];
-	unsigned num_args = 0;
+	LLVMValueRef args[16];
+	LLVMTypeRef retty = ctx->v4f32;
 	const char *name = NULL;
-	char intr_name[128], type[64];
+	const char *atomic_subop = "";
+	char intr_name[128], coords_type[64];
+
+	assert(!a->lod || a->lod == ctx->i32_0 || a->lod == ctx->f32_0 ||
+	       !a->level_zero);
+	assert((a->opcode != ac_image_get_resinfo && a->opcode != ac_image_load_mip &&
+		a->opcode != ac_image_store_mip) ||
+	       a->lod);
+	assert((a->bias ? 1 : 0) +
+	       (a->lod ? 1 : 0) +
+	       (a->level_zero ? 1 : 0) +
+	       (a->derivs[0] ? 1 : 0) <= 1);
 
 	bool sample = a->opcode == ac_image_sample ||
 		      a->opcode == ac_image_gather4 ||
 		      a->opcode == ac_image_get_lod;
+	bool atomic = a->opcode == ac_image_atomic ||
+		      a->opcode == ac_image_atomic_cmpswap;
+	bool da = a->dim == ac_image_cube ||
+		  a->dim == ac_image_1darray ||
+		  a->dim == ac_image_2darray ||
+		  a->dim == ac_image_2darraymsaa;
+	if (a->opcode == ac_image_get_lod)
+		da = false;
 
+	unsigned num_coords =
+		a->opcode != ac_image_get_resinfo ? ac_num_coords(a->dim) : 0;
+	LLVMValueRef addr;
+	unsigned num_addr = 0;
+
+	if (a->offset)
+		args[num_addr++] = ac_to_integer(ctx, a->offset);
+	if (a->bias)
+		args[num_addr++] = ac_to_integer(ctx, a->bias);
+	if (a->compare)
+		args[num_addr++] = ac_to_integer(ctx, a->compare);
+	if (a->derivs[0]) {
+		unsigned num_derivs = ac_num_derivs(a->dim);
+		for (unsigned i = 0; i < num_derivs; ++i)
+			args[num_addr++] = ac_to_integer(ctx, a->derivs[i]);
+	}
+	for (unsigned i = 0; i < num_coords; ++i)
+		args[num_addr++] = ac_to_integer(ctx, a->coords[i]);
+	if (a->lod)
+		args[num_addr++] = ac_to_integer(ctx, a->lod);
+
+	unsigned pad_goal = util_next_power_of_two(num_addr);
+	while (num_addr < pad_goal)
+		args[num_addr++] = LLVMGetUndef(ctx->i32);
+
+	addr = ac_build_gather_values(ctx, args, num_addr);
+
+	unsigned num_args = 0;
+	if (atomic || a->opcode == ac_image_store || a->opcode == ac_image_store_mip) {
+		args[num_args++] = a->data[0];
+		if (a->opcode == ac_image_atomic_cmpswap)
+			args[num_args++] = a->data[1];
+	}
+
+	unsigned coords_arg = num_args;
 	if (sample)
-		args[num_args++] = ac_to_float(ctx, a->addr);
+		args[num_args++] = ac_to_float(ctx, addr);
 	else
-		args[num_args++] = a->addr;
+		args[num_args++] = ac_to_integer(ctx, addr);
 
 	args[num_args++] = a->resource;
 	if (sample)
 		args[num_args++] = a->sampler;
-	args[num_args++] = LLVMConstInt(ctx->i32, a->dmask, 0);
-	if (sample)
-		args[num_args++] = LLVMConstInt(ctx->i1, a->unorm, 0);
-	args[num_args++] = ctx->i1false; /* glc */
-	args[num_args++] = ctx->i1false; /* slc */
-	args[num_args++] = ctx->i1false; /* lwe */
-	args[num_args++] = LLVMConstInt(ctx->i1, a->da, 0);
+	if (!atomic) {
+		args[num_args++] = LLVMConstInt(ctx->i32, a->dmask, 0);
+		if (sample)
+			args[num_args++] = LLVMConstInt(ctx->i1, a->unorm, 0);
+		args[num_args++] = a->cache_policy & ac_glc ? ctx->i1true : ctx->i1false;
+		args[num_args++] = a->cache_policy & ac_slc ? ctx->i1true : ctx->i1false;
+		args[num_args++] = ctx->i1false; /* lwe */
+		args[num_args++] = LLVMConstInt(ctx->i1, da, 0);
+	} else {
+		args[num_args++] = ctx->i1false; /* r128 */
+		args[num_args++] = LLVMConstInt(ctx->i1, da, 0);
+		args[num_args++] = a->cache_policy & ac_slc ? ctx->i1true : ctx->i1false;
+	}
 
 	switch (a->opcode) {
 	case ac_image_sample:
@@ -1486,6 +1586,35 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 	case ac_image_load_mip:
 		name = "llvm.amdgcn.image.load.mip";
 		break;
+	case ac_image_store:
+		name = "llvm.amdgcn.image.store";
+		retty = ctx->voidt;
+		break;
+	case ac_image_store_mip:
+		name = "llvm.amdgcn.image.store.mip";
+		retty = ctx->voidt;
+		break;
+	case ac_image_atomic:
+	case ac_image_atomic_cmpswap:
+		name = "llvm.amdgcn.image.atomic.";
+		retty = ctx->i32;
+		if (a->opcode == ac_image_atomic_cmpswap) {
+			atomic_subop = "cmpswap";
+		} else {
+			switch (a->atomic) {
+			case ac_atomic_swap: atomic_subop = "swap"; break;
+			case ac_atomic_add: atomic_subop = "add"; break;
+			case ac_atomic_sub: atomic_subop = "sub"; break;
+			case ac_atomic_smin: atomic_subop = "smin"; break;
+			case ac_atomic_umin: atomic_subop = "umin"; break;
+			case ac_atomic_smax: atomic_subop = "smax"; break;
+			case ac_atomic_umax: atomic_subop = "umax"; break;
+			case ac_atomic_and: atomic_subop = "and"; break;
+			case ac_atomic_or: atomic_subop = "or"; break;
+			case ac_atomic_xor: atomic_subop = "xor"; break;
+			}
+		}
+		break;
 	case ac_image_get_lod:
 		name = "llvm.amdgcn.image.getlod";
 		break;
@@ -1496,24 +1625,31 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 		unreachable("invalid image opcode");
 	}
 
-	ac_build_type_name_for_intr(LLVMTypeOf(args[0]), type,
-				    sizeof(type));
+	ac_build_type_name_for_intr(LLVMTypeOf(args[coords_arg]), coords_type,
+				    sizeof(coords_type));
 
-	snprintf(intr_name, sizeof(intr_name), "%s%s%s%s.v4f32.%s.v8i32",
-		name,
-		a->compare ? ".c" : "",
-		a->bias ? ".b" :
-		a->lod ? ".l" :
-		a->deriv ? ".d" :
-		a->level_zero ? ".lz" : "",
-		a->offset ? ".o" : "",
-		type);
+	if (atomic) {
+		snprintf(intr_name, sizeof(intr_name), "llvm.amdgcn.image.atomic.%s.%s",
+			 atomic_subop, coords_type);
+	} else {
+		bool lod_suffix =
+			a->lod && (a->opcode == ac_image_sample || a->opcode == ac_image_gather4);
+
+		snprintf(intr_name, sizeof(intr_name), "%s%s%s%s.v4f32.%s.v8i32",
+			name,
+			a->compare ? ".c" : "",
+			a->bias ? ".b" :
+			lod_suffix ? ".l" :
+			a->derivs[0] ? ".d" :
+			a->level_zero ? ".lz" : "",
+			a->offset ? ".o" : "",
+			coords_type);
+	}
 
 	LLVMValueRef result =
-		ac_build_intrinsic(ctx, intr_name,
-				   ctx->v4f32, args, num_args,
-				   AC_FUNC_ATTR_READNONE);
-	if (!sample) {
+		ac_build_intrinsic(ctx, intr_name, retty, args, num_args,
+				   a->attributes);
+	if (!sample && retty == ctx->v4f32) {
 		result = LLVMBuildBitCast(ctx->builder, result,
 					  ctx->v4i32, "");
 	}
@@ -1810,28 +1946,6 @@ LLVMValueRef ac_build_fsign(struct ac_llvm_context *ctx, LLVMValueRef src0,
 	cmp = LLVMBuildFCmp(ctx->builder, LLVMRealOGE, val, zero, "");
 	val = LLVMBuildSelect(ctx->builder, cmp, val, LLVMConstReal(type, -1.0), "");
 	return val;
-}
-
-void ac_get_image_intr_name(const char *base_name,
-			    LLVMTypeRef data_type,
-			    LLVMTypeRef coords_type,
-			    LLVMTypeRef rsrc_type,
-			    char *out_name, unsigned out_len)
-{
-        char coords_type_name[8];
-
-        ac_build_type_name_for_intr(coords_type, coords_type_name,
-                            sizeof(coords_type_name));
-
-	char data_type_name[8];
-	char rsrc_type_name[8];
-
-	ac_build_type_name_for_intr(data_type, data_type_name,
-				    sizeof(data_type_name));
-	ac_build_type_name_for_intr(rsrc_type, rsrc_type_name,
-				    sizeof(rsrc_type_name));
-	snprintf(out_name, out_len, "%s.%s.%s.%s", base_name,
-		 data_type_name, coords_type_name, rsrc_type_name);
 }
 
 #define AC_EXP_TARGET (HAVE_LLVM >= 0x0500 ? 0 : 3)
@@ -2473,14 +2587,12 @@ void ac_apply_fmask_to_sample(struct ac_llvm_context *ac, LLVMValueRef fmask,
 	fmask_load.opcode = ac_image_load;
 	fmask_load.resource = fmask;
 	fmask_load.dmask = 0xf;
-	fmask_load.da = is_array_tex;
+	fmask_load.dim = is_array_tex ? ac_image_2darray : ac_image_2d;
 
-	LLVMValueRef fmask_addr[4];
-	memcpy(fmask_addr, addr, sizeof(fmask_addr[0]) * 3);
-	fmask_addr[3] = LLVMGetUndef(ac->i32);
-
-	fmask_load.addr = ac_build_gather_values(ac, fmask_addr,
-						 is_array_tex ? 4 : 2);
+	fmask_load.coords[0] = addr[0];
+	fmask_load.coords[1] = addr[1];
+	if (is_array_tex)
+		fmask_load.coords[2] = addr[2];
 
 	LLVMValueRef fmask_value = ac_build_image_opcode(ac, &fmask_load);
 	fmask_value = LLVMBuildExtractElement(ac->builder, fmask_value,

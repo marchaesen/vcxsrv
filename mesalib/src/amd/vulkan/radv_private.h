@@ -670,6 +670,9 @@ struct radv_device {
 
 	struct radv_device_extension_table enabled_extensions;
 
+	/* Whether the driver uses a global BO list. */
+	bool use_global_bo_list;
+
 	struct radv_bo_list bo_list;
 };
 
@@ -698,6 +701,8 @@ struct radv_descriptor_set {
 	uint64_t va;
 	uint32_t *mapped_ptr;
 	struct radv_descriptor_range *dynamic_descriptors;
+
+	struct radeon_winsys_bo *descriptors[0];
 };
 
 struct radv_push_descriptor_set

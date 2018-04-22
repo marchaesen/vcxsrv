@@ -82,7 +82,8 @@ noinst_HEADERS = \
 	include/GL/wglext.h \
 	include/HaikuGL \
 	include/no_extern_c.h \
-	include/pci_ids
+	include/pci_ids \
+	include/vulkan
 
 # We list some directories in EXTRA_DIST, but don't actually want to include
 # the .gitignore files in the tarball.

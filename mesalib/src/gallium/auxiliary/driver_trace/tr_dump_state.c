@@ -724,7 +724,7 @@ void trace_dump_image_view(const struct pipe_image_view *state)
    if (!trace_dumping_enabled_locked())
       return;
 
-   if(!state) {
+   if (!state || !state->resource) {
       trace_dump_null();
       return;
    }

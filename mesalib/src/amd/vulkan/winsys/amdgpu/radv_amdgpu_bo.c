@@ -347,7 +347,8 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 		request.flags |= AMDGPU_GEM_CREATE_CPU_GTT_USWC;
 	if (!(flags & RADEON_FLAG_IMPLICIT_SYNC) && ws->info.drm_minor >= 22)
 		request.flags |= AMDGPU_GEM_CREATE_EXPLICIT_SYNC;
-	if (flags & RADEON_FLAG_NO_INTERPROCESS_SHARING && ws->info.drm_minor >= 20 && ws->use_local_bos) {
+	if (flags & RADEON_FLAG_NO_INTERPROCESS_SHARING &&
+	    ws->info.has_local_buffers && ws->use_local_bos) {
 		bo->base.is_local = true;
 		request.flags |= AMDGPU_GEM_CREATE_VM_ALWAYS_VALID;
 	}

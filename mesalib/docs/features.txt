@@ -303,7 +303,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_ARB_fragment_shader_interlock                      not started
   GL_ARB_gpu_shader_int64                               DONE (i965/gen8+, nvc0, radeonsi, softpipe, llvmpipe)
   GL_ARB_parallel_shader_compile                        not started, but Chia-I Wu did some related work in 2014
-  GL_ARB_post_depth_coverage                            DONE (i965)
+  GL_ARB_post_depth_coverage                            DONE (i965, nvc0)
   GL_ARB_robustness_isolation                           not started
   GL_ARB_sample_locations                               not started
   GL_ARB_seamless_cubemap_per_texture                   DONE (i965, nvc0, radeonsi, r600, softpipe, swr)

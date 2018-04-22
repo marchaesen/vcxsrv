@@ -206,4 +206,6 @@ endif
 EXTRA_DIST += \
 	tests/graw \
 	tests/python \
-	meson.build
+	meson.build \
+	tests/meson.build \
+	tests/graw/meson.build

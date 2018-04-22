@@ -68,8 +68,8 @@ hdrs_vnd = [
 libglxvnd = ''
 if build_glx
     libglxvnd = static_library('libglxvnd',
-	srcs_vnd,
-	include_directories: inc,
+    srcs_vnd,
+    include_directories: inc,
         dependencies: [
             common_dep,
             dl_dep,

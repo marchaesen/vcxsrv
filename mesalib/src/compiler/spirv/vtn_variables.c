@@ -1296,7 +1296,10 @@ vtn_get_builtin_location(struct vtn_builder *b,
       set_mode_system_value(b, mode);
       break;
    case SpvBuiltInBaseVertex:
-      *location = SYSTEM_VALUE_BASE_VERTEX;
+      /* OpenGL gl_BaseVertex (SYSTEM_VALUE_BASE_VERTEX) is not the same
+       * semantic as SPIR-V BaseVertex (SYSTEM_VALUE_FIRST_VERTEX).
+       */
+      *location = SYSTEM_VALUE_FIRST_VERTEX;
       set_mode_system_value(b, mode);
       break;
    case SpvBuiltInBaseInstance:

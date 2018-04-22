@@ -96,6 +96,8 @@ nettle_dep = dependency('nettle')
 dbus_required = get_option('systemd_logind') == 'true'
 dbus_dep = dependency('dbus-1', version: '>= 1.0', required: dbus_required)
 
+build_hashtable = false
+
 # Resolve default values of some options
 xkb_dir = get_option('xkb_dir')
 if xkb_dir == ''
@@ -300,6 +302,9 @@ if not xdmcp_dep.found()
 endif
 
 build_glx = get_option('glx')
+if build_glx
+    build_hashtable = true
+endif
 
 libdrm_dep = dependency('libdrm', version: '>= 2.4.89', required: false)
 
@@ -363,6 +368,10 @@ endif
 build_xf86bigfont = get_option('xf86bigfont')
 build_screensaver = get_option('screensaver')
 build_res = get_option('xres')
+if build_res
+    build_hashtable = true
+endif
+
 build_xace = get_option('xace')
 build_xinerama = get_option('xinerama')
 
