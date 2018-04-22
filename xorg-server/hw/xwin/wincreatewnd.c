@@ -70,7 +70,7 @@ winCreateBoundingWindowFullScreen(ScreenPtr pScreen)
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = winWindowProc;
     wc.cbClsExtra = 0;
-    wc.cbWndExtra = 0;
+    wc.cbWndExtra = WND_EXTRABYTES;
     wc.hInstance = g_hInstance;
     wc.hIcon =
         (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
@@ -184,7 +184,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = winWindowProc;
     wc.cbClsExtra = 0;
-    wc.cbWndExtra = 0;
+    wc.cbWndExtra = WND_EXTRABYTES;
     wc.hInstance = g_hInstance;
     wc.hIcon =
         (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,

@@ -75,7 +75,7 @@ winInitMultiWindowClass(void)
         wcx.style = CS_HREDRAW | CS_VREDRAW | (g_fNativeGl ? CS_OWNDC : 0);
         wcx.lpfnWndProc = winTopLevelWindowProc;
         wcx.cbClsExtra = 0;
-        wcx.cbWndExtra = 0;
+        wcx.cbWndExtra = WND_EXTRABYTES;
         wcx.hInstance = g_hInstance;
         wcx.hIcon = hIcon;
         wcx.hCursor = 0;

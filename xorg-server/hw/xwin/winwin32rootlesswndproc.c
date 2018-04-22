@@ -337,7 +337,6 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     PAINTSTRUCT ps;
     LPWINDOWPOS pWinPos = NULL;
     RECT rcClient;
-    static LPARAM buttonDownParam;
 
     /* Check if the Windows window property for our X window pointer is valid */
     if ((pRLWinPriv =
@@ -420,11 +419,11 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MOUSEMOVE:
         if (wParam & (MK_LBUTTON|MK_RBUTTON|MK_MBUTTON))
         {
-            if (lParam==buttonDownParam)
+            if (lParam==GetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM))
             {
-                buttonDownParam=(LPARAM)-1;
                 return 0;  /* Ignore the mouse since the mouse was not moved wrt the button down click */
             }
+            SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,-1);
         }
 #if CYGMULTIWINDOW_DEBUG && 0
         winDebug("winMWExtWMWindowProc - WM_MOUSEMOVE\n");
@@ -528,7 +527,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_LBUTTONDBLCLK:
     case WM_LBUTTONDOWN:
-        buttonDownParam=lParam;
+        SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,lParam);
 #if CYGMULTIWINDOW_DEBUG
         winDebug("winMWExtWMWindowProc - WM_LBUTTONDBLCLK\n");
 #endif
@@ -548,7 +547,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MBUTTONDBLCLK:
     case WM_MBUTTONDOWN:
-        buttonDownParam=lParam;
+        SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,lParam);
 #if CYGMULTIWINDOW_DEBUG
         winDebug("winMWExtWMWindowProc - WM_MBUTTONDBLCLK\n");
 #endif
@@ -568,7 +567,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_RBUTTONDBLCLK:
     case WM_RBUTTONDOWN:
-        buttonDownParam=lParam;
+        SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,lParam);
 #if CYGMULTIWINDOW_DEBUG
         winDebug("winMWExtWMWindowProc - WM_RBUTTONDBLCLK\n");
 #endif
@@ -588,7 +587,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_XBUTTONDBLCLK:
     case WM_XBUTTONDOWN:
-        buttonDownParam=lParam;
+        SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,lParam);
         if (pScreenPriv == NULL || pScreenInfo->fIgnoreInput)
             break;
         SetCapture(hwnd);

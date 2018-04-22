@@ -47,7 +47,6 @@
 #include "inputstr.h"
 
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
-extern void winSetAppUserModelID(HWND hWnd, char *AppID);
 
 #ifdef XKB
 #ifndef XKB_IN_SERVER
@@ -360,8 +359,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static Bool s_fTracking = FALSE;
     Bool needRestack = FALSE;
     LRESULT ret;
-    static Bool hasEnteredSizeMove = FALSE;
-    static LPARAM buttonDownParam;
 
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
                          lParam);
@@ -504,11 +501,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MOUSEMOVE:
         if (wParam & (MK_LBUTTON|MK_RBUTTON|MK_MBUTTON))
         {
-            if (lParam==buttonDownParam)
+            if (lParam==GetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM))
             {
-                buttonDownParam=(LPARAM)-1;
                 return 0;  /* Ignore the mouse since the mouse was not moved wrt the button down click */
             }
+            SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,-1);
         }
 
         /* Unpack the client area mouse coordinates */
@@ -614,7 +611,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_LBUTTONDBLCLK:
     case WM_LBUTTONDOWN:
-        buttonDownParam=lParam;
+        SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,lParam);
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         g_fButton[0] = TRUE;
@@ -631,7 +628,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MBUTTONDBLCLK:
     case WM_MBUTTONDOWN:
-        buttonDownParam=lParam;
+        SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,lParam);
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         g_fButton[1] = TRUE;
@@ -648,7 +645,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_RBUTTONDBLCLK:
     case WM_RBUTTONDOWN:
-        buttonDownParam=lParam;
+        SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,lParam);
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         g_fButton[2] = TRUE;
@@ -665,7 +662,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_XBUTTONDBLCLK:
     case WM_XBUTTONDOWN:
-        buttonDownParam=lParam;
+        SetWindowLongPtr(hwnd, WND_IDX_BUTTONDOWNLPARAM,lParam);
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         SetCapture(hwnd);
@@ -882,7 +879,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MOVE:
         /* Adjust the X Window to the moved Windows window */
         winAdjustXWindow(pWin, hwnd);
-        if (hasEnteredSizeMove)
+        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
           DispatchQueuedEvents(0);
         return 0;
 
@@ -1034,7 +1031,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_ENTERSIZEMOVE:
-        hasEnteredSizeMove = TRUE;
+        SetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE, TRUE);
         SetTimer(hwnd, UPDATETIMER, 10, NULL);
         return 0;
 
@@ -1044,7 +1041,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_EXITSIZEMOVE:
         /* Adjust the X Window to the moved Windows window */
-        hasEnteredSizeMove = FALSE;
+        SetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE, FALSE);
         winAdjustXWindow(pWin, hwnd);
         KillTimer(hwnd, UPDATETIMER);
         if (fWMMsgInitialized)
@@ -1080,7 +1077,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             winAdjustXWindowState(s_pScreenPriv, &wmMsg);
         if (wParam == SIZE_MINIMIZED)
             winReorderWindowsMultiWindow();
-        if (hasEnteredSizeMove)
+        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
             DispatchQueuedEvents(0);
     /* else: wait for WM_EXITSIZEMOVE */
     return 0; /* end of WM_SIZE handler */

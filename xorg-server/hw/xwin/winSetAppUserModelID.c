@@ -48,23 +48,17 @@ extern void winPropertyStoreInit(void);
 
 extern void winPropertyStoreDestroy(void);
 
-extern void winSetAppUserModelID(HWND hWnd, char *AppID);
-
-static void
-RemoveWhitespaceAndTruncate(HWND hWnd, char *AppID)
+static const char * 
+RemoveWhitespaceAndTruncate(HWND hWnd, const char *AppID)
 {
-    char *p;
-    size_t len = strlen(AppID);
+    const char *p=AppID;
+    static char appID[129];
 
-    for (p = AppID; *p; p++, len--) {
-        while (isspace(*p))
-            memmove(p, p + 1, len--);
-    }
-    if (strlen(AppID) > 128) {
-        AppID[128] = '\0';
-        ErrorF("RemoveWhitespaceAndTruncate - AppUserModelID truncated for window 0x%p.\n",
-               hWnd);
-    }
+    while (*p && isspace(*p))
+        p++;
+    strncpy(appID, p, 128);
+    appID[128]=0;
+    return appID;
 }
 
 void
@@ -119,10 +113,10 @@ winSetAppUserModelID(HWND hWnd, const char *AppID)
     if (SUCCEEDED(hr) && pps) {
         PropVariantInit(&pv);
         if (AppID) {
-            RemoveWhitespaceAndTruncate(hWnd, AppID);
-            winDebug("winSetAppUserMOdelID - hwnd 0x%p appid '%s'\n", hWnd, AppID);
+            const char *appID=RemoveWhitespaceAndTruncate(hWnd, AppID);
+            winDebug("winSetAppUserMOdelID - hwnd 0x%p appid '%s'\n", hWnd, appID);
             pv.vt = VT_LPWSTR;
-            hr = SHStrDupA(AppID, &pv.pwszVal);
+            hr = SHStrDupA(appID, &pv.pwszVal);
         }
 
         if (SUCCEEDED(hr)) {

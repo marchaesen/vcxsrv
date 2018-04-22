@@ -208,6 +208,10 @@ static Atom func (void) {					\
     return atom;						\
 }
 
+#define WND_EXTRABYTES  (2*sizeof(LONG_PTR))
+#define WND_IDX_BUTTONDOWNLPARAM 0
+#define WND_IDX_ENTEREDSIZEMOVE  (sizeof(LONG_PTR))
+
 /*
  * Typedefs for engine dependent function pointers
  */

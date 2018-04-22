@@ -265,7 +265,7 @@ winMWExtWMCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = winMWExtWMWindowProc;
     wc.cbClsExtra = 0;
-    wc.cbWndExtra = 0;
+    wc.cbWndExtra = WND_EXTRABYTES;
     wc.hInstance = g_hInstance;
     wc.hIcon = hIcon;
     wc.hIconSm = hIconSmall;
