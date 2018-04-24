@@ -185,16 +185,16 @@ xkb_symbols "ku_ara" {
     key <BKSL> { [ backslash,		bar,			ccedilla, Ccedilla	] };
 
     // Digits
-    key <AE01> { [ 1,	exclam,		Farsi_1,	grave		] };
-    key <AE02> { [ 2,	at, 		Farsi_2,	at		] };
-    key <AE03> { [ 3,	numbersign,	Farsi_3,	0x100066b	] };
-    key <AE04> { [ 4,	dollar,		Farsi_4, 	0x100fdfc	] };
-    key <AE05> { [ 5,	percent,	Farsi_5,	0x100066a	] };
-    key <AE06> { [ 6,	asciicircum,	Farsi_6,	multiply	] };
-    key <AE07> { [ 7,	ampersand,	Farsi_7, 	Arabic_comma	] };
-    key <AE08> { [ 8,	asterisk,	Farsi_8,	enfilledcircbullet	] };
-    key <AE09> { [ 9,	parenright,	Farsi_9,	0x100200e	] };
-    key <AE10> { [ 0,	parenleft,	Farsi_0,	0x100200f	] };
+    key <AE01> { [ 0x1000661,	exclam,		1,	grave		] };
+    key <AE02> { [ 0x1000662,	at, 		2,	at		] };
+    key <AE03> { [ 0x1000663,	numbersign,	3,	0x100066b	] };
+    key <AE04> { [ 0x1000664,	dollar,		4, 	0x100fdfc	] };
+    key <AE05> { [ 0x1000665,	percent,	5,	0x100066a	] };
+    key <AE06> { [ 0x1000666,	asciicircum,	6,	multiply	] };
+    key <AE07> { [ 0x1000667,	ampersand,	7, 	Arabic_comma	] };
+    key <AE08> { [ 0x1000668,	asterisk,	8,	enfilledcircbullet	] };
+    key <AE09> { [ 0x1000669,	parenright,	9,	0x100200e	] };
+    key <AE10> { [ 0x1000660,	parenleft,	0,	0x100200f	] };
     key <AE11> { [ minus,		Arabic_tatweel,		underscore	] };
     key <AE12> { [ equal,		plus,			0x1002212	] };
 

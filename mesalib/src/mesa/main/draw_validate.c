@@ -24,7 +24,7 @@
 
 #include <stdbool.h>
 #include "glheader.h"
-#include "api_validate.h"
+#include "draw_validate.h"
 #include "arrayobj.h"
 #include "bufferobj.h"
 #include "context.h"

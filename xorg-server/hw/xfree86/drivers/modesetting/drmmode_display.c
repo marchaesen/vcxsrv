@@ -954,7 +954,8 @@ drmmode_bo_import(drmmode_ptr drmmode, drmmode_bo *bo,
                   uint32_t *fb_id)
 {
 #ifdef GBM_BO_WITH_MODIFIERS
-    if (bo->gbm &&
+    modesettingPtr ms = modesettingPTR(drmmode->scrn);
+    if (bo->gbm && ms->kms_has_modifiers &&
         gbm_bo_get_modifier(bo->gbm) != DRM_FORMAT_MOD_INVALID) {
         int num_fds;
 
@@ -1974,6 +1975,9 @@ populate_format_modifiers(xf86CrtcPtr crtc, const drmModePlane *kplane,
     uint32_t *blob_formats;
     struct drm_format_modifier *blob_modifiers;
 
+    if (!blob_id)
+        return FALSE;
+
     blob = drmModeGetPropertyBlob(drmmode->fd, blob_id);
     if (!blob)
         return FALSE;
@@ -1988,7 +1992,6 @@ populate_format_modifiers(xf86CrtcPtr crtc, const drmModePlane *kplane,
         uint32_t num_modifiers = 0;
         uint64_t *modifiers = NULL;
         uint64_t *tmp;
-
         for (j = 0; j < fmt_mod_blob->count_modifiers; j++) {
             struct drm_format_modifier *mod = &blob_modifiers[j];
 
@@ -2147,11 +2150,7 @@ drmmode_crtc_create_planes(xf86CrtcPtr crtc, int num)
         drmmode_crtc->num_formats = best_kplane->count_formats;
         drmmode_crtc->formats = calloc(sizeof(drmmode_format_rec),
                                        best_kplane->count_formats);
-        if (blob_id) {
-            populate_format_modifiers(crtc, best_kplane, blob_id);
-        }
-        else
-        {
+        if (!populate_format_modifiers(crtc, best_kplane, blob_id)) {
             for (i = 0; i < best_kplane->count_formats; i++)
                 drmmode_crtc->formats[i].format = best_kplane->formats[i];
         }

@@ -14,8 +14,6 @@ MAIN_FILES = \
 	main/api_exec.h \
 	main/api_loopback.c \
 	main/api_loopback.h \
-	main/api_validate.c \
-	main/api_validate.h \
 	main/arbprogram.c \
 	main/arbprogram.h \
 	main/arrayobj.c \
@@ -70,6 +68,8 @@ MAIN_FILES = \
 	main/drawpix.h \
 	main/drawtex.c \
 	main/drawtex.h \
+	main/draw_validate.c \
+	main/draw_validate.h \
 	main/enable.c \
 	main/enable.h \
 	main/enums.c \

@@ -210,6 +210,16 @@ CloseDownExtensions(void)
     lastError = FirstExtensionError;
 }
 
+static Bool
+ExtensionAvailable(ClientPtr client, ExtensionEntry *ext)
+{
+    if (XaceHook(XACE_EXT_ACCESS, client, ext) != Success)
+        return FALSE;
+    if (!ext->base)
+        return FALSE;
+    return TRUE;
+}
+
 int
 ProcQueryExtension(ClientPtr client)
 {
@@ -230,7 +240,7 @@ ProcQueryExtension(ClientPtr client)
         reply.present = xFalse;
     else {
         i = FindExtension((char *) &stuff[1], stuff->nbytes);
-        if (i < 0 || XaceHook(XACE_EXT_ACCESS, client, extensions[i]))
+        if (i < 0 || !ExtensionAvailable(client, extensions[i]))
             reply.present = xFalse;
         else {
             reply.present = xTrue;
@@ -265,7 +275,7 @@ ProcListExtensions(ClientPtr client)
 
         for (i = 0; i < NumExtensions; i++) {
             /* call callbacks to find out whether to show extension */
-            if (XaceHook(XACE_EXT_ACCESS, client, extensions[i]) != Success)
+            if (!ExtensionAvailable(client, extensions[i]))
                 continue;
 
             total_length += strlen(extensions[i]->name) + 1;
@@ -278,7 +288,7 @@ ProcListExtensions(ClientPtr client)
         for (i = 0; i < NumExtensions; i++) {
             int len;
 
-            if (XaceHook(XACE_EXT_ACCESS, client, extensions[i]) != Success)
+            if (!ExtensionAvailable(client, extensions[i]))
                 continue;
 
             *bufptr++ = len = strlen(extensions[i]->name);

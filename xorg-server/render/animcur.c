@@ -155,7 +155,8 @@ AnimCurTimerNotify(OsTimerPtr timer, CARD32 now, void *arg)
 static void
 AnimCurCancelTimer(DeviceIntPtr pDev)
 {
-    CursorPtr cur = pDev->spriteInfo->sprite->current;
+    CursorPtr cur = pDev->spriteInfo->sprite ?
+                    pDev->spriteInfo->sprite->current : NULL;
 
     if (IsAnimCur(cur))
         TimerCancel(GetAnimCur(cur)->timer);

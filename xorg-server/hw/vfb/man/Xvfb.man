@@ -55,7 +55,7 @@ manual page, \fIXvfb\fP accepts the following command line switches:
 .B "\-screen \fIscreennum\fP \fIWxHxD\fP"
 This option creates screen \fIscreennum\fP and sets its width, height,
 and depth to W, H, and D respectively.  By default, only screen 0 exists
-and has the dimensions 1280x1024x8.
+and has the dimensions 1280x1024x24.
 .TP 4
 .B "\-pixdepths \fIlist-of-depths\fP"
 This option specifies a list of pixmap depths that the server should
@@ -100,18 +100,17 @@ snapshot can be done with a file copy command, and the resulting
 snapshot will even contain the cursor image.
 .SH EXAMPLES
 .TP 8
-Xvfb :1 -screen 0 1600x1200x32
+Xvfb :1 -screen 0 1600x1200x24
 The server will listen for connections as server number 1, and screen 0
-will be depth 32 1600x1200.
+will be depth 24 1600x1200.
 .TP 8
 Xvfb :1 -screen 1 1600x1200x16
-The server will listen for connections as server number 1, will have the
-default screen configuration (one screen, 1280x1024x8), and screen 1
-will be depth 16 1600x1200.
+The server will listen for connections as server number 1, screen 0 will have the
+default screen configuration (1280x1024x24), and screen 1 will be depth 16 1600x1200.
 .TP 8
 Xvfb -pixdepths 3 27 -fbdir /var/tmp
 The server will listen for connections as server number 0, will have the
-default screen configuration (one screen, 1280x1024x8),
+default screen configuration (one screen, 1280x1024x24),
 will also support pixmap
 depths of 3 and 27,
 and will use memory mapped files in /var/tmp for the framebuffer.

@@ -2,6 +2,9 @@
 // AEN <aen@logic.ru> & Leon Kanter <leon@geon.donetsk.ua>
 // last changes 2007/10/03 by Andriy Rysin <arysin@yahoo.com>
 
+// Oleksiy Protas <elfy.ua@gmail.com>:
+// - Added Serbian Cyrillics support
+
 // The legacy WinKeys layout extended on the third and fourth level with
 // some Unicode symbols (typographic quotes, m-dash, n-dash, ...), some
 // often-used Cyrillics from other Slavic languages, and some often-used
@@ -40,6 +43,14 @@ xkb_symbols "unicode" {
     key <AB08> { [     Cyrillic_be,     Cyrillic_BE,  guillemotleft,  doublelowquotemark  ] };
     key <AB09> { [     Cyrillic_yu,     Cyrillic_YU, guillemotright, leftdoublequotemark  ] };
     key <AB10> { [          period,           comma,          slash,            ellipsis  ] };
+
+    // Serbian Vukovica
+    key <AD01> { [ Cyrillic_shorti, Cyrillic_SHORTI,    Cyrillic_je,         Cyrillic_JE  ] };
+    key <AD02> { [    Cyrillic_tse,    Cyrillic_TSE,  Cyrillic_dzhe,       Cyrillic_DZHE  ] };
+    key <AC09> { [     Cyrillic_de,     Cyrillic_DE,    Serbian_dje,         Serbian_DJE  ] };
+    key <AB02> { [    Cyrillic_che,    Cyrillic_CHE,   Serbian_tshe,        Serbian_TSHE  ] };
+    key <AC08> { [     Cyrillic_el,     Cyrillic_EL,   Cyrillic_lje,        Cyrillic_LJE  ] };
+    key <AD06> { [     Cyrillic_en,     Cyrillic_EN,   Cyrillic_nje,        Cyrillic_NJE  ] };
 
     include "level3(ralt_switch)"
 };

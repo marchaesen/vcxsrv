@@ -39,6 +39,7 @@
 #include <GL/glxproto.h>
 #include "vndservervendor.h"
 
+ExtensionEntry *GlxExtensionEntry;
 int GlxErrorBase = 0;
 static CallbackListRec vndInitCallbackList;
 static CallbackListPtr vndInitCallbackListPtr = &vndInitCallbackList;
@@ -202,6 +203,7 @@ void
 GlxExtensionInit(void)
 {
     ExtensionEntry *extEntry;
+    GlxExtensionEntry = NULL;
 
     // Init private keys, per-screen data
     if (!dixRegisterPrivateKey(&glvXGLVScreenPrivKey, PRIVATE_SCREEN, 0))
@@ -228,8 +230,15 @@ GlxExtensionInit(void)
         return;
     }
 
+    GlxExtensionEntry = extEntry;
     GlxErrorBase = extEntry->errorBase;
     CallCallbacks(&vndInitCallbackListPtr, extEntry);
+
+    /* We'd better have found at least one vendor */
+    for (int i = 0; i < screenInfo.numScreens; i++)
+        if (GlxGetVendorForScreen(serverClient, screenInfo.screens[i]))
+            return;
+    extEntry->base = 0;
 }
 
 static int

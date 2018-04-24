@@ -462,13 +462,8 @@ control_line_error:
 
 integer_constant:
 	INTEGER_STRING {
-		if (strlen ($1) >= 3 && strncmp ($1, "0x", 2) == 0) {
-			$$ = strtoll ($1 + 2, NULL, 16);
-		} else if ($1[0] == '0') {
-			$$ = strtoll ($1, NULL, 8);
-		} else {
-			$$ = strtoll ($1, NULL, 10);
-		}
+		/* let strtoll detect the base */
+		$$ = strtoll ($1, NULL, 0);
 	}
 |	INTEGER {
 		$$ = $1;
