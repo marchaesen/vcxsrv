@@ -195,9 +195,9 @@ struct radv_device_extension_table {
    };
 };
 
-const VkExtensionProperties radv_instance_extensions[RADV_INSTANCE_EXTENSION_COUNT];
-const VkExtensionProperties radv_device_extensions[RADV_DEVICE_EXTENSION_COUNT];
-const struct radv_instance_extension_table radv_supported_instance_extensions;
+extern const VkExtensionProperties radv_instance_extensions[RADV_INSTANCE_EXTENSION_COUNT];
+extern const VkExtensionProperties radv_device_extensions[RADV_DEVICE_EXTENSION_COUNT];
+extern const struct radv_instance_extension_table radv_supported_instance_extensions;
 
 
 struct radv_physical_device;

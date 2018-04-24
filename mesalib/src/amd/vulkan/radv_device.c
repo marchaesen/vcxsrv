@@ -865,7 +865,7 @@ void radv_GetPhysicalDeviceProperties(
 		.maxViewports                             = MAX_VIEWPORTS,
 		.maxViewportDimensions                    = { (1 << 14), (1 << 14) },
 		.viewportBoundsRange                      = { INT16_MIN, INT16_MAX },
-		.viewportSubPixelBits                     = 13, /* We take a float? */
+		.viewportSubPixelBits                     = 8,
 		.minMemoryMapAlignment                    = 4096, /* A page */
 		.minTexelBufferOffsetAlignment            = 1,
 		.minUniformBufferOffsetAlignment          = 4,
@@ -1353,36 +1353,8 @@ static void radv_bo_list_remove(struct radv_device *device,
 static void
 radv_device_init_gs_info(struct radv_device *device)
 {
-	switch (device->physical_device->rad_info.family) {
-	case CHIP_OLAND:
-	case CHIP_HAINAN:
-	case CHIP_KAVERI:
-	case CHIP_KABINI:
-	case CHIP_MULLINS:
-	case CHIP_ICELAND:
-	case CHIP_CARRIZO:
-	case CHIP_STONEY:
-		device->gs_table_depth = 16;
-		return;
-	case CHIP_TAHITI:
-	case CHIP_PITCAIRN:
-	case CHIP_VERDE:
-	case CHIP_BONAIRE:
-	case CHIP_HAWAII:
-	case CHIP_TONGA:
-	case CHIP_FIJI:
-	case CHIP_POLARIS10:
-	case CHIP_POLARIS11:
-	case CHIP_POLARIS12:
-	case CHIP_VEGAM:
-	case CHIP_VEGA10:
-	case CHIP_VEGA12:
-	case CHIP_RAVEN:
-		device->gs_table_depth = 32;
-		return;
-	default:
-		unreachable("unknown GPU");
-	}
+	device->gs_table_depth = ac_get_gs_table_depth(device->physical_device->rad_info.chip_class,
+						       device->physical_device->rad_info.family);
 }
 
 static int radv_get_device_extension_index(const char *name)

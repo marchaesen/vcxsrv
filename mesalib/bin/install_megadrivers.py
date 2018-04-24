@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # encoding=utf-8
-# Copyright © 2017 Intel Corporation
+# Copyright © 2017-2018 Intel Corporation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,30 +35,34 @@ def main():
     parser.add_argument('drivers', nargs='+')
     args = parser.parse_args()
 
-    to = os.path.join(os.environ.get('MESON_INSTALL_DESTDIR_PREFIX'), args.libdir)
+    if os.path.isabs(args.libdir):
+        to = os.path.join(os.environ.get('DESTDIR', '/'), args.libdir[1:])
+    else:
+        to = os.path.join(os.environ['MESON_INSTALL_DESTDIR_PREFIX'], args.libdir)
+
     master = os.path.join(to, os.path.basename(args.megadriver))
 
     if not os.path.exists(to):
         os.makedirs(to)
     shutil.copy(args.megadriver, master)
 
-    for each in args.drivers:
-        driver = os.path.join(to, each)
+    for driver in args.drivers:
+        abs_driver = os.path.join(to, driver)
 
-        if os.path.exists(driver):
-            os.unlink(driver)
-        print('installing {} to {}'.format(args.megadriver, driver))
-        os.link(master, driver)
+        if os.path.exists(abs_driver):
+            os.unlink(abs_driver)
+        print('installing {} to {}'.format(args.megadriver, abs_driver))
+        os.link(master, abs_driver)
 
         try:
             ret = os.getcwd()
             os.chdir(to)
 
-            name, ext = os.path.splitext(each)
+            name, ext = os.path.splitext(driver)
             while ext != '.so':
                 if os.path.exists(name):
                     os.unlink(name)
-                os.symlink(each, name)
+                os.symlink(driver, name)
                 name, ext = os.path.splitext(name)
         finally:
             os.chdir(ret)

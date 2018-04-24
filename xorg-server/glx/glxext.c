@@ -289,8 +289,9 @@ checkScreenVisuals(void)
     for (i = 0; i < screenInfo.numScreens; i++) {
         ScreenPtr screen = screenInfo.screens[i];
         for (j = 0; j < screen->numVisuals; j++) {
-            if (screen->visuals[j].class == TrueColor ||
-                screen->visuals[j].class == DirectColor)
+            if ((screen->visuals[j].class == TrueColor ||
+                 screen->visuals[j].class == DirectColor) &&
+                screen->visuals[j].nplanes > 12)
                 return TRUE;
         }
     }

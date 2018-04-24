@@ -472,6 +472,8 @@ void GlxDispatchReset(void)
 int GlxDispatchRequest(ClientPtr client)
 {
     REQUEST(xReq);
+    if (GlxExtensionEntry->base == 0)
+        return BadRequest;
     if (stuff->data < OPCODE_ARRAY_LEN) {
         if (dispatchFuncs[stuff->data] == NULL) {
             // Try to find a dispatch stub.

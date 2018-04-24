@@ -41,110 +41,16 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 				  unsigned raster_config,
 				  unsigned raster_config_1)
 {
-	unsigned sh_per_se = MAX2(physical_device->rad_info.max_sh_per_se, 1);
 	unsigned num_se = MAX2(physical_device->rad_info.max_se, 1);
-	unsigned rb_mask = physical_device->rad_info.enabled_rb_mask;
-	unsigned num_rb = MIN2(physical_device->rad_info.num_render_backends, 16);
-	unsigned rb_per_pkr = MIN2(num_rb / num_se / sh_per_se, 2);
-	unsigned rb_per_se = num_rb / num_se;
-	unsigned se_mask[4];
+	unsigned raster_config_se[4];
 	unsigned se;
 
-	se_mask[0] = ((1 << rb_per_se) - 1) & rb_mask;
-	se_mask[1] = (se_mask[0] << rb_per_se) & rb_mask;
-	se_mask[2] = (se_mask[1] << rb_per_se) & rb_mask;
-	se_mask[3] = (se_mask[2] << rb_per_se) & rb_mask;
-
-	assert(num_se == 1 || num_se == 2 || num_se == 4);
-	assert(sh_per_se == 1 || sh_per_se == 2);
-	assert(rb_per_pkr == 1 || rb_per_pkr == 2);
-
-	/* XXX: I can't figure out what the *_XSEL and *_YSEL
-	 * fields are for, so I'm leaving them as their default
-	 * values. */
-
-	if ((num_se > 2) && ((!se_mask[0] && !se_mask[1]) ||
-			     (!se_mask[2] && !se_mask[3]))) {
-		raster_config_1 &= C_028354_SE_PAIR_MAP;
-
-		if (!se_mask[0] && !se_mask[1]) {
-			raster_config_1 |=
-				S_028354_SE_PAIR_MAP(V_028354_RASTER_CONFIG_SE_PAIR_MAP_3);
-		} else {
-			raster_config_1 |=
-				S_028354_SE_PAIR_MAP(V_028354_RASTER_CONFIG_SE_PAIR_MAP_0);
-		}
-	}
+	ac_get_harvested_configs(&physical_device->rad_info,
+				 raster_config,
+				 &raster_config_1,
+				 raster_config_se);
 
 	for (se = 0; se < num_se; se++) {
-		unsigned raster_config_se = raster_config;
-		unsigned pkr0_mask = ((1 << rb_per_pkr) - 1) << (se * rb_per_se);
-		unsigned pkr1_mask = pkr0_mask << rb_per_pkr;
-		int idx = (se / 2) * 2;
-
-		if ((num_se > 1) && (!se_mask[idx] || !se_mask[idx + 1])) {
-			raster_config_se &= C_028350_SE_MAP;
-
-			if (!se_mask[idx]) {
-				raster_config_se |=
-					S_028350_SE_MAP(V_028350_RASTER_CONFIG_SE_MAP_3);
-			} else {
-				raster_config_se |=
-					S_028350_SE_MAP(V_028350_RASTER_CONFIG_SE_MAP_0);
-			}
-		}
-
-		pkr0_mask &= rb_mask;
-		pkr1_mask &= rb_mask;
-		if (rb_per_se > 2 && (!pkr0_mask || !pkr1_mask)) {
-			raster_config_se &= C_028350_PKR_MAP;
-
-			if (!pkr0_mask) {
-				raster_config_se |=
-					S_028350_PKR_MAP(V_028350_RASTER_CONFIG_PKR_MAP_3);
-			} else {
-				raster_config_se |=
-					S_028350_PKR_MAP(V_028350_RASTER_CONFIG_PKR_MAP_0);
-			}
-		}
-
-		if (rb_per_se >= 2) {
-			unsigned rb0_mask = 1 << (se * rb_per_se);
-			unsigned rb1_mask = rb0_mask << 1;
-
-			rb0_mask &= rb_mask;
-			rb1_mask &= rb_mask;
-			if (!rb0_mask || !rb1_mask) {
-				raster_config_se &= C_028350_RB_MAP_PKR0;
-
-				if (!rb0_mask) {
-					raster_config_se |=
-						S_028350_RB_MAP_PKR0(V_028350_RASTER_CONFIG_RB_MAP_3);
-				} else {
-					raster_config_se |=
-						S_028350_RB_MAP_PKR0(V_028350_RASTER_CONFIG_RB_MAP_0);
-				}
-			}
-
-			if (rb_per_se > 2) {
-				rb0_mask = 1 << (se * rb_per_se + rb_per_pkr);
-				rb1_mask = rb0_mask << 1;
-				rb0_mask &= rb_mask;
-				rb1_mask &= rb_mask;
-				if (!rb0_mask || !rb1_mask) {
-					raster_config_se &= C_028350_RB_MAP_PKR1;
-
-					if (!rb0_mask) {
-						raster_config_se |=
-							S_028350_RB_MAP_PKR1(V_028350_RASTER_CONFIG_RB_MAP_3);
-					} else {
-						raster_config_se |=
-							S_028350_RB_MAP_PKR1(V_028350_RASTER_CONFIG_RB_MAP_0);
-					}
-				}
-			}
-		}
-
 		/* GRBM_GFX_INDEX has a different offset on SI and CI+ */
 		if (physical_device->rad_info.chip_class < CIK)
 			radeon_set_config_reg(cs, R_00802C_GRBM_GFX_INDEX,
@@ -155,9 +61,7 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 			radeon_set_uconfig_reg(cs, R_030800_GRBM_GFX_INDEX,
 					       S_030800_SE_INDEX(se) | S_030800_SH_BROADCAST_WRITES(1) |
 					       S_030800_INSTANCE_BROADCAST_WRITES(1));
-		radeon_set_context_reg(cs, R_028350_PA_SC_RASTER_CONFIG, raster_config_se);
-		if (physical_device->rad_info.chip_class >= CIK)
-			radeon_set_context_reg(cs, R_028354_PA_SC_RASTER_CONFIG_1, raster_config_1);
+		radeon_set_context_reg(cs, R_028350_PA_SC_RASTER_CONFIG, raster_config_se[se]);
 	}
 
 	/* GRBM_GFX_INDEX has a different offset on SI and CI+ */
@@ -170,6 +74,9 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 		radeon_set_uconfig_reg(cs, R_030800_GRBM_GFX_INDEX,
 				       S_030800_SE_BROADCAST_WRITES(1) | S_030800_SH_BROADCAST_WRITES(1) |
 				       S_030800_INSTANCE_BROADCAST_WRITES(1));
+
+	if (physical_device->rad_info.chip_class >= CIK)
+		radeon_set_context_reg(cs, R_028354_PA_SC_RASTER_CONFIG_1, raster_config_1);
 }
 
 static void
@@ -234,88 +141,9 @@ si_set_raster_config(struct radv_physical_device *physical_device,
 	unsigned rb_mask = physical_device->rad_info.enabled_rb_mask;
 	unsigned raster_config, raster_config_1;
 
-	switch (physical_device->rad_info.family) {
-	case CHIP_TAHITI:
-	case CHIP_PITCAIRN:
-		raster_config = 0x2a00126a;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_VERDE:
-		raster_config = 0x0000124a;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_OLAND:
-		raster_config = 0x00000082;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_HAINAN:
-		raster_config = 0x00000000;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_BONAIRE:
-		raster_config = 0x16000012;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_HAWAII:
-		raster_config = 0x3a00161a;
-		raster_config_1 = 0x0000002e;
-		break;
-	case CHIP_FIJI:
-		if (physical_device->rad_info.cik_macrotile_mode_array[0] == 0x000000e8) {
-			/* old kernels with old tiling config */
-			raster_config = 0x16000012;
-			raster_config_1 = 0x0000002a;
-		} else {
-			raster_config = 0x3a00161a;
-			raster_config_1 = 0x0000002e;
-		}
-		break;
-	case CHIP_POLARIS10:
-		raster_config = 0x16000012;
-		raster_config_1 = 0x0000002a;
-		break;
-	case CHIP_POLARIS11:
-	case CHIP_POLARIS12:
-		raster_config = 0x16000012;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_VEGAM:
-		raster_config = 0x3a00161a;
-		raster_config_1 = 0x0000002e;
-		break;
-	case CHIP_TONGA:
-		raster_config = 0x16000012;
-		raster_config_1 = 0x0000002a;
-		break;
-	case CHIP_ICELAND:
-		if (num_rb == 1)
-			raster_config = 0x00000000;
-		else
-			raster_config = 0x00000002;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_CARRIZO:
-		raster_config = 0x00000002;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_KAVERI:
-		/* KV should be 0x00000002, but that causes problems with radeon */
-		raster_config = 0x00000000; /* 0x00000002 */
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_KABINI:
-	case CHIP_MULLINS:
-	case CHIP_STONEY:
-		raster_config = 0x00000000;
-		raster_config_1 = 0x00000000;
-		break;
-	default:
-		fprintf(stderr,
-			"radv: Unknown GPU, using 0 for raster_config\n");
-		raster_config = 0x00000000;
-		raster_config_1 = 0x00000000;
-		break;
-	}
+	ac_get_raster_config(&physical_device->rad_info,
+			     &raster_config,
+			     &raster_config_1);
 
 	/* Always use the default config when all backends are enabled
 	 * (or when we failed to determine the enabled backends).

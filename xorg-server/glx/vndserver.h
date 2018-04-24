@@ -62,9 +62,7 @@ typedef struct GlxClientPrivRec {
 extern int GlxErrorBase;
 extern RESTYPE idResource;
 
-// Defined in glxext.c.
-const ExtensionEntry *GlxGetExtensionEntry(void);
-
+extern ExtensionEntry *GlxExtensionEntry;
 Bool GlxDispatchInit(void);
 void GlxDispatchReset(void);
 

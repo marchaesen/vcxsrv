@@ -5,58 +5,58 @@ xkb_symbols "basic" {
 
     name[Group1]= "Armenian";
 
-    key <TLDE> {	[ 0x100055d,  0x100055c	]	};
-    key <LSGT> {	[  question,  0x100058a	]	};
-    key <BKSL> {	[ guillemotright, guillemotleft]};
+    key <TLDE> {	[ Armenian_separation_mark,  Armenian_exclam ]	};
+    key <LSGT> {	[ question,  		Armenian_hyphen	]	};
+    key <BKSL> {	[ guillemotright, 	guillemotleft	]	};
 
-    key <AE01> {	[ 0x1000586,  0x1000556	]	};
-    key <AE02> {	[ 0x1000571,  0x1000541	]	};
-    key <AE03> {	[ 0x100058a,  0x1002014 ]	};
-    key <AE04> {	[     comma,  dollar	]	};
-    key <AE05> {	[ 0x1000589,  0x1002026	] 	};
-    key <AE06> {	[ 0x100055e,  percent	]	};
-    key <AE07> {	[ 0x1002024,  0x1000587	] 	};
-    key <AE08> {	[ 0x100055b,  0x100055a	] 	};
-    key <AE09> {	[ parenright, parenleft ] 	};
-    key <AE10> {	[ 0x1000585,  0x1000555	]	};
-    key <AE11> {	[ 0x1000567,  0x1000537	]	};
-    key <AE12> {	[ 0x1000572,  0x1000542	]	};
+    key <AE01> {	[ Armenian_fe,    	Armenian_FE  	]	};
+    key <AE02> {	[ Armenian_dza,   	Armenian_DZA 	]	};
+    key <AE03> {	[ Armenian_hyphen,  	0x1002014 	]	};
+    key <AE04> {	[ comma,  		dollar		]	};
+    key <AE05> {	[ Armenian_full_stop,  	0x1002026	] 	};
+    key <AE06> {	[ Armenian_question,  	percent		]	};
+    key <AE07> {	[ 0x1002024,  		Armenian_ligature_ew ] 	};
+    key <AE08> {	[ Armenian_accent,  	Armenian_apostrophe  ] 	};
+    key <AE09> {	[ parenright, 		parenleft 	] 	};
+    key <AE10> {	[ Armenian_o,     	Armenian_O   	]	};
+    key <AE11> {	[ Armenian_e,     	Armenian_E   	]	};
+    key <AE12> {	[ Armenian_ghat,  	Armenian_GHAT	]	};
 
-    key <AD01> {	[ 0x1000573, 0x1000543	]       };
-    key <AD02> {	[ 0x1000583, 0x1000553	]	};
-    key <AD03> {	[ 0x1000562, 0x1000532	]       };
-    key <AD04> {	[ 0x100057d, 0x100054d	]	};
-    key <AD05> {	[ 0x1000574, 0x1000544	]       };
-    key <AD06> {	[ 0x1000578, 0x1000548	]       };
-    key <AD07> {	[ 0x1000582, 0x1000552	]       };
-    key <AD08> {	[ 0x100056f, 0x100053f	]       };
-    key <AD09> {	[ 0x1000568, 0x1000538	]       };
-    key <AD10> {	[ 0x1000569, 0x1000539	]       };
-    key <AD11> {	[ 0x100056e, 0x100053e	]       };
-    key <AD12> {	[ 0x1000581, 0x1000551	]       };
+    key <AD01> {	[ Armenian_tche, 	Armenian_TCHE	]       };
+    key <AD02> {	[ Armenian_pyur, 	Armenian_PYUR	]	};
+    key <AD03> {	[ Armenian_ben,  	Armenian_BEN 	]       };
+    key <AD04> {	[ Armenian_se,   	Armenian_SE  	]	};
+    key <AD05> {	[ Armenian_men,  	Armenian_MEN 	]       };
+    key <AD06> {	[ Armenian_vo,   	Armenian_VO  	]       };
+    key <AD07> {	[ Armenian_vyun, 	Armenian_VYUN	]       };
+    key <AD08> {	[ Armenian_ken,  	Armenian_KEN 	]       };
+    key <AD09> {	[ Armenian_at,   	Armenian_AT  	]       };
+    key <AD10> {	[ Armenian_to,   	Armenian_TO  	]       };
+    key <AD11> {	[ Armenian_tsa,  	Armenian_TSA 	]       };
+    key <AD12> {	[ Armenian_tso,  	Armenian_TSO 	]       };
 
-    key <AC01> {	[ 0x100057b, 0x100054b	]       };
-    key <AC02> {	[ 0x100057e, 0x100054e	]	};
-    key <AC03> {	[ 0x1000563, 0x1000533	]       };
-    key <AC04> {	[ 0x1000565, 0x1000535	]       };
-    key <AC05> {	[ 0x1000561, 0x1000531	]       };
-    key <AC06> {	[ 0x1000576, 0x1000546	]	};
-    key <AC07> {	[ 0x100056b, 0x100053b	]       };
-    key <AC08> {	[ 0x100057f, 0x100054f	]       };
-    key <AC09> {	[ 0x1000570, 0x1000540	]       };
-    key <AC10> {	[ 0x100057a, 0x100054a	]       };
-    key <AC11> {	[ 0x1000580, 0x1000550	]       };
+    key <AC01> {	[ Armenian_je,   	Armenian_JE  	]       };
+    key <AC02> {	[ Armenian_vev,  	Armenian_VEV 	]	};
+    key <AC03> {	[ Armenian_gim,  	Armenian_GIM 	]       };
+    key <AC04> {	[ Armenian_yech, 	Armenian_YECH	]       };
+    key <AC05> {	[ Armenian_ayb,  	Armenian_AYB 	]       };
+    key <AC06> {	[ Armenian_nu,   	Armenian_NU  	]	};
+    key <AC07> {	[ Armenian_ini,  	Armenian_INI 	]       };
+    key <AC08> {	[ Armenian_tyun, 	Armenian_TYUN	]       };
+    key <AC09> {	[ Armenian_ho,   	Armenian_HO  	]       };
+    key <AC10> {	[ Armenian_pe,   	Armenian_PE  	]       };
+    key <AC11> {	[ Armenian_re,   	Armenian_RE  	]       };
 
-    key <AB01> {	[ 0x100056a, 0x100053a	]       };
-    key <AB02> {	[ 0x1000564, 0x1000534	]       };
-    key <AB03> {	[ 0x1000579, 0x1000549	]       };
-    key <AB04> {	[ 0x1000575, 0x1000545	]       };
-    key <AB05> {	[ 0x1000566, 0x1000536	]       };
-    key <AB06> {	[ 0x100056c, 0x100053c	]       };
-    key <AB07> {	[ 0x1000584, 0x1000554	]       };
-    key <AB08> {	[ 0x100056d, 0x100053d	]       };
-    key <AB09> {	[ 0x1000577, 0x1000547	]       };
-    key <AB10> {	[ 0x100057c, 0x100054c	]       };
+    key <AB01> {	[ Armenian_zhe,  	Armenian_ZHE 	]       };
+    key <AB02> {	[ Armenian_da,   	Armenian_DA  	]       };
+    key <AB03> {	[ Armenian_cha,  	Armenian_CHA 	]       };
+    key <AB04> {	[ Armenian_hi,   	Armenian_HI  	]       };
+    key <AB05> {	[ Armenian_za,   	Armenian_ZA  	]       };
+    key <AB06> {	[ Armenian_lyun, 	Armenian_LYUN	]       };
+    key <AB07> {	[ Armenian_ke,   	Armenian_KE  	]       };
+    key <AB08> {	[ Armenian_khe,  	Armenian_KHE 	]       };
+    key <AB09> {	[ Armenian_sha,  	Armenian_SHA 	]       };
+    key <AB10> {	[ Armenian_ra,   	Armenian_RA  	]       };
 
 };
 
@@ -70,56 +70,56 @@ xkb_symbols "phonetic" {
     include "am(basic)"
     name[Group1]= "Armenian (phonetic)";
 
-    key <BKSL> {	[ 0x1000577,  0x1000547 ]	};
+    key <BKSL> {	[ Armenian_sha,   	Armenian_SHA  	]	};
 
-    key <AE01> {	[ 0x1000567,  0x1000537 ]	};
-    key <AE02> {	[ 0x1000569,  0x1000539 ]	};
-    key <AE03> {	[ 0x1000583,  0x1000553 ]	};
-    key <AE04> {	[ 0x1000571,  0x1000541 ]       };
-    key <AE05> {	[ 0x100057b,  0x100054b ]	};
-    key <AE06> {	[ 0x1000582,  0x1000552 ]	};
-    key <AE07> {	[ 0x1000587,  0x100058f ]	};
-    key <AE08> {	[ 0x100057c,  0x100054c ]	};
-    key <AE09> {	[ 0x1000579,  0x1000549 ]	};
-    key <AE10> {	[ 0x1000573,  0x1000543 ]	};
-    key <AE11> {	[ 0x100058a,  0x1002015 ]       };
-    key <AE12> {	[ 0x100056a,  0x100053a ]	};
+    key <AE01> {	[ Armenian_e,     	Armenian_E    	]	};
+    key <AE02> {	[ Armenian_to,    	Armenian_TO   	]	};
+    key <AE03> {	[ Armenian_pyur,  	Armenian_PYUR 	]	};
+    key <AE04> {	[ Armenian_dza,   	Armenian_DZA  	]       };
+    key <AE05> {	[ Armenian_je,    	Armenian_JE   	]	};
+    key <AE06> {	[ Armenian_vyun,  	Armenian_VYUN 	]	};
+    key <AE07> {	[ Armenian_ligature_ew,	0x100058f 	]	};
+    key <AE08> {	[ Armenian_ra,    	Armenian_RA   	]	};
+    key <AE09> {	[ Armenian_cha,   	rmenian_CHA  	]	};
+    key <AE10> {	[ Armenian_tche,  	rmenian_TCHE 	]	};
+    key <AE11> {	[ Armenian_hyphen,  	0x1002015 	]       };
+    key <AE12> {	[ Armenian_zhe,   	Armenian_ZHE  	]	};
 
-    key <LatQ> {	[ 0x1000584,  0x1000554 ]	};
-    key <LatW> {	[ 0x1000578,  0x1000548 ]	};
-    key <LatE> {	[ 0x1000565,  0x1000535 ]	};
-    key <LatR> {	[ 0x1000580,  0x1000550 ]	};
-    key <LatT> {	[ 0x100057f,  0x100054f ]	};
-    key <LatY> {	[ 0x1000568,  0x1000538 ]	};
-    key <LatU> {	[ 0x1000582,  0x1000552 ]	};
-    key <LatI> {	[ 0x100056b,  0x100053b ]	};
-    key <LatO> {	[ 0x1000585,  0x1000555 ]	};
-    key <LatP> {	[ 0x100057a,  0x100054a ]	};
-    key <AD11> {	[ 0x100056d,  0x100053d ]	};
-    key <AD12> {	[ 0x100056e,  0x100053e ]	};
+    key <LatQ> {	[ Armenian_ke,    	Armenian_KE   	]	};
+    key <LatW> {	[ Armenian_vo,    	Armenian_VO   	]	};
+    key <LatE> {	[ Armenian_yech,  	Armenian_YECH 	]	};
+    key <LatR> {	[ Armenian_re,    	Armenian_RE   	]	};
+    key <LatT> {	[ Armenian_tyun,  	Armenian_TYUN 	]	};
+    key <LatY> {	[ Armenian_at,    	Armenian_AT   	]	};
+    key <LatU> {	[ Armenian_vyun,  	Armenian_VYUN 	]	};
+    key <LatI> {	[ Armenian_ini,   	Armenian_INI  	]	};
+    key <LatO> {	[ Armenian_o,     	Armenian_O    	]	};
+    key <LatP> {	[ Armenian_pe,    	Armenian_PE   	]	};
+    key <AD11> {	[ Armenian_khe,   	Armenian_KHE  	]	};
+    key <AD12> {	[ Armenian_tsa,   	Armenian_TSA  	]	};
 
-    key <LatA> {	[ 0x1000561,  0x1000531 ]	};
-    key <LatS> {	[ 0x100057d,  0x100054d ]	};
-    key <LatD> {	[ 0x1000564,  0x1000534 ]	};
-    key <LatF> {	[ 0x1000586,  0x1000556 ]	};
-    key <LatG> {	[ 0x1000563,  0x1000533 ]	};
-    key <LatH> {	[ 0x1000570,  0x1000540 ]	};
-    key <LatJ> {	[ 0x1000575,  0x1000545 ]	};
-    key <LatK> {	[ 0x100056f,  0x100053f ]	};
-    key <LatL> {	[ 0x100056c,  0x100053c ]	};
-    key <AC10> {	[ semicolon,  0x1000589 ]	};
-    key <AC11> {	[ 0x100055b,  0x1000022 ]	};
+    key <LatA> {	[ Armenian_ayb,   	Armenian_AYB  	]	};
+    key <LatS> {	[ Armenian_se,    	Armenian_SE   	]	};
+    key <LatD> {	[ Armenian_da,    	Armenian_DA   	]	};
+    key <LatF> {	[ Armenian_fe,    	Armenian_FE   	]	};
+    key <LatG> {	[ Armenian_gim,   	Armenian_GIM  	]	};
+    key <LatH> {	[ Armenian_ho,    	Armenian_HO   	]	};
+    key <LatJ> {	[ Armenian_hi,    	Armenian_HI   	]	};
+    key <LatK> {	[ Armenian_ken,   	Armenian_KEN  	]	};
+    key <LatL> {	[ Armenian_lyun,  	Armenian_LYUN 	]	};
+    key <AC10> {	[ semicolon,  		Armenian_full_stop ]	};
+    key <AC11> {	[ Armenian_accent,  	0x1000022 	]	};
 
-    key <LatZ> {	[ 0x1000566,  0x1000536 ]	};
-    key <LatX> {	[ 0x1000572,  0x1000542 ]	};
-    key <LatC> {	[ 0x1000581,  0x1000551 ]	};
-    key <LatV> {	[ 0x100057e,  0x100054e ]	};
-    key <LatB> {	[ 0x1000562,  0x1000532 ]	};
-    key <LatN> {	[ 0x1000576,  0x1000546 ]	};
-    key <LatM> {	[ 0x1000574,  0x1000544 ]	};
-    key <AB08> {	[ 0x100002C,  0x10000AB ]       };
-    key <AB09> {	[ 0x1002024,  0x10000BB ]       };
-    key <AB10> {	[ 0x100002F,  0x100055e ]	};
+    key <LatZ> {	[ Armenian_za,    	Armenian_ZA   	]	};
+    key <LatX> {	[ Armenian_ghat,  	Armenian_GHAT 	]	};
+    key <LatC> {	[ Armenian_tso,   	Armenian_TSO  	]	};
+    key <LatV> {	[ Armenian_vev,   	Armenian_VEV  	]	};
+    key <LatB> {	[ Armenian_ben,   	Armenian_BEN  	]	};
+    key <LatN> {	[ Armenian_nu,    	Armenian_NU   	]	};
+    key <LatM> {	[ Armenian_men,   	Armenian_MEN  	]	};
+    key <AB08> {	[ 0x100002C,  		0x10000AB 	]       };
+    key <AB09> {	[ 0x1002024,  		0x10000BB 	]       };
+    key <AB10> {	[ 0x100002F,  		Armenian_question ]	};
 
 };
 
@@ -128,8 +128,8 @@ xkb_symbols "phonetic-alt" {
     include "am(phonetic)"
     name[Group1]= "Armenian (alt. phonetic)";
 
-    key <AE08> {	[ 0x1000580,  0x1000550 ]	};
-    key <LatR> {	[ 0x100057c,  0x100054c ]	};
+    key <AE08> {	[ Armenian_re,    	Armenian_RE   	]	};
+    key <LatR> {	[ Armenian_ra,    	Armenian_RA   	]	};
 
 };
 

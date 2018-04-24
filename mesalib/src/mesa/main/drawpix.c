@@ -24,7 +24,7 @@
 
 #include "glheader.h"
 #include "imports.h"
-#include "api_validate.h"
+#include "draw_validate.h"
 #include "bufferobj.h"
 #include "context.h"
 #include "drawpix.h"

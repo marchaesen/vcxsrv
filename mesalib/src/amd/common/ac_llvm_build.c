@@ -1521,6 +1521,20 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 	LLVMValueRef addr;
 	unsigned num_addr = 0;
 
+	if (a->opcode == ac_image_get_lod) {
+		switch (a->dim) {
+		case ac_image_1darray:
+			num_coords = 1;
+			break;
+		case ac_image_2darray:
+		case ac_image_cube:
+			num_coords = 2;
+			break;
+		default:
+			break;
+		}
+	}
+
 	if (a->offset)
 		args[num_addr++] = ac_to_integer(ctx, a->offset);
 	if (a->bias)

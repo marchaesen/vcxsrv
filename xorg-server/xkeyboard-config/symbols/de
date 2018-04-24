@@ -130,7 +130,7 @@ xkb_symbols "T3" {
     key <AD10> { [               p,               P,       dead_hook,        NoSymbol,           thorn,           THORN,       dead_hook,        NoSymbol ] };
     key <AD11> { [      udiaeresis,      Udiaeresis,       dead_horn,        NoSymbol,           U017F,  dead_abovering,      dead_grave,        NoSymbol ] };
     key.type[Group1] = "EIGHT_LEVEL";
-    key <AD12> { [            plus,        asterisk,      asciitilde,        NoSymbol,      dead_tilde,     dead_macron,              at,        NoSymbol ] };
+    key <AD12> { [            plus,        asterisk,      asciitilde,        NoSymbol,           U2020,           U2021,        NoSymbol,        NoSymbol ] };
 
     key.type[Group1] = "ONE_LEVEL";
     key <CAPS>  { [ Caps_Lock	]	};

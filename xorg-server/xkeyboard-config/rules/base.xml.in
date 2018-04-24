@@ -2367,6 +2367,15 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>altgr-pinyin</name>
+            <_description>Hanyu Pinyin (altgr)</_description>
+            <languageList>
+              <iso639Id>chi</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -2574,7 +2583,16 @@
           <iso639Id>mya</iso639Id>
         </languageList>
       </configItem>
-      <variantList/>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>zawgyi</name>
+
+                <_shortDescription>zg</_shortDescription>
+            <_description>Burmse Zawgyi</_description>
+          </configItem>
+        </variant>
+      </variantList>
     </layout>
     <layout>
       <configItem>

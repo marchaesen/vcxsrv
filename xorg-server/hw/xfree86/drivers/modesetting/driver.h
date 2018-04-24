@@ -117,6 +117,8 @@ typedef struct _modesettingRec {
     Bool has_queue_sequence;
     Bool tried_queue_sequence;
 
+    Bool kms_has_modifiers;
+
 } modesettingRec, *modesettingPtr;
 
 #define modesettingPTR(p) ((modesettingPtr)((p)->driverPrivate))

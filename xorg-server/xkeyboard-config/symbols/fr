@@ -486,7 +486,7 @@ xkb_symbols "bepo" {
     key <AE09> { type[group1] = "FOUR_LEVEL_SEMIALPHABETIC", [           slash,            9,       division,        onehalf ] }; // / 9 ÷ ½
     key <AE10> { type[group1] = "FOUR_LEVEL_SEMIALPHABETIC", [        asterisk,            0,       multiply,  threequarters ] }; // * 0 × ¾
     key <AE11> { [           equal,       degree,       notequal,        minutes ] }; // = ° ≠ ′
-    key <AE12> { [         percent,        grave,          U2030,        seconds ] }; // % ` ‰ ″
+    key <AE12> { [         percent,        grave,       permille,        seconds ] }; // % ` ‰ ″
 
     // Second row
     key <AD01> { [               b,            B,            bar,      brokenbar ] }; // b B | ¦
@@ -939,43 +939,43 @@ xkb_symbols "geo" {
     key <AE11> { [ minus, underscore, 0x01002014 ] };
     key <AE12> { [ less, greater ] };
 
-    key <AD01> { [ 0x010010d0,  0x010010fa     ] };
-    key <AD02> { [ 0x010010d6,  Z              ] };
-    key <AD03> { [ 0x010010d4,  E, 0x010010f1  ] };
-    key <AD04> { [ 0x010010e0,  0x010000ae     ] };
-    key <AD05> { [ 0x010010e2,  T              ] };
-    key <AD06> { [ 0x010010e7,  0x010010f8     ] };
-    key <AD07> { [ 0x010010e3,  U              ] };
-    key <AD08> { [ 0x010010d8,  0x010010f2     ] };
-    key <AD09> { [ 0x010010dd,  O              ] };
-    key <AD10> { [ 0x010010de,  P              ] };
-    key <AD11> { [ 0x010010d7,  T              ] };
-    key <AD12> { [ 0x010010eb,  Z              ] };
+    key <AD01> { [ Georgian_an,    0x010010fa     ] };
+    key <AD02> { [ Georgian_zen,   Z              ] };
+    key <AD03> { [ Georgian_en,    E, Georgian_he ] };
+    key <AD04> { [ Georgian_rae,   0x010000ae     ] };
+    key <AD05> { [ Georgian_tar,   T              ] };
+    key <AD06> { [ Georgian_qar,   0x010010f8     ] };
+    key <AD07> { [ Georgian_un,    U              ] };
+    key <AD08> { [ Georgian_in,    Georgian_hie   ] };
+    key <AD09> { [ Georgian_on,    O              ] };
+    key <AD10> { [ Georgian_par,   P              ] };
+    key <AD11> { [ Georgian_tan,   T              ] };
+    key <AD12> { [ Georgian_jil,   Z              ] };
 
-    key <AC01> { [ 0x010010e5,  Q              ] };
-    key <AC02> { [ 0x010010e1,  S              ] };
-    key <AC03> { [ 0x010010d3,  D              ] };
-    key <AC04> { [ 0x010010e4,  0x010010f6     ] };
-    key <AC05> { [ 0x010010d2,  0x010010f9     ] };
-    key <AC06> { [ 0x010010f0,  0x010010f5     ] };
-    key <AC07> { [ 0x010010ef,  0x010010f7     ] };
-    key <AC08> { [ 0x010010d9,  K              ] };
-    key <AC09> { [ 0x010010da,  L              ] };
-    key <AC10> { [ 0x010010db,  M              ] };
-    key <AC11> { [ 0x010010df,  J              ] };
-    key <BKSL> { [ 0x010010e9,  0x010000a9     ] };
+    key <AC01> { [ Georgian_khar,  Q              ] };
+    key <AC02> { [ Georgian_san,   S              ] };
+    key <AC03> { [ Georgian_don,   D              ] };
+    key <AC04> { [ Georgian_phar,  Georgian_fi    ] };
+    key <AC05> { [ Georgian_gan,   0x010010f9     ] };
+    key <AC06> { [ Georgian_hae,   Georgian_hoe   ] };
+    key <AC07> { [ Georgian_jhan,  0x010010f7     ] };
+    key <AC08> { [ Georgian_kan,   K              ] };
+    key <AC09> { [ Georgian_las,   L              ] };
+    key <AC10> { [ Georgian_man,   M              ] };
+    key <AC11> { [ Georgian_zhar,  J              ] };
+    key <BKSL> { [ Georgian_chin,  0x010000a9     ] };
 
-    key <LSGT> { [ guillemotleft,guillemotright ] };
-    key <AB01> { [ 0x010010ec,  W               ] };
-    key <AB02> { [ 0x010010ee,  0x010010f4      ] };
-    key <AB03> { [ 0x010010ea,  0x010000a9      ] };
-    key <AB04> { [ 0x010010d5,  0x010010f3      ] };
-    key <AB05> { [ 0x010010d1,  B               ] };
-    key <AB06> { [ 0x010010dc,  0x010010fc      ] };
-    key <AB07> { [ comma,       0x01002014      ] };
-    key <AB08> { [ 0x010010e8,  S               ] };
-    key <AB09> { [ 0x010010e6,  noSymbol        ] };
-    key <AB10> { [ 0x010010ed,  noSymbol        ] };
+    key <LSGT> { [ guillemotleft,  guillemotright ] };
+    key <AB01> { [ Georgian_cil,   W              ] };
+    key <AB02> { [ Georgian_xan,   Georgian_har   ] };
+    key <AB03> { [ Georgian_can,   0x010000a9     ] };
+    key <AB04> { [ Georgian_vin,   Georgian_we    ] };
+    key <AB05> { [ Georgian_ban,   B              ] };
+    key <AB06> { [ Georgian_nar,   0x010010fc     ] };
+    key <AB07> { [ comma,          0x01002014     ] };
+    key <AB08> { [ Georgian_shin,  S              ] };
+    key <AB09> { [ Georgian_ghan,  noSymbol       ] };
+    key <AB10> { [ Georgian_char,  noSymbol       ] };
 
 };
 

@@ -35,7 +35,7 @@
 #include "api_arrayelt.h"
 #include "api_exec.h"
 #include "api_loopback.h"
-#include "api_validate.h"
+#include "draw_validate.h"
 #include "atifragshader.h"
 #include "config.h"
 #include "bufferobj.h"

@@ -900,6 +900,8 @@ driGLFormatToImageFormat(mesa_format format)
       return __DRI_IMAGE_FORMAT_GR88;
    case MESA_FORMAT_NONE:
       return __DRI_IMAGE_FORMAT_NONE;
+   case MESA_FORMAT_R8G8B8A8_SRGB:
+      return __DRI_IMAGE_FORMAT_SABGR8;
    case MESA_FORMAT_B8G8R8A8_SRGB:
       return __DRI_IMAGE_FORMAT_SARGB8;
    default:
@@ -937,6 +939,8 @@ driImageFormatToGLFormat(uint32_t image_format)
       return MESA_FORMAT_R16G16_UNORM;
    case __DRI_IMAGE_FORMAT_SARGB8:
       return MESA_FORMAT_B8G8R8A8_SRGB;
+   case __DRI_IMAGE_FORMAT_SABGR8:
+      return MESA_FORMAT_R8G8B8A8_SRGB;
    case __DRI_IMAGE_FORMAT_NONE:
       return MESA_FORMAT_NONE;
    default:
