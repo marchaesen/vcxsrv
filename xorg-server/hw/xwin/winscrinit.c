@@ -221,10 +221,10 @@ winScreenInit(ScreenPtr pScreen, int argc, char **argv)
            Note the screen origin in a normalized coordinate space where (0,0) is at the top left
            of the native virtual desktop area
          */
-        pScreen->x =
-            pScreenInfo->dwInitialX - GetSystemMetrics(SM_XVIRTUALSCREEN);
-        pScreen->y =
-            pScreenInfo->dwInitialY - GetSystemMetrics(SM_YVIRTUALSCREEN);
+		pScreen->x =
+			pScreenInfo->dwInitialX;
+		pScreen->y =
+			pScreenInfo->dwInitialY;
 
         winDebug("Screen %d added at virtual desktop coordinate (%d,%d).\n",
                pScreen->myNum, pScreen->x, pScreen->y);

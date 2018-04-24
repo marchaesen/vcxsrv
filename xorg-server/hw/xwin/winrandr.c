@@ -279,8 +279,8 @@ winRandRInit(ScreenPtr pScreen)
         winRandRUpdateMode(pScreen, output);
 
         /* Make up some physical dimensions */
-        output->mmWidth = (pScreen->width * 25.4)/monitorResolution;
-        output->mmHeight = (pScreen->height * 25.4)/monitorResolution;        /* Allocate and make up a (fixed, linear) gamma ramp */
+        output->mmWidth = pScreen->mmWidth;
+        output->mmHeight = pScreen->mmHeight;
 
         /* Allocate and make up a (fixed, linear) gamma ramp */
         {
@@ -299,7 +299,7 @@ winRandRInit(ScreenPtr pScreen)
        monitor size (we can have scrollbars :-), so set the
        upper limit to the maximum coordinates X11 can use.
      */
-    RRScreenSetSizeRange(pScreen, 0, 0, 32768, 32768);
+    RRScreenSetSizeRange(pScreen, 0, 0, 32767, 32767);
 
     return TRUE;
 }
