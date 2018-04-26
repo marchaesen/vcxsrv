@@ -436,6 +436,7 @@ emit_fragment_varying(struct v3d_compile *c, nir_variable *var,
                 /* FALLTHROUGH */
         case INTERP_MODE_SMOOTH:
                 if (var->data.centroid) {
+                        BITSET_SET(c->centroid_flags, i);
                         return vir_FADD(c, vir_FMUL(c, vary,
                                                     c->payload_w_centroid), r5);
                 } else {
@@ -1985,6 +1986,36 @@ vir_emit_last_thrsw(struct v3d_compile *c)
                 c->last_thrsw->is_last_thrsw = true;
 }
 
+/* There's a flag in the shader for "centroid W used in addition to center W",
+ * so we need to walk the program after VIR optimization to see if both are
+ * used.
+ */
+static void
+vir_check_payload_w(struct v3d_compile *c)
+{
+        if (c->s->info.stage != MESA_SHADER_FRAGMENT)
+                return;
+
+        bool any_centroid = false;
+        for (int i = 0; i < ARRAY_SIZE(c->centroid_flags); i++) {
+                if (c->centroid_flags[i])
+                        any_centroid = true;
+        }
+        if (!any_centroid)
+                return;
+
+        vir_for_each_inst_inorder(inst, c) {
+                for (int i = 0; i < vir_get_nsrc(inst); i++) {
+                        if (inst->src[i].file == QFILE_REG &&
+                            inst->src[i].index == 0) {
+                                c->uses_centroid_and_center_w = true;
+                                return;
+                        }
+                }
+        }
+
+}
+
 void
 v3d_nir_to_vir(struct v3d_compile *c)
 {
@@ -2023,6 +2054,8 @@ v3d_nir_to_vir(struct v3d_compile *c)
 
         vir_optimize(c);
         vir_lower_uniforms(c);
+
+        vir_check_payload_w(c);
 
         /* XXX: vir_schedule_instructions(c); */
 

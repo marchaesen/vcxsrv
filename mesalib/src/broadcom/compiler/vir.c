@@ -758,6 +758,9 @@ v3d_set_fs_prog_data_inputs(struct v3d_compile *c,
         for (int i = 0; i < V3D_MAX_FS_INPUTS; i++) {
                 if (BITSET_TEST(c->flat_shade_flags, i))
                         prog_data->flat_shade_flags[i / 24] |= 1 << (i % 24);
+
+                if (BITSET_TEST(c->centroid_flags, i))
+                        prog_data->centroid_flags[i / 24] |= 1 << (i % 24);
         }
 }
 
@@ -838,6 +841,7 @@ uint64_t *v3d_compile_fs(const struct v3d_compiler *compiler,
         prog_data->writes_z = (c->s->info.outputs_written &
                                (1 << FRAG_RESULT_DEPTH));
         prog_data->discard = c->s->info.fs.uses_discard;
+        prog_data->uses_centroid_and_center_w = c->uses_centroid_and_center_w;
 
         return v3d_return_qpu_insts(c, final_assembly_size);
 }

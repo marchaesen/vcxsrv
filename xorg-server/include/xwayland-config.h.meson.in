@@ -1,0 +1,11 @@
+/* xwayland-config.h.meson.in: not at all generated */
+
+#pragma once
+
+#include <dix-config.h>
+
+/* Build glamor support for Xwayland */
+#mesondefine XWL_HAS_GLAMOR
+
+/* Build eglstream support for Xwayland */
+#mesondefine XWL_HAS_EGLSTREAM

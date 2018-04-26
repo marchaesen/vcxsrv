@@ -55,6 +55,20 @@ util_format_linear_to_srgb_helper_table[104];
 
 
 static inline float
+util_format_srgb_to_linear_float(float cs)
+{
+   if (cs <= 0.0f)
+      return 0.0f;
+   else if (cs <= 0.04045f)
+      return cs / 12.92f;
+   else if (cs < 1.0f)
+      return powf((cs + 0.055) / 1.055f, 2.4f);
+   else
+      return 1.0f;
+}
+
+
+static inline float
 util_format_linear_to_srgb_float(float cl)
 {
    if (cl <= 0.0f)

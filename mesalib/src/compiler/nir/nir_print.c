@@ -27,6 +27,7 @@
 
 #include "nir.h"
 #include "compiler/shader_enums.h"
+#include "util/half_float.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h> /* for PRIx64 macro */
@@ -846,11 +847,22 @@ print_load_const_instr(nir_load_const_instr *instr, print_state *state)
        * and then print the float in a comment for readability.
        */
 
-      if (instr->def.bit_size == 64)
+      switch (instr->def.bit_size) {
+      case 64:
          fprintf(fp, "0x%16" PRIx64 " /* %f */", instr->value.u64[i],
                  instr->value.f64[i]);
-      else
+         break;
+      case 32:
          fprintf(fp, "0x%08x /* %f */", instr->value.u32[i], instr->value.f32[i]);
+         break;
+      case 16:
+         fprintf(fp, "0x%04x /* %f */", instr->value.u16[i],
+                 _mesa_half_to_float(instr->value.u16[i]));
+         break;
+      case 8:
+         fprintf(fp, "0x%02x", instr->value.u8[i]);
+         break;
+      }
    }
 
    fprintf(fp, ")");

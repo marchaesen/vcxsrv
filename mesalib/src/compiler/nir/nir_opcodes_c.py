@@ -62,7 +62,12 @@ nir_type_conversion_op(nir_alu_type src, nir_alu_type dst, nir_rounding_mode rnd
 %                 endif
 %              endif
                switch (dst_bit_size) {
-%                 for dst_bits in [16, 32, 64]:
+%                 if dst_t == 'float':
+<%                    bit_sizes = [16, 32, 64] %>
+%                 else:
+<%                    bit_sizes = [8, 16, 32, 64] %>
+%                 endif
+%                 for dst_bits in bit_sizes:
                   case ${dst_bits}:
 %                    if src_t == 'float' and dst_t == 'float' and dst_bits == 16:
                      switch(rnd) {

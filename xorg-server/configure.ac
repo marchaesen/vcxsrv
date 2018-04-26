@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.19.99.904, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2018-04-10"
-RELEASE_NAME="Stuffed Morel"
+AC_INIT([xorg-server], 1.19.99.905, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2018-04-24"
+RELEASE_NAME="Chicken Paprikash"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -67,6 +67,8 @@ dnl xkb-config.h covers XKB for the Xorg and Xnest DDXs.
 AC_CONFIG_HEADERS(include/xkb-config.h)
 dnl xwin-config.h covers the XWin DDX.
 AC_CONFIG_HEADERS(include/xwin-config.h)
+dnl xwayland-config.h covers Xwayland.
+AC_CONFIG_HEADERS(include/xwayland-config.h)
 dnl version-config.h covers the version numbers so they can be bumped without
 dnl forcing an entire recompile.x
 AC_CONFIG_HEADERS(include/version-config.h)
@@ -588,6 +590,7 @@ AC_ARG_ENABLE(xvfb,    	      AS_HELP_STRING([--enable-xvfb], [Build Xvfb server
 AC_ARG_ENABLE(xnest,   	      AS_HELP_STRING([--enable-xnest], [Build Xnest server (default: auto)]), [XNEST=$enableval], [XNEST=auto])
 AC_ARG_ENABLE(xquartz,        AS_HELP_STRING([--enable-xquartz], [Build Xquartz server for OS-X (default: auto)]), [XQUARTZ=$enableval], [XQUARTZ=auto])
 AC_ARG_ENABLE(xwayland,       AS_HELP_STRING([--enable-xwayland], [Build Xwayland server (default: auto)]), [XWAYLAND=$enableval], [XWAYLAND=auto])
+AC_ARG_ENABLE(xwayland-eglstream, AS_HELP_STRING([--enable-xwayland-eglstream], [Build Xwayland eglstream support (default: no)]), [XWAYLAND_EGLSTREAM=$enableval], [XWAYLAND_EGLSTREAM=no])
 AC_ARG_ENABLE(standalone-xpbproxy, AS_HELP_STRING([--enable-standalone-xpbproxy], [Build a standalone xpbproxy (in addition to the one integrated into Xquartz as a separate thread) (default: no)]), [STANDALONE_XPBPROXY=$enableval], [STANDALONE_XPBPROXY=no])
 AC_ARG_ENABLE(xwin,    	      AS_HELP_STRING([--enable-xwin], [Build XWin server (default: auto)]), [XWIN=$enableval], [XWIN=auto])
 AC_ARG_ENABLE(glamor,         AS_HELP_STRING([--enable-glamor], [Build glamor dix module (default: auto)]), [GLAMOR=$enableval], [GLAMOR=auto])
@@ -2378,6 +2381,33 @@ if test "x$XWAYLAND" = xyes; then
 		AC_MSG_ERROR([Xwayland build explicitly requested, but required modules not found.])
 	fi
 
+	if test "x$GLAMOR" = xyes && test "x$GBM" = xyes; then
+		AC_DEFINE(XWL_HAS_GLAMOR, 1,
+			  [Build xwayland with glamor support])
+	fi
+
+	PKG_CHECK_MODULES(WAYLAND_EGLSTREAM, [wayland-eglstream-protocols >= 1.0.2], [have_wl_eglstream=yes], [have_wl_eglstream=no])
+
+	if test "x$XWAYLAND_EGLSTREAM" = xauto; then
+		if test "x$have_wl_eglstream" = xyes && test "x$GLAMOR" = xyes; then
+			XWAYLAND_EGLSTREAM=yes
+		fi
+	fi
+
+	if test "x$XWAYLAND_EGLSTREAM" = xyes; then
+		if test "x$GLAMOR" != xyes; then
+			AC_MSG_ERROR([Xwayland eglstream support explicitly requested, but required modules not found.])
+		fi
+
+		if test "x$have_wl_eglstream" = xno; then
+			AC_MSG_ERROR([Xwayland eglstream support requires wayland-eglstream-protocols >= 1.0.2])
+		fi
+
+		AC_SUBST(WAYLAND_EGLSTREAM_DATADIR, `$PKG_CONFIG --variable=pkgdatadir wayland-eglstream-protocols`)
+		AC_DEFINE(XWL_HAS_EGLSTREAM, 1,
+			  [Build xwayland with eglstream support])
+	fi
+
 	XWAYLAND_LIBS="$FB_LIB $FIXES_LIB $MI_LIB $XEXT_LIB $DBE_LIB $RECORD_LIB $GLX_LIBS $RANDR_LIB $RENDER_LIB $DAMAGE_LIB $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $MIEXT_SHADOW_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB $COMPOSITE_LIB $MAIN_LIB $DIX_LIB $OS_LIB"
 	XWAYLAND_SYS_LIBS="$XWAYLANDMODULES_LIBS $GLX_SYS_LIBS"
 	AC_SUBST([XWAYLAND_LIBS])
@@ -2399,6 +2429,7 @@ if test "x$XWAYLAND" = xyes; then
 
 	AC_SUBST(WAYLAND_PROTOCOLS_DATADIR, `$PKG_CONFIG --variable=pkgdatadir wayland-protocols`)
 fi
+AM_CONDITIONAL(XWAYLAND_EGLSTREAM, [test "x$XWAYLAND_EGLSTREAM" = "xyes"])
 
 
 dnl and the rest of these are generic, so they're in config.h

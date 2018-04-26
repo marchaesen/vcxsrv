@@ -62,7 +62,7 @@ subdir('nir')
 # dependency with nir/meson.build.
 spirv2nir = executable(
   'spirv2nir',
-  [files('spirv/spirv2nir.c'), dummy_cpp],
+  files('spirv/spirv2nir.c'),
   dependencies : [dep_m, dep_thread, idep_nir],
   include_directories : [inc_common, inc_nir, include_directories('spirv')],
   link_with : libmesa_util,

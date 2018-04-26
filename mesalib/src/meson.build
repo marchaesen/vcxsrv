@@ -82,7 +82,9 @@ if with_gallium
   subdir('gallium')
   # This has to be here since it requires libgallium, and subdir cannot
   # contain ..
-  subdir('mesa/state_tracker/tests')
+  if with_tests
+    subdir('mesa/state_tracker/tests')
+  endif
 endif
 
 # This must be after at least mesa, glx, and gallium, since libgl will be

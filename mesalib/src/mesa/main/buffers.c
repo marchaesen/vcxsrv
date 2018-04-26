@@ -306,6 +306,8 @@ draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
    if (fb == ctx->DrawBuffer) {
       if (ctx->Driver.DrawBuffer)
          ctx->Driver.DrawBuffer(ctx, buffer);
+      if (ctx->Driver.DrawBufferAllocate)
+         ctx->Driver.DrawBufferAllocate(ctx);
    }
 }
 
@@ -587,6 +589,8 @@ draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb, GLsizei n,
    if (fb == ctx->DrawBuffer) {
       if (ctx->Driver.DrawBuffer)
          ctx->Driver.DrawBuffer(ctx, n > 0 ? buffers[0] : GL_NONE);
+      if (ctx->Driver.DrawBufferAllocate)
+         ctx->Driver.DrawBufferAllocate(ctx);
    }
 }
 

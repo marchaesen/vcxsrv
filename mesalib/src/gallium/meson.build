@@ -40,9 +40,6 @@ if with_platform_haiku
   subdir('winsys/sw/hgl')
 endif
 if with_gallium_swr
-  if meson.version().version_compare('< 0.44.0')
-    error('SWR requires meson 0.44.0 or greater.')
-  endif
   subdir('drivers/swr')
 else
   driver_swr = declare_dependency()
@@ -144,9 +141,6 @@ if with_gallium_opencl
   # consumer
   subdir('targets/pipe-loader')
 
-  if meson.version().version_compare('< 0.44.0')
-    error('OpenCL requires meson 0.44.0 or greater.')
-  endif
   subdir('state_trackers/clover')
   subdir('targets/opencl')
 endif

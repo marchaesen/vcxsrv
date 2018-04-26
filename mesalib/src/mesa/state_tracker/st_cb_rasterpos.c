@@ -40,6 +40,7 @@
 #include "main/macros.h"
 #include "main/feedback.h"
 #include "main/rastpos.h"
+#include "glformats.h"
 
 #include "st_context.h"
 #include "st_atom.h"
@@ -182,6 +183,7 @@ new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
 {
    struct rastpos_stage *rs = ST_CALLOC_STRUCT(rastpos_stage);
    GLuint i;
+   GLuint elementSize;
 
    rs->stage.draw = draw;
    rs->stage.next = NULL;
@@ -196,12 +198,15 @@ new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
 
    rs->binding.Stride = 0;
    rs->binding.BufferObj = NULL;
+
+   elementSize = _mesa_bytes_per_vertex_attrib(4, GL_FLOAT);
    for (i = 0; i < ARRAY_SIZE(rs->array); i++) {
       rs->attrib[i].Size = 4;
       rs->attrib[i].Type = GL_FLOAT;
       rs->attrib[i].Format = GL_RGBA;
       rs->attrib[i].Ptr = (GLubyte *) ctx->Current.Attrib[i];
       rs->attrib[i].Normalized = GL_TRUE;
+      rs->attrib[i]._ElementSize = elementSize;
       rs->array[i].BufferBinding = &rs->binding;
       rs->array[i].VertexAttrib = &rs->attrib[i];
    }

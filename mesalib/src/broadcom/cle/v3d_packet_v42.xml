@@ -278,7 +278,7 @@
     <field name="Clear buffer being stored" size="1" start="18" type="bool"/>
     <field name="Output Image Format" size="6" start="12" type="Output Image Format"/>
 
-    <field name="Decimate" size="2" start="10" type="Decimate Mode"/>
+    <field name="Decimate mode" size="2" start="10" type="Decimate Mode"/>
 
     <field name="A dithered" size="1" start="9" type="bool"/>
     <field name="BGR dithered" size="1" start="8" type="bool"/>
@@ -312,7 +312,7 @@
 
     <field name="Input Image Format" size="6" start="12" type="Output Image Format"/>
 
-    <field name="Decimate" size="2" start="10" type="Decimate Mode"/>
+    <field name="Decimate mode" size="2" start="10" type="Decimate Mode"/>
 
     <field name="Flip Y" size="1" start="7" type="bool"/>
 

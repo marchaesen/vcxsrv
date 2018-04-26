@@ -51,8 +51,25 @@ srcs += code.process(xdg_output_xml)
 srcs += code.process(dmabuf_xml)
 
 xwayland_glamor = []
-if gbm_dep.found()
-    srcs += [ 'xwayland-glamor.c', 'xwayland-present.c' ]
+eglstream_srcs = []
+if build_glamor
+    srcs += 'xwayland-glamor.c'
+    if gbm_dep.found()
+        srcs += 'xwayland-glamor-gbm.c'
+    endif
+    if build_eglstream
+        eglstream_protodir = eglstream_dep.get_pkgconfig_variable('pkgdatadir')
+        eglstream_xml = join_paths(eglstream_protodir, 'wayland-eglstream.xml')
+        eglstream_controller_xml = join_paths(eglstream_protodir, 'wayland-eglstream-controller.xml')
+
+        srcs += client_header.process(eglstream_xml)
+        srcs += client_header.process(eglstream_controller_xml)
+        srcs += code.process(eglstream_xml)
+        srcs += code.process(eglstream_controller_xml)
+
+        srcs += 'xwayland-glamor-eglstream.c'
+    endif
+    srcs += 'xwayland-present.c'
     if build_xv
         srcs += 'xwayland-glamor-xv.c'
     endif

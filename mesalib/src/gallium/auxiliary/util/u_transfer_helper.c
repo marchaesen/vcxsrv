@@ -138,8 +138,7 @@ u_transfer_helper_resource_destroy(struct pipe_screen *pscreen,
    if (helper->vtbl->get_stencil) {
       struct pipe_resource *stencil = helper->vtbl->get_stencil(prsc);
 
-      if (stencil)
-         helper->vtbl->resource_destroy(pscreen, stencil);
+      pipe_resource_reference(&stencil, NULL);
    }
 
    helper->vtbl->resource_destroy(pscreen, prsc);

@@ -302,18 +302,11 @@ struct v3d_key {
                 uint8_t swizzle[4];
                 uint8_t return_size;
                 uint8_t return_channels;
-                union {
-                        struct {
-                                unsigned compare_mode:1;
-                                unsigned compare_func:3;
-                                bool clamp_s:1;
-                                bool clamp_t:1;
-                                bool clamp_r:1;
-                        };
-                        struct {
-                                uint16_t msaa_width, msaa_height;
-                        };
-                };
+                unsigned compare_mode:1;
+                unsigned compare_func:3;
+                bool clamp_s:1;
+                bool clamp_t:1;
+                bool clamp_r:1;
         } tex[V3D_MAX_TEXTURE_SAMPLERS];
         uint8_t ucp_enables;
 };
@@ -484,6 +477,10 @@ struct v3d_compile {
          * customized based on the shademodel_flat shader key.
          */
         uint32_t flat_shade_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
+
+        uint32_t centroid_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
+
+        bool uses_centroid_and_center_w;
 
         struct v3d_ubo_range *ubo_ranges;
         bool *ubo_range_used;
@@ -664,8 +661,11 @@ struct v3d_fs_prog_data {
          */
         uint32_t flat_shade_flags[((V3D_MAX_FS_INPUTS - 1) / 24) + 1];
 
+        uint32_t centroid_flags[((V3D_MAX_FS_INPUTS - 1) / 24) + 1];
+
         bool writes_z;
         bool discard;
+        bool uses_centroid_and_center_w;
 };
 
 /* Special nir_load_input intrinsic index for loading the current TLB

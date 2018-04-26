@@ -488,4 +488,11 @@ vk_to_non_srgb_format(VkFormat format)
 	}
 }
 
+static inline unsigned
+vk_format_get_nr_components(VkFormat format)
+{
+	const struct vk_format_description *desc = vk_format_description(format);
+	return desc->nr_channels;
+}
+
 #endif /* VK_FORMAT_H */

@@ -41,7 +41,15 @@ struct v3d_qpu_validate_state {
         int last_sfu_write;
         int last_branch_ip;
         int last_thrsw_ip;
+
+        /* Set when we've found the last-THRSW signal, or if we were started
+         * in single-segment mode.
+         */
         bool last_thrsw_found;
+
+        /* Set when we've found the THRSW after the last THRSW */
+        bool thrend_found;
+
         int thrsw_count;
 };
 
@@ -114,6 +122,19 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
         if (state->last && state->last->sig.ldvary &&
             (inst->sig.ldunif || inst->sig.ldunifa)) {
                 fail_instr(state, "LDUNIF after a LDVARY");
+        }
+
+        /* GFXH-1633 */
+        bool last_reads_ldunif = (state->last && (state->last->sig.ldunif ||
+                                                  state->last->sig.ldunifrf));
+        bool last_reads_ldunifa = (state->last && (state->last->sig.ldunifa ||
+                                                   state->last->sig.ldunifarf));
+        bool reads_ldunif = inst->sig.ldunif || inst->sig.ldunifrf;
+        bool reads_ldunifa = inst->sig.ldunifa || inst->sig.ldunifarf;
+        if ((last_reads_ldunif && reads_ldunifa) ||
+            (last_reads_ldunifa && reads_ldunif)) {
+                fail_instr(state,
+                           "LDUNIF and LDUNIFA can't be next to each other");
         }
 
         int tmu_writes = 0;
@@ -204,6 +225,9 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
                 if (in_branch_delay_slots(state))
                         fail_instr(state, "THRSW in a branch delay slot.");
 
+                if (state->last_thrsw_found)
+                        state->thrend_found = true;
+
                 if (state->last_thrsw_ip == state->ip - 1) {
                         /* If it's the second THRSW in a row, then it's just a
                          * last-thrsw signal.
@@ -219,6 +243,28 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
                         state->thrsw_count++;
                         state->last_thrsw_ip = state->ip;
                 }
+        }
+
+        if (state->thrend_found &&
+            state->last_thrsw_ip - state->ip <= 2 &&
+            inst->type == V3D_QPU_INSTR_TYPE_ALU) {
+                if ((inst->alu.add.op != V3D_QPU_A_NOP &&
+                     !inst->alu.add.magic_write)) {
+                        fail_instr(state, "RF write after THREND");
+                }
+
+                if ((inst->alu.mul.op != V3D_QPU_M_NOP &&
+                     !inst->alu.mul.magic_write)) {
+                        fail_instr(state, "RF write after THREND");
+                }
+
+                if (v3d_qpu_sig_writes_address(devinfo, &inst->sig))
+                        fail_instr(state, "RF write after THREND");
+
+                /* GFXH-1625: No TMUWT in the last instruction */
+                if (state->last_thrsw_ip - state->ip == 2 &&
+                    inst->alu.add.op == V3D_QPU_A_TMUWT)
+                        fail_instr(state, "TMUWT in last instruction");
         }
 
         if (inst->type == V3D_QPU_INSTR_TYPE_BRANCH) {
@@ -262,6 +308,8 @@ qpu_validate(struct v3d_compile *c)
                 .last_thrsw_ip = -10,
                 .last_branch_ip = -10,
                 .ip = 0,
+
+                .last_thrsw_found = !c->last_thrsw,
         };
 
         vir_for_each_block(block, c) {
@@ -273,8 +321,6 @@ qpu_validate(struct v3d_compile *c)
                            "thread switch found without last-THRSW in program");
         }
 
-        if (state.thrsw_count == 0 ||
-            (state.last_thrsw_found && state.thrsw_count == 1)) {
+        if (!state.thrend_found)
                 fail_instr(&state, "No program-end THRSW found");
-        }
 }
