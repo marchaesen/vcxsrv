@@ -1,4 +1,4 @@
-# Copyright © 2017 Intel Corporation
+# Copyright © 2017-2018 Intel Corporation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,8 +20,11 @@
 
 option(
   'platforms',
-  type : 'string',
-  value : 'auto',
+  type : 'array',
+  value : ['auto'],
+  choices : [
+    '', 'auto', 'x11', 'wayland', 'drm', 'surfaceless', 'haiku', 'android',
+  ],
   description : 'comma separated list of window systems to support. If this is set to auto all platforms applicable to the OS will be enabled.'
 )
 option(
@@ -33,9 +36,10 @@ option(
 )
 option(
   'dri-drivers',
-  type : 'string',
-  value : 'auto',
-  description : 'comma separated list of dri drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
+  type : 'array',
+  value : ['auto'],
+  choices : ['', 'auto', 'i915', 'i965', 'r100', 'r200', 'nouveau', 'swrast'],
+  description : 'List of dri drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
   'dri-drivers-path',
@@ -51,9 +55,14 @@ option(
 )
 option(
   'gallium-drivers',
-  type : 'string',
-  value : 'auto',
-  description : 'comma separated list of gallium drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
+  type : 'array',
+  value : ['auto'],
+  choices : [
+    '', 'auto', 'pl111', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',
+    'swrast', 'vc4', 'vc5', 'etnaviv', 'imx', 'tegra', 'i915', 'svga', 'virgl',
+    'swr',
+  ],
+  description : 'List of gallium drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
   'gallium-extra-hud',
@@ -141,9 +150,10 @@ option(
 )
 option(
   'vulkan-drivers',
-  type : 'string',
-  value : 'auto',
-  description : 'comma separated list of vulkan drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
+  type : 'array',
+  value : ['auto'],
+  choices : ['', 'auto', 'amd', 'intel'],
+  description : 'List of vulkan drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
   'shader-cache',
@@ -276,13 +286,15 @@ option(
 )
 option(
   'swr-arches',
-  type : 'string',
-  value : 'avx,avx2',
-  description : 'Comma delemited swr architectures. choices : avx,avx2,knl,skx'
+  type : 'array',
+  value : ['avx', 'avx2'],
+  choices : ['avx', 'avx2', 'knl', 'skx'],
+  description : 'Architectures to build SWR support for.',
 )
 option(
   'tools',
-  type : 'string',
-  value : '',
-  description : 'Comma delimited list of tools to build. choices : freedreno,glsl,intel,nir,nouveau or all'
+  type : 'array',
+  value : [],
+  choices : ['freedreno', 'glsl', 'intel', 'nir', 'nouveau', 'all'],
+  description : 'List of tools to build.',
 )

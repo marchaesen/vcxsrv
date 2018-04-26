@@ -96,6 +96,9 @@ ddxUseMsg(void)
     ErrorF("-rootless              run rootless, requires wm support\n");
     ErrorF("-wm fd                 create X client for wm on given fd\n");
     ErrorF("-listen fd             add give fd as a listen socket\n");
+#ifdef XWL_HAS_EGLSTREAM
+    ErrorF("-eglstream             use eglstream backend for nvidia GPUs\n");
+#endif
 }
 
 int
@@ -114,6 +117,11 @@ ddxProcessArgument(int argc, char *argv[], int i)
     else if (strcmp(argv[i], "-shm") == 0) {
         return 1;
     }
+#ifdef XWL_HAS_EGLSTREAM
+    else if (strcmp(argv[i], "-eglstream") == 0) {
+        return 1;
+    }
+#endif
 
     return 0;
 }
@@ -668,7 +676,7 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
     region = DamageRegion(xwl_window->damage);
     pixmap = (*xwl_screen->screen->GetWindowPixmap) (xwl_window->window);
 
-#ifdef GLAMOR_HAS_GBM
+#ifdef XWL_HAS_GLAMOR
     if (xwl_screen->glamor)
         buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap,
                                                  pixmap->drawable.width,
@@ -677,6 +685,11 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
     else
 #endif
         buffer = xwl_shm_pixmap_get_wl_buffer(pixmap);
+
+#ifdef XWL_HAS_GLAMOR
+    if (xwl_screen->glamor)
+        xwl_glamor_post_damage(xwl_window, pixmap, region);
+#endif
 
     wl_surface_attach(xwl_window->surface, buffer, 0, 0);
 
@@ -724,6 +737,11 @@ xwl_screen_post_damage(struct xwl_screen *xwl_screen)
         if (!xwl_window->allow_commits)
             continue;
 
+#ifdef XWL_HAS_GLAMOR
+        if (!xwl_glamor_allow_commits(xwl_window))
+            continue;
+#endif
+
         xwl_window_post_damage(xwl_window);
     }
 }
@@ -754,14 +772,10 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
             wl_registry_bind(registry, id, &zxdg_output_manager_v1_interface, 1);
         xwl_screen_init_xdg_output(xwl_screen);
     }
-#ifdef GLAMOR_HAS_GBM
-    else if (xwl_screen->glamor &&
-             strcmp(interface, "wl_drm") == 0 && version >= 2) {
-        xwl_screen_set_drm_interface(xwl_screen, id, version);
-    }
-    else if (xwl_screen->glamor &&
-             strcmp(interface, "zwp_linux_dmabuf_v1") == 0 && version >= 3) {
-        xwl_screen_set_dmabuf_interface(xwl_screen, id, version);
+#ifdef XWL_HAS_GLAMOR
+    else if (xwl_screen->glamor) {
+        xwl_glamor_init_wl_registry(xwl_screen, registry, id, interface,
+                                    version);
     }
 #endif
 }
@@ -926,6 +940,9 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     struct xwl_screen *xwl_screen;
     Pixel red_mask, blue_mask, green_mask;
     int ret, bpc, green_bpc, i;
+#ifdef XWL_HAS_EGLSTREAM
+    Bool use_eglstreams = FALSE;
+#endif
 
     xwl_screen = calloc(1, sizeof *xwl_screen);
     if (xwl_screen == NULL)
@@ -942,7 +959,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     dixSetPrivate(&pScreen->devPrivates, &xwl_screen_private_key, xwl_screen);
     xwl_screen->screen = pScreen;
 
-#ifdef GLAMOR_HAS_GBM
+#ifdef XWL_HAS_GLAMOR
     xwl_screen->glamor = 1;
 #endif
 
@@ -968,7 +985,29 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         else if (strcmp(argv[i], "-shm") == 0) {
             xwl_screen->glamor = 0;
         }
+#ifdef XWL_HAS_EGLSTREAM
+        else if (strcmp(argv[i], "-eglstream") == 0) {
+            use_eglstreams = TRUE;
+        }
+#endif
     }
+
+#ifdef XWL_HAS_GLAMOR
+    if (xwl_screen->glamor) {
+#ifdef XWL_HAS_EGLSTREAM
+        if (use_eglstreams) {
+            if (!xwl_glamor_init_eglstream(xwl_screen)) {
+                ErrorF("xwayland glamor: failed to setup eglstream backend, falling back to swaccel\n");
+                xwl_screen->glamor = 0;
+            }
+        } else
+#endif
+        if (!xwl_glamor_init_gbm(xwl_screen)) {
+            ErrorF("xwayland glamor: failed to setup GBM backend, falling back to sw accel\n");
+            xwl_screen->glamor = 0;
+        }
+    }
+#endif
 
     /* In rootless mode, we don't have any screen storage, and the only
      * rendering should be to redirected mode. */
@@ -1052,7 +1091,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     if (!xwl_screen_init_cursor(xwl_screen))
         return FALSE;
 
-#ifdef GLAMOR_HAS_GBM
+#ifdef XWL_HAS_GLAMOR
     if (xwl_screen->glamor && !xwl_glamor_init(xwl_screen)) {
         ErrorF("Failed to initialize glamor, falling back to sw\n");
         xwl_screen->glamor = 0;

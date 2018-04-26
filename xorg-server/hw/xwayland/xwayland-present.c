@@ -509,5 +509,14 @@ static present_wnmd_info_rec xwl_present_info = {
 Bool
 xwl_present_init(ScreenPtr screen)
 {
+    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
+
+    /*
+     * doesn't work with the streams backend. we don't have an explicit
+     * boolean for that, but we do know gbm doesn't fill in this hook...
+     */
+    if (xwl_screen->egl_backend.post_damage != NULL)
+        return FALSE;
+
     return present_wnmd_screen_init(screen, &xwl_present_info);
 }

@@ -901,7 +901,7 @@ _mesa_readpixels(struct gl_context *ctx,
 
 
 static GLenum
-read_pixels_es3_error_check(GLenum format, GLenum type,
+read_pixels_es3_error_check(struct gl_context *ctx, GLenum format, GLenum type,
                             const struct gl_renderbuffer *rb)
 {
    const GLenum internalFormat = rb->InternalFormat;
@@ -927,6 +927,16 @@ read_pixels_es3_error_check(GLenum format, GLenum type,
          return GL_NO_ERROR;
       if (internalFormat == GL_RGB10_A2UI && type == GL_UNSIGNED_BYTE)
          return GL_NO_ERROR;
+      if (type == GL_UNSIGNED_SHORT) {
+         switch (internalFormat) {
+         case GL_R16:
+         case GL_RG16:
+         case GL_RGB16:
+         case GL_RGBA16:
+            if (_mesa_has_EXT_texture_norm16(ctx))
+               return GL_NO_ERROR;
+         }
+      }
       break;
    case GL_BGRA:
       /* GL_EXT_read_format_bgra */
@@ -1049,7 +1059,7 @@ read_pixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
                }
             }
          } else {
-            err = read_pixels_es3_error_check(format, type, rb);
+            err = read_pixels_es3_error_check(ctx, format, type, rb);
          }
 
          if (err != GL_NO_ERROR) {

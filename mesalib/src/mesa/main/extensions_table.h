@@ -283,6 +283,7 @@ EXT(EXT_texture_format_BGRA8888             , dummy_true                        
 EXT(EXT_texture_integer                     , EXT_texture_integer                    , GLL, GLC,  x ,  x , 2006)
 EXT(EXT_texture_lod_bias                    , dummy_true                             , GLL,  x , ES1,  x , 1999)
 EXT(EXT_texture_mirror_clamp                , EXT_texture_mirror_clamp               , GLL, GLC,  x ,  x , 2004)
+EXT(EXT_texture_norm16                      , dummy_true                             ,  x ,  x ,  x ,  31, 2014)
 EXT(EXT_texture_object                      , dummy_true                             , GLL,  x ,  x ,  x , 1995)
 EXT(EXT_texture_rectangle                   , NV_texture_rectangle                   , GLL,  x ,  x ,  x , 2004)
 EXT(EXT_texture_rg                          , ARB_texture_rg                         ,  x ,  x ,  x , ES2, 2011)

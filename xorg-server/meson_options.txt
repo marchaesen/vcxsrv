@@ -6,6 +6,8 @@ option('xwayland', type: 'combo', choices: ['true', 'false', 'auto'], value: 'au
        description: 'Enable XWayland X server')
 option('glamor', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable glamor (default yes for Xorg/Xwayland builds)')
+option('xwayland_eglstream', type: 'combo', choices: ['true', 'false', 'auto'],
+       value: 'auto', description: 'Enable EGLStream support for glamor on Xwayland')
 option('xnest', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable Xnest nested X server')
 option('dmx', type: 'boolean', value: false,

@@ -287,6 +287,21 @@ if build_glamor
     epoxy_dep = dependency('epoxy', required: false)
 endif
 
+eglstream_option = get_option('xwayland_eglstream')
+if build_xwayland and build_glamor
+    eglstream_dep = dependency('wayland-eglstream-protocols', required:false)
+    if eglstream_option == 'auto'
+        build_eglstream = eglstream_dep.found()
+    else
+        build_eglstream = eglstream_option == 'true'
+        if build_eglstream and not eglstream_dep.found()
+            error('glamor EGLStream support requested, but wayland-eglstream-protocols not found')
+        endif
+    endif
+else
+    build_eglstream = false
+endif
+
 # XXX: Add more sha1 options, because Linux is about choice
 sha1_dep = nettle_dep
 

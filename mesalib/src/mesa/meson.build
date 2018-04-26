@@ -732,6 +732,6 @@ endif
 if with_glx == 'xlib'
   subdir('drivers/x11')
 endif
-if with_tests
+if with_tests and dri_drivers != []
   subdir('main/tests')
 endif

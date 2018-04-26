@@ -44,7 +44,7 @@ endif
 if dri_drivers != []
   libmesa_dri_drivers = shared_library(
     'mesa_dri_drivers',
-    dummy_cpp,  # see meson #2180
+    [],
     link_whole : dri_drivers,
     link_with : [
       libmegadriver_stub, libdricommon, libxmlconfig, libglapi, libmesa_util,

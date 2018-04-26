@@ -210,14 +210,12 @@ _mesa_destroy_framebuffer(struct gl_framebuffer *fb)
 void
 _mesa_free_framebuffer_data(struct gl_framebuffer *fb)
 {
-   GLuint i;
-
    assert(fb);
    assert(fb->RefCount == 0);
 
    simple_mtx_destroy(&fb->Mutex);
 
-   for (i = 0; i < BUFFER_COUNT; i++) {
+   for (unsigned i = 0; i < BUFFER_COUNT; i++) {
       struct gl_renderbuffer_attachment *att = &fb->Attachment[i];
       if (att->Renderbuffer) {
          _mesa_reference_renderbuffer(&att->Renderbuffer, NULL);
@@ -280,8 +278,6 @@ void
 _mesa_resize_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
                          GLuint width, GLuint height)
 {
-   GLuint i;
-
    /* XXX I think we could check if the size is not changing
     * and return early.
     */
@@ -289,7 +285,7 @@ _mesa_resize_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
    /* Can only resize win-sys framebuffer objects */
    assert(_mesa_is_winsys_fbo(fb));
 
-   for (i = 0; i < BUFFER_COUNT; i++) {
+   for (unsigned i = 0; i < BUFFER_COUNT; i++) {
       struct gl_renderbuffer_attachment *att = &fb->Attachment[i];
       if (att->Type == GL_RENDERBUFFER_EXT && att->Renderbuffer) {
          struct gl_renderbuffer *rb = att->Renderbuffer;
@@ -427,13 +423,11 @@ void
 _mesa_update_framebuffer_visual(struct gl_context *ctx,
 				struct gl_framebuffer *fb)
 {
-   GLuint i;
-
    memset(&fb->Visual, 0, sizeof(fb->Visual));
    fb->Visual.rgbMode = GL_TRUE; /* assume this */
 
    /* find first RGB renderbuffer */
-   for (i = 0; i < BUFFER_COUNT; i++) {
+   for (unsigned i = 0; i < BUFFER_COUNT; i++) {
       if (fb->Attachment[i].Renderbuffer) {
          const struct gl_renderbuffer *rb = fb->Attachment[i].Renderbuffer;
          const GLenum baseFormat = _mesa_get_format_base_format(rb->Format);
@@ -461,7 +455,7 @@ _mesa_update_framebuffer_visual(struct gl_context *ctx,
    }
 
    fb->Visual.floatMode = GL_FALSE;
-   for (i = 0; i < BUFFER_COUNT; i++) {
+   for (unsigned i = 0; i < BUFFER_COUNT; i++) {
       if (fb->Attachment[i].Renderbuffer) {
          const struct gl_renderbuffer *rb = fb->Attachment[i].Renderbuffer;
          const mesa_format fmt = rb->Format;
@@ -622,6 +616,12 @@ update_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
       if (fb->ColorDrawBuffer[0] != ctx->Color.DrawBuffer[0]) {
          _mesa_drawbuffers(ctx, fb, ctx->Const.MaxDrawBuffers,
                            ctx->Color.DrawBuffer, NULL);
+      }
+
+      /* Call device driver function if fb is the bound draw buffer. */
+      if (fb == ctx->DrawBuffer) {
+         if (ctx->Driver.DrawBufferAllocate)
+            ctx->Driver.DrawBufferAllocate(ctx);
       }
    }
    else {
@@ -936,14 +936,12 @@ _mesa_get_read_renderbuffer_for_format(const struct gl_context *ctx,
 void
 _mesa_print_framebuffer(const struct gl_framebuffer *fb)
 {
-   GLuint i;
-
    fprintf(stderr, "Mesa Framebuffer %u at %p\n", fb->Name, (void *) fb);
    fprintf(stderr, "  Size: %u x %u  Status: %s\n", fb->Width, fb->Height,
            _mesa_enum_to_string(fb->_Status));
    fprintf(stderr, "  Attachments:\n");
 
-   for (i = 0; i < BUFFER_COUNT; i++) {
+   for (unsigned i = 0; i < BUFFER_COUNT; i++) {
       const struct gl_renderbuffer_attachment *att = &fb->Attachment[i];
       if (att->Type == GL_TEXTURE) {
          const struct gl_texture_image *texImage = att->Renderbuffer->TexImage;

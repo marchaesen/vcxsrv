@@ -2138,6 +2138,19 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
       goto success;
    }
 
+   /* For an unsized GL_RGB but a 2_10_10_10 type, try to pick one of the
+    * 2_10_10_10 formats.  This is important for
+    * GL_EXT_texture_type_2_10_10_10_EXT support, which says that these
+    * formats are not color-renderable.  Mesa's check for making those
+    * non-color-renderable is based on our chosen format being 2101010.
+    */
+   if (type == GL_UNSIGNED_INT_2_10_10_10_REV) {
+      if (internalFormat == GL_RGB)
+         internalFormat = GL_RGB10;
+      else if (internalFormat == GL_RGBA)
+         internalFormat = GL_RGB10_A2;
+   }
+
    /* search table for internalFormat */
    for (i = 0; i < ARRAY_SIZE(format_map); i++) {
       const struct format_mapping *mapping = &format_map[i];
