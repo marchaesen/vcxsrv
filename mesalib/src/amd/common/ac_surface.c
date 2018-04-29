@@ -343,6 +343,9 @@ static int gfx6_compute_level(ADDR_HANDLE addrlib,
 	/* The previous level's flag tells us if we can use DCC for this level. */
 	if (AddrSurfInfoIn->flags.dccCompatible &&
 	    (level == 0 || AddrDccOut->subLvlCompressible)) {
+		bool prev_level_clearable = level == 0 ||
+					    AddrDccOut->dccRamSizeAligned;
+
 		AddrDccIn->colorSurfSize = AddrSurfInfoOut->surfSize;
 		AddrDccIn->tileMode = AddrSurfInfoOut->tileMode;
 		AddrDccIn->tileInfo = *AddrSurfInfoOut->pTileInfo;
@@ -355,10 +358,26 @@ static int gfx6_compute_level(ADDR_HANDLE addrlib,
 
 		if (ret == ADDR_OK) {
 			surf_level->dcc_offset = surf->dcc_size;
-			surf_level->dcc_fast_clear_size = AddrDccOut->dccFastClearSize;
 			surf->num_dcc_levels = level + 1;
 			surf->dcc_size = surf_level->dcc_offset + AddrDccOut->dccRamSize;
 			surf->dcc_alignment = MAX2(surf->dcc_alignment, AddrDccOut->dccRamBaseAlign);
+
+			/* If the DCC size of a subresource (1 mip level or 1 slice)
+			 * is not aligned, the DCC memory layout is not contiguous for
+			 * that subresource, which means we can't use fast clear.
+			 *
+			 * We only do fast clears for whole mipmap levels. If we did
+			 * per-slice fast clears, the same restriction would apply.
+			 * (i.e. only compute the slice size and see if it's aligned)
+			 *
+			 * The last level can be non-contiguous and still be clearable
+			 * if it's interleaved with the next level that doesn't exist.
+			 */
+			if (AddrDccOut->dccRamSizeAligned ||
+			    (prev_level_clearable && level == config->info.levels - 1))
+				surf_level->dcc_fast_clear_size = AddrDccOut->dccFastClearSize;
+			else
+				surf_level->dcc_fast_clear_size = 0;
 		}
 	}
 

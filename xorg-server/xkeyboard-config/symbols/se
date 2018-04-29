@@ -303,6 +303,19 @@ xkb_symbols "swl" {
   key <AE10> { [ 0x110c974, 0x110c909, 0x110c98c, 0x110c968 ] };
 };
 
+partial alphanumeric_keys
+xkb_symbols "us" {
+    include "us"
+
+    name[Group1]="Swedish (US, with Swedish letters)";
+
+    key <AC10> { [ NoSymbol, NoSymbol, odiaeresis, Odiaeresis ] };
+    key <AC11> { [ NoSymbol, NoSymbol, adiaeresis, Adiaeresis ] };
+    key <AD11> { [ NoSymbol, NoSymbol, aring, Aring ] };
+
+    include "level3(ralt_switch)"
+};
+
 // EXTRAS:
 
 partial alphanumeric_keys

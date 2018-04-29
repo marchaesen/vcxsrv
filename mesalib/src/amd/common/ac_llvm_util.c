@@ -123,7 +123,9 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
 	}
 }
 
-LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family, enum ac_target_machine_options tm_options)
+LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
+					      enum ac_target_machine_options tm_options,
+					      const char **out_triple)
 {
 	assert(family >= CHIP_TAHITI);
 	char features[256];
@@ -146,6 +148,8 @@ LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family, enum ac
 	                             LLVMRelocDefault,
 	                             LLVMCodeModelDefault);
 
+	if (out_triple)
+		*out_triple = triple;
 	return tm;
 }
 

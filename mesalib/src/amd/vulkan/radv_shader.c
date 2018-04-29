@@ -491,7 +491,7 @@ shader_variant_create(struct radv_device *device,
 		tm_options |= AC_TM_SUPPORTS_SPILL;
 	if (device->instance->perftest_flags & RADV_PERFTEST_SISCHED)
 		tm_options |= AC_TM_SISCHED;
-	tm = ac_create_target_machine(chip_family, tm_options);
+	tm = ac_create_target_machine(chip_family, tm_options, NULL);
 
 	if (gs_copy_shader) {
 		assert(shader_count == 1);

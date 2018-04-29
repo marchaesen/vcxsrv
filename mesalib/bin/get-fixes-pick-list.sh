@@ -16,7 +16,7 @@ latest_branchpoint=`git merge-base origin/master HEAD`
 git log --reverse --pretty=%H $latest_branchpoint > already_landed
 
 # ... and the ones cherry-picked.
-git log --reverse --grep="cherry picked from commit" $latest_branchpoint..HEAD |\
+git log --reverse --pretty=medium --grep="cherry picked from commit" $latest_branchpoint..HEAD |\
 	grep "cherry picked from commit" |\
 	sed -e 's/^[[:space:]]*(cherry picked from commit[[:space:]]*//' -e 's/)//'  > already_picked
 
@@ -38,7 +38,7 @@ do
 
 	# Place every "fixes:" tag on its own line and join with the next word
 	# on its line or a later one.
-	fixes=`git show -s $sha | tr -d "\n" | sed -e 's/fixes:[[:space:]]*/\nfixes:/Ig' | grep "fixes:" | sed -e 's/\(fixes:[a-zA-Z0-9]*\).*$/\1/'`
+	fixes=`git show --pretty=medium -s $sha | tr -d "\n" | sed -e 's/fixes:[[:space:]]*/\nfixes:/Ig' | grep "fixes:" | sed -e 's/\(fixes:[a-zA-Z0-9]*\).*$/\1/'`
 
 	# For each one try to extract the tag
 	fixes_count=`echo "$fixes" | wc -l`

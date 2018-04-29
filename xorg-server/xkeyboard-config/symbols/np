@@ -8,18 +8,18 @@ xkb_symbols "basic" {
 // `,1,2,3,4,5,6,7,8,9,0,-,=
 
       key <TLDE> { [      0x100093D,0x100093C ]	};
-      key <AE01> { [      0x1000967	 		]	};
-      key <AE02> { [      0x1000968			]	};
-      key <AE03> { [      0x1000969 	 		]	};
-      key <AE04> { [      0x100096A  	 		]	};
-      key <AE05> { [      0x100096B  	 		]	};
-      key <AE06> { [      0x100096C  	 		]	};
-      key <AE07> { [      0x100096D                     ]	};
-      key <AE08> { [      0x100096e  	 		]	};
+      key <AE01> { [      0x1000967, exclam		]	};
+      key <AE02> { [      0x1000968, at			]	};
+      key <AE03> { [      0x1000969, numbersign		]	};
+      key <AE04> { [      0x100096A, dollar		]	};
+      key <AE05> { [      0x100096B, percent		]	};
+      key <AE06> { [      0x100096C, asciicircum	]	};
+      key <AE07> { [      0x100096D, ampersand		]	};
+      key <AE08> { [      0x100096e, asterisk		]	};
       key <AE09> { [      0x100096F	 		]	};
       key <AE10> { [      0x1000966,0x1000970		]	};
       key <AE11> { [      minus, 0x1000952 		]	};
-      key <AE12> { [      equal, 0x100200C 		]	};
+      key <AE12> { [      0x100200D, 0x100200C		]	};
 
 // q,w,e,r,t,y,u,i,o,p,[,]
 

@@ -611,7 +611,7 @@ struct dd_function_table {
    /** Specify mapping of depth values from NDC to window coordinates */
    void (*DepthRange)(struct gl_context *ctx);
    /** Specify the current buffer for writing */
-   void (*DrawBuffer)(struct gl_context *ctx, GLenum buffer);
+   void (*DrawBuffer)(struct gl_context *ctx);
    /** Used to allocated any buffers with on-demand creation */
    void (*DrawBufferAllocate)(struct gl_context *ctx);
    /** Enable or disable server-side gl capabilities */

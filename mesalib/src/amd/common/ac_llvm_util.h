@@ -68,7 +68,9 @@ enum ac_float_mode {
 };
 
 const char *ac_get_llvm_processor_name(enum radeon_family family);
-LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family, enum ac_target_machine_options tm_options);
+LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
+					      enum ac_target_machine_options tm_options,
+					      const char **out_triple);
 
 LLVMTargetRef ac_get_llvm_target(const char *triple);
 void ac_add_attr_dereferenceable(LLVMValueRef val, uint64_t bytes);
