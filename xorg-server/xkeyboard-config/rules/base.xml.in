@@ -2367,15 +2367,6 @@
             </languageList>
           </configItem>
         </variant>
-        <variant>
-          <configItem>
-            <name>altgr-pinyin</name>
-            <_description>Hanyu Pinyin (altgr)</_description>
-            <languageList>
-              <iso639Id>chi</iso639Id>
-            </languageList>
-          </configItem>
-        </variant>
       </variantList>
     </layout>
     <layout>
@@ -2587,9 +2578,8 @@
         <variant>
           <configItem>
             <name>zawgyi</name>
-
-                <_shortDescription>zg</_shortDescription>
-            <_description>Burmse Zawgyi</_description>
+            <_shortDescription>zg</_shortDescription>
+            <_description>Burmese Zawgyi</_description>
           </configItem>
         </variant>
       </variantList>
@@ -2711,6 +2701,15 @@
             <_description>Uyghur</_description>
             <languageList>
               <iso639Id>uig</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>altgr-pinyin</name>
+            <_description>Hanyu Pinyin (altgr)</_description>
+            <languageList>
+              <iso639Id>chi</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -4927,6 +4926,12 @@
           <configItem>
             <name>us_dvorak</name>
             <_description>Swedish (based on US Intl. Dvorak)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>us</name>
+            <_description>Swedish (US, with Swedish letters)</_description>
           </configItem>
         </variant>
         <variant>

@@ -1309,6 +1309,14 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 		}
 	}
 
+	/* Fixup for GFX9 which allocates 1D textures as 2D. */
+	if (instr->op == nir_texop_lod && ctx->ac.chip_class >= GFX9) {
+		if ((args->dim == ac_image_2darray ||
+		     args->dim == ac_image_2d) && !args->coords[1]) {
+			args->coords[1] = ctx->ac.i32_0;
+		}
+	}
+
 	args->attributes = AC_FUNC_ATTR_READNONE;
 	return ac_build_image_opcode(&ctx->ac, args);
 }

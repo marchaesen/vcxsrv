@@ -1397,8 +1397,7 @@ ast_expression::do_hir(exec_list *instructions,
 
    switch (this->oper) {
    case ast_aggregate:
-      assert(!"ast_aggregate: Should never get here.");
-      break;
+      unreachable("ast_aggregate: Should never get here.");
 
    case ast_assign: {
       this->subexpressions[0]->set_is_lhs(true);
@@ -1974,15 +1973,13 @@ ast_expression::do_hir(exec_list *instructions,
    }
 
    case ast_unsized_array_dim:
-      assert(!"ast_unsized_array_dim: Should never get here.");
-      break;
+      unreachable("ast_unsized_array_dim: Should never get here.");
 
    case ast_function_call:
       /* Should *NEVER* get here.  ast_function_call should always be handled
        * by ast_function_expression::hir.
        */
-      assert(0);
-      break;
+      unreachable("ast_function_call: handled elsewhere ");
 
    case ast_identifier: {
       /* ast_identifier can appear several places in a full abstract syntax

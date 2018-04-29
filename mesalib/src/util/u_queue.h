@@ -200,6 +200,7 @@ struct util_queue_job {
 /* Put this into your context. */
 struct util_queue {
    const char *name;
+   mtx_t finish_lock; /* only for util_queue_finish */
    mtx_t lock;
    cnd_t has_queued_cond;
    cnd_t has_space_cond;

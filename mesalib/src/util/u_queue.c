@@ -311,6 +311,7 @@ util_queue_init(struct util_queue *queue,
       goto fail;
 
    (void) mtx_init(&queue->lock, mtx_plain);
+   (void) mtx_init(&queue->finish_lock, mtx_plain);
 
    queue->num_queued = 0;
    cnd_init(&queue->has_queued_cond);
@@ -398,6 +399,7 @@ util_queue_destroy(struct util_queue *queue)
 
    cnd_destroy(&queue->has_space_cond);
    cnd_destroy(&queue->has_queued_cond);
+   mtx_destroy(&queue->finish_lock);
    mtx_destroy(&queue->lock);
    free(queue->jobs);
    free(queue->threads);
@@ -529,6 +531,12 @@ util_queue_finish(struct util_queue *queue)
 
    util_barrier_init(&barrier, queue->num_threads);
 
+   /* If 2 threads were adding jobs for 2 different barries at the same time,
+    * a deadlock would happen, because 1 barrier requires that all threads
+    * wait for it exclusively.
+    */
+   mtx_lock(&queue->finish_lock);
+
    for (unsigned i = 0; i < queue->num_threads; ++i) {
       util_queue_fence_init(&fences[i]);
       util_queue_add_job(queue, &barrier, &fences[i], util_queue_finish_execute, NULL);
@@ -538,6 +546,7 @@ util_queue_finish(struct util_queue *queue)
       util_queue_fence_wait(&fences[i]);
       util_queue_fence_destroy(&fences[i]);
    }
+   mtx_unlock(&queue->finish_lock);
 
    util_barrier_destroy(&barrier);
 

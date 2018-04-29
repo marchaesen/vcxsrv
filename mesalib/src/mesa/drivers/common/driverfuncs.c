@@ -306,5 +306,5 @@ _mesa_init_driver_state(struct gl_context *ctx)
                                  ctx->Stencil.ZPassFunc[1]);
 
 
-   ctx->Driver.DrawBuffer(ctx, ctx->Color.DrawBuffer[0]);
+   ctx->Driver.DrawBuffer(ctx);
 }

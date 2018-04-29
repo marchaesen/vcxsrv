@@ -220,7 +220,7 @@ xkb_symbols "ug" {
 partial alphanumeric_keys
 xkb_symbols "altgr-pinyin" {
    include "us(basic)"
-   name[Group1]= "Chinese (Pinyin numeric tone dead keys)";
+   name[Group1]= "Hanyu Pinyin (altgr)";
 
    key <AE01> { [	   1,	exclam,		dead_macron,	    macron ]	};
    key <AE02> { [	   2,	at,		dead_acute,	     acute ]	};
