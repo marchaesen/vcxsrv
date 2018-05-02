@@ -482,6 +482,16 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             ctx->DriverFlags.NewIntelConservativeRasterization;
          ctx->IntelConservativeRasterization = state;
          break;
+      case GL_CONSERVATIVE_RASTERIZATION_NV:
+         if (!_mesa_has_NV_conservative_raster(ctx))
+            goto invalid_enum_error;
+         if (ctx->ConservativeRasterization == state)
+            return;
+         FLUSH_VERTICES(ctx, 0);
+         ctx->NewDriverState |=
+            ctx->DriverFlags.NewNvConservativeRasterization;
+         ctx->ConservativeRasterization = state;
+         break;
       case GL_COLOR_LOGIC_OP:
          if (!_mesa_is_desktop_gl(ctx) && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
@@ -1749,6 +1759,10 @@ _mesa_IsEnabled( GLenum cap )
       case GL_CONSERVATIVE_RASTERIZATION_INTEL:
          CHECK_EXTENSION(INTEL_conservative_rasterization);
          return ctx->IntelConservativeRasterization;
+
+      case GL_CONSERVATIVE_RASTERIZATION_NV:
+         CHECK_EXTENSION(NV_conservative_raster);
+         return ctx->ConservativeRasterization;
 
       case GL_TILE_RASTER_ORDER_FIXED_MESA:
          CHECK_EXTENSION(MESA_tile_raster_order);

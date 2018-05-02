@@ -1572,6 +1572,11 @@ static LLVMValueRef visit_load_buffer(struct ac_nir_context *ctx,
 		        LLVMConstInt(ctx->ac.i32, 6, false), LLVMConstInt(ctx->ac.i32, 7, false)
 		};
 
+		if (num_components == 6) {
+			/* we end up with a v4f32 and v2f32 but shuffle fails on that */
+			results[1] = ac_build_expand_to_vec4(&ctx->ac, results[1], 4);
+		}
+
 		LLVMValueRef swizzle = LLVMConstVector(masks, num_components);
 		ret = LLVMBuildShuffleVector(ctx->ac.builder, results[0],
 					     results[num_components > 4 ? 1 : 0], swizzle, "");

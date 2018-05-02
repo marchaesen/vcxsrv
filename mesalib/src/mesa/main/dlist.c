@@ -488,6 +488,15 @@ typedef enum
    /* EXT_window_rectangles */
    OPCODE_WINDOW_RECTANGLES,
 
+   /* NV_conservative_raster */
+   OPCODE_SUBPIXEL_PRECISION_BIAS,
+
+   /* NV_conservative_raster_dilate */
+   OPCODE_CONSERVATIVE_RASTER_PARAMETER_F,
+
+   /* NV_conservative_raster_pre_snap_triangles */
+   OPCODE_CONSERVATIVE_RASTER_PARAMETER_I,
+
    /* The following three are meta instructions */
    OPCODE_ERROR,                /* raise compiled-in error */
    OPCODE_CONTINUE,
@@ -7928,6 +7937,59 @@ save_WindowRectanglesEXT(GLenum mode, GLsizei count, const GLint *box)
    }
 }
 
+
+/** GL_NV_conservative_raster */
+static void GLAPIENTRY
+save_SubpixelPrecisionBiasNV(GLuint xbits, GLuint ybits)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_SUBPIXEL_PRECISION_BIAS, 2);
+   if (n) {
+      n[1].ui = xbits;
+      n[2].ui = ybits;
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_SubpixelPrecisionBiasNV(ctx->Exec, (xbits, ybits));
+   }
+}
+
+/** GL_NV_conservative_raster_dilate */
+static void GLAPIENTRY
+save_ConservativeRasterParameterfNV(GLenum pname, GLfloat param)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_CONSERVATIVE_RASTER_PARAMETER_F, 2);
+   if (n) {
+      n[1].e = pname;
+      n[2].f = param;
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ConservativeRasterParameterfNV(ctx->Exec, (pname, param));
+   }
+}
+
+/** GL_NV_conservative_raster_pre_snap_triangles */
+static void GLAPIENTRY
+save_ConservativeRasterParameteriNV(GLenum pname, GLint param)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_CONSERVATIVE_RASTER_PARAMETER_I, 2);
+   if (n) {
+      n[1].e = pname;
+      n[2].i = param;
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ConservativeRasterParameteriNV(ctx->Exec, (pname, param));
+   }
+}
+
+
 /**
  * Save an error-generating command into display list.
  *
@@ -9137,6 +9199,21 @@ execute_list(struct gl_context *ctx, GLuint list)
                   ctx->Exec, (n[1].e, n[2].si, get_pointer(&n[3])));
             break;
 
+         /* GL_NV_conservative_raster */
+         case OPCODE_SUBPIXEL_PRECISION_BIAS:
+            CALL_SubpixelPrecisionBiasNV(ctx->Exec, (n[1].ui, n[2].ui));
+            break;
+
+         /* GL_NV_conservative_raster_dilate */
+         case OPCODE_CONSERVATIVE_RASTER_PARAMETER_F:
+            CALL_ConservativeRasterParameterfNV(ctx->Exec, (n[1].e, n[2].f));
+            break;
+
+         /* GL_NV_conservative_raster_pre_snap_triangles */
+         case OPCODE_CONSERVATIVE_RASTER_PARAMETER_I:
+            CALL_ConservativeRasterParameteriNV(ctx->Exec, (n[1].e, n[2].i));
+            break;
+
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
             break;
@@ -10049,6 +10126,15 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
 
    /* GL_EXT_window_rectangles */
    SET_WindowRectanglesEXT(table, save_WindowRectanglesEXT);
+
+   /* GL_NV_conservative_raster */
+   SET_SubpixelPrecisionBiasNV(table, save_SubpixelPrecisionBiasNV);
+
+   /* GL_NV_conservative_raster_dilate */
+   SET_ConservativeRasterParameterfNV(table, save_ConservativeRasterParameterfNV);
+
+   /* GL_NV_conservative_raster_pre_snap_triangles */
+   SET_ConservativeRasterParameteriNV(table, save_ConservativeRasterParameteriNV);
 }
 
 

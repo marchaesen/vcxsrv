@@ -25,6 +25,10 @@ LIBGLSL_FILES = \
 	glsl/builtin_types.cpp \
 	glsl/builtin_variables.cpp \
 	glsl/generate_ir.cpp \
+	glsl/gl_nir_lower_atomics.c \
+	glsl/gl_nir_lower_samplers.c \
+	glsl/gl_nir_lower_samplers_as_deref.c \
+	glsl/gl_nir.h \
 	glsl/glsl_parser_extras.cpp \
 	glsl/glsl_parser_extras.h \
 	glsl/glsl_symbol_table.cpp \
@@ -211,7 +215,6 @@ NIR_FILES = \
 	nir/nir_lower_64bit_packing.c \
 	nir/nir_lower_alpha_test.c \
 	nir/nir_lower_alu_to_scalar.c \
-	nir/nir_lower_atomics.c \
 	nir/nir_lower_atomics_to_ssbo.c \
 	nir/nir_lower_bitmap.c \
 	nir/nir_lower_clamp_color_outputs.c \
@@ -237,8 +240,6 @@ NIR_FILES = \
 	nir/nir_lower_phis_to_scalar.c \
 	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_returns.c \
-	nir/nir_lower_samplers.c \
-	nir/nir_lower_samplers_as_deref.c \
 	nir/nir_lower_subgroups.c \
 	nir/nir_lower_system_values.c \
 	nir/nir_lower_tex.c \

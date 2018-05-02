@@ -465,18 +465,18 @@ struct radv_meta_state {
 	} blit;
 
 	struct {
-		VkRenderPass render_passes[NUM_META_FS_KEYS][RADV_META_DST_LAYOUT_COUNT];
+		VkPipelineLayout p_layouts[5];
+		VkDescriptorSetLayout ds_layouts[5];
+		VkPipeline pipelines[5][NUM_META_FS_KEYS];
 
-		VkPipelineLayout p_layouts[3];
-		VkDescriptorSetLayout ds_layouts[3];
-		VkPipeline pipelines[3][NUM_META_FS_KEYS];
+		VkPipeline depth_only_pipeline[5];
 
-		VkRenderPass depth_only_rp[RADV_BLIT_DS_LAYOUT_COUNT];
-		VkPipeline depth_only_pipeline[3];
+		VkPipeline stencil_only_pipeline[5];
+	} blit2d[1 + MAX_SAMPLES_LOG2];
 
-		VkRenderPass stencil_only_rp[RADV_BLIT_DS_LAYOUT_COUNT];
-		VkPipeline stencil_only_pipeline[3];
-	} blit2d;
+	VkRenderPass blit2d_render_passes[NUM_META_FS_KEYS][RADV_META_DST_LAYOUT_COUNT];
+	VkRenderPass blit2d_depth_only_rp[RADV_BLIT_DS_LAYOUT_COUNT];
+	VkRenderPass blit2d_stencil_only_rp[RADV_BLIT_DS_LAYOUT_COUNT];
 
 	struct {
 		VkPipelineLayout                          img_p_layout;

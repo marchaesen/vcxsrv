@@ -87,6 +87,7 @@
 #include "blend.h"
 #include "buffers.h"
 #include "bufferobj.h"
+#include "conservativeraster.h"
 #include "context.h"
 #include "cpuinfo.h"
 #include "debug.h"
@@ -739,6 +740,14 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->MaxComputeVariableGroupSize[1] = 512;
    consts->MaxComputeVariableGroupSize[2] = 64;
    consts->MaxComputeVariableGroupInvocations = 512;
+
+   /** GL_NV_conservative_raster */
+   consts->MaxSubpixelPrecisionBiasBits = 0;
+
+   /** GL_NV_conservative_raster_dilate */
+   consts->ConservativeRasterDilateRange[0] = 0.0;
+   consts->ConservativeRasterDilateRange[0] = 0.0;
+   consts->ConservativeRasterDilateGranularity = 0.0;
 }
 
 
@@ -828,6 +837,7 @@ init_attrib_groups(struct gl_context *ctx)
    _mesa_init_bbox( ctx );
    _mesa_init_buffer_objects( ctx );
    _mesa_init_color( ctx );
+   _mesa_init_conservative_raster( ctx );
    _mesa_init_current( ctx );
    _mesa_init_depth( ctx );
    _mesa_init_debug( ctx );

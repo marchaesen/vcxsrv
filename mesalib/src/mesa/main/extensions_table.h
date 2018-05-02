@@ -333,6 +333,10 @@ EXT(NVX_gpu_memory_info                     , NVX_gpu_memory_info               
 
 EXT(NV_blend_square                         , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(NV_conditional_render                   , NV_conditional_render                  , GLL, GLC,  x ,  x , 2008)
+EXT(NV_conservative_raster                  , NV_conservative_raster                 , GLL, GLC, ES1, ES2, 2015)
+EXT(NV_conservative_raster_dilate           , NV_conservative_raster_dilate          , GLL, GLC, ES1, ES2, 2015)
+EXT(NV_conservative_raster_pre_snap         , NV_conservative_raster_pre_snap        , GLL, GLC, ES1, ES2, 2017)
+EXT(NV_conservative_raster_pre_snap_triangles, NV_conservative_raster_pre_snap_triangles, GLL, GLC, ES1, ES2, 2015)
 EXT(NV_depth_clamp                          , ARB_depth_clamp                        , GLL, GLC,  x ,  x , 2001)
 EXT(NV_draw_buffers                         , dummy_true                             ,  x ,  x ,  x , ES2, 2011)
 EXT(NV_fbo_color_attachments                , dummy_true                             ,  x ,  x ,  x , ES2, 2010)

@@ -1334,6 +1334,7 @@ radv_emit_index_buffer(struct radv_cmd_buffer *cmd_buffer)
 
 void radv_set_db_count_control(struct radv_cmd_buffer *cmd_buffer)
 {
+	bool has_perfect_queries = cmd_buffer->state.perfect_occlusion_queries_enabled;
 	struct radv_pipeline *pipeline = cmd_buffer->state.pipeline;
 	uint32_t pa_sc_mode_cntl_1 =
 		pipeline ? pipeline->graphics.ms.pa_sc_mode_cntl_1 : 0;
@@ -1342,11 +1343,12 @@ void radv_set_db_count_control(struct radv_cmd_buffer *cmd_buffer)
 	if(!cmd_buffer->state.active_occlusion_queries) {
 		if (cmd_buffer->device->physical_device->rad_info.chip_class >= CIK) {
 			if (G_028A4C_OUT_OF_ORDER_PRIMITIVE_ENABLE(pa_sc_mode_cntl_1) &&
-			    pipeline->graphics.disable_out_of_order_rast_for_occlusion) {
+			    pipeline->graphics.disable_out_of_order_rast_for_occlusion &&
+			    has_perfect_queries) {
 				/* Re-enable out-of-order rasterization if the
 				 * bound pipeline supports it and if it's has
-				 * been disabled before starting occlusion
-				 * queries.
+				 * been disabled before starting any perfect
+				 * occlusion queries.
 				 */
 				radeon_set_context_reg(cmd_buffer->cs,
 						       R_028A4C_PA_SC_MODE_CNTL_1,
@@ -1359,22 +1361,22 @@ void radv_set_db_count_control(struct radv_cmd_buffer *cmd_buffer)
 	} else {
 		const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 		uint32_t sample_rate = subpass ? util_logbase2(subpass->max_sample_count) : 0;
-		bool perfect = cmd_buffer->state.perfect_occlusion_queries_enabled;
 
 		if (cmd_buffer->device->physical_device->rad_info.chip_class >= CIK) {
 			db_count_control =
-				S_028004_PERFECT_ZPASS_COUNTS(perfect) |
+				S_028004_PERFECT_ZPASS_COUNTS(has_perfect_queries) |
 				S_028004_SAMPLE_RATE(sample_rate) |
 				S_028004_ZPASS_ENABLE(1) |
 				S_028004_SLICE_EVEN_ENABLE(1) |
 				S_028004_SLICE_ODD_ENABLE(1);
 
 			if (G_028A4C_OUT_OF_ORDER_PRIMITIVE_ENABLE(pa_sc_mode_cntl_1) &&
-			    pipeline->graphics.disable_out_of_order_rast_for_occlusion) {
+			    pipeline->graphics.disable_out_of_order_rast_for_occlusion &&
+			    has_perfect_queries) {
 				/* If the bound pipeline has enabled
 				 * out-of-order rasterization, we should
-				 * disable it before starting occlusion
-				 * queries.
+				 * disable it before starting any perfect
+				 * occlusion queries.
 				 */
 				pa_sc_mode_cntl_1 &= C_028A4C_OUT_OF_ORDER_PRIMITIVE_ENABLE;
 

@@ -1140,12 +1140,12 @@ static void emit_end_query(struct radv_cmd_buffer *cmd_buffer,
 
 		cmd_buffer->state.active_occlusion_queries--;
 		if (cmd_buffer->state.active_occlusion_queries == 0) {
+			radv_set_db_count_control(cmd_buffer);
+
 			/* Reset the perfect occlusion queries hint now that no
 			 * queries are active.
 			 */
 			cmd_buffer->state.perfect_occlusion_queries_enabled = false;
-
-			radv_set_db_count_control(cmd_buffer);
 		}
 
 		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));

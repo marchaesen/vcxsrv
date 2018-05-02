@@ -55,8 +55,7 @@ xwl_glamor_egl_make_current(struct xwl_screen *xwl_screen)
 Bool
 xwl_glamor_egl_supports_device_probing(void)
 {
-    return epoxy_has_egl() &&
-        epoxy_has_egl_extension(NULL, "EGL_EXT_device_base");
+    return epoxy_has_egl_extension(NULL, "EGL_EXT_device_base");
 }
 
 void **

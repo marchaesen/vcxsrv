@@ -137,6 +137,9 @@ struct gl_enable_attrib
 
    /* GL_ARB_framebuffer_sRGB / GL_EXT_framebuffer_sRGB */
    GLboolean sRGBEnabled;
+
+   /* GL_NV_conservative_raster */
+   GLboolean ConservativeRasterization;
 };
 
 
@@ -174,6 +177,13 @@ struct texture_state
     * texture objects.
     */
    struct gl_shared_state *SharedRef;
+};
+
+
+struct viewport_state
+{
+   struct gl_viewport_attrib ViewportArray[MAX_VIEWPORTS];
+   GLuint SubpixelPrecisionBias[2];
 };
 
 
@@ -393,6 +403,9 @@ _mesa_PushAttrib(GLbitfield mask)
 
       /* GL_ARB_framebuffer_sRGB / GL_EXT_framebuffer_sRGB */
       attr->sRGBEnabled = ctx->Color.sRGBEnabled;
+
+      /* GL_NV_conservative_raster */
+      attr->ConservativeRasterization = ctx->ConservativeRasterization;
    }
 
    if (mask & GL_EVAL_BIT) {
@@ -544,11 +557,23 @@ _mesa_PushAttrib(GLbitfield mask)
    }
 
    if (mask & GL_VIEWPORT_BIT) {
-      if (!push_attrib(ctx, &head, GL_VIEWPORT_BIT,
-                       sizeof(struct gl_viewport_attrib)
-                       * ctx->Const.MaxViewports,
-                       (void*)&ctx->ViewportArray))
+      struct viewport_state *viewstate = CALLOC_STRUCT(viewport_state);
+      if (!viewstate) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib(GL_VIEWPORT_BIT)");
          goto end;
+      }
+
+      if (!save_attrib_data(&head, GL_VIEWPORT_BIT, viewstate)) {
+         free(viewstate);
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib(GL_VIEWPORT_BIT)");
+         goto end;
+      }
+
+      memcpy(&viewstate->ViewportArray, &ctx->ViewportArray,
+             sizeof(struct gl_viewport_attrib)*ctx->Const.MaxViewports);
+
+      viewstate->SubpixelPrecisionBias[0] = ctx->SubpixelPrecisionBias[0];
+      viewstate->SubpixelPrecisionBias[1] = ctx->SubpixelPrecisionBias[1];
    }
 
    /* GL_ARB_multisample */
@@ -712,6 +737,13 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib *enable)
    /* GL_ARB_framebuffer_sRGB / GL_EXT_framebuffer_sRGB */
    TEST_AND_UPDATE(ctx->Color.sRGBEnabled, enable->sRGBEnabled,
                    GL_FRAMEBUFFER_SRGB);
+
+   /* GL_NV_conservative_raster */
+   if (ctx->Extensions.NV_conservative_raster) {
+      TEST_AND_UPDATE(ctx->ConservativeRasterization,
+                      enable->ConservativeRasterization,
+                      GL_CONSERVATIVE_RASTERIZATION_NV);
+   }
 
    /* texture unit enables */
    for (i = 0; i < ctx->Const.MaxTextureUnits; i++) {
@@ -1126,7 +1158,8 @@ _mesa_PopAttrib(void)
                                       ctx->DriverFlags.NewSampleAlphaToXEnable |
                                       ctx->DriverFlags.NewSampleMask |
                                       ctx->DriverFlags.NewScissorTest |
-                                      ctx->DriverFlags.NewStencil;
+                                      ctx->DriverFlags.NewStencil |
+                                      ctx->DriverFlags.NewNvConservativeRasterization;
             }
             break;
          case GL_EVAL_BIT:
@@ -1418,13 +1451,20 @@ _mesa_PopAttrib(void)
          case GL_VIEWPORT_BIT:
             {
                unsigned i;
-               const struct gl_viewport_attrib *vp;
-               vp = (const struct gl_viewport_attrib *) attr->data;
+               const struct viewport_state *viewstate;
+               viewstate = (const struct viewport_state *) attr->data;
 
                for (i = 0; i < ctx->Const.MaxViewports; i++) {
-                  _mesa_set_viewport(ctx, i, vp[i].X, vp[i].Y, vp[i].Width,
-                                     vp[i].Height);
-                  _mesa_set_depth_range(ctx, i, vp[i].Near, vp[i].Far);
+                  const struct gl_viewport_attrib *vp = &viewstate->ViewportArray[i];
+                  _mesa_set_viewport(ctx, i, vp->X, vp->Y, vp->Width,
+                                     vp->Height);
+                  _mesa_set_depth_range(ctx, i, vp->Near, vp->Far);
+               }
+
+               if (ctx->Extensions.NV_conservative_raster) {
+                  GLuint biasx = viewstate->SubpixelPrecisionBias[0];
+                  GLuint biasy = viewstate->SubpixelPrecisionBias[1];
+                  _mesa_SubpixelPrecisionBiasNV(biasx, biasy);
                }
             }
             break;

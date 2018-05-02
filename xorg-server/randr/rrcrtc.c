@@ -272,25 +272,34 @@ RRCrtcPendingProperties(RRCrtcPtr crtc)
     return FALSE;
 }
 
-static void
-crtc_bounds(RRCrtcPtr crtc, int *left, int *right, int *top, int *bottom)
+static Bool
+cursor_bounds(RRCrtcPtr crtc, int *left, int *right, int *top, int *bottom)
 {
-    *left = crtc->x;
-    *top = crtc->y;
+    rrScrPriv(crtc->pScreen);
+    BoxRec bounds;
 
-    switch (crtc->rotation & 0xf) {
-    case RR_Rotate_0:
-    case RR_Rotate_180:
-    default:
-        *right = crtc->x + crtc->mode->mode.width;
-        *bottom = crtc->y + crtc->mode->mode.height;
-        return;
-    case RR_Rotate_90:
-    case RR_Rotate_270:
-        *right = crtc->x + crtc->mode->mode.height;
-        *bottom = crtc->y + crtc->mode->mode.width;
-        return;
+    if (crtc->mode == NULL)
+	return FALSE;
+
+    memset(&bounds, 0, sizeof(bounds));
+    if (pScrPriv->rrGetPanning)
+	pScrPriv->rrGetPanning(crtc->pScreen, crtc, NULL, &bounds, NULL);
+
+    if (bounds.y2 <= bounds.y1 || bounds.x2 <= bounds.x1) {
+	bounds.x1 = 0;
+	bounds.y1 = 0;
+	bounds.x2 = crtc->mode->mode.width;
+	bounds.y2 = crtc->mode->mode.height;
     }
+
+    pixman_f_transform_bounds(&crtc->f_transform, &bounds);
+
+    *left = bounds.x1;
+    *right = bounds.x2;
+    *top = bounds.y1;
+    *bottom = bounds.y2;
+
+    return TRUE;
 }
 
 /* overlapping counts as adjacent */
@@ -302,8 +311,10 @@ crtcs_adjacent(const RRCrtcPtr a, const RRCrtcPtr b)
     int bl, br, bt, bb;
     int cl, cr, ct, cb;         /* the overlap, if any */
 
-    crtc_bounds(a, &al, &ar, &at, &ab);
-    crtc_bounds(b, &bl, &br, &bt, &bb);
+    if (!cursor_bounds(a, &al, &ar, &at, &ab))
+	    return FALSE;
+    if (!cursor_bounds(b, &bl, &br, &bt, &bb))
+	    return FALSE;
 
     cl = max(al, bl);
     cr = min(ar, br);
@@ -321,7 +332,7 @@ mark_crtcs(rrScrPrivPtr pScrPriv, int *reachable, int cur)
 
     reachable[cur] = TRUE;
     for (i = 0; i < pScrPriv->numCrtcs; ++i) {
-        if (reachable[i] || !pScrPriv->crtcs[i]->mode)
+        if (reachable[i])
             continue;
         if (crtcs_adjacent(pScrPriv->crtcs[cur], pScrPriv->crtcs[i]))
             mark_crtcs(pScrPriv, reachable, i);
@@ -1811,10 +1822,8 @@ check_all_screen_crtcs(ScreenPtr pScreen, int *x, int *y)
 
         int left, right, top, bottom;
 
-        if (!crtc->mode)
-            continue;
-
-        crtc_bounds(crtc, &left, &right, &top, &bottom);
+        if (!cursor_bounds(crtc, &left, &right, &top, &bottom))
+	    continue;
 
         if ((*x >= left) && (*x < right) && (*y >= top) && (*y < bottom))
             return TRUE;
@@ -1834,10 +1843,9 @@ constrain_all_screen_crtcs(DeviceIntPtr pDev, ScreenPtr pScreen, int *x, int *y)
         int nx, ny;
         int left, right, top, bottom;
 
-        if (!crtc->mode)
-            continue;
+        if (!cursor_bounds(crtc, &left, &right, &top, &bottom))
+	    continue;
 
-        crtc_bounds(crtc, &left, &right, &top, &bottom);
         miPointerGetPosition(pDev, &nx, &ny);
 
         if ((nx >= left) && (nx < right) && (ny >= top) && (ny < bottom)) {

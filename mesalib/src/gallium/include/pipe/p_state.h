@@ -113,6 +113,7 @@ struct pipe_rasterizer_state
    unsigned line_smooth:1;
    unsigned line_stipple_enable:1;
    unsigned line_last_pixel:1;
+   unsigned conservative_raster_mode:2; /**< PIPE_CONSERVATIVE_RASTER_x */
 
    /**
     * Use the first vertex of a primitive as the provoking vertex for
@@ -122,6 +123,12 @@ struct pipe_rasterizer_state
 
    unsigned half_pixel_center:1;
    unsigned bottom_edge_rule:1;
+
+   /*
+    * Conservative rasterization subpixel precision bias in bits
+    */
+   unsigned subpixel_precision_x:4;
+   unsigned subpixel_precision_y:4;
 
    /**
     * When true, rasterization is disabled and no pixels are written.
@@ -186,6 +193,7 @@ struct pipe_rasterizer_state
    float offset_units;
    float offset_scale;
    float offset_clamp;
+   float conservative_raster_dilate;
 };
 
 

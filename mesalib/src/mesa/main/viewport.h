@@ -104,4 +104,10 @@ extern void
 _mesa_get_viewport_xform(struct gl_context *ctx, unsigned i,
                          float scale[3], float translate[3]);
 
+extern void GLAPIENTRY
+_mesa_SubpixelPrecisionBiasNV_no_error(GLuint xbits, GLuint ybits);
+
+extern void GLAPIENTRY
+_mesa_SubpixelPrecisionBiasNV(GLuint xbits, GLuint ybits);
+
 #endif

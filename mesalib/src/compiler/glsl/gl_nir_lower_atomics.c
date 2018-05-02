@@ -25,8 +25,10 @@
  *
  */
 
-#include "compiler/glsl/ir_uniform.h"
-#include "nir.h"
+#include "compiler/nir/nir.h"
+#include "gl_nir.h"
+#include "ir_uniform.h"
+
 #include "main/config.h"
 #include "main/mtypes.h"
 #include <assert.h>
@@ -177,9 +179,9 @@ lower_instr(nir_intrinsic_instr *instr,
 }
 
 bool
-nir_lower_atomics(nir_shader *shader,
-                  const struct gl_shader_program *shader_program,
-                  bool use_binding_as_idx)
+gl_nir_lower_atomics(nir_shader *shader,
+                     const struct gl_shader_program *shader_program,
+                     bool use_binding_as_idx)
 {
    bool progress = false;
 

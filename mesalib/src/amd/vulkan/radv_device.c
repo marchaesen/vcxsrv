@@ -315,7 +315,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->has_out_of_order_rast = device->rad_info.chip_class >= VI &&
 					device->rad_info.max_se >= 2;
 	device->out_of_order_rast_allowed = device->has_out_of_order_rast &&
-					    (device->instance->perftest_flags & RADV_PERFTEST_OUT_OF_ORDER);
+					    !(device->instance->debug_flags & RADV_DEBUG_NO_OUT_OF_ORDER);
 
 	device->dcc_msaa_allowed = device->rad_info.chip_class == VI &&
 				   (device->instance->perftest_flags & RADV_PERFTEST_DCC_MSAA);
@@ -390,6 +390,7 @@ static const struct debug_control radv_debug_options[] = {
 	{"nosisched", RADV_DEBUG_NO_SISCHED},
 	{"preoptir", RADV_DEBUG_PREOPTIR},
 	{"nodynamicbounds", RADV_DEBUG_NO_DYNAMIC_BOUNDS},
+	{"nooutoforder", RADV_DEBUG_NO_OUT_OF_ORDER},
 	{NULL, 0}
 };
 
@@ -405,7 +406,6 @@ static const struct debug_control radv_perftest_options[] = {
 	{"sisched", RADV_PERFTEST_SISCHED},
 	{"localbos", RADV_PERFTEST_LOCAL_BOS},
 	{"binning", RADV_PERFTEST_BINNING},
-	{"outoforderrast", RADV_PERFTEST_OUT_OF_ORDER},
 	{"dccmsaa", RADV_PERFTEST_DCC_MSAA},
 	{NULL, 0}
 };
