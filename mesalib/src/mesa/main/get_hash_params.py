@@ -355,6 +355,19 @@ descriptor=[
 # GL_ARB_robustness / GL_KHR_robustness
   [ "CONTEXT_ROBUST_ACCESS", "CONTEXT_ENUM16(Const.RobustAccess), extra_KHR_robustness" ],
   [ "RESET_NOTIFICATION_STRATEGY_ARB", "CONTEXT_ENUM16(Const.ResetStrategy), extra_KHR_robustness_or_GL" ],
+
+# GL_NV_conservative_raster
+  [ "SUBPIXEL_PRECISION_BIAS_X_BITS_NV", "CONTEXT_UINT(SubpixelPrecisionBias[0]), extra_NV_conservative_raster" ],
+  [ "SUBPIXEL_PRECISION_BIAS_Y_BITS_NV", "CONTEXT_UINT(SubpixelPrecisionBias[1]), extra_NV_conservative_raster" ],
+  [ "MAX_SUBPIXEL_PRECISION_BIAS_BITS_NV", "CONTEXT_UINT(Const.MaxSubpixelPrecisionBiasBits), extra_NV_conservative_raster" ],
+
+# GL_NV_conservative_raster_dilate
+  [ "CONSERVATIVE_RASTER_DILATE_RANGE_NV", "CONTEXT_FLOAT2(Const.ConservativeRasterDilateRange), extra_NV_conservative_raster_dilate" ],
+  [ "CONSERVATIVE_RASTER_DILATE_GRANULARITY_NV", "CONTEXT_FLOAT(Const.ConservativeRasterDilateGranularity), extra_NV_conservative_raster_dilate" ],
+  [ "CONSERVATIVE_RASTER_DILATE_NV", "CONTEXT_FLOAT(ConservativeRasterDilate), extra_NV_conservative_raster_dilate" ],
+
+# GL_NV_conservative_raster_pre_snap_triangles
+  [ "CONSERVATIVE_RASTER_MODE_NV", "CONTEXT_ENUM16(ConservativeRasterMode), extra_NV_conservative_raster_pre_snap_triangles" ],
 ]},
 
 # GLES3 is not a typo.

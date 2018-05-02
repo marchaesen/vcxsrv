@@ -121,6 +121,21 @@ convert_block(nir_block *block, nir_builder *b)
          }
          break;
 
+      case SYSTEM_VALUE_BASE_VERTEX:
+         /**
+          * From the OpenGL 4.6 (11.1.3.9 Shader Inputs) specification:
+          *
+          * "gl_BaseVertex holds the integer value passed to the baseVertex
+          * parameter to the command that resulted in the current shader
+          * invocation. In the case where the command has no baseVertex
+          * parameter, the value of gl_BaseVertex is zero."
+          */
+         if (b->shader->options->lower_base_vertex)
+            sysval = nir_iand(b,
+                              nir_load_is_indexed_draw(b),
+                              nir_load_first_vertex(b));
+         break;
+
       case SYSTEM_VALUE_INSTANCE_INDEX:
          sysval = nir_iadd(b,
                            nir_load_instance_id(b),

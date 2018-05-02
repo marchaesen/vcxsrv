@@ -87,8 +87,8 @@ VkResult radv_CreateRenderPass(
 		subpass_attachment_count +=
 			desc->inputAttachmentCount +
 			desc->colorAttachmentCount +
-			/* Count colorAttachmentCount again for resolve_attachments */
-			desc->colorAttachmentCount;
+			(desc->pResolveAttachments ? desc->colorAttachmentCount : 0) +
+			(desc->pDepthStencilAttachment != NULL);
 	}
 
 	if (subpass_attachment_count) {

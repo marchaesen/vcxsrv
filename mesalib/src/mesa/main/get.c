@@ -506,6 +506,9 @@ EXTRA_EXT(OES_primitive_bounding_box);
 EXTRA_EXT(ARB_compute_variable_group_size);
 EXTRA_EXT(KHR_robustness);
 EXTRA_EXT(ARB_sparse_buffer);
+EXTRA_EXT(NV_conservative_raster);
+EXTRA_EXT(NV_conservative_raster_dilate);
+EXTRA_EXT(NV_conservative_raster_pre_snap_triangles);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {

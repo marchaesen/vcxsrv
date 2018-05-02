@@ -55,9 +55,10 @@
  * the opaque uniform mapping.
  */
 
-#include "nir.h"
-#include "nir_builder.h"
-#include "compiler/glsl/ir_uniform.h"
+#include "compiler/nir/nir.h"
+#include "compiler/nir/nir_builder.h"
+#include "gl_nir.h"
+#include "ir_uniform.h"
 
 #include "main/compiler.h"
 #include "main/mtypes.h"
@@ -226,8 +227,8 @@ lower_impl(nir_function_impl *impl, struct lower_samplers_as_deref_state *state)
 }
 
 bool
-nir_lower_samplers_as_deref(nir_shader *shader,
-                            const struct gl_shader_program *shader_program)
+gl_nir_lower_samplers_as_deref(nir_shader *shader,
+                               const struct gl_shader_program *shader_program)
 {
    bool progress = false;
    struct lower_samplers_as_deref_state state;

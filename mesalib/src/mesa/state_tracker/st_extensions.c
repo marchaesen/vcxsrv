@@ -494,6 +494,16 @@ void st_init_limits(struct pipe_screen *screen,
    c->UseSTD430AsDefaultPacking =
       screen->get_param(screen, PIPE_CAP_LOAD_CONSTBUF);
 
+   c->MaxSubpixelPrecisionBiasBits =
+      screen->get_param(screen, PIPE_CAP_MAX_CONSERVATIVE_RASTER_SUBPIXEL_PRECISION_BIAS);
+
+   c->ConservativeRasterDilateRange[0] =
+      screen->get_paramf(screen, PIPE_CAPF_MIN_CONSERVATIVE_RASTER_DILATE);
+   c->ConservativeRasterDilateRange[1] =
+      screen->get_paramf(screen, PIPE_CAPF_MAX_CONSERVATIVE_RASTER_DILATE);
+   c->ConservativeRasterDilateGranularity =
+      screen->get_paramf(screen, PIPE_CAPF_CONSERVATIVE_RASTER_DILATE_GRANULARITY);
+
    /* limit the max combined shader output resources to a driver limit */
    temp = screen->get_param(screen, PIPE_CAP_MAX_COMBINED_SHADER_OUTPUT_RESOURCES);
    if (temp > 0 && c->MaxCombinedShaderOutputResources > temp)
@@ -1364,4 +1374,28 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->ARB_texture_cube_map_array &&
       extensions->ARB_texture_stencil8 &&
       extensions->ARB_texture_multisample;
+
+   if (screen->get_param(screen, PIPE_CAP_CONSERVATIVE_RASTER_POST_SNAP_TRIANGLES) &&
+       screen->get_param(screen, PIPE_CAP_CONSERVATIVE_RASTER_POST_SNAP_POINTS_LINES) &&
+       screen->get_param(screen, PIPE_CAP_CONSERVATIVE_RASTER_POST_DEPTH_COVERAGE)) {
+      float max_dilate;
+      bool pre_snap_triangles, pre_snap_points_lines;
+
+      max_dilate = screen->get_paramf(screen, PIPE_CAPF_MAX_CONSERVATIVE_RASTER_DILATE);
+
+      pre_snap_triangles =
+         screen->get_param(screen, PIPE_CAP_CONSERVATIVE_RASTER_PRE_SNAP_TRIANGLES);
+      pre_snap_points_lines =
+         screen->get_param(screen, PIPE_CAP_CONSERVATIVE_RASTER_PRE_SNAP_POINTS_LINES);
+
+      extensions->NV_conservative_raster =
+         screen->get_param(screen, PIPE_CAP_MAX_CONSERVATIVE_RASTER_SUBPIXEL_PRECISION_BIAS) > 1;
+
+      if (extensions->NV_conservative_raster) {
+         extensions->NV_conservative_raster_dilate = max_dilate >= 0.75;
+         extensions->NV_conservative_raster_pre_snap_triangles = pre_snap_triangles;
+         extensions->NV_conservative_raster_pre_snap =
+            pre_snap_triangles && pre_snap_points_lines;
+      }
+   }
 }

@@ -17,7 +17,6 @@
 #ifndef NO_GSSAPI
 #include "sshgssc.h"
 #include "sshgss.h"
-#define GSS_DEF_REKEY_MINS 2	/* Default minutes between GSS cache checks */
 #define MIN_CTXT_LIFETIME 5	/* Avoid rekey with short lifetime (seconds) */
 #define GSS_KEX_CAPABLE	(1<<0)	/* Can do GSS KEX */
 #define GSS_CRED_UPDATED (1<<1) /* Cred updated since previous delegation */
@@ -746,7 +745,7 @@ static void ssh_pkt_getstring(struct Packet *pkt, char **p, int *length);
 static void ssh2_timer(void *ctx, unsigned long now);
 static int ssh2_timer_update(Ssh ssh, unsigned long rekey_time);
 #ifndef NO_GSSAPI
-static void ssh2_gss_update(Ssh ssh);
+static void ssh2_gss_update(Ssh ssh, int definitely_rekeying);
 static struct Packet *ssh2_gss_authpacket(Ssh ssh, Ssh_gss_ctx gss_ctx,
                                           const char *authtype);
 #endif
@@ -6534,7 +6533,7 @@ static void do_ssh2_transport(Ssh ssh, const void *vin, int inlen,
         int can_gssapi_keyex;
         int need_gss_transient_hostkey;
         int warned_about_no_gss_transient_hostkey;
-	const struct ssh_kexes *preferred_kex[KEX_MAX];
+        const struct ssh_kexes *preferred_kex[KEX_MAX + 1]; /* +1 for GSSAPI */
 	int n_preferred_hk;
 	int preferred_hk[HK_MAX];
 	int n_preferred_ciphers;
@@ -6609,7 +6608,7 @@ static void do_ssh2_transport(Ssh ssh, const void *vin, int inlen,
          * state is "fresh".
          */
         if (!vin || strcmp(vin, GSS_UPDATE_REKEY_REASON) != 0)
-            ssh2_gss_update(ssh);
+            ssh2_gss_update(ssh, TRUE);
 
         /* Do GSSAPI KEX when capable */
         s->can_gssapi_keyex = ssh->gss_status & GSS_KEX_CAPABLE;
@@ -6645,7 +6644,7 @@ static void do_ssh2_transport(Ssh ssh, const void *vin, int inlen,
 	s->n_preferred_kex = 0;
         if (s->can_gssapi_keyex)
             s->preferred_kex[s->n_preferred_kex++] = &ssh_gssk5_sha1_kex;
-        for (i = 0; i < KEX_MAX_CONF; i++) {
+        for (i = 0; i < KEX_MAX; i++) {
 	    switch (conf_get_int_int(ssh->conf, CONF_ssh_kexlist, i)) {
 	      case KEX_DHGEX:
 		s->preferred_kex[s->n_preferred_kex++] =
@@ -11888,7 +11887,7 @@ static struct Packet *ssh2_gss_authpacket(Ssh ssh, Ssh_gss_ctx gss_ctx,
  * we use the expiration of a newly obtained context as a proxy for the
  * expiration of the TGT.
  */
-static void ssh2_gss_update(Ssh ssh)
+static void ssh2_gss_update(Ssh ssh, int definitely_rekeying)
 {
     int gss_stat;
     time_t gss_cred_expiry;
@@ -11954,8 +11953,17 @@ static void ssh2_gss_update(Ssh ssh)
 
     if (gss_stat != SSH_GSS_OK &&
         gss_stat != SSH_GSS_S_CONTINUE_NEEDED) {
-        logeventf(ssh, "GSSAPI init sec context failed;"
-                  " won't use GSS key exchange");
+        /*
+         * No point in verbosely interrupting the user to tell them we
+         * couldn't get GSS credentials, if this was only a check
+         * between key exchanges to see if fresh ones were available.
+         * When we do do a rekey, this message (if displayed) will
+         * appear among the standard rekey blurb, but when we're not,
+         * it shouldn't pop up all the time regardless.
+         */
+        if (definitely_rekeying)
+            logeventf(ssh, "No GSSAPI security context available");
+
         return;
     }
 
@@ -12021,7 +12029,12 @@ static int ssh2_timer_update(Ssh ssh, unsigned long rekey_time)
     }
 
 #ifndef NO_GSSAPI
-    {
+    if (ssh->gss_kex_used) {
+        /*
+         * If we've used GSSAPI key exchange, then we should
+         * periodically check whether we need to do another one to
+         * pass new credentials to the server.
+         */
         unsigned long gssmins;
 
         /* Check cascade conditions more frequently if configured */
@@ -12079,7 +12092,7 @@ static void ssh2_timer(void *ctx, unsigned long now)
      * this is unsafe.
      */
     if (conf_get_int(ssh->conf, CONF_gssapirekey)) {
-        ssh2_gss_update(ssh);
+        ssh2_gss_update(ssh, FALSE);
         if ((ssh->gss_status & GSS_KEX_CAPABLE) != 0 &&
             (ssh->gss_status & GSS_CTXT_MAYFAIL) == 0 &&
             (ssh->gss_status & (GSS_CRED_UPDATED|GSS_CTXT_EXPIRES)) != 0) {

@@ -12871,6 +12871,53 @@
   <enum name="CONSERVATIVE_RASTERIZATION_INTEL" value="0x83FE"/>
 </category>
 
+<category name="GL_NV_conservative_raster" number="465">
+    <enum name="CONSERVATIVE_RASTERIZATION_NV"       value="0x9346">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="SUBPIXEL_PRECISION_BIAS_X_BITS_NV"   value="0x9347">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="SUBPIXEL_PRECISION_BIAS_Y_BITS_NV"   value="0x9348">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="MAX_SUBPIXEL_PRECISION_BIAS_BITS_NV" value="0x9349">
+        <size name="Get" mode="get"/>
+    </enum>
+    <function name="SubpixelPrecisionBiasNV" es1="1.0" es2="2.0" no_error="true">
+        <param name="xbits" type="GLuint"/>
+        <param name="ybits" type="GLuint"/>
+    </function>
+</category>
+
+<category name="GL_NV_conservative_raster_dilate" number="480">
+    <enum name="CONSERVATIVE_RASTER_DILATE_NV"             value="0x9379">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="CONSERVATIVE_RASTER_DILATE_RANGE_NV"       value="0x937A">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="CONSERVATIVE_RASTER_DILATE_GRANULARITY_NV" value="0x937B">
+        <size name="Get" mode="get"/>
+    </enum>
+    <function name="ConservativeRasterParameterfNV" es1="1.0" es2="2.0" no_error="true">
+        <param name="pname" type="GLenum"/>
+        <param name="param" type="GLfloat"/>
+    </function>
+</category>
+
+<category name="GL_NV_conservative_pre_snap_triangles" number="487">
+    <enum name="CONSERVATIVE_RASTER_MODE_NV"       value="0x954D">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="CONSERVATIVE_RASTER_MODE_POST_SNAP_NV"   value="0x954E"/>
+    <enum name="CONSERVATIVE_RASTER_MODE_PRE_SNAP_TRIANGLES_NV"   value="0x954F"/>
+    <function name="ConservativeRasterParameteriNV" es1="1.0" es2="2.0" no_error="true">
+        <param name="pname" type="GLenum"/>
+        <param name="param" type="GLint"/>
+    </function>
+</category>
+
 <xi:include href="INTEL_performance_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <category name="GL_EXT_polygon_offset_clamp" number="460">

@@ -62,6 +62,7 @@ header = """/**
 #include "main/colortab.h"
 #include "main/compute.h"
 #include "main/condrender.h"
+#include "main/conservativeraster.h"
 #include "main/context.h"
 #include "main/convolve.h"
 #include "main/copyimage.h"

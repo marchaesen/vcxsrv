@@ -77,13 +77,14 @@ xwl_present_cleanup(struct xwl_window *xwl_window, WindowPtr window)
 {
     struct xwl_present_event *event, *tmp;
 
-    if (xwl_window->present_window == window || xwl_window->window == window) {
-        if (xwl_window->present_frame_callback) {
-            wl_callback_destroy(xwl_window->present_frame_callback);
-            xwl_window->present_frame_callback = NULL;
-        }
-        xwl_window->present_window = NULL;
+    if (xwl_window->present_window != window && xwl_window->window != window)
+        return;
+
+    if (xwl_window->present_frame_callback) {
+        wl_callback_destroy(xwl_window->present_frame_callback);
+        xwl_window->present_frame_callback = NULL;
     }
+    xwl_window->present_window = NULL;
 
     /* Clear remaining events */
     xorg_list_for_each_entry_safe(event, tmp, &xwl_window->present_event_list, list) {
@@ -98,8 +99,7 @@ xwl_present_cleanup(struct xwl_window *xwl_window, WindowPtr window)
     }
 
     /* Clear timer */
-    if (!xwl_present_has_events(xwl_window))
-        xwl_present_free_timer(xwl_window);
+    xwl_present_free_timer(xwl_window);
 }
 
 static void
