@@ -840,7 +840,15 @@ __glGetBooleanv_size( GLenum e )
         case GL_WINDOW_RECTANGLE_MODE_EXT:
         case GL_MAX_WINDOW_RECTANGLES_EXT:
         case GL_NUM_WINDOW_RECTANGLES_EXT:
+        case GL_CONSERVATIVE_RASTERIZATION_NV:
+        case GL_SUBPIXEL_PRECISION_BIAS_X_BITS_NV:
+        case GL_SUBPIXEL_PRECISION_BIAS_Y_BITS_NV:
+        case GL_MAX_SUBPIXEL_PRECISION_BIAS_BITS_NV:
+        case GL_CONSERVATIVE_RASTER_DILATE_NV:
+        case GL_CONSERVATIVE_RASTER_DILATE_RANGE_NV:
+        case GL_CONSERVATIVE_RASTER_DILATE_GRANULARITY_NV:
         case GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY_ARB:
+        case GL_CONSERVATIVE_RASTER_MODE_NV:
             return __glGetBooleanv_variable_size( e );
         default: return 0;
     }
