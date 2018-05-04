@@ -212,11 +212,11 @@ NIR_FILES = \
 	nir/nir_liveness.c \
 	nir/nir_loop_analyze.c \
 	nir/nir_loop_analyze.h \
-	nir/nir_lower_64bit_packing.c \
 	nir/nir_lower_alpha_test.c \
 	nir/nir_lower_alu_to_scalar.c \
 	nir/nir_lower_atomics_to_ssbo.c \
 	nir/nir_lower_bitmap.c \
+	nir/nir_lower_bit_size.c \
 	nir/nir_lower_clamp_color_outputs.c \
 	nir/nir_lower_clip.c \
 	nir/nir_lower_clip_cull_distance_arrays.c \
@@ -235,6 +235,7 @@ NIR_FILES = \
 	nir/nir_lower_io_to_temporaries.c \
 	nir/nir_lower_io_to_scalar.c \
 	nir/nir_lower_io_types.c \
+	nir/nir_lower_packing.c \
 	nir/nir_lower_passthrough_edgeflags.c \
 	nir/nir_lower_patch_vertices.c \
 	nir/nir_lower_phis_to_scalar.c \

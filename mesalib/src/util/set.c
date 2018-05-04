@@ -156,6 +156,29 @@ _mesa_set_destroy(struct set *ht, void (*delete_function)(struct set_entry *entr
 }
 
 /**
+ * Clears all values from the given set.
+ *
+ * If delete_function is passed, it gets called on each entry present before
+ * the set is cleared.
+ */
+void
+_mesa_set_clear(struct set *set, void (*delete_function)(struct set_entry *entry))
+{
+   struct set_entry *entry;
+
+   if (!set)
+      return;
+
+   set_foreach (set, entry) {
+      if (delete_function)
+         delete_function(entry);
+      entry->key = deleted_key;
+   }
+
+   set->entries = set->deleted_entries = 0;
+}
+
+/**
  * Finds a set entry with the given key and hash of that key.
  *
  * Returns NULL if no entry is found.

@@ -1248,6 +1248,13 @@ ac_build_ddxy(struct ac_llvm_context *ctx,
 	tl = LLVMBuildBitCast(ctx->builder, tl, ctx->f32, "");
 	trbl = LLVMBuildBitCast(ctx->builder, trbl, ctx->f32, "");
 	result = LLVMBuildFSub(ctx->builder, trbl, tl, "");
+
+	if (HAVE_LLVM >= 0x0700) {
+		result = ac_build_intrinsic(ctx,
+			"llvm.amdgcn.wqm.f32", ctx->f32,
+			&result, 1, 0);
+	}
+
 	return result;
 }
 

@@ -46,7 +46,6 @@ class exec_info():
         if compatibility is not None:
             assert isinstance(compatibility, int)
             assert compatibility >= 10
-            assert compatibility <= 30
 
         if core is not None:
             assert isinstance(core, int)
@@ -70,7 +69,7 @@ functions = {
     "TexBuffer": exec_info(compatibility=20, core=31, es2=31),
 
     # OpenGL 3.2 / GL_OES_geometry_shader.
-    "FramebufferTexture": exec_info(core=32, es2=31),
+    "FramebufferTexture": exec_info(compatibility=32, core=32, es2=31),
 
     # OpenGL 4.0 / GL_ARB_shader_subroutines. Mesa only exposes this
     # extension with core profile.

@@ -2,7 +2,11 @@ version_split = meson.project_version().split('.')
 major = version_split[0].to_int()
 minor = version_split[1].to_int()
 patch = version_split[2].to_int()
-subpatch = version_split[3].to_int()
+if version_split.length() == 4
+    subpatch = version_split[3].to_int()
+else
+    subpatch = 0
+endif
 
 release = major * 10000000 + minor * 100000 + patch * 1000 + subpatch
 

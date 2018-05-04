@@ -35,21 +35,59 @@
  */
 
 static nir_ssa_def *
-lower_pack_64(nir_builder *b, nir_ssa_def *src)
+lower_pack_64_from_32(nir_builder *b, nir_ssa_def *src)
 {
    return nir_pack_64_2x32_split(b, nir_channel(b, src, 0),
                                     nir_channel(b, src, 1));
 }
 
 static nir_ssa_def *
-lower_unpack_64(nir_builder *b, nir_ssa_def *src)
+lower_unpack_64_to_32(nir_builder *b, nir_ssa_def *src)
 {
    return nir_vec2(b, nir_unpack_64_2x32_split_x(b, src),
                       nir_unpack_64_2x32_split_y(b, src));
 }
 
+static nir_ssa_def *
+lower_pack_32_from_16(nir_builder *b, nir_ssa_def *src)
+{
+   return nir_pack_32_2x16_split(b, nir_channel(b, src, 0),
+                                    nir_channel(b, src, 1));
+}
+
+static nir_ssa_def *
+lower_unpack_32_to_16(nir_builder *b, nir_ssa_def *src)
+{
+   return nir_vec2(b, nir_unpack_32_2x16_split_x(b, src),
+                      nir_unpack_32_2x16_split_y(b, src));
+}
+
+static nir_ssa_def *
+lower_pack_64_from_16(nir_builder *b, nir_ssa_def *src)
+{
+   nir_ssa_def *xy = nir_pack_32_2x16_split(b, nir_channel(b, src, 0),
+                                               nir_channel(b, src, 1));
+
+   nir_ssa_def *zw = nir_pack_32_2x16_split(b, nir_channel(b, src, 2),
+                                               nir_channel(b, src, 3));
+
+   return nir_pack_64_2x32_split(b, xy, zw);
+}
+
+static nir_ssa_def *
+lower_unpack_64_to_16(nir_builder *b, nir_ssa_def *src)
+{
+   nir_ssa_def *xy = nir_unpack_64_2x32_split_x(b, src);
+   nir_ssa_def *zw = nir_unpack_64_2x32_split_y(b, src);
+
+   return nir_vec4(b, nir_unpack_32_2x16_split_x(b, xy),
+                      nir_unpack_32_2x16_split_y(b, xy),
+                      nir_unpack_32_2x16_split_x(b, zw),
+                      nir_unpack_32_2x16_split_y(b, zw));
+}
+
 static bool
-lower_64bit_pack_impl(nir_function_impl *impl)
+lower_pack_impl(nir_function_impl *impl)
 {
    nir_builder b;
    nir_builder_init(&b, impl);
@@ -63,7 +101,11 @@ lower_64bit_pack_impl(nir_function_impl *impl)
          nir_alu_instr *alu_instr = (nir_alu_instr *) instr;
 
          if (alu_instr->op != nir_op_pack_64_2x32 &&
-             alu_instr->op != nir_op_unpack_64_2x32)
+             alu_instr->op != nir_op_unpack_64_2x32 &&
+             alu_instr->op != nir_op_pack_64_4x16 &&
+             alu_instr->op != nir_op_unpack_64_4x16 &&
+             alu_instr->op != nir_op_pack_32_2x16 &&
+             alu_instr->op != nir_op_unpack_32_2x16)
             continue;
 
          b.cursor = nir_before_instr(&alu_instr->instr);
@@ -73,10 +115,22 @@ lower_64bit_pack_impl(nir_function_impl *impl)
 
          switch (alu_instr->op) {
          case nir_op_pack_64_2x32:
-            dest = lower_pack_64(&b, src);
+            dest = lower_pack_64_from_32(&b, src);
             break;
          case nir_op_unpack_64_2x32:
-            dest = lower_unpack_64(&b, src);
+            dest = lower_unpack_64_to_32(&b, src);
+            break;
+         case nir_op_pack_64_4x16:
+            dest = lower_pack_64_from_16(&b, src);
+            break;
+         case nir_op_unpack_64_4x16:
+            dest = lower_unpack_64_to_16(&b, src);
+            break;
+         case nir_op_pack_32_2x16:
+            dest = lower_pack_32_from_16(&b, src);
+            break;
+         case nir_op_unpack_32_2x16:
+            dest = lower_unpack_32_to_16(&b, src);
             break;
          default:
             unreachable("Impossible opcode");
@@ -94,13 +148,13 @@ lower_64bit_pack_impl(nir_function_impl *impl)
 }
 
 bool
-nir_lower_64bit_pack(nir_shader *shader)
+nir_lower_pack(nir_shader *shader)
 {
    bool progress = false;
 
    nir_foreach_function(function, shader) {
       if (function->impl)
-         progress |= lower_64bit_pack_impl(function->impl);
+         progress |= lower_pack_impl(function->impl);
    }
 
    return false;

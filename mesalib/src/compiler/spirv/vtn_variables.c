@@ -1419,11 +1419,11 @@ apply_var_decoration(struct vtn_builder *b, nir_variable *nir_var,
       case SpvBuiltInTessLevelInner:
          nir_var->data.compact = true;
          break;
-      case SpvBuiltInSamplePosition:
-         nir_var->data.origin_upper_left = b->origin_upper_left;
-         /* fallthrough */
       case SpvBuiltInFragCoord:
          nir_var->data.pixel_center_integer = b->pixel_center_integer;
+         /* fallthrough */
+      case SpvBuiltInSamplePosition:
+         nir_var->data.origin_upper_left = b->origin_upper_left;
          break;
       default:
          break;

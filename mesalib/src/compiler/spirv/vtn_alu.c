@@ -251,10 +251,17 @@ vtn_handle_bitcast(struct vtn_builder *b, struct vtn_ssa_value *dest,
       vtn_assert(src_bit_size % dest_bit_size == 0);
       unsigned divisor = src_bit_size / dest_bit_size;
       for (unsigned comp = 0; comp < src_components; comp++) {
-         vtn_assert(src_bit_size == 64);
-         vtn_assert(dest_bit_size == 32);
-         nir_ssa_def *split =
-            nir_unpack_64_2x32(&b->nb, nir_channel(&b->nb, src, comp));
+         nir_ssa_def *split;
+         if (src_bit_size == 64) {
+            assert(dest_bit_size == 32 || dest_bit_size == 16);
+            split = dest_bit_size == 32 ?
+               nir_unpack_64_2x32(&b->nb, nir_channel(&b->nb, src, comp)) :
+               nir_unpack_64_4x16(&b->nb, nir_channel(&b->nb, src, comp));
+         } else {
+            vtn_assert(src_bit_size == 32);
+            vtn_assert(dest_bit_size == 16);
+            split = nir_unpack_32_2x16(&b->nb, nir_channel(&b->nb, src, comp));
+         }
          for (unsigned i = 0; i < divisor; i++)
             dest_chan[divisor * comp + i] = nir_channel(&b->nb, split, i);
       }
@@ -263,11 +270,17 @@ vtn_handle_bitcast(struct vtn_builder *b, struct vtn_ssa_value *dest,
       unsigned divisor = dest_bit_size / src_bit_size;
       for (unsigned comp = 0; comp < dest_components; comp++) {
          unsigned channels = ((1 << divisor) - 1) << (comp * divisor);
-         nir_ssa_def *src_chan =
-            nir_channels(&b->nb, src, channels);
-         vtn_assert(dest_bit_size == 64);
-         vtn_assert(src_bit_size == 32);
-         dest_chan[comp] = nir_pack_64_2x32(&b->nb, src_chan);
+         nir_ssa_def *src_chan = nir_channels(&b->nb, src, channels);
+         if (dest_bit_size == 64) {
+            assert(src_bit_size == 32 || src_bit_size == 16);
+            dest_chan[comp] = src_bit_size == 32 ?
+               nir_pack_64_2x32(&b->nb, src_chan) :
+               nir_pack_64_4x16(&b->nb, src_chan);
+         } else {
+            vtn_assert(dest_bit_size == 32);
+            vtn_assert(src_bit_size == 16);
+            dest_chan[comp] = nir_pack_32_2x16(&b->nb, src_chan);
+         }
       }
    }
    dest->def = nir_vec(&b->nb, dest_chan, dest_components);
@@ -632,6 +645,41 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
       nir_op op = nir_type_conversion_op(src_alu_type, dst_alu_type, rounding_mode);
 
       val->ssa->def = nir_build_alu(&b->nb, op, src[0], src[1], NULL, NULL);
+      break;
+   }
+
+   case SpvOpBitFieldInsert:
+   case SpvOpBitFieldSExtract:
+   case SpvOpBitFieldUExtract:
+   case SpvOpShiftLeftLogical:
+   case SpvOpShiftRightArithmetic:
+   case SpvOpShiftRightLogical: {
+      bool swap;
+      unsigned src0_bit_size = glsl_get_bit_size(vtn_src[0]->type);
+      unsigned dst_bit_size = glsl_get_bit_size(type);
+      nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap,
+                                                  src0_bit_size, dst_bit_size);
+
+      assert (op == nir_op_ushr || op == nir_op_ishr || op == nir_op_ishl ||
+              op == nir_op_bitfield_insert || op == nir_op_ubitfield_extract ||
+              op == nir_op_ibitfield_extract);
+
+      for (unsigned i = 0; i < nir_op_infos[op].num_inputs; i++) {
+         unsigned src_bit_size =
+            nir_alu_type_get_type_size(nir_op_infos[op].input_types[i]);
+         if (src_bit_size == 0)
+            continue;
+         if (src_bit_size != src[i]->bit_size) {
+            assert(src_bit_size == 32);
+            /* Convert the Shift, Offset and Count  operands to 32 bits, which is the bitsize
+             * supported by the NIR instructions. See discussion here:
+             *
+             * https://lists.freedesktop.org/archives/mesa-dev/2018-April/193026.html
+             */
+            src[i] = nir_u2u32(&b->nb, src[i]);
+         }
+      }
+      val->ssa->def = nir_build_alu(&b->nb, op, src[0], src[1], src[2], src[3]);
       break;
    }
 

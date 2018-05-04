@@ -205,7 +205,7 @@ radv_entrypoint_is_enabled(int index, uint32_t core_version,
    % if not e.device_command:
       if (device) return false;
    % endif
-   % if e.name == 'vkCreateInstance' or e.name == 'vkEnumerateInstanceExtensionProperties' or e.name == 'vkEnumerateInstanceLayerProperties':
+   % if e.name == 'vkCreateInstance' or e.name == 'vkEnumerateInstanceExtensionProperties' or e.name == 'vkEnumerateInstanceLayerProperties' or e.name == 'vkEnumerateInstanceVersion':
       return !device;
    % elif e.core_version:
       return instance && ${e.core_version.c_vk_version()} <= core_version;

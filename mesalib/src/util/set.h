@@ -61,6 +61,9 @@ _mesa_set_create(void *mem_ctx,
 void
 _mesa_set_destroy(struct set *set,
                   void (*delete_function)(struct set_entry *entry));
+void
+_mesa_set_clear(struct set *set,
+                void (*delete_function)(struct set_entry *entry));
 
 struct set_entry *
 _mesa_set_add(struct set *set, const void *key);
