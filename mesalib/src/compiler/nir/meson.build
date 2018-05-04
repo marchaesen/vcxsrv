@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-nir_depends = files('nir_opcodes.py')
+nir_depends = files('nir_opcodes.py', 'nir_intrinsics.py')
 
 nir_builder_opcodes_h = custom_target(
   'nir_builder_opcodes.h',
@@ -103,7 +103,6 @@ files_libnir = files(
   'nir_liveness.c',
   'nir_loop_analyze.c',
   'nir_loop_analyze.h',
-  'nir_lower_64bit_packing.c',
   'nir_lower_alu_to_scalar.c',
   'nir_lower_alpha_test.c',
   'nir_lower_atomics_to_ssbo.c',
@@ -126,6 +125,7 @@ files_libnir = files(
   'nir_lower_io_to_temporaries.c',
   'nir_lower_io_to_scalar.c',
   'nir_lower_io_types.c',
+  'nir_lower_packing.c',
   'nir_lower_passthrough_edgeflags.c',
   'nir_lower_patch_vertices.c',
   'nir_lower_phis_to_scalar.c',
@@ -141,6 +141,7 @@ files_libnir = files(
   'nir_lower_vec_to_movs.c',
   'nir_lower_wpos_center.c',
   'nir_lower_wpos_ytransform.c',
+  'nir_lower_bit_size.c',
   'nir_metadata.c',
   'nir_move_vec_src_uses_to_dest.c',
   'nir_normalize_cubemap_coords.c',

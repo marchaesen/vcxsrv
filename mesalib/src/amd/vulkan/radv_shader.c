@@ -125,7 +125,7 @@ radv_optimize_nir(struct nir_shader *shader)
                 progress = false;
 
                 NIR_PASS_V(shader, nir_lower_vars_to_ssa);
-		NIR_PASS_V(shader, nir_lower_64bit_pack);
+		NIR_PASS_V(shader, nir_lower_pack);
                 NIR_PASS_V(shader, nir_lower_alu_to_scalar);
                 NIR_PASS_V(shader, nir_lower_phis_to_scalar);
 

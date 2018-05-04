@@ -325,7 +325,7 @@ st_nir_opts(nir_shader *nir)
       NIR_PASS_V(nir, nir_lower_alu_to_scalar);
       NIR_PASS_V(nir, nir_lower_phis_to_scalar);
 
-      NIR_PASS_V(nir, nir_lower_64bit_pack);
+      NIR_PASS_V(nir, nir_lower_pack);
       NIR_PASS(progress, nir, nir_copy_prop);
       NIR_PASS(progress, nir, nir_opt_remove_phis);
       NIR_PASS(progress, nir, nir_opt_dce);

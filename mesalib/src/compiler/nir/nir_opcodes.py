@@ -91,6 +91,7 @@ tfloat = "float"
 tint = "int"
 tbool = "bool32"
 tuint = "uint"
+tuint16 = "uint16"
 tfloat32 = "float32"
 tint32 = "int32"
 tuint32 = "uint32"
@@ -282,11 +283,23 @@ dst.x = (src0.x <<  0) |
         (src0.w << 24);
 """)
 
+unop_horiz("pack_32_2x16", 1, tuint32, 2, tuint16,
+           "dst.x = src0.x | ((uint32_t)src0.y << 16);")
+
 unop_horiz("pack_64_2x32", 1, tuint64, 2, tuint32,
            "dst.x = src0.x | ((uint64_t)src0.y << 32);")
 
+unop_horiz("pack_64_4x16", 1, tuint64, 4, tuint16,
+           "dst.x = src0.x | ((uint64_t)src0.y << 16) | ((uint64_t)src0.z << 32) | ((uint64_t)src0.w << 48);")
+
 unop_horiz("unpack_64_2x32", 2, tuint32, 1, tuint64,
            "dst.x = src0.x; dst.y = src0.x >> 32;")
+
+unop_horiz("unpack_64_4x16", 4, tuint16, 1, tuint64,
+           "dst.x = src0.x; dst.y = src0.x >> 16; dst.z = src0.x >> 32; dst.w = src0.w >> 48;")
+
+unop_horiz("unpack_32_2x16", 2, tuint16, 1, tuint32,
+           "dst.x = src0.x; dst.y = src0.x >> 16;")
 
 # Lowered floating point unpacking operations.
 
@@ -295,6 +308,9 @@ unop_horiz("unpack_half_2x16_split_x", 1, tfloat32, 1, tuint32,
            "unpack_half_1x16((uint16_t)(src0.x & 0xffff))")
 unop_horiz("unpack_half_2x16_split_y", 1, tfloat32, 1, tuint32,
            "unpack_half_1x16((uint16_t)(src0.x >> 16))")
+
+unop_convert("unpack_32_2x16_split_x", tuint16, tuint32, "src0")
+unop_convert("unpack_32_2x16_split_y", tuint16, tuint32, "src0 >> 16")
 
 unop_convert("unpack_64_2x32_split_x", tuint32, tuint64, "src0")
 unop_convert("unpack_64_2x32_split_y", tuint32, tuint64, "src0 >> 32")
@@ -607,6 +623,9 @@ binop_horiz("pack_half_2x16_split", 1, tuint32, 1, tfloat32, 1, tfloat32,
 
 binop_convert("pack_64_2x32_split", tuint64, tuint32, "",
               "src0 | ((uint64_t)src1 << 32)")
+
+binop_convert("pack_32_2x16_split", tuint32, tuint16, "",
+              "src0 | ((uint32_t)src1 << 16)")
 
 # bfm implements the behavior of the first operation of the SM5 "bfi" assembly
 # and that of the "bfi1" i965 instruction. That is, it has undefined behavior

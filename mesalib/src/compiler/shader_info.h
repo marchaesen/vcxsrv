@@ -44,6 +44,7 @@ struct spirv_supported_capabilities {
    bool multiview;
    bool variable_pointers;
    bool storage_16bit;
+   bool int16;
    bool shader_viewport_index_layer;
    bool subgroup_arithmetic;
    bool subgroup_ballot;
