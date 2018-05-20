@@ -130,8 +130,8 @@ xkb_symbols "T3" {
     key <AD10> { [               p,               P,       dead_hook,        NoSymbol,           thorn,           THORN,       dead_hook,        NoSymbol ] };
     key <AD11> { [      udiaeresis,      Udiaeresis,       dead_horn,        NoSymbol,           U017F,  dead_abovering,      dead_grave,        NoSymbol ] };
     key.type[Group1] = "EIGHT_LEVEL";
-    key <AD12> { [            plus,        asterisk,      asciitilde,        NoSymbol,           U2020,           U2021,        NoSymbol,        NoSymbol ] };
-
+    key <AD12> { [            plus,        asterisk,      asciitilde,        NoSymbol,      dead_tilde,     dead_macron,              at,        NoSymbol ] };
+    
     key.type[Group1] = "ONE_LEVEL";
     key <CAPS>  { [ Caps_Lock	]	};
     key.type[Group1] = "EIGHT_LEVEL_ALPHABETIC";
@@ -157,7 +157,7 @@ xkb_symbols "T3" {
     key <AB04> { [               v,               V,   guillemotleft,        NoSymbol, leftdoublequotemark, leftsinglequotemark,   U2039,        NoSymbol ] };
     key <AB05> { [               b,               B,           U2039,        NoSymbol, rightdoublequotemark, rightsinglequotemark, U203A,        NoSymbol ] };
     key <AB06> { [               n,               N,          endash,        NoSymbol,           U019E,           U0220,          endash,        NoSymbol ] };
-    key <AB07> { [               m,               M,        Greek_mu,        NoSymbol,              mu,       masculine,          emdash,        NoSymbol ] };
+    key <AB07> { [               m,               M,              mu,        NoSymbol,              mu,       masculine,          emdash,        NoSymbol ] };
     key.type[Group1] = "EIGHT_LEVEL";
     key <AB08> { [           comma,       semicolon,           U02BB,        NoSymbol,        ellipsis,        multiply,          dollar,        NoSymbol ] };
     key <AB09> { [          period,           colon,           U200C,        NoSymbol,  periodcentered,        division,      numbersign,        NoSymbol ] };

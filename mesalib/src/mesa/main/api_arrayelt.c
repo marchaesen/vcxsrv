@@ -1823,7 +1823,7 @@ _ae_invalidate_state(struct gl_context *ctx)
     * Luckily, neither the drivers nor tnl muck with the state that
     * concerns us here:
     */
-   assert(ctx->NewState & (_NEW_ARRAY | _NEW_PROGRAM));
+   assert(ctx->NewState & _NEW_ARRAY);
 
    assert(!actx->mapped_vbos);
    actx->dirty_state = true;

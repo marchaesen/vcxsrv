@@ -358,6 +358,8 @@ static void radv_pick_resolve_method_images(struct radv_image *src_image,
 		*method = RESOLVE_COMPUTE;
 	else if (vk_format_is_int(src_image->vk_format))
 		*method = RESOLVE_COMPUTE;
+	else if (src_image->info.array_size > 1)
+		*method = RESOLVE_COMPUTE;
 	
 	if (radv_layout_dcc_compressed(dest_image, dest_image_layout, queue_mask)) {
 		*method = RESOLVE_FRAGMENT;
@@ -695,7 +697,7 @@ radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
 		VkImageResolve region = {};
 		region.srcSubresource.baseArrayLayer = 0;
 		region.srcSubresource.mipLevel = 0;
-		region.srcSubresource.layerCount = 1;
+		region.srcSubresource.layerCount = src_image->info.array_size;
 
 		radv_decompress_resolve_src(cmd_buffer, src_image,
 					    src_att.layout, 1, &region);

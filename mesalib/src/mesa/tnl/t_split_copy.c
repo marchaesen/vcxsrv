@@ -53,7 +53,7 @@
  */
 struct copy_context {
    struct gl_context *ctx;
-   const struct gl_vertex_array *array;
+   const struct tnl_vertex_array *array;
    const struct _mesa_prim *prim;
    GLuint nr_prims;
    const struct _mesa_index_buffer *ib;
@@ -64,7 +64,7 @@ struct copy_context {
    struct {
       GLuint attr;
       GLuint size;
-      const struct gl_vertex_array *array;
+      const struct tnl_vertex_array *array;
       const GLubyte *src_ptr;
 
       struct gl_vertex_buffer_binding dstbinding;
@@ -73,7 +73,7 @@ struct copy_context {
    } varying[VERT_ATTRIB_MAX];
    GLuint nr_varying;
 
-   struct gl_vertex_array dstarray[VERT_ATTRIB_MAX];
+   struct tnl_vertex_array dstarray[VERT_ATTRIB_MAX];
    struct _mesa_index_buffer dstib;
 
    GLuint *translated_elt_buf;
@@ -113,6 +113,18 @@ attr_size(const struct gl_array_attributes *attrib)
 
 
 /**
+ * Shallow copy one vertex array to another.
+ */
+static inline void
+copy_vertex_array(struct tnl_vertex_array *dst,
+                  const struct tnl_vertex_array *src)
+{
+   dst->VertexAttrib = src->VertexAttrib;
+   dst->BufferBinding = src->BufferBinding;
+}
+
+
+/**
  * Starts returning true slightly before the buffer fills, to ensure
  * that there is sufficient room for any remaining vertices to finish
  * off the prim:
@@ -142,7 +154,7 @@ check_flush(struct copy_context *copy)
  */
 static void
 dump_draw_info(struct gl_context *ctx,
-               const struct gl_vertex_array *arrays,
+               const struct tnl_vertex_array *arrays,
                const struct _mesa_prim *prims,
                GLuint nr_prims,
                const struct _mesa_index_buffer *ib,
@@ -157,7 +169,7 @@ dump_draw_info(struct gl_context *ctx,
       printf("  Prim mode 0x%x\n", prims[i].mode);
       printf("  IB: %p\n", (void*) ib);
       for (j = 0; j < VERT_ATTRIB_MAX; j++) {
-         const struct gl_vertex_array *array = &arrays[j];
+         const struct tnl_vertex_array *array = &arrays[j];
          const struct gl_vertex_buffer_binding *binding
             = array->BufferBinding;
          const struct gl_array_attributes *attrib = array->VertexAttrib;
@@ -254,7 +266,7 @@ elt(struct copy_context *copy, GLuint elt_idx)
       GLuint i;
 
       for (i = 0; i < copy->nr_varying; i++) {
-         const struct gl_vertex_array *srcarray = copy->varying[i].array;
+         const struct tnl_vertex_array *srcarray = copy->varying[i].array;
          const struct gl_vertex_buffer_binding* srcbinding
             = srcarray->BufferBinding;
          const GLubyte *srcptr
@@ -432,11 +444,11 @@ replay_init(struct copy_context *copy)
     */
    copy->vertex_size = 0;
    for (i = 0; i < VERT_ATTRIB_MAX; i++) {
-      const struct gl_vertex_array *array = &copy->array[i];
+      const struct tnl_vertex_array *array = &copy->array[i];
       const struct gl_vertex_buffer_binding *binding = array->BufferBinding;
 
       if (binding->Stride == 0) {
-         _mesa_copy_vertex_array(&copy->dstarray[i], array);
+         copy_vertex_array(&copy->dstarray[i], array);
       }
       else {
          const struct gl_array_attributes *attrib = array->VertexAttrib;
@@ -517,9 +529,9 @@ replay_init(struct copy_context *copy)
    /* Setup new vertex arrays to point into the output buffer:
     */
    for (offset = 0, i = 0; i < copy->nr_varying; i++) {
-      const struct gl_vertex_array *src = copy->varying[i].array;
+      const struct tnl_vertex_array *src = copy->varying[i].array;
       const struct gl_array_attributes *srcattr = src->VertexAttrib;
-      struct gl_vertex_array *dst = &copy->dstarray[i];
+      struct tnl_vertex_array *dst = &copy->dstarray[i];
       struct gl_vertex_buffer_binding *dstbind = &copy->varying[i].dstbinding;
       struct gl_array_attributes *dstattr = &copy->varying[i].dstattribs;
 
@@ -591,7 +603,7 @@ replay_finish(struct copy_context *copy)
  */
 void
 _tnl_split_copy(struct gl_context *ctx,
-                const struct gl_vertex_array *arrays,
+                const struct tnl_vertex_array *arrays,
                 const struct _mesa_prim *prim,
                 GLuint nr_prims,
                 const struct _mesa_index_buffer *ib,

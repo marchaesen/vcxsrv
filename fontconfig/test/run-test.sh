@@ -203,4 +203,29 @@ fi
 rm -rf $TESTTMPDIR out1 out2 xxx bind-fonts.conf
 fi
 
+dotest "sysroot option"
+prep
+mkdir -p $MyPWD/sysroot/$FONTDIR
+mkdir -p $MyPWD/sysroot/$CACHEDIR
+cp $FONT1 $MyPWD/sysroot/$FONTDIR
+cp $MyPWD/fonts.conf $MyPWD/sysroot/$MyPWD/fonts.conf
+$FCCACHE -y $MyPWD/sysroot
+stat $MyPWD/sysroot/$FONTDIR/.uuid
+if test $? != 0; then
+  echo "*** Test failed: $TEST"
+  exit 1
+fi
+
+dotest "creating uuid-based cache file on sysroot"
+uuid=`cat $MyPWD/sysroot/$FONTDIR/.uuid`
+ls $MyPWD/sysroot/$CACHEDIR/$uuid*
+if [ $? != 0 ]; then
+  echo "*** Test failed: $TEST"
+  echo "No cache for $uuid"
+  ls $MyPWD/sysroot/$CACHEDIR
+  exit 1
+fi
+
+rm -rf $MyPWD/sysroot
+
 rm -rf $FONTDIR $CACHEFILE $CACHEDIR $FONTCONFIG_FILE out

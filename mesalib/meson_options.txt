@@ -59,7 +59,7 @@ option(
   value : ['auto'],
   choices : [
     '', 'auto', 'pl111', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',
-    'swrast', 'vc4', 'vc5', 'etnaviv', 'imx', 'tegra', 'i915', 'svga', 'virgl',
+    'swrast', 'v3d', 'vc4', 'etnaviv', 'imx', 'tegra', 'i915', 'svga', 'virgl',
     'swr',
   ],
   description : 'List of gallium drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'

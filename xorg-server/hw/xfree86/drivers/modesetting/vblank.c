@@ -226,7 +226,6 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
         /* Queue an event at the specified sequence */
         if (ms->has_queue_sequence || !ms->tried_queue_sequence) {
             uint32_t drm_flags = 0;
-            uint64_t kernel;
             uint64_t kernel_queued;
 
             ms->tried_queue_sequence = TRUE;
@@ -236,13 +235,11 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
             if (flags & MS_QUEUE_NEXT_ON_MISS)
                 drm_flags |= DRM_CRTC_SEQUENCE_NEXT_ON_MISS;
 
-            kernel = ms_crtc_msc_to_kernel_msc(crtc, msc);
             ret = drmCrtcQueueSequence(ms->fd, drmmode_crtc->mode_crtc->crtc_id,
-                                       drm_flags,
-                                       kernel, &kernel_queued, seq);
+                                       drm_flags, msc, &kernel_queued, seq);
             if (ret == 0) {
                 if (msc_queued)
-                    *msc_queued = ms_kernel_msc_to_crtc_msc(crtc, kernel_queued);
+                    *msc_queued = ms_kernel_msc_to_crtc_msc(crtc, kernel_queued, TRUE);
                 ms->has_queue_sequence = TRUE;
                 return TRUE;
             }
@@ -260,13 +257,12 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
         if (flags & MS_QUEUE_NEXT_ON_MISS)
             vbl.request.type |= DRM_VBLANK_NEXTONMISS;
 
-        vbl.request.sequence = (flags & MS_QUEUE_RELATIVE) ?
-                                    msc : ms_crtc_msc_to_kernel_msc(crtc, msc);
+        vbl.request.sequence = msc;
         vbl.request.signal = seq;
         ret = drmWaitVBlank(ms->fd, &vbl);
         if (ret == 0) {
             if (msc_queued)
-                *msc_queued = ms_kernel_msc_to_crtc_msc(crtc, vbl.reply.sequence);
+                *msc_queued = ms_kernel_msc_to_crtc_msc(crtc, vbl.reply.sequence, FALSE);
             return TRUE;
         }
     check:
@@ -279,65 +275,61 @@ ms_queue_vblank(xf86CrtcPtr crtc, ms_queue_flag flags,
 }
 
 /**
- * Convert a 32-bit kernel MSC sequence number to a 64-bit local sequence
- * number, adding in the vblank_offset and high 32 bits, and dealing
- * with 64-bit wrapping
+ * Convert a 32-bit or 64-bit kernel MSC sequence number to a 64-bit local
+ * sequence number, adding in the high 32 bits, and dealing with 32-bit
+ * wrapping if needed.
  */
 uint64_t
-ms_kernel_msc_to_crtc_msc(xf86CrtcPtr crtc, uint64_t sequence)
+ms_kernel_msc_to_crtc_msc(xf86CrtcPtr crtc, uint64_t sequence, Bool is64bit)
 {
     drmmode_crtc_private_rec *drmmode_crtc = crtc->driver_private;
-    sequence += drmmode_crtc->vblank_offset;
 
-    if ((int32_t) (sequence - drmmode_crtc->msc_prev) < -0x40000000)
-        drmmode_crtc->msc_high += 0x100000000L;
+    if (!is64bit) {
+        /* sequence is provided as a 32 bit value from one of the 32 bit apis,
+         * e.g., drmWaitVBlank(), classic vblank events, or pageflip events.
+         *
+         * Track and handle 32-Bit wrapping, somewhat robust against occasional
+         * out-of-order not always monotonically increasing sequence values.
+         */
+        if ((int64_t) sequence < ((int64_t) drmmode_crtc->msc_prev - 0x40000000))
+            drmmode_crtc->msc_high += 0x100000000L;
+
+        if ((int64_t) sequence > ((int64_t) drmmode_crtc->msc_prev + 0x40000000))
+            drmmode_crtc->msc_high -= 0x100000000L;
+
+        drmmode_crtc->msc_prev = sequence;
+
+        return drmmode_crtc->msc_high + sequence;
+    }
+
+    /* True 64-Bit sequence from Linux 4.15+ 64-Bit drmCrtcGetSequence /
+     * drmCrtcQueueSequence apis and events. Pass through sequence unmodified,
+     * but update the 32-bit tracking variables with reliable ground truth.
+     *
+     * With 64-Bit api in use, the only !is64bit input is from pageflip events,
+     * and any pageflip event is usually preceeded by some is64bit input from
+     * swap scheduling, so this should provide reliable mapping for pageflip
+     * events based on true 64-bit input as baseline as well.
+     */
     drmmode_crtc->msc_prev = sequence;
-    return drmmode_crtc->msc_high + sequence;
+    drmmode_crtc->msc_high = sequence & 0xffffffff00000000;
+
+    return sequence;
 }
 
 int
 ms_get_crtc_ust_msc(xf86CrtcPtr crtc, CARD64 *ust, CARD64 *msc)
 {
+    ScreenPtr screen = crtc->randr_crtc->pScreen;
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+    modesettingPtr ms = modesettingPTR(scrn);
     uint64_t kernel_msc;
 
     if (!ms_get_kernel_ust_msc(crtc, &kernel_msc, ust))
         return BadMatch;
-    *msc = ms_kernel_msc_to_crtc_msc(crtc, kernel_msc);
+    *msc = ms_kernel_msc_to_crtc_msc(crtc, kernel_msc, ms->has_queue_sequence);
 
     return Success;
-}
-
-#define MAX_VBLANK_OFFSET       1000
-
-/**
- * Convert a 64-bit adjusted MSC value into a 64-bit kernel sequence number,
- * by subtracting out the vblank_offset term.
- *
- * This also updates the vblank_offset when it notices that the value should
- * change.
- */
-uint64_t
-ms_crtc_msc_to_kernel_msc(xf86CrtcPtr crtc, uint64_t expect)
-{
-    drmmode_crtc_private_rec *drmmode_crtc = crtc->driver_private;
-    uint64_t msc;
-    uint64_t ust;
-    int64_t diff;
-
-    if (ms_get_crtc_ust_msc(crtc, &ust, &msc) == Success) {
-        diff = expect - msc;
-
-        /* We're way off here, assume that the kernel has lost its mind
-         * and smack the vblank back to something sensible
-         */
-        if (diff < -MAX_VBLANK_OFFSET || MAX_VBLANK_OFFSET < diff) {
-            drmmode_crtc->vblank_offset += (int32_t) diff;
-            if (drmmode_crtc->vblank_offset > -MAX_VBLANK_OFFSET &&
-                drmmode_crtc->vblank_offset < MAX_VBLANK_OFFSET)
-                drmmode_crtc->vblank_offset = 0;
-        }
-    }
-    return (expect - drmmode_crtc->vblank_offset);
 }
 
 /**
@@ -455,7 +447,7 @@ ms_drm_abort(ScrnInfoPtr scrn, Bool (*match)(void *data, void *match_data),
  * drm event queue and calls the handler for it.
  */
 static void
-ms_drm_sequence_handler(int fd, uint64_t frame, uint64_t ns, uint64_t user_data)
+ms_drm_sequence_handler(int fd, uint64_t frame, uint64_t ns, Bool is64bit, uint64_t user_data)
 {
     struct ms_drm_queue *q, *tmp;
     uint32_t seq = (uint32_t) user_data;
@@ -464,7 +456,7 @@ ms_drm_sequence_handler(int fd, uint64_t frame, uint64_t ns, uint64_t user_data)
         if (q->seq == seq) {
             uint64_t msc;
 
-            msc = ms_kernel_msc_to_crtc_msc(q->crtc, frame);
+            msc = ms_kernel_msc_to_crtc_msc(q->crtc, frame, is64bit);
             xorg_list_del(&q->list);
             q->handler(msc, ns / 1000, q->data);
             free(q);
@@ -474,10 +466,19 @@ ms_drm_sequence_handler(int fd, uint64_t frame, uint64_t ns, uint64_t user_data)
 }
 
 static void
+ms_drm_sequence_handler_64bit(int fd, uint64_t frame, uint64_t ns, uint64_t user_data)
+{
+    /* frame is true 64 bit wrapped into 64 bit */
+    ms_drm_sequence_handler(fd, frame, ns, TRUE, user_data);
+}
+
+static void
 ms_drm_handler(int fd, uint32_t frame, uint32_t sec, uint32_t usec,
                void *user_ptr)
 {
-    ms_drm_sequence_handler(fd, frame, ((uint64_t) sec * 1000000 + usec) * 1000, (uint32_t) (uintptr_t) user_ptr);
+    /* frame is 32 bit wrapped into 64 bit */
+    ms_drm_sequence_handler(fd, frame, ((uint64_t) sec * 1000000 + usec) * 1000,
+                            FALSE, (uint32_t) (uintptr_t) user_ptr);
 }
 
 Bool
@@ -491,7 +492,7 @@ ms_vblank_screen_init(ScreenPtr screen)
     ms->event_context.version = 4;
     ms->event_context.vblank_handler = ms_drm_handler;
     ms->event_context.page_flip_handler = ms_drm_handler;
-    ms->event_context.sequence_handler = ms_drm_sequence_handler;
+    ms->event_context.sequence_handler = ms_drm_sequence_handler_64bit;
 
     /* We need to re-register the DRM fd for the synchronisation
      * feedback on every server generation, so perform the

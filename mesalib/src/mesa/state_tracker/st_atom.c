@@ -27,6 +27,7 @@
 
 
 #include <stdio.h>
+#include "main/arrayobj.h"
 #include "main/glheader.h"
 #include "main/context.h"
 
@@ -138,19 +139,15 @@ static void check_program_state( struct st_context *st )
 
 static void check_attrib_edgeflag(struct st_context *st)
 {
-   const struct gl_vertex_array *arrays = st->ctx->Array._DrawArrays;
-   const struct gl_vertex_buffer_binding *binding;
    GLboolean vertdata_edgeflags, edgeflag_culls_prims, edgeflags_enabled;
    struct gl_program *vp = st->ctx->VertexProgram._Current;
-
-   if (!arrays)
-      return;
 
    edgeflags_enabled = st->ctx->Polygon.FrontMode != GL_FILL ||
                        st->ctx->Polygon.BackMode != GL_FILL;
 
-   binding = arrays[VERT_ATTRIB_EDGEFLAG].BufferBinding;
-   vertdata_edgeflags = edgeflags_enabled && binding->Stride != 0;
+   vertdata_edgeflags = edgeflags_enabled &&
+      _mesa_draw_edge_flag_array_enabled(st->ctx);
+
    if (vertdata_edgeflags != st->vertdata_edgeflags) {
       st->vertdata_edgeflags = vertdata_edgeflags;
       if (vp)

@@ -78,14 +78,14 @@ xkb_symbols "sin_phonetic" {
 
 partial alphanumeric_keys
 xkb_symbols "tam_unicode" {
-    include "in(tam_unicode)"
-    name[Group1]= "Tamil (Sri Lanka, Unicode)";
+    include "in(tam_tamilnet)"
+    name[Group1]= "Tamil (Sri Lanka, TamilNet '99)";
 };
 
 partial alphanumeric_keys
 xkb_symbols "tam_TAB" {
-    include "in(tam_TAB)"
-    name[Group1]= "Tamil (Sri Lanka, TAB Typewriter)";
+    include "in(tam_tamilnet_TAB)"
+    name[Group1]= "Tamil (Sri Lanka, TamilNet '99, TAB encoding)";
 };
 
 // SINHALA - US, SUBSTITUTES SOME AND ADDS SOME

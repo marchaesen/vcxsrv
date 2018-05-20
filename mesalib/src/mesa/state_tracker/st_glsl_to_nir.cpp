@@ -314,7 +314,7 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
    *size = max;
 }
 
-static void
+void
 st_nir_opts(nir_shader *nir)
 {
    bool progress;

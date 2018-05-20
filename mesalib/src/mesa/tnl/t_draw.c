@@ -28,6 +28,7 @@
 #include <stdio.h>
 
 #include "main/glheader.h"
+#include "main/arrayobj.h"
 #include "main/bufferobj.h"
 #include "main/condrender.h"
 #include "main/context.h"
@@ -273,7 +274,7 @@ static GLboolean *_tnl_import_edgeflag( struct gl_context *ctx,
 
 
 static void bind_inputs( struct gl_context *ctx, 
-			 const struct gl_vertex_array *inputs,
+			 const struct tnl_vertex_array *inputs,
 			 GLint count,
 			 struct gl_buffer_object **bo,
 			 GLuint *nr_bo )
@@ -285,7 +286,7 @@ static void bind_inputs( struct gl_context *ctx,
    /* Map all the VBOs
     */
    for (i = 0; i < VERT_ATTRIB_MAX; i++) {
-      const struct gl_vertex_array *array = &inputs[i];
+      const struct tnl_vertex_array *array = &inputs[i];
       const struct gl_vertex_buffer_binding *binding = array->BufferBinding;
       const struct gl_array_attributes *attrib = array->VertexAttrib;
       const void *ptr;
@@ -426,7 +427,7 @@ static void unmap_vbos( struct gl_context *ctx,
 /* This is the main workhorse doing all the rendering work.
  */
 void _tnl_draw_prims(struct gl_context *ctx,
-                     const struct gl_vertex_array *arrays,
+                     const struct tnl_vertex_array *arrays,
 			 const struct _mesa_prim *prim,
 			 GLuint nr_prims,
 			 const struct _mesa_index_buffer *ib,
@@ -538,11 +539,93 @@ void _tnl_draw_prims(struct gl_context *ctx,
 
 
 void
+_tnl_init_inputs(struct tnl_inputs *inputs)
+{
+   inputs->current = 0;
+   inputs->vertex_processing_mode = VP_MODE_FF;
+}
+
+
+/**
+ * Update the tnl_inputs's arrays to point to the vao->_VertexArray arrays
+ * according to the 'enable' bitmask.
+ * \param enable  bitfield of VERT_BIT_x flags.
+ */
+static inline void
+update_vao_inputs(struct gl_context *ctx,
+                  struct tnl_inputs *inputs, GLbitfield enable)
+{
+   const struct gl_vertex_array_object *vao = ctx->Array._DrawVAO;
+
+   /* Make sure we process only arrays enabled in the VAO */
+   assert((enable & ~_mesa_get_vao_vp_inputs(vao)) == 0);
+
+   /* Fill in the client arrays from the VAO */
+   const struct gl_vertex_buffer_binding *bindings = &vao->BufferBinding[0];
+   while (enable) {
+      const int attr = u_bit_scan(&enable);
+      struct tnl_vertex_array *input = &inputs->inputs[attr];
+      const struct gl_array_attributes *attrib;
+      attrib = _mesa_draw_array_attrib(vao, attr);
+      input->VertexAttrib = attrib;
+      input->BufferBinding = &bindings[attrib->BufferBindingIndex];
+   }
+}
+
+
+/**
+ * Update the tnl_inputs's arrays to point to the vbo->currval arrays
+ * according to the 'current' bitmask.
+ * \param current  bitfield of VERT_BIT_x flags.
+ */
+static inline void
+update_current_inputs(struct gl_context *ctx,
+                      struct tnl_inputs *inputs, GLbitfield current)
+{
+   gl_vertex_processing_mode mode = ctx->VertexProgram._VPMode;
+
+   /* All previously non current array pointers need update. */
+   GLbitfield mask = current & ~inputs->current;
+   /* On mode change, the slots aliasing with materials need update too */
+   if (mode != inputs->vertex_processing_mode)
+      mask |= current & VERT_BIT_MAT_ALL;
+
+   while (mask) {
+      const int attr = u_bit_scan(&mask);
+      struct tnl_vertex_array *input = &inputs->inputs[attr];
+      input->VertexAttrib = _vbo_current_attrib(ctx, attr);
+      input->BufferBinding = _vbo_current_binding(ctx);
+   }
+
+   inputs->current = current;
+   inputs->vertex_processing_mode = mode;
+}
+
+
+/**
+ * Update the tnl_inputs's arrays to point to the vao->_VertexArray and
+ * vbo->currval arrays according to Array._DrawVAO and
+ * Array._DrawVAOEnableAttribs.
+ */
+void
+_tnl_update_inputs(struct gl_context *ctx, struct tnl_inputs *inputs)
+{
+   const GLbitfield enable = ctx->Array._DrawVAOEnabledAttribs;
+
+   /* Update array input pointers */
+   update_vao_inputs(ctx, inputs, enable);
+
+   /* The rest must be current inputs. */
+   update_current_inputs(ctx, inputs, ~enable & VERT_BIT_ALL);
+}
+
+
+const struct tnl_vertex_array*
 _tnl_bind_inputs( struct gl_context *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-   _mesa_set_drawing_arrays(ctx, tnl->draw_arrays.inputs);
-   _vbo_update_inputs(ctx, &tnl->draw_arrays);
+   _tnl_update_inputs(ctx, &tnl->draw_arrays);
+   return tnl->draw_arrays.inputs;
 }
 
 
@@ -558,12 +641,11 @@ _tnl_draw(struct gl_context *ctx,
           struct gl_transform_feedback_object *tfb_vertcount,
           unsigned stream, struct gl_buffer_object *indirect)
 {
-   /* Update TNLcontext::draw_arrays and set that pointer
-    * into Array._DrawArrays.
+   /* Update TNLcontext::draw_arrays and return that pointer.
     */
-   _tnl_bind_inputs(ctx);
+   const struct tnl_vertex_array* arrays = _tnl_bind_inputs(ctx);
 
-   _tnl_draw_prims(ctx, ctx->Array._DrawArrays, prim, nr_prims, ib,
+   _tnl_draw_prims(ctx, arrays, prim, nr_prims, ib,
                    index_bounds_valid, min_index, max_index,
                    tfb_vertcount, stream, indirect);
 }

@@ -116,7 +116,7 @@ struct string_map_entry {
    uint32_t num;
 };
 
-/* We use a big string constant to avoid lots of reloctions from the entry
+/* We use a big string constant to avoid lots of relocations from the entry
  * point table to lots of little strings. The entries in the entry point table
  * store the index into this big string.
  */

@@ -374,6 +374,19 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          vtn_cfg_walk_blocks(b, &loop->cont_body, new_loop_cont, NULL, NULL,
                              new_loop_break, NULL, block);
 
+         enum vtn_branch_type branch_type =
+            vtn_get_branch_type(b, new_loop_break, switch_case, switch_break,
+                                loop_break, loop_cont);
+
+         if (branch_type != vtn_branch_type_none) {
+            /* Stop walking through the CFG when this inner loop's break block
+             * ends up as the same block as the outer loop's continue block
+             * because we are already going to visit it.
+             */
+            vtn_assert(branch_type == vtn_branch_type_loop_continue);
+            return;
+         }
+
          block = new_loop_break;
          continue;
       }

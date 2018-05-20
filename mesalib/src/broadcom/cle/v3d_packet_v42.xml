@@ -476,6 +476,11 @@
     <field name="Varying offset V0" size="4" start="0" type="uint"/>
   </packet>
 
+  <packet code="91" name="Sample State">
+    <field name="Coverage" size="16" start="16" type="uint"/> <!-- float-1-8-7 -->
+    <field name="Mask" size="4" start="0" type="uint"/>
+  </packet>
+
   <packet code="92" name="Occlusion Query Counter">
     <field name="address" size="32" start="0" type="address"/>
   </packet>
@@ -782,17 +787,19 @@
     <field name="Fragment Shader Code Address" size="32" start="12b" type="address"/>
     <field name="Fragment Shader 4-way threadable" size="1" start="96" type="bool"/>
     <field name="Fragment Shader start in final thread section" size="1" start="97" type="bool"/>
-    <field name="Propagate NaNs" size="1" start="98" type="bool"/>
+    <field name="Fragment Shader Propagate NaNs" size="1" start="98" type="bool"/>
     <field name="Fragment Shader Uniforms Address" size="32" start="16b" type="address"/>
 
     <field name="Vertex Shader Code Address" size="32" start="20b" type="address"/>
     <field name="Vertex Shader 4-way threadable" size="1" start="160" type="bool"/>
     <field name="Vertex Shader start in final thread section" size="1" start="161" type="bool"/>
+    <field name="Vertex Shader Propagate NaNs" size="1" start="162" type="bool"/>
     <field name="Vertex Shader Uniforms Address" size="32" start="24b" type="address"/>
 
     <field name="Coordinate Shader Code Address" size="32" start="28b" type="address"/>
     <field name="Coordinate Shader 4-way threadable" size="1" start="224" type="bool"/>
     <field name="Coordinate Shader start in final thread section" size="1" start="225" type="bool"/>
+    <field name="Coordinate Shader Propagate NaNs" size="1" start="226" type="bool"/>
     <field name="Coordinate Shader Uniforms Address" size="32" start="32b" type="address"/>
   </struct>
 

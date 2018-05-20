@@ -531,17 +531,6 @@ xwl_realize_window(WindowPtr window)
         wl_region_destroy(region);
     }
 
-#ifdef GLAMOR_HAS_GBM
-    if (xwl_screen->present) {
-        xwl_window->present_crtc_fake = RRCrtcCreate(xwl_screen->screen, xwl_window);
-        xwl_window->present_msc = 1;
-        xwl_window->present_ust = GetTimeInMicros();
-
-        xorg_list_init(&xwl_window->present_event_list);
-        xorg_list_init(&xwl_window->present_release_queue);
-    }
-#endif
-
     wl_display_flush(xwl_screen->display);
 
     send_surface_id_event(xwl_window);
@@ -607,12 +596,6 @@ xwl_unrealize_window(WindowPtr window)
 
     compUnredirectWindow(serverClient, window, CompositeRedirectManual);
 
-#ifdef GLAMOR_HAS_GBM
-    xwl_window = xwl_window_from_window(window);
-    if (xwl_window && xwl_screen->present)
-        xwl_present_cleanup(xwl_window, window);
-#endif
-
     screen->UnrealizeWindow = xwl_screen->UnrealizeWindow;
     ret = (*screen->UnrealizeWindow) (window);
     xwl_screen->UnrealizeWindow = screen->UnrealizeWindow;
@@ -628,11 +611,6 @@ xwl_unrealize_window(WindowPtr window)
     DamageDestroy(xwl_window->damage);
     if (xwl_window->frame_callback)
         wl_callback_destroy(xwl_window->frame_callback);
-
-#ifdef GLAMOR_HAS_GBM
-    if (xwl_window->present_crtc_fake)
-        RRCrtcDestroy(xwl_window->present_crtc_fake);
-#endif
 
     free(xwl_window);
     dixSetPrivate(&window->devPrivates, &xwl_window_private_key, NULL);
@@ -660,6 +638,31 @@ frame_callback(void *data,
 static const struct wl_callback_listener frame_listener = {
     frame_callback
 };
+
+static Bool
+xwl_destroy_window(WindowPtr window)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
+    Bool ret;
+
+#ifdef GLAMOR_HAS_GBM
+    if (xwl_screen->present)
+        xwl_present_cleanup(window);
+#endif
+
+    screen->DestroyWindow = xwl_screen->DestroyWindow;
+
+    if (screen->DestroyWindow)
+        ret = screen->DestroyWindow (window);
+    else
+        ret = TRUE;
+
+    xwl_screen->DestroyWindow = screen->DestroyWindow;
+    screen->DestroyWindow = xwl_destroy_window;
+
+    return ret;
+}
 
 static void
 xwl_window_post_damage(struct xwl_window *xwl_window)
@@ -975,7 +978,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         else if (strcmp(argv[i], "-listen") == 0) {
             if (xwl_screen->listen_fd_count ==
                 ARRAY_SIZE(xwl_screen->listen_fds))
-                FatalError("Too many -listen arguments given, max is %ld\n",
+                FatalError("Too many -listen arguments given, max is %zu\n",
                            ARRAY_SIZE(xwl_screen->listen_fds));
 
             xwl_screen->listen_fds[xwl_screen->listen_fd_count++] =
@@ -1113,6 +1116,9 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     xwl_screen->UnrealizeWindow = pScreen->UnrealizeWindow;
     pScreen->UnrealizeWindow = xwl_unrealize_window;
+
+    xwl_screen->DestroyWindow = pScreen->DestroyWindow;
+    pScreen->DestroyWindow = xwl_destroy_window;
 
     xwl_screen->CloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = xwl_close_screen;

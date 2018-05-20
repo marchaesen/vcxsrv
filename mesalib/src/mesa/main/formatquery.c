@@ -501,8 +501,7 @@ _is_resource_supported(struct gl_context *ctx, GLenum target,
 
       /* additional checks for compressed textures */
       if (_mesa_is_compressed_format(ctx, internalformat) &&
-          (!_mesa_target_can_be_compressed(ctx, target, internalformat, NULL) ||
-           _mesa_format_no_online_compression(internalformat)))
+          !_mesa_target_can_be_compressed(ctx, target, internalformat, NULL))
          return false;
 
       break;

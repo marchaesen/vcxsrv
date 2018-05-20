@@ -115,9 +115,11 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
 	case CHIP_VEGAM:
 		return "polaris11";
 	case CHIP_VEGA10:
-	case CHIP_VEGA12:
-	case CHIP_RAVEN:
 		return "gfx900";
+	case CHIP_RAVEN:
+		return "gfx902";
+	case CHIP_VEGA12:
+		return HAVE_LLVM >= 0x0700 ? "gfx904" : "gfx902";
 	default:
 		return "";
 	}

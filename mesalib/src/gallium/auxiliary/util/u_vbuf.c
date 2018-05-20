@@ -154,8 +154,7 @@ struct u_vbuf {
    uint32_t enabled_vb_mask;
 
    /* Saved vertex buffer. */
-   unsigned aux_vertex_buffer_slot;
-   struct pipe_vertex_buffer aux_vertex_buffer_saved;
+   struct pipe_vertex_buffer vertex_buffer0_saved;
 
    /* Vertex buffers for the driver.
     * There are usually no user buffers. */
@@ -300,13 +299,11 @@ boolean u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
 }
 
 struct u_vbuf *
-u_vbuf_create(struct pipe_context *pipe,
-              struct u_vbuf_caps *caps, unsigned aux_vertex_buffer_index)
+u_vbuf_create(struct pipe_context *pipe, struct u_vbuf_caps *caps)
 {
    struct u_vbuf *mgr = CALLOC_STRUCT(u_vbuf);
 
    mgr->caps = *caps;
-   mgr->aux_vertex_buffer_slot = aux_vertex_buffer_index;
    mgr->pipe = pipe;
    mgr->cso_cache = cso_cache_create();
    mgr->translate_cache = translate_cache_create();
@@ -381,7 +378,7 @@ void u_vbuf_destroy(struct u_vbuf *mgr)
    for (i = 0; i < PIPE_MAX_ATTRIBS; i++)
       pipe_vertex_buffer_unreference(&mgr->real_vertex_buffer[i]);
 
-   pipe_vertex_buffer_unreference(&mgr->aux_vertex_buffer_saved);
+   pipe_vertex_buffer_unreference(&mgr->vertex_buffer0_saved);
 
    translate_cache_destroy(mgr->translate_cache);
    cso_cache_delete(mgr->cso_cache);
@@ -1313,15 +1310,14 @@ void u_vbuf_restore_vertex_elements(struct u_vbuf *mgr)
    mgr->ve_saved = NULL;
 }
 
-void u_vbuf_save_aux_vertex_buffer_slot(struct u_vbuf *mgr)
+void u_vbuf_save_vertex_buffer0(struct u_vbuf *mgr)
 {
-   pipe_vertex_buffer_reference(&mgr->aux_vertex_buffer_saved,
-                           &mgr->vertex_buffer[mgr->aux_vertex_buffer_slot]);
+   pipe_vertex_buffer_reference(&mgr->vertex_buffer0_saved,
+                                &mgr->vertex_buffer[0]);
 }
 
-void u_vbuf_restore_aux_vertex_buffer_slot(struct u_vbuf *mgr)
+void u_vbuf_restore_vertex_buffer0(struct u_vbuf *mgr)
 {
-   u_vbuf_set_vertex_buffers(mgr, mgr->aux_vertex_buffer_slot, 1,
-                             &mgr->aux_vertex_buffer_saved);
-   pipe_vertex_buffer_unreference(&mgr->aux_vertex_buffer_saved);
+   u_vbuf_set_vertex_buffers(mgr, 0, 1, &mgr->vertex_buffer0_saved);
+   pipe_vertex_buffer_unreference(&mgr->vertex_buffer0_saved);
 }

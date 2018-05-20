@@ -588,9 +588,7 @@ _mesa_get_version(const struct gl_extensions *extensions,
       /* Disable higher GLSL versions for legacy contexts.
        * This disallows creation of higher compatibility contexts. */
       if (!consts->AllowHigherCompatVersion) {
-         if (consts->GLSLVersion > 140) {
-            consts->GLSLVersion = 140;
-         }
+         consts->GLSLVersion = consts->GLSLVersionCompat;
       }
       /* fall through */
    case API_OPENGL_CORE:

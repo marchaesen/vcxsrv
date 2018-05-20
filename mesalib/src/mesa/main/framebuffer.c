@@ -549,7 +549,7 @@ _mesa_update_framebuffer_visual(struct gl_context *ctx,
  * writing colors.
  */
 static void
-update_color_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb)
+update_color_draw_buffers(struct gl_framebuffer *fb)
 {
    GLuint output;
 
@@ -573,9 +573,8 @@ update_color_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb)
  * Unlike the DrawBuffer, we can only read from one (or zero) color buffers.
  */
 static void
-update_color_read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb)
+update_color_read_buffer(struct gl_framebuffer *fb)
 {
-   (void) ctx;
    if (fb->_ColorReadBufferIndex == BUFFER_NONE ||
        fb->DeletePending ||
        fb->Width == 0 ||
@@ -638,8 +637,8 @@ update_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
     * read-state if this FB is bound as ctx->DrawBuffer), but no
     * harm.
     */
-   update_color_draw_buffers(ctx, fb);
-   update_color_read_buffer(ctx, fb);
+   update_color_draw_buffers(fb);
+   update_color_read_buffer(fb);
 
    compute_depth_max(fb);
 }

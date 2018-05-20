@@ -30,7 +30,6 @@
 
 #include "main/glheader.h"
 
-struct gl_vertex_array;
 struct gl_context;
 struct gl_program;
 struct gl_buffer_object;
@@ -66,7 +65,22 @@ _tnl_wakeup( struct gl_context *ctx );
 extern void
 _tnl_need_projected_coords( struct gl_context *ctx, GLboolean flag );
 
-extern void
+
+/**
+ * Vertex array information which is derived from gl_array_attributes
+ * and gl_vertex_buffer_binding information.  Used by the TNL module and
+ * device drivers.
+ */
+struct tnl_vertex_array
+{
+   /** Vertex attribute array */
+   const struct gl_array_attributes *VertexAttrib;
+   /** Vertex buffer binding */
+   const struct gl_vertex_buffer_binding *BufferBinding;
+};
+
+
+extern const struct tnl_vertex_array*
 _tnl_bind_inputs( struct gl_context *ctx );
 
 
@@ -86,7 +100,7 @@ struct _mesa_index_buffer;
 
 void
 _tnl_draw_prims(struct gl_context *ctx,
-                const struct gl_vertex_array *arrays,
+                const struct tnl_vertex_array *arrays,
 		     const struct _mesa_prim *prim,
 		     GLuint nr_prims,
 		     const struct _mesa_index_buffer *ib,
@@ -153,7 +167,7 @@ _tnl_validate_shine_tables( struct gl_context *ctx );
  *                  This may be deprecated in the future
  */
 typedef void (*tnl_draw_func)(struct gl_context *ctx,
-                              const struct gl_vertex_array* arrays,
+                              const struct tnl_vertex_array* arrays,
                               const struct _mesa_prim *prims,
                               GLuint nr_prims,
                               const struct _mesa_index_buffer *ib,
@@ -181,7 +195,7 @@ struct split_limits
 
 void
 _tnl_split_prims(struct gl_context *ctx,
-                 const struct gl_vertex_array *arrays,
+                 const struct tnl_vertex_array *arrays,
                  const struct _mesa_prim *prim,
                  GLuint nr_prims,
                  const struct _mesa_index_buffer *ib,

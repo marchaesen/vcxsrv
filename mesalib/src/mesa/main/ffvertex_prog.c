@@ -1297,12 +1297,14 @@ static void build_fog( struct tnl_program *p )
    struct ureg input;
 
    switch (p->state->fog_distance_mode) {
-   case FDM_EYE_RADIAL: /* Z = sqrt(Xe*Xe + Ye*Ye + Ze*Ze) */
+   case FDM_EYE_RADIAL: { /* Z = sqrt(Xe*Xe + Ye*Ye + Ze*Ze) */
+      struct ureg tmp = get_temp(p);
       input = get_eye_position(p);
-      emit_op2(p, OPCODE_DP3, fog, WRITEMASK_X, input, input);
-      emit_op1(p, OPCODE_RSQ, fog, WRITEMASK_X, fog);
-      emit_op1(p, OPCODE_RCP, fog, WRITEMASK_X, fog);
+      emit_op2(p, OPCODE_DP3, tmp, WRITEMASK_X, input, input);
+      emit_op1(p, OPCODE_RSQ, tmp, WRITEMASK_X, tmp);
+      emit_op1(p, OPCODE_RCP, fog, WRITEMASK_X, tmp);
       break;
+   }
    case FDM_EYE_PLANE: /* Z = Ze */
       input = get_eye_position_z(p);
       emit_op1(p, OPCODE_MOV, fog, WRITEMASK_X, input);

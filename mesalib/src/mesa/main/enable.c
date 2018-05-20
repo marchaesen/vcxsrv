@@ -68,9 +68,9 @@ static void
 vao_state(struct gl_context *ctx, gl_vert_attrib attr, GLboolean state)
 {
    if (state)
-      _mesa_enable_vertex_array_attrib(ctx, ctx->Array.VAO, attr, true);
+      _mesa_enable_vertex_array_attrib(ctx, ctx->Array.VAO, attr);
    else
-      _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attr, true);
+      _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attr);
 }
 
 

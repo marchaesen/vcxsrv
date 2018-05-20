@@ -22,6 +22,10 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifdef _GNU_SOURCE
+#undef _GNU_SOURCE /* To use the POSIX version of strerror_r */
+#endif
+#include <string.h>
 #include "fcint.h"
 #include <fcntl.h>
 #include <stdarg.h>
@@ -3451,7 +3455,21 @@ _FcConfigParse (FcConfig	*config,
 	len = read (fd, buf, BUFSIZ);
 	if (len < 0)
 	{
-	    FcConfigMessage (0, FcSevereError, "failed reading config file");
+	    int errno_ = errno;
+	    char ebuf[BUFSIZ+1];
+
+#if HAVE_STRERROR_R
+	    int x FC_UNUSED;
+	    x = strerror_r (errno_, ebuf, BUFSIZ); /* make sure we use the POSIX version of strerror_r */
+#elif HAVE_STRERROR
+	    char *tmp = strerror (errno_);
+	    size_t len = strlen (tmp);
+	    strncpy (ebuf, tmp, FC_MIN (BUFSIZ, len));
+	    ebuf[FC_MIN (BUFSIZ, len)] = 0;
+#else
+	    ebuf[0] = 0;
+#endif
+	    FcConfigMessage (0, FcSevereError, "failed reading config file: %s: %s (errno %d)", realfilename, ebuf, errno_);
 	    close (fd);
 	    goto bail1;
 	}

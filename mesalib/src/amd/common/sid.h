@@ -6892,34 +6892,22 @@
 #define   S_028808_ROP3(x)                                            (((unsigned)(x) & 0xFF) << 16)
 #define   G_028808_ROP3(x)                                            (((x) >> 16) & 0xFF)
 #define   C_028808_ROP3                                               0xFF00FFFF
-#define     V_028808_X_0X00                                         0x00
-#define     V_028808_X_0X05                                         0x05
-#define     V_028808_X_0X0A                                         0x0A
-#define     V_028808_X_0X0F                                         0x0F
-#define     V_028808_X_0X11                                         0x11
-#define     V_028808_X_0X22                                         0x22
-#define     V_028808_X_0X33                                         0x33
-#define     V_028808_X_0X44                                         0x44
-#define     V_028808_X_0X50                                         0x50
-#define     V_028808_X_0X55                                         0x55
-#define     V_028808_X_0X5A                                         0x5A
-#define     V_028808_X_0X5F                                         0x5F
-#define     V_028808_X_0X66                                         0x66
-#define     V_028808_X_0X77                                         0x77
-#define     V_028808_X_0X88                                         0x88
-#define     V_028808_X_0X99                                         0x99
-#define     V_028808_X_0XA0                                         0xA0
-#define     V_028808_X_0XA5                                         0xA5
-#define     V_028808_X_0XAA                                         0xAA
-#define     V_028808_X_0XAF                                         0xAF
-#define     V_028808_X_0XBB                                         0xBB
-#define     V_028808_X_0XCC                                         0xCC
-#define     V_028808_X_0XDD                                         0xDD
-#define     V_028808_X_0XEE                                         0xEE
-#define     V_028808_X_0XF0                                         0xF0
-#define     V_028808_X_0XF5                                         0xF5
-#define     V_028808_X_0XFA                                         0xFA
-#define     V_028808_X_0XFF                                         0xFF
+#define     V_028808_ROP3_CLEAR                                     0x00
+#define     V_028808_ROP3_NOR                                       0x11
+#define     V_028808_ROP3_AND_INVERTED                              0x22
+#define     V_028808_ROP3_COPY_INVERTED                             0x33
+#define     V_028808_ROP3_AND_REVERSE                               0x44
+#define     V_028808_ROP3_INVERT                                    0x55
+#define     V_028808_ROP3_XOR                                       0x66
+#define     V_028808_ROP3_NAND                                      0x77
+#define     V_028808_ROP3_AND                                       0x88
+#define     V_028808_ROP3_EQUIVALENT                                0x99
+#define     V_028808_ROP3_NO_OP                                     0xaa
+#define     V_028808_ROP3_OR_INVERTED                               0xbb
+#define     V_028808_ROP3_COPY                                      0xcc
+#define     V_028808_ROP3_OR_REVERSE                                0xdd
+#define     V_028808_ROP3_OR                                        0xee
+#define     V_028808_ROP3_SET                                       0xff
 #define R_02880C_DB_SHADER_CONTROL                                      0x02880C
 #define   S_02880C_Z_EXPORT_ENABLE(x)                                 (((unsigned)(x) & 0x1) << 0)
 #define   G_02880C_Z_EXPORT_ENABLE(x)                                 (((x) >> 0) & 0x1)

@@ -108,12 +108,9 @@ radv_get_device_name(enum radeon_family family, char *name, size_t name_len)
 	default: chip_string = "AMD RADV unknown"; break;
 	}
 
-	if (HAVE_LLVM > 0) {
-		snprintf(llvm_string, sizeof(llvm_string),
-			 " (LLVM %i.%i.%i)", (HAVE_LLVM >> 8) & 0xff,
-			 HAVE_LLVM & 0xff, MESA_LLVM_VERSION_PATCH);
-	}
-
+	snprintf(llvm_string, sizeof(llvm_string),
+		 " (LLVM %i.%i.%i)", (HAVE_LLVM >> 8) & 0xff,
+		 HAVE_LLVM & 0xff, MESA_LLVM_VERSION_PATCH);
 	snprintf(name, name_len, "%s%s", chip_string, llvm_string);
 }
 
@@ -278,7 +275,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 		(device->instance->perftest_flags & RADV_PERFTEST_SISCHED ? 0x1 : 0) |
 		(device->instance->debug_flags & RADV_DEBUG_UNSAFE_MATH ? 0x2 : 0);
 
-	/* The gpu id is already embeded in the uuid so we just pass "radv"
+	/* The gpu id is already embedded in the uuid so we just pass "radv"
 	 * when creating the cache.
 	 */
 	char buf[VK_UUID_SIZE * 2 + 1];
@@ -300,7 +297,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 		                         device->rad_info.family == CHIP_RAVEN;
 	}
 
-	/* The mere presense of CLEAR_STATE in the IB causes random GPU hangs
+	/* The mere presence of CLEAR_STATE in the IB causes random GPU hangs
 	 * on SI.
 	 */
 	device->has_clear_state = device->rad_info.chip_class >= CIK;
@@ -328,6 +325,9 @@ radv_physical_device_init(struct radv_physical_device *device,
 		device->ws->destroy(device->ws);
 		goto fail;
 	}
+
+	if ((device->instance->debug_flags & RADV_DEBUG_INFO))
+		ac_print_gpu_info(&device->rad_info);
 
 	return VK_SUCCESS;
 
@@ -391,6 +391,7 @@ static const struct debug_control radv_debug_options[] = {
 	{"preoptir", RADV_DEBUG_PREOPTIR},
 	{"nodynamicbounds", RADV_DEBUG_NO_DYNAMIC_BOUNDS},
 	{"nooutoforder", RADV_DEBUG_NO_OUT_OF_ORDER},
+	{"info", RADV_DEBUG_INFO},
 	{NULL, 0}
 };
 
@@ -428,10 +429,12 @@ radv_handle_per_app_options(struct radv_instance *instance,
 
 	if (!strcmp(name, "Talos - Linux - 32bit") ||
 	    !strcmp(name, "Talos - Linux - 64bit")) {
-		/* Force enable LLVM sisched for Talos because it looks safe
-		 * and it gives few more FPS.
-		 */
-		instance->perftest_flags |= RADV_PERFTEST_SISCHED;
+		if (!(instance->debug_flags & RADV_DEBUG_NO_SISCHED)) {
+			/* Force enable LLVM sisched for Talos because it looks
+			 * safe and it gives few more FPS.
+			 */
+			instance->perftest_flags |= RADV_PERFTEST_SISCHED;
+		}
 	}
 }
 
@@ -507,14 +510,6 @@ VkResult radv_CreateInstance(
 						   radv_perftest_options);
 
 	radv_handle_per_app_options(instance, pCreateInfo->pApplicationInfo);
-
-	if (instance->debug_flags & RADV_DEBUG_NO_SISCHED) {
-		/* Disable sisched when the user requests it, this is mostly
-		 * useful when the driver force-enable sisched for the given
-		 * application.
-		 */
-		instance->perftest_flags &= ~RADV_PERFTEST_SISCHED;
-	}
 
 	*pInstance = radv_instance_to_handle(instance);
 
@@ -736,7 +731,7 @@ void radv_GetPhysicalDeviceFeatures2(
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT: {
 			VkPhysicalDeviceDescriptorIndexingFeaturesEXT *features =
-				(VkPhysicalDeviceDescriptorIndexingFeaturesEXT*)features;
+				(VkPhysicalDeviceDescriptorIndexingFeaturesEXT*)ext;
 			features->shaderInputAttachmentArrayDynamicIndexing = true;
 			features->shaderUniformTexelBufferArrayDynamicIndexing = true;
 			features->shaderStorageTexelBufferArrayDynamicIndexing = true;
@@ -1460,13 +1455,11 @@ VkResult radv_CreateDevice(
 	device->always_use_syncobj = device->physical_device->rad_info.has_syncobj_wait_for_submit;
 #endif
 
-	device->llvm_supports_spill = true;
-
 	/* The maximum number of scratch waves. Scratch space isn't divided
 	 * evenly between CUs. The number is only a function of the number of CUs.
 	 * We can decrease the constant to decrease the scratch buffer size.
 	 *
-	 * sctx->scratch_waves must be >= the maximum posible size of
+	 * sctx->scratch_waves must be >= the maximum possible size of
 	 * 1 threadgroup, so that the hw doesn't hang from being unable
 	 * to start any.
 	 *
@@ -1868,6 +1861,124 @@ radv_get_hs_offchip_param(struct radv_device *device, uint32_t *max_offchip_buff
 	return hs_offchip_param;
 }
 
+static void
+radv_emit_gs_ring_sizes(struct radv_queue *queue, struct radeon_winsys_cs *cs,
+			struct radeon_winsys_bo *esgs_ring_bo,
+			uint32_t esgs_ring_size,
+			struct radeon_winsys_bo *gsvs_ring_bo,
+			uint32_t gsvs_ring_size)
+{
+	if (!esgs_ring_bo && !gsvs_ring_bo)
+		return;
+
+	if (esgs_ring_bo)
+		radv_cs_add_buffer(queue->device->ws, cs, esgs_ring_bo, 8);
+
+	if (gsvs_ring_bo)
+		radv_cs_add_buffer(queue->device->ws, cs, gsvs_ring_bo, 8);
+
+	if (queue->device->physical_device->rad_info.chip_class >= CIK) {
+		radeon_set_uconfig_reg_seq(cs, R_030900_VGT_ESGS_RING_SIZE, 2);
+		radeon_emit(cs, esgs_ring_size >> 8);
+		radeon_emit(cs, gsvs_ring_size >> 8);
+	} else {
+		radeon_set_config_reg_seq(cs, R_0088C8_VGT_ESGS_RING_SIZE, 2);
+		radeon_emit(cs, esgs_ring_size >> 8);
+		radeon_emit(cs, gsvs_ring_size >> 8);
+	}
+}
+
+static void
+radv_emit_tess_factor_ring(struct radv_queue *queue, struct radeon_winsys_cs *cs,
+			   unsigned hs_offchip_param, unsigned tf_ring_size,
+			   struct radeon_winsys_bo *tess_rings_bo)
+{
+	uint64_t tf_va;
+
+	if (!tess_rings_bo)
+		return;
+
+	tf_va = radv_buffer_get_va(tess_rings_bo);
+
+	radv_cs_add_buffer(queue->device->ws, cs, tess_rings_bo, 8);
+
+	if (queue->device->physical_device->rad_info.chip_class >= CIK) {
+		radeon_set_uconfig_reg(cs, R_030938_VGT_TF_RING_SIZE,
+				       S_030938_SIZE(tf_ring_size / 4));
+		radeon_set_uconfig_reg(cs, R_030940_VGT_TF_MEMORY_BASE,
+				       tf_va >> 8);
+		if (queue->device->physical_device->rad_info.chip_class >= GFX9) {
+			radeon_set_uconfig_reg(cs, R_030944_VGT_TF_MEMORY_BASE_HI,
+					       S_030944_BASE_HI(tf_va >> 40));
+		}
+		radeon_set_uconfig_reg(cs, R_03093C_VGT_HS_OFFCHIP_PARAM,
+				       hs_offchip_param);
+	} else {
+		radeon_set_config_reg(cs, R_008988_VGT_TF_RING_SIZE,
+				      S_008988_SIZE(tf_ring_size / 4));
+		radeon_set_config_reg(cs, R_0089B8_VGT_TF_MEMORY_BASE,
+				      tf_va >> 8);
+		radeon_set_config_reg(cs, R_0089B0_VGT_HS_OFFCHIP_PARAM,
+				     hs_offchip_param);
+	}
+}
+
+static void
+radv_emit_compute_scratch(struct radv_queue *queue, struct radeon_winsys_cs *cs,
+			  struct radeon_winsys_bo *compute_scratch_bo)
+{
+	uint64_t scratch_va;
+
+	if (!compute_scratch_bo)
+		return;
+
+	scratch_va = radv_buffer_get_va(compute_scratch_bo);
+
+	radv_cs_add_buffer(queue->device->ws, cs, compute_scratch_bo, 8);
+
+	radeon_set_sh_reg_seq(cs, R_00B900_COMPUTE_USER_DATA_0, 2);
+	radeon_emit(cs, scratch_va);
+	radeon_emit(cs, S_008F04_BASE_ADDRESS_HI(scratch_va >> 32) |
+			S_008F04_SWIZZLE_ENABLE(1));
+}
+
+static void
+radv_emit_global_shader_pointers(struct radv_queue *queue,
+				 struct radeon_winsys_cs *cs,
+				 struct radeon_winsys_bo *descriptor_bo)
+{
+	uint64_t va;
+
+	if (!descriptor_bo)
+		return;
+
+	va = radv_buffer_get_va(descriptor_bo);
+
+	radv_cs_add_buffer(queue->device->ws, cs, descriptor_bo, 8);
+
+	if (queue->device->physical_device->rad_info.chip_class >= GFX9) {
+		uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
+				   R_00B130_SPI_SHADER_USER_DATA_VS_0,
+				   R_00B208_SPI_SHADER_USER_DATA_ADDR_LO_GS,
+				   R_00B408_SPI_SHADER_USER_DATA_ADDR_LO_HS};
+
+		for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
+			radv_emit_shader_pointer(cs, regs[i], va);
+		}
+	} else {
+		uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
+				   R_00B130_SPI_SHADER_USER_DATA_VS_0,
+				   R_00B230_SPI_SHADER_USER_DATA_GS_0,
+				   R_00B330_SPI_SHADER_USER_DATA_ES_0,
+				   R_00B430_SPI_SHADER_USER_DATA_HS_0,
+				   R_00B530_SPI_SHADER_USER_DATA_LS_0};
+
+		for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
+			radv_emit_shader_pointer(cs, regs[i], va);
+		}
+	}
+}
+
 static VkResult
 radv_get_preamble_cs(struct radv_queue *queue,
                      uint32_t scratch_size,
@@ -2022,18 +2133,6 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		if (scratch_bo)
 			radv_cs_add_buffer(queue->device->ws, cs, scratch_bo, 8);
 
-		if (esgs_ring_bo)
-			radv_cs_add_buffer(queue->device->ws, cs, esgs_ring_bo, 8);
-
-		if (gsvs_ring_bo)
-			radv_cs_add_buffer(queue->device->ws, cs, gsvs_ring_bo, 8);
-
-		if (tess_rings_bo)
-			radv_cs_add_buffer(queue->device->ws, cs, tess_rings_bo, 8);
-
-		if (descriptor_bo)
-			radv_cs_add_buffer(queue->device->ws, cs, descriptor_bo, 8);
-
 		if (descriptor_bo != queue->descriptor_bo) {
 			uint32_t *map = (uint32_t*)queue->device->ws->buffer_map(descriptor_bo);
 
@@ -2065,80 +2164,12 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			radeon_emit(cs, EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
 		}
 
-		if (esgs_ring_bo || gsvs_ring_bo) {
-			if (queue->device->physical_device->rad_info.chip_class >= CIK) {
-				radeon_set_uconfig_reg_seq(cs, R_030900_VGT_ESGS_RING_SIZE, 2);
-				radeon_emit(cs, esgs_ring_size >> 8);
-				radeon_emit(cs, gsvs_ring_size >> 8);
-			} else {
-				radeon_set_config_reg_seq(cs, R_0088C8_VGT_ESGS_RING_SIZE, 2);
-				radeon_emit(cs, esgs_ring_size >> 8);
-				radeon_emit(cs, gsvs_ring_size >> 8);
-			}
-		}
-
-		if (tess_rings_bo) {
-			uint64_t tf_va = radv_buffer_get_va(tess_rings_bo);
-			if (queue->device->physical_device->rad_info.chip_class >= CIK) {
-				radeon_set_uconfig_reg(cs, R_030938_VGT_TF_RING_SIZE,
-						       S_030938_SIZE(tess_factor_ring_size / 4));
-				radeon_set_uconfig_reg(cs, R_030940_VGT_TF_MEMORY_BASE,
-						       tf_va >> 8);
-				if (queue->device->physical_device->rad_info.chip_class >= GFX9) {
-					radeon_set_uconfig_reg(cs, R_030944_VGT_TF_MEMORY_BASE_HI,
-							       S_030944_BASE_HI(tf_va >> 40));
-				}
-				radeon_set_uconfig_reg(cs, R_03093C_VGT_HS_OFFCHIP_PARAM, hs_offchip_param);
-			} else {
-				radeon_set_config_reg(cs, R_008988_VGT_TF_RING_SIZE,
-						      S_008988_SIZE(tess_factor_ring_size / 4));
-				radeon_set_config_reg(cs, R_0089B8_VGT_TF_MEMORY_BASE,
-						      tf_va >> 8);
-				radeon_set_config_reg(cs, R_0089B0_VGT_HS_OFFCHIP_PARAM,
-						      hs_offchip_param);
-			}
-		}
-
-		if (descriptor_bo) {
-			uint64_t va = radv_buffer_get_va(descriptor_bo);
-			if (queue->device->physical_device->rad_info.chip_class >= GFX9) {
-				uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
-						R_00B130_SPI_SHADER_USER_DATA_VS_0,
-						R_00B208_SPI_SHADER_USER_DATA_ADDR_LO_GS,
-						R_00B408_SPI_SHADER_USER_DATA_ADDR_LO_HS};
-
-				for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
-					radeon_set_sh_reg_seq(cs, regs[i], 2);
-					radeon_emit(cs, va);
-					radeon_emit(cs, va >> 32);
-				}
-			} else {
-				uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
-						R_00B130_SPI_SHADER_USER_DATA_VS_0,
-						R_00B230_SPI_SHADER_USER_DATA_GS_0,
-						R_00B330_SPI_SHADER_USER_DATA_ES_0,
-						R_00B430_SPI_SHADER_USER_DATA_HS_0,
-						R_00B530_SPI_SHADER_USER_DATA_LS_0};
-
-				for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
-					radeon_set_sh_reg_seq(cs, regs[i], 2);
-					radeon_emit(cs, va);
-					radeon_emit(cs, va >> 32);
-				}
-			}
-		}
-
-		if (compute_scratch_bo) {
-			uint64_t scratch_va = radv_buffer_get_va(compute_scratch_bo);
-			uint32_t rsrc1 = S_008F04_BASE_ADDRESS_HI(scratch_va >> 32) |
-			                 S_008F04_SWIZZLE_ENABLE(1);
-
-			radv_cs_add_buffer(queue->device->ws, cs, compute_scratch_bo, 8);
-
-			radeon_set_sh_reg_seq(cs, R_00B900_COMPUTE_USER_DATA_0, 2);
-			radeon_emit(cs, scratch_va);
-			radeon_emit(cs, rsrc1);
-		}
+		radv_emit_gs_ring_sizes(queue, cs, esgs_ring_bo, esgs_ring_size,
+					gsvs_ring_bo, gsvs_ring_size);
+		radv_emit_tess_factor_ring(queue, cs, hs_offchip_param,
+					   tess_factor_ring_size, tess_rings_bo);
+		radv_emit_global_shader_pointers(queue, cs, descriptor_bo);
+		radv_emit_compute_scratch(queue, cs, compute_scratch_bo);
 
 		if (i == 0) {
 			si_cs_emit_cache_flush(cs,
@@ -2480,6 +2511,8 @@ VkResult radv_QueueSubmit(
 
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j += advance) {
 			struct radeon_winsys_cs *initial_preamble = (do_flush && !j) ? initial_flush_preamble_cs : initial_preamble_cs;
+			const struct radv_winsys_bo_list *bo_list = NULL;
+
 			advance = MIN2(max_cs_submission,
 				       pSubmits[i].commandBufferCount - j);
 
@@ -2489,12 +2522,14 @@ VkResult radv_QueueSubmit(
 			sem_info.cs_emit_wait = j == 0;
 			sem_info.cs_emit_signal = j + advance == pSubmits[i].commandBufferCount;
 
-			if (unlikely(queue->device->use_global_bo_list))
+			if (unlikely(queue->device->use_global_bo_list)) {
 				pthread_mutex_lock(&queue->device->bo_list.mutex);
+				bo_list = &queue->device->bo_list.list;
+			}
 
 			ret = queue->device->ws->cs_submit(ctx, queue->queue_idx, cs_array + j,
 							advance, initial_preamble, continue_preamble_cs,
-							&sem_info, &queue->device->bo_list.list,
+							&sem_info, bo_list,
 							can_patch, base_fence);
 
 			if (unlikely(queue->device->use_global_bo_list))

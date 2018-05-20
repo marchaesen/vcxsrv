@@ -66,23 +66,23 @@ typedef int (*dri3_fd_from_pixmap_proc) (ScreenPtr screen,
 typedef int (*dri3_fds_from_pixmap_proc) (ScreenPtr screen,
                                           PixmapPtr pixmap,
                                           int *fds,
-                                          CARD32 *strides,
-                                          CARD32 *offsets,
-                                          CARD64 *modifier);
+                                          uint32_t *strides,
+                                          uint32_t *offsets,
+                                          uint64_t *modifier);
 
 typedef int (*dri3_get_formats_proc) (ScreenPtr screen,
                                       CARD32 *num_formats,
                                       CARD32 **formats);
 
 typedef int (*dri3_get_modifiers_proc) (ScreenPtr screen,
-                                        CARD32 format,
-                                        CARD32 *num_modifiers,
-                                        CARD64 **modifiers);
+                                        uint32_t format,
+                                        uint32_t *num_modifiers,
+                                        uint64_t **modifiers);
 
 typedef int (*dri3_get_drawable_modifiers_proc) (DrawablePtr draw,
-                                                 CARD32 format,
-                                                 CARD32 *num_modifiers,
-                                                 CARD64 **modifiers);
+                                                 uint32_t format,
+                                                 uint32_t *num_modifiers,
+                                                 uint64_t **modifiers);
 
 typedef struct dri3_screen_info {
     uint32_t                    version;

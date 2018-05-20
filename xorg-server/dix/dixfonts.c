@@ -2015,6 +2015,11 @@ _remove_fs_handlers(FontPathElementPtr fpe, FontBlockHandlerProcPtr block_handle
     RemoveFontWakeup(fpe);
 }
 
+static uint32_t wrap_time_in_millis(void)
+{
+    return GetTimeInMillis();
+}
+
 static const xfont2_client_funcs_rec xfont2_client_funcs = {
     .version = XFONT2_CLIENT_FUNCS_VERSION,
     .client_auth_generation = _client_auth_generation,
@@ -2025,7 +2030,7 @@ static const xfont2_client_funcs_rec xfont2_client_funcs = {
     .get_client_resolutions = get_client_resolutions,
     .get_default_point_size = get_default_point_size,
     .get_new_font_client_id = get_new_font_client_id,
-    .get_time_in_millis = GetTimeInMillis,
+    .get_time_in_millis = wrap_time_in_millis,
     .init_fs_handlers = _init_fs_handlers,
     .register_fpe_funcs = register_fpe_funcs,
     .remove_fs_handlers = _remove_fs_handlers,

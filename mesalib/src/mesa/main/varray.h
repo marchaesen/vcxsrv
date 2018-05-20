@@ -53,20 +53,6 @@ _mesa_attr_zero_aliases_vertex(const struct gl_context *ctx)
 }
 
 
-/**
- * This specifies the set of vertex arrays used by the driver for drawing.
- */
-static inline void
-_mesa_set_drawing_arrays(struct gl_context *ctx,
-                         const struct gl_vertex_array *arrays)
-{
-   if (ctx->Array._DrawArrays != arrays) {
-      ctx->Array._DrawArrays = arrays;
-      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
-   }
-}
-
-
 extern void
 _mesa_update_array_format(struct gl_context *ctx,
                           struct gl_vertex_array_object *vao,
@@ -78,20 +64,20 @@ _mesa_update_array_format(struct gl_context *ctx,
 extern void
 _mesa_enable_vertex_array_attrib(struct gl_context *ctx,
                                  struct gl_vertex_array_object *vao,
-                                 gl_vert_attrib attrib, bool flush_vertices);
+                                 gl_vert_attrib attrib);
 
 
 extern void
 _mesa_disable_vertex_array_attrib(struct gl_context *ctx,
                                   struct gl_vertex_array_object *vao,
-                                  gl_vert_attrib attrib, bool flush_vertices);
+                                  gl_vert_attrib attrib);
 
 
 extern void
 _mesa_vertex_attrib_binding(struct gl_context *ctx,
                             struct gl_vertex_array_object *vao,
                             gl_vert_attrib attribIndex,
-                            GLuint bindingIndex, bool flush_vertices);
+                            GLuint bindingIndex);
 
 
 extern void
@@ -99,7 +85,7 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
                          struct gl_vertex_array_object *vao,
                          GLuint index,
                          struct gl_buffer_object *vbo,
-                         GLintptr offset, GLsizei stride, bool flush_vertices);
+                         GLintptr offset, GLsizei stride);
 
 extern void GLAPIENTRY
 _mesa_VertexPointer_no_error(GLint size, GLenum type, GLsizei stride,
@@ -461,18 +447,6 @@ _mesa_VertexArrayBindingDivisor_no_error(GLuint vaobj, GLuint bindingIndex,
 extern void GLAPIENTRY
 _mesa_VertexArrayBindingDivisor(GLuint vaobj, GLuint bindingIndex,
                                 GLuint divisor);
-
-
-/**
- * Shallow copy one vertex array to another.
- */
-static inline void
-_mesa_copy_vertex_array(struct gl_vertex_array *dst,
-                        const struct gl_vertex_array *src)
-{
-   dst->VertexAttrib = src->VertexAttrib;
-   dst->BufferBinding = src->BufferBinding;
-}
 
 
 extern void

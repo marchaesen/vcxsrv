@@ -790,7 +790,7 @@ f_right_brace(
     case S_VALUE:
 	if (! store_to_database(db))
 	    return 0;
-	/* fall into next case */
+	/* fall through - to next case */
     case S_CATEGORY:
 	if (parse_info.name[parse_info.nest_depth] != NULL) {
 	    Xfree(parse_info.name[parse_info.nest_depth]);

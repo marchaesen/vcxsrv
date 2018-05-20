@@ -43,7 +43,7 @@
  */
 struct split_context {
    struct gl_context *ctx;
-   const struct gl_vertex_array *array;
+   const struct tnl_vertex_array *array;
    const struct _mesa_prim *prim;
    GLuint nr_prims;
    const struct _mesa_index_buffer *ib;
@@ -265,7 +265,7 @@ split_prims(struct split_context *split)
 
 void
 _tnl_split_inplace(struct gl_context *ctx,
-                   const struct gl_vertex_array *arrays,
+                   const struct tnl_vertex_array *arrays,
                    const struct _mesa_prim *prim,
                    GLuint nr_prims,
                    const struct _mesa_index_buffer *ib,

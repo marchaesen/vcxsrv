@@ -3,3 +3,5 @@ nir_opt_algebraic.c
 nir_opcodes.c
 nir_opcodes.h
 nir_constant_expressions.c
+nir_intrinsics.c
+nir_intrinsics.h

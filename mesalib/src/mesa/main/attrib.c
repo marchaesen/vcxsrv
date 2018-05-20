@@ -1552,6 +1552,7 @@ copy_array_object(struct gl_context *ctx,
 
    /* _Enabled must be the same than on push */
    dest->_Enabled = src->_Enabled;
+   dest->_EffEnabledVBO = src->_EffEnabledVBO;
    /* The bitmask of bound VBOs needs to match the VertexBinding array */
    dest->VertexAttribBufferMask = src->VertexAttribBufferMask;
    dest->_AttributeMapMode = src->_AttributeMapMode;
@@ -1587,7 +1588,6 @@ copy_array_attrib(struct gl_context *ctx,
    /* skip IndexBufferObj */
 
    /* Invalidate array state. It will be updated during the next draw. */
-   _mesa_set_drawing_arrays(ctx, NULL);
    _mesa_set_draw_vao(ctx, ctx->Array._EmptyVAO, 0);
 }
 

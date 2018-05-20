@@ -180,7 +180,6 @@ typedef struct {
      * lies, and we need to give a reliable 64-bit msc for GL, so we
      * have to track and convert to a userland-tracked 64-bit msc.
      */
-    int32_t vblank_offset;
     uint32_t msc_prev;
     uint64_t msc_high;
     /** @} */

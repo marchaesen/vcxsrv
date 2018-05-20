@@ -137,7 +137,7 @@ with_gallium_nouveau = false
 with_gallium_freedreno = false
 with_gallium_softpipe = false
 with_gallium_vc4 = false
-with_gallium_vc5 = false
+with_gallium_v3d = false
 with_gallium_etnaviv = false
 with_gallium_imx = false
 with_gallium_tegra = false
@@ -155,7 +155,7 @@ if _drivers.contains('auto')
       ]
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
       _drivers = [
-        'pl111', 'vc4', 'vc5', 'freedreno', 'etnaviv', 'imx', 'nouveau',
+        'pl111', 'v3d', 'vc4', 'freedreno', 'etnaviv', 'imx', 'nouveau',
         'tegra', 'virgl', 'swrast',
       ]
     else
@@ -175,8 +175,8 @@ if _drivers != ['']
   with_gallium_nouveau = _drivers.contains('nouveau')
   with_gallium_freedreno = _drivers.contains('freedreno')
   with_gallium_softpipe = _drivers.contains('swrast')
+  with_gallium_v3d = _drivers.contains('v3d')
   with_gallium_vc4 = _drivers.contains('vc4')
-  with_gallium_vc5 = _drivers.contains('vc5')
   with_gallium_etnaviv = _drivers.contains('etnaviv')
   with_gallium_imx = _drivers.contains('imx')
   with_gallium_tegra = _drivers.contains('tegra')
@@ -849,8 +849,10 @@ if cc.compiles('int main() { int n; return __atomic_load_n(&n, __ATOMIC_ACQUIRE)
   # as ARM.
   if not cc.links('''#include <stdint.h>
                      int main() {
-                       uint64_t n;
-                       return (int)__atomic_load_n(&n, __ATOMIC_ACQUIRE);
+                       struct {
+                         uint64_t *v;
+                       } x;
+                       return (int)__atomic_load_n(x.v, __ATOMIC_ACQUIRE);
                      }''',
                   name : 'GCC atomic builtins required -latomic')
     dep_atomic = cc.find_library('atomic')
@@ -1039,7 +1041,7 @@ _drm_amdgpu_ver = '2.4.91'
 _drm_radeon_ver = '2.4.71'
 _drm_nouveau_ver = '2.4.66'
 _drm_etnaviv_ver = '2.4.89'
-_drm_freedreno_ver = '2.4.91'
+_drm_freedreno_ver = '2.4.92'
 _drm_intel_ver = '2.4.75'
 _drm_ver = '2.4.75'
 
@@ -1052,6 +1054,12 @@ _libdrm_checks = [
   ['etnaviv', with_gallium_etnaviv],
   ['freedreno', with_gallium_freedreno],
 ]
+
+# VC4 only needs core libdrm support of this version, not a libdrm_vc4
+# library.
+if with_gallium_vc4
+  _drm_ver = '2.4.89'
+endif
 
 # Loop over the enables versions and get the highest libdrm requirement for all
 # active drivers.
@@ -1099,7 +1107,9 @@ if with_gallium_opencl
   # TODO: optional modules
 endif
 
-if with_amd_vk or with_gallium_radeonsi or with_gallium_swr
+if with_amd_vk or with_gallium_radeonsi
+  _llvm_version = '>= 5.0.0'
+elif with_gallium_swr
   _llvm_version = '>= 4.0.0'
 elif with_gallium_opencl or with_gallium_r600
   _llvm_version = '>= 3.9.0'

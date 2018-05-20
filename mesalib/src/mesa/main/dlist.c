@@ -3486,14 +3486,6 @@ save_PolygonOffset(GLfloat factor, GLfloat units)
 
 
 static void GLAPIENTRY
-save_PolygonOffsetEXT(GLfloat factor, GLfloat bias)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   /* XXX mult by DepthMaxF here??? */
-   save_PolygonOffset(factor, ctx->DrawBuffer->_DepthMaxF * bias);
-}
-
-static void GLAPIENTRY
 save_PolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -6596,7 +6588,7 @@ save_Uniform1ui(GLint location, GLuint x)
       n[2].i = x;
    }
    if (ctx->ExecuteFlag) {
-      /*CALL_Uniform1ui(ctx->Exec, (location, x));*/
+      CALL_Uniform1ui(ctx->Exec, (location, x));
    }
 }
 
@@ -6613,7 +6605,7 @@ save_Uniform2ui(GLint location, GLuint x, GLuint y)
       n[3].i = y;
    }
    if (ctx->ExecuteFlag) {
-      /*CALL_Uniform2ui(ctx->Exec, (location, x, y));*/
+      CALL_Uniform2ui(ctx->Exec, (location, x, y));
    }
 }
 
@@ -6631,7 +6623,7 @@ save_Uniform3ui(GLint location, GLuint x, GLuint y, GLuint z)
       n[4].i = z;
    }
    if (ctx->ExecuteFlag) {
-      /*CALL_Uniform3ui(ctx->Exec, (location, x, y, z));*/
+      CALL_Uniform3ui(ctx->Exec, (location, x, y, z));
    }
 }
 
@@ -6650,7 +6642,7 @@ save_Uniform4ui(GLint location, GLuint x, GLuint y, GLuint z, GLuint w)
       n[5].i = w;
    }
    if (ctx->ExecuteFlag) {
-      /*CALL_Uniform4ui(ctx->Exec, (location, x, y, z, w));*/
+      CALL_Uniform4ui(ctx->Exec, (location, x, y, z, w));
    }
 }
 
@@ -6669,7 +6661,7 @@ save_Uniform1uiv(GLint location, GLsizei count, const GLuint *v)
       save_pointer(&n[3], memdup(v, count * 1 * sizeof(*v)));
    }
    if (ctx->ExecuteFlag) {
-      /*CALL_Uniform1uiv(ctx->Exec, (location, count, v));*/
+      CALL_Uniform1uiv(ctx->Exec, (location, count, v));
    }
 }
 
@@ -6686,7 +6678,7 @@ save_Uniform2uiv(GLint location, GLsizei count, const GLuint *v)
       save_pointer(&n[3], memdup(v, count * 2 * sizeof(*v)));
    }
    if (ctx->ExecuteFlag) {
-      /*CALL_Uniform2uiv(ctx->Exec, (location, count, v));*/
+      CALL_Uniform2uiv(ctx->Exec, (location, count, v));
    }
 }
 
@@ -6703,7 +6695,7 @@ save_Uniform3uiv(GLint location, GLsizei count, const GLuint *v)
       save_pointer(&n[3], memdup(v, count * 3 * sizeof(*v)));
    }
    if (ctx->ExecuteFlag) {
-      /*CALL_Uniform3uiv(ctx->Exec, (location, count, v));*/
+      CALL_Uniform3uiv(ctx->Exec, (location, count, v));
    }
 }
 
@@ -6720,7 +6712,7 @@ save_Uniform4uiv(GLint location, GLsizei count, const GLuint *v)
       save_pointer(&n[3], memdup(v, count * 4 * sizeof(*v)));
    }
    if (ctx->ExecuteFlag) {
-      /*CALL_Uniform4uiv(ctx->Exec, (location, count, v));*/
+      CALL_Uniform4uiv(ctx->Exec, (location, count, v));
    }
 }
 
@@ -8785,34 +8777,29 @@ execute_list(struct gl_context *ctx, GLuint list)
             CALL_Uniform4iv(ctx->Exec, (n[1].i, n[2].i, get_pointer(&n[3])));
             break;
          case OPCODE_UNIFORM_1UI:
-            /*CALL_Uniform1uiARB(ctx->Exec, (n[1].i, n[2].i));*/
+            CALL_Uniform1ui(ctx->Exec, (n[1].i, n[2].i));
             break;
          case OPCODE_UNIFORM_2UI:
-            /*CALL_Uniform2uiARB(ctx->Exec, (n[1].i, n[2].i, n[3].i));*/
+            CALL_Uniform2ui(ctx->Exec, (n[1].i, n[2].i, n[3].i));
             break;
          case OPCODE_UNIFORM_3UI:
-            /*CALL_Uniform3uiARB(ctx->Exec, (n[1].i, n[2].i, n[3].i, n[4].i));*/
+            CALL_Uniform3ui(ctx->Exec, (n[1].i, n[2].i, n[3].i, n[4].i));
             break;
          case OPCODE_UNIFORM_4UI:
-            /*CALL_Uniform4uiARB(ctx->Exec,
-                              (n[1].i, n[2].i, n[3].i, n[4].i, n[5].i));
-            */
+            CALL_Uniform4ui(ctx->Exec,
+                            (n[1].i, n[2].i, n[3].i, n[4].i, n[5].i));
             break;
          case OPCODE_UNIFORM_1UIV:
-            /*CALL_Uniform1uivARB(ctx->Exec, (n[1].i, n[2].i,
-                                              get_pointer(&n[3])));*/
+            CALL_Uniform1uiv(ctx->Exec, (n[1].i, n[2].i, get_pointer(&n[3])));
             break;
          case OPCODE_UNIFORM_2UIV:
-            /*CALL_Uniform2uivARB(ctx->Exec, (n[1].i, n[2].i,
-                                              get_pointer(&n[3])));*/
+            CALL_Uniform2uiv(ctx->Exec, (n[1].i, n[2].i, get_pointer(&n[3])));
             break;
          case OPCODE_UNIFORM_3UIV:
-            /*CALL_Uniform3uivARB(ctx->Exec, (n[1].i, n[2].i,
-                                              get_pointer(&n[3])));*/
+            CALL_Uniform3uiv(ctx->Exec, (n[1].i, n[2].i, get_pointer(&n[3])));
             break;
          case OPCODE_UNIFORM_4UIV:
-            /*CALL_Uniform4uivARB(ctx->Exec, (n[1].i, n[2].i,
-                                              get_pointer(&n[3])));*/
+            CALL_Uniform4uiv(ctx->Exec, (n[1].i, n[2].i, get_pointer(&n[3])));
             break;
          case OPCODE_UNIFORM_MATRIX22:
             CALL_UniformMatrix2fv(ctx->Exec,
@@ -9844,9 +9831,6 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_BlendColorEXT(table, save_BlendColorEXT);
 #endif
 
-   /* 3. GL_EXT_polygon_offset */
-   SET_PolygonOffsetEXT(table, save_PolygonOffsetEXT);
-
    /* 6. GL_EXT_texture3d */
 #if 0
    SET_CopyTexSubImage3DEXT(table, save_CopyTexSubImage3D);
@@ -10008,7 +9992,6 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_ClearBufferuiv(table, save_ClearBufferuiv);
    SET_ClearBufferfv(table, save_ClearBufferfv);
    SET_ClearBufferfi(table, save_ClearBufferfi);
-#if 0
    SET_Uniform1ui(table, save_Uniform1ui);
    SET_Uniform2ui(table, save_Uniform2ui);
    SET_Uniform3ui(table, save_Uniform3ui);
@@ -10017,16 +10000,6 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_Uniform2uiv(table, save_Uniform2uiv);
    SET_Uniform3uiv(table, save_Uniform3uiv);
    SET_Uniform4uiv(table, save_Uniform4uiv);
-#else
-   (void) save_Uniform1ui;
-   (void) save_Uniform2ui;
-   (void) save_Uniform3ui;
-   (void) save_Uniform4ui;
-   (void) save_Uniform1uiv;
-   (void) save_Uniform2uiv;
-   (void) save_Uniform3uiv;
-   (void) save_Uniform4uiv;
-#endif
 
    /* These are: */
    SET_BeginTransformFeedback(table, save_BeginTransformFeedback);

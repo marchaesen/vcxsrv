@@ -395,26 +395,17 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
    /* Setup vertex element info for 'struct st_util_vertex'.
     */
    {
-      const unsigned slot = cso_get_aux_vertex_buffer_slot(st->cso_context);
-
-      /* If this assertion ever fails all state tracker calls to
-       * cso_get_aux_vertex_buffer_slot() should be audited.  This
-       * particular call would have to be moved to just before each
-       * drawing call.
-       */
-      assert(slot == 0);
-
       STATIC_ASSERT(sizeof(struct st_util_vertex) == 9 * sizeof(float));
 
       memset(&st->util_velems, 0, sizeof(st->util_velems));
       st->util_velems[0].src_offset = 0;
-      st->util_velems[0].vertex_buffer_index = slot;
+      st->util_velems[0].vertex_buffer_index = 0;
       st->util_velems[0].src_format = PIPE_FORMAT_R32G32B32_FLOAT;
       st->util_velems[1].src_offset = 3 * sizeof(float);
-      st->util_velems[1].vertex_buffer_index = slot;
+      st->util_velems[1].vertex_buffer_index = 0;
       st->util_velems[1].src_format = PIPE_FORMAT_R32G32B32A32_FLOAT;
       st->util_velems[2].src_offset = 7 * sizeof(float);
-      st->util_velems[2].vertex_buffer_index = slot;
+      st->util_velems[2].vertex_buffer_index = 0;
       st->util_velems[2].src_format = PIPE_FORMAT_R32G32_FLOAT;
    }
 
@@ -551,9 +542,6 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
 
    /* Initialize context's winsys buffers list */
    LIST_INITHEAD(&st->winsys_buffers);
-
-   /* Keep our list of gl_vertex_array inputs */
-   _vbo_init_inputs(&st->draw_arrays);
 
    return st;
 }

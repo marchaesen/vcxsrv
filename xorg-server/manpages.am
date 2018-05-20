@@ -34,21 +34,21 @@ MAN_SUBSTS +=   -e 's|@vendorversion@|"$(PACKAGE_STRING)" "$(XORG_MAN_PAGE)"|' \
 
 # Add server specific man pages string substitution from XORG_MANPAGE_SECTIONS
 # 's|/,|/, |g' will add a space to help font path formatting
-MAN_SUBSTS += 	-e 's|@logdir@|$(logdir)|g' \
-		-e 's|@datadir@|$(datadir)|g' \
-		-e 's|@mandir@|$(mandir)|g' \
-		-e 's|@sysconfdir@|$(sysconfdir)|g' \
-		-e 's|@xconfigdir@|$(XCONFIGDIR)|g' \
-		-e 's|@xkbdir@|$(XKB_BASE_DIRECTORY)|g' \
-		-e 's|@XKB_DFLT_RULES@|$(XKB_DFLT_RULES)|g' \
-		-e 's|@XKB_DFLT_MODEL@|$(XKB_DFLT_MODEL)|g' \
-		-e 's|@XKB_DFLT_LAYOUT@|$(XKB_DFLT_LAYOUT)|g' \
-		-e 's|@XKB_DFLT_VARIANT@|$(XKB_DFLT_VARIANT)|g' \
-		-e 's|@XKB_DFLT_OPTIONS@|$(XKB_DFLT_OPTIONS)|g' \
-		-e 's|@bundle_id_prefix@|$(BUNDLE_ID_PREFIX)|g' \
-		-e 's|@modulepath@|$(DEFAULT_MODULE_PATH)|g' \
-		-e 's|@suid_wrapper_dir@|$(SUID_WRAPPER_DIR)|g' \
-		-e 's|@default_font_path@|$(COMPILEDDEFAULTFONTPATH)|g' \
+MAN_SUBSTS += 	-e 's|[@]logdir[@]|$(logdir)|g' \
+		-e 's|[@]datadir[@]|$(datadir)|g' \
+		-e 's|[@]mandir[@]|$(mandir)|g' \
+		-e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+		-e 's|[@]xconfigdir[@]|$(XCONFIGDIR)|g' \
+		-e 's|[@]xkbdir[@]|$(XKB_BASE_DIRECTORY)|g' \
+		-e 's|[@]XKB_DFLT_RULES[@]|$(XKB_DFLT_RULES)|g' \
+		-e 's|[@]XKB_DFLT_MODEL[@]|$(XKB_DFLT_MODEL)|g' \
+		-e 's|[@]XKB_DFLT_LAYOUT[@]|$(XKB_DFLT_LAYOUT)|g' \
+		-e 's|[@]XKB_DFLT_VARIANT[@]|$(XKB_DFLT_VARIANT)|g' \
+		-e 's|[@]XKB_DFLT_OPTIONS[@]|$(XKB_DFLT_OPTIONS)|g' \
+		-e 's|[@]bundle_id_prefix[@]|$(BUNDLE_ID_PREFIX)|g' \
+		-e 's|[@]modulepath[@]|$(DEFAULT_MODULE_PATH)|g' \
+		-e 's|[@]suid_wrapper_dir[@]|$(SUID_WRAPPER_DIR)|g' \
+		-e 's|[@]default_font_path[@]|$(COMPILEDDEFAULTFONTPATH)|g' \
 		-e '\|$(COMPILEDDEFAULTFONTPATH)| s|/,|/, |g'
 
 .man.$(APP_MAN_SUFFIX):

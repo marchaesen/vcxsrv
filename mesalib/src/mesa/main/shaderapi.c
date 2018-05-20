@@ -837,7 +837,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       *params = shProg->BinaryRetreivableHint;
       return;
    case GL_PROGRAM_BINARY_LENGTH:
-      if (ctx->Const.NumProgramBinaryFormats == 0) {
+      if (ctx->Const.NumProgramBinaryFormats == 0 || !shProg->data->LinkStatus) {
          *params = 0;
       } else {
          _mesa_get_program_binary_length(ctx, shProg, params);

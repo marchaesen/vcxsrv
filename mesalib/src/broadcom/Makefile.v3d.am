@@ -3,9 +3,9 @@ noinst_LTLIBRARIES += libbroadcom_v33.la
 noinst_LTLIBRARIES += libbroadcom_v41.la
 noinst_LTLIBRARIES += libbroadcom_v42.la
 
-if USE_VC5_SIMULATOR
-AM_CFLAGS += $(VC5_SIMULATOR_CFLAGS)
-libbroadcom_la_LDFLAGS = $(VC5_SIMULATOR_LIBS)
+if USE_V3D_SIMULATOR
+AM_CFLAGS += $(V3D_SIMULATOR_CFLAGS)
+libbroadcom_la_LDFLAGS = $(V3D_SIMULATOR_LIBS)
 endif
 
 libbroadcom_v33_la_SOURCES = $(BROADCOM_PER_VERSION_SOURCES)

@@ -38,9 +38,7 @@
 extern "C" {
 #endif
 
-struct gl_vertex_array;
 struct gl_context;
-struct gl_transform_feedback_object;
 
 struct _mesa_prim
 {
@@ -151,39 +149,12 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
                          struct gl_buffer_object *indirect);
 
 
-/**
- * Utility that tracks and updates the current array entries.
- */
-struct vbo_inputs
-{
-   /**
-    * Array of inputs to be set to the _DrawArrays pointer.
-    * The array contains pointers into the _DrawVAO and to the vbo modules
-    * current values. The array of pointers is updated incrementally
-    * based on the current and vertex_processing_mode values below.
-    */
-   struct gl_vertex_array inputs[VERT_ATTRIB_MAX];
-   /** Those VERT_BIT_'s where the inputs array point to current values. */
-   GLbitfield current;
-   /** Store which aliasing current values - generics or materials - are set. */
-   gl_vertex_processing_mode vertex_processing_mode;
-};
+const struct gl_array_attributes*
+_vbo_current_attrib(const struct gl_context *ctx, gl_vert_attrib attr);
 
 
-/**
- * Initialize inputs.
- */
-void
-_vbo_init_inputs(struct vbo_inputs *inputs);
-
-
-/**
- * Update the gl_vertex_array array inside the vbo_inputs structure
- * provided the current _VPMode, the provided vao and
- * the vao's enabled arrays filtered by the filter bitmask.
- */
-void
-_vbo_update_inputs(struct gl_context *ctx, struct vbo_inputs *inputs);
+const struct gl_vertex_buffer_binding*
+_vbo_current_binding(const struct gl_context *ctx);
 
 
 void GLAPIENTRY

@@ -248,6 +248,11 @@ typedef enum _FcValueBinding {
 
 typedef struct _FcPattern   FcPattern;
 
+typedef struct _FcPatternIter {
+    void *dummy1;
+    void *dummy2;
+} FcPatternIter;
+
 typedef struct _FcLangSet   FcLangSet;
 
 typedef struct _FcRange	    FcRange;
@@ -861,6 +866,9 @@ FcValueSave (FcValue v);
 FcPublic void
 FcPatternDestroy (FcPattern *p);
 
+int
+FcPatternObjectCount (const FcPattern *pat);
+
 FcPublic FcBool
 FcPatternEqual (const FcPattern *pa, const FcPattern *pb);
 
@@ -960,6 +968,31 @@ FcRangeCopy (const FcRange *r);
 
 FcPublic FcBool
 FcRangeGetDouble(const FcRange *range, double *begin, double *end);
+
+FcPublic void
+FcPatternIterStart (const FcPattern *pat, FcPatternIter *iter);
+
+FcPublic FcBool
+FcPatternIterNext (const FcPattern *pat, FcPatternIter *iter);
+
+FcPublic FcBool
+FcPatternIterEqual (const FcPattern *p1, FcPatternIter *i1,
+		    const FcPattern *p2, FcPatternIter *i2);
+
+FcPublic FcBool
+FcPatternFindIter (const FcPattern *pat, FcPatternIter *iter, const char *object);
+
+FcPublic FcBool
+FcPatternIterIsValid (const FcPattern *pat, FcPatternIter *iter);
+
+FcPublic const char *
+FcPatternIterGetObject (const FcPattern *pat, FcPatternIter *iter);
+
+FcPublic int
+FcPatternIterValueCount (const FcPattern *pat, FcPatternIter *iter);
+
+FcPublic FcResult
+FcPatternIterGetValue (const FcPattern *pat, FcPatternIter *iter, int id, FcValue *v, FcValueBinding *b);
 
 /* fcweight.c */
 

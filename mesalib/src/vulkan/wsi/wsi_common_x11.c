@@ -1043,7 +1043,8 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
    uint32_t bpp = 32;
 
    if (chain->base.use_prime_blit) {
-      result = wsi_create_prime_image(&chain->base, pCreateInfo, &image->base);
+      bool use_modifier = num_tranches > 0;
+      result = wsi_create_prime_image(&chain->base, pCreateInfo, use_modifier, &image->base);
    } else {
       result = wsi_create_native_image(&chain->base, pCreateInfo,
                                        num_tranches, num_modifiers, modifiers,

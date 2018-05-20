@@ -321,10 +321,8 @@ uint32_t radv_translate_tex_dataformat(VkFormat format,
 			return V_008F14_IMG_DATA_FORMAT_32;
 		case 2:
 			return V_008F14_IMG_DATA_FORMAT_32_32;
-#if 0 /* Not supported for render targets */
 		case 3:
 			return V_008F14_IMG_DATA_FORMAT_32_32_32;
-#endif
 		case 4:
 			return V_008F14_IMG_DATA_FORMAT_32_32_32_32;
 		}
@@ -638,13 +636,17 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 				tiled |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
 			}
 		}
-		if (tiled && util_is_power_of_two_or_zero(vk_format_get_blocksize(format)) && !scaled) {
+		if (tiled && !scaled) {
 			tiled |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
 			         VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
 		}
+
+		/* Tiled formatting does not support NPOT pixel sizes */
+		if (!util_is_power_of_two_or_zero(vk_format_get_blocksize(format)))
+			tiled = 0;
 	}
 
-	if (linear && util_is_power_of_two_or_zero(vk_format_get_blocksize(format)) && !scaled) {
+	if (linear && !scaled) {
 		linear |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
 		          VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
 	}
@@ -653,6 +655,25 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 		buffer |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
 		linear |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
 		tiled |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
+	}
+
+	switch(format) {
+	case VK_FORMAT_A2R10G10B10_SNORM_PACK32:
+	case VK_FORMAT_A2B10G10R10_SNORM_PACK32:
+	case VK_FORMAT_A2R10G10B10_SSCALED_PACK32:
+	case VK_FORMAT_A2B10G10R10_SSCALED_PACK32:
+	case VK_FORMAT_A2R10G10B10_SINT_PACK32:
+	case VK_FORMAT_A2B10G10R10_SINT_PACK32:
+		if (physical_device->rad_info.chip_class <= VI &&
+		    physical_device->rad_info.family != CHIP_STONEY) {
+			buffer &= ~(VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
+			            VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT);
+			linear = 0;
+			tiled = 0;
+		}
+		break;
+	default:
+		break;
 	}
 
 	out_properties->linearTilingFeatures = linear;

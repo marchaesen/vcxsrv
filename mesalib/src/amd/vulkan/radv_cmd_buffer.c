@@ -238,7 +238,7 @@ static VkResult radv_create_cmd_buffer(
 		cmd_buffer->queue_family_index = pool->queue_family_index;
 
 	} else {
-		/* Init the pool_link so we can safefly call list_del when we destroy
+		/* Init the pool_link so we can safely call list_del when we destroy
 		 * the command buffer
 		 */
 		list_inithead(&cmd_buffer->pool_link);
@@ -587,9 +587,9 @@ radv_emit_userdata_address(struct radv_cmd_buffer *cmd_buffer,
 		return;
 	assert(loc->num_sgprs == 2);
 	assert(!loc->indirect);
-	radeon_set_sh_reg_seq(cmd_buffer->cs, base_reg + loc->sgpr_idx * 4, 2);
-	radeon_emit(cmd_buffer->cs, va);
-	radeon_emit(cmd_buffer->cs, va >> 32);
+
+	radv_emit_shader_pointer(cmd_buffer->cs,
+				 base_reg + loc->sgpr_idx * 4, va);
 }
 
 static void
@@ -1156,7 +1156,7 @@ radv_load_depth_clear_regs(struct radv_cmd_buffer *cmd_buffer,
 }
 
 /*
- *with DCC some colors don't require CMASK elimiation before being
+ * With DCC some colors don't require CMASK elimination before being
  * used as a texture. This sets a predicate value to determine if the
  * cmask eliminate is required.
  */
@@ -1442,10 +1442,9 @@ emit_stage_descriptor_set_userdata(struct radv_cmd_buffer *cmd_buffer,
 
 	assert(!desc_set_loc->indirect);
 	assert(desc_set_loc->num_sgprs == 2);
-	radeon_set_sh_reg_seq(cmd_buffer->cs,
-			      base_reg + desc_set_loc->sgpr_idx * 4, 2);
-	radeon_emit(cmd_buffer->cs, va);
-	radeon_emit(cmd_buffer->cs, va >> 32);
+
+	radv_emit_shader_pointer(cmd_buffer->cs,
+				 base_reg + desc_set_loc->sgpr_idx * 4, va);
 }
 
 static void

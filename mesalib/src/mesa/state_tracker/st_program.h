@@ -196,6 +196,9 @@ struct st_vp_variant
 
    /** similar to that in st_vertex_program, but with edgeflags info too */
    GLuint num_inputs;
+
+   /** Bitfield of VERT_BIT_* bits of mesa vertex processing inputs */
+   GLbitfield vert_attrib_mask;
 };
 
 
@@ -215,6 +218,8 @@ struct st_vertex_program
    /** maps a TGSI input index back to a Mesa VERT_ATTRIB_x */
    ubyte index_to_input[PIPE_MAX_ATTRIBS];
    ubyte num_inputs;
+   /** Reverse mapping of the above */
+   ubyte input_to_index[VERT_ATTRIB_MAX];
 
    /** Maps VARYING_SLOT_x to slot */
    ubyte result_to_output[VARYING_SLOT_MAX];

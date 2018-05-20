@@ -99,8 +99,8 @@ _tnl_CreateContext( struct gl_context *ctx )
    _math_init_transformation();
    _math_init_translate();
 
-   /* Keep our list of gl_vertex_array inputs */
-   _vbo_init_inputs(&tnl->draw_arrays);
+   /* Keep our list of tnl_vertex_array inputs */
+   _tnl_init_inputs(&tnl->draw_arrays);
 
    return GL_TRUE;
 }

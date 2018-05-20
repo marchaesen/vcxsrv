@@ -91,6 +91,7 @@ present_event_swap(xGenericEvent *from, xGenericEvent *to)
         swapl(&c->serial);
         swapll(&c->ust);
         swapll(&c->msc);
+        break;
     }
     case PresentIdleNotify:
     {
@@ -99,6 +100,7 @@ present_event_swap(xGenericEvent *from, xGenericEvent *to)
         swapl(&c->window);
         swapl(&c->serial);
         swapl(&c->idle_fence);
+        break;
     }
     }
 }

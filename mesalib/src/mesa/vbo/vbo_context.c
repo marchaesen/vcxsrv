@@ -157,7 +157,7 @@ vbo_exec_invalidate_state(struct gl_context *ctx)
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;
 
-   if (ctx->NewState & (_NEW_PROGRAM | _NEW_ARRAY)) {
+   if (ctx->NewState & _NEW_ARRAY) {
       _ae_invalidate_state(ctx);
    }
    if (ctx->NewState & _NEW_EVAL)
@@ -202,7 +202,7 @@ _vbo_CreateContext(struct gl_context *ctx)
    vbo->VAO = _mesa_new_vao(ctx, ~((GLuint)0));
    /* The exec VAO assumes to have all arributes bound to binding 0 */
    for (unsigned i = 0; i < VERT_ATTRIB_MAX; ++i)
-      _mesa_vertex_attrib_binding(ctx, vbo->VAO, i, 0, false);
+      _mesa_vertex_attrib_binding(ctx, vbo->VAO, i, 0);
 
    _math_init_eval();
 
@@ -231,6 +231,23 @@ _vbo_DestroyContext(struct gl_context *ctx)
       free(vbo);
       ctx->vbo_context = NULL;
    }
+}
+
+
+const struct gl_array_attributes *
+_vbo_current_attrib(const struct gl_context *ctx, gl_vert_attrib attr)
+{
+   const struct vbo_context *vbo = vbo_context_const(ctx);
+   const gl_vertex_processing_mode vmp = ctx->VertexProgram._VPMode;
+   return &vbo->current[_vbo_attribute_alias_map[vmp][attr]];
+}
+
+
+const struct gl_vertex_buffer_binding *
+_vbo_current_binding(const struct gl_context *ctx)
+{
+   const struct vbo_context *vbo = vbo_context_const(ctx);
+   return &vbo->binding;
 }
 
 

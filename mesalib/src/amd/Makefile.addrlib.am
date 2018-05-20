@@ -22,6 +22,7 @@
 ADDRLIB_LIBS = addrlib/libamdgpu_addrlib.la
 
 addrlib_libamdgpu_addrlib_la_CPPFLAGS = \
+	$(DEFINES) \
 	-I$(top_srcdir)/src/ \
 	-I$(srcdir)/common \
 	-I$(srcdir)/addrlib \

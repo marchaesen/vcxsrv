@@ -204,17 +204,30 @@ xkb_symbols "ug" {
 // Pinyin Keyboard, in the style of altgr-intl
 //
 // Chinese speakers and learners often find it hard to type Hanyu Pinyin
-// with all its tones and ü. This file defines an altgr-intl-like behavior.
+// with all its tones and ü. This rule defines an altgr-intl-like behavior,
+// with dead keys activated by "AltGr + <key>". It also works with many
+// "pinyin" extensions, such as Tongyong Pinyin (Taiwan Mandarin) and
+// various SASM/GNC romanizations.
 //
 // Number row keys 1 2 3 4 are defined as dead-keys for the tones.
 // They correspond to the four tones in Hanyu Pinyin.
 //
+// To generate a · for "neutral" syllables, use AltGr + ` (grave).
 // To generate a raw ü, use AltGr + v.
 // V is used instead of ü for tones.
 //
+// AltGr+Shift+` triggers dead_abovering (˚), used by the Taiwanese
+// Tongyong Pinyin variant for the "neutral" tone.
+//
+// AltGr+6 triggers dead_circumflex (^) for ê ẑ ĉ ŝ, etc.
+// These can be stacked after tones to produce ế and ề; other tones require
+// combining characters, available through nobreakspace (AltGr+Space).
+//
+// AltGr+Shift+6 triggers dead_diaeresis (¨) for SASM/GNC
+// romanization of tib, mon, and ug.
+//
 // This file should be used with an appropriate XCompose file with
 // definitons for dead_{macron,acute,caron,grave} + a/e/i/o/u/v(ü).
-// en_US.UTF-8's Compose may be used for this purpose.
 // --Mingye Wang <arthur200126@gmail.com>
 
 partial alphanumeric_keys
@@ -222,12 +235,16 @@ xkb_symbols "altgr-pinyin" {
    include "us(basic)"
    name[Group1]= "Hanyu Pinyin (altgr)";
 
+   key <TLDE> { [      grave,	asciitilde,  periodcentered,dead_abovering ]	};
    key <AE01> { [	   1,	exclam,		dead_macron,	    macron ]	};
    key <AE02> { [	   2,	at,		dead_acute,	     acute ]	};
    key <AE03> { [	   3,	numbersign,	dead_caron,	     caron ]	};
    key <AE04> { [	   4,	dollar,		dead_grave,	     grave ]	};
 
+   key <AE06> { [	   6,	asciicircum,	dead_circumflex, dead_diaeresis ]	};
    key <AB04> {	[	   v,	V,		udiaeresis,	Udiaeresis ]	};
+
+   key <SPCE>  { [     space,   space,	      nobreakspace,   nobreakspace ]	};
 
    include "level3(ralt_switch)"
 };

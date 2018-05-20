@@ -48,6 +48,7 @@
 #include "main/bufferobj.h"
 #include "main/glformats.h"
 #include "main/varray.h"
+#include "main/arrayobj.h"
 
 /* vertex_formats[gltype - GL_BYTE][integer*2 + normalized][size - 1] */
 static const uint16_t vertex_formats[][4][4] = {
@@ -306,79 +307,6 @@ st_pipe_vertex_format(const struct gl_array_attributes *attrib)
    return vertex_formats[type - GL_BYTE][index][size-1];
 }
 
-static const struct gl_vertex_array *
-get_client_array(const struct gl_vertex_array *arrays,
-                 unsigned mesaAttr)
-{
-   /* st_program uses 0xffffffff to denote a double placeholder attribute */
-   if (mesaAttr == ST_DOUBLE_ATTRIB_PLACEHOLDER)
-      return NULL;
-   return &arrays[mesaAttr];
-}
-
-/**
- * Examine the active arrays to determine if we have interleaved
- * vertex arrays all living in one VBO, or all living in user space.
- */
-static GLboolean
-is_interleaved_arrays(const struct st_vertex_program *vp,
-                      const struct gl_vertex_array *arrays,
-                      unsigned num_inputs)
-{
-   GLuint attr;
-   const struct gl_buffer_object *firstBufObj = NULL;
-   GLint firstStride = -1;
-   const GLubyte *firstPtr = NULL;
-   GLboolean userSpaceBuffer = GL_FALSE;
-
-   for (attr = 0; attr < num_inputs; attr++) {
-      const struct gl_vertex_array *array;
-      const struct gl_vertex_buffer_binding *binding;
-      const struct gl_array_attributes *attrib;
-      const GLubyte *ptr;
-      const struct gl_buffer_object *bufObj;
-      GLsizei stride;
-
-      array = get_client_array(arrays, vp->index_to_input[attr]);
-      if (!array)
-	 continue;
-
-      binding = array->BufferBinding;
-      attrib = array->VertexAttrib;
-      stride = binding->Stride; /* in bytes */
-      ptr = _mesa_vertex_attrib_address(attrib, binding);
-
-      /* To keep things simple, don't allow interleaved zero-stride attribs. */
-      if (stride == 0)
-         return false;
-
-      bufObj = binding->BufferObj;
-      if (attr == 0) {
-         /* save info about the first array */
-         firstStride = stride;
-         firstPtr = ptr;
-         firstBufObj = bufObj;
-         userSpaceBuffer = !_mesa_is_bufferobj(bufObj);
-      }
-      else {
-         /* check if other arrays interleave with the first, in same buffer */
-         if (stride != firstStride)
-            return GL_FALSE; /* strides don't match */
-
-         if (bufObj != firstBufObj)
-            return GL_FALSE; /* arrays in different VBOs */
-
-         if (llabs(ptr - firstPtr) > firstStride)
-            return GL_FALSE; /* arrays start too far apart */
-
-         if ((!_mesa_is_bufferobj(bufObj)) != userSpaceBuffer)
-            return GL_FALSE; /* mix of VBO and user-space arrays */
-      }
-   }
-
-   return GL_TRUE;
-}
-
 static void init_velement(struct pipe_vertex_element *velement,
                           int src_offset, int format,
                           int instance_divisor, int vbo_index)
@@ -392,13 +320,14 @@ static void init_velement(struct pipe_vertex_element *velement,
 
 static void init_velement_lowered(const struct st_vertex_program *vp,
                                   struct pipe_vertex_element *velements,
-                                  int src_offset, int format,
-                                  int instance_divisor, int vbo_index,
-                                  int nr_components, GLboolean doubles,
-                                  GLuint *attr_idx)
+                                  const struct gl_array_attributes *attrib,
+                                  int src_offset, int instance_divisor,
+                                  int vbo_index, int idx)
 {
-   int idx = *attr_idx;
-   if (doubles) {
+   const unsigned format = st_pipe_vertex_format(attrib);
+   const GLubyte nr_components = attrib->Size;
+
+   if (attrib->Doubles) {
       int lower_format;
 
       if (nr_components < 2)
@@ -427,15 +356,11 @@ static void init_velement_lowered(const struct st_vertex_program *vp,
             init_velement(&velements[idx], src_offset, PIPE_FORMAT_R32G32_UINT,
                           instance_divisor, vbo_index);
          }
-
-         idx++;
       }
    } else {
       init_velement(&velements[idx], src_offset,
                     format, instance_divisor, vbo_index);
-      idx++;
    }
-   *attr_idx = idx;
 }
 
 static void
@@ -457,274 +382,132 @@ set_vertex_attribs(struct st_context *st,
    cso_set_vertex_elements(cso, num_velements, velements);
 }
 
-/**
- * Set up for drawing interleaved arrays that all live in one VBO
- * or all live in user space.
- * \param vbuffer  returns vertex buffer info
- * \param velements  returns vertex element info
- */
-static void
-setup_interleaved_attribs(struct st_context *st,
-                          const struct st_vertex_program *vp,
-                          const struct gl_vertex_array *arrays,
-                          unsigned num_inputs)
-{
-   struct pipe_vertex_buffer vbuffer;
-   struct pipe_vertex_element velements[PIPE_MAX_ATTRIBS] = {{0}};
-   GLuint attr;
-   const GLubyte *low_addr = NULL;
-   GLboolean usingVBO;      /* all arrays in a VBO? */
-   struct gl_buffer_object *bufobj;
-   GLsizei stride;
-
-   /* Find the lowest address of the arrays we're drawing,
-    * Init bufobj and stride.
-    */
-   if (num_inputs) {
-      const struct gl_vertex_array *array;
-      const struct gl_vertex_buffer_binding *binding;
-      const struct gl_array_attributes *attrib;
-
-      array = get_client_array(arrays, vp->index_to_input[0]);
-      assert(array);
-
-      binding = array->BufferBinding;
-      attrib = array->VertexAttrib;
-
-      /* Since we're doing interleaved arrays, we know there'll be at most
-       * one buffer object and the stride will be the same for all arrays.
-       * Grab them now.
-       */
-      bufobj = binding->BufferObj;
-      stride = binding->Stride;
-
-      low_addr = _mesa_vertex_attrib_address(attrib, binding);
-
-      for (attr = 1; attr < num_inputs; attr++) {
-         const GLubyte *start;
-         array = get_client_array(arrays, vp->index_to_input[attr]);
-         if (!array)
-            continue;
-         binding = array->BufferBinding;
-         attrib = array->VertexAttrib;
-         start = _mesa_vertex_attrib_address(attrib, binding);
-         low_addr = MIN2(low_addr, start);
-      }
-   }
-   else {
-      /* not sure we'll ever have zero inputs, but play it safe */
-      bufobj = NULL;
-      stride = 0;
-      low_addr = 0;
-   }
-
-   /* are the arrays in user space? */
-   usingVBO = _mesa_is_bufferobj(bufobj);
-
-   for (attr = 0; attr < num_inputs;) {
-      const struct gl_vertex_array *array;
-      const struct gl_vertex_buffer_binding *binding;
-      const struct gl_array_attributes *attrib;
-      const GLubyte *ptr;
-      unsigned src_offset;
-      unsigned src_format;
-
-      array = get_client_array(arrays, vp->index_to_input[attr]);
-      assert(array);
-
-      binding = array->BufferBinding;
-      attrib = array->VertexAttrib;
-      ptr = _mesa_vertex_attrib_address(attrib, binding);
-
-      src_offset = (unsigned) (ptr - low_addr);
-
-      src_format = st_pipe_vertex_format(attrib);
-
-      init_velement_lowered(vp, velements, src_offset, src_format,
-                            binding->InstanceDivisor, 0,
-                            attrib->Size, attrib->Doubles, &attr);
-   }
-
-   /*
-    * Return the vbuffer info and setup user-space attrib info, if needed.
-    */
-   if (num_inputs == 0) {
-      /* just defensive coding here */
-      vbuffer.buffer.resource = NULL;
-      vbuffer.is_user_buffer = false;
-      vbuffer.buffer_offset = 0;
-      vbuffer.stride = 0;
-   }
-   else if (usingVBO) {
-      /* all interleaved arrays in a VBO */
-      struct st_buffer_object *stobj = st_buffer_object(bufobj);
-
-      if (!stobj || !stobj->buffer) {
-         st->vertex_array_out_of_memory = true;
-         return; /* out-of-memory error probably */
-      }
-
-      vbuffer.buffer.resource = stobj->buffer;
-      vbuffer.is_user_buffer = false;
-      vbuffer.buffer_offset = pointer_to_offset(low_addr);
-      vbuffer.stride = stride;
-   }
-   else {
-      /* all interleaved arrays in user memory */
-      vbuffer.buffer.user = low_addr;
-      vbuffer.is_user_buffer = !!low_addr; /* if NULL, then unbind */
-      vbuffer.buffer_offset = 0;
-      vbuffer.stride = stride;
-
-      if (low_addr)
-         st->draw_needs_minmax_index = true;
-   }
-
-   set_vertex_attribs(st, &vbuffer, num_inputs ? 1 : 0,
-                      velements, num_inputs);
-}
-
-/**
- * Set up a separate pipe_vertex_buffer and pipe_vertex_element for each
- * vertex attribute.
- * \param vbuffer  returns vertex buffer info
- * \param velements  returns vertex element info
- */
-static void
-setup_non_interleaved_attribs(struct st_context *st,
-                              const struct st_vertex_program *vp,
-                              const struct gl_vertex_array *arrays,
-                              unsigned num_inputs)
+void
+st_update_array(struct st_context *st)
 {
    struct gl_context *ctx = st->ctx;
+   /* vertex program validation must be done before this */
+   const struct st_vertex_program *vp = st->vp;
+   /* _NEW_PROGRAM, ST_NEW_VS_STATE */
+   const GLbitfield inputs_read = st->vp_variant->vert_attrib_mask;
+   const struct gl_vertex_array_object *vao = ctx->Array._DrawVAO;
+   const ubyte *input_to_index = vp->input_to_index;
+
    struct pipe_vertex_buffer vbuffer[PIPE_MAX_ATTRIBS];
-   struct pipe_vertex_element velements[PIPE_MAX_ATTRIBS] = {{0}};
+   struct pipe_vertex_element velements[PIPE_MAX_ATTRIBS];
    unsigned num_vbuffers = 0;
-   unsigned unref_buffers = 0;
-   GLuint attr;
 
-   for (attr = 0; attr < num_inputs;) {
-      const unsigned mesaAttr = vp->index_to_input[attr];
-      const struct gl_vertex_array *array;
-      const struct gl_vertex_buffer_binding *binding;
-      const struct gl_array_attributes *attrib;
-      struct gl_buffer_object *bufobj;
-      GLsizei stride;
-      unsigned src_format;
-      unsigned bufidx;
+   st->vertex_array_out_of_memory = FALSE;
+   st->draw_needs_minmax_index = false;
 
-      array = get_client_array(arrays, mesaAttr);
-      assert(array);
+   /* _NEW_PROGRAM */
+   /* ST_NEW_VERTEX_ARRAYS alias ctx->DriverFlags.NewArray */
+   /* Process attribute array data. */
+   GLbitfield mask = inputs_read & _mesa_draw_array_bits(ctx);
+   while (mask) {
+      /* The attribute index to start pulling a binding */
+      const gl_vert_attrib i = ffs(mask) - 1;
+      const struct gl_vertex_buffer_binding *const binding
+         = _mesa_draw_buffer_binding(vao, i);
+      const unsigned bufidx = num_vbuffers++;
 
-      bufidx = num_vbuffers++;
-
-      binding = array->BufferBinding;
-      attrib = array->VertexAttrib;
-      stride = binding->Stride;
-      bufobj = binding->BufferObj;
-
-      if (_mesa_is_bufferobj(bufobj)) {
-         /* Attribute data is in a VBO.
-          * Recall that for VBOs, the gl_vertex_array->Ptr field is
-          * really an offset from the start of the VBO, not a pointer.
-          */
-         struct st_buffer_object *stobj = st_buffer_object(bufobj);
-
+      if (_mesa_is_bufferobj(binding->BufferObj)) {
+         struct st_buffer_object *stobj = st_buffer_object(binding->BufferObj);
          if (!stobj || !stobj->buffer) {
             st->vertex_array_out_of_memory = true;
             return; /* out-of-memory error probably */
          }
 
+         /* Set the binding */
          vbuffer[bufidx].buffer.resource = stobj->buffer;
          vbuffer[bufidx].is_user_buffer = false;
-         vbuffer[bufidx].buffer_offset =
-            binding->Offset + attrib->RelativeOffset;
+         vbuffer[bufidx].buffer_offset = _mesa_draw_binding_offset(binding);
+      } else {
+         /* Set the binding */
+         const void *ptr = (const void *)_mesa_draw_binding_offset(binding);
+         vbuffer[bufidx].buffer.user = ptr;
+         vbuffer[bufidx].is_user_buffer = true;
+         vbuffer[bufidx].buffer_offset = 0;
+
+         if (!binding->InstanceDivisor)
+            st->draw_needs_minmax_index = true;
       }
-      else {
-         if (stride == 0) {
-            unsigned size = attrib->_ElementSize;
-            /* This is optimal for GPU cache line usage if the upload size
-             * is <= cache line size.
-             */
-            unsigned alignment = util_next_power_of_two(size);
+      vbuffer[bufidx].stride = binding->Stride; /* in bytes */
 
-            assert(attrib->Ptr);
-            vbuffer[bufidx].buffer.user = attrib->Ptr;
-            void *ptr = attrib->Ptr ? (void*)attrib->Ptr :
-                                      (void*)ctx->Current.Attrib[mesaAttr];
+      const GLbitfield boundmask = _mesa_draw_bound_attrib_bits(binding);
+      GLbitfield attrmask = mask & boundmask;
+      /* Mark the those attributes as processed */
+      mask &= ~boundmask;
+      /* We can assume that we have array for the binding */
+      assert(attrmask);
+      /* Walk attributes belonging to the binding */
+      while (attrmask) {
+         const gl_vert_attrib attr = u_bit_scan(&attrmask);
+         const struct gl_array_attributes *const attrib
+            = _mesa_draw_array_attrib(vao, attr);
+         const GLuint off = _mesa_draw_attributes_relative_offset(attrib);
+         init_velement_lowered(vp, velements, attrib, off,
+                               binding->InstanceDivisor, bufidx,
+                               input_to_index[attr]);
+      }
+   }
 
-            vbuffer[bufidx].is_user_buffer = false;
-            vbuffer[bufidx].buffer.resource = NULL;
+   const unsigned first_current_vbuffer = num_vbuffers;
+   /* _NEW_PROGRAM | _NEW_CURRENT_ATTRIB */
+   /* Process values that should have better been uniforms in the application */
+   GLbitfield curmask = inputs_read & _mesa_draw_current_bits(ctx);
+   if (curmask) {
+      /* For each attribute, upload the maximum possible size. */
+      GLubyte data[VERT_ATTRIB_MAX * sizeof(GLdouble) * 4];
+      GLubyte *cursor = data;
+      const unsigned bufidx = num_vbuffers++;
+      unsigned max_alignment = 1;
 
-            /* Use const_uploader for zero-stride vertex attributes, because
-             * it may use a better memory placement than stream_uploader.
-             * The reason is that zero-stride attributes can be fetched many
-             * times (thousands of times), so a better placement is going to
-             * perform better.
-             *
-             * Upload the maximum possible size, which is 4x GLdouble = 32.
-             */
-            u_upload_data(st->can_bind_const_buffer_as_vertex ?
-                             st->pipe->const_uploader :
-                             st->pipe->stream_uploader,
-                          0, size, alignment, ptr,
-                          &vbuffer[bufidx].buffer_offset,
-                          &vbuffer[bufidx].buffer.resource);
-            unref_buffers |= 1u << bufidx;
-         } else {
-            assert(attrib->Ptr);
-            vbuffer[bufidx].buffer.user = attrib->Ptr;
-            vbuffer[bufidx].is_user_buffer = true;
-            vbuffer[bufidx].buffer_offset = 0;
+      while (curmask) {
+         const gl_vert_attrib attr = u_bit_scan(&curmask);
+         const struct gl_array_attributes *const attrib
+            = _mesa_draw_current_attrib(ctx, attr);
+         const unsigned size = attrib->_ElementSize;
+         const unsigned alignment = util_next_power_of_two(size);
+         max_alignment = MAX2(max_alignment, alignment);
+         memcpy(cursor, attrib->Ptr, size);
+         if (alignment != size)
+            memset(cursor + size, 0, alignment - size);
 
-            if (!binding->InstanceDivisor)
-               st->draw_needs_minmax_index = true;
-         }
+         init_velement_lowered(vp, velements, attrib, cursor - data, 0,
+                               bufidx, input_to_index[attr]);
+
+         cursor += alignment;
       }
 
-      /* common-case setup */
-      vbuffer[bufidx].stride = stride; /* in bytes */
+      vbuffer[bufidx].is_user_buffer = false;
+      vbuffer[bufidx].buffer.resource = NULL;
+      /* vbuffer[bufidx].buffer_offset is set below */
+      vbuffer[bufidx].stride = 0;
 
-      src_format = st_pipe_vertex_format(attrib);
-
-      init_velement_lowered(vp, velements, 0, src_format,
-                            binding->InstanceDivisor, bufidx,
-                            attrib->Size, attrib->Doubles, &attr);
+      /* Use const_uploader for zero-stride vertex attributes, because
+       * it may use a better memory placement than stream_uploader.
+       * The reason is that zero-stride attributes can be fetched many
+       * times (thousands of times), so a better placement is going to
+       * perform better.
+       */
+      u_upload_data(st->can_bind_const_buffer_as_vertex ?
+                    st->pipe->const_uploader :
+                    st->pipe->stream_uploader,
+                    0, cursor - data, max_alignment, data,
+                    &vbuffer[bufidx].buffer_offset,
+                    &vbuffer[bufidx].buffer.resource);
    }
 
    if (!ctx->Const.AllowMappedBuffersDuringExecution) {
       u_upload_unmap(st->pipe->stream_uploader);
    }
 
+   const unsigned num_inputs = st->vp_variant->num_inputs;
    set_vertex_attribs(st, vbuffer, num_vbuffers, velements, num_inputs);
 
    /* Unreference uploaded zero-stride vertex buffers. */
-   while (unref_buffers) {
-      unsigned i = u_bit_scan(&unref_buffers);
+   for (unsigned i = first_current_vbuffer; i < num_vbuffers; ++i) {
       pipe_resource_reference(&vbuffer[i].buffer.resource, NULL);
    }
-}
-
-void st_update_array(struct st_context *st)
-{
-   struct gl_context *ctx = st->ctx;
-   const struct gl_vertex_array *arrays = ctx->Array._DrawArrays;
-   const struct st_vertex_program *vp;
-   unsigned num_inputs;
-
-   st->vertex_array_out_of_memory = FALSE;
-   st->draw_needs_minmax_index = false;
-
-   /* No drawing has been done yet, so do nothing. */
-   if (!arrays)
-      return;
-
-   /* vertex program validation must be done before this */
-   vp = st->vp;
-   num_inputs = st->vp_variant->num_inputs;
-
-   if (is_interleaved_arrays(vp, arrays, num_inputs))
-      setup_interleaved_attribs(st, vp, arrays, num_inputs);
-   else
-      setup_non_interleaved_attribs(st, vp, arrays, num_inputs);
 }

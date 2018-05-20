@@ -42,6 +42,7 @@ env.CFile('program/program_parse.tab.c', 'program/program_parse.y')
 mesa_sources = (
     source_lists['MESA_FILES'] +
     source_lists['PROGRAM_FILES'] +
+    source_lists['PROGRAM_NIR_FILES'] +
     source_lists['STATETRACKER_FILES']
 )
 

@@ -38,9 +38,11 @@
 
 #include "main/imports.h"
 #include "main/macros.h"
+#include "main/arrayobj.h"
 #include "main/feedback.h"
 #include "main/rastpos.h"
-#include "glformats.h"
+#include "main/state.h"
+#include "main/varray.h"
 
 #include "st_context.h"
 #include "st_atom.h"
@@ -61,9 +63,7 @@ struct rastpos_stage
    struct gl_context *ctx;            /**< Rendering context */
 
    /* vertex attrib info we can setup once and re-use */
-   struct gl_vertex_buffer_binding binding;
-   struct gl_array_attributes attrib[VERT_ATTRIB_MAX];
-   struct gl_vertex_array array[VERT_ATTRIB_MAX];
+   struct gl_vertex_array_object *VAO;
    struct _mesa_prim prim;
 };
 
@@ -103,6 +103,8 @@ rastpos_line( struct draw_stage *stage, struct prim_header *prim )
 static void
 rastpos_destroy(struct draw_stage *stage)
 {
+   struct rastpos_stage *rstage = (struct rastpos_stage*)stage;
+   _mesa_reference_vao(rstage->ctx, &rstage->VAO, NULL);
    free(stage);
 }
 
@@ -182,8 +184,6 @@ static struct rastpos_stage *
 new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
 {
    struct rastpos_stage *rs = ST_CALLOC_STRUCT(rastpos_stage);
-   GLuint i;
-   GLuint elementSize;
 
    rs->stage.draw = draw;
    rs->stage.next = NULL;
@@ -196,20 +196,11 @@ new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
    rs->stage.destroy = rastpos_destroy;
    rs->ctx = ctx;
 
-   rs->binding.Stride = 0;
-   rs->binding.BufferObj = NULL;
-
-   elementSize = _mesa_bytes_per_vertex_attrib(4, GL_FLOAT);
-   for (i = 0; i < ARRAY_SIZE(rs->array); i++) {
-      rs->attrib[i].Size = 4;
-      rs->attrib[i].Type = GL_FLOAT;
-      rs->attrib[i].Format = GL_RGBA;
-      rs->attrib[i].Ptr = (GLubyte *) ctx->Current.Attrib[i];
-      rs->attrib[i].Normalized = GL_TRUE;
-      rs->attrib[i]._ElementSize = elementSize;
-      rs->array[i].BufferBinding = &rs->binding;
-      rs->array[i].VertexAttrib = &rs->attrib[i];
-   }
+   rs->VAO = _mesa_new_vao(ctx, ~((GLuint)0));
+   _mesa_vertex_attrib_binding(ctx, rs->VAO, VERT_ATTRIB_POS, 0);
+   _mesa_update_array_format(ctx, rs->VAO, VERT_ATTRIB_POS, 4, GL_FLOAT,
+                             GL_RGBA, GL_FALSE, GL_FALSE, GL_FALSE, 0);
+   _mesa_enable_vertex_array_attrib(ctx, rs->VAO, 0);
 
    rs->prim.mode = GL_POINTS;
    rs->prim.indexed = 0;
@@ -229,7 +220,6 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    struct st_context *st = st_context(ctx);
    struct draw_context *draw = st_get_draw_context(st);
    struct rastpos_stage *rs;
-   const struct gl_vertex_array *saved_arrays = ctx->Array._DrawArrays;
 
    if (!st->draw)
       return;
@@ -265,16 +255,13 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    /* All vertex attribs but position were previously initialized above.
     * Just plug in position pointer now.
     */
-   rs->attrib[0].Ptr = (GLubyte *) v;
+   rs->VAO->VertexAttrib[VERT_ATTRIB_POS].Ptr = (GLubyte *) v;
+   rs->VAO->NewArrays |= VERT_BIT_POS;
+   _mesa_set_draw_vao(ctx, rs->VAO, VERT_BIT_POS);
 
-   /* Draw the point.
-    *
-    * Don't set DriverFlags.NewArray.
-    * st_feedback_draw_vbo doesn't check for that flag. */
-   ctx->Array._DrawArrays = rs->array;
+   /* Draw the point. */
    st_feedback_draw_vbo(ctx, &rs->prim, 1, NULL, GL_TRUE, 0, 1,
                         NULL, 0, NULL);
-   ctx->Array._DrawArrays = saved_arrays;
 
    /* restore draw's rasterization stage depending on rendermode */
    if (ctx->RenderMode == GL_FEEDBACK) {

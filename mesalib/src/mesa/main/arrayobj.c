@@ -451,8 +451,116 @@ _mesa_initialize_vao(struct gl_context *ctx,
 
 
 /**
- * Updates the derived gl_vertex_arrays when a gl_array_attributes
- * or a gl_vertex_buffer_binding has changed.
+ * Compute the offset range for the provided binding.
+ *
+ * This is a helper function for the below.
+ */
+static void
+compute_vbo_offset_range(const struct gl_vertex_array_object *vao,
+                         const struct gl_vertex_buffer_binding *binding,
+                         GLsizeiptr* min, GLsizeiptr* max)
+{
+   /* The function is meant to work on VBO bindings */
+   assert(_mesa_is_bufferobj(binding->BufferObj));
+
+   /* Start with an inverted range of relative offsets. */
+   GLuint min_offset = ~(GLuint)0;
+   GLuint max_offset = 0;
+
+   /* We work on the unmapped originaly VAO array entries. */
+   GLbitfield mask = vao->_Enabled & binding->_BoundArrays;
+   /* The binding should be active somehow, not to return inverted ranges */
+   assert(mask);
+   while (mask) {
+      const int i = u_bit_scan(&mask);
+      const GLuint off = vao->VertexAttrib[i].RelativeOffset;
+      min_offset = MIN2(off, min_offset);
+      max_offset = MAX2(off, max_offset);
+   }
+
+   *min = binding->Offset + (GLsizeiptr)min_offset;
+   *max = binding->Offset + (GLsizeiptr)max_offset;
+}
+
+
+/**
+ * Update the unique binding and pos/generic0 map tracking in the vao.
+ *
+ * The idea is to build up information in the vao so that a consuming
+ * backend can execute the following to set up buffer and vertex element
+ * information:
+ *
+ * const GLbitfield inputs_read = VERT_BIT_ALL; // backend vp inputs
+ *
+ * // Attribute data is in a VBO.
+ * GLbitfield vbomask = inputs_read & _mesa_draw_vbo_array_bits(ctx);
+ * while (vbomask) {
+ *    // The attribute index to start pulling a binding
+ *    const gl_vert_attrib i = ffs(vbomask) - 1;
+ *    const struct gl_vertex_buffer_binding *const binding
+ *       = _mesa_draw_buffer_binding(vao, i);
+ *
+ *    <insert code to handle the vertex buffer object at binding>
+ *
+ *    const GLbitfield boundmask = _mesa_draw_bound_attrib_bits(binding);
+ *    GLbitfield attrmask = vbomask & boundmask;
+ *    assert(attrmask);
+ *    // Walk attributes belonging to the binding
+ *    while (attrmask) {
+ *       const gl_vert_attrib attr = u_bit_scan(&attrmask);
+ *       const struct gl_array_attributes *const attrib
+ *          = _mesa_draw_array_attrib(vao, attr);
+ *
+ *       <insert code to handle the vertex element refering to the binding>
+ *    }
+ *    vbomask &= ~boundmask;
+ * }
+ *
+ * // Process user space buffers
+ * GLbitfield usermask = inputs_read & _mesa_draw_user_array_bits(ctx);
+ * while (usermask) {
+ *    // The attribute index to start pulling a binding
+ *    const gl_vert_attrib i = ffs(usermask) - 1;
+ *    const struct gl_vertex_buffer_binding *const binding
+ *       = _mesa_draw_buffer_binding(vao, i);
+ *
+ *    <insert code to handle a set of interleaved user space arrays at binding>
+ *
+ *    const GLbitfield boundmask = _mesa_draw_bound_attrib_bits(binding);
+ *    GLbitfield attrmask = usermask & boundmask;
+ *    assert(attrmask);
+ *    // Walk interleaved attributes with a common stride and instance divisor
+ *    while (attrmask) {
+ *       const gl_vert_attrib attr = u_bit_scan(&attrmask);
+ *       const struct gl_array_attributes *const attrib
+ *          = _mesa_draw_array_attrib(vao, attr);
+ *
+ *       <insert code to handle non vbo vertex arrays>
+ *    }
+ *    usermask &= ~boundmask;
+ * }
+ *
+ * // Process values that should have better been uniforms in the application
+ * GLbitfield curmask = inputs_read & _mesa_draw_current_bits(ctx);
+ * while (curmask) {
+ *    const gl_vert_attrib attr = u_bit_scan(&curmask);
+ *    const struct gl_array_attributes *const attrib
+ *       = _mesa_draw_current_attrib(ctx, attr);
+ *
+ *    <insert code to handle current values>
+ * }
+ *
+ *
+ * Note that the scan below must not incoporate any context state.
+ * The rationale is that once a VAO is finalized it should not
+ * be touched anymore. That means, do not incorporate the
+ * gl_context::Array._DrawVAOEnabledAttribs bitmask into this scan.
+ * A backend driver may further reduce the handled vertex processing
+ * inputs based on their vertex shader inputs. But scanning for
+ * collapsable binding points to reduce relocs is done based on the
+ * enabled arrays.
+ * Also VAOs may be shared between contexts due to their use in dlists
+ * thus no context state should bleed into the VAO.
  */
 void
 _mesa_update_vao_derived_arrays(struct gl_context *ctx,
@@ -461,11 +569,281 @@ _mesa_update_vao_derived_arrays(struct gl_context *ctx,
    /* Make sure we do not run into problems with shared objects */
    assert(!vao->SharedAndImmutable || vao->NewArrays == 0);
 
-   /*
-    * Stay tuned, the next series scans for duplicate bindings in this
-    * function. So that drivers can easily know the minimum unique set
-    * of bindings.
+   /* Limit used for common binding scanning below. */
+   const GLsizeiptr MaxRelativeOffset =
+      ctx->Const.MaxVertexAttribRelativeOffset;
+
+   /* The gl_vertex_array_object::_AttributeMapMode denotes the way
+    * VERT_ATTRIB_{POS,GENERIC0} mapping is done.
+    *
+    * This mapping is used to map between the OpenGL api visible
+    * VERT_ATTRIB_* arrays to mesa driver arrayinputs or shader inputs.
+    * The mapping only depends on the enabled bits of the
+    * VERT_ATTRIB_{POS,GENERIC0} arrays and is tracked in the VAO.
+    *
+    * This map needs to be applied when finally translating to the bitmasks
+    * as consumed by the driver backends. The duplicate scanning is here
+    * can as well be done in the OpenGL API numbering without this map.
     */
+   const gl_attribute_map_mode mode = vao->_AttributeMapMode;
+   /* Enabled array bits. */
+   const GLbitfield enabled = vao->_Enabled;
+   /* VBO array bits. */
+   const GLbitfield vbos = vao->VertexAttribBufferMask;
+
+   /* Compute and store effectively enabled and mapped vbo arrays */
+   vao->_EffEnabledVBO = _mesa_vao_enable_to_vp_inputs(mode, enabled & vbos);
+   /* Walk those enabled arrays that have a real vbo attached */
+   GLbitfield mask = enabled;
+   while (mask) {
+      /* Do not use u_bit_scan as we can walk multiple attrib arrays at once */
+      const int i = ffs(mask) - 1;
+      /* The binding from the first to be processed attribute. */
+      const GLuint bindex = vao->VertexAttrib[i].BufferBindingIndex;
+      struct gl_vertex_buffer_binding *binding = &vao->BufferBinding[bindex];
+
+      /* The scan goes different for user space arrays than vbos */
+      if (_mesa_is_bufferobj(binding->BufferObj)) {
+         /* The bound arrays. */
+         const GLbitfield bound = enabled & binding->_BoundArrays;
+
+         /* Start this current effective binding with the actual bound arrays */
+         GLbitfield eff_bound_arrays = bound;
+
+         /*
+          * If there is nothing left to scan just update the effective binding
+          * information. If the VAO is already only using a single binding point
+          * we end up here. So the overhead of this scan for an application
+          * carefully preparing the VAO for draw is low.
+          */
+
+         GLbitfield scanmask = mask & vbos & ~bound;
+         /* Is there something left to scan? */
+         if (scanmask == 0) {
+            /* Just update the back reference from the attrib to the binding and
+             * the effective offset.
+             */
+            GLbitfield attrmask = eff_bound_arrays;
+            while (attrmask) {
+               const int j = u_bit_scan(&attrmask);
+               struct gl_array_attributes *attrib2 = &vao->VertexAttrib[j];
+
+               /* Update the index into the common binding point and offset */
+               attrib2->_EffBufferBindingIndex = bindex;
+               attrib2->_EffRelativeOffset = attrib2->RelativeOffset;
+               assert(attrib2->_EffRelativeOffset <= MaxRelativeOffset);
+
+               /* Only enabled arrays shall appear in the unique bindings */
+               assert(attrib2->Enabled);
+            }
+            /* Finally this is the set of effectively bound arrays with the
+             * original binding offset.
+             */
+            binding->_EffOffset = binding->Offset;
+            /* The bound arrays past the VERT_ATTRIB_{POS,GENERIC0} mapping. */
+            binding->_EffBoundArrays =
+               _mesa_vao_enable_to_vp_inputs(mode, eff_bound_arrays);
+
+         } else {
+            /* In the VBO case, scan for attribute/binding
+             * combinations with relative bindings in the range of
+             * [0, ctx->Const.MaxVertexAttribRelativeOffset].
+             * Note that this does also go beyond just interleaved arrays
+             * as long as they use the same VBO, binding parameters and the
+             * offsets stay within bounds that the backend still can handle.
+             */
+
+            GLsizeiptr min_offset, max_offset;
+            compute_vbo_offset_range(vao, binding, &min_offset, &max_offset);
+            assert(max_offset <= min_offset + MaxRelativeOffset);
+
+            /* Now scan. */
+            while (scanmask) {
+               /* Do not use u_bit_scan as we can walk multiple
+                * attrib arrays at once
+                */
+               const int j = ffs(scanmask) - 1;
+               const struct gl_array_attributes *attrib2 =
+                  &vao->VertexAttrib[j];
+               const struct gl_vertex_buffer_binding *binding2 =
+                  &vao->BufferBinding[attrib2->BufferBindingIndex];
+
+               /* Remove those attrib bits from the mask that are bound to the
+                * same effective binding point.
+                */
+               const GLbitfield bound2 = enabled & binding2->_BoundArrays;
+               scanmask &= ~bound2;
+
+               /* Check if we have an identical binding */
+               if (binding->Stride != binding2->Stride)
+                  continue;
+               if (binding->InstanceDivisor != binding2->InstanceDivisor)
+                  continue;
+               if (binding->BufferObj != binding2->BufferObj)
+                  continue;
+               /* Check if we can fold both bindings into a common binding */
+               GLsizeiptr min_offset2, max_offset2;
+               compute_vbo_offset_range(vao, binding2,
+                                        &min_offset2, &max_offset2);
+               /* If the relative offset is within the limits ... */
+               if (min_offset + MaxRelativeOffset < max_offset2)
+                  continue;
+               if (min_offset2 + MaxRelativeOffset < max_offset)
+                  continue;
+               /* ... add this array to the effective binding */
+               eff_bound_arrays |= bound2;
+               min_offset = MIN2(min_offset, min_offset2);
+               max_offset = MAX2(max_offset, max_offset2);
+               assert(max_offset <= min_offset + MaxRelativeOffset);
+            }
+
+            /* Update the back reference from the attrib to the binding */
+            GLbitfield attrmask = eff_bound_arrays;
+            while (attrmask) {
+               const int j = u_bit_scan(&attrmask);
+               struct gl_array_attributes *attrib2 = &vao->VertexAttrib[j];
+               const struct gl_vertex_buffer_binding *binding2 =
+                  &vao->BufferBinding[attrib2->BufferBindingIndex];
+
+               /* Update the index into the common binding point and offset */
+               attrib2->_EffBufferBindingIndex = bindex;
+               attrib2->_EffRelativeOffset =
+                  binding2->Offset + attrib2->RelativeOffset - min_offset;
+               assert(attrib2->_EffRelativeOffset <= MaxRelativeOffset);
+
+               /* Only enabled arrays shall appear in the unique bindings */
+               assert(attrib2->Enabled);
+            }
+            /* Finally this is the set of effectively bound arrays */
+            binding->_EffOffset = min_offset;
+            /* The bound arrays past the VERT_ATTRIB_{POS,GENERIC0} mapping. */
+            binding->_EffBoundArrays =
+               _mesa_vao_enable_to_vp_inputs(mode, eff_bound_arrays);
+         }
+
+         /* Mark all the effective bound arrays as processed. */
+         mask &= ~eff_bound_arrays;
+
+      } else {
+         /* Scanning of common bindings for user space arrays.
+          */
+
+         const struct gl_array_attributes *attrib = &vao->VertexAttrib[i];
+         const GLbitfield bound = VERT_BIT(i);
+
+         /* Note that user space array pointers can only happen using a one
+          * to one binding point to array mapping.
+          * The OpenGL 4.x/ARB_vertex_attrib_binding api does not support
+          * user space arrays collected at multiple binding points.
+          * The only provider of user space interleaved arrays with a single
+          * binding point is the mesa internal vbo module. But that one
+          * provides a perfect interleaved set of arrays.
+          *
+          * If this would not be true we would potentially get attribute arrays
+          * with user space pointers that may not lie within the
+          * MaxRelativeOffset range but still attached to a single binding.
+          * Then we would need to store the effective attribute and binding
+          * grouping information in a seperate array beside
+          * gl_array_attributes/gl_vertex_buffer_binding.
+          */
+         assert(_mesa_bitcount(binding->_BoundArrays & vao->_Enabled) == 1
+                || (vao->_Enabled & ~binding->_BoundArrays) == 0);
+
+         /* Start this current effective binding with the array */
+         GLbitfield eff_bound_arrays = bound;
+
+         const GLubyte *ptr = attrib->Ptr;
+         unsigned vertex_end = attrib->_ElementSize;
+
+         /* Walk other user space arrays and see which are interleaved
+          * using the same binding parameters.
+          */
+         GLbitfield scanmask = mask & ~vbos & ~bound;
+         while (scanmask) {
+            const int j = u_bit_scan(&scanmask);
+            const struct gl_array_attributes *attrib2 = &vao->VertexAttrib[j];
+            const struct gl_vertex_buffer_binding *binding2 =
+               &vao->BufferBinding[attrib2->BufferBindingIndex];
+
+            /* See the comment at the same assert above. */
+            assert(_mesa_bitcount(binding2->_BoundArrays & vao->_Enabled) == 1
+                   || (vao->_Enabled & ~binding->_BoundArrays) == 0);
+
+            /* Check if we have an identical binding */
+            if (binding->Stride != binding2->Stride)
+               continue;
+            if (binding->InstanceDivisor != binding2->InstanceDivisor)
+               continue;
+            if (ptr <= attrib2->Ptr) {
+               if (ptr + binding->Stride < attrib2->Ptr + attrib2->_ElementSize)
+                  continue;
+               unsigned end = attrib2->Ptr + attrib2->_ElementSize - ptr;
+               vertex_end = MAX2(vertex_end, end);
+            } else {
+               if (attrib2->Ptr + binding->Stride < ptr + vertex_end)
+                  continue;
+               vertex_end += (GLsizei)(ptr - attrib2->Ptr);
+               ptr = attrib2->Ptr;
+            }
+
+            /* User space buffer object */
+            assert(!_mesa_is_bufferobj(binding2->BufferObj));
+
+            eff_bound_arrays |= VERT_BIT(j);
+         }
+
+         /* Update the back reference from the attrib to the binding */
+         GLbitfield attrmask = eff_bound_arrays;
+         while (attrmask) {
+            const int j = u_bit_scan(&attrmask);
+            struct gl_array_attributes *attrib2 = &vao->VertexAttrib[j];
+
+            /* Update the index into the common binding point and the offset */
+            attrib2->_EffBufferBindingIndex = bindex;
+            attrib2->_EffRelativeOffset = attrib2->Ptr - ptr;
+            assert(attrib2->_EffRelativeOffset <= binding->Stride);
+
+            /* Only enabled arrays shall appear in the unique bindings */
+            assert(attrib2->Enabled);
+         }
+         /* Finally this is the set of effectively bound arrays */
+         binding->_EffOffset = (GLintptr)ptr;
+         /* The bound arrays past the VERT_ATTRIB_{POS,GENERIC0} mapping. */
+         binding->_EffBoundArrays =
+            _mesa_vao_enable_to_vp_inputs(mode, eff_bound_arrays);
+
+         /* Mark all the effective bound arrays as processed. */
+         mask &= ~eff_bound_arrays;
+      }
+   }
+
+#ifndef NDEBUG
+   /* Make sure the above code works as expected. */
+   for (gl_vert_attrib attr = 0; attr < VERT_ATTRIB_MAX; ++attr) {
+      /* Query the original api defined attrib/binding information ... */
+      const unsigned char *const map =_mesa_vao_attribute_map[mode];
+      const struct gl_array_attributes *attrib = &vao->VertexAttrib[map[attr]];
+      if (attrib->Enabled) {
+         const struct gl_vertex_buffer_binding *binding =
+            &vao->BufferBinding[attrib->BufferBindingIndex];
+         /* ... and compare that with the computed attrib/binding */
+         const struct gl_vertex_buffer_binding *binding2 =
+            &vao->BufferBinding[attrib->_EffBufferBindingIndex];
+         assert(binding->Stride == binding2->Stride);
+         assert(binding->InstanceDivisor == binding2->InstanceDivisor);
+         assert(binding->BufferObj == binding2->BufferObj);
+         if (_mesa_is_bufferobj(binding->BufferObj)) {
+            assert(attrib->_EffRelativeOffset <= MaxRelativeOffset);
+            assert(binding->Offset + attrib->RelativeOffset ==
+                   binding2->_EffOffset + attrib->_EffRelativeOffset);
+         } else {
+            assert(attrib->_EffRelativeOffset < binding->Stride);
+            assert((GLintptr)attrib->Ptr ==
+                   binding2->_EffOffset + attrib->_EffRelativeOffset);
+         }
+      }
+   }
+#endif
 }
 
 
@@ -592,7 +970,6 @@ bind_vertex_array(struct gl_context *ctx, GLuint id, bool no_error)
     * or to prevent a crash if the VAO being unbound is going to be
     * deleted.
     */
-   _mesa_set_drawing_arrays(ctx, NULL);
    _mesa_set_draw_vao(ctx, ctx->Array._EmptyVAO, 0);
 
    ctx->NewState |= _NEW_ARRAY;

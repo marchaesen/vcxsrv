@@ -499,7 +499,7 @@ update_vao(struct gl_context *ctx,
     */
 
    /* Bind the buffer object at binding point 0 */
-   _mesa_bind_vertex_buffer(ctx, *vao, 0, bo, buffer_offset, stride, false);
+   _mesa_bind_vertex_buffer(ctx, *vao, 0, bo, buffer_offset, stride);
 
    /* Retrieve the mapping from VBO_ATTRIB to VERT_ATTRIB space
     * Note that the position/generic0 aliasing is done in the VAO.
@@ -514,8 +514,8 @@ update_vao(struct gl_context *ctx,
 
       _vbo_set_attrib_format(ctx, *vao, vao_attr, buffer_offset,
                              size[vbo_attr], type[vbo_attr], offset[vbo_attr]);
-      _mesa_vertex_attrib_binding(ctx, *vao, vao_attr, 0, false);
-      _mesa_enable_vertex_array_attrib(ctx, *vao, vao_attr, false);
+      _mesa_vertex_attrib_binding(ctx, *vao, vao_attr, 0);
+      _mesa_enable_vertex_array_attrib(ctx, *vao, vao_attr);
    }
    assert(vao_enabled == (*vao)->_Enabled);
    assert((vao_enabled & ~(*vao)->VertexAttribBufferMask) == 0);

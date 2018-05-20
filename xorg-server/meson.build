@@ -3,7 +3,7 @@ project('xserver', 'c',
             'buildtype=debugoptimized',
             'c_std=gnu99',
         ],
-        version: '1.19.99.905',
+        version: '1.20.99.1',
         meson_version: '>= 0.42.0',
 )
 add_project_arguments('-DHAVE_DIX_CONFIG_H', language: 'c')
@@ -269,10 +269,7 @@ if log_dir == ''
     log_dir = join_paths(get_option('prefix'), get_option('localstatedir'), 'log')
 endif
 
-module_dir = get_option('module_dir')
-if module_dir == ''
-    module_dir = join_paths(get_option('libdir'), 'xorg/modules')
-endif
+module_dir = join_paths(get_option('libdir'), get_option('module_dir'))
 
 if glamor_option == 'auto'
     build_glamor = build_xorg or build_xwayland
@@ -510,8 +507,8 @@ top_srcdir_inc = include_directories('.')
 serverconfigdir = join_paths(get_option('libdir'), 'xorg')
 
 manpage_config = configuration_data()
-manpage_config.set('vendorversion', 'PACKAGE_STRING XORG_MAN_PAGE')
-manpage_config.set('xorgversion', 'PACKAGE_STRING XORG_MAN_PAGE')
+manpage_config.set('vendorversion', '"xorg-server @0@" "X Version 11"'.format(meson.project_version()))
+manpage_config.set('xorgversion', '"xorg-server @0@" "X Version 11"'.format(meson.project_version()))
 manpage_config.set('xservername', 'Xorg')
 manpage_config.set('xconfigfile', 'xorg.conf')
 manpage_config.set('projectroot', get_option('prefix'))
@@ -534,7 +531,7 @@ manpage_config.set('XKB_DFLT_LAYOUT', get_option('xkb_default_layout'))
 manpage_config.set('XKB_DFLT_VARIANT', get_option('xkb_default_variant'))
 manpage_config.set('XKB_DFLT_OPTIONS', get_option('xkb_default_options'))
 manpage_config.set('bundle_id_prefix', '...')
-manpage_config.set('modulepath', join_paths(get_option('prefix'), module_dir))
+manpage_config.set('modulepath', module_dir)
 # wtf doesn't this work
 # manpage_config.set('suid_wrapper_dir', join_paths(get_option('prefix'), libexecdir))
 manpage_config.set('suid_wrapper_dir', join_paths(get_option('prefix'), 'libexec'))
@@ -619,7 +616,7 @@ if build_xorg
     sdkconfig.set('libdir', join_paths('${exec_prefix}', get_option('libdir')))
     sdkconfig.set('includedir', join_paths('${prefix}', get_option('includedir')))
     sdkconfig.set('datarootdir', join_paths('${prefix}', get_option('datadir')))
-    sdkconfig.set('moduledir', join_paths('${exec_prefix}', get_option('module_dir')))
+    sdkconfig.set('moduledir', join_paths('${exec_prefix}', module_dir))
     sdkconfig.set('sdkdir', join_paths('${prefix}', get_option('includedir'), 'xorg'))
     sdkconfig.set('sysconfigdir', join_paths('${datarootdir}', 'X11/xorg.conf.d'))
 

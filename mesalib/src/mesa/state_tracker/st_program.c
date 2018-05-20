@@ -37,6 +37,7 @@
 #include "main/mtypes.h"
 #include "program/prog_parameter.h"
 #include "program/prog_print.h"
+#include "program/prog_to_nir.h"
 #include "program/programopt.h"
 
 #include "compiler/nir/nir.h"
@@ -378,6 +379,28 @@ st_release_cp_variants(struct st_context *st, struct st_compute_program *stcp)
 }
 
 /**
+ * Translate ARB (asm) program to NIR
+ */
+static nir_shader *
+st_translate_prog_to_nir(struct st_context *st, struct gl_program *prog,
+                         gl_shader_stage stage)
+{
+   const struct gl_shader_compiler_options *options =
+      &st->ctx->Const.ShaderCompilerOptions[stage];
+
+   /* Translate to NIR */
+   nir_shader *nir = prog_to_nir(prog, options->NirOptions);
+   NIR_PASS_V(nir, nir_lower_regs_to_ssa); /* turn registers into SSA */
+   nir_validate_shader(nir);
+
+   /* Optimise NIR */
+   st_nir_opts(nir);
+   nir_validate_shader(nir);
+
+   return nir;
+}
+
+/**
  * Translate a vertex program.
  */
 bool
@@ -388,11 +411,11 @@ st_translate_vertex_program(struct st_context *st,
    enum pipe_error error;
    unsigned num_outputs = 0;
    unsigned attr;
-   ubyte input_to_index[VERT_ATTRIB_MAX] = {0};
    ubyte output_semantic_name[VARYING_SLOT_MAX] = {0};
    ubyte output_semantic_index[VARYING_SLOT_MAX] = {0};
 
    stvp->num_inputs = 0;
+   memset(stvp->input_to_index, ~0, sizeof(stvp->input_to_index));
 
    if (stvp->Base.arb.IsPositionInvariant)
       _mesa_insert_mvp_code(st->ctx, &stvp->Base);
@@ -403,7 +426,7 @@ st_translate_vertex_program(struct st_context *st,
     */
    for (attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
       if ((stvp->Base.info.inputs_read & BITFIELD64_BIT(attr)) != 0) {
-         input_to_index[attr] = stvp->num_inputs;
+         stvp->input_to_index[attr] = stvp->num_inputs;
          stvp->index_to_input[stvp->num_inputs] = attr;
          stvp->num_inputs++;
          if ((stvp->Base.info.vs.double_inputs_read &
@@ -415,7 +438,7 @@ st_translate_vertex_program(struct st_context *st,
       }
    }
    /* bit of a hack, presetup potentially unused edgeflag input */
-   input_to_index[VERT_ATTRIB_EDGEFLAG] = stvp->num_inputs;
+   stvp->input_to_index[VERT_ATTRIB_EDGEFLAG] = stvp->num_inputs;
    stvp->index_to_input[stvp->num_inputs] = VERT_ATTRIB_EDGEFLAG;
 
    /* Compute mapping of vertex program outputs to slots.
@@ -458,15 +481,28 @@ st_translate_vertex_program(struct st_context *st,
       /* No samplers are allowed in ARB_vp. */
    }
 
-   if (stvp->shader_program) {
-      struct gl_program *prog = stvp->shader_program->last_vert_prog;
-      if (prog) {
-         st_translate_stream_output_info2(prog->sh.LinkedTransformFeedback,
-                                          stvp->result_to_output,
-                                          &stvp->tgsi.stream_output);
+   enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
+      st->pipe->screen->get_shader_param(st->pipe->screen, PIPE_SHADER_VERTEX,
+                                         PIPE_SHADER_CAP_PREFERRED_IR);
+
+   if (preferred_ir == PIPE_SHADER_IR_NIR) {
+      if (stvp->shader_program) {
+         struct gl_program *prog = stvp->shader_program->last_vert_prog;
+         if (prog) {
+            st_translate_stream_output_info2(prog->sh.LinkedTransformFeedback,
+                                             stvp->result_to_output,
+                                             &stvp->tgsi.stream_output);
+         }
+
+         st_store_ir_in_disk_cache(st, &stvp->Base, true);
+      } else {
+         nir_shader *nir = st_translate_prog_to_nir(st, &stvp->Base,
+                                                    MESA_SHADER_VERTEX);
+
+         stvp->tgsi.type = PIPE_SHADER_IR_NIR;
+         stvp->tgsi.ir.nir = nir;
       }
 
-      st_store_ir_in_disk_cache(st, &stvp->Base, true);
       return true;
    }
 
@@ -495,7 +531,7 @@ st_translate_vertex_program(struct st_context *st,
                                    &stvp->Base,
                                    /* inputs */
                                    stvp->num_inputs,
-                                   input_to_index,
+                                   stvp->input_to_index,
                                    NULL, /* inputSlotToAttr */
                                    NULL, /* input semantic name */
                                    NULL, /* input semantic index */
@@ -518,7 +554,7 @@ st_translate_vertex_program(struct st_context *st,
                                         &stvp->Base,
                                         /* inputs */
                                         stvp->num_inputs,
-                                        input_to_index,
+                                        stvp->input_to_index,
                                         NULL, /* input semantic name */
                                         NULL, /* input semantic index */
                                         NULL,
@@ -629,6 +665,13 @@ st_get_vp_variant(struct st_context *st,
       /* create now */
       vpv = st_create_vp_variant(st, stvp, key);
       if (vpv) {
+          for (unsigned index = 0; index < vpv->num_inputs; ++index) {
+             unsigned attr = stvp->index_to_input[index];
+             if (attr == ST_DOUBLE_ATTRIB_PLACEHOLDER)
+                continue;
+             vpv->vert_attrib_mask |= 1u << attr;
+          }
+
          /* insert into list */
          vpv->next = stvp->variants;
          stvp->variants = vpv;
@@ -697,6 +740,21 @@ st_translate_fragment_program(struct st_context *st,
             stfp->affected_states |= ST_NEW_FS_SAMPLER_VIEWS |
                                      ST_NEW_FS_SAMPLERS;
       }
+   }
+
+   enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
+      st->pipe->screen->get_shader_param(st->pipe->screen,
+                                         PIPE_SHADER_FRAGMENT,
+                                         PIPE_SHADER_CAP_PREFERRED_IR);
+
+   if (preferred_ir == PIPE_SHADER_IR_NIR) {
+      nir_shader *nir = st_translate_prog_to_nir(st, &stfp->Base,
+                                                 MESA_SHADER_FRAGMENT);
+
+      stfp->tgsi.type = PIPE_SHADER_IR_NIR;
+      stfp->tgsi.ir.nir = nir;
+
+      return true;
    }
 
    /*

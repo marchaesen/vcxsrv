@@ -37,22 +37,10 @@
 #include <llvm/IR/CallSite.h>
 #include <llvm/IR/IRBuilder.h>
 
-#if HAVE_LLVM < 0x0500
-namespace llvm {
-typedef AttributeSet AttributeList;
-}
-#endif
-
 void ac_add_attr_dereferenceable(LLVMValueRef val, uint64_t bytes)
 {
    llvm::Argument *A = llvm::unwrap<llvm::Argument>(val);
-#if HAVE_LLVM < 0x0500
-   llvm::AttrBuilder B;
-   B.addDereferenceableAttr(bytes);
-   A->addAttr(llvm::AttributeList::get(A->getContext(), A->getArgNo() + 1,  B));
-#else
    A->addAttr(llvm::Attribute::getWithDereferenceableBytes(A->getContext(), bytes));
-#endif
 }
 
 bool ac_is_sgpr_param(LLVMValueRef arg)

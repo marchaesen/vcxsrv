@@ -563,6 +563,14 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
         if (!glamor_check_instruction_count(gl_version))
             goto fail;
+
+        /* Glamor rendering assumes that platforms with GLSL 130+
+         * have instanced arrays, but this is not always the case.
+         * etnaviv offers GLSL 140 with OpenGL 2.1.
+         */
+        if (glamor_priv->glsl_version >= 130 &&
+            !epoxy_has_gl_extension("GL_ARB_instanced_arrays"))
+                glamor_priv->glsl_version = 120;
     } else {
         if (gl_version < 20) {
             ErrorF("Require Open GLES2.0 or later.\n");
@@ -803,8 +811,8 @@ glamor_set_drawable_modifiers_func(ScreenPtr screen,
 }
 
 _X_EXPORT Bool
-glamor_get_drawable_modifiers(DrawablePtr draw, CARD32 format,
-                              CARD32 *num_modifiers, uint64_t **modifiers)
+glamor_get_drawable_modifiers(DrawablePtr draw, uint32_t format,
+                              uint32_t *num_modifiers, uint64_t **modifiers)
 {
     struct glamor_screen_private *glamor_priv =
         glamor_get_screen_private(draw->pScreen);
