@@ -90,8 +90,7 @@ hud_draw_colored_prims(struct hud_context *hud, unsigned prim,
    hud->constants.scale[1] = yscale;
    cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
 
-   cso_set_vertex_buffers(cso, cso_get_aux_vertex_buffer_slot(cso),
-                          1, &hud->color_prims.vbuf);
+   cso_set_vertex_buffers(cso, 0, 1, &hud->color_prims.vbuf);
    cso_set_fragment_shader_handle(hud->cso, hud->fs_color);
    cso_draw_arrays(cso, prim, 0, num_vertices);
 
@@ -561,16 +560,14 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
       hud->constants.scale[1] = 1;
 
       cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
-      cso_set_vertex_buffers(cso, cso_get_aux_vertex_buffer_slot(cso), 1,
-                             &hud->bg.vbuf);
+      cso_set_vertex_buffers(cso, 0, 1, &hud->bg.vbuf);
       cso_draw_arrays(cso, PIPE_PRIM_QUADS, 0, hud->bg.num_vertices);
    }
    pipe_resource_reference(&hud->bg.vbuf.buffer.resource, NULL);
 
    /* draw accumulated vertices for text */
    if (hud->text.num_vertices) {
-      cso_set_vertex_buffers(cso, cso_get_aux_vertex_buffer_slot(cso), 1,
-                             &hud->text.vbuf);
+      cso_set_vertex_buffers(cso, 0, 1, &hud->text.vbuf);
       cso_set_fragment_shader_handle(hud->cso, hud->fs_text);
       cso_draw_arrays(cso, PIPE_PRIM_QUADS, 0, hud->text.num_vertices);
    }
@@ -598,8 +595,7 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
 
    if (hud->whitelines.num_vertices) {
-      cso_set_vertex_buffers(cso, cso_get_aux_vertex_buffer_slot(cso), 1,
-                             &hud->whitelines.vbuf);
+      cso_set_vertex_buffers(cso, 0, 1, &hud->whitelines.vbuf);
       cso_set_fragment_shader_handle(hud->cso, hud->fs_color);
       cso_draw_arrays(cso, PIPE_PRIM_LINES, 0, hud->whitelines.num_vertices);
    }
@@ -1251,6 +1247,9 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
       if (strcmp(name, "fps") == 0) {
          hud_fps_graph_install(pane);
       }
+      else if (strcmp(name, "frametime") == 0) {
+         hud_frametime_graph_install(pane);
+      }
       else if (strcmp(name, "cpu") == 0) {
          hud_cpu_graph_install(pane, ALL_CPUS);
       }
@@ -1561,6 +1560,7 @@ print_help(struct pipe_screen *screen)
    puts("");
    puts("  Available names:");
    puts("    fps");
+   puts("    frametime");
    puts("    cpu");
 
    for (i = 0; i < num_cpus; i++)
@@ -1868,7 +1868,7 @@ hud_create(struct cso_context *cso, struct hud_context *share)
    for (i = 0; i < 2; i++) {
       hud->velems[i].src_offset = i * 2 * sizeof(float);
       hud->velems[i].src_format = PIPE_FORMAT_R32G32_FLOAT;
-      hud->velems[i].vertex_buffer_index = cso_get_aux_vertex_buffer_slot(cso);
+      hud->velems[i].vertex_buffer_index = 0;
    }
 
    /* sampler state (for font drawing) */

@@ -1150,6 +1150,15 @@ FcPatternAppend (FcPattern *p, FcPattern *s);
 FcPrivate int
 FcPatternPosition (const FcPattern *p, const char *object);
 
+FcPrivate FcBool
+FcPatternFindObjectIter (const FcPattern *pat, FcPatternIter *iter, FcObject object);
+
+FcPrivate FcObject
+FcPatternIterGetObjectId (const FcPattern *pat, FcPatternIter *iter);
+
+FcPrivate FcValueListPtr
+FcPatternIterGetValues (const FcPattern *pat, FcPatternIter *iter);
+
 FcPrivate FcChar32
 FcStringHash (const FcChar8 *s);
 

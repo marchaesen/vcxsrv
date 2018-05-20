@@ -706,9 +706,9 @@ char *get_ttymode(void *frontend, const char *mode);
 /*
  * >0 = `got all results, carry on'
  * 0  = `user cancelled' (FIXME distinguish "give up entirely" and "next auth"?)
- * <0 = `please call back later with more in/inlen'
+ * <0 = `please call back later with a fuller bufchain'
  */
-int get_userpass_input(prompts_t *p, const unsigned char *in, int inlen);
+int get_userpass_input(prompts_t *p, bufchain *input);
 #define OPTIMISE_IS_SCROLL 1
 
 void set_iconic(void *frontend, int iconic);
@@ -906,6 +906,7 @@ void cleanup_exit(int);
     X(INT, NONE, rect_select) \
     X(INT, NONE, paste_controls) \
     X(INT, NONE, rawcnp) \
+    X(INT, NONE, utf8linedraw) \
     X(INT, NONE, rtf_paste) \
     X(INT, NONE, mouse_override) \
     X(INT, INT, wordness) \
@@ -1118,8 +1119,7 @@ void term_provide_resize_fn(Terminal *term,
 void term_provide_logctx(Terminal *term, void *logctx);
 void term_set_focus(Terminal *term, int has_focus);
 char *term_get_ttymode(Terminal *term, const char *mode);
-int term_get_userpass_input(Terminal *term, prompts_t *p,
-			    const unsigned char *in, int inlen);
+int term_get_userpass_input(Terminal *term, prompts_t *p, bufchain *input);
 
 int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl);
 
@@ -1366,8 +1366,7 @@ int askappend(void *frontend, Filename *filename,
  * that aren't equivalents to things in windlg.c et al.
  */
 extern int console_batch_mode;
-int console_get_userpass_input(prompts_t *p, const unsigned char *in,
-                               int inlen);
+int console_get_userpass_input(prompts_t *p);
 void console_provide_logctx(void *logctx);
 int is_interactive(void);
 
@@ -1396,7 +1395,7 @@ void printer_finish_job(printer_job *);
 int cmdline_process_param(const char *, char *, int, Conf *);
 void cmdline_run_saved(Conf *);
 void cmdline_cleanup(void);
-int cmdline_get_passwd_input(prompts_t *p, const unsigned char *in, int inlen);
+int cmdline_get_passwd_input(prompts_t *p);
 int cmdline_host_ok(Conf *);
 #define TOOLTYPE_FILETRANSFER 1
 #define TOOLTYPE_NONNETWORK 2
@@ -1602,6 +1601,22 @@ void queue_toplevel_callback(toplevel_callback_fn_t fn, void *ctx);
 void run_toplevel_callbacks(void);
 int toplevel_callback_pending(void);
 void delete_callbacks_for_context(void *ctx);
+
+/*
+ * Another facility in callback.c deals with 'idempotent' callbacks,
+ * defined as those which never need to be scheduled again if they are
+ * already scheduled and have not yet run. (An example would be one
+ * which, when called, empties a queue of data completely: when data
+ * is added to the queue, you must ensure a run of the queue-consuming
+ * function has been scheduled, but if one is already pending, you
+ * don't need to schedule a second one.)
+ */
+struct IdempotentCallback {
+    toplevel_callback_fn_t fn;
+    void *ctx;
+    int queued;
+};
+void queue_idempotent_callback(struct IdempotentCallback *ic);
 
 typedef void (*toplevel_callback_notify_fn_t)(void *frontend);
 void request_callback_notifications(toplevel_callback_notify_fn_t notify,

@@ -85,6 +85,11 @@ util_hash_table_foreach(struct util_hash_table *ht,
                         (void *key, void *value, void *data),
                         void *data);
 
+
+size_t
+util_hash_table_count(struct util_hash_table *ht);
+
+
 void
 util_hash_table_destroy(struct util_hash_table *ht);
 

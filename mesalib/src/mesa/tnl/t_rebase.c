@@ -104,7 +104,7 @@ REBASE(GLubyte)
  *      all or nothing.
  */
 void t_rebase_prims( struct gl_context *ctx,
-                     const struct gl_vertex_array *arrays,
+                     const struct tnl_vertex_array *arrays,
                      const struct _mesa_prim *prim,
                      GLuint nr_prims,
                      const struct _mesa_index_buffer *ib,
@@ -113,7 +113,7 @@ void t_rebase_prims( struct gl_context *ctx,
                      tnl_draw_func draw )
 {
    struct gl_array_attributes tmp_attribs[VERT_ATTRIB_MAX];
-   struct gl_vertex_array tmp_arrays[VERT_ATTRIB_MAX];
+   struct tnl_vertex_array tmp_arrays[VERT_ATTRIB_MAX];
 
    struct _mesa_index_buffer tmp_ib;
    struct _mesa_prim *tmp_prims = NULL;

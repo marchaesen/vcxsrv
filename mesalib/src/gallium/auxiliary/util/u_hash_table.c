@@ -270,6 +270,23 @@ util_hash_table_foreach(struct util_hash_table *ht,
 }
 
 
+static enum pipe_error
+util_hash_inc(void *k, void *v, void *d)
+{
+   ++*(size_t *)d;
+   return PIPE_OK;
+}
+
+
+size_t
+util_hash_table_count(struct util_hash_table *ht)
+{
+	size_t count = 0;
+	util_hash_table_foreach(ht, util_hash_inc, &count);
+	return count;
+}
+
+
 void
 util_hash_table_destroy(struct util_hash_table *ht)
 {

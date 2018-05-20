@@ -90,8 +90,8 @@ dri3_fd_from_pixmap(PixmapPtr pixmap, CARD16 *stride, CARD32 *size);
 
 int
 dri3_fds_from_pixmap(PixmapPtr pixmap, int *fds,
-                     CARD32 *strides, CARD32 *offsets,
-                     CARD64 *modifier);
+                     uint32_t *strides, uint32_t *offsets,
+                     uint64_t *modifier);
 
 int
 dri3_get_supported_modifiers(ScreenPtr screen, DrawablePtr drawable,

@@ -22,14 +22,14 @@ inc_broadcom = include_directories('.', 'cle')
 
 subdir('cle')
 
-vc5_versions = ['33', '41', '42']
+v3d_versions = ['33', '41', '42']
 
-if with_gallium_vc5
+if with_gallium_v3d
   subdir('compiler')
   subdir('qpu')
 
   per_version_libs = []
-  foreach ver : vc5_versions
+  foreach ver : v3d_versions
     per_version_libs += static_library(
       'libbroadcom-v' + ver,
       [
@@ -42,8 +42,8 @@ if with_gallium_vc5
     )
   endforeach
 
-  libbroadcom_vc5 = static_library(
-    'libbroadcom_vc5',
+  libbroadcom_v3d = static_library(
+    'libbroadcom_v3d',
     [
       files('common/v3d_debug.c', 'clif/clif_dump.c'),
       v3d_xml_pack,

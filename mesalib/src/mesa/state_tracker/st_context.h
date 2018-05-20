@@ -295,9 +295,6 @@ struct st_context
 
    /* Winsys buffers */
    struct list_head winsys_buffers;
-
-   /* For the initial pushdown, keep the list of vbo inputs. */
-   struct vbo_inputs draw_arrays;
 };
 
 

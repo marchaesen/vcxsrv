@@ -19,6 +19,7 @@ shared_module(
         common_dep,
         udev_dep,
         libdrm_dep,
+        gbm_dep,
     ],
 
     install: true,

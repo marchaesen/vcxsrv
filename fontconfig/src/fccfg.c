@@ -2410,7 +2410,10 @@ FcConfigGetSysRoot (const FcConfig *config)
 	    return NULL;
     }
 
-    return config->sysRoot;
+    if (config->sysRoot)
+        return config->sysRoot;
+
+    return (FcChar8 *) getenv ("FONTCONFIG_SYSROOT");
 }
 
 void

@@ -356,8 +356,7 @@ static void console_data_untrusted(HANDLE hout, const char *data, int len)
     FlushFileBuffers(hout);
 }
 
-int console_get_userpass_input(prompts_t *p,
-                               const unsigned char *in, int inlen)
+int console_get_userpass_input(prompts_t *p)
 {
     HANDLE hin, hout;
     size_t curr_prompt;

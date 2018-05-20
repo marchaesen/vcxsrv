@@ -316,7 +316,35 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	/* TODO: Enable this once the kernel handles it efficiently. */
 	info->has_local_buffers = info->drm_minor >= 20 &&
 				  !info->has_dedicated_vram;
+	info->kernel_flushes_hdp_before_ib = true;
+	info->htile_cmask_support_1d_tiling = true;
+	info->si_TA_CS_BC_BASE_ADDR_allowed = true;
+	info->has_bo_metadata = true;
+	info->has_gpu_reset_status_query = true;
+	info->has_gpu_reset_counter_query = false;
+	info->has_eqaa_surface_allocator = true;
+	info->has_format_bc1_through_bc7 = true;
+	/* DRM 3.1.0 doesn't flush TC for VI correctly. */
+	info->kernel_flushes_tc_l2_after_ib = info->chip_class != VI ||
+					      info->drm_minor >= 2;
+	info->has_indirect_compute_dispatch = true;
+	/* SI doesn't support unaligned loads. */
+	info->has_unaligned_shader_loads = info->chip_class != SI;
+	/* Disable sparse mappings on SI due to VM faults in CP DMA. Enable them once
+	 * these faults are mitigated in software.
+	 * Disable sparse mappings on GFX9 due to hangs.
+	 */
+	info->has_sparse_vm_mappings =
+		info->chip_class >= CIK && info->chip_class <= VI &&
+		info->drm_minor >= 13;
+	info->has_2d_tiling = true;
+	info->has_read_registers_query = true;
+
 	info->num_render_backends = amdinfo->rb_pipes;
+	/* The value returned by the kernel driver was wrong. */
+	if (info->family == CHIP_KAVERI)
+		info->num_render_backends = 2;
+
 	info->clock_crystal_freq = amdinfo->gpu_counter_freq;
 	if (!info->clock_crystal_freq) {
 		fprintf(stderr, "amdgpu: clock crystal frequency is 0, timestamps will be wrong\n");
@@ -449,7 +477,7 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("    vce_fw_version = %u\n", info->vce_fw_version);
 	printf("    vce_harvest_config = %i\n", info->vce_harvest_config);
 
-	printf("Kernel info:\n");
+	printf("Kernel & winsys capabilities:\n");
 	printf("    drm = %i.%i.%i\n", info->drm_major,
 	       info->drm_minor, info->drm_patchlevel);
 	printf("    has_userptr = %i\n", info->has_userptr);
@@ -458,6 +486,20 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("    has_fence_to_handle = %u\n", info->has_fence_to_handle);
 	printf("    has_ctx_priority = %u\n", info->has_ctx_priority);
 	printf("    has_local_buffers = %u\n", info->has_local_buffers);
+	printf("    kernel_flushes_hdp_before_ib = %u\n", info->kernel_flushes_hdp_before_ib);
+	printf("    htile_cmask_support_1d_tiling = %u\n", info->htile_cmask_support_1d_tiling);
+	printf("    si_TA_CS_BC_BASE_ADDR_allowed = %u\n", info->si_TA_CS_BC_BASE_ADDR_allowed);
+	printf("    has_bo_metadata = %u\n", info->has_bo_metadata);
+	printf("    has_gpu_reset_status_query = %u\n", info->has_gpu_reset_status_query);
+	printf("    has_gpu_reset_counter_query = %u\n", info->has_gpu_reset_counter_query);
+	printf("    has_eqaa_surface_allocator = %u\n", info->has_eqaa_surface_allocator);
+	printf("    has_format_bc1_through_bc7 = %u\n", info->has_format_bc1_through_bc7);
+	printf("    kernel_flushes_tc_l2_after_ib = %u\n", info->kernel_flushes_tc_l2_after_ib);
+	printf("    has_indirect_compute_dispatch = %u\n", info->has_indirect_compute_dispatch);
+	printf("    has_unaligned_shader_loads = %u\n", info->has_unaligned_shader_loads);
+	printf("    has_sparse_vm_mappings = %u\n", info->has_sparse_vm_mappings);
+	printf("    has_2d_tiling = %u\n", info->has_2d_tiling);
+	printf("    has_read_registers_query = %u\n", info->has_read_registers_query);
 
 	printf("Shader core info:\n");
 	printf("    max_shader_clock = %i\n", info->max_shader_clock);
@@ -560,82 +602,59 @@ ac_get_raster_config(struct radeon_info *info,
 		     uint32_t *raster_config_p,
 		     uint32_t *raster_config_1_p)
 {
-	unsigned num_rb = MIN2(info->num_render_backends, 16);
 	unsigned raster_config, raster_config_1;
+
 	switch (info->family) {
-	case CHIP_TAHITI:
-	case CHIP_PITCAIRN:
-		raster_config = 0x2a00126a;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_VERDE:
-		raster_config = 0x0000124a;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_OLAND:
-		raster_config = 0x00000082;
-		raster_config_1 = 0x00000000;
-		break;
+	/* 1 SE / 1 RB */
 	case CHIP_HAINAN:
-		raster_config = 0x00000000;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_BONAIRE:
-		raster_config = 0x16000012;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_HAWAII:
-		raster_config = 0x3a00161a;
-		raster_config_1 = 0x0000002e;
-		break;
-	case CHIP_FIJI:
-		if (info->cik_macrotile_mode_array[0] == 0x000000e8) {
-			/* old kernels with old tiling config */
-			raster_config = 0x16000012;
-			raster_config_1 = 0x0000002a;
-		} else {
-			raster_config = 0x3a00161a;
-			raster_config_1 = 0x0000002e;
-		}
-		break;
-	case CHIP_POLARIS10:
-		raster_config = 0x16000012;
-		raster_config_1 = 0x0000002a;
-		break;
-	case CHIP_POLARIS11:
-	case CHIP_POLARIS12:
-		raster_config = 0x16000012;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_VEGAM:
-		raster_config = 0x3a00161a;
-		raster_config_1 = 0x0000002e;
-		break;
-	case CHIP_TONGA:
-		raster_config = 0x16000012;
-		raster_config_1 = 0x0000002a;
-		break;
-	case CHIP_ICELAND:
-		if (num_rb == 1)
-			raster_config = 0x00000000;
-		else
-			raster_config = 0x00000002;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_CARRIZO:
-		raster_config = 0x00000002;
-		raster_config_1 = 0x00000000;
-		break;
-	case CHIP_KAVERI:
-		/* KV should be 0x00000002, but that causes problems with radeon */
-		raster_config = 0x00000000; /* 0x00000002 */
-		raster_config_1 = 0x00000000;
-		break;
 	case CHIP_KABINI:
 	case CHIP_MULLINS:
 	case CHIP_STONEY:
 		raster_config = 0x00000000;
 		raster_config_1 = 0x00000000;
+		break;
+	/* 1 SE / 4 RBs */
+	case CHIP_VERDE:
+		raster_config = 0x0000124a;
+		raster_config_1 = 0x00000000;
+		break;
+	/* 1 SE / 2 RBs (Oland is special) */
+	case CHIP_OLAND:
+		raster_config = 0x00000082;
+		raster_config_1 = 0x00000000;
+		break;
+	/* 1 SE / 2 RBs */
+	case CHIP_KAVERI:
+	case CHIP_ICELAND:
+	case CHIP_CARRIZO:
+		raster_config = 0x00000002;
+		raster_config_1 = 0x00000000;
+		break;
+	/* 2 SEs / 4 RBs */
+	case CHIP_BONAIRE:
+	case CHIP_POLARIS11:
+	case CHIP_POLARIS12:
+		raster_config = 0x16000012;
+		raster_config_1 = 0x00000000;
+		break;
+	/* 2 SEs / 8 RBs */
+	case CHIP_TAHITI:
+	case CHIP_PITCAIRN:
+		raster_config = 0x2a00126a;
+		raster_config_1 = 0x00000000;
+		break;
+	/* 4 SEs / 8 RBs */
+	case CHIP_TONGA:
+	case CHIP_POLARIS10:
+		raster_config = 0x16000012;
+		raster_config_1 = 0x0000002a;
+		break;
+	/* 4 SEs / 16 RBs */
+	case CHIP_HAWAII:
+	case CHIP_FIJI:
+	case CHIP_VEGAM:
+		raster_config = 0x3a00161a;
+		raster_config_1 = 0x0000002e;
 		break;
 	default:
 		fprintf(stderr,
@@ -644,6 +663,22 @@ ac_get_raster_config(struct radeon_info *info,
 		raster_config_1 = 0x00000000;
 		break;
 	}
+
+	/* drm/radeon on Kaveri is buggy, so disable 1 RB to work around it.
+	 * This decreases performance by up to 50% when the RB is the bottleneck.
+	 */
+	if (info->family == CHIP_KAVERI && info->drm_major == 2)
+		raster_config = 0x00000000;
+
+	/* Fiji: Old kernels have incorrect tiling config. This decreases
+	 * RB performance by 25%. (it disables 1 RB in the second packer)
+	 */
+	if (info->family == CHIP_FIJI &&
+	    info->cik_macrotile_mode_array[0] == 0x000000e8) {
+		raster_config = 0x16000012;
+		raster_config_1 = 0x0000002a;
+	}
+
 	*raster_config_p = raster_config;
 	*raster_config_1_p = raster_config_1;
 }

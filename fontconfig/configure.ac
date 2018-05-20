@@ -169,7 +169,7 @@ AC_TYPE_PID_T
 # Checks for library functions.
 AC_FUNC_VPRINTF
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([link mkstemp mkostemp _mktemp_s mkdtemp getopt getopt_long getprogname getexecname rand random lrand48 random_r rand_r readlink fstatvfs fstatfs lstat])
+AC_CHECK_FUNCS([link mkstemp mkostemp _mktemp_s mkdtemp getopt getopt_long getprogname getexecname rand random lrand48 random_r rand_r readlink fstatvfs fstatfs lstat strerror strerror_r])
 
 dnl AC_CHECK_FUNCS doesn't check for header files.
 dnl posix_fadvise() may be not available in older libc.
@@ -472,6 +472,15 @@ if test "$enable_libxml2" = "yes"; then
 *** SAX1 support in libxml2 is required. enable it or use expat instead.])])
     CFLAGS="$fc_saved_CFLAGS"
 fi
+
+#
+# Check json-c
+#
+PKG_CHECK_MODULES([JSONC], [json-c], [use_jsonc=yes], [use_jsonc=no])
+
+AM_CONDITIONAL(ENABLE_JSONC, test "x$use_jsonc" = "xyes")
+AC_SUBST(JSONC_CFLAGS)
+AC_SUBST(JSONC_LIBS)
 
 #
 # Set default hinting

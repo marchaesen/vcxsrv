@@ -167,7 +167,22 @@ constant_fold_intrinsic_instr(nir_intrinsic_instr *instr)
 
    if (instr->intrinsic == nir_intrinsic_discard_if) {
       nir_const_value *src_val = nir_src_as_const_value(instr->src[0]);
-      if (src_val && src_val->u32[0] == 0) {
+      if (src_val && src_val->u32[0] == NIR_FALSE) {
+         nir_instr_remove(&instr->instr);
+         progress = true;
+      } else if (src_val && src_val->u32[0] == NIR_TRUE) {
+         /* This method of getting a nir_shader * from a nir_instr is
+          * admittedly gross, but given the rarity of hitting this case I think
+          * it's preferable to plumbing an otherwise unused nir_shader *
+          * parameter through four functions to get here.
+          */
+         nir_cf_node *cf_node = &instr->instr.block->cf_node;
+         nir_function_impl *impl = nir_cf_node_get_function(cf_node);
+         nir_shader *shader = impl->function->shader;
+
+         nir_intrinsic_instr *discard =
+            nir_intrinsic_instr_create(shader, nir_intrinsic_discard);
+         nir_instr_insert_before(&instr->instr, &discard->instr);
          nir_instr_remove(&instr->instr);
          progress = true;
       }

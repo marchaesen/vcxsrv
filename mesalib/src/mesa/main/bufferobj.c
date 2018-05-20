@@ -1167,7 +1167,7 @@ unbind(struct gl_context *ctx,
    if (vao->BufferBinding[index].BufferObj == obj) {
       _mesa_bind_vertex_buffer(ctx, vao, index, ctx->Shared->NullBufferObj,
                                vao->BufferBinding[index].Offset,
-                               vao->BufferBinding[index].Stride, true);
+                               vao->BufferBinding[index].Stride);
    }
 }
 

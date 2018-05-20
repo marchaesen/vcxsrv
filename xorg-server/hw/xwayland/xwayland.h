@@ -77,6 +77,7 @@ struct xwl_screen {
     CloseScreenProcPtr CloseScreen;
     RealizeWindowProcPtr RealizeWindow;
     UnrealizeWindowProcPtr UnrealizeWindow;
+    DestroyWindowProcPtr DestroyWindow;
     XYToWindowProcPtr XYToWindow;
 
     struct xorg_list output_list;
@@ -172,26 +173,28 @@ struct xwl_window {
     struct xorg_list link_damage;
     struct wl_callback *frame_callback;
     Bool allow_commits;
-#ifdef GLAMOR_HAS_GBM
-    /* present */
-    RRCrtcPtr present_crtc_fake;
-    struct xorg_list present_link;
     WindowPtr present_window;
-    uint64_t present_msc;
-    uint64_t present_ust;
-
-    OsTimerPtr present_timer;
-    Bool present_timer_firing;
-
-    struct wl_callback *present_frame_callback;
-    struct wl_callback *present_sync_callback;
-
-    struct xorg_list present_event_list;
-    struct xorg_list present_release_queue;
-#endif
 };
 
 #ifdef GLAMOR_HAS_GBM
+struct xwl_present_window {
+    struct xwl_screen *xwl_screen;
+    WindowPtr window;
+    struct xorg_list link;
+
+    uint64_t msc;
+    uint64_t ust;
+
+    OsTimerPtr frame_timer;
+    Bool frame_timer_firing;
+
+    struct wl_callback *frame_callback;
+    struct wl_callback *sync_callback;
+
+    struct xorg_list event_list;
+    struct xorg_list release_queue;
+};
+
 struct xwl_present_event {
     uint64_t event_id;
     uint64_t target_msc;
@@ -200,8 +203,7 @@ struct xwl_present_event {
     Bool pending;
     Bool buffer_released;
 
-    WindowPtr present_window;
-    struct xwl_window *xwl_window;
+    struct xwl_present_window *xwl_present_window;
     struct wl_buffer *buffer;
 
     struct xorg_list list;
@@ -433,7 +435,7 @@ Bool xwl_glamor_allow_commits(struct xwl_window *xwl_window);
 
 #ifdef GLAMOR_HAS_GBM
 Bool xwl_present_init(ScreenPtr screen);
-void xwl_present_cleanup(struct xwl_window *xwl_window, WindowPtr window);
+void xwl_present_cleanup(WindowPtr window);
 #endif
 
 void xwl_screen_release_tablet_manager(struct xwl_screen *xwl_screen);

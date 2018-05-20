@@ -157,6 +157,7 @@ struct hud_batch_query_context;
 int hud_get_num_cpus(void);
 
 void hud_fps_graph_install(struct hud_pane *pane);
+void hud_frametime_graph_install(struct hud_pane *pane);
 void hud_cpu_graph_install(struct hud_pane *pane, unsigned cpu_index);
 void hud_thread_busy_install(struct hud_pane *pane, const char *name, bool main);
 void hud_thread_counter_install(struct hud_pane *pane, const char *name,

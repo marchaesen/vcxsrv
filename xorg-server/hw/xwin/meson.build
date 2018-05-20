@@ -172,3 +172,10 @@ xwin_man = configure_file(
     configuration: manpage_config,
 )
 install_man(xwin_man)
+
+xwinrc_man = configure_file(
+    input: 'man/XWinrc.man',
+    output: 'XWinrc.5',
+    configuration: manpage_config,
+)
+install_man(xwinrc_man)

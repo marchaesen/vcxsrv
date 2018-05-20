@@ -30,3 +30,10 @@ executable(
     dependencies: [dependency('x11')],
     install: true,
 )
+
+xwinclip_man = configure_file(
+    input: 'xwinclip.man',
+    output: 'xwinclip.1',
+    configuration: manpage_config,
+)
+install_man(xwinclip_man)

@@ -62,6 +62,7 @@ _mesa_Fogiv(GLenum pname, const GLint *params )
       case GL_FOG_END:
       case GL_FOG_INDEX:
       case GL_FOG_COORDINATE_SOURCE_EXT:
+      case GL_FOG_DISTANCE_MODE_NV:
 	 p[0] = (GLfloat) *params;
 	 break;
       case GL_FOG_COLOR:

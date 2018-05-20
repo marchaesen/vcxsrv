@@ -61,8 +61,8 @@ typedef enum glamor_pixmap_type {
 } glamor_pixmap_type_t;
 
 typedef Bool (*GetDrawableModifiersFuncPtr) (DrawablePtr draw,
-                                             CARD32 format,
-                                             CARD32 *num_modifiers,
+                                             uint32_t format,
+                                             uint32_t *num_modifiers,
                                              uint64_t **modifiers);
 
 #define GLAMOR_EGL_EXTERNAL_BUFFER 3
@@ -318,13 +318,13 @@ extern _X_EXPORT Bool glamor_get_formats(ScreenPtr screen,
                                          CARD32 **formats);
 
 extern _X_EXPORT Bool glamor_get_modifiers(ScreenPtr screen,
-                                           CARD32 format,
-                                           CARD32 *num_modifiers,
+                                           uint32_t format,
+                                           uint32_t *num_modifiers,
                                            uint64_t **modifiers);
 
 extern _X_EXPORT Bool glamor_get_drawable_modifiers(DrawablePtr draw,
-                                                    CARD32 format,
-                                                    CARD32 *num_modifiers,
+                                                    uint32_t format,
+                                                    uint32_t *num_modifiers,
                                                     uint64_t **modifiers);
 
 extern _X_EXPORT void glamor_set_drawable_modifiers_func(ScreenPtr screen,

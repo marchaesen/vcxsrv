@@ -1110,7 +1110,6 @@
 #define glInvalidateSubFramebuffer(a1, a2, a3, a4, a5, a6, a7) CALL_InvalidateSubFramebuffer(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
 #define glInvalidateTexImage(a1, a2) CALL_InvalidateTexImage(GET_DISPATCH(), (a1, a2))
 #define glInvalidateTexSubImage(a1, a2, a3, a4, a5, a6, a7, a8) CALL_InvalidateTexSubImage(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8))
-#define glPolygonOffsetEXT(a1, a2) CALL_PolygonOffsetEXT(GET_DISPATCH(), (a1, a2))
 #define glDrawTexfOES(a1, a2, a3, a4, a5) CALL_DrawTexfOES(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glDrawTexfvOES(a1) CALL_DrawTexfvOES(GET_DISPATCH(), (a1))
 #define glDrawTexiOES(a1, a2, a3, a4, a5) CALL_DrawTexiOES(GET_DISPATCH(), (a1, a2, a3, a4, a5))

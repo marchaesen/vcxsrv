@@ -72,6 +72,7 @@ vk_format_for_size(int bs)
 	case 2: return VK_FORMAT_R8G8_UINT;
 	case 4: return VK_FORMAT_R8G8B8A8_UINT;
 	case 8: return VK_FORMAT_R16G16B16A16_UINT;
+	case 12: return VK_FORMAT_R32G32B32_UINT;
 	case 16: return VK_FORMAT_R32G32B32A32_UINT;
 	default:
 		unreachable("Invalid format block size");

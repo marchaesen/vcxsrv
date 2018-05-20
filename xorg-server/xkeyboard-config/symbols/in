@@ -1053,7 +1053,7 @@ xkb_symbols "ori" {
 // INSCRIPT
 partial alphanumeric_keys
 xkb_symbols "tam" {
-      name[Group1]= "Tamil";
+      name[Group1]= "Tamil (Inscript)";
 
       key <TLDE> { [      U0BCA, U0B92	]	};
 
@@ -1118,7 +1118,7 @@ xkb_symbols "tam" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "tam_unicode" {
+xkb_symbols "tam_tamilnet" {
 
 // Description: A keymap based on the TamilNet'99 typewriter keyboard 
 // Encoding: Unicode (http://www.unicode.org)
@@ -1128,7 +1128,7 @@ xkb_symbols "tam_unicode" {
 // Date  : Fri Sep 4 11:32:00 CST 2009
 // Mapping:
 
-    name[Group1]= "Tamil (Unicode)";
+    name[Group1]= "Tamil (TamilNet '99)";
 
     // granthas
     key <TLDE> {  [ apostrophe, asciitilde ] };
@@ -1184,7 +1184,7 @@ xkb_symbols "tam_unicode" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "tam_keyboard_with_numerals" {
+xkb_symbols "tam_tamilnet_with_tam_nums" {
 
 // Description: A keymap based on the TamilNet'99 typewriter keyboard 
 // Encoding: Unicode (http://www.unicode.org)
@@ -1193,7 +1193,7 @@ xkb_symbols "tam_keyboard_with_numerals" {
 // Date  : Fri Sep 4 11:33:00 CST 2009
 // Mapping:
 
-      name[Group1]= "Tamil (keyboard with numerals)";
+      name[Group1]= "Tamil (TamilNet '99 with Tamil numerals)";
 
       // Mainly numbers.
       key <TLDE> { [ apostrophe, asciitilde ] };
@@ -1249,7 +1249,7 @@ xkb_symbols "tam_keyboard_with_numerals" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "tam_TSCII" {
+xkb_symbols "tam_tamilnet_TSCII" {
 
 // Description	: A Tamil typewrite-style keymap 
 //		  loosely based on TamilNet'99 reommendations 
@@ -1257,7 +1257,7 @@ xkb_symbols "tam_TSCII" {
 // Author	: Thuraiappah Vaseeharan <vasee@ieee.org>
 // Last Modified: Sat Jan  5 17:11:26 CST 2002
 
-    name[Group1]= "Tamil (TSCII typewriter)";
+    name[Group1]= "Tamil (TamilNet '99, TSCII encoding)";
 
     key <AE01> {  [ 0x10000b7, 0x10000a4 ] }; // aytham
     key <AE02> {  [ 0x1000082, 0x10000a5 ] }; // shri
@@ -1305,14 +1305,14 @@ xkb_symbols "tam_TSCII" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "tam_TAB" {
+xkb_symbols "tam_tamilnet_TAB" {
 
 // Description: A keymap based on the TamilNet'99 typewriter keyboard 
 // Encoding: TAB (http://www.tamilnet99.org)
 // Author: Thuraiappah Vaseeharan <t_vasee@yahoo.com>
 // Date  : Sun Aug 12 02:23:00 CDT 2001
 
-    name[Group1]= "Tamil (TAB typewriter)";
+    name[Group1]= "Tamil (TamilNet '99, TAB encoding)";
 
     // numeral row
     key <AE01> {  [ 0x10000e7, 0x10000a7 ] } ;

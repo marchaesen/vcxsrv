@@ -146,10 +146,6 @@ st_draw_vbo(struct gl_context *ctx,
    unsigned i;
    unsigned start = 0;
 
-   /* The initial pushdown of the inputs array into the drivers */
-   _mesa_set_drawing_arrays(ctx, st->draw_arrays.inputs);
-   _vbo_update_inputs(ctx, &st->draw_arrays);
-
    prepare_draw(st, ctx);
 
    if (st->vertex_array_out_of_memory)
@@ -254,10 +250,6 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    struct pipe_draw_info info;
    struct pipe_draw_indirect_info indirect;
-
-   /* The initial pushdown of the inputs array into the drivers */
-   _mesa_set_drawing_arrays(ctx, st->draw_arrays.inputs);
-   _vbo_update_inputs(ctx, &st->draw_arrays);
 
    assert(stride);
    prepare_draw(st, ctx);
@@ -427,15 +419,7 @@ st_draw_quad(struct st_context *st,
 
    u_upload_unmap(st->pipe->stream_uploader);
 
-   /* At the time of writing, cso_get_aux_vertex_buffer_slot() always returns
-    * zero.  If that ever changes we need to audit the calls to that function
-    * and make sure the slot number is used consistently everywhere.
-    */
-   assert(cso_get_aux_vertex_buffer_slot(st->cso_context) == 0);
-
-   cso_set_vertex_buffers(st->cso_context,
-                          cso_get_aux_vertex_buffer_slot(st->cso_context),
-                          1, &vb);
+   cso_set_vertex_buffers(st->cso_context, 0, 1, &vb);
 
    if (num_instances > 1) {
       cso_draw_arrays_instanced(st->cso_context, PIPE_PRIM_TRIANGLE_FAN, 0, 4,

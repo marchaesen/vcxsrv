@@ -59,6 +59,7 @@
 #include "ac_surface.h"
 #include "radv_descriptor_set.h"
 #include "radv_extensions.h"
+#include "radv_cs.h"
 
 #include <llvm-c/TargetMachine.h>
 
@@ -352,6 +353,7 @@ struct radv_pipeline_cache {
 struct radv_pipeline_key {
 	uint32_t instance_rate_inputs;
 	uint32_t instance_rate_divisors[MAX_VERTEX_ATTRIBS];
+	uint64_t vertex_alpha_adjust;
 	unsigned tess_input_vertices;
 	uint32_t col_format;
 	uint32_t is_int8;
@@ -360,6 +362,7 @@ struct radv_pipeline_key {
 	uint8_t log2_num_samples;
 	uint32_t multisample : 1;
 	uint32_t has_multiview_view_index : 1;
+	uint32_t optimisations_disabled : 1;
 };
 
 void
@@ -622,7 +625,6 @@ struct radv_device {
 	struct radeon_winsys_cs *empty_cs[RADV_MAX_QUEUE_FAMILIES];
 
 	bool always_use_syncobj;
-	bool llvm_supports_spill;
 	bool has_distributed_tess;
 	bool pbb_allowed;
 	bool dfsm_allowed;
@@ -1126,6 +1128,15 @@ void radv_cmd_buffer_trace_emit(struct radv_cmd_buffer *cmd_buffer);
 bool radv_get_memory_fd(struct radv_device *device,
 			struct radv_device_memory *memory,
 			int *pFD);
+
+static inline void
+radv_emit_shader_pointer(struct radeon_winsys_cs *cs,
+			 uint32_t sh_offset, uint64_t va)
+{
+	radeon_set_sh_reg_seq(cs, sh_offset, 2);
+	radeon_emit(cs, va);
+	radeon_emit(cs, va >> 32);
+}
 
 static inline struct radv_descriptor_state *
 radv_get_descriptors_state(struct radv_cmd_buffer *cmd_buffer,

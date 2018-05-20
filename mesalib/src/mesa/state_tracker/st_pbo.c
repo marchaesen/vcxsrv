@@ -245,7 +245,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
 
       velem.src_offset = 0;
       velem.instance_divisor = 0;
-      velem.vertex_buffer_index = cso_get_aux_vertex_buffer_slot(cso);
+      velem.vertex_buffer_index = 0;
       velem.src_format = PIPE_FORMAT_R32G32_FLOAT;
 
       cso_set_vertex_elements(cso, 1, &velem);

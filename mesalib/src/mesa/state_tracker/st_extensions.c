@@ -936,6 +936,7 @@ void st_init_extensions(struct pipe_screen *screen,
 
    /* Figure out GLSL support and set GLSLVersion to it. */
    consts->GLSLVersion = screen->get_param(screen, PIPE_CAP_GLSL_FEATURE_LEVEL);
+   consts->GLSLVersionCompat = _min(consts->GLSLVersion, 140);
 
    _mesa_override_glsl_version(consts);
 

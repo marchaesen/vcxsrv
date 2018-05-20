@@ -55,9 +55,21 @@ struct radv_shader_module {
 	char data[0];
 };
 
+enum {
+	RADV_ALPHA_ADJUST_NONE = 0,
+	RADV_ALPHA_ADJUST_SNORM = 1,
+	RADV_ALPHA_ADJUST_SINT = 2,
+	RADV_ALPHA_ADJUST_SSCALED = 3,
+};
+
 struct radv_vs_variant_key {
 	uint32_t instance_rate_inputs;
 	uint32_t instance_rate_divisors[MAX_VERTEX_ATTRIBS];
+
+	/* For 2_10_10_10 formats the alpha is handled as unsigned by pre-vega HW.
+	 * so we may need to fix it up. */
+	uint64_t alpha_adjust;
+
 	uint32_t as_es:1;
 	uint32_t as_ls:1;
 	uint32_t export_prim_id:1;
@@ -145,6 +157,9 @@ struct radv_shader_info {
 		bool needs_draw_id;
 		bool needs_instance_id;
 	} vs;
+	struct {
+		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
+	} gs;
 	struct {
 		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
 	} tes;
@@ -282,14 +297,15 @@ struct radv_shader_slab {
 };
 
 void
-radv_optimize_nir(struct nir_shader *shader);
+radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively);
 
 nir_shader *
 radv_shader_compile_to_nir(struct radv_device *device,
 			   struct radv_shader_module *module,
 			   const char *entrypoint_name,
 			   gl_shader_stage stage,
-			   const VkSpecializationInfo *spec_info);
+			   const VkSpecializationInfo *spec_info,
+			   const VkPipelineCreateFlags flags);
 
 void *
 radv_alloc_shader_memory(struct radv_device *device,
@@ -328,11 +344,14 @@ radv_shader_dump_stats(struct radv_device *device,
 
 static inline bool
 radv_can_dump_shader(struct radv_device *device,
-		     struct radv_shader_module *module)
+		     struct radv_shader_module *module,
+		     bool is_gs_copy_shader)
 {
+	if (!(device->instance->debug_flags & RADV_DEBUG_DUMP_SHADERS))
+		return false;
+
 	/* Only dump non-meta shaders, useful for debugging purposes. */
-	return device->instance->debug_flags & RADV_DEBUG_DUMP_SHADERS &&
-	       module && !module->nir;
+	return (module && !module->nir) || is_gs_copy_shader;
 }
 
 static inline bool

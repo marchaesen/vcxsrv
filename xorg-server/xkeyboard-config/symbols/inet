@@ -218,6 +218,9 @@ xkb_symbols "evdev" {
     key <I254>   {      [ XF86WWAN              ]       }; // KEY_WWAN
     key <I255>   {      [ XF86RFKill            ]       }; // KEY_RFKILL
 
+    key <I372>  {       [ XF86Favorites          ]       };
+    key <I374>  {       [ XF86Keyboard           ]       };
+
     key <FK13>   {      [ XF86Tools         ]       };
     key <FK14>   {      [ XF86Launch5       ]       };
     key <FK15>   {      [ XF86Launch6       ]       };

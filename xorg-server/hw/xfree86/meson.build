@@ -190,17 +190,19 @@ install_man(configure_file(
     configuration: manpage_config,
 ))
 
-install_man(configure_file(
-    input: 'man/Xorg.wrap.man',
-    output: 'Xorg.wrap.1',
-    configuration: manpage_config,
-))
+if get_option('suid_wrapper')
+    install_man(configure_file(
+        input: 'man/Xorg.wrap.man',
+        output: 'Xorg.wrap.1',
+        configuration: manpage_config,
+    ))
 
-install_man(configure_file(
-    input: 'man/Xwrapper.config.man',
-    output: 'Xwrapper.config.5',
-    configuration: manpage_config,
-))
+    install_man(configure_file(
+        input: 'man/Xwrapper.config.man',
+        output: 'Xwrapper.config.5',
+        configuration: manpage_config,
+    ))
+endif
 
 install_man(configure_file(
     input: 'man/xorg.conf.man',

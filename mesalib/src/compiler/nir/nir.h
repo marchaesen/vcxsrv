@@ -1894,6 +1894,9 @@ typedef struct nir_shader_compiler_options {
    /** enables rules to lower idiv by power-of-two: */
    bool lower_idiv;
 
+   /* lower b2f to iand */
+   bool lower_b2f;
+
    /* Does the native fdot instruction replicate its result for four
     * components?  If so, then opt_algebraic_late will turn all fdotN
     * instructions into fdot_replicatedN instructions.

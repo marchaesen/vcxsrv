@@ -86,7 +86,7 @@ struct radeon_info {
 	uint32_t                    vce_fw_version;
 	uint32_t                    vce_harvest_config;
 
-	/* Kernel info. */
+	/* Kernel & winsys capabilities. */
 	uint32_t                    drm_major; /* version */
 	uint32_t                    drm_minor;
 	uint32_t                    drm_patchlevel;
@@ -96,6 +96,20 @@ struct radeon_info {
 	bool                        has_fence_to_handle;
 	bool                        has_ctx_priority;
 	bool                        has_local_buffers;
+	bool                        kernel_flushes_hdp_before_ib;
+	bool                        htile_cmask_support_1d_tiling;
+	bool                        si_TA_CS_BC_BASE_ADDR_allowed;
+	bool                        has_bo_metadata;
+	bool                        has_gpu_reset_status_query;
+	bool                        has_gpu_reset_counter_query;
+	bool                        has_eqaa_surface_allocator;
+	bool                        has_format_bc1_through_bc7;
+	bool                        kernel_flushes_tc_l2_after_ib;
+	bool                        has_indirect_compute_dispatch;
+	bool                        has_unaligned_shader_loads;
+	bool                        has_sparse_vm_mappings;
+	bool                        has_2d_tiling;
+	bool                        has_read_registers_query;
 
 	/* Shader cores. */
 	uint32_t                    r600_max_quad_pipes; /* wave size / 16 */

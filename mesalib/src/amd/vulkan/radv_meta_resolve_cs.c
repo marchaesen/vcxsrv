@@ -508,12 +508,48 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 		if (dest_att.attachment == VK_ATTACHMENT_UNUSED)
 			continue;
 
-		emit_resolve(cmd_buffer,
-			     src_iview,
-			     dst_iview,
-			     &(VkOffset2D) { 0, 0 },
-			     &(VkOffset2D) { 0, 0 },
-			     &(VkExtent2D) { fb->width, fb->height });
+		struct radv_image *src_image = src_iview->image;
+		struct radv_image *dst_image = dst_iview->image;
+		for (uint32_t layer = 0; layer < src_image->info.array_size; layer++) {
+
+			struct radv_image_view tsrc_iview;
+			radv_image_view_init(&tsrc_iview, cmd_buffer->device,
+					     &(VkImageViewCreateInfo) {
+						     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+							     .image = radv_image_to_handle(src_image),
+							     .viewType = radv_meta_get_view_type(src_image),
+							     .format = src_image->vk_format,
+							     .subresourceRange = {
+							     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+							     .baseMipLevel = src_iview->base_mip,
+							     .levelCount = 1,
+							     .baseArrayLayer = layer,
+							     .layerCount = 1,
+						     },
+					     });
+
+			struct radv_image_view tdst_iview;
+			radv_image_view_init(&tdst_iview, cmd_buffer->device,
+					     &(VkImageViewCreateInfo) {
+						     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+							     .image = radv_image_to_handle(dst_image),
+							     .viewType = radv_meta_get_view_type(dst_image),
+							     .format = vk_to_non_srgb_format(dst_image->vk_format),
+							     .subresourceRange = {
+							     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+							     .baseMipLevel = dst_iview->base_mip,
+							     .levelCount = 1,
+							     .baseArrayLayer = layer,
+							     .layerCount = 1,
+						     },
+					     });
+			emit_resolve(cmd_buffer,
+				     &tsrc_iview,
+				     &tdst_iview,
+				     &(VkOffset2D) { 0, 0 },
+				     &(VkOffset2D) { 0, 0 },
+				     &(VkExtent2D) { fb->width, fb->height });
+		}
 	}
 
 	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |

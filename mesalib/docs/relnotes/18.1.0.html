@@ -14,7 +14,7 @@
 <iframe src="../contents.html"></iframe>
 <div class="content">
 
-<h1>Mesa 18.1.0 Release Notes / TBD</h1>
+<h1>Mesa 18.1.0 Release Notes / May 18 2018</h1>
 
 <p>
 Mesa 18.1.0 is a new development release. People who are concerned
@@ -33,7 +33,8 @@ Compatibility contexts may report a lower version depending on each driver.
 
 <h2>SHA256 checksums</h2>
 <pre>
-TBD.
+b1c1dbb42597190503d3abc518b12de880623f097c6cb6c293ecf69ae87e6fbf  mesa-18.1.0.tar.gz
+c855c5b67ef993b7621f76d8b120769ec0415f1c3616eaff44ef7f7f300aceba  mesa-18.1.0.tar.xz
 </pre>
 
 
@@ -58,7 +59,201 @@ Note: some of the new features are only available with certain drivers.
 <h2>Bug fixes</h2>
 
 <ul>
-TBD
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90311">Bug 90311</a> - Fail to build libglx with clang at linking stage</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=91808">Bug 91808</a> - trine1 misrender r600g</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=95009">Bug 95009</a> - [SNB] amd_shader_trinary_minmax.execution.built-in-functions.gs-mid3-ivec2-ivec2-ivec2 intermittent</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=95012">Bug 95012</a> - [SNB] glsl-1_50.execution.built-in-functions.gs-op tests intermittent</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98281">Bug 98281</a> - 'message's in ctx-&gt;Debug.LogMessages[] seem to leak.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99549">Bug 99549</a> - pp: Failed to translate a shader</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100259">Bug 100259</a> - [EGL] [GBM] undefined reference to `gbm_bo_create_with_modifiers'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101408">Bug 101408</a> - [Gen8+] Xonotic fails to render one of the weapons</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=101442">Bug 101442</a> - Piglit shaders&#64;ssa&#64;fs-if-def-else-break fails with sb but passes with R600_DEBUG=nosb</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102342">Bug 102342</a> - mesa-17.1.7/src/gallium/auxiliary/pipebuffer/pb_cache.c:169]: (style) Suspicious condition</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102542">Bug 102542</a> - mesa-17.2.0/src/gallium/state_trackers/nine/nine_ff.c:1938: bad assignment ?</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=102905">Bug 102905</a> - [R600] Miscompilation of TGSI to VLIW causes artifacts in Gallium Nine with Crysis2 bump mapping</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103006">Bug 103006</a> - [OpenGL CTS] [HSW] KHR-GL45.vertex_attrib_binding.basic-inputL-case1</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103142">Bug 103142</a> - R600g+sb: optimizer apparently stuck in an endless loop</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103626">Bug 103626</a> - </li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103746">Bug 103746</a> - [BDW BSW SKL KBL] dEQP-GLES31.functional.copy_image regressions</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104302">Bug 104302</a> - Wolfenstein 2 (2017) under wine graphical artifacting on RADV</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104335">Bug 104335</a> - [OpenGL CTS][SKL,KBL] KHR-GL45.vertex_attrib_64bit.limits_test occasionally fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104625">Bug 104625</a> - semicolon after if</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104636">Bug 104636</a> - [BSW/HD400] Aztec Ruins GL version GPU hangs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104642">Bug 104642</a> - Android: NULL pointer dereference with i965 mesa-dev, seems build_id_length related</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104654">Bug 104654</a> - r600/sb: Alien Isolation GPU lock</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104668">Bug 104668</a> - dEQP-GLES31.functional.shaders.linkage.uniform.block.differing_precision regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104717">Bug 104717</a> - Rocket League: grass rendering broken with nir</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104732">Bug 104732</a> - [radv] Binding descriptor sets disturbs other pipeline bindings</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104741">Bug 104741</a> - Graphic corruption for Android apps Telegram and KineMaster</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104762">Bug 104762</a> - Various segfaults/problems in qt/plasma</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104777">Bug 104777</a> - Attaching multiple shader objects for the same stage to a GLSL program triggers a linker error</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104794">Bug 104794</a> - piglit.spec.arb_internalformat_query2.samples and num_sample_counts pname checks</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104803">Bug 104803</a> - SIGSEGV in state_tracker/st_glsl_to_tgsi_temprename.cpp</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104863">Bug 104863</a> - 186 assertions in piglit</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104884">Bug 104884</a> - memory leak with intel i965 mesa when running android container in Ubuntu</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104905">Bug 104905</a> - SpvOpFOrdEqual doesn't return correct results for NaNs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104908">Bug 104908</a> - Texture Compression Hint not converted to enum16</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104915">Bug 104915</a> - Indexed SHADING_LANGUAGE_VERSION query not supported</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104923">Bug 104923</a> - anv: Dota2 rendering corruption</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104989">Bug 104989</a> - [r600] [bisected] OpenGL applications can't render anything at all</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105013">Bug 105013</a> - [regression] GLX+VA-API+clutter-gst video playback is corrupt with Mesa 17.3 (but is fine with 17.2)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105026">Bug 105026</a> - glxgears asserts with pp_jimenezmlaa=1</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105029">Bug 105029</a> - simdlib_512_avx512.inl:371:57: error: could not convert ‘_mm512_mask_blend_epi32((__mmask16)(ImmT), a, b)’ from ‘__m512i’ {aka ‘__vector(8) long long int’} to ‘SIMDImpl::SIMD512Impl::Float’</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105052">Bug 105052</a> - </li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105065">Bug 105065</a> - Qt Programs occasionally fail to render with new Mesa (glGetProgramBinary)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105067">Bug 105067</a> - </li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105088">Bug 105088</a> - brw_nir_uniforms.cpp:256:10: error: non-constant-expression cannot be narrowed</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105098">Bug 105098</a> - [RADV] GPU freeze with simple Vulkan App</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105103">Bug 105103</a> - Wayland master causes Mesa to fail to compile</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105120">Bug 105120</a> - meson build broken</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105161">Bug 105161</a> - KHR_blend_equation_advanced doesn't work in GLSL 1.10-1.40 shaders</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105183">Bug 105183</a> - Weird assertion in NIR linker</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105211">Bug 105211</a> - build failure after zwp_dmabuf commit if wayland-protocols is not installed</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105224">Bug 105224</a> - Webgl Pointclouds flickers</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105229">Bug 105229</a> - [KBL SKL BDW HSW] [Regression] KHR-GLES31.core.shader_image_load_store.advanced-sso-simple failures</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105238">Bug 105238</a> - ast.h:648:16: error: union member 'i' has a non-trivial constructor</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105255">Bug 105255</a> - Waiting for fences without waitAll is not implemented</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105262">Bug 105262</a> - [R600] [BISECTED] ttf fonts are invisible in many programs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105271">Bug 105271</a> - WebGL2 shader crashes i965_dri.so 17.3.3</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105274">Bug 105274</a> - </li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105290">Bug 105290</a> - </li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105292">Bug 105292</a> - vkGetQueryPoolResults returns incorrect query status for large query buffers (bisected)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105317">Bug 105317</a> - The GPU Vega 56 was hang while try to pass #GraphicsFuzz shader15 test</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105320">Bug 105320</a> - Storage texel buffer access produces wrong results (RX Vega)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105374">Bug 105374</a> - texture3d, a SaschaWillems demo, assert fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105436">Bug 105436</a> - Blinking textures in UT2004 [bisected]</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105440">Bug 105440</a> - GEN7: rendering issue on citra</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105442">Bug 105442</a> - Hang when running nine ff lighting shader with radeonsi</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105444">Bug 105444</a> - Enable GL disk shader cache when transform feedback is enabled</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105464">Bug 105464</a> - </li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105471">Bug 105471</a> - [g33] [bisected] dEQP-GLES2.functional.shaders failures</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105497">Bug 105497</a> - shader-db crashes on 72 core system after ast_type_qualifier bitset change</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105529">Bug 105529</a> - u_debug_stack.c:268: error: #pragma GCC diagnostic not allowed inside functions</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105567">Bug 105567</a> - meson/ninja: 1. mesa/vdpau incorrect symlinks in DESTDIR and 2. Ddri-drivers-path Dvdpau-libs-path overrides DESTDIR</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105621">Bug 105621</a> - Build failure on GNOME Continuous</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105634">Bug 105634</a> - Android build test fails when building brw_oa_metrics.c</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105670">Bug 105670</a> - </li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105704">Bug 105704</a> - </li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105717">Bug 105717</a> - [bisected] Mesa build tests fails: BIGENDIAN_CPU or LITTLEENDIAN_CPU must be defined</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105737">Bug 105737</a> - st_tests_common.cpp:140:42: error: no matching function for call to 'tgsi_get_opcode_info'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105738">Bug 105738</a> - commit f7ffa504a065dc2631fd38cc5fe885b277f4e7e7 causes artifacting in radv</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105740">Bug 105740</a> - glsl_types.cpp(524): error: a dynamically-initialized local static variable is not allowed inside of a statement expression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105775">Bug 105775</a> - SI reaches the maximum IB size in dwords and fail to submit</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105807">Bug 105807</a> - [Regression, bisected]: 3D Rendering not working correctly in Warhammer 40k: Dawn of War II</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105817">Bug 105817</a> - scons build broken by glSpecializeShaderARB</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105820">Bug 105820</a> - [m32] piglit regressions relinking program without shaders</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105942">Bug 105942</a> - Graphical artefacts after update to mesa 18.0.0-2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105952">Bug 105952</a> - radv causes GPU hang on SI</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105960">Bug 105960</a> - [bisected] meson build test fails with: undefined reference to `etna_pm_create_query'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105994">Bug 105994</a> - surface state leak when creating and destroying image views with aspectMask depth and stencil</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106074">Bug 106074</a> - radv: si_scissor_from_viewport returns incorrect result when using half-pixel viewport offset</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106126">Bug 106126</a> - eglMakeCurrent does not always ensure dri_drawable-&gt;update_drawable_info has been called for a new EGLSurface if another has been created and destroyed first</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106131">Bug 106131</a> - meson/ninja build missing file gtest.h</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106133">Bug 106133</a> - make check &quot;OSError: [Errno 24] Too many open files&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106147">Bug 106147</a> - SIGBUS in write_reloc() when Sacha Willems' &quot;texture3d&quot; Vulkan demo starts</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106174">Bug 106174</a> - vulkan dota2 broken (segfaulting), found bug commit</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106180">Bug 106180</a> - [bisected] radv vulkan smoke test black screen (Add support for DRI3 v1.2)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106243">Bug 106243</a> - [kbl] GPU HANG: 9:0:0x85dffffb, in Cinnamon</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106450">Bug 106450</a> - </li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106462">Bug 106462</a> - piglit.spec.arb_vertex_array_bgra.get regression</li>
+
 </ul>
 
 <h2>Changes</h2>

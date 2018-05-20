@@ -442,6 +442,7 @@ fail:
 VkResult
 wsi_create_prime_image(const struct wsi_swapchain *chain,
                        const VkSwapchainCreateInfoKHR *pCreateInfo,
+                       bool use_modifier,
                        struct wsi_image *image)
 {
    const struct wsi_device *wsi = chain->wsi;
@@ -626,7 +627,7 @@ wsi_create_prime_image(const struct wsi_swapchain *chain,
    if (result != VK_SUCCESS)
       goto fail;
 
-   image->drm_modifier = DRM_FORMAT_MOD_LINEAR;
+   image->drm_modifier = use_modifier ? DRM_FORMAT_MOD_LINEAR : DRM_FORMAT_MOD_INVALID;
    image->num_planes = 1;
    image->sizes[0] = linear_size;
    image->row_pitches[0] = linear_stride;

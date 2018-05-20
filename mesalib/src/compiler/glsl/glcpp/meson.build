@@ -57,7 +57,7 @@ glcpp = executable(
 
 if with_tests
   modes = ['unix', 'windows', 'oldmac', 'bizarro']
-  if dep_valgrind != [] and dep_valgrind.found()
+  if dep_valgrind.found()
     modes += ['valgrind']
   endif
 

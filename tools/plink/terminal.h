@@ -238,6 +238,8 @@ struct terminal_tag {
 
     struct unicode_data *ucsdata;
 
+    unsigned long last_graphic_char;
+
     /*
      * We maintain a full copy of a Conf here, not merely a pointer
      * to it. That way, when we're passed a new one for
@@ -320,6 +322,7 @@ struct terminal_tag {
     int no_remote_wintitle;
     int no_remote_clearscroll;
     int rawcnp;
+    int utf8linedraw;
     int rect_select;
     int remote_qtitle_action;
     int rxvt_homeend;

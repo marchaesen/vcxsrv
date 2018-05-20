@@ -105,6 +105,8 @@ enum value_type {
    TYPE_ENUM,
    TYPE_ENUM_2,
    TYPE_BOOLEAN,
+   TYPE_UBYTE,
+   TYPE_SHORT,
    TYPE_BIT_0,
    TYPE_BIT_1,
    TYPE_BIT_2,
@@ -188,6 +190,8 @@ union value {
    GLint value_int_4[4];
    GLint64 value_int64;
    GLenum value_enum;
+   GLubyte value_ubyte;
+   GLshort value_short;
 
    /* Sigh, see GL_COMPRESSED_TEXTURE_FORMATS_ARB handling */
    struct {
@@ -235,10 +239,13 @@ union value {
 #define CONTEXT_MATRIX(field) CONTEXT_FIELD(field, TYPE_MATRIX)
 #define CONTEXT_MATRIX_T(field) CONTEXT_FIELD(field, TYPE_MATRIX_T)
 
+/* Vertex array fields */
 #define ARRAY_INT(field) ARRAY_FIELD(field, TYPE_INT)
 #define ARRAY_ENUM(field) ARRAY_FIELD(field, TYPE_ENUM)
 #define ARRAY_ENUM16(field) ARRAY_FIELD(field, TYPE_ENUM16)
 #define ARRAY_BOOL(field) ARRAY_FIELD(field, TYPE_BOOLEAN)
+#define ARRAY_UBYTE(field) ARRAY_FIELD(field, TYPE_UBYTE)
+#define ARRAY_SHORT(field) ARRAY_FIELD(field, TYPE_SHORT)
 
 #define EXT(f)					\
    offsetof(struct gl_extensions, f)
@@ -1520,6 +1527,10 @@ get_value_size(enum value_type type, const union value *v)
       return sizeof(GLenum) * 2;
    case TYPE_BOOLEAN:
       return sizeof(GLboolean);
+   case TYPE_UBYTE:
+      return sizeof(GLubyte);
+   case TYPE_SHORT:
+      return sizeof(GLshort);
    case TYPE_BIT_0:
    case TYPE_BIT_1:
    case TYPE_BIT_2:
@@ -1631,6 +1642,14 @@ _mesa_GetBooleanv(GLenum pname, GLboolean *params)
       params[0] = ((GLboolean*) p)[0];
       break;
 
+   case TYPE_UBYTE:
+      params[0] = INT_TO_BOOLEAN(((GLubyte *) p)[0]);
+      break;
+
+   case TYPE_SHORT:
+      params[0] = INT_TO_BOOLEAN(((GLshort *) p)[0]);
+      break;
+
    case TYPE_MATRIX:
       m = *(GLmatrix **) p;
       for (i = 0; i < 16; i++)
@@ -1738,6 +1757,14 @@ _mesa_GetFloatv(GLenum pname, GLfloat *params)
       params[0] = BOOLEAN_TO_FLOAT(*(GLboolean*) p);
       break;
 
+   case TYPE_UBYTE:
+      params[0] = (GLfloat) ((GLubyte *) p)[0];
+      break;
+
+   case TYPE_SHORT:
+      params[0] = (GLfloat) ((GLshort *) p)[0];
+      break;
+
    case TYPE_MATRIX:
       m = *(GLmatrix **) p;
       for (i = 0; i < 16; i++)
@@ -1843,6 +1870,14 @@ _mesa_GetIntegerv(GLenum pname, GLint *params)
 
    case TYPE_BOOLEAN:
       params[0] = BOOLEAN_TO_INT(*(GLboolean*) p);
+      break;
+
+   case TYPE_UBYTE:
+      params[0] = ((GLubyte *) p)[0];
+      break;
+
+   case TYPE_SHORT:
+      params[0] = ((GLshort *) p)[0];
       break;
 
    case TYPE_MATRIX:
@@ -2065,6 +2100,14 @@ _mesa_GetDoublev(GLenum pname, GLdouble *params)
       params[0] = *(GLboolean*) p;
       break;
 
+   case TYPE_UBYTE:
+      params[0] = ((GLubyte *) p)[0];
+      break;
+
+   case TYPE_SHORT:
+      params[0] = ((GLshort *) p)[0];
+      break;
+
    case TYPE_MATRIX:
       m = *(GLmatrix **) p;
       for (i = 0; i < 16; i++)
@@ -2144,6 +2187,8 @@ _mesa_GetUnsignedBytevEXT(GLenum pname, GLubyte *data)
    case TYPE_ENUM:
    case TYPE_ENUM_2:
    case TYPE_BOOLEAN:
+   case TYPE_UBYTE:
+   case TYPE_SHORT:
    case TYPE_FLOAT:
    case TYPE_FLOATN:
    case TYPE_FLOAT_2:
@@ -2793,6 +2838,14 @@ _mesa_GetFloati_v(GLenum pname, GLuint index, GLfloat *params)
       params[0] = BOOLEAN_TO_FLOAT(v.value_bool);
       break;
 
+   case TYPE_UBYTE:
+      params[0] = (GLfloat) v.value_ubyte;
+      break;
+
+   case TYPE_SHORT:
+      params[0] = (GLfloat) v.value_short;
+      break;
+
    case TYPE_MATRIX:
       m = *(GLmatrix **) &v;
       for (i = 0; i < 16; i++)
@@ -2876,6 +2929,14 @@ _mesa_GetDoublei_v(GLenum pname, GLuint index, GLdouble *params)
       params[0] = (GLdouble) BOOLEAN_TO_FLOAT(v.value_bool);
       break;
 
+   case TYPE_UBYTE:
+      params[0] = (GLdouble) v.value_ubyte;
+      break;
+
+   case TYPE_SHORT:
+      params[0] = (GLdouble) v.value_short;
+      break;
+
    case TYPE_MATRIX:
       m = *(GLmatrix **) &v;
       for (i = 0; i < 16; i++)
@@ -2928,6 +2989,8 @@ _mesa_GetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte *data)
    case TYPE_ENUM:
    case TYPE_ENUM_2:
    case TYPE_BOOLEAN:
+   case TYPE_UBYTE:
+   case TYPE_SHORT:
    case TYPE_FLOAT:
    case TYPE_FLOATN:
    case TYPE_FLOAT_2:
@@ -3005,7 +3068,7 @@ _mesa_GetFixedv(GLenum pname, GLfixed *params)
       break;
 
    case TYPE_ENUM16:
-      params[0] = INT_TO_FIXED(((GLenum16 *) p)[0]);
+      params[0] = INT_TO_FIXED((GLint)(((GLenum16 *) p)[0]));
       break;
 
    case TYPE_INT_N:
@@ -3019,6 +3082,14 @@ _mesa_GetFixedv(GLenum pname, GLfixed *params)
 
    case TYPE_BOOLEAN:
       params[0] = BOOLEAN_TO_FIXED(((GLboolean*) p)[0]);
+      break;
+
+   case TYPE_UBYTE:
+      params[0] = INT_TO_FIXED(((GLubyte *) p)[0]);
+      break;
+
+   case TYPE_SHORT:
+      params[0] = INT_TO_FIXED(((GLshort *) p)[0]);
       break;
 
    case TYPE_MATRIX:

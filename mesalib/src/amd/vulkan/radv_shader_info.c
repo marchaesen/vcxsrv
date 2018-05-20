@@ -88,6 +88,89 @@ static void get_deref_offset(nir_deref_var *deref, unsigned *const_out)
 }
 
 static void
+gather_intrinsic_load_var_info(const nir_shader *nir,
+			       const nir_intrinsic_instr *instr,
+			       struct radv_shader_info *info)
+{
+	switch (nir->info.stage) {
+	case MESA_SHADER_VERTEX: {
+		nir_deref_var *dvar = instr->variables[0];
+		nir_variable *var = dvar->var;
+
+		if (var->data.mode == nir_var_shader_in) {
+			unsigned idx = var->data.location;
+			uint8_t mask = nir_ssa_def_components_read(&instr->dest.ssa);
+
+			info->vs.input_usage_mask[idx] |=
+				mask << var->data.location_frac;
+		}
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+static void
+gather_intrinsic_store_var_info(const nir_shader *nir,
+				const nir_intrinsic_instr *instr,
+				struct radv_shader_info *info)
+{
+	nir_deref_var *dvar = instr->variables[0];
+	nir_variable *var = dvar->var;
+
+	if (var->data.mode == nir_var_shader_out) {
+		unsigned attrib_count = glsl_count_attribute_slots(var->type, false);
+		unsigned idx = var->data.location;
+		unsigned comp = var->data.location_frac;
+		unsigned const_offset = 0;
+
+		get_deref_offset(dvar, &const_offset);
+
+		switch (nir->info.stage) {
+		case MESA_SHADER_VERTEX:
+			for (unsigned i = 0; i < attrib_count; i++) {
+				info->vs.output_usage_mask[idx + i + const_offset] |=
+					instr->const_index[0] << comp;
+			}
+			break;
+		case MESA_SHADER_GEOMETRY:
+			for (unsigned i = 0; i < attrib_count; i++) {
+				info->gs.output_usage_mask[idx + i + const_offset] |=
+					instr->const_index[0] << comp;
+			}
+			break;
+		case MESA_SHADER_TESS_EVAL:
+			for (unsigned i = 0; i < attrib_count; i++) {
+				info->tes.output_usage_mask[idx + i + const_offset] |=
+					instr->const_index[0] << comp;
+			}
+			break;
+		case MESA_SHADER_TESS_CTRL: {
+			unsigned param = shader_io_get_unique_index(idx);
+			const struct glsl_type *type = var->type;
+
+			if (!var->data.patch)
+				type = glsl_get_array_element(var->type);
+
+			unsigned slots =
+				var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
+						  : glsl_count_attribute_slots(type, false);
+
+			if (idx == VARYING_SLOT_CLIP_DIST0)
+				slots = (nir->info.clip_distance_array_size +
+					 nir->info.cull_distance_array_size > 4) ? 2 : 1;
+
+			mark_tess_output(info, var->data.patch, param, slots);
+			break;
+		}
+		default:
+			break;
+		}
+	}
+}
+
+static void
 gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		      struct radv_shader_info *info)
 {
@@ -197,55 +280,11 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 			info->ps.writes_memory = true;
 		break;
 	case nir_intrinsic_load_var:
-		if (nir->info.stage == MESA_SHADER_VERTEX) {
-			nir_deref_var *dvar = instr->variables[0];
-			nir_variable *var = dvar->var;
-
-			if (var->data.mode == nir_var_shader_in) {
-				unsigned idx = var->data.location;
-				uint8_t mask =
-					nir_ssa_def_components_read(&instr->dest.ssa) << var->data.location_frac;
-				info->vs.input_usage_mask[idx] |= mask;
-			}
-		}
+		gather_intrinsic_load_var_info(nir, instr, info);
 		break;
-	case nir_intrinsic_store_var: {
-		nir_deref_var *dvar = instr->variables[0];
-		nir_variable *var = dvar->var;
-
-		if (var->data.mode == nir_var_shader_out) {
-			unsigned attrib_count = glsl_count_attribute_slots(var->type, false);
-			unsigned idx = var->data.location;
-			unsigned comp = var->data.location_frac;
-			unsigned const_offset = 0;
-
-			get_deref_offset(dvar, &const_offset);
-
-			if (nir->info.stage == MESA_SHADER_VERTEX) {
-				for (unsigned i = 0; i < attrib_count; i++) {
-					info->vs.output_usage_mask[idx + i + const_offset] |=
-						instr->const_index[0] << comp;
-				}
-			} else if (nir->info.stage == MESA_SHADER_TESS_EVAL) {
-				for (unsigned i = 0; i < attrib_count; i++) {
-					info->tes.output_usage_mask[idx + i + const_offset] |=
-						instr->const_index[0] << comp;
-				}
-			} else if (nir->info.stage == MESA_SHADER_TESS_CTRL) {
-				unsigned param = shader_io_get_unique_index(idx);
-				const struct glsl_type *type = var->type;
-				if (!var->data.patch)
-					type = glsl_get_array_element(var->type);
-				unsigned slots =
-					var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
-					: glsl_count_attribute_slots(type, false);
-				if (idx == VARYING_SLOT_CLIP_DIST0)
-					slots = (nir->info.clip_distance_array_size + nir->info.cull_distance_array_size > 4) ? 2 : 1;
-				mark_tess_output(info, var->data.patch, param, slots);
-			}
-		}
+	case nir_intrinsic_store_var:
+		gather_intrinsic_store_var_info(nir, instr, info);
 		break;
-	}
 	default:
 		break;
 	}
@@ -391,7 +430,7 @@ radv_nir_shader_info_pass(const struct nir_shader *nir,
 	struct nir_function *func =
 		(struct nir_function *)exec_list_get_head_const(&nir->functions);
 
-	if (options->layout->dynamic_offset_count)
+	if (options->layout && options->layout->dynamic_offset_count)
 		info->loads_push_constants = true;
 
 	nir_foreach_variable(variable, &nir->inputs)

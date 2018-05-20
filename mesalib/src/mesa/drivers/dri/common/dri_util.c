@@ -389,14 +389,6 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
         screen->max_gl_compat_version < 31)
        mesa_api = API_OPENGL_CORE;
 
-    if (mesa_api == API_OPENGL_COMPAT
-        && ((ctx_config.major_version > 3)
-            || (ctx_config.major_version == 3 &&
-                ctx_config.minor_version >= 2))) {
-       *error = __DRI_CTX_ERROR_BAD_API;
-       return NULL;
-    }
-
     /* The latest version of EGL_KHR_create_context spec says:
      *
      *     "If the EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR flag bit is set in

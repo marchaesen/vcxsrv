@@ -57,6 +57,8 @@
 
 #include "vbo/vbo.h"
 
+#include "tnl.h"
+
 #define MAX_PIPELINE_STAGES     30
 
 /*
@@ -497,6 +499,41 @@ struct tnl_device_driver
 
 
 /**
+ * Utility that tracks and updates the current array entries.
+ */
+struct tnl_inputs
+{
+   /**
+    * Array of inputs to be set to the _DrawArrays pointer.
+    * The array contains pointers into the _DrawVAO and to the vbo modules
+    * current values. The array of pointers is updated incrementally
+    * based on the current and vertex_processing_mode values below.
+    */
+   struct tnl_vertex_array inputs[VERT_ATTRIB_MAX];
+   /** Those VERT_BIT_'s where the inputs array point to current values. */
+   GLbitfield current;
+   /** Store which aliasing current values - generics or materials - are set. */
+   gl_vertex_processing_mode vertex_processing_mode;
+};
+
+
+/**
+ * Initialize inputs.
+ */
+void
+_tnl_init_inputs(struct tnl_inputs *inputs);
+
+
+/**
+ * Update the tnl_vertex_array array inside the tnl_inputs structure
+ * provided the current _VPMode, the provided vao and
+ * the vao's enabled arrays filtered by the filter bitmask.
+ */
+void
+_tnl_update_inputs(struct gl_context *ctx, struct tnl_inputs *inputs);
+
+
+/**
  * Context state for T&L context.
  */
 typedef struct
@@ -537,8 +574,8 @@ typedef struct
    struct tnl_shine_tab *_ShineTabList;  /**< MRU list of inactive shine tables */
    /**@}*/
 
-   /* The list of gl_vertex_array inputs. */
-   struct vbo_inputs draw_arrays;
+   /* The list of tnl_vertex_array inputs. */
+   struct tnl_inputs draw_arrays;
 } TNLcontext;
 
 

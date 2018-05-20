@@ -240,7 +240,6 @@ EXT(EXT_packed_float                        , EXT_packed_float                  
 EXT(EXT_packed_pixels                       , dummy_true                             , GLL,  x ,  x ,  x , 1997)
 EXT(EXT_pixel_buffer_object                 , EXT_pixel_buffer_object                , GLL, GLC,  x ,  x , 2004)
 EXT(EXT_point_parameters                    , EXT_point_parameters                   , GLL,  x ,  x ,  x , 1997)
-EXT(EXT_polygon_offset                      , dummy_true                             , GLL,  x ,  x ,  x , 1995)
 EXT(EXT_polygon_offset_clamp                , ARB_polygon_offset_clamp               , GLL, GLC, ES1, ES2, 2014)
 EXT(EXT_primitive_bounding_box              , OES_primitive_bounding_box             ,  x ,  x ,  x ,  31, 2014)
 EXT(EXT_provoking_vertex                    , EXT_provoking_vertex                   , GLL, GLC,  x ,  x , 2009)

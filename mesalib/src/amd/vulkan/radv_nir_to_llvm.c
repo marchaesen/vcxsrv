@@ -124,6 +124,98 @@ radv_shader_context_from_abi(struct ac_shader_abi *abi)
 	return container_of(abi, ctx, abi);
 }
 
+struct ac_build_if_state
+{
+	struct radv_shader_context *ctx;
+	LLVMValueRef condition;
+	LLVMBasicBlockRef entry_block;
+	LLVMBasicBlockRef true_block;
+	LLVMBasicBlockRef false_block;
+	LLVMBasicBlockRef merge_block;
+};
+
+static LLVMBasicBlockRef
+ac_build_insert_new_block(struct radv_shader_context *ctx, const char *name)
+{
+	LLVMBasicBlockRef current_block;
+	LLVMBasicBlockRef next_block;
+	LLVMBasicBlockRef new_block;
+
+	/* get current basic block */
+	current_block = LLVMGetInsertBlock(ctx->ac.builder);
+
+	/* chqeck if there's another block after this one */
+	next_block = LLVMGetNextBasicBlock(current_block);
+	if (next_block) {
+		/* insert the new block before the next block */
+		new_block = LLVMInsertBasicBlockInContext(ctx->context, next_block, name);
+	}
+	else {
+		/* append new block after current block */
+		LLVMValueRef function = LLVMGetBasicBlockParent(current_block);
+		new_block = LLVMAppendBasicBlockInContext(ctx->context, function, name);
+	}
+	return new_block;
+}
+
+static void
+ac_nir_build_if(struct ac_build_if_state *ifthen,
+		struct radv_shader_context *ctx,
+		LLVMValueRef condition)
+{
+	LLVMBasicBlockRef block = LLVMGetInsertBlock(ctx->ac.builder);
+
+	memset(ifthen, 0, sizeof *ifthen);
+	ifthen->ctx = ctx;
+	ifthen->condition = condition;
+	ifthen->entry_block = block;
+
+	/* create endif/merge basic block for the phi functions */
+	ifthen->merge_block = ac_build_insert_new_block(ctx, "endif-block");
+
+	/* create/insert true_block before merge_block */
+	ifthen->true_block =
+		LLVMInsertBasicBlockInContext(ctx->context,
+					      ifthen->merge_block,
+					      "if-true-block");
+
+	/* successive code goes into the true block */
+	LLVMPositionBuilderAtEnd(ctx->ac.builder, ifthen->true_block);
+}
+
+/**
+ * End a conditional.
+ */
+static void
+ac_nir_build_endif(struct ac_build_if_state *ifthen)
+{
+	LLVMBuilderRef builder = ifthen->ctx->ac.builder;
+
+	/* Insert branch to the merge block from current block */
+	LLVMBuildBr(builder, ifthen->merge_block);
+
+	/*
+	 * Now patch in the various branch instructions.
+	 */
+
+	/* Insert the conditional branch instruction at the end of entry_block */
+	LLVMPositionBuilderAtEnd(builder, ifthen->entry_block);
+	if (ifthen->false_block) {
+		/* we have an else clause */
+		LLVMBuildCondBr(builder, ifthen->condition,
+				ifthen->true_block, ifthen->false_block);
+	}
+	else {
+		/* no else clause */
+		LLVMBuildCondBr(builder, ifthen->condition,
+				ifthen->true_block, ifthen->merge_block);
+	}
+
+	/* Resume building code at end of the ifthen->merge_block */
+	LLVMPositionBuilderAtEnd(builder, ifthen->merge_block);
+}
+
+
 static LLVMValueRef get_rel_patch_id(struct radv_shader_context *ctx)
 {
 	switch (ctx->stage) {
@@ -388,7 +480,7 @@ create_llvm_function(LLVMContextRef ctx, LLVMModuleRef module,
                      unsigned num_return_elems,
 		     struct arg_info *args,
 		     unsigned max_workgroup_size,
-		     bool unsafe_math)
+		     const struct radv_nir_compiler_options *options)
 {
 	LLVMTypeRef main_function_type, ret_type;
 	LLVMBasicBlockRef main_function_body;
@@ -424,7 +516,7 @@ create_llvm_function(LLVMContextRef ctx, LLVMModuleRef module,
 						     "amdgpu-max-work-group-size",
 						     max_workgroup_size);
 	}
-	if (unsafe_math) {
+	if (options->unsafe_math) {
 		/* These were copied from some LLVM test. */
 		LLVMAddTargetDependentFunctionAttr(main_function,
 						   "less-precise-fpmad",
@@ -759,7 +851,7 @@ static void set_llvm_calling_convention(LLVMValueRef func,
 		calling_conv = RADEON_LLVM_AMDGPU_GS;
 		break;
 	case MESA_SHADER_TESS_CTRL:
-		calling_conv = HAVE_LLVM >= 0x0500 ? RADEON_LLVM_AMDGPU_HS : RADEON_LLVM_AMDGPU_VS;
+		calling_conv = RADEON_LLVM_AMDGPU_HS;
 		break;
 	case MESA_SHADER_FRAGMENT:
 		calling_conv = RADEON_LLVM_AMDGPU_PS;
@@ -1014,8 +1106,7 @@ static void create_function(struct radv_shader_context *ctx,
 
 	ctx->main_function = create_llvm_function(
 	    ctx->context, ctx->ac.module, ctx->ac.builder, NULL, 0, &args,
-	    ctx->max_workgroup_size,
-	    ctx->options->unsafe_math);
+	    ctx->max_workgroup_size, ctx->options);
 	set_llvm_calling_convention(ctx->main_function, stage);
 
 
@@ -1592,6 +1683,8 @@ visit_emit_vertex(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addr
 	/* loop num outputs */
 	idx = 0;
 	for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
+		unsigned output_usage_mask =
+			ctx->shader_info->info.gs.output_usage_mask[i];
 		LLVMValueRef *out_ptr = &addrs[i * 4];
 		int length = 4;
 		int slot = idx;
@@ -1605,8 +1698,13 @@ visit_emit_vertex(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addr
 			length = ctx->num_output_clips + ctx->num_output_culls;
 			if (length > 4)
 				slot_inc = 2;
+			output_usage_mask = (1 << length) - 1;
 		}
+
 		for (unsigned j = 0; j < length; j++) {
+			if (!(output_usage_mask & (1 << j)))
+				continue;
+
 			LLVMValueRef out_val = LLVMBuildLoad(ctx->ac.builder,
 							     out_ptr[j], "");
 			LLVMValueRef voffset = LLVMConstInt(ctx->ac.i32, (slot * 4 + j) * ctx->gs_max_out_vertices, false);
@@ -1773,6 +1871,47 @@ static LLVMValueRef radv_get_sampler_desc(struct ac_shader_abi *abi,
 	return ac_build_load_to_sgpr(&ctx->ac, list, index);
 }
 
+/* For 2_10_10_10 formats the alpha is handled as unsigned by pre-vega HW.
+ * so we may need to fix it up. */
+static LLVMValueRef
+adjust_vertex_fetch_alpha(struct radv_shader_context *ctx,
+                          unsigned adjustment,
+                          LLVMValueRef alpha)
+{
+	if (adjustment == RADV_ALPHA_ADJUST_NONE)
+		return alpha;
+
+	LLVMValueRef c30 = LLVMConstInt(ctx->ac.i32, 30, 0);
+
+	if (adjustment == RADV_ALPHA_ADJUST_SSCALED)
+		alpha = LLVMBuildFPToUI(ctx->ac.builder, alpha, ctx->ac.i32, "");
+	else
+		alpha = ac_to_integer(&ctx->ac, alpha);
+
+	/* For the integer-like cases, do a natural sign extension.
+	 *
+	 * For the SNORM case, the values are 0.0, 0.333, 0.666, 1.0
+	 * and happen to contain 0, 1, 2, 3 as the two LSBs of the
+	 * exponent.
+	 */
+	alpha = LLVMBuildShl(ctx->ac.builder, alpha,
+	                     adjustment == RADV_ALPHA_ADJUST_SNORM ?
+	                     LLVMConstInt(ctx->ac.i32, 7, 0) : c30, "");
+	alpha = LLVMBuildAShr(ctx->ac.builder, alpha, c30, "");
+
+	/* Convert back to the right type. */
+	if (adjustment == RADV_ALPHA_ADJUST_SNORM) {
+		LLVMValueRef clamp;
+		LLVMValueRef neg_one = LLVMConstReal(ctx->ac.f32, -1.0);
+		alpha = LLVMBuildSIToFP(ctx->ac.builder, alpha, ctx->ac.f32, "");
+		clamp = LLVMBuildFCmp(ctx->ac.builder, LLVMRealULT, alpha, neg_one, "");
+		alpha = LLVMBuildSelect(ctx->ac.builder, clamp, neg_one, alpha, "");
+	} else if (adjustment == RADV_ALPHA_ADJUST_SSCALED) {
+		alpha = LLVMBuildSIToFP(ctx->ac.builder, alpha, ctx->ac.f32, "");
+	}
+
+	return alpha;
+}
 
 static void
 handle_vs_input_decl(struct radv_shader_context *ctx,
@@ -1783,18 +1922,19 @@ handle_vs_input_decl(struct radv_shader_context *ctx,
 	LLVMValueRef t_list;
 	LLVMValueRef input;
 	LLVMValueRef buffer_index;
-	int index = variable->data.location - VERT_ATTRIB_GENERIC0;
-	int idx = variable->data.location;
 	unsigned attrib_count = glsl_count_attribute_slots(variable->type, true);
 	uint8_t input_usage_mask =
 		ctx->shader_info->info.vs.input_usage_mask[variable->data.location];
 	unsigned num_channels = util_last_bit(input_usage_mask);
 
-	variable->data.driver_location = idx * 4;
+	variable->data.driver_location = variable->data.location * 4;
 
-	for (unsigned i = 0; i < attrib_count; ++i, ++idx) {
-		if (ctx->options->key.vs.instance_rate_inputs & (1u << (index + i))) {
-			uint32_t divisor = ctx->options->key.vs.instance_rate_divisors[index + i];
+	for (unsigned i = 0; i < attrib_count; ++i) {
+		LLVMValueRef output[4];
+		unsigned attrib_index = variable->data.location + i - VERT_ATTRIB_GENERIC0;
+
+		if (ctx->options->key.vs.instance_rate_inputs & (1u << attrib_index)) {
+			uint32_t divisor = ctx->options->key.vs.instance_rate_divisors[attrib_index];
 
 			if (divisor) {
 				buffer_index = LLVMBuildAdd(ctx->ac.builder, ctx->abi.instance_id,
@@ -1818,7 +1958,7 @@ handle_vs_input_decl(struct radv_shader_context *ctx,
 		} else
 			buffer_index = LLVMBuildAdd(ctx->ac.builder, ctx->abi.vertex_id,
 			                            ctx->abi.base_vertex, "");
-		t_offset = LLVMConstInt(ctx->ac.i32, index + i, false);
+		t_offset = LLVMConstInt(ctx->ac.i32, attrib_index, false);
 
 		t_list = ac_build_load_to_sgpr(&ctx->ac, t_list_ptr, t_offset);
 
@@ -1831,9 +1971,15 @@ handle_vs_input_decl(struct radv_shader_context *ctx,
 
 		for (unsigned chan = 0; chan < 4; chan++) {
 			LLVMValueRef llvm_chan = LLVMConstInt(ctx->ac.i32, chan, false);
-			ctx->inputs[ac_llvm_reg_index_soa(idx, chan)] =
-				ac_to_integer(&ctx->ac, LLVMBuildExtractElement(ctx->ac.builder,
-							input, llvm_chan, ""));
+			output[chan] = LLVMBuildExtractElement(ctx->ac.builder, input, llvm_chan, "");
+		}
+
+		unsigned alpha_adjust = (ctx->options->key.vs.alpha_adjust >> (attrib_index * 2)) & 3;
+		output[3] = adjust_vertex_fetch_alpha(ctx, alpha_adjust, output[3]);
+
+		for (unsigned chan = 0; chan < 4; chan++) {
+			ctx->inputs[ac_llvm_reg_index_soa(variable->data.location + i, chan)] =
+				ac_to_integer(&ctx->ac, output[chan]);
 		}
 	}
 }
@@ -2353,10 +2499,9 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 			output_usage_mask =
 				ctx->shader_info->info.tes.output_usage_mask[i];
 		} else {
-			/* Enable all channels for the GS copy shader because
-			 * we don't know the output usage mask currently.
-			 */
-			output_usage_mask = 0xf;
+			assert(ctx->is_gs_copy_shader);
+			output_usage_mask =
+				ctx->shader_info->info.gs.output_usage_mask[i];
 		}
 
 		radv_export_param(ctx, param_count, values, output_usage_mask);
@@ -2436,14 +2581,26 @@ handle_es_outputs_post(struct radv_shader_context *ctx,
 	for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
 		LLVMValueRef dw_addr = NULL;
 		LLVMValueRef *out_ptr = &ctx->abi.outputs[i * 4];
+		unsigned output_usage_mask;
 		int param_index;
 		int length = 4;
 
 		if (!(ctx->output_mask & (1ull << i)))
 			continue;
 
-		if (i == VARYING_SLOT_CLIP_DIST0)
+		if (ctx->stage == MESA_SHADER_VERTEX) {
+			output_usage_mask =
+				ctx->shader_info->info.vs.output_usage_mask[i];
+		} else {
+			assert(ctx->stage == MESA_SHADER_TESS_EVAL);
+			output_usage_mask =
+				ctx->shader_info->info.tes.output_usage_mask[i];
+		}
+
+		if (i == VARYING_SLOT_CLIP_DIST0) {
 			length = ctx->num_output_clips + ctx->num_output_culls;
+			output_usage_mask = (1 << length) - 1;
+		}
 
 		param_index = shader_io_get_unique_index(i);
 
@@ -2452,14 +2609,22 @@ handle_es_outputs_post(struct radv_shader_context *ctx,
 			                       LLVMConstInt(ctx->ac.i32, param_index * 4, false),
 			                       "");
 		}
+
 		for (j = 0; j < length; j++) {
+			if (!(output_usage_mask & (1 << j)))
+				continue;
+
 			LLVMValueRef out_val = LLVMBuildLoad(ctx->ac.builder, out_ptr[j], "");
 			out_val = LLVMBuildBitCast(ctx->ac.builder, out_val, ctx->ac.i32, "");
 
 			if (ctx->ac.chip_class  >= GFX9) {
-				ac_lds_store(&ctx->ac, dw_addr,
+				LLVMValueRef dw_addr_offset =
+					LLVMBuildAdd(ctx->ac.builder, dw_addr,
+						     LLVMConstInt(ctx->ac.i32,
+								  j, false), "");
+
+				ac_lds_store(&ctx->ac, dw_addr_offset,
 					     LLVMBuildLoad(ctx->ac.builder, out_ptr[j], ""));
-				dw_addr = LLVMBuildAdd(ctx->ac.builder, dw_addr, ctx->ac.i32_1, "");
 			} else {
 				ac_build_buffer_store_dword(&ctx->ac,
 				                            ctx->esgs_ring,
@@ -2500,97 +2665,6 @@ handle_ls_outputs_post(struct radv_shader_context *ctx)
 			dw_addr = LLVMBuildAdd(ctx->ac.builder, dw_addr, ctx->ac.i32_1, "");
 		}
 	}
-}
-
-struct ac_build_if_state
-{
-	struct radv_shader_context *ctx;
-	LLVMValueRef condition;
-	LLVMBasicBlockRef entry_block;
-	LLVMBasicBlockRef true_block;
-	LLVMBasicBlockRef false_block;
-	LLVMBasicBlockRef merge_block;
-};
-
-static LLVMBasicBlockRef
-ac_build_insert_new_block(struct radv_shader_context *ctx, const char *name)
-{
-	LLVMBasicBlockRef current_block;
-	LLVMBasicBlockRef next_block;
-	LLVMBasicBlockRef new_block;
-
-	/* get current basic block */
-	current_block = LLVMGetInsertBlock(ctx->ac.builder);
-
-	/* chqeck if there's another block after this one */
-	next_block = LLVMGetNextBasicBlock(current_block);
-	if (next_block) {
-		/* insert the new block before the next block */
-		new_block = LLVMInsertBasicBlockInContext(ctx->context, next_block, name);
-	}
-	else {
-		/* append new block after current block */
-		LLVMValueRef function = LLVMGetBasicBlockParent(current_block);
-		new_block = LLVMAppendBasicBlockInContext(ctx->context, function, name);
-	}
-	return new_block;
-}
-
-static void
-ac_nir_build_if(struct ac_build_if_state *ifthen,
-		struct radv_shader_context *ctx,
-		LLVMValueRef condition)
-{
-	LLVMBasicBlockRef block = LLVMGetInsertBlock(ctx->ac.builder);
-
-	memset(ifthen, 0, sizeof *ifthen);
-	ifthen->ctx = ctx;
-	ifthen->condition = condition;
-	ifthen->entry_block = block;
-
-	/* create endif/merge basic block for the phi functions */
-	ifthen->merge_block = ac_build_insert_new_block(ctx, "endif-block");
-
-	/* create/insert true_block before merge_block */
-	ifthen->true_block =
-		LLVMInsertBasicBlockInContext(ctx->context,
-					      ifthen->merge_block,
-					      "if-true-block");
-
-	/* successive code goes into the true block */
-	LLVMPositionBuilderAtEnd(ctx->ac.builder, ifthen->true_block);
-}
-
-/**
- * End a conditional.
- */
-static void
-ac_nir_build_endif(struct ac_build_if_state *ifthen)
-{
-	LLVMBuilderRef builder = ifthen->ctx->ac.builder;
-
-	/* Insert branch to the merge block from current block */
-	LLVMBuildBr(builder, ifthen->merge_block);
-
-	/*
-	 * Now patch in the various branch instructions.
-	 */
-
-	/* Insert the conditional branch instruction at the end of entry_block */
-	LLVMPositionBuilderAtEnd(builder, ifthen->entry_block);
-	if (ifthen->false_block) {
-		/* we have an else clause */
-		LLVMBuildCondBr(builder, ifthen->condition,
-				ifthen->true_block, ifthen->false_block);
-	}
-	else {
-		/* no else clause */
-		LLVMBuildCondBr(builder, ifthen->condition,
-				ifthen->true_block, ifthen->merge_block);
-	}
-
-	/* Resume building code at end of the ifthen->merge_block */
-	LLVMPositionBuilderAtEnd(builder, ifthen->merge_block);
 }
 
 static void
@@ -2647,7 +2721,7 @@ write_tess_factors(struct radv_shader_context *ctx)
 		outer[i] = LLVMGetUndef(ctx->ac.i32);
 	}
 
-	// LINES reverseal
+	// LINES reversal
 	if (ctx->options->key.tcs.primitive_mode == GL_ISOLINES) {
 		outer[0] = out[1] = ac_lds_load(&ctx->ac, lds_outer);
 		lds_outer = LLVMBuildAdd(ctx->ac.builder, lds_outer,
@@ -2942,9 +3016,16 @@ ac_nir_eliminate_const_vs_outputs(struct radv_shader_context *ctx)
 static void
 ac_setup_rings(struct radv_shader_context *ctx)
 {
-	if ((ctx->stage == MESA_SHADER_VERTEX && ctx->options->key.vs.as_es) ||
-	    (ctx->stage == MESA_SHADER_TESS_EVAL && ctx->options->key.tes.as_es)) {
-		ctx->esgs_ring = ac_build_load_to_sgpr(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->ac.i32, RING_ESGS_VS, false));
+	if (ctx->options->chip_class <= VI &&
+	    (ctx->stage == MESA_SHADER_GEOMETRY ||
+	     ctx->options->key.vs.as_es || ctx->options->key.tes.as_es)) {
+		unsigned ring = ctx->stage == MESA_SHADER_GEOMETRY ? RING_ESGS_GS
+								   : RING_ESGS_VS;
+		LLVMValueRef offset = LLVMConstInt(ctx->ac.i32, ring, false);
+
+		ctx->esgs_ring = ac_build_load_to_sgpr(&ctx->ac,
+						       ctx->ring_offsets,
+						       offset);
 	}
 
 	if (ctx->is_gs_copy_shader) {
@@ -2955,7 +3036,6 @@ ac_setup_rings(struct radv_shader_context *ctx)
 		uint32_t num_entries = 64;
 		LLVMValueRef gsvs_ring_stride = LLVMConstInt(ctx->ac.i32, ctx->max_gsvs_emit_size, false);
 		LLVMValueRef gsvs_ring_desc = LLVMConstInt(ctx->ac.i32, ctx->max_gsvs_emit_size << 16, false);
-		ctx->esgs_ring = ac_build_load_to_sgpr(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->ac.i32, RING_ESGS_GS, false));
 		ctx->gsvs_ring = ac_build_load_to_sgpr(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->ac.i32, RING_GSVS_GS, false));
 
 		ctx->gsvs_ring = LLVMBuildBitCast(ctx->ac.builder, ctx->gsvs_ring, ctx->ac.v4i32, "");
@@ -3499,6 +3579,8 @@ radv_compile_gs_copy_shader(LLVMTargetMachineRef tm,
 
 	ctx.ac.builder = ac_create_builder(ctx.context, float_mode);
 	ctx.stage = MESA_SHADER_VERTEX;
+
+	radv_nir_shader_info_pass(geom_shader, options, &shader_info->info);
 
 	create_function(&ctx, MESA_SHADER_VERTEX, false, MESA_SHADER_VERTEX);
 

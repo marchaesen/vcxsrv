@@ -42,6 +42,8 @@ void st_finalize_nir(struct st_context *st, struct gl_program *prog,
                      struct gl_shader_program *shader_program,
                      struct nir_shader *nir);
 
+void st_nir_opts(struct nir_shader *nir);
+
 bool
 st_link_nir(struct gl_context *ctx,
             struct gl_shader_program *shader_program);

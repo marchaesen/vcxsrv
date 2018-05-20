@@ -12,7 +12,7 @@
     <model>
       <configItem>
         <name>pc102</name>
-        <_description>Generic 101-key PC (intl.)</_description>
+        <_description>Generic 102-key PC (intl.)</_description>
         <vendor>Generic</vendor>
       </configItem>
     </model>
@@ -2039,10 +2039,10 @@
         </variant>
         <variant>
           <configItem>
-            <name>tam_unicode</name>
+            <name>tam_tamilnet</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <_shortDescription>ta</_shortDescription>
-            <_description>Tamil (Unicode)</_description>
+            <_description>Tamil (TamilNet '99)</_description>
             <languageList>
               <iso639Id>tam</iso639Id>
             </languageList>
@@ -2050,10 +2050,10 @@
         </variant>
         <variant>
           <configItem>
-            <name>tam_keyboard_with_numerals</name>
+            <name>tam_tamilnet_with_tam_nums</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <_shortDescription>ta</_shortDescription>
-            <_description>Tamil (keyboard with numerals)</_description>
+            <_description>Tamil (TamilNet '99 with Tamil numerals)</_description>
             <languageList>
               <iso639Id>tam</iso639Id>
             </languageList>
@@ -2061,10 +2061,10 @@
         </variant>
         <variant>
           <configItem>
-            <name>tam_TAB</name>
+            <name>tam_tamilnet_TAB</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <_shortDescription>ta</_shortDescription>
-            <_description>Tamil (TAB typewriter)</_description>
+            <_description>Tamil (TamilNet '99, TAB encoding)</_description>
             <languageList>
               <iso639Id>tam</iso639Id>
             </languageList>
@@ -2072,10 +2072,10 @@
         </variant>
         <variant>
           <configItem>
-            <name>tam_TSCII</name>
+            <name>tam_tamilnet_TSCII</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <_shortDescription>ta</_shortDescription>
-            <_description>Tamil (TSCII typewriter)</_description>
+            <_description>Tamil (TamilNet '99, TSCII encoding)</_description>
             <languageList>
               <iso639Id>tam</iso639Id>
             </languageList>
@@ -2086,7 +2086,7 @@
             <name>tam</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <_shortDescription>ta</_shortDescription>
-            <_description>Tamil</_description>
+            <_description>Tamil (Inscript)</_description>
             <languageList>
               <iso639Id>tam</iso639Id>
             </languageList>
@@ -5130,7 +5130,7 @@
             <name>tam_unicode</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <_shortDescription>ta</_shortDescription>
-            <_description>Tamil (Sri Lanka, Unicode)</_description>
+            <_description>Tamil (Sri Lanka, TamilNet '99)</_description>
             <languageList>
               <iso639Id>tam</iso639Id>
             </languageList>
@@ -5139,7 +5139,7 @@
         <variant>
           <configItem>
             <name>tam_TAB</name>
-            <_description>Tamil (Sri Lanka, TAB Typewriter)</_description>
+            <_description>Tamil (Sri Lanka, TamilNet '99, TAB encoding)</_description>
             <languageList>
               <iso639Id>tam</iso639Id>
             </languageList>

@@ -774,10 +774,7 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
 
    u_upload_unmap(pipe->stream_uploader);
 
-   cso_set_vertex_buffers(st->cso_context,
-                          cso_get_aux_vertex_buffer_slot(st->cso_context),
-                          1, &vb);
-
+   cso_set_vertex_buffers(st->cso_context, 0, 1, &vb);
    cso_draw_arrays(st->cso_context, PIPE_PRIM_QUADS, 0, num_verts);
 
 out:

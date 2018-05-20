@@ -202,6 +202,7 @@ NIR_FILES = \
 	nir/nir_control_flow.h \
 	nir/nir_control_flow_private.h \
 	nir/nir_dominance.c \
+	nir/nir_format_convert.h \
 	nir/nir_from_ssa.c \
 	nir/nir_gather_info.c \
 	nir/nir_gs_count_vertices.c \

@@ -145,8 +145,10 @@ validGlxContext(ClientPtr client, XID id, int access_mode,
                 __GLXcontext ** context, int *err)
 {
     /* no ghost contexts */
-    if (id & SERVER_BIT)
+    if (id & SERVER_BIT) {
+        *err = __glXError(GLXBadContext);
         return FALSE;
+    }
 
     *err = dixLookupResourceByType((void **) context, id,
                                    __glXContextRes, client, access_mode);

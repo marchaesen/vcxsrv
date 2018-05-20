@@ -445,6 +445,7 @@ texture_storage(struct gl_context *ctx, GLuint dims,
             _mesa_error(ctx, GL_OUT_OF_MEMORY,
                         "glTex%sStorage%uD(texture too large)",
                         suffix, dims);
+            return;
          }
       }
 

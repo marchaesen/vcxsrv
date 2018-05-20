@@ -546,8 +546,8 @@ glamor_get_formats(ScreenPtr screen,
 }
 
 _X_EXPORT Bool
-glamor_get_modifiers(ScreenPtr screen, CARD32 format,
-                     CARD32 *num_modifiers, uint64_t **modifiers)
+glamor_get_modifiers(ScreenPtr screen, uint32_t format,
+                     uint32_t *num_modifiers, uint64_t **modifiers)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);

@@ -195,15 +195,14 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
    GLbitfield mask = vao->_Enabled & ~vao_enabled;
    while (mask) {
       const int vao_attr = u_bit_scan(&mask);
-      _mesa_disable_vertex_array_attrib(ctx, vao, vao_attr, false);
+      _mesa_disable_vertex_array_attrib(ctx, vao, vao_attr);
    }
    assert((~vao_enabled & vao->_Enabled) == 0);
 
    /* Bind the buffer object */
    const GLuint stride = exec->vtx.vertex_size*sizeof(GLfloat);
-   assert(stride <= ctx->Const.MaxVertexAttribStride);
    _mesa_bind_vertex_buffer(ctx, vao, 0, exec->vtx.bufferobj, buffer_offset,
-                            stride, false);
+                            stride);
 
    /* Retrieve the mapping from VBO_ATTRIB to VERT_ATTRIB space
     * Note that the position/generic0 aliasing is done in the VAO.
@@ -225,7 +224,7 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
       _vbo_set_attrib_format(ctx, vao, vao_attr, buffer_offset,
                              size, type, offset);
       if ((vao->_Enabled & VERT_BIT(vao_attr)) == 0)
-         _mesa_enable_vertex_array_attrib(ctx, vao, vao_attr, false);
+         _mesa_enable_vertex_array_attrib(ctx, vao, vao_attr);
 
       /* The vao is initially created with all bindings set to 0. */
       assert(vao->VertexAttrib[vao_attr].BufferBindingIndex == 0);
