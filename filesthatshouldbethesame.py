@@ -101,9 +101,11 @@ xorg-server/hw/xwin/glx/wglext.h                  mesalib/include/GL/wglext.h
 mesalib/src/mapi/glapi/glapi.h                      xorg-server/glx/glapi.h
 mesalib/src/util/macros.h                           xorg-server/glx/util/macros.h
 mesalib/src/mapi/glapi/glapitable.h                 xorg-server/glx/glapitable.h
+mesalib/src/mapi/glapi/gen/remap_helper.h           xorg-server/glx/remap_helper.h
 mesalib/src/mesa/main/remap_helper.h                xorg-server/glx/remap_helper.h
 mesalib/src/mapi/glapi/gen/glprocs.h                xorg-server/glx/glprocs.h
 mesalib/src/mapi/glapi/gen/dispatch.h               xorg-server/glx/dispatch.h
+mesalib/src/mapi/glapi/gen/dispatch.h               mesalib/src/mesa/main/dispatch.h
 mesalib/src/mapi/glapi/gen/indirect_dispatch.c      xorg-server/glx/indirect_dispatch.c
 mesalib/src/mapi/glapi/gen/indirect_dispatch.h      xorg-server/glx/indirect_dispatch.h
 mesalib/src/mapi/glapi/gen/indirect_dispatch_swap.c xorg-server/glx/indirect_dispatch_swap.c
