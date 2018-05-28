@@ -94,6 +94,8 @@ blit_surf_for_image_level_layer(struct radv_image *image,
 	    !(radv_image_is_tc_compat_htile(image)))
 		format = vk_format_for_size(vk_format_get_blocksize(format));
 
+	format = vk_format_no_srgb(format);
+
 	return (struct radv_meta_blit2d_surf) {
 		.format = format,
 		.bs = vk_format_get_blocksize(format),
@@ -483,25 +485,4 @@ void radv_CmdCopyImage(
 			src_image, srcImageLayout,
 			dest_image, destImageLayout,
 			regionCount, pRegions);
-}
-
-void radv_blit_to_prime_linear(struct radv_cmd_buffer *cmd_buffer,
-			       struct radv_image *image,
-			       struct radv_image *linear_image)
-{
-	struct VkImageCopy image_copy = { 0 };
-
-	image_copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	image_copy.srcSubresource.layerCount = 1;
-
-	image_copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	image_copy.dstSubresource.layerCount = 1;
-
-	image_copy.extent.width = image->info.width;
-	image_copy.extent.height = image->info.height;
-	image_copy.extent.depth = 1;
-
-	meta_copy_image(cmd_buffer, image, VK_IMAGE_LAYOUT_GENERAL, linear_image,
-			VK_IMAGE_LAYOUT_GENERAL,
-			1, &image_copy);
 }

@@ -17,6 +17,7 @@
 typedef BignumInt *Bignum;
 
 #include "ssh.h"
+#include "marshal.h"
 
 BignumInt bnZero[1] = { 0 };
 BignumInt bnOne[2] = { 1, 1 };
@@ -1403,8 +1404,9 @@ void decbn(Bignum bn)
     bn[i]--;
 }
 
-Bignum bignum_from_bytes(const unsigned char *data, int nbytes)
+Bignum bignum_from_bytes(const void *vdata, int nbytes)
 {
+    const unsigned char *data = (const unsigned char *)vdata;
     Bignum result;
     int w, i;
 
@@ -1425,8 +1427,9 @@ Bignum bignum_from_bytes(const unsigned char *data, int nbytes)
     return result;
 }
 
-Bignum bignum_from_bytes_le(const unsigned char *data, int nbytes)
+Bignum bignum_from_bytes_le(const void *vdata, int nbytes)
 {
+    const unsigned char *data = (const unsigned char *)vdata;
     Bignum result;
     int w, i;
 
@@ -1617,6 +1620,27 @@ int ssh1_write_bignum(void *data, Bignum bn)
     for (i = len - 2; i--;)
 	*p++ = bignum_byte(bn, i);
     return len;
+}
+
+void BinarySink_put_mp_ssh1(BinarySink *bs, Bignum bn)
+{
+    int len = ssh1_bignum_length(bn);
+    int i;
+    int bitc = bignum_bitcount(bn);
+
+    put_uint16(bs, bitc);
+    for (i = len - 2; i--;)
+        put_byte(bs, bignum_byte(bn, i));
+}
+
+void BinarySink_put_mp_ssh2(BinarySink *bs, Bignum bn)
+{
+    int bytes = (bignum_bitcount(bn) + 8) / 8;
+    int i;
+
+    put_uint32(bs, bytes);
+    for (i = bytes; i--;)
+        put_byte(bs, bignum_byte(bn, i));
 }
 
 /*

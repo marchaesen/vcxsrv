@@ -23,7 +23,7 @@ echo "<ul>"
 echo ""
 
 # extract fdo urls from commit log
-git log $* | grep 'bugs.freedesktop.org/show_bug' | sed -e $trim_before | sort -n -u | sed -e $use_after |\
+git log --pretty=medium $* | grep 'bugs.freedesktop.org/show_bug' | sed -e $trim_before | sort -n -u | sed -e $use_after |\
 while read url
 do
 	id=$(echo $url | cut -d'=' -f2)

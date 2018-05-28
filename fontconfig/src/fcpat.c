@@ -373,6 +373,71 @@ FcValueListHash (FcValueListPtr l)
     return hash;
 }
 
+static void *
+FcPatternGetCacheObject (FcPattern *p)
+{
+  /* We use a value to find the cache, instead of the FcPattern object
+   * because the pattern itself may be a cache allocation if we rewrote the path,
+   * so the p may not be in the cached region. */
+  return FcPatternEltValues(&FcPatternElts (p)[0]);
+}
+
+FcPattern *
+FcPatternCacheRewriteFile (const FcPattern *p,
+                           FcCache *cache,
+                           const FcChar8 *relocated_font_file)
+{
+    FcPatternElt *elts = FcPatternElts (p);
+    size_t i,j;
+    FcChar8 *data;
+    FcPattern *new_p;
+    FcPatternElt *new_elts;
+    FcValueList *new_value_list;
+    size_t new_path_len = strlen ((char *)relocated_font_file);
+    FcChar8 *new_path;
+
+    /* Allocate space for the patter, the PatternElt headers and
+     * the FC_FILE FcValueList and path that will be freed with the
+     * cache */
+    data = FcCacheAllocate (cache,
+			    sizeof (FcPattern) +
+			    p->num * sizeof (FcPatternElt) +
+			    sizeof (FcValueList) +
+			    new_path_len + 1);
+
+    new_p = (FcPattern *)data;
+    data += sizeof (FcPattern);
+    new_elts = (FcPatternElt *)(data);
+    data += p->num * sizeof (FcPatternElt);
+    new_value_list = (FcValueList *)data;
+    data += sizeof (FcValueList);
+    new_path = data;
+
+    *new_p = *p;
+    new_p->elts_offset = FcPtrToOffset (new_p, new_elts);
+
+    /* Copy all but the FILE values from the cache */
+    for (i = 0, j = 0; i < p->num; i++)
+    {
+	FcPatternElt *elt = &elts[i];
+	new_elts[j].object = elt->object;
+	if (elt->object != FC_FILE_OBJECT)
+	    new_elts[j++].values = FcPatternEltValues(elt);
+	else
+	    new_elts[j++].values = new_value_list;
+    }
+
+    new_value_list->next = NULL;
+    new_value_list->value.type = FcTypeString;
+    new_value_list->value.u.s = new_path;
+    new_value_list->binding = FcValueBindingWeak;
+
+    /* Add rewritten path at the end */
+    strcpy ((char *)new_path, (char *)relocated_font_file);
+
+    return new_p;
+}
+
 void
 FcPatternDestroy (FcPattern *p)
 {
@@ -384,10 +449,10 @@ FcPatternDestroy (FcPattern *p)
 
     if (FcRefIsConst (&p->ref))
     {
-	FcCacheObjectDereference (p);
+	FcCacheObjectDereference (FcPatternGetCacheObject(p));
 	return;
     }
-	
+
     if (FcRefDec (&p->ref) != 1)
 	return;
 
@@ -1164,7 +1229,7 @@ FcPatternReference (FcPattern *p)
     if (!FcRefIsConst (&p->ref))
 	FcRefInc (&p->ref);
     else
-	FcCacheObjectReference (p);
+	FcCacheObjectReference (FcPatternGetCacheObject(p));
 }
 
 FcPattern *

@@ -478,13 +478,6 @@ _mesa_is_image_unit_valid(struct gl_context *ctx, struct gl_image_unit *u)
    if (!t)
       return GL_FALSE;
 
-   /* The GL 4.5 Core spec doesn't say anything about buffers. In practice,
-    * the image buffer format is always compatible with the underlying
-    * buffer storage.
-    */
-   if (t->Target == GL_TEXTURE_BUFFER)
-      return GL_TRUE;
-
    if (!t->_BaseComplete && !t->_MipmapComplete)
        _mesa_test_texobj_completeness(ctx, t);
 
@@ -498,14 +491,20 @@ _mesa_is_image_unit_valid(struct gl_context *ctx, struct gl_image_unit *u)
        u->_Layer >= _mesa_get_texture_layers(t, u->Level))
       return GL_FALSE;
 
-   struct gl_texture_image *img = (t->Target == GL_TEXTURE_CUBE_MAP ?
-                                   t->Image[u->_Layer][u->Level] :
-                                   t->Image[0][u->Level]);
+   if (t->Target == GL_TEXTURE_BUFFER) {
+      tex_format = _mesa_get_shader_image_format(t->BufferObjectFormat);
 
-   if (!img || img->Border || img->NumSamples > ctx->Const.MaxImageSamples)
-      return GL_FALSE;
+   } else {
+      struct gl_texture_image *img = (t->Target == GL_TEXTURE_CUBE_MAP ?
+                                      t->Image[u->_Layer][u->Level] :
+                                      t->Image[0][u->Level]);
 
-   tex_format = _mesa_get_shader_image_format(img->InternalFormat);
+      if (!img || img->Border || img->NumSamples > ctx->Const.MaxImageSamples)
+         return GL_FALSE;
+
+      tex_format = _mesa_get_shader_image_format(img->InternalFormat);
+   }
+
    if (!tex_format)
       return GL_FALSE;
 

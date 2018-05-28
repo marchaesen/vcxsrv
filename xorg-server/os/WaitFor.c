@@ -295,7 +295,7 @@ OsTimerPtr
 TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
          OsTimerCallback func, void *arg)
 {
-    OsTimerPtr existing, tmp;
+    OsTimerPtr existing;
     CARD32 now = GetTimeInMillis();
 
     if (!timer) {
@@ -328,11 +328,11 @@ TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
     input_lock();
 
     /* Sort into list */
-    xorg_list_for_each_entry_safe(existing, tmp, &timers, list)
+    xorg_list_for_each_entry(existing, &timers, list)
         if ((int) (existing->expires - millis) > 0)
             break;
     /* This even works at the end of the list -- existing->list will be timers */
-    xorg_list_add(&timer->list, existing->list.prev);
+    xorg_list_append(&timer->list, &existing->list);
 
     /* Check to see if the timer is ready to run now */
     if ((int) (millis - now) <= 0)

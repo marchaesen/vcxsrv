@@ -4200,6 +4200,7 @@ struct gl_extensions
    GLboolean OES_standard_derivatives;
    GLboolean OES_texture_buffer;
    GLboolean OES_texture_cube_map_array;
+   GLboolean OES_texture_view;
    GLboolean OES_viewport_array;
    /* vendor extensions */
    GLboolean AMD_performance_monitor;

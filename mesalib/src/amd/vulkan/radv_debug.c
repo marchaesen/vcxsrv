@@ -369,11 +369,9 @@ static void si_add_split_disasm(const char *disasm,
 }
 
 static void
-radv_dump_annotated_shader(struct radv_pipeline *pipeline,
-			   struct radv_shader_variant *shader,
-			   gl_shader_stage stage,
-			   struct ac_wave_info *waves, unsigned num_waves,
-			   FILE *f)
+radv_dump_annotated_shader(struct radv_shader_variant *shader,
+			   gl_shader_stage stage, struct ac_wave_info *waves,
+			   unsigned num_waves, FILE *f)
 {
 	uint64_t start_addr, end_addr;
 	unsigned i;
@@ -444,27 +442,21 @@ radv_dump_annotated_shader(struct radv_pipeline *pipeline,
 
 static void
 radv_dump_annotated_shaders(struct radv_pipeline *pipeline,
-			    struct radv_shader_variant *compute_shader,
-			    FILE *f)
+			    VkShaderStageFlagBits active_stages, FILE *f)
 {
 	struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP];
 	unsigned num_waves = ac_get_wave_info(waves);
-	unsigned mask;
 
 	fprintf(f, COLOR_CYAN "The number of active waves = %u" COLOR_RESET
 		"\n\n", num_waves);
 
 	/* Dump annotated active graphics shaders. */
-	mask = pipeline->active_stages;
-	while (mask) {
-		int stage = u_bit_scan(&mask);
+	while (active_stages) {
+		int stage = u_bit_scan(&active_stages);
 
-		radv_dump_annotated_shader(pipeline, pipeline->shaders[stage],
+		radv_dump_annotated_shader(pipeline->shaders[stage],
 					   stage, waves, num_waves, f);
 	}
-
-	radv_dump_annotated_shader(pipeline, compute_shader,
-				   MESA_SHADER_COMPUTE, waves, num_waves, f);
 
 	/* Print waves executing shaders that are not currently bound. */
 	unsigned i;
@@ -523,48 +515,51 @@ radv_dump_shader(struct radv_pipeline *pipeline,
 
 static void
 radv_dump_shaders(struct radv_pipeline *pipeline,
-		  struct radv_shader_variant *compute_shader, FILE *f)
+		  VkShaderStageFlagBits active_stages, FILE *f)
 {
-	unsigned mask;
-
 	/* Dump active graphics shaders. */
-	mask = pipeline->active_stages;
-	while (mask) {
-		int stage = u_bit_scan(&mask);
+	while (active_stages) {
+		int stage = u_bit_scan(&active_stages);
 
 		radv_dump_shader(pipeline, pipeline->shaders[stage], stage, f);
 	}
+}
 
-	radv_dump_shader(pipeline, compute_shader, MESA_SHADER_COMPUTE, f);
+static void
+radv_dump_pipeline_state(struct radv_pipeline *pipeline,
+			 VkShaderStageFlagBits active_stages, FILE *f)
+{
+	radv_dump_shaders(pipeline, active_stages, f);
+	radv_dump_annotated_shaders(pipeline, active_stages, f);
+	radv_dump_descriptors(pipeline, f);
 }
 
 static void
 radv_dump_graphics_state(struct radv_pipeline *graphics_pipeline,
 			 struct radv_pipeline *compute_pipeline, FILE *f)
 {
-	struct radv_shader_variant *compute_shader =
-		compute_pipeline ? compute_pipeline->shaders[MESA_SHADER_COMPUTE] : NULL;
+	VkShaderStageFlagBits active_stages;
 
-	if (!graphics_pipeline)
-		return;
+	if (graphics_pipeline) {
+		active_stages = graphics_pipeline->active_stages;
+		radv_dump_pipeline_state(graphics_pipeline, active_stages, f);
+	}
 
-	radv_dump_shaders(graphics_pipeline, compute_shader, f);
-	radv_dump_annotated_shaders(graphics_pipeline, compute_shader, f);
-	radv_dump_descriptors(graphics_pipeline, f);
+	if (compute_pipeline) {
+		active_stages = VK_SHADER_STAGE_COMPUTE_BIT;
+		radv_dump_pipeline_state(compute_pipeline, active_stages, f);
+	}
 }
 
 static void
 radv_dump_compute_state(struct radv_pipeline *compute_pipeline, FILE *f)
 {
+	VkShaderStageFlagBits active_stages = VK_SHADER_STAGE_COMPUTE_BIT;
+
 	if (!compute_pipeline)
 		return;
 
-	radv_dump_shaders(compute_pipeline,
-			  compute_pipeline->shaders[MESA_SHADER_COMPUTE], f);
-	radv_dump_annotated_shaders(compute_pipeline,
-				    compute_pipeline->shaders[MESA_SHADER_COMPUTE],
-				    f);
-	radv_dump_descriptors(compute_pipeline, f);
+	radv_dump_pipeline_state(compute_pipeline, active_stages, f);
 }
 
 static struct radv_pipeline *

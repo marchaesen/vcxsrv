@@ -277,7 +277,20 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	nir_lower_tex(nir, &tex_options);
 
 	nir_lower_vars_to_ssa(nir);
+
+	if (nir->info.stage == MESA_SHADER_VERTEX ||
+	    nir->info.stage == MESA_SHADER_GEOMETRY) {
+		NIR_PASS_V(nir, nir_lower_io_to_temporaries,
+			   nir_shader_get_entrypoint(nir), true, true);
+	} else if (nir->info.stage == MESA_SHADER_TESS_EVAL||
+		   nir->info.stage == MESA_SHADER_FRAGMENT) {
+		NIR_PASS_V(nir, nir_lower_io_to_temporaries,
+			   nir_shader_get_entrypoint(nir), true, false);
+	}
+
+	nir_split_var_copies(nir);
 	nir_lower_var_copies(nir);
+
 	nir_lower_global_vars_to_local(nir);
 	nir_remove_dead_variables(nir, nir_var_local);
 	nir_lower_subgroups(nir, &(struct nir_lower_subgroups_options) {
@@ -482,6 +495,7 @@ shader_variant_create(struct radv_device *device,
 				 device->instance->debug_flags & RADV_DEBUG_PREOPTIR;
 	options->record_llvm_ir = device->keep_shader_info;
 	options->tess_offchip_block_dw_size = device->tess_offchip_block_dw_size;
+	options->address32_hi = device->physical_device->rad_info.address32_hi;
 
 	if (options->supports_spill)
 		tm_options |= AC_TM_SUPPORTS_SPILL;

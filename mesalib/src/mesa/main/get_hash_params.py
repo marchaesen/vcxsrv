@@ -451,6 +451,11 @@ descriptor=[
   [ "MAX_WINDOW_RECTANGLES_EXT", "CONTEXT_INT(Const.MaxWindowRectangles), extra_EXT_window_rectangles" ],
   [ "NUM_WINDOW_RECTANGLES_EXT", "CONTEXT_INT(Scissor.NumWindowRects), extra_EXT_window_rectangles" ],
   [ "WINDOW_RECTANGLE_MODE_EXT", "CONTEXT_ENUM16(Scissor.WindowRectMode), extra_EXT_window_rectangles" ],
+
+  # GL_ARB_gpu_shader5 / GL_OES_shader_multisample_interpolation
+  [ "MIN_FRAGMENT_INTERPOLATION_OFFSET", "CONTEXT_FLOAT(Const.MinFragmentInterpolationOffset), extra_ARB_gpu_shader5_or_OES_sample_variables" ],
+  [ "MAX_FRAGMENT_INTERPOLATION_OFFSET", "CONTEXT_FLOAT(Const.MaxFragmentInterpolationOffset), extra_ARB_gpu_shader5_or_OES_sample_variables" ],
+  [ "FRAGMENT_INTERPOLATION_OFFSET_BITS", "CONST(FRAGMENT_INTERPOLATION_OFFSET_BITS), extra_ARB_gpu_shader5_or_OES_sample_variables" ],
 ]},
 
 { "apis": ["GLES", "GLES2"], "params": [
@@ -558,18 +563,7 @@ descriptor=[
 
   # GL_NUM_SHADING_LANGUAGE_VERSIONS
   [ "NUM_SHADING_LANGUAGE_VERSIONS", "LOC_CUSTOM, TYPE_INT, 0, extra_version_43" ],
-]},
 
-# Enums in OpenGL Core profile and ES 3.0
-{ "apis": ["GL_CORE", "GLES3"], "params": [
-  # GL_ARB_gpu_shader5 / GL_OES_shader_multisample_interpolation
-  [ "MIN_FRAGMENT_INTERPOLATION_OFFSET", "CONTEXT_FLOAT(Const.MinFragmentInterpolationOffset), extra_ARB_gpu_shader5_or_OES_sample_variables" ],
-  [ "MAX_FRAGMENT_INTERPOLATION_OFFSET", "CONTEXT_FLOAT(Const.MaxFragmentInterpolationOffset), extra_ARB_gpu_shader5_or_OES_sample_variables" ],
-  [ "FRAGMENT_INTERPOLATION_OFFSET_BITS", "CONST(FRAGMENT_INTERPOLATION_OFFSET_BITS), extra_ARB_gpu_shader5_or_OES_sample_variables" ],
-]},
-
-# Enums in OpenGL Core profile and ES 3.1
-{ "apis": ["GL_CORE", "GLES31"], "params": [
 # GL_ARB_draw_indirect / GLES 3.1
   [ "DRAW_INDIRECT_BUFFER_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_draw_indirect" ],
 
@@ -650,12 +644,11 @@ descriptor=[
   [ "CONSERVATIVE_RASTERIZATION_INTEL", "CONTEXT_BOOL(IntelConservativeRasterization), extra_INTEL_conservative_rasterization" ],
 ]},
 
-{ "apis": ["GL_CORE", "GLES32"], "params": [
+# Enums in OpenGL and ES 3.2
+{ "apis": ["GL", "GL_CORE", "GLES32"], "params": [
   [ "MULTISAMPLE_LINE_WIDTH_RANGE_ARB", "CONTEXT_FLOAT2(Const.MinLineWidthAA), extra_ES32" ],
   [ "MULTISAMPLE_LINE_WIDTH_GRANULARITY_ARB", "CONTEXT_FLOAT(Const.LineWidthGranularity), extra_ES32" ],
-]},
 
-{ "apis": ["GL", "GL_CORE", "GLES32"], "params": [
 # GL 3.0 or ES 3.2
   [ "CONTEXT_FLAGS", "CONTEXT_INT(Const.ContextFlags), extra_version_30" ],
 ]},

@@ -73,6 +73,7 @@ LOCAL_CFLAGS += \
 	-DHAVE_ENDIAN_H \
 	-DHAVE_ZLIB \
 	-DMAJOR_IN_SYSMACROS \
+	-DVK_USE_PLATFORM_ANDROID_KHR \
 	-fvisibility=hidden \
 	-Wno-sign-compare
 

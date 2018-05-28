@@ -864,6 +864,8 @@ struct ccp_context {
     unsigned char mac_iv[8];
 
     struct poly1305 mac;
+
+    BinarySink_IMPLEMENTATION;
 };
 
 static void *poly_make_context(void *ctx)
@@ -890,9 +892,10 @@ static void poly_start(void *handle)
     poly1305_init(&ctx->mac);
 }
 
-static void poly_bytes(void *handle, unsigned char const *blk, int len)
+static void poly_BinarySink_write(BinarySink *bs, const void *blkv, size_t len)
 {
-    struct ccp_context *ctx = (struct ccp_context *)handle;
+    struct ccp_context *ctx = BinarySink_DOWNCAST(bs, struct ccp_context);
+    const unsigned char *blk = (const unsigned char *)blkv;
 
     /* First 4 bytes are the IV */
     while (ctx->mac_initialised < 4 && len) {
@@ -922,6 +925,12 @@ static void poly_bytes(void *handle, unsigned char const *blk, int len)
     }
 }
 
+static BinarySink *poly_sink(void *handle)
+{
+    struct ccp_context *ctx = (struct ccp_context *)handle;
+    return BinarySink_UPCAST(ctx);
+}
+
 static void poly_genresult(void *handle, unsigned char *blk)
 {
     struct ccp_context *ctx = (struct ccp_context *)handle;
@@ -941,13 +950,11 @@ static int poly_verresult(void *handle, unsigned char const *blk)
 /* The generic poly operation used before generate and verify */
 static void poly_op(void *handle, unsigned char *blk, int len, unsigned long seq)
 {
-    unsigned char iv[4];
-    poly_start(handle);
-    PUT_32BIT_MSB_FIRST(iv, seq);
-    /* poly_bytes expects the first 4 bytes to be the IV */
-    poly_bytes(handle, iv, 4);
-    smemclr(iv, sizeof(iv));
-    poly_bytes(handle, blk, len);
+    struct ccp_context *ctx = (struct ccp_context *)handle;
+    poly_start(ctx);
+    /* the data receiver expects the first 4 bytes to be the IV */
+    put_uint32(ctx, seq);
+    put_data(ctx, blk, len);
 }
 
 static void poly_generate(void *handle, unsigned char *blk, int len, unsigned long seq)
@@ -970,7 +977,7 @@ static const struct ssh_mac ssh2_poly1305 = {
     poly_generate, poly_verify,
 
     /* partial-packet operations */
-    poly_start, poly_bytes, poly_genresult, poly_verresult,
+    poly_start, poly_sink, poly_genresult, poly_verresult,
 
     "", "", /* Not selectable individually, just part of ChaCha20-Poly1305 */
     16, 0, "Poly1305"
@@ -979,9 +986,8 @@ static const struct ssh_mac ssh2_poly1305 = {
 static void *ccp_make_context(void)
 {
     struct ccp_context *ctx = snew(struct ccp_context);
-    if (ctx) {
-        poly1305_init(&ctx->mac);
-    }
+    BinarySink_INIT(ctx, poly_BinarySink_write);
+    poly1305_init(&ctx->mac);
     return ctx;
 }
 
@@ -994,14 +1000,15 @@ static void ccp_free_context(void *vctx)
     sfree(ctx);
 }
 
-static void ccp_iv(void *vctx, unsigned char *iv)
+static void ccp_iv(void *vctx, const void *iv)
 {
     /* struct ccp_context *ctx = (struct ccp_context *)vctx; */
     /* IV is set based on the sequence number */
 }
 
-static void ccp_key(void *vctx, unsigned char *key)
+static void ccp_key(void *vctx, const void *vkey)
 {
+    const unsigned char *key = (const unsigned char *)vkey;
     struct ccp_context *ctx = (struct ccp_context *)vctx;
     /* Initialise the a_cipher (for decrypting lengths) with the first 256 bits */
     chacha20_key(&ctx->a_cipher, key + 32);
@@ -1009,19 +1016,19 @@ static void ccp_key(void *vctx, unsigned char *key)
     chacha20_key(&ctx->b_cipher, key);
 }
 
-static void ccp_encrypt(void *vctx, unsigned char *blk, int len)
+static void ccp_encrypt(void *vctx, void *blk, int len)
 {
     struct ccp_context *ctx = (struct ccp_context *)vctx;
     chacha20_encrypt(&ctx->b_cipher, blk, len);
 }
 
-static void ccp_decrypt(void *vctx, unsigned char *blk, int len)
+static void ccp_decrypt(void *vctx, void *blk, int len)
 {
     struct ccp_context *ctx = (struct ccp_context *)vctx;
     chacha20_decrypt(&ctx->b_cipher, blk, len);
 }
 
-static void ccp_length_op(struct ccp_context *ctx, unsigned char *blk, int len,
+static void ccp_length_op(struct ccp_context *ctx, void *blk, int len,
                           unsigned long seq)
 {
     unsigned char iv[8];
@@ -1038,7 +1045,7 @@ static void ccp_length_op(struct ccp_context *ctx, unsigned char *blk, int len,
     smemclr(iv, sizeof(iv));
 }
 
-static void ccp_encrypt_length(void *vctx, unsigned char *blk, int len,
+static void ccp_encrypt_length(void *vctx, void *blk, int len,
                                unsigned long seq)
 {
     struct ccp_context *ctx = (struct ccp_context *)vctx;
@@ -1046,7 +1053,7 @@ static void ccp_encrypt_length(void *vctx, unsigned char *blk, int len,
     chacha20_encrypt(&ctx->a_cipher, blk, len);
 }
 
-static void ccp_decrypt_length(void *vctx, unsigned char *blk, int len,
+static void ccp_decrypt_length(void *vctx, void *blk, int len,
                                unsigned long seq)
 {
     struct ccp_context *ctx = (struct ccp_context *)vctx;

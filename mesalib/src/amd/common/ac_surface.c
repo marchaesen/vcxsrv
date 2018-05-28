@@ -868,7 +868,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 		fin.numSlices = AddrSurfInfoIn.numSlices;
 		fin.numSamples = AddrSurfInfoIn.numSamples;
 		fin.numFrags = AddrSurfInfoIn.numFrags;
-		fin.tileIndex = AddrSurfInfoOut.tileIndex;
+		fin.tileIndex = -1;
 		fout.pTileInfo = &fmask_tile_info;
 
 		r = AddrComputeFmaskInfo(addrlib, &fin, &fout);
@@ -934,8 +934,17 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	/* Make sure HTILE covers the whole miptree, because the shader reads
 	 * TC-compatible HTILE even for levels where it's disabled by DB.
 	 */
-	if (surf->htile_size && config->info.levels > 1)
-		surf->htile_size *= 2;
+	if (surf->htile_size && config->info.levels > 1 &&
+	    surf->flags & RADEON_SURF_TC_COMPATIBLE_HTILE) {
+		/* MSAA can't occur with levels > 1, so ignore the sample count. */
+		const unsigned total_pixels = surf->surf_size / surf->bpe;
+		const unsigned htile_block_size = 8 * 8;
+		const unsigned htile_element_size = 4;
+
+		surf->htile_size = (total_pixels / htile_block_size) *
+				   htile_element_size;
+		surf->htile_size = align(surf->htile_size, surf->htile_alignment);
+	}
 
 	surf->is_linear = surf->u.legacy.level[0].mode == RADEON_SURF_MODE_LINEAR_ALIGNED;
 	surf->is_displayable = surf->is_linear ||

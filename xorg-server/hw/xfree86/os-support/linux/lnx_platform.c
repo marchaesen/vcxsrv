@@ -43,7 +43,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
     }
 
     if (fd == -1)
-        fd = open(path, O_RDWR, O_CLOEXEC);
+        fd = open(path, O_RDWR | O_CLOEXEC, 0);
 
     if (fd == -1)
         return FALSE;

@@ -278,26 +278,22 @@ static FcChar8 *
 FcDirCacheBasenameUUID (const FcChar8 *dir, FcChar8 cache_base[CACHEBASE_LEN], FcConfig *config)
 {
     void *u;
-    FcChar8 *alias, *target;
+    FcChar8 *target;
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
 
-    if (!FcHashTableFind (config->alias_table, dir, (void **)&alias))
-	alias = FcStrdup (dir);
     if (sysroot)
-	target = FcStrBuildFilename (sysroot, alias, NULL);
+	target = FcStrBuildFilename (sysroot, dir, NULL);
     else
-	target = FcStrdup (alias);
+	target = FcStrdup (dir);
     if (FcHashTableFind (config->uuid_table, target, &u))
     {
 	uuid_unparse (u, (char *) cache_base);
 	strcat ((char *) cache_base, "-" FC_ARCHITECTURE FC_CACHE_SUFFIX);
 	FcHashUuidFree (u);
 	FcStrFree (target);
-	FcStrFree (alias);
 	return cache_base;
     }
     FcStrFree (target);
-    FcStrFree (alias);
     return NULL;
 }
 #endif
@@ -443,6 +439,7 @@ struct _FcCacheSkip {
     FcCache	    *cache;
     FcRef	    ref;
     intptr_t	    size;
+    void	   *allocated;
     dev_t	    cache_dev;
     ino_t	    cache_ino;
     time_t	    cache_mtime;
@@ -568,6 +565,7 @@ FcCacheInsert (FcCache *cache, struct stat *cache_stat)
 
     s->cache = cache;
     s->size = cache->size;
+    s->allocated = NULL;
     FcRefInit (&s->ref, 1);
     if (cache_stat)
     {
@@ -642,6 +640,7 @@ FcCacheRemoveUnlocked (FcCache *cache)
     FcCacheSkip	    **update[FC_CACHE_MAX_LEVEL];
     FcCacheSkip	    *s, **next;
     int		    i;
+    void            *allocated;
 
     /*
      * Find links along each chain
@@ -659,6 +658,15 @@ FcCacheRemoveUnlocked (FcCache *cache)
 	*update[i] = s->next[i];
     while (fcCacheMaxLevel > 0 && fcCacheChains[fcCacheMaxLevel - 1] == NULL)
 	fcCacheMaxLevel--;
+
+    allocated = s->allocated;
+    while (allocated)
+    {
+	/* First element in allocated chunk is the free list */
+	next = *(void **)allocated;
+	free (allocated);
+	allocated = next;
+    }
     free (s);
 }
 
@@ -726,6 +734,30 @@ FcCacheObjectDereference (void *object)
 	    FcDirCacheDisposeUnlocked (skip->cache);
     }
     unlock_cache ();
+}
+
+void *
+FcCacheAllocate (FcCache *cache, size_t len)
+{
+    FcCacheSkip	*skip;
+    void *allocated = NULL;
+
+    lock_cache ();
+    skip = FcCacheFindByAddrUnlocked (cache);
+    if (skip)
+    {
+      void *chunk = malloc (sizeof (void *) + len);
+      if (chunk)
+      {
+	  /* First element in allocated chunk is the free list */
+	  *(void **)chunk = skip->allocated;
+	  skip->allocated = chunk;
+	  /* Return the rest */
+	  allocated = ((FcChar8 *)chunk) + sizeof (void *);
+      }
+    }
+    unlock_cache ();
+    return allocated;
 }
 
 void
@@ -981,7 +1013,6 @@ FcCache *
 FcDirCacheLoad (const FcChar8 *dir, FcConfig *config, FcChar8 **cache_file)
 {
     FcCache *cache = NULL;
-    const FcChar8 *d;
 
 #ifndef _WIN32
     FcDirCacheReadUUID ((FcChar8 *) dir, config);
@@ -990,10 +1021,6 @@ FcDirCacheLoad (const FcChar8 *dir, FcConfig *config, FcChar8 **cache_file)
 			    FcDirCacheMapHelper,
 			    &cache, cache_file))
 	return NULL;
-
-    d = FcCacheDir (cache);
-    if (FcStrCmp (dir, d))
-	FcHashTableAdd (config->alias_table, (FcChar8 *) d, (FcChar8 *) dir);
 
     return cache;
 }

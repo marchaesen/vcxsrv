@@ -362,6 +362,13 @@ _mesa_has_texture_cube_map_array(const struct gl_context *ctx)
           _mesa_has_OES_texture_cube_map_array(ctx);
 }
 
+static inline bool
+_mesa_has_texture_view(const struct gl_context *ctx)
+{
+   return _mesa_has_ARB_texture_view(ctx) ||
+          _mesa_has_OES_texture_view(ctx);
+}
+
 #ifdef __cplusplus
 }
 #endif
