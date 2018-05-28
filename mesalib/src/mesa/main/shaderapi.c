@@ -159,6 +159,9 @@ _mesa_free_shader_state(struct gl_context *ctx)
 {
    for (int i = 0; i < MESA_SHADER_STAGES; i++) {
       _mesa_reference_program(ctx, &ctx->Shader.CurrentProgram[i], NULL);
+      _mesa_reference_shader_program(ctx,
+                                     &ctx->Shader.ReferencedPrograms[i],
+                                     NULL);
    }
    _mesa_reference_shader_program(ctx, &ctx->Shader.ActiveProgram, NULL);
 

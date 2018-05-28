@@ -199,10 +199,6 @@ void radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
 				 uint32_t region_count,
 				 const VkImageResolve *regions);
 
-void radv_blit_to_prime_linear(struct radv_cmd_buffer *cmd_buffer,
-			       struct radv_image *image,
-			       struct radv_image *linear_image);
-
 uint32_t radv_clear_cmask(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_image *image, uint32_t value);
 uint32_t radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer,

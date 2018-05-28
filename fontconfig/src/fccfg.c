@@ -144,12 +144,6 @@ FcConfigCreate (void)
 					    FcHashUuidCopy,
 					    (FcDestroyFunc) FcStrFree,
 					    FcHashUuidFree);
-    config->alias_table = FcHashTableCreate ((FcHashFunc) FcStrHashIgnoreCase,
-					     (FcCompareFunc) FcStrCmp,
-					     FcHashStrCopy,
-					     FcHashStrCopy,
-					     (FcDestroyFunc) FcStrFree,
-					     (FcDestroyFunc) FcStrFree);
 
     FcRefInit (&config->ref, 1);
 
@@ -313,7 +307,6 @@ FcConfigDestroy (FcConfig *config)
 	FcStrFree (config->sysRoot);
 
     FcHashTableDestroy (config->uuid_table);
-    FcHashTableDestroy (config->alias_table);
 
     free (config);
 }
@@ -324,11 +317,15 @@ FcConfigDestroy (FcConfig *config)
 
 FcBool
 FcConfigAddCache (FcConfig *config, FcCache *cache,
-		  FcSetName set, FcStrSet *dirSet)
+		  FcSetName set, FcStrSet *dirSet, FcChar8 *forDir)
 {
     FcFontSet	*fs;
     intptr_t	*dirs;
     int		i;
+    FcBool      relocated = FcFalse;
+
+    if (strcmp ((char *)FcCacheDir(cache), (char *)forDir) != 0)
+      relocated = FcTrue;
 
     /*
      * Add fonts
@@ -342,23 +339,43 @@ FcConfigAddCache (FcConfig *config, FcCache *cache,
 	{
 	    FcPattern	*font = FcFontSetFont (fs, i);
 	    FcChar8	*font_file;
+	    FcChar8	*relocated_font_file = NULL;
 
-	    /*
-	     * Check to see if font is banned by filename
-	     */
 	    if (FcPatternObjectGetString (font, FC_FILE_OBJECT,
-					  0, &font_file) == FcResultMatch &&
-		!FcConfigAcceptFilename (config, font_file))
+					  0, &font_file) == FcResultMatch)
 	    {
-		continue;
+		if (relocated)
+		  {
+		    FcChar8 *slash = FcStrLastSlash (font_file);
+		    relocated_font_file = FcStrBuildFilename (forDir, slash + 1, NULL);
+		    font_file = relocated_font_file;
+		  }
+
+		/*
+		 * Check to see if font is banned by filename
+		 */
+		if (!FcConfigAcceptFilename (config, font_file))
+		{
+		    free (relocated_font_file);
+		    continue;
+		}
 	    }
-		
+
 	    /*
 	     * Check to see if font is banned by pattern
 	     */
 	    if (!FcConfigAcceptFont (config, font))
+	    {
+		free (relocated_font_file);
 		continue;
-		
+	    }
+
+	    if (relocated_font_file)
+	    {
+	      font = FcPatternCacheRewriteFile (font, cache, relocated_font_file);
+	      free (relocated_font_file);
+	    }
+
 	    if (FcFontSetAdd (config->fonts[set], font))
 		nref++;
 	}
@@ -374,18 +391,14 @@ FcConfigAddCache (FcConfig *config, FcCache *cache,
 	for (i = 0; i < cache->dirs_count; i++)
 	{
 	    const FcChar8 *dir = FcCacheSubdir (cache, i);
-	    FcChar8 *alias;
-	    FcChar8 *d = FcStrDirname (dir);
 	    FcChar8 *s = NULL;
 
-	    if (FcHashTableFind (config->alias_table, d, (void **)&alias))
+	    if (relocated)
 	    {
 		FcChar8 *base = FcStrBasename (dir);
-		dir = s = FcStrBuildFilename (alias, base, NULL);
-		FcStrFree (alias);
+		dir = s = FcStrBuildFilename (forDir, base, NULL);
 		FcStrFree (base);
 	    }
-	    FcStrFree (d);
 	    if (FcConfigAcceptFilename (config, dir))
 		FcStrSetAddFilename (dirSet, dir);
 	    if (s)
@@ -413,7 +426,7 @@ FcConfigAddDirList (FcConfig *config, FcSetName set, FcStrSet *dirSet)
 	cache = FcDirCacheRead (dir, FcFalse, config);
 	if (!cache)
 	    continue;
-	FcConfigAddCache (config, cache, set, dirSet);
+	FcConfigAddCache (config, cache, set, dirSet, dir);
 	FcDirCacheUnload (cache);
     }
     FcStrListDone (dirlist);

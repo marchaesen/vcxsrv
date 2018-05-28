@@ -1170,7 +1170,21 @@ ac_build_ddxy(struct ac_llvm_context *ctx,
 	LLVMValueRef tl, trbl, args[2];
 	LLVMValueRef result;
 
-	if (ctx->chip_class >= VI) {
+	if (HAVE_LLVM >= 0x0700) {
+		unsigned tl_lanes[4], trbl_lanes[4];
+
+		for (unsigned i = 0; i < 4; ++i) {
+			tl_lanes[i] = i & mask;
+			trbl_lanes[i] = (i & mask) + idx;
+		}
+
+		tl = ac_build_quad_swizzle(ctx, val,
+		                           tl_lanes[0], tl_lanes[1],
+		                           tl_lanes[2], tl_lanes[3]);
+		trbl = ac_build_quad_swizzle(ctx, val,
+		                             trbl_lanes[0], trbl_lanes[1],
+		                             trbl_lanes[2], trbl_lanes[3]);
+	} else if (ctx->chip_class >= VI) {
 		LLVMValueRef thread_id, tl_tid, trbl_tid;
 		thread_id = ac_get_thread_id(ctx);
 

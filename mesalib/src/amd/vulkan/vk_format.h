@@ -417,6 +417,46 @@ vk_format_is_srgb(VkFormat format)
 }
 
 static inline VkFormat
+vk_format_no_srgb(VkFormat format)
+{
+	switch(format) {
+	case VK_FORMAT_R8_SRGB:
+		return VK_FORMAT_R8_UNORM;
+	case VK_FORMAT_R8G8_SRGB:
+		return VK_FORMAT_R8G8_UNORM;
+	case VK_FORMAT_R8G8B8_SRGB:
+		return VK_FORMAT_R8G8B8_UNORM;
+	case VK_FORMAT_B8G8R8_SRGB:
+		return VK_FORMAT_B8G8R8_UNORM;
+	case VK_FORMAT_R8G8B8A8_SRGB:
+		return VK_FORMAT_R8G8B8A8_UNORM;
+	case VK_FORMAT_B8G8R8A8_SRGB:
+		return VK_FORMAT_B8G8R8A8_UNORM;
+	case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
+		return VK_FORMAT_A8B8G8R8_UNORM_PACK32;
+	case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
+		return VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+	case VK_FORMAT_BC1_RGBA_SRGB_BLOCK:
+		return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+	case VK_FORMAT_BC2_SRGB_BLOCK:
+		return VK_FORMAT_BC2_UNORM_BLOCK;
+	case VK_FORMAT_BC3_SRGB_BLOCK:
+		return VK_FORMAT_BC3_UNORM_BLOCK;
+	case VK_FORMAT_BC7_SRGB_BLOCK:
+		return VK_FORMAT_BC7_UNORM_BLOCK;
+	case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
+		return VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+	case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK:
+		return VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
+	case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+		return VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+	default:
+		assert(!vk_format_is_srgb(format));
+		return format;
+	}
+}
+
+static inline VkFormat
 vk_format_stencil_only(VkFormat format)
 {
 	return VK_FORMAT_S8_UINT;

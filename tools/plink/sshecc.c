@@ -1421,10 +1421,8 @@ struct ec_point *ec_public(const Bignum privateKey, const struct ec_curve *curve
         SHA512_Init(&s);
 
         keylen = curve->fieldBits / 8;
-        for (i = 0; i < keylen; ++i) {
-            unsigned char b = bignum_byte(privateKey, i);
-            SHA512_Bytes(&s, &b, 1);
-        }
+        for (i = 0; i < keylen; ++i)
+            put_byte(&s, bignum_byte(privateKey, i));
         SHA512_Final(&s, hash);
 
         /* The second part is simply turning the hash into a Bignum,
@@ -1620,7 +1618,7 @@ static Bignum getmp(const char **data, int *datalen)
         return NULL;
     if (p[0] & 0x80)
         return NULL;                   /* negative mp */
-    return bignum_from_bytes((unsigned char *)p, length);
+    return bignum_from_bytes(p, length);
 }
 
 static Bignum getmp_le(const char **data, int *datalen)
@@ -1631,7 +1629,7 @@ static Bignum getmp_le(const char **data, int *datalen)
     getstring(data, datalen, &p, &length);
     if (!p)
         return NULL;
-    return bignum_from_bytes_le((const unsigned char *)p, length);
+    return bignum_from_bytes_le(p, length);
 }
 
 static int decodepoint_ed(const char *p, int length, struct ec_point *point)
@@ -1694,9 +1692,9 @@ static int decodepoint(const char *p, int length, struct ec_point *point)
         return 0;
     }
     length = length / 2;
-    point->x = bignum_from_bytes((const unsigned char *)p, length);
+    point->x = bignum_from_bytes(p, length);
     p += length;
-    point->y = bignum_from_bytes((const unsigned char *)p, length);
+    point->y = bignum_from_bytes(p, length);
     point->z = NULL;
 
     /* Verify the point is on the curve */
@@ -1734,9 +1732,9 @@ struct ecsign_extra {
     int oidlen;
 };
 
-static void ecdsa_freekey(void *key)
+static void ecdsa_freekey(ssh_key *key)
 {
-    struct ec_key *ec = (struct ec_key *) key;
+    struct ec_key *ec = FROMFIELD(key, struct ec_key, sshk);
     if (!ec) return;
 
     if (ec->publicKey.x)
@@ -1750,11 +1748,12 @@ static void ecdsa_freekey(void *key)
     sfree(ec);
 }
 
-static void *ecdsa_newkey(const struct ssh_signkey *self,
-                          const char *data, int len)
+static ssh_key *ecdsa_newkey(const ssh_keyalg *self,
+                             const void *vdata, int len)
 {
     const struct ecsign_extra *extra =
         (const struct ecsign_extra *)self->extra;
+    const char *data = (const char *)vdata;
     const char *p;
     int slen;
     struct ec_key *ec;
@@ -1785,7 +1784,7 @@ static void *ecdsa_newkey(const struct ssh_signkey *self,
     ec->publicKey.z = NULL;
     ec->privateKey = NULL;
     if (!getmppoint(&data, &len, &ec->publicKey)) {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
 
@@ -1793,16 +1792,16 @@ static void *ecdsa_newkey(const struct ssh_signkey *self,
         bignum_cmp(ec->publicKey.x, curve->p) >= 0 ||
         bignum_cmp(ec->publicKey.y, curve->p) >= 0)
     {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         ec = NULL;
     }
 
-    return ec;
+    return &ec->sshk;
 }
 
-static char *ecdsa_fmtkey(void *key)
+static char *ecdsa_fmtkey(ssh_key *key)
 {
-    struct ec_key *ec = (struct ec_key *) key;
+    struct ec_key *ec = FROMFIELD(key, struct ec_key, sshk);
     char *p;
     int len, i, pos, nibbles;
     static const char hex[] = "0123456789abcdef";
@@ -1839,89 +1838,53 @@ static char *ecdsa_fmtkey(void *key)
     return p;
 }
 
-static unsigned char *ecdsa_public_blob(void *key, int *len)
+static void ecdsa_public_blob(ssh_key *key, BinarySink *bs)
 {
-    struct ec_key *ec = (struct ec_key *) key;
-    int pointlen, bloblen, fullnamelen, namelen;
+    struct ec_key *ec = FROMFIELD(key, struct ec_key, sshk);
+    int pointlen;
     int i;
-    unsigned char *blob, *p;
-
-    fullnamelen = strlen(ec->signalg->name);
 
     if (ec->publicKey.curve->type == EC_EDWARDS) {
         /* Edwards compressed form "ssh-ed25519" point y[:-1] + x[0:1] */
 
         pointlen = ec->publicKey.curve->fieldBits / 8;
 
-        /* Can't handle this in our loop */
-        if (pointlen < 2) return NULL;
+        assert(pointlen >= 2);
 
-        bloblen = 4 + fullnamelen + 4 + pointlen;
-        blob = snewn(bloblen, unsigned char);
-
-        p = blob;
-        PUT_32BIT(p, fullnamelen);
-        p += 4;
-        memcpy(p, ec->signalg->name, fullnamelen);
-        p += fullnamelen;
-        PUT_32BIT(p, pointlen);
-        p += 4;
+        put_stringz(bs, ec->signalg->name);
+        put_uint32(bs, pointlen);
 
         /* Unset last bit of y and set first bit of x in its place */
-        for (i = 0; i < pointlen - 1; ++i) {
-            *p++ = bignum_byte(ec->publicKey.y, i);
-        }
+        for (i = 0; i < pointlen - 1; ++i)
+            put_byte(bs, bignum_byte(ec->publicKey.y, i));
         /* Unset last bit of y and set first bit of x in its place */
-        *p = bignum_byte(ec->publicKey.y, i) & 0x7f;
-        *p++ |= bignum_bit(ec->publicKey.x, 0) << 7;
+        put_byte(bs, ((bignum_byte(ec->publicKey.y, i) & 0x7f) |
+                                (bignum_bit(ec->publicKey.x, 0) << 7)));
     } else if (ec->publicKey.curve->type == EC_WEIERSTRASS) {
         assert(ec->publicKey.curve->name);
-        namelen = strlen(ec->publicKey.curve->name);
 
         pointlen = (bignum_bitcount(ec->publicKey.curve->p) + 7) / 8;
 
-        /*
-         * string "ecdsa-sha2-<name>", string "<name>", 0x04 point x, y.
-         */
-        bloblen = 4 + fullnamelen + 4 + namelen + 4 + 1 + (pointlen * 2);
-        blob = snewn(bloblen, unsigned char);
-
-        p = blob;
-        PUT_32BIT(p, fullnamelen);
-        p += 4;
-        memcpy(p, ec->signalg->name, fullnamelen);
-        p += fullnamelen;
-        PUT_32BIT(p, namelen);
-        p += 4;
-        memcpy(p, ec->publicKey.curve->name, namelen);
-        p += namelen;
-        PUT_32BIT(p, (2 * pointlen) + 1);
-        p += 4;
-        *p++ = 0x04;
-        for (i = pointlen; i--;) {
-            *p++ = bignum_byte(ec->publicKey.x, i);
-        }
-        for (i = pointlen; i--;) {
-            *p++ = bignum_byte(ec->publicKey.y, i);
-        }
+        put_stringz(bs, ec->signalg->name);
+        put_stringz(bs, ec->publicKey.curve->name);
+        put_uint32(bs, (2 * pointlen) + 1);
+        put_byte(bs, 0x04);
+        for (i = pointlen; i--;)
+            put_byte(bs, bignum_byte(ec->publicKey.x, i));
+        for (i = pointlen; i--;)
+            put_byte(bs, bignum_byte(ec->publicKey.y, i));
     } else {
-        return NULL;
+        assert(0 && "Bad key type in ecdsa_public_blob");
     }
-
-    assert(p == blob + bloblen);
-    *len = bloblen;
-
-    return blob;
 }
 
-static unsigned char *ecdsa_private_blob(void *key, int *len)
+static void ecdsa_private_blob(ssh_key *key, BinarySink *bs)
 {
-    struct ec_key *ec = (struct ec_key *) key;
-    int keylen, bloblen;
+    struct ec_key *ec = FROMFIELD(key, struct ec_key, sshk);
+    int keylen;
     int i;
-    unsigned char *blob, *p;
 
-    if (!ec->privateKey) return NULL;
+    assert(ec->privateKey);
 
     if (ec->publicKey.curve->type == EC_EDWARDS) {
         /* Unsigned */
@@ -1931,45 +1894,34 @@ static unsigned char *ecdsa_private_blob(void *key, int *len)
         keylen = (bignum_bitcount(ec->privateKey) + 8) / 8;
     }
 
-    /*
-     * mpint privateKey. Total 4 + keylen.
-     */
-    bloblen = 4 + keylen;
-    blob = snewn(bloblen, unsigned char);
-
-    p = blob;
-    PUT_32BIT(p, keylen);
-    p += 4;
+    put_uint32(bs, keylen);
     if (ec->publicKey.curve->type == EC_EDWARDS) {
         /* Little endian */
         for (i = 0; i < keylen; ++i)
-            *p++ = bignum_byte(ec->privateKey, i);
+            put_byte(bs, bignum_byte(ec->privateKey, i));
     } else {
         for (i = keylen; i--;)
-            *p++ = bignum_byte(ec->privateKey, i);
+            put_byte(bs, bignum_byte(ec->privateKey, i));
     }
-
-    assert(p == blob + bloblen);
-    *len = bloblen;
-    return blob;
 }
 
-static void *ecdsa_createkey(const struct ssh_signkey *self,
-                             const unsigned char *pub_blob, int pub_len,
-                             const unsigned char *priv_blob, int priv_len)
+static ssh_key *ecdsa_createkey(const ssh_keyalg *self,
+                                const void *pub_blob, int pub_len,
+                                const void *priv_blob, int priv_len)
 {
     struct ec_key *ec;
     struct ec_point *publicKey;
     const char *pb = (const char *) priv_blob;
 
-    ec = (struct ec_key*)ecdsa_newkey(self, (const char *) pub_blob, pub_len);
+    ec = FROMFIELD(ecdsa_newkey(self, pub_blob, pub_len),
+                   struct ec_key, sshk);
     if (!ec) {
         return NULL;
     }
 
     if (ec->publicKey.curve->type != EC_WEIERSTRASS
         && ec->publicKey.curve->type != EC_EDWARDS) {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
 
@@ -1979,7 +1931,7 @@ static void *ecdsa_createkey(const struct ssh_signkey *self,
         ec->privateKey = getmp(&pb, &priv_len);
     }
     if (!ec->privateKey) {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
 
@@ -1990,16 +1942,16 @@ static void *ecdsa_createkey(const struct ssh_signkey *self,
         bignum_cmp(publicKey->x, ec->publicKey.x) ||
         bignum_cmp(publicKey->y, ec->publicKey.y))
     {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         ec = NULL;
     }
     ec_point_free(publicKey);
 
-    return ec;
+    return &ec->sshk;
 }
 
-static void *ed25519_openssh_createkey(const struct ssh_signkey *self,
-                                       const unsigned char **blob, int *len)
+static ssh_key *ed25519_openssh_createkey(const ssh_keyalg *self,
+                                          const unsigned char **blob, int *len)
 {
     struct ec_key *ec;
     struct ec_point *publicKey;
@@ -2024,17 +1976,17 @@ static void *ed25519_openssh_createkey(const struct ssh_signkey *self,
 
     if (!decodepoint_ed(p, plen, &ec->publicKey))
     {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
 
     getstring((const char**)blob, len, &q, &qlen);
     if (!q || qlen != 64) {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
 
-    ec->privateKey = bignum_from_bytes_le((const unsigned char *)q, 32);
+    ec->privateKey = bignum_from_bytes_le(q, 32);
 
     /* Check that private key generates public key */
     publicKey = ec_public(ec->privateKey, ec->publicKey.curve);
@@ -2043,7 +1995,7 @@ static void *ed25519_openssh_createkey(const struct ssh_signkey *self,
         bignum_cmp(publicKey->x, ec->publicKey.x) ||
         bignum_cmp(publicKey->y, ec->publicKey.y))
     {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         ec = NULL;
     }
     ec_point_free(publicKey);
@@ -2055,64 +2007,51 @@ static void *ed25519_openssh_createkey(const struct ssh_signkey *self,
      * won't behave identically to the way OpenSSH would have treated
      * it. */
     if (plen != 32 || 0 != memcmp(q + 32, p, 32)) {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
 
-    return ec;
+    return &ec->sshk;
 }
 
-static int ed25519_openssh_fmtkey(void *key, unsigned char *blob, int len)
+static void ed25519_openssh_fmtkey(ssh_key *key, BinarySink *bs)
 {
-    struct ec_key *ec = (struct ec_key *) key;
+    struct ec_key *ec = FROMFIELD(key, struct ec_key, sshk);
+    strbuf *pub;
 
     int pointlen;
     int keylen;
-    int bloblen;
     int i;
 
-    if (ec->publicKey.curve->type != EC_EDWARDS) {
-        return 0;
-    }
+    assert(ec->publicKey.curve->type == EC_EDWARDS);
 
     pointlen = (bignum_bitcount(ec->publicKey.y) + 7) / 8;
     keylen = (bignum_bitcount(ec->privateKey) + 7) / 8;
-    bloblen = 4 + pointlen + 4 + keylen + pointlen;
-
-    if (bloblen > len)
-        return bloblen;
 
     /* Encode the public point */
-    PUT_32BIT(blob, pointlen);
-    blob += 4;
-
-    for (i = 0; i < pointlen - 1; ++i) {
-         *blob++ = bignum_byte(ec->publicKey.y, i);
-    }
+    pub = strbuf_new();
+    put_uint32(pub, pointlen);
+    for (i = 0; i < pointlen - 1; ++i)
+        put_byte(pub, bignum_byte(ec->publicKey.y, i));
     /* Unset last bit of y and set first bit of x in its place */
-    *blob = bignum_byte(ec->publicKey.y, i) & 0x7f;
-    *blob++ |= bignum_bit(ec->publicKey.x, 0) << 7;
+    put_byte(pub, ((bignum_byte(ec->publicKey.y, i) & 0x7f) |
+                   (bignum_bit(ec->publicKey.x, 0) << 7)));
 
-    PUT_32BIT(blob, keylen + pointlen);
-    blob += 4;
-    for (i = 0; i < keylen; ++i) {
-         *blob++ = bignum_byte(ec->privateKey, i);
-    }
+    put_data(bs, pub->s, pub->len);
+
+    put_uint32(bs, keylen + pointlen);
+    for (i = 0; i < keylen; ++i)
+        put_byte(bs, bignum_byte(ec->privateKey, i));
     /* Now encode an extra copy of the public point as the second half
      * of the private key string, as the OpenSSH format for some
      * reason requires */
-    for (i = 0; i < pointlen - 1; ++i) {
-         *blob++ = bignum_byte(ec->publicKey.y, i);
-    }
-    /* Unset last bit of y and set first bit of x in its place */
-    *blob = bignum_byte(ec->publicKey.y, i) & 0x7f;
-    *blob++ |= bignum_bit(ec->publicKey.x, 0) << 7;
+    put_data(bs, pub->s + 4, pub->len - 4);
 
-    return bloblen;
+    strbuf_free(pub);
 }
 
-static void *ecdsa_openssh_createkey(const struct ssh_signkey *self,
-                                     const unsigned char **blob, int *len)
+static ssh_key *ecdsa_openssh_createkey(const ssh_keyalg *self,
+                                        const unsigned char **blob, int *len)
 {
     const struct ecsign_extra *extra =
         (const struct ecsign_extra *)self->extra;
@@ -2140,7 +2079,7 @@ static void *ecdsa_openssh_createkey(const struct ssh_signkey *self,
     ec->publicKey.y = NULL;
     ec->publicKey.z = NULL;
     if (!getmppoint(b, len, &ec->publicKey)) {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
     ec->privateKey = NULL;
@@ -2149,14 +2088,14 @@ static void *ecdsa_openssh_createkey(const struct ssh_signkey *self,
         bignum_cmp(ec->publicKey.x, curve->p) >= 0 ||
         bignum_cmp(ec->publicKey.y, curve->p) >= 0)
     {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
 
     ec->privateKey = getmp(b, len);
     if (ec->privateKey == NULL)
     {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
 
@@ -2164,7 +2103,7 @@ static void *ecdsa_openssh_createkey(const struct ssh_signkey *self,
     publicKey = ec_public(ec->privateKey, ec->publicKey.curve);
     if (!publicKey)
     {
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         return NULL;
     }
 
@@ -2172,82 +2111,61 @@ static void *ecdsa_openssh_createkey(const struct ssh_signkey *self,
         bignum_cmp(ec->publicKey.y, publicKey->y))
     {
         /* Private key doesn't make the public key on the given curve */
-        ecdsa_freekey(ec);
+        ecdsa_freekey(&ec->sshk);
         ec_point_free(publicKey);
         return NULL;
     }
 
     ec_point_free(publicKey);
 
-    return ec;
+    return &ec->sshk;
 }
 
-static int ecdsa_openssh_fmtkey(void *key, unsigned char *blob, int len)
+static void ecdsa_openssh_fmtkey(ssh_key *key, BinarySink *bs)
 {
-    struct ec_key *ec = (struct ec_key *) key;
+    struct ec_key *ec = FROMFIELD(key, struct ec_key, sshk);
 
     int pointlen;
-    int namelen;
-    int bloblen;
     int i;
 
-    if (ec->publicKey.curve->type != EC_WEIERSTRASS) {
-        return 0;
-    }
+    assert(ec->publicKey.curve->type == EC_WEIERSTRASS);
 
     pointlen = (bignum_bitcount(ec->publicKey.curve->p) + 7) / 8;
-    namelen = strlen(ec->publicKey.curve->name);
-    bloblen =
-        4 + namelen /* <LEN> nistpXXX */
-        + 4 + 1 + (pointlen * 2) /* <LEN> 0x04 pX pY */
-        + ssh2_bignum_length(ec->privateKey);
 
-    if (bloblen > len)
-        return bloblen;
+    put_stringz(bs, ec->publicKey.curve->name);
 
-    bloblen = 0;
-
-    PUT_32BIT(blob+bloblen, namelen);
-    bloblen += 4;
-    memcpy(blob+bloblen, ec->publicKey.curve->name, namelen);
-    bloblen += namelen;
-
-    PUT_32BIT(blob+bloblen, 1 + (pointlen * 2));
-    bloblen += 4;
-    blob[bloblen++] = 0x04;
+    put_uint32(bs, 1 + (pointlen * 2));
+    put_byte(bs, 0x04);
     for (i = pointlen; i--; )
-        blob[bloblen++] = bignum_byte(ec->publicKey.x, i);
+        put_byte(bs, bignum_byte(ec->publicKey.x, i));
     for (i = pointlen; i--; )
-        blob[bloblen++] = bignum_byte(ec->publicKey.y, i);
+        put_byte(bs, bignum_byte(ec->publicKey.y, i));
 
-    pointlen = (bignum_bitcount(ec->privateKey) + 8) / 8;
-    PUT_32BIT(blob+bloblen, pointlen);
-    bloblen += 4;
-    for (i = pointlen; i--; )
-        blob[bloblen++] = bignum_byte(ec->privateKey, i);
-
-    return bloblen;
+    put_mp_ssh2(bs, ec->privateKey);
 }
 
-static int ecdsa_pubkey_bits(const struct ssh_signkey *self,
+static int ecdsa_pubkey_bits(const ssh_keyalg *self,
                              const void *blob, int len)
 {
     struct ec_key *ec;
     int ret;
 
-    ec = (struct ec_key*)ecdsa_newkey(self, (const char *) blob, len);
+    ec = FROMFIELD(ecdsa_newkey(self, blob, len),
+                   struct ec_key, sshk);
     if (!ec)
         return -1;
     ret = ec->publicKey.curve->fieldBits;
-    ecdsa_freekey(ec);
+    ecdsa_freekey(&ec->sshk);
 
     return ret;
 }
 
-static int ecdsa_verifysig(void *key, const char *sig, int siglen,
-                           const char *data, int datalen)
+static int ecdsa_verifysig(ssh_key *key, const void *vsig, int siglen,
+                           const void *vdata, int datalen)
 {
-    struct ec_key *ec = (struct ec_key *) key;
+    struct ec_key *ec = FROMFIELD(key, struct ec_key, sshk);
+    const char *sig = (const char *)vsig;
+    const char *data = (const char *)vdata;
     const struct ecsign_extra *extra =
         (const struct ecsign_extra *)ec->signalg->extra;
     const char *p;
@@ -2298,27 +2216,25 @@ static int ecdsa_verifysig(void *key, const char *sig, int siglen,
         /* Get the hash of the encoded value of R + encoded value of pk + message */
         {
             int i, pointlen;
-            unsigned char b;
             unsigned char digest[512 / 8];
             SHA512_State hs;
             SHA512_Init(&hs);
 
-            /* Add encoded r (no need to encode it again, it was in the signature) */
-            SHA512_Bytes(&hs, p, ec->publicKey.curve->fieldBits / 8);
+            pointlen = ec->publicKey.curve->fieldBits / 8;
+
+            /* Add encoded r (no need to encode it again, it was in
+             * the signature) */
+            put_data(&hs, p, pointlen);
 
             /* Encode pk and add it */
-            pointlen = ec->publicKey.curve->fieldBits / 8;
-            for (i = 0; i < pointlen - 1; ++i) {
-                b = bignum_byte(ec->publicKey.y, i);
-                SHA512_Bytes(&hs, &b, 1);
-            }
+            for (i = 0; i < pointlen - 1; ++i)
+                put_byte(&hs, bignum_byte(ec->publicKey.y, i));
             /* Unset last bit of y and set first bit of x in its place */
-            b = bignum_byte(ec->publicKey.y, i) & 0x7f;
-            b |= bignum_bit(ec->publicKey.x, 0) << 7;
-            SHA512_Bytes(&hs, &b, 1);
+            put_byte(&hs, ((bignum_byte(ec->publicKey.y, i) & 0x7f) |
+                           (bignum_bit(ec->publicKey.x, 0) << 7)));
 
             /* Add the message itself */
-            SHA512_Bytes(&hs, data, datalen);
+            put_data(&hs, data, datalen);
 
             /* Get the hash */
             SHA512_Final(&hs, digest);
@@ -2383,7 +2299,7 @@ static int ecdsa_verifysig(void *key, const char *sig, int siglen,
         digestLen = extra->hash->hlen;
         assert(digestLen <= sizeof(digest));
         hashctx = extra->hash->init();
-        extra->hash->bytes(hashctx, data, datalen);
+        put_data(extra->hash->sink(hashctx), data, datalen);
         extra->hash->final(hashctx, digest);
 
         /* Verify the signature */
@@ -2396,22 +2312,19 @@ static int ecdsa_verifysig(void *key, const char *sig, int siglen,
     return ret;
 }
 
-static unsigned char *ecdsa_sign(void *key, const char *data, int datalen,
-                                 int *siglen)
+static void ecdsa_sign(ssh_key *key, const void *data, int datalen,
+                       BinarySink *bs)
 {
-    struct ec_key *ec = (struct ec_key *) key;
+    struct ec_key *ec = FROMFIELD(key, struct ec_key, sshk);
     const struct ecsign_extra *extra =
         (const struct ecsign_extra *)ec->signalg->extra;
     unsigned char digest[512 / 8];
     int digestLen;
     Bignum r = NULL, s = NULL;
-    unsigned char *buf, *p;
-    int rlen, slen, namelen;
     int i;
 
-    if (!ec->privateKey || !ec->publicKey.curve) {
-        return NULL;
-    }
+    assert(ec->privateKey);
+    assert(ec->publicKey.curve);
 
     if (ec->publicKey.curve->type == EC_EDWARDS) {
         struct ec_point *rp;
@@ -2425,15 +2338,12 @@ static unsigned char *ecdsa_sign(void *key, const char *data, int datalen,
          * S = (r + H(encodepoint(R) + encodepoint(pk) + m) * a) % l */
         {
             unsigned char hash[512/8];
-            unsigned char b;
             Bignum a;
             SHA512_State hs;
             SHA512_Init(&hs);
 
-            for (i = 0; i < pointlen; ++i) {
-                unsigned char b = (unsigned char)bignum_byte(ec->privateKey, i);
-                SHA512_Bytes(&hs, &b, 1);
-            }
+            for (i = 0; i < pointlen; ++i)
+                put_byte(&hs, bignum_byte(ec->privateKey, i));
 
             SHA512_Final(&hs, hash);
 
@@ -2447,45 +2357,34 @@ static unsigned char *ecdsa_sign(void *key, const char *data, int datalen,
             a = bignum_from_bytes_le(hash, 32);
 
             SHA512_Init(&hs);
-            SHA512_Bytes(&hs,
-                         hash+(ec->publicKey.curve->fieldBits / 8),
-                         (ec->publicKey.curve->fieldBits / 4)
-                         - (ec->publicKey.curve->fieldBits / 8));
-            SHA512_Bytes(&hs, data, datalen);
+            put_data(&hs, hash+(ec->publicKey.curve->fieldBits / 8),
+                     ((ec->publicKey.curve->fieldBits / 4) -
+                      (ec->publicKey.curve->fieldBits / 8)));
+            put_data(&hs, data, datalen);
             SHA512_Final(&hs, hash);
 
             r = bignum_from_bytes_le(hash, 512/8);
             rp = ecp_mul(&ec->publicKey.curve->e.B, r);
-            if (!rp) {
-                freebn(r);
-                freebn(a);
-                return NULL;
-            }
+            assert(rp);
 
             /* Now calculate s */
             SHA512_Init(&hs);
             /* Encode the point R */
-            for (i = 0; i < pointlen - 1; ++i) {
-                b = bignum_byte(rp->y, i);
-                SHA512_Bytes(&hs, &b, 1);
-            }
+            for (i = 0; i < pointlen - 1; ++i)
+                put_byte(&hs, bignum_byte(rp->y, i));
             /* Unset last bit of y and set first bit of x in its place */
-            b = bignum_byte(rp->y, i) & 0x7f;
-            b |= bignum_bit(rp->x, 0) << 7;
-            SHA512_Bytes(&hs, &b, 1);
+            put_byte(&hs, ((bignum_byte(rp->y, i) & 0x7f) |
+                           (bignum_bit(rp->x, 0) << 7)));
 
             /* Encode the point pk */
-            for (i = 0; i < pointlen - 1; ++i) {
-                b = bignum_byte(ec->publicKey.y, i);
-                SHA512_Bytes(&hs, &b, 1);
-            }
+            for (i = 0; i < pointlen - 1; ++i)
+                put_byte(&hs, bignum_byte(ec->publicKey.y, i));
             /* Unset last bit of y and set first bit of x in its place */
-            b = bignum_byte(ec->publicKey.y, i) & 0x7f;
-            b |= bignum_bit(ec->publicKey.x, 0) << 7;
-            SHA512_Bytes(&hs, &b, 1);
+            put_byte(&hs, ((bignum_byte(ec->publicKey.y, i) & 0x7f) |
+                           (bignum_bit(ec->publicKey.x, 0) << 7)));
 
             /* Add the message */
-            SHA512_Bytes(&hs, data, datalen);
+            put_data(&hs, data, datalen);
             SHA512_Final(&hs, hash);
 
             {
@@ -2504,85 +2403,55 @@ static unsigned char *ecdsa_sign(void *key, const char *data, int datalen,
         }
 
         /* Format the output */
-        namelen = strlen(ec->signalg->name);
-        *siglen = 4+namelen+4+((ec->publicKey.curve->fieldBits / 8)*2);
-        buf = snewn(*siglen, unsigned char);
-        p = buf;
-        PUT_32BIT(p, namelen);
-        p += 4;
-        memcpy(p, ec->signalg->name, namelen);
-        p += namelen;
-        PUT_32BIT(p, ((ec->publicKey.curve->fieldBits / 8)*2));
-        p += 4;
+        put_stringz(bs, ec->signalg->name);
+        pointlen = ec->publicKey.curve->fieldBits / 8;
+        put_uint32(bs, pointlen * 2);
 
         /* Encode the point */
-        pointlen = ec->publicKey.curve->fieldBits / 8;
-        for (i = 0; i < pointlen - 1; ++i) {
-            *p++ = bignum_byte(rp->y, i);
-        }
+        for (i = 0; i < pointlen - 1; ++i)
+            put_byte(bs, bignum_byte(rp->y, i));
         /* Unset last bit of y and set first bit of x in its place */
-        *p = bignum_byte(rp->y, i) & 0x7f;
-        *p++ |= bignum_bit(rp->x, 0) << 7;
+        put_byte(bs, ((bignum_byte(rp->y, i) & 0x7f) |
+                                (bignum_bit(rp->x, 0) << 7)));
         ec_point_free(rp);
 
         /* Encode the int */
-        for (i = 0; i < pointlen; ++i) {
-            *p++ = bignum_byte(s, i);
-        }
+        for (i = 0; i < pointlen; ++i)
+            put_byte(bs, bignum_byte(s, i));
         freebn(s);
     } else {
         void *hashctx;
+        strbuf *substr;
 
         digestLen = extra->hash->hlen;
         assert(digestLen <= sizeof(digest));
         hashctx = extra->hash->init();
-        extra->hash->bytes(hashctx, data, datalen);
+        put_data(extra->hash->sink(hashctx), data, datalen);
         extra->hash->final(hashctx, digest);
 
         /* Do the signature */
         _ecdsa_sign(ec->privateKey, ec->publicKey.curve, digest, digestLen, &r, &s);
-        if (!r || !s) {
-            if (r) freebn(r);
-            if (s) freebn(s);
-            return NULL;
-        }
-
-        rlen = (bignum_bitcount(r) + 8) / 8;
-        slen = (bignum_bitcount(s) + 8) / 8;
-
-        namelen = strlen(ec->signalg->name);
+        assert(r);
+        assert(s);
 
         /* Format the output */
-        *siglen = 8+namelen+rlen+slen+8;
-        buf = snewn(*siglen, unsigned char);
-        p = buf;
-        PUT_32BIT(p, namelen);
-        p += 4;
-        memcpy(p, ec->signalg->name, namelen);
-        p += namelen;
-        PUT_32BIT(p, rlen + slen + 8);
-        p += 4;
-        PUT_32BIT(p, rlen);
-        p += 4;
-        for (i = rlen; i--;)
-            *p++ = bignum_byte(r, i);
-        PUT_32BIT(p, slen);
-        p += 4;
-        for (i = slen; i--;)
-            *p++ = bignum_byte(s, i);
+        put_stringz(bs, ec->signalg->name);
+
+        substr = strbuf_new();
+        put_mp_ssh2(substr, r);
+        put_mp_ssh2(substr, s);
+        put_stringsb(bs, substr);
 
         freebn(r);
         freebn(s);
     }
-
-    return buf;
 }
 
 const struct ecsign_extra sign_extra_ed25519 = {
     ec_ed25519, NULL,
     NULL, 0,
 };
-const struct ssh_signkey ssh_ecdsa_ed25519 = {
+const ssh_keyalg ssh_ecdsa_ed25519 = {
     ecdsa_newkey,
     ecdsa_freekey,
     ecdsa_fmtkey,
@@ -2608,7 +2477,7 @@ const struct ecsign_extra sign_extra_nistp256 = {
     ec_p256, &ssh_sha256,
     nistp256_oid, lenof(nistp256_oid),
 };
-const struct ssh_signkey ssh_ecdsa_nistp256 = {
+const ssh_keyalg ssh_ecdsa_nistp256 = {
     ecdsa_newkey,
     ecdsa_freekey,
     ecdsa_fmtkey,
@@ -2634,7 +2503,7 @@ const struct ecsign_extra sign_extra_nistp384 = {
     ec_p384, &ssh_sha384,
     nistp384_oid, lenof(nistp384_oid),
 };
-const struct ssh_signkey ssh_ecdsa_nistp384 = {
+const ssh_keyalg ssh_ecdsa_nistp384 = {
     ecdsa_newkey,
     ecdsa_freekey,
     ecdsa_fmtkey,
@@ -2660,7 +2529,7 @@ const struct ecsign_extra sign_extra_nistp521 = {
     ec_p521, &ssh_sha512,
     nistp521_oid, lenof(nistp521_oid),
 };
-const struct ssh_signkey ssh_ecdsa_nistp521 = {
+const ssh_keyalg ssh_ecdsa_nistp521 = {
     ecdsa_newkey,
     ecdsa_freekey,
     ecdsa_fmtkey,
@@ -2735,7 +2604,7 @@ const char *ssh_ecdhkex_curve_textname(const struct ssh_kex *kex)
     return curve->textname;
 }
 
-void *ssh_ecdhkex_newkey(const struct ssh_kex *kex)
+struct ec_key *ssh_ecdhkex_newkey(const struct ssh_kex *kex)
 {
     const struct eckex_extra *extra = (const struct eckex_extra *)kex->extra;
     struct ec_curve *curve;
@@ -2796,43 +2665,27 @@ void *ssh_ecdhkex_newkey(const struct ssh_kex *kex)
     return key;
 }
 
-char *ssh_ecdhkex_getpublic(void *key, int *len)
+void ssh_ecdhkex_getpublic(struct ec_key *ec, BinarySink *bs)
 {
-    struct ec_key *ec = (struct ec_key*)key;
-    char *point, *p;
     int i;
     int pointlen;
 
     pointlen = (bignum_bitcount(ec->publicKey.curve->p) + 7) / 8;
 
     if (ec->publicKey.curve->type == EC_WEIERSTRASS) {
-        *len = 1 + pointlen * 2;
+        put_byte(bs, 0x04);
+        for (i = pointlen; i--;)
+            put_byte(bs, bignum_byte(ec->publicKey.x, i));
+        for (i = pointlen; i--;)
+            put_byte(bs, bignum_byte(ec->publicKey.y, i));
     } else {
-        *len = pointlen;
+        for (i = 0; i < pointlen; ++i)
+            put_byte(bs, bignum_byte(ec->publicKey.x, i));
     }
-    point = (char*)snewn(*len, char);
-
-    p = point;
-    if (ec->publicKey.curve->type == EC_WEIERSTRASS) {
-        *p++ = 0x04;
-        for (i = pointlen; i--;) {
-            *p++ = bignum_byte(ec->publicKey.x, i);
-        }
-        for (i = pointlen; i--;) {
-            *p++ = bignum_byte(ec->publicKey.y, i);
-        }
-    } else {
-        for (i = 0; i < pointlen; ++i) {
-            *p++ = bignum_byte(ec->publicKey.x, i);
-        }
-    }
-
-    return point;
 }
 
-Bignum ssh_ecdhkex_getkey(void *key, char *remoteKey, int remoteKeyLen)
+Bignum ssh_ecdhkex_getkey(struct ec_key *ec, char *remoteKey, int remoteKeyLen)
 {
-    struct ec_key *ec = (struct ec_key*) key;
     struct ec_point remote;
     Bignum ret;
 
@@ -2861,9 +2714,9 @@ Bignum ssh_ecdhkex_getkey(void *key, char *remoteKey, int remoteKeyLen)
     return ret;
 }
 
-void ssh_ecdhkex_freekey(void *key)
+void ssh_ecdhkex_freekey(struct ec_key *key)
 {
-    ecdsa_freekey(key);
+    ecdsa_freekey(&key->sshk);
 }
 
 static const struct eckex_extra kex_extra_curve25519 = { ec_curve25519 };
@@ -2907,10 +2760,10 @@ const struct ssh_kexes ssh_ecdh_kex = {
  * data.
  */
 
-const struct ssh_signkey *ec_alg_by_oid(int len, const void *oid,
+const ssh_keyalg *ec_alg_by_oid(int len, const void *oid,
                                         const struct ec_curve **curve)
 {
-    static const struct ssh_signkey *algs_with_oid[] = {
+    static const ssh_keyalg *algs_with_oid[] = {
         &ssh_ecdsa_nistp256,
         &ssh_ecdsa_nistp384,
         &ssh_ecdsa_nistp521,
@@ -2918,7 +2771,7 @@ const struct ssh_signkey *ec_alg_by_oid(int len, const void *oid,
     int i;
 
     for (i = 0; i < lenof(algs_with_oid); i++) {
-        const struct ssh_signkey *alg = algs_with_oid[i];
+        const ssh_keyalg *alg = algs_with_oid[i];
         const struct ecsign_extra *extra =
             (const struct ecsign_extra *)alg->extra;
         if (len == extra->oidlen && !memcmp(oid, extra->oid, len)) {
@@ -2929,7 +2782,7 @@ const struct ssh_signkey *ec_alg_by_oid(int len, const void *oid,
     return NULL;
 }
 
-const unsigned char *ec_alg_oid(const struct ssh_signkey *alg,
+const unsigned char *ec_alg_oid(const ssh_keyalg *alg,
                                 int *oidlen)
 {
     const struct ecsign_extra *extra = (const struct ecsign_extra *)alg->extra;
@@ -2942,7 +2795,7 @@ const int n_ec_nist_curve_lengths = lenof(ec_nist_curve_lengths);
 
 int ec_nist_alg_and_curve_by_bits(int bits,
                                   const struct ec_curve **curve,
-                                  const struct ssh_signkey **alg)
+                                  const ssh_keyalg **alg)
 {
     switch (bits) {
       case 256: *alg = &ssh_ecdsa_nistp256; break;
@@ -2956,7 +2809,7 @@ int ec_nist_alg_and_curve_by_bits(int bits,
 
 int ec_ed_alg_and_curve_by_bits(int bits,
                                 const struct ec_curve **curve,
-                                const struct ssh_signkey **alg)
+                                const ssh_keyalg **alg)
 {
     switch (bits) {
       case 256: *alg = &ssh_ecdsa_ed25519; break;

@@ -12,7 +12,7 @@
 latest_branchpoint=`git merge-base origin/master HEAD`
 
 # Grep for commits with "cherry picked from commit" in the commit message.
-git log --reverse --grep="cherry picked from commit" $latest_branchpoint..HEAD |\
+git log --reverse --pretty=medium --grep="cherry picked from commit" $latest_branchpoint..HEAD |\
 	grep "cherry picked from commit" |\
 	sed -e 's/^[[:space:]]*(cherry picked from commit[[:space:]]*//' -e 's/)//' > already_picked
 

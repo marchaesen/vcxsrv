@@ -1963,7 +1963,8 @@ radv_emit_global_shader_pointers(struct radv_queue *queue,
 				   R_00B408_SPI_SHADER_USER_DATA_ADDR_LO_HS};
 
 		for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
-			radv_emit_shader_pointer(cs, regs[i], va);
+			radv_emit_shader_pointer(queue->device, cs, regs[i],
+						 va, true);
 		}
 	} else {
 		uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
@@ -1974,7 +1975,8 @@ radv_emit_global_shader_pointers(struct radv_queue *queue,
 				   R_00B530_SPI_SHADER_USER_DATA_LS_0};
 
 		for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
-			radv_emit_shader_pointer(cs, regs[i], va);
+			radv_emit_shader_pointer(queue->device, cs, regs[i],
+						 va, true);
 		}
 	}
 }

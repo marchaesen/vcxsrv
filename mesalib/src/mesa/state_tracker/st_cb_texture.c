@@ -2491,19 +2491,10 @@ st_finalize_texture(struct gl_context *ctx,
    if (tObj->Immutable)
       return GL_TRUE;
 
-   if (_mesa_is_texture_complete(tObj, &tObj->Sampler)) {
-      /* The texture is complete and we know exactly how many mipmap levels
-       * are present/needed.  This is conditional because we may be called
-       * from the st_generate_mipmap() function when the texture object is
-       * incomplete.  In that case, we'll have set stObj->lastLevel before
-       * we get here.
-       */
-      if (stObj->base.Sampler.MinFilter == GL_LINEAR ||
-          stObj->base.Sampler.MinFilter == GL_NEAREST)
-         stObj->lastLevel = stObj->base.BaseLevel;
-      else
-         stObj->lastLevel = stObj->base._MaxLevel;
-   }
+   if (tObj->_MipmapComplete)
+      stObj->lastLevel = stObj->base._MaxLevel;
+   else if (tObj->_BaseComplete)
+      stObj->lastLevel = stObj->base.BaseLevel;
 
    /* Skip the loop over images in the common case of no images having
     * changed.  But if the GL_BASE_LEVEL or GL_MAX_LEVEL change to something we

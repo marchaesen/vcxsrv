@@ -27,8 +27,6 @@ struct XDMSeen {
 };
 
 struct X11Connection {
-    const struct plug_function_table *fn;
-    /* the above variable absolutely *must* be the first in this structure */
     unsigned char firstpkt[12];	       /* first X data packet */
     tree234 *authtree;
     struct X11Display *disp;
@@ -42,6 +40,8 @@ struct X11Connection {
     int peer_port;
     struct ssh_channel *c;        /* channel structure held by ssh.c */
     Socket s;
+
+    const Plug_vtable *plugvt;
 };
 
 static int xdmseen_cmp(void *a, void *b)
@@ -51,22 +51,6 @@ static int xdmseen_cmp(void *a, void *b)
 	   sa->time < sb->time ? -1 :
            memcmp(sa->clientid, sb->clientid, sizeof(sa->clientid));
 }
-
-/* Do-nothing "plug" implementation, used by x11_setup_display() when it
- * creates a trial connection (and then immediately closes it).
- * XXX: bit out of place here, could in principle live in a platform-
- *      independent network.c or something */
-static void dummy_plug_log(Plug p, int type, SockAddr addr, int port,
-			   const char *error_msg, int error_code) { }
-static void dummy_plug_closing
-     (Plug p, const char *error_msg, int error_code, int calling_back) { }
-static void dummy_plug_receive(Plug p, int urgent, char *data, int len) { }
-static void dummy_plug_sent(Plug p, int bufsize) { }
-static int dummy_plug_accepting(Plug p, accept_fn_t constructor, accept_ctx_t ctx) { return 1; }
-static const struct plug_function_table dummy_plug = {
-    dummy_plug_log, dummy_plug_closing, dummy_plug_receive,
-    dummy_plug_sent, dummy_plug_accepting
-};
 
 struct X11FakeAuth *x11_invent_fake_auth(tree234 *authtree, int authtype)
 {
@@ -306,8 +290,7 @@ struct X11Display *x11_setup_display(const char *display, Conf *conf)
 	if (!err) {
 	    /* Create trial connection to see if there is a useful Unix-domain
 	     * socket */
-	    const struct plug_function_table *dummy = &dummy_plug;
-	    Socket s = sk_new(sk_addr_dup(ux), 0, 0, 0, 0, 0, (Plug)&dummy);
+	    Socket s = sk_new(sk_addr_dup(ux), 0, 0, 0, 0, 0, nullplug);
 	    err = sk_socket_error(s);
 	    sk_close(s);
 	}
@@ -617,7 +600,8 @@ static void x11_send_init_error(struct X11Connection *conn,
 static void x11_closing(Plug plug, const char *error_msg, int error_code,
 			int calling_back)
 {
-    struct X11Connection *xconn = (struct X11Connection *) plug;
+    struct X11Connection *xconn = FROMFIELD(
+        plug, struct X11Connection, plugvt);
 
     if (error_msg) {
         /*
@@ -648,7 +632,8 @@ static void x11_closing(Plug plug, const char *error_msg, int error_code,
 
 static void x11_receive(Plug plug, int urgent, char *data, int len)
 {
-    struct X11Connection *xconn = (struct X11Connection *) plug;
+    struct X11Connection *xconn = FROMFIELD(
+        plug, struct X11Connection, plugvt);
 
     if (sshfwd_write(xconn->c, data, len) > 0) {
 	xconn->throttled = 1;
@@ -659,7 +644,8 @@ static void x11_receive(Plug plug, int urgent, char *data, int len)
 
 static void x11_sent(Plug plug, int bufsize)
 {
-    struct X11Connection *xconn = (struct X11Connection *) plug;
+    struct X11Connection *xconn = FROMFIELD(
+        plug, struct X11Connection, plugvt);
 
     sshfwd_unthrottle(xconn->c, bufsize);
 }
@@ -682,6 +668,14 @@ int x11_get_screen_number(char *display)
     return atoi(display + n + 1);
 }
 
+static const Plug_vtable X11Connection_plugvt = {
+    x11_log,
+    x11_closing,
+    x11_receive,
+    x11_sent,
+    NULL
+};
+
 /*
  * Called to set up the X11Connection structure, though this does not
  * yet connect to an actual server.
@@ -689,21 +683,13 @@ int x11_get_screen_number(char *display)
 struct X11Connection *x11_init(tree234 *authtree, void *c,
                                const char *peeraddr, int peerport)
 {
-    static const struct plug_function_table fn_table = {
-	x11_log,
-	x11_closing,
-	x11_receive,
-	x11_sent,
-	NULL
-    };
-
     struct X11Connection *xconn;
 
     /*
      * Open socket.
      */
     xconn = snew(struct X11Connection);
-    xconn->fn = &fn_table;
+    xconn->plugvt = &X11Connection_plugvt;
     xconn->auth_protocol = NULL;
     xconn->authtree = authtree;
     xconn->verified = 0;
@@ -787,7 +773,7 @@ static void x11_send_init_error(struct X11Connection *xconn,
     PUT_16BIT(xconn->firstpkt[0], reply + 6, msgsize >> 2);/* data len */
     memset(reply + 8, 0, msgsize);
     memcpy(reply + 8, full_message, msglen);
-    sshfwd_write(xconn->c, (char *)reply, 8 + msgsize);
+    sshfwd_write(xconn->c, reply, 8 + msgsize);
     sshfwd_write_eof(xconn->c);
     xconn->no_data_sent_to_x_client = FALSE;
     sfree(reply);
@@ -914,7 +900,7 @@ int x11_send(struct X11Connection *xconn, char *data, int len)
         xconn->disp = auth_matched->disp;
         xconn->s = new_connection(sk_addr_dup(xconn->disp->addr),
                                   xconn->disp->realhost, xconn->disp->port, 
-                                  0, 1, 0, 0, (Plug) xconn,
+                                  0, 1, 0, 0, &xconn->plugvt,
                                   sshfwd_get_conf(xconn->c));
         if ((err = sk_socket_error(xconn->s)) != NULL) {
             char *err_message = dupprintf("unable to connect to"
@@ -1057,8 +1043,7 @@ void *x11_make_greeting(int endian, int protomajor, int protominor,
         t = time(NULL);
         PUT_32BIT_MSB_FIRST(realauthdata+14, t);
 
-        des_encrypt_xdmauth((const unsigned char *)auth_data + 9,
-                            realauthdata, authdatalen);
+        des_encrypt_xdmauth((char *)auth_data + 9, realauthdata, authdatalen);
     } else {
         authdata = realauthdata;
         authdatalen = 0;

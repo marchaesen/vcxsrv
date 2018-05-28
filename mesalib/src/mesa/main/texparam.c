@@ -1979,33 +1979,32 @@ get_tex_parameterfv(struct gl_context *ctx,
          break;
 
       case GL_TEXTURE_IMMUTABLE_LEVELS:
-         if (_mesa_is_gles3(ctx) ||
-             (_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_view))
+         if (_mesa_is_gles3(ctx) || _mesa_has_texture_view(ctx))
             *params = (GLfloat) obj->ImmutableLevels;
          else
             goto invalid_pname;
          break;
 
       case GL_TEXTURE_VIEW_MIN_LEVEL:
-         if (!ctx->Extensions.ARB_texture_view)
+         if (!_mesa_has_texture_view(ctx))
             goto invalid_pname;
          *params = (GLfloat) obj->MinLevel;
          break;
 
       case GL_TEXTURE_VIEW_NUM_LEVELS:
-         if (!ctx->Extensions.ARB_texture_view)
+         if (!_mesa_has_texture_view(ctx))
             goto invalid_pname;
          *params = (GLfloat) obj->NumLevels;
          break;
 
       case GL_TEXTURE_VIEW_MIN_LAYER:
-         if (!ctx->Extensions.ARB_texture_view)
+         if (!_mesa_has_texture_view(ctx))
             goto invalid_pname;
          *params = (GLfloat) obj->MinLayer;
          break;
 
       case GL_TEXTURE_VIEW_NUM_LAYERS:
-         if (!ctx->Extensions.ARB_texture_view)
+         if (!_mesa_has_texture_view(ctx))
             goto invalid_pname;
          *params = (GLfloat) obj->NumLayers;
          break;

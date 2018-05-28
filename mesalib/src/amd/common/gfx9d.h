@@ -1123,7 +1123,6 @@
 #define   S_030960_HW_USE_ONLY(x)                                     (((unsigned)(x) & 0x1) << 23)
 #define   G_030960_HW_USE_ONLY(x)                                     (((x) >> 23) & 0x1)
 #define   C_030960_HW_USE_ONLY                                        0xFF7FFFFF
-#define R_030964_VGT_OBJECT_ID                                          0x030964
 #define R_030968_VGT_INSTANCE_BASE_ID                                   0x030968
 #define R_030A00_PA_SU_LINE_STIPPLE_VALUE                               0x030A00
 #define   S_030A00_LINE_STIPPLE_VALUE(x)                              (((unsigned)(x) & 0xFFFFFF) << 0)
@@ -1195,19 +1194,6 @@
 #define   S_030E04_ADDRESS(x)                                         (((unsigned)(x) & 0xFF) << 0)
 #define   G_030E04_ADDRESS(x)                                         (((x) >> 0) & 0xFF)
 #define   C_030E04_ADDRESS                                            0xFFFFFF00
-#define R_030E08_TA_GRAD_ADJ_UCONFIG                                    0x030E08
-#define   S_030E08_GRAD_ADJ_0(x)                                      (((unsigned)(x) & 0xFF) << 0)
-#define   G_030E08_GRAD_ADJ_0(x)                                      (((x) >> 0) & 0xFF)
-#define   C_030E08_GRAD_ADJ_0                                         0xFFFFFF00
-#define   S_030E08_GRAD_ADJ_1(x)                                      (((unsigned)(x) & 0xFF) << 8)
-#define   G_030E08_GRAD_ADJ_1(x)                                      (((x) >> 8) & 0xFF)
-#define   C_030E08_GRAD_ADJ_1                                         0xFFFF00FF
-#define   S_030E08_GRAD_ADJ_2(x)                                      (((unsigned)(x) & 0xFF) << 16)
-#define   G_030E08_GRAD_ADJ_2(x)                                      (((x) >> 16) & 0xFF)
-#define   C_030E08_GRAD_ADJ_2                                         0xFF00FFFF
-#define   S_030E08_GRAD_ADJ_3(x)                                      (((unsigned)(x) & 0xFF) << 24)
-#define   G_030E08_GRAD_ADJ_3(x)                                      (((x) >> 24) & 0xFF)
-#define   C_030E08_GRAD_ADJ_3                                         0x00FFFFFF
 #define R_030F00_DB_OCCLUSION_COUNT0_LOW                                0x030F00
 #define R_008F00_SQ_BUF_RSRC_WORD0                                      0x008F00
 #define R_030F04_DB_OCCLUSION_COUNT0_HI                                 0x030F04
@@ -4084,10 +4070,6 @@
 #define   S_028060_DISALLOW_OVERFLOW(x)                               (((unsigned)(x) & 0x1) << 3)
 #define   G_028060_DISALLOW_OVERFLOW(x)                               (((x) >> 3) & 0x1)
 #define   C_028060_DISALLOW_OVERFLOW                                  0xFFFFFFF7
-#define R_028064_DB_RENDER_FILTER                                       0x028064
-#define   S_028064_PS_INVOKE_MASK(x)                                  (((unsigned)(x) & 0xFFFF) << 0)
-#define   G_028064_PS_INVOKE_MASK(x)                                  (((x) >> 0) & 0xFFFF)
-#define   C_028064_PS_INVOKE_MASK                                     0xFFFF0000
 #define R_028068_DB_Z_INFO2                                             0x028068
 #define   S_028068_EPITCH(x)                                          (((unsigned)(x) & 0xFFFF) << 0)
 #define   G_028068_EPITCH(x)                                          (((x) >> 0) & 0xFFFF)
@@ -4417,9 +4399,6 @@
 #define   S_02835C_NUM_RB_PER_SE(x)                                   (((unsigned)(x) & 0x03) << 5)
 #define   G_02835C_NUM_RB_PER_SE(x)                                   (((x) >> 5) & 0x03)
 #define   C_02835C_NUM_RB_PER_SE                                      0xFFFFFF9F
-#define   S_02835C_DISABLE_SRBSL_DB_OPTIMIZED_PACKING(x)              (((unsigned)(x) & 0x1) << 8)
-#define   G_02835C_DISABLE_SRBSL_DB_OPTIMIZED_PACKING(x)              (((x) >> 8) & 0x1)
-#define   C_02835C_DISABLE_SRBSL_DB_OPTIMIZED_PACKING                 0xFFFFFEFF
 #define R_028360_CP_PERFMON_CNTX_CNTL                                   0x028360
 #define   S_028360_PERFMON_ENABLE(x)                                  (((unsigned)(x) & 0x1) << 31)
 #define   G_028360_PERFMON_ENABLE(x)                                  (((x) >> 31) & 0x1)
@@ -4463,26 +4442,6 @@
 #define   S_0283A8_BOT_QTR(x)                                         (((unsigned)(x) & 0xFF) << 24)
 #define   G_0283A8_BOT_QTR(x)                                         (((x) >> 24) & 0xFF)
 #define   C_0283A8_BOT_QTR                                            0x00FFFFFF
-#define R_0283AC_PA_SC_FOV_WINDOW_LR                                    0x0283AC
-#define   S_0283AC_LEFT_EYE_FOV_LEFT(x)                               (((unsigned)(x) & 0xFF) << 0)
-#define   G_0283AC_LEFT_EYE_FOV_LEFT(x)                               (((x) >> 0) & 0xFF)
-#define   C_0283AC_LEFT_EYE_FOV_LEFT                                  0xFFFFFF00
-#define   S_0283AC_LEFT_EYE_FOV_RIGHT(x)                              (((unsigned)(x) & 0xFF) << 8)
-#define   G_0283AC_LEFT_EYE_FOV_RIGHT(x)                              (((x) >> 8) & 0xFF)
-#define   C_0283AC_LEFT_EYE_FOV_RIGHT                                 0xFFFF00FF
-#define   S_0283AC_RIGHT_EYE_FOV_LEFT(x)                              (((unsigned)(x) & 0xFF) << 16)
-#define   G_0283AC_RIGHT_EYE_FOV_LEFT(x)                              (((x) >> 16) & 0xFF)
-#define   C_0283AC_RIGHT_EYE_FOV_LEFT                                 0xFF00FFFF
-#define   S_0283AC_RIGHT_EYE_FOV_RIGHT(x)                             (((unsigned)(x) & 0xFF) << 24)
-#define   G_0283AC_RIGHT_EYE_FOV_RIGHT(x)                             (((x) >> 24) & 0xFF)
-#define   C_0283AC_RIGHT_EYE_FOV_RIGHT                                0x00FFFFFF
-#define R_0283B0_PA_SC_FOV_WINDOW_TB                                    0x0283B0
-#define   S_0283B0_FOV_TOP(x)                                         (((unsigned)(x) & 0xFF) << 0)
-#define   G_0283B0_FOV_TOP(x)                                         (((x) >> 0) & 0xFF)
-#define   C_0283B0_FOV_TOP                                            0xFFFFFF00
-#define   S_0283B0_FOV_BOT(x)                                         (((unsigned)(x) & 0xFF) << 8)
-#define   G_0283B0_FOV_BOT(x)                                         (((x) >> 8) & 0xFF)
-#define   C_0283B0_FOV_BOT                                            0xFFFF00FF
 #define R_02840C_VGT_MULTI_PRIM_IB_RESET_INDX                           0x02840C
 #define R_028414_CB_BLEND_RED                                           0x028414
 #define R_028418_CB_BLEND_GREEN                                         0x028418
@@ -5772,9 +5731,6 @@
 #define   S_028830_RECTANGLE_FILTER_DISABLE(x)                        (((unsigned)(x) & 0x1) << 4)
 #define   G_028830_RECTANGLE_FILTER_DISABLE(x)                        (((x) >> 4) & 0x1)
 #define   C_028830_RECTANGLE_FILTER_DISABLE                           0xFFFFFFEF
-#define   S_028830_SRBSL_ENABLE(x)                                    (((unsigned)(x) & 0x1) << 5)
-#define   G_028830_SRBSL_ENABLE(x)                                    (((x) >> 5) & 0x1)
-#define   C_028830_SRBSL_ENABLE                                       0xFFFFFFDF
 #define R_028834_PA_CL_OBJPRIM_ID_CNTL                                  0x028834
 #define   S_028834_OBJ_ID_SEL(x)                                      (((unsigned)(x) & 0x1) << 0)
 #define   G_028834_OBJ_ID_SEL(x)                                      (((x) >> 0) & 0x1)
@@ -6273,10 +6229,6 @@
 #define   S_028A98_OBJECT_ID_INST_EN(x)                               (((unsigned)(x) & 0x1) << 3)
 #define   G_028A98_OBJECT_ID_INST_EN(x)                               (((x) >> 3) & 0x1)
 #define   C_028A98_OBJECT_ID_INST_EN                                  0xFFFFFFF7
-#define R_028A9C_VGT_INDEX_PAYLOAD_CNTL                                 0x028A9C
-#define   S_028A9C_COMPOUND_INDEX_EN(x)                               (((unsigned)(x) & 0x1) << 0)
-#define   G_028A9C_COMPOUND_INDEX_EN(x)                               (((x) >> 0) & 0x1)
-#define   C_028A9C_COMPOUND_INDEX_EN                                  0xFFFFFFFE
 #define R_028AA0_VGT_INSTANCE_STEP_RATE_0                               0x028AA0
 #define R_028AA4_VGT_INSTANCE_STEP_RATE_1                               0x028AA4
 #define R_028AAC_VGT_ESGS_RING_ITEMSIZE                                 0x028AAC

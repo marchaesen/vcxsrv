@@ -370,9 +370,17 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
        * checking for wrap.
        */
       if (ce->kind == XCB_PRESENT_COMPLETE_KIND_PIXMAP) {
-         draw->recv_sbc = (draw->send_sbc & 0xffffffff00000000LL) | ce->serial;
-         if (draw->recv_sbc > draw->send_sbc)
-            draw->recv_sbc -= 0x100000000;
+         uint64_t recv_sbc = (draw->send_sbc & 0xffffffff00000000LL) | ce->serial;
+
+         /* Only assume wraparound if that results in exactly the previous
+          * SBC + 1, otherwise ignore received SBC > sent SBC (those are
+          * probably from a previous loader_dri3_drawable instance) to avoid
+          * calculating bogus target MSC values in loader_dri3_swap_buffers_msc
+          */
+         if (recv_sbc <= draw->send_sbc)
+            draw->recv_sbc = recv_sbc;
+         else if (recv_sbc == (draw->recv_sbc + 0x100000001ULL))
+            draw->recv_sbc = recv_sbc - 0x100000000ULL;
 
          /* When moving from flip to copy, we assume that we can allocate in
           * a more optimal way if we don't need to cater for the display

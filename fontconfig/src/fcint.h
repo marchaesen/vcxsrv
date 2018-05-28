@@ -566,7 +566,6 @@ struct _FcConfig {
     FcStrSet	*availConfigFiles;  /* config files available */
     FcPtrList	*rulesetList;	    /* List of rulesets being installed */
     FcHashTable *uuid_table;	    /* UUID table for cachedirs */
-    FcHashTable *alias_table;	    /* alias table for cachedirs */
 };
 
 typedef struct _FcFileTime {
@@ -617,8 +616,12 @@ FcCacheObjectReference (void *object);
 FcPrivate void
 FcCacheObjectDereference (void *object);
 
+FcPrivate void *
+FcCacheAllocate (FcCache *cache, size_t len);
+
 FcPrivate void
 FcCacheFini (void);
+
 
 FcPrivate void
 FcDirCacheReference (FcCache *cache, int nref);
@@ -708,7 +711,7 @@ FcConfigModifiedTime (FcConfig *config);
 
 FcPrivate FcBool
 FcConfigAddCache (FcConfig *config, FcCache *cache,
-		  FcSetName set, FcStrSet *dirSet);
+		  FcSetName set, FcStrSet *dirSet, FcChar8 *forDir);
 
 FcPrivate FcRuleSet *
 FcRuleSetCreate (const FcChar8 *name);
@@ -1158,6 +1161,9 @@ FcPatternIterGetObjectId (const FcPattern *pat, FcPatternIter *iter);
 
 FcPrivate FcValueListPtr
 FcPatternIterGetValues (const FcPattern *pat, FcPatternIter *iter);
+
+FcPrivate FcPattern *
+FcPatternCacheRewriteFile (const FcPattern *pat, FcCache *cache, const FcChar8 *relocated_font_file);
 
 FcPrivate FcChar32
 FcStringHash (const FcChar8 *s);

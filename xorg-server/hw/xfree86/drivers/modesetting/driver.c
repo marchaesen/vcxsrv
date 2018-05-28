@@ -200,12 +200,12 @@ open_hw(const char *dev)
     int fd;
 
     if (dev)
-        fd = open(dev, O_RDWR, 0);
+        fd = open(dev, O_RDWR | O_CLOEXEC, 0);
     else {
         dev = getenv("KMSDEVICE");
-        if ((NULL == dev) || ((fd = open(dev, O_RDWR, 0)) == -1)) {
+        if ((NULL == dev) || ((fd = open(dev, O_RDWR | O_CLOEXEC, 0)) == -1)) {
             dev = "/dev/dri/card0";
-            fd = open(dev, O_RDWR, 0);
+            fd = open(dev, O_RDWR | O_CLOEXEC, 0);
         }
     }
     if (fd == -1)

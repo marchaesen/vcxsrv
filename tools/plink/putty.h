@@ -16,16 +16,11 @@
 #endif
 #endif
 
-#ifndef DONE_TYPEDEFS
-#define DONE_TYPEDEFS
-typedef struct conf_tag Conf;
-typedef struct backend_tag Backend;
-typedef struct terminal_tag Terminal;
-#endif
-
+#include "defs.h"
 #include "puttyps.h"
 #include "network.h"
 #include "misc.h"
+#include "marshal.h"
 
 /*
  * We express various time intervals in unsigned long minutes, but may need to
@@ -538,8 +533,6 @@ GLOBAL int loaded_session;
  */
 GLOBAL char *cmdline_session_name;
 
-struct RSAKey;			       /* be a little careful of scope */
-
 /*
  * Mechanism for getting text strings such as usernames and passwords
  * from the front-end.
@@ -692,8 +685,8 @@ void frontend_echoedit_update(void *frontend, int echo, int edit);
  * special commands changes. It does not need to invoke it at session
  * shutdown. */
 void update_specials_menu(void *frontend);
-int from_backend(void *frontend, int is_stderr, const char *data, int len);
-int from_backend_untrusted(void *frontend, const char *data, int len);
+int from_backend(void *frontend, int is_stderr, const void *data, int len);
+int from_backend_untrusted(void *frontend, const void *data, int len);
 /* Called when the back end wants to indicate that EOF has arrived on
  * the server-to-client stream. Returns FALSE to indicate that we
  * intend to keep the session open in the other direction, or TRUE to
@@ -1021,8 +1014,7 @@ void conf_del_str_str(Conf *conf, int key, const char *subkey);
 void conf_set_filename(Conf *conf, int key, const Filename *val);
 void conf_set_fontspec(Conf *conf, int key, const FontSpec *val);
 /* Serialisation functions for Duplicate Session */
-int conf_serialised_size(Conf *conf);
-void conf_serialise(Conf *conf, void *data);
+void conf_serialise(BinarySink *bs, Conf *conf);
 int conf_deserialise(Conf *conf, void *data, int maxsize);/*returns size used*/
 
 /*
@@ -1036,7 +1028,7 @@ int conf_deserialise(Conf *conf, void *data, int maxsize);/*returns size used*/
  */
 FontSpec *fontspec_copy(const FontSpec *f);
 void fontspec_free(FontSpec *f);
-int fontspec_serialise(FontSpec *f, void *data);
+void fontspec_serialise(BinarySink *bs, FontSpec *f);
 FontSpec *fontspec_deserialise(void *data, int maxsize, int *used);
 
 /*
@@ -1111,8 +1103,8 @@ void term_reconfig(Terminal *, Conf *);
 void term_request_copy(Terminal *, const int *clipboards, int n_clipboards);
 void term_request_paste(Terminal *, int clipboard);
 void term_seen_key_event(Terminal *); 
-int term_data(Terminal *, int is_stderr, const char *data, int len);
-int term_data_untrusted(Terminal *, const char *data, int len);
+int term_data(Terminal *, int is_stderr, const void *data, int len);
+int term_data_untrusted(Terminal *, const void *data, int len);
 void term_provide_resize_fn(Terminal *term,
 			    void (*resize_fn)(void *, int, int),
 			    void *resize_ctx);
@@ -1183,7 +1175,7 @@ extern Backend ssh_backend;
 void *ldisc_create(Conf *, Terminal *, Backend *, void *, void *);
 void ldisc_configure(void *, Conf *);
 void ldisc_free(void *);
-void ldisc_send(void *handle, const char *buf, int len, int interactive);
+void ldisc_send(void *handle, const void *buf, int len, int interactive);
 void ldisc_echoedit_update(void *handle);
 
 /*
@@ -1268,14 +1260,6 @@ int mk_wcwidth_cjk(unsigned int ucs);
 int mk_wcswidth_cjk(const unsigned int *pwcs, size_t n);
 
 /*
- * Exports from mscrypto.c
- */
-#ifdef MSCRYPTOAPI
-int crypto_startup();
-void crypto_wrapup();
-#endif
-
-/*
  * Exports from pageantc.c.
  * 
  * agent_query returns NULL for here's-a-response, and non-NULL for
@@ -1300,10 +1284,10 @@ void crypto_wrapup();
  */
 typedef struct agent_pending_query agent_pending_query;
 agent_pending_query *agent_query(
-    void *in, int inlen, void **out, int *outlen,
+    strbuf *in, void **out, int *outlen,
     void (*callback)(void *, void *, int), void *callback_ctx);
 void agent_cancel_query(agent_pending_query *);
-void agent_query_synchronous(void *in, int inlen, void **out, int *outlen);
+void agent_query_synchronous(strbuf *in, void **out, int *outlen);
 int agent_exists(void);
 
 /*
@@ -1471,7 +1455,7 @@ int filename_equal(const Filename *f1, const Filename *f2);
 int filename_is_null(const Filename *fn);
 Filename *filename_copy(const Filename *fn);
 void filename_free(Filename *fn);
-int filename_serialise(const Filename *f, void *data);
+void filename_serialise(BinarySink *bs, const Filename *f);
 Filename *filename_deserialise(void *data, int maxsize, int *used);
 char *get_username(void);	       /* return value needs freeing */
 char *get_random_data(int bytes, const char *device); /* used in cmdgen.c */
@@ -1595,10 +1579,15 @@ unsigned long timing_last_clock(void);
  * actually running it (e.g. so as to put a zero timeout on a select()
  * call) then it can call toplevel_callback_pending(), which will
  * return true if at least one callback is in the queue.
+ *
+ * run_toplevel_callbacks() returns TRUE if it ran any actual code.
+ * This can be used as a means of speculatively terminating a select
+ * loop, as in PSFTP, for example - if a callback has run then perhaps
+ * it might have done whatever the loop's caller was waiting for.
  */
 typedef void (*toplevel_callback_fn_t)(void *ctx);
 void queue_toplevel_callback(toplevel_callback_fn_t fn, void *ctx);
-void run_toplevel_callbacks(void);
+int run_toplevel_callbacks(void);
 int toplevel_callback_pending(void);
 void delete_callbacks_for_context(void *ctx);
 

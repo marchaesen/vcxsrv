@@ -836,20 +836,20 @@ glamor_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
         glamor_get_screen_private(pixmap->drawable.pScreen);
 
     if (!glamor_priv->dri3_enabled)
-        return -1;
+        return 0;
     switch (pixmap_priv->type) {
     case GLAMOR_TEXTURE_DRM:
     case GLAMOR_TEXTURE_ONLY:
         if (!glamor_pixmap_ensure_fbo(pixmap, pixmap->drawable.depth == 30 ?
                                       GL_RGB10_A2 : GL_RGBA, 0))
-            return -1;
+            return 0;
         return glamor_egl_fds_from_pixmap(screen, pixmap, fds,
                                           strides, offsets,
                                           modifier);
     default:
         break;
     }
-    return -1;
+    return 0;
 }
 
 _X_EXPORT int
@@ -865,7 +865,7 @@ glamor_fd_from_pixmap(ScreenPtr screen,
                                  &modifier);
 
     /* Pixmaps with multi-planes/modifier are not supported in this interface */
-    if (ret > 1) {
+    if (ret != 1 || offsets[0] != 0) {
         while (ret > 0)
             close(fds[--ret]);
         return -1;

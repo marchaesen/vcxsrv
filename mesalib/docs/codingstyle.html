@@ -83,7 +83,7 @@ We try to quote the OpenGL specification where prudent:
     *     "An INVALID_OPERATION error is generated for any of the following
     *     conditions:
     *
-    *     * <length> is zero."
+    *     * &lt;length&gt; is zero."
     *
     * Additionally, page 94 of the PDF of the OpenGL 4.5 core spec
     * (30.10.2014) also says this, so it's no longer allowed for desktop GL,
@@ -94,7 +94,7 @@ Function comment example:
 <pre>
    /**
     * Create and initialize a new buffer object.  Called via the
-    * ctx->Driver.CreateObject() driver callback function.
+    * ctx-&gt;Driver.CreateObject() driver callback function.
     * \param  name  integer name of the object
     * \param  type  one of GL_FOO, GL_BAR, etc.
     * \return  pointer to new object or NULL if error
