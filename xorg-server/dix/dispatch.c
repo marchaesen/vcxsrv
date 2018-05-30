@@ -407,6 +407,13 @@ Bool isThereSomething(Bool are_ready);
 
 void DispatchQueuedEvents(Bool wait)
 {
+  static int reentrantcheck;
+  if (!wait)
+  {
+    if (reentrantcheck)
+      return;
+    reentrantcheck=1;
+  }
   while (1)
   {
         if (InputCheckPending()) {
@@ -422,7 +429,10 @@ void DispatchQueuedEvents(Bool wait)
         else
         {
             if (!isThereSomething(clients_are_ready()))
+            {
+                reentrantcheck=0;
                 return;
+            }
         }
 
        /*****************
@@ -541,7 +551,9 @@ void DispatchQueuedEvents(Bool wait)
                 client->smart_stop_tick = SmartScheduleTime;
         }
         dispatchException &= ~DE_PRIORITYCHANGE;
-  }
+    }
+    if (!wait)
+        reentrantcheck=0;
 }
 
 void
