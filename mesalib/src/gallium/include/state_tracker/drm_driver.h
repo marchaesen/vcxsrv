@@ -4,57 +4,12 @@
 
 #include "pipe/p_compiler.h"
 
+#include "winsys_handle.h"
+
 struct pipe_screen;
 struct pipe_screen_config;
 struct pipe_context;
 struct pipe_resource;
-
-#define DRM_API_HANDLE_TYPE_SHARED 0
-#define DRM_API_HANDLE_TYPE_KMS    1
-#define DRM_API_HANDLE_TYPE_FD     2
-
-
-/**
- * For use with pipe_screen::{texture_from_handle|texture_get_handle}.
- */
-struct winsys_handle
-{
-   /**
-    * Input for texture_from_handle, valid values are
-    * DRM_API_HANDLE_TYPE_SHARED or DRM_API_HANDLE_TYPE_FD.
-    * Input to texture_get_handle,
-    * to select handle for kms, flink, or prime.
-    */
-   unsigned type;
-   /**
-    * Input for texture_get_handle, allows to export the offset
-    * of a specific layer of an array texture.
-    */
-   unsigned layer;
-   /**
-    * Input to texture_from_handle.
-    * Output for texture_get_handle.
-    */
-   unsigned handle;
-   /**
-    * Input to texture_from_handle.
-    * Output for texture_get_handle.
-    */
-   unsigned stride;
-   /**
-    * Input to texture_from_handle.
-    * Output for texture_get_handle.
-    */
-   unsigned offset;
-
-   /**
-    * Input to resource_from_handle.
-    * Output from resource_get_handle.
-    */
-   uint64_t modifier;
-};
-
-
 
 /**
  * Configuration queries.

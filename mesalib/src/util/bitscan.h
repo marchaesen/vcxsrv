@@ -123,6 +123,17 @@ util_is_power_of_two_or_zero(unsigned v)
    return (v & (v - 1)) == 0;
 }
 
+/* Determine if an uint64_t value is a power of two.
+ *
+ * \note
+ * Zero is treated as a power of two.
+ */
+static inline bool
+util_is_power_of_two_or_zero64(uint64_t v)
+{
+   return (v & (v - 1)) == 0;
+}
+
 /* Determine if an unsigned value is a power of two.
  *
  * \note

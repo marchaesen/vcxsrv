@@ -563,6 +563,8 @@ _mesa_bytes_per_vertex_attrib(GLint comps, GLenum type)
          return sizeof(GLuint);
       else
          return -1;
+   case GL_UNSIGNED_INT64_ARB:
+      return comps * 8;
    default:
       return -1;
    }

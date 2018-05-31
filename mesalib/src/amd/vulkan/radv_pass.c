@@ -50,7 +50,7 @@ VkResult radv_CreateRenderPass(
 	pass = vk_alloc2(&device->alloc, pAllocator, size, 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (pass == NULL)
-		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	memset(pass, 0, size);
 	pass->attachment_count = pCreateInfo->attachmentCount;
@@ -98,7 +98,7 @@ VkResult radv_CreateRenderPass(
 				    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 		if (pass->subpass_attachments == NULL) {
 			vk_free2(&device->alloc, pAllocator, pass);
-			return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+			return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 		}
 	} else
 		pass->subpass_attachments = NULL;

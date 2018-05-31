@@ -191,7 +191,7 @@ struct pipe_screen {
     * another process by first creating a pipe texture and then calling
     * resource_get_handle.
     *
-    * NOTE: in the case of DRM_API_HANDLE_TYPE_FD handles, the caller
+    * NOTE: in the case of WINSYS_HANDLE_TYPE_FD handles, the caller
     * retains ownership of the FD.  (This is consistent with
     * EGL_EXT_image_dma_buf_import)
     *
@@ -238,7 +238,7 @@ struct pipe_screen {
     * the resource into a format compatible for sharing. The use case is
     * OpenGL-OpenCL interop. The context parameter is allowed to be NULL.
     *
-    * NOTE: in the case of DRM_API_HANDLE_TYPE_FD handles, the caller
+    * NOTE: in the case of WINSYS_HANDLE_TYPE_FD handles, the caller
     * takes ownership of the FD.  (This is consistent with
     * EGL_MESA_image_dma_buf_export)
     *
@@ -389,7 +389,7 @@ struct pipe_screen {
     * Then the underlying memory object is then exported through interfaces
     * compatible with EXT_external_resources.
     *
-    * Note: For DRM_API_HANDLE_TYPE_FD handles, the caller retains ownership
+    * Note: For WINSYS_HANDLE_TYPE_FD handles, the caller retains ownership
     * of the fd.
     *
     * \param handle  A handle representing the memory object to import

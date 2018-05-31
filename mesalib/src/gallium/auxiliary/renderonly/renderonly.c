@@ -98,7 +98,7 @@ renderonly_create_kms_dumb_buffer_for_resource(struct pipe_resource *rsc,
 
    /* fill in winsys handle */
    memset(out_handle, 0, sizeof(*out_handle));
-   out_handle->type = DRM_API_HANDLE_TYPE_FD;
+   out_handle->type = WINSYS_HANDLE_TYPE_FD;
    out_handle->stride = create_dumb.pitch;
 
    err = drmPrimeHandleToFD(ro->kms_fd, create_dumb.handle, O_CLOEXEC,
@@ -130,7 +130,7 @@ renderonly_create_gpu_import_for_resource(struct pipe_resource *rsc,
    boolean status;
    int fd, err;
    struct winsys_handle handle = {
-      .type = DRM_API_HANDLE_TYPE_FD
+      .type = WINSYS_HANDLE_TYPE_FD
    };
 
    scanout = CALLOC_STRUCT(renderonly_scanout);

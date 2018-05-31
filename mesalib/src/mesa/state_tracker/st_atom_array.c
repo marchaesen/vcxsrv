@@ -324,7 +324,6 @@ static void init_velement_lowered(const struct st_vertex_program *vp,
                                   int src_offset, int instance_divisor,
                                   int vbo_index, int idx)
 {
-   const unsigned format = st_pipe_vertex_format(attrib);
    const GLubyte nr_components = attrib->Size;
 
    if (attrib->Doubles) {
@@ -358,6 +357,8 @@ static void init_velement_lowered(const struct st_vertex_program *vp,
          }
       }
    } else {
+      const unsigned format = st_pipe_vertex_format(attrib);
+
       init_velement(&velements[idx], src_offset,
                     format, instance_divisor, vbo_index);
    }

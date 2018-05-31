@@ -864,88 +864,98 @@ driUpdateFramebufferSize(struct gl_context *ctx, const __DRIdrawable *dPriv)
    }
 }
 
+/*
+ * Note: the first match is returned, which is important for formats like
+ * __DRI_IMAGE_FORMAT_R8 which maps to both MESA_FORMAT_{R,L}_UNORM8
+ */
+static const struct {
+   uint32_t    image_format;
+   mesa_format mesa_format;
+} format_mapping[] = {
+   {
+      .image_format = __DRI_IMAGE_FORMAT_RGB565,
+      .mesa_format  =        MESA_FORMAT_B5G6R5_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_ARGB1555,
+      .mesa_format  =        MESA_FORMAT_B5G5R5A1_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_XRGB8888,
+      .mesa_format  =        MESA_FORMAT_B8G8R8X8_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_ARGB2101010,
+      .mesa_format  =        MESA_FORMAT_B10G10R10A2_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_XRGB2101010,
+      .mesa_format  =        MESA_FORMAT_B10G10R10X2_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_ABGR2101010,
+      .mesa_format  =        MESA_FORMAT_R10G10B10A2_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_XBGR2101010,
+      .mesa_format  =        MESA_FORMAT_R10G10B10X2_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_ARGB8888,
+      .mesa_format  =        MESA_FORMAT_B8G8R8A8_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_ABGR8888,
+      .mesa_format  =        MESA_FORMAT_R8G8B8A8_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_XBGR8888,
+      .mesa_format  =        MESA_FORMAT_R8G8B8X8_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_R8,
+      .mesa_format  =        MESA_FORMAT_R_UNORM8,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_R8,
+      .mesa_format  =        MESA_FORMAT_L_UNORM8,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_GR88,
+      .mesa_format  =        MESA_FORMAT_R8G8_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_GR88,
+      .mesa_format  =        MESA_FORMAT_L8A8_UNORM,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_SABGR8,
+      .mesa_format  =        MESA_FORMAT_R8G8B8A8_SRGB,
+   },
+   {
+      .image_format = __DRI_IMAGE_FORMAT_SARGB8,
+      .mesa_format  =        MESA_FORMAT_B8G8R8A8_SRGB,
+   },
+};
+
 uint32_t
 driGLFormatToImageFormat(mesa_format format)
 {
-   switch (format) {
-   case MESA_FORMAT_B5G6R5_UNORM:
-      return __DRI_IMAGE_FORMAT_RGB565;
-   case MESA_FORMAT_B5G5R5A1_UNORM:
-      return __DRI_IMAGE_FORMAT_ARGB1555;
-   case MESA_FORMAT_B8G8R8X8_UNORM:
-      return __DRI_IMAGE_FORMAT_XRGB8888;
-   case MESA_FORMAT_B10G10R10A2_UNORM:
-      return __DRI_IMAGE_FORMAT_ARGB2101010;
-   case MESA_FORMAT_B10G10R10X2_UNORM:
-      return __DRI_IMAGE_FORMAT_XRGB2101010;
-   case MESA_FORMAT_R10G10B10A2_UNORM:
-      return __DRI_IMAGE_FORMAT_ABGR2101010;
-   case MESA_FORMAT_R10G10B10X2_UNORM:
-      return __DRI_IMAGE_FORMAT_XBGR2101010;
-   case MESA_FORMAT_B8G8R8A8_UNORM:
-      return __DRI_IMAGE_FORMAT_ARGB8888;
-   case MESA_FORMAT_R8G8B8A8_UNORM:
-      return __DRI_IMAGE_FORMAT_ABGR8888;
-   case MESA_FORMAT_R8G8B8X8_UNORM:
-      return __DRI_IMAGE_FORMAT_XBGR8888;
-   case MESA_FORMAT_L_UNORM8:
-   case MESA_FORMAT_R_UNORM8:
-      return __DRI_IMAGE_FORMAT_R8;
-   case MESA_FORMAT_L8A8_UNORM:
-   case MESA_FORMAT_R8G8_UNORM:
-      return __DRI_IMAGE_FORMAT_GR88;
-   case MESA_FORMAT_NONE:
-      return __DRI_IMAGE_FORMAT_NONE;
-   case MESA_FORMAT_R8G8B8A8_SRGB:
-      return __DRI_IMAGE_FORMAT_SABGR8;
-   case MESA_FORMAT_B8G8R8A8_SRGB:
-      return __DRI_IMAGE_FORMAT_SARGB8;
-   default:
-      return 0;
-   }
+   for (size_t i = 0; i < ARRAY_SIZE(format_mapping); i++)
+      if (format_mapping[i].mesa_format == format)
+         return format_mapping[i].image_format;
+
+   return __DRI_IMAGE_FORMAT_NONE;
 }
 
 mesa_format
 driImageFormatToGLFormat(uint32_t image_format)
 {
-   switch (image_format) {
-   case __DRI_IMAGE_FORMAT_RGB565:
-      return MESA_FORMAT_B5G6R5_UNORM;
-   case __DRI_IMAGE_FORMAT_ARGB1555:
-      return MESA_FORMAT_B5G5R5A1_UNORM;
-   case __DRI_IMAGE_FORMAT_XRGB8888:
-      return MESA_FORMAT_B8G8R8X8_UNORM;
-   case __DRI_IMAGE_FORMAT_ARGB2101010:
-      return MESA_FORMAT_B10G10R10A2_UNORM;
-   case __DRI_IMAGE_FORMAT_XRGB2101010:
-      return MESA_FORMAT_B10G10R10X2_UNORM;
-   case __DRI_IMAGE_FORMAT_ABGR2101010:
-      return MESA_FORMAT_R10G10B10A2_UNORM;
-   case __DRI_IMAGE_FORMAT_XBGR2101010:
-      return MESA_FORMAT_R10G10B10X2_UNORM;
-   case __DRI_IMAGE_FORMAT_ARGB8888:
-      return MESA_FORMAT_B8G8R8A8_UNORM;
-   case __DRI_IMAGE_FORMAT_ABGR8888:
-      return MESA_FORMAT_R8G8B8A8_UNORM;
-   case __DRI_IMAGE_FORMAT_XBGR8888:
-      return MESA_FORMAT_R8G8B8X8_UNORM;
-   case __DRI_IMAGE_FORMAT_R8:
-      return MESA_FORMAT_R_UNORM8;
-   case __DRI_IMAGE_FORMAT_R16:
-      return MESA_FORMAT_R_UNORM16;
-   case __DRI_IMAGE_FORMAT_GR88:
-      return MESA_FORMAT_R8G8_UNORM;
-   case __DRI_IMAGE_FORMAT_GR1616:
-      return MESA_FORMAT_R16G16_UNORM;
-   case __DRI_IMAGE_FORMAT_SARGB8:
-      return MESA_FORMAT_B8G8R8A8_SRGB;
-   case __DRI_IMAGE_FORMAT_SABGR8:
-      return MESA_FORMAT_R8G8B8A8_SRGB;
-   case __DRI_IMAGE_FORMAT_NONE:
-      return MESA_FORMAT_NONE;
-   default:
-      return MESA_FORMAT_NONE;
-   }
+   for (size_t i = 0; i < ARRAY_SIZE(format_mapping); i++)
+      if (format_mapping[i].image_format == image_format)
+         return format_mapping[i].mesa_format;
+
+   return MESA_FORMAT_NONE;
 }
 
 /** Image driver interface */

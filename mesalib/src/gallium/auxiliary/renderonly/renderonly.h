@@ -85,7 +85,7 @@ renderonly_get_handle(struct renderonly_scanout *scanout,
    if (!scanout)
       return FALSE;
 
-   assert(handle->type == DRM_API_HANDLE_TYPE_KMS);
+   assert(handle->type == WINSYS_HANDLE_TYPE_KMS);
    handle->handle = scanout->handle;
    handle->stride = scanout->stride;
 

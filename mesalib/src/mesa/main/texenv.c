@@ -103,7 +103,7 @@ set_env_color(struct gl_context *ctx,
 
 
 /** Set an RGB or A combiner mode/function */
-static void
+static bool
 set_combiner_mode(struct gl_context *ctx,
                   struct gl_fixedfunc_texture_unit *texUnit,
                   GLenum pname, GLenum mode)
@@ -144,32 +144,35 @@ set_combiner_mode(struct gl_context *ctx,
 
    if (!legal) {
       TE_ERROR(GL_INVALID_ENUM, "glTexEnv(param=%s)", mode);
-      return;
+      return false;
    }
 
    switch (pname) {
    case GL_COMBINE_RGB:
       if (texUnit->Combine.ModeRGB == mode)
-         return;
+         return true;
       FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
       texUnit->Combine.ModeRGB = mode;
       break;
 
    case GL_COMBINE_ALPHA:
       if (texUnit->Combine.ModeA == mode)
-         return;
+         return true;
       FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
       texUnit->Combine.ModeA = mode;
       break;
    default:
       TE_ERROR(GL_INVALID_ENUM, "glTexEnv(pname=%s)", pname);
+      return false;
    }
+
+   return true;
 }
 
 
 
 /** Set an RGB or A combiner source term */
-static void
+static bool
 set_combiner_source(struct gl_context *ctx,
                     struct gl_fixedfunc_texture_unit *texUnit,
                     GLenum pname, GLenum param)
@@ -199,13 +202,13 @@ set_combiner_source(struct gl_context *ctx,
       break;
    default:
       TE_ERROR(GL_INVALID_ENUM, "glTexEnv(pname=%s)", pname);
-      return;
+      return false;
    }
 
    if ((term == 3) && (ctx->API != API_OPENGL_COMPAT
                        || !ctx->Extensions.NV_texture_env_combine4)) {
       TE_ERROR(GL_INVALID_ENUM, "glTexEnv(pname=%s)", pname);
-      return;
+      return false;
    }
 
    assert(term < MAX_COMBINER_TERMS);
@@ -246,7 +249,7 @@ set_combiner_source(struct gl_context *ctx,
 
    if (!legal) {
       TE_ERROR(GL_INVALID_ENUM, "glTexEnv(param=%s)", param);
-      return;
+      return false;
    }
 
    FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
@@ -255,11 +258,13 @@ set_combiner_source(struct gl_context *ctx,
       texUnit->Combine.SourceA[term] = param;
    else
       texUnit->Combine.SourceRGB[term] = param;
+
+   return true;
 }
 
 
 /** Set an RGB or A combiner operand term */
-static void
+static bool
 set_combiner_operand(struct gl_context *ctx,
                      struct gl_fixedfunc_texture_unit *texUnit,
                      GLenum pname, GLenum param)
@@ -286,13 +291,13 @@ set_combiner_operand(struct gl_context *ctx,
       break;
    default:
       TE_ERROR(GL_INVALID_ENUM, "glTexEnv(pname=%s)", pname);
-      return;
+      return false;
    }
 
    if ((term == 3) && (ctx->API != API_OPENGL_COMPAT
                        || !ctx->Extensions.NV_texture_env_combine4)) {
       TE_ERROR(GL_INVALID_ENUM, "glTexEnv(pname=%s)", pname);
-      return;
+      return false;
    }
 
    assert(term < MAX_COMBINER_TERMS);
@@ -328,7 +333,7 @@ set_combiner_operand(struct gl_context *ctx,
 
    if (!legal) {
       TE_ERROR(GL_INVALID_ENUM, "glTexEnv(param=%s)", param);
-      return;
+      return false;
    }
 
    FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
@@ -337,10 +342,12 @@ set_combiner_operand(struct gl_context *ctx,
       texUnit->Combine.OperandA[term] = param;
    else
       texUnit->Combine.OperandRGB[term] = param;
+
+   return true;
 }
 
 
-static void
+static bool
 set_combiner_scale(struct gl_context *ctx,
                    struct gl_fixedfunc_texture_unit *texUnit,
                    GLenum pname, GLfloat scale)
@@ -359,25 +366,28 @@ set_combiner_scale(struct gl_context *ctx,
    else {
       _mesa_error( ctx, GL_INVALID_VALUE,
                    "glTexEnv(GL_RGB_SCALE not 1, 2 or 4)" );
-      return;
+      return false;
    }
 
    switch (pname) {
    case GL_RGB_SCALE:
       if (texUnit->Combine.ScaleShiftRGB == shift)
-         return;
+         return true;
       FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
       texUnit->Combine.ScaleShiftRGB = shift;
       break;
    case GL_ALPHA_SCALE:
       if (texUnit->Combine.ScaleShiftA == shift)
-         return;
+         return true;
       FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
       texUnit->Combine.ScaleShiftA = shift;
       break;
    default:
       TE_ERROR(GL_INVALID_ENUM, "glTexEnv(pname=%s)", pname);
+      return false;
    }
+
+   return true;
 }
 
 
@@ -418,7 +428,8 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
          break;
       case GL_COMBINE_RGB:
       case GL_COMBINE_ALPHA:
-         set_combiner_mode(ctx, texUnit, pname, (GLenum) iparam0);
+         if (!set_combiner_mode(ctx, texUnit, pname, (GLenum) iparam0))
+            return;
 	 break;
       case GL_SOURCE0_RGB:
       case GL_SOURCE1_RGB:
@@ -428,7 +439,8 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
       case GL_SOURCE1_ALPHA:
       case GL_SOURCE2_ALPHA:
       case GL_SOURCE3_ALPHA_NV:
-         set_combiner_source(ctx, texUnit, pname, (GLenum) iparam0);
+         if (!set_combiner_source(ctx, texUnit, pname, (GLenum) iparam0))
+            return;
 	 break;
       case GL_OPERAND0_RGB:
       case GL_OPERAND1_RGB:
@@ -438,11 +450,13 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
       case GL_OPERAND1_ALPHA:
       case GL_OPERAND2_ALPHA:
       case GL_OPERAND3_ALPHA_NV:
-         set_combiner_operand(ctx, texUnit, pname, (GLenum) iparam0);
+         if (!set_combiner_operand(ctx, texUnit, pname, (GLenum) iparam0))
+            return;
 	 break;
       case GL_RGB_SCALE:
       case GL_ALPHA_SCALE:
-         set_combiner_scale(ctx, texUnit, pname, param[0]);
+         if (!set_combiner_scale(ctx, texUnit, pname, param[0]))
+            return;
 	 break;
       default:
 	 _mesa_error( ctx, GL_INVALID_ENUM, "glTexEnv(pname)" );

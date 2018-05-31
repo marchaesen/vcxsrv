@@ -365,6 +365,11 @@ typedef enum
    OPCODE_UNIFORM_3UIV,
    OPCODE_UNIFORM_4UIV,
 
+   /* OpenGL 4.0 / GL_ARB_tessellation_shader */
+   OPCODE_PATCH_PARAMETER_I,
+   OPCODE_PATCH_PARAMETER_FV_INNER,
+   OPCODE_PATCH_PARAMETER_FV_OUTER,
+
    /* OpenGL 4.2 / GL_ARB_separate_shader_objects */
    OPCODE_USE_PROGRAM_STAGES,
    OPCODE_PROGRAM_UNIFORM_1F,
@@ -3267,6 +3272,54 @@ save_Ortho(GLdouble left, GLdouble right,
    }
    if (ctx->ExecuteFlag) {
       CALL_Ortho(ctx->Exec, (left, right, bottom, top, nearval, farval));
+   }
+}
+
+
+static void GLAPIENTRY
+save_PatchParameteri(GLenum pname, const GLint value)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PATCH_PARAMETER_I, 2);
+   if (n) {
+      n[1].e = pname;
+      n[2].i = value;
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_PatchParameteri(ctx->Exec, (pname, value));
+   }
+}
+
+
+static void GLAPIENTRY
+save_PatchParameterfv(GLenum pname, const GLfloat *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+
+   if (pname == GL_PATCH_DEFAULT_OUTER_LEVEL) {
+      n = alloc_instruction(ctx, OPCODE_PATCH_PARAMETER_FV_OUTER, 5);
+   } else {
+      assert(pname == GL_PATCH_DEFAULT_INNER_LEVEL);
+      n = alloc_instruction(ctx, OPCODE_PATCH_PARAMETER_FV_INNER, 3);
+   }
+   if (n) {
+      n[1].e = pname;
+      if (pname == GL_PATCH_DEFAULT_OUTER_LEVEL) {
+         n[2].f = params[0];
+         n[3].f = params[1];
+         n[4].f = params[2];
+         n[5].f = params[3];
+      } else {
+         n[2].f = params[0];
+         n[3].f = params[1];
+      }
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_PatchParameterfv(ctx->Exec, (pname, params));
    }
 }
 
@@ -8401,6 +8454,27 @@ execute_list(struct gl_context *ctx, GLuint list)
          case OPCODE_PASSTHROUGH:
             CALL_PassThrough(ctx->Exec, (n[1].f));
             break;
+         case OPCODE_PATCH_PARAMETER_I:
+            CALL_PatchParameteri(ctx->Exec, (n[1].e, n[2].i));
+            break;
+         case OPCODE_PATCH_PARAMETER_FV_INNER:
+            {
+               GLfloat params[2];
+               params[0] = n[2].f;
+               params[1] = n[3].f;
+               CALL_PatchParameterfv(ctx->Exec, (n[1].e, params));
+            }
+            break;
+         case OPCODE_PATCH_PARAMETER_FV_OUTER:
+            {
+               GLfloat params[4];
+               params[0] = n[2].f;
+               params[1] = n[3].f;
+               params[2] = n[4].f;
+               params[3] = n[5].f;
+               CALL_PatchParameterfv(ctx->Exec, (n[1].e, params));
+            }
+            break;
          case OPCODE_PIXEL_MAP:
             CALL_PixelMapfv(ctx->Exec,
                             (n[1].e, n[2].i, get_pointer(&n[3])));
@@ -9846,6 +9920,10 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    /* 54. GL_EXT_point_parameters */
    SET_PointParameterf(table, save_PointParameterfEXT);
    SET_PointParameterfv(table, save_PointParameterfvEXT);
+
+   /* 91. GL_ARB_tessellation_shader */
+   SET_PatchParameteri(table, save_PatchParameteri);
+   SET_PatchParameterfv(table, save_PatchParameterfv);
 
    /* 173. GL_EXT_blend_func_separate */
    SET_BlendFuncSeparate(table, save_BlendFuncSeparateEXT);

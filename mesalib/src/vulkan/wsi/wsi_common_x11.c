@@ -1421,10 +1421,10 @@ fail_init_images:
    for (uint32_t j = 0; j < image; j++)
       x11_image_finish(chain, pAllocator, &chain->images[j]);
 
-fail_register:
    for (int i = 0; i < ARRAY_SIZE(modifiers); i++)
       vk_free(pAllocator, modifiers[i]);
 
+fail_register:
    xcb_unregister_for_special_event(chain->conn, chain->special_event);
 
    wsi_swapchain_finish(&chain->base);

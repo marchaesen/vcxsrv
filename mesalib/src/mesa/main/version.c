@@ -128,7 +128,9 @@ create_version_string(struct gl_context *ctx, const char *prefix)
 		     ,
 		     prefix,
 		     ctx->Version / 10, ctx->Version % 10,
-		     (ctx->API == API_OPENGL_CORE) ? " (Core Profile)" : ""
+		     (ctx->API == API_OPENGL_CORE) ? " (Core Profile)" :
+                     (ctx->API == API_OPENGL_COMPAT && ctx->Version >= 32) ?
+                        " (Compatibility Profile)" : ""
 		     );
    }
 }

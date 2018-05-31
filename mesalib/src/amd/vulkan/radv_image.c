@@ -930,7 +930,7 @@ radv_image_create(VkDevice _device,
 	image = vk_zalloc2(&device->alloc, alloc, sizeof(*image), 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!image)
-		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	image->type = pCreateInfo->imageType;
 	image->info.width = pCreateInfo->extent.width;
@@ -1015,7 +1015,7 @@ radv_image_create(VkDevice _device,
 		                                      0, RADEON_FLAG_VIRTUAL);
 		if (!image->bo) {
 			vk_free2(&device->alloc, alloc, image);
-			return vk_error(VK_ERROR_OUT_OF_DEVICE_MEMORY);
+			return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 		}
 	}
 
@@ -1330,7 +1330,7 @@ radv_CreateImageView(VkDevice _device,
 	view = vk_alloc2(&device->alloc, pAllocator, sizeof(*view), 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (view == NULL)
-		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	radv_image_view_init(view, device, pCreateInfo);
 
@@ -1378,7 +1378,7 @@ radv_CreateBufferView(VkDevice _device,
 	view = vk_alloc2(&device->alloc, pAllocator, sizeof(*view), 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (!view)
-		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	radv_buffer_view_init(view, device, pCreateInfo);
 
