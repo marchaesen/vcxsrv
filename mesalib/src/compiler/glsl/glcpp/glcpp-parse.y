@@ -2317,7 +2317,7 @@ _glcpp_parser_skip_stack_pop(glcpp_parser_t *parser, YYLTYPE *loc)
 
 static void
 _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t version,
-                                         const char *es_identifier,
+                                         const char *identifier,
                                          bool explicitly_set)
 {
    if (parser->version_set)
@@ -2329,11 +2329,15 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
    add_builtin_define (parser, "__VERSION__", version);
 
    parser->is_gles = (version == 100) ||
-                     (es_identifier && (strcmp(es_identifier, "es") == 0));
+                     (identifier && (strcmp(identifier, "es") == 0));
+   bool is_compat = version >= 150 && identifier &&
+                    strcmp(identifier, "compatibility") == 0;
 
    /* Add pre-defined macros. */
    if (parser->is_gles)
       add_builtin_define(parser, "GL_ES", 1);
+   else if (is_compat)
+      add_builtin_define(parser, "GL_compatibility_profile", 1);
    else if (version >= 150)
       add_builtin_define(parser, "GL_core_profile", 1);
 
@@ -2368,8 +2372,8 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
    if (explicitly_set) {
       _mesa_string_buffer_printf(parser->output,
                                  "#version %" PRIiMAX "%s%s", version,
-                                 es_identifier ? " " : "",
-                                 es_identifier ? es_identifier : "");
+                                 identifier ? " " : "",
+                                 identifier ? identifier : "");
    }
 }
 

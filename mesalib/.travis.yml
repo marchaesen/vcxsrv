@@ -291,6 +291,39 @@ matrix:
             - libelf-dev
             - libunwind8-dev
     - env:
+        # NOTE: Analogous to SWR above, building Clover is quite slow.
+        - LABEL="make Gallium ST Clover LLVM-6.0"
+        - BUILD=make
+        - MAKEFLAGS="-j4"
+        - MAKE_CHECK_COMMAND="true"
+        - LLVM_VERSION=6.0
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+        - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
+        - DRI_DRIVERS=""
+        - GALLIUM_ST="--disable-dri --enable-opencl --enable-opencl-icd --enable-llvm --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
+        - GALLIUM_DRIVERS="r600,radeonsi"
+        - VULKAN_DRIVERS=""
+        - LIBUNWIND_FLAGS="--enable-libunwind"
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-6.0
+            # llvm-6 depends on gcc-4.9 which is not in main repo
+            - ubuntu-toolchain-r-test
+          packages:
+            - libclc-dev
+            # From sources above
+            - llvm-6.0-dev
+            - clang-6.0
+            - libclang-6.0-dev
+            # Common
+            - xz-utils
+            - x11proto-xf86vidmode-dev
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libelf-dev
+            - libunwind8-dev
+    - env:
         - LABEL="make Gallium ST Other"
         - BUILD=make
         - MAKEFLAGS="-j4"

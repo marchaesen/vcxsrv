@@ -1327,7 +1327,7 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 			 *    vkGetPhysicalDeviceImageFormatProperties2KHR returns
 			 *    VK_ERROR_FORMAT_NOT_SUPPORTED.
 			 */
-			result = vk_errorf(VK_ERROR_FORMAT_NOT_SUPPORTED,
+			result = vk_errorf(physical_device->instance, VK_ERROR_FORMAT_NOT_SUPPORTED,
 					   "unsupported VkExternalMemoryTypeFlagBitsKHR 0x%x",
 					   external_info->handleType);
 			goto fail;

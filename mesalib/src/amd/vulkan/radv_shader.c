@@ -89,7 +89,7 @@ VkResult radv_CreateShaderModule(
 			     sizeof(*module) + pCreateInfo->codeSize, 8,
 			     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (module == NULL)
-		return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	module->nir = NULL;
 	module->size = pCreateInfo->codeSize;
@@ -710,7 +710,7 @@ radv_GetShaderInfoAMD(VkDevice _device,
 	/* Spec doesn't indicate what to do if the stage is invalid, so just
 	 * return no info for this. */
 	if (!variant)
-		return vk_error(VK_ERROR_FEATURE_NOT_PRESENT);
+		return vk_error(device->instance, VK_ERROR_FEATURE_NOT_PRESENT);
 
 	switch (infoType) {
 	case VK_SHADER_INFO_TYPE_STATISTICS_AMD:

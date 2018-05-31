@@ -2,6 +2,7 @@
 #define _DRISW_API_H_
 
 #include "pipe/p_compiler.h"
+#include "sw_winsys.h"
 
 struct pipe_screen;
 struct dri_drawable;
@@ -18,6 +19,9 @@ struct drisw_loader_funcs
                       void *data, unsigned width, unsigned height);
    void (*put_image2) (struct dri_drawable *dri_drawable,
                        void *data, int x, int y, unsigned width, unsigned height, unsigned stride);
+   void (*put_image_shm) (struct dri_drawable *dri_drawable,
+                          int shmid, char *shmaddr, unsigned offset,
+                          int x, int y, unsigned width, unsigned height, unsigned stride);
 };
 
 #endif

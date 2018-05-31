@@ -217,20 +217,19 @@ radv_clear_mask(uint32_t *inout_mask, uint32_t clear_mask)
  * propagating errors. Might be useful to plug in a stack trace here.
  */
 
-VkResult __vk_errorf(VkResult error, const char *file, int line, const char *format, ...);
+struct radv_instance;
 
-#ifdef DEBUG
-#define vk_error(error) __vk_errorf(error, __FILE__, __LINE__, NULL);
-#define vk_errorf(error, format, ...) __vk_errorf(error, __FILE__, __LINE__, format, ## __VA_ARGS__);
-#else
-#define vk_error(error) error
-#define vk_errorf(error, format, ...) error
-#endif
+VkResult __vk_errorf(struct radv_instance *instance, VkResult error, const char *file, int line, const char *format, ...);
+
+#define vk_error(instance, error) __vk_errorf(instance, error, __FILE__, __LINE__, NULL);
+#define vk_errorf(instance, error, format, ...) __vk_errorf(instance, error, __FILE__, __LINE__, format, ## __VA_ARGS__);
 
 void __radv_finishme(const char *file, int line, const char *format, ...)
 	radv_printflike(3, 4);
 void radv_loge(const char *format, ...) radv_printflike(1, 2);
 void radv_loge_v(const char *format, va_list va);
+void radv_logi(const char *format, ...) radv_printflike(1, 2);
+void radv_logi_v(const char *format, va_list va);
 
 /**
  * Print a FINISHME message, including its source location.
@@ -1131,13 +1130,19 @@ bool radv_get_memory_fd(struct radv_device *device,
 			int *pFD);
 
 static inline void
-radv_emit_shader_pointer(struct radv_device *device,
-			 struct radeon_winsys_cs *cs,
-			 uint32_t sh_offset, uint64_t va, bool global)
+radv_emit_shader_pointer_head(struct radeon_winsys_cs *cs,
+			      unsigned sh_offset, unsigned pointer_count,
+			      bool use_32bit_pointers)
 {
-	bool use_32bit_pointers = HAVE_32BIT_POINTERS && !global;
+	radeon_emit(cs, PKT3(PKT3_SET_SH_REG, pointer_count * (use_32bit_pointers ? 1 : 2), 0));
+	radeon_emit(cs, (sh_offset - SI_SH_REG_OFFSET) >> 2);
+}
 
-	radeon_set_sh_reg_seq(cs, sh_offset, use_32bit_pointers ? 1 : 2);
+static inline void
+radv_emit_shader_pointer_body(struct radv_device *device,
+			      struct radeon_winsys_cs *cs,
+			      uint64_t va, bool use_32bit_pointers)
+{
 	radeon_emit(cs, va);
 
 	if (use_32bit_pointers) {
@@ -1146,6 +1151,17 @@ radv_emit_shader_pointer(struct radv_device *device,
 	} else {
 		radeon_emit(cs, va >> 32);
 	}
+}
+
+static inline void
+radv_emit_shader_pointer(struct radv_device *device,
+			 struct radeon_winsys_cs *cs,
+			 uint32_t sh_offset, uint64_t va, bool global)
+{
+	bool use_32bit_pointers = HAVE_32BIT_POINTERS && !global;
+
+	radv_emit_shader_pointer_head(cs, sh_offset, 1, use_32bit_pointers);
+	radv_emit_shader_pointer_body(device, cs, va, use_32bit_pointers);
 }
 
 static inline struct radv_descriptor_state *
@@ -1726,14 +1742,6 @@ struct radv_semaphore {
 	uint32_t syncobj;
 	uint32_t temp_syncobj;
 };
-
-VkResult radv_alloc_sem_info(struct radv_winsys_sem_info *sem_info,
-			     int num_wait_sems,
-			     const VkSemaphore *wait_sems,
-			     int num_signal_sems,
-			     const VkSemaphore *signal_sems,
-			     VkFence fence);
-void radv_free_sem_info(struct radv_winsys_sem_info *sem_info);
 
 void radv_set_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
 			     VkPipelineBindPoint bind_point,

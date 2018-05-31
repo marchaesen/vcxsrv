@@ -222,41 +222,49 @@ update_program(struct gl_context *ctx)
 }
 
 
+static GLbitfield
+update_single_program_constants(struct gl_context *ctx,
+                                struct gl_program *prog,
+                                gl_shader_stage stage)
+{
+   if (prog) {
+      const struct gl_program_parameter_list *params = prog->Parameters;
+      if (params && params->StateFlags & ctx->NewState) {
+         if (ctx->DriverFlags.NewShaderConstants[stage])
+            ctx->NewDriverState |= ctx->DriverFlags.NewShaderConstants[stage];
+         else
+            return _NEW_PROGRAM_CONSTANTS;
+      }
+   }
+   return 0;
+}
+
+
 /**
+ * This updates fixed-func state constants such as gl_ModelViewMatrix.
  * Examine shader constants and return either _NEW_PROGRAM_CONSTANTS or 0.
  */
 static GLbitfield
 update_program_constants(struct gl_context *ctx)
 {
-   GLbitfield new_state = 0x0;
+   GLbitfield new_state =
+      update_single_program_constants(ctx, ctx->VertexProgram._Current,
+                                      MESA_SHADER_VERTEX) |
+      update_single_program_constants(ctx, ctx->FragmentProgram._Current,
+                                      MESA_SHADER_FRAGMENT);
 
-   if (ctx->FragmentProgram._Current) {
-      const struct gl_program_parameter_list *params =
-         ctx->FragmentProgram._Current->Parameters;
-      if (params && params->StateFlags & ctx->NewState) {
-         if (ctx->DriverFlags.NewShaderConstants[MESA_SHADER_FRAGMENT]) {
-            ctx->NewDriverState |=
-               ctx->DriverFlags.NewShaderConstants[MESA_SHADER_FRAGMENT];
-         } else {
-            new_state |= _NEW_PROGRAM_CONSTANTS;
-         }
-      }
-   }
+   if (ctx->API == API_OPENGL_COMPAT &&
+       ctx->Const.GLSLVersionCompat >= 150) {
+      new_state |=
+         update_single_program_constants(ctx, ctx->GeometryProgram._Current,
+                                         MESA_SHADER_GEOMETRY);
 
-   /* Don't handle tessellation and geometry shaders here. They don't use
-    * any state constants.
-    */
-
-   if (ctx->VertexProgram._Current) {
-      const struct gl_program_parameter_list *params =
-         ctx->VertexProgram._Current->Parameters;
-      if (params && params->StateFlags & ctx->NewState) {
-         if (ctx->DriverFlags.NewShaderConstants[MESA_SHADER_VERTEX]) {
-            ctx->NewDriverState |=
-               ctx->DriverFlags.NewShaderConstants[MESA_SHADER_VERTEX];
-         } else {
-            new_state |= _NEW_PROGRAM_CONSTANTS;
-         }
+      if (_mesa_has_ARB_tessellation_shader(ctx)) {
+         new_state |=
+            update_single_program_constants(ctx, ctx->TessCtrlProgram._Current,
+                                            MESA_SHADER_TESS_CTRL) |
+            update_single_program_constants(ctx, ctx->TessEvalProgram._Current,
+                                            MESA_SHADER_TESS_EVAL);
       }
    }
 

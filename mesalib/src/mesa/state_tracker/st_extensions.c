@@ -936,12 +936,17 @@ void st_init_extensions(struct pipe_screen *screen,
 
    /* Figure out GLSL support and set GLSLVersion to it. */
    consts->GLSLVersion = screen->get_param(screen, PIPE_CAP_GLSL_FEATURE_LEVEL);
-   consts->GLSLVersionCompat = _min(consts->GLSLVersion, 140);
+   consts->GLSLVersionCompat =
+      screen->get_param(screen, PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY);
+
+   const unsigned GLSLVersion =
+      api == API_OPENGL_COMPAT ? consts->GLSLVersionCompat :
+                                 consts->GLSLVersion;
 
    _mesa_override_glsl_version(consts);
 
    if (options->force_glsl_version > 0 &&
-       options->force_glsl_version <= consts->GLSLVersion) {
+       options->force_glsl_version <= GLSLVersion) {
       consts->ForceGLSLVersion = options->force_glsl_version;
    }
 
@@ -955,24 +960,24 @@ void st_init_extensions(struct pipe_screen *screen,
 
    consts->AllowGLSLCrossStageInterpolationMismatch = options->allow_glsl_cross_stage_interpolation_mismatch;
 
-   if (consts->GLSLVersion >= 400)
+   if (GLSLVersion >= 400)
       extensions->ARB_gpu_shader5 = GL_TRUE;
-   if (consts->GLSLVersion >= 410)
+   if (GLSLVersion >= 410)
       extensions->ARB_shader_precision = GL_TRUE;
 
    /* This extension needs full OpenGL 3.2, but we don't know if that's
     * supported at this point. Only check the GLSL version. */
-   if (consts->GLSLVersion >= 150 &&
+   if (GLSLVersion >= 150 &&
        screen->get_param(screen, PIPE_CAP_TGSI_VS_LAYER_VIEWPORT)) {
       extensions->AMD_vertex_shader_layer = GL_TRUE;
    }
 
-   if (consts->GLSLVersion >= 140) {
+   if (GLSLVersion >= 140) {
       if (screen->get_param(screen, PIPE_CAP_TGSI_ARRAY_COMPONENTS))
          extensions->ARB_enhanced_layouts = GL_TRUE;
    }
 
-   if (consts->GLSLVersion >= 130) {
+   if (GLSLVersion >= 130) {
       consts->NativeIntegers = GL_TRUE;
       consts->MaxClipPlanes = 8;
 
@@ -1015,8 +1020,10 @@ void st_init_extensions(struct pipe_screen *screen,
 
    /* Below are the cases which cannot be moved into tables easily. */
 
+   /* The compatibility profile also requires GLSLVersionCompat >= 400. */
    if (screen->get_shader_param(screen, PIPE_SHADER_TESS_CTRL,
-                                PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0) {
+                                PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0 &&
+       (api != API_OPENGL_COMPAT || consts->GLSLVersionCompat >= 400)) {
       extensions->ARB_tessellation_shader = GL_TRUE;
    }
 
@@ -1024,7 +1031,7 @@ void st_init_extensions(struct pipe_screen *screen,
     * invocations of a geometry shader. There is no separate cap for that, so
     * we check the GLSLVersion.
     */
-   if (consts->GLSLVersion >= 400 &&
+   if (GLSLVersion >= 400 &&
        screen->get_shader_param(screen, PIPE_SHADER_GEOMETRY,
                                 PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0) {
       extensions->OES_geometry_shader = GL_TRUE;
@@ -1171,7 +1178,7 @@ void st_init_extensions(struct pipe_screen *screen,
 
    consts->MaxViewports = screen->get_param(screen, PIPE_CAP_MAX_VIEWPORTS);
    if (consts->MaxViewports >= 16) {
-      if (consts->GLSLVersion >= 400) {
+      if (GLSLVersion >= 400) {
          consts->ViewportBounds.Min = -32768.0;
          consts->ViewportBounds.Max = 32767.0;
       } else {
@@ -1201,7 +1208,7 @@ void st_init_extensions(struct pipe_screen *screen,
     * Assume that ES3 is supported if GLSL 3.30 is supported.
     * (OpenGL 3.3 is a requirement for that extension.)
     */
-   if (consts->GLSLVersion >= 330 &&
+   if (GLSLVersion >= 330 &&
        /* Requirements for ETC2 emulation. */
        screen->is_format_supported(screen, PIPE_FORMAT_R8G8B8A8_UNORM,
                                    PIPE_TEXTURE_2D, 0,

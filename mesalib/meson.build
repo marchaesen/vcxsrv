@@ -344,11 +344,7 @@ endif
 pre_args += '-DGLX_USE_TLS'
 if with_glx != 'disabled'
   if not (with_platform_x11 and with_any_opengl)
-    if with_glx == 'auto'
-      with_glx = 'disabled'
-    else
-      error('Cannot build GLX support without X11 platform support and at least one OpenGL API')
-    endif
+    error('Cannot build GLX support without X11 platform support and at least one OpenGL API')
   elif with_glx == 'gallium-xlib' 
     if not with_gallium
       error('Gallium-xlib based GLX requires at least one gallium driver')
@@ -361,8 +357,12 @@ if with_glx != 'disabled'
     if with_dri
       error('xlib conflicts with any dri driver')
     endif
-  elif with_glx == 'dri' and not with_dri
-    error('dri based GLX requires at least one DRI driver')
+  elif with_glx == 'dri'
+    if not with_dri
+      error('dri based GLX requires at least one DRI driver')
+    elif not with_shared_glapi
+      error('dri based GLX requires shared-glapi')
+    endif
   endif
 endif
 
