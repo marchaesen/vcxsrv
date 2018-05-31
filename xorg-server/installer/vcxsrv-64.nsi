@@ -19,7 +19,7 @@
  !include "FileFunc.nsh"
 
 !define NAME "VcXsrv"
-!define VERSION "1.19.6.4"
+!define VERSION "1.20.0.0"
 !define UNINSTALL_PUBLISHER "${NAME}"
 !define UNINSTALL_URL "https://github.com/ArcticaProject/vcxsrv"
 
