@@ -1978,6 +1978,14 @@ link_fs_inout_layout_qualifiers(struct gl_shader_program *prog,
       linked_shader->Program->info.fs.inner_coverage |= shader->InnerCoverage;
       linked_shader->Program->info.fs.post_depth_coverage |=
          shader->PostDepthCoverage;
+      linked_shader->Program->info.fs.pixel_interlock_ordered |=
+         shader->PixelInterlockOrdered;
+      linked_shader->Program->info.fs.pixel_interlock_unordered |=
+         shader->PixelInterlockUnordered;
+      linked_shader->Program->info.fs.sample_interlock_ordered |=
+         shader->SampleInterlockOrdered;
+      linked_shader->Program->info.fs.sample_interlock_unordered |=
+         shader->SampleInterlockUnordered;
 
       linked_shader->Program->sh.fs.BlendSupport |= shader->BlendSupport;
    }

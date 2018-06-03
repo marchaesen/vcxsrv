@@ -38,6 +38,8 @@ unsigned ssh_alloc_sharing_channel(Ssh ssh, void *sharing_ctx);
 void ssh_delete_sharing_channel(Ssh ssh, unsigned localid);
 int ssh_alloc_sharing_rportfwd(Ssh ssh, const char *shost, int sport,
                                void *share_ctx);
+void ssh_remove_sharing_rportfwd(Ssh ssh, const char *shost, int sport,
+                                 void *share_ctx);
 void ssh_sharing_queue_global_request(Ssh ssh, void *share_ctx);
 struct X11FakeAuth *ssh_sharing_add_x11_display(Ssh ssh, int authtype,
                                                 void *share_cs,
@@ -75,8 +77,8 @@ void share_setup_x11_channel(void *csv, void *chanv,
 typedef void *Bignum;
 #endif
 
-typedef struct ssh_key {} ssh_key;
 typedef struct ssh_keyalg ssh_keyalg;
+typedef const struct ssh_keyalg *ssh_key;
 
 struct RSAKey {
     int bits;
@@ -159,10 +161,9 @@ int ec_ed_alg_and_curve_by_bits(int bits,
                                 const ssh_keyalg **alg);
 
 struct ec_key {
-    const ssh_keyalg *signalg;
     struct ec_point publicKey;
     Bignum privateKey;
-    struct ssh_key sshk;
+    ssh_key sshk;
 };
 
 struct ec_point *ec_public(const Bignum privateKey, const struct ec_curve *curve);
@@ -177,20 +178,20 @@ struct ec_point *ec_public(const Bignum privateKey, const struct ec_curve *curve
  */
 typedef enum { RSA_SSH1_EXPONENT_FIRST, RSA_SSH1_MODULUS_FIRST } RsaSsh1Order;
 
-int rsa_ssh1_readpub(const unsigned char *data, int len, struct RSAKey *result,
-                     const unsigned char **keystr, RsaSsh1Order order);
-int rsa_ssh1_readpriv(const unsigned char *data, int len,
-                      struct RSAKey *result);
+void BinarySource_get_rsa_ssh1_pub(
+    BinarySource *src, struct RSAKey *result, RsaSsh1Order order);
+void BinarySource_get_rsa_ssh1_priv(
+    BinarySource *src, struct RSAKey *rsa);
 int rsa_ssh1_encrypt(unsigned char *data, int length, struct RSAKey *key);
 Bignum rsa_ssh1_decrypt(Bignum input, struct RSAKey *key);
 void rsasanitise(struct RSAKey *key);
 int rsastr_len(struct RSAKey *key);
 void rsastr_fmt(char *str, struct RSAKey *key);
-void rsa_fingerprint(char *str, int len, struct RSAKey *key);
+char *rsa_ssh1_fingerprint(struct RSAKey *key);
 int rsa_verify(struct RSAKey *key);
 void rsa_ssh1_public_blob(BinarySink *bs, struct RSAKey *key,
                           RsaSsh1Order order);
-int rsa_public_blob_len(void *data, int maxlen);
+int rsa_ssh1_public_blob_len(void *data, int maxlen);
 void freersakey(struct RSAKey *key);
 
 typedef uint32 word32;
@@ -223,7 +224,7 @@ struct ec_key *ssh_ecdhkex_newkey(const struct ssh_kex *kex);
 void ssh_ecdhkex_freekey(struct ec_key *key);
 void ssh_ecdhkex_getpublic(struct ec_key *key, BinarySink *bs);
 Bignum ssh_ecdhkex_getkey(struct ec_key *key,
-                          char *remoteKey, int remoteKeyLen);
+                          const void *remoteKey, int remoteKeyLen);
 
 /*
  * Helper function for k generation in DSA, reused in ECDSA
@@ -386,36 +387,46 @@ struct ssh_kexes {
 };
 
 struct ssh_keyalg {
-    ssh_key *(*newkey) (const ssh_keyalg *self,
-                        const void *data, int len);
+    /* Constructors that create an ssh_key */
+    ssh_key *(*new_pub) (const ssh_keyalg *self, ptrlen pub);
+    ssh_key *(*new_priv) (const ssh_keyalg *self, ptrlen pub, ptrlen priv);
+    ssh_key *(*new_priv_openssh) (const ssh_keyalg *self, BinarySource *);
+
+    /* Methods that operate on an existing ssh_key */
     void (*freekey) (ssh_key *key);
-    char *(*fmtkey) (ssh_key *key);
+    void (*sign) (ssh_key *key, const void *data, int datalen, BinarySink *);
+    int (*verify) (ssh_key *key, ptrlen sig, ptrlen data);
     void (*public_blob)(ssh_key *key, BinarySink *);
     void (*private_blob)(ssh_key *key, BinarySink *);
-    ssh_key *(*createkey) (const ssh_keyalg *self,
-                           const void *pub_blob, int pub_len,
-                           const void *priv_blob, int priv_len);
-    ssh_key *(*openssh_createkey) (const ssh_keyalg *self,
-                                   const unsigned char **blob, int *len);
-    void (*openssh_fmtkey) (ssh_key *key, BinarySink *);
-    /* OpenSSH private key blobs, as created by openssh_fmtkey and
-     * consumed by openssh_createkey, always (at least so far...) take
-     * the form of a number of SSH-2 strings / mpints concatenated
-     * end-to-end. Because the new-style OpenSSH private key format
-     * stores those blobs without a containing string wrapper, we need
-     * to know how many strings each one consists of, so that we can
-     * skip over the right number to find the next key in the file.
-     * openssh_private_npieces gives that information. */
-    int openssh_private_npieces;
-    int (*pubkey_bits) (const ssh_keyalg *self,
-                        const void *blob, int len);
-    int (*verifysig) (ssh_key *key, const void *sig, int siglen,
-		      const void *data, int datalen);
-    void (*sign) (ssh_key *key, const void *data, int datalen, BinarySink *);
-    const char *name;
-    const char *keytype;               /* for host key cache */
-    const void *extra;                 /* private to the public key methods */
+    void (*openssh_blob) (ssh_key *key, BinarySink *);
+    char *(*cache_str) (ssh_key *key);
+
+    /* 'Class methods' that don't deal with an ssh_key at all */
+    int (*pubkey_bits) (const ssh_keyalg *self, ptrlen blob);
+
+    /* Constant data fields giving information about the key type */
+    const char *ssh_id;    /* string identifier in the SSH protocol */
+    const char *cache_id;  /* identifier used in PuTTY's host key cache */
+    const void *extra;     /* private to the public key methods */
 };
+
+#define ssh_key_new_pub(alg, data) ((alg)->new_pub(alg, data))
+#define ssh_key_new_priv(alg, pub, priv) ((alg)->new_priv(alg, pub, priv))
+#define ssh_key_new_priv_openssh(alg, bs) ((alg)->new_priv_openssh(alg, bs))
+
+#define ssh_key_free(key) ((*(key))->freekey(key))
+#define ssh_key_sign(key, data, len, bs) ((*(key))->sign(key, data, len, bs))
+#define ssh_key_verify(key, sig, data) ((*(key))->verify(key, sig, data))
+#define ssh_key_public_blob(key, bs) ((*(key))->public_blob(key, bs))
+#define ssh_key_private_blob(key, bs) ((*(key))->private_blob(key, bs))
+#define ssh_key_openssh_blob(key, bs) ((*(key))->openssh_blob(key, bs))
+#define ssh_key_cache_str(key) ((*(key))->cache_str(key))
+
+#define ssh_key_public_bits(alg, blob) ((alg)->pubkey_bits(alg, blob))
+
+#define ssh_key_alg(key) (*(key))
+#define ssh_key_ssh_id(key) ((*(key))->ssh_id)
+#define ssh_key_cache_id(key) ((*(key))->cache_id)
 
 struct ssh_compress {
     const char *name;
@@ -435,8 +446,7 @@ struct ssh_compress {
 };
 
 struct ssh2_userkey {
-    const ssh_keyalg *alg;             /* the key algorithm */
-    ssh_key *data;                     /* the key data */
+    ssh_key *key;                      /* the key itself */
     char *comment;		       /* the key comment */
 };
 
@@ -539,7 +549,7 @@ void ssh_send_port_open(void *channel, const char *hostname, int port,
 extern char *pfd_connect(struct PortForwarding **pf, char *hostname, int port,
                          void *c, Conf *conf, int addressfamily);
 extern void pfd_close(struct PortForwarding *);
-extern int pfd_send(struct PortForwarding *, char *data, int len);
+extern int pfd_send(struct PortForwarding *, const void *data, int len);
 extern void pfd_send_eof(struct PortForwarding *);
 extern void pfd_confirm(struct PortForwarding *);
 extern void pfd_unthrottle(struct PortForwarding *);
@@ -619,7 +629,7 @@ void x11_free_fake_auth(struct X11FakeAuth *auth);
 struct X11Connection;                  /* opaque outside x11fwd.c */
 struct X11Connection *x11_init(tree234 *authtree, void *, const char *, int);
 extern void x11_close(struct X11Connection *);
-extern int x11_send(struct X11Connection *, char *, int);
+extern int x11_send(struct X11Connection *, const void *, int);
 extern void x11_send_eof(struct X11Connection *s);
 extern void x11_unthrottle(struct X11Connection *s);
 extern void x11_override_throttle(struct X11Connection *s, int enable);
@@ -649,8 +659,8 @@ char *platform_get_x_display(void);
  */
 void x11_get_auth_from_authfile(struct X11Display *display,
 				const char *authfilename);
-int x11_identify_auth_proto(const char *proto);
-void *x11_dehexify(const char *hex, int *outlen);
+int x11_identify_auth_proto(ptrlen protoname);
+void *x11_dehexify(ptrlen hex, int *outlen);
 
 Bignum copybn(Bignum b);
 Bignum bn_power_2(int n);
@@ -665,14 +675,10 @@ extern Bignum Zero, One;
 Bignum bignum_from_bytes(const void *data, int nbytes);
 Bignum bignum_from_bytes_le(const void *data, int nbytes);
 Bignum bignum_random_in_range(const Bignum lower, const Bignum upper);
-int ssh1_read_bignum(const unsigned char *data, int len, Bignum * result);
 int bignum_bitcount(Bignum bn);
-int ssh1_bignum_length(Bignum bn);
-int ssh2_bignum_length(Bignum bn);
 int bignum_byte(Bignum bn, int i);
 int bignum_bit(Bignum bn, int i);
 void bignum_set_bit(Bignum bn, int i, int value);
-int ssh1_write_bignum(void *data, Bignum bn);
 Bignum biggcd(Bignum a, Bignum b);
 unsigned short bignum_mod_short(Bignum number, unsigned short modulus);
 Bignum bignum_add_long(Bignum number, unsigned long addend);
@@ -692,6 +698,8 @@ Bignum bignum_from_decimal(const char *decimal);
 
 void BinarySink_put_mp_ssh1(BinarySink *, Bignum);
 void BinarySink_put_mp_ssh2(BinarySink *, Bignum);
+Bignum BinarySource_get_mp_ssh1(BinarySource *);
+Bignum BinarySource_get_mp_ssh2(BinarySource *);
 
 #ifdef DEBUG
 void diagbn(char *prefix, Bignum md);
@@ -733,7 +741,7 @@ int ssh2_userkey_loadpub(const Filename *filename, char **algorithm,
 int ssh2_save_userkey(const Filename *filename, struct ssh2_userkey *key,
 		      char *passphrase);
 const ssh_keyalg *find_pubkey_alg(const char *name);
-const ssh_keyalg *find_pubkey_alg_len(int namelen, const char *name);
+const ssh_keyalg *find_pubkey_alg_len(ptrlen name);
 
 enum {
     SSH_KEYTYPE_UNOPENABLE,
@@ -785,7 +793,7 @@ void ssh2_write_pubkey(FILE *fp, const char *comment,
                        const void *v_pub_blob, int pub_len,
                        int keytype);
 char *ssh2_fingerprint_blob(const void *blob, int bloblen);
-char *ssh2_fingerprint(const ssh_keyalg *alg, ssh_key *key);
+char *ssh2_fingerprint(ssh_key *key);
 int key_type(const Filename *filename);
 const char *key_type_to_str(int type);
 

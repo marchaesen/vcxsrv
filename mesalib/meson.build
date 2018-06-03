@@ -93,13 +93,6 @@ endif
 
 system_has_kms_drm = ['openbsd', 'netbsd', 'freebsd', 'dragonfly', 'linux'].contains(host_machine.system())
 
-with_dri = false
-with_dri_i915 = false
-with_dri_i965 = false
-with_dri_r100 = false
-with_dri_r200 = false
-with_dri_nouveau = false
-with_dri_swrast = false
 _drivers = get_option('dri-drivers')
 if _drivers.contains('auto')
   if system_has_kms_drm
@@ -107,44 +100,27 @@ if _drivers.contains('auto')
     if ['x86', 'x86_64'].contains(host_machine.cpu_family())
       _drivers = ['i915', 'i965', 'r100', 'r200', 'nouveau']
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
-      _drivers = ['']
+      _drivers = []
     else
       error('Unknown architecture. Please pass -Ddri-drivers to set driver options. Patches gladly accepted to fix this.')
     endif
   elif ['darwin', 'windows', 'cygwin', 'haiku'].contains(host_machine.system())
     # only swrast would make sense here, but gallium swrast is a much better default
-    _drivers = ['']
+    _drivers = []
   else
     error('Unknown OS. Please pass -Ddri-drivers to set driver options. Patches gladly accepted to fix this.')
   endif
 endif
-if _drivers != ['']
-  with_dri_i915 = _drivers.contains('i915')
-  with_dri_i965 = _drivers.contains('i965')
-  with_dri_r100 = _drivers.contains('r100')
-  with_dri_r200 = _drivers.contains('r200')
-  with_dri_nouveau = _drivers.contains('nouveau')
-  with_dri_swrast = _drivers.contains('swrast')
-  with_dri = true
-endif
 
-with_gallium = false
-with_gallium_pl111 = false
-with_gallium_radeonsi = false
-with_gallium_r300 = false
-with_gallium_r600 = false
-with_gallium_nouveau = false
-with_gallium_freedreno = false
-with_gallium_softpipe = false
-with_gallium_vc4 = false
-with_gallium_v3d = false
-with_gallium_etnaviv = false
-with_gallium_imx = false
-with_gallium_tegra = false
-with_gallium_i915 = false
-with_gallium_svga = false
-with_gallium_virgl = false
-with_gallium_swr = false
+with_dri_i915 = _drivers.contains('i915')
+with_dri_i965 = _drivers.contains('i965')
+with_dri_r100 = _drivers.contains('r100')
+with_dri_r200 = _drivers.contains('r200')
+with_dri_nouveau = _drivers.contains('nouveau')
+with_dri_swrast = _drivers.contains('swrast')
+
+with_dri = _drivers.length() != 0 and _drivers != ['']
+
 _drivers = get_option('gallium-drivers')
 if _drivers.contains('auto')
   if system_has_kms_drm
@@ -167,36 +143,33 @@ if _drivers.contains('auto')
     error('Unknown OS. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.')
   endif
 endif
-if _drivers != ['']
-  with_gallium_pl111 = _drivers.contains('pl111')
-  with_gallium_radeonsi = _drivers.contains('radeonsi')
-  with_gallium_r300 = _drivers.contains('r300')
-  with_gallium_r600 = _drivers.contains('r600')
-  with_gallium_nouveau = _drivers.contains('nouveau')
-  with_gallium_freedreno = _drivers.contains('freedreno')
-  with_gallium_softpipe = _drivers.contains('swrast')
-  with_gallium_v3d = _drivers.contains('v3d')
-  with_gallium_vc4 = _drivers.contains('vc4')
-  with_gallium_etnaviv = _drivers.contains('etnaviv')
-  with_gallium_imx = _drivers.contains('imx')
-  with_gallium_tegra = _drivers.contains('tegra')
-  with_gallium_i915 = _drivers.contains('i915')
-  with_gallium_svga = _drivers.contains('svga')
-  with_gallium_virgl = _drivers.contains('virgl')
-  with_gallium_swr = _drivers.contains('swr')
-  with_gallium = true
-  if system_has_kms_drm
-    _glx = get_option('glx')
-    _egl = get_option('egl')
-    if _glx == 'dri' or _egl == 'true' or (_glx == 'disabled' and _egl != 'false')
-      with_dri = true
-    endif
+with_gallium_pl111 = _drivers.contains('pl111')
+with_gallium_radeonsi = _drivers.contains('radeonsi')
+with_gallium_r300 = _drivers.contains('r300')
+with_gallium_r600 = _drivers.contains('r600')
+with_gallium_nouveau = _drivers.contains('nouveau')
+with_gallium_freedreno = _drivers.contains('freedreno')
+with_gallium_softpipe = _drivers.contains('swrast')
+with_gallium_vc4 = _drivers.contains('vc4')
+with_gallium_v3d = _drivers.contains('v3d')
+with_gallium_etnaviv = _drivers.contains('etnaviv')
+with_gallium_imx = _drivers.contains('imx')
+with_gallium_tegra = _drivers.contains('tegra')
+with_gallium_i915 = _drivers.contains('i915')
+with_gallium_svga = _drivers.contains('svga')
+with_gallium_virgl = _drivers.contains('virgl')
+with_gallium_swr = _drivers.contains('swr')
+
+with_gallium = _drivers.length() != 0 and _drivers != ['']
+
+if with_gallium and system_has_kms_drm
+  _glx = get_option('glx')
+  _egl = get_option('egl')
+  if _glx == 'dri' or _egl == 'true' or (_glx == 'disabled' and _egl != 'false')
+    with_dri = true
   endif
 endif
 
-with_intel_vk = false
-with_amd_vk = false
-with_any_vk = false
 _vulkan_drivers = get_option('vulkan-drivers')
 if _vulkan_drivers.contains('auto')
   if system_has_kms_drm
@@ -207,16 +180,15 @@ if _vulkan_drivers.contains('auto')
     endif
   elif ['darwin', 'windows', 'cygwin', 'haiku'].contains(host_machine.system())
     # No vulkan driver supports windows or macOS currently
-    _vulkan_drivers = ['']
+    _vulkan_drivers = []
   else
     error('Unknown OS. Please pass -Dvulkan-drivers to set driver options. Patches gladly accepted to fix this.')
   endif
 endif
-if _vulkan_drivers != ['']
-  with_intel_vk = _vulkan_drivers.contains('intel')
-  with_amd_vk = _vulkan_drivers.contains('amd')
-  with_any_vk = true
-endif
+
+with_intel_vk = _vulkan_drivers.contains('intel')
+with_amd_vk = _vulkan_drivers.contains('amd')
+with_any_vk = _vulkan_drivers.length() != 0 and _vulkan_drivers != ['']
 
 if with_dri_swrast and (with_gallium_softpipe or with_gallium_swr)
   error('Only one swrast provider can be built')
@@ -249,12 +221,6 @@ else
   with_dri_platform = 'none'
 endif
 
-with_platform_android = false
-with_platform_wayland = false
-with_platform_x11 = false
-with_platform_drm = false
-with_platform_surfaceless = false
-egl_native_platform = ''
 _platforms = get_option('platforms')
 if _platforms.contains('auto')
   if system_has_kms_drm
@@ -267,13 +233,17 @@ if _platforms.contains('auto')
     error('Unknown OS. Please pass -Dplatforms to set platforms. Patches gladly accepted to fix this.')
   endif
 endif
-if _platforms != ['']
-  with_platform_android = _platforms.contains('android')
-  with_platform_x11 = _platforms.contains('x11')
-  with_platform_wayland = _platforms.contains('wayland')
-  with_platform_drm = _platforms.contains('drm')
-  with_platform_haiku = _platforms.contains('haiku')
-  with_platform_surfaceless = _platforms.contains('surfaceless')
+
+with_platform_android = _platforms.contains('android')
+with_platform_x11 = _platforms.contains('x11')
+with_platform_wayland = _platforms.contains('wayland')
+with_platform_drm = _platforms.contains('drm')
+with_platform_haiku = _platforms.contains('haiku')
+with_platform_surfaceless = _platforms.contains('surfaceless')
+
+with_platforms = false
+if _platforms.length() != 0 and _platforms != ['']
+  with_platforms = true
   egl_native_platform = _platforms[0]
 endif
 
@@ -316,13 +286,13 @@ endif
 
 _egl = get_option('egl')
 if _egl == 'auto'
-  with_egl = with_dri and with_shared_glapi and egl_native_platform != ''
+  with_egl = with_dri and with_shared_glapi and with_platforms
 elif _egl == 'true'
   if not with_dri
     error('EGL requires dri')
   elif not with_shared_glapi
     error('EGL requires shared-glapi')
-  elif egl_native_platform == ''
+  elif with_platforms
     error('No platforms specified, consider -Dplatforms=drm,x11 at least')
   elif not ['disabled', 'dri'].contains(with_glx)
     error('EGL requires dri, but a GLX is being built without dri')

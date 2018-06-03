@@ -1432,6 +1432,36 @@ layout_qualifier_id:
          }
       }
 
+      const bool pixel_interlock_ordered = match_layout_qualifier($1,
+         "pixel_interlock_ordered", state) == 0;
+      const bool pixel_interlock_unordered = match_layout_qualifier($1,
+         "pixel_interlock_unordered", state) == 0;
+      const bool sample_interlock_ordered = match_layout_qualifier($1,
+         "sample_interlock_ordered", state) == 0;
+      const bool sample_interlock_unordered = match_layout_qualifier($1,
+         "sample_interlock_unordered", state) == 0;
+
+      if (pixel_interlock_ordered + pixel_interlock_unordered +
+          sample_interlock_ordered + sample_interlock_unordered > 0 &&
+          state->stage != MESA_SHADER_FRAGMENT) {
+         _mesa_glsl_error(& @1, state, "interlock layout qualifiers: "
+                          "pixel_interlock_ordered, pixel_interlock_unordered, "
+                          "sample_interlock_ordered and sample_interlock_unordered, "
+                          "only valid in fragment shader input layout declaration.");
+      } else if (pixel_interlock_ordered + pixel_interlock_unordered +
+                 sample_interlock_ordered + sample_interlock_unordered > 0 &&
+                 !state->ARB_fragment_shader_interlock_enable) {
+         _mesa_glsl_error(& @1, state,
+                          "interlock layout qualifier present, but the "
+                          "GL_ARB_fragment_shader_interlock extension is not "
+                          "enabled.");
+      } else {
+         $$.flags.q.pixel_interlock_ordered = pixel_interlock_ordered;
+         $$.flags.q.pixel_interlock_unordered = pixel_interlock_unordered;
+         $$.flags.q.sample_interlock_ordered = sample_interlock_ordered;
+         $$.flags.q.sample_interlock_unordered = sample_interlock_unordered;
+      }
+
       /* Layout qualifiers for tessellation evaluation shaders. */
       if (!$$.flags.i) {
          static const struct {

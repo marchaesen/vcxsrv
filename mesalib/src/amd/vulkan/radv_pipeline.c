@@ -1583,21 +1583,23 @@ static void si_multiwave_lds_size_workaround(struct radv_device *device,
 }
 
 struct radv_shader_variant *
-radv_get_vertex_shader(struct radv_pipeline *pipeline)
+radv_get_shader(struct radv_pipeline *pipeline,
+		gl_shader_stage stage)
 {
-	if (pipeline->shaders[MESA_SHADER_VERTEX])
-		return pipeline->shaders[MESA_SHADER_VERTEX];
-	if (pipeline->shaders[MESA_SHADER_TESS_CTRL])
-		return pipeline->shaders[MESA_SHADER_TESS_CTRL];
-	return pipeline->shaders[MESA_SHADER_GEOMETRY];
-}
-
-static struct radv_shader_variant *
-radv_get_tess_eval_shader(struct radv_pipeline *pipeline)
-{
-	if (pipeline->shaders[MESA_SHADER_TESS_EVAL])
-		return pipeline->shaders[MESA_SHADER_TESS_EVAL];
-	return pipeline->shaders[MESA_SHADER_GEOMETRY];
+	if (stage == MESA_SHADER_VERTEX) {
+		if (pipeline->shaders[MESA_SHADER_VERTEX])
+			return pipeline->shaders[MESA_SHADER_VERTEX];
+		if (pipeline->shaders[MESA_SHADER_TESS_CTRL])
+			return pipeline->shaders[MESA_SHADER_TESS_CTRL];
+		if (pipeline->shaders[MESA_SHADER_GEOMETRY])
+			return pipeline->shaders[MESA_SHADER_GEOMETRY];
+	} else if (stage == MESA_SHADER_TESS_EVAL) {
+		if (pipeline->shaders[MESA_SHADER_TESS_EVAL])
+			return pipeline->shaders[MESA_SHADER_TESS_EVAL];
+		if (pipeline->shaders[MESA_SHADER_GEOMETRY])
+			return pipeline->shaders[MESA_SHADER_GEOMETRY];
+	}
+	return pipeline->shaders[stage];
 }
 
 static struct radv_tessellation_state
@@ -1632,7 +1634,7 @@ calculate_tess_state(struct radv_pipeline *pipeline,
 		S_028B58_HS_NUM_OUTPUT_CP(num_tcs_output_cp);
 	tess.num_patches = num_patches;
 
-	struct radv_shader_variant *tes = radv_get_tess_eval_shader(pipeline);
+	struct radv_shader_variant *tes = radv_get_shader(pipeline, MESA_SHADER_TESS_EVAL);
 	unsigned type = 0, partitioning = 0, topology = 0, distribution_mode = 0;
 
 	switch (tes->info.tes.primitive_mode) {
@@ -1964,6 +1966,8 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 				_mesa_sha1_compute(modules[i]->nir->info.name,
 				                   strlen(modules[i]->nir->info.name),
 				                   modules[i]->sha1);
+
+			pipeline->active_stages |= mesa_to_vk_shader_stage(i);
 		}
 	}
 
@@ -1979,10 +1983,6 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 
 	if (radv_create_shader_variants_from_pipeline_cache(device, cache, hash, pipeline->shaders) &&
 	    (!modules[MESA_SHADER_GEOMETRY] || pipeline->gs_copy_shader)) {
-		for (unsigned i = 0; i < MESA_SHADER_STAGES; ++i) {
-			if (pipeline->shaders[i])
-				pipeline->active_stages |= mesa_to_vk_shader_stage(i);
-		}
 		return;
 	}
 
@@ -2015,7 +2015,6 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 						    stage ? stage->pName : "main", i,
 						    stage ? stage->pSpecializationInfo : NULL,
 						    flags);
-		pipeline->active_stages |= mesa_to_vk_shader_stage(i);
 
 		/* We don't want to alter meta shaders IR directly so clone it
 		 * first.
@@ -3149,7 +3148,7 @@ radv_pipeline_generate_vgt_vertex_reuse(struct radeon_winsys_cs *cs,
 
 	unsigned vtx_reuse_depth = 30;
 	if (radv_pipeline_has_tess(pipeline) &&
-	    radv_get_tess_eval_shader(pipeline)->info.tes.spacing == TESS_SPACING_FRACTIONAL_ODD) {
+	    radv_get_shader(pipeline, MESA_SHADER_TESS_EVAL)->info.tes.spacing == TESS_SPACING_FRACTIONAL_ODD) {
 		vtx_reuse_depth = 14;
 	}
 	radeon_set_context_reg(cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL,
@@ -3310,7 +3309,7 @@ radv_compute_ia_multi_vgt_param_helpers(struct radv_pipeline *pipeline,
 	if (radv_pipeline_has_tess(pipeline)) {
 		/* SWITCH_ON_EOI must be set if PrimID is used. */
 		if (pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.info.uses_prim_id ||
-		    radv_get_tess_eval_shader(pipeline)->info.info.uses_prim_id)
+		    radv_get_shader(pipeline, MESA_SHADER_TESS_EVAL)->info.info.uses_prim_id)
 			ia_multi_vgt_param.ia_switch_on_eoi = true;
 	}
 
@@ -3500,7 +3499,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	if (loc->sgpr_idx != -1) {
 		pipeline->graphics.vtx_base_sgpr = pipeline->user_data_0[MESA_SHADER_VERTEX];
 		pipeline->graphics.vtx_base_sgpr += loc->sgpr_idx * 4;
-		if (radv_get_vertex_shader(pipeline)->info.info.vs.needs_draw_id)
+		if (radv_get_shader(pipeline, MESA_SHADER_VERTEX)->info.info.vs.needs_draw_id)
 			pipeline->graphics.vtx_emit_num = 3;
 		else
 			pipeline->graphics.vtx_emit_num = 2;

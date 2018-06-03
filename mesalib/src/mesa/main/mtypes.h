@@ -2599,6 +2599,10 @@ struct gl_shader
    bool uses_gl_fragcoord;
 
    bool PostDepthCoverage;
+   bool PixelInterlockOrdered;
+   bool PixelInterlockUnordered;
+   bool SampleInterlockOrdered;
+   bool SampleInterlockUnordered;
    bool InnerCoverage;
 
    /**
@@ -4074,6 +4078,7 @@ struct gl_extensions
    GLboolean ARB_fragment_shader;
    GLboolean ARB_framebuffer_no_attachments;
    GLboolean ARB_framebuffer_object;
+   GLboolean ARB_fragment_shader_interlock;
    GLboolean ARB_enhanced_layouts;
    GLboolean ARB_explicit_attrib_location;
    GLboolean ARB_explicit_uniform_location;

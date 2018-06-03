@@ -22,7 +22,8 @@
 SUBDIRS = . \
 	xmlpool \
 	tests/hash_table \
-	tests/string_buffer
+	tests/string_buffer \
+	tests/vma
 
 include Makefile.sources
 

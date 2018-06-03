@@ -1120,6 +1120,8 @@ enum ir_intrinsic_id {
    ir_intrinsic_memory_barrier_buffer,
    ir_intrinsic_memory_barrier_image,
    ir_intrinsic_memory_barrier_shared,
+   ir_intrinsic_begin_invocation_interlock,
+   ir_intrinsic_end_invocation_interlock,
 
    ir_intrinsic_vote_all,
    ir_intrinsic_vote_any,

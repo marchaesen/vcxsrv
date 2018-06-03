@@ -626,6 +626,16 @@ struct ast_type_qualifier {
           * Flag set if GL_ARB_post_depth_coverage layout qualifier is used.
           */
          unsigned post_depth_coverage:1;
+
+         /**
+          * Flags for the layout qualifers added by ARB_fragment_shader_interlock
+          */
+
+         unsigned pixel_interlock_ordered:1;
+         unsigned pixel_interlock_unordered:1;
+         unsigned sample_interlock_ordered:1;
+         unsigned sample_interlock_unordered:1;
+
          /**
           * Flag set if GL_INTEL_conservartive_rasterization layout qualifier
           * is used.

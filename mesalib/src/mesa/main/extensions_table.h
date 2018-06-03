@@ -68,6 +68,7 @@ EXT(ARB_fragment_layer_viewport             , ARB_fragment_layer_viewport       
 EXT(ARB_fragment_program                    , ARB_fragment_program                   , GLL,  x ,  x ,  x , 2002)
 EXT(ARB_fragment_program_shadow             , ARB_fragment_program_shadow            , GLL,  x ,  x ,  x , 2003)
 EXT(ARB_fragment_shader                     , ARB_fragment_shader                    , GLL, GLC,  x ,  x , 2002)
+EXT(ARB_fragment_shader_interlock           , ARB_fragment_shader_interlock          , GLL, GLC,  x ,  x , 2015)
 EXT(ARB_framebuffer_no_attachments          , ARB_framebuffer_no_attachments         , GLL, GLC,  x ,  x , 2012)
 EXT(ARB_framebuffer_object                  , ARB_framebuffer_object                 , GLL, GLC,  x ,  x , 2005)
 EXT(ARB_framebuffer_sRGB                    , EXT_framebuffer_sRGB                   , GLL, GLC,  x ,  x , 1998)

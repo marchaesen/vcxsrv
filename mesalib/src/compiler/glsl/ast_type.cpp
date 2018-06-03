@@ -637,6 +637,10 @@ ast_type_qualifier::validate_in_qualifier(YYLTYPE *loc,
       valid_in_mask.flags.q.early_fragment_tests = 1;
       valid_in_mask.flags.q.inner_coverage = 1;
       valid_in_mask.flags.q.post_depth_coverage = 1;
+      valid_in_mask.flags.q.pixel_interlock_ordered = 1;
+      valid_in_mask.flags.q.pixel_interlock_unordered = 1;
+      valid_in_mask.flags.q.sample_interlock_ordered = 1;
+      valid_in_mask.flags.q.sample_interlock_unordered = 1;
       break;
    case MESA_SHADER_COMPUTE:
       valid_in_mask.flags.q.local_size = 7;
@@ -708,6 +712,35 @@ ast_type_qualifier::merge_into_in_qualifier(YYLTYPE *loc,
       r = false;
    }
 
+   if (state->in_qualifier->flags.q.pixel_interlock_ordered) {
+      state->fs_pixel_interlock_ordered = true;
+      state->in_qualifier->flags.q.pixel_interlock_ordered = false;
+   }
+
+   if (state->in_qualifier->flags.q.pixel_interlock_unordered) {
+      state->fs_pixel_interlock_unordered = true;
+      state->in_qualifier->flags.q.pixel_interlock_unordered = false;
+   }
+
+   if (state->in_qualifier->flags.q.sample_interlock_ordered) {
+      state->fs_sample_interlock_ordered = true;
+      state->in_qualifier->flags.q.sample_interlock_ordered = false;
+   }
+
+   if (state->in_qualifier->flags.q.sample_interlock_unordered) {
+      state->fs_sample_interlock_unordered = true;
+      state->in_qualifier->flags.q.sample_interlock_unordered = false;
+   }
+
+   if (state->fs_pixel_interlock_ordered +
+       state->fs_pixel_interlock_unordered +
+       state->fs_sample_interlock_ordered +
+       state->fs_sample_interlock_unordered > 1) {
+      _mesa_glsl_error(loc, state,
+                       "only one interlock mode can be used at any time.");
+      r = false;
+   }
+
    /* We allow the creation of multiple cs_input_layout nodes. Coherence among
     * all existing nodes is checked later, when the AST node is transformed
     * into HIR.
@@ -776,7 +809,7 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
                     "%s '%s':"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
                     "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
                     message, name,
                     bad.flags.q.invariant ? " invariant" : "",
                     bad.flags.q.precise ? " precise" : "",
@@ -840,6 +873,10 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
                     bad.flags.q.bound_sampler ? " bound_sampler" : "",
                     bad.flags.q.bound_image ? " bound_image" : "",
                     bad.flags.q.post_depth_coverage ? " post_depth_coverage" : "",
+                    bad.flags.q.pixel_interlock_ordered ? " pixel_interlock_ordered" : "",
+                    bad.flags.q.pixel_interlock_unordered ? " pixel_interlock_unordered": "",
+                    bad.flags.q.sample_interlock_ordered ? " sample_interlock_ordered": "",
+                    bad.flags.q.sample_interlock_unordered ? " sample_interlock_unordered": "",
                     bad.flags.q.non_coherent ? " noncoherent" : "");
    return false;
 }

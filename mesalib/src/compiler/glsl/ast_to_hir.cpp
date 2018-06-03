@@ -3897,6 +3897,16 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
 
    if (state->has_bindless())
       apply_bindless_qualifier_to_variable(qual, var, state, loc);
+
+   if (qual->flags.q.pixel_interlock_ordered ||
+       qual->flags.q.pixel_interlock_unordered ||
+       qual->flags.q.sample_interlock_ordered ||
+       qual->flags.q.sample_interlock_unordered) {
+      _mesa_glsl_error(loc, state, "interlock layout qualifiers: "
+                       "pixel_interlock_ordered, pixel_interlock_unordered, "
+                       "sample_interlock_ordered and sample_interlock_unordered, "
+                       "only valid in fragment shader input layout declaration.");
+   }
 }
 
 static void
