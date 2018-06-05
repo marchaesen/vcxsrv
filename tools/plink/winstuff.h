@@ -29,7 +29,13 @@
 
 #include "winhelp.h"
 
+#if defined _M_IX86 || defined _M_AMD64
+#define BUILDINFO_PLATFORM "x86 Windows"
+#elif defined _M_ARM || defined _M_ARM64
+#define BUILDINFO_PLATFORM "Arm Windows"
+#else
 #define BUILDINFO_PLATFORM "Windows"
+#endif
 
 struct Filename {
     char *path;
@@ -515,9 +521,9 @@ void show_help(HWND hwnd);
 /*
  * Exports from winmisc.c.
  */
-extern OSVERSIONINFO osVersion;
+GLOBAL DWORD osMajorVersion, osMinorVersion, osPlatformId;
+void init_winver(void);
 void dll_hijacking_protection(void);
-BOOL init_winver(void);
 HMODULE load_system32_dll(const char *libname);
 const char *win_strerror(int error);
 void restrict_process_acl(void);
@@ -600,6 +606,11 @@ void add_session_to_jumplist(const char * const sessionname);
 void remove_session_from_jumplist(const char * const sessionname);
 void clear_jumplist(void);
 BOOL set_explicit_app_user_model_id();
+
+/*
+ * Exports from winnoise.c.
+ */
+int win_read_random(void *buf, unsigned wanted); /* returns TRUE on success */
 
 /*
  * Extra functions in winstore.c over and above the interface in

@@ -68,6 +68,14 @@ command are in the form <code>-D "command"="value"</code>.
 </pre>
 
 <p>
+Note that options taking lists (such as <code>platforms</code>) are
+<a href="http://mesonbuild.com/Build-options.html#using-build-options">a bit
+more complicated</a>, but the simplest form compatible with Mesa options
+is to use a comma to separate values (<code>-D platforms=drm,wayland</code>)
+and brackets to represent an empty list (<code>-D platforms=[]</code>).
+</p>
+
+<p>
 Once you've run the initial <code>meson</code> command successfully you can use
 your configured backend to build the project. With ninja, the -C option can be
 be used to point at a directory to build.

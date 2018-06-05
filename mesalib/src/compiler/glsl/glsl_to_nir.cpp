@@ -752,6 +752,12 @@ nir_visitor::visit(ir_call *ir)
       case ir_intrinsic_shader_clock:
          op = nir_intrinsic_shader_clock;
          break;
+      case ir_intrinsic_begin_invocation_interlock:
+         op = nir_intrinsic_begin_invocation_interlock;
+         break;
+      case ir_intrinsic_end_invocation_interlock:
+         op = nir_intrinsic_end_invocation_interlock;
+         break;
       case ir_intrinsic_group_memory_barrier:
          op = nir_intrinsic_group_memory_barrier;
          break;
@@ -968,6 +974,12 @@ nir_visitor::visit(ir_call *ir)
       case nir_intrinsic_shader_clock:
          nir_ssa_dest_init(&instr->instr, &instr->dest, 2, 32, NULL);
          instr->num_components = 2;
+         nir_builder_instr_insert(&b, &instr->instr);
+         break;
+      case nir_intrinsic_begin_invocation_interlock:
+         nir_builder_instr_insert(&b, &instr->instr);
+         break;
+      case nir_intrinsic_end_invocation_interlock:
          nir_builder_instr_insert(&b, &instr->instr);
          break;
       case nir_intrinsic_store_ssbo: {
@@ -1928,6 +1940,15 @@ nir_visitor::visit(ir_expression *ir)
             unreachable("not reached");
       }
       break;
+   case ir_binop_vector_extract: {
+      result = nir_channel(&b, srcs[0], 0);
+      for (unsigned i = 1; i < ir->operands[0]->type->vector_elements; i++) {
+         nir_ssa_def *swizzled = nir_channel(&b, srcs[0], i);
+         result = nir_bcsel(&b, nir_ieq(&b, srcs[1], nir_imm_int(&b, i)),
+                            swizzled, result);
+      }
+      break;
+   }
 
    case ir_binop_ldexp: result = nir_ldexp(&b, srcs[0], srcs[1]); break;
    case ir_triop_fma:

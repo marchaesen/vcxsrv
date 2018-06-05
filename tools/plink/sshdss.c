@@ -9,86 +9,26 @@
 #include "ssh.h"
 #include "misc.h"
 
-static void getstring(const char **data, int *datalen,
-                      const char **p, int *length)
-{
-    *p = NULL;
-    if (*datalen < 4)
-	return;
-    *length = toint(GET_32BIT(*data));
-    if (*length < 0)
-        return;
-    *datalen -= 4;
-    *data += 4;
-    if (*datalen < *length)
-	return;
-    *p = *data;
-    *data += *length;
-    *datalen -= *length;
-}
-static Bignum getmp(const char **data, int *datalen)
-{
-    const char *p;
-    int length;
-    Bignum b;
-
-    getstring(data, datalen, &p, &length);
-    if (!p)
-	return NULL;
-    if (p[0] & 0x80)
-	return NULL;		       /* negative mp */
-    b = bignum_from_bytes(p, length);
-    return b;
-}
-
-static Bignum get160(const char **data, int *datalen)
-{
-    Bignum b;
-
-    if (*datalen < 20)
-        return NULL;
-
-    b = bignum_from_bytes(*data, 20);
-    *data += 20;
-    *datalen -= 20;
-
-    return b;
-}
-
 static void dss_freekey(ssh_key *key);    /* forward reference */
 
-static ssh_key *dss_newkey(const ssh_keyalg *self,
-                           const void *vdata, int len)
+static ssh_key *dss_new_pub(const ssh_keyalg *self, ptrlen data)
 {
-    const char *data = (const char *)vdata;
-    const char *p;
-    int slen;
+    BinarySource src[1];
     struct dss_key *dss;
 
-    dss = snew(struct dss_key);
-    getstring(&data, &len, &p, &slen);
-
-#ifdef DEBUG_DSS
-    {
-	int i;
-	printf("key:");
-	for (i = 0; i < len; i++)
-	    printf("  %02x", (unsigned char) (data[i]));
-	printf("\n");
-    }
-#endif
-
-    if (!p || slen != 7 || memcmp(p, "ssh-dss", 7)) {
-	sfree(dss);
+    BinarySource_BARE_INIT(src, data.ptr, data.len);
+    if (!ptrlen_eq_string(get_string(src), "ssh-dss"))
 	return NULL;
-    }
-    dss->p = getmp(&data, &len);
-    dss->q = getmp(&data, &len);
-    dss->g = getmp(&data, &len);
-    dss->y = getmp(&data, &len);
+
+    dss = snew(struct dss_key);
+    dss->sshk = &ssh_dss;
+    dss->p = get_mp_ssh2(src);
+    dss->q = get_mp_ssh2(src);
+    dss->g = get_mp_ssh2(src);
+    dss->y = get_mp_ssh2(src);
     dss->x = NULL;
 
-    if (!dss->p || !dss->q || !dss->g || !dss->y ||
+    if (get_err(src) ||
         !bignum_cmp(dss->q, Zero) || !bignum_cmp(dss->p, Zero)) {
         /* Invalid key. */
         dss_freekey(&dss->sshk);
@@ -114,7 +54,7 @@ static void dss_freekey(ssh_key *key)
     sfree(dss);
 }
 
-static char *dss_fmtkey(ssh_key *key)
+static char *dss_cache_str(ssh_key *key)
 {
     struct dss_key *dss = FROMFIELD(key, struct dss_key, sshk);
     char *p;
@@ -164,29 +104,19 @@ static char *dss_fmtkey(ssh_key *key)
     return p;
 }
 
-static int dss_verifysig(ssh_key *key, const void *vsig, int siglen,
-			 const void *data, int datalen)
+static int dss_verify(ssh_key *key, ptrlen sig, ptrlen data)
 {
     struct dss_key *dss = FROMFIELD(key, struct dss_key, sshk);
-    const char *sig = (const char *)vsig;
-    const char *p;
-    int slen;
-    char hash[20];
+    BinarySource src[1];
+    unsigned char hash[20];
     Bignum r, s, w, gu1p, yu2p, gu1yu2p, u1, u2, sha, v;
     int ret;
 
     if (!dss->p)
 	return 0;
 
-#ifdef DEBUG_DSS
-    {
-	int i;
-	printf("sig:");
-	for (i = 0; i < siglen; i++)
-	    printf("  %02x", (unsigned char) (sig[i]));
-	printf("\n");
-    }
-#endif
+    BinarySource_BARE_INIT(src, sig.ptr, sig.len);
+
     /*
      * Commercial SSH (2.0.13) and OpenSSH disagree over the format
      * of a DSA signature. OpenSSH is in line with RFC 4253:
@@ -198,15 +128,18 @@ static int dss_verifysig(ssh_key *key, const void *vsig, int siglen,
      * the length: length 40 means the commercial-SSH bug, anything
      * else is assumed to be RFC-compliant.
      */
-    if (siglen != 40) {		       /* bug not present; read admin fields */
-	getstring(&sig, &siglen, &p, &slen);
-	if (!p || slen != 7 || memcmp(p, "ssh-dss", 7)) {
-	    return 0;
-	}
-	sig += 4, siglen -= 4;	       /* skip yet another length field */
+    if (sig.len != 40) {      /* bug not present; read admin fields */
+	ptrlen type = get_string(src);
+        sig = get_string(src);
+
+        if (get_err(src) || !ptrlen_eq_string(type, "ssh-dss") ||
+            sig.len != 40)
+            return 0;
     }
-    r = get160(&sig, &siglen);
-    s = get160(&sig, &siglen);
+
+    /* Now we're sitting on a 40-byte string for sure. */
+    r = bignum_from_bytes(sig.ptr, 20);
+    s = bignum_from_bytes((const char *)sig.ptr + 20, 20);
     if (!r || !s) {
         if (r)
             freebn(r);
@@ -234,10 +167,8 @@ static int dss_verifysig(ssh_key *key, const void *vsig, int siglen,
     /*
      * Step 2. u1 <- SHA(message) * w mod q.
      */
-    SHA_Simple(data, datalen, (unsigned char *)hash);
-    p = hash;
-    slen = 20;
-    sha = get160(&p, &slen);
+    SHA_Simple(data.ptr, data.len, hash);
+    sha = bignum_from_bytes(hash, 20);
     u1 = modmul(sha, w, dss->q);
 
     /*
@@ -291,24 +222,24 @@ static void dss_private_blob(ssh_key *key, BinarySink *bs)
     put_mp_ssh2(bs, dss->x);
 }
 
-static ssh_key *dss_createkey(const ssh_keyalg *self,
-                              const void *pub_blob, int pub_len,
-                              const void *priv_blob, int priv_len)
+static ssh_key *dss_new_priv(const ssh_keyalg *self, ptrlen pub, ptrlen priv)
 {
+    BinarySource src[1];
+    ssh_key *sshk;
     struct dss_key *dss;
-    const char *pb = (const char *) priv_blob;
-    const char *hash;
-    int hashlen;
+    ptrlen hash;
     SHA_State s;
     unsigned char digest[20];
     Bignum ytest;
 
-    dss = FROMFIELD(dss_newkey(self, pub_blob, pub_len),
-                    struct dss_key, sshk);
-    if (!dss)
+    sshk = dss_new_pub(self, pub);
+    if (!sshk)
         return NULL;
-    dss->x = getmp(&pb, &priv_len);
-    if (!dss->x) {
+
+    dss = FROMFIELD(sshk, struct dss_key, sshk);
+    BinarySource_BARE_INIT(src, priv.ptr, priv.len);
+    dss->x = get_mp_ssh2(src);
+    if (get_err(src)) {
         dss_freekey(&dss->sshk);
         return NULL;
     }
@@ -316,15 +247,14 @@ static ssh_key *dss_createkey(const ssh_keyalg *self,
     /*
      * Check the obsolete hash in the old DSS key format.
      */
-    hashlen = -1;
-    getstring(&pb, &priv_len, &hash, &hashlen);
-    if (hashlen == 20) {
+    hash = get_string(src);
+    if (hash.len == 20) {
 	SHA_Init(&s);
 	put_mp_ssh2(&s, dss->p);
 	put_mp_ssh2(&s, dss->q);
 	put_mp_ssh2(&s, dss->g);
 	SHA_Final(&s, digest);
-	if (0 != memcmp(hash, digest, 20)) {
+	if (0 != memcmp(hash.ptr, digest, 20)) {
 	    dss_freekey(&dss->sshk);
 	    return NULL;
 	}
@@ -344,21 +274,21 @@ static ssh_key *dss_createkey(const ssh_keyalg *self,
     return &dss->sshk;
 }
 
-static ssh_key *dss_openssh_createkey(const ssh_keyalg *self,
-                                      const unsigned char **blob, int *len)
+static ssh_key *dss_new_priv_openssh(const ssh_keyalg *self,
+                                     BinarySource *src)
 {
-    const char **b = (const char **) blob;
     struct dss_key *dss;
 
     dss = snew(struct dss_key);
+    dss->sshk = &ssh_dss;
 
-    dss->p = getmp(b, len);
-    dss->q = getmp(b, len);
-    dss->g = getmp(b, len);
-    dss->y = getmp(b, len);
-    dss->x = getmp(b, len);
+    dss->p = get_mp_ssh2(src);
+    dss->q = get_mp_ssh2(src);
+    dss->g = get_mp_ssh2(src);
+    dss->y = get_mp_ssh2(src);
+    dss->x = get_mp_ssh2(src);
 
-    if (!dss->p || !dss->q || !dss->g || !dss->y || !dss->x ||
+    if (get_err(src) ||
         !bignum_cmp(dss->q, Zero) || !bignum_cmp(dss->p, Zero)) {
         /* Invalid key. */
         dss_freekey(&dss->sshk);
@@ -368,7 +298,7 @@ static ssh_key *dss_openssh_createkey(const ssh_keyalg *self,
     return &dss->sshk;
 }
 
-static void dss_openssh_fmtkey(ssh_key *key, BinarySink *bs)
+static void dss_openssh_blob(ssh_key *key, BinarySink *bs)
 {
     struct dss_key *dss = FROMFIELD(key, struct dss_key, sshk);
 
@@ -379,16 +309,17 @@ static void dss_openssh_fmtkey(ssh_key *key, BinarySink *bs)
     put_mp_ssh2(bs, dss->x);
 }
 
-static int dss_pubkey_bits(const ssh_keyalg *self,
-                           const void *blob, int len)
+static int dss_pubkey_bits(const ssh_keyalg *self, ptrlen pub)
 {
+    ssh_key *sshk;
     struct dss_key *dss;
     int ret;
 
-    dss = FROMFIELD(dss_newkey(self, blob, len),
-                    struct dss_key, sshk);
-    if (!dss)
+    sshk = dss_new_pub(self, pub);
+    if (!sshk)
         return -1;
+
+    dss = FROMFIELD(sshk, struct dss_key, sshk);
     ret = bignum_bitcount(dss->p);
     dss_freekey(&dss->sshk);
 
@@ -556,18 +487,20 @@ static void dss_sign(ssh_key *key, const void *data, int datalen,
 }
 
 const ssh_keyalg ssh_dss = {
-    dss_newkey,
+    dss_new_pub,
+    dss_new_priv,
+    dss_new_priv_openssh,
+
     dss_freekey,
-    dss_fmtkey,
+    dss_sign,
+    dss_verify,
     dss_public_blob,
     dss_private_blob,
-    dss_createkey,
-    dss_openssh_createkey,
-    dss_openssh_fmtkey,
-    5 /* p,q,g,y,x */,
+    dss_openssh_blob,
+    dss_cache_str,
+
     dss_pubkey_bits,
-    dss_verifysig,
-    dss_sign,
+
     "ssh-dss",
     "dss",
     NULL,

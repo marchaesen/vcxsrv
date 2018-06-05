@@ -513,6 +513,12 @@ shader_ballot(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+supports_arb_fragment_shader_interlock(const _mesa_glsl_parse_state *state)
+{
+   return state->ARB_fragment_shader_interlock_enable;
+}
+
+static bool
 shader_clock(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shader_clock_enable;
@@ -982,6 +988,14 @@ private:
    ir_function_signature *_read_invocation_intrinsic(const glsl_type *type);
    ir_function_signature *_read_invocation(const glsl_type *type);
 
+
+   ir_function_signature *_invocation_interlock_intrinsic(
+      builtin_available_predicate avail,
+      enum ir_intrinsic_id id);
+   ir_function_signature *_invocation_interlock(
+      const char *intrinsic_name,
+      builtin_available_predicate avail);
+
    ir_function_signature *_shader_clock_intrinsic(builtin_available_predicate avail,
                                                   const glsl_type *type);
    ir_function_signature *_shader_clock(builtin_available_predicate avail,
@@ -1218,6 +1232,16 @@ builtin_builder::create_intrinsics()
                 _memory_barrier_intrinsic(compute_shader,
                                           ir_intrinsic_memory_barrier_shared),
                 NULL);
+
+   add_function("__intrinsic_begin_invocation_interlock",
+                _invocation_interlock_intrinsic(
+                   supports_arb_fragment_shader_interlock,
+                   ir_intrinsic_begin_invocation_interlock), NULL);
+
+   add_function("__intrinsic_end_invocation_interlock",
+                _invocation_interlock_intrinsic(
+                   supports_arb_fragment_shader_interlock,
+                   ir_intrinsic_end_invocation_interlock), NULL);
 
    add_function("__intrinsic_shader_clock",
                 _shader_clock_intrinsic(shader_clock,
@@ -3292,6 +3316,18 @@ builtin_builder::create_builtins()
    add_function("clockARB",
                 _shader_clock(shader_clock_int64,
                               glsl_type::uint64_t_type),
+                NULL);
+
+   add_function("beginInvocationInterlockARB",
+                _invocation_interlock(
+                   "__intrinsic_begin_invocation_interlock",
+                   supports_arb_fragment_shader_interlock),
+                NULL);
+
+   add_function("endInvocationInterlockARB",
+                _invocation_interlock(
+                   "__intrinsic_end_invocation_interlock",
+                   supports_arb_fragment_shader_interlock),
                 NULL);
 
    add_function("anyInvocationARB",
@@ -6224,6 +6260,24 @@ builtin_builder::_read_invocation(const glsl_type *type)
    body.emit(call(shader->symbols->get_function("__intrinsic_read_invocation"),
                   retval, sig->parameters));
    body.emit(ret(retval));
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_invocation_interlock_intrinsic(builtin_available_predicate avail,
+                                                 enum ir_intrinsic_id id)
+{
+   MAKE_INTRINSIC(glsl_type::void_type, id, avail, 0);
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_invocation_interlock(const char *intrinsic_name,
+                                       builtin_available_predicate avail)
+{
+   MAKE_SIG(glsl_type::void_type, avail, 0);
+   body.emit(call(shader->symbols->get_function(intrinsic_name),
+                  NULL, sig->parameters));
    return sig;
 }
 

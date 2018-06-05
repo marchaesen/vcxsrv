@@ -179,6 +179,11 @@ typedef struct shader_info {
 
          bool pixel_center_integer;
 
+         bool pixel_interlock_ordered;
+         bool pixel_interlock_unordered;
+         bool sample_interlock_ordered;
+         bool sample_interlock_unordered;
+
          /** gl_FragDepth layout for ARB_conservative_depth. */
          enum gl_frag_depth_layout depth_layout;
       } fs;

@@ -11,6 +11,8 @@
 #ifndef PUTTY_DEFS_H
 #define PUTTY_DEFS_H
 
+#include <stddef.h>
+
 #ifndef FALSE
 #define FALSE 0
 #endif
@@ -35,6 +37,7 @@ struct RSAKey;
 typedef uint32_t uint32;
 
 typedef struct BinarySink BinarySink;
+typedef struct BinarySource BinarySource;
 
 typedef struct SockAddr_tag *SockAddr;
 
@@ -49,6 +52,15 @@ typedef struct Plug_vtable Plug_vtable;
  * turn. */
 typedef const Socket_vtable **Socket;
 typedef const Plug_vtable **Plug;
+
+/*
+ * A small structure wrapping up a (pointer, length) pair so that it
+ * can be conveniently passed to or from a function.
+ */
+typedef struct ptrlen {
+    const void *ptr;
+    size_t len;
+} ptrlen;
 
 /* Do a compile-time type-check of 'to_check' (without evaluating it),
  * as a side effect of returning the value 'to_return'. Note that

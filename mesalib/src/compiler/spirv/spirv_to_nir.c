@@ -130,6 +130,18 @@ _vtn_warn(struct vtn_builder *b, const char *file, unsigned line,
 }
 
 void
+_vtn_err(struct vtn_builder *b, const char *file, unsigned line,
+          const char *fmt, ...)
+{
+   va_list args;
+
+   va_start(args, fmt);
+   vtn_log_err(b, NIR_SPIRV_DEBUG_LEVEL_ERROR, "SPIR-V ERROR:\n",
+               file, line, fmt, args);
+   va_end(args);
+}
+
+void
 _vtn_fail(struct vtn_builder *b, const char *file, unsigned line,
           const char *fmt, ...)
 {
@@ -4011,19 +4023,36 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
    b->entry_point_name = entry_point_name;
    b->options = options;
 
-   /* Handle the SPIR-V header (first 4 dwords)  */
-   vtn_assert(word_count > 5);
+   /*
+    * Handle the SPIR-V header (first 5 dwords).
+    * Can't use vtx_assert() as the setjmp(3) target isn't initialized yet.
+    */
+   if (word_count <= 5)
+      goto fail;
 
-   vtn_assert(words[0] == SpvMagicNumber);
-   vtn_assert(words[1] >= 0x10000);
+   if (words[0] != SpvMagicNumber) {
+      vtn_err("words[0] was 0x%x, want 0x%x", words[0], SpvMagicNumber);
+      goto fail;
+   }
+   if (words[1] < 0x10000) {
+      vtn_err("words[1] was 0x%x, want >= 0x10000", words[1]);
+      goto fail;
+   }
+
    /* words[2] == generator magic */
    unsigned value_id_bound = words[3];
-   vtn_assert(words[4] == 0);
+   if (words[4] != 0) {
+      vtn_err("words[4] was %u, want 0", words[4]);
+      goto fail;
+   }
 
    b->value_id_bound = value_id_bound;
    b->values = rzalloc_array(b, struct vtn_value, value_id_bound);
 
    return b;
+ fail:
+   ralloc_free(b);
+   return NULL;
 }
 
 nir_function *

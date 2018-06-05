@@ -188,6 +188,8 @@ barrier("memory_barrier_atomic_counter")
 barrier("memory_barrier_buffer")
 barrier("memory_barrier_image")
 barrier("memory_barrier_shared")
+barrier("begin_invocation_interlock")
+barrier("end_invocation_interlock")
 
 # A conditional discard, with a single boolean source.
 intrinsic("discard_if", src_comp=[1])

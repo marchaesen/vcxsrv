@@ -51,6 +51,10 @@ void _vtn_warn(struct vtn_builder *b, const char *file, unsigned line,
                const char *fmt, ...) PRINTFLIKE(4, 5);
 #define vtn_warn(...) _vtn_warn(b, __FILE__, __LINE__, __VA_ARGS__)
 
+void _vtn_err(struct vtn_builder *b, const char *file, unsigned line,
+               const char *fmt, ...) PRINTFLIKE(4, 5);
+#define vtn_err(...) _vtn_err(b, __FILE__, __LINE__, __VA_ARGS__)
+
 /** Fail SPIR-V parsing
  *
  * This function logs an error and then bails out of the shader compile using

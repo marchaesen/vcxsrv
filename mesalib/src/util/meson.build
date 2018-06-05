@@ -81,6 +81,8 @@ files_mesa_util = files(
   'u_thread.h',
   'u_vector.c',
   'u_vector.h',
+  'vma.c',
+  'vma.h',
 )
 
 install_data('drirc', install_dir : get_option('sysconfdir'))
@@ -157,4 +159,5 @@ if with_tests
 
   subdir('tests/hash_table')
   subdir('tests/string_buffer')
+  subdir('tests/vma')
 endif

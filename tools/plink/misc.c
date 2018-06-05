@@ -360,6 +360,16 @@ int toint(unsigned u)
         return INT_MIN; /* fallback; should never occur on binary machines */
 }
 
+int string_length_for_printf(size_t s)
+{
+    /* Truncate absurdly long strings (should one show up) to fit
+     * within a positive 'int', which is what the "%.*s" format will
+     * expect. */
+    if (s > INT_MAX)
+        return INT_MAX;
+    return s;
+}
+
 /*
  * Do an sprintf(), but into a custom-allocated buffer.
  * 
@@ -1171,37 +1181,26 @@ int smemeq(const void *av, const void *bv, size_t len)
     return (0x100 - val) >> 8;
 }
 
-int match_ssh_id(int stringlen, const void *string, const char *id)
+ptrlen make_ptrlen(const void *ptr, size_t len)
 {
-    int idlen = strlen(id);
-    return (idlen == stringlen && !memcmp(string, id, idlen));
+    ptrlen pl;
+    pl.ptr = ptr;
+    pl.len = len;
+    return pl;
 }
 
-void *get_ssh_string(int *datalen, const void **data, int *stringlen)
+int ptrlen_eq_string(ptrlen pl, const char *str)
 {
-    void *ret;
-    unsigned int len;
-
-    if (*datalen < 4)
-        return NULL;
-    len = GET_32BIT_MSB_FIRST((const unsigned char *)*data);
-    if (*datalen - 4 < len)
-        return NULL;
-    ret = (void *)((const char *)*data + 4);
-    *datalen -= len + 4;
-    *data = (const char *)*data + len + 4;
-    *stringlen = len;
-    return ret;
+    size_t len = strlen(str);
+    return (pl.len == len && !memcmp(pl.ptr, str, len));
 }
 
-int get_ssh_uint32(int *datalen, const void **data, unsigned *ret)
+char *mkstr(ptrlen pl)
 {
-    if (*datalen < 4)
-        return FALSE;
-    *ret = GET_32BIT_MSB_FIRST((const unsigned char *)*data);
-    *datalen -= 4;
-    *data = (const char *)*data + 4;
-    return TRUE;
+    char *p = snewn(pl.len + 1, char);
+    memcpy(p, pl.ptr, pl.len);
+    p[pl.len] = '\0';
+    return p;
 }
 
 int strstartswith(const char *s, const char *t)

@@ -1204,11 +1204,14 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->ARB_framebuffer_no_attachments = GL_TRUE;
 
    /* GL_ARB_ES3_compatibility.
-    *
-    * Assume that ES3 is supported if GLSL 3.30 is supported.
-    * (OpenGL 3.3 is a requirement for that extension.)
+    * Check requirements for GLSL ES 3.00.
     */
-   if (GLSLVersion >= 330 &&
+   if (GLSLVersion >= 130 &&
+       extensions->ARB_uniform_buffer_object &&
+       extensions->ARB_shader_bit_encoding &&
+       extensions->NV_primitive_restart &&
+       screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
+                                PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS) >= 16 &&
        /* Requirements for ETC2 emulation. */
        screen->is_format_supported(screen, PIPE_FORMAT_R8G8B8A8_UNORM,
                                    PIPE_TEXTURE_2D, 0,

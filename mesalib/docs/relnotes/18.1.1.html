@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.1.1 Release Notes / June 1 2018</h1>
+
+<p>
+Mesa 18.1.1 is a bug fix release which fixes bugs found since the 18.1.0 release.
+</p>
+<p>
+Mesa 18.1.1 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+366a35f7530a016f2a8284fb0ee5759eeb216b4d6fa47f0e96b89ad2e43faf96  mesa-18.1.1.tar.gz
+d3312a2ede5aac14a47476b208b8e3a401367838330197c4588ab8ad420d7781  mesa-18.1.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>None<p>
+
+<h2>Changes</h2>
+<p>Anuj Phogat (1):</p>
+<ul>
+  <li>i965/glk: Add l3 banks count for 2x6 configuration</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (7):</p>
+<ul>
+  <li>radv: Fix multiview queries.</li>
+  <li>radv: Translate logic ops.</li>
+  <li>radv: Fix up 2_10_10_10 alpha sign.</li>
+  <li>radv: Disable texel buffers with A2 SNORM/SSCALED/SINT for pre-vega.</li>
+  <li>amd/addrlib: Use defines in autotools build.</li>
+  <li>radv: Fix SRGB compute copies.</li>
+  <li>radv: Only expose subgroup shuffles on VI+.</li>
+</ul>
+
+<p>Christoph Haag (1):</p>
+<ul>
+  <li>radv: fix VK_EXT_descriptor_indexing</li>
+</ul>
+
+<p>Dave Airlie (5):</p>
+<ul>
+  <li>radv/resolve: do fmask decompress on all layers.</li>
+  <li>radv: resolve all layers in compute resolve path.</li>
+  <li>radv: use compute path for multi-layer images.</li>
+  <li>virgl: set texture buffer offset alignment to disable ARB_texture_buffer_range.</li>
+  <li>tgsi/scan: add hw atomic to the list of memory accessing files</li>
+</ul>
+
+<p>Dylan Baker (2):</p>
+<ul>
+  <li>docs: Add sha sums for release</li>
+  <li>VERSION: bump to 18.1.1 for next release</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>vulkan: don't free uninitialised memory</li>
+</ul>
+
+<p>Francisco Jerez (4):</p>
+<ul>
+  <li>Revert "mesa: simplify _mesa_is_image_unit_valid for buffers"</li>
+  <li>i965: Move buffer texture size calculation into a common helper function.</li>
+  <li>i965: Handle non-zero texture buffer offsets in buffer object range calculation.</li>
+  <li>i965: Use intel_bufferobj_buffer() wrapper in image surface state setup.</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>nv30: ensure that displayable formats are marked accordingly</li>
+</ul>
+
+<p>Jan Vesely (1):</p>
+<ul>
+  <li>eg/compute: Use reference counting to handle compute memory pool.</li>
+</ul>
+
+<p>Jason Ekstrand (2):</p>
+<ul>
+  <li>intel/eu: Set EXECUTE_1 when setting the rounding mode in cr0</li>
+  <li>intel/blorp: Support blits and clears on surfaces with offsets</li>
+</ul>
+
+<p>Jose Dapena Paz (1):</p>
+<ul>
+  <li>mesa: do not leak ctx-&gt;Shader.ReferencedProgram references</li>
+</ul>
+
+<p>Kai Wasserbäch (1):</p>
+<ul>
+  <li>opencl: autotools: Fix linking order for OpenCL target</li>
+</ul>
+
+<p>Marek Olšák (3):</p>
+<ul>
+  <li>st/mesa: simplify lastLevel determination in st_finalize_texture</li>
+  <li>radeonsi: fix incorrect parentheses around VS-PS varying elimination</li>
+  <li>mesa: handle GL_UNSIGNED_INT64_ARB properly (v2)</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>dri3: Stricter SBC wraparound handling</li>
+</ul>
+
+<p>Nanley Chery (4):</p>
+<ul>
+  <li>i965: Add and use a getter for the miptree aux buffer</li>
+  <li>i965: Add and use a single miptree aux_buf field</li>
+  <li>i965/miptree: Fix handling of uninitialized MCS buffers</li>
+  <li>i965/miptree: Zero-initialize CCS_D buffers</li>
+</ul>
+
+<p>Samuel Pitoiset (2):</p>
+<ul>
+  <li>spirv: fix visiting inner loops with same break/continue block</li>
+  <li>radv: fix centroid interpolation</li>
+</ul>
+
+<p>Stuart Young (1):</p>
+<ul>
+  <li>etnaviv: Fix missing rnndb file in tarballs</li>
+</ul>
+
+<p>Thierry Reding (3):</p>
+<ul>
+  <li>tegra: Treat resources with modifiers as scanout</li>
+  <li>tegra: Fix scanout resources without modifiers</li>
+  <li>tegra: Remove usage of non-stable UAPI</li>
+</ul>
+
+<p>Timothy Arceri (1):</p>
+<ul>
+  <li>mesa: add glUniform*ui{v} support to display lists</li>
+</ul>
+
+</div>
+</body>
+</html>
