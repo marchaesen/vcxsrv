@@ -33,7 +33,7 @@ matrix:
     - env:
         - LABEL="meson Vulkan"
         - BUILD=meson
-        - MESON_OPTIONS="-Ddri-drivers= -Dgallium-drivers="
+        - MESON_OPTIONS="-Ddri-drivers=[] -Dgallium-drivers=[]"
         - LLVM_VERSION=5.0
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
       addons:
@@ -53,7 +53,7 @@ matrix:
     - env:
         - LABEL="meson loaders/classic DRI"
         - BUILD=meson
-        - MESON_OPTIONS="-Dvulkan-drivers= -Dgallium-drivers="
+        - MESON_OPTIONS="-Dvulkan-drivers=[] -Dgallium-drivers=[]"
       addons:
         apt:
           packages:

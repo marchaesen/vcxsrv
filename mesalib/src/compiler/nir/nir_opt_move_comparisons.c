@@ -51,30 +51,6 @@
  */
 
 static bool
-is_comparison(nir_op op)
-{
-   switch (op) {
-   case nir_op_flt:
-   case nir_op_fge:
-   case nir_op_feq:
-   case nir_op_fne:
-   case nir_op_ilt:
-   case nir_op_ult:
-   case nir_op_ige:
-   case nir_op_uge:
-   case nir_op_ieq:
-   case nir_op_ine:
-   case nir_op_i2b:
-   case nir_op_f2b:
-   case nir_op_inot:
-   case nir_op_fnot:
-      return true;
-   default:
-      return false;
-   }
-}
-
-static bool
 move_comparison_source(nir_src *src, nir_block *block, nir_instr *before)
 {
    if (!src->is_ssa)
@@ -84,7 +60,7 @@ move_comparison_source(nir_src *src, nir_block *block, nir_instr *before)
 
    if (src_instr->block == block &&
        src_instr->type == nir_instr_type_alu &&
-       is_comparison(nir_instr_as_alu(src_instr)->op)) {
+       nir_alu_instr_is_comparison(nir_instr_as_alu(src_instr))) {
 
       exec_node_remove(&src_instr->node);
 

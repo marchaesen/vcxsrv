@@ -228,15 +228,9 @@ validate_alu_src(nir_alu_instr *instr, unsigned index, validate_state *state)
 {
    nir_alu_src *src = &instr->src[index];
 
-   unsigned num_components;
-   if (src->src.is_ssa) {
-      num_components = src->src.ssa->num_components;
-   } else {
-      if (src->src.reg.reg->is_packed)
-         num_components = 4; /* can't check anything */
-      else
-         num_components = src->src.reg.reg->num_components;
-   }
+   unsigned num_components = nir_src_num_components(src->src);
+   if (!src->src.is_ssa && src->src.reg.reg->is_packed)
+      num_components = 4; /* can't check anything */
    for (unsigned i = 0; i < 4; i++) {
       validate_assert(state, src->swizzle[i] < 4);
 
@@ -333,9 +327,7 @@ validate_alu_dest(nir_alu_instr *instr, validate_state *state)
 {
    nir_alu_dest *dest = &instr->dest;
 
-   unsigned dest_size =
-      dest->dest.is_ssa ? dest->dest.ssa.num_components
-                        : dest->dest.reg.reg->num_components;
+   unsigned dest_size = nir_dest_num_components(dest->dest);
    bool is_packed = !dest->dest.is_ssa && dest->dest.reg.reg->is_packed;
    /*
     * validate that the instruction doesn't write to components not in the

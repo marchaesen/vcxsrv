@@ -22,6 +22,7 @@
  */
 
 #include "nir.h"
+#include "nir/nir_builder.h"
 #include "nir_control_flow.h"
 
 /**
@@ -201,7 +202,89 @@ opt_peel_loop_initial_if(nir_loop *loop)
 }
 
 static bool
-opt_if_cf_list(struct exec_list *cf_list)
+is_block_empty(nir_block *block)
+{
+   return nir_cf_node_is_last(&block->cf_node) &&
+          exec_list_is_empty(&block->instr_list);
+}
+
+/**
+ * This optimization turns:
+ *
+ *     if (cond) {
+ *     } else {
+ *         do_work();
+ *     }
+ *
+ * into:
+ *
+ *     if (!cond) {
+ *         do_work();
+ *     } else {
+ *     }
+ */
+static bool
+opt_if_simplification(nir_builder *b, nir_if *nif)
+{
+   /* Only simplify if the then block is empty and the else block is not. */
+   if (!is_block_empty(nir_if_first_then_block(nif)) ||
+       is_block_empty(nir_if_first_else_block(nif)))
+      return false;
+
+   /* Make sure the condition is a comparison operation. */
+   nir_instr *src_instr = nif->condition.ssa->parent_instr;
+   if (src_instr->type != nir_instr_type_alu)
+      return false;
+
+   nir_alu_instr *alu_instr = nir_instr_as_alu(src_instr);
+   if (!nir_alu_instr_is_comparison(alu_instr))
+      return false;
+
+   /* Insert the inverted instruction and rewrite the condition. */
+   b->cursor = nir_after_instr(&alu_instr->instr);
+
+   nir_ssa_def *new_condition =
+      nir_inot(b, &alu_instr->dest.dest.ssa);
+
+   nir_if_rewrite_condition(nif, nir_src_for_ssa(new_condition));
+
+   /* Grab pointers to the last then/else blocks for fixing up the phis. */
+   nir_block *then_block = nir_if_last_then_block(nif);
+   nir_block *else_block = nir_if_last_else_block(nif);
+
+   /* Walk all the phis in the block immediately following the if statement and
+    * swap the blocks.
+    */
+   nir_block *after_if_block =
+      nir_cf_node_as_block(nir_cf_node_next(&nif->cf_node));
+
+   nir_foreach_instr(instr, after_if_block) {
+      if (instr->type != nir_instr_type_phi)
+         continue;
+
+      nir_phi_instr *phi = nir_instr_as_phi(instr);
+
+      foreach_list_typed(nir_phi_src, src, node, &phi->srcs) {
+         if (src->pred == else_block) {
+            src->pred = then_block;
+         } else if (src->pred == then_block) {
+            src->pred = else_block;
+         }
+      }
+   }
+
+   /* Finally, move the else block to the then block. */
+   nir_cf_list tmp;
+   nir_cf_extract(&tmp, nir_before_cf_list(&nif->else_list),
+                        nir_after_cf_list(&nif->else_list));
+   nir_cf_reinsert(&tmp, nir_before_cf_list(&nif->then_list));
+   nir_cf_delete(&tmp);
+
+   return true;
+}
+
+static bool
+opt_if_cf_list(nir_builder *b, struct exec_list *cf_list)
 {
    bool progress = false;
    foreach_list_typed(nir_cf_node, cf_node, node, cf_list) {
@@ -211,14 +294,15 @@ opt_if_cf_list(struct exec_list *cf_list)
 
       case nir_cf_node_if: {
          nir_if *nif = nir_cf_node_as_if(cf_node);
-         progress |= opt_if_cf_list(&nif->then_list);
-         progress |= opt_if_cf_list(&nif->else_list);
+         progress |= opt_if_cf_list(b, &nif->then_list);
+         progress |= opt_if_cf_list(b, &nif->else_list);
+         progress |= opt_if_simplification(b, nif);
          break;
       }
 
       case nir_cf_node_loop: {
          nir_loop *loop = nir_cf_node_as_loop(cf_node);
-         progress |= opt_if_cf_list(&loop->body);
+         progress |= opt_if_cf_list(b, &loop->body);
          progress |= opt_peel_loop_initial_if(loop);
          break;
       }
@@ -240,7 +324,10 @@ nir_opt_if(nir_shader *shader)
       if (function->impl == NULL)
          continue;
 
-      if (opt_if_cf_list(&function->impl->body)) {
+      nir_builder b;
+      nir_builder_init(&b, function->impl);
+
+      if (opt_if_cf_list(&b, &function->impl->body)) {
          nir_metadata_preserve(function->impl, nir_metadata_none);
 
          /* If that made progress, we're no longer really in SSA form.  We

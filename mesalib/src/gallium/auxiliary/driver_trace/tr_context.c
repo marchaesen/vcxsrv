@@ -1430,35 +1430,59 @@ trace_context_transfer_unmap(struct pipe_context *_context,
        */
 
       struct pipe_resource *resource = transfer->resource;
-      unsigned level = transfer->level;
       unsigned usage = transfer->usage;
       const struct pipe_box *box = &transfer->box;
       unsigned stride = transfer->stride;
       unsigned layer_stride = transfer->layer_stride;
 
-      if (resource->target == PIPE_BUFFER)
+      if (resource->target == PIPE_BUFFER) {
+         unsigned offset = box->x;
+         unsigned size = box->width;
+
          trace_dump_call_begin("pipe_context", "buffer_subdata");
-      else
+
+         trace_dump_arg(ptr, context);
+         trace_dump_arg(ptr, resource);
+         trace_dump_arg(uint, usage);
+         trace_dump_arg(uint, offset);
+         trace_dump_arg(uint, size);
+
+         trace_dump_arg_begin("data");
+         trace_dump_box_bytes(tr_trans->map,
+                              resource,
+                              box,
+                              stride,
+                              layer_stride);
+         trace_dump_arg_end();
+
+         trace_dump_arg(uint, stride);
+         trace_dump_arg(uint, layer_stride);
+
+         trace_dump_call_end();
+      } else {
+         unsigned level = transfer->level;
+
          trace_dump_call_begin("pipe_context", "texture_subdata");
 
-      trace_dump_arg(ptr, context);
-      trace_dump_arg(ptr, resource);
-      trace_dump_arg(uint, level);
-      trace_dump_arg(uint, usage);
-      trace_dump_arg(box, box);
+         trace_dump_arg(ptr, context);
+         trace_dump_arg(ptr, resource);
+         trace_dump_arg(uint, level);
+         trace_dump_arg(uint, usage);
+         trace_dump_arg(box, box);
 
-      trace_dump_arg_begin("data");
-      trace_dump_box_bytes(tr_trans->map,
-                           resource,
-                           box,
-                           stride,
-                           layer_stride);
-      trace_dump_arg_end();
+         trace_dump_arg_begin("data");
+         trace_dump_box_bytes(tr_trans->map,
+                              resource,
+                              box,
+                              stride,
+                              layer_stride);
+         trace_dump_arg_end();
 
-      trace_dump_arg(uint, stride);
-      trace_dump_arg(uint, layer_stride);
+         trace_dump_arg(uint, stride);
+         trace_dump_arg(uint, layer_stride);
 
-      trace_dump_call_end();
+         trace_dump_call_end();
+      }
 
       tr_trans->map = NULL;
    }

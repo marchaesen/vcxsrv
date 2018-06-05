@@ -199,12 +199,25 @@ randmemset_internal (prng_t                  *prng,
         }
         else
         {
+
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
 #ifdef HAVE_GCC_VECTOR_EXTENSIONS
-            const uint8x16 bswap_shufflemask =
+# if __has_builtin(__builtin_shufflevector)
+            randdata.vb =
+                __builtin_shufflevector (randdata.vb, randdata.vb,
+                                          3,  2,  1,  0,  7,  6 , 5,  4,
+                                         11, 10,  9,  8, 15, 14, 13, 12);
+# else
+            static const uint8x16 bswap_shufflemask =
             {
                 3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12
             };
             randdata.vb = __builtin_shuffle (randdata.vb, bswap_shufflemask);
+# endif
+
             store_rand_128_data (buf, &randdata, aligned);
             buf += 16;
 #else
