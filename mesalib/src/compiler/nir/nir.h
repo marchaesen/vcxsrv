@@ -1374,6 +1374,30 @@ nir_tex_instr_is_query(const nir_tex_instr *instr)
    }
 }
 
+static inline bool
+nir_alu_instr_is_comparison(const nir_alu_instr *instr)
+{
+   switch (instr->op) {
+   case nir_op_flt:
+   case nir_op_fge:
+   case nir_op_feq:
+   case nir_op_fne:
+   case nir_op_ilt:
+   case nir_op_ult:
+   case nir_op_ige:
+   case nir_op_uge:
+   case nir_op_ieq:
+   case nir_op_ine:
+   case nir_op_i2b:
+   case nir_op_f2b:
+   case nir_op_inot:
+   case nir_op_fnot:
+      return true;
+   default:
+      return false;
+   }
+}
+
 static inline nir_alu_type
 nir_tex_instr_src_type(const nir_tex_instr *instr, unsigned src)
 {

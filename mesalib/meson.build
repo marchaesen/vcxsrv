@@ -292,7 +292,7 @@ elif _egl == 'true'
     error('EGL requires dri')
   elif not with_shared_glapi
     error('EGL requires shared-glapi')
-  elif with_platforms
+  elif not with_platforms
     error('No platforms specified, consider -Dplatforms=drm,x11 at least')
   elif not ['disabled', 'dri'].contains(with_glx)
     error('EGL requires dri, but a GLX is being built without dri')

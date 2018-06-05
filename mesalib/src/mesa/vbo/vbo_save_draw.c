@@ -168,7 +168,7 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data)
       remap_vertex_store = GL_TRUE;
    }
 
-   FLUSH_CURRENT(ctx, 0);
+   FLUSH_FOR_DRAW(ctx);
 
    if (node->prim_count > 0) {
 

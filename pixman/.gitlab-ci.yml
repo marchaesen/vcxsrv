@@ -1,0 +1,9 @@
+image: fedora:28
+
+job:
+    script:
+    - dnf -y install dnf-plugins-core
+    - dnf -y groupinstall buildsys-build
+    - dnf -y builddep pixman
+    - ./autogen.sh
+    - make -sj4 check

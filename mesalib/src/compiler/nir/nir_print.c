@@ -199,9 +199,7 @@ print_alu_src(nir_alu_instr *instr, unsigned src, print_state *state)
       }
    }
 
-   unsigned live_channels = instr->src[src].src.is_ssa
-      ? instr->src[src].src.ssa->num_components
-      : instr->src[src].src.reg.reg->num_components;
+   unsigned live_channels = nir_src_num_components(instr->src[src].src);
 
    if (print_swizzle || used_channels != live_channels) {
       fprintf(fp, ".");

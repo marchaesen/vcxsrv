@@ -2099,6 +2099,9 @@ if test -n "$with_vulkan_drivers"; then
             PKG_CHECK_MODULES([AMDGPU], [libdrm >= $LIBDRM_AMDGPU_REQUIRED libdrm_amdgpu >= $LIBDRM_AMDGPU_REQUIRED])
             radeon_llvm_check $LLVM_REQUIRED_RADV "radv"
             require_x11_dri3 "radv"
+            if test "x$acv_mako_found" = xno; then
+                AC_MSG_ERROR([Python mako module v$PYTHON_MAKO_REQUIRED or higher not found])
+            fi
             HAVE_RADEON_VULKAN=yes
             ;;
         *)

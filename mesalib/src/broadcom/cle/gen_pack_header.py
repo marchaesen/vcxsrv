@@ -43,7 +43,7 @@ pack_header = """%(license)s
 #ifndef %(guard)s
 #define %(guard)s
 
-#include "v3d_packet_helpers.h"
+#include "cle/v3d_packet_helpers.h"
 
 """
 
