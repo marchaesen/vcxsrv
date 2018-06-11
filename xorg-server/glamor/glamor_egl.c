@@ -999,8 +999,8 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
        if (xf86Info.debug != NULL)
            glamor_egl->dmabuf_capable = !!strstr(xf86Info.debug,
                                                 "dmabuf_capable");
-        else
-            glamor_egl->dmabuf_capable = FALSE;
+       else
+           glamor_egl->dmabuf_capable = TRUE;
     }
 #endif
 

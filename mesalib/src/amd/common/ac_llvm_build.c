@@ -1662,6 +1662,7 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 	unsigned num_overloads = 0;
 	LLVMValueRef args[18];
 	unsigned num_args = 0;
+	enum ac_image_dim dim = a->dim;
 
 	assert(!a->lod || a->lod == ctx->i32_0 || a->lod == ctx->f32_0 ||
 	       !a->level_zero);
@@ -1680,6 +1681,20 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 
 	if (HAVE_LLVM < 0x0700)
 		return ac_build_image_opcode_llvm6(ctx, a);
+
+	if (a->opcode == ac_image_get_lod) {
+		switch (dim) {
+		case ac_image_1darray:
+			dim = ac_image_1d;
+			break;
+		case ac_image_2darray:
+		case ac_image_cube:
+			dim = ac_image_2d;
+			break;
+		default:
+			break;
+		}
+	}
 
 	bool sample = a->opcode == ac_image_sample ||
 		      a->opcode == ac_image_gather4 ||
@@ -1706,13 +1721,13 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 	if (a->compare)
 		args[num_args++] = ac_to_float(ctx, a->compare);
 	if (a->derivs[0]) {
-		unsigned count = ac_num_derivs(a->dim);
+		unsigned count = ac_num_derivs(dim);
 		for (unsigned i = 0; i < count; ++i)
 			args[num_args++] = ac_to_float(ctx, a->derivs[i]);
 		overload[num_overloads++] = ".f32";
 	}
 	unsigned num_coords =
-		a->opcode != ac_image_get_resinfo ? ac_num_coords(a->dim) : 0;
+		a->opcode != ac_image_get_resinfo ? ac_num_coords(dim) : 0;
 	for (unsigned i = 0; i < num_coords; ++i)
 		args[num_args++] = LLVMBuildBitCast(ctx->builder, a->coords[i], coord_type, "");
 	if (a->lod)
@@ -1751,7 +1766,7 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx,
 	}
 
 	const char *dimname;
-	switch (a->dim) {
+	switch (dim) {
 	case ac_image_1d: dimname = "1d"; break;
 	case ac_image_2d: dimname = "2d"; break;
 	case ac_image_3d: dimname = "3d"; break;
@@ -2980,7 +2995,7 @@ static LLVMValueRef
 ac_build_set_inactive(struct ac_llvm_context *ctx, LLVMValueRef src,
 		      LLVMValueRef inactive)
 {
-	char name[32], type[8];
+	char name[33], type[8];
 	LLVMTypeRef src_type = LLVMTypeOf(src);
 	src = ac_to_integer(ctx, src);
 	inactive = ac_to_integer(ctx, inactive);

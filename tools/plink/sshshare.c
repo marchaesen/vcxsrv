@@ -932,17 +932,14 @@ static void share_closing(Plug plug, const char *error_msg, int error_code,
 static void share_xchannel_add_message(
     struct share_xchannel *xc, int type, const void *data, int len)
 {
-    unsigned char *block;
     struct share_xchannel_message *msg;
 
     /*
-     * Be a little tricksy here by allocating a single memory block
-     * containing both the 'struct share_xchannel_message' and the
-     * actual data. Simplifies freeing it later.
+     * Allocate the 'struct share_xchannel_message' and the actual
+     * data in one unit.
      */
-    block = smalloc(sizeof(struct share_xchannel_message) + len);
-    msg = (struct share_xchannel_message *)block;
-    msg->data = block + sizeof(struct share_xchannel_message);
+    msg = snew_plus(struct share_xchannel_message, len);
+    msg->data = snew_plus_get_aux(msg);
     msg->datalen = len;
     msg->type = type;
     memcpy(msg->data, data, len);
@@ -1132,8 +1129,9 @@ void share_setup_x11_channel(void *csv, void *chanv,
 }
 
 void share_got_pkt_from_server(void *csv, int type,
-                               unsigned char *pkt, int pktlen)
+                               const void *vpkt, int pktlen)
 {
+    const unsigned char *pkt = (const unsigned char *)vpkt;
     struct ssh_sharing_connstate *cs = (struct ssh_sharing_connstate *)csv;
     struct share_globreq *globreq;
     size_t id_pos;
@@ -1206,8 +1204,11 @@ void share_got_pkt_from_server(void *csv, int type,
             /*
              * The normal case: this id refers to an open channel.
              */
-            PUT_32BIT(pkt + id_pos, chan->downstream_id);
-            send_packet_to_downstream(cs, type, pkt, pktlen, chan);
+            unsigned char *rewritten = snewn(pktlen, unsigned char);
+            memcpy(rewritten, pkt, pktlen);
+            PUT_32BIT(rewritten + id_pos, chan->downstream_id);
+            send_packet_to_downstream(cs, type, rewritten, pktlen, chan);
+            sfree(rewritten);
 
             /*
              * Update the channel state, for messages that need it.

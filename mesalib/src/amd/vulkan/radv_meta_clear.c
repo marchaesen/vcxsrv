@@ -1035,7 +1035,7 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		goto fail;
 
 	/* DCC */
-	ret = radv_format_pack_clear_color(iview->image->vk_format,
+	ret = radv_format_pack_clear_color(iview->vk_format,
 					   clear_color, &clear_value);
 	if (ret == false)
 		goto fail;
@@ -1056,7 +1056,7 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		bool can_avoid_fast_clear_elim;
 		bool need_decompress_pass = false;
 
-		vi_get_fast_clear_parameters(iview->image->vk_format,
+		vi_get_fast_clear_parameters(iview->vk_format,
 					     &clear_value, &reset_value,
 					     &can_avoid_fast_clear_elim);
 

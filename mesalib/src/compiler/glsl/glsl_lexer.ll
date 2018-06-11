@@ -600,7 +600,7 @@ external	KEYWORD(110, 100, 0, 0, EXTERNAL);
 interface	KEYWORD(110, 100, 0, 0, INTERFACE);
 long		KEYWORD(110, 100, 0, 0, LONG_TOK);
 short		KEYWORD(110, 100, 0, 0, SHORT_TOK);
-double		TYPE_WITH_ALT(130, 300, 130, 300, yyextra->ARB_gpu_shader_fp64_enable, glsl_type::double_type);
+double		TYPE_WITH_ALT(130, 100, 130, 300, yyextra->ARB_gpu_shader_fp64_enable, glsl_type::double_type);
 half		KEYWORD(110, 100, 0, 0, HALF);
 fixed		KEYWORD(110, 100, 0, 0, FIXED_TOK);
 unsigned	KEYWORD(110, 100, 0, 0, UNSIGNED);

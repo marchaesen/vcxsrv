@@ -921,7 +921,7 @@ bool radv_format_pack_clear_color(VkFormat format,
 	uint64_t clear_val = 0;
 
 	for (unsigned c = 0; c < 4; ++c) {
-		if (desc->swizzle[c] < 0 || desc->swizzle[c] >= 4)
+		if (desc->swizzle[c] >= 4)
 			continue;
 
 		const struct vk_format_channel_description *channel = &desc->channel[desc->swizzle[c]];

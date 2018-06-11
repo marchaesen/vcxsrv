@@ -291,7 +291,8 @@ exaTryDriverSolidFill(PicturePtr pSrc,
         pixel = exaGetPixmapFirstPixel(pSrcPix);
     }
     else
-        miRenderColorToPixel(pSrc->pFormat,
+        miRenderColorToPixel(PictureMatchFormat(pDst->pDrawable->pScreen, 32,
+                                                pSrc->format),
                              &pSrc->pSourcePict->solidFill.fullcolor,
                              &pixel);
 

@@ -50,6 +50,7 @@ with_tests = get_option('build-tests')
 with_valgrind = get_option('valgrind')
 with_libunwind = get_option('libunwind')
 with_asm = get_option('asm')
+with_glx_read_only_text = get_option('glx-read-only-text')
 with_osmesa = get_option('osmesa')
 with_swr_arches = get_option('swr-arches')
 with_tools = get_option('tools')
@@ -841,14 +842,27 @@ endif
 # TODO: powr8
 # TODO: shared/static? Is this even worth doing?
 
-# Building x86 assembly code requires running x86 binaries. It is possible for
-# x86_64 OSes to run x86 binaries, so don't disable asm in those cases
-# TODO: it should be possible to use an exe_wrapper to run the binary during
-# the build. 
+# When cross compiling we generally need to turn off the use of assembly,
+# because mesa's assembly relies on building an executable for the host system,
+# and running it to get information about struct sizes. There is at least one
+# case of cross compiling where we can use asm, and that's x86_64 -> x86 when
+# host OS == build OS, since in that case the build machine can run the host's
+# binaries.
 if meson.is_cross_build() 
-  if not (build_machine.cpu_family() == 'x86_64' and host_machine.cpu_family() == 'x86'
-          and build_machine.system() == host_machine.system())
-    message('Cross compiling to x86 from non-x86, disabling asm')
+  if build_machine.system() != host_machine.system()
+    # TODO: It may be possible to do this with an exe_wrapper (like wine).
+    message('Cross compiling from one OS to another, disabling assembly.')
+    with_asm = false
+  elif not (build_machine.cpu_family().startswith('x86') and host_machine.cpu_family() == 'x86')
+    # FIXME: Gentoo always sets -m32 for x86_64 -> x86 builds, resulting in an
+    # x86 -> x86 cross compile. We use startswith rather than == to handle this
+    # case.
+    # TODO: There may be other cases where the 64 bit version of the
+    # architecture can run 32 bit binaries (aarch64 and armv7 for example)
+    message('''
+      Cross compiling to different architectures, and the host cannot run
+      the build machine's binaries. Disabling assembly.
+    ''')
     with_asm = false
   endif
 endif
@@ -861,6 +875,10 @@ if with_asm
       with_asm_arch = 'x86'
       pre_args += ['-DUSE_X86_ASM', '-DUSE_MMX_ASM', '-DUSE_3DNOW_ASM',
                    '-DUSE_SSE_ASM']
+
+      if with_glx_read_only_text
+         pre_args += ['-DGLX_X86_READONLY_TEXT']
+      endif
     endif
   elif host_machine.cpu_family() == 'x86_64'
     if system_has_kms_drm
@@ -1201,6 +1219,11 @@ if with_platform_wayland
   dep_wl_protocols = dependency('wayland-protocols', version : '>= 1.8')
   dep_wayland_client = dependency('wayland-client', version : '>=1.11')
   dep_wayland_server = dependency('wayland-server', version : '>=1.11')
+  if with_egl
+    dep_wayland_egl = dependency('wayland-egl-backend', version : '>= 3')
+    dep_wayland_egl_headers = declare_dependency(
+      compile_args : run_command(prog_pkgconfig, ['wayland-egl-backend', '--cflags']).stdout().split())
+  endif
   wayland_dmabuf_xml = join_paths(
     dep_wl_protocols.get_pkgconfig_variable('pkgdatadir'), 'unstable',
     'linux-dmabuf', 'linux-dmabuf-unstable-v1.xml'

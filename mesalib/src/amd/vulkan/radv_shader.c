@@ -36,6 +36,7 @@
 
 #include <llvm-c/Core.h>
 #include <llvm-c/TargetMachine.h>
+#include <llvm-c/Support.h>
 
 #include "sid.h"
 #include "gfx9d.h"
@@ -467,6 +468,82 @@ radv_fill_shader_variant(struct radv_device *device,
 	memcpy(ptr, binary->code, binary->code_size);
 }
 
+static void radv_init_llvm_target()
+{
+	LLVMInitializeAMDGPUTargetInfo();
+	LLVMInitializeAMDGPUTarget();
+	LLVMInitializeAMDGPUTargetMC();
+	LLVMInitializeAMDGPUAsmPrinter();
+
+	/* For inline assembly. */
+	LLVMInitializeAMDGPUAsmParser();
+
+	/* Workaround for bug in llvm 4.0 that causes image intrinsics
+	 * to disappear.
+	 * https://reviews.llvm.org/D26348
+	 *
+	 * Workaround for bug in llvm that causes the GPU to hang in presence
+	 * of nested loops because there is an exec mask issue. The proper
+	 * solution is to fix LLVM but this might require a bunch of work.
+	 * https://bugs.llvm.org/show_bug.cgi?id=37744
+	 *
+	 * "mesa" is the prefix for error messages.
+	 */
+	const char *argv[3] = { "mesa", "-simplifycfg-sink-common=false",
+				"-amdgpu-skip-threshold=1" };
+	LLVMParseCommandLineOptions(3, argv, NULL);
+}
+
+static once_flag radv_init_llvm_target_once_flag = ONCE_FLAG_INIT;
+
+static LLVMTargetRef radv_get_llvm_target(const char *triple)
+{
+	LLVMTargetRef target = NULL;
+	char *err_message = NULL;
+
+	call_once(&radv_init_llvm_target_once_flag, radv_init_llvm_target);
+
+	if (LLVMGetTargetFromTriple(triple, &target, &err_message)) {
+		fprintf(stderr, "Cannot find target for triple %s ", triple);
+		if (err_message) {
+			fprintf(stderr, "%s\n", err_message);
+		}
+		LLVMDisposeMessage(err_message);
+		return NULL;
+	}
+	return target;
+}
+
+static LLVMTargetMachineRef radv_create_target_machine(enum radeon_family family,
+						       enum ac_target_machine_options tm_options,
+						       const char **out_triple)
+{
+	assert(family >= CHIP_TAHITI);
+	char features[256];
+	const char *triple = (tm_options & AC_TM_SUPPORTS_SPILL) ? "amdgcn-mesa-mesa3d" : "amdgcn--";
+	LLVMTargetRef target = radv_get_llvm_target(triple);
+
+	snprintf(features, sizeof(features),
+		 "+DumpCode,+vgpr-spilling,-fp32-denormals,+fp64-denormals%s%s%s%s",
+		 tm_options & AC_TM_SISCHED ? ",+si-scheduler" : "",
+		 tm_options & AC_TM_FORCE_ENABLE_XNACK ? ",+xnack" : "",
+		 tm_options & AC_TM_FORCE_DISABLE_XNACK ? ",-xnack" : "",
+		 tm_options & AC_TM_PROMOTE_ALLOCA_TO_SCRATCH ? ",-promote-alloca" : "");
+
+	LLVMTargetMachineRef tm = LLVMCreateTargetMachine(
+	                             target,
+	                             triple,
+	                             ac_get_llvm_processor_name(family),
+				     features,
+	                             LLVMCodeGenLevelDefault,
+	                             LLVMRelocDefault,
+	                             LLVMCodeModelDefault);
+
+	if (out_triple)
+		*out_triple = triple;
+	return tm;
+}
+
 static struct radv_shader_variant *
 shader_variant_create(struct radv_device *device,
 		      struct radv_shader_module *module,
@@ -501,7 +578,7 @@ shader_variant_create(struct radv_device *device,
 		tm_options |= AC_TM_SUPPORTS_SPILL;
 	if (device->instance->perftest_flags & RADV_PERFTEST_SISCHED)
 		tm_options |= AC_TM_SISCHED;
-	tm = ac_create_target_machine(chip_family, tm_options, NULL);
+	tm = radv_create_target_machine(chip_family, tm_options, NULL);
 
 	if (gs_copy_shader) {
 		assert(shader_count == 1);

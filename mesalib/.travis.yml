@@ -22,7 +22,7 @@ env:
     - LIBXSHMFENCE_VERSION=libxshmfence-1.2
     - LIBVDPAU_VERSION=libvdpau-1.1
     - LIBVA_VERSION=libva-1.7.0
-    - LIBWAYLAND_VERSION=wayland-1.11.1
+    - LIBWAYLAND_VERSION=wayland-1.15.0
     - WAYLAND_PROTOCOLS_VERSION=wayland-protocols-1.8
     - PKG_CONFIG_PATH=$HOME/prefix/lib/pkgconfig:$HOME/prefix/share/pkgconfig
     - LD_LIBRARY_PATH="$HOME/prefix/lib:$LD_LIBRARY_PATH"
@@ -159,7 +159,7 @@ matrix:
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--enable-dri --disable-opencl --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
-        - GALLIUM_DRIVERS="i915,nouveau,pl111,r300,r600,freedreno,svga,swrast,vc4,virgl,etnaviv,imx"
+        - GALLIUM_DRIVERS="i915,nouveau,pl111,r300,r600,freedreno,svga,swrast,v3d,vc4,virgl,etnaviv,imx"
         - VULKAN_DRIVERS=""
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
@@ -591,7 +591,9 @@ script:
 
       export CFLAGS="$CFLAGS -isystem`pwd`";
 
-      ./autogen.sh --enable-debug
+      mkdir build &&
+      cd build &&
+      ../autogen.sh --enable-debug
         $LIBUNWIND_FLAGS
         $DRI_LOADERS
         --with-dri-drivers=$DRI_DRIVERS

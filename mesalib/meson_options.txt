@@ -225,6 +225,12 @@ option(
   description : 'Build assembly code if possible'
 )
 option(
+   'glx-read-only-text',
+   type : 'boolean',
+   value : false,
+   description : 'Disable writable .text section on x86 (decreases performance)'
+)
+option(
   'llvm',
   type : 'combo',
   value : 'auto',

@@ -109,6 +109,7 @@ FcDirCacheCreateUUID (FcChar8  *dir,
 	if (!hash_add (config->uuid_table, target, uuid))
 	{
 	    ret = FcFalse;
+	    FcAtomicDeleteNew (atomic);
 	    goto bail3;
 	}
 	uuid_unparse (uuid, out);
@@ -144,6 +145,26 @@ bail1:
     FcStrFree (uuidname);
     FcStrFree (target);
 #endif
+
+    return ret;
+}
+
+FcBool
+FcDirCacheDeleteUUID (const FcChar8  *dir,
+		      FcConfig       *config)
+{
+    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
+    FcChar8 *target;
+    FcBool ret = FcTrue;
+
+    if (sysroot)
+	target = FcStrBuildFilename (sysroot, dir, ".uuid", NULL);
+    else
+	target = FcStrBuildFilename (dir, ".uuid", NULL);
+
+    ret = unlink ((char *) target) == 0;
+    FcStrFree (target);
+    FcHashTableRemove (config->uuid_table, target);
 
     return ret;
 }
@@ -325,6 +346,7 @@ FcDirCacheUnlink (const FcChar8 *dir, FcConfig *config)
         if (!cache_hashed)
 	    break;
 	(void) unlink ((char *) cache_hashed);
+	FcDirCacheDeleteUUID (dir, config);
 	FcStrFree (cache_hashed);
     }
     FcStrListDone (list);

@@ -381,6 +381,10 @@ FcDirCacheCreateUUID (FcChar8  *dir,
 		      FcBool    force,
 		      FcConfig *config);
 
+FcPublic FcBool
+FcDirCacheDeleteUUID (const FcChar8  *dir,
+		      FcConfig       *config);
+
 /* fccfg.c */
 FcPublic FcChar8 *
 FcConfigHome (void);

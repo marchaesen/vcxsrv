@@ -352,24 +352,56 @@ gather_info_block(nir_block *block, nir_shader *shader)
    }
 }
 
+static unsigned
+glsl_type_get_sampler_count(const struct glsl_type *type)
+{
+   if (glsl_type_is_array(type)) {
+      return (glsl_get_aoa_size(type) *
+              glsl_type_get_sampler_count(glsl_without_array(type)));
+   }
+
+   if (glsl_type_is_struct(type)) {
+      unsigned count = 0;
+      for (int i = 0; i < glsl_get_length(type); i++)
+         count += glsl_type_get_sampler_count(glsl_get_struct_field(type, i));
+      return count;
+   }
+
+   if (glsl_type_is_sampler(type))
+      return 1;
+
+   return 0;
+}
+
+static unsigned
+glsl_type_get_image_count(const struct glsl_type *type)
+{
+   if (glsl_type_is_array(type)) {
+      return (glsl_get_aoa_size(type) *
+              glsl_type_get_image_count(glsl_without_array(type)));
+   }
+
+   if (glsl_type_is_struct(type)) {
+      unsigned count = 0;
+      for (int i = 0; i < glsl_get_length(type); i++)
+         count += glsl_type_get_image_count(glsl_get_struct_field(type, i));
+      return count;
+   }
+
+   if (glsl_type_is_image(type))
+      return 1;
+
+   return 0;
+}
+
 void
 nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
 {
    shader->info.num_textures = 0;
    shader->info.num_images = 0;
    nir_foreach_variable(var, &shader->uniforms) {
-      const struct glsl_type *type = var->type;
-      unsigned count = 1;
-      if (glsl_type_is_array(type)) {
-         count = glsl_get_aoa_size(type);
-         type = glsl_without_array(type);
-      }
-
-      if (glsl_type_is_image(type)) {
-         shader->info.num_images += count;
-      } else if (glsl_type_is_sampler(type)) {
-         shader->info.num_textures += count;
-      }
+      shader->info.num_textures += glsl_type_get_sampler_count(var->type);
+      shader->info.num_images += glsl_type_get_image_count(var->type);
    }
 
    shader->info.inputs_read = 0;

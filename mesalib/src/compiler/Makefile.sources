@@ -214,6 +214,7 @@ NIR_FILES = \
 	nir/nir_loop_analyze.c \
 	nir/nir_loop_analyze.h \
 	nir/nir_lower_alpha_test.c \
+	nir/nir_lower_alu.c \
 	nir/nir_lower_alu_to_scalar.c \
 	nir/nir_lower_atomics_to_ssbo.c \
 	nir/nir_lower_bitmap.c \

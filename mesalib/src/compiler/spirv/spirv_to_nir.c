@@ -3408,6 +3408,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(runtime_descriptor_array, cap);
          break;
 
+      case SpvCapabilityStencilExportEXT:
+         spv_check_supported(stencil_export, cap);
+         break;
+
       default:
          vtn_fail("Unhandled capability");
       }
@@ -3584,6 +3588,10 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeVecTypeHint:
    case SpvExecutionModeContractionOff:
       break; /* OpenCL */
+
+   case SpvExecutionModeStencilRefReplacingEXT:
+      vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);
+      break;
 
    default:
       vtn_fail("Unhandled execution mode");

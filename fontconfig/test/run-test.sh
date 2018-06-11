@@ -239,4 +239,19 @@ fi
 
 rm -rf $MyPWD/sysroot
 
+dotest "deleting .uuid file on empty dir"
+prep
+cp $FONT1 $FONT2 $FONTDIR
+$FCCACHE $FONTDIR
+sleep 1
+rm $FONTDIR/*pcf
+$FCCACHE $FONTDIR
+rmdir $FONTDIR > /dev/null 2>&1
+if [ $? != 0 ]; then
+  echo "*** Test failed: $TEST"
+  echo "$FONTDIR isn't empty"
+  ls -al $FONTDIR
+  exit 1
+fi
+
 rm -rf $FONTDIR $CACHEFILE $CACHEDIR $FONTCONFIG_FILE out

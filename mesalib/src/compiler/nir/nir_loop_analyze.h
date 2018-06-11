@@ -92,4 +92,15 @@ nir_is_trivial_loop_if(nir_if *nif, nir_block *break_block)
    return true;
 }
 
+static inline bool
+nir_block_ends_in_break(nir_block *block)
+{
+   if (exec_list_is_empty(&block->instr_list))
+      return false;
+
+   nir_instr *instr = nir_block_last_instr(block);
+   return instr->type == nir_instr_type_jump &&
+      nir_instr_as_jump(instr)->type == nir_jump_break;
+}
+
 #endif /* NIR_LOOP_ANALYZE_H */

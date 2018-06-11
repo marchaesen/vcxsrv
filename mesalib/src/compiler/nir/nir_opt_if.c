@@ -24,6 +24,7 @@
 #include "nir.h"
 #include "nir/nir_builder.h"
 #include "nir_control_flow.h"
+#include "nir_loop_analyze.h"
 
 /**
  * This optimization detects if statements at the tops of loops where the
@@ -283,6 +284,72 @@ opt_if_simplification(nir_builder *b, nir_if *nif)
    return true;
 }
 
+/**
+ * This optimization simplifies potential loop terminators which then allows
+ * other passes such as opt_if_simplification() and loop unrolling to progress
+ * further:
+ *
+ *     if (cond) {
+ *        ... then block instructions ...
+ *     } else {
+ *         ...
+ *        break;
+ *     }
+ *
+ * into:
+ *
+ *     if (cond) {
+ *     } else {
+ *         ...
+ *        break;
+ *     }
+ *     ... then block instructions ...
+ */
+static bool
+opt_if_loop_terminator(nir_if *nif)
+{
+   nir_block *break_blk = NULL;
+   nir_block *continue_from_blk = NULL;
+   bool continue_from_then = true;
+
+   nir_block *last_then = nir_if_last_then_block(nif);
+   nir_block *last_else = nir_if_last_else_block(nif);
+
+   if (nir_block_ends_in_break(last_then)) {
+      break_blk = last_then;
+      continue_from_blk = last_else;
+      continue_from_then = false;
+   } else if (nir_block_ends_in_break(last_else)) {
+      break_blk = last_else;
+      continue_from_blk = last_then;
+   }
+
+   /* Continue if the if-statement contained no jumps at all */
+   if (!break_blk)
+      return false;
+
+   /* If the continue from block is empty then return as there is nothing to
+    * move.
+    */
+   nir_block *first_continue_from_blk = continue_from_then ?
+      nir_if_first_then_block(nif) :
+      nir_if_first_else_block(nif);
+   if (is_block_empty(first_continue_from_blk))
+      return false;
+
+   if (!nir_is_trivial_loop_if(nif, break_blk))
+      return false;
+
+   /* Finally, move the continue from branch after the if-statement. */
+   nir_cf_list tmp;
+   nir_cf_extract(&tmp, nir_before_block(first_continue_from_blk),
+                        nir_after_block(continue_from_blk));
+   nir_cf_reinsert(&tmp, nir_after_cf_node(&nif->cf_node));
+   nir_cf_delete(&tmp);
+
+   return true;
+}
+
 static bool
 opt_if_cf_list(nir_builder *b, struct exec_list *cf_list)
 {
@@ -296,6 +363,7 @@ opt_if_cf_list(nir_builder *b, struct exec_list *cf_list)
          nir_if *nif = nir_cf_node_as_if(cf_node);
          progress |= opt_if_cf_list(b, &nif->then_list);
          progress |= opt_if_cf_list(b, &nif->else_list);
+         progress |= opt_if_loop_terminator(nif);
          progress |= opt_if_simplification(b, nif);
          break;
       }

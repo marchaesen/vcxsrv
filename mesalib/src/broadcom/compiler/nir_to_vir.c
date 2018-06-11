@@ -755,6 +755,10 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                 result = vir_NOT(c, src[0]);
                 break;
 
+        case nir_op_ufind_msb:
+                result = vir_SUB(c, vir_uniform_ui(c, 31), vir_CLZ(c, src[0]));
+                break;
+
         case nir_op_imul:
                 result = vir_UMUL(c, src[0], src[1]);
                 break;
@@ -851,6 +855,13 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
         case nir_op_fddy_coarse:
         case nir_op_fddy_fine:
                 result = vir_FDY(c, src[0]);
+                break;
+
+        case nir_op_uadd_carry:
+                vir_PF(c, vir_ADD(c, src[0], src[1]), V3D_QPU_PF_PUSHC);
+                result = vir_MOV(c, vir_SEL(c, V3D_QPU_COND_IFA,
+                                            vir_uniform_ui(c, ~0),
+                                            vir_uniform_ui(c, 0)));
                 break;
 
         default:
@@ -1894,8 +1905,11 @@ const nir_shader_compiler_options v3d_nir_options = {
         .lower_all_io_to_temps = true,
         .lower_extract_byte = true,
         .lower_extract_word = true,
-        .lower_bitfield_insert = true,
-        .lower_bitfield_extract = true,
+        .lower_bfm = true,
+        .lower_bitfield_insert_to_shifts = true,
+        .lower_bitfield_extract_to_shifts = true,
+        .lower_bitfield_reverse = true,
+        .lower_bit_count = true,
         .lower_pack_unorm_2x16 = true,
         .lower_pack_snorm_2x16 = true,
         .lower_pack_unorm_4x8 = true,
@@ -1903,12 +1917,15 @@ const nir_shader_compiler_options v3d_nir_options = {
         .lower_unpack_unorm_4x8 = true,
         .lower_unpack_snorm_4x8 = true,
         .lower_fdiv = true,
+        .lower_find_lsb = true,
         .lower_ffma = true,
         .lower_flrp32 = true,
         .lower_fpow = true,
         .lower_fsat = true,
         .lower_fsqrt = true,
+        .lower_ifind_msb = true,
         .lower_ldexp = true,
+        .lower_mul_high = true,
         .native_integers = true,
 };
 
