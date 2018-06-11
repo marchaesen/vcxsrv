@@ -290,17 +290,6 @@ initialize_ssa_def(nir_ssa_def *def, void *void_state)
    return true;
 }
 
-static inline bool
-ends_in_break(nir_block *block)
-{
-   if (exec_list_is_empty(&block->instr_list))
-      return false;
-
-   nir_instr *instr = nir_block_last_instr(block);
-   return instr->type == nir_instr_type_jump &&
-      nir_instr_as_jump(instr)->type == nir_jump_break;
-}
-
 static bool
 find_loop_terminators(loop_info_state *state)
 {
@@ -315,11 +304,11 @@ find_loop_terminators(loop_info_state *state)
 
          nir_block *last_then = nir_if_last_then_block(nif);
          nir_block *last_else = nir_if_last_else_block(nif);
-         if (ends_in_break(last_then)) {
+         if (nir_block_ends_in_break(last_then)) {
             break_blk = last_then;
             continue_from_blk = last_else;
             continue_from_then = false;
-         } else if (ends_in_break(last_else)) {
+         } else if (nir_block_ends_in_break(last_else)) {
             break_blk = last_else;
             continue_from_blk = last_then;
          }

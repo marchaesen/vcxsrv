@@ -1356,4 +1356,8 @@ FcHashTableReplace (FcHashTable *table,
 		    void        *key,
 		    void        *value);
 
+FcPrivate FcBool
+FcHashTableRemove (FcHashTable *table,
+		   void        *key);
+
 #endif /* _FC_INT_H_ */

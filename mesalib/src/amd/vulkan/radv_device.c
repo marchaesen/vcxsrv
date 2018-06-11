@@ -3969,7 +3969,8 @@ radv_initialise_ds_surface(struct radv_device *device,
 		ds->db_z_info = S_028038_FORMAT(format) |
 			S_028038_NUM_SAMPLES(util_logbase2(iview->image->info.samples)) |
 			S_028038_SW_MODE(iview->image->surface.u.gfx9.surf.swizzle_mode) |
-			S_028038_MAXMIP(iview->image->info.levels - 1);
+			S_028038_MAXMIP(iview->image->info.levels - 1) |
+			S_028038_ZRANGE_PRECISION(1);
 		ds->db_stencil_info = S_02803C_FORMAT(stencil_format) |
 			S_02803C_SW_MODE(iview->image->surface.u.gfx9.stencil.swizzle_mode);
 

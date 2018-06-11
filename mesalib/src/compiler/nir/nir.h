@@ -1903,10 +1903,28 @@ typedef struct nir_shader_compiler_options {
    bool lower_fsqrt;
    bool lower_fmod32;
    bool lower_fmod64;
+   /** Lowers ibitfield_extract/ubitfield_extract to ibfe/ubfe. */
    bool lower_bitfield_extract;
+   /** Lowers ibitfield_extract/ubitfield_extract to bfm, compares, shifts. */
+   bool lower_bitfield_extract_to_shifts;
+   /** Lowers bitfield_insert to bfi/bfm */
    bool lower_bitfield_insert;
+   /** Lowers bitfield_insert to bfm, compares, and shifts. */
+   bool lower_bitfield_insert_to_shifts;
+   /** Lowers bitfield_reverse to shifts. */
+   bool lower_bitfield_reverse;
+   /** Lowers bit_count to shifts. */
+   bool lower_bit_count;
+   /** Lowers bfm to shifts and subtracts. */
+   bool lower_bfm;
+   /** Lowers ifind_msb to compare and ufind_msb */
+   bool lower_ifind_msb;
+   /** Lowers find_lsb to ufind_msb and logic ops */
+   bool lower_find_lsb;
    bool lower_uadd_carry;
    bool lower_usub_borrow;
+   /** Lowers imul_high/umul_high to 16-bit multiplies and carry operations. */
+   bool lower_mul_high;
    /** lowers fneg and ineg to fsub and isub. */
    bool lower_negate;
    /** lowers fsub and isub to fadd+fneg and iadd+ineg. */
@@ -2616,6 +2634,7 @@ bool nir_move_vec_src_uses_to_dest(nir_shader *shader);
 bool nir_lower_vec_to_movs(nir_shader *shader);
 void nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
                           bool alpha_to_one);
+bool nir_lower_alu(nir_shader *shader);
 bool nir_lower_alu_to_scalar(nir_shader *shader);
 bool nir_lower_load_const_to_scalar(nir_shader *shader);
 bool nir_lower_read_invocation_to_scalar(nir_shader *shader);

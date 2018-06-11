@@ -238,6 +238,18 @@ SizeDeviceClasses(DeviceIntPtr dev)
 }
 
 /**
+ * Get pointers to button information areas holding button mask and labels.
+ */
+static void
+ButtonInfoData(xXIButtonInfo *info, int *mask_words, unsigned char **mask,
+               Atom **atoms)
+{
+    *mask_words = bytes_to_int32(bits_to_bytes(info->num_buttons));
+    *mask = (unsigned char*) &info[1];
+    *atoms = (Atom*) ((*mask) + (*mask_words) * 4);
+}
+
+/**
  * Write button information into info.
  * @return Number of bytes written into info.
  */
@@ -245,21 +257,20 @@ int
 ListButtonInfo(DeviceIntPtr dev, xXIButtonInfo * info, Bool reportState)
 {
     unsigned char *bits;
+    Atom *labels;
     int mask_len;
     int i;
 
     if (!dev || !dev->button)
         return 0;
 
-    mask_len = bytes_to_int32(bits_to_bytes(dev->button->numButtons));
-
     info->type = ButtonClass;
     info->num_buttons = dev->button->numButtons;
+    ButtonInfoData(info, &mask_len, &bits, &labels);
     info->length = bytes_to_int32(sizeof(xXIButtonInfo)) +
         info->num_buttons + mask_len;
     info->sourceid = dev->button->sourceid;
 
-    bits = (unsigned char *) &info[1];
     memset(bits, 0, mask_len * 4);
 
     if (reportState)
@@ -267,8 +278,7 @@ ListButtonInfo(DeviceIntPtr dev, xXIButtonInfo * info, Bool reportState)
             if (BitIsOn(dev->button->down, i))
                 SetBit(bits, i);
 
-    bits += mask_len * 4;
-    memcpy(bits, dev->button->labels, dev->button->numButtons * sizeof(Atom));
+    memcpy(labels, dev->button->labels, dev->button->numButtons * sizeof(Atom));
 
     return info->length * 4;
 }
@@ -277,13 +287,17 @@ static void
 SwapButtonInfo(DeviceIntPtr dev, xXIButtonInfo * info)
 {
     Atom *btn;
+    int mask_len;
+    unsigned char *mask;
+
     int i;
+    ButtonInfoData(info, &mask_len, &mask, &btn);
 
     swaps(&info->type);
     swaps(&info->length);
     swaps(&info->sourceid);
 
-    for (i = 0, btn = (Atom *) &info[1]; i < info->num_buttons; i++, btn++)
+    for (i = 0 ; i < info->num_buttons; i++, btn++)
         swapl(btn);
 
     swaps(&info->num_buttons);
@@ -369,6 +383,9 @@ SwapValuatorInfo(DeviceIntPtr dev, xXIValuatorInfo * info)
     swapl(&info->min.frac);
     swapl(&info->max.integral);
     swapl(&info->max.frac);
+    swapl(&info->value.integral);
+    swapl(&info->value.frac);
+    swapl(&info->resolution);
     swaps(&info->number);
     swaps(&info->sourceid);
 }

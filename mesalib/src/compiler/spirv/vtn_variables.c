@@ -1354,6 +1354,10 @@ vtn_get_builtin_location(struct vtn_builder *b,
       *location = SYSTEM_VALUE_SUBGROUP_LT_MASK,
       set_mode_system_value(b, mode);
       break;
+   case SpvBuiltInFragStencilRefEXT:
+      *location = FRAG_RESULT_STENCIL;
+      vtn_assert(*mode == nir_var_shader_out);
+      break;
    default:
       vtn_fail("unsupported builtin");
    }

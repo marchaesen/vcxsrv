@@ -2051,6 +2051,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_subgroup_id;
    case SYSTEM_VALUE_LOCAL_GROUP_SIZE:
       return nir_intrinsic_load_local_group_size;
+   case SYSTEM_VALUE_GLOBAL_INVOCATION_ID:
+      return nir_intrinsic_load_global_invocation_id;
    default:
       unreachable("system value does not directly correspond to intrinsic");
    }
@@ -2130,6 +2132,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_SUBGROUP_ID;
    case nir_intrinsic_load_local_group_size:
       return SYSTEM_VALUE_LOCAL_GROUP_SIZE;
+   case nir_intrinsic_load_global_invocation_id:
+      return SYSTEM_VALUE_GLOBAL_INVOCATION_ID;
    default:
       unreachable("intrinsic doesn't produce a system value");
    }

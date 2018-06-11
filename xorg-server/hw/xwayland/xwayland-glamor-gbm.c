@@ -272,7 +272,7 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
 #else
     num_planes = 1;
     modifier = DRM_FORMAT_MOD_INVALID;
-    strides[0] = gbm_go_get_stride(xwl_pixmap->bo);
+    strides[0] = gbm_bo_get_stride(xwl_pixmap->bo);
     offsets[0] = 0;
 #endif
 

@@ -74,6 +74,23 @@ endif
 check_PROGRAMS += test-bz106618
 test_bz106618_LDADD = $(top_builddir)/src/libfontconfig.la
 
+check_PROGRAMS += test-hash
+test_hash_CFLAGS = -I$(top_builddir) -I$(top_builddir)/src $(UUID_CFLAGS)
+test_hash_LDADD = $(UUID_LIBS)
+TESTS += test-hash
+
+check_PROGRAMS += test-bz106632
+test_bz106632_CFLAGS =					\
+	-I$(top_builddir)				\
+	-I$(top_builddir)/src				\
+	-I$(top_srcdir)					\
+	-I$(top_srcdir)/src				\
+	-DFONTFILE='"$(abs_top_srcdir)/test/4x6.pcf"'	\
+	-DHAVE_CONFIG_H					\
+	$(NULL)
+test_bz106632_LDADD = $(top_builddir)/src/libfontconfig.la
+TESTS += test-bz106632
+
 EXTRA_DIST=run-test.sh run-test-conf.sh $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 
 CLEANFILES=out fonts.conf out.expected

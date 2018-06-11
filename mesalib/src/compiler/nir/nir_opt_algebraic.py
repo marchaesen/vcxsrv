@@ -515,6 +515,20 @@ optimizations = [
               ('bfi', ('bfm', 'bits', 'offset'), 'insert', 'base')),
     'options->lower_bitfield_insert'),
 
+   # Alternative lowering that doesn't rely on bfi.
+   (('bitfield_insert', 'base', 'insert', 'offset', 'bits'),
+    ('bcsel', ('ilt', 31, 'bits'),
+     'insert',
+     ('ior',
+      ('iand', 'base', ('inot', ('bfm', 'bits', 'offset'))),
+      ('iand', ('ishl', 'insert', 'offset'), ('bfm', 'bits', 'offset')))),
+    'options->lower_bitfield_insert_to_shifts'),
+
+   # bfm lowering -- note that the NIR opcode is undefined if either arg is 32.
+   (('bfm', 'bits', 'offset'),
+    ('ishl', ('isub', ('ishl', 1, 'bits'), 1), 'offset'),
+    'options->lower_bfm'),
+
    (('ibitfield_extract', 'value', 'offset', 'bits'),
     ('bcsel', ('ilt', 31, 'bits'), 'value',
               ('ibfe', 'value', 'offset', 'bits')),
@@ -524,6 +538,30 @@ optimizations = [
     ('bcsel', ('ult', 31, 'bits'), 'value',
               ('ubfe', 'value', 'offset', 'bits')),
     'options->lower_bitfield_extract'),
+
+   (('ibitfield_extract', 'value', 'offset', 'bits'),
+    ('bcsel', ('ieq', 0, 'bits'),
+     0,
+     ('ishr',
+       ('ishl', 'value', ('isub', ('isub', 32, 'bits'), 'offset')),
+       ('isub', 32, 'bits'))),
+    'options->lower_bitfield_extract_to_shifts'),
+
+   (('ubitfield_extract', 'value', 'offset', 'bits'),
+    ('iand',
+     ('ushr', 'value', 'offset'),
+     ('bcsel', ('ieq', 'bits', 32),
+      0xffffffff,
+      ('bfm', 'bits', 0))),
+    'options->lower_bitfield_extract_to_shifts'),
+
+   (('ifind_msb', 'value'),
+    ('ufind_msb', ('bcsel', ('ilt', 'value', 0), ('inot', 'value'), 'value')),
+    'options->lower_ifind_msb'),
+
+   (('find_lsb', 'value'),
+    ('ufind_msb', ('iand', 'value', ('ineg', 'value'))),
+    'options->lower_find_lsb'),
 
    (('extract_i8', a, 'b@32'),
     ('ishr', ('ishl', a, ('imul', ('isub', 3, b), 8)), 24),

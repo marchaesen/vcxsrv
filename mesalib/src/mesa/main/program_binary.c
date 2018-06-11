@@ -33,6 +33,8 @@
 #include "compiler/glsl/serialize.h"
 #include "main/errors.h"
 #include "main/mtypes.h"
+#include "main/shaderapi.h"
+#include "util/bitscan.h"
 #include "util/crc32.h"
 #include "program_binary.h"
 #include "program/prog_parameter.h"
@@ -282,9 +284,38 @@ _mesa_program_binary(struct gl_context *ctx, struct gl_shader_program *sh_prog,
    struct blob_reader blob;
    blob_reader_init(&blob, payload, length - header_size);
 
+   unsigned programs_in_use = 0;
+   if (ctx->_Shader)
+      for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
+         if (ctx->_Shader->CurrentProgram[stage] &&
+             ctx->_Shader->CurrentProgram[stage]->Id == sh_prog->Name) {
+            programs_in_use |= 1 << stage;
+         }
+   }
+
    if (!read_program_payload(ctx, &blob, binary_format, sh_prog)) {
       sh_prog->data->LinkStatus = LINKING_FAILURE;
       return;
+   }
+
+   /* From section 7.3 (Program Objects) of the OpenGL 4.5 spec:
+    *
+    *    "If LinkProgram or ProgramBinary successfully re-links a program
+    *     object that is active for any shader stage, then the newly generated
+    *     executable code will be installed as part of the current rendering
+    *     state for all shader stages where the program is active.
+    *     Additionally, the newly generated executable code is made part of
+    *     the state of any program pipeline for all stages where the program
+    *     is attached."
+    */
+   while (programs_in_use) {
+      const int stage = u_bit_scan(&programs_in_use);
+
+      struct gl_program *prog = NULL;
+      if (sh_prog->_LinkedShaders[stage])
+         prog = sh_prog->_LinkedShaders[stage]->Program;
+
+      _mesa_use_program(ctx, stage, sh_prog, prog, ctx->_Shader);
    }
 
    sh_prog->data->LinkStatus = LINKING_SKIPPED;

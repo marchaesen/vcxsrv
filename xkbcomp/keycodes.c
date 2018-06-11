@@ -663,13 +663,21 @@ HandleKeyNameVar(VarDef * stmt, KeyNamesInfo * info)
         ACTION1("Assignment to field %s ignored\n", field.str);
         return 0;
     }
-    if ((tmp.ival < XkbMinLegalKeyCode) || (tmp.ival > XkbMaxLegalKeyCode))
+    if ((tmp.ival < XkbMinLegalKeyCode))
     {
         ERROR3
             ("Illegal keycode %d (must be in the range %d-%d inclusive)\n",
              tmp.ival, XkbMinLegalKeyCode, XkbMaxLegalKeyCode);
         ACTION1("Value of \"%s\" not changed\n", field.str);
         return 0;
+    }
+    if ((tmp.ival > XkbMaxLegalKeyCode))
+    {
+        WARN2("Unsupported maximum keycode %d, clipping.\n", tmp.ival);
+        ACTION2("X11 cannot support keycodes above 255.\n");
+        info->explicitMax = XkbMaxLegalKeyCode;
+        info->effectiveMax = XkbMaxLegalKeyCode;
+        return 1;
     }
     if (which == MIN_KEYCODE_DEF)
     {

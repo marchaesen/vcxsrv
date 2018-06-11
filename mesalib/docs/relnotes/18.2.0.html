@@ -30,6 +30,13 @@ Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
 Compatibility contexts may report a lower version depending on each driver.
 </p>
 
+<p>
+libwayland-egl is now distributed by Wayland (since 1.15,
+<a href="https://lists.freedesktop.org/archives/wayland-devel/2018-April/037767.html">see announcement</a>),
+and has been removed from Mesa in this release. Make sure you're using
+an up-to-date version of Wayland to keep the functionality.
+</p>
+
 
 <h2>SHA256 checksums</h2>
 <pre>
@@ -57,6 +64,7 @@ Note: some of the new features are only available with certain drivers.
 
 <ul>
 <li>Removed GL_EXT_polygon_offset applications should use glPolygonOffset instead.</li>
+<li>Removed libwayland-egl, now part of Wayland</li>
 </ul>
 
 </div>

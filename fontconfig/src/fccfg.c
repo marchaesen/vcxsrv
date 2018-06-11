@@ -52,6 +52,36 @@ retry:
     return config;
 }
 
+static FcChar32
+FcHashAsStrIgnoreCase (const void *data)
+{
+    return FcStrHashIgnoreCase (data);
+}
+
+static int
+FcCompareAsStr (const void *v1, const void *v2)
+{
+    return FcStrCmp (v1, v2);
+}
+
+static void
+FcDestroyAsRule (void *data)
+{
+    FcRuleDestroy (data);
+}
+
+static void
+FcDestroyAsRuleSet (void *data)
+{
+    FcRuleSetDestroy (data);
+}
+
+static void
+FcDestroyAsStr (void *data)
+{
+    FcStrFree (data);
+}
+
 FcBool
 FcConfigInit (void)
 {
@@ -113,7 +143,7 @@ FcConfigCreate (void)
 
     for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++)
     {
-	config->subst[k] = FcPtrListCreate ((FcDestroyFunc) FcRuleSetDestroy);
+	config->subst[k] = FcPtrListCreate (FcDestroyAsRuleSet);
 	if (!config->subst[k])
 	    err = FcTrue;
     }
@@ -131,18 +161,18 @@ FcConfigCreate (void)
 
     config->sysRoot = NULL;
 
-    config->rulesetList = FcPtrListCreate ((FcDestroyFunc) FcRuleSetDestroy);
+    config->rulesetList = FcPtrListCreate (FcDestroyAsRuleSet);
     if (!config->rulesetList)
 	goto bail9;
     config->availConfigFiles = FcStrSetCreate ();
     if (!config->availConfigFiles)
 	goto bail10;
 
-    config->uuid_table = FcHashTableCreate ((FcHashFunc) FcStrHashIgnoreCase,
-					    (FcCompareFunc) FcStrCmp,
+    config->uuid_table = FcHashTableCreate (FcHashAsStrIgnoreCase,
+					    FcCompareAsStr,
 					    FcHashStrCopy,
 					    FcHashUuidCopy,
-					    (FcDestroyFunc) FcStrFree,
+					    FcDestroyAsStr,
 					    FcHashUuidFree);
 
     FcRefInit (&config->ref, 1);
@@ -2491,7 +2521,7 @@ FcRuleSetCreate (const FcChar8 *name)
 	ret->description = NULL;
 	ret->domain = NULL;
 	for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++)
-	    ret->subst[k] = FcPtrListCreate ((FcDestroyFunc) FcRuleDestroy);
+	    ret->subst[k] = FcPtrListCreate (FcDestroyAsRule);
 	FcRefInit (&ret->ref, 1);
     }
 

@@ -90,6 +90,7 @@ LIBOMXIL_TIZONIA_REQUIRED=0.10.0
 LIBVA_REQUIRED=0.39.0
 VDPAU_REQUIRED=1.1
 WAYLAND_REQUIRED=1.11
+WAYLAND_EGL_BACKEND_REQUIRED=3
 WAYLAND_PROTOCOLS_REQUIRED=1.8
 XCB_REQUIRED=1.9.3
 XCBDRI2_REQUIRED=1.8
@@ -1808,6 +1809,9 @@ for plat in $platforms; do
         PKG_CHECK_MODULES([WAYLAND_CLIENT], [wayland-client >= $WAYLAND_REQUIRED])
         PKG_CHECK_MODULES([WAYLAND_SERVER], [wayland-server >= $WAYLAND_REQUIRED])
         PKG_CHECK_MODULES([WAYLAND_PROTOCOLS], [wayland-protocols >= $WAYLAND_PROTOCOLS_REQUIRED])
+        if test "x$enable_egl" = xyes; then
+          PKG_CHECK_MODULES([WAYLAND_EGL], [wayland-egl-backend >= $WAYLAND_EGL_BACKEND_REQUIRED])
+        fi
         WAYLAND_PROTOCOLS_DATADIR=`$PKG_CONFIG --variable=pkgdatadir wayland-protocols`
 
         PKG_CHECK_MODULES([WAYLAND_SCANNER], [wayland-scanner],
@@ -3022,8 +3026,6 @@ AC_CONFIG_FILES([Makefile
                  src/egl/Makefile
                  src/egl/main/egl.pc
                  src/egl/wayland/wayland-drm/Makefile
-                 src/egl/wayland/wayland-egl/Makefile
-                 src/egl/wayland/wayland-egl/wayland-egl.pc
                  src/gallium/Makefile
                  src/gallium/auxiliary/Makefile
                  src/gallium/auxiliary/pipe-loader/Makefile
