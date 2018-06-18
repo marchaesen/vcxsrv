@@ -192,6 +192,7 @@ union value {
    GLenum value_enum;
    GLubyte value_ubyte;
    GLshort value_short;
+   GLuint value_uint;
 
    /* Sigh, see GL_COMPRESSED_TEXTURE_FORMATS_ARB handling */
    struct {
@@ -516,6 +517,7 @@ EXTRA_EXT(ARB_sparse_buffer);
 EXTRA_EXT(NV_conservative_raster);
 EXTRA_EXT(NV_conservative_raster_dilate);
 EXTRA_EXT(NV_conservative_raster_pre_snap_triangles);
+EXTRA_EXT(ARB_sample_locations);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {
@@ -1196,6 +1198,35 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
          ctx->Shared->DisjointOperation = false;
          simple_mtx_unlock(&ctx->Shared->Mutex);
       }
+      break;
+   /* GL_ARB_sample_locations */
+   case GL_SAMPLE_LOCATION_SUBPIXEL_BITS_ARB:
+   case GL_SAMPLE_LOCATION_PIXEL_GRID_WIDTH_ARB:
+   case GL_SAMPLE_LOCATION_PIXEL_GRID_HEIGHT_ARB:
+      {
+         GLuint bits, width, height;
+
+         if (ctx->NewState & _NEW_BUFFERS)
+            _mesa_update_state(ctx);
+
+         if (ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE) {
+            v->value_uint = 0;
+            break;
+         }
+
+         ctx->Driver.GetProgrammableSampleCaps(ctx, ctx->DrawBuffer,
+                                               &bits, &width, &height);
+
+         if (d->pname == GL_SAMPLE_LOCATION_PIXEL_GRID_WIDTH_ARB)
+            v->value_uint = width;
+         else if (d->pname == GL_SAMPLE_LOCATION_PIXEL_GRID_HEIGHT_ARB)
+            v->value_uint = height;
+         else
+            v->value_uint = bits;
+      }
+      break;
+   case GL_PROGRAMMABLE_SAMPLE_LOCATION_TABLE_SIZE_ARB:
+      v->value_uint = MAX_SAMPLE_LOCATION_TABLE_SIZE;
       break;
    }
 }

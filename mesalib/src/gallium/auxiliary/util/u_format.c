@@ -242,16 +242,7 @@ util_format_is_supported(enum pipe_format format, unsigned bind)
       return FALSE;
    }
 
-#ifndef TEXTURE_FLOAT_ENABLED
-   if ((bind & PIPE_BIND_RENDER_TARGET) &&
-       format != PIPE_FORMAT_R9G9B9E5_FLOAT &&
-       format != PIPE_FORMAT_R11G11B10_FLOAT &&
-       util_format_is_float(format)) {
-      return FALSE;
-   }
-#else
    (void)bind;
-#endif
 
    return TRUE;
 }

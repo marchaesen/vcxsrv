@@ -178,6 +178,12 @@ struct st_context
       GLuint poly_stipple[32];  /**< In OpenGL's bottom-to-top order */
 
       GLuint fb_orientation;
+
+      bool enable_sample_locations;
+      unsigned sample_locations_samples;
+      uint8_t sample_locations[
+         PIPE_MAX_SAMPLE_LOCATION_GRID_SIZE *
+         PIPE_MAX_SAMPLE_LOCATION_GRID_SIZE * 32];
    } state;
 
    uint64_t dirty; /**< dirty states */

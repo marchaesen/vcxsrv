@@ -355,4 +355,24 @@ _mesa_FramebufferParameteri(GLenum target, GLenum pname, GLint param);
 extern void GLAPIENTRY
 _mesa_GetFramebufferParameteriv(GLenum target, GLenum pname, GLint *params);
 
+extern void GLAPIENTRY
+_mesa_FramebufferSampleLocationsfvARB(GLenum target, GLuint start,
+                                      GLsizei count, const GLfloat *v);
+
+extern void GLAPIENTRY
+_mesa_NamedFramebufferSampleLocationsfvARB(GLuint framebuffer, GLuint start,
+                                           GLsizei count, const GLfloat *v);
+
+extern void GLAPIENTRY
+_mesa_FramebufferSampleLocationsfvARB_no_error(GLenum target, GLuint start,
+                                               GLsizei count, const GLfloat *v);
+
+extern void GLAPIENTRY
+_mesa_NamedFramebufferSampleLocationsfvARB_no_error(GLuint framebuffer,
+                                                    GLuint start, GLsizei count,
+                                                    const GLfloat *v);
+
+extern void GLAPIENTRY
+_mesa_EvaluateDepthValuesARB(void);
+
 #endif /* FBOBJECT_H */

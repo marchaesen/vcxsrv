@@ -110,11 +110,11 @@ GL 3.3, GLSL 3.30 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, soft
   GL_ARB_vertex_type_2_10_10_10_rev                     DONE (freedreno, swr)
 
 
-GL 4.0, GLSL 4.00 --- all DONE: i965/gen7+, nvc0, r600, radeonsi
+GL 4.0, GLSL 4.00 --- all DONE: i965/gen7+, nvc0, r600, radeonsi, virgl
 
-  GL_ARB_draw_buffers_blend                             DONE (freedreno, i965/gen6+, nv50, llvmpipe, softpipe, swr, virgl)
-  GL_ARB_draw_indirect                                  DONE (freedreno, i965/gen7+, llvmpipe, softpipe, swr, virgl)
-  GL_ARB_gpu_shader5                                    DONE (i965/gen7+, virgl)
+  GL_ARB_draw_buffers_blend                             DONE (freedreno, i965/gen6+, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_draw_indirect                                  DONE (freedreno, i965/gen7+, llvmpipe, softpipe, swr)
+  GL_ARB_gpu_shader5                                    DONE (i965/gen7+)
   - 'precise' qualifier                                 DONE
   - Dynamically uniform sampler array indices           DONE (softpipe)
   - Dynamically uniform UBO array indices               DONE ()
@@ -127,16 +127,16 @@ GL 4.0, GLSL 4.00 --- all DONE: i965/gen7+, nvc0, r600, radeonsi
   - Enhanced per-sample shading                         DONE ()
   - Interpolation functions                             DONE ()
   - New overload resolution rules                       DONE
-  GL_ARB_gpu_shader_fp64                                DONE (i965/gen7+, llvmpipe, softpipe, virgl)
-  GL_ARB_sample_shading                                 DONE (i965/gen6+, nv50, virgl)
-  GL_ARB_shader_subroutine                              DONE (freedreno, i965/gen6+, nv50, llvmpipe, softpipe, swr, virgl)
+  GL_ARB_gpu_shader_fp64                                DONE (i965/gen7+, llvmpipe, softpipe)
+  GL_ARB_sample_shading                                 DONE (i965/gen6+, nv50)
+  GL_ARB_shader_subroutine                              DONE (freedreno, i965/gen6+, nv50, llvmpipe, softpipe, swr)
   GL_ARB_tessellation_shader                            DONE (i965/gen7+)
-  GL_ARB_texture_buffer_object_rgb32                    DONE (freedreno, i965/gen6+, llvmpipe, softpipe, swr, virgl)
-  GL_ARB_texture_cube_map_array                         DONE (i965/gen6+, nv50, llvmpipe, softpipe, virgl)
-  GL_ARB_texture_gather                                 DONE (freedreno, i965/gen6+, nv50, llvmpipe, softpipe, swr, virgl)
-  GL_ARB_texture_query_lod                              DONE (freedreno, i965, nv50, llvmpipe, softpipe, virgl)
-  GL_ARB_transform_feedback2                            DONE (i965/gen6+, nv50, llvmpipe, softpipe, swr, virgl)
-  GL_ARB_transform_feedback3                            DONE (i965/gen7+, llvmpipe, softpipe, swr, virgl)
+  GL_ARB_texture_buffer_object_rgb32                    DONE (freedreno, i965/gen6+, llvmpipe, softpipe, swr)
+  GL_ARB_texture_cube_map_array                         DONE (i965/gen6+, nv50, llvmpipe, softpipe)
+  GL_ARB_texture_gather                                 DONE (freedreno, i965/gen6+, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_texture_query_lod                              DONE (freedreno, i965, nv50, llvmpipe, softpipe)
+  GL_ARB_transform_feedback2                            DONE (i965/gen6+, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_transform_feedback3                            DONE (i965/gen7+, llvmpipe, softpipe, swr)
 
 
 GL 4.1, GLSL 4.10 --- all DONE: i965/gen7+, nvc0, r600, radeonsi, virgl
@@ -305,7 +305,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_ARB_parallel_shader_compile                        not started, but Chia-I Wu did some related work in 2014
   GL_ARB_post_depth_coverage                            DONE (i965, nvc0)
   GL_ARB_robustness_isolation                           not started
-  GL_ARB_sample_locations                               not started
+  GL_ARB_sample_locations                               DONE (nvc0)
   GL_ARB_seamless_cubemap_per_texture                   DONE (i965, nvc0, radeonsi, r600, softpipe, swr, virgl)
   GL_ARB_shader_ballot                                  DONE (i965/gen8+, nvc0, radeonsi)
   GL_ARB_shader_clock                                   DONE (i965/gen7+, nv50, nvc0, r600, radeonsi)

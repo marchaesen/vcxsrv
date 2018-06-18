@@ -25,7 +25,7 @@ XkbOpenDisplay \-  Checks for a compatible version of the Xkb extension in both
 the library and the server, and initializes the extension for use.
 .SH SYNOPSIS
 .HP
-.B Display XkbOpenDisplay
+.B Display *XkbOpenDisplay
 .BI "(\^char *" "display_name" "\^,"
 .BI "int *" "event_rtrn" "\^,"
 .BI "int *" "error_rtrn" "\^,"

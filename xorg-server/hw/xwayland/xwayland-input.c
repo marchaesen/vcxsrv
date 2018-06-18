@@ -1389,19 +1389,19 @@ tablet_handle_done(void *data, struct zwp_tablet_v2 *tablet)
     struct xwl_seat *xwl_seat = xwl_tablet->seat;
 
     if (xwl_seat->stylus == NULL) {
-        xwl_seat->stylus = add_device(xwl_seat, "xwayland-stylus", xwl_tablet_proc);
+        xwl_seat->stylus = add_device(xwl_seat, "xwayland-tablet stylus", xwl_tablet_proc);
         ActivateDevice(xwl_seat->stylus, TRUE);
     }
     EnableDevice(xwl_seat->stylus, TRUE);
 
     if (xwl_seat->eraser == NULL) {
-        xwl_seat->eraser = add_device(xwl_seat, "xwayland-eraser", xwl_tablet_proc);
+        xwl_seat->eraser = add_device(xwl_seat, "xwayland-tablet eraser", xwl_tablet_proc);
         ActivateDevice(xwl_seat->eraser, TRUE);
     }
     EnableDevice(xwl_seat->eraser, TRUE);
 
     if (xwl_seat->puck == NULL) {
-        xwl_seat->puck = add_device(xwl_seat, "xwayland-cursor", xwl_tablet_proc);
+        xwl_seat->puck = add_device(xwl_seat, "xwayland-tablet cursor", xwl_tablet_proc);
         ActivateDevice(xwl_seat->puck, TRUE);
     }
     EnableDevice(xwl_seat->puck, TRUE);
@@ -2147,7 +2147,7 @@ tablet_pad_done(void *data,
 {
     struct xwl_tablet_pad *pad = data;
 
-    pad->xdevice = add_device(pad->seat, "xwayland-pad",
+    pad->xdevice = add_device(pad->seat, "xwayland-tablet-pad",
                               xwl_tablet_pad_proc);
     pad->xdevice->public.devicePrivate = pad;
     ActivateDevice(pad->xdevice, TRUE);

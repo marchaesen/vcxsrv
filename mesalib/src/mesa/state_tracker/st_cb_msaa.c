@@ -56,8 +56,35 @@ st_GetSamplePosition(struct gl_context *ctx,
 }
 
 
+static void
+st_GetProgrammableSampleCaps(struct gl_context *ctx, const struct gl_framebuffer *fb,
+                             GLuint *outBits, GLuint *outWidth, GLuint *outHeight)
+{
+   struct st_context *st = st_context(ctx);
+   struct pipe_screen *screen = st->pipe->screen;
+
+   st_validate_state(st, ST_PIPELINE_UPDATE_FRAMEBUFFER);
+
+   *outBits = 4;
+   *outWidth = 1;
+   *outHeight = 1;
+
+   if (ctx->Extensions.ARB_sample_locations)
+      screen->get_sample_pixel_grid(screen, st->state.fb_num_samples,
+                                    outWidth, outHeight);
+
+   /* We could handle this better in some circumstances,
+    * but it's not really an issue */
+   if (*outWidth > MAX_SAMPLE_LOCATION_GRID_SIZE ||
+       *outHeight > MAX_SAMPLE_LOCATION_GRID_SIZE) {
+      *outWidth = 1;
+      *outHeight = 1;
+   }
+}
+
 void
 st_init_msaa_functions(struct dd_function_table *functions)
 {
    functions->GetSamplePosition = st_GetSamplePosition;
+   functions->GetProgrammableSampleCaps = st_GetProgrammableSampleCaps;
 }

@@ -244,8 +244,6 @@ enum quniform_contents {
 
         QUNIFORM_TEXTURE_BORDER_COLOR,
 
-        QUNIFORM_STENCIL,
-
         QUNIFORM_ALPHA_REF,
         QUNIFORM_SAMPLE_MASK,
 
@@ -480,7 +478,7 @@ struct v3d_compile {
 
         uint32_t centroid_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
 
-        bool uses_centroid_and_center_w;
+        bool uses_center_w;
 
         struct v3d_ubo_range *ubo_ranges;
         bool *ubo_range_used;
@@ -665,7 +663,7 @@ struct v3d_fs_prog_data {
 
         bool writes_z;
         bool discard;
-        bool uses_centroid_and_center_w;
+        bool uses_center_w;
 };
 
 /* Special nir_load_input intrinsic index for loading the current TLB

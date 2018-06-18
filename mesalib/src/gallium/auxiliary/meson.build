@@ -484,7 +484,7 @@ files_libgalliumvl = files(
 
 vlwinsys_deps = []
 files_libgalliumvlwinsys = files('vl/vl_winsys.h')
-if with_dri2
+if with_dri2 and with_platform_x11
   files_libgalliumvlwinsys += files('vl/vl_winsys_dri.c')
   if with_dri3
     vlwinsys_deps += [

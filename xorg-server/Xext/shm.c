@@ -1302,9 +1302,14 @@ static int
 ProcShmDispatch(ClientPtr client)
 {
     REQUEST(xReq);
-    switch (stuff->data) {
-    case X_ShmQueryVersion:
+
+    if (stuff->data == X_ShmQueryVersion)
         return ProcShmQueryVersion(client);
+
+    if (!client->local)
+        return BadRequest;
+
+    switch (stuff->data) {
     case X_ShmAttach:
         return ProcShmAttach(client);
     case X_ShmDetach:
@@ -1461,9 +1466,14 @@ static int _X_COLD
 SProcShmDispatch(ClientPtr client)
 {
     REQUEST(xReq);
-    switch (stuff->data) {
-    case X_ShmQueryVersion:
+
+    if (stuff->data == X_ShmQueryVersion)
         return SProcShmQueryVersion(client);
+
+    if (!client->local)
+        return BadRequest;
+
+    switch (stuff->data) {
     case X_ShmAttach:
         return SProcShmAttach(client);
     case X_ShmDetach:

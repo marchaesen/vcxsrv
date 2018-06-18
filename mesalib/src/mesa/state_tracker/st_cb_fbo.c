@@ -855,6 +855,19 @@ st_UnmapRenderbuffer(struct gl_context *ctx,
 }
 
 
+/**
+ * Called via ctx->Driver.EvaluateDepthValues.
+ */
+static void
+st_EvaluateDepthValues(struct gl_context *ctx)
+{
+   struct st_context *st = st_context(ctx);
+
+   st_validate_state(st, ST_PIPELINE_UPDATE_FRAMEBUFFER);
+
+   st->pipe->evaluate_depth_buffer(st->pipe);
+}
+
 
 void
 st_init_fbo_functions(struct dd_function_table *functions)
@@ -871,4 +884,5 @@ st_init_fbo_functions(struct dd_function_table *functions)
 
    functions->MapRenderbuffer = st_MapRenderbuffer;
    functions->UnmapRenderbuffer = st_UnmapRenderbuffer;
+   functions->EvaluateDepthValues = st_EvaluateDepthValues;
 }

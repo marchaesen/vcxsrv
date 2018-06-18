@@ -544,6 +544,10 @@ ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
    if (!lhs || !(lhs->type->is_scalar() || lhs->type->is_vector()))
       return;
 
+   if (lhs->var->data.mode == ir_var_shader_storage ||
+       lhs->var->data.mode == ir_var_shader_shared)
+      return;
+
    ir_dereference_variable *rhs = ir->rhs->as_dereference_variable();
    if (!rhs) {
       ir_swizzle *swiz = ir->rhs->as_swizzle();
@@ -559,6 +563,10 @@ ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
       orig_swizzle[2] = swiz->mask.z;
       orig_swizzle[3] = swiz->mask.w;
    }
+
+   if (rhs->var->data.mode == ir_var_shader_storage ||
+       rhs->var->data.mode == ir_var_shader_shared)
+      return;
 
    /* Move the swizzle channels out to the positions they match in the
     * destination.  We don't want to have to rewrite the swizzle[]

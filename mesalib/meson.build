@@ -29,6 +29,9 @@ project(
   default_options : ['buildtype=debugoptimized', 'c_std=c99', 'cpp_std=c++11']
 )
 
+cc = meson.get_compiler('c')
+cpp = meson.get_compiler('cpp')
+
 null_dep = dependency('', required : false)
 
 system_has_kms_drm = ['openbsd', 'netbsd', 'freebsd', 'dragonfly', 'linux'].contains(host_machine.system())
@@ -56,10 +59,6 @@ with_swr_arches = get_option('swr-arches')
 with_tools = get_option('tools')
 if with_tools.contains('all')
   with_tools = ['freedreno', 'glsl', 'intel', 'nir', 'nouveau']
-endif
-if get_option('texture-float')
-  pre_args += '-DTEXTURE_FLOAT_ENABLED'
-  warning('Floating-point texture enabled. Please consult docs/patents.txt and your lawyer before building mesa.')
 endif
 
 dri_drivers_path = get_option('dri-drivers-path')
@@ -602,13 +601,34 @@ if with_gallium_st_nine
   endif
 endif
 
+if get_option('power8') != 'false'
+  if host_machine.cpu_family() == 'ppc64le'
+    if cc.get_id() == 'gcc' and cc.version().version_compare('< 4.8')
+      error('Altivec is not supported with gcc version < 4.8.')
+    endif
+    if cc.compiles('''
+        #include <altivec.h>
+        int main() {
+          vector unsigned char r;
+          vector unsigned int v = vec_splat_u32 (1);
+          r = __builtin_vec_vgbbd ((vector unsigned char) v);
+          return 0;
+        }''',
+        args : '-mpower8-vector',
+        name : 'POWER8 intrinsics')
+      pre_args += ['-D_ARCH_PWR8', '-mpower8-vector']
+    elif get_option('power8') == 'true'
+      error('POWER8 intrinsic support required but not found.')
+    endif
+  endif
+endif
+
 _opencl = get_option('gallium-opencl')
 if _opencl != 'disabled'
   if not with_gallium
     error('OpenCL Clover implementation requires at least one gallium driver.')
   endif
 
-  # TODO: alitvec?
   dep_clc = dependency('libclc')
   with_gallium_opencl = true
   with_opencl_icd = _opencl == 'icd'
@@ -669,7 +689,6 @@ if has_mako.returncode() != 0
   error('Python (2.x) mako module required to build mesa.')
 endif
 
-cc = meson.get_compiler('c')
 if cc.get_id() == 'gcc' and cc.version().version_compare('< 4.4.6')
   error('When using GCC, version 4.4.6 or later is required.')
 endif
@@ -749,7 +768,6 @@ if cc.has_argument('-fvisibility=hidden')
 endif
 
 # Check for generic C++ arguments
-cpp = meson.get_compiler('cpp')
 cpp_args = []
 foreach a : ['-Wall', '-fno-math-errno', '-fno-trapping-math',
              '-Qunused-arguments']
@@ -808,7 +826,15 @@ endif
 # Check for GCC style atomics
 dep_atomic = null_dep
 
-if cc.compiles('int main() { int n; return __atomic_load_n(&n, __ATOMIC_ACQUIRE); }',
+if cc.compiles('''#include <stdint.h>
+                  int main() {
+                    struct {
+                      uint64_t *v;
+                    } x;
+                    return (int)__atomic_load_n(x.v, __ATOMIC_ACQUIRE) &
+                           (int)__atomic_add_fetch(x.v, (uint64_t)1, __ATOMIC_ACQ_REL);
+
+                  }''',
                name : 'GCC atomic builtins')
   pre_args += '-DUSE_GCC_ATOMIC_BUILTINS'
 
@@ -823,7 +849,8 @@ if cc.compiles('int main() { int n; return __atomic_load_n(&n, __ATOMIC_ACQUIRE)
                        struct {
                          uint64_t *v;
                        } x;
-                       return (int)__atomic_load_n(x.v, __ATOMIC_ACQUIRE);
+                       return (int)__atomic_load_n(x.v, __ATOMIC_ACQUIRE) &
+                              (int)__atomic_add_fetch(x.v, (uint64_t)1, __ATOMIC_ACQ_REL);
                      }''',
                   name : 'GCC atomic builtins required -latomic')
     dep_atomic = cc.find_library('atomic')
@@ -838,8 +865,6 @@ if not cc.links('''#include <stdint.h>
   pre_args += '-DMISSING_64_BIT_ATOMICS'
 endif
 
-# TODO: endian
-# TODO: powr8
 # TODO: shared/static? Is this even worth doing?
 
 # When cross compiling we generally need to turn off the use of assembly,
@@ -869,7 +894,6 @@ endif
 
 with_asm_arch = ''
 if with_asm
-  # TODO: SPARC and PPC
   if host_machine.cpu_family() == 'x86'
     if system_has_kms_drm
       with_asm_arch = 'x86'
@@ -894,6 +918,16 @@ if with_asm
     if system_has_kms_drm
       with_asm_arch = 'aarch64'
       pre_args += ['-DUSE_AARCH64_ASM']
+    endif
+  elif host_machine.cpu_family() == 'sparc64'
+    if system_has_kms_drm
+      with_asm_arch = 'sparc'
+      pre_args += ['-DUSE_SPARC_ASM']
+    endif
+  elif host_machine.cpu_family() == 'ppc64le'
+    if system_has_kms_drm
+      with_asm_arch = 'ppc64le'
+      pre_args += ['-DUSE_PPC64LE_ASM']
     endif
   endif
 endif
@@ -1081,6 +1115,7 @@ if dep_libdrm.found()
 endif
 
 llvm_modules = ['bitwriter', 'engine', 'mcdisassembler', 'mcjit']
+llvm_optional_modules = []
 if with_amd_vk or with_gallium_radeonsi or with_gallium_r600
   llvm_modules += ['amdgpu', 'bitreader', 'ipo']
   if with_gallium_r600
@@ -1092,7 +1127,7 @@ if with_gallium_opencl
     'all-targets', 'linker', 'coverage', 'instrumentation', 'ipo', 'irreader',
     'lto', 'option', 'objcarcopts', 'profiledata',
   ]
-  # TODO: optional modules
+  llvm_optional_modules += ['coroutines', 'opencl']
 endif
 
 if with_amd_vk or with_gallium_radeonsi
@@ -1108,12 +1143,20 @@ endif
 _llvm = get_option('llvm')
 if _llvm == 'auto'
   dep_llvm = dependency(
-    'llvm', version : _llvm_version, modules : llvm_modules,
+    'llvm',
+    version : _llvm_version,
+    modules : llvm_modules,
+    optional_modules : llvm_optional_modules,
     required : with_amd_vk or with_gallium_radeonsi or with_gallium_swr or with_gallium_opencl,
   )
   with_llvm = dep_llvm.found()
 elif _llvm == 'true'
-  dep_llvm = dependency('llvm', version : _llvm_version, modules : llvm_modules)
+  dep_llvm = dependency(
+    'llvm',
+    version : _llvm_version,
+    modules : llvm_modules,
+    optional_modules : llvm_optional_modules,
+  )
   with_llvm = true
 else
   dep_llvm = null_dep
@@ -1179,8 +1222,6 @@ if get_option('selinux')
   pre_args += '-DMESA_SELINUX'
 endif
 
-# TODO: llvm-prefix and llvm-shared-libs
-
 if with_libunwind != 'false'
   dep_unwind = dependency('libunwind', required : with_libunwind == 'true')
   if dep_unwind.found()
@@ -1189,8 +1230,6 @@ if with_libunwind != 'false'
 else
   dep_unwind = null_dep
 endif
-
-# TODO: gallium-hud
 
 if with_osmesa != 'none'
   if with_osmesa == 'classic' and not with_dri_swrast
@@ -1316,10 +1355,6 @@ else
   dep_lmsensors = null_dep
 endif
 
-# TODO: various libdirs
-
-# TODO: gallium driver dirs
-
 foreach a : pre_args
   add_project_arguments(a, language : ['c', 'cpp'])
 endforeach
@@ -1332,17 +1367,23 @@ endforeach
 
 inc_include = include_directories('include')
 
-gl_priv_reqs = [
-  'x11', 'xext', 'xdamage >= 1.1', 'xfixes', 'x11-xcb', 'xcb',
-  'xcb-glx >= 1.8.1']
+gl_priv_reqs = []
+
+if with_glx == 'xlib' or with_glx == 'gallium-xlib'
+  gl_priv_reqs += ['x11', 'xext', 'xcb']
+elif with_glx == 'dri'
+  gl_priv_reqs += [
+    'x11', 'xext', 'xdamage >= 1.1', 'xfixes', 'x11-xcb', 'xcb',
+    'xcb-glx >= 1.8.1']
+  if with_dri_platform == 'drm'
+    gl_priv_reqs += 'xcb-dri2 >= 1.8'
+  endif
+endif
 if dep_libdrm.found()
   gl_priv_reqs += 'libdrm >= 2.4.75'
 endif
 if dep_xxf86vm.found()
   gl_priv_reqs += 'xxf86vm'
-endif
-if with_dri_platform == 'drm'
-  gl_priv_reqs += 'xcb-dri2 >= 1.8'
 endif
 
 gl_priv_libs = []

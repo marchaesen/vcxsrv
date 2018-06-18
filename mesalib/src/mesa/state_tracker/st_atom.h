@@ -86,7 +86,7 @@ enum {
                                  ST_NEW_CS_SAMPLERS)
 
 #define ST_NEW_FRAMEBUFFER      (ST_NEW_FB_STATE | \
-                                 ST_NEW_SAMPLE_MASK | \
+                                 ST_NEW_SAMPLE_STATE | \
                                  ST_NEW_SAMPLE_SHADING)
 
 #define ST_NEW_VERTEX_PROGRAM(st, p) (p->affected_states | \

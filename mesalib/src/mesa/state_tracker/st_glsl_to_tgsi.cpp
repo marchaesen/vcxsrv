@@ -3990,6 +3990,8 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
    case ir_intrinsic_generic_atomic_max:
    case ir_intrinsic_generic_atomic_exchange:
    case ir_intrinsic_generic_atomic_comp_swap:
+   case ir_intrinsic_begin_invocation_interlock:
+   case ir_intrinsic_end_invocation_interlock:
       unreachable("Invalid intrinsic");
    }
 }

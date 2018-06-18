@@ -265,12 +265,6 @@ option(
   description : 'Build unit tests. Currently this will build *all* unit tests, which may build more than expected.'
 )
 option(
-  'texture-float',
-  type : 'boolean',
-  value : false,
-  description : 'Enable floating point textures and renderbuffers. This option may be patent encumbered, please read docs/patents.txt and consult with your lawyer before turning this on.'
-)
-option(
   'selinux',
   type : 'boolean',
   value : false,
@@ -303,4 +297,11 @@ option(
   value : [],
   choices : ['freedreno', 'glsl', 'intel', 'nir', 'nouveau', 'all'],
   description : 'List of tools to build.',
+)
+option(
+  'power8',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'Enable power8 optimizations.',
 )

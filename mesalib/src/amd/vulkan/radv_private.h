@@ -360,7 +360,6 @@ struct radv_pipeline_key {
 	uint32_t is_int10;
 	uint8_t log2_ps_iter_samples;
 	uint8_t log2_num_samples;
-	uint32_t multisample : 1;
 	uint32_t has_multiview_view_index : 1;
 	uint32_t optimisations_disabled : 1;
 };
@@ -1110,14 +1109,17 @@ void radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer);
 void radv_cayman_emit_msaa_sample_locs(struct radeon_winsys_cs *cs, int nr_samples);
 unsigned radv_cayman_get_maxdist(int log_samples);
 void radv_device_init_msaa(struct radv_device *device);
-void radv_set_depth_clear_regs(struct radv_cmd_buffer *cmd_buffer,
-			       struct radv_image *image,
-			       VkClearDepthStencilValue ds_clear_value,
-			       VkImageAspectFlags aspects);
-void radv_set_color_clear_regs(struct radv_cmd_buffer *cmd_buffer,
-			       struct radv_image *image,
-			       int idx,
-			       uint32_t color_values[2]);
+
+void radv_set_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
+				struct radv_image *image,
+				VkClearDepthStencilValue ds_clear_value,
+				VkImageAspectFlags aspects);
+
+void radv_set_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
+				   struct radv_image *image,
+				   int cb_idx,
+				   uint32_t color_values[2]);
+
 void radv_set_dcc_need_cmask_elim_pred(struct radv_cmd_buffer *cmd_buffer,
 				       struct radv_image *image,
 				       bool value);

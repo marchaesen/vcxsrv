@@ -445,7 +445,8 @@ int main() {
     struct {
         uint64_t *v;
     } x;
-    return (int)__atomic_load_n(x.v, __ATOMIC_ACQUIRE);
+    return (int)__atomic_load_n(x.v, __ATOMIC_ACQUIRE) &
+           (int)__atomic_add_fetch(x.v, (uint64_t)1, __ATOMIC_ACQ_REL);
 }]])], GCC_ATOMIC_BUILTINS_SUPPORTED=yes, GCC_ATOMIC_BUILTINS_SUPPORTED=no)
 
 dnl If that didn't work, we try linking with -latomic, which is needed on some
@@ -459,7 +460,8 @@ if test "x$GCC_ATOMIC_BUILTINS_SUPPORTED" != xyes; then
         struct {
             uint64_t *v;
         } x;
-        return (int)__atomic_load_n(x.v, __ATOMIC_ACQUIRE);
+        return (int)__atomic_load_n(x.v, __ATOMIC_ACQUIRE) &
+               (int)__atomic_add_fetch(x.v, (uint64_t)1, __ATOMIC_ACQ_REL);
    }]])], GCC_ATOMIC_BUILTINS_SUPPORTED=yes LIBATOMIC_LIBS="-latomic",
           GCC_ATOMIC_BUILTINS_SUPPORTED=no)
    LDFLAGS=$save_LDFLAGS
@@ -760,21 +762,6 @@ aix* )
 esac
 
 AC_SUBST([LIB_EXT])
-
-dnl
-dnl potentially-infringing-but-nobody-knows-for-sure stuff
-dnl
-AC_ARG_ENABLE([texture-float],
-    [AS_HELP_STRING([--enable-texture-float],
-        [enable floating-point textures and renderbuffers @<:@default=disabled@:>@])],
-    [enable_texture_float="$enableval"],
-    [enable_texture_float=no]
-)
-if test "x$enable_texture_float" = xyes; then
-    AC_MSG_WARN([Floating-point textures enabled.])
-    AC_MSG_WARN([Please consult docs/patents.txt with your lawyer before building Mesa.])
-    DEFINES="$DEFINES -DTEXTURE_FLOAT_ENABLED"
-fi
 
 dnl
 dnl Arch/platform-specific settings

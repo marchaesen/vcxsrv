@@ -145,10 +145,10 @@ void ssh2_bpp_new_incoming_crypto(
     }
 
     s->in.comp = compression;
-    /* out_comp is always non-NULL, because no compression is
+    /* in_comp is always non-NULL, because no compression is
      * indicated by ssh_comp_none. So compress_init always exists, but
-     * it may return a null out_comp_ctx. */
-    s->in.comp_ctx = compression->compress_init();
+     * it may return a null in_comp_ctx. */
+    s->in.comp_ctx = compression->decompress_init();
 
     /* Clear the pending_newkeys flag, so that handle_input below will
      * start consuming the input data again. */
@@ -582,7 +582,7 @@ static void ssh2_bpp_format_packet(BinaryPacketProtocol *bpp, PktOut *pkt)
                                       s->out.sequence);
     }
 
-    put_padding(pkt, 0, maclen);
+    put_padding(pkt, maclen, 0);
 
     if (s->out.mac && s->out.etm_mode) {
         /*
