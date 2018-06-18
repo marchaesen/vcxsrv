@@ -34,7 +34,7 @@ ST_STATE(ST_NEW_FS_IMAGES, st_bind_fs_images)
 ST_STATE(ST_NEW_FB_STATE, st_update_framebuffer_state) /* depends on update_*_texture and bind_*_images */
 ST_STATE(ST_NEW_BLEND, st_update_blend) /* depends on update_framebuffer_state */
 ST_STATE(ST_NEW_RASTERIZER, st_update_rasterizer) /* depends on update_framebuffer_state */
-ST_STATE(ST_NEW_SAMPLE_MASK, st_update_sample_mask) /* depends on update_framebuffer_state */
+ST_STATE(ST_NEW_SAMPLE_STATE, st_update_sample_state) /* depends on update_framebuffer_state */
 ST_STATE(ST_NEW_SAMPLE_SHADING, st_update_sample_shading)
 ST_STATE(ST_NEW_SCISSOR, st_update_scissor) /* depends on update_framebuffer_state */
 ST_STATE(ST_NEW_VIEWPORT, st_update_viewport) /* depends on update_framebuffer_state */

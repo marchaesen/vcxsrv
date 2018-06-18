@@ -98,7 +98,6 @@ struct radv_fs_variant_key {
 	uint8_t log2_num_samples;
 	uint32_t is_int8;
 	uint32_t is_int10;
-	uint32_t multisample : 1;
 };
 
 struct radv_shader_variant_key {
@@ -120,6 +119,7 @@ struct radv_nir_compiler_options {
 	bool dump_shader;
 	bool dump_preoptir;
 	bool record_llvm_ir;
+	bool check_ir;
 	enum radeon_family family;
 	enum chip_class chip_class;
 	uint32_t tess_offchip_block_dw_size;

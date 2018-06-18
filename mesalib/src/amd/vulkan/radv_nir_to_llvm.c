@@ -2967,12 +2967,16 @@ handle_shader_outputs_post(struct ac_shader_abi *abi, unsigned max_outputs,
 	}
 }
 
-static void ac_llvm_finalize_module(struct radv_shader_context *ctx)
+static void ac_llvm_finalize_module(struct radv_shader_context *ctx,
+				    const struct radv_nir_compiler_options *options)
 {
 	LLVMPassManagerRef passmgr;
 	/* Create the pass manager */
 	passmgr = LLVMCreateFunctionPassManagerForModule(
 							ctx->ac.module);
+
+	if (options->check_ir)
+		LLVMAddVerifierPass(passmgr);
 
 	/* This pass should eliminate all the load and store instructions */
 	LLVMAddPromoteMemoryToRegisterPass(passmgr);
@@ -3103,7 +3107,6 @@ static void ac_nir_fixup_ls_hs_input_vgprs(struct radv_shader_context *ctx)
 	LLVMValueRef hs_empty = LLVMBuildICmp(ctx->ac.builder, LLVMIntEQ, count,
 	                                      ctx->ac.i32_0, "");
 	ctx->abi.instance_id = LLVMBuildSelect(ctx->ac.builder, hs_empty, ctx->rel_auto_id, ctx->abi.instance_id, "");
-	ctx->vs_prim_id = LLVMBuildSelect(ctx->ac.builder, hs_empty, ctx->abi.vertex_id, ctx->vs_prim_id, "");
 	ctx->rel_auto_id = LLVMBuildSelect(ctx->ac.builder, hs_empty, ctx->abi.tcs_rel_ids, ctx->rel_auto_id, "");
 	ctx->abi.vertex_id = LLVMBuildSelect(ctx->ac.builder, hs_empty, ctx->abi.tcs_patch_id, ctx->abi.vertex_id, "");
 }
@@ -3299,7 +3302,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	if (options->dump_preoptir)
 		ac_dump_module(ctx.ac.module);
 
-	ac_llvm_finalize_module(&ctx);
+	ac_llvm_finalize_module(&ctx, options);
 
 	if (shader_count == 1)
 		ac_nir_eliminate_const_vs_outputs(&ctx);
@@ -3617,7 +3620,7 @@ radv_compile_gs_copy_shader(LLVMTargetMachineRef tm,
 
 	LLVMBuildRetVoid(ctx.ac.builder);
 
-	ac_llvm_finalize_module(&ctx);
+	ac_llvm_finalize_module(&ctx, options);
 
 	ac_compile_llvm_module(tm, ctx.ac.module, binary, config, shader_info,
 			       MESA_SHADER_VERTEX, options);

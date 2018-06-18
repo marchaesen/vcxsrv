@@ -3489,6 +3489,11 @@ struct gl_framebuffer
    GLenum16 ColorDrawBuffer[MAX_DRAW_BUFFERS];
    GLenum16 ColorReadBuffer;
 
+   /* GL_ARB_sample_locations */
+   GLfloat *SampleLocationTable; /**< If NULL, no table has been specified */
+   GLboolean ProgrammableSampleLocations;
+   GLboolean SampleLocationPixelGrid;
+
    /** Computed from ColorDraw/ReadBuffer above */
    GLuint _NumColorDrawBuffers;
    gl_buffer_index _ColorDrawBufferIndexes[MAX_DRAW_BUFFERS];
@@ -4100,6 +4105,7 @@ struct gl_extensions
    GLboolean ARB_post_depth_coverage;
    GLboolean ARB_query_buffer_object;
    GLboolean ARB_robust_buffer_access_behavior;
+   GLboolean ARB_sample_locations;
    GLboolean ARB_sample_shading;
    GLboolean ARB_seamless_cube_map;
    GLboolean ARB_shader_atomic_counter_ops;
@@ -4564,6 +4570,9 @@ struct gl_driver_flags
 
    /** Shader constants (uniforms, program parameters, state constants) */
    uint64_t NewShaderConstants[MESA_SHADER_STAGES];
+
+   /** Programmable sample location state for gl_context::DrawBuffer */
+   uint64_t NewSampleLocations;
 };
 
 struct gl_buffer_binding

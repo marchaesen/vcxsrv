@@ -10881,6 +10881,110 @@
 
 <!-- Extension number 180 is not listed in the extension registry. -->
 
+<category name="GL_ARB_sample_locations" number="181">
+    <enum name="SAMPLE_LOCATION_SUBPIXEL_BITS_ARB"             value="0x933D">
+        <size name="Get" mode="get"/>
+    </enum>
+
+    <enum name="SAMPLE_LOCATION_PIXEL_GRID_WIDTH_ARB"          value="0x933E">
+        <size name="Get" mode="get"/>
+    </enum>
+
+    <enum name="SAMPLE_LOCATION_PIXEL_GRID_HEIGHT_ARB"         value="0x933F">
+        <size name="Get" mode="get"/>
+    </enum>
+
+    <enum name="PROGRAMMABLE_SAMPLE_LOCATION_TABLE_SIZE_ARB"   value="0x9340">
+        <size name="Get" mode="get"/>
+    </enum>
+
+    <enum name="SAMPLE_LOCATION_ARB"                           value="0x8E50">
+        <size name="GetMultisamplefv" mode="get"/>
+    </enum>
+
+    <enum name="PROGRAMMABLE_SAMPLE_LOCATION_ARB"              value="0x9341">
+        <size name="GetMultisamplefv" mode="get"/>
+    </enum>
+
+    <enum name="FRAMEBUFFER_PROGRAMMABLE_SAMPLE_LOCATIONS_ARB" value="0x9342">
+        <size name="FramebufferParameteri"/>
+        <size name="GetFramebufferParameteri"/>
+    </enum>
+
+    <enum name="FRAMEBUFFER_SAMPLE_LOCATION_PIXEL_GRID_ARB"    value="0x9343">
+        <size name="FramebufferParameteri"/>
+        <size name="GetFramebufferParameteri"/>
+    </enum>
+
+    <function name="FramebufferSampleLocationsfvARB" no_error="true">
+        <param name="target" type="GLenum"/>
+        <param name="start"  type="GLuint"/>
+        <param name="count"  type="GLsizei"/>
+        <param name="v"      type="const GLfloat *"/>
+    </function>
+
+    <function name="NamedFramebufferSampleLocationsfvARB" no_error="true">
+        <param name="framebuffer" type="GLuint"/>
+        <param name="start"       type="GLuint"/>
+        <param name="count"       type="GLsizei"/>
+        <param name="v"           type="const GLfloat *"/>
+    </function>
+
+    <function name="EvaluateDepthValuesARB"/>
+</category>
+
+<category name="GL_NV_sample_locations" number="472">
+    <enum name="SAMPLE_LOCATION_SUBPIXEL_BITS_NV"             value="0x933D" alias="SAMPLE_LOCATION_SUBPIXEL_BITS_ARB">
+        <size name="Get" mode="get"/>
+    </enum>
+
+    <enum name="SAMPLE_LOCATION_PIXEL_GRID_WIDTH_NV"          value="0x933E" alias="SAMPLE_LOCATION_PIXEL_GRID_WIDTH_ARB">
+        <size name="Get" mode="get"/>
+    </enum>
+
+    <enum name="SAMPLE_LOCATION_PIXEL_GRID_HEIGHT_NV"         value="0x933F" alias="SAMPLE_LOCATION_PIXEL_GRID_HEIGHT_ARB">
+        <size name="Get" mode="get"/>
+    </enum>
+
+    <enum name="PROGRAMMABLE_SAMPLE_LOCATION_TABLE_SIZE_NV"   value="0x9340" alias="PROGRAMMABLE_SAMPLE_LOCATION_TABLE_SIZE_ARB">
+        <size name="Get" mode="get"/>
+    </enum>
+
+    <enum name="SAMPLE_LOCATION_NV"                           value="0x8E50" alias="SAMPLE_LOCATION_ARB">
+        <size name="GetMultisamplefv" mode="get"/>
+    </enum>
+
+    <enum name="PROGRAMMABLE_SAMPLE_LOCATION_NV"              value="0x9341" alias="PROGRAMMABLE_SAMPLE_LOCATION_ARB">
+        <size name="GetMultisamplefv" mode="get"/>
+    </enum>
+
+    <enum name="FRAMEBUFFER_PROGRAMMABLE_SAMPLE_LOCATIONS_NV" value="0x9342" alias="FRAMEBUFFER_PROGRAMMABLE_SAMPLE_LOCATIONS_ARB">
+        <size name="FramebufferParameteri"/>
+        <size name="GetFramebufferParameteri"/>
+    </enum>
+
+    <enum name="FRAMEBUFFER_SAMPLE_LOCATION_PIXEL_GRID_NV"    value="0x9343" alias="FRAMEBUFFER_SAMPLE_LOCATION_PIXEL_GRID_ARB">
+        <size name="FramebufferParameteri"/>
+        <size name="GetFramebufferParameteri"/>
+    </enum>
+
+    <function name="FramebufferSampleLocationsfvNV" no_error="true" es2="3.1" alias="FramebufferSampleLocationsfvARB">
+        <param name="target" type="GLenum"/>
+        <param name="start"  type="GLuint"/>
+        <param name="count"  type="GLsizei"/>
+        <param name="v"      type="const GLfloat *"/>
+    </function>
+
+    <function name="NamedFramebufferSampleLocationsfvNV" no_error="true" es2="3.1" alias="NamedFramebufferSampleLocationsfvARB">
+        <param name="framebuffer" type="GLuint"/>
+        <param name="start"       type="GLuint"/>
+        <param name="count"       type="GLsizei"/>
+        <param name="v"           type="const GLfloat *"/>
+    </function>
+
+    <function name="ResolveDepthValuesNV" es2="3.1" alias="EvaluateDepthValuesARB"/>
+</category>
+
 <category name="GL_SUN_convolution_border_modes" number="182">
     <enum name="WRAP_BORDER_SUN"                          value="0x81D4"/>
 </category>

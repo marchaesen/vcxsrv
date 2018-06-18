@@ -101,6 +101,24 @@ _mesa_GetMultisamplefv(GLenum pname, GLuint index, GLfloat * val)
       return;
    }
 
+   case GL_PROGRAMMABLE_SAMPLE_LOCATION_ARB:
+      if (!ctx->Extensions.ARB_sample_locations) {
+         _mesa_error( ctx, GL_INVALID_ENUM, "glGetMultisamplefv(pname)" );
+         return;
+      }
+
+      if (index >= MAX_SAMPLE_LOCATION_TABLE_SIZE * 2) {
+         _mesa_error( ctx, GL_INVALID_VALUE, "glGetMultisamplefv(index)" );
+         return;
+      }
+
+      if (ctx->DrawBuffer->SampleLocationTable)
+         *val = ctx->DrawBuffer->SampleLocationTable[index];
+      else
+         *val = 0.5f;
+
+      return;
+
    default:
       _mesa_error( ctx, GL_INVALID_ENUM, "glGetMultisamplefv(pname)" );
       return;

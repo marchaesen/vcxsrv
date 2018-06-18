@@ -100,7 +100,6 @@ elif host_machine.system().endswith('bsd')
         srcs_xorg_os_support += 'shared/ioperm_noop.c'
     elif host_machine.cpu_family() == 'alpha'
         srcs_xorg_os_support += 'bsd/alpha_video.c'
-        srcs_xorg_os_support += 'bsd/bsd_ev56.c'
     endif
 
     if host_machine.system() == 'freebsd'

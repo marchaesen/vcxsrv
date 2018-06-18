@@ -35,13 +35,13 @@ clone_depth: 100
 
 cache:
 - win_flex_bison-2.5.9.zip
-- llvm-3.3.1-msvc2015-mtd.7z
+- llvm-5.0.1-msvc2015-mtd.7z
 
 os: Visual Studio 2015
 
 environment:
   WINFLEXBISON_ARCHIVE: win_flex_bison-2.5.9.zip
-  LLVM_ARCHIVE: llvm-3.3.1-msvc2015-mtd.7z
+  LLVM_ARCHIVE: llvm-5.0.1-msvc2015-mtd.7z
 
 install:
 # Check pip

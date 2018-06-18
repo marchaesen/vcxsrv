@@ -279,8 +279,35 @@ struct pipe_context {
    void (*set_framebuffer_state)( struct pipe_context *,
                                   const struct pipe_framebuffer_state * );
 
+   /**
+    * Set the sample locations used during rasterization. When NULL or sized
+    * zero, the default locations are used.
+    *
+    * Note that get_sample_position() still returns the default locations.
+    *
+    * The samples are accessed with
+    * locations[(pixel_y*grid_w+pixel_x)*ms+i],
+    * where:
+    * ms      = the sample count
+    * grid_w  = the pixel grid width for the sample count
+    * grid_w  = the pixel grid height for the sample count
+    * pixel_x = the window x coordinate modulo grid_w
+    * pixel_y = the window y coordinate modulo grid_w
+    * i       = the sample index
+    * This gives a result with the x coordinate as the low 4 bits and the y
+    * coordinate as the high 4 bits. For each coordinate 0 is the left or top
+    * edge of the pixel's rectangle and 16 (not 15) is the right or bottom edge.
+    *
+    * Out of bounds accesses are return undefined values.
+    *
+    * The pixel grid is used to vary sample locations across pixels and its
+    * size can be queried with get_sample_pixel_grid().
+    */
+   void (*set_sample_locations)( struct pipe_context *,
+                                 size_t size, const uint8_t *locations );
+
    void (*set_polygon_stipple)( struct pipe_context *,
-				const struct pipe_poly_stipple * );
+                                const struct pipe_poly_stipple * );
 
    void (*set_scissor_states)( struct pipe_context *,
                                unsigned start_slot,
@@ -483,6 +510,16 @@ struct pipe_context {
                         unsigned size,
                         const void *clear_value,
                         int clear_value_size);
+
+   /**
+    * If a depth buffer is rendered with different sample location state than
+    * what is current at the time of reading, the values may differ because
+    * depth buffer compression can depend the sample locations.
+    *
+    * This function is a hint to decompress the current depth buffer to avoid
+    * such problems.
+    */
+   void (*evaluate_depth_buffer)(struct pipe_context *pipe);
 
    /**
     * Flush draw commands.
@@ -720,7 +757,7 @@ struct pipe_context {
    /*@}*/
 
    /**
-    * Get sample position for an individual sample point.
+    * Get the default sample position for an individual sample point.
     *
     * \param sample_count - total number of samples
     * \param sample_index - sample to get the position values for

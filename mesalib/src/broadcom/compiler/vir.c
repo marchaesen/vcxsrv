@@ -841,7 +841,7 @@ uint64_t *v3d_compile_fs(const struct v3d_compiler *compiler,
         prog_data->writes_z = (c->s->info.outputs_written &
                                (1 << FRAG_RESULT_DEPTH));
         prog_data->discard = c->s->info.fs.uses_discard;
-        prog_data->uses_centroid_and_center_w = c->uses_centroid_and_center_w;
+        prog_data->uses_center_w = c->uses_center_w;
 
         return v3d_return_qpu_insts(c, final_assembly_size);
 }

@@ -658,4 +658,3 @@ int main(int argc, char **argv)
     cleanup_exit(exitcode);
     return 0;			       /* placate compiler warning */
 }
-

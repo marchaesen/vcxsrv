@@ -97,7 +97,6 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		       struct amdgpu_gpu_info *amdinfo)
 {
 	struct amdgpu_buffer_size_alignments alignment_info = {};
-	struct amdgpu_heap_info vram, vram_vis, gtt;
 	struct drm_amdgpu_info_hw_ip dma = {}, compute = {}, uvd = {};
 	struct drm_amdgpu_info_hw_ip uvd_enc = {}, vce = {}, vcn_dec = {};
 	struct drm_amdgpu_info_hw_ip vcn_enc = {}, gfx = {};
@@ -128,26 +127,6 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	r = amdgpu_query_buffer_size_alignment(dev, &alignment_info);
 	if (r) {
 		fprintf(stderr, "amdgpu: amdgpu_query_buffer_size_alignment failed.\n");
-		return false;
-	}
-
-	r = amdgpu_query_heap_info(dev, AMDGPU_GEM_DOMAIN_VRAM, 0, &vram);
-	if (r) {
-		fprintf(stderr, "amdgpu: amdgpu_query_heap_info(vram) failed.\n");
-		return false;
-	}
-
-	r = amdgpu_query_heap_info(dev, AMDGPU_GEM_DOMAIN_VRAM,
-				AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED,
-				&vram_vis);
-	if (r) {
-		fprintf(stderr, "amdgpu: amdgpu_query_heap_info(vram_vis) failed.\n");
-		return false;
-	}
-
-	r = amdgpu_query_heap_info(dev, AMDGPU_GEM_DOMAIN_GTT, 0, &gtt);
-	if (r) {
-		fprintf(stderr, "amdgpu: amdgpu_query_heap_info(gtt) failed.\n");
 		return false;
 	}
 
@@ -255,6 +234,60 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		return false;
 	}
 
+	if (info->drm_minor >= 9) {
+		struct drm_amdgpu_memory_info meminfo = {};
+
+		r = amdgpu_query_info(dev, AMDGPU_INFO_MEMORY, sizeof(meminfo), &meminfo);
+		if (r) {
+			fprintf(stderr, "amdgpu: amdgpu_query_info(memory) failed.\n");
+			return false;
+		}
+
+		/* Note: usable_heap_size values can be random and can't be relied on. */
+		info->gart_size = meminfo.gtt.total_heap_size;
+		info->vram_size = meminfo.vram.total_heap_size;
+		info->vram_vis_size = meminfo.cpu_accessible_vram.total_heap_size;
+
+		info->max_alloc_size = MAX2(meminfo.vram.max_allocation,
+					    meminfo.gtt.max_allocation);
+	} else {
+		/* This is a deprecated interface, which reports usable sizes
+		 * (total minus pinned), but the pinned size computation is
+		 * buggy, so the values returned from these functions can be
+		 * random.
+		 */
+		struct amdgpu_heap_info vram, vram_vis, gtt;
+
+		r = amdgpu_query_heap_info(dev, AMDGPU_GEM_DOMAIN_VRAM, 0, &vram);
+		if (r) {
+			fprintf(stderr, "amdgpu: amdgpu_query_heap_info(vram) failed.\n");
+			return false;
+		}
+
+		r = amdgpu_query_heap_info(dev, AMDGPU_GEM_DOMAIN_VRAM,
+					AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED,
+					&vram_vis);
+		if (r) {
+			fprintf(stderr, "amdgpu: amdgpu_query_heap_info(vram_vis) failed.\n");
+			return false;
+		}
+
+		r = amdgpu_query_heap_info(dev, AMDGPU_GEM_DOMAIN_GTT, 0, &gtt);
+		if (r) {
+			fprintf(stderr, "amdgpu: amdgpu_query_heap_info(gtt) failed.\n");
+			return false;
+		}
+
+		info->gart_size = gtt.heap_size;
+		info->vram_size = vram.heap_size;
+		info->vram_vis_size = vram_vis.heap_size;
+
+		/* The kernel can split large buffers in VRAM but not in GTT, so large
+		 * allocations can fail or cause buffer movement failures in the kernel.
+		 */
+		info->max_alloc_size = MAX2(info->vram_size * 0.9, info->gart_size * 0.7);
+	}
+
 	/* Set chip identification. */
 	info->pci_id = amdinfo->asic_id; /* TODO: is this correct? */
 	info->vce_harvest_config = amdinfo->vce_harvest_config;
@@ -287,15 +320,8 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		!(amdinfo->ids_flags & AMDGPU_IDS_FLAGS_FUSION);
 
 	/* Set hardware information. */
-	info->gart_size = gtt.heap_size;
-	info->vram_size = vram.heap_size;
-	info->vram_vis_size = vram_vis.heap_size;
 	info->gds_size = gds.gds_total_size;
 	info->gds_gfx_partition_size = gds.gds_gfx_partition_size;
-	/* The kernel can split large buffers in VRAM but not in GTT, so large
-	 * allocations can fail or cause buffer movement failures in the kernel.
-	 */
-	info->max_alloc_size = MIN2(info->vram_size * 0.9, info->gart_size * 0.7);
 	/* convert the shader clock from KHz to MHz */
 	info->max_shader_clock = amdinfo->max_engine_clk / 1000;
 	info->max_se = amdinfo->num_shader_engines;

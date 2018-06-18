@@ -26,8 +26,7 @@ endif
 if ALPHA_VIDEO
 # Cheat here and piggyback other alpha bits on ALPHA_VIDEO.
 ARCH_SOURCES = \
-	alpha_video.c \
-	bsd_ev56.c
+	alpha_video.c
 endif
 
 if ARM_VIDEO

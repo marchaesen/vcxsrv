@@ -490,6 +490,7 @@ typedef struct nir_ssa_def {
    /** Index into the live_in and live_out bitfields */
    unsigned live_index;
 
+   /** Instruction which produces this SSA value. */
    nir_instr *parent_instr;
 
    /** set of nir_instrs where this register is used (read from) */
@@ -529,6 +530,7 @@ struct nir_if;
 
 typedef struct nir_src {
    union {
+      /** Instruction that consumes this value as a source. */
       nir_instr *parent_instr;
       struct nir_if *parent_if;
    };

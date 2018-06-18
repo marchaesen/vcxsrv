@@ -440,7 +440,7 @@ xwl_present_flip(WindowPtr present_window,
 {
     struct xwl_window           *xwl_window = xwl_window_from_window(present_window);
     struct xwl_present_window   *xwl_present_window = xwl_present_window_priv(present_window);
-    BoxPtr                      present_box, damage_box;
+    BoxPtr                      damage_box;
     Bool                        buffer_created;
     struct wl_buffer            *buffer;
     struct xwl_present_event    *event;
@@ -448,7 +448,6 @@ xwl_present_flip(WindowPtr present_window,
     if (!xwl_window)
         return FALSE;
 
-    present_box = RegionExtents(&present_window->winSize);
     damage_box = RegionExtents(damage);
 
     event = malloc(sizeof *event);
@@ -458,8 +457,8 @@ xwl_present_flip(WindowPtr present_window,
     xwl_window->present_window = present_window;
 
     buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap,
-                                             present_box->x2 - present_box->x1,
-                                             present_box->y2 - present_box->y1,
+                                             pixmap->drawable.width,
+                                             pixmap->drawable.height,
                                              &buffer_created);
 
     event->event_id = event_id;

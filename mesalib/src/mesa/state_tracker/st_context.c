@@ -172,7 +172,7 @@ st_invalidate_buffers(struct st_context *st)
    st->dirty |= ST_NEW_BLEND |
                 ST_NEW_DSA |
                 ST_NEW_FB_STATE |
-                ST_NEW_SAMPLE_MASK |
+                ST_NEW_SAMPLE_STATE |
                 ST_NEW_SAMPLE_SHADING |
                 ST_NEW_FS_STATE |
                 ST_NEW_POLY_STIPPLE |
@@ -323,9 +323,10 @@ st_init_driver_flags(struct st_context *st)
    f->NewLogicOp = ST_NEW_BLEND;
    f->NewStencil = ST_NEW_DSA;
    f->NewMultisampleEnable = ST_NEW_BLEND | ST_NEW_RASTERIZER |
-                             ST_NEW_SAMPLE_MASK | ST_NEW_SAMPLE_SHADING;
+                             ST_NEW_SAMPLE_STATE | ST_NEW_SAMPLE_SHADING;
    f->NewSampleAlphaToXEnable = ST_NEW_BLEND;
-   f->NewSampleMask = ST_NEW_SAMPLE_MASK;
+   f->NewSampleMask = ST_NEW_SAMPLE_STATE;
+   f->NewSampleLocations = ST_NEW_SAMPLE_STATE;
    f->NewSampleShading = ST_NEW_SAMPLE_SHADING;
 
    /* This depends on what the gallium driver wants. */

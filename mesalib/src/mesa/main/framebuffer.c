@@ -160,6 +160,10 @@ _mesa_initialize_window_framebuffer(struct gl_framebuffer *fb,
    fb->_HasSNormOrFloatColorBuffer = visual->floatMode;
    fb->_HasAttachments = true;
 
+   fb->SampleLocationTable = NULL;
+   fb->ProgrammableSampleLocations = 0;
+   fb->SampleLocationPixelGrid = 0;
+
    compute_depth_max(fb);
 }
 
@@ -183,6 +187,9 @@ _mesa_initialize_user_framebuffer(struct gl_framebuffer *fb, GLuint name)
    fb->_ColorDrawBufferIndexes[0] = BUFFER_COLOR0;
    fb->ColorReadBuffer = GL_COLOR_ATTACHMENT0_EXT;
    fb->_ColorReadBufferIndex = BUFFER_COLOR0;
+   fb->SampleLocationTable = NULL;
+   fb->ProgrammableSampleLocations = 0;
+   fb->SampleLocationPixelGrid = 0;
    fb->Delete = _mesa_destroy_framebuffer;
    simple_mtx_init(&fb->Mutex, mtx_plain);
 }
@@ -227,6 +234,9 @@ _mesa_free_framebuffer_data(struct gl_framebuffer *fb)
       assert(!att->Texture);
       att->Type = GL_NONE;
    }
+
+   free(fb->SampleLocationTable);
+   fb->SampleLocationTable = NULL;
 }
 
 

@@ -64,8 +64,9 @@ else
     static_glapi_files += glapi_x86_s
   elif with_asm_arch == 'x86_64'
     static_glapi_files += glapi_x86_64_s
+  elif with_asm_arch == 'sparc'
+    static_glapi_files += glapi_sparc_s
   endif
-  # TODO: SPARC asm
 endif
 
 libglapi_static = static_library(

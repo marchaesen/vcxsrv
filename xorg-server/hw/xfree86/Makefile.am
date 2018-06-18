@@ -108,14 +108,14 @@ endif
 install-exec-hook:
 	(cd $(DESTDIR)$(bindir) && rm -f X && $(LN_S) Xorg$(EXEEXT) X)
 if INSTALL_SETUID
-	chown root $(DESTDIR)$(bindir)/Xorg
+	chown 0 $(DESTDIR)$(bindir)/Xorg
 	chmod u+s $(DESTDIR)$(bindir)/Xorg
 endif
 if SUID_WRAPPER
 	$(MKDIR_P) $(DESTDIR)$(SUID_WRAPPER_DIR)
 	mv $(DESTDIR)$(bindir)/Xorg $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg
 	${INSTALL} -m 755 Xorg.sh $(DESTDIR)$(bindir)/Xorg
-	-chown root $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.wrap && chmod u+s $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.wrap
+	-chown 0 $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.wrap && chmod u+s $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.wrap
 endif
 
 uninstall-local:

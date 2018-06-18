@@ -64,6 +64,11 @@ extern unsigned
 util_framebuffer_get_num_samples(const struct pipe_framebuffer_state *fb);
 
 
+extern void
+util_sample_locations_flip_y(struct pipe_screen *screen, unsigned fb_height,
+                             unsigned samples, uint8_t *locations);
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -645,7 +645,8 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer,
 	if (depth_view_can_fast_clear(cmd_buffer, iview, aspects,
 	                              subpass->depth_stencil_attachment.layout,
 	                              clear_rect, clear_value))
-		radv_set_depth_clear_regs(cmd_buffer, iview->image, clear_value, aspects);
+		radv_set_ds_clear_metadata(cmd_buffer, iview->image,
+					   clear_value, aspects);
 
 	radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
 			.x = clear_rect->rect.offset.x,
@@ -717,6 +718,14 @@ emit_fast_htile_clear(struct radv_cmd_buffer *cmd_buffer,
 	if ((clear_value.depth != 0.0 && clear_value.depth != 1.0) || !(aspects & VK_IMAGE_ASPECT_DEPTH_BIT))
 		goto fail;
 
+	/* GFX8 only supports 32-bit depth surfaces but we can enable TC-compat
+	 * HTILE for 16-bit surfaces if no Z planes are compressed. Though,
+	 * fast HTILE clears don't seem to work.
+	 */
+	if (cmd_buffer->device->physical_device->rad_info.chip_class == VI &&
+	    iview->image->vk_format == VK_FORMAT_D16_UNORM)
+		goto fail;
+
 	if (vk_format_aspects(iview->image->vk_format) & VK_IMAGE_ASPECT_STENCIL_BIT) {
 		if (clear_value.stencil != 0 || !(aspects & VK_IMAGE_ASPECT_STENCIL_BIT))
 			goto fail;
@@ -736,7 +745,7 @@ emit_fast_htile_clear(struct radv_cmd_buffer *cmd_buffer,
 				      iview->image->offset + iview->image->htile_offset,
 				      iview->image->surface.htile_size, clear_word);
 
-	radv_set_depth_clear_regs(cmd_buffer, iview->image, clear_value, aspects);
+	radv_set_ds_clear_metadata(cmd_buffer, iview->image, clear_value, aspects);
 	if (post_flush) {
 		*post_flush |= flush_bits;
 	} else {
@@ -1011,8 +1020,6 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 	if (iview->image->info.levels > 1)
 		goto fail;
 
-	if (iview->image->surface.is_linear)
-		goto fail;
 	if (!radv_image_extent_compare(iview->image, &iview->extent))
 		goto fail;
 
@@ -1097,7 +1104,8 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		cmd_buffer->state.flush_bits |= flush_bits;
 	}
 
-	radv_set_color_clear_regs(cmd_buffer, iview->image, subpass_att, clear_color);
+	radv_set_color_clear_metadata(cmd_buffer, iview->image, subpass_att,
+				      clear_color);
 
 	return true;
 fail:

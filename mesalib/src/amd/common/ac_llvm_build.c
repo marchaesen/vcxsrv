@@ -2747,11 +2747,13 @@ void ac_apply_fmask_to_sample(struct ac_llvm_context *ac, LLVMValueRef fmask,
 	final_sample = LLVMBuildMul(ac->builder, addr[sample_chan],
 				    LLVMConstInt(ac->i32, 4, 0), "");
 	final_sample = LLVMBuildLShr(ac->builder, fmask_value, final_sample, "");
+	/* Mask the sample index by 0x7, because 0x8 means an unknown value
+	 * with EQAA, so those will map to 0. */
 	final_sample = LLVMBuildAnd(ac->builder, final_sample,
-				    LLVMConstInt(ac->i32, 0xF, 0), "");
+				    LLVMConstInt(ac->i32, 0x7, 0), "");
 
 	/* Don't rewrite the sample index if WORD1.DATA_FORMAT of the FMASK
-	 * resource descriptor is 0 (invalid),
+	 * resource descriptor is 0 (invalid).
 	 */
 	LLVMValueRef tmp;
 	tmp = LLVMBuildBitCast(ac->builder, fmask, ac->v8i32, "");

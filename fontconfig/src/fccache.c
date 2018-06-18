@@ -165,6 +165,7 @@ FcDirCacheDeleteUUID (const FcChar8  *dir,
     ret = unlink ((char *) target) == 0;
     FcStrFree (target);
     FcHashTableRemove (config->uuid_table, target);
+    FcStrFree(target);
 
     return ret;
 }

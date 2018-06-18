@@ -132,6 +132,17 @@ struct pipe_screen {
 			    void *ret);
 
    /**
+    * Get the sample pixel grid's size. This function requires
+    * PIPE_CAP_PROGRAMMABLE_SAMPLE_LOCATIONS to be callable.
+    *
+    * \param sample_count - total number of samples
+    * \param out_width - the width of the pixel grid
+    * \param out_height - the height of the pixel grid
+    */
+   void (*get_sample_pixel_grid)(struct pipe_screen *, unsigned sample_count,
+                                 unsigned *out_width, unsigned *out_height);
+
+   /**
     * Query a timestamp in nanoseconds. The returned value should match
     * PIPE_QUERY_TIMESTAMP. This function returns immediately and doesn't
     * wait for rendering to complete (which cannot be achieved with queries).

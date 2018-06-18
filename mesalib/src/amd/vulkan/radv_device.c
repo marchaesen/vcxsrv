@@ -329,8 +329,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->out_of_order_rast_allowed = device->has_out_of_order_rast &&
 					    !(device->instance->debug_flags & RADV_DEBUG_NO_OUT_OF_ORDER);
 
-	device->dcc_msaa_allowed = device->rad_info.chip_class == VI &&
-				   (device->instance->perftest_flags & RADV_PERFTEST_DCC_MSAA);
+	device->dcc_msaa_allowed =
+		(device->instance->perftest_flags & RADV_PERFTEST_DCC_MSAA);
 
 	radv_physical_device_init_mem_types(device);
 	radv_fill_device_extension_table(device, &device->supported_extensions);
@@ -410,6 +410,7 @@ static const struct debug_control radv_debug_options[] = {
 	{"info", RADV_DEBUG_INFO},
 	{"errors", RADV_DEBUG_ERRORS},
 	{"startup", RADV_DEBUG_STARTUP},
+	{"checkir", RADV_DEBUG_CHECKIR},
 	{NULL, 0}
 };
 

@@ -392,10 +392,6 @@ def generate(env):
         cppdefines += ['PIPE_SUBSYSTEM_WINDOWS_USER']
     if env['embedded']:
         cppdefines += ['PIPE_SUBSYSTEM_EMBEDDED']
-    if env['texture_float']:
-        print('warning: Floating-point textures enabled.')
-        print('warning: Please consult docs/patents.txt with your lawyer before building Mesa.')
-        cppdefines += ['TEXTURE_FLOAT_ENABLED']
     env.Append(CPPDEFINES = cppdefines)
 
     # C compiler options

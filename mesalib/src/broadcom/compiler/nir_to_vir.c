@@ -969,6 +969,9 @@ emit_frag_end(struct v3d_compile *c)
                 conf |= TLB_SAMPLE_MODE_PER_PIXEL;
                 conf |= (7 - rt) << TLB_RENDER_TARGET_SHIFT;
 
+                if (c->fs_key->swap_color_rb & (1 << rt))
+                        num_components = MAX2(num_components, 3);
+
                 assert(num_components != 0);
                 switch (glsl_get_base_type(var->type)) {
                 case GLSL_TYPE_UINT:
@@ -997,7 +1000,7 @@ emit_frag_end(struct v3d_compile *c)
                         struct qreg b = color[2];
                         struct qreg a = color[3];
 
-                        if (c->fs_key->f32_color_rb) {
+                        if (c->fs_key->f32_color_rb & (1 << rt)) {
                                 conf |= TLB_TYPE_F32_COLOR;
                                 conf |= ((num_components - 1) <<
                                          TLB_VEC_SIZE_MINUS_1_SHIFT);
@@ -1360,7 +1363,7 @@ ntq_setup_outputs(struct v3d_compile *c)
                 assert(array_len == 1);
                 (void)array_len;
 
-                for (int i = 0; i < glsl_get_vector_elements(var->type); i++) {
+                for (int i = 0; i < 4; i++) {
                         add_output(c, loc + var->data.location_frac + i,
                                    var->data.location,
                                    var->data.location_frac + i);
@@ -2003,9 +2006,10 @@ vir_emit_last_thrsw(struct v3d_compile *c)
                 c->last_thrsw->is_last_thrsw = true;
 }
 
-/* There's a flag in the shader for "centroid W used in addition to center W",
- * so we need to walk the program after VIR optimization to see if both are
- * used.
+/* There's a flag in the shader for "center W is needed for reasons other than
+ * non-centroid varyings", so we just walk the program after VIR optimization
+ * to see if it's used.  It should be harmless to set even if we only use
+ * center W for varyings.
  */
 static void
 vir_check_payload_w(struct v3d_compile *c)
@@ -2013,19 +2017,11 @@ vir_check_payload_w(struct v3d_compile *c)
         if (c->s->info.stage != MESA_SHADER_FRAGMENT)
                 return;
 
-        bool any_centroid = false;
-        for (int i = 0; i < ARRAY_SIZE(c->centroid_flags); i++) {
-                if (c->centroid_flags[i])
-                        any_centroid = true;
-        }
-        if (!any_centroid)
-                return;
-
         vir_for_each_inst_inorder(inst, c) {
                 for (int i = 0; i < vir_get_nsrc(inst); i++) {
                         if (inst->src[i].file == QFILE_REG &&
                             inst->src[i].index == 0) {
-                                c->uses_centroid_and_center_w = true;
+                                c->uses_center_w = true;
                                 return;
                         }
                 }
