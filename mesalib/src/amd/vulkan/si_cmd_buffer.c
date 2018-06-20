@@ -37,7 +37,7 @@
 
 static void
 si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
-                                  struct radeon_winsys_cs *cs,
+                                  struct radeon_cmdbuf *cs,
 				  unsigned raster_config,
 				  unsigned raster_config_1)
 {
@@ -81,7 +81,7 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 
 static void
 si_emit_compute(struct radv_physical_device *physical_device,
-                struct radeon_winsys_cs *cs)
+                struct radeon_cmdbuf *cs)
 {
 	radeon_set_sh_reg_seq(cs, R_00B810_COMPUTE_START_X, 3);
 	radeon_emit(cs, 0);
@@ -135,7 +135,7 @@ static unsigned radv_pack_float_12p4(float x)
 
 static void
 si_set_raster_config(struct radv_physical_device *physical_device,
-		     struct radeon_winsys_cs *cs)
+		     struct radeon_cmdbuf *cs)
 {
 	unsigned num_rb = MIN2(physical_device->rad_info.num_render_backends, 16);
 	unsigned rb_mask = physical_device->rad_info.enabled_rb_mask;
@@ -163,7 +163,7 @@ si_set_raster_config(struct radv_physical_device *physical_device,
 
 static void
 si_emit_config(struct radv_physical_device *physical_device,
-	       struct radeon_winsys_cs *cs)
+	       struct radeon_cmdbuf *cs)
 {
 	int i;
 
@@ -399,7 +399,7 @@ void si_init_config(struct radv_cmd_buffer *cmd_buffer)
 void
 cik_create_gfx_config(struct radv_device *device)
 {
-	struct radeon_winsys_cs *cs = device->ws->cs_create(device->ws, RING_GFX);
+	struct radeon_cmdbuf *cs = device->ws->cs_create(device->ws, RING_GFX);
 	if (!cs)
 		return;
 
@@ -456,7 +456,7 @@ get_viewport_xform(const VkViewport *viewport,
 }
 
 void
-si_write_viewport(struct radeon_winsys_cs *cs, int first_vp,
+si_write_viewport(struct radeon_cmdbuf *cs, int first_vp,
                   int count, const VkViewport *viewports)
 {
 	int i;
@@ -515,7 +515,7 @@ static VkRect2D si_intersect_scissor(const VkRect2D *a, const VkRect2D *b) {
 }
 
 void
-si_write_scissors(struct radeon_winsys_cs *cs, int first,
+si_write_scissors(struct radeon_cmdbuf *cs, int first,
                   int count, const VkRect2D *scissors,
                   const VkViewport *viewports, bool can_use_guardband)
 {
@@ -672,7 +672,7 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer,
 
 }
 
-void si_cs_emit_write_event_eop(struct radeon_winsys_cs *cs,
+void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 				bool predicated,
 				enum chip_class chip_class,
 				bool is_mec,
@@ -722,7 +722,7 @@ void si_cs_emit_write_event_eop(struct radeon_winsys_cs *cs,
 }
 
 void
-si_emit_wait_fence(struct radeon_winsys_cs *cs,
+si_emit_wait_fence(struct radeon_cmdbuf *cs,
 		   bool predicated,
 		   uint64_t va, uint32_t ref,
 		   uint32_t mask)
@@ -737,7 +737,7 @@ si_emit_wait_fence(struct radeon_winsys_cs *cs,
 }
 
 static void
-si_emit_acquire_mem(struct radeon_winsys_cs *cs,
+si_emit_acquire_mem(struct radeon_cmdbuf *cs,
                     bool is_mec,
 		    bool predicated,
 		    bool is_gfx9,
@@ -764,7 +764,7 @@ si_emit_acquire_mem(struct radeon_winsys_cs *cs,
 }
 
 void
-si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
+si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
                        enum chip_class chip_class,
 		       uint32_t *flush_cnt,
 		       uint64_t flush_va,
@@ -834,26 +834,9 @@ si_cs_emit_cache_flush(struct radeon_winsys_cs *cs,
 	if (chip_class >= GFX9 && flush_cb_db) {
 		unsigned cb_db_event, tc_flags;
 
-#if 0
-		/* This breaks a bunch of:
-		   dEQP-VK.renderpass.dedicated_allocation.formats.d32_sfloat_s8_uint.input*.
-		   use the big hammer always.
-		*/
 		/* Set the CB/DB flush event. */
-		switch (flush_cb_db) {
-		case RADV_CMD_FLAG_FLUSH_AND_INV_CB:
-			cb_db_event = V_028A90_FLUSH_AND_INV_CB_DATA_TS;
-			break;
-		case RADV_CMD_FLAG_FLUSH_AND_INV_DB:
-			cb_db_event = V_028A90_FLUSH_AND_INV_DB_DATA_TS;
-			break;
-		default:
-			/* both CB & DB */
-			cb_db_event = V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT;
-		}
-#else
 		cb_db_event = V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT;
-#endif
+
 		/* These are the only allowed combinations. If you need to
 		 * do multiple operations at once, do them separately.
 		 * All operations that invalidate L2 also seem to invalidate
@@ -1039,7 +1022,7 @@ static void si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer,
 			   uint64_t dst_va, uint64_t src_va,
 			   unsigned size, unsigned flags)
 {
-	struct radeon_winsys_cs *cs = cmd_buffer->cs;
+	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 	uint32_t header = 0, command = 0;
 
 	assert(size);
@@ -1317,7 +1300,7 @@ unsigned radv_cayman_get_maxdist(int log_samples)
 	return max_dist[log_samples];
 }
 
-void radv_cayman_emit_msaa_sample_locs(struct radeon_winsys_cs *cs, int nr_samples)
+void radv_cayman_emit_msaa_sample_locs(struct radeon_cmdbuf *cs, int nr_samples)
 {
 	switch (nr_samples) {
 	default:

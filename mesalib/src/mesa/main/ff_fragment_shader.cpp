@@ -229,7 +229,11 @@ static GLbitfield filter_fp_input_mask( GLbitfield fp_inputs,
     * since vertex shader state validation comes after fragment state
     * validation (see additional comments in state.c).
     */
-   if (vertexShader)
+   if (ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY] != NULL)
+      vprog = ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY];
+   else if (ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL] != NULL)
+      vprog = ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
+   else if (vertexShader)
       vprog = ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
    else
       vprog = ctx->VertexProgram.Current;

@@ -894,7 +894,7 @@ validate_intrastage_arrays(struct gl_shader_program *prog,
  * Perform validation of global variables used across multiple shaders
  */
 static void
-cross_validate_globals(struct gl_shader_program *prog,
+cross_validate_globals(struct gl_context *ctx, struct gl_shader_program *prog,
                        struct exec_list *ir, glsl_symbol_table *variables,
                        bool uniforms_only)
 {
@@ -1115,7 +1115,8 @@ cross_validate_globals(struct gl_shader_program *prog,
          /* Check the precision qualifier matches for uniform variables on
           * GLSL ES.
           */
-         if (prog->IsES && !var->get_interface_type() &&
+         if (!ctx->Const.AllowGLSLRelaxedES &&
+             prog->IsES && !var->get_interface_type() &&
              existing->data.precision != var->data.precision) {
             if ((existing->data.used && var->data.used) || prog->data->Version >= 300) {
                linker_error(prog, "declarations for %s `%s` have "
@@ -1168,15 +1169,16 @@ cross_validate_globals(struct gl_shader_program *prog,
  * Perform validation of uniforms used across multiple shader stages
  */
 static void
-cross_validate_uniforms(struct gl_shader_program *prog)
+cross_validate_uniforms(struct gl_context *ctx,
+                        struct gl_shader_program *prog)
 {
    glsl_symbol_table variables;
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
          continue;
 
-      cross_validate_globals(prog, prog->_LinkedShaders[i]->ir, &variables,
-                             true);
+      cross_validate_globals(ctx, prog, prog->_LinkedShaders[i]->ir,
+                             &variables, true);
    }
 }
 
@@ -2210,7 +2212,8 @@ link_intrastage_shaders(void *mem_ctx,
    for (unsigned i = 0; i < num_shaders; i++) {
       if (shader_list[i] == NULL)
          continue;
-      cross_validate_globals(prog, shader_list[i]->ir, &variables, false);
+      cross_validate_globals(ctx, prog, shader_list[i]->ir, &variables,
+                             false);
    }
 
    if (!prog->data->LinkStatus)
@@ -4807,7 +4810,8 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       min_version = MIN2(min_version, prog->Shaders[i]->Version);
       max_version = MAX2(max_version, prog->Shaders[i]->Version);
 
-      if (prog->Shaders[i]->IsES != prog->Shaders[0]->IsES) {
+      if (!ctx->Const.AllowGLSLRelaxedES &&
+          prog->Shaders[i]->IsES != prog->Shaders[0]->IsES) {
          linker_error(prog, "all shaders must use same shading "
                       "language version\n");
          goto done;
@@ -4825,7 +4829,8 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    /* In desktop GLSL, different shader versions may be linked together.  In
     * GLSL ES, all shader versions must be the same.
     */
-   if (prog->Shaders[0]->IsES && min_version != max_version) {
+   if (!ctx->Const.AllowGLSLRelaxedES && prog->Shaders[0]->IsES &&
+       min_version != max_version) {
       linker_error(prog, "all shaders must use same shading "
                    "language version\n");
       goto done;
@@ -4951,7 +4956,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
     * performed, then locations are assigned for uniforms, attributes, and
     * varyings.
     */
-   cross_validate_uniforms(prog);
+   cross_validate_uniforms(ctx, prog);
    if (!prog->data->LinkStatus)
       goto done;
 

@@ -298,7 +298,7 @@ process_block_array_leaf(const char *name,
    if (b->is_shader_storage &&
        parcel->buffer_size > ctx->Const.MaxShaderStorageBlockSize) {
       linker_error(prog, "shader storage block `%s' has size %d, "
-                   "which is larger than than the maximum allowed (%d)",
+                   "which is larger than the maximum allowed (%d)",
                    b->type->name,
                    parcel->buffer_size,
                    ctx->Const.MaxShaderStorageBlockSize);

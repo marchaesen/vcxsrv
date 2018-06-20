@@ -41,7 +41,8 @@ radv_init_wsi(struct radv_physical_device *physical_device)
 	return wsi_device_init(&physical_device->wsi_device,
 			       radv_physical_device_to_handle(physical_device),
 			       radv_wsi_proc_addr,
-			       &physical_device->instance->alloc);
+			       &physical_device->instance->alloc,
+			       physical_device->master_fd);
 }
 
 void

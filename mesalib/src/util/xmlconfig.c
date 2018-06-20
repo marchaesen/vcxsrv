@@ -45,7 +45,16 @@
 /* These aren't declared in any libc5 header */
 extern char *program_invocation_name, *program_invocation_short_name;
 #    endif
-#    define GET_PROGRAM_NAME() program_invocation_short_name
+static const char *
+__getProgramName()
+{
+    char * arg = strrchr(program_invocation_name, '/');
+    if (arg)
+        return arg+1;
+    else
+        return program_invocation_name;
+}
+#    define GET_PROGRAM_NAME() __getProgramName()
 #elif defined(__CYGWIN__)
 #    define GET_PROGRAM_NAME() program_invocation_short_name
 #elif defined(__FreeBSD__) && (__FreeBSD__ >= 2)

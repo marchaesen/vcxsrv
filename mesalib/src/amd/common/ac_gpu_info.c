@@ -96,6 +96,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		       struct radeon_info *info,
 		       struct amdgpu_gpu_info *amdinfo)
 {
+	struct drm_amdgpu_info_device device_info = {};
 	struct amdgpu_buffer_size_alignments alignment_info = {};
 	struct drm_amdgpu_info_hw_ip dma = {}, compute = {}, uvd = {};
 	struct drm_amdgpu_info_hw_ip uvd_enc = {}, vce = {}, vcn_dec = {};
@@ -121,6 +122,13 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	r = amdgpu_query_gpu_info(dev, amdinfo);
 	if (r) {
 		fprintf(stderr, "amdgpu: amdgpu_query_gpu_info failed.\n");
+		return false;
+	}
+
+	r = amdgpu_query_info(dev, AMDGPU_INFO_DEV_INFO, sizeof(device_info),
+			      &device_info);
+	if (r) {
+		fprintf(stderr, "amdgpu: amdgpu_query_info(dev_info) failed.\n");
 		return false;
 	}
 
@@ -324,6 +332,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	info->gds_gfx_partition_size = gds.gds_gfx_partition_size;
 	/* convert the shader clock from KHz to MHz */
 	info->max_shader_clock = amdinfo->max_engine_clk / 1000;
+	info->num_tcc_blocks = device_info.num_tcc_blocks;
 	info->max_se = amdinfo->num_shader_engines;
 	info->max_sh_per_se = amdinfo->num_shader_arrays_per_engine;
 	info->has_hw_decode =
@@ -530,6 +539,7 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("Shader core info:\n");
 	printf("    max_shader_clock = %i\n", info->max_shader_clock);
 	printf("    num_good_compute_units = %i\n", info->num_good_compute_units);
+	printf("    num_tcc_blocks = %i\n", info->num_tcc_blocks);
 	printf("    max_se = %i\n", info->max_se);
 	printf("    max_sh_per_se = %i\n", info->max_sh_per_se);
 

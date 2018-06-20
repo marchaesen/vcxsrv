@@ -225,6 +225,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	VkResult result;
 	drmVersionPtr version;
 	int fd;
+	int master_fd = -1;
 
 	fd = open(path, O_RDWR | O_CLOEXEC);
 	if (fd < 0) {
@@ -247,6 +248,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 
 	if (strcmp(version->name, "amdgpu")) {
 		drmFreeVersion(version);
+		if (master_fd != -1)
+			close(master_fd);
 		close(fd);
 
 		if (instance->debug_flags & RADV_DEBUG_STARTUP)
@@ -271,6 +274,24 @@ radv_physical_device_init(struct radv_physical_device *device,
 		goto fail;
 	}
 
+	if (instance->enabled_extensions.KHR_display) {
+		master_fd = open(drm_device->nodes[DRM_NODE_PRIMARY], O_RDWR | O_CLOEXEC);
+		if (master_fd >= 0) {
+			uint32_t accel_working = 0;
+			struct drm_amdgpu_info request = {
+				.return_pointer = (uintptr_t)&accel_working,
+				.return_size = sizeof(accel_working),
+				.query = AMDGPU_INFO_ACCEL_WORKING
+			};
+
+			if (drmCommandWrite(master_fd, DRM_AMDGPU_INFO, &request, sizeof (struct drm_amdgpu_info)) < 0 || !accel_working) {
+				close(master_fd);
+				master_fd = -1;
+			}
+		}
+	}
+
+	device->master_fd = master_fd;
 	device->local_fd = fd;
 	device->ws->query_info(device->ws, &device->rad_info);
 
@@ -349,6 +370,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 
 fail:
 	close(fd);
+	if (master_fd != -1)
+		close(master_fd);
 	return result;
 }
 
@@ -359,6 +382,8 @@ radv_physical_device_finish(struct radv_physical_device *device)
 	device->ws->destroy(device->ws);
 	disk_cache_destroy(device->disk_cache);
 	close(device->local_fd);
+	if (device->master_fd != -1)
+		close(device->master_fd);
 }
 
 static void *
@@ -1892,7 +1917,7 @@ radv_get_hs_offchip_param(struct radv_device *device, uint32_t *max_offchip_buff
 }
 
 static void
-radv_emit_gs_ring_sizes(struct radv_queue *queue, struct radeon_winsys_cs *cs,
+radv_emit_gs_ring_sizes(struct radv_queue *queue, struct radeon_cmdbuf *cs,
 			struct radeon_winsys_bo *esgs_ring_bo,
 			uint32_t esgs_ring_size,
 			struct radeon_winsys_bo *gsvs_ring_bo,
@@ -1919,7 +1944,7 @@ radv_emit_gs_ring_sizes(struct radv_queue *queue, struct radeon_winsys_cs *cs,
 }
 
 static void
-radv_emit_tess_factor_ring(struct radv_queue *queue, struct radeon_winsys_cs *cs,
+radv_emit_tess_factor_ring(struct radv_queue *queue, struct radeon_cmdbuf *cs,
 			   unsigned hs_offchip_param, unsigned tf_ring_size,
 			   struct radeon_winsys_bo *tess_rings_bo)
 {
@@ -1954,7 +1979,7 @@ radv_emit_tess_factor_ring(struct radv_queue *queue, struct radeon_winsys_cs *cs
 }
 
 static void
-radv_emit_compute_scratch(struct radv_queue *queue, struct radeon_winsys_cs *cs,
+radv_emit_compute_scratch(struct radv_queue *queue, struct radeon_cmdbuf *cs,
 			  struct radeon_winsys_bo *compute_scratch_bo)
 {
 	uint64_t scratch_va;
@@ -1974,7 +1999,7 @@ radv_emit_compute_scratch(struct radv_queue *queue, struct radeon_winsys_cs *cs,
 
 static void
 radv_emit_global_shader_pointers(struct radv_queue *queue,
-				 struct radeon_winsys_cs *cs,
+				 struct radeon_cmdbuf *cs,
 				 struct radeon_winsys_bo *descriptor_bo)
 {
 	uint64_t va;
@@ -2019,9 +2044,9 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		     uint32_t gsvs_ring_size,
 		     bool needs_tess_rings,
 		     bool needs_sample_positions,
-		     struct radeon_winsys_cs **initial_full_flush_preamble_cs,
-                     struct radeon_winsys_cs **initial_preamble_cs,
-                     struct radeon_winsys_cs **continue_preamble_cs)
+		     struct radeon_cmdbuf **initial_full_flush_preamble_cs,
+                     struct radeon_cmdbuf **initial_preamble_cs,
+                     struct radeon_cmdbuf **continue_preamble_cs)
 {
 	struct radeon_winsys_bo *scratch_bo = NULL;
 	struct radeon_winsys_bo *descriptor_bo = NULL;
@@ -2029,7 +2054,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 	struct radeon_winsys_bo *esgs_ring_bo = NULL;
 	struct radeon_winsys_bo *gsvs_ring_bo = NULL;
 	struct radeon_winsys_bo *tess_rings_bo = NULL;
-	struct radeon_winsys_cs *dest_cs[3] = {0};
+	struct radeon_cmdbuf *dest_cs[3] = {0};
 	bool add_tess_rings = false, add_sample_positions = false;
 	unsigned tess_factor_ring_size = 0, tess_offchip_ring_size = 0;
 	unsigned max_offchip_buffers;
@@ -2154,7 +2179,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		descriptor_bo = queue->descriptor_bo;
 
 	for(int i = 0; i < 3; ++i) {
-		struct radeon_winsys_cs *cs = NULL;
+		struct radeon_cmdbuf *cs = NULL;
 		cs = queue->device->ws->cs_create(queue->device->ws,
 						  queue->queue_family_index ? RING_COMPUTE : RING_GFX);
 		if (!cs)
@@ -2467,7 +2492,7 @@ VkResult radv_QueueSubmit(
 	uint32_t scratch_size = 0;
 	uint32_t compute_scratch_size = 0;
 	uint32_t esgs_ring_size = 0, gsvs_ring_size = 0;
-	struct radeon_winsys_cs *initial_preamble_cs = NULL, *initial_flush_preamble_cs = NULL, *continue_preamble_cs = NULL;
+	struct radeon_cmdbuf *initial_preamble_cs = NULL, *initial_flush_preamble_cs = NULL, *continue_preamble_cs = NULL;
 	VkResult result;
 	bool fence_emitted = false;
 	bool tess_rings_needed = false;
@@ -2498,7 +2523,7 @@ VkResult radv_QueueSubmit(
 		return result;
 
 	for (uint32_t i = 0; i < submitCount; i++) {
-		struct radeon_winsys_cs **cs_array;
+		struct radeon_cmdbuf **cs_array;
 		bool do_flush = !i || pSubmits[i].pWaitDstStageMask;
 		bool can_patch = true;
 		uint32_t advance;
@@ -2531,7 +2556,7 @@ VkResult radv_QueueSubmit(
 			continue;
 		}
 
-		cs_array = malloc(sizeof(struct radeon_winsys_cs *) *
+		cs_array = malloc(sizeof(struct radeon_cmdbuf *) *
 					        (pSubmits[i].commandBufferCount));
 
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++) {
@@ -2547,7 +2572,7 @@ VkResult radv_QueueSubmit(
 		}
 
 		for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j += advance) {
-			struct radeon_winsys_cs *initial_preamble = (do_flush && !j) ? initial_flush_preamble_cs : initial_preamble_cs;
+			struct radeon_cmdbuf *initial_preamble = (do_flush && !j) ? initial_flush_preamble_cs : initial_preamble_cs;
 			const struct radv_winsys_bo_list *bo_list = NULL;
 
 			advance = MIN2(max_cs_submission,

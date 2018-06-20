@@ -68,7 +68,7 @@ struct wsi_format_modifier_properties_list {
 
 struct wsi_interface;
 
-#define VK_ICD_WSI_PLATFORM_MAX 5
+#define VK_ICD_WSI_PLATFORM_MAX (VK_ICD_WSI_PLATFORM_DISPLAY + 1)
 
 struct wsi_device {
    VkPhysicalDevice pdevice;
@@ -116,7 +116,8 @@ VkResult
 wsi_device_init(struct wsi_device *wsi,
                 VkPhysicalDevice pdevice,
                 WSI_FN_GetPhysicalDeviceProcAddr proc_addr,
-                const VkAllocationCallbacks *alloc);
+                const VkAllocationCallbacks *alloc,
+                int display_fd);
 
 void
 wsi_device_finish(struct wsi_device *wsi,

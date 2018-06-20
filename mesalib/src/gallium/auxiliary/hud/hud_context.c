@@ -1214,6 +1214,8 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
    }
 
    while ((num = parse_string(env, name_a)) != 0) {
+      bool added = true;
+
       env += num;
 
       /* check for explicit location, size and etc. settings */
@@ -1386,6 +1388,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
                                           screen, name)) {
                fprintf(stderr, "gallium_hud: unknown driver query '%s'\n", name);
                fflush(stderr);
+               added = false;
             }
          }
       }
@@ -1428,7 +1431,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
          env += num;
 
          strip_hyphens(s);
-         if (!LIST_IS_EMPTY(&pane->graph_list)) {
+         if (added && !LIST_IS_EMPTY(&pane->graph_list)) {
             struct hud_graph *graph;
             graph = LIST_ENTRY(struct hud_graph, pane->graph_list.prev, head);
             strncpy(graph->name, s, sizeof(graph->name)-1);

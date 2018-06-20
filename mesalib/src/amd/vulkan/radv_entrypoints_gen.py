@@ -449,7 +449,10 @@ def get_entrypoints_defines(doc):
 
     for extension in doc.findall('./extensions/extension[@platform]'):
         platform = extension.attrib['platform']
-        define = 'VK_USE_PLATFORM_' + platform.upper() + '_KHR'
+        ext = '_KHR'
+        if platform.upper() == 'XLIB_XRANDR':
+            ext = '_EXT'
+        define = 'VK_USE_PLATFORM_' + platform.upper() + ext
 
         for entrypoint in extension.findall('./require/command'):
             fullname = entrypoint.attrib['name']

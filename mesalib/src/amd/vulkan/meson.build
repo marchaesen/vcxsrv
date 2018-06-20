@@ -115,6 +115,16 @@ if with_platform_wayland
   libradv_files += files('radv_wsi_wayland.c')
 endif
 
+if with_platform_drm
+  radv_flags += '-DVK_USE_PLATFORM_DISPLAY_KHR'
+  libradv_files += files('radv_wsi_display.c')
+endif
+
+if with_xlib_lease
+  radv_deps += dep_xcb_xrandr
+  radv_flags += '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT'
+endif
+
 libvulkan_radeon = shared_library(
   'vulkan_radeon',
   [libradv_files, radv_entrypoints, radv_extensions_c, vk_format_table_c],
