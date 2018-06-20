@@ -4695,9 +4695,11 @@ sample_locations(struct gl_context *ctx, struct gl_framebuffer *fb,
    if (!fb->SampleLocationTable) {
       size_t size = MAX_SAMPLE_LOCATION_TABLE_SIZE * 2 * sizeof(GLfloat);
       fb->SampleLocationTable = malloc(size);
-      if (!fb->SampleLocationTable)
+      if (!fb->SampleLocationTable) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY,
                      "Cannot allocate sample location table");
+         return;
+      }
       for (i = 0; i < MAX_SAMPLE_LOCATION_TABLE_SIZE * 2; i++)
          fb->SampleLocationTable[i] = 0.5f;
    }

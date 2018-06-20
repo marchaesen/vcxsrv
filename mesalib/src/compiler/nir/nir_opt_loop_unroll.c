@@ -578,6 +578,10 @@ nir_opt_loop_unroll_impl(nir_function_impl *impl,
    return progress;
 }
 
+/**
+ * indirect_mask specifies which type of indirectly accessed variables
+ * should force loop unrolling.
+ */
 bool
 nir_opt_loop_unroll(nir_shader *shader, nir_variable_mode indirect_mask)
 {

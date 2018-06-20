@@ -247,6 +247,13 @@ if _platforms.length() != 0 and _platforms != ['']
   egl_native_platform = _platforms[0]
 endif
 
+_xlib_lease = get_option('xlib-lease')
+if _xlib_lease == 'auto'
+  with_xlib_lease = with_platform_x11 and with_platform_drm
+else
+  with_xlib_lease = _xlib_lease == 'true'
+endif
+
 with_glx = get_option('glx')
 if with_glx == 'auto'
   if with_dri
@@ -1293,6 +1300,7 @@ dep_xcb_present = null_dep
 dep_xcb_sync = null_dep
 dep_xcb_xfixes = null_dep
 dep_xshmfence = null_dep
+dep_xcb_xrandr = null_dep
 if with_platform_x11
   if with_glx == 'xlib' or with_glx == 'gallium-xlib'
     dep_x11 = dependency('x11')
@@ -1338,6 +1346,9 @@ if with_platform_x11
       with_gallium_vdpau or with_gallium_xvmc or with_gallium_xa or
       with_gallium_omx != 'disabled'))
     dep_xcb_xfixes = dependency('xcb-xfixes')
+  endif
+  if with_xlib_lease
+    dep_xcb_xrandr = dependency('xcb-randr', version : '>= 1.12')
   endif
 endif
 

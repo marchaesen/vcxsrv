@@ -86,6 +86,9 @@ EXTENSIONS = [
     Extension('VK_KHR_xcb_surface',                       6, 'VK_USE_PLATFORM_XCB_KHR'),
     Extension('VK_KHR_xlib_surface',                      6, 'VK_USE_PLATFORM_XLIB_KHR'),
     Extension('VK_KHR_multiview',                         1, True),
+    Extension('VK_KHR_display',                          23, 'VK_USE_PLATFORM_DISPLAY_KHR'),
+    Extension('VK_EXT_direct_mode_display',               1, 'VK_USE_PLATFORM_DISPLAY_KHR'),
+    Extension('VK_EXT_acquire_xlib_display',              1, 'VK_USE_PLATFORM_XLIB_XRANDR_EXT'),
     Extension('VK_EXT_debug_report',                      9, True),
     Extension('VK_EXT_depth_range_unrestricted',          1, True),
     Extension('VK_EXT_descriptor_indexing',               2, True),
@@ -214,12 +217,12 @@ _TEMPLATE_C = Template(COPYRIGHT + """
 #include "vk_util.h"
 
 /* Convert the VK_USE_PLATFORM_* defines to booleans */
-%for platform in ['ANDROID', 'WAYLAND', 'XCB', 'XLIB']:
-#ifdef VK_USE_PLATFORM_${platform}_KHR
-#   undef VK_USE_PLATFORM_${platform}_KHR
-#   define VK_USE_PLATFORM_${platform}_KHR true
+%for platform in ['ANDROID_KHR', 'WAYLAND_KHR', 'XCB_KHR', 'XLIB_KHR', 'DISPLAY_KHR', 'XLIB_XRANDR_EXT']:
+#ifdef VK_USE_PLATFORM_${platform}
+#   undef VK_USE_PLATFORM_${platform}
+#   define VK_USE_PLATFORM_${platform} true
 #else
-#   define VK_USE_PLATFORM_${platform}_KHR false
+#   define VK_USE_PLATFORM_${platform} false
 #endif
 %endfor
 
@@ -233,7 +236,9 @@ _TEMPLATE_C = Template(COPYRIGHT + """
 
 #define RADV_HAS_SURFACE (VK_USE_PLATFORM_WAYLAND_KHR || \\
                          VK_USE_PLATFORM_XCB_KHR || \\
-                         VK_USE_PLATFORM_XLIB_KHR)
+                         VK_USE_PLATFORM_XLIB_KHR || \\
+                         VK_USE_PLATFORM_DISPLAY_KHR)
+
 
 const VkExtensionProperties radv_instance_extensions[RADV_INSTANCE_EXTENSION_COUNT] = {
 %for ext in instance_extensions:

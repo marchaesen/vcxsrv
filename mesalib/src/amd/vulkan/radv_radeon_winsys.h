@@ -96,7 +96,7 @@ enum radeon_value_id {
 	RADEON_CURRENT_MCLK,
 };
 
-struct radeon_winsys_cs {
+struct radeon_cmdbuf {
 	unsigned cdw;  /* Number of used dwords. */
 	unsigned max_dw; /* Maximum number of dwords. */
 	uint32_t *buf; /* The base pointer of the chunk. */
@@ -234,36 +234,36 @@ struct radeon_winsys {
 	bool (*ctx_wait_idle)(struct radeon_winsys_ctx *ctx,
 	                      enum ring_type ring_type, int ring_index);
 
-	struct radeon_winsys_cs *(*cs_create)(struct radeon_winsys *ws,
+	struct radeon_cmdbuf *(*cs_create)(struct radeon_winsys *ws,
 					      enum ring_type ring_type);
 
-	void (*cs_destroy)(struct radeon_winsys_cs *cs);
+	void (*cs_destroy)(struct radeon_cmdbuf *cs);
 
-	void (*cs_reset)(struct radeon_winsys_cs *cs);
+	void (*cs_reset)(struct radeon_cmdbuf *cs);
 
-	bool (*cs_finalize)(struct radeon_winsys_cs *cs);
+	bool (*cs_finalize)(struct radeon_cmdbuf *cs);
 
-	void (*cs_grow)(struct radeon_winsys_cs * cs, size_t min_size);
+	void (*cs_grow)(struct radeon_cmdbuf * cs, size_t min_size);
 
 	int (*cs_submit)(struct radeon_winsys_ctx *ctx,
 			 int queue_index,
-			 struct radeon_winsys_cs **cs_array,
+			 struct radeon_cmdbuf **cs_array,
 			 unsigned cs_count,
-			 struct radeon_winsys_cs *initial_preamble_cs,
-			 struct radeon_winsys_cs *continue_preamble_cs,
+			 struct radeon_cmdbuf *initial_preamble_cs,
+			 struct radeon_cmdbuf *continue_preamble_cs,
 			 struct radv_winsys_sem_info *sem_info,
 			 const struct radv_winsys_bo_list *bo_list, /* optional */
 			 bool can_patch,
 			 struct radeon_winsys_fence *fence);
 
-	void (*cs_add_buffer)(struct radeon_winsys_cs *cs,
+	void (*cs_add_buffer)(struct radeon_cmdbuf *cs,
 			      struct radeon_winsys_bo *bo,
 			      uint8_t priority);
 
-	void (*cs_execute_secondary)(struct radeon_winsys_cs *parent,
-				    struct radeon_winsys_cs *child);
+	void (*cs_execute_secondary)(struct radeon_cmdbuf *parent,
+				    struct radeon_cmdbuf *child);
 
-	void (*cs_dump)(struct radeon_winsys_cs *cs, FILE* file, const int *trace_ids, int trace_id_count);
+	void (*cs_dump)(struct radeon_cmdbuf *cs, FILE* file, const int *trace_ids, int trace_id_count);
 
 	int (*surface_init)(struct radeon_winsys *ws,
 			    const struct ac_surf_info *surf_info,
@@ -307,12 +307,12 @@ struct radeon_winsys {
 
 };
 
-static inline void radeon_emit(struct radeon_winsys_cs *cs, uint32_t value)
+static inline void radeon_emit(struct radeon_cmdbuf *cs, uint32_t value)
 {
 	cs->buf[cs->cdw++] = value;
 }
 
-static inline void radeon_emit_array(struct radeon_winsys_cs *cs,
+static inline void radeon_emit_array(struct radeon_cmdbuf *cs,
 				     const uint32_t *values, unsigned count)
 {
 	memcpy(cs->buf + cs->cdw, values, count * 4);
@@ -325,7 +325,7 @@ static inline uint64_t radv_buffer_get_va(struct radeon_winsys_bo *bo)
 }
 
 static inline void radv_cs_add_buffer(struct radeon_winsys *ws,
-				      struct radeon_winsys_cs *cs,
+				      struct radeon_cmdbuf *cs,
 				      struct radeon_winsys_bo *bo,
 				      uint8_t priority)
 {

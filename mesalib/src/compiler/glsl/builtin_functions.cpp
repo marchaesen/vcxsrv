@@ -446,7 +446,8 @@ fs_oes_derivatives(const _mesa_glsl_parse_state *state)
 {
    return state->stage == MESA_SHADER_FRAGMENT &&
           (state->is_version(110, 300) ||
-           state->OES_standard_derivatives_enable);
+           state->OES_standard_derivatives_enable ||
+           state->ctx->Const.AllowGLSLRelaxedES);
 }
 
 static bool

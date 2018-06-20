@@ -272,12 +272,15 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
           uniform->interface_type != NULL)
          continue;
 
-      if (!uniform->data.bindless &&
-          (uniform->type->is_sampler() || uniform->type->is_image())) {
-         if (uniform->type->is_sampler())
-            loc = shaderidx++;
-         else
-            loc = imageidx++;
+      const struct glsl_type *type = glsl_without_array(uniform->type);
+      if (!uniform->data.bindless && (type->is_sampler() || type->is_image())) {
+         if (type->is_sampler()) {
+            loc = shaderidx;
+            shaderidx += type_size(uniform->type);
+         } else {
+            loc = imageidx;
+            imageidx += type_size(uniform->type);
+         }
       } else if (strncmp(uniform->name, "gl_", 3) == 0) {
          const gl_state_index16 *const stateTokens = uniform->state_slots[0].tokens;
          /* This state reference has already been setup by ir_to_mesa, but we'll
@@ -285,7 +288,6 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
           */
 
          unsigned comps;
-         const struct glsl_type *type = glsl_without_array(uniform->type);
          if (glsl_type_is_struct(type)) {
             comps = 4;
          } else {

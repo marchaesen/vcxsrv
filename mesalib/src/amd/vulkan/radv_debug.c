@@ -80,7 +80,7 @@ radv_init_trace(struct radv_device *device)
 }
 
 static void
-radv_dump_trace(struct radv_device *device, struct radeon_winsys_cs *cs)
+radv_dump_trace(struct radv_device *device, struct radeon_cmdbuf *cs)
 {
 	const char *filename = getenv("RADV_TRACE_FILE");
 	FILE *f = fopen(filename, "w");
@@ -660,7 +660,7 @@ radv_gpu_hang_occured(struct radv_queue *queue, enum ring_type ring)
 }
 
 void
-radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_winsys_cs *cs)
+radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 {
 	struct radv_pipeline *graphics_pipeline, *compute_pipeline;
 	struct radv_device *device = queue->device;

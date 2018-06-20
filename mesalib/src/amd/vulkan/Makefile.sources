@@ -80,6 +80,9 @@ VULKAN_WSI_WAYLAND_FILES := \
 VULKAN_WSI_X11_FILES := \
 	radv_wsi_x11.c
 
+VULKAN_WSI_DISPLAY_FILES := \
+	radv_wsi_display.c
+
 VULKAN_GENERATED_FILES := \
 	radv_entrypoints.c \
 	radv_entrypoints.h \

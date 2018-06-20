@@ -1564,6 +1564,7 @@ AM_CONDITIONAL(HAVE_APPLEDRI, test "x$enable_dri" = xyes -a "x$dri_platform" = x
 AM_CONDITIONAL(HAVE_LMSENSORS, test "x$enable_lmsensors" = xyes )
 AM_CONDITIONAL(HAVE_GALLIUM_EXTRA_HUD, test "x$enable_gallium_extra_hud" = xyes )
 AM_CONDITIONAL(HAVE_WINDOWSDRI, test "x$enable_dri" = xyes -a "x$dri_platform" = xwindows )
+AM_CONDITIONAL(HAVE_XLEASE, test "x$have_xlease" = xyes )
 
 AC_ARG_ENABLE([shared-glapi],
     [AS_HELP_STRING([--enable-shared-glapi],
@@ -1866,11 +1867,42 @@ if test x"$enable_dri3" = xyes; then
     fi
 fi
 
+
+if echo "$platforms" | grep -q 'x11' && echo "$platforms" | grep -q 'drm'; then
+    have_xlease=yes
+else
+    have_xlease=no
+fi
+
+if test x"$have_xlease" = xyes; then
+    randr_modules="x11-xcb xcb-randr"
+    PKG_CHECK_MODULES([XCB_RANDR], [$randr_modules])
+fi
+
 AM_CONDITIONAL(HAVE_PLATFORM_X11, echo "$platforms" | grep -q 'x11')
 AM_CONDITIONAL(HAVE_PLATFORM_WAYLAND, echo "$platforms" | grep -q 'wayland')
 AM_CONDITIONAL(HAVE_PLATFORM_DRM, echo "$platforms" | grep -q 'drm')
 AM_CONDITIONAL(HAVE_PLATFORM_SURFACELESS, echo "$platforms" | grep -q 'surfaceless')
 AM_CONDITIONAL(HAVE_PLATFORM_ANDROID, echo "$platforms" | grep -q 'android')
+
+AC_ARG_ENABLE(xlib-lease,
+    [AS_HELP_STRING([--enable-xlib-lease]
+                    [enable VK_acquire_xlib_display using X leases])],
+    [enable_xlib_lease=$enableval], [enable_xlib_lease=auto])
+case "x$enable_xlib_lease" in
+xyes)
+    ;;
+xno)
+    ;;
+*)
+    if echo "$platforms" | grep -q 'x11' && echo "$platforms" | grep -q 'drm'; then
+        enable_xlib_lease=yes
+    else
+        enable_xlib_lease=no
+    fi
+esac
+
+AM_CONDITIONAL(HAVE_XLIB_LEASE, test "x$enable_xlib_lease" = xyes)
 
 dnl
 dnl More DRI setup

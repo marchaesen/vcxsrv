@@ -809,7 +809,7 @@ radv_GetShaderInfoAMD(VkDevice _device,
 				unsigned workgroup_size = local_size[0] * local_size[1] * local_size[2];
 
 				statistics.numAvailableVgprs = statistics.numPhysicalVgprs /
-							       ceil(workgroup_size / statistics.numPhysicalVgprs);
+							       ceil((double)workgroup_size / statistics.numPhysicalVgprs);
 
 				statistics.computeWorkGroupSize[0] = local_size[0];
 				statistics.computeWorkGroupSize[1] = local_size[1];

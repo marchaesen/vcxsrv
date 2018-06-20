@@ -19,6 +19,10 @@ VULKAN_WSI_X11_FILES := \
 	wsi/wsi_common_x11.c \
 	wsi/wsi_common_x11.h
 
+VULKAN_WSI_DISPLAY_FILES := \
+	wsi/wsi_common_display.c \
+	wsi/wsi_common_display.h
+
 VULKAN_UTIL_FILES := \
 	util/vk_alloc.h \
 	util/vk_debug_report.c \

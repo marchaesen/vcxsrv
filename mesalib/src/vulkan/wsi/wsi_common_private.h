@@ -141,6 +141,15 @@ void wsi_wl_finish_wsi(struct wsi_device *wsi_device,
                        const VkAllocationCallbacks *alloc);
 
 
+VkResult
+wsi_display_init_wsi(struct wsi_device *wsi_device,
+                     const VkAllocationCallbacks *alloc,
+                     int display_fd);
+
+void
+wsi_display_finish_wsi(struct wsi_device *wsi_device,
+                       const VkAllocationCallbacks *alloc);
+
 #define WSI_DEFINE_NONDISP_HANDLE_CASTS(__wsi_type, __VkType)              \
                                                                            \
    static inline struct __wsi_type *                                       \

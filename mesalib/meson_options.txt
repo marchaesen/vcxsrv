@@ -305,3 +305,10 @@ option(
   choices : ['auto', 'true', 'false'],
   description : 'Enable power8 optimizations.',
 )
+option(
+  'xlib-lease',
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'Enable VK_EXT_acquire_xlib_display.'
+)

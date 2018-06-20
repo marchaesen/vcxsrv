@@ -32,7 +32,8 @@ VkResult
 wsi_device_init(struct wsi_device *wsi,
                 VkPhysicalDevice pdevice,
                 WSI_FN_GetPhysicalDeviceProcAddr proc_addr,
-                const VkAllocationCallbacks *alloc)
+                const VkAllocationCallbacks *alloc,
+                int display_fd)
 {
    VkResult result;
 
@@ -91,6 +92,12 @@ wsi_device_init(struct wsi_device *wsi,
       goto fail;
 #endif
 
+#ifdef VK_USE_PLATFORM_DISPLAY_KHR
+   result = wsi_display_init_wsi(wsi, alloc, display_fd);
+   if (result != VK_SUCCESS)
+      goto fail;
+#endif
+
    return VK_SUCCESS;
 
 fail:
@@ -102,6 +109,9 @@ void
 wsi_device_finish(struct wsi_device *wsi,
                   const VkAllocationCallbacks *alloc)
 {
+#ifdef VK_USE_PLATFORM_DISPLAY_KHR
+   wsi_display_finish_wsi(wsi, alloc);
+#endif
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
    wsi_wl_finish_wsi(wsi, alloc);
 #endif

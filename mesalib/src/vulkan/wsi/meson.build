@@ -59,6 +59,19 @@ if with_platform_wayland
   ]
 endif
 
+if with_platform_drm
+  vulkan_wsi_args += '-DVK_USE_PLATFORM_DISPLAY_KHR'
+  files_vulkan_wsi += files(
+    'wsi_common_display.c',
+    'wsi_common_display.h',
+  )
+endif
+
+if with_xlib_lease
+  vulkan_wsi_deps += dep_xcb_xrandr
+  vulkan_wsi_args += '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT'
+endif
+
 libvulkan_wsi = static_library(
   'vulkan_wsi',
   files_vulkan_wsi,
