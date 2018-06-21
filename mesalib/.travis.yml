@@ -18,6 +18,8 @@ env:
     - LIBPCIACCESS_VERSION=libpciaccess-0.13.4
     - LIBDRM_VERSION=libdrm-2.4.74
     - XCBPROTO_VERSION=xcb-proto-1.13
+    - RANDRPROTO_VERSION=randrproto-1.3.0
+    - LIBXRANDR_VERSION=libXrandr-1.3.0
     - LIBXCB_VERSION=libxcb-1.13
     - LIBXSHMFENCE_VERSION=libxshmfence-1.2
     - LIBVDPAU_VERSION=libvdpau-1.1
@@ -92,7 +94,7 @@ matrix:
         - BUILD=make
         - MAKEFLAGS="-j4"
         - MAKE_CHECK_COMMAND="true"
-        - LLVM_VERSION=4.0
+        - LLVM_VERSION=5.0
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
         - OVERRIDE_CC="gcc-4.8"
         - OVERRIDE_CXX="g++-4.8"
@@ -105,12 +107,12 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-4.0
+            - llvm-toolchain-trusty-5.0
           packages:
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
             # From sources above
-            - llvm-4.0-dev
+            - llvm-5.0-dev
             # Common
             - xz-utils
             - x11proto-xf86vidmode-dev
@@ -432,7 +434,7 @@ matrix:
         - BUILD=scons
         - SCONSFLAGS="-j4"
         - SCONS_TARGET="swr=1"
-        - LLVM_VERSION=4.0
+        - LLVM_VERSION=5.0
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
         # Keep it symmetrical to the make build. There's no actual SWR, yet.
         - SCONS_CHECK_COMMAND="true"
@@ -441,13 +443,13 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-4.0
+            - llvm-toolchain-trusty-5.0
           packages:
             - scons
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
             # From sources above
-            - llvm-4.0-dev
+            - llvm-5.0-dev
             # Common
             - xz-utils
             - x11proto-xf86vidmode-dev
@@ -542,6 +544,14 @@ install:
       wget http://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
       tar -jxvf $LIBDRM_VERSION.tar.bz2
       (cd $LIBDRM_VERSION && ./configure --prefix=$HOME/prefix --enable-vc4 --enable-freedreno --enable-etnaviv-experimental-api && make install)
+
+      wget $XORG_RELEASES/proto/$RANDRPROTO_VERSION.tar.bz2
+      tar -jxvf $RANDRPROTO_VERSION.tar.bz2
+      (cd $RANDRPROTO_VERSION && ./configure --prefix=$HOME/prefix && make install)
+
+      wget $XORG_RELEASES/lib/$LIBXRANDR_VERSION.tar.bz2
+      tar -jxvf $LIBXRANDR_VERSION.tar.bz2
+      (cd $LIBXRANDR_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
       wget $XORG_RELEASES/lib/$LIBXSHMFENCE_VERSION.tar.bz2
       tar -jxvf $LIBXSHMFENCE_VERSION.tar.bz2

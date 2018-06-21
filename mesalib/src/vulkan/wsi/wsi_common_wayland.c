@@ -1010,7 +1010,6 @@ wsi_wl_init_wsi(struct wsi_device *wsi_device,
    wsi->wsi = wsi_device;
 
    wsi->base.get_support = wsi_wl_surface_get_support;
-   wsi->base.get_capabilities = wsi_wl_surface_get_capabilities;
    wsi->base.get_capabilities2 = wsi_wl_surface_get_capabilities2;
    wsi->base.get_formats = wsi_wl_surface_get_formats;
    wsi->base.get_formats2 = wsi_wl_surface_get_formats2;

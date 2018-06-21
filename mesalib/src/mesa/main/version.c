@@ -263,15 +263,7 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->ARB_fragment_shader &&
                          extensions->ARB_texture_non_power_of_two &&
                          extensions->EXT_blend_equation_separate &&
-
-                         /* Technically, 2.0 requires the functionality of the
-                          * EXT version.  Enable 2.0 if either extension is
-                          * available, and assume that a driver that only
-                          * exposes the ATI extension will fallback to
-                          * software when necessary.
-                          */
-                         (extensions->EXT_stencil_two_side
-                          || extensions->ATI_separate_stencil));
+                         extensions->EXT_stencil_two_side);
    const bool ver_2_1 = (ver_2_0 &&
                          extensions->EXT_pixel_buffer_object &&
                          extensions->EXT_texture_sRGB);
@@ -549,7 +541,8 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->ARB_shading_language_packing &&
                          extensions->ARB_stencil_texturing &&
                          extensions->ARB_texture_multisample &&
-                         extensions->ARB_gpu_shader5 &&
+                         extensions->ARB_texture_gather &&
+                         extensions->MESA_shader_integer_functions &&
                          extensions->EXT_shader_integer_mix);
    const bool ver_3_2 = (ver_3_1 &&
                          extensions->EXT_draw_buffers2 &&

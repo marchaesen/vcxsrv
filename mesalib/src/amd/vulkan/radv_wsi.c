@@ -103,6 +103,18 @@ VkResult radv_GetPhysicalDeviceSurfaceCapabilities2KHR(
 						    pSurfaceCapabilities);
 }
 
+VkResult radv_GetPhysicalDeviceSurfaceCapabilities2EXT(
+ 	VkPhysicalDevice                            physicalDevice,
+	VkSurfaceKHR                                surface,
+	VkSurfaceCapabilities2EXT*                  pSurfaceCapabilities)
+{
+	RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
+
+	return wsi_common_get_surface_capabilities2ext(&device->wsi_device,
+						       surface,
+						       pSurfaceCapabilities);
+}
+
 VkResult radv_GetPhysicalDeviceSurfaceFormatsKHR(
 	VkPhysicalDevice                            physicalDevice,
 	VkSurfaceKHR                                surface,

@@ -124,6 +124,12 @@ glsl_count_attribute_slots(const struct glsl_type *type,
    return type->count_attribute_slots(is_vertex_input);
 }
 
+unsigned
+glsl_get_component_slots(const struct glsl_type *type)
+{
+   return type->component_slots();
+}
+
 const char *
 glsl_get_struct_elem_name(const struct glsl_type *type, unsigned index)
 {
@@ -142,6 +148,13 @@ glsl_get_sampler_result_type(const struct glsl_type *type)
 {
    assert(glsl_type_is_sampler(type) || glsl_type_is_image(type));
    return (glsl_base_type)type->sampled_type;
+}
+
+unsigned
+glsl_get_sampler_target(const struct glsl_type *type)
+{
+   assert(glsl_type_is_sampler(type));
+   return type->sampler_index();
 }
 
 unsigned

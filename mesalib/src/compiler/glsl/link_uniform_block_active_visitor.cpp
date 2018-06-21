@@ -23,6 +23,7 @@
 
 #include "link_uniform_block_active_visitor.h"
 #include "program.h"
+#include "linker_util.h"
 
 static link_uniform_block_active *
 process_block(void *mem_ctx, struct hash_table *ht, ir_variable *var)

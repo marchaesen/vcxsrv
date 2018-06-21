@@ -48,14 +48,6 @@ extern void
 build_program_resource_list(struct gl_context *ctx,
                             struct gl_shader_program *shProg);
 
-extern void
-linker_error(struct gl_shader_program *prog, const char *fmt, ...)
-   PRINTFLIKE(2, 3);
-
-extern void
-linker_warning(struct gl_shader_program *prog, const char *fmt, ...)
-   PRINTFLIKE(2, 3);
-
 extern long
 parse_program_resource_name(const GLchar *name,
                             const GLchar **out_base_name_end);

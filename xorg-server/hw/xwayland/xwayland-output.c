@@ -38,6 +38,8 @@
                        RR_Reflect_X  | \
                        RR_Reflect_Y)
 
+static void xwl_output_get_xdg_output(struct xwl_output *xwl_output);
+
 static Rotation
 wl_transform_to_xrandr(enum wl_output_transform transform)
 {
@@ -435,7 +437,7 @@ xwl_screen_init_output(struct xwl_screen *xwl_screen)
     return TRUE;
 }
 
-void
+static void
 xwl_output_get_xdg_output(struct xwl_output *xwl_output)
 {
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;

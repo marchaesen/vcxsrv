@@ -25,6 +25,8 @@
 #ifndef GLSL_LINKER_H
 #define GLSL_LINKER_H
 
+#include "linker_util.h"
+
 struct gl_shader_program;
 struct gl_shader;
 struct gl_linked_shader;
@@ -191,12 +193,6 @@ private:
                   bool last_field, unsigned record_array_count,
                   const glsl_struct_field *named_ifc_member);
 };
-
-void
-linker_error(gl_shader_program *prog, const char *fmt, ...);
-
-void
-linker_warning(gl_shader_program *prog, const char *fmt, ...);
 
 /**
  * Sometimes there are empty slots left over in UniformRemapTable after we

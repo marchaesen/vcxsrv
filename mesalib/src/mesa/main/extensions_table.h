@@ -189,7 +189,7 @@ EXT(ATI_blend_equation_separate             , EXT_blend_equation_separate       
 EXT(ATI_draw_buffers                        , dummy_true                             , GLL,  x ,  x ,  x , 2002)
 EXT(ATI_fragment_shader                     , ATI_fragment_shader                    , GLL,  x ,  x ,  x , 2001)
 EXT(ATI_meminfo                             , ATI_meminfo                            , GLL, GLC,  x ,  x , 2009)
-EXT(ATI_separate_stencil                    , ATI_separate_stencil                   , GLL,  x ,  x ,  x , 2006)
+EXT(ATI_separate_stencil                    , EXT_stencil_two_side                   , GLL,  x ,  x ,  x , 2006)
 EXT(ATI_texture_compression_3dc             , ATI_texture_compression_3dc            , GLL,  x ,  x ,  x , 2004)
 EXT(ATI_texture_env_combine3                , ATI_texture_env_combine3               , GLL,  x ,  x ,  x , 2002)
 EXT(ATI_texture_float                       , ARB_texture_float                      , GLL, GLC,  x ,  x , 2002)

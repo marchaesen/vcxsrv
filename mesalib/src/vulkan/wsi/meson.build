@@ -68,7 +68,7 @@ if with_platform_drm
 endif
 
 if with_xlib_lease
-  vulkan_wsi_deps += dep_xcb_xrandr
+  vulkan_wsi_deps += [dep_xcb_xrandr, dep_xlib_xrandr]
   vulkan_wsi_args += '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT'
 endif
 

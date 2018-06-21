@@ -50,7 +50,7 @@ typedef struct GlxVendorPrivDispatchRec {
 static GlxServerDispatchProc dispatchFuncs[OPCODE_ARRAY_LEN] = {};
 static HashTable vendorPrivHash = NULL;
 static HtGenericHashSetupRec vendorPrivSetup = {
-    .keySize = sizeof(void*)
+    .keySize = sizeof(CARD32)
 };
 
 static int DispatchBadRequest(ClientPtr client)

@@ -686,11 +686,17 @@ void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 		EVENT_INDEX(5) |
 		event_flags;
 	unsigned is_gfx8_mec = is_mec && chip_class < GFX9;
+	unsigned sel = EOP_DATA_SEL(data_sel);
+
+	/* Wait for write confirmation before writing data, but don't send
+	 * an interrupt. */
+	if (data_sel != EOP_DATA_SEL_DISCARD)
+		sel |= EOP_INT_SEL(EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM);
 
 	if (chip_class >= GFX9 || is_gfx8_mec) {
 		radeon_emit(cs, PKT3(PKT3_RELEASE_MEM, is_gfx8_mec ? 5 : 6, predicated));
 		radeon_emit(cs, op);
-		radeon_emit(cs, EOP_DATA_SEL(data_sel));
+		radeon_emit(cs, sel);
 		radeon_emit(cs, va);            /* address lo */
 		radeon_emit(cs, va >> 32);      /* address hi */
 		radeon_emit(cs, new_fence);     /* immediate data lo */
@@ -707,7 +713,7 @@ void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE_EOP, 4, predicated));
 			radeon_emit(cs, op);
 			radeon_emit(cs, va);
-			radeon_emit(cs, ((va >> 32) & 0xffff) | EOP_DATA_SEL(data_sel));
+			radeon_emit(cs, ((va >> 32) & 0xffff) | sel);
 			radeon_emit(cs, old_fence); /* immediate data */
 			radeon_emit(cs, 0); /* unused */
 		}
@@ -715,7 +721,7 @@ void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE_EOP, 4, predicated));
 		radeon_emit(cs, op);
 		radeon_emit(cs, va);
-		radeon_emit(cs, ((va >> 32) & 0xffff) | EOP_DATA_SEL(data_sel));
+		radeon_emit(cs, ((va >> 32) & 0xffff) | sel);
 		radeon_emit(cs, new_fence); /* immediate data */
 		radeon_emit(cs, 0); /* unused */
 	}
@@ -799,7 +805,9 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 							   chip_class,
 							   is_mec,
 							   V_028A90_FLUSH_AND_INV_CB_DATA_TS,
-							   0, 0, 0, 0, 0);
+							   0,
+							   EOP_DATA_SEL_DISCARD,
+							   0, 0, 0);
 			}
 		}
 		if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_DB) {
@@ -867,7 +875,8 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 		assert(flush_cnt);
 		uint32_t old_fence = (*flush_cnt)++;
 
-		si_cs_emit_write_event_eop(cs, false, chip_class, false, cb_db_event, tc_flags, 1,
+		si_cs_emit_write_event_eop(cs, false, chip_class, false, cb_db_event, tc_flags,
+					   EOP_DATA_SEL_VALUE_32BIT,
 					   flush_va, old_fence, *flush_cnt);
 		si_emit_wait_fence(cs, false, flush_va, *flush_cnt, 0xffffffff);
 	}

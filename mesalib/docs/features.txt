@@ -63,9 +63,9 @@ GL 3.0, GLSL 1.30 --- all DONE: freedreno, i965, nv50, nvc0, r600, radeonsi, llv
   glVertexAttribI commands                              DONE
   Depth format cube textures                            DONE ()
   GLX_ARB_create_context (GLX 1.4 is required)          DONE
-  Multisample anti-aliasing                             DONE (freedreno (*), llvmpipe (*), softpipe (*), swr (*))
+  Multisample anti-aliasing                             DONE (freedreno/a5xx, freedreno (*), llvmpipe (*), softpipe (*), swr (*))
 
-(*) freedreno, llvmpipe, softpipe, and swr have fake Multisample anti-aliasing support
+(*) freedreno (a2xx-a4xx), llvmpipe, softpipe, and swr have fake Multisample anti-aliasing support
 
 
 GL 3.1, GLSL 1.40 --- all DONE: freedreno, i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe, swr, virgl
@@ -90,7 +90,7 @@ GL 3.2, GLSL 1.50 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, soft
   GL_ARB_fragment_coord_conventions (Frag shader coord) DONE (freedreno)
   GL_ARB_provoking_vertex (Provoking vertex)            DONE (freedreno)
   GL_ARB_seamless_cube_map (Seamless cubemaps)          DONE (freedreno)
-  GL_ARB_texture_multisample (Multisample textures)     DONE ()
+  GL_ARB_texture_multisample (Multisample textures)     DONE (freedreno/a5xx)
   GL_ARB_depth_clamp (Frag depth clamp)                 DONE (freedreno)
   GL_ARB_sync (Fence objects)                           DONE (freedreno)
   GLX_ARB_create_context_profile                        DONE
@@ -117,11 +117,11 @@ GL 4.0, GLSL 4.00 --- all DONE: i965/gen7+, nvc0, r600, radeonsi, virgl
   GL_ARB_gpu_shader5                                    DONE (i965/gen7+)
   - 'precise' qualifier                                 DONE
   - Dynamically uniform sampler array indices           DONE (softpipe)
-  - Dynamically uniform UBO array indices               DONE ()
+  - Dynamically uniform UBO array indices               DONE (freedreno)
   - Implicit signed -> unsigned conversions             DONE
   - Fused multiply-add                                  DONE ()
-  - Packing/bitfield/conversion functions               DONE (softpipe)
-  - Enhanced textureGather                              DONE (softpipe)
+  - Packing/bitfield/conversion functions               DONE (freedreno, softpipe)
+  - Enhanced textureGather                              DONE (freedreno, softpipe)
   - Geometry shader instancing                          DONE (llvmpipe, softpipe)
   - Geometry shader multiple streams                    DONE ()
   - Enhanced per-sample shading                         DONE ()
@@ -256,11 +256,11 @@ GLES3.1, GLSL ES 3.1 -- all DONE: i965/hsw+, nvc0, r600, radeonsi
   GL_ARB_shading_language_packing                       DONE (all drivers)
   GL_ARB_separate_shader_objects                        DONE (all drivers)
   GL_ARB_stencil_texturing                              DONE (freedreno, nv50, llvmpipe, softpipe, swr, virgl)
-  GL_ARB_texture_multisample (Multisample textures)     DONE (i965/gen7+, nv50, llvmpipe, softpipe, virgl)
+  GL_ARB_texture_multisample (Multisample textures)     DONE (freedreno/a5xx, i965/gen7+, nv50, llvmpipe, softpipe, virgl)
   GL_ARB_texture_storage_multisample                    DONE (all drivers that support GL_ARB_texture_multisample)
   GL_ARB_vertex_attrib_binding                          DONE (all drivers)
   GS5 Enhanced textureGather                            DONE (freedreno, i965/gen7+,virgl)
-  GS5 Packing/bitfield/conversion functions             DONE (i965/gen6+,virgl)
+  GS5 Packing/bitfield/conversion functions             DONE (freedreno/a5xx, i965/gen6+,virgl)
   GL_EXT_shader_integer_mix                             DONE (all drivers that support GLSL)
 
   Additional functionality not covered above:
@@ -289,7 +289,7 @@ GLES3.2, GLSL ES 3.2 -- all DONE: i965/gen9+
   GL_OES_shader_multisample_interpolation               DONE (i965, nvc0, r600, radeonsi)
   GL_OES_tessellation_shader                            DONE (all drivers that support GL_ARB_tessellation_shader)
   GL_OES_texture_border_clamp                           DONE (all drivers)
-  GL_OES_texture_buffer                                 DONE (i965, nvc0, radeonsi)
+  GL_OES_texture_buffer                                 DONE (freedreno, i965, nvc0, radeonsi)
   GL_OES_texture_cube_map_array                         DONE (i965/hsw+, nvc0, radeonsi)
   GL_OES_texture_stencil8                               DONE (all drivers that support GL_ARB_texture_stencil8)
   GL_OES_texture_storage_multisample_2d_array           DONE (all drivers that support GL_ARB_texture_multisample)
@@ -306,7 +306,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_ARB_post_depth_coverage                            DONE (i965, nvc0)
   GL_ARB_robustness_isolation                           not started
   GL_ARB_sample_locations                               DONE (nvc0)
-  GL_ARB_seamless_cubemap_per_texture                   DONE (i965, nvc0, radeonsi, r600, softpipe, swr, virgl)
+  GL_ARB_seamless_cubemap_per_texture                   DONE (freedreno, i965, nvc0, radeonsi, r600, softpipe, swr, virgl)
   GL_ARB_shader_ballot                                  DONE (i965/gen8+, nvc0, radeonsi)
   GL_ARB_shader_clock                                   DONE (i965/gen7+, nv50, nvc0, r600, radeonsi)
   GL_ARB_shader_stencil_export                          DONE (i965/gen9+, r600, radeonsi, softpipe, llvmpipe, swr, virgl)

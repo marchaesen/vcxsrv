@@ -271,7 +271,7 @@ util_hash_table_foreach(struct util_hash_table *ht,
 
 
 static enum pipe_error
-util_hash_inc(void *k, void *v, void *d)
+util_hash_inc(UNUSED void *k, UNUSED void *v, void *d)
 {
    ++*(size_t *)d;
    return PIPE_OK;

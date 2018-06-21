@@ -920,6 +920,16 @@ emit_frag_end(struct v3d_compile *c)
                         has_any_tlb_color_write = true;
         }
 
+        if (c->fs_key->sample_alpha_to_coverage && c->output_color_var[0]) {
+                struct nir_variable *var = c->output_color_var[0];
+                struct qreg *color = &c->outputs[var->data.driver_location * 4];
+
+                vir_SETMSF_dest(c, vir_reg(QFILE_NULL, 0),
+                                vir_AND(c,
+                                        vir_MSF(c),
+                                        vir_FTOC(c, color[3])));
+        }
+
         if (c->output_position_index != -1) {
                 struct qinst *inst = vir_MOV_dest(c,
                                                   vir_reg(QFILE_TLBU, 0),
@@ -930,7 +940,9 @@ emit_frag_end(struct v3d_compile *c)
                                        TLB_TYPE_DEPTH |
                                        TLB_DEPTH_TYPE_PER_PIXEL |
                                        0xffffff00);
-        } else if (c->s->info.fs.uses_discard || !has_any_tlb_color_write) {
+        } else if (c->s->info.fs.uses_discard ||
+                   c->fs_key->sample_alpha_to_coverage ||
+                   !has_any_tlb_color_write) {
                 /* Emit passthrough Z if it needed to be delayed until shader
                  * end due to potential discards.
                  *

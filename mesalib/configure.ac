@@ -110,7 +110,7 @@ LLVM_REQUIRED_OPENCL=3.9.0
 LLVM_REQUIRED_R600=3.9.0
 LLVM_REQUIRED_RADEONSI=5.0.0
 LLVM_REQUIRED_RADV=5.0.0
-LLVM_REQUIRED_SWR=4.0.0
+LLVM_REQUIRED_SWR=5.0.0
 
 dnl Check for progs
 AC_PROG_CPP
@@ -302,7 +302,10 @@ AX_CHECK_COMPILE_FLAG([-Wall],                                 [CFLAGS="$CFLAGS 
 AX_CHECK_COMPILE_FLAG([-Werror=implicit-function-declaration], [CFLAGS="$CFLAGS -Werror=implicit-function-declaration"])
 AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes],            [CFLAGS="$CFLAGS -Werror=missing-prototypes"])
 AX_CHECK_COMPILE_FLAG([-Wmissing-prototypes],                  [CFLAGS="$CFLAGS -Wmissing-prototypes"])
+dnl Dylan Baker: gcc and clang always accepr -Wno-*, hence check for the original warning, then set the no-* flag
+AX_CHECK_COMPILE_FLAG([-Wmissing-field-initializers],          [CFLAGS="$CFLAGS -Wno-missing-field-initializers"])
 AX_CHECK_COMPILE_FLAG([-fno-math-errno],                       [CFLAGS="$CFLAGS -fno-math-errno"])
+
 AX_CHECK_COMPILE_FLAG([-fno-trapping-math],                    [CFLAGS="$CFLAGS -fno-trapping-math"])
 AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],                   [VISIBILITY_CFLAGS="-fvisibility=hidden"])
 
@@ -314,6 +317,7 @@ AX_CHECK_COMPILE_FLAG([-Wall],                                 [CXXFLAGS="$CXXFL
 AX_CHECK_COMPILE_FLAG([-fno-math-errno],                       [CXXFLAGS="$CXXFLAGS -fno-math-errno"])
 AX_CHECK_COMPILE_FLAG([-fno-trapping-math],                    [CXXFLAGS="$CXXFLAGS -fno-trapping-math"])
 AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],                   [VISIBILITY_CXXFLAGS="-fvisibility=hidden"])
+AX_CHECK_COMPILE_FLAG([-Wmissing-field-initializers],          [CXXFLAGS="$CXXFLAGS -Wno-missing-field-initializers"])
 AC_LANG_POP([C++])
 
 # Flags to help ensure that certain portions of the code -- and only those
@@ -1877,6 +1881,8 @@ fi
 if test x"$have_xlease" = xyes; then
     randr_modules="x11-xcb xcb-randr"
     PKG_CHECK_MODULES([XCB_RANDR], [$randr_modules])
+    xlib_randr_modules="xrandr"
+    PKG_CHECK_MODULES([XLIB_RANDR], [$xlib_randr_modules])
 fi
 
 AM_CONDITIONAL(HAVE_PLATFORM_X11, echo "$platforms" | grep -q 'x11')
@@ -2242,13 +2248,13 @@ else
     have_vdpau_platform=no
 fi
 
-if echo $platforms | grep -q "x11\|drm"; then
+if echo $platforms | egrep -q "x11|drm"; then
     have_omx_platform=yes
 else
     have_omx_platform=no
 fi
 
-if echo $platforms | grep -q "x11\|drm\|wayland"; then
+if echo $platforms | egrep -q "x11|drm|wayland"; then
     have_va_platform=yes
 else
     have_va_platform=no
@@ -2787,8 +2793,9 @@ if test -n "$with_gallium_drivers"; then
 fi
 
 # XXX: Keep in sync with LLVM_REQUIRED_SWR
-AM_CONDITIONAL(SWR_INVALID_LLVM_VERSION, test "x$LLVM_VERSION" != x4.0.0 -a \
-                                              "x$LLVM_VERSION" != x4.0.1)
+AM_CONDITIONAL(SWR_INVALID_LLVM_VERSION, test "x$LLVM_VERSION" != x5.0.0 -a \
+                                              "x$LLVM_VERSION" != x5.0.1 -a \
+                                              "x$LLVM_VERSION" != x5.0.2)
 
 if test "x$enable_llvm" = "xyes" -a "$with_gallium_drivers"; then
     llvm_require_version $LLVM_REQUIRED_GALLIUM "gallium"

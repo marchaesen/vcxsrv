@@ -73,12 +73,14 @@ unsigned glsl_get_aoa_size(const struct glsl_type *type);
 
 unsigned glsl_count_attribute_slots(const struct glsl_type *type,
                                     bool is_vertex_input);
+unsigned glsl_get_component_slots(const struct glsl_type *type);
 
 const char *glsl_get_struct_elem_name(const struct glsl_type *type,
                                       unsigned index);
 
 enum glsl_sampler_dim glsl_get_sampler_dim(const struct glsl_type *type);
 enum glsl_base_type glsl_get_sampler_result_type(const struct glsl_type *type);
+unsigned glsl_get_sampler_target(const struct glsl_type *type);
 
 unsigned glsl_get_record_location_offset(const struct glsl_type *type,
                                          unsigned length);

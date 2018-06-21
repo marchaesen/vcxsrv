@@ -46,7 +46,7 @@ extern "C" {
 
 
 struct util_cpu_caps {
-   unsigned nr_cpus;
+   int nr_cpus;
 
    /* Feature flags */
    int x86_cpu_type;

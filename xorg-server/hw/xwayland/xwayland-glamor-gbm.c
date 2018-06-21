@@ -230,13 +230,13 @@ xwl_glamor_gbm_destroy_pixmap(PixmapPtr pixmap)
 
 static struct wl_buffer *
 xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
-                                        unsigned short width,
-                                        unsigned short height,
                                         Bool *created)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(pixmap->drawable.pScreen);
     struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
     struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
+    unsigned short width = pixmap->drawable.width;
+    unsigned short height = pixmap->drawable.height;
     int prime_fd;
     int num_planes;
     uint32_t strides[4];
@@ -734,16 +734,42 @@ xwl_screen_set_dmabuf_interface(struct xwl_screen *xwl_screen,
     return TRUE;
 }
 
-static void
+static Bool
 xwl_glamor_gbm_init_wl_registry(struct xwl_screen *xwl_screen,
                                 struct wl_registry *wl_registry,
-                                const char *name,
-                                uint32_t id, uint32_t version)
+                                uint32_t id, const char *name,
+                                uint32_t version)
 {
-    if (strcmp(name, "wl_drm") == 0)
+    if (strcmp(name, "wl_drm") == 0) {
         xwl_screen_set_drm_interface(xwl_screen, id, version);
-    else if (strcmp(name, "zwp_linux_dmabuf_v1") == 0)
+        return TRUE;
+    } else if (strcmp(name, "zwp_linux_dmabuf_v1") == 0) {
         xwl_screen_set_dmabuf_interface(xwl_screen, id, version);
+        return TRUE;
+    }
+
+    /* no match */
+    return FALSE;
+}
+
+static Bool
+xwl_glamor_gbm_has_egl_extension(void)
+{
+    return (epoxy_has_egl_extension(NULL, "EGL_MESA_platform_gbm") ||
+            epoxy_has_egl_extension(NULL, "EGL_KHR_platform_gbm"));
+}
+
+static Bool
+xwl_glamor_gbm_has_wl_interfaces(struct xwl_screen *xwl_screen)
+{
+    struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
+
+    if (xwl_gbm->drm == NULL) {
+        ErrorF("glamor: 'wl_drm' not supported\n");
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 static Bool
@@ -807,8 +833,10 @@ xwl_glamor_gbm_init_egl(struct xwl_screen *xwl_screen)
         goto error;
     }
 
-    if (!epoxy_has_gl_extension("GL_OES_EGL_image"))
+    if (!epoxy_has_gl_extension("GL_OES_EGL_image")) {
         ErrorF("GL_OES_EGL_image not available\n");
+        goto error;
+    }
 
     if (epoxy_has_egl_extension(xwl_screen->egl_display,
                                 "EXT_image_dma_buf_import") &&
@@ -835,10 +863,15 @@ error:
 static Bool
 xwl_glamor_gbm_init_screen(struct xwl_screen *xwl_screen)
 {
+    struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
+
     if (!dri3_screen_init(xwl_screen->screen, &xwl_dri3_info)) {
         ErrorF("Failed to initialize dri3\n");
         goto error;
     }
+
+    if (xwl_gbm->fd_render_node)
+        goto skip_drm_auth;
 
     if (!dixRegisterPrivateKey(&xwl_auth_state_private_key, PRIVATE_CLIENT,
                                0)) {
@@ -852,6 +885,7 @@ xwl_glamor_gbm_init_screen(struct xwl_screen *xwl_screen)
         goto error;
     }
 
+skip_drm_auth:
     xwl_screen->screen->CreatePixmap = xwl_glamor_gbm_create_pixmap;
     xwl_screen->screen->DestroyPixmap = xwl_glamor_gbm_destroy_pixmap;
 
@@ -861,27 +895,32 @@ error:
     return FALSE;
 }
 
-Bool
+void
 xwl_glamor_init_gbm(struct xwl_screen *xwl_screen)
 {
     struct xwl_gbm_private *xwl_gbm;
 
+    xwl_screen->gbm_backend.is_available = FALSE;
+
+    if (!xwl_glamor_gbm_has_egl_extension())
+        return;
+
     if (!dixRegisterPrivateKey(&xwl_gbm_private_key, PRIVATE_SCREEN, 0))
-        return FALSE;
+        return;
 
     xwl_gbm = calloc(sizeof(*xwl_gbm), 1);
     if (!xwl_gbm) {
         ErrorF("glamor: Not enough memory to setup GBM, disabling\n");
-        return FALSE;
+        return;
     }
 
     dixSetPrivate(&xwl_screen->screen->devPrivates, &xwl_gbm_private_key,
                   xwl_gbm);
 
-    xwl_screen->egl_backend.init_wl_registry = xwl_glamor_gbm_init_wl_registry;
-    xwl_screen->egl_backend.init_egl = xwl_glamor_gbm_init_egl;
-    xwl_screen->egl_backend.init_screen = xwl_glamor_gbm_init_screen;
-    xwl_screen->egl_backend.get_wl_buffer_for_pixmap = xwl_glamor_gbm_get_wl_buffer_for_pixmap;
-
-    return TRUE;
+    xwl_screen->gbm_backend.init_wl_registry = xwl_glamor_gbm_init_wl_registry;
+    xwl_screen->gbm_backend.has_wl_interfaces = xwl_glamor_gbm_has_wl_interfaces;
+    xwl_screen->gbm_backend.init_egl = xwl_glamor_gbm_init_egl;
+    xwl_screen->gbm_backend.init_screen = xwl_glamor_gbm_init_screen;
+    xwl_screen->gbm_backend.get_wl_buffer_for_pixmap = xwl_glamor_gbm_get_wl_buffer_for_pixmap;
+    xwl_screen->gbm_backend.is_available = TRUE;
 }

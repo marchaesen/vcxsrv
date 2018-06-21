@@ -3742,10 +3742,10 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpImageQuerySize: {
       struct vtn_pointer *image =
          vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
-      if (image->mode == vtn_variable_mode_image) {
+      if (glsl_type_is_image(image->type->type)) {
          vtn_handle_image(b, opcode, w, count);
       } else {
-         vtn_assert(image->mode == vtn_variable_mode_sampler);
+         vtn_assert(glsl_type_is_sampler(image->type->type));
          vtn_handle_texture(b, opcode, w, count);
       }
       break;

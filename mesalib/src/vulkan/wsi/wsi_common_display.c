@@ -1436,7 +1436,6 @@ wsi_display_init_wsi(struct wsi_device *wsi_device,
    }
 
    wsi->base.get_support = wsi_display_surface_get_support;
-   wsi->base.get_capabilities = wsi_display_surface_get_capabilities;
    wsi->base.get_capabilities2 = wsi_display_surface_get_capabilities2;
    wsi->base.get_formats = wsi_display_surface_get_formats;
    wsi->base.get_formats2 = wsi_display_surface_get_formats2;

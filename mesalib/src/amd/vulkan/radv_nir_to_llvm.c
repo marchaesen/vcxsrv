@@ -81,7 +81,6 @@ struct radv_shader_context {
 	LLVMValueRef hs_ring_tess_offchip;
 	LLVMValueRef hs_ring_tess_factor;
 
-	LLVMValueRef sample_pos_offset;
 	LLVMValueRef persp_sample, persp_center, persp_centroid;
 	LLVMValueRef linear_sample, linear_center, linear_centroid;
 
@@ -1095,10 +1094,6 @@ static void create_function(struct radv_shader_context *ctx,
 					   previous_stage, &user_sgpr_info,
 					   &args, &desc_sets);
 
-		if (ctx->shader_info->info.ps.needs_sample_positions)
-			add_arg(&args, ARG_SGPR, ctx->ac.i32,
-				&ctx->sample_pos_offset);
-
 		add_arg(&args, ARG_SGPR, ctx->ac.i32, &ctx->abi.prim_mask);
 		add_arg(&args, ARG_VGPR, ctx->ac.v2i32, &ctx->persp_sample);
 		add_arg(&args, ARG_VGPR, ctx->ac.v2i32, &ctx->persp_center);
@@ -1194,10 +1189,6 @@ static void create_function(struct radv_shader_context *ctx,
 			set_loc_shader(ctx, AC_UD_VIEW_INDEX, &user_sgpr_idx, 1);
 		break;
 	case MESA_SHADER_FRAGMENT:
-		if (ctx->shader_info->info.ps.needs_sample_positions) {
-			set_loc_shader(ctx, AC_UD_PS_SAMPLE_POS_OFFSET,
-				       &user_sgpr_idx, 1);
-		}
 		break;
 	default:
 		unreachable("Shader stage not implemented");
@@ -1627,6 +1618,30 @@ static LLVMValueRef lookup_interp_param(struct ac_shader_abi *abi,
 	return NULL;
 }
 
+static uint32_t
+radv_get_sample_pos_offset(uint32_t num_samples)
+{
+	uint32_t sample_pos_offset = 0;
+
+	switch (num_samples) {
+	case 2:
+		sample_pos_offset = 1;
+		break;
+	case 4:
+		sample_pos_offset = 3;
+		break;
+	case 8:
+		sample_pos_offset = 7;
+		break;
+	case 16:
+		sample_pos_offset = 15;
+		break;
+	default:
+		break;
+	}
+	return sample_pos_offset;
+}
+
 static LLVMValueRef load_sample_position(struct ac_shader_abi *abi,
 					 LLVMValueRef sample_id)
 {
@@ -1638,7 +1653,12 @@ static LLVMValueRef load_sample_position(struct ac_shader_abi *abi,
 	ptr = LLVMBuildBitCast(ctx->ac.builder, ptr,
 			       ac_array_in_const_addr_space(ctx->ac.v2f32), "");
 
-	sample_id = LLVMBuildAdd(ctx->ac.builder, sample_id, ctx->sample_pos_offset, "");
+	uint32_t sample_pos_offset =
+		radv_get_sample_pos_offset(ctx->options->key.fs.num_samples);
+
+	sample_id =
+		LLVMBuildAdd(ctx->ac.builder, sample_id,
+			     LLVMConstInt(ctx->ac.i32, sample_pos_offset, false), "");
 	result = ac_build_load_invariant(&ctx->ac, ptr, sample_id);
 
 	return result;
@@ -1648,9 +1668,14 @@ static LLVMValueRef load_sample_position(struct ac_shader_abi *abi,
 static LLVMValueRef load_sample_mask_in(struct ac_shader_abi *abi)
 {
 	struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
-	uint8_t log2_ps_iter_samples = ctx->shader_info->info.ps.force_persample ?
-		ctx->options->key.fs.log2_num_samples :
-		ctx->options->key.fs.log2_ps_iter_samples;
+	uint8_t log2_ps_iter_samples;
+
+	if (ctx->shader_info->info.ps.force_persample) {
+		log2_ps_iter_samples =
+			util_logbase2(ctx->options->key.fs.num_samples);
+	} else {
+		log2_ps_iter_samples = ctx->options->key.fs.log2_ps_iter_samples;
+	}
 
 	/* The bit pattern matches that used by fixed function fragment
 	 * processing. */

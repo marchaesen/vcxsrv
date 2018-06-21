@@ -93,7 +93,7 @@ lower_sampler(nir_tex_instr *instr, const struct gl_shader_program *shader_progr
       return false;
 
    /* In GLSL, we only fill out the texture field.  The sampler is inferred */
-   assert(instr->sampler == NULL);
+   assert(instr->sampler == NULL || shader_program->data->spirv);
 
    instr->texture_index = 0;
    unsigned location = instr->texture->var->data.location;
@@ -125,6 +125,7 @@ lower_sampler(nir_tex_instr *instr, const struct gl_shader_program *shader_progr
    instr->sampler_index = instr->texture_index;
 
    instr->texture = NULL;
+   nir_instr_rewrite_deref(&instr->instr, &instr->sampler, NULL);
 
    return true;
 }
