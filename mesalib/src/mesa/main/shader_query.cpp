@@ -533,6 +533,11 @@ _mesa_program_resource_find_name(struct gl_shader_program *shProg,
 
       /* Resource basename. */
       const char *rname = _mesa_program_resource_name(res);
+
+      /* Since ARB_gl_spirv lack of name reflections is a possibility */
+      if (rname == NULL)
+         continue;
+
       unsigned baselen = strlen(rname);
       unsigned baselen_without_array_index = baselen;
       const char *rname_last_square_bracket = strrchr(rname, '[');

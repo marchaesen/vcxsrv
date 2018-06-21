@@ -170,8 +170,8 @@ void _debug_assert_fail(const char *expr,
                         const char *file, 
                         unsigned line, 
                         const char *function)
-#ifdef __GNUC__
-   __attribute__((__noreturn__))
+#if defined(__GNUC__) && !defined(DEBUG)
+   __attribute__((noreturn))
 #endif
 ;
 

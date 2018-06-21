@@ -1469,7 +1469,6 @@ wsi_x11_init_wsi(struct wsi_device *wsi_device,
    }
 
    wsi->base.get_support = x11_surface_get_support;
-   wsi->base.get_capabilities = x11_surface_get_capabilities;
    wsi->base.get_capabilities2 = x11_surface_get_capabilities2;
    wsi->base.get_formats = x11_surface_get_formats;
    wsi->base.get_formats2 = x11_surface_get_formats2;

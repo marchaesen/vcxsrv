@@ -36,6 +36,7 @@
 #define VK_STRUCTURE_TYPE_WSI_IMAGE_CREATE_INFO_MESA (VkStructureType)1000001002
 #define VK_STRUCTURE_TYPE_WSI_MEMORY_ALLOCATE_INFO_MESA (VkStructureType)1000001003
 #define VK_STRUCTURE_TYPE_WSI_FORMAT_MODIFIER_PROPERTIES_LIST_MESA (VkStructureType)1000001004
+#define VK_STRUCTURE_TYPE_WSI_SURFACE_SUPPORTED_COUNTERS_MESA (VkStructureType)1000001005
 
 struct wsi_image_create_info {
     VkStructureType sType;
@@ -64,6 +65,14 @@ struct wsi_format_modifier_properties_list {
 
    uint32_t modifier_count;
    struct wsi_format_modifier_properties *modifier_properties;
+};
+
+/* To be chained into VkSurfaceCapabilities2KHR */
+struct wsi_surface_supported_counters {
+   VkStructureType sType;
+   const void *pNext;
+
+   VkSurfaceCounterFlagsEXT supported_surface_counters;
 };
 
 struct wsi_interface;
@@ -177,6 +186,12 @@ wsi_common_get_surface_present_modes(struct wsi_device *wsi_device,
                                      VkSurfaceKHR surface,
                                      uint32_t *pPresentModeCount,
                                      VkPresentModeKHR *pPresentModes);
+
+VkResult
+wsi_common_get_surface_capabilities2ext(
+   struct wsi_device *wsi_device,
+   VkSurfaceKHR surface,
+   VkSurfaceCapabilities2EXT *pSurfaceCapabilities);
 
 VkResult
 wsi_common_get_images(VkSwapchainKHR _swapchain,

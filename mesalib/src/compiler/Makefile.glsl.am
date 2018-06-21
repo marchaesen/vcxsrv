@@ -31,7 +31,6 @@ EXTRA_DIST += glsl/tests glsl/glcpp/tests glsl/README	\
 	SConscript.glsl
 
 TESTS += glsl/glcpp/tests/glcpp-test.sh			\
-	glsl/glcpp/tests/glcpp-test-cr-lf.sh		\
 	glsl/tests/blob-test				\
 	glsl/tests/cache-test				\
 	glsl/tests/general-ir-test			\

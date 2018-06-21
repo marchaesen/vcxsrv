@@ -769,6 +769,10 @@ foreach a : ['-Wall', '-Werror=implicit-function-declaration',
     c_args += a
   endif
 endforeach
+if cc.has_argument('-Wmissing-field-initializers')
+  c_args += '-Wno-missing-field-initializers'
+endif
+
 c_vis_args = []
 if cc.has_argument('-fvisibility=hidden')
   c_vis_args += '-fvisibility=hidden'
@@ -785,9 +789,12 @@ endforeach
 
 # For some reason, the test for -Wno-foo always succeeds with gcc, even if the
 # option is not supported. Hence, check for -Wfoo instead.
-if cpp.has_argument('-Wnon-virtual-dtor')
-  cpp_args += '-Wno-non-virtual-dtor'
-endif
+
+foreach a : ['non-virtual-dtor', 'missing-field-initializers']
+  if cpp.has_argument('-W' + a)
+    cpp_args += '-Wno-' + a
+  endif
+endforeach
 
 no_override_init_args = []
 foreach a : ['override-init', 'initializer-overrides']
@@ -1137,10 +1144,8 @@ if with_gallium_opencl
   llvm_optional_modules += ['coroutines', 'opencl']
 endif
 
-if with_amd_vk or with_gallium_radeonsi
+if with_amd_vk or with_gallium_radeonsi or with_gallium_swr
   _llvm_version = '>= 5.0.0'
-elif with_gallium_swr
-  _llvm_version = '>= 4.0.0'
 elif with_gallium_opencl or with_gallium_r600
   _llvm_version = '>= 3.9.0'
 else
@@ -1301,6 +1306,7 @@ dep_xcb_sync = null_dep
 dep_xcb_xfixes = null_dep
 dep_xshmfence = null_dep
 dep_xcb_xrandr = null_dep
+dep_xlib_xrandr = null_dep
 if with_platform_x11
   if with_glx == 'xlib' or with_glx == 'gallium-xlib'
     dep_x11 = dependency('x11')
@@ -1349,6 +1355,7 @@ if with_platform_x11
   endif
   if with_xlib_lease
     dep_xcb_xrandr = dependency('xcb-randr', version : '>= 1.12')
+    dep_xlib_xrandr = dependency('xrandr', version : '>= 1.3')
   endif
 endif
 

@@ -253,6 +253,11 @@ typedef struct nir_variable {
       unsigned bindless:1;
 
       /**
+       * Was an explicit binding set in the shader?
+       */
+      unsigned explicit_binding:1;
+
+      /**
        * \brief Layout qualifier for gl_FragDepth.
        *
        * This is not equal to \c ir_depth_layout_none if and only if this

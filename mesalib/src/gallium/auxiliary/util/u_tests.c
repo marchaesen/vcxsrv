@@ -649,7 +649,7 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
       /* Vertex shader. */
       void *vs = util_set_passthrough_vertex_shader(cso, ctx, false);
 
-      for (int i = 0; i < num_samples / 2; i++) {
+      for (unsigned i = 0; i < num_samples / 2; i++) {
          float value;
 
          /* 2 consecutive samples should have the same color to test MSAA

@@ -3624,42 +3624,6 @@ should_add_buffer_variable(struct gl_shader_program *shProg,
    return false;
 }
 
-static bool
-add_program_resource(struct gl_shader_program *prog,
-                     struct set *resource_set,
-                     GLenum type, const void *data, uint8_t stages)
-{
-   assert(data);
-
-   /* If resource already exists, do not add it again. */
-   if (_mesa_set_search(resource_set, data))
-      return true;
-
-   prog->data->ProgramResourceList =
-      reralloc(prog->data,
-               prog->data->ProgramResourceList,
-               gl_program_resource,
-               prog->data->NumProgramResourceList + 1);
-
-   if (!prog->data->ProgramResourceList) {
-      linker_error(prog, "Out of memory during linking.\n");
-      return false;
-   }
-
-   struct gl_program_resource *res =
-      &prog->data->ProgramResourceList[prog->data->NumProgramResourceList];
-
-   res->Type = type;
-   res->Data = data;
-   res->StageReferences = stages;
-
-   prog->data->NumProgramResourceList++;
-
-   _mesa_set_add(resource_set, data);
-
-   return true;
-}
-
 /* Function checks if a variable var is a packed varying and
  * if given name is part of packed varying's list.
  *
@@ -3953,8 +3917,8 @@ add_shader_variable(const struct gl_context *ctx,
       if (!sha_v)
          return false;
 
-      return add_program_resource(shProg, resource_set,
-                                  programInterface, sha_v, stage_mask);
+      return link_util_add_program_resource(shProg, resource_set,
+                                            programInterface, sha_v, stage_mask);
    }
    }
 }
@@ -4383,9 +4347,9 @@ build_program_resource_list(struct gl_context *ctx,
       /* Add transform feedback varyings. */
       if (linked_xfb->NumVarying > 0) {
          for (int i = 0; i < linked_xfb->NumVarying; i++) {
-            if (!add_program_resource(shProg, resource_set,
-                                      GL_TRANSFORM_FEEDBACK_VARYING,
-                                      &linked_xfb->Varyings[i], 0))
+            if (!link_util_add_program_resource(shProg, resource_set,
+                                                GL_TRANSFORM_FEEDBACK_VARYING,
+                                                &linked_xfb->Varyings[i], 0))
             return;
          }
       }
@@ -4394,9 +4358,9 @@ build_program_resource_list(struct gl_context *ctx,
       for (unsigned i = 0; i < ctx->Const.MaxTransformFeedbackBuffers; i++) {
          if ((linked_xfb->ActiveBuffers >> i) & 1) {
             linked_xfb->Buffers[i].Binding = i;
-            if (!add_program_resource(shProg, resource_set,
-                                      GL_TRANSFORM_FEEDBACK_BUFFER,
-                                      &linked_xfb->Buffers[i], 0))
+            if (!link_util_add_program_resource(shProg, resource_set,
+                                                GL_TRANSFORM_FEEDBACK_BUFFER,
+                                                &linked_xfb->Buffers[i], 0))
             return;
          }
       }
@@ -4432,29 +4396,29 @@ build_program_resource_list(struct gl_context *ctx,
                                          &shProg->data->UniformStorage[i]);
       }
 
-      if (!add_program_resource(shProg, resource_set, type,
-                                &shProg->data->UniformStorage[i], stageref))
+      if (!link_util_add_program_resource(shProg, resource_set, type,
+                                          &shProg->data->UniformStorage[i], stageref))
          return;
    }
 
    /* Add program uniform blocks. */
    for (unsigned i = 0; i < shProg->data->NumUniformBlocks; i++) {
-      if (!add_program_resource(shProg, resource_set, GL_UNIFORM_BLOCK,
-          &shProg->data->UniformBlocks[i], 0))
+      if (!link_util_add_program_resource(shProg, resource_set, GL_UNIFORM_BLOCK,
+                                          &shProg->data->UniformBlocks[i], 0))
          return;
    }
 
    /* Add program shader storage blocks. */
    for (unsigned i = 0; i < shProg->data->NumShaderStorageBlocks; i++) {
-      if (!add_program_resource(shProg, resource_set, GL_SHADER_STORAGE_BLOCK,
-          &shProg->data->ShaderStorageBlocks[i], 0))
+      if (!link_util_add_program_resource(shProg, resource_set, GL_SHADER_STORAGE_BLOCK,
+                                          &shProg->data->ShaderStorageBlocks[i], 0))
          return;
    }
 
    /* Add atomic counter buffers. */
    for (unsigned i = 0; i < shProg->data->NumAtomicBuffers; i++) {
-      if (!add_program_resource(shProg, resource_set, GL_ATOMIC_COUNTER_BUFFER,
-                                &shProg->data->AtomicBuffers[i], 0))
+      if (!link_util_add_program_resource(shProg, resource_set, GL_ATOMIC_COUNTER_BUFFER,
+                                          &shProg->data->AtomicBuffers[i], 0))
          return;
    }
 
@@ -4470,8 +4434,8 @@ build_program_resource_list(struct gl_context *ctx,
 
          type = _mesa_shader_stage_to_subroutine_uniform((gl_shader_stage)j);
          /* add shader subroutines */
-         if (!add_program_resource(shProg, resource_set,
-                                   type, &shProg->data->UniformStorage[i], 0))
+         if (!link_util_add_program_resource(shProg, resource_set,
+                                             type, &shProg->data->UniformStorage[i], 0))
             return;
       }
    }
@@ -4483,8 +4447,8 @@ build_program_resource_list(struct gl_context *ctx,
 
       GLuint type = _mesa_shader_stage_to_subroutine((gl_shader_stage)i);
       for (unsigned j = 0; j < p->sh.NumSubroutineFunctions; j++) {
-         if (!add_program_resource(shProg, resource_set,
-                                   type, &p->sh.SubroutineFunctions[j], 0))
+         if (!link_util_add_program_resource(shProg, resource_set,
+                                             type, &p->sh.SubroutineFunctions[j], 0))
             return;
       }
    }

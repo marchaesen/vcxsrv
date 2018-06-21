@@ -96,9 +96,7 @@ ddxUseMsg(void)
     ErrorF("-rootless              run rootless, requires wm support\n");
     ErrorF("-wm fd                 create X client for wm on given fd\n");
     ErrorF("-listen fd             add give fd as a listen socket\n");
-#ifdef XWL_HAS_EGLSTREAM
     ErrorF("-eglstream             use eglstream backend for nvidia GPUs\n");
-#endif
 }
 
 int
@@ -117,11 +115,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
     else if (strcmp(argv[i], "-shm") == 0) {
         return 1;
     }
-#ifdef XWL_HAS_EGLSTREAM
     else if (strcmp(argv[i], "-eglstream") == 0) {
         return 1;
     }
-#endif
 
     return 0;
 }
@@ -682,8 +678,6 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
 #ifdef XWL_HAS_GLAMOR
     if (xwl_screen->glamor)
         buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap,
-                                                 pixmap->drawable.width,
-                                                 pixmap->drawable.height,
                                                  NULL);
     else
 #endif
@@ -741,7 +735,7 @@ xwl_screen_post_damage(struct xwl_screen *xwl_screen)
             continue;
 
 #ifdef XWL_HAS_GLAMOR
-        if (!xwl_glamor_allow_commits(xwl_window))
+        if (xwl_screen->glamor && !xwl_glamor_allow_commits(xwl_window))
             continue;
 #endif
 
@@ -943,9 +937,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     struct xwl_screen *xwl_screen;
     Pixel red_mask, blue_mask, green_mask;
     int ret, bpc, green_bpc, i;
-#ifdef XWL_HAS_EGLSTREAM
     Bool use_eglstreams = FALSE;
-#endif
 
     xwl_screen = calloc(1, sizeof *xwl_screen);
     if (xwl_screen == NULL)
@@ -988,28 +980,18 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         else if (strcmp(argv[i], "-shm") == 0) {
             xwl_screen->glamor = 0;
         }
-#ifdef XWL_HAS_EGLSTREAM
         else if (strcmp(argv[i], "-eglstream") == 0) {
+#ifdef XWL_HAS_EGLSTREAM
             use_eglstreams = TRUE;
-        }
+#else
+            ErrorF("xwayland glamor: this build does not have EGLStream support\n");
 #endif
+        }
     }
 
 #ifdef XWL_HAS_GLAMOR
-    if (xwl_screen->glamor) {
-#ifdef XWL_HAS_EGLSTREAM
-        if (use_eglstreams) {
-            if (!xwl_glamor_init_eglstream(xwl_screen)) {
-                ErrorF("xwayland glamor: failed to setup eglstream backend, falling back to swaccel\n");
-                xwl_screen->glamor = 0;
-            }
-        } else
-#endif
-        if (!xwl_glamor_init_gbm(xwl_screen)) {
-            ErrorF("xwayland glamor: failed to setup GBM backend, falling back to sw accel\n");
-            xwl_screen->glamor = 0;
-        }
-    }
+    if (xwl_screen->glamor)
+        xwl_glamor_init_backends(xwl_screen, use_eglstreams);
 #endif
 
     /* In rootless mode, we don't have any screen storage, and the only
@@ -1095,9 +1077,13 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
 
 #ifdef XWL_HAS_GLAMOR
-    if (xwl_screen->glamor && !xwl_glamor_init(xwl_screen)) {
-        ErrorF("Failed to initialize glamor, falling back to sw\n");
-        xwl_screen->glamor = 0;
+    if (xwl_screen->glamor) {
+        xwl_glamor_select_backend(xwl_screen, use_eglstreams);
+
+        if (xwl_screen->egl_backend == NULL || !xwl_glamor_init(xwl_screen)) {
+           ErrorF("Failed to initialize glamor, falling back to sw\n");
+           xwl_screen->glamor = 0;
+        }
     }
 
     if (xwl_screen->glamor && xwl_screen->rootless)
@@ -1133,6 +1119,10 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
 
     AddCallback(&PropertyStateCallback, xwl_property_callback, pScreen);
+
+    wl_display_roundtrip(xwl_screen->display);
+    while (xwl_screen->expecting_event)
+        wl_display_roundtrip(xwl_screen->display);
 
     return ret;
 }

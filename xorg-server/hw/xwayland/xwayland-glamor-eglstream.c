@@ -187,6 +187,85 @@ xwl_eglstream_cleanup(struct xwl_screen *xwl_screen)
     free(xwl_eglstream);
 }
 
+static Bool
+xwl_glamor_egl_supports_device_probing(void)
+{
+    return epoxy_has_egl_extension(NULL, "EGL_EXT_device_base");
+}
+
+static void **
+xwl_glamor_egl_get_devices(int *num_devices)
+{
+    EGLDeviceEXT *devices;
+    Bool ret;
+    int drm_dev_count = 0;
+    int i;
+
+    if (!xwl_glamor_egl_supports_device_probing())
+        return NULL;
+
+    /* Get the number of devices */
+    ret = eglQueryDevicesEXT(0, NULL, num_devices);
+    if (!ret || *num_devices < 1)
+        return NULL;
+
+    devices = calloc(*num_devices, sizeof(EGLDeviceEXT));
+    if (!devices)
+        return NULL;
+
+    ret = eglQueryDevicesEXT(*num_devices, devices, num_devices);
+    if (!ret)
+        goto error;
+
+    /* We're only ever going to care about devices that support
+     * EGL_EXT_device_drm, so filter out the ones that don't
+     */
+    for (i = 0; i < *num_devices; i++) {
+        const char *extension_str =
+            eglQueryDeviceStringEXT(devices[i], EGL_EXTENSIONS);
+
+        if (!epoxy_extension_in_string(extension_str, "EGL_EXT_device_drm"))
+            continue;
+
+        devices[drm_dev_count++] = devices[i];
+    }
+    if (!drm_dev_count)
+        goto error;
+
+    *num_devices = drm_dev_count;
+    devices = realloc(devices, sizeof(EGLDeviceEXT) * drm_dev_count);
+
+    return devices;
+
+error:
+    free(devices);
+
+    return NULL;
+}
+
+static Bool
+xwl_glamor_egl_device_has_egl_extensions(void *device,
+                                         const char **ext_list, size_t size)
+{
+    EGLDisplay egl_display;
+    int i;
+    Bool has_exts = TRUE;
+
+    egl_display = glamor_egl_get_display(EGL_PLATFORM_DEVICE_EXT, device);
+    if (!egl_display || !eglInitialize(egl_display, NULL, NULL))
+        return FALSE;
+
+    for (i = 0; i < size; i++) {
+        if (!epoxy_has_egl_extension(egl_display, ext_list[i])) {
+            has_exts = FALSE;
+            break;
+        }
+    }
+
+    eglTerminate(egl_display);
+    return has_exts;
+}
+
 static void
 xwl_eglstream_unref_pixmap_stream(struct xwl_pixmap *xwl_pixmap)
 {
@@ -229,8 +308,6 @@ xwl_glamor_eglstream_destroy_pixmap(PixmapPtr pixmap)
 
 static struct wl_buffer *
 xwl_glamor_eglstream_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
-                                              unsigned short width,
-                                              unsigned short height,
                                               Bool *created)
 {
     /* XXX created? */
@@ -559,11 +636,11 @@ const struct wl_eglstream_display_listener eglstream_display_listener = {
     .swapinterval_override = xwl_eglstream_display_handle_swapinterval_override,
 };
 
-static void
+static Bool
 xwl_glamor_eglstream_init_wl_registry(struct xwl_screen *xwl_screen,
                                       struct wl_registry *wl_registry,
-                                      const char *name,
-                                      uint32_t id, uint32_t version)
+                                      uint32_t id, const char *name,
+                                      uint32_t version)
 {
     struct xwl_eglstream_private *xwl_eglstream =
         xwl_eglstream_get(xwl_screen);
@@ -575,10 +652,34 @@ xwl_glamor_eglstream_init_wl_registry(struct xwl_screen *xwl_screen,
         wl_eglstream_display_add_listener(xwl_eglstream->display,
                                           &eglstream_display_listener,
                                           xwl_screen);
+        return TRUE;
     } else if (strcmp(name, "wl_eglstream_controller") == 0) {
         xwl_eglstream->controller = wl_registry_bind(
             wl_registry, id, &wl_eglstream_controller_interface, version);
+        return TRUE;
     }
+
+    /* no match */
+    return FALSE;
+}
+
+static Bool
+xwl_glamor_eglstream_has_wl_interfaces(struct xwl_screen *xwl_screen)
+{
+    struct xwl_eglstream_private *xwl_eglstream =
+        xwl_eglstream_get(xwl_screen);
+
+    if (xwl_eglstream->display == NULL) {
+        ErrorF("glamor: 'wl_eglstream_display' not supported\n");
+        return FALSE;
+    }
+
+    if (xwl_eglstream->controller == NULL) {
+        ErrorF("glamor: 'wl_eglstream_controller' not supported\n");
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 static inline void
@@ -691,6 +792,12 @@ xwl_glamor_eglstream_init_egl(struct xwl_screen *xwl_screen)
         goto error;
     }
 
+    if (!epoxy_has_egl_extension(xwl_screen->egl_display,
+                                 "EGL_IMG_context_priority")) {
+        ErrorF("EGL_IMG_context_priority not available\n");
+        goto error;
+    }
+
     eglChooseConfig(xwl_screen->egl_display, config_attribs, &config, 1, &n);
     if (!n) {
         ErrorF("No acceptable EGL configs found\n");
@@ -740,14 +847,6 @@ xwl_glamor_eglstream_init_screen(struct xwl_screen *xwl_screen)
         xwl_eglstream_get(xwl_screen);
     ScreenPtr screen = xwl_screen->screen;
 
-    if (!xwl_eglstream->controller) {
-        ErrorF("No eglstream controller was exposed in the wayland registry. "
-               "This means your version of nvidia's EGL wayland libraries "
-               "are too old, as we require support for this.\n");
-        xwl_eglstream_cleanup(xwl_screen);
-        return FALSE;
-    }
-
     /* We can just let glamor handle CreatePixmap */
     screen->DestroyPixmap = xwl_glamor_eglstream_destroy_pixmap;
 
@@ -792,23 +891,24 @@ out:
     return device;
 }
 
-Bool
+void
 xwl_glamor_init_eglstream(struct xwl_screen *xwl_screen)
 {
     struct xwl_eglstream_private *xwl_eglstream;
     EGLDeviceEXT egl_device;
 
+    xwl_screen->eglstream_backend.is_available = FALSE;
     egl_device = xwl_eglstream_get_device(xwl_screen);
     if (egl_device == EGL_NO_DEVICE_EXT)
-        return FALSE;
+        return;
 
     if (!dixRegisterPrivateKey(&xwl_eglstream_private_key, PRIVATE_SCREEN, 0))
-        return FALSE;
+        return;
 
     xwl_eglstream = calloc(sizeof(*xwl_eglstream), 1);
     if (!xwl_eglstream) {
-        ErrorF("Failed to allocate memory required to init eglstream support\n");
-        return FALSE;
+        ErrorF("Failed to allocate memory required to init EGLStream support\n");
+        return;
     }
 
     dixSetPrivate(&xwl_screen->screen->devPrivates,
@@ -817,14 +917,12 @@ xwl_glamor_init_eglstream(struct xwl_screen *xwl_screen)
     xwl_eglstream->egl_device = egl_device;
     xorg_list_init(&xwl_eglstream->pending_streams);
 
-    xwl_screen->egl_backend.init_egl = xwl_glamor_eglstream_init_egl;
-    xwl_screen->egl_backend.init_wl_registry = xwl_glamor_eglstream_init_wl_registry;
-    xwl_screen->egl_backend.init_screen = xwl_glamor_eglstream_init_screen;
-    xwl_screen->egl_backend.get_wl_buffer_for_pixmap = xwl_glamor_eglstream_get_wl_buffer_for_pixmap;
-    xwl_screen->egl_backend.post_damage = xwl_glamor_eglstream_post_damage;
-    xwl_screen->egl_backend.allow_commits = xwl_glamor_eglstream_allow_commits;
-
-    ErrorF("glamor: Using nvidia's eglstream interface, direct rendering impossible.\n");
-    ErrorF("glamor: Performance may be affected. Ask your vendor to support GBM!\n");
-    return TRUE;
+    xwl_screen->eglstream_backend.init_egl = xwl_glamor_eglstream_init_egl;
+    xwl_screen->eglstream_backend.init_wl_registry = xwl_glamor_eglstream_init_wl_registry;
+    xwl_screen->eglstream_backend.has_wl_interfaces = xwl_glamor_eglstream_has_wl_interfaces;
+    xwl_screen->eglstream_backend.init_screen = xwl_glamor_eglstream_init_screen;
+    xwl_screen->eglstream_backend.get_wl_buffer_for_pixmap = xwl_glamor_eglstream_get_wl_buffer_for_pixmap;
+    xwl_screen->eglstream_backend.post_damage = xwl_glamor_eglstream_post_damage;
+    xwl_screen->eglstream_backend.allow_commits = xwl_glamor_eglstream_allow_commits;
+    xwl_screen->eglstream_backend.is_available = TRUE;
 }

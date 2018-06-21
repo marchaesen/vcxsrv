@@ -124,10 +124,10 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
             without_array = without_array->array_element;
 
          if (glsl_type_is_image(without_array->type)) {
-            vtn_var->mode = vtn_variable_mode_image;
+            vtn_var->mode = vtn_variable_mode_uniform;
             param->interface_type = without_array->type;
          } else if (glsl_type_is_sampler(without_array->type)) {
-            vtn_var->mode = vtn_variable_mode_sampler;
+            vtn_var->mode = vtn_variable_mode_uniform;
             param->interface_type = without_array->type;
          } else {
             vtn_var->mode = vtn_variable_mode_param;

@@ -104,8 +104,6 @@ struct wsi_interface {
                            uint32_t queueFamilyIndex,
                            int local_fd,
                            VkBool32* pSupported);
-   VkResult (*get_capabilities)(VkIcdSurfaceBase *surface,
-                                VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
    VkResult (*get_capabilities2)(VkIcdSurfaceBase *surface,
                                  const void *info_next,
                                  VkSurfaceCapabilities2KHR* pSurfaceCapabilities);

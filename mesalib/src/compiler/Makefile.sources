@@ -28,6 +28,10 @@ LIBGLSL_FILES = \
 	glsl/gl_nir_lower_atomics.c \
 	glsl/gl_nir_lower_samplers.c \
 	glsl/gl_nir_lower_samplers_as_deref.c \
+	glsl/gl_nir_link_uniform_initializers.c \
+	glsl/gl_nir_link_uniforms.c \
+	glsl/gl_nir_linker.c \
+	glsl/gl_nir_linker.h \
 	glsl/gl_nir.h \
 	glsl/glsl_parser_extras.cpp \
 	glsl/glsl_parser_extras.h \
@@ -71,6 +75,8 @@ LIBGLSL_FILES = \
 	glsl/ir_visitor.h \
 	glsl/linker.cpp \
 	glsl/linker.h \
+	glsl/linker_util.h \
+	glsl/linker_util.cpp \
 	glsl/link_atomics.cpp \
 	glsl/link_functions.cpp \
 	glsl/link_interface_blocks.cpp \

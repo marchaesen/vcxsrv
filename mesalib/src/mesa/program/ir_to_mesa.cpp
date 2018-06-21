@@ -3153,6 +3153,7 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                       "SPIR_V_BINARY_ARB state");
       }
    }
+   prog->data->spirv = spirv;
 
    if (prog->data->LinkStatus) {
       if (!spirv)

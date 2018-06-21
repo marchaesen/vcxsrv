@@ -406,11 +406,10 @@ enum vtn_variable_mode {
    vtn_variable_mode_local,
    vtn_variable_mode_global,
    vtn_variable_mode_param,
+   vtn_variable_mode_uniform,
    vtn_variable_mode_ubo,
    vtn_variable_mode_ssbo,
    vtn_variable_mode_push_constant,
-   vtn_variable_mode_image,
-   vtn_variable_mode_sampler,
    vtn_variable_mode_workgroup,
    vtn_variable_mode_input,
    vtn_variable_mode_output,
@@ -457,6 +456,7 @@ struct vtn_variable {
 
    unsigned descriptor_set;
    unsigned binding;
+   bool explicit_binding;
    unsigned input_attachment_index;
    bool patch;
 

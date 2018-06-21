@@ -1507,6 +1507,7 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
    switch (dec->decoration) {
    case SpvDecorationBinding:
       vtn_var->binding = dec->literals[0];
+      vtn_var->explicit_binding = true;
       return;
    case SpvDecorationDescriptorSet:
       vtn_var->descriptor_set = dec->literals[0];
@@ -1548,8 +1549,9 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
                  vtn_var->mode == vtn_variable_mode_output) {
          is_vertex_input = false;
          location += vtn_var->patch ? VARYING_SLOT_PATCH0 : VARYING_SLOT_VAR0;
-      } else {
-         vtn_warn("Location must be on input or output variable");
+      } else if (vtn_var->mode != vtn_variable_mode_uniform) {
+         vtn_warn("Location must be on input, output, uniform, sampler or "
+                  "image variable");
          return;
       }
 
@@ -1615,7 +1617,9 @@ vtn_storage_class_to_mode(struct vtn_builder *b,
          mode = vtn_variable_mode_ssbo;
          nir_mode = 0;
       } else {
-         vtn_fail("Invalid uniform variable type");
+         /* Default-block uniforms, coming from gl_spirv */
+         mode = vtn_variable_mode_uniform;
+         nir_mode = nir_var_uniform;
       }
       break;
    case SpvStorageClassStorageBuffer:
@@ -1623,15 +1627,8 @@ vtn_storage_class_to_mode(struct vtn_builder *b,
       nir_mode = 0;
       break;
    case SpvStorageClassUniformConstant:
-      if (glsl_type_is_image(interface_type->type)) {
-         mode = vtn_variable_mode_image;
-         nir_mode = nir_var_uniform;
-      } else if (glsl_type_is_sampler(interface_type->type)) {
-         mode = vtn_variable_mode_sampler;
-         nir_mode = nir_var_uniform;
-      } else {
-         vtn_fail("Invalid uniform constant variable type");
-      }
+      mode = vtn_variable_mode_uniform;
+      nir_mode = nir_var_uniform;
       break;
    case SpvStorageClassPushConstant:
       mode = vtn_variable_mode_push_constant;
@@ -1773,11 +1770,11 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    case vtn_variable_mode_ssbo:
       b->shader->info.num_ssbos++;
       break;
-   case vtn_variable_mode_image:
-      b->shader->info.num_images++;
-      break;
-   case vtn_variable_mode_sampler:
-      b->shader->info.num_textures++;
+   case vtn_variable_mode_uniform:
+      if (glsl_type_is_image(without_array->type))
+         b->shader->info.num_images++;
+      else if (glsl_type_is_sampler(without_array->type))
+         b->shader->info.num_textures++;
       break;
    case vtn_variable_mode_push_constant:
       b->shader->num_uniforms = vtn_type_block_size(b, type);
@@ -1797,23 +1794,14 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    switch (var->mode) {
    case vtn_variable_mode_local:
    case vtn_variable_mode_global:
-   case vtn_variable_mode_image:
-   case vtn_variable_mode_sampler:
+   case vtn_variable_mode_uniform:
       /* For these, we create the variable normally */
       var->var = rzalloc(b->shader, nir_variable);
       var->var->name = ralloc_strdup(var->var, val->name);
       var->var->type = var->type->type;
       var->var->data.mode = nir_mode;
-
-      switch (var->mode) {
-      case vtn_variable_mode_image:
-      case vtn_variable_mode_sampler:
-         var->var->interface_type = without_array->type;
-         break;
-      default:
-         var->var->interface_type = NULL;
-         break;
-      }
+      var->var->data.location = -1;
+      var->var->interface_type = NULL;
       break;
 
    case vtn_variable_mode_workgroup:
@@ -1938,16 +1926,16 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
 
    vtn_foreach_decoration(b, val, var_decoration_cb, var);
 
-   if (var->mode == vtn_variable_mode_image ||
-       var->mode == vtn_variable_mode_sampler) {
+   if (var->mode == vtn_variable_mode_uniform) {
       /* XXX: We still need the binding information in the nir_variable
        * for these. We should fix that.
        */
       var->var->data.binding = var->binding;
+      var->var->data.explicit_binding = var->explicit_binding;
       var->var->data.descriptor_set = var->descriptor_set;
       var->var->data.index = var->input_attachment_index;
 
-      if (var->mode == vtn_variable_mode_image)
+      if (glsl_type_is_image(without_array->type))
          var->var->data.image.format = without_array->image_format;
    }
 
@@ -2087,8 +2075,8 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
 
       vtn_assert_types_equal(b, opcode, res_type, src_val->type->deref);
 
-      if (src->mode == vtn_variable_mode_image ||
-          src->mode == vtn_variable_mode_sampler) {
+      if (glsl_type_is_image(res_type->type) ||
+          glsl_type_is_sampler(res_type->type)) {
          vtn_push_value(b, w[2], vtn_value_type_pointer)->pointer = src;
          return;
       }
