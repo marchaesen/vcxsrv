@@ -55,8 +55,8 @@ nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
                nir_variable *out = NULL;
 
                switch (intr->intrinsic) {
-               case nir_intrinsic_store_var:
-                  out = intr->variables[0]->var;
+               case nir_intrinsic_store_deref:
+                  out = nir_deref_instr_get_variable(nir_src_as_deref(intr->src[0]));
                   break;
                case nir_intrinsic_store_output:
                   /* already had i/o lowered.. lookup the matching output var: */
@@ -85,6 +85,9 @@ nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
                nir_ssa_def *alpha;
                if (alpha_to_one) {
                   alpha = nir_imm_float(&b, 1.0);
+               } else if (intr->intrinsic == nir_intrinsic_store_deref) {
+                  alpha = nir_channel(&b, nir_ssa_for_src(&b, intr->src[1], 4),
+                                      3);
                } else {
                   alpha = nir_channel(&b, nir_ssa_for_src(&b, intr->src[0], 4),
                                       3);

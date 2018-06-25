@@ -36,7 +36,6 @@ const nir_intrinsic_info nir_intrinsic_infos[nir_num_intrinsics] = {
 % endif
    .has_dest = ${"true" if opcode.has_dest else "false"},
    .dest_components = ${max(opcode.dest_components, 0)},
-   .num_variables = ${opcode.num_variables},
    .num_indices = ${opcode.num_indices},
 % if opcode.indices:
    .index_map = {

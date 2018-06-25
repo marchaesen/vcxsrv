@@ -436,6 +436,7 @@ static int gfx6_compute_level(ADDR_HANDLE addrlib,
 }
 
 #define   G_009910_MICRO_TILE_MODE(x)          (((x) >> 0) & 0x03)
+#define     V_009910_ADDR_SURF_THICK_MICRO_TILING                   0x03
 #define   G_009910_MICRO_TILE_MODE_NEW(x)      (((x) >> 22) & 0x07)
 
 static void gfx6_set_micro_tile_mode(struct radeon_surf *surf,
@@ -950,6 +951,17 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	surf->is_displayable = surf->is_linear ||
 			       surf->micro_tile_mode == RADEON_MICRO_MODE_DISPLAY ||
 			       surf->micro_tile_mode == RADEON_MICRO_MODE_ROTATED;
+
+	/* The rotated micro tile mode doesn't work if both CMASK and RB+ are
+	 * used at the same time. This case is not currently expected to occur
+	 * because we don't use rotated. Enforce this restriction on all chips
+	 * to facilitate testing.
+	 */
+	if (surf->micro_tile_mode == RADEON_MICRO_MODE_ROTATED) {
+		assert(!"rotate micro tile mode is unsupported");
+		return ADDR_ERROR;
+	}
+
 	return 0;
 }
 
@@ -1490,8 +1502,13 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 		case ADDR_SW_4KB_R_X:
 		case ADDR_SW_64KB_R_X:
 		case ADDR_SW_VAR_R_X:
-			surf->micro_tile_mode = RADEON_MICRO_MODE_ROTATED;
-			break;
+			/* The rotated micro tile mode doesn't work if both CMASK and RB+ are
+			 * used at the same time. This case is not currently expected to occur
+			 * because we don't use rotated. Enforce this restriction on all chips
+			 * to facilitate testing.
+			 */
+			assert(!"rotate micro tile mode is unsupported");
+			return ADDR_ERROR;
 
 		/* Z = depth. */
 		case ADDR_SW_4KB_Z:

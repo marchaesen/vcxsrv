@@ -2003,7 +2003,7 @@ _mesa_GetInteger64v(GLenum pname, GLint64 *params)
 
    case TYPE_INT_N:
       for (i = 0; i < v.value_int_n.n; i++)
-         params[i] = INT_TO_BOOLEAN(v.value_int_n.ints[i]);
+         params[i] = v.value_int_n.ints[i];
       break;
 
    case TYPE_UINT_4:

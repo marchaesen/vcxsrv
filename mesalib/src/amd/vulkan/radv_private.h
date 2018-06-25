@@ -1781,6 +1781,7 @@ void radv_initialize_dcc(struct radv_cmd_buffer *cmd_buffer,
 
 struct radv_fence {
 	struct radeon_winsys_fence *fence;
+	struct wsi_fence *fence_wsi;
 	bool submitted;
 	bool signalled;
 

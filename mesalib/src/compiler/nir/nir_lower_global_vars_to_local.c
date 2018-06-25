@@ -32,31 +32,33 @@
 
 #include "nir.h"
 
+static void
+register_var_use(nir_variable *var, nir_function_impl *impl,
+                 struct hash_table *var_func_table)
+{
+   if (var->data.mode != nir_var_global)
+      return;
+
+   struct hash_entry *entry =
+      _mesa_hash_table_search(var_func_table, var);
+
+   if (entry) {
+      if (entry->data != impl)
+         entry->data = NULL;
+   } else {
+      _mesa_hash_table_insert(var_func_table, var, impl);
+   }
+}
+
 static bool
 mark_global_var_uses_block(nir_block *block, nir_function_impl *impl,
                            struct hash_table *var_func_table)
 {
    nir_foreach_instr(instr, block) {
-      if (instr->type != nir_instr_type_intrinsic)
-         continue;
-
-      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-      unsigned num_vars = nir_intrinsic_infos[intrin->intrinsic].num_variables;
-
-      for (unsigned i = 0; i < num_vars; i++) {
-         nir_variable *var = intrin->variables[i]->var;
-         if (var->data.mode != nir_var_global)
-            continue;
-
-         struct hash_entry *entry =
-            _mesa_hash_table_search(var_func_table, var);
-
-         if (entry) {
-            if (entry->data != impl)
-               entry->data = NULL;
-         } else {
-            _mesa_hash_table_insert(var_func_table, var, impl);
-         }
+      if (instr->type ==  nir_instr_type_deref) {
+         nir_deref_instr *deref = nir_instr_as_deref(instr);
+         if (deref->deref_type == nir_deref_type_var)
+            register_var_use(deref->var, impl, var_func_table);
       }
    }
 
@@ -102,6 +104,9 @@ nir_lower_global_vars_to_local(nir_shader *shader)
    }
 
    _mesa_hash_table_destroy(var_func_table, NULL);
+
+   if (progress)
+      nir_fixup_deref_modes(shader);
 
    return progress;
 }

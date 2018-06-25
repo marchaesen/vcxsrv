@@ -104,4 +104,33 @@ wsi_get_randr_output_display(VkPhysicalDevice   physical_device,
 
 #endif /* VK_USE_PLATFORM_XLIB_XRANDR_EXT */
 
+/* VK_EXT_display_control */
+VkResult
+wsi_display_power_control(VkDevice                      device,
+                          struct wsi_device             *wsi_device,
+                          VkDisplayKHR                  display,
+                          const VkDisplayPowerInfoEXT   *display_power_info);
+
+VkResult
+wsi_register_device_event(VkDevice                      device,
+                          struct wsi_device             *wsi_device,
+                          const VkDeviceEventInfoEXT    *device_event_info,
+                          const VkAllocationCallbacks   *allocator,
+                          struct wsi_fence              **fence);
+
+VkResult
+wsi_register_display_event(VkDevice                     device,
+                           struct wsi_device            *wsi_device,
+                           VkDisplayKHR                 display,
+                           const VkDisplayEventInfoEXT  *display_event_info,
+                           const VkAllocationCallbacks  *allocator,
+                           struct wsi_fence             **fence);
+
+VkResult
+wsi_get_swapchain_counter(VkDevice                      device,
+                          struct wsi_device             *wsi_device,
+                          VkSwapchainKHR                swapchain,
+                          VkSurfaceCounterFlagBitsEXT   flag_bits,
+                          uint64_t                      *value);
+
 #endif

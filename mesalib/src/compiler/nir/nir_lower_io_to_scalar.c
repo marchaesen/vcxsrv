@@ -23,6 +23,7 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "nir_deref.h"
 
 /** @file nir_lower_io_to_scalar.c
  *
@@ -144,28 +145,27 @@ get_channel_variables(struct hash_table *ht, nir_variable *var)
 }
 
 /*
- * This function differs from nir_deref_clone() in that it gets its type from
- * the parent deref rather than our source deref. This is useful when splitting
- * vectors because we want to use the scalar type of the new parent rather than
- * then the old vector type.
+ * Note that the src deref that we are cloning is the head of the
+ * chain of deref instructions from the original intrinsic, but
+ * the dst we are cloning to is the tail (because chains of deref
+ * instructions are created back to front)
  */
-static nir_deref_array *
-clone_deref_array(const nir_deref_array *darr, nir_deref *parent)
+
+static nir_deref_instr *
+clone_deref_array(nir_builder *b, nir_deref_instr *dst_tail,
+                  const nir_deref_instr *src_head)
 {
-   nir_deref_array *ndarr = nir_deref_array_create(parent);
+   const nir_deref_instr *parent = nir_deref_instr_parent(src_head);
 
-   ndarr->deref.type = glsl_get_array_element(parent->type);
-   if (darr->deref.child)
-      ndarr->deref.child =
-         &clone_deref_array(nir_deref_as_array(darr->deref.child),
-                            &ndarr->deref)->deref;
+   if (!parent)
+      return dst_tail;
 
-   ndarr->deref_array_type = darr->deref_array_type;
-   ndarr->base_offset = darr->base_offset;
-   if (ndarr->deref_array_type == nir_deref_array_type_indirect)
-     nir_src_copy(&ndarr->indirect, &darr->indirect, parent);
+   assert(src_head->deref_type == nir_deref_type_array);
 
-   return ndarr;
+   dst_tail = clone_deref_array(b, dst_tail, parent);
+
+   return nir_build_deref_array(b, dst_tail,
+                                nir_ssa_for_src(b, src_head->arr.index, 1));
 }
 
 static void
@@ -203,17 +203,16 @@ lower_load_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
       nir_ssa_dest_init(&chan_intr->instr, &chan_intr->dest,
                         1, intr->dest.ssa.bit_size, NULL);
       chan_intr->num_components = 1;
-      chan_intr->variables[0] = nir_deref_var_create(chan_intr, chan_var);
 
-      if (intr->variables[0]->deref.child) {
-         chan_intr->variables[0]->deref.child =
-            &clone_deref_array(nir_deref_as_array(intr->variables[0]->deref.child),
-                               &chan_intr->variables[0]->deref)->deref;
-      }
+      nir_deref_instr *deref = nir_build_deref_var(b, chan_var);
 
-      if (intr->intrinsic == nir_intrinsic_interp_var_at_offset ||
-          intr->intrinsic == nir_intrinsic_interp_var_at_sample)
-         nir_src_copy(chan_intr->src, intr->src, &chan_intr->instr);
+      deref = clone_deref_array(b, deref, nir_src_as_deref(intr->src[0]));
+
+      chan_intr->src[0] = nir_src_for_ssa(&deref->dest.ssa);
+
+      if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
+          intr->intrinsic == nir_intrinsic_interp_deref_at_sample)
+         nir_src_copy(&chan_intr->src[1], &intr->src[1], &chan_intr->instr);
 
       nir_builder_instr_insert(b, &chan_intr->instr);
 
@@ -235,7 +234,7 @@ lower_store_output_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
 {
    b->cursor = nir_before_instr(&intr->instr);
 
-   nir_ssa_def *value = nir_ssa_for_src(b, intr->src[0], intr->num_components);
+   nir_ssa_def *value = nir_ssa_for_src(b, intr->src[1], intr->num_components);
 
    nir_variable **chan_vars = get_channel_variables(split_outputs, var);
    for (unsigned i = 0; i < intr->num_components; i++) {
@@ -259,14 +258,12 @@ lower_store_output_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
 
       nir_intrinsic_set_write_mask(chan_intr, 0x1);
 
-      chan_intr->variables[0] = nir_deref_var_create(chan_intr, chan_var);
-      chan_intr->src[0] = nir_src_for_ssa(nir_channel(b, value, i));
+      nir_deref_instr *deref = nir_build_deref_var(b, chan_var);
 
-      if (intr->variables[0]->deref.child) {
-         chan_intr->variables[0]->deref.child =
-            &clone_deref_array(nir_deref_as_array(intr->variables[0]->deref.child),
-                               &chan_intr->variables[0]->deref)->deref;
-      }
+      deref = clone_deref_array(b, deref, nir_src_as_deref(intr->src[0]));
+
+      chan_intr->src[0] = nir_src_for_ssa(&deref->dest.ssa);
+      chan_intr->src[1] = nir_src_for_ssa(nir_channel(b, value, i));
 
       nir_builder_instr_insert(b, &chan_intr->instr);
    }
@@ -304,14 +301,15 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
                if (intr->num_components == 1)
                   continue;
 
-               if (intr->intrinsic != nir_intrinsic_load_var &&
-                   intr->intrinsic != nir_intrinsic_store_var &&
-                   intr->intrinsic != nir_intrinsic_interp_var_at_centroid &&
-                   intr->intrinsic != nir_intrinsic_interp_var_at_sample &&
-                   intr->intrinsic != nir_intrinsic_interp_var_at_offset)
+               if (intr->intrinsic != nir_intrinsic_load_deref &&
+                   intr->intrinsic != nir_intrinsic_store_deref &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset)
                   continue;
 
-               nir_variable *var = intr->variables[0]->var;
+               nir_variable *var =
+                  nir_deref_instr_get_variable(nir_src_as_deref(intr->src[0]));
                nir_variable_mode mode = var->data.mode;
 
                /* TODO: add patch support */
@@ -338,16 +336,16 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
                  continue;
 
                switch (intr->intrinsic) {
-               case nir_intrinsic_interp_var_at_centroid:
-               case nir_intrinsic_interp_var_at_sample:
-               case nir_intrinsic_interp_var_at_offset:
-               case nir_intrinsic_load_var:
+               case nir_intrinsic_interp_deref_at_centroid:
+               case nir_intrinsic_interp_deref_at_sample:
+               case nir_intrinsic_interp_deref_at_offset:
+               case nir_intrinsic_load_deref:
                   if ((mask & nir_var_shader_in && mode == nir_var_shader_in) ||
                       (mask & nir_var_shader_out && mode == nir_var_shader_out))
                      lower_load_to_scalar_early(&b, intr, var, split_inputs,
                                                 split_outputs);
                   break;
-               case nir_intrinsic_store_var:
+               case nir_intrinsic_store_deref:
                   if (mask & nir_var_shader_out &&
                       mode == nir_var_shader_out)
                      lower_store_output_to_scalar_early(&b, intr, var,
@@ -380,4 +378,6 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
 
    _mesa_hash_table_destroy(split_inputs, NULL);
    _mesa_hash_table_destroy(split_outputs, NULL);
+
+   nir_remove_dead_derefs(shader);
 }

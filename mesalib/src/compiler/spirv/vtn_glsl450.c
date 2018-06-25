@@ -554,8 +554,8 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       nir_ssa_def *sign = nir_fsign(nb, src[0]);
       nir_ssa_def *abs = nir_fabs(nb, src[0]);
       val->ssa->def = nir_fmul(nb, sign, nir_ffract(nb, abs));
-      nir_store_deref_var(nb, vtn_nir_deref(b, w[6]),
-                          nir_fmul(nb, sign, nir_ffloor(nb, abs)), 0xf);
+      nir_store_deref(nb, vtn_nir_deref(b, w[6]),
+                      nir_fmul(nb, sign, nir_ffloor(nb, abs)), 0xf);
       return;
    }
 
@@ -749,7 +749,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
          val->ssa->def = build_frexp64(nb, src[0], &exponent);
       else
          val->ssa->def = build_frexp32(nb, src[0], &exponent);
-      nir_store_deref_var(nb, vtn_nir_deref(b, w[6]), exponent, 0xf);
+      nir_store_deref(nb, vtn_nir_deref(b, w[6]), exponent, 0xf);
       return;
    }
 
@@ -786,13 +786,13 @@ handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
    nir_intrinsic_op op;
    switch (opcode) {
    case GLSLstd450InterpolateAtCentroid:
-      op = nir_intrinsic_interp_var_at_centroid;
+      op = nir_intrinsic_interp_deref_at_centroid;
       break;
    case GLSLstd450InterpolateAtSample:
-      op = nir_intrinsic_interp_var_at_sample;
+      op = nir_intrinsic_interp_deref_at_sample;
       break;
    case GLSLstd450InterpolateAtOffset:
-      op = nir_intrinsic_interp_var_at_offset;
+      op = nir_intrinsic_interp_deref_at_offset;
       break;
    default:
       vtn_fail("Invalid opcode");
@@ -800,15 +800,16 @@ handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
 
    nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->nb.shader, op);
 
-   nir_deref_var *deref = vtn_nir_deref(b, w[5]);
-   intrin->variables[0] = nir_deref_var_clone(deref, intrin);
+   struct vtn_pointer *ptr =
+      vtn_value(b, w[5], vtn_value_type_pointer)->pointer;
+   intrin->src[0] = nir_src_for_ssa(&vtn_pointer_to_deref(b, ptr)->dest.ssa);
 
    switch (opcode) {
    case GLSLstd450InterpolateAtCentroid:
       break;
    case GLSLstd450InterpolateAtSample:
    case GLSLstd450InterpolateAtOffset:
-      intrin->src[0] = nir_src_for_ssa(vtn_ssa_value(b, w[6])->def);
+      intrin->src[1] = nir_src_for_ssa(vtn_ssa_value(b, w[6])->def);
       break;
    default:
       vtn_fail("Invalid opcode");

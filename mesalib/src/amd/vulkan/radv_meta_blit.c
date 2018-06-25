@@ -131,16 +131,20 @@ build_nir_copy_fragment_shader(enum glsl_sampler_dim tex_dim)
 	sampler->data.descriptor_set = 0;
 	sampler->data.binding = 0;
 
-	nir_tex_instr *tex = nir_tex_instr_create(b.shader, 1);
+	nir_ssa_def *tex_deref = &nir_build_deref_var(&b, sampler)->dest.ssa;
+
+	nir_tex_instr *tex = nir_tex_instr_create(b.shader, 3);
 	tex->sampler_dim = tex_dim;
 	tex->op = nir_texop_tex;
 	tex->src[0].src_type = nir_tex_src_coord;
 	tex->src[0].src = nir_src_for_ssa(tex_pos);
+	tex->src[1].src_type = nir_tex_src_texture_deref;
+	tex->src[1].src = nir_src_for_ssa(tex_deref);
+	tex->src[2].src_type = nir_tex_src_sampler_deref;
+	tex->src[2].src = nir_src_for_ssa(tex_deref);
 	tex->dest_type = nir_type_float; /* TODO */
 	tex->is_array = glsl_sampler_type_is_array(sampler_type);
 	tex->coord_components = tex_pos->num_components;
-	tex->texture = nir_deref_var_create(tex, sampler);
-	tex->sampler = nir_deref_var_create(tex, sampler);
 
 	nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
 	nir_builder_instr_insert(&b, &tex->instr);
@@ -185,16 +189,20 @@ build_nir_copy_fragment_shader_depth(enum glsl_sampler_dim tex_dim)
 	sampler->data.descriptor_set = 0;
 	sampler->data.binding = 0;
 
-	nir_tex_instr *tex = nir_tex_instr_create(b.shader, 1);
+	nir_ssa_def *tex_deref = &nir_build_deref_var(&b, sampler)->dest.ssa;
+
+	nir_tex_instr *tex = nir_tex_instr_create(b.shader, 3);
 	tex->sampler_dim = tex_dim;
 	tex->op = nir_texop_tex;
 	tex->src[0].src_type = nir_tex_src_coord;
 	tex->src[0].src = nir_src_for_ssa(tex_pos);
+	tex->src[1].src_type = nir_tex_src_texture_deref;
+	tex->src[1].src = nir_src_for_ssa(tex_deref);
+	tex->src[2].src_type = nir_tex_src_sampler_deref;
+	tex->src[2].src = nir_src_for_ssa(tex_deref);
 	tex->dest_type = nir_type_float; /* TODO */
 	tex->is_array = glsl_sampler_type_is_array(sampler_type);
 	tex->coord_components = tex_pos->num_components;
-	tex->texture = nir_deref_var_create(tex, sampler);
-	tex->sampler = nir_deref_var_create(tex, sampler);
 
 	nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
 	nir_builder_instr_insert(&b, &tex->instr);
@@ -239,16 +247,20 @@ build_nir_copy_fragment_shader_stencil(enum glsl_sampler_dim tex_dim)
 	sampler->data.descriptor_set = 0;
 	sampler->data.binding = 0;
 
-	nir_tex_instr *tex = nir_tex_instr_create(b.shader, 1);
+	nir_ssa_def *tex_deref = &nir_build_deref_var(&b, sampler)->dest.ssa;
+
+	nir_tex_instr *tex = nir_tex_instr_create(b.shader, 3);
 	tex->sampler_dim = tex_dim;
 	tex->op = nir_texop_tex;
 	tex->src[0].src_type = nir_tex_src_coord;
 	tex->src[0].src = nir_src_for_ssa(tex_pos);
+	tex->src[1].src_type = nir_tex_src_texture_deref;
+	tex->src[1].src = nir_src_for_ssa(tex_deref);
+	tex->src[2].src_type = nir_tex_src_sampler_deref;
+	tex->src[2].src = nir_src_for_ssa(tex_deref);
 	tex->dest_type = nir_type_float; /* TODO */
 	tex->is_array = glsl_sampler_type_is_array(sampler_type);
 	tex->coord_components = tex_pos->num_components;
-	tex->texture = nir_deref_var_create(tex, sampler);
-	tex->sampler = nir_deref_var_create(tex, sampler);
 
 	nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
 	nir_builder_instr_insert(&b, &tex->instr);

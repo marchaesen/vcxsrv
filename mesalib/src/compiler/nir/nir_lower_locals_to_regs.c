@@ -26,10 +26,10 @@
  */
 
 #include "nir.h"
+#include "nir_builder.h"
 
 struct locals_to_regs_state {
-   nir_shader *shader;
-   nir_function_impl *impl;
+   nir_builder builder;
 
    /* A hash table mapping derefs to registers */
    struct hash_table *regs_table;
@@ -47,54 +47,61 @@ hash_deref(const void *void_deref)
 {
    uint32_t hash = _mesa_fnv32_1a_offset_bias;
 
-   const nir_deref_var *deref_var = void_deref;
-   hash = _mesa_fnv32_1a_accumulate(hash, deref_var->var);
+   for (const nir_deref_instr *deref = void_deref; deref;
+        deref = nir_deref_instr_parent(deref)) {
+      switch (deref->deref_type) {
+      case nir_deref_type_var:
+         return _mesa_fnv32_1a_accumulate(hash, deref->var);
 
-   for (const nir_deref *deref = deref_var->deref.child;
-        deref; deref = deref->child) {
-      if (deref->deref_type == nir_deref_type_struct) {
-         const nir_deref_struct *deref_struct = nir_deref_as_struct(deref);
-         hash = _mesa_fnv32_1a_accumulate(hash, deref_struct->index);
+      case nir_deref_type_array:
+         continue; /* Do nothing */
+
+      case nir_deref_type_struct:
+         hash = _mesa_fnv32_1a_accumulate(hash, deref->strct.index);
+         continue;
+
+      default:
+         unreachable("Invalid deref type");
       }
    }
 
-   return hash;
+   unreachable("We should have hit a variable dereference");
 }
 
 static bool
 derefs_equal(const void *void_a, const void *void_b)
 {
-   const nir_deref_var *a_var = void_a;
-   const nir_deref_var *b_var = void_b;
-
-   if (a_var->var != b_var->var)
-      return false;
-
-   for (const nir_deref *a = a_var->deref.child, *b = b_var->deref.child;
-        a != NULL; a = a->child, b = b->child) {
+   for (const nir_deref_instr *a = void_a, *b = void_b; a || b;
+        a = nir_deref_instr_parent(a), b = nir_deref_instr_parent(b)) {
       if (a->deref_type != b->deref_type)
          return false;
 
-      if (a->deref_type == nir_deref_type_struct) {
-         if (nir_deref_as_struct(a)->index != nir_deref_as_struct(b)->index)
-            return false;
-      }
-      /* Do nothing for arrays.  They're all the same. */
+      switch (a->deref_type) {
+      case nir_deref_type_var:
+         return a->var == b->var;
 
-      assert((a->child == NULL) == (b->child == NULL));
-      if((a->child == NULL) != (b->child == NULL))
-         return false;
+      case nir_deref_type_array:
+         continue; /* Do nothing */
+
+      case nir_deref_type_struct:
+         if (a->strct.index != b->strct.index)
+            return false;
+         continue;
+
+      default:
+         unreachable("Invalid deref type");
+      }
    }
 
-   return true;
+   unreachable("We should have hit a variable dereference");
 }
 
 static nir_register *
-get_reg_for_deref(nir_deref_var *deref, struct locals_to_regs_state *state)
+get_reg_for_deref(nir_deref_instr *deref, struct locals_to_regs_state *state)
 {
    uint32_t hash = hash_deref(deref);
 
-   assert(deref->var->constant_initializer == NULL);
+   assert(nir_deref_instr_get_variable(deref)->constant_initializer == NULL);
 
    struct hash_entry *entry =
       _mesa_hash_table_search_pre_hashed(state->regs_table, hash, deref);
@@ -102,19 +109,17 @@ get_reg_for_deref(nir_deref_var *deref, struct locals_to_regs_state *state)
       return entry->data;
 
    unsigned array_size = 1;
-   nir_deref *tail = &deref->deref;
-   while (tail->child) {
-      if (tail->child->deref_type == nir_deref_type_array)
-         array_size *= glsl_get_length(tail->type);
-      tail = tail->child;
+   for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
+      if (d->deref_type == nir_deref_type_array)
+         array_size *= glsl_get_length(nir_deref_instr_parent(d)->type);
    }
 
-   assert(glsl_type_is_vector(tail->type) || glsl_type_is_scalar(tail->type));
+   assert(glsl_type_is_vector_or_scalar(deref->type));
 
-   nir_register *reg = nir_local_reg_create(state->impl);
-   reg->num_components = glsl_get_vector_elements(tail->type);
+   nir_register *reg = nir_local_reg_create(state->builder.impl);
+   reg->num_components = glsl_get_vector_elements(deref->type);
    reg->num_array_elems = array_size > 1 ? array_size : 0;
-   reg->bit_size = glsl_get_bit_size(tail->type);
+   reg->bit_size = glsl_get_bit_size(deref->type);
 
    _mesa_hash_table_insert_pre_hashed(state->regs_table, hash, deref, reg);
 
@@ -122,9 +127,10 @@ get_reg_for_deref(nir_deref_var *deref, struct locals_to_regs_state *state)
 }
 
 static nir_src
-get_deref_reg_src(nir_deref_var *deref, nir_instr *instr,
-                  struct locals_to_regs_state *state)
+get_deref_reg_src(nir_deref_instr *deref, struct locals_to_regs_state *state)
 {
+   nir_builder *b = &state->builder;
+
    nir_src src;
 
    src.is_ssa = false;
@@ -140,55 +146,32 @@ get_deref_reg_src(nir_deref_var *deref, nir_instr *instr,
    if (src.reg.reg->num_array_elems == 0)
       return src;
 
-   nir_deref *tail = &deref->deref;
-   while (tail->child != NULL) {
-      const struct glsl_type *parent_type = tail->type;
-      tail = tail->child;
-
-      if (tail->deref_type != nir_deref_type_array)
+   unsigned inner_array_size = 1;
+   for (const nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
+      if (d->deref_type != nir_deref_type_array)
          continue;
 
-      nir_deref_array *deref_array = nir_deref_as_array(tail);
-
-      src.reg.base_offset *= glsl_get_length(parent_type);
-      src.reg.base_offset += deref_array->base_offset;
-
-      if (src.reg.indirect) {
-         nir_load_const_instr *load_const =
-            nir_load_const_instr_create(state->shader, 1, 32);
-         load_const->value.u32[0] = glsl_get_length(parent_type);
-         nir_instr_insert_before(instr, &load_const->instr);
-
-         nir_alu_instr *mul = nir_alu_instr_create(state->shader, nir_op_imul);
-         mul->src[0].src = *src.reg.indirect;
-         mul->src[1].src.is_ssa = true;
-         mul->src[1].src.ssa = &load_const->def;
-         mul->dest.write_mask = 1;
-         nir_ssa_dest_init(&mul->instr, &mul->dest.dest, 1, 32, NULL);
-         nir_instr_insert_before(instr, &mul->instr);
-
-         src.reg.indirect->is_ssa = true;
-         src.reg.indirect->ssa = &mul->dest.dest.ssa;
-      }
-
-      if (deref_array->deref_array_type == nir_deref_array_type_indirect) {
-         if (src.reg.indirect == NULL) {
-            src.reg.indirect = ralloc(state->shader, nir_src);
-            nir_src_copy(src.reg.indirect, &deref_array->indirect,
-                         state->shader);
+      nir_const_value *const_index = nir_src_as_const_value(d->arr.index);
+      if (const_index && !src.reg.indirect) {
+         src.reg.base_offset += const_index->u32[0] * inner_array_size;
+      } else {
+         if (src.reg.indirect) {
+            assert(src.reg.base_offset == 0);
          } else {
-            nir_alu_instr *add = nir_alu_instr_create(state->shader,
-                                                      nir_op_iadd);
-            add->src[0].src = *src.reg.indirect;
-            nir_src_copy(&add->src[1].src, &deref_array->indirect, add);
-            add->dest.write_mask = 1;
-            nir_ssa_dest_init(&add->instr, &add->dest.dest, 1, 32, NULL);
-            nir_instr_insert_before(instr, &add->instr);
-
-            src.reg.indirect->is_ssa = true;
-            src.reg.indirect->ssa = &add->dest.dest.ssa;
+            src.reg.indirect = ralloc(b->shader, nir_src);
+            *src.reg.indirect =
+               nir_src_for_ssa(nir_imm_int(b, src.reg.base_offset));
+            src.reg.base_offset = 0;
          }
+
+         assert(src.reg.indirect->is_ssa);
+         src.reg.indirect->ssa =
+            nir_iadd(b, src.reg.indirect->ssa,
+                        nir_imul(b, nir_ssa_for_src(b, d->arr.index, 1),
+                                    nir_imm_int(b, inner_array_size)));
       }
+
+      inner_array_size *= glsl_get_length(nir_deref_instr_parent(d)->type);
    }
 
    return src;
@@ -198,6 +181,8 @@ static bool
 lower_locals_to_regs_block(nir_block *block,
                            struct locals_to_regs_state *state)
 {
+   nir_builder *b = &state->builder;
+
    nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_intrinsic)
          continue;
@@ -205,13 +190,15 @@ lower_locals_to_regs_block(nir_block *block,
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
       switch (intrin->intrinsic) {
-      case nir_intrinsic_load_var: {
-         if (intrin->variables[0]->var->data.mode != nir_var_local)
+      case nir_intrinsic_load_deref: {
+         nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+         if (deref->mode != nir_var_local)
             continue;
 
-         nir_alu_instr *mov = nir_alu_instr_create(state->shader, nir_op_imov);
-         mov->src[0].src = get_deref_reg_src(intrin->variables[0],
-                                             &intrin->instr, state);
+         b->cursor = nir_before_instr(&intrin->instr);
+
+         nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_imov);
+         mov->src[0].src = get_deref_reg_src(deref, state);
          mov->dest.write_mask = (1 << intrin->num_components) - 1;
          if (intrin->dest.is_ssa) {
             nir_ssa_dest_init(&mov->instr, &mov->dest.dest,
@@ -222,36 +209,38 @@ lower_locals_to_regs_block(nir_block *block,
          } else {
             nir_dest_copy(&mov->dest.dest, &intrin->dest, &mov->instr);
          }
-         nir_instr_insert_before(&intrin->instr, &mov->instr);
+         nir_builder_instr_insert(b, &mov->instr);
 
          nir_instr_remove(&intrin->instr);
          state->progress = true;
          break;
       }
 
-      case nir_intrinsic_store_var: {
-         if (intrin->variables[0]->var->data.mode != nir_var_local)
+      case nir_intrinsic_store_deref: {
+         nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+         if (deref->mode != nir_var_local)
             continue;
 
-         nir_src reg_src = get_deref_reg_src(intrin->variables[0],
-                                             &intrin->instr, state);
+         b->cursor = nir_before_instr(&intrin->instr);
 
-         nir_alu_instr *mov = nir_alu_instr_create(state->shader, nir_op_imov);
-         nir_src_copy(&mov->src[0].src, &intrin->src[0], mov);
+         nir_src reg_src = get_deref_reg_src(deref, state);
+
+         nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_imov);
+         nir_src_copy(&mov->src[0].src, &intrin->src[1], mov);
          mov->dest.write_mask = nir_intrinsic_write_mask(intrin);
          mov->dest.dest.is_ssa = false;
          mov->dest.dest.reg.reg = reg_src.reg.reg;
          mov->dest.dest.reg.base_offset = reg_src.reg.base_offset;
          mov->dest.dest.reg.indirect = reg_src.reg.indirect;
 
-         nir_instr_insert_before(&intrin->instr, &mov->instr);
+         nir_builder_instr_insert(b, &mov->instr);
 
          nir_instr_remove(&intrin->instr);
          state->progress = true;
          break;
       }
 
-      case nir_intrinsic_copy_var:
+      case nir_intrinsic_copy_deref:
          unreachable("There should be no copies whatsoever at this point");
          break;
 
@@ -268,8 +257,7 @@ nir_lower_locals_to_regs_impl(nir_function_impl *impl)
 {
    struct locals_to_regs_state state;
 
-   state.shader = impl->function->shader;
-   state.impl = impl;
+   nir_builder_init(&state.builder, impl);
    state.progress = false;
    state.regs_table = _mesa_hash_table_create(NULL, hash_deref, derefs_equal);
 

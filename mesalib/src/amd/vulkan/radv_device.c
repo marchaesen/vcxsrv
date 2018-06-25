@@ -2470,9 +2470,8 @@ static VkResult radv_signal_fence(struct radv_queue *queue,
 	                                   false, fence->fence);
 	radv_free_sem_info(&sem_info);
 
-	/* TODO: find a better error */
 	if (ret)
-		return vk_error(queue->device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+		return vk_error(queue->device->instance, VK_ERROR_DEVICE_LOST);
 
 	return VK_SUCCESS;
 }
@@ -2616,7 +2615,9 @@ VkResult radv_QueueSubmit(
 
 	if (fence) {
 		if (!fence_emitted) {
-			radv_signal_fence(queue, fence);
+			result = radv_signal_fence(queue, fence);
+			if (result != VK_SUCCESS)
+				return result;
 		}
 		fence->submitted = true;
 	}
@@ -3173,6 +3174,8 @@ radv_sparse_image_opaque_bind_memory(struct radv_device *device,
 	RADV_FROM_HANDLE(radv_queue, queue, _queue);
 	struct radeon_winsys_fence *base_fence = fence ? fence->fence : NULL;
 	bool fence_emitted = false;
+	VkResult result;
+	int ret;
 
 	for (uint32_t i = 0; i < bindInfoCount; ++i) {
 		struct radv_winsys_sem_info sem_info;
@@ -3198,11 +3201,16 @@ radv_sparse_image_opaque_bind_memory(struct radv_device *device,
 			return result;
 
 		if (pBindInfo[i].waitSemaphoreCount || pBindInfo[i].signalSemaphoreCount) {
-			queue->device->ws->cs_submit(queue->hw_ctx, queue->queue_idx,
-			                             &queue->device->empty_cs[queue->queue_family_index],
-			                             1, NULL, NULL,
-						     &sem_info, NULL,
-			                             false, base_fence);
+			ret = queue->device->ws->cs_submit(queue->hw_ctx, queue->queue_idx,
+							  &queue->device->empty_cs[queue->queue_family_index],
+							  1, NULL, NULL,
+							  &sem_info, NULL,
+							  false, base_fence);
+			if (ret) {
+				radv_loge("failed to submit CS %d\n", i);
+				abort();
+			}
+
 			fence_emitted = true;
 			if (fence)
 				fence->submitted = true;
@@ -3214,7 +3222,9 @@ radv_sparse_image_opaque_bind_memory(struct radv_device *device,
 
 	if (fence) {
 		if (!fence_emitted) {
-			radv_signal_fence(queue, fence);
+			result = radv_signal_fence(queue, fence);
+			if (result != VK_SUCCESS)
+				return result;
 		}
 		fence->submitted = true;
 	}
@@ -3241,6 +3251,7 @@ VkResult radv_CreateFence(
 	if (!fence)
 		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+	fence->fence_wsi = NULL;
 	fence->submitted = false;
 	fence->signalled = !!(pCreateInfo->flags & VK_FENCE_CREATE_SIGNALED_BIT);
 	fence->temp_syncobj = 0;
@@ -3285,6 +3296,8 @@ void radv_DestroyFence(
 		device->ws->destroy_syncobj(device->ws, fence->syncobj);
 	if (fence->fence)
 		device->ws->destroy_fence(fence->fence);
+	if (fence->fence_wsi)
+		fence->fence_wsi->destroy(fence->fence_wsi);
 	vk_free2(&device->alloc, pAllocator, fence);
 }
 
@@ -3310,7 +3323,19 @@ static bool radv_all_fences_plain_and_submitted(uint32_t fenceCount, const VkFen
 {
 	for (uint32_t i = 0; i < fenceCount; ++i) {
 		RADV_FROM_HANDLE(radv_fence, fence, pFences[i]);
-		if (fence->syncobj || fence->temp_syncobj || (!fence->signalled && !fence->submitted))
+		if (fence->fence == NULL || fence->syncobj ||
+		    fence->temp_syncobj ||
+		    (!fence->signalled && !fence->submitted))
+			return false;
+	}
+	return true;
+}
+
+static bool radv_all_fences_syncobj(uint32_t fenceCount, const VkFence *pFences)
+{
+	for (uint32_t i = 0; i < fenceCount; ++i) {
+		RADV_FROM_HANDLE(radv_fence, fence, pFences[i]);
+		if (fence->syncobj == 0 && fence->temp_syncobj == 0)
 			return false;
 	}
 	return true;
@@ -3326,7 +3351,9 @@ VkResult radv_WaitForFences(
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	timeout = radv_get_absolute_timeout(timeout);
 
-	if (device->always_use_syncobj) {
+	if (device->always_use_syncobj &&
+	    radv_all_fences_syncobj(fenceCount, pFences))
+	{
 		uint32_t *handles = malloc(sizeof(uint32_t) * fenceCount);
 		if (!handles)
 			return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -3396,21 +3423,34 @@ VkResult radv_WaitForFences(
 		if (fence->signalled)
 			continue;
 
-		if (!fence->submitted) {
-			while(radv_get_current_time() <= timeout && !fence->submitted)
-				/* Do nothing */;
+		if (fence->fence) {
+			if (!fence->submitted) {
+				while(radv_get_current_time() <= timeout &&
+				      !fence->submitted)
+					/* Do nothing */;
 
-			if (!fence->submitted)
+				if (!fence->submitted)
+					return VK_TIMEOUT;
+
+				/* Recheck as it may have been set by
+				 * submitting operations. */
+
+				if (fence->signalled)
+					continue;
+			}
+
+			expired = device->ws->fence_wait(device->ws,
+							 fence->fence,
+							 true, timeout);
+			if (!expired)
 				return VK_TIMEOUT;
-
-			/* Recheck as it may have been set by submitting operations. */
-			if (fence->signalled)
-				continue;
 		}
 
-		expired = device->ws->fence_wait(device->ws, fence->fence, true, timeout);
-		if (!expired)
-			return VK_TIMEOUT;
+		if (fence->fence_wsi) {
+			VkResult result = fence->fence_wsi->wait(fence->fence_wsi, timeout);
+			if (result != VK_SUCCESS)
+				return result;
+		}
 
 		fence->signalled = true;
 	}
@@ -3462,9 +3502,19 @@ VkResult radv_GetFenceStatus(VkDevice _device, VkFence _fence)
 		return VK_SUCCESS;
 	if (!fence->submitted)
 		return VK_NOT_READY;
-	if (!device->ws->fence_wait(device->ws, fence->fence, false, 0))
-		return VK_NOT_READY;
+	if (fence->fence) {
+		if (!device->ws->fence_wait(device->ws, fence->fence, false, 0))
+			return VK_NOT_READY;
+	}
+	if (fence->fence_wsi) {
+		VkResult result = fence->fence_wsi->wait(fence->fence_wsi, 0);
 
+		if (result != VK_SUCCESS) {
+			if (result == VK_TIMEOUT)
+				return VK_NOT_READY;
+			return result;
+		}
+	}
 	return VK_SUCCESS;
 }
 

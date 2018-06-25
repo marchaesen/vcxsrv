@@ -79,6 +79,7 @@ typedef struct wsi_display_connector {
    struct list_head             display_modes;
    wsi_display_mode             *current_mode;
    drmModeModeInfo              current_drm_mode;
+   uint32_t                     dpms_property;
 #ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
    xcb_randr_output_t           output;
 #endif
@@ -131,6 +132,15 @@ struct wsi_display_swapchain {
    VkResult                     status;
    struct wsi_display_image     images[0];
 };
+
+struct wsi_display_fence {
+   struct wsi_fence             base;
+   bool                         event_received;
+   bool                         destroyed;
+   uint64_t                     sequence;
+};
+
+static uint64_t fence_sequence;
 
 ICD_DEFINE_NONDISP_HANDLE_CASTS(wsi_display_mode, VkDisplayModeKHR)
 ICD_DEFINE_NONDISP_HANDLE_CASTS(wsi_display_connector, VkDisplayKHR)
@@ -306,6 +316,21 @@ wsi_display_get_connector(struct wsi_device *wsi_device,
    }
 
    connector->connected = drm_connector->connection != DRM_MODE_DISCONNECTED;
+
+   /* Look for a DPMS property if we haven't already found one */
+   for (int p = 0; connector->dpms_property == 0 &&
+           p < drm_connector->count_props; p++)
+   {
+      drmModePropertyPtr prop = drmModeGetProperty(wsi->fd,
+                                                   drm_connector->props[p]);
+      if (!prop)
+         continue;
+      if (prop->flags & DRM_MODE_PROP_ENUM) {
+         if (!strcmp(prop->name, "DPMS"))
+            connector->dpms_property = drm_connector->props[p];
+      }
+      drmModeFreeProperty(prop);
+   }
 
    /* Mark all connector modes as invalid */
    wsi_display_invalidate_connector_modes(wsi_device, connector);
@@ -674,14 +699,37 @@ wsi_display_surface_get_capabilities(VkIcdSurfaceBase *surface_base,
 }
 
 static VkResult
+wsi_display_surface_get_surface_counters(
+   VkIcdSurfaceBase *surface_base,
+   VkSurfaceCounterFlagsEXT *counters)
+{
+   *counters = VK_SURFACE_COUNTER_VBLANK_EXT;
+   return VK_SUCCESS;
+}
+
+static VkResult
 wsi_display_surface_get_capabilities2(VkIcdSurfaceBase *icd_surface,
                                       const void *info_next,
                                       VkSurfaceCapabilities2KHR *caps)
 {
    assert(caps->sType == VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR);
+   VkResult result;
 
-   return wsi_display_surface_get_capabilities(icd_surface,
-                                               &caps->surfaceCapabilities);
+   result = wsi_display_surface_get_capabilities(icd_surface,
+                                                 &caps->surfaceCapabilities);
+   if (result != VK_SUCCESS)
+      return result;
+
+   struct wsi_surface_supported_counters *counters =
+      vk_find_struct( caps->pNext, WSI_SURFACE_SUPPORTED_COUNTERS_MESA);
+
+   if (counters) {
+      result = wsi_display_surface_get_surface_counters(
+         icd_surface,
+         &counters->supported_surface_counters);
+   }
+
+   return result;
 }
 
 static const struct {
@@ -904,6 +952,8 @@ wsi_display_page_flip_handler2(int fd,
       chain->status = result;
 }
 
+static void wsi_display_fence_event_handler(struct wsi_display_fence *fence);
+
 static void wsi_display_page_flip_handler(int fd,
                                           unsigned int frame,
                                           unsigned int sec,
@@ -913,12 +963,32 @@ static void wsi_display_page_flip_handler(int fd,
    wsi_display_page_flip_handler2(fd, frame, sec, usec, 0, data);
 }
 
+static void wsi_display_vblank_handler(int fd, unsigned int frame,
+                                       unsigned int sec, unsigned int usec,
+                                       void *data)
+{
+   struct wsi_display_fence *fence = data;
+
+   wsi_display_fence_event_handler(fence);
+}
+
+static void wsi_display_sequence_handler(int fd, uint64_t frame,
+                                         uint64_t nsec, uint64_t user_data)
+{
+   struct wsi_display_fence *fence =
+      (struct wsi_display_fence *) (uintptr_t) user_data;
+
+   wsi_display_fence_event_handler(fence);
+}
+
 static drmEventContext event_context = {
    .version = DRM_EVENT_CONTEXT_VERSION,
    .page_flip_handler = wsi_display_page_flip_handler,
 #if DRM_EVENT_CONTEXT_VERSION >= 3
    .page_flip_handler2 = wsi_display_page_flip_handler2,
 #endif
+   .vblank_handler = wsi_display_vblank_handler,
+   .sequence_handler = wsi_display_sequence_handler,
 };
 
 static void *
@@ -1183,6 +1253,160 @@ bail_mode_res:
 bail:
    return result;
 
+}
+
+static VkResult
+wsi_display_fence_wait(struct wsi_fence *fence_wsi, uint64_t timeout)
+{
+   const struct wsi_device *wsi_device = fence_wsi->wsi_device;
+   struct wsi_display *wsi =
+      (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+   struct wsi_display_fence *fence = (struct wsi_display_fence *) fence_wsi;
+
+   wsi_display_debug("%9lu wait fence %lu %ld\n",
+                     pthread_self(), fence->sequence,
+                     (int64_t) (timeout - wsi_get_current_monotonic()));
+   wsi_display_debug_code(uint64_t start_ns = wsi_get_current_monotonic());
+   pthread_mutex_lock(&wsi->wait_mutex);
+
+   VkResult result;
+   int ret = 0;
+   for (;;) {
+      if (fence->event_received) {
+         wsi_display_debug("%9lu fence %lu passed\n",
+                           pthread_self(), fence->sequence);
+         result = VK_SUCCESS;
+         break;
+      }
+
+      if (ret == ETIMEDOUT) {
+         wsi_display_debug("%9lu fence %lu timeout\n",
+                           pthread_self(), fence->sequence);
+         result = VK_TIMEOUT;
+         break;
+      }
+
+      ret = wsi_display_wait_for_event(wsi, timeout);
+
+      if (ret && ret != ETIMEDOUT) {
+         wsi_display_debug("%9lu fence %lu error\n",
+                           pthread_self(), fence->sequence);
+         result = VK_ERROR_DEVICE_LOST;
+         break;
+      }
+   }
+   pthread_mutex_unlock(&wsi->wait_mutex);
+   wsi_display_debug("%9lu fence wait %f ms\n",
+                     pthread_self(),
+                     ((int64_t) (wsi_get_current_monotonic() - start_ns)) /
+                     1.0e6);
+   return result;
+}
+
+static void
+wsi_display_fence_check_free(struct wsi_display_fence *fence)
+{
+   if (fence->event_received && fence->destroyed)
+      vk_free(fence->base.alloc, fence);
+}
+
+static void wsi_display_fence_event_handler(struct wsi_display_fence *fence)
+{
+   fence->event_received = true;
+   wsi_display_fence_check_free(fence);
+}
+
+static void
+wsi_display_fence_destroy(struct wsi_fence *fence_wsi)
+{
+   struct wsi_display_fence *fence = (struct wsi_display_fence *) fence_wsi;
+
+   assert(!fence->destroyed);
+   fence->destroyed = true;
+   wsi_display_fence_check_free(fence);
+}
+
+static struct wsi_display_fence *
+wsi_display_fence_alloc(VkDevice device,
+                        const struct wsi_device *wsi_device,
+                        VkDisplayKHR display,
+                        const VkAllocationCallbacks *allocator)
+{
+   struct wsi_display *wsi =
+      (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+   struct wsi_display_fence *fence =
+      vk_zalloc2(wsi->alloc, allocator, sizeof (*fence),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+
+   if (!fence)
+      return NULL;
+
+   fence->base.device = device;
+   fence->base.display = display;
+   fence->base.wsi_device = wsi_device;
+   fence->base.alloc = allocator ? allocator : wsi->alloc;
+   fence->base.wait = wsi_display_fence_wait;
+   fence->base.destroy = wsi_display_fence_destroy;
+   fence->event_received = false;
+   fence->destroyed = false;
+   fence->sequence = ++fence_sequence;
+   return fence;
+}
+
+static VkResult
+wsi_register_vblank_event(struct wsi_display_fence *fence,
+                          const struct wsi_device *wsi_device,
+                          VkDisplayKHR display,
+                          uint32_t flags,
+                          uint64_t frame_requested,
+                          uint64_t *frame_queued)
+{
+   struct wsi_display *wsi =
+      (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+   struct wsi_display_connector *connector =
+      wsi_display_connector_from_handle(display);
+
+   if (wsi->fd < 0)
+      return VK_ERROR_INITIALIZATION_FAILED;
+
+   for (;;) {
+      int ret = drmCrtcQueueSequence(wsi->fd, connector->crtc_id,
+                                     flags,
+                                     frame_requested,
+                                     frame_queued,
+                                     (uint64_t) fence);
+
+      if (!ret)
+         return VK_SUCCESS;
+
+      if (errno != ENOMEM) {
+
+         /* Something unexpected happened. Pause for a moment so the
+          * application doesn't just spin and then return a failure indication
+          */
+
+         wsi_display_debug("queue vblank event %lu failed\n", fence->sequence);
+         struct timespec delay = {
+            .tv_sec = 0,
+            .tv_nsec = 100000000ull,
+         };
+         nanosleep(&delay, NULL);
+         return VK_ERROR_OUT_OF_HOST_MEMORY;
+      }
+
+      /* The kernel event queue is full. Wait for some events to be
+       * processed and try again
+       */
+
+      pthread_mutex_lock(&wsi->wait_mutex);
+      ret = wsi_display_wait_for_event(wsi, wsi_rel_to_abs_time(100000000ull));
+      pthread_mutex_unlock(&wsi->wait_mutex);
+
+      if (ret) {
+         wsi_display_debug("vblank queue full, event wait failed\n");
+         return VK_ERROR_OUT_OF_HOST_MEMORY;
+      }
+   }
 }
 
 /*
@@ -1980,3 +2204,116 @@ wsi_get_randr_output_display(VkPhysicalDevice physical_device,
 }
 
 #endif
+
+/* VK_EXT_display_control */
+VkResult
+wsi_display_power_control(VkDevice device,
+                          struct wsi_device *wsi_device,
+                          VkDisplayKHR display,
+                          const VkDisplayPowerInfoEXT *display_power_info)
+{
+   struct wsi_display *wsi =
+      (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+   struct wsi_display_connector *connector =
+      wsi_display_connector_from_handle(display);
+   int mode;
+
+   if (wsi->fd < 0)
+      return VK_ERROR_INITIALIZATION_FAILED;
+
+   switch (display_power_info->powerState) {
+   case VK_DISPLAY_POWER_STATE_OFF_EXT:
+      mode = DRM_MODE_DPMS_OFF;
+      break;
+   case VK_DISPLAY_POWER_STATE_SUSPEND_EXT:
+      mode = DRM_MODE_DPMS_SUSPEND;
+      break;
+   default:
+      mode = DRM_MODE_DPMS_ON;
+      break;
+   }
+   drmModeConnectorSetProperty(wsi->fd,
+                               connector->id,
+                               connector->dpms_property,
+                               mode);
+   return VK_SUCCESS;
+}
+
+VkResult
+wsi_register_device_event(VkDevice device,
+                          struct wsi_device *wsi_device,
+                          const VkDeviceEventInfoEXT *device_event_info,
+                          const VkAllocationCallbacks *allocator,
+                          struct wsi_fence **fence_p)
+{
+   return VK_ERROR_FEATURE_NOT_PRESENT;
+}
+
+VkResult
+wsi_register_display_event(VkDevice device,
+                           struct wsi_device *wsi_device,
+                           VkDisplayKHR display,
+                           const VkDisplayEventInfoEXT *display_event_info,
+                           const VkAllocationCallbacks *allocator,
+                           struct wsi_fence **fence_p)
+{
+   struct wsi_display *wsi =
+      (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+   struct wsi_display_fence *fence;
+   VkResult ret;
+
+   switch (display_event_info->displayEvent) {
+   case VK_DISPLAY_EVENT_TYPE_FIRST_PIXEL_OUT_EXT:
+
+      fence = wsi_display_fence_alloc(device, wsi_device, display, allocator);
+
+      if (!fence)
+         return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+      ret = wsi_register_vblank_event(fence, wsi_device, display,
+                                      DRM_CRTC_SEQUENCE_RELATIVE, 1, NULL);
+
+      if (ret == VK_SUCCESS)
+         *fence_p = &fence->base;
+      else if (fence != NULL)
+         vk_free2(wsi->alloc, allocator, fence);
+
+      break;
+   default:
+      ret = VK_ERROR_FEATURE_NOT_PRESENT;
+      break;
+   }
+
+   return ret;
+}
+
+
+VkResult
+wsi_get_swapchain_counter(VkDevice device,
+                          struct wsi_device *wsi_device,
+                          VkSwapchainKHR _swapchain,
+                          VkSurfaceCounterFlagBitsEXT flag_bits,
+                          uint64_t *value)
+{
+   struct wsi_display *wsi =
+      (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+   struct wsi_display_swapchain *swapchain =
+      (struct wsi_display_swapchain *) wsi_swapchain_from_handle(_swapchain);
+   struct wsi_display_connector *connector =
+      wsi_display_mode_from_handle(swapchain->surface->displayMode)->connector;
+
+   if (wsi->fd < 0)
+      return VK_ERROR_INITIALIZATION_FAILED;
+
+   if (!connector->active) {
+      *value = 0;
+      return VK_SUCCESS;
+   }
+
+   int ret = drmCrtcGetSequence(wsi->fd, connector->crtc_id, value, NULL);
+   if (ret)
+      *value = 0;
+
+   return VK_SUCCESS;
+}
+

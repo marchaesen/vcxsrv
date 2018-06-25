@@ -52,6 +52,7 @@ static void
 init_instr(nir_instr *instr, nir_instr_worklist *worklist)
 {
    nir_alu_instr *alu_instr;
+   nir_deref_instr *deref_instr;
    nir_intrinsic_instr *intrin_instr;
    nir_tex_instr *tex_instr;
 
@@ -70,6 +71,12 @@ init_instr(nir_instr *instr, nir_instr_worklist *worklist)
    case nir_instr_type_alu:
       alu_instr = nir_instr_as_alu(instr);
       if (!alu_instr->dest.dest.is_ssa)
+         mark_and_push(worklist, instr);
+      break;
+
+   case nir_instr_type_deref:
+      deref_instr = nir_instr_as_deref(instr);
+      if (!deref_instr->dest.is_ssa)
          mark_and_push(worklist, instr);
       break;
 

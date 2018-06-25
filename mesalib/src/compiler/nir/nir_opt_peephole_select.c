@@ -66,8 +66,8 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count, bool alu_ok)
          nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
          switch (intrin->intrinsic) {
-         case nir_intrinsic_load_var:
-            switch (intrin->variables[0]->var->data.mode) {
+         case nir_intrinsic_load_deref:
+            switch (nir_src_as_deref(intrin->src[0])->mode) {
             case nir_var_shader_in:
             case nir_var_uniform:
                break;

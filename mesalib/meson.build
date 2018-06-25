@@ -398,16 +398,17 @@ elif not (with_gallium_r300 or with_gallium_r600 or with_gallium_radeonsi or
   else
     _vdpau = 'false'
   endif
-elif _vdpau == 'auto'
-  _vdpau = 'true'
 endif
-with_gallium_vdpau = _vdpau == 'true'
 dep_vdpau = null_dep
-if with_gallium_vdpau
-  dep_vdpau = dependency('vdpau', version : '>= 1.1')
-  dep_vdpau = declare_dependency(
-    compile_args : run_command(prog_pkgconfig, ['vdpau', '--cflags']).stdout().split()
-  )
+with_gallium_vdpau = false
+if _vdpau != 'false'
+  dep_vdpau = dependency('vdpau', version : '>= 1.1', required : _vdpau == 'true')
+  if dep_vdpau.found()
+    dep_vdpau = declare_dependency(
+      compile_args : run_command(prog_pkgconfig, ['vdpau', '--cflags']).stdout().split()
+    )
+    with_gallium_vdpau = true
+  endif
 endif
 
 if with_gallium_vdpau
@@ -437,13 +438,12 @@ elif not (with_gallium_r600 or with_gallium_nouveau)
   else
     _xvmc = 'false'
   endif
-elif _xvmc == 'auto'
-  _xvmc = 'true'
 endif
-with_gallium_xvmc = _xvmc == 'true'
 dep_xvmc = null_dep
-if with_gallium_xvmc
-  dep_xvmc = dependency('xvmc', version : '>= 1.0.6')
+with_gallium_xvmc = false
+if _xvmc != 'false'
+  dep_xvmc = dependency('xvmc', version : '>= 1.0.6', required : _xvmc == 'true')
+  with_gallium_xvmc = dep_xvmc.found()
 endif
 
 xvmc_drivers_path = get_option('xvmc-libs-path')
@@ -559,13 +559,16 @@ elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
 elif _va == 'auto'
   _va = 'true'
 endif
-with_gallium_va = _va == 'true'
+with_gallium_va = false
 dep_va = null_dep
-if with_gallium_va
-  dep_va = dependency('libva', version : '>= 0.39.0')
-  dep_va_headers = declare_dependency(
-    compile_args : run_command(prog_pkgconfig, ['libva', '--cflags']).stdout().split()
-  )
+if _va != 'false'
+  dep_va = dependency('libva', version : '>= 0.38.0', required : _va == 'true')
+  if dep_va.found()
+    dep_va_headers = declare_dependency(
+      compile_args : run_command(prog_pkgconfig, ['libva', '--cflags']).stdout().split()
+    )
+    with_gallium_va = true
+  endif
 endif
 
 va_drivers_path = get_option('va-libs-path')

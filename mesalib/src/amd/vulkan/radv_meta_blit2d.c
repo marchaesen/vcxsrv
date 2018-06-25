@@ -485,22 +485,25 @@ build_nir_texel_fetch(struct nir_builder *b, struct radv_device *device,
 		nir_ssa_dest_init(&sample_idx->instr, &sample_idx->dest, 1, 32, "sample_idx");
 		nir_builder_instr_insert(b, &sample_idx->instr);
 	}
-	nir_tex_instr *tex = nir_tex_instr_create(b->shader, is_multisampled ? 3 : 2);
+
+	nir_ssa_def *tex_deref = &nir_build_deref_var(b, sampler)->dest.ssa;
+
+	nir_tex_instr *tex = nir_tex_instr_create(b->shader, is_multisampled ? 4 : 3);
 	tex->sampler_dim = dim;
 	tex->op = is_multisampled ? nir_texop_txf_ms : nir_texop_txf;
 	tex->src[0].src_type = nir_tex_src_coord;
 	tex->src[0].src = nir_src_for_ssa(is_3d ? tex_pos_3d : tex_pos);
 	tex->src[1].src_type = is_multisampled ? nir_tex_src_ms_index : nir_tex_src_lod;
 	tex->src[1].src = nir_src_for_ssa(is_multisampled ? &sample_idx->dest.ssa : nir_imm_int(b, 0));
+	tex->src[2].src_type = nir_tex_src_texture_deref;
+	tex->src[2].src = nir_src_for_ssa(tex_deref);
 	if (is_multisampled) {
-		tex->src[2].src_type = nir_tex_src_lod;
-		tex->src[2].src = nir_src_for_ssa(nir_imm_int(b, 0));
+		tex->src[3].src_type = nir_tex_src_lod;
+		tex->src[3].src = nir_src_for_ssa(nir_imm_int(b, 0));
 	}
 	tex->dest_type = nir_type_uint;
 	tex->is_array = false;
 	tex->coord_components = is_3d ? 3 : 2;
-	tex->texture = nir_deref_var_create(tex, sampler);
-	tex->sampler = NULL;
 
 	nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
 	nir_builder_instr_insert(b, &tex->instr);
@@ -534,16 +537,18 @@ build_nir_buffer_fetch(struct nir_builder *b, struct radv_device *device,
 	pos_x = nir_iadd(b, pos_x, pos_y);
 	//pos_x = nir_iadd(b, pos_x, nir_imm_int(b, 100000));
 
-	nir_tex_instr *tex = nir_tex_instr_create(b->shader, 1);
+	nir_ssa_def *tex_deref = &nir_build_deref_var(b, sampler)->dest.ssa;
+
+	nir_tex_instr *tex = nir_tex_instr_create(b->shader, 2);
 	tex->sampler_dim = GLSL_SAMPLER_DIM_BUF;
 	tex->op = nir_texop_txf;
 	tex->src[0].src_type = nir_tex_src_coord;
 	tex->src[0].src = nir_src_for_ssa(pos_x);
+	tex->src[1].src_type = nir_tex_src_texture_deref;
+	tex->src[1].src = nir_src_for_ssa(tex_deref);
 	tex->dest_type = nir_type_uint;
 	tex->is_array = false;
 	tex->coord_components = 1;
-	tex->texture = nir_deref_var_create(tex, sampler);
-	tex->sampler = NULL;
 
 	nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
 	nir_builder_instr_insert(b, &tex->instr);
