@@ -27,69 +27,53 @@
 
 #include "nir.h"
 
-static void
-add_var_use_intrinsic(nir_intrinsic_instr *instr, struct set *live,
-                      nir_variable_mode modes)
+static bool
+deref_used_for_not_store(nir_deref_instr *deref)
 {
-   unsigned num_vars = nir_intrinsic_infos[instr->intrinsic].num_variables;
+   nir_foreach_use(src, &deref->dest.ssa) {
+      switch (src->parent_instr->type) {
+      case nir_instr_type_deref:
+         if (deref_used_for_not_store(nir_instr_as_deref(src->parent_instr)))
+            return true;
+         break;
 
-   switch (instr->intrinsic) {
-   case nir_intrinsic_copy_var:
-      _mesa_set_add(live, instr->variables[1]->var);
-      /* Fall through */
-   case nir_intrinsic_store_var: {
-      /* The first source in both copy_var and store_var is the destination.
-       * If the variable is a local that never escapes the shader, then we
-       * don't mark it as live for just a store.
-       */
-      nir_variable_mode mode = instr->variables[0]->var->data.mode;
-      if (!(mode & (nir_var_local | nir_var_global | nir_var_shared)))
-         _mesa_set_add(live, instr->variables[0]->var);
-      break;
-   }
-
-   /* This pass can't be used on I/O variables after they've been lowered. */
-   case nir_intrinsic_load_input:
-      assert(!(modes & nir_var_shader_in));
-      break;
-   case nir_intrinsic_store_output:
-      assert(!(modes & nir_var_shader_out));
-      break;
-
-   default:
-      for (unsigned i = 0; i < num_vars; i++) {
-         _mesa_set_add(live, instr->variables[i]->var);
+      case nir_instr_type_intrinsic: {
+         nir_intrinsic_instr *intrin =
+            nir_instr_as_intrinsic(src->parent_instr);
+         /* The first source of copy and store intrinsics is the deref to
+          * write.  Don't record those.
+          */
+         if ((intrin->intrinsic != nir_intrinsic_store_deref &&
+              intrin->intrinsic != nir_intrinsic_copy_deref) ||
+             src != &intrin->src[0])
+            return true;
+         break;
       }
-      break;
+
+      default:
+         /* If it's used by any other instruction type (most likely a texture
+          * or call instruction), consider it used.
+          */
+         return true;
+      }
    }
+
+   return false;
 }
 
 static void
-add_var_use_call(nir_call_instr *instr, struct set *live)
+add_var_use_deref(nir_deref_instr *deref, struct set *live)
 {
-   if (instr->return_deref != NULL) {
-      nir_variable *var = instr->return_deref->var;
-      _mesa_set_add(live, var);
-   }
+   if (deref->deref_type != nir_deref_type_var)
+      return;
 
-   for (unsigned i = 0; i < instr->num_params; i++) {
-      nir_variable *var = instr->params[i]->var;
-      _mesa_set_add(live, var);
-   }
-}
-
-static void
-add_var_use_tex(nir_tex_instr *instr, struct set *live)
-{
-   if (instr->texture != NULL) {
-      nir_variable *var = instr->texture->var;
-      _mesa_set_add(live, var);
-   }
-
-   if (instr->sampler != NULL) {
-      nir_variable *var = instr->sampler->var;
-      _mesa_set_add(live, var);
-   }
+   /* If it's not a local that never escapes the shader, then any access at
+    * all means we need to keep it alive.
+    */
+   assert(deref->mode == deref->var->data.mode);
+   if (!(deref->mode & (nir_var_local | nir_var_global | nir_var_shared)) ||
+       deref_used_for_not_store(deref))
+      _mesa_set_add(live, deref->var);
 }
 
 static void
@@ -99,23 +83,8 @@ add_var_use_shader(nir_shader *shader, struct set *live, nir_variable_mode modes
       if (function->impl) {
          nir_foreach_block(block, function->impl) {
             nir_foreach_instr(instr, block) {
-               switch(instr->type) {
-               case nir_instr_type_intrinsic:
-                  add_var_use_intrinsic(nir_instr_as_intrinsic(instr), live,
-                                        modes);
-                  break;
-
-               case nir_instr_type_call:
-                  add_var_use_call(nir_instr_as_call(instr), live);
-                  break;
-
-               case nir_instr_type_tex:
-                  add_var_use_tex(nir_instr_as_tex(instr), live);
-                  break;
-
-               default:
-                  break;
-               }
+               if (instr->type == nir_instr_type_deref)
+                  add_var_use_deref(nir_instr_as_deref(instr), live);
             }
          }
       }
@@ -131,17 +100,40 @@ remove_dead_var_writes(nir_shader *shader, struct set *live)
 
       nir_foreach_block(block, function->impl) {
          nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
+            switch (instr->type) {
+            case nir_instr_type_deref: {
+               nir_deref_instr *deref = nir_instr_as_deref(instr);
 
-            nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-            if (intrin->intrinsic != nir_intrinsic_copy_var &&
-                intrin->intrinsic != nir_intrinsic_store_var)
-               continue;
+               nir_variable_mode parent_mode;
+               if (deref->deref_type == nir_deref_type_var)
+                  parent_mode = deref->var->data.mode;
+               else
+                  parent_mode = nir_deref_instr_parent(deref)->mode;
 
-            /* Stores to dead variables need to be removed */
-            if (intrin->variables[0]->var->data.mode == 0)
-               nir_instr_remove(instr);
+               /* If the parent mode is 0, then it references a dead variable.
+                * Flag this deref as dead and remove it.
+                */
+               if (parent_mode == 0) {
+                  deref->mode = 0;
+                  nir_instr_remove(&deref->instr);
+               }
+               break;
+            }
+
+            case nir_instr_type_intrinsic: {
+               nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+               if (intrin->intrinsic != nir_intrinsic_copy_deref &&
+                   intrin->intrinsic != nir_intrinsic_store_deref)
+                  break;
+
+               if (nir_src_as_deref(intrin->src[0])->mode == 0)
+                  nir_instr_remove(instr);
+               break;
+            }
+
+            default:
+               break; /* Nothing to do */
+            }
          }
       }
    }

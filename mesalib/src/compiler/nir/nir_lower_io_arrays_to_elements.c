@@ -23,6 +23,7 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "nir_deref.h"
 
 /** @file nir_lower_io_arrays_to_elements.c
  *
@@ -32,44 +33,50 @@
  */
 
 static unsigned
-get_io_offset(nir_builder *b, nir_deref_var *deref, nir_variable *var,
-              unsigned *element_index)
+get_io_offset(nir_builder *b, nir_deref_instr *deref, nir_variable *var,
+              unsigned *element_index, nir_ssa_def **vertex_index)
 {
    bool vs_in = (b->shader->info.stage == MESA_SHADER_VERTEX) &&
                 (var->data.mode == nir_var_shader_in);
 
-   nir_deref *tail = &deref->deref;
+   nir_deref_path path;
+   nir_deref_path_init(&path, deref, NULL);
+
+   assert(path.path[0]->deref_type == nir_deref_type_var);
+   nir_deref_instr **p = &path.path[1];
 
    /* For per-vertex input arrays (i.e. geometry shader inputs), skip the
     * outermost array index.  Process the rest normally.
     */
    if (nir_is_per_vertex_io(var, b->shader->info.stage)) {
-      tail = tail->child;
+      *vertex_index = nir_ssa_for_src(b, (*p)->arr.index, 1);
+      p++;
    }
 
    unsigned offset = 0;
-   while (tail->child != NULL) {
-      tail = tail->child;
+   for (; *p; p++) {
+      if ((*p)->deref_type == nir_deref_type_array) {
+         nir_const_value *c = nir_src_as_const_value((*p)->arr.index);
 
-      if (tail->deref_type == nir_deref_type_array) {
-         nir_deref_array *deref_array = nir_deref_as_array(tail);
-         assert(deref_array->deref_array_type != nir_deref_array_type_indirect);
+         assert(c);     /* must not be indirect dereference */
 
-         unsigned size = glsl_count_attribute_slots(tail->type, vs_in);
-         offset += size * deref_array->base_offset;
+         unsigned size = glsl_count_attribute_slots((*p)->type, vs_in);
+         offset += size * c->u32[0];
 
-         unsigned num_elements = glsl_type_is_array(tail->type) ?
-            glsl_get_aoa_size(tail->type) : 1;
+         unsigned num_elements = glsl_type_is_array((*p)->type) ?
+            glsl_get_aoa_size((*p)->type) : 1;
 
-         num_elements *= glsl_type_is_matrix(glsl_without_array(tail->type)) ?
-            glsl_get_matrix_columns(glsl_without_array(tail->type)) : 1;
+         num_elements *= glsl_type_is_matrix(glsl_without_array((*p)->type)) ?
+            glsl_get_matrix_columns(glsl_without_array((*p)->type)) : 1;
 
-         *element_index += num_elements * deref_array->base_offset;
-      } else if (tail->deref_type == nir_deref_type_struct) {
+         *element_index += num_elements * c->u32[0];
+      } else if ((*p)->deref_type == nir_deref_type_struct) {
          /* TODO: we could also add struct splitting support to this pass */
          break;
       }
    }
+
+   nir_deref_path_finish(&path);
 
    return offset;
 }
@@ -103,27 +110,6 @@ get_array_elements(struct hash_table *ht, nir_variable *var,
 }
 
 static void
-create_array_deref(nir_intrinsic_instr *arr_intr,
-                   nir_intrinsic_instr *element_intr)
-{
-   assert(arr_intr->variables[0]->deref.child);
-
-   nir_deref *parent = &element_intr->variables[0]->deref;
-   nir_deref_array *darr =
-            nir_deref_as_array(arr_intr->variables[0]->deref.child);
-   nir_deref_array *ndarr = nir_deref_array_create(parent);
-
-   ndarr->deref.type = glsl_get_array_element(parent->type);
-   ndarr->deref_array_type = darr->deref_array_type;
-   ndarr->base_offset = darr->base_offset;
-
-   if (ndarr->deref_array_type == nir_deref_array_type_indirect)
-      nir_src_copy(&ndarr->indirect, &darr->indirect, parent);
-
-   element_intr->variables[0]->deref.child = &ndarr->deref;
-}
-
-static void
 lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
             struct hash_table *varyings)
 {
@@ -132,9 +118,10 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
    nir_variable **elements =
       get_array_elements(varyings, var, b->shader->info.stage);
 
+   nir_ssa_def *vertex_index = NULL;
    unsigned elements_index = 0;
-   unsigned io_offset = get_io_offset(b, intr->variables[0], var,
-                                      &elements_index);
+   unsigned io_offset = get_io_offset(b, nir_src_as_deref(intr->src[0]),
+                                      var, &elements_index, &vertex_index);
 
    nir_variable *element = elements[elements_index];
    if (!element) {
@@ -160,18 +147,25 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
          nir_shader_add_variable(b->shader, element);
    }
 
+   nir_deref_instr *element_deref = nir_build_deref_var(b, element);
+
+   if (nir_is_per_vertex_io(var, b->shader->info.stage)) {
+      assert(vertex_index);
+      element_deref = nir_build_deref_array(b, element_deref, vertex_index);
+   }
+
    nir_intrinsic_instr *element_intr =
       nir_intrinsic_instr_create(b->shader, intr->intrinsic);
    element_intr->num_components = intr->num_components;
-   element_intr->variables[0] = nir_deref_var_create(element_intr, element);
+   element_intr->src[0] = nir_src_for_ssa(&element_deref->dest.ssa);
 
-   if (intr->intrinsic != nir_intrinsic_store_var) {
+   if (intr->intrinsic != nir_intrinsic_store_deref) {
       nir_ssa_dest_init(&element_intr->instr, &element_intr->dest,
                         intr->num_components, intr->dest.ssa.bit_size, NULL);
 
-      if (intr->intrinsic == nir_intrinsic_interp_var_at_offset ||
-          intr->intrinsic == nir_intrinsic_interp_var_at_sample) {
-         nir_src_copy(&element_intr->src[0], &intr->src[0],
+      if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
+          intr->intrinsic == nir_intrinsic_interp_deref_at_sample) {
+         nir_src_copy(&element_intr->src[1], &intr->src[1],
                       &element_intr->instr);
       }
 
@@ -180,12 +174,8 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
    } else {
       nir_intrinsic_set_write_mask(element_intr,
                                    nir_intrinsic_write_mask(intr));
-      nir_src_copy(&element_intr->src[0], &intr->src[0],
+      nir_src_copy(&element_intr->src[1], &intr->src[1],
                    &element_intr->instr);
-   }
-
-   if (nir_is_per_vertex_io(var, b->shader->info.stage)) {
-      create_array_deref(intr, element_intr);
    }
 
    nir_builder_instr_insert(b, &element_intr->instr);
@@ -195,20 +185,20 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
 }
 
 static bool
-deref_has_indirect(nir_builder *b, nir_variable *var, nir_deref_var *deref)
+deref_has_indirect(nir_builder *b, nir_variable *var, nir_deref_path *path)
 {
-   nir_deref *tail = &deref->deref;
+   assert(path->path[0]->deref_type == nir_deref_type_var);
+   nir_deref_instr **p = &path->path[1];
 
    if (nir_is_per_vertex_io(var, b->shader->info.stage)) {
-      tail = tail->child;
+      p++;
    }
 
-   for (tail = tail->child; tail; tail = tail->child) {
-      if (tail->deref_type != nir_deref_type_array)
+   for (; *p; p++) {
+      if ((*p)->deref_type != nir_deref_type_array)
          continue;
 
-      nir_deref_array *arr = nir_deref_as_array(tail);
-      if (arr->deref_array_type == nir_deref_array_type_indirect)
+      if (!nir_src_as_const_value((*p)->arr.index))
          return true;
    }
 
@@ -235,26 +225,32 @@ create_indirects_mask(nir_shader *shader, uint64_t *indirects,
 
                nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
-               if (intr->intrinsic != nir_intrinsic_load_var &&
-                   intr->intrinsic != nir_intrinsic_store_var &&
-                   intr->intrinsic != nir_intrinsic_interp_var_at_centroid &&
-                   intr->intrinsic != nir_intrinsic_interp_var_at_sample &&
-                   intr->intrinsic != nir_intrinsic_interp_var_at_offset)
+               if (intr->intrinsic != nir_intrinsic_load_deref &&
+                   intr->intrinsic != nir_intrinsic_store_deref &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset)
                   continue;
 
-               nir_variable *var = intr->variables[0]->var;
+               nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+               nir_variable *var = nir_deref_instr_get_variable(deref);
 
                if (var->data.mode != mode)
                   continue;
 
+               nir_deref_path path;
+               nir_deref_path_init(&path, deref, NULL);
+
                uint64_t loc_mask = ((uint64_t)1) << var->data.location;
                if (var->data.patch) {
-                  if (deref_has_indirect(&b, var, intr->variables[0]))
+                  if (deref_has_indirect(&b, var, &path))
                      patch_indirects[var->data.location_frac] |= loc_mask;
                } else {
-                  if (deref_has_indirect(&b, var, intr->variables[0]))
+                  if (deref_has_indirect(&b, var, &path))
                      indirects[var->data.location_frac] |= loc_mask;
                }
+
+               nir_deref_path_finish(&path);
             }
          }
       }
@@ -279,14 +275,15 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
 
                nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
-               if (intr->intrinsic != nir_intrinsic_load_var &&
-                   intr->intrinsic != nir_intrinsic_store_var &&
-                   intr->intrinsic != nir_intrinsic_interp_var_at_centroid &&
-                   intr->intrinsic != nir_intrinsic_interp_var_at_sample &&
-                   intr->intrinsic != nir_intrinsic_interp_var_at_offset)
+               if (intr->intrinsic != nir_intrinsic_load_deref &&
+                   intr->intrinsic != nir_intrinsic_store_deref &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset)
                   continue;
 
-               nir_variable *var = intr->variables[0]->var;
+               nir_variable *var =
+                  nir_deref_instr_get_variable(nir_src_as_deref(intr->src[0]));
 
                /* Skip indirects */
                uint64_t loc_mask = ((uint64_t)1) << var->data.location;
@@ -327,11 +324,11 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                   continue;
 
                switch (intr->intrinsic) {
-               case nir_intrinsic_interp_var_at_centroid:
-               case nir_intrinsic_interp_var_at_sample:
-               case nir_intrinsic_interp_var_at_offset:
-               case nir_intrinsic_load_var:
-               case nir_intrinsic_store_var:
+               case nir_intrinsic_interp_deref_at_centroid:
+               case nir_intrinsic_interp_deref_at_sample:
+               case nir_intrinsic_interp_deref_at_offset:
+               case nir_intrinsic_load_deref:
+               case nir_intrinsic_store_deref:
                   if ((mask & nir_var_shader_in && mode == nir_var_shader_in) ||
                       (mask & nir_var_shader_out && mode == nir_var_shader_out))
                      lower_array(&b, intr, var, varyings);
@@ -386,6 +383,8 @@ nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
 
    _mesa_hash_table_destroy(split_inputs, NULL);
    _mesa_hash_table_destroy(split_outputs, NULL);
+
+   nir_remove_dead_derefs(shader);
 }
 
 void
@@ -429,4 +428,7 @@ nir_lower_io_arrays_to_elements(nir_shader *producer, nir_shader *consumer)
 
    _mesa_hash_table_destroy(split_inputs, NULL);
    _mesa_hash_table_destroy(split_outputs, NULL);
+
+   nir_remove_dead_derefs(producer);
+   nir_remove_dead_derefs(consumer);
 }

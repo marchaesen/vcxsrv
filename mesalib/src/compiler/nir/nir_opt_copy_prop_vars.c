@@ -23,6 +23,7 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "nir_deref.h"
 
 #include "util/bitscan.h"
 
@@ -40,7 +41,7 @@
  *  2) Dead code elimination of store_var and copy_var intrinsics based on
  *     killed destination values.
  *
- *  3) Removal of redundant load_var intrinsics.  We can't trust regular CSE
+ *  3) Removal of redundant load_deref intrinsics.  We can't trust regular CSE
  *     to do this because it isn't aware of variable writes that may alias the
  *     value and make the former load invalid.
  *
@@ -56,7 +57,7 @@ struct value {
    bool is_ssa;
    union {
       nir_ssa_def *ssa[4];
-      nir_deref_var *deref;
+      nir_deref_instr *deref;
    };
 };
 
@@ -68,7 +69,7 @@ struct copy_entry {
    unsigned comps_may_be_read;
    struct value src;
 
-   nir_deref_var *dst;
+   nir_deref_instr *dst;
 };
 
 struct copy_prop_var_state {
@@ -88,7 +89,7 @@ struct copy_prop_var_state {
 
 static struct copy_entry *
 copy_entry_create(struct copy_prop_var_state *state,
-                  nir_deref_var *dst_deref)
+                  nir_deref_instr *dst_deref)
 {
    struct copy_entry *entry;
    if (!list_empty(&state->copy_free_list)) {
@@ -127,9 +128,10 @@ enum deref_compare_result {
  * ever needs it.
  */
 static enum deref_compare_result
-compare_derefs(nir_deref_var *a, nir_deref_var *b)
+compare_deref_paths(nir_deref_path *a_path,
+                    nir_deref_path *b_path)
 {
-   if (a->var != b->var)
+   if (a_path->path[0]->var != b_path->path[0]->var)
       return 0;
 
    /* Start off assuming they fully compare.  We ignore equality for now.  In
@@ -139,62 +141,54 @@ compare_derefs(nir_deref_var *a, nir_deref_var *b)
                                       derefs_a_contains_b_bit |
                                       derefs_b_contains_a_bit;
 
-   nir_deref *a_tail = &a->deref;
-   nir_deref *b_tail = &b->deref;
-   while (a_tail->child && b_tail->child) {
-      a_tail = a_tail->child;
-      b_tail = b_tail->child;
+   nir_deref_instr **a_p = &a_path->path[1];
+   nir_deref_instr **b_p = &b_path->path[1];
+   while (*a_p != NULL && *b_p != NULL) {
+      nir_deref_instr *a_tail = *(a_p++);
+      nir_deref_instr *b_tail = *(b_p++);
 
-      assert(a_tail->deref_type == b_tail->deref_type);
       switch (a_tail->deref_type) {
-      case nir_deref_type_array: {
-         nir_deref_array *a_arr = nir_deref_as_array(a_tail);
-         nir_deref_array *b_arr = nir_deref_as_array(b_tail);
+      case nir_deref_type_array:
+      case nir_deref_type_array_wildcard: {
+         assert(b_tail->deref_type == nir_deref_type_array ||
+                b_tail->deref_type == nir_deref_type_array_wildcard);
 
-         if (a_arr->deref_array_type == nir_deref_array_type_direct &&
-             b_arr->deref_array_type == nir_deref_array_type_direct) {
-            /* If they're both direct and have different offsets, they
-             * don't even alias much less anything else.
-             */
-            if (a_arr->base_offset != b_arr->base_offset)
-               return 0;
-         } else if (a_arr->deref_array_type == nir_deref_array_type_wildcard) {
-            if (b_arr->deref_array_type != nir_deref_array_type_wildcard)
+         if (a_tail->deref_type == nir_deref_type_array_wildcard) {
+            if (b_tail->deref_type != nir_deref_type_array_wildcard)
                result &= ~derefs_b_contains_a_bit;
-         } else if (b_arr->deref_array_type == nir_deref_array_type_wildcard) {
-            if (a_arr->deref_array_type != nir_deref_array_type_wildcard)
+         } else if (b_tail->deref_type == nir_deref_type_array_wildcard) {
+            if (a_tail->deref_type != nir_deref_type_array_wildcard)
                result &= ~derefs_a_contains_b_bit;
-         } else if (a_arr->deref_array_type == nir_deref_array_type_indirect &&
-                    b_arr->deref_array_type == nir_deref_array_type_indirect) {
-            assert(a_arr->indirect.is_ssa && b_arr->indirect.is_ssa);
-            if (a_arr->indirect.ssa == b_arr->indirect.ssa) {
-               /* If they're different constant offsets from the same indirect
-                * then they don't alias at all.
+         } else {
+            assert(a_tail->deref_type == nir_deref_type_array &&
+                   b_tail->deref_type == nir_deref_type_array);
+            assert(a_tail->arr.index.is_ssa && b_tail->arr.index.is_ssa);
+
+            nir_const_value *a_index_const =
+               nir_src_as_const_value(a_tail->arr.index);
+            nir_const_value *b_index_const =
+               nir_src_as_const_value(b_tail->arr.index);
+            if (a_index_const && b_index_const) {
+               /* If they're both direct and have different offsets, they
+                * don't even alias much less anything else.
                 */
-               if (a_arr->base_offset != b_arr->base_offset)
+               if (a_index_const->u32[0] != b_index_const->u32[0])
                   return 0;
-               /* Otherwise the indirect and base both match */
+            } else if (a_tail->arr.index.ssa == b_tail->arr.index.ssa) {
+               /* They're the same indirect, continue on */
             } else {
-               /* If they're have different indirect offsets then we can't
-                * prove anything about containment.
+               /* They're not the same index so we can't prove anything about
+                * containment.
                 */
                result &= ~(derefs_a_contains_b_bit | derefs_b_contains_a_bit);
             }
-         } else {
-            /* In this case, one is indirect and the other direct so we can't
-             * prove anything about containment.
-             */
-            result &= ~(derefs_a_contains_b_bit | derefs_b_contains_a_bit);
          }
          break;
       }
 
       case nir_deref_type_struct: {
-         nir_deref_struct *a_struct = nir_deref_as_struct(a_tail);
-         nir_deref_struct *b_struct = nir_deref_as_struct(b_tail);
-
          /* If they're different struct members, they don't even alias */
-         if (a_struct->index != b_struct->index)
+         if (a_tail->strct.index != b_tail->strct.index)
             return 0;
          break;
       }
@@ -205,14 +199,36 @@ compare_derefs(nir_deref_var *a, nir_deref_var *b)
    }
 
    /* If a is longer than b, then it can't contain b */
-   if (a_tail->child)
+   if (*a_p != NULL)
       result &= ~derefs_a_contains_b_bit;
-   if (b_tail->child)
+   if (*b_p != NULL)
       result &= ~derefs_b_contains_a_bit;
 
    /* If a contains b and b contains a they must be equal. */
    if ((result & derefs_a_contains_b_bit) && (result & derefs_b_contains_a_bit))
       result |= derefs_equal_bit;
+
+   return result;
+}
+
+static enum deref_compare_result
+compare_derefs(nir_deref_instr *a, nir_deref_instr *b)
+{
+   if (a == b) {
+      return derefs_equal_bit | derefs_may_alias_bit |
+             derefs_a_contains_b_bit | derefs_b_contains_a_bit;
+   }
+
+   nir_deref_path a_path, b_path;
+   nir_deref_path_init(&a_path, a, NULL);
+   nir_deref_path_init(&b_path, b, NULL);
+   assert(a_path.path[0]->deref_type == nir_deref_type_var);
+   assert(b_path.path[0]->deref_type == nir_deref_type_var);
+
+   enum deref_compare_result result = compare_deref_paths(&a_path, &b_path);
+
+   nir_deref_path_finish(&a_path);
+   nir_deref_path_finish(&b_path);
 
    return result;
 }
@@ -257,7 +273,7 @@ remove_dead_writes(struct copy_prop_var_state *state,
 
 static struct copy_entry *
 lookup_entry_for_deref(struct copy_prop_var_state *state,
-                       nir_deref_var *deref,
+                       nir_deref_instr *deref,
                        enum deref_compare_result allowed_comparisons)
 {
    list_for_each_entry(struct copy_entry, iter, &state->copies, link) {
@@ -270,7 +286,7 @@ lookup_entry_for_deref(struct copy_prop_var_state *state,
 
 static void
 mark_aliased_entries_as_read(struct copy_prop_var_state *state,
-                             nir_deref_var *deref, unsigned components)
+                             nir_deref_instr *deref, unsigned components)
 {
    list_for_each_entry(struct copy_entry, iter, &state->copies, link) {
       if (compare_derefs(iter->dst, deref) & derefs_may_alias_bit)
@@ -280,7 +296,7 @@ mark_aliased_entries_as_read(struct copy_prop_var_state *state,
 
 static struct copy_entry *
 get_entry_and_kill_aliases(struct copy_prop_var_state *state,
-                           nir_deref_var *deref,
+                           nir_deref_instr *deref,
                            unsigned write_mask)
 {
    struct copy_entry *entry = NULL;
@@ -319,8 +335,12 @@ apply_barrier_for_modes(struct copy_prop_var_state *state,
                         nir_variable_mode modes)
 {
    list_for_each_entry_safe(struct copy_entry, iter, &state->copies, link) {
-      if ((iter->dst->var->data.mode & modes) ||
-          (!iter->src.is_ssa && (iter->src.deref->var->data.mode & modes)))
+      nir_variable *dst_var = nir_deref_instr_get_variable(iter->dst);
+      nir_variable *src_var = iter->src.is_ssa ? NULL :
+         nir_deref_instr_get_variable(iter->src.deref);
+
+      if ((dst_var->data.mode & modes) ||
+          (src_var && (src_var->data.mode & modes)))
          copy_entry_remove(state, iter);
    }
 }
@@ -366,7 +386,7 @@ load_from_ssa_entry_value(struct copy_prop_var_state *state,
    *value = entry->src;
    assert(value->is_ssa);
 
-   const struct glsl_type *type = nir_deref_tail(&entry->dst->deref)->type;
+   const struct glsl_type *type = entry->dst->type;
    unsigned num_components = glsl_get_vector_elements(type);
 
    uint8_t available = 0;
@@ -387,11 +407,11 @@ load_from_ssa_entry_value(struct copy_prop_var_state *state,
    }
 
    if (available != (1 << num_components) - 1 &&
-       intrin->intrinsic == nir_intrinsic_load_var &&
+       intrin->intrinsic == nir_intrinsic_load_deref &&
        (available & nir_ssa_def_components_read(&intrin->dest.ssa)) == 0) {
       /* If none of the components read are available as SSA values, then we
        * should just bail.  Otherwise, we would end up replacing the uses of
-       * the load_var a vecN() that just gathers up its components.
+       * the load_deref a vecN() that just gathers up its components.
        */
       return false;
    }
@@ -399,7 +419,7 @@ load_from_ssa_entry_value(struct copy_prop_var_state *state,
    b->cursor = nir_after_instr(&intrin->instr);
 
    nir_ssa_def *load_def =
-      intrin->intrinsic == nir_intrinsic_load_var ? &intrin->dest.ssa : NULL;
+      intrin->intrinsic == nir_intrinsic_load_deref ? &intrin->dest.ssa : NULL;
 
    bool keep_intrin = false;
    nir_ssa_def *comps[4];
@@ -411,7 +431,7 @@ load_from_ssa_entry_value(struct copy_prop_var_state *state,
           * list.  Just re-use a channel from the load.
           */
          if (load_def == NULL)
-            load_def = nir_load_deref_var(b, entry->dst);
+            load_def = nir_load_deref(b, entry->dst);
 
          if (load_def->parent_instr == &intrin->instr)
             keep_intrin = true;
@@ -445,79 +465,39 @@ load_from_ssa_entry_value(struct copy_prop_var_state *state,
  * process is guided by \param guide which references the same type as \param
  * specific but has the same wildcard array lengths as \param deref.
  */
-static nir_deref_var *
-specialize_wildcards(nir_deref_var *deref,
-                     nir_deref_var *guide,
-                     nir_deref_var *specific,
-                     void *mem_ctx)
+static nir_deref_instr *
+specialize_wildcards(nir_builder *b,
+                     nir_deref_path *deref,
+                     nir_deref_path *guide,
+                     nir_deref_path *specific)
 {
-   nir_deref_var *ret = nir_deref_var_create(mem_ctx, deref->var);
-
-   nir_deref *deref_tail = deref->deref.child;
-   nir_deref *guide_tail = &guide->deref;
-   nir_deref *spec_tail = &specific->deref;
-   nir_deref *ret_tail = &ret->deref;
-   while (deref_tail) {
-      switch (deref_tail->deref_type) {
-      case nir_deref_type_array: {
-         nir_deref_array *deref_arr = nir_deref_as_array(deref_tail);
-
-         nir_deref_array *ret_arr = nir_deref_array_create(ret_tail);
-         ret_arr->deref.type = deref_arr->deref.type;
-         ret_arr->deref_array_type = deref_arr->deref_array_type;
-
-         switch (deref_arr->deref_array_type) {
-         case nir_deref_array_type_direct:
-            ret_arr->base_offset = deref_arr->base_offset;
-            break;
-         case nir_deref_array_type_indirect:
-            ret_arr->base_offset = deref_arr->base_offset;
-            assert(deref_arr->indirect.is_ssa);
-            ret_arr->indirect = deref_arr->indirect;
-            break;
-         case nir_deref_array_type_wildcard:
-            /* This is where things get tricky.  We have to search through
-             * the entry deref to find its corresponding wildcard and fill
-             * this slot in with the value from the src.
-             */
-            while (guide_tail->child) {
-               guide_tail = guide_tail->child;
-               spec_tail = spec_tail->child;
-
-               if (guide_tail->deref_type == nir_deref_type_array &&
-                   nir_deref_as_array(guide_tail)->deref_array_type ==
-                   nir_deref_array_type_wildcard)
-                  break;
-            }
-
-            nir_deref_array *spec_arr = nir_deref_as_array(spec_tail);
-            ret_arr->deref_array_type = spec_arr->deref_array_type;
-            ret_arr->base_offset = spec_arr->base_offset;
-            ret_arr->indirect = spec_arr->indirect;
+   nir_deref_instr **deref_p = &deref->path[1];
+   nir_deref_instr **guide_p = &guide->path[1];
+   nir_deref_instr **spec_p = &specific->path[1];
+   nir_deref_instr *ret_tail = deref->path[0];
+   for (; *deref_p; deref_p++) {
+      if ((*deref_p)->deref_type == nir_deref_type_array_wildcard) {
+         /* This is where things get tricky.  We have to search through
+          * the entry deref to find its corresponding wildcard and fill
+          * this slot in with the value from the src.
+          */
+         while (*guide_p &&
+                (*guide_p)->deref_type != nir_deref_type_array_wildcard) {
+            guide_p++;
+            spec_p++;
          }
+         assert(*guide_p && *spec_p);
 
-         ret_tail->child = &ret_arr->deref;
-         break;
+         ret_tail = nir_build_deref_follower(b, ret_tail, *spec_p);
+
+         guide_p++;
+         spec_p++;
+      } else {
+         ret_tail = nir_build_deref_follower(b, ret_tail, *deref_p);
       }
-      case nir_deref_type_struct: {
-         nir_deref_struct *deref_struct = nir_deref_as_struct(deref_tail);
-
-         nir_deref_struct *ret_struct =
-            nir_deref_struct_create(ret_tail, deref_struct->index);
-         ret_struct->deref.type = deref_struct->deref.type;
-
-         ret_tail->child = &ret_struct->deref;
-         break;
-      }
-      case nir_deref_type_var:
-         unreachable("Invalid deref type");
-      }
-
-      deref_tail = deref_tail->child;
-      ret_tail = ret_tail->child;
    }
 
-   return ret;
+   return ret_tail;
 }
 
 /* Do a "load" from an deref-based entry return it in "value" as a value.  The
@@ -529,57 +509,55 @@ static bool
 load_from_deref_entry_value(struct copy_prop_var_state *state,
                             struct copy_entry *entry,
                             nir_builder *b, nir_intrinsic_instr *intrin,
-                            nir_deref_var *src, struct value *value)
+                            nir_deref_instr *src, struct value *value)
 {
    *value = entry->src;
 
-   /* Walk the deref to get the two tails and also figure out if we need to
-    * specialize any wildcards.
-    */
+   b->cursor = nir_instr_remove(&intrin->instr);
+
+   nir_deref_path entry_dst_path, src_path;
+   nir_deref_path_init(&entry_dst_path, entry->dst, state->mem_ctx);
+   nir_deref_path_init(&src_path, src, state->mem_ctx);
+
    bool need_to_specialize_wildcards = false;
-   nir_deref *entry_tail = &entry->dst->deref;
-   nir_deref *src_tail = &src->deref;
-   while (entry_tail->child && src_tail->child) {
-      assert(src_tail->child->deref_type == entry_tail->child->deref_type);
-      if (src_tail->child->deref_type == nir_deref_type_array) {
-         nir_deref_array *entry_arr = nir_deref_as_array(entry_tail->child);
-         nir_deref_array *src_arr = nir_deref_as_array(src_tail->child);
+   nir_deref_instr **entry_p = &entry_dst_path.path[1];
+   nir_deref_instr **src_p = &src_path.path[1];
+   while (*entry_p && *src_p) {
+      nir_deref_instr *entry_tail = *entry_p++;
+      nir_deref_instr *src_tail = *src_p++;
 
-         if (src_arr->deref_array_type != nir_deref_array_type_wildcard &&
-             entry_arr->deref_array_type == nir_deref_array_type_wildcard)
-            need_to_specialize_wildcards = true;
-      }
-
-      entry_tail = entry_tail->child;
-      src_tail = src_tail->child;
+      if (src_tail->deref_type == nir_deref_type_array &&
+          entry_tail->deref_type == nir_deref_type_array_wildcard)
+         need_to_specialize_wildcards = true;
    }
 
    /* If the entry deref is longer than the source deref then it refers to a
     * smaller type and we can't source from it.
     */
-   assert(entry_tail->child == NULL);
+   assert(*entry_p == NULL);
 
    if (need_to_specialize_wildcards) {
       /* The entry has some wildcards that are not in src.  This means we need
        * to construct a new deref based on the entry but using the wildcards
        * from the source and guided by the entry dst.  Oof.
        */
-      value->deref = specialize_wildcards(entry->src.deref, entry->dst, src,
-                                          state->mem_ctx);
-   } else {
-      /* We're going to need to make a copy in case we modify it below */
-      value->deref = nir_deref_var_clone(value->deref, state->mem_ctx);
+      nir_deref_path entry_src_path;
+      nir_deref_path_init(&entry_src_path, entry->src.deref, state->mem_ctx);
+      value->deref = specialize_wildcards(b, &entry_src_path,
+                                          &entry_dst_path, &src_path);
+      nir_deref_path_finish(&entry_src_path);
    }
 
-   if (src_tail->child) {
-      /* If our source deref is longer than the entry deref, that's ok because
-       * it just means the entry deref needs to be extended a bit.
-       */
-      nir_deref *value_tail = nir_deref_tail(&value->deref->deref);
-      value_tail->child = nir_deref_clone(src_tail->child, value_tail);
+   /* If our source deref is longer than the entry deref, that's ok because
+    * it just means the entry deref needs to be extended a bit.
+    */
+   while (*src_p) {
+      nir_deref_instr *src_tail = *src_p++;
+      value->deref = nir_build_deref_follower(b, value->deref, src_tail);
    }
 
-   b->cursor = nir_instr_remove(&intrin->instr);
+   nir_deref_path_finish(&entry_dst_path);
+   nir_deref_path_finish(&src_path);
 
    return true;
 }
@@ -587,7 +565,7 @@ load_from_deref_entry_value(struct copy_prop_var_state *state,
 static bool
 try_load_from_entry(struct copy_prop_var_state *state, struct copy_entry *entry,
                     nir_builder *b, nir_intrinsic_instr *intrin,
-                    nir_deref_var *src, struct value *value)
+                    nir_deref_instr *src, struct value *value)
 {
    if (entry == NULL)
       return false;
@@ -628,8 +606,8 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          apply_barrier_for_modes(state, nir_var_shader_out);
          break;
 
-      case nir_intrinsic_load_var: {
-         nir_deref_var *src = intrin->variables[0];
+      case nir_intrinsic_load_deref: {
+         nir_deref_instr *src = nir_src_as_deref(intrin->src[0]);
 
          uint8_t comps_read = nir_ssa_def_components_read(&intrin->dest.ssa);
          mark_aliased_entries_as_read(state, src, comps_read);
@@ -658,8 +636,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
                }
             } else {
                /* We're turning it into a load of a different variable */
-               ralloc_steal(intrin, value.deref);
-               intrin->variables[0] = value.deref;
+               intrin->src[0] = nir_src_for_ssa(&value.deref->dest.ssa);
 
                /* Put it back in again. */
                nir_builder_instr_insert(b, instr);
@@ -695,15 +672,15 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          break;
       }
 
-      case nir_intrinsic_store_var: {
+      case nir_intrinsic_store_deref: {
          struct value value = {
             .is_ssa = true
          };
 
          for (unsigned i = 0; i < intrin->num_components; i++)
-            value.ssa[i] = intrin->src[0].ssa;
+            value.ssa[i] = intrin->src[1].ssa;
 
-         nir_deref_var *dst = intrin->variables[0];
+         nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
          unsigned wrmask = nir_intrinsic_write_mask(intrin);
          struct copy_entry *entry =
             get_entry_and_kill_aliases(state, dst, wrmask);
@@ -711,9 +688,9 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          break;
       }
 
-      case nir_intrinsic_copy_var: {
-         nir_deref_var *dst = intrin->variables[0];
-         nir_deref_var *src = intrin->variables[1];
+      case nir_intrinsic_copy_deref: {
+         nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
+         nir_deref_instr *src = nir_src_as_deref(intrin->src[1]);
 
          if (compare_derefs(src, dst) & derefs_equal_bit) {
             /* This is a no-op self-copy.  Get rid of it */
@@ -728,7 +705,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          struct value value;
          if (try_load_from_entry(state, src_entry, b, intrin, src, &value)) {
             if (value.is_ssa) {
-               nir_store_deref_var(b, dst, value.ssa[0], 0xf);
+               nir_store_deref(b, dst, value.ssa[0], 0xf);
                intrin = nir_instr_as_intrinsic(nir_builder_last_instr(b));
             } else {
                /* If this would be a no-op self-copy, don't bother. */
@@ -736,8 +713,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
                   continue;
 
                /* Just turn it into a copy of a different deref */
-               ralloc_steal(intrin, value.deref);
-               intrin->variables[1] = value.deref;
+               intrin->src[1] = nir_src_for_ssa(&value.deref->dest.ssa);
 
                /* Put it back in again. */
                nir_builder_instr_insert(b, instr);

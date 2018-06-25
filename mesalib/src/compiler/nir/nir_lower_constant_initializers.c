@@ -24,18 +24,44 @@
 #include "nir.h"
 #include "nir_builder.h"
 
-static bool
-deref_apply_constant_initializer(nir_deref_var *deref, void *state)
+static void
+build_constant_load(nir_builder *b, nir_deref_instr *deref, nir_constant *c)
 {
-   struct nir_builder *b = state;
-
-   nir_load_const_instr *initializer =
-      nir_deref_get_const_initializer_load(b->shader, deref);
-   nir_builder_instr_insert(b, &initializer->instr);
-
-   nir_store_deref_var(b, deref, &initializer->def, 0xf);
-
-   return true;
+   if (glsl_type_is_vector_or_scalar(deref->type)) {
+      nir_load_const_instr *load =
+         nir_load_const_instr_create(b->shader,
+                                     glsl_get_vector_elements(deref->type),
+                                     glsl_get_bit_size(deref->type));
+      load->value = c->values[0];
+      nir_builder_instr_insert(b, &load->instr);
+      nir_store_deref(b, deref, &load->def, ~0);
+   } else if (glsl_type_is_matrix(deref->type)) {
+      unsigned cols = glsl_get_matrix_columns(deref->type);
+      unsigned rows = glsl_get_vector_elements(deref->type);
+      unsigned bit_size = glsl_get_bit_size(deref->type);
+      for (unsigned i = 0; i < cols; i++) {
+         nir_load_const_instr *load =
+            nir_load_const_instr_create(b->shader, rows, bit_size);
+         load->value = c->values[i];
+         nir_builder_instr_insert(b, &load->instr);
+         nir_store_deref(b, nir_build_deref_array(b, deref, nir_imm_int(b, i)),
+                         &load->def, ~0);
+      }
+   } else if (glsl_type_is_struct(deref->type)) {
+      unsigned len = glsl_get_length(deref->type);
+      for (unsigned i = 0; i < len; i++) {
+         build_constant_load(b, nir_build_deref_struct(b, deref, i),
+                             c->elements[i]);
+      }
+   } else {
+      assert(glsl_type_is_array(deref->type));
+      unsigned len = glsl_get_length(deref->type);
+      for (unsigned i = 0; i < len; i++) {
+         build_constant_load(b,
+                             nir_build_deref_array(b, deref, nir_imm_int(b, i)),
+                             c->elements[i]);
+      }
+   }
 }
 
 static bool
@@ -51,13 +77,8 @@ lower_const_initializer(struct nir_builder *b, struct exec_list *var_list)
 
       progress = true;
 
-      nir_deref_var deref;
-      deref.deref.deref_type = nir_deref_type_var,
-      deref.deref.child = NULL;
-      deref.deref.type = var->type,
-      deref.var = var;
-
-      nir_deref_foreach_leaf(&deref, deref_apply_constant_initializer, b);
+      build_constant_load(b, nir_build_deref_var(b, var),
+                          var->constant_initializer);
 
       var->constant_initializer = NULL;
    }

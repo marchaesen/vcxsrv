@@ -164,43 +164,14 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
       case PROGRAM_STATE_VAR: {
          assert(c->parameters != NULL);
 
-         nir_intrinsic_instr *load =
-            nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_var);
-         nir_ssa_dest_init(&load->instr, &load->dest, 4, 32, NULL);
-         load->num_components = 4;
+         nir_deref_instr *deref = nir_build_deref_var(b, c->parameters);
 
-         load->variables[0] = nir_deref_var_create(load, c->parameters);
-         nir_deref_array *deref_arr =
-            nir_deref_array_create(load->variables[0]);
-         deref_arr->deref.type = glsl_vec4_type();
-         load->variables[0]->deref.child = &deref_arr->deref;
+         nir_ssa_def *index = nir_imm_int(b, prog_src->Index);
+         if (prog_src->RelAddr)
+            index = nir_iadd(b, index, nir_load_reg(b, c->addr_reg));
+         deref = nir_build_deref_array(b, deref, nir_channel(b, index, 0));
 
-         if (prog_src->RelAddr) {
-            deref_arr->deref_array_type = nir_deref_array_type_indirect;
-
-            nir_alu_src addr_src = { NIR_SRC_INIT };
-            addr_src.src = nir_src_for_reg(c->addr_reg);
-            nir_ssa_def *reladdr = nir_imov_alu(b, addr_src, 1);
-
-            if (prog_src->Index < 0) {
-               /* This is a negative offset which should be added to the address
-                * register's value.
-                */
-               reladdr = nir_iadd(b, reladdr, nir_imm_int(b, prog_src->Index));
-
-               deref_arr->base_offset = 0;
-            } else {
-               deref_arr->base_offset = prog_src->Index;
-            }
-            deref_arr->indirect = nir_src_for_ssa(reladdr);
-         } else {
-            deref_arr->deref_array_type = nir_deref_array_type_direct;
-            deref_arr->base_offset = prog_src->Index;
-         }
-
-         nir_builder_instr_insert(b, &load->instr);
-
-         src.src = nir_src_for_ssa(&load->dest.ssa);
+         src.src = nir_src_for_ssa(nir_load_deref(b, deref));
          break;
       }
       default:

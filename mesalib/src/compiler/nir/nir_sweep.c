@@ -118,10 +118,6 @@ sweep_impl(nir_shader *nir, nir_function_impl *impl)
 {
    ralloc_steal(nir, impl);
 
-   ralloc_steal(nir, impl->params);
-   for (unsigned i = 0; i < impl->num_params; i++)
-      ralloc_steal(nir, impl->params[i]);
-   ralloc_steal(nir, impl->return_var);
    steal_list(nir, nir_variable, &impl->locals);
    steal_list(nir, nir_register, &impl->registers);
 

@@ -195,4 +195,6 @@ nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
 
    exec_list_append(&shader->globals, &state.old_inputs);
    exec_list_append(&shader->globals, &state.old_outputs);
+
+   nir_fixup_deref_modes(shader);
 }

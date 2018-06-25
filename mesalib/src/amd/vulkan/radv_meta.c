@@ -515,18 +515,20 @@ void radv_meta_build_resolve_shader_core(nir_builder *b,
 	nir_ssa_def *tmp;
 	nir_if *outer_if = NULL;
 
-	nir_tex_instr *tex = nir_tex_instr_create(b->shader, 2);
+	nir_ssa_def *input_img_deref = &nir_build_deref_var(b, input_img)->dest.ssa;
+
+	nir_tex_instr *tex = nir_tex_instr_create(b->shader, 3);
 	tex->sampler_dim = GLSL_SAMPLER_DIM_MS;
 	tex->op = nir_texop_txf_ms;
 	tex->src[0].src_type = nir_tex_src_coord;
 	tex->src[0].src = nir_src_for_ssa(img_coord);
 	tex->src[1].src_type = nir_tex_src_ms_index;
 	tex->src[1].src = nir_src_for_ssa(nir_imm_int(b, 0));
+	tex->src[2].src_type = nir_tex_src_texture_deref;
+	tex->src[2].src = nir_src_for_ssa(input_img_deref);
 	tex->dest_type = nir_type_float;
 	tex->is_array = false;
 	tex->coord_components = 2;
-	tex->texture = nir_deref_var_create(tex, input_img);
-	tex->sampler = NULL;
 
 	nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
 	nir_builder_instr_insert(b, &tex->instr);
@@ -534,16 +536,16 @@ void radv_meta_build_resolve_shader_core(nir_builder *b,
 	tmp = &tex->dest.ssa;
 
 	if (!is_integer && samples > 1) {
-		nir_tex_instr *tex_all_same = nir_tex_instr_create(b->shader, 1);
+		nir_tex_instr *tex_all_same = nir_tex_instr_create(b->shader, 2);
 		tex_all_same->sampler_dim = GLSL_SAMPLER_DIM_MS;
 		tex_all_same->op = nir_texop_samples_identical;
 		tex_all_same->src[0].src_type = nir_tex_src_coord;
 		tex_all_same->src[0].src = nir_src_for_ssa(img_coord);
+		tex_all_same->src[1].src_type = nir_tex_src_texture_deref;
+		tex_all_same->src[1].src = nir_src_for_ssa(input_img_deref);
 		tex_all_same->dest_type = nir_type_float;
 		tex_all_same->is_array = false;
 		tex_all_same->coord_components = 2;
-		tex_all_same->texture = nir_deref_var_create(tex_all_same, input_img);
-		tex_all_same->sampler = NULL;
 
 		nir_ssa_dest_init(&tex_all_same->instr, &tex_all_same->dest, 1, 32, "tex");
 		nir_builder_instr_insert(b, &tex_all_same->instr);
@@ -555,18 +557,18 @@ void radv_meta_build_resolve_shader_core(nir_builder *b,
 
 		b->cursor = nir_after_cf_list(&if_stmt->then_list);
 		for (int i = 1; i < samples; i++) {
-			nir_tex_instr *tex_add = nir_tex_instr_create(b->shader, 2);
+			nir_tex_instr *tex_add = nir_tex_instr_create(b->shader, 3);
 			tex_add->sampler_dim = GLSL_SAMPLER_DIM_MS;
 			tex_add->op = nir_texop_txf_ms;
 			tex_add->src[0].src_type = nir_tex_src_coord;
 			tex_add->src[0].src = nir_src_for_ssa(img_coord);
 			tex_add->src[1].src_type = nir_tex_src_ms_index;
 			tex_add->src[1].src = nir_src_for_ssa(nir_imm_int(b, i));
+			tex_add->src[2].src_type = nir_tex_src_texture_deref;
+			tex_add->src[2].src = nir_src_for_ssa(input_img_deref);
 			tex_add->dest_type = nir_type_float;
 			tex_add->is_array = false;
 			tex_add->coord_components = 2;
-			tex_add->texture = nir_deref_var_create(tex_add, input_img);
-			tex_add->sampler = NULL;
 
 			nir_ssa_dest_init(&tex_add->instr, &tex_add->dest, 4, 32, "tex");
 			nir_builder_instr_insert(b, &tex_add->instr);

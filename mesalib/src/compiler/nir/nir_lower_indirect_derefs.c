@@ -23,44 +23,41 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "nir_deref.h"
 
 static void
-emit_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
-                nir_deref_var *deref, nir_deref *tail,
-                nir_ssa_def **dest, nir_ssa_def *src);
+emit_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
+                      nir_deref_instr *parent,
+                      nir_deref_instr **deref_arr,
+                      nir_ssa_def **dest, nir_ssa_def *src);
 
 static void
-emit_indirect_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
-                         nir_deref_var *deref, nir_deref *arr_parent,
-                         int start, int end,
-                         nir_ssa_def **dest, nir_ssa_def *src)
+emit_indirect_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
+                               nir_deref_instr *parent,
+                               nir_deref_instr **deref_arr,
+                               int start, int end,
+                               nir_ssa_def **dest, nir_ssa_def *src)
 {
-   nir_deref_array *arr = nir_deref_as_array(arr_parent->child);
-   assert(arr->deref_array_type == nir_deref_array_type_indirect);
-   assert(arr->indirect.is_ssa);
-
    assert(start < end);
    if (start == end - 1) {
-      /* Base case.  Just emit the load/store op */
-      nir_deref_array direct = *arr;
-      direct.deref_array_type = nir_deref_array_type_direct;
-      direct.base_offset += start;
-      direct.indirect = NIR_SRC_INIT;
-
-      arr_parent->child = &direct.deref;
-      emit_load_store(b, orig_instr, deref, &direct.deref, dest, src);
-      arr_parent->child = &arr->deref;
+      nir_ssa_def *index = nir_imm_int(b, start);
+      emit_load_store_deref(b, orig_instr,
+                            nir_build_deref_array(b, parent, index),
+                            deref_arr + 1, dest, src);
    } else {
       int mid = start + (end - start) / 2;
 
       nir_ssa_def *then_dest, *else_dest;
 
-      nir_push_if(b, nir_ilt(b, arr->indirect.ssa, nir_imm_int(b, mid)));
-      emit_indirect_load_store(b, orig_instr, deref, arr_parent,
-                               start, mid, &then_dest, src);
+      nir_deref_instr *deref = *deref_arr;
+      assert(deref->deref_type == nir_deref_type_array);
+
+      nir_push_if(b, nir_ilt(b, deref->arr.index.ssa, nir_imm_int(b, mid)));
+      emit_indirect_load_store_deref(b, orig_instr, parent, deref_arr,
+                                     start, mid, &then_dest, src);
       nir_push_else(b, NULL);
-      emit_indirect_load_store(b, orig_instr, deref, arr_parent,
-                               mid, end, &else_dest, src);
+      emit_indirect_load_store_deref(b, orig_instr, parent, deref_arr,
+                                     mid, end, &else_dest, src);
       nir_pop_if(b, NULL);
 
       if (src == NULL)
@@ -69,76 +66,55 @@ emit_indirect_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
 }
 
 static void
-emit_load_store(nir_builder *b, nir_intrinsic_instr *orig_instr,
-                nir_deref_var *deref, nir_deref *tail,
-                nir_ssa_def **dest, nir_ssa_def *src)
+emit_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
+                      nir_deref_instr *parent,
+                      nir_deref_instr **deref_arr,
+                      nir_ssa_def **dest, nir_ssa_def *src)
 {
-   for (; tail->child; tail = tail->child) {
-      if (tail->child->deref_type != nir_deref_type_array)
-         continue;
+   for (; *deref_arr; deref_arr++) {
+      nir_deref_instr *deref = *deref_arr;
+      if (deref->deref_type == nir_deref_type_array &&
+          nir_src_as_const_value(deref->arr.index) == NULL) {
+         int length = glsl_get_length(parent->type);
 
-      nir_deref_array *arr = nir_deref_as_array(tail->child);
-      if (arr->deref_array_type != nir_deref_array_type_indirect)
-         continue;
+         emit_indirect_load_store_deref(b, orig_instr, parent, deref_arr,
+                                        0, length, dest, src);
+         return;
+      }
 
-      int length = glsl_get_length(tail->type);
-
-      emit_indirect_load_store(b, orig_instr, deref, tail, -arr->base_offset,
-                               length - arr->base_offset, dest, src);
-      return;
+      parent = nir_build_deref_follower(b, parent, deref);
    }
 
-   assert(tail && tail->child == NULL);
-
    /* We reached the end of the deref chain.  Emit the instruction */
+   assert(*deref_arr == NULL);
 
    if (src == NULL) {
       /* This is a load instruction */
       nir_intrinsic_instr *load =
          nir_intrinsic_instr_create(b->shader, orig_instr->intrinsic);
       load->num_components = orig_instr->num_components;
-      load->variables[0] = nir_deref_var_clone(deref, load);
 
-      /* Copy over any sources.  This is needed for interp_var_at */
-      for (unsigned i = 0;
+      load->src[0] = nir_src_for_ssa(&parent->dest.ssa);
+
+      /* Copy over any other sources.  This is needed for interp_deref_at */
+      for (unsigned i = 1;
            i < nir_intrinsic_infos[orig_instr->intrinsic].num_srcs; i++)
          nir_src_copy(&load->src[i], &orig_instr->src[i], load);
 
-      unsigned bit_size = orig_instr->dest.ssa.bit_size;
       nir_ssa_dest_init(&load->instr, &load->dest,
-                        load->num_components, bit_size, NULL);
+                        orig_instr->dest.ssa.num_components,
+                        orig_instr->dest.ssa.bit_size, NULL);
       nir_builder_instr_insert(b, &load->instr);
       *dest = &load->dest.ssa;
    } else {
-      /* This is a store instruction */
-      nir_intrinsic_instr *store =
-         nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_var);
-      store->num_components = orig_instr->num_components;
-      nir_intrinsic_set_write_mask(store, nir_intrinsic_write_mask(orig_instr));
-      store->variables[0] = nir_deref_var_clone(deref, store);
-      store->src[0] = nir_src_for_ssa(src);
-      nir_builder_instr_insert(b, &store->instr);
+      assert(orig_instr->intrinsic == nir_intrinsic_store_deref);
+      nir_store_deref(b, parent, src, nir_intrinsic_write_mask(orig_instr));
    }
 }
 
 static bool
-deref_has_indirect(nir_deref_var *deref)
-{
-   for (nir_deref *tail = deref->deref.child; tail; tail = tail->child) {
-      if (tail->deref_type != nir_deref_type_array)
-         continue;
-
-      nir_deref_array *arr = nir_deref_as_array(tail);
-      if (arr->deref_array_type == nir_deref_array_type_indirect)
-         return true;
-   }
-
-   return false;
-}
-
-static bool
-lower_indirect_block(nir_block *block, nir_builder *b,
-                     nir_variable_mode modes)
+lower_indirect_derefs_block(nir_block *block, nir_builder *b,
+                            nir_variable_mode modes)
 {
    bool progress = false;
 
@@ -147,37 +123,55 @@ lower_indirect_block(nir_block *block, nir_builder *b,
          continue;
 
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-      if (intrin->intrinsic != nir_intrinsic_load_var &&
-          intrin->intrinsic != nir_intrinsic_interp_var_at_centroid &&
-          intrin->intrinsic != nir_intrinsic_interp_var_at_sample &&
-          intrin->intrinsic != nir_intrinsic_interp_var_at_offset &&
-          intrin->intrinsic != nir_intrinsic_store_var)
+      if (intrin->intrinsic != nir_intrinsic_load_deref &&
+          intrin->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
+          intrin->intrinsic != nir_intrinsic_interp_deref_at_sample &&
+          intrin->intrinsic != nir_intrinsic_interp_deref_at_offset &&
+          intrin->intrinsic != nir_intrinsic_store_deref)
          continue;
 
-      if (!deref_has_indirect(intrin->variables[0]))
+      nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+
+      /* Walk the deref chain back to the base and look for indirects */
+      bool has_indirect = false;
+      nir_deref_instr *base = deref;
+      while (base->deref_type != nir_deref_type_var) {
+         if (base->deref_type == nir_deref_type_array &&
+             nir_src_as_const_value(base->arr.index) == NULL)
+            has_indirect = true;
+
+         base = nir_deref_instr_parent(base);
+      }
+
+      if (!has_indirect)
          continue;
 
       /* Only lower variables whose mode is in the mask, or compact
        * array variables.  (We can't handle indirects on tightly packed
        * scalar arrays, so we need to lower them regardless.)
        */
-      if (!(modes & intrin->variables[0]->var->data.mode) &&
-          !intrin->variables[0]->var->data.compact)
+      if (!(modes & base->var->data.mode) && !base->var->data.compact)
          continue;
 
-      b->cursor = nir_before_instr(&intrin->instr);
+      b->cursor = nir_instr_remove(&intrin->instr);
 
-      if (intrin->intrinsic != nir_intrinsic_store_var) {
-         nir_ssa_def *result;
-         emit_load_store(b, intrin, intrin->variables[0],
-                         &intrin->variables[0]->deref, &result, NULL);
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(result));
+      nir_deref_path path;
+      nir_deref_path_init(&path, deref, NULL);
+      assert(path.path[0] == base);
+
+      if (intrin->intrinsic == nir_intrinsic_store_deref) {
+         assert(intrin->src[1].is_ssa);
+         emit_load_store_deref(b, intrin, base, &path.path[1],
+                               NULL, intrin->src[1].ssa);
       } else {
-         assert(intrin->src[0].is_ssa);
-         emit_load_store(b, intrin, intrin->variables[0],
-                         &intrin->variables[0]->deref, NULL, intrin->src[0].ssa);
+         nir_ssa_def *result;
+         emit_load_store_deref(b, intrin, base, &path.path[1],
+                               &result, NULL);
+         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(result));
       }
-      nir_instr_remove(&intrin->instr);
+
+      nir_deref_path_finish(&path);
+
       progress = true;
    }
 
@@ -192,7 +186,7 @@ lower_indirects_impl(nir_function_impl *impl, nir_variable_mode modes)
    bool progress = false;
 
    nir_foreach_block_safe(block, impl) {
-      progress |= lower_indirect_block(block, &builder, modes);
+      progress |= lower_indirect_derefs_block(block, &builder, modes);
    }
 
    if (progress)

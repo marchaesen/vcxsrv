@@ -29,6 +29,7 @@
 #include "nir/nir_vla.h"
 #include "nir/nir_control_flow.h"
 #include "nir/nir_constant_expressions.h"
+#include "nir/nir_deref.h"
 #include "spirv_info.h"
 
 #include <stdio.h>
@@ -1181,6 +1182,13 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          val->type->type = glsl_vector_type(GLSL_TYPE_UINT, 2);
       }
 
+      if (storage_class == SpvStorageClassPushConstant) {
+         /* These can actually be stored to nir_variables and used as SSA
+          * values so they need a real glsl_type.
+          */
+         val->type->type = glsl_uint_type();
+      }
+
       if (storage_class == SpvStorageClassWorkgroup &&
           b->options->lower_workgroup_access_to_offsets) {
          uint32_t size, align;
@@ -1787,39 +1795,54 @@ vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
    vtn_callee->referenced = true;
 
    nir_call_instr *call = nir_call_instr_create(b->nb.shader, callee);
-   for (unsigned i = 0; i < call->num_params; i++) {
+
+   unsigned param_idx = 0;
+
+   nir_deref_instr *ret_deref = NULL;
+   struct vtn_type *ret_type = vtn_callee->type->return_type;
+   if (ret_type->base_type != vtn_base_type_void) {
+      nir_variable *ret_tmp =
+         nir_local_variable_create(b->nb.impl, ret_type->type, "return_tmp");
+      ret_deref = nir_build_deref_var(&b->nb, ret_tmp);
+      call->params[param_idx++] = nir_src_for_ssa(&ret_deref->dest.ssa);
+   }
+
+   for (unsigned i = 0; i < vtn_callee->type->length; i++) {
+      struct vtn_type *arg_type = vtn_callee->type->params[i];
       unsigned arg_id = w[4 + i];
-      struct vtn_value *arg = vtn_untyped_value(b, arg_id);
-      if (arg->value_type == vtn_value_type_pointer &&
-          arg->pointer->ptr_type->type == NULL) {
-         nir_deref_var *d = vtn_pointer_to_deref(b, arg->pointer);
-         call->params[i] = nir_deref_var_clone(d, call);
+
+      if (arg_type->base_type == vtn_base_type_sampled_image) {
+         struct vtn_sampled_image *sampled_image =
+            vtn_value(b, arg_id, vtn_value_type_sampled_image)->sampled_image;
+
+         call->params[param_idx++] =
+            nir_src_for_ssa(&sampled_image->image->deref->dest.ssa);
+         call->params[param_idx++] =
+            nir_src_for_ssa(&sampled_image->sampler->deref->dest.ssa);
+      } else if (arg_type->base_type == vtn_base_type_pointer ||
+                 arg_type->base_type == vtn_base_type_image ||
+                 arg_type->base_type == vtn_base_type_sampler) {
+         struct vtn_pointer *pointer =
+            vtn_value(b, arg_id, vtn_value_type_pointer)->pointer;
+         call->params[param_idx++] =
+            nir_src_for_ssa(vtn_pointer_to_ssa(b, pointer));
       } else {
-         struct vtn_ssa_value *arg_ssa = vtn_ssa_value(b, arg_id);
-
-         /* Make a temporary to store the argument in */
+         /* This is a regular SSA value and we need a temporary */
          nir_variable *tmp =
-            nir_local_variable_create(b->nb.impl, arg_ssa->type, "arg_tmp");
-         call->params[i] = nir_deref_var_create(call, tmp);
-
-         vtn_local_store(b, arg_ssa, call->params[i]);
+            nir_local_variable_create(b->nb.impl, arg_type->type, "arg_tmp");
+         nir_deref_instr *tmp_deref = nir_build_deref_var(&b->nb, tmp);
+         vtn_local_store(b, vtn_ssa_value(b, arg_id), tmp_deref);
+         call->params[param_idx++] = nir_src_for_ssa(&tmp_deref->dest.ssa);
       }
    }
-
-   nir_variable *out_tmp = NULL;
-   vtn_assert(res_type->type == callee->return_type);
-   if (!glsl_type_is_void(callee->return_type)) {
-      out_tmp = nir_local_variable_create(b->nb.impl, callee->return_type,
-                                          "out_tmp");
-      call->return_deref = nir_deref_var_create(call, out_tmp);
-   }
+   assert(param_idx == call->num_params);
 
    nir_builder_instr_insert(&b->nb, &call->instr);
 
-   if (glsl_type_is_void(callee->return_type)) {
+   if (ret_type->base_type == vtn_base_type_void) {
       vtn_push_value(b, w[2], vtn_value_type_undef);
    } else {
-      vtn_push_ssa(b, w[2], res_type, vtn_local_load(b, call->return_deref));
+      vtn_push_ssa(b, w[2], res_type, vtn_local_load(b, ret_deref));
    }
 }
 
@@ -1972,8 +1995,40 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       vtn_fail("Unhandled opcode");
    }
 
-   nir_tex_src srcs[8]; /* 8 should be enough */
+   nir_tex_src srcs[10]; /* 10 should be enough */
    nir_tex_src *p = srcs;
+
+   nir_deref_instr *sampler = vtn_pointer_to_deref(b, sampled.sampler);
+   nir_deref_instr *texture =
+      sampled.image ? vtn_pointer_to_deref(b, sampled.image) : sampler;
+
+   p->src = nir_src_for_ssa(&texture->dest.ssa);
+   p->src_type = nir_tex_src_texture_deref;
+   p++;
+
+   switch (texop) {
+   case nir_texop_tex:
+   case nir_texop_txb:
+   case nir_texop_txl:
+   case nir_texop_txd:
+   case nir_texop_tg4:
+      /* These operations require a sampler */
+      p->src = nir_src_for_ssa(&sampler->dest.ssa);
+      p->src_type = nir_tex_src_sampler_deref;
+      p++;
+      break;
+   case nir_texop_txf:
+   case nir_texop_txf_ms:
+   case nir_texop_txs:
+   case nir_texop_lod:
+   case nir_texop_query_levels:
+   case nir_texop_texture_samples:
+   case nir_texop_samples_identical:
+      /* These don't */
+      break;
+   case nir_texop_txf_ms_mcs:
+      vtn_fail("unexpected nir_texop_txf_ms_mcs");
+   }
 
    unsigned idx = 4;
 
@@ -2135,40 +2190,6 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       vtn_fail("Invalid base type for sampler result");
    }
 
-   nir_deref_var *sampler = vtn_pointer_to_deref(b, sampled.sampler);
-   nir_deref_var *texture;
-   if (sampled.image) {
-      nir_deref_var *image = vtn_pointer_to_deref(b, sampled.image);
-      texture = image;
-   } else {
-      texture = sampler;
-   }
-
-   instr->texture = nir_deref_var_clone(texture, instr);
-
-   switch (instr->op) {
-   case nir_texop_tex:
-   case nir_texop_txb:
-   case nir_texop_txl:
-   case nir_texop_txd:
-   case nir_texop_tg4:
-      /* These operations require a sampler */
-      instr->sampler = nir_deref_var_clone(sampler, instr);
-      break;
-   case nir_texop_txf:
-   case nir_texop_txf_ms:
-   case nir_texop_txs:
-   case nir_texop_lod:
-   case nir_texop_query_levels:
-   case nir_texop_texture_samples:
-   case nir_texop_samples_identical:
-      /* These don't */
-      instr->sampler = NULL;
-      break;
-   case nir_texop_txf_ms_mcs:
-      vtn_fail("unexpected nir_texop_txf_ms_mcs");
-   }
-
    nir_ssa_dest_init(&instr->instr, &instr->dest,
                      nir_tex_instr_dest_size(instr), 32, NULL);
 
@@ -2193,8 +2214,6 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
          instrs[i]->is_new_style_shadow = instr->is_new_style_shadow;
          instrs[i]->component = instr->component;
          instrs[i]->dest_type = instr->dest_type;
-         instrs[i]->texture = nir_deref_var_clone(texture, instrs[i]);
-         instrs[i]->sampler = NULL;
 
          memcpy(instrs[i]->src, srcs, instr->num_srcs * sizeof(*instr->src));
 
@@ -2369,7 +2388,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
 
    nir_intrinsic_op op;
    switch (opcode) {
-#define OP(S, N) case SpvOp##S: op = nir_intrinsic_image_var_##N; break;
+#define OP(S, N) case SpvOp##S: op = nir_intrinsic_image_deref_##N; break;
    OP(ImageQuerySize,         size)
    OP(ImageRead,              load)
    OP(ImageWrite,             store)
@@ -2395,8 +2414,8 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
 
    nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->shader, op);
 
-   nir_deref_var *image_deref = vtn_pointer_to_deref(b, image.image);
-   intrin->variables[0] = nir_deref_var_clone(image_deref, intrin);
+   nir_deref_instr *image_deref = vtn_pointer_to_deref(b, image.image);
+   intrin->src[0] = nir_src_for_ssa(&image_deref->dest.ssa);
 
    /* ImageQuerySize doesn't take any extra parameters */
    if (opcode != SpvOpImageQuerySize) {
@@ -2406,9 +2425,9 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       unsigned swiz[4];
       for (unsigned i = 0; i < 4; i++)
          swiz[i] = i < image.coord->num_components ? i : 0;
-      intrin->src[0] = nir_src_for_ssa(nir_swizzle(&b->nb, image.coord,
+      intrin->src[1] = nir_src_for_ssa(nir_swizzle(&b->nb, image.coord,
                                                    swiz, 4, false));
-      intrin->src[1] = nir_src_for_ssa(image.sample);
+      intrin->src[2] = nir_src_for_ssa(image.sample);
    }
 
    switch (opcode) {
@@ -2417,10 +2436,10 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    case SpvOpImageRead:
       break;
    case SpvOpAtomicStore:
-      intrin->src[2] = nir_src_for_ssa(vtn_ssa_value(b, w[4])->def);
+      intrin->src[3] = nir_src_for_ssa(vtn_ssa_value(b, w[4])->def);
       break;
    case SpvOpImageWrite:
-      intrin->src[2] = nir_src_for_ssa(vtn_ssa_value(b, w[3])->def);
+      intrin->src[3] = nir_src_for_ssa(vtn_ssa_value(b, w[3])->def);
       break;
 
    case SpvOpAtomicCompareExchange:
@@ -2436,7 +2455,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicAnd:
    case SpvOpAtomicOr:
    case SpvOpAtomicXor:
-      fill_common_atomic_sources(b, opcode, w, &intrin->src[2]);
+      fill_common_atomic_sources(b, opcode, w, &intrin->src[3]);
       break;
 
    default:
@@ -2448,7 +2467,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       struct vtn_type *type = vtn_value(b, w[1], vtn_value_type_type)->type;
 
       unsigned dest_components = nir_intrinsic_dest_components(intrin);
-      if (intrin->intrinsic == nir_intrinsic_image_var_size) {
+      if (intrin->intrinsic == nir_intrinsic_image_deref_size) {
          dest_components = intrin->num_components =
             glsl_get_vector_elements(type->type);
       }
@@ -2518,12 +2537,12 @@ get_shared_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
 }
 
 static nir_intrinsic_op
-get_var_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
+get_deref_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
 {
    switch (opcode) {
-   case SpvOpAtomicLoad:      return nir_intrinsic_load_var;
-   case SpvOpAtomicStore:     return nir_intrinsic_store_var;
-#define OP(S, N) case SpvOp##S: return nir_intrinsic_var_##N;
+   case SpvOpAtomicLoad:      return nir_intrinsic_load_deref;
+   case SpvOpAtomicStore:     return nir_intrinsic_store_deref;
+#define OP(S, N) case SpvOp##S: return nir_intrinsic_deref_##N;
    OP(AtomicExchange,         atomic_exchange)
    OP(AtomicCompareExchange,  atomic_comp_swap)
    OP(AtomicIIncrement,       atomic_add)
@@ -2584,11 +2603,11 @@ vtn_handle_ssbo_or_shared_atomic(struct vtn_builder *b, SpvOp opcode,
 
    if (ptr->mode == vtn_variable_mode_workgroup &&
        !b->options->lower_workgroup_access_to_offsets) {
-      nir_deref_var *deref = vtn_pointer_to_deref(b, ptr);
-      const struct glsl_type *deref_type = nir_deref_tail(&deref->deref)->type;
-      nir_intrinsic_op op = get_var_nir_atomic_op(b, opcode);
+      nir_deref_instr *deref = vtn_pointer_to_deref(b, ptr);
+      const struct glsl_type *deref_type = deref->type;
+      nir_intrinsic_op op = get_deref_nir_atomic_op(b, opcode);
       atomic = nir_intrinsic_instr_create(b->nb.shader, op);
-      atomic->variables[0] = nir_deref_var_clone(deref, atomic);
+      atomic->src[0] = nir_src_for_ssa(&deref->dest.ssa);
 
       switch (opcode) {
       case SpvOpAtomicLoad:
@@ -2598,7 +2617,7 @@ vtn_handle_ssbo_or_shared_atomic(struct vtn_builder *b, SpvOp opcode,
       case SpvOpAtomicStore:
          atomic->num_components = glsl_get_vector_elements(deref_type);
          nir_intrinsic_set_write_mask(atomic, (1 << atomic->num_components) - 1);
-         atomic->src[0] = nir_src_for_ssa(vtn_ssa_value(b, w[4])->def);
+         atomic->src[1] = nir_src_for_ssa(vtn_ssa_value(b, w[4])->def);
          break;
 
       case SpvOpAtomicExchange:
@@ -2615,7 +2634,7 @@ vtn_handle_ssbo_or_shared_atomic(struct vtn_builder *b, SpvOp opcode,
       case SpvOpAtomicAnd:
       case SpvOpAtomicOr:
       case SpvOpAtomicXor:
-         fill_common_atomic_sources(b, opcode, w, &atomic->src[0]);
+         fill_common_atomic_sources(b, opcode, w, &atomic->src[1]);
          break;
 
       default:
@@ -2624,7 +2643,7 @@ vtn_handle_ssbo_or_shared_atomic(struct vtn_builder *b, SpvOp opcode,
       }
    } else {
       nir_ssa_def *offset, *index;
-      offset = vtn_pointer_to_offset(b, ptr, &index, NULL);
+      offset = vtn_pointer_to_offset(b, ptr, &index);
 
       nir_intrinsic_op op;
       if (ptr->mode == vtn_variable_mode_ssbo) {
@@ -4136,6 +4155,11 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
          }
       }
    } while (progress);
+
+   /* We sometimes generate bogus derefs that, while never used, give the
+    * validator a bit of heartburn.  Run dead code to get rid of them.
+    */
+   nir_opt_dce(b->shader);
 
    vtn_assert(b->entry_point->value_type == vtn_value_type_function);
    nir_function *entry_point = b->entry_point->func->impl->function;

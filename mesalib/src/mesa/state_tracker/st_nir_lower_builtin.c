@@ -58,6 +58,7 @@
 
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
+#include "compiler/nir/nir_deref.h"
 #include "st_nir.h"
 #include "compiler/glsl/ir.h"
 #include "uniforms.h"
@@ -70,44 +71,45 @@ typedef struct {
 } lower_builtin_state;
 
 static const struct gl_builtin_uniform_element *
-get_element(const struct gl_builtin_uniform_desc *desc, nir_deref_var *deref)
+get_element(const struct gl_builtin_uniform_desc *desc, nir_deref_path *path)
 {
-   nir_deref *tail = &deref->deref;
+   int idx = 1;
+
+   assert(path->path[0]->deref_type == nir_deref_type_var);
 
    if ((desc->num_elements == 1) && (desc->elements[0].field == NULL))
       return NULL;
 
    /* we handle arrays in get_variable(): */
-   if (tail->child->deref_type == nir_deref_type_array)
-      tail = tail->child;
+   if (path->path[idx]->deref_type == nir_deref_type_array)
+      idx++;
 
    /* don't need to deal w/ non-struct or array of non-struct: */
-   if (!tail->child)
+   if (!path->path[idx])
       return NULL;
 
-   if (tail->child->deref_type != nir_deref_type_struct)
+   if (path->path[idx]->deref_type != nir_deref_type_struct)
       return NULL;
 
-   nir_deref_struct *deref_struct = nir_deref_as_struct(tail->child);
+   assert(path->path[idx]->strct.index < desc->num_elements);
 
-   assert(deref_struct->index < desc->num_elements);
-
-   return &desc->elements[deref_struct->index];
+   return &desc->elements[path->path[idx]->strct.index ];
 }
 
 static nir_variable *
-get_variable(lower_builtin_state *state, nir_deref_var *deref,
+get_variable(lower_builtin_state *state, nir_deref_path *path,
              const struct gl_builtin_uniform_element *element)
 {
    nir_shader *shader = state->shader;
    gl_state_index16 tokens[STATE_LENGTH];
+   int idx = 1;
 
    memcpy(tokens, element->tokens, sizeof(tokens));
 
-   if (deref->deref.child->deref_type == nir_deref_type_array) {
-      nir_deref_array *darr = nir_deref_as_array(deref->deref.child);
+   if (path->path[idx]->deref_type == nir_deref_type_array) {
+      nir_const_value *c = nir_src_as_const_value(path->path[idx]->arr.index);
 
-      assert(darr->deref_array_type == nir_deref_array_type_direct);
+      assert(c);
 
       /* we need to fixup the array index slot: */
       switch (tokens[0]) {
@@ -121,7 +123,7 @@ get_variable(lower_builtin_state *state, nir_deref_var *deref,
       case STATE_TEXGEN:
       case STATE_TEXENV_COLOR:
       case STATE_CLIPPLANE:
-         tokens[1] = darr->base_offset;
+         tokens[1] = c->u32[0];
          break;
       }
    }
@@ -153,6 +155,7 @@ static bool
 lower_builtin_block(lower_builtin_state *state, nir_block *block)
 {
    nir_builder *b = &state->builder;
+   bool progress = false;
 
    nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_intrinsic)
@@ -160,10 +163,11 @@ lower_builtin_block(lower_builtin_state *state, nir_block *block)
 
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
-      if (intrin->intrinsic != nir_intrinsic_load_var)
+      if (intrin->intrinsic != nir_intrinsic_load_deref)
          continue;
 
-      nir_variable *var = intrin->variables[0]->var;
+      nir_variable *var =
+         nir_deref_instr_get_variable(nir_src_as_deref(intrin->src[0]));
       if (var->data.mode != nir_var_uniform)
          continue;
 
@@ -178,12 +182,16 @@ lower_builtin_block(lower_builtin_state *state, nir_block *block)
       if (!desc)
          continue;
 
-      const struct gl_builtin_uniform_element *element =
-         get_element(desc, intrin->variables[0]);
+      nir_deref_path path;
+      nir_deref_path_init(&path, nir_src_as_deref(intrin->src[0]), NULL);
+
+      const struct gl_builtin_uniform_element *element = get_element(desc, &path);
 
       /* matrix elements (array_deref) do not need special handling: */
-      if (!element)
+      if (!element) {
+         nir_deref_path_finish(&path);
          continue;
+      }
 
       /* remove existing var from uniform list: */
       exec_node_remove(&var->node);
@@ -192,8 +200,8 @@ lower_builtin_block(lower_builtin_state *state, nir_block *block)
        */
       exec_node_self_link(&var->node);
 
-      nir_variable *new_var =
-         get_variable(state, intrin->variables[0], element);
+      nir_variable *new_var = get_variable(state, &path, element);
+      nir_deref_path_finish(&path);
 
       b->cursor = nir_before_instr(instr);
 
@@ -217,9 +225,11 @@ lower_builtin_block(lower_builtin_state *state, nir_block *block)
        * var since we don't want it to get uniform space allocated.
        */
       nir_instr_remove(&intrin->instr);
+
+      progress = true;
    }
 
-   return true;
+   return progress;
 }
 
 static void
@@ -228,9 +238,13 @@ lower_builtin_impl(lower_builtin_state *state, nir_function_impl *impl)
    nir_builder_init(&state->builder, impl);
    state->mem_ctx = ralloc_parent(impl);
 
+   bool progress = false;
    nir_foreach_block(block, impl) {
-      lower_builtin_block(state, block);
+      progress |= lower_builtin_block(state, block);
    }
+
+   if (progress)
+      nir_remove_dead_derefs_impl(impl);
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);

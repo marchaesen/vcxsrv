@@ -23,6 +23,7 @@
 #include "radv_private.h"
 #include "radv_shader.h"
 #include "nir/nir.h"
+#include "nir/nir_deref.h"
 
 static void mark_sampler_desc(const nir_variable *var,
 			      struct radv_shader_info *info)
@@ -47,55 +48,57 @@ static void mark_tess_output(struct radv_shader_info *info,
 		info->tcs.outputs_written |= (mask << param);
 }
 
-static void get_deref_offset(nir_deref_var *deref, unsigned *const_out)
+static void
+get_deref_offset(nir_deref_instr *instr,
+                 unsigned *const_out)
 {
-	nir_deref *tail = &deref->deref;
-	unsigned const_offset = 0;
+        nir_variable *var = nir_deref_instr_get_variable(instr);
+        nir_deref_path path;
+        unsigned idx_lvl = 1;
 
-	if (deref->var->data.compact) {
-		assert(tail->child->deref_type == nir_deref_type_array);
-		assert(glsl_type_is_scalar(glsl_without_array(deref->var->type)));
-
-		nir_deref_array *deref_array = nir_deref_as_array(tail->child);
-		/* We always lower indirect dereferences for "compact" array vars. */
-		assert(deref_array->deref_array_type == nir_deref_array_type_direct);
-
-		*const_out = deref_array->base_offset;
+	if (var->data.compact) {
+		assert(instr->deref_type == nir_deref_type_array);
+		nir_const_value *v = nir_src_as_const_value(instr->arr.index);
+		assert(v);
+		*const_out = v->u32[0];
 		return;
 	}
 
-	while (tail->child != NULL) {
-		const struct glsl_type *parent_type = tail->type;
-		tail = tail->child;
+	nir_deref_path_init(&path, instr, NULL);
 
-		if (tail->deref_type == nir_deref_type_array) {
-			nir_deref_array *deref_array = nir_deref_as_array(tail);
-			unsigned size = glsl_count_attribute_slots(tail->type, false);
+	uint32_t const_offset = 0;
 
-			const_offset += size * deref_array->base_offset;
-		} else if (tail->deref_type == nir_deref_type_struct) {
-			nir_deref_struct *deref_struct = nir_deref_as_struct(tail);
+	for (; path.path[idx_lvl]; ++idx_lvl) {
+		const struct glsl_type *parent_type = path.path[idx_lvl - 1]->type;
+		if (path.path[idx_lvl]->deref_type == nir_deref_type_struct) {
+			unsigned index = path.path[idx_lvl]->strct.index;
 
-			for (unsigned i = 0; i < deref_struct->index; i++) {
+			for (unsigned i = 0; i < index; i++) {
 				const struct glsl_type *ft = glsl_get_struct_field(parent_type, i);
 				const_offset += glsl_count_attribute_slots(ft, false);
 			}
+		} else if(path.path[idx_lvl]->deref_type == nir_deref_type_array) {
+			unsigned size = glsl_count_attribute_slots(path.path[idx_lvl]->type, false);
+			nir_const_value *v = nir_src_as_const_value(path.path[idx_lvl]->arr.index);
+			if (v)
+				const_offset += v->u32[0] * size;
 		} else
-			unreachable("unsupported deref type");
+			unreachable("Uhandled deref type in get_deref_instr_offset");
 	}
 
 	*const_out = const_offset;
+
+	nir_deref_path_finish(&path);
 }
 
 static void
-gather_intrinsic_load_var_info(const nir_shader *nir,
+gather_intrinsic_load_deref_info(const nir_shader *nir,
 			       const nir_intrinsic_instr *instr,
 			       struct radv_shader_info *info)
 {
 	switch (nir->info.stage) {
 	case MESA_SHADER_VERTEX: {
-		nir_deref_var *dvar = instr->variables[0];
-		nir_variable *var = dvar->var;
+		nir_variable *var = nir_deref_instr_get_variable(nir_instr_as_deref(instr->src[0].ssa->parent_instr));
 
 		if (var->data.mode == nir_var_shader_in) {
 			unsigned idx = var->data.location;
@@ -112,12 +115,11 @@ gather_intrinsic_load_var_info(const nir_shader *nir,
 }
 
 static void
-gather_intrinsic_store_var_info(const nir_shader *nir,
+gather_intrinsic_store_deref_info(const nir_shader *nir,
 				const nir_intrinsic_instr *instr,
 				struct radv_shader_info *info)
 {
-	nir_deref_var *dvar = instr->variables[0];
-	nir_variable *var = dvar->var;
+	nir_variable *var = nir_deref_instr_get_variable(nir_instr_as_deref(instr->src[0].ssa->parent_instr));
 
 	if (var->data.mode == nir_var_shader_out) {
 		unsigned attrib_count = glsl_count_attribute_slots(var->type, false);
@@ -125,7 +127,7 @@ gather_intrinsic_store_var_info(const nir_shader *nir,
 		unsigned comp = var->data.location_frac;
 		unsigned const_offset = 0;
 
-		get_deref_offset(dvar, &const_offset);
+		get_deref_offset(nir_instr_as_deref(instr->src[0].ssa->parent_instr), &const_offset);
 
 		switch (nir->info.stage) {
 		case MESA_SHADER_VERTEX:
@@ -175,7 +177,7 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		      struct radv_shader_info *info)
 {
 	switch (instr->intrinsic) {
-	case nir_intrinsic_interp_var_at_sample:
+	case nir_intrinsic_interp_deref_at_sample:
 		info->ps.needs_sample_positions = true;
 		break;
 	case nir_intrinsic_load_draw_id:
@@ -228,20 +230,19 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 	case nir_intrinsic_vulkan_resource_index:
 		info->desc_set_used_mask |= (1 << nir_intrinsic_desc_set(instr));
 		break;
-	case nir_intrinsic_image_var_load:
-	case nir_intrinsic_image_var_store:
-	case nir_intrinsic_image_var_atomic_add:
-	case nir_intrinsic_image_var_atomic_min:
-	case nir_intrinsic_image_var_atomic_max:
-	case nir_intrinsic_image_var_atomic_and:
-	case nir_intrinsic_image_var_atomic_or:
-	case nir_intrinsic_image_var_atomic_xor:
-	case nir_intrinsic_image_var_atomic_exchange:
-	case nir_intrinsic_image_var_atomic_comp_swap:
-	case nir_intrinsic_image_var_size: {
-		const struct glsl_type *type = instr->variables[0]->var->type;
-		if(instr->variables[0]->deref.child)
-			type = instr->variables[0]->deref.child->type;
+	case nir_intrinsic_image_deref_load:
+	case nir_intrinsic_image_deref_store:
+	case nir_intrinsic_image_deref_atomic_add:
+	case nir_intrinsic_image_deref_atomic_min:
+	case nir_intrinsic_image_deref_atomic_max:
+	case nir_intrinsic_image_deref_atomic_and:
+	case nir_intrinsic_image_deref_atomic_or:
+	case nir_intrinsic_image_deref_atomic_xor:
+	case nir_intrinsic_image_deref_atomic_exchange:
+	case nir_intrinsic_image_deref_atomic_comp_swap:
+	case nir_intrinsic_image_deref_size: {
+		nir_variable *var = nir_deref_instr_get_variable(nir_instr_as_deref(instr->src[0].ssa->parent_instr));
+		const struct glsl_type *type = glsl_without_array(var->type);
 
 		enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
 		if (dim == GLSL_SAMPLER_DIM_SUBPASS ||
@@ -249,17 +250,17 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 			info->ps.layer_input = true;
 			info->ps.uses_input_attachments = true;
 		}
-		mark_sampler_desc(instr->variables[0]->var, info);
+		mark_sampler_desc(var, info);
 
-		if (nir_intrinsic_image_var_store ||
-		    nir_intrinsic_image_var_atomic_add ||
-		    nir_intrinsic_image_var_atomic_min ||
-		    nir_intrinsic_image_var_atomic_max ||
-		    nir_intrinsic_image_var_atomic_and ||
-		    nir_intrinsic_image_var_atomic_or ||
-		    nir_intrinsic_image_var_atomic_xor ||
-		    nir_intrinsic_image_var_atomic_exchange ||
-		    nir_intrinsic_image_var_atomic_comp_swap) {
+		if (nir_intrinsic_image_deref_store ||
+		    nir_intrinsic_image_deref_atomic_add ||
+		    nir_intrinsic_image_deref_atomic_min ||
+		    nir_intrinsic_image_deref_atomic_max ||
+		    nir_intrinsic_image_deref_atomic_and ||
+		    nir_intrinsic_image_deref_atomic_or ||
+		    nir_intrinsic_image_deref_atomic_xor ||
+		    nir_intrinsic_image_deref_atomic_exchange ||
+		    nir_intrinsic_image_deref_atomic_comp_swap) {
 			if (nir->info.stage == MESA_SHADER_FRAGMENT)
 				info->ps.writes_memory = true;
 		}
@@ -279,11 +280,11 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		if (nir->info.stage == MESA_SHADER_FRAGMENT)
 			info->ps.writes_memory = true;
 		break;
-	case nir_intrinsic_load_var:
-		gather_intrinsic_load_var_info(nir, instr, info);
+	case nir_intrinsic_load_deref:
+		gather_intrinsic_load_deref_info(nir, instr, info);
 		break;
-	case nir_intrinsic_store_var:
-		gather_intrinsic_store_var_info(nir, instr, info);
+	case nir_intrinsic_store_deref:
+		gather_intrinsic_store_deref_info(nir, instr, info);
 		break;
 	default:
 		break;
@@ -294,10 +295,18 @@ static void
 gather_tex_info(const nir_shader *nir, const nir_tex_instr *instr,
 		struct radv_shader_info *info)
 {
-	if (instr->sampler)
-		mark_sampler_desc(instr->sampler->var, info);
-	if (instr->texture)
-		mark_sampler_desc(instr->texture->var, info);
+	for (unsigned i = 0; i < instr->num_srcs; i++) {
+		switch (instr->src[i].src_type) {
+		case nir_tex_src_texture_deref:
+			mark_sampler_desc(nir_deref_instr_get_variable(nir_src_as_deref(instr->src[i].src)), info);
+			break;
+		case nir_tex_src_sampler_deref:
+			mark_sampler_desc(nir_deref_instr_get_variable(nir_src_as_deref(instr->src[i].src)), info);
+			break;
+		default:
+			break;
+		}
+	}
 }
 
 static void

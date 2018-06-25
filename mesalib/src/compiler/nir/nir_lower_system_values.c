@@ -37,16 +37,26 @@ convert_block(nir_block *block, nir_builder *b)
       if (instr->type != nir_instr_type_intrinsic)
          continue;
 
-      nir_intrinsic_instr *load_var = nir_instr_as_intrinsic(instr);
-
-      if (load_var->intrinsic != nir_intrinsic_load_var)
+      nir_intrinsic_instr *load_deref = nir_instr_as_intrinsic(instr);
+      if (load_deref->intrinsic != nir_intrinsic_load_deref)
          continue;
 
-      nir_variable *var = load_var->variables[0]->var;
-      if (var->data.mode != nir_var_system_value)
+      nir_deref_instr *deref = nir_src_as_deref(load_deref->src[0]);
+      if (deref->mode != nir_var_system_value)
          continue;
 
-      b->cursor = nir_after_instr(&load_var->instr);
+      if (deref->deref_type != nir_deref_type_var) {
+         /* The only one system value that is an array and that is
+          * gl_SampleMask which is always an array of one element.
+          */
+         assert(deref->deref_type == nir_deref_type_array);
+         deref = nir_deref_instr_parent(deref);
+         assert(deref->deref_type == nir_deref_type_var);
+         assert(deref->var->data.location == SYSTEM_VALUE_SAMPLE_MASK_IN);
+      }
+      nir_variable *var = deref->var;
+
+      b->cursor = nir_after_instr(&load_deref->instr);
 
       nir_ssa_def *sysval = NULL;
       switch (var->data.location) {
@@ -173,8 +183,8 @@ convert_block(nir_block *block, nir_builder *b)
          sysval = nir_load_system_value(b, sysval_op, 0);
       }
 
-      nir_ssa_def_rewrite_uses(&load_var->dest.ssa, nir_src_for_ssa(sysval));
-      nir_instr_remove(&load_var->instr);
+      nir_ssa_def_rewrite_uses(&load_deref->dest.ssa, nir_src_for_ssa(sysval));
+      nir_instr_remove(&load_deref->instr);
 
       progress = true;
    }
@@ -207,6 +217,11 @@ nir_lower_system_values(nir_shader *shader)
       if (function->impl)
          progress = convert_impl(function->impl) || progress;
    }
+
+   /* We're going to delete the variables so we need to clean up all those
+    * derefs we left lying around.
+    */
+   nir_remove_dead_derefs(shader);
 
    exec_list_make_empty(&shader->system_values);
 

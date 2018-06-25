@@ -57,6 +57,7 @@
 
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
+#include "compiler/nir/nir_deref.h"
 #include "gl_nir.h"
 #include "ir_uniform.h"
 
@@ -69,37 +70,48 @@ struct lower_samplers_as_deref_state {
    struct hash_table *remap_table;
 };
 
+/* Prepare for removing struct derefs.  This pre-pass generates the name
+ * of the lowered deref, and calculates the lowered type and location.
+ * After that, once looking up (or creating if needed) the lowered var,
+ * constructing the new chain of deref instructions is a simple loop
+ * that skips the struct deref's
+ *
+ * path:     appended to as we descend down the chain of deref instrs
+ *           and remove struct derefs
+ * location: increased as we descend down and remove struct derefs
+ * type:     updated as we recurse back up the chain of deref instrs
+ *           with the resulting type after removing struct derefs
+ */
 static void
-remove_struct_derefs(nir_deref *tail,
-                     struct lower_samplers_as_deref_state *state,
-                     nir_builder *b, char **path, unsigned *location)
+remove_struct_derefs_prep(nir_deref_instr **p, char **name,
+                          unsigned *location, const struct glsl_type **type)
 {
-   if (!tail->child)
+   nir_deref_instr *cur = p[0], *next = p[1];
+
+   if (!next) {
+      *type = cur->type;
       return;
+   }
 
-   switch (tail->child->deref_type) {
+   switch (next->deref_type) {
    case nir_deref_type_array: {
-      unsigned length = glsl_get_length(tail->type);
+      unsigned length = glsl_get_length(cur->type);
 
-      remove_struct_derefs(tail->child, state, b, path, location);
+      remove_struct_derefs_prep(&p[1], name, location, type);
 
-      tail->type = glsl_get_array_instance(tail->child->type, length);
+      *type = glsl_get_array_instance(*type, length);
       break;
    }
 
    case nir_deref_type_struct: {
-      nir_deref_struct *deref_struct = nir_deref_as_struct(tail->child);
+      *location += glsl_get_record_location_offset(cur->type, next->strct.index);
+      ralloc_asprintf_append(name, ".%s",
+                             glsl_get_struct_elem_name(cur->type, next->strct.index));
 
-      *location += glsl_get_record_location_offset(tail->type, deref_struct->index);
-      ralloc_asprintf_append(path, ".%s",
-                             glsl_get_struct_elem_name(tail->type, deref_struct->index));
+      remove_struct_derefs_prep(&p[1], name, location, type);
 
-      remove_struct_derefs(tail->child, state, b, path, location);
-
-      /* Drop the struct deref and re-parent. */
-      ralloc_steal(tail, tail->child->child);
-      tail->type = tail->child->type;
-      tail->child = tail->child->child;
+      /* skip over the struct type: */
+      *type = next->type;
       break;
    }
 
@@ -109,71 +121,106 @@ remove_struct_derefs(nir_deref *tail,
    }
 }
 
-static void
-lower_deref(nir_deref_var *deref,
-            struct lower_samplers_as_deref_state *state,
-            nir_builder *b)
+static nir_deref_instr *
+lower_deref(nir_builder *b, struct lower_samplers_as_deref_state *state,
+            nir_deref_instr *deref)
 {
-   nir_variable *var = deref->var;
+   nir_variable *var = nir_deref_instr_get_variable(deref);
    gl_shader_stage stage = state->shader->info.stage;
+
+   if (var->data.bindless || var->data.mode != nir_var_uniform)
+      return NULL;
+
+   nir_deref_path path;
+   nir_deref_path_init(&path, deref, state->remap_table);
+   assert(path.path[0]->deref_type == nir_deref_type_var);
+
+   char *name = ralloc_asprintf(state->remap_table, "lower@%s", var->name);
    unsigned location = var->data.location;
+   const struct glsl_type *type = NULL;
    unsigned binding;
-   const struct glsl_type *orig_type = deref->deref.type;
-   char *path;
 
-   assert(var->data.mode == nir_var_uniform);
+   /*
+    * We end up needing to do this in two passes, in order to generate
+    * the name of the lowered var (and detecting whether there even are
+    * any struct deref's), and then the second pass to construct the
+    * actual deref instructions after looking up / generating a new
+    * nir_variable (since we need to construct the deref_var first)
+    */
 
-   path = ralloc_asprintf(state->remap_table, "lower@%s", var->name);
-   remove_struct_derefs(&deref->deref, state, b, &path, &location);
+   remove_struct_derefs_prep(path.path, &name, &location, &type);
 
    assert(location < state->shader_program->data->NumUniformStorage &&
           state->shader_program->data->UniformStorage[location].opaque[stage].active);
 
    binding = state->shader_program->data->UniformStorage[location].opaque[stage].index;
 
-   if (orig_type == deref->deref.type) {
+   if (var->type == type) {
       /* Fast path: We did not encounter any struct derefs. */
       var->data.binding = binding;
-      return;
+      return deref;
    }
 
-   uint32_t hash = _mesa_key_hash_string(path);
+   uint32_t hash = _mesa_key_hash_string(name);
    struct hash_entry *h =
-      _mesa_hash_table_search_pre_hashed(state->remap_table, hash, path);
+      _mesa_hash_table_search_pre_hashed(state->remap_table, hash, name);
 
    if (h) {
       var = (nir_variable *)h->data;
    } else {
-      var = nir_variable_create(state->shader, nir_var_uniform, deref->deref.type, path);
+      var = nir_variable_create(state->shader, nir_var_uniform, type, name);
       var->data.binding = binding;
-      _mesa_hash_table_insert_pre_hashed(state->remap_table, hash, path, var);
+      _mesa_hash_table_insert_pre_hashed(state->remap_table, hash, name, var);
    }
 
-   deref->var = var;
+   /* construct a new deref based on lowered var (skipping the struct deref's
+    * from the original deref:
+    */
+   nir_deref_instr *new_deref = nir_build_deref_var(b, var);
+   for (nir_deref_instr **p = &path.path[1]; *p; p++) {
+      if ((*p)->deref_type == nir_deref_type_struct)
+         continue;
+
+      assert((*p)->deref_type == nir_deref_type_array);
+
+      new_deref = nir_build_deref_array(b, new_deref,
+                                        nir_ssa_for_src(b, (*p)->arr.index, 1));
+   }
+
+   return new_deref;
 }
 
 static bool
 lower_sampler(nir_tex_instr *instr, struct lower_samplers_as_deref_state *state,
               nir_builder *b)
 {
-   if (!instr->texture || instr->texture->var->data.bindless ||
-       instr->texture->var->data.mode != nir_var_uniform)
+   int texture_idx =
+      nir_tex_instr_src_index(instr, nir_tex_src_texture_deref);
+   int sampler_idx =
+      nir_tex_instr_src_index(instr, nir_tex_src_sampler_deref);
+
+   if (texture_idx < 0)
       return false;
 
-   /* In GLSL, we only fill out the texture field.  The sampler is inferred */
-   assert(instr->sampler == NULL);
+   assert(texture_idx >= 0 && sampler_idx >= 0);
+   assert(instr->src[texture_idx].src.is_ssa);
+   assert(instr->src[sampler_idx].src.is_ssa);
+   assert(instr->src[texture_idx].src.ssa == instr->src[sampler_idx].src.ssa);
 
    b->cursor = nir_before_instr(&instr->instr);
-   lower_deref(instr->texture, state, b);
 
-   if (instr->op != nir_texop_txf_ms &&
-       instr->op != nir_texop_txf_ms_mcs &&
-       instr->op != nir_texop_samples_identical) {
-      nir_instr_rewrite_deref(&instr->instr, &instr->sampler,
-                              nir_deref_var_clone(instr->texture, instr));
-   } else {
-      assert(!instr->sampler);
-   }
+   nir_deref_instr *texture_deref =
+      lower_deref(b, state, nir_src_as_deref(instr->src[texture_idx].src));
+   /* don't lower bindless: */
+   if (!texture_deref)
+      return false;
+   nir_instr_rewrite_src(&instr->instr, &instr->src[texture_idx].src,
+                         nir_src_for_ssa(&texture_deref->dest.ssa));
+
+   nir_deref_instr *sampler_deref =
+      lower_deref(b, state, nir_src_as_deref(instr->src[sampler_idx].src));
+   nir_instr_rewrite_src(&instr->instr, &instr->src[sampler_idx].src,
+                         nir_src_for_ssa(&sampler_deref->dest.ssa));
 
    return true;
 }
@@ -183,24 +230,26 @@ lower_intrinsic(nir_intrinsic_instr *instr,
                 struct lower_samplers_as_deref_state *state,
                 nir_builder *b)
 {
-   if (instr->intrinsic == nir_intrinsic_image_var_load ||
-       instr->intrinsic == nir_intrinsic_image_var_store ||
-       instr->intrinsic == nir_intrinsic_image_var_atomic_add ||
-       instr->intrinsic == nir_intrinsic_image_var_atomic_min ||
-       instr->intrinsic == nir_intrinsic_image_var_atomic_max ||
-       instr->intrinsic == nir_intrinsic_image_var_atomic_and ||
-       instr->intrinsic == nir_intrinsic_image_var_atomic_or ||
-       instr->intrinsic == nir_intrinsic_image_var_atomic_xor ||
-       instr->intrinsic == nir_intrinsic_image_var_atomic_exchange ||
-       instr->intrinsic == nir_intrinsic_image_var_atomic_comp_swap ||
-       instr->intrinsic == nir_intrinsic_image_var_size) {
+   if (instr->intrinsic == nir_intrinsic_image_deref_load ||
+       instr->intrinsic == nir_intrinsic_image_deref_store ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_add ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_min ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_max ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_and ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_or ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_xor ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_exchange ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_comp_swap ||
+       instr->intrinsic == nir_intrinsic_image_deref_size) {
+
       b->cursor = nir_before_instr(&instr->instr);
-
-      if (instr->variables[0]->var->data.bindless ||
-          instr->variables[0]->var->data.mode != nir_var_uniform)
+      nir_deref_instr *deref =
+         lower_deref(b, state, nir_src_as_deref(instr->src[0]));
+      /* don't lower bindless: */
+      if (!deref)
          return false;
-
-      lower_deref(instr->variables[0], state, b);
+      nir_instr_rewrite_src(&instr->instr, &instr->src[0],
+                            nir_src_for_ssa(&deref->dest.ssa));
       return true;
    }
 
@@ -245,6 +294,9 @@ gl_nir_lower_samplers_as_deref(nir_shader *shader,
 
    /* keys are freed automatically by ralloc */
    _mesa_hash_table_destroy(state.remap_table, NULL);
+
+   if (progress)
+      nir_remove_dead_derefs(shader);
 
    return progress;
 }

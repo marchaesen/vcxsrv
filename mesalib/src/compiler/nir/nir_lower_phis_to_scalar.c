@@ -83,13 +83,15 @@ is_phi_src_scalarizable(nir_phi_src *src,
       nir_intrinsic_instr *src_intrin = nir_instr_as_intrinsic(src_instr);
 
       switch (src_intrin->intrinsic) {
-      case nir_intrinsic_load_var:
-         return src_intrin->variables[0]->var->data.mode == nir_var_shader_in ||
-                src_intrin->variables[0]->var->data.mode == nir_var_uniform;
+      case nir_intrinsic_load_deref: {
+         nir_deref_instr *deref = nir_src_as_deref(src_intrin->src[0]);
+         return deref->mode == nir_var_shader_in ||
+                deref->mode == nir_var_uniform;
+      }
 
-      case nir_intrinsic_interp_var_at_centroid:
-      case nir_intrinsic_interp_var_at_sample:
-      case nir_intrinsic_interp_var_at_offset:
+      case nir_intrinsic_interp_deref_at_centroid:
+      case nir_intrinsic_interp_deref_at_sample:
+      case nir_intrinsic_interp_deref_at_offset:
       case nir_intrinsic_load_uniform:
       case nir_intrinsic_load_ubo:
       case nir_intrinsic_load_ssbo:

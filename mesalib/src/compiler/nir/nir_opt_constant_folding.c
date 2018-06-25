@@ -125,45 +125,9 @@ constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
 }
 
 static bool
-constant_fold_deref(nir_instr *instr, nir_deref_var *deref)
-{
-   bool progress = false;
-
-   for (nir_deref *tail = deref->deref.child; tail; tail = tail->child) {
-      if (tail->deref_type != nir_deref_type_array)
-         continue;
-
-      nir_deref_array *arr = nir_deref_as_array(tail);
-
-      if (arr->deref_array_type == nir_deref_array_type_indirect &&
-          arr->indirect.is_ssa &&
-          arr->indirect.ssa->parent_instr->type == nir_instr_type_load_const) {
-         nir_load_const_instr *indirect =
-            nir_instr_as_load_const(arr->indirect.ssa->parent_instr);
-
-         arr->base_offset += indirect->value.u32[0];
-
-         /* Clear out the source */
-         nir_instr_rewrite_src(instr, &arr->indirect, nir_src_for_ssa(NULL));
-
-         arr->deref_array_type = nir_deref_array_type_direct;
-
-         progress = true;
-      }
-   }
-
-   return progress;
-}
-
-static bool
 constant_fold_intrinsic_instr(nir_intrinsic_instr *instr)
 {
    bool progress = false;
-
-   unsigned num_vars = nir_intrinsic_infos[instr->intrinsic].num_variables;
-   for (unsigned i = 0; i < num_vars; i++) {
-      progress |= constant_fold_deref(&instr->instr, instr->variables[i]);
-   }
 
    if (instr->intrinsic == nir_intrinsic_discard_if) {
       nir_const_value *src_val = nir_src_as_const_value(instr->src[0]);
@@ -192,20 +156,6 @@ constant_fold_intrinsic_instr(nir_intrinsic_instr *instr)
 }
 
 static bool
-constant_fold_tex_instr(nir_tex_instr *instr)
-{
-   bool progress = false;
-
-   if (instr->texture)
-      progress |= constant_fold_deref(&instr->instr, instr->texture);
-
-   if (instr->sampler)
-      progress |= constant_fold_deref(&instr->instr, instr->sampler);
-
-   return progress;
-}
-
-static bool
 constant_fold_block(nir_block *block, void *mem_ctx)
 {
    bool progress = false;
@@ -218,9 +168,6 @@ constant_fold_block(nir_block *block, void *mem_ctx)
       case nir_instr_type_intrinsic:
          progress |=
             constant_fold_intrinsic_instr(nir_instr_as_intrinsic(instr));
-         break;
-      case nir_instr_type_tex:
-         progress |= constant_fold_tex_instr(nir_instr_as_tex(instr));
          break;
       default:
          /* Don't know how to constant fold */

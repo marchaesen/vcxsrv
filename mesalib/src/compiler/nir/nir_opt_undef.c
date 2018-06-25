@@ -107,19 +107,23 @@ opt_undef_vecN(nir_builder *b, nir_alu_instr *alu)
 static bool
 opt_undef_store(nir_intrinsic_instr *intrin)
 {
+   int arg_index;
    switch (intrin->intrinsic) {
-   case nir_intrinsic_store_var:
+   case nir_intrinsic_store_deref:
+      arg_index = 1;
+      break;
    case nir_intrinsic_store_output:
    case nir_intrinsic_store_per_vertex_output:
    case nir_intrinsic_store_ssbo:
    case nir_intrinsic_store_shared:
+      arg_index =  0;
       break;
    default:
       return false;
    }
 
-   if (!intrin->src[0].is_ssa ||
-       intrin->src[0].ssa->parent_instr->type != nir_instr_type_ssa_undef)
+   if (!intrin->src[arg_index].is_ssa ||
+       intrin->src[arg_index].ssa->parent_instr->type != nir_instr_type_ssa_undef)
       return false;
 
    nir_instr_remove(&intrin->instr);

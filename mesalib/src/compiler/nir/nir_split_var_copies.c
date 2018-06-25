@@ -26,6 +26,7 @@
  */
 
 #include "nir.h"
+#include "nir_builder.h"
 
 /*
  * Implements "copy splitting" which is similar to structure splitting only
@@ -61,225 +62,60 @@
  * possibly a few wildcard array dereferences.
  */
 
-struct split_var_copies_state {
-   nir_shader *shader;
-   void *dead_ctx;
-   bool progress;
-};
-
-/* Recursively constructs deref chains to split a copy instruction into
- * multiple (if needed) copy instructions with full-length deref chains.
- * External callers of this function should pass the tail and head of the
- * deref chains found as the source and destination of the copy instruction
- * into this function.
- *
- * \param  old_copy  The copy instruction we are splitting
- * \param  dest_head The head of the destination deref chain we are building
- * \param  src_head  The head of the source deref chain we are building
- * \param  dest_tail The tail of the destination deref chain we are building
- * \param  src_tail  The tail of the source deref chain we are building
- * \param  state     The current split_var_copies_state object
- */
 static void
-split_var_copy_instr(nir_intrinsic_instr *old_copy,
-                     nir_deref_var *dest_head, nir_deref_var *src_head,
-                     nir_deref *dest_tail, nir_deref *src_tail,
-                     struct split_var_copies_state *state)
+split_deref_copy_instr(nir_builder *b,
+                       nir_deref_instr *dst, nir_deref_instr *src)
 {
-   assert(src_tail->type == dest_tail->type);
-
-   /* Make sure these really are the tails of the deref chains */
-   assert(dest_tail->child == NULL);
-   assert(src_tail->child == NULL);
-
-   switch (glsl_get_base_type(src_tail->type)) {
-   case GLSL_TYPE_ARRAY: {
-      /* Make a wildcard dereference */
-      nir_deref_array *deref = nir_deref_array_create(state->dead_ctx);
-      deref->deref.type = glsl_get_array_element(src_tail->type);
-      deref->deref_array_type = nir_deref_array_type_wildcard;
-
-      /* Set the tail of both as the newly created wildcard deref.  It is
-       * safe to use the same wildcard in both places because a) we will be
-       * copying it before we put it in an actual instruction and b)
-       * everything that will potentially add another link in the deref
-       * chain will also add the same thing to both chains.
-       */
-      src_tail->child = &deref->deref;
-      dest_tail->child = &deref->deref;
-
-      split_var_copy_instr(old_copy, dest_head, src_head,
-                           dest_tail->child, src_tail->child, state);
-
-      /* Set it back to the way we found it */
-      src_tail->child = NULL;
-      dest_tail->child = NULL;
-      break;
-   }
-
-   case GLSL_TYPE_STRUCT:
-      /* This is the only part that actually does any interesting
-       * splitting.  For array types, we just use wildcards and resolve
-       * them later.  For structure types, we need to emit one copy
-       * instruction for every structure element.  Because we may have
-       * structs inside structs, we just recurse and let the next level
-       * take care of any additional structures.
-       */
-      for (unsigned i = 0; i < glsl_get_length(src_tail->type); i++) {
-         nir_deref_struct *deref = nir_deref_struct_create(state->dead_ctx, i);
-         deref->deref.type = glsl_get_struct_field(src_tail->type, i);
-
-         /* Set the tail of both as the newly created structure deref.  It
-          * is safe to use the same wildcard in both places because a) we
-          * will be copying it before we put it in an actual instruction
-          * and b) everything that will potentially add another link in the
-          * deref chain will also add the same thing to both chains.
-          */
-         src_tail->child = &deref->deref;
-         dest_tail->child = &deref->deref;
-
-         split_var_copy_instr(old_copy, dest_head, src_head,
-                              dest_tail->child, src_tail->child, state);
+   assert(dst->type == src->type);
+   if (glsl_type_is_vector_or_scalar(src->type)) {
+      nir_copy_deref(b, dst, src);
+   } else if (glsl_type_is_struct(src->type)) {
+      for (unsigned i = 0; i < glsl_get_length(src->type); i++) {
+         split_deref_copy_instr(b, nir_build_deref_struct(b, dst, i),
+                                   nir_build_deref_struct(b, src, i));
       }
-      /* Set it back to the way we found it */
-      src_tail->child = NULL;
-      dest_tail->child = NULL;
-      break;
-
-   case GLSL_TYPE_UINT:
-   case GLSL_TYPE_UINT16:
-   case GLSL_TYPE_UINT64:
-   case GLSL_TYPE_INT:
-   case GLSL_TYPE_INT16:
-   case GLSL_TYPE_INT64:
-   case GLSL_TYPE_FLOAT:
-   case GLSL_TYPE_FLOAT16:
-   case GLSL_TYPE_DOUBLE:
-   case GLSL_TYPE_BOOL:
-      if (glsl_type_is_matrix(src_tail->type)) {
-         nir_deref_array *deref = nir_deref_array_create(state->dead_ctx);
-         deref->deref.type = glsl_get_column_type(src_tail->type);
-         deref->deref_array_type = nir_deref_array_type_wildcard;
-
-         /* Set the tail of both as the newly created wildcard deref.  It
-          * is safe to use the same wildcard in both places because a) we
-          * will be copying it before we put it in an actual instruction
-          * and b) everything that will potentially add another link in the
-          * deref chain will also add the same thing to both chains.
-          */
-         src_tail->child = &deref->deref;
-         dest_tail->child = &deref->deref;
-
-         split_var_copy_instr(old_copy, dest_head, src_head,
-                              dest_tail->child, src_tail->child, state);
-
-         /* Set it back to the way we found it */
-         src_tail->child = NULL;
-         dest_tail->child = NULL;
-      } else {
-         /* At this point, we have fully built our deref chains and can
-          * actually add the new copy instruction.
-          */
-         nir_intrinsic_instr *new_copy =
-            nir_intrinsic_instr_create(state->shader, nir_intrinsic_copy_var);
-
-         /* We need to make copies because a) this deref chain actually
-          * belongs to the copy instruction and b) the deref chains may
-          * have some of the same links due to the way we constructed them
-          */
-         new_copy->variables[0] = nir_deref_var_clone(dest_head, new_copy);
-         new_copy->variables[1] = nir_deref_var_clone(src_head, new_copy);
-
-         /* Emit the copy instruction after the old instruction.  We'll
-          * remove the old one later.
-          */
-         nir_instr_insert_after(&old_copy->instr, &new_copy->instr);
-         state->progress = true;
-      }
-      break;
-
-   case GLSL_TYPE_SAMPLER:
-   case GLSL_TYPE_IMAGE:
-   case GLSL_TYPE_ATOMIC_UINT:
-   case GLSL_TYPE_INTERFACE:
-   default:
-      unreachable("Cannot copy these types");
+   } else {
+      assert(glsl_type_is_matrix(src->type) || glsl_type_is_array(src->type));
+      split_deref_copy_instr(b, nir_build_deref_array_wildcard(b, dst),
+                                nir_build_deref_array_wildcard(b, src));
    }
-}
-
-static bool
-split_var_copies_block(nir_block *block, struct split_var_copies_state *state)
-{
-   nir_foreach_instr_safe(instr, block) {
-      if (instr->type != nir_instr_type_intrinsic)
-         continue;
-
-      nir_intrinsic_instr *intrinsic = nir_instr_as_intrinsic(instr);
-      if (intrinsic->intrinsic != nir_intrinsic_copy_var)
-         continue;
-
-      nir_deref_var *dest_head = intrinsic->variables[0];
-      nir_deref_var *src_head = intrinsic->variables[1];
-      nir_deref *dest_tail = nir_deref_tail(&dest_head->deref);
-      nir_deref *src_tail = nir_deref_tail(&src_head->deref);
-
-      switch (glsl_get_base_type(src_tail->type)) {
-      case GLSL_TYPE_ARRAY:
-      case GLSL_TYPE_STRUCT:
-         split_var_copy_instr(intrinsic, dest_head, src_head,
-                              dest_tail, src_tail, state);
-         nir_instr_remove(&intrinsic->instr);
-         ralloc_steal(state->dead_ctx, instr);
-         break;
-      case GLSL_TYPE_FLOAT:
-      case GLSL_TYPE_FLOAT16:
-      case GLSL_TYPE_DOUBLE:
-         if (glsl_type_is_matrix(src_tail->type)) {
-            split_var_copy_instr(intrinsic, dest_head, src_head,
-                                 dest_tail, src_tail, state);
-            nir_instr_remove(&intrinsic->instr);
-            ralloc_steal(state->dead_ctx, instr);
-         }
-         break;
-      case GLSL_TYPE_INT:
-      case GLSL_TYPE_UINT:
-      case GLSL_TYPE_INT16:
-      case GLSL_TYPE_UINT16:
-      case GLSL_TYPE_INT64:
-      case GLSL_TYPE_UINT64:
-      case GLSL_TYPE_BOOL:
-         assert(!glsl_type_is_matrix(src_tail->type));
-         break;
-      default:
-         unreachable("Invalid type");
-         break;
-      }
-   }
-
-   return true;
 }
 
 static bool
 split_var_copies_impl(nir_function_impl *impl)
 {
-   struct split_var_copies_state state;
+   bool progress = false;
 
-   state.shader = impl->function->shader;
-   state.dead_ctx = ralloc_context(NULL);
-   state.progress = false;
+   nir_builder b;
+   nir_builder_init(&b, impl);
 
    nir_foreach_block(block, impl) {
-      split_var_copies_block(block, &state);
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->type != nir_instr_type_intrinsic)
+            continue;
+
+         nir_intrinsic_instr *copy = nir_instr_as_intrinsic(instr);
+         if (copy->intrinsic != nir_intrinsic_copy_deref)
+            continue;
+
+         b.cursor = nir_instr_remove(&copy->instr);
+
+         nir_deref_instr *dst =
+            nir_instr_as_deref(copy->src[0].ssa->parent_instr);
+         nir_deref_instr *src =
+            nir_instr_as_deref(copy->src[1].ssa->parent_instr);
+         split_deref_copy_instr(&b, dst, src);
+
+         progress = true;
+      }
    }
 
-   ralloc_free(state.dead_ctx);
-
-   if (state.progress) {
+   if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
    }
 
-   return state.progress;
+   return progress;
 }
 
 bool

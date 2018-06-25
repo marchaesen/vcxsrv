@@ -194,3 +194,104 @@ radv_GetRandROutputDisplayEXT(VkPhysicalDevice  physical_device,
 					    display);
 }
 #endif /* VK_USE_PLATFORM_XLIB_XRANDR_EXT */
+
+/* VK_EXT_display_control */
+
+VkResult
+radv_DisplayPowerControlEXT(VkDevice                    _device,
+			    VkDisplayKHR                display,
+			    const VkDisplayPowerInfoEXT *display_power_info)
+{
+	RADV_FROM_HANDLE(radv_device, device, _device);
+
+	return wsi_display_power_control(_device,
+					 &device->physical_device->wsi_device,
+					 display,
+					 display_power_info);
+}
+
+VkResult
+radv_RegisterDeviceEventEXT(VkDevice                    _device,
+			    const VkDeviceEventInfoEXT  *device_event_info,
+			    const VkAllocationCallbacks *allocator,
+			    VkFence                     *_fence)
+{
+	RADV_FROM_HANDLE(radv_device, device, _device);
+	struct radv_fence            *fence;
+	VkResult                     ret;
+
+	fence = vk_alloc2(&device->instance->alloc, allocator, sizeof (*fence),
+			  8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	if (!fence)
+		return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+	fence->fence = NULL;
+	fence->submitted = true;
+	fence->signalled = false;
+	fence->syncobj = 0;
+	fence->temp_syncobj = 0;
+
+	ret = wsi_register_device_event(_device,
+					&device->physical_device->wsi_device,
+					device_event_info,
+					allocator,
+					&fence->fence_wsi);
+	if (ret == VK_SUCCESS)
+		*_fence = radv_fence_to_handle(fence);
+	else
+		vk_free2(&device->instance->alloc, allocator, fence);
+	return ret;
+}
+
+VkResult
+radv_RegisterDisplayEventEXT(VkDevice                           _device,
+			     VkDisplayKHR                       display,
+			     const VkDisplayEventInfoEXT        *display_event_info,
+			     const VkAllocationCallbacks        *allocator,
+			     VkFence                            *_fence)
+{
+	RADV_FROM_HANDLE(radv_device, device, _device);
+
+	struct radv_fence            *fence;
+	VkResult                     ret;
+
+	fence = vk_alloc2(&device->instance->alloc, allocator, sizeof (*fence),
+			  8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	if (!fence)
+		return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+	fence->fence = NULL;
+	fence->submitted = true;
+	fence->signalled = false;
+	fence->syncobj = 0;
+	fence->temp_syncobj = 0;
+
+	ret = wsi_register_display_event(_device,
+					 &device->physical_device->wsi_device,
+					 display,
+					 display_event_info,
+					 allocator,
+					 &(fence->fence_wsi));
+
+	if (ret == VK_SUCCESS)
+		*_fence = radv_fence_to_handle(fence);
+	else
+		vk_free2(&device->instance->alloc, allocator, fence);
+	return ret;
+}
+
+VkResult
+radv_GetSwapchainCounterEXT(VkDevice                    _device,
+			    VkSwapchainKHR              swapchain,
+			    VkSurfaceCounterFlagBitsEXT flag_bits,
+			    uint64_t                    *value)
+{
+	RADV_FROM_HANDLE(radv_device, device, _device);
+
+	return wsi_get_swapchain_counter(_device,
+					 &device->physical_device->wsi_device,
+					 swapchain,
+					 flag_bits,
+					 value);
+}
+
