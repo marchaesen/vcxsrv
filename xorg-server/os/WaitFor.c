@@ -265,10 +265,11 @@ Bool isThereSomething(Bool are_ready)
         /* deal with any blocked jobs */
         if (workQueue) {
             ProcessWorkQueue();
-            are_ready = clients_are_ready();
         }
 
         timeout = check_timers();
+        are_ready = clients_are_ready();
+
         if (are_ready)
             timeout = 0;
 
