@@ -416,7 +416,7 @@
 
   <struct name="Transform Feedback Output Data Spec">
     <field name="First Shaded Vertex Value to output" size="8" start="0" type="uint"/>
-    <field name="Number of consecutive Vertex Values to output as 32-bit values minus 1" size="4" start="8" type="uint"/>
+    <field name="Number of consecutive Vertex Values to output as 32-bit values" size="4" start="8" type="uint" minus_one="true"/>
     <field name="Output Buffer to write to" size="2" start="12" type="uint"/>
   </struct>
 
@@ -567,13 +567,13 @@
   </packet>
 
   <packet name="Number of Layers" code="119">
-    <field name="Number of Layers Minus 1" size="8" start="0" type="uint"/>
+    <field name="Number of Layers" size="8" start="0" type="uint" minus_one="true"/>
   </packet>
 
   <packet code="120" name="Tile Binning Mode Configuration (Part1)">
 
-    <field name="Height (in pixels minus 1)" size="12" start="48" type="uint"/>
-    <field name="Width (in pixels minus 1)" size="12" start="32" type="uint"/>
+    <field name="Height (in pixels)" size="12" start="48" type="uint" minus_one="true"/>
+    <field name="Width (in pixels)" size="12" start="32" type="uint" minus_one="true"/>
 
     <field name="Double-buffer in non-ms mode" size="1" start="15" type="bool"/>
     <field name="Multisample Mode (4x)" size="1" start="14" type="bool"/>
@@ -584,7 +584,7 @@
       <value name="Render target maximum 128bpp" value="2"/>
     </field>
 
-    <field name="Number of Render Targets minus 1" size="4" start="8" type="uint"/>
+    <field name="Number of Render Targets" size="4" start="8" type="uint" minus_one="true"/>
 
     <field name="tile allocation block size" size="2" start="4" type="uint">
       <value name="tile allocation block size 64b" value="0"/>
@@ -619,7 +619,7 @@
 
     <field name="Image Height (pixels)" size="16" start="24" type="uint"/>
     <field name="Image Width (pixels)" size="16" start="8" type="uint"/>
-    <field name="Number of Render Targets Minus 1" size="4" start="4" type="uint"/>
+    <field name="Number of Render Targets" size="4" start="4" type="uint" minus_one="true"/>
 
     <field name="sub-id" size="4" start="0" type="uint" default="0"/>
   </packet>
@@ -700,8 +700,8 @@
     <field name="Total Frame Height in Supertiles" size="8" start="24" type="uint"/>
     <field name="Total Frame Width in Supertiles" size="8" start="16" type="uint"/>
 
-    <field name="Supertile Height in Tiles minus 1" size="8" start="8" type="uint"/>
-    <field name="Supertile Width in Tiles minus 1" size="8" start="0" type="uint"/>
+    <field name="Supertile Height in Tiles" size="8" start="8" type="uint" minus_one="true"/>
+    <field name="Supertile Width in Tiles" size="8" start="0" type="uint" minus_one="true"/>
   </packet>
 
   <packet code="123" name="Multicore Rendering Tile List Set Base" cl="R">
@@ -773,13 +773,13 @@
     <field name="Min Coord Shader output segments required in play in addition to VCM cache size" size="4" start="36" type="uint"/>
 
     <field name="Coordinate Shader input VPM segment size" size="4" start="5b" type="uint"/>
-    <field name="Min Coord Shader input segments required in play minus 1" size="4" start="44" type="uint"/>
+    <field name="Min Coord Shader input segments required in play" size="4" start="44" type="uint" minus_one="true"/>
 
     <field name="Vertex Shader output VPM segment size" size="4" start="6b" type="uint"/>
     <field name="Min Vertex Shader output segments required in play in addition to VCM cache size" size="4" start="52" type="uint"/>
 
     <field name="Vertex Shader input VPM segment size" size="4" start="7b" type="uint"/>
-    <field name="Min Vertex Shader input segments required in play minus 1" size="4" start="60" type="uint"/>
+    <field name="Min Vertex Shader input segments required in play" size="4" start="60" type="uint" minus_one="true"/>
 
     <field name="Address of default attribute values" size="32" start="8b" type="address"/>
 

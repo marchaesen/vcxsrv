@@ -383,7 +383,7 @@
 
   <struct name="Transform Feedback Output Data Spec">
     <field name="First Shaded Vertex Value to output" size="8" start="0" type="uint"/>
-    <field name="Number of consecutive Vertex Values to output as 32-bit values minus 1" size="4" start="8" type="uint"/>
+    <field name="Number of consecutive Vertex Values to output as 32-bit values" size="4" start="8" type="uint" minus_one="true"/>
     <field name="Output Buffer to write to" size="2" start="12" type="uint"/>
   </struct>
 
@@ -559,7 +559,7 @@
 
     <field name="Image Height (pixels)" size="16" start="24" type="uint"/>
     <field name="Image Width (pixels)" size="16" start="8" type="uint"/>
-    <field name="Number of Render Targets Minus 1" size="4" start="4" type="uint"/>
+    <field name="Number of Render Targets" size="4" start="4" type="uint" minus_one="true"/>
 
     <field name="sub-id" size="4" start="0" type="uint" default="0"/>
   </packet>
@@ -658,8 +658,8 @@
     <field name="Total Frame Height in Supertiles" size="8" start="24" type="uint"/>
     <field name="Total Frame Width in Supertiles" size="8" start="16" type="uint"/>
 
-    <field name="Supertile Height in Tiles minus 1" size="8" start="8" type="uint"/>
-    <field name="Supertile Width in Tiles minus 1" size="8" start="0" type="uint"/>
+    <field name="Supertile Height in Tiles" size="8" start="8" type="uint" minus_one="true"/>
+    <field name="Supertile Width in Tiles" size="8" start="0" type="uint" minus_one="true"/>
   </packet>
 
   <packet code="123" name="Multicore Rendering Tile List Set Base" cl="R">

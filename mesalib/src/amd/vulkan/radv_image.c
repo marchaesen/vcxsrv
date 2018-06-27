@@ -772,8 +772,8 @@ radv_image_get_cmask_info(struct radv_device *device,
 	unsigned cl_width, cl_height;
 
 	if (device->physical_device->rad_info.chip_class >= GFX9) {
-		out->alignment = image->surface.u.gfx9.cmask_alignment;
-		out->size = image->surface.u.gfx9.cmask_size;
+		out->alignment = image->surface.cmask_alignment;
+		out->size = image->surface.cmask_size;
 		return;
 	}
 

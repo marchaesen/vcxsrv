@@ -187,7 +187,7 @@ GL 4.3, GLSL 4.30 -- all DONE: i965/gen8+, nvc0, r600, radeonsi
   GL_ARB_texture_buffer_range                           DONE (freedreno, nv50, i965, llvmpipe, virgl)
   GL_ARB_texture_query_levels                           DONE (all drivers that support GLSL 1.30)
   GL_ARB_texture_storage_multisample                    DONE (all drivers that support GL_ARB_texture_multisample)
-  GL_ARB_texture_view                                   DONE (freedreno, i965, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_texture_view                                   DONE (freedreno, i965, nv50, llvmpipe, softpipe, swr, virgl)
   GL_ARB_vertex_attrib_binding                          DONE (all drivers)
 
 
@@ -322,12 +322,14 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_EXT_semaphore                                      DONE (radeonsi)
   GL_EXT_semaphore_fd                                   DONE (radeonsi)
   GL_EXT_semaphore_win32                                not started
+  GL_EXT_texture_norm16                                 DONE (i965, r600, radeonsi, nvc0)
   GL_KHR_blend_equation_advanced_coherent               DONE (i965/gen9+)
   GL_KHR_texture_compression_astc_hdr                   DONE (i965/bxt)
   GL_KHR_texture_compression_astc_sliced_3d             DONE (i965/gen9+)
   GL_OES_depth_texture_cube_map                         DONE (all drivers that support GLSL 1.30+)
   GL_OES_EGL_image                                      DONE (all drivers)
-  GL_OES_EGL_image_external_essl3                       not started
+  GL_OES_EGL_image_external                             DONE (all drivers)
+  GL_OES_EGL_image_external_essl3                       DONE (all drivers)
   GL_OES_required_internalformat                        DONE (all drivers)
   GL_OES_surfaceless_context                            DONE (all drivers)
   GL_OES_texture_compression_astc                       DONE (core only)
@@ -335,7 +337,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_OES_texture_float_linear                           DONE (freedreno, i965, r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe)
   GL_OES_texture_half_float                             DONE (freedreno, i965, r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe)
   GL_OES_texture_half_float_linear                      DONE (freedreno, i965, r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe)
-  GL_OES_texture_view                                   not started - based on GL_ARB_texture_view
+  GL_OES_texture_view                                   DONE (i965/gen8+)
   GL_OES_viewport_array                                 DONE (i965, nvc0, radeonsi)
   GLX_ARB_context_flush_control                         not started
   GLX_ARB_robustness_application_isolation              not started

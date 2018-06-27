@@ -2903,6 +2903,7 @@ bool nir_opt_move_load_ubo(nir_shader *shader);
 
 bool nir_opt_peephole_select(nir_shader *shader, unsigned limit);
 
+bool nir_opt_remove_phis_impl(nir_function_impl *impl);
 bool nir_opt_remove_phis(nir_shader *shader);
 
 bool nir_opt_shrink_load(nir_shader *shader);

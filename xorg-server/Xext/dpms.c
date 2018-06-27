@@ -45,9 +45,9 @@ Equipment Corporation.
 
 CARD16 DPMSPowerLevel = 0;
 Bool DPMSDisabledSwitch = FALSE;
-CARD32 DPMSStandbyTime;
-CARD32 DPMSSuspendTime;
-CARD32 DPMSOffTime;
+CARD32 DPMSStandbyTime = -1;
+CARD32 DPMSSuspendTime = -1;
+CARD32 DPMSOffTime = -1;
 Bool DPMSEnabled;
 
 Bool
@@ -432,7 +432,15 @@ DPMSCloseDownExtension(ExtensionEntry *e)
 void
 DPMSExtensionInit(void)
 {
-    DPMSStandbyTime = DPMSSuspendTime = DPMSOffTime = ScreenSaverTime;
+#define CONDITIONALLY_SET_DPMS_TIMEOUT(_timeout_value_)         \
+    if (_timeout_value_ == -1) { /* not yet set from config */  \
+        _timeout_value_ = ScreenSaverTime;                      \
+    }
+
+    CONDITIONALLY_SET_DPMS_TIMEOUT(DPMSStandbyTime)
+    CONDITIONALLY_SET_DPMS_TIMEOUT(DPMSSuspendTime)
+    CONDITIONALLY_SET_DPMS_TIMEOUT(DPMSOffTime)
+
     DPMSPowerLevel = DPMSModeOn;
     DPMSEnabled = DPMSSupported();
 

@@ -125,6 +125,7 @@ struct v3d_field {
         char *name;
         int start, end;
         struct v3d_type type;
+        bool minus_one;
         bool has_default;
         uint32_t default_value;
 

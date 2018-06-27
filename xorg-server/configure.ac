@@ -2019,7 +2019,6 @@ if test "x$XORG" = xyes; then
 	XF86CONFIGFILE="xorg.conf"
 	XF86CONFIGDIR="xorg.conf.d"
 	AC_SUBST(XF86CONFIGDIR)
-	CONFIGFILE="$sysconfdir/$XF86CONFIGFILE"
 	LOGPREFIX="Xorg."
 	XDG_DATA_HOME=".local/share"
 	XDG_DATA_HOME_LOGDIR="xorg"
