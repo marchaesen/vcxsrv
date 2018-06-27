@@ -109,6 +109,7 @@ struct legacy_surf_layout {
     uint8_t                     tiling_index[RADEON_SURF_MAX_LEVELS];
     uint8_t                     stencil_tiling_index[RADEON_SURF_MAX_LEVELS];
     struct legacy_surf_fmask    fmask;
+    unsigned                    cmask_slice_tile_max;
 };
 
 /* Same as addrlib - AddrResourceType. */
@@ -150,9 +151,6 @@ struct gfx9_surf_layout {
     uint16_t                    dcc_pitch_max;  /* (mip chain pitch - 1) */
 
     uint64_t                    stencil_offset; /* separate stencil */
-    uint64_t                    cmask_size;
-
-    uint32_t                    cmask_alignment;
 };
 
 struct radeon_surf {
@@ -196,16 +194,19 @@ struct radeon_surf {
 
     uint64_t                    surf_size;
     uint64_t                    fmask_size;
-    /* DCC and HTILE are very small. */
-    uint32_t                    dcc_size;
-    uint32_t                    htile_size;
-
-    uint32_t                    htile_slice_size;
-
     uint32_t                    surf_alignment;
     uint32_t                    fmask_alignment;
+
+    /* DCC and HTILE are very small. */
+    uint32_t                    dcc_size;
     uint32_t                    dcc_alignment;
+
+    uint32_t                    htile_size;
+    uint32_t                    htile_slice_size;
     uint32_t                    htile_alignment;
+
+    uint32_t                    cmask_size;
+    uint32_t                    cmask_alignment;
 
     union {
         /* R600-VI return values.
@@ -247,6 +248,10 @@ int ac_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *info,
 		       const struct ac_surf_config * config,
 		       enum radeon_surf_mode mode,
 		       struct radeon_surf *surf);
+
+void ac_compute_cmask(const struct radeon_info *info,
+		      const struct ac_surf_config *config,
+		      struct radeon_surf *surf);
 
 #ifdef __cplusplus
 }

@@ -49,10 +49,10 @@ debug_backtrace_capture(debug_stack_frame *mesa_backtrace,
       backtrace_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                                                 _mesa_key_pointer_equal);
 
-   backtrace_entry = _mesa_hash_table_search(backtrace_table, (void*) tid);
+   backtrace_entry = _mesa_hash_table_search(backtrace_table, (void*) (uintptr_t)tid);
    if (!backtrace_entry) {
       backtrace = Backtrace::Create(getpid(), tid);
-      _mesa_hash_table_insert(backtrace_table, (void*) tid, backtrace);
+      _mesa_hash_table_insert(backtrace_table, (void*) (uintptr_t)tid, backtrace);
    } else {
       backtrace = (Backtrace *) backtrace_entry->data;
    }

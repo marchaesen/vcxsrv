@@ -129,6 +129,12 @@ class Field(object):
         else:
             self.default = None
 
+        if "minus_one" in attrs:
+            assert(attrs["minus_one"] == "true")
+            self.minus_one = True
+        else:
+            self.minus_one = False
+
         ufixed_match = Field.ufixed_pattern.match(self.type)
         if ufixed_match:
             self.type = 'ufixed'
@@ -228,6 +234,10 @@ class Group(object):
         relocs_emitted = set()
         memcpy_fields = set()
 
+        for field in self.fields:
+            if field.minus_one:
+                print("   assert(values->%s >= 1);" % field.name)
+
         for index in range(self.length):
             # Handle MBZ bytes
             if not index in bytes:
@@ -252,7 +262,7 @@ class Group(object):
             # uints/ints with no merged fields.
             if len(byte.fields) == 1:
                 field = byte.fields[0]
-                if field.type in ["float", "uint", "int"] and field.start % 8 == 0 and field.end - field.start == 31:
+                if field.type in ["float", "uint", "int"] and field.start % 8 == 0 and field.end - field.start == 31 and not field.minus_one:
                     if field in memcpy_fields:
                         continue
 
@@ -281,6 +291,10 @@ class Group(object):
                 end -= field_byte_start
                 extra_shift = 0
 
+                value = "values->%s" % name
+                if field.minus_one:
+                    value = "%s - 1" % value
+
                 if field.type == "mbo":
                     s = "__gen_mbo(%d, %d)" % \
                         (start, end)
@@ -288,28 +302,28 @@ class Group(object):
                     extra_shift = (31 - (end - start)) // 8 * 8
                     s = "__gen_address_offset(&values->%s)" % byte.address.name
                 elif field.type == "uint":
-                    s = "__gen_uint(values->%s, %d, %d)" % \
-                        (name, start, end)
+                    s = "__gen_uint(%s, %d, %d)" % \
+                        (value, start, end)
                 elif field.type in self.parser.enums:
-                    s = "__gen_uint(values->%s, %d, %d)" % \
-                        (name, start, end)
+                    s = "__gen_uint(%s, %d, %d)" % \
+                        (value, start, end)
                 elif field.type == "int":
-                    s = "__gen_sint(values->%s, %d, %d)" % \
-                        (name, start, end)
+                    s = "__gen_sint(%s, %d, %d)" % \
+                        (value, start, end)
                 elif field.type == "bool":
-                    s = "__gen_uint(values->%s, %d, %d)" % \
-                        (name, start, end)
+                    s = "__gen_uint(%s, %d, %d)" % \
+                        (value, start, end)
                 elif field.type == "float":
                     s = "#error %s float value mixed in with other fields" % name
                 elif field.type == "offset":
-                    s = "__gen_offset(values->%s, %d, %d)" % \
-                        (name, start, end)
+                    s = "__gen_offset(%s, %d, %d)" % \
+                        (value, start, end)
                 elif field.type == 'ufixed':
-                    s = "__gen_ufixed(values->%s, %d, %d, %d)" % \
-                        (name, start, end, field.fractional_size)
+                    s = "__gen_ufixed(%s, %d, %d, %d)" % \
+                        (value, start, end, field.fractional_size)
                 elif field.type == 'sfixed':
-                    s = "__gen_sfixed(values->%s, %d, %d, %d)" % \
-                        (name, start, end, field.fractional_size)
+                    s = "__gen_sfixed(%s, %d, %d, %d)" % \
+                        (value, start, end, field.fractional_size)
                 elif field.type in self.parser.structs:
                     s = "__gen_uint(v%d_%d, %d, %d)" % \
                         (index, field_index, start, end)
@@ -366,8 +380,11 @@ class Group(object):
                     print("/* unhandled field %s, type %s */\n" % (field.name, field.type))
                     s = None
 
-                print("   values->%s = %s(%s);" % \
-                      (field.name, convert, ', '.join(args)))
+                plusone = ""
+                if field.minus_one:
+                    plusone = " + 1"
+                print("   values->%s = %s(%s)%s;" % \
+                      (field.name, convert, ', '.join(args), plusone))
 
 class Value(object):
     def __init__(self, attrs):

@@ -729,12 +729,17 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
       unpacked_var->insert_before(packed_var);
       this->packed_varyings[slot] = packed_var;
    } else {
+      ir_variable *var = this->packed_varyings[slot];
+
+      /* The slot needs to be marked as always active if any variable that got
+       * packed there was.
+       */
+      var->data.always_active_io |= unpacked_var->data.always_active_io;
+
       /* For geometry shader inputs, only update the packed variable name the
        * first time we visit each component.
        */
       if (this->gs_input_vertices == 0 || vertex_index == 0) {
-         ir_variable *var = this->packed_varyings[slot];
-
          if (var->is_name_ralloced())
             ralloc_asprintf_append((char **) &var->name, ",%s", name);
          else

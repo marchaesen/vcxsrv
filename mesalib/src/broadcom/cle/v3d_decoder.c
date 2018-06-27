@@ -359,6 +359,9 @@ create_field(struct parser_context *ctx, const char **atts)
                 else if (strcmp(atts[i], "default") == 0) {
                         field->has_default = true;
                         field->default_value = strtoul(atts[i + 1], &p, 0);
+                } else if (strcmp(atts[i], "minus_one") == 0) {
+                        assert(strcmp(atts[i + 1], "true") == 0);
+                        field->minus_one = true;
                 }
         }
 
@@ -786,16 +789,24 @@ v3d_field_iterator_next(struct v3d_field_iterator *iter)
         int s = group_member_offset + iter->field->start;
         int e = group_member_offset + iter->field->end;
 
+        assert(!iter->field->minus_one ||
+               iter->field->type.kind == V3D_TYPE_INT ||
+               iter->field->type.kind == V3D_TYPE_UINT);
+
         switch (iter->field->type.kind) {
         case V3D_TYPE_UNKNOWN:
         case V3D_TYPE_INT: {
                 uint32_t value = __gen_unpack_sint(iter->p, s, e);
+                if (iter->field->minus_one)
+                        value++;
                 snprintf(iter->value, sizeof(iter->value), "%d", value);
                 enum_name = v3d_get_enum_name(&iter->field->inline_enum, value);
                 break;
         }
         case V3D_TYPE_UINT: {
                 uint32_t value = __gen_unpack_uint(iter->p, s, e);
+                if (iter->field->minus_one)
+                        value++;
                 snprintf(iter->value, sizeof(iter->value), "%u", value);
                 enum_name = v3d_get_enum_name(&iter->field->inline_enum, value);
                 break;

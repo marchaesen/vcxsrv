@@ -695,18 +695,21 @@ drmmode_output_disable(xf86OutputPtr output)
 {
     modesettingPtr ms = modesettingPTR(output->scrn);
     drmmode_output_private_ptr drmmode_output = output->driver_private;
+    xf86CrtcPtr crtc = drmmode_output->current_crtc;
     drmModeAtomicReq *req = drmModeAtomicAlloc();
     uint32_t flags = DRM_MODE_ATOMIC_ALLOW_MODESET;
-    int ret;
+    int ret = 0;
 
     assert(ms->atomic_modeset);
 
     if (!req)
         return 1;
 
-    /* XXX Can we disable all outputs without disabling CRTC right away? */
-    ret = connector_add_prop(req, drmmode_output,
-                             DRMMODE_CONNECTOR_CRTC_ID, 0);
+    ret |= connector_add_prop(req, drmmode_output,
+                              DRMMODE_CONNECTOR_CRTC_ID, 0);
+    if (crtc)
+        ret |= crtc_add_dpms_props(req, crtc, DPMSModeOff, NULL);
+
     if (ret == 0)
         ret = drmModeAtomicCommit(ms->fd, req, flags, NULL);
 
@@ -1794,11 +1797,8 @@ drmmode_shadow_allocate(xf86CrtcPtr crtc, int width, int height)
         return NULL;
     }
 
-    ret = drmModeAddFB(drmmode->fd, width, height, crtc->scrn->depth,
-                       drmmode->kbpp,
-                       drmmode_bo_get_pitch(&drmmode_crtc->rotate_bo),
-                       drmmode_bo_get_handle(&drmmode_crtc->rotate_bo),
-                       &drmmode_crtc->rotate_fb_id);
+    ret = drmmode_bo_import(drmmode, &drmmode_crtc->rotate_bo,
+                            &drmmode_crtc->rotate_fb_id);
 
     if (ret) {
         ErrorF("failed to add rotate fb\n");

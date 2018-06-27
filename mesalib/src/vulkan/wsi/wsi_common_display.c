@@ -1092,7 +1092,7 @@ wsi_display_acquire_next_image(struct wsi_swapchain *drv_chain,
       ret = wsi_display_wait_for_event(wsi, timeout);
 
       if (ret && ret != ETIMEDOUT) {
-         result = VK_ERROR_OUT_OF_DATE_KHR;
+         result = VK_ERROR_SURFACE_LOST_KHR;
          goto done;
       }
    }
@@ -1200,7 +1200,7 @@ wsi_display_setup_connector(wsi_display_connector *connector,
       if (errno == ENOMEM)
          result = VK_ERROR_OUT_OF_HOST_MEMORY;
       else
-         result = VK_ERROR_OUT_OF_DATE_KHR;
+         result = VK_ERROR_SURFACE_LOST_KHR;
       goto bail;
    }
 
@@ -1211,7 +1211,7 @@ wsi_display_setup_connector(wsi_display_connector *connector,
       if (errno == ENOMEM)
          result = VK_ERROR_OUT_OF_HOST_MEMORY;
       else
-         result = VK_ERROR_OUT_OF_DATE_KHR;
+         result = VK_ERROR_SURFACE_LOST_KHR;
       goto bail_mode_res;
    }
 
@@ -1220,7 +1220,7 @@ wsi_display_setup_connector(wsi_display_connector *connector,
       connector->crtc_id = wsi_display_select_crtc(connector,
                                                    mode_res, drm_connector);
       if (!connector->crtc_id) {
-         result = VK_ERROR_OUT_OF_DATE_KHR;
+         result = VK_ERROR_SURFACE_LOST_KHR;
          goto bail_connector;
       }
    }
@@ -1238,7 +1238,7 @@ wsi_display_setup_connector(wsi_display_connector *connector,
       }
 
       if (!drm_mode) {
-         result = VK_ERROR_OUT_OF_DATE_KHR;
+         result = VK_ERROR_SURFACE_LOST_KHR;
          goto bail_connector;
       }
 
@@ -1425,7 +1425,7 @@ _wsi_display_queue_next(struct wsi_swapchain *drv_chain)
    wsi_display_connector *connector = display_mode->connector;
 
    if (wsi->fd < 0)
-      return VK_ERROR_OUT_OF_DATE_KHR;
+      return VK_ERROR_SURFACE_LOST_KHR;
 
    if (display_mode != connector->current_mode)
       connector->active = false;
@@ -1497,7 +1497,7 @@ _wsi_display_queue_next(struct wsi_swapchain *drv_chain)
       if (ret != -EACCES) {
          connector->active = false;
          image->state = WSI_IMAGE_IDLE;
-         return VK_ERROR_OUT_OF_DATE_KHR;
+         return VK_ERROR_SURFACE_LOST_KHR;
       }
 
       /* Some other VT is currently active. Sit here waiting for

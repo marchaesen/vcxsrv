@@ -698,6 +698,7 @@ _mesa_GetQueryIndexediv(GLenum target, GLuint index, GLenum pname,
             *params = ctx->Const.QueryCounterBits.SamplesPassed;
             break;
          case GL_ANY_SAMPLES_PASSED:
+         case GL_ANY_SAMPLES_PASSED_CONSERVATIVE:
             /* The minimum value of this is 1 if it's nonzero, and the value
              * is only ever GL_TRUE or GL_FALSE, so no sense in reporting more
              * bits.
