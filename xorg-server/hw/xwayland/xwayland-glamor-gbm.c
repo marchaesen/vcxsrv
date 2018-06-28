@@ -517,6 +517,16 @@ glamor_egl_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
 #endif
 }
 
+/* Not actually used, just defined here so there's something for
+ * _glamor_egl_fds_from_pixmap() to link against
+ */
+_X_EXPORT int
+glamor_egl_fd_from_pixmap(ScreenPtr screen, PixmapPtr pixmap,
+                          CARD16 *stride, CARD32 *size)
+{
+    return -1;
+}
+
 _X_EXPORT Bool
 glamor_get_formats(ScreenPtr screen,
                    CARD32 *num_formats, CARD32 **formats)

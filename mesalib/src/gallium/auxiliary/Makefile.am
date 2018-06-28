@@ -21,6 +21,10 @@ libgallium_la_SOURCES = \
 	$(NIR_SOURCES) \
 	$(GENERATED_SOURCES)
 
+if HAVE_PLATFORM_ANDROID
+libgallium_la_SOURCES += util/u_debug_stack_android.cpp
+endif
+
 if HAVE_LIBDRM
 
 AM_CFLAGS += \

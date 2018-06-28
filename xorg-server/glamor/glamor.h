@@ -141,7 +141,7 @@ extern _X_EXPORT void glamor_egl_exchange_buffers(PixmapPtr front,
 extern _X_EXPORT void glamor_pixmap_exchange_fbos(PixmapPtr front,
                                                   PixmapPtr back);
 
-/* The DDX is not supposed to call these three functions */
+/* The DDX is not supposed to call these four functions */
 extern _X_EXPORT void glamor_enable_dri3(ScreenPtr screen);
 extern _X_EXPORT int glamor_egl_fds_from_pixmap(ScreenPtr, PixmapPtr, int *,
                                                 uint32_t *, uint32_t *,
@@ -150,6 +150,7 @@ extern _X_EXPORT int glamor_egl_fd_name_from_pixmap(ScreenPtr, PixmapPtr,
                                                     CARD16 *, CARD32 *);
 
 extern _X_EXPORT struct gbm_device *glamor_egl_get_gbm_device(ScreenPtr screen);
+extern _X_EXPORT int glamor_egl_fd_from_pixmap(ScreenPtr, PixmapPtr, CARD16 *, CARD32 *);
 
 /* @glamor_supports_pixmap_import_export: Returns whether
  * glamor_fds_from_pixmap(), glamor_name_from_pixmap(), and

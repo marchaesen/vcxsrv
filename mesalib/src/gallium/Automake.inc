@@ -59,6 +59,12 @@ GALLIUM_COMMON_LIB_DEPS += \
 	$(LIBDRM_LIBS)
 endif
 
+if HAVE_PLATFORM_ANDROID
+GALLIUM_COMMON_LIB_DEPS += \
+	$(ANDROID_LIBS) \
+	$(BACKTRACE_LIBS)
+endif
+
 GALLIUM_WINSYS_CFLAGS = \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/include \

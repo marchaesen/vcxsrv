@@ -709,6 +709,12 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
          if (!is_vec_zero(zero))
             continue;
 
+         /* We are allowed to add scalars with a vector or matrix. In that
+          * case lets just exit early.
+          */
+         if (add->operands[0]->type != add->operands[1]->type)
+            continue;
+
          /* Depending of the zero position we want to optimize
           * (0 cmp x+y) into (-x cmp y) or (x+y cmp 0) into (x cmp -y)
           */

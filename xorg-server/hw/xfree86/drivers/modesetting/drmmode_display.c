@@ -604,6 +604,8 @@ drmmode_crtc_get_fb_id(xf86CrtcPtr crtc, uint32_t *fb_id, int *x, int *y)
     drmmode_ptr drmmode = drmmode_crtc->drmmode;
     int ret;
 
+    *fb_id = 0;
+
     if (drmmode_crtc->prime_pixmap) {
         if (!drmmode->reverse_prime_offload_mode) {
             msPixmapPrivPtr ppriv =
