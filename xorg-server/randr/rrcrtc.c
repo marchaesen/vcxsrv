@@ -534,6 +534,7 @@ rrSetupPixmapSharing(RRCrtcPtr crtc, int width, int height,
                                       width, height, depth,
                                       x, y, rotation);
     if (spix_front == NULL) {
+        ErrorF("randr: failed to create shared pixmap\n");
         return FALSE;
     }
 

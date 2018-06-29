@@ -51,3 +51,10 @@ glamor_egl_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
 {
     return 0;
 }
+
+int
+glamor_egl_fd_from_pixmap(ScreenPtr screen, PixmapPtr pixmap,
+                          CARD16 *stride, CARD32 *size)
+{
+    return -1;
+}

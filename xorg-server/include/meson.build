@@ -153,10 +153,10 @@ conf_data.set('BUSFAULT', conf_data.get('HAVE_SIGACTION'))
 conf_data.set('_XTYPEDEF_POINTER', '1')
 conf_data.set('_XITYPEDEF_POINTER', '1')
 
+conf_data.set('LISTEN_TCP', get_option('listen_tcp'))
+conf_data.set('LISTEN_UNIX', get_option('listen_unix'))
+conf_data.set('LISTEN_LOCAL', get_option('listen_local'))
 # XXX: Configurable?
-conf_data.set('LISTEN_TCP', '1')
-conf_data.set('LISTEN_UNIX', '1')
-conf_data.set('LISTEN_LOCAL', '1')
 conf_data.set('XTRANS_SEND_FDS', '1')
 
 conf_data.set('TCPCONN', '1')

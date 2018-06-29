@@ -826,10 +826,10 @@ glamor_get_drawable_modifiers(DrawablePtr draw, uint32_t format,
     return TRUE;
 }
 
-_X_EXPORT int
-glamor_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
-                       uint32_t *strides, uint32_t *offsets,
-                       uint64_t *modifier)
+static int
+_glamor_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
+                        uint32_t *strides, uint32_t *offsets,
+                        CARD32 *size, uint64_t *modifier)
 {
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
     glamor_screen_private *glamor_priv =
@@ -843,9 +843,19 @@ glamor_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
         if (!glamor_pixmap_ensure_fbo(pixmap, pixmap->drawable.depth == 30 ?
                                       GL_RGB10_A2 : GL_RGBA, 0))
             return 0;
-        return glamor_egl_fds_from_pixmap(screen, pixmap, fds,
-                                          strides, offsets,
-                                          modifier);
+
+        if (modifier) {
+            return glamor_egl_fds_from_pixmap(screen, pixmap, fds,
+                                              strides, offsets,
+                                              modifier);
+        } else {
+            CARD16 stride;
+
+            fds[0] = glamor_egl_fd_from_pixmap(screen, pixmap, &stride, size);
+            strides[0] = stride;
+
+            return fds[0] >= 0;
+        }
     default:
         break;
     }
@@ -853,29 +863,29 @@ glamor_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
 }
 
 _X_EXPORT int
+glamor_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
+                       uint32_t *strides, uint32_t *offsets,
+                       uint64_t *modifier)
+{
+    return _glamor_fds_from_pixmap(screen, pixmap, fds, strides, offsets,
+                                   NULL, modifier);
+}
+
+_X_EXPORT int
 glamor_fd_from_pixmap(ScreenPtr screen,
                       PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
 {
+    int fd;
     int ret;
-    int fds[4];
-    uint32_t strides[4], offsets[4];
-    uint64_t modifier;
+    uint32_t stride32;
 
-    ret = glamor_fds_from_pixmap(screen, pixmap, fds, strides, offsets,
-                                 &modifier);
-
-    /* Pixmaps with multi-planes/modifier are not supported in this interface */
-    if (ret != 1 || offsets[0] != 0) {
-        while (ret > 0)
-            close(fds[--ret]);
+    ret = _glamor_fds_from_pixmap(screen, pixmap, &fd, &stride32, NULL, size,
+                                  NULL);
+    if (ret != 1)
         return -1;
-    }
 
-    ret = fds[0];
-    *stride = strides[0];
-    *size = pixmap->drawable.height * *stride;
-
-    return ret;
+    *stride = stride32;
+    return fd;
 }
 
 _X_EXPORT int
