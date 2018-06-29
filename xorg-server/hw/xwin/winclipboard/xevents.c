@@ -172,15 +172,24 @@ winClipboardSelectionNotifyTargets(HWND hwnd, Window iWindow, Display *pDisplay,
     data->targetList = malloc((nitems+1)*sizeof(Atom));
 
     for (i = 0; i < nitems; i++)
-      {
+    {
         Atom atom = prop[i];
-        char *pszAtomName = XGetAtomName(pDisplay, atom);
         data->targetList[i] = atom;
-        winDebug("winClipboardFlushXEvents - SelectionNotify - target[%d] %ld = %s\n", i, atom, pszAtomName);
-        XFree(pszAtomName);
-      }
+        if (atom)
+        {
+            #ifdef _DEBUG
+            char *pszAtomName = XGetAtomName(pDisplay, atom);
+            winDebug("winClipboardFlushXEvents - SelectionNotify - target[%d] %ld = %s\n", i, atom, pszAtomName);
+            XFree(pszAtomName);
+            #endif
+        }
+        else if (i!=nitems-1) // It seems that sometimes the item list is already 0 terminated. If a 0 happens in the middle, print an error
+        {
+            ErrorF("Null atom in item list\n");
+        }
+    }
 
-    data->targetList[nitems] = 0;
+    data->targetList[i] = 0;
 
     XFree(prop);
   }
@@ -226,6 +235,7 @@ winClipboardSelectionNotifyData(HWND hwnd, Window iWindow, Display *pDisplay, Cl
         goto winClipboardFlushXEvents_SelectionNotify_Done;
     }
 
+#ifdef _DEBUG
     if (g_iLogVerbose >= 3)
     {
         char *pszAtomName = NULL;
@@ -236,6 +246,7 @@ winClipboardSelectionNotifyData(HWND hwnd, Window iWindow, Display *pDisplay, Cl
         XFree(pszAtomName);
         pszAtomName = NULL;
     }
+#endif
 
     /* INCR reply indicates the start of a incremental transfer */
     if (encoding == atoms->atomIncr) {
@@ -562,10 +573,8 @@ winClipboardFlushXEvents(HWND hwnd,
                 break;
             }
 
-            /* Close clipboard if we have it open already */
-            if (GetOpenClipboardWindow() == hwnd) {
-                CloseClipboard();
-            }
+            /* Close clipboard in case we have it open already */
+            CloseClipboard();
 
             /* Access the clipboard */
             if (!OpenClipboard(hwnd)) {
@@ -636,7 +645,7 @@ winClipboardFlushXEvents(HWND hwnd,
                             "an X window\n");
                     /* Set the owner to None */
                     if (fPrimarySelection) XSetSelectionOwner (pDisplay, XA_PRIMARY, None, CurrentTime);
-                    XSetSelectionOwner (pDisplay, XInternAtom (pDisplay, "CLIPBOARD", False), None, CurrentTime);
+                    XSetSelectionOwner (pDisplay, atomClipboard, None, CurrentTime);
                 }
                 ErrorF ("winClipboardFlushXEvents - SelectionRequest - "
                         "GetClipboardData () failed: %08x\n", (unsigned int)GetLastError());
@@ -918,10 +927,8 @@ winClipboardFlushXEvents(HWND hwnd,
                     break;
                 }
 
-                /* Close clipboard if we have it open already (possible? correct??) */
-                if (GetOpenClipboardWindow() == hwnd) {
-                    CloseClipboard();
-                }
+                /* Close clipboard in case we already have it open */
+                CloseClipboard();
 
                 /* Access the Windows clipboard */
                 if (!OpenClipboard(hwnd)) {
@@ -934,6 +941,7 @@ winClipboardFlushXEvents(HWND hwnd,
                 if (!EmptyClipboard()) {
                     ErrorF("winClipboardFlushXEvents - EmptyClipboard () failed: %08x\n",
                            (int) GetLastError());
+                    CloseClipboard();
                     break;
                 }
 

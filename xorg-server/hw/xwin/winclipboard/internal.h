@@ -65,7 +65,6 @@ typedef int pid_t;
 #define WIN_XEVENTS_FAILED			1
 #define WIN_XEVENTS_NOTIFY_DATA			3
 #define WIN_XEVENTS_NOTIFY_TARGETS		4
-#define WIN_LOCAL_PROPERTY			"CYGX_CUT_BUFFER"
 
 #define WM_WM_REINIT                           (WM_USER + 200)
 #define WM_WM_QUIT                             (WM_USER + 201)
