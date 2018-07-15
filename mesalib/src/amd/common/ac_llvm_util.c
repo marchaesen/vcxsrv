@@ -28,6 +28,11 @@
 #include "util/bitscan.h"
 #include <llvm-c/Core.h>
 #include <llvm-c/Support.h>
+#include <llvm-c/Transforms/IPO.h>
+#include <llvm-c/Transforms/Scalar.h>
+#if HAVE_LLVM >= 0x0700
+#include <llvm-c/Transforms/Utils.h>
+#endif
 #include "c11/threads.h"
 #include "util/u_math.h"
 
@@ -57,12 +62,15 @@ static void ac_init_llvm_target()
 
 static once_flag ac_init_llvm_target_once_flag = ONCE_FLAG_INIT;
 
-LLVMTargetRef ac_get_llvm_target(const char *triple)
+void ac_init_llvm_once(void)
+{
+	call_once(&ac_init_llvm_target_once_flag, ac_init_llvm_target);
+}
+
+static LLVMTargetRef ac_get_llvm_target(const char *triple)
 {
 	LLVMTargetRef target = NULL;
 	char *err_message = NULL;
-
-	call_once(&ac_init_llvm_target_once_flag, ac_init_llvm_target);
 
 	if (LLVMGetTargetFromTriple(triple, &target, &err_message)) {
 		fprintf(stderr, "Cannot find target for triple %s ", triple);
@@ -120,26 +128,30 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
 		return "gfx902";
 	case CHIP_VEGA12:
 		return HAVE_LLVM >= 0x0700 ? "gfx904" : "gfx902";
+	case CHIP_VEGA20:
+		return HAVE_LLVM >= 0x0700 ? "gfx906" : "gfx902";
 	default:
 		return "";
 	}
 }
 
-LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
-					      enum ac_target_machine_options tm_options,
-					      const char **out_triple)
+static LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
+						     enum ac_target_machine_options tm_options,
+						     const char **out_triple)
 {
 	assert(family >= CHIP_TAHITI);
 	char features[256];
 	const char *triple = (tm_options & AC_TM_SUPPORTS_SPILL) ? "amdgcn-mesa-mesa3d" : "amdgcn--";
 	LLVMTargetRef target = ac_get_llvm_target(triple);
+	bool barrier_does_waitcnt = family != CHIP_VEGA20;
 
 	snprintf(features, sizeof(features),
-		 "+DumpCode,+vgpr-spilling,-fp32-denormals,+fp64-denormals%s%s%s%s",
+		 "+DumpCode,+vgpr-spilling,-fp32-denormals,+fp64-denormals%s%s%s%s%s",
 		 tm_options & AC_TM_SISCHED ? ",+si-scheduler" : "",
 		 tm_options & AC_TM_FORCE_ENABLE_XNACK ? ",+xnack" : "",
 		 tm_options & AC_TM_FORCE_DISABLE_XNACK ? ",-xnack" : "",
-		 tm_options & AC_TM_PROMOTE_ALLOCA_TO_SCRATCH ? ",-promote-alloca" : "");
+		 tm_options & AC_TM_PROMOTE_ALLOCA_TO_SCRATCH ? ",-promote-alloca" : "",
+		 barrier_does_waitcnt ? ",+auto-waitcnt-before-barrier" : "");
 	
 	LLVMTargetMachineRef tm = LLVMCreateTargetMachine(
 	                             target,
@@ -153,6 +165,32 @@ LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
 	if (out_triple)
 		*out_triple = triple;
 	return tm;
+}
+
+static LLVMPassManagerRef ac_create_passmgr(LLVMTargetLibraryInfoRef target_library_info,
+					    bool check_ir)
+{
+	LLVMPassManagerRef passmgr = LLVMCreatePassManager();
+	if (!passmgr)
+		return NULL;
+
+	if (target_library_info)
+		LLVMAddTargetLibraryInfo(target_library_info,
+					 passmgr);
+
+	if (check_ir)
+		LLVMAddVerifierPass(passmgr);
+	LLVMAddAlwaysInlinerPass(passmgr);
+	/* This pass should eliminate all the load and store instructions. */
+	LLVMAddPromoteMemoryToRegisterPass(passmgr);
+	LLVMAddScalarReplAggregatesPass(passmgr);
+	LLVMAddLICMPass(passmgr);
+	LLVMAddAggressiveDCEPass(passmgr);
+	LLVMAddCFGSimplificationPass(passmgr);
+	/* This is recommended by the instruction combining pass. */
+	LLVMAddEarlyCSEMemSSAPass(passmgr);
+	LLVMAddInstructionCombiningPass(passmgr);
+	return passmgr;
 }
 
 static const char *attr_to_str(enum ac_func_attr attr)
@@ -245,4 +283,50 @@ ac_count_scratch_private_memory(LLVMValueRef function)
 	}
 
 	return private_mem_vgprs;
+}
+
+bool
+ac_init_llvm_compiler(struct ac_llvm_compiler *compiler,
+		      bool okay_to_leak_target_library_info,
+		      enum radeon_family family,
+		      enum ac_target_machine_options tm_options)
+{
+	const char *triple;
+	memset(compiler, 0, sizeof(*compiler));
+
+	compiler->tm = ac_create_target_machine(family,
+					    tm_options, &triple);
+	if (!compiler->tm)
+		return false;
+
+	if (okay_to_leak_target_library_info || (HAVE_LLVM >= 0x0700)) {
+		compiler->target_library_info =
+			ac_create_target_library_info(triple);
+		if (!compiler->target_library_info)
+			goto fail;
+	}
+
+	compiler->passmgr = ac_create_passmgr(compiler->target_library_info,
+					      tm_options & AC_TM_CHECK_IR);
+	if (!compiler->passmgr)
+		goto fail;
+
+	return true;
+fail:
+	ac_destroy_llvm_compiler(compiler);
+	return false;
+}
+
+void
+ac_destroy_llvm_compiler(struct ac_llvm_compiler *compiler)
+{
+	if (compiler->passmgr)
+		LLVMDisposePassManager(compiler->passmgr);
+#if HAVE_LLVM >= 0x0700
+	/* This crashes on LLVM 5.0 and 6.0 and Ubuntu 18.04, so leak it there. */
+	if (compiler->target_library_info)
+		ac_dispose_target_library_info(compiler->target_library_info);
+#endif
+	if (compiler->tm)
+		LLVMDisposeTargetMachine(compiler->tm);
 }

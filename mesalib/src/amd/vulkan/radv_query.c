@@ -188,10 +188,8 @@ build_occlusion_query_shader(struct radv_device *device) {
 	load->num_components = 2;
 	nir_builder_instr_insert(&b, &load->instr);
 
-	const unsigned swizzle0[] = {0,0,0,0};
-	const unsigned swizzle1[] = {1,1,1,1};
-	nir_store_var(&b, start, nir_swizzle(&b, &load->dest.ssa, swizzle0, 1, false), 0x1);
-	nir_store_var(&b, end, nir_swizzle(&b, &load->dest.ssa, swizzle1, 1, false), 0x1);
+	nir_store_var(&b, start, nir_channel(&b, &load->dest.ssa, 0), 0x1);
+	nir_store_var(&b, end, nir_channel(&b, &load->dest.ssa, 1), 0x1);
 
 	nir_ssa_def *start_done = nir_ilt(&b, nir_load_var(&b, start), nir_imm_int64(&b, 0));
 	nir_ssa_def *end_done = nir_ilt(&b, nir_load_var(&b, end), nir_imm_int64(&b, 0));
@@ -956,8 +954,8 @@ void radv_CmdCopyQueryPoolResults(
 	uint64_t dest_va = radv_buffer_get_va(dst_buffer->bo);
 	dest_va += dst_buffer->offset + dstOffset;
 
-	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, pool->bo, 8);
-	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, dst_buffer->bo, 8);
+	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, pool->bo);
+	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, dst_buffer->bo);
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -1180,7 +1178,8 @@ static void emit_end_query(struct radv_cmd_buffer *cmd_buffer,
 					   radv_cmd_buffer_uses_mec(cmd_buffer),
 					   V_028A90_BOTTOM_OF_PIPE_TS, 0,
 					   EOP_DATA_SEL_VALUE_32BIT,
-					   avail_va, 0, 1);
+					   avail_va, 0, 1,
+					   cmd_buffer->gfx9_eop_bug_va);
 		break;
 	default:
 		unreachable("ending unhandled query type");
@@ -1198,7 +1197,7 @@ void radv_CmdBeginQuery(
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 	uint64_t va = radv_buffer_get_va(pool->bo);
 
-	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 8);
+	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo);
 
 	if (cmd_buffer->pending_reset_query) {
 		if (pool->size >= RADV_BUFFER_OPS_CS_THRESHOLD) {
@@ -1269,7 +1268,7 @@ void radv_CmdWriteTimestamp(
 	uint64_t avail_va = va + pool->availability_offset + 4 * query;
 	uint64_t query_va = va + pool->stride * query;
 
-	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo, 5);
+	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo);
 
 	int num_queries = 1;
 	if (cmd_buffer->state.subpass && cmd_buffer->state.subpass->view_mask)
@@ -1303,13 +1302,15 @@ void radv_CmdWriteTimestamp(
 						   mec,
 						   V_028A90_BOTTOM_OF_PIPE_TS, 0,
 						   EOP_DATA_SEL_TIMESTAMP,
-						   query_va, 0, 0);
+						   query_va, 0, 0,
+						   cmd_buffer->gfx9_eop_bug_va);
 			si_cs_emit_write_event_eop(cs,
 						   cmd_buffer->device->physical_device->rad_info.chip_class,
 						   mec,
 						   V_028A90_BOTTOM_OF_PIPE_TS, 0,
 						   EOP_DATA_SEL_VALUE_32BIT,
-						   avail_va, 0, 1);
+						   avail_va, 0, 1,
+						   cmd_buffer->gfx9_eop_bug_va);
 			break;
 		}
 		query_va += pool->stride;

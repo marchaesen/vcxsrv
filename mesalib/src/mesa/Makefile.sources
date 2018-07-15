@@ -216,6 +216,7 @@ MAIN_FILES = \
 	main/texcompress.c \
 	main/texcompress_bptc.c \
 	main/texcompress_bptc.h \
+	main/texcompress_bptc_tmp.h \
 	main/texcompress_cpal.c \
 	main/texcompress_cpal.h \
 	main/texcompress_etc.c \

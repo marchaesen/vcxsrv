@@ -20,6 +20,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from __future__ import print_function
+
 import contextlib
 import getopt
 import gl_XML
@@ -42,9 +44,9 @@ current_indent = 0
 
 def out(str):
     if str:
-        print ' '*current_indent + str
+        print(' '*current_indent + str)
     else:
-        print ''
+        print('')
 
 
 @contextlib.contextmanager
@@ -64,15 +66,15 @@ class PrintCode(gl_XML.gl_print_base):
             'Copyright (C) 2012 Intel Corporation', 'INTEL CORPORATION')
 
     def printRealHeader(self):
-        print header
-        print 'static inline int safe_mul(int a, int b)'
-        print '{'
-        print '    if (a < 0 || b < 0) return -1;'
-        print '    if (a == 0 || b == 0) return 0;'
-        print '    if (a > INT_MAX / b) return -1;'
-        print '    return a * b;'
-        print '}'
-        print
+        print(header)
+        print('static inline int safe_mul(int a, int b)')
+        print('{')
+        print('    if (a < 0 || b < 0) return -1;')
+        print('    if (a == 0 || b == 0) return 0;')
+        print('    if (a > INT_MAX / b) return -1;')
+        print('    return a * b;')
+        print('}')
+        print()
 
     def printRealFooter(self):
         pass
@@ -342,7 +344,7 @@ class PrintCode(gl_XML.gl_print_base):
 
 
 def show_usage():
-    print 'Usage: %s [-f input_file_name]' % sys.argv[0]
+    print('Usage: %s [-f input_file_name]' % sys.argv[0])
     sys.exit(1)
 
 
@@ -351,7 +353,7 @@ if __name__ == '__main__':
 
     try:
         (args, trail) = getopt.getopt(sys.argv[1:], 'm:f:')
-    except Exception,e:
+    except Exception:
         show_usage()
 
     for (arg,val) in args:

@@ -704,7 +704,7 @@ FcCacheFindByStat (struct stat *cache_stat)
 	    s->cache_mtime == cache_stat->st_mtime)
 	{
 #ifdef HAVE_STRUCT_STAT_ST_MTIM
-	    if (s->cache_mtime != cache_stat->st_mtim.tv_nsec)
+	    if (s->cache_mtime_nano != cache_stat->st_mtim.tv_nsec)
 		continue;
 #endif
 	    FcRefInc (&s->ref);

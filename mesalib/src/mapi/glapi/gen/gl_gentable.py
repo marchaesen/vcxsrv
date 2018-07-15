@@ -29,6 +29,8 @@
 # Based on code ogiginally by:
 #    Ian Romanick <idr@us.ibm.com>
 
+from __future__ import print_function
+
 import argparse
 
 import license
@@ -187,12 +189,12 @@ class PrintCode(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
-        print header
+        print(header)
         return
 
 
     def printRealFooter(self):
-        print footer
+        print(footer)
         return
 
 
@@ -218,11 +220,11 @@ class PrintCode(gl_XML.gl_print_base):
             if funcnames[i] is None:
                 raise Exception("Function table has no function at offset %d" % (i))
 
-        print "#define GLAPI_TABLE_COUNT %d" % func_count
-        print "static const char * const _glapi_table_func_names[GLAPI_TABLE_COUNT] = {"
+        print("#define GLAPI_TABLE_COUNT %d" % func_count)
+        print("static const char * const _glapi_table_func_names[GLAPI_TABLE_COUNT] = {")
         for i in xrange(0, func_count):
-            print "    /* %5d */ \"%s\"," % (i, funcnames[i])
-        print "};"
+            print("    /* %5d */ \"%s\"," % (i, funcnames[i]))
+        print("};")
 
         return
 

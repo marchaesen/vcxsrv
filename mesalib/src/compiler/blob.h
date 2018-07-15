@@ -295,6 +295,12 @@ void
 blob_copy_bytes(struct blob_reader *blob, void *dest, size_t size);
 
 /**
+ * Skip \size bytes within the blob.
+ */
+void
+blob_skip_bytes(struct blob_reader *blob, size_t size);
+
+/**
  * Read a uint32_t from the current location, (and update the current location
  * to just past this uint32_t).
  *

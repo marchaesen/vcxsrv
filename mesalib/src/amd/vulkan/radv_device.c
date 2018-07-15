@@ -436,6 +436,7 @@ static const struct debug_control radv_debug_options[] = {
 	{"errors", RADV_DEBUG_ERRORS},
 	{"startup", RADV_DEBUG_STARTUP},
 	{"checkir", RADV_DEBUG_CHECKIR},
+	{"nothreadllvm", RADV_DEBUG_NOTHREADLLVM},
 	{NULL, 0}
 };
 
@@ -1927,10 +1928,10 @@ radv_emit_gs_ring_sizes(struct radv_queue *queue, struct radeon_cmdbuf *cs,
 		return;
 
 	if (esgs_ring_bo)
-		radv_cs_add_buffer(queue->device->ws, cs, esgs_ring_bo, 8);
+		radv_cs_add_buffer(queue->device->ws, cs, esgs_ring_bo);
 
 	if (gsvs_ring_bo)
-		radv_cs_add_buffer(queue->device->ws, cs, gsvs_ring_bo, 8);
+		radv_cs_add_buffer(queue->device->ws, cs, gsvs_ring_bo);
 
 	if (queue->device->physical_device->rad_info.chip_class >= CIK) {
 		radeon_set_uconfig_reg_seq(cs, R_030900_VGT_ESGS_RING_SIZE, 2);
@@ -1955,7 +1956,7 @@ radv_emit_tess_factor_ring(struct radv_queue *queue, struct radeon_cmdbuf *cs,
 
 	tf_va = radv_buffer_get_va(tess_rings_bo);
 
-	radv_cs_add_buffer(queue->device->ws, cs, tess_rings_bo, 8);
+	radv_cs_add_buffer(queue->device->ws, cs, tess_rings_bo);
 
 	if (queue->device->physical_device->rad_info.chip_class >= CIK) {
 		radeon_set_uconfig_reg(cs, R_030938_VGT_TF_RING_SIZE,
@@ -1989,7 +1990,7 @@ radv_emit_compute_scratch(struct radv_queue *queue, struct radeon_cmdbuf *cs,
 
 	scratch_va = radv_buffer_get_va(compute_scratch_bo);
 
-	radv_cs_add_buffer(queue->device->ws, cs, compute_scratch_bo, 8);
+	radv_cs_add_buffer(queue->device->ws, cs, compute_scratch_bo);
 
 	radeon_set_sh_reg_seq(cs, R_00B900_COMPUTE_USER_DATA_0, 2);
 	radeon_emit(cs, scratch_va);
@@ -2009,7 +2010,7 @@ radv_emit_global_shader_pointers(struct radv_queue *queue,
 
 	va = radv_buffer_get_va(descriptor_bo);
 
-	radv_cs_add_buffer(queue->device->ws, cs, descriptor_bo, 8);
+	radv_cs_add_buffer(queue->device->ws, cs, descriptor_bo);
 
 	if (queue->device->physical_device->rad_info.chip_class >= GFX9) {
 		uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
@@ -2188,7 +2189,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		dest_cs[i] = cs;
 
 		if (scratch_bo)
-			radv_cs_add_buffer(queue->device->ws, cs, scratch_bo, 8);
+			radv_cs_add_buffer(queue->device->ws, cs, scratch_bo);
 
 		if (descriptor_bo != queue->descriptor_bo) {
 			uint32_t *map = (uint32_t*)queue->device->ws->buffer_map(descriptor_bo);
@@ -2239,7 +2240,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			                       RADV_CMD_FLAG_INV_SMEM_L1 |
 			                       RADV_CMD_FLAG_INV_VMEM_L1 |
 			                       RADV_CMD_FLAG_INV_GLOBAL_L2 |
-					       RADV_CMD_FLAG_START_PIPELINE_STATS);
+					       RADV_CMD_FLAG_START_PIPELINE_STATS, 0);
 		} else if (i == 1) {
 			si_cs_emit_cache_flush(cs,
 			                       queue->device->physical_device->rad_info.chip_class,
@@ -2250,7 +2251,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			                       RADV_CMD_FLAG_INV_SMEM_L1 |
 			                       RADV_CMD_FLAG_INV_VMEM_L1 |
 			                       RADV_CMD_FLAG_INV_GLOBAL_L2 |
-					       RADV_CMD_FLAG_START_PIPELINE_STATS);
+					       RADV_CMD_FLAG_START_PIPELINE_STATS, 0);
 		}
 
 		if (!queue->device->ws->cs_finalize(cs))

@@ -71,7 +71,8 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
       return true;
    case nir_intrinsic_atomic_counter_inc:
    case nir_intrinsic_atomic_counter_add:
-   case nir_intrinsic_atomic_counter_dec:
+   case nir_intrinsic_atomic_counter_pre_dec:
+   case nir_intrinsic_atomic_counter_post_dec:
       /* inc and dec get remapped to add: */
       op = nir_intrinsic_ssbo_atomic_add;
       break;
@@ -119,7 +120,8 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
       nir_src_copy(&new_instr->src[1], &instr->src[0], new_instr);
       new_instr->src[2] = nir_src_for_ssa(temp);
       break;
-   case nir_intrinsic_atomic_counter_dec:
+   case nir_intrinsic_atomic_counter_pre_dec:
+   case nir_intrinsic_atomic_counter_post_dec:
       /* remapped to ssbo_atomic_add: { buffer_idx, offset, -1 } */
       /* NOTE semantic difference so we adjust the return value below */
       temp = nir_imm_int(b, -1);
@@ -148,7 +150,7 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
    nir_instr_insert_before(&instr->instr, &new_instr->instr);
    nir_instr_remove(&instr->instr);
 
-   if (instr->intrinsic == nir_intrinsic_atomic_counter_dec) {
+   if (instr->intrinsic == nir_intrinsic_atomic_counter_pre_dec) {
       b->cursor = nir_after_instr(&new_instr->instr);
       nir_ssa_def *result = nir_iadd(b, &new_instr->dest.ssa, temp);
       nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(result));

@@ -24,6 +24,8 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+from __future__ import print_function
+
 import argparse
 
 import license
@@ -53,135 +55,135 @@ class PrintGenericStubs(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
-        print '#include "x86/assyntax.h"'
-        print ''
-        print '#if defined(STDCALL_API)'
-        print '# if defined(USE_MGL_NAMESPACE)'
-        print '#  define GL_PREFIX(n,n2) GLNAME(CONCAT(mgl,n2))'
-        print '# else'
-        print '#  define GL_PREFIX(n,n2) GLNAME(CONCAT(gl,n2))'
-        print '# endif'
-        print '#else'
-        print '# if defined(USE_MGL_NAMESPACE)'
-        print '#  define GL_PREFIX(n,n2) GLNAME(CONCAT(mgl,n))'
-        print '#  define _glapi_Dispatch _mglapi_Dispatch'
-        print '# else'
-        print '#  define GL_PREFIX(n,n2) GLNAME(CONCAT(gl,n))'
-        print '# endif'
-        print '#endif'
-        print ''
-        print '#define GL_OFFSET(x) CODEPTR(REGOFF(4 * x, EAX))'
-        print ''
-        print '#if defined(GNU_ASSEMBLER) && !defined(__MINGW32__) && !defined(__APPLE__)'
-        print '#define GLOBL_FN(x) GLOBL x ; .type x, @function'
-        print '#else'
-        print '#define GLOBL_FN(x) GLOBL x'
-        print '#endif'
-        print ''
-        print ''
-        print '#ifdef GLX_USE_TLS'
-        print ''
-        print '#ifdef GLX_X86_READONLY_TEXT'
-        print '# define CTX_INSNS MOV_L(GS:(EAX), EAX)'
-        print '#else'
-        print '# define CTX_INSNS NOP /* Pad for init_glapi_relocs() */'
-        print '#endif'
-        print ''
-        print '#  define GL_STUB(fn,off,fn_alt)\t\t\t\\'
-        print 'ALIGNTEXT16;\t\t\t\t\t\t\\'
-        print 'GLOBL_FN(GL_PREFIX(fn, fn_alt));\t\t\t\\'
-        print 'GL_PREFIX(fn, fn_alt):\t\t\t\t\t\\'
-        print '\tCALL(_x86_get_dispatch) ;\t\t\t\\'
-        print '\tCTX_INSNS ;					\\'
-        print '\tJMP(GL_OFFSET(off))'
-        print ''
-        print '#elif defined(HAVE_PTHREAD)'
-        print '#  define GL_STUB(fn,off,fn_alt)\t\t\t\\'
-        print 'ALIGNTEXT16;\t\t\t\t\t\t\\'
-        print 'GLOBL_FN(GL_PREFIX(fn, fn_alt));\t\t\t\\'
-        print 'GL_PREFIX(fn, fn_alt):\t\t\t\t\t\\'
-        print '\tMOV_L(CONTENT(GLNAME(_glapi_Dispatch)), EAX) ;\t\\'
-        print '\tTEST_L(EAX, EAX) ;\t\t\t\t\\'
-        print '\tJE(1f) ;\t\t\t\t\t\\'
-        print '\tJMP(GL_OFFSET(off)) ;\t\t\t\t\\'
-        print '1:\tCALL(_x86_get_dispatch) ;\t\t\t\\'
-        print '\tJMP(GL_OFFSET(off))'
-        print '#else'
-        print '#  define GL_STUB(fn,off,fn_alt)\t\t\t\\'
-        print 'ALIGNTEXT16;\t\t\t\t\t\t\\'
-        print 'GLOBL_FN(GL_PREFIX(fn, fn_alt));\t\t\t\\'
-        print 'GL_PREFIX(fn, fn_alt):\t\t\t\t\t\\'
-        print '\tMOV_L(CONTENT(GLNAME(_glapi_Dispatch)), EAX) ;\t\\'
-        print '\tTEST_L(EAX, EAX) ;\t\t\t\t\\'
-        print '\tJE(1f) ;\t\t\t\t\t\\'
-        print '\tJMP(GL_OFFSET(off)) ;\t\t\t\t\\'
-        print '1:\tCALL(_glapi_get_dispatch) ;\t\t\t\\'
-        print '\tJMP(GL_OFFSET(off))'
-        print '#endif'
-        print ''
-        print '#ifdef HAVE_FUNC_ATTRIBUTE_ALIAS'
-        print '#  define GL_STUB_ALIAS(fn,off,fn_alt,alias,alias_alt)\t\\'
-        print '\t.globl\tGL_PREFIX(fn, fn_alt) ;\t\t\t\\'
-        print '\t.set\tGL_PREFIX(fn, fn_alt), GL_PREFIX(alias, alias_alt)'
-        print '#else'
-        print '#  define GL_STUB_ALIAS(fn,off,fn_alt,alias,alias_alt)\t\\'
-        print '    GL_STUB(fn, off, fn_alt)'
-        print '#endif'
-        print ''
-        print 'SEG_TEXT'
-        print ''
-        print '#ifdef GLX_USE_TLS'
-        print ''
-        print '\tGLOBL\tGLNAME(_x86_get_dispatch)'
-        print '\tHIDDEN(GLNAME(_x86_get_dispatch))'
-        print 'ALIGNTEXT16'
-        print 'GLNAME(_x86_get_dispatch):'
-        print '\tcall	1f'
-        print '1:\tpopl	%eax'
-        print '\taddl	$_GLOBAL_OFFSET_TABLE_+[.-1b], %eax'
-        print '\tmovl	_glapi_tls_Dispatch@GOTNTPOFF(%eax), %eax'
-        print '\tret'
-        print ''
-        print '#elif defined(HAVE_PTHREAD)'
-        print 'EXTERN GLNAME(_glapi_Dispatch)'
-        print 'EXTERN GLNAME(_gl_DispatchTSD)'
-        print 'EXTERN GLNAME(pthread_getspecific)'
-        print ''
-        print 'ALIGNTEXT16'
-        print 'GLNAME(_x86_get_dispatch):'
-        print '\tSUB_L(CONST(24), ESP)'
-        print '\tPUSH_L(GLNAME(_gl_DispatchTSD))'
-        print '\tCALL(GLNAME(pthread_getspecific))'
-        print '\tADD_L(CONST(28), ESP)'
-        print '\tRET'
-        print '#else'
-        print 'EXTERN GLNAME(_glapi_get_dispatch)'
-        print '#endif'
-        print ''
+        print('#include "x86/assyntax.h"')
+        print('')
+        print('#if defined(STDCALL_API)')
+        print('# if defined(USE_MGL_NAMESPACE)')
+        print('#  define GL_PREFIX(n,n2) GLNAME(CONCAT(mgl,n2))')
+        print('# else')
+        print('#  define GL_PREFIX(n,n2) GLNAME(CONCAT(gl,n2))')
+        print('# endif')
+        print('#else')
+        print('# if defined(USE_MGL_NAMESPACE)')
+        print('#  define GL_PREFIX(n,n2) GLNAME(CONCAT(mgl,n))')
+        print('#  define _glapi_Dispatch _mglapi_Dispatch')
+        print('# else')
+        print('#  define GL_PREFIX(n,n2) GLNAME(CONCAT(gl,n))')
+        print('# endif')
+        print('#endif')
+        print('')
+        print('#define GL_OFFSET(x) CODEPTR(REGOFF(4 * x, EAX))')
+        print('')
+        print('#if defined(GNU_ASSEMBLER) && !defined(__MINGW32__) && !defined(__APPLE__)')
+        print('#define GLOBL_FN(x) GLOBL x ; .type x, @function')
+        print('#else')
+        print('#define GLOBL_FN(x) GLOBL x')
+        print('#endif')
+        print('')
+        print('')
+        print('#ifdef GLX_USE_TLS')
+        print('')
+        print('#ifdef GLX_X86_READONLY_TEXT')
+        print('# define CTX_INSNS MOV_L(GS:(EAX), EAX)')
+        print('#else')
+        print('# define CTX_INSNS NOP /* Pad for init_glapi_relocs() */')
+        print('#endif')
+        print('')
+        print('#  define GL_STUB(fn,off,fn_alt)\t\t\t\\')
+        print('ALIGNTEXT16;\t\t\t\t\t\t\\')
+        print('GLOBL_FN(GL_PREFIX(fn, fn_alt));\t\t\t\\')
+        print('GL_PREFIX(fn, fn_alt):\t\t\t\t\t\\')
+        print('\tCALL(_x86_get_dispatch) ;\t\t\t\\')
+        print('\tCTX_INSNS ;					\\')
+        print('\tJMP(GL_OFFSET(off))')
+        print('')
+        print('#elif defined(HAVE_PTHREAD)')
+        print('#  define GL_STUB(fn,off,fn_alt)\t\t\t\\')
+        print('ALIGNTEXT16;\t\t\t\t\t\t\\')
+        print('GLOBL_FN(GL_PREFIX(fn, fn_alt));\t\t\t\\')
+        print('GL_PREFIX(fn, fn_alt):\t\t\t\t\t\\')
+        print('\tMOV_L(CONTENT(GLNAME(_glapi_Dispatch)), EAX) ;\t\\')
+        print('\tTEST_L(EAX, EAX) ;\t\t\t\t\\')
+        print('\tJE(1f) ;\t\t\t\t\t\\')
+        print('\tJMP(GL_OFFSET(off)) ;\t\t\t\t\\')
+        print('1:\tCALL(_x86_get_dispatch) ;\t\t\t\\')
+        print('\tJMP(GL_OFFSET(off))')
+        print('#else')
+        print('#  define GL_STUB(fn,off,fn_alt)\t\t\t\\')
+        print('ALIGNTEXT16;\t\t\t\t\t\t\\')
+        print('GLOBL_FN(GL_PREFIX(fn, fn_alt));\t\t\t\\')
+        print('GL_PREFIX(fn, fn_alt):\t\t\t\t\t\\')
+        print('\tMOV_L(CONTENT(GLNAME(_glapi_Dispatch)), EAX) ;\t\\')
+        print('\tTEST_L(EAX, EAX) ;\t\t\t\t\\')
+        print('\tJE(1f) ;\t\t\t\t\t\\')
+        print('\tJMP(GL_OFFSET(off)) ;\t\t\t\t\\')
+        print('1:\tCALL(_glapi_get_dispatch) ;\t\t\t\\')
+        print('\tJMP(GL_OFFSET(off))')
+        print('#endif')
+        print('')
+        print('#ifdef HAVE_FUNC_ATTRIBUTE_ALIAS')
+        print('#  define GL_STUB_ALIAS(fn,off,fn_alt,alias,alias_alt)\t\\')
+        print('\t.globl\tGL_PREFIX(fn, fn_alt) ;\t\t\t\\')
+        print('\t.set\tGL_PREFIX(fn, fn_alt), GL_PREFIX(alias, alias_alt)')
+        print('#else')
+        print('#  define GL_STUB_ALIAS(fn,off,fn_alt,alias,alias_alt)\t\\')
+        print('    GL_STUB(fn, off, fn_alt)')
+        print('#endif')
+        print('')
+        print('SEG_TEXT')
+        print('')
+        print('#ifdef GLX_USE_TLS')
+        print('')
+        print('\tGLOBL\tGLNAME(_x86_get_dispatch)')
+        print('\tHIDDEN(GLNAME(_x86_get_dispatch))')
+        print('ALIGNTEXT16')
+        print('GLNAME(_x86_get_dispatch):')
+        print('\tcall	1f')
+        print('1:\tpopl	%eax')
+        print('\taddl	$_GLOBAL_OFFSET_TABLE_+[.-1b], %eax')
+        print('\tmovl	_glapi_tls_Dispatch@GOTNTPOFF(%eax), %eax')
+        print('\tret')
+        print('')
+        print('#elif defined(HAVE_PTHREAD)')
+        print('EXTERN GLNAME(_glapi_Dispatch)')
+        print('EXTERN GLNAME(_gl_DispatchTSD)')
+        print('EXTERN GLNAME(pthread_getspecific)')
+        print('')
+        print('ALIGNTEXT16')
+        print('GLNAME(_x86_get_dispatch):')
+        print('\tSUB_L(CONST(24), ESP)')
+        print('\tPUSH_L(GLNAME(_gl_DispatchTSD))')
+        print('\tCALL(GLNAME(pthread_getspecific))')
+        print('\tADD_L(CONST(28), ESP)')
+        print('\tRET')
+        print('#else')
+        print('EXTERN GLNAME(_glapi_get_dispatch)')
+        print('#endif')
+        print('')
 
-        print '#if defined( GLX_USE_TLS ) && !defined( GLX_X86_READONLY_TEXT )'
-        print '\t\t.section\twtext, "awx", @progbits'
-        print '#endif /* defined( GLX_USE_TLS ) */'
+        print('#if defined( GLX_USE_TLS ) && !defined( GLX_X86_READONLY_TEXT )')
+        print('\t\t.section\twtext, "awx", @progbits')
+        print('#endif /* defined( GLX_USE_TLS ) */')
 
-        print ''
-        print '\t\tALIGNTEXT16'
-        print '\t\tGLOBL GLNAME(gl_dispatch_functions_start)'
-        print '\t\tHIDDEN(GLNAME(gl_dispatch_functions_start))'
-        print 'GLNAME(gl_dispatch_functions_start):'
-        print ''
+        print('')
+        print('\t\tALIGNTEXT16')
+        print('\t\tGLOBL GLNAME(gl_dispatch_functions_start)')
+        print('\t\tHIDDEN(GLNAME(gl_dispatch_functions_start))')
+        print('GLNAME(gl_dispatch_functions_start):')
+        print('')
         return
 
 
     def printRealFooter(self):
-        print ''
-        print '\t\tGLOBL\tGLNAME(gl_dispatch_functions_end)'
-        print '\t\tHIDDEN(GLNAME(gl_dispatch_functions_end))'
-        print '\t\tALIGNTEXT16'
-        print 'GLNAME(gl_dispatch_functions_end):'
-        print ''
-        print '#if defined (__ELF__) && defined (__linux__)'
-        print '	.section .note.GNU-stack,"",%progbits'
-        print '#endif'
+        print('')
+        print('\t\tGLOBL\tGLNAME(gl_dispatch_functions_end)')
+        print('\t\tHIDDEN(GLNAME(gl_dispatch_functions_end))')
+        print('\t\tALIGNTEXT16')
+        print('GLNAME(gl_dispatch_functions_end):')
+        print('')
+        print('#if defined (__ELF__) && defined (__linux__)')
+        print('	.section .note.GNU-stack,"",%progbits')
+        print('#endif')
         return
 
 
@@ -191,10 +193,10 @@ class PrintGenericStubs(gl_XML.gl_print_base):
             stack = self.get_stack_size(f)
             alt = "%s@%u" % (name, stack)
 
-            print '\tGL_STUB(%s, %d, %s)' % (name, f.offset, alt)
+            print('\tGL_STUB(%s, %d, %s)' % (name, f.offset, alt))
 
             if not f.is_static_entry_point(f.name):
-                print '\tHIDDEN(GL_PREFIX(%s, %s))' % (name, alt)
+                print('\tHIDDEN(GL_PREFIX(%s, %s))' % (name, alt))
 
 
         for f in api.functionIterateByOffset():
@@ -209,11 +211,11 @@ class PrintGenericStubs(gl_XML.gl_print_base):
                         text = '\tGL_STUB_ALIAS(%s, %d, %s, %s, %s)' % (n, f.offset, alt2, name, alt)
 
                         if f.has_different_protocol(n):
-                            print '#ifndef GLX_INDIRECT_RENDERING'
-                            print text
-                            print '#endif'
+                            print('#ifndef GLX_INDIRECT_RENDERING')
+                            print(text)
+                            print('#endif')
                         else:
-                            print text
+                            print(text)
 
         return
 

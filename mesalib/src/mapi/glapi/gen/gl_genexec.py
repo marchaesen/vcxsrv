@@ -24,6 +24,8 @@
 # _mesa_initialize_exec_table().  It is responsible for populating all
 # entries in the "exec" dispatch table that aren't dynamic.
 
+from __future__ import print_function
+
 import argparse
 import collections
 import license
@@ -170,10 +172,10 @@ class PrintCode(gl_XML.gl_print_base):
             'Intel Corporation')
 
     def printRealHeader(self):
-        print header
+        print(header)
 
     def printRealFooter(self):
-        print footer
+        print(footer)
 
     def printBody(self, api):
         # Collect SET_* calls by the condition under which they should
@@ -249,10 +251,10 @@ class PrintCode(gl_XML.gl_print_base):
         # Print out an if statement for each unique condition, with
         # the SET_* calls nested inside it.
         for condition in sorted(settings_by_condition.keys()):
-            print '   if ({0}) {{'.format(condition)
+            print('   if ({0}) {{'.format(condition))
             for setting in sorted(settings_by_condition[condition]):
-                print '      {0}'.format(setting)
-            print '   }'
+                print('      {0}'.format(setting))
+            print('   }')
 
 
 def _parser():

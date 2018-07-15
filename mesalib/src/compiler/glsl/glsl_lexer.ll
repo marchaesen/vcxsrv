@@ -627,9 +627,9 @@ dmat4x4		TYPE_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, gl
 fvec2		KEYWORD(110, 100, 0, 0, FVEC2);
 fvec3		KEYWORD(110, 100, 0, 0, FVEC3);
 fvec4		KEYWORD(110, 100, 0, 0, FVEC4);
-sampler2DRect		DEPRECATED_ES_TYPE_WITH_ALT(yyextra->ARB_texture_rectangle_enable, glsl_type::sampler2DRect_type);
+sampler2DRect 		TYPE_WITH_ALT(110, 100, 0, 0, yyextra->ARB_texture_rectangle_enable, glsl_type::sampler2DRect_type);
 sampler3DRect		KEYWORD(110, 100, 0, 0, SAMPLER3DRECT);
-sampler2DRectShadow	DEPRECATED_ES_TYPE_WITH_ALT(yyextra->ARB_texture_rectangle_enable, glsl_type::sampler2DRectShadow_type);
+sampler2DRectShadow	TYPE_WITH_ALT(110, 100, 0, 0, yyextra->ARB_texture_rectangle_enable, glsl_type::sampler2DRectShadow_type);
 sizeof		KEYWORD(110, 100, 0, 0, SIZEOF);
 cast		KEYWORD(110, 100, 0, 0, CAST);
 namespace	KEYWORD(110, 100, 0, 0, NAMESPACE);

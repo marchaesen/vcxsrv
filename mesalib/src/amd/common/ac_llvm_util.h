@@ -35,6 +35,9 @@
 extern "C" {
 #endif
 
+struct ac_shader_binary;
+struct ac_compiler_passes;
+
 enum ac_func_attr {
 	AC_FUNC_ATTR_ALWAYSINLINE = (1 << 0),
 	AC_FUNC_ATTR_INREG        = (1 << 2),
@@ -59,6 +62,7 @@ enum ac_target_machine_options {
 	AC_TM_FORCE_ENABLE_XNACK = (1 << 2),
 	AC_TM_FORCE_DISABLE_XNACK = (1 << 3),
 	AC_TM_PROMOTE_ALLOCA_TO_SCRATCH = (1 << 4),
+	AC_TM_CHECK_IR = (1 << 5),
 };
 
 enum ac_float_mode {
@@ -67,12 +71,15 @@ enum ac_float_mode {
 	AC_FLOAT_MODE_UNSAFE_FP_MATH,
 };
 
-const char *ac_get_llvm_processor_name(enum radeon_family family);
-LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
-					      enum ac_target_machine_options tm_options,
-					      const char **out_triple);
+/* Per-thread persistent LLVM objects. */
+struct ac_llvm_compiler {
+	LLVMTargetMachineRef		tm;
+	LLVMTargetLibraryInfoRef	target_library_info;
+	LLVMPassManagerRef		passmgr;
+	struct ac_compiler_passes	*passes;
+};
 
-LLVMTargetRef ac_get_llvm_target(const char *triple);
+const char *ac_get_llvm_processor_name(enum radeon_family family);
 void ac_add_attr_dereferenceable(LLVMValueRef val, uint64_t bytes);
 bool ac_is_sgpr_param(LLVMValueRef param);
 void ac_add_function_attr(LLVMContextRef ctx, LLVMValueRef function,
@@ -83,6 +90,7 @@ void ac_dump_module(LLVMModuleRef module);
 
 LLVMValueRef ac_llvm_get_called_value(LLVMValueRef call);
 bool ac_llvm_is_function(LLVMValueRef v);
+LLVMModuleRef ac_create_module(LLVMTargetMachineRef tm, LLVMContextRef ctx);
 
 LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
 				 enum ac_float_mode float_mode);
@@ -109,6 +117,22 @@ ac_get_store_intr_attribs(bool writeonly_memory)
 
 unsigned
 ac_count_scratch_private_memory(LLVMValueRef function);
+
+LLVMTargetLibraryInfoRef ac_create_target_library_info(const char *triple);
+void ac_dispose_target_library_info(LLVMTargetLibraryInfoRef library_info);
+void ac_init_llvm_once(void);
+
+
+bool ac_init_llvm_compiler(struct ac_llvm_compiler *compiler,
+			   bool okay_to_leak_target_library_info,
+			   enum radeon_family family,
+			   enum ac_target_machine_options tm_options);
+void ac_destroy_llvm_compiler(struct ac_llvm_compiler *compiler);
+
+struct ac_compiler_passes *ac_create_llvm_passes(LLVMTargetMachineRef tm);
+void ac_destroy_llvm_passes(struct ac_compiler_passes *p);
+bool ac_compile_module_to_binary(struct ac_compiler_passes *p, LLVMModuleRef module,
+				 struct ac_shader_binary *binary);
 
 #ifdef __cplusplus
 }

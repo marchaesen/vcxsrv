@@ -366,10 +366,10 @@ emit_color_clear(struct radv_cmd_buffer *cmd_buffer,
 
 	struct radv_subpass clear_subpass = {
 		.color_count = 1,
-		.color_attachments = (VkAttachmentReference[]) {
+		.color_attachments = (struct radv_subpass_attachment[]) {
 			subpass->color_attachments[clear_att->colorAttachment]
 		},
-		.depth_stencil_attachment = (VkAttachmentReference) { VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }
+		.depth_stencil_attachment = (struct radv_subpass_attachment) { VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }
 	};
 
 	radv_cmd_buffer_set_subpass(cmd_buffer, &clear_subpass, false);

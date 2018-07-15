@@ -85,6 +85,8 @@ unsigned glsl_get_sampler_target(const struct glsl_type *type);
 unsigned glsl_get_record_location_offset(const struct glsl_type *type,
                                          unsigned length);
 
+unsigned glsl_atomic_size(const struct glsl_type *type);
+
 static inline unsigned
 glsl_get_bit_size(const struct glsl_type *type)
 {
@@ -136,6 +138,7 @@ bool glsl_type_is_numeric(const struct glsl_type *type);
 bool glsl_type_is_boolean(const struct glsl_type *type);
 bool glsl_sampler_type_is_shadow(const struct glsl_type *type);
 bool glsl_sampler_type_is_array(const struct glsl_type *type);
+bool glsl_contains_atomic(const struct glsl_type *type);
 
 const struct glsl_type *glsl_void_type(void);
 const struct glsl_type *glsl_float_type(void);
@@ -183,6 +186,14 @@ const struct glsl_type * glsl_function_type(const struct glsl_type *return_type,
 const struct glsl_type *glsl_transposed_type(const struct glsl_type *type);
 
 const struct glsl_type *glsl_channel_type(const struct glsl_type *type);
+
+typedef void (*glsl_type_size_align_func)(const struct glsl_type *type,
+                                          unsigned *size, unsigned *align);
+
+void glsl_get_natural_size_align_bytes(const struct glsl_type *type,
+                                       unsigned *size, unsigned *align);
+
+const struct glsl_type *glsl_atomic_uint_type(void);
 
 #ifdef __cplusplus
 }

@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.1.3 Release Notes / June 29 2018</h1>
+
+<p>
+Mesa 18.1.3 is a bug fix release which fixes bugs found since the 18.1.2 release.
+</p>
+<p>
+Mesa 18.1.2 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+2a1e36280d01ad18ba6d5b3fbd653ceaa109eaa031b78eb5dfaa4df452742b66  mesa-18.1.3.tar.gz
+54f08deeda0cd2f818e8d40140040ed013de7852573002453b7f50da9ea738ce  mesa-18.1.3.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105396">Bug 105396</a> - tc compatible htile sets depth of htiles of discarded fragments to 1.0</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=105399">Bug 105399</a> - [snb] GPU hang: after geometry shader emits no geometry, the program hangs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106756">Bug 106756</a> - Wine 3.9 crashes with DXVK on Just Cause 3 and Quantum Break on VEGA but works ON POLARIS</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106774">Bug 106774</a> - GLSL IR copy propagates loads of SSBOs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106903">Bug 106903</a> - radv: Fragment shader output goes to wrong attachments when render targets are sparse</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106907">Bug 106907</a> - Correct Transform Feedback Varyings information is expected after using ProgramBinary</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106912">Bug 106912</a> - radv: 16-bit depth buffer causes artifacts in Shadow Warrior 2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106980">Bug 106980</a> - Basemark GPU vulkan benchmark fails.</li>
+
+</ul>
+
+<h2>Changes</h2>
+<p>Andrii Simiklit (1):</p>
+<ul>
+  <li>i965/gen6/gs: Handle case where a GS doesn't allocate VUE</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (2):</p>
+<ul>
+  <li>radv: Fix output for sparse MRTs.</li>
+  <li>ac/surface: Set compressZ for stencil-only surfaces.</li>
+</ul>
+
+<p>Christian Gmeiner (1):</p>
+<ul>
+  <li>util/bitset: include util/macro.h</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>glsl: allow standalone semicolons outside main()</li>
+</ul>
+
+<p>Dylan Baker (8):</p>
+<ul>
+  <li>docs: Add release notes for 18.1.2</li>
+  <li>cherry-ignore: Add 587e712eda95c31d88ea9d20e59ad0ae59afef4f</li>
+  <li>meson: Fix auto option for va</li>
+  <li>meson: Fix auto option for xvmc</li>
+  <li>meson: Correct behavior of vdpau=auto</li>
+  <li>cherry-ignore: Ignore cac7ab1192eefdd8d8b3f25053fb006b5c330eb8</li>
+  <li>cherry-ignore: add a2f5292c82ad07731d633b36a663e46adc181db9</li>
+  <li>VERSION: bump version to 18.1.3</li>
+</ul>
+
+<p>Emil Velikov (2):</p>
+<ul>
+  <li>configure: use compliant grep regex checks</li>
+  <li>glsl/tests/glcpp: reinstate "error out if no tests found"</li>
+</ul>
+
+<p>Eric Engestrom (3):</p>
+<ul>
+  <li>radv: fix reported number of available VGPRs</li>
+  <li>radv: fix bitwise check</li>
+  <li>meson: fix i965/anv/isl genX static lib names</li>
+</ul>
+
+<p>Ian Romanick (2):</p>
+<ul>
+  <li>glsl: Don't copy propagate from SSBO or shared variables either</li>
+  <li>glsl: Don't copy propagate elements from SSBO or shared variables either</li>
+</ul>
+
+<p>Jason Ekstrand (2):</p>
+<ul>
+  <li>nir: Handle call instructions in foreach_src</li>
+  <li>nir/validate: Use the type from the tail of call parameter derefs</li>
+</ul>
+
+<p>Lukas Rusak (2):</p>
+<ul>
+  <li>meson: only build vl_winsys_dri.c when x11 platform is used</li>
+  <li>meson: fix private libs when building without glx</li>
+</ul>
+
+<p>Marek Olšák (5):</p>
+<ul>
+  <li>radeonsi/gfx9: fix si_get_buffer_from_descriptors for 48-bit pointers</li>
+  <li>ac/gpu_info: report real total memory sizes</li>
+  <li>ac/gpu_info: add kernel_flushes_hdp_before_ib</li>
+  <li>radeonsi: always put persistent buffers into GTT on radeon</li>
+  <li>mesa: fix glGetInteger64v for arrays of integers</li>
+</ul>
+
+<p>Rob Clark (1):</p>
+<ul>
+  <li>freedreno/ir3: fix base_vertex</li>
+</ul>
+
+<p>Samuel Pitoiset (6):</p>
+<ul>
+  <li>radv: don't fast clear HTILE for 16-bit depth surfaces on GFX8</li>
+  <li>radv: update the ZRANGE_PRECISION value for the TC-compat bug</li>
+  <li>radv: fix emitting the TCS regs on GFX9</li>
+  <li>radv: fix HTILE metadata initialization in presence of subpass clears</li>
+  <li>radv: ignore pInheritanceInfo for primary command buffers</li>
+  <li>radv: use separate bind points for the dynamic buffers</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>glsl: serialize data from glTransformFeedbackVaryings</li>
+</ul>
+
+<p>Tomeu Vizoso (1):</p>
+<ul>
+  <li>virgl: Remove debugging left-overs</li>
+</ul>
+
+
+</div>
+</body>
+</html>

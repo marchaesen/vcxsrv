@@ -9,8 +9,6 @@ BROADCOM_GENXML_GENERATED_FILES = \
 BROADCOM_GENXML_XML_FILES = \
 	cle/v3d_packet_v21.xml \
 	cle/v3d_packet_v33.xml \
-	cle/v3d_packet_v41.xml \
-	cle/v3d_packet_v42.xml \
 	$()
 
 BROADCOM_FILES = \

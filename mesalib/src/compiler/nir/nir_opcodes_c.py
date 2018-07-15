@@ -23,6 +23,8 @@
 # Authors:
 #    Connor Abbott (cwabbott0@gmail.com)
 
+from __future__ import print_function
+
 from nir_opcodes import opcodes
 from mako.template import Template
 
@@ -135,4 +137,4 @@ const nir_op_info nir_op_infos[nir_num_opcodes] = {
 };
 """)
 
-print template.render(opcodes=opcodes)
+print(template.render(opcodes=opcodes))

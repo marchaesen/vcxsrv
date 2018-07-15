@@ -1183,6 +1183,9 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
       new_info.start = data[2];
       pipe_buffer_unmap(pipe, transfer);
       new_info.indirect = NULL;
+
+      if (!new_info.count)
+         return;
    }
 
    if (new_info.index_size) {

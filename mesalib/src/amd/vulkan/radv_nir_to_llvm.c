@@ -27,6 +27,7 @@
 
 #include "radv_private.h"
 #include "radv_shader.h"
+#include "radv_shader_helper.h"
 #include "nir/nir.h"
 
 #include <llvm-c/Core.h>
@@ -578,11 +579,14 @@ static void
 set_loc_desc(struct radv_shader_context *ctx, int idx,  uint8_t *sgpr_idx,
 	     uint32_t indirect_offset)
 {
-	struct radv_userdata_info *ud_info =
-		&ctx->shader_info->user_sgprs_locs.descriptor_sets[idx];
+	struct radv_userdata_locations *locs =
+		&ctx->shader_info->user_sgprs_locs;
+	struct radv_userdata_info *ud_info = &locs->descriptor_sets[idx];
 	assert(ud_info);
 
 	set_loc(ud_info, sgpr_idx, HAVE_32BIT_POINTERS ? 1 : 2, indirect_offset);
+	if (indirect_offset == 0)
+		locs->descriptor_sets_enabled |= 1 << idx;
 }
 
 struct user_sgpr_info {
@@ -2993,35 +2997,11 @@ handle_shader_outputs_post(struct ac_shader_abi *abi, unsigned max_outputs,
 }
 
 static void ac_llvm_finalize_module(struct radv_shader_context *ctx,
+				    LLVMPassManagerRef passmgr,
 				    const struct radv_nir_compiler_options *options)
 {
-	LLVMPassManagerRef passmgr;
-	/* Create the pass manager */
-	passmgr = LLVMCreateFunctionPassManagerForModule(
-							ctx->ac.module);
-
-	if (options->check_ir)
-		LLVMAddVerifierPass(passmgr);
-
-	/* This pass should eliminate all the load and store instructions */
-	LLVMAddPromoteMemoryToRegisterPass(passmgr);
-
-	/* Add some optimization passes */
-	LLVMAddScalarReplAggregatesPass(passmgr);
-	LLVMAddLICMPass(passmgr);
-	LLVMAddAggressiveDCEPass(passmgr);
-	LLVMAddCFGSimplificationPass(passmgr);
-	/* This is recommended by the instruction combining pass. */
-	LLVMAddEarlyCSEMemSSAPass(passmgr);
-	LLVMAddInstructionCombiningPass(passmgr);
-
-	/* Run the pass */
-	LLVMInitializeFunctionPassManager(passmgr);
-	LLVMRunFunctionPassManager(passmgr, ctx->main_function);
-	LLVMFinalizeFunctionPassManager(passmgr);
-
+	LLVMRunPassManager(passmgr, ctx->ac.module);
 	LLVMDisposeBuilder(ctx->ac.builder);
-	LLVMDisposePassManager(passmgr);
 
 	ac_llvm_context_dispose(&ctx->ac);
 }
@@ -3151,7 +3131,7 @@ static void prepare_gs_input_vgprs(struct radv_shader_context *ctx)
 
 
 static
-LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
+LLVMModuleRef ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
                                        struct nir_shader *const *shaders,
                                        int shader_count,
                                        struct radv_shader_variant_info *shader_info,
@@ -3161,18 +3141,10 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	unsigned i;
 	ctx.options = options;
 	ctx.shader_info = shader_info;
-	ctx.context = LLVMContextCreate();
 
-	ac_llvm_context_init(&ctx.ac, ctx.context, options->chip_class,
-			     options->family);
-	ctx.ac.module = LLVMModuleCreateWithNameInContext("shader", ctx.context);
-	LLVMSetTarget(ctx.ac.module, options->supports_spill ? "amdgcn-mesa-mesa3d" : "amdgcn--");
-
-	LLVMTargetDataRef data_layout = LLVMCreateTargetDataLayout(tm);
-	char *data_layout_str = LLVMCopyStringRepOfTargetData(data_layout);
-	LLVMSetDataLayout(ctx.ac.module, data_layout_str);
-	LLVMDisposeTargetData(data_layout);
-	LLVMDisposeMessage(data_layout_str);
+	ac_llvm_context_init(&ctx.ac, options->chip_class, options->family);
+	ctx.context = ctx.ac.context;
+	ctx.ac.module = ac_create_module(ac_llvm->tm, ctx.context);
 
 	enum ac_float_mode float_mode =
 		options->unsafe_math ? AC_FLOAT_MODE_UNSAFE_FP_MATH :
@@ -3327,7 +3299,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(LLVMTargetMachineRef tm,
 	if (options->dump_preoptir)
 		ac_dump_module(ctx.ac.module);
 
-	ac_llvm_finalize_module(&ctx, options);
+	ac_llvm_finalize_module(&ctx, ac_llvm->passmgr, options);
 
 	if (shader_count == 1)
 		ac_nir_eliminate_const_vs_outputs(&ctx);
@@ -3357,15 +3329,10 @@ static void ac_diagnostic_handler(LLVMDiagnosticInfoRef di, void *context)
 
 static unsigned ac_llvm_compile(LLVMModuleRef M,
                                 struct ac_shader_binary *binary,
-                                LLVMTargetMachineRef tm)
+                                struct ac_llvm_compiler *ac_llvm)
 {
 	unsigned retval = 0;
-	char *err;
 	LLVMContextRef llvm_ctx;
-	LLVMMemoryBufferRef out_buffer;
-	unsigned buffer_size;
-	const char *buffer_data;
-	LLVMBool mem_err;
 
 	/* Setup Diagnostic Handler*/
 	llvm_ctx = LLVMGetModuleContext(M);
@@ -3374,31 +3341,12 @@ static unsigned ac_llvm_compile(LLVMModuleRef M,
 	                                &retval);
 
 	/* Compile IR*/
-	mem_err = LLVMTargetMachineEmitToMemoryBuffer(tm, M, LLVMObjectFile,
-	                                              &err, &out_buffer);
-
-	/* Process Errors/Warnings */
-	if (mem_err) {
-		fprintf(stderr, "%s: %s", __FUNCTION__, err);
-		free(err);
+	if (!radv_compile_to_binary(ac_llvm, M, binary))
 		retval = 1;
-		goto out;
-	}
-
-	/* Extract Shader Code*/
-	buffer_size = LLVMGetBufferSize(out_buffer);
-	buffer_data = LLVMGetBufferStart(out_buffer);
-
-	ac_elf_read(buffer_data, buffer_size, binary);
-
-	/* Clean up */
-	LLVMDisposeMemoryBuffer(out_buffer);
-
-out:
 	return retval;
 }
 
-static void ac_compile_llvm_module(LLVMTargetMachineRef tm,
+static void ac_compile_llvm_module(struct ac_llvm_compiler *ac_llvm,
 				   LLVMModuleRef llvm_module,
 				   struct ac_shader_binary *binary,
 				   struct ac_shader_config *config,
@@ -3417,7 +3365,7 @@ static void ac_compile_llvm_module(LLVMTargetMachineRef tm,
 		LLVMDisposeMessage(llvm_ir);
 	}
 
-	int v = ac_llvm_compile(llvm_module, binary, tm);
+	int v = ac_llvm_compile(llvm_module, binary, ac_llvm);
 	if (v) {
 		fprintf(stderr, "compile failed\n");
 	}
@@ -3527,7 +3475,7 @@ ac_fill_shader_info(struct radv_shader_variant_info *shader_info, struct nir_sha
 }
 
 void
-radv_compile_nir_shader(LLVMTargetMachineRef tm,
+radv_compile_nir_shader(struct ac_llvm_compiler *ac_llvm,
 			struct ac_shader_binary *binary,
 			struct ac_shader_config *config,
 			struct radv_shader_variant_info *shader_info,
@@ -3538,10 +3486,10 @@ radv_compile_nir_shader(LLVMTargetMachineRef tm,
 
 	LLVMModuleRef llvm_module;
 
-	llvm_module = ac_translate_nir_to_llvm(tm, nir, nir_count, shader_info,
+	llvm_module = ac_translate_nir_to_llvm(ac_llvm, nir, nir_count, shader_info,
 	                                       options);
 
-	ac_compile_llvm_module(tm, llvm_module, binary, config, shader_info,
+	ac_compile_llvm_module(ac_llvm, llvm_module, binary, config, shader_info,
 			       nir[0]->info.stage, options);
 
 	for (int i = 0; i < nir_count; ++i)
@@ -3599,7 +3547,7 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
 }
 
 void
-radv_compile_gs_copy_shader(LLVMTargetMachineRef tm,
+radv_compile_gs_copy_shader(struct ac_llvm_compiler *ac_llvm,
 			    struct nir_shader *geom_shader,
 			    struct ac_shader_binary *binary,
 			    struct ac_shader_config *config,
@@ -3607,16 +3555,14 @@ radv_compile_gs_copy_shader(LLVMTargetMachineRef tm,
 			    const struct radv_nir_compiler_options *options)
 {
 	struct radv_shader_context ctx = {0};
-	ctx.context = LLVMContextCreate();
 	ctx.options = options;
 	ctx.shader_info = shader_info;
 
-	ac_llvm_context_init(&ctx.ac, ctx.context, options->chip_class,
-			     options->family);
-	ctx.ac.module = LLVMModuleCreateWithNameInContext("shader", ctx.context);
+	ac_llvm_context_init(&ctx.ac, options->chip_class, options->family);
+	ctx.context = ctx.ac.context;
+	ctx.ac.module = ac_create_module(ac_llvm->tm, ctx.context);
 
 	ctx.is_gs_copy_shader = true;
-	LLVMSetTarget(ctx.ac.module, "amdgcn--");
 
 	enum ac_float_mode float_mode =
 		options->unsafe_math ? AC_FLOAT_MODE_UNSAFE_FP_MATH :
@@ -3645,8 +3591,8 @@ radv_compile_gs_copy_shader(LLVMTargetMachineRef tm,
 
 	LLVMBuildRetVoid(ctx.ac.builder);
 
-	ac_llvm_finalize_module(&ctx, options);
+	ac_llvm_finalize_module(&ctx, ac_llvm->passmgr, options);
 
-	ac_compile_llvm_module(tm, ctx.ac.module, binary, config, shader_info,
+	ac_compile_llvm_module(ac_llvm, ctx.ac.module, binary, config, shader_info,
 			       MESA_SHADER_VERTEX, options);
 }

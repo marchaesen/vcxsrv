@@ -48,6 +48,12 @@ void nir_deref_path_init(nir_deref_path *path,
                          nir_deref_instr *deref, void *mem_ctx);
 void nir_deref_path_finish(nir_deref_path *path);
 
+unsigned nir_deref_instr_get_const_offset(nir_deref_instr *deref,
+                                          glsl_type_size_align_func size_align);
+
+nir_ssa_def *nir_build_deref_offset(nir_builder *b, nir_deref_instr *deref,
+                                    glsl_type_size_align_func size_align);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

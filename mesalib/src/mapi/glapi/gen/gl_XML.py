@@ -24,6 +24,9 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+from __future__ import print_function
+
+from collections import OrderedDict
 from decimal import Decimal
 import xml.etree.ElementTree as ET
 import re, sys, string
@@ -125,17 +128,17 @@ class gl_print_base(object):
     def printHeader(self):
         """Print the header associated with all files and call the printRealHeader method."""
 
-        print '/* DO NOT EDIT - This file generated automatically by %s script */' \
-                % (self.name)
-        print ''
-        print '/*'
-        print (' * ' + self.license.replace('\n', '\n * ')).replace(' \n', '\n')
-        print ' */'
-        print ''
+        print('/* DO NOT EDIT - This file generated automatically by %s script */' \
+                % (self.name))
+        print('')
+        print('/*')
+        print((' * ' + self.license.replace('\n', '\n * ')).replace(' \n', '\n'))
+        print(' */')
+        print('')
         if self.header_tag:
-            print '#if !defined( %s )' % (self.header_tag)
-            print '#  define %s' % (self.header_tag)
-            print ''
+            print('#if !defined( %s )' % (self.header_tag))
+            print('#  define %s' % (self.header_tag))
+            print('')
         self.printRealHeader();
         return
 
@@ -146,13 +149,13 @@ class gl_print_base(object):
         self.printRealFooter()
 
         if self.undef_list:
-            print ''
+            print('')
             for u in self.undef_list:
-                print "#  undef %s" % (u)
+                print("#  undef %s" % (u))
 
         if self.header_tag:
-            print ''
-            print '#endif /* !defined( %s ) */' % (self.header_tag)
+            print('')
+            print('#endif /* !defined( %s ) */' % (self.header_tag))
 
 
     def printRealHeader(self):
@@ -182,11 +185,11 @@ class gl_print_base(object):
         The name is also added to the file's undef_list.
         """
         self.undef_list.append("PURE")
-        print """#  if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
+        print("""#  if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
 #    define PURE __attribute__((pure))
 #  else
 #    define PURE
-#  endif"""
+#  endif""")
         return
 
 
@@ -202,11 +205,11 @@ class gl_print_base(object):
         """
 
         self.undef_list.append("FASTCALL")
-        print """#  if defined(__i386__) && defined(__GNUC__) && !defined(__CYGWIN__) && !defined(__MINGW32__)
+        print("""#  if defined(__i386__) && defined(__GNUC__) && !defined(__CYGWIN__) && !defined(__MINGW32__)
 #    define FASTCALL __attribute__((fastcall))
 #  else
 #    define FASTCALL
-#  endif"""
+#  endif""")
         return
 
 
@@ -222,11 +225,11 @@ class gl_print_base(object):
         """
 
         self.undef_list.append(S)
-        print """#  if defined(__GNUC__) && !defined(__CYGWIN__) && !defined(__MINGW32__)
+        print("""#  if defined(__GNUC__) && !defined(__CYGWIN__) && !defined(__MINGW32__)
 #    define %s  __attribute__((visibility("%s")))
 #  else
 #    define %s
-#  endif""" % (S, s, S)
+#  endif""" % (S, s, S))
         return
 
 
@@ -242,11 +245,11 @@ class gl_print_base(object):
         """
 
         self.undef_list.append("NOINLINE")
-        print """#  if defined(__GNUC__)
+        print("""#  if defined(__GNUC__)
 #    define NOINLINE __attribute__((noinline))
 #  else
 #    define NOINLINE
-#  endif"""
+#  endif""")
         return
 
 
@@ -281,7 +284,7 @@ def classify_category(name, number):
 
     try:
         core_version = float(name)
-    except Exception,e:
+    except Exception:
         core_version = 0.0
 
     if core_version > 0.0:
@@ -362,7 +365,7 @@ class gl_enum( gl_item ):
         else:
             try:
                 c = int(temp)
-            except Exception,e:
+            except Exception:
                 raise RuntimeError('Invalid count value "%s" for enum "%s" in function "%s" when an integer was expected.' % (temp, self.name, n))
 
             self.default_count = c
@@ -423,7 +426,7 @@ class gl_parameter(object):
             count = int(c)
             self.count = count
             self.counter = None
-        except Exception,e:
+        except Exception:
             count = 1
             self.count = 0
             self.counter = c
@@ -861,7 +864,7 @@ class gl_item_factory(object):
 
 class gl_api(object):
     def __init__(self, factory):
-        self.functions_by_name = {}
+        self.functions_by_name = OrderedDict()
         self.enums_by_name = {}
         self.types_by_name = {}
 
@@ -1068,5 +1071,5 @@ class gl_api(object):
         if type_name in self.types_by_name:
             return self.types_by_name[ type_name ].type_expr
         else:
-            print "Unable to find base type matching \"%s\"." % (type_name)
+            print("Unable to find base type matching \"%s\"." % (type_name))
             return None

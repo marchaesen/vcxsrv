@@ -194,17 +194,4 @@ private:
                   const glsl_struct_field *named_ifc_member);
 };
 
-/**
- * Sometimes there are empty slots left over in UniformRemapTable after we
- * allocate slots to explicit locations. This struct represents a single
- * continouous block of empty slots in UniformRemapTable.
- */
-struct empty_uniform_block {
-   struct exec_node link;
-   /* The start location of the block */
-   unsigned start;
-   /* The number of slots in the block */
-   unsigned slots;
-};
-
 #endif /* GLSL_LINKER_H */

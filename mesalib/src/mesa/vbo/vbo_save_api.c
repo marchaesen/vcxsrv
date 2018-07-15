@@ -791,9 +791,12 @@ copy_to_current(struct gl_context *ctx)
       const int i = u_bit_scan64(&enabled);
       assert(save->attrsz[i]);
 
-      save->currentsz[i][0] = save->attrsz[i];
-      COPY_CLEAN_4V_TYPE_AS_UNION(save->current[i], save->attrsz[i],
-                                  save->attrptr[i], save->attrtype[i]);
+      if (save->attrtype[i] == GL_DOUBLE ||
+          save->attrtype[i] == GL_UNSIGNED_INT64_ARB)
+         memcpy(save->current[i], save->attrptr[i], save->attrsz[i] * sizeof(GLfloat));
+      else
+         COPY_CLEAN_4V_TYPE_AS_UNION(save->current[i], save->attrsz[i],
+                                     save->attrptr[i], save->attrtype[i]);
    }
 }
 
@@ -935,11 +938,13 @@ upgrade_vertex(struct gl_context *ctx, GLuint attr, GLuint newsz)
  * get a glTexCoord4f() or glTexCoord1f() call.
  */
 static void
-fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint sz)
+fixup_vertex(struct gl_context *ctx, GLuint attr,
+             GLuint sz, GLenum newType)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
 
-   if (sz > save->attrsz[attr]) {
+   if (sz > save->attrsz[attr] ||
+       newType != save->attrtype[attr]) {
       /* New size is larger.  Need to flush existing vertices and get
        * an enlarged vertex format.
        */
@@ -994,9 +999,10 @@ reset_vertex(struct gl_context *ctx)
 #define ATTR_UNION(A, N, T, C, V0, V1, V2, V3)			\
 do {								\
    struct vbo_save_context *save = &vbo_context(ctx)->save;	\
+   int sz = (sizeof(C) / sizeof(GLfloat));			\
 								\
    if (save->active_sz[A] != N)					\
-      fixup_vertex(ctx, A, N);					\
+      fixup_vertex(ctx, A, N * sz, T);				\
 								\
    {								\
       C *dest = (C *)save->attrptr[A];                          \

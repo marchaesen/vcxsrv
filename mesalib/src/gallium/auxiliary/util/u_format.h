@@ -718,13 +718,6 @@ util_is_format_compatible(const struct util_format_description *src_desc,
                           const struct util_format_description *dst_desc);
 
 /**
- * Whether the format is supported by Gallium for the given bindings.
- * This covers S3TC textures and floating-point render targets.
- */
-boolean
-util_format_is_supported(enum pipe_format format, unsigned bind);
-
-/**
  * Whether this format is a rgab8 variant.
  *
  * That is, any format that matches the

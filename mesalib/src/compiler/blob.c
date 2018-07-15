@@ -291,6 +291,13 @@ blob_copy_bytes(struct blob_reader *blob, void *dest, size_t size)
    memcpy(dest, bytes, size);
 }
 
+void
+blob_skip_bytes(struct blob_reader *blob, size_t size)
+{
+   if (ensure_can_read (blob, size))
+      blob->current += size;
+}
+
 /* These next three read functions have identical form. If we add any beyond
  * these first three we should probably switch to generating these with a
  * preprocessor macro.

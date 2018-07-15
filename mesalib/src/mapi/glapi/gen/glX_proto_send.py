@@ -26,6 +26,8 @@
 #    Ian Romanick <idr@us.ibm.com>
 #    Jeremy Kolb <jkolb@brandeis.edu>
 
+from __future__ import print_function
+
 import argparse
 
 import gl_XML, glX_XML, glX_proto_common, license
@@ -163,58 +165,58 @@ class PrintGlxProtoStubs(glX_proto_common.glx_print_proto):
         return
 
     def printRealHeader(self):
-        print ''
-        print '#include <GL/gl.h>'
-        print '#include "indirect.h"'
-        print '#include "glxclient.h"'
-        print '#include "indirect_size.h"'
-        print '#include "glapi.h"'
-        print '#include <GL/glxproto.h>'
-        print '#include <X11/Xlib-xcb.h>'
-        print '#include <xcb/xcb.h>'
-        print '#include <xcb/glx.h>'
-        print '#include <limits.h>'
+        print('')
+        print('#include <GL/gl.h>')
+        print('#include "indirect.h"')
+        print('#include "glxclient.h"')
+        print('#include "indirect_size.h"')
+        print('#include "glapi.h"')
+        print('#include <GL/glxproto.h>')
+        print('#include <X11/Xlib-xcb.h>')
+        print('#include <xcb/xcb.h>')
+        print('#include <xcb/glx.h>')
+        print('#include <limits.h>')
 
-        print ''
+        print('')
         self.printFastcall()
         self.printNoinline()
-        print ''
+        print('')
 
-        print 'static _X_INLINE int safe_add(int a, int b)'
-        print '{'
-        print '    if (a < 0 || b < 0) return -1;'
-        print '    if (INT_MAX - a < b) return -1;'
-        print '    return a + b;'
-        print '}'
-        print 'static _X_INLINE int safe_mul(int a, int b)'
-        print '{'
-        print '    if (a < 0 || b < 0) return -1;'
-        print '    if (a == 0 || b == 0) return 0;'
-        print '    if (a > INT_MAX / b) return -1;'
-        print '    return a * b;'
-        print '}'
-        print 'static _X_INLINE int safe_pad(int a)'
-        print '{'
-        print '    int ret;'
-        print '    if (a < 0) return -1;'
-        print '    if ((ret = safe_add(a, 3)) < 0) return -1;'
-        print '    return ret & (GLuint)~3;'
-        print '}'
-        print ''
+        print('static _X_INLINE int safe_add(int a, int b)')
+        print('{')
+        print('    if (a < 0 || b < 0) return -1;')
+        print('    if (INT_MAX - a < b) return -1;')
+        print('    return a + b;')
+        print('}')
+        print('static _X_INLINE int safe_mul(int a, int b)')
+        print('{')
+        print('    if (a < 0 || b < 0) return -1;')
+        print('    if (a == 0 || b == 0) return 0;')
+        print('    if (a > INT_MAX / b) return -1;')
+        print('    return a * b;')
+        print('}')
+        print('static _X_INLINE int safe_pad(int a)')
+        print('{')
+        print('    int ret;')
+        print('    if (a < 0) return -1;')
+        print('    if ((ret = safe_add(a, 3)) < 0) return -1;')
+        print('    return ret & (GLuint)~3;')
+        print('}')
+        print('')
 
-        print '#ifndef __GNUC__'
-        print '#  define __builtin_expect(x, y) x'
-        print '#endif'
-        print ''
-        print '/* If the size and opcode values are known at compile-time, this will, on'
-        print ' * x86 at least, emit them with a single instruction.'
-        print ' */'
-        print '#define emit_header(dest, op, size)            \\'
-        print '    do { union { short s[2]; int i; } temp;    \\'
-        print '         temp.s[0] = (size); temp.s[1] = (op); \\'
-        print '         *((int *)(dest)) = temp.i; } while(0)'
-        print ''
-        print """NOINLINE CARD32
+        print('#ifndef __GNUC__')
+        print('#  define __builtin_expect(x, y) x')
+        print('#endif')
+        print('')
+        print('/* If the size and opcode values are known at compile-time, this will, on')
+        print(' * x86 at least, emit them with a single instruction.')
+        print(' */')
+        print('#define emit_header(dest, op, size)            \\')
+        print('    do { union { short s[2]; int i; } temp;    \\')
+        print('         temp.s[0] = (size); temp.s[1] = (op); \\')
+        print('         *((int *)(dest)) = temp.i; } while(0)')
+        print('')
+        print("""NOINLINE CARD32
 __glXReadReply( Display *dpy, size_t size, void * dest, GLboolean reply_is_always_array )
 {
     xGLXSingleReply reply;
@@ -326,7 +328,7 @@ const GLuint __glXDefaultPixelStore[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 1 };
 #define default_pixel_store_3D_size 36
 #define default_pixel_store_4D      (__glXDefaultPixelStore+0)
 #define default_pixel_store_4D_size 36
-"""
+""")
 
         for size in self.generic_sizes:
             self.print_generic_function(size)
@@ -381,20 +383,20 @@ const GLuint __glXDefaultPixelStore[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 1 };
                 if func.has_different_protocol(n):
                     procs[n] = func.static_glx_name(n)
 
-        print """
+        print("""
 #ifdef GLX_INDIRECT_RENDERING
 
 static const struct proc_pair
 {
    const char *name;
    _glapi_proc proc;
-} proc_pairs[%d] = {""" % len(procs)
+} proc_pairs[%d] = {""" % len(procs))
         names = procs.keys()
         names.sort()
         for i in xrange(len(names)):
             comma = ',' if i < len(names) - 1 else ''
-            print '   { "%s", (_glapi_proc) gl%s }%s' % (names[i], procs[names[i]], comma)
-        print """};
+            print('   { "%s", (_glapi_proc) gl%s }%s' % (names[i], procs[names[i]], comma))
+        print("""};
 
 static int
 __indirect_get_proc_compare(const void *key, const void *memb)
@@ -419,16 +421,16 @@ __indirect_get_proc_address(const char *name)
 }
 
 #endif /* GLX_INDIRECT_RENDERING */
-"""
+""")
         return
 
 
     def printFunction(self, func, name):
         footer = '}\n'
         if func.glx_rop == ~0:
-            print 'static %s' % (func.return_type)
-            print '%s( unsigned opcode, unsigned dim, %s )' % (func.name, func.get_parameter_string())
-            print '{'
+            print('static %s' % (func.return_type))
+            print('%s( unsigned opcode, unsigned dim, %s )' % (func.name, func.get_parameter_string()))
+            print('{')
         else:
             if func.has_different_protocol(name):
                 if func.return_type == "void":
@@ -437,27 +439,27 @@ __indirect_get_proc_address(const char *name)
                     ret_string = "return "
 
                 func_name = func.static_glx_name(name)
-                print '#define %s %d' % (func.opcode_vendor_name(name), func.glx_vendorpriv)
-                print '%s gl%s(%s)' % (func.return_type, func_name, func.get_parameter_string())
-                print '{'
-                print '    struct glx_context * const gc = __glXGetCurrentContext();'
-                print ''
-                print '#if defined(GLX_DIRECT_RENDERING) && !defined(GLX_USE_APPLEGL)'
-                print '    if (gc->isDirect) {'
-                print '        const _glapi_proc *const disp_table = (_glapi_proc *)GET_DISPATCH();'
-                print '        PFNGL%sPROC p =' % (name.upper())
-                print '            (PFNGL%sPROC) disp_table[%d];' % (name.upper(), func.offset)
-                print '    %sp(%s);' % (ret_string, func.get_called_parameter_string())
-                print '    } else'
-                print '#endif'
-                print '    {'
+                print('#define %s %d' % (func.opcode_vendor_name(name), func.glx_vendorpriv))
+                print('%s gl%s(%s)' % (func.return_type, func_name, func.get_parameter_string()))
+                print('{')
+                print('    struct glx_context * const gc = __glXGetCurrentContext();')
+                print('')
+                print('#if defined(GLX_DIRECT_RENDERING) && !defined(GLX_USE_APPLEGL)')
+                print('    if (gc->isDirect) {')
+                print('        const _glapi_proc *const disp_table = (_glapi_proc *)GET_DISPATCH();')
+                print('        PFNGL%sPROC p =' % (name.upper()))
+                print('            (PFNGL%sPROC) disp_table[%d];' % (name.upper(), func.offset))
+                print('    %sp(%s);' % (ret_string, func.get_called_parameter_string()))
+                print('    } else')
+                print('#endif')
+                print('    {')
 
                 footer = '}\n}\n'
             else:
-                print '#define %s %d' % (func.opcode_name(), func.opcode_value())
+                print('#define %s %d' % (func.opcode_name(), func.opcode_value()))
 
-                print '%s __indirect_gl%s(%s)' % (func.return_type, name, func.get_parameter_string())
-                print '{'
+                print('%s __indirect_gl%s(%s)' % (func.return_type, name, func.get_parameter_string()))
+                print('{')
 
 
         if func.glx_rop != 0 or func.vectorequiv != None:
@@ -469,15 +471,15 @@ __indirect_get_proc_address(const char *name)
             self.printSingleFunction(func, name)
             pass
         else:
-            print "/* Missing GLX protocol for %s. */" % (name)
+            print("/* Missing GLX protocol for %s. */" % (name))
 
-        print footer
+        print(footer)
         return
 
 
     def print_generic_function(self, n):
         size = (n + 3) & ~3
-        print """static FASTCALL NOINLINE void
+        print("""static FASTCALL NOINLINE void
 generic_%u_byte( GLint rop, const void * ptr )
 {
     struct glx_context * const gc = __glXGetCurrentContext();
@@ -488,7 +490,7 @@ generic_%u_byte( GLint rop, const void * ptr )
     gc->pc += cmdlen;
     if (__builtin_expect(gc->pc > gc->limit, 0)) { (void) __glXFlushRenderBuffer(gc, gc->pc); }
 }
-""" % (n, size + 4, size)
+""" % (n, size + 4, size))
         return
 
 
@@ -499,14 +501,14 @@ generic_%u_byte( GLint rop, const void * ptr )
             src_ptr = "&" + p.name
 
         if p.is_padding:
-            print '(void) memset((void *)(%s + %u), 0, %s);' \
-                % (pc, p.offset + adjust, p.size_string() )
+            print('(void) memset((void *)(%s + %u), 0, %s);' \
+                % (pc, p.offset + adjust, p.size_string() ))
         elif not extra_offset:
-            print '(void) memcpy((void *)(%s + %u), (void *)(%s), %s);' \
-                % (pc, p.offset + adjust, src_ptr, p.size_string() )
+            print('(void) memcpy((void *)(%s + %u), (void *)(%s), %s);' \
+                % (pc, p.offset + adjust, src_ptr, p.size_string() ))
         else:
-            print '(void) memcpy((void *)(%s + %u + %s), (void *)(%s), %s);' \
-                % (pc, p.offset + adjust, extra_offset, src_ptr, p.size_string() )
+            print('(void) memcpy((void *)(%s + %u + %s), (void *)(%s), %s);' \
+                % (pc, p.offset + adjust, extra_offset, src_ptr, p.size_string() ))
 
     def common_emit_args(self, f, pc, adjust, skip_vla):
         extra_offset = None
@@ -542,7 +544,7 @@ generic_%u_byte( GLint rop, const void * ptr )
                 self.common_emit_one_arg(param, pc, adjust, None)
 
                 if f.pad_after(param):
-                    print '(void) memcpy((void *)(%s + %u), zero, 4);' % (pc, (param.offset + param.size()) + adjust)
+                    print('(void) memcpy((void *)(%s + %u), zero, 4);' % (pc, (param.offset + param.size()) + adjust))
 
             else:
                 [dim, width, height, depth, extent] = param.get_dimensions()
@@ -552,14 +554,14 @@ generic_%u_byte( GLint rop, const void * ptr )
                     dim_str = str(dim)
 
                 if param.is_padding:
-                    print '(void) memset((void *)(%s + %u), 0, %s);' \
-                    % (pc, (param.offset - 4) + adjust, param.size_string() )
+                    print('(void) memset((void *)(%s + %u), 0, %s);' \
+                    % (pc, (param.offset - 4) + adjust, param.size_string() ))
 
                 if param.img_null_flag:
                     if large:
-                        print '(void) memcpy((void *)(%s + %u), zero, 4);' % (pc, (param.offset - 4) + adjust)
+                        print('(void) memcpy((void *)(%s + %u), zero, 4);' % (pc, (param.offset - 4) + adjust))
                     else:
-                        print '(void) memcpy((void *)(%s + %u), (void *)((%s == NULL) ? one : zero), 4);' % (pc, (param.offset - 4) + adjust, param.name)
+                        print('(void) memcpy((void *)(%s + %u), (void *)((%s == NULL) ? one : zero), 4);' % (pc, (param.offset - 4) + adjust, param.name))
 
 
                 pixHeaderPtr = "%s + %u" % (pc, adjust)
@@ -571,13 +573,13 @@ generic_%u_byte( GLint rop, const void * ptr )
                     else:
                         condition = 'compsize > 0'
 
-                    print 'if (%s) {' % (condition)
-                    print '    gc->fillImage(gc, %s, %s, %s, %s, %s, %s, %s, %s, %s);' % (dim_str, width, height, depth, param.img_format, param.img_type, param.name, pcPtr, pixHeaderPtr)
-                    print '} else {'
-                    print '    (void) memcpy( %s, default_pixel_store_%uD, default_pixel_store_%uD_size );' % (pixHeaderPtr, dim, dim)
-                    print '}'
+                    print('if (%s) {' % (condition))
+                    print('    gc->fillImage(gc, %s, %s, %s, %s, %s, %s, %s, %s, %s);' % (dim_str, width, height, depth, param.img_format, param.img_type, param.name, pcPtr, pixHeaderPtr))
+                    print('} else {')
+                    print('    (void) memcpy( %s, default_pixel_store_%uD, default_pixel_store_%uD_size );' % (pixHeaderPtr, dim, dim))
+                    print('}')
                 else:
-                    print '__glXSendLargeImage(gc, compsize, %s, %s, %s, %s, %s, %s, %s, %s, %s);' % (dim_str, width, height, depth, param.img_format, param.img_type, param.name, pcPtr, pixHeaderPtr)
+                    print('__glXSendLargeImage(gc, compsize, %s, %s, %s, %s, %s, %s, %s, %s, %s);' % (dim_str, width, height, depth, param.img_format, param.img_type, param.name, pcPtr, pixHeaderPtr))
 
         return
 
@@ -586,16 +588,16 @@ generic_%u_byte( GLint rop, const void * ptr )
         if not op_name:
             op_name = f.opcode_real_name()
 
-        print 'const GLint op = %s;' % (op_name)
-        print 'const GLuint cmdlenLarge = cmdlen + 4;'
-        print 'GLubyte * const pc = __glXFlushRenderBuffer(gc, gc->pc);'
-        print '(void) memcpy((void *)(pc + 0), (void *)(&cmdlenLarge), 4);'
-        print '(void) memcpy((void *)(pc + 4), (void *)(&op), 4);'
+        print('const GLint op = %s;' % (op_name))
+        print('const GLuint cmdlenLarge = cmdlen + 4;')
+        print('GLubyte * const pc = __glXFlushRenderBuffer(gc, gc->pc);')
+        print('(void) memcpy((void *)(pc + 0), (void *)(&cmdlenLarge), 4);')
+        print('(void) memcpy((void *)(pc + 4), (void *)(&op), 4);')
         return
 
 
     def common_func_print_just_start(self, f, name):
-        print '    struct glx_context * const gc = __glXGetCurrentContext();'
+        print('    struct glx_context * const gc = __glXGetCurrentContext();')
 
         # The only reason that single and vendor private commands need
         # a variable called 'dpy' is because they use the SyncHandle
@@ -613,10 +615,10 @@ generic_%u_byte( GLint rop, const void * ptr )
         if not f.glx_rop:
             for p in f.parameterIterateOutputs():
                 if p.is_image() and (p.img_format != "GL_COLOR_INDEX" or p.img_type != "GL_BITMAP"):
-                    print '    const __GLXattribute * const state = gc->client_state_private;'
+                    print('    const __GLXattribute * const state = gc->client_state_private;')
                     break
 
-            print '    Display * const dpy = gc->currentDpy;'
+            print('    Display * const dpy = gc->currentDpy;')
             skip_condition = "dpy != NULL"
         elif f.can_be_large:
             skip_condition = "gc->currentDpy != NULL"
@@ -625,35 +627,35 @@ generic_%u_byte( GLint rop, const void * ptr )
 
 
         if f.return_type != 'void':
-            print '    %s retval = (%s) 0;' % (f.return_type, f.return_type)
+            print('    %s retval = (%s) 0;' % (f.return_type, f.return_type))
 
 
         if name != None and name not in f.glx_vendorpriv_names:
-            print '#ifndef USE_XCB'
+            print('#ifndef USE_XCB')
         self.emit_packet_size_calculation(f, 0)
         if name != None and name not in f.glx_vendorpriv_names:
-            print '#endif'
+            print('#endif')
 
         if f.command_variable_length() != "":
-            print "    if (0%s < 0) {" % f.command_variable_length()
-            print "        __glXSetError(gc, GL_INVALID_VALUE);"
+            print("    if (0%s < 0) {" % f.command_variable_length())
+            print("        __glXSetError(gc, GL_INVALID_VALUE);")
             if f.return_type != 'void':
-                print "        return 0;"
+                print("        return 0;")
             else:
-                print "        return;"
-            print "    }"
+                print("        return;")
+            print("    }")
 
         condition_list = []
         for p in f.parameterIterateCounters():
             condition_list.append( "%s >= 0" % (p.name) )
             # 'counter' parameters cannot be negative
-            print "    if (%s < 0) {" % p.name
-            print "        __glXSetError(gc, GL_INVALID_VALUE);"
+            print("    if (%s < 0) {" % p.name)
+            print("        __glXSetError(gc, GL_INVALID_VALUE);")
             if f.return_type != 'void':
-                print "        return 0;"
+                print("        return 0;")
             else:
-                print "        return;"
-            print "    }"
+                print("        return;")
+            print("    }")
 
         if skip_condition:
             condition_list.append( skip_condition )
@@ -664,7 +666,7 @@ generic_%u_byte( GLint rop, const void * ptr )
             else:
                 skip_condition = "%s" % (condition_list.pop(0))
 
-            print '    if (__builtin_expect(%s, 1)) {' % (skip_condition)
+            print('    if (__builtin_expect(%s, 1)) {' % (skip_condition))
             return 1
         else:
             return 0
@@ -674,16 +676,16 @@ generic_%u_byte( GLint rop, const void * ptr )
         self.common_func_print_just_start(f, name)
 
         if self.debug:
-            print '        printf( "Enter %%s...\\n", "gl%s" );' % (f.name)
+            print('        printf( "Enter %%s...\\n", "gl%s" );' % (f.name))
 
         if name not in f.glx_vendorpriv_names:
 
             # XCB specific:
-            print '#ifdef USE_XCB'
+            print('#ifdef USE_XCB')
             if self.debug:
-                print '        printf("\\tUsing XCB.\\n");'
-            print '        xcb_connection_t *c = XGetXCBConnection(dpy);'
-            print '        (void) __glXFlushRenderBuffer(gc, gc->pc);'
+                print('        printf("\\tUsing XCB.\\n");')
+            print('        xcb_connection_t *c = XGetXCBConnection(dpy);')
+            print('        (void) __glXFlushRenderBuffer(gc, gc->pc);')
             xcb_name = 'xcb_glx%s' % convertStringForXCB(name)
 
             iparams=[]
@@ -710,7 +712,7 @@ generic_%u_byte( GLint rop, const void * ptr )
             xcb_request = '%s(%s)' % (xcb_name, ", ".join(["c", "gc->currentContextTag"] + iparams + extra_iparams))
 
             if f.needs_reply():
-                print '        %s_reply_t *reply = %s_reply(c, %s, NULL);' % (xcb_name, xcb_name, xcb_request)
+                print('        %s_reply_t *reply = %s_reply(c, %s, NULL);' % (xcb_name, xcb_name, xcb_request))
                 if output:
                     if output.is_image():
                         [dim, w, h, d, junk] = output.get_dimensions()
@@ -721,30 +723,30 @@ generic_%u_byte( GLint rop, const void * ptr )
                             if dim < 2:
                                 h = "1"
                             else:
-                                print '        if (%s == 0) { %s = 1; }' % (h, h)
+                                print('        if (%s == 0) { %s = 1; }' % (h, h))
                             if dim < 3:
                                 d = "1"
                             else:
-                                print '        if (%s == 0) { %s = 1; }' % (d, d)
+                                print('        if (%s == 0) { %s = 1; }' % (d, d))
 
-                        print '        __glEmptyImage(gc, 3, %s, %s, %s, %s, %s, %s_data(reply), %s);' % (w, h, d, output.img_format, output.img_type, xcb_name, output.name)
+                        print('        __glEmptyImage(gc, 3, %s, %s, %s, %s, %s, %s_data(reply), %s);' % (w, h, d, output.img_format, output.img_type, xcb_name, output.name))
                     else:
                         if f.reply_always_array:
-                            print '        (void)memcpy(%s, %s_data(reply), %s_data_length(reply) * sizeof(%s));' % (output.name, xcb_name, xcb_name, output.get_base_type_string())
+                            print('        (void)memcpy(%s, %s_data(reply), %s_data_length(reply) * sizeof(%s));' % (output.name, xcb_name, xcb_name, output.get_base_type_string()))
                         else:
-                            print '        /* the XXX_data_length() xcb function name is misleading, it returns the number */'
-                            print '        /* of elements, not the length of the data part. A single element is embedded. */'
-                            print '        if (%s_data_length(reply) == 1)' % (xcb_name)
-                            print '            (void)memcpy(%s, &reply->datum, sizeof(reply->datum));' % (output.name)
-                            print '        else'
-                            print '            (void)memcpy(%s, %s_data(reply), %s_data_length(reply) * sizeof(%s));' % (output.name, xcb_name, xcb_name, output.get_base_type_string())
+                            print('        /* the XXX_data_length() xcb function name is misleading, it returns the number */')
+                            print('        /* of elements, not the length of the data part. A single element is embedded. */')
+                            print('        if (%s_data_length(reply) == 1)' % (xcb_name))
+                            print('            (void)memcpy(%s, &reply->datum, sizeof(reply->datum));' % (output.name))
+                            print('        else')
+                            print('            (void)memcpy(%s, %s_data(reply), %s_data_length(reply) * sizeof(%s));' % (output.name, xcb_name, xcb_name, output.get_base_type_string()))
 
                 if f.return_type != 'void':
-                    print '        retval = reply->ret_val;'
-                print '        free(reply);'
+                    print('        retval = reply->ret_val;')
+                print('        free(reply);')
             else:
-                print '        ' + xcb_request + ';'
-            print '#else'
+                print('        ' + xcb_request + ';')
+            print('#else')
             # End of XCB specific.
 
 
@@ -754,9 +756,9 @@ generic_%u_byte( GLint rop, const void * ptr )
             pc_decl = "(void)"
 
         if name in f.glx_vendorpriv_names:
-            print '        %s __glXSetupVendorRequest(gc, %s, %s, cmdlen);' % (pc_decl, f.opcode_real_name(), f.opcode_vendor_name(name))
+            print('        %s __glXSetupVendorRequest(gc, %s, %s, cmdlen);' % (pc_decl, f.opcode_real_name(), f.opcode_vendor_name(name)))
         else:
-            print '        %s __glXSetupSingleRequest(gc, %s, cmdlen);' % (pc_decl, f.opcode_name())
+            print('        %s __glXSetupSingleRequest(gc, %s, cmdlen);' % (pc_decl, f.opcode_name()))
 
         self.common_emit_args(f, "pc", 0, 0)
 
@@ -765,12 +767,12 @@ generic_%u_byte( GLint rop, const void * ptr )
         for img in images:
             if img.is_output:
                 o = f.command_fixed_length() - 4
-                print '        *(int32_t *)(pc + %u) = 0;' % (o)
+                print('        *(int32_t *)(pc + %u) = 0;' % (o))
                 if img.img_format != "GL_COLOR_INDEX" or img.img_type != "GL_BITMAP":
-                    print '        * (int8_t *)(pc + %u) = state->storePack.swapEndian;' % (o)
+                    print('        * (int8_t *)(pc + %u) = state->storePack.swapEndian;' % (o))
 
                 if f.img_reset:
-                    print '        * (int8_t *)(pc + %u) = %s;' % (o + 1, f.img_reset)
+                    print('        * (int8_t *)(pc + %u) = %s;' % (o + 1, f.img_reset))
 
 
         return_name = ''
@@ -787,9 +789,9 @@ generic_%u_byte( GLint rop, const void * ptr )
                 if p.is_image():
                     [dim, w, h, d, junk] = p.get_dimensions()
                     if f.dimensions_in_reply:
-                        print "        __glXReadPixelReply(dpy, gc, %u, 0, 0, 0, %s, %s, %s, GL_TRUE);" % (dim, p.img_format, p.img_type, p.name)
+                        print("        __glXReadPixelReply(dpy, gc, %u, 0, 0, 0, %s, %s, %s, GL_TRUE);" % (dim, p.img_format, p.img_type, p.name))
                     else:
-                        print "        __glXReadPixelReply(dpy, gc, %u, %s, %s, %s, %s, %s, %s, GL_FALSE);" % (dim, w, h, d, p.img_format, p.img_type, p.name)
+                        print("        __glXReadPixelReply(dpy, gc, %u, %s, %s, %s, %s, %s, %s, GL_FALSE);" % (dim, w, h, d, p.img_format, p.img_type, p.name))
 
                     got_reply = 1
                 else:
@@ -809,7 +811,7 @@ generic_%u_byte( GLint rop, const void * ptr )
                     # non-arrays) gives us this.
 
                     s = p.size() / p.get_element_count()
-                    print "       %s __glXReadReply(dpy, %s, %s, %s);" % (return_str, s, p.name, aa)
+                    print("       %s __glXReadReply(dpy, %s, %s, %s);" % (return_str, s, p.name, aa))
                     got_reply = 1
 
 
@@ -817,25 +819,25 @@ generic_%u_byte( GLint rop, const void * ptr )
             # read a NULL reply to get the return value.
 
             if not got_reply:
-                print "       %s __glXReadReply(dpy, 0, NULL, GL_FALSE);" % (return_str)
+                print("       %s __glXReadReply(dpy, 0, NULL, GL_FALSE);" % (return_str))
 
 
         elif self.debug:
             # Only emit the extra glFinish call for functions
             # that don't already require a reply from the server.
-            print '        __indirect_glFinish();'
+            print('        __indirect_glFinish();')
 
         if self.debug:
-            print '        printf( "Exit %%s.\\n", "gl%s" );' % (name)
+            print('        printf( "Exit %%s.\\n", "gl%s" );' % (name))
 
 
-        print '        UnlockDisplay(dpy); SyncHandle();'
+        print('        UnlockDisplay(dpy); SyncHandle();')
 
         if name not in f.glx_vendorpriv_names:
-            print '#endif /* USE_XCB */'
+            print('#endif /* USE_XCB */')
 
-        print '    }'
-        print '    return%s;' % (return_name)
+        print('    }')
+        print('    return%s;' % (return_name))
         return
 
 
@@ -859,7 +861,7 @@ generic_%u_byte( GLint rop, const void * ptr )
                 if f.pad_after(param):
                     p_string += ", 1"
 
-            print '    %s(%s, %u%s );' % (self.pixel_stubs[f.name] , f.opcode_name(), dim, p_string)
+            print('    %s(%s, %u%s );' % (self.pixel_stubs[f.name] , f.opcode_name(), dim, p_string))
             return
 
 
@@ -870,32 +872,32 @@ generic_%u_byte( GLint rop, const void * ptr )
 
 
         if f.can_be_large:
-            print 'if (cmdlen <= gc->maxSmallRenderCommandSize) {'
-            print '    if ( (gc->pc + cmdlen) > gc->bufEnd ) {'
-            print '        (void) __glXFlushRenderBuffer(gc, gc->pc);'
-            print '    }'
+            print('if (cmdlen <= gc->maxSmallRenderCommandSize) {')
+            print('    if ( (gc->pc + cmdlen) > gc->bufEnd ) {')
+            print('        (void) __glXFlushRenderBuffer(gc, gc->pc);')
+            print('    }')
 
         if f.glx_rop == ~0:
             opcode = "opcode"
         else:
             opcode = f.opcode_real_name()
 
-        print 'emit_header(gc->pc, %s, cmdlen);' % (opcode)
+        print('emit_header(gc->pc, %s, cmdlen);' % (opcode))
 
         self.pixel_emit_args( f, "gc->pc", 0 )
-        print 'gc->pc += cmdlen;'
-        print 'if (gc->pc > gc->limit) { (void) __glXFlushRenderBuffer(gc, gc->pc); }'
+        print('gc->pc += cmdlen;')
+        print('if (gc->pc > gc->limit) { (void) __glXFlushRenderBuffer(gc, gc->pc); }')
 
         if f.can_be_large:
-            print '}'
-            print 'else {'
+            print('}')
+            print('else {')
 
             self.large_emit_begin(f, opcode)
             self.pixel_emit_args(f, "pc", 1)
 
-            print '}'
+            print('}')
 
-        if trailer: print trailer
+        if trailer: print(trailer)
         return
 
 
@@ -912,7 +914,7 @@ generic_%u_byte( GLint rop, const void * ptr )
             if p.is_pointer():
                 cmdlen = f.command_fixed_length()
                 if cmdlen in self.generic_sizes:
-                    print '    generic_%u_byte( %s, %s );' % (cmdlen, f.opcode_real_name(), p.name)
+                    print('    generic_%u_byte( %s, %s );' % (cmdlen, f.opcode_real_name(), p.name))
                     return
 
         if self.common_func_print_just_start(f, None):
@@ -921,36 +923,36 @@ generic_%u_byte( GLint rop, const void * ptr )
             trailer = None
 
         if self.debug:
-            print 'printf( "Enter %%s...\\n", "gl%s" );' % (f.name)
+            print('printf( "Enter %%s...\\n", "gl%s" );' % (f.name))
 
         if f.can_be_large:
-            print 'if (cmdlen <= gc->maxSmallRenderCommandSize) {'
-            print '    if ( (gc->pc + cmdlen) > gc->bufEnd ) {'
-            print '        (void) __glXFlushRenderBuffer(gc, gc->pc);'
-            print '    }'
+            print('if (cmdlen <= gc->maxSmallRenderCommandSize) {')
+            print('    if ( (gc->pc + cmdlen) > gc->bufEnd ) {')
+            print('        (void) __glXFlushRenderBuffer(gc, gc->pc);')
+            print('    }')
 
-        print 'emit_header(gc->pc, %s, cmdlen);' % (f.opcode_real_name())
+        print('emit_header(gc->pc, %s, cmdlen);' % (f.opcode_real_name()))
 
         self.common_emit_args(f, "gc->pc", 4, 0)
-        print 'gc->pc += cmdlen;'
-        print 'if (__builtin_expect(gc->pc > gc->limit, 0)) { (void) __glXFlushRenderBuffer(gc, gc->pc); }'
+        print('gc->pc += cmdlen;')
+        print('if (__builtin_expect(gc->pc > gc->limit, 0)) { (void) __glXFlushRenderBuffer(gc, gc->pc); }')
 
         if f.can_be_large:
-            print '}'
-            print 'else {'
+            print('}')
+            print('else {')
 
             self.large_emit_begin(f)
             self.common_emit_args(f, "pc", 8, 1)
 
             p = f.variable_length_parameter()
-            print '    __glXSendLargeCommand(gc, pc, %u, %s, %s);' % (p.offset + 8, p.name, p.size_string())
-            print '}'
+            print('    __glXSendLargeCommand(gc, pc, %u, %s, %s);' % (p.offset + 8, p.name, p.size_string()))
+            print('}')
 
         if self.debug:
-            print '__indirect_glFinish();'
-            print 'printf( "Exit %%s.\\n", "gl%s" );' % (f.name)
+            print('__indirect_glFinish();')
+            print('printf( "Exit %%s.\\n", "gl%s" );' % (f.name))
 
-        if trailer: print trailer
+        if trailer: print(trailer)
         return
 
 
@@ -966,7 +968,7 @@ class PrintGlxProtoInit_c(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
-        print """/**
+        print("""/**
  * \\file indirect_init.c
  * Initialize indirect rendering dispatch table.
  *
@@ -1012,15 +1014,15 @@ struct _glapi_table * __glXNewIndirectAPI( void )
        table[i] = (_glapi_proc) NoOp;
     }
 
-    /* now, initialize the entries we understand */"""
+    /* now, initialize the entries we understand */""")
 
     def printRealFooter(self):
-        print """
+        print("""
     return (struct _glapi_table *) table;
 }
 
 #endif
-"""
+""")
         return
 
 
@@ -1034,15 +1036,15 @@ struct _glapi_table * __glXNewIndirectAPI( void )
             for func in api.functionIterateByCategory(name):
                 if func.client_supported_for_indirect():
                     if preamble:
-                        print preamble
+                        print(preamble)
                         preamble = None
 
                     if func.is_abi():
-                        print '    table[{offset}] = (_glapi_proc) __indirect_gl{name};'.format(name = func.name, offset = func.offset)
+                        print('    table[{offset}] = (_glapi_proc) __indirect_gl{name};'.format(name = func.name, offset = func.offset))
                     else:
-                        print '    o = _glapi_get_proc_offset("gl{0}");'.format(func.name)
-                        print '    assert(o > 0);'
-                        print '    table[o] = (_glapi_proc) __indirect_gl{0};'.format(func.name)
+                        print('    o = _glapi_get_proc_offset("gl{0}");'.format(func.name))
+                        print('    assert(o > 0);')
+                        print('    table[o] = (_glapi_proc) __indirect_gl{0};'.format(func.name))
 
         return
 
@@ -1062,18 +1064,18 @@ class PrintGlxProtoInit_h(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
-        print """/**
+        print("""/**
  * \\file
  * Prototypes for indirect rendering functions.
  *
  * \\author Kevin E. Martin <kevin@precisioninsight.com>
  * \\author Ian Romanick <idr@us.ibm.com>
  */
-"""
+""")
         self.printFastcall()
         self.printNoinline()
 
-        print """
+        print("""
 #include <X11/Xfuncproto.h>
 #include "glxclient.h"
 
@@ -1090,32 +1092,32 @@ extern _X_HIDDEN NOINLINE FASTCALL GLubyte * __glXSetupSingleRequest(
 
 extern _X_HIDDEN NOINLINE FASTCALL GLubyte * __glXSetupVendorRequest(
     struct glx_context * gc, GLint code, GLint vop, GLint cmdlen );
-"""
+""")
 
 
     def printBody(self, api):
         for func in api.functionIterateGlx():
             params = func.get_parameter_string()
 
-            print 'extern _X_HIDDEN %s __indirect_gl%s(%s);' % (func.return_type, func.name, params)
+            print('extern _X_HIDDEN %s __indirect_gl%s(%s);' % (func.return_type, func.name, params))
 
             for n in func.entry_points:
                 if func.has_different_protocol(n):
                     asdf = func.static_glx_name(n)
                     if asdf not in func.static_entry_points:
-                        print 'extern _X_HIDDEN %s gl%s(%s);' % (func.return_type, asdf, params)
+                        print('extern _X_HIDDEN %s gl%s(%s);' % (func.return_type, asdf, params))
                         # give it a easy-to-remember name
                         if func.client_handcode:
-                            print '#define gl_dispatch_stub_%s gl%s' % (n, asdf)
+                            print('#define gl_dispatch_stub_%s gl%s' % (n, asdf))
                     else:
-                        print 'GLAPI %s GLAPIENTRY gl%s(%s);' % (func.return_type, asdf, params)
+                        print('GLAPI %s GLAPIENTRY gl%s(%s);' % (func.return_type, asdf, params))
 
                     break
 
-        print ''
-        print '#ifdef GLX_INDIRECT_RENDERING'
-        print 'extern _X_HIDDEN void (*__indirect_get_proc_address(const char *name))(void);'
-        print '#endif'
+        print('')
+        print('#ifdef GLX_INDIRECT_RENDERING')
+        print('extern _X_HIDDEN void (*__indirect_get_proc_address(const char *name))(void);')
+        print('#endif')
 
 
 def _parser():

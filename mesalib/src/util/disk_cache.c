@@ -376,7 +376,7 @@ disk_cache_create(const char *gpu_name, const char *timestamp,
     * The queue will resize automatically when it's full, so adding new jobs
     * doesn't stall.
     */
-   util_queue_init(&cache->cache_queue, "disk_cache", 32, 1,
+   util_queue_init(&cache->cache_queue, "disk$", 32, 1,
                    UTIL_QUEUE_INIT_RESIZE_IF_FULL |
                    UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY);
 

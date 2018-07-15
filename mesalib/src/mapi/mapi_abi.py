@@ -24,6 +24,8 @@
 # Authors:
 #    Chia-I Wu <olv@lunarg.com>
 
+from __future__ import print_function
+
 import sys
 # make it possible to import glapi
 import os
@@ -541,79 +543,79 @@ class ABIPrinter(object):
         return "\n".join(asm)
 
     def output_for_lib(self):
-        print self.c_notice()
+        print(self.c_notice())
 
         if self.c_header:
-            print
-            print self.c_header
+            print()
+            print(self.c_header)
 
-        print
-        print '#ifdef MAPI_TMP_DEFINES'
-        print self.c_public_includes()
-        print
-        print self.c_public_declarations(self.prefix_lib)
-        print '#undef MAPI_TMP_DEFINES'
-        print '#endif /* MAPI_TMP_DEFINES */'
+        print()
+        print('#ifdef MAPI_TMP_DEFINES')
+        print(self.c_public_includes())
+        print()
+        print(self.c_public_declarations(self.prefix_lib))
+        print('#undef MAPI_TMP_DEFINES')
+        print('#endif /* MAPI_TMP_DEFINES */')
 
         if self.lib_need_table_size:
-            print
-            print '#ifdef MAPI_TMP_TABLE'
-            print self.c_mapi_table()
-            print '#undef MAPI_TMP_TABLE'
-            print '#endif /* MAPI_TMP_TABLE */'
+            print()
+            print('#ifdef MAPI_TMP_TABLE')
+            print(self.c_mapi_table())
+            print('#undef MAPI_TMP_TABLE')
+            print('#endif /* MAPI_TMP_TABLE */')
 
         if self.lib_need_noop_array:
-            print
-            print '#ifdef MAPI_TMP_NOOP_ARRAY'
-            print '#ifdef DEBUG'
-            print
-            print self.c_noop_functions(self.prefix_noop, self.prefix_warn)
-            print
-            print 'const mapi_func table_%s_array[] = {' % (self.prefix_noop)
-            print self.c_noop_initializer(self.prefix_noop, False)
-            print '};'
-            print
-            print '#else /* DEBUG */'
-            print
-            print 'const mapi_func table_%s_array[] = {' % (self.prefix_noop)
-            print self.c_noop_initializer(self.prefix_noop, True)
-            print '};'
-            print
-            print '#endif /* DEBUG */'
-            print '#undef MAPI_TMP_NOOP_ARRAY'
-            print '#endif /* MAPI_TMP_NOOP_ARRAY */'
+            print()
+            print('#ifdef MAPI_TMP_NOOP_ARRAY')
+            print('#ifdef DEBUG')
+            print()
+            print(self.c_noop_functions(self.prefix_noop, self.prefix_warn))
+            print()
+            print('const mapi_func table_%s_array[] = {' % (self.prefix_noop))
+            print(self.c_noop_initializer(self.prefix_noop, False))
+            print('};')
+            print()
+            print('#else /* DEBUG */')
+            print()
+            print('const mapi_func table_%s_array[] = {' % (self.prefix_noop))
+            print(self.c_noop_initializer(self.prefix_noop, True))
+            print('};')
+            print()
+            print('#endif /* DEBUG */')
+            print('#undef MAPI_TMP_NOOP_ARRAY')
+            print('#endif /* MAPI_TMP_NOOP_ARRAY */')
 
         if self.lib_need_stubs:
             pool, pool_offsets = self.c_stub_string_pool()
-            print
-            print '#ifdef MAPI_TMP_PUBLIC_STUBS'
-            print 'static const char public_string_pool[] ='
-            print pool
-            print
-            print 'static const struct mapi_stub public_stubs[] = {'
-            print self.c_stub_initializer(self.prefix_lib, pool_offsets)
-            print '};'
-            print '#undef MAPI_TMP_PUBLIC_STUBS'
-            print '#endif /* MAPI_TMP_PUBLIC_STUBS */'
+            print()
+            print('#ifdef MAPI_TMP_PUBLIC_STUBS')
+            print('static const char public_string_pool[] =')
+            print(pool)
+            print()
+            print('static const struct mapi_stub public_stubs[] = {')
+            print(self.c_stub_initializer(self.prefix_lib, pool_offsets))
+            print('};')
+            print('#undef MAPI_TMP_PUBLIC_STUBS')
+            print('#endif /* MAPI_TMP_PUBLIC_STUBS */')
 
         if self.lib_need_all_entries:
-            print
-            print '#ifdef MAPI_TMP_PUBLIC_ENTRIES'
-            print self.c_public_dispatches(self.prefix_lib, False)
-            print
-            print 'static const mapi_func public_entries[] = {'
-            print self.c_public_initializer(self.prefix_lib)
-            print '};'
-            print '#undef MAPI_TMP_PUBLIC_ENTRIES'
-            print '#endif /* MAPI_TMP_PUBLIC_ENTRIES */'
+            print()
+            print('#ifdef MAPI_TMP_PUBLIC_ENTRIES')
+            print(self.c_public_dispatches(self.prefix_lib, False))
+            print()
+            print('static const mapi_func public_entries[] = {')
+            print(self.c_public_initializer(self.prefix_lib))
+            print('};')
+            print('#undef MAPI_TMP_PUBLIC_ENTRIES')
+            print('#endif /* MAPI_TMP_PUBLIC_ENTRIES */')
 
-            print
-            print '#ifdef MAPI_TMP_STUB_ASM_GCC'
-            print '__asm__('
-            print self.c_asm_gcc(self.prefix_lib, False)
-            print ');'
-            print '#undef MAPI_TMP_STUB_ASM_GCC'
-            print '#endif /* MAPI_TMP_STUB_ASM_GCC */'
+            print()
+            print('#ifdef MAPI_TMP_STUB_ASM_GCC')
+            print('__asm__(')
+            print(self.c_asm_gcc(self.prefix_lib, False))
+            print(');')
+            print('#undef MAPI_TMP_STUB_ASM_GCC')
+            print('#endif /* MAPI_TMP_STUB_ASM_GCC */')
 
         if self.lib_need_non_hidden_entries:
             all_hidden = True
@@ -622,21 +624,21 @@ class ABIPrinter(object):
                     all_hidden = False
                     break
             if not all_hidden:
-                print
-                print '#ifdef MAPI_TMP_PUBLIC_ENTRIES_NO_HIDDEN'
-                print self.c_public_dispatches(self.prefix_lib, True)
-                print
-                print '/* does not need public_entries */'
-                print '#undef MAPI_TMP_PUBLIC_ENTRIES_NO_HIDDEN'
-                print '#endif /* MAPI_TMP_PUBLIC_ENTRIES_NO_HIDDEN */'
+                print()
+                print('#ifdef MAPI_TMP_PUBLIC_ENTRIES_NO_HIDDEN')
+                print(self.c_public_dispatches(self.prefix_lib, True))
+                print()
+                print('/* does not need public_entries */')
+                print('#undef MAPI_TMP_PUBLIC_ENTRIES_NO_HIDDEN')
+                print('#endif /* MAPI_TMP_PUBLIC_ENTRIES_NO_HIDDEN */')
 
-                print
-                print '#ifdef MAPI_TMP_STUB_ASM_GCC_NO_HIDDEN'
-                print '__asm__('
-                print self.c_asm_gcc(self.prefix_lib, True)
-                print ');'
-                print '#undef MAPI_TMP_STUB_ASM_GCC_NO_HIDDEN'
-                print '#endif /* MAPI_TMP_STUB_ASM_GCC_NO_HIDDEN */'
+                print()
+                print('#ifdef MAPI_TMP_STUB_ASM_GCC_NO_HIDDEN')
+                print('__asm__(')
+                print(self.c_asm_gcc(self.prefix_lib, True))
+                print(');')
+                print('#undef MAPI_TMP_STUB_ASM_GCC_NO_HIDDEN')
+                print('#endif /* MAPI_TMP_STUB_ASM_GCC_NO_HIDDEN */')
 
 class GLAPIPrinter(ABIPrinter):
     """OpenGL API Printer"""

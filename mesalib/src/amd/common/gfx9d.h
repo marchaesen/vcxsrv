@@ -5764,6 +5764,7 @@
 #define   S_02883C_USE_PROVOKING_ZW(x)                                (((unsigned)(x) & 0x1) << 4)
 #define   G_02883C_USE_PROVOKING_ZW(x)                                (((x) >> 4) & 0x1)
 #define   C_02883C_USE_PROVOKING_ZW                                   0xFFFFFFEF
+#define R_028840_PA_STEREO_CNTL                                         0x028840
 #define R_028A00_PA_SU_POINT_SIZE                                       0x028A00
 #define   S_028A00_HEIGHT(x)                                          (((unsigned)(x) & 0xFFFF) << 0)
 #define   G_028A00_HEIGHT(x)                                          (((x) >> 0) & 0xFFFF)

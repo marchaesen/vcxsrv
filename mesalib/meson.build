@@ -58,7 +58,7 @@ with_osmesa = get_option('osmesa')
 with_swr_arches = get_option('swr-arches')
 with_tools = get_option('tools')
 if with_tools.contains('all')
-  with_tools = ['freedreno', 'glsl', 'intel', 'nir', 'nouveau']
+  with_tools = ['freedreno', 'glsl', 'intel', 'nir', 'nouveau', 'xvmc']
 endif
 
 dri_drivers_path = get_option('dri-drivers-path')
@@ -263,7 +263,6 @@ if with_glx == 'auto'
   elif with_gallium
     # Even when building just gallium drivers the user probably wants dri
     with_glx = 'dri'
-    with_dri = true
   elif with_platform_x11 and with_any_opengl and not with_any_vk
     # The automatic behavior should not be to turn on xlib based glx when
     # building only vulkan drivers
@@ -271,6 +270,11 @@ if with_glx == 'auto'
   else
     with_glx = 'disabled'
   endif
+endif
+if with_glx == 'dri'
+   if with_gallium
+      with_dri = true
+   endif
 endif
 
 if not (with_dri or with_gallium or with_glx == 'xlib' or with_glx == 'gallium-xlib')

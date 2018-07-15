@@ -366,8 +366,11 @@ mode_size(struct wsi_display_mode *mode)
 static void
 wsi_display_fill_in_display_properties(struct wsi_device *wsi_device,
                                        struct wsi_display_connector *connector,
-                                       VkDisplayPropertiesKHR *properties)
+                                       VkDisplayProperties2KHR *properties2)
 {
+   assert(properties2->sType == VK_STRUCTURE_TYPE_DISPLAY_PROPERTIES_2_KHR);
+   VkDisplayPropertiesKHR *properties = &properties2->displayProperties;
+
    properties->display = wsi_display_connector_to_handle(connector);
    properties->displayName = connector->name;
 
@@ -426,6 +429,50 @@ wsi_display_get_physical_device_display_properties(
    struct wsi_display *wsi =
       (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
 
+   if (properties == NULL) {
+      return wsi_display_get_physical_device_display_properties2(
+            physical_device, wsi_device, property_count, NULL);
+   } else {
+      /* If we're actually returning properties, allocate a temporary array of
+       * VkDisplayProperties2KHR structs, call properties2 to fill them out,
+       * and then copy them to the client.  This seems a bit expensive but
+       * wsi_display_get_physical_device_display_properties2() calls
+       * drmModeGetResources() which does an ioctl and then a bunch of
+       * allocations so this should get lost in the noise.
+       */
+      VkDisplayProperties2KHR *props2 =
+         vk_zalloc(wsi->alloc, sizeof(*props2) * *property_count, 8,
+                   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      if (props2 == NULL)
+         return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+      for (uint32_t i = 0; i < *property_count; i++)
+         props2[i].sType = VK_STRUCTURE_TYPE_DISPLAY_PROPERTIES_2_KHR;
+
+      VkResult result = wsi_display_get_physical_device_display_properties2(
+            physical_device, wsi_device, property_count, props2);
+
+      if (result == VK_SUCCESS || result == VK_INCOMPLETE) {
+         for (uint32_t i = 0; i < *property_count; i++)
+            properties[i] = props2[i].displayProperties;
+      }
+
+      vk_free(wsi->alloc, props2);
+
+      return result;
+   }
+}
+
+VkResult
+wsi_display_get_physical_device_display_properties2(
+   VkPhysicalDevice physical_device,
+   struct wsi_device *wsi_device,
+   uint32_t *property_count,
+   VkDisplayProperties2KHR *properties)
+{
+   struct wsi_display *wsi =
+      (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+
    if (wsi->fd < 0)
       goto bail;
 
@@ -468,6 +515,24 @@ bail:
 /*
  * Implement vkGetPhysicalDeviceDisplayPlanePropertiesKHR (VK_KHR_display
  */
+static void
+wsi_display_fill_in_display_plane_properties(
+   struct wsi_device *wsi_device,
+   struct wsi_display_connector *connector,
+   VkDisplayPlaneProperties2KHR *properties)
+{
+   assert(properties->sType == VK_STRUCTURE_TYPE_DISPLAY_PLANE_PROPERTIES_2_KHR);
+   VkDisplayPlanePropertiesKHR *prop = &properties->displayPlaneProperties;
+
+   if (connector && connector->active) {
+      prop->currentDisplay = wsi_display_connector_to_handle(connector);
+      prop->currentStackIndex = 0;
+   } else {
+      prop->currentDisplay = VK_NULL_HANDLE;
+      prop->currentStackIndex = 0;
+   }
+}
+
 VkResult
 wsi_display_get_physical_device_display_plane_properties(
    VkPhysicalDevice physical_device,
@@ -482,13 +547,33 @@ wsi_display_get_physical_device_display_plane_properties(
 
    wsi_for_each_connector(connector, wsi) {
       vk_outarray_append(&conn, prop) {
-         if (connector && connector->active) {
-            prop->currentDisplay = wsi_display_connector_to_handle(connector);
-            prop->currentStackIndex = 0;
-         } else {
-            prop->currentDisplay = VK_NULL_HANDLE;
-            prop->currentStackIndex = 0;
-         }
+         VkDisplayPlaneProperties2KHR prop2 = {
+            .sType = VK_STRUCTURE_TYPE_DISPLAY_PLANE_PROPERTIES_2_KHR,
+         };
+         wsi_display_fill_in_display_plane_properties(wsi_device, connector,
+                                                      &prop2);
+         *prop = prop2.displayPlaneProperties;
+      }
+   }
+   return vk_outarray_status(&conn);
+}
+
+VkResult
+wsi_display_get_physical_device_display_plane_properties2(
+   VkPhysicalDevice physical_device,
+   struct wsi_device *wsi_device,
+   uint32_t *property_count,
+   VkDisplayPlaneProperties2KHR *properties)
+{
+   struct wsi_display *wsi =
+      (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+
+   VK_OUTARRAY_MAKE(conn, properties, property_count);
+
+   wsi_for_each_connector(connector, wsi) {
+      vk_outarray_append(&conn, prop) {
+         wsi_display_fill_in_display_plane_properties(wsi_device, connector,
+                                                      prop);
       }
    }
    return vk_outarray_status(&conn);
@@ -528,6 +613,22 @@ wsi_display_get_display_plane_supported_displays(
  * Implement vkGetDisplayModePropertiesKHR (VK_KHR_display)
  */
 
+static void
+wsi_display_fill_in_display_mode_properties(
+   struct wsi_device *wsi_device,
+   struct wsi_display_mode *display_mode,
+   VkDisplayModeProperties2KHR *properties)
+{
+   assert(properties->sType = VK_STRUCTURE_TYPE_DISPLAY_MODE_PROPERTIES_2_KHR);
+   VkDisplayModePropertiesKHR *prop = &properties->displayModeProperties;
+
+   prop->displayMode = wsi_display_mode_to_handle(display_mode);
+   prop->parameters.visibleRegion.width = display_mode->hdisplay;
+   prop->parameters.visibleRegion.height = display_mode->vdisplay;
+   prop->parameters.refreshRate =
+      (uint32_t) (wsi_display_mode_refresh(display_mode) * 1000 + 0.5);
+}
+
 VkResult
 wsi_display_get_display_mode_properties(VkPhysicalDevice physical_device,
                                         struct wsi_device *wsi_device,
@@ -541,14 +642,40 @@ wsi_display_get_display_mode_properties(VkPhysicalDevice physical_device,
    VK_OUTARRAY_MAKE(conn, properties, property_count);
 
    wsi_for_each_display_mode(display_mode, connector) {
-      if (display_mode->valid) {
-         vk_outarray_append(&conn, prop) {
-            prop->displayMode = wsi_display_mode_to_handle(display_mode);
-            prop->parameters.visibleRegion.width = display_mode->hdisplay;
-            prop->parameters.visibleRegion.height = display_mode->vdisplay;
-            prop->parameters.refreshRate =
-               (uint32_t) (wsi_display_mode_refresh(display_mode) * 1000 + 0.5);
-         }
+      if (!display_mode->valid)
+         continue;
+
+      vk_outarray_append(&conn, prop) {
+         VkDisplayModeProperties2KHR prop2 = {
+            .sType = VK_STRUCTURE_TYPE_DISPLAY_MODE_PROPERTIES_2_KHR,
+         };
+         wsi_display_fill_in_display_mode_properties(wsi_device,
+                                                     display_mode, &prop2);
+         *prop = prop2.displayModeProperties;
+      }
+   }
+   return vk_outarray_status(&conn);
+}
+
+VkResult
+wsi_display_get_display_mode_properties2(VkPhysicalDevice physical_device,
+                                         struct wsi_device *wsi_device,
+                                         VkDisplayKHR display,
+                                         uint32_t *property_count,
+                                         VkDisplayModeProperties2KHR *properties)
+{
+   struct wsi_display_connector *connector =
+      wsi_display_connector_from_handle(display);
+
+   VK_OUTARRAY_MAKE(conn, properties, property_count);
+
+   wsi_for_each_display_mode(display_mode, connector) {
+      if (!display_mode->valid)
+         continue;
+
+      vk_outarray_append(&conn, prop) {
+         wsi_display_fill_in_display_mode_properties(wsi_device,
+                                                     display_mode, prop);
       }
    }
    return vk_outarray_status(&conn);
@@ -627,6 +754,22 @@ wsi_get_display_plane_capabilities(VkPhysicalDevice physical_device,
    capabilities->maxDstExtent.width = mode->hdisplay;
    capabilities->maxDstExtent.height = mode->vdisplay;
    return VK_SUCCESS;
+}
+
+VkResult
+wsi_get_display_plane_capabilities2(
+   VkPhysicalDevice physical_device,
+   struct wsi_device *wsi_device,
+   const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
+   VkDisplayPlaneCapabilities2KHR *capabilities)
+{
+   assert(capabilities->sType =
+          VK_STRUCTURE_TYPE_DISPLAY_PLANE_CAPABILITIES_2_KHR);
+
+   return wsi_get_display_plane_capabilities(physical_device, wsi_device,
+                                             pDisplayPlaneInfo->mode,
+                                             pDisplayPlaneInfo->planeIndex,
+                                             &capabilities->capabilities);
 }
 
 VkResult

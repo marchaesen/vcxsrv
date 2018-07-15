@@ -25,6 +25,8 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+from __future__ import print_function
+
 import argparse
 
 import gl_XML
@@ -45,33 +47,33 @@ class PrintGlTable(gl_XML.gl_print_base):
     def printBody(self, api):
         for f in api.functionIterateByOffset():
             arg_string = f.get_parameter_string()
-            print '   %s (GLAPIENTRYP %s)(%s); /* %d */' % (
-                f.return_type, f.name, arg_string, f.offset)
+            print('   %s (GLAPIENTRYP %s)(%s); /* %d */' % (
+                f.return_type, f.name, arg_string, f.offset))
 
     def printRealHeader(self):
-        print '#ifndef GLAPIENTRYP'
-        print '# ifndef GLAPIENTRY'
-        print '#  define GLAPIENTRY'
-        print '# endif'
-        print ''
-        print '# define GLAPIENTRYP GLAPIENTRY *'
-        print '#endif'
-        print ''
-        print ''
-        print '#ifdef __cplusplus'
-        print 'extern "C" {'
-        print '#endif'
-        print ''
-        print 'struct _glapi_table'
-        print '{'
+        print('#ifndef GLAPIENTRYP')
+        print('# ifndef GLAPIENTRY')
+        print('#  define GLAPIENTRY')
+        print('# endif')
+        print('')
+        print('# define GLAPIENTRYP GLAPIENTRY *')
+        print('#endif')
+        print('')
+        print('')
+        print('#ifdef __cplusplus')
+        print('extern "C" {')
+        print('#endif')
+        print('')
+        print('struct _glapi_table')
+        print('{')
         return
 
     def printRealFooter(self):
-        print '};'
-        print ''
-        print '#ifdef __cplusplus'
-        print '}'
-        print '#endif'
+        print('};')
+        print('')
+        print('#ifdef __cplusplus')
+        print('}')
+        print('#endif')
         return
 
 
@@ -87,7 +89,7 @@ class PrintRemapTable(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
-        print """
+        print("""
 /**
  * \\file main/dispatch.h
  * Macros for handling GL dispatch tables.
@@ -98,27 +100,27 @@ class PrintRemapTable(gl_XML.gl_print_base):
  * can SET_FuncName, are used to get and set the dispatch pointer for the
  * named function in the specified dispatch table.
  */
-"""
+""")
         return
 
 
     def printBody(self, api):
-        print '#define CALL_by_offset(disp, cast, offset, parameters) \\'
-        print '    (*(cast (GET_by_offset(disp, offset)))) parameters'
-        print '#define GET_by_offset(disp, offset) \\'
-        print '    (offset >= 0) ? (((_glapi_proc *)(disp))[offset]) : NULL'
-        print '#define SET_by_offset(disp, offset, fn) \\'
-        print '    do { \\'
-        print '        if ( (offset) < 0 ) { \\'
-        print '            /* fprintf( stderr, "[%s:%u] SET_by_offset(%p, %d, %s)!\\n", */ \\'
-        print '            /*         __func__, __LINE__, disp, offset, # fn); */ \\'
-        print '            /* abort(); */ \\'
-        print '        } \\'
-        print '        else { \\'
-        print '            ( (_glapi_proc *) (disp) )[offset] = (_glapi_proc) fn; \\'
-        print '        } \\'
-        print '    } while(0)'
-        print ''
+        print('#define CALL_by_offset(disp, cast, offset, parameters) \\')
+        print('    (*(cast (GET_by_offset(disp, offset)))) parameters')
+        print('#define GET_by_offset(disp, offset) \\')
+        print('    (offset >= 0) ? (((_glapi_proc *)(disp))[offset]) : NULL')
+        print('#define SET_by_offset(disp, offset, fn) \\')
+        print('    do { \\')
+        print('        if ( (offset) < 0 ) { \\')
+        print('            /* fprintf( stderr, "[%s:%u] SET_by_offset(%p, %d, %s)!\\n", */ \\')
+        print('            /*         __func__, __LINE__, disp, offset, # fn); */ \\')
+        print('            /* abort(); */ \\')
+        print('        } \\')
+        print('        else { \\')
+        print('            ( (_glapi_proc *) (disp) )[offset] = (_glapi_proc) fn; \\')
+        print('        } \\')
+        print('    } while(0)')
+        print('')
 
         functions = []
         abi_functions = []
@@ -130,43 +132,43 @@ class PrintRemapTable(gl_XML.gl_print_base):
             else:
                 abi_functions.append([f, -1])
 
-        print '/* total number of offsets below */'
-        print '#define _gloffset_COUNT %d' % (len(abi_functions + functions))
-        print ''
+        print('/* total number of offsets below */')
+        print('#define _gloffset_COUNT %d' % (len(abi_functions + functions)))
+        print('')
 
         for f, index in abi_functions:
-            print '#define _gloffset_%s %d' % (f.name, f.offset)
+            print('#define _gloffset_%s %d' % (f.name, f.offset))
 
         remap_table = "driDispatchRemapTable"
 
-        print '#define %s_size %u' % (remap_table, count)
-        print 'extern int %s[ %s_size ];' % (remap_table, remap_table)
-        print ''
+        print('#define %s_size %u' % (remap_table, count))
+        print('extern int %s[ %s_size ];' % (remap_table, remap_table))
+        print('')
 
         for f, index in functions:
-            print '#define %s_remap_index %u' % (f.name, index)
+            print('#define %s_remap_index %u' % (f.name, index))
 
-        print ''
+        print('')
 
         for f, index in functions:
-            print '#define _gloffset_%s %s[%s_remap_index]' % (f.name, remap_table, f.name)
+            print('#define _gloffset_%s %s[%s_remap_index]' % (f.name, remap_table, f.name))
 
-        print ''
+        print('')
 
         for f, index in abi_functions + functions:
             arg_string = gl_XML.create_parameter_string(f.parameters, 0)
 
-            print 'typedef %s (GLAPIENTRYP _glptr_%s)(%s);' % (f.return_type, f.name, arg_string)
-            print '#define CALL_%s(disp, parameters) \\' % (f.name)
-            print '    (* GET_%s(disp)) parameters' % (f.name)
-            print 'static inline _glptr_%s GET_%s(struct _glapi_table *disp) {' % (f.name, f.name)
-            print '   return (_glptr_%s) (GET_by_offset(disp, _gloffset_%s));' % (f.name, f.name)
-            print '}'
-            print
-            print 'static inline void SET_%s(struct _glapi_table *disp, %s (GLAPIENTRYP fn)(%s)) {' % (f.name, f.return_type, arg_string)
-            print '   SET_by_offset(disp, _gloffset_%s, fn);' % (f.name)
-            print '}'
-            print
+            print('typedef %s (GLAPIENTRYP _glptr_%s)(%s);' % (f.return_type, f.name, arg_string))
+            print('#define CALL_%s(disp, parameters) \\' % (f.name))
+            print('    (* GET_%s(disp)) parameters' % (f.name))
+            print('static inline _glptr_%s GET_%s(struct _glapi_table *disp) {' % (f.name, f.name))
+            print('   return (_glptr_%s) (GET_by_offset(disp, _gloffset_%s));' % (f.name, f.name))
+            print('}')
+            print()
+            print('static inline void SET_%s(struct _glapi_table *disp, %s (GLAPIENTRYP fn)(%s)) {' % (f.name, f.return_type, arg_string))
+            print('   SET_by_offset(disp, _gloffset_%s, fn);' % (f.name))
+            print('}')
+            print()
 
         return
 

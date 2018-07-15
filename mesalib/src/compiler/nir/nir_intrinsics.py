@@ -270,7 +270,8 @@ def atomic3(name):
     intrinsic(name, src_comp=[1, 1, 1], dest_comp=1, indices=[BASE])
 
 atomic("atomic_counter_inc")
-atomic("atomic_counter_dec")
+atomic("atomic_counter_pre_dec")
+atomic("atomic_counter_post_dec")
 atomic("atomic_counter_read", flags=[CAN_ELIMINATE])
 atomic2("atomic_counter_add")
 atomic2("atomic_counter_min")
@@ -532,6 +533,8 @@ load("per_vertex_output", 2, [BASE, COMPONENT], [CAN_ELIMINATE])
 load("shared", 1, [BASE], [CAN_ELIMINATE])
 # src[] = { offset }. const_index[] = { base, range }
 load("push_constant", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
+# src[] = { offset }. const_index[] = { base, range }
+load("constant", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
 
 # Stores work the same way as loads, except now the first source is the value
 # to store and the second (and possibly third) source specify where to store

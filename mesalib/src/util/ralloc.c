@@ -553,8 +553,6 @@ ralloc_vasprintf_rewrite_tail(char **str, size_t *start, const char *fmt,
  * other buffers.
  */
 
-#define ALIGN_POT(x, y) (((x) + (y) - 1) & ~((y) - 1))
-
 #define MIN_LINEAR_BUFSIZE 2048
 #define SUBALLOC_ALIGNMENT sizeof(uintptr_t)
 #define LMAGIC 0x87b9c7d3

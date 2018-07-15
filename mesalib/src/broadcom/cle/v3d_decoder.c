@@ -58,6 +58,7 @@ struct location {
 
 struct parser_context {
         XML_Parser parser;
+        const struct v3d_device_info *devinfo;
         int foo;
         struct location loc;
 
@@ -68,6 +69,9 @@ struct parser_context {
         struct v3d_value *values[256];
 
         struct v3d_spec *spec;
+
+        int parse_depth;
+        int parse_skip_depth;
 };
 
 const char *
@@ -414,6 +418,25 @@ set_group_opcode(struct v3d_group *group, const char **atts)
         return;
 }
 
+static bool
+ver_in_range(int ver, int min_ver, int max_ver)
+{
+        return ((min_ver == 0 || ver >= min_ver) &&
+                (max_ver == 0 || ver <= max_ver));
+}
+
+static bool
+skip_if_ver_mismatch(struct parser_context *ctx, int min_ver, int max_ver)
+{
+        if (!ctx->parse_skip_depth && !ver_in_range(ctx->devinfo->ver,
+                                                    min_ver, max_ver)) {
+                assert(ctx->parse_depth != 0);
+                ctx->parse_skip_depth = ctx->parse_depth;
+        }
+
+        return ctx->parse_skip_depth;
+}
+
 static void
 start_element(void *data, const char *element_name, const char **atts)
 {
@@ -421,6 +444,8 @@ start_element(void *data, const char *element_name, const char **atts)
         int i;
         const char *name = NULL;
         const char *ver = NULL;
+        int min_ver = 0;
+        int max_ver = 0;
 
         ctx->loc.line_number = XML_GetCurrentLineNumber(ctx->parser);
 
@@ -429,11 +454,22 @@ start_element(void *data, const char *element_name, const char **atts)
                         name = atts[i + 1];
                 else if (strcmp(atts[i], "gen") == 0)
                         ver = atts[i + 1];
+                else if (strcmp(atts[i], "min_ver") == 0)
+                        min_ver = strtoul(atts[i + 1], NULL, 0);
+                else if (strcmp(atts[i], "max_ver") == 0)
+                        max_ver = strtoul(atts[i + 1], NULL, 0);
         }
+
+        if (skip_if_ver_mismatch(ctx, min_ver, max_ver))
+                goto skip;
 
         if (strcmp(element_name, "vcxml") == 0) {
                 if (ver == NULL)
                         fail(&ctx->loc, "no ver given");
+
+                /* Make sure that we picked an XML that matched our version.
+                 */
+                assert(ver_in_range(ctx->devinfo->ver, min_ver, max_ver));
 
                 int major, minor;
                 int n = sscanf(ver, "%d.%d", &major, &minor);
@@ -470,6 +506,8 @@ start_element(void *data, const char *element_name, const char **atts)
                 assert(ctx->nvalues < ARRAY_SIZE(ctx->values));
         }
 
+skip:
+        ctx->parse_depth++;
 }
 
 static void
@@ -477,6 +515,14 @@ end_element(void *data, const char *name)
 {
         struct parser_context *ctx = data;
         struct v3d_spec *spec = ctx->spec;
+
+        ctx->parse_depth--;
+
+        if (ctx->parse_skip_depth) {
+                if (ctx->parse_skip_depth == ctx->parse_depth)
+                        ctx->parse_skip_depth = 0;
+                return;
+        }
 
         if (strcmp(name, "packet") == 0 ||
             strcmp(name, "struct") == 0 ||
@@ -589,10 +635,14 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
         uint32_t text_offset = 0, text_length = 0, total_length;
 
         for (int i = 0; i < ARRAY_SIZE(genxml_files_table); i++) {
-                if (genxml_files_table[i].gen_10 == devinfo->ver) {
+                if (i != 0) {
+                        assert(genxml_files_table[i - 1].gen_10 <
+                               genxml_files_table[i].gen_10);
+                }
+
+                if (genxml_files_table[i].gen_10 <= devinfo->ver) {
                         text_offset = genxml_files_table[i].offset;
                         text_length = genxml_files_table[i].length;
-                        break;
                 }
         }
 
@@ -603,6 +653,7 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
 
         memset(&ctx, 0, sizeof ctx);
         ctx.parser = XML_ParserCreate(NULL);
+        ctx.devinfo = devinfo;
         XML_SetUserData(ctx.parser, &ctx);
         if (ctx.parser == NULL) {
                 fprintf(stderr, "failed to create parser\n");

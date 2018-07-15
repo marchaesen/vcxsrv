@@ -107,8 +107,9 @@ st_update_depth_stencil_alpha(struct st_context *st)
    if (ctx->DrawBuffer->Visual.depthBits > 0) {
       if (ctx->Depth.Test) {
          dsa->depth.enabled = 1;
-         dsa->depth.writemask = ctx->Depth.Mask;
          dsa->depth.func = st_compare_func_to_pipe(ctx->Depth.Func);
+         if (dsa->depth.func != PIPE_FUNC_EQUAL)
+            dsa->depth.writemask = ctx->Depth.Mask;
       }
       if (ctx->Depth.BoundsTest) {
          dsa->depth.bounds_test = 1;

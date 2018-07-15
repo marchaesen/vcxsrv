@@ -229,6 +229,8 @@ st_bind_egl_image(struct gl_context *ctx,
    pipe_resource_reference(&stObj->pt, stimg->texture);
    st_texture_release_all_sampler_views(st, stObj);
    pipe_resource_reference(&stImage->pt, stObj->pt);
+   if (st->pipe->screen->resource_changed)
+      st->pipe->screen->resource_changed(st->pipe->screen, stImage->pt);
 
    stObj->surface_format = stimg->format;
    stObj->level_override = stimg->level;

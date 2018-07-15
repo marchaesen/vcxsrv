@@ -53,8 +53,12 @@ lower_deref_instr(nir_builder *b, nir_intrinsic_instr *instr,
       op = nir_intrinsic_atomic_counter_inc;
       break;
 
-   case nir_intrinsic_atomic_counter_dec_deref:
-      op = nir_intrinsic_atomic_counter_dec;
+   case nir_intrinsic_atomic_counter_pre_dec_deref:
+      op = nir_intrinsic_atomic_counter_pre_dec;
+      break;
+
+   case nir_intrinsic_atomic_counter_post_dec_deref:
+      op = nir_intrinsic_atomic_counter_post_dec;
       break;
 
    case nir_intrinsic_atomic_counter_add_deref:

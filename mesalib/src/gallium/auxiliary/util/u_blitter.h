@@ -100,6 +100,8 @@ struct blitter_context
    /* Whether the blitter is running. */
    bool running;
 
+   bool use_index_buffer;
+
    /* Private members, really. */
    struct pipe_context *pipe; /**< pipe context */
 

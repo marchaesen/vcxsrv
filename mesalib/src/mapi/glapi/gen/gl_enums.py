@@ -25,6 +25,8 @@
 # Authors:
 #    Zack Rusin <zack@kde.org>
 
+from __future__ import print_function
+
 import argparse
 
 import license
@@ -48,20 +50,20 @@ class PrintGlEnums(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
-        print '#include "main/glheader.h"'
-        print '#include "main/enums.h"'
-        print '#include "main/imports.h"'
-        print '#include "main/mtypes.h"'
-        print ''
-        print 'typedef struct PACKED {'
-        print '   uint32_t offset;'
-        print '   int n;'
-        print '} enum_elt;'
-        print ''
+        print('#include "main/glheader.h"')
+        print('#include "main/enums.h"')
+        print('#include "main/imports.h"')
+        print('#include "main/mtypes.h"')
+        print('')
+        print('typedef struct PACKED {')
+        print('   uint32_t offset;')
+        print('   int n;')
+        print('} enum_elt;')
+        print('')
         return
 
     def print_code(self):
-        print """
+        print("""
 typedef int (*cfunc)(const void *, const void *);
 
 /**
@@ -144,7 +146,7 @@ _mesa_lookup_prim_by_nr(GLuint nr)
 }
 
 
-"""
+""")
         return
 
 
@@ -154,37 +156,37 @@ _mesa_lookup_prim_by_nr(GLuint nr)
         sorted_enum_values = sorted(self.enum_table.keys())
         string_offsets = {}
         i = 0;
-        print '#if defined(__GNUC__)'
-        print '# define LONGSTRING __extension__'
-        print '#else'
-        print '# define LONGSTRING'
-        print '#endif'
-        print ''
-        print 'LONGSTRING static const char enum_string_table[] = {'
+        print('#if defined(__GNUC__)')
+        print('# define LONGSTRING __extension__')
+        print('#else')
+        print('# define LONGSTRING')
+        print('#endif')
+        print('')
+        print('LONGSTRING static const char enum_string_table[] = {')
         # We express the very long concatenation of enum strings as an array
         # of characters rather than as a string literal to work-around MSVC's
         # 65535 character limit.
         for enum in sorted_enum_values:
             (name, pri) = self.enum_table[enum]
-            print "  ",
+            print("  ", end=' ')
             for ch in name:
-                print "'%c'," % ch,
-            print "'\\0',"
+                print("'%c'," % ch, end=' ')
+            print("'\\0',")
 
             string_offsets[ enum ] = i
             i += len(name) + 1
 
-        print '};'
-        print ''
+        print('};')
+        print('')
 
 
-        print 'static const enum_elt enum_string_table_offsets[%u] =' % (len(self.enum_table))
-        print '{'
+        print('static const enum_elt enum_string_table_offsets[%u] =' % (len(self.enum_table)))
+        print('{')
         for enum in sorted_enum_values:
             (name, pri) = self.enum_table[enum]
-            print '   { %5u, 0x%08X }, /* %s */' % (string_offsets[enum], enum, name)
-        print '};'
-        print ''
+            print('   { %5u, 0x%08X }, /* %s */' % (string_offsets[enum], enum, name))
+        print('};')
+        print('')
 
         self.print_code()
         return
@@ -240,7 +242,7 @@ _mesa_lookup_prim_by_nr(GLuint nr)
             # confuse us.  GL_ACTIVE_PROGRAM_EXT is OK to lose because
             # we choose GL_ACTIVE PROGRAM instead.
             if name in self.string_to_int and name != "GL_ACTIVE_PROGRAM_EXT":
-                print "#error Renumbering {0} from {1} to {2}".format(name, self.string_to_int[name], value)
+                print("#error Renumbering {0} from {1} to {2}".format(name, self.string_to_int[name], value))
 
             self.string_to_int[name] = value
 

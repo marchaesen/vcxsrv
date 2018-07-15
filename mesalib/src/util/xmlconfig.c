@@ -37,90 +37,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include "xmlconfig.h"
+#include "process.h"
 
-#undef GET_PROGRAM_NAME
-
-#if (defined(__GNU_LIBRARY__) || defined(__GLIBC__)) && !defined(__UCLIBC__)
-#    if !defined(__GLIBC__) || (__GLIBC__ < 2)
-/* These aren't declared in any libc5 header */
-extern char *program_invocation_name, *program_invocation_short_name;
-#    endif
-static const char *
-__getProgramName()
-{
-    char * arg = strrchr(program_invocation_name, '/');
-    if (arg)
-        return arg+1;
-    else
-        return program_invocation_name;
-}
-#    define GET_PROGRAM_NAME() __getProgramName()
-#elif defined(__CYGWIN__)
-#    define GET_PROGRAM_NAME() program_invocation_short_name
-#elif defined(__FreeBSD__) && (__FreeBSD__ >= 2)
-#    include <osreldate.h>
-#    if (__FreeBSD_version >= 440000)
-#        include <stdlib.h>
-#        define GET_PROGRAM_NAME() getprogname()
-#    endif
-#elif defined(__NetBSD__) && defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 106000100)
-#    include <stdlib.h>
-#    define GET_PROGRAM_NAME() getprogname()
-#elif defined(__DragonFly__)
-#    include <stdlib.h>
-#    define GET_PROGRAM_NAME() getprogname()
-#elif defined(__APPLE__)
-#    include <stdlib.h>
-#    define GET_PROGRAM_NAME() getprogname()
-#elif defined(__sun)
-/* Solaris has getexecname() which returns the full path - return just
-   the basename to match BSD getprogname() */
-#    include <stdlib.h>
-#    include <libgen.h>
-
-static const char *
-__getProgramName()
-{
-    static const char *progname;
-
-    if (progname == NULL) {
-        const char *e = getexecname();
-        if (e != NULL) {
-            /* Have to make a copy since getexecname can return a readonly
-               string, but basename expects to be able to modify its arg. */
-            char *n = strdup(e);
-            if (n != NULL) {
-                progname = basename(n);
-            }
-        }
-    }
-    return progname;
-}
-
-#    define GET_PROGRAM_NAME() __getProgramName()
-#endif
-
-#if !defined(GET_PROGRAM_NAME)
-#    if defined(__OpenBSD__) || defined(NetBSD) || defined(__UCLIBC__) || defined(ANDROID)
-/* This is a hack. It's said to work on OpenBSD, NetBSD and GNU.
- * Rogelio M.Serrano Jr. reported it's also working with UCLIBC. It's
- * used as a last resort, if there is no documented facility available. */
-static const char *
-__getProgramName()
-{
-    extern const char *__progname;
-    char * arg = strrchr(__progname, '/');
-    if (arg)
-        return arg+1;
-    else
-        return __progname;
-}
-#        define GET_PROGRAM_NAME() __getProgramName()
-#    else
-#        define GET_PROGRAM_NAME() ""
-#        warning "Per application configuration won't work with your OS version."
-#    endif
-#endif
 
 /** \brief Find an option in an option cache with the name as key */
 static uint32_t
@@ -1007,7 +925,7 @@ driParseConfigFiles(driOptionCache *cache, const driOptionCache *info,
     userData.cache = cache;
     userData.screenNum = screenNum;
     userData.driverName = driverName;
-    userData.execName = GET_PROGRAM_NAME();
+    userData.execName = util_get_process_name();
 
     if ((home = getenv ("HOME"))) {
         uint32_t len = strlen (home);

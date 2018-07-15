@@ -214,6 +214,9 @@ _vbo_set_attrib_format(struct gl_context *ctx,
 {
    const GLboolean integer = vbo_attrtype_to_integer_flag(type);
    const GLboolean doubles = vbo_attrtype_to_double_flag(type);
+
+   if (doubles)
+      size /= 2;
    _mesa_update_array_format(ctx, vao, attr, size, type, GL_RGBA,
                              GL_FALSE, integer, doubles, offset);
    /* Ptr for userspace arrays.

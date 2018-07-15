@@ -211,7 +211,7 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
       SET_VertexAttribL1ui64vARB(tab, vfmt->VertexAttribL1ui64vARB);
    }
 
-   if (ctx->API == API_OPENGL_CORE) {
+   if (_mesa_is_desktop_gl(ctx)) {
       /* GL_ARB_vertex_attrib_64bit */
       SET_VertexAttribL1d(tab, vfmt->VertexAttribL1d);
       SET_VertexAttribL2d(tab, vfmt->VertexAttribL2d);

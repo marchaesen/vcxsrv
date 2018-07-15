@@ -222,7 +222,8 @@ rbug_screen_resource_changed(struct pipe_screen *_screen,
    struct pipe_screen *screen = rb_screen->screen;
    struct pipe_resource *resource = rb_resource->resource;
 
-   screen->resource_changed(screen, resource);
+   if (screen->resource_changed)
+      screen->resource_changed(screen, resource);
 }
 
 static void

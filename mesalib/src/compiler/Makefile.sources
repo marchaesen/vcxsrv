@@ -28,6 +28,7 @@ LIBGLSL_FILES = \
 	glsl/gl_nir_lower_atomics.c \
 	glsl/gl_nir_lower_samplers.c \
 	glsl/gl_nir_lower_samplers_as_deref.c \
+	glsl/gl_nir_link_atomics.c \
 	glsl/gl_nir_link_uniform_initializers.c \
 	glsl/gl_nir_link_uniforms.c \
 	glsl/gl_nir_linker.c \
@@ -276,6 +277,7 @@ NIR_FILES = \
 	nir/nir_opt_if.c \
 	nir/nir_opt_intrinsics.c \
 	nir/nir_opt_loop_unroll.c \
+	nir/nir_opt_large_constants.c \
 	nir/nir_opt_move_comparisons.c \
 	nir/nir_opt_move_load_ubo.c \
 	nir/nir_opt_peephole_select.c \

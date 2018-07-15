@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import re
 
@@ -431,8 +432,8 @@ nir_eval_const_opcode(nir_op op, unsigned num_components,
 from nir_opcodes import opcodes
 from mako.template import Template
 
-print Template(template).render(opcodes=opcodes, type_sizes=type_sizes,
+print(Template(template).render(opcodes=opcodes, type_sizes=type_sizes,
                                 type_has_size=type_has_size,
                                 type_add_size=type_add_size,
                                 op_bit_sizes=op_bit_sizes,
-                                get_const_field=get_const_field)
+                                get_const_field=get_const_field))

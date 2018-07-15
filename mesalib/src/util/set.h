@@ -58,6 +58,9 @@ _mesa_set_create(void *mem_ctx,
                  uint32_t (*key_hash_function)(const void *key),
                  bool (*key_equals_function)(const void *a,
                                              const void *b));
+struct set *
+_mesa_set_clone(struct set *set, void *dst_mem_ctx);
+
 void
 _mesa_set_destroy(struct set *set,
                   void (*delete_function)(struct set_entry *entry));
@@ -78,6 +81,8 @@ _mesa_set_search_pre_hashed(const struct set *set, uint32_t hash,
 
 void
 _mesa_set_remove(struct set *set, struct set_entry *entry);
+void
+_mesa_set_remove_key(struct set *set, const void *key);
 
 struct set_entry *
 _mesa_set_next_entry(const struct set *set, struct set_entry *entry);

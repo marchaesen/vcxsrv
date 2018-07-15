@@ -61,6 +61,12 @@ enum pipe_format
 st_mesa_format_to_pipe_format(const struct st_context *st,
                               mesa_format mesaFormat)
 {
+   struct pipe_screen *screen = st->pipe->screen;
+   bool has_bgra_srgb = screen->is_format_supported(screen,
+						    PIPE_FORMAT_B8G8R8A8_SRGB,
+						    PIPE_TEXTURE_2D, 0,
+						    PIPE_BIND_SAMPLER_VIEW);
+
    switch (mesaFormat) {
    case MESA_FORMAT_A8B8G8R8_UNORM:
       return PIPE_FORMAT_ABGR8888_UNORM;
@@ -458,11 +464,13 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
    case MESA_FORMAT_ETC2_RGB8:
       return st->has_etc2 ? PIPE_FORMAT_ETC2_RGB8 : PIPE_FORMAT_R8G8B8A8_UNORM;
    case MESA_FORMAT_ETC2_SRGB8:
-      return st->has_etc2 ? PIPE_FORMAT_ETC2_SRGB8 : PIPE_FORMAT_B8G8R8A8_SRGB;
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_SRGB8 :
+	 has_bgra_srgb ? PIPE_FORMAT_B8G8R8A8_SRGB : PIPE_FORMAT_R8G8B8A8_SRGB;
    case MESA_FORMAT_ETC2_RGBA8_EAC:
       return st->has_etc2 ? PIPE_FORMAT_ETC2_RGBA8 : PIPE_FORMAT_R8G8B8A8_UNORM;
    case MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC:
-      return st->has_etc2 ? PIPE_FORMAT_ETC2_SRGBA8 : PIPE_FORMAT_B8G8R8A8_SRGB;
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_SRGBA8 :
+	 has_bgra_srgb ? PIPE_FORMAT_B8G8R8A8_SRGB : PIPE_FORMAT_R8G8B8A8_SRGB;
    case MESA_FORMAT_ETC2_R11_EAC:
       return st->has_etc2 ? PIPE_FORMAT_ETC2_R11_UNORM : PIPE_FORMAT_R16_UNORM;
    case MESA_FORMAT_ETC2_RG11_EAC:
@@ -474,7 +482,8 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
    case MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1:
       return st->has_etc2 ? PIPE_FORMAT_ETC2_RGB8A1 : PIPE_FORMAT_R8G8B8A8_UNORM;
    case MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1:
-      return st->has_etc2 ? PIPE_FORMAT_ETC2_SRGB8A1 : PIPE_FORMAT_B8G8R8A8_SRGB;
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_SRGB8A1 :
+	 has_bgra_srgb ? PIPE_FORMAT_B8G8R8A8_SRGB : PIPE_FORMAT_R8G8B8A8_SRGB;
 
    case MESA_FORMAT_RGBA_ASTC_4x4:
       return PIPE_FORMAT_ASTC_4x4;

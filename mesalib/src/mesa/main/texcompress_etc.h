@@ -77,7 +77,8 @@ _mesa_unpack_etc2_format(uint8_t *dst_row,
                          unsigned src_stride,
                          unsigned src_width,
                          unsigned src_height,
-                         mesa_format format);
+			 mesa_format format,
+			 bool bgra);
 
 compressed_fetch_func
 _mesa_get_etc_fetch_func(mesa_format format);

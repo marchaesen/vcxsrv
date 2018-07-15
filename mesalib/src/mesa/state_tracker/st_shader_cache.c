@@ -74,6 +74,9 @@ static void
 st_serialise_ir_program(struct gl_context *ctx, struct gl_program *prog,
                         bool nir)
 {
+   if (prog->driver_cache_blob)
+      return;
+
    struct blob blob;
    blob_init(&blob);
 
@@ -412,6 +415,14 @@ st_serialise_tgsi_program(struct gl_context *ctx, struct gl_program *prog)
 }
 
 void
+st_serialise_tgsi_program_binary(struct gl_context *ctx,
+                                 struct gl_shader_program *shProg,
+                                 struct gl_program *prog)
+{
+   st_serialise_ir_program(ctx, prog, false);
+}
+
+void
 st_deserialise_tgsi_program(struct gl_context *ctx,
                             struct gl_shader_program *shProg,
                             struct gl_program *prog)
@@ -421,6 +432,14 @@ st_deserialise_tgsi_program(struct gl_context *ctx,
 
 void
 st_serialise_nir_program(struct gl_context *ctx, struct gl_program *prog)
+{
+   st_serialise_ir_program(ctx, prog, true);
+}
+
+void
+st_serialise_nir_program_binary(struct gl_context *ctx,
+                                struct gl_shader_program *shProg,
+                                struct gl_program *prog)
 {
    st_serialise_ir_program(ctx, prog, true);
 }

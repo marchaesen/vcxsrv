@@ -57,15 +57,15 @@ struct ac_llvm_flow {
  * The caller is responsible for initializing ctx::module and ctx::builder.
  */
 void
-ac_llvm_context_init(struct ac_llvm_context *ctx, LLVMContextRef context,
+ac_llvm_context_init(struct ac_llvm_context *ctx,
 		     enum chip_class chip_class, enum radeon_family family)
 {
 	LLVMValueRef args[1];
 
+	ctx->context = LLVMContextCreate();
+
 	ctx->chip_class = chip_class;
 	ctx->family = family;
-
-	ctx->context = context;
 	ctx->module = NULL;
 	ctx->builder = NULL;
 

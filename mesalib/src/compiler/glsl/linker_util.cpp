@@ -24,6 +24,7 @@
 #include "main/mtypes.h"
 #include "linker_util.h"
 #include "util/set.h"
+#include "ir_uniform.h" /* for gl_uniform_storage */
 
 /* Utility methods shared between the GLSL IR and the NIR */
 
@@ -61,4 +62,58 @@ link_util_add_program_resource(struct gl_shader_program *prog,
    _mesa_set_add(resource_set, data);
 
    return true;
+}
+
+/**
+ * Search through the list of empty blocks to find one that fits the current
+ * uniform.
+ */
+int
+link_util_find_empty_block(struct gl_shader_program *prog,
+                           struct gl_uniform_storage *uniform)
+{
+   const unsigned entries = MAX2(1, uniform->array_elements);
+
+   foreach_list_typed(struct empty_uniform_block, block, link,
+                      &prog->EmptyUniformLocations) {
+      /* Found a block with enough slots to fit the uniform */
+      if (block->slots == entries) {
+         unsigned start = block->start;
+         exec_node_remove(&block->link);
+         ralloc_free(block);
+
+         return start;
+      /* Found a block with more slots than needed. It can still be used. */
+      } else if (block->slots > entries) {
+         unsigned start = block->start;
+         block->start += entries;
+         block->slots -= entries;
+
+         return start;
+      }
+   }
+
+   return -1;
+}
+
+void
+link_util_update_empty_uniform_locations(struct gl_shader_program *prog)
+{
+   struct empty_uniform_block *current_block = NULL;
+
+   for (unsigned i = 0; i < prog->NumUniformRemapTable; i++) {
+      /* We found empty space in UniformRemapTable. */
+      if (prog->UniformRemapTable[i] == NULL) {
+         /* We've found the beginning of a new continous block of empty slots */
+         if (!current_block || current_block->start + current_block->slots != i) {
+            current_block = rzalloc(prog, struct empty_uniform_block);
+            current_block->start = i;
+            exec_list_push_tail(&prog->EmptyUniformLocations,
+                                &current_block->link);
+         }
+
+         /* The current block continues, so we simply increment its slots */
+         current_block->slots++;
+      }
+   }
 }

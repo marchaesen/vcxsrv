@@ -734,6 +734,12 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
    ns->num_outputs = s->num_outputs;
    ns->num_shared = s->num_shared;
 
+   ns->constant_data_size = s->constant_data_size;
+   if (s->constant_data_size > 0) {
+      ns->constant_data = ralloc_size(ns, s->constant_data_size);
+      memcpy(ns->constant_data, s->constant_data, s->constant_data_size);
+   }
+
    free_clone_state(&state);
 
    return ns;

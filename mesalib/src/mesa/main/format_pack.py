@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 from mako.template import Template
 from sys import argv
@@ -1001,4 +1002,4 @@ _mesa_pack_colormask(mesa_format format, const GLubyte colorMask[4], void *dst)
 
 template = Template(string);
 
-print template.render(argv = argv[0:])
+print(template.render(argv = argv[0:]))

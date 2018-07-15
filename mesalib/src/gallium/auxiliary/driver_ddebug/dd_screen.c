@@ -284,7 +284,8 @@ dd_screen_resource_changed(struct pipe_screen *_screen,
 {
    struct pipe_screen *screen = dd_screen(_screen)->screen;
 
-   screen->resource_changed(screen, res);
+   if (screen->resource_changed)
+      screen->resource_changed(screen, res);
 }
 
 static void

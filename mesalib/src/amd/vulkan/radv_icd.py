@@ -44,4 +44,4 @@ if __name__ == '__main__':
     }
 
     with open(args.out, 'w') as f:
-        json.dump(json_data, f, indent = 4, sort_keys=True)
+        json.dump(json_data, f, indent = 4, sort_keys=True, separators=(',', ': '))

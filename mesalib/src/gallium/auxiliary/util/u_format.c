@@ -235,19 +235,6 @@ util_format_is_subsampled_422(enum pipe_format format)
       desc->block.bits == 32;
 }
 
-boolean
-util_format_is_supported(enum pipe_format format, unsigned bind)
-{
-   if (format >= PIPE_FORMAT_COUNT) {
-      return FALSE;
-   }
-
-   (void)bind;
-
-   return TRUE;
-}
-
-
 /**
  * Calculates the MRD for the depth format. MRD is used in depth bias
  * for UNORM and unbound depth buffers. When the depth buffer is floating

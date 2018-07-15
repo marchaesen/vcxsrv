@@ -28,9 +28,21 @@ SUFFIXES = _pack.h .xml
 
 $(BROADCOM_GENXML_GENERATED_FILES): cle/gen_pack_header.py
 
-.xml_pack.h:
+cle/v3d_packet_v21_pack.h: $(srcdir)/cle/v3d_packet_v21.xml $(srcdir)/cle/gen_pack_header.py
 	$(MKDIR_GEN)
-	$(PYTHON_GEN) $(srcdir)/cle/gen_pack_header.py $< > $@ || ($(RM) $@; false)
+	$(PYTHON_GEN) $(srcdir)/cle/gen_pack_header.py $< 21 > $@ || ($(RM) $@; false)
+
+cle/v3d_packet_v33_pack.h: $(srcdir)/cle/v3d_packet_v33.xml $(srcdir)/cle/gen_pack_header.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/cle/gen_pack_header.py $< 33 > $@ || ($(RM) $@; false)
+
+cle/v3d_packet_v41_pack.h: $(srcdir)/cle/v3d_packet_v33.xml $(srcdir)/cle/gen_pack_header.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/cle/gen_pack_header.py $< 41 > $@ || ($(RM) $@; false)
+
+cle/v3d_packet_v42_pack.h: $(srcdir)/cle/v3d_packet_v33.xml $(srcdir)/cle/gen_pack_header.py
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/cle/gen_pack_header.py $< 42 > $@ || ($(RM) $@; false)
 
 GEN_ZIPPED = $(srcdir)/../intel/genxml/gen_zipped_file.py
 cle/v3d_xml.h: $(GEN_ZIPPED) $(BROADCOM_GENXML_XML_FILES)

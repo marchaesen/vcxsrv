@@ -24,12 +24,16 @@ MESA_UTIL_FILES := \
 	mesa-sha1.h \
 	os_time.c \
 	os_time.h \
+	process.c \
+	process.h \
 	sha1/sha1.c \
 	sha1/sha1.h \
 	ralloc.c \
 	ralloc.h \
 	rand_xor.c \
 	rand_xor.h \
+	rb_tree.c \
+	rb_tree.h \
 	register_allocate.c \
 	register_allocate.h \
 	rgtc.c \

@@ -56,6 +56,7 @@ struct Gfx9ChipSettings
         UINT_32 isVega10            : 1;
         UINT_32 isRaven             : 1;
         UINT_32 isVega12            : 1;
+        UINT_32 isVega20            : 1;
 
         // Display engine IP version name
         UINT_32 isDce12             : 1;

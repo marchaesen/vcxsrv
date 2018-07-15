@@ -28,6 +28,8 @@
 # Generate a C header file containing hash tables of glGet parameter
 # names for each GL API. The generated file is to be included by glGet.c
 
+from __future__ import print_function
+
 import os, sys, imp, getopt
 from collections import defaultdict
 import get_hash_params
@@ -46,16 +48,16 @@ hash_table_size = 1024
 gl_apis=set(["GL", "GL_CORE", "GLES", "GLES2", "GLES3", "GLES31", "GLES32"])
 
 def print_header():
-   print "typedef const unsigned short table_t[%d];\n" % (hash_table_size)
-   print "static const int prime_factor = %d, prime_step = %d;\n" % \
-          (prime_factor, prime_step)
+   print("typedef const unsigned short table_t[%d];\n" % (hash_table_size))
+   print("static const int prime_factor = %d, prime_step = %d;\n" % \
+          (prime_factor, prime_step))
 
 def print_params(params):
-   print "static const struct value_desc values[] = {"
+   print("static const struct value_desc values[] = {")
    for p in params:
-      print "    { %s, %s }," % (p[0], p[1])
+      print("    { %s, %s }," % (p[0], p[1]))
 
-   print "};\n"
+   print("};\n")
 
 def api_name(api):
    return "API_OPEN%s" % api
@@ -78,7 +80,7 @@ def table_name(api):
    return "table_" + api_name(api)
 
 def print_table(api, table):
-   print "static table_t %s = {" % (table_name(api))
+   print("static table_t %s = {" % (table_name(api)))
 
    # convert sparse (index, value) table into a dense table
    dense_table = [0] * hash_table_size
@@ -89,9 +91,9 @@ def print_table(api, table):
    for i in range(0, hash_table_size, row_size):
       row = dense_table[i : i + row_size]
       idx_val = ["%4d" % v for v in row]
-      print " " * 4 + ", ".join(idx_val) + ","
+      print(" " * 4 + ", ".join(idx_val) + ",")
 
-   print "};\n"
+   print("};\n")
 
 def print_tables(tables):
    for table in tables:
@@ -104,12 +106,12 @@ def print_tables(tables):
          i = api_index(api)
          dense_tables[i] = "&%s" % (tname)
 
-   print "static table_t *table_set[] = {"
+   print("static table_t *table_set[] = {")
    for expr in dense_tables:
-      print "   %s," % expr
-   print "};\n"
+      print("   %s," % expr)
+   print("};\n")
 
-   print "#define table(api) (*table_set[api])"
+   print("#define table(api) (*table_set[api])")
 
 # Merge tables with matching parameter lists (i.e. GL and GL_CORE)
 def merge_tables(tables):
@@ -199,7 +201,7 @@ def show_usage():
 if __name__ == '__main__':
    try:
       (opts, args) = getopt.getopt(sys.argv[1:], "f:")
-   except Exception,e:
+   except Exception:
       show_usage()
 
    if len(args) != 0:

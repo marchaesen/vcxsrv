@@ -1153,38 +1153,6 @@ assign_hidden_uniform_slot_id(const char *name, unsigned hidden_id,
    uniform_size->map->put(hidden_uniform_start + hidden_id, name);
 }
 
-/**
- * Search through the list of empty blocks to find one that fits the current
- * uniform.
- */
-static int
-find_empty_block(struct gl_shader_program *prog,
-                 struct gl_uniform_storage *uniform)
-{
-   const unsigned entries = MAX2(1, uniform->array_elements);
-
-   foreach_list_typed(struct empty_uniform_block, block, link,
-                      &prog->EmptyUniformLocations) {
-      /* Found a block with enough slots to fit the uniform */
-      if (block->slots == entries) {
-         unsigned start = block->start;
-         exec_node_remove(&block->link);
-         ralloc_free(block);
-
-         return start;
-      /* Found a block with more slots than needed. It can still be used. */
-      } else if (block->slots > entries) {
-         unsigned start = block->start;
-         block->start += entries;
-         block->slots -= entries;
-
-         return start;
-      }
-   }
-
-   return -1;
-}
-
 static void
 link_setup_uniform_remap_tables(struct gl_context *ctx,
                                 struct gl_shader_program *prog)
@@ -1239,7 +1207,7 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
       int chosen_location = -1;
 
       if (empty_locs)
-         chosen_location = find_empty_block(prog, &prog->data->UniformStorage[i]);
+         chosen_location = link_util_find_empty_block(prog, &prog->data->UniformStorage[i]);
 
       /* Add new entries to the total amount of entries. */
       total_entries += entries;

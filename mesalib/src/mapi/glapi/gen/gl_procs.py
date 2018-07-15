@@ -24,6 +24,8 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+from __future__ import print_function
+
 import argparse
 
 import license
@@ -42,7 +44,7 @@ class PrintGlProcs(gl_XML.gl_print_base):
 (C) Copyright IBM Corporation 2004, 2006""", "BRIAN PAUL, IBM")
 
     def printRealHeader(self):
-        print """
+        print("""
 /* This file is only included by glapi.c and is used for
  * the GetProcAddress() function
  */
@@ -65,20 +67,20 @@ typedef struct {
 #  define NAME_FUNC_OFFSET(n,f1,f2,f3,o) { n , (_glapi_proc) f3 , o }
 #endif
 
-"""
+""")
         return
 
     def printRealFooter(self):
-        print ''
-        print '#undef NAME_FUNC_OFFSET'
+        print('')
+        print('#undef NAME_FUNC_OFFSET')
         return
 
     def printFunctionString(self, name):
-        print '    "gl%s\\0"' % (name)
+        print('    "gl%s\\0"' % (name))
 
     def printBody(self, api):
-        print ''
-        print 'static const char gl_string_table[] ='
+        print('')
+        print('static const char gl_string_table[] =')
 
         base_offset = 0
         table = []
@@ -108,23 +110,23 @@ typedef struct {
                     base_offset += len(n) + 3
 
 
-        print '    ;'
-        print ''
-        print ''
-        print "#ifdef USE_MGL_NAMESPACE"
+        print('    ;')
+        print('')
+        print('')
+        print("#ifdef USE_MGL_NAMESPACE")
         for func in api.functionIterateByOffset():
             for n in func.entry_points:
                 if (not func.is_static_entry_point(func.name)) or (func.has_different_protocol(n) and not func.is_static_entry_point(n)):
-                    print '#define gl_dispatch_stub_%u mgl_dispatch_stub_%u' % (func.offset, func.offset)
+                    print('#define gl_dispatch_stub_%u mgl_dispatch_stub_%u' % (func.offset, func.offset))
                     break
-        print "#endif /* USE_MGL_NAMESPACE */"
-        print ''
-        print ''
-        print '#if defined(NEED_FUNCTION_POINTER) || defined(GLX_INDIRECT_RENDERING)'
+        print("#endif /* USE_MGL_NAMESPACE */")
+        print('')
+        print('')
+        print('#if defined(NEED_FUNCTION_POINTER) || defined(GLX_INDIRECT_RENDERING)')
         for func in api.functionIterateByOffset():
             for n in func.entry_points:
                 if (not func.is_static_entry_point(func.name)) or (func.has_different_protocol(n) and not func.is_static_entry_point(n)):
-                    print '%s GLAPIENTRY gl_dispatch_stub_%u(%s);' % (func.return_type, func.offset, func.get_parameter_string())
+                    print('%s GLAPIENTRY gl_dispatch_stub_%u(%s);' % (func.return_type, func.offset, func.get_parameter_string()))
                     break
 
         if self.es:
@@ -139,26 +141,26 @@ typedef struct {
                                         % (func.return_type, "gl" + n, func.get_parameter_string(n))
                         categories[cat].append(proto)
             if categories:
-                print ''
-                print '/* OpenGL ES specific prototypes */'
-                print ''
+                print('')
+                print('/* OpenGL ES specific prototypes */')
+                print('')
                 keys = categories.keys()
                 keys.sort()
                 for key in keys:
-                    print '/* category %s */' % key
-                    print "\n".join(categories[key])
-                print ''
+                    print('/* category %s */' % key)
+                    print("\n".join(categories[key]))
+                print('')
 
-        print '#endif /* defined(NEED_FUNCTION_POINTER) || defined(GLX_INDIRECT_RENDERING) */'
+        print('#endif /* defined(NEED_FUNCTION_POINTER) || defined(GLX_INDIRECT_RENDERING) */')
 
-        print ''
-        print 'static const glprocs_table_t static_functions[] = {'
+        print('')
+        print('static const glprocs_table_t static_functions[] = {')
 
         for info in table:
-            print '    NAME_FUNC_OFFSET(%5u, %s, %s, %s, %d),' % info
+            print('    NAME_FUNC_OFFSET(%5u, %s, %s, %s, %d),' % info)
 
-        print '    NAME_FUNC_OFFSET(-1, NULL, NULL, NULL, 0)'
-        print '};'
+        print('    NAME_FUNC_OFFSET(-1, NULL, NULL, NULL, 0)')
+        print('};')
         return
 
 

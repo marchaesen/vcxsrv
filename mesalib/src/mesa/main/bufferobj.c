@@ -129,8 +129,7 @@ get_buffer_target(struct gl_context *ctx, GLenum target)
          return &ctx->QueryBuffer;
       break;
    case GL_DRAW_INDIRECT_BUFFER:
-      if ((ctx->API == API_OPENGL_CORE &&
-           ctx->Extensions.ARB_draw_indirect) ||
+      if ((_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_draw_indirect) ||
            _mesa_is_gles31(ctx)) {
          return &ctx->DrawIndirectBuffer;
       }

@@ -40,6 +40,9 @@ void gl_nir_set_uniform_initializers(struct gl_context *ctx,
 void nir_build_program_resource_list(struct gl_context *ctx,
                                      struct gl_shader_program *prog);
 
+void gl_nir_link_assign_atomic_counter_resources(struct gl_context *ctx,
+                                                 struct gl_shader_program *prog);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
