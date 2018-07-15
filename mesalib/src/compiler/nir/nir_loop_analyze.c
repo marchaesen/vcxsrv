@@ -330,8 +330,8 @@ find_loop_terminators(loop_info_state *state)
          nir_loop_terminator *terminator =
             rzalloc(state->loop->info, nir_loop_terminator);
 
-         list_add(&terminator->loop_terminator_link,
-                  &state->loop->info->loop_terminator_list);
+         list_addtail(&terminator->loop_terminator_link,
+                      &state->loop->info->loop_terminator_list);
 
          terminator->nif = nif;
          terminator->break_block = break_blk;

@@ -172,8 +172,8 @@ class function_table:
         if children == []:
             return
 
-        print '    /* [%u] -> opcode range [%u, %u], node depth %u */' % (base_entry, base_opcode, base_opcode + (1 << remaining_bits), depth)
-        print '    %u,' % (M)
+        print('    /* [%u] -> opcode range [%u, %u], node depth %u */' % (base_entry, base_opcode, base_opcode + (1 << remaining_bits), depth))
+        print('    %u,' % (M))
 
         base_entry += (1 << M) + 1
 
@@ -182,7 +182,7 @@ class function_table:
         for child in children:
             if child[1] == []:
                 if self.is_empty_leaf(child_base_opcode, child_M):
-                    print '    EMPTY_LEAF,'
+                    print('    EMPTY_LEAF,')
                 else:
                     # Emit the index of the next dispatch
                     # function.  Then add all the
@@ -190,7 +190,7 @@ class function_table:
                     # node to the dispatch function
                     # lookup table.
 
-                    print '    LEAF(%u),' % (len(self.lookup_table))
+                    print('    LEAF(%u),' % (len(self.lookup_table)))
 
                     for op in range(child_base_opcode, child_base_opcode + (1 << child_M)):
                         if self.functions.has_key(op):
@@ -218,12 +218,12 @@ class function_table:
 
                         self.lookup_table.append(temp)
             else:
-                print '    %u,' % (child_index)
+                print('    %u,' % (child_index))
                 child_index += child[2]
 
             child_base_opcode += 1 << child_M
 
-        print ''
+        print('')
 
         child_index = base_entry
         for child in children:
@@ -278,31 +278,31 @@ class function_table:
 
         tree = self.divide_group(0, 0)
 
-        print '/*****************************************************************/'
-        print '/* tree depth = %u */' % (tree[3])
-        print 'static const int_fast16_t %s_dispatch_tree[%u] = {' % (self.name_base, tree[2])
+        print('/*****************************************************************/')
+        print('/* tree depth = %u */' % (tree[3]))
+        print('static const int_fast16_t %s_dispatch_tree[%u] = {' % (self.name_base, tree[2]))
         self.dump_tree(tree, 0, self.max_bits, 0, 1)
-        print '};\n'
+        print('};\n')
 
         # After dumping the tree, dump the function lookup table.
 
-        print 'static const void *%s_function_table[%u][2] = {' % (self.name_base, len(self.lookup_table))
+        print('static const void *%s_function_table[%u][2] = {' % (self.name_base, len(self.lookup_table)))
         index = 0
         for func in self.lookup_table:
             opcode = func[0]
             name = func[1]
             name_swap = func[2]
 
-            print '    /* [% 3u] = %5u */ {%s, %s},' % (index, opcode, name, name_swap)
+            print('    /* [% 3u] = %5u */ {%s, %s},' % (index, opcode, name, name_swap))
 
             index += 1
 
-        print '};\n'
+        print('};\n')
 
         if self.do_size_check:
             var_table = []
 
-            print 'static const int_fast16_t %s_size_table[%u][2] = {' % (self.name_base, len(self.lookup_table))
+            print('static const int_fast16_t %s_size_table[%u][2] = {' % (self.name_base, len(self.lookup_table)))
             index = 0
             var_table = []
             for func in self.lookup_table:
@@ -316,31 +316,31 @@ class function_table:
                 else:
                     var_offset = "~0"
 
-                print '    /* [%3u] = %5u */ {%3u, %s},' % (index, opcode, fixed, var_offset)
+                print('    /* [%3u] = %5u */ {%3u, %s},' % (index, opcode, fixed, var_offset))
                 index += 1
 
 
-            print '};\n'
+            print('};\n')
 
 
-            print 'static const gl_proto_size_func %s_size_func_table[%u] = {' % (self.name_base, len(var_table))
+            print('static const gl_proto_size_func %s_size_func_table[%u] = {' % (self.name_base, len(var_table)))
             for func in var_table:
-                print '   %s,' % (func)
+                print('   %s,' % (func))
 
-            print '};\n'
+            print('};\n')
 
 
-        print 'const struct __glXDispatchInfo %s_dispatch_info = {' % (self.name_base)
-        print '    %u,' % (self.max_bits)
-        print '    %s_dispatch_tree,' % (self.name_base)
-        print '    %s_function_table,' % (self.name_base)
+        print('const struct __glXDispatchInfo %s_dispatch_info = {' % (self.name_base))
+        print('    %u,' % (self.max_bits))
+        print('    %s_dispatch_tree,' % (self.name_base))
+        print('    %s_function_table,' % (self.name_base))
         if self.do_size_check:
-            print '    %s_size_table,' % (self.name_base)
-            print '    %s_size_func_table' % (self.name_base)
+            print('    %s_size_table,' % (self.name_base))
+            print('    %s_size_func_table' % (self.name_base))
         else:
-            print '    NULL,'
-            print '    NULL'
-        print '};\n'
+            print('    NULL,')
+            print('    NULL')
+        print('};\n')
         return
 
 
@@ -357,17 +357,17 @@ class PrintGlxDispatchTables(glX_proto_common.glx_print_proto):
 
 
     def printRealHeader(self):
-        print '#ifndef HAVE_DIX_CONFIG_H'
-        print '#include "glheader.h"'
-        print '#endif'
-        print ''
-        print '#include <inttypes.h>'
-        print '#include "glxserver.h"'
-        print '#include "glxext.h"'
-        print '#include "indirect_dispatch.h"'
-        print '#include "indirect_reqsize.h"'
-        print '#include "indirect_table.h"'
-        print ''
+        print('#ifndef HAVE_DIX_CONFIG_H')
+        print('#include "glheader.h"')
+        print('#endif')
+        print('')
+        print('#include <inttypes.h>')
+        print('#include "glxserver.h"')
+        print('#include "glxext.h"')
+        print('#include "indirect_dispatch.h"')
+        print('#include "indirect_reqsize.h"')
+        print('#include "indirect_table.h"')
+        print('')
         return
 
 

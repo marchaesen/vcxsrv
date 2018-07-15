@@ -31,6 +31,7 @@
 #include "util/os_time.h"
 #include "util/u_string.h"
 #include "util/u_thread.h"
+#include "process.h"
 
 static void util_queue_killall_and_wait(struct util_queue *queue);
 
@@ -238,9 +239,9 @@ util_queue_thread_func(void *input)
 
    free(input);
 
-   if (queue->name) {
+   if (strlen(queue->name) > 0) {
       char name[16];
-      util_snprintf(name, sizeof(name), "%s:%i", queue->name, thread_index);
+      util_snprintf(name, sizeof(name), "%s%i", queue->name, thread_index);
       u_thread_setname(name);
    }
 
@@ -299,8 +300,34 @@ util_queue_init(struct util_queue *queue,
 {
    unsigned i;
 
+   /* Form the thread name from process_name and name, limited to 13
+    * characters. Characters 14-15 are reserved for the thread number.
+    * Character 16 should be 0. Final form: "process:name12"
+    *
+    * If name is too long, it's truncated. If any space is left, the process
+    * name fills it.
+    */
+   const char *process_name = util_get_process_name();
+   int process_len = process_name ? strlen(process_name) : 0;
+   int name_len = strlen(name);
+   const int max_chars = sizeof(queue->name) - 1;
+
+   name_len = MIN2(name_len, max_chars);
+
+   /* See if there is any space left for the process name, reserve 1 for
+    * the colon. */
+   process_len = MIN2(process_len, max_chars - name_len - 1);
+   process_len = MAX2(process_len, 0);
+
    memset(queue, 0, sizeof(*queue));
-   queue->name = name;
+
+   if (process_len) {
+      snprintf(queue->name, sizeof(queue->name), "%.*s:%s",
+               process_len, process_name, name);
+   } else {
+      snprintf(queue->name, sizeof(queue->name), "%s", name);
+   }
+
    queue->flags = flags;
    queue->num_threads = num_threads;
    queue->max_jobs = max_jobs;

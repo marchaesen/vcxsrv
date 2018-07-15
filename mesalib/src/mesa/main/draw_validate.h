@@ -44,6 +44,9 @@ _mesa_is_valid_prim_mode(const struct gl_context *ctx, GLenum mode);
 extern GLboolean
 _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name);
 
+extern GLboolean
+_mesa_valid_draw_indirect_multi(struct gl_context *ctx, GLsizei primcount,
+                                GLsizei stride, const char *name);
 
 extern GLboolean
 _mesa_validate_DrawArrays(struct gl_context *ctx, GLenum mode, GLsizei count);

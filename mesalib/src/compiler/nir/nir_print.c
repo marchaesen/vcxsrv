@@ -795,6 +795,7 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
       break;
    }
 
+   bool has_texture_deref = false, has_sampler_deref = false;
    for (unsigned i = 0; i < instr->num_srcs; i++) {
       print_src(&instr->src[i].src, state);
 
@@ -832,9 +833,11 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
          fprintf(fp, "(ddy)");
          break;
       case nir_tex_src_texture_deref:
+         has_texture_deref = true;
          fprintf(fp, "(texture_deref)");
          break;
       case nir_tex_src_sampler_deref:
+         has_sampler_deref = true;
          fprintf(fp, "(sampler_deref)");
          break;
       case nir_tex_src_texture_offset:
@@ -857,6 +860,14 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
 
    if (instr->op == nir_texop_tg4) {
       fprintf(fp, "%u (gather_component), ", instr->component);
+   }
+
+   if (!has_texture_deref) {
+      fprintf(fp, "%u (texture), ", instr->texture_index);
+   }
+
+   if (!has_sampler_deref) {
+      fprintf(fp, "%u (sampler), ", instr->sampler_index);
    }
 }
 

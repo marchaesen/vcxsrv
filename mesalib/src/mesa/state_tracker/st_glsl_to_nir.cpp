@@ -45,6 +45,7 @@
 #include "compiler/glsl/glsl_to_nir.h"
 #include "compiler/glsl/gl_nir.h"
 #include "compiler/glsl/ir.h"
+#include "compiler/glsl/ir_optimization.h"
 #include "compiler/glsl/string_to_uint_map.h"
 
 
@@ -563,6 +564,7 @@ st_nir_get_mesa_program(struct gl_context *ctx,
                         struct gl_linked_shader *shader)
 {
    struct st_context *st = st_context(ctx);
+   struct pipe_screen *pscreen = ctx->st->pipe->screen;
    struct gl_program *prog;
 
    validate_ir_tree(shader->ir);
@@ -574,6 +576,10 @@ st_nir_get_mesa_program(struct gl_context *ctx,
    _mesa_copy_linked_program_data(shader_program, shader);
    _mesa_generate_parameters_list_for_uniforms(ctx, shader_program, shader,
                                                prog->Parameters);
+
+   /* Remove reads from output registers. */
+   if (!pscreen->get_param(pscreen, PIPE_CAP_TGSI_CAN_READ_OUTPUTS))
+      lower_output_reads(shader->Stage, shader->ir);
 
    if (ctx->_Shader->Flags & GLSL_DUMP) {
       _mesa_log("\n");
@@ -739,7 +745,15 @@ st_link_nir(struct gl_context *ctx,
       shader->Program->info = nir->info;
 
       if (prev != -1) {
-         nir_compact_varyings(shader_program->_LinkedShaders[prev]->Program->nir,
+         struct gl_program *prev_shader =
+            shader_program->_LinkedShaders[prev]->Program;
+
+         /* We can't use nir_compact_varyings with transform feedback, since
+          * the pipe_stream_output->output_register field is based on the
+          * pre-compacted driver_locations.
+          */
+         if (!prev_shader->sh.LinkedTransformFeedback)
+            nir_compact_varyings(shader_program->_LinkedShaders[prev]->Program->nir,
                               nir, ctx->API != API_OPENGL_COMPAT);
       }
       prev = i;

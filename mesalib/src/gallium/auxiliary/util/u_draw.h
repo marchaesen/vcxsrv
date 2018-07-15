@@ -67,7 +67,9 @@ util_draw_arrays(struct pipe_context *pipe,
 }
 
 static inline void
-util_draw_elements(struct pipe_context *pipe, unsigned index_size,
+util_draw_elements(struct pipe_context *pipe,
+                   void *indices,
+                   unsigned index_size,
                    int index_bias, enum pipe_prim_type mode,
                    uint start,
                    uint count)
@@ -75,6 +77,8 @@ util_draw_elements(struct pipe_context *pipe, unsigned index_size,
    struct pipe_draw_info info;
 
    util_draw_init_info(&info);
+   info.index.user = indices;
+   info.has_user_indices = true;
    info.index_size = index_size;
    info.mode = mode;
    info.start = start;
@@ -108,6 +112,7 @@ util_draw_arrays_instanced(struct pipe_context *pipe,
 
 static inline void
 util_draw_elements_instanced(struct pipe_context *pipe,
+                             void *indices,
                              unsigned index_size,
                              int index_bias,
                              enum pipe_prim_type mode,
@@ -119,6 +124,8 @@ util_draw_elements_instanced(struct pipe_context *pipe,
    struct pipe_draw_info info;
 
    util_draw_init_info(&info);
+   info.index.user = indices;
+   info.has_user_indices = true;
    info.index_size = index_size;
    info.mode = mode;
    info.start = start;

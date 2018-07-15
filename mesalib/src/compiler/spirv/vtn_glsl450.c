@@ -36,7 +36,7 @@
 static nir_ssa_def *
 build_mat2_det(nir_builder *b, nir_ssa_def *col[2])
 {
-   unsigned swiz[4] = {1, 0, 0, 0};
+   unsigned swiz[2] = {1, 0 };
    nir_ssa_def *p = nir_fmul(b, col[0], nir_swizzle(b, col[1], swiz, 2, true));
    return nir_fsub(b, nir_channel(b, p, 0), nir_channel(b, p, 1));
 }
@@ -44,8 +44,8 @@ build_mat2_det(nir_builder *b, nir_ssa_def *col[2])
 static nir_ssa_def *
 build_mat3_det(nir_builder *b, nir_ssa_def *col[3])
 {
-   unsigned yzx[4] = {1, 2, 0, 0};
-   unsigned zxy[4] = {2, 0, 1, 0};
+   unsigned yzx[3] = {1, 2, 0 };
+   unsigned zxy[3] = {2, 0, 1 };
 
    nir_ssa_def *prod0 =
       nir_fmul(b, col[0],
@@ -602,8 +602,8 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       return;
 
    case GLSLstd450Cross: {
-      unsigned yzx[4] = { 1, 2, 0, 0 };
-      unsigned zxy[4] = { 2, 0, 1, 0 };
+      unsigned yzx[3] = { 1, 2, 0 };
+      unsigned zxy[3] = { 2, 0, 1 };
       val->ssa->def =
          nir_fsub(nb, nir_fmul(nb, nir_swizzle(nb, src[0], yzx, 3, true),
                                    nir_swizzle(nb, src[1], zxy, 3, true)),
@@ -802,7 +802,22 @@ handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
 
    struct vtn_pointer *ptr =
       vtn_value(b, w[5], vtn_value_type_pointer)->pointer;
-   intrin->src[0] = nir_src_for_ssa(&vtn_pointer_to_deref(b, ptr)->dest.ssa);
+   nir_deref_instr *deref = vtn_pointer_to_deref(b, ptr);
+
+   /* If the value we are interpolating has an index into a vector then
+    * interpolate the vector and index the result of that instead. This is
+    * necessary because the index will get generated as a series of nir_bcsel
+    * instructions so it would no longer be an input variable.
+    */
+   const bool vec_array_deref = deref->deref_type == nir_deref_type_array &&
+      glsl_type_is_vector(nir_deref_instr_parent(deref)->type);
+
+   nir_deref_instr *vec_deref = NULL;
+   if (vec_array_deref) {
+      vec_deref = deref;
+      deref = nir_deref_instr_parent(deref);
+   }
+   intrin->src[0] = nir_src_for_ssa(&deref->dest.ssa);
 
    switch (opcode) {
    case GLSLstd450InterpolateAtCentroid:
@@ -815,13 +830,26 @@ handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
       vtn_fail("Invalid opcode");
    }
 
-   intrin->num_components = glsl_get_vector_elements(dest_type);
+   intrin->num_components = glsl_get_vector_elements(deref->type);
    nir_ssa_dest_init(&intrin->instr, &intrin->dest,
-                     glsl_get_vector_elements(dest_type),
-                     glsl_get_bit_size(dest_type), NULL);
-   val->ssa->def = &intrin->dest.ssa;
+                     glsl_get_vector_elements(deref->type),
+                     glsl_get_bit_size(deref->type), NULL);
 
    nir_builder_instr_insert(&b->nb, &intrin->instr);
+
+   if (vec_array_deref) {
+      assert(vec_deref);
+      nir_const_value *const_index = nir_src_as_const_value(vec_deref->arr.index);
+      if (const_index) {
+         val->ssa->def = vtn_vector_extract(b, &intrin->dest.ssa,
+                                            const_index->u32[0]);
+      } else {
+         val->ssa->def = vtn_vector_extract_dynamic(b, &intrin->dest.ssa,
+                                                    vec_deref->arr.index.ssa);
+      }
+   } else {
+      val->ssa->def = &intrin->dest.ssa;
+   }
 }
 
 bool

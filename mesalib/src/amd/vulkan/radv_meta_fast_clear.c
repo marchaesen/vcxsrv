@@ -602,7 +602,7 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
                pipeline = cmd_buffer->device->meta_state.fast_clear_flush.cmask_eliminate_pipeline;
 	}
 
-	if (!decompress_dcc && radv_image_has_dcc(image)) {
+	if (radv_image_has_dcc(image)) {
 		radv_emit_set_predication_state_from_image(cmd_buffer, image, true);
 		cmd_buffer->state.predicating = true;
 	}
@@ -668,9 +668,14 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 					&cmd_buffer->pool->alloc);
 
 	}
-	if (!decompress_dcc && radv_image_has_dcc(image)) {
+	if (radv_image_has_dcc(image)) {
 		cmd_buffer->state.predicating = false;
 		radv_emit_set_predication_state_from_image(cmd_buffer, image, false);
+
+		/* Clear the image's fast-clear eliminate predicate because
+		 * FMASK and DCC also imply a fast-clear eliminate.
+		 */
+		radv_set_dcc_need_cmask_elim_pred(cmd_buffer, image, false);
 	}
 	radv_meta_restore(&saved_state, cmd_buffer);
 }

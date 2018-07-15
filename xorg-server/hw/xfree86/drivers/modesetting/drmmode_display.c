@@ -3253,6 +3253,9 @@ drmmode_create_lease(RRLeasePtr lease, int *fd)
 
     nobjects = ncrtc + noutput;
 
+    if (ms->atomic_modeset)
+        nobjects += ncrtc; /* account for planes as well */
+
     if (nobjects == 0)
         return BadValue;
 
@@ -3269,12 +3272,14 @@ drmmode_create_lease(RRLeasePtr lease, int *fd)
 
     i = 0;
 
-    /* Add CRTC ids */
+    /* Add CRTC and plane ids */
     for (c = 0; c < ncrtc; c++) {
         xf86CrtcPtr crtc = lease->crtcs[c]->devPrivate;
         drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
 
         objects[i++] = drmmode_crtc->mode_crtc->crtc_id;
+        if (ms->atomic_modeset)
+            objects[i++] = drmmode_crtc->plane_id;
     }
 
     /* Add connector ids */

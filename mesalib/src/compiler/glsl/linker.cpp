@@ -76,6 +76,7 @@
 #include "util/set.h"
 #include "string_to_uint_map.h"
 #include "linker.h"
+#include "linker_util.h"
 #include "link_varyings.h"
 #include "ir_optimization.h"
 #include "ir_rvalue_visitor.h"
@@ -3527,23 +3528,7 @@ check_explicit_uniform_locations(struct gl_context *ctx,
       }
    }
 
-   struct empty_uniform_block *current_block = NULL;
-
-   for (unsigned i = 0; i < prog->NumUniformRemapTable; i++) {
-      /* We found empty space in UniformRemapTable. */
-      if (prog->UniformRemapTable[i] == NULL) {
-         /* We've found the beginning of a new continous block of empty slots */
-         if (!current_block || current_block->start + current_block->slots != i) {
-            current_block = rzalloc(prog, struct empty_uniform_block);
-            current_block->start = i;
-            exec_list_push_tail(&prog->EmptyUniformLocations,
-                                &current_block->link);
-         }
-
-         /* The current block continues, so we simply increment its slots */
-         current_block->slots++;
-      }
-   }
+   link_util_update_empty_uniform_locations(prog);
 
    delete uniform_map;
    prog->NumExplicitUniformLocations = entries_total;

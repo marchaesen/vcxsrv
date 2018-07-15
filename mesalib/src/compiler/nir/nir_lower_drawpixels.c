@@ -151,9 +151,6 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
    }
 
    if (state->options->pixel_maps) {
-      static const unsigned swiz_xy[4] = {0,1};
-      static const unsigned swiz_zw[4] = {2,3};
-
       /* do four pixel map look-ups with two TEX instructions: */
       nir_ssa_def *def_xy, *def_zw;
 
@@ -166,7 +163,7 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
       tex->texture_index = state->options->pixelmap_sampler;
       tex->dest_type = nir_type_float;
       tex->src[0].src_type = nir_tex_src_coord;
-      tex->src[0].src = nir_src_for_ssa(nir_swizzle(b, def, swiz_xy, 2, true));
+      tex->src[0].src = nir_src_for_ssa(nir_channels(b, def, 0x3));
 
       nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
       nir_builder_instr_insert(b, &tex->instr);
@@ -180,7 +177,7 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
       tex->sampler_index = state->options->pixelmap_sampler;
       tex->dest_type = nir_type_float;
       tex->src[0].src_type = nir_tex_src_coord;
-      tex->src[0].src = nir_src_for_ssa(nir_swizzle(b, def, swiz_zw, 2, true));
+      tex->src[0].src = nir_src_for_ssa(nir_channels(b, def, 0xc));
 
       nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
       nir_builder_instr_insert(b, &tex->instr);

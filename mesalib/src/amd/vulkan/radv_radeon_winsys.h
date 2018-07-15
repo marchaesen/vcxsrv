@@ -257,8 +257,7 @@ struct radeon_winsys {
 			 struct radeon_winsys_fence *fence);
 
 	void (*cs_add_buffer)(struct radeon_cmdbuf *cs,
-			      struct radeon_winsys_bo *bo,
-			      uint8_t priority);
+			      struct radeon_winsys_bo *bo);
 
 	void (*cs_execute_secondary)(struct radeon_cmdbuf *parent,
 				    struct radeon_cmdbuf *child);
@@ -326,13 +325,12 @@ static inline uint64_t radv_buffer_get_va(struct radeon_winsys_bo *bo)
 
 static inline void radv_cs_add_buffer(struct radeon_winsys *ws,
 				      struct radeon_cmdbuf *cs,
-				      struct radeon_winsys_bo *bo,
-				      uint8_t priority)
+				      struct radeon_winsys_bo *bo)
 {
 	if (bo->is_local)
 		return;
 
-	ws->cs_add_buffer(cs, bo, priority);
+	ws->cs_add_buffer(cs, bo);
 }
 
 #endif /* RADV_RADEON_WINSYS_H */

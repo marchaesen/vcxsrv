@@ -58,6 +58,7 @@
 #include "ac_gpu_info.h"
 #include "ac_surface.h"
 #include "ac_llvm_build.h"
+#include "ac_llvm_util.h"
 #include "radv_descriptor_set.h"
 #include "radv_extensions.h"
 #include "radv_cs.h"
@@ -978,6 +979,9 @@ struct radv_cmd_state {
 	uint32_t last_num_instances;
 	uint32_t last_first_instance;
 	uint32_t last_vertex_offset;
+
+	/* Whether CP DMA is busy/idle. */
+	bool dma_is_busy;
 };
 
 struct radv_cmd_pool {
@@ -1036,10 +1040,10 @@ struct radv_cmd_buffer {
 
 	VkResult record_result;
 
-	int ring_offsets_idx; /* just used for verification */
 	uint32_t gfx9_fence_offset;
 	struct radeon_winsys_bo *gfx9_fence_bo;
 	uint32_t gfx9_fence_idx;
+	uint64_t gfx9_eop_bug_va;
 
 	/**
 	 * Whether a query pool has been resetted and we have to flush caches.
@@ -1071,7 +1075,8 @@ void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 				unsigned data_sel,
 				uint64_t va,
 				uint32_t old_fence,
-				uint32_t new_fence);
+				uint32_t new_fence,
+				uint64_t gfx9_eop_bug_va);
 
 void si_emit_wait_fence(struct radeon_cmdbuf *cs,
 			uint64_t va, uint32_t ref,
@@ -1080,7 +1085,8 @@ void si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 			    enum chip_class chip_class,
 			    uint32_t *fence_ptr, uint64_t va,
 			    bool is_mec,
-			    enum radv_cmd_flush_bits flush_bits);
+			    enum radv_cmd_flush_bits flush_bits,
+			    uint64_t gfx9_eop_bug_va);
 void si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer);
 void si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer, uint64_t va);
 void si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer,
@@ -1090,6 +1096,8 @@ void si_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
                         unsigned size);
 void si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
 			    uint64_t size, unsigned value);
+void si_cp_dma_wait_for_idle(struct radv_cmd_buffer *cmd_buffer);
+
 void radv_set_db_count_control(struct radv_cmd_buffer *cmd_buffer);
 bool
 radv_cmd_buffer_upload_alloc(struct radv_cmd_buffer *cmd_buffer,
@@ -1486,6 +1494,17 @@ radv_dcc_enabled(const struct radv_image *image, unsigned level)
 }
 
 /**
+ * Return whether the image has CB metadata.
+ */
+static inline bool
+radv_image_has_CB_metadata(const struct radv_image *image)
+{
+	return radv_image_has_cmask(image) ||
+	       radv_image_has_fmask(image) ||
+	       radv_image_has_dcc(image);
+}
+
+/**
  * Return whether the image has HTILE metadata for depth surfaces.
  */
 static inline bool
@@ -1694,13 +1713,18 @@ struct radv_subpass_barrier {
 	VkAccessFlags        dst_access_mask;
 };
 
+struct radv_subpass_attachment {
+	uint32_t         attachment;
+	VkImageLayout    layout;
+};
+
 struct radv_subpass {
 	uint32_t                                     input_count;
 	uint32_t                                     color_count;
-	VkAttachmentReference *                      input_attachments;
-	VkAttachmentReference *                      color_attachments;
-	VkAttachmentReference *                      resolve_attachments;
-	VkAttachmentReference                        depth_stencil_attachment;
+	struct radv_subpass_attachment *             input_attachments;
+	struct radv_subpass_attachment *             color_attachments;
+	struct radv_subpass_attachment *             resolve_attachments;
+	struct radv_subpass_attachment               depth_stencil_attachment;
 
 	/** Subpass has at least one resolve attachment */
 	bool                                         has_resolve;
@@ -1724,7 +1748,7 @@ struct radv_render_pass_attachment {
 struct radv_render_pass {
 	uint32_t                                     attachment_count;
 	uint32_t                                     subpass_count;
-	VkAttachmentReference *                      subpass_attachments;
+	struct radv_subpass_attachment *             subpass_attachments;
 	struct radv_render_pass_attachment *         attachments;
 	struct radv_subpass_barrier                  end_barrier;
 	struct radv_subpass                          subpasses[0];
@@ -1795,14 +1819,14 @@ struct radv_fence {
 struct radv_shader_variant_info;
 struct radv_nir_compiler_options;
 
-void radv_compile_gs_copy_shader(LLVMTargetMachineRef tm,
+void radv_compile_gs_copy_shader(struct ac_llvm_compiler *ac_llvm,
 				 struct nir_shader *geom_shader,
 				 struct ac_shader_binary *binary,
 				 struct ac_shader_config *config,
 				 struct radv_shader_variant_info *shader_info,
 				 const struct radv_nir_compiler_options *option);
 
-void radv_compile_nir_shader(LLVMTargetMachineRef tm,
+void radv_compile_nir_shader(struct ac_llvm_compiler *ac_llvm,
 			     struct ac_shader_binary *binary,
 			     struct ac_shader_config *config,
 			     struct radv_shader_variant_info *shader_info,

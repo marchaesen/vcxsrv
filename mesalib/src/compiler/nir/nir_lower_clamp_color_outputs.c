@@ -47,13 +47,8 @@ is_color_output(lower_state *state, nir_variable *out)
       }
       break;
    case MESA_SHADER_FRAGMENT:
-      switch (out->data.location) {
-      case FRAG_RESULT_COLOR:
-         return true;
-      default:
-         return false;
-      }
-      break;
+      return (out->data.location == FRAG_RESULT_COLOR ||
+              out->data.location >= FRAG_RESULT_DATA0);
    default:
       return false;
    }

@@ -24,6 +24,8 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+from __future__ import print_function
+
 import argparse
 import sys, string
 
@@ -167,19 +169,19 @@ class glx_enum_function(object):
                     masked_count[i] = c
 
 
-            print '    static const GLushort a[%u] = {' % (mask + 1)
+            print('    static const GLushort a[%u] = {' % (mask + 1))
             for e in masked_enums:
-                print '        %s, ' % (masked_enums[e])
-            print '    };'
+                print('        %s, ' % (masked_enums[e]))
+            print('    };')
 
-            print '    static const GLubyte b[%u] = {' % (mask + 1)
+            print('    static const GLubyte b[%u] = {' % (mask + 1))
             for c in masked_count:
-                print '        %u, ' % (masked_count[c])
-            print '    };'
+                print('        %u, ' % (masked_count[c]))
+            print('    };')
 
-            print '    const unsigned idx = (e & 0x%02xU);' % (mask)
-            print ''
-            print '    return (e == a[idx]) ? (GLint) b[idx] : 0;'
+            print('    const unsigned idx = (e & 0x%02xU);' % (mask))
+            print('')
+            print('    return (e == a[idx]) ? (GLint) b[idx] : 0;')
             return 1;
         else:
             return 0;
@@ -189,9 +191,9 @@ class glx_enum_function(object):
         """Emit the body of the __gl*_size function using a 
         switch-statement."""
 
-        print '    switch( e ) {'
+        print('    switch( e ) {')
 
-        for c in self.count:
+        for c in sorted(self.count):
             for e in self.count[c]:
                 first = 1
 
@@ -211,30 +213,30 @@ class glx_enum_function(object):
                 for k in keys:
                     j = list[k]
                     if first:
-                        print '        case GL_%s:' % (j)
+                        print('        case GL_%s:' % (j))
                         first = 0
                     else:
-                        print '/*      case GL_%s:*/' % (j)
+                        print('/*      case GL_%s:*/' % (j))
 
             if c == -1:
-                print '            return __gl%s_variable_size( e );' % (name)
+                print('            return __gl%s_variable_size( e );' % (name))
             else:
-                print '            return %u;' % (c)
+                print('            return %u;' % (c))
 
-        print '        default: return 0;'
-        print '    }'
+        print('        default: return 0;')
+        print('    }')
 
 
     def Print(self, name):
-        print '_X_INTERNAL PURE FASTCALL GLint'
-        print '__gl%s_size( GLenum e )' % (name)
-        print '{'
+        print('_X_INTERNAL PURE FASTCALL GLint')
+        print('__gl%s_size( GLenum e )' % (name))
+        print('{')
 
         if not self.PrintUsingTable():
             self.PrintUsingSwitch(name)
 
-        print '}'
-        print ''
+        print('}')
+        print('')
 
 
 class glx_server_enum_function(glx_enum_function):
@@ -282,18 +284,18 @@ class glx_server_enum_function(glx_enum_function):
             fixup.append( p.name )
 
 
-        print '    GLsizei compsize;'
-        print ''
+        print('    GLsizei compsize;')
+        print('')
 
         printer.common_emit_fixups(fixup)
 
-        print ''
-        print '    compsize = __gl%s_size(%s);' % (f.name, string.join(f.count_parameter_list, ","))
+        print('')
+        print('    compsize = __gl%s_size(%s);' % (f.name, string.join(f.count_parameter_list, ",")))
         p = f.variable_length_parameter()
-        print '    return safe_pad(%s);' % (p.size_string())
+        print('    return safe_pad(%s);' % (p.size_string()))
 
-        print '}'
-        print ''
+        print('}')
+        print('')
 
 
 class PrintGlxSizeStubs_common(gl_XML.gl_print_base):
@@ -313,41 +315,41 @@ class PrintGlxSizeStubs_common(gl_XML.gl_print_base):
 
 class PrintGlxSizeStubs_c(PrintGlxSizeStubs_common):
     def printRealHeader(self):
-        print ''
-        print '#ifdef HAVE_DIX_CONFIG_H'
-        print '#include <dix-config.h>'
-        print '#else'
-        print ''
-        print '#include "glheader.h"'
-        print ''
-        print '#endif'
-        print ''
-        print '#include <GL/gl.h>'
+        print('')
+        print('#ifdef HAVE_DIX_CONFIG_H')
+        print('#include <dix-config.h>')
+        print('#else')
+        print('')
+        print('#include "glheader.h"')
+        print('')
+        print('#endif')
+        print('')
+        print('#include <GL/gl.h>')
         if self.emit_get:
-            print '#include "indirect_size_get.h"'
-            print '#include "glxserver.h"'
-            print '#include "indirect_util.h"'
+            print('#include "indirect_size_get.h"')
+            print('#include "glxserver.h"')
+            print('#include "indirect_util.h"')
 
-        print '#include "indirect_size.h"'
+        print('#include "indirect_size.h"')
 
-        print ''
+        print('')
         self.printPure()
-        print ''
+        print('')
         self.printFastcall()
-        print ''
-        print ''
-        print '#ifdef HAVE_FUNC_ATTRIBUTE_ALIAS'
-        print '#  define ALIAS2(from,to) \\'
-        print '    _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \\'
-        print '        __attribute__ ((alias( # to )));'
-        print '#  define ALIAS(from,to) ALIAS2( from, __gl ## to ## _size )'
-        print '#else'
-        print '#  define ALIAS(from,to) \\'
-        print '    _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \\'
-        print '    { return __gl ## to ## _size( e ); }'
-        print '#endif'
-        print ''
-        print ''
+        print('')
+        print('')
+        print('#ifdef HAVE_FUNC_ATTRIBUTE_ALIAS')
+        print('#  define ALIAS2(from,to) \\')
+        print('    _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \\')
+        print('        __attribute__ ((alias( # to )));')
+        print('#  define ALIAS(from,to) ALIAS2( from, __gl ## to ## _size )')
+        print('#else')
+        print('#  define ALIAS(from,to) \\')
+        print('    _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \\')
+        print('    { return __gl ## to ## _size( e ); }')
+        print('#endif')
+        print('')
+        print('')
 
 
     def printBody(self, api):
@@ -369,26 +371,26 @@ class PrintGlxSizeStubs_c(PrintGlxSizeStubs_common):
 
 
         for [alias_name, real_name] in aliases:
-            print 'ALIAS( %s, %s )' % (alias_name, real_name)
+            print('ALIAS( %s, %s )' % (alias_name, real_name))
 
 
 
 class PrintGlxSizeStubs_h(PrintGlxSizeStubs_common):
     def printRealHeader(self):
-        print """/**
+        print("""/**
  * \\file
  * Prototypes for functions used to determine the number of data elements in
  * various GLX protocol messages.
  *
  * \\author Ian Romanick <idr@us.ibm.com>
  */
-"""
-        print '#include <X11/Xfuncproto.h>'
-        print ''
+""")
+        print('#include <X11/Xfuncproto.h>')
+        print('')
         self.printPure();
-        print ''
+        print('')
         self.printFastcall();
-        print ''
+        print('')
 
 
     def printBody(self, api):
@@ -398,7 +400,7 @@ class PrintGlxSizeStubs_h(PrintGlxSizeStubs_common):
                 continue
 
             if (ef.is_set() and self.emit_set) or (not ef.is_set() and self.emit_get):
-                print 'extern _X_INTERNAL PURE FASTCALL GLint __gl%s_size(GLenum);' % (func.name)
+                print('extern _X_INTERNAL PURE FASTCALL GLint __gl%s_size(GLenum);' % (func.name))
 
 
 class PrintGlxReqSize_common(gl_XML.gl_print_base):
@@ -422,16 +424,16 @@ class PrintGlxReqSize_h(PrintGlxReqSize_common):
 
 
     def printRealHeader(self):
-        print '#include <X11/Xfuncproto.h>'
-        print ''
+        print('#include <X11/Xfuncproto.h>')
+        print('')
         self.printPure()
-        print ''
+        print('')
 
 
     def printBody(self, api):
         for func in api.functionIterateGlx():
             if not func.ignore and func.has_variable_size_request():
-                print 'extern PURE _X_HIDDEN int __glX%sReqSize(const GLbyte *pc, Bool swap, int reqlen);' % (func.name)
+                print('extern PURE _X_HIDDEN int __glX%sReqSize(const GLbyte *pc, Bool swap, int reqlen);' % (func.name))
 
 
 class PrintGlxReqSize_c(PrintGlxReqSize_common):
@@ -448,33 +450,33 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
 
 
     def printRealHeader(self):
-        print ''
-        print '#ifdef HAVE_DIX_CONFIG_H'
-        print '#include <dix-config.h>'
-        print '#else'
-        print ''
-        print '#include "glheader.h"'
-        print ''
-        print '#endif'
-        print ''
-        print '#include <GL/gl.h>'
-        print '#include "glxserver.h"'
-        print '#include "glxbyteorder.h"'
-        print '#include "indirect_size.h"'
-        print '#include "indirect_reqsize.h"'
-        print ''
-        print '#ifdef HAVE_FUNC_ATTRIBUTE_ALIAS'
-        print '#  define ALIAS2(from,to) \\'
-        print '    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap, int reqlen ) \\'
-        print '        __attribute__ ((alias( # to )));'
-        print '#  define ALIAS(from,to) ALIAS2( from, __glX ## to ## ReqSize )'
-        print '#else'
-        print '#  define ALIAS(from,to) \\'
-        print '    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap, int reqlen ) \\'
-        print '    { return __glX ## to ## ReqSize( pc, swap, reqlen ); }'
-        print '#endif'
-        print ''
-        print ''
+        print('')
+        print('#ifdef HAVE_DIX_CONFIG_H')
+        print('#include <dix-config.h>')
+        print('#else')
+        print('')
+        print('#include "glheader.h"')
+        print('')
+        print('#endif')
+        print('')
+        print('#include <GL/gl.h>')
+        print('#include "glxserver.h"')
+        print('#include "glxbyteorder.h"')
+        print('#include "indirect_size.h"')
+        print('#include "indirect_reqsize.h"')
+        print('')
+        print('#ifdef HAVE_FUNC_ATTRIBUTE_ALIAS')
+        print('#  define ALIAS2(from,to) \\')
+        print('    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap, int reqlen ) \\')
+        print('        __attribute__ ((alias( # to )));')
+        print('#  define ALIAS(from,to) ALIAS2( from, __glX ## to ## ReqSize )')
+        print('#else')
+        print('#  define ALIAS(from,to) \\')
+        print('    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap, int reqlen ) \\')
+        print('    { return __glX ## to ## ReqSize( pc, swap, reqlen ); }')
+        print('#endif')
+        print('')
+        print('')
 
 
     def printBody(self, api):
@@ -526,7 +528,7 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
 
 
         for [alias_name, real_name] in aliases:
-            print 'ALIAS( %s, %s )' % (alias_name, real_name)
+            print('ALIAS( %s, %s )' % (alias_name, real_name))
 
         return
 
@@ -535,10 +537,10 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
         """Utility function to emit conditional byte-swaps."""
 
         if fixup:
-            print '    if (swap) {'
+            print('    if (swap) {')
             for name in fixup:
-                print '        %s = bswap_32(%s);' % (name, name)
-            print '    }'
+                print('        %s = bswap_32(%s);' % (name, name))
+            print('    }')
 
         return
 
@@ -547,14 +549,14 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
         offset = p.offset
         dst = p.string()
         src = '(%s *)' % (p.type_string())
-        print '%-18s = *%11s(%s + %u);' % (dst, src, pc, offset + adjust);
+        print('%-18s = *%11s(%s + %u);' % (dst, src, pc, offset + adjust));
         return
 
 
     def common_func_print_just_header(self, f):
-        print 'int'
-        print '__glX%sReqSize( const GLbyte * pc, Bool swap, int reqlen )' % (f.name)
-        print '{'
+        print('int')
+        print('__glX%sReqSize( const GLbyte * pc, Bool swap, int reqlen )' % (f.name))
+        print('{')
 
 
     def printPixelFunction(self, f):
@@ -563,20 +565,20 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
         f.offset_of( f.parameters[0].name )
         [dim, w, h, d, junk] = f.get_images()[0].get_dimensions()
 
-        print '    GLint row_length   = *  (GLint *)(pc +  4);'
+        print('    GLint row_length   = *  (GLint *)(pc +  4);')
 
         if dim < 3:
             fixup = ['row_length', 'skip_rows', 'alignment']
-            print '    GLint image_height = 0;'
-            print '    GLint skip_images  = 0;'
-            print '    GLint skip_rows    = *  (GLint *)(pc +  8);'
-            print '    GLint alignment    = *  (GLint *)(pc + 16);'
+            print('    GLint image_height = 0;')
+            print('    GLint skip_images  = 0;')
+            print('    GLint skip_rows    = *  (GLint *)(pc +  8);')
+            print('    GLint alignment    = *  (GLint *)(pc + 16);')
         else:
             fixup = ['row_length', 'image_height', 'skip_rows', 'skip_images', 'alignment']
-            print '    GLint image_height = *  (GLint *)(pc +  8);'
-            print '    GLint skip_rows    = *  (GLint *)(pc + 16);'
-            print '    GLint skip_images  = *  (GLint *)(pc + 20);'
-            print '    GLint alignment    = *  (GLint *)(pc + 32);'
+            print('    GLint image_height = *  (GLint *)(pc +  8);')
+            print('    GLint skip_rows    = *  (GLint *)(pc + 16);')
+            print('    GLint skip_images  = *  (GLint *)(pc + 20);')
+            print('    GLint alignment    = *  (GLint *)(pc + 32);')
 
         img = f.images[0]
         for p in f.parameterIterateGlxSend():
@@ -584,21 +586,21 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
                 self.common_emit_one_arg(p, "pc", 0)
                 fixup.append( p.name )
 
-        print ''
+        print('')
 
         self.common_emit_fixups(fixup)
 
         if img.img_null_flag:
-            print ''
-            print '	   if (*(CARD32 *) (pc + %s))' % (img.offset - 4)
-            print '	       return 0;'
+            print('')
+            print('	   if (*(CARD32 *) (pc + %s))' % (img.offset - 4))
+            print('	       return 0;')
 
-        print ''
-        print '    return __glXImageSize(%s, %s, %s, %s, %s, %s,' % (img.img_format, img.img_type, img.img_target, w, h, d )
-        print '                          image_height, row_length, skip_images,'
-        print '                          skip_rows, alignment);'
-        print '}'
-        print ''
+        print('')
+        print('    return __glXImageSize(%s, %s, %s, %s, %s, %s,' % (img.img_format, img.img_type, img.img_target, w, h, d ))
+        print('                          image_height, row_length, skip_images,')
+        print('                          skip_rows, alignment);')
+        print('}')
+        print('')
         return
 
 
@@ -626,10 +628,10 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
                 if s == 0: s = 1
 
                 sig += "(%u,%u)" % (f.offset_of(p.counter), s)
-		if size == '':
-		    size = p.size_string()
-		else:
-		    size = "safe_add(%s, %s)" % (size, p.size_string())
+                if size == '':
+                    size = p.size_string()
+                else:
+                    size = "safe_add(%s, %s)" % (size, p.size_string())
 
         # If the calculated signature matches a function that has
         # already be emitted, don't emit this function.  Instead, add
@@ -648,13 +650,13 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
                 self.common_emit_one_arg(p, "pc", 0)
 
 
-            print ''
+            print('')
             self.common_emit_fixups(fixup)
-            print ''
+            print('')
 
-            print '    return safe_pad(%s);' % (size)
-            print '}'
-            print ''
+            print('    return safe_pad(%s);' % (size))
+            print('}')
+            print('')
 
         return alias
 

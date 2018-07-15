@@ -88,6 +88,8 @@ _mesa_hash_table_search_pre_hashed(struct hash_table *ht, uint32_t hash,
                                   const void *key);
 void _mesa_hash_table_remove(struct hash_table *ht,
                              struct hash_entry *entry);
+void _mesa_hash_table_remove_key(struct hash_table *ht,
+                                 const void *key);
 
 struct hash_entry *_mesa_hash_table_next_entry(struct hash_table *ht,
                                                struct hash_entry *entry);

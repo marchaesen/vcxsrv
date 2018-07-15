@@ -476,6 +476,8 @@ struct v3d_compile {
          */
         uint32_t flat_shade_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
 
+        uint32_t noperspective_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
+
         uint32_t centroid_flags[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
 
         bool uses_center_w;
@@ -658,6 +660,8 @@ struct v3d_fs_prog_data {
          * packet layout.
          */
         uint32_t flat_shade_flags[((V3D_MAX_FS_INPUTS - 1) / 24) + 1];
+
+        uint32_t noperspective_flags[((V3D_MAX_FS_INPUTS - 1) / 24) + 1];
 
         uint32_t centroid_flags[((V3D_MAX_FS_INPUTS - 1) / 24) + 1];
 

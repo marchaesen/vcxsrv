@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include "build_id.h"
+#include "macros.h"
 
 #ifndef NT_GNU_BUILD_ID
 #define NT_GNU_BUILD_ID 3
@@ -36,8 +37,6 @@
 #ifndef ElfW
 #define ElfW(type) Elf_##type
 #endif
-
-#define ALIGN(val, align)      (((val) + (align) - 1) & ~((align) - 1))
 
 struct build_id_note {
    ElfW(Nhdr) nhdr;
@@ -90,8 +89,8 @@ build_id_find_nhdr_callback(struct dl_phdr_info *info, size_t size, void *data_)
          }
 
          size_t offset = sizeof(ElfW(Nhdr)) +
-                         ALIGN(note->nhdr.n_namesz, 4) +
-                         ALIGN(note->nhdr.n_descsz, 4);
+                         ALIGN_POT(note->nhdr.n_namesz, 4) +
+                         ALIGN_POT(note->nhdr.n_descsz, 4);
          note = (struct build_id_note *)((char *)note + offset);
          len -= offset;
       }

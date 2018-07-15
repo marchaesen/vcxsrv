@@ -291,7 +291,7 @@ create_random_bits_image (alpha_preference_t alpha_preference)
     {
     default:
     case 0:
-	stride = width * PIXMAN_FORMAT_BPP (format) + prng_rand_n (17);
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
 	stride = (stride + 3) & (~3);
 	bits = (uint32_t *)make_random_bytes (height * stride);
 	break;
@@ -302,7 +302,7 @@ create_random_bits_image (alpha_preference_t alpha_preference)
 	break;
 
     case 2: /* Zero-filled */
-	stride = width * PIXMAN_FORMAT_BPP (format) + prng_rand_n (17);
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
 	stride = (stride + 3) & (~3);
 	bits = fence_malloc (height * stride);
 	if (!bits)
@@ -311,7 +311,7 @@ create_random_bits_image (alpha_preference_t alpha_preference)
 	break;
 
     case 3: /* Filled with 0xFF */
-	stride = width * PIXMAN_FORMAT_BPP (format) + prng_rand_n (17);
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
 	stride = (stride + 3) & (~3);
 	bits = fence_malloc (height * stride);
 	if (!bits)
@@ -327,7 +327,7 @@ create_random_bits_image (alpha_preference_t alpha_preference)
 	break;
 
     case 5: /* bits is a real pointer, has read/write functions */
-	stride = width * PIXMAN_FORMAT_BPP (format) + prng_rand_n (17);
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
 	stride = (stride + 3) & (~3);
 	bits = fence_malloc (height * stride);
 	if (!bits)
@@ -338,7 +338,7 @@ create_random_bits_image (alpha_preference_t alpha_preference)
 	break;
 
     case 6: /* bits is a real pointer, stride is negative */
-	stride = (width * PIXMAN_FORMAT_BPP (format) + prng_rand_n (17));
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
 	stride = (stride + 3) & (~3);
 	bits = (uint32_t *)make_random_bytes (height * stride);
 	if (!bits)

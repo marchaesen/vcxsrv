@@ -444,7 +444,8 @@ trace_screen_resource_changed(struct pipe_screen *_screen,
    trace_dump_arg(ptr, screen);
    trace_dump_arg(ptr, resource);
 
-   screen->resource_changed(screen, resource);
+   if (screen->resource_changed)
+      screen->resource_changed(screen, resource);
 
    trace_dump_call_end();
 }

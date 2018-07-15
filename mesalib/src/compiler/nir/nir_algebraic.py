@@ -25,6 +25,7 @@
 
 from __future__ import print_function
 import ast
+from collections import OrderedDict
 import itertools
 import struct
 import sys
@@ -601,7 +602,7 @@ ${pass_name}(nir_shader *shader)
 
 class AlgebraicPass(object):
    def __init__(self, pass_name, transforms):
-      self.xform_dict = {}
+      self.xform_dict = OrderedDict()
       self.pass_name = pass_name
 
       error = False

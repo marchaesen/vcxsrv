@@ -987,6 +987,8 @@ nir_deref_instr_get_variable(const nir_deref_instr *instr)
    return instr->var;
 }
 
+bool nir_deref_instr_has_indirect(nir_deref_instr *instr);
+
 bool nir_deref_instr_remove_if_unused(nir_deref_instr *instr);
 
 typedef struct {
@@ -2065,6 +2067,14 @@ typedef struct nir_shader {
     * access plus one
     */
    unsigned num_inputs, num_uniforms, num_outputs, num_shared;
+
+   /** Constant data associated with this shader.
+    *
+    * Constant data is loaded through load_constant intrinsics.  See also
+    * nir_opt_large_constants.
+    */
+   void *constant_data;
+   unsigned constant_data_size;
 } nir_shader;
 
 static inline nir_function_impl *
@@ -2894,6 +2904,10 @@ bool nir_opt_gcm(nir_shader *shader, bool value_number);
 bool nir_opt_if(nir_shader *shader);
 
 bool nir_opt_intrinsics(nir_shader *shader);
+
+bool nir_opt_large_constants(nir_shader *shader,
+                             glsl_type_size_align_func size_align,
+                             unsigned threshold);
 
 bool nir_opt_loop_unroll(nir_shader *shader, nir_variable_mode indirect_mask);
 

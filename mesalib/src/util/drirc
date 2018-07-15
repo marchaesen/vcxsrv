@@ -181,6 +181,10 @@ TODO: document the other workarounds.
             <option name="allow_glsl_relaxed_es" value="true"/>
         </application>
 
+        <application name="No Mans Sky" executable="NMS.exe">
+            <option name="force_glsl_extensions_warn" value="true" />
+        </application>
+
         <!-- The GL thread whitelist is below, workarounds are above.
              Keep it that way. -->
 

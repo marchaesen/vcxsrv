@@ -443,9 +443,7 @@ emit_fragment_varying(struct v3d_compile *c, nir_variable *var,
                         return vir_FADD(c, vir_FMUL(c, vary, c->payload_w), r5);
                 }
         case INTERP_MODE_NOPERSPECTIVE:
-                /* C appears after the mov from the varying.
-                   XXX: improve ldvary setup.
-                */
+                BITSET_SET(c->noperspective_flags, i);
                 return vir_FADD(c, vir_MOV(c, vary), r5);
         case INTERP_MODE_FLAT:
                 BITSET_SET(c->flat_shade_flags, i);
@@ -1030,15 +1028,20 @@ emit_frag_end(struct v3d_compile *c)
                                 b = color[0];
                         }
 
+                        if (c->fs_key->sample_alpha_to_one)
+                                a = vir_uniform_f(c, 1.0);
+
                         if (c->fs_key->f32_color_rb & (1 << rt)) {
-                                inst = vir_MOV_dest(c, vir_reg(QFILE_TLBU, 0), color[0]);
+                                inst = vir_MOV_dest(c, vir_reg(QFILE_TLBU, 0), r);
                                 inst->src[vir_get_implicit_uniform_src(inst)] =
                                         vir_uniform_ui(c, conf);
 
-                                for (int i = 1; i < num_components; i++) {
-                                        inst = vir_MOV_dest(c, vir_reg(QFILE_TLB, 0),
-                                                            color[i]);
-                                }
+                                if (num_components >= 2)
+                                        vir_MOV_dest(c, vir_reg(QFILE_TLB, 0), g);
+                                if (num_components >= 3)
+                                        vir_MOV_dest(c, vir_reg(QFILE_TLB, 0), b);
+                                if (num_components >= 4)
+                                        vir_MOV_dest(c, vir_reg(QFILE_TLB, 0), a);
                         } else {
                                 inst = vir_VFPACK_dest(c, vir_reg(QFILE_TLB, 0), r, g);
                                 if (conf != ~0) {

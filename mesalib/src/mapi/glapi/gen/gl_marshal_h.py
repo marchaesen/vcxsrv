@@ -20,6 +20,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from __future__ import print_function
+
 import getopt
 import gl_XML
 import license
@@ -46,24 +48,24 @@ class PrintCode(gl_XML.gl_print_base):
             'Copyright (C) 2012 Intel Corporation', 'INTEL CORPORATION')
 
     def printRealHeader(self):
-        print header
+        print(header)
 
     def printRealFooter(self):
-        print footer
+        print(footer)
 
     def printBody(self, api):
-        print 'enum marshal_dispatch_cmd_id'
-        print '{'
+        print('enum marshal_dispatch_cmd_id')
+        print('{')
         for func in api.functionIterateAll():
             flavor = func.marshal_flavor()
             if flavor in ('skip', 'sync'):
                 continue
-            print '   DISPATCH_CMD_{0},'.format(func.name)
-        print '};'
+            print('   DISPATCH_CMD_{0},'.format(func.name))
+        print('};')
 
 
 def show_usage():
-    print 'Usage: %s [-f input_file_name]' % sys.argv[0]
+    print('Usage: %s [-f input_file_name]' % sys.argv[0])
     sys.exit(1)
 
 
@@ -72,7 +74,7 @@ if __name__ == '__main__':
 
     try:
         (args, trail) = getopt.getopt(sys.argv[1:], 'm:f:')
-    except Exception,e:
+    except Exception:
         show_usage()
 
     for (arg,val) in args:

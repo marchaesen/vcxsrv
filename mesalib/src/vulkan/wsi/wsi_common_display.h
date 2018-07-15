@@ -40,11 +40,25 @@ wsi_display_get_physical_device_display_properties(
    VkDisplayPropertiesKHR *properties);
 
 VkResult
+wsi_display_get_physical_device_display_properties2(
+   VkPhysicalDevice physical_device,
+   struct wsi_device *wsi_device,
+   uint32_t *pPropertyCount,
+   VkDisplayProperties2KHR *pProperties);
+
+VkResult
 wsi_display_get_physical_device_display_plane_properties(
    VkPhysicalDevice physical_device,
    struct wsi_device *wsi_device,
    uint32_t *property_count,
    VkDisplayPlanePropertiesKHR *properties);
+
+VkResult
+wsi_display_get_physical_device_display_plane_properties2(
+   VkPhysicalDevice physical_device,
+   struct wsi_device *wsi_device,
+   uint32_t *property_count,
+   VkDisplayPlaneProperties2KHR *properties);
 
 VkResult
 wsi_display_get_display_plane_supported_displays(
@@ -62,6 +76,13 @@ wsi_display_get_display_mode_properties(VkPhysicalDevice physical_device,
                                         VkDisplayModePropertiesKHR *properties);
 
 VkResult
+wsi_display_get_display_mode_properties2(VkPhysicalDevice physical_device,
+                                         struct wsi_device *wsi_device,
+                                         VkDisplayKHR display,
+                                         uint32_t *property_count,
+                                         VkDisplayModeProperties2KHR *properties);
+
+VkResult
 wsi_display_create_display_mode(VkPhysicalDevice physical_device,
                                 struct wsi_device *wsi_device,
                                 VkDisplayKHR display,
@@ -75,6 +96,12 @@ wsi_get_display_plane_capabilities(VkPhysicalDevice physical_device,
                                    VkDisplayModeKHR mode_khr,
                                    uint32_t plane_index,
                                    VkDisplayPlaneCapabilitiesKHR *capabilities);
+
+VkResult
+wsi_get_display_plane_capabilities2(VkPhysicalDevice physical_device,
+                                    struct wsi_device *wsi_device,
+                                    const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
+                                    VkDisplayPlaneCapabilities2KHR *capabilities);
 
 VkResult
 wsi_create_display_surface(VkInstance instance,

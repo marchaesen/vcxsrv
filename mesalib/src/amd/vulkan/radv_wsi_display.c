@@ -57,6 +57,20 @@ radv_GetPhysicalDeviceDisplayPropertiesKHR(VkPhysicalDevice physical_device,
 }
 
 VkResult
+radv_GetPhysicalDeviceDisplayProperties2KHR(VkPhysicalDevice physical_device,
+                                            uint32_t *property_count,
+                                            VkDisplayProperties2KHR *properties)
+{
+	RADV_FROM_HANDLE(radv_physical_device, pdevice, physical_device);
+
+	return wsi_display_get_physical_device_display_properties2(
+		physical_device,
+		&pdevice->wsi_device,
+		property_count,
+		properties);
+}
+
+VkResult
 radv_GetPhysicalDeviceDisplayPlanePropertiesKHR(
 	VkPhysicalDevice physical_device,
 	uint32_t *property_count,
@@ -65,6 +79,21 @@ radv_GetPhysicalDeviceDisplayPlanePropertiesKHR(
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physical_device);
 
 	return wsi_display_get_physical_device_display_plane_properties(
+		physical_device,
+		&pdevice->wsi_device,
+		property_count,
+		properties);
+}
+
+VkResult
+radv_GetPhysicalDeviceDisplayPlaneProperties2KHR(
+	VkPhysicalDevice physical_device,
+	uint32_t *property_count,
+	VkDisplayPlaneProperties2KHR *properties)
+{
+	RADV_FROM_HANDLE(radv_physical_device, pdevice, physical_device);
+
+	return wsi_display_get_physical_device_display_plane_properties2(
 		physical_device,
 		&pdevice->wsi_device,
 		property_count,
@@ -104,6 +133,21 @@ radv_GetDisplayModePropertiesKHR(VkPhysicalDevice physical_device,
 }
 
 VkResult
+radv_GetDisplayModeProperties2KHR(VkPhysicalDevice physical_device,
+                                  VkDisplayKHR display,
+                                  uint32_t *property_count,
+                                  VkDisplayModeProperties2KHR *properties)
+{
+	RADV_FROM_HANDLE(radv_physical_device, pdevice, physical_device);
+
+	return wsi_display_get_display_mode_properties2(physical_device,
+						        &pdevice->wsi_device,
+						        display,
+						        property_count,
+						        properties);
+}
+
+VkResult
 radv_CreateDisplayModeKHR(VkPhysicalDevice physical_device,
                           VkDisplayKHR display,
                           const VkDisplayModeCreateInfoKHR *create_info,
@@ -133,6 +177,19 @@ radv_GetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice physical_device,
 						  mode_khr,
 						  plane_index,
 						  capabilities);
+}
+
+VkResult
+radv_GetDisplayPlaneCapabilities2KHR(VkPhysicalDevice physical_device,
+                                     const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
+                                     VkDisplayPlaneCapabilities2KHR *capabilities)
+{
+	RADV_FROM_HANDLE(radv_physical_device, pdevice, physical_device);
+
+	return wsi_get_display_plane_capabilities2(physical_device,
+						   &pdevice->wsi_device,
+						   pDisplayPlaneInfo,
+						   capabilities);
 }
 
 VkResult

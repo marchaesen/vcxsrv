@@ -27,6 +27,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct ac_shader_reloc {
 	char name[32];
 	uint64_t offset;
@@ -97,5 +101,9 @@ void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 				  unsigned symbol_offset,
 				  bool supports_spill);
 void ac_shader_binary_clean(struct ac_shader_binary *b);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* AC_BINARY_H */

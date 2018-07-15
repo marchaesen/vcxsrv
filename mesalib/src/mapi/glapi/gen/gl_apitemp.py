@@ -24,6 +24,8 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+from __future__ import print_function
+
 import argparse
 
 import gl_XML, glX_XML
@@ -97,27 +99,27 @@ class PrintGlOffsets(gl_XML.gl_print_base):
             if (cat.startswith("es") or cat.startswith("GL_OES")):
                 need_proto = True
         if need_proto:
-            print '%s %s KEYWORD2 NAME(%s)(%s);' % (keyword, f.return_type, n, f.get_parameter_string(name))
-            print ''
+            print('%s %s KEYWORD2 NAME(%s)(%s);' % (keyword, f.return_type, n, f.get_parameter_string(name)))
+            print('')
 
-        print '%s %s KEYWORD2 NAME(%s)(%s)' % (keyword, f.return_type, n, f.get_parameter_string(name))
-        print '{'
+        print('%s %s KEYWORD2 NAME(%s)(%s)' % (keyword, f.return_type, n, f.get_parameter_string(name)))
+        print('{')
         if silence:
-            print '    %s' % (silence)
+            print('    %s' % (silence))
         if p_string == "":
-            print '   %s(%s, (), (F, "gl%s();\\n"));' \
-                    % (dispatch, f.name, name)
+            print('   %s(%s, (), (F, "gl%s();\\n"));' \
+                    % (dispatch, f.name, name))
         else:
-            print '   %s(%s, (%s), (F, "gl%s(%s);\\n", %s));' \
-                    % (dispatch, f.name, p_string, name, t_string, o_string)
-        print '}'
-        print ''
+            print('   %s(%s, (%s), (F, "gl%s(%s);\\n", %s));' \
+                    % (dispatch, f.name, p_string, name, t_string, o_string))
+        print('}')
+        print('')
         return
 
     def printRealHeader(self):
-        print ''
+        print('')
         self.printVisibility( "HIDDEN", "hidden" )
-        print """
+        print("""
 /*
  * This file is a template which generates the OpenGL API entry point
  * functions.  It should be included by a .c file which first defines
@@ -164,13 +166,13 @@ class PrintGlOffsets(gl_XML.gl_print_base):
 #error RETURN_DISPATCH must be defined
 #endif
 
-"""
+""")
         return
 
 
 
     def printInitDispatch(self, api):
-        print """
+        print("""
 #endif /* defined( NAME ) */
 
 /*
@@ -187,31 +189,31 @@ class PrintGlOffsets(gl_XML.gl_print_base):
 #error _GLAPI_SKIP_NORMAL_ENTRY_POINTS must not be defined
 #endif
 
-_glapi_proc DISPATCH_TABLE_NAME[] = {"""
+_glapi_proc DISPATCH_TABLE_NAME[] = {""")
         for f in api.functionIterateByOffset():
-            print '   TABLE_ENTRY(%s),' % (f.dispatch_name())
+            print('   TABLE_ENTRY(%s),' % (f.dispatch_name()))
 
-        print '   /* A whole bunch of no-op functions.  These might be called'
-        print '    * when someone tries to call a dynamically-registered'
-        print '    * extension function without a current rendering context.'
-        print '    */'
+        print('   /* A whole bunch of no-op functions.  These might be called')
+        print('    * when someone tries to call a dynamically-registered')
+        print('    * extension function without a current rendering context.')
+        print('    */')
         for i in range(1, 100):
-            print '   TABLE_ENTRY(Unused),'
+            print('   TABLE_ENTRY(Unused),')
 
-        print '};'
-        print '#endif /* DISPATCH_TABLE_NAME */'
-        print ''
+        print('};')
+        print('#endif /* DISPATCH_TABLE_NAME */')
+        print('')
         return
 
 
     def printAliasedTable(self, api):
-        print """
+        print("""
 /*
  * This is just used to silence compiler warnings.
  * We list the functions which are not otherwise used.
  */
 #ifdef UNUSED_TABLE_NAME
-_glapi_proc UNUSED_TABLE_NAME[] = {"""
+_glapi_proc UNUSED_TABLE_NAME[] = {""")
 
         normal_entries = []
         proto_entries = []
@@ -230,18 +232,18 @@ _glapi_proc UNUSED_TABLE_NAME[] = {"""
             normal_entries.extend(normal_ents)
             proto_entries.extend(proto_ents)
 
-        print '#ifndef _GLAPI_SKIP_NORMAL_ENTRY_POINTS'
+        print('#ifndef _GLAPI_SKIP_NORMAL_ENTRY_POINTS')
         for ent in normal_entries:
-            print '   TABLE_ENTRY(%s),' % (ent)
-        print '#endif /* _GLAPI_SKIP_NORMAL_ENTRY_POINTS */'
-        print '#ifndef _GLAPI_SKIP_PROTO_ENTRY_POINTS'
+            print('   TABLE_ENTRY(%s),' % (ent))
+        print('#endif /* _GLAPI_SKIP_NORMAL_ENTRY_POINTS */')
+        print('#ifndef _GLAPI_SKIP_PROTO_ENTRY_POINTS')
         for ent in proto_entries:
-            print '   TABLE_ENTRY(%s),' % (ent)
-        print '#endif /* _GLAPI_SKIP_PROTO_ENTRY_POINTS */'
+            print('   TABLE_ENTRY(%s),' % (ent))
+        print('#endif /* _GLAPI_SKIP_PROTO_ENTRY_POINTS */')
 
-        print '};'
-        print '#endif /*UNUSED_TABLE_NAME*/'
-        print ''
+        print('};')
+        print('#endif /*UNUSED_TABLE_NAME*/')
+        print('')
         return
 
 
@@ -278,23 +280,23 @@ _glapi_proc UNUSED_TABLE_NAME[] = {"""
             normal_entry_points.append((func, normal_ents))
             proto_entry_points.append((func, proto_ents))
 
-        print '#ifndef _GLAPI_SKIP_NORMAL_ENTRY_POINTS'
-        print ''
+        print('#ifndef _GLAPI_SKIP_NORMAL_ENTRY_POINTS')
+        print('')
         for func, ents in normal_entry_points:
             for ent in ents:
                 self.printFunction(func, ent)
-        print ''
-        print '#endif /* _GLAPI_SKIP_NORMAL_ENTRY_POINTS */'
-        print ''
-        print '/* these entry points might require different protocols */'
-        print '#ifndef _GLAPI_SKIP_PROTO_ENTRY_POINTS'
-        print ''
+        print('')
+        print('#endif /* _GLAPI_SKIP_NORMAL_ENTRY_POINTS */')
+        print('')
+        print('/* these entry points might require different protocols */')
+        print('#ifndef _GLAPI_SKIP_PROTO_ENTRY_POINTS')
+        print('')
         for func, ents in proto_entry_points:
             for ent in ents:
                 self.printFunction(func, ent)
-        print ''
-        print '#endif /* _GLAPI_SKIP_PROTO_ENTRY_POINTS */'
-        print ''
+        print('')
+        print('#endif /* _GLAPI_SKIP_PROTO_ENTRY_POINTS */')
+        print('')
 
         self.printInitDispatch(api)
         self.printAliasedTable(api)

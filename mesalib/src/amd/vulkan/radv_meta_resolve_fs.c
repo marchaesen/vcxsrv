@@ -611,8 +611,8 @@ radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer)
 	radv_decompress_resolve_subpass_src(cmd_buffer);
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
-		VkAttachmentReference src_att = subpass->color_attachments[i];
-		VkAttachmentReference dest_att = subpass->resolve_attachments[i];
+		struct radv_subpass_attachment src_att = subpass->color_attachments[i];
+		struct radv_subpass_attachment dest_att = subpass->resolve_attachments[i];
 
 		if (src_att.attachment == VK_ATTACHMENT_UNUSED ||
 		    dest_att.attachment == VK_ATTACHMENT_UNUSED)
@@ -623,7 +623,7 @@ radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer)
 
 		struct radv_subpass resolve_subpass = {
 			.color_count = 1,
-			.color_attachments = (VkAttachmentReference[]) { dest_att },
+			.color_attachments = (struct radv_subpass_attachment[]) { dest_att },
 			.depth_stencil_attachment = { .attachment = VK_ATTACHMENT_UNUSED },
 		};
 

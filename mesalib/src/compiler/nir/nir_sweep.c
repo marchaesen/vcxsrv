@@ -167,6 +167,8 @@ nir_sweep(nir_shader *nir)
       sweep_function(nir, func);
    }
 
+   ralloc_steal(nir, nir->constant_data);
+
    /* Free everything we didn't steal back. */
    ralloc_free(rubbish);
 }

@@ -84,6 +84,7 @@ struct ms_drm_queue {
 
 typedef struct _modesettingRec {
     int fd;
+    Bool fd_passed;
 
     int Chipset;
     EntityInfoPtr pEnt;

@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "xf86.h"
+#include "xf86Priv.h"
 #include "xf86_OSproc.h"
 #include "compiler.h"
 #include "xf86Pci.h"
@@ -195,9 +196,22 @@ modesettingEntPtr ms_ent_priv(ScrnInfoPtr scrn)
 }
 
 static int
+get_passed_fd(void)
+{
+    if (xf86DRMMasterFd >= 0) {
+        xf86DrvMsg(-1, X_INFO, "Using passed DRM master file descriptor %d\n", xf86DRMMasterFd);
+        return dup(xf86DRMMasterFd);
+    }
+    return -1;
+}
+
+static int
 open_hw(const char *dev)
 {
     int fd;
+
+    if ((fd = get_passed_fd()) != -1)
+        return fd;
 
     if (dev)
         fd = open(dev, O_RDWR | O_CLOEXEC, 0);
@@ -818,6 +832,12 @@ ms_get_drm_master_fd(ScrnInfoPtr pScrn)
         return TRUE;
     }
 
+    ms->fd_passed = FALSE;
+    if ((ms->fd = get_passed_fd()) >= 0) {
+        ms->fd_passed = TRUE;
+        return TRUE;
+    }
+
 #ifdef XSERVER_PLATFORM_BUS
     if (pEnt->location.type == BUS_PLATFORM) {
 #ifdef XF86_PDEV_SERVER_FD
@@ -920,7 +940,7 @@ PreInit(ScrnInfoPtr pScrn, int flags)
                    "Using 24bpp hw front buffer with 32bpp shadow\n");
         defaultbpp = 32;
     } else {
-        ms->drmmode.kbpp = defaultbpp;
+        ms->drmmode.kbpp = 0;
     }
     bppflags = PreferConvert24to32 | SupportConvert24to32 | Support32bppFb;
 
@@ -941,6 +961,8 @@ PreInit(ScrnInfoPtr pScrn, int flags)
         return FALSE;
     }
     xf86PrintDepthBpp(pScrn);
+    if (!ms->drmmode.kbpp)
+        ms->drmmode.kbpp = pScrn->bitsPerPixel;
 
     /* Process the options */
     xf86CollectOptions(pScrn, NULL);
@@ -1014,8 +1036,7 @@ PreInit(ScrnInfoPtr pScrn, int flags)
 #endif
     }
 
-    ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
-    ret |= drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 1);
+    ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 1);
     ms->atomic_modeset = (ret == 0);
 
     ms->kms_has_modifiers = FALSE;
@@ -1502,6 +1523,9 @@ SetMaster(ScrnInfoPtr pScrn)
         return TRUE;
 #endif
 
+    if (ms->fd_passed)
+        return TRUE;
+
     ret = drmSetMaster(ms->fd);
     if (ret)
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "drmSetMaster failed: %s\n",
@@ -1754,7 +1778,8 @@ LeaveVT(ScrnInfoPtr pScrn)
         return;
 #endif
 
-    drmDropMaster(ms->fd);
+    if (!ms->fd_passed)
+        drmDropMaster(ms->fd);
 }
 
 /*

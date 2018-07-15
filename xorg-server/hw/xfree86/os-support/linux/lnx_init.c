@@ -346,6 +346,13 @@ xf86CloseConsole(void)
     close(xf86Info.consoleFd);  /* make the vt-manager happy */
 }
 
+#define CHECK_FOR_REQUIRED_ARGUMENT() \
+    if (((i + 1) >= argc) || (!argv[i + 1])) { 				\
+      ErrorF("Required argument to %s not specified\n", argv[i]); 	\
+      UseMsg(); 							\
+      FatalError("Required argument to %s not specified\n", argv[i]);	\
+    }
+
 int
 xf86ProcessArgument(int argc, char *argv[], int i)
 {
@@ -366,6 +373,19 @@ xf86ProcessArgument(int argc, char *argv[], int i)
         }
         return 1;
     }
+
+    if (!strcmp(argv[i], "-masterfd")) {
+        CHECK_FOR_REQUIRED_ARGUMENT();
+        if (xf86PrivsElevated())
+            FatalError("\nCannot specify -masterfd when server is setuid/setgid\n");
+        if (sscanf(argv[++i], "%d", &xf86DRMMasterFd) != 1) {
+            UseMsg();
+            xf86DRMMasterFd = -1;
+            return 0;
+        }
+        return 2;
+    }
+
     return 0;
 }
 
@@ -375,4 +395,5 @@ xf86UseMsg(void)
     ErrorF("vtXX                   use the specified VT number\n");
     ErrorF("-keeptty               ");
     ErrorF("don't detach controlling tty (for debugging only)\n");
+    ErrorF("-masterfd <fd>         use the specified fd as the DRM master fd (not if setuid/gid)\n");
 }

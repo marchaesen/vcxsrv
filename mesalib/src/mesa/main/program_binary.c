@@ -171,24 +171,23 @@ static void
 write_program_payload(struct gl_context *ctx, struct blob *blob,
                       struct gl_shader_program *sh_prog)
 {
-   bool serialize[MESA_SHADER_STAGES];
    for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
       struct gl_linked_shader *shader = sh_prog->_LinkedShaders[stage];
-      serialize[stage] = shader && shader->Program->driver_cache_blob == NULL;
-      if (serialize[stage])
-         ctx->Driver.ProgramBinarySerializeDriverBlob(ctx, shader->Program);
+      if (shader)
+         ctx->Driver.ProgramBinarySerializeDriverBlob(ctx, sh_prog,
+                                                      shader->Program);
    }
 
    serialize_glsl_program(blob, ctx, sh_prog);
 
    for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
-      if (!serialize[stage])
-         continue;
-
-      struct gl_program *prog = sh_prog->_LinkedShaders[stage]->Program;
-      ralloc_free(prog->driver_cache_blob);
-      prog->driver_cache_blob = NULL;
-      prog->driver_cache_blob_size = 0;
+      struct gl_linked_shader *shader = sh_prog->_LinkedShaders[stage];
+      if (shader) {
+         struct gl_program *prog = sh_prog->_LinkedShaders[stage]->Program;
+         ralloc_free(prog->driver_cache_blob);
+         prog->driver_cache_blob = NULL;
+         prog->driver_cache_blob_size = 0;
+      }
    }
 }
 

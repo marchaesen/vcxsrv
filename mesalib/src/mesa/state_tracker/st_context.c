@@ -759,11 +759,15 @@ st_init_driver_functions(struct pipe_screen *screen,
       screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
                                PIPE_SHADER_CAP_PREFERRED_IR);
    if (preferred_ir == PIPE_SHADER_IR_NIR) {
-      functions->ProgramBinarySerializeDriverBlob = st_serialise_nir_program;
+      functions->ShaderCacheSerializeDriverBlob =  st_serialise_nir_program;
+      functions->ProgramBinarySerializeDriverBlob =
+         st_serialise_nir_program_binary;
       functions->ProgramBinaryDeserializeDriverBlob =
          st_deserialise_nir_program;
    } else {
-      functions->ProgramBinarySerializeDriverBlob = st_serialise_tgsi_program;
+      functions->ShaderCacheSerializeDriverBlob =  st_serialise_tgsi_program;
+      functions->ProgramBinarySerializeDriverBlob =
+         st_serialise_tgsi_program_binary;
       functions->ProgramBinaryDeserializeDriverBlob =
          st_deserialise_tgsi_program;
    }

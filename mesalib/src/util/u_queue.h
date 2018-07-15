@@ -199,7 +199,7 @@ struct util_queue_job {
 
 /* Put this into your context. */
 struct util_queue {
-   const char *name;
+   char name[14]; /* 13 characters = the thread name without the index */
    mtx_t finish_lock; /* only for util_queue_finish */
    mtx_t lock;
    cnd_t has_queued_cond;

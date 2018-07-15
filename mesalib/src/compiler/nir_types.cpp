@@ -477,3 +477,77 @@ glsl_channel_type(const glsl_type *t)
       unreachable("Unhandled base type glsl_channel_type()");
    }
 }
+
+void
+glsl_get_natural_size_align_bytes(const struct glsl_type *type,
+                                  unsigned *size, unsigned *align)
+{
+   switch (type->base_type) {
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
+   case GLSL_TYPE_FLOAT16:
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+   case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_BOOL:
+   case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_UINT64:
+   case GLSL_TYPE_INT64: {
+      unsigned N = glsl_get_bit_size(type) / 8;
+      *size = N * type->components();
+      *align = N;
+      break;
+   }
+
+   case GLSL_TYPE_ARRAY: {
+      unsigned elem_size, elem_align;
+      glsl_get_natural_size_align_bytes(type->fields.array,
+                                        &elem_size, &elem_align);
+      *align = elem_align;
+      *size = type->length * ALIGN_POT(elem_size, elem_align);
+      break;
+   }
+
+   case GLSL_TYPE_STRUCT:
+      *size = 0;
+      *align = 0;
+      for (unsigned i = 0; i < type->length; i++) {
+         unsigned elem_size, elem_align;
+         glsl_get_natural_size_align_bytes(type->fields.structure[i].type,
+                                           &elem_size, &elem_align);
+         *align = MAX2(*align, elem_align);
+         *size = ALIGN_POT(*size, elem_align) + elem_size;
+      }
+      break;
+
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_ATOMIC_UINT:
+   case GLSL_TYPE_SUBROUTINE:
+   case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_VOID:
+   case GLSL_TYPE_ERROR:
+   case GLSL_TYPE_INTERFACE:
+   case GLSL_TYPE_FUNCTION:
+      unreachable("type does not have a natural size");
+   }
+}
+
+const glsl_type *
+glsl_atomic_uint_type(void)
+{
+   return glsl_type::atomic_uint_type;
+}
+
+unsigned
+glsl_atomic_size(const struct glsl_type *type)
+{
+   return type->atomic_size();
+}
+
+bool
+glsl_contains_atomic(const struct glsl_type *type)
+{
+   return type->contains_atomic();
+}

@@ -93,6 +93,7 @@ extern _X_EXPORT int xf86LogVerbose;    /* log file verbosity level */
 
 extern ScrnInfoPtr *xf86GPUScreens;      /* List of pointers to ScrnInfoRecs */
 extern int xf86NumGPUScreens;
+extern _X_EXPORT int xf86DRMMasterFd;              /* Command line argument for DRM master file descriptor */
 #ifndef DEFAULT_VERBOSE
 #define DEFAULT_VERBOSE		0
 #endif

@@ -119,6 +119,29 @@ clif_dump_cl(struct clif_dump *clif, uint32_t start, uint32_t end)
 }
 
 static void
+clif_dump_gl_shader_state_record(struct clif_dump *clif,
+                                 struct reloc_worklist_entry *reloc,
+                                 void *vaddr)
+{
+        struct v3d_group *state = v3d_spec_find_struct(clif->spec,
+                                                       "GL Shader State Record");
+        struct v3d_group *attr = v3d_spec_find_struct(clif->spec,
+                                                      "GL Shader State Attribute Record");
+        assert(state);
+        assert(attr);
+
+        out(clif, "GL Shader State Record at 0x%08x\n", reloc->addr);
+        v3d_print_group(clif->out, state, 0, vaddr, "");
+        vaddr += v3d_group_get_length(state);
+
+        for (int i = 0; i < reloc->shader_state.num_attrs; i++) {
+                out(clif, "  Attribute %d\n", i);
+                v3d_print_group(clif->out, attr, 0, vaddr, "");
+                vaddr += v3d_group_get_length(attr);
+        }
+}
+
+static void
 clif_process_worklist(struct clif_dump *clif)
 {
         while (!list_empty(&clif->worklist)) {
@@ -136,15 +159,9 @@ clif_process_worklist(struct clif_dump *clif)
 
                 switch (reloc->type) {
                 case reloc_gl_shader_state:
-                        if (clif->devinfo->ver >= 41) {
-                                v3d41_clif_dump_gl_shader_state_record(clif,
-                                                                       reloc,
-                                                                       vaddr);
-                        } else {
-                                v3d33_clif_dump_gl_shader_state_record(clif,
-                                                                       reloc,
-                                                                       vaddr);
-                        }
+                        clif_dump_gl_shader_state_record(clif,
+                                                         reloc,
+                                                         vaddr);
                         break;
                 case reloc_generic_tile_list:
                         clif_dump_cl(clif, reloc->addr,

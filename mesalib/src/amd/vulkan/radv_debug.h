@@ -49,6 +49,7 @@ enum {
 	RADV_DEBUG_ERRORS            = 0x80000,
 	RADV_DEBUG_STARTUP           = 0x100000,
 	RADV_DEBUG_CHECKIR           = 0x200000,
+	RADV_DEBUG_NOTHREADLLVM      = 0x400000,
 };
 
 enum {

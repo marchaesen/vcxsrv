@@ -197,6 +197,7 @@ struct radv_userdata_info {
 struct radv_userdata_locations {
 	struct radv_userdata_info descriptor_sets[RADV_UD_MAX_SETS];
 	struct radv_userdata_info shader_data[AC_UD_MAX_UD];
+	uint32_t descriptor_sets_enabled;
 };
 
 struct radv_vs_output_info {

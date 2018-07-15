@@ -759,6 +759,9 @@ v3d_set_fs_prog_data_inputs(struct v3d_compile *c,
                 if (BITSET_TEST(c->flat_shade_flags, i))
                         prog_data->flat_shade_flags[i / 24] |= 1 << (i % 24);
 
+                if (BITSET_TEST(c->noperspective_flags, i))
+                        prog_data->noperspective_flags[i / 24] |= 1 << (i % 24);
+
                 if (BITSET_TEST(c->centroid_flags, i))
                         prog_data->centroid_flags[i / 24] |= 1 << (i % 24);
         }

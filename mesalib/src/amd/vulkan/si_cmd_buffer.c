@@ -679,7 +679,8 @@ void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 				unsigned data_sel,
 				uint64_t va,
 				uint32_t old_fence,
-				uint32_t new_fence)
+				uint32_t new_fence,
+				uint64_t gfx9_eop_bug_va)
 {
 	unsigned op = EVENT_TYPE(event) |
 		EVENT_INDEX(5) |
@@ -693,6 +694,17 @@ void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 		sel |= EOP_INT_SEL(EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM);
 
 	if (chip_class >= GFX9 || is_gfx8_mec) {
+		/* A ZPASS_DONE or PIXEL_STAT_DUMP_EVENT (of the DB occlusion
+		 * counters) must immediately precede every timestamp event to
+		 * prevent a GPU hang on GFX9.
+		 */
+		if (chip_class == GFX9) {
+			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
+			radeon_emit(cs, EVENT_TYPE(EVENT_TYPE_ZPASS_DONE) | EVENT_INDEX(1));
+			radeon_emit(cs, gfx9_eop_bug_va);
+			radeon_emit(cs, gfx9_eop_bug_va >> 32);
+		}
+
 		radeon_emit(cs, PKT3(PKT3_RELEASE_MEM, is_gfx8_mec ? 5 : 6, false));
 		radeon_emit(cs, op);
 		radeon_emit(cs, sel);
@@ -772,7 +784,8 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 		       uint32_t *flush_cnt,
 		       uint64_t flush_va,
                        bool is_mec,
-                       enum radv_cmd_flush_bits flush_bits)
+                       enum radv_cmd_flush_bits flush_bits,
+		       uint64_t gfx9_eop_bug_va)
 {
 	unsigned cp_coher_cntl = 0;
 	uint32_t flush_cb_db = flush_bits & (RADV_CMD_FLAG_FLUSH_AND_INV_CB |
@@ -803,7 +816,8 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 							   V_028A90_FLUSH_AND_INV_CB_DATA_TS,
 							   0,
 							   EOP_DATA_SEL_DISCARD,
-							   0, 0, 0);
+							   0, 0, 0,
+							   gfx9_eop_bug_va);
 			}
 		}
 		if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_DB) {
@@ -873,7 +887,8 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 
 		si_cs_emit_write_event_eop(cs, chip_class, false, cb_db_event, tc_flags,
 					   EOP_DATA_SEL_VALUE_32BIT,
-					   flush_va, old_fence, *flush_cnt);
+					   flush_va, old_fence, *flush_cnt,
+					   gfx9_eop_bug_va);
 		si_emit_wait_fence(cs, flush_va, *flush_cnt, 0xffffffff);
 	}
 
@@ -975,7 +990,8 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	                       cmd_buffer->device->physical_device->rad_info.chip_class,
 			       ptr, va,
 	                       radv_cmd_buffer_uses_mec(cmd_buffer),
-	                       cmd_buffer->state.flush_bits);
+	                       cmd_buffer->state.flush_bits,
+			       cmd_buffer->gfx9_eop_bug_va);
 
 
 	if (unlikely(cmd_buffer->device->trace_bo))
@@ -1040,7 +1056,6 @@ static void si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer,
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 	uint32_t header = 0, command = 0;
 
-	assert(size);
 	assert(size <= cp_dma_max_byte_count(cmd_buffer));
 
 	radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 9);
@@ -1099,9 +1114,14 @@ static void si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer,
 	 * indices. If we wanted to execute CP DMA in PFP, this packet
 	 * should precede it.
 	 */
-	if ((flags & CP_DMA_SYNC) && cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL) {
-		radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, cmd_buffer->state.predicating));
-		radeon_emit(cs, 0);
+	if (flags & CP_DMA_SYNC) {
+		if (cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL) {
+			radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, cmd_buffer->state.predicating));
+			radeon_emit(cs, 0);
+		}
+
+		/* CP will see the sync flag and wait for all DMAs to complete. */
+		cmd_buffer->state.dma_is_busy = false;
 	}
 
 	if (unlikely(cmd_buffer->device->trace_bo))
@@ -1165,6 +1185,8 @@ void si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer,
 	uint64_t main_src_va, main_dest_va;
 	uint64_t skipped_size = 0, realign_size = 0;
 
+	/* Assume that we are not going to sync after the last DMA operation. */
+	cmd_buffer->state.dma_is_busy = true;
 
 	if (cmd_buffer->device->physical_device->rad_info.family <= CHIP_CARRIZO ||
 	    cmd_buffer->device->physical_device->rad_info.family == CHIP_STONEY) {
@@ -1228,6 +1250,9 @@ void si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
 
 	assert(va % 4 == 0 && size % 4 == 0);
 
+	/* Assume that we are not going to sync after the last DMA operation. */
+	cmd_buffer->state.dma_is_busy = true;
+
 	while (size) {
 		unsigned byte_count = MIN2(size, cp_dma_max_byte_count(cmd_buffer));
 		unsigned dma_flags = CP_DMA_CLEAR;
@@ -1241,6 +1266,25 @@ void si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
 		size -= byte_count;
 		va += byte_count;
 	}
+}
+
+void si_cp_dma_wait_for_idle(struct radv_cmd_buffer *cmd_buffer)
+{
+	if (cmd_buffer->device->physical_device->rad_info.chip_class < CIK)
+		return;
+
+	if (!cmd_buffer->state.dma_is_busy)
+		return;
+
+	/* Issue a dummy DMA that copies zero bytes.
+	 *
+	 * The DMA engine will see that there's no work to do and skip this
+	 * DMA request, however, the CP will see the sync flag and still wait
+	 * for all DMAs to complete.
+	 */
+	si_emit_cp_dma(cmd_buffer, 0, 0, 0, CP_DMA_SYNC);
+
+	cmd_buffer->state.dma_is_busy = false;
 }
 
 /* For MSAA sample positions. */

@@ -374,6 +374,28 @@ vtn_pointer_for_variable(struct vtn_builder *b,
    return pointer;
 }
 
+/* Returns an atomic_uint type based on the original uint type. The returned
+ * type will be equivalent to the original one but will have an atomic_uint
+ * type as leaf instead of an uint.
+ *
+ * Manages uint scalars, arrays, and arrays of arrays of any nested depth.
+ */
+static const struct glsl_type *
+repair_atomic_type(const struct glsl_type *type)
+{
+   assert(glsl_get_base_type(glsl_without_array(type)) == GLSL_TYPE_UINT);
+   assert(glsl_type_is_scalar(glsl_without_array(type)));
+
+   if (glsl_type_is_array(type)) {
+      const struct glsl_type *atomic =
+         repair_atomic_type(glsl_get_array_element(type));
+
+      return glsl_array_type(atomic, glsl_get_length(type));
+   } else {
+      return glsl_atomic_uint_type();
+   }
+}
+
 nir_deref_instr *
 vtn_pointer_to_deref(struct vtn_builder *b, struct vtn_pointer *ptr)
 {
@@ -1186,6 +1208,10 @@ vtn_get_builtin_location(struct vtn_builder *b,
       *location = FRAG_RESULT_STENCIL;
       vtn_assert(*mode == nir_var_shader_out);
       break;
+   case SpvBuiltInGlobalSize:
+      *location = SYSTEM_VALUE_GLOBAL_GROUP_SIZE;
+      set_mode_system_value(b, mode);
+      break;
    default:
       vtn_fail("unsupported builtin");
    }
@@ -1346,6 +1372,9 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
    case SpvDecorationPatch:
       vtn_var->patch = true;
       break;
+   case SpvDecorationOffset:
+      vtn_var->offset = dec->literals[0];
+      break;
    default:
       break;
    }
@@ -1481,9 +1510,12 @@ vtn_storage_class_to_mode(struct vtn_builder *b,
       mode = vtn_variable_mode_workgroup;
       nir_mode = nir_var_shared;
       break;
+   case SpvStorageClassAtomicCounter:
+      mode = vtn_variable_mode_uniform;
+      nir_mode = nir_var_uniform;
+      break;
    case SpvStorageClassCrossWorkgroup:
    case SpvStorageClassGeneric:
-   case SpvStorageClassAtomicCounter:
    default:
       vtn_fail("Unhandled variable storage class");
    }
@@ -1637,7 +1669,16 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       /* For these, we create the variable normally */
       var->var = rzalloc(b->shader, nir_variable);
       var->var->name = ralloc_strdup(var->var, val->name);
-      var->var->type = var->type->type;
+
+      /* Need to tweak the nir type here as at vtn_handle_type we don't have
+       * the access to storage_class, that is the one that points us that is
+       * an atomic uint.
+       */
+      if (storage_class == SpvStorageClassAtomicCounter) {
+         var->var->type = repair_atomic_type(var->type->type);
+      } else {
+         var->var->type = var->type->type;
+      }
       var->var->data.mode = nir_mode;
       var->var->data.location = -1;
       var->var->interface_type = NULL;
@@ -1751,6 +1792,7 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       var->var->data.explicit_binding = var->explicit_binding;
       var->var->data.descriptor_set = var->descriptor_set;
       var->var->data.index = var->input_attachment_index;
+      var->var->data.offset = var->offset;
 
       if (glsl_type_is_image(without_array->type))
          var->var->data.image.format = without_array->image_format;

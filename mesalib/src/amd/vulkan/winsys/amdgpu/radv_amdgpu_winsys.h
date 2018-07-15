@@ -33,6 +33,7 @@
 #include "addrlib/addrinterface.h"
 #include <amdgpu.h>
 #include "util/list.h"
+#include <pthread.h>
 
 struct radv_amdgpu_winsys {
 	struct radeon_winsys base;

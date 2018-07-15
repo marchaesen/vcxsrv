@@ -160,6 +160,7 @@ files_libnir = files(
   'nir_opt_global_to_local.c',
   'nir_opt_if.c',
   'nir_opt_intrinsics.c',
+  'nir_opt_large_constants.c',
   'nir_opt_loop_unroll.c',
   'nir_opt_move_comparisons.c',
   'nir_opt_move_load_ubo.c',

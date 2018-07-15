@@ -1258,8 +1258,20 @@ static void blitter_draw(struct blitter_context_priv *ctx,
    pipe->set_vertex_buffers(pipe, ctx->base.vb_slot, 1, &vb);
    pipe->bind_vertex_elements_state(pipe, vertex_elements_cso);
    pipe->bind_vs_state(pipe, get_vs(&ctx->base));
-   util_draw_arrays_instanced(pipe, PIPE_PRIM_TRIANGLE_FAN, 0, 4,
-                              0, num_instances);
+
+   if (ctx->base.use_index_buffer) {
+      /* Note that for V3D,
+       * dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_* require
+       * that the last vert of the two tris be the same.
+       */
+      static uint8_t indices[6] = { 0, 1, 2, 0, 3, 2 };
+      util_draw_elements_instanced(pipe, indices, 1, 0,
+                                   PIPE_PRIM_TRIANGLES, 0, 6,
+                                   0, num_instances);
+   } else {
+      util_draw_arrays_instanced(pipe, PIPE_PRIM_TRIANGLE_FAN, 0, 4,
+                                 0, num_instances);
+   }
    pipe_resource_reference(&vb.buffer.resource, NULL);
 }
 

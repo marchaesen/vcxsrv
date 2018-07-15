@@ -430,12 +430,13 @@ nir_imov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
  * Construct an fmov or imov that reswizzles the source's components.
  */
 static inline nir_ssa_def *
-nir_swizzle(nir_builder *build, nir_ssa_def *src, const unsigned swiz[4],
+nir_swizzle(nir_builder *build, nir_ssa_def *src, const unsigned *swiz,
             unsigned num_components, bool use_fmov)
 {
+   assert(num_components <= 4);
    nir_alu_src alu_src = { NIR_SRC_INIT };
    alu_src.src = nir_src_for_ssa(src);
-   for (unsigned i = 0; i < num_components; i++)
+   for (unsigned i = 0; i < num_components && i < 4; i++)
       alu_src.swizzle[i] = swiz[i];
 
    return use_fmov ? nir_fmov_alu(build, alu_src, num_components) :
@@ -481,8 +482,7 @@ nir_bany(nir_builder *b, nir_ssa_def *src)
 static inline nir_ssa_def *
 nir_channel(nir_builder *b, nir_ssa_def *def, unsigned c)
 {
-   unsigned swizzle[4] = {c, c, c, c};
-   return nir_swizzle(b, def, swizzle, 1, false);
+   return nir_swizzle(b, def, &c, 1, false);
 }
 
 static inline nir_ssa_def *

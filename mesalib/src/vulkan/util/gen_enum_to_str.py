@@ -172,7 +172,7 @@ class VkEnum(object):
     def add_value_from_xml(self, elem, extension=None):
         if 'value' in elem.attrib:
             self.add_value(elem.attrib['name'],
-                           value=int(elem.attrib['value']))
+                           value=int(elem.attrib['value'], base=0))
         elif 'alias' in elem.attrib:
             self.add_value(elem.attrib['name'],
                            value=self.name_to_value[elem.attrib['alias']])

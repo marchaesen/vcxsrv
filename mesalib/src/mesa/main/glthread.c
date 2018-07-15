@@ -73,7 +73,7 @@ _mesa_glthread_init(struct gl_context *ctx)
    if (!glthread)
       return;
 
-   if (!util_queue_init(&glthread->queue, "glthread", MARSHAL_MAX_BATCHES - 2,
+   if (!util_queue_init(&glthread->queue, "gl", MARSHAL_MAX_BATCHES - 2,
                         1, 0)) {
       free(glthread);
       return;

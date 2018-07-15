@@ -24,6 +24,8 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+from __future__ import print_function
+
 import argparse
 import copy
 
@@ -54,7 +56,7 @@ def save_all_regs(registers):
     adjust_stack = 0
     if not should_use_push(registers):
         adjust_stack = local_size(registers)
-        print '\tsubq\t$%u, %%rsp' % (adjust_stack)
+        print('\tsubq\t$%u, %%rsp' % (adjust_stack))
 
     for [reg, stack_offset] in registers:
         save_reg( reg, stack_offset, adjust_stack )
@@ -72,18 +74,18 @@ def restore_all_regs(registers):
         restore_reg(reg, stack_offset, adjust_stack)
 
     if adjust_stack:
-        print '\taddq\t$%u, %%rsp' % (adjust_stack)
+        print('\taddq\t$%u, %%rsp' % (adjust_stack))
     return
 
 
 def save_reg(reg, offset, use_move):
     if use_move:
         if offset == 0:
-            print '\tmovq\t%s, (%%rsp)' % (reg)
+            print('\tmovq\t%s, (%%rsp)' % (reg))
         else:
-            print '\tmovq\t%s, %u(%%rsp)' % (reg, offset)
+            print('\tmovq\t%s, %u(%%rsp)' % (reg, offset))
     else:
-        print '\tpushq\t%s' % (reg)
+        print('\tpushq\t%s' % (reg))
 
     return
 
@@ -91,11 +93,11 @@ def save_reg(reg, offset, use_move):
 def restore_reg(reg, offset, use_move):
     if use_move:
         if offset == 0:
-            print '\tmovq\t(%%rsp), %s' % (reg)
+            print('\tmovq\t(%%rsp), %s' % (reg))
         else:
-            print '\tmovq\t%u(%%rsp), %s' % (offset, reg)
+            print('\tmovq\t%u(%%rsp), %s' % (offset, reg))
     else:
-        print '\tpopq\t%s' % (reg)
+        print('\tpopq\t%s' % (reg))
 
     return
 
@@ -119,62 +121,62 @@ class PrintGenericStubs(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
-        print "/* If we build with gcc's -fvisibility=hidden flag, we'll need to change"
-        print " * the symbol visibility mode to 'default'."
-        print ' */'
-        print ''
-        print '#include "x86/assyntax.h"'
-        print ''
-        print '#ifdef __GNUC__'
-        print '#  pragma GCC visibility push(default)'
-        print '#  define HIDDEN(x) .hidden x'
-        print '#else'
-        print '#  define HIDDEN(x)'
-        print '#endif'
-        print ''
-        print '# if defined(USE_MGL_NAMESPACE)'
-        print '#  define GL_PREFIX(n) GLNAME(CONCAT(mgl,n))'
-        print '#  define _glapi_Dispatch _mglapi_Dispatch'
-        print '# else'
-        print '#  define GL_PREFIX(n) GLNAME(CONCAT(gl,n))'
-        print '# endif'
-        print ''
-        print '\t.text'
-        print ''
-        print '#ifdef GLX_USE_TLS'
-        print ''
-        print '_x86_64_get_dispatch:'
-        print '\tmovq\t_glapi_tls_Dispatch@GOTTPOFF(%rip), %rax'
-        print '\tmovq\t%fs:(%rax), %rax'
-        print '\tret'
-        print '\t.size\t_x86_64_get_dispatch, .-_x86_64_get_dispatch'
-        print ''
-        print '#elif defined(HAVE_PTHREAD)'
-        print ''
-        print '\t.extern\t_glapi_Dispatch'
-        print '\t.extern\t_gl_DispatchTSD'
-        print '\t.extern\tpthread_getspecific'
-        print ''
-        print '\t.p2align\t4,,15'
-        print '_x86_64_get_dispatch:'
-        print '\tmovq\t_gl_DispatchTSD@GOTPCREL(%rip), %rax'
-        print '\tmovl\t(%rax), %edi'
-        print '\tjmp\tpthread_getspecific@PLT'
-        print ''
-        print '#else'
-        print ''
-        print '\t.extern\t_glapi_get_dispatch'
-        print ''
-        print '#endif'
-        print ''
+        print("/* If we build with gcc's -fvisibility=hidden flag, we'll need to change")
+        print(" * the symbol visibility mode to 'default'.")
+        print(' */')
+        print('')
+        print('#include "x86/assyntax.h"')
+        print('')
+        print('#ifdef __GNUC__')
+        print('#  pragma GCC visibility push(default)')
+        print('#  define HIDDEN(x) .hidden x')
+        print('#else')
+        print('#  define HIDDEN(x)')
+        print('#endif')
+        print('')
+        print('# if defined(USE_MGL_NAMESPACE)')
+        print('#  define GL_PREFIX(n) GLNAME(CONCAT(mgl,n))')
+        print('#  define _glapi_Dispatch _mglapi_Dispatch')
+        print('# else')
+        print('#  define GL_PREFIX(n) GLNAME(CONCAT(gl,n))')
+        print('# endif')
+        print('')
+        print('\t.text')
+        print('')
+        print('#ifdef GLX_USE_TLS')
+        print('')
+        print('_x86_64_get_dispatch:')
+        print('\tmovq\t_glapi_tls_Dispatch@GOTTPOFF(%rip), %rax')
+        print('\tmovq\t%fs:(%rax), %rax')
+        print('\tret')
+        print('\t.size\t_x86_64_get_dispatch, .-_x86_64_get_dispatch')
+        print('')
+        print('#elif defined(HAVE_PTHREAD)')
+        print('')
+        print('\t.extern\t_glapi_Dispatch')
+        print('\t.extern\t_gl_DispatchTSD')
+        print('\t.extern\tpthread_getspecific')
+        print('')
+        print('\t.p2align\t4,,15')
+        print('_x86_64_get_dispatch:')
+        print('\tmovq\t_gl_DispatchTSD@GOTPCREL(%rip), %rax')
+        print('\tmovl\t(%rax), %edi')
+        print('\tjmp\tpthread_getspecific@PLT')
+        print('')
+        print('#else')
+        print('')
+        print('\t.extern\t_glapi_get_dispatch')
+        print('')
+        print('#endif')
+        print('')
         return
 
 
     def printRealFooter(self):
-        print ''
-        print '#if defined (__ELF__) && defined (__linux__)'
-        print '	.section .note.GNU-stack,"",%progbits'
-        print '#endif'
+        print('')
+        print('#if defined (__ELF__) && defined (__linux__)')
+        print('	.section .note.GNU-stack,"",%progbits')
+        print('#endif')
         return
 
 
@@ -219,47 +221,47 @@ class PrintGenericStubs(gl_XML.gl_print_base):
 
         name = f.dispatch_name()
 
-        print '\t.p2align\t4,,15'
-        print '\t.globl\tGL_PREFIX(%s)' % (name)
-        print '\t.type\tGL_PREFIX(%s), @function' % (name)
+        print('\t.p2align\t4,,15')
+        print('\t.globl\tGL_PREFIX(%s)' % (name))
+        print('\t.type\tGL_PREFIX(%s), @function' % (name))
         if not f.is_static_entry_point(f.name):
-            print '\tHIDDEN(GL_PREFIX(%s))' % (name)
-        print 'GL_PREFIX(%s):' % (name)
-        print '#if defined(GLX_USE_TLS)'
-        print '\tcall\t_x86_64_get_dispatch@PLT'
-        print '\tmovq\t%u(%%rax), %%r11' % (f.offset * 8)
-        print '\tjmp\t*%r11'
-        print '#elif defined(HAVE_PTHREAD)'
+            print('\tHIDDEN(GL_PREFIX(%s))' % (name))
+        print('GL_PREFIX(%s):' % (name))
+        print('#if defined(GLX_USE_TLS)')
+        print('\tcall\t_x86_64_get_dispatch@PLT')
+        print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
+        print('\tjmp\t*%r11')
+        print('#elif defined(HAVE_PTHREAD)')
 
         save_all_regs(registers)
-        print '\tcall\t_x86_64_get_dispatch@PLT'
+        print('\tcall\t_x86_64_get_dispatch@PLT')
         restore_all_regs(registers)
 
         if f.offset == 0:
-            print '\tmovq\t(%rax), %r11'
+            print('\tmovq\t(%rax), %r11')
         else:
-            print '\tmovq\t%u(%%rax), %%r11' % (f.offset * 8)
+            print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
 
-        print '\tjmp\t*%r11'
+        print('\tjmp\t*%r11')
 
-        print '#else'
-        print '\tmovq\t_glapi_Dispatch(%rip), %rax'
-        print '\ttestq\t%rax, %rax'
-        print '\tje\t1f'
-        print '\tmovq\t%u(%%rax), %%r11' % (f.offset * 8)
-        print '\tjmp\t*%r11'
-        print '1:'
+        print('#else')
+        print('\tmovq\t_glapi_Dispatch(%rip), %rax')
+        print('\ttestq\t%rax, %rax')
+        print('\tje\t1f')
+        print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
+        print('\tjmp\t*%r11')
+        print('1:')
 
         save_all_regs(registers)
-        print '\tcall\t_glapi_get_dispatch'
+        print('\tcall\t_glapi_get_dispatch')
         restore_all_regs(registers)
 
-        print '\tmovq\t%u(%%rax), %%r11' % (f.offset * 8)
-        print '\tjmp\t*%r11'
-        print '#endif /* defined(GLX_USE_TLS) */'
+        print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
+        print('\tjmp\t*%r11')
+        print('#endif /* defined(GLX_USE_TLS) */')
 
-        print '\t.size\tGL_PREFIX(%s), .-GL_PREFIX(%s)' % (name, name)
-        print ''
+        print('\t.size\tGL_PREFIX(%s), .-GL_PREFIX(%s)' % (name, name))
+        print('')
         return
 
 
@@ -276,11 +278,11 @@ class PrintGenericStubs(gl_XML.gl_print_base):
                         text = '\t.globl GL_PREFIX(%s) ; .set GL_PREFIX(%s), GL_PREFIX(%s)' % (n, n, dispatch)
 
                         if f.has_different_protocol(n):
-                            print '#ifndef GLX_INDIRECT_RENDERING'
-                            print text
-                            print '#endif'
+                            print('#ifndef GLX_INDIRECT_RENDERING')
+                            print(text)
+                            print('#endif')
                         else:
-                            print text
+                            print(text)
 
         return
 

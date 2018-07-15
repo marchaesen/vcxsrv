@@ -326,10 +326,12 @@ st_UnmapTextureImage(struct gl_context *ctx,
                                        transfer->box.width, transfer->box.height);
          }
          else {
+	    bool bgra = stImage->pt->format == PIPE_FORMAT_B8G8R8A8_SRGB;
             _mesa_unpack_etc2_format(itransfer->map, transfer->stride,
                                      itransfer->temp_data, itransfer->temp_stride,
                                      transfer->box.width, transfer->box.height,
-                                     texImage->TexFormat);
+				     texImage->TexFormat,
+				     bgra);
          }
       }
 

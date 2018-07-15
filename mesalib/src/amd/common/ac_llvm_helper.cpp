@@ -29,13 +29,18 @@
 #pragma push_macro("DEBUG")
 #undef DEBUG
 
+#include "ac_binary.h"
 #include "ac_llvm_util.h"
+
 #include <llvm-c/Core.h>
-#include <llvm/Target/TargetOptions.h>
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/IR/Attributes.h>
-#include <llvm/IR/CallSite.h>
+#include <llvm/Target/TargetMachine.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/Analysis/TargetLibraryInfo.h>
+
+#include <llvm/IR/LegacyPassManager.h>
+#if HAVE_LLVM < 0x0700
+#include "llvm/Support/raw_ostream.h"
+#endif
 
 void ac_add_attr_dereferenceable(LLVMValueRef val, uint64_t bytes)
 {
@@ -59,6 +64,16 @@ LLVMValueRef ac_llvm_get_called_value(LLVMValueRef call)
 bool ac_llvm_is_function(LLVMValueRef v)
 {
 	return LLVMGetValueKind(v) == LLVMFunctionValueKind;
+}
+
+LLVMModuleRef ac_create_module(LLVMTargetMachineRef tm, LLVMContextRef ctx)
+{
+   llvm::TargetMachine *TM = reinterpret_cast<llvm::TargetMachine*>(tm);
+   LLVMModuleRef module = LLVMModuleCreateWithNameInContext("mesa-shader", ctx);
+
+   llvm::unwrap(module)->setTargetTriple(TM->getTargetTriple().getTriple());
+   llvm::unwrap(module)->setDataLayout(TM->createDataLayout());
+   return module;
 }
 
 LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
@@ -86,4 +101,67 @@ LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
 	}
 
 	return builder;
+}
+
+LLVMTargetLibraryInfoRef
+ac_create_target_library_info(const char *triple)
+{
+	return reinterpret_cast<LLVMTargetLibraryInfoRef>(new llvm::TargetLibraryInfoImpl(llvm::Triple(triple)));
+}
+
+void
+ac_dispose_target_library_info(LLVMTargetLibraryInfoRef library_info)
+{
+	delete reinterpret_cast<llvm::TargetLibraryInfoImpl *>(library_info);
+}
+
+/* The LLVM compiler is represented as a pass manager containing passes for
+ * optimizations, instruction selection, and code generation.
+ */
+struct ac_compiler_passes {
+	ac_compiler_passes(): ostream(code_string) {}
+
+	llvm::SmallString<0> code_string;  /* ELF shader binary */
+	llvm::raw_svector_ostream ostream; /* stream for appending data to the binary */
+	llvm::legacy::PassManager passmgr; /* list of passes */
+};
+
+struct ac_compiler_passes *ac_create_llvm_passes(LLVMTargetMachineRef tm)
+{
+	struct ac_compiler_passes *p = new ac_compiler_passes();
+	if (!p)
+		return NULL;
+
+	llvm::TargetMachine *TM = reinterpret_cast<llvm::TargetMachine*>(tm);
+
+	if (TM->addPassesToEmitFile(p->passmgr, p->ostream,
+#if HAVE_LLVM >= 0x0700
+				    nullptr,
+#endif
+				    llvm::TargetMachine::CGFT_ObjectFile)) {
+		fprintf(stderr, "amd: TargetMachine can't emit a file of this type!\n");
+		delete p;
+		return NULL;
+	}
+	return p;
+}
+
+void ac_destroy_llvm_passes(struct ac_compiler_passes *p)
+{
+	delete p;
+}
+
+/* This returns false on failure. */
+bool ac_compile_module_to_binary(struct ac_compiler_passes *p, LLVMModuleRef module,
+				 struct ac_shader_binary *binary)
+{
+	p->passmgr.run(*llvm::unwrap(module));
+
+	llvm::StringRef data = p->ostream.str();
+	bool success = ac_elf_read(data.data(), data.size(), binary);
+	p->code_string = ""; /* release the ELF shader binary */
+
+	if (!success)
+		fprintf(stderr, "amd: cannot read an ELF shader binary\n");
+	return success;
 }

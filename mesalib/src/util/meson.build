@@ -48,12 +48,16 @@ files_mesa_util = files(
   'mesa-sha1.h',
   'os_time.c',
   'os_time.h',
+  'process.c',
+  'process.h',
   'sha1/sha1.c',
   'sha1/sha1.h',
   'ralloc.c',
   'ralloc.h',
   'rand_xor.c',
   'rand_xor.h',
+  'rb_tree.c',
+  'rb_tree.h',
   'register_allocate.c',
   'register_allocate.h',
   'rgtc.c',
@@ -160,4 +164,5 @@ if with_tests
   subdir('tests/hash_table')
   subdir('tests/string_buffer')
   subdir('tests/vma')
+  subdir('tests/set')
 endif

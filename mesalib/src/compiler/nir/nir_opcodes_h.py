@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 template = """\
 /* Copyright (C) 2014 Connor Abbott
@@ -43,4 +44,4 @@ typedef enum {
 from nir_opcodes import opcodes
 from mako.template import Template
 
-print Template(template).render(opcodes=opcodes)
+print(Template(template).render(opcodes=opcodes))

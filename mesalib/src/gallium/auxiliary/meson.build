@@ -276,6 +276,8 @@ files_libgallium = files(
   'util/u_fifo.h',
   'util/u_format.c',
   'util/u_format.h',
+  'util/u_format_bptc.c',
+  'util/u_format_bptc.h',
   'util/u_format_etc.c',
   'util/u_format_etc.h',
   'util/u_format_latc.c',

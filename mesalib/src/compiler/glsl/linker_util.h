@@ -25,10 +25,24 @@
 #define GLSL_LINKER_UTIL_H
 
 struct gl_shader_program;
+struct gl_uniform_storage;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * Sometimes there are empty slots left over in UniformRemapTable after we
+ * allocate slots to explicit locations. This struct represents a single
+ * continouous block of empty slots in UniformRemapTable.
+ */
+struct empty_uniform_block {
+   struct exec_node link;
+   /* The start location of the block */
+   unsigned start;
+   /* The number of slots in the block */
+   unsigned slots;
+};
 
 void
 linker_error(struct gl_shader_program *prog, const char *fmt, ...);
@@ -40,6 +54,13 @@ bool
 link_util_add_program_resource(struct gl_shader_program *prog,
                                struct set *resource_set,
                                GLenum type, const void *data, uint8_t stages);
+
+int
+link_util_find_empty_block(struct gl_shader_program *prog,
+                           struct gl_uniform_storage *uniform);
+
+void
+link_util_update_empty_uniform_locations(struct gl_shader_program *prog);
 
 #ifdef __cplusplus
 }

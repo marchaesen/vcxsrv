@@ -123,6 +123,7 @@ struct inout_decl {
    enum glsl_interp_mode interp;
    enum glsl_base_type base_type;
    ubyte usage_mask; /* GLSL-style usage-mask,  i.e. single bit per double */
+   bool invariant;
 };
 
 static struct inout_decl *
@@ -2507,6 +2508,8 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
          unsigned component = var->data.location_frac;
          unsigned num_components;
          num_outputs++;
+
+         decl->invariant = var->data.invariant;
 
          if (type_without_array->is_64bit())
             component = component / 2;
@@ -6443,14 +6446,15 @@ st_translate_program(
                      (enum tgsi_semantic) outputSemanticName[slot],
                      outputSemanticIndex[slot],
                      decl->gs_out_streams,
-                     slot, tgsi_usage_mask, decl->array_id, decl->size);
-
+                     slot, tgsi_usage_mask, decl->array_id, decl->size, decl->invariant);
+         dst.Invariant = decl->invariant;
          for (unsigned j = 0; j < decl->size; ++j) {
             if (t->outputs[slot + j].File != TGSI_FILE_OUTPUT) {
                /* The ArrayID is set up in dst_register */
                t->outputs[slot + j] = dst;
                t->outputs[slot + j].ArrayID = 0;
                t->outputs[slot + j].Index += j;
+               t->outputs[slot + j].Invariant = decl->invariant;
             }
          }
       }

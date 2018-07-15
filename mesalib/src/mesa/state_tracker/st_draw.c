@@ -156,6 +156,7 @@ st_draw_vbo(struct gl_context *ctx,
    info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
    info.indirect = NULL;
    info.count_from_stream_output = NULL;
+   info.restart_index = 0;
 
    if (ib) {
       struct gl_buffer_object *bufobj = ib->obj;

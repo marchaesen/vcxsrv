@@ -585,6 +585,7 @@ typedef enum
    SYSTEM_VALUE_WORK_GROUP_ID,
    SYSTEM_VALUE_NUM_WORK_GROUPS,
    SYSTEM_VALUE_LOCAL_GROUP_SIZE,
+   SYSTEM_VALUE_GLOBAL_GROUP_SIZE,
    /*@}*/
 
    /** Required for VK_KHR_device_group */

@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 from mako.template import Template
 from sys import argv
@@ -891,4 +892,4 @@ _mesa_unpack_depth_stencil_row(mesa_format format, GLuint n,
 
 template = Template(string);
 
-print template.render(argv = argv[0:])
+print(template.render(argv = argv[0:]))

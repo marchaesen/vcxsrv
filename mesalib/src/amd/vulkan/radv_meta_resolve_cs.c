@@ -501,8 +501,8 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 		       RADV_META_SAVE_DESCRIPTORS);
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
-		VkAttachmentReference src_att = subpass->color_attachments[i];
-		VkAttachmentReference dest_att = subpass->resolve_attachments[i];
+		struct radv_subpass_attachment src_att = subpass->color_attachments[i];
+		struct radv_subpass_attachment dest_att = subpass->resolve_attachments[i];
 		struct radv_image_view *src_iview = cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment;
 		struct radv_image_view *dst_iview = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment;
 		if (dest_att.attachment == VK_ATTACHMENT_UNUSED)

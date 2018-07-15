@@ -54,16 +54,24 @@ copy_vao(struct gl_context *ctx, const struct gl_vertex_array_object *vao,
       struct gl_array_attributes *currval = &vbo->current[shift + i];
       const GLubyte size = attrib->Size;
       const GLenum16 type = attrib->Type;
-      fi_type tmp[4];
+      fi_type tmp[8];
+      int dmul = 1;
 
-      COPY_CLEAN_4V_TYPE_AS_UNION(tmp, size, *data, type);
+      if (type == GL_DOUBLE ||
+          type == GL_UNSIGNED_INT64_ARB)
+         dmul = 2;
+
+      if (dmul == 2)
+         memcpy(tmp, *data, size * dmul * sizeof(GLfloat));
+      else
+         COPY_CLEAN_4V_TYPE_AS_UNION(tmp, size, *data, type);
 
       if (type != currval->Type ||
-          memcmp(currval->Ptr, tmp, 4 * sizeof(GLfloat)) != 0) {
-         memcpy((fi_type*)currval->Ptr, tmp, 4 * sizeof(GLfloat));
+          memcmp(currval->Ptr, tmp, 4 * sizeof(GLfloat) * dmul) != 0) {
+         memcpy((fi_type*)currval->Ptr, tmp, 4 * sizeof(GLfloat) * dmul);
 
          currval->Size = size;
-         currval->_ElementSize = size * sizeof(GLfloat);
+         currval->_ElementSize = size * sizeof(GLfloat) * dmul;
          currval->Type = type;
          currval->Integer = vbo_attrtype_to_integer_flag(type);
          currval->Doubles = vbo_attrtype_to_double_flag(type);

@@ -53,6 +53,8 @@ DevPrivateKeyRec xf86ScreenKeyRec;
 ScrnInfoPtr *xf86Screens = NULL;        /* List of ScrnInfos */
 ScrnInfoPtr *xf86GPUScreens = NULL;        /* List of ScrnInfos */
 
+int xf86DRMMasterFd = -1;  /* Command line argument for DRM master file descriptor */
+
 const unsigned char byte_reversed[256] = {
     0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0,
     0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70, 0xf0,

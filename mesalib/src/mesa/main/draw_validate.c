@@ -1192,10 +1192,10 @@ valid_draw_indirect_elements(struct gl_context *ctx,
    return valid_draw_indirect(ctx, mode, indirect, size, name);
 }
 
-static inline GLboolean
-valid_draw_indirect_multi(struct gl_context *ctx,
-                          GLsizei primcount, GLsizei stride,
-                          const char *name)
+GLboolean
+_mesa_valid_draw_indirect_multi(struct gl_context *ctx,
+                                GLsizei primcount, GLsizei stride,
+                                const char *name)
 {
 
    /* From the ARB_multi_draw_indirect specification:
@@ -1259,8 +1259,8 @@ _mesa_validate_MultiDrawArraysIndirect(struct gl_context *ctx,
    /* caller has converted stride==0 to drawArraysNumParams * sizeof(GLuint) */
    assert(stride != 0);
 
-   if (!valid_draw_indirect_multi(ctx, primcount, stride,
-                                  "glMultiDrawArraysIndirect"))
+   if (!_mesa_valid_draw_indirect_multi(ctx, primcount, stride,
+                                        "glMultiDrawArraysIndirect"))
       return GL_FALSE;
 
    /* number of bytes of the indirect buffer which will be read */
@@ -1287,8 +1287,8 @@ _mesa_validate_MultiDrawElementsIndirect(struct gl_context *ctx,
    /* caller has converted stride==0 to drawElementsNumParams * sizeof(GLuint) */
    assert(stride != 0);
 
-   if (!valid_draw_indirect_multi(ctx, primcount, stride,
-                                  "glMultiDrawElementsIndirect"))
+   if (!_mesa_valid_draw_indirect_multi(ctx, primcount, stride,
+                                        "glMultiDrawElementsIndirect"))
       return GL_FALSE;
 
    /* number of bytes of the indirect buffer which will be read */
@@ -1366,8 +1366,8 @@ _mesa_validate_MultiDrawArraysIndirectCount(struct gl_context *ctx,
    /* caller has converted stride==0 to drawArraysNumParams * sizeof(GLuint) */
    assert(stride != 0);
 
-   if (!valid_draw_indirect_multi(ctx, maxdrawcount, stride,
-                                  "glMultiDrawArraysIndirectCountARB"))
+   if (!_mesa_valid_draw_indirect_multi(ctx, maxdrawcount, stride,
+                                        "glMultiDrawArraysIndirectCountARB"))
       return GL_FALSE;
 
    /* number of bytes of the indirect buffer which will be read */
@@ -1397,8 +1397,8 @@ _mesa_validate_MultiDrawElementsIndirectCount(struct gl_context *ctx,
    /* caller has converted stride==0 to drawElementsNumParams * sizeof(GLuint) */
    assert(stride != 0);
 
-   if (!valid_draw_indirect_multi(ctx, maxdrawcount, stride,
-                                  "glMultiDrawElementsIndirectCountARB"))
+   if (!_mesa_valid_draw_indirect_multi(ctx, maxdrawcount, stride,
+                                        "glMultiDrawElementsIndirectCountARB"))
       return GL_FALSE;
 
    /* number of bytes of the indirect buffer which will be read */

@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 template = """\
 /* Copyright (C) 2015 Broadcom
@@ -68,4 +69,4 @@ from nir_opcodes import opcodes
 from nir_intrinsics import INTR_OPCODES
 from mako.template import Template
 
-print Template(template).render(opcodes=opcodes, INTR_OPCODES=INTR_OPCODES)
+print(Template(template).render(opcodes=opcodes, INTR_OPCODES=INTR_OPCODES))

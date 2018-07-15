@@ -279,7 +279,6 @@ opt_if_simplification(nir_builder *b, nir_if *nif)
    nir_cf_extract(&tmp, nir_before_cf_list(&nif->else_list),
                         nir_after_cf_list(&nif->else_list));
    nir_cf_reinsert(&tmp, nir_before_cf_list(&nif->then_list));
-   nir_cf_delete(&tmp);
 
    return true;
 }
@@ -345,7 +344,6 @@ opt_if_loop_terminator(nir_if *nif)
    nir_cf_extract(&tmp, nir_before_block(first_continue_from_blk),
                         nir_after_block(continue_from_blk));
    nir_cf_reinsert(&tmp, nir_after_cf_node(&nif->cf_node));
-   nir_cf_delete(&tmp);
 
    return true;
 }
