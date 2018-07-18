@@ -807,6 +807,13 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->runtimeDescriptorArray = true;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT: {
+			VkPhysicalDeviceConditionalRenderingFeaturesEXT *features =
+				(VkPhysicalDeviceConditionalRenderingFeaturesEXT*)ext;
+			features->conditionalRendering = true;
+			features->inheritedConditionalRendering = false;
+			break;
+		}
 		default:
 			break;
 		}

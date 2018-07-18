@@ -153,6 +153,14 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                 (1 << MIN2(instr_return_channels,
                            c->key->tex[unit].return_channels)) - 1;
 
+        /* Word enables can't ask for more channels than the output type could
+         * provide (2 for f16, 4 for 32-bit).
+         */
+        assert(!p1_unpacked.output_type_32_bit ||
+               p0_unpacked.return_words_of_texture_data < (1 << 4));
+        assert(p1_unpacked.output_type_32_bit ||
+               p0_unpacked.return_words_of_texture_data < (1 << 2));
+
         uint32_t p0_packed;
         V3D41_TMU_CONFIG_PARAMETER_0_pack(NULL,
                                           (uint8_t *)&p0_packed,

@@ -230,9 +230,9 @@ validate_alu_src(nir_alu_instr *instr, unsigned index, validate_state *state)
 
    unsigned num_components = nir_src_num_components(src->src);
    if (!src->src.is_ssa && src->src.reg.reg->is_packed)
-      num_components = 4; /* can't check anything */
-   for (unsigned i = 0; i < 4; i++) {
-      validate_assert(state, src->swizzle[i] < 4);
+      num_components = NIR_MAX_VEC_COMPONENTS; /* can't check anything */
+   for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++) {
+      validate_assert(state, src->swizzle[i] < NIR_MAX_VEC_COMPONENTS);
 
       if (nir_alu_instr_channel_used(instr, index, i))
          validate_assert(state, src->swizzle[i] < num_components);

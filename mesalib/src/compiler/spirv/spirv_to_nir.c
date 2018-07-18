@@ -2321,6 +2321,18 @@ get_image_coord(struct vtn_builder *b, uint32_t value)
    return nir_swizzle(&b->nb, coord->def, swizzle, 4, false);
 }
 
+static nir_ssa_def *
+expand_to_vec4(nir_builder *b, nir_ssa_def *value)
+{
+   if (value->num_components == 4)
+      return value;
+
+   unsigned swiz[4];
+   for (unsigned i = 0; i < 4; i++)
+      swiz[i] = i < value->num_components ? i : 0;
+   return nir_swizzle(b, value, swiz, 4, false);
+}
+
 static void
 vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
                  const uint32_t *w, unsigned count)
@@ -2434,11 +2446,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       /* The image coordinate is always 4 components but we may not have that
        * many.  Swizzle to compensate.
        */
-      unsigned swiz[4];
-      for (unsigned i = 0; i < 4; i++)
-         swiz[i] = i < image.coord->num_components ? i : 0;
-      intrin->src[1] = nir_src_for_ssa(nir_swizzle(&b->nb, image.coord,
-                                                   swiz, 4, false));
+      intrin->src[1] = nir_src_for_ssa(expand_to_vec4(&b->nb, image.coord));
       intrin->src[2] = nir_src_for_ssa(image.sample);
    }
 
@@ -2448,11 +2456,13 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    case SpvOpImageRead:
       break;
    case SpvOpAtomicStore:
-      intrin->src[3] = nir_src_for_ssa(vtn_ssa_value(b, w[4])->def);
+   case SpvOpImageWrite: {
+      const uint32_t value_id = opcode == SpvOpAtomicStore ? w[4] : w[3];
+      nir_ssa_def *value = vtn_ssa_value(b, value_id)->def;
+      /* nir_intrinsic_image_deref_store always takes a vec4 value */
+      intrin->src[3] = nir_src_for_ssa(expand_to_vec4(&b->nb, value));
       break;
-   case SpvOpImageWrite:
-      intrin->src[3] = nir_src_for_ssa(vtn_ssa_value(b, w[3])->def);
-      break;
+   }
 
    case SpvOpAtomicCompareExchange:
    case SpvOpAtomicIIncrement:
@@ -2474,23 +2484,26 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       vtn_fail("Invalid image opcode");
    }
 
-   if (opcode != SpvOpImageWrite) {
+   if (opcode != SpvOpImageWrite && opcode != SpvOpAtomicStore) {
       struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_ssa);
       struct vtn_type *type = vtn_value(b, w[1], vtn_value_type_type)->type;
 
-      unsigned dest_components = nir_intrinsic_dest_components(intrin);
-      if (intrin->intrinsic == nir_intrinsic_image_deref_size) {
-         dest_components = intrin->num_components =
-            glsl_get_vector_elements(type->type);
-      }
+      unsigned dest_components = glsl_get_vector_elements(type->type);
+      intrin->num_components = nir_intrinsic_infos[op].dest_components;
+      if (intrin->num_components == 0)
+         intrin->num_components = dest_components;
 
       nir_ssa_dest_init(&intrin->instr, &intrin->dest,
-                        dest_components, 32, NULL);
+                        intrin->num_components, 32, NULL);
 
       nir_builder_instr_insert(&b->nb, &intrin->instr);
 
+      nir_ssa_def *result = &intrin->dest.ssa;
+      if (intrin->num_components != dest_components)
+         result = nir_channels(&b->nb, result, (1 << dest_components) - 1);
+
       val->ssa = vtn_create_ssa_value(b, type->type);
-      val->ssa->def = &intrin->dest.ssa;
+      val->ssa->def = result;
    } else {
       nir_builder_instr_insert(&b->nb, &intrin->instr);
    }
@@ -3074,7 +3087,7 @@ vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
       unsigned elems = count - 3;
       assume(elems >= 1);
       if (glsl_type_is_vector_or_scalar(type)) {
-         nir_ssa_def *srcs[4];
+         nir_ssa_def *srcs[NIR_MAX_VEC_COMPONENTS];
          for (unsigned i = 0; i < elems; i++)
             srcs[i] = vtn_ssa_value(b, w[3 + i])->def;
          val->ssa->def =

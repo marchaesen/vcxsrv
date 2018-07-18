@@ -844,22 +844,49 @@ _mesa_get_color_read_format(struct gl_context *ctx,
    }
    else {
       const mesa_format format = fb->_ColorReadBuffer->Format;
-      const GLenum data_type = _mesa_get_format_datatype(format);
 
-      if (format == MESA_FORMAT_B8G8R8A8_UNORM)
-         return GL_BGRA;
-      else if (format == MESA_FORMAT_B5G6R5_UNORM)
-         return GL_RGB;
-      else if (format == MESA_FORMAT_R_UNORM8)
-         return GL_RED;
-
-      switch (data_type) {
-      case GL_UNSIGNED_INT:
-      case GL_INT:
+      switch (format) {
+      case MESA_FORMAT_RGBA_UINT8:
          return GL_RGBA_INTEGER;
+      case MESA_FORMAT_B8G8R8A8_UNORM:
+         return GL_BGRA;
+      case MESA_FORMAT_B5G6R5_UNORM:
+      case MESA_FORMAT_R11G11B10_FLOAT:
+         return GL_RGB;
+      case MESA_FORMAT_RG_FLOAT32:
+      case MESA_FORMAT_RG_FLOAT16:
+      case MESA_FORMAT_R8G8_UNORM:
+      case MESA_FORMAT_R8G8_SNORM:
+         return GL_RG;
+      case MESA_FORMAT_RG_SINT32:
+      case MESA_FORMAT_RG_UINT32:
+      case MESA_FORMAT_RG_SINT16:
+      case MESA_FORMAT_RG_UINT16:
+      case MESA_FORMAT_RG_SINT8:
+      case MESA_FORMAT_RG_UINT8:
+         return GL_RG_INTEGER;
+      case MESA_FORMAT_R_FLOAT32:
+      case MESA_FORMAT_R_FLOAT16:
+      case MESA_FORMAT_R_UNORM16:
+      case MESA_FORMAT_R_UNORM8:
+      case MESA_FORMAT_R_SNORM16:
+      case MESA_FORMAT_R_SNORM8:
+         return GL_RED;
+      case MESA_FORMAT_R_SINT32:
+      case MESA_FORMAT_R_UINT32:
+      case MESA_FORMAT_R_SINT16:
+      case MESA_FORMAT_R_UINT16:
+      case MESA_FORMAT_R_SINT8:
+      case MESA_FORMAT_R_UINT8:
+         return GL_RED_INTEGER;
       default:
-         return GL_RGBA;
+         break;
       }
+
+      if (_mesa_is_format_integer(format))
+         return GL_RGBA_INTEGER;
+      else
+         return GL_RGBA;
    }
 }
 
@@ -892,29 +919,13 @@ _mesa_get_color_read_type(struct gl_context *ctx,
       return GL_NONE;
    }
    else {
-      const GLenum format = fb->_ColorReadBuffer->Format;
-      const GLenum data_type = _mesa_get_format_datatype(format);
+      const mesa_format format = fb->_ColorReadBuffer->Format;
+      GLenum data_type;
+      GLuint comps;
 
-      if (format == MESA_FORMAT_B5G6R5_UNORM)
-         return GL_UNSIGNED_SHORT_5_6_5;
+      _mesa_uncompressed_format_to_type_and_comps(format, &data_type, &comps);
 
-      if (format == MESA_FORMAT_B10G10R10A2_UNORM ||
-          format == MESA_FORMAT_B10G10R10X2_UNORM ||
-          format == MESA_FORMAT_R10G10B10A2_UNORM ||
-          format == MESA_FORMAT_R10G10B10X2_UNORM)
-         return GL_UNSIGNED_INT_2_10_10_10_REV;
-
-      switch (data_type) {
-      case GL_SIGNED_NORMALIZED:
-         return GL_BYTE;
-      case GL_UNSIGNED_INT:
-      case GL_INT:
-      case GL_FLOAT:
-         return data_type;
-      case GL_UNSIGNED_NORMALIZED:
-      default:
-         return GL_UNSIGNED_BYTE;
-      }
+      return data_type;
    }
 }
 

@@ -89,6 +89,7 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count, bool alu_ok)
          break;
       }
 
+      case nir_instr_type_deref:
       case nir_instr_type_load_const:
          break;
 

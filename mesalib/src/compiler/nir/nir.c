@@ -251,7 +251,7 @@ nir_alu_src_copy(nir_alu_src *dest, const nir_alu_src *src,
    nir_src_copy(&dest->src, &src->src, &instr->instr);
    dest->abs = src->abs;
    dest->negate = src->negate;
-   for (unsigned i = 0; i < 4; i++)
+   for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
       dest->swizzle[i] = src->swizzle[i];
 }
 
@@ -421,10 +421,8 @@ alu_src_init(nir_alu_src *src)
 {
    src_init(&src->src);
    src->abs = src->negate = false;
-   src->swizzle[0] = 0;
-   src->swizzle[1] = 1;
-   src->swizzle[2] = 2;
-   src->swizzle[3] = 3;
+   for (int i = 0; i < NIR_MAX_VEC_COMPONENTS; ++i)
+      src->swizzle[i] = i;
 }
 
 nir_alu_instr *
@@ -1426,10 +1424,10 @@ nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
       nir_if_rewrite_condition(use_src->parent_if, new_src);
 }
 
-uint8_t
+nir_component_mask_t
 nir_ssa_def_components_read(const nir_ssa_def *def)
 {
-   uint8_t read_mask = 0;
+   nir_component_mask_t read_mask = 0;
    nir_foreach_use(use, def) {
       if (use->parent_instr->type == nir_instr_type_alu) {
          nir_alu_instr *alu = nir_instr_as_alu(use->parent_instr);
@@ -1437,7 +1435,7 @@ nir_ssa_def_components_read(const nir_ssa_def *def)
          int src_idx = alu_src - &alu->src[0];
          assert(src_idx >= 0 && src_idx < nir_op_infos[alu->op].num_inputs);
 
-         for (unsigned c = 0; c < 4; c++) {
+         for (unsigned c = 0; c < NIR_MAX_VEC_COMPONENTS; c++) {
             if (!nir_alu_instr_channel_used(alu, src_idx, c))
                continue;
 
@@ -1758,6 +1756,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_local_group_size;
    case SYSTEM_VALUE_GLOBAL_INVOCATION_ID:
       return nir_intrinsic_load_global_invocation_id;
+   case SYSTEM_VALUE_WORK_DIM:
+      return nir_intrinsic_load_work_dim;
    default:
       unreachable("system value does not directly correspond to intrinsic");
    }

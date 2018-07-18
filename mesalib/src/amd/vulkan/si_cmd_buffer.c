@@ -1002,12 +1002,23 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 
 /* sets the CP predication state using a boolean stored at va */
 void
-si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer, uint64_t va)
+si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer,
+			      bool inverted, uint64_t va)
 {
 	uint32_t op = 0;
 
-	if (va)
-		op = PRED_OP(PREDICATION_OP_BOOL64) | PREDICATION_DRAW_VISIBLE;
+	if (va) {
+		op = PRED_OP(PREDICATION_OP_BOOL64);
+
+		/* By default, our internal rendering commands are discarded
+		 * only if the predicate is non-zero (ie. DRAW_VISIBLE). But
+		 * VK_EXT_conditional_rendering also allows to discard commands
+		 * when the predicate is zero, which means we have to use a
+		 * different flag.
+		 */
+		op |= inverted ? PREDICATION_DRAW_VISIBLE :
+				 PREDICATION_DRAW_NOT_VISIBLE;
+	}
 	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
 		radeon_emit(cmd_buffer->cs, PKT3(PKT3_SET_PREDICATION, 2, 0));
 		radeon_emit(cmd_buffer->cs, op);

@@ -571,7 +571,7 @@ radv_emit_set_predication_state_from_image(struct radv_cmd_buffer *cmd_buffer,
 		va += image->dcc_pred_offset;
 	}
 
-	si_emit_set_predication_state(cmd_buffer, va);
+	si_emit_set_predication_state(cmd_buffer, true, va);
 }
 
 /**
@@ -586,6 +586,7 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 	VkDevice device_h = radv_device_to_handle(cmd_buffer->device);
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
 	uint32_t layer_count = radv_get_layerCount(image, subresourceRange);
+	bool old_predicating;
 	VkPipeline pipeline;
 
 	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
@@ -603,6 +604,8 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 	}
 
 	if (radv_image_has_dcc(image)) {
+		old_predicating = cmd_buffer->state.predicating;
+
 		radv_emit_set_predication_state_from_image(cmd_buffer, image, true);
 		cmd_buffer->state.predicating = true;
 	}
@@ -669,13 +672,21 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 
 	}
 	if (radv_image_has_dcc(image)) {
-		cmd_buffer->state.predicating = false;
+		cmd_buffer->state.predicating = old_predicating;
+
 		radv_emit_set_predication_state_from_image(cmd_buffer, image, false);
 
 		/* Clear the image's fast-clear eliminate predicate because
 		 * FMASK and DCC also imply a fast-clear eliminate.
 		 */
 		radv_set_dcc_need_cmask_elim_pred(cmd_buffer, image, false);
+
+		if (cmd_buffer->state.predication_type != -1) {
+			/* Restore previous conditional rendering user state. */
+			si_emit_set_predication_state(cmd_buffer,
+						      cmd_buffer->state.predication_type,
+						      cmd_buffer->state.predication_va);
+		}
 	}
 	radv_meta_restore(&saved_state, cmd_buffer);
 }

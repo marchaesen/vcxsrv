@@ -38,7 +38,7 @@ lower_load_input_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
 
    assert(intr->dest.is_ssa);
 
-   nir_ssa_def *loads[4];
+   nir_ssa_def *loads[NIR_MAX_VEC_COMPONENTS];
 
    for (unsigned i = 0; i < intr->num_components; i++) {
       nir_intrinsic_instr *chan_intr =
@@ -177,7 +177,7 @@ lower_load_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
 
    assert(intr->dest.is_ssa);
 
-   nir_ssa_def *loads[4];
+   nir_ssa_def *loads[NIR_MAX_VEC_COMPONENTS];
 
    nir_variable **chan_vars;
    if (var->data.mode == nir_var_shader_in) {

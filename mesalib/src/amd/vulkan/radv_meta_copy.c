@@ -117,6 +117,7 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 {
 	bool cs = cmd_buffer->queue_family_index == RADV_QUEUE_COMPUTE;
 	struct radv_meta_saved_state saved_state;
+	bool old_predicating;
 
 	/* The Vulkan 1.0 spec says "dstImage must have a sample count equal to
 	 * VK_SAMPLE_COUNT_1_BIT."
@@ -128,6 +129,12 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 			RADV_META_SAVE_GRAPHICS_PIPELINE) |
 		       RADV_META_SAVE_CONSTANTS |
 		       RADV_META_SAVE_DESCRIPTORS);
+
+	/* VK_EXT_conditional_rendering says that copy commands should not be
+	 * affected by conditional rendering.
+	 */
+	old_predicating = cmd_buffer->state.predicating;
+	cmd_buffer->state.predicating = false;
 
 	for (unsigned r = 0; r < regionCount; r++) {
 
@@ -208,6 +215,9 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 		}
 	}
 
+	/* Restore conditional rendering. */
+	cmd_buffer->state.predicating = old_predicating;
+
 	radv_meta_restore(&saved_state, cmd_buffer);
 }
 
@@ -236,11 +246,18 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
                           const VkBufferImageCopy* pRegions)
 {
 	struct radv_meta_saved_state saved_state;
+	bool old_predicating;
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_COMPUTE_PIPELINE |
 		       RADV_META_SAVE_CONSTANTS |
 		       RADV_META_SAVE_DESCRIPTORS);
+
+	/* VK_EXT_conditional_rendering says that copy commands should not be
+	 * affected by conditional rendering.
+	 */
+	old_predicating = cmd_buffer->state.predicating;
+	cmd_buffer->state.predicating = false;
 
 	for (unsigned r = 0; r < regionCount; r++) {
 
@@ -313,6 +330,9 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 		}
 	}
 
+	/* Restore conditional rendering. */
+	cmd_buffer->state.predicating = old_predicating;
+
 	radv_meta_restore(&saved_state, cmd_buffer);
 }
 
@@ -344,6 +364,7 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 {
 	bool cs = cmd_buffer->queue_family_index == RADV_QUEUE_COMPUTE;
 	struct radv_meta_saved_state saved_state;
+	bool old_predicating;
 
 	/* From the Vulkan 1.0 spec:
 	 *
@@ -357,6 +378,12 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 			RADV_META_SAVE_GRAPHICS_PIPELINE) |
 		       RADV_META_SAVE_CONSTANTS |
 		       RADV_META_SAVE_DESCRIPTORS);
+
+	/* VK_EXT_conditional_rendering says that copy commands should not be
+	 * affected by conditional rendering.
+	 */
+	old_predicating = cmd_buffer->state.predicating;
+	cmd_buffer->state.predicating = false;
 
 	for (unsigned r = 0; r < regionCount; r++) {
 		assert(pRegions[r].srcSubresource.aspectMask ==
@@ -464,6 +491,9 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 				slice_array++;
 		}
 	}
+
+	/* Restore conditional rendering. */
+	cmd_buffer->state.predicating = old_predicating;
 
 	radv_meta_restore(&saved_state, cmd_buffer);
 }

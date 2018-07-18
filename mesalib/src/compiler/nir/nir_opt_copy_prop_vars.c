@@ -389,7 +389,7 @@ load_from_ssa_entry_value(struct copy_prop_var_state *state,
    const struct glsl_type *type = entry->dst->type;
    unsigned num_components = glsl_get_vector_elements(type);
 
-   uint8_t available = 0;
+   nir_component_mask_t available = 0;
    bool all_same = true;
    for (unsigned i = 0; i < num_components; i++) {
       if (value->ssa[i])
@@ -422,7 +422,7 @@ load_from_ssa_entry_value(struct copy_prop_var_state *state,
       intrin->intrinsic == nir_intrinsic_load_deref ? &intrin->dest.ssa : NULL;
 
    bool keep_intrin = false;
-   nir_ssa_def *comps[4];
+   nir_ssa_def *comps[NIR_MAX_VEC_COMPONENTS];
    for (unsigned i = 0; i < num_components; i++) {
       if (value->ssa[i]) {
          comps[i] = nir_channel(b, value->ssa[i], i);

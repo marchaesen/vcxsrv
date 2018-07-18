@@ -129,8 +129,7 @@ nir_opt_dce_impl(nir_function_impl *impl)
       init_block(block, worklist);
    }
 
-   nir_instr *instr = NULL;
-   nir_instr_worklist_foreach(worklist, instr)
+   nir_foreach_instr_in_worklist(instr, worklist)
       nir_foreach_src(instr, mark_live_cb, worklist);
 
    nir_instr_worklist_destroy(worklist);
