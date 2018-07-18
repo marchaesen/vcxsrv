@@ -460,7 +460,7 @@
 #undef MONOTONIC_CLOCK
 
 /* Define to 1 if the DTrace Xserver provider probes should be built in */
-#undef XSERVER_DTRACE
+/*#define XSERVER_DTRACE*/
 
 /* Define to 1 if typeof works with your compiler. */
 #undef HAVE_TYPEOF
