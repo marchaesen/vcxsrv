@@ -77,16 +77,16 @@ winMWExtWMReorderWindows(ScreenPtr pScreen)
                     vlist[0] = pRLWinSib->pFrame->win->drawable.id;
                     vlist[1] = Below;
 
-                    ConfigureWindow(pRLWin->pFrame->win,
-                                    CWSibling | CWStackMode, vlist,
-                                    wClient(pRLWin->pFrame->win));
+                    winConfigureWindow(pRLWin->pFrame->win,
+                                       CWSibling | CWStackMode, vlist,
+                                       wClient(pRLWin->pFrame->win));
                 }
                 else {
                     /* 1st window - raise to the top */
                     vlist[0] = Above;
 
-                    ConfigureWindow(pRLWin->pFrame->win, CWStackMode,
-                                    vlist, wClient(pRLWin->pFrame->win));
+                    winConfigureWindow(pRLWin->pFrame->win, CWStackMode,
+                                       vlist, wClient(pRLWin->pFrame->win));
                 }
             }
             hwnd = GetNextWindow(hwnd, GW_HWNDNEXT);
@@ -109,7 +109,7 @@ winMWExtWMMoveXWindow(WindowPtr pWin, int x, int y)
 
     vlist[0] = x;
     vlist[1] = y;
-    ConfigureWindow(pWin, CWX | CWY, vlist, wClient(pWin));
+    winConfigureWindow(pWin, CWX | CWY, vlist, wClient(pWin));
     free(vlist);
 }
 
@@ -124,7 +124,7 @@ winMWExtWMResizeXWindow(WindowPtr pWin, int w, int h)
 
     vlist[0] = w;
     vlist[1] = h;
-    ConfigureWindow(pWin, CWWidth | CWHeight, vlist, wClient(pWin));
+    winConfigureWindow(pWin, CWWidth | CWHeight, vlist, wClient(pWin));
     free(vlist);
 }
 
@@ -142,7 +142,7 @@ winMWExtWMMoveResizeXWindow(WindowPtr pWin, int x, int y, int w, int h)
     vlist[2] = w;
     vlist[3] = h;
 
-    ConfigureWindow(pWin, CWX | CWY | CWWidth | CWHeight, vlist, wClient(pWin));
+    winConfigureWindow(pWin, CWX | CWY | CWWidth | CWHeight, vlist, wClient(pWin));
     free(vlist);
 }
 

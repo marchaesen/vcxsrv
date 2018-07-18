@@ -281,12 +281,13 @@ winRaiseWindow(WindowPtr pWin)
 {
     if (!winInDestroyWindowsWindow && !winInRaiseWindow) {
         BOOL oldstate = winInRaiseWindow;
-        XID vlist[1] = { 0 };
+        XID vlist[1];
+        vlist[0]= Above;
         winInRaiseWindow = TRUE;
         /* Call configure window directly to make sure it gets processed
          * in time
          */
-        ConfigureWindow(pWin, CWStackMode, vlist, serverClient);
+        winConfigureWindow(pWin, CWStackMode, vlist, serverClient);
         winInRaiseWindow = oldstate;
     }
 }
@@ -357,7 +358,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     winWMMessageRec wmMsg;
     Bool fWMMsgInitialized = FALSE;
     static Bool s_fTracking = FALSE;
-    Bool needRestack = FALSE;
     LRESULT ret;
 
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
@@ -414,13 +414,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 (HANDLE) (INT_PTR) winGetWindowID(((LPCREATESTRUCT) lParam)->
                                                   lpCreateParams));
 
-        /*
-         * Make X windows' Z orders sync with Windows windows because
-         * there can be AlwaysOnTop windows overlapped on the window
-         * currently being created.
-         */
-        winReorderWindowsMultiWindow();
-
         /* Fix a 'round title bar corner background should be transparent not black' problem when first painted */
         {
             RECT rWindow;
@@ -449,14 +442,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (HandleCustomWM_COMMAND(hwnd, LOWORD(wParam), s_pScreenPriv)) {
             /* Don't pass customized menus to DefWindowProc */
             return 0;
-        }
-        if (wParam == SC_RESTORE || wParam == SC_MAXIMIZE) {
-            WINDOWPLACEMENT wndpl;
-
-            wndpl.length = sizeof(wndpl);
-            if (GetWindowPlacement(hwnd, &wndpl) &&
-                wndpl.showCmd == SW_SHOWMINIMIZED)
-                needRestack = TRUE;
         }
         break;
 
@@ -1075,8 +1060,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         winAdjustXWindow (pWin, hwnd);
         if (fWMMsgInitialized)
             winAdjustXWindowState(s_pScreenPriv, &wmMsg);
-        if (wParam == SIZE_MINIMIZED)
-            winReorderWindowsMultiWindow();
         if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
             DispatchQueuedEvents(0);
     /* else: wait for WM_EXITSIZEMOVE */
@@ -1117,12 +1100,5 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
 
-    ret = DefWindowProc(hwnd, message, wParam, lParam);
-    /*
-     * If the window was minized we get the stack change before the window is restored
-     * and so it gets lost. Ensure there stacking order is correct.
-     */
-    if (needRestack)
-        winReorderWindowsMultiWindow();
-    return ret;
+    return DefWindowProc(hwnd, message, wParam, lParam);
 }

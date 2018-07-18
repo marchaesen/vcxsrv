@@ -395,6 +395,62 @@ winReparentWindowMultiWindow(WindowPtr pWin, WindowPtr pPriorParent)
     winUpdateWindowsWindow(pWin);
 }
 
+static int localConfigureWindow;
+int
+winConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
+{
+  localConfigureWindow++;
+  int ret=ConfigureWindow(pWin, mask, vlist, client);
+  localConfigureWindow--;
+  return ret;
+}
+
+static void dowinRestackWindowMultiWindow(WindowPtr pWin)
+{
+    winWindowPriv(pWin);
+
+    if (localConfigureWindow)
+    {
+      return;
+    }
+    if (!pWinPriv->hWnd)
+    {
+      return;
+    }
+
+    WindowPtr pNextSib = pWin->nextSib;
+
+    if (pNextSib == NullWindow)
+    {
+        SetWindowPos(pWinPriv->hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+    }
+    else
+    {
+        /* Window is not at the bottom of the stack */
+	      winPrivWinPtr pNextSibPriv = winGetWindowPriv(pNextSib);
+
+        /* Handle case where siblings have not yet been created due to
+           lazy window creation optimization by first finding the next
+           sibling in the sibling list that has been created (if any)
+           and then putting the current window just above that sibling,
+           and if no next siblings have been created yet, then put it at
+           the bottom of the stack (since it might have a previous
+           sibling that should be above it). */
+        while (!pNextSibPriv->hWnd) {
+            pNextSib = pNextSib->nextSib;
+            if (pNextSib == NullWindow) {
+                /* Window is at the bottom of the stack */
+                SetWindowPos(pWinPriv->hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+                return;
+            }
+	          pNextSibPriv = winGetWindowPriv(pNextSib);
+        }
+
+        /* Bring window on top pNextSibPriv->hwnd */
+        SetWindowPos(pWinPriv->hWnd, pNextSibPriv->hWnd, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+    }
+}
+
 /*
  * RestackWindow - Shuffle the z-order of a window
  */
@@ -413,12 +469,8 @@ winRestackWindowMultiWindow(WindowPtr pWin, WindowPtr pOldNextSib)
         (*pScreen->RestackWindow) (pWin, pOldNextSib);
     WIN_WRAP(RestackWindow, winRestackWindowMultiWindow);
 
-    /*
-     * Calling winReorderWindowsMultiWindow here means our window manager
-     * (i.e. Windows Explorer) has initiative to determine Z order.
-     */
     if (pWin->nextSib != pOldNextSib)
-        winReorderWindowsMultiWindow();
+        dowinRestackWindowMultiWindow(pWin);
 }
 
 /*
@@ -488,14 +540,13 @@ winCreateWindowsWindow(WindowPtr pWin)
              iY);
 
     if (winMultiWindowGetTransientFor(pWin, &daddyId)) {
-        if (daddyId) {
+        if (daddyId && !pWin->overrideRedirect) {
             WindowPtr pParent;
             int res = dixLookupWindow(&pParent, daddyId, serverClient, DixReadAccess);
-            if (res == Success)
-                {
-                    winPrivWinPtr pParentPriv = winGetWindowPriv(pParent);
-                    hFore = pParentPriv->hWnd;
-                }
+            if (res == Success) {
+                winPrivWinPtr pParentPriv = winGetWindowPriv(pParent);
+                hFore = pParentPriv->hWnd;
+            }
         }
     }
     else if (!pWin->overrideRedirect) {
@@ -756,61 +807,6 @@ winFindWindow(void *value, XID id, void *cdata)
 }
 
 /*
- * winReorderWindowsMultiWindow -
- */
-
-void
-winReorderWindowsMultiWindow(void)
-{
-    HWND hwnd = NULL;
-    WindowPtr pWin = NULL;
-    WindowPtr pWinSib = NULL;
-    XID vlist[2];
-    static Bool fRestacking = FALSE;    /* Avoid recusive calls to this function */
-    DWORD dwCurrentProcessID = GetCurrentProcessId();
-    DWORD dwWindowProcessID = 0;
-
-    winDebug("winReorderWindowsMultiWindow\n");
-
-    if (fRestacking) {
-        /* It is a recusive call so immediately exit */
-        winDebug("winReorderWindowsMultiWindow - "
-               "exit because fRestacking == TRUE\n");
-        return;
-    }
-    fRestacking = TRUE;
-
-    /* Loop through top level Window windows, descending in Z order */
-    for (hwnd = GetTopWindow(NULL);
-         hwnd; hwnd = GetNextWindow(hwnd, GW_HWNDNEXT)) {
-        /* Don't take care of other Cygwin/X process's windows */
-        GetWindowThreadProcessId(hwnd, &dwWindowProcessID);
-
-        if (GetProp(hwnd, WIN_WINDOW_PROP)
-            && (dwWindowProcessID == dwCurrentProcessID)
-            && !IsIconic(hwnd)) {       /* ignore minimized windows */
-            pWinSib = pWin;
-            pWin = GetProp(hwnd, WIN_WINDOW_PROP);
-
-            if (!pWinSib) {     /* 1st window - raise to the top */
-                vlist[0] = Above;
-
-                ConfigureWindow(pWin, CWStackMode, vlist, wClient(pWin));
-            }
-            else {              /* 2nd or deeper windows - just below the previous one */
-                vlist[0] = winGetWindowID(pWinSib);
-                vlist[1] = Below;
-
-                ConfigureWindow(pWin, CWSibling | CWStackMode,
-                                vlist, wClient(pWin));
-            }
-        }
-    }
-
-    fRestacking = FALSE;
-}
-
-/*
  * CopyWindow - See Porting Layer Definition - p. 39
  */
 void
@@ -899,7 +895,7 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
          */
         vlist[0] = 0;
         vlist[1] = 0;
-        return ConfigureWindow(pWin, CWX | CWY, vlist, wClient(pWin));
+        return winConfigureWindow(pWin, CWX | CWY, vlist, wClient(pWin));
     }
 
     pDraw = &pWin->drawable;
@@ -941,7 +937,7 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
      * Adjust.
      * We may only need to move (vlist[0] and [1]), or only resize
      * ([2] and [3]) but currently we set all the parameters and leave
-     * the decision to ConfigureWindow.  The reason is code simplicity.
+     * the decision to winConfigureWindow.  The reason is code simplicity.
      */
     vlist[0] = pDraw->x + dX - wBorderWidth(pWin);
     vlist[1] = pDraw->y + dY - wBorderWidth(pWin);
@@ -951,8 +947,8 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
     winDebug("\tConfigureWindow to (%u, %u) - %ux%u\n",
            (unsigned int)vlist[0], (unsigned int)vlist[1],
            (unsigned int)vlist[2], (unsigned int)vlist[3]);
-    return ConfigureWindow(pWin, CWX | CWY | CWWidth | CWHeight,
-                           vlist, wClient(pWin));
+    return winConfigureWindow(pWin, CWX | CWY | CWWidth | CWHeight,
+                              vlist, wClient(pWin));
 
 #undef WIDTH
 #undef HEIGHT

@@ -920,8 +920,8 @@ void
 void
  winRestackWindowMultiWindow(WindowPtr pWin, WindowPtr pOldNextSib);
 
-void
- winReorderWindowsMultiWindow(void);
+int
+winConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client);
 
 void
 
