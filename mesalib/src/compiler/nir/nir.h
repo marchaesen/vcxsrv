@@ -57,6 +57,8 @@ extern "C" {
 
 #define NIR_FALSE 0u
 #define NIR_TRUE (~0u)
+#define NIR_MAX_VEC_COMPONENTS 4
+typedef uint8_t nir_component_mask_t;
 
 /** Defines a cast function
  *
@@ -115,16 +117,16 @@ typedef enum {
 } nir_rounding_mode;
 
 typedef union {
-   float f32[4];
-   double f64[4];
-   int8_t i8[4];
-   uint8_t u8[4];
-   int16_t i16[4];
-   uint16_t u16[4];
-   int32_t i32[4];
-   uint32_t u32[4];
-   int64_t i64[4];
-   uint64_t u64[4];
+   float f32[NIR_MAX_VEC_COMPONENTS];
+   double f64[NIR_MAX_VEC_COMPONENTS];
+   int8_t i8[NIR_MAX_VEC_COMPONENTS];
+   uint8_t u8[NIR_MAX_VEC_COMPONENTS];
+   int16_t i16[NIR_MAX_VEC_COMPONENTS];
+   uint16_t u16[NIR_MAX_VEC_COMPONENTS];
+   int32_t i32[NIR_MAX_VEC_COMPONENTS];
+   uint32_t u32[NIR_MAX_VEC_COMPONENTS];
+   int64_t i64[NIR_MAX_VEC_COMPONENTS];
+   uint64_t u64[NIR_MAX_VEC_COMPONENTS];
 } nir_const_value;
 
 typedef struct nir_constant {
@@ -135,7 +137,7 @@ typedef struct nir_constant {
     * by the type associated with the \c nir_variable.  Constants may be
     * scalars, vectors, or matrices.
     */
-   nir_const_value values[4];
+   nir_const_value values[NIR_MAX_VEC_COMPONENTS];
 
    /* we could get this from the var->type but makes clone *much* easier to
     * not have to care about the type.
@@ -697,7 +699,7 @@ typedef struct {
     * a statement like "foo.xzw = bar.zyx" would have a writemask of 1101b and
     * a swizzle of {2, x, 1, 0} where x means "don't care."
     */
-   uint8_t swizzle[4];
+   uint8_t swizzle[NIR_MAX_VEC_COMPONENTS];
 } nir_alu_src;
 
 typedef struct {
@@ -712,7 +714,7 @@ typedef struct {
 
    bool saturate;
 
-   unsigned write_mask : 4; /* ignored if dest.is_ssa is true */
+   unsigned write_mask : NIR_MAX_VEC_COMPONENTS; /* ignored if dest.is_ssa is true */
 } nir_alu_dest;
 
 typedef enum {
@@ -841,14 +843,14 @@ typedef struct {
    /**
     * The number of components in each input
     */
-   unsigned input_sizes[4];
+   unsigned input_sizes[NIR_MAX_VEC_COMPONENTS];
 
    /**
     * The type of vector that each input takes. Note that negate and
     * absolute value are only allowed on inputs with int or float type and
     * behave differently on the two.
     */
-   nir_alu_type input_types[4];
+   nir_alu_type input_types[NIR_MAX_VEC_COMPONENTS];
 
    nir_op_algebraic_property algebraic_properties;
 } nir_op_info;
@@ -2004,6 +2006,20 @@ typedef struct nir_shader_compiler_options {
     */
    bool lower_base_vertex;
 
+   /**
+    * If enabled, gl_HelperInvocation will be lowered as:
+    *
+    *   !((1 << sample_id) & sample_mask_in))
+    *
+    * This depends on some possibly hw implementation details, which may
+    * not be true for all hw.  In particular that the FS is only executed
+    * for covered samples or for helper invocations.  So, do not blindly
+    * enable this option.
+    *
+    * Note: See also issue #22 in ARB_shader_image_load_store
+    */
+   bool lower_helper_invocation;
+
    bool lower_cs_local_index_from_id;
 
    bool lower_device_index_to_zero;
@@ -2420,7 +2436,7 @@ void nir_ssa_def_rewrite_uses(nir_ssa_def *def, nir_src new_src);
 void nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
                                     nir_instr *after_me);
 
-uint8_t nir_ssa_def_components_read(const nir_ssa_def *def);
+nir_component_mask_t nir_ssa_def_components_read(const nir_ssa_def *def);
 
 /*
  * finds the next basic block in source-code order, returns NULL if there is

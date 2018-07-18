@@ -2191,42 +2191,28 @@ FcConfigFilename (const FcChar8 *url)
     }
     file = 0;
 
-#ifdef _WIN32
-    if (isalpha (*url) &&
-	url[1] == ':' &&
-	(url[2] == '/' || url[2] == '\\'))
-	goto absolute_path;
-#endif
+    if (FcStrIsAbsoluteFilename(url))
+	return FcConfigFileExists (0, url);
 
-    switch (*url) {
-    case '~':
+    if (*url == '~')
+    {
 	dir = FcConfigHome ();
 	if (dir)
 	    file = FcConfigFileExists (dir, url + 1);
 	else
 	    file = 0;
-	break;
-#ifdef _WIN32
-    case '\\':
-    absolute_path:
-#endif
-    case '/':
-	file = FcConfigFileExists (0, url);
-	break;
-    default:
-	path = FcConfigGetPath ();
-	if (!path)
-	    return NULL;
-	for (p = path; *p; p++)
-	{
-	    file = FcConfigFileExists (*p, url);
-	    if (file)
-		break;
-	}
-	FcConfigFreePath (path);
-	break;
     }
 
+    path = FcConfigGetPath ();
+    if (!path)
+	return NULL;
+    for (p = path; *p; p++)
+    {
+	file = FcConfigFileExists (*p, url);
+	if (file)
+	    break;
+    }
+    FcConfigFreePath (path);
     return file;
 }
 
@@ -2252,8 +2238,27 @@ FcConfigRealFilename (FcConfig		*config,
 	if ((len = FcReadLink (nn, buf, sizeof (buf) - 1)) != -1)
 	{
 	    buf[len] = 0;
-	    FcStrFree (nn);
-	    nn = FcStrdup (buf);
+
+	    if (!FcStrIsAbsoluteFilename (buf))
+	    {
+		FcChar8 *dirname = FcStrDirname (nn);
+		FcStrFree (nn);
+		if (!dirname)
+		    return NULL;
+
+		FcChar8 *path = FcStrBuildFilename (dirname, buf, NULL);
+		FcStrFree (dirname);
+		if (!path)
+		    return NULL;
+
+		nn = FcStrCanonFilename (path);
+		FcStrFree (path);
+	    }
+	    else
+	    {
+		FcStrFree (nn);
+		nn = FcStrdup (buf);
+	    }
 	}
     }
 

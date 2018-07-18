@@ -361,7 +361,8 @@ nir_build_alu(nir_builder *build, nir_op op, nir_ssa_def *src0,
     * scalar value was passed into a multiply with a vector).
     */
    for (unsigned i = 0; i < op_info->num_inputs; i++) {
-      for (unsigned j = instr->src[i].src.ssa->num_components; j < 4; j++) {
+      for (unsigned j = instr->src[i].src.ssa->num_components;
+           j < NIR_MAX_VEC_COMPONENTS; j++) {
          instr->src[i].swizzle[j] = instr->src[i].src.ssa->num_components - 1;
       }
    }
@@ -433,10 +434,10 @@ static inline nir_ssa_def *
 nir_swizzle(nir_builder *build, nir_ssa_def *src, const unsigned *swiz,
             unsigned num_components, bool use_fmov)
 {
-   assert(num_components <= 4);
+   assert(num_components <= NIR_MAX_VEC_COMPONENTS);
    nir_alu_src alu_src = { NIR_SRC_INIT };
    alu_src.src = nir_src_for_ssa(src);
-   for (unsigned i = 0; i < num_components && i < 4; i++)
+   for (unsigned i = 0; i < num_components && i < NIR_MAX_VEC_COMPONENTS; i++)
       alu_src.swizzle[i] = swiz[i];
 
    return use_fmov ? nir_fmov_alu(build, alu_src, num_components) :
@@ -486,11 +487,11 @@ nir_channel(nir_builder *b, nir_ssa_def *def, unsigned c)
 }
 
 static inline nir_ssa_def *
-nir_channels(nir_builder *b, nir_ssa_def *def, unsigned mask)
+nir_channels(nir_builder *b, nir_ssa_def *def, nir_component_mask_t mask)
 {
-   unsigned num_channels = 0, swizzle[4] = { 0, 0, 0, 0 };
+   unsigned num_channels = 0, swizzle[NIR_MAX_VEC_COMPONENTS] = { 0 };
 
-   for (unsigned i = 0; i < 4; i++) {
+   for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++) {
       if ((mask & (1 << i)) == 0)
          continue;
       swizzle[num_channels++] = i;
@@ -526,7 +527,9 @@ nir_ssa_for_src(nir_builder *build, nir_src src, int num_components)
 static inline nir_ssa_def *
 nir_ssa_for_alu_src(nir_builder *build, nir_alu_instr *instr, unsigned srcn)
 {
-   static uint8_t trivial_swizzle[4] = { 0, 1, 2, 3 };
+   static uint8_t trivial_swizzle[NIR_MAX_VEC_COMPONENTS];
+   for (int i = 0; i < NIR_MAX_VEC_COMPONENTS; ++i)
+      trivial_swizzle[i] = i;
    nir_alu_src *src = &instr->src[srcn];
    unsigned num_components = nir_ssa_alu_instr_src_components(instr, srcn);
 

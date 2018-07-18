@@ -144,6 +144,23 @@ convert_block(nir_block *block, nir_builder *b)
                               nir_load_first_vertex(b));
          break;
 
+      case SYSTEM_VALUE_HELPER_INVOCATION:
+         if (b->shader->options->lower_helper_invocation) {
+            nir_ssa_def *tmp;
+
+            tmp = nir_ishl(b,
+                           nir_imm_int(b, 1),
+                           nir_load_sample_id_no_per_sample(b));
+
+            tmp = nir_iand(b,
+                           nir_load_sample_mask_in(b),
+                           tmp);
+
+            sysval = nir_inot(b, nir_i2b(b, tmp));
+         }
+
+         break;
+
       case SYSTEM_VALUE_INSTANCE_INDEX:
          sysval = nir_iadd(b,
                            nir_load_instance_id(b),

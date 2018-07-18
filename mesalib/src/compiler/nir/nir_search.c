@@ -41,7 +41,7 @@ match_expression(const nir_search_expression *expr, nir_alu_instr *instr,
                  unsigned num_components, const uint8_t *swizzle,
                  struct match_state *state);
 
-static const uint8_t identity_swizzle[] = { 0, 1, 2, 3 };
+static const uint8_t identity_swizzle[NIR_MAX_VEC_COMPONENTS] = { 0, 1, 2, 3 };
 
 /**
  * Check if a source produces a value of the given type.
@@ -97,7 +97,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
             unsigned num_components, const uint8_t *swizzle,
             struct match_state *state)
 {
-   uint8_t new_swizzle[4];
+   uint8_t new_swizzle[NIR_MAX_VEC_COMPONENTS];
 
    /* Searching only works on SSA values because, if it's not SSA, we can't
     * know if the value changed between one instance of that value in the
@@ -167,7 +167,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
          state->variables[var->variable].abs = false;
          state->variables[var->variable].negate = false;
 
-         for (unsigned i = 0; i < 4; ++i) {
+         for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; ++i) {
             if (i < num_components)
                state->variables[var->variable].swizzle[i] = new_swizzle[i];
             else
@@ -606,7 +606,7 @@ nir_alu_instr *
 nir_replace_instr(nir_alu_instr *instr, const nir_search_expression *search,
                   const nir_search_value *replace, void *mem_ctx)
 {
-   uint8_t swizzle[4] = { 0, 0, 0, 0 };
+   uint8_t swizzle[NIR_MAX_VEC_COMPONENTS] = { 0 };
 
    for (unsigned i = 0; i < instr->dest.dest.ssa.num_components; ++i)
       swizzle[i] = i;

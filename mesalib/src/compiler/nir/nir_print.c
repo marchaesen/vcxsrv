@@ -88,6 +88,7 @@ print_register(nir_register *reg, print_state *state)
 
 static const char *sizes[] = { "error", "vec1", "vec2", "vec3", "vec4",
                                "error", "error", "error", "vec8",
+                               "error", "error", "error", "error",
                                "error", "error", "error", "vec16"};
 
 static void
@@ -185,9 +186,9 @@ print_alu_src(nir_alu_instr *instr, unsigned src, print_state *state)
    print_src(&instr->src[src].src, state);
 
    bool print_swizzle = false;
-   unsigned used_channels = 0;
+   nir_component_mask_t used_channels = 0;
 
-   for (unsigned i = 0; i < 4; i++) {
+   for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++) {
       if (!nir_alu_instr_channel_used(instr, src, i))
          continue;
 
@@ -203,7 +204,7 @@ print_alu_src(nir_alu_instr *instr, unsigned src, print_state *state)
 
    if (print_swizzle || used_channels != live_channels) {
       fprintf(fp, ".");
-      for (unsigned i = 0; i < 4; i++) {
+      for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++) {
          if (!nir_alu_instr_channel_used(instr, src, i))
             continue;
 
@@ -226,7 +227,7 @@ print_alu_dest(nir_alu_dest *dest, print_state *state)
    if (!dest->dest.is_ssa &&
        dest->write_mask != (1 << dest->dest.reg.reg->num_components) - 1) {
       fprintf(fp, ".");
-      for (unsigned i = 0; i < 4; i++)
+      for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
          if ((dest->write_mask >> i) & 1)
             fprintf(fp, "%c", "xyzw"[i]);
    }
@@ -490,6 +491,7 @@ print_var_decl(nir_variable *var, print_state *state)
       switch (var->data.mode) {
       case nir_var_shader_in:
       case nir_var_shader_out:
+         assert(num_components <= 4);
          if (num_components < 4 && num_components != 0) {
             const char *xyzw = "xyzw";
             for (int i = 0; i < num_components; i++)

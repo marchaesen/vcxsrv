@@ -405,7 +405,10 @@ v3d_vir_to_qpu(struct v3d_compile *c, struct qpu_reg *temp_registers)
                         c->qpu_inst_count);
         }
 
-        if (V3D_DEBUG & V3D_DEBUG_SHADERDB) {
+        /* The QPU cycle estimates are pretty broken (see waddr_latency()), so
+         * don't report them for now.
+         */
+        if (false) {
                 fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d estimated cycles\n",
                         vir_get_stage_name(c),
                         c->program_id, c->variant_id,

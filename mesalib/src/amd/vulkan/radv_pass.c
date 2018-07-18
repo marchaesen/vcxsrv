@@ -207,7 +207,6 @@ VkResult radv_CreateRenderPass2KHR(
 	struct radv_render_pass *pass;
 	size_t size;
 	size_t attachments_offset;
-	VkRenderPassMultiviewCreateInfoKHR *multiview_info = NULL;
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2_KHR);
 
@@ -225,16 +224,6 @@ VkResult radv_CreateRenderPass2KHR(
 	pass->attachment_count = pCreateInfo->attachmentCount;
 	pass->subpass_count = pCreateInfo->subpassCount;
 	pass->attachments = (void *) pass + attachments_offset;
-
-	vk_foreach_struct(ext, pCreateInfo->pNext) {
-		switch(ext->sType) {
-		case  VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO_KHR:
-			multiview_info = ( VkRenderPassMultiviewCreateInfoKHR*)ext;
-			break;
-		default:
-			break;
-		}
-	}
 
 	for (uint32_t i = 0; i < pCreateInfo->attachmentCount; i++) {
 		struct radv_render_pass_attachment *att = &pass->attachments[i];
@@ -280,8 +269,7 @@ VkResult radv_CreateRenderPass2KHR(
 
 		subpass->input_count = desc->inputAttachmentCount;
 		subpass->color_count = desc->colorAttachmentCount;
-		if (multiview_info)
-			subpass->view_mask = multiview_info->pViewMasks[i];
+		subpass->view_mask = desc->viewMask;
 
 		if (desc->inputAttachmentCount > 0) {
 			subpass->input_attachments = p;

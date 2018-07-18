@@ -41,7 +41,7 @@ struct constant_fold_state {
 static bool
 constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
 {
-   nir_const_value src[4];
+   nir_const_value src[NIR_MAX_VEC_COMPONENTS];
 
    if (!instr->dest.dest.is_ssa)
       return false;

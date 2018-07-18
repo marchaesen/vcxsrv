@@ -1267,7 +1267,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	if (!FcPatternAddBool (pat, FC_OUTLINE, has_outline))
 	    goto bail1;
 
-	has_color = !!(face->face_flags & FT_FACE_FLAG_COLOR);
+	has_color = FT_HAS_COLOR (face);
 	if (!FcPatternAddBool (pat, FC_COLOR, has_color))
 	    goto bail1;
 

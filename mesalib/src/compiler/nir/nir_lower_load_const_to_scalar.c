@@ -46,7 +46,7 @@ lower_load_const_instr_scalar(nir_load_const_instr *lower)
    b.cursor = nir_before_instr(&lower->instr);
 
    /* Emit the individual loads. */
-   nir_ssa_def *loads[4];
+   nir_ssa_def *loads[NIR_MAX_VEC_COMPONENTS];
    for (unsigned i = 0; i < lower->def.num_components; i++) {
       nir_load_const_instr *load_comp =
          nir_load_const_instr_create(b.shader, 1, lower->def.bit_size);

@@ -520,6 +520,7 @@ void radv_CmdBlitImage(
 	RADV_FROM_HANDLE(radv_image, src_image, srcImage);
 	RADV_FROM_HANDLE(radv_image, dest_image, destImage);
 	struct radv_meta_saved_state saved_state;
+	bool old_predicating;
 
 	/* From the Vulkan 1.0 spec:
 	 *
@@ -533,6 +534,12 @@ void radv_CmdBlitImage(
 		       RADV_META_SAVE_GRAPHICS_PIPELINE |
 		       RADV_META_SAVE_CONSTANTS |
 		       RADV_META_SAVE_DESCRIPTORS);
+
+	/* VK_EXT_conditional_rendering says that blit commands should not be
+	 * affected by conditional rendering.
+	 */
+	old_predicating = cmd_buffer->state.predicating;
+	cmd_buffer->state.predicating = false;
 
 	for (unsigned r = 0; r < regionCount; r++) {
 		const VkImageSubresourceLayers *src_res = &pRegions[r].srcSubresource;
@@ -647,6 +654,9 @@ void radv_CmdBlitImage(
 				       filter);
 		}
 	}
+
+	/* Restore conditional rendering. */
+	cmd_buffer->state.predicating = old_predicating;
 
 	radv_meta_restore(&saved_state, cmd_buffer);
 }

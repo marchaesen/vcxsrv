@@ -1279,6 +1279,9 @@ FcStrGlobMatch (const FcChar8 *glob,
 FcPrivate FcBool
 FcStrUsesHome (const FcChar8 *s);
 
+FcPrivate FcBool
+FcStrIsAbsoluteFilename (const FcChar8 *s);
+
 FcPrivate FcChar8 *
 FcStrBuildFilename (const FcChar8 *path,
 		    ...);

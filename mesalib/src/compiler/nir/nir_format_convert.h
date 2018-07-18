@@ -121,7 +121,7 @@ nir_format_bitcast_uint_vec_unmasked(nir_builder *b, nir_ssa_def *src,
       DIV_ROUND_UP(src->num_components * src_bits, dst_bits);
    assert(dst_components <= 4);
 
-   nir_ssa_def *dst_chan[4] = { };
+   nir_ssa_def *dst_chan[4] = {0};
    if (dst_bits > src_bits) {
       unsigned shift = 0;
       unsigned dst_idx = 0;

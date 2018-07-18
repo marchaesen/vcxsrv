@@ -1376,12 +1376,9 @@ static int radv_amdgpu_cs_submit(struct radv_amdgpu_ctx *ctx,
 	}
 
 	if (sem_info->wait.sem_count && sem_info->cs_emit_wait) {
-		sem_dependencies = malloc(sizeof(struct drm_amdgpu_cs_chunk_dep) * sem_info->wait.sem_count);
-		if (!sem_dependencies) {
-			r = -ENOMEM;
-			goto error_out;
-		}
+		sem_dependencies = alloca(sizeof(struct drm_amdgpu_cs_chunk_dep) * sem_info->wait.sem_count);
 		int sem_count = 0;
+
 		for (unsigned j = 0; j < sem_info->wait.sem_count; j++) {
 			sem = (struct amdgpu_cs_fence *)sem_info->wait.sem[j];
 			if (!sem->context)
@@ -1420,7 +1417,6 @@ static int radv_amdgpu_cs_submit(struct radv_amdgpu_ctx *ctx,
 				 chunks,
 				 &request->seq_no);
 error_out:
-	free(sem_dependencies);
 	free(wait_syncobj);
 	free(signal_syncobj);
 	return r;

@@ -119,11 +119,16 @@ XHostAddress *XListHosts (
 	_XRead (dpy, (char *) buf, nbytes);
 
 	for (i = 0; i < reply.nHosts; i++) {
+	    if (bp > buf + nbytes - SIZEOF(xHostEntry))
+		goto fail;
 	    op->family = ((xHostEntry *) bp)->family;
 	    op->length =((xHostEntry *) bp)->length;
 	    if (op->family == FamilyServerInterpreted) {
 		char *tp = (char *) (bp + SIZEOF(xHostEntry));
-		char *vp = memchr(tp, 0, op->length);
+		char *vp;
+		if (tp > (char *) (buf + nbytes - op->length))
+		    goto fail;
+		vp = memchr(tp, 0, op->length);
 
 		if (vp != NULL) {
 		    sip->type = tp;
@@ -138,6 +143,8 @@ XHostAddress *XListHosts (
 		sip++;
 	    } else {
 		op->address = (char *) (bp + SIZEOF(xHostEntry));
+		if (op->address > (char *) (buf + nbytes - op->length))
+		    goto fail;
 	    }
 	    bp += SIZEOF(xHostEntry) + (((op->length + 3) >> 2) << 2);
 	    op++;
@@ -149,9 +156,9 @@ XHostAddress *XListHosts (
     UnlockDisplay(dpy);
     SyncHandle();
     return (outbuf);
+fail:
+    *enabled = reply.enabled;
+    *nhosts = 0;
+    Xfree(outbuf);
+    return (NULL);
 }
-
-
-
-
-

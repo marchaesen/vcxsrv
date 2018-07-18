@@ -1073,6 +1073,10 @@ qpu_instruction_valid_in_thrend_slot(struct v3d_compile *c,
                 return false;
 
         if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
+                /* GFXH-1625: TMUWT not allowed in the final instruction. */
+                if (slot == 2 && inst->alu.add.op == V3D_QPU_A_TMUWT)
+                        return false;
+
                 /* No writing physical registers at the end. */
                 if (!inst->alu.add.magic_write ||
                     !inst->alu.mul.magic_write) {

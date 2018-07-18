@@ -1208,12 +1208,16 @@ vtn_get_builtin_location(struct vtn_builder *b,
       *location = FRAG_RESULT_STENCIL;
       vtn_assert(*mode == nir_var_shader_out);
       break;
+   case SpvBuiltInWorkDim:
+      *location = SYSTEM_VALUE_WORK_DIM;
+      set_mode_system_value(b, mode);
+      break;
    case SpvBuiltInGlobalSize:
       *location = SYSTEM_VALUE_GLOBAL_GROUP_SIZE;
       set_mode_system_value(b, mode);
       break;
    default:
-      vtn_fail("unsupported builtin");
+      vtn_fail("unsupported builtin: %u", builtin);
    }
 }
 

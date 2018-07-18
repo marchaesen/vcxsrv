@@ -154,8 +154,8 @@ nir_instr_worklist_pop_head(nir_instr_worklist *wl)
    return *vec_instr;
 }
 
-#define nir_instr_worklist_foreach(wl, instr)                    \
-   while ((instr = nir_instr_worklist_pop_head(wl)))
+#define nir_foreach_instr_in_worklist(instr, wl) \
+   for (nir_instr *instr; (instr = nir_instr_worklist_pop_head(wl));)
 
 #ifdef __cplusplus
 } /* extern "C" */
