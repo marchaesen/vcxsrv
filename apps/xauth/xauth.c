@@ -164,6 +164,18 @@ main(int argc, const char *argv[])
 	    exit (1);
 	}
     }
+#ifdef WIN32
+    /* Convert forward slashes to backward slashes */
+    {
+	char *tmp=authfilename;
+	while (*tmp)
+	{
+	    if (*tmp=='/')
+		*tmp='\\';
+	    tmp++;
+	}
+    }
+#endif
     if (auth_initialize (authfilename) != 0) {
 	/* error message printed in auth_initialize */
 	exit (1);
