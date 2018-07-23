@@ -814,11 +814,14 @@ FcFontSetMatchInternal (FcFontSet   **sets,
 		    len = (p - s);
 		}
 		x = malloc (sizeof (char) * (len + 1));
-		strcpy (x, s);
-		if (FcObjectFromName (x) > 0)
-		    FcObjectSetAdd (os, x);
-		s = p + 1;
-		free (x);
+		if (x)
+		{
+		    strcpy (x, s);
+		    if (FcObjectFromName (x) > 0)
+			FcObjectSetAdd (os, x);
+		    s = p + 1;
+		    free (x);
+		}
 	    }
 	    free (ss);
 	}

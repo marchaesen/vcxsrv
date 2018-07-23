@@ -1790,22 +1790,5 @@ _mesa_loopback_init_api_table(const struct gl_context *ctx,
       SET_VertexAttribI4sv(dest, _mesa_VertexAttribI4sv);
       SET_VertexAttribI4ubv(dest, _mesa_VertexAttribI4ubv);
       SET_VertexAttribI4usv(dest, _mesa_VertexAttribI4usv);
-
-      /* GL_ARB_bindless_texture */
-      SET_VertexAttribL1ui64ARB(dest, _mesa_VertexAttribL1ui64ARB);
-      SET_VertexAttribL1ui64vARB(dest, _mesa_VertexAttribL1ui64vARB);
-   }
-
-   if (ctx->API == API_OPENGL_CORE) {
-      /* GL 4.1 / GL_ARB_vertex_attrib_64bit */
-      SET_VertexAttribL1d(dest, _mesa_VertexAttribL1d);
-      SET_VertexAttribL2d(dest, _mesa_VertexAttribL2d);
-      SET_VertexAttribL3d(dest, _mesa_VertexAttribL3d);
-      SET_VertexAttribL4d(dest, _mesa_VertexAttribL4d);
-
-      SET_VertexAttribL1dv(dest, _mesa_VertexAttribL1dv);
-      SET_VertexAttribL2dv(dest, _mesa_VertexAttribL2dv);
-      SET_VertexAttribL3dv(dest, _mesa_VertexAttribL3dv);
-      SET_VertexAttribL4dv(dest, _mesa_VertexAttribL4dv);
    }
 }

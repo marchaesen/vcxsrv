@@ -586,7 +586,7 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 	VkDevice device_h = radv_device_to_handle(cmd_buffer->device);
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
 	uint32_t layer_count = radv_get_layerCount(image, subresourceRange);
-	bool old_predicating;
+	bool old_predicating = false;
 	VkPipeline pipeline;
 
 	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);

@@ -773,6 +773,8 @@ st_link_nir(struct gl_context *ctx,
          _mesa_reference_program(ctx, &shader->Program, NULL);
          return false;
       }
+
+      nir_sweep(shader->Program->nir);
    }
 
    return true;

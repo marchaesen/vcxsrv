@@ -1718,6 +1718,9 @@ struct radv_subpass_barrier {
 	VkAccessFlags        dst_access_mask;
 };
 
+void radv_subpass_barrier(struct radv_cmd_buffer *cmd_buffer,
+			  const struct radv_subpass_barrier *barrier);
+
 struct radv_subpass_attachment {
 	uint32_t         attachment;
 	VkImageLayout    layout;

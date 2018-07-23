@@ -24,7 +24,7 @@
 #ifndef DISK_CACHE_H
 #define DISK_CACHE_H
 
-#ifdef ENABLE_SHADER_CACHE
+#ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
 #endif
 #include <assert.h>
@@ -88,10 +88,10 @@ disk_cache_format_hex_id(char *buf, const uint8_t *hex_id, unsigned size)
    return buf;
 }
 
+#ifdef HAVE_DLFCN_H
 static inline bool
 disk_cache_get_function_timestamp(void *ptr, uint32_t* timestamp)
 {
-#ifdef ENABLE_SHADER_CACHE
    Dl_info info;
    struct stat st;
    if (!dladdr(ptr, &info) || !info.dli_fname) {
@@ -102,10 +102,8 @@ disk_cache_get_function_timestamp(void *ptr, uint32_t* timestamp)
    }
    *timestamp = st.st_mtime;
    return true;
-#else
-   return false;
-#endif
 }
+#endif
 
 /* Provide inlined stub functions if the shader cache is disabled. */
 

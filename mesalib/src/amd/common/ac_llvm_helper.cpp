@@ -36,6 +36,7 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/Analysis/TargetLibraryInfo.h>
+#include <llvm/Transforms/IPO.h>
 
 #include <llvm/IR/LegacyPassManager.h>
 #if HAVE_LLVM < 0x0700
@@ -164,4 +165,9 @@ bool ac_compile_module_to_binary(struct ac_compiler_passes *p, LLVMModuleRef mod
 	if (!success)
 		fprintf(stderr, "amd: cannot read an ELF shader binary\n");
 	return success;
+}
+
+void ac_llvm_add_barrier_noop_pass(LLVMPassManagerRef passmgr)
+{
+	llvm::unwrap(passmgr)->add(llvm::createBarrierNoopPass());
 }

@@ -334,8 +334,8 @@ FcNameConvert (FcType type, FcChar8 *string)
 	    size_t len = strlen ((const char *) string);
 	    int si, ei;
 
-	    sc = malloc (len);
-	    ec = malloc (len);
+	    sc = malloc (len + 1);
+	    ec = malloc (len + 1);
 	    if (sc && ec && sscanf ((char *) string, "[%s %[^]]]", sc, ec) == 2)
 	    {
 		if (FcNameConstant ((const FcChar8 *) sc, &si) &&

@@ -748,12 +748,12 @@ FcConfigPromote (FcValue v, FcValue u, FcValuePromotionBuffer *buf)
 	v.u.l = FcLangSetPromote (v.u.s, buf);
 	v.type = FcTypeLangSet;
     }
-    else if (v.type == FcTypeVoid && u.type == FcTypeLangSet)
+    else if (buf && v.type == FcTypeVoid && u.type == FcTypeLangSet)
     {
 	v.u.l = FcLangSetPromote (NULL, buf);
 	v.type = FcTypeLangSet;
     }
-    else if (v.type == FcTypeVoid && u.type == FcTypeCharSet)
+    else if (buf && v.type == FcTypeVoid && u.type == FcTypeCharSet)
     {
 	v.u.c = FcCharSetPromote (buf);
 	v.type = FcTypeCharSet;
@@ -1832,11 +1832,13 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 			if (value[object])
 			{
 			    FcConfigDel (&elt[object]->values, value[object]);
+			    FcValueListDestroy (l);
 			    break;
 			}
 			/* fall through ... */
 		    case FcOpDeleteAll:
 			FcConfigPatternDel (p, r->u.edit->object);
+			FcValueListDestroy (l);
 			break;
 		    default:
 			FcValueListDestroy (l);
@@ -2107,7 +2109,8 @@ FcConfigXdgCacheHome (void)
 	ret = malloc (len + 7 + 1);
 	if (ret)
 	{
-	    memcpy (ret, home, len);
+	    if (home)
+		memcpy (ret, home, len);
 	    memcpy (&ret[len], FC_DIR_SEPARATOR_S ".cache", 7);
 	    ret[len + 7] = 0;
 	}
@@ -2134,7 +2137,8 @@ FcConfigXdgConfigHome (void)
 	ret = malloc (len + 8 + 1);
 	if (ret)
 	{
-	    memcpy (ret, home, len);
+	    if (home)
+		memcpy (ret, home, len);
 	    memcpy (&ret[len], FC_DIR_SEPARATOR_S ".config", 8);
 	    ret[len + 8] = 0;
 	}
@@ -2161,7 +2165,8 @@ FcConfigXdgDataHome (void)
 	ret = malloc (len + 13 + 1);
 	if (ret)
 	{
-	    memcpy (ret, home, len);
+	    if (home)
+		memcpy (ret, home, len);
 	    memcpy (&ret[len], FC_DIR_SEPARATOR_S ".local" FC_DIR_SEPARATOR_S "share", 13);
 	    ret[len + 13] = 0;
 	}
@@ -2613,12 +2618,13 @@ FcRuleSetAdd (FcRuleSet		*rs,
 	switch (r->type)
 	{
 	case FcRuleTest:
-	    if (r->u.test &&
-		r->u.test->kind == FcMatchDefault)
-		r->u.test->kind = kind;
-
-	    if (n < r->u.test->object)
-		n = r->u.test->object;
+	    if (r->u.test)
+	    {
+		if (r->u.test->kind == FcMatchDefault)
+		    r->u.test->kind = kind;
+		if (n < r->u.test->object)
+		    n = r->u.test->object;
+	    }
 	    break;
 	case FcRuleEdit:
 	    if (n < r->u.edit->object)

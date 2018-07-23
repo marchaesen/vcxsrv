@@ -3542,6 +3542,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(stencil_export, cap);
          break;
 
+      case SpvCapabilitySampleMaskPostDepthCoverage:
+         spv_check_supported(post_depth_coverage, cap);
+         break;
+
       default:
          vtn_fail("Unhandled capability");
       }
@@ -3607,6 +3611,11 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeEarlyFragmentTests:
       vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);
       b->shader->info.fs.early_fragment_tests = true;
+      break;
+
+   case SpvExecutionModePostDepthCoverage:
+      vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);
+      b->shader->info.fs.post_depth_coverage = true;
       break;
 
    case SpvExecutionModeInvocations:

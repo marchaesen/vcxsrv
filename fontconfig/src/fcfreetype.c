@@ -2614,7 +2614,7 @@ GetScriptTags(FT_Face face, FT_ULong tabletag, FT_ULong **stags)
     ftglue_stream_frame_exit( stream );
 
     *stags = malloc(script_count * sizeof (FT_ULong));
-    if (!stags)
+    if (!*stags)
 	return 0;
 
     p = 0;

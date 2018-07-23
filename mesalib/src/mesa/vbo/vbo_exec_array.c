@@ -2080,15 +2080,6 @@ vbo_initialize_exec_dispatch(const struct gl_context *ctx,
       SET_DrawElementsIndirect(exec, vbo_exec_DrawElementsIndirect);
    }
 
-   if (ctx->API == API_OPENGL_CORE) {
-      SET_MultiDrawArraysIndirect(exec, vbo_exec_MultiDrawArraysIndirect);
-      SET_MultiDrawElementsIndirect(exec, vbo_exec_MultiDrawElementsIndirect);
-      SET_MultiDrawArraysIndirectCountARB(exec,
-                                          vbo_exec_MultiDrawArraysIndirectCount);
-      SET_MultiDrawElementsIndirectCountARB(exec,
-                                            vbo_exec_MultiDrawElementsIndirectCount);
-   }
-
    if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx)) {
       SET_DrawArraysInstancedARB(exec, vbo_exec_DrawArraysInstanced);
       SET_DrawElementsInstancedARB(exec, vbo_exec_DrawElementsInstanced);
@@ -2102,6 +2093,12 @@ vbo_initialize_exec_dispatch(const struct gl_context *ctx,
                                          vbo_exec_DrawTransformFeedbackInstanced);
       SET_DrawTransformFeedbackStreamInstanced(exec,
                                                vbo_exec_DrawTransformFeedbackStreamInstanced);
+      SET_MultiDrawArraysIndirect(exec, vbo_exec_MultiDrawArraysIndirect);
+      SET_MultiDrawElementsIndirect(exec, vbo_exec_MultiDrawElementsIndirect);
+      SET_MultiDrawArraysIndirectCountARB(exec,
+                                          vbo_exec_MultiDrawArraysIndirectCount);
+      SET_MultiDrawElementsIndirectCountARB(exec,
+                                            vbo_exec_MultiDrawElementsIndirectCount);
    }
 }
 

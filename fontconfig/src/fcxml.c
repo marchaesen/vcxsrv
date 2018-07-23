@@ -2191,6 +2191,7 @@ FcParseCacheDir (FcConfigParse *parse)
     if (!data)
     {
 	FcConfigMessage (parse, FcSevereError, "out of memory");
+	data = prefix;
 	goto bail;
     }
     if (prefix)
@@ -2202,7 +2203,7 @@ FcParseCacheDir (FcConfigParse *parse)
 	if (!p)
 	{
 	    FcConfigMessage (parse, FcSevereError, "out of memory");
-	    data = prefix;
+	    FcStrFree (prefix);
 	    goto bail;
 	}
 	prefix = p;
@@ -2234,6 +2235,7 @@ FcParseCacheDir (FcConfigParse *parse)
     else if (strcmp ((const char *) data, "WINDOWSTEMPDIR_FONTCONFIG_CACHE") == 0)
     {
 	int rc;
+
 	FcStrFree (data);
 	data = malloc (1000);
 	if (!data)

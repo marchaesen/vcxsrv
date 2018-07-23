@@ -27,6 +27,28 @@
 #include "nir_loop_analyze.h"
 
 /**
+ * Gets the single block that jumps back to the loop header. Already assumes
+ * there is exactly one such block.
+ */
+static nir_block*
+find_continue_block(nir_loop *loop)
+{
+   nir_block *header_block = nir_loop_first_block(loop);
+   nir_block *prev_block =
+      nir_cf_node_as_block(nir_cf_node_prev(&loop->cf_node));
+
+   assert(header_block->predecessors->entries == 2);
+
+   struct set_entry *pred_entry;
+   set_foreach(header_block->predecessors, pred_entry) {
+      if (pred_entry->key != prev_block)
+         return (nir_block*)pred_entry->key;
+   }
+
+   unreachable("Continue block not found!");
+}
+
+/**
  * This optimization detects if statements at the tops of loops where the
  * condition is a phi node of two constants and moves half of the if to above
  * the loop and the other half of the if to the end of the loop.  A simple for
@@ -97,12 +119,7 @@ opt_peel_loop_initial_if(nir_loop *loop)
    if (header_block->predecessors->entries != 2)
       return false;
 
-   nir_block *continue_block = NULL;
-   struct set_entry *pred_entry;
-   set_foreach(header_block->predecessors, pred_entry) {
-      if (pred_entry->key != prev_block)
-         continue_block = (void *)pred_entry->key;
-   }
+   nir_block *continue_block = find_continue_block(loop);
 
    nir_cf_node *if_node = nir_cf_node_next(&header_block->cf_node);
    if (!if_node || if_node->type != nir_cf_node_if)
@@ -193,6 +210,10 @@ opt_peel_loop_initial_if(nir_loop *loop)
    nir_cf_reinsert(&tmp, nir_before_cf_node(&loop->cf_node));
 
    nir_cf_reinsert(&header, nir_after_block_before_jump(continue_block));
+
+   /* Get continue block again as the previous reinsert might have removed the block. */
+   continue_block = find_continue_block(loop);
+
    nir_cf_extract(&tmp, nir_before_cf_list(continue_list),
                         nir_after_cf_list(continue_list));
    nir_cf_reinsert(&tmp, nir_after_block_before_jump(continue_block));

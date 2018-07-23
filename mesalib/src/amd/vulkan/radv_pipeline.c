@@ -2443,7 +2443,7 @@ radv_compute_bin_size(struct radv_pipeline *pipeline, const VkGraphicsPipelineCr
 	                       pipeline->device->physical_device->rad_info.max_se);
 	unsigned log_num_se = util_logbase2_ceil(pipeline->device->physical_device->rad_info.max_se);
 
-	unsigned total_samples = 1u << G_028BE0_MSAA_NUM_SAMPLES(pipeline->graphics.ms.pa_sc_mode_cntl_1);
+	unsigned total_samples = 1u << G_028BE0_MSAA_NUM_SAMPLES(pipeline->graphics.ms.pa_sc_aa_config);
 	unsigned ps_iter_samples = 1u << G_028804_PS_ITER_SAMPLES(pipeline->graphics.ms.db_eqaa);
 	unsigned effective_samples = total_samples;
 	unsigned color_bytes_per_pixel = 0;
@@ -2468,7 +2468,7 @@ radv_compute_bin_size(struct radv_pipeline *pipeline, const VkGraphicsPipelineCr
 	}
 
 	const struct radv_bin_size_entry *color_entry = color_size_table[log_num_rb_per_se][log_num_se];
-	while(color_entry->bpp <= color_bytes_per_pixel)
+	while(color_entry[1].bpp <= color_bytes_per_pixel)
 		++color_entry;
 
 	extent = color_entry->extent;
@@ -2482,7 +2482,7 @@ radv_compute_bin_size(struct radv_pipeline *pipeline, const VkGraphicsPipelineCr
 		unsigned ds_bytes_per_pixel = 4 * (depth_coeff + stencil_coeff) * total_samples;
 
 		const struct radv_bin_size_entry *ds_entry = ds_size_table[log_num_rb_per_se][log_num_se];
-		while(ds_entry->bpp <= ds_bytes_per_pixel)
+		while(ds_entry[1].bpp <= ds_bytes_per_pixel)
 			++ds_entry;
 
 		extent.width = MIN2(extent.width, ds_entry->extent.width);
