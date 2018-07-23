@@ -1397,10 +1397,9 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
     */
    if (dec->decoration == SpvDecorationLocation) {
       unsigned location = dec->literals[0];
-      bool is_vertex_input;
+      bool is_vertex_input = false;
       if (b->shader->info.stage == MESA_SHADER_FRAGMENT &&
           vtn_var->mode == vtn_variable_mode_output) {
-         is_vertex_input = false;
          location += FRAG_RESULT_DATA0;
       } else if (b->shader->info.stage == MESA_SHADER_VERTEX &&
                  vtn_var->mode == vtn_variable_mode_input) {
@@ -1408,7 +1407,6 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
          location += VERT_ATTRIB_GENERIC0;
       } else if (vtn_var->mode == vtn_variable_mode_input ||
                  vtn_var->mode == vtn_variable_mode_output) {
-         is_vertex_input = false;
          location += vtn_var->patch ? VARYING_SLOT_PATCH0 : VARYING_SLOT_VAR0;
       } else if (vtn_var->mode != vtn_variable_mode_uniform) {
          vtn_warn("Location must be on input, output, uniform, sampler or "

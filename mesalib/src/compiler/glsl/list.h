@@ -672,7 +672,7 @@ inline void exec_node::insert_before(exec_list *before)
         __node = __prev, __prev = (__type *)__prev->prev)
 
 #define foreach_in_list_use_after(__type, __inst, __list) \
-   __type *(__inst);                                      \
+   __type *__inst;                                        \
    for ((__inst) = (__type *)(__list)->head_sentinel.next; \
         !(__inst)->is_tail_sentinel();                    \
         (__inst) = (__type *)(__inst)->next)

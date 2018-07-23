@@ -110,6 +110,7 @@ FcDirCacheCreateUUID (FcChar8  *dir,
 	{
 	    ret = FcFalse;
 	    FcAtomicDeleteNew (atomic);
+	    close (fd);
 	    goto bail3;
 	}
 	uuid_unparse (uuid, out);
@@ -192,10 +193,13 @@ FcDirCacheReadUUID (FcChar8  *dir,
 	if ((fd = FcOpen ((char *) uuidname, O_RDONLY)) >= 0)
 	{
 	    char suuid[37];
+	    ssize_t len;
 
 	    memset (suuid, 0, sizeof (suuid));
-	    if (read (fd, suuid, 36) > 0)
+	    len = read (fd, suuid, 36);
+	    if (len != -1)
 	    {
+		suuid[len] = 0;
 		memset (uuid, 0, sizeof (uuid));
 		if (uuid_parse (suuid, uuid) == 0)
 		{
@@ -875,7 +879,7 @@ FcCacheOffsetsValid (FcCache *cache)
         if (fs->nfont > (end - (char *) fs) / sizeof (FcPattern))
             return FcFalse;
 
-        if (fs->fonts != 0 && !FcIsEncodedOffset(fs->fonts))
+        if (!FcIsEncodedOffset(fs->fonts))
             return FcFalse;
 
         for (i = 0; i < fs->nfont; i++)
@@ -1347,9 +1351,9 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
 #endif
 	FcDirCacheBasenameMD5 (dir, cache_base);
     cache_hashed = FcStrBuildFilename (cache_dir, cache_base, NULL);
+    FcStrFree (cache_dir);
     if (!cache_hashed)
         return FcFalse;
-    FcStrFree (cache_dir);
 
     if (FcDebug () & FC_DBG_CACHE)
         printf ("FcDirCacheWriteDir dir \"%s\" file \"%s\"\n",

@@ -133,6 +133,7 @@ struct ac_compiler_passes *ac_create_llvm_passes(LLVMTargetMachineRef tm);
 void ac_destroy_llvm_passes(struct ac_compiler_passes *p);
 bool ac_compile_module_to_binary(struct ac_compiler_passes *p, LLVMModuleRef module,
 				 struct ac_shader_binary *binary);
+void ac_llvm_add_barrier_noop_pass(LLVMPassManagerRef passmgr);
 
 #ifdef __cplusplus
 }

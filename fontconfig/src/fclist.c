@@ -568,6 +568,9 @@ FcFontSetList (FcConfig	    *config,
 	    free (bucket);
 	}
 
+    if (destroy_os)
+        FcObjectSetDestroy (os);
+
     return ret;
 
 bail2:

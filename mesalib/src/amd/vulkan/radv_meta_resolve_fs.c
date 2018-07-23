@@ -580,35 +580,21 @@ radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer)
 	struct radv_framebuffer *fb = cmd_buffer->state.framebuffer;
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 	struct radv_meta_saved_state saved_state;
+	struct radv_subpass_barrier barrier;
 
-	/* FINISHME(perf): Skip clears for resolve attachments.
-	 *
-	 * From the Vulkan 1.0 spec:
-	 *
-	 *    If the first use of an attachment in a render pass is as a resolve
-	 *    attachment, then the loadOp is effectively ignored as the resolve is
-	 *    guaranteed to overwrite all pixels in the render area.
-	 */
+	/* Resolves happen before the end-of-subpass barriers get executed,
+	 * so we have to make the attachment shader-readable */
+	barrier.src_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	barrier.src_access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	barrier.dst_access_mask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+	radv_subpass_barrier(cmd_buffer, &barrier);
 
-	if (!subpass->has_resolve)
-		return;
+	radv_decompress_resolve_subpass_src(cmd_buffer);
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_GRAPHICS_PIPELINE |
 		       RADV_META_SAVE_CONSTANTS |
 		       RADV_META_SAVE_DESCRIPTORS);
-
-	/* Resolves happen before the end-of-subpass barriers get executed,
-	 * so we have to make the attachment shader-readable */
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
-	                                RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-	                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META |
-	                                RADV_CMD_FLAG_FLUSH_AND_INV_DB |
-	                                RADV_CMD_FLAG_FLUSH_AND_INV_DB_META |
-	                                RADV_CMD_FLAG_INV_GLOBAL_L2 |
-	                                RADV_CMD_FLAG_INV_VMEM_L1;
-
-	radv_decompress_resolve_subpass_src(cmd_buffer);
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
 		struct radv_subpass_attachment src_att = subpass->color_attachments[i];

@@ -418,10 +418,24 @@ static LLVMValueRef emit_bitfield_extract(struct ac_llvm_context *ctx,
 					  const LLVMValueRef srcs[3])
 {
 	LLVMValueRef result;
-	LLVMValueRef icond = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
 
-	result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
-	result = LLVMBuildSelect(ctx->builder, icond, srcs[0], result, "");
+	if (HAVE_LLVM < 0x0700) {
+		LLVMValueRef icond = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
+		result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
+		result = LLVMBuildSelect(ctx->builder, icond, srcs[0], result, "");
+	} else {
+		/* FIXME: LLVM 7 returns incorrect result when count is 0.
+		 * https://bugs.freedesktop.org/show_bug.cgi?id=107276
+		 */
+		LLVMValueRef zero = LLVMConstInt(ctx->i32, 0, false);
+		LLVMValueRef icond1 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
+		LLVMValueRef icond2 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], zero, "");
+
+		result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
+		result = LLVMBuildSelect(ctx->builder, icond1, srcs[0], result, "");
+		result = LLVMBuildSelect(ctx->builder, icond2, zero, result, "");
+	}
+
 	return result;
 }
 

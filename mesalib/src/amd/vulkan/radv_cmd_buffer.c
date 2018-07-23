@@ -721,8 +721,11 @@ radv_emit_rbplus_state(struct radv_cmd_buffer *cmd_buffer)
 	unsigned sx_blend_opt_control = 0;
 
 	for (unsigned i = 0; i < subpass->color_count; ++i) {
-		if (subpass->color_attachments[i].attachment == VK_ATTACHMENT_UNUSED)
+		if (subpass->color_attachments[i].attachment == VK_ATTACHMENT_UNUSED) {
+			sx_blend_opt_control |= S_02875C_MRT0_COLOR_OPT_DISABLE(1) << (i * 4);
+			sx_blend_opt_control |= S_02875C_MRT0_ALPHA_OPT_DISABLE(1) << (i * 4);
 			continue;
+		}
 
 		int idx = subpass->color_attachments[i].attachment;
 		struct radv_color_buffer_info *cb = &framebuffer->attachments[idx].cb;
@@ -836,6 +839,10 @@ radv_emit_rbplus_state(struct radv_cmd_buffer *cmd_buffer)
 		}
 	}
 
+	for (unsigned i = subpass->color_count; i < 8; ++i) {
+		sx_blend_opt_control |= S_02875C_MRT0_COLOR_OPT_DISABLE(1) << (i * 4);
+		sx_blend_opt_control |= S_02875C_MRT0_ALPHA_OPT_DISABLE(1) << (i * 4);
+	}
 	radeon_set_context_reg_seq(cmd_buffer->cs, R_028754_SX_PS_DOWNCONVERT, 3);
 	radeon_emit(cmd_buffer->cs, sx_ps_downconvert);
 	radeon_emit(cmd_buffer->cs, sx_blend_opt_epsilon);
@@ -1554,10 +1561,8 @@ void radv_set_db_count_control(struct radv_cmd_buffer *cmd_buffer)
 						       R_028A4C_PA_SC_MODE_CNTL_1,
 						       pa_sc_mode_cntl_1);
 			}
-			db_count_control = 0;
-		} else {
-			db_count_control = S_028004_ZPASS_INCREMENT_DISABLE(1);
 		}
+		db_count_control = S_028004_ZPASS_INCREMENT_DISABLE(1);
 	} else {
 		const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 		uint32_t sample_rate = subpass ? util_logbase2(subpass->max_sample_count) : 0;
@@ -1970,10 +1975,12 @@ radv_src_access_flush(struct radv_cmd_buffer *cmd_buffer,
 	enum radv_cmd_flush_bits flush_bits = 0;
 	uint32_t b;
 
-	if (image && !radv_image_has_CB_metadata(image))
-		flush_CB_meta = false;
-	if (image && !radv_image_has_htile(image))
-		flush_DB_meta = false;
+	if (image) {
+		if (!radv_image_has_CB_metadata(image))
+			flush_CB_meta = false;
+		if (!radv_image_has_htile(image))
+			flush_DB_meta = false;
+	}
 
 	for_each_bit(b, src_flags) {
 		switch ((VkAccessFlagBits)(1 << b)) {
@@ -2048,7 +2055,8 @@ radv_dst_access_flush(struct radv_cmd_buffer *cmd_buffer,
 	return flush_bits;
 }
 
-static void radv_subpass_barrier(struct radv_cmd_buffer *cmd_buffer, const struct radv_subpass_barrier *barrier)
+void radv_subpass_barrier(struct radv_cmd_buffer *cmd_buffer,
+			  const struct radv_subpass_barrier *barrier)
 {
 	cmd_buffer->state.flush_bits |= radv_src_access_flush(cmd_buffer, barrier->src_access_mask,
 							      NULL);

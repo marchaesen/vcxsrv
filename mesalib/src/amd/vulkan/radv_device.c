@@ -1509,10 +1509,12 @@ VkResult radv_CreateDevice(
 	}
 
 	device->pbb_allowed = device->physical_device->rad_info.chip_class >= GFX9 &&
-	                      (device->instance->perftest_flags & RADV_PERFTEST_BINNING);
+			((device->instance->perftest_flags & RADV_PERFTEST_BINNING) ||
+			 device->physical_device->rad_info.family == CHIP_RAVEN);
 
 	/* Disabled and not implemented for now. */
-	device->dfsm_allowed = device->pbb_allowed && false;
+	device->dfsm_allowed = device->pbb_allowed &&
+	                       device->physical_device->rad_info.family == CHIP_RAVEN;
 
 #ifdef ANDROID
 	device->always_use_syncobj = device->physical_device->rad_info.has_syncobj_wait_for_submit;

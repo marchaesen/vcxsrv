@@ -751,11 +751,7 @@ PanoramiXMaybeAddDepth(DepthPtr pDepth)
                                    PanoramiXNumDepths, sizeof(DepthRec));
     PanoramiXDepths[j].depth = pDepth->depth;
     PanoramiXDepths[j].numVids = 0;
-    /* XXX suboptimal, should grow these dynamically */
-    if (pDepth->numVids)
-        PanoramiXDepths[j].vids = xallocarray(pDepth->numVids, sizeof(VisualID));
-    else
-        PanoramiXDepths[j].vids = NULL;
+    PanoramiXDepths[j].vids = NULL;
 }
 
 static void
@@ -796,6 +792,9 @@ PanoramiXMaybeAddVisual(VisualPtr pVisual)
 
     for (k = 0; k < PanoramiXNumDepths; k++) {
         if (PanoramiXDepths[k].depth == pVisual->nplanes) {
+            PanoramiXDepths[k].vids = reallocarray(PanoramiXDepths[k].vids,
+                                                   PanoramiXDepths[k].numVids + 1,
+                                                   sizeof(VisualID));
             PanoramiXDepths[k].vids[PanoramiXDepths[k].numVids] = pVisual->vid;
             PanoramiXDepths[k].numVids++;
             break;
