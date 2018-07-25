@@ -35,6 +35,7 @@ from The Open Group.
 #endif
 
 #include "xauth.h"
+#include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
 #include <sys/stat.h>
