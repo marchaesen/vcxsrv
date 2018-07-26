@@ -76,9 +76,7 @@ is_lowerable_uniform(struct qinst *inst, int i)
 {
         if (inst->src[i].file != QFILE_UNIF)
                 return false;
-        if (vir_has_implicit_uniform(inst))
-                return i != vir_get_implicit_uniform_src(inst);
-        return true;
+        return i != vir_get_implicit_uniform_src(inst);
 }
 
 /* Returns the number of different uniform values referenced by the

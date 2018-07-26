@@ -26,6 +26,7 @@ libbroadcom_compiler_files = files(
   'vir_lower_uniforms.c',
   'vir_opt_copy_propagate.c',
   'vir_opt_dead_code.c',
+  'vir_opt_small_immediates.c',
   'vir_register_allocate.c',
   'vir_to_qpu.c',
   'qpu_schedule.c',

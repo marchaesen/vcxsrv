@@ -584,13 +584,34 @@ install:
            "#ifndef _LINUX_MEMFD_H" \
            "#define _LINUX_MEMFD_H" \
            "" \
-           "#define __NR_memfd_create 319" \
-           "#define SYS_memfd_create __NR_memfd_create" \
-           "" \
            "#define MFD_CLOEXEC             0x0001U" \
            "#define MFD_ALLOW_SEALING       0x0002U" \
            "" \
            "#endif /* _LINUX_MEMFD_H */" > linux/memfd.h
+
+      # Generate this header, including the missing SYS_memfd_create
+      # macro, which is not provided by the header in the Travis
+      # instance
+      mkdir -p sys
+      printf "%s\n" \
+           "#ifndef _SYSCALL_H" \
+           "#define _SYSCALL_H      1" \
+           "" \
+           "#include <asm/unistd.h>" \
+           "" \
+           "#ifndef _LIBC" \
+           "# include <bits/syscall.h>" \
+           "#endif" \
+           "" \
+           "#ifndef __NR_memfd_create" \
+           "# define __NR_memfd_create 319 /* Taken from <asm/unistd_64.h> */" \
+           "#endif" \
+           "" \
+           "#ifndef SYS_memfd_create" \
+           "# define SYS_memfd_create __NR_memfd_create" \
+           "#endif" \
+           "" \
+           "#endif" > sys/syscall.h
     fi
 
 script:

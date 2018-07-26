@@ -165,6 +165,12 @@ glsl_get_record_location_offset(const struct glsl_type *type,
 }
 
 bool
+glsl_type_is_16bit(const glsl_type *type)
+{
+   return type->is_16bit();
+}
+
+bool
 glsl_type_is_64bit(const glsl_type *type)
 {
    return type->is_64bit();
@@ -473,6 +479,12 @@ glsl_channel_type(const glsl_type *t)
       return glsl_uint64_t_type();
    case GLSL_TYPE_INT64:
       return glsl_int64_t_type();
+   case GLSL_TYPE_FLOAT16:
+      return glsl_float16_t_type();
+   case GLSL_TYPE_UINT16:
+      return glsl_uint16_t_type();
+   case GLSL_TYPE_INT16:
+      return glsl_int16_t_type();
    default:
       unreachable("Unhandled base type glsl_channel_type()");
    }

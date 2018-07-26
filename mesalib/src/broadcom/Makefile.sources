@@ -28,6 +28,7 @@ BROADCOM_FILES = \
 	compiler/vir_lower_uniforms.c \
 	compiler/vir_opt_copy_propagate.c \
 	compiler/vir_opt_dead_code.c \
+	compiler/vir_opt_small_immediates.c \
 	compiler/vir_register_allocate.c \
 	compiler/vir_to_qpu.c \
 	compiler/qpu_schedule.c \

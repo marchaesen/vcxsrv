@@ -87,6 +87,13 @@ enum glsl_base_type {
    GLSL_TYPE_ERROR
 };
 
+static inline bool glsl_base_type_is_16bit(enum glsl_base_type type)
+{
+   return type == GLSL_TYPE_FLOAT16 ||
+          type == GLSL_TYPE_UINT16 ||
+          type == GLSL_TYPE_INT16;
+}
+
 static inline bool glsl_base_type_is_64bit(enum glsl_base_type type)
 {
    return type == GLSL_TYPE_DOUBLE ||
@@ -549,6 +556,14 @@ public:
    bool is_64bit() const
    {
       return glsl_base_type_is_64bit(base_type);
+   }
+
+   /**
+    * Query whether or not a type is 16-bit
+    */
+   bool is_16bit() const
+   {
+      return glsl_base_type_is_16bit(base_type);
    }
 
    /**

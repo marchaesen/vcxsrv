@@ -53,6 +53,9 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
 {
         unsigned unit = instr->texture_index;
         int tmu_writes = 0;
+        static const struct V3D41_TMU_CONFIG_PARAMETER_2 p2_unpacked_default = {
+                .op = V3D_TMU_OP_REGULAR,
+        };
 
         struct V3D41_TMU_CONFIG_PARAMETER_0 p0_unpacked = {
         };
@@ -185,7 +188,8 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
 
         vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P0, p0_packed);
         vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P1, p1_packed);
-        vir_WRTMUC(c, QUNIFORM_CONSTANT, p2_packed);
+        if (memcmp(&p2_unpacked, &p2_unpacked_default, sizeof(p2_unpacked)) != 0)
+                vir_WRTMUC(c, QUNIFORM_CONSTANT, p2_packed);
 
         if (instr->op == nir_texop_txf) {
                 assert(instr->sampler_dim != GLSL_SAMPLER_DIM_CUBE);

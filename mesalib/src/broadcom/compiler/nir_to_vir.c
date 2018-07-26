@@ -74,13 +74,6 @@ vir_emit_thrsw(struct v3d_compile *c)
 }
 
 static struct qreg
-vir_SFU(struct v3d_compile *c, int waddr, struct qreg src)
-{
-        vir_FMOV_dest(c, vir_reg(QFILE_MAGIC, waddr), src);
-        return vir_FMOV(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_R4));
-}
-
-static struct qreg
 indirect_uniform_load(struct v3d_compile *c, nir_intrinsic_instr *intr)
 {
         struct qreg indirect_offset = ntq_get_src(c, intr->src[0], 0);
@@ -244,14 +237,6 @@ ntq_get_alu_src(struct v3d_compile *c, nir_alu_instr *instr,
         return r;
 };
 
-static inline struct qreg
-vir_SAT(struct v3d_compile *c, struct qreg val)
-{
-        return vir_FMAX(c,
-                        vir_FMIN(c, val, vir_uniform_f(c, 1.0)),
-                        vir_uniform_f(c, 0.0));
-}
-
 static struct qreg
 ntq_minify(struct v3d_compile *c, struct qreg size, struct qreg level)
 {
@@ -338,8 +323,7 @@ ntq_fsincos(struct v3d_compile *c, struct qreg src, bool is_cos)
                 input = vir_FADD(c, input, vir_uniform_f(c, 0.5));
 
         struct qreg periods = vir_FROUND(c, input);
-        struct qreg sin_output = vir_SFU(c, V3D_QPU_WADDR_SIN,
-                                         vir_FSUB(c, input, periods));
+        struct qreg sin_output = vir_SIN(c, vir_FSUB(c, input, periods));
         return vir_XOR(c, sin_output, vir_SHL(c,
                                               vir_FTOIN(c, periods),
                                               vir_uniform_ui(c, -1)));
@@ -377,8 +361,7 @@ emit_fragcoord_input(struct v3d_compile *c, int attr)
         c->inputs[attr * 4 + 0] = vir_FXCD(c);
         c->inputs[attr * 4 + 1] = vir_FYCD(c);
         c->inputs[attr * 4 + 2] = c->payload_z;
-        c->inputs[attr * 4 + 3] = vir_SFU(c, V3D_QPU_WADDR_RECIP,
-                                          c->payload_w);
+        c->inputs[attr * 4 + 3] = vir_RECIP(c, c->payload_w);
 }
 
 static struct qreg
@@ -790,16 +773,16 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                 break;
 
         case nir_op_frcp:
-                result = vir_SFU(c, V3D_QPU_WADDR_RECIP, src[0]);
+                result = vir_RECIP(c, src[0]);
                 break;
         case nir_op_frsq:
-                result = vir_SFU(c, V3D_QPU_WADDR_RSQRT, src[0]);
+                result = vir_RSQRT(c, src[0]);
                 break;
         case nir_op_fexp2:
-                result = vir_SFU(c, V3D_QPU_WADDR_EXP, src[0]);
+                result = vir_EXP(c, src[0]);
                 break;
         case nir_op_flog2:
-                result = vir_SFU(c, V3D_QPU_WADDR_LOG, src[0]);
+                result = vir_LOG(c, src[0]);
                 break;
 
         case nir_op_fceil:
@@ -1159,8 +1142,8 @@ emit_vert_end(struct v3d_compile *c)
         setup_default_position(c);
 
         uint32_t vpm_index = 0;
-        struct qreg rcp_w = vir_SFU(c, V3D_QPU_WADDR_RECIP,
-                                    c->outputs[c->output_position_index + 3]);
+        struct qreg rcp_w = vir_RECIP(c,
+                                      c->outputs[c->output_position_index + 3]);
 
         emit_vpm_write_setup(c);
 

@@ -64,7 +64,7 @@ class glx_enum(gl_XML.gl_enum):
                 else:
                     mode = 1
 
-                if not self.functions.has_key(n):
+                if n not in self.functions:
                     self.functions[ n ] = [c, mode]
 
         return
@@ -296,7 +296,7 @@ class glx_function(gl_XML.gl_function):
         parameters.extend( temp[1] )
         if include_variable_parameters:
             parameters.extend( temp[2] )
-        return parameters.__iter__()
+        return iter(parameters)
 
 
     def parameterIterateCounters(self):
@@ -304,7 +304,7 @@ class glx_function(gl_XML.gl_function):
         for name in self.counter_list:
             temp.append( self.parameters_by_name[ name ] )
 
-        return temp.__iter__()
+        return iter(temp)
 
 
     def parameterIterateOutputs(self):
@@ -547,13 +547,14 @@ class glx_function_iterator(object):
         return self
 
 
-    def next(self):
-        f = self.iterator.next()
+    def __next__(self):
+        while True:
+            f = next(self.iterator)
 
-        if f.client_supported_for_indirect():
-            return f
-        else:
-            return self.next()
+            if f.client_supported_for_indirect():
+                return f
+
+    next = __next__
 
 
 class glx_api(gl_XML.gl_api):

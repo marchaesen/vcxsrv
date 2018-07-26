@@ -27,7 +27,6 @@
 from __future__ import print_function
 
 import gl_XML, glX_XML
-import string
 
 
 class glx_proto_item_factory(glX_XML.glx_item_factory):
@@ -67,7 +66,7 @@ class glx_print_proto(gl_XML.gl_print_base):
                     return compsize
 
                 elif len(param.count_parameter_list):
-                    parameters = string.join( param.count_parameter_list, "," )
+                    parameters = ",".join( param.count_parameter_list )
                     compsize = "__gl%s_size(%s)" % (func.name, parameters)
 
                     return compsize

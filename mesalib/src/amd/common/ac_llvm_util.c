@@ -34,6 +34,7 @@
 #include <llvm-c/Transforms/Utils.h>
 #endif
 #include "c11/threads.h"
+#include "gallivm/lp_bld_misc.h"
 #include "util/u_math.h"
 
 #include <assert.h>
@@ -55,9 +56,13 @@ static void ac_init_llvm_target()
 	 * https://reviews.llvm.org/D26348
 	 *
 	 * "mesa" is the prefix for error messages.
+	 *
+	 * -global-isel-abort=2 is a no-op unless global isel has been enabled.
+	 * This option tells the backend to fall-back to SelectionDAG and print
+	 * a diagnostic message if global isel fails.
 	 */
-	const char *argv[2] = { "mesa", "-simplifycfg-sink-common=false" };
-	LLVMParseCommandLineOptions(2, argv, NULL);
+	const char *argv[3] = { "mesa", "-simplifycfg-sink-common=false", "-global-isel-abort=2" };
+	LLVMParseCommandLineOptions(3, argv, NULL);
 }
 
 static once_flag ac_init_llvm_target_once_flag = ONCE_FLAG_INIT;
@@ -164,6 +169,8 @@ static LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
 
 	if (out_triple)
 		*out_triple = triple;
+	if (tm_options & AC_TM_ENABLE_GLOBAL_ISEL)
+		ac_enable_global_isel(tm);
 	return tm;
 }
 

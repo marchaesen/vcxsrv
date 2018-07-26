@@ -42,7 +42,7 @@ def escapeCString (s):
                 # open quote
                 q = u'\u201d'
             r = r + q
-        elif escapeSeqs.has_key(s[i]):
+        elif s[i] in escapeSeqs:
             r = r + escapeSeqs[s[i]]
         else:
             r = r + s[i]
@@ -90,7 +90,7 @@ def expandCString (s):
                 escape = False
                 r = r + chr(num)
         else:
-            if escapeSeqs.has_key(s[i]):
+            if s[i] in escapeSeqs:
                 r = r + escapeSeqs[s[i]]
                 escape = False
             elif s[i] >= '0' and s[i] <= '7':

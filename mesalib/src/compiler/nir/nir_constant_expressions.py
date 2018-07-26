@@ -387,7 +387,7 @@ struct bool32_vec {
    % endif
 </%def>
 
-% for name, op in sorted(opcodes.iteritems()):
+% for name, op in sorted(opcodes.items()):
 static nir_const_value
 evaluate_${name}(MAYBE_UNUSED unsigned num_components,
                  ${"UNUSED" if op_bit_sizes(op) is None else ""} unsigned bit_size,
@@ -420,7 +420,7 @@ nir_eval_const_opcode(nir_op op, unsigned num_components,
                       unsigned bit_width, nir_const_value *src)
 {
    switch (op) {
-% for name in sorted(opcodes.iterkeys()):
+% for name in sorted(opcodes.keys()):
    case nir_op_${name}:
       return evaluate_${name}(num_components, bit_width, src);
 % endfor

@@ -109,6 +109,12 @@ new_ldunif_instr(struct qinst *inst, int i)
 static void
 set_src(struct v3d_qpu_instr *instr, enum v3d_qpu_mux *mux, struct qpu_reg src)
 {
+        if (src.smimm) {
+                assert(instr->sig.small_imm);
+                *mux = V3D_QPU_MUX_B;
+                return;
+        }
+
         if (src.magic) {
                 assert(src.index >= V3D_QPU_WADDR_R0 &&
                        src.index <= V3D_QPU_WADDR_R5);
@@ -244,15 +250,7 @@ v3d_generate_code_block(struct v3d_compile *c,
                                 src[i] = qpu_acc(5);
                                 break;
                         case QFILE_SMALL_IMM:
-                                abort(); /* XXX */
-#if 0
-                                src[i].mux = QPU_MUX_SMALL_IMM;
-                                src[i].addr = qpu_encode_small_immediate(qinst->src[i].index);
-                                /* This should only have returned a valid
-                                 * small immediate field, not ~0 for failure.
-                                 */
-                                assert(src[i].addr <= 47);
-#endif
+                                src[i].smimm = true;
                                 break;
 
                         case QFILE_VPM:

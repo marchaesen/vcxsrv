@@ -216,7 +216,7 @@ class Group(object):
             first_byte = field.start // 8
             last_byte = field.end // 8
 
-            for b in xrange(first_byte, last_byte + 1):
+            for b in range(first_byte, last_byte + 1):
                 if not b in bytes:
                     bytes[b] = self.Byte()
 

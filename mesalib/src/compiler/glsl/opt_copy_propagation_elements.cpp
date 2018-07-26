@@ -68,9 +68,11 @@ class copy_propagation_state {
 public:
    DECLARE_RZALLOC_CXX_OPERATORS(copy_propagation_state);
 
-   copy_propagation_state()
-      : copy_propagation_state(NULL)
-   {}
+   static
+   copy_propagation_state* create(void *mem_ctx)
+   {
+      return new (mem_ctx) copy_propagation_state(NULL);
+   }
 
    copy_propagation_state* clone()
    {
@@ -238,7 +240,7 @@ public:
       this->lin_ctx = linear_alloc_parent(this->mem_ctx, 0);
       this->shader_mem_ctx = NULL;
       this->kills = new(mem_ctx) exec_list;
-      this->state = new(mem_ctx) copy_propagation_state();
+      this->state = copy_propagation_state::create(mem_ctx);
    }
    ~ir_copy_propagation_elements_visitor()
    {
@@ -294,7 +296,7 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_function_signature *ir)
    this->killed_all = false;
 
    copy_propagation_state *orig_state = state;
-   this->state = new(mem_ctx) copy_propagation_state();
+   this->state = copy_propagation_state::create(mem_ctx);
 
    visit_list_elements(this, &ir->body);
 
@@ -531,7 +533,7 @@ ir_copy_propagation_elements_visitor::handle_loop(ir_loop *ir, bool keep_acp)
       /* Populate the initial acp with a copy of the original */
       this->state = orig_state->clone();
    } else {
-      this->state = new(mem_ctx) copy_propagation_state();
+      this->state = copy_propagation_state::create(mem_ctx);
    }
 
    visit_list_elements(this, &ir->body_instructions);
