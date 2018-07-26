@@ -213,6 +213,7 @@ apply_output_change(struct xwl_output *xwl_output)
 {
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
     struct xwl_output *it;
+    int mode_width, mode_height;
     int width = 0, height = 0, has_this_output = 0;
     RRModePtr randr_mode;
     Bool need_rotate;
@@ -224,7 +225,16 @@ apply_output_change(struct xwl_output *xwl_output)
     /* xdg-output sends output size in compositor space. so already rotated */
     need_rotate = (xwl_output->xdg_output == NULL);
 
-    randr_mode = xwayland_cvt(xwl_output->width, xwl_output->height,
+    /* We need to rotate back the logical size for the mode */
+    if (need_rotate || xwl_output->rotation & (RR_Rotate_0 | RR_Rotate_180)) {
+        mode_width = xwl_output->width;
+        mode_height = xwl_output->height;
+    } else {
+        mode_width = xwl_output->height;
+        mode_height = xwl_output->width;
+    }
+
+    randr_mode = xwayland_cvt(mode_width, mode_height,
                               xwl_output->refresh / 1000.0, 0, 0);
     RROutputSetModes(xwl_output->randr_output, &randr_mode, 1, 1);
     RRCrtcNotify(xwl_output->randr_crtc, randr_mode,

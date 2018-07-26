@@ -248,7 +248,6 @@ radv_is_cache_disabled(struct radv_device *device)
 	 * MESA_GLSL_CACHE_DISABLE=1, and when VK_AMD_shader_info is requested.
 	 */
 	return (device->instance->debug_flags & RADV_DEBUG_NO_CACHE) ||
-	       !device->physical_device->disk_cache ||
 	       device->keep_shader_info;
 }
 
@@ -271,7 +270,7 @@ radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 		/* Don't cache when we want debug info, since this isn't
 		 * present in the cache.
 		 */
-		if (radv_is_cache_disabled(device)) {
+		if (radv_is_cache_disabled(device) || !device->physical_device->disk_cache) {
 			pthread_mutex_unlock(&cache->mutex);
 			return false;
 		}

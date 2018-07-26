@@ -203,6 +203,8 @@ NIR_FILES = \
 	nir/nir.c \
 	nir/nir.h \
 	nir/nir_builder.h \
+	nir/nir_builtin_builder.c \
+	nir/nir_builtin_builder.h \
 	nir/nir_clone.c \
 	nir/nir_constant_expressions.h \
 	nir/nir_control_flow.c \

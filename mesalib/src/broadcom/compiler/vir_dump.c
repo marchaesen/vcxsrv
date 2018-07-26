@@ -25,7 +25,8 @@
 #include "v3d_compiler.h"
 
 static void
-vir_print_reg(struct v3d_compile *c, struct qreg reg)
+vir_print_reg(struct v3d_compile *c, const struct qinst *inst,
+              struct qreg reg)
 {
         static const char *files[] = {
                 [QFILE_TEMP] = "t",
@@ -58,12 +59,20 @@ vir_print_reg(struct v3d_compile *c, struct qreg reg)
                 fprintf(stderr, "%s", v3d_qpu_magic_waddr_name(reg.index));
                 break;
 
-        case QFILE_SMALL_IMM:
-                if ((int)reg.index >= -16 && (int)reg.index <= 15)
-                        fprintf(stderr, "%d", reg.index);
+        case QFILE_SMALL_IMM: {
+                uint32_t unpacked;
+                bool ok = v3d_qpu_small_imm_unpack(c->devinfo,
+                                                   inst->qpu.raddr_b,
+                                                   &unpacked);
+                assert(ok); (void) ok;
+
+                if ((int)inst->qpu.raddr_b >= -16 &&
+                    (int)inst->qpu.raddr_b <= 15)
+                        fprintf(stderr, "%d", unpacked);
                 else
-                        fprintf(stderr, "%f", uif(reg.index));
+                        fprintf(stderr, "%f", uif(unpacked));
                 break;
+        }
 
         case QFILE_VPM:
                 fprintf(stderr, "vpm%d.%d",
@@ -220,7 +229,7 @@ vir_dump_alu(struct v3d_compile *c, struct qinst *inst)
                 fprintf(stderr, "%s", v3d_qpu_uf_name(instr->flags.auf));
                 fprintf(stderr, " ");
 
-                vir_print_reg(c, inst->dst);
+                vir_print_reg(c, inst, inst->dst);
                 fprintf(stderr, "%s", v3d_qpu_pack_name(instr->alu.add.output_pack));
 
                 unpack[0] = instr->alu.add.a_unpack;
@@ -232,7 +241,7 @@ vir_dump_alu(struct v3d_compile *c, struct qinst *inst)
                 fprintf(stderr, "%s", v3d_qpu_uf_name(instr->flags.muf));
                 fprintf(stderr, " ");
 
-                vir_print_reg(c, inst->dst);
+                vir_print_reg(c, inst, inst->dst);
                 fprintf(stderr, "%s", v3d_qpu_pack_name(instr->alu.mul.output_pack));
 
                 unpack[0] = instr->alu.mul.a_unpack;
@@ -241,7 +250,7 @@ vir_dump_alu(struct v3d_compile *c, struct qinst *inst)
 
         for (int i = 0; i < sideband_nsrc; i++) {
                 fprintf(stderr, ", ");
-                vir_print_reg(c, inst->src[i]);
+                vir_print_reg(c, inst, inst->src[i]);
                 if (i < nsrc)
                         fprintf(stderr, "%s", v3d_qpu_unpack_name(unpack[i]));
         }
@@ -307,7 +316,7 @@ vir_dump_inst(struct v3d_compile *c, struct qinst *inst)
 
                 if (vir_has_implicit_uniform(inst)) {
                         fprintf(stderr, " ");
-                        vir_print_reg(c, inst->src[vir_get_implicit_uniform_src(inst)]);
+                        vir_print_reg(c, inst, inst->src[vir_get_implicit_uniform_src(inst)]);
                 }
 
                 break;

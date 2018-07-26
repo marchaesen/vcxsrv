@@ -491,7 +491,6 @@ print_var_decl(nir_variable *var, print_state *state)
       switch (var->data.mode) {
       case nir_var_shader_in:
       case nir_var_shader_out:
-         assert(num_components <= 4);
          if (num_components < 4 && num_components != 0) {
             const char *xyzw = "xyzw";
             for (int i = 0; i < num_components; i++)

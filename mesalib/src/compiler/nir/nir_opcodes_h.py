@@ -29,7 +29,7 @@ template = """\
 #ifndef _NIR_OPCODES_
 #define _NIR_OPCODES_
 
-<% opcode_names = sorted(opcodes.iterkeys()) %>
+<% opcode_names = sorted(opcodes.keys()) %>
 
 typedef enum {
 % for name in opcode_names:

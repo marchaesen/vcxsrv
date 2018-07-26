@@ -73,10 +73,10 @@ nir_type_conversion_op(nir_alu_type src, nir_alu_type dst, nir_rounding_mode rnd
                   case ${dst_bits}:
 %                    if src_t == 'float' and dst_t == 'float' and dst_bits == 16:
                      switch(rnd) {
-%                       for rnd_t in ['rtne', 'rtz', 'undef']:
-                        case nir_rounding_mode_${rnd_t}:
-                           return ${'nir_op_{0}2{1}{2}_{3}'.format(src_t[0], dst_t[0],
-                                                                   dst_bits, rnd_t)};
+%                       for rnd_t in [('rtne', '_rtne'), ('rtz', '_rtz'), ('undef', '')]:
+                        case nir_rounding_mode_${rnd_t[0]}:
+                           return ${'nir_op_{0}2{1}{2}{3}'.format(src_t[0], dst_t[0],
+                                                                   dst_bits, rnd_t[1])};
 %                       endfor
                         default:
                            unreachable("Invalid 16-bit nir rounding mode");
@@ -116,7 +116,7 @@ nir_type_conversion_op(nir_alu_type src, nir_alu_type dst, nir_rounding_mode rnd
 }
 
 const nir_op_info nir_op_infos[nir_num_opcodes] = {
-% for name, opcode in sorted(opcodes.iteritems()):
+% for name, opcode in sorted(opcodes.items()):
 {
    .name = "${name}",
    .num_inputs = ${opcode.num_inputs},

@@ -238,6 +238,43 @@ v3d_spill_reg(struct v3d_compile *c, int spill_temp)
                 BITSET_CLEAR(c->spillable, i);
 }
 
+struct v3d_ra_select_callback_data {
+        uint32_t next_acc;
+        uint32_t next_phys;
+};
+
+static unsigned int
+v3d_ra_select_callback(struct ra_graph *g, BITSET_WORD *regs, void *data)
+{
+        struct v3d_ra_select_callback_data *v3d_ra = data;
+
+        /* Choose an accumulator if possible (I think it's lower power than
+         * phys regs), but round-robin through them to give post-RA
+         * instruction selection more options.
+         */
+        for (int i = 0; i < ACC_COUNT; i++) {
+                int acc_off = (v3d_ra->next_acc + i) % ACC_COUNT;
+                int acc = ACC_INDEX + acc_off;
+
+                if (BITSET_TEST(regs, acc)) {
+                        v3d_ra->next_acc = acc_off + 1;
+                        return acc;
+                }
+        }
+
+        for (int i = 0; i < PHYS_COUNT; i++) {
+                int phys_off = (v3d_ra->next_phys + i) % PHYS_COUNT;
+                int phys = PHYS_INDEX + phys_off;
+
+                if (BITSET_TEST(regs, phys)) {
+                        v3d_ra->next_phys = phys_off + 1;
+                        return phys;
+                }
+        }
+
+        unreachable("RA must pass us at least one possible reg.");
+}
+
 bool
 vir_init_reg_sets(struct v3d_compiler *compiler)
 {
@@ -309,6 +346,13 @@ v3d_register_allocate(struct v3d_compile *c, bool *spilled)
         struct qpu_reg *temp_registers = calloc(c->num_temps,
                                                 sizeof(*temp_registers));
         int acc_nodes[ACC_COUNT];
+        struct v3d_ra_select_callback_data callback_data = {
+                .next_acc = 0,
+                /* Start at RF3, to try to keep the TLB writes from using
+                 * RF0-2.
+                 */
+                .next_phys = 3,
+        };
 
         *spilled = false;
 
@@ -328,6 +372,7 @@ v3d_register_allocate(struct v3d_compile *c, bool *spilled)
         struct ra_graph *g = ra_alloc_interference_graph(c->compiler->regs,
                                                          c->num_temps +
                                                          ARRAY_SIZE(acc_nodes));
+        ra_set_select_reg_callback(g, v3d_ra_select_callback, &callback_data);
 
         /* Make some fixed nodes for the accumulators, which we will need to
          * interfere with when ops have implied r3/r4 writes or for the thread
@@ -395,6 +440,19 @@ v3d_register_allocate(struct v3d_compile *c, bool *spilled)
                         case V3D_QPU_A_LDVPMG_OUT:
                                 /* LDVPMs only store to temps (the MA flag
                                  * decides whether the LDVPM is in or out)
+                                 */
+                                assert(inst->dst.file == QFILE_TEMP);
+                                class_bits[inst->dst.index] &= CLASS_BIT_PHYS;
+                                break;
+
+                        case V3D_QPU_A_RECIP:
+                        case V3D_QPU_A_RSQRT:
+                        case V3D_QPU_A_EXP:
+                        case V3D_QPU_A_LOG:
+                        case V3D_QPU_A_SIN:
+                        case V3D_QPU_A_RSQRT2:
+                                /* The SFU instructions write directly to the
+                                 * phys regfile.
                                  */
                                 assert(inst->dst.file == QFILE_TEMP);
                                 class_bits[inst->dst.index] &= CLASS_BIT_PHYS;

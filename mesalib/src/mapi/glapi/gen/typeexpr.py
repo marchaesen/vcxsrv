@@ -26,7 +26,7 @@
 
 from __future__ import print_function
 
-import string, copy
+import copy
 
 class type_node(object):
     def __init__(self):
@@ -126,7 +126,7 @@ class type_expression(object):
 
         # Replace '*' with ' * ' in type_string.  Then, split the string
         # into tokens, separated by spaces.
-        tokens = string.split( string.replace( type_string, "*", " * " ) )
+        tokens = type_string.replace("*", " * ").split()
 
         const = 0
         t = None

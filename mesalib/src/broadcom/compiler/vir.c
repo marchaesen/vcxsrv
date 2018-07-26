@@ -74,6 +74,8 @@ vir_has_implicit_uniform(struct qinst *inst)
 int
 vir_get_implicit_uniform_src(struct qinst *inst)
 {
+        if (!vir_has_implicit_uniform(inst))
+                return -1;
         return vir_get_nsrc(inst) - 1;
 }
 
@@ -572,7 +574,7 @@ v3d_lower_nir(struct v3d_compile *c)
 {
         struct nir_lower_tex_options tex_options = {
                 .lower_txd = true,
-                .lower_rect = false, /* XXX */
+                .lower_rect = false, /* XXX: Use this on V3D 3.x */
                 .lower_txp = ~0,
                 /* Apply swizzles to all samplers. */
                 .swizzle_result = ~0,
@@ -935,6 +937,17 @@ vir_uniform(struct v3d_compile *c,
         return vir_reg(QFILE_UNIF, uniform);
 }
 
+static bool
+vir_can_set_flags(struct v3d_compile *c, struct qinst *inst)
+{
+        if (c->devinfo->ver >= 40 && (v3d_qpu_reads_vpm(&inst->qpu) ||
+                                      v3d_qpu_uses_sfu(&inst->qpu))) {
+                return false;
+        }
+
+        return true;
+}
+
 void
 vir_PF(struct v3d_compile *c, struct qreg src, enum v3d_qpu_pf pf)
 {
@@ -954,7 +967,8 @@ vir_PF(struct v3d_compile *c, struct qreg src, enum v3d_qpu_pf pf)
 
         if (src.file != QFILE_TEMP ||
             !c->defs[src.index] ||
-            last_inst != c->defs[src.index]) {
+            last_inst != c->defs[src.index] ||
+            !vir_can_set_flags(c, last_inst)) {
                 /* XXX: Make the MOV be the appropriate type */
                 last_inst = vir_MOV_dest(c, vir_reg(QFILE_NULL, 0), src);
         }
@@ -987,6 +1001,7 @@ vir_optimize(struct v3d_compile *c)
 
                 OPTPASS(vir_opt_copy_propagate);
                 OPTPASS(vir_opt_dead_code);
+                OPTPASS(vir_opt_small_immediates);
 
                 if (!progress)
                         break;

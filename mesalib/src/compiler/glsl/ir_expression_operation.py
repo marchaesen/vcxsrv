@@ -62,7 +62,7 @@ class type_signature_iter(object):
    def __iter__(self):
       return self
 
-   def next(self):
+   def __next__(self):
       if self.i < len(self.source_types):
          i = self.i
          self.i += 1
@@ -75,6 +75,8 @@ class type_signature_iter(object):
          return (dest_type, self.num_operands * (self.source_types[i],))
       else:
          raise StopIteration()
+
+   next = __next__
 
 
 uint_type = type("unsigned", "u", "GLSL_TYPE_UINT")
@@ -114,7 +116,7 @@ constant_template_common = mako.template.Template("""\
 constant_template_vector_scalar = mako.template.Template("""\
    case ${op.get_enum_name()}:
     % if "mixed" in op.flags:
-        % for i in xrange(op.num_operands):
+        % for i in range(op.num_operands):
       assert(op[${i}]->type->base_type == ${op.source_types[0].glsl_type} ||
             % for src_type in op.source_types[1:-1]:
              op[${i}]->type->base_type == ${src_type.glsl_type} ||

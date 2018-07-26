@@ -619,7 +619,7 @@ wsi_display_fill_in_display_mode_properties(
    struct wsi_display_mode *display_mode,
    VkDisplayModeProperties2KHR *properties)
 {
-   assert(properties->sType = VK_STRUCTURE_TYPE_DISPLAY_MODE_PROPERTIES_2_KHR);
+   assert(properties->sType == VK_STRUCTURE_TYPE_DISPLAY_MODE_PROPERTIES_2_KHR);
    VkDisplayModePropertiesKHR *prop = &properties->displayModeProperties;
 
    prop->displayMode = wsi_display_mode_to_handle(display_mode);
@@ -763,7 +763,7 @@ wsi_get_display_plane_capabilities2(
    const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
    VkDisplayPlaneCapabilities2KHR *capabilities)
 {
-   assert(capabilities->sType =
+   assert(capabilities->sType ==
           VK_STRUCTURE_TYPE_DISPLAY_PLANE_CAPABILITIES_2_KHR);
 
    return wsi_get_display_plane_capabilities(physical_device, wsi_device,

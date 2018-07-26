@@ -995,7 +995,7 @@ drmmode_bo_import(drmmode_ptr drmmode, drmmode_bo *bo,
     }
 #endif
     return drmModeAddFB(drmmode->fd, bo->width, bo->height,
-                        drmmode->scrn->depth, drmmode->scrn->bitsPerPixel,
+                        drmmode->scrn->depth, drmmode->kbpp,
                         drmmode_bo_get_pitch(bo),
                         drmmode_bo_get_handle(bo), fb_id);
 }

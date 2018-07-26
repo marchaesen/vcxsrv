@@ -165,7 +165,8 @@ enum v3d_qpu_add_op {
         V3D_QPU_A_NEG,
         V3D_QPU_A_FLAPUSH,
         V3D_QPU_A_FLBPUSH,
-        V3D_QPU_A_FLBPOP,
+        V3D_QPU_A_FLPOP,
+        V3D_QPU_A_RECIP,
         V3D_QPU_A_SETMSF,
         V3D_QPU_A_SETREVF,
         V3D_QPU_A_NOP,
@@ -194,6 +195,11 @@ enum v3d_qpu_add_op {
         V3D_QPU_A_LDVPMD_IN,
         V3D_QPU_A_LDVPMD_OUT,
         V3D_QPU_A_LDVPMP,
+        V3D_QPU_A_RSQRT,
+        V3D_QPU_A_EXP,
+        V3D_QPU_A_LOG,
+        V3D_QPU_A_SIN,
+        V3D_QPU_A_RSQRT2,
         V3D_QPU_A_LDVPMG_IN,
         V3D_QPU_A_LDVPMG_OUT,
         V3D_QPU_A_FCMP,
@@ -438,6 +444,7 @@ bool v3d_qpu_magic_waddr_is_tlb(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
 bool v3d_qpu_magic_waddr_is_vpm(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
 bool v3d_qpu_magic_waddr_is_tsy(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
 bool v3d_qpu_uses_tlb(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
+bool v3d_qpu_uses_sfu(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
 bool v3d_qpu_writes_tmu(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
 bool v3d_qpu_writes_r3(const struct v3d_device_info *devinfo,
                        const struct v3d_qpu_instr *instr) ATTRIBUTE_CONST;

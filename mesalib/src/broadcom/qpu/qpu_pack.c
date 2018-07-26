@@ -492,7 +492,8 @@ static const struct opcode_desc add_ops[] = {
         { 186, 186, 1 << 1, ANYMUX, V3D_QPU_A_NEG },
         { 186, 186, 1 << 2, ANYMUX, V3D_QPU_A_FLAPUSH },
         { 186, 186, 1 << 3, ANYMUX, V3D_QPU_A_FLBPUSH },
-        { 186, 186, 1 << 4, ANYMUX, V3D_QPU_A_FLBPOP },
+        { 186, 186, 1 << 4, ANYMUX, V3D_QPU_A_FLPOP },
+        { 186, 186, 1 << 5, ANYMUX, V3D_QPU_A_RECIP },
         { 186, 186, 1 << 6, ANYMUX, V3D_QPU_A_SETMSF },
         { 186, 186, 1 << 7, ANYMUX, V3D_QPU_A_SETREVF },
         { 187, 187, 1 << 0, 1 << 0, V3D_QPU_A_NOP, 0 },
@@ -522,6 +523,11 @@ static const struct opcode_desc add_ops[] = {
         { 188, 188, 1 << 0, ANYMUX, V3D_QPU_A_LDVPMV_IN, 40 },
         { 188, 188, 1 << 1, ANYMUX, V3D_QPU_A_LDVPMD_IN, 40 },
         { 188, 188, 1 << 2, ANYMUX, V3D_QPU_A_LDVPMP, 40 },
+        { 188, 188, 1 << 3, ANYMUX, V3D_QPU_A_RSQRT, 41 },
+        { 188, 188, 1 << 4, ANYMUX, V3D_QPU_A_EXP, 41 },
+        { 188, 188, 1 << 5, ANYMUX, V3D_QPU_A_LOG, 41 },
+        { 188, 188, 1 << 6, ANYMUX, V3D_QPU_A_SIN, 41 },
+        { 188, 188, 1 << 7, ANYMUX, V3D_QPU_A_RSQRT2, 41 },
         { 189, 189, ANYMUX, ANYMUX, V3D_QPU_A_LDVPMG_IN, 40 },
 
         /* FIXME: MORE COMPLICATED */

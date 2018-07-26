@@ -71,7 +71,7 @@ class glx_enum_function(object):
         for enum_name in enum_dict:
             e = enum_dict[ enum_name ]
 
-            if e.functions.has_key( match_name ):
+            if match_name in e.functions:
                 [count, mode] = e.functions[ match_name ]
 
                 if mode_set and mode != self.mode:
@@ -79,11 +79,11 @@ class glx_enum_function(object):
 
                 self.mode = mode
 
-                if self.enums.has_key( e.value ):
+                if e.value in self.enums:
                     if e.name not in self.enums[ e.value ]:
                         self.enums[ e.value ].append( e )
                 else:
-                    if not self.count.has_key( count ):
+                    if count not in self.count:
                         self.count[ count ] = []
 
                     self.enums[ e.value ] = [ e ]
@@ -131,7 +131,7 @@ class glx_enum_function(object):
         for a in self.enums:
             count += 1
 
-        if self.count.has_key(-1):
+        if -1 in self.count:
             return 0
 
         # Determine if there is some mask M, such that M = (2^N) - 1,
@@ -208,8 +208,7 @@ class glx_enum_function(object):
                 for enum_obj in self.enums[e]:
                     list[ enum_obj.priority() ] = enum_obj.name
 
-                keys = list.keys()
-                keys.sort()
+                keys = sorted(list.keys())
                 for k in keys:
                     j = list[k]
                     if first:
@@ -275,8 +274,7 @@ class glx_server_enum_function(glx_enum_function):
             o = f.offset_of( param_name )
             foo[o] = param_name
 
-        keys = foo.keys()
-        keys.sort()
+        keys = sorted(foo.keys())
         for o in keys:
             p = f.parameters_by_name[ foo[o] ]
 
@@ -356,7 +354,7 @@ class PrintGlxSizeStubs_c(PrintGlxSizeStubs_common):
 
             if (ef.is_set() and self.emit_set) or (not ef.is_set() and self.emit_get):
                 sig = ef.signature()
-                if enum_sigs.has_key( sig ):
+                if sig in enum_sigs:
                     aliases.append( [func.name, enum_sigs[ sig ]] )
                 else:
                     enum_sigs[ sig ] = func.name
@@ -477,10 +475,10 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
 
             sig = ef.signature()
 
-            if not enum_functions.has_key(func.name):
+            if func.name not in enum_functions:
                 enum_functions[ func.name ] = sig
 
-            if not enum_sigs.has_key( sig ):
+            if sig not in enum_sigs:
                 enum_sigs[ sig ] = ef
 
 
@@ -496,7 +494,7 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
             if func.server_handcode: continue
             if not func.has_variable_size_request(): continue
 
-            if enum_functions.has_key(func.name):
+            if func.name in enum_functions:
                 sig = enum_functions[func.name]
                 ef = enum_sigs[ sig ]
 
@@ -621,7 +619,7 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
         # already be emitted, don't emit this function.  Instead, add
         # it to the list of function aliases.
 
-        if self.counter_sigs.has_key(sig):
+        if sig in self.counter_sigs:
             n = self.counter_sigs[sig];
             alias = [f.name, n]
         else:

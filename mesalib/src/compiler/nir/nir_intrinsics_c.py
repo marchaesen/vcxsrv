@@ -25,7 +25,7 @@ template = """\
 #include "nir.h"
 
 const nir_intrinsic_info nir_intrinsic_infos[nir_num_intrinsics] = {
-% for name, opcode in sorted(INTR_OPCODES.iteritems()):
+% for name, opcode in sorted(INTR_OPCODES.items()):
 {
    .name = "${name}",
    .num_srcs = ${opcode.num_srcs},

@@ -135,7 +135,7 @@ typedef struct {
                 for n in func.entry_points:
                     cat, num = api.get_category_for_name(n)
                     if (cat.startswith("es") or cat.startswith("GL_OES")):
-                        if not categories.has_key(cat):
+                        if cat not in categories:
                             categories[cat] = []
                         proto = 'GLAPI %s GLAPIENTRY %s(%s);' \
                                         % (func.return_type, "gl" + n, func.get_parameter_string(n))
@@ -144,8 +144,7 @@ typedef struct {
                 print('')
                 print('/* OpenGL ES specific prototypes */')
                 print('')
-                keys = categories.keys()
-                keys.sort()
+                keys = sorted(categories.keys())
                 for key in keys:
                     print('/* category %s */' % key)
                     print("\n".join(categories[key]))

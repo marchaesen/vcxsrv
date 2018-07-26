@@ -171,3 +171,10 @@ void ac_llvm_add_barrier_noop_pass(LLVMPassManagerRef passmgr)
 {
 	llvm::unwrap(passmgr)->add(llvm::createBarrierNoopPass());
 }
+
+void ac_enable_global_isel(LLVMTargetMachineRef tm)
+{
+#if HAVE_LLVM >= 0x0700
+  reinterpret_cast<llvm::TargetMachine*>(tm)->setGlobalISel(true);
+#endif
+}

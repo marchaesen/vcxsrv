@@ -742,7 +742,7 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
 
    /** GL_NV_conservative_raster_dilate */
    consts->ConservativeRasterDilateRange[0] = 0.0;
-   consts->ConservativeRasterDilateRange[0] = 0.0;
+   consts->ConservativeRasterDilateRange[1] = 0.0;
    consts->ConservativeRasterDilateGranularity = 0.0;
 }
 

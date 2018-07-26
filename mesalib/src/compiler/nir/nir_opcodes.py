@@ -181,9 +181,9 @@ for src_t in [tint, tuint, tfloat]:
          bit_sizes = [8, 16, 32, 64]
       for bit_size in bit_sizes:
           if bit_size == 16 and dst_t == tfloat and src_t == tfloat:
-              rnd_modes = ['rtne', 'rtz', 'undef']
+              rnd_modes = ['_rtne', '_rtz', '']
               for rnd_mode in rnd_modes:
-                  unop_convert("{0}2{1}{2}_{3}".format(src_t[0], dst_t[0],
+                  unop_convert("{0}2{1}{2}{3}".format(src_t[0], dst_t[0],
                                                        bit_size, rnd_mode),
                                dst_t + str(bit_size), src_t, "src0")
           else:
@@ -367,8 +367,8 @@ for (unsigned bit = 0; bit < bit_size; bit++) {
 """)
 
 
-for i in xrange(1, 5):
-   for j in xrange(1, 5):
+for i in range(1, 5):
+   for j in range(1, 5):
       unop_horiz("fnoise{0}_{1}".format(i, j), i, tfloat, j, tfloat, "0.0f")
 
 

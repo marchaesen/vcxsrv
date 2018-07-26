@@ -115,6 +115,7 @@ static inline struct qreg vir_reg(enum qfile file, uint32_t index)
  */
 struct qpu_reg {
         bool magic;
+        bool smimm;
         int index;
 };
 
@@ -867,6 +868,33 @@ vir_##name(struct v3d_compile *c, struct qreg a, struct qreg b)         \
                                            a, b));                      \
 }
 
+#define VIR_SFU(name)                                                      \
+static inline struct qreg                                                \
+vir_##name(struct v3d_compile *c, struct qreg a)                         \
+{                                                                        \
+        if (c->devinfo->ver >= 41) {                                     \
+                return vir_emit_def(c, vir_add_inst(V3D_QPU_A_##name,    \
+                                                    c->undef,            \
+                                                    a, c->undef));       \
+        } else {                                                         \
+                vir_FMOV_dest(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_##name), a); \
+                return vir_FMOV(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_R4)); \
+        }                                                                \
+}                                                                        \
+static inline struct qinst *                                             \
+vir_##name##_dest(struct v3d_compile *c, struct qreg dest,               \
+                  struct qreg a)                                         \
+{                                                                        \
+        if (c->devinfo->ver >= 41) {                                     \
+                return vir_emit_nondef(c, vir_add_inst(V3D_QPU_A_##name, \
+                                                       dest,             \
+                                                       a, c->undef));    \
+        } else {                                                         \
+                vir_FMOV_dest(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_##name), a); \
+                return vir_FMOV_dest(c, dest, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_R4)); \
+        }                                                                \
+}
+
 #define VIR_A_ALU2(name) VIR_ALU2(name, vir_add_inst, V3D_QPU_A_##name)
 #define VIR_M_ALU2(name) VIR_ALU2(name, vir_mul_inst, V3D_QPU_M_##name)
 #define VIR_A_ALU1(name) VIR_ALU1(name, vir_add_inst, V3D_QPU_A_##name)
@@ -905,7 +933,7 @@ VIR_A_ALU1(NOT)
 VIR_A_ALU1(NEG)
 VIR_A_ALU1(FLAPUSH)
 VIR_A_ALU1(FLBPUSH)
-VIR_A_ALU1(FLBPOP)
+VIR_A_ALU1(FLPOP)
 VIR_A_ALU1(SETMSF)
 VIR_A_ALU1(SETREVF)
 VIR_A_ALU0(TIDX)
@@ -947,6 +975,13 @@ VIR_M_NODST_2(MULTOP)
 
 VIR_M_ALU1(MOV)
 VIR_M_ALU1(FMOV)
+
+VIR_SFU(RECIP)
+VIR_SFU(RSQRT)
+VIR_SFU(EXP)
+VIR_SFU(LOG)
+VIR_SFU(SIN)
+VIR_SFU(RSQRT2)
 
 static inline struct qinst *
 vir_MOV_cond(struct v3d_compile *c, enum v3d_qpu_cond cond,

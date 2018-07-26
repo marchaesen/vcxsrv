@@ -224,6 +224,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.descriptor_array_dynamic_indexing = true,
 				.runtime_descriptor_array = true,
 				.stencil_export = true,
+				.storage_16bit = true,
 			},
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,

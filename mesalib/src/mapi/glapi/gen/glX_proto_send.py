@@ -31,7 +31,7 @@ from __future__ import print_function
 import argparse
 
 import gl_XML, glX_XML, glX_proto_common, license
-import copy, string
+import copy
 
 def convertStringForXCB(str):
     tmp = ""
@@ -39,10 +39,10 @@ def convertStringForXCB(str):
     i = 0
     while i < len(str):
         if str[i:i+3] in special:
-            tmp = '%s_%s' % (tmp, string.lower(str[i:i+3]))
+            tmp = '%s_%s' % (tmp, str[i:i+3].lower())
             i = i + 2;
         elif str[i].isupper():
-            tmp = '%s_%s' % (tmp, string.lower(str[i]))
+            tmp = '%s_%s' % (tmp, str[i].lower())
         else:
             tmp = '%s%s' % (tmp, str[i])
         i += 1
@@ -391,9 +391,8 @@ static const struct proc_pair
    const char *name;
    _glapi_proc proc;
 } proc_pairs[%d] = {""" % len(procs))
-        names = procs.keys()
-        names.sort()
-        for i in xrange(len(names)):
+        names = sorted(procs.keys())
+        for i in range(len(names)):
             comma = ',' if i < len(names) - 1 else ''
             print('   { "%s", (_glapi_proc) gl%s }%s' % (names[i], procs[names[i]], comma))
         print("""};
@@ -662,7 +661,7 @@ generic_%u_byte( GLint rop, const void * ptr )
 
         if len( condition_list ) > 0:
             if len( condition_list ) > 1:
-                skip_condition = "(%s)" % (string.join( condition_list, ") && (" ))
+                skip_condition = "(%s)" % ") && (".join( condition_list )
             else:
                 skip_condition = "%s" % (condition_list.pop(0))
 
@@ -842,7 +841,7 @@ generic_%u_byte( GLint rop, const void * ptr )
 
 
     def printPixelFunction(self, f):
-        if self.pixel_stubs.has_key( f.name ):
+        if f.name in self.pixel_stubs:
             # Normally gl_function::get_parameter_string could be
             # used.  However, this call needs to have the missing
             # dimensions (e.g., a fake height value for

@@ -124,7 +124,7 @@ read_constant(read_ctx *ctx, nir_variable *nvar)
 
    blob_copy_bytes(ctx->blob, (uint8_t *)c->values, sizeof(c->values));
    c->num_elements = blob_read_uint32(ctx->blob);
-   c->elements = ralloc_array(ctx->nir, nir_constant *, c->num_elements);
+   c->elements = ralloc_array(nvar, nir_constant *, c->num_elements);
    for (unsigned i = 0; i < c->num_elements; i++)
       c->elements[i] = read_constant(ctx, nvar);
 

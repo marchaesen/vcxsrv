@@ -1092,9 +1092,9 @@ static void si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer,
 	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9 &&
 	    !(flags & CP_DMA_CLEAR) &&
 	    src_va == dst_va)
-		header |= S_411_DSL_SEL(V_411_NOWHERE); /* prefetch only */
+		header |= S_411_DST_SEL(V_411_NOWHERE); /* prefetch only */
 	else if (flags & CP_DMA_USE_L2)
-		header |= S_411_DSL_SEL(V_411_DST_ADDR_TC_L2);
+		header |= S_411_DST_SEL(V_411_DST_ADDR_TC_L2);
 
 	if (flags & CP_DMA_CLEAR)
 		header |= S_411_SRC_SEL(V_411_DATA);
