@@ -1927,6 +1927,7 @@ const nir_shader_compiler_options v3d_nir_options = {
         .lower_ifind_msb = true,
         .lower_ldexp = true,
         .lower_mul_high = true,
+        .lower_wpos_pntc = true,
         .native_integers = true,
 };
 

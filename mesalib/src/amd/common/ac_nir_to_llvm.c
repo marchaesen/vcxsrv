@@ -2201,7 +2201,7 @@ static LLVMValueRef get_image_descriptor(struct ac_nir_context *ctx,
                                          enum ac_descriptor_type desc_type,
                                          bool write)
 {
-	return get_sampler_desc(ctx, nir_instr_as_deref(instr->src[0].ssa->parent_instr), desc_type, NULL, true, true);
+	return get_sampler_desc(ctx, nir_instr_as_deref(instr->src[0].ssa->parent_instr), desc_type, NULL, true, write);
 }
 
 static void get_image_coords(struct ac_nir_context *ctx,

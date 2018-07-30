@@ -3507,6 +3507,9 @@ struct gl_framebuffer
    struct gl_renderbuffer *_ColorDrawBuffers[MAX_DRAW_BUFFERS];
    struct gl_renderbuffer *_ColorReadBuffer;
 
+   /* GL_MESA_framebuffer_flip_y */
+   bool FlipY;
+
    /** Delete this framebuffer */
    void (*Delete)(struct gl_framebuffer *fb);
 };
@@ -4253,6 +4256,7 @@ struct gl_extensions
    GLboolean KHR_texture_compression_astc_hdr;
    GLboolean KHR_texture_compression_astc_ldr;
    GLboolean KHR_texture_compression_astc_sliced_3d;
+   GLboolean MESA_framebuffer_flip_y;
    GLboolean MESA_tile_raster_order;
    GLboolean MESA_pack_invert;
    GLboolean EXT_shader_framebuffer_fetch;

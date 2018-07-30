@@ -148,16 +148,16 @@ VK_FORMAT_BC6H_UFLOAT_BLOCK          , bptc,  4, 4, x128,     ,     ,     , xyz1
 VK_FORMAT_BC6H_SFLOAT_BLOCK          , bptc,  4, 4, x128,     ,     ,     , xyz1, rgb
 VK_FORMAT_BC7_UNORM_BLOCK            , bptc,  4, 4, x128,     ,     ,     , xyzw, rgb
 VK_FORMAT_BC7_SRGB_BLOCK             , bptc,  4, 4, x128,     ,     ,     , xyzw, srgb
-VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK,
-VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK,
-VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK,
-VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK,
-VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK,
-VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK,
-VK_FORMAT_EAC_R11_UNORM_BLOCK,
-VK_FORMAT_EAC_R11_SNORM_BLOCK,
-VK_FORMAT_EAC_R11G11_UNORM_BLOCK,
-VK_FORMAT_EAC_R11G11_SNORM_BLOCK,
+VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK    , etc,   4, 4, x64,      ,     ,     , xyz1, rgb
+VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK     , etc,   4, 4, x64,      ,     ,     , xyz1, srgb
+VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK  , etc,   4, 4, x64,      ,     ,     , xyzw, rgb
+VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK   , etc,   4, 4, x64,      ,     ,     , xyzw, srgb
+VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK  , etc,   4, 4, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK   , etc,   4, 4, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_EAC_R11_UNORM_BLOCK        , etc,   4, 4, x64,      ,     ,     , x001, rgb
+VK_FORMAT_EAC_R11_SNORM_BLOCK        , etc,   4, 4, x64,      ,     ,     , x001, rgb
+VK_FORMAT_EAC_R11G11_UNORM_BLOCK     , etc,   4, 4, x128,     ,     ,     , xy01, rgb
+VK_FORMAT_EAC_R11G11_SNORM_BLOCK     , etc,   4, 4, x128,     ,     ,     , xy01, rgb
 VK_FORMAT_ASTC_4x4_UNORM_BLOCK,
 VK_FORMAT_ASTC_4x4_SRGB_BLOCK,
 VK_FORMAT_ASTC_5x4_UNORM_BLOCK,

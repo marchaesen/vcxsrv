@@ -37,6 +37,7 @@
 #include "v3d_decoder.h"
 #include "v3d_packet_helpers.h"
 #include "v3d_xml.h"
+#include "broadcom/clif/clif_private.h"
 
 struct v3d_spec {
         uint32_t ver;
@@ -510,6 +511,13 @@ skip:
         ctx->parse_depth++;
 }
 
+static int
+field_offset_compare(const void *a, const void *b)
+{
+        return ((*(const struct v3d_field **)a)->start -
+                (*(const struct v3d_field **)b)->start);
+}
+
 static void
 end_element(void *data, const char *name)
 {
@@ -547,6 +555,13 @@ end_element(void *data, const char *name)
                         spec->structs[spec->nstructs++] = group;
                 else if (strcmp(name, "register") == 0)
                         spec->registers[spec->nregisters++] = group;
+
+                /* Sort the fields in increasing offset order.  The XML might
+                 * be specified in any order, but we'll want to iterate from
+                 * the bottom.
+                 */
+                qsort(group->fields, group->nfields, sizeof(*group->fields),
+                      field_offset_compare);
 
                 assert(spec->ncommands < ARRAY_SIZE(spec->commands));
                 assert(spec->nstructs < ARRAY_SIZE(spec->structs));
@@ -741,14 +756,12 @@ v3d_group_get_length(struct v3d_group *group)
 void
 v3d_field_iterator_init(struct v3d_field_iterator *iter,
                         struct v3d_group *group,
-                        const uint8_t *p,
-                        bool print_colors)
+                        const uint8_t *p)
 {
         memset(iter, 0, sizeof(*iter));
 
         iter->group = group;
         iter->p = p;
-        iter->print_colors = print_colors;
 }
 
 static const char *
@@ -828,7 +841,7 @@ iter_advance_field(struct v3d_field_iterator *iter)
 }
 
 bool
-v3d_field_iterator_next(struct v3d_field_iterator *iter)
+v3d_field_iterator_next(struct clif_dump *clif, struct v3d_field_iterator *iter)
 {
         if (!iter_advance_field(iter))
                 return false;
@@ -858,23 +871,41 @@ v3d_field_iterator_next(struct v3d_field_iterator *iter)
                 uint32_t value = __gen_unpack_uint(iter->p, s, e);
                 if (iter->field->minus_one)
                         value++;
+                if (strcmp(iter->field->name, "Vec size") == 0 && value == 0)
+                        value = 1 << (e - s);
                 snprintf(iter->value, sizeof(iter->value), "%u", value);
                 enum_name = v3d_get_enum_name(&iter->field->inline_enum, value);
                 break;
         }
-        case V3D_TYPE_BOOL: {
-                const char *true_string =
-                        iter->print_colors ? "\e[0;35mtrue\e[0m" : "true";
+        case V3D_TYPE_BOOL:
                 snprintf(iter->value, sizeof(iter->value), "%s",
                          __gen_unpack_uint(iter->p, s, e) ?
-                         true_string : "false");
+                         "1 /* true */" : "0 /* false */");
                 break;
-        }
         case V3D_TYPE_FLOAT:
                 snprintf(iter->value, sizeof(iter->value), "%f",
                          __gen_unpack_float(iter->p, s, e));
                 break;
-        case V3D_TYPE_ADDRESS:
+
+        case V3D_TYPE_ADDRESS: {
+                uint32_t addr =
+                        __gen_unpack_uint(iter->p, s, e) << (31 - (e - s));
+                struct clif_bo *bo = clif_lookup_bo(clif, addr);
+                if (bo) {
+                        snprintf(iter->value, sizeof(iter->value),
+                                 "[%s+0x%08x] /* 0x%08x */",
+                                 bo->name, addr - bo->offset, addr);
+                } else if (addr) {
+                        snprintf(iter->value, sizeof(iter->value),
+                                 "/* XXX: BO unknown */ 0x%08x", addr);
+                } else {
+                        snprintf(iter->value, sizeof(iter->value),
+                                 "[null]");
+                }
+
+                break;
+        }
+
         case V3D_TYPE_OFFSET:
                 snprintf(iter->value, sizeof(iter->value), "0x%08"PRIx64,
                          __gen_unpack_uint(iter->p, s, e) << (31 - (e - s)));
@@ -915,26 +946,34 @@ v3d_field_iterator_next(struct v3d_field_iterator *iter)
         if (enum_name) {
                 int length = strlen(iter->value);
                 snprintf(iter->value + length, sizeof(iter->value) - length,
-                         " (%s)", enum_name);
+                         " /* %s */", enum_name);
         }
 
         return true;
 }
 
 void
-v3d_print_group(FILE *outfile, struct v3d_group *group,
-                uint64_t offset, const uint8_t *p, bool color)
+v3d_print_group(struct clif_dump *clif, struct v3d_group *group,
+                uint64_t offset, const uint8_t *p)
 {
         struct v3d_field_iterator iter;
 
-        v3d_field_iterator_init(&iter, group, p, color);
-        while (v3d_field_iterator_next(&iter)) {
-                fprintf(outfile, "    %s: %s\n", iter.name, iter.value);
+        v3d_field_iterator_init(&iter, group, p);
+        while (v3d_field_iterator_next(clif, &iter)) {
+                /* Clif parsing uses the packet name, and expects no
+                 * sub-id.
+                 */
+                if (strcmp(iter.field->name, "sub-id") == 0 ||
+                    strcmp(iter.field->name, "unused") == 0 ||
+                    strcmp(iter.field->name, "Pad") == 0)
+                        continue;
+
+                fprintf(clif->out, "    %s: %s\n", iter.name, iter.value);
                 if (iter.struct_desc) {
                         uint64_t struct_offset = offset + iter.offset;
-                        v3d_print_group(outfile, iter.struct_desc,
+                        v3d_print_group(clif, iter.struct_desc,
                                         struct_offset,
-                                        &p[iter.offset], color);
+                                        &p[iter.offset]);
                 }
         }
 }

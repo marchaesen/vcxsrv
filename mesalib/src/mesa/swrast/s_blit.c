@@ -253,7 +253,7 @@ blit_nearest(struct gl_context *ctx,
          ctx->Driver.MapRenderbuffer(ctx, readRb, 0, 0,
                                      readRb->Width, readRb->Height,
                                      GL_MAP_READ_BIT | GL_MAP_WRITE_BIT,
-                                     &map, &rowStride);
+                                     &map, &rowStride, readFb->FlipY);
          if (!map) {
             goto fail_no_memory;
          }
@@ -280,14 +280,16 @@ blit_nearest(struct gl_context *ctx,
          ctx->Driver.MapRenderbuffer(ctx, readRb,
                                      srcXpos, srcYpos,
                                      srcWidth, srcHeight,
-                                     GL_MAP_READ_BIT, &srcMap, &srcRowStride);
+                                     GL_MAP_READ_BIT, &srcMap, &srcRowStride,
+                                     readFb->FlipY);
          if (!srcMap) {
             goto fail_no_memory;
          }
          ctx->Driver.MapRenderbuffer(ctx, drawRb,
                                      dstXpos, dstYpos,
                                      dstWidth, dstHeight,
-                                     GL_MAP_WRITE_BIT, &dstMap, &dstRowStride);
+                                     GL_MAP_WRITE_BIT, &dstMap, &dstRowStride,
+                                     drawFb->FlipY);
          if (!dstMap) {
             ctx->Driver.UnmapRenderbuffer(ctx, readRb);
             goto fail_no_memory;
@@ -594,7 +596,8 @@ blit_linear(struct gl_context *ctx,
          ctx->Driver.MapRenderbuffer(ctx, readRb,
                                      0, 0, readRb->Width, readRb->Height,
                                      GL_MAP_READ_BIT | GL_MAP_WRITE_BIT,
-                                     &srcMap, &srcRowStride);
+                                     &srcMap, &srcRowStride,
+                                     readFb->FlipY);
          if (!srcMap) {
             goto fail_no_memory;
          }
@@ -609,13 +612,15 @@ blit_linear(struct gl_context *ctx,
           */
          ctx->Driver.MapRenderbuffer(ctx, readRb,
                                      0, 0, readRb->Width, readRb->Height,
-                                     GL_MAP_READ_BIT, &srcMap, &srcRowStride);
+                                     GL_MAP_READ_BIT, &srcMap, &srcRowStride,
+                                     readFb->FlipY);
          if (!srcMap) {
             goto fail_no_memory;
          }
          ctx->Driver.MapRenderbuffer(ctx, drawRb,
                                      0, 0, drawRb->Width, drawRb->Height,
-                                     GL_MAP_WRITE_BIT, &dstMap, &dstRowStride);
+                                     GL_MAP_WRITE_BIT, &dstMap, &dstRowStride,
+                                     drawFb->FlipY);
          if (!dstMap) {
             ctx->Driver.UnmapRenderbuffer(ctx, readRb);
             goto fail_no_memory;

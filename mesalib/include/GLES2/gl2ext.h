@@ -2334,6 +2334,11 @@ GL_APICALL void GL_APIENTRY glGetPerfQueryInfoINTEL (GLuint queryId, GLuint quer
 #endif
 #endif /* GL_INTEL_performance_query */
 
+#ifndef GL_MESA_framebuffer_flip_y
+#define GL_MESA_framebuffer_flip_y 1
+#define GL_FRAMEBUFFER_FLIP_Y_MESA        0x8BBB
+#endif /* GL_MESA_framebuffer_flip_y */
+
 #ifndef GL_MESA_program_binary_formats
 #define GL_MESA_program_binary_formats 1
 #define GL_PROGRAM_BINARY_FORMAT_MESA     0x875F

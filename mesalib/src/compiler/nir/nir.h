@@ -2024,6 +2024,9 @@ typedef struct nir_shader_compiler_options {
 
    bool lower_device_index_to_zero;
 
+   /* Set if nir_lower_wpos_ytransform() should also invert gl_PointCoord. */
+   bool lower_wpos_pntc;
+
    /**
     * Should nir_lower_io() create load_interpolated_input intrinsics?
     *
@@ -2806,7 +2809,8 @@ void nir_lower_two_sided_color(nir_shader *shader);
 bool nir_lower_clamp_color_outputs(nir_shader *shader);
 
 void nir_lower_passthrough_edgeflags(nir_shader *shader);
-void nir_lower_tes_patch_vertices(nir_shader *tes, unsigned patch_vertices);
+bool nir_lower_patch_vertices(nir_shader *nir, unsigned static_count,
+                              const gl_state_index16 *uniform_state_tokens);
 
 typedef struct nir_lower_wpos_ytransform_options {
    gl_state_index16 state_tokens[STATE_LENGTH];

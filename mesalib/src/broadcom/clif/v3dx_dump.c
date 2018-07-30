@@ -47,7 +47,7 @@ v3dX(clif_dump_packet)(struct clif_dump *clif, uint32_t offset,
         *size = v3d_group_get_length(inst);
 
         out(clif, "%s\n", v3d_group_get_name(inst));
-        v3d_print_group(clif->out, inst, 0, cl, "");
+        v3d_print_group(clif, inst, 0, cl);
 
         switch (*cl) {
         case V3DX(GL_SHADER_STATE_opcode): {
@@ -87,10 +87,11 @@ v3dX(clif_dump_packet)(struct clif_dump *clif, uint32_t offset,
                 cl += *size;
 
                 for (int i = 0; i < values.number_of_16_bit_output_data_specs_following; i++) {
-                        v3d_print_group(clif->out, spec, 0, cl, "");
+                        v3d_print_group(clif, spec, 0, cl);
                         cl += v3d_group_get_length(spec);
                         *size += v3d_group_get_length(spec);
                 }
+                out(clif, "@format ctrllist\n");
                 break;
         }
 #else /* V3D_VERSION < 40 */
@@ -107,13 +108,13 @@ v3dX(clif_dump_packet)(struct clif_dump *clif, uint32_t offset,
                 cl += *size;
 
                 for (int i = 0; i < values.number_of_16_bit_output_data_specs_following; i++) {
-                        v3d_print_group(clif->out, spec, 0, cl, "");
+                        v3d_print_group(clif, spec, 0, cl);
                         cl += v3d_group_get_length(spec);
                         *size += v3d_group_get_length(spec);
                 }
 
                 for (int i = 0; i < values.number_of_32_bit_output_buffer_address_following; i++) {
-                        v3d_print_group(clif->out, addr, 0, cl, "");
+                        v3d_print_group(clif, addr, 0, cl);
                         cl += v3d_group_get_length(addr);
                         *size += v3d_group_get_length(addr);
                 }

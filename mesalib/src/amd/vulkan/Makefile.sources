@@ -69,7 +69,6 @@ VULKAN_FILES := \
 	radv_util.h \
 	radv_wsi.c \
 	si_cmd_buffer.c \
-	vk_format_table.c \
 	vk_format.h \
 	$(RADV_WS_AMDGPU_FILES)
 
@@ -89,5 +88,6 @@ VULKAN_GENERATED_FILES := \
 	radv_entrypoints.c \
 	radv_entrypoints.h \
 	radv_extensions.c \
-	radv_extensions.h
+	radv_extensions.h \
+	vk_format_table.c
 

@@ -588,7 +588,7 @@ shader_variant_create(struct radv_device *device,
 
 	if (code_out) {
 		*code_out = binary.code;
-		*code_size_out = variant->code_size;
+		*code_size_out = binary.code_size;
 	} else
 		free(binary.code);
 	free(binary.config);

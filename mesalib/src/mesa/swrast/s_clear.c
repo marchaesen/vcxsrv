@@ -66,7 +66,8 @@ clear_rgba_buffer(struct gl_context *ctx, struct gl_renderbuffer *rb,
 
    /* map dest buffer */
    ctx->Driver.MapRenderbuffer(ctx, rb, x, y, width, height,
-                               mapMode, &map, &rowStride);
+                               mapMode, &map, &rowStride,
+                               ctx->DrawBuffer->FlipY);
    if (!map) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glClear(color)");
       return;

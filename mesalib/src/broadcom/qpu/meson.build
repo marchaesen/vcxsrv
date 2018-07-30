@@ -33,6 +33,8 @@ libbroadcom_qpu = static_library(
   build_by_default : false,
 )
 
+v3d_libs += libbroadcom_qpu
+
 test(
   'qpu_disasm',
   executable(

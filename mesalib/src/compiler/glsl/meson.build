@@ -170,7 +170,6 @@ files_libglsl = files(
   'opt_constant_folding.cpp',
   'opt_constant_propagation.cpp',
   'opt_constant_variable.cpp',
-  'opt_copy_propagation.cpp',
   'opt_copy_propagation_elements.cpp',
   'opt_dead_builtin_variables.cpp',
   'opt_dead_builtin_varyings.cpp',

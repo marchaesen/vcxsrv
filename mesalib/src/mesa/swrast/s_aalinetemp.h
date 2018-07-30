@@ -179,10 +179,12 @@ NAME(line)(struct gl_context *ctx, const SWvertex *v0, const SWvertex *v1)
          if (attr >= VARYING_SLOT_TEX0 && attr < VARYING_SLOT_VAR0) {
             const GLuint u = attr - VARYING_SLOT_TEX0;
             const struct gl_texture_object *obj = ctx->Texture.Unit[u]._Current;
-            const struct gl_texture_image *texImage =
-               _mesa_base_tex_image(obj);
-            line.texWidth[attr]  = (GLfloat) texImage->Width;
-            line.texHeight[attr] = (GLfloat) texImage->Height;
+            if (obj) {
+               const struct gl_texture_image *texImage =
+                  _mesa_base_tex_image(obj);
+               line.texWidth[attr]  = (GLfloat) texImage->Width;
+               line.texHeight[attr] = (GLfloat) texImage->Height;
+            }
          }
       ATTRIB_LOOP_END
    }

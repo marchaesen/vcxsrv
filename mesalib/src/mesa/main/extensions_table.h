@@ -323,6 +323,7 @@ EXT(KHR_texture_compression_astc_hdr        , KHR_texture_compression_astc_hdr  
 EXT(KHR_texture_compression_astc_ldr        , KHR_texture_compression_astc_ldr       , GLL, GLC,  x , ES2, 2012)
 EXT(KHR_texture_compression_astc_sliced_3d  , KHR_texture_compression_astc_sliced_3d , GLL, GLC,  x , ES2, 2015)
 
+EXT(MESA_framebuffer_flip_y                 , MESA_framebuffer_flip_y                ,   x,   x,  x ,  31, 2018)
 EXT(MESA_pack_invert                        , MESA_pack_invert                       , GLL, GLC,  x ,  x , 2002)
 EXT(MESA_shader_integer_functions           , MESA_shader_integer_functions          , GLL, GLC,  x ,  30, 2016)
 EXT(MESA_texture_signed_rgba                , EXT_texture_snorm                      , GLL, GLC,  x ,  x , 2009)

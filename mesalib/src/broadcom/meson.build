@@ -23,35 +23,36 @@ inc_broadcom = include_directories('.', 'cle')
 subdir('cle')
 
 v3d_versions = ['33', '41', '42']
+v3d_libs = []
 
 if with_gallium_v3d
   subdir('compiler')
   subdir('qpu')
+endif
 
-  per_version_libs = []
-  foreach ver : v3d_versions
-    per_version_libs += static_library(
-      'libbroadcom-v' + ver,
-      [
-        files('clif/v3dx_dump.c'),
-        v3d_xml_pack
-      ],
-      include_directories : [inc_common, inc_broadcom, inc_src],
-      c_args : [c_vis_args, no_override_init_args, '-DV3D_VERSION=' + ver],
-      dependencies: [dep_valgrind, dep_thread],
-    )
-  endforeach
-
-  libbroadcom_v3d = static_library(
-    'libbroadcom_v3d',
+per_version_libs = []
+foreach ver : v3d_versions
+  per_version_libs += static_library(
+    'libbroadcom-v' + ver,
     [
-      files('common/v3d_debug.c', 'clif/clif_dump.c'),
-      v3d_xml_pack,
+      files('clif/v3dx_dump.c'),
+      v3d_xml_pack
     ],
     include_directories : [inc_common, inc_broadcom, inc_src],
-    c_args : [c_vis_args, no_override_init_args],
-    link_whole : [libbroadcom_compiler, libbroadcom_qpu] + per_version_libs,
-    build_by_default : false,
+    c_args : [c_vis_args, no_override_init_args, '-DV3D_VERSION=' + ver],
     dependencies: [dep_valgrind, dep_thread],
   )
-endif
+endforeach
+
+libbroadcom_v3d = static_library(
+  'libbroadcom_v3d',
+  [
+    files('common/v3d_debug.c', 'clif/clif_dump.c'),
+    v3d_xml_pack,
+  ],
+  include_directories : [inc_common, inc_broadcom, inc_src],
+  c_args : [c_vis_args, no_override_init_args],
+  link_whole : v3d_libs + per_version_libs,
+  build_by_default : false,
+  dependencies: [dep_valgrind, dep_thread],
+)

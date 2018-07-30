@@ -82,7 +82,8 @@ _mesa_clear_accum_buffer(struct gl_context *ctx)
    height = ctx->DrawBuffer->_Ymax - ctx->DrawBuffer->_Ymin;
 
    ctx->Driver.MapRenderbuffer(ctx, accRb, x, y, width, height,
-                               GL_MAP_WRITE_BIT, &accMap, &accRowStride);
+                               GL_MAP_WRITE_BIT, &accMap, &accRowStride,
+                               ctx->DrawBuffer->FlipY);
 
    if (!accMap) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
@@ -137,7 +138,8 @@ accum_scale_or_bias(struct gl_context *ctx, GLfloat value,
 
    ctx->Driver.MapRenderbuffer(ctx, accRb, xpos, ypos, width, height,
                                GL_MAP_READ_BIT | GL_MAP_WRITE_BIT,
-                               &accMap, &accRowStride);
+                               &accMap, &accRowStride,
+                               ctx->DrawBuffer->FlipY);
 
    if (!accMap) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
@@ -206,7 +208,8 @@ accum_or_load(struct gl_context *ctx, GLfloat value,
 
    /* Map accum buffer */
    ctx->Driver.MapRenderbuffer(ctx, accRb, xpos, ypos, width, height,
-                               mappingFlags, &accMap, &accRowStride);
+                               mappingFlags, &accMap, &accRowStride,
+                               ctx->DrawBuffer->FlipY);
    if (!accMap) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
       return;
@@ -215,7 +218,8 @@ accum_or_load(struct gl_context *ctx, GLfloat value,
    /* Map color buffer */
    ctx->Driver.MapRenderbuffer(ctx, colorRb, xpos, ypos, width, height,
                                GL_MAP_READ_BIT,
-                               &colorMap, &colorRowStride);
+                               &colorMap, &colorRowStride,
+                               ctx->DrawBuffer->FlipY);
    if (!colorMap) {
       ctx->Driver.UnmapRenderbuffer(ctx, accRb);
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
@@ -288,7 +292,7 @@ accum_return(struct gl_context *ctx, GLfloat value,
    /* Map accum buffer */
    ctx->Driver.MapRenderbuffer(ctx, accRb, xpos, ypos, width, height,
                                GL_MAP_READ_BIT,
-                               &accMap, &accRowStride);
+                               &accMap, &accRowStride, fb->FlipY);
    if (!accMap) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
       return;
@@ -308,7 +312,8 @@ accum_return(struct gl_context *ctx, GLfloat value,
 
       /* Map color buffer */
       ctx->Driver.MapRenderbuffer(ctx, colorRb, xpos, ypos, width, height,
-                                  mappingFlags, &colorMap, &colorRowStride);
+                                  mappingFlags, &colorMap, &colorRowStride,
+                                  fb->FlipY);
       if (!colorMap) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
          continue;

@@ -224,6 +224,28 @@ uint32_t radv_translate_tex_dataformat(VkFormat format,
 		}
 	}
 
+	if (desc->layout == VK_FORMAT_LAYOUT_ETC) {
+		switch (format) {
+		case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
+		case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
+			return V_008F14_IMG_DATA_FORMAT_ETC2_RGB;
+		case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK:
+		case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK:
+			return V_008F14_IMG_DATA_FORMAT_ETC2_RGBA1;
+		case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
+		case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+			return V_008F14_IMG_DATA_FORMAT_ETC2_RGBA;
+		case VK_FORMAT_EAC_R11_UNORM_BLOCK:
+		case VK_FORMAT_EAC_R11_SNORM_BLOCK:
+			return V_008F14_IMG_DATA_FORMAT_ETC2_R;
+		case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
+		case VK_FORMAT_EAC_R11G11_SNORM_BLOCK:
+			return V_008F14_IMG_DATA_FORMAT_ETC2_RG;
+		default:
+			break;
+		}
+	}
+
 	if (format == VK_FORMAT_E5B9G9R9_UFLOAT_PACK32) {
 		return V_008F14_IMG_DATA_FORMAT_5_9_9_9;
 	} else if (format == VK_FORMAT_B10G11R11_UFLOAT_PACK32) {
@@ -349,10 +371,15 @@ uint32_t radv_translate_tex_numformat(VkFormat format,
 				case VK_FORMAT_BC2_SRGB_BLOCK:
 				case VK_FORMAT_BC3_SRGB_BLOCK:
 				case VK_FORMAT_BC7_SRGB_BLOCK:
+				case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
+				case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK:
+				case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
 					return V_008F14_IMG_NUM_FORMAT_SRGB;
 				case VK_FORMAT_BC4_SNORM_BLOCK:
 				case VK_FORMAT_BC5_SNORM_BLOCK:
 			        case VK_FORMAT_BC6H_SFLOAT_BLOCK:
+				case VK_FORMAT_EAC_R11_SNORM_BLOCK:
+				case VK_FORMAT_EAC_R11G11_SNORM_BLOCK:
 					return V_008F14_IMG_NUM_FORMAT_SNORM;
 				default:
 					return V_008F14_IMG_NUM_FORMAT_UNORM;
@@ -578,6 +605,15 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 	bool blendable;
 	bool scaled = false;
 	if (!desc) {
+		out_properties->linearTilingFeatures = linear;
+		out_properties->optimalTilingFeatures = tiled;
+		out_properties->bufferFeatures = buffer;
+		return;
+	}
+
+	if (desc->layout == VK_FORMAT_LAYOUT_ETC &&
+	    physical_device->rad_info.chip_class < GFX9 &&
+	    physical_device->rad_info.family != CHIP_STONEY) {
 		out_properties->linearTilingFeatures = linear;
 		out_properties->optimalTilingFeatures = tiled;
 		out_properties->bufferFeatures = buffer;

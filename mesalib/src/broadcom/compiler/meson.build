@@ -47,3 +47,5 @@ libbroadcom_compiler = static_library(
   dependencies : [dep_libdrm, dep_valgrind, idep_nir_headers],
   build_by_default : false,
 )
+
+v3d_libs += libbroadcom_compiler

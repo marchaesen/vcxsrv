@@ -73,8 +73,6 @@ do_optimization(struct exec_list *ir, const char *optimization,
       return do_constant_variable(ir);
    } else if (strcmp(optimization, "do_constant_variable_unlinked") == 0) {
       return do_constant_variable_unlinked(ir);
-   } else if (strcmp(optimization, "do_copy_propagation") == 0) {
-      return do_copy_propagation(ir);
    } else if (strcmp(optimization, "do_copy_propagation_elements") == 0) {
       return do_copy_propagation_elements(ir);
    } else if (strcmp(optimization, "do_constant_propagation") == 0) {

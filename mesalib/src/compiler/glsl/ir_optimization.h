@@ -103,7 +103,6 @@ bool opt_conditional_discard(exec_list *instructions);
 bool do_constant_folding(exec_list *instructions);
 bool do_constant_variable(exec_list *instructions);
 bool do_constant_variable_unlinked(exec_list *instructions);
-bool do_copy_propagation(exec_list *instructions);
 bool do_copy_propagation_elements(exec_list *instructions);
 bool do_constant_propagation(exec_list *instructions);
 void do_dead_builtin_varyings(struct gl_context *ctx,

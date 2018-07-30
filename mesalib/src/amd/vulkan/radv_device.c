@@ -685,6 +685,7 @@ void radv_GetPhysicalDeviceFeatures(
 	VkPhysicalDevice                            physicalDevice,
 	VkPhysicalDeviceFeatures*                   pFeatures)
 {
+	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 	memset(pFeatures, 0, sizeof(*pFeatures));
 
 	*pFeatures = (VkPhysicalDeviceFeatures) {
@@ -708,7 +709,8 @@ void radv_GetPhysicalDeviceFeatures(
 		.alphaToOne                               = true,
 		.multiViewport                            = true,
 		.samplerAnisotropy                        = true,
-		.textureCompressionETC2                   = false,
+		.textureCompressionETC2                   = pdevice->rad_info.chip_class >= GFX9 ||
+		                                            pdevice->rad_info.family == CHIP_STONEY,
 		.textureCompressionASTC_LDR               = false,
 		.textureCompressionBC                     = true,
 		.occlusionQueryPrecise                    = true,

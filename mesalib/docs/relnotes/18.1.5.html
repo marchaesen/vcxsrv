@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.1.4 Release Notes / July 13 2018</h1>
+
+<p>
+Mesa 18.1.5 is a bug fix release which fixes bugs found since the 18.1.4 release.
+</p>
+<p>
+Mesa 18.1.5 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+SHA256: f966d5d5d373a5b8a16ed5036c1e7f05d4ad46d130f793bf9782c3ac9133a02e  mesa-18.1.5.tar.gz
+SHA256: 69dbe6f1a6660386f5beb85d4fcf003ee23023ed7b9a603de84e9a37e8d98dea  mesa-18.1.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<p>None</p>
+
+<h2>Bug fixes</h2>
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103274">Bug 103274</a> - BRW allocates too much heap memory</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107275">Bug 107275</a> - NIR segfaults after spirv-opt</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107295">Bug 107295</a> - Access violation on glDrawArrays with count &gt;= 2048</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107312">Bug 107312</a> - Mesa-git RPM build fails after commit 8cacf38f527d42e41441ef8c25d95d4b2f4e8602</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107366">Bug 107366</a> - NIR verification crashes on piglit tests</li>
+
+</ul>
+
+<h2>Changes</h2>
+<p>Alex Smith (1):</p>
+<ul>
+  <li>anv: Pay attention to VK_ACCESS_MEMORY_(READ|WRITE)_BIT</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (7):</p>
+<ul>
+  <li>radv: Select correct entries for binning.</li>
+  <li>radv: Fix number of samples used for binning.</li>
+  <li>radv: Disable disabled color buffers in rbplus opts.</li>
+  <li>nir: Do not use continue block after removing it.</li>
+  <li>util/disk_cache: Fix disk_cache_get_function_timestamp with disabled cache.</li>
+  <li>nir: Fix end of function without return warning/error.</li>
+  <li>radv: Still enable inmemory &amp; API level caching if disk cache is not enabled.</li>
+</ul>
+
+<p>Chad Versace (2):</p>
+<ul>
+  <li>anv/android: Fix type error in call to vk_errorf()</li>
+  <li>anv/android: Fix Autotools build for VK_ANDROID_native_buffer</li>
+</ul>
+
+<p>Chih-Wei Huang (1):</p>
+<ul>
+  <li>Android: fix a missing nir_intrinsics.h error</li>
+</ul>
+
+<p>Danylo Piliaiev (1):</p>
+<ul>
+  <li>i965: Sweep NIR after linking phase to free held memory</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>r600: enable tess_input_info for TES</li>
+</ul>
+
+<p>Dylan Baker (5):</p>
+<ul>
+  <li>docs: Add sha256 sums for 18.1.4 tarballs</li>
+  <li>cherry-ignore: add 4a67ce886a7b3def5f66c1aedf9e5436d157a03c</li>
+  <li>cherry-ignore: Add 1f616a840eac02241c585d28e9dac8f19a297f39</li>
+  <li>cherry-ignore: add 11712b9ca17e4e1a819dcb7d020e19c6da77bc90</li>
+  <li>bump version to 18.1.5</li>
+</ul>
+
+<p>Eric Anholt (2):</p>
+<ul>
+  <li>vc4: Don't automatically reallocate a PERSISTENT-mapped buffer.</li>
+  <li>meson: Move xvmc test tools from unit tests to installed tools.</li>
+</ul>
+
+<p>Harish Krupo (1):</p>
+<ul>
+  <li>egl: Fix missing clamping in eglSetDamageRegionKHR</li>
+</ul>
+
+<p>Jan Vesely (3):</p>
+<ul>
+  <li>radeonsi: Refuse to accept code with unhandled relocations</li>
+  <li>clover: Report error when pipe driver fails to create compute state</li>
+  <li>clover: Catch errors from executing event action</li>
+</ul>
+
+<p>Jason Ekstrand (6):</p>
+<ul>
+  <li>anv: Stop setting 3DSTATE_PS_EXTRA::PixelShaderHasUAV</li>
+  <li>nir/serialize: Alloc constants off the variable</li>
+  <li>blorp: Handle the RGB workaround more like other workarounds</li>
+  <li>intel/blorp: Handle 3-component formats in clears</li>
+  <li>intel/compiler: Account for built-in uniforms in analyze_ubo_ranges</li>
+  <li>spirv: Fix a couple of image atomic load/store bugs</li>
+</ul>
+
+<p>José Fonseca (1):</p>
+<ul>
+  <li>gallium/tests: Don't ignore S3TC errors.</li>
+</ul>
+
+<p>Karol Herbst (1):</p>
+<ul>
+  <li>nir: fix printing of vec16 type</li>
+</ul>
+
+<p>Lepton Wu (1):</p>
+<ul>
+  <li>virgl: Fix flush in virgl_encoder_inline_write.</li>
+</ul>
+
+<p>Lucas Stach (1):</p>
+<ul>
+  <li>st/mesa: call resource_changed when binding a EGLImage to a texture</li>
+</ul>
+
+<p>Mauro Rossi (2):</p>
+<ul>
+  <li>radv: winsys/amdgpu: include missing pthread.h header</li>
+  <li>android: util/disk_cache: fix building errors in gallium drivers</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>gallium: Check pipe_screen::resource_changed before dereferencing it</li>
+</ul>
+
+<p>Roland Scheidegger (1):</p>
+<ul>
+  <li>draw: force draw pipeline if there's more than 65535 vertices</li>
+</ul>
+
+<p>Samuel Iglesias Gonsálvez (1):</p>
+<ul>
+  <li>anv: fix assert in anv_CmdBindDescriptorSets()</li>
+</ul>
+
+<p>Samuel Pitoiset (3):</p>
+<ul>
+  <li>radv: make sure to wait for CP DMA when needed</li>
+  <li>radv: emit a dummy ZPASS_DONE to prevent GPU hangs on GFX9</li>
+  <li>radv: fix a memleak for merged shaders on GFX9</li>
+</ul>
+
+</div>
+</body>
+</html>

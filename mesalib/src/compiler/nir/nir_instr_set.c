@@ -357,7 +357,7 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
       default:
          unreachable("Invalid instruction deref type");
       }
-      break;
+      return true;
    }
    case nir_instr_type_tex: {
       nir_tex_instr *tex1 = nir_instr_as_tex(instr1);
@@ -460,7 +460,7 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
       unreachable("Invalid instruction type");
    }
 
-   return false;
+   unreachable("All cases in the above switch should return");
 }
 
 static bool

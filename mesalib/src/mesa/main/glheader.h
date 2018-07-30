@@ -160,6 +160,9 @@ typedef void *GLeglImageOES;
 #define GL_HALF_FLOAT_OES                                       0x8D61
 #endif
 
+#ifndef GL_MESA_framebuffer_flip_y
+#define GL_FRAMEBUFFER_FLIP_Y_MESA                              0x8BBB
+#endif
 
 /**
  * Internal token to represent a GLSL shader program (a collection of

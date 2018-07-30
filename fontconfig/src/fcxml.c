@@ -22,9 +22,6 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef _GNU_SOURCE
-#undef _GNU_SOURCE /* To use the POSIX version of strerror_r */
-#endif
 #include <string.h>
 #include "fcint.h"
 #include <fcntl.h>
@@ -649,7 +646,6 @@ FcTypecheckValue (FcConfigParse *parse, FcType value, FcType type)
     {
 	if ((value == FcTypeLangSet && type == FcTypeString) ||
 	    (value == FcTypeString && type == FcTypeLangSet) ||
-	    (value == FcTypeInteger && type == FcTypeRange) ||
 	    (value == FcTypeDouble && type == FcTypeRange))
 	    return;
 	if (type ==  FcTypeUnknown)
@@ -1838,6 +1834,8 @@ FcParseAlias (FcConfigParse *parse)
 	!def)
     {
 	FcExprDestroy (family);
+	if (rule)
+	    FcRuleDestroy (rule);
 	return;
     }
     else
@@ -3474,8 +3472,7 @@ _FcConfigParse (FcConfig	*config,
 	    char ebuf[BUFSIZ+1];
 
 #if HAVE_STRERROR_R
-	    int x FC_UNUSED;
-	    x = strerror_r (errno_, ebuf, BUFSIZ); /* make sure we use the POSIX version of strerror_r */
+	    strerror_r (errno_, ebuf, BUFSIZ);
 #elif HAVE_STRERROR
 	    char *tmp = strerror (errno_);
 	    size_t len = strlen (tmp);

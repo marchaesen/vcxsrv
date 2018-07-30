@@ -31,12 +31,12 @@ struct v3d_device_info;
 struct clif_dump;
 
 struct clif_dump *clif_dump_init(const struct v3d_device_info *devinfo,
-                                 FILE *output,
-                                 bool (*lookup_vaddr)(void *data, uint32_t addr,
-                                                      void **vaddr),
-                                 void *data);
+                                 FILE *output);
+void clif_dump(struct clif_dump *clif);
 void clif_dump_destroy(struct clif_dump *clif);
 
+void clif_dump_add_bo(struct clif_dump *clif, const char *name,
+                      uint32_t offset, uint32_t size, void *vaddr);
 void clif_dump_add_cl(struct clif_dump *clif, uint32_t start, uint32_t end);
 
 #endif
