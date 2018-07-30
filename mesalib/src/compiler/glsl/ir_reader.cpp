@@ -490,7 +490,7 @@ ir_reader::read_if(s_expression *expr, ir_loop *loop_ctx)
    read_instructions(&iff->then_instructions, s_then, loop_ctx);
    read_instructions(&iff->else_instructions, s_else, loop_ctx);
    if (state->error) {
-      delete iff;
+      ir_if::operator delete(iff, mem_ctx);
       iff = NULL;
    }
    return iff;
@@ -512,7 +512,7 @@ ir_reader::read_loop(s_expression *expr)
 
    read_instructions(&loop->body_instructions, s_body, loop);
    if (state->error) {
-      delete loop;
+     ir_loop::operator delete(loop, mem_ctx);
       loop = NULL;
    }
    return loop;

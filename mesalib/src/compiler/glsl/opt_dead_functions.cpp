@@ -125,10 +125,10 @@ do_dead_functions(exec_list *instructions)
     foreach_in_list_safe(signature_entry, entry, &v.signature_list) {
       if (!entry->used) {
 	 entry->signature->remove();
-	 delete entry->signature;
+   ir_function_signature::operator delete(entry->signature, NULL);  // mem_ctx is not stored somewhere i think, but it is not used in the delete operator anyhow
 	 progress = true;
       }
-      delete(entry);
+      signature_entry::operator delete(entry, v.mem_ctx);
    }
 
    /* We don't just do this above when we nuked a signature because of
@@ -143,7 +143,7 @@ do_dead_functions(exec_list *instructions)
 	  * symbol table should be OK.
 	  */
 	 func->remove();
-	 delete func;
+   ir_function::operator delete(func, v.mem_ctx);
 	 progress = true;
       }
    }

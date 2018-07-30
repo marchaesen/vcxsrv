@@ -292,7 +292,7 @@ translation_unit:
    }
    external_declaration_list
    {
-      delete state->symbols;
+      glsl_symbol_table::operator delete(state->symbols, ralloc_parent(state));
       state->symbols = new(ralloc_parent(state)) glsl_symbol_table;
       if (state->es_shader) {
          if (state->stage == MESA_SHADER_FRAGMENT) {

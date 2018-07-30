@@ -51,10 +51,6 @@ struct YYLTYPE;
 class ast_node {
 public:
    DECLARE_LINEAR_ZALLOC_CXX_OPERATORS(ast_node);
-   static void operator delete(void *table, void *ctx)
-   {
-      ralloc_free(table);
-   }
 
    /**
     * Print an AST node in something approximating the original GLSL code

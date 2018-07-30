@@ -56,10 +56,6 @@ struct exec_node {
 
 #ifdef __cplusplus
    DECLARE_RZALLOC_CXX_OPERATORS(exec_node)
-   static void operator delete(void *node, void *ctx)
-   {
-      ralloc_free(node);
-   }
 
    exec_node() : next(NULL), prev(NULL)
    {
@@ -291,10 +287,6 @@ struct exec_list {
 
 #ifdef __cplusplus
    DECLARE_RALLOC_CXX_OPERATORS(exec_list)
-   static void operator delete(void *node, void *ctx)
-   {
-      ralloc_free(node);
-   }
 
    exec_list()
    {

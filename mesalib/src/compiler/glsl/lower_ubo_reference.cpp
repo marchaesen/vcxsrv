@@ -644,7 +644,7 @@ lower_ubo_reference_visitor::check_ssbo_unsized_array_length_expression(ir_expre
       if (!temp)
          continue;
 
-      delete expr;
+      ir_expression::operator delete(expr, NULL);  // mem_ctx is not stored, but it is not used by the delete operator any how
       ir->operands[i] = temp;
    }
 }
@@ -660,7 +660,7 @@ lower_ubo_reference_visitor::check_ssbo_unsized_array_length_assignment(ir_assig
    if (!temp)
       return;
 
-   delete expr;
+   ir_expression::operator delete(expr, NULL);  // mem_ctx is not stored, but it is not used by the delete operator any how
    ir->rhs = temp;
    return;
 }

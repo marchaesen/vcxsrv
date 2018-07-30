@@ -81,10 +81,6 @@ struct _mesa_glsl_parse_state {
                           void *mem_ctx);
 
    DECLARE_RZALLOC_CXX_OPERATORS(_mesa_glsl_parse_state);
-   static void operator delete(void *mem, void *ctx)
-   {
-      ralloc_free(mem);
-   }
 
    /**
     * Generate a string representing the GLSL version currently being compiled

@@ -4245,7 +4245,7 @@ get_variable_being_redeclared(ir_variable **var_ptr, YYLTYPE loc,
       }
 
       earlier->type = var->type;
-      delete var;
+      ir_variable::operator delete(var, state);
       var = NULL;
       *var_ptr = NULL;
    } else if ((state->ARB_fragment_coord_conventions_enable ||
@@ -8188,7 +8188,7 @@ ast_interface_block::hir(exec_list *instructions,
          earlier->data.how_declared = ir_var_declared_normally;
          earlier->type = var->type;
          earlier->reinit_interface_type(block_type);
-         delete var;
+         ir_variable::operator delete(var, state);
       } else {
          if (this->layout.flags.q.explicit_binding) {
             apply_explicit_binding(state, &loc, var, var->type,

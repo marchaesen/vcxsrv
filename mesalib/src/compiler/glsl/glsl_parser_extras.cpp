@@ -2156,7 +2156,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
       shader->FallbackSource = NULL;
    }
 
-   delete state->symbols;
+   glsl_symbol_table::operator delete(state->symbols, shader->ir);
    ralloc_free(state);
 }
 

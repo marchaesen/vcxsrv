@@ -5111,7 +5111,7 @@ done:
        * contain junk, there is no possible valid use.  Delete it and set the
        * pointer to NULL.
        */
-      delete prog->_LinkedShaders[i]->symbols;
+      glsl_symbol_table::operator delete(prog->_LinkedShaders[i]->symbols, prog->_LinkedShaders[i]);
       prog->_LinkedShaders[i]->symbols = NULL;
    }
 

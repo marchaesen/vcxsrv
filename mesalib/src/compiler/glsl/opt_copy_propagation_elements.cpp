@@ -360,7 +360,7 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_function_signature *ir)
 
    visit_list_elements(this, &ir->body);
 
-   delete this->state;
+   copy_propagation_state::operator delete(this->state, mem_ctx);
    this->state = orig_state;
 
    ralloc_free(this->kills);
@@ -556,7 +556,7 @@ ir_copy_propagation_elements_visitor::handle_if_block(exec_list *instructions, e
 
    visit_list_elements(this, instructions);
 
-   delete this->state;
+   copy_propagation_state::operator delete(this->state, mem_ctx);
    this->state = orig_state;
 
    *killed_all = this->killed_all;
@@ -610,7 +610,7 @@ ir_copy_propagation_elements_visitor::handle_loop(ir_loop *ir, bool keep_acp)
 
    visit_list_elements(this, &ir->body_instructions);
 
-   delete this->state;
+   copy_propagation_state::operator delete(this->state, mem_ctx);
    this->state = orig_state;
 
    if (this->killed_all)

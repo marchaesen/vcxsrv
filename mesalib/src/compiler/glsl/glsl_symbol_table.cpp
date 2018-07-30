@@ -28,10 +28,6 @@
 class symbol_table_entry {
 public:
    DECLARE_LINEAR_ALLOC_CXX_OPERATORS(symbol_table_entry);
-   static void operator delete(void *entry, void *ctx)
-   {
-      ralloc_free(entry);
-   }
 
    bool add_interface(const glsl_type *i, enum ir_variable_mode mode)
    {

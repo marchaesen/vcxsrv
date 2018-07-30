@@ -442,7 +442,7 @@ public:                                                                  \
       return p;                                                          \
    }                                                                     \
                                                                          \
-   static void operator delete(void *p)                                  \
+   static void operator delete(void *p, void *mem_ctx)                   \
    {                                                                     \
       /* The object's destructor is guaranteed to have already been      \
        * called by the delete operator at this point -- Make sure it's   \

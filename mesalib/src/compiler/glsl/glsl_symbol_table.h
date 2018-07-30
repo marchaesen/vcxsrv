@@ -41,11 +41,6 @@ struct glsl_type;
  */
 struct glsl_symbol_table {
    DECLARE_RALLOC_CXX_OPERATORS(glsl_symbol_table)
-   static void operator delete(void *table, void *ctx)
-   {
-      ralloc_set_destructor(table, NULL);
-      ralloc_free(table);
-   }
 
    glsl_symbol_table();
    ~glsl_symbol_table();
