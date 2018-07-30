@@ -58,6 +58,7 @@
 #endif
 #include	<errno.h>
 #ifdef WIN32
+#undef EWOULDBLOCK
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #undef EINTR
 #define EINTR WSAEINTR
