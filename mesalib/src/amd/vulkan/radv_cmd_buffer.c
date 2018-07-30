@@ -429,9 +429,13 @@ radv_cmd_buffer_upload_data(struct radv_cmd_buffer *cmd_buffer,
 }
 
 static void
-radv_emit_write_data_packet(struct radeon_cmdbuf *cs, uint64_t va,
+radv_emit_write_data_packet(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
 			    unsigned count, const uint32_t *data)
 {
+	struct radeon_cmdbuf *cs = cmd_buffer->cs;
+
+	radeon_check_space(cmd_buffer->device->ws, cs, 4 + count);
+
 	radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 2 + count, 0));
 	radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
 		    S_370_WR_CONFIRM(1) |
@@ -451,10 +455,12 @@ void radv_cmd_buffer_trace_emit(struct radv_cmd_buffer *cmd_buffer)
 	if (cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 		va += 4;
 
-	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 7);
-
 	++cmd_buffer->state.trace_id;
-	radv_emit_write_data_packet(cs, va, 1, &cmd_buffer->state.trace_id);
+	radv_emit_write_data_packet(cmd_buffer, va, 1,
+				    &cmd_buffer->state.trace_id);
+
+	radeon_check_space(cmd_buffer->device->ws, cs, 2);
+
 	radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 	radeon_emit(cs, AC_ENCODE_TRACE_POINT(cmd_buffer->state.trace_id));
 }
@@ -476,6 +482,8 @@ radv_cmd_buffer_after_draw(struct radv_cmd_buffer *cmd_buffer,
 			ptr = &cmd_buffer->gfx9_fence_idx;
 		}
 
+		radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 4);
+
 		/* Force wait for graphics or compute engines to be idle. */
 		si_cs_emit_cache_flush(cmd_buffer->cs,
 				       cmd_buffer->device->physical_device->rad_info.chip_class,
@@ -493,7 +501,6 @@ radv_save_pipeline(struct radv_cmd_buffer *cmd_buffer,
 		   struct radv_pipeline *pipeline, enum ring_type ring)
 {
 	struct radv_device *device = cmd_buffer->device;
-	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 	uint32_t data[2];
 	uint64_t va;
 
@@ -510,13 +517,10 @@ radv_save_pipeline(struct radv_cmd_buffer *cmd_buffer,
 		assert(!"invalid ring type");
 	}
 
-	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(device->ws,
-							   cmd_buffer->cs, 6);
-
 	data[0] = (uintptr_t)pipeline;
 	data[1] = (uintptr_t)pipeline >> 32;
 
-	radv_emit_write_data_packet(cs, va, 2, data);
+	radv_emit_write_data_packet(cmd_buffer, va, 2, data);
 }
 
 void radv_set_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
@@ -540,14 +544,10 @@ radv_save_descriptors(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_descriptor_state *descriptors_state =
 		radv_get_descriptors_state(cmd_buffer, bind_point);
 	struct radv_device *device = cmd_buffer->device;
-	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 	uint32_t data[MAX_SETS * 2] = {};
 	uint64_t va;
 	unsigned i;
 	va = radv_buffer_get_va(device->trace_bo) + 24;
-
-	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(device->ws,
-							   cmd_buffer->cs, 4 + MAX_SETS * 2);
 
 	for_each_bit(i, descriptors_state->valid) {
 		struct radv_descriptor_set *set = descriptors_state->sets[i];
@@ -555,7 +555,7 @@ radv_save_descriptors(struct radv_cmd_buffer *cmd_buffer,
 		data[i * 2 + 1] = (uintptr_t)set >> 32;
 	}
 
-	radv_emit_write_data_packet(cs, va, MAX_SETS * 2, data);
+	radv_emit_write_data_packet(cmd_buffer, va, MAX_SETS * 2, data);
 }
 
 struct radv_userdata_info *
@@ -1752,10 +1752,10 @@ radv_flush_descriptors(struct radv_cmd_buffer *cmd_buffer,
 	descriptors_state->dirty = 0;
 	descriptors_state->push_dirty = false;
 
+	assert(cmd_buffer->cs->cdw <= cdw_max);
+
 	if (unlikely(cmd_buffer->device->trace_bo))
 		radv_save_descriptors(cmd_buffer, bind_point);
-
-	assert(cmd_buffer->cs->cdw <= cdw_max);
 }
 
 static void
@@ -2019,8 +2019,23 @@ radv_dst_access_flush(struct radv_cmd_buffer *cmd_buffer,
                       VkAccessFlags dst_flags,
                       struct radv_image *image)
 {
+	bool flush_CB_meta = true, flush_DB_meta = true;
 	enum radv_cmd_flush_bits flush_bits = 0;
+	bool flush_CB = true, flush_DB = true;
 	uint32_t b;
+
+	if (image) {
+		if (!(image->usage & VK_IMAGE_USAGE_STORAGE_BIT)) {
+			flush_CB = false;
+			flush_DB = false;
+		}
+
+		if (!radv_image_has_CB_metadata(image))
+			flush_CB_meta = false;
+		if (!radv_image_has_htile(image))
+			flush_DB_meta = false;
+	}
+
 	for_each_bit(b, dst_flags) {
 		switch ((VkAccessFlagBits)(1 << b)) {
 		case VK_ACCESS_INDIRECT_COMMAND_READ_BIT:
@@ -2037,16 +2052,16 @@ radv_dst_access_flush(struct radv_cmd_buffer *cmd_buffer,
 			              RADV_CMD_FLAG_INV_GLOBAL_L2;
 			break;
 		case VK_ACCESS_COLOR_ATTACHMENT_READ_BIT:
-			/* TODO: change to image && when the image gets passed
-			 * through from the subpass. */
-			if (!image || (image->usage & VK_IMAGE_USAGE_STORAGE_BIT))
-				flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-				              RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+			if (flush_CB)
+				flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB;
+			if (flush_CB_meta)
+				flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 			break;
 		case VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT:
-			if (!image || (image->usage & VK_IMAGE_USAGE_STORAGE_BIT))
-				flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB |
-				              RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
+			if (flush_DB)
+				flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB;
+			if (flush_DB_meta)
+				flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
 			break;
 		default:
 			break;

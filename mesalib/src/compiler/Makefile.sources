@@ -129,7 +129,6 @@ LIBGLSL_FILES = \
 	glsl/opt_constant_folding.cpp \
 	glsl/opt_constant_propagation.cpp \
 	glsl/opt_constant_variable.cpp \
-	glsl/opt_copy_propagation.cpp \
 	glsl/opt_copy_propagation_elements.cpp \
 	glsl/opt_dead_builtin_variables.cpp \
 	glsl/opt_dead_builtin_varyings.cpp \

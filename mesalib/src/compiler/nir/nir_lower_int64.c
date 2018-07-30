@@ -279,6 +279,9 @@ lower_int64_impl(nir_function_impl *impl, nir_lower_int64_options options)
       }
    }
 
+   if (progress)
+      nir_metadata_preserve(impl, nir_metadata_none);
+
    return progress;
 }
 

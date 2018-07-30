@@ -180,7 +180,8 @@ _swrast_map_soft_renderbuffer(struct gl_context *ctx,
                               GLuint x, GLuint y, GLuint w, GLuint h,
                               GLbitfield mode,
                               GLubyte **out_map,
-                              GLint *out_stride)
+                              GLint *out_stride,
+                              bool flip_y)
 {
    struct swrast_renderbuffer *srb = swrast_renderbuffer(rb);
    GLubyte *map = srb->Buffer;
@@ -578,7 +579,8 @@ map_attachment(struct gl_context *ctx,
       ctx->Driver.MapRenderbuffer(ctx, rb,
                                   0, 0, rb->Width, rb->Height,
                                   GL_MAP_READ_BIT | GL_MAP_WRITE_BIT,
-                                  &srb->Map, &srb->RowStride);
+                                  &srb->Map, &srb->RowStride,
+                                  fb->FlipY);
    }
 
    assert(srb->Map);

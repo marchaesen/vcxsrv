@@ -6,7 +6,7 @@ This file is Copyrighted
 
     This file is covered under the following Copyright:
 
-	Copyright (C) 2001,2012 Ross P. Johnson
+	Copyright (C) 2001-2017 Ross P. Johnson
 	All rights reserved.
 
 	Everyone is permitted to copy and distribute verbatim copies
@@ -17,7 +17,7 @@ Pthreads-win32 is covered by the GNU Lesser General Public License
 
     Pthreads-win32 is open software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public License
-    as published by the Free Software Foundation version 2.1 of the
+    as published by the Free Software Foundation version 3 of the
     License.
 
     Pthreads-win32 is several binary link libraries, several modules,
@@ -34,7 +34,7 @@ Pthreads-win32 is covered by the GNU Lesser General Public License
 
 	    COPYING.FSF
 
-    You should have received a copy of the version 2.1 GNU Lesser General
+    You should have received a copy of the version 3 GNU Lesser General
     Public License with pthreads-win32; if not, write to:
 
 	    Free Software Foundation, Inc.
@@ -45,8 +45,7 @@ Pthreads-win32 is covered by the GNU Lesser General Public License
 
     The contact addresses for pthreads-win32 is as follows:
 
-        Homepage1: http://sourceware.org/pthreads-win32/
-        Homepage2: http://sourceforge.net/projects/pthreads4w/
+        Homepage: http://sourceforge.net/projects/pthreads4w/
         Email:  Ross Johnson
                 Please use: Firstname.Lastname@homemail.com.au
 
@@ -61,7 +60,7 @@ Pthreads-win32 copyrights and exception files
 
 	Pthreads-win32 - POSIX Threads Library for Win32
 	Copyright(C) 1998 John E. Bossom
-	Copyright(C) 1999,2006 Pthreads-win32 contributors
+	Copyright(C) 1999,2017 Pthreads-win32 contributors
 
 	The current list of contributors is contained
         in the file CONTRIBUTORS included with the source
@@ -75,22 +74,23 @@ Pthreads-win32 copyrights and exception files
     These files are not covered under one of the Copyrights listed above:
 
             COPYING
-	    COPYING.LIB
+	        COPYING.FSF
             tests/rwlock7.c
+            tests/rwlock8.c
             tests/threestage.c
 
     This file, COPYING, is distributed under the Copyright found at the
     top of this file.  It is important to note that you may distribute
     verbatim copies of this file but you may not modify this file.
 
-    The file COPYING.LIB, which contains a copy of the version 2.1
+    The file COPYING.FSF, which contains a copy of the version 3
     GNU Lesser General Public License, is itself copyrighted by the
     Free Software Foundation, Inc.  Please note that the Free Software
     Foundation, Inc. does NOT have a copyright over Pthreads-win32,
-    only the COPYING.LIB that is supplied with pthreads-win32.
+    only the COPYING.FSF that is supplied with pthreads-win32.
 
-    The file tests/rwlock7.c is derived from code written by
-    Dave Butenhof for his book 'Programming With POSIX(R) Threads'.
+    The file tests/rwlock7.c and tests/rwlock8.c are derived from code
+    written by Dave Butenhof for his book 'Programming With POSIX(R) Threads'.
     The original code was obtained by free download from his website
     http://home.earthlink.net/~anneart/family/Threads/source.html
     and did not contain a copyright or author notice. It is assumed to
@@ -99,7 +99,6 @@ Pthreads-win32 copyrights and exception files
     In all cases one may use and distribute these exception files freely.
     And because one may freely distribute the LGPL covered files, the
     entire pthreads-win32 source may be freely used and distributed.
-
 
 
 General Copyleft and License info
@@ -115,8 +114,8 @@ General Copyleft and License info
 	http://www.gnu.org/copyleft/lesser.txt
 
 
-Why pthreads-win32 did not use the GNU General Public License
--------------------------------------------------------------
+Why pthreads-win32 did not use the GNU Lesser General Public License
+--------------------------------------------------------------------
 
     The goal of the pthreads-win32 project has been to
     provide a quality and complete implementation of the POSIX

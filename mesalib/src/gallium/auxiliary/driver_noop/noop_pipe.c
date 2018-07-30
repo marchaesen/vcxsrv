@@ -307,6 +307,11 @@ static boolean noop_generate_mipmap(struct pipe_context *ctx,
    return true;
 }
 
+static void noop_invalidate_resource(struct pipe_context *ctx,
+                                     struct pipe_resource *resource)
+{
+}
+
 static struct pipe_context *noop_create_context(struct pipe_screen *screen,
                                                 void *priv, unsigned flags)
 {
@@ -345,6 +350,7 @@ static struct pipe_context *noop_create_context(struct pipe_screen *screen,
    ctx->transfer_unmap = noop_transfer_unmap;
    ctx->buffer_subdata = noop_buffer_subdata;
    ctx->texture_subdata = noop_texture_subdata;
+   ctx->invalidate_resource = noop_invalidate_resource;
    noop_init_state_functions(ctx);
 
    return ctx;

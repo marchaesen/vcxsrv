@@ -2051,7 +2051,7 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 	}
 
 	if (nir[MESA_SHADER_TESS_CTRL]) {
-		nir_lower_tes_patch_vertices(nir[MESA_SHADER_TESS_EVAL], nir[MESA_SHADER_TESS_CTRL]->info.tess.tcs_vertices_out);
+		nir_lower_patch_vertices(nir[MESA_SHADER_TESS_EVAL], nir[MESA_SHADER_TESS_CTRL]->info.tess.tcs_vertices_out, NULL);
 		merge_tess_info(&nir[MESA_SHADER_TESS_EVAL]->info, &nir[MESA_SHADER_TESS_CTRL]->info);
 	}
 

@@ -140,7 +140,6 @@
   <enum name="Decimate Mode" prefix="V3D_DECIMATE_MODE">
     <value name="sample 0" value="0"/>
     <value name="4x" value="1"/>
-    <value name="16x" value="2"/>
     <value name="all samples" value="3"/>
   </enum>
 
@@ -517,10 +516,6 @@
 
   <packet code="56" name="Primitive List Format">
     <field name="tri strip or fan" size="1" start="7" type="bool"/>
-    <field name="data type" size="1" start="6" type="uint">
-      <value name="List Indexed" value="0"/>
-      <value name="List 32-bit X/Y" value="1"/>
-    </field>
     <field name="primitive type" size="6" start="0" type="uint">
       <value name="List Points" value="0"/>
       <value name="List Lines" value="1"/>
@@ -585,7 +580,6 @@
   </packet>
 
   <packet code="84" name="Blend Config" max_ver="33">
-    <field name="VG Coverage Modes" size="2" start="28" type="uint"/>
     <field name="Colour blend dst factor" size="4" start="20" type="Blend Factor"/>
     <field name="Colour blend src factor" size="4" start="16" type="Blend Factor"/>
     <field name="Colour blend mode" size="4" start="12" type="Blend Mode"/>
@@ -595,7 +589,6 @@
   </packet>
 
   <packet code="84" name="Blend Config" min_ver="41">
-    <field name="VG Coverage Modes" size="2" start="28" type="uint"/>
     <field name="Render Target Mask" size="4" start="24" type="uint"/>
     <field name="Colour blend dst factor" size="4" start="20" type="Blend Factor"/>
     <field name="Colour blend src factor" size="4" start="16" type="Blend Factor"/>
@@ -644,8 +637,6 @@
     <field name="Z updates enable" size="1" start="15" type="bool"/>
     <field name="Depth-Test Function" size="3" start="12" type="Compare Function"/>
     <field name="Direct3D Wireframe triangles mode" size="1" start="11" type="bool"/>
-    <field name="Coverage Update Mode" size="2" start="9" type="uint"/>
-    <field name="Coverage Pipe Select" size="1" start="8" type="bool"/>
     <field name="Rasterizer Oversample Mode" size="2" start="6" type="uint"/>
     <field name="Line Rasterization" size="2" start="4" type="uint"/>
     <field name="Enable Depth Offset" size="1" start="3" type="bool"/>
@@ -804,7 +795,6 @@
       <value name="Early-Z direction GT/GE" value="1"/>
     </field>
 
-    <field name="Select Coverage Mode" size="1" start="44" type="bool"/>
     <field name="Double-buffer in non-ms mode" size="1" start="43" type="bool"/>
     <field name="Multisample Mode (4x)" size="1" start="42" type="bool"/>
 
@@ -834,7 +824,6 @@
       <value name="Early-Z direction GT/GE" value="1"/>
     </field>
 
-    <field name="Select Coverage Mode" size="1" start="44" type="bool"/>
     <field name="Double-buffer in non-ms mode" size="1" start="43" type="bool"/>
     <field name="Multisample Mode (4x)" size="1" start="42" type="bool"/>
 
@@ -915,7 +904,7 @@
 
     <field name="Z Clear Value" size="32" start="16" type="float"/>
 
-    <field name="Stencil/VG Mask Clear Value" size="8" start="8" type="uint"/>
+    <field name="Stencil Clear Value" size="8" start="8" type="uint"/>
     <field name="sub-id" size="4" start="0" type="uint" default="3"/>
   </packet>
 
@@ -924,7 +913,7 @@
 
     <field name="Z Clear Value" size="32" start="16" type="float"/>
 
-    <field name="Stencil/VG Mask Clear Value" size="8" start="8" type="uint"/>
+    <field name="Stencil Clear Value" size="8" start="8" type="uint"/>
     <field name="sub-id" size="4" start="0" type="uint" default="2"/>
   </packet>
 

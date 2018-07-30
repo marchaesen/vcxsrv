@@ -28,20 +28,29 @@
 #include <stdarg.h>
 #include "util/list.h"
 
+struct clif_bo {
+        const char *name;
+        uint32_t offset;
+        uint32_t size;
+        void *vaddr;
+};
+
 struct clif_dump {
         const struct v3d_device_info *devinfo;
-        bool (*lookup_vaddr)(void *data, uint32_t addr, void **vaddr);
         FILE *out;
-        /* Opaque data from the caller that is passed to the callbacks. */
-        void *data;
 
         struct v3d_spec *spec;
 
         /* List of struct reloc_worklist_entry */
         struct list_head worklist;
+
+        struct clif_bo *bo;
+        int bo_count;
+        int bo_array_size;
 };
 
 enum reloc_worklist_type {
+        reloc_cl,
         reloc_gl_shader_state,
         reloc_generic_tile_list,
 };
@@ -54,6 +63,9 @@ struct reloc_worklist_entry {
 
         union {
                 struct {
+                        uint32_t end;
+                } cl;
+                struct {
                         uint32_t num_attrs;
                 } shader_state;
                 struct {
@@ -61,6 +73,9 @@ struct reloc_worklist_entry {
                 } generic_tile_list;
         };
 };
+
+struct clif_bo *
+clif_lookup_bo(struct clif_dump *clif, uint32_t addr);
 
 struct reloc_worklist_entry *
 clif_dump_add_address_to_worklist(struct clif_dump *clif,

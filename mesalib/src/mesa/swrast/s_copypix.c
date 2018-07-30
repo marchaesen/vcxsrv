@@ -503,7 +503,7 @@ swrast_fast_copy_pixels(struct gl_context *ctx,
       ctx->Driver.MapRenderbuffer(ctx, srcRb, 0, 0,
                                   srcRb->Width, srcRb->Height,
                                   GL_MAP_READ_BIT | GL_MAP_WRITE_BIT,
-                                  &map, &rowStride);
+                                  &map, &rowStride, srcFb->FlipY);
       if (!map) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCopyPixels");
          return GL_TRUE; /* don't retry with slow path */
@@ -530,14 +530,16 @@ swrast_fast_copy_pixels(struct gl_context *ctx,
       /* different src/dst buffers */
       ctx->Driver.MapRenderbuffer(ctx, srcRb, srcX, srcY,
                                   width, height,
-                                  GL_MAP_READ_BIT, &srcMap, &srcRowStride);
+                                  GL_MAP_READ_BIT, &srcMap, &srcRowStride,
+                                  srcFb->FlipY);
       if (!srcMap) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCopyPixels");
          return GL_TRUE; /* don't retry with slow path */
       }
       ctx->Driver.MapRenderbuffer(ctx, dstRb, dstX, dstY,
                                   width, height,
-                                  GL_MAP_WRITE_BIT, &dstMap, &dstRowStride);
+                                  GL_MAP_WRITE_BIT, &dstMap, &dstRowStride,
+                                  dstFb->FlipY);
       if (!dstMap) {
          ctx->Driver.UnmapRenderbuffer(ctx, srcRb);
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCopyPixels");
@@ -598,7 +600,8 @@ map_readbuffer(struct gl_context *ctx, GLenum type)
    ctx->Driver.MapRenderbuffer(ctx, rb,
                                0, 0, rb->Width, rb->Height,
                                GL_MAP_READ_BIT,
-                               &srb->Map, &srb->RowStride);
+                               &srb->Map, &srb->RowStride,
+                               fb->FlipY);
 
    return rb;
 }

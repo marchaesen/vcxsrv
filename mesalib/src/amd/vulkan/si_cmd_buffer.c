@@ -972,7 +972,9 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	                                          RADV_CMD_FLAG_FLUSH_AND_INV_DB_META |
 	                                          RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
 	                                          RADV_CMD_FLAG_VS_PARTIAL_FLUSH |
-	                                          RADV_CMD_FLAG_VGT_FLUSH);
+	                                          RADV_CMD_FLAG_VGT_FLUSH |
+						  RADV_CMD_FLAG_START_PIPELINE_STATS |
+						  RADV_CMD_FLAG_STOP_PIPELINE_STATS);
 
 	if (!cmd_buffer->state.flush_bits)
 		return;

@@ -470,12 +470,16 @@ swrast_map_renderbuffer(struct gl_context *ctx,
 			GLuint x, GLuint y, GLuint w, GLuint h,
 			GLbitfield mode,
 			GLubyte **out_map,
-			GLint *out_stride)
+			GLint *out_stride,
+			bool flip_y)
 {
    struct dri_swrast_renderbuffer *xrb = dri_swrast_renderbuffer(rb);
    GLubyte *map = xrb->Base.Buffer;
    int cpp = _mesa_get_format_bytes(rb->Format);
    int stride = rb->Width * cpp;
+
+   /* driver does not support GL_FRAMEBUFFER_FLIP_Y_MESA */
+   assert((rb->Name == 0) == flip_y);
 
    if (rb->AllocStorage == swrast_alloc_front_storage) {
       __DRIdrawable *dPriv = xrb->dPriv;

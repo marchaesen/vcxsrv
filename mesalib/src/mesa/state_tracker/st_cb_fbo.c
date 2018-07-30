@@ -770,7 +770,8 @@ st_MapRenderbuffer(struct gl_context *ctx,
                    struct gl_renderbuffer *rb,
                    GLuint x, GLuint y, GLuint w, GLuint h,
                    GLbitfield mode,
-                   GLubyte **mapOut, GLint *rowStrideOut)
+                   GLubyte **mapOut, GLint *rowStrideOut,
+                   bool flip_y)
 {
    struct st_context *st = st_context(ctx);
    struct st_renderbuffer *strb = st_renderbuffer(rb);
@@ -778,6 +779,9 @@ st_MapRenderbuffer(struct gl_context *ctx,
    const GLboolean invert = rb->Name == 0;
    GLuint y2;
    GLubyte *map;
+
+   /* driver does not support GL_FRAMEBUFFER_FLIP_Y_MESA */
+   assert((rb->Name == 0) == flip_y);
 
    if (strb->software) {
       /* software-allocated renderbuffer (probably an accum buffer) */

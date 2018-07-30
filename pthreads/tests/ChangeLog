@@ -1,3 +1,8 @@
+2018-07-22  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* reinit1.c: MSVC with /MT flag needs to explicitly call
+	pthread_win32_thread_detach_np().
+
 2016-12-21  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* mutex6.c: fix random failures by using a polling loop to replace

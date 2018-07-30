@@ -59,7 +59,9 @@ STATIC_OBJS	= $(STATIC_OBJS) $(RESOURCE_OBJS)
 help:
 	@ echo Run one of the following command lines:
 	@ echo nmake clean all-tests
-	@ echo nmake -DEXHAUSTIVE clean all-tests 
+	@ echo nmake -DEXHAUSTIVE clean all-tests
+	@ echo nmake clean all-tests-md
+	@ echo nmake clean all-tests-mt
 	@ echo nmake clean VC
 	@ echo nmake clean VC-debug
 	@ echo nmake clean VC-static
@@ -90,6 +92,9 @@ all:
 TEST_ENV = CFLAGS="$(CFLAGS) /DNO_ERROR_DIALOGS"
 
 all-tests:
+	$(MAKE) all-tests-dll all-tests-static
+
+all-tests-dll:
 #	$(MAKE) /E realclean VC-small-static$(XDBG)
 #	cd tests && $(MAKE) /E clean VC-small-static$(XDBG) $(TEST_ENV) && $(MAKE) /E clean VCX-small-static$(XDBG) $(TEST_ENV)
 #	$(MAKE) /E realclean VCE-small-static$(XDBG)
@@ -102,6 +107,8 @@ all-tests:
 	cd tests && $(MAKE) /E clean VCE$(XDBG) $(TEST_ENV)
 	$(MAKE) /E realclean VSE$(XDBG)
 	cd tests && $(MAKE) /E clean VSE$(XDBG) $(TEST_ENV)
+
+all-tests-static:
 #!IF DEFINED(EXHAUSTIVE)
 	$(MAKE) /E realclean VC-static$(XDBG)
 	cd tests && $(MAKE) /E clean VC-static$(XDBG) $(TEST_ENV) && $(MAKE) /E clean VCX-static$(XDBG) $(TEST_ENV)
@@ -114,12 +121,22 @@ all-tests:
 	@ echo $@ completed successfully.
 
 all-tests-cflags:
+	$(MAKE) all-tests-md all-tests-mt
+	@ echo $@ completed successfully.
+
+all-tests-md:
 	@ -$(SETENV)
 	$(MAKE) all-tests XCFLAGS="/W3 /WX /MD /nologo"
-	$(MAKE) all-tests XCFLAGS="/W3 /WX /MT /nologo"
 !IF DEFINED(MORE_EXHAUSTIVE)
 	$(MAKE) all-tests XCFLAGS="/W3 /WX /MDd /nologo" XDBG="-debug"
-	$(MAKE) all-tests XCFLAGS="/W3 /WX /MTd /nologo" XDBG="-debug"
+!ENDIF
+	@ echo $@ completed successfully.
+
+all-tests-mt:
+	@ -$(SETENV)
+	$(MAKE) all-tests-static XCFLAGS="/W3 /WX /MT /nologo"
+!IF DEFINED(MORE_EXHAUSTIVE)
+	$(MAKE) all-tests-static XCFLAGS="/W3 /WX /MTd /nologo" XDBG="-debug"
 !ENDIF
 	@ echo $@ completed successfully.
 

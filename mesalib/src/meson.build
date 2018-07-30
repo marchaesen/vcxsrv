@@ -56,7 +56,7 @@ subdir('vulkan')
 if with_gallium_radeonsi or with_amd_vk
   subdir('amd')
 endif
-if with_gallium_vc4
+if with_gallium_vc4 or with_gallium_v3d
   subdir('broadcom')
 endif
 if with_dri_i965 or with_intel_vk

@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 #ifndef U_INLINES_H
@@ -70,8 +70,8 @@ pipe_is_referenced(struct pipe_reference *reference)
  * \return TRUE if the object's refcount hits zero and should be destroyed.
  */
 static inline boolean
-pipe_reference_described(struct pipe_reference *ptr, 
-                         struct pipe_reference *reference, 
+pipe_reference_described(struct pipe_reference *ptr,
+                         struct pipe_reference *reference,
                          debug_reference_descriptor get_desc)
 {
    boolean destroy = FALSE;
@@ -99,8 +99,9 @@ pipe_reference_described(struct pipe_reference *ptr,
 static inline boolean
 pipe_reference(struct pipe_reference *ptr, struct pipe_reference *reference)
 {
-   return pipe_reference_described(ptr, reference, 
-                                   (debug_reference_descriptor)debug_describe_reference);
+   return pipe_reference_described(ptr, reference,
+                                   (debug_reference_descriptor)
+                                   debug_describe_reference);
 }
 
 static inline void
@@ -108,8 +109,9 @@ pipe_surface_reference(struct pipe_surface **ptr, struct pipe_surface *surf)
 {
    struct pipe_surface *old_surf = *ptr;
 
-   if (pipe_reference_described(&(*ptr)->reference, &surf->reference, 
-                                (debug_reference_descriptor)debug_describe_surface))
+   if (pipe_reference_described(&(*ptr)->reference, &surf->reference,
+                                (debug_reference_descriptor)
+                                debug_describe_surface))
       old_surf->context->surface_destroy(old_surf->context, old_surf);
    *ptr = surf;
 }
@@ -124,7 +126,8 @@ static inline void
 pipe_surface_release(struct pipe_context *pipe, struct pipe_surface **ptr)
 {
    if (pipe_reference_described(&(*ptr)->reference, NULL,
-                                (debug_reference_descriptor)debug_describe_surface))
+                                (debug_reference_descriptor)
+                                debug_describe_surface))
       pipe->surface_destroy(pipe, *ptr);
    *ptr = NULL;
 }
@@ -135,8 +138,9 @@ pipe_resource_reference(struct pipe_resource **ptr, struct pipe_resource *tex)
 {
    struct pipe_resource *old_tex = *ptr;
 
-   if (pipe_reference_described(&(*ptr)->reference, &tex->reference, 
-                                (debug_reference_descriptor)debug_describe_resource)) {
+   if (pipe_reference_described(&(*ptr)->reference, &tex->reference,
+                                (debug_reference_descriptor)
+                                debug_describe_resource)) {
       /* Avoid recursion, which would prevent inlining this function */
       do {
          struct pipe_resource *next = old_tex->next;
@@ -144,7 +148,8 @@ pipe_resource_reference(struct pipe_resource **ptr, struct pipe_resource *tex)
          old_tex->screen->resource_destroy(old_tex->screen, old_tex);
          old_tex = next;
       } while (pipe_reference_described(&old_tex->reference, NULL,
-                                        (debug_reference_descriptor)debug_describe_resource));
+                                        (debug_reference_descriptor)
+                                        debug_describe_resource));
    }
    *ptr = tex;
 }
@@ -156,12 +161,14 @@ pipe_resource_reference(struct pipe_resource **ptr, struct pipe_resource *tex)
  * the same context (if they exist), and that this must be the current context.
  */
 static inline void
-pipe_sampler_view_reference(struct pipe_sampler_view **ptr, struct pipe_sampler_view *view)
+pipe_sampler_view_reference(struct pipe_sampler_view **ptr,
+                            struct pipe_sampler_view *view)
 {
    struct pipe_sampler_view *old_view = *ptr;
 
    if (pipe_reference_described(&(*ptr)->reference, &view->reference,
-                                (debug_reference_descriptor)debug_describe_sampler_view))
+                                (debug_reference_descriptor)
+                                debug_describe_sampler_view))
       old_view->context->sampler_view_destroy(old_view->context, old_view);
    *ptr = view;
 }
@@ -264,10 +271,10 @@ pipe_surface_equal(struct pipe_surface *s1, struct pipe_surface *s2)
  * \param usage  a PIPE_USAGE_x value
  */
 static inline struct pipe_resource *
-pipe_buffer_create( struct pipe_screen *screen,
-		    unsigned bind,
-		    enum pipe_resource_usage usage,
-		    unsigned size )
+pipe_buffer_create(struct pipe_screen *screen,
+                   unsigned bind,
+                   enum pipe_resource_usage usage,
+                   unsigned size)
 {
    struct pipe_resource buffer;
    memset(&buffer, 0, sizeof buffer);
@@ -307,18 +314,18 @@ pipe_buffer_create_const0(struct pipe_screen *screen,
 
 /**
  * Map a range of a resource.
- * \param offset  start of region, in bytes 
- * \param length  size of region, in bytes 
+ * \param offset  start of region, in bytes
+ * \param length  size of region, in bytes
  * \param access  bitmask of PIPE_TRANSFER_x flags
  * \param transfer  returns a transfer object
  */
 static inline void *
 pipe_buffer_map_range(struct pipe_context *pipe,
-		      struct pipe_resource *buffer,
-		      unsigned offset,
-		      unsigned length,
-		      unsigned access,
-		      struct pipe_transfer **transfer)
+                      struct pipe_resource *buffer,
+                      unsigned offset,
+                      unsigned length,
+                      unsigned access,
+                      struct pipe_transfer **transfer)
 {
    struct pipe_box box;
    void *map;
@@ -349,7 +356,8 @@ pipe_buffer_map(struct pipe_context *pipe,
                 unsigned access,
                 struct pipe_transfer **transfer)
 {
-   return pipe_buffer_map_range(pipe, buffer, 0, buffer->width0, access, transfer);
+   return pipe_buffer_map_range(pipe, buffer, 0, buffer->width0,
+                                access, transfer);
 }
 
 
@@ -443,10 +451,10 @@ pipe_buffer_read(struct pipe_context *pipe,
    ubyte *map;
 
    map = (ubyte *) pipe_buffer_map_range(pipe,
-					 buf,
-					 offset, size,
-					 PIPE_TRANSFER_READ,
-					 &src_transfer);
+                                         buf,
+                                         offset, size,
+                                         PIPE_TRANSFER_READ,
+                                         &src_transfer);
    if (!map)
       return;
 
@@ -501,10 +509,10 @@ pipe_transfer_map_3d(struct pipe_context *context,
 }
 
 static inline void
-pipe_transfer_unmap( struct pipe_context *context,
-                     struct pipe_transfer *transfer )
+pipe_transfer_unmap(struct pipe_context *context,
+                    struct pipe_transfer *transfer)
 {
-   context->transfer_unmap( context, transfer );
+   context->transfer_unmap(context, transfer);
 }
 
 static inline void

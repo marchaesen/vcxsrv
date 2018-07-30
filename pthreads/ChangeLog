@@ -1,3 +1,21 @@
+2018-07-22  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* Makefile (all-tests-md): New; run the /MD build and tests from
+	all-tests-cflags.
+	* Makefile (all-tests-mt): New; run the /MT build and tests from
+	all-tests-cflags.
+	* Makefile (all-tests-cflags): retain; require all-tests-md and
+	all-tests-mt.
+	
+2018-07-22  Mark Pizzolato <markpizzolato dash pthreads dash win32 at subscriptions dot pizzolato dot net>
+
+	* _ptw32.h (int64_t): change from #define to typedef.
+	* _ptw32.h (uint64_t): Likewise.
+
+2018-07-22  Carlo Bramini <carlo underscore bramini at users dot sourceforge dot net>
+
+	* context.h (ARM): Additional macros checked for ARM processors.
+
 2016-12-18  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* implement.h (PTW32_TEST_SNEAK_PEEK): Defined in tests/test.h

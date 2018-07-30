@@ -1446,6 +1446,9 @@ nir_ssa_def_components_read(const nir_ssa_def *def)
       }
    }
 
+   if (!list_empty(&def->if_uses))
+      read_mask |= 1;
+
    return read_mask;
 }
 

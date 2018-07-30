@@ -10,6 +10,30 @@ New bug fixes in all releases since 2.8.0 have NOT been applied to the
 Some changes from 2011-02-26 onward may not be compatible with
 pre Windows 2000 systems.
 
+License Change to LGPL v3
+-------------------------
+Pthreads-win32 version 2.11 and all future 2.x versions will be released
+under the Lesser GNU Public License version 3 (LGPLv3).
+
+Planned Release Under the Apache License v2
+-------------------------------------------
+The next major version of this software (version 3) will be released
+under the Apache License version 2.0 (ALv2). Releasing 2.11 under LGPLv3
+will allow modifications to version 3 of this software to be backported
+to version 2 going forward. Further to this, any GPL projects currently
+using this library will be able to continue to use either version 2 or 3
+of this code in their projects.
+
+For more information please see:
+https://www.apache.org/licenses/GPL-compatibility.html
+
+In order to remain consistent with this change, from this point on
+modifications to this library will only be accepted against version 3
+of this software under the terms of the ALv2. They will then, where
+appropriate, be backported to version 2.
+
+We hope to release version 3 at the same time as we release version 2.11.
+
 Testing and verification
 ------------------------
 This version has been tested on SMP architecture (Intel x64 Hex Core)

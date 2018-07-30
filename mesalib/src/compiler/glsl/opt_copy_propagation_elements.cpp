@@ -27,18 +27,9 @@
  * Replaces usage of recently-copied components of variables with the
  * previous copy of the variable.
  *
- * This pass can be compared with opt_copy_propagation, which operands
- * on arbitrary whole-variable copies.  However, in order to handle
- * the copy propagation of swizzled variables or writemasked writes,
- * we want to track things on a channel-wise basis.  I found that
- * trying to mix the swizzled/writemasked support here with the
- * whole-variable stuff in opt_copy_propagation.cpp just made a mess,
- * so this is separate despite the ACP handling being somewhat
- * similar.
- *
  * This should reduce the number of MOV instructions in the generated
- * programs unless copy propagation is also done on the LIR, and may
- * help anyway by triggering other optimizations that live in the HIR.
+ * programs and help triggering other optimizations that live in GLSL
+ * level.
  */
 
 #include "ir.h"
@@ -58,9 +49,22 @@ class acp_entry
 public:
    DECLARE_LINEAR_ZALLOC_CXX_OPERATORS(acp_entry)
 
+   /* If set, rhs_full indicates that this ACP entry represents a
+    * whole-variable copy.  The rhs_element[] array will still be filled,
+    * to allow the swizzling from its components in case the variable
+    * was a vector (and to simplify some of the erase() and write_vector()
+    * logic).
+    */
+
+   ir_variable *rhs_full;
    ir_variable *rhs_element[4];
    unsigned rhs_channel[4];
 
+   /* Set of variables that use the variable associated with this acp_entry as
+    * RHS.  This has the "reverse references" of rhs_full/rhs_element.  It is
+    * used to speed up invalidating those references when the acp_entry
+    * changes.
+    */
    set *dsts;
 };
 
@@ -91,6 +95,7 @@ public:
    void erase(ir_variable *var, unsigned write_mask)
    {
       acp_entry *entry = pull_acp(var);
+      entry->rhs_full = NULL;
 
       for (int i = 0; i < 4; i++) {
          if (!entry->rhs_element[i])
@@ -114,6 +119,8 @@ public:
             if (dst_entry->rhs_element[i] == var)
                dst_entry->rhs_element[i] = NULL;
          }
+         if (dst_entry->rhs_full == var)
+            dst_entry->rhs_full = NULL;
          _mesa_set_remove(entry->dsts, set_entry);
       }
    }
@@ -128,9 +135,10 @@ public:
       return NULL;
    }
 
-   void write(ir_variable *lhs, ir_variable *rhs, unsigned write_mask, int swizzle[4])
+   void write_elements(ir_variable *lhs, ir_variable *rhs, unsigned write_mask, int swizzle[4])
    {
       acp_entry *lhs_entry = pull_acp(lhs);
+      lhs_entry->rhs_full = NULL;
 
       for (int i = 0; i < 4; i++) {
          if ((write_mask & (1 << i)) == 0)
@@ -144,6 +152,33 @@ public:
 
       acp_entry *rhs_entry = pull_acp(rhs);
       _mesa_set_add(rhs_entry->dsts, lhs);
+   }
+
+   void write_full(ir_variable *lhs, ir_variable *rhs)
+   {
+      acp_entry *lhs_entry = pull_acp(lhs);
+      if (lhs_entry->rhs_full == rhs)
+         return;
+
+      if (lhs_entry->rhs_full) {
+         remove_from_dsts(lhs_entry->rhs_full, lhs);
+      } else if (lhs->type->is_vector()) {
+         for (int i = 0; i < 4; i++) {
+            if (lhs_entry->rhs_element[i])
+               remove_from_dsts(lhs_entry->rhs_element[i], lhs);
+         }
+      }
+
+      lhs_entry->rhs_full = rhs;
+      acp_entry *rhs_entry = pull_acp(rhs);
+      _mesa_set_add(rhs_entry->dsts, lhs);
+
+      if (lhs->type->is_vector()) {
+         for (int i = 0; i < 4; i++) {
+            lhs_entry->rhs_element[i] = rhs;
+            lhs_entry->rhs_channel[i] = i;
+         }
+      }
    }
 
    void remove_unused_var_from_dsts(acp_entry *lhs_entry, ir_variable *lhs, ir_variable *var)
@@ -204,6 +239,14 @@ private:
       return entry;
    }
 
+   void
+   remove_from_dsts(ir_variable *var, ir_variable *to_remove)
+   {
+      acp_entry *entry = pull_acp(var);
+      assert(entry);
+      _mesa_set_remove_key(entry->dsts, to_remove);
+   }
+
    /** Available Copy to Propagate table, from variable to the entry
     *  containing the current sources that can be used. */
    hash_table *acp;
@@ -247,6 +290,8 @@ public:
       ralloc_free(mem_ctx);
    }
 
+   virtual ir_visitor_status visit(ir_dereference_variable *);
+
    void handle_loop(ir_loop *, bool keep_acp);
    virtual ir_visitor_status visit_enter(class ir_loop *);
    virtual ir_visitor_status visit_enter(class ir_function_signature *);
@@ -283,6 +328,21 @@ public:
 } /* unnamed namespace */
 
 ir_visitor_status
+ir_copy_propagation_elements_visitor::visit(ir_dereference_variable *ir)
+{
+   if (this->in_assignee)
+      return visit_continue;
+
+   const acp_entry *entry = state->read(ir->var);
+   if (entry && entry->rhs_full) {
+      ir->var = (ir_variable *) entry->rhs_full;
+      progress = true;
+   }
+
+   return visit_continue;
+}
+
+ir_visitor_status
 ir_copy_propagation_elements_visitor::visit_enter(ir_function_signature *ir)
 {
    /* Treat entry into a function signature as a completely separate
@@ -316,16 +376,14 @@ ir_copy_propagation_elements_visitor::visit_leave(ir_assignment *ir)
    ir_dereference_variable *lhs = ir->lhs->as_dereference_variable();
    ir_variable *var = ir->lhs->variable_referenced();
 
-   if (var->type->is_scalar() || var->type->is_vector()) {
-      kill_entry *k;
+   kill_entry *k;
 
-      if (lhs)
-	 k = new(this->lin_ctx) kill_entry(var, ir->write_mask);
-      else
-	 k = new(this->lin_ctx) kill_entry(var, ~0);
+   if (lhs && var->type->is_vector())
+      k = new(this->lin_ctx) kill_entry(var, ir->write_mask);
+   else
+      k = new(this->lin_ctx) kill_entry(var, ~0);
 
-      kill(k);
-   }
+   kill(k);
 
    add_copy(ir);
 
@@ -460,11 +518,25 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_call *ir)
       }
    }
 
-   /* Since we're unlinked, we don't (necessarily) know the side effects of
-    * this call.  So kill all copies.
-    */
-   this->state->erase_all();
-   this->killed_all = true;
+   if (!ir->callee->is_intrinsic()) {
+      state->erase_all();
+      this->killed_all = true;
+   } else {
+      if (ir->return_deref) {
+         kill(new(this->lin_ctx) kill_entry(ir->return_deref->var, ~0));
+      }
+
+      foreach_two_lists(formal_node, &ir->callee->parameters,
+                        actual_node, &ir->actual_parameters) {
+         ir_variable *sig_param = (ir_variable *) formal_node;
+         if (sig_param->data.mode == ir_var_function_out ||
+             sig_param->data.mode == ir_var_function_inout) {
+            ir_rvalue *ir = (ir_rvalue *) actual_node;
+            ir_variable *var = ir->variable_referenced();
+            kill(new(this->lin_ctx) kill_entry(var, ~0));
+         }
+      }
+   }
 
    return visit_continue_with_parent;
 }
@@ -585,11 +657,28 @@ ir_copy_propagation_elements_visitor::kill(kill_entry *k)
 void
 ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
 {
-   int orig_swizzle[4] = {0, 1, 2, 3};
-   int swizzle[4];
-
    if (ir->condition)
       return;
+
+   {
+      ir_variable *lhs_var = ir->whole_variable_written();
+      ir_dereference_variable *rhs = ir->rhs->as_dereference_variable();
+
+      if (lhs_var != NULL && rhs && rhs->var != NULL && lhs_var != rhs->var) {
+         if (lhs_var->data.mode == ir_var_shader_storage ||
+             lhs_var->data.mode == ir_var_shader_shared ||
+             rhs->var->data.mode == ir_var_shader_storage ||
+             rhs->var->data.mode == ir_var_shader_shared ||
+             lhs_var->data.precise != rhs->var->data.precise) {
+            return;
+         }
+         state->write_full(lhs_var, rhs->var);
+         return;
+      }
+   }
+
+   int orig_swizzle[4] = {0, 1, 2, 3};
+   int swizzle[4];
 
    ir_dereference_variable *lhs = ir->lhs->as_dereference_variable();
    if (!lhs || !(lhs->type->is_scalar() || lhs->type->is_vector()))
@@ -645,7 +734,7 @@ ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
    if (lhs->var->data.precise != rhs->var->data.precise)
       return;
 
-   state->write(lhs->var, rhs->var, write_mask, swizzle);
+   state->write_elements(lhs->var, rhs->var, write_mask, swizzle);
 }
 
 bool

@@ -51,16 +51,12 @@ clif_dump_add_address_to_worklist(struct clif_dump *clif,
 
 struct clif_dump *
 clif_dump_init(const struct v3d_device_info *devinfo,
-               FILE *out,
-               bool (*lookup_vaddr)(void *data, uint32_t addr, void **vaddr),
-               void *data)
+               FILE *out)
 {
         struct clif_dump *clif = rzalloc(NULL, struct clif_dump);
 
         clif->devinfo = devinfo;
-        clif->lookup_vaddr = lookup_vaddr;
         clif->out = out;
-        clif->data = data;
         clif->spec = v3d_spec_load(devinfo);
 
         list_inithead(&clif->worklist);
@@ -72,6 +68,32 @@ void
 clif_dump_destroy(struct clif_dump *clif)
 {
         ralloc_free(clif);
+}
+
+struct clif_bo *
+clif_lookup_bo(struct clif_dump *clif, uint32_t addr)
+{
+        for (int i = 0; i < clif->bo_count; i++) {
+                struct clif_bo *bo = &clif->bo[i];
+
+                if (addr >= bo->offset &&
+                    addr < bo->offset + bo->size) {
+                        return bo;
+                }
+        }
+
+        return NULL;
+}
+
+static bool
+clif_lookup_vaddr(struct clif_dump *clif, uint32_t addr, void **vaddr)
+{
+        struct clif_bo *bo = clif_lookup_bo(clif, addr);
+        if (!bo)
+                return false;
+
+        *vaddr = bo->vaddr + addr - bo->offset;
+        return true;
 }
 
 #define out_uint(_clif, field) out(_clif, "    /* %s = */ %u\n",        \
@@ -91,7 +113,7 @@ static void
 clif_dump_cl(struct clif_dump *clif, uint32_t start, uint32_t end)
 {
         void *start_vaddr;
-        if (!clif->lookup_vaddr(clif->data, start, &start_vaddr)) {
+        if (!clif_lookup_vaddr(clif, start, &start_vaddr)) {
                 out(clif, "Failed to look up address 0x%08x\n",
                     start);
                 return;
@@ -101,11 +123,13 @@ clif_dump_cl(struct clif_dump *clif, uint32_t start, uint32_t end)
          * won't set an end), but is used for BCL/RCL termination.
          */
         void *end_vaddr = NULL;
-        if (end && !clif->lookup_vaddr(clif->data, end, &end_vaddr)) {
+        if (end && !clif_lookup_vaddr(clif, end, &end_vaddr)) {
                 out(clif, "Failed to look up address 0x%08x\n",
                     end);
                 return;
         }
+
+        out(clif, "@format ctrllist\n");
 
         uint32_t size;
         uint8_t *cl = start_vaddr;
@@ -130,13 +154,13 @@ clif_dump_gl_shader_state_record(struct clif_dump *clif,
         assert(state);
         assert(attr);
 
-        out(clif, "GL Shader State Record at 0x%08x\n", reloc->addr);
-        v3d_print_group(clif->out, state, 0, vaddr, "");
+        out(clif, "@format shadrec_gl_main\n");
+        v3d_print_group(clif, state, 0, vaddr);
         vaddr += v3d_group_get_length(state);
 
         for (int i = 0; i < reloc->shader_state.num_attrs; i++) {
-                out(clif, "  Attribute %d\n", i);
-                v3d_print_group(clif->out, attr, 0, vaddr, "");
+                out(clif, "@format shadrec_gl_attr /* %d */\n", i);
+                v3d_print_group(clif, attr, 0, vaddr);
                 vaddr += v3d_group_get_length(attr);
         }
 }
@@ -151,13 +175,18 @@ clif_process_worklist(struct clif_dump *clif)
                 list_del(&reloc->link);
 
                 void *vaddr;
-                if (!clif->lookup_vaddr(clif->data, reloc->addr, &vaddr)) {
+                if (!clif_lookup_vaddr(clif, reloc->addr, &vaddr)) {
                         out(clif, "Failed to look up address 0x%08x\n",
                             reloc->addr);
                         continue;
                 }
 
                 switch (reloc->type) {
+                case reloc_cl:
+                        clif_dump_cl(clif, reloc->addr, reloc->cl.end);
+                        out(clif, "\n");
+                        break;
+
                 case reloc_gl_shader_state:
                         clif_dump_gl_shader_state_record(clif,
                                                          reloc,
@@ -172,11 +201,33 @@ clif_process_worklist(struct clif_dump *clif)
         }
 }
 
+void clif_dump(struct clif_dump *clif)
+{
+        clif_process_worklist(clif);
+}
+
 void
 clif_dump_add_cl(struct clif_dump *clif, uint32_t start, uint32_t end)
 {
-        clif_dump_cl(clif, start, end);
-        out(clif, "\n");
+        struct reloc_worklist_entry *entry =
+                clif_dump_add_address_to_worklist(clif, reloc_cl, start);
 
-        clif_process_worklist(clif);
+        entry->cl.end = end;
+}
+
+void
+clif_dump_add_bo(struct clif_dump *clif, const char *name,
+                 uint32_t offset, uint32_t size, void *vaddr)
+{
+        if (clif->bo_count >= clif->bo_array_size) {
+                clif->bo_array_size = MAX2(4, clif->bo_array_size * 2);
+                clif->bo = reralloc(clif, clif->bo, struct clif_bo,
+                                    clif->bo_array_size);
+        }
+
+        clif->bo[clif->bo_count].name = ralloc_strdup(clif, name);
+        clif->bo[clif->bo_count].offset = offset;
+        clif->bo[clif->bo_count].size = size;
+        clif->bo[clif->bo_count].vaddr = vaddr;
+        clif->bo_count++;
 }

@@ -13,6 +13,7 @@ AM_CFLAGS = \
 	$(MSVC2013_COMPAT_CFLAGS)
 
 AM_CXXFLAGS = \
+	$(GALLIUM_CFLAGS) \
 	$(VISIBILITY_CXXFLAGS) \
 	$(MSVC2013_COMPAT_CXXFLAGS)
 
@@ -22,6 +23,10 @@ libgallium_la_SOURCES = \
 	$(GENERATED_SOURCES)
 
 if HAVE_PLATFORM_ANDROID
+# Android's libbacktrace headers required C++11, but the Android toolchain (at
+# least in the Chrome OS SDK) does not enable C++11 by default.
+AM_CXXFLAGS += $(CXX11_CXXFLAGS)
+
 libgallium_la_SOURCES += util/u_debug_stack_android.cpp
 endif
 
@@ -41,7 +46,6 @@ AM_CFLAGS += \
 	$(LLVM_CFLAGS)
 
 AM_CXXFLAGS += \
-	$(GALLIUM_CFLAGS) \
 	$(LLVM_CXXFLAGS)
 
 libgallium_la_SOURCES += \

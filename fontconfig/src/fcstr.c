@@ -953,7 +953,7 @@ FcStrCopyFilename (const FcChar8 *s)
 	if (!home)
 	    return NULL;
 	size = strlen ((char *) home) + strlen ((char *) s);
-	full = (FcChar8 *) malloc (size);
+	full = (FcChar8 *) malloc (size + 1);
 	if (!full)
 	    return NULL;
 	strcpy ((char *) full, (char *) home);

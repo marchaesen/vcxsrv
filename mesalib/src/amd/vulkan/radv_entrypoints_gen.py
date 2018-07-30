@@ -413,9 +413,6 @@ def get_entrypoints(doc, entrypoints_to_defines, start_index):
         if ext_name not in supported_exts:
             continue
 
-        if extension.attrib['supported'] != 'vulkan':
-            continue
-
         ext = supported_exts[ext_name]
         ext.type = extension.attrib['type']
 

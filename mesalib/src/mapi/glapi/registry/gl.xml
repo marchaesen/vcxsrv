@@ -6568,6 +6568,7 @@ typedef unsigned int GLhandleARB;
         <enum value="0x8BB5" name="GL_VERTEX_PROGRAM_CALLBACK_MESA"/>
         <enum value="0x8BB6" name="GL_VERTEX_PROGRAM_CALLBACK_FUNC_MESA"/>
         <enum value="0x8BB7" name="GL_VERTEX_PROGRAM_CALLBACK_DATA_MESA"/>
+        <enum value="0x8BBB" name="GL_FRAMEBUFFER_FLIP_Y_MESA"/>
     </enums>
 
     <enums namespace="GL" start="0x8BC0" end="0x8BFF" vendor="QCOM" comment="Reassigned from AMD to QCOM">
@@ -44354,6 +44355,11 @@ typedef unsigned int GLhandleARB;
                 <enum name="GL_PROXY_TEXTURE_2D_STACK_MESAX"/>
                 <enum name="GL_TEXTURE_1D_STACK_BINDING_MESAX"/>
                 <enum name="GL_TEXTURE_2D_STACK_BINDING_MESAX"/>
+            </require>
+        </extension>
+        <extension name="GL_MESA_framebuffer_flip_y" supported="gles2">
+            <require>
+                <enum name="GL_FRAMEBUFFER_FLIP_Y_MESA"/>
             </require>
         </extension>
         <extension name="GL_MESA_pack_invert" supported="gl">

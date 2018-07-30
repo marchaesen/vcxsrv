@@ -43,7 +43,8 @@ _swrast_map_soft_renderbuffer(struct gl_context *ctx,
                               GLuint x, GLuint y, GLuint w, GLuint h,
                               GLbitfield mode,
                               GLubyte **out_map,
-                              GLint *out_stride);
+                              GLint *out_stride,
+                              bool flip_y);
 
 extern void
 _swrast_unmap_soft_renderbuffer(struct gl_context *ctx,

@@ -617,6 +617,9 @@ _mesa_compute_version(struct gl_context *ctx)
     */
    if (_mesa_is_desktop_gl(ctx)) {
       switch (ctx->Version) {
+      case 21:
+         ctx->Const.GLSLVersion = 120;
+         break;
       case 30:
          ctx->Const.GLSLVersion = 130;
          break;

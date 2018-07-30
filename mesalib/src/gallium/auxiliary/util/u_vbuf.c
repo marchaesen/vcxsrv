@@ -1022,13 +1022,84 @@ static boolean u_vbuf_mapping_vertex_buffer_blocks(const struct u_vbuf *mgr)
             mgr->nonzero_stride_vb_mask)) != 0;
 }
 
-static void u_vbuf_get_minmax_index(struct pipe_context *pipe,
-                                    const struct pipe_draw_info *info,
-                                    int *out_min_index, int *out_max_index)
+static void
+u_vbuf_get_minmax_index_mapped(const struct pipe_draw_info *info,
+                               const void *indices, unsigned *out_min_index,
+                               unsigned *out_max_index)
+{
+   unsigned max = 0;
+   unsigned min = ~0u;
+
+   switch (info->index_size) {
+   case 4: {
+      const unsigned *ui_indices = (const unsigned*)indices;
+      if (info->primitive_restart) {
+         for (unsigned i = 0; i < info->count; i++) {
+            if (ui_indices[i] != info->restart_index) {
+               if (ui_indices[i] > max) max = ui_indices[i];
+               if (ui_indices[i] < min) min = ui_indices[i];
+            }
+         }
+      }
+      else {
+         for (unsigned i = 0; i < info->count; i++) {
+            if (ui_indices[i] > max) max = ui_indices[i];
+            if (ui_indices[i] < min) min = ui_indices[i];
+         }
+      }
+      break;
+   }
+   case 2: {
+      const unsigned short *us_indices = (const unsigned short*)indices;
+      if (info->primitive_restart) {
+         for (unsigned i = 0; i < info->count; i++) {
+            if (us_indices[i] != info->restart_index) {
+               if (us_indices[i] > max) max = us_indices[i];
+               if (us_indices[i] < min) min = us_indices[i];
+            }
+         }
+      }
+      else {
+         for (unsigned i = 0; i < info->count; i++) {
+            if (us_indices[i] > max) max = us_indices[i];
+            if (us_indices[i] < min) min = us_indices[i];
+         }
+      }
+      break;
+   }
+   case 1: {
+      const unsigned char *ub_indices = (const unsigned char*)indices;
+      if (info->primitive_restart) {
+         for (unsigned i = 0; i < info->count; i++) {
+            if (ub_indices[i] != info->restart_index) {
+               if (ub_indices[i] > max) max = ub_indices[i];
+               if (ub_indices[i] < min) min = ub_indices[i];
+            }
+         }
+      }
+      else {
+         for (unsigned i = 0; i < info->count; i++) {
+            if (ub_indices[i] > max) max = ub_indices[i];
+            if (ub_indices[i] < min) min = ub_indices[i];
+         }
+      }
+      break;
+   }
+   default:
+      assert(0);
+   }
+
+   *out_min_index = min;
+   *out_max_index = max;
+}
+
+static void
+u_vbuf_get_minmax_index(struct pipe_context *pipe,
+                        const struct pipe_draw_info *info,
+                        unsigned *out_min_index, unsigned *out_max_index)
 {
    struct pipe_transfer *transfer = NULL;
    const void *indices;
-   unsigned i;
 
    if (info->has_user_indices) {
       indices = (uint8_t*)info->index.user +
@@ -1040,78 +1111,7 @@ static void u_vbuf_get_minmax_index(struct pipe_context *pipe,
                                       PIPE_TRANSFER_READ, &transfer);
    }
 
-   switch (info->index_size) {
-   case 4: {
-      const unsigned *ui_indices = (const unsigned*)indices;
-      unsigned max_ui = 0;
-      unsigned min_ui = ~0U;
-      if (info->primitive_restart) {
-         for (i = 0; i < info->count; i++) {
-            if (ui_indices[i] != info->restart_index) {
-               if (ui_indices[i] > max_ui) max_ui = ui_indices[i];
-               if (ui_indices[i] < min_ui) min_ui = ui_indices[i];
-            }
-         }
-      }
-      else {
-         for (i = 0; i < info->count; i++) {
-            if (ui_indices[i] > max_ui) max_ui = ui_indices[i];
-            if (ui_indices[i] < min_ui) min_ui = ui_indices[i];
-         }
-      }
-      *out_min_index = min_ui;
-      *out_max_index = max_ui;
-      break;
-   }
-   case 2: {
-      const unsigned short *us_indices = (const unsigned short*)indices;
-      unsigned max_us = 0;
-      unsigned min_us = ~0U;
-      if (info->primitive_restart) {
-         for (i = 0; i < info->count; i++) {
-            if (us_indices[i] != info->restart_index) {
-               if (us_indices[i] > max_us) max_us = us_indices[i];
-               if (us_indices[i] < min_us) min_us = us_indices[i];
-            }
-         }
-      }
-      else {
-         for (i = 0; i < info->count; i++) {
-            if (us_indices[i] > max_us) max_us = us_indices[i];
-            if (us_indices[i] < min_us) min_us = us_indices[i];
-         }
-      }
-      *out_min_index = min_us;
-      *out_max_index = max_us;
-      break;
-   }
-   case 1: {
-      const unsigned char *ub_indices = (const unsigned char*)indices;
-      unsigned max_ub = 0;
-      unsigned min_ub = ~0U;
-      if (info->primitive_restart) {
-         for (i = 0; i < info->count; i++) {
-            if (ub_indices[i] != info->restart_index) {
-               if (ub_indices[i] > max_ub) max_ub = ub_indices[i];
-               if (ub_indices[i] < min_ub) min_ub = ub_indices[i];
-            }
-         }
-      }
-      else {
-         for (i = 0; i < info->count; i++) {
-            if (ub_indices[i] > max_ub) max_ub = ub_indices[i];
-            if (ub_indices[i] < min_ub) min_ub = ub_indices[i];
-         }
-      }
-      *out_min_index = min_ub;
-      *out_max_index = max_ub;
-      break;
-   }
-   default:
-      assert(0);
-      *out_min_index = 0;
-      *out_max_index = 0;
-   }
+   u_vbuf_get_minmax_index_mapped(info, indices, out_min_index, out_max_index);
 
    if (transfer) {
       pipe_buffer_unmap(pipe, transfer);
@@ -1134,7 +1134,8 @@ static void u_vbuf_set_driver_vertex_buffers(struct u_vbuf *mgr)
 void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
 {
    struct pipe_context *pipe = mgr->pipe;
-   int start_vertex, min_index;
+   int start_vertex;
+   unsigned min_index;
    unsigned num_vertices;
    boolean unroll_indices = FALSE;
    const uint32_t used_vb_mask = mgr->ve->used_vb_mask;
@@ -1191,7 +1192,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
    if (new_info.index_size) {
       /* See if anything needs to be done for per-vertex attribs. */
       if (u_vbuf_need_minmax_index(mgr)) {
-         int max_index;
+         unsigned max_index;
 
          if (new_info.max_index != ~0u) {
             min_index = new_info.min_index;
