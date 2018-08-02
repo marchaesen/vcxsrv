@@ -76,7 +76,7 @@ util_gen_mipmap(struct pipe_context *pipe, struct pipe_resource *pt,
       return TRUE;
 
    if (!screen->is_format_supported(screen, format, pt->target,
-                                    pt->nr_samples,
+                                    pt->nr_samples, pt->nr_storage_samples,
                                     PIPE_BIND_SAMPLER_VIEW |
                                     (is_zs ? PIPE_BIND_DEPTH_STENCIL :
                                      PIPE_BIND_RENDER_TARGET))) {

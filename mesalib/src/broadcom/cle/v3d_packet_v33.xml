@@ -92,7 +92,7 @@
     <value name="ANISOTROPIC_16_1" value="15"/>
   </enum>
 
-  <enum name="Border Colour Mode" prefix="V3D_BORDER_COLOUR" min_ver="41">
+  <enum name="Border Color Mode" prefix="V3D_BORDER_COLOR" min_ver="41">
     <value name="0000" value="0"/>
     <value name="0001" value="1"/>
     <value name="1111" value="2"/>
@@ -245,19 +245,19 @@
   <packet code="4" name="Flush"/>
   <packet code="5" name="Flush All State"/>
   <packet code="6" name="Start Tile Binning"/>
-  <packet code="7" name="Increment Semaphore"/>
-  <packet code="8" name="Wait on Semaphore"/>
-  <packet code="9" name="Wait for previous frame"/>
-  <packet code="10" name="Enable Z-only rendering" cl="R"/>
-  <packet code="11" name="Disable Z-only rendering" cl="R"/>
-  <packet code="12" name="End of Z-only rendering in frame"/>
-  <packet code="13" name="End of rendering"/>
+  <packet code="7" shortname="incr_semaphore" name="Increment Semaphore"/>
+  <packet code="8" shortname="wait_semaphore" name="Wait on Semaphore"/>
+  <packet code="9" shortname="wait_prev_frame" name="Wait for previous frame"/>
+  <packet code="10" shortname="enable_z_only" name="Enable Z-only rendering" cl="R"/>
+  <packet code="11" shortname="disable_z_only" name="Disable Z-only rendering" cl="R"/>
+  <packet code="12" shortname="end_z_only" name="End of Z-only rendering in frame"/>
+  <packet code="13" shortname="end_render" name="End of rendering"/>
 
-  <packet code="14" name="Wait for transform feedback" cl="B">
+  <packet code="14" shortname="wait_transform_feedback" name="Wait for transform feedback" cl="B">
     <field name="Block count" size="8" start="0" type="uint"/>
   </packet>
 
-  <packet code="15" name="Branch to auto-chained sub-list">
+  <packet code="15" shortname="branch_sub_autochain" name="Branch to auto-chained sub-list">
     <field name="address" size="32" start="0" type="address"/>
   </packet>
 
@@ -265,69 +265,69 @@
     <field name="address" size="32" start="0" type="address"/>
   </packet>
 
-  <packet code="17" name="Branch to Sub-list">
+  <packet code="17" shortname="branch_sub" name="Branch to Sub-list">
     <field name="address" size="32" start="0" type="address"/>
   </packet>
 
-  <packet code="18" name="Return from sub-list"/>
-  <packet code="19" name="Flush VCD cache"/>
+  <packet code="18" shortname="return" name="Return from sub-list"/>
+  <packet code="19" shortname="clear_vcd_cache" name="Flush VCD cache"/>
 
-  <packet code="20" name="Start Address of Generic Tile List">
+  <packet code="20" shortname="generic_tile_list" name="Start Address of Generic Tile List">
     <field name="start" size="32" start="0" type="address"/>
     <field name="end" size="32" start="32" type="address"/>
   </packet>
 
-  <packet code="21" name="Branch to Implicit Tile List">
+  <packet code="21" shortname="branch_implicit_tile" name="Branch to Implicit Tile List">
     <field name="tile list set number" size="8" start="0" type="uint"/>
   </packet>
 
-  <packet code="22" name="Branch to Explicit Supertile">
+  <packet code="22" shortname="branch_explicit_supertile" name="Branch to Explicit Supertile">
     <field name="Absolute address of explicit supertile render list" size="32" start="24" type="address"/>
     <field name="explicit supertile number" size="8" start="16" type="uint"/>
     <field name="row number" size="8" start="8" type="uint"/>
     <field name="column number" size="8" start="0" type="uint"/>
   </packet>
 
-  <packet code="23" name="Supertile Coordinates">
+  <packet code="23" shortname="supertile_coords" name="Supertile Coordinates">
     <field name="row number in supertiles" size="8" start="8" type="uint"/>
     <field name="column number in supertiles" size="8" start="0" type="uint"/>
   </packet>
 
-  <packet code="24" name="Store Multi-Sample Resolved Tile Color Buffer" cl="R" max_ver="33"/>
+  <packet code="24" shortname="store_subsample" name="Store Multi-Sample Resolved Tile Color Buffer" cl="R" max_ver="33"/>
 
-  <packet code="25" name="Store Multi-Sample Resolved Tile Color Buffer (extended)" cl="R" max_ver="33">
+  <packet code="25" shortname="store_subsample_ex" name="Store Multi-Sample Resolved Tile Color Buffer (extended)" cl="R" max_ver="33">
     <field name="Disable Color Buffer write" size="8" start="8" type="uint"/>
     <field name="Enable Z write" size="1" start="7" type="bool"/>
     <field name="Enable Stencil write" size="1" start="6" type="bool"/>
     <!-- bit 5 unused -->
-    <field name="Disable Colour buffer(s) clear on write" size="1" start="4" type="bool"/>
+    <field name="Disable Color buffer(s) clear on write" size="1" start="4" type="bool"/>
     <field name="Disable Stencil buffer clear on write" size="1" start="3" type="bool"/>
     <field name="Disable Z buffer clear on write" size="1" start="2" type="bool"/>
     <field name="Disable fast opportunistic write out in multisample mode" size="1" start="1" type="bool"/>
     <field name="Last Tile of Frame" size="1" start="0" type="bool"/>
   </packet>
 
-  <packet code="25" name="Clear Tile Buffers" cl="R" min_ver="41">
+  <packet code="25" shortname="clear" name="Clear Tile Buffers" cl="R" min_ver="41">
     <field name="Clear Z/Stencil Buffer" size="1" start="1" type="bool"/>
     <field name="Clear all Render Targets" size="1" start="0" type="bool"/>
   </packet>
 
-  <packet code="26" name="Reload Tile Colour Buffer" cl="R" max_ver="33">
-    <field name="Disable Colour Buffer load" size="8" start="8" type="uint"/>
+  <packet code="26" shortname="load" name="Reload Tile Color Buffer" cl="R" max_ver="33">
+    <field name="Disable Color Buffer load" size="8" start="8" type="uint"/>
     <field name="Enable Z load" size="1" start="7" type="bool"/>
     <field name="Enable Stencil load" size="1" start="6" type="bool"/>
   </packet>
 
-  <packet code="26" name="End of Loads" cl="R" min_ver="41"/>
+  <packet code="26" shortname="end_loads" name="End of Loads" cl="R" min_ver="41"/>
 
-  <packet code="27" name="End of Tile Marker" cl="R"/>
+  <packet code="27" shortname="end_tile" name="End of Tile Marker" cl="R"/>
 
-  <packet code="29" name="Store Tile Buffer General" cl="R" max_ver="33">
+  <packet code="29" shortname="store_general" name="Store Tile Buffer General" cl="R" max_ver="33">
     <field name="Address" size="24" start="24" type="address"/>
     <field name="Padded height of output image in UIF blocks" size="13" start="11" type="uint"/>
     <field name="XOR UIF" size="1" start="10" type="bool"/>
     <field name="Last Tile of Frame" size="1" start="8" type="bool"/>
-    <field name="Disable Colour buffer(s) clear on write" size="1" start="7" type="bool"/>
+    <field name="Disable Color buffer(s) clear on write" size="1" start="7" type="bool"/>
     <field name="Disable Stencil buffer clear on write" size="1" start="6" type="bool"/>
     <field name="Disable Z buffer clear on write" size="1" start="5" type="bool"/>
     <field name="Raw Mode" size="1" start="4" type="bool"/>
@@ -343,7 +343,7 @@
     </field>
   </packet>
 
-  <packet code="29" name="Store Tile Buffer General" cl="R" min_ver="41">
+  <packet code="29" shortname="store" name="Store Tile Buffer General" cl="R" min_ver="41">
     <field name="Address" size="32" start="64" type="address"/>
 
     <!-- used for y flip -->
@@ -376,7 +376,7 @@
     </field>
   </packet>
 
-  <packet code="30" name="Load Tile Buffer General" cl="R" max_ver="33">
+  <packet code="30" shortname="load_general" name="Load Tile Buffer General" cl="R" max_ver="33">
     <field name="Address" size="24" start="24" type="address"/>
     <field name="Padded height of output image in UIF blocks" size="13" start="11" type="uint"/>
     <field name="XOR UIF" size="1" start="10" type="bool"/>
@@ -393,7 +393,7 @@
     </field>
   </packet>
 
-  <packet code="30" name="Load Tile Buffer General" cl="R" min_ver="41">
+  <packet code="30" shortname="load" name="Load Tile Buffer General" cl="R" min_ver="41">
     <field name="Address" size="32" start="64" type="address"/>
 
     <!-- used for y flip -->
@@ -424,9 +424,9 @@
     </field>
   </packet>
 
-  <packet code="31" name="Transform Feedback Flush and Count"/>
+  <packet code="31" shortname="tf_draw_flush_and_count" name="Transform Feedback Flush and Count"/>
 
-  <packet code="32" name="Indexed Primitive List" cl="B" max_ver="33">
+  <packet code="32" name="Indexed Prim List" cl="B" max_ver="33">
     <field name="Minimum index" size="32" start="104" type="uint"/>
     <field name="Enable Primitive Restarts" size="1" start="103" type="bool"/>
     <field name="Maximum index" size="31" start="72" type="uint"/>
@@ -442,7 +442,7 @@
     <field name="mode" size="5" start="0" type="Primitive"/>
   </packet>
 
-  <packet code="32" name="Indexed Primitive List" cl="B" min_ver="41">
+  <packet code="32" name="Indexed Prim List" cl="B" min_ver="41">
     <field name="Index Offset" size="32" start="40" type="uint"/>
 
     <field name="Enable Primitive Restarts" size="1" start="39" type="bool"/>
@@ -457,7 +457,7 @@
     <field name="mode" size="6" start="0" type="Primitive"/>
   </packet>
 
-  <packet code="34" name="Indexed Instanced Primitive List" cl="B" max_ver="33">
+  <packet code="34" name="Indexed Instanced Prim List" cl="B" max_ver="33">
     <field name="Enable Primitive Restarts" size="1" start="135" type="bool"/>
     <field name="Maximum index" size="31" start="104" type="uint"/>
     <field name="Address of Indices List" size="32" start="72" type="address"/>
@@ -473,7 +473,7 @@
     <field name="mode" size="5" start="0" type="Primitive"/>
   </packet>
 
-  <packet code="34" name="Indexed Instanced Primitive List" cl="B" min_ver="41">
+  <packet code="34" name="Indexed Instanced Prim List" cl="B" min_ver="41">
     <field name="Index Offset" size="32" start="72" type="uint"/>
     <field name="Number of Instances" size="32" start="40" type="uint"/>
     <field name="Enable Primitive Restarts" size="1" start="39" type="bool"/>
@@ -488,14 +488,14 @@
     <field name="mode" size="6" start="0" type="Primitive"/>
   </packet>
 
-  <packet code="36" name="Vertex Array Primitives" cl="B">
+  <packet code="36" name="Vertex Array Prims" cl="B">
     <field name="Index of First Vertex" size="32" start="40" type="uint"/>
     <field name="Length" size="32" start="8" type="uint"/>
 
     <field name="mode" size="8" start="0" type="Primitive"/>
   </packet>
 
-  <packet code="38" name="Vertex Array Instanced Primitives" cl="B">
+  <packet code="38" name="Vertex Array Instanced Prims" cl="B">
     <field name="Index of First Vertex" size="32" start="72" type="uint"/>
     <field name="Number of Instances" size="32" start="40" type="uint"/>
     <field name="Instance Length" size="32" start="8" type="uint"/>
@@ -514,7 +514,7 @@
     <field name="Size" size="32" start="32" type="uint"/>
   </packet>
 
-  <packet code="56" name="Primitive List Format">
+  <packet code="56" name="Prim List Format">
     <field name="tri strip or fan" size="1" start="7" type="bool"/>
     <field name="primitive type" size="6" start="0" type="uint">
       <value name="List Points" value="0"/>
@@ -523,7 +523,7 @@
     </field>
   </packet>
 
-  <packet code="64" name="GL Shader State">
+  <packet code="64" shortname="gl_shader" name="GL Shader State">
     <field name="address" size="27" start="5" type="address"/>
     <field name="number of attribute arrays" size="5" start="0" type="uint"/>
   </packet>
@@ -563,7 +563,7 @@
     <field name="address" size="32" start="0" type="address"/>
   </struct>
 
-  <packet code="80" name="Stencil Config">
+  <packet code="80" name="Stencil Cfg">
     <field name="Stencil Write Mask" size="8" start="32" type="uint"/>
     <field name="Back Config" size="1" start="29" type="bool"/>
     <field name="Front Config" size="1" start="28" type="bool"/>
@@ -579,33 +579,33 @@
     <field name="Mask" size="8" start="0" type="uint"/>
   </packet>
 
-  <packet code="84" name="Blend Config" max_ver="33">
-    <field name="Colour blend dst factor" size="4" start="20" type="Blend Factor"/>
-    <field name="Colour blend src factor" size="4" start="16" type="Blend Factor"/>
-    <field name="Colour blend mode" size="4" start="12" type="Blend Mode"/>
+  <packet code="84" name="Blend Cfg" max_ver="33">
+    <field name="Color blend dst factor" size="4" start="20" type="Blend Factor"/>
+    <field name="Color blend src factor" size="4" start="16" type="Blend Factor"/>
+    <field name="Color blend mode" size="4" start="12" type="Blend Mode"/>
     <field name="Alpha blend dst factor" size="4" start="8" type="Blend Factor"/>
     <field name="Alpha blend src factor" size="4" start="4" type="Blend Factor"/>
     <field name="Alpha blend mode" size="4" start="0" type="Blend Mode"/>
   </packet>
 
-  <packet code="84" name="Blend Config" min_ver="41">
+  <packet code="84" name="Blend Cfg" min_ver="41">
     <field name="Render Target Mask" size="4" start="24" type="uint"/>
-    <field name="Colour blend dst factor" size="4" start="20" type="Blend Factor"/>
-    <field name="Colour blend src factor" size="4" start="16" type="Blend Factor"/>
-    <field name="Colour blend mode" size="4" start="12" type="Blend Mode"/>
+    <field name="Color blend dst factor" size="4" start="20" type="Blend Factor"/>
+    <field name="Color blend src factor" size="4" start="16" type="Blend Factor"/>
+    <field name="Color blend mode" size="4" start="12" type="Blend Mode"/>
     <field name="Alpha blend dst factor" size="4" start="8" type="Blend Factor"/>
     <field name="Alpha blend src factor" size="4" start="4" type="Blend Factor"/>
     <field name="Alpha blend mode" size="4" start="0" type="Blend Mode"/>
   </packet>
 
-  <packet code="86" name="Blend Constant Colour">
+  <packet code="86" shortname="blend_ccolor" name="Blend Constant Color">
     <field name="Alpha (F16)" size="16" start="48" type="uint"/>
     <field name="Blue (F16)" size="16" start="32" type="uint"/>
     <field name="Green (F16)" size="16" start="16" type="uint"/>
     <field name="Red (F16)" size="16" start="0" type="uint"/>
   </packet>
 
-  <packet code="87" name="Colour Write Masks">
+  <packet code="87" shortname="color_wmasks" name="Color Write Masks">
     <field name="Mask" size="32" start="0" type="uint"/>
   </packet>
 
@@ -619,15 +619,15 @@
   </packet>
 
   <packet code="91" name="Sample State" min_ver="41">
-    <field name="Coverage" size="16" start="16" type="uint"/> <!-- float-1-8-7 -->
+    <field name="Coverage" size="16" start="16" type="f187"/>
     <field name="Mask" size="4" start="0" type="uint"/>
   </packet>
 
-  <packet code="92" name="Occlusion Query Counter">
+  <packet code="92" shortname="occlusion_query_counter_enable" name="Occlusion Query Counter">
     <field name="address" size="32" start="0" type="address"/>
   </packet>
 
-  <packet code="96" name="Configuration Bits">
+  <packet code="96" name="Cfg Bits">
     <field name="Direct3D Provoking Vertex" size="1" start="21" type="bool"/>
     <field name="Direct3D 'Point-fill' mode" size="1" start="20" type="bool"/>
     <field name="Blend enable" size="1" start="19" type="bool"/>
@@ -645,18 +645,18 @@
     <field name="Enable Forward Facing Primitive" size="1" start="0" type="bool"/>
   </packet>
 
-  <packet code="97" name="Zero All Flat Shade Flags"/>
+  <packet code="97" shortname="zero_all_flatshade_flags" name="Zero All Flat Shade Flags"/>
 
-  <packet code="98" name="Flat Shade Flags">
+  <packet code="98" shortname="flatshade_flags" name="Flat Shade Flags">
     <field name="Flat Shade Flags for varyings V0*24" size="24" start="8" type="uint"/>
     <field name="Action for Flat Shade Flags of higher numbered varyings" size="2" start="6" type="Varying Flags Action"/>
     <field name="Action for Flat Shade Flags of lower numbered varyings" size="2" start="4" type="Varying Flags Action"/>
     <field name="Varying offset V0" size="4" start="0" type="uint"/>
   </packet>
 
-  <packet code="99" name="Zero All Non-perspective Flags" min_ver="41"/>
+  <packet code="99" shortname="zero_all_noperspective_flags" name="Zero All Non-perspective Flags" min_ver="41"/>
 
-  <packet code="100" name="Non-perspective Flags" min_ver="41">
+  <packet code="100" shortname="noperspective_flags" name="Non-perspective Flags" min_ver="41">
     <field name="Non-perspective Flags for varyings V0*24" size="24" start="8" type="uint"/>
     <field name="Action for Non-perspective Flags of higher numbered varyings" size="2" start="6" type="Varying Flags Action"/>
     <field name="Action for Non-perspective Flags of lower numbered varyings" size="2" start="4" type="Varying Flags Action"/>
@@ -672,19 +672,17 @@
   </packet>
 
   <packet name="Depth Offset" code="106" max_ver="33">
-    <!-- these fields are both float-1-8-7 encoded (top 16 bits of a float32) -->
-    <field name="Depth Offset Units" size="16" start="16" type="uint"/>
-    <field name="Depth Offset Factor" size="16" start="0" type="uint"/>
+    <field name="Depth Offset Units" size="16" start="16" type="f187"/>
+    <field name="Depth Offset Factor" size="16" start="0" type="f187"/>
   </packet>
 
   <packet name="Depth Offset" code="106" min_ver="41">
     <field name="Limit" size="32" start="32" type="float"/>
-    <!-- these fields are both float-1-8-7 encoded (top 16 bits of a float32) -->
-    <field name="Depth Offset Units" size="16" start="16" type="uint"/>
-    <field name="Depth Offset Factor" size="16" start="0" type="uint"/>
+    <field name="Depth Offset Units" size="16" start="16" type="f187"/>
+    <field name="Depth Offset Factor" size="16" start="0" type="f187"/>
   </packet>
 
-  <packet name="Clip Window" code="107">
+  <packet shortname="clip" name="clip_window" code="107">
     <field name="Clip Window Height in pixels" size="16" start="48" type="uint"/>
     <field name="Clip Window Width in pixels" size="16" start="32" type="uint"/>
     <field name="Clip Window Bottom Pixel Coordinate" size="16" start="16" type="uint"/>
@@ -703,17 +701,17 @@
     <field name="Viewport Centre X-coordinate" size="22" start="0" type="s14.8"/>
   </packet>
 
-  <packet name="Clipper Z min/max clipping planes" code="109">
+  <packet shortname="clipz" name="Clipper Z min/max clipping planes" code="109">
     <field name="Maximum Zw" size="32" start="32" type="float"/>
     <field name="Minimum Zw" size="32" start="0" type="float"/>
   </packet>
 
-  <packet name="Clipper XY Scaling" code="110" cl="B">
+  <packet shortname="clipper_xy" name="Clipper XY Scaling" code="110" cl="B">
     <field name="Viewport Half-Height in 1/256th of pixel" size="32" start="32" type="float"/>
     <field name="Viewport Half-Width in 1/256th of pixel" size="32" start="0" type="float"/>
   </packet>
 
-  <packet name="Clipper Z Scale and Offset" code="111" cl="B">
+  <packet shortname="clipper_z" name="Clipper Z Scale and Offset" code="111" cl="B">
     <field name="Viewport Z Offset (Zc to Zs)" size="32" start="32" type="float"/>
     <field name="Viewport Z Scale (Zc to Zs)" size="32" start="0" type="float"/>
   </packet>
@@ -722,7 +720,7 @@
     <field name="Number of Layers" size="8" start="0" type="uint" minus_one="true"/>
   </packet>
 
-  <packet code="120" name="Tile Binning Mode Configuration (Part1)" max_ver="33">
+  <packet code="120" name="Tile Binning Mode Cfg (Part1)" max_ver="33">
     <field name="Double-buffer in non-ms mode" size="1" start="63" type="bool"/>
     <field name="Multisample Mode (4x)" size="1" start="62" type="bool"/>
 
@@ -748,7 +746,7 @@
     <field name="sub-id" size="1" start="0" type="uint" default="0"/>
   </packet>
 
-  <packet code="120" name="Tile Binning Mode Configuration (Part1)" min_ver="41">
+  <packet code="120" name="Tile Binning Mode Cfg" min_ver="41">
 
     <field name="Height (in pixels)" size="12" start="48" type="uint" minus_one="true"/>
     <field name="Width (in pixels)" size="12" start="32" type="uint" minus_one="true"/>
@@ -776,14 +774,14 @@
     </field>
   </packet>
 
-  <packet code="120" name="Tile Binning Mode Configuration (Part2)" cl="B" max_ver="33">
+  <packet code="120" name="Tile Binning Mode Cfg (Part2)" cl="B" max_ver="33">
     <field name="Tile Allocation Memory Address" size="32" start="32" type="address"/>
     <field name="Tile Allocation Memory Size" size="32" start="0" type="uint"/>
 
     <field name="sub-id" size="1" start="0" type="uint" default="1"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Common Configuration)" cl="R" max_ver="33">
+  <packet code="121" name="Tile Rendering Mode Cfg (Common)" cl="R" max_ver="33">
     <field name="Disable Render Target Stores" size="8" start="56" type="uint"/>
     <field name="Enable Z Store" size="1" start="55" type="bool"/>
     <field name="Enable Stencil Store" size="1" start="54" type="bool"/>
@@ -811,7 +809,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="0"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Common Configuration)" cl="R" min_ver="41">
+  <packet code="121" name="Tile Rendering Mode Cfg (Common)" cl="R" min_ver="41">
     <field name="Pad" size="12" start="52" type="uint"/>
 
     <field name="Early Depth/Stencil Clear" size="1" start="51" type="bool"/>
@@ -836,7 +834,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="0"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Render Target config)" cl="R" max_ver="33">
+  <packet code="121" name="Tile Rendering Mode Cfg (Color)" cl="R" max_ver="33">
     <field name="Address" size="32" start="32" type="address"/>
 
     <field name="Pad" size="4" start="28" type="uint"/>
@@ -857,7 +855,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="2"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Render Target config)" cl="R" min_ver="41">
+  <packet code="121" name="Tile Rendering Mode Cfg (Color)" cl="R" min_ver="41">
 
     <field name="Pad" size="28" start="34" type="uint"/>
 
@@ -880,7 +878,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="1"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Z/Stencil config)" cl="R" max_ver="33">
+  <packet code="121" name="Tile Rendering Mode Cfg (Z/Stencil)" cl="R" max_ver="33">
     <field name="Address" size="26" start="38" type="address"/>
 
     <field name="Padded height of output image in UIF blocks" size="13" start="25" type="uint"/>
@@ -899,7 +897,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="1"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Z Stencil Clear Values)" cl="R" max_ver="33">
+  <packet code="121" name="Tile Rendering Mode Cfg (ZS Clear Values)" cl="R" max_ver="33">
     <field name="unused" size="16" start="48" type="uint"/>
 
     <field name="Z Clear Value" size="32" start="16" type="float"/>
@@ -908,7 +906,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="3"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Z Stencil Clear Values)" cl="R" min_ver="41">
+  <packet code="121" name="Tile Rendering Mode Cfg (ZS Clear Values)" cl="R" min_ver="41">
     <field name="unused" size="16" start="48" type="uint"/>
 
     <field name="Z Clear Value" size="32" start="16" type="float"/>
@@ -917,7 +915,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="2"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Clear Colors Part1)" cl="R" max_ver="33">
+  <packet code="121" name="Tile Rendering Mode Cfg (Clear Colors Part1)" cl="R" max_ver="33">
     <!-- Express this as a 56-bit field? -->
     <field name="Clear Color next 24 bits" size="24" start="40" type="uint"/>
     <field name="Clear Color low 32 bits" size="32" start="8" type="uint"/>
@@ -926,7 +924,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="4"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Clear Colors Part1)" cl="R" min_ver="41">
+  <packet code="121" name="Tile Rendering Mode Cfg (Clear Colors Part1)" cl="R" min_ver="41">
     <!-- Express this as a 56-bit field? -->
     <field name="Clear Color next 24 bits" size="24" start="40" type="uint"/>
     <field name="Clear Color low 32 bits" size="32" start="8" type="uint"/>
@@ -935,7 +933,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="3"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Clear Colors Part2)" cl="R" max_ver="33">
+  <packet code="121" name="Tile Rendering Mode Cfg (Clear Colors Part2)" cl="R" max_ver="33">
     <!-- Express this as a 56-bit field? -->
     <field name="Clear Color mid-high 24 bits" size="24" start="40" type="uint"/>
     <field name="Clear Color mid-low 32 bits" size="32" start="8" type="uint"/>
@@ -944,7 +942,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="5"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Clear Colors Part2)" cl="R" min_ver="41">
+  <packet code="121" name="Tile Rendering Mode Cfg (Clear Colors Part2)" cl="R" min_ver="41">
     <!-- Express this as a 56-bit field? -->
     <field name="Clear Color mid-high 24 bits" size="24" start="40" type="uint"/>
     <field name="Clear Color mid-low 32 bits" size="32" start="8" type="uint"/>
@@ -953,7 +951,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="4"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Clear Colors Part3)" cl="R" max_ver="33">
+  <packet code="121" name="Tile Rendering Mode Cfg (Clear Colors Part3)" cl="R" max_ver="33">
     <field name="pad" size="11" start="53" type="uint"/>
     <field name="UIF padded height in UIF blocks" size="13" start="40" type="uint"/>
     <!-- image height is for Y flipping -->
@@ -964,7 +962,7 @@
     <field name="sub-id" size="4" start="0" type="uint" default="6"/>
   </packet>
 
-  <packet code="121" name="Tile Rendering Mode Configuration (Clear Colors Part3)" cl="R" min_ver="41">
+  <packet code="121" name="Tile Rendering Mode Cfg (Clear Colors Part3)" cl="R" min_ver="41">
     <field name="pad" size="11" start="53" type="uint"/>
     <field name="UIF padded height in UIF blocks" size="13" start="40" type="uint"/>
     <!-- image height is for Y flipping -->
@@ -975,12 +973,12 @@
     <field name="sub-id" size="4" start="0" type="uint" default="5"/>
   </packet>
 
-  <packet code="124" name="Tile Coordinates">
+  <packet code="124" shortname="tile_coords" name="Tile Coordinates">
     <field name="tile row number" size="12" start="12" type="uint"/>
     <field name="tile column number" size="12" start="0" type="uint"/>
   </packet>
 
-  <packet code="122" name="Multicore Rendering Supertile Configuration" cl="R">
+  <packet code="122" name="Multicore Rendering Supertile Cfg" cl="R">
     <field name="Number of Bin Tile Lists" size="3" start="61" type="uint" minus_one="true"/>
     <field name="Supertile Raster Order" size="1" start="60" type="bool"/>
     <field name="Multicore Enable" size="1" start="56" type="bool"/>
@@ -995,13 +993,13 @@
     <field name="Supertile Width in Tiles" size="8" start="0" type="uint" minus_one="true"/>
   </packet>
 
-  <packet code="123" name="Multicore Rendering Tile List Set Base" cl="R">
+  <packet code="123" shortname="multicore_rendering_tile_list_base" name="Multicore Rendering Tile List Set Base" cl="R">
     <field name="address" size="26" start="6" type="address"/>
     <field name="Tile List Set Number" size="4" start="0" type="uint"/>
   </packet>
 
   <!-- add fields -->
-  <packet code="125" name="Tile Coordinates Implicit"/>
+  <packet code="125" shortname="implicit_tile_coords" name="Tile Coordinates Implicit"/>
 
   <packet code="126" name="Tile List Initial Block Size">
     <field name="Use auto-chained tile lists" size="1" start="2" type="bool"/>
@@ -1398,7 +1396,7 @@
 
     <field name="Texture base pointer" size="32" start="0" type="address"/>
 
-    <field name="Reverse Standard Border Colour" size="1" start="5" type="bool"/>
+    <field name="Reverse Standard Border Color" size="1" start="5" type="bool"/>
     <field name="AHDR" size="1" start="4" type="bool"/>
     <field name="sRGB" size="1" start="3" type="bool"/>
     <field name="Flip S and T on incoming request" size="1" start="2" type="bool"/>
@@ -1407,13 +1405,13 @@
   </struct>
 
   <struct name="Sampler State" min_ver="41">
-    <field name="Border colour Alpha" size="32" start="160" type="uint"/>
-    <field name="Border colour Blue" size="32" start="128" type="uint"/>
-    <field name="Border colour Green" size="32" start="96" type="uint"/>
-    <field name="Border colour Red" size="32" start="64" type="uint"/>
+    <field name="Border color Alpha" size="32" start="160" type="uint"/>
+    <field name="Border color Blue" size="32" start="128" type="uint"/>
+    <field name="Border color Green" size="32" start="96" type="uint"/>
+    <field name="Border color Red" size="32" start="64" type="uint"/>
 
     <field name="Maximum Anisotropy" size="2" start="61" type="uint"/>
-    <field name="Border Colour Mode" size="3" start="58" type="Border Colour Mode"/>
+    <field name="Border Color Mode" size="3" start="58" type="Border Color Mode"/>
     <field name="Wrap I Border" size="1" start="57" type="bool"/>
     <field name="Wrap R" size="3" start="54" type="Wrap Mode"/>
     <field name="Wrap T" size="3" start="51" type="Wrap Mode"/>

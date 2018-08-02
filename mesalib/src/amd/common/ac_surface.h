@@ -226,7 +226,7 @@ struct ac_surf_info {
 	uint32_t height;
 	uint32_t depth;
 	uint8_t samples; /* For Z/S: samples; For color: FMASK coverage samples */
-	uint8_t color_samples; /* For color: color samples */
+	uint8_t storage_samples; /* For color: allocated samples */
 	uint8_t levels;
 	uint8_t num_channels; /* heuristic for displayability */
 	uint16_t array_size;

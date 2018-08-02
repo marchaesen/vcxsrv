@@ -847,7 +847,6 @@ type_decoration_cb(struct vtn_builder *b,
    case SpvDecorationNonWritable:
    case SpvDecorationNonReadable:
    case SpvDecorationUniform:
-   case SpvDecorationStream:
    case SpvDecorationLocation:
    case SpvDecorationComponent:
    case SpvDecorationOffset:
@@ -855,6 +854,14 @@ type_decoration_cb(struct vtn_builder *b,
    case SpvDecorationXfbStride:
       vtn_warn("Decoration only allowed for struct members: %s",
                spirv_decoration_to_string(dec->decoration));
+      break;
+
+   case SpvDecorationStream:
+      /* We don't need to do anything here, as stream is filled up when
+       * aplying the decoration to a variable, just check that if it is not a
+       * struct member, it should be a struct.
+       */
+      vtn_assert(type->base_type == vtn_base_type_struct);
       break;
 
    case SpvDecorationRelaxedPrecision:
@@ -3211,9 +3218,12 @@ vtn_handle_barrier(struct vtn_builder *b, SpvOp opcode,
 
       switch (opcode) {
       case SpvOpEmitStreamVertex:
-      case SpvOpEndStreamPrimitive:
-         nir_intrinsic_set_stream_id(intrin, w[1]);
+      case SpvOpEndStreamPrimitive: {
+         unsigned stream = vtn_constant_value(b, w[1])->values[0].u32[0];
+         nir_intrinsic_set_stream_id(intrin, stream);
          break;
+      }
+
       default:
          break;
       }
@@ -3407,7 +3417,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityStorageImageExtendedFormats:
          break;
 
-      case SpvCapabilityGeometryStreams:
       case SpvCapabilityLinkage:
       case SpvCapabilityVector16:
       case SpvCapabilityFloat16Buffer:
@@ -3417,7 +3426,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityInt8:
       case SpvCapabilitySparseResidency:
       case SpvCapabilityMinLod:
-      case SpvCapabilityTransformFeedback:
          vtn_warn("Unsupported SPIR-V capability: %s",
                   spirv_capability_to_string(cap));
          break;
@@ -3434,6 +3442,14 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          break;
       case SpvCapabilityInt16:
          spv_check_supported(int16, cap);
+         break;
+
+      case SpvCapabilityTransformFeedback:
+         spv_check_supported(transform_feedback, cap);
+         break;
+
+      case SpvCapabilityGeometryStreams:
+         spv_check_supported(geometry_streams, cap);
          break;
 
       case SpvCapabilityAddresses:
@@ -3721,7 +3737,7 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       break;
 
    case SpvExecutionModeXfb:
-      vtn_fail("Unhandled execution mode");
+      b->shader->info.has_transform_feedback_varyings = true;
       break;
 
    case SpvExecutionModeVecTypeHint:

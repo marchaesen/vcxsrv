@@ -820,6 +820,10 @@ ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
 	    for (unsigned i = 0; i < type->components(); i++)
 	       this->value.b[i] = value->value.b[0];
 	    break;
+	 case GLSL_TYPE_SAMPLER:
+	 case GLSL_TYPE_IMAGE:
+	    this->value.u64[0] = value->value.u64[0];
+	    break;
 	 default:
 	    assert(!"Should not get here.");
 	    break;
@@ -939,6 +943,8 @@ ir_constant::get_bool_component(unsigned i) const
    case GLSL_TYPE_FLOAT: return ((int)this->value.f[i]) != 0;
    case GLSL_TYPE_BOOL:  return this->value.b[i];
    case GLSL_TYPE_DOUBLE: return this->value.d[i] != 0.0;
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_UINT64: return this->value.u64[i] != 0;
    case GLSL_TYPE_INT64:  return this->value.i64[i] != 0;
    default:              assert(!"Should not get here."); break;
@@ -959,6 +965,8 @@ ir_constant::get_float_component(unsigned i) const
    case GLSL_TYPE_FLOAT: return this->value.f[i];
    case GLSL_TYPE_BOOL:  return this->value.b[i] ? 1.0f : 0.0f;
    case GLSL_TYPE_DOUBLE: return (float) this->value.d[i];
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_UINT64: return (float) this->value.u64[i];
    case GLSL_TYPE_INT64:  return (float) this->value.i64[i];
    default:              assert(!"Should not get here."); break;
@@ -979,6 +987,8 @@ ir_constant::get_double_component(unsigned i) const
    case GLSL_TYPE_FLOAT: return (double) this->value.f[i];
    case GLSL_TYPE_BOOL:  return this->value.b[i] ? 1.0 : 0.0;
    case GLSL_TYPE_DOUBLE: return this->value.d[i];
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_UINT64: return (double) this->value.u64[i];
    case GLSL_TYPE_INT64:  return (double) this->value.i64[i];
    default:              assert(!"Should not get here."); break;
@@ -999,6 +1009,8 @@ ir_constant::get_int_component(unsigned i) const
    case GLSL_TYPE_FLOAT: return (int) this->value.f[i];
    case GLSL_TYPE_BOOL:  return this->value.b[i] ? 1 : 0;
    case GLSL_TYPE_DOUBLE: return (int) this->value.d[i];
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_UINT64: return (int) this->value.u64[i];
    case GLSL_TYPE_INT64:  return (int) this->value.i64[i];
    default:              assert(!"Should not get here."); break;
@@ -1019,6 +1031,8 @@ ir_constant::get_uint_component(unsigned i) const
    case GLSL_TYPE_FLOAT: return (unsigned) this->value.f[i];
    case GLSL_TYPE_BOOL:  return this->value.b[i] ? 1 : 0;
    case GLSL_TYPE_DOUBLE: return (unsigned) this->value.d[i];
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_UINT64: return (unsigned) this->value.u64[i];
    case GLSL_TYPE_INT64:  return (unsigned) this->value.i64[i];
    default:              assert(!"Should not get here."); break;
@@ -1039,6 +1053,8 @@ ir_constant::get_int64_component(unsigned i) const
    case GLSL_TYPE_FLOAT: return (int64_t) this->value.f[i];
    case GLSL_TYPE_BOOL:  return this->value.b[i] ? 1 : 0;
    case GLSL_TYPE_DOUBLE: return (int64_t) this->value.d[i];
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_UINT64: return (int64_t) this->value.u64[i];
    case GLSL_TYPE_INT64:  return this->value.i64[i];
    default:              assert(!"Should not get here."); break;
@@ -1059,6 +1075,8 @@ ir_constant::get_uint64_component(unsigned i) const
    case GLSL_TYPE_FLOAT: return (uint64_t) this->value.f[i];
    case GLSL_TYPE_BOOL:  return this->value.b[i] ? 1 : 0;
    case GLSL_TYPE_DOUBLE: return (uint64_t) this->value.d[i];
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_UINT64: return this->value.u64[i];
    case GLSL_TYPE_INT64:  return (uint64_t) this->value.i64[i];
    default:              assert(!"Should not get here."); break;
@@ -1110,6 +1128,8 @@ ir_constant::copy_offset(ir_constant *src, int offset)
    case GLSL_TYPE_INT:
    case GLSL_TYPE_FLOAT:
    case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_BOOL: {
@@ -1132,7 +1152,9 @@ ir_constant::copy_offset(ir_constant *src, int offset)
 	 case GLSL_TYPE_DOUBLE:
 	    value.d[i+offset] = src->get_double_component(i);
 	    break;
-         case GLSL_TYPE_UINT64:
+	 case GLSL_TYPE_SAMPLER:
+	 case GLSL_TYPE_IMAGE:
+	 case GLSL_TYPE_UINT64:
 	    value.u64[i+offset] = src->get_uint64_component(i);
 	    break;
 	 case GLSL_TYPE_INT64:
@@ -1189,7 +1211,9 @@ ir_constant::copy_masked_offset(ir_constant *src, int offset, unsigned int mask)
 	 case GLSL_TYPE_DOUBLE:
 	    value.d[i+offset] = src->get_double_component(id++);
 	    break;
-         case GLSL_TYPE_UINT64:
+	 case GLSL_TYPE_SAMPLER:
+	 case GLSL_TYPE_IMAGE:
+	 case GLSL_TYPE_UINT64:
 	    value.u64[i+offset] = src->get_uint64_component(id++);
 	    break;
 	 case GLSL_TYPE_INT64:
@@ -1239,6 +1263,8 @@ ir_constant::has_value(const ir_constant *c) const
 	 if (this->value.d[i] != c->value.d[i])
 	    return false;
 	 break;
+      case GLSL_TYPE_SAMPLER:
+      case GLSL_TYPE_IMAGE:
       case GLSL_TYPE_UINT64:
 	 if (this->value.u64[i] != c->value.u64[i])
 	    return false;
@@ -1288,6 +1314,8 @@ ir_constant::is_value(float f, int i) const
 	 if (this->value.d[c] != double(f))
 	    return false;
 	 break;
+      case GLSL_TYPE_SAMPLER:
+      case GLSL_TYPE_IMAGE:
       case GLSL_TYPE_UINT64:
 	 if (this->value.u64[c] != uint64_t(i))
 	    return false;

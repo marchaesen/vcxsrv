@@ -260,6 +260,21 @@ typedef struct nir_variable {
       unsigned explicit_binding:1;
 
       /**
+       * Was a transfer feedback buffer set in the shader?
+       */
+      unsigned explicit_xfb_buffer:1;
+
+      /**
+       * Was a transfer feedback stride set in the shader?
+       */
+      unsigned explicit_xfb_stride:1;
+
+      /**
+       * Was an explicit offset set in the shader?
+       */
+      unsigned explicit_offset:1;
+
+      /**
        * \brief Layout qualifier for gl_FragDepth.
        *
        * This is not equal to \c ir_depth_layout_none if and only if this
@@ -320,9 +335,19 @@ typedef struct nir_variable {
       int binding;
 
       /**
-       * Location an atomic counter is stored at.
+       * Location an atomic counter or transform feedback is stored at.
        */
       unsigned offset;
+
+      /**
+       * Transform feedback buffer.
+       */
+      unsigned xfb_buffer;
+
+      /**
+       * Transform feedback stride.
+       */
+      unsigned xfb_stride;
 
       /**
        * ARB_shader_image_load_store qualifiers.

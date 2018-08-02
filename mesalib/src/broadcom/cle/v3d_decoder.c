@@ -316,6 +316,8 @@ string_to_type(struct parser_context *ctx, const char *s)
                 return (struct v3d_type) { .kind = V3D_TYPE_BOOL };
         else if (strcmp(s, "float") == 0)
                 return (struct v3d_type) { .kind = V3D_TYPE_FLOAT };
+        else if (strcmp(s, "f187") == 0)
+                return (struct v3d_type) { .kind = V3D_TYPE_F187 };
         else if (strcmp(s, "address") == 0)
                 return (struct v3d_type) { .kind = V3D_TYPE_ADDRESS };
         else if (strcmp(s, "offset") == 0)
@@ -451,7 +453,9 @@ start_element(void *data, const char *element_name, const char **atts)
         ctx->loc.line_number = XML_GetCurrentLineNumber(ctx->parser);
 
         for (i = 0; atts[i]; i += 2) {
-                if (strcmp(atts[i], "name") == 0)
+                if (strcmp(atts[i], "shortname") == 0)
+                        name = atts[i + 1];
+                else if (strcmp(atts[i], "name") == 0 && !name)
                         name = atts[i + 1];
                 else if (strcmp(atts[i], "gen") == 0)
                         ver = atts[i + 1];
@@ -830,7 +834,7 @@ iter_advance_field(struct v3d_field_iterator *iter)
 
         iter->field = iter->group->fields[iter->field_iter++];
         if (iter->field->name)
-                strncpy(iter->name, iter->field->name, sizeof(iter->name));
+                snprintf(iter->name, sizeof(iter->name), "%s", iter->field->name);
         else
                 memset(iter->name, 0, sizeof(iter->name));
         iter->offset = iter_group_offset_bits(iter, iter->group_iter) / 8 +
@@ -887,6 +891,11 @@ v3d_field_iterator_next(struct clif_dump *clif, struct v3d_field_iterator *iter)
                          __gen_unpack_float(iter->p, s, e));
                 break;
 
+        case V3D_TYPE_F187:
+                snprintf(iter->value, sizeof(iter->value), "%f",
+                         __gen_unpack_f187(iter->p, s, e));
+                break;
+
         case V3D_TYPE_ADDRESS: {
                 uint32_t addr =
                         __gen_unpack_uint(iter->p, s, e) << (31 - (e - s));
@@ -918,14 +927,24 @@ v3d_field_iterator_next(struct clif_dump *clif, struct v3d_field_iterator *iter)
                                              iter->field->type.v3d_struct->name);
                 break;
         case V3D_TYPE_SFIXED:
-                snprintf(iter->value, sizeof(iter->value), "%f",
-                         __gen_unpack_sfixed(iter->p, s, e,
-                                             iter->field->type.f));
+                if (clif->pretty) {
+                        snprintf(iter->value, sizeof(iter->value), "%f",
+                                 __gen_unpack_sfixed(iter->p, s, e,
+                                                     iter->field->type.f));
+                } else {
+                        snprintf(iter->value, sizeof(iter->value), "%u",
+                                 (unsigned)__gen_unpack_uint(iter->p, s, e));
+                }
                 break;
         case V3D_TYPE_UFIXED:
-                snprintf(iter->value, sizeof(iter->value), "%f",
-                         __gen_unpack_ufixed(iter->p, s, e,
-                                             iter->field->type.f));
+                if (clif->pretty) {
+                        snprintf(iter->value, sizeof(iter->value), "%f",
+                                 __gen_unpack_ufixed(iter->p, s, e,
+                                                     iter->field->type.f));
+                } else {
+                        snprintf(iter->value, sizeof(iter->value), "%u",
+                                 (unsigned)__gen_unpack_uint(iter->p, s, e));
+                }
                 break;
         case V3D_TYPE_MBO:
                 break;
@@ -968,7 +987,13 @@ v3d_print_group(struct clif_dump *clif, struct v3d_group *group,
                     strcmp(iter.field->name, "Pad") == 0)
                         continue;
 
-                fprintf(clif->out, "    %s: %s\n", iter.name, iter.value);
+                if (clif->pretty) {
+                        fprintf(clif->out, "    %s: %s\n",
+                                iter.name, iter.value);
+                } else {
+                        fprintf(clif->out, "  /* %30s: */ %s\n",
+                                iter.name, iter.value);
+                }
                 if (iter.struct_desc) {
                         uint64_t struct_offset = offset + iter.offset;
                         v3d_print_group(clif, iter.struct_desc,

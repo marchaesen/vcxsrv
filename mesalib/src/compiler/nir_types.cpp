@@ -81,6 +81,12 @@ glsl_get_column_type(const struct glsl_type *type)
    return type->column_type();
 }
 
+GLenum
+glsl_get_gl_type(const struct glsl_type *type)
+{
+   return type->gl_type;
+}
+
 enum glsl_base_type
 glsl_get_base_type(const struct glsl_type *type)
 {

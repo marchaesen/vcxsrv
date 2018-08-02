@@ -4008,7 +4008,7 @@ copyteximage(struct gl_context *ctx, GLuint dims,
        */
       else if (formats_differ_in_component_sizes (texFormat, rb->Format)) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "glCopyTexImage%uD(componenet size changed in"
+                        "glCopyTexImage%uD(component size changed in"
                         " internal format)", dims);
             return;
       }

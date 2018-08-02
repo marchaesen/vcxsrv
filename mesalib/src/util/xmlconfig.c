@@ -37,7 +37,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include "xmlconfig.h"
-#include "process.h"
+#include "u_process.h"
 
 
 /** \brief Find an option in an option cache with the name as key */

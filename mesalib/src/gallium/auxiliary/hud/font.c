@@ -390,7 +390,7 @@ util_font_create_fixed_8x13(struct pipe_context *pipe,
 
    for (i = 0; i < ARRAY_SIZE(formats); i++) {
       if (screen->is_format_supported(screen, formats[i],
-                                   PIPE_TEXTURE_RECT, 0,
+                                   PIPE_TEXTURE_RECT, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW)) {
          tex_format = formats[i];
          break;

@@ -168,7 +168,7 @@ print("/***********************************************************************\
 
 # Process the options template and generate options.h with all
 # translations.
-template = file (template_header_path, "r")
+template = open (template_header_path, "r")
 descMatches = []
 for line in template:
     if len(descMatches) > 0:
@@ -198,6 +198,8 @@ for line in template:
         descMatches = [matchDESC_BEGIN]
     else:
         print(line, end='')
+
+template.close()
 
 if len(descMatches) > 0:
     sys.stderr.write ("Warning: unterminated description at end of file.\n")

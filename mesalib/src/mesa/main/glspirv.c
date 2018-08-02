@@ -173,6 +173,13 @@ _mesa_spirv_link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       prog->_LinkedShaders[shader_type] = linked;
       prog->data->linked_stages |= 1 << shader_type;
    }
+
+   int last_vert_stage =
+      util_last_bit(prog->data->linked_stages &
+                    ((1 << (MESA_SHADER_GEOMETRY + 1)) - 1));
+
+   if (last_vert_stage)
+      prog->last_vert_prog = prog->_LinkedShaders[last_vert_stage - 1]->Program;
 }
 
 nir_shader *
@@ -230,6 +237,14 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
                       _mesa_shader_stage_to_abbrev(nir->info.stage),
                       prog->Name);
    nir_validate_shader(nir);
+
+   NIR_PASS_V(nir, nir_copy_prop);
+
+   /* Split member structs.  We do this before lower_io_to_temporaries so that
+    * it doesn't lower system values to temporaries by accident.
+    */
+   NIR_PASS_V(nir, nir_split_var_copies);
+   NIR_PASS_V(nir, nir_split_per_member_structs);
 
    return nir;
 }

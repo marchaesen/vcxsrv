@@ -31,7 +31,7 @@
 #include "util/os_time.h"
 #include "util/u_string.h"
 #include "util/u_thread.h"
-#include "process.h"
+#include "u_process.h"
 
 static void util_queue_killall_and_wait(struct util_queue *queue);
 
@@ -322,10 +322,10 @@ util_queue_init(struct util_queue *queue,
    memset(queue, 0, sizeof(*queue));
 
    if (process_len) {
-      snprintf(queue->name, sizeof(queue->name), "%.*s:%s",
-               process_len, process_name, name);
+      util_snprintf(queue->name, sizeof(queue->name), "%.*s:%s",
+                    process_len, process_name, name);
    } else {
-      snprintf(queue->name, sizeof(queue->name), "%s", name);
+      util_snprintf(queue->name, sizeof(queue->name), "%s", name);
    }
 
    queue->flags = flags;

@@ -402,7 +402,7 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
                 add_write_dep(state, &state->last_tmu_config, n);
         }
 
-        if (inst->sig.ldtmu) {
+        if (v3d_qpu_waits_on_tmu(inst)) {
                 /* TMU loads are coming from a FIFO, so ordering is important.
                  */
                 add_write_dep(state, &state->last_tmu_write, n);
@@ -564,7 +564,7 @@ get_instruction_priority(const struct v3d_qpu_instr *inst)
         next_score++;
 
         /* Schedule texture read results collection late to hide latency. */
-        if (inst->sig.ldtmu)
+        if (v3d_qpu_waits_on_tmu(inst))
                 return next_score;
         next_score++;
 
@@ -604,6 +604,9 @@ qpu_accesses_peripheral(const struct v3d_qpu_instr *inst)
                     qpu_magic_waddr_is_periph(inst->alu.add.waddr)) {
                         return true;
                 }
+
+                if (inst->alu.add.op == V3D_QPU_A_TMUWT)
+                        return true;
 
                 if (inst->alu.mul.op != V3D_QPU_M_NOP &&
                     inst->alu.mul.magic_write &&
@@ -910,7 +913,7 @@ static uint32_t magic_waddr_latency(enum v3d_qpu_waddr waddr,
          *
          * because we associate the first load_tmu0 with the *second* tmu0_s.
          */
-        if (v3d_qpu_magic_waddr_is_tmu(waddr) && after->sig.ldtmu)
+        if (v3d_qpu_magic_waddr_is_tmu(waddr) && v3d_qpu_waits_on_tmu(after))
                 return 100;
 
         /* Assume that anything depending on us is consuming the SFU result. */

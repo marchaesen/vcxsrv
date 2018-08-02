@@ -319,6 +319,7 @@ util_dump_resource(FILE *stream, const struct pipe_resource *state)
 
    util_dump_member(stream, uint, state, last_level);
    util_dump_member(stream, uint, state, nr_samples);
+   util_dump_member(stream, uint, state, nr_storage_samples);
    util_dump_member(stream, uint, state, usage);
    util_dump_member(stream, uint, state, bind);
    util_dump_member(stream, uint, state, flags);

@@ -32,6 +32,7 @@
 #include "main/macros.h"
 #include "main/mtypes.h"
 #include "util/hash_table.h"
+#include "util/u_string.h"
 
 
 namespace {
@@ -233,7 +234,7 @@ public:
       if (var->data.explicit_location &&
           var->data.location >= VARYING_SLOT_VAR0) {
          char location_str[11];
-         snprintf(location_str, 11, "%d", var->data.location);
+         util_snprintf(location_str, 11, "%d", var->data.location);
 
          const struct hash_entry *entry =
             _mesa_hash_table_search(ht, location_str);
@@ -259,7 +260,7 @@ public:
           * unsigned location value which is overkill but future proof.
           */
          char location_str[11];
-         snprintf(location_str, 11, "%d", var->data.location);
+         util_snprintf(location_str, 11, "%d", var->data.location);
          _mesa_hash_table_insert(ht, ralloc_strdup(mem_ctx, location_str), var);
       } else {
          _mesa_hash_table_insert(ht,

@@ -35,11 +35,16 @@
 #include "os/os_process.h"
 #include "util/u_atomic.h"
 #include "util/u_debug.h"
+#include "util/u_string.h"
 
 #include "pipe/p_config.h"
-#ifdef PIPE_OS_UNIX
+#if defined(PIPE_OS_UNIX)
 #include <unistd.h>
 #include <sys/stat.h>
+#elif defined(PIPE_OS_WINDOWS)
+#include <direct.h>
+#include <process.h>
+#define mkdir(dir, mode) _mkdir(dir)
 #endif
 
 
@@ -57,13 +62,13 @@ dd_get_debug_filename_and_mkdir(char *buf, size_t buflen, bool verbose)
       strcpy(proc_name, "unknown");
    }
 
-   snprintf(dir, sizeof(dir), "%s/"DD_DIR, debug_get_option("HOME", "."));
+   util_snprintf(dir, sizeof(dir), "%s/"DD_DIR, debug_get_option("HOME", "."));
 
    if (mkdir(dir, 0774) && errno != EEXIST)
       fprintf(stderr, "dd: can't create a directory (%i)\n", errno);
 
-   snprintf(buf, buflen, "%s/%s_%u_%08u", dir, proc_name, getpid(),
-            p_atomic_inc_return(&index) - 1);
+   util_snprintf(buf, buflen, "%s/%s_%u_%08u", dir, proc_name, getpid(),
+                 p_atomic_inc_return(&index) - 1);
 
    if (verbose)
       fprintf(stderr, "dd: dumping to file %s\n", buf);

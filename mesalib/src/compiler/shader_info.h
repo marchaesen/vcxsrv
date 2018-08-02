@@ -60,6 +60,8 @@ struct spirv_supported_capabilities {
    bool atomic_storage;
    bool storage_8bit;
    bool post_depth_coverage;
+   bool transform_feedback;
+   bool geometry_streams;
 };
 
 typedef struct shader_info {

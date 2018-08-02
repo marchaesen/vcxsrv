@@ -142,6 +142,7 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
 
 static LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
 						     enum ac_target_machine_options tm_options,
+						     LLVMCodeGenOptLevel level,
 						     const char **out_triple)
 {
 	assert(family >= CHIP_TAHITI);
@@ -163,7 +164,7 @@ static LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
 	                             triple,
 	                             ac_get_llvm_processor_name(family),
 				     features,
-	                             LLVMCodeGenLevelDefault,
+	                             level,
 	                             LLVMRelocDefault,
 	                             LLVMCodeModelDefault);
 
@@ -308,10 +309,19 @@ ac_init_llvm_compiler(struct ac_llvm_compiler *compiler,
 	const char *triple;
 	memset(compiler, 0, sizeof(*compiler));
 
-	compiler->tm = ac_create_target_machine(family,
-					    tm_options, &triple);
+	compiler->tm = ac_create_target_machine(family, tm_options,
+						LLVMCodeGenLevelDefault,
+						&triple);
 	if (!compiler->tm)
 		return false;
+
+	if (tm_options & AC_TM_CREATE_LOW_OPT) {
+		compiler->low_opt_tm =
+			ac_create_target_machine(family, tm_options,
+						 LLVMCodeGenLevelLess, NULL);
+		if (!compiler->low_opt_tm)
+			goto fail;
+	}
 
 	if (okay_to_leak_target_library_info || (HAVE_LLVM >= 0x0700)) {
 		compiler->target_library_info =
@@ -341,6 +351,8 @@ ac_destroy_llvm_compiler(struct ac_llvm_compiler *compiler)
 	if (compiler->target_library_info)
 		ac_dispose_target_library_info(compiler->target_library_info);
 #endif
+	if (compiler->low_opt_tm)
+		LLVMDisposeTargetMachine(compiler->low_opt_tm);
 	if (compiler->tm)
 		LLVMDisposeTargetMachine(compiler->tm);
 }

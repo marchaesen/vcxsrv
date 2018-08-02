@@ -59,6 +59,8 @@ glsl_get_function_return_type(const struct glsl_type *type);
 const struct glsl_function_param *
 glsl_get_function_param(const struct glsl_type *type, unsigned index);
 
+GLenum glsl_get_gl_type(const struct glsl_type *type);
+
 enum glsl_base_type glsl_get_base_type(const struct glsl_type *type);
 
 unsigned glsl_get_vector_elements(const struct glsl_type *type);

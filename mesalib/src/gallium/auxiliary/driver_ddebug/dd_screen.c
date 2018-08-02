@@ -147,12 +147,13 @@ dd_screen_is_format_supported(struct pipe_screen *_screen,
                               enum pipe_format format,
                               enum pipe_texture_target target,
                               unsigned sample_count,
+                              unsigned storage_sample_count,
                               unsigned tex_usage)
 {
    struct pipe_screen *screen = dd_screen(_screen)->screen;
 
    return screen->is_format_supported(screen, format, target, sample_count,
-                                      tex_usage);
+                                      storage_sample_count, tex_usage);
 }
 
 static boolean

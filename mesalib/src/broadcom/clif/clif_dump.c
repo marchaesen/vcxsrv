@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "drm-uapi/v3d_drm.h"
 #include "clif_dump.h"
 #include "clif_private.h"
 #include "util/list.h"
@@ -51,13 +52,14 @@ clif_dump_add_address_to_worklist(struct clif_dump *clif,
 
 struct clif_dump *
 clif_dump_init(const struct v3d_device_info *devinfo,
-               FILE *out)
+               FILE *out, bool pretty)
 {
         struct clif_dump *clif = rzalloc(NULL, struct clif_dump);
 
         clif->devinfo = devinfo;
         clif->out = out;
         clif->spec = v3d_spec_load(devinfo);
+        clif->pretty = pretty;
 
         list_inithead(&clif->worklist);
 
@@ -101,23 +103,26 @@ clif_lookup_vaddr(struct clif_dump *clif, uint32_t addr, void **vaddr)
 
 static bool
 clif_dump_packet(struct clif_dump *clif, uint32_t offset, const uint8_t *cl,
-                 uint32_t *size)
+                 uint32_t *size, bool reloc_mode)
 {
         if (clif->devinfo->ver >= 41)
-                return v3d41_clif_dump_packet(clif, offset, cl, size);
+                return v3d41_clif_dump_packet(clif, offset, cl, size, reloc_mode);
         else
-                return v3d33_clif_dump_packet(clif, offset, cl, size);
+                return v3d33_clif_dump_packet(clif, offset, cl, size, reloc_mode);
 }
 
-static void
-clif_dump_cl(struct clif_dump *clif, uint32_t start, uint32_t end)
+static uint32_t
+clif_dump_cl(struct clif_dump *clif, uint32_t start, uint32_t end,
+             bool reloc_mode)
 {
-        void *start_vaddr;
-        if (!clif_lookup_vaddr(clif, start, &start_vaddr)) {
+        struct clif_bo *bo = clif_lookup_bo(clif, start);
+        if (!bo) {
                 out(clif, "Failed to look up address 0x%08x\n",
                     start);
-                return;
+                return 0;
         }
+
+        void *start_vaddr = bo->vaddr + start - bo->offset;
 
         /* The end address is optional (for example, a BRANCH instruction
          * won't set an end), but is used for BCL/RCL termination.
@@ -126,23 +131,30 @@ clif_dump_cl(struct clif_dump *clif, uint32_t start, uint32_t end)
         if (end && !clif_lookup_vaddr(clif, end, &end_vaddr)) {
                 out(clif, "Failed to look up address 0x%08x\n",
                     end);
-                return;
+                return 0;
         }
 
-        out(clif, "@format ctrllist\n");
+        if (!reloc_mode)
+                out(clif, "@format ctrllist  /* [%s+0x%08x] */\n",
+                    bo->name, start - bo->offset);
 
         uint32_t size;
         uint8_t *cl = start_vaddr;
-        while (clif_dump_packet(clif, start, cl, &size)) {
+        while (clif_dump_packet(clif, start, cl, &size, reloc_mode)) {
                 cl += size;
                 start += size;
 
                 if (cl == end_vaddr)
                         break;
         }
+
+        return (void *)cl - bo->vaddr;
 }
 
-static void
+/* Walks the worklist, parsing the relocs for any memory regions that might
+ * themselves have additional relocations.
+ */
+static uint32_t
 clif_dump_gl_shader_state_record(struct clif_dump *clif,
                                  struct reloc_worklist_entry *reloc,
                                  void *vaddr)
@@ -153,27 +165,26 @@ clif_dump_gl_shader_state_record(struct clif_dump *clif,
                                                       "GL Shader State Attribute Record");
         assert(state);
         assert(attr);
+        uint32_t offset = 0;
 
         out(clif, "@format shadrec_gl_main\n");
-        v3d_print_group(clif, state, 0, vaddr);
-        vaddr += v3d_group_get_length(state);
+        v3d_print_group(clif, state, 0, vaddr + offset);
+        offset += v3d_group_get_length(state);
 
         for (int i = 0; i < reloc->shader_state.num_attrs; i++) {
                 out(clif, "@format shadrec_gl_attr /* %d */\n", i);
-                v3d_print_group(clif, attr, 0, vaddr);
-                vaddr += v3d_group_get_length(attr);
+                v3d_print_group(clif, attr, 0, vaddr + offset);
+                offset += v3d_group_get_length(attr);
         }
+
+        return offset;
 }
 
 static void
 clif_process_worklist(struct clif_dump *clif)
 {
-        while (!list_empty(&clif->worklist)) {
-                struct reloc_worklist_entry *reloc =
-                        list_first_entry(&clif->worklist,
-                                         struct reloc_worklist_entry, link);
-                list_del(&reloc->link);
-
+        list_for_each_entry_safe(struct reloc_worklist_entry, reloc,
+                                 &clif->worklist, link) {
                 void *vaddr;
                 if (!clif_lookup_vaddr(clif, reloc->addr, &vaddr)) {
                         out(clif, "Failed to look up address 0x%08x\n",
@@ -183,27 +194,169 @@ clif_process_worklist(struct clif_dump *clif)
 
                 switch (reloc->type) {
                 case reloc_cl:
-                        clif_dump_cl(clif, reloc->addr, reloc->cl.end);
+                        clif_dump_cl(clif, reloc->addr, reloc->cl.end, true);
+                        break;
+
+                case reloc_gl_shader_state:
+                        break;
+                case reloc_generic_tile_list:
+                        clif_dump_cl(clif, reloc->addr,
+                                     reloc->generic_tile_list.end, true);
+                        break;
+                }
+        }
+}
+
+static int
+worklist_entry_compare(const void *a, const void *b)
+{
+        return ((*(struct reloc_worklist_entry **)a)->addr -
+                (*(struct reloc_worklist_entry **)b)->addr);
+}
+
+static bool
+clif_dump_if_blank(struct clif_dump *clif, struct clif_bo *bo,
+                   uint32_t start, uint32_t end)
+{
+        for (int i = start; i < end; i++) {
+                if (((uint8_t *)bo->vaddr)[i] != 0)
+                        return false;
+        }
+
+        out(clif, "\n");
+        out(clif, "@format blank %d /* [%s+0x%08x..0x%08x] */\n", end - start,
+            bo->name, start, end - 1);
+        return true;
+}
+
+/* Dumps the binary data in the BO from start to end (relative to the start of
+ * the BO).
+ */
+static void
+clif_dump_binary(struct clif_dump *clif, struct clif_bo *bo,
+                 uint32_t start, uint32_t end)
+{
+        if (start == end)
+                return;
+
+        if (clif_dump_if_blank(clif, bo, start, end))
+                return;
+
+        out(clif, "@format binary /* [%s+0x%08x] */\n",
+            bo->name, start);
+
+        uint32_t offset = start;
+        int dumped_in_line = 0;
+        while (offset < end) {
+                if (clif_dump_if_blank(clif, bo, offset, end))
+                        return;
+
+                if (end - offset >= 4) {
+                        out(clif, "0x%08x ", *(uint32_t *)(bo->vaddr + offset));
+                        offset += 4;
+                } else {
+                        out(clif, "0x%02x ", *(uint8_t *)(bo->vaddr + offset));
+                        offset++;
+                }
+
+                if (++dumped_in_line == 8) {
+                        out(clif, "\n");
+                        dumped_in_line = 0;
+                }
+        }
+        if (dumped_in_line)
+                out(clif, "\n");
+}
+
+/* Walks the list of relocations, dumping each buffer's contents (using our
+ * codegenned dump routines for pretty printing, and most importantly proper
+ * address references so that the CLIF parser can relocate buffers).
+ */
+static void
+clif_dump_buffers(struct clif_dump *clif)
+{
+        int num_relocs = 0;
+        list_for_each_entry(struct reloc_worklist_entry, reloc,
+                            &clif->worklist, link) {
+                num_relocs++;
+        }
+        struct reloc_worklist_entry **relocs =
+                ralloc_array(clif, struct reloc_worklist_entry *, num_relocs);
+        int i = 0;
+        list_for_each_entry(struct reloc_worklist_entry, reloc,
+                            &clif->worklist, link) {
+                relocs[i++] = reloc;
+        }
+        qsort(relocs, num_relocs, sizeof(*relocs), worklist_entry_compare);
+
+        struct clif_bo *bo = NULL;
+        uint32_t offset = 0;
+
+        for (i = 0; i < num_relocs; i++) {
+                struct reloc_worklist_entry *reloc = relocs[i];
+                struct clif_bo *new_bo = clif_lookup_bo(clif, reloc->addr);
+
+                if (!new_bo) {
+                        out(clif, "Failed to look up address 0x%08x\n",
+                            reloc->addr);
+                        continue;
+                }
+
+                if (new_bo != bo) {
+                        if (bo) {
+                                /* Finish out the last of the last BO. */
+                                clif_dump_binary(clif, bo,
+                                                 offset,
+                                                 bo->size);
+                        }
+
+                        out(clif, "\n");
+                        out(clif, "@buffer %s\n", new_bo->name);
+                        bo = new_bo;
+                        offset = 0;
+                        bo->dumped = true;
+                }
+
+                int reloc_offset = reloc->addr - bo->offset;
+                if (offset != reloc_offset)
+                        clif_dump_binary(clif, bo, offset, reloc_offset);
+                offset = reloc_offset;
+
+                switch (reloc->type) {
+                case reloc_cl:
+                        offset = clif_dump_cl(clif, reloc->addr, reloc->cl.end,
+                                              false);
                         out(clif, "\n");
                         break;
 
                 case reloc_gl_shader_state:
-                        clif_dump_gl_shader_state_record(clif,
-                                                         reloc,
-                                                         vaddr);
+                        offset += clif_dump_gl_shader_state_record(clif,
+                                                                   reloc,
+                                                                   bo->vaddr +
+                                                                   offset);
                         break;
                 case reloc_generic_tile_list:
-                        clif_dump_cl(clif, reloc->addr,
-                                     reloc->generic_tile_list.end);
+                        offset = clif_dump_cl(clif, reloc->addr,
+                                              reloc->generic_tile_list.end,
+                                              false);
                         break;
                 }
                 out(clif, "\n");
         }
-}
 
-void clif_dump(struct clif_dump *clif)
-{
-        clif_process_worklist(clif);
+        if (bo) {
+                clif_dump_binary(clif, bo, offset, bo->size);
+        }
+
+        /* For any BOs that didn't have relocations, just dump them raw. */
+        for (int i = 0; i < clif->bo_count; i++) {
+                bo = &clif->bo[i];
+                if (bo->dumped)
+                        continue;
+                out(clif, "@buffer %s\n", bo->name);
+                clif_dump_binary(clif, bo, 0, bo->size);
+                out(clif, "\n");
+        }
 }
 
 void
@@ -213,6 +366,59 @@ clif_dump_add_cl(struct clif_dump *clif, uint32_t start, uint32_t end)
                 clif_dump_add_address_to_worklist(clif, reloc_cl, start);
 
         entry->cl.end = end;
+}
+
+static int
+clif_bo_offset_compare(const void *a, const void *b)
+{
+        return ((struct clif_bo *)a)->offset - ((struct clif_bo *)b)->offset;
+}
+
+void
+clif_dump(struct clif_dump *clif, const struct drm_v3d_submit_cl *submit)
+{
+        clif_dump_add_cl(clif, submit->bcl_start, submit->bcl_end);
+        clif_dump_add_cl(clif, submit->rcl_start, submit->rcl_end);
+
+        qsort(clif->bo, clif->bo_count, sizeof(clif->bo[0]),
+              clif_bo_offset_compare);
+
+        /* A buffer needs to be defined before we can emit a CLIF address
+         * referencing it, so emit them all now.
+         */
+        for (int i = 0; i < clif->bo_count; i++) {
+                out(clif, "@createbuf_aligned 4096 %s\n", clif->bo[i].name);
+        }
+
+        /* Walk the worklist figuring out the locations of structs based on
+         * the CL contents.
+         */
+        clif_process_worklist(clif);
+
+        /* Dump the contents of the buffers using the relocations we found to
+         * pretty-print structures.
+         */
+        clif_dump_buffers(clif);
+
+        out(clif, "@add_bin 0\n  ");
+        out_address(clif, submit->bcl_start);
+        out(clif, "\n  ");
+        out_address(clif, submit->bcl_end);
+        out(clif, "\n  ");
+        out_address(clif, submit->qma);
+        out(clif, "\n  %d\n  ", submit->qms);
+        out_address(clif, submit->qts);
+        out(clif, "\n");
+        out(clif, "@wait_bin_all_cores\n");
+
+        out(clif, "@add_render 0\n  ");
+        out_address(clif, submit->rcl_start);
+        out(clif, "\n  ");
+        out_address(clif, submit->rcl_end);
+        out(clif, "\n  ");
+        out_address(clif, submit->qma);
+        out(clif, "\n");
+        out(clif, "@wait_render_all_cores\n");
 }
 
 void
@@ -225,9 +431,14 @@ clif_dump_add_bo(struct clif_dump *clif, const char *name,
                                     clif->bo_array_size);
         }
 
+        /* CLIF relocs use the buffer name, so make sure they're unique. */
+        for (int i = 0; i < clif->bo_count; i++)
+                assert(strcmp(clif->bo[i].name, name) != 0);
+
         clif->bo[clif->bo_count].name = ralloc_strdup(clif, name);
         clif->bo[clif->bo_count].offset = offset;
         clif->bo[clif->bo_count].size = size;
         clif->bo[clif->bo_count].vaddr = vaddr;
+        clif->bo[clif->bo_count].dumped = false;
         clif->bo_count++;
 }

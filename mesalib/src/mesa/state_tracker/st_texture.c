@@ -79,7 +79,7 @@ st_texture_create(struct st_context *st,
        (int) target, util_format_name(format), last_level);
 
    assert(format);
-   assert(screen->is_format_supported(screen, format, target, 0,
+   assert(screen->is_format_supported(screen, format, target, 0, 0,
                                       PIPE_BIND_SAMPLER_VIEW));
 
    memset(&pt, 0, sizeof(pt));
@@ -95,6 +95,7 @@ st_texture_create(struct st_context *st,
    /* only set this for OpenGL textures, not renderbuffers */
    pt.flags = PIPE_RESOURCE_FLAG_TEXTURING_MORE_LIKELY;
    pt.nr_samples = nr_samples;
+   pt.nr_storage_samples = nr_samples;
 
    newtex = screen->resource_create(screen, &pt);
 

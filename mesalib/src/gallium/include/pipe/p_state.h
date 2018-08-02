@@ -519,7 +519,6 @@ struct pipe_box
 struct pipe_resource
 {
    struct pipe_reference reference;
-   struct pipe_screen *screen; /**< screen that this texture belongs to */
 
    unsigned width0; /**< Used by both buffers and textures. */
    uint16_t height0; /* Textures: The maximum height/depth/array_size is 16k. */
@@ -529,9 +528,20 @@ struct pipe_resource
    enum pipe_format format:16;         /**< PIPE_FORMAT_x */
    enum pipe_texture_target target:8; /**< PIPE_TEXTURE_x */
    unsigned last_level:8;    /**< Index of last mipmap level present/defined */
-   unsigned nr_samples:8;    /**< for multisampled surfaces, nr of samples */
-   unsigned usage:8;         /**< PIPE_USAGE_x (not a bitmask) */
 
+   /** Number of samples determining quality, driving rasterizer, shading,
+    *  and framebuffer.
+    */
+   unsigned nr_samples:8;
+
+   /** Multiple samples within a pixel can have the same value.
+    *  nr_storage_samples determines how many slots for different values
+    *  there are per pixel. Only color buffers can set this lower than
+    *  nr_samples.
+    */
+   unsigned nr_storage_samples:8;
+
+   unsigned usage:8;         /**< PIPE_USAGE_x (not a bitmask) */
    unsigned bind;            /**< bitmask of PIPE_BIND_x */
    unsigned flags;           /**< bitmask of PIPE_RESOURCE_FLAG_x */
 
@@ -540,6 +550,8 @@ struct pipe_resource
     * next plane.
     */
    struct pipe_resource *next;
+   /* The screen pointer should be last for optimal structure packing. */
+   struct pipe_screen *screen; /**< screen that this texture belongs to */
 };
 
 

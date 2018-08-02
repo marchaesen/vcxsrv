@@ -559,7 +559,7 @@ init_format_extensions(struct pipe_screen *screen,
       /* Examine each format in the list. */
       for (j = 0; j < num_formats && mapping[i].format[j]; j++) {
          if (screen->is_format_supported(screen, mapping[i].format[j],
-                                         target, 0, bind_flags)) {
+                                         target, 0, 0, bind_flags)) {
             num_supported++;
          }
       }
@@ -592,7 +592,7 @@ get_max_samples_for_formats(struct pipe_screen *screen,
    for (i = max_samples; i > 0; --i) {
       for (f = 0; f < num_formats; f++) {
          if (screen->is_format_supported(screen, formats[f],
-                                         PIPE_TEXTURE_2D, i, bind)) {
+                                         PIPE_TEXTURE_2D, i, i, bind)) {
             return i;
          }
       }
@@ -801,6 +801,11 @@ void st_init_extensions(struct pipe_screen *screen,
           PIPE_FORMAT_ASTC_10x10_SRGB,
           PIPE_FORMAT_ASTC_12x10_SRGB,
           PIPE_FORMAT_ASTC_12x12_SRGB } },
+
+      /* ASTC software fallback support. */
+      { { o(KHR_texture_compression_astc_ldr) },
+        { PIPE_FORMAT_R8G8B8A8_UNORM,
+          PIPE_FORMAT_R8G8B8A8_SRGB } },
 
       { { o(EXT_texture_shared_exponent) },
         { PIPE_FORMAT_R9G9B9E5_FLOAT } },
@@ -1222,22 +1227,22 @@ void st_init_extensions(struct pipe_screen *screen,
                                 PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS) >= 16 &&
        /* Requirements for ETC2 emulation. */
        screen->is_format_supported(screen, PIPE_FORMAT_R8G8B8A8_UNORM,
-                                   PIPE_TEXTURE_2D, 0,
+                                   PIPE_TEXTURE_2D, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW) &&
        screen->is_format_supported(screen, PIPE_FORMAT_B8G8R8A8_SRGB,
-                                   PIPE_TEXTURE_2D, 0,
+                                   PIPE_TEXTURE_2D, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW) &&
        screen->is_format_supported(screen, PIPE_FORMAT_R16_UNORM,
-                                   PIPE_TEXTURE_2D, 0,
+                                   PIPE_TEXTURE_2D, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW) &&
        screen->is_format_supported(screen, PIPE_FORMAT_R16G16_UNORM,
-                                   PIPE_TEXTURE_2D, 0,
+                                   PIPE_TEXTURE_2D, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW) &&
        screen->is_format_supported(screen, PIPE_FORMAT_R16_SNORM,
-                                   PIPE_TEXTURE_2D, 0,
+                                   PIPE_TEXTURE_2D, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW) &&
        screen->is_format_supported(screen, PIPE_FORMAT_R16G16_SNORM,
-                                   PIPE_TEXTURE_2D, 0,
+                                   PIPE_TEXTURE_2D, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW)) {
       extensions->ARB_ES3_compatibility = GL_TRUE;
    }

@@ -33,6 +33,7 @@ struct clif_bo {
         uint32_t offset;
         uint32_t size;
         void *vaddr;
+        bool dumped;
 };
 
 struct clif_dump {
@@ -47,6 +48,12 @@ struct clif_dump {
         struct clif_bo *bo;
         int bo_count;
         int bo_array_size;
+
+        /**
+         * Flag to switch from CLIF ABI to slightly more human-readable
+         * output.
+         */
+        bool pretty;
 };
 
 enum reloc_worklist_type {
@@ -83,11 +90,11 @@ clif_dump_add_address_to_worklist(struct clif_dump *clif,
                                   uint32_t addr);
 
 bool v3d33_clif_dump_packet(struct clif_dump *clif, uint32_t offset,
-                            const uint8_t *cl, uint32_t *size);
+                            const uint8_t *cl, uint32_t *size, bool reloc_mode);
 bool v3d41_clif_dump_packet(struct clif_dump *clif, uint32_t offset,
-                            const uint8_t *cl, uint32_t *size);
+                            const uint8_t *cl, uint32_t *size, bool reloc_mode);
 bool v3d42_clif_dump_packet(struct clif_dump *clif, uint32_t offset,
-                            const uint8_t *cl, uint32_t *size);
+                            const uint8_t *cl, uint32_t *size, bool reloc_mode);
 
 static inline void
 out(struct clif_dump *clif, const char *fmt, ...)
@@ -97,6 +104,20 @@ out(struct clif_dump *clif, const char *fmt, ...)
         va_start(args, fmt);
         vfprintf(clif->out, fmt, args);
         va_end(args);
+}
+
+static inline void
+out_address(struct clif_dump *clif, uint32_t addr)
+{
+        struct clif_bo *bo = clif_lookup_bo(clif, addr);
+        if (bo) {
+                out(clif, "[%s+0x%08x] /* 0x%08x */",
+                    bo->name, addr - bo->offset, addr);
+        } else if (addr) {
+                out(clif, "/* XXX: BO unknown */ 0x%08x", addr);
+        } else {
+                out(clif, "[null]");
+        }
 }
 
 #endif /* CLIF_PRIVATE_H */

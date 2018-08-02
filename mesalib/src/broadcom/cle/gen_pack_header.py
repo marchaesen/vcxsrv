@@ -152,6 +152,8 @@ class Field(object):
             type = 'bool'
         elif self.type == 'float':
             type = 'float'
+        elif self.type == 'f187':
+            type = 'float'
         elif self.type == 'ufixed':
             type = 'float'
         elif self.type == 'sfixed':
@@ -317,6 +319,9 @@ class Group(object):
                         (value, start, end)
                 elif field.type == "float":
                     s = "#error %s float value mixed in with other fields" % name
+                elif field.type == "f187":
+                    s = "__gen_uint(fui(%s) >> 16, %d, %d)" % \
+                        (value, start, end)
                 elif field.type == "offset":
                     s = "__gen_offset(%s, %d, %d)" % \
                         (value, start, end)
@@ -370,6 +375,8 @@ class Group(object):
                     convert = "__gen_unpack_uint"
                 elif field.type == "float":
                     convert = "__gen_unpack_float"
+                elif field.type == "f187":
+                    convert = "__gen_unpack_f187"
                 elif field.type == "offset":
                     convert = "__gen_unpack_offset"
                 elif field.type == 'ufixed':

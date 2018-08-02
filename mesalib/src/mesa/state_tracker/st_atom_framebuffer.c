@@ -95,7 +95,7 @@ framebuffer_quantize_num_samples(struct st_context *st, unsigned num_samples)
        * drivers callback must be adjusted for this.
        */
       if (screen->is_format_supported(screen, PIPE_FORMAT_NONE,
-                                      PIPE_TEXTURE_2D, msaa_mode,
+                                      PIPE_TEXTURE_2D, msaa_mode, msaa_mode,
                                       PIPE_BIND_RENDER_TARGET))
          quantized_samples = msaa_mode;
    }
