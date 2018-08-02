@@ -506,6 +506,8 @@ enum tgsi_opcode {
 
    TGSI_OPCODE_LOAD               = 161,
    TGSI_OPCODE_STORE              = 162,
+   TGSI_OPCODE_IMG2HND            = 163,
+   TGSI_OPCODE_SAMP2HND           = 164,
    /* gap */
    TGSI_OPCODE_BARRIER            = 166,
 

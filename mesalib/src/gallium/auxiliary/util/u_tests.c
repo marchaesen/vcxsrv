@@ -55,6 +55,7 @@ util_create_texture2d(struct pipe_screen *screen, unsigned width,
    templ.depth0 = 1;
    templ.array_size = 1;
    templ.nr_samples = num_samples;
+   templ.nr_storage_samples = num_samples;
    templ.format = format;
    templ.usage = PIPE_USAGE_DEFAULT;
    templ.bind = PIPE_BIND_SAMPLER_VIEW |
@@ -621,8 +622,8 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
 
    assert(num_samples >= 1 && num_samples <= 8);
 
-   snprintf(name, sizeof(name), "%s: %s, %u samples", __func__,
-            use_fbfetch ? "FBFETCH" : "sampler", MAX2(num_samples, 1));
+   util_snprintf(name, sizeof(name), "%s: %s, %u samples", __func__,
+                 use_fbfetch ? "FBFETCH" : "sampler", MAX2(num_samples, 1));
 
    if (!ctx->screen->get_param(ctx->screen, PIPE_CAP_TEXTURE_BARRIER)) {
       util_report_result_helper(SKIP, name);

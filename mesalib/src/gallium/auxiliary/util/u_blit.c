@@ -551,6 +551,7 @@ util_blit_pixels_tex(struct blit_state *ctx,
    assert(ctx->pipe->screen->is_format_supported(ctx->pipe->screen, dst->format,
                                                  PIPE_TEXTURE_2D,
                                                  dst->texture->nr_samples,
+                                                 dst->texture->nr_storage_samples,
                                                  PIPE_BIND_RENDER_TARGET));
 
    /* save state (restored below) */

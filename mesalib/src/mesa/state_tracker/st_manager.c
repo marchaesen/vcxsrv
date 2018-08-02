@@ -472,6 +472,7 @@ st_framebuffer_create(struct st_context *st,
           st_pipe_format_to_mesa_format(srgb_format) != MESA_FORMAT_NONE &&
           screen->is_format_supported(screen, srgb_format,
                                       PIPE_TEXTURE_2D, stfbi->visual->samples,
+                                      stfbi->visual->samples,
                                       (PIPE_BIND_DISPLAY_TARGET |
                                        PIPE_BIND_RENDER_TARGET)))
          mode.sRGBCapable = GL_TRUE;

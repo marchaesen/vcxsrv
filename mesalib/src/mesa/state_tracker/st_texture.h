@@ -42,9 +42,9 @@ struct pipe_resource;
 struct st_texture_image_transfer {
    struct pipe_transfer *transfer;
 
-   /* For ETC fallback. */
-   GLubyte *temp_data; /**< Temporary ETC texture storage. */
-   unsigned temp_stride; /**< Stride of the ETC texture storage. */
+   /* For compressed texture fallback. */
+   GLubyte *temp_data; /**< Temporary compressed texture storage. */
+   unsigned temp_stride; /**< Stride of the compressed texture storage. */
    GLubyte *map; /**< Saved map pointer of the uncompressed transfer. */
 };
 
@@ -90,10 +90,11 @@ struct st_texture_image
    struct st_texture_image_transfer *transfer;
    unsigned num_transfers;
 
-   /* For ETC images, keep track of the original data. This is necessary for
-    * mapping/unmapping, as well as image copies.
+   /* For compressed images unsupported by the driver. Keep track of
+    * the original data. This is necessary for mapping/unmapping,
+    * as well as image copies.
     */
-   GLubyte *etc_data;
+   GLubyte *compressed_data;
 };
 
 
@@ -315,7 +316,7 @@ void
 st_destroy_bound_image_handles(struct st_context *st);
 
 bool
-st_etc_fallback(struct st_context *st, struct gl_texture_image *texImage);
+st_compressed_format_fallback(struct st_context *st, mesa_format format);
 
 void
 st_convert_image(const struct st_context *st, const struct gl_image_unit *u,

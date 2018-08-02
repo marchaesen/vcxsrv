@@ -120,6 +120,7 @@ struct st_context
    boolean has_shader_model3;
    boolean has_etc1;
    boolean has_etc2;
+   boolean has_astc_2d_ldr;
    boolean prefer_blit_based_texture_transfer;
    boolean force_persample_in_shader;
    boolean has_shareable_shaders;

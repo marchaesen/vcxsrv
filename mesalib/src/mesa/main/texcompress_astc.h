@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017 Intel Corporation
+ * Copyright 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -17,37 +17,31 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
  * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef GL_NIR_LINKER_H
-#define GL_NIR_LINKER_H
+#ifndef TEXCOMPRESS_ASTC_H
+#define TEXCOMPRESS_ASTC_H
+
+#include <inttypes.h>
+#include "texcompress.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct gl_context;
-struct gl_shader_program;
-
-bool gl_nir_link_uniforms(struct gl_context *ctx,
-                          struct gl_shader_program *prog);
-
-void gl_nir_set_uniform_initializers(struct gl_context *ctx,
-                                     struct gl_shader_program *prog);
-
-void nir_build_program_resource_list(struct gl_context *ctx,
-                                     struct gl_shader_program *prog);
-
-void gl_nir_link_assign_atomic_counter_resources(struct gl_context *ctx,
-                                                 struct gl_shader_program *prog);
-
-void gl_nir_link_assign_xfb_resources(struct gl_context *ctx,
-                                      struct gl_shader_program *prog);
+void
+_mesa_unpack_astc_2d_ldr(uint8_t *dst_row,
+                         unsigned dst_stride,
+                         const uint8_t *src_row,
+                         unsigned src_stride,
+                         unsigned src_width,
+                         unsigned src_height,
+                         mesa_format format);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}
 #endif
 
-#endif /* GL_NIR_LINKER_H */
+#endif

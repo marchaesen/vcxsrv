@@ -26,6 +26,7 @@
 #include "compiler/glsl/glsl_parser_extras.h"
 #include "glsl_types.h"
 #include "util/hash_table.h"
+#include "util/u_string.h"
 
 
 mtx_t glsl_type::hash_mutex = _MTX_INITIALIZER_NP;
@@ -459,7 +460,7 @@ glsl_type::glsl_type(const glsl_type *array, unsigned length) :
    char *const n = (char *) ralloc_size(this->mem_ctx, name_length);
 
    if (length == 0)
-      snprintf(n, name_length, "%s[]", array->name);
+      util_snprintf(n, name_length, "%s[]", array->name);
    else {
       /* insert outermost dimensions in the correct spot
        * otherwise the dimension order will be backwards
@@ -467,11 +468,11 @@ glsl_type::glsl_type(const glsl_type *array, unsigned length) :
       const char *pos = strchr(array->name, '[');
       if (pos) {
          int idx = pos - array->name;
-         snprintf(n, idx+1, "%s", array->name);
-         snprintf(n + idx, name_length - idx, "[%u]%s",
-                  length, array->name + idx);
+         util_snprintf(n, idx+1, "%s", array->name);
+         util_snprintf(n + idx, name_length - idx, "[%u]%s",
+                       length, array->name + idx);
       } else {
-         snprintf(n, name_length, "%s[%u]", array->name, length);
+         util_snprintf(n, name_length, "%s[%u]", array->name, length);
       }
    }
 
@@ -853,7 +854,7 @@ glsl_type::get_array_instance(const glsl_type *base, unsigned array_size)
     * named 'foo'.
     */
    char key[128];
-   snprintf(key, sizeof(key), "%p[%u]", (void *) base, array_size);
+   util_snprintf(key, sizeof(key), "%p[%u]", (void *) base, array_size);
 
    mtx_lock(&glsl_type::hash_mutex);
 

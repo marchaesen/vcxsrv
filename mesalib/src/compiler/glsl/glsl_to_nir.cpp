@@ -440,6 +440,10 @@ nir_visitor::visit(ir_variable *ir)
    var->data.image.restrict_flag = ir->data.memory_restrict;
    var->data.image.format = ir->data.image_format;
    var->data.fb_fetch_output = ir->data.fb_fetch_output;
+   var->data.explicit_xfb_buffer = ir->data.explicit_xfb_buffer;
+   var->data.explicit_xfb_stride = ir->data.explicit_xfb_stride;
+   var->data.xfb_buffer = ir->data.xfb_buffer;
+   var->data.xfb_stride = ir->data.xfb_stride;
 
    var->num_state_slots = ir->get_num_state_slots();
    if (var->num_state_slots > 0) {

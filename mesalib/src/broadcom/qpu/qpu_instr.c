@@ -526,6 +526,14 @@ v3d_qpu_magic_waddr_is_tmu(enum v3d_qpu_waddr waddr)
 }
 
 bool
+v3d_qpu_waits_on_tmu(const struct v3d_qpu_instr *inst)
+{
+        return (inst->sig.ldtmu ||
+                (inst->type == V3D_QPU_INSTR_TYPE_ALU &&
+                 inst->alu.add.op == V3D_QPU_A_TMUWT));
+}
+
+bool
 v3d_qpu_magic_waddr_is_tlb(enum v3d_qpu_waddr waddr)
 {
         return (waddr == V3D_QPU_WADDR_TLB ||

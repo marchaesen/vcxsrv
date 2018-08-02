@@ -131,6 +131,18 @@ ir_save_lvalue_visitor::visit_enter(ir_dereference_array *deref)
    return visit_stop;
 }
 
+static bool
+should_replace_variable(ir_variable *sig_param, ir_rvalue *param) {
+   /* For opaque types, we want the inlined variable references
+    * referencing the passed in variable, since that will have
+    * the location information, which an assignment of an opaque
+    * variable wouldn't.
+    */
+   return sig_param->type->contains_opaque() &&
+          param->is_dereference() &&
+          sig_param->data.mode == ir_var_function_in;
+}
+
 void
 ir_call::generate_inline(ir_instruction *next_ir)
 {
@@ -155,12 +167,8 @@ ir_call::generate_inline(ir_instruction *next_ir)
       ir_rvalue *param = (ir_rvalue *) actual_node;
 
       /* Generate a new variable for the parameter. */
-      if (sig_param->type->contains_opaque()) {
-	 /* For opaque types, we want the inlined variable references
-	  * referencing the passed in variable, since that will have
-	  * the location information, which an assignment of an opaque
-	  * variable wouldn't.  Fix it up below.
-	  */
+      if (should_replace_variable(sig_param, param)) {
+         /* Actual replacement happens below */
 	 parameters[i] = NULL;
       } else {
 	 parameters[i] = sig_param->clone(ctx, ht);
@@ -242,10 +250,9 @@ ir_call::generate_inline(ir_instruction *next_ir)
       ir_rvalue *const param = (ir_rvalue *) actual_node;
       ir_variable *sig_param = (ir_variable *) formal_node;
 
-      if (sig_param->type->contains_opaque()) {
+      if (should_replace_variable(sig_param, param)) {
 	 ir_dereference *deref = param->as_dereference();
 
-	 assert(deref);
 	 do_variable_replacement(&new_instructions, sig_param, deref);
       }
    }
@@ -351,6 +358,9 @@ public:
    virtual ir_visitor_status visit_leave(ir_dereference_array *);
    virtual ir_visitor_status visit_leave(ir_dereference_record *);
    virtual ir_visitor_status visit_leave(ir_texture *);
+   virtual ir_visitor_status visit_leave(ir_assignment *);
+   virtual ir_visitor_status visit_leave(ir_expression *);
+   virtual ir_visitor_status visit_leave(ir_return *);
 
    void replace_deref(ir_dereference **deref);
    void replace_rvalue(ir_rvalue **rvalue);
@@ -387,6 +397,32 @@ ir_visitor_status
 ir_variable_replacement_visitor::visit_leave(ir_texture *ir)
 {
    replace_deref(&ir->sampler);
+
+   return visit_continue;
+}
+
+ir_visitor_status
+ir_variable_replacement_visitor::visit_leave(ir_assignment *ir)
+{
+   replace_deref(&ir->lhs);
+   replace_rvalue(&ir->rhs);
+
+   return visit_continue;
+}
+
+ir_visitor_status
+ir_variable_replacement_visitor::visit_leave(ir_expression *ir)
+{
+   for (uint8_t i = 0; i < ir->num_operands; i++)
+      replace_rvalue(&ir->operands[i]);
+
+   return visit_continue;
+}
+
+ir_visitor_status
+ir_variable_replacement_visitor::visit_leave(ir_return *ir)
+{
+   replace_rvalue(&ir->value);
 
    return visit_continue;
 }

@@ -1475,10 +1475,12 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
          if (screen->is_format_supported(screen, blit.src.format,
                                          blit.src.resource->target,
                                          blit.src.resource->nr_samples,
+                                         blit.src.resource->nr_storage_samples,
                                          PIPE_BIND_SAMPLER_VIEW) &&
              screen->is_format_supported(screen, blit.dst.format,
                                          blit.dst.resource->target,
                                          blit.dst.resource->nr_samples,
+                                         blit.dst.resource->nr_storage_samples,
                                          PIPE_BIND_RENDER_TARGET)) {
             pipe->blit(pipe, &blit);
             return GL_TRUE;
@@ -1578,7 +1580,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       (type == GL_COLOR ? PIPE_BIND_RENDER_TARGET : PIPE_BIND_DEPTH_STENCIL);
 
    if (!screen->is_format_supported(screen, srcFormat, st->internal_target, 0,
-                                    srcBind)) {
+                                    0, srcBind)) {
       /* srcFormat is non-renderable. Find a compatible renderable format. */
       if (type == GL_DEPTH) {
          srcFormat = st_choose_format(st, GL_DEPTH_COMPONENT, GL_NONE,

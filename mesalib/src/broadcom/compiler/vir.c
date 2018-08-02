@@ -98,6 +98,7 @@ vir_has_side_effects(struct v3d_compile *c, struct qinst *inst)
                 case V3D_QPU_A_STVPMD:
                 case V3D_QPU_A_STVPMP:
                 case V3D_QPU_A_VPMWT:
+                case V3D_QPU_A_TMUWT:
                         return true;
                 default:
                         break;
@@ -193,6 +194,11 @@ vir_is_tex(struct qinst *inst)
 {
         if (inst->dst.file == QFILE_MAGIC)
                 return v3d_qpu_magic_waddr_is_tmu(inst->dst.index);
+
+        if (inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU &&
+            inst->qpu.alu.add.op == V3D_QPU_A_TMUWT) {
+                return true;
+        }
 
         return false;
 }

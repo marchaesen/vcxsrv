@@ -721,6 +721,9 @@ _mesa_is_format_integer(mesa_format format);
 extern bool
 _mesa_is_format_etc2(mesa_format format);
 
+bool
+_mesa_is_format_astc_2d(mesa_format format);
+
 GLenum
 _mesa_is_format_color_format(mesa_format format);
 

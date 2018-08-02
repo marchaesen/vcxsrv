@@ -112,7 +112,7 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
    if (texture->nr_samples > 1)
       return false;
 
-   if (!screen->is_format_supported(screen, dst_format, PIPE_BUFFER, 0,
+   if (!screen->is_format_supported(screen, dst_format, PIPE_BUFFER, 0, 0,
                                     PIPE_BIND_SHADER_IMAGE))
       return false;
 
@@ -449,7 +449,7 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
 
    if (!src_format ||
        !screen->is_format_supported(screen, src_format, src->target,
-                                    src->nr_samples,
+                                    src->nr_samples, src->nr_storage_samples,
                                     PIPE_BIND_SAMPLER_VIEW)) {
       goto fallback;
    }

@@ -111,10 +111,10 @@ fcobjshash.gperf: Makefile stamp-fcobjshash.gperf
 stamp-fcobjshash.gperf: fcobjshash.gperf.h fcobjs.h
 	$(AM_V_GEN) $(CPP) -I$(top_srcdir) $(CPPFLAGS) $< | \
 	$(SED) 's/^ *//;s/ *, */,/' | \
-	$(GREP) '^[^#]' | \
 	awk ' \
 		/CUT_OUT_BEGIN/ { no_write=1; next; }; \
 		/CUT_OUT_END/ { no_write=0; next; }; \
+		/^$$/||/^#/ { next; }; \
 		{ if (!no_write) print; next; }; \
 	' - > $@.tmp && \
 	mv -f $@.tmp fcobjshash.gperf && touch $@ || ( $(RM) $@.tmp && false )

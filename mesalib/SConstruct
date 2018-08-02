@@ -28,6 +28,12 @@ import SCons.Util
 import common
 
 #######################################################################
+# Minimal scons version
+
+EnsureSConsVersion(2, 4)
+
+
+#######################################################################
 # Configuration options
 
 opts = Variables('config.py')

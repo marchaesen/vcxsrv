@@ -1182,7 +1182,7 @@ void util_blitter_cache_all_shaders(struct blitter_context *blitter)
             /* MSAA resolve shaders. */
             for (j = 2; j < 32; j++) {
                if (!screen->is_format_supported(screen, PIPE_FORMAT_R32_FLOAT,
-                                                target, j,
+                                                target, j, j,
                                                 PIPE_BIND_SAMPLER_VIEW)) {
                   continue;
                }
@@ -1539,7 +1539,8 @@ static bool is_blit_generic_supported(struct blitter_context *blitter,
          bind = PIPE_BIND_RENDER_TARGET;
 
       if (!screen->is_format_supported(screen, dst_format, dst->target,
-                                       dst->nr_samples, bind)) {
+                                       dst->nr_samples, dst->nr_storage_samples,
+                                       bind)) {
          return false;
       }
    }
@@ -1550,7 +1551,8 @@ static bool is_blit_generic_supported(struct blitter_context *blitter,
       }
 
       if (!screen->is_format_supported(screen, src_format, src->target,
-                                 src->nr_samples, PIPE_BIND_SAMPLER_VIEW)) {
+                                       src->nr_samples, src->nr_storage_samples,
+                                       PIPE_BIND_SAMPLER_VIEW)) {
          return false;
       }
 
@@ -1564,6 +1566,7 @@ static bool is_blit_generic_supported(struct blitter_context *blitter,
             if (stencil_format != src_format &&
                 !screen->is_format_supported(screen, stencil_format,
                                              src->target, src->nr_samples,
+                                             src->nr_storage_samples,
                                              PIPE_BIND_SAMPLER_VIEW)) {
                return false;
             }

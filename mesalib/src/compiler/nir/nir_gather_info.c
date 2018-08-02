@@ -288,6 +288,11 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_end_primitive_with_counter:
       assert(shader->info.stage == MESA_SHADER_GEOMETRY);
       shader->info.gs.uses_end_primitive = 1;
+
+   case nir_intrinsic_emit_vertex:
+      if (nir_intrinsic_stream_id(instr) > 0)
+         shader->info.gs.uses_streams = true;
+
       break;
 
    default:

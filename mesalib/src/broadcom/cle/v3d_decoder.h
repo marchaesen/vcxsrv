@@ -99,6 +99,7 @@ struct v3d_type {
                 V3D_TYPE_UINT,
                 V3D_TYPE_BOOL,
                 V3D_TYPE_FLOAT,
+                V3D_TYPE_F187,
                 V3D_TYPE_ADDRESS,
                 V3D_TYPE_OFFSET,
                 V3D_TYPE_STRUCT,

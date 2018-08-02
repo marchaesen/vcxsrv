@@ -27,6 +27,7 @@
 #include "glsl_parser_extras.h"
 #include "main/macros.h"
 #include "util/hash_table.h"
+#include "util/u_string.h"
 
 static void print_type(FILE *f, const glsl_type *t);
 
@@ -167,31 +168,32 @@ void ir_print_visitor::visit(ir_variable *ir)
 
    char binding[32] = {0};
    if (ir->data.binding)
-      snprintf(binding, sizeof(binding), "binding=%i ", ir->data.binding);
+      util_snprintf(binding, sizeof(binding), "binding=%i ", ir->data.binding);
 
    char loc[32] = {0};
    if (ir->data.location != -1)
-      snprintf(loc, sizeof(loc), "location=%i ", ir->data.location);
+      util_snprintf(loc, sizeof(loc), "location=%i ", ir->data.location);
 
    char component[32] = {0};
    if (ir->data.explicit_component || ir->data.location_frac != 0)
-      snprintf(component, sizeof(component), "component=%i ", ir->data.location_frac);
+      util_snprintf(component, sizeof(component), "component=%i ",
+                    ir->data.location_frac);
 
    char stream[32] = {0};
    if (ir->data.stream & (1u << 31)) {
       if (ir->data.stream & ~(1u << 31)) {
-         snprintf(stream, sizeof(stream), "stream(%u,%u,%u,%u) ",
-                  ir->data.stream & 3, (ir->data.stream >> 2) & 3,
-                  (ir->data.stream >> 4) & 3, (ir->data.stream >> 6) & 3);
+         util_snprintf(stream, sizeof(stream), "stream(%u,%u,%u,%u) ",
+                       ir->data.stream & 3, (ir->data.stream >> 2) & 3,
+                       (ir->data.stream >> 4) & 3, (ir->data.stream >> 6) & 3);
       }
    } else if (ir->data.stream) {
-      snprintf(stream, sizeof(stream), "stream%u ", ir->data.stream);
+      util_snprintf(stream, sizeof(stream), "stream%u ", ir->data.stream);
    }
 
    char image_format[32] = {0};
    if (ir->data.image_format) {
-      snprintf(image_format, sizeof(image_format), "format=%x ",
-               ir->data.image_format);
+      util_snprintf(image_format, sizeof(image_format), "format=%x ",
+                    ir->data.image_format);
    }
 
    const char *const cent = (ir->data.centroid) ? "centroid " : "";

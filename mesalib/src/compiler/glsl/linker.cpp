@@ -83,6 +83,7 @@
 #include "ir_uniform.h"
 #include "builtin_functions.h"
 #include "shader_cache.h"
+#include "util/u_string.h"
 
 #include "main/imports.h"
 #include "main/shaderobj.h"
@@ -4119,8 +4120,8 @@ is_top_level_shader_storage_block_member(const char* name,
       return false;
    }
 
-   snprintf(full_instanced_name, name_length, "%s.%s",
-            interface_name, field_name);
+   util_snprintf(full_instanced_name, name_length, "%s.%s",
+                 interface_name, field_name);
 
    /* Check if its top-level shader storage block member of an
     * instanced interface block, or of a unnamed interface block.

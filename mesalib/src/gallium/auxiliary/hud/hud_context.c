@@ -1842,7 +1842,7 @@ hud_create(struct cso_context *cso, struct hud_context *share)
    hud->refcount = 1;
    hud->has_srgb = screen->is_format_supported(screen,
                                                PIPE_FORMAT_B8G8R8A8_SRGB,
-                                               PIPE_TEXTURE_2D, 0,
+                                               PIPE_TEXTURE_2D, 0, 0,
                                                PIPE_BIND_RENDER_TARGET) != 0;
 
    /* blend state */

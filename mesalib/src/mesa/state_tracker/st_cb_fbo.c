@@ -204,6 +204,8 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
    templ.depth0 = 1;
    templ.array_size = 1;
    templ.nr_samples = rb->NumSamples;
+   templ.nr_storage_samples = rb->NumSamples;
+
    if (util_format_is_depth_or_stencil(format)) {
       templ.bind = PIPE_BIND_DEPTH_STENCIL;
    }
@@ -614,8 +616,10 @@ st_validate_attachment(struct gl_context *ctx,
    }
 
    valid = screen->is_format_supported(screen, format,
-                                      PIPE_TEXTURE_2D,
-                                      stObj->pt->nr_samples, bindings);
+                                       PIPE_TEXTURE_2D,
+                                       stObj->pt->nr_samples,
+                                       stObj->pt->nr_storage_samples,
+                                       bindings);
    if (!valid) {
       st_fbo_invalid("Invalid format");
    }

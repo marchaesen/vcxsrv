@@ -400,7 +400,6 @@ matrix:
       addons:
         apt:
           packages:
-            - scons
             # Common
             - xz-utils
             - x11proto-xf86vidmode-dev
@@ -419,7 +418,6 @@ matrix:
       addons:
         apt:
           packages:
-            - scons
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
             - llvm-3.3-dev
@@ -445,7 +443,6 @@ matrix:
           sources:
             - llvm-toolchain-trusty-5.0
           packages:
-            - scons
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
             # From sources above
@@ -500,6 +497,11 @@ install:
   # 3.5+
   - if test "x$BUILD" = xmeson; then
       pip3 install --user "meson<0.45.0";
+    fi
+
+  # Install a more modern scons from pip.
+  - if test "x$BUILD" = xscons; then
+      pip2 install --user "scons>=2.4";
     fi
 
   # Since libdrm gets updated in configure.ac regularly, try to pick up the

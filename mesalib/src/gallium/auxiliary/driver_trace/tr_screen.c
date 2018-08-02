@@ -225,6 +225,7 @@ trace_screen_is_format_supported(struct pipe_screen *_screen,
                                  enum pipe_format format,
                                  enum pipe_texture_target target,
                                  unsigned sample_count,
+                                 unsigned storage_sample_count,
                                  unsigned tex_usage)
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
@@ -240,7 +241,7 @@ trace_screen_is_format_supported(struct pipe_screen *_screen,
    trace_dump_arg(uint, tex_usage);
 
    result = screen->is_format_supported(screen, format, target, sample_count,
-                                        tex_usage);
+                                        storage_sample_count, tex_usage);
 
    trace_dump_ret(bool, result);
 

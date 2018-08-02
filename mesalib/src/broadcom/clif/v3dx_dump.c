@@ -21,7 +21,10 @@
  * IN THE SOFTWARE.
  */
 
+#include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
+#include "util/macros.h"
 #include "broadcom/cle/v3d_decoder.h"
 #include "clif_dump.h"
 #include "clif_private.h"
@@ -34,9 +37,29 @@
 #include "broadcom/cle/v3dx_pack.h"
 #include "broadcom/common/v3d_macros.h"
 
+static char *
+clif_name(const char *xml_name)
+{
+        char *name = malloc(strlen(xml_name) + 1);
+
+        int j = 0;
+        for (int i = 0; i < strlen(xml_name); i++) {
+                if (xml_name[i] == ' ') {
+                        name[j++] = '_';
+                } else if (xml_name[i] == '(' || xml_name[i] == ')') {
+                        /* skip */
+                } else {
+                        name[j++] = toupper(xml_name[i]);
+                }
+        }
+        name[j++] = 0;
+
+        return name;
+}
+
 bool
 v3dX(clif_dump_packet)(struct clif_dump *clif, uint32_t offset,
-                       const uint8_t *cl, uint32_t *size)
+                       const uint8_t *cl, uint32_t *size, bool reloc_mode)
 {
         struct v3d_group *inst = v3d_spec_find_instruction(clif->spec, cl);
         if (!inst) {
@@ -46,21 +69,27 @@ v3dX(clif_dump_packet)(struct clif_dump *clif, uint32_t offset,
 
         *size = v3d_group_get_length(inst);
 
-        out(clif, "%s\n", v3d_group_get_name(inst));
-        v3d_print_group(clif, inst, 0, cl);
+        if (!reloc_mode) {
+                char *name = clif_name(v3d_group_get_name(inst));
+                out(clif, "%s\n", name);
+                free(name);
+                v3d_print_group(clif, inst, 0, cl);
+        }
 
         switch (*cl) {
         case V3DX(GL_SHADER_STATE_opcode): {
                 struct V3DX(GL_SHADER_STATE) values;
                 V3DX(GL_SHADER_STATE_unpack)(cl, &values);
 
-                struct reloc_worklist_entry *reloc =
-                        clif_dump_add_address_to_worklist(clif,
-                                                          reloc_gl_shader_state,
-                                                          values.address);
-                if (reloc) {
-                        reloc->shader_state.num_attrs =
-                                values.number_of_attribute_arrays;
+                if (reloc_mode) {
+                        struct reloc_worklist_entry *reloc =
+                                clif_dump_add_address_to_worklist(clif,
+                                                                  reloc_gl_shader_state,
+                                                                  values.address);
+                        if (reloc) {
+                                reloc->shader_state.num_attrs =
+                                        values.number_of_attribute_arrays;
+                        }
                 }
                 return true;
         }
@@ -87,11 +116,13 @@ v3dX(clif_dump_packet)(struct clif_dump *clif, uint32_t offset,
                 cl += *size;
 
                 for (int i = 0; i < values.number_of_16_bit_output_data_specs_following; i++) {
-                        v3d_print_group(clif, spec, 0, cl);
+                        if (!reloc_mode)
+                                v3d_print_group(clif, spec, 0, cl);
                         cl += v3d_group_get_length(spec);
                         *size += v3d_group_get_length(spec);
                 }
-                out(clif, "@format ctrllist\n");
+                if (!reloc_mode)
+                        out(clif, "@format ctrllist\n");
                 break;
         }
 #else /* V3D_VERSION < 40 */
@@ -108,13 +139,15 @@ v3dX(clif_dump_packet)(struct clif_dump *clif, uint32_t offset,
                 cl += *size;
 
                 for (int i = 0; i < values.number_of_16_bit_output_data_specs_following; i++) {
-                        v3d_print_group(clif, spec, 0, cl);
+                        if (!reloc_mode)
+                                v3d_print_group(clif, spec, 0, cl);
                         cl += v3d_group_get_length(spec);
                         *size += v3d_group_get_length(spec);
                 }
 
                 for (int i = 0; i < values.number_of_32_bit_output_buffer_address_following; i++) {
-                        v3d_print_group(clif, addr, 0, cl);
+                        if (!reloc_mode)
+                                v3d_print_group(clif, addr, 0, cl);
                         cl += v3d_group_get_length(addr);
                         *size += v3d_group_get_length(addr);
                 }

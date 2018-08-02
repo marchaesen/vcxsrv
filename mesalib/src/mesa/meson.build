@@ -254,6 +254,8 @@ files_libmesa_common = files(
   'main/syncobj.c',
   'main/syncobj.h',
   'main/texcompress.c',
+  'main/texcompress_astc.cpp',
+  'main/texcompress_astc.h',
   'main/texcompress_bptc.c',
   'main/texcompress_bptc.h',
   'main/texcompress_cpal.c',

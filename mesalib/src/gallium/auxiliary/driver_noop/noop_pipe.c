@@ -420,11 +420,13 @@ static boolean noop_is_format_supported(struct pipe_screen* pscreen,
                                         enum pipe_format format,
                                         enum pipe_texture_target target,
                                         unsigned sample_count,
+                                        unsigned storage_sample_count,
                                         unsigned usage)
 {
    struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
 
-   return screen->is_format_supported(screen, format, target, sample_count, usage);
+   return screen->is_format_supported(screen, format, target, sample_count,
+                                      storage_sample_count, usage);
 }
 
 static uint64_t noop_get_timestamp(struct pipe_screen *pscreen)

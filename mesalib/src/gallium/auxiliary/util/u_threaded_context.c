@@ -2205,7 +2205,8 @@ tc_generate_mipmap(struct pipe_context *_pipe,
       bind = PIPE_BIND_RENDER_TARGET;
 
    if (!screen->is_format_supported(screen, format, res->target,
-                                    res->nr_samples, bind))
+                                    res->nr_samples, res->nr_storage_samples,
+                                    bind))
       return false;
 
    struct tc_generate_mipmap *p =

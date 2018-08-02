@@ -2,6 +2,8 @@
  * Mesa 3-D graphics library
  *
  * Copyright (C) 1999-2007  Brian Paul   All Rights Reserved.
+ * Copyright 2015 Philip Taylor <philip@zaynar.co.uk>
+ * Copyright 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -174,4 +176,71 @@ _mesa_half_to_float(uint16_t val)
    fi.i = (flt_s << 31) | (flt_e << 23) | flt_m;
    result = fi.f;
    return result;
+}
+
+/**
+  * Convert 0.0 to 0x00, 1.0 to 0xff.
+  * Values outside the range [0.0, 1.0] will give undefined results.
+  */
+uint8_t _mesa_half_to_unorm8(uint16_t val)
+{
+   const int m = val & 0x3ff;
+   const int e = (val >> 10) & 0x1f;
+   const int s = (val >> 15) & 0x1;
+
+   /* v = round_to_nearest(1.mmmmmmmmmm * 2^(e-15) * 255)
+    *   = round_to_nearest((1.mmmmmmmmmm * 255) * 2^(e-15))
+    *   = round_to_nearest((1mmmmmmmmmm * 255) * 2^(e-25))
+    *   = round_to_zero((1mmmmmmmmmm * 255) * 2^(e-25) + 0.5)
+    *   = round_to_zero(((1mmmmmmmmmm * 255) * 2^(e-24) + 1) / 2)
+    *
+    * This happens to give the correct answer for zero/subnormals too
+    */
+   assert(s == 0 && val <= FP16_ONE); /* check 0 <= this <= 1 */
+   /* (implies e <= 15, which means the bit-shifts below are safe) */
+
+   uint32_t v = ((1 << 10) | m) * 255;
+   v = ((v >> (24 - e)) + 1) >> 1;
+   return v;
+}
+
+/**
+  * Takes a uint16_t, divides by 65536, converts the infinite-precision
+  * result to fp16 with round-to-zero. Used by the ASTC decoder.
+  */
+uint16_t _mesa_uint16_div_64k_to_half(uint16_t v)
+{
+   /* Zero or subnormal. Set the mantissa to (v << 8) and return. */
+   if (v < 4)
+      return v << 8;
+
+   /* Count the leading 0s in the uint16_t */
+#ifdef HAVE___BUILTIN_CLZ
+   int n = __builtin_clz(v) - 16;
+#else
+   int n = 16;
+   for (int i = 15; i >= 0; i--) {
+      if (v & (1 << i)) {
+         n = 15 - i;
+         break;
+      }
+   }
+#endif
+
+   /* Shift the mantissa up so bit 16 is the hidden 1 bit,
+    * mask it off, then shift back down to 10 bits
+    */
+   int m = ( ((uint32_t)v << (n + 1)) & 0xffff ) >> 6;
+
+   /*  (0{n} 1 X{15-n}) * 2^-16
+    * = 1.X * 2^(15-n-16)
+    * = 1.X * 2^(14-n - 15)
+    * which is the FP16 form with e = 14 - n
+    */
+   int e = 14 - n;
+
+   assert(e >= 1 && e <= 30);
+   assert(m >= 0 && m < 0x400);
+
+   return (e << 10) | m;
 }
