@@ -34,7 +34,7 @@ main/format_unpack.c: main/format_unpack.py main/formats.csv	\
 main/formats.c: main/format_info.h
 
 YACC_GEN = bison.exe -v
-LEX_GEN = flex.exe --nounistd
+LEX_GEN = flex.exe
 
 program/lex.yy.c: program/program_lexer.l
 	$(LEX_GEN) -o $@ $(srcdir)/program/program_lexer.l

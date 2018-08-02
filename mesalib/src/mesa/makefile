@@ -23,7 +23,7 @@ CSRCS := $(CSRCS:%.h=)
 
 INCLUDE_DIRS:=$(INCLUDE_DIRS:-I%=%)
 
-INCLUDES=$(INCLUDE_DIRS) ../mapi/glapi
+INCLUDES=$(MHMAKECONF)/include $(INCLUDE_DIRS) ../mapi/glapi
 
 vpath %.c main:math:vbo:tnl:swrast:swrast_setup:drivers/common:program
 

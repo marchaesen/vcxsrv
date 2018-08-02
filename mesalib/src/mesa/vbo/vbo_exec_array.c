@@ -1703,7 +1703,7 @@ vbo_exec_DrawElementsIndirect(GLenum mode, GLenum type, const GLvoid *indirect)
             (DrawElementsIndirectCommand *) indirect;
 
          /* Convert offset to pointer */
-         void *offset = (void *)
+         void *offset = (void *)(uintptr_t)
             ((cmd->firstIndex * _mesa_sizeof_type(type)) & 0xffffffffUL);
 
          vbo_exec_DrawElementsInstancedBaseVertexBaseInstance(mode, cmd->count,
