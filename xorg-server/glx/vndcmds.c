@@ -28,6 +28,7 @@
  */
 
 #include <dix-config.h>
+#include <protocol-versions.h>
 
 #include "hashtable.h"
 #include "vndserver.h"
@@ -104,8 +105,8 @@ static int dispatch_GLXQueryVersion(ClientPtr client)
     REQUEST_SIZE_MATCH(xGLXQueryVersionReq);
 
     SetReplyHeader(client, &reply);
-    reply.majorVersion = GlxCheckSwap(client, 1);
-    reply.minorVersion = GlxCheckSwap(client, 4);
+    reply.majorVersion = GlxCheckSwap(client, SERVER_GLX_MAJOR_VERSION);
+    reply.minorVersion = GlxCheckSwap(client, SERVER_GLX_MINOR_VERSION);
 
     WriteToClient(client, sz_xGLXQueryVersionReply, &reply);
     return Success;
