@@ -4,6 +4,7 @@ top_builddir=../../../../..
 include Makefile.sources
 
 INCLUDES = \
+  $(MHMAKECONF)/include \
 	$(top_srcdir)/include \
 	$(top_srcdir)/src/ \
 	$(top_srcdir)/src/mapi \

@@ -2,6 +2,7 @@ srcdir=.
 top_srcdir=../..
 
 INCLDUES = \
+  $(MHMAKECONF)/include \
   $(top_srcdir)/include					\
 	$(top_srcdir)/src					\
 	$(top_builddir)/src/mapi				\

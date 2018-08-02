@@ -5,6 +5,7 @@ srcdir=.
 builddir=.
 
 INCLUDES += \
+	$(MHMAKECONF)/include  \
 	$(top_srcdir)/include \
 	$(top_srcdir)/src \
 	$(top_srcdir)/src/mapi \

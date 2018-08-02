@@ -9,12 +9,12 @@ libmegadriver_stub_la_SOURCES = $(megadriver_stub_FILES)
 
 DEFINES = SWRAST_DRI_EXPORT INSERVER _USE_MATH_DEFINES __STDC_CONSTANT_MACROS __STDC_CONSTANT_MACROS __STDC_FORMAT_MACROS XML_STATIC
 
-PACKAGE_VERSION=\"$(strip $(shell cat $(top_srcdir)/VERSION))\"
+PACKAGE_VERSION:=\"$(strip $(shell cat $(top_srcdir)/VERSION))\"
 DEFINES += PACKAGE_VERSION=$(PACKAGE_VERSION)
 
 mesa_dri_common_INCLUDES+=src src/gallium/auxiliary src/gallium/include
 
-INCLUDES = $(mesa_dri_common_INCLUDES:%=$(top_srcdir)/%) $(MHMAKECONF)/include
+INCLUDES = $(MHMAKECONF)/include $(mesa_dri_common_INCLUDES:%=$(top_srcdir)/%) $(MHMAKECONF)/include
 
 LIBRARY = libdricommon
 

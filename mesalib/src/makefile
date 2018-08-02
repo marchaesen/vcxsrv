@@ -44,6 +44,7 @@ ifdef HAVE_DRI_GLX
 endif
 
 INCLUDES += \
+  $(MHMAKECONF)/include \
 	$(top_srcdir)/include/ \
 	$(top_srcdir)/src/mapi/ \
 	$(top_srcdir)/src/mesa/ \
