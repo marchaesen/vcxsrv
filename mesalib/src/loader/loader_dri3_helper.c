@@ -444,7 +444,7 @@ dri3_handle_present_event(struct loader_dri3_drawable *draw,
             }
          }
 
-	 /* If the server tells us that our allocation is suboptimal, we
+         /* If the server tells us that our allocation is suboptimal, we
           * reallocate once.
           */
 #ifdef HAVE_DRI3_MODIFIERS

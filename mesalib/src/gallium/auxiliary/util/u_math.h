@@ -360,7 +360,6 @@ uif(uint32_t ui)
 
 /**
  * Convert ubyte to float in [0, 1].
- * XXX a 256-entry lookup table would be slightly faster.
  */
 static inline float
 ubyte_to_float(ubyte ub)
@@ -375,16 +374,16 @@ ubyte_to_float(ubyte ub)
 static inline ubyte
 float_to_ubyte(float f)
 {
-   union fi tmp;
-
-   tmp.f = f;
-   if (tmp.i < 0) {
+   /* return 0 for NaN too */
+   if (!(f > 0.0f)) {
       return (ubyte) 0;
    }
-   else if (tmp.i >= 0x3f800000 /* 1.0f */) {
+   else if (f >= 1.0f) {
       return (ubyte) 255;
    }
    else {
+      union fi tmp;
+      tmp.f = f;
       tmp.f = tmp.f * (255.0f/256.0f) + 32768.0f;
       return (ubyte) tmp.i;
    }

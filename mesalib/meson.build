@@ -989,7 +989,7 @@ if cc.links('''
       freelocale(loc);
       return 0;
     }''',
-    extra_args : pre_args,
+    args : pre_args,
     name : 'strtod has locale support')
   pre_args += '-DHAVE_STRTOD_L'
 endif
@@ -1080,7 +1080,7 @@ dep_libdrm_etnaviv = null_dep
 dep_libdrm_freedreno = null_dep
 dep_libdrm_intel = null_dep
 
-_drm_amdgpu_ver = '2.4.91'
+_drm_amdgpu_ver = '2.4.93'
 _drm_radeon_ver = '2.4.71'
 _drm_nouveau_ver = '2.4.66'
 _drm_etnaviv_ver = '2.4.89'
@@ -1151,7 +1151,9 @@ if with_gallium_opencl
   llvm_optional_modules += ['coroutines', 'opencl']
 endif
 
-if with_amd_vk or with_gallium_radeonsi or with_gallium_swr
+if with_amd_vk or with_gallium_radeonsi
+  _llvm_version = '>= 6.0.0'
+elif with_gallium_swr
   _llvm_version = '>= 5.0.0'
 elif with_gallium_opencl or with_gallium_r600
   _llvm_version = '>= 3.9.0'

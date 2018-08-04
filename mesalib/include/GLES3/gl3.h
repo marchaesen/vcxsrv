@@ -1,12 +1,12 @@
-#ifndef __gl3_h_
-#define __gl3_h_ 1
+#ifndef __gles2_gl3_h_
+#define __gles2_gl3_h_ 1
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*
-** Copyright (c) 2013-2017 The Khronos Group Inc.
+** Copyright (c) 2013-2018 The Khronos Group Inc.
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
 ** copy of this software and/or associated documentation files (the
@@ -44,7 +44,7 @@ extern "C" {
 #define GL_GLES_PROTOTYPES 1
 #endif
 
-/* Generated on date 20170606 */
+/* Generated on date 20180725 */
 
 /* Generated C header for:
  * API: gles2

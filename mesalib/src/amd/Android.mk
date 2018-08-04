@@ -27,4 +27,6 @@ include $(LOCAL_PATH)/Makefile.sources
 
 include $(LOCAL_PATH)/Android.addrlib.mk
 include $(LOCAL_PATH)/Android.common.mk
+ifneq ($(filter radeonsi,$(BOARD_GPU_DRIVERS)),)
 include $(LOCAL_PATH)/vulkan/Android.mk
+endif

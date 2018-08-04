@@ -89,6 +89,13 @@ LOCAL_CPPFLAGS += \
 LOCAL_CONLYFLAGS += \
 	-std=c99
 
+# c11 timespec_get is part of bionic as well
+# https://android-review.googlesource.com/c/718518
+# This means releases from P and earlier won't need this
+ifeq ($(filter 5 6 7 8 9, $(MESA_ANDROID_MAJOR_VERSION)),)
+LOCAL_CFLAGS += -DHAVE_TIMESPEC_GET
+endif
+
 ifeq ($(strip $(MESA_ENABLE_ASM)),true)
 ifeq ($(TARGET_ARCH),x86)
 LOCAL_CFLAGS += \

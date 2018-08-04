@@ -3079,7 +3079,7 @@ decompress_texture_image(struct gl_context *ctx,
    /* alloc dest surface */
    if (width > decompress_fbo->Width || height > decompress_fbo->Height) {
       _mesa_renderbuffer_storage(ctx, decompress_fbo->rb, rbFormat,
-                                 width, height, 0);
+                                 width, height, 0, 0);
 
       /* Do the full completeness check to recompute
        * ctx->DrawBuffer->Width/Height.

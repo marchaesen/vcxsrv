@@ -829,6 +829,9 @@ RRCrtcIsLeased(RRCrtcPtr crtc);
 extern _X_EXPORT Bool
 RROutputIsLeased(RROutputPtr output);
 
+void
+RRTerminateLease(RRLeasePtr lease);
+
 Bool
 RRLeaseInit(void);
 

@@ -11,8 +11,6 @@ if build_xv
     srcs_kdrive += 'kxv.c'
 endif
 
-#XXX: libconfig
-
 kdrive = static_library('kdrive',
     srcs_kdrive,
     include_directories: inc,

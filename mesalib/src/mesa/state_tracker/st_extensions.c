@@ -600,6 +600,26 @@ get_max_samples_for_formats(struct pipe_screen *screen,
    return 0;
 }
 
+static unsigned
+get_max_samples_for_formats_advanced(struct pipe_screen *screen,
+                                     unsigned num_formats,
+                                     const enum pipe_format *formats,
+                                     unsigned max_samples,
+                                     unsigned num_storage_samples,
+                                     unsigned bind)
+{
+   unsigned i, f;
+
+   for (i = max_samples; i > 0; --i) {
+      for (f = 0; f < num_formats; f++) {
+         if (screen->is_format_supported(screen, formats[f], PIPE_TEXTURE_2D,
+                                         i, num_storage_samples, bind)) {
+            return i;
+         }
+      }
+   }
+   return 0;
+}
 
 /**
  * Use pipe_screen::get_param() to query PIPE_CAP_ values to determine
@@ -685,6 +705,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(EXT_transform_feedback),           PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS        },
       { o(EXT_window_rectangles),            PIPE_CAP_MAX_WINDOW_RECTANGLES            },
 
+      { o(AMD_framebuffer_multisample_advanced), PIPE_CAP_FRAMEBUFFER_MSAA_CONSTRAINTS },
       { o(AMD_pinned_memory),                PIPE_CAP_RESOURCE_FROM_USER_MEMORY        },
       { o(ATI_meminfo),                      PIPE_CAP_QUERY_MEMORY_INFO                },
       { o(AMD_seamless_cubemap_per_texture), PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE    },
@@ -1102,6 +1123,74 @@ void st_init_extensions(struct pipe_screen *screen,
          get_max_samples_for_formats(screen, ARRAY_SIZE(void_formats),
                                      void_formats, 32,
                                      PIPE_BIND_RENDER_TARGET);
+
+      if (extensions->AMD_framebuffer_multisample_advanced) {
+         /* AMD_framebuffer_multisample_advanced */
+         /* This can be greater than storage samples. */
+         consts->MaxColorFramebufferSamples =
+            get_max_samples_for_formats_advanced(screen,
+                                                ARRAY_SIZE(color_formats),
+                                                color_formats, 16,
+                                                consts->MaxSamples,
+                                                PIPE_BIND_RENDER_TARGET);
+
+         /* If the driver supports N color samples, it means it supports
+          * N samples and N storage samples. N samples >= N storage
+          * samples.
+          */
+         consts->MaxColorFramebufferStorageSamples = consts->MaxSamples;
+         consts->MaxDepthStencilFramebufferSamples =
+            consts->MaxDepthTextureSamples;
+
+         assert(consts->MaxColorFramebufferSamples >=
+                consts->MaxDepthStencilFramebufferSamples);
+         assert(consts->MaxDepthStencilFramebufferSamples >=
+                consts->MaxColorFramebufferStorageSamples);
+
+         consts->NumSupportedMultisampleModes = 0;
+
+         unsigned depth_samples_supported = 0;
+
+         for (unsigned samples = 2;
+              samples <= consts->MaxDepthStencilFramebufferSamples;
+              samples++) {
+            if (screen->is_format_supported(screen, PIPE_FORMAT_Z32_FLOAT,
+                                            PIPE_TEXTURE_2D, samples, samples,
+                                            PIPE_BIND_DEPTH_STENCIL))
+               depth_samples_supported |= 1 << samples;
+         }
+
+         for (unsigned samples = 2;
+              samples <= consts->MaxColorFramebufferSamples;
+              samples++) {
+            for (unsigned depth_samples = 2;
+                 depth_samples <= samples; depth_samples++) {
+               if (!(depth_samples_supported & (1 << depth_samples)))
+                  continue;
+
+               for (unsigned storage_samples = 2;
+                    storage_samples <= depth_samples; storage_samples++) {
+                  if (screen->is_format_supported(screen,
+                                                  PIPE_FORMAT_R8G8B8A8_UNORM,
+                                                  PIPE_TEXTURE_2D,
+                                                  samples,
+                                                  storage_samples,
+                                                  PIPE_BIND_RENDER_TARGET)) {
+                     unsigned i = consts->NumSupportedMultisampleModes;
+
+                     assert(i < ARRAY_SIZE(consts->SupportedMultisampleModes));
+                     consts->SupportedMultisampleModes[i].NumColorSamples =
+                        samples;
+                     consts->SupportedMultisampleModes[i].NumColorStorageSamples =
+                        storage_samples;
+                     consts->SupportedMultisampleModes[i].NumDepthStencilSamples =
+                        depth_samples;
+                     consts->NumSupportedMultisampleModes++;
+                  }
+               }
+            }
+         }
+      }
    }
 
    if (consts->MaxSamples >= 2) {

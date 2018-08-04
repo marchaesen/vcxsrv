@@ -481,6 +481,7 @@ _mesa_update_texture_renderbuffer(struct gl_context *ctx,
    rb->Height = texImage->Height2;
    rb->Depth = texImage->Depth2;
    rb->NumSamples = texImage->NumSamples;
+   rb->NumStorageSamples = texImage->NumSamples;
    rb->TexImage = texImage;
 
    if (driver_RenderTexture_is_safe(att))
@@ -968,7 +969,9 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    GLuint numImages;
    GLenum intFormat = GL_NONE; /* color buffers' internal format */
    GLuint minWidth = ~0, minHeight = ~0, maxWidth = 0, maxHeight = 0;
-   GLint numSamples = -1;
+   GLint numColorSamples = -1;
+   GLint numColorStorageSamples = -1;
+   GLint numDepthSamples = -1;
    GLint fixedSampleLocations = -1;
    GLint i;
    GLuint j;
@@ -1045,6 +1048,8 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
 
       /* get width, height, format of the renderbuffer/texture
        */
+      unsigned attNumSamples, attNumStorageSamples;
+
       if (att->Type == GL_TEXTURE) {
          const struct gl_texture_image *texImg = att->Renderbuffer->TexImage;
          att_tex_target = att->Texture->Target;
@@ -1065,14 +1070,6 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             return;
          }
 
-         if (numSamples < 0)
-            numSamples = texImg->NumSamples;
-         else if (numSamples != texImg->NumSamples) {
-            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
-            fbo_incomplete(ctx, "inconsistent sample count", -1);
-            return;
-         }
-
          if (fixedSampleLocations < 0)
             fixedSampleLocations = texImg->FixedSampleLocations;
          else if (fixedSampleLocations != texImg->FixedSampleLocations) {
@@ -1080,6 +1077,9 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             fbo_incomplete(ctx, "inconsistent fixed sample locations", -1);
             return;
          }
+
+         attNumSamples = texImg->NumSamples;
+         attNumStorageSamples = texImg->NumSamples;
       }
       else if (att->Type == GL_RENDERBUFFER_EXT) {
          minWidth = MIN2(minWidth, att->Renderbuffer->Width);
@@ -1090,14 +1090,6 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          attFormat = att->Renderbuffer->Format;
          numImages++;
 
-         if (numSamples < 0)
-            numSamples = att->Renderbuffer->NumSamples;
-         else if (numSamples != att->Renderbuffer->NumSamples) {
-            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
-            fbo_incomplete(ctx, "inconsistent sample count", -1);
-            return;
-         }
-
          /* RENDERBUFFER has fixedSampleLocations implicitly true */
          if (fixedSampleLocations < 0)
             fixedSampleLocations = GL_TRUE;
@@ -1106,10 +1098,36 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             fbo_incomplete(ctx, "inconsistent fixed sample locations", -1);
             return;
          }
+
+         attNumSamples = att->Renderbuffer->NumSamples;
+         attNumStorageSamples = att->Renderbuffer->NumStorageSamples;
       }
       else {
          assert(att->Type == GL_NONE);
          continue;
+      }
+
+      if (i >= 0) {
+         /* Color buffers. */
+         if (numColorSamples < 0) {
+            assert(numColorStorageSamples < 0);
+            numColorSamples = attNumSamples;
+            numColorStorageSamples = attNumStorageSamples;
+         } else if (numColorSamples != attNumSamples ||
+                    numColorStorageSamples != attNumStorageSamples) {
+            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
+            fbo_incomplete(ctx, "inconsistent sample counts", -1);
+            return;
+         }
+      } else {
+         /* Depth/stencil buffers. */
+         if (numDepthSamples < 0) {
+            numDepthSamples = attNumSamples;
+         } else if (numDepthSamples != attNumSamples) {
+            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
+            fbo_incomplete(ctx, "inconsistent sample counts", -1);
+            return;
+         }
       }
 
       /* Update flags describing color buffer datatypes */
@@ -1215,6 +1233,51 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
        * The same requirements are also in place for GL 4.5,
        * Section 9.4.1 "Framebuffer Attachment Completeness", pg 310-311
        */
+   }
+
+   if (ctx->Extensions.AMD_framebuffer_multisample_advanced) {
+      /* See if non-matching sample counts are supported. */
+      if (numColorSamples >= 0 && numDepthSamples >= 0) {
+         bool found = false;
+
+         assert(numColorStorageSamples != -1);
+
+         numColorSamples = MAX2(numColorSamples, 1);
+         numColorStorageSamples = MAX2(numColorStorageSamples, 1);
+         numDepthSamples = MAX2(numDepthSamples, 1);
+
+         if (numColorSamples == 1 && numColorStorageSamples == 1 &&
+             numDepthSamples == 1) {
+            found = true;
+         } else {
+            for (i = 0; i < ctx->Const.NumSupportedMultisampleModes; i++) {
+               GLint *counts =
+                  &ctx->Const.SupportedMultisampleModes[i].NumColorSamples;
+
+               if (counts[0] == numColorSamples &&
+                   counts[1] == numColorStorageSamples &&
+                   counts[2] == numDepthSamples) {
+                  found = true;
+                  break;
+               }
+            }
+         }
+
+         if (!found) {
+            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
+            fbo_incomplete(ctx, "unsupported sample counts", -1);
+            return;
+         }
+      }
+   } else {
+      /* If the extension is unsupported, all sample counts must be equal. */
+      if (numColorSamples >= 0 &&
+          (numColorSamples != numColorStorageSamples ||
+           (numDepthSamples >= 0 && numColorSamples != numDepthSamples))) {
+         fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
+         fbo_incomplete(ctx, "inconsistent sample counts", -1);
+         return;
+      }
    }
 
    fb->MaxNumLayers = max_layer_count;
@@ -2216,7 +2279,8 @@ invalidate_rb(GLuint key, void *data, void *userData)
 void
 _mesa_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
                            GLenum internalFormat, GLsizei width,
-                           GLsizei height, GLsizei samples)
+                           GLsizei height, GLsizei samples,
+                           GLsizei storageSamples)
 {
    const GLenum baseFormat = _mesa_base_fbo_format(ctx, internalFormat);
 
@@ -2227,7 +2291,8 @@ _mesa_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
    if (samples != 0) {
       assert(samples > 0);
       assert(_mesa_check_sample_count(ctx, GL_RENDERBUFFER,
-                                      internalFormat, samples) == GL_NO_ERROR);
+                                      internalFormat, samples,
+                                      storageSamples) == GL_NO_ERROR);
    }
 
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
@@ -2235,7 +2300,8 @@ _mesa_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
    if (rb->InternalFormat == internalFormat &&
        rb->Width == (GLuint) width &&
        rb->Height == (GLuint) height &&
-       rb->NumSamples == samples) {
+       rb->NumSamples == samples &&
+       rb->NumStorageSamples == storageSamples) {
       /* no change in allocation needed */
       return;
    }
@@ -2243,6 +2309,7 @@ _mesa_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
    /* These MUST get set by the AllocStorage func */
    rb->Format = MESA_FORMAT_NONE;
    rb->NumSamples = samples;
+   rb->NumStorageSamples = storageSamples;
 
    /* Now allocate the storage */
    assert(rb->AllocStorage);
@@ -2263,6 +2330,7 @@ _mesa_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
       rb->InternalFormat = GL_NONE;
       rb->_BaseFormat = GL_NONE;
       rb->NumSamples = 0;
+      rb->NumStorageSamples = 0;
    }
 
    /* Invalidate the framebuffers the renderbuffer is attached in. */
@@ -2279,7 +2347,8 @@ _mesa_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
 static void
 renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
                      GLenum internalFormat, GLsizei width,
-                     GLsizei height, GLsizei samples, const char *func)
+                     GLsizei height, GLsizei samples, GLsizei storageSamples,
+                     const char *func)
 {
    GLenum baseFormat;
    GLenum sample_count_error;
@@ -2306,30 +2375,34 @@ renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
    if (samples == NO_SAMPLES) {
       /* NumSamples == 0 indicates non-multisampling */
       samples = 0;
+      storageSamples = 0;
    }
    else {
       /* check the sample count;
        * note: driver may choose to use more samples than what's requested
        */
       sample_count_error = _mesa_check_sample_count(ctx, GL_RENDERBUFFER,
-            internalFormat, samples);
+            internalFormat, samples, storageSamples);
 
       /* Section 2.5 (GL Errors) of OpenGL 3.0 specification, page 16:
        *
        * "If a negative number is provided where an argument of type sizei or
        * sizeiptr is specified, the error INVALID VALUE is generated."
        */
-      if (samples < 0) {
+      if (samples < 0 || storageSamples < 0) {
          sample_count_error = GL_INVALID_VALUE;
       }
 
       if (sample_count_error != GL_NO_ERROR) {
-         _mesa_error(ctx, sample_count_error, "%s(samples=%d)", func, samples);
+         _mesa_error(ctx, sample_count_error,
+                     "%s(samples=%d, storageSamples=%d)", func, samples,
+                     storageSamples);
          return;
       }
    }
 
-   _mesa_renderbuffer_storage(ctx, rb, internalFormat, width, height, samples);
+   _mesa_renderbuffer_storage(ctx, rb, internalFormat, width, height, samples,
+                              storageSamples);
 }
 
 /**
@@ -2339,7 +2412,7 @@ renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
 static void
 renderbuffer_storage_named(GLuint renderbuffer, GLenum internalFormat,
                            GLsizei width, GLsizei height, GLsizei samples,
-                           const char *func)
+                           GLsizei storageSamples, const char *func)
 {
    GET_CURRENT_CONTEXT(ctx);
 
@@ -2364,7 +2437,8 @@ renderbuffer_storage_named(GLuint renderbuffer, GLenum internalFormat,
       return;
    }
 
-   renderbuffer_storage(ctx, rb, internalFormat, width, height, samples, func);
+   renderbuffer_storage(ctx, rb, internalFormat, width, height, samples,
+                        storageSamples, func);
 }
 
 /**
@@ -2375,7 +2449,7 @@ renderbuffer_storage_named(GLuint renderbuffer, GLenum internalFormat,
 static void
 renderbuffer_storage_target(GLenum target, GLenum internalFormat,
                             GLsizei width, GLsizei height, GLsizei samples,
-                            const char *func)
+                            GLsizei storageSamples, const char *func)
 {
    GET_CURRENT_CONTEXT(ctx);
 
@@ -2406,7 +2480,7 @@ renderbuffer_storage_target(GLenum target, GLenum internalFormat,
    }
 
    renderbuffer_storage(ctx, ctx->CurrentRenderbuffer, internalFormat, width,
-                        height, samples, func);
+                        height, samples, storageSamples, func);
 }
 
 
@@ -2469,7 +2543,7 @@ _mesa_RenderbufferStorage(GLenum target, GLenum internalFormat,
     * a token value here just for error reporting purposes.
     */
    renderbuffer_storage_target(target, internalFormat, width, height,
-                               NO_SAMPLES, "glRenderbufferStorage");
+                               NO_SAMPLES, 0, "glRenderbufferStorage");
 }
 
 
@@ -2479,7 +2553,19 @@ _mesa_RenderbufferStorageMultisample(GLenum target, GLsizei samples,
                                      GLsizei width, GLsizei height)
 {
    renderbuffer_storage_target(target, internalFormat, width, height,
-                               samples, "glRenderbufferStorageMultisample");
+                               samples, samples,
+                               "glRenderbufferStorageMultisample");
+}
+
+
+void GLAPIENTRY
+_mesa_RenderbufferStorageMultisampleAdvancedAMD(
+      GLenum target, GLsizei samples, GLsizei storageSamples,
+      GLenum internalFormat, GLsizei width, GLsizei height)
+{
+   renderbuffer_storage_target(target, internalFormat, width, height,
+                               samples, storageSamples,
+                               "glRenderbufferStorageMultisampleAdvancedAMD");
 }
 
 
@@ -2500,7 +2586,7 @@ _es_RenderbufferStorageEXT(GLenum target, GLenum internalFormat,
       break;
    }
 
-   renderbuffer_storage_target(target, internalFormat, width, height, 0,
+   renderbuffer_storage_target(target, internalFormat, width, height, 0, 0,
                                "glRenderbufferStorageEXT");
 }
 
@@ -2513,7 +2599,7 @@ _mesa_NamedRenderbufferStorage(GLuint renderbuffer, GLenum internalformat,
     * a token value here just for error reporting purposes.
     */
    renderbuffer_storage_named(renderbuffer, internalformat, width, height,
-                              NO_SAMPLES, "glNamedRenderbufferStorage");
+                              NO_SAMPLES, 0, "glNamedRenderbufferStorage");
 }
 
 void GLAPIENTRY
@@ -2522,8 +2608,19 @@ _mesa_NamedRenderbufferStorageMultisample(GLuint renderbuffer, GLsizei samples,
                                           GLsizei width, GLsizei height)
 {
    renderbuffer_storage_named(renderbuffer, internalformat, width, height,
-                              samples,
+                              samples, samples,
                               "glNamedRenderbufferStorageMultisample");
+}
+
+
+void GLAPIENTRY
+_mesa_NamedRenderbufferStorageMultisampleAdvancedAMD(
+      GLuint renderbuffer, GLsizei samples, GLsizei storageSamples,
+      GLenum internalformat, GLsizei width, GLsizei height)
+{
+   renderbuffer_storage_named(renderbuffer, internalformat, width, height,
+                              samples, storageSamples,
+                              "glNamedRenderbufferStorageMultisampleAdvancedAMD");
 }
 
 
@@ -2553,19 +2650,24 @@ get_render_buffer_parameteriv(struct gl_context *ctx,
    case GL_RENDERBUFFER_DEPTH_SIZE_EXT:
    case GL_RENDERBUFFER_STENCIL_SIZE_EXT:
       *params = get_component_bits(pname, rb->_BaseFormat, rb->Format);
-      break;
+      return;
    case GL_RENDERBUFFER_SAMPLES:
       if ((_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_framebuffer_object)
           || _mesa_is_gles3(ctx)) {
          *params = rb->NumSamples;
-         break;
+         return;
       }
-      /* fallthrough */
-   default:
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid pname=%s)", func,
-                  _mesa_enum_to_string(pname));
-      return;
+      break;
+   case GL_RENDERBUFFER_STORAGE_SAMPLES_AMD:
+      if (ctx->Extensions.AMD_framebuffer_multisample_advanced) {
+         *params = rb->NumStorageSamples;
+         return;
+      }
+      break;
    }
+
+   _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid pname=%s)", func,
+               _mesa_enum_to_string(pname));
 }
 
 

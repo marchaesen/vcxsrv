@@ -859,7 +859,6 @@ fi
 PKG_CHECK_MODULES(UDEV, $LIBUDEV, [HAVE_LIBUDEV=yes], [HAVE_LIBUDEV=no])
 if test "x$CONFIG_UDEV" = xauto; then
 	CONFIG_UDEV="$HAVE_LIBUDEV"
-	AC_DEFINE(HAVE_LIBUDEV, 1, [Define to 1 if libudev is available.])
 fi
 AM_CONDITIONAL(CONFIG_UDEV, [test "x$CONFIG_UDEV" = xyes])
 if test "x$CONFIG_UDEV" = xyes; then
@@ -1916,9 +1915,6 @@ if test "x$XORG" = xyes; then
 		esac
 		dnl APM header
 		AC_CHECK_HEADERS([linux/apm_bios.h], [linux_apm=$enable_linux_apm])
-		if test "x$linux_apm" = xyes -o "x$linux_acpi" = xyes; then
-			AC_DEFINE(XF86PM, 1, [Support APM/ACPI power management in the server])
-		fi
 		;;
 	  freebsd* | kfreebsd*-gnu | dragonfly*)
 		XORG_OS_SUBDIR="bsd"
@@ -1927,15 +1923,10 @@ if test "x$XORG" = xyes; then
 		XORG_OS_SUBDIR="bsd"
 		;;
 	  openbsd*)
-		if test "x$ac_cv_BSD_APM" = xyes \
-			-o "x$ac_cv_BSD_KQUEUE_APM" = xyes; then
-			XORG_CFLAGS="$XORG_CFLAGS -DXF86PM"
-		fi
 		XORG_OS_SUBDIR="bsd"
 		;;
 	  solaris*)
 		XORG_OS_SUBDIR="solaris"
-		XORG_CFLAGS="$XORG_CFLAGS -DXF86PM"
 		AC_CHECK_HEADERS([sys/kd.h])
 		AC_CHECK_HEADERS([sys/vt.h], [solaris_vt=yes], [solaris_vt=no])
 		# Check for minimum supported release

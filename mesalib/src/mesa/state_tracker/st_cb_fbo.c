@@ -83,7 +83,7 @@ st_renderbuffer_alloc_sw_storage(struct gl_context * ctx,
       format = PIPE_FORMAT_R16G16B16A16_SNORM;
    }
    else {
-      format = st_choose_renderbuffer_format(st, internalFormat, 0);
+      format = st_choose_renderbuffer_format(st, internalFormat, 0, 0);
 
       /* Not setting gl_renderbuffer::Format here will cause
        * FRAMEBUFFER_UNSUPPORTED and ValidateFramebuffer will not be called.
@@ -159,25 +159,70 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
     * Find the supported number of samples >= rb->NumSamples
     */
    if (rb->NumSamples > 0) {
-      unsigned start, i;
+      unsigned start, start_storage;
 
       if (ctx->Const.MaxSamples > 1 &&  rb->NumSamples == 1) {
          /* don't try num_samples = 1 with drivers that support real msaa */
          start = 2;
+         start_storage = 2;
       } else {
          start = rb->NumSamples;
+         start_storage = rb->NumStorageSamples;
       }
 
-      for (i = start; i <= ctx->Const.MaxSamples; i++) {
-         format = st_choose_renderbuffer_format(st, internalFormat, i);
+      if (ctx->Extensions.AMD_framebuffer_multisample_advanced) {
+         if (rb->_BaseFormat == GL_DEPTH_COMPONENT ||
+             rb->_BaseFormat == GL_DEPTH_STENCIL ||
+             rb->_BaseFormat == GL_STENCIL_INDEX) {
+            /* Find a supported depth-stencil format. */
+            for (unsigned samples = start;
+                 samples <= ctx->Const.MaxDepthStencilFramebufferSamples;
+                 samples++) {
+               format = st_choose_renderbuffer_format(st, internalFormat,
+                                                      samples, samples);
 
-         if (format != PIPE_FORMAT_NONE) {
-            rb->NumSamples = i;
-            break;
+               if (format != PIPE_FORMAT_NONE) {
+                  rb->NumSamples = samples;
+                  rb->NumStorageSamples = samples;
+                  break;
+               }
+            }
+         } else {
+            /* Find a supported color format, samples >= storage_samples. */
+            for (unsigned storage_samples = start_storage;
+                 storage_samples <= ctx->Const.MaxColorFramebufferStorageSamples;
+                 storage_samples++) {
+               for (unsigned samples = MAX2(start, storage_samples);
+                    samples <= ctx->Const.MaxColorFramebufferSamples;
+                    samples++) {
+                  format = st_choose_renderbuffer_format(st, internalFormat,
+                                                         samples,
+                                                         storage_samples);
+
+                  if (format != PIPE_FORMAT_NONE) {
+                     rb->NumSamples = samples;
+                     rb->NumStorageSamples = storage_samples;
+                     goto found;
+                  }
+               }
+            }
+            found:;
+         }
+      } else {
+         for (unsigned samples = start; samples <= ctx->Const.MaxSamples;
+              samples++) {
+            format = st_choose_renderbuffer_format(st, internalFormat,
+                                                   samples, samples);
+
+            if (format != PIPE_FORMAT_NONE) {
+               rb->NumSamples = samples;
+               rb->NumStorageSamples = samples;
+               break;
+            }
          }
       }
    } else {
-      format = st_choose_renderbuffer_format(st, internalFormat, 0);
+      format = st_choose_renderbuffer_format(st, internalFormat, 0, 0);
    }
 
    /* Not setting gl_renderbuffer::Format here will cause
@@ -204,7 +249,7 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
    templ.depth0 = 1;
    templ.array_size = 1;
    templ.nr_samples = rb->NumSamples;
-   templ.nr_storage_samples = rb->NumSamples;
+   templ.nr_storage_samples = rb->NumStorageSamples;
 
    if (util_format_is_depth_or_stencil(format)) {
       templ.bind = PIPE_BIND_DEPTH_STENCIL;
@@ -284,6 +329,7 @@ st_new_renderbuffer_fb(enum pipe_format format, unsigned samples, boolean sw)
    _mesa_init_renderbuffer(&strb->Base, 0);
    strb->Base.ClassID = 0x4242; /* just a unique value */
    strb->Base.NumSamples = samples;
+   strb->Base.NumStorageSamples = samples;
    strb->Base.Format = st_pipe_format_to_mesa_format(format);
    strb->Base._BaseFormat = _mesa_get_format_base_format(strb->Base.Format);
    strb->software = sw;
@@ -465,6 +511,7 @@ st_update_renderbuffer_surface(struct st_context *st,
 
    if (!surf ||
        surf->texture->nr_samples != strb->Base.NumSamples ||
+       surf->texture->nr_storage_samples != strb->Base.NumStorageSamples ||
        surf->format != format ||
        surf->texture != resource ||
        surf->width != rtt_width ||

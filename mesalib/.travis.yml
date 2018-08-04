@@ -125,7 +125,7 @@ matrix:
         - BUILD=make
         - MAKEFLAGS="-j4"
         - MAKE_CHECK_COMMAND="true"
-        - LLVM_VERSION=5.0
+        - LLVM_VERSION=6.0
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
@@ -136,12 +136,12 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-5.0
+            - llvm-toolchain-trusty-6.0
           packages:
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
             # From sources above
-            - llvm-5.0-dev
+            - llvm-6.0-dev
             # Common
             - xz-utils
             - x11proto-xf86vidmode-dev
@@ -269,7 +269,7 @@ matrix:
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--disable-dri --enable-opencl --enable-opencl-icd --enable-llvm --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
-        - GALLIUM_DRIVERS="r600,radeonsi"
+        - GALLIUM_DRIVERS="r600"
         - VULKAN_DRIVERS=""
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
@@ -366,7 +366,7 @@ matrix:
         - BUILD=make
         - MAKEFLAGS="-j4"
         - MAKE_CHECK_COMMAND="make -C src/gtest check && make -C src/intel check"
-        - LLVM_VERSION=5.0
+        - LLVM_VERSION=6.0
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl --with-platforms=x11,wayland"
         - DRI_DRIVERS=""
@@ -377,12 +377,12 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-5.0
+            - llvm-toolchain-trusty-6.0
           packages:
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
             # From sources above
-            - llvm-5.0-dev
+            - llvm-6.0-dev
             # Common
             - xz-utils
             - x11proto-xf86vidmode-dev

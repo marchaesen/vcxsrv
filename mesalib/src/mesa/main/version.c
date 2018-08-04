@@ -617,6 +617,8 @@ _mesa_compute_version(struct gl_context *ctx)
     */
    if (_mesa_is_desktop_gl(ctx)) {
       switch (ctx->Version) {
+      case 20:
+         /* fall-through, GLSL 1.20 is the minimum we support */
       case 21:
          ctx->Const.GLSLVersion = 120;
          break;

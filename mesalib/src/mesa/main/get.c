@@ -518,6 +518,7 @@ EXTRA_EXT(NV_conservative_raster);
 EXTRA_EXT(NV_conservative_raster_dilate);
 EXTRA_EXT(NV_conservative_raster_pre_snap_triangles);
 EXTRA_EXT(ARB_sample_locations);
+EXTRA_EXT(AMD_framebuffer_multisample_advanced);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {
@@ -1227,6 +1228,13 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
    case GL_PROGRAMMABLE_SAMPLE_LOCATION_TABLE_SIZE_ARB:
       v->value_uint = MAX_SAMPLE_LOCATION_TABLE_SIZE;
+      break;
+
+   /* GL_AMD_framebuffer_multisample_advanced */
+   case GL_SUPPORTED_MULTISAMPLE_MODES_AMD:
+      v->value_int_n.n = ctx->Const.NumSupportedMultisampleModes * 3;
+      memcpy(v->value_int_n.ints, ctx->Const.SupportedMultisampleModes,
+             v->value_int_n.n * sizeof(GLint));
       break;
    }
 }

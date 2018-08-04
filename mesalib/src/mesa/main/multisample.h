@@ -55,6 +55,7 @@ _mesa_MinSampleShading(GLclampf value);
 
 extern GLenum
 _mesa_check_sample_count(struct gl_context *ctx, GLenum target,
-                   GLenum internalFormat, GLsizei samples);
+                         GLenum internalFormat, GLsizei samples,
+                         GLsizei storageSamples);
 
 #endif
