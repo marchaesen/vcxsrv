@@ -3327,23 +3327,6 @@ drmmode_terminate_lease(RRLeasePtr lease)
     }
 }
 
-void
-drmmode_terminate_leases(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
-{
-    ScreenPtr screen = xf86ScrnToScreen(pScrn);
-    rrScrPrivPtr scr_priv = rrGetScrPriv(screen);
-    RRLeasePtr lease, next;
-
-    xorg_list_for_each_entry_safe(lease, next, &scr_priv->leases, list) {
-        drmmode_lease_private_ptr lease_private = lease->devPrivate;
-        drmModeRevokeLease(drmmode->fd, lease_private->lessee_id);
-        free(lease_private);
-        lease->devPrivate = NULL;
-        RRLeaseTerminated(lease);
-        RRLeaseFree(lease);
-    }
-}
-
 static const xf86CrtcConfigFuncsRec drmmode_xf86crtc_config_funcs = {
     .resize = drmmode_xf86crtc_resize,
     .create_lease = drmmode_create_lease,

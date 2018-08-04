@@ -95,7 +95,8 @@ _mesa_framebuffer_renderbuffer(struct gl_context *ctx,
 extern void
 _mesa_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
                            GLenum internalFormat, GLsizei width,
-                           GLsizei height, GLsizei samples);
+                           GLsizei height, GLsizei samples,
+                           GLsizei storageSamples);
 
 extern void
 _mesa_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb);
@@ -173,6 +174,11 @@ _mesa_RenderbufferStorageMultisample(GLenum target, GLsizei samples,
                                      GLsizei width, GLsizei height);
 
 extern void GLAPIENTRY
+_mesa_RenderbufferStorageMultisampleAdvancedAMD(
+      GLenum target, GLsizei samples, GLsizei storageSamples,
+      GLenum internalFormat, GLsizei width, GLsizei height);
+
+extern void GLAPIENTRY
 _es_RenderbufferStorageEXT(GLenum target, GLenum internalFormat,
 			   GLsizei width, GLsizei height);
 
@@ -184,6 +190,11 @@ extern void GLAPIENTRY
 _mesa_NamedRenderbufferStorageMultisample(GLuint renderbuffer, GLsizei samples,
                                           GLenum internalformat,
                                           GLsizei width, GLsizei height);
+
+extern void GLAPIENTRY
+_mesa_NamedRenderbufferStorageMultisampleAdvancedAMD(
+      GLuint renderbuffer, GLsizei samples, GLsizei storageSamples,
+      GLenum internalformat, GLsizei width, GLsizei height);
 
 extern void GLAPIENTRY
 _mesa_EGLImageTargetRenderbufferStorageOES(GLenum target, GLeglImageOES image);

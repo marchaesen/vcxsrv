@@ -92,11 +92,7 @@ LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
 		llvm::unwrap(builder)->setFastMathFlags(flags);
 		break;
 	case AC_FLOAT_MODE_UNSAFE_FP_MATH:
-#if HAVE_LLVM >= 0x0600
 		flags.setFast();
-#else
-		flags.setUnsafeAlgebra();
-#endif
 		llvm::unwrap(builder)->setFastMathFlags(flags);
 		break;
 	}

@@ -71,7 +71,7 @@ $(POT): $(LOCAL_PATH)/xmlpool/t_options.h
 	@mkdir -p $(dir $@)
 	xgettext -L C --from-code utf-8 -o $@ $<
 
-$(intermediates)/xmlpool/%.po: $(LOCAL_PATH)/xmlpool/%.po $(POT)
+$(MESA_DRI_OPTIONS_LANGS:%=$(intermediates)/xmlpool/%.po): $(intermediates)/xmlpool/%.po: $(LOCAL_PATH)/xmlpool/%.po $(POT)
 	lang=$(basename $(notdir $@)); \
 	mkdir -p $(dir $@); \
 	if [ -f $< ]; then \

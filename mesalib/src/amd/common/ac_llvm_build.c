@@ -1854,83 +1854,24 @@ LLVMValueRef ac_build_cvt_pkrtz_f16(struct ac_llvm_context *ctx,
 				  args, 2, AC_FUNC_ATTR_READNONE);
 }
 
-/* Upper 16 bits must be zero. */
-static LLVMValueRef ac_llvm_pack_two_int16(struct ac_llvm_context *ctx,
-					   LLVMValueRef val[2])
-{
-	return LLVMBuildOr(ctx->builder, val[0],
-			   LLVMBuildShl(ctx->builder, val[1],
-					LLVMConstInt(ctx->i32, 16, 0),
-					""), "");
-}
-
-/* Upper 16 bits are ignored and will be dropped. */
-static LLVMValueRef ac_llvm_pack_two_int32_as_int16(struct ac_llvm_context *ctx,
-						    LLVMValueRef val[2])
-{
-	LLVMValueRef v[2] = {
-		LLVMBuildAnd(ctx->builder, val[0],
-			     LLVMConstInt(ctx->i32, 0xffff, 0), ""),
-		val[1],
-	};
-	return ac_llvm_pack_two_int16(ctx, v);
-}
-
 LLVMValueRef ac_build_cvt_pknorm_i16(struct ac_llvm_context *ctx,
 				     LLVMValueRef args[2])
 {
-	if (HAVE_LLVM >= 0x0600) {
-		LLVMValueRef res =
-			ac_build_intrinsic(ctx, "llvm.amdgcn.cvt.pknorm.i16",
-					   ctx->v2i16, args, 2,
-					   AC_FUNC_ATTR_READNONE);
-		return LLVMBuildBitCast(ctx->builder, res, ctx->i32, "");
-	}
-
-	LLVMValueRef val[2];
-
-	for (int chan = 0; chan < 2; chan++) {
-		/* Clamp between [-1, 1]. */
-		val[chan] = ac_build_fmin(ctx, args[chan], ctx->f32_1);
-		val[chan] = ac_build_fmax(ctx, val[chan], LLVMConstReal(ctx->f32, -1));
-		/* Convert to a signed integer in [-32767, 32767]. */
-		val[chan] = LLVMBuildFMul(ctx->builder, val[chan],
-					  LLVMConstReal(ctx->f32, 32767), "");
-		/* If positive, add 0.5, else add -0.5. */
-		val[chan] = LLVMBuildFAdd(ctx->builder, val[chan],
-				LLVMBuildSelect(ctx->builder,
-					LLVMBuildFCmp(ctx->builder, LLVMRealOGE,
-						      val[chan], ctx->f32_0, ""),
-					LLVMConstReal(ctx->f32, 0.5),
-					LLVMConstReal(ctx->f32, -0.5), ""), "");
-		val[chan] = LLVMBuildFPToSI(ctx->builder, val[chan], ctx->i32, "");
-	}
-	return ac_llvm_pack_two_int32_as_int16(ctx, val);
+	LLVMValueRef res =
+		ac_build_intrinsic(ctx, "llvm.amdgcn.cvt.pknorm.i16",
+				   ctx->v2i16, args, 2,
+				   AC_FUNC_ATTR_READNONE);
+	return LLVMBuildBitCast(ctx->builder, res, ctx->i32, "");
 }
 
 LLVMValueRef ac_build_cvt_pknorm_u16(struct ac_llvm_context *ctx,
 				     LLVMValueRef args[2])
 {
-	if (HAVE_LLVM >= 0x0600) {
-		LLVMValueRef res =
-			ac_build_intrinsic(ctx, "llvm.amdgcn.cvt.pknorm.u16",
-					   ctx->v2i16, args, 2,
-					   AC_FUNC_ATTR_READNONE);
-		return LLVMBuildBitCast(ctx->builder, res, ctx->i32, "");
-	}
-
-	LLVMValueRef val[2];
-
-	for (int chan = 0; chan < 2; chan++) {
-		val[chan] = ac_build_clamp(ctx, args[chan]);
-		val[chan] = LLVMBuildFMul(ctx->builder, val[chan],
-					  LLVMConstReal(ctx->f32, 65535), "");
-		val[chan] = LLVMBuildFAdd(ctx->builder, val[chan],
-					  LLVMConstReal(ctx->f32, 0.5), "");
-		val[chan] = LLVMBuildFPToUI(ctx->builder, val[chan],
-					    ctx->i32, "");
-	}
-	return ac_llvm_pack_two_int32_as_int16(ctx, val);
+	LLVMValueRef res =
+		ac_build_intrinsic(ctx, "llvm.amdgcn.cvt.pknorm.u16",
+				   ctx->v2i16, args, 2,
+				   AC_FUNC_ATTR_READNONE);
+	return LLVMBuildBitCast(ctx->builder, res, ctx->i32, "");
 }
 
 /* The 8-bit and 10-bit clamping is for HW workarounds. */
@@ -1947,10 +1888,9 @@ LLVMValueRef ac_build_cvt_pk_i16(struct ac_llvm_context *ctx,
 		bits != 10 ? max_rgb : ctx->i32_1;
 	LLVMValueRef min_alpha =
 		bits != 10 ? min_rgb : LLVMConstInt(ctx->i32, -2, 0);
-	bool has_intrinsic = HAVE_LLVM >= 0x0600;
 
 	/* Clamp. */
-	if (!has_intrinsic || bits != 16) {
+	if (bits != 16) {
 		for (int i = 0; i < 2; i++) {
 			bool alpha = hi && i == 1;
 			args[i] = ac_build_imin(ctx, args[i],
@@ -1960,15 +1900,11 @@ LLVMValueRef ac_build_cvt_pk_i16(struct ac_llvm_context *ctx,
 		}
 	}
 
-	if (has_intrinsic) {
-		LLVMValueRef res =
-			ac_build_intrinsic(ctx, "llvm.amdgcn.cvt.pk.i16",
-					   ctx->v2i16, args, 2,
-					   AC_FUNC_ATTR_READNONE);
-		return LLVMBuildBitCast(ctx->builder, res, ctx->i32, "");
-	}
-
-	return ac_llvm_pack_two_int32_as_int16(ctx, args);
+	LLVMValueRef res =
+		ac_build_intrinsic(ctx, "llvm.amdgcn.cvt.pk.i16",
+				   ctx->v2i16, args, 2,
+				   AC_FUNC_ATTR_READNONE);
+	return LLVMBuildBitCast(ctx->builder, res, ctx->i32, "");
 }
 
 /* The 8-bit and 10-bit clamping is for HW workarounds. */
@@ -1981,10 +1917,9 @@ LLVMValueRef ac_build_cvt_pk_u16(struct ac_llvm_context *ctx,
 		bits == 8 ? 255 : bits == 10 ? 1023 : 65535, 0);
 	LLVMValueRef max_alpha =
 		bits != 10 ? max_rgb : LLVMConstInt(ctx->i32, 3, 0);
-	bool has_intrinsic = HAVE_LLVM >= 0x0600;
 
 	/* Clamp. */
-	if (!has_intrinsic || bits != 16) {
+	if (bits != 16) {
 		for (int i = 0; i < 2; i++) {
 			bool alpha = hi && i == 1;
 			args[i] = ac_build_umin(ctx, args[i],
@@ -1992,37 +1927,23 @@ LLVMValueRef ac_build_cvt_pk_u16(struct ac_llvm_context *ctx,
 		}
 	}
 
-	if (has_intrinsic) {
-		LLVMValueRef res =
-			ac_build_intrinsic(ctx, "llvm.amdgcn.cvt.pk.u16",
-					   ctx->v2i16, args, 2,
-					   AC_FUNC_ATTR_READNONE);
-		return LLVMBuildBitCast(ctx->builder, res, ctx->i32, "");
-	}
-
-	return ac_llvm_pack_two_int16(ctx, args);
+	LLVMValueRef res =
+		ac_build_intrinsic(ctx, "llvm.amdgcn.cvt.pk.u16",
+				   ctx->v2i16, args, 2,
+				   AC_FUNC_ATTR_READNONE);
+	return LLVMBuildBitCast(ctx->builder, res, ctx->i32, "");
 }
 
 LLVMValueRef ac_build_wqm_vote(struct ac_llvm_context *ctx, LLVMValueRef i1)
 {
-	assert(HAVE_LLVM >= 0x0600);
 	return ac_build_intrinsic(ctx, "llvm.amdgcn.wqm.vote", ctx->i1,
 				  &i1, 1, AC_FUNC_ATTR_READNONE);
 }
 
 void ac_build_kill_if_false(struct ac_llvm_context *ctx, LLVMValueRef i1)
 {
-	if (HAVE_LLVM >= 0x0600) {
-		ac_build_intrinsic(ctx, "llvm.amdgcn.kill", ctx->voidt,
-				   &i1, 1, 0);
-		return;
-	}
-
-	LLVMValueRef value = LLVMBuildSelect(ctx->builder, i1,
-					     LLVMConstReal(ctx->f32, 1),
-					     LLVMConstReal(ctx->f32, -1), "");
-	ac_build_intrinsic(ctx, "llvm.AMDGPU.kill", ctx->voidt,
-			   &value, 1, AC_FUNC_ATTR_LEGACY);
+	ac_build_intrinsic(ctx, "llvm.amdgcn.kill", ctx->voidt,
+			   &i1, 1, 0);
 }
 
 LLVMValueRef ac_build_bfe(struct ac_llvm_context *ctx, LLVMValueRef input,
@@ -3231,7 +3152,7 @@ ac_build_quad_swizzle(struct ac_llvm_context *ctx, LLVMValueRef src,
 		unsigned lane0, unsigned lane1, unsigned lane2, unsigned lane3)
 {
 	unsigned mask = dpp_quad_perm(lane0, lane1, lane2, lane3);
-	if (ctx->chip_class >= VI && HAVE_LLVM >= 0x0600) {
+	if (ctx->chip_class >= VI) {
 		return ac_build_dpp(ctx, src, src, mask, 0xf, 0xf, false);
 	} else {
 		return ac_build_ds_swizzle(ctx, src, (1 << 15) | mask);

@@ -169,7 +169,7 @@ RRLeaseFree(RRLeasePtr lease)
  * finished, which may be some time after this function returns
  * if the driver operation is asynchronous
  */
-static void
+void
 RRTerminateLease(RRLeasePtr lease)
 {
     ScreenPtr screen = lease->screen;

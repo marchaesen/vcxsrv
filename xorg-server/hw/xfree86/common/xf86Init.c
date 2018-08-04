@@ -92,9 +92,7 @@
 #endif
 #include <hotplug.h>
 
-#ifdef XF86PM
 void (*xf86OSPMClose) (void) = NULL;
-#endif
 static Bool xorgHWOpenConsole = FALSE;
 
 /* Common pixmap formats */
@@ -397,9 +395,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             }
         }
 
-#ifdef XF86PM
         xf86OSPMClose = xf86OSPMOpen();
-#endif
 
         xf86ExtensionInit();
 
@@ -626,7 +622,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         if (xorgHWOpenConsole)
             xf86OpenConsole();
 
-#ifdef XF86PM
         /*
            should we reopen it here? We need to deal with an already opened
            device. We could leave this to the OS layer. For now we simply
@@ -636,7 +631,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             xf86OSPMClose();
         if ((xf86OSPMClose = xf86OSPMOpen()) != NULL)
             xf86MsgVerb(X_INFO, 3, "APM registered successfully\n");
-#endif
 
         /* Make sure full I/O access is enabled */
         if (xorgHWAccess)
@@ -878,11 +872,9 @@ ddxGiveUp(enum ExitCode error)
 
     xf86VGAarbiterFini();
 
-#ifdef XF86PM
     if (xf86OSPMClose)
         xf86OSPMClose();
     xf86OSPMClose = NULL;
-#endif
 
     for (i = 0; i < xf86NumScreens; i++) {
         /*

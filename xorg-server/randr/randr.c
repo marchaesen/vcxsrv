@@ -89,8 +89,12 @@ RRCloseScreen(ScreenPtr pScreen)
 {
     rrScrPriv(pScreen);
     int j;
+    RRLeasePtr lease, next;
 
     unwrap(pScrPriv, pScreen, CloseScreen);
+
+    xorg_list_for_each_entry_safe(lease, next, &pScrPriv->leases, list)
+        RRTerminateLease(lease);
     for (j = pScrPriv->numCrtcs - 1; j >= 0; j--)
         RRCrtcDestroy(pScrPriv->crtcs[j]);
     for (j = pScrPriv->numOutputs - 1; j >= 0; j--)

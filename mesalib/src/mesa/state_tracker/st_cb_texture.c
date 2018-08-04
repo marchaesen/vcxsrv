@@ -2043,7 +2043,7 @@ st_GetTexSubImage(struct gl_context * ctx,
       }
 
       dst_format = st_choose_format(st, dst_glformat, format, type,
-                                    pipe_target, 0, bind, FALSE);
+                                    pipe_target, 0, 0, bind, FALSE);
 
       if (dst_format == PIPE_FORMAT_NONE) {
          /* unable to get an rgba format!?! */

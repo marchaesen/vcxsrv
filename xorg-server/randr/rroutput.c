@@ -379,6 +379,17 @@ RROutputDestroyResource(void *value, XID pid)
     if (pScreen) {
         rrScrPriv(pScreen);
         int i;
+        RRLeasePtr lease, next;
+
+        xorg_list_for_each_entry_safe(lease, next, &pScrPriv->leases, list) {
+            int o;
+            for (o = 0; o < lease->numOutputs; o++) {
+                if (lease->outputs[o] == output) {
+                    RRTerminateLease(lease);
+                    break;
+                }
+            }
+        }
 
         if (pScrPriv->primaryOutput == output)
             pScrPriv->primaryOutput = NULL;

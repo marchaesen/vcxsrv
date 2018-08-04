@@ -368,6 +368,13 @@ descriptor=[
 
 # GL_NV_conservative_raster_pre_snap_triangles
   [ "CONSERVATIVE_RASTER_MODE_NV", "CONTEXT_ENUM16(ConservativeRasterMode), extra_NV_conservative_raster_pre_snap_triangles" ],
+
+# GL_AMD_framebuffer_multisample_advanced
+  [ "MAX_COLOR_FRAMEBUFFER_SAMPLES_AMD", "CONTEXT_INT(Const.MaxColorFramebufferSamples), extra_AMD_framebuffer_multisample_advanced" ],
+  [ "MAX_COLOR_FRAMEBUFFER_STORAGE_SAMPLES_AMD", "CONTEXT_INT(Const.MaxColorFramebufferStorageSamples), extra_AMD_framebuffer_multisample_advanced" ],
+  [ "MAX_DEPTH_STENCIL_FRAMEBUFFER_SAMPLES_AMD", "CONTEXT_INT(Const.MaxDepthStencilFramebufferSamples), extra_AMD_framebuffer_multisample_advanced" ],
+  [ "NUM_SUPPORTED_MULTISAMPLE_MODES_AMD", "CONTEXT_INT(Const.NumSupportedMultisampleModes), extra_AMD_framebuffer_multisample_advanced" ],
+  [ "SUPPORTED_MULTISAMPLE_MODES_AMD", "LOC_CUSTOM, TYPE_INT_N, 0, extra_AMD_framebuffer_multisample_advanced" ],
 ]},
 
 # GLES3 is not a typo.

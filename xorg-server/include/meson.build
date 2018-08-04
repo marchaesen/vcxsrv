@@ -58,10 +58,25 @@ conf_data.set('HAS_APERTURE_DRV', host_machine.system() == 'openbsd')
 # XXX: HAVE_LIBDISPATCH
 conf_data.set_quoted('OSNAME', 'Linux') # XXX
 conf_data.set('HAVE_INPUTTHREAD', '1') # XXX
-conf_data.set('HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID', '1') # XXX
+
+if cc.compiles('''
+    #define _GNU_SOURCE 1
+    #include <pthread.h>
+    void foo(int bar) { pthread_setname_np(pthread_self(), "example"); }
+''',
+    name: 'pthread_setname_np(tid, name)')
+    conf_data.set('HAVE_PTHREAD_SETNAME_NP_WITH_TID', 1)
+elif cc.compiles('''
+    #define _GNU_SOURCE 1
+    #include <pthread.h>
+    void foo(int bar) { pthread_setname_np("example"); }
+''',
+    name: 'pthread_setname_np(name)')
+    conf_data.set('HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID', 1)
+endif
+
 conf_data.set('HAVE_LIBBSD', libbsd_dep.found())
 # XXX: HAVE_SYSTEMD_DAEMON
-# XXX: HAVE_LIBUDEV
 conf_data.set('CONFIG_UDEV', build_udev)
 conf_data.set('CONFIG_UDEV_KMS', build_udev)
 conf_data.set('HAVE_DBUS', build_dbus)
@@ -156,8 +171,10 @@ conf_data.set('_XITYPEDEF_POINTER', '1')
 conf_data.set('LISTEN_TCP', get_option('listen_tcp'))
 conf_data.set('LISTEN_UNIX', get_option('listen_unix'))
 conf_data.set('LISTEN_LOCAL', get_option('listen_local'))
-# XXX: Configurable?
-conf_data.set('XTRANS_SEND_FDS', '1')
+
+if cc.has_header_symbol('sys/socket.h', 'SCM_RIGHTS')
+  conf_data.set('XTRANS_SEND_FDS', '1')
+endif
 
 conf_data.set('TCPCONN', '1')
 conf_data.set('UNIXCONN', '1')
@@ -322,7 +339,6 @@ xorg_data.set('XSERVER_LIBPCIACCESS', get_option('pciaccess'))
 xorg_data.set_quoted('PCI_TXT_IDS_PATH', '')
 xorg_data.set('XSERVER_PLATFORM_BUS', build_udev)
 xorg_data.set('WSCONS_SUPPORT', host_machine.system() == 'netbsd' or host_machine.system() == 'openbsd')
-xorg_data.set('XF86PM', build_apm or build_acpi)
 
 if host_machine.system() == 'freebsd' or host_machine.system() == 'dragonflybsd'
     if host_machine.cpu_family() == 'x86' or host_machine.cpu_family() == 'x86_64'

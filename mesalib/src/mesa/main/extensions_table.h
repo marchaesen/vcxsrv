@@ -10,6 +10,7 @@ EXT(3DFX_texture_compression_FXT1           , TDFX_texture_compression_FXT1     
 
 EXT(AMD_conservative_depth                  , ARB_conservative_depth                 , GLL, GLC,  x ,  x , 2009)
 EXT(AMD_draw_buffers_blend                  , ARB_draw_buffers_blend                 , GLL, GLC,  x ,  x , 2009)
+EXT(AMD_framebuffer_multisample_advanced    , AMD_framebuffer_multisample_advanced   , GLL, GLC,  x , ES2, 2018)
 EXT(AMD_performance_monitor                 , AMD_performance_monitor                , GLL, GLC,  x , ES2, 2007)
 EXT(AMD_pinned_memory                       , AMD_pinned_memory                      , GLL, GLC,  x ,  x , 2013)
 EXT(AMD_seamless_cubemap_per_texture        , AMD_seamless_cubemap_per_texture       , GLL, GLC,  x ,  x , 2009)

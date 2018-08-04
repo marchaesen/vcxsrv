@@ -408,8 +408,8 @@ loader_get_extensions_name(const char *driver_name)
 
    const size_t len = strlen(name);
    for (size_t i = 0; i < len; i++) {
-	   if (name[i] == '-')
-		   name[i] = '_';
+      if (name[i] == '-')
+         name[i] = '_';
    }
 
    return name;

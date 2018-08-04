@@ -45,6 +45,8 @@ if host_machine.system() == 'linux'
         if build_acpi
             srcs_xorg_os_support += 'linux/lnx_acpi.c'
         endif
+    else
+        srcs_xorg_os_support += 'shared/pm_noop.c'
     endif
 
 elif host_machine.system() == 'solaris'
@@ -85,7 +87,15 @@ elif host_machine.system().endswith('bsd')
         'bsd/bsd_init.c',
     ]
 
-    # XXX: APM
+    if cc.has_header('machine/apmvar.h')
+        if cc.has_header('sys/event.h')
+            srcs_xorg_os_support += 'bsd/bsd_kqueue_apm.c'
+        else
+            srcs_xorg_os_support += 'bsd/bsd_apm.c'
+        endif
+    else
+        srcs_xorg_os_support += 'shared/pm_noop.c'
+    endif
 
     if host_machine.cpu_family() == 'x86_64'
         srcs_xorg_os_support += 'bsd/i386_video.c'

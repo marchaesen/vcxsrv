@@ -5850,7 +5850,7 @@ texture_image_multisample(struct gl_context *ctx, GLuint dims,
    }
 
    sample_count_error = _mesa_check_sample_count(ctx, target,
-         internalformat, samples);
+         internalformat, samples, samples);
    samplesOK = sample_count_error == GL_NO_ERROR;
 
    /* Page 254 of OpenGL 4.4 spec says:

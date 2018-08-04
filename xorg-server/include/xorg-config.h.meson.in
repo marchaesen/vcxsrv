@@ -142,9 +142,6 @@
 /* Define to 1 if you have the `seteuid' function. */
 #mesondefine HAVE_SETEUID
 
-/* Support APM/ACPI power management in the server */
-#mesondefine XF86PM
-
 /* Fallback input driver if the assigned driver fails */
 #mesondefine FALLBACK_INPUT_DRIVER
 
