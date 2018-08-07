@@ -19,6 +19,7 @@ if [ ! -d fontconfig       ]; then git clone git://anongit.freedesktop.org/fontc
 if [ ! -d mesa             ]; then git clone git://anongit.freedesktop.org/git/mesa/mesa              ; fi
 if [ ! -d putty            ]; then git clone git://git.tartarus.org/simon/putty.git                   ; fi
 if [ ! -d pthreads         ]; then git clone git://git.code.sf.net/p/pthreads4w/code pthreads         ; fi
+if [ ! -d EGL-Registry     ]; then git clone https://github.com/KhronosGroup/EGL-Registry.git         ; fi
 
 if [ -d xserver          ]; then echo Updating xserver          ; pushd xserver         > /dev/null ; git pull; popd > /dev/null ; fi
 if [ -d libxcb           ]; then echo Updating libxcb           ; pushd libxcb          > /dev/null ; git pull; popd > /dev/null ; fi
@@ -41,6 +42,7 @@ if [ -d fontconfig       ]; then echo Updating fontconfig       ; pushd fontconf
 if [ -d mesa             ]; then echo Updating mesa             ; pushd mesa            > /dev/null ; git pull; popd > /dev/null ; fi
 if [ -d putty            ]; then echo Updating putty            ; pushd putty           > /dev/null ; git pull; popd > /dev/null ; fi
 if [ -d pthreads         ]; then echo Updating pthreads         ; pushd pthreads        > /dev/null ; git pull; popd > /dev/null ; fi
+if [ -d EGL-Registry     ]; then echo Updating EGL-Registry     ; pushd EGL-Registry    > /dev/null ; git pull; popd > /dev/null ; fi
 
 ../vcxsrv.released/synchronise.py -e xserver ../vcxsrv.released/xorg-server --skip-dir=fonts.src --skip-dir=bitmaps --skip-dir=xkeyboard-config
 ../vcxsrv.released/synchronise.py -e libxcb ../vcxsrv.released/libxcb
@@ -63,6 +65,7 @@ if [ -d pthreads         ]; then echo Updating pthreads         ; pushd pthreads
 ../vcxsrv.released/synchronise.py -e putty ../vcxsrv.released/tools/plink --skip-dir=windows --skip-dir=unix --skip-dir=contrib --skip-dir=doc --skip-dir=icons --skip-dir=macosx --skip-dir=testdata --skip-dir charset --skip-file=.gitignore --skip-file=Buildscr --skip-file=Buildscr.cv --skip-file=CHECKLST.txt --skip-file=LATEST.VER --skip-file=LICENCE --skip-file=README --skip-file=Recipe --skip-file=be_all_s.c --skip-file=be_none.c --skip-file=be_nos_s.c --skip-file=be_nossh.c --skip-file=be_ssh.c --skip-file=cmdgen.c --skip-file=config.c --skip-file=configure.ac --skip-file=dialog.c --skip-file=dialog.h --skip-file=import.c --skip-file=int64.c --skip-file=ldiscucs.c --skip-file=minibidi.c --skip-file=miscucs.c --skip-file=mkauto.sh --skip-file=mkfiles.pl --skip-file=mksrcarc.sh --skip-file=mkunxarc.sh --skip-file=nocproxy.c --skip-file=nogss.c --skip-file=noprint.c --skip-file=noshare.c --skip-file=notiming.c --skip-file=pageant.c --skip-file=pproxy.c --skip-file=pscp.c --skip-file=psftp.c --skip-file=psftp.h --skip-file=resource.h --skip-file=sercfg.c --skip-file=sftp.c --skip-file=sftp.h --skip-file=sign.sh --skip-file=sshbcrypt.c --skip-file=sshdssg.c --skip-file=sshecdsag.c --skip-file=sshnogss.c --skip-file=sshprime.c --skip-file=sshrsag.c --skip-file=terminal.c --skip-file=testback.c --skip-file=wcwidth.c --skip-file=fuzzterm.c --skip-file=release.pl --skip-file=cgtest.c
 ../vcxsrv.released/synchronise.py putty/windows ../vcxsrv.released/tools/plink --skip-file=README.txt --skip-file=pageant.ico --skip-file=pageant.mft --skip-file=pageant.rc --skip-file=pageants.ico --skip-file=plink.rc --skip-file=pscp.ico --skip-file=pscp.rc --skip-file=psftp.rc --skip-file=putty.ico --skip-file=putty.iss --skip-file=putty.mft --skip-file=putty.rc --skip-file=puttycfg.ico --skip-file=puttygen.ico --skip-file=puttygen.mft --skip-file=puttygen.rc --skip-file=puttyins.ico --skip-file=puttytel.rc --skip-file=rcstuff.h --skip-file=sizetip.c --skip-file=version.rc2 --skip-file=website.url --skip-file=win_res.h --skip-file=win_res.rc2 --skip-file=wincfg.c --skip-file=winctrls.c --skip-file=windlg.c --skip-file=window.c --skip-file=winhelp.c --skip-file=winjump.c --skip-file=winpgen.c --skip-file=winpgnt.c --skip-file=winprint.c --skip-file=winser.c --skip-file=winsftp.c --skip-file=wintime.c --skip-file=winutils.c --skip-file=installer.wxs --skip-file=README-msi.txt
 ../vcxsrv.released/synchronise.py -e pthreads          ../vcxsrv.released/pthreads
+../vcxsrv.released/synchronise.py -e EGL-Registry/api/KHR ../vcxsrv.released/include/KHR
 
 # show all latest commit hashes
 if [ -d xserver          ]; then  pushd xserver         > /dev/null ; echo "xserver         " `git log | head -n1`; popd > /dev/null ; fi
@@ -86,5 +89,6 @@ if [ -d fontconfig       ]; then  pushd fontconfig      > /dev/null ; echo "font
 if [ -d mesa             ]; then  pushd mesa            > /dev/null ; echo "mesa            " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d putty            ]; then  pushd putty           > /dev/null ; echo "putty           " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d pthreads         ]; then  pushd pthreads        > /dev/null ; echo "pthreads        " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d EGL-Registry     ]; then  pushd EGL-Registry    > /dev/null ; echo "EGL-Registry    " `git log | head -n1`; popd > /dev/null ; fi
 
 
