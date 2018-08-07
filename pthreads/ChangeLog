@@ -1,3 +1,20 @@
+2018-08-07  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* GNUmakefile.in (DLL_VER): rename as PTW32_VER.
+	* Makefile (DLL_VER): Likewise.
+	* Bmakefile (DLL_VER): Likewise; does anyone use this anymore?
+	* pthread.h: Move internal library stuff from pthread.h to _pthw32.h
+	* _ptw32.h: As above.
+
+2018-07-22  Mark Pizzolato <markpizzolato dash pthreads dash win32 at subscriptions dot pizzolato dot net>
+
+	* _ptw32.h: Restore support for compiling as static (with /MT or /MTd);
+	define int64_t and uint64_t as typedefs rather than #defines.
+	* dll.c: Likewise.
+	* implement.h: Likewise.
+	* need_errno.h: Likewise.
+	* pthread_detach.c: Likewise.
+
 2018-07-22  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* Makefile (all-tests-md): New; run the /MD build and tests from
@@ -1148,9 +1165,9 @@
 	NOTES:
 	The design (based on pseudo code contributed by Gottlob Frege) avoids
 	creating a kernel object if there is no contention. See URL for details:-
-	http://sources.redhat.com/ml/pthreads-win32/2005/msg00029.html
+	http://sources.redhat.com/ml/Pthreads4w/2005/msg00029.html
 	This uses late initialisation similar to the technique already used for
-	pthreads-win32 mutexes and semaphores (from Alexander Terekhov).
+	Pthreads4w mutexes and semaphores (from Alexander Terekhov).
 
 	The subsequent cancellation cleanup additions (by rpj) could not be implemented
 	without sacrificing some of the efficiency in Gottlob's design. In particular,
@@ -1225,10 +1242,10 @@
 
 	* pthread_cond_wait.c (ptw32_cond_wait_cleanup): Undo change
 	from 2004-11-02.
-	* Makefile (DLL_VER): Added for DLL naming suffix - see README.
-	* GNUmakefile (DLL_VER): Likewise.
-	* Wmakefile (DLL_VER): Likewise.
-	* Bmakefile (DLL_VER): Likewise.
+	* Makefile (PTW32_VER): Added for DLL naming suffix - see README.
+	* GNUmakefile (PTW32_VER): Likewise.
+	* Wmakefile (PTW32_VER): Likewise.
+	* Bmakefile (PTW32_VER): Likewise.
 	* pthread.dsw (version.rc): Added to MSVS workspace.
 
 2004-11-20  Boudewijn Dekker  <b.dekker at ellipsis.nl>
@@ -1398,7 +1415,7 @@
 	Drepper's paper at http://people.redhat.com/drepper/futex.pdf, but
 	using the existing semaphore in place of the futex described in the
 	paper. Idea suggested by Alexander Terekhov - see:
-	http://sources.redhat.com/ml/pthreads-win32/2003/msg00108.html
+	http://sources.redhat.com/ml/Pthreads4w/2003/msg00108.html
 	* pthread_mutex_timedlock.c pthread_mutex_timedlock(): Similarly.
 	* pthread_mutex_trylock.c (pthread_mutex_trylock): Similarly.
 	* pthread_mutex_unlock.c (pthread_mutex_unlock): Similarly.
@@ -1471,7 +1488,7 @@
 	location. This is consistent with GNU/Linux but different to
 	Solaris or MKS (and possibly others), which accept NULL as meaning
 	'don't return the created thread's ID'. Applications that run
-	using pthreads-win32 will run on all other POSIX threads
+	using Pthreads4w will run on all other POSIX threads
 	implementations, at least w.r.t. this feature.
 
 	It was decided not to copy the Solaris et al behaviour because,
@@ -1558,7 +1575,7 @@
 	* QueueUserAPCEx (separate contributed package): Provides preemptive
 	APC feature.
 	* pthread_cancel.c (pthread_cancel): Initial integration of
-	QueueUserAPCEx into pthreads-win32 to provide true pre-emptive
+	QueueUserAPCEx into Pthreads4w to provide true pre-emptive
 	async cancellation of threads, including blocked threads.
 
 2004-05-06  Makoto Kato  <raven at oldskool.jp>
@@ -2169,7 +2186,7 @@
 
 2002-02-04  Ross Johnson  <rpj at setup1.ise.canberra.edu.au>
 
-	The following extends the idea above to the rest of pthreads-win32 - rpj
+	The following extends the idea above to the rest of Pthreads4w - rpj
 	
 	* attr.c: All routines are now in separate compilation units;
 	This file is used to congregate the separate modules for
@@ -3896,7 +3913,7 @@ Fri Jan 29 11:56:28 1999  Ross Johnson  <rpj at swan.canberra.edu.au>
 
 	* implement.h: Add semaphore function prototypes and rename all
 	functions to prepend 'ptw32_'. They are
-	now private to the pthreads-win32 implementation.
+	now private to the Pthreads4w implementation.
 
 	* private.c: Change #warning.
 	Move ptw32_sem_timedwait() to semaphore.c.

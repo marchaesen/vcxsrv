@@ -462,6 +462,7 @@ struct choose_scoreboard {
         int last_magic_sfu_write_tick;
         int last_ldvary_tick;
         int last_uniforms_reset_tick;
+        int last_thrsw_tick;
         bool tlb_locked;
 };
 
@@ -1095,10 +1096,16 @@ qpu_instruction_valid_in_thrend_slot(struct v3d_compile *c,
 }
 
 static bool
-valid_thrsw_sequence(struct v3d_compile *c,
+valid_thrsw_sequence(struct v3d_compile *c, struct choose_scoreboard *scoreboard,
                      struct qinst *qinst, int instructions_in_sequence,
                      bool is_thrend)
 {
+        /* No emitting our thrsw while the previous thrsw hasn't happened yet. */
+        if (scoreboard->last_thrsw_tick + 3 >
+            scoreboard->tick - instructions_in_sequence) {
+                return false;
+        }
+
         for (int slot = 0; slot < instructions_in_sequence; slot++) {
                 /* No scheduling SFU when the result would land in the other
                  * thread.  The simulator complains for safety, though it
@@ -1159,7 +1166,8 @@ emit_thrsw(struct v3d_compile *c,
                 if (!v3d_qpu_sig_pack(c->devinfo, &sig, &packed_sig))
                         break;
 
-                if (!valid_thrsw_sequence(c, prev_inst, slots_filled + 1,
+                if (!valid_thrsw_sequence(c, scoreboard,
+                                          prev_inst, slots_filled + 1,
                                           is_thrend)) {
                         break;
                 }
@@ -1173,7 +1181,9 @@ emit_thrsw(struct v3d_compile *c,
         if (merge_inst) {
                 merge_inst->qpu.sig.thrsw = true;
                 needs_free = true;
+                scoreboard->last_thrsw_tick = scoreboard->tick - slots_filled;
         } else {
+                scoreboard->last_thrsw_tick = scoreboard->tick;
                 insert_scheduled_instruction(c, block, scoreboard, inst);
                 time++;
                 slots_filled++;
@@ -1475,6 +1485,7 @@ v3d_qpu_schedule_instructions(struct v3d_compile *c)
         scoreboard.last_ldvary_tick = -10;
         scoreboard.last_magic_sfu_write_tick = -10;
         scoreboard.last_uniforms_reset_tick = -10;
+        scoreboard.last_thrsw_tick = -10;
 
         if (debug) {
                 fprintf(stderr, "Pre-schedule instructions\n");

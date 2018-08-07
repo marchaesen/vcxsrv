@@ -1,6 +1,6 @@
 This file documents non-portable functions and other issues.
 
-Non-portable functions included in pthreads-win32
+Non-portable functions included in Pthreads4w
 -------------------------------------------------
 
 BOOL
@@ -149,7 +149,7 @@ pthread_getunique_np (pthread_t thr)
 		pthread_t value may be assigned to different threads throughout the life of a 
 		process.
 		
-		Because pthreads4w (pthreads-win32) threads can be uniquely identified by their
+		Because pthreads4w (Pthreads4w) threads can be uniquely identified by their
 		pthread_t values this routine is provided only for source code compatibility.
 		
 		NOTE: if the library is re-initialised, i.e. by calling pthread_win32_process_detach_np()
@@ -203,7 +203,7 @@ pthread_win32_thread_detach_np (void);
 
 	These functions invariably return TRUE except for
 	pthread_win32_process_attach_np() which will return FALSE
-	if pthreads-win32 initialisation fails.
+	if Pthreads4w initialisation fails.
 
 
 int
@@ -349,7 +349,7 @@ Thread priority
 	As you can see, the real priority levels available to any individual
 	Win32 thread are non-contiguous.
 
-	An application using pthreads-win32 should not make assumptions about
+	An application using Pthreads4w should not make assumptions about
 	the numbers used to represent thread priority levels, except that they
 	are monotonic between the values returned by sched_get_priority_min()
 	and sched_get_priority_max(). E.g. Windows 95, 98, NT, 2000, XP make
@@ -358,14 +358,14 @@ Thread priority
 	(THREAD_PRIORITY_LOWEST) as 5, and the maximum priority
 	(THREAD_PRIORITY_HIGHEST) as 1.
 
-	Internally, pthreads-win32 maps any priority levels between
+	Internally, Pthreads4w maps any priority levels between
 	THREAD_PRIORITY_IDLE and THREAD_PRIORITY_LOWEST to THREAD_PRIORITY_LOWEST,
 	or between THREAD_PRIORITY_TIME_CRITICAL and THREAD_PRIORITY_HIGHEST to
 	THREAD_PRIORITY_HIGHEST. Currently, this also applies to
 	REALTIME_PRIORITY_CLASSi even if levels -7, -6, -5, -4, -3, 3, 4, 5, and 6
 	are supported.
 
-	If it wishes, a Win32 application using pthreads-win32 can use the Win32
+	If it wishes, a Win32 application using Pthreads4w can use the Win32
 	defined priority macros THREAD_PRIORITY_IDLE through
 	THREAD_PRIORITY_TIME_CRITICAL.
 

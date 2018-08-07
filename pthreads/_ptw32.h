@@ -2,14 +2,14 @@
  * Module: _ptw32.h
  *
  * Purpose:
- *      Pthreads-win32 internal macros, to be shared by other headers
- *      comprising the pthreads-win32 package.
+ *      Pthreads4w internal macros, to be shared by other headers
+ *      comprising the Pthreads4w package.
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads-win32 - POSIX Threads Library for Win32
+ *      Pthreads4w - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2017, Pthreads-win32 contributors
+ *      Copyright(C) 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -19,36 +19,36 @@
  *      following World Wide Web location:
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads-win32.
+ * This file is part of Pthreads4w.
  *
- *    Pthreads-win32 is free software: you can redistribute it and/or modify
+ *    Pthreads4w is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
  *    the Free Software Foundation, either version 3 of the License, or
  *    (at your option) any later version.
  *
- *    Pthreads-win32 is distributed in the hope that it will be useful,
+ *    Pthreads4w is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public License
- *    along with Pthreads-win32.  If not, see <http://www.gnu.org/licenses/>. *
+ *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
  */
 #ifndef __PTW32_H
 #define __PTW32_H
 
-/* See the README file for an explanation of the pthreads-win32
+/* See the README file for an explanation of the Pthreads4w
  * version numbering scheme and how the DLL is named etc.
  *
  * FIXME: consider moving this to <_ptw32.h>; maybe also add a
  * leading underscore to the macro names.
  */
 #define PTW32_VERSION_MAJOR 2
-#define PTW32_VERSION_MINOR 10
+#define PTW32_VERSION_MINOR 11
 #define PTW32_VERSION_MICRO 0
 #define PTW32_VERION_BUILD 0
-#define PTW32_VERSION 2,10,0,0
-#define PTW32_VERSION_STRING "2, 10, 0, 0\0"
+#define PTW32_VERSION 2,11,0,0
+#define PTW32_VERSION_STRING "2, 11, 0, 0\0"
 
 #if defined(__GNUC__)
 # pragma GCC system_header
@@ -65,22 +65,7 @@
 # define __PTW32_END_C_DECLS
 #endif
 
-#if defined (PTW32_STATIC_LIB) && _MSC_VER >= 1400
-# undef PTW32_STATIC_LIB
-# define PTW32_STATIC_TLSLIB
-#endif
-
-/* When building the library, you should define PTW32_BUILD so that
- * the variables/functions are exported correctly. When using the library,
- * do NOT define PTW32_BUILD, and then the variables/functions will
- * be imported correctly.
- *
- * FIXME: Used defined feature test macros, such as PTW32_STATIC_LIB, (and
- * maybe even PTW32_BUILD), should be renamed with one initial underscore;
- * internally defined macros, such as PTW32_DLLPORT, should be renamed with
- * two initial underscores ... perhaps __PTW32_DECLSPEC is nicer anyway?
- */
-#if defined PTW32_STATIC_LIB || defined PTW32_STATIC_TLSLIB
+#if defined PTW32_STATIC_LIB
 # define PTW32_DLLPORT
 
 #elif defined PTW32_BUILD
@@ -113,6 +98,42 @@
 # else
 #  define PTW32_CDECL __cdecl
 # endif
+#endif
+
+/*
+ * If Pthreads4w is compiled as a DLL with MSVC, and
+ * both it and the application are linked against the static
+ * C runtime (i.e. with the /MT compiler flag), then the
+ * application will not see the same C runtime globals as
+ * the library. These include the errno variable, and the
+ * termination routine called by terminate(). For details,
+ * refer to the following links:
+ *
+ * http://support.microsoft.com/kb/94248
+ * (Section 4: Problems Encountered When Using Multiple CRT Libraries)
+ *
+ * http://social.msdn.microsoft.com/forums/en-US/vclanguage/thread/b4500c0d-1b69-40c7-9ef5-08da1025b5bf
+ *
+ * When Pthreads4w is built with PTW32_USES_SEPARATE_CRT
+ * defined, the following features are enabled:
+ *
+ * (1) In addition to setting the errno variable when errors
+ * occur, the library will also call SetLastError() with the
+ * same value. The application can then use GetLastError()
+ * to obtain the value of errno. (This pair of routines are
+ * in kernel32.dll, and so are not affected by the use of
+ * multiple CRT libraries.)
+ *
+ * (2) When C++ or SEH cleanup is used, the library defines
+ * a function pthread_win32_set_terminate_np(), which can be
+ * used to set the termination routine that should be called
+ * when an unhandled exception occurs in a thread function
+ * (or otherwise inside the library).
+ *
+ * Note: "_DLL" implies the /MD compiler flag.
+ */
+#if defined(_MSC_VER) && !defined(_DLL) && !defined(PTW32_STATIC_LIB)
+#  define PTW32_USES_SEPARATE_CRT
 #endif
 
 /*

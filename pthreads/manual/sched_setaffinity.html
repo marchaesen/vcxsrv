@@ -13,7 +13,7 @@
 </HEAD>
 <BODY LANG="en-GB" BGCOLOR="#ffffff" DIR="LTR">
 <H4 CLASS="western"><FONT FACE="Times New Roman, serif"><FONT SIZE=3><SPAN STYLE="font-style: normal">POSIX
-Threads for Windows &ndash; REFERENCE - <A HREF="http://sources.redhat.com/pthreads-win32">Pthreads-w32</A></SPAN></FONT></FONT></H4>
+Threads for Windows &ndash; REFERENCE - <A HREF="https://sourceforge.net/projects/pthreads4w/">Pthreads4w</A></SPAN></FONT></FONT></H4>
 <P><A HREF="index.html">Reference Index</A></P>
 <P><A HREF="#toc">Table of Contents</A></P>
 <H2 CLASS="western"><A HREF="#toc0" NAME="sect0">Name</A></H2>
@@ -46,7 +46,7 @@ whose ID is <I>pid</I> into the cpu_set_t structure pointed to by
 <I>mask</I>. The <I>cpusetsize</I> argument specifies the size (in
 bytes) of <I>mask</I>. If <I>pid</I> is zero, then the mask of the
 calling process is returned.</P>
-<P><B>Pthreads-w32</B> currently ignores the <I>cpusetsize</I>
+<P><B>Pthreads4w</B> currently ignores the <I>cpusetsize</I>
 parameter for either function because cpu_set_t is a direct typeset
 to the Windows affinity vector type DWORD_PTR.</P>
 <P>Windows may require that the requesting process have permission to
@@ -112,7 +112,7 @@ manipulating CPU sets is described in <B>cpu_set</B>(3).</P>
 <A HREF="pthread_setaffinity_np.html"><B>pthread_getaffinity_np</B>(3)</A></P>
 <H2 CLASS="western"><A HREF="#toc7" NAME="sect7">Copyright</A></H2>
 <P>Most of this is taken from the Linux manual page.</P>
-<P>Modified by Ross Johnson for use with <B>Pthreads-w32</B>.</P>
+<P>Modified by Ross Johnson for use with <B>Pthreads4w</B>.</P>
 <HR>
 <P><A NAME="toc"></A><B>Table of Contents</B></P>
 <UL>

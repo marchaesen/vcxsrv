@@ -2,9 +2,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads-win32 - POSIX Threads Library for Win32
+ *      Pthreads4w - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2017, Pthreads-win32 contributors
+ *      Copyright(C) 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -14,20 +14,20 @@
  *      following World Wide Web location:
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads-win32.
+ * This file is part of Pthreads4w.
  *
- *    Pthreads-win32 is free software: you can redistribute it and/or modify
+ *    Pthreads4w is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
  *    the Free Software Foundation, either version 3 of the License, or
  *    (at your option) any later version.
  *
- *    Pthreads-win32 is distributed in the hope that it will be useful,
+ *    Pthreads4w is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public License
- *    along with Pthreads-win32.  If not, see <http://www.gnu.org/licenses/>. *
+ *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
  */
 
 #if !defined( PTHREAD_H )
@@ -166,7 +166,7 @@
  *      The source code and other information about this library
  *      are available from
  *
- *              http://sources.redhat.com/pthreads-win32/
+ *              https://sourceforge.net/projects/pthreads4w//
  *
  * -------------------------------------------------------------
  */
@@ -186,7 +186,7 @@ enum
  * =========================
  *
  * Options are normally set in <unistd.h>, which is not provided
- * with pthreads-win32.
+ * with Pthreads4w.
  *
  * For conformance with the Single Unix Specification (version 3), all of the
  * options below are defined, and have a value of either -1 (not supported)
@@ -317,7 +317,7 @@ enum
  * ===========================
  *
  * These limits are normally set in <limits.h>, which is not provided with
- * pthreads-win32.
+ * Pthreads4w.
  *
  * PTHREAD_DESTRUCTOR_ITERATIONS
  *                      Maximum number of attempts to destroy
@@ -1127,42 +1127,6 @@ PTW32_DLLPORT int PTW32_CDECL pthreadCancelableTimedWait (void *waitHandle,
      __declspec(dllimport) extern int * __cdecl _errno(void);
 #    define errno (*_errno())
 #  endif
-#endif
-
-/*
- * If pthreads-win32 is compiled as a DLL with MSVC, and
- * both it and the application are linked against the static
- * C runtime (i.e. with the /MT compiler flag), then the
- * application will not see the same C runtime globals as
- * the library. These include the errno variable, and the
- * termination routine called by terminate(). For details,
- * refer to the following links:
- *
- * http://support.microsoft.com/kb/94248
- * (Section 4: Problems Encountered When Using Multiple CRT Libraries)
- *
- * http://social.msdn.microsoft.com/forums/en-US/vclanguage/thread/b4500c0d-1b69-40c7-9ef5-08da1025b5bf
- *
- * When pthreads-win32 is built with PTW32_USES_SEPARATE_CRT
- * defined, the following features are enabled:
- *
- * (1) In addition to setting the errno variable when errors
- * occur, the library will also call SetLastError() with the
- * same value. The application can then use GetLastError()
- * to obtain the value of errno. (This pair of routines are
- * in kernel32.dll, and so are not affected by the use of
- * multiple CRT libraries.)
- *
- * (2) When C++ or SEH cleanup is used, the library defines
- * a function pthread_win32_set_terminate_np(), which can be
- * used to set the termination routine that should be called
- * when an unhandled exception occurs in a thread function
- * (or otherwise inside the library).
- *
- * Note: "_DLL" implies the /MD compiler flag.
- */
-#if defined(_MSC_VER) && !defined(_DLL) && !defined(PTW32_STATIC_LIB) && !defined(PTW32_STATIC_TLSLIB)
-#  define PTW32_USES_SEPARATE_CRT
 #endif
 
 #if defined(PTW32_USES_SEPARATE_CRT) && (defined(__CLEANUP_CXX) || defined(__CLEANUP_SEH))

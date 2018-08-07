@@ -27,13 +27,14 @@
 #include <stdint.h>
 
 /**
- * Struct for tracking features of the V3D chip. This is where we'll store
- * boolean flags for features in a specific version, but for now it's just the
- * version
+ * Struct for tracking features of the V3D chip across driver and compiler.
  */
 struct v3d_device_info {
         /** Simple V3D version: major * 10 + minor */
         uint8_t ver;
+
+        /** Size of the VPM, in bytes. */
+        int vpm_size;
 };
 
 #endif

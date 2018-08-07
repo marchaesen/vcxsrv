@@ -3,10 +3,10 @@
 # The variables $DLLDEST and $LIBDEST hold the destination directories for the
 # dll and the lib, respectively. Probably all that needs to change is $DEVROOT.
 
-# DLL_VER:
+# PTW32_VER:
 # See pthread.h and README for the description of version numbering.
-DLL_VER	= 2$(EXTRAVERSION)
-DLL_VERD= $(DLL_VER)d
+PTW32_VER	= 2$(EXTRAVERSION)
+PTW32_VER_DEBUG= $(PTW32_VER)d
 
 DESTROOT	= ..\PTHREADS-BUILT
 DEST_LIB_NAME = pthread.lib
@@ -15,18 +15,18 @@ DLLDEST	= $(DESTROOT)\bin
 LIBDEST	= $(DESTROOT)\lib
 HDRDEST	= $(DESTROOT)\include
 
-DLLS					= pthreadVCE$(DLL_VER).dll pthreadVSE$(DLL_VER).dll pthreadVC$(DLL_VER).dll \
-						  pthreadVCE$(DLL_VERD).dll pthreadVSE$(DLL_VERD).dll pthreadVC$(DLL_VERD).dll
-INLINED_STATIC_STAMPS	= pthreadVCE$(DLL_VER).inlined_static_stamp pthreadVSE$(DLL_VER).inlined_static_stamp \
-						  pthreadVC$(DLL_VER).inlined_static_stamp pthreadVCE$(DLL_VERD).inlined_static_stamp \
-						  pthreadVSE$(DLL_VERD).inlined_static_stamp pthreadVC$(DLL_VERD).inlined_static_stamp
-SMALL_STATIC_STAMPS		= pthreadVCE$(DLL_VER).small_static_stamp pthreadVSE$(DLL_VER).small_static_stamp \
-						  pthreadVC$(DLL_VER).small_static_stamp pthreadVCE$(DLL_VERD).small_static_stamp \
-						  pthreadVSE$(DLL_VERD).small_static_stamp pthreadVC$(DLL_VERD).small_static_stamp
+DLLS					= pthreadVCE$(PTW32_VER).dll pthreadVSE$(PTW32_VER).dll pthreadVC$(PTW32_VER).dll \
+						  pthreadVCE$(PTW32_VER_DEBUG).dll pthreadVSE$(PTW32_VER_DEBUG).dll pthreadVC$(PTW32_VER_DEBUG).dll
+INLINED_STATIC_STAMPS	= pthreadVCE$(PTW32_VER).inlined_static_stamp pthreadVSE$(PTW32_VER).inlined_static_stamp \
+						  pthreadVC$(PTW32_VER).inlined_static_stamp pthreadVCE$(PTW32_VER_DEBUG).inlined_static_stamp \
+						  pthreadVSE$(PTW32_VER_DEBUG).inlined_static_stamp pthreadVC$(PTW32_VER_DEBUG).inlined_static_stamp
+SMALL_STATIC_STAMPS		= pthreadVCE$(PTW32_VER).small_static_stamp pthreadVSE$(PTW32_VER).small_static_stamp \
+						  pthreadVC$(PTW32_VER).small_static_stamp pthreadVCE$(PTW32_VER_DEBUG).small_static_stamp \
+						  pthreadVSE$(PTW32_VER_DEBUG).small_static_stamp pthreadVC$(PTW32_VER_DEBUG).small_static_stamp
 
-CC	= cl
+CC	= cl /errorReport:none /nologo
 CPPFLAGS = /I. /DHAVE_CONFIG_H
-XCFLAGS = /W3 /Zi /Gy /GF /nologo
+XCFLAGS = /W3 /Zi /Gy /GF
 CFLAGS	= /O2 /Ob2 /Oi /Ox /Oy /Ot /MD /GL $(XCFLAGS)
 CFLAGSD	= /MDd $(XCFLAGS) 
 
@@ -93,110 +93,95 @@ all:
 TEST_ENV = CFLAGS="$(CFLAGS) /DNO_ERROR_DIALOGS"
 
 all-tests:
-	$(MAKE) all-tests-dll all-tests-static
+	$(MAKE) all-tests-md all-tests-mt
 
 all-tests-dll:
-#	$(MAKE) /E realclean VC-small-static$(XDBG)
-#	cd tests && $(MAKE) /E clean VC-small-static$(XDBG) $(TEST_ENV) && $(MAKE) /E clean VCX-small-static$(XDBG) $(TEST_ENV)
-#	$(MAKE) /E realclean VCE-small-static$(XDBG)
-#	cd tests && $(MAKE) /E clean VCE-small-static$(XDBG) $(TEST_ENV)
-#	$(MAKE) /E realclean VSE-small-static$(XDBG)
-#	cd tests && $(MAKE) /E clean VSE-small-static$(XDBG) $(TEST_ENV)
-	$(MAKE) /E realclean VC$(XDBG)
-	cd tests && $(MAKE) /E clean VC$(XDBG) $(TEST_ENV) && $(MAKE) /E clean VCX$(XDBG) $(TEST_ENV)
+	$(MAKE) /E realclean VC$(XDBG) && cd tests
+	$(MAKE) /E clean VC$(XDBG) $(TEST_ENV)
 	$(MAKE) /E realclean VCE$(XDBG)
 	cd tests && $(MAKE) /E clean VCE$(XDBG) $(TEST_ENV)
 	$(MAKE) /E realclean VSE$(XDBG)
 	cd tests && $(MAKE) /E clean VSE$(XDBG) $(TEST_ENV)
 
 all-tests-static:
-#!IF DEFINED(EXHAUSTIVE)
-	$(MAKE) /E realclean VC-static$(XDBG)
-	cd tests && $(MAKE) /E clean VC-static$(XDBG) $(TEST_ENV) && $(MAKE) /E clean VCX-static$(XDBG) $(TEST_ENV)
-	$(MAKE) /E realclean VCE-static$(XDBG)
+	cd tests && $(MAKE) /E clean VC-static$(XDBG) $(TEST_ENV)
 	cd tests && $(MAKE) /E clean VCE-static$(XDBG) $(TEST_ENV)
-	$(MAKE) /E realclean VSE-static$(XDBG)
 	cd tests && $(MAKE) /E clean VSE-static$(XDBG) $(TEST_ENV)
-#!ENDIF
 	$(MAKE) realclean
-	@ echo $@ completed successfully.
-
-all-tests-cflags:
-	$(MAKE) all-tests-md all-tests-mt
 	@ echo $@ completed successfully.
 
 all-tests-md:
 	@ -$(SETENV)
-	$(MAKE) all-tests XCFLAGS="/W3 /WX /MD /nologo"
-!IF DEFINED(MORE_EXHAUSTIVE)
-	$(MAKE) all-tests XCFLAGS="/W3 /WX /MDd /nologo" XDBG="-debug"
+	$(MAKE) all-tests-dll XCFLAGS="/W3 /WX /MD"
+!IF DEFINED(EXHAUSTIVE)
+	$(MAKE) all-tests-dll XCFLAGS="/W3 /WX /MDd" XDBG="-debug"
 !ENDIF
 	@ echo $@ completed successfully.
 
 all-tests-mt:
 	@ -$(SETENV)
-	$(MAKE) all-tests-static XCFLAGS="/W3 /WX /MT /nologo"
-!IF DEFINED(MORE_EXHAUSTIVE)
-	$(MAKE) all-tests-static XCFLAGS="/W3 /WX /MTd /nologo" XDBG="-debug"
+	$(MAKE) all-tests-static XCFLAGS="/W3 /WX /MT"
+!IF DEFINED(EXHAUSTIVE)
+	$(MAKE) all-tests-static XCFLAGS="/W3 /WX /MTd" XDBG="-debug"
 !ENDIF
 	@ echo $@ completed successfully.
 
 VCE:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGS) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VER).dll
+	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGS) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_CXX pthreadVCE$(PTW32_VER).dll
 
 VCE-debug:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGSD) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VERD).dll
+	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGSD) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_CXX pthreadVCE$(PTW32_VER_DEBUG).dll
 
 VSE:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGS) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VER).dll
+	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGS) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_SEH pthreadVSE$(PTW32_VER).dll
 
 VSE-debug:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGSD) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VERD).dll
+	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGSD) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_SEH pthreadVSE$(PTW32_VER_DEBUG).dll
 
 VC:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGS) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VER).dll
+	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGS) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_C pthreadVC$(PTW32_VER).dll
 
 VC-debug:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGSD) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VERD).dll
+	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGSD) /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_C pthreadVC$(PTW32_VER_DEBUG).dll
 
 #
 # Static builds
 #
 #VCE-small-static:
-#	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VER).small_static_stamp
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_CXX pthreadVCE$(PTW32_VER).small_static_stamp
 
 #VCE-small-static-debug:
-#	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VERD).small_static_stamp
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_CXX pthreadVCE$(PTW32_VER_DEBUG).small_static_stamp
 
 #VSE-small-static:
-#	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VER).small_static_stamp
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_SEH pthreadVSE$(PTW32_VER).small_static_stamp
 
 #VSE-small-static-debug:
-#	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VERD).small_static_stamp
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_SEH pthreadVSE$(PTW32_VER_DEBUG).small_static_stamp
 
 #VC-small-static:
-#	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VER).small_static_stamp
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGS) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_C pthreadVC$(PTW32_VER).small_static_stamp
 
 #VC-small-static-debug:
-#	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VERD).small_static_stamp
+#	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGSD) /DPTW32_STATIC_LIB" CLEANUP=__CLEANUP_C pthreadVC$(PTW32_VER_DEBUG).small_static_stamp
 
 VCE-static:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGS) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VER).inlined_static_stamp
+	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGS) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_CXX pthreadVCE$(PTW32_VER).inlined_static_stamp
 
 VCE-static-debug:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGSD) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_CXX pthreadVCE$(DLL_VERD).inlined_static_stamp
+	@ $(MAKE) /E /nologo EHFLAGS="$(VCEFLAGSD) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_CXX pthreadVCE$(PTW32_VER_DEBUG).inlined_static_stamp
 
 VSE-static:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGS) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VER).inlined_static_stamp
+	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGS) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_SEH pthreadVSE$(PTW32_VER).inlined_static_stamp
 
 VSE-static-debug:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGSD) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_SEH pthreadVSE$(DLL_VERD).inlined_static_stamp
+	@ $(MAKE) /E /nologo EHFLAGS="$(VSEFLAGSD) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_SEH pthreadVSE$(PTW32_VER_DEBUG).inlined_static_stamp
 
 VC-static:
-	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGS) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VER).inlined_static_stamp
+	@ $(MAKE) /E /nologo EHFLAGS="$(VCFLAGS) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_C pthreadVC$(PTW32_VER).inlined_static_stamp
 
 VC-static-debug:
-	@ $(MAKE) /E /nologo DEBUG=1 EHFLAGS="$(VCFLAGSD) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_C pthreadVC$(DLL_VERD).inlined_static_stamp
+	@ $(MAKE) /E /nologo DEBUG=1 EHFLAGS="$(VCFLAGSD) /DPTW32_STATIC_LIB /DPTW32_BUILD_INLINED" CLEANUP=__CLEANUP_C pthreadVC$(PTW32_VER_DEBUG).inlined_static_stamp
 
 
 realclean: clean
@@ -231,15 +216,15 @@ install:
 	copy pthread.h $(HDRDEST)
 	copy sched.h $(HDRDEST)
 	copy semaphore.h $(HDRDEST)
-	if exist pthreadVC$(DLL_VER).lib copy pthreadVC$(DLL_VER).lib $(LIBDEST)\$(DEST_LIB_NAME)
-	if exist pthreadVC$(DLL_VERD).lib copy pthreadVC$(DLL_VERD).lib $(LIBDEST)\$(DEST_LIB_NAME)
-	if exist pthreadVCE$(DLL_VER).lib copy pthreadVCE$(DLL_VER).lib $(LIBDEST)\$(DEST_LIB_NAME)
-	if exist pthreadVCE$(DLL_VERD).lib copy pthreadVCE$(DLL_VERD).lib $(LIBDEST)\$(DEST_LIB_NAME)
-	if exist pthreadVSE$(DLL_VER).lib copy pthreadVSE$(DLL_VER).lib $(LIBDEST)\$(DEST_LIB_NAME)
-	if exist pthreadVSE$(DLL_VERD).lib copy pthreadVSE$(DLL_VERD).lib $(LIBDEST)\$(DEST_LIB_NAME)
+	if exist pthreadVC$(PTW32_VER).lib copy pthreadVC$(PTW32_VER).lib $(LIBDEST)\$(DEST_LIB_NAME)
+	if exist pthreadVC$(PTW32_VER_DEBUG).lib copy pthreadVC$(PTW32_VER_DEBUG).lib $(LIBDEST)\$(DEST_LIB_NAME)
+	if exist pthreadVCE$(PTW32_VER).lib copy pthreadVCE$(PTW32_VER).lib $(LIBDEST)\$(DEST_LIB_NAME)
+	if exist pthreadVCE$(PTW32_VER_DEBUG).lib copy pthreadVCE$(PTW32_VER_DEBUG).lib $(LIBDEST)\$(DEST_LIB_NAME)
+	if exist pthreadVSE$(PTW32_VER).lib copy pthreadVSE$(PTW32_VER).lib $(LIBDEST)\$(DEST_LIB_NAME)
+	if exist pthreadVSE$(PTW32_VER_DEBUG).lib copy pthreadVSE$(PTW32_VER_DEBUG).lib $(LIBDEST)\$(DEST_LIB_NAME)
 
 $(DLLS): $(DLL_OBJS)
-	$(CC) /LDd /Zi /nologo $(DLL_OBJS) /link /implib:$*.lib $(XLIBS) /out:$@
+	$(CC) /LDd /Zi $(DLL_OBJS) /link /implib:$*.lib $(XLIBS) /out:$@
 
 $(INLINED_STATIC_STAMPS): $(OUTDIR) $(DLL_OBJS)
 	if exist $*.lib del $*.lib

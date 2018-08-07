@@ -5,7 +5,7 @@
 	<TITLE>PTHREAD_BARRIERATTR_SETPSHARED(3) manual page</TITLE>
 </HEAD>
 <BODY LANG="en-GB" BGCOLOR="#ffffff" DIR="LTR">
-<H4>POSIX Threads for Windows – REFERENCE - <A HREF="http://sources.redhat.com/pthreads-win32">Pthreads-w32</A></H4>
+<H4>POSIX Threads for Windows – REFERENCE - <A HREF="https://sourceforge.net/projects/pthreads4w/">Pthreads4w</A></H4>
 <P><A HREF="index.html">Reference Index</A></P>
 <P><A HREF="#toc">Table of Contents</A></P>
 <H2><A HREF="#toc0" NAME="sect0">Name</A></H2>
@@ -39,7 +39,7 @@ behavior is undefined. The default value of the attribute shall be
 PTHREAD_PROCESS_PRIVATE. Both constants PTHREAD_PROCESS_SHARED and
 PTHREAD_PROCESS_PRIVATE are defined in <I>&lt;pthread.h&gt;</I>. 
 </P>
-<P><B>Pthreads-w32</B> defines _<B>POSIX_THREAD_PROCESS_SHARED</B> in
+<P><B>Pthreads4w</B> defines _<B>POSIX_THREAD_PROCESS_SHARED</B> in
 pthread.h as -1 to indicate that these routines are implemented but
 that the process shared attribute is not supported.</P>
 <P>Additional attributes, their default values, and the names of the
@@ -76,7 +76,7 @@ indicate the error.
 	<B>ENOSYS</B> 
 	</DT><DD STYLE="margin-bottom: 0.5cm">
 	The value specified by <I>attr</I> was <B>PTHREAD_PROCESS_SHARED</B>
-	(Pthreads-w32).</DD></DL>
+	(Pthreads4w).</DD></DL>
 <P>
 These functions shall not return an error code of [EINTR]. 
 </P>
@@ -90,7 +90,7 @@ These functions shall not return an error code of [EINTR].
 <B>pthread_barrierattr_setpshared</B> functions are part of the
 Barriers option and need not be provided on all implementations. 
 </P>
-<P><B>Pthreads-w32</B> defines <B>_POSIX_BARRIERS</B> and
+<P><B>Pthreads4w</B> defines <B>_POSIX_BARRIERS</B> and
 <B>_POSIX_THREAD_PROCESS_SHARED</B> in pthread.h as -1 to indicate
 that these routines are implemented and may be used, but do not
 support the process shared option.</P>
@@ -119,7 +119,7 @@ Open Group Standard is the referee document. The original Standard
 can be obtained online at <A HREF="http://www.opengroup.org/unix/online.html">http://www.opengroup.org/unix/online.html</A>
 . 
 </P>
-<P>Modified by Ross Johnson for use with <A HREF="http://sources.redhat.com/pthreads-win32">Pthreads-w32</A>.</P>
+<P>Modified by Ross Johnson for use with <A HREF="https://sourceforge.net/projects/pthreads4w/">Pthreads4w</A>.</P>
 <HR>
 <P><A NAME="toc"></A><B>Table of Contents</B></P>
 <UL>

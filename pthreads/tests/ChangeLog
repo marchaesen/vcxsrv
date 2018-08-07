@@ -1,7 +1,17 @@
-2018-07-22  Ross Johnson <ross dot johnson at homemail dot com dot au>
+2018-08-07  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
-	* reinit1.c: MSVC with /MT flag needs to explicitly call
-	pthread_win32_thread_detach_np().
+	* GNUmakefile.in (DLL_VER): rename as PTW32_VER.
+	* Makefile (DLL_VER): Likewise.
+	* Bmakefile (DLL_VER): Likewise; does anyone use this anymore?
+
+2018-07-22  Mark Pizzolato <markpizzolato dash pthreads dash win32 at subscriptions dot pizzolato dot net>
+
+	* Makefile: Change the various static test runs to actually
+	compile with /MT or /MTd, i.e. No mixed /MT and /MD. Static
+	builds no longer create a separate pthreads*.lib static library
+	because errno does not work across that linkage.
+	* sequence1.c: Use more reasonable number of threads to avoid
+	resource limits.
 
 2016-12-21  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
@@ -185,7 +195,7 @@
 	versions of nmake, $(MAKE) is a full path, which utterly futzes
 	up the "make help" output; regularized the test targets, so we
 	have e.g. VSE-static now; regularized the parentheticals;
-	removed a spurious use of $(DLL_VER); new test targets: VCX-debug
+	removed a spurious use of $(PTW32_VER); new test targets: VCX-debug
 	{VSE,VCX}-static{,-debug}; fixed the {VC,VCE}-static-debug targets.
 	* exception3.c: Narrowly exclude this test from the known-bad VS2005
 	configuration (By the way: I downloaded and tested with what is
@@ -500,9 +510,9 @@
 2004-11-19  Ross Johnson  <rpj@callisto.canberra.edu.au>
 
 	* Bmakefile: New makefile for Borland.
-	* Makefile (DLL_VER): Added.
-	* GNUmakefile (DLL_VER): Added.
-	* Wmakefile (DLL_VER): Added.
+	* Makefile (PTW32_VER): Added.
+	* GNUmakefile (PTW32_VER): Added.
+	* Wmakefile (PTW32_VER): Added.
 
 2004-10-29  Ross Johnson  <rpj@callisto.canberra.edu.au>
 
@@ -682,7 +692,7 @@
 	   *          exit code 3.
 	   *       2) A term_func() must not throw an exception. Therefore
 	   *          term_func() should not call pthread_exit() if an
-	   *          an exception-using version of pthreads-win32 library
+	   *          an exception-using version of Pthreads4w library
 	   *          is being used (i.e. either pthreadVCE or pthreadVSE).
 
 
@@ -898,7 +908,7 @@
 	handle it under Mingw32. Mingw32 now builds the
 	library correctly to pass all tests - see Thomas
 	Pfaff's detailed instructions re needed changes
-	to Mingw32 in the Pthreads-Win32 FAQ.
+	to Mingw32 in the Pthreads4w FAQ.
 
 2000-09-08  Ross Johnson  <rpj@special.ise.canberra.edu.au>
 
