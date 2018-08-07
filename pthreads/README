@@ -1,23 +1,23 @@
-PTHREADS-WIN32 (A.K.A. PTHREADS4W)
+Pthreads4w (A.K.A. PTHREADS4W)
 ==================================
 
-Pthreads-win32 is free software, distributed under the GNU Lesser
+Pthreads4w is free software, distributed under the GNU Lesser
 General Public License (LGPL). See the file 'COPYING.LIB' for terms
 and conditions. Also see the file 'COPYING' for information
-specific to pthreads-win32, copyrights and the LGPL.
+specific to Pthreads4w, copyrights and the LGPL.
 
 
 What is it?
 -----------
 
-Pthreads-win32 (a.k.a. pthreads4w) is an Open Source Software
+Pthreads4w (a.k.a. pthreads4w) is an Open Source Software
 implementation of the Threads component of the POSIX 1003.1c 1995
 Standard (or later) for Microsoft's Windows environment. Some functions
 from POSIX 1003.1b are also supported, including semaphores. Other
 related functions include the set of read-write lock functions. The
 library also supports some of the functionality of the Open
 Group's Single Unix specification, namely mutex types, plus some common
-and pthreads-win32 specific non-portable routines (see README.NONPORTABLE).
+and Pthreads4w specific non-portable routines (see README.NONPORTABLE).
 
 See the file "ANNOUNCE" for more information including standards
 conformance details and the list of supported and unsupported
@@ -37,15 +37,15 @@ QueueUserAPCEx by Panagiotis E. Hadjidoukas
 	For true async cancellation of threads (including blocked threads).
 	This is a DLL and Windows driver that provides pre-emptive APC
 	by forcing threads into an alertable state when the APC is queued.
-	Both the DLL and driver are provided with the pthreads-win32.exe
-	self-unpacking ZIP, and on the pthreads-win32 FTP site  (in source
+	Both the DLL and driver are provided with the Pthreads4w.exe
+	self-unpacking ZIP, and on the Pthreads4w FTP site  (in source
 	and pre-built forms). Currently this is a separate LGPL package to
-	pthreads-win32. See the README in the QueueUserAPCEx folder for
+	Pthreads4w. See the README in the QueueUserAPCEx folder for
 	installation instructions.
 
-	Pthreads-win32 will automatically detect if the QueueUserAPCEx DLL
+	Pthreads4w will automatically detect if the QueueUserAPCEx DLL
 	QuserEx.DLL is available and whether the driver AlertDrv.sys is
-	loaded. If it is not available, pthreads-win32 will simulate async
+	loaded. If it is not available, Pthreads4w will simulate async
 	cancellation, which means that it can async cancel only threads that
 	are runnable. The simulated async cancellation cannot cancel blocked
 	threads.
@@ -139,7 +139,7 @@ Microsoft version numbers use 4 integers:
 
 	0.0.0.0
 
-Pthreads-win32 uses the first 3 following the standard major.minor.micro
+Pthreads4w uses the first 3 following the standard major.minor.micro
 system. We had claimed to follow the Libtool convention but this has
 not been the case with recent releases. Binary compatibility and
 consequently library file naming has not changed over this time either
@@ -171,14 +171,14 @@ The numbers are changed as follows:
 
 
 DLL compatibility numbering is an attempt to ensure that applications
-always load a compatible pthreads-win32 DLL by using a DLL naming system
+always load a compatible Pthreads4w DLL by using a DLL naming system
 that is consistent with the version numbering system. It also allows
 older and newer DLLs to coexist in the same filesystem so that older
 applications can continue to be used. For pre .NET Windows systems,
 this inevitably requires incompatible versions of the same DLLs to have
 different names.
 
-Pthreads-win32 has adopted the Cygwin convention of appending a single
+Pthreads4w has adopted the Cygwin convention of appending a single
 integer number to the DLL name. The number used is simply the library's
 major version number.
 
@@ -248,7 +248,7 @@ reservation of identifiers beginning with "_" and "__" for
 use by compiler implementations only.
 
 If you have written any applications and you are linking
-statically with the pthreads-win32 library then you may have
+statically with the Pthreads4w library then you may have
 included a call to _pthread_processInitialize. You will
 now have to change that to ptw32_processInitialize.
 

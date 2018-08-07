@@ -7,14 +7,14 @@
 #
 
 
-DLL_VER	= 2
+PTW32_VER	= 2
 
 DEVROOT	= .
 
 DLLDEST	= $(DEVROOT)\DLL
 LIBDEST	= $(DEVROOT)\DLL
 
-DLLS	= pthreadBC$(DLL_VER).dll
+DLLS	= pthreadBC$(PTW32_VER).dll
 
 OPTIM	= /O2
 

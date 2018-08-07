@@ -528,6 +528,16 @@
     <field name="number of attribute arrays" size="5" start="0" type="uint"/>
   </packet>
 
+  <packet code="71" name="VCM Cache Size" min_ver="41">
+    <field name="Number of 16-vertex batches for rendering" size="4" start="4" type="uint"/>
+    <field name="Number of 16-vertex batches for binning" size="4" start="0" type="uint"/>
+  </packet>
+
+  <packet code="73" name="VCM Cache Size" max_ver="33">
+    <field name="Number of 16-vertex batches for rendering" size="4" start="4" type="uint"/>
+    <field name="Number of 16-vertex batches for binning" size="4" start="0" type="uint"/>
+  </packet>
+
   <packet code="73" name="Transform Feedback Buffer" min_ver="41">
     <field name="Buffer Address" size="32" start="32" type="address"/>
     <field name="Buffer Size in 32-bit words" size="30" start="2" type="uint"/>

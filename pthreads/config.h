@@ -7,7 +7,7 @@
  * Defaults: see target specific redefinitions below.
  *********************************************************************/
 
-/* We're building the pthreads-win32 library */
+/* We're building the Pthreads4w library */
 #define PTW32_BUILD
 
 /* CPU affinity */
@@ -109,7 +109,7 @@
  * Target specific groups
  *
  * If you find that these are incorrect or incomplete please report it
- * to the pthreads-win32 maintainer. Thanks.
+ * to the Pthreads4w maintainer. Thanks.
  *********************************************************************/
 #if defined(WINCE)
 #  undef  HAVE_CPU_AFFINITY

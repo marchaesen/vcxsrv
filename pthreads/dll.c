@@ -6,9 +6,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads-win32 - POSIX Threads Library for Win32
+ *      Pthreads4w - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2017, Pthreads-win32 contributors
+ *      Copyright(C) 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -18,29 +18,24 @@
  *      following World Wide Web location:
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads-win32.
+ * This file is part of Pthreads4w.
  *
- *    Pthreads-win32 is free software: you can redistribute it and/or modify
+ *    Pthreads4w is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
  *    the Free Software Foundation, either version 3 of the License, or
  *    (at your option) any later version.
  *
- *    Pthreads-win32 is distributed in the hope that it will be useful,
+ *    Pthreads4w is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public License
- *    along with Pthreads-win32.  If not, see <http://www.gnu.org/licenses/>. *
+ *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
-#endif
-
-#if defined(PTW32_STATIC_LIB) && defined(_MSC_VER) && _MSC_VER >= 1400
-#  undef PTW32_STATIC_LIB
-#  define PTW32_STATIC_TLSLIB
 #endif
 
 #include "pthread.h"
@@ -62,12 +57,7 @@
  */
 extern "C"
 #endif				/* __cplusplus */
-  BOOL WINAPI
-#if defined(PTW32_STATIC_TLSLIB)
-PTW32_StaticLibMain (HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
-#else
-DllMain (HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
-#endif
+  BOOL WINAPI DllMain (HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 {
   BOOL result = PTW32_TRUE;
 
@@ -111,33 +101,6 @@ DllMain (HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 typedef int foo;
 #endif
 
-/* Visual Studio 8+ can leverage PIMAGE_TLS_CALLBACK CRT segments, which
- * give a static lib its very own DllMain.
- */
-#ifdef PTW32_STATIC_TLSLIB
-
-static void WINAPI
-TlsMain(PVOID h, DWORD r, PVOID u)
-{
-  (void)PTW32_StaticLibMain((HINSTANCE)h, r, u);
-}
-
-#ifdef _M_X64
-# pragma comment (linker, "/INCLUDE:_tls_used")
-# pragma comment (linker, "/INCLUDE:_xl_b")
-# pragma const_seg(".CRT$XLB")
-EXTERN_C const PIMAGE_TLS_CALLBACK _xl_b = TlsMain;
-# pragma const_seg()
-#else
-# pragma comment (linker, "/INCLUDE:__tls_used")
-# pragma comment (linker, "/INCLUDE:__xl_b")
-# pragma data_seg(".CRT$XLB")
-EXTERN_C PIMAGE_TLS_CALLBACK _xl_b = TlsMain;
-# pragma data_seg()
-#endif /* _M_X64 */
-
-#endif /* PTW32_STATIC_TLSLIB */
-
 #if defined(PTW32_STATIC_LIB)
 
 /*
@@ -165,13 +128,6 @@ EXTERN_C PIMAGE_TLS_CALLBACK _xl_b = TlsMain;
 
 static int on_process_init(void)
 {
-#if defined(_MSC_VER) && !defined(_DLL)
-    extern int __cdecl _heap_init (void);
-    extern int __cdecl _mtinit (void);
-
-    _heap_init();
-    _mtinit();
-#endif
     pthread_win32_process_attach_np ();
     return 0;
 }
@@ -187,7 +143,7 @@ static int on_process_exit(void)
 __attribute__((section(".ctors"), used)) static int (*gcc_ctor)(void) = on_process_init;
 __attribute__((section(".dtors"), used)) static int (*gcc_dtor)(void) = on_process_exit;
 #elif defined(_MSC_VER)
-#  if _MSC_VER >= 1400 /* MSVC8 */
+#  if _MSC_VER >= 1400 /* MSVC8+ */
 #    pragma section(".CRT$XCU", long, read)
 #    pragma section(".CRT$XPU", long, read)
 __declspec(allocate(".CRT$XCU")) static int (*msc_ctor)(void) = on_process_init;

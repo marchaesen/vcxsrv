@@ -3,7 +3,7 @@ Running test cases in this directory
 
 These make scripts expect to be able to copy the dll, library
 and header files from this directory's parent directory,
-which should be the pthreads-win32 source directory.
+which should be the Pthreads4w source directory.
 
 MS VC nmake
 -------------

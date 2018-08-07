@@ -43,13 +43,15 @@ def main():
     master = os.path.join(to, os.path.basename(args.megadriver))
 
     if not os.path.exists(to):
+        if os.path.lexists(to):
+            os.unlink(to)
         os.makedirs(to)
     shutil.copy(args.megadriver, master)
 
     for driver in args.drivers:
         abs_driver = os.path.join(to, driver)
 
-        if os.path.exists(abs_driver):
+        if os.path.lexists(abs_driver):
             os.unlink(abs_driver)
         print('installing {} to {}'.format(args.megadriver, abs_driver))
         os.link(master, abs_driver)
@@ -60,7 +62,7 @@ def main():
 
             name, ext = os.path.splitext(driver)
             while ext != '.so':
-                if os.path.exists(name):
+                if os.path.lexists(name):
                     os.unlink(name)
                 os.symlink(driver, name)
                 name, ext = os.path.splitext(name)

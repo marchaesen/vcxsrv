@@ -146,12 +146,6 @@ main (int argc, char *argv[])
           assert(pthread_join (threads[count].thread_id, NULL) == 0);
         }
 
-#if defined(_MSC_VER) && !defined(_DLL)
-      /*
-       * We need this when compiling with MSVC and /MT or /MTd flag
-       */
-      pthread_win32_thread_detach_np();
-#endif
       pthread_win32_process_detach_np();
       pthread_win32_process_attach_np();
     }

@@ -452,6 +452,16 @@ vir_emit_def(struct v3d_compile *c, struct qinst *inst)
 {
         assert(inst->dst.file == QFILE_NULL);
 
+        /* If we're emitting an instruction that's a def, it had better be
+         * writing a register.
+         */
+        if (inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU) {
+                assert(inst->qpu.alu.add.op == V3D_QPU_A_NOP ||
+                       v3d_qpu_add_op_has_dst(inst->qpu.alu.add.op));
+                assert(inst->qpu.alu.mul.op == V3D_QPU_M_NOP ||
+                       v3d_qpu_mul_op_has_dst(inst->qpu.alu.mul.op));
+        }
+
         inst->dst = vir_get_temp(c);
 
         if (inst->dst.file == QFILE_TEMP)
@@ -746,9 +756,27 @@ uint64_t *v3d_compile_vs(const struct v3d_compiler *compiler,
         if (prog_data->uses_iid)
                 prog_data->vpm_input_size++;
 
-        /* Input/output segment size are in 8x32-bit multiples. */
+        /* Input/output segment size are in sectors (8 rows of 32 bits per
+         * channel).
+         */
         prog_data->vpm_input_size = align(prog_data->vpm_input_size, 8) / 8;
         prog_data->vpm_output_size = align(c->num_vpm_writes, 8) / 8;
+
+        /* Compute VCM cache size.  We set up our program to take up less than
+         * half of the VPM, so that any set of bin and render programs won't
+         * run out of space.  We need space for at least one input segment,
+         * and then allocate the rest to output segments (one for the current
+         * program, the rest to VCM).  The valid range of the VCM cache size
+         * field is 1-4 16-vertex batches, but GFXH-1744 limits us to 2-4
+         * batches.
+         */
+        assert(c->devinfo->vpm_size);
+        int sector_size = 16 * sizeof(uint32_t) * 8;
+        int vpm_size_in_sectors = c->devinfo->vpm_size / sector_size;
+        int half_vpm = vpm_size_in_sectors / 2;
+        int vpm_output_batches = half_vpm - prog_data->vpm_input_size;
+        assert(vpm_output_batches >= 2);
+        prog_data->vcm_cache_size = CLAMP(vpm_output_batches - 1, 2, 4);
 
         return v3d_return_qpu_insts(c, final_assembly_size);
 }

@@ -13043,7 +13043,7 @@
     <enum name="NUM_SUPPORTED_MULTISAMPLE_MODES_AMD"       value="0x91B6"/>
     <enum name="SUPPORTED_MULTISAMPLE_MODES_AMD"           value="0x91B7"/>
 
-    <function name="RenderbufferStorageMultisampleAdvancedAMD" es2="2.0">
+    <function name="RenderbufferStorageMultisampleAdvancedAMD" es2="3.0">
         <param name="target" type="GLenum"/>
         <param name="samples" type="GLsizei"/>
         <param name="storageSamples" type="GLsizei"/>
@@ -13052,7 +13052,7 @@
         <param name="height" type="GLsizei"/>
     </function>
 
-    <function name="NamedRenderbufferStorageMultisampleAdvancedAMD" es2="2.0">
+    <function name="NamedRenderbufferStorageMultisampleAdvancedAMD" es2="3.0">
        <param name="renderbuffer" type="GLuint" />
        <param name="samples" type="GLsizei" />
        <param name="storageSamples" type="GLsizei"/>

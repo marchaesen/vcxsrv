@@ -8,7 +8,7 @@
 int
 main()
 {
-  printf("Sizes of pthreads-win32 structs\n");
+  printf("Sizes of Pthreads4w structs\n");
   printf("-------------------------------\n");
   printf("%30s %4d\n", "pthread_t", (int)sizeof(pthread_t));
   printf("%30s %4d\n", "ptw32_thread_t", (int)sizeof(ptw32_thread_t));

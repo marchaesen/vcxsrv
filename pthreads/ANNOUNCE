@@ -7,7 +7,7 @@ Maintainer: Ross Johnson <firstname dot lastname at loungebythelake dot net>
 
 
 We are pleased to announce the availability of a new release of
-Pthreads4w (a.k.a. Pthreads-win32), an Open Source Software implementation
+Pthreads4w (a.k.a. Pthreads4w), an Open Source Software implementation
 of the Threads component of the SUSV3 Standard for Microsoft's
 Windows (x86 and x64). Some relevant functions from other sections
 of SUSV3 are also supported including semaphores and scheduling
@@ -64,7 +64,7 @@ were extracted from it.
 There is also a separate CONTRIBUTORS file. This file and others are
 on the web site:
 
-	http://sourceware.org/pthreads-win32
+	http://sourceware.org/Pthreads4w
 
 As much as possible, the ChangeLog file acknowledges contributions to the
 code base in more detail.
