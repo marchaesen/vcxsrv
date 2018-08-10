@@ -3,9 +3,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads4w - POSIX Threads Library for Win32
- *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2018, Pthreads4w contributors
+ *      Pthreads4w - POSIX Threads for Windows
+ *      Copyright 1998 John E. Bossom
+ *      Copyright 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -13,22 +13,20 @@
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
+ *
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads4w.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    Pthreads4w is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Pthreads4w is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -48,8 +46,8 @@
 
 int old_mutex_use = OLD_WIN32CS;
 
-BOOL (WINAPI *ptw32_try_enter_critical_section)(LPCRITICAL_SECTION) = NULL;
-HINSTANCE ptw32_h_kernel32;
+BOOL (WINAPI *__ptw32_try_enter_critical_section)(LPCRITICAL_SECTION) = NULL;
+HINSTANCE __ptw32_h_kernel32;
 
 void
 dummy_call(int * a)
@@ -111,21 +109,21 @@ old_mutex_init(old_mutex_t *mutex, const old_mutexattr_t *attr)
         /*
          * Load KERNEL32 and try to get address of TryEnterCriticalSection
          */
-        ptw32_h_kernel32 = LoadLibrary(TEXT("KERNEL32.DLL"));
-        ptw32_try_enter_critical_section = (BOOL (WINAPI *)(LPCRITICAL_SECTION))
+        __ptw32_h_kernel32 = LoadLibrary(TEXT("KERNEL32.DLL"));
+        __ptw32_try_enter_critical_section = (BOOL (WINAPI *)(LPCRITICAL_SECTION))
 
 #if defined(NEED_UNICODE_CONSTS)
-        GetProcAddress(ptw32_h_kernel32,
+        GetProcAddress(__ptw32_h_kernel32,
                        (const TCHAR *)TEXT("TryEnterCriticalSection"));
 #else
-        GetProcAddress(ptw32_h_kernel32,
+        GetProcAddress(__ptw32_h_kernel32,
                        (LPCSTR) "TryEnterCriticalSection");
 #endif
 
-        if (ptw32_try_enter_critical_section != NULL)
+        if (__ptw32_try_enter_critical_section != NULL)
           {
             InitializeCriticalSection(&cs);
-            if ((*ptw32_try_enter_critical_section)(&cs))
+            if ((*__ptw32_try_enter_critical_section)(&cs))
               {
                 LeaveCriticalSection(&cs);
               }
@@ -134,15 +132,15 @@ old_mutex_init(old_mutex_t *mutex, const old_mutexattr_t *attr)
                 /*
                  * Not really supported (Win98?).
                  */
-                ptw32_try_enter_critical_section = NULL;
+                __ptw32_try_enter_critical_section = NULL;
               }
             DeleteCriticalSection(&cs);
           }
 
-        if (ptw32_try_enter_critical_section == NULL)
+        if (__ptw32_try_enter_critical_section == NULL)
           {
-            (void) FreeLibrary(ptw32_h_kernel32);
-            ptw32_h_kernel32 = 0;
+            (void) FreeLibrary(__ptw32_h_kernel32);
+            __ptw32_h_kernel32 = 0;
           }
 
       if (old_mutex_use == OLD_WIN32CS)
@@ -190,7 +188,7 @@ old_mutex_lock(old_mutex_t *mutex)
       return EINVAL;
     }
 
-  if (*mutex == (old_mutex_t) PTW32_OBJECT_AUTO_INIT)
+  if (*mutex == (old_mutex_t)  __PTW32_OBJECT_AUTO_INIT)
     {
       /*
        * Don't use initialisers when benchtesting.
@@ -231,7 +229,7 @@ old_mutex_unlock(old_mutex_t *mutex)
 
   mx = *mutex;
 
-  if (mx != (old_mutex_t) PTW32_OBJECT_AUTO_INIT)
+  if (mx != (old_mutex_t)  __PTW32_OBJECT_AUTO_INIT)
     {
       if (mx->mutex == 0)
 	{
@@ -262,7 +260,7 @@ old_mutex_trylock(old_mutex_t *mutex)
       return EINVAL;
     }
 
-  if (*mutex == (old_mutex_t) PTW32_OBJECT_AUTO_INIT)
+  if (*mutex == (old_mutex_t)  __PTW32_OBJECT_AUTO_INIT)
     {
       /*
        * Don't use initialisers when benchtesting.
@@ -276,11 +274,11 @@ old_mutex_trylock(old_mutex_t *mutex)
     {
       if (mx->mutex == 0)
 	{
-	  if (ptw32_try_enter_critical_section == NULL)
+	  if (__ptw32_try_enter_critical_section == NULL)
           {
             result = 0;
           }
-        else if ((*ptw32_try_enter_critical_section)(&mx->cs) != TRUE)
+        else if ((*__ptw32_try_enter_critical_section)(&mx->cs) != TRUE)
 	    {
 	      result = EBUSY;
 	    }
@@ -316,7 +314,7 @@ old_mutex_destroy(old_mutex_t *mutex)
       return EINVAL;
     }
 
-  if (*mutex != (old_mutex_t) PTW32_OBJECT_AUTO_INIT)
+  if (*mutex != (old_mutex_t)  __PTW32_OBJECT_AUTO_INIT)
     {
       mx = *mutex;
 
@@ -351,10 +349,10 @@ old_mutex_destroy(old_mutex_t *mutex)
       result = EINVAL;
     }
 
-  if (ptw32_try_enter_critical_section != NULL)
+  if (__ptw32_try_enter_critical_section != NULL)
     {
-      (void) FreeLibrary(ptw32_h_kernel32);
-      ptw32_h_kernel32 = 0;
+      (void) FreeLibrary(__ptw32_h_kernel32);
+      __ptw32_h_kernel32 = 0;
     }
 
   return(result);

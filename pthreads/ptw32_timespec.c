@@ -7,9 +7,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads4w - POSIX Threads Library for Win32
- *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2018, Pthreads4w contributors
+ *      Pthreads4w - POSIX Threads for Windows
+ *      Copyright 1998 John E. Bossom
+ *      Copyright 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -17,29 +17,25 @@
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
+ *
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads4w.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    Pthreads4w is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Pthreads4w is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
-
-#if defined(NEED_FTIME)
 
 #include "pthread.h"
 #include "implement.h"
@@ -47,11 +43,11 @@
 /*
  * time between jan 1, 1601 and jan 1, 1970 in units of 100 nanoseconds
  */
-#define PTW32_TIMESPEC_TO_FILETIME_OFFSET \
+#define  __PTW32_TIMESPEC_TO_FILETIME_OFFSET \
 	  ( ((uint64_t) 27111902UL << 32) + (uint64_t) 3577643008UL )
 
 INLINE void
-ptw32_timespec_to_filetime (const struct timespec *ts, FILETIME * ft)
+__ptw32_timespec_to_filetime (const struct timespec *ts, FILETIME * ft)
      /*
       * -------------------------------------------------------------------
       * converts struct timespec
@@ -62,11 +58,11 @@ ptw32_timespec_to_filetime (const struct timespec *ts, FILETIME * ft)
       */
 {
   *(uint64_t *) ft = ts->tv_sec * 10000000UL
-    + (ts->tv_nsec + 50) / 100 + PTW32_TIMESPEC_TO_FILETIME_OFFSET;
+    + (ts->tv_nsec + 50) / 100 +  __PTW32_TIMESPEC_TO_FILETIME_OFFSET;
 }
 
 INLINE void
-ptw32_filetime_to_timespec (const FILETIME * ft, struct timespec *ts)
+__ptw32_filetime_to_timespec (const FILETIME * ft, struct timespec *ts)
      /*
       * -------------------------------------------------------------------
       * converts FILETIME (as set by GetSystemTimeAsFileTime), where the time is
@@ -77,10 +73,8 @@ ptw32_filetime_to_timespec (const FILETIME * ft, struct timespec *ts)
       */
 {
   ts->tv_sec =
-    (int) ((*(uint64_t *) ft - PTW32_TIMESPEC_TO_FILETIME_OFFSET) / 10000000UL);
+    (int) ((*(uint64_t *) ft -  __PTW32_TIMESPEC_TO_FILETIME_OFFSET) / 10000000UL);
   ts->tv_nsec =
-    (int) ((*(uint64_t *) ft - PTW32_TIMESPEC_TO_FILETIME_OFFSET -
+    (int) ((*(uint64_t *) ft -  __PTW32_TIMESPEC_TO_FILETIME_OFFSET -
 	    ((uint64_t) ts->tv_sec * (uint64_t) 10000000UL)) * 100);
 }
-
-#endif

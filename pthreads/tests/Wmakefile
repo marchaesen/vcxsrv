@@ -3,9 +3,9 @@
 #
 # --------------------------------------------------------------------------
 #
-#      Pthreads4w - POSIX Threads Library for Win32
+#      Pthreads-win32 - POSIX Threads Library for Win32
 #      Copyright(C) 1998 John E. Bossom
-#      Copyright(C) 1999,2012 Pthreads4w contributors
+#      Copyright(C) 1999,2012 Pthreads-win32 contributors
 # 
 #      Contact Email: rpj@callisto.canberra.edu.au
 # 
@@ -13,7 +13,7 @@
 #      in the file CONTRIBUTORS included with the source
 #      code distribution. The list can also be seen at the
 #     following World Wide Web location:
-#      https://sourceforge.net/projects/pthreads4w//contributors.html
+#      https://sourceforge.net/projects/pthreads4w/contributors.html
 # 
 #      This library is free software; you can redistribute it and/or
 #      modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@
 #
 
 
-PTW32_VER	= 2
+DLL_VER	= 2
 
 .EXTENSIONS:
 
@@ -52,15 +52,15 @@ OPTIM	= -od
 XXLIBS	=
 
 # C++ Exceptions
-WCEFLAGS	= -xs -dPtW32NoCatchWarn -d__CLEANUP_CXX
-WCELIB	= pthreadWCE$(PTW32_VER).lib
-WCEDLL	= pthreadWCE$(PTW32_VER).dll
+WCEFLAGS	= -xs -d__PtW32NoCatchWarn -d__PTW32_CLEANUP_CXX
+WCELIB	= pthreadWCE$(DLL_VER).lib
+WCEDLL	= pthreadWCE$(DLL_VER).dll
 # C cleanup code
-WCFLAGS	= -d__CLEANUP_C
-WCLIB	= pthreadWC$(PTW32_VER).lib
-WCDLL	= pthreadWC$(PTW32_VER).dll
+WCFLAGS	= -d__PTW32_CLEANUP_C
+WCLIB	= pthreadWC$(DLL_VER).lib
+WCDLL	= pthreadWC$(DLL_VER).dll
 # C++ Exceptions in application - using WC version of pthreads dll
-WCXFLAGS	= -xs -d__CLEANUP_C
+WCXFLAGS	= -xs -d__PTW32_CLEANUP_C
 
 CFLAGS= -w4 -e25 -d_REENTRANT -zq -bm $(OPTIM) -5r -bt=nt -mf -d2
 

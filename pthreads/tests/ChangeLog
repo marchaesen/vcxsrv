@@ -3,6 +3,9 @@
 	* GNUmakefile.in (DLL_VER): rename as PTW32_VER.
 	* Makefile (DLL_VER): Likewise.
 	* Bmakefile (DLL_VER): Likewise; does anyone use this anymore?
+	* Makefile: Variable renaming: e.g. VCLIB to VCIMP for DLL import
+	library pthreadVC2.lib and VCLIB now holds static library name
+	libpthreadVC2.lib, and similar for the other cleanup method versions.
 
 2018-07-22  Mark Pizzolato <markpizzolato dash pthreads dash win32 at subscriptions dot pizzolato dot net>
 
@@ -12,6 +15,10 @@
 	because errno does not work across that linkage.
 	* sequence1.c: Use more reasonable number of threads to avoid
 	resource limits.
+
+2016-12-25  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* Change all license notices to the Apache License 2.0
 
 2016-12-21  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
@@ -25,11 +32,18 @@
 	* mutex8n.c: Likewise.
 	* semaphore5.c: don't fail on expected sem_destroy EBUSY.
 
-2016-124-18  Ross Johnson <ross dot johnson at homemail dot com dot au>
+2016-12-20  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
-	* test.c (PTW32_TEST_SNEAK_PEEK): #define this to prevent some
+	* all (PTW32_*): rename to __PTW32_*.
+	(ptw32_*): rename to __ptw32_*.
+	(PtW32*): rename to __PtW32*.
+	* GNUmakefile: removed; must now configure from GNUmakefile.in.
+
+2016-12-18  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* test.c  (__PTW32_TEST_SNEAK_PEEK): #define this to prevent some
 	tests from failing (specifically "make GCX-small-static") with
-	undefined ptw32_autostatic_anchor. Checked in ../implament.h.
+	undefined __ptw32_autostatic_anchor. Checked in ../implement.h.
 	* GNUMakfile.in: Rename testsuite log to test-specific name and
 	do not remove.
 	* GNUMakfile.in: Add realclean target
@@ -195,7 +209,7 @@
 	versions of nmake, $(MAKE) is a full path, which utterly futzes
 	up the "make help" output; regularized the test targets, so we
 	have e.g. VSE-static now; regularized the parentheticals;
-	removed a spurious use of $(PTW32_VER); new test targets: VCX-debug
+	removed a spurious use of $(DLL_VER); new test targets: VCX-debug
 	{VSE,VCX}-static{,-debug}; fixed the {VC,VCE}-static-debug targets.
 	* exception3.c: Narrowly exclude this test from the known-bad VS2005
 	configuration (By the way: I downloaded and tested with what is
@@ -215,7 +229,7 @@
 2012-09-22  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* pthread_win32_attach_detach_np.c (pthread_win32_detach_thread_np):
-	Check for NULL ptw32_selfThreadKey before call to TlsSetKey(). Need
+	Check for NULL __ptw32_selfThreadKey before call to TlsSetKey(). Need
 	to find where this is being set to NULL before this point. Was
 	consistently failing tests/seamphore3.c in all GC static builds and
 	never seen in GC DLL builds. May also be responsible for
@@ -510,9 +524,9 @@
 2004-11-19  Ross Johnson  <rpj@callisto.canberra.edu.au>
 
 	* Bmakefile: New makefile for Borland.
-	* Makefile (PTW32_VER): Added.
-	* GNUmakefile (PTW32_VER): Added.
-	* Wmakefile (PTW32_VER): Added.
+	* Makefile (DLL_VER): Added.
+	* GNUmakefile (DLL_VER): Added.
+	* Wmakefile (DLL_VER): Added.
 
 2004-10-29  Ross Johnson  <rpj@callisto.canberra.edu.au>
 
@@ -692,7 +706,7 @@
 	   *          exit code 3.
 	   *       2) A term_func() must not throw an exception. Therefore
 	   *          term_func() should not call pthread_exit() if an
-	   *          an exception-using version of Pthreads4w library
+	   *          an exception-using version of pthreads-win32 library
 	   *          is being used (i.e. either pthreadVCE or pthreadVSE).
 
 
@@ -908,7 +922,7 @@
 	handle it under Mingw32. Mingw32 now builds the
 	library correctly to pass all tests - see Thomas
 	Pfaff's detailed instructions re needed changes
-	to Mingw32 in the Pthreads4w FAQ.
+	to Mingw32 in the Pthreads-Win32 FAQ.
 
 2000-09-08  Ross Johnson  <rpj@special.ise.canberra.edu.au>
 
@@ -951,7 +965,7 @@
 
 	* rwlock6.c: Fix casts.
 
-	* exception1.c (PtW32CatchAll): Had the wrong name;
+	* exception1.c (__PtW32CatchAll): Had the wrong name;
 	fix casts.
 
 	* cancel3.c: Remove unused waitLock variable.
@@ -1023,9 +1037,9 @@
 
 2000-08-05  Ross Johnson  <rpj@special.ise.canberra.edu.au>
 
-	* cancel2.c: Use PtW32CatchAll macro if defined.
+	* cancel2.c: Use __PtW32CatchAll macro if defined.
 
-	* exception1.c: Use PtW32CatchAll macro if defined.
+	* exception1.c: Use __PtW32CatchAll macro if defined.
 
 2000-08-02  Ross Johnson  <rpj@special.ise.canberra.edu.au>
 

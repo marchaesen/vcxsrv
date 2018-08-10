@@ -2086,7 +2086,7 @@ typedef void (APIENTRYP PFNGLBLENDEQUATIONSEPARATEATIPROC) (GLenum modeRGB, GLen
 
 
 /* GL_OES_EGL_image */
-#ifndef GL_OES_EGL_image
+#if !defined(GL_OES_EGL_image) && !defined(GL_EXT_EGL_image_storage)
 typedef void* GLeglImageOES;
 #endif
 

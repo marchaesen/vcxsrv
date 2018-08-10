@@ -23,7 +23,7 @@
 </HEAD>
 <BODY LANG="en-AU" DIR="LTR">
 <H4 CLASS="western"><SPAN STYLE="font-variant: normal"><FONT FACE="Times New Roman, serif"><FONT SIZE=3><SPAN STYLE="font-style: normal">POSIX
-Threads for Windows &ndash; REFERENCE - <A HREF="http://sourceforge.net/projects/pthreads4w/">Pthreads4w</A></SPAN></FONT></FONT></SPAN></H4>
+Threads for Windows &ndash; REFERENCE - <A HREF="http://sourceforge.net/projects/pthreads4w/">PThreads4W</A></SPAN></FONT></FONT></SPAN></H4>
 <P><A HREF="index.html">Reference Index</A></P>
 <P><A HREF="#toc" NAME="sect">Table of Contents</A></P>
 <H2 CLASS="western"><A HREF="#toc0" NAME="sect0">Name</A></H2>
@@ -35,8 +35,8 @@ name</P>
 <P><B>int pthread_getname_np(pthread_t </B><I><SPAN STYLE="font-weight: normal">thr</SPAN></I><B>,
 char * </B><I><SPAN STYLE="font-weight: normal">name</SPAN></I><B>,
 int </B><I><SPAN STYLE="font-weight: normal">len</SPAN></I><B>);</B></P>
-<P>#if defined(PTW32_COMPATIBILITY_BSD) ||
-defined(PTW32_COMPATIBILITY_TRU64)<BR><B>int
+<P>#if defined (__PTW32_COMPATIBILITY_BSD) ||
+defined (__PTW32_COMPATIBILITY_TRU64)<BR><B>int
 pthread_setname_np(pthread_t </B><I><SPAN STYLE="font-weight: normal">thr</SPAN></I><B>,
 const char * </B><I><SPAN STYLE="font-weight: normal">name</SPAN></I><B>,
 void * </B><I><SPAN STYLE="font-weight: normal">arg</SPAN></I><B>);</B></P>
@@ -47,7 +47,7 @@ const char * </B><I><SPAN STYLE="font-weight: normal">name</SPAN></I><B>);</B></
 <H2 CLASS="western"><A HREF="#toc2" NAME="sect2">Description</A></H2>
 <P><B>pthread_setname_np()</B> sets the descriptive name of the
 thread. It takes the following arguments.</P>
-<P>#if defined(PTW32_COMPATIBILITY_BSD)</P>
+<P>#if defined (__PTW32_COMPATIBILITY_BSD)</P>
 <TABLE WIDTH=100% CELLPADDING=4 CELLSPACING=0>
 	<COL WIDTH=30*>
 	<COL WIDTH=226*>
@@ -78,7 +78,7 @@ thread. It takes the following arguments.</P>
 		</TD>
 	</TR>
 </TABLE>
-<P>#elif defined(PTW32_COMPATIBILITY_TRU64)</P>
+<P>#elif defined (__PTW32_COMPATIBILITY_TRU64)</P>
 <TABLE WIDTH=100% CELLPADDING=4 CELLSPACING=0>
 	<COL WIDTH=30*>
 	<COL WIDTH=226*>

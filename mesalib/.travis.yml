@@ -9,9 +9,9 @@ cache:
 
 env:
   global:
-    - XORG_RELEASES=http://xorg.freedesktop.org/releases/individual
-    - XCB_RELEASES=http://xcb.freedesktop.org/dist
-    - WAYLAND_RELEASES=http://wayland.freedesktop.org/releases
+    - XORG_RELEASES=https://xorg.freedesktop.org/releases/individual
+    - XCB_RELEASES=https://xcb.freedesktop.org/dist
+    - WAYLAND_RELEASES=https://wayland.freedesktop.org/releases
     - XORGMACROS_VERSION=util-macros-1.19.0
     - GLPROTO_VERSION=glproto-1.4.17
     - DRI2PROTO_VERSION=dri2proto-2.8
@@ -35,18 +35,20 @@ matrix:
     - env:
         - LABEL="meson Vulkan"
         - BUILD=meson
-        - MESON_OPTIONS="-Ddri-drivers=[] -Dgallium-drivers=[]"
-        - LLVM_VERSION=5.0
+        - DRI_DRIVERS=""
+        - GALLIUM_DRIVERS=""
+        - VULKAN_DRIVERS="intel,amd"
+        - LLVM_VERSION=6.0
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-5.0
+            - llvm-toolchain-trusty-6.0
+            # llvm-6 depends on gcc-4.9 which is not in main repo
+            - ubuntu-toolchain-r-test
           packages:
-            # LLVM packaging is broken and misses these dependencies
-            - libedit-dev
             # From sources above
-            - llvm-5.0-dev
+            - llvm-6.0-dev
             # Common
             - xz-utils
             - libexpat1-dev
@@ -55,7 +57,9 @@ matrix:
     - env:
         - LABEL="meson loaders/classic DRI"
         - BUILD=meson
-        - MESON_OPTIONS="-Dvulkan-drivers=[] -Dgallium-drivers=[]"
+        - DRI_DRIVERS="i915,i965,r100,r200,swrast,nouveau"
+        - GALLIUM_DRIVERS=""
+        - VULKAN_DRIVERS=""
       addons:
         apt:
           packages:
@@ -137,9 +141,9 @@ matrix:
         apt:
           sources:
             - llvm-toolchain-trusty-6.0
+            # llvm-6 depends on gcc-4.9 which is not in main repo
+            - ubuntu-toolchain-r-test
           packages:
-            # LLVM packaging is broken and misses these dependencies
-            - libedit-dev
             # From sources above
             - llvm-6.0-dev
             # Common
@@ -378,9 +382,9 @@ matrix:
         apt:
           sources:
             - llvm-toolchain-trusty-6.0
+            # llvm-6 depends on gcc-4.9 which is not in main repo
+            - ubuntu-toolchain-r-test
           packages:
-            # LLVM packaging is broken and misses these dependencies
-            - libedit-dev
             # From sources above
             - llvm-6.0-dev
             # Common
@@ -463,7 +467,6 @@ matrix:
     - env:
         - LABEL="macOS meson"
         - BUILD=meson
-        - MESON_OPTIONS="-Degl=false"
       os: osx
 
 before_install:
@@ -543,7 +546,7 @@ install:
       tar -jxvf $LIBPCIACCESS_VERSION.tar.bz2
       (cd $LIBPCIACCESS_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-      wget http://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
+      wget https://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
       tar -jxvf $LIBDRM_VERSION.tar.bz2
       (cd $LIBDRM_VERSION && ./configure --prefix=$HOME/prefix --enable-vc4 --enable-freedreno --enable-etnaviv-experimental-api && make install)
 
@@ -559,11 +562,11 @@ install:
       tar -jxvf $LIBXSHMFENCE_VERSION.tar.bz2
       (cd $LIBXSHMFENCE_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-      wget http://people.freedesktop.org/~aplattner/vdpau/$LIBVDPAU_VERSION.tar.bz2
+      wget https://people.freedesktop.org/~aplattner/vdpau/$LIBVDPAU_VERSION.tar.bz2
       tar -jxvf $LIBVDPAU_VERSION.tar.bz2
       (cd $LIBVDPAU_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-      wget http://www.freedesktop.org/software/vaapi/releases/libva/$LIBVA_VERSION.tar.bz2
+      wget https://www.freedesktop.org/software/vaapi/releases/libva/$LIBVA_VERSION.tar.bz2
       tar -jxvf $LIBVA_VERSION.tar.bz2
       (cd $LIBVA_VERSION && ./configure --prefix=$HOME/prefix --disable-wayland --disable-dummy-driver && make install)
 
@@ -646,6 +649,14 @@ script:
 
   - |
     if test "x$BUILD" = xmeson; then
+
+      if test "x$TRAVIS_OS_NAME" == xosx; then
+        MESON_OPTIONS="-Degl=false"
+      fi
+
+      if test "x$TRAVIS_OS_NAME" == xlinux; then
+        MESON_OPTIONS="-Ddri-drivers=${DRI_DRIVERS:-[]} -Dgallium-drivers=${GALLIUM_DRIVERS:-[]} -Dvulkan-drivers=${VULKAN_DRIVERS:-[]}"
+      fi
 
       # Travis CI has moved to LLVM 5.0, and meson is detecting
       # automatically the available version in /usr/local/bin based on

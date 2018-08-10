@@ -120,6 +120,10 @@ TODO: document the other workarounds.
             <option name="allow_glsl_extension_directive_midshader" value="true" />
         </application>
 
+        <application name="Metro 2033 Redux / Metro Last Night Redux" executable="metro">
+            <option name="allow_glsl_extension_directive_midshader" value="true" />
+        </application>
+
         <application name="Worms W.M.D" executable="Worms W.M.Dx64">
             <option name="allow_higher_compat_version" value="true" />
         </application>

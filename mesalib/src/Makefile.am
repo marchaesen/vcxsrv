@@ -39,6 +39,7 @@ gl_HEADERS = \
   $(top_srcdir)/include/GL/gl_mangle.h
 endif
 
+# TODO: When building with glvnd, glvnd itself should be providing gl.pc and the headers
 if HAVE_GLX
 glxdir = $(includedir)/GL
 glx_HEADERS = \

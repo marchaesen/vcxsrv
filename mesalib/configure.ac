@@ -1415,6 +1415,7 @@ AM_CONDITIONAL(NEED_OPENGL_COMMON, test "x$enable_opengl" = xyes -o \
                                         "x$enable_gles1" = xyes -o \
                                         "x$enable_gles2" = xyes)
 AM_CONDITIONAL(NEED_KHRPLATFORM, test "x$enable_egl" = xyes -o \
+                                      "x$enable_opengl" = xyes -o \
                                       "x$enable_gles1" = xyes -o \
                                       "x$enable_gles2" = xyes)
 
@@ -1503,15 +1504,15 @@ fi
 AC_ARG_WITH([gl-lib-name],
   [AS_HELP_STRING([--with-gl-lib-name@<:@=NAME@:>@],
     [specify GL library name @<:@default=GL@:>@])],
-  [GL_LIB=$withval],
-  [GL_LIB="$DEFAULT_GL_LIB_NAME"])
+  [AC_MSG_ERROR([--with-gl-lib-name is no longer supported. Rename the library manually if needed.])],
+  [])
 AC_ARG_WITH([osmesa-lib-name],
   [AS_HELP_STRING([--with-osmesa-lib-name@<:@=NAME@:>@],
     [specify OSMesa library name @<:@default=OSMesa@:>@])],
-  [OSMESA_LIB=$withval],
-  [OSMESA_LIB=OSMesa])
-AS_IF([test "x$GL_LIB" = xyes], [GL_LIB="$DEFAULT_GL_LIB_NAME"])
-AS_IF([test "x$OSMESA_LIB" = xyes], [OSMESA_LIB=OSMesa])
+  [AC_MSG_ERROR([--with-osmesa-lib-name is no longer supported. Rename the library manually if needed.])],
+  [])
+GL_LIB="$DEFAULT_GL_LIB_NAME"
+OSMESA_LIB=OSMesa
 
 dnl
 dnl Mangled Mesa support
@@ -1523,12 +1524,24 @@ AC_ARG_ENABLE([mangling],
   [enable_mangling=no]
 )
 if test "x${enable_mangling}" = "xyes" ; then
+  if test "x$enable_libglvnd" = xyes; then
+    AC_MSG_ERROR([Conflicting options --enable-mangling and --enable-libglvnd.])
+  fi
   DEFINES="${DEFINES} -DUSE_MGL_NAMESPACE"
   GL_LIB="Mangled${GL_LIB}"
   OSMESA_LIB="Mangled${OSMESA_LIB}"
 fi
 AC_SUBST([GL_LIB])
 AC_SUBST([OSMESA_LIB])
+
+dnl HACK when building glx + glvnd we ship gl.pc, despite that glvnd should do it
+dnl Thus we need to use GL as a DSO name.
+if test "x$enable_libglvnd" = xyes -a "x$enable_glx" != xno; then
+  GL_PKGCONF_LIB="GL"
+else
+  GL_PKGCONF_LIB="$GL_LIB"
+fi
+AC_SUBST([GL_PKGCONF_LIB])
 
 # Check for libdrm
 PKG_CHECK_MODULES([LIBDRM], [libdrm >= $LIBDRM_REQUIRED],
@@ -1657,6 +1670,8 @@ xxlib | xgallium-xlib)
     ;;
 xdri)
     # DRI-based GLX
+
+    require_dri_shared_libs_and_glapi "GLX"
 
     # find the DRI deps for libGL
     dri_modules="x11 xext xdamage >= $XDAMAGE_REQUIRED xfixes x11-xcb xcb xcb-glx >= $XCBGLX_REQUIRED"
@@ -1810,6 +1825,10 @@ for plat in $platforms; do
         PKG_CHECK_MODULES([WAYLAND_SCANNER], [wayland-scanner],
                           WAYLAND_SCANNER=`$PKG_CONFIG --variable=wayland_scanner wayland-scanner`,
                           WAYLAND_SCANNER='')
+        PKG_CHECK_EXISTS([wayland-scanner >= 1.15],
+                          AC_SUBST(SCANNER_ARG, 'private-code'),
+                          AC_SUBST(SCANNER_ARG, 'code'))
+
         if test "x$WAYLAND_SCANNER" = x; then
             AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner], [:])
         fi

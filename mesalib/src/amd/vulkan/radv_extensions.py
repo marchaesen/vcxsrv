@@ -147,14 +147,15 @@ class VkVersion:
         patch = self.patch if self.patch is not None else 0
         return (self.major << 22) | (self.minor << 12) | patch
 
-    def __cmp__(self, other):
+    def __gt__(self, other):
         # If only one of them has a patch version, "ignore" it by making
         # other's patch version match self.
         if (self.patch is None) != (other.patch is None):
             other = copy.copy(other)
             other.patch = self.patch
 
-        return self.__int_ver().__cmp__(other.__int_ver())
+        return self.__int_ver() > other.__int_ver()
+
 
 MAX_API_VERSION = VkVersion(MAX_API_VERSION)
 

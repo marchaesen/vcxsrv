@@ -1928,6 +1928,11 @@ ast_expression::do_hir(exec_list *instructions,
 
       error_emitted = op[0]->type->is_error() || op[1]->type->is_error();
 
+      if (error_emitted) {
+         result = ir_rvalue::error_value(ctx);
+         break;
+      }
+
       type = arithmetic_result_type(op[0], op[1], false, state, & loc);
 
       ir_rvalue *temp_rhs;

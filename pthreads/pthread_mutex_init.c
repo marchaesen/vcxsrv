@@ -6,9 +6,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads4w - POSIX Threads Library for Win32
- *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2018, Pthreads4w contributors
+ *      Pthreads4w - POSIX Threads for Windows
+ *      Copyright 1998 John E. Bossom
+ *      Copyright 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -16,22 +16,20 @@
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
+ *
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads4w.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    Pthreads4w is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Pthreads4w is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -106,14 +104,14 @@ pthread_mutex_init (pthread_mutex_t * mutex, const pthread_mutexattr_t * attr)
                */
               mx->kind = -mx->kind - 1;
 
-              mx->robustNode = (ptw32_robust_node_t*) malloc(sizeof(ptw32_robust_node_t));
+              mx->robustNode = (__ptw32_robust_node_t*) malloc(sizeof(__ptw32_robust_node_t));
               if (NULL == mx->robustNode)
         	{
         	  result = ENOMEM;
         	}
               else
         	{
-        	  mx->robustNode->stateInconsistent = PTW32_ROBUST_CONSISTENT;
+        	  mx->robustNode->stateInconsistent =  __PTW32_ROBUST_CONSISTENT;
         	  mx->robustNode->mx = mx;
         	  mx->robustNode->next = NULL;
         	  mx->robustNode->prev = NULL;
@@ -125,8 +123,8 @@ pthread_mutex_init (pthread_mutex_t * mutex, const pthread_mutexattr_t * attr)
 	{
 	  mx->ownerThread.p = NULL;
 
-	  mx->event = CreateEvent (NULL, PTW32_FALSE,    /* manual reset = No */
-				   PTW32_FALSE,           /* initial state = not signalled */
+	  mx->event = CreateEvent (NULL,  __PTW32_FALSE,    /* manual reset = No */
+				    __PTW32_FALSE,           /* initial state = not signalled */
 				   NULL);                 /* event name */
 
 	  if (0 == mx->event)

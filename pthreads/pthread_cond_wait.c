@@ -7,9 +7,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads4w - POSIX Threads Library for Win32
- *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2018, Pthreads4w contributors
+ *      Pthreads4w - POSIX Threads for Windows
+ *      Copyright 1998 John E. Bossom
+ *      Copyright 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -17,22 +17,20 @@
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
+ *
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads4w.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    Pthreads4w is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Pthreads4w is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  * -------------------------------------------------------------
  * Algorithm:
@@ -273,13 +271,13 @@ typedef struct
   pthread_mutex_t *mutexPtr;
   pthread_cond_t cv;
   int *resultPtr;
-} ptw32_cond_wait_cleanup_args_t;
+} __ptw32_cond_wait_cleanup_args_t;
 
-static void PTW32_CDECL
-ptw32_cond_wait_cleanup (void *args)
+static void  __PTW32_CDECL
+__ptw32_cond_wait_cleanup (void *args)
 {
-  ptw32_cond_wait_cleanup_args_t *cleanup_args =
-    (ptw32_cond_wait_cleanup_args_t *) args;
+  __ptw32_cond_wait_cleanup_args_t *cleanup_args =
+    (__ptw32_cond_wait_cleanup_args_t *) args;
   pthread_cond_t cv = cleanup_args->cv;
   int *resultPtr = cleanup_args->resultPtr;
   int nSignalsWasLeft;
@@ -304,9 +302,9 @@ ptw32_cond_wait_cleanup (void *args)
   else if (INT_MAX / 2 == ++(cv->nWaitersGone))
     {
       /* Use the non-cancellable version of sem_wait() */
-      if (ptw32_semwait (&(cv->semBlockLock)) != 0)
+      if (__ptw32_semwait (&(cv->semBlockLock)) != 0)
 	{
-	  *resultPtr = PTW32_GET_ERRNO();
+	  *resultPtr =  __PTW32_GET_ERRNO();
 	  /*
 	   * This is a fatal error for this CV,
 	   * so we deliberately don't unlock
@@ -317,7 +315,7 @@ ptw32_cond_wait_cleanup (void *args)
       cv->nWaitersBlocked -= cv->nWaitersGone;
       if (sem_post (&(cv->semBlockLock)) != 0)
 	{
-	  *resultPtr = PTW32_GET_ERRNO();
+	  *resultPtr =  __PTW32_GET_ERRNO();
 	  /*
 	   * This is a fatal error for this CV,
 	   * so we deliberately don't unlock
@@ -338,7 +336,7 @@ ptw32_cond_wait_cleanup (void *args)
     {
       if (sem_post (&(cv->semBlockLock)) != 0)
 	{
-	  *resultPtr = PTW32_GET_ERRNO();
+	  *resultPtr =  __PTW32_GET_ERRNO();
 	  return;
 	}
     }
@@ -351,15 +349,15 @@ ptw32_cond_wait_cleanup (void *args)
     {
       *resultPtr = result;
     }
-}				/* ptw32_cond_wait_cleanup */
+}				/* __ptw32_cond_wait_cleanup */
 
 static INLINE int
-ptw32_cond_timedwait (pthread_cond_t * cond,
+__ptw32_cond_timedwait (pthread_cond_t * cond,
 		      pthread_mutex_t * mutex, const struct timespec *abstime)
 {
   int result = 0;
   pthread_cond_t cv;
-  ptw32_cond_wait_cleanup_args_t cleanup_args;
+  __ptw32_cond_wait_cleanup_args_t cleanup_args;
 
   if (cond == NULL || *cond == NULL)
     {
@@ -369,12 +367,12 @@ ptw32_cond_timedwait (pthread_cond_t * cond,
   /*
    * We do a quick check to see if we need to do more work
    * to initialise a static condition variable. We check
-   * again inside the guarded section of ptw32_cond_check_need_init()
+   * again inside the guarded section of __ptw32_cond_check_need_init()
    * to avoid race conditions.
    */
   if (*cond == PTHREAD_COND_INITIALIZER)
     {
-      result = ptw32_cond_check_need_init (cond);
+      result = __ptw32_cond_check_need_init (cond);
     }
 
   if (result != 0 && result != EBUSY)
@@ -387,14 +385,14 @@ ptw32_cond_timedwait (pthread_cond_t * cond,
   /* Thread can be cancelled in sem_wait() but this is OK */
   if (sem_wait (&(cv->semBlockLock)) != 0)
     {
-      return PTW32_GET_ERRNO();
+      return  __PTW32_GET_ERRNO();
     }
 
   ++(cv->nWaitersBlocked);
 
   if (sem_post (&(cv->semBlockLock)) != 0)
     {
-      return PTW32_GET_ERRNO();
+      return  __PTW32_GET_ERRNO();
     }
 
   /*
@@ -404,10 +402,10 @@ ptw32_cond_timedwait (pthread_cond_t * cond,
   cleanup_args.cv = cv;
   cleanup_args.resultPtr = &result;
 
-#if defined(PTW32_CONFIG_MSVC7)
+#if defined (__PTW32_CONFIG_MSVC7)
 #pragma inline_depth(0)
 #endif
-  pthread_cleanup_push (ptw32_cond_wait_cleanup, (void *) &cleanup_args);
+  pthread_cleanup_push (__ptw32_cond_wait_cleanup, (void *) &cleanup_args);
 
   /*
    * Now we can release 'mutex' and...
@@ -433,7 +431,7 @@ ptw32_cond_timedwait (pthread_cond_t * cond,
        */
       if (sem_timedwait (&(cv->semBlockQueue), abstime) != 0)
 	{
-	  result = PTW32_GET_ERRNO();
+	  result =  __PTW32_GET_ERRNO();
 	}
     }
 
@@ -441,7 +439,7 @@ ptw32_cond_timedwait (pthread_cond_t * cond,
    * Always cleanup
    */
   pthread_cleanup_pop (1);
-#if defined(PTW32_CONFIG_MSVC7)
+#if defined (__PTW32_CONFIG_MSVC7)
 #pragma inline_depth()
 #endif
 
@@ -450,7 +448,7 @@ ptw32_cond_timedwait (pthread_cond_t * cond,
    */
   return result;
 
-}				/* ptw32_cond_timedwait */
+}				/* __ptw32_cond_timedwait */
 
 
 int
@@ -506,7 +504,7 @@ pthread_cond_wait (pthread_cond_t * cond, pthread_mutex_t * mutex)
   /*
    * The NULL abstime arg means INFINITE waiting.
    */
-  return (ptw32_cond_timedwait (cond, mutex, NULL));
+  return (__ptw32_cond_timedwait (cond, mutex, NULL));
 
 }				/* pthread_cond_wait */
 
@@ -565,6 +563,6 @@ pthread_cond_timedwait (pthread_cond_t * cond,
       return EINVAL;
     }
 
-  return (ptw32_cond_timedwait (cond, mutex, abstime));
+  return (__ptw32_cond_timedwait (cond, mutex, abstime));
 
 }				/* pthread_cond_timedwait */

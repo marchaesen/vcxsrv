@@ -1,14 +1,14 @@
 /* config.h  */
 
-#ifndef PTW32_CONFIG_H
-#define PTW32_CONFIG_H
+#ifndef  __PTW32_CONFIG_H
+#define  __PTW32_CONFIG_H
 
 /*********************************************************************
  * Defaults: see target specific redefinitions below.
  *********************************************************************/
 
-/* We're building the Pthreads4w library */
-#define PTW32_BUILD
+/* We're building the pthreads-win32 library */
+#define  __PTW32_BUILD
 
 /* CPU affinity */
 #define HAVE_CPU_AFFINITY
@@ -33,9 +33,6 @@
 
 /* Define if you don't have Win32 calloc. (eg. WinCE)  */
 #undef NEED_CALLOC
-
-/* Define if you don't have Win32 ftime. (eg. WinCE)  */
-#undef NEED_FTIME
 
 /* Define if you don't have Win32 semaphores. (eg. WinCE 2.1 or earlier)  */
 #undef NEED_SEM
@@ -80,7 +77,7 @@
 # applications that make assumptions that POSIX does not guarantee are
 # not strictly compliant and may fail or misbehave with some settings.
 #
-# PTW32_THREAD_ID_REUSE_INCREMENT
+#  __PTW32_THREAD_ID_REUSE_INCREMENT
 # Purpose:
 # POSIX says that applications should assume that thread IDs can be
 # recycled. However, Solaris (and some other systems) use a [very large]
@@ -98,18 +95,18 @@
 # (i.e. will wrap sooner). This might be useful to emulate some embedded
 # systems.
 #
-# define PTW32_THREAD_ID_REUSE_INCREMENT 0
+# define  __PTW32_THREAD_ID_REUSE_INCREMENT 0
 #
 # ----------------------------------------------------------------------
  */
-#undef PTW32_THREAD_ID_REUSE_INCREMENT
+#undef  __PTW32_THREAD_ID_REUSE_INCREMENT
 
 
 /*********************************************************************
  * Target specific groups
  *
  * If you find that these are incorrect or incomplete please report it
- * to the Pthreads4w maintainer. Thanks.
+ * to the pthreads-win32 maintainer. Thanks.
  *********************************************************************/
 #if defined(WINCE)
 #  undef  HAVE_CPU_AFFINITY
@@ -150,4 +147,4 @@
 #define HAVE_STRUCT_TIMESPEC
 #endif
 
-#endif /* PTW32_CONFIG_H */
+#endif /*  __PTW32_CONFIG_H */

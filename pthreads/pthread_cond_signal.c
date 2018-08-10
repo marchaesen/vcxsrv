@@ -7,9 +7,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads4w - POSIX Threads Library for Win32
- *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2018, Pthreads4w contributors
+ *      Pthreads4w - POSIX Threads for Windows
+ *      Copyright 1998 John E. Bossom
+ *      Copyright 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -17,22 +17,20 @@
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
+ *
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads4w.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    Pthreads4w is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Pthreads4w is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  * -------------------------------------------------------------
  * Algorithm:
@@ -47,7 +45,7 @@
 #include "implement.h"
 
 static INLINE int
-ptw32_cond_unblock (pthread_cond_t * cond, int unblockAll)
+__ptw32_cond_unblock (pthread_cond_t * cond, int unblockAll)
      /*
       * Notes.
       *
@@ -114,9 +112,9 @@ ptw32_cond_unblock (pthread_cond_t * cond, int unblockAll)
   else if (cv->nWaitersBlocked > cv->nWaitersGone)
     {
       /* Use the non-cancellable version of sem_wait() */
-      if (ptw32_semwait (&(cv->semBlockLock)) != 0)
+      if (__ptw32_semwait (&(cv->semBlockLock)) != 0)
 	{
-	  result = PTW32_GET_ERRNO();
+	  result =  __PTW32_GET_ERRNO();
 	  (void) pthread_mutex_unlock (&(cv->mtxUnblockLock));
 	  return result;
 	}
@@ -145,13 +143,13 @@ ptw32_cond_unblock (pthread_cond_t * cond, int unblockAll)
     {
       if (sem_post_multiple (&(cv->semBlockQueue), nSignalsToIssue) != 0)
 	{
-	  result = PTW32_GET_ERRNO();
+	  result =  __PTW32_GET_ERRNO();
 	}
     }
 
   return result;
 
-}				/* ptw32_cond_unblock */
+}				/* __ptw32_cond_unblock */
 
 int
 pthread_cond_signal (pthread_cond_t * cond)
@@ -191,7 +189,7 @@ pthread_cond_signal (pthread_cond_t * cond)
   /*
    * The '0'(FALSE) unblockAll arg means unblock ONE waiter.
    */
-  return (ptw32_cond_unblock (cond, 0));
+  return (__ptw32_cond_unblock (cond, 0));
 
 }				/* pthread_cond_signal */
 
@@ -230,6 +228,6 @@ pthread_cond_broadcast (pthread_cond_t * cond)
   /*
    * The TRUE unblockAll arg means unblock ALL waiters.
    */
-  return (ptw32_cond_unblock (cond, PTW32_TRUE));
+  return (__ptw32_cond_unblock (cond,  __PTW32_TRUE));
 
 }				/* pthread_cond_broadcast */

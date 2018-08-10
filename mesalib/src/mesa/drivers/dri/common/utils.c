@@ -147,7 +147,10 @@ driGetRendererString( char * buffer, const char * hardware_name,
  * \param color_depth_match Whether the color depth must match the zs depth
  *                          This forces 32-bit color to have 24-bit depth, and
  *                          16-bit color to have 16-bit depth.
- * 
+ * \param mutable_render_buffer Enable __DRI_ATTRIB_MUTABLE_RENDER_BUFFER,
+ *                              which translates to
+ *                              EGL_MUTABLE_RENDER_BUFFER_BIT_KHR.
+ *
  * \returns
  * Pointer to any array of pointers to the \c __DRIconfig structures created
  * for the specified formats.  If there is an error, \c NULL is returned.
@@ -160,7 +163,8 @@ driCreateConfigs(mesa_format format,
 		 unsigned num_depth_stencil_bits,
 		 const GLenum * db_modes, unsigned num_db_modes,
 		 const uint8_t * msaa_samples, unsigned num_msaa_modes,
-		 GLboolean enable_accum, GLboolean color_depth_match)
+		 GLboolean enable_accum, GLboolean color_depth_match,
+		 GLboolean mutable_render_buffer)
 {
    static const uint32_t masks_table[][4] = {
       /* MESA_FORMAT_B5G6R5_UNORM */
@@ -325,6 +329,7 @@ driCreateConfigs(mesa_format format,
 
 		    modes->yInverted = GL_TRUE;
 		    modes->sRGBCapable = is_srgb;
+		    modes->mutableRenderBuffer = mutable_render_buffer;
 		}
 	    }
 	}
@@ -409,6 +414,7 @@ static const struct { unsigned int attrib, offset; } attribMap[] = {
     __ATTRIB(__DRI_ATTRIB_BIND_TO_TEXTURE_TARGETS,	bindToTextureTargets),
     __ATTRIB(__DRI_ATTRIB_YINVERTED,			yInverted),
     __ATTRIB(__DRI_ATTRIB_FRAMEBUFFER_SRGB_CAPABLE,	sRGBCapable),
+    __ATTRIB(__DRI_ATTRIB_MUTABLE_RENDER_BUFFER,	mutableRenderBuffer),
 
     /* The struct field doesn't matter here, these are handled by the
      * switch in driGetConfigAttribIndex.  We need them in the array

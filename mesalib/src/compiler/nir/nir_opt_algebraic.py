@@ -723,7 +723,7 @@ optimizations = [
 
 invert = OrderedDict([('feq', 'fne'), ('fne', 'feq'), ('fge', 'flt'), ('flt', 'fge')])
 
-for left, right in list(itertools.combinations(invert.keys(), 2)) + zip(invert.keys(), invert.keys()):
+for left, right in itertools.combinations_with_replacement(invert.keys(), 2):
    optimizations.append((('inot', ('ior(is_used_once)', (left, a, b), (right, c, d))),
                          ('iand', (invert[left], a, b), (invert[right], c, d))))
    optimizations.append((('inot', ('iand(is_used_once)', (left, a, b), (right, c, d))),

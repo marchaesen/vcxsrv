@@ -213,6 +213,9 @@ struct gl_config
 
    /* EXT_framebuffer_sRGB */
    GLint sRGBCapable;
+
+   /* EGL_KHR_mutable_render_buffer */
+   GLuint mutableRenderBuffer; /* bool */
 };
 
 

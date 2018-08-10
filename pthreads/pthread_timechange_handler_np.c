@@ -6,9 +6,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads4w - POSIX Threads Library for Win32
- *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2018, Pthreads4w contributors
+ *      Pthreads4w - POSIX Threads for Windows
+ *      Copyright 1998 John E. Bossom
+ *      Copyright 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -16,22 +16,20 @@
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
+ *
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads4w.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    Pthreads4w is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Pthreads4w is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,7 +49,7 @@
  * 1) The problem: threads doing a timedwait on a CV may expect to timeout
  *    at a specific absolute time according to a system timer. If the
  *    system clock is adjusted backwards then those threads sleep longer than
- *    expected. Also, Pthreads4w converts absolute times to intervals in
+ *    expected. Also, pthreads-win32 converts absolute times to intervals in
  *    order to make use of the underlying Win32, and so waiting threads may
  *    awake before their proper abstimes.
  *
@@ -94,11 +92,11 @@ pthread_timechange_handler_np (void *arg)
 {
   int result = 0;
   pthread_cond_t cv;
-  ptw32_mcs_local_node_t node;
+  __ptw32_mcs_local_node_t node;
 
-  ptw32_mcs_lock_acquire(&ptw32_cond_list_lock, &node);
+  __ptw32_mcs_lock_acquire(&__ptw32_cond_list_lock, &node);
 
-  cv = ptw32_cond_list_head;
+  cv = __ptw32_cond_list_head;
 
   while (cv != NULL && 0 == result)
     {
@@ -106,7 +104,7 @@ pthread_timechange_handler_np (void *arg)
       cv = cv->next;
     }
 
-  ptw32_mcs_lock_release(&node);
+  __ptw32_mcs_lock_release(&node);
 
   return (void *) (size_t) (result != 0 ? EAGAIN : 0);
 }

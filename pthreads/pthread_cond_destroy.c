@@ -7,9 +7,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads4w - POSIX Threads Library for Win32
- *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2018, Pthreads4w contributors
+ *      Pthreads4w - POSIX Threads for Windows
+ *      Copyright 1998 John E. Bossom
+ *      Copyright 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -17,22 +17,20 @@
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
+ *
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads4w.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    Pthreads4w is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Pthreads4w is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -130,8 +128,8 @@ pthread_cond_destroy (pthread_cond_t * cond)
 
   if (*cond != PTHREAD_COND_INITIALIZER)
     {
-      ptw32_mcs_local_node_t node;
-      ptw32_mcs_lock_acquire(&ptw32_cond_list_lock, &node);
+      __ptw32_mcs_local_node_t node;
+      __ptw32_mcs_lock_acquire(&__ptw32_cond_list_lock, &node);
 
       cv = *cond;
 
@@ -140,9 +138,9 @@ pthread_cond_destroy (pthread_cond_t * cond)
        * all already signaled waiters to let them retract their
        * waiter status - SEE NOTE 1 ABOVE!!!
        */
-      if (ptw32_semwait (&(cv->semBlockLock)) != 0) /* Non-cancelable */
+      if (__ptw32_semwait (&(cv->semBlockLock)) != 0) /* Non-cancelable */
 	{
-	  result = PTW32_GET_ERRNO();
+	  result =  __PTW32_GET_ERRNO();
 	}
       else
         {
@@ -159,7 +157,7 @@ pthread_cond_destroy (pthread_cond_t * cond)
 	
       if (result != 0)
         {
-          ptw32_mcs_lock_release(&node);
+          __ptw32_mcs_lock_release(&node);
           return result;
         }
 
@@ -170,7 +168,7 @@ pthread_cond_destroy (pthread_cond_t * cond)
 	{
 	  if (sem_post (&(cv->semBlockLock)) != 0)
 	    {
-	      result = PTW32_GET_ERRNO();
+	      result =  __PTW32_GET_ERRNO();
 	    }
 	  result1 = pthread_mutex_unlock (&(cv->mtxUnblockLock));
 	  result2 = EBUSY;
@@ -184,11 +182,11 @@ pthread_cond_destroy (pthread_cond_t * cond)
 
 	  if (sem_destroy (&(cv->semBlockLock)) != 0)
 	    {
-	      result = PTW32_GET_ERRNO();
+	      result =  __PTW32_GET_ERRNO();
 	    }
 	  if (sem_destroy (&(cv->semBlockQueue)) != 0)
 	    {
-	      result1 = PTW32_GET_ERRNO();
+	      result1 =  __PTW32_GET_ERRNO();
 	    }
 	  if ((result2 = pthread_mutex_unlock (&(cv->mtxUnblockLock))) == 0)
 	    {
@@ -197,18 +195,18 @@ pthread_cond_destroy (pthread_cond_t * cond)
 
 	  /* Unlink the CV from the list */
 
-	  if (ptw32_cond_list_head == cv)
+	  if (__ptw32_cond_list_head == cv)
 	    {
-	      ptw32_cond_list_head = cv->next;
+	      __ptw32_cond_list_head = cv->next;
 	    }
 	  else
 	    {
 	      cv->prev->next = cv->next;
 	    }
 
-	  if (ptw32_cond_list_tail == cv)
+	  if (__ptw32_cond_list_tail == cv)
 	    {
-	      ptw32_cond_list_tail = cv->prev;
+	      __ptw32_cond_list_tail = cv->prev;
 	    }
 	  else
 	    {
@@ -218,15 +216,15 @@ pthread_cond_destroy (pthread_cond_t * cond)
 	  (void) free (cv);
 	}
 
-      ptw32_mcs_lock_release(&node);
+      __ptw32_mcs_lock_release(&node);
     }
   else
     {
-      ptw32_mcs_local_node_t node;
+      __ptw32_mcs_local_node_t node;
       /*
-       * See notes in ptw32_cond_check_need_init() above also.
+       * See notes in __ptw32_cond_check_need_init() above also.
        */
-      ptw32_mcs_lock_acquire(&ptw32_cond_test_init_lock, &node);
+      __ptw32_mcs_lock_acquire(&__ptw32_cond_test_init_lock, &node);
 
       /*
        * Check again.
@@ -250,7 +248,7 @@ pthread_cond_destroy (pthread_cond_t * cond)
 	  result = EBUSY;
 	}
 
-      ptw32_mcs_lock_release(&node);
+      __ptw32_mcs_lock_release(&node);
     }
 
   return ((result != 0) ? result : ((result1 != 0) ? result1 : result2));
