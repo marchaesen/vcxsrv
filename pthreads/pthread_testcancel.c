@@ -6,9 +6,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads4w - POSIX Threads Library for Win32
- *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2018, Pthreads4w contributors
+ *      Pthreads4w - POSIX Threads for Windows
+ *      Copyright 1998 John E. Bossom
+ *      Copyright 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -16,22 +16,20 @@
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
+ *
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads4w.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    Pthreads4w is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Pthreads4w is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -72,9 +70,9 @@ pthread_testcancel (void)
       * ------------------------------------------------------
       */
 {
-  ptw32_mcs_local_node_t stateLock;
+  __ptw32_mcs_local_node_t stateLock;
   pthread_t self = pthread_self ();
-  ptw32_thread_t * sp = (ptw32_thread_t *) self.p;
+  __ptw32_thread_t * sp = (__ptw32_thread_t *) self.p;
 
   if (sp == NULL)
     {
@@ -91,17 +89,17 @@ pthread_testcancel (void)
       return;
     }
 
-  ptw32_mcs_lock_acquire (&sp->stateLock, &stateLock);
+  __ptw32_mcs_lock_acquire (&sp->stateLock, &stateLock);
 
   if (sp->cancelState != PTHREAD_CANCEL_DISABLE)
     {
       ResetEvent(sp->cancelEvent);
       sp->state = PThreadStateCanceling;
       sp->cancelState = PTHREAD_CANCEL_DISABLE;
-      ptw32_mcs_lock_release (&stateLock);
-      ptw32_throw (PTW32_EPS_CANCEL);
+      __ptw32_mcs_lock_release (&stateLock);
+      __ptw32_throw  (__PTW32_EPS_CANCEL);
       /* Never returns here */
     }
 
-  ptw32_mcs_lock_release (&stateLock);
+  __ptw32_mcs_lock_release (&stateLock);
 }				/* pthread_testcancel */

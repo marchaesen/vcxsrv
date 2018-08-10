@@ -76,6 +76,8 @@ LOCAL_CFLAGS += \
 	-DMAJOR_IN_SYSMACROS \
 	-DVK_USE_PLATFORM_ANDROID_KHR \
 	-fvisibility=hidden \
+	-fno-math-errno \
+	-fno-trapping-math \
 	-Wno-sign-compare
 
 LOCAL_CPPFLAGS += \

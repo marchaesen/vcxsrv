@@ -3,9 +3,9 @@
 #
 # --------------------------------------------------------------------------
 #
-#      Pthreads4w - POSIX Threads Library for Win32
-#      Copyright(C) 1998 John E. Bossom
-#      Copyright(C) 1999-2018, Pthreads4w contributors
+#      Pthreads4w - POSIX Threads for Windows
+#      Copyright 1998 John E. Bossom
+#      Copyright 1999-2018, Pthreads4w contributors
 #
 #      Homepage: https://sourceforge.net/projects/pthreads4w/
 #
@@ -13,22 +13,23 @@
 #      in the file CONTRIBUTORS included with the source
 #      code distribution. The list can also be seen at the
 #      following World Wide Web location:
+#
 #      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
 #
-# This file is part of Pthreads4w.
-#
-#    Pthreads4w is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    Pthreads4w is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+#      This library is free software; you can redistribute it and/or
+#      modify it under the terms of the GNU Lesser General Public
+#      License as published by the Free Software Foundation; either
+#      version 3 of the License, or (at your option) any later version.
+# 
+#      This library is distributed in the hope that it will be useful,
+#      but WITHOUT ANY WARRANTY; without even the implied warranty of
+#      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#      Lesser General Public License for more details.
+# 
+#      You should have received a copy of the GNU Lesser General Public
+#      License along with this library in the file COPYING.LIB;
+#      if not, write to the Free Software Foundation, Inc.,
+#      59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 #
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -39,7 +40,7 @@ LOGFILE = testsuite.log
 builddir = @builddir@
 top_builddir = @top_builddir@
 
-PTW32_VER	= 2$(EXTRAVERSION)
+PTW32_VER	= 3$(EXTRAVERSION)
 
 CP		= cp -f
 MV		= mv -f
@@ -151,49 +152,49 @@ help:
 	@ $(ECHO) "$(MAKE) clean GC TESTS="foo bar" (to build individual tests \"foo.c and bar.c\" with C and run using GC dll)"
 
 GC:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CC) XXCFLAGS="-D__CLEANUP_C" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CC) XXCFLAGS="-D__PTW32_CLEANUP_C" allpassed
 
 GC-asm:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CC) XXCFLAGS="-D__CLEANUP_C" all-asm
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CC) XXCFLAGS="-D__PTW32_CLEANUP_C" all-asm
 
 GC-bench:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CC) XXCFLAGS="-D__CLEANUP_C" XXLIBS="benchlib.o" all-bench
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CC) XXCFLAGS="-D__PTW32_CLEANUP_C" XXLIBS="benchlib.o" all-bench
 
 GC-bench-debug:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CC) XXCFLAGS="-D__CLEANUP_C" XXLIBS="benchlib.o" OPT="${DOPT}" all-bench
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CC) XXCFLAGS="-D__PTW32_CLEANUP_C" XXLIBS="benchlib.o" OPT="${DOPT}" all-bench
 
 GC-debug:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CC) XXCFLAGS="-D__CLEANUP_C" OPT="${DOPT}" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CC) XXCFLAGS="-D__PTW32_CLEANUP_C" OPT="${DOPT}" allpassed
 
 GC-static GC-small-static:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CC) XXCFLAGS="-D__CLEANUP_C -DPTW32_STATIC_LIB -Wl,-Bstatic" DLL="" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CC) XXCFLAGS="-D__PTW32_CLEANUP_C -D__PTW32_STATIC_LIB -Wl,-Bstatic" DLL="" allpassed
 
 GC-static-debug GC-small-static-debug:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CC) XXCFLAGS="-D__CLEANUP_C -DPTW32_STATIC_LIB -Wl,-Bstatic" OPT="$(DOPT)" DLL="" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CC) XXCFLAGS="-D__PTW32_CLEANUP_C -D__PTW32_STATIC_LIB -Wl,-Bstatic" OPT="$(DOPT)" DLL="" allpassed
 
 GCE:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GCE$(PTW32_VER)" CC=$(CXX) XXCFLAGS="-mthreads -D__CLEANUP_CXX" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GCE$(PTW32_VER)" CC=$(CXX) XXCFLAGS="-mthreads -D__PTW32_CLEANUP_CXX" allpassed
 
 GCE-debug:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GCE$(PTW32_VER)d" CC=$(CXX) XXCFLAGS="-D__CLEANUP_CXX" OPT="${DOPT}" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GCE$(PTW32_VER)d" CC=$(CXX) XXCFLAGS="-D__PTW32_CLEANUP_CXX" OPT="${DOPT}" allpassed
 
 GCE-static GCE-small-static:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GCE$(PTW32_VER)" CC=$(CXX) XXCFLAGS="-D__CLEANUP_CXX -DPTW32_STATIC_LIB -Wl,-Bstatic" DLL="" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GCE$(PTW32_VER)" CC=$(CXX) XXCFLAGS="-D__PTW32_CLEANUP_CXX -D__PTW32_STATIC_LIB -Wl,-Bstatic" DLL="" allpassed
 
 GCE-static-debug GCE-small-static-debug:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GCE$(PTW32_VER)d" CC=$(CXX) XXCFLAGS="-D__CLEANUP_CXX -DPTW32_STATIC_LIB -Wl,-Bstatic" OPT="$(DOPT)" DLL="" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GCE$(PTW32_VER)d" CC=$(CXX) XXCFLAGS="-D__PTW32_CLEANUP_CXX -D__PTW32_STATIC_LIB -Wl,-Bstatic" OPT="$(DOPT)" DLL="" allpassed
 
 GCX:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CXX) XXCFLAGS="-mthreads -D__CLEANUP_C" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CXX) XXCFLAGS="-mthreads -D__PTW32_CLEANUP_C" allpassed
 
 GCX-debug:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CXX) XXCFLAGS="-D__CLEANUP_C" OPT="${DOPT}" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CXX) XXCFLAGS="-D__PTW32_CLEANUP_C" OPT="${DOPT}" allpassed
 
 GCX-static GCX-small-static:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CXX) XXCFLAGS="-D__CLEANUP_C -DPTW32_STATIC_LIB -Wl,-Bstatic" DLL="" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)" CC=$(CXX) XXCFLAGS="-D__PTW32_CLEANUP_C -D__PTW32_STATIC_LIB -Wl,-Bstatic" DLL="" allpassed
 
 GCX-static-debug GCX-small-static-debug:
-	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CXX) XXCFLAGS="-D__CLEANUP_C -DPTW32_STATIC_LIB -Wl,-Bstatic" OPT="$(DOPT)" DLL="" allpassed
+	@ $(MAKE) --no-builtin-rules TEST=$@ GCX="GC$(PTW32_VER)d" CC=$(CXX) XXCFLAGS="-D__PTW32_CLEANUP_C -D__PTW32_STATIC_LIB -Wl,-Bstatic" OPT="$(DOPT)" DLL="" allpassed
 
 all-asm: $(ASM)
 	@ $(ECHO) "ALL TESTS COMPILED TO ASSEMBLER CODE"

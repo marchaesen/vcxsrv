@@ -114,8 +114,8 @@ main (int argc, char *argv[])
   int data_updates = 0;
   int seed = 1;
 
-  PTW32_STRUCT_TIMEB currSysTime1;
-  PTW32_STRUCT_TIMEB currSysTime2;
+   __PTW32_STRUCT_TIMEB currSysTime1;
+   __PTW32_STRUCT_TIMEB currSysTime2;
 
   /*
    * Initialize the shared data.
@@ -128,7 +128,7 @@ main (int argc, char *argv[])
       assert(pthread_rwlock_init (&data[data_count].lock, NULL) == 0);
     }
 
-  PTW32_FTIME(&currSysTime1);
+   __PTW32_FTIME(&currSysTime1);
 
   /*
    * Create THREADS threads to access shared data.
@@ -193,7 +193,7 @@ main (int argc, char *argv[])
   printf ("%d thread updates, %d data updates\n",
           thread_updates, data_updates);
 
-  PTW32_FTIME(&currSysTime2);
+   __PTW32_FTIME(&currSysTime2);
 
   printf( "\nstart: %ld/%d, stop: %ld/%d, duration:%ld\n",
           (long)currSysTime1.time,currSysTime1.millitm,

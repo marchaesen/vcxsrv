@@ -354,7 +354,7 @@ int InitWSA(void)
 
   if (!wsadata.wVersion)
   {
-    ptw32_processInitialize();
+    __ptw32_processInitialize();
     if (WSAStartup(0x0202, &wsadata))
       return -1;
   }

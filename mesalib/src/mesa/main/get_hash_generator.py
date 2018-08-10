@@ -117,8 +117,8 @@ def print_tables(tables):
 def merge_tables(tables):
    merged_tables = []
    for api, indices in sorted(tables.items()):
-      matching_table = filter(lambda mt:mt["indices"] == indices,
-                              merged_tables)
+      matching_table = list(filter(lambda mt:mt["indices"] == indices,
+                              merged_tables))
       if matching_table:
          matching_table[0]["apis"].append(api)
       else:

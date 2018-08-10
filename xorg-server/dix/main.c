@@ -143,7 +143,7 @@ dix_main(int argc, char *argv[], char *envp[])
     //_CrtSetDbgFlag(TmpFlag);
     #endif
 
-    ptw32_processInitialize();
+    __ptw32_processInitialize();
     display = "0";
 
     #ifdef WIN32

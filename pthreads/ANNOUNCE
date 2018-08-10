@@ -1,4 +1,4 @@
-PTHREADS4W RELEASE 2.10.0 (2016-09-18)
+PTHREADS4W RELEASE 3.0.0 (2017-01-01)
 --------------------------------------
 Web Site:	https://sourceforge.net/projects/pthreads4w/
 Repository:	https://sourceforge.net/p/pthreads4w/code
@@ -6,29 +6,44 @@ Releases:	https://sourceforge.net/projects/pthreads4w/files
 Maintainer: Ross Johnson <firstname dot lastname at loungebythelake dot net>
 
 
-We are pleased to announce the availability of a new release of
-Pthreads4w (a.k.a. Pthreads4w), an Open Source Software implementation
-of the Threads component of the SUSV3 Standard for Microsoft's
-Windows (x86 and x64). Some relevant functions from other sections
-of SUSV3 are also supported including semaphores and scheduling
-functions. See the Conformance section below for details.
+We are pleased to announce the availability of a new release of Pthreads4w
+(a.k.a. Pthreads-win32), an Open Source Software implementation of
+the Threads component of the SUSV3 Standard for Microsoft's Windows
+(x86 and x64). Some relevant functions from other sections of SUSV3 are
+also supported including semaphores and scheduling functions. See the
+Conformance section below for details.
 
 Some common non-portable functions are also implemented for
 additional compatibility, as are a few functions specific
 to pthreads4w for easier integration with Windows applications.
 
-Pthreads4w is free software, distributed under the GNU Lesser
-General Public License (LGPL).
+Pthreads4w is free software. With the exception of four files noted later,
+Version 3.0.0 is distributed under the Apache License version 2.0 (APLv2).
+The APLv2 is compatible with the GPLv3 and LGPLv3 licenses and therefore
+this code may continue to be legally included within GPLv3 and LGPLv3
+projects.
 
-For those who want to try the most recent changes, the SourceForge Git repository
-is the one to use. The Sourceware CVS repository is synchronised much less often
-and may be abandoned altogether.
+All version 1 and 2 releases will remain LGPL but version 2.11 will be
+released under v3 of that license so that any modifications to pthreads4w
+version 3 code that we backport to v2 will not pollute that code.
 
-Release 2.9.1 was probably the last to provide pre-built libraries. The supported
-compilers are now all available free for personal use. The MSVS version should
-build out of the box using nmake. The GCC versions now make use of GNU autoconf
-to generate a configure script which in turn creates a custom config.h for the
-environment you use: MinGW or MinGW64, etc. and the GNUmakefiles.
+The four files that will remain LGPL but change to v3 are files used to
+configure the GNU environment builds:
+
+	aclocal.m4
+	configure.ac
+	GNUmakefile.in
+	tests/GNUmakefile.in
+
+For those who want to try the most recent changes, the SourceForge Git
+repository is the one to use. The Sourceware CVS repository is synchronised
+much less often and may be abandoned altogether.
+
+Release 2.9.1 was probably the last to provide pre-built libraries. The
+supported compilers are now all available free for personal use. The MSVS
+version should build out of the box using nmake. The GCC versions now make
+use of GNU autoconf to generate a configure script which in turn creates a
+custom config.h for the environment you use: MinGW or MinGW64, etc.
 
 
 Acknowledgements
@@ -64,7 +79,7 @@ were extracted from it.
 There is also a separate CONTRIBUTORS file. This file and others are
 on the web site:
 
-	http://sourceware.org/Pthreads4w
+	https://sourceforge.net/p/pthreads4w/wiki/Contributors/
 
 As much as possible, the ChangeLog file acknowledges contributions to the
 code base in more detail.
@@ -301,13 +316,9 @@ The following functions are implemented:
 						PTHREAD_MUTEX_TIMED_NP)
       pthread_num_processors_np
       pthread_win32_getabstime_np
-      (The following four routines may be required when linking statically.
-       The process_* routines should not be needed for MSVC or GCC.)
+      (The following four routines should no longer be required.)
       pthread_win32_process_attach_np
       pthread_win32_process_detach_np
-      (The following routines should only be needed to manage implicit
-       POSIX handles i.e. when Win native threads call POSIX thread routines
-       (other than pthread_create))
       pthread_win32_thread_attach_np
       pthread_win32_thread_detach_np
 
@@ -409,8 +420,6 @@ Application Development Environments
 ------------------------------------
 
 See the README file for more information.
-      
-See the FAQ file in the source tree for additional information.
 
 
 Documentation
@@ -431,7 +440,6 @@ available:
        Pthreads Programming
        By Bradford Nichols, Dick Buttlar & Jacqueline Proulx Farrell
        O'Reilly (pub)
-
 
 Enjoy!
 

@@ -32,6 +32,7 @@ import os
 GLAPI = os.path.join(".", os.path.dirname(sys.argv[0]), "glapi/gen")
 sys.path.append(GLAPI)
 
+from operator import attrgetter
 import re
 from optparse import OptionParser
 import gl_XML
@@ -121,19 +122,18 @@ class ABIEntry(object):
     def __str__(self):
         return self.c_prototype()
 
-    def __cmp__(self, other):
+    def __lt__(self, other):
         # compare slot, alias, and then name
-        res = cmp(self.slot, other.slot)
-        if not res:
+        if self.slot == other.slot:
             if not self.alias:
-                res = -1
+                return True
             elif not other.alias:
-                res = 1
+                return False
 
-            if not res:
-                res = cmp(self.name, other.name)
+            return self.name < other.name
 
-        return res
+        return self.slot < other.slot
+
 
 def abi_parse_xml(xml):
     """Parse a GLAPI XML file for ABI entries."""
@@ -291,8 +291,7 @@ class ABIPrinter(object):
         self.entries = entries
 
         # sort entries by their names
-        self.entries_sorted_by_names = self.entries[:]
-        self.entries_sorted_by_names.sort(lambda x, y: cmp(x.name, y.name))
+        self.entries_sorted_by_names = sorted(self.entries, key=attrgetter('name'))
 
         self.indent = ' ' * 3
         self.noop_warn = 'noop_warn'
@@ -441,8 +440,7 @@ class ABIPrinter(object):
     def c_stub_string_pool(self):
         """Return the string pool for use by stubs."""
         # sort entries by their names
-        sorted_entries = self.entries[:]
-        sorted_entries.sort(lambda x, y: cmp(x.name, y.name))
+        sorted_entries = sorted(self.entries, key=attrgetter('name'))
 
         pool = []
         offsets = {}

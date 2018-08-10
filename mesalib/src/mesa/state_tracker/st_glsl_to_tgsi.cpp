@@ -194,6 +194,7 @@ public:
    int images_used;
    enum tgsi_texture_type image_targets[PIPE_MAX_SHADER_IMAGES];
    enum pipe_format image_formats[PIPE_MAX_SHADER_IMAGES];
+   bool image_wr[PIPE_MAX_SHADER_IMAGES];
    bool indirect_addr_consts;
    int wpos_transform_const;
 
@@ -3678,7 +3679,8 @@ glsl_to_tgsi_visitor::visit_shared_intrinsic(ir_call *ir)
 static void
 get_image_qualifiers(ir_dereference *ir, const glsl_type **type,
                      bool *memory_coherent, bool *memory_volatile,
-                     bool *memory_restrict, unsigned *image_format)
+                     bool *memory_restrict, bool *memory_read_only,
+                     unsigned *image_format)
 {
 
    switch (ir->ir_type) {
@@ -3694,6 +3696,8 @@ get_image_qualifiers(ir_dereference *ir, const glsl_type **type,
          struct_type->fields.structure[fild_idx].memory_volatile;
       *memory_restrict =
          struct_type->fields.structure[fild_idx].memory_restrict;
+      *memory_read_only =
+         struct_type->fields.structure[fild_idx].memory_read_only;
       *image_format =
          struct_type->fields.structure[fild_idx].image_format;
       break;
@@ -3703,7 +3707,7 @@ get_image_qualifiers(ir_dereference *ir, const glsl_type **type,
       ir_dereference_array *deref_arr = ir->as_dereference_array();
       get_image_qualifiers((ir_dereference *)deref_arr->array, type,
                            memory_coherent, memory_volatile, memory_restrict,
-                           image_format);
+                           memory_read_only, image_format);
       break;
    }
 
@@ -3714,6 +3718,7 @@ get_image_qualifiers(ir_dereference *ir, const glsl_type **type,
       *memory_coherent = var->data.memory_coherent;
       *memory_volatile = var->data.memory_volatile;
       *memory_restrict = var->data.memory_restrict;
+      *memory_read_only = var->data.memory_read_only;
       *image_format = var->data.image_format;
       break;
    }
@@ -3731,12 +3736,13 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
    ir_dereference *img = (ir_dereference *)param;
    const ir_variable *imgvar = img->variable_referenced();
    unsigned sampler_array_size = 1, sampler_base = 0;
-   bool memory_coherent = false, memory_volatile = false, memory_restrict = false;
+   bool memory_coherent = false, memory_volatile = false,
+        memory_restrict = false, memory_read_only = false;
    unsigned image_format = 0;
    const glsl_type *type = NULL;
 
    get_image_qualifiers(img, &type, &memory_coherent, &memory_volatile,
-                        &memory_restrict, &image_format);
+                        &memory_restrict, &memory_read_only, &image_format);
 
    st_src_reg reladdr;
    st_src_reg image(PROGRAM_IMAGE, 0, GLSL_TYPE_UINT);
@@ -3875,6 +3881,7 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
    inst->tex_target = type->sampler_index();
    inst->image_format = st_mesa_format_to_pipe_format(st_context(ctx),
          _mesa_get_shader_image_format(image_format));
+   inst->read_only = memory_read_only;
 
    if (memory_coherent)
       inst->buffer_access |= TGSI_MEMORY_COHERENT;
@@ -4675,6 +4682,7 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
                v->image_targets[idx] =
                   st_translate_texture_target(inst->tex_target, false);
                v->image_formats[idx] = inst->image_format;
+               v->image_wr[idx] = !inst->read_only;
             }
          }
       }
@@ -6770,7 +6778,8 @@ st_translate_program(
          t->images[i] = ureg_DECL_image(ureg, i,
                                         program->image_targets[i],
                                         program->image_formats[i],
-                                        true, false);
+                                        program->image_wr[i],
+                                        false);
       }
    }
 

@@ -53,7 +53,7 @@ def main():
 
     path = os.path.join(args.outdir, 'nir_intrinsics.h')
     with open(path, 'wb') as f:
-        f.write(Template(template).render(INTR_OPCODES=INTR_OPCODES))
+        f.write(Template(template, output_encoding='utf-8').render(INTR_OPCODES=INTR_OPCODES))
 
 if __name__ == '__main__':
     main()

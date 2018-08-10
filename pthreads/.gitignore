@@ -1,5 +1,6 @@
-pthreadVC2.inlined_static_stamp
-pthreadVC2d.inlined_static_stamp
+*.inlined_static_stamp
+*.inlined_static_stamp
+*.o
 *.obj
 *.dll.manifest
 *.dll

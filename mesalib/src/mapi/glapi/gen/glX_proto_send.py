@@ -26,7 +26,7 @@
 #    Ian Romanick <idr@us.ibm.com>
 #    Jeremy Kolb <jkolb@brandeis.edu>
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 import argparse
 
@@ -809,7 +809,7 @@ generic_%u_byte( GLint rop, const void * ptr )
                     # Dividing by the array size (1 for
                     # non-arrays) gives us this.
 
-                    s = p.size() / p.get_element_count()
+                    s = p.size() // p.get_element_count()
                     print("       %s __glXReadReply(dpy, %s, %s, %s);" % (return_str, s, p.name, aa))
                     got_reply = 1
 

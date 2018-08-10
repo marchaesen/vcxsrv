@@ -76,7 +76,7 @@ WL_DRM_XML = $(top_srcdir)/src/egl/wayland/wayland-drm/wayland-drm.xml
 
 wsi/wayland-drm-protocol.c : $(WL_DRM_XML)
 	$(MKDIR_GEN)
-	$(AM_V_GEN)$(WAYLAND_SCANNER) code $< $@
+	$(AM_V_GEN)$(WAYLAND_SCANNER) $(SCANNER_ARG) $< $@
 
 wsi/wayland-drm-client-protocol.h : $(WL_DRM_XML)
 	$(MKDIR_GEN)
@@ -86,7 +86,7 @@ WL_DMABUF_XML = $(WAYLAND_PROTOCOLS_DATADIR)/unstable/linux-dmabuf/linux-dmabuf-
 
 wsi/linux-dmabuf-unstable-v1-protocol.c : $(WL_DMABUF_XML)
 	$(MKDIR_GEN)
-	$(AM_V_GEN)$(WAYLAND_SCANNER) code $< $@
+	$(AM_V_GEN)$(WAYLAND_SCANNER) $(SCANNER_ARG) $< $@
 
 wsi/linux-dmabuf-unstable-v1-client-protocol.h : $(WL_DMABUF_XML)
 	$(MKDIR_GEN)

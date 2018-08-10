@@ -7,7 +7,7 @@ Name: gl
 Description: Mesa OpenGL library
 Requires.private: @GL_PC_REQ_PRIV@
 Version: @PACKAGE_VERSION@
-Libs: -L${libdir} -l@GL_LIB@
+Libs: -L${libdir} -l@GL_PKGCONF_LIB@
 Libs.private: @GL_PC_LIB_PRIV@
 Cflags: -I${includedir} @GL_PC_CFLAGS@
 glx_tls: @GLX_TLS@

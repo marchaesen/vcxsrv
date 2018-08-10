@@ -9,9 +9,9 @@
  *
  * --------------------------------------------------------------------------
  *
- *      Pthreads4w - POSIX Threads Library for Win32
- *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999-2018, Pthreads4w contributors
+ *      Pthreads4w - POSIX Threads for Windows
+ *      Copyright 1998 John E. Bossom
+ *      Copyright 1999-2018, Pthreads4w contributors
  *
  *      Homepage: https://sourceforge.net/projects/pthreads4w/
  *
@@ -19,22 +19,20 @@
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
+ *
  *      https://sourceforge.net/p/pthreads4w/wiki/Contributors/
  *
- * This file is part of Pthreads4w.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    Pthreads4w is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Pthreads4w is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with Pthreads4w.  If not, see <http://www.gnu.org/licenses/>. *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 #if !defined( SEMAPHORE_H )
 #define SEMAPHORE_H
@@ -54,7 +52,7 @@
 #define _POSIX_SEMAPHORES
 
 /* Internal macros, common to the public interfaces for various
- * Pthreads4w components, are defined in <_ptw32.h>; we must
+ * pthreads-win32 components, are defined in <_ptw32.h>; we must
  * include them here.
  */
 #include <_ptw32.h>
@@ -86,31 +84,31 @@ __PTW32_BEGIN_C_DECLS
 /* Function prototypes: some are implemented as stubs, which
  * always fail; (FIXME: identify them).
  */
-PTW32_DLLPORT int PTW32_CDECL sem_init (sem_t * sem,
+__PTW32_DLLPORT int  __PTW32_CDECL sem_init (sem_t * sem,
 					int pshared,
 					unsigned int value);
 
-PTW32_DLLPORT int PTW32_CDECL sem_destroy (sem_t * sem);
+__PTW32_DLLPORT int  __PTW32_CDECL sem_destroy (sem_t * sem);
 
-PTW32_DLLPORT int PTW32_CDECL sem_trywait (sem_t * sem);
+__PTW32_DLLPORT int  __PTW32_CDECL sem_trywait (sem_t * sem);
 
-PTW32_DLLPORT int PTW32_CDECL sem_wait (sem_t * sem);
+__PTW32_DLLPORT int  __PTW32_CDECL sem_wait (sem_t * sem);
 
-PTW32_DLLPORT int PTW32_CDECL sem_timedwait (sem_t * sem,
+__PTW32_DLLPORT int  __PTW32_CDECL sem_timedwait (sem_t * sem,
 					     const struct timespec * abstime);
 
-PTW32_DLLPORT int PTW32_CDECL sem_post (sem_t * sem);
+__PTW32_DLLPORT int  __PTW32_CDECL sem_post (sem_t * sem);
 
-PTW32_DLLPORT int PTW32_CDECL sem_post_multiple (sem_t * sem,
+__PTW32_DLLPORT int  __PTW32_CDECL sem_post_multiple (sem_t * sem,
 						 int count);
 
-PTW32_DLLPORT sem_t * PTW32_CDECL sem_open (const char *, int, ...);
+__PTW32_DLLPORT sem_t *  __PTW32_CDECL sem_open (const char *, int, ...);
 
-PTW32_DLLPORT int PTW32_CDECL sem_close (sem_t * sem);
+__PTW32_DLLPORT int  __PTW32_CDECL sem_close (sem_t * sem);
 
-PTW32_DLLPORT int PTW32_CDECL sem_unlink (const char * name);
+__PTW32_DLLPORT int  __PTW32_CDECL sem_unlink (const char * name);
 
-PTW32_DLLPORT int PTW32_CDECL sem_getvalue (sem_t * sem,
+__PTW32_DLLPORT int  __PTW32_CDECL sem_getvalue (sem_t * sem,
 					    int * sval);
 
 __PTW32_END_C_DECLS
