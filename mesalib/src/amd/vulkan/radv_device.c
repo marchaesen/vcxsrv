@@ -480,6 +480,9 @@ radv_handle_per_app_options(struct radv_instance *instance,
 			 */
 			instance->perftest_flags |= RADV_PERFTEST_SISCHED;
 		}
+	} else if (!strcmp(name, "DOOM_VFR")) {
+		/* Work around a Doom VFR game bug */
+		instance->debug_flags |= RADV_DEBUG_NO_DYNAMIC_BOUNDS;
 	}
 }
 

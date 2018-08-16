@@ -374,6 +374,12 @@ extern GLvoid GLAPIENTRY
 _mesa_GetProgramStageiv(GLuint program, GLenum shadertype,
                         GLenum pname, GLint *values);
 
+GLcharARB *
+_mesa_read_shader_source(const gl_shader_stage stage, const char *source);
+
+void
+_mesa_dump_shader_source(const gl_shader_stage stage, const char *source);
+
 #ifdef __cplusplus
 }
 #endif

@@ -128,23 +128,6 @@ private:
 
 } /* end of anonymous namespace */
 
-static void
-nir_remap_attributes(nir_shader *shader,
-                     const nir_shader_compiler_options *options)
-{
-   if (options->vs_inputs_dual_locations) {
-      nir_foreach_variable(var, &shader->inputs) {
-         var->data.location +=
-            _mesa_bitcount_64(shader->info.vs.double_inputs &
-                              BITFIELD64_MASK(var->data.location));
-      }
-   }
-
-   /* Once the remap is done, reset double_inputs_read, so later it will have
-    * which location/slots are doubles */
-   shader->info.vs.double_inputs = 0;
-}
-
 nir_shader *
 glsl_to_nir(const struct gl_shader_program *shader_prog,
             gl_shader_stage stage,

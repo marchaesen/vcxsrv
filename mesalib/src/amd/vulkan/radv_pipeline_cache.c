@@ -455,7 +455,7 @@ struct cache_header {
 	uint8_t  uuid[VK_UUID_SIZE];
 };
 
-void
+bool
 radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 			 const void *data, size_t size)
 {
@@ -463,18 +463,18 @@ radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 	struct cache_header header;
 
 	if (size < sizeof(header))
-		return;
+		return false;
 	memcpy(&header, data, sizeof(header));
 	if (header.header_size < sizeof(header))
-		return;
+		return false;
 	if (header.header_version != VK_PIPELINE_CACHE_HEADER_VERSION_ONE)
-		return;
+		return false;
 	if (header.vendor_id != ATI_VENDOR_ID)
-		return;
+		return false;
 	if (header.device_id != device->physical_device->rad_info.pci_id)
-		return;
+		return false;
 	if (memcmp(header.uuid, device->physical_device->cache_uuid, VK_UUID_SIZE) != 0)
-		return;
+		return false;
 
 	char *end = (void *) data + size;
 	char *p = (void *) data + header.header_size;
@@ -496,6 +496,8 @@ radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 		}
 		p += size;
 	}
+
+	return true;
 }
 
 VkResult radv_CreatePipelineCache(

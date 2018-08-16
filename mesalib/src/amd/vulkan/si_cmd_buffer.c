@@ -88,9 +88,7 @@ si_emit_compute(struct radv_physical_device *physical_device,
 	radeon_emit(cs, 0);
 	radeon_emit(cs, 0);
 
-	radeon_set_sh_reg_seq(cs, R_00B854_COMPUTE_RESOURCE_LIMITS,
-			      S_00B854_WAVES_PER_SH(0x3));
-	radeon_emit(cs, 0);
+	radeon_set_sh_reg_seq(cs, R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0, 2);
 	/* R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0 / SE1 */
 	radeon_emit(cs, S_00B858_SH0_CU_EN(0xffff) | S_00B858_SH1_CU_EN(0xffff));
 	radeon_emit(cs, S_00B85C_SH0_CU_EN(0xffff) | S_00B85C_SH1_CU_EN(0xffff));

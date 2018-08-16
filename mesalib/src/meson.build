@@ -42,7 +42,7 @@ libglsl_util = static_library(
 sha1_h = custom_target(
   'git_sha1.h',
   output : 'git_sha1.h',
-  command : [prog_python2, git_sha1_gen_py, '--output', '@OUTPUT@'],
+  command : [prog_python, git_sha1_gen_py, '--output', '@OUTPUT@'],
   build_always : true, # commit sha1 can change without having touched these files
 )
 

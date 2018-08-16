@@ -2468,7 +2468,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
        * types for SNORM formats. Also, conversion to SNORM formats is not
        * allowed by Table 3.2 on Page 110.
        */
-      if (_mesa_is_enum_format_snorm(internalFormat)) {
+      if (!_mesa_has_EXT_render_snorm(ctx) &&
+          _mesa_is_enum_format_snorm(internalFormat)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glCopyTexImage%dD(internalFormat=%s)", dimensions,
                      _mesa_enum_to_string(internalFormat));

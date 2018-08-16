@@ -365,6 +365,10 @@ nir_link_uniform(struct gl_context *ctx,
          uniform->remap_location = UNMAPPED_UNIFORM_LOC;
       }
 
+      uniform->hidden = state->current_var->data.how_declared == nir_var_hidden;
+      if (uniform->hidden)
+         state->num_hidden_uniforms++;
+
       /* @FIXME: the initialization of the following will be done as we
        * implement support for their specific features, like SSBO, atomics,
        * etc.
@@ -374,7 +378,6 @@ nir_link_uniform(struct gl_context *ctx,
       uniform->matrix_stride = -1;
       uniform->array_stride = -1;
       uniform->row_major = false;
-      uniform->hidden = false;
       uniform->builtin = false;
       uniform->is_shader_storage = false;
       uniform->atomic_buffer_index = -1;

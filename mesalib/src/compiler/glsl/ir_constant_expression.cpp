@@ -826,7 +826,7 @@ ir_dereference_array::constant_expression_value(void *mem_ctx,
          const unsigned component = idx->value.u[0];
 
          return new(mem_ctx) ir_constant(array, component);
-      } else {
+      } else if (array->type->is_array()) {
          const unsigned index = idx->value.u[0];
          return array->get_array_element(index)->clone(mem_ctx, NULL);
       }

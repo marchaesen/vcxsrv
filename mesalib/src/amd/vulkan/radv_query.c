@@ -511,12 +511,17 @@ build_pipeline_statistics_query_shader(struct radv_device *device) {
 	return b.shader;
 }
 
-VkResult radv_device_init_meta_query_state(struct radv_device *device)
+static VkResult radv_device_init_meta_query_state_internal(struct radv_device *device)
 {
 	VkResult result;
 	struct radv_shader_module occlusion_cs = { .nir = NULL };
 	struct radv_shader_module pipeline_statistics_cs = { .nir = NULL };
 
+	mtx_lock(&device->meta_state.mtx);
+	if (device->meta_state.query.pipeline_statistics_query_pipeline) {
+		mtx_unlock(&device->meta_state.mtx);
+		return VK_SUCCESS;
+	}
 	occlusion_cs.nir = build_occlusion_query_shader(device);
 	pipeline_statistics_cs.nir = build_pipeline_statistics_query_shader(device);
 
@@ -611,7 +616,16 @@ fail:
 		radv_device_finish_meta_query_state(device);
 	ralloc_free(occlusion_cs.nir);
 	ralloc_free(pipeline_statistics_cs.nir);
+	mtx_unlock(&device->meta_state.mtx);
 	return result;
+}
+
+VkResult radv_device_init_meta_query_state(struct radv_device *device, bool on_demand)
+{
+	if (on_demand)
+		return VK_SUCCESS;
+
+	return radv_device_init_meta_query_state_internal(device);
 }
 
 void radv_device_finish_meta_query_state(struct radv_device *device)
@@ -638,7 +652,7 @@ void radv_device_finish_meta_query_state(struct radv_device *device)
 }
 
 static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer,
-                              VkPipeline pipeline,
+                              VkPipeline *pipeline,
                               struct radeon_winsys_bo *src_bo,
                               struct radeon_winsys_bo *dst_bo,
                               uint64_t src_offset, uint64_t dst_offset,
@@ -648,6 +662,14 @@ static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_device *device = cmd_buffer->device;
 	struct radv_meta_saved_state saved_state;
+
+	if (!*pipeline) {
+		VkResult ret = radv_device_init_meta_query_state_internal(device);
+		if (ret != VK_SUCCESS) {
+			cmd_buffer->record_result = ret;
+			return;
+		}
+	}
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_COMPUTE_PIPELINE |
@@ -667,7 +689,7 @@ static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer,
 	};
 
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+			     VK_PIPELINE_BIND_POINT_COMPUTE, *pipeline);
 
 	radv_meta_push_descriptor_set(cmd_buffer,
 				      VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -974,7 +996,7 @@ void radv_CmdCopyQueryPoolResults(
 				radeon_emit(cs, 4); /* poll interval */
 			}
 		}
-		radv_query_shader(cmd_buffer, cmd_buffer->device->meta_state.query.occlusion_query_pipeline,
+		radv_query_shader(cmd_buffer, &cmd_buffer->device->meta_state.query.occlusion_query_pipeline,
 		                  pool->bo, dst_buffer->bo, firstQuery * pool->stride,
 		                  dst_buffer->offset + dstOffset,
 		                  get_max_db(cmd_buffer->device) * 16, stride,
@@ -993,7 +1015,7 @@ void radv_CmdCopyQueryPoolResults(
 				si_emit_wait_fence(cs, avail_va, 1, 0xffffffff);
 			}
 		}
-		radv_query_shader(cmd_buffer, cmd_buffer->device->meta_state.query.pipeline_statistics_query_pipeline,
+		radv_query_shader(cmd_buffer, &cmd_buffer->device->meta_state.query.pipeline_statistics_query_pipeline,
 		                  pool->bo, dst_buffer->bo, firstQuery * pool->stride,
 		                  dst_buffer->offset + dstOffset,
 		                  pipelinestat_block_size * 2, stride, queryCount, flags,

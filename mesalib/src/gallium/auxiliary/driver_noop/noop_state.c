@@ -247,6 +247,13 @@ static void noop_set_stream_output_targets(struct pipe_context *ctx,
 {
 }
 
+static void noop_set_window_rectangles(struct pipe_context *ctx,
+                                       boolean include,
+                                       unsigned num_rectangles,
+                                       const struct pipe_scissor_state *rects)
+{
+}
+
 void noop_init_state_functions(struct pipe_context *ctx);
 
 void noop_init_state_functions(struct pipe_context *ctx)
@@ -297,6 +304,7 @@ void noop_init_state_functions(struct pipe_context *ctx)
    ctx->set_stencil_ref = noop_set_stencil_ref;
    ctx->set_vertex_buffers = noop_set_vertex_buffers;
    ctx->set_viewport_states = noop_set_viewport_states;
+   ctx->set_window_rectangles = noop_set_window_rectangles;
    ctx->sampler_view_destroy = noop_sampler_view_destroy;
    ctx->surface_destroy = noop_surface_destroy;
    ctx->draw_vbo = noop_draw_vbo;

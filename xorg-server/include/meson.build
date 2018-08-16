@@ -45,17 +45,13 @@ if cc.sizeof('unsigned long') == 8
 endif
 
 conf_data.set('_GNU_SOURCE', '1')
-# XXX: NO_LOCAL_CLIENT_CRED
 
 # autoconf checks for /dev/xf86 here, but the test should be based on
 # the target, not the build system.  Could we get rid of this and just
 # ifdef for openbsd?
 conf_data.set('HAS_APERTURE_DRV', host_machine.system() == 'openbsd')
 
-# XXX: USE_ALPHA_PIO and other bsd bits
-# XXX: FALLBACK_INPUT_DRIVER
 # XXX: BUNDLE_ID_PREFIX
-# XXX: HAVE_LIBDISPATCH
 conf_data.set_quoted('OSNAME', 'Linux') # XXX
 conf_data.set('HAVE_INPUTTHREAD', '1') # XXX
 
@@ -76,7 +72,8 @@ elif cc.compiles('''
 endif
 
 conf_data.set('HAVE_LIBBSD', libbsd_dep.found())
-# XXX: HAVE_SYSTEMD_DAEMON
+# Note: this symbol is used by libXtrans.
+conf_data.set('HAVE_SYSTEMD_DAEMON', libsystemd_daemon_dep.found())
 conf_data.set('CONFIG_UDEV', build_udev)
 conf_data.set('CONFIG_UDEV_KMS', build_udev)
 conf_data.set('HAVE_DBUS', build_dbus)
@@ -176,11 +173,15 @@ if cc.has_header_symbol('sys/socket.h', 'SCM_RIGHTS')
   conf_data.set('XTRANS_SEND_FDS', '1')
 endif
 
+if not conf_data.get('HAVE_GETPEEREID') and not conf_data.get('HAVE_GETPEERUCRED')
+    if not cc.has_header_symbol('sys/socket.h', 'SO_PEERCRED')
+        conf_data.set('NO_LOCAL_CLIENT_CRED', 1)
+    endif
+endif
+
 conf_data.set('TCPCONN', '1')
 conf_data.set('UNIXCONN', '1')
 conf_data.set('IPv6', build_ipv6)
-
-conf_data.set('CLIENTIDS', '1') # XXX
 
 conf_data.set('BIGREQS', '1')
 conf_data.set('COMPOSITE', '1')
@@ -206,7 +207,7 @@ conf_data.set('XCSECURITY', build_xsecurity)
 conf_data.set('XDMCP', xdmcp_dep.found())
 conf_data.set('XF86BIGFONT', build_xf86bigfont)
 conf_data.set('XF86DRI', build_dri1)
-conf_data.set('XF86VIDMODE', build_xf86vidmode)
+conf_data.set('XF86VIDMODE', 1)
 conf_data.set('XFIXES', '1')
 conf_data.set('XFreeXDGA', build_dga)
 conf_data.set('XINERAMA', build_xinerama)
@@ -331,7 +332,6 @@ xorg_data.set_quoted('DEFAULT_XDG_DATA_HOME', '.local/share')
 xorg_data.set_quoted('DEFAULT_XDG_DATA_HOME_LOGDIR', 'xorg')
 xorg_data.set_quoted('DEFAULT_LOGDIR', log_dir)
 xorg_data.set_quoted('DEFAULT_LOGPREFIX', 'Xorg.')
-xorg_data.set_quoted('FALLBACK_INPUT_DRIVER', 'libinput')
 xorg_data.set_quoted('DEFAULT_MODULE_PATH', join_paths(get_option('prefix'), module_dir))
 xorg_data.set_quoted('DEFAULT_LIBRARY_PATH', join_paths(get_option('prefix'), get_option('libdir')))
 xorg_data.set_quoted('__XSERVERNAME__', 'Xorg')
@@ -344,15 +344,11 @@ if host_machine.system() == 'freebsd' or host_machine.system() == 'dragonflybsd'
     if host_machine.cpu_family() == 'x86' or host_machine.cpu_family() == 'x86_64'
         xorg_data.set('USE_DEV_IO', true)
     endif
-    # XXX: Add link to libio on alpha
 elif host_machine.system() == 'netbsd'
-    # XXX: USE_ALPHA_PIO
-    # XXX: Add link to libi386
     if host_machine.cpu_family() == 'x86' or host_machine.cpu_family() == 'x86_64'
         xorg_data.set('USE_I386_IOPL', true)
     endif
 elif host_machine.system() == 'openbsd'
-    # XXX: Add link to libi386, libamd64
     if host_machine.cpu_family() == 'x86'
         xorg_data.set('USE_I386_IOPL', true)
     endif

@@ -56,7 +56,8 @@ create3.pass: create2.pass
 delay1.pass: self1.pass create3.pass
 delay2.pass: delay1.pass
 detach1.pass: join0.pass
-equal1.pass: self1.pass create1.pass
+equal0.pass: self1.pass
+equal1.pass: equal0.pass create1.pass
 errno0.pass: sizes.pass
 errno1.pass: mutex3.pass
 exception1.pass: cancel4.pass

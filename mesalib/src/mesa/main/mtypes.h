@@ -4223,6 +4223,7 @@ struct gl_extensions
    GLboolean EXT_pixel_buffer_object;
    GLboolean EXT_point_parameters;
    GLboolean EXT_provoking_vertex;
+   GLboolean EXT_render_snorm;
    GLboolean EXT_semaphore;
    GLboolean EXT_semaphore_fd;
    GLboolean EXT_shader_integer_mix;

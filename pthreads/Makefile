@@ -203,6 +203,7 @@ clean:
 	if exist *.obj del *.obj
 	if exist *.def del *.def
 	if exist *.ilk del *.ilk
+	if exist *.idb del *.idb
 	if exist *.pdb del *.pdb
 	if exist *.exp del *.exp
 	if exist *.map del *.map

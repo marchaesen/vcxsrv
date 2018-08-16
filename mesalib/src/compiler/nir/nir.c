@@ -32,6 +32,9 @@
 #include <assert.h>
 #include <math.h>
 
+#include "main/imports.h" /* _mesa_bitcount_64 */
+#include "main/menums.h" /* BITFIELD64_MASK */
+
 nir_shader *
 nir_shader_create(void *mem_ctx,
                   gl_shader_stage stage,
@@ -162,6 +165,7 @@ nir_variable_create(nir_shader *shader, nir_variable_mode mode,
    var->name = ralloc_strdup(var, name);
    var->type = type;
    var->data.mode = mode;
+   var->data.how_declared = nir_var_declared_normally;
 
    if ((mode == nir_var_shader_in &&
         shader->info.stage != MESA_SHADER_VERTEX) ||
@@ -1845,4 +1849,25 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
    default:
       unreachable("intrinsic doesn't produce a system value");
    }
+}
+
+/* OpenGL utility method that remaps the location attributes if they are
+ * doubles. Not needed for vulkan due the differences on the input location
+ * count for doubles on vulkan vs OpenGL
+ */
+void
+nir_remap_attributes(nir_shader *shader,
+                     const nir_shader_compiler_options *options)
+{
+   if (options->vs_inputs_dual_locations) {
+      nir_foreach_variable(var, &shader->inputs) {
+         var->data.location +=
+            _mesa_bitcount_64(shader->info.vs.double_inputs &
+                              BITFIELD64_MASK(var->data.location));
+      }
+   }
+
+   /* Once the remap is done, reset double_inputs_read, so later it will have
+    * which location/slots are doubles */
+   shader->info.vs.double_inputs = 0;
 }

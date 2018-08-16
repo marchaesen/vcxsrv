@@ -1404,7 +1404,10 @@ AC_ARG_WITH(xkb-bin-directory,
 				[XKB_BIN_DIRECTORY="auto"])
 
 if test "x$XKB_BIN_DIRECTORY" = "xauto"; then
-    XKB_BIN_DIRECTORY=$(pkg-config --variable bindir xkbcomp || echo ${bindir})
+    XKB_BIN_DIRECTORY=$(pkg-config --variable bindir xkbcomp)
+    if test -z $XKB_BIN_DIRECTORY; then
+        XKB_BIN_DIRECTORY="$bindir"
+    fi
 fi
 
 AC_DEFINE_DIR(XKB_BIN_DIRECTORY, XKB_BIN_DIRECTORY, [Path to XKB bin dir])

@@ -61,7 +61,7 @@ get_transform(lower_wpos_ytransform_state *state)
       var->state_slots[0].swizzle = SWIZZLE_XYZW;
       memcpy(var->state_slots[0].tokens, state->options->state_tokens,
              sizeof(var->state_slots[0].tokens));
-
+      var->data.how_declared = nir_var_hidden;
       state->transform = var;
    }
    return nir_load_var(&state->b, state->transform);

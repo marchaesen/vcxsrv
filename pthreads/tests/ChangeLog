@@ -1,3 +1,7 @@
+2018-08-10  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* Makefile (clean): remove *.idb files.
+
 2018-08-07  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* GNUmakefile.in (DLL_VER): rename as PTW32_VER.
@@ -6,6 +10,10 @@
 	* Makefile: Variable renaming: e.g. VCLIB to VCIMP for DLL import
 	library pthreadVC2.lib and VCLIB now holds static library name
 	libpthreadVC2.lib, and similar for the other cleanup method versions.
+	* equal0.c: New test. If this test fails, the library's process init
+	routines have likely not been invoked or failed.
+	* common.mk: Add new test.
+	* runorder.mk: Likewise.
 
 2018-07-22  Mark Pizzolato <markpizzolato dash pthreads dash win32 at subscriptions dot pizzolato dot net>
 

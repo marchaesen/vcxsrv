@@ -40,7 +40,7 @@ foreach _v : v3d_versions
     _name,
     input : ['gen_pack_header.py', f],
     output : _name,
-    command : [prog_python2, '@INPUT@', '@0@'.format(v)],
+    command : [prog_python, '@INPUT@', '@0@'.format(v)],
     capture : true,
   )
 endforeach
@@ -49,7 +49,7 @@ v3d_xml_h = custom_target(
   'v3d_xml.h',
   input : ['../../intel/genxml/gen_zipped_file.py', v3d_xml_files],
   output : 'v3d_xml.h',
-  command : [prog_python2, '@INPUT@'],
+  command : [prog_python, '@INPUT@'],
   capture : true,
 )
 

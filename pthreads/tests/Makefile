@@ -53,7 +53,7 @@ VCXFLAGS	= /EHs /TP /D__PTW32_CLEANUP_C
 CPLIB	= $(VCLIB)
 CPDLL	= $(VCDLL)
 
-CFLAGS				= $(OPTIM) /W3 /Z7
+CFLAGS				= $(OPTIM) /W3
 CFLAGS_DEBUG		= $(OPTIM) /W3 /Z7
 LFLAGS				= /INCREMENTAL:NO
 INCLUDES			= -I.
@@ -197,6 +197,7 @@ clean:
 	if exist *.e $(RM) *.e
 	if exist *.i $(RM) *.i
 	if exist *.obj $(RM) *.obj
+	if exist *.idb $(RM) *.idb
 	if exist *.pdb $(RM) *.pdb
 	if exist *.o $(RM) *.o
 	if exist *.asm $(RM) *.asm

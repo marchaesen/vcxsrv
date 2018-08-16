@@ -697,10 +697,10 @@ if with_platform_haiku
   pre_args += '-DHAVE_HAIKU_PLATFORM'
 endif
 
-prog_python2 = find_program('python2')
-has_mako = run_command(prog_python2, '-c', 'import mako')
+prog_python = find_program('python3')
+has_mako = run_command(prog_python, '-c', 'import mako')
 if has_mako.returncode() != 0
-  error('Python (2.x) mako module required to build mesa.')
+  error('Python (3.x) mako module required to build mesa.')
 endif
 
 if cc.get_id() == 'gcc' and cc.version().version_compare('< 4.4.6')

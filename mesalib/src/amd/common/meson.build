@@ -22,7 +22,7 @@ sid_tables_h = custom_target(
   'sid_tables_h',
   input : ['sid_tables.py', 'sid.h', 'gfx9d.h'],
   output : 'sid_tables.h',
-  command : [prog_python2, '@INPUT@'],
+  command : [prog_python, '@INPUT@'],
   capture : true,
 )
 

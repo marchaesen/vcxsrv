@@ -301,7 +301,11 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	info->vce_harvest_config = amdinfo->vce_harvest_config;
 
 	switch (info->pci_id) {
-#define CHIPSET(pci_id, cfamily) case pci_id: info->family = CHIP_##cfamily; break;
+#define CHIPSET(pci_id, cfamily) \
+	case pci_id: \
+		info->family = CHIP_##cfamily; \
+		info->name = #cfamily; \
+		break;
 #include "pci_ids/radeonsi_pci_ids.h"
 #undef CHIPSET
 

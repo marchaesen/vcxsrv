@@ -601,6 +601,12 @@ typedef enum
     */
    SYSTEM_VALUE_VERTEX_CNT,
 
+   /**
+    * Driver internal varying-coord, used for varying-fetch instructions.
+    * Not externally visible.
+    */
+   SYSTEM_VALUE_VARYING_COORD,
+
    SYSTEM_VALUE_MAX             /**< Number of values */
 } gl_system_value;
 

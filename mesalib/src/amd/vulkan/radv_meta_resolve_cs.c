@@ -212,6 +212,12 @@ create_resolve_pipeline(struct radv_device *device,
 	VkResult result;
 	struct radv_shader_module cs = { .nir = NULL };
 
+	mtx_lock(&device->meta_state.mtx);
+	if (*pipeline) {
+		mtx_unlock(&device->meta_state.mtx);
+		return VK_SUCCESS;
+	}
+
 	cs.nir = build_resolve_compute_shader(device, is_integer, is_srgb, samples);
 
 	/* compute shader */
@@ -239,14 +245,16 @@ create_resolve_pipeline(struct radv_device *device,
 		goto fail;
 
 	ralloc_free(cs.nir);
+	mtx_unlock(&device->meta_state.mtx);
 	return VK_SUCCESS;
 fail:
 	ralloc_free(cs.nir);
+	mtx_unlock(&device->meta_state.mtx);
 	return result;
 }
 
 VkResult
-radv_device_init_meta_resolve_compute_state(struct radv_device *device)
+radv_device_init_meta_resolve_compute_state(struct radv_device *device, bool on_demand)
 {
 	struct radv_meta_state *state = &device->meta_state;
 	VkResult res;
@@ -254,6 +262,9 @@ radv_device_init_meta_resolve_compute_state(struct radv_device *device)
 	res = create_layout(device);
 	if (res != VK_SUCCESS)
 		goto fail;
+
+	if (on_demand)
+		return VK_SUCCESS;
 
 	for (uint32_t i = 0; i < MAX_SAMPLES_LOG2; ++i) {
 		uint32_t samples = 1 << i;
@@ -353,16 +364,27 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 			      }
 				      });
 
-	VkPipeline pipeline;
+	VkPipeline *pipeline;
 	if (vk_format_is_int(src_iview->image->vk_format))
-		pipeline = device->meta_state.resolve_compute.rc[samples_log2].i_pipeline;
+		pipeline = &device->meta_state.resolve_compute.rc[samples_log2].i_pipeline;
 	else if (vk_format_is_srgb(src_iview->image->vk_format))
-		pipeline = device->meta_state.resolve_compute.rc[samples_log2].srgb_pipeline;
+		pipeline = &device->meta_state.resolve_compute.rc[samples_log2].srgb_pipeline;
 	else
-		pipeline = device->meta_state.resolve_compute.rc[samples_log2].pipeline;
+		pipeline = &device->meta_state.resolve_compute.rc[samples_log2].pipeline;
+
+	if (!*pipeline) {
+		VkResult ret = create_resolve_pipeline(device, samples,
+		                                       vk_format_is_int(src_iview->image->vk_format),
+		                                       vk_format_is_srgb(src_iview->image->vk_format),
+		                                       pipeline);
+		if (ret != VK_SUCCESS) {
+			cmd_buffer->record_result = ret;
+			return;
+		}
+	}
 
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
-			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+			     VK_PIPELINE_BIND_POINT_COMPUTE, *pipeline);
 
 	unsigned push_constants[4] = {
 		src_offset->x,

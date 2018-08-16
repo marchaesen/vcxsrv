@@ -72,7 +72,13 @@ class Channel:
         return s
 
     def __eq__(self, other):
+        if other is None:
+            return False
+
         return self.type == other.type and self.norm == other.norm and self.pure == other.pure and self.size == other.size
+
+    def __ne__(self, other):
+        return not self == other
 
     def max(self):
         '''Maximum representable number.'''

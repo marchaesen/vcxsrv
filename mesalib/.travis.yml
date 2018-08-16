@@ -493,18 +493,23 @@ before_install:
     fi
 
 install:
-  - pip2 install --user mako
-
   # Install a more modern meson from pip, since the version in the
   # ubuntu repos is often quite old. Avoid >=0.45.0 as it needs python
   # 3.5+
   - if test "x$BUILD" = xmeson; then
       pip3 install --user "meson<0.45.0";
+      pip3 install --user mako;
+    fi
+
+  # Install autotools build dependencies
+  - if test "x$BUILD" = xmake; then
+      pip2 install --user mako;
     fi
 
   # Install a more modern scons from pip.
   - if test "x$BUILD" = xscons; then
       pip2 install --user "scons>=2.4";
+      pip2 install --user mako;
     fi
 
   # Since libdrm gets updated in configure.ac regularly, try to pick up the
