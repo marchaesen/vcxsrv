@@ -1318,7 +1318,7 @@ void st_init_extensions(struct pipe_screen *screen,
        screen->is_format_supported(screen, PIPE_FORMAT_R8G8B8A8_UNORM,
                                    PIPE_TEXTURE_2D, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW) &&
-       screen->is_format_supported(screen, PIPE_FORMAT_B8G8R8A8_SRGB,
+       screen->is_format_supported(screen, PIPE_FORMAT_R8G8B8A8_SRGB,
                                    PIPE_TEXTURE_2D, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW) &&
        screen->is_format_supported(screen, PIPE_FORMAT_R16_UNORM,

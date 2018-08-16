@@ -17,6 +17,18 @@ srcs = [
     '../../mi/miinitext.c',
 ]
 
+xquartz_c_args = [
+    '-DXFree86Server',
+    # XXXX: BUILD_DATE
+    '-DXSERVER_VERSION="' + meson_project.version() + '"',
+    '-DINXQUARTZ',
+    '-DUSE_NEW_CLUT',
+]
+
+if cc.has_function('dispatch_async')
+    xquartz_c_args += '-DHAVE_LIBDISPATCH'
+endif
+
 executable(
     'Xquartz',
     srcs,
@@ -29,12 +41,6 @@ executable(
         libxserver_glx,
         libxserver_pseudoramix,
     ],
-    c_args: [
-        '-DXFree86Server',
-        # XXXX: BUILD_DATE
-        '-DXSERVER_VERSION="' + meson_project.version() + '"',
-        '-DINXQUARTZ',
-        '-DUSE_NEW_CLUT',
-    ],
+    c_args: xquartz_c_args,
     install: true,
 )

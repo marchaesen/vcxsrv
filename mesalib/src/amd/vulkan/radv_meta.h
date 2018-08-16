@@ -58,34 +58,34 @@ struct radv_meta_saved_state {
 	VkRect2D render_area;
 };
 
-VkResult radv_device_init_meta_clear_state(struct radv_device *device);
+VkResult radv_device_init_meta_clear_state(struct radv_device *device, bool on_demand);
 void radv_device_finish_meta_clear_state(struct radv_device *device);
 
-VkResult radv_device_init_meta_resolve_state(struct radv_device *device);
+VkResult radv_device_init_meta_resolve_state(struct radv_device *device, bool on_demand);
 void radv_device_finish_meta_resolve_state(struct radv_device *device);
 
-VkResult radv_device_init_meta_depth_decomp_state(struct radv_device *device);
+VkResult radv_device_init_meta_depth_decomp_state(struct radv_device *device, bool on_demand);
 void radv_device_finish_meta_depth_decomp_state(struct radv_device *device);
 
-VkResult radv_device_init_meta_fast_clear_flush_state(struct radv_device *device);
+VkResult radv_device_init_meta_fast_clear_flush_state(struct radv_device *device, bool on_demand);
 void radv_device_finish_meta_fast_clear_flush_state(struct radv_device *device);
 
-VkResult radv_device_init_meta_blit_state(struct radv_device *device);
+VkResult radv_device_init_meta_blit_state(struct radv_device *device, bool on_demand);
 void radv_device_finish_meta_blit_state(struct radv_device *device);
 
-VkResult radv_device_init_meta_blit2d_state(struct radv_device *device);
+VkResult radv_device_init_meta_blit2d_state(struct radv_device *device, bool on_demand);
 void radv_device_finish_meta_blit2d_state(struct radv_device *device);
 
 VkResult radv_device_init_meta_buffer_state(struct radv_device *device);
 void radv_device_finish_meta_buffer_state(struct radv_device *device);
 
-VkResult radv_device_init_meta_query_state(struct radv_device *device);
+VkResult radv_device_init_meta_query_state(struct radv_device *device, bool on_demand);
 void radv_device_finish_meta_query_state(struct radv_device *device);
 
-VkResult radv_device_init_meta_resolve_compute_state(struct radv_device *device);
+VkResult radv_device_init_meta_resolve_compute_state(struct radv_device *device, bool on_demand);
 void radv_device_finish_meta_resolve_compute_state(struct radv_device *device);
 
-VkResult radv_device_init_meta_resolve_fragment_state(struct radv_device *device);
+VkResult radv_device_init_meta_resolve_fragment_state(struct radv_device *device, bool on_demand);
 void radv_device_finish_meta_resolve_fragment_state(struct radv_device *device);
 
 void radv_meta_save(struct radv_meta_saved_state *saved_state,

@@ -66,6 +66,49 @@
 
 #define MAX_GLSL_TEXTURE_OFFSET 4
 
+#ifndef NDEBUG
+#include "util/u_atomic.h"
+#include "util/simple_mtx.h"
+#include <fstream>
+#include <ios>
+
+/* Prepare to make it possible to specify log file */
+static std::ofstream stats_log;
+
+/* Helper function to check whether we want to write some statistics
+ * of the shader conversion.
+ */
+
+static simple_mtx_t print_stats_mutex = _SIMPLE_MTX_INITIALIZER_NP;
+
+static inline bool print_stats_enabled ()
+{
+   static int stats_enabled = 0;
+
+   if (!stats_enabled) {
+      simple_mtx_lock(&print_stats_mutex);
+      if (!stats_enabled) {
+	 const char *stats_filename = getenv("GLSL_TO_TGSI_PRINT_STATS");
+	 if (stats_filename) {
+	    bool write_header = std::ifstream(stats_filename).fail();
+	    stats_log.open(stats_filename, std::ios_base::out | std::ios_base::app);
+	    stats_enabled = stats_log.good() ? 1 : -1;
+	    if (write_header)
+	       stats_log << "arrays,temps,temps in arrays,total,instructions\n";
+	 } else {
+	    stats_enabled = -1;
+	 }
+      }
+      simple_mtx_unlock(&print_stats_mutex);
+   }
+   return stats_enabled > 0;
+}
+#define PRINT_STATS(X) if (print_stats_enabled()) do { X; } while (false);
+#else
+#define PRINT_STATS(X)
+#endif
+
+
 static unsigned is_precise(const ir_variable *ir)
 {
    if (!ir)
@@ -340,6 +383,7 @@ public:
    void copy_propagate(void);
    int eliminate_dead_code(void);
 
+   void split_arrays(void);
    void merge_two_dsts(void);
    void merge_registers(void);
    void renumber_registers(void);
@@ -347,6 +391,8 @@ public:
    void emit_block_mov(ir_assignment *ir, const struct glsl_type *type,
                        st_dst_reg *l, st_src_reg *r,
                        st_src_reg *cond, bool cond_swap);
+
+   void print_stats();
 
    void *mem_ctx;
 };
@@ -5438,6 +5484,107 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
    }
 }
 
+template <typename st_reg>
+void test_indirect_access(const st_reg& reg, bool *has_indirect_access)
+{
+   if (reg.file == PROGRAM_ARRAY) {
+      if (reg.reladdr || reg.reladdr2 || reg.has_index2) {
+	 has_indirect_access[reg.array_id] = true;
+	 if (reg.reladdr)
+	    test_indirect_access(*reg.reladdr, has_indirect_access);
+	 if (reg.reladdr2)
+	    test_indirect_access(*reg.reladdr2, has_indirect_access);
+      }
+   }
+}
+
+template <typename st_reg>
+void remap_array(st_reg& reg, const int *array_remap_info,
+		 const bool *has_indirect_access)
+{
+   if (reg.file == PROGRAM_ARRAY) {
+      if (!has_indirect_access[reg.array_id]) {
+	 reg.file = PROGRAM_TEMPORARY;
+	 reg.index = reg.index + array_remap_info[reg.array_id];
+	 reg.array_id = 0;
+      } else {
+	 reg.array_id = array_remap_info[reg.array_id];
+      }
+
+      if (reg.reladdr)
+	 remap_array(*reg.reladdr, array_remap_info, has_indirect_access);
+
+      if (reg.reladdr2)
+	 remap_array(*reg.reladdr2, array_remap_info, has_indirect_access);
+   }
+}
+
+/* One-dimensional arrays whose elements are only accessed directly are
+ * replaced by an according set of temporary registers that then can become
+ * subject to further optimization steps like copy propagation and
+ * register merging.
+ */
+void
+glsl_to_tgsi_visitor::split_arrays(void)
+{
+   if (!next_array)
+      return;
+
+   bool *has_indirect_access = rzalloc_array(mem_ctx, bool, next_array + 1);
+
+   foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
+      for (unsigned j = 0; j < num_inst_src_regs(inst); j++)
+	 test_indirect_access(inst->src[j], has_indirect_access);
+
+      for (unsigned j = 0; j < inst->tex_offset_num_offset; j++)
+	 test_indirect_access(inst->tex_offsets[j], has_indirect_access);
+
+      for (unsigned j = 0; j < num_inst_dst_regs(inst); j++)
+	 test_indirect_access(inst->dst[j], has_indirect_access);
+
+      test_indirect_access(inst->resource, has_indirect_access);
+   }
+
+   unsigned array_offset = 0;
+   unsigned n_remaining_arrays = 0;
+
+   /* Double use: For arrays that get split this value will contain
+    * the base index of the temporary registers this array is replaced
+    * with. For arrays that remain it contains the new array ID.
+    */
+   int *array_remap_info = rzalloc_array(has_indirect_access, int,
+					 next_array + 1);
+
+   for (unsigned i = 1; i <= next_array; ++i) {
+      if (!has_indirect_access[i]) {
+	 array_remap_info[i] = this->next_temp + array_offset;
+	 array_offset += array_sizes[i - 1];
+      } else {
+	 array_sizes[n_remaining_arrays] = array_sizes[i-1];
+	 array_remap_info[i] = ++n_remaining_arrays;
+      }
+   }
+
+   if (next_array !=  n_remaining_arrays) {
+      foreach_in_list(glsl_to_tgsi_instruction, inst, &this->instructions) {
+	 for (unsigned j = 0; j < num_inst_src_regs(inst); j++)
+	    remap_array(inst->src[j], array_remap_info, has_indirect_access);
+
+	 for (unsigned j = 0; j < inst->tex_offset_num_offset; j++)
+	    remap_array(inst->tex_offsets[j], array_remap_info, has_indirect_access);
+
+	 for (unsigned j = 0; j < num_inst_dst_regs(inst); j++) {
+	    remap_array(inst->dst[j], array_remap_info, has_indirect_access);
+	 }
+	 remap_array(inst->resource, array_remap_info, has_indirect_access);
+      }
+   }
+
+   ralloc_free(has_indirect_access);
+   this->next_temp += array_offset;
+   next_array = n_remaining_arrays;
+}
+
 /* Merges temporary registers together where possible to reduce the number of
  * registers needed to run a program.
  *
@@ -5446,19 +5593,34 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
 void
 glsl_to_tgsi_visitor::merge_registers(void)
 {
-   struct lifetime *lifetimes =
-         rzalloc_array(mem_ctx, struct lifetime, this->next_temp);
+   struct array_live_range *arr_live_ranges = NULL;
 
-   if (get_temp_registers_required_lifetimes(mem_ctx, &this->instructions,
-                                             this->next_temp, lifetimes)) {
-      struct rename_reg_pair *renames =
-            rzalloc_array(mem_ctx, struct rename_reg_pair, this->next_temp);
-      get_temp_registers_remapping(mem_ctx, this->next_temp, lifetimes, renames);
-      rename_temp_registers(renames);
-      ralloc_free(renames);
+   struct register_live_range *reg_live_ranges =
+	 rzalloc_array(mem_ctx, struct register_live_range, this->next_temp);
+
+   if (this->next_array > 0) {
+      arr_live_ranges = new array_live_range[this->next_array];
+      for (unsigned i = 0; i < this->next_array; ++i)
+         arr_live_ranges[i] = array_live_range(i+1, this->array_sizes[i]);
    }
 
-   ralloc_free(lifetimes);
+
+   if (get_temp_registers_required_live_ranges(reg_live_ranges, &this->instructions,
+					       this->next_temp, reg_live_ranges,
+					       this->next_array, arr_live_ranges)) {
+      struct rename_reg_pair *renames =
+	    rzalloc_array(reg_live_ranges, struct rename_reg_pair, this->next_temp);
+      get_temp_registers_remapping(reg_live_ranges, this->next_temp,
+				   reg_live_ranges, renames);
+      rename_temp_registers(renames);
+
+      this->next_array =  merge_arrays(this->next_array, this->array_sizes,
+				       &this->instructions, arr_live_ranges);
+
+      if (arr_live_ranges)
+	 delete[] arr_live_ranges;
+   }
+   ralloc_free(reg_live_ranges);
 }
 
 /* Reassign indices to temporary registers by reusing unused indices created
@@ -5491,6 +5653,27 @@ glsl_to_tgsi_visitor::renumber_registers(void)
    ralloc_free(first_writes);
 }
 
+#ifndef NDEBUG
+void glsl_to_tgsi_visitor::print_stats()
+{
+   int narray_registers = 0;
+   for (unsigned i = 0; i < this->next_array; ++i)
+      narray_registers += this->array_sizes[i];
+
+   int ninstructions = 0;
+   foreach_in_list(glsl_to_tgsi_instruction, inst, &instructions) {
+      ++ninstructions;
+   }
+
+   simple_mtx_lock(&print_stats_mutex);
+   stats_log << next_array << ", "
+	     << next_temp << ", "
+	     << narray_registers << ", "
+	     << next_temp + narray_registers << ", "
+	     << ninstructions << "\n";
+   simple_mtx_unlock(&print_stats_mutex);
+}
+#endif
 /* ------------------------- TGSI conversion stuff -------------------------- */
 
 /**
@@ -5609,6 +5792,7 @@ _mesa_sysval_to_semantic(unsigned sysval)
    case SYSTEM_VALUE_LOCAL_INVOCATION_INDEX:
    case SYSTEM_VALUE_GLOBAL_INVOCATION_ID:
    case SYSTEM_VALUE_VERTEX_CNT:
+   case SYSTEM_VALUE_VARYING_COORD:
    default:
       assert(!"Unexpected SYSTEM_VALUE_ enum");
       return TGSI_SEMANTIC_COUNT;
@@ -6915,8 +7099,17 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    while (v->eliminate_dead_code());
 
    v->merge_two_dsts();
-   if (!skip_merge_registers)
+
+   if (!skip_merge_registers) {
+      v->split_arrays();
+      v->copy_propagate();
+      while (v->eliminate_dead_code());
+
       v->merge_registers();
+      v->copy_propagate();
+      while (v->eliminate_dead_code());
+   }
+
    v->renumber_registers();
 
    /* Write the END instruction. */
@@ -7003,6 +7196,8 @@ get_mesa_program_tgsi(struct gl_context *ctx,
       assert(!"should not be reached");
       return NULL;
    }
+
+   PRINT_STATS(v->print_stats());
 
    return prog;
 }

@@ -410,6 +410,17 @@ static void dd_context_set_tess_state(struct pipe_context *_pipe,
    pipe->set_tess_state(pipe, default_outer_level, default_inner_level);
 }
 
+static void dd_context_set_window_rectangles(struct pipe_context *_pipe,
+                                             boolean include,
+                                             unsigned num_rectangles,
+                                             const struct pipe_scissor_state *rects)
+{
+   struct dd_context *dctx = dd_context(_pipe);
+   struct pipe_context *pipe = dctx->pipe;
+
+   pipe->set_window_rectangles(pipe, include, num_rectangles, rects);
+}
+
 
 /********************************************************************
  * views
@@ -824,6 +835,7 @@ dd_context_create(struct dd_screen *dscreen, struct pipe_context *pipe)
    CTX_INIT(set_shader_buffers);
    CTX_INIT(set_shader_images);
    CTX_INIT(set_vertex_buffers);
+   CTX_INIT(set_window_rectangles);
    CTX_INIT(create_stream_output_target);
    CTX_INIT(stream_output_target_destroy);
    CTX_INIT(set_stream_output_targets);

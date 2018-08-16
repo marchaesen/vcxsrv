@@ -504,7 +504,7 @@ u_indices_gen_c = custom_target(
   'u_indices_gen.c',
   input : 'indices/u_indices_gen.py',
   output : 'u_indices_gen.c',
-  command : [prog_python2, '@INPUT@'],
+  command : [prog_python, '@INPUT@'],
   capture : true,
 )
 
@@ -512,7 +512,7 @@ u_unfilled_gen_c = custom_target(
   'u_unfilled_gen.c',
   input : 'indices/u_unfilled_gen.py',
   output : 'u_unfilled_gen.c',
-  command : [prog_python2, '@INPUT@'],
+  command : [prog_python, '@INPUT@'],
   capture : true,
 )
 
@@ -520,7 +520,7 @@ u_format_table_c = custom_target(
   'u_format_table.c',
   input : ['util/u_format_table.py', 'util/u_format.csv'],
   output : 'u_format_table.c',
-  command : [prog_python2, '@INPUT@'],
+  command : [prog_python, '@INPUT@'],
   depend_files : files('util/u_format_pack.py', 'util/u_format_parse.py'),
   capture : true,
 )

@@ -5282,6 +5282,22 @@
 #define   S_02820C_CLIP_RULE(x)                                       (((unsigned)(x) & 0xFFFF) << 0)
 #define   G_02820C_CLIP_RULE(x)                                       (((x) >> 0) & 0xFFFF)
 #define   C_02820C_CLIP_RULE                                          0xFFFF0000
+#define     V_02820C_OUT                                            0x0001
+#define     V_02820C_IN_0                                           0x0002
+#define     V_02820C_IN_1                                           0x0004
+#define     V_02820C_IN_10                                          0x0008
+#define     V_02820C_IN_2                                           0x0010
+#define     V_02820C_IN_20                                          0x0020
+#define     V_02820C_IN_21                                          0x0040
+#define     V_02820C_IN_210                                         0x0080
+#define     V_02820C_IN_3                                           0x0100
+#define     V_02820C_IN_30                                          0x0200
+#define     V_02820C_IN_31                                          0x0400
+#define     V_02820C_IN_310                                         0x0800
+#define     V_02820C_IN_32                                          0x1000
+#define     V_02820C_IN_320                                         0x2000
+#define     V_02820C_IN_321                                         0x4000
+#define     V_02820C_IN_3210                                        0x8000
 #define R_028210_PA_SC_CLIPRECT_0_TL                                    0x028210
 #define   S_028210_TL_X(x)                                            (((unsigned)(x) & 0x7FFF) << 0)
 #define   G_028210_TL_X(x)                                            (((x) >> 0) & 0x7FFF)

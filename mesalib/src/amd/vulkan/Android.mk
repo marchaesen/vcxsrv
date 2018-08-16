@@ -62,6 +62,7 @@ LOCAL_SRC_FILES := \
 	$(VULKAN_FILES)
 
 LOCAL_CFLAGS += -DFORCE_BUILD_AMDGPU   # instructs LLVM to declare LLVMInitializeAMDGPU* functions
+LOCAL_CFLAGS += -DVK_USE_PLATFORM_ANDROID_KHR
 
 $(call mesa-build-with-llvm)
 
@@ -140,6 +141,7 @@ LOCAL_SRC_FILES := \
 	$(VULKAN_ANDROID_FILES)
 
 LOCAL_CFLAGS += -DFORCE_BUILD_AMDGPU   # instructs LLVM to declare LLVMInitializeAMDGPU* functions
+LOCAL_CFLAGS += -DVK_USE_PLATFORM_ANDROID_KHR
 
 $(call mesa-build-with-llvm)
 

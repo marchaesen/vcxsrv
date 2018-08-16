@@ -347,6 +347,21 @@ _mesa_ProgramStringARB(GLenum target, GLenum format, GLsizei len,
       return;
    }
 
+#ifdef ENABLE_SHADER_CACHE
+   GLcharARB *replacement;
+
+   gl_shader_stage stage = _mesa_program_enum_to_shader_stage(target);
+
+   /* Dump original shader source to MESA_SHADER_DUMP_PATH and replace
+    * if corresponding entry found from MESA_SHADER_READ_PATH.
+    */
+   _mesa_dump_shader_source(stage, string);
+
+   replacement = _mesa_read_shader_source(stage, string);
+   if (replacement)
+      string = replacement;
+#endif /* ENABLE_SHADER_CACHE */
+
    if (target == GL_VERTEX_PROGRAM_ARB && ctx->Extensions.ARB_vertex_program) {
       prog = ctx->VertexProgram.Current;
       _mesa_parse_arb_vertex_program(ctx, target, string, len, prog);

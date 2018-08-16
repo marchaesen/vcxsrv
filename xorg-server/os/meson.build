@@ -66,6 +66,16 @@ if get_option('secure-rpc')
     srcs_os += 'rpcauth.c'
 endif
 
+os_dep = []
+os_c_args = []
+if get_option('xres')
+    # Only the XRes extension cares about the client ID.
+    os_c_args += '-DCLIENTIDS'
+    if host_machine.system() == 'openbsd'
+        os_deps += cc.find_library('kvm')
+    endif
+endif
+
 libxlibc = []
 if srcs_libc.length() > 0
     libxlibc = static_library('libxlibc',
@@ -85,7 +95,9 @@ libxserver_os = static_library('libxserver_os',
         dl_dep,
         sha1_dep,
         rpc_dep,
+        os_dep,
         dependency('xau')
     ],
+    c_args: os_c_args,
     link_with: libxlibc,
 )

@@ -729,7 +729,15 @@ is_format_color_renderable(const struct gl_context *ctx, mesa_format format,
 
    /* Reject additional cases for GLES */
    switch (internalFormat) {
+   case GL_R8_SNORM:
+   case GL_RG8_SNORM:
    case GL_RGBA8_SNORM:
+      return _mesa_has_EXT_render_snorm(ctx);
+   case GL_R16_SNORM:
+   case GL_RG16_SNORM:
+   case GL_RGBA16_SNORM:
+      return _mesa_has_EXT_texture_norm16(ctx) &&
+             _mesa_has_EXT_render_snorm(ctx);
    case GL_RGB32F:
    case GL_RGB32I:
    case GL_RGB32UI:
@@ -742,8 +750,6 @@ is_format_color_renderable(const struct gl_context *ctx, mesa_format format,
    case GL_SRGB8:
    case GL_RGB10:
    case GL_RGB9_E5:
-   case GL_RG8_SNORM:
-   case GL_R8_SNORM:
       return GL_FALSE;
    default:
       break;
@@ -2060,25 +2066,40 @@ _mesa_base_fbo_format(const struct gl_context *ctx, GLenum internalFormat)
       return ctx->API != API_OPENGLES && ctx->Extensions.ARB_texture_rg
          ? GL_RG : 0;
    /* signed normalized texture formats */
-   case GL_RED_SNORM:
    case GL_R8_SNORM:
-   case GL_R16_SNORM:
-      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
+      return _mesa_has_EXT_texture_snorm(ctx) || _mesa_has_EXT_render_snorm(ctx)
          ? GL_RED : 0;
-   case GL_RG_SNORM:
+   case GL_RED_SNORM:
+      return _mesa_has_EXT_texture_snorm(ctx) ? GL_RED : 0;
+   case GL_R16_SNORM:
+      return _mesa_has_EXT_texture_snorm(ctx) ||
+             (_mesa_has_EXT_render_snorm(ctx) &&
+              _mesa_has_EXT_texture_norm16(ctx))
+         ? GL_RED : 0;
    case GL_RG8_SNORM:
+      return _mesa_has_EXT_texture_snorm(ctx) || _mesa_has_EXT_render_snorm(ctx)
+         ? GL_RG : 0;
+   case GL_RG_SNORM:
+      _mesa_has_EXT_texture_snorm(ctx) ? GL_RG : 0;
    case GL_RG16_SNORM:
-      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
+      return _mesa_has_EXT_texture_snorm(ctx) ||
+             (_mesa_has_EXT_render_snorm(ctx) &&
+              _mesa_has_EXT_texture_norm16(ctx))
          ? GL_RG : 0;
    case GL_RGB_SNORM:
    case GL_RGB8_SNORM:
    case GL_RGB16_SNORM:
       return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
          ? GL_RGB : 0;
-   case GL_RGBA_SNORM:
    case GL_RGBA8_SNORM:
+      return _mesa_has_EXT_texture_snorm(ctx) || _mesa_has_EXT_render_snorm(ctx)
+         ? GL_RGBA : 0;
+   case GL_RGBA_SNORM:
+      return _mesa_has_EXT_texture_snorm(ctx) ? GL_RGBA : 0;
    case GL_RGBA16_SNORM:
-      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
+      return _mesa_has_EXT_texture_snorm(ctx) ||
+             (_mesa_has_EXT_render_snorm(ctx) &&
+              _mesa_has_EXT_texture_norm16(ctx))
          ? GL_RGBA : 0;
    case GL_ALPHA_SNORM:
    case GL_ALPHA8_SNORM:

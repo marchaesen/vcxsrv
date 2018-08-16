@@ -81,7 +81,7 @@ dri2proto_dep = dependency('dri2proto', version: '>= 2.8', required: get_option(
 dri3proto_dep = dependency('dri3proto', version: '>= 1.2', required: get_option('dri3') == 'true')
 xineramaproto_dep = dependency('xineramaproto')
 xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0')
-xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1', required: false)
+xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1')
 windowswmproto_dep = dependency('windowswmproto', required: false)
 applewmproto_dep = dependency('applewmproto', version: '>= 1.4', required: false)
 xshmfence_dep = dependency('xshmfence', version: '>= 1.1', required: false)
@@ -95,6 +95,12 @@ nettle_dep = dependency('nettle')
 
 dbus_required = get_option('systemd_logind') == 'true'
 dbus_dep = dependency('dbus-1', version: '>= 1.0', required: dbus_required)
+
+# libsystemd-daemon was moved into libsystemd in version 209
+libsystemd_daemon_dep = dependency('libsystemd', version: '>= 209', required: false)
+if not libsystemd_daemon_dep.found()
+    libsystemd_daemon_dep = dependency('libsystemd-daemon', required: false)
+endif
 
 build_hashtable = false
 
@@ -438,7 +444,6 @@ endif
 
 # XXX: Allow configuration of these.
 build_xselinux = false
-build_xf86vidmode = xf86vidmodeproto_dep.found()
 
 m_dep = cc.find_library('m', required : false)
 dl_dep = cc.find_library('dl', required : false)
@@ -456,6 +461,7 @@ common_dep = [
     xcmiscproto_dep,
     bigreqsproto_dep,
     xtrans_dep,
+    libsystemd_daemon_dep,
 
     videoproto_dep,
     compositeproto_dep,

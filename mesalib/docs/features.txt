@@ -219,7 +219,7 @@ GL 4.5, GLSL 4.50 -- all DONE: nvc0, radeonsi
   GL_ARB_direct_state_access                            DONE (all drivers)
   GL_ARB_get_texture_sub_image                          DONE (all drivers)
   GL_ARB_shader_texture_image_samples                   DONE (i965, nv50, r600, virgl)
-  GL_ARB_texture_barrier                                DONE (freedreno, i965, nv50, r600)
+  GL_ARB_texture_barrier                                DONE (freedreno, i965, nv50, r600, virgl)
   GL_KHR_context_flush_control                          DONE (all - but needs GLX/EGL extension to be useful)
   GL_KHR_robustness                                     DONE (i965)
   GL_EXT_shader_integer_mix                             DONE (all drivers that support GLSL)
@@ -319,6 +319,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_EXT_memory_object                                  DONE (radeonsi)
   GL_EXT_memory_object_fd                               DONE (radeonsi)
   GL_EXT_memory_object_win32                            not started
+  GL_EXT_render_snorm                                   DONE (i965)
   GL_EXT_semaphore                                      DONE (radeonsi)
   GL_EXT_semaphore_fd                                   DONE (radeonsi)
   GL_EXT_semaphore_win32                                not started

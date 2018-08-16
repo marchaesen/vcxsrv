@@ -47,6 +47,7 @@ struct radeon_info {
 	uint32_t                    pci_func;
 
 	/* Device info. */
+	const char                  *name;
 	uint32_t                    pci_id;
 	enum radeon_family          family;
 	enum chip_class             chip_class;

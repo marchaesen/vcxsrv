@@ -612,7 +612,8 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 	}
 
 	if (desc->layout == VK_FORMAT_LAYOUT_ETC &&
-	    physical_device->rad_info.chip_class < GFX9 &&
+	    physical_device->rad_info.family != CHIP_VEGA10 &&
+	    physical_device->rad_info.family != CHIP_RAVEN &&
 	    physical_device->rad_info.family != CHIP_STONEY) {
 		out_properties->linearTilingFeatures = linear;
 		out_properties->optimalTilingFeatures = tiled;

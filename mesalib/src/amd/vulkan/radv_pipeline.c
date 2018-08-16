@@ -565,9 +565,34 @@ format_is_int10(VkFormat format)
 	return false;
 }
 
+/*
+ * Ordered so that for each i,
+ * radv_format_meta_fs_key(radv_fs_key_format_exemplars[i]) == i.
+ */
+const VkFormat radv_fs_key_format_exemplars[NUM_META_FS_KEYS] = {
+	VK_FORMAT_R32_SFLOAT,
+	VK_FORMAT_R32G32_SFLOAT,
+	VK_FORMAT_R8G8B8A8_UNORM,
+	VK_FORMAT_R16G16B16A16_UNORM,
+	VK_FORMAT_R16G16B16A16_SNORM,
+	VK_FORMAT_R16G16B16A16_UINT,
+	VK_FORMAT_R16G16B16A16_SINT,
+	VK_FORMAT_R32G32B32A32_SFLOAT,
+	VK_FORMAT_R8G8B8A8_UINT,
+	VK_FORMAT_R8G8B8A8_SINT,
+	VK_FORMAT_A2R10G10B10_UINT_PACK32,
+	VK_FORMAT_A2R10G10B10_SINT_PACK32,
+};
+
 unsigned radv_format_meta_fs_key(VkFormat format)
 {
-	unsigned col_format = si_choose_spi_color_format(format, false, false) - 1;
+	unsigned col_format = si_choose_spi_color_format(format, false, false);
+
+	assert(col_format != V_028714_SPI_SHADER_32_AR);
+	if (col_format >= V_028714_SPI_SHADER_32_AR)
+		--col_format; /* Skip V_028714_SPI_SHADER_32_AR  since there is no such VkFormat */
+
+	--col_format; /* Skip V_028714_SPI_SHADER_ZERO */
 	bool is_int8 = format_is_int8(format);
 	bool is_int10 = format_is_int10(format);
 

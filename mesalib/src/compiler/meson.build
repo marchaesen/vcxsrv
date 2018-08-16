@@ -40,7 +40,7 @@ ir_expression_operation_h = custom_target(
   'ir_expression_operation.h',
   input : 'glsl/ir_expression_operation.py',
   output : 'ir_expression_operation.h',
-  command : [prog_python2, '@INPUT@', 'enum'],
+  command : [prog_python, '@INPUT@', 'enum'],
   capture : true,
 )
 

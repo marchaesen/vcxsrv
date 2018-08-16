@@ -137,6 +137,10 @@ struct blitter_context
    struct pipe_query *saved_render_cond_query;
    uint saved_render_cond_mode;
    bool saved_render_cond_cond;
+
+   boolean saved_window_rectangles_include;
+   unsigned saved_num_window_rectangles;
+   struct pipe_scissor_state saved_window_rectangles[PIPE_MAX_WINDOW_RECTANGLES];
 };
 
 /**
@@ -561,6 +565,21 @@ util_blitter_save_render_condition(struct blitter_context *blitter,
    blitter->saved_render_cond_query = query;
    blitter->saved_render_cond_mode = mode;
    blitter->saved_render_cond_cond = condition;
+}
+
+static inline void
+util_blitter_save_window_rectangles(struct blitter_context *blitter,
+                                    boolean include,
+                                    unsigned num_rectangles,
+                                    const struct pipe_scissor_state *rects)
+{
+   blitter->saved_window_rectangles_include = include;
+   blitter->saved_num_window_rectangles = num_rectangles;
+   if (num_rectangles > 0) {
+      assert(num_rectangles < ARRAY_SIZE(blitter->saved_window_rectangles));
+      memcpy(blitter->saved_window_rectangles, rects,
+             sizeof(*rects) * num_rectangles);
+   }
 }
 
 void util_blitter_common_clear_setup(struct blitter_context *blitter,

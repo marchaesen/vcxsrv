@@ -49,13 +49,9 @@
 #pragma warning( disable : 4100 )
 #endif
 
-#if defined(__cplusplus)
-/*
- * Dear c++: Please don't mangle this name. -thanks
- */
-extern "C"
-#endif				/* __cplusplus */
-  BOOL WINAPI DllMain (HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
+__PTW32_BEGIN_C_DECLS
+
+BOOL WINAPI DllMain (HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 {
   BOOL result =  __PTW32_TRUE;
 
@@ -90,6 +86,8 @@ extern "C"
 
 }				/* DllMain */
 
+__PTW32_END_C_DECLS
+
 #endif /* !PTW32_STATIC_LIB */
 
 #if ! defined (__PTW32_BUILD_INLINED)
@@ -122,15 +120,19 @@ typedef int foo;
  * needed, we need a way to prevent the linker from optimizing away this
  * module. The pthread_win32_autostatic_anchor() hack below (and in
  * implement.h) does the job in a portable manner.
+ *
+ * Make everything "extern" to evade being optimized away.
+ * Yes, "extern" is implied if not "static" but we are indicating we are
+ * doing this deliberately.
  */
 
-static int on_process_init(void)
+extern int __ptw32_on_process_init(void)
 {
     pthread_win32_process_attach_np ();
     return 0;
 }
 
-static int on_process_exit(void)
+extern int __ptw32_on_process_exit(void)
 {
     pthread_win32_thread_detach_np  ();
     pthread_win32_process_detach_np ();
@@ -138,30 +140,38 @@ static int on_process_exit(void)
 }
 
 #if defined(__GNUC__)
-__attribute__((section(".ctors"), used)) static int (*gcc_ctor)(void) = on_process_init;
-__attribute__((section(".dtors"), used)) static int (*gcc_dtor)(void) = on_process_exit;
+__attribute__((section(".ctors"), used)) extern int (*gcc_ctor)(void) = __ptw32_on_process_init;
+__attribute__((section(".dtors"), used)) extern int (*gcc_dtor)(void) = __ptw32_on_process_exit;
 #elif defined(_MSC_VER)
 #  if _MSC_VER >= 1400 /* MSVC8+ */
 #    pragma section(".CRT$XCU", long, read)
 #    pragma section(".CRT$XPU", long, read)
-__declspec(allocate(".CRT$XCU")) static int (*msc_ctor)(void) = on_process_init;
-__declspec(allocate(".CRT$XPU")) static int (*msc_dtor)(void) = on_process_exit;
+__declspec(allocate(".CRT$XCU")) extern int (*msc_ctor)(void) = __ptw32_on_process_init;
+__declspec(allocate(".CRT$XPU")) extern int (*msc_dtor)(void) = __ptw32_on_process_exit;
 #  else
 #    pragma data_seg(".CRT$XCU")
-static int (*msc_ctor)(void) = on_process_init;
+extern int (*msc_ctor)(void) = __ptw32_on_process_init;
 #    pragma data_seg(".CRT$XPU")
-static int (*msc_dtor)(void) = on_process_exit;
+extern int (*msc_dtor)(void) = __ptw32_on_process_exit;
 #    pragma data_seg() /* reset data segment */
 #  endif
 #endif
 
 #endif /* defined(__MINGW32__) || defined(_MSC_VER) */
 
+__PTW32_BEGIN_C_DECLS
+
 /* This dummy function exists solely to be referenced by other modules
  * (specifically, in implement.h), so that the linker can't optimize away
  * this module. Don't call it.
+ *
+ * Shouldn't work if we are compiling via pthreads.c
+ * (whole library single translation unit)
+ * Leaving it here in case it affects small-static builds.
  */
 void __ptw32_autostatic_anchor(void) { abort(); }
+
+__PTW32_END_C_DECLS
 
 #endif /*  __PTW32_STATIC_LIB */
 

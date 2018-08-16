@@ -1,0 +1,188 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.1.6 Release Notes / August 13 2018</h1>
+
+<p>
+Mesa 18.1.6 is a bug fix release which fixes bugs found since the 18.1.5 release.
+</p>
+<p>
+Mesa 18.1.6 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+580e03328ffefe1fd43b19ab7669f20d931601a1c0a4c0f8b9c65d6e81a06df3  mesa-18.1.6.tar.gz
+bb7ce759069801804fcfb8152da3457f76cd7b4e0096e4870ff5adcb5c894289  mesa-18.1.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<p>None</p>
+
+<h2>Bug fixes</h2>
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=13728">Bug 13728</a> - [G965] Some objects in Neverwinter Nights Linux version not displayed correctly</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=98699">Bug 98699</a> - &quot;float[a+++4 ? 1:1] f;&quot; crashes glsl_compiler</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99730">Bug 99730</a> - Metro Redux game(s) needs override for midshader extension declaration</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106382">Bug 106382</a> - Shader cache breaks INTEL_DEBUG=shader_time</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107117">Bug 107117</a> - mesa-18.1: regression with TFP on intel with modesettings and glamor acceleration</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107212">Bug 107212</a> - Dual-Core CPU E5500 / G45: RetroArch with reicast core results in corrupted graphics</li>
+
+</ul>
+
+<h2>Changes</h2>
+<p>Adam Jackson (1):</p>
+<ul>
+  <li>glx: GLX_MESA_multithread_makecurrent is direct-only</li>
+</ul>
+
+<p>Andres Gomez (3):</p>
+<ul>
+  <li>ddebug: use util_snprintf() in dd_get_debug_filename_and_mkdir</li>
+  <li>gallium/aux/util: use util_snprintf() in test_texture_barrier</li>
+  <li>glsl: use util_snprintf()</li>
+</ul>
+
+<p>Christian Gmeiner (1):</p>
+<ul>
+  <li>etnaviv: fix typo in query names</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>r600: reduce num compute threads to 1024.</li>
+</ul>
+
+<p>Dylan Baker (6):</p>
+<ul>
+  <li>docs: Add sha-256 sums for 18.1.5</li>
+  <li>nir/meson: fix c vs cpp args for nir test</li>
+  <li>gallium: fix ddebug on windows</li>
+  <li>cherry-ignore: add patches that get-pick-list is finding in error</li>
+  <li>cherry-ignore: Add some additional patches that are for 18.2</li>
+  <li>bump version to 18.1.6</li>
+</ul>
+
+<p>Emil Velikov (5):</p>
+<ul>
+  <li>swr: don't export swr_create_screen_internal</li>
+  <li>automake: require shared glapi when using DRI based libGL</li>
+  <li>autotools: error out when using the broken --with-{gl, osmesa}-lib-name</li>
+  <li>autotools: error out when building with mangling and glvnd</li>
+  <li>autotools: use correct gl.pc LIBS when using glvnd</li>
+</ul>
+
+<p>Eric Anholt (4):</p>
+<ul>
+  <li>vc4: Fix a leak of the no-vertex-elements workaround BO.</li>
+  <li>vc4: Respect a sampler view's first_layer field.</li>
+  <li>vc4: Ignore samplers for finding uniform offsets.</li>
+  <li>egl: Fix leak of X11 pixmaps backing pbuffers in DRI3.</li>
+</ul>
+
+<p>Gert Wollny (1):</p>
+<ul>
+  <li>meson, install_megadrivers: Also remove stale symlinks</li>
+</ul>
+
+<p>Jan Vesely (2):</p>
+<ul>
+  <li>clover: Reduce wait_count in abort path.</li>
+  <li>clover: Don't extend illegal integer types.</li>
+</ul>
+
+<p>Jason Ekstrand (2):</p>
+<ul>
+  <li>nir: Take if uses into account in ssa_def_components_read</li>
+  <li>i965/fs: Flag all slots of a flat input as flat</li>
+</ul>
+
+<p>Jon Turney (1):</p>
+<ul>
+  <li>meson: use correct keyword to fix a meson warning</li>
+</ul>
+
+<p>Jordan Justen (2):</p>
+<ul>
+  <li>i965, anv: Use INTEL_DEBUG for disk_cache driver flags</li>
+  <li>i965: Disable shader cache with INTEL_DEBUG=shader_time</li>
+</ul>
+
+<p>Juan A. Suarez Romero (2):</p>
+<ul>
+  <li>wayland/egl: update surface size on window resize</li>
+  <li>wayland/egl: initialize window surface size to window size</li>
+</ul>
+
+<p>Karol Herbst (2):</p>
+<ul>
+  <li>nir/lower_int64: mark all metadata as dirty</li>
+  <li>nvc0/ir: return 0 in imageLoad on incomplete textures</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>intel: Fix SIMD16 unaligned payload GRF reads on Gen4-5.</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>ac/surface: fix MSAA corruption on Vega due to FMASK tile swizzle</li>
+</ul>
+
+<p>Mauro Rossi (2):</p>
+<ul>
+  <li>radv: generate entrypoints for VK_ANDROID_native_buffer</li>
+  <li>radv: move vk_format_table.c to generated sources</li>
+</ul>
+
+<p>Olivier Fourdan (1):</p>
+<ul>
+  <li>dri3: For 1.2, use root window instead of pixmap drawable</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>glsl: handle error case with ast_post_inc, ast_post_dec</li>
+</ul>
+
+<p>Vlad Golovkin (1):</p>
+<ul>
+  <li>swr: Remove unnecessary memset call</li>
+</ul>
+
+<p>vadym.shovkoplias (1):</p>
+<ul>
+  <li>drirc: Allow extension midshader for Metro Redux</li>
+</ul>
+
+</div>
+</body>
+</html>

@@ -22,12 +22,12 @@ vtn_gather_types_c = custom_target(
   'vtn_gather_types.c',
   input : files('vtn_gather_types_c.py', 'spirv.core.grammar.json'),
   output : 'vtn_gather_types.c',
-  command : [prog_python2, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
+  command : [prog_python, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
 )
 
 spirv_info_c = custom_target(
   'spirv_info.c',
   input : files('spirv_info_c.py', 'spirv.core.grammar.json'),
   output : 'spirv_info.c',
-  command : [prog_python2, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
+  command : [prog_python, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
 )

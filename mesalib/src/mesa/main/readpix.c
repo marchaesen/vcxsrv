@@ -939,6 +939,25 @@ read_pixels_es3_error_check(struct gl_context *ctx, GLenum format, GLenum type,
                return GL_NO_ERROR;
          }
       }
+      if (type == GL_SHORT) {
+         switch (internalFormat) {
+         case GL_R16_SNORM:
+         case GL_RG16_SNORM:
+         case GL_RGBA16_SNORM:
+            if (_mesa_has_EXT_texture_norm16(ctx) &&
+                _mesa_has_EXT_render_snorm(ctx))
+               return GL_NO_ERROR;
+         }
+      }
+      if (type == GL_BYTE) {
+         switch (internalFormat) {
+         case GL_R8_SNORM:
+         case GL_RG8_SNORM:
+         case GL_RGBA8_SNORM:
+            if (_mesa_has_EXT_render_snorm(ctx))
+               return GL_NO_ERROR;
+         }
+      }
       break;
    case GL_BGRA:
       /* GL_EXT_read_format_bgra */

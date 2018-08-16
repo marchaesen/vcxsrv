@@ -3794,6 +3794,15 @@ _mesa_is_es3_color_renderable(const struct gl_context *ctx,
    case GL_RG16:
    case GL_RGBA16:
       return _mesa_has_EXT_texture_norm16(ctx);
+   case GL_R8_SNORM:
+   case GL_RG8_SNORM:
+   case GL_RGBA8_SNORM:
+      return _mesa_has_EXT_render_snorm(ctx);
+   case GL_R16_SNORM:
+   case GL_RG16_SNORM:
+   case GL_RGBA16_SNORM:
+      return _mesa_has_EXT_texture_norm16(ctx) &&
+             _mesa_has_EXT_render_snorm(ctx);
    default:
       return false;
    }

@@ -47,6 +47,15 @@ xorg_sdk_headers = [
     'xaarop.h',
 ]
 
+fallback_driver = get_option('fallback_input_driver')
+if fallback_driver == 'auto'
+    if host_machine.system() == 'linux'
+        fallback_driver = 'libinput'
+    else
+        fallback_driver = ''
+    endif
+endif
+
 if build_dga
     srcs_xorg_common += 'xf86DGA.c'
     xorg_sdk_headers += 'dgaproc.h'
@@ -87,7 +96,10 @@ xorg_common = static_library('xorg_common',
         pciaccess_dep,
         libdrm_dep,
     ],
-    c_args: xorg_c_args,
+    c_args: [
+        xorg_c_args,
+        '-DFALLBACK_INPUT_DRIVER="@0@"'.format(fallback_driver)
+    ],
 )
 
 install_data(xorg_sdk_headers, install_dir: xorgsdkdir)

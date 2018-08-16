@@ -13,6 +13,12 @@ import sys
 import gettext
 import re
 
+
+if sys.version_info < (3, 0):
+    gettext_method = 'ugettext'
+else:
+    gettext_method = 'gettext'
+
 # Path to t_options.h
 template_header_path = sys.argv[1]
 
@@ -60,7 +66,7 @@ def expandCString (s):
     octa = False
     num = 0
     digits = 0
-    r = ''
+    r = u''
     while i < len(s):
         if not escape:
             if s[i] == '\\':
@@ -128,16 +134,29 @@ def expandMatches (matches, translations, end=None):
         if len(matches) == 1 and i < len(translations) and \
                not matches[0].expand (r'\7').endswith('\\'):
             suffix = ' \\'
-        # Expand the description line. Need to use ugettext in order to allow
-        # non-ascii unicode chars in the original English descriptions.
-        text = escapeCString (trans.ugettext (unicode (expandCString (
-            matches[0].expand (r'\5')), "utf-8"))).encode("utf-8")
-        print(matches[0].expand (r'\1' + lang + r'\3"' + text + r'"\7') + suffix)
+        text = escapeCString (getattr(trans, gettext_method) (expandCString (
+            matches[0].expand (r'\5'))))
+        text = (matches[0].expand (r'\1' + lang + r'\3"' + text + r'"\7') + suffix)
+
+        # In Python 2, stdout expects encoded byte strings, or else it will
+        # encode them with the ascii 'codec'
+        if sys.version_info.major == 2:
+            text = text.encode('utf-8')
+
+        print(text)
+
         # Expand any subsequent enum lines
         for match in matches[1:]:
-            text = escapeCString (trans.ugettext (unicode (expandCString (
-                match.expand (r'\3')), "utf-8"))).encode("utf-8")
-            print(match.expand (r'\1"' + text + r'"\5'))
+            text = escapeCString (getattr(trans, gettext_method) (expandCString (
+                match.expand (r'\3'))))
+            text = match.expand (r'\1"' + text + r'"\5')
+
+            # In Python 2, stdout expects encoded byte strings, or else it will
+            # encode them with the ascii 'codec'
+            if sys.version_info.major == 2:
+                text = text.encode('utf-8')
+
+            print(text)
 
         # Expand description end
         if end:
@@ -168,9 +187,11 @@ print("/***********************************************************************\
 
 # Process the options template and generate options.h with all
 # translations.
-template = open (template_header_path, "r")
+template = open (template_header_path, "rb")
 descMatches = []
 for line in template:
+    line = line.decode('utf-8')
+
     if len(descMatches) > 0:
         matchENUM     = reENUM    .match (line)
         matchDESC_END = reDESC_END.match (line)

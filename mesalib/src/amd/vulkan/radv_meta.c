@@ -257,19 +257,20 @@ radv_builtin_cache_path(char *path)
 	return true;
 }
 
-static void
+static bool
 radv_load_meta_pipeline(struct radv_device *device)
 {
 	char path[PATH_MAX + 1];
 	struct stat st;
 	void *data = NULL;
+	bool ret = false;
 
 	if (!radv_builtin_cache_path(path))
-		return;
+		return false;
 
 	int fd = open(path, O_RDONLY);
 	if (fd < 0)
-		return;
+		return false;
 	if (fstat(fd, &st))
 		goto fail;
 	data = malloc(st.st_size);
@@ -278,10 +279,11 @@ radv_load_meta_pipeline(struct radv_device *device)
 	if(read(fd, data, st.st_size) == -1)
 		goto fail;
 
-	radv_pipeline_cache_load(&device->meta_state.cache, data, st.st_size);
+	ret = radv_pipeline_cache_load(&device->meta_state.cache, data, st.st_size);
 fail:
 	free(data);
 	close(fd);
+	return ret;
 }
 
 static void
@@ -330,6 +332,8 @@ radv_device_init_meta(struct radv_device *device)
 {
 	VkResult result;
 
+	memset(&device->meta_state, 0, sizeof(device->meta_state));
+
 	device->meta_state.alloc = (VkAllocationCallbacks) {
 		.pUserData = device,
 		.pfnAllocation = meta_alloc,
@@ -339,21 +343,24 @@ radv_device_init_meta(struct radv_device *device)
 
 	device->meta_state.cache.alloc = device->meta_state.alloc;
 	radv_pipeline_cache_init(&device->meta_state.cache, device);
-	radv_load_meta_pipeline(device);
+	bool loaded_cache = radv_load_meta_pipeline(device);
+	bool on_demand = !loaded_cache;
 
-	result = radv_device_init_meta_clear_state(device);
+	mtx_init(&device->meta_state.mtx, mtx_plain);
+
+	result = radv_device_init_meta_clear_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_clear;
 
-	result = radv_device_init_meta_resolve_state(device);
+	result = radv_device_init_meta_resolve_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_resolve;
 
-	result = radv_device_init_meta_blit_state(device);
+	result = radv_device_init_meta_blit_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_blit;
 
-	result = radv_device_init_meta_blit2d_state(device);
+	result = radv_device_init_meta_blit2d_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_blit2d;
 
@@ -361,7 +368,7 @@ radv_device_init_meta(struct radv_device *device)
 	if (result != VK_SUCCESS)
 		goto fail_bufimage;
 
-	result = radv_device_init_meta_depth_decomp_state(device);
+	result = radv_device_init_meta_depth_decomp_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_depth_decomp;
 
@@ -369,19 +376,19 @@ radv_device_init_meta(struct radv_device *device)
 	if (result != VK_SUCCESS)
 		goto fail_buffer;
 
-	result = radv_device_init_meta_query_state(device);
+	result = radv_device_init_meta_query_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_query;
 
-	result = radv_device_init_meta_fast_clear_flush_state(device);
+	result = radv_device_init_meta_fast_clear_flush_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_fast_clear;
 
-	result = radv_device_init_meta_resolve_compute_state(device);
+	result = radv_device_init_meta_resolve_compute_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_resolve_compute;
 
-	result = radv_device_init_meta_resolve_fragment_state(device);
+	result = radv_device_init_meta_resolve_fragment_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_resolve_fragment;
 	return VK_SUCCESS;
@@ -407,6 +414,7 @@ fail_blit:
 fail_resolve:
 	radv_device_finish_meta_clear_state(device);
 fail_clear:
+	mtx_destroy(&device->meta_state.mtx);
 	radv_pipeline_cache_finish(&device->meta_state.cache);
 	return result;
 }
@@ -428,6 +436,7 @@ radv_device_finish_meta(struct radv_device *device)
 
 	radv_store_meta_pipeline(device);
 	radv_pipeline_cache_finish(&device->meta_state.cache);
+	mtx_destroy(&device->meta_state.mtx);
 }
 
 nir_ssa_def *radv_meta_gen_rect_vertices_comp2(nir_builder *vs_b, nir_ssa_def *comp2)
