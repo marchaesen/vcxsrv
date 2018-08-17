@@ -28,7 +28,7 @@
 #include "imports.h"
 #include "mtypes.h"
 #include "version.h"
-/*#include "git_sha1.h"*/
+#include "git_sha1.h"
 
 /**
  * Scans 'string' to see if it ends with 'ending'.

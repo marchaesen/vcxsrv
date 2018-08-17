@@ -4,6 +4,10 @@ top_srcdir:=..
 
 #SUBDIRS = . gtest util mapi/glapi/gen mapi
 
+$(OBJDIR)/git_sha1.h:
+	@echo "updating $@"
+	@python $(top_srcdir)/bin/git_sha1_gen.py --output $@
+
 ifdef HAVE_OPENGL
 gldir = $(includedir)/GL
 gl_HEADERS = \
@@ -49,7 +53,7 @@ INCLUDES += \
 	$(top_srcdir)/src/mapi/ \
 	$(top_srcdir)/src/mesa/ \
 	$(top_srcdir)/src/gallium/include \
-	$(top_srcdir)/src/gallium/auxiliary \
+	$(top_srcdir)/src/gallium/auxiliary
 
 libglsl_util_la_SOURCES = \
 	mesa/main/extensions_table.c \
