@@ -28,22 +28,25 @@ def get_git_sha1():
         git_sha1 = ''
     return git_sha1
 
+def write_if_different(contents):
+    """
+    Avoid touching the output file if it doesn't need modifications
+    Useful to avoid triggering rebuilds when nothing has changed.
+    """
+    if os.path.isfile(args.output):
+        with open(args.output, 'r') as file:
+            if file.read() == contents:
+                return
+    with open(args.output, 'w') as file:
+        file.write(contents)
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--output', help='File to write the #define in',
-        required=True)
+                    required=True)
 args = parser.parse_args()
 
 git_sha1 = os.environ.get('MESA_GIT_SHA1_OVERRIDE', get_git_sha1())[:10]
 if git_sha1:
-    git_sha1_h_in_path = os.path.join(os.path.dirname(sys.argv[0]),
-            '..', 'src', 'git_sha1.h.in')
-    with open(git_sha1_h_in_path , 'r') as git_sha1_h_in:
-        new_sha1 = git_sha1_h_in.read().replace('@VCS_TAG@', git_sha1)
-        if os.path.isfile(args.output):
-            with open(args.output, 'r') as git_sha1_h:
-                if git_sha1_h.read() == new_sha1:
-                    quit()
-        with open(args.output, 'w') as git_sha1_h:
-            git_sha1_h.write(new_sha1)
+    write_if_different('#define MESA_GIT_SHA1 " (git-' + git_sha1 + ')"')
 else:
-    open(args.output, 'w').close()
+    write_if_different('#define MESA_GIT_SHA1 ""')

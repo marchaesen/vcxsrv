@@ -2006,7 +2006,7 @@ handle_vs_input_decl(struct radv_shader_context *ctx,
 						MAX2(1, ctx->shader_info->vs.vgpr_comp_cnt);
 				}
 			} else {
-				unreachable("Invalid vertex attribute divisor of 0.");
+				buffer_index = ctx->ac.i32_0;
 			}
 
 			buffer_index = LLVMBuildAdd(ctx->ac.builder, ctx->abi.start_instance, buffer_index, "");
