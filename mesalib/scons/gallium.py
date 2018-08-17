@@ -29,6 +29,7 @@ Frontend-tool for Gallium3D architecture.
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import print_function
 
 import distutils.version
 import os
@@ -220,10 +221,6 @@ def generate(env):
     env['gcc'] = env['gcc_compat'] and not env['clang']
     env['suncc'] = env['platform'] == 'sunos' and os.path.basename(env['CC']) == 'cc'
     env['icc'] = 'icc' == os.path.basename(env['CC'])
-
-    if env['msvc'] and env['toolchain'] == 'default' and env['machine'] == 'x86_64':
-        # MSVC x64 support is broken in earlier versions of scons
-        env.EnsurePythonVersion(2, 0)
 
     # shortcuts
     machine = env['machine']
@@ -680,6 +677,18 @@ def generate(env):
     env.PkgCheckModules('XCB', ['x11-xcb', 'xcb-glx >= 1.8.1', 'xcb-dri2 >= 1.8'])
     env.PkgCheckModules('XF86VIDMODE', ['xxf86vm'])
     env.PkgCheckModules('DRM', ['libdrm >= 2.4.75'])
+
+    if not os.path.exists("src/util/format_srgb.c"):
+        print("Checking for Python Mako module (>= 0.8.0)... ", end='')
+        try:
+            import mako
+        except ImportError:
+            print("no")
+            exit(1)
+        if distutils.version.StrictVersion(mako.__version__) < distutils.version.StrictVersion('0.8.0'):
+            print("no")
+            exit(1)
+        print("yes")
 
     if env['x11']:
         env.Append(CPPPATH = env['X11_CPPPATH'])

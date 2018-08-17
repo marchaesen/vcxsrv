@@ -697,10 +697,16 @@ if with_platform_haiku
   pre_args += '-DHAVE_HAIKU_PLATFORM'
 endif
 
-prog_python = find_program('python3')
-has_mako = run_command(prog_python, '-c', 'import mako')
+prog_python = import('python3').find_python()
+has_mako = run_command(
+  prog_python, '-c',
+  '''
+from distutils.version import StrictVersion
+import mako
+assert StrictVersion(mako.__version__) > StrictVersion("0.8.0")
+  ''')
 if has_mako.returncode() != 0
-  error('Python (3.x) mako module required to build mesa.')
+  error('Python (3.x) mako module >= 0.8.0 required to build mesa.')
 endif
 
 if cc.get_id() == 'gcc' and cc.version().version_compare('< 4.4.6')
@@ -1084,7 +1090,7 @@ _drm_amdgpu_ver = '2.4.93'
 _drm_radeon_ver = '2.4.71'
 _drm_nouveau_ver = '2.4.66'
 _drm_etnaviv_ver = '2.4.89'
-_drm_freedreno_ver = '2.4.92'
+_drm_freedreno_ver = '2.4.93'
 _drm_intel_ver = '2.4.75'
 _drm_ver = '2.4.75'
 

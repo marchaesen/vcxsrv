@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 .PHONY: git_sha1.h
-git_sha1.h: $(top_srcdir)/src/git_sha1.h.in
+git_sha1.h:
 	@echo "updating $@"
 	@$(PYTHON2) $(top_srcdir)/bin/git_sha1_gen.py --output $@
 

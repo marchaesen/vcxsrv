@@ -404,11 +404,7 @@ one_time_init( struct gl_context *ctx )
 
 #if defined(DEBUG)
       if (MESA_VERBOSE != 0) {
-         _mesa_debug(ctx, "Mesa " PACKAGE_VERSION " DEBUG build"
-#ifdef MESA_GIT_SHA1
-                     " (" MESA_GIT_SHA1 ")"
-#endif
-                     "\n");
+         _mesa_debug(ctx, "Mesa " PACKAGE_VERSION " DEBUG build" MESA_GIT_SHA1 "\n");
       }
 #endif
    }
