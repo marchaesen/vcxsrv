@@ -1068,11 +1068,13 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_STYLECHANGED:
       /* when the style changes, adjust the window size so the client area remains the same */
     {
-      LONG x,y;
-      DrawablePtr pDraw = &pWin->drawable;
-      x =  pDraw->x - wBorderWidth(pWin);
-      y = pDraw->y - wBorderWidth(pWin);
-      winPositionWindowMultiWindow(pWin, x, y);
+        LONG x,y;
+        DrawablePtr pDraw = &pWin->drawable;
+        x =  pDraw->x - wBorderWidth(pWin);
+        y = pDraw->y - wBorderWidth(pWin);
+        PositionWindowProcPtr saved=s_pScreen->PositionWindow;  // winPositionWindowMultiWindow is going to overwrite it
+        winPositionWindowMultiWindow(pWin, x, y);
+        s_pScreen->PositionWindow = saved;
     }
         return 0;
 
