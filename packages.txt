@@ -40,7 +40,7 @@ font-util-1.3.1
 font-winitzki-cyrillic-1.0.3
 font-xfree86-type1-1.0.4
 fontconfig git version
-freetype-2.9
+freetype-2.9.1
 libX11 git version
 libXau git version
 libXaw-1.0.13
@@ -59,7 +59,7 @@ libxcb git version
 libxkbfile-1.0.8
 mesa git version
 mkfontscale git version
-openssl-1.1.0h
+openssl-1.1.0i
 pixman git version
 pthreads-w32 git version
 terminus-font-4.30
