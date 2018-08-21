@@ -39,11 +39,18 @@ cache:
 
 os: Visual Studio 2015
 
+init:
+# Appveyor defaults core.autocrlf to input instead of the default (true), but
+# that can hide problems processing CRLF text on Windows
+- git config --global core.autocrlf true
+
 environment:
   WINFLEXBISON_ARCHIVE: win_flex_bison-2.5.9.zip
   LLVM_ARCHIVE: llvm-5.0.1-msvc2015-mtd.7z
 
 install:
+# Check git config
+- git config core.autocrlf
 # Check pip
 - python --version
 - python -m pip --version

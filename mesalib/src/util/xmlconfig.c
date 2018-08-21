@@ -27,6 +27,7 @@
  * \author Felix Kuehling
  */
 
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,6 +37,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <errno.h>
+#include <dirent.h>
+#include <fnmatch.h>
 #include "xmlconfig.h"
 #include "u_process.h"
 
@@ -711,6 +714,7 @@ struct OptConfData {
     driOptionCache *cache;
     int screenNum;
     const char *driverName, *execName;
+    const char *kernelDriverName;
     uint32_t ignoringDevice;
     uint32_t ignoringApp;
     uint32_t inDriConf;
@@ -735,13 +739,16 @@ static void
 parseDeviceAttr(struct OptConfData *data, const XML_Char **attr)
 {
     uint32_t i;
-    const XML_Char *driver = NULL, *screen = NULL;
+    const XML_Char *driver = NULL, *screen = NULL, *kernel = NULL;
     for (i = 0; attr[i]; i += 2) {
         if (!strcmp (attr[i], "driver")) driver = attr[i+1];
         else if (!strcmp (attr[i], "screen")) screen = attr[i+1];
+        else if (!strcmp (attr[i], "kernel_driver")) kernel = attr[i+1];
         else XML_WARNING("unknown device attribute: %s.", attr[i]);
     }
     if (driver && strcmp (driver, data->driverName))
+        data->ignoringDevice = data->inDevice;
+    else if (kernel && (!data->kernelDriverName || strcmp (kernel, data->kernelDriverName)))
         data->ignoringDevice = data->inDevice;
     else if (screen) {
         driOptionValue screenNum;
@@ -889,9 +896,8 @@ initOptionCache(driOptionCache *cache, const driOptionCache *info)
     }
 }
 
-/** \brief Parse the named configuration file */
 static void
-parseOneConfigFile(XML_Parser p)
+_parseOneConfigFile(XML_Parser p)
 {
 #define BUF_SIZE 0x1000
     struct OptConfData *data = (struct OptConfData *)XML_GetUserData (p);
@@ -930,17 +936,77 @@ parseOneConfigFile(XML_Parser p)
 #undef BUF_SIZE
 }
 
+/** \brief Parse the named configuration file */
+static void
+parseOneConfigFile(struct OptConfData *data, const char *filename)
+{
+    XML_Parser p;
+
+    p = XML_ParserCreate (NULL); /* use encoding specified by file */
+    XML_SetElementHandler (p, optConfStartElem, optConfEndElem);
+    XML_SetUserData (p, data);
+    data->parser = p;
+    data->name = filename;
+    data->ignoringDevice = 0;
+    data->ignoringApp = 0;
+    data->inDriConf = 0;
+    data->inDevice = 0;
+    data->inApp = 0;
+    data->inOption = 0;
+
+    _parseOneConfigFile (p);
+    XML_ParserFree (p);
+}
+
+static int
+scandir_filter(const struct dirent *ent)
+{
+    if (ent->d_type != DT_REG && ent->d_type != DT_LNK)
+       return 0;
+
+    if (fnmatch("*.conf", ent->d_name, 0))
+       return 0;
+
+    return 1;
+}
+
+/** \brief Parse configuration files in a directory */
+static void
+parseConfigDir(struct OptConfData *data, const char *dirname)
+{
+    int i, count;
+    struct dirent **entries = NULL;
+
+    count = scandir(dirname, &entries, scandir_filter, alphasort);
+    if (count < 0)
+        return;
+
+    for (i = 0; i < count; i++) {
+        char filename[PATH_MAX];
+
+        snprintf(filename, PATH_MAX, "%s/%s", dirname, entries[i]->d_name);
+        free(entries[i]);
+
+        parseOneConfigFile(data, filename);
+    }
+
+    free(entries);
+}
+
 #ifndef SYSCONFDIR
 #define SYSCONFDIR "/etc"
 #endif
 
+#ifndef DATADIR
+#define DATADIR "/usr/share"
+#endif
+
 void
 driParseConfigFiles(driOptionCache *cache, const driOptionCache *info,
-                    int screenNum, const char *driverName)
+                    int screenNum, const char *driverName,
+                    const char *kernelDriverName)
 {
-    char *filenames[2] = { SYSCONFDIR "/drirc", NULL};
     char *home;
-    uint32_t i;
     struct OptConfData userData;
 
     initOptionCache (cache, info);
@@ -948,41 +1014,18 @@ driParseConfigFiles(driOptionCache *cache, const driOptionCache *info,
     userData.cache = cache;
     userData.screenNum = screenNum;
     userData.driverName = driverName;
+    userData.kernelDriverName = kernelDriverName;
     userData.execName = util_get_process_name();
 
+    parseConfigDir(&userData, DATADIR "/drirc.d");
+    parseOneConfigFile(&userData, SYSCONFDIR "/drirc");
+
     if ((home = getenv ("HOME"))) {
-        uint32_t len = strlen (home);
-        filenames[1] = malloc(len + 7+1);
-        if (filenames[1] == NULL)
-            __driUtilMessage ("Can't allocate memory for %s/.drirc.", home);
-        else {
-            memcpy (filenames[1], home, len);
-            memcpy (filenames[1] + len, "/.drirc", 7+1);
-        }
+        char filename[PATH_MAX];
+
+        snprintf(filename, PATH_MAX, "%s/.drirc", home);
+        parseOneConfigFile(&userData, filename);
     }
-
-    for (i = 0; i < 2; ++i) {
-        XML_Parser p;
-        if (filenames[i] == NULL)
-            continue;
-
-        p = XML_ParserCreate (NULL); /* use encoding specified by file */
-        XML_SetElementHandler (p, optConfStartElem, optConfEndElem);
-        XML_SetUserData (p, &userData);
-        userData.parser = p;
-        userData.name = filenames[i];
-        userData.ignoringDevice = 0;
-        userData.ignoringApp = 0;
-        userData.inDriConf = 0;
-        userData.inDevice = 0;
-        userData.inApp = 0;
-        userData.inOption = 0;
-
-        parseOneConfigFile (p);
-        XML_ParserFree (p);
-    }
-
-    free(filenames[1]);
 }
 
 void

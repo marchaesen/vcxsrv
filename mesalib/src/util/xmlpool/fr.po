@@ -21,14 +21,6 @@ msgstr ""
 msgid "Debugging"
 msgstr "Debogage"
 
-#: t_options.h:60
-msgid "Disable 3D acceleration"
-msgstr "Désactiver l'accélération 3D"
-
-#: t_options.h:65
-msgid "Show performance boxes"
-msgstr "Afficher les boîtes de performance"
-
 #: t_options.h:70
 msgid "Enable flushing batchbuffer after each draw call"
 msgstr ""
@@ -51,10 +43,6 @@ msgstr ""
 
 #: t_options.h:95
 msgid "Disable backslash-based line continuations in GLSL source"
-msgstr ""
-
-#: t_options.h:100
-msgid "Disable GL_ARB_shader_bit_encoding"
 msgstr ""
 
 #: t_options.h:105
@@ -97,12 +85,6 @@ msgstr "Valeur maximale initiale pour le filtrage anisotropique de texture"
 #: t_options.h:148
 msgid "Forbid negative texture LOD bias"
 msgstr "Interdire le LOD bias negatif"
-
-#: t_options.h:153
-msgid ""
-"Enable S3TC texture compression even if software support is not available"
-msgstr ""
-"Activer la compression de texture S3TC même si le support logiciel est absent"
 
 #: t_options.h:160
 msgid "Initial color reduction method"
@@ -248,43 +230,6 @@ msgid ""
 msgstr ""
 "Toujours synchroniser avec le balayage vertical, l'application choisit "
 "l'intervalle minimal"
-
-#: t_options.h:276
-msgid "Use HyperZ to boost performance"
-msgstr "Utiliser le HyperZ pour améliorer les performances"
-
-#: t_options.h:281
-msgid "Number of texture units used"
-msgstr "Nombre d'unités de texture"
-
-#: t_options.h:286
-msgid "Texture filtering quality vs. speed, AKA “brilinear” texture filtering"
-msgstr ""
-"Qualité/performance du filtrage trilinéaire de texture (filtrage brilinéaire)"
-
-#: t_options.h:294
-msgid "Used types of texture memory"
-msgstr "Types de mémoire de texture"
-
-#: t_options.h:295
-msgid "All available memory"
-msgstr "Utiliser toute la mémoire disponible"
-
-#: t_options.h:296
-msgid "Only card memory (if available)"
-msgstr "Utiliser uniquement la mémoire graphique (si disponible)"
-
-#: t_options.h:297
-msgid "Only GART (AGP/PCIE) memory (if available)"
-msgstr "Utiliser uniquement la mémoire GART (AGP/PCIE) (si disponible)"
-
-#: t_options.h:309
-msgid "Features that are not hardware-accelerated"
-msgstr "Fonctionnalités ne bénéficiant pas d'une accélération matérielle"
-
-#: t_options.h:313
-msgid "Enable extension GL_ARB_vertex_program"
-msgstr "Activer l'extension GL_ARB_vertex_program"
 
 #: t_options.h:323
 msgid "Miscellaneous"

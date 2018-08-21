@@ -39,14 +39,6 @@ msgstr ""
 msgid "Debugging"
 msgstr "Depuració"
 
-#: t_options.h:60
-msgid "Disable 3D acceleration"
-msgstr "Deshabilita l'acceleració 3D"
-
-#: t_options.h:65
-msgid "Show performance boxes"
-msgstr "Mostra les caixes de rendiment"
-
 #: t_options.h:70
 msgid "Enable flushing batchbuffer after each draw call"
 msgstr "Habilita el buidatge del batchbuffer després de cada trucada de dibuix"
@@ -74,10 +66,6 @@ msgid "Disable backslash-based line continuations in GLSL source"
 msgstr ""
 "Deshabilita les continuacions de línia basades en barra invertida en la font "
 "GLSL"
-
-#: t_options.h:100
-msgid "Disable GL_ARB_shader_bit_encoding"
-msgstr "Deshabilita el GL_ARB_shader_bit_encoding"
 
 #: t_options.h:105
 msgid ""
@@ -123,13 +111,6 @@ msgid "Forbid negative texture LOD bias"
 msgstr ""
 "Prohibeix una parcialitat negativa del Nivell de Detalle (LOD) de les "
 "textures"
-
-#: t_options.h:153
-msgid ""
-"Enable S3TC texture compression even if software support is not available"
-msgstr ""
-"Habilita la compressió de textures S3TC encara que el suport de programari "
-"no estigui disponible"
 
 #: t_options.h:160
 msgid "Initial color reduction method"
@@ -276,44 +257,6 @@ msgid ""
 msgstr ""
 "Sempre sincronitza amb el refresc vertical, l'aplicació tria l'interval "
 "mínim d'intercanvi"
-
-#: t_options.h:276
-msgid "Use HyperZ to boost performance"
-msgstr "Utilitza el HyperZ per a augmentar el rendiment"
-
-#: t_options.h:281
-msgid "Number of texture units used"
-msgstr "Nombre d'unitats de textura utilitzades"
-
-#: t_options.h:286
-msgid "Texture filtering quality vs. speed, AKA “brilinear” texture filtering"
-msgstr ""
-"Qualitat vs. velocitat de filtració de textura, àlies filtració \"brilinear"
-"\" de textura"
-
-#: t_options.h:294
-msgid "Used types of texture memory"
-msgstr "Tipus utilitzats de memòria de textura"
-
-#: t_options.h:295
-msgid "All available memory"
-msgstr "Tota la memòria disponible"
-
-#: t_options.h:296
-msgid "Only card memory (if available)"
-msgstr "Només memòria de targeta (si està disponible)"
-
-#: t_options.h:297
-msgid "Only GART (AGP/PCIE) memory (if available)"
-msgstr "Només memòria GART (AGP/PCIE) (si està disponible)"
-
-#: t_options.h:309
-msgid "Features that are not hardware-accelerated"
-msgstr "Característiques no accelerades per maquinari"
-
-#: t_options.h:313
-msgid "Enable extension GL_ARB_vertex_program"
-msgstr "Habilita l'extensió GL_ARB_vertex_program"
 
 #: t_options.h:323
 msgid "Miscellaneous"

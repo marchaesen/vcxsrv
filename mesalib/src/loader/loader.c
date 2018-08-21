@@ -82,14 +82,58 @@ loader_open_device(const char *device_name)
    return fd;
 }
 
+static char *loader_get_kernel_driver_name(int fd)
+{
+#if HAVE_LIBDRM
+   char *driver;
+   drmVersionPtr version = drmGetVersion(fd);
+
+   if (!version) {
+      log_(_LOADER_WARNING, "failed to get driver name for fd %d\n", fd);
+      return NULL;
+   }
+
+   driver = strndup(version->name, version->name_len);
+
+   drmFreeVersion(version);
+   return driver;
+#else
+   return NULL;
+#endif
+}
+
 #if defined(HAVE_LIBDRM)
 #ifdef USE_DRICONF
 static const char __driConfigOptionsLoader[] =
 DRI_CONF_BEGIN
     DRI_CONF_SECTION_INITIALIZATION
         DRI_CONF_DEVICE_ID_PATH_TAG()
+        DRI_CONF_DRI_DRIVER()
     DRI_CONF_SECTION_END
 DRI_CONF_END;
+
+static char *loader_get_dri_config_driver(int fd)
+{
+   driOptionCache defaultInitOptions;
+   driOptionCache userInitOptions;
+   char *dri_driver = NULL;
+   char *kernel_driver = loader_get_kernel_driver_name(fd);
+
+   driParseOptionInfo(&defaultInitOptions, __driConfigOptionsLoader);
+   driParseConfigFiles(&userInitOptions, &defaultInitOptions, 0,
+                       "loader", kernel_driver);
+   if (driCheckOption(&userInitOptions, "dri_driver", DRI_STRING)) {
+      char *opt = driQueryOptionstr(&userInitOptions, "dri_driver");
+      /* not an empty string */
+      if (*opt)
+         dri_driver = strdup(opt);
+   }
+   driDestroyOptionCache(&userInitOptions);
+   driDestroyOptionInfo(&defaultInitOptions);
+
+   free(kernel_driver);
+   return dri_driver;
+}
 
 static char *loader_get_dri_config_device_id(void)
 {
@@ -98,7 +142,7 @@ static char *loader_get_dri_config_device_id(void)
    char *prime = NULL;
 
    driParseOptionInfo(&defaultInitOptions, __driConfigOptionsLoader);
-   driParseConfigFiles(&userInitOptions, &defaultInitOptions, 0, "loader");
+   driParseConfigFiles(&userInitOptions, &defaultInitOptions, 0, "loader", NULL);
    if (driCheckOption(&userInitOptions, "device_id", DRI_STRING))
       prime = strdup(driQueryOptionstr(&userInitOptions, "device_id"));
    driDestroyOptionCache(&userInitOptions);
@@ -338,23 +382,16 @@ loader_get_driver_for_fd(int fd)
          return strdup(driver);
    }
 
-   if (!loader_get_pci_id_for_fd(fd, &vendor_id, &chip_id)) {
-
-#if HAVE_LIBDRM
-      /* fallback to drmGetVersion(): */
-      drmVersionPtr version = drmGetVersion(fd);
-
-      if (!version) {
-         log_(_LOADER_WARNING, "failed to get driver name for fd %d\n", fd);
-         return NULL;
-      }
-
-      driver = strndup(version->name, version->name_len);
-      log_(_LOADER_INFO, "using driver %s for %d\n", driver, fd);
-
-      drmFreeVersion(version);
+#if defined(HAVE_LIBDRM) && defined(USE_DRICONF)
+   driver = loader_get_dri_config_driver(fd);
+   if (driver)
+      return driver;
 #endif
 
+   if (!loader_get_pci_id_for_fd(fd, &vendor_id, &chip_id)) {
+      driver = loader_get_kernel_driver_name(fd);
+      if (driver)
+         log_(_LOADER_INFO, "using driver %s for %d\n", driver, fd);
       return driver;
    }
 

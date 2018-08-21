@@ -40,11 +40,18 @@ extern char *program_invocation_name, *program_invocation_short_name;
 static const char *
 __getProgramName()
 {
-    char * arg = strrchr(program_invocation_name, '/');
-    if (arg)
-        return arg+1;
-    else
-        return program_invocation_name;
+   char * arg = strrchr(program_invocation_name, '/');
+   if (arg)
+      return arg+1;
+
+   /* If there was no '/' at all we likely have a windows like path from
+    * a wine application.
+    */
+   arg = strrchr(program_invocation_name, '\\');
+   if (arg)
+      return arg+1;
+
+   return program_invocation_name;
 }
 #    define GET_PROGRAM_NAME() __getProgramName()
 #elif defined(__CYGWIN__)

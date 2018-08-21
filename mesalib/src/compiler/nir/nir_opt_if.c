@@ -106,7 +106,7 @@ static bool
 opt_peel_loop_initial_if(nir_loop *loop)
 {
    nir_block *header_block = nir_loop_first_block(loop);
-   nir_block *prev_block =
+   MAYBE_UNUSED nir_block *prev_block =
       nir_cf_node_as_block(nir_cf_node_prev(&loop->cf_node));
 
    /* It would be insane if this were not true */

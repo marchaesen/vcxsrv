@@ -89,7 +89,7 @@ files_mesa_util = files(
   'vma.h',
 )
 
-install_data('drirc', install_dir : get_option('sysconfdir'))
+install_data('00-mesa-defaults.conf', install_dir : join_paths(get_option('datadir'), 'drirc.d'))
 
 files_xmlconfig = files(
   'xmlconfig.c',
@@ -122,6 +122,9 @@ libxmlconfig = static_library(
     c_msvc_compat_args, c_vis_args,
     '-DSYSCONFDIR="@0@"'.format(
       join_paths(get_option('prefix'), get_option('sysconfdir'))
+    ),
+    '-DDATADIR="@0@"'.format(
+      join_paths(get_option('prefix'), get_option('datadir'))
     ),
   ],
   build_by_default : false,

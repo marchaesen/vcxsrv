@@ -21,14 +21,6 @@ msgstr ""
 msgid "Debugging"
 msgstr "Debuggen"
 
-#: t_options.h:60
-msgid "Disable 3D acceleration"
-msgstr "3D versnelling uitschakelen"
-
-#: t_options.h:65
-msgid "Show performance boxes"
-msgstr "Laat prestatie boxjes zien"
-
 #: t_options.h:70
 msgid "Enable flushing batchbuffer after each draw call"
 msgstr ""
@@ -51,10 +43,6 @@ msgstr ""
 
 #: t_options.h:95
 msgid "Disable backslash-based line continuations in GLSL source"
-msgstr ""
-
-#: t_options.h:100
-msgid "Disable GL_ARB_shader_bit_encoding"
 msgstr ""
 
 #: t_options.h:105
@@ -97,13 +85,6 @@ msgstr "Initïele maximum waarde voor anisotrophische textuur filtering"
 #: t_options.h:148
 msgid "Forbid negative texture LOD bias"
 msgstr "Verbied negatief niveau detailonderscheid (LOD) van texturen"
-
-#: t_options.h:153
-msgid ""
-"Enable S3TC texture compression even if software support is not available"
-msgstr ""
-"Schakel S3TC textuurcompressie in, zelfs als softwareondersteuning niet "
-"aanwezig is"
 
 #: t_options.h:160
 msgid "Initial color reduction method"
@@ -248,44 +229,6 @@ msgid ""
 msgstr ""
 "Synchroniseer altijd met verticale verversing, de applicatie kiest het "
 "minimum omwisselingsinterval"
-
-#: t_options.h:276
-msgid "Use HyperZ to boost performance"
-msgstr "Gebruik HyperZ om de prestaties te verbeteren"
-
-#: t_options.h:281
-msgid "Number of texture units used"
-msgstr "Aantal textuureenheden in gebruik"
-
-#: t_options.h:286
-msgid "Texture filtering quality vs. speed, AKA “brilinear” texture filtering"
-msgstr ""
-"Textuurfilterkwaliteit versus -snelheid, ookwel bekend als “brilineaire” "
-"textuurfiltering"
-
-#: t_options.h:294
-msgid "Used types of texture memory"
-msgstr "Gebruikte soorten textuurgeheugen"
-
-#: t_options.h:295
-msgid "All available memory"
-msgstr "Al het beschikbaar geheugen"
-
-#: t_options.h:296
-msgid "Only card memory (if available)"
-msgstr "Alleen geheugen op de kaart (als het aanwezig is)"
-
-#: t_options.h:297
-msgid "Only GART (AGP/PCIE) memory (if available)"
-msgstr "Alleen GART (AGP/PCIE) geheugen (als het aanwezig is)"
-
-#: t_options.h:309
-msgid "Features that are not hardware-accelerated"
-msgstr "Eigenschappen die niet hardwareversneld zijn"
-
-#: t_options.h:313
-msgid "Enable extension GL_ARB_vertex_program"
-msgstr "Zet uitbreiding GL_ARB_vertex_program aan"
 
 #: t_options.h:323
 msgid "Miscellaneous"

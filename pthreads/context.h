@@ -62,7 +62,7 @@
 #endif
 
 #if defined(_ARM_) || defined(ARM) || defined(_M_ARM) || defined(_M_ARM64)
-#define PTW32_PROGCTR(Context)  ((Context).Pc)
+#define __PTW32_PROGCTR(Context)  ((Context).Pc)
 #endif
 
 #if !defined (__PTW32_PROGCTR)

@@ -21,14 +21,6 @@ msgstr ""
 msgid "Debugging"
 msgstr "Felsökning"
 
-#: t_options.h:60
-msgid "Disable 3D acceleration"
-msgstr "Inaktivera 3D-accelerering"
-
-#: t_options.h:65
-msgid "Show performance boxes"
-msgstr "Visa prestandarutor"
-
 #: t_options.h:70
 msgid "Enable flushing batchbuffer after each draw call"
 msgstr ""
@@ -51,10 +43,6 @@ msgstr ""
 
 #: t_options.h:95
 msgid "Disable backslash-based line continuations in GLSL source"
-msgstr ""
-
-#: t_options.h:100
-msgid "Disable GL_ARB_shader_bit_encoding"
 msgstr ""
 
 #: t_options.h:105
@@ -97,11 +85,6 @@ msgstr "Initialt maximalt värde för anisotropisk texturfiltrering"
 #: t_options.h:148
 msgid "Forbid negative texture LOD bias"
 msgstr "Förbjud negativ LOD-kompensation för texturer"
-
-#: t_options.h:153
-msgid ""
-"Enable S3TC texture compression even if software support is not available"
-msgstr "Aktivera S3TC-texturkomprimering även om programvarustöd saknas"
 
 #: t_options.h:160
 msgid "Initial color reduction method"
@@ -240,44 +223,6 @@ msgid ""
 msgstr ""
 "Synkronisera alltid med vertikal uppdatering, programmet väljer den minsta "
 "växlingsintervallen"
-
-#: t_options.h:276
-msgid "Use HyperZ to boost performance"
-msgstr "Använd HyperZ för att maximera prestandan"
-
-#: t_options.h:281
-msgid "Number of texture units used"
-msgstr "Antal använda texturenheter"
-
-#: t_options.h:286
-msgid "Texture filtering quality vs. speed, AKA “brilinear” texture filtering"
-msgstr ""
-"Texturfiltreringskvalitet mot hastighet, även kallad \"brilinear\"-"
-"texturfiltrering"
-
-#: t_options.h:294
-msgid "Used types of texture memory"
-msgstr "Använda typer av texturminne"
-
-#: t_options.h:295
-msgid "All available memory"
-msgstr "Allt tillgängligt minne"
-
-#: t_options.h:296
-msgid "Only card memory (if available)"
-msgstr "Endast kortminne (om tillgängligt)"
-
-#: t_options.h:297
-msgid "Only GART (AGP/PCIE) memory (if available)"
-msgstr "Endast GART-minne (AGP/PCIE) (om tillgängligt)"
-
-#: t_options.h:309
-msgid "Features that are not hardware-accelerated"
-msgstr "Funktioner som inte är hårdvaruaccelererade"
-
-#: t_options.h:313
-msgid "Enable extension GL_ARB_vertex_program"
-msgstr "Aktivera tillägget GL_ARB_vertex_program"
 
 #: t_options.h:323
 msgid "Miscellaneous"

@@ -628,7 +628,7 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
                pipeline = cmd_buffer->device->meta_state.fast_clear_flush.cmask_eliminate_pipeline;
 	}
 
-	if (radv_image_has_dcc(image)) {
+	if (!decompress_dcc && radv_image_has_dcc(image)) {
 		old_predicating = cmd_buffer->state.predicating;
 
 		radv_emit_set_predication_state_from_image(cmd_buffer, image, true);
@@ -696,7 +696,7 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 					&cmd_buffer->pool->alloc);
 
 	}
-	if (radv_image_has_dcc(image)) {
+	if (!decompress_dcc && radv_image_has_dcc(image)) {
 		cmd_buffer->state.predicating = old_predicating;
 
 		radv_emit_set_predication_state_from_image(cmd_buffer, image, false);

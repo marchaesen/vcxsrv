@@ -724,6 +724,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT_AEP(EXT_texture_cube_map_array),
    EXT(INTEL_conservative_rasterization),
    EXT(MESA_shader_integer_functions),
+   EXT(NV_fragment_shader_interlock),
    EXT(NV_image_formats),
 };
 
