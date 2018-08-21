@@ -1160,7 +1160,7 @@ endif
 if with_amd_vk or with_gallium_radeonsi
   _llvm_version = '>= 6.0.0'
 elif with_gallium_swr
-  _llvm_version = '>= 5.0.0'
+  _llvm_version = '>= 6.0.0'
 elif with_gallium_opencl or with_gallium_r600
   _llvm_version = '>= 3.9.0'
 else

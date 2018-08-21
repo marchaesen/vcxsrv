@@ -520,6 +520,12 @@ supports_arb_fragment_shader_interlock(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+supports_nv_fragment_shader_interlock(const _mesa_glsl_parse_state *state)
+{
+   return state->NV_fragment_shader_interlock_enable;
+}
+
+static bool
 shader_clock(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shader_clock_enable;
@@ -3329,6 +3335,18 @@ builtin_builder::create_builtins()
                 _invocation_interlock(
                    "__intrinsic_end_invocation_interlock",
                    supports_arb_fragment_shader_interlock),
+                NULL);
+
+   add_function("beginInvocationInterlockNV",
+                _invocation_interlock(
+                   "__intrinsic_begin_invocation_interlock",
+                   supports_nv_fragment_shader_interlock),
+                NULL);
+
+   add_function("endInvocationInterlockNV",
+                _invocation_interlock(
+                   "__intrinsic_end_invocation_interlock",
+                   supports_nv_fragment_shader_interlock),
                 NULL);
 
    add_function("anyInvocationARB",

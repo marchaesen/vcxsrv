@@ -1020,9 +1020,7 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->ARB_shading_language_420pack = GL_TRUE;
       extensions->ARB_texture_query_levels = GL_TRUE;
 
-      if (!options->disable_shader_bit_encoding) {
-         extensions->ARB_shader_bit_encoding = GL_TRUE;
-      }
+      extensions->ARB_shader_bit_encoding = GL_TRUE;
 
       extensions->EXT_shader_integer_mix = GL_TRUE;
       extensions->ARB_arrays_of_arrays = GL_TRUE;

@@ -872,7 +872,7 @@ FcStrIsAbsoluteFilename (const FcChar8 *s)
 {
 #ifdef _WIN32
     if (*s == '\\' ||
-	(isalpha (*s) && s[1] == ':' && (s[2] == '/' || s[2] == '\\'))
+	(isalpha (*s) && s[1] == ':' && (s[2] == '/' || s[2] == '\\')))
 	return FcTrue;
 #endif
     return *s == '/';

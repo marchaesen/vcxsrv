@@ -55,16 +55,6 @@
 DRI_CONF_SECTION_BEGIN \
 	DRI_CONF_DESC(en,gettext("Debugging"))
 
-#define DRI_CONF_NO_RAST(def) \
-DRI_CONF_OPT_BEGIN_B(no_rast, def) \
-        DRI_CONF_DESC(en,gettext("Disable 3D acceleration")) \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_PERFORMANCE_BOXES(def) \
-DRI_CONF_OPT_BEGIN_B(performance_boxes, def) \
-        DRI_CONF_DESC(en,gettext("Show performance boxes")) \
-DRI_CONF_OPT_END
-
 #define DRI_CONF_ALWAYS_FLUSH_BATCH(def) \
 DRI_CONF_OPT_BEGIN_B(always_flush_batch, def) \
         DRI_CONF_DESC(en,gettext("Enable flushing batchbuffer after each draw call")) \
@@ -98,11 +88,6 @@ DRI_CONF_OPT_END
 #define DRI_CONF_DISABLE_GLSL_LINE_CONTINUATIONS(def) \
 DRI_CONF_OPT_BEGIN_B(disable_glsl_line_continuations, def) \
         DRI_CONF_DESC(en,gettext("Disable backslash-based line continuations in GLSL source")) \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_DISABLE_SHADER_BIT_ENCODING(def) \
-DRI_CONF_OPT_BEGIN_B(disable_shader_bit_encoding, def) \
-        DRI_CONF_DESC(en,gettext("Disable GL_ARB_shader_bit_encoding")) \
 DRI_CONF_OPT_END
 
 #define DRI_CONF_FORCE_GLSL_VERSION(def) \
@@ -156,11 +141,6 @@ DRI_CONF_OPT_END
 #define DRI_CONF_SECTION_QUALITY \
 DRI_CONF_SECTION_BEGIN \
 	DRI_CONF_DESC(en,gettext("Image Quality"))
-
-#define DRI_CONF_EXCESS_MIPMAP(def) \
-DRI_CONF_OPT_BEGIN_B(excess_mipmap, def) \
-	DRI_CONF_DESC(en,"Enable extra mipmap level") \
-DRI_CONF_OPT_END
 
 #define DRI_CONF_TEXTURE_DEPTH_FB       0
 #define DRI_CONF_TEXTURE_DEPTH_32       1
@@ -307,35 +287,6 @@ DRI_CONF_OPT_BEGIN_V(vblank_mode,enum,def,"0:3") \
         DRI_CONF_DESC_END \
 DRI_CONF_OPT_END
 
-#define DRI_CONF_HYPERZ_DISABLED 0
-#define DRI_CONF_HYPERZ_ENABLED 1
-#define DRI_CONF_HYPERZ(def) \
-DRI_CONF_OPT_BEGIN_B(hyperz, def) \
-        DRI_CONF_DESC(en,gettext("Use HyperZ to boost performance")) \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_MAX_TEXTURE_UNITS(def,min,max) \
-DRI_CONF_OPT_BEGIN_V(texture_units,int,def, # min ":" # max ) \
-        DRI_CONF_DESC(en,gettext("Number of texture units used")) \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_TEXTURE_BLEND_QUALITY(def,range) \
-DRI_CONF_OPT_BEGIN_V(texture_blend_quality,float,def,range) \
-	DRI_CONF_DESC(en,gettext("Texture filtering quality vs. speed, AKA “brilinear” texture filtering")) \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_TEXTURE_HEAPS_ALL 0
-#define DRI_CONF_TEXTURE_HEAPS_CARD 1
-#define DRI_CONF_TEXTURE_HEAPS_GART 2
-#define DRI_CONF_TEXTURE_HEAPS(def) \
-DRI_CONF_OPT_BEGIN_V(texture_heaps,enum,def,"0:2") \
-	DRI_CONF_DESC_BEGIN(en,gettext("Used types of texture memory")) \
-		DRI_CONF_ENUM(0,gettext("All available memory")) \
-		DRI_CONF_ENUM(1,gettext("Only card memory (if available)")) \
-		DRI_CONF_ENUM(2,gettext("Only GART (AGP/PCIE) memory (if available)")) \
-	DRI_CONF_DESC_END \
-DRI_CONF_OPT_END
-
 #define DRI_CONF_MESA_GLTHREAD(def) \
 DRI_CONF_OPT_BEGIN_B(mesa_glthread, def) \
         DRI_CONF_DESC(en,gettext("Enable offloading GL driver work to a separate thread")) \
@@ -359,20 +310,6 @@ DRI_CONF_OPT_END
 #define DRI_CONF_DISABLE_SGI_VIDEO_SYNC(def) \
 DRI_CONF_OPT_BEGIN_B(glx_disable_sgi_video_sync, def) \
    DRI_CONF_DESC(en, gettext("Disable the GLX_SGI_video_sync extension")) \
-DRI_CONF_OPT_END
-
-
-/**
- * \brief Software-fallback options.  To allow using features (like
- * GL_ARB_vertex_program) on GPUs that don't otherwise support the feature.
- */
-#define DRI_CONF_SECTION_SOFTWARE \
-DRI_CONF_SECTION_BEGIN \
-        DRI_CONF_DESC(en,gettext("Features that are not hardware-accelerated"))
-
-#define DRI_CONF_ARB_VERTEX_PROGRAM(def) \
-DRI_CONF_OPT_BEGIN_B(arb_vertex_program, def) \
-        DRI_CONF_DESC(en,gettext("Enable extension GL_ARB_vertex_program")) \
 DRI_CONF_OPT_END
 
 
@@ -409,6 +346,11 @@ DRI_CONF_SECTION_BEGIN \
 #define DRI_CONF_DEVICE_ID_PATH_TAG(def) \
 DRI_CONF_OPT_BEGIN(device_id, string, def) \
         DRI_CONF_DESC(en,gettext("Define the graphic device to use if possible")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_DRI_DRIVER(def) \
+DRI_CONF_OPT_BEGIN(dri_driver, string, def) \
+        DRI_CONF_DESC(en,gettext("Override the DRI driver to load")) \
 DRI_CONF_OPT_END
 
 /**

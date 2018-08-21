@@ -9,6 +9,7 @@
 
 from __future__ import print_function
 
+import io
 import sys
 import gettext
 import re
@@ -187,11 +188,9 @@ print("/***********************************************************************\
 
 # Process the options template and generate options.h with all
 # translations.
-template = open (template_header_path, "rb")
+template = io.open (template_header_path, mode="rt", encoding='utf-8')
 descMatches = []
 for line in template:
-    line = line.decode('utf-8')
-
     if len(descMatches) > 0:
         matchENUM     = reENUM    .match (line)
         matchDESC_END = reDESC_END.match (line)
@@ -218,6 +217,11 @@ for line in template:
         assert len(descMatches) == 0
         descMatches = [matchDESC_BEGIN]
     else:
+        # In Python 2, stdout expects encoded byte strings, or else it will
+        # encode them with the ascii 'codec'
+        if sys.version_info.major == 2:
+           line = line.encode('utf-8')
+
         print(line, end='')
 
 template.close()

@@ -1450,10 +1450,12 @@ layout_qualifier_id:
                           "only valid in fragment shader input layout declaration.");
       } else if (pixel_interlock_ordered + pixel_interlock_unordered +
                  sample_interlock_ordered + sample_interlock_unordered > 0 &&
-                 !state->ARB_fragment_shader_interlock_enable) {
+                 !state->ARB_fragment_shader_interlock_enable &&
+                 !state->NV_fragment_shader_interlock_enable) {
          _mesa_glsl_error(& @1, state,
                           "interlock layout qualifier present, but the "
-                          "GL_ARB_fragment_shader_interlock extension is not "
+                          "GL_ARB_fragment_shader_interlock or "
+                          "GL_NV_fragment_shader_interlock extension is not "
                           "enabled.");
       } else {
          $$.flags.q.pixel_interlock_ordered = pixel_interlock_ordered;

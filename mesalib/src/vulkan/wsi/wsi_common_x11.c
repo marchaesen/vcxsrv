@@ -991,7 +991,7 @@ x11_manage_fifo_queues(void *state)
        * before that point so the client should be able to acquire any image
        * other than the currently presented one.
        */
-      uint32_t image_index;
+      uint32_t image_index = 0;
       result = wsi_queue_pull(&chain->present_queue, &image_index, INT64_MAX);
       assert(result != VK_TIMEOUT);
       if (result < 0) {

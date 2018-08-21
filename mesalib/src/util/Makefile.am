@@ -67,11 +67,13 @@ libxmlconfig_la_CFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
+	-DDATADIR=\"$(datadir)\" \
 	$(VISIBILITY_CFLAGS) \
 	$(EXPAT_CFLAGS)
 libxmlconfig_la_LIBADD = $(EXPAT_LIBS) -lm
 
-sysconf_DATA = drirc
+drircdir = $(datadir)/drirc.d
+drirc_DATA = 00-mesa-defaults.conf
 
 u_atomic_test_LDADD = libmesautil.la
 roundeven_test_LDADD = -lm
@@ -83,7 +85,7 @@ TESTS = $(check_PROGRAMS)
 BUILT_SOURCES = $(MESA_UTIL_GENERATED_FILES)
 CLEANFILES = $(BUILT_SOURCES)
 EXTRA_DIST = \
-	drirc \
+	00-mesa-defaults.conf \
 	format_srgb.py \
 	merge_driinfo.py \
 	SConscript \

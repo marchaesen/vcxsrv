@@ -26,7 +26,7 @@ git_sha1.h:
 
 BUILT_SOURCES = git_sha1.h
 CLEANFILES = $(BUILT_SOURCES)
-EXTRA_DIST = git_sha1.h.in meson.build
+EXTRA_DIST = git_sha1.h meson.build
 
 SUBDIRS = . gtest util mapi/glapi/gen mapi
 
