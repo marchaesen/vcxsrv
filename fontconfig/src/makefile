@@ -55,5 +55,5 @@ LIBRARY = libfontconfig
 
 INCLUDES := .. uuid $(OBJDIR) $(INCLUDES) $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include $(MHMAKECONF)\libxml2\include $(MHMAKECONF)\iconv\include
 
-load_makefile NORELDBG=1 makefile.srcs
+load_makefile IS64=0 NORELDBG=1 makefile.srcs
 

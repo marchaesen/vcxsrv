@@ -1,6 +1,9 @@
 ifneq ($(NORELDBG),1)
 $(error NORELDBG should have been set to 1)
 endif
+ifneq ($(IS64),0)
+$(error IS64 should have been set to 0, buld is independent on 64-bit)
+endif
 
 PUBLIC_FILES = \
 	..\fontconfig\fontconfig.h \
