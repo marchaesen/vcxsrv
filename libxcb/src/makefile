@@ -30,4 +30,4 @@ EXTHEADERS = $(XMLFILES:%.xml=%.h)
 
 $(EXTHEADERS) $(EXTSOURCES): c_client.py
 
-load_makefile NORELDBG=1 makefile.srcs
+load_makefile IS64=0 NORELDBG=1 makefile.srcs
