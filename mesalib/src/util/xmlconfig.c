@@ -38,7 +38,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <dirent.h>
+#ifndef _WIN32
 #include <fnmatch.h>
+#endif
 #include "xmlconfig.h"
 #include "u_process.h"
 
@@ -961,12 +963,15 @@ parseOneConfigFile(struct OptConfData *data, const char *filename)
 static int
 scandir_filter(const struct dirent *ent)
 {
+#ifdef _WIN32
+            if (PathMatchSpecA(ent->d_name, "*.conf"))
+#else
     if (ent->d_type != DT_REG && ent->d_type != DT_LNK)
        return 0;
 
     if (fnmatch("*.conf", ent->d_name, 0))
+#endif
        return 0;
-
     return 1;
 }
 

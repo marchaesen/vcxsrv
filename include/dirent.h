@@ -142,6 +142,9 @@
 extern "C" {
 #endif
 
+#ifndef PATH_MAX
+#define PATH_MAX 512
+#endif
 
 typedef struct dirent
 {
@@ -432,6 +435,12 @@ scandir (const char *dir,
   if (namelist)
     *namelist = nl;
   return count;
+}
+
+static int
+alphasort (const struct dirent **a, const struct dirent **b)
+{
+  return strcoll ((*a)->d_name, (*b)->d_name);
 }
 
 #ifdef __cplusplus
