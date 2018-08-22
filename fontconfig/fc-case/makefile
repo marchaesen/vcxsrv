@@ -6,7 +6,7 @@ INCLUDES+=..\src
 
 TMPL=fccase.tmpl.h
 STMPL=${TMPL}
-TARG=fccase.h
+TARG=$(OBJDIR)\fccase.h
 
 TTYAPP=fc-case
 
@@ -17,7 +17,7 @@ CASEFOLDING=CaseFolding.txt
 SCASEFOLDING=CaseFolding.txt
 
 DEFINES += HAVE_CONFIG_H
-INCLUDES := .. $(INCLUDES)
+INCLUDES := .. $(INCLUDES) $(OBJDIR)
 
 $(TARG): $(STMPL) $(OBJDIR)\fc-case.exe $(SCASEFOLDING)
 	del -e $(TARG)

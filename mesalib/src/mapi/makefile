@@ -28,5 +28,5 @@ CSRCS := $(CSRCS:%.h=)
 
 vpath %.c glapi
 
-load_makefile -f $(srcdir)/glapi/gen/makefile.srcs MESA_GLAPI_DIR=. NORELDBG=1
+load_makefile IS64=0 NORELDBG=1 $(srcdir)/glapi/gen/makefile.srcs
 

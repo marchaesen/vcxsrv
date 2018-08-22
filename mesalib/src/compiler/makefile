@@ -54,5 +54,5 @@ CSRCS := $(CSRCS:%.h=)
 vpath %.c glsl:spirv:nir:glsl/glcpp
 vpath %.cpp glsl
 
-load_makefile -f makefile.srcs NORELDBG=1
+load_makefile IS64=0 NORELDBG=1 makefile.srcs
 

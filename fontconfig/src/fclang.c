@@ -37,7 +37,7 @@ typedef struct {
     int end;
 } FcLangCharSetRange;
 
-#include "../fc-lang/fclang.h"
+#include "fclang.h"
 
 struct _FcLangSet {
     FcStrSet	*extra;

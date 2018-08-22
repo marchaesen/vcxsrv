@@ -29,6 +29,6 @@ vpath %.c main:math:vbo:tnl:swrast:swrast_setup:drivers/common:program
 
 vpath %.cpp main:program
 
-load_makefile -f makefile.srcs NORELDBG=1
-load_makefile -f ../mapi/glapi/gen/makefile.srcs NORELDBG=1
+load_makefile IS64=0 NORELDBG=1 MAKESERVER=0 makefile.srcs
+load_makefile IS64=0 NORELDBG=1 ../mapi/glapi/gen/makefile.srcs
 

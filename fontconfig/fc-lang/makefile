@@ -6,7 +6,7 @@ INCLUDES+=..\src
 
 TMPL=fclang.tmpl.h
 STMPL=fclang.tmpl.h
-TARG=fclang.h
+TARG=$(OBJDIR)\fclang.h
 
 TTYAPP=fc-lang
 
@@ -269,7 +269,7 @@ ORTH = \
 #	^-------------- Add new orth files here
 
 DEFINES += HAVE_CONFIG_H
-INCLUDES := .. $(INCLUDES)
+INCLUDES := .. $(INCLUDES) $(OBJDIR) ..\fc-case\$(OBJDIR)
 
 $(TARG):$(ORTH) $(OBJDIR)\fc-lang.exe $(STMPL)
 	del -e $(TARG)

@@ -53,7 +53,8 @@ CSRCS = \
 
 LIBRARY = libfontconfig
 
-INCLUDES := .. uuid $(OBJDIR) $(INCLUDES) $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include $(MHMAKECONF)\libxml2\include $(MHMAKECONF)\iconv\include
+INCLUDES := .. uuid $(OBJDIR) $(INCLUDES) $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include $(MHMAKECONF)\libxml2\include $(MHMAKECONF)\iconv\include \
+	..\fc-lang\$(OBJDIR)\..	..\fc-case\$(OBJDIR)\..
 
 load_makefile IS64=0 NORELDBG=1 makefile.srcs
 

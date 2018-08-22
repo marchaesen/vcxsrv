@@ -1,6 +1,12 @@
 ifneq ($(NORELDBG),1)
 $(error NORELDBG should have been set to 1)
 endif
+ifneq ($(IS64),0)
+$(error IS64 should have been set to 0, buld is independent on 64-bit)
+endif
+ifneq ($(MAKESERVER),0)
+$(error MAKESERVER may not be set)
+endif
 
 srcdir=.
 builddir=.
