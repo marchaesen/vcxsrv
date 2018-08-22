@@ -108,7 +108,7 @@ _XimFilterPropertyNotify(
     }
 
     lock = True;
-    for( ii = 0; ii < nitems; ii++, atoms ) {
+    for( ii = 0; ii < nitems; ii++ ) {
 	if(XGetSelectionOwner (display, atoms[ii])) {
 	    for( icb = callback_list; icb; icb = icb->next ) {
 		if( !icb->call  &&  !icb->destroy ) {

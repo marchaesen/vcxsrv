@@ -1,8 +1,8 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libX11], [1.6.5],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libX11])
+AC_INIT([libX11], [1.6.6],
+        [https://gitlab.freedesktop.org/xorg/lib/libx11/issues], [libX11])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([src/config.h include/X11/XlibConf.h])
 AC_CONFIG_MACRO_DIR([m4])

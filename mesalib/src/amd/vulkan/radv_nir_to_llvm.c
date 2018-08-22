@@ -402,10 +402,8 @@ get_tcs_out_current_patch_offset(struct radv_shader_context *ctx)
 	LLVMValueRef patch_stride = get_tcs_out_patch_stride(ctx);
 	LLVMValueRef rel_patch_id = get_rel_patch_id(ctx);
 
-	return LLVMBuildAdd(ctx->ac.builder, patch0_offset,
-			    LLVMBuildMul(ctx->ac.builder, patch_stride,
-					 rel_patch_id, ""),
-			    "");
+	return ac_build_imad(&ctx->ac, patch_stride, rel_patch_id,
+			     patch0_offset);
 }
 
 static LLVMValueRef
@@ -416,10 +414,8 @@ get_tcs_out_current_patch_data_offset(struct radv_shader_context *ctx)
 	LLVMValueRef patch_stride = get_tcs_out_patch_stride(ctx);
 	LLVMValueRef rel_patch_id = get_rel_patch_id(ctx);
 
-	return LLVMBuildAdd(ctx->ac.builder, patch0_patch_data_offset,
-			    LLVMBuildMul(ctx->ac.builder, patch_stride,
-					 rel_patch_id, ""),
-			    "");
+	return ac_build_imad(&ctx->ac, patch_stride, rel_patch_id,
+			     patch0_patch_data_offset);
 }
 
 #define MAX_ARGS 23
@@ -1230,9 +1226,8 @@ radv_load_resource(struct ac_shader_abi *abi, LLVMValueRef index,
 	} else
 		stride = LLVMConstInt(ctx->ac.i32, layout->binding[binding].size, false);
 
-	offset = LLVMConstInt(ctx->ac.i32, base_offset, false);
-	index = LLVMBuildMul(ctx->ac.builder, index, stride, "");
-	offset = LLVMBuildAdd(ctx->ac.builder, offset, index, "");
+	offset = ac_build_imad(&ctx->ac, index, stride,
+			       LLVMConstInt(ctx->ac.i32, base_offset, false));
 
 	desc_ptr = ac_build_gep0(&ctx->ac, desc_ptr, offset);
 	desc_ptr = ac_cast_ptr(&ctx->ac, desc_ptr, ctx->ac.v4i32);
@@ -1297,11 +1292,8 @@ static LLVMValueRef get_tcs_tes_buffer_address(struct radv_shader_context *ctx,
 	constant16 = LLVMConstInt(ctx->ac.i32, 16, false);
 	param_stride = calc_param_stride(ctx, vertex_index);
 	if (vertex_index) {
-		base_addr = LLVMBuildMul(ctx->ac.builder, rel_patch_id,
-		                         vertices_per_patch, "");
-
-		base_addr = LLVMBuildAdd(ctx->ac.builder, base_addr,
-		                         vertex_index, "");
+		base_addr = ac_build_imad(&ctx->ac, rel_patch_id,
+					  vertices_per_patch, vertex_index);
 	} else {
 		base_addr = rel_patch_id;
 	}
