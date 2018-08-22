@@ -69,15 +69,20 @@ char **XGetFontPath(
 	    /*
 	     * unpack into null terminated strings.
 	     */
-	    chend = ch + (nbytes + 1);
-	    length = *ch;
+	    chend = ch + nbytes;
+	    length = *(unsigned char *)ch;
 	    for (i = 0; i < rep.nPaths; i++) {
 		if (ch + length < chend) {
 		    flist[i] = ch+1;  /* skip over length */
 		    ch += length + 1; /* find next length ... */
-		    length = *ch;
+		    length = *(unsigned char *)ch;
 		    *ch = '\0'; /* and replace with null-termination */
 		    count++;
+		} else if (i == 0) {
+		    Xfree(flist);
+		    Xfree(ch);
+		    flist = NULL;
+		    break;
 		} else
 		    flist[i] = NULL;
 	    }

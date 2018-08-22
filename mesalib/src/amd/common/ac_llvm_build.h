@@ -133,6 +133,7 @@ ac_build_phi(struct ac_llvm_context *ctx, LLVMTypeRef type,
 	     unsigned count_incoming, LLVMValueRef *values,
 	     LLVMBasicBlockRef *blocks);
 
+void ac_build_s_barrier(struct ac_llvm_context *ctx);
 void ac_build_optimization_barrier(struct ac_llvm_context *ctx,
 				   LLVMValueRef *pvgpr);
 
@@ -397,6 +398,10 @@ void ac_build_kill_if_false(struct ac_llvm_context *ctx, LLVMValueRef i1);
 LLVMValueRef ac_build_bfe(struct ac_llvm_context *ctx, LLVMValueRef input,
 			  LLVMValueRef offset, LLVMValueRef width,
 			  bool is_signed);
+LLVMValueRef ac_build_imad(struct ac_llvm_context *ctx, LLVMValueRef s0,
+			   LLVMValueRef s1, LLVMValueRef s2);
+LLVMValueRef ac_build_fmad(struct ac_llvm_context *ctx, LLVMValueRef s0,
+			   LLVMValueRef s1, LLVMValueRef s2);
 
 void ac_build_waitcnt(struct ac_llvm_context *ctx, unsigned simm16);
 

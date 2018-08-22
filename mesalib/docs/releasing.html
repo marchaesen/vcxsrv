@@ -492,10 +492,10 @@ Here is one solution that I've been using.
 	# Drop LLVM_CONFIG, if applicable:
 	# unset LLVM_CONFIG
 
-	__glxinfo_cmd='glxinfo 2>&amp;1 | egrep -o "Mesa.*|Gallium.*|.*dri\.so"'
-	__glxgears_cmd='glxgears 2>&amp;1 | grep -v "configuration file"'
-	__es2info_cmd='es2_info 2>&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
-	__es2gears_cmd='es2gears_x11 2>&amp;1 | grep -v "configuration file"'
+	__glxinfo_cmd='glxinfo 2&gt;&amp;1 | egrep -o "Mesa.*|Gallium.*|.*dri\.so"'
+	__glxgears_cmd='glxgears 2&gt;&amp;1 | grep -v "configuration file"'
+	__es2info_cmd='es2_info 2&gt;&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
+	__es2gears_cmd='es2gears_x11 2&gt;&amp;1 | grep -v "configuration file"'
 	test "x$LD_LIBRARY_PATH" != 'x' &amp;&amp; __old_ld="$LD_LIBRARY_PATH"
 	export LD_LIBRARY_PATH=`pwd`/test/usr/local/lib/:"${__old_ld}"
 	export LIBGL_DRIVERS_PATH=`pwd`/test/usr/local/lib/dri/

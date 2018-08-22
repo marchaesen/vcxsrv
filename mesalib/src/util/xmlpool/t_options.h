@@ -53,7 +53,7 @@
  */
 #define DRI_CONF_SECTION_DEBUG \
 DRI_CONF_SECTION_BEGIN \
-	DRI_CONF_DESC(en,gettext("Debugging"))
+        DRI_CONF_DESC(en,gettext("Debugging"))
 
 #define DRI_CONF_ALWAYS_FLUSH_BATCH(def) \
 DRI_CONF_OPT_BEGIN_B(always_flush_batch, def) \
@@ -67,7 +67,7 @@ DRI_CONF_OPT_END
 
 #define DRI_CONF_DISABLE_THROTTLING(def) \
 DRI_CONF_OPT_BEGIN_B(disable_throttling, def) \
-	DRI_CONF_DESC(en,gettext("Disable throttling on first batch after flush")) \
+        DRI_CONF_DESC(en,gettext("Disable throttling on first batch after flush")) \
 DRI_CONF_OPT_END
 
 #define DRI_CONF_FORCE_GLSL_EXTENSIONS_WARN(def) \
@@ -140,7 +140,7 @@ DRI_CONF_OPT_END
  */
 #define DRI_CONF_SECTION_QUALITY \
 DRI_CONF_SECTION_BEGIN \
-	DRI_CONF_DESC(en,gettext("Image Quality"))
+        DRI_CONF_DESC(en,gettext("Image Quality"))
 
 #define DRI_CONF_TEXTURE_DEPTH_FB       0
 #define DRI_CONF_TEXTURE_DEPTH_32       1
@@ -148,7 +148,7 @@ DRI_CONF_SECTION_BEGIN \
 #define DRI_CONF_TEXTURE_DEPTH_FORCE_16 3
 #define DRI_CONF_TEXTURE_DEPTH(def) \
 DRI_CONF_OPT_BEGIN_V(texture_depth,enum,def,"0:3") \
-	DRI_CONF_DESC_BEGIN(en,gettext("Texture color depth")) \
+        DRI_CONF_DESC_BEGIN(en,gettext("Texture color depth")) \
                 DRI_CONF_ENUM(0,gettext("Prefer frame buffer color depth")) \
                 DRI_CONF_ENUM(1,gettext("Prefer 32 bits per texel")) \
                 DRI_CONF_ENUM(2,gettext("Prefer 16 bits per texel")) \
@@ -185,7 +185,7 @@ DRI_CONF_OPT_END
 #define DRI_CONF_ROUND_ROUND 1
 #define DRI_CONF_ROUND_MODE(def) \
 DRI_CONF_OPT_BEGIN_V(round_mode,enum,def,"0:1") \
-	DRI_CONF_DESC_BEGIN(en,gettext("Color rounding method")) \
+        DRI_CONF_DESC_BEGIN(en,gettext("Color rounding method")) \
                 DRI_CONF_ENUM(0,gettext("Round color components downward")) \
                 DRI_CONF_ENUM(1,gettext("Round to nearest color")) \
         DRI_CONF_DESC_END \
@@ -196,7 +196,7 @@ DRI_CONF_OPT_END
 #define DRI_CONF_DITHER_ORDERED 2
 #define DRI_CONF_DITHER_MODE(def) \
 DRI_CONF_OPT_BEGIN_V(dither_mode,enum,def,"0:2") \
-	DRI_CONF_DESC_BEGIN(en,gettext("Color dithering method")) \
+        DRI_CONF_DESC_BEGIN(en,gettext("Color dithering method")) \
                 DRI_CONF_ENUM(0,gettext("Horizontal error diffusion")) \
                 DRI_CONF_ENUM(1,gettext("Horizontal error diffusion, reset error at line start")) \
                 DRI_CONF_ENUM(2,gettext("Ordered 2D color dithering")) \

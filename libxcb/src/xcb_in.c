@@ -958,8 +958,20 @@ void _xcb_in_replies_done(xcb_connection_t *c)
         pend = container_of(c->in.pending_replies_tail, struct pending_reply, next);
         if(pend->workaround == WORKAROUND_EXTERNAL_SOCKET_OWNER)
         {
-            pend->last_request = c->out.request;
-            pend->workaround = WORKAROUND_NONE;
+            if (XCB_SEQUENCE_COMPARE(pend->first_request, <=, c->out.request)) {
+                pend->last_request = c->out.request;
+                pend->workaround = WORKAROUND_NONE;
+            } else {
+                /* The socket was taken, but no requests were actually sent
+                 * so just discard the pending_reply that was created.
+                 */
+                struct pending_reply **prev_next = &c->in.pending_replies;
+                while (*prev_next != pend)
+                    prev_next = &(*prev_next)->next;
+                *prev_next = NULL;
+                c->in.pending_replies_tail = prev_next;
+                free(pend);
+            }
         }
     }
 }

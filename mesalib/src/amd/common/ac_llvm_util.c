@@ -149,16 +149,13 @@ static LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
 	char features[256];
 	const char *triple = (tm_options & AC_TM_SUPPORTS_SPILL) ? "amdgcn-mesa-mesa3d" : "amdgcn--";
 	LLVMTargetRef target = ac_get_llvm_target(triple);
-	bool barrier_does_waitcnt = (tm_options & AC_TM_AUTO_WAITCNT_BEFORE_BARRIER) &&
-				    family != CHIP_VEGA20;
 
 	snprintf(features, sizeof(features),
-		 "+DumpCode,+vgpr-spilling,-fp32-denormals,+fp64-denormals%s%s%s%s%s",
+		 "+DumpCode,+vgpr-spilling,-fp32-denormals,+fp64-denormals%s%s%s%s",
 		 tm_options & AC_TM_SISCHED ? ",+si-scheduler" : "",
 		 tm_options & AC_TM_FORCE_ENABLE_XNACK ? ",+xnack" : "",
 		 tm_options & AC_TM_FORCE_DISABLE_XNACK ? ",-xnack" : "",
-		 tm_options & AC_TM_PROMOTE_ALLOCA_TO_SCRATCH ? ",-promote-alloca" : "",
-		 barrier_does_waitcnt ? ",+auto-waitcnt-before-barrier" : "");
+		 tm_options & AC_TM_PROMOTE_ALLOCA_TO_SCRATCH ? ",-promote-alloca" : "");
 	
 	LLVMTargetMachineRef tm = LLVMCreateTargetMachine(
 	                             target,

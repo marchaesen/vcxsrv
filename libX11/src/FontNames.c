@@ -88,24 +88,16 @@ int *actualCount)	/* RETURN */
 	 * unpack into null terminated strings.
 	 */
 	chstart = ch;
-	chend = ch + (rlen + 1);
+	chend = ch + rlen;
 	length = *(unsigned char *)ch;
 	*ch = 1; /* make sure it is non-zero for XFreeFontNames */
 	for (i = 0; i < rep.nFonts; i++) {
 	    if (ch + length < chend) {
 		flist[i] = ch + 1;  /* skip over length */
 		ch += length + 1;  /* find next length ... */
-		if (ch <= chend) {
-		    length = *(unsigned char *)ch;
-		    *ch = '\0';  /* and replace with null-termination */
-		    count++;
-		} else {
-                    Xfree(chstart);
-                    Xfree(flist);
-                    flist = NULL;
-                    count = 0;
-                    break;
-		}
+		length = *(unsigned char *)ch;
+		*ch = '\0';  /* and replace with null-termination */
+		count++;
 	    } else {
                 Xfree(chstart);
                 Xfree(flist);

@@ -65,7 +65,6 @@ enum ac_target_machine_options {
 	AC_TM_CHECK_IR = (1 << 5),
 	AC_TM_ENABLE_GLOBAL_ISEL = (1 << 6),
 	AC_TM_CREATE_LOW_OPT = (1 << 7),
-	AC_TM_AUTO_WAITCNT_BEFORE_BARRIER = (1 << 8),
 };
 
 enum ac_float_mode {

@@ -387,8 +387,14 @@ int xcb_take_socket(xcb_connection_t *c, void (*return_socket)(void *closure), v
     {
         c->out.return_socket = return_socket;
         c->out.socket_closure = closure;
-        if(flags)
-            _xcb_in_expect_reply(c, c->out.request, WORKAROUND_EXTERNAL_SOCKET_OWNER, flags);
+        if(flags) {
+            /* c->out.request + 1 will be the first request sent by the external
+             * socket owner. If the socket is returned before this request is sent
+             * it will be detected in _xcb_in_replies_done and this pending_reply
+             * will be discarded.
+             */
+            _xcb_in_expect_reply(c, c->out.request + 1, WORKAROUND_EXTERNAL_SOCKET_OWNER, flags);
+        }
         assert(c->out.request == c->out.request_written);
         *sent = c->out.request;
     }
