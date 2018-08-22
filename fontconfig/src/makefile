@@ -53,19 +53,7 @@ CSRCS = \
 
 LIBRARY = libfontconfig
 
-PUBLIC_FILES = \
-	..\fontconfig\fontconfig.h \
-	fcdeprecate.h \
-	..\fontconfig\fcprivate.h
-
-PUBLIC_FT_FILES = \
-	..\fontconfig\fcfreetype.h
-
 INCLUDES := .. uuid $(OBJDIR) $(INCLUDES) $(MHMAKECONF)\freetype\include\freetype $(MHMAKECONF)\freetype\include $(MHMAKECONF)\libxml2\include $(MHMAKECONF)\iconv\include
 
-fcalias.h fcaliastail.h: makealias.py $(PUBLIC_FILES)
-	python makealias.py . fcalias.h fcaliastail.h $(PUBLIC_FILES)
-
-fcftalias.h fcftaliastail.h: makealias.py $(PUBLIC_FT_FILES)
-	python makealias.py . fcftalias.h fcftaliastail.h $(PUBLIC_FT_FILES)
+load_makefile NORELDBG=1 makefile.srcs
 
