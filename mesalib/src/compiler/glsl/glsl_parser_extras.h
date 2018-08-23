@@ -808,12 +808,16 @@ struct _mesa_glsl_parse_state {
    bool EXT_texture_cube_map_array_warn;
    bool INTEL_conservative_rasterization_enable;
    bool INTEL_conservative_rasterization_warn;
+   bool INTEL_shader_atomic_float_minmax_enable;
+   bool INTEL_shader_atomic_float_minmax_warn;
    bool MESA_shader_integer_functions_enable;
    bool MESA_shader_integer_functions_warn;
    bool NV_fragment_shader_interlock_enable;
    bool NV_fragment_shader_interlock_warn;
    bool NV_image_formats_enable;
    bool NV_image_formats_warn;
+   bool NV_shader_atomic_float_enable;
+   bool NV_shader_atomic_float_warn;
    /*@}*/
 
    /** Extensions supported by the OpenGL implementation. */

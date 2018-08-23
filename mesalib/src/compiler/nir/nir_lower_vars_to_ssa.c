@@ -206,6 +206,12 @@ get_deref_node_recur(nir_deref_instr *deref,
 static struct deref_node *
 get_deref_node(nir_deref_instr *deref, struct lower_variables_state *state)
 {
+   /* This pass only works on local variables.  Just ignore any derefs with
+    * a non-local mode.
+    */
+   if (deref->mode != nir_var_local)
+      return NULL;
+
    struct deref_node *node = get_deref_node_recur(deref, state);
    if (!node)
       return NULL;
@@ -506,6 +512,9 @@ rename_variables(struct lower_variables_state *state)
          switch (intrin->intrinsic) {
          case nir_intrinsic_load_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+            if (deref->mode != nir_var_local)
+               continue;
+
             struct deref_node *node = get_deref_node(deref, state);
             if (node == NULL) {
                /* If we hit this path then we are referencing an invalid
@@ -553,6 +562,9 @@ rename_variables(struct lower_variables_state *state)
 
          case nir_intrinsic_store_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+            if (deref->mode != nir_var_local)
+               continue;
+
             struct deref_node *node = get_deref_node(deref, state);
 
             assert(intrin->src[1].is_ssa);
@@ -678,10 +690,8 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
       assert(path->path[0]->deref_type == nir_deref_type_var);
       nir_variable *var = path->path[0]->var;
 
-      if (var->data.mode != nir_var_local) {
-         exec_node_remove(&node->direct_derefs_link);
-         continue;
-      }
+      /* We don't build deref nodes for non-local variables */
+      assert(var->data.mode == nir_var_local);
 
       if (path_may_be_aliased(path, &state)) {
          exec_node_remove(&node->direct_derefs_link);

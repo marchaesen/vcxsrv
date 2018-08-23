@@ -60,7 +60,7 @@ radv_device_get_cache_uuid(enum radeon_family family, void *uuid)
 	memcpy(uuid, &mesa_timestamp, 4);
 	memcpy((char*)uuid + 4, &llvm_timestamp, 4);
 	memcpy((char*)uuid + 8, &f, 2);
-	snprintf((char*)uuid + 10, VK_UUID_SIZE - 10, "radv");
+	snprintf((char*)uuid + 10, VK_UUID_SIZE - 10, "radv%zd", sizeof(void *));
 	return 0;
 }
 

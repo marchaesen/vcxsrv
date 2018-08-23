@@ -1641,7 +1641,10 @@ nir_index_blocks(nir_function_impl *impl)
       block->index = index++;
    }
 
-   impl->num_blocks = index;
+   /* The end_block isn't really part of the program, which is why its index
+    * is >= num_blocks.
+    */
+   impl->num_blocks = impl->end_block->index = index;
 }
 
 static bool

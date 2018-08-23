@@ -1163,7 +1163,8 @@ static LLVMValueRef lower_gather4_integer(struct ac_llvm_context *ctx,
 					  struct ac_image_args *args,
 					  const nir_tex_instr *instr)
 {
-	enum glsl_base_type stype = glsl_get_sampler_result_type(var->type);
+	const struct glsl_type *type = glsl_without_array(var->type);
+	enum glsl_base_type stype = glsl_get_sampler_result_type(type);
 	LLVMValueRef half_texel[2];
 	LLVMValueRef compare_cube_wa = NULL;
 	LLVMValueRef result;
@@ -1348,7 +1349,8 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 	if (instr->op == nir_texop_tg4 && ctx->ac.chip_class <= VI) {
 		nir_deref_instr *texture_deref_instr = get_tex_texture_deref(instr);
 		nir_variable *var = nir_deref_instr_get_variable(texture_deref_instr);
-		enum glsl_base_type stype = glsl_get_sampler_result_type(var->type);
+		const struct glsl_type *type = glsl_without_array(var->type);
+		enum glsl_base_type stype = glsl_get_sampler_result_type(type);
 		if (stype == GLSL_TYPE_UINT || stype == GLSL_TYPE_INT) {
 			return lower_gather4_integer(&ctx->ac, var, args, instr);
 		}
@@ -2534,10 +2536,6 @@ static LLVMValueRef visit_image_size(struct ac_nir_context *ctx,
 	}
 	return res;
 }
-
-#define NOOP_WAITCNT 0xf7f
-#define LGKM_CNT 0x07f
-#define VM_CNT 0xf70
 
 static void emit_membar(struct ac_llvm_context *ac,
 			const nir_intrinsic_instr *instr)

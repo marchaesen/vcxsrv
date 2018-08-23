@@ -234,15 +234,12 @@ radv_builtin_cache_path(char *path)
 	const char *suffix2 = "/.cache/radv_builtin_shaders";
 	struct passwd pwd, *result;
 	char path2[PATH_MAX + 1]; /* PATH_MAX is not a real max,but suffices here. */
+	int ret;
 
 	if (xdg_cache_home) {
-
-		if (strlen(xdg_cache_home) + strlen(suffix) > PATH_MAX)
-			return false;
-
-		strcpy(path, xdg_cache_home);
-		strcat(path, suffix);
-		return true;
+		ret = snprintf(path, PATH_MAX + 1, "%s%s%zd",
+			       xdg_cache_home, suffix, sizeof(void *) * 8);
+		return ret > 0 && ret < PATH_MAX + 1;
 	}
 
 	getpwuid_r(getuid(), &pwd, path2, PATH_MAX - strlen(suffix2), &result);
@@ -253,8 +250,9 @@ radv_builtin_cache_path(char *path)
 	strcat(path, "/.cache");
 	mkdir(path, 0755);
 
-	strcat(path, suffix);
-	return true;
+	ret = snprintf(path, PATH_MAX + 1, "%s%s%zd",
+		       pwd.pw_dir, suffix2, sizeof(void *) * 8);
+	return ret > 0 && ret < PATH_MAX + 1;
 }
 
 static bool

@@ -45,11 +45,12 @@ AC_DEFUN([AX_CHECK_PYTHON_MAKO_MODULE],
 try:
     import sys
     import mako
+    import distutils.version
 except ImportError as err:
     sys.exit(err)
 else:
-    ver_req = map(int, '$1'.split('.'))
-    ver_act = map(int, mako.__version__.split('.'))
+    ver_req = distutils.version.LooseVersion('$1')
+    ver_act = distutils.version.LooseVersion(mako.__version__)
     sys.exit(int(ver_req > ver_act))
     " | $PYTHON2 -
 

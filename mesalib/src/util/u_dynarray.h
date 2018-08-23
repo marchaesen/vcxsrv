@@ -102,6 +102,15 @@ util_dynarray_resize(struct util_dynarray *buf, unsigned newsize)
    return p;
 }
 
+static inline void
+util_dynarray_clone(struct util_dynarray *buf, void *mem_ctx,
+                    struct util_dynarray *from_buf)
+{
+   util_dynarray_init(buf, mem_ctx);
+   util_dynarray_resize(buf, from_buf->size);
+   memcpy(buf->data, from_buf->data, from_buf->size);
+}
+
 static inline void *
 util_dynarray_grow(struct util_dynarray *buf, int diff)
 {

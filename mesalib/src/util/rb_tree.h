@@ -227,6 +227,30 @@ struct rb_node *rb_node_next(struct rb_node *node);
 /** Get the next previous (to the left) in the tree or NULL */
 struct rb_node *rb_node_prev(struct rb_node *node);
 
+/** Get the next node if available or the same node again.
+ *
+ * \param   type    The type of the containing data structure
+ *
+ * \param   node    The variable name for current node in the iteration;
+ *                  this will be declared as a pointer to \p type
+ *
+ * \param   field   The rb_node field in containing data structure
+ */
+#define rb_tree_node_next_if_available(type, node, field) \
+   (&node->field != NULL) ? rb_node_data(type, rb_node_next(&node->field), field) : node
+
+/** Get the previous node if available or the same node again.
+ *
+ * \param   type    The type of the containing data structure
+ *
+ * \param   node    The variable name for current node in the iteration;
+ *                  this will be declared as a pointer to \p type
+ *
+ * \param   field   The rb_node field in containing data structure
+ */
+#define rb_tree_node_prev_if_available(type, node, field) \
+   (&node->field != NULL) ? rb_node_data(type, rb_node_prev(&node->field), field) : node
+
 /** Iterate over the nodes in the tree
  *
  * \param   type    The type of the containing data structure
@@ -243,6 +267,23 @@ struct rb_node *rb_node_prev(struct rb_node *node);
         &node->field != NULL; \
         node = rb_node_data(type, rb_node_next(&node->field), field))
 
+/** Iterate over the nodes in the tree, allowing the current node to be freed
+ *
+ * \param   type    The type of the containing data structure
+ *
+ * \param   node    The variable name for current node in the iteration;
+ *                  this will be declared as a pointer to \p type
+ *
+ * \param   T       The red-black tree
+ *
+ * \param   field   The rb_node field in containing data structure
+ */
+#define rb_tree_foreach_safe(type, node, T, field) \
+   for (type *node = rb_node_data(type, rb_tree_first(T), field), \
+           *__next = rb_tree_node_next_if_available(type, node, field); \
+        &node->field != NULL; \
+        node = __next, __next = rb_tree_node_next_if_available(type, node, field))
+
 /** Iterate over the nodes in the tree in reverse
  *
  * \param   type    The type of the containing data structure
@@ -258,6 +299,23 @@ struct rb_node *rb_node_prev(struct rb_node *node);
    for (type *node = rb_node_data(type, rb_tree_last(T), field); \
         &node->field != NULL; \
         node = rb_node_data(type, rb_node_prev(&node->field), field))
+
+/** Iterate over the nodes in the tree in reverse, allowing the current node to be freed
+ *
+ * \param   type    The type of the containing data structure
+ *
+ * \param   node    The variable name for current node in the iteration;
+ *                  this will be declared as a pointer to \p type
+ *
+ * \param   T       The red-black tree
+ *
+ * \param   field   The rb_node field in containing data structure
+ */
+#define rb_tree_foreach_rev_safe(type, node, T, field) \
+   for (type *node = rb_node_data(type, rb_tree_last(T), field), \
+           *__prev = rb_tree_node_prev_if_available(type, node, field);  \
+        &node->field != NULL; \
+        node = __prev, __prev = rb_tree_node_prev_if_available(type, node, field))
 
 /** Validate a red-black tree
  *

@@ -295,7 +295,7 @@ option(
   'tools',
   type : 'array',
   value : [],
-  choices : ['freedreno', 'glsl', 'intel', 'nir', 'nouveau', 'xvmc', 'all'],
+  choices : ['freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'all'],
   description : 'List of tools to build.',
 )
 option(

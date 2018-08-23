@@ -313,6 +313,7 @@ EXT(INGR_blend_func_separate                , EXT_blend_func_separate           
 
 EXT(INTEL_conservative_rasterization        , INTEL_conservative_rasterization       ,  x , GLC,  x ,  31, 2013)
 EXT(INTEL_performance_query                 , INTEL_performance_query                , GLL, GLC,  x , ES2, 2013)
+EXT(INTEL_shader_atomic_float_minmax        , INTEL_shader_atomic_float_minmax       , GLL, GLC,  x ,  x , 2018)
 
 EXT(KHR_blend_equation_advanced             , KHR_blend_equation_advanced            , GLL, GLC,  x , ES2, 2014)
 EXT(KHR_blend_equation_advanced_coherent    , KHR_blend_equation_advanced_coherent   , GLL, GLC,  x , ES2, 2014)
@@ -357,6 +358,7 @@ EXT(NV_read_depth                           , dummy_true                        
 EXT(NV_read_depth_stencil                   , dummy_true                             ,  x ,  x ,  x , ES2, 2011)
 EXT(NV_read_stencil                         , dummy_true                             ,  x ,  x ,  x , ES2, 2011)
 EXT(NV_sample_locations                     , ARB_sample_locations                   , GLL, GLC,  x , ES2, 2015)
+EXT(NV_shader_atomic_float                  , NV_shader_atomic_float                 , GLL, GLC,  x ,  x , 2012)
 EXT(NV_texgen_reflection                    , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(NV_texture_barrier                      , NV_texture_barrier                     , GLL, GLC,  x ,  x , 2009)
 EXT(NV_texture_env_combine4                 , NV_texture_env_combine4                , GLL,  x ,  x ,  x , 1999)
