@@ -149,8 +149,9 @@ typedef struct {
 
 /**
  * Denotes button capability on a device.
- * Struct is followed by num_buttons * Atom that names the buttons in the
- * device-native setup (i.e. ignoring button mappings).
+ * Struct is followed by a button bit-mask (padded to four byte chunks) and
+ * then num_buttons * Atom that names the buttons in the device-native setup
+ * (i.e.  ignoring button mappings).
  */
 typedef struct {
     uint16_t    type;           /**< Always ButtonClass */

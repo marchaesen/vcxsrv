@@ -4,16 +4,16 @@
 
 
 /*****************************************************************************
-Copyright 1987, 1988, 1989, 1990, 1991, 1994 by Digital Equipment Corp., 
+Copyright 1987, 1988, 1989, 1990, 1991, 1994 by Digital Equipment Corp.,
 Maynard, MA
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -53,7 +53,7 @@ XETC *XECreateTC (Display *dpy , CARD32 valuemask , XETCValues *value );
 int XEChangeTC (XETC *tc , CARD32 mask , XETCValues *values );
 void XEFreeTC (XETC *tc );
 int XETrapSetMaxPacket (XETC *tc , Bool set_flag , CARD16 size );
-int XETrapSetCommandKey (XETC *tc , Bool set_flag , KeySym cmd_key , 
+int XETrapSetCommandKey (XETC *tc , Bool set_flag , KeySym cmd_key ,
     Bool mod_flag );
 int XETrapSetTimestamps (XETC *tc , Bool set_flag , Bool delta_flag );
 int XETrapSetWinXY (XETC *tc , Bool set_flag );
@@ -64,7 +64,7 @@ int XETrapSetGrabServer (XETC *tc , Bool set_flag );
 int XETrapSetStatistics (XETC *tc , Bool set_flag );
 int XETrapSetRequests (XETC *tc , Bool set_flag , ReqFlags requests );
 int XETrapSetEvents (XETC *tc , Bool set_flag , EventFlags events );
-Bool XESetCmdGateState (XETC *tc , CARD8 type, Bool *gate_closed , 
+Bool XESetCmdGateState (XETC *tc , CARD8 type, Bool *gate_closed ,
     CARD8 *next_key , Bool *key_ignore );
 
 /* XERqsts.c */
@@ -75,17 +75,17 @@ int XEGetLastInpTimeRequest (XETC *tc , XETrapGetLastInpTimeRep *ret );
 int XEGetAvailableRequest (XETC *tc , XETrapGetAvailRep *ret );
 int XEStartTrapRequest (XETC *tc );
 int XEStopTrapRequest (XETC *tc );
-int XESimulateXEventRequest (XETC *tc , CARD8 type , CARD8 detail , 
+int XESimulateXEventRequest (XETC *tc , CARD8 type , CARD8 detail ,
     CARD16 x , CARD16 y , CARD8 screen );
 int XEGetCurrentRequest (XETC *tc , XETrapGetCurRep *ret );
 int XEGetStatisticsRequest (XETC *tc , XETrapGetStatsRep *ret );
 
 /* XECallBcks.c */
 int XEAddRequestCB (XETC *tc , CARD8 req , void_function func , BYTE *data );
-int XEAddRequestCBs (XETC *tc , ReqFlags req_flags , void_function func , 
+int XEAddRequestCBs (XETC *tc , ReqFlags req_flags , void_function func ,
     BYTE *data );
 int XEAddEventCB (XETC *tc , CARD8 evt , void_function func , BYTE *data );
-int XEAddEventCBs (XETC *tc , EventFlags evt_flags , void_function func , 
+int XEAddEventCBs (XETC *tc , EventFlags evt_flags , void_function func ,
     BYTE *data );
 
 /* The following seem to never be used.  Perhaps they should be removed */

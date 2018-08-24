@@ -21,5 +21,6 @@ if [ -d mesa             ]; then  pushd mesa            > /dev/null ; echo "mesa
 if [ -d putty            ]; then  pushd putty           > /dev/null ; echo "putty           " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d pthreads         ]; then  pushd pthreads        > /dev/null ; echo "pthreads        " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d EGL-Registry     ]; then  pushd EGL-Registry    > /dev/null ; echo "EGL-Registry    " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d xorgproto        ]; then  pushd xorgproto       > /dev/null ; echo "xorgproto       " `git log | head -n1`; popd > /dev/null ; fi
 
 

@@ -56,7 +56,7 @@ Bool XF86RushUnlockPixmap(
     Display *		/* dpy */,
     int			/* screen */,
     Pixmap		/* Pixmap */
-); 
+);
 
 Bool XF86RushUnlockAllPixmaps(
     Display *		/* dpy */

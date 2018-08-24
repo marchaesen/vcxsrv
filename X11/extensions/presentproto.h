@@ -210,7 +210,7 @@ typedef struct {
     Window window B32;
     Pixmap pixmap B32;
     CARD32 serial B32;
-    
+
     /* 32-byte boundary */
 
     Region valid_region B32;

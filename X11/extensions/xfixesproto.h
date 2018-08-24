@@ -72,7 +72,7 @@ typedef struct {
     CARD16  length B16;
 } xXFixesReq;
 
-/* 
+/*
  * requests and replies
  */
 typedef struct {
@@ -310,7 +310,7 @@ typedef struct {
 } xXFixesTranslateRegionReq;
 
 #define sz_xXFixesTranslateRegionReq	12
-    
+
 typedef struct {
     CARD8   reqType;
     CARD8   xfixesReqType;

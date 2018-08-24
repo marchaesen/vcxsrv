@@ -3,16 +3,16 @@
 #define __XTRAPEMACROS__ "@(#)xtrapemacros.h	1.9 - 90/09/18  "
 
 /*****************************************************************************
-Copyright 1987, 1988, 1989, 1990, 1991, 1994 by Digital Equipment Corp., 
+Copyright 1987, 1988, 1989, 1990, 1991, 1994 by Digital Equipment Corp.,
 Maynard, MA
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -37,7 +37,7 @@ SOFTWARE.
  *      Ken Miller
  *
  *  DESCRIPTION:
- *      This include file is designed to provide the *visible* 
+ *      This include file is designed to provide the *visible*
  *      interface to XTrap data structures.  Fields can be set
  *      using these macros by client programs unless otherwise
  *      specified; however, use of Trap Context convenience

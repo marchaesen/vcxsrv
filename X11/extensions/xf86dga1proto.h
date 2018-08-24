@@ -46,7 +46,7 @@ typedef struct _XF86DGAInstallColormap{
     CARD8	dgaReqType;
     CARD16	length B16;
     CARD16	screen B16;
-    CARD16	pad2; 
+    CARD16	pad2;
     CARD32	id B32;  /* colormap. */
 } xXF86DGAInstallColormapReq;
 #define sz_xXF86DGAInstallColormapReq        12

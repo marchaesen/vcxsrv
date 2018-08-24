@@ -73,7 +73,7 @@ struct __GLXvisualConfigRec {
 ** we require 2 words across the wire. In order to maintain backwards
 ** compatibility, we need to send the total number of words that the
 ** VisualConfigs are sent back in so old libraries can simply "ignore"
-** the new properties. 
+** the new properties.
 */
 #define __GLX_TOTAL_CONFIG       (__GLX_MIN_CONFIG_PROPS +      \
                                     2 * __GLX_EXT_CONFIG_PROPS)
@@ -98,7 +98,7 @@ struct __GLXFBConfigRec {
 
     int visualSelectGroup;	/* visuals grouped by select priority */
 
-    unsigned int id;          
+    unsigned int id;
 
     GLboolean rgbMode;
     GLboolean colorIndexMode;

@@ -2,7 +2,7 @@
 # define  _XW32DEFS_H
 
 # ifdef __GNUC__ /* mingw is more close to unix than msvc */
-#  if !defined(__daddr_t_defined) 
+#  if !defined(__daddr_t_defined)
 typedef char *caddr_t;
 #  endif
 #  define lstat stat

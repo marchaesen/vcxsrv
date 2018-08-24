@@ -42,7 +42,7 @@ typedef struct {
 typedef struct _XF86MiscGetSaver {
     CARD8       reqType;                /* always XF86MiscReqCode */
     CARD8       xf86miscReqType;     /* always X_XF86MiscGetSaver */
-    CARD16      length B16; 
+    CARD16      length B16;
     CARD16      screen B16;
     CARD16      pad B16;
 } xXF86MiscGetSaverReq;

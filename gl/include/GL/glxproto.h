@@ -1303,7 +1303,7 @@ typedef struct {
  *      CARD32 versions[4] = { 2, 1, 3, 0 };
  *
  * says that the client supports OpenGL 2.1 and OpenGL 3.0.
- * 
+ *
  * These are followed by \c numGLExtensionBytes bytes of \c STRING8 containing
  * the OpenGL extension string supported by the client and up to 3 bytes of
  * padding.
@@ -1744,7 +1744,7 @@ typedef struct {
  * order:
  *     - Render or RenderLarge header
  *     - CompressedTexImage header
- * 
+ *
  * When a \c glCompressedTexImage1D call is made, the \c height field is
  * not examined by the server and is considered padding.
  */
@@ -1786,7 +1786,7 @@ typedef struct {
  * order:
  *     - Render or RenderLarge header
  *     - CompressedTexSubImage header
- * 
+ *
  * When a \c glCompressedTexSubImage1D call is made, the \c yoffset and
  * \c height fields are not examined by the server and are considered padding.
  */
@@ -2105,7 +2105,7 @@ typedef struct {
 #define GLX_VIDEO_SOURCE_TYPE	3
 #define GLX_PBUFFER_TYPE	4
 /* 5 is for DM_PBUFFER */
-#define GLX_GLXWINDOW_TYPE	6	
+#define GLX_GLXWINDOW_TYPE	6
 
 /*****************************************************************************/
 

@@ -66,9 +66,9 @@ typedef struct {
    int imageHeight;
    int pixmapWidth;	/* Xlib accessible portion (pixels) */
    int pixmapHeight;	/* both fields ignored if no concurrent access */
-   int bytesPerScanline; 
+   int bytesPerScanline;
    int byteOrder;	/* MSBFirst, LSBFirst */
-   int depth;		
+   int depth;
    int bitsPerPixel;
    unsigned long redMask;
    unsigned long greenMask;

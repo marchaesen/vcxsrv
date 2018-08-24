@@ -1,6 +1,6 @@
 /************************************************************
 
-Copyright (c) 2004, Sun Microsystems, Inc. 
+Copyright (c) 2004, Sun Microsystems, Inc.
 
 Permission to use, copy, modify, distribute, and sell this software and its
 documentation for any purpose is hereby granted without fee, provided that
@@ -27,7 +27,7 @@ in this Software without prior written authorization from The Open Group.
 /*
  * lge.h - Looking Glass Extension Definitions
  */
- 
+
 #ifndef _LGEWIRE_H
 #define _LGEWIRE_H
 
@@ -36,7 +36,7 @@ in this Software without prior written authorization from The Open Group.
 #define LGE_NAME "LGE"
 
 /* Current interface version numbers */
-#define LGE_MAJOR_VERSION   5      
+#define LGE_MAJOR_VERSION   5
 #define LGE_MINOR_VERSION   0
 
 /* Display Server is alive */
@@ -52,7 +52,7 @@ in this Software without prior written authorization from The Open Group.
 #define LGE_CLIENT_EVENT_DELIVERER   2
 
 typedef struct {
-    CARD8       reqType;		
+    CARD8       reqType;
     CARD8       lgeReqType;
     CARD16	length B16;
 } xLgeQueryVersionReq;
@@ -61,7 +61,7 @@ typedef struct {
 
 typedef struct {
     /* Always X_Reply */
-    BYTE        type;			
+    BYTE        type;
     CARD8       unused;
     CARD16	sequenceNumber B16;
     CARD32	length B32;
@@ -91,28 +91,28 @@ typedef struct {
     CARD8  lgeReqType;
     CARD16 length B16;
     /* The pseudo-root window of the screen */
-    Window prw;  
+    Window prw;
 } xLgeRegisterScreenReq;
 
 #define sz_xLgeRegisterScreenReq sizeof(xLgeRegisterScreenReq)
 
-typedef struct {                                            
-    CARD8     reqType;                                               
-    CARD8     lgeReqType;                                          
-    CARD16    length B16;                                            
+typedef struct {
+    CARD8     reqType;
+    CARD8     lgeReqType;
+    CARD16    length B16;
     BOOL      enable;
     CARD8     pad1;
     CARD16    pad2 B16;
-} xLgeControlLgModeReq;                                                       
+} xLgeControlLgModeReq;
 
 #define sz_xLgeControlLgModeReq sizeof(xLgeControlLgModeReq)
 
-typedef struct {                                            
-    CARD8     reqType;                                               
-    CARD8     lgeReqType;                                          
-    CARD16    length B16;                                            
-    xEvent    event;                                                 
-} xLgeSendEventReq;                                                       
+typedef struct {
+    CARD8     reqType;
+    CARD8     lgeReqType;
+    CARD16    length B16;
+    xEvent    event;
+} xLgeSendEventReq;
 
 #define sz_xLgeSendEventReq sizeof(xLgeSendEventReq)
 

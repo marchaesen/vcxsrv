@@ -34,7 +34,7 @@ The Open Group.
  */
 
 #undef _XFree86Server
-#ifdef XFree86Server 
+#ifdef XFree86Server
 # define _XFree86Server
 # undef XFree86Server
 #endif

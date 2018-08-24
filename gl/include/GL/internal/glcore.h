@@ -58,11 +58,11 @@ typedef struct __GLcontextRec __GLcontext;
  * kept around in the context so that values can be used during
  * command execution, and for returning information about the
  * context to the application.
- * 
+ *
  * Instances of this structure are shared by the driver and the loader.  To
  * maintain binary compatability, new fields \b must be added only to the
  * end of the structure.
- * 
+ *
  * \sa _gl_context_modes_create
  */
 typedef struct __GLcontextModesRec {
@@ -95,7 +95,7 @@ typedef struct __GLcontextModesRec {
 
     /* GLX */
     GLint visualID;
-    GLint visualType;     /**< One of the GLX X visual types. (i.e., 
+    GLint visualType;     /**< One of the GLX X visual types. (i.e.,
 			   * \c GLX_TRUE_COLOR, etc.)
 			   */
 

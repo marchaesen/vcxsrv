@@ -1,6 +1,6 @@
 /*
  * Copyright 1990, 1991 Network Computing Devices;
- * Portions Copyright 1987 by Digital Equipment Corporation 
+ * Portions Copyright 1987 by Digital Equipment Corporation
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -9,8 +9,8 @@
  * documentation, and that the names of Network Computing Devices or Digital
  * not be used in advertising or publicity pertaining to distribution
  * of the software without specific, written prior permission.
- * Network Computing Devices and Digital make no representations 
- * about the suitability of this software for any purpose.  It is provided 
+ * Network Computing Devices and Digital make no representations
+ * about the suitability of this software for any purpose.  It is provided
  * "as is" without express or implied warranty.
  *
  * NETWORK COMPUTING DEVICES AND DIGITAL DISCLAIM ALL WARRANTIES WITH

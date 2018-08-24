@@ -52,7 +52,7 @@ typedef struct {
     CARD16  length B16;
 } xDamageReq;
 
-/* 
+/*
  * requests and replies
  */
 

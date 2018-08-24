@@ -52,7 +52,7 @@
 #define Region CARD32
 #define Pixmap CARD32
 
-/* 
+/*
  * requests and replies
  */
 typedef struct {

@@ -73,7 +73,7 @@ xclock-1.0.7
 xhost-1.0.7
 xkbcomp git version
 xkeyboard-config git version
-xorgproto-2018.4
+xorgproto git version
 xrdb git version
 xserver git version
 xtrans git version

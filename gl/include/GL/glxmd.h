@@ -45,7 +45,7 @@ typedef double FLOAT64;
 /*
 ** Like B32, but this is used to store floats in a request.
 **
-** NOTE: Machines that have a native 32-bit IEEE float can define this as 
+** NOTE: Machines that have a native 32-bit IEEE float can define this as
 **       nothing.  Machines that don't might mimic the float with an integer,
 **       and then define this to :32.
 */

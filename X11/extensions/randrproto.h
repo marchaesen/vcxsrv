@@ -68,7 +68,7 @@ typedef struct {
 } xScreenSizes;
 #define sz_xScreenSizes 8
 
-/* 
+/*
  * requests and replies
  */
 
@@ -103,7 +103,7 @@ typedef struct {
 } xRRGetScreenInfoReq;
 #define sz_xRRGetScreenInfoReq   8
 
-/* 
+/*
  * the xRRScreenInfoReply structure is followed by:
  *
  * the size information
@@ -158,7 +158,7 @@ typedef struct {
     CARD8   status;
     CARD16  sequenceNumber B16;
     CARD32  length B32;
-    Time    newTimestamp B32;  
+    Time    newTimestamp B32;
     Time    newConfigTimestamp B32;
     Window  root;
     CARD16  subpixelOrder B16;
@@ -292,7 +292,7 @@ typedef struct {
     CARD8	randrReqType;
     CARD16	length B16;
     RROutput	output B32;
-} xRRListOutputPropertiesReq; 
+} xRRListOutputPropertiesReq;
 #define sz_xRRListOutputPropertiesReq	8
 
 typedef struct {
@@ -316,7 +316,7 @@ typedef struct {
     CARD16	length B16;
     RROutput	output B32;
     Atom	property B32;
-} xRRQueryOutputPropertyReq; 
+} xRRQueryOutputPropertyReq;
 #define sz_xRRQueryOutputPropertyReq	12
 
 typedef struct {
@@ -345,7 +345,7 @@ typedef struct {
     BOOL	pending;
     BOOL	range;
     CARD16	pad B16;
-} xRRConfigureOutputPropertyReq; 
+} xRRConfigureOutputPropertyReq;
 #define sz_xRRConfigureOutputPropertyReq	16
 
 typedef struct {
@@ -410,7 +410,7 @@ typedef struct {
     CARD16	length B16;
     Window	window B32;
     xRRModeInfo	modeInfo;
-} xRRCreateModeReq; 
+} xRRCreateModeReq;
 #define sz_xRRCreateModeReq		40
 
 typedef struct {
@@ -459,7 +459,7 @@ typedef struct {
     CARD16	length B16;
     RRCrtc	crtc B32;
     Time	configTimestamp B32;
-} xRRGetCrtcInfoReq; 
+} xRRGetCrtcInfoReq;
 #define sz_xRRGetCrtcInfoReq		12
 
 typedef struct {
@@ -492,7 +492,7 @@ typedef struct {
     RRMode	mode B32;
     Rotation	rotation B16;
     CARD16	pad B16;
-} xRRSetCrtcConfigReq; 
+} xRRSetCrtcConfigReq;
 #define sz_xRRSetCrtcConfigReq		28
 
 typedef struct {
@@ -514,7 +514,7 @@ typedef struct {
     CARD8	randrReqType;
     CARD16	length B16;
     RRCrtc	crtc B32;
-} xRRGetCrtcGammaSizeReq; 
+} xRRGetCrtcGammaSizeReq;
 #define sz_xRRGetCrtcGammaSizeReq	8
 
 typedef struct {
@@ -537,7 +537,7 @@ typedef struct {
     CARD8	randrReqType;
     CARD16	length B16;
     RRCrtc	crtc B32;
-} xRRGetCrtcGammaReq; 
+} xRRGetCrtcGammaReq;
 #define sz_xRRGetCrtcGammaReq		8
 
 typedef struct {
@@ -724,7 +724,7 @@ typedef struct {
     CARD8	randrReqType;
     CARD16	length B16;
     RRProvider	provider B32;
-} xRRListProviderPropertiesReq; 
+} xRRListProviderPropertiesReq;
 #define sz_xRRListProviderPropertiesReq	8
 
 typedef struct {
@@ -748,7 +748,7 @@ typedef struct {
     CARD16	length B16;
     RRProvider	provider B32;
     Atom	property B32;
-} xRRQueryProviderPropertyReq; 
+} xRRQueryProviderPropertyReq;
 #define sz_xRRQueryProviderPropertyReq	12
 
 typedef struct {
@@ -777,7 +777,7 @@ typedef struct {
     BOOL	pending;
     BOOL	range;
     CARD16	pad B16;
-} xRRConfigureProviderPropertyReq; 
+} xRRConfigureProviderPropertyReq;
 #define sz_xRRConfigureProviderPropertyReq	16
 
 typedef struct {
@@ -1010,7 +1010,7 @@ typedef struct {
     CARD8	randrReqType;
     CARD16	length B16;
     RRCrtc	crtc B32;
-} xRRGetPanningReq; 
+} xRRGetPanningReq;
 #define sz_xRRGetPanningReq		8
 
 typedef struct {
@@ -1052,7 +1052,7 @@ typedef struct {
     INT16	border_top B16;
     INT16	border_right B16;
     INT16	border_bottom B16;
-} xRRSetPanningReq; 
+} xRRSetPanningReq;
 #define sz_xRRSetPanningReq		36
 
 typedef struct {
@@ -1126,6 +1126,7 @@ typedef struct {
 } xRRDeleteMonitorReq;
 #define sz_xRRDeleteMonitorReq	12
 
+#undef RRLease
 #undef RRModeFlags
 #undef RRCrtc
 #undef RRMode

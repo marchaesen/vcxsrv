@@ -22,7 +22,7 @@ authorization from The XFree86 Project Inc..
 */
 
 /**
- ** Types definitions shared between server and clients 
+ ** Types definitions shared between server and clients
  **/
 
 #ifndef _XDEFS_H
@@ -30,7 +30,7 @@ authorization from The XFree86 Project Inc..
 
 #ifdef _XSERVER64
 #include <X11/Xmd.h>
-#endif 
+#endif
 
 #ifndef _XTYPEDEF_ATOM
 #  define _XTYPEDEF_ATOM
@@ -96,7 +96,7 @@ typedef CARD32 FSID;
 
 typedef FSID AccContext;
 
-/* OS independent time value 
+/* OS independent time value
    XXX Should probably go in Xos.h */
 typedef struct timeval **OSTimePtr;
 

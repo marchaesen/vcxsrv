@@ -264,14 +264,14 @@ extern "C" {
 #define GLX_FRONT_EXT                      GLX_FRONT_LEFT_EXT
 #define GLX_BACK_EXT                       GLX_BACK_LEFT_EXT
 #define GLX_AUX0_EXT                       0x20E2
-#define GLX_AUX1_EXT                       0x20E3 
-#define GLX_AUX2_EXT                       0x20E4 
-#define GLX_AUX3_EXT                       0x20E5 
-#define GLX_AUX4_EXT                       0x20E6 
-#define GLX_AUX5_EXT                       0x20E7 
+#define GLX_AUX1_EXT                       0x20E3
+#define GLX_AUX2_EXT                       0x20E4
+#define GLX_AUX3_EXT                       0x20E5
+#define GLX_AUX4_EXT                       0x20E6
+#define GLX_AUX5_EXT                       0x20E7
 #define GLX_AUX6_EXT                       0x20E8
-#define GLX_AUX7_EXT                       0x20E9 
-#define GLX_AUX8_EXT                       0x20EA 
+#define GLX_AUX7_EXT                       0x20E9
+#define GLX_AUX8_EXT                       0x20EA
 #define GLX_AUX9_EXT                       0x20EB
 
 /*
