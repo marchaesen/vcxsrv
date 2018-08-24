@@ -57,6 +57,10 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
    case nir_intrinsic_ssbo_atomic_xor:
    case nir_intrinsic_ssbo_atomic_exchange:
    case nir_intrinsic_ssbo_atomic_comp_swap:
+   case nir_intrinsic_ssbo_atomic_fadd:
+   case nir_intrinsic_ssbo_atomic_fmin:
+   case nir_intrinsic_ssbo_atomic_fmax:
+   case nir_intrinsic_ssbo_atomic_fcomp_swap:
    case nir_intrinsic_store_ssbo:
    case nir_intrinsic_load_ssbo:
    case nir_intrinsic_get_buffer_size:
@@ -139,7 +143,8 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
       new_instr->src[0] = nir_src_for_ssa(buffer);
       nir_src_copy(&new_instr->src[1], &instr->src[0], new_instr);
       nir_src_copy(&new_instr->src[2], &instr->src[1], new_instr);
-      if (op == nir_intrinsic_ssbo_atomic_comp_swap)
+      if (op == nir_intrinsic_ssbo_atomic_comp_swap ||
+          op == nir_intrinsic_ssbo_atomic_fcomp_swap)
          nir_src_copy(&new_instr->src[3], &instr->src[2], new_instr);
       break;
    }

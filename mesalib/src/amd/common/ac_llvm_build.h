@@ -43,6 +43,12 @@ enum {
 	AC_CONST_32BIT_ADDR_SPACE = 6, /* same as CONST, but the pointer type has 32 bits */
 };
 
+/* Combine these with & instead of |. */
+#define NOOP_WAITCNT	0xcf7f
+#define LGKM_CNT	0xc07f
+#define EXP_CNT		0xcf0f
+#define VM_CNT		0x0f70 /* On GFX9, vmcnt has 6 bits in [0:3] and [14:15] */
+
 struct ac_llvm_flow;
 
 struct ac_llvm_context {

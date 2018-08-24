@@ -259,9 +259,6 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		 */
 		NIR_PASS_V(nir, nir_lower_constant_initializers, nir_var_shader_out);
 
-		NIR_PASS_V(nir, nir_remove_dead_variables,
-		           nir_var_shader_in | nir_var_shader_out | nir_var_system_value);
-
 		/* Now that we've deleted all but the main function, we can go ahead and
 		 * lower the rest of the constant initializers.
 		 */
@@ -272,6 +269,9 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		 */
 		NIR_PASS_V(nir, nir_split_var_copies);
 		NIR_PASS_V(nir, nir_split_per_member_structs);
+
+		NIR_PASS_V(nir, nir_remove_dead_variables,
+		           nir_var_shader_in | nir_var_shader_out | nir_var_system_value);
 
 		NIR_PASS_V(nir, nir_lower_system_values);
 		NIR_PASS_V(nir, nir_lower_clip_cull_distance_arrays);

@@ -353,7 +353,8 @@ lower_shared_reference_visitor::lower_shared_atomic_intrinsic(ir_call *ir)
           inst->ir_type == ir_type_swizzle);
 
    ir_rvalue *deref = (ir_rvalue *) inst;
-   assert(deref->type->is_scalar() && deref->type->is_integer());
+   assert(deref->type->is_scalar() &&
+          (deref->type->is_integer() || deref->type->is_float()));
 
    ir_variable *var = deref->variable_referenced();
    assert(var);
@@ -389,8 +390,7 @@ lower_shared_reference_visitor::lower_shared_atomic_intrinsic(ir_call *ir)
       ir_variable(glsl_type::uint_type, "offset" , ir_var_function_in);
    sig_params.push_tail(sig_param);
 
-   const glsl_type *type = deref->type->base_type == GLSL_TYPE_INT ?
-      glsl_type::int_type : glsl_type::uint_type;
+   const glsl_type *type = deref->type->get_scalar_type();
    sig_param = new(mem_ctx)
          ir_variable(type, "data1", ir_var_function_in);
    sig_params.push_tail(sig_param);

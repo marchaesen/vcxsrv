@@ -1517,7 +1517,7 @@ wsi_register_vblank_event(struct wsi_display_fence *fence,
                                      flags,
                                      frame_requested,
                                      frame_queued,
-                                     (uint64_t) fence);
+                                     (uintptr_t) fence);
 
       if (!ret)
          return VK_SUCCESS;
@@ -2342,7 +2342,7 @@ wsi_get_randr_output_display(VkPhysicalDevice physical_device,
    if (connector)
       *display = wsi_display_connector_to_handle(connector);
    else
-      *display = NULL;
+      *display = VK_NULL_HANDLE;
    return VK_SUCCESS;
 }
 

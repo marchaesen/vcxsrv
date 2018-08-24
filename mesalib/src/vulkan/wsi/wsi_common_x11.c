@@ -1325,7 +1325,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
     * mode which provokes reallocation when anything changes, to make
     * sure we have the most optimal allocation.
     */
-   struct x11_swapchain *old_chain = (void *) pCreateInfo->oldSwapchain;
+   struct x11_swapchain *old_chain = (void *)(intptr_t) pCreateInfo->oldSwapchain;
    if (old_chain)
       chain->last_present_mode = old_chain->last_present_mode;
    else

@@ -36,6 +36,8 @@
 
 #include "addrcommon.h"
 
+#include "util/macros.h"
+
 using namespace Addr;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -832,7 +834,7 @@ BOOL_32 ADDR_API ElemGetExportNorm(
     Addr::Lib* pLib = Lib::GetLib(hLib);
     BOOL_32 enabled = FALSE;
 
-    ADDR_E_RETURNCODE returnCode = ADDR_OK;
+    MAYBE_UNUSED ADDR_E_RETURNCODE returnCode = ADDR_OK;
 
     if (pLib != NULL)
     {

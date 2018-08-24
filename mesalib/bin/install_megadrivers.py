@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # encoding=utf-8
 # Copyright © 2017-2018 Intel Corporation
 

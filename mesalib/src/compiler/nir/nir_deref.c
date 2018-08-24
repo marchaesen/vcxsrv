@@ -270,3 +270,115 @@ nir_fixup_deref_modes(nir_shader *shader)
       }
    }
 }
+
+/** Returns true if the storage referrenced to by deref completely contains
+ * the storage referenced by sub.
+ */
+nir_deref_compare_result
+nir_compare_deref_paths(nir_deref_path *a_path,
+                        nir_deref_path *b_path)
+{
+   if (a_path->path[0]->var != b_path->path[0]->var)
+      return 0;
+
+   /* Start off assuming they fully compare.  We ignore equality for now.  In
+    * the end, we'll determine that by containment.
+    */
+   nir_deref_compare_result result = nir_derefs_may_alias_bit |
+                                     nir_derefs_a_contains_b_bit |
+                                     nir_derefs_b_contains_a_bit;
+
+   nir_deref_instr **a_p = &a_path->path[1];
+   nir_deref_instr **b_p = &b_path->path[1];
+   while (*a_p != NULL && *b_p != NULL) {
+      nir_deref_instr *a_tail = *(a_p++);
+      nir_deref_instr *b_tail = *(b_p++);
+
+      if (a_tail == b_tail)
+         continue;
+
+      switch (a_tail->deref_type) {
+      case nir_deref_type_array:
+      case nir_deref_type_array_wildcard: {
+         assert(b_tail->deref_type == nir_deref_type_array ||
+                b_tail->deref_type == nir_deref_type_array_wildcard);
+
+         if (a_tail->deref_type == nir_deref_type_array_wildcard) {
+            if (b_tail->deref_type != nir_deref_type_array_wildcard)
+               result &= ~nir_derefs_b_contains_a_bit;
+         } else if (b_tail->deref_type == nir_deref_type_array_wildcard) {
+            if (a_tail->deref_type != nir_deref_type_array_wildcard)
+               result &= ~nir_derefs_a_contains_b_bit;
+         } else {
+            assert(a_tail->deref_type == nir_deref_type_array &&
+                   b_tail->deref_type == nir_deref_type_array);
+            assert(a_tail->arr.index.is_ssa && b_tail->arr.index.is_ssa);
+
+            nir_const_value *a_index_const =
+               nir_src_as_const_value(a_tail->arr.index);
+            nir_const_value *b_index_const =
+               nir_src_as_const_value(b_tail->arr.index);
+            if (a_index_const && b_index_const) {
+               /* If they're both direct and have different offsets, they
+                * don't even alias much less anything else.
+                */
+               if (a_index_const->u32[0] != b_index_const->u32[0])
+                  return 0;
+            } else if (a_tail->arr.index.ssa == b_tail->arr.index.ssa) {
+               /* They're the same indirect, continue on */
+            } else {
+               /* They're not the same index so we can't prove anything about
+                * containment.
+                */
+               result &= ~(nir_derefs_a_contains_b_bit | nir_derefs_b_contains_a_bit);
+            }
+         }
+         break;
+      }
+
+      case nir_deref_type_struct: {
+         /* If they're different struct members, they don't even alias */
+         if (a_tail->strct.index != b_tail->strct.index)
+            return 0;
+         break;
+      }
+
+      default:
+         unreachable("Invalid deref type");
+      }
+   }
+
+   /* If a is longer than b, then it can't contain b */
+   if (*a_p != NULL)
+      result &= ~nir_derefs_a_contains_b_bit;
+   if (*b_p != NULL)
+      result &= ~nir_derefs_b_contains_a_bit;
+
+   /* If a contains b and b contains a they must be equal. */
+   if ((result & nir_derefs_a_contains_b_bit) && (result & nir_derefs_b_contains_a_bit))
+      result |= nir_derefs_equal_bit;
+
+   return result;
+}
+
+nir_deref_compare_result
+nir_compare_derefs(nir_deref_instr *a, nir_deref_instr *b)
+{
+   if (a == b) {
+      return nir_derefs_equal_bit | nir_derefs_may_alias_bit |
+             nir_derefs_a_contains_b_bit | nir_derefs_b_contains_a_bit;
+   }
+
+   nir_deref_path a_path, b_path;
+   nir_deref_path_init(&a_path, a, NULL);
+   nir_deref_path_init(&b_path, b, NULL);
+   assert(a_path.path[0]->deref_type == nir_deref_type_var);
+   assert(b_path.path[0]->deref_type == nir_deref_type_var);
+
+   nir_deref_compare_result result = nir_compare_deref_paths(&a_path, &b_path);
+
+   nir_deref_path_finish(&a_path);
+   nir_deref_path_finish(&b_path);
+
+   return result;
+}

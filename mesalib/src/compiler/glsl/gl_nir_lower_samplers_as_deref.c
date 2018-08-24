@@ -240,6 +240,7 @@ lower_intrinsic(nir_intrinsic_instr *instr,
        instr->intrinsic == nir_intrinsic_image_deref_atomic_xor ||
        instr->intrinsic == nir_intrinsic_image_deref_atomic_exchange ||
        instr->intrinsic == nir_intrinsic_image_deref_atomic_comp_swap ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_fadd ||
        instr->intrinsic == nir_intrinsic_image_deref_size) {
 
       b->cursor = nir_before_instr(&instr->instr);

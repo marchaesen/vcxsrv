@@ -114,125 +114,6 @@ copy_entry_remove(struct copy_prop_var_state *state, struct copy_entry *entry)
    list_add(&entry->link, &state->copy_free_list);
 }
 
-enum deref_compare_result {
-   derefs_equal_bit = (1 << 0),
-   derefs_may_alias_bit = (1 << 1),
-   derefs_a_contains_b_bit = (1 << 2),
-   derefs_b_contains_a_bit = (1 << 3),
-};
-
-/** Returns true if the storage referrenced to by deref completely contains
- * the storage referenced by sub.
- *
- * NOTE: This is fairly general and could be moved to core NIR if someone else
- * ever needs it.
- */
-static enum deref_compare_result
-compare_deref_paths(nir_deref_path *a_path,
-                    nir_deref_path *b_path)
-{
-   if (a_path->path[0]->var != b_path->path[0]->var)
-      return 0;
-
-   /* Start off assuming they fully compare.  We ignore equality for now.  In
-    * the end, we'll determine that by containment.
-    */
-   enum deref_compare_result result = derefs_may_alias_bit |
-                                      derefs_a_contains_b_bit |
-                                      derefs_b_contains_a_bit;
-
-   nir_deref_instr **a_p = &a_path->path[1];
-   nir_deref_instr **b_p = &b_path->path[1];
-   while (*a_p != NULL && *b_p != NULL) {
-      nir_deref_instr *a_tail = *(a_p++);
-      nir_deref_instr *b_tail = *(b_p++);
-
-      switch (a_tail->deref_type) {
-      case nir_deref_type_array:
-      case nir_deref_type_array_wildcard: {
-         assert(b_tail->deref_type == nir_deref_type_array ||
-                b_tail->deref_type == nir_deref_type_array_wildcard);
-
-         if (a_tail->deref_type == nir_deref_type_array_wildcard) {
-            if (b_tail->deref_type != nir_deref_type_array_wildcard)
-               result &= ~derefs_b_contains_a_bit;
-         } else if (b_tail->deref_type == nir_deref_type_array_wildcard) {
-            if (a_tail->deref_type != nir_deref_type_array_wildcard)
-               result &= ~derefs_a_contains_b_bit;
-         } else {
-            assert(a_tail->deref_type == nir_deref_type_array &&
-                   b_tail->deref_type == nir_deref_type_array);
-            assert(a_tail->arr.index.is_ssa && b_tail->arr.index.is_ssa);
-
-            nir_const_value *a_index_const =
-               nir_src_as_const_value(a_tail->arr.index);
-            nir_const_value *b_index_const =
-               nir_src_as_const_value(b_tail->arr.index);
-            if (a_index_const && b_index_const) {
-               /* If they're both direct and have different offsets, they
-                * don't even alias much less anything else.
-                */
-               if (a_index_const->u32[0] != b_index_const->u32[0])
-                  return 0;
-            } else if (a_tail->arr.index.ssa == b_tail->arr.index.ssa) {
-               /* They're the same indirect, continue on */
-            } else {
-               /* They're not the same index so we can't prove anything about
-                * containment.
-                */
-               result &= ~(derefs_a_contains_b_bit | derefs_b_contains_a_bit);
-            }
-         }
-         break;
-      }
-
-      case nir_deref_type_struct: {
-         /* If they're different struct members, they don't even alias */
-         if (a_tail->strct.index != b_tail->strct.index)
-            return 0;
-         break;
-      }
-
-      default:
-         unreachable("Invalid deref type");
-      }
-   }
-
-   /* If a is longer than b, then it can't contain b */
-   if (*a_p != NULL)
-      result &= ~derefs_a_contains_b_bit;
-   if (*b_p != NULL)
-      result &= ~derefs_b_contains_a_bit;
-
-   /* If a contains b and b contains a they must be equal. */
-   if ((result & derefs_a_contains_b_bit) && (result & derefs_b_contains_a_bit))
-      result |= derefs_equal_bit;
-
-   return result;
-}
-
-static enum deref_compare_result
-compare_derefs(nir_deref_instr *a, nir_deref_instr *b)
-{
-   if (a == b) {
-      return derefs_equal_bit | derefs_may_alias_bit |
-             derefs_a_contains_b_bit | derefs_b_contains_a_bit;
-   }
-
-   nir_deref_path a_path, b_path;
-   nir_deref_path_init(&a_path, a, NULL);
-   nir_deref_path_init(&b_path, b, NULL);
-   assert(a_path.path[0]->deref_type == nir_deref_type_var);
-   assert(b_path.path[0]->deref_type == nir_deref_type_var);
-
-   enum deref_compare_result result = compare_deref_paths(&a_path, &b_path);
-
-   nir_deref_path_finish(&a_path);
-   nir_deref_path_finish(&b_path);
-
-   return result;
-}
-
 static void
 remove_dead_writes(struct copy_prop_var_state *state,
                    struct copy_entry *entry, unsigned write_mask)
@@ -274,10 +155,10 @@ remove_dead_writes(struct copy_prop_var_state *state,
 static struct copy_entry *
 lookup_entry_for_deref(struct copy_prop_var_state *state,
                        nir_deref_instr *deref,
-                       enum deref_compare_result allowed_comparisons)
+                       nir_deref_compare_result allowed_comparisons)
 {
    list_for_each_entry(struct copy_entry, iter, &state->copies, link) {
-      if (compare_derefs(iter->dst, deref) & allowed_comparisons)
+      if (nir_compare_derefs(iter->dst, deref) & allowed_comparisons)
          return iter;
    }
 
@@ -289,7 +170,7 @@ mark_aliased_entries_as_read(struct copy_prop_var_state *state,
                              nir_deref_instr *deref, unsigned components)
 {
    list_for_each_entry(struct copy_entry, iter, &state->copies, link) {
-      if (compare_derefs(iter->dst, deref) & derefs_may_alias_bit)
+      if (nir_compare_derefs(iter->dst, deref) & nir_derefs_may_alias_bit)
          iter->comps_may_be_read |= components;
    }
 }
@@ -303,23 +184,23 @@ get_entry_and_kill_aliases(struct copy_prop_var_state *state,
    list_for_each_entry_safe(struct copy_entry, iter, &state->copies, link) {
       if (!iter->src.is_ssa) {
          /* If this write aliases the source of some entry, get rid of it */
-         if (compare_derefs(iter->src.deref, deref) & derefs_may_alias_bit) {
+         if (nir_compare_derefs(iter->src.deref, deref) & nir_derefs_may_alias_bit) {
             copy_entry_remove(state, iter);
             continue;
          }
       }
 
-      enum deref_compare_result comp = compare_derefs(iter->dst, deref);
+      nir_deref_compare_result comp = nir_compare_derefs(iter->dst, deref);
       /* This is a store operation.  If we completely overwrite some value, we
        * want to delete any dead writes that may be present.
        */
-      if (comp & derefs_b_contains_a_bit)
+      if (comp & nir_derefs_b_contains_a_bit)
          remove_dead_writes(state, iter, write_mask);
 
-      if (comp & derefs_equal_bit) {
+      if (comp & nir_derefs_equal_bit) {
          assert(entry == NULL);
          entry = iter;
-      } else if (comp & derefs_may_alias_bit) {
+      } else if (comp & nir_derefs_may_alias_bit) {
          copy_entry_remove(state, iter);
       }
    }
@@ -613,7 +494,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          mark_aliased_entries_as_read(state, src, comps_read);
 
          struct copy_entry *src_entry =
-            lookup_entry_for_deref(state, src, derefs_a_contains_b_bit);
+            lookup_entry_for_deref(state, src, nir_derefs_a_contains_b_bit);
          struct value value;
          if (try_load_from_entry(state, src_entry, b, intrin, src, &value)) {
             if (value.is_ssa) {
@@ -658,7 +539,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
           * contains what we're looking for.
           */
          struct copy_entry *store_entry =
-            lookup_entry_for_deref(state, src, derefs_equal_bit);
+            lookup_entry_for_deref(state, src, nir_derefs_equal_bit);
          if (!store_entry)
             store_entry = copy_entry_create(state, src);
 
@@ -692,7 +573,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
          nir_deref_instr *src = nir_src_as_deref(intrin->src[1]);
 
-         if (compare_derefs(src, dst) & derefs_equal_bit) {
+         if (nir_compare_derefs(src, dst) & nir_derefs_equal_bit) {
             /* This is a no-op self-copy.  Get rid of it */
             nir_instr_remove(instr);
             continue;
@@ -701,7 +582,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          mark_aliased_entries_as_read(state, src, 0xf);
 
          struct copy_entry *src_entry =
-            lookup_entry_for_deref(state, src, derefs_a_contains_b_bit);
+            lookup_entry_for_deref(state, src, nir_derefs_a_contains_b_bit);
          struct value value;
          if (try_load_from_entry(state, src_entry, b, intrin, src, &value)) {
             if (value.is_ssa) {
@@ -709,7 +590,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
                intrin = nir_instr_as_intrinsic(nir_builder_last_instr(b));
             } else {
                /* If this would be a no-op self-copy, don't bother. */
-               if (compare_derefs(value.deref, dst) & derefs_equal_bit)
+               if (nir_compare_derefs(value.deref, dst) & nir_derefs_equal_bit)
                   continue;
 
                /* Just turn it into a copy of a different deref */

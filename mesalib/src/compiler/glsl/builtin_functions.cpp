@@ -570,7 +570,14 @@ shader_image_atomic_exchange_float(const _mesa_glsl_parse_state *state)
 {
    return (state->is_version(450, 320) ||
            state->ARB_ES3_1_compatibility_enable ||
-           state->OES_shader_image_atomic_enable);
+           state->OES_shader_image_atomic_enable ||
+           state->NV_shader_atomic_float_enable);
+}
+
+static bool
+shader_image_atomic_add_float(const _mesa_glsl_parse_state *state)
+{
+   return state->NV_shader_atomic_float_enable;
 }
 
 static bool
@@ -652,6 +659,37 @@ static bool
 integer_functions_supported(const _mesa_glsl_parse_state *state)
 {
    return state->extensions->MESA_shader_integer_functions;
+}
+
+static bool
+NV_shader_atomic_float_supported(const _mesa_glsl_parse_state *state)
+{
+   return state->extensions->NV_shader_atomic_float;
+}
+
+static bool
+shader_atomic_float_add(const _mesa_glsl_parse_state *state)
+{
+   return state->NV_shader_atomic_float_enable;
+}
+
+static bool
+shader_atomic_float_exchange(const _mesa_glsl_parse_state *state)
+{
+   return state->NV_shader_atomic_float_enable ||
+          state->INTEL_shader_atomic_float_minmax_enable;
+}
+
+static bool
+INTEL_shader_atomic_float_minmax_supported(const _mesa_glsl_parse_state *state)
+{
+   return state->extensions->INTEL_shader_atomic_float_minmax;
+}
+
+static bool
+shader_atomic_float_minmax(const _mesa_glsl_parse_state *state)
+{
+   return state->INTEL_shader_atomic_float_minmax_enable;
 }
 /** @} */
 
@@ -1031,7 +1069,8 @@ enum image_function_flags {
    IMAGE_FUNCTION_WRITE_ONLY = (1 << 5),
    IMAGE_FUNCTION_AVAIL_ATOMIC = (1 << 6),
    IMAGE_FUNCTION_MS_ONLY = (1 << 7),
-   IMAGE_FUNCTION_AVAIL_ATOMIC_EXCHANGE = (1 << 8)
+   IMAGE_FUNCTION_AVAIL_ATOMIC_EXCHANGE = (1 << 8),
+   IMAGE_FUNCTION_AVAIL_ATOMIC_ADD = (1 << 9),
 };
 
 } /* anonymous namespace */
@@ -1139,6 +1178,9 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_add),
+                _atomic_intrinsic2(NV_shader_atomic_float_supported,
+                                   glsl_type::float_type,
+                                   ir_intrinsic_generic_atomic_add),
                 _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_add),
                 NULL);
@@ -1149,6 +1191,9 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_min),
+                _atomic_intrinsic2(INTEL_shader_atomic_float_minmax_supported,
+                                   glsl_type::float_type,
+                                   ir_intrinsic_generic_atomic_min),
                 _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_min),
                 NULL);
@@ -1158,6 +1203,9 @@ builtin_builder::create_intrinsics()
                                    ir_intrinsic_generic_atomic_max),
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
+                                   ir_intrinsic_generic_atomic_max),
+                _atomic_intrinsic2(INTEL_shader_atomic_float_minmax_supported,
+                                   glsl_type::float_type,
                                    ir_intrinsic_generic_atomic_max),
                 _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_max),
@@ -1199,6 +1247,9 @@ builtin_builder::create_intrinsics()
                 _atomic_intrinsic2(buffer_atomics_supported,
                                    glsl_type::int_type,
                                    ir_intrinsic_generic_atomic_exchange),
+                _atomic_intrinsic2(NV_shader_atomic_float_supported,
+                                   glsl_type::float_type,
+                                   ir_intrinsic_generic_atomic_exchange),
                 _atomic_counter_intrinsic1(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_exchange),
                 NULL);
@@ -1208,6 +1259,9 @@ builtin_builder::create_intrinsics()
                                    ir_intrinsic_generic_atomic_comp_swap),
                 _atomic_intrinsic3(buffer_atomics_supported,
                                    glsl_type::int_type,
+                                   ir_intrinsic_generic_atomic_comp_swap),
+                _atomic_intrinsic3(INTEL_shader_atomic_float_minmax_supported,
+                                   glsl_type::float_type,
                                    ir_intrinsic_generic_atomic_comp_swap),
                 _atomic_counter_intrinsic2(shader_atomic_counter_ops_or_v460_desktop,
                                            ir_intrinsic_atomic_counter_comp_swap),
@@ -3143,6 +3197,9 @@ builtin_builder::create_builtins()
                 _atomic_op2("__intrinsic_atomic_add",
                             buffer_atomics_supported,
                             glsl_type::int_type),
+                _atomic_op2("__intrinsic_atomic_add",
+                            shader_atomic_float_add,
+                            glsl_type::float_type),
                 NULL);
    add_function("atomicMin",
                 _atomic_op2("__intrinsic_atomic_min",
@@ -3151,6 +3208,9 @@ builtin_builder::create_builtins()
                 _atomic_op2("__intrinsic_atomic_min",
                             buffer_atomics_supported,
                             glsl_type::int_type),
+                _atomic_op2("__intrinsic_atomic_min",
+                            shader_atomic_float_minmax,
+                            glsl_type::float_type),
                 NULL);
    add_function("atomicMax",
                 _atomic_op2("__intrinsic_atomic_max",
@@ -3159,6 +3219,9 @@ builtin_builder::create_builtins()
                 _atomic_op2("__intrinsic_atomic_max",
                             buffer_atomics_supported,
                             glsl_type::int_type),
+                _atomic_op2("__intrinsic_atomic_max",
+                            shader_atomic_float_minmax,
+                            glsl_type::float_type),
                 NULL);
    add_function("atomicAnd",
                 _atomic_op2("__intrinsic_atomic_and",
@@ -3191,6 +3254,9 @@ builtin_builder::create_builtins()
                 _atomic_op2("__intrinsic_atomic_exchange",
                             buffer_atomics_supported,
                             glsl_type::int_type),
+                _atomic_op2("__intrinsic_atomic_exchange",
+                            shader_atomic_float_exchange,
+                            glsl_type::float_type),
                 NULL);
    add_function("atomicCompSwap",
                 _atomic_op3("__intrinsic_atomic_comp_swap",
@@ -3199,6 +3265,9 @@ builtin_builder::create_builtins()
                 _atomic_op3("__intrinsic_atomic_comp_swap",
                             buffer_atomics_supported,
                             glsl_type::int_type),
+                _atomic_op3("__intrinsic_atomic_comp_swap",
+                            shader_atomic_float_minmax,
+                            glsl_type::float_type),
                 NULL);
 
    add_function("min3",
@@ -3514,7 +3583,9 @@ builtin_builder::add_image_functions(bool glsl)
 
    add_image_function(glsl ? "imageAtomicAdd" : "__intrinsic_image_atomic_add",
                       "__intrinsic_image_atomic_add",
-                      &builtin_builder::_image_prototype, 1, atom_flags,
+                      &builtin_builder::_image_prototype, 1,
+                      (flags | IMAGE_FUNCTION_AVAIL_ATOMIC_ADD |
+                       IMAGE_FUNCTION_SUPPORTS_FLOAT_DATA_TYPE),
                       ir_intrinsic_image_atomic_add);
 
    add_image_function(glsl ? "imageAtomicMin" : "__intrinsic_image_atomic_min",
@@ -6039,7 +6110,12 @@ get_image_available_predicate(const glsl_type *type, unsigned flags)
        type->sampled_type == GLSL_TYPE_FLOAT)
       return shader_image_atomic_exchange_float;
 
+   if ((flags & IMAGE_FUNCTION_AVAIL_ATOMIC_ADD) &&
+       type->sampled_type == GLSL_TYPE_FLOAT)
+      return shader_image_atomic_add_float;
+
    else if (flags & (IMAGE_FUNCTION_AVAIL_ATOMIC_EXCHANGE |
+                     IMAGE_FUNCTION_AVAIL_ATOMIC_ADD |
                      IMAGE_FUNCTION_AVAIL_ATOMIC))
       return shader_image_atomic;
 
