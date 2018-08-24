@@ -633,6 +633,7 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
    consts->MaxGeometryOutputVertices = MAX_GEOMETRY_OUTPUT_VERTICES;
    consts->MaxGeometryTotalOutputComponents = MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
+   consts->MaxGeometryShaderInvocations = MAX_GEOMETRY_SHADER_INVOCATIONS;
 
 #ifdef DEBUG
    consts->GenerateTemporaryNames = true;

@@ -12939,6 +12939,8 @@
 <xi:include href="EXT_separate_shader_objects.xml"
 	    xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<xi:include href="EXT_vertex_attrib_64bit.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <category name="GL_EXT_texture_sRGB_decode" number="402">
     <enum name="TEXTURE_SRGB_DECODE_EXT"              value="0x8A48"/>
     <enum name="DECODE_EXT"                           value="0x8A49"/>
@@ -12956,6 +12958,8 @@
     <enum name="GPU_MEMORY_INFO_EVICTION_COUNT_NVX"           value="0x904A" />
     <enum name="GPU_MEMORY_INFO_EVICTED_MEMORY_NVX"           value="0x904B" />
 </category>
+
+<xi:include href="AMD_gpu_shader_int64.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <category name="GL_NV_fill_rectangle" number="466">
     <enum name="FILL_RECTANGLE_NV" value="0x933C"/>

@@ -111,6 +111,7 @@ void st_init_limits(struct pipe_screen *screen,
    c->MaxViewportHeight =
    c->MaxRenderbufferSize = c->MaxTextureRectSize;
 
+   c->SubPixelBits =
    c->ViewportSubpixelBits =
       screen->get_param(screen, PIPE_CAP_VIEWPORT_SUBPIXEL_BITS);
 
@@ -153,6 +154,11 @@ void st_init_limits(struct pipe_screen *screen,
    c->MaxUniformBlockSize =
       screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
                                PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE);
+   /* GL45-CTS.enhanced_layouts.ssb_member_invalid_offset_alignment fails if
+    * this is larger than INT_MAX - 100. Use a nicely aligned limit.
+    */
+   c->MaxUniformBlockSize = MIN2(c->MaxUniformBlockSize, INT_MAX - 127);
+
    if (c->MaxUniformBlockSize < 16384) {
       can_ubo = FALSE;
    }
@@ -209,17 +215,20 @@ void st_init_limits(struct pipe_screen *screen,
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_TEMPS);
       pc->MaxAddressRegs =
       pc->MaxNativeAddressRegs = sh == PIPE_SHADER_VERTEX ? 1 : 0;
-      pc->MaxParameters =
-      pc->MaxNativeParameters =
+
+      pc->MaxUniformComponents =
          screen->get_shader_param(screen, sh,
-                   PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE) / sizeof(float[4]);
+                                  PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE) / 4;
+      pc->MaxUniformComponents = MIN2(pc->MaxUniformComponents,
+                                      MAX_UNIFORMS * 4);
+
+      pc->MaxParameters =
+      pc->MaxNativeParameters = pc->MaxUniformComponents / 4;
       pc->MaxInputComponents =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INPUTS) * 4;
       pc->MaxOutputComponents =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_OUTPUTS) * 4;
 
-      pc->MaxUniformComponents =
-         4 * MIN2(pc->MaxNativeParameters, MAX_UNIFORMS);
 
       pc->MaxUniformBlocks =
          screen->get_shader_param(screen, sh,
@@ -228,9 +237,9 @@ void st_init_limits(struct pipe_screen *screen,
          pc->MaxUniformBlocks -= 1; /* The first one is for ordinary uniforms. */
       pc->MaxUniformBlocks = _min(pc->MaxUniformBlocks, MAX_UNIFORM_BUFFERS);
 
-      pc->MaxCombinedUniformComponents = (pc->MaxUniformComponents +
-                                          c->MaxUniformBlockSize / 4 *
-                                          pc->MaxUniformBlocks);
+      pc->MaxCombinedUniformComponents =
+         pc->MaxUniformComponents +
+         (uint64_t)c->MaxUniformBlockSize / 4 * pc->MaxUniformBlocks;
 
       temp = screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS);
       if (temp) {
@@ -309,6 +318,13 @@ void st_init_limits(struct pipe_screen *screen,
       options->LowerBufferInterfaceBlocks = true;
    }
 
+   c->MaxUserAssignableUniformLocations =
+      c->Program[MESA_SHADER_VERTEX].MaxUniformComponents +
+      c->Program[MESA_SHADER_TESS_CTRL].MaxUniformComponents +
+      c->Program[MESA_SHADER_TESS_EVAL].MaxUniformComponents +
+      c->Program[MESA_SHADER_GEOMETRY].MaxUniformComponents +
+      c->Program[MESA_SHADER_FRAGMENT].MaxUniformComponents;
+
    c->GLSLOptimizeConservatively =
       screen->get_param(screen, PIPE_CAP_GLSL_OPTIMIZE_CONSERVATIVELY);
    c->LowerTessLevel = true;
@@ -346,6 +362,8 @@ void st_init_limits(struct pipe_screen *screen,
       screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES);
    c->MaxGeometryTotalOutputComponents =
       screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS);
+   c->MaxGeometryShaderInvocations =
+      screen->get_param(screen, PIPE_CAP_MAX_GS_INVOCATIONS);
    c->MaxTessPatchComponents =
       MIN2(screen->get_param(screen, PIPE_CAP_MAX_SHADER_PATCH_VARYINGS),
            MAX_VARYING) * 4;
@@ -452,7 +470,8 @@ void st_init_limits(struct pipe_screen *screen,
             c->MaxCombinedAtomicBuffers;
       c->MaxCombinedShaderOutputResources +=
          c->MaxCombinedShaderStorageBlocks;
-      c->MaxShaderStorageBlockSize = 1 << 27;
+      c->MaxShaderStorageBlockSize =
+         screen->get_param(screen, PIPE_CAP_MAX_SHADER_BUFFER_SIZE);
       extensions->ARB_shader_storage_buffer_object = GL_TRUE;
    }
 
@@ -693,6 +712,7 @@ void st_init_extensions(struct pipe_screen *screen,
 
       { o(EXT_blend_equation_separate),      PIPE_CAP_BLEND_EQUATION_SEPARATE          },
       { o(EXT_depth_bounds_test),            PIPE_CAP_DEPTH_BOUNDS_TEST                },
+      { o(EXT_disjoint_timer_query),         PIPE_CAP_QUERY_TIMESTAMP                  },
       { o(EXT_draw_buffers2),                PIPE_CAP_INDEP_BLEND_ENABLE               },
       { o(EXT_memory_object),                PIPE_CAP_MEMOBJ                           },
       { o(EXT_memory_object_fd),             PIPE_CAP_MEMOBJ                           },
@@ -793,7 +813,8 @@ void st_init_extensions(struct pipe_screen *screen,
           PIPE_FORMAT_BPTC_RGB_FLOAT,
           PIPE_FORMAT_BPTC_RGB_UFLOAT } },
 
-      { { o(KHR_texture_compression_astc_ldr) },
+      { { o(KHR_texture_compression_astc_ldr),
+          o(KHR_texture_compression_astc_sliced_3d) },
         { PIPE_FORMAT_ASTC_4x4,
           PIPE_FORMAT_ASTC_5x4,
           PIPE_FORMAT_ASTC_5x5,
@@ -824,7 +845,8 @@ void st_init_extensions(struct pipe_screen *screen,
           PIPE_FORMAT_ASTC_12x12_SRGB } },
 
       /* ASTC software fallback support. */
-      { { o(KHR_texture_compression_astc_ldr) },
+      { { o(KHR_texture_compression_astc_ldr),
+          o(KHR_texture_compression_astc_sliced_3d) },
         { PIPE_FORMAT_R8G8B8A8_UNORM,
           PIPE_FORMAT_R8G8B8A8_SRGB } },
 

@@ -42,4 +42,24 @@
 </category>
 
 
+<category name="GL_AMD_multi_draw_indirect" number="408">
+
+    <function name="MultiDrawArraysIndirectAMD" exec="dynamic" alias="MultiDrawArraysIndirect">
+        <param name="mode" type="GLenum"/>
+        <param name="indirect" type="const GLvoid *"/>
+        <param name="primcount" type="GLsizei"/>
+        <param name="stride" type="GLsizei"/>
+    </function>
+
+    <function name="MultiDrawElementsIndirectAMD" exec="dynamic" alias="MultiDrawElementsIndirect">
+        <param name="mode" type="GLenum"/>
+        <param name="type" type="GLenum"/>
+        <param name="indirect" type="const GLvoid *"/>
+        <param name="primcount" type="GLsizei"/>
+        <param name="stride" type="GLsizei"/>
+    </function>
+
+</category>
+
+
 </OpenGLAPI>

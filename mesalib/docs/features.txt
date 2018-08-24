@@ -326,7 +326,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_EXT_texture_norm16                                 DONE (i965, r600, radeonsi, nvc0)
   GL_KHR_blend_equation_advanced_coherent               DONE (i965/gen9+)
   GL_KHR_texture_compression_astc_hdr                   DONE (i965/bxt)
-  GL_KHR_texture_compression_astc_sliced_3d             DONE (i965/gen9+)
+  GL_KHR_texture_compression_astc_sliced_3d             DONE (i965/gen9+, radeonsi)
   GL_OES_depth_texture_cube_map                         DONE (all drivers that support GLSL 1.30+)
   GL_OES_EGL_image                                      DONE (all drivers)
   GL_OES_EGL_image_external                             DONE (all drivers)

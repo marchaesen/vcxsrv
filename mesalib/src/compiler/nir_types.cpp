@@ -51,6 +51,15 @@ glsl_without_array(const glsl_type *type)
 }
 
 const glsl_type *
+glsl_without_array_or_matrix(const glsl_type *type)
+{
+   type = type->without_array();
+   if (type->is_matrix())
+      type = type->column_type();
+   return type;
+}
+
+const glsl_type *
 glsl_get_array_instance(const glsl_type *type,
                         unsigned array_size)
 {
@@ -228,6 +237,12 @@ bool
 glsl_type_is_array_of_arrays(const struct glsl_type *type)
 {
    return type->is_array_of_arrays();
+}
+
+bool
+glsl_type_is_array_or_matrix(const struct glsl_type *type)
+{
+   return type->is_array() || type->is_matrix();
 }
 
 bool

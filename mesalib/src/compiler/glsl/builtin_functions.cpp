@@ -535,7 +535,8 @@ static bool
 shader_clock_int64(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shader_clock_enable &&
-          state->ARB_gpu_shader_int64_enable;
+          (state->ARB_gpu_shader_int64_enable ||
+           state->AMD_gpu_shader_int64_enable);
 }
 
 static bool

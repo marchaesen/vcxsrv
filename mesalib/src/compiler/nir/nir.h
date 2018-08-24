@@ -2659,8 +2659,11 @@ void nir_dump_cfg(nir_shader *shader, FILE *fp);
 
 int nir_gs_count_vertices(const nir_shader *shader);
 
+bool nir_shrink_vec_array_vars(nir_shader *shader, nir_variable_mode modes);
+bool nir_split_array_vars(nir_shader *shader, nir_variable_mode modes);
 bool nir_split_var_copies(nir_shader *shader);
 bool nir_split_per_member_structs(nir_shader *shader);
+bool nir_split_struct_vars(nir_shader *shader, nir_variable_mode modes);
 
 bool nir_lower_returns_impl(nir_function_impl *impl);
 bool nir_lower_returns(nir_shader *shader);
@@ -2967,6 +2970,8 @@ bool nir_opt_cse(nir_shader *shader);
 bool nir_opt_dce(nir_shader *shader);
 
 bool nir_opt_dead_cf(nir_shader *shader);
+
+bool nir_opt_find_array_copies(nir_shader *shader);
 
 bool nir_opt_gcm(nir_shader *shader, bool value_number);
 

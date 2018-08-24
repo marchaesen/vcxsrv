@@ -256,7 +256,8 @@ struct _mesa_glsl_parse_state {
 
    bool has_int64() const
    {
-      return ARB_gpu_shader_int64_enable;
+      return ARB_gpu_shader_int64_enable ||
+             AMD_gpu_shader_int64_enable;
    }
 
    bool has_420pack() const
@@ -493,6 +494,7 @@ struct _mesa_glsl_parse_state {
       unsigned MaxVertexOutputComponents;
       unsigned MaxGeometryInputComponents;
       unsigned MaxGeometryOutputComponents;
+      unsigned MaxGeometryShaderInvocations;
       unsigned MaxFragmentInputComponents;
       unsigned MaxGeometryTextureImageUnits;
       unsigned MaxGeometryOutputVertices;
@@ -758,6 +760,8 @@ struct _mesa_glsl_parse_state {
     */
    bool AMD_conservative_depth_enable;
    bool AMD_conservative_depth_warn;
+   bool AMD_gpu_shader_int64_enable;
+   bool AMD_gpu_shader_int64_warn;
    bool AMD_shader_stencil_export_enable;
    bool AMD_shader_stencil_export_warn;
    bool AMD_shader_trinary_minmax_enable;

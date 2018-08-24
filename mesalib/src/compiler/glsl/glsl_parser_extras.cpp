@@ -118,6 +118,7 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->Const.MaxVertexOutputComponents = ctx->Const.Program[MESA_SHADER_VERTEX].MaxOutputComponents;
    this->Const.MaxGeometryInputComponents = ctx->Const.Program[MESA_SHADER_GEOMETRY].MaxInputComponents;
    this->Const.MaxGeometryOutputComponents = ctx->Const.Program[MESA_SHADER_GEOMETRY].MaxOutputComponents;
+   this->Const.MaxGeometryShaderInvocations = ctx->Const.MaxGeometryShaderInvocations;
    this->Const.MaxFragmentInputComponents = ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxInputComponents;
    this->Const.MaxGeometryTextureImageUnits = ctx->Const.Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits;
    this->Const.MaxGeometryOutputVertices = ctx->Const.MaxGeometryOutputVertices;
@@ -698,6 +699,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    /* All other extensions go here, sorted alphabetically.
     */
    EXT(AMD_conservative_depth),
+   EXT(AMD_gpu_shader_int64),
    EXT(AMD_shader_stencil_export),
    EXT(AMD_shader_trinary_minmax),
    EXT(AMD_vertex_shader_layer),
@@ -1820,7 +1822,7 @@ set_shader_inout_layout(struct gl_shader *shader,
                                           &invocations, false)) {
 
             YYLTYPE loc = state->in_qualifier->invocations->get_location();
-            if (invocations > MAX_GEOMETRY_SHADER_INVOCATIONS) {
+            if (invocations > state->Const.MaxGeometryShaderInvocations) {
                _mesa_glsl_error(&loc, state,
                                 "invocations (%d) exceeds "
                                 "GL_MAX_GEOMETRY_SHADER_INVOCATIONS",

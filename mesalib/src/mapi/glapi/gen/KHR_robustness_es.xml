@@ -60,4 +60,36 @@
 
 </category>
 
+<category name="GL_EXT_robustness" number="107">
+    <function name="GetGraphicsResetStatusEXT"
+              alias="GetGraphicsResetStatusARB" es2="2.0">
+        <return type="GLenum"/>
+    </function>
+
+    <function name="ReadnPixelsEXT" alias="ReadnPixelsARB" es2="2.0">
+        <param name="x" type="GLint"/>
+        <param name="y" type="GLint"/>
+        <param name="width" type="GLsizei"/>
+        <param name="height" type="GLsizei"/>
+        <param name="format" type="GLenum"/>
+        <param name="type" type="GLenum"/>
+        <param name="bufSize" type="GLsizei"/>
+        <param name="data" type="GLvoid *" output="true"/>
+    </function>
+
+    <function name="GetnUniformfvEXT" alias="GetnUniformfvARB" es2="2.0">
+        <param name="program" type="GLuint"/>
+        <param name="location" type="GLint"/>
+        <param name="bufSize" type="GLsizei"/>
+        <param name="params" type="GLfloat *" output="true"/>
+    </function>
+
+    <function name="GetnUniformivEXT" alias="GetnUniformivARB" es2="2.0">
+        <param name="program" type="GLuint"/>
+        <param name="location" type="GLint"/>
+        <param name="bufSize" type="GLsizei"/>
+        <param name="params" type="GLint *" output="true"/>
+    </function>
+</category>
+
 </OpenGLAPI>
