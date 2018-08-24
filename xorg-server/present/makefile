@@ -6,7 +6,6 @@ CSRCS = \
 	present_fence.c \
 	present_notify.c \
 	present_request.c \
-	present_screen.c \
 	present_scmd.c \
 	present_screen.c \
 	present_vblank.c \
