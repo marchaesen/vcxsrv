@@ -15,11 +15,11 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * FELIX KUEHLING, OR ANY OTHER CONTRIBUTORS BE LIABLE FOR ANY CLAIM, 
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
+ * FELIX KUEHLING, OR ANY OTHER CONTRIBUTORS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 /**
  * \file xmlconfig.c
@@ -393,10 +393,10 @@ checkValue(const driOptionValue *v, const driOptionInfo *info)
 
 /**
  * Print message to \c stderr if the \c LIBGL_DEBUG environment variable
- * is set. 
- * 
+ * is set.
+ *
  * Is called from the drivers.
- * 
+ *
  * \param f \c printf like format string.
  */
 static void
@@ -960,11 +960,43 @@ parseOneConfigFile(struct OptConfData *data, const char *filename)
     XML_ParserFree (p);
 }
 
+#ifdef _WIN32
+bool fnmatch(char const *needle, char const *haystack)
+{
+    for (; *needle != '\0'; ++needle)
+    {
+        switch (*needle)
+        {
+            case '?':
+                if (*haystack == '\0')
+                    return false;
+                ++haystack;
+                break;
+            case '*':
+                {
+                    if (needle[1] == '\0')
+                        return true;
+                    size_t max = strlen(haystack);
+                    for (size_t i = 0; i < max; i++)
+                        if (fnmatch(needle + 1, haystack + i))
+                            return true;
+                    return false;
+                }
+            default:
+                if (*haystack != *needle)
+                    return false;
+                ++haystack;
+        }
+    }
+    return *haystack == '\0';
+}
+#endif
+
 static int
 scandir_filter(const struct dirent *ent)
 {
 #ifdef _WIN32
-            if (PathMatchSpecA(ent->d_name, "*.conf"))
+    if (fnmatch("*.conf", ent->d_name))
 #else
     if (ent->d_type != DT_REG && ent->d_type != DT_LNK)
        return 0;
