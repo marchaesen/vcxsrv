@@ -25,7 +25,7 @@
 #ifndef XCALIBRATEPROTO_H
 #define XCALIBRATEPROTO_H
 
-/* 
+/*
  * requests and replies
  */
 typedef struct {

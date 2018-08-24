@@ -3,16 +3,16 @@
 #define __XTRAPDI__
 
 /*****************************************************************************
-Copyright 1987, 1988, 1989, 1990, 1991, 1992, 1994 by Digital Equipment Corp., 
+Copyright 1987, 1988, 1989, 1990, 1991, 1992, 1994 by Digital Equipment Corp.,
 Maynard, MA
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -89,7 +89,7 @@ typedef CARD8 ReqFlags[XETrapMaxRequest];
 
 /* This is used as flags to indicate desired event traps
  * Until events become *fully vectored*, we'll have to fake it
- * by defining an array of 5 events (KeyPress, KeyRelease, 
+ * by defining an array of 5 events (KeyPress, KeyRelease,
  * ButtonPress, ButtonRelease, and MotionNotify.  The extra 2
  * are required as the event types start with "2" (errors and
  * replies are 0 & 1).  The event type is the index into the
@@ -108,7 +108,7 @@ typedef CARD8 EventFlags[XETrapMaxEvent];
 /* This structure is used in a request to specify the types of
  * configuration information that should be changed or updated.
  */
-typedef struct 
+typedef struct
 {
     CARD8      valid[4L];  /* Bits TRUE indicates data field is used */
     CARD8      data[4L];   /* Bits looked at if corresponding valid bit set */
@@ -138,8 +138,8 @@ typedef struct /* used by XEConfigRequest */
     XETrapFlags flags;            /* Flags to specify what should be chg'd */
     CARD16      max_pkt_size B16; /* Maximum number of bytes in a packet */
     CARD8       cmd_key;       /* Keyboard command_key (KeyCode) */
-/* 
- * cmd_key is intentionally *not* defined KeyCode since it's definition is 
+/*
+ * cmd_key is intentionally *not* defined KeyCode since it's definition is
  * ambiguous (int in Intrinsic.h and unsigned char in X.h.
  */
     CARD8      pad[1L];           /* pad out to a quadword */
@@ -180,7 +180,7 @@ typedef struct /* used by XESimulateXEventRequest for synthesizing core evts */
 /* The following are formats of a request to the XTRAP
  * extension.  The data-less XTrap requests all use xXTrapReq
  */
-typedef struct 
+typedef struct
 {
     CARD8  reqType;
     CARD8  minor_opcode;
@@ -190,7 +190,7 @@ typedef struct
 /* the following works because all fields are defined as bit (Bnn) fields */
 #define sz_xXTrapReq (sizeof(xXTrapReq))
 /* For retrieving version/available info (passes lib-side protocol number) */
-typedef struct 
+typedef struct
 {
     CARD8  reqType;
     CARD8  minor_opcode;
@@ -201,7 +201,7 @@ typedef struct
 /* the following works because all fields are defined as bit (Bnn) fields */
 #define sz_xXTrapGetReq (sizeof(xXTrapGetReq))
 
-typedef struct 
+typedef struct
 {
     CARD8     reqType;
     CARD8     minor_opcode;
@@ -222,8 +222,8 @@ typedef struct
     /* End Shadow (XETrapFlags)*/
     CARD16      config_max_pkt_size B16; /* Max number of bytes in a packet */
     CARD8       config_cmd_key;       /* Keyboard command_key (KeyCode) */
-/* 
- * cmd_key is intentionally *not* defined KeyCode since it's definition is 
+/*
+ * cmd_key is intentionally *not* defined KeyCode since it's definition is
  * ambiguous (int in Intrinsic.h and unsigned char in X.h.
  */
     CARD8      config_pad[1L];           /* pad out to a quadword */
@@ -234,7 +234,7 @@ typedef struct
 #define sz_xXTrapConfigReq (sizeof(xXTrapConfigReq))
 
 #ifndef _XINPUT
-typedef struct 
+typedef struct
 {
     CARD8            reqType;
     CARD8            minor_opcode;
@@ -339,7 +339,7 @@ typedef struct
 #define PF_SunSparc      112L     /* server on Sun Sparc system */
 
 /* reply sent back by XETrapGetAvailable request */
-typedef struct 
+typedef struct
 {
     XETrapRepHdr       hdr;
     XETrapGetAvailRep  data;
@@ -348,7 +348,7 @@ typedef struct
 #define sz_xXTrapGetAvailReply  sizeof(xXTrapGetAvailReply)
 
 /* reply sent back by XETrapGetVersion request */
-typedef struct 
+typedef struct
 {
     XETrapRepHdr       hdr;
     XETrapGetVersRep  data;
@@ -379,7 +379,7 @@ typedef struct
 #define sz_xXTrapGetLITimReply  sizeof(xXTrapGetLITimReply)
 
 /* reply sent back by XETrapGetCurrent request */
-typedef struct 
+typedef struct
 {
     XETrapRepHdr     hdr;
     /*
@@ -396,8 +396,8 @@ typedef struct
     EventFlags  data_config_flags_event;
     CARD16      data_config_max_pkt_size B16; /* Max num of bytes in a pkt */
     CARD8       data_config_cmd_key;       /* Keyboard cmd_key (KeyCode) */
-/* 
- * cmd_key is intentionally *not* defined KeyCode since it's definition is 
+/*
+ * cmd_key is intentionally *not* defined KeyCode since it's definition is
  * ambiguous (int in Intrinsic.h and unsigned char in X.h.
  */
     CARD8      data_config_pad[1L];           /* pad out to a quadword */
@@ -414,7 +414,7 @@ typedef struct
  * reading arrays of CARD32s without using the _Read32 macro (see XERqsts.c).
  * This requires that none of the data be in the _Reply area.
  */
-typedef struct 
+typedef struct
 {
     CARD8  type;
     CARD8  detail;

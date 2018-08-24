@@ -51,13 +51,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -258,7 +258,7 @@ restoring the definitions in X.h.  */
 
 typedef CARD16 KeyButMask;
 
-/***************** 
+/*****************
    Connection setup structures.  See Chapter 8: Connection Setup
    of the X Window System Protocol specification for details.
 *****************/
@@ -288,7 +288,7 @@ typedef struct {
 typedef struct {
     CARD8          success;
     BYTE           lengthReason; /*num bytes in string following if failure */
-    CARD16         majorVersion B16, 
+    CARD16         majorVersion B16,
                    minorVersion B16;
     CARD16         length B16;  /* 1/4 additional bytes in setup info */
 } xConnSetupPrefix;
@@ -296,7 +296,7 @@ typedef struct {
 
 typedef struct {
     CARD32         release B32;
-    CARD32         ridBase B32, 
+    CARD32         ridBase B32,
                    ridMask B32;
     CARD32         motionBufferSize B32;
     CARD16         nbytesVendor B16;  /* number of bytes in vendor string */
@@ -345,7 +345,7 @@ typedef struct {
     Window         windowId B32;
     Colormap       defaultColormap B32;
     CARD32         whitePixel B32, blackPixel B32;
-    CARD32         currentInputMask B32;   
+    CARD32         currentInputMask B32;
     CARD16         pixWidth B16, pixHeight B16;
     CARD16         mmWidth B16, mmHeight B16;
     CARD16         minInstalledMaps B16, maxInstalledMaps B16;
@@ -359,7 +359,7 @@ typedef struct {
 
 /*****************************************************************
  * Structure Defns
- *   Structures needed for replies 
+ *   Structures needed for replies
  *****************************************************************/
 
 /* Used in GetMotionEvents */
@@ -399,7 +399,7 @@ typedef struct {           /* followed by string */
 } xTextElt;
 
 
-typedef struct {        
+typedef struct {
     CARD32 pixel B32;
     CARD16 red B16, green B16, blue B16;
     CARD8 flags;  /* DoRed, DoGreen, DoBlue booleans */
@@ -416,13 +416,13 @@ typedef CARD8 KEYCODE;
 
 /*****************
  * XRep:
- *    meant to be 32 byte quantity 
+ *    meant to be 32 byte quantity
  *****************/
 
 /* GenericReply is the common format of all replies.  The "data" items
    are specific to each individual reply type. */
 
-typedef struct {	
+typedef struct {
     BYTE type;              /* X_Reply */
     BYTE data1;             /* depends on reply type */
     CARD16 sequenceNumber B16;  /* of last request received by server */
@@ -637,9 +637,9 @@ typedef struct _xQueryFontReply {
     BYTE pad1;
     CARD16 sequenceNumber B16;
     CARD32 length B32;  /* definitely > 0, even if "nCharInfos" is 0 */
-    xCharInfo minBounds; 
+    xCharInfo minBounds;
     CARD32 walign1 B32;
-    xCharInfo maxBounds; 
+    xCharInfo maxBounds;
     CARD32 walign2 B32;
     CARD16 minCharOrByte2 B16, maxCharOrByte2 B16;
     CARD16 defaultChar B16;
@@ -682,9 +682,9 @@ typedef struct {
     CARD8 nameLength;  /* 0 indicates end-of-reply-sequence */
     CARD16 sequenceNumber B16;
     CARD32 length B32;  /* definitely > 0, even if "nameLength" is 0 */
-    xCharInfo minBounds; 
+    xCharInfo minBounds;
     CARD32 walign1 B32;
-    xCharInfo maxBounds; 
+    xCharInfo maxBounds;
     CARD32 walign2 B32;
     CARD16 minCharOrByte2 B16, maxCharOrByte2 B16;
     CARD16 defaultChar B16;
@@ -895,7 +895,7 @@ typedef struct {
     CARD32 pad5 B32;
     CARD32 pad6 B32;
     CARD32 pad7 B32;
-} xGetKeyboardMappingReply;    
+} xGetKeyboardMappingReply;
 
 typedef struct {
     BYTE type;
@@ -970,7 +970,7 @@ typedef struct {
 
 /*****************************************************************
  * Xerror
- *    All errors  are 32 bytes 
+ *    All errors  are 32 bytes
  *****************************************************************/
 
 typedef struct {
@@ -1006,7 +1006,7 @@ typedef struct _xEvent {
 	    Window root B32, event B32, child B32;
 	    INT16 rootX B16, rootY B16, eventX B16, eventY B16;
 	    KeyButMask state B16;
-	    BOOL sameScreen;		
+	    BOOL sameScreen;
 	    BYTE pad1;
 	} keyButtonPointer;
 	struct {
@@ -1103,7 +1103,7 @@ typedef struct _xEvent {
 	    Window event B32, window B32, aboveSibling B32;
 	    INT16 x B16, y B16;
 	    CARD16 width B16, height B16, borderWidth B16;
-	    BOOL override;		
+	    BOOL override;
 	    BYTE bpad;
 	} configureNotify;
 	struct {
@@ -1144,19 +1144,19 @@ typedef struct _xEvent {
 	} property;
 	struct {
             CARD32 pad00 B32;
-            Time time B32;     
+            Time time B32;
 	    Window window B32;
 	    Atom atom B32;
 	} selectionClear;
 	struct {
             CARD32 pad00 B32;
-            Time time B32;    
+            Time time B32;
 	    Window owner B32, requestor B32;
 	    Atom selection B32, target B32, property B32;
 	} selectionRequest;
 	struct {
             CARD32 pad00 B32;
-            Time time B32;   
+            Time time B32;
 	    Window requestor B32;
 	    Atom selection B32, target B32, property B32;
 	} selectionNotify;
@@ -1208,7 +1208,7 @@ typedef struct _xEvent {
 		    Atom type B32;
 		    INT8 bytes[20];
 		} b;
-	    } u; 
+	    } u;
 	} clientMessage;
     } u;
 } xEvent;
@@ -1216,19 +1216,19 @@ typedef struct _xEvent {
 /*********************************************************
  *
  * Generic event
- * 
+ *
  * Those events are not part of the core protocol spec and can be used by
  * various extensions.
  * type is always GenericEvent
  * extension is the minor opcode of the extension the event belongs to.
- * evtype is the actual event type, unique __per extension__. 
+ * evtype is the actual event type, unique __per extension__.
  *
  * GenericEvents can be longer than 32 bytes, with the length field
- * specifying the number of 4 byte blocks after the first 32 bytes. 
+ * specifying the number of 4 byte blocks after the first 32 bytes.
  *
  *
  */
-typedef struct 
+typedef struct
 {
     BYTE    type;
     CARD8   extension;
@@ -1258,7 +1258,7 @@ typedef struct {
 
 /* XReply is the union of all the replies above whose "fixed part"
 fits in 32 bytes.  It does NOT include GetWindowAttributesReply,
-QueryFontReply, QueryKeymapReply, or GetKeyboardControlReply 
+QueryFontReply, QueryKeymapReply, or GetKeyboardControlReply
 ListFontsWithInfoReply */
 
 typedef union {
@@ -1314,15 +1314,15 @@ typedef union {
 typedef struct _xReq {
 	CARD8 reqType;
 	CARD8 data;            /* meaning depends on request type */
-	CARD16 length B16;         /* length in 4 bytes quantities 
+	CARD16 length B16;         /* length in 4 bytes quantities
 				  of whole request, including this header */
 } xReq;
 
 /*****************************************************************
- *  structures that follow request. 
+ *  structures that follow request.
  *****************************************************************/
 
-/* ResourceReq is used for any request which has a resource ID 
+/* ResourceReq is used for any request which has a resource ID
    (or Atom or Time) as its one and only argument.  */
 
 typedef struct {
@@ -1338,7 +1338,7 @@ typedef struct {
     CARD16 length B16;
     Window wid B32, parent B32;
     INT16 x B16, y B16;
-    CARD16 width B16, height B16, borderWidth B16;  
+    CARD16 width B16, height B16, borderWidth B16;
 #if defined(__cplusplus) || defined(c_plusplus)
     CARD16 c_class B16;
 #else
@@ -1353,7 +1353,7 @@ typedef struct {
     BYTE pad;
     CARD16 length B16;
     Window window B32;
-    CARD32 valueMask B32; 
+    CARD32 valueMask B32;
 } xChangeWindowAttributesReq;
 
 typedef struct {
@@ -1427,7 +1427,7 @@ typedef struct {
     CARD32 longOffset B32;
     CARD32 longLength B32;
 } xGetPropertyReq;
- 
+
 typedef struct {
     CARD8 reqType;
     BYTE pad;
@@ -1506,7 +1506,7 @@ typedef struct {
     CARD16 length B16;
     Window grabWindow B32;
     Time time B32;
-    BYTE pointerMode, keyboardMode;  
+    BYTE pointerMode, keyboardMode;
     CARD16 pad B16;
 } xGrabKeyboardReq;
 
@@ -1517,7 +1517,7 @@ typedef struct {
     Window grabWindow B32;
     CARD16 modifiers B16;
     CARD8 key;
-    BYTE pointerMode, keyboardMode;  
+    BYTE pointerMode, keyboardMode;
     BYTE pad1, pad2, pad3;
 } xGrabKeyReq;
 
@@ -1629,7 +1629,7 @@ typedef struct {
     CARD16 length B16;
     GContext gc B32;
     CARD32 mask B32;
-} xChangeGCReq;    
+} xChangeGCReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1637,7 +1637,7 @@ typedef struct {
     CARD16 length B16;
     GContext srcGC B32, dstGC B32;
     CARD32 mask B32;
-} xCopyGCReq;    
+} xCopyGCReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1646,7 +1646,7 @@ typedef struct {
     GContext gc B32;
     CARD16 dashOffset B16;
     CARD16 nDashes B16;        /* length LISTofCARD8 of values following */
-} xSetDashesReq;    
+} xSetDashesReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1654,7 +1654,7 @@ typedef struct {
     CARD16 length B16;
     GContext gc B32;
     INT16 xOrigin B16, yOrigin B16;
-} xSetClipRectanglesReq;    
+} xSetClipRectanglesReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1673,7 +1673,7 @@ typedef struct {
     GContext gc B32;
     INT16 srcX B16, srcY B16, dstX B16, dstY B16;
     CARD16 width B16, height B16;
-} xCopyAreaReq;    
+} xCopyAreaReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1684,7 +1684,7 @@ typedef struct {
     INT16 srcX B16, srcY B16, dstX B16, dstY B16;
     CARD16 width B16, height B16;
     CARD32 bitPlane B32;
-} xCopyPlaneReq;    
+} xCopyPlaneReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1692,7 +1692,7 @@ typedef struct {
     CARD16 length B16;
     Drawable drawable B32;
     GContext gc B32;
-} xPolyPointReq;    
+} xPolyPointReq;
 
 typedef xPolyPointReq xPolyLineReq;  /* same request structure */
 
@@ -1704,7 +1704,7 @@ typedef struct {
     CARD16 length B16;
     Drawable drawable B32;
     GContext gc B32;
-} xPolySegmentReq;    
+} xPolySegmentReq;
 
 typedef xPolySegmentReq xPolyArcReq;
 typedef xPolySegmentReq xPolyRectangleReq;
@@ -1720,7 +1720,7 @@ typedef struct _FillPolyReq {
     BYTE shape;
     BYTE coordMode;
     CARD16 pad1 B16;
-} xFillPolyReq;    
+} xFillPolyReq;
 
 
 typedef struct _PutImageReq {
@@ -1734,7 +1734,7 @@ typedef struct _PutImageReq {
     CARD8 leftPad;
     CARD8 depth;
     CARD16 pad B16;
-} xPutImageReq;    
+} xPutImageReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1744,7 +1744,7 @@ typedef struct {
     INT16 x B16, y B16;
     CARD16 width B16, height B16;
     CARD32 planeMask B32;
-} xGetImageReq;    
+} xGetImageReq;
 
 /* the following used by PolyText8 and PolyText16 */
 
@@ -1755,7 +1755,7 @@ typedef struct {
     Drawable drawable B32;
     GContext gc B32;
     INT16 x B16, y B16;		/* items (xTextElt) start after struct */
-} xPolyTextReq;    
+} xPolyTextReq;
 
 typedef xPolyTextReq xPolyText8Req;
 typedef xPolyTextReq xPolyText16Req;
@@ -1767,7 +1767,7 @@ typedef struct {
     Drawable drawable B32;
     GContext gc B32;
     INT16 x B16, y B16;
-} xImageTextReq;    
+} xImageTextReq;
 
 typedef xImageTextReq xImageText8Req;
 typedef xImageTextReq xImageText16Req;
@@ -1779,7 +1779,7 @@ typedef struct {
     Colormap mid B32;
     Window window B32;
     VisualID visual B32;
-} xCreateColormapReq;    
+} xCreateColormapReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1787,7 +1787,7 @@ typedef struct {
     CARD16 length B16;
     Colormap mid B32;
     Colormap srcCmap B32;
-} xCopyColormapAndFreeReq;    
+} xCopyColormapAndFreeReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1796,7 +1796,7 @@ typedef struct {
     Colormap cmap B32;
     CARD16 red B16, green B16, blue B16;
     CARD16 pad2 B16;
-} xAllocColorReq;    
+} xAllocColorReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1805,7 +1805,7 @@ typedef struct {
     Colormap cmap B32;
     CARD16 nbytes B16;  /* followed by structure */
     BYTE pad1, pad2;
-} xAllocNamedColorReq;    
+} xAllocNamedColorReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1813,7 +1813,7 @@ typedef struct {
     CARD16 length B16;
     Colormap cmap B32;
     CARD16 colors B16, planes B16;
-} xAllocColorCellsReq;    
+} xAllocColorCellsReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1821,7 +1821,7 @@ typedef struct {
     CARD16 length B16;
     Colormap cmap B32;
     CARD16 colors B16, red B16, green B16, blue B16;
-} xAllocColorPlanesReq;    
+} xAllocColorPlanesReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1829,14 +1829,14 @@ typedef struct {
     CARD16 length B16;
     Colormap cmap B32;
     CARD32 planeMask B32;
-} xFreeColorsReq;    
+} xFreeColorsReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
     CARD16 length B16;
     Colormap cmap B32;
-} xStoreColorsReq;    
+} xStoreColorsReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1853,7 +1853,7 @@ typedef struct {
     BYTE pad;
     CARD16 length B16;
     Colormap cmap B32;
-} xQueryColorsReq;    
+} xQueryColorsReq;
 
 typedef struct {    /* followed  by string of length len */
     CARD8 reqType;
@@ -1862,7 +1862,7 @@ typedef struct {    /* followed  by string of length len */
     Colormap cmap B32;
     CARD16 nbytes B16;  /* number of string bytes following structure*/
     BYTE pad1, pad2;
-} xLookupColorReq;    
+} xLookupColorReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1873,7 +1873,7 @@ typedef struct {
     CARD16 foreRed B16, foreGreen B16, foreBlue B16;
     CARD16 backRed B16, backGreen B16, backBlue B16;
     CARD16 x B16, y B16;
-} xCreateCursorReq;    
+} xCreateCursorReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1884,7 +1884,7 @@ typedef struct {
     CARD16 sourceChar B16, maskChar B16;
     CARD16 foreRed B16, foreGreen B16, foreBlue B16;
     CARD16 backRed B16, backGreen B16, backBlue B16;
-} xCreateGlyphCursorReq;    
+} xCreateGlyphCursorReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1893,7 +1893,7 @@ typedef struct {
     Cursor cursor B32;
     CARD16 foreRed B16, foreGreen B16, foreBlue B16;
     CARD16 backRed B16, backGreen B16, backBlue B16;
-} xRecolorCursorReq;    
+} xRecolorCursorReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1905,7 +1905,7 @@ typedef struct {
     CARD16 length B16;
     Drawable drawable B32;
     CARD16 width B16, height B16;
-} xQueryBestSizeReq;    
+} xQueryBestSizeReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1934,7 +1934,7 @@ typedef struct {
     KeyCode firstKeyCode;
     CARD8 count;
     CARD16 pad1 B16;
-} xGetKeyboardMappingReq;    
+} xGetKeyboardMappingReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1950,31 +1950,31 @@ typedef struct {
     BYTE pad;
     CARD16 length B16;
     CARD32 mask B32;
-} xChangeKeyboardControlReq;    
+} xChangeKeyboardControlReq;
 
 typedef struct {
     CARD8 reqType;
     INT8 percent;  /* -100 to 100 */
     CARD16 length B16;
-} xBellReq;    
+} xBellReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
     CARD16 length B16;
     INT16 accelNum B16, accelDenum B16;
-    INT16 threshold B16;             
+    INT16 threshold B16;
     BOOL doAccel, doThresh;
-} xChangePointerControlReq;    
+} xChangePointerControlReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
     CARD16 length B16;
     INT16 timeout B16, interval B16;
-    BYTE preferBlank, allowExpose;  
+    BYTE preferBlank, allowExpose;
     CARD16 pad2 B16;
-} xSetScreenSaverReq;    
+} xSetScreenSaverReq;
 
 typedef struct {
     CARD8 reqType;
@@ -1983,7 +1983,7 @@ typedef struct {
     CARD8 hostFamily;
     BYTE pad;
     CARD16 hostLength B16;
-} xChangeHostsReq;    
+} xChangeHostsReq;
 
 typedef struct {
     CARD8 reqType;
@@ -2009,7 +2009,7 @@ typedef struct { /* followed by LIST of ATOM */
     CARD16 nAtoms B16;
     INT16 nPositions B16;
     } xRotatePropertiesReq;
-    
+
 
 
 /* Reply codes */
@@ -2019,119 +2019,119 @@ typedef struct { /* followed by LIST of ATOM */
 
 /* Request codes */
 
-#define X_CreateWindow                  1              
-#define X_ChangeWindowAttributes        2        
-#define X_GetWindowAttributes           3     
+#define X_CreateWindow                  1
+#define X_ChangeWindowAttributes        2
+#define X_GetWindowAttributes           3
 #define X_DestroyWindow                 4
-#define X_DestroySubwindows             5   
+#define X_DestroySubwindows             5
 #define X_ChangeSaveSet                 6
 #define X_ReparentWindow                7
 #define X_MapWindow                     8
 #define X_MapSubwindows                 9
 #define X_UnmapWindow                  10
-#define X_UnmapSubwindows              11  
-#define X_ConfigureWindow              12  
-#define X_CirculateWindow              13  
+#define X_UnmapSubwindows              11
+#define X_ConfigureWindow              12
+#define X_CirculateWindow              13
 #define X_GetGeometry                  14
 #define X_QueryTree                    15
 #define X_InternAtom                   16
 #define X_GetAtomName                  17
-#define X_ChangeProperty               18 
-#define X_DeleteProperty               19 
+#define X_ChangeProperty               18
+#define X_DeleteProperty               19
 #define X_GetProperty                  20
-#define X_ListProperties               21 
-#define X_SetSelectionOwner            22    
-#define X_GetSelectionOwner            23    
-#define X_ConvertSelection             24   
+#define X_ListProperties               21
+#define X_SetSelectionOwner            22
+#define X_GetSelectionOwner            23
+#define X_ConvertSelection             24
 #define X_SendEvent                    25
 #define X_GrabPointer                  26
 #define X_UngrabPointer                27
 #define X_GrabButton                   28
 #define X_UngrabButton                 29
-#define X_ChangeActivePointerGrab      30          
+#define X_ChangeActivePointerGrab      30
 #define X_GrabKeyboard                 31
-#define X_UngrabKeyboard               32 
+#define X_UngrabKeyboard               32
 #define X_GrabKey                      33
 #define X_UngrabKey                    34
-#define X_AllowEvents                  35       
-#define X_GrabServer                   36      
-#define X_UngrabServer                 37        
-#define X_QueryPointer                 38        
-#define X_GetMotionEvents              39           
-#define X_TranslateCoords              40                
-#define X_WarpPointer                  41       
-#define X_SetInputFocus                42         
-#define X_GetInputFocus                43         
-#define X_QueryKeymap                  44       
-#define X_OpenFont                     45    
-#define X_CloseFont                    46     
+#define X_AllowEvents                  35
+#define X_GrabServer                   36
+#define X_UngrabServer                 37
+#define X_QueryPointer                 38
+#define X_GetMotionEvents              39
+#define X_TranslateCoords              40
+#define X_WarpPointer                  41
+#define X_SetInputFocus                42
+#define X_GetInputFocus                43
+#define X_QueryKeymap                  44
+#define X_OpenFont                     45
+#define X_CloseFont                    46
 #define X_QueryFont                    47
-#define X_QueryTextExtents             48     
-#define X_ListFonts                    49  
-#define X_ListFontsWithInfo    	       50 
-#define X_SetFontPath                  51 
-#define X_GetFontPath                  52 
-#define X_CreatePixmap                 53        
-#define X_FreePixmap                   54      
-#define X_CreateGC                     55    
-#define X_ChangeGC                     56    
-#define X_CopyGC                       57  
-#define X_SetDashes                    58     
-#define X_SetClipRectangles            59             
-#define X_FreeGC                       60  
-#define X_ClearArea                    61             
-#define X_CopyArea                     62    
-#define X_CopyPlane                    63     
-#define X_PolyPoint                    64     
-#define X_PolyLine                     65    
-#define X_PolySegment                  66       
-#define X_PolyRectangle                67         
-#define X_PolyArc                      68   
-#define X_FillPoly                     69    
-#define X_PolyFillRectangle            70             
-#define X_PolyFillArc                  71       
-#define X_PutImage                     72    
-#define X_GetImage                     73 
-#define X_PolyText8                    74     
-#define X_PolyText16                   75      
-#define X_ImageText8                   76      
-#define X_ImageText16                  77       
-#define X_CreateColormap               78          
-#define X_FreeColormap                 79        
-#define X_CopyColormapAndFree          80               
-#define X_InstallColormap              81           
-#define X_UninstallColormap            82             
-#define X_ListInstalledColormaps       83                  
-#define X_AllocColor                   84      
-#define X_AllocNamedColor              85           
-#define X_AllocColorCells              86           
-#define X_AllocColorPlanes             87            
-#define X_FreeColors                   88      
-#define X_StoreColors                  89       
-#define X_StoreNamedColor              90           
-#define X_QueryColors                  91       
-#define X_LookupColor                  92       
-#define X_CreateCursor                 93        
-#define X_CreateGlyphCursor            94             
-#define X_FreeCursor                   95      
-#define X_RecolorCursor                96         
-#define X_QueryBestSize                97         
-#define X_QueryExtension               98          
-#define X_ListExtensions               99          
+#define X_QueryTextExtents             48
+#define X_ListFonts                    49
+#define X_ListFontsWithInfo    	       50
+#define X_SetFontPath                  51
+#define X_GetFontPath                  52
+#define X_CreatePixmap                 53
+#define X_FreePixmap                   54
+#define X_CreateGC                     55
+#define X_ChangeGC                     56
+#define X_CopyGC                       57
+#define X_SetDashes                    58
+#define X_SetClipRectangles            59
+#define X_FreeGC                       60
+#define X_ClearArea                    61
+#define X_CopyArea                     62
+#define X_CopyPlane                    63
+#define X_PolyPoint                    64
+#define X_PolyLine                     65
+#define X_PolySegment                  66
+#define X_PolyRectangle                67
+#define X_PolyArc                      68
+#define X_FillPoly                     69
+#define X_PolyFillRectangle            70
+#define X_PolyFillArc                  71
+#define X_PutImage                     72
+#define X_GetImage                     73
+#define X_PolyText8                    74
+#define X_PolyText16                   75
+#define X_ImageText8                   76
+#define X_ImageText16                  77
+#define X_CreateColormap               78
+#define X_FreeColormap                 79
+#define X_CopyColormapAndFree          80
+#define X_InstallColormap              81
+#define X_UninstallColormap            82
+#define X_ListInstalledColormaps       83
+#define X_AllocColor                   84
+#define X_AllocNamedColor              85
+#define X_AllocColorCells              86
+#define X_AllocColorPlanes             87
+#define X_FreeColors                   88
+#define X_StoreColors                  89
+#define X_StoreNamedColor              90
+#define X_QueryColors                  91
+#define X_LookupColor                  92
+#define X_CreateCursor                 93
+#define X_CreateGlyphCursor            94
+#define X_FreeCursor                   95
+#define X_RecolorCursor                96
+#define X_QueryBestSize                97
+#define X_QueryExtension               98
+#define X_ListExtensions               99
 #define X_ChangeKeyboardMapping        100
 #define X_GetKeyboardMapping           101
-#define X_ChangeKeyboardControl        102                
-#define X_GetKeyboardControl           103             
+#define X_ChangeKeyboardControl        102
+#define X_GetKeyboardControl           103
 #define X_Bell                         104
 #define X_ChangePointerControl         105
 #define X_GetPointerControl            106
-#define X_SetScreenSaver               107          
-#define X_GetScreenSaver               108          
-#define X_ChangeHosts                  109       
-#define X_ListHosts                    110     
-#define X_SetAccessControl             111               
+#define X_SetScreenSaver               107
+#define X_GetScreenSaver               108
+#define X_ChangeHosts                  109
+#define X_ListHosts                    110
+#define X_SetAccessControl             111
 #define X_SetCloseDownMode             112
-#define X_KillClient                   113 
+#define X_KillClient                   113
 #define X_RotateProperties	       114
 #define X_ForceScreenSaver	       115
 #define X_SetPointerMapping            116

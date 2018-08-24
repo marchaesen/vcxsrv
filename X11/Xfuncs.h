@@ -1,5 +1,5 @@
 /*
- * 
+ *
 Copyright 1990, 1998  The Open Group
 
 Permission to use, copy, modify, distribute, and sell this software and its

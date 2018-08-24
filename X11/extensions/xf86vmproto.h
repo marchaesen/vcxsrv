@@ -16,13 +16,13 @@ included in all copies or substantial portions of the Software.
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL Kaleb S. KEITHLEY BE LIABLE FOR ANY CLAIM, DAMAGES 
+IN NO EVENT SHALL Kaleb S. KEITHLEY BE LIABLE FOR ANY CLAIM, DAMAGES
 OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
-Except as contained in this notice, the name of Kaleb S. KEITHLEY 
-shall not be used in advertising or otherwise to promote the sale, use 
+Except as contained in this notice, the name of Kaleb S. KEITHLEY
+shall not be used in advertising or otherwise to promote the sale, use
 or other dealings in this Software without prior written authorization
 from Kaleb S. KEITHLEY
 
@@ -514,7 +514,7 @@ typedef struct _XF86VidModeSetGammaRamp {
     CARD16      screen B16;
     CARD16      size B16;
 } xXF86VidModeSetGammaRampReq;
-#define sz_xXF86VidModeSetGammaRampReq             8 
+#define sz_xXF86VidModeSetGammaRampReq             8
 
 typedef struct _XF86VidModeGetGammaRamp {
     CARD8       reqType;                /* always XF86VidModeReqCode */

@@ -1,5 +1,5 @@
 /*
- 
+
 Copyright 1990, 1991, 1998  The Open Group
 
 Permission to use, copy, modify, distribute, and sell this software and its
@@ -23,7 +23,7 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
  * Copyright 1990, 1991 Network Computing Devices;
- * Portions Copyright 1987 by Digital Equipment Corporation 
+ * Portions Copyright 1987 by Digital Equipment Corporation
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -131,7 +131,7 @@ typedef CARD32	fsTimestamp;
 typedef CARD32	fsBitmapFormat;
 typedef CARD32	fsBitmapFormatMask;
 #endif
- 
+
 #define sz_fsBitmapFormat	4
 
 typedef struct {
@@ -186,7 +186,7 @@ typedef struct {
     CARD16	point_size B16;
 }	    fsResolution;
 
-  
+
 typedef struct {
     CARD32	flags B32;
     CARD8	char_range_min_char_high;
@@ -528,7 +528,7 @@ typedef struct {
     /* propinfo */
     /* name */
 }           fsListFontsWithXInfoReply;
-    
+
 typedef struct {
     BYTE        type;
     CARD8       otherid_valid;

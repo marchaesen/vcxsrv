@@ -6,19 +6,19 @@ software and its documentation for any purpose and without
 fee is hereby granted, provided that the above copyright
 notice appear in all copies and that both that copyright
 notice and this permission notice appear in supporting
-documentation, and that the name of Silicon Graphics not be 
-used in advertising or publicity pertaining to distribution 
+documentation, and that the name of Silicon Graphics not be
+used in advertising or publicity pertaining to distribution
 of the software without specific prior written permission.
-Silicon Graphics makes no representation about the suitability 
+Silicon Graphics makes no representation about the suitability
 of this software for any purpose. It is provided "as is"
 without any express or implied warranty.
 
-SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
-SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
 AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
-GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
-DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
-DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
 OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
 THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -67,10 +67,10 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define	XkbNumberEvents			(XkbEventCode+1)
 
     /*
-     * XKB has a minor event code so it can use one X event code for 
-     * multiple purposes.  
+     * XKB has a minor event code so it can use one X event code for
+     * multiple purposes.
      *  - reported in the xkbType field of all XKB events.
-     *  - XkbSelectEventDetails: Indicates the event for which event details 
+     *  - XkbSelectEventDetails: Indicates the event for which event details
      *    are being changed
      */
 #define	XkbNewKeyboardNotify		0
@@ -158,7 +158,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
      * A further reason for the error is encoded into to most significant
      * byte of the resourceID for the error:
      *    XkbErr_BadDevice - the device in question was not found
-     *    XkbErr_BadClass  - the device was found but it doesn't belong to 
+     *    XkbErr_BadClass  - the device was found but it doesn't belong to
      *                       the appropriate class.
      *    XkbErr_BadId     - the device was found and belongs to the right
      *                       class, but not feedback with a matching id was
@@ -212,11 +212,11 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
     /*
      * Controls detail masks:
      *  The controls specified in XkbAllControlsMask:
-     *  - The 'changed' field of ControlsNotify events reports which of 
+     *  - The 'changed' field of ControlsNotify events reports which of
      *    the keyboard controls have changed.
      *  - The 'changeControls' field of the SetControls request specifies
      *    the controls for which values are to be changed.
-     *  - Used as an event detail mask to limit the conditions under 
+     *  - Used as an event detail mask to limit the conditions under
      *    which ControlsNotify events are reported.
      *
      *  The controls specified in the XkbAllBooleanCtrlsMask:
@@ -229,7 +229,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
      *  - The 'accessXTimeoutMask' and 'accessXTimeoutValues' fields of
      *    an XkbControlsRec specify the controls to be changed if the keyboard
      *    times out and the values to which they should be changed.
-     *  - The 'autoCtrls' and 'autoCtrlsValues' fields of the PerClientFlags 
+     *  - The 'autoCtrls' and 'autoCtrlsValues' fields of the PerClientFlags
      *    request specifies the specify the controls to be reset when the
      *    client exits and the values to which they should be reset.
      *  - The 'ctrls' field of an indicator map specifies the controls
@@ -267,8 +267,8 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
      *  - The 'accessXOptions' field of an XkbControlsRec specifies the
      *    AccessX options that are currently in effect.
      *  - The 'accessXTimeoutOptionsMask' and 'accessXTimeoutOptionsValues'
-     *    fields of an XkbControlsRec specify the Access X options to be 
-     *    changed if the keyboard times out and the values to which they 
+     *    fields of an XkbControlsRec specify the Access X options to be
+     *    changed if the keyboard times out and the values to which they
      *    should be changed.
      */
 #define	XkbAX_SKPressFBMask	(1L << 0)
@@ -293,7 +293,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
      * XkbUseCorePtr is used to specify the core pointer without having
      *			to look up its X input extension identifier.
      * XkbDfltXIClass is used to specify "don't care" any place that the
-     *			XKB protocol is looking for an X Input Extension 
+     *			XKB protocol is looking for an X Input Extension
      *			device class.
      * XkbDfltXIId is used to specify "don't care" any place that the
      *			XKB protocol is looking for an X Input Extension
@@ -309,9 +309,9 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
      * XkbExplicitXIDevice(d) True if 'd' explicitly specifies a device
      * XkbExplicitXIClass(c)  True if 'c' explicitly specifies a device class
      * XkbExplicitXIId(c)     True if 'i' explicitly specifies a device id
-     * XkbSingleXIClass(c)    True if 'c' specifies exactly one device class, 
+     * XkbSingleXIClass(c)    True if 'c' specifies exactly one device class,
      *                        including the default.
-     * XkbSingleXIId(i)       True if 'i' specifies exactly one device 
+     * XkbSingleXIId(i)       True if 'i' specifies exactly one device
      *	                      identifier, including the default.
      */
 #define	XkbUseCoreKbd		0x0100
@@ -456,9 +456,9 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define	XkbSA_SwitchAbsolute	(1L << 2)
 
     /*
-     * The following values apply to the SA_DeviceValuator 
-     * action only.  Valuator operations specify the action 
-     * to be taken.   Values specified in the action are 
+     * The following values apply to the SA_DeviceValuator
+     * action only.  Valuator operations specify the action
+     * to be taken.   Values specified in the action are
      * multiplied by 2^scale before they are applied.
      */
 #define	XkbSA_IgnoreVal		(0x00)
@@ -510,7 +510,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 	(1<<XkbSA_Terminate)|(1<<XkbSA_SwitchScreen)|(1<<XkbSA_SetControls)|\
 	(1<<XkbSA_LockControls)|(1<<XkbSA_ActionMessage)|\
 	(1<<XkbSA_RedirectKey)|(1<<XkbSA_DeviceBtn)|(1<<XkbSA_LockDeviceBtn))
-	 
+
     /*
      * Macros to classify key actions
      */
@@ -524,7 +524,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
      *    KB_Permanent indicates that the behavior describes an unalterable
      *    characteristic of the keyboard, not an XKB software-simulation of
      *    the listed behavior.
-     * Key Behavior Types:  
+     * Key Behavior Types:
      *    Specifies the behavior of the underlying key.
      */
 #define	XkbKB_Permanent		0x80
@@ -645,7 +645,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
     /*
      * Symbol interpretations match specification:
-     *  - Used in the match field of a symbol interpretation to specify 
+     *  - Used in the match field of a symbol interpretation to specify
      *    the conditions under which an interpretation is used.
      */
 #define	XkbSI_LevelOneOnly	(0x80)

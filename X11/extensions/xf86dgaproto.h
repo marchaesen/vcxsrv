@@ -130,7 +130,7 @@ typedef struct {
     BOOL	pad1;
     CARD16	sequenceNumber B16;
     CARD32	length B32;		/* device name size if there is one */
-    CARD32	mem1 B32;		/* physical memory */	
+    CARD32	mem1 B32;		/* physical memory */
     CARD32	mem2 B32;		/* spillover for _alpha_ */
     CARD32	size B32;		/* size of map in bytes */
     CARD32	offset B32;		/* optional offset into device */
@@ -232,8 +232,8 @@ typedef struct _XDGAGetViewportStatus {
 #define sz_xXDGAGetViewportStatusReq	8
 
 typedef struct {
-    BYTE	type;			
-    BOOL	pad1;	
+    BYTE	type;
+    BOOL	pad1;
     CARD16	sequenceNumber B16;
     CARD32	length B32;
     CARD32	status B32;
@@ -254,8 +254,8 @@ typedef struct _XDGASync {
 #define sz_xXDGASyncReq	8
 
 typedef struct {
-    BYTE	type;			
-    BOOL	pad1;	
+    BYTE	type;
+    BOOL	pad1;
     CARD16	sequenceNumber B16;
     CARD32	length B32;
     CARD32	pad2 B32;
@@ -289,8 +289,8 @@ typedef struct {
 #define sz_xXDGAChangePixmapModeReq	16
 
 typedef struct {
-    BYTE	type;			
-    BOOL	pad1;	
+    BYTE	type;
+    BOOL	pad1;
     CARD16	sequenceNumber B16;
     CARD32	length B32;
     CARD16	x B16;

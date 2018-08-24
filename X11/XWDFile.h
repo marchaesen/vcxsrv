@@ -30,7 +30,7 @@ in this Software without prior written authorization from The Open Group.
  *
  *  Author:	Tony Della Fera, DEC
  *		27-Jun-85
- * 
+ *
  * Modifier:    William F. Wyatt, SAO
  *              18-Nov-86  - version 6 for saving/restoring color maps
  */
@@ -51,7 +51,7 @@ typedef CARD32 xwdval;		/* for old broken programs */
 typedef struct _xwd_file_header {
 	/* header_size = SIZEOF(XWDheader) + length of null-terminated
 	 * window name. */
-	CARD32 header_size B32;		
+	CARD32 header_size B32;
 
 	CARD32 file_version B32;	/* = XWD_FILE_VERSION above */
 	CARD32 pixmap_format B32;	/* ZPixmap or XYPixmap */
@@ -63,13 +63,13 @@ typedef struct _xwd_file_header {
 
 	/* bitmap_unit applies to bitmaps (depth 1 format XY) only.
 	 * It is the number of bits that each scanline is padded to. */
-	CARD32 bitmap_unit B32;		
+	CARD32 bitmap_unit B32;
 
 	CARD32 bitmap_bit_order B32;	/* bitmaps only: MSBFirst, LSBFirst */
 
 	/* bitmap_pad applies to pixmaps (non-bitmaps) only.
 	 * It is the number of bits that each scanline is padded to. */
-	CARD32 bitmap_pad B32;		
+	CARD32 bitmap_pad B32;
 
 	CARD32 bits_per_pixel B32;	/* Bits per pixel */
 
