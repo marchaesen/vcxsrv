@@ -1209,8 +1209,12 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
       if (empty_locs)
          chosen_location = link_util_find_empty_block(prog, &prog->data->UniformStorage[i]);
 
-      /* Add new entries to the total amount of entries. */
-      total_entries += entries;
+      /* Add new entries to the total amount for checking against MAX_UNIFORM-
+       * _LOCATIONS. This only applies to the default uniform block (-1),
+       * because locations of uniform block entries are not assignable.
+       */
+      if (prog->data->UniformStorage[i].block_index == -1)
+         total_entries += entries;
 
       if (chosen_location != -1) {
          empty_locs -= entries;

@@ -702,8 +702,8 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
     if (new_height < screen_pixmap->drawable.height)
         new_height = screen_pixmap->drawable.height;
 
-    if (new_width == screen_pixmap->drawable.width &&
-        new_height == screen_pixmap->drawable.height) {
+    if (new_width <= screen_pixmap->drawable.width &&
+        new_height <= screen_pixmap->drawable.height) {
     } else {
         pScrPriv->rrScreenSetSize(pScreen, new_width, new_height, 0, 0);
     }

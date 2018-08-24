@@ -411,7 +411,8 @@ _mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state)
       add_type(symbols, glsl_type::dmat4x3_type);
    }
 
-   if (state->ARB_gpu_shader_int64_enable) {
+   if (state->ARB_gpu_shader_int64_enable ||
+       state->AMD_gpu_shader_int64_enable) {
       add_type(symbols, glsl_type::int64_t_type);
       add_type(symbols, glsl_type::i64vec2_type);
       add_type(symbols, glsl_type::i64vec3_type);
