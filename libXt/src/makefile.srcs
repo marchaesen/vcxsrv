@@ -1,0 +1,24 @@
+ifneq ($(NORELDBG),1)
+$(error NORELDBG should have been set to 1)
+endif
+ifneq ($(IS64),1)
+$(error IS64 should have been set to 1, buld is independent on 32-bit)
+endif
+
+BUILT_SOURCE = StringDefs.c
+BUILT_HEADER = ../include/X11/StringDefs.h ../include/X11/Shell.h
+BUILT_FILES = $(BUILT_SOURCE) $(BUILT_HEADER)
+
+STRING_LIST = ../util/string.list
+
+$(BUILT_HEADER): $(BUILT_SOURCE)
+
+$(BUILT_SOURCE) $(BUILT_HEADER) : ../util/$(OBJDIR)/makestrs.exe $(STRING_LIST) ../util/StrDefs.ht ../util/StrDefs.ct ../util/Shell.ht
+	..$/util$/$(OBJDIR)$/makestrs -i .. $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
+	move StringDefs.h ..$/include$/X11
+	touch ..$/include$/X11$/StringDefs.h
+	move Shell.h ..$/include$/X11
+	touch ..$/include$/X11$/Shell.h
+
+load_makefile ../util/makefile MAKESERVER=0 NORELDBG=1 IS64=1
+
