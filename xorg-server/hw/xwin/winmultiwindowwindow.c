@@ -446,8 +446,21 @@ static void dowinRestackWindowMultiWindow(WindowPtr pWin)
 	          pNextSibPriv = winGetWindowPriv(pNextSib);
         }
 
-        /* Bring window on top pNextSibPriv->hwnd */
-        SetWindowPos(pWinPriv->hWnd, pNextSibPriv->hWnd, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+        /* Bring window on top pNextSibPriv->hwnd, but only if it is not yet the case.
+         * It seems that calling SetWindowPos when 2 windows that already have the correct z-order
+         * has some strange effects???
+         */
+        if (GetNextWindow(pWinPriv->hWnd, GW_HWNDNEXT)!=pNextSibPriv->hWnd)
+        {
+            #ifdef DEBUG
+            char window1[100];
+            char window2[100];
+            GetWindowText(pWinPriv->hWnd, window1, 100);
+            GetWindowText(pNextSibPriv->hWnd, window2, 100);
+            winDebug ("Setting windows %x(%s) on top of %x(%s)\n", pWinPriv->hWnd, window1, pNextSibPriv->hWnd, window2);
+            #endif
+            SetWindowPos(pWinPriv->hWnd, pNextSibPriv->hWnd, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+        }
     }
 }
 
