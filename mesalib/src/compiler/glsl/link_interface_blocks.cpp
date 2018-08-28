@@ -417,9 +417,15 @@ validate_interstage_inout_blocks(struct gl_shader_program *prog,
        * write to any of the pre-defined outputs (e.g. if the vertex shader
        * does not write to gl_Position, etc), which is allowed and results in
        * undefined behavior.
+       *
+       * From Section 4.3.4 (Inputs) of the GLSL 1.50 spec:
+       *
+       *    "Only the input variables that are actually read need to be written
+       *     by the previous stage; it is allowed to have superfluous
+       *     declarations of input variables."
        */
       if (producer_def == NULL &&
-          !is_builtin_gl_in_block(var, consumer->Stage)) {
+          !is_builtin_gl_in_block(var, consumer->Stage) && var->data.used) {
          linker_error(prog, "Input block `%s' is not an output of "
                       "the previous stage\n", var->get_interface_type()->name);
          return;

@@ -257,16 +257,6 @@ dead_cf_block(nir_block *block)
 }
 
 static bool
-ends_in_jump(nir_block *block)
-{
-   if (exec_list_is_empty(&block->instr_list))
-      return false;
-
-   nir_instr *instr = nir_block_last_instr(block);
-   return instr->type == nir_instr_type_jump;
-}
-
-static bool
 dead_cf_list(struct exec_list *list, bool *list_ends_in_jump)
 {
    bool progress = false;
@@ -297,7 +287,7 @@ dead_cf_list(struct exec_list *list, bool *list_ends_in_jump)
             progress = true;
          }
 
-         if (ends_in_jump(block)) {
+         if (nir_block_ends_in_jump(block)) {
             *list_ends_in_jump = true;
 
             if (!exec_node_is_tail_sentinel(cur->node.next)) {

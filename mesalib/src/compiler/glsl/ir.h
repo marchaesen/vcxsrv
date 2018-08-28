@@ -667,8 +667,8 @@ public:
        * variable has been used.  For example, it is an error to redeclare a
        * variable as invariant after it has been used.
        *
-       * This is only maintained in the ast_to_hir.cpp path, not in
-       * Mesa's fixed function or ARB program paths.
+       * This is maintained in the ast_to_hir.cpp path and during linking,
+       * but not in Mesa's fixed function or ARB program paths.
        */
       unsigned used:1;
 

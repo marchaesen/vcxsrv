@@ -1753,6 +1753,13 @@ nir_block_last_instr(nir_block *block)
    return exec_node_data(nir_instr, tail, node);
 }
 
+static inline bool
+nir_block_ends_in_jump(nir_block *block)
+{
+   return !exec_list_is_empty(&block->instr_list) &&
+          nir_block_last_instr(block)->type == nir_instr_type_jump;
+}
+
 #define nir_foreach_instr(instr, block) \
    foreach_list_typed(nir_instr, instr, node, &(block)->instr_list)
 #define nir_foreach_instr_reverse(instr, block) \
