@@ -102,13 +102,15 @@ if _drivers.contains('auto')
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
       _drivers = []
     else
-      error('Unknown architecture. Please pass -Ddri-drivers to set driver options. Patches gladly accepted to fix this.')
+      error('Unknown architecture @0@. Please pass -Ddri-drivers to set driver options. Patches gladly accepted to fix this.'.format(
+            host_machine.cpu_family()))
     endif
   elif ['darwin', 'windows', 'cygwin', 'haiku'].contains(host_machine.system())
     # only swrast would make sense here, but gallium swrast is a much better default
     _drivers = []
   else
-    error('Unknown OS. Please pass -Ddri-drivers to set driver options. Patches gladly accepted to fix this.')
+    error('Unknown OS @0@. Please pass -Ddri-drivers to set driver options. Patches gladly accepted to fix this.'.format(
+          host_machine.system()))
   endif
 endif
 
@@ -135,12 +137,14 @@ if _drivers.contains('auto')
         'tegra', 'virgl', 'swrast',
       ]
     else
-      error('Unknown architecture. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.')
+      error('Unknown architecture @0@. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.'.format(
+            host_machine.cpu_family()))
     endif
   elif ['darwin', 'windows', 'cygwin', 'haiku'].contains(host_machine.system())
     _drivers = ['swrast']
   else
-    error('Unknown OS. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.')
+    error('Unknown OS @0@. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.'.format(
+          host_machine.system()))
   endif
 endif
 with_gallium_pl111 = _drivers.contains('pl111')
@@ -175,14 +179,18 @@ if _vulkan_drivers.contains('auto')
   if system_has_kms_drm
     if host_machine.cpu_family().startswith('x86')
       _vulkan_drivers = ['amd', 'intel']
+    elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
+      _vulkan_drivers = []
     else
-      error('Unknown architecture. Please pass -Dvulkan-drivers to set driver options. Patches gladly accepted to fix this.')
+      error('Unknown architecture @0@. Please pass -Dvulkan-drivers to set driver options. Patches gladly accepted to fix this.'.format(
+            host_machine.cpu_family()))
     endif
   elif ['darwin', 'windows', 'cygwin', 'haiku'].contains(host_machine.system())
     # No vulkan driver supports windows or macOS currently
     _vulkan_drivers = []
   else
-    error('Unknown OS. Please pass -Dvulkan-drivers to set driver options. Patches gladly accepted to fix this.')
+    error('Unknown OS @0@. Please pass -Dvulkan-drivers to set driver options. Patches gladly accepted to fix this.'.format(
+          host_machine.system()))
   endif
 endif
 
@@ -230,7 +238,8 @@ if _platforms.contains('auto')
   elif ['haiku'].contains(host_machine.system())
     _platforms = ['haiku']
   else
-    error('Unknown OS. Please pass -Dplatforms to set platforms. Patches gladly accepted to fix this.')
+    error('Unknown OS @0@. Please pass -Dplatforms to set platforms. Patches gladly accepted to fix this.'.format(
+          host_machine.system()))
   endif
 endif
 
