@@ -212,6 +212,36 @@
     <ClCompile Include="src\autofit\afshaper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\psaux\psft.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\psaux\cffdecode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\psaux\psfont.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\psaux\psintrp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\psaux\pshints.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\psaux\psarrst.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\psaux\psstack.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\psaux\psblues.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\psaux\psread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\psaux\pserror.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\freetype\freetype.h">
