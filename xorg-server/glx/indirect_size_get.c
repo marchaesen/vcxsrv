@@ -774,6 +774,8 @@ __glGetBooleanv_size( GLenum e )
 /*      case GL_MAX_COLOR_ATTACHMENTS_EXT:*/
         case GL_MAX_SAMPLES:
 /*      case GL_MAX_SAMPLES_EXT:*/
+        case GL_DEPTH_CLAMP_NEAR_AMD:
+        case GL_DEPTH_CLAMP_FAR_AMD:
         case GL_CONTEXT_ROBUST_ACCESS:
         case GL_MAX_SERVER_WAIT_TIMEOUT:
         case GL_MAX_DEBUG_MESSAGE_LENGTH_ARB:
