@@ -1801,6 +1801,12 @@ typedef struct {
    /* Unroll the loop regardless of its size */
    bool force_unroll;
 
+   /* Does the loop contain complex loop terminators, continues or other
+    * complex behaviours? If this is true we can't rely on
+    * loop_terminator_list to be complete or accurate.
+    */
+   bool complex_loop;
+
    nir_loop_terminator *limiting_terminator;
 
    /* A list of loop_terminators terminating this loop. */

@@ -1,0 +1,34 @@
+image: fedora:rawhide
+
+stages:
+  - build
+
+before_script:
+  - dnf -y upgrade --disablerepo=rawhide-modular --nogpgcheck fedora-repos fedora-repos-rawhide
+  - dnf -y upgrade --disablerepo=rawhide-modular
+  - dnf -y install --disablerepo=rawhide-modular @buildsys-build autoconf automake libtool gettext gettext-devel gperf expat-devel freetype-devel libuuid-devel json-c-devel git docbook-utils docbook-utils-pdf
+
+build:
+  stage: build
+  script:
+    - export BUILD_ID="fontconfig-$CI_JOB_NAME_$CI_COMMIT_SHA-$CI_JOB_ID"
+    - export PREFIX="$(pwd)/prefix-$BUILD_ID"
+    - export BUILDDIR="$(pwd)/build-$BUILD_ID"
+    - export MAKEFLAGS="-j4"
+    - mkdir "$BUILDDIR" "$PREFIX"
+    - cd "$BUILDDIR"
+    - ../autogen.sh --prefix="$PREFIX"
+    - make
+    - make check
+    - make install
+    - make distcheck
+  artifacts:
+    name: fontconfig-$CI_COMMIT_SHA-$CI_JOB_ID
+    when: always
+    paths:
+      - build-*/fontconfig-*.tar.bz2
+      - build-*/fontconfig*/_build/sub/*.log
+      - build-*/fontconfig*/_build/sub/test/*.log
+      - build-*/fontconfig*/_build/sub/test/*.trs
+      - build-*/*.log
+      - prefix-*

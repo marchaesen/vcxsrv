@@ -317,15 +317,19 @@ find_loop_terminators(loop_info_state *state)
           * not find a loop terminator, but there is a break-statement then
           * we should return false so that we do not try to find trip-count
           */
-         if (!nir_is_trivial_loop_if(nif, break_blk))
+         if (!nir_is_trivial_loop_if(nif, break_blk)) {
+            state->loop->info->complex_loop = true;
             return false;
+         }
 
          /* Continue if the if contained no jumps at all */
          if (!break_blk)
             continue;
 
-         if (nif->condition.ssa->parent_instr->type == nir_instr_type_phi)
+         if (nif->condition.ssa->parent_instr->type == nir_instr_type_phi) {
+            state->loop->info->complex_loop = true;
             return false;
+         }
 
          nir_loop_terminator *terminator =
             rzalloc(state->loop->info, nir_loop_terminator);
@@ -717,13 +721,6 @@ get_loop_info(loop_info_state *state, nir_function_impl *impl)
       }
    }
 
-   /* Induction analysis needs invariance information so get that first */
-   compute_invariance_information(state);
-
-   /* We have invariance information so try to find induction variables */
-   if (!compute_induction_information(state))
-      return;
-
    /* Try to find all simple terminators of the loop. If we can't find any,
     * or we find possible terminators that have side effects then bail.
     */
@@ -736,6 +733,13 @@ get_loop_info(loop_info_state *state, nir_function_impl *impl)
       }
       return;
    }
+
+   /* Induction analysis needs invariance information so get that first */
+   compute_invariance_information(state);
+
+   /* We have invariance information so try to find induction variables */
+   if (!compute_induction_information(state))
+      return;
 
    /* Run through each of the terminators and try to compute a trip-count */
    find_trip_count(state);

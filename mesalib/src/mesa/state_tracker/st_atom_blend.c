@@ -171,6 +171,7 @@ st_update_blend( struct st_context *st )
       /* blending enabled */
       for (i = 0, j = 0; i < num_state; i++) {
          if (!(ctx->Color.BlendEnabled & (1 << i)) ||
+             (ctx->DrawBuffer->_IntegerBuffers & (1 << i)) ||
              !blend->rt[i].colormask)
             continue;
 

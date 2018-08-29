@@ -468,6 +468,7 @@ EXTRA_EXT(NV_texture_rectangle);
 EXTRA_EXT(EXT_stencil_two_side);
 EXTRA_EXT(EXT_depth_bounds_test);
 EXTRA_EXT(ARB_depth_clamp);
+EXTRA_EXT(AMD_depth_clamp_separate);
 EXTRA_EXT(ATI_fragment_shader);
 EXTRA_EXT(EXT_provoking_vertex);
 EXTRA_EXT(ARB_fragment_shader);
@@ -696,6 +697,10 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       v->value_int_4[1] = GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 1);
       v->value_int_4[2] = GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 2);
       v->value_int_4[3] = GET_COLORMASK_BIT(ctx->Color.ColorMask, 0, 3);
+      break;
+
+   case GL_DEPTH_CLAMP:
+      v->value_bool = ctx->Transform.DepthClampNear || ctx->Transform.DepthClampFar;
       break;
 
    case GL_EDGE_FLAG:

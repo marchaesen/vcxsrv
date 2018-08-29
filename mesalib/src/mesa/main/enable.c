@@ -1007,12 +1007,38 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          if (!_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
          CHECK_EXTENSION(ARB_depth_clamp, cap);
-         if (ctx->Transform.DepthClamp == state)
+         if (ctx->Transform.DepthClampNear == state &&
+             ctx->Transform.DepthClampFar == state)
             return;
          FLUSH_VERTICES(ctx, ctx->DriverFlags.NewDepthClamp ? 0 :
                                                            _NEW_TRANSFORM);
          ctx->NewDriverState |= ctx->DriverFlags.NewDepthClamp;
-         ctx->Transform.DepthClamp = state;
+         ctx->Transform.DepthClampNear = state;
+         ctx->Transform.DepthClampFar = state;
+         break;
+
+      case GL_DEPTH_CLAMP_NEAR_AMD:
+         if (!_mesa_is_desktop_gl(ctx))
+            goto invalid_enum_error;
+         CHECK_EXTENSION(AMD_depth_clamp_separate, cap);
+         if (ctx->Transform.DepthClampNear == state)
+            return;
+         FLUSH_VERTICES(ctx, ctx->DriverFlags.NewDepthClamp ? 0 :
+                                                           _NEW_TRANSFORM);
+         ctx->NewDriverState |= ctx->DriverFlags.NewDepthClamp;
+         ctx->Transform.DepthClampNear = state;
+         break;
+
+      case GL_DEPTH_CLAMP_FAR_AMD:
+         if (!_mesa_is_desktop_gl(ctx))
+            goto invalid_enum_error;
+         CHECK_EXTENSION(AMD_depth_clamp_separate, cap);
+         if (ctx->Transform.DepthClampFar == state)
+            return;
+         FLUSH_VERTICES(ctx, ctx->DriverFlags.NewDepthClamp ? 0 :
+                                                           _NEW_TRANSFORM);
+         ctx->NewDriverState |= ctx->DriverFlags.NewDepthClamp;
+         ctx->Transform.DepthClampFar = state;
          break;
 
       case GL_FRAGMENT_SHADER_ATI:
@@ -1684,7 +1710,20 @@ _mesa_IsEnabled( GLenum cap )
          if (!_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
          CHECK_EXTENSION(ARB_depth_clamp);
-         return ctx->Transform.DepthClamp;
+         return ctx->Transform.DepthClampNear ||
+                ctx->Transform.DepthClampFar;
+
+      case GL_DEPTH_CLAMP_NEAR_AMD:
+         if (!_mesa_is_desktop_gl(ctx))
+            goto invalid_enum_error;
+         CHECK_EXTENSION(AMD_depth_clamp_separate);
+         return ctx->Transform.DepthClampNear;
+
+      case GL_DEPTH_CLAMP_FAR_AMD:
+         if (!_mesa_is_desktop_gl(ctx))
+            goto invalid_enum_error;
+         CHECK_EXTENSION(AMD_depth_clamp_separate);
+         return ctx->Transform.DepthClampFar;
 
       case GL_FRAGMENT_SHADER_ATI:
          if (ctx->API != API_OPENGL_COMPAT)

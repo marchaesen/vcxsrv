@@ -2187,6 +2187,40 @@ link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
    }
 }
 
+/**
+ * Link all out variables on a single stage which are not
+ * directly used in a shader with the main function.
+ */
+static void
+link_output_variables(struct gl_linked_shader *linked_shader,
+                      struct gl_shader **shader_list,
+                      unsigned num_shaders)
+{
+   struct glsl_symbol_table *symbols = linked_shader->symbols;
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+
+      /* Skip shader object with main function */
+      if (shader_list[i]->symbols->get_function("main"))
+         continue;
+
+      foreach_in_list(ir_instruction, ir, shader_list[i]->ir) {
+         if (ir->ir_type != ir_type_variable)
+            continue;
+
+         ir_variable *const var = (ir_variable *) ir;
+
+         if (var->data.mode == ir_var_shader_out &&
+               !symbols->get_variable(var->name)) {
+            symbols->add_variable(var);
+            linked_shader->ir->push_head(var);
+         }
+      }
+   }
+
+   return;
+}
+
 
 /**
  * Combine a group of shaders for a single stage to generate a linked shader
@@ -2351,6 +2385,9 @@ link_intrastage_shaders(void *mem_ctx,
       _mesa_delete_linked_shader(ctx, linked);
       return NULL;
    }
+
+   if (linked->Stage != MESA_SHADER_FRAGMENT)
+      link_output_variables(linked, shader_list, num_shaders);
 
    /* Make a pass over all variable declarations to ensure that arrays with
     * unspecified sizes have a size specified.  The size is inferred from the

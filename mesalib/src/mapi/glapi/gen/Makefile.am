@@ -188,6 +188,7 @@ API_XML = \
 	ARB_vertex_attrib_64bit.xml \
 	ARB_vertex_attrib_binding.xml \
 	ARB_viewport_array.xml \
+	AMD_depth_clamp_separate.xml \
 	AMD_draw_buffers_blend.xml \
 	AMD_performance_monitor.xml \
 	ARB_vertex_type_2_10_10_10_rev.xml \

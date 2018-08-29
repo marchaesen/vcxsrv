@@ -1219,7 +1219,7 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
       if (!(span->arrayMask & SPAN_Z))
          _swrast_span_interpolate_z(ctx, span);
 
-      if (ctx->Transform.DepthClamp)
+      if (ctx->Transform.DepthClampNear && ctx->Transform.DepthClampFar)
 	 _swrast_depth_clamp_span(ctx, span);
 
       if (_mesa_stencil_is_enabled(ctx)) {

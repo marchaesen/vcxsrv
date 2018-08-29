@@ -903,7 +903,7 @@ descriptor=[
   [ "DEPTH_BOUNDS_EXT", "CONTEXT_FLOAT2(Depth.BoundsMin), extra_EXT_depth_bounds_test" ],
 
 # GL_ARB_depth_clamp
-  [ "DEPTH_CLAMP", "CONTEXT_BOOL(Transform.DepthClamp), extra_ARB_depth_clamp" ],
+  [ "DEPTH_CLAMP", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_ARB_depth_clamp" ],
 
 # GL_ATI_fragment_shader
   [ "FRAGMENT_SHADER_ATI", "CONTEXT_BOOL(ATIFragmentShader.Enabled), extra_ATI_fragment_shader" ],
@@ -989,6 +989,11 @@ descriptor=[
 
 # GL_ARB_indirect_parameters
   [ "PARAMETER_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_indirect_parameters" ],
+
+# GL 4.1
+# GL_AMD_depth_clamp_separate
+  [ "DEPTH_CLAMP_NEAR_AMD", "CONTEXT_BOOL(Transform.DepthClampNear), extra_AMD_depth_clamp_separate" ],
+  [ "DEPTH_CLAMP_FAR_AMD", "CONTEXT_BOOL(Transform.DepthClampFar), extra_AMD_depth_clamp_separate" ],
 ]},
 
 ]

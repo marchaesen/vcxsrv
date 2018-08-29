@@ -72,7 +72,8 @@ struct gl_enable_attrib
    GLbitfield ClipPlanes;
    GLboolean ColorMaterial;
    GLboolean CullFace;
-   GLboolean DepthClamp;
+   GLboolean DepthClampNear;
+   GLboolean DepthClampFar;
    GLboolean DepthTest;
    GLboolean Dither;
    GLboolean Fog;
@@ -336,7 +337,8 @@ _mesa_PushAttrib(GLbitfield mask)
       attr->ClipPlanes = ctx->Transform.ClipPlanesEnabled;
       attr->ColorMaterial = ctx->Light.ColorMaterialEnabled;
       attr->CullFace = ctx->Polygon.CullFlag;
-      attr->DepthClamp = ctx->Transform.DepthClamp;
+      attr->DepthClampNear = ctx->Transform.DepthClampNear;
+      attr->DepthClampFar = ctx->Transform.DepthClampFar;
       attr->DepthTest = ctx->Depth.Test;
       attr->Dither = ctx->Color.DitherFlag;
       attr->Fog = ctx->Fog.Enabled;
@@ -627,8 +629,18 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib *enable)
    TEST_AND_UPDATE(ctx->Light.ColorMaterialEnabled, enable->ColorMaterial,
                    GL_COLOR_MATERIAL);
    TEST_AND_UPDATE(ctx->Polygon.CullFlag, enable->CullFace, GL_CULL_FACE);
-   TEST_AND_UPDATE(ctx->Transform.DepthClamp, enable->DepthClamp,
-                   GL_DEPTH_CLAMP);
+
+   if (!ctx->Extensions.AMD_depth_clamp_separate) {
+      TEST_AND_UPDATE(ctx->Transform.DepthClampNear && ctx->Transform.DepthClampFar,
+                      enable->DepthClampNear && enable->DepthClampFar,
+                      GL_DEPTH_CLAMP);
+   } else {
+      TEST_AND_UPDATE(ctx->Transform.DepthClampNear, enable->DepthClampNear,
+                      GL_DEPTH_CLAMP_NEAR_AMD);
+      TEST_AND_UPDATE(ctx->Transform.DepthClampFar, enable->DepthClampFar,
+                      GL_DEPTH_CLAMP_FAR_AMD);
+   }
+
    TEST_AND_UPDATE(ctx->Depth.Test, enable->DepthTest, GL_DEPTH_TEST);
    TEST_AND_UPDATE(ctx->Color.DitherFlag, enable->Dither, GL_DITHER);
    TEST_AND_UPDATE(ctx->Fog.Enabled, enable->Fog, GL_FOG);
@@ -1433,9 +1445,23 @@ _mesa_PopAttrib(void)
                if (xform->RescaleNormals != ctx->Transform.RescaleNormals)
                   _mesa_set_enable(ctx, GL_RESCALE_NORMAL_EXT,
                                    ctx->Transform.RescaleNormals);
-               if (xform->DepthClamp != ctx->Transform.DepthClamp)
-                  _mesa_set_enable(ctx, GL_DEPTH_CLAMP,
-                                   ctx->Transform.DepthClamp);
+
+               if (!ctx->Extensions.AMD_depth_clamp_separate) {
+                  if (xform->DepthClampNear != ctx->Transform.DepthClampNear &&
+                      xform->DepthClampFar != ctx->Transform.DepthClampFar) {
+                     _mesa_set_enable(ctx, GL_DEPTH_CLAMP,
+                                      ctx->Transform.DepthClampNear &&
+                                      ctx->Transform.DepthClampFar);
+                  }
+               } else {
+                  if (xform->DepthClampNear != ctx->Transform.DepthClampNear)
+                     _mesa_set_enable(ctx, GL_DEPTH_CLAMP_NEAR_AMD,
+                                      ctx->Transform.DepthClampNear);
+                  if (xform->DepthClampFar != ctx->Transform.DepthClampFar)
+                     _mesa_set_enable(ctx, GL_DEPTH_CLAMP_FAR_AMD,
+                                      ctx->Transform.DepthClampFar);
+               }
+
                if (ctx->Extensions.ARB_clip_control)
                   _mesa_ClipControl(xform->ClipOrigin, xform->ClipDepthMode);
             }
