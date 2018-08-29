@@ -271,9 +271,6 @@ nir_fixup_deref_modes(nir_shader *shader)
    }
 }
 
-/** Returns true if the storage referrenced to by deref completely contains
- * the storage referenced by sub.
- */
 nir_deref_compare_result
 nir_compare_deref_paths(nir_deref_path *a_path,
                         nir_deref_path *b_path)

@@ -57,7 +57,7 @@ check () {
     echo "*** output is in 'out', expected output in '$EXPECTED'"
     exit 1
   fi
-  rm out
+  rm -f out
 }
 
 prep() {
@@ -141,7 +141,7 @@ if cmp out1 out2 > /dev/null ; then
   echo "*** .uuid wasn't modified"
   exit 1
 fi
-rm out1 out2
+rm -f out1 out2
 
 dotest "Consistency between .uuid and cache name"
 prep
@@ -244,7 +244,7 @@ prep
 cp $FONT1 $FONT2 $FONTDIR
 $FCCACHE $FONTDIR
 sleep 1
-rm $FONTDIR/*pcf
+rm -f $FONTDIR/*pcf
 $FCCACHE $FONTDIR
 rmdir $FONTDIR > /dev/null 2>&1
 if [ $? != 0 ]; then

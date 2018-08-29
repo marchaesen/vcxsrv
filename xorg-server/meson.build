@@ -442,9 +442,6 @@ elif get_option('mitshm') == 'true'
     build_mitshm = true
 endif
 
-# XXX: Allow configuration of these.
-build_xselinux = false
-
 m_dep = cc.find_library('m', required : false)
 dl_dep = cc.find_library('dl', required : false)
 
@@ -505,6 +502,23 @@ inc = include_directories(
     'render',
     'xfixes',
 )
+
+build_xselinux = false
+if get_option('xselinux') != 'false'
+    dep_selinux = dependency('libselinux', version: '>= 2.0.86',
+			     required: get_option('xselinux') == 'true')
+    dep_audit = dependency('audit', required: get_option('xselinux') == 'true')
+    if get_option('xselinux') == 'true'
+        build_xselinux = true
+    else
+        build_xselinux = dep_selinux.found() and dep_audit.found()
+    endif
+
+    if build_xselinux
+        common_dep += dep_selinux
+        common_dep += dep_audit
+    endif
+endif
 
 glx_inc = include_directories('glx')
 

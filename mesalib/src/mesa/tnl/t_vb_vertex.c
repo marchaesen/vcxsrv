@@ -123,7 +123,7 @@ tnl_clip_prepare(struct gl_context *ctx)
    /* Neither the x86 nor sparc asm cliptest functions have been updated
     * for ARB_depth_clamp, so force the C paths.
     */
-   if (ctx->Transform.DepthClamp) {
+   if (ctx->Transform.DepthClampNear && ctx->Transform.DepthClampFar) {
       static GLboolean c_funcs_installed = GL_FALSE;
       if (!c_funcs_installed) {
          init_c_cliptest();
@@ -191,7 +191,8 @@ static GLboolean run_vertex_stage( struct gl_context *ctx,
 					    store->clipmask,
 					    &store->ormask,
 					    &store->andmask,
-					    !ctx->Transform.DepthClamp );
+					    !(ctx->Transform.DepthClampNear &&
+                                              ctx->Transform.DepthClampFar) );
    }
    else {
       VB->NdcPtr = NULL;
@@ -200,7 +201,8 @@ static GLboolean run_vertex_stage( struct gl_context *ctx,
 					    store->clipmask,
 					    &store->ormask,
 					    &store->andmask,
-					    !ctx->Transform.DepthClamp );
+					    !(ctx->Transform.DepthClampNear &&
+                                              ctx->Transform.DepthClampFar) );
    }
 
    if (store->andmask)

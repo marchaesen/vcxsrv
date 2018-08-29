@@ -67,6 +67,23 @@ vk_free(const VkAllocationCallbacks *alloc, void *data)
    alloc->pfnFree(alloc->pUserData, data);
 }
 
+static inline char *
+vk_strdup(const VkAllocationCallbacks *alloc, const char *s,
+          VkSystemAllocationScope scope)
+{
+   if (s == NULL)
+      return NULL;
+
+   size_t size = strlen(s) + 1;
+   char *copy = vk_alloc(alloc, size, 1, scope);
+   if (copy == NULL)
+      return NULL;
+
+   memcpy(copy, s, size);
+
+   return copy;
+}
+
 static inline void *
 vk_alloc2(const VkAllocationCallbacks *parent_alloc,
           const VkAllocationCallbacks *alloc,

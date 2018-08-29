@@ -226,7 +226,7 @@ main (void)
 	goto bail;
     }
     fprintf (stderr, "D: Removing %s\n", fontdir);
-    snprintf (cmd, 512, "rm %s%s*", fontdir, FC_DIR_SEPARATOR_S);
+    snprintf (cmd, 512, "rm -f %s%s*", fontdir, FC_DIR_SEPARATOR_S);
     system (cmd);
     fprintf (stderr, "D: Reinitializing\n");
     if (!FcConfigUptoDate (config) || !FcInitReinitialize ())

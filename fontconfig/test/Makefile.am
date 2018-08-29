@@ -93,6 +93,6 @@ TESTS += test-bz106632
 
 EXTRA_DIST=run-test.sh run-test-conf.sh $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 
-CLEANFILES=out fonts.conf out.expected
+CLEANFILES=out out1 out2 fonts.conf out.expected
 
 -include $(top_srcdir)/git.mk
