@@ -405,6 +405,14 @@ winConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
   return ret;
 }
 
+static int isWindowOnTop(HWND hAbove, HWND hBeneath)
+{
+    HWND hNext=GetNextWindow(hAbove, GW_HWNDNEXT);
+    while (hNext && hNext!=hBeneath)
+       hNext=GetNextWindow(hNext, GW_HWNDNEXT);
+    return hNext==hBeneath;
+}
+
 static void dowinRestackWindowMultiWindow(WindowPtr pWin)
 {
     winWindowPriv(pWin);
@@ -422,6 +430,11 @@ static void dowinRestackWindowMultiWindow(WindowPtr pWin)
 
     if (pNextSib == NullWindow)
     {
+        #ifdef _DEBUG
+        char window1[100];
+        GetWindowText(pWinPriv->hWnd, window1, 100);
+        ErrorF ("Setting windows %x(%s) to bottom\n", pWinPriv->hWnd, window1);
+        #endif
         SetWindowPos(pWinPriv->hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
     }
     else
@@ -440,6 +453,11 @@ static void dowinRestackWindowMultiWindow(WindowPtr pWin)
             pNextSib = pNextSib->nextSib;
             if (pNextSib == NullWindow) {
                 /* Window is at the bottom of the stack */
+                #ifdef _DEBUG
+                char window1[100];
+                GetWindowText(pWinPriv->hWnd, window1, 100);
+                ErrorF ("Setting windows %x(%s) to bottom\n", pWinPriv->hWnd, window1);
+                #endif
                 SetWindowPos(pWinPriv->hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
                 return;
             }
@@ -447,17 +465,16 @@ static void dowinRestackWindowMultiWindow(WindowPtr pWin)
         }
 
         /* Bring window on top pNextSibPriv->hwnd, but only if it is not yet the case.
-         * It seems that calling SetWindowPos when 2 windows that already have the correct z-order
-         * has some strange effects???
-         */
-        if (GetNextWindow(pWinPriv->hWnd, GW_HWNDNEXT)!=pNextSibPriv->hWnd)
+         * ( Pay attention to the fact that pNextSibPriv->hwnd is the next X-window, and there
+         * can be non X-windos in between.)        */
+        if (!isWindowOnTop(pWinPriv->hWnd, pNextSibPriv->hWnd))
         {
-            #ifdef DEBUG
+            #ifdef _DEBUG
             char window1[100];
             char window2[100];
             GetWindowText(pWinPriv->hWnd, window1, 100);
             GetWindowText(pNextSibPriv->hWnd, window2, 100);
-            winDebug ("Setting windows %x(%s) on top of %x(%s)\n", pWinPriv->hWnd, window1, pNextSibPriv->hWnd, window2);
+            ErrorF ("Setting windows %x(%s) on top of %x(%s)\n", pWinPriv->hWnd, window1, pNextSibPriv->hWnd, window2);
             #endif
             SetWindowPos(pWinPriv->hWnd, pNextSibPriv->hWnd, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
         }
