@@ -272,6 +272,7 @@ struct xwl_seat {
     char *keymap;
     struct wl_surface *keyboard_focus;
 
+    struct xorg_list axis_discrete_pending;
     struct xorg_list sync_pending;
 
     struct xwl_pointer_warp_emulator *pointer_warp_emulator;

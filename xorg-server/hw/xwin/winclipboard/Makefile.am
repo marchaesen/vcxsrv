@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libXWinclipboard.la
 
 libXWinclipboard_la_SOURCES = \
+	internal.h \
 	winclipboard.h \
 	textconv.c \
 	thread.c \

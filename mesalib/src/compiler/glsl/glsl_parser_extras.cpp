@@ -311,6 +311,8 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
       ctx->Const.AllowGLSLExtensionDirectiveMidShader;
    this->allow_builtin_variable_redeclaration =
       ctx->Const.AllowGLSLBuiltinVariableRedeclaration;
+   this->allow_layout_qualifier_on_function_parameter =
+      ctx->Const.AllowLayoutQualifiersOnFunctionParameters;
 
    this->cs_input_local_size_variable_specified = false;
 

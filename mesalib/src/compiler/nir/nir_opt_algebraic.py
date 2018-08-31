@@ -302,6 +302,12 @@ optimizations = [
    (('imax', a, a), a),
    (('umin', a, a), a),
    (('umax', a, a), a),
+   (('fmax', ('fmax', a, b), b), ('fmax', a, b)),
+   (('umax', ('umax', a, b), b), ('umax', a, b)),
+   (('imax', ('imax', a, b), b), ('imax', a, b)),
+   (('fmin', ('fmin', a, b), b), ('fmin', a, b)),
+   (('umin', ('umin', a, b), b), ('umin', a, b)),
+   (('imin', ('imin', a, b), b), ('imin', a, b)),
    (('fmax', a, ('fneg', a)), ('fabs', a)),
    (('imax', a, ('ineg', a)), ('iabs', a)),
    (('fmin', a, ('fneg', a)), ('fneg', ('fabs', a))),
@@ -543,13 +549,23 @@ optimizations = [
                            ('unpack_64_2x32_split_y', a)), a),
 
    # Byte extraction
-   (('ushr', a, 24), ('extract_u8', a, 3), '!options->lower_extract_byte'),
+   (('ushr', ('ishl', 'a@32', 24), 24), ('extract_u8', a, 0), '!options->lower_extract_byte'),
+   (('ushr', ('ishl', 'a@32', 16), 24), ('extract_u8', a, 1), '!options->lower_extract_byte'),
+   (('ushr', ('ishl', 'a@32', 8), 24), ('extract_u8', a, 2), '!options->lower_extract_byte'),
+   (('ushr', 'a@32', 24), ('extract_u8', a, 3), '!options->lower_extract_byte'),
+   (('ishr', ('ishl', 'a@32', 24), 24), ('extract_i8', a, 0), '!options->lower_extract_byte'),
+   (('ishr', ('ishl', 'a@32', 16), 24), ('extract_i8', a, 1), '!options->lower_extract_byte'),
+   (('ishr', ('ishl', 'a@32', 8), 24), ('extract_i8', a, 2), '!options->lower_extract_byte'),
+   (('ishr', 'a@32', 24), ('extract_i8', a, 3), '!options->lower_extract_byte'),
    (('iand', 0xff, ('ushr', a, 16)), ('extract_u8', a, 2), '!options->lower_extract_byte'),
    (('iand', 0xff, ('ushr', a,  8)), ('extract_u8', a, 1), '!options->lower_extract_byte'),
    (('iand', 0xff, a), ('extract_u8', a, 0), '!options->lower_extract_byte'),
 
     # Word extraction
-   (('ushr', a, 16), ('extract_u16', a, 1), '!options->lower_extract_word'),
+   (('ushr', ('ishl', 'a@32', 16), 16), ('extract_u16', a, 0), '!options->lower_extract_word'),
+   (('ushr', 'a@32', 16), ('extract_u16', a, 1), '!options->lower_extract_word'),
+   (('ishr', ('ishl', 'a@32', 16), 16), ('extract_i16', a, 0), '!options->lower_extract_word'),
+   (('ishr', 'a@32', 16), ('extract_i16', a, 1), '!options->lower_extract_word'),
    (('iand', 0xffff, a), ('extract_u16', a, 0), '!options->lower_extract_word'),
 
    # Subtracts

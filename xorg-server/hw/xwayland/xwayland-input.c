@@ -37,6 +37,12 @@
 #include <misc.h>
 #include "tablet-unstable-v2-client-protocol.h"
 
+struct axis_discrete_pending {
+    struct xorg_list l;
+    uint32_t axis;
+    int32_t discrete;
+};
+
 struct sync_pending {
     struct xorg_list l;
     DeviceIntPtr pending_dev;
@@ -565,6 +571,8 @@ pointer_handle_axis(void *data, struct wl_pointer *pointer,
     int index;
     const int divisor = 10;
     ValuatorMask mask;
+    struct axis_discrete_pending *pending = NULL;
+    struct axis_discrete_pending *iter;
 
     switch (axis) {
     case WL_POINTER_AXIS_VERTICAL_SCROLL:
@@ -577,8 +585,22 @@ pointer_handle_axis(void *data, struct wl_pointer *pointer,
         return;
     }
 
+    xorg_list_for_each_entry(iter, &xwl_seat->axis_discrete_pending, l) {
+        if (iter->axis == axis) {
+            pending = iter;
+            break;
+        }
+    }
+
     valuator_mask_zero(&mask);
-    valuator_mask_set_double(&mask, index, wl_fixed_to_double(value) / divisor);
+
+    if (pending) {
+        valuator_mask_set(&mask, index, pending->discrete);
+        xorg_list_del(&pending->l);
+        free(pending);
+    } else {
+        valuator_mask_set_double(&mask, index, wl_fixed_to_double(value) / divisor);
+    }
     QueuePointerEvents(xwl_seat->pointer, MotionNotify, 0, POINTER_RELATIVE, &mask);
 }
 
@@ -608,6 +630,16 @@ static void
 pointer_handle_axis_discrete(void *data, struct wl_pointer *wl_pointer,
                              uint32_t axis, int32_t discrete)
 {
+    struct xwl_seat *xwl_seat = data;
+
+    struct axis_discrete_pending *pending = malloc(sizeof *pending);
+    if (!pending)
+        return;
+
+    pending->axis = axis;
+    pending->discrete = discrete;
+
+    xorg_list_add(&pending->l, &xwl_seat->axis_discrete_pending);
 }
 
 static const struct wl_pointer_listener pointer_listener = {
@@ -1337,6 +1369,7 @@ create_input_device(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version
     wl_array_init(&xwl_seat->keys);
 
     xorg_list_init(&xwl_seat->touches);
+    xorg_list_init(&xwl_seat->axis_discrete_pending);
     xorg_list_init(&xwl_seat->sync_pending);
 }
 
@@ -1345,6 +1378,7 @@ xwl_seat_destroy(struct xwl_seat *xwl_seat)
 {
     struct xwl_touch *xwl_touch, *next_xwl_touch;
     struct sync_pending *p, *npd;
+    struct axis_discrete_pending *ad, *ad_next;
 
     xorg_list_for_each_entry_safe(xwl_touch, next_xwl_touch,
                                   &xwl_seat->touches, link_touch) {
@@ -1355,6 +1389,11 @@ xwl_seat_destroy(struct xwl_seat *xwl_seat)
     xorg_list_for_each_entry_safe(p, npd, &xwl_seat->sync_pending, l) {
         xorg_list_del(&xwl_seat->sync_pending);
         free (p);
+    }
+
+    xorg_list_for_each_entry_safe(ad, ad_next, &xwl_seat->axis_discrete_pending, l) {
+        xorg_list_del(&ad->l);
+        free(ad);
     }
 
     release_tablet_manager_seat(xwl_seat);

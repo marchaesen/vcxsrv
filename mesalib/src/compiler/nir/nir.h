@@ -377,11 +377,7 @@ typedef struct nir_variable {
        * ARB_shader_image_load_store qualifiers.
        */
       struct {
-         bool read_only; /**< "readonly" qualifier. */
-         bool write_only; /**< "writeonly" qualifier. */
-         bool coherent;
-         bool _volatile;
-         bool restrict_flag;
+         enum gl_access_qualifier access;
 
          /** Image internal format if specified explicitly, otherwise GL_NONE. */
          GLenum format;
@@ -1053,7 +1049,7 @@ typedef struct {
 
 #include "nir_intrinsics.h"
 
-#define NIR_INTRINSIC_MAX_CONST_INDEX 3
+#define NIR_INTRINSIC_MAX_CONST_INDEX 4
 
 /** Represents an intrinsic
  *
@@ -1201,6 +1197,28 @@ typedef enum {
     */
    NIR_INTRINSIC_PARAM_IDX = 12,
 
+   /**
+    * Image dimensionality for image intrinsics
+    *
+    * One of GLSL_SAMPLER_DIM_*
+    */
+   NIR_INTRINSIC_IMAGE_DIM = 13,
+
+   /**
+    * Non-zero if we are accessing an array image
+    */
+   NIR_INTRINSIC_IMAGE_ARRAY = 14,
+
+   /**
+    * Image format for image intrinsics
+    */
+   NIR_INTRINSIC_FORMAT = 15,
+
+   /**
+    * Access qualifiers for image intrinsics
+    */
+   NIR_INTRINSIC_ACCESS = 16,
+
    NIR_INTRINSIC_NUM_INDEX_FLAGS,
 
 } nir_intrinsic_index_flag;
@@ -1269,7 +1287,7 @@ nir_intrinsic_##name(const nir_intrinsic_instr *instr)                        \
 {                                                                             \
    const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];   \
    assert(info->index_map[NIR_INTRINSIC_##flag] > 0);                         \
-   return instr->const_index[info->index_map[NIR_INTRINSIC_##flag] - 1];      \
+   return (type)instr->const_index[info->index_map[NIR_INTRINSIC_##flag] - 1]; \
 }                                                                             \
 static inline void                                                            \
 nir_intrinsic_set_##name(nir_intrinsic_instr *instr, type val)                \
@@ -1291,6 +1309,10 @@ INTRINSIC_IDX_ACCESSORS(interp_mode, INTERP_MODE, unsigned)
 INTRINSIC_IDX_ACCESSORS(reduction_op, REDUCTION_OP, unsigned)
 INTRINSIC_IDX_ACCESSORS(cluster_size, CLUSTER_SIZE, unsigned)
 INTRINSIC_IDX_ACCESSORS(param_idx, PARAM_IDX, unsigned)
+INTRINSIC_IDX_ACCESSORS(image_dim, IMAGE_DIM, enum glsl_sampler_dim)
+INTRINSIC_IDX_ACCESSORS(image_array, IMAGE_ARRAY, bool)
+INTRINSIC_IDX_ACCESSORS(access, ACCESS, enum gl_access_qualifier)
+INTRINSIC_IDX_ACCESSORS(format, FORMAT, unsigned)
 
 /**
  * \group texture information

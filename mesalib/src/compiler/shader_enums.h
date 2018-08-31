@@ -690,11 +690,13 @@ enum gl_frag_depth_layout
 /**
  * \brief Buffer access qualifiers
  */
-enum gl_buffer_access_qualifier
+enum gl_access_qualifier
 {
-   ACCESS_COHERENT = 1,
-   ACCESS_RESTRICT = 2,
-   ACCESS_VOLATILE = 4,
+   ACCESS_COHERENT      = (1 << 0),
+   ACCESS_RESTRICT      = (1 << 1),
+   ACCESS_VOLATILE      = (1 << 2),
+   ACCESS_NON_READABLE  = (1 << 3),
+   ACCESS_NON_WRITEABLE = (1 << 4),
 };
 
 /**

@@ -51,28 +51,75 @@ nir_mask_shift_or(struct nir_builder *b, nir_ssa_def *dst, nir_ssa_def *src,
 }
 
 static inline nir_ssa_def *
-nir_format_unpack_uint(nir_builder *b, nir_ssa_def *packed,
-                       const unsigned *bits, unsigned num_components)
+nir_format_mask_uvec(nir_builder *b, nir_ssa_def *src,
+                     const unsigned *bits)
+{
+   nir_const_value mask;
+   for (unsigned i = 0; i < src->num_components; i++) {
+      assert(bits[i] < 32);
+      mask.u32[i] = (1u << bits[i]) - 1;
+   }
+   return nir_iand(b, src, nir_build_imm(b, src->num_components, 32, mask));
+}
+
+static inline nir_ssa_def *
+nir_format_sign_extend_ivec(nir_builder *b, nir_ssa_def *src,
+                            const unsigned *bits)
+{
+   assert(src->num_components <= 4);
+   nir_ssa_def *comps[4];
+   for (unsigned i = 0; i < src->num_components; i++) {
+      nir_ssa_def *shift = nir_imm_int(b, src->bit_size - bits[i]);
+      comps[i] = nir_ishr(b, nir_ishl(b, nir_channel(b, src, i), shift), shift);
+   }
+   return nir_vec(b, comps, src->num_components);
+}
+
+
+static inline nir_ssa_def *
+nir_format_unpack_int(nir_builder *b, nir_ssa_def *packed,
+                      const unsigned *bits, unsigned num_components,
+                      bool sign_extend)
 {
    assert(num_components >= 1 && num_components <= 4);
+   const unsigned bit_size = packed->bit_size;
    nir_ssa_def *comps[4];
 
-   if (bits[0] >= packed->bit_size) {
-      assert(bits[0] == packed->bit_size);
+   if (bits[0] >= bit_size) {
+      assert(bits[0] == bit_size);
       assert(num_components == 1);
       return packed;
    }
 
    unsigned offset = 0;
    for (unsigned i = 0; i < num_components; i++) {
-      assert(bits[i] < 32);
-      nir_ssa_def *mask = nir_imm_int(b, (1u << bits[i]) - 1);
-      comps[i] = nir_iand(b, nir_shift(b, packed, -offset), mask);
+      assert(bits[i] < bit_size);
+      assert(offset + bits[i] <= bit_size);
+      nir_ssa_def *lshift = nir_imm_int(b, bit_size - (offset + bits[i]));
+      nir_ssa_def *rshift = nir_imm_int(b, bit_size - bits[i]);
+      if (sign_extend)
+         comps[i] = nir_ishr(b, nir_ishl(b, packed, lshift), rshift);
+      else
+         comps[i] = nir_ushr(b, nir_ishl(b, packed, lshift), rshift);
       offset += bits[i];
    }
-   assert(offset <= packed->bit_size);
+   assert(offset <= bit_size);
 
    return nir_vec(b, comps, num_components);
+}
+
+static inline nir_ssa_def *
+nir_format_unpack_uint(nir_builder *b, nir_ssa_def *packed,
+                       const unsigned *bits, unsigned num_components)
+{
+   return nir_format_unpack_int(b, packed, bits, num_components, false);
+}
+
+static inline nir_ssa_def *
+nir_format_unpack_sint(nir_builder *b, nir_ssa_def *packed,
+                       const unsigned *bits, unsigned num_components)
+{
+   return nir_format_unpack_int(b, packed, bits, num_components, true);
 }
 
 static inline nir_ssa_def *
@@ -96,21 +143,15 @@ static inline nir_ssa_def *
 nir_format_pack_uint(nir_builder *b, nir_ssa_def *color,
                      const unsigned *bits, unsigned num_components)
 {
-   nir_const_value mask;
-   for (unsigned i = 0; i < num_components; i++) {
-      assert(bits[i] < 32);
-      mask.u32[i] = (1u << bits[i]) - 1;
-   }
-   nir_ssa_def *mask_imm = nir_build_imm(b, num_components, 32, mask);
-
-   return nir_format_pack_uint_unmasked(b, nir_iand(b, color, mask_imm),
+   return nir_format_pack_uint_unmasked(b, nir_format_mask_uvec(b, color, bits),
                                         bits, num_components);
 }
 
 static inline nir_ssa_def *
-nir_format_bitcast_uint_vec_unmasked(nir_builder *b, nir_ssa_def *src,
-                                     unsigned src_bits, unsigned dst_bits)
+nir_format_bitcast_uvec_unmasked(nir_builder *b, nir_ssa_def *src,
+                                 unsigned src_bits, unsigned dst_bits)
 {
+   assert(src->bit_size >= src_bits && src->bit_size >= dst_bits);
    assert(src_bits == 8 || src_bits == 16 || src_bits == 32);
    assert(dst_bits == 8 || dst_bits == 16 || dst_bits == 32);
 
@@ -161,6 +202,62 @@ nir_format_bitcast_uint_vec_unmasked(nir_builder *b, nir_ssa_def *src,
 }
 
 static inline nir_ssa_def *
+_nir_format_norm_factor(nir_builder *b, unsigned *bits,
+                        unsigned num_components,
+                        bool is_signed)
+{
+   nir_const_value factor;
+   for (unsigned i = 0; i < num_components; i++) {
+      assert(bits[i] < 32);
+      factor.f32[i] = (1ul << (bits[i] - is_signed)) - 1;
+   }
+   return nir_build_imm(b, num_components, 32, factor);
+}
+
+static inline nir_ssa_def *
+nir_format_unorm_to_float(nir_builder *b, nir_ssa_def *u, unsigned *bits)
+{
+   nir_ssa_def *factor =
+      _nir_format_norm_factor(b, bits, u->num_components, false);
+
+   return nir_fdiv(b, nir_u2f32(b, u), factor);
+}
+
+static inline nir_ssa_def *
+nir_format_snorm_to_float(nir_builder *b, nir_ssa_def *s, unsigned *bits)
+{
+   nir_ssa_def *factor =
+      _nir_format_norm_factor(b, bits, s->num_components, true);
+
+   return nir_fmax(b, nir_fdiv(b, nir_i2f32(b, s), factor),
+                      nir_imm_float(b, -1.0f));
+}
+
+static inline nir_ssa_def *
+nir_format_float_to_unorm(nir_builder *b, nir_ssa_def *f, unsigned *bits)
+{
+   nir_ssa_def *factor =
+      _nir_format_norm_factor(b, bits, f->num_components, false);
+
+   /* Clamp to the range [0, 1] */
+   f = nir_fsat(b, f);
+
+   return nir_f2u32(b, nir_fround_even(b, nir_fmul(b, f, factor)));
+}
+
+static inline nir_ssa_def *
+nir_format_float_to_snorm(nir_builder *b, nir_ssa_def *f, unsigned *bits)
+{
+   nir_ssa_def *factor =
+      _nir_format_norm_factor(b, bits, f->num_components, true);
+
+   /* Clamp to the range [-1, 1] */
+   f = nir_fmin(b, nir_fmax(b, f, nir_imm_float(b, -1)), nir_imm_float(b, 1));
+
+   return nir_f2i32(b, nir_fround_even(b, nir_fmul(b, f, factor)));
+}
+
+static inline nir_ssa_def *
 nir_format_linear_to_srgb(nir_builder *b, nir_ssa_def *c)
 {
    nir_ssa_def *linear = nir_fmul(b, c, nir_imm_float(b, 12.92f));
@@ -191,7 +288,7 @@ nir_format_unpack_11f11f10f(nir_builder *b, nir_ssa_def *packed)
 {
    nir_ssa_def *chans[3];
    chans[0] = nir_mask_shift(b, packed, 0x000007ff, 4);
-   chans[1] = nir_mask_shift(b, packed, 0x003ff100, -7);
+   chans[1] = nir_mask_shift(b, packed, 0x003ff800, -7);
    chans[2] = nir_mask_shift(b, packed, 0xffc00000, -17);
 
    for (unsigned i = 0; i < 3; i++)
@@ -201,7 +298,7 @@ nir_format_unpack_11f11f10f(nir_builder *b, nir_ssa_def *packed)
 }
 
 static inline nir_ssa_def *
-nir_format_pack_r11g11b10f(nir_builder *b, nir_ssa_def *color)
+nir_format_pack_11f11f10f(nir_builder *b, nir_ssa_def *color)
 {
    /* 10 and 11-bit floats are unsigned.  Clamp to non-negative */
    nir_ssa_def *clamped = nir_fmax(b, color, nir_imm_float(b, 0));

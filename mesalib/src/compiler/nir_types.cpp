@@ -172,6 +172,13 @@ glsl_get_sampler_target(const struct glsl_type *type)
    return type->sampler_index();
 }
 
+int
+glsl_get_sampler_coordinate_components(const struct glsl_type *type)
+{
+   assert(glsl_type_is_sampler(type) || glsl_type_is_image(type));
+   return type->coordinate_components();
+}
+
 unsigned
 glsl_get_record_location_offset(const struct glsl_type *type,
                                 unsigned length)

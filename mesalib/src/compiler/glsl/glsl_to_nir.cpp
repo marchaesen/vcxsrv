@@ -416,12 +416,21 @@ nir_visitor::visit(ir_variable *ir)
    var->data.explicit_binding = ir->data.explicit_binding;
    var->data.bindless = ir->data.bindless;
    var->data.offset = ir->data.offset;
-   var->data.image.read_only = ir->data.memory_read_only;
-   var->data.image.write_only = ir->data.memory_write_only;
-   var->data.image.coherent = ir->data.memory_coherent;
-   var->data.image._volatile = ir->data.memory_volatile;
-   var->data.image.restrict_flag = ir->data.memory_restrict;
+
+   unsigned image_access = 0;
+   if (ir->data.memory_read_only)
+      image_access |= ACCESS_NON_WRITEABLE;
+   if (ir->data.memory_write_only)
+      image_access |= ACCESS_NON_READABLE;
+   if (ir->data.memory_coherent)
+      image_access |= ACCESS_COHERENT;
+   if (ir->data.memory_volatile)
+      image_access |= ACCESS_VOLATILE;
+   if (ir->data.memory_restrict)
+      image_access |= ACCESS_RESTRICT;
+   var->data.image.access = (gl_access_qualifier)image_access;
    var->data.image.format = ir->data.image_format;
+
    var->data.fb_fetch_output = ir->data.fb_fetch_output;
    var->data.explicit_xfb_buffer = ir->data.explicit_xfb_buffer;
    var->data.explicit_xfb_stride = ir->data.explicit_xfb_stride;
@@ -904,10 +913,15 @@ nir_visitor::visit(ir_call *ir)
          /* Set the intrinsic destination. */
          if (ir->return_deref) {
             unsigned num_components = ir->return_deref->type->vector_elements;
-            if (instr->intrinsic == nir_intrinsic_image_deref_size)
-               instr->num_components = num_components;
             nir_ssa_dest_init(&instr->instr, &instr->dest,
                               num_components, 32, NULL);
+         }
+
+         if (op == nir_intrinsic_image_deref_size) {
+            instr->num_components = instr->dest.ssa.num_components;
+         } else if (op == nir_intrinsic_image_deref_load ||
+                    op == nir_intrinsic_image_deref_store) {
+            instr->num_components = 4;
          }
 
          if (op == nir_intrinsic_image_deref_size ||

@@ -1255,6 +1255,9 @@ void st_init_extensions(struct pipe_screen *screen,
    if (options->allow_glsl_relaxed_es)
       consts->AllowGLSLRelaxedES = GL_TRUE;
 
+   if (options->allow_glsl_layout_qualifier_on_function_parameters)
+      consts->AllowLayoutQualifiersOnFunctionParameters = GL_TRUE;
+
    consts->MinMapBufferAlignment =
       screen->get_param(screen, PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT);
 

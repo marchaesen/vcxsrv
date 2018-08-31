@@ -59,7 +59,7 @@ EXT(ARB_depth_buffer_float                  , ARB_depth_buffer_float            
 EXT(ARB_depth_clamp                         , ARB_depth_clamp                        , GLL, GLC,  x ,  x , 2003)
 EXT(ARB_depth_texture                       , ARB_depth_texture                      , GLL,  x ,  x ,  x , 2001)
 EXT(ARB_derivative_control                  , ARB_derivative_control                 , GLL, GLC,  x ,  x , 2014)
-EXT(ARB_direct_state_access                 , dummy_true                             ,  45, GLC,  x ,  x , 2014)
+EXT(ARB_direct_state_access                 , dummy_true                             ,  31, GLC,  x ,  x , 2014)
 EXT(ARB_draw_buffers                        , dummy_true                             , GLL, GLC,  x ,  x , 2002)
 EXT(ARB_draw_buffers_blend                  , ARB_draw_buffers_blend                 , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_draw_elements_base_vertex           , ARB_draw_elements_base_vertex          , GLL, GLC,  x ,  x , 2009)

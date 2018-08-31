@@ -304,10 +304,10 @@ unop_horiz("unpack_32_2x16", 2, tuint16, 1, tuint32,
 # Lowered floating point unpacking operations.
 
 
-unop_horiz("unpack_half_2x16_split_x", 1, tfloat32, 1, tuint32,
-           "unpack_half_1x16((uint16_t)(src0.x & 0xffff))")
-unop_horiz("unpack_half_2x16_split_y", 1, tfloat32, 1, tuint32,
-           "unpack_half_1x16((uint16_t)(src0.x >> 16))")
+unop_convert("unpack_half_2x16_split_x", tfloat32, tuint32,
+             "unpack_half_1x16((uint16_t)(src0 & 0xffff))")
+unop_convert("unpack_half_2x16_split_y", tfloat32, tuint32,
+             "unpack_half_1x16((uint16_t)(src0 >> 16))")
 
 unop_convert("unpack_32_2x16_split_x", tuint16, tuint32, "src0")
 unop_convert("unpack_32_2x16_split_y", tuint16, tuint32, "src0 >> 16")

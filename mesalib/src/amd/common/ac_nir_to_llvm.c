@@ -2342,7 +2342,7 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 					    glsl_sampler_type_is_array(type));
 		args.dmask = 15;
 		args.attributes = AC_FUNC_ATTR_READONLY;
-		if (var->data.image._volatile || var->data.image.coherent)
+		if (var->data.image.access & (ACCESS_VOLATILE | ACCESS_COHERENT))
 			args.cache_policy |= ac_glc;
 
 		res = ac_build_image_opcode(&ctx->ac, &args);
@@ -2383,7 +2383,7 @@ static void visit_image_store(struct ac_nir_context *ctx,
 		args.dim = get_ac_image_dim(&ctx->ac, glsl_get_sampler_dim(type),
 					    glsl_sampler_type_is_array(type));
 		args.dmask = 15;
-		if (force_glc || var->data.image._volatile || var->data.image.coherent)
+		if (force_glc || (var->data.image.access & (ACCESS_VOLATILE | ACCESS_COHERENT)))
 			args.cache_policy |= ac_glc;
 
 		ac_build_image_opcode(&ctx->ac, &args);
