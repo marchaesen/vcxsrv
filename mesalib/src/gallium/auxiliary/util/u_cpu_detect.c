@@ -133,6 +133,7 @@ check_os_altivec_support(void)
       signal(SIGILL, SIG_DFL);
    } else {
       boolean enable_altivec = TRUE;    /* Default: enable  if available, and if not overridden */
+      boolean enable_vsx = TRUE;
 #ifdef DEBUG
       /* Disabling Altivec code generation is not the same as disabling VSX code generation,
        * which can be done simply by passing -mattr=-vsx to the LLVM compiler; cf.
@@ -144,6 +145,11 @@ check_os_altivec_support(void)
          enable_altivec = FALSE;
       }
 #endif
+      /* VSX instructions can be explicitly enabled/disabled via GALLIVM_VSX=1 or 0 */
+      char *env_vsx = getenv("GALLIVM_VSX");
+      if (env_vsx && env_vsx[0] == '0') {
+         enable_vsx = FALSE;
+      }
       if (enable_altivec) {
          __lv_powerpc_canjump = 1;
 
@@ -153,8 +159,13 @@ check_os_altivec_support(void)
              :
              : "r" (-1));
 
-         signal(SIGILL, SIG_DFL);
          util_cpu_caps.has_altivec = 1;
+
+         if (enable_vsx) {
+            __asm __volatile("xxland %vs0, %vs0, %vs0");
+            util_cpu_caps.has_vsx = 1;
+         }
+         signal(SIGILL, SIG_DFL);
       } else {
          util_cpu_caps.has_altivec = 0;
       }
@@ -536,6 +547,7 @@ util_cpu_detect(void)
       debug_printf("util_cpu_caps.has_3dnow_ext = %u\n", util_cpu_caps.has_3dnow_ext);
       debug_printf("util_cpu_caps.has_xop = %u\n", util_cpu_caps.has_xop);
       debug_printf("util_cpu_caps.has_altivec = %u\n", util_cpu_caps.has_altivec);
+      debug_printf("util_cpu_caps.has_vsx = %u\n", util_cpu_caps.has_vsx);
       debug_printf("util_cpu_caps.has_neon = %u\n", util_cpu_caps.has_neon);
       debug_printf("util_cpu_caps.has_daz = %u\n", util_cpu_caps.has_daz);
       debug_printf("util_cpu_caps.has_avx512f = %u\n", util_cpu_caps.has_avx512f);

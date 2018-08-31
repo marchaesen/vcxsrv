@@ -196,7 +196,16 @@ _mesa_vao_attribute_map[ATTRIBUTE_MAP_MODE_MAX][VERT_ATTRIB_MAX] =
 struct gl_vertex_array_object *
 _mesa_lookup_vao(struct gl_context *ctx, GLuint id)
 {
+   /* The ARB_direct_state_access specification says:
+    *
+    *    "<vaobj> is [compatibility profile:
+    *     zero, indicating the default vertex array object, or]
+    *     the name of the vertex array object."
+    */
    if (id == 0) {
+      if (ctx->API == API_OPENGL_COMPAT)
+         return ctx->Array.DefaultVAO;
+
       return NULL;
    } else {
       struct gl_vertex_array_object *vao;
@@ -1005,6 +1014,10 @@ delete_vertex_arrays(struct gl_context *ctx, GLsizei n, const GLuint *ids)
    GLsizei i;
 
    for (i = 0; i < n; i++) {
+      /* IDs equal to 0 should be silently ignored. */
+      if (!ids[i])
+         continue;
+
       struct gl_vertex_array_object *obj = _mesa_lookup_vao(ctx, ids[i]);
 
       if (obj) {

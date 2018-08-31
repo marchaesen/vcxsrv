@@ -84,6 +84,7 @@ const char *glsl_get_struct_elem_name(const struct glsl_type *type,
 enum glsl_sampler_dim glsl_get_sampler_dim(const struct glsl_type *type);
 enum glsl_base_type glsl_get_sampler_result_type(const struct glsl_type *type);
 unsigned glsl_get_sampler_target(const struct glsl_type *type);
+int glsl_get_sampler_coordinate_components(const struct glsl_type *type);
 
 unsigned glsl_get_record_location_offset(const struct glsl_type *type,
                                          unsigned length);

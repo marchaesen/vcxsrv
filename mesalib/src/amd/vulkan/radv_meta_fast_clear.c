@@ -92,6 +92,7 @@ build_dcc_decompress_compute_shader(struct radv_device *dev)
 
 	nir_ssa_def *outval = &tex->dest.ssa;
 	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_store);
+	store->num_components = 4;
 	store->src[0] = nir_src_for_ssa(&nir_build_deref_var(&b, output_img)->dest.ssa);
 	store->src[1] = nir_src_for_ssa(global_id);
 	store->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));

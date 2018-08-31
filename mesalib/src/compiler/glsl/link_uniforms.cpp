@@ -690,9 +690,11 @@ private:
 
          /* Set image access qualifiers */
          const GLenum access =
-            (current_var->data.memory_read_only ? GL_READ_ONLY :
-             current_var->data.memory_write_only ? GL_WRITE_ONLY :
-                GL_READ_WRITE);
+            current_var->data.memory_read_only ?
+            (current_var->data.memory_write_only ? GL_NONE :
+                                                   GL_READ_ONLY) :
+            (current_var->data.memory_write_only ? GL_WRITE_ONLY :
+                                                   GL_READ_WRITE);
 
          if (current_var->data.bindless) {
             if (!set_opaque_indices(base_type, uniform, name,

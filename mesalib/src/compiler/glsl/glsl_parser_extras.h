@@ -868,6 +868,7 @@ struct _mesa_glsl_parse_state {
 
    bool allow_extension_directive_midshader;
    bool allow_builtin_variable_redeclaration;
+   bool allow_layout_qualifier_on_function_parameter;
 
    /**
     * Known subroutine type declarations.

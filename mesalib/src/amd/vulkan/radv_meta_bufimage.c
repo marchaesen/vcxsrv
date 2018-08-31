@@ -116,6 +116,7 @@ build_nir_itob_compute_shader(struct radv_device *dev, bool is_3d)
 
 	nir_ssa_def *outval = &tex->dest.ssa;
 	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_store);
+	store->num_components = 4;
 	store->src[0] = nir_src_for_ssa(&nir_build_deref_var(&b, output_img)->dest.ssa);
 	store->src[1] = nir_src_for_ssa(coord);
 	store->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
@@ -342,6 +343,7 @@ build_nir_btoi_compute_shader(struct radv_device *dev, bool is_3d)
 
 	nir_ssa_def *outval = &tex->dest.ssa;
 	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_store);
+	store->num_components = 4;
 	store->src[0] = nir_src_for_ssa(&nir_build_deref_var(&b, output_img)->dest.ssa);
 	store->src[1] = nir_src_for_ssa(img_coord);
 	store->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
@@ -557,6 +559,7 @@ build_nir_itoi_compute_shader(struct radv_device *dev, bool is_3d)
 
 	nir_ssa_def *outval = &tex->dest.ssa;
 	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_store);
+	store->num_components = 4;
 	store->src[0] = nir_src_for_ssa(&nir_build_deref_var(&b, output_img)->dest.ssa);
 	store->src[1] = nir_src_for_ssa(dst_coord);
 	store->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
@@ -753,6 +756,7 @@ build_nir_cleari_compute_shader(struct radv_device *dev, bool is_3d)
 	global_id = nir_vec(&b, comps, 4);
 
 	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_store);
+	store->num_components = 4;
 	store->src[0] = nir_src_for_ssa(&nir_build_deref_var(&b, output_img)->dest.ssa);
 	store->src[1] = nir_src_for_ssa(global_id);
 	store->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));

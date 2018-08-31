@@ -228,6 +228,7 @@ struct st_config_options
    boolean glsl_zero_init;
    boolean force_glsl_abs_sqrt;
    boolean allow_glsl_cross_stage_interpolation_mismatch;
+   boolean allow_glsl_layout_qualifier_on_function_parameters;
    unsigned char config_options_sha1[20];
 };
 

@@ -2014,7 +2014,9 @@ struct gl_bindless_image
    /** Whether this bindless image is bound to a unit. */
    GLboolean bound;
 
-   /** Access qualifier (GL_READ_WRITE, GL_READ_ONLY, GL_WRITE_ONLY) */
+   /** Access qualifier (GL_READ_WRITE, GL_READ_ONLY, GL_WRITE_ONLY, or
+    * GL_NONE to indicate both read-only and write-only)
+    */
    GLenum16 access;
 
    /** Pointer to the base of the data. */
@@ -2131,8 +2133,9 @@ struct gl_program
 
          /**
           * Access qualifier specified in the shader for each image uniform
-          * index.  Either \c GL_READ_ONLY, \c GL_WRITE_ONLY or \c
-          * GL_READ_WRITE.
+          * index.  Either \c GL_READ_ONLY, \c GL_WRITE_ONLY, \c
+          * GL_READ_WRITE, or \c GL_NONE to indicate both read-only and
+          * write-only.
           *
           * It may be different, though only more strict than the value of
           * \c gl_image_unit::Access for the corresponding image unit.
@@ -3764,6 +3767,11 @@ struct gl_constants
     * features are unimplemented and might not work correctly.
     */
    GLboolean AllowHigherCompatVersion;
+
+   /**
+    * Allow layout qualifiers on function parameters.
+    */
+   GLboolean AllowLayoutQualifiersOnFunctionParameters;
 
    /**
     * Force computing the absolute value for sqrt() and inversesqrt() to follow

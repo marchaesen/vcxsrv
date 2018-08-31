@@ -101,6 +101,14 @@ REDUCTION_OP = "NIR_INTRINSIC_REDUCTION_OP"
 CLUSTER_SIZE = "NIR_INTRINSIC_CLUSTER_SIZE"
 # Parameter index for a load_param intrinsic
 PARAM_IDX = "NIR_INTRINSIC_PARAM_IDX"
+# Image dimensionality for image intrinsics
+IMAGE_DIM = "NIR_INTRINSIC_IMAGE_DIM"
+# Non-zero if we are accessing an array image
+IMAGE_ARRAY = "NIR_INTRINSIC_IMAGE_ARRAY"
+# Access qualifiers for image intrinsics
+ACCESS = "NIR_INTRINSIC_ACCESS"
+# Image format for image intrinsics
+FORMAT = "NIR_INTRINSIC_FORMAT"
 
 #
 # Possible flags:
@@ -285,10 +293,12 @@ atomic3("atomic_counter_comp_swap")
 
 # Image load, store and atomic intrinsics.
 #
-# All image intrinsics take an image target passed as a nir_variable.  The
-# variable is passed in using a chain of nir_deref_instr with as the first
-# source of the image intrinsic.  Image variables contain a number of memory
-# and layout qualifiers that influence the semantics of the intrinsic.
+# All image intrinsics come in two versions.  One which take an image target
+# passed as a deref chain as the first source and one which takes an index or
+# handle as the first source.  In the first version, the image variable
+# contains the memory and layout qualifiers that influence the semantics of
+# the intrinsic.  In the second, the image format and access qualifiers are
+# provided as constant indices.
 #
 # All image intrinsics take a four-coordinate vector and a sample index as
 # 2nd and 3rd sources, determining the location within the image that will be
@@ -297,20 +307,33 @@ atomic3("atomic_counter_comp_swap")
 # argument with the value to be written, and image atomic operations take
 # either one or two additional scalar arguments with the same meaning as in
 # the ARB_shader_image_load_store specification.
-intrinsic("image_deref_load", src_comp=[1, 4, 1], dest_comp=4,
-          flags=[CAN_ELIMINATE])
-intrinsic("image_deref_store", src_comp=[1, 4, 1, 4])
-intrinsic("image_deref_atomic_add",  src_comp=[1, 4, 1, 1], dest_comp=1)
-intrinsic("image_deref_atomic_min",  src_comp=[1, 4, 1, 1], dest_comp=1)
-intrinsic("image_deref_atomic_max",  src_comp=[1, 4, 1, 1], dest_comp=1)
-intrinsic("image_deref_atomic_and",  src_comp=[1, 4, 1, 1], dest_comp=1)
-intrinsic("image_deref_atomic_or",   src_comp=[1, 4, 1, 1], dest_comp=1)
-intrinsic("image_deref_atomic_xor",  src_comp=[1, 4, 1, 1], dest_comp=1)
-intrinsic("image_deref_atomic_exchange",  src_comp=[1, 4, 1, 1], dest_comp=1)
-intrinsic("image_deref_atomic_comp_swap", src_comp=[1, 4, 1, 1, 1], dest_comp=1)
-intrinsic("image_deref_atomic_fadd",  src_comp=[1, 4, 1, 1], dest_comp=1)
-intrinsic("image_deref_size",    src_comp=[1], dest_comp=0, flags=[CAN_ELIMINATE, CAN_REORDER])
-intrinsic("image_deref_samples", src_comp=[1], dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
+def image(name, src_comp=[], **kwargs):
+    intrinsic("image_deref_" + name, src_comp=[1] + src_comp, **kwargs)
+    intrinsic("image_" + name, src_comp=[1] + src_comp,
+              indices=[IMAGE_DIM, IMAGE_ARRAY, FORMAT, ACCESS], **kwargs)
+
+image("load", src_comp=[4, 1], dest_comp=0, flags=[CAN_ELIMINATE])
+image("store", src_comp=[4, 1, 0])
+image("atomic_add",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_min",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_max",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_and",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_or",   src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_xor",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_exchange",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_comp_swap", src_comp=[4, 1, 1, 1], dest_comp=1)
+image("atomic_fadd",  src_comp=[1, 4, 1, 1], dest_comp=1)
+image("size",    dest_comp=0, flags=[CAN_ELIMINATE, CAN_REORDER])
+image("samples", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# Intel-specific query for loading from the brw_image_param struct passed
+# into the shader as a uniform.  The variable is a deref to the image
+# variable. The const index specifies which of the six parameters to load.
+intrinsic("image_deref_load_param_intel", src_comp=[1], dest_comp=0,
+          indices=[BASE], flags=[CAN_ELIMINATE, CAN_REORDER])
+image("load_raw_intel", src_comp=[1], dest_comp=0,
+      flags=[CAN_ELIMINATE])
+image("store_raw_intel", src_comp=[1, 0])
 
 # Vulkan descriptor set intrinsics
 #

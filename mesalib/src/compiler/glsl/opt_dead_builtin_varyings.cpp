@@ -558,6 +558,9 @@ do_dead_builtin_varyings(struct gl_context *ctx,
    if (producer) {
       producer_info.get(producer->ir, num_tfeedback_decls, tfeedback_decls);
 
+      if (producer->Stage == MESA_SHADER_TESS_CTRL)
+         producer_info.lower_texcoord_array = false;
+
       if (!consumer) {
          /* At least eliminate unused gl_TexCoord elements. */
          if (producer_info.lower_texcoord_array) {
@@ -569,6 +572,9 @@ do_dead_builtin_varyings(struct gl_context *ctx,
 
    if (consumer) {
       consumer_info.get(consumer->ir, 0, NULL);
+
+      if (consumer->Stage != MESA_SHADER_FRAGMENT)
+         consumer_info.lower_texcoord_array = false;
 
       if (!producer) {
          /* At least eliminate unused gl_TexCoord elements. */

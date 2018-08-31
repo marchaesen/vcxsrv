@@ -3292,13 +3292,14 @@ check_texture_target(struct gl_context *ctx, GLenum target,
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
       return true;
    case GL_TEXTURE_CUBE_MAP:
-      /* We don't need to check the extension (GL_ARB_direct_state_access) or
-       * GL version (4.5) for GL_TEXTURE_CUBE_MAP because DSA is always
-       * enabled in core profile.  This can be called from
-       * _mesa_FramebufferTextureLayer in compatibility profile (OpenGL 3.0),
-       * so we do have to check the profile.
+      /* GL_TEXTURE_CUBE_MAP is only allowed by OpenGL 4.5 here, which
+       * includes the DSA API.
+       *
+       * Because DSA is only enabled for GL 3.1+ and this can be called
+       * from _mesa_FramebufferTextureLayer in compatibility profile,
+       * we need to check the version.
        */
-      return ctx->API == API_OPENGL_CORE;
+      return _mesa_is_desktop_gl(ctx) && ctx->Version >= 31;
    }
 
    _mesa_error(ctx, GL_INVALID_OPERATION,

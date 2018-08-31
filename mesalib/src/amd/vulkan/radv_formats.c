@@ -1112,6 +1112,25 @@ static VkResult radv_get_image_format_properties(struct radv_physical_device *ph
 		}
 	}
 
+	if (info->usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
+		if (!(format_feature_flags & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT)) {
+			goto unsupported;
+		}
+	}
+
+	if (info->usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+		if (!(format_feature_flags & VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
+			goto unsupported;
+		}
+	}
+
+	if (info->usage & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT) {
+		if (!(format_feature_flags & (VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
+		                              VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))) {
+			goto unsupported;
+		}
+	}
+
 	*pImageFormatProperties = (VkImageFormatProperties) {
 		.maxExtent = maxExtent,
 		.maxMipLevels = maxMipLevels,

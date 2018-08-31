@@ -2467,6 +2467,8 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       const uint32_t value_id = opcode == SpvOpAtomicStore ? w[4] : w[3];
       nir_ssa_def *value = vtn_ssa_value(b, value_id)->def;
       /* nir_intrinsic_image_deref_store always takes a vec4 value */
+      assert(op == nir_intrinsic_image_deref_store);
+      intrin->num_components = 4;
       intrin->src[3] = nir_src_for_ssa(expand_to_vec4(&b->nb, value));
       break;
    }

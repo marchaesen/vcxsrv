@@ -135,6 +135,11 @@ DRI_CONF_OPT_BEGIN_B(allow_glsl_cross_stage_interpolation_mismatch, def) \
         DRI_CONF_DESC(en,gettext("Allow interpolation qualifier mismatch across shader stages")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_ALLOW_GLSL_LAYOUT_QUALIFIER_ON_FUNCTION_PARAMETERS(def) \
+DRI_CONF_OPT_BEGIN_B(allow_glsl_layout_qualifier_on_function_parameters, def) \
+        DRI_CONF_DESC(en,gettext("Allow layout qualifiers on function parameters.")) \
+DRI_CONF_OPT_END
+
 /**
  * \brief Image quality-related options
  */
@@ -413,4 +418,9 @@ DRI_CONF_OPT_END
 #define DRI_CONF_RADEONSI_CLEAR_DB_CACHE_BEFORE_CLEAR(def) \
 DRI_CONF_OPT_BEGIN_B(radeonsi_clear_db_cache_before_clear, def) \
         DRI_CONF_DESC(en,"Clear DB cache before fast depth clear") \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_RADEONSI_ZERO_ALL_VRAM_ALLOCS(def) \
+DRI_CONF_OPT_BEGIN_B(radeonsi_zerovram, def) \
+        DRI_CONF_DESC(en,"Zero all vram allocations") \
 DRI_CONF_OPT_END

@@ -433,11 +433,12 @@ print_var_decl(nir_variable *var, print_state *state)
            cent, samp, patch, inv, get_variable_mode_str(var->data.mode, false),
            glsl_interp_mode_name(var->data.interpolation));
 
-   const char *const coher = (var->data.image.coherent) ? "coherent " : "";
-   const char *const volat = (var->data.image._volatile) ? "volatile " : "";
-   const char *const restr = (var->data.image.restrict_flag) ? "restrict " : "";
-   const char *const ronly = (var->data.image.read_only) ? "readonly " : "";
-   const char *const wonly = (var->data.image.write_only) ? "writeonly " : "";
+   enum gl_access_qualifier access = var->data.image.access;
+   const char *const coher = (access & ACCESS_COHERENT) ? "coherent " : "";
+   const char *const volat = (access & ACCESS_VOLATILE) ? "volatile " : "";
+   const char *const restr = (access & ACCESS_RESTRICT) ? "restrict " : "";
+   const char *const ronly = (access & ACCESS_NON_WRITEABLE) ? "readonly " : "";
+   const char *const wonly = (access & ACCESS_NON_READABLE) ? "writeonly " : "";
    fprintf(fp, "%s%s%s%s%s", coher, volat, restr, ronly, wonly);
 
    fprintf(fp, "%s %s", glsl_get_type_name(var->type),
@@ -686,6 +687,10 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_REDUCTION_OP] = "reduction_op",
       [NIR_INTRINSIC_CLUSTER_SIZE] = "cluster_size",
       [NIR_INTRINSIC_PARAM_IDX] = "param_idx",
+      [NIR_INTRINSIC_IMAGE_DIM] = "image_dim",
+      [NIR_INTRINSIC_IMAGE_ARRAY] = "image_array",
+      [NIR_INTRINSIC_ACCESS] = "access",
+      [NIR_INTRINSIC_FORMAT] = "format",
    };
    for (unsigned idx = 1; idx < NIR_INTRINSIC_NUM_INDEX_FLAGS; idx++) {
       if (!info->index_map[idx])
@@ -701,6 +706,24 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       } else if (idx == NIR_INTRINSIC_REDUCTION_OP) {
          nir_op reduction_op = nir_intrinsic_reduction_op(instr);
          fprintf(fp, " reduction_op=%s", nir_op_infos[reduction_op].name);
+      } else if (idx == NIR_INTRINSIC_IMAGE_DIM) {
+         static const char *dim_name[] = {
+            [GLSL_SAMPLER_DIM_1D] = "1D",
+            [GLSL_SAMPLER_DIM_2D] = "2D",
+            [GLSL_SAMPLER_DIM_3D] = "3D",
+            [GLSL_SAMPLER_DIM_CUBE] = "Cube",
+            [GLSL_SAMPLER_DIM_RECT] = "Rect",
+            [GLSL_SAMPLER_DIM_BUF] = "Buf",
+            [GLSL_SAMPLER_DIM_MS] = "2D-MSAA",
+            [GLSL_SAMPLER_DIM_SUBPASS] = "Subpass",
+            [GLSL_SAMPLER_DIM_SUBPASS_MS] = "Subpass-MSAA",
+         };
+         enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
+         assert(dim < ARRAY_SIZE(dim_name) && dim_name[idx]);
+         fprintf(fp, " image_dim=%s", dim_name[dim]);
+      } else if (idx == NIR_INTRINSIC_IMAGE_ARRAY) {
+         bool array = nir_intrinsic_image_dim(instr);
+         fprintf(fp, " image_dim=%s", array ? "true" : "false");
       } else {
          unsigned off = info->index_map[idx] - 1;
          assert(index_name[idx]);  /* forgot to update index_name table? */
