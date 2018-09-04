@@ -174,6 +174,7 @@ struct radv_shader_info {
 		bool has_pcoord;
 		bool prim_id_input;
 		bool layer_input;
+		uint8_t num_input_clips_culls;
 	} ps;
 	struct {
 		bool uses_grid_size;

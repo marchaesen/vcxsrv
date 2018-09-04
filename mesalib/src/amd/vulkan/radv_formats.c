@@ -645,9 +645,8 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 			if (radv_is_filter_minmax_format_supported(format))
 				 tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT;
 
-			/* GFX9 doesn't support linear depth surfaces */
-			if (physical_device->rad_info.chip_class >= GFX9)
-				linear = 0;
+			/* Don't support linear depth surfaces */
+			linear = 0;
 		}
 	} else {
 		bool linear_sampling;

@@ -103,6 +103,65 @@ static char *loader_get_kernel_driver_name(int fd)
 }
 
 #if defined(HAVE_LIBDRM)
+int
+loader_open_render_node(const char *name)
+{
+   drmDevicePtr *devices, device;
+   int err, render = -ENOENT, fd;
+   unsigned int num, i;
+
+   err = drmGetDevices2(0, NULL, 0);
+   if (err < 0)
+      return err;
+
+   num = err;
+
+   devices = calloc(num, sizeof(*devices));
+   if (!devices)
+      return -ENOMEM;
+
+   err = drmGetDevices2(0, devices, num);
+   if (err < 0) {
+      render = err;
+      goto free;
+   }
+
+   for (i = 0; i < num; i++) {
+      device = devices[i];
+
+      if ((device->available_nodes & (1 << DRM_NODE_RENDER)) &&
+          (device->bustype == DRM_BUS_PLATFORM)) {
+         drmVersionPtr version;
+
+         fd = open(device->nodes[DRM_NODE_RENDER], O_RDWR | O_CLOEXEC);
+         if (fd < 0)
+            continue;
+
+         version = drmGetVersion(fd);
+         if (!version) {
+            close(fd);
+            continue;
+         }
+
+         if (strcmp(version->name, name) != 0) {
+            drmFreeVersion(version);
+            close(fd);
+            continue;
+         }
+
+         drmFreeVersion(version);
+         render = fd;
+         break;
+      }
+   }
+
+   drmFreeDevices(devices, num);
+
+free:
+   free(devices);
+   return render;
+}
+
 #ifdef USE_DRICONF
 static const char __driConfigOptionsLoader[] =
 DRI_CONF_BEGIN
@@ -306,6 +365,12 @@ int loader_get_user_preferred_fd(int default_fd, bool *different_device)
    return default_fd;
 }
 #else
+int
+loader_open_render_node(const char *name)
+{
+   return -1;
+}
+
 int loader_get_user_preferred_fd(int default_fd, bool *different_device)
 {
    *different_device = false;

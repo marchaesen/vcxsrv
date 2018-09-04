@@ -115,6 +115,34 @@ gather_intrinsic_load_deref_info(const nir_shader *nir,
 }
 
 static void
+set_output_usage_mask(const nir_shader *nir, const nir_intrinsic_instr *instr,
+		      uint8_t *output_usage_mask)
+{
+	nir_deref_instr *deref_instr =
+		nir_instr_as_deref(instr->src[0].ssa->parent_instr);
+	nir_variable *var = nir_deref_instr_get_variable(deref_instr);
+	unsigned attrib_count = glsl_count_attribute_slots(var->type, false);
+	unsigned idx = var->data.location;
+	unsigned comp = var->data.location_frac;
+	unsigned const_offset = 0;
+
+	get_deref_offset(deref_instr, &const_offset);
+
+	if (idx == VARYING_SLOT_CLIP_DIST0) {
+		/* Special case for clip/cull distances because there are
+		 * combined into a single array that contains both.
+		 */
+		output_usage_mask[idx] |= 1 << const_offset;
+		return;
+	}
+
+	for (unsigned i = 0; i < attrib_count; i++) {
+		output_usage_mask[idx + i + const_offset] |=
+			instr->const_index[0] << comp;
+	}
+}
+
+static void
 gather_intrinsic_store_deref_info(const nir_shader *nir,
 				const nir_intrinsic_instr *instr,
 				struct radv_shader_info *info)
@@ -122,31 +150,20 @@ gather_intrinsic_store_deref_info(const nir_shader *nir,
 	nir_variable *var = nir_deref_instr_get_variable(nir_instr_as_deref(instr->src[0].ssa->parent_instr));
 
 	if (var->data.mode == nir_var_shader_out) {
-		unsigned attrib_count = glsl_count_attribute_slots(var->type, false);
 		unsigned idx = var->data.location;
-		unsigned comp = var->data.location_frac;
-		unsigned const_offset = 0;
-
-		get_deref_offset(nir_instr_as_deref(instr->src[0].ssa->parent_instr), &const_offset);
 
 		switch (nir->info.stage) {
 		case MESA_SHADER_VERTEX:
-			for (unsigned i = 0; i < attrib_count; i++) {
-				info->vs.output_usage_mask[idx + i + const_offset] |=
-					instr->const_index[0] << comp;
-			}
+			set_output_usage_mask(nir, instr,
+					      info->vs.output_usage_mask);
 			break;
 		case MESA_SHADER_GEOMETRY:
-			for (unsigned i = 0; i < attrib_count; i++) {
-				info->gs.output_usage_mask[idx + i + const_offset] |=
-					instr->const_index[0] << comp;
-			}
+			set_output_usage_mask(nir, instr,
+					      info->gs.output_usage_mask);
 			break;
 		case MESA_SHADER_TESS_EVAL:
-			for (unsigned i = 0; i < attrib_count; i++) {
-				info->tes.output_usage_mask[idx + i + const_offset] |=
-					instr->const_index[0] << comp;
-			}
+			set_output_usage_mask(nir, instr,
+					      info->tes.output_usage_mask);
 			break;
 		case MESA_SHADER_TESS_CTRL: {
 			unsigned param = shader_io_get_unique_index(idx);
@@ -341,6 +358,7 @@ static void
 gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
 			  struct radv_shader_info *info)
 {
+	unsigned attrib_count = glsl_count_attribute_slots(var->type, false);
 	const struct glsl_type *type = glsl_without_array(var->type);
 	int idx = var->data.location;
 
@@ -353,6 +371,9 @@ gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
 		break;
 	case VARYING_SLOT_LAYER:
 		info->ps.layer_input = true;
+		break;
+	case VARYING_SLOT_CLIP_DIST0:
+		info->ps.num_input_clips_culls = attrib_count;
 		break;
 	default:
 		break;

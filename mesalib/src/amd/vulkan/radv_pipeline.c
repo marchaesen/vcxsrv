@@ -2539,6 +2539,7 @@ radv_pipeline_generate_binning_state(struct radeon_cmdbuf *cs,
 	switch (pipeline->device->physical_device->rad_info.family) {
 	case CHIP_VEGA10:
 	case CHIP_VEGA12:
+	case CHIP_VEGA20:
 		context_states_per_bin = 1;
 		persistent_states_per_bin = 1;
 		fpovs_per_batch = 63;
@@ -3050,6 +3051,23 @@ radv_pipeline_generate_ps_inputs(struct radeon_cmdbuf *cs,
 		val = S_028644_PT_SPRITE_TEX(1) | S_028644_OFFSET(0x20);
 		ps_input_cntl[ps_offset] = val;
 		ps_offset++;
+	}
+
+	if (ps->info.info.ps.num_input_clips_culls) {
+		unsigned vs_offset;
+
+		vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_CLIP_DIST0];
+		if (vs_offset != AC_EXP_PARAM_UNDEFINED) {
+			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
+			++ps_offset;
+		}
+
+		vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_CLIP_DIST1];
+		if (vs_offset != AC_EXP_PARAM_UNDEFINED &&
+		    ps->info.info.ps.num_input_clips_culls > 4) {
+			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
+			++ps_offset;
+		}
 	}
 
 	for (unsigned i = 0; i < 32 && (1u << i) <= ps->info.fs.input_mask; ++i) {
