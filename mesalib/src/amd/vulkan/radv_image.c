@@ -801,8 +801,8 @@ radv_image_get_cmask_info(struct radv_device *device,
 
 	unsigned base_align = num_pipes * pipe_interleave_bytes;
 
-	unsigned width = align(image->info.width, cl_width*8);
-	unsigned height = align(image->info.height, cl_height*8);
+	unsigned width = align(image->surface.u.legacy.level[0].nblk_x, cl_width*8);
+	unsigned height = align(image->surface.u.legacy.level[0].nblk_y, cl_height*8);
 	unsigned slice_elements = (width * height) / (8*8);
 
 	/* Each element of CMASK is a nibble. */

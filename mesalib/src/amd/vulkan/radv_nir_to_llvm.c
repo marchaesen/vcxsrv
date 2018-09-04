@@ -91,8 +91,6 @@ struct radv_shader_context {
 
 	uint64_t input_mask;
 	uint64_t output_mask;
-	uint8_t num_output_clips;
-	uint8_t num_output_culls;
 
 	bool is_gs_copy_shader;
 	LLVMValueRef gs_next_vertex;
@@ -1738,10 +1736,9 @@ visit_emit_vertex(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addr
 
 		if (i == VARYING_SLOT_CLIP_DIST0) {
 			/* pack clip and cull into a single set of slots */
-			length = ctx->num_output_clips + ctx->num_output_culls;
+			length = util_last_bit(output_usage_mask);
 			if (length > 4)
 				slot_inc = 2;
-			output_usage_mask = (1 << length) - 1;
 		}
 
 		for (unsigned j = 0; j < length; j++) {
@@ -2098,9 +2095,10 @@ handle_fs_input_decl(struct radv_shader_context *ctx,
 	int idx = variable->data.location;
 	unsigned attrib_count = glsl_count_attribute_slots(variable->type, false);
 	LLVMValueRef interp = NULL;
+	uint64_t mask;
 
 	variable->data.driver_location = idx * 4;
-	ctx->input_mask |= ((1ull << attrib_count) - 1) << variable->data.location;
+	mask = ((1ull << attrib_count) - 1) << variable->data.location;
 
 	if (glsl_get_base_type(glsl_without_array(variable->type)) == GLSL_TYPE_FLOAT) {
 		unsigned interp_type;
@@ -2121,6 +2119,15 @@ handle_fs_input_decl(struct radv_shader_context *ctx,
 	for (unsigned i = 0; i < attrib_count; ++i)
 		ctx->inputs[ac_llvm_reg_index_soa(idx + i, 0)] = interp;
 
+	if (idx == VARYING_SLOT_CLIP_DIST0) {
+		/* Do not account for the number of components inside the array
+		 * of clip/cull distances because this might wrongly set other
+		 * bits like primitive ID or layer.
+		 */
+		mask = 1ull << VARYING_SLOT_CLIP_DIST0;
+	}
+
+	ctx->input_mask |= mask;
 }
 
 static void
@@ -2187,6 +2194,17 @@ handle_fs_inputs(struct radv_shader_context *ctx,
 			if (LLVMIsUndef(interp_param))
 				ctx->shader_info->fs.flat_shaded_mask |= 1u << index;
 			++index;
+		} else if (i == VARYING_SLOT_CLIP_DIST0) {
+			int length = ctx->shader_info->info.ps.num_input_clips_culls;
+
+			for (unsigned j = 0; j < length; j += 4) {
+				inputs = ctx->inputs + ac_llvm_reg_index_soa(i, j);
+
+				interp_param = *inputs;
+				interp_fs_input(ctx, index, interp_param,
+						ctx->abi.prim_mask, inputs);
+				++index;
+			}
 		} else if (i == VARYING_SLOT_POS) {
 			for(int i = 0; i < 3; ++i)
 				inputs[i] = ctx->abi.frag_pos[i];
@@ -2223,21 +2241,17 @@ scan_shader_output_decl(struct radv_shader_context *ctx,
 	    stage == MESA_SHADER_TESS_EVAL ||
 	    stage == MESA_SHADER_GEOMETRY) {
 		if (idx == VARYING_SLOT_CLIP_DIST0) {
-			int length = shader->info.clip_distance_array_size +
-			             shader->info.cull_distance_array_size;
 			if (stage == MESA_SHADER_VERTEX) {
 				ctx->shader_info->vs.outinfo.clip_dist_mask = (1 << shader->info.clip_distance_array_size) - 1;
 				ctx->shader_info->vs.outinfo.cull_dist_mask = (1 << shader->info.cull_distance_array_size) - 1;
+				ctx->shader_info->vs.outinfo.cull_dist_mask <<= shader->info.clip_distance_array_size;
 			}
 			if (stage == MESA_SHADER_TESS_EVAL) {
 				ctx->shader_info->tes.outinfo.clip_dist_mask = (1 << shader->info.clip_distance_array_size) - 1;
 				ctx->shader_info->tes.outinfo.cull_dist_mask = (1 << shader->info.cull_distance_array_size) - 1;
+				ctx->shader_info->tes.outinfo.cull_dist_mask <<= shader->info.clip_distance_array_size;
 			}
 
-			if (length > 4)
-				attrib_count = 2;
-			else
-				attrib_count = 1;
 			mask_attribs = 1ull << idx;
 		}
 	}
@@ -2457,20 +2471,33 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 	       sizeof(outinfo->vs_output_param_offset));
 
 	if (ctx->output_mask & (1ull << VARYING_SLOT_CLIP_DIST0)) {
+		unsigned output_usage_mask, length;
 		LLVMValueRef slots[8];
 		unsigned j;
 
-		if (outinfo->cull_dist_mask)
-			outinfo->cull_dist_mask <<= ctx->num_output_clips;
+		if (ctx->stage == MESA_SHADER_VERTEX &&
+		    !ctx->is_gs_copy_shader) {
+			output_usage_mask =
+				ctx->shader_info->info.vs.output_usage_mask[VARYING_SLOT_CLIP_DIST0];
+		} else if (ctx->stage == MESA_SHADER_TESS_EVAL) {
+			output_usage_mask =
+				ctx->shader_info->info.tes.output_usage_mask[VARYING_SLOT_CLIP_DIST0];
+		} else {
+			assert(ctx->is_gs_copy_shader);
+			output_usage_mask =
+				ctx->shader_info->info.gs.output_usage_mask[VARYING_SLOT_CLIP_DIST0];
+		}
+
+		length = util_last_bit(output_usage_mask);
 
 		i = VARYING_SLOT_CLIP_DIST0;
-		for (j = 0; j < ctx->num_output_clips + ctx->num_output_culls; j++)
+		for (j = 0; j < length; j++)
 			slots[j] = ac_to_float(&ctx->ac, radv_load_output(ctx, i, j));
 
-		for (i = ctx->num_output_clips + ctx->num_output_culls; i < 8; i++)
+		for (i = length; i < 8; i++)
 			slots[i] = LLVMGetUndef(ctx->ac.f32);
 
-		if (ctx->num_output_clips + ctx->num_output_culls > 4) {
+		if (length > 4) {
 			target = V_008DFC_SQ_EXP_POS + 3;
 			si_llvm_init_export_args(ctx, &slots[4], 0xf, target, &args);
 			memcpy(&pos_args[target - V_008DFC_SQ_EXP_POS],
@@ -2482,6 +2509,13 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 		memcpy(&pos_args[target - V_008DFC_SQ_EXP_POS],
 		       &args, sizeof(args));
 
+		/* Export the clip/cull distances values to the next stage. */
+		radv_export_param(ctx, param_count, &slots[0], 0xf);
+		outinfo->vs_output_param_offset[VARYING_SLOT_CLIP_DIST0] = param_count++;
+		if (length > 4) {
+			radv_export_param(ctx, param_count, &slots[4], 0xf);
+			outinfo->vs_output_param_offset[VARYING_SLOT_CLIP_DIST1] = param_count++;
+		}
 	}
 
 	LLVMValueRef pos_values[4] = {ctx->ac.f32_0, ctx->ac.f32_0, ctx->ac.f32_0, ctx->ac.f32_1};
@@ -2635,14 +2669,24 @@ handle_es_outputs_post(struct radv_shader_context *ctx,
 	LLVMValueRef lds_base = NULL;
 
 	for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
+		unsigned output_usage_mask;
 		int param_index;
 		int length = 4;
 
 		if (!(ctx->output_mask & (1ull << i)))
 			continue;
 
+		if (ctx->stage == MESA_SHADER_VERTEX) {
+			output_usage_mask =
+				ctx->shader_info->info.vs.output_usage_mask[i];
+		} else {
+			assert(ctx->stage == MESA_SHADER_TESS_EVAL);
+			output_usage_mask =
+				ctx->shader_info->info.tes.output_usage_mask[i];
+		}
+
 		if (i == VARYING_SLOT_CLIP_DIST0)
-			length = ctx->num_output_clips + ctx->num_output_culls;
+			length = util_last_bit(output_usage_mask);
 
 		param_index = shader_io_get_unique_index(i);
 
@@ -2683,10 +2727,8 @@ handle_es_outputs_post(struct radv_shader_context *ctx,
 				ctx->shader_info->info.tes.output_usage_mask[i];
 		}
 
-		if (i == VARYING_SLOT_CLIP_DIST0) {
-			length = ctx->num_output_clips + ctx->num_output_culls;
-			output_usage_mask = (1 << length) - 1;
-		}
+		if (i == VARYING_SLOT_CLIP_DIST0)
+			length = util_last_bit(output_usage_mask);
 
 		param_index = shader_io_get_unique_index(i);
 
@@ -2733,6 +2775,8 @@ handle_ls_outputs_post(struct radv_shader_context *ctx)
 						 vertex_dw_stride, "");
 
 	for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
+		unsigned output_usage_mask =
+			ctx->shader_info->info.vs.output_usage_mask[i];
 		LLVMValueRef *out_ptr = &ctx->abi.outputs[i * 4];
 		int length = 4;
 
@@ -2740,7 +2784,8 @@ handle_ls_outputs_post(struct radv_shader_context *ctx)
 			continue;
 
 		if (i == VARYING_SLOT_CLIP_DIST0)
-			length = ctx->num_output_clips + ctx->num_output_culls;
+			length = util_last_bit(output_usage_mask);
+
 		int param = shader_io_get_unique_index(i);
 		LLVMValueRef dw_addr = LLVMBuildAdd(ctx->ac.builder, base_dw_addr,
 						    LLVMConstInt(ctx->ac.i32, param * 4, false),
@@ -3236,8 +3281,6 @@ LLVMModuleRef ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
 	for(int i = 0; i < shader_count; ++i) {
 		ctx.stage = shaders[i]->info.stage;
 		ctx.output_mask = 0;
-		ctx.num_output_clips = shaders[i]->info.clip_distance_array_size;
-		ctx.num_output_culls = shaders[i]->info.cull_distance_array_size;
 
 		if (shaders[i]->info.stage == MESA_SHADER_GEOMETRY) {
 			ctx.gs_next_vertex = ac_build_alloca(&ctx.ac, ctx.ac.i32, "gs_next_vertex");
@@ -3557,6 +3600,8 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
 	int idx = 0;
 
 	for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
+		unsigned output_usage_mask =
+			ctx->shader_info->info.gs.output_usage_mask[i];
 		int length = 4;
 		int slot = idx;
 		int slot_inc = 1;
@@ -3565,7 +3610,7 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
 
 		if (i == VARYING_SLOT_CLIP_DIST0) {
 			/* unpack clip and cull from a single set of slots */
-			length = ctx->num_output_clips + ctx->num_output_culls;
+			length = util_last_bit(output_usage_mask);
 			if (length > 4)
 				slot_inc = 2;
 		}
@@ -3627,9 +3672,6 @@ radv_compile_gs_copy_shader(struct ac_llvm_compiler *ac_llvm,
 
 	ctx.gs_max_out_vertices = geom_shader->info.gs.vertices_out;
 	ac_setup_rings(&ctx);
-
-	ctx.num_output_clips = geom_shader->info.clip_distance_array_size;
-	ctx.num_output_culls = geom_shader->info.cull_distance_array_size;
 
 	nir_foreach_variable(variable, &geom_shader->outputs) {
 		scan_shader_output_decl(&ctx, variable, geom_shader, MESA_SHADER_VERTEX);

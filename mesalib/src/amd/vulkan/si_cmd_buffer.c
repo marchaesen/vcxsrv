@@ -340,6 +340,7 @@ si_emit_config(struct radv_physical_device *physical_device,
 		switch (physical_device->rad_info.family) {
 		case CHIP_VEGA10:
 		case CHIP_VEGA12:
+		case CHIP_VEGA20:
 			pc_lines = 4096;
 			break;
 		case CHIP_RAVEN:
