@@ -337,6 +337,8 @@ files_libgallium = files(
   'util/u_ringbuffer.h',
   'util/u_sampler.c',
   'util/u_sampler.h',
+  'util/u_screen.c',
+  'util/u_screen.h',
   'util/u_simple_shaders.c',
   'util/u_simple_shaders.h',
   'util/u_split_prim.h',

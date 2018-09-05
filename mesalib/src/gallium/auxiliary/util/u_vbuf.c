@@ -1334,6 +1334,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
             end_vertex = MAX2(end_vertex, start + count);
             end_instance = MAX2(end_instance, start_instance + instance_count);
          }
+         free(data);
 
          /* Set the final counts. */
          new_info.count = end_vertex - new_info.start;

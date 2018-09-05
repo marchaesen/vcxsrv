@@ -220,7 +220,7 @@ struct tc_unflushed_batch_token;
  * The idea is to have batches as small as possible but large enough so that
  * the queuing and mutex overhead is negligible.
  */
-#define TC_CALLS_PER_BATCH    192
+#define TC_CALLS_PER_BATCH    768
 
 /* Threshold for when to use the queue or sync. */
 #define TC_MAX_STRING_MARKER_BYTES  512
