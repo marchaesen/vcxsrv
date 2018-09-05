@@ -1105,9 +1105,6 @@ winMultiWindowWMProc(void *pArg)
             break;
         }
 
-        /* Free the retrieved message */
-        free(pNode);
-
         /* Flush any pending events on our display */
         xcb_flush(pWMInfo->conn);
 
@@ -1130,6 +1127,9 @@ winMultiWindowWMProc(void *pArg)
                 }
             }
         }
+
+        /* Free the retrieved message */
+        free(pNode);
 
         /* I/O errors etc. */
         {

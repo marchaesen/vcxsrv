@@ -275,20 +275,23 @@ ValidateSizing(HWND hwnd, WindowPtr pWin, WPARAM wParam, LPARAM lParam)
 }
 
 extern Bool winInDestroyWindowsWindow;
-static Bool winInRaiseWindow = FALSE;
 static void
 winRaiseWindow(WindowPtr pWin)
 {
-    if (!winInDestroyWindowsWindow && !winInRaiseWindow) {
-        BOOL oldstate = winInRaiseWindow;
-        XID vlist[1];
-        vlist[0]= Above;
-        winInRaiseWindow = TRUE;
-        /* Call configure window directly to make sure it gets processed
-         * in time
-         */
-        winConfigureWindow(pWin, CWStackMode, vlist, serverClient);
-        winInRaiseWindow = oldstate;
+    if (!winInDestroyWindowsWindow)
+    {
+        winWMMessageRec wmMsg;
+
+        /* Get a pointer to our window privates */
+        winPrivWinPtr pWinPriv = winGetWindowPriv(pWin);
+
+        /* Get pointers to our screen privates and screen info */
+        winPrivScreenPtr s_pScreenPriv = pWinPriv->pScreenPriv;
+
+        wmMsg.msg = WM_WM_RAISE;
+        wmMsg.iWindow = pWin->drawable.id;
+
+        winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
     }
 }
 
@@ -356,7 +359,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     HWND hwndScreen = NULL;
     DrawablePtr pDraw = NULL;
     winWMMessageRec wmMsg;
-    Bool fWMMsgInitialized = FALSE;
     static Bool s_fTracking = FALSE;
     LRESULT ret;
 
@@ -384,15 +386,12 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* */
         wmMsg.msg = 0;
         wmMsg.hwndWindow = hwnd;
-        wmMsg.iWindow = (Window) (INT_PTR) GetProp(hwnd, WIN_WID_PROP);
+        wmMsg.iWindow = pWin->drawable.id;
 
         wmMsg.iX = pDraw->x;
         wmMsg.iY = pDraw->y;
         wmMsg.iWidth = pDraw->width;
         wmMsg.iHeight = pDraw->height;
-
-        fWMMsgInitialized = TRUE;
-
     }
     else if (message!=WM_CREATE)
     {
@@ -803,13 +802,13 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             /* ago: Activate does not mean putting it to front! */
             /*
                wmMsg.msg = WM_WM_RAISE;
-               if (fWMMsgInitialized)
+               if (pWin)
                winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
              */
 
             /* Tell our Window Manager thread to activate the window */
             wmMsg.msg = WM_WM_ACTIVATE;
-            if (fWMMsgInitialized &&
+            if (pWin &&
                 pWin->realized && !pWin->overrideRedirect /* for OOo menus */)
                     winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
         }
@@ -837,7 +836,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         else {
             /* Tell our Window Manager thread to kill the window */
             wmMsg.msg = WM_WM_KILL;
-            if (fWMMsgInitialized)
+            if (pWin)
                 winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
         }
         return 0;
@@ -850,7 +849,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             /* Tell our Window Manager thread to kill the window */
             wmMsg.msg = WM_WM_KILL;
-            if (fWMMsgInitialized)
+            if (pWin)
                 winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
         }
 
@@ -929,7 +928,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         /* Tell our Window Manager thread to map the window */
-        if (fWMMsgInitialized)
+        if (pWin)
             winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
 
         winStartMousePolling(s_pScreenPriv);
@@ -1029,7 +1028,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         SetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE, FALSE);
         winAdjustXWindow(pWin, hwnd);
         KillTimer(hwnd, UPDATETIMER);
-        if (fWMMsgInitialized)
+        if (pWin)
             winAdjustXWindowState(s_pScreenPriv, &wmMsg);
         return 0;
 
@@ -1058,7 +1057,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
         /* Adjust the X Window to the moved Windows window */
         winAdjustXWindow (pWin, hwnd);
-        if (fWMMsgInitialized)
+        if (pWin)
             winAdjustXWindowState(s_pScreenPriv, &wmMsg);
         if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
             DispatchQueuedEvents(0);
