@@ -91,6 +91,36 @@ test_bz106632_CFLAGS =					\
 test_bz106632_LDADD = $(top_builddir)/src/libfontconfig.la
 TESTS += test-bz106632
 
+if !ENABLE_SHARED
+check_PROGRAMS += test-issue110
+test_issue110_CFLAGS =					\
+	-I$(top_builddir)				\
+	-I$(top_builddir)/src				\
+	-I$(top_srcdir)					\
+	-I$(top_srcdir)/src				\
+	-DHAVE_CONFIG_H					\
+	-DFONTCONFIG_PATH='"$(BASECONFIGDIR)"'		\
+	$(NULL)
+test_issue110_LDADD =					\
+	$(top_builddir)/src/libfontconfig.la		\
+	$(NULL)
+TESTS += test-issue110
+
+check_PROGRAMS += test-d1f48f11
+test_d1f48f11_CFLAGS =					\
+	-I$(top_builddir)				\
+	-I$(top_builddir)/src				\
+	-I$(top_srcdir)					\
+	-I$(top_srcdir)/src				\
+	-DHAVE_CONFIG_H					\
+	-DFONTCONFIG_PATH='"$(BASECONFIGDIR)"'		\
+	$(NULL)
+test_d1f48f11_LDADD =					\
+	$(top_builddir)/src/libfontconfig.la		\
+	$(NULL)
+TESTS += test-d1f48f11
+endif
+
 EXTRA_DIST=run-test.sh run-test-conf.sh $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 
 CLEANFILES=out out1 out2 fonts.conf out.expected

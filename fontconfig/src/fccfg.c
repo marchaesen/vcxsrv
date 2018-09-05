@@ -2207,17 +2207,19 @@ FcConfigFilename (const FcChar8 *url)
 	else
 	    file = 0;
     }
-
-    path = FcConfigGetPath ();
-    if (!path)
-	return NULL;
-    for (p = path; *p; p++)
+    else
     {
-	file = FcConfigFileExists (*p, url);
-	if (file)
-	    break;
+	path = FcConfigGetPath ();
+	if (!path)
+	    return NULL;
+	for (p = path; *p; p++)
+	{
+	    file = FcConfigFileExists (*p, url);
+	    if (file)
+		break;
+	}
+	FcConfigFreePath (path);
     }
-    FcConfigFreePath (path);
     return file;
 }
 

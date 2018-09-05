@@ -163,6 +163,9 @@ st_convert_sampler(const struct st_context *st,
       const GLboolean is_integer = texobj->_IsIntegerFormat;
       GLenum texBaseFormat = _mesa_base_tex_image(texobj)->_BaseFormat;
 
+      if (texobj->StencilSampling)
+         texBaseFormat = GL_STENCIL_INDEX;
+
       if (st->apply_texture_swizzle_to_border_color) {
          const struct st_texture_object *stobj = st_texture_object_const(texobj);
          /* XXX: clean that up to not use the sampler view at all */

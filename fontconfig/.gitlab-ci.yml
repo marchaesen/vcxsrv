@@ -8,7 +8,7 @@ before_script:
   - dnf -y upgrade --disablerepo=rawhide-modular
   - dnf -y install --disablerepo=rawhide-modular @buildsys-build autoconf automake libtool gettext gettext-devel gperf expat-devel freetype-devel libuuid-devel json-c-devel git docbook-utils docbook-utils-pdf
 
-build:
+shared-build:
   stage: build
   script:
     - export BUILD_ID="fontconfig-$CI_JOB_NAME_$CI_COMMIT_SHA-$CI_JOB_ID"
@@ -17,7 +17,7 @@ build:
     - export MAKEFLAGS="-j4"
     - mkdir "$BUILDDIR" "$PREFIX"
     - cd "$BUILDDIR"
-    - ../autogen.sh --prefix="$PREFIX"
+    - ../autogen.sh --prefix="$PREFIX" --enable-shared --disable-static
     - make
     - make check
     - make install
@@ -32,3 +32,22 @@ build:
       - build-*/fontconfig*/_build/sub/test/*.trs
       - build-*/*.log
       - prefix-*
+static-build:
+  stage: build
+  script:
+    - export BUILD_ID="fontconfig-$CI_JOB_NAME_$CI_COMMIT_SHA-$CI_JOB_ID"
+    - export PREFIX="$(pwd)/prefix-$BUILD_ID"
+    - export BUILDDIR="$(pwd)/build-$BUILD_ID"
+    - export MAKEFLAGS="-j4"
+    - mkdir "$BUILDDIR"
+    - cd "$BUILDDIR"
+    - ../autogen.sh --prefix="$PREFIX" --disable-shared --enable-static
+    - make
+    - make check
+  artifacts:
+    name: fontconfig-$CI_COMMIT_SHA-$CI_JOB_ID
+    when: always
+    paths:
+      - build-*/*.log
+      - build-*/test/*.log
+      - build-*/test/*.trs
