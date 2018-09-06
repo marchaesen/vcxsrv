@@ -275,23 +275,20 @@ ValidateSizing(HWND hwnd, WindowPtr pWin, WPARAM wParam, LPARAM lParam)
 }
 
 extern Bool winInDestroyWindowsWindow;
+static Bool winInRaiseWindow = FALSE;
 static void
 winRaiseWindow(WindowPtr pWin)
 {
-    if (!winInDestroyWindowsWindow)
-    {
-        winWMMessageRec wmMsg;
-
-        /* Get a pointer to our window privates */
-        winPrivWinPtr pWinPriv = winGetWindowPriv(pWin);
-
-        /* Get pointers to our screen privates and screen info */
-        winPrivScreenPtr s_pScreenPriv = pWinPriv->pScreenPriv;
-
-        wmMsg.msg = WM_WM_RAISE;
-        wmMsg.iWindow = pWin->drawable.id;
-
-        winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
+    if (!winInDestroyWindowsWindow && !winInRaiseWindow) {
+        BOOL oldstate = winInRaiseWindow;
+        XID vlist[1];
+        vlist[0]= Above;
+        winInRaiseWindow = TRUE;
+        /* Call configure window directly to make sure it gets processed
+         * in time
+         */
+        winConfigureWindow(pWin, CWStackMode, vlist, serverClient);
+        winInRaiseWindow = oldstate;
     }
 }
 
