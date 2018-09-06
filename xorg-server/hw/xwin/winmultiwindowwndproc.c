@@ -295,6 +295,32 @@ winRaiseWindow(WindowPtr pWin)
     }
 }
 
+static void raiseWinIfNeeded(WindowPtr pWin, HWND hwnd)
+{
+    /* Check if this window is top of X windows. */
+    HWND hWndAbove = NULL;
+    DWORD dwCurrentProcessID = GetCurrentProcessId();
+    DWORD dwWindowProcessID = 0;
+
+    for (hWndAbove = hwnd;
+            hWndAbove != NULL;
+            hWndAbove = GetNextWindow(hWndAbove, GW_HWNDPREV)) {
+        /* Ignore other XWin process's window */
+        GetWindowThreadProcessId(hWndAbove, &dwWindowProcessID);
+
+        if ((dwWindowProcessID == dwCurrentProcessID)
+                && GetProp(hWndAbove, WIN_WINDOW_PROP)
+                && !IsWindowVisible(hWndAbove)
+                && !IsIconic(hWndAbove))        /* ignore minimized windows */
+            break;
+    }
+    /* If this is top of X windows in Windows stack,
+       raise it in X stack. */
+    if (hWndAbove == NULL) {
+        winRaiseWindow(pWin);
+    }
+}
+
 static
     void
 winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
@@ -798,13 +824,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         SendMessage(hwndScreen, message, wParam, lParam);
 
         if (LOWORD(wParam) != WA_INACTIVE) {
-            /* Raise the window to the top in Z order */
-            /* ago: Activate does not mean putting it to front! */
-            /*
-               wmMsg.msg = WM_WM_RAISE;
-               if (pWin)
-               winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
-             */
+            /* Raise the window to the top in Z order if needed */
+            raiseWinIfNeeded(pWin, GetNextWindow(hwnd, GW_HWNDPREV));
 
             /* Tell our Window Manager thread to activate the window */
             wmMsg.msg = WM_WM_ACTIVATE;
@@ -980,31 +1001,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             else if (pWinPos->hwndInsertAfter == HWND_BOTTOM) {
             }
             else {
-                /* Check if this window is top of X windows. */
-                HWND hWndAbove = NULL;
-                DWORD dwCurrentProcessID = GetCurrentProcessId();
-                DWORD dwWindowProcessID = 0;
-
-                for (hWndAbove = pWinPos->hwndInsertAfter;
-                     hWndAbove != NULL;
-                     hWndAbove = GetNextWindow(hWndAbove, GW_HWNDPREV)) {
-                    /* Ignore other XWin process's window */
-                    GetWindowThreadProcessId(hWndAbove, &dwWindowProcessID);
-
-                    if ((dwWindowProcessID == dwCurrentProcessID)
-                        && GetProp(hWndAbove, WIN_WINDOW_PROP)
-                        && !IsWindowVisible(hWndAbove)
-                        && !IsIconic(hWndAbove))        /* ignore minimized windows */
-                        break;
-                }
-                /* If this is top of X windows in Windows stack,
-                   raise it in X stack. */
-                if (hWndAbove == NULL) {
-#if CYGWINDOWING_DEBUG
-                    winDebug("\traise to top\n");
-#endif
-                    winRaiseWindow(pWin);
-                }
+                raiseWinIfNeeded(pWin, pWinPos->hwndInsertAfter);
             }
         }
     }
