@@ -1121,12 +1121,17 @@ endif
 
 # Loop over the enables versions and get the highest libdrm requirement for all
 # active drivers.
+_drm_blame = ''
 foreach d : _libdrm_checks
   ver = get_variable('_drm_@0@_ver'.format(d[0]))
   if d[1] and ver.version_compare('>' + _drm_ver)
     _drm_ver = ver
+    _drm_blame = d[0]
   endif
 endforeach
+if _drm_blame != ''
+  message('libdrm @0@ needed because @1@ has the highest requirement'.format(_drm_ver, _drm_blame))
+endif
 
 # Then get each libdrm module
 foreach d : _libdrm_checks
