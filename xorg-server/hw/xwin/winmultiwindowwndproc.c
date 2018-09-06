@@ -876,6 +876,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         RemoveProp(hwnd, WIN_NEEDMANAGE_PROP);
         RemoveProp(hwnd, WIN_STATE_PROP);
 
+        winReorderWindowsMultiWindow();
         break;
 
     case WM_MOVE:
