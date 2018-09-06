@@ -289,6 +289,7 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
          * token. */
 	if (parser->first_non_space_token_this_line) {
 		BEGIN HASH;
+		yyextra->in_define = false;
 	}
 
 	RETURN_TOKEN_NEVER_SKIP (HASH_TOKEN);
@@ -336,43 +337,55 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 	/* For the pre-processor directives, we return these tokens
 	 * even when we are otherwise skipping. */
 <HASH>ifdef {
-	BEGIN INITIAL;
-	yyextra->lexing_directive = 1;
-	yyextra->space_tokens = 0;
-	RETURN_TOKEN_NEVER_SKIP (IFDEF);
+	if (!yyextra->in_define) {
+		BEGIN INITIAL;
+		yyextra->lexing_directive = 1;
+		yyextra->space_tokens = 0;
+		RETURN_TOKEN_NEVER_SKIP (IFDEF);
+	}
 }
 
 <HASH>ifndef {
-	BEGIN INITIAL;
-	yyextra->lexing_directive = 1;
-	yyextra->space_tokens = 0;
-	RETURN_TOKEN_NEVER_SKIP (IFNDEF);
+	if (!yyextra->in_define) {
+		BEGIN INITIAL;
+		yyextra->lexing_directive = 1;
+		yyextra->space_tokens = 0;
+		RETURN_TOKEN_NEVER_SKIP (IFNDEF);
+	}
 }
 
 <HASH>if/[^_a-zA-Z0-9] {
-	BEGIN INITIAL;
-	yyextra->lexing_directive = 1;
-	yyextra->space_tokens = 0;
-	RETURN_TOKEN_NEVER_SKIP (IF);
+	if (!yyextra->in_define) {
+		BEGIN INITIAL;
+		yyextra->lexing_directive = 1;
+		yyextra->space_tokens = 0;
+		RETURN_TOKEN_NEVER_SKIP (IF);
+	}
 }
 
 <HASH>elif/[^_a-zA-Z0-9] {
-	BEGIN INITIAL;
-	yyextra->lexing_directive = 1;
-	yyextra->space_tokens = 0;
-	RETURN_TOKEN_NEVER_SKIP (ELIF);
+	if (!yyextra->in_define) {
+		BEGIN INITIAL;
+		yyextra->lexing_directive = 1;
+		yyextra->space_tokens = 0;
+		RETURN_TOKEN_NEVER_SKIP (ELIF);
+	}
 }
 
 <HASH>else {
-	BEGIN INITIAL;
-	yyextra->space_tokens = 0;
-	RETURN_TOKEN_NEVER_SKIP (ELSE);
+	if (!yyextra->in_define) {
+		BEGIN INITIAL;
+		yyextra->space_tokens = 0;
+		RETURN_TOKEN_NEVER_SKIP (ELSE);
+	}
 }
 
 <HASH>endif {
-	BEGIN INITIAL;
-	yyextra->space_tokens = 0;
-	RETURN_TOKEN_NEVER_SKIP (ENDIF);
+	if (!yyextra->in_define) {
+		BEGIN INITIAL;
+		yyextra->space_tokens = 0;
+		RETURN_TOKEN_NEVER_SKIP (ENDIF);
+	}
 }
 
 <HASH>error[^\r\n]* {
@@ -399,7 +412,8 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 	 *	  and not whitespace). This will generate an error.
 	 */
 <HASH>define{HSPACE}* {
-	if (! parser->skipping) {
+	yyextra->in_define = true;
+	if (!parser->skipping) {
 		BEGIN DEFINE;
 		yyextra->space_tokens = 0;
 		RETURN_TOKEN (DEFINE_TOKEN);

@@ -1427,8 +1427,7 @@ no_shm_fence:
  * track the geometry of the drawable
  */
 static int
-dri3_update_drawable(__DRIdrawable *driDrawable,
-                     struct loader_dri3_drawable *draw)
+dri3_update_drawable(struct loader_dri3_drawable *draw)
 {
    mtx_lock(&draw->mtx);
    if (draw->first_init) {
@@ -1911,7 +1910,7 @@ loader_dri3_get_buffers(__DRIdrawable *driDrawable,
    front = NULL;
    back = NULL;
 
-   if (!dri3_update_drawable(driDrawable, draw))
+   if (!dri3_update_drawable(draw))
       return false;
 
    dri3_update_num_back(draw);
@@ -2066,7 +2065,7 @@ dri3_find_back_alloc(struct loader_dri3_drawable *draw)
    back = draw->buffers[id];
    /* Allocate a new back if we haven't got one */
    if (!back && draw->back_format != __DRI_IMAGE_FORMAT_NONE &&
-       dri3_update_drawable(draw->dri_drawable, draw))
+       dri3_update_drawable(draw))
       back = dri3_alloc_render_buffer(draw, draw->back_format,
                                       draw->width, draw->height, draw->depth);
 
