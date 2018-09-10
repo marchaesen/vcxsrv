@@ -55,6 +55,8 @@ MESA_UTIL_FILES := \
 	u_atomic.h \
 	u_dynarray.h \
 	u_endian.h \
+	u_math.c \
+	u_math.h \
 	u_queue.c \
 	u_queue.h \
 	u_string.h \

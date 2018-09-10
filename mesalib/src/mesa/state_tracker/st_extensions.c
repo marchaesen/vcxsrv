@@ -111,6 +111,7 @@ void st_init_limits(struct pipe_screen *screen,
    c->MaxRenderbufferSize = c->MaxTextureRectSize;
 
    c->SubPixelBits =
+      screen->get_param(screen, PIPE_CAP_RASTERIZER_SUBPIXEL_BITS);
    c->ViewportSubpixelBits =
       screen->get_param(screen, PIPE_CAP_VIEWPORT_SUBPIXEL_BITS);
 
@@ -742,6 +743,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(EXT_transform_feedback),           PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS        },
       { o(EXT_window_rectangles),            PIPE_CAP_MAX_WINDOW_RECTANGLES            },
 
+      { o(AMD_depth_clamp_separate),         PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE      },
       { o(AMD_framebuffer_multisample_advanced), PIPE_CAP_FRAMEBUFFER_MSAA_CONSTRAINTS },
       { o(AMD_pinned_memory),                PIPE_CAP_RESOURCE_FROM_USER_MEMORY        },
       { o(ATI_meminfo),                      PIPE_CAP_QUERY_MEMORY_INFO                },

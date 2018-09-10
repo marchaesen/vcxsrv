@@ -49,7 +49,7 @@ ifeq ($(ARCH_X86_HAVE_SSE4_1),true)
 LOCAL_WHOLE_STATIC_LIBRARIES := \
 	libmesa_sse41
 LOCAL_CFLAGS := \
-	-msse4.1 \
+	-msse4.1 -mstackrealign \
        -DUSE_SSE41
 endif
 

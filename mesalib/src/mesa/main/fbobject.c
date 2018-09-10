@@ -2080,7 +2080,7 @@ _mesa_base_fbo_format(const struct gl_context *ctx, GLenum internalFormat)
       return _mesa_has_EXT_texture_snorm(ctx) || _mesa_has_EXT_render_snorm(ctx)
          ? GL_RG : 0;
    case GL_RG_SNORM:
-      _mesa_has_EXT_texture_snorm(ctx) ? GL_RG : 0;
+      return _mesa_has_EXT_texture_snorm(ctx) ? GL_RG : 0;
    case GL_RG16_SNORM:
       return _mesa_has_EXT_texture_snorm(ctx) ||
              (_mesa_has_EXT_render_snorm(ctx) &&

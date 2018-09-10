@@ -213,44 +213,6 @@ _mesa_align_realloc(void *oldBuffer, size_t oldSize, size_t newSize,
 /*@}*/
 
 
-/**********************************************************************/
-/** \name Math */
-/*@{*/
-
-
-#ifndef HAVE___BUILTIN_POPCOUNT
-/**
- * Return number of bits set in given GLuint.
- */
-unsigned int
-_mesa_bitcount(unsigned int n)
-{
-   unsigned int bits;
-   for (bits = 0; n > 0; n = n >> 1) {
-      bits += (n & 1);
-   }
-   return bits;
-}
-#endif
-
-#ifndef HAVE___BUILTIN_POPCOUNTLL
-/**
- * Return number of bits set in given 64-bit uint.
- */
-unsigned int
-_mesa_bitcount_64(uint64_t n)
-{
-   unsigned int bits;
-   for (bits = 0; n > 0; n = n >> 1) {
-      bits += (n & 1);
-   }
-   return bits;
-}
-#endif
-
-/*@}*/
-
-
 /** Needed due to #ifdef's, above. */
 int
 _mesa_vsnprintf(char *str, size_t size, const char *fmt, va_list args)

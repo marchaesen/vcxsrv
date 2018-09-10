@@ -38,6 +38,7 @@
 #include "link_varyings.h"
 #include "main/macros.h"
 #include "util/hash_table.h"
+#include "util/u_math.h"
 #include "program.h"
 
 
@@ -2879,13 +2880,13 @@ link_varyings(struct gl_shader_program *prog, unsigned first, unsigned last,
 
             /* This must be done after all dead varyings are eliminated. */
             if (sh_i != NULL) {
-               unsigned slots_used = _mesa_bitcount_64(reserved_out_slots);
+               unsigned slots_used = util_bitcount64(reserved_out_slots);
                if (!check_against_output_limit(ctx, prog, sh_i, slots_used)) {
                   return false;
                }
             }
 
-            unsigned slots_used = _mesa_bitcount_64(reserved_in_slots);
+            unsigned slots_used = util_bitcount64(reserved_in_slots);
             if (!check_against_input_limit(ctx, prog, sh_next, slots_used))
                return false;
 

@@ -56,6 +56,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
 #include "util/u_format.h"
+#include "util/u_helpers.h"
 #include "util/u_pointer.h"
 #include "util/u_inlines.h"
 #include "util/u_atomic.h"
@@ -1063,6 +1064,15 @@ st_api_make_current(struct st_api *stapi, struct st_context_iface *stctxi,
        * of the referenced drawables no longer exist.
        */
       st_framebuffers_purge(st);
+
+      /* Notify the driver that the context thread may have been changed.
+       * This should pin all driver threads to a specific L3 cache for optimal
+       * performance on AMD Zen CPUs.
+       */
+      struct glthread_state *glthread = st->ctx->GLThread;
+      thrd_t *upper_thread = glthread ? &glthread->queue.threads[0] : NULL;
+
+      util_context_thread_changed(st->pipe, upper_thread);
    }
    else {
       ret = _mesa_make_current(NULL, NULL, NULL);

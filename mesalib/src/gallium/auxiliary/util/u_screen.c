@@ -69,6 +69,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
    case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER:
    case PIPE_CAP_DEPTH_CLIP_DISABLE:
+   case PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE:
    case PIPE_CAP_SHADER_STENCIL_EXPORT:
    case PIPE_CAP_TGSI_INSTANCEID:
    case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
@@ -254,6 +255,9 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_NATIVE_FENCE_FD:
       return 0;
 
+   case PIPE_CAP_RASTERIZER_SUBPIXEL_BITS:
+      return 4; /* GLES 2.0 minimum value */
+
    case PIPE_CAP_GLSL_OPTIMIZE_CONSERVATIVELY:
       return 1;
 
@@ -316,6 +320,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
       return 1 << 27;
 
    case PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE:
+   case PIPE_CAP_MAX_TEXTURE_UPLOAD_MEMORY_BUDGET:
       return 0;
 
    default:

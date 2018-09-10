@@ -18,14 +18,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+_langs = ['ca', 'es', 'de', 'nl', 'sv', 'fr']
+
+_langs_po_files = []
+foreach lang : _langs
+  _langs_po_files += files(lang + '.po')
+endforeach
+
 xmlpool_options_h = custom_target(
   'xmlpool_options.h',
   input : ['gen_xmlpool.py', 't_options.h'],
   output : 'options.h',
   command : [
-    prog_python, '@INPUT@', meson.current_source_dir(),
-    'ca', 'es', 'de', 'nl', 'sv', 'fr',
+    prog_python, '@INPUT@', meson.current_source_dir(), _langs,
   ],
   capture : true,
-  depend_files : files('ca.po', 'es.po', 'de.po', 'nl.po', 'sv.po', 'fr.po'),
+  depend_files : _langs_po_files,
 )

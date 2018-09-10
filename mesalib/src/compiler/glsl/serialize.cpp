@@ -1035,6 +1035,7 @@ write_shader_metadata(struct blob *metadata, gl_linked_shader *shader)
    struct gl_program *glprog = shader->Program;
    unsigned i;
 
+   blob_write_uint64(metadata, glprog->DualSlotInputs);
    blob_write_bytes(metadata, glprog->TexturesUsed,
                     sizeof(glprog->TexturesUsed));
    blob_write_uint64(metadata, glprog->SamplersUsed);
@@ -1088,6 +1089,7 @@ read_shader_metadata(struct blob_reader *metadata,
 {
    unsigned i;
 
+   glprog->DualSlotInputs = blob_read_uint64(metadata);
    blob_copy_bytes(metadata, (uint8_t *) glprog->TexturesUsed,
                    sizeof(glprog->TexturesUsed));
    glprog->SamplersUsed = blob_read_uint64(metadata);

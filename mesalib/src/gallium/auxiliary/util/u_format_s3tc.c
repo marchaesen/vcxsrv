@@ -24,10 +24,10 @@
  **************************************************************************/
 
 #include "u_dl.h"
-#include "u_math.h"
 #include "u_format.h"
 #include "u_format_s3tc.h"
 #include "util/format_srgb.h"
+#include "util/u_math.h"
 #include "../../../mesa/main/texcompress_s3tc_tmp.h"
 
 

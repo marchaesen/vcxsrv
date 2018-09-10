@@ -23,10 +23,10 @@
  *
  **************************************************************************/
 
-#include "u_math.h"
 #include "u_format.h"
 #include "u_format_bptc.h"
 #include "util/format_srgb.h"
+#include "util/u_math.h"
 
 #define BPTC_BLOCK_DECODE
 #include "../../../mesa/main/texcompress_bptc_tmp.h"

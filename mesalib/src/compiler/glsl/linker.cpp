@@ -84,6 +84,7 @@
 #include "builtin_functions.h"
 #include "shader_cache.h"
 #include "util/u_string.h"
+#include "util/u_math.h"
 
 #include "main/imports.h"
 #include "main/shaderobj.h"
@@ -3013,8 +3014,8 @@ assign_attribute_or_color_locations(void *mem_ctx,
 
    if (target_index == MESA_SHADER_VERTEX) {
       unsigned total_attribs_size =
-         _mesa_bitcount(used_locations & SAFE_MASK_FROM_INDEX(max_index)) +
-         _mesa_bitcount(double_storage_locations);
+         util_bitcount(used_locations & SAFE_MASK_FROM_INDEX(max_index)) +
+         util_bitcount(double_storage_locations);
       if (total_attribs_size > max_index) {
          linker_error(prog,
                       "attempt to use %d vertex attribute slots only %d available ",
@@ -3077,8 +3078,8 @@ assign_attribute_or_color_locations(void *mem_ctx,
     */
    if (target_index == MESA_SHADER_VERTEX) {
       unsigned total_attribs_size =
-         _mesa_bitcount(used_locations & SAFE_MASK_FROM_INDEX(max_index)) +
-         _mesa_bitcount(double_storage_locations);
+         util_bitcount(used_locations & SAFE_MASK_FROM_INDEX(max_index)) +
+         util_bitcount(double_storage_locations);
       if (total_attribs_size > max_index) {
          linker_error(prog,
                       "attempt to use %d vertex attribute slots only %d available ",

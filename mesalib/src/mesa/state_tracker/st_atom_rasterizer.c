@@ -294,8 +294,8 @@ st_update_rasterizer(struct st_context *st)
    }
 
    /* _NEW_TRANSFORM */
-   raster->depth_clip = !(ctx->Transform.DepthClampNear &&
-                          ctx->Transform.DepthClampFar);
+   raster->depth_clip_near = !ctx->Transform.DepthClampNear;
+   raster->depth_clip_far = !ctx->Transform.DepthClampFar;
    raster->clip_plane_enable = ctx->Transform.ClipPlanesEnabled;
    raster->clip_halfz = (ctx->Transform.ClipDepthMode == GL_ZERO_TO_ONE);
 

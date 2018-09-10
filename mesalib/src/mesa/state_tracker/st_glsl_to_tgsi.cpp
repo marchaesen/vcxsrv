@@ -7129,7 +7129,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    _mesa_copy_linked_program_data(shader_program, shader);
    shrink_array_declarations(v->inputs, v->num_inputs,
                              &prog->info.inputs_read,
-                             prog->info.vs.double_inputs_read,
+                             prog->DualSlotInputs,
                              &prog->info.patch_inputs_read);
    shrink_array_declarations(v->outputs, v->num_outputs,
                              &prog->info.outputs_written, 0ULL,

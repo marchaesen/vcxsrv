@@ -32,6 +32,7 @@
 #include "state_tracker/st_api.h"
 #include "main/fbobject.h"
 #include "state_tracker/st_atom.h"
+#include "util/u_helpers.h"
 #include "util/u_inlines.h"
 #include "util/list.h"
 #include "vbo/vbo.h"
@@ -302,6 +303,12 @@ struct st_context
 
    /* Winsys buffers */
    struct list_head winsys_buffers;
+
+   /* Throttling for texture uploads and similar operations to limit memory
+    * usage by limiting the number of in-flight operations based on
+    * the estimated allocated size needed to execute those operations.
+    */
+   struct util_throttle throttle;
 };
 
 

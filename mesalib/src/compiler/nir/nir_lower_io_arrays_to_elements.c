@@ -36,9 +36,6 @@ static unsigned
 get_io_offset(nir_builder *b, nir_deref_instr *deref, nir_variable *var,
               unsigned *element_index, nir_ssa_def **vertex_index)
 {
-   bool vs_in = (b->shader->info.stage == MESA_SHADER_VERTEX) &&
-                (var->data.mode == nir_var_shader_in);
-
    nir_deref_path path;
    nir_deref_path_init(&path, deref, NULL);
 
@@ -60,7 +57,7 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref, nir_variable *var,
 
          assert(c);     /* must not be indirect dereference */
 
-         unsigned size = glsl_count_attribute_slots((*p)->type, vs_in);
+         unsigned size = glsl_count_attribute_slots((*p)->type, false);
          offset += size * c->u32[0];
 
          unsigned num_elements = glsl_type_is_array((*p)->type) ?

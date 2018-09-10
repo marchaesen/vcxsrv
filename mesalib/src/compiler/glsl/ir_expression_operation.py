@@ -535,7 +535,7 @@ ir_expression_operation = [
 
    # Bit operations, part of ARB_gpu_shader5.
    operation("bitfield_reverse", 1, source_types=(uint_type, int_type), c_expression="bitfield_reverse({src0})"),
-   operation("bit_count", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression="_mesa_bitcount({src0})"),
+   operation("bit_count", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression="util_bitcount({src0})"),
    operation("find_msb", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression={'u': "find_msb_uint({src0})", 'i': "find_msb_int({src0})"}),
    operation("find_lsb", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression="find_msb_uint({src0} & -{src0})"),
 

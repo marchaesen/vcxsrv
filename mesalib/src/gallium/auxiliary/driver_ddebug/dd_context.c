@@ -759,6 +759,16 @@ dd_context_make_image_handle_resident(struct pipe_context *_pipe,
    pipe->make_image_handle_resident(pipe, handle, access, resident);
 }
 
+static void
+dd_context_set_context_param(struct pipe_context *_pipe,
+                             enum pipe_context_param param,
+                             unsigned value)
+{
+   struct pipe_context *pipe = dd_context(_pipe)->pipe;
+
+   pipe->set_context_param(pipe, param, value);
+}
+
 struct pipe_context *
 dd_context_create(struct dd_screen *dscreen, struct pipe_context *pipe)
 {
@@ -862,6 +872,7 @@ dd_context_create(struct dd_screen *dscreen, struct pipe_context *pipe)
    CTX_INIT(create_image_handle);
    CTX_INIT(delete_image_handle);
    CTX_INIT(make_image_handle_resident);
+   CTX_INIT(set_context_param);
 
    dd_init_draw_functions(dctx);
 

@@ -317,21 +317,6 @@ extern void *
 _mesa_align_realloc(void *oldBuffer, size_t oldSize, size_t newSize,
                     unsigned long alignment);
 
-#ifdef HAVE___BUILTIN_POPCOUNT
-#define _mesa_bitcount(i) __builtin_popcount(i)
-#else
-extern unsigned int
-_mesa_bitcount(unsigned int n);
-#endif
-
-#ifdef HAVE___BUILTIN_POPCOUNTLL
-#define _mesa_bitcount_64(i) __builtin_popcountll(i)
-#else
-extern unsigned int
-_mesa_bitcount_64(uint64_t n);
-#endif
-
-
 extern int
 _mesa_snprintf( char *str, size_t size, const char *fmt, ... ) PRINTFLIKE(3, 4);
 

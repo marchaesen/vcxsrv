@@ -83,33 +83,18 @@ st_nir_fixup_varying_slots(struct st_context *st, struct exec_list *var_list)
 static void
 st_nir_assign_vs_in_locations(struct gl_program *prog, nir_shader *nir)
 {
-   unsigned attr, num_inputs = 0;
-   unsigned input_to_index[VERT_ATTRIB_MAX] = {0};
-
-   /* TODO de-duplicate w/ similar code in st_translate_vertex_program()? */
-   for (attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
-      if ((prog->info.inputs_read & BITFIELD64_BIT(attr)) != 0) {
-         input_to_index[attr] = num_inputs;
-         num_inputs++;
-         if ((prog->info.vs.double_inputs_read & BITFIELD64_BIT(attr)) != 0) {
-            /* add placeholder for second part of a double attribute */
-            num_inputs++;
-         }
-      } else {
-         input_to_index[attr] = ~0;
-      }
-   }
-
-   /* bit of a hack, mirroring st_translate_vertex_program */
-   input_to_index[VERT_ATTRIB_EDGEFLAG] = num_inputs;
-
    nir->num_inputs = 0;
    nir_foreach_variable_safe(var, &nir->inputs) {
-      attr = var->data.location;
-      assert(attr < ARRAY_SIZE(input_to_index));
-
-      if (input_to_index[attr] != ~0u) {
-         var->data.driver_location = input_to_index[attr];
+      /* NIR already assigns dual-slot inputs to two locations so all we have
+       * to do is compact everything down.
+       */
+      if (var->data.location == VERT_ATTRIB_EDGEFLAG) {
+         /* bit of a hack, mirroring st_translate_vertex_program */
+         var->data.driver_location = util_bitcount64(nir->info.inputs_read);
+      } else if (nir->info.inputs_read & BITFIELD64_BIT(var->data.location)) {
+         var->data.driver_location =
+            util_bitcount64(nir->info.inputs_read &
+                              BITFIELD64_MASK(var->data.location));
          nir->num_inputs++;
       } else {
          /* Move unused input variables to the globals list (with no
@@ -743,6 +728,15 @@ st_link_nir(struct gl_context *ctx,
 
       nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
       shader->Program->info = nir->info;
+      if (i == MESA_SHADER_VERTEX) {
+         /* NIR expands dual-slot inputs out to two locations.  We need to
+          * compact things back down GL-style single-slot inputs to avoid
+          * confusing the state tracker.
+          */
+         shader->Program->info.inputs_read =
+            nir_get_single_slot_attribs_mask(nir->info.inputs_read,
+                                             shader->Program->DualSlotInputs);
+      }
 
       if (prev != -1) {
          struct gl_program *prev_shader =
