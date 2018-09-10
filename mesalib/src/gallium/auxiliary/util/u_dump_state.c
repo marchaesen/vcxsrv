@@ -368,7 +368,8 @@ util_dump_rasterizer_state(FILE *stream, const struct pipe_rasterizer_state *sta
    util_dump_member(stream, bool, state, half_pixel_center);
    util_dump_member(stream, bool, state, bottom_edge_rule);
    util_dump_member(stream, bool, state, rasterizer_discard);
-   util_dump_member(stream, bool, state, depth_clip);
+   util_dump_member(stream, bool, state, depth_clip_near);
+   util_dump_member(stream, bool, state, depth_clip_far);
    util_dump_member(stream, bool, state, clip_halfz);
    util_dump_member(stream, uint, state, clip_plane_enable);
 

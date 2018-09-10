@@ -39,6 +39,8 @@
 #include "program/symbol_table.h"
 #include "program/program_parser.h"
 
+#include "util/u_math.h"
+
 extern void *yy_scan_string(char *);
 extern void yy_delete_buffer(void *);
 
@@ -2607,7 +2609,7 @@ _mesa_parse_arb_program(struct gl_context *ctx, GLenum target, const GLubyte *st
 
    state->prog->arb.NumParameters = state->prog->Parameters->NumParameters;
    state->prog->arb.NumAttributes =
-      _mesa_bitcount_64(state->prog->info.inputs_read);
+      util_bitcount64(state->prog->info.inputs_read);
 
    /*
     * Initialize native counts to logical counts.  The device driver may

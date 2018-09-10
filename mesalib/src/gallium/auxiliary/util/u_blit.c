@@ -98,7 +98,8 @@ util_create_blit(struct pipe_context *pipe, struct cso_context *cso)
    ctx->rasterizer.cull_face = PIPE_FACE_NONE;
    ctx->rasterizer.half_pixel_center = 1;
    ctx->rasterizer.bottom_edge_rule = 1;
-   ctx->rasterizer.depth_clip = 1;
+   ctx->rasterizer.depth_clip_near = 1;
+   ctx->rasterizer.depth_clip_far = 1;
 
    /* samplers */
    ctx->sampler.wrap_s = PIPE_TEX_WRAP_CLAMP_TO_EDGE;

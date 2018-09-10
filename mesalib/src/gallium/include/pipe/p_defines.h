@@ -668,6 +668,7 @@ enum pipe_cap
    PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER,
    PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER,
    PIPE_CAP_DEPTH_CLIP_DISABLE,
+   PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE,
    PIPE_CAP_SHADER_STENCIL_EXPORT,
    PIPE_CAP_TGSI_INSTANCEID,
    PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR,
@@ -774,6 +775,7 @@ enum pipe_cap
    PIPE_CAP_MAX_WINDOW_RECTANGLES,
    PIPE_CAP_POLYGON_OFFSET_UNITS_UNSCALED,
    PIPE_CAP_VIEWPORT_SUBPIXEL_BITS,
+   PIPE_CAP_RASTERIZER_SUBPIXEL_BITS,
    PIPE_CAP_MIXED_COLOR_DEPTH_BITS,
    PIPE_CAP_TGSI_ARRAY_COMPONENTS,
    PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS,
@@ -821,6 +823,7 @@ enum pipe_cap
    PIPE_CAP_MAX_COMBINED_SHADER_BUFFERS,
    PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTERS,
    PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTER_BUFFERS,
+   PIPE_CAP_MAX_TEXTURE_UPLOAD_MEMORY_BUDGET,
 };
 
 /**
@@ -948,6 +951,20 @@ enum pipe_compute_cap
    PIPE_COMPUTE_CAP_IMAGES_SUPPORTED,
    PIPE_COMPUTE_CAP_SUBGROUP_SIZE,
    PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK,
+};
+
+/**
+ * Types of parameters for pipe_context::set_context_param.
+ */
+enum pipe_context_param
+{
+   /* A hint for the driver that it should pin its execution threads to
+    * a group of cores sharing a specific L3 cache if the CPU has multiple
+    * L3 caches. This is needed for good multithreading performance on
+    * AMD Zen CPUs. "value" is the L3 cache index. Drivers that don't have
+    * any internal threads or don't run on affected CPUs can ignore this.
+    */
+   PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE,
 };
 
 /**

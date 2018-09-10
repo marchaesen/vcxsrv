@@ -276,7 +276,8 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    rs_state.half_pixel_center = 1;
    rs_state.bottom_edge_rule = 1;
    rs_state.flatshade = 1;
-   rs_state.depth_clip = 1;
+   rs_state.depth_clip_near = 1;
+   rs_state.depth_clip_far = 1;
    ctx->rs_state = pipe->create_rasterizer_state(pipe, &rs_state);
 
    rs_state.scissor = 1;

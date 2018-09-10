@@ -53,6 +53,7 @@
 #include "varray.h"
 #include "util/bitscan.h"
 #include "util/u_atomic.h"
+#include "util/u_math.h"
 
 
 const GLubyte
@@ -755,7 +756,7 @@ _mesa_update_vao_derived_arrays(struct gl_context *ctx,
           * grouping information in a seperate array beside
           * gl_array_attributes/gl_vertex_buffer_binding.
           */
-         assert(_mesa_bitcount(binding->_BoundArrays & vao->_Enabled) == 1
+         assert(util_bitcount(binding->_BoundArrays & vao->_Enabled) == 1
                 || (vao->_Enabled & ~binding->_BoundArrays) == 0);
 
          /* Start this current effective binding with the array */
@@ -775,7 +776,7 @@ _mesa_update_vao_derived_arrays(struct gl_context *ctx,
                &vao->BufferBinding[attrib2->BufferBindingIndex];
 
             /* See the comment at the same assert above. */
-            assert(_mesa_bitcount(binding2->_BoundArrays & vao->_Enabled) == 1
+            assert(util_bitcount(binding2->_BoundArrays & vao->_Enabled) == 1
                    || (vao->_Enabled & ~binding->_BoundArrays) == 0);
 
             /* Check if we have an identical binding */

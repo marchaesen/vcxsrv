@@ -88,6 +88,7 @@
 #include "util/bitscan.h"
 #include "util/ralloc.h"
 #include "compiler/nir/nir.h"
+#include "util/u_math.h"
 
 /** Return offset in bytes of the field within a vertex struct */
 #define OFFSET(FIELD) ((void *) offsetof(struct vertex, FIELD))
@@ -1611,7 +1612,7 @@ _mesa_meta_drawbuffers_from_bitfield(GLbitfield bits)
    assert((bits & ~BUFFER_BITS_COLOR) == 0);
 
    /* Make sure we don't overflow any arrays. */
-   assert(_mesa_bitcount(bits) <= MAX_DRAW_BUFFERS);
+   assert(util_bitcount(bits) <= MAX_DRAW_BUFFERS);
 
    enums[0] = GL_NONE;
 
@@ -1651,7 +1652,7 @@ _mesa_meta_drawbuffers_and_colormask(struct gl_context *ctx, GLbitfield mask)
    assert((mask & ~BUFFER_BITS_COLOR) == 0);
 
    /* Make sure we don't overflow any arrays. */
-   assert(_mesa_bitcount(mask) <= MAX_DRAW_BUFFERS);
+   assert(util_bitcount(mask) <= MAX_DRAW_BUFFERS);
 
    enums[0] = GL_NONE;
 

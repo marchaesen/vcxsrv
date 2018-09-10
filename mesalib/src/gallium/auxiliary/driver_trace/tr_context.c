@@ -1577,6 +1577,25 @@ trace_context_invalidate_resource(struct pipe_context *_context,
 }
 
 static void
+trace_context_set_context_param(struct pipe_context *_context,
+                                enum pipe_context_param param,
+                                unsigned value)
+{
+   struct trace_context *tr_context = trace_context(_context);
+   struct pipe_context *context = tr_context->pipe;
+
+   trace_dump_call_begin("pipe_context", "set_context_param");
+
+   trace_dump_arg(ptr, context);
+   trace_dump_arg(uint, param);
+   trace_dump_arg(uint, value);
+
+   trace_dump_call_end();
+
+   context->set_context_param(context, param, value);
+}
+
+static void
 trace_context_render_condition(struct pipe_context *_context,
                                struct pipe_query *query,
                                boolean condition,
@@ -1948,6 +1967,7 @@ trace_context_create(struct trace_screen *tr_scr,
    TR_CTX_INIT(buffer_subdata);
    TR_CTX_INIT(texture_subdata);
    TR_CTX_INIT(invalidate_resource);
+   TR_CTX_INIT(set_context_param);
 
 #undef TR_CTX_INIT
 

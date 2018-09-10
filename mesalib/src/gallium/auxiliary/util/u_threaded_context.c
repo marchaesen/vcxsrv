@@ -1899,6 +1899,44 @@ tc_create_video_buffer(UNUSED struct pipe_context *_pipe,
    return NULL;
 }
 
+struct tc_context_param {
+   enum pipe_context_param param;
+   unsigned value;
+};
+
+static void
+tc_call_set_context_param(struct pipe_context *pipe,
+                          union tc_payload *payload)
+{
+   struct tc_context_param *p = (struct tc_context_param*)payload;
+
+   if (pipe->set_context_param)
+      pipe->set_context_param(pipe, p->param, p->value);
+}
+
+static void
+tc_set_context_param(struct pipe_context *_pipe,
+                           enum pipe_context_param param,
+                           unsigned value)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+
+   if (tc->pipe->set_context_param) {
+      struct tc_context_param *payload =
+         tc_add_struct_typed_call(tc, TC_CALL_set_context_param,
+                                  tc_context_param);
+
+      payload->param = param;
+      payload->value = value;
+   }
+
+   if (param == PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE) {
+      /* Pin the gallium thread as requested. */
+      util_pin_thread_to_L3(tc->queue.threads[0], value,
+                            util_cpu_caps.cores_per_L3);
+   }
+}
+
 
 /********************************************************************
  * draw, launch, clear, blit, copy, flush
@@ -2579,6 +2617,8 @@ threaded_context_create(struct pipe_context *pipe,
    LIST_INITHEAD(&tc->unflushed_queries);
 
    slab_create_child(&tc->pool_transfers, parent_transfer_pool);
+
+   tc->base.set_context_param = tc_set_context_param; /* always set this */
 
 #define CTX_INIT(_member) \
    tc->base._member = tc->pipe->_member ? tc_##_member : NULL

@@ -560,7 +560,8 @@ init_bitmap_state(struct st_context *st)
    memset(&st->bitmap.rasterizer, 0, sizeof(st->bitmap.rasterizer));
    st->bitmap.rasterizer.half_pixel_center = 1;
    st->bitmap.rasterizer.bottom_edge_rule = 1;
-   st->bitmap.rasterizer.depth_clip = 1;
+   st->bitmap.rasterizer.depth_clip_near = 1;
+   st->bitmap.rasterizer.depth_clip_far = 1;
 
    /* find a usable texture format */
    if (screen->is_format_supported(screen, PIPE_FORMAT_I8_UNORM,

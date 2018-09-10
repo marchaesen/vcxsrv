@@ -927,6 +927,13 @@ struct pipe_context {
     */
    void (*callback)(struct pipe_context *ctx, void (*fn)(void *), void *data,
                     bool asap);
+
+   /**
+    * Set a context parameter See enum pipe_context_param for more details.
+    */
+   void (*set_context_param)(struct pipe_context *ctx,
+                             enum pipe_context_param param,
+                             unsigned value);
 };
 
 

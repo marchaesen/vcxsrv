@@ -81,6 +81,7 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
    if (ret < 0) {
       ret = _vscprintf(format, ap_copy);
    }
+   va_end(ap_copy);
    return ret;
 }
 
@@ -119,14 +120,14 @@ util_vasprintf(char **ret, const char *format, va_list ap)
 
    /* Compute length of output string first */
    va_copy(ap_copy, ap);
-   int r = util_vsnprintf(NULL, 0, format, ap);
+   int r = util_vsnprintf(NULL, 0, format, ap_copy);
    va_end(ap_copy);
 
    if (r < 0)
       return -1;
 
    *ret = (char *) malloc(r + 1);
-   if (!ret)
+   if (!*ret)
       return -1;
 
    /* Print to buffer */

@@ -490,10 +490,9 @@ before_install:
 
 install:
   # Install a more modern meson from pip, since the version in the
-  # ubuntu repos is often quite old. Avoid >=0.45.0 as it needs python
-  # 3.5+
+  # ubuntu repos is often quite old.
   - if test "x$BUILD" = xmeson; then
-      pip3 install --user "meson<0.45.0";
+      pip3 install --user meson;
       pip3 install --user mako;
     fi
 

@@ -51,6 +51,7 @@ struct util_cpu_caps {
    /* Feature flags */
    int x86_cpu_type;
    unsigned cacheline;
+   unsigned cores_per_L3;
 
    unsigned has_intel:1;
    unsigned has_tsc:1;

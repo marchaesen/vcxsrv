@@ -26,8 +26,8 @@
 #include "nir_deref.h"
 #include "nir_vla.h"
 
-/* Needed for _mesa_bitcount() */
-#include "main/macros.h"
+#include "util/u_math.h"
+
 
 struct split_var_state {
    void *mem_ctx;
@@ -1277,7 +1277,7 @@ shrink_vec_var_list(struct exec_list *vars,
       }
 
       /* Build the new var type */
-      unsigned new_num_comps = _mesa_bitcount(usage->comps_kept);
+      unsigned new_num_comps = util_bitcount(usage->comps_kept);
       const struct glsl_type *new_type =
          glsl_vector_type(glsl_get_base_type(vec_type), new_num_comps);
       for (int i = usage->num_levels - 1; i >= 0; i--) {

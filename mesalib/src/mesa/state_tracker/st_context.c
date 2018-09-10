@@ -79,6 +79,7 @@
 #include "st_vdpau.h"
 #include "st_texture.h"
 #include "pipe/p_context.h"
+#include "util/u_cpu_detect.h"
 #include "util/u_inlines.h"
 #include "util/u_upload_mgr.h"
 #include "util/u_vbuf.h"
@@ -274,6 +275,7 @@ st_destroy_context_priv(struct st_context *st, bool destroy_pipe)
 
    /* free glReadPixels cache data */
    st_invalidate_readpix_cache(st);
+   util_throttle_deinit(st->pipe->screen, &st->throttle);
 
    cso_destroy_context(st->cso_context);
 
@@ -466,6 +468,10 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
                                PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS)
       ? true : false;
 
+   util_throttle_init(&st->throttle,
+                      screen->get_param(screen,
+                                        PIPE_CAP_MAX_TEXTURE_UPLOAD_MEMORY_BUDGET));
+
    /* GL limits and extensions */
    st_init_limits(pipe->screen, &ctx->Const, &ctx->Extensions, ctx->API);
    st_init_extensions(pipe->screen, &ctx->Const,
@@ -562,6 +568,8 @@ st_create_context(gl_api api, struct pipe_context *pipe,
    struct gl_context *shareCtx = share ? share->ctx : NULL;
    struct dd_function_table funcs;
    struct st_context *st;
+
+   util_cpu_detect();
 
    memset(&funcs, 0, sizeof(funcs));
    st_init_driver_functions(pipe->screen, &funcs);

@@ -1860,7 +1860,8 @@ hud_create(struct cso_context *cso, struct hud_context *share)
    /* rasterizer */
    hud->rasterizer.half_pixel_center = 1;
    hud->rasterizer.bottom_edge_rule = 1;
-   hud->rasterizer.depth_clip = 1;
+   hud->rasterizer.depth_clip_near = 1;
+   hud->rasterizer.depth_clip_far = 1;
    hud->rasterizer.line_width = 1;
    hud->rasterizer.line_last_pixel = 1;
 

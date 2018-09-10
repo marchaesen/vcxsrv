@@ -314,8 +314,6 @@ files_libgallium = files(
   'util/u_linear.h',
   'util/u_log.c',
   'util/u_log.h',
-  'util/u_math.c',
-  'util/u_math.h',
   'util/u_memory.h',
   'util/u_mm.c',
   'util/u_mm.h',

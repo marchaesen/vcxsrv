@@ -280,17 +280,23 @@ glamor_make_pixmap_exportable(PixmapPtr pixmap, Bool modifiers_ok)
         (modifiers_ok || !pixmap_priv->used_modifiers))
         return TRUE;
 
-    if (pixmap->drawable.bitsPerPixel != 32) {
+    switch (pixmap->drawable.depth) {
+    case 30:
+        format = GBM_FORMAT_ARGB2101010;
+        break;
+    case 32:
+    case 24:
+        format = GBM_FORMAT_ARGB8888;
+        break;
+    case 16:
+        format = GBM_FORMAT_RGB565;
+        break;
+    default:
         xf86DrvMsg(scrn->scrnIndex, X_ERROR,
-                   "Failed to make %dbpp pixmap exportable\n",
-                   pixmap->drawable.bitsPerPixel);
+                   "Failed to make %d depth, %dbpp pixmap exportable\n",
+                   pixmap->drawable.depth, pixmap->drawable.bitsPerPixel);
         return FALSE;
     }
-
-    if (pixmap->drawable.depth == 30)
-	format = GBM_FORMAT_ARGB2101010;
-    else
-        format = GBM_FORMAT_ARGB8888;
 
 #ifdef GBM_BO_WITH_MODIFIERS
     if (modifiers_ok && glamor_egl->dmabuf_capable) {

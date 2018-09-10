@@ -34,7 +34,7 @@ LOCAL_SRC_FILES += \
 	$(X86_SSE41_FILES)
 
 LOCAL_CFLAGS := \
-	-msse4.1
+	-msse4.1 -mstackrealign
 
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/mapi \

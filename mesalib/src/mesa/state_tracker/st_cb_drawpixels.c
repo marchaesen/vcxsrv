@@ -677,8 +677,8 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
                                         ctx->Color._ClampFragmentColor;
       rasterizer.half_pixel_center = 1;
       rasterizer.bottom_edge_rule = 1;
-      rasterizer.depth_clip = !(ctx->Transform.DepthClampNear &&
-                                ctx->Transform.DepthClampFar);
+      rasterizer.depth_clip_near = !ctx->Transform.DepthClampNear;
+      rasterizer.depth_clip_far = !ctx->Transform.DepthClampFar;
       rasterizer.scissor = ctx->Scissor.EnableFlags;
       cso_set_rasterizer(cso, &rasterizer);
    }

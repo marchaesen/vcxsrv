@@ -531,7 +531,7 @@ replay_init(struct copy_context *copy)
    for (offset = 0, i = 0; i < copy->nr_varying; i++) {
       const struct tnl_vertex_array *src = copy->varying[i].array;
       const struct gl_array_attributes *srcattr = src->VertexAttrib;
-      struct tnl_vertex_array *dst = &copy->dstarray[i];
+      struct tnl_vertex_array *dst = &copy->dstarray[copy->varying[i].attr];
       struct gl_vertex_buffer_binding *dstbind = &copy->varying[i].dstbinding;
       struct gl_array_attributes *dstattr = &copy->varying[i].dstattribs;
 

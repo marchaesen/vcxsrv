@@ -182,7 +182,7 @@ EXT(ARB_vertex_array_bgra                   , EXT_vertex_array_bgra             
 EXT(ARB_vertex_array_object                 , dummy_true                             , GLL, GLC,  x ,  x , 2006)
 EXT(ARB_vertex_attrib_64bit                 , ARB_vertex_attrib_64bit                ,  32, GLC,  x ,  x , 2010)
 EXT(ARB_vertex_attrib_binding               , dummy_true                             , GLL, GLC,  x ,  x , 2012)
-EXT(ARB_vertex_buffer_object                , dummy_true                             , GLL,  x ,  x ,  x , 2003)
+EXT(ARB_vertex_buffer_object                , dummy_true                             , GLL, GLC,  x ,  x , 2003)
 EXT(ARB_vertex_program                      , ARB_vertex_program                     , GLL,  x ,  x ,  x , 2002)
 EXT(ARB_vertex_shader                       , ARB_vertex_shader                      , GLL, GLC,  x ,  x , 2002)
 EXT(ARB_vertex_type_10f_11f_11f_rev         , ARB_vertex_type_10f_11f_11f_rev        , GLL, GLC,  x ,  x , 2013)

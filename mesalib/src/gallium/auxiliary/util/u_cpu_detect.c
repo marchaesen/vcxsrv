@@ -36,6 +36,7 @@
 
 #include "u_debug.h"
 #include "u_cpu_detect.h"
+#include "c11/threads.h"
 
 #if defined(PIPE_ARCH_PPC)
 #if defined(PIPE_OS_APPLE)
@@ -366,14 +367,31 @@ check_os_arm_support(void)
 }
 #endif /* PIPE_ARCH_ARM */
 
-void
-util_cpu_detect(void)
+static void
+get_cpu_topology(void)
 {
-   static boolean util_cpu_detect_initialized = FALSE;
+   uint32_t regs[4];
 
-   if(util_cpu_detect_initialized)
-      return;
+   /* Default. This is correct if L3 is not present or there is only one. */
+   util_cpu_caps.cores_per_L3 = util_cpu_caps.nr_cpus;
 
+#if defined(PIPE_ARCH_X86) || defined(PIPE_ARCH_X86_64)
+   /* AMD Zen */
+   if (util_cpu_caps.x86_cpu_type == 0x17) {
+      /* Query the L3 cache topology information. */
+      cpuid_count(0x8000001D, 3, regs);
+      unsigned cache_level = (regs[0] >> 5) & 0x7;
+      unsigned cores_per_cache = ((regs[0] >> 14) & 0xfff) + 1;
+
+      if (cache_level == 3)
+         util_cpu_caps.cores_per_L3 = cores_per_cache;
+   }
+#endif
+}
+
+static void
+util_cpu_detect_once(void)
+{
    memset(&util_cpu_caps, 0, sizeof util_cpu_caps);
 
    /* Count the number of CPUs in system */
@@ -424,8 +442,9 @@ util_cpu_detect(void)
          cpuid (0x00000001, regs2);
 
          util_cpu_caps.x86_cpu_type = (regs2[0] >> 8) & 0xf;
+         /* Add "extended family". */
          if (util_cpu_caps.x86_cpu_type == 0xf)
-             util_cpu_caps.x86_cpu_type = 8 + ((regs2[0] >> 20) & 255); /* use extended family (P4, IA64) */
+             util_cpu_caps.x86_cpu_type += ((regs2[0] >> 20) & 0xff);
 
          /* general feature flags */
          util_cpu_caps.has_tsc    = (regs2[3] >>  4) & 1; /* 0x0000010 */
@@ -523,6 +542,8 @@ util_cpu_detect(void)
    check_os_altivec_support();
 #endif /* PIPE_ARCH_PPC */
 
+   get_cpu_topology();
+
 #ifdef DEBUG
    if (debug_get_option_dump_cpu()) {
       debug_printf("util_cpu_caps.nr_cpus = %u\n", util_cpu_caps.nr_cpus);
@@ -561,6 +582,12 @@ util_cpu_detect(void)
       debug_printf("util_cpu_caps.has_avx512vbmi = %u\n", util_cpu_caps.has_avx512vbmi);
    }
 #endif
+}
 
-   util_cpu_detect_initialized = TRUE;
+static once_flag cpu_once_flag = ONCE_FLAG_INIT;
+
+void
+util_cpu_detect(void)
+{
+   call_once(&cpu_once_flag, util_cpu_detect_once);
 }

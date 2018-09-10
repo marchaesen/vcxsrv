@@ -134,9 +134,6 @@ typedef struct shader_info {
       struct {
          /* Which inputs are doubles */
          uint64_t double_inputs;
-
-         /* Which inputs are actually read and are double */
-         uint64_t double_inputs_read;
       } vs;
 
       struct {

@@ -23,11 +23,11 @@
  **************************************************************************/
 
 #include <stdio.h>
-#include "u_math.h"
 #include "u_format.h"
 #include "u_format_rgtc.h"
 #include "u_format_latc.h"
 #include "util/rgtc.h"
+#include "util/u_math.h"
 
 void
 util_format_latc1_unorm_fetch_rgba_8unorm(uint8_t *dst, const uint8_t *src, unsigned i, unsigned j)

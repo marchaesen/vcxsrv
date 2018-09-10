@@ -182,20 +182,6 @@ _mesa_spirv_link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       prog->last_vert_prog = prog->_LinkedShaders[last_vert_stage - 1]->Program;
 }
 
-static void
-nir_compute_double_inputs(nir_shader *shader,
-                          const nir_shader_compiler_options *options)
-{
-   nir_foreach_variable(var, &shader->inputs) {
-      if (glsl_type_is_dual_slot(glsl_without_array(var->type))) {
-         for (unsigned i = 0; i < glsl_count_attribute_slots(var->type, true); i++) {
-            uint64_t bitfield = BITFIELD64_BIT(var->data.location + i);
-            shader->info.vs.double_inputs |= bitfield;
-         }
-      }
-   }
-}
-
 nir_shader *
 _mesa_spirv_to_nir(struct gl_context *ctx,
                    const struct gl_shader_program *prog,
@@ -277,10 +263,8 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_split_per_member_structs);
 
-   if (nir->info.stage == MESA_SHADER_VERTEX) {
-      nir_compute_double_inputs(nir, options);
-      nir_remap_attributes(nir, options);
-   }
+   if (nir->info.stage == MESA_SHADER_VERTEX)
+      nir_remap_dual_slot_attributes(nir, &linked_shader->Program->DualSlotInputs);
 
    return nir;
 }

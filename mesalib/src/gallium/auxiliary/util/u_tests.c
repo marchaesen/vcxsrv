@@ -108,7 +108,8 @@ util_set_rasterizer_normal(struct cso_context *cso)
 
    rs.half_pixel_center = 1;
    rs.bottom_edge_rule = 1;
-   rs.depth_clip = 1;
+   rs.depth_clip_near = 1;
+   rs.depth_clip_far = 1;
 
    cso_set_rasterizer(cso, &rs);
 }

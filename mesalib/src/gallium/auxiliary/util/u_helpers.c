@@ -25,9 +25,11 @@
  *
  **************************************************************************/
 
+#include "util/u_cpu_detect.h"
 #include "util/u_helpers.h"
 #include "util/u_inlines.h"
 #include "util/u_upload_mgr.h"
+#include "util/u_thread.h"
 #include <inttypes.h>
 
 /**
@@ -118,6 +120,46 @@ util_upload_index_buffer(struct pipe_context *pipe,
    return *out_buffer != NULL;
 }
 
+/**
+ * Called by MakeCurrent. Used to notify the driver that the application
+ * thread may have been changed.
+ *
+ * The function pins the current thread and driver threads to a group of
+ * CPU cores that share the same L3 cache. This is needed for good multi-
+ * threading performance on AMD Zen CPUs.
+ *
+ * \param upper_thread  thread in the state tracker that also needs to be
+ *                      pinned.
+ */
+void
+util_context_thread_changed(struct pipe_context *ctx, thrd_t *upper_thread)
+{
+   thrd_t current = thrd_current();
+   int cache = util_get_L3_for_pinned_thread(current,
+                                             util_cpu_caps.cores_per_L3);
+
+   /* If the main thread is not pinned, choose the L3 cache. */
+   if (cache == -1) {
+      unsigned num_caches = util_cpu_caps.nr_cpus /
+                            util_cpu_caps.cores_per_L3;
+      static unsigned last_cache;
+
+      /* Choose a different L3 cache for each subsequent MakeCurrent. */
+      cache = p_atomic_inc_return(&last_cache) % num_caches;
+      util_pin_thread_to_L3(current, cache, util_cpu_caps.cores_per_L3);
+   }
+
+   /* Tell the driver to pin its threads to the same L3 cache. */
+   if (ctx->set_context_param) {
+      ctx->set_context_param(ctx, PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE,
+                             cache);
+   }
+
+   /* Do the same for the upper level thread if there is any (e.g. glthread) */
+   if (upper_thread)
+      util_pin_thread_to_L3(*upper_thread, cache, util_cpu_caps.cores_per_L3);
+}
+
 /* This is a helper for hardware bring-up. Don't remove. */
 struct pipe_query *
 util_begin_pipestat_query(struct pipe_context *ctx)
@@ -178,4 +220,124 @@ util_wait_for_idle(struct pipe_context *ctx)
 
    ctx->flush(ctx, &fence, 0);
    ctx->screen->fence_finish(ctx->screen, NULL, fence, PIPE_TIMEOUT_INFINITE);
+}
+
+void
+util_throttle_init(struct util_throttle *t, uint64_t max_mem_usage)
+{
+   t->max_mem_usage = max_mem_usage;
+}
+
+void
+util_throttle_deinit(struct pipe_screen *screen, struct util_throttle *t)
+{
+   for (unsigned i = 0; i < ARRAY_SIZE(t->ring); i++)
+      screen->fence_reference(screen, &t->ring[i].fence, NULL);
+}
+
+static uint64_t
+util_get_throttle_total_memory_usage(struct util_throttle *t)
+{
+   uint64_t total_usage = 0;
+
+   for (unsigned i = 0; i < ARRAY_SIZE(t->ring); i++)
+      total_usage += t->ring[i].mem_usage;
+   return total_usage;
+}
+
+static void util_dump_throttle_ring(struct util_throttle *t)
+{
+   printf("Throttle:\n");
+   for (unsigned i = 0; i < ARRAY_SIZE(t->ring); i++) {
+      printf("  ring[%u]: fence = %s, mem_usage = %"PRIu64"%s%s\n",
+             i, t->ring[i].fence ? "yes" : " no",
+             t->ring[i].mem_usage,
+             t->flush_index == i ? " [flush]" : "",
+             t->wait_index == i ? " [wait]" : "");
+   }
+}
+
+/**
+ * Notify util_throttle that the next operation allocates memory.
+ * util_throttle tracks memory usage and waits for fences until its tracked
+ * memory usage decreases.
+ *
+ * Example:
+ *   util_throttle_memory_usage(..., w*h*d*Bpp);
+ *   TexSubImage(..., w, h, d, ...);
+ *
+ * This means that TexSubImage can't allocate more memory its maximum limit
+ * set during initialization.
+ */
+void
+util_throttle_memory_usage(struct pipe_context *pipe,
+                           struct util_throttle *t, uint64_t memory_size)
+{
+   (void)util_dump_throttle_ring; /* silence warning */
+
+   if (!t->max_mem_usage)
+      return;
+
+   struct pipe_screen *screen = pipe->screen;
+   struct pipe_fence_handle **fence = NULL;
+   unsigned ring_size = ARRAY_SIZE(t->ring);
+   uint64_t total = util_get_throttle_total_memory_usage(t);
+
+   /* If there is not enough memory, walk the list of fences and find
+    * the latest one that we need to wait for.
+    */
+   while (t->wait_index != t->flush_index &&
+          total && total + memory_size > t->max_mem_usage) {
+      assert(t->ring[t->wait_index].fence);
+
+      /* Release an older fence if we need to wait for a newer one. */
+      if (fence)
+         screen->fence_reference(screen, fence, NULL);
+
+      fence = &t->ring[t->wait_index].fence;
+      t->ring[t->wait_index].mem_usage = 0;
+      t->wait_index = (t->wait_index + 1) % ring_size;
+
+      total = util_get_throttle_total_memory_usage(t);
+   }
+
+   /* Wait for the fence to decrease memory usage. */
+   if (fence) {
+      screen->fence_finish(screen, pipe, *fence, PIPE_TIMEOUT_INFINITE);
+      screen->fence_reference(screen, fence, NULL);
+   }
+
+   /* Flush and get a fence if we've exhausted memory usage for the current
+    * slot.
+    */
+   if (t->ring[t->flush_index].mem_usage &&
+       t->ring[t->flush_index].mem_usage + memory_size >
+       t->max_mem_usage / (ring_size / 2)) {
+      struct pipe_fence_handle **fence =
+         &t->ring[t->flush_index].fence;
+
+      /* Expect that the current flush slot doesn't have a fence yet. */
+      assert(!*fence);
+
+      pipe->flush(pipe, fence, PIPE_FLUSH_ASYNC);
+      t->flush_index = (t->flush_index + 1) % ring_size;
+
+      /* Vacate the next slot if it's occupied. This should be rare. */
+      if (t->flush_index == t->wait_index) {
+         struct pipe_fence_handle **fence =
+            &t->ring[t->wait_index].fence;
+
+         t->ring[t->wait_index].mem_usage = 0;
+         t->wait_index = (t->wait_index + 1) % ring_size;
+
+         assert(*fence);
+         screen->fence_finish(screen, pipe, *fence, PIPE_TIMEOUT_INFINITE);
+         screen->fence_reference(screen, fence, NULL);
+      }
+
+      assert(!t->ring[t->flush_index].mem_usage);
+      assert(!t->ring[t->flush_index].fence);
+   }
+
+   t->ring[t->flush_index].mem_usage += memory_size;
 }

@@ -312,6 +312,12 @@ static void noop_invalidate_resource(struct pipe_context *ctx,
 {
 }
 
+static void noop_set_context_param(struct pipe_context *ctx,
+                                   enum pipe_context_param param,
+                                   unsigned value)
+{
+}
+
 static struct pipe_context *noop_create_context(struct pipe_screen *screen,
                                                 void *priv, unsigned flags)
 {
@@ -351,6 +357,7 @@ static struct pipe_context *noop_create_context(struct pipe_screen *screen,
    ctx->buffer_subdata = noop_buffer_subdata;
    ctx->texture_subdata = noop_texture_subdata;
    ctx->invalidate_resource = noop_invalidate_resource;
+   ctx->set_context_param = noop_set_context_param;
    noop_init_state_functions(ctx);
 
    return ctx;

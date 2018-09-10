@@ -70,6 +70,63 @@ static inline void u_thread_setname( const char *name )
    (void)name;
 }
 
+/**
+ * An AMD Zen CPU consists of multiple modules where each module has its own L3
+ * cache. Inter-thread communication such as locks and atomics between modules
+ * is very expensive. It's desirable to pin a group of closely cooperating
+ * threads to one group of cores sharing L3.
+ *
+ * \param thread        thread
+ * \param L3_index      index of the L3 cache
+ * \param cores_per_L3  number of CPU cores shared by one L3
+ */
+static inline void
+util_pin_thread_to_L3(thrd_t thread, unsigned L3_index, unsigned cores_per_L3)
+{
+#if defined(HAVE_PTHREAD)
+   cpu_set_t cpuset;
+
+   CPU_ZERO(&cpuset);
+   for (unsigned i = 0; i < cores_per_L3; i++)
+      CPU_SET(L3_index * cores_per_L3 + i, &cpuset);
+   pthread_setaffinity_np(thread, sizeof(cpuset), &cpuset);
+#endif
+}
+
+/**
+ * Return the index of L3 that the thread is pinned to. If the thread is
+ * pinned to multiple L3 caches, return -1.
+ *
+ * \param thread        thread
+ * \param cores_per_L3  number of CPU cores shared by one L3
+ */
+static inline int
+util_get_L3_for_pinned_thread(thrd_t thread, unsigned cores_per_L3)
+{
+#if defined(HAVE_PTHREAD)
+   cpu_set_t cpuset;
+
+   if (pthread_getaffinity_np(thread, sizeof(cpuset), &cpuset) == 0) {
+      int L3_index = -1;
+
+      for (unsigned i = 0; i < CPU_SETSIZE; i++) {
+         if (CPU_ISSET(i, &cpuset)) {
+            int x = i / cores_per_L3;
+
+            if (L3_index != x) {
+               if (L3_index == -1)
+                  L3_index = x;
+               else
+                  return -1; /* multiple L3s are set */
+            }
+         }
+      }
+      return L3_index;
+   }
+#endif
+   return -1;
+}
+
 /*
  * Thread statistics.
  */

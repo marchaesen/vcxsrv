@@ -85,6 +85,8 @@ files_mesa_util = files(
   'u_thread.h',
   'u_vector.c',
   'u_vector.h',
+  'u_math.c',
+  'u_math.h',
   'vma.c',
   'vma.h',
 )

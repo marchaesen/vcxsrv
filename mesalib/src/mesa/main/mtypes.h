@@ -2066,6 +2066,21 @@ struct gl_program
    /** Is this program written to on disk shader cache */
    bool program_written_to_cache;
 
+   /** A bitfield indicating which vertex shader inputs consume two slots
+    *
+    * This is used for mapping from single-slot input locations in the GL API
+    * to dual-slot double input locations in the shader.  This field is set
+    * once as part of linking and never updated again to ensure the mapping
+    * remains consistent.
+    *
+    * Note: There may be dual-slot variables in the original shader source
+    * which do not appear in this bitfield due to having been eliminated by
+    * the compiler prior to DualSlotInputs being calculated.  There may also
+    * be bits set in this bitfield which are set but which the shader never
+    * reads due to compiler optimizations eliminating such variables after
+    * DualSlotInputs is calculated.
+    */
+   GLbitfield64 DualSlotInputs;
    /** Subset of OutputsWritten outputs written with non-zero index. */
    GLbitfield64 SecondaryOutputsWritten;
    /** TEXTURE_x_BIT bitmask */

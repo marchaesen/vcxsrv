@@ -71,7 +71,8 @@ st_init_clear(struct st_context *st)
 
    st->clear.raster.half_pixel_center = 1;
    st->clear.raster.bottom_edge_rule = 1;
-   st->clear.raster.depth_clip = 1;
+   st->clear.raster.depth_clip_near = 1;
+   st->clear.raster.depth_clip_far = 1;
 }
 
 

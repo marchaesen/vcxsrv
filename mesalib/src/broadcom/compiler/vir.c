@@ -774,7 +774,8 @@ uint64_t *v3d_compile_vs(const struct v3d_compiler *compiler,
         int sector_size = 16 * sizeof(uint32_t) * 8;
         int vpm_size_in_sectors = c->devinfo->vpm_size / sector_size;
         int half_vpm = vpm_size_in_sectors / 2;
-        int vpm_output_batches = half_vpm - prog_data->vpm_input_size;
+        int vpm_output_sectors = half_vpm - prog_data->vpm_input_size;
+        int vpm_output_batches = vpm_output_sectors / prog_data->vpm_output_size;
         assert(vpm_output_batches >= 2);
         prog_data->vcm_cache_size = CLAMP(vpm_output_batches - 1, 2, 4);
 

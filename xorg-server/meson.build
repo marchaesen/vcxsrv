@@ -407,6 +407,7 @@ if not build_xv
 endif
 
 build_dga = false
+xf86dgaproto_dep = dependency('', required: false)
 if get_option('dga') == 'auto'
     xf86dgaproto_dep = dependency('xf86dgaproto', version: '>= 2.0.99.1', required: false)
     if xf86dgaproto_dep.found()

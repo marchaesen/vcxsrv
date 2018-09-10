@@ -39,7 +39,7 @@
 #include "ir.h"
 #include "compiler/glsl_types.h"
 #include "util/hash_table.h"
-#include "main/imports.h"
+#include "util/u_math.h"
 
 static float
 dot_f(ir_constant *op0, ir_constant *op1)

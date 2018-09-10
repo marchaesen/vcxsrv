@@ -46,7 +46,7 @@
 #include <float.h>
 #include <stdarg.h>
 
-#include "util/bitscan.h"
+#include "bitscan.h"
 
 #ifdef __cplusplus
 extern "C" {
