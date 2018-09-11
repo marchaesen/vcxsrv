@@ -147,6 +147,11 @@ xwl_present_cleanup(WindowPtr window)
     /* Clear timer */
     xwl_present_free_timer(xwl_present_window);
 
+    /* Remove from privates so we don't try to access it later */
+    dixSetPrivate(&window->devPrivates,
+                  &xwl_present_window_private_key,
+                  NULL);
+
     free(xwl_present_window);
 }
 

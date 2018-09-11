@@ -14,10 +14,13 @@ modesetting \- video driver for framebuffer device
 .fi
 .SH DESCRIPTION
 .B modesetting
-is an @xservername@ driver for KMS devices.  This is a non-accelerated
-driver, the following framebuffer depths are supported: 8, 15, 16, 24.
-All visual types are supported for depth 8, and TrueColor visual is
-supported for the other depths.  RandR 1.2 is supported.
+is an @xservername@ driver for KMS devices.  This driver supports
+TrueColor visuals at framebuffer depths of 15, 16, 24, and 30. RandR
+1.2 is supported for multi-head configurations. Acceleration is available
+through glamor for devices supporting at least OpenGL ES 2.0 or OpenGL 2.1.
+If glamor is not enabled, a shadow framebuffer is configured based on the
+KMS drivers' preference (unless the framebuffer is 24 bits per pixel, in
+which case the shadow framebuffer is always used).
 .SH SUPPORTED HARDWARE
 The 
 .B modesetting
@@ -51,8 +54,18 @@ The framebuffer device to use. Default: /dev/dri/card0.
 .BI "Option \*qShadowFB\*q \*q" boolean \*q
 Enable or disable use of the shadow framebuffer layer.  Default: on.
 .TP
+.BI "Option \*qDoubleShadow\*q \*q" boolean \*q
+Double-buffer shadow updates. When enabled, the driver will keep two copies of
+the shadow framebuffer. When the shadow framebuffer is flushed, the old and new
+versions of the shadow are compared, and only tiles that have actually changed
+are uploaded to the device. This is an optimization for server-class GPUs with
+a remote display function (typically VNC), where remote updates are triggered
+by any framebuffer write, so minimizing the amount of data uploaded is crucial.
+This defaults to enabled for ASPEED and Matrox G200 devices, and disabled
+otherwise.
+.TP
 .BI "Option \*qAccelMethod\*q \*q" string \*q
-One of \*qglamor\*q or \*qnone\*q.  Default: glamor
+One of \*qglamor\*q or \*qnone\*q.  Default: glamor.
 .TP
 .BI "Option \*qPageFlip\*q \*q" boolean \*q
 Enable DRI3 page flipping.  The default is

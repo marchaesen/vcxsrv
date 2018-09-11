@@ -28,6 +28,7 @@
 #include "glxserver.h"
 #include "glxext.h"
 #include "indirect_dispatch.h"
+#include "opaque.h"
 
 #define ALL_VALID_FLAGS \
     (GLX_CONTEXT_DEBUG_BIT_ARB | GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB \
@@ -320,6 +321,17 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
         err = BadAlloc;
     }
     else {
+        /* Only allow creating indirect GLX contexts if allowed by
+         * server command line.  Indirect GLX is of limited use (since
+         * it's only GL 1.4), it's slower than direct contexts, and
+         * it's a massive attack surface for buffer overflow type
+         * errors.
+         */
+        if (!enableIndirectGLX) {
+            client->errorValue = req->isDirect;
+            return BadValue;
+        }
+
         ctx = glxScreen->createContext(glxScreen, config, shareCtx,
                                        req->numAttribs, (uint32_t *) attribs,
                                        &err);

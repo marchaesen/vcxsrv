@@ -427,7 +427,7 @@ static LLVMValueRef emit_bitfield_extract(struct ac_llvm_context *ctx,
 		/* FIXME: LLVM 7 returns incorrect result when count is 0.
 		 * https://bugs.freedesktop.org/show_bug.cgi?id=107276
 		 */
-		LLVMValueRef zero = LLVMConstInt(ctx->i32, 0, false);
+		LLVMValueRef zero = ctx->i32_0;
 		LLVMValueRef icond1 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
 		LLVMValueRef icond2 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], zero, "");
 
@@ -1397,7 +1397,7 @@ static LLVMValueRef visit_load_push_constant(struct ac_nir_context *ctx,
 		LLVMValueRef res = LLVMBuildLoad(ctx->ac.builder, ptr, "");
 		res = LLVMBuildBitCast(ctx->ac.builder, res, vec_type, "");
 		LLVMValueRef cond = LLVMBuildLShr(ctx->ac.builder, addr, ctx->ac.i32_1, "");
-		cond = LLVMBuildTrunc(ctx->ac.builder, cond, LLVMInt1Type(), "");
+		cond = LLVMBuildTrunc(ctx->ac.builder, cond, ctx->ac.i1, "");
 		LLVMValueRef mask[] = { LLVMConstInt(ctx->ac.i32, 0, false), LLVMConstInt(ctx->ac.i32, 1, false),
 					LLVMConstInt(ctx->ac.i32, 2, false), LLVMConstInt(ctx->ac.i32, 3, false),
 					LLVMConstInt(ctx->ac.i32, 4, false)};
@@ -1435,7 +1435,7 @@ static LLVMValueRef extract_vector_range(struct ac_llvm_context *ctx, LLVMValueR
                                          unsigned start, unsigned count)
 {
 	LLVMValueRef mask[] = {
-	LLVMConstInt(ctx->i32, 0, false), LLVMConstInt(ctx->i32, 1, false),
+	ctx->i32_0, ctx->i32_1,
 	LLVMConstInt(ctx->i32, 2, false), LLVMConstInt(ctx->i32, 3, false) };
 
 	unsigned src_elements = ac_get_llvm_num_components(src);

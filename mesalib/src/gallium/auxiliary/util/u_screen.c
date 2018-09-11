@@ -323,6 +323,9 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_MAX_TEXTURE_UPLOAD_MEMORY_BUDGET:
       return 0;
 
+   case PIPE_CAP_MAX_VERTEX_ELEMENT_SRC_OFFSET:
+      return 2047;
+
    default:
       unreachable("bad PIPE_CAP_*");
    }

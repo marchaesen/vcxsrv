@@ -76,18 +76,8 @@ Configuration macro:
 #endif
 
 /* Visual Studio 2015 and later */
-#if _MSC_VER >= 1900
-#define HAVE_TIMESPEC
+#ifdef _MSC_VER
 #define HAVE_TIMESPEC_GET
-#elif defined(__MINGW32__)
-#define HAVE_TIMESPEC
-#endif
-
-#ifndef HAVE_TIMESPEC
-struct timespec {
-    time_t tv_sec;
-    long tv_nsec;
-};
 #endif
 
 /*---------------------------- macros ----------------------------*/

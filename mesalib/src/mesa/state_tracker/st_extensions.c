@@ -404,6 +404,12 @@ void st_init_limits(struct pipe_screen *screen,
    c->MaxVertexAttribStride
       = screen->get_param(screen, PIPE_CAP_MAX_VERTEX_ATTRIB_STRIDE);
 
+   /* The value cannot be larger than that since pipe_vertex_buffer::src_offset
+    * is only 16 bits.
+    */
+   temp = screen->get_param(screen, PIPE_CAP_MAX_VERTEX_ELEMENT_SRC_OFFSET);
+   c->MaxVertexAttribRelativeOffset = MIN2(0xffff, temp);
+
    c->StripTextureBorder = GL_TRUE;
 
    c->GLSLSkipStrictMaxUniformLimitCheck =

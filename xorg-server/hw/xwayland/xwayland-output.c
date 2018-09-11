@@ -404,13 +404,14 @@ xwl_output_remove(struct xwl_output *xwl_output)
     int width = 0, height = 0;
     Bool need_rotate = (xwl_output->xdg_output == NULL);
 
-    RRCrtcDestroy(xwl_output->randr_crtc);
-    RROutputDestroy(xwl_output->randr_output);
     xorg_list_del(&xwl_output->link);
 
     xorg_list_for_each_entry(it, &xwl_screen->output_list, link)
         output_get_new_size(it, need_rotate, &height, &width);
     update_screen_size(xwl_output, width, height);
+
+    RRCrtcDestroy(xwl_output->randr_crtc);
+    RROutputDestroy(xwl_output->randr_output);
 
     xwl_output_destroy(xwl_output);
 }
