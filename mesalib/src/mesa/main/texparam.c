@@ -1426,6 +1426,11 @@ get_tex_level_parameter_image(struct gl_context *ctx,
                               _mesa_get_format_bits(texFormat,
                                                     GL_TEXTURE_GREEN_SIZE));
             }
+            if (*params == 0 && pname == GL_TEXTURE_INTENSITY_SIZE) {
+               /* Gallium may store intensity as LA */
+               *params = _mesa_get_format_bits(texFormat, 
+                                               GL_TEXTURE_ALPHA_SIZE);
+            }
          }
          else {
             *params = 0;

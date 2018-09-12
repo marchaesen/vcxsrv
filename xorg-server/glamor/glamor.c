@@ -204,6 +204,8 @@ glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
 
+    pixmap_priv->is_cbcr = (usage == GLAMOR_CREATE_FORMAT_CBCR);
+
     format = gl_iformat_for_pixmap(pixmap);
 
     pitch = (((w * pixmap->drawable.bitsPerPixel + 7) / 8) + 3) & ~3;

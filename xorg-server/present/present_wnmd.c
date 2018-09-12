@@ -188,10 +188,11 @@ present_wnmd_flip_notify(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_
     window_priv->flip_active = vblank;
     window_priv->flip_pending = NULL;
 
+    present_vblank_notify(vblank, PresentCompleteKindPixmap, PresentCompleteModeFlip, ust, crtc_msc);
+
     if (vblank->abort_flip)
         present_wnmd_flips_stop(window);
 
-    present_vblank_notify(vblank, PresentCompleteKindPixmap, PresentCompleteModeFlip, ust, crtc_msc);
     present_wnmd_flip_try_ready(window);
 }
 

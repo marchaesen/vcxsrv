@@ -190,6 +190,8 @@ struct st_egl_image
  */
 struct st_visual
 {
+   bool no_config;
+
    /**
     * Available buffers.  Bitfield of ST_ATTACHMENT_*_MASK bits.
     */

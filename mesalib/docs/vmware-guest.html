@@ -44,6 +44,23 @@ Otherwise, OpenGL 2.1 is supported.
 </p>
 
 <p>
+With the Fall 2018 Workstation 15 / Fusion 11 releases, additional
+features are supported in the driver:
+<ul>
+<li>Multisample antialiasing (2x, 4x)
+<li>GL_ARB/AMD_draw_buffers_blend
+<li>GL_ARB_sample_shading
+<li>GL_ARB_texture_cube_map_array
+<li>GL_ARB_texture_gather
+<li>GL_ARB_texture_query_lod
+<li>GL_EXT/OES_draw_buffers_indexed
+</ul>
+<p>
+This requires version 2.15.0 or later of the vmwgfx kernel module and
+the VM must be configured for hardware version 16 or later.
+</p>
+
+<p>
 OpenGL 3.3 support can be disabled by setting the environment variable
 SVGA_VGPU10=0.
 You will then have OpenGL 2.1 support.

@@ -36,6 +36,9 @@
 #include <signal.h>
 #endif
 
+#if defined(HAVE_PTHREAD) && !defined(ANDROID) && !defined(__APPLE__)
+#define HAVE_PTHREAD_SETAFFINITY
+#endif
 
 static inline thrd_t u_thread_create(int (*routine)(void *), void *param)
 {
@@ -83,7 +86,7 @@ static inline void u_thread_setname( const char *name )
 static inline void
 util_pin_thread_to_L3(thrd_t thread, unsigned L3_index, unsigned cores_per_L3)
 {
-#if defined(HAVE_PTHREAD)
+#if defined(HAVE_PTHREAD_SETAFFINITY)
    cpu_set_t cpuset;
 
    CPU_ZERO(&cpuset);
@@ -103,7 +106,7 @@ util_pin_thread_to_L3(thrd_t thread, unsigned L3_index, unsigned cores_per_L3)
 static inline int
 util_get_L3_for_pinned_thread(thrd_t thread, unsigned cores_per_L3)
 {
-#if defined(HAVE_PTHREAD)
+#if defined(HAVE_PTHREAD_SETAFFINITY)
    cpu_set_t cpuset;
 
    if (pthread_getaffinity_np(thread, sizeof(cpuset), &cpuset) == 0) {

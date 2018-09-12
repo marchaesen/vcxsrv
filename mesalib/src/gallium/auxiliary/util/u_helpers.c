@@ -134,6 +134,7 @@ util_upload_index_buffer(struct pipe_context *pipe,
 void
 util_context_thread_changed(struct pipe_context *ctx, thrd_t *upper_thread)
 {
+#ifdef HAVE_PTHREAD
    thrd_t current = thrd_current();
    int cache = util_get_L3_for_pinned_thread(current,
                                              util_cpu_caps.cores_per_L3);
@@ -158,6 +159,7 @@ util_context_thread_changed(struct pipe_context *ctx, thrd_t *upper_thread)
    /* Do the same for the upper level thread if there is any (e.g. glthread) */
    if (upper_thread)
       util_pin_thread_to_L3(*upper_thread, cache, util_cpu_caps.cores_per_L3);
+#endif
 }
 
 /* This is a helper for hardware bring-up. Don't remove. */

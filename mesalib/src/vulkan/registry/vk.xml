@@ -72,6 +72,7 @@ server.
         <tag name="KDAB"        author="KDAB"                          contact="Sean Harmer @seanharmer"/>
         <tag name="ANDROID"     author="Google, Inc."                  contact="Jesse Hall @critsec"/>
         <tag name="CHROMIUM"    author="Google, Inc."                  contact="Jesse Hall @critsec"/>
+        <tag name="FUCHSIA"     author="Google, Inc."                  contact="Craig Stout @cdotstout, Jesse Hall @critsec"/>
         <tag name="GOOGLE"      author="Google, Inc."                  contact="Jesse Hall @critsec"/>
         <tag name="QCOM"        author="Qualcomm Technologies, Inc."   contact="Maurice Ribble @mribble"/>
         <tag name="LUNARG"      author="LunarG, Inc."                  contact="Karen Ghavam @karenghavam-lunarg"/>
@@ -146,7 +147,7 @@ server.
         <type category="define">// Vulkan 1.1 version number
 #define <name>VK_API_VERSION_1_1</name> <type>VK_MAKE_VERSION</type>(1, 1, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 80</type>
+#define <name>VK_HEADER_VERSION</name> 84</type>
 
         <type category="define">
 #define <name>VK_DEFINE_HANDLE</name>(object) typedef struct object##_T* object;</type>
@@ -588,12 +589,12 @@ server.
             <member><type>uint32_t</type>        <name>depth</name></member>
         </type>
         <type category="struct" name="VkViewport">
-            <member><type>float</type>          <name>x</name></member>
-            <member><type>float</type>          <name>y</name></member>
-            <member><type>float</type>          <name>width</name></member>
-            <member><type>float</type>          <name>height</name></member>
-            <member><type>float</type>          <name>minDepth</name></member>
-            <member><type>float</type>          <name>maxDepth</name></member>
+            <member noautovalidity="true"><type>float</type> <name>x</name></member>
+            <member noautovalidity="true"><type>float</type> <name>y</name></member>
+            <member noautovalidity="true"><type>float</type> <name>width</name></member>
+            <member noautovalidity="true"><type>float</type> <name>height</name></member>
+            <member><type>float</type>                       <name>minDepth</name></member>
+            <member><type>float</type>                       <name>maxDepth</name></member>
         </type>
         <type category="struct" name="VkRect2D">
             <member><type>VkOffset2D</type>     <name>offset</name></member>
@@ -642,11 +643,11 @@ server.
         </type>
         <type category="struct" name="VkAllocationCallbacks">
             <member optional="true"><type>void</type>*           <name>pUserData</name></member>
-            <member><type>PFN_vkAllocationFunction</type>   <name>pfnAllocation</name></member>
-            <member><type>PFN_vkReallocationFunction</type> <name>pfnReallocation</name></member>
-            <member><type>PFN_vkFreeFunction</type>    <name>pfnFree</name></member>
-            <member optional="true"><type>PFN_vkInternalAllocationNotification</type> <name>pfnInternalAllocation</name></member>
-            <member optional="true"><type>PFN_vkInternalFreeNotification</type> <name>pfnInternalFree</name></member>
+            <member noautovalidity="true"><type>PFN_vkAllocationFunction</type>   <name>pfnAllocation</name></member>
+            <member noautovalidity="true"><type>PFN_vkReallocationFunction</type> <name>pfnReallocation</name></member>
+            <member noautovalidity="true"><type>PFN_vkFreeFunction</type>    <name>pfnFree</name></member>
+            <member optional="true" noautovalidity="true"><type>PFN_vkInternalAllocationNotification</type> <name>pfnInternalAllocation</name></member>
+            <member optional="true" noautovalidity="true"><type>PFN_vkInternalFreeNotification</type> <name>pfnInternalFree</name></member>
         </type>
         <type category="struct" name="VkDeviceQueueCreateInfo">
             <member values="VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO"><type>VkStructureType</type> <name>sType</name></member>
@@ -741,7 +742,7 @@ server.
             <member><type>VkDeviceSize</type>           <name>maxResourceSize</name><comment>max size (in bytes) of this resource type</comment></member>
         </type>
         <type category="struct" name="VkDescriptorBufferInfo">
-            <member><type>VkBuffer</type>               <name>buffer</name><comment>Buffer used for this descriptor slot when the descriptor is UNIFORM_BUFFER[_DYNAMIC] or STORAGE_BUFFER[_DYNAMIC]. VK_NULL_HANDLE otherwise.</comment></member>
+            <member><type>VkBuffer</type>               <name>buffer</name><comment>Buffer used for this descriptor slot.</comment></member>
             <member><type>VkDeviceSize</type>           <name>offset</name><comment>Base offset from buffer start in bytes to update in the descriptor set.</comment></member>
             <member><type>VkDeviceSize</type>           <name>range</name><comment>Size in bytes of the buffer resource for this descriptor update.</comment></member>
         </type>
@@ -874,9 +875,9 @@ server.
             <member><type>VkImageSubresourceRange</type> <name>subresourceRange</name></member>
         </type>
         <type category="struct" name="VkBufferCopy">
-            <member><type>VkDeviceSize</type>           <name>srcOffset</name><comment>Specified in bytes</comment></member>
-            <member><type>VkDeviceSize</type>           <name>dstOffset</name><comment>Specified in bytes</comment></member>
-            <member><type>VkDeviceSize</type>           <name>size</name><comment>Specified in bytes</comment></member>
+            <member><type>VkDeviceSize</type>                       <name>srcOffset</name><comment>Specified in bytes</comment></member>
+            <member><type>VkDeviceSize</type>                       <name>dstOffset</name><comment>Specified in bytes</comment></member>
+            <member noautovalidity="true"><type>VkDeviceSize</type> <name>size</name><comment>Specified in bytes</comment></member>
         </type>
         <type category="struct" name="VkSparseMemoryBind">
             <member><type>VkDeviceSize</type>           <name>resourceOffset</name><comment>Specified in bytes</comment></member>
@@ -991,13 +992,13 @@ server.
             <member len="descriptorSetCount">const <type>VkDescriptorSetLayout</type>* <name>pSetLayouts</name></member>
         </type>
         <type category="struct" name="VkSpecializationMapEntry">
-            <member><type>uint32_t</type>               <name>constantID</name><comment>The SpecConstant ID specified in the BIL</comment></member>
-            <member><type>uint32_t</type>               <name>offset</name><comment>Offset of the value in the data block</comment></member>
-            <member><type>size_t</type>                 <name>size</name><comment>Size in bytes of the SpecConstant</comment></member>
+            <member><type>uint32_t</type>                     <name>constantID</name><comment>The SpecConstant ID specified in the BIL</comment></member>
+            <member><type>uint32_t</type>                     <name>offset</name><comment>Offset of the value in the data block</comment></member>
+            <member noautovalidity="true"><type>size_t</type> <name>size</name><comment>Size in bytes of the SpecConstant</comment></member>
         </type>
         <type category="struct" name="VkSpecializationInfo">
             <member optional="true"><type>uint32_t</type>               <name>mapEntryCount</name><comment>Number of entries in the map</comment></member>
-            <member len="mapEntryCount" noautovalidity="true">const <type>VkSpecializationMapEntry</type>* <name>pMapEntries</name><comment>Array of map entries</comment></member>
+            <member len="mapEntryCount">const <type>VkSpecializationMapEntry</type>* <name>pMapEntries</name><comment>Array of map entries</comment></member>
             <member optional="true"><type>size_t</type>                 <name>dataSize</name><comment>Size in bytes of pData</comment></member>
             <member len="dataSize">const <type>void</type>*            <name>pData</name><comment>Pointer to SpecConstant data</comment></member>
         </type>
@@ -1518,22 +1519,22 @@ server.
             <member><type>uint32_t</type>               <name>layers</name></member>
         </type>
         <type category="struct" name="VkDrawIndirectCommand">
-            <member><type>uint32_t</type>               <name>vertexCount</name></member>
-            <member><type>uint32_t</type>               <name>instanceCount</name></member>
-            <member><type>uint32_t</type>               <name>firstVertex</name></member>
-            <member><type>uint32_t</type>               <name>firstInstance</name></member>
+            <member><type>uint32_t</type>                       <name>vertexCount</name></member>
+            <member><type>uint32_t</type>                       <name>instanceCount</name></member>
+            <member><type>uint32_t</type>                       <name>firstVertex</name></member>
+            <member noautovalidity="true"><type>uint32_t</type> <name>firstInstance</name></member>
         </type>
         <type category="struct" name="VkDrawIndexedIndirectCommand">
-            <member><type>uint32_t</type>               <name>indexCount</name></member>
-            <member><type>uint32_t</type>               <name>instanceCount</name></member>
-            <member><type>uint32_t</type>               <name>firstIndex</name></member>
-            <member><type>int32_t</type>                <name>vertexOffset</name></member>
-            <member><type>uint32_t</type>               <name>firstInstance</name></member>
+            <member><type>uint32_t</type>                       <name>indexCount</name></member>
+            <member><type>uint32_t</type>                       <name>instanceCount</name></member>
+            <member><type>uint32_t</type>                       <name>firstIndex</name></member>
+            <member><type>int32_t</type>                        <name>vertexOffset</name></member>
+            <member noautovalidity="true"><type>uint32_t</type> <name>firstInstance</name></member>
         </type>
         <type category="struct" name="VkDispatchIndirectCommand">
-            <member><type>uint32_t</type>               <name>x</name></member>
-            <member><type>uint32_t</type>               <name>y</name></member>
-            <member><type>uint32_t</type>               <name>z</name></member>
+            <member noautovalidity="true"><type>uint32_t</type> <name>x</name></member>
+            <member noautovalidity="true"><type>uint32_t</type> <name>y</name></member>
+            <member noautovalidity="true"><type>uint32_t</type> <name>z</name></member>
         </type>
         <type category="struct" name="VkSubmitInfo">
             <member values="VK_STRUCTURE_TYPE_SUBMIT_INFO"><type>VkStructureType</type> <name>sType</name></member>
@@ -1562,7 +1563,7 @@ server.
         </type>
         <type category="struct" name="VkDisplayModeParametersKHR">
             <member><type>VkExtent2D</type>                       <name>visibleRegion</name><comment>Visible scanout region.</comment></member>
-            <member><type>uint32_t</type>                         <name>refreshRate</name><comment>Number of times per second the display is updated.</comment></member>
+            <member noautovalidity="true"><type>uint32_t</type>   <name>refreshRate</name><comment>Number of times per second the display is updated.</comment></member>
         </type>
         <type category="struct" name="VkDisplayModePropertiesKHR" returnedonly="true">
             <member><type>VkDisplayModeKHR</type>                 <name>displayMode</name><comment>Handle of this display mode.</comment></member>
@@ -1708,7 +1709,7 @@ server.
             <member values="VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT"><type>VkStructureType</type>                  <name>sType</name><comment>Must be VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT</comment></member>
             <member>const <type>void</type>*                      <name>pNext</name></member>
             <member><type>uint32_t</type>                         <name>disabledValidationCheckCount</name><comment>Number of validation checks to disable</comment></member>
-            <member len="disabledValidationCheckCount"><type>VkValidationCheckEXT</type>* <name>pDisabledValidationChecks</name><comment>Validation checks to disable</comment></member>
+            <member len="disabledValidationCheckCount">const <type>VkValidationCheckEXT</type>* <name>pDisabledValidationChecks</name><comment>Validation checks to disable</comment></member>
         </type>
         <type category="struct" name="VkPipelineRasterizationStateRasterizationOrderAMD" structextends="VkPipelineRasterizationStateCreateInfo">
             <member values="VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_RASTERIZATION_ORDER_AMD"><type>VkStructureType</type> <name>sType</name></member>
@@ -1971,7 +1972,7 @@ server.
         </type>
         <type category="struct" name="VkRectLayerKHR">
             <member><type>VkOffset2D</type>                       <name>offset</name><comment>upper-left corner of a rectangle that has not changed, in pixels of a presentation images</comment></member>
-            <member><type>VkExtent2D</type>                       <name>extent</name><comment>Dimensions of a rectangle that has not changed, in pixels of a presentation images</comment></member>
+            <member noautovalidity="true"><type>VkExtent2D</type> <name>extent</name><comment>Dimensions of a rectangle that has not changed, in pixels of a presentation images</comment></member>
             <member><type>uint32_t</type>                         <name>layer</name><comment>Layer of a swapchain's image(s), for stereoscopic-3D images</comment></member>
         </type>
         <type category="struct" name="VkPhysicalDeviceVariablePointerFeatures" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
@@ -2440,10 +2441,10 @@ server.
             <member><type>float</type>          <name>maxContentLightLevel</name><comment>Content maximum luminance</comment></member>
             <member><type>float</type>          <name>maxFrameAverageLightLevel</name></member>
         </type>
-        <type category="struct" name="VkRefreshCycleDurationGOOGLE">
+        <type category="struct" name="VkRefreshCycleDurationGOOGLE" returnedonly="true">
             <member><type>uint64_t</type>                         <name>refreshDuration</name><comment>Number of nanoseconds from the start of one refresh cycle to the next</comment></member>
         </type>
-        <type category="struct" name="VkPastPresentationTimingGOOGLE">
+        <type category="struct" name="VkPastPresentationTimingGOOGLE" returnedonly="true">
             <member><type>uint32_t</type>                         <name>presentID</name><comment>Application-provided identifier, previously given to vkQueuePresentKHR</comment></member>
             <member><type>uint64_t</type>                         <name>desiredPresentTime</name><comment>Earliest time an image should have been presented, previously given to vkQueuePresentKHR</comment></member>
             <member><type>uint64_t</type>                         <name>actualPresentTime</name><comment>Time the image was actually displayed</comment></member>
@@ -2795,7 +2796,7 @@ server.
             <member>const <type>void</type>*            <name>pNext</name></member>
             <member><type>VkSamplerReductionModeEXT</type> <name>reductionMode</name></member>
         </type>
-        <type category="struct" name="VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT" structextends="VkPhysicalDeviceFeatures2">
+        <type category="struct" name="VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
             <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
             <member noautovalidity="true"><type>void</type>*                            <name>pNext</name></member>
             <member><type>VkBool32</type>                         <name>advancedBlendCoherentOperations</name></member>
@@ -2816,6 +2817,32 @@ server.
             <member><type>VkBool32</type>               <name>srcPremultiplied</name></member>
             <member><type>VkBool32</type>               <name>dstPremultiplied</name></member>
             <member><type>VkBlendOverlapEXT</type>      <name>blendOverlap</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceInlineUniformBlockFeaturesEXT" returnedonly="true" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                  <name>pNext</name></member>
+            <member><type>VkBool32</type>               <name>inlineUniformBlock</name></member>
+            <member><type>VkBool32</type>               <name>descriptorBindingInlineUniformBlockUpdateAfterBind</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceInlineUniformBlockPropertiesEXT" returnedonly="true" structextends="VkPhysicalDeviceProperties2">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                  <name>pNext</name></member>
+            <member><type>uint32_t</type>               <name>maxInlineUniformBlockSize</name></member>
+            <member><type>uint32_t</type>               <name>maxPerStageDescriptorInlineUniformBlocks</name></member>
+            <member><type>uint32_t</type>               <name>maxPerStageDescriptorUpdateAfterBindInlineUniformBlocks</name></member>
+            <member><type>uint32_t</type>               <name>maxDescriptorSetInlineUniformBlocks</name></member>
+            <member><type>uint32_t</type>               <name>maxDescriptorSetUpdateAfterBindInlineUniformBlocks</name></member>
+        </type>
+        <type category="struct" name="VkWriteDescriptorSetInlineUniformBlockEXT">
+            <member values="VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*            <name>pNext</name></member>
+            <member><type>uint32_t</type>               <name>dataSize</name></member>
+            <member len="dataSize">const <type>void</type>* <name>pData</name></member>
+        </type>
+        <type category="struct" name="VkDescriptorPoolInlineUniformBlockCreateInfoEXT" structextends="VkDescriptorPoolCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*            <name>pNext</name></member>
+            <member><type>uint32_t</type>               <name>maxInlineUniformBlockBindings</name></member>
         </type>
         <type category="struct" name="VkPipelineCoverageModulationStateCreateInfoNV" structextends="VkPipelineMultisampleStateCreateInfo">
             <member values="VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_MODULATION_STATE_CREATE_INFO_NV"><type>VkStructureType</type> <name>sType</name></member>
@@ -2857,7 +2884,7 @@ server.
             <member><type>VkBool32</type>         <name>supported</name></member>
         </type>
         <type category="struct" name="VkDescriptorSetLayoutSupportKHR"                         alias="VkDescriptorSetLayoutSupport"/>
-        <type category="struct" name="VkPhysicalDeviceShaderDrawParameterFeatures" structextends="VkPhysicalDeviceFeatures2">
+        <type category="struct" name="VkPhysicalDeviceShaderDrawParameterFeatures" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
             <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES"><type>VkStructureType</type> <name>sType</name></member>
             <member noautovalidity="true"><type>void</type>*                            <name>pNext</name></member>
             <member><type>VkBool32</type>                         <name>shaderDrawParameters</name></member>
@@ -3197,6 +3224,39 @@ server.
             <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
             <member><type>VkBool32</type>                           <name>conditionalRendering</name></member>
             <member><type>VkBool32</type>                           <name>inheritedConditionalRendering</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceVulkanMemoryModelFeaturesKHR" returnedonly="true" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member noautovalidity="true"><type>void</type>*      <name>pNext</name></member>
+            <member><type>VkBool32</type>                         <name>vulkanMemoryModel</name></member>
+            <member><type>VkBool32</type>                         <name>vulkanMemoryModelDeviceScope</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
+            <member><type>VkBool32</type>                           <name>vertexAttributeInstanceRateDivisor</name></member>
+            <member><type>VkBool32</type>                           <name>vertexAttributeInstanceRateZeroDivisor</name></member>
+        </type>
+        <type category="struct" name="VkQueueFamilyCheckpointPropertiesNV" structextends="VkQueueFamilyProperties2" returnedonly="true">
+            <member values="VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*           <name>pNext</name></member>
+            <member><type>VkPipelineStageFlags</type> <name>checkpointExecutionStageMask</name></member>
+        </type>
+        <type category="struct" name="VkCheckpointDataNV" returnedonly="true">
+            <member values="VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                  <name>pNext</name></member>
+            <member><type>VkPipelineStageFlagBits</type>   <name>stage</name></member>
+            <member noautovalidity="true"><type>void</type>* <name>pCheckpointMarker</name></member>
+        </type>
+        <type category="struct" name="VkImageViewASTCDecodeModeEXT" structextends="VkImageViewCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*                      <name>pNext</name></member>
+            <member><type>VkFormat</type>                         <name>decodeMode</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceASTCDecodeFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member noautovalidity="true"><type>void</type>*      <name>pNext</name></member>
+            <member><type>VkBool32</type>                         <name>decodeModeSharedExponent</name></member>
         </type>
     </types>
 
@@ -3725,7 +3785,7 @@ server.
         <enum value="-10"   name="VK_ERROR_TOO_MANY_OBJECTS" comment="Too many objects of the type have already been created"/>
         <enum value="-11"   name="VK_ERROR_FORMAT_NOT_SUPPORTED" comment="Requested format is not supported on this device"/>
         <enum value="-12"   name="VK_ERROR_FRAGMENTED_POOL" comment="A requested pool allocation has failed due to fragmentation of the pool's memory"/>
-            <unused start="-12"/>
+            <unused start="-13" comment="This is the next unused available error code (negative value)"/>
     </enums>
     <enums name="VkDynamicState" type="enum">
         <enum value="0"     name="VK_DYNAMIC_STATE_VIEWPORT"/>
@@ -3982,6 +4042,7 @@ server.
     </enums>
     <enums name="VkColorSpaceKHR" type="enum">
         <enum value="0"     name="VK_COLOR_SPACE_SRGB_NONLINEAR_KHR"/>
+        <enum               name="VK_COLORSPACE_SRGB_NONLINEAR_KHR" alias="VK_COLOR_SPACE_SRGB_NONLINEAR_KHR" comment="Backwards-compatible alias containing a typo"/>
     </enums>
     <enums name="VkDisplayPlaneAlphaFlagBitsKHR" type="bitmask">
         <enum bitpos="0"    name="VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR"/>
@@ -4043,11 +4104,13 @@ server.
         <enum value="26"    name="VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT"/>
         <enum value="27"    name="VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT"/>
         <enum value="28"    name="VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT_EXT"/>
+        <enum               name="VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT" alias="VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT_EXT" comment="Backwards-compatible alias containing a typo"/>
         <enum value="29"    name="VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT"/>
         <enum value="30"    name="VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT"/>
         <enum value="31"    name="VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT"/>
         <enum value="32"    name="VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT"/>
         <enum value="33"    name="VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT"/>
+        <enum               name="VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT" alias="VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT" comment="Backwards-compatible alias containing a typo"/>
     </enums>
     <enums name="VkRasterizationOrderAMD" type="enum">
         <enum value="0"     name="VK_RASTERIZATION_ORDER_STRICT_AMD"/>
@@ -6239,6 +6302,17 @@ server.
             <param><type>uint32_t</type> <name>maxDrawCount</name></param>
             <param><type>uint32_t</type> <name>stride</name></param>
         </command>
+        <command queues="graphics,compute,transfer" renderpass="both" cmdbufferlevel="primary,secondary">
+            <proto><type>void</type> <name>vkCmdSetCheckpointNV</name></proto>
+            <param><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
+            <param noautovalidity="true">const <type>void</type>* <name>pCheckpointMarker</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkGetQueueCheckpointDataNV</name></proto>
+            <param><type>VkQueue</type> <name>queue</name></param>
+            <param optional="false,true"><type>uint32_t</type>* <name>pCheckpointDataCount</name></param>
+            <param optional="true" len="pCheckpointDataCount"><type>VkCheckpointDataNV</type>* <name>pCheckpointData</name></param>
+        </command>
     </commands>
 
     <feature api="vulkan" name="VK_VERSION_1_0" number="1.0" comment="Vulkan core API interface definitions">
@@ -6803,7 +6877,6 @@ server.
                 <enum value="&quot;VK_KHR_surface&quot;"                        name="VK_KHR_SURFACE_EXTENSION_NAME"/>
                 <enum offset="0" extends="VkResult" dir="-"                     name="VK_ERROR_SURFACE_LOST_KHR"/>
                 <enum offset="1" extends="VkResult" dir="-"                     name="VK_ERROR_NATIVE_WINDOW_IN_USE_KHR"/>
-                <enum value="VK_COLOR_SPACE_SRGB_NONLINEAR_KHR"                 name="VK_COLORSPACE_SRGB_NONLINEAR_KHR"/>
                 <enum offset="0" extends="VkObjectType"                         name="VK_OBJECT_TYPE_SURFACE_KHR"                  comment="VkSurfaceKHR"/>
                 <command name="vkDestroySurfaceKHR"/>
                 <command name="vkGetPhysicalDeviceSurfaceSupportKHR"/>
@@ -6971,10 +7044,9 @@ server.
                 <enum value="9"                                                 name="VK_EXT_DEBUG_REPORT_SPEC_VERSION"/>
                 <enum value="&quot;VK_EXT_debug_report&quot;"                   name="VK_EXT_DEBUG_REPORT_EXTENSION_NAME"/>
                 <enum offset="0" extends="VkStructureType"                      name="VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT"/>
+                <enum alias="VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT" extends="VkStructureType" name="VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT" comment="Backwards-compatible alias containing a typo"/>
                 <enum offset="1" extends="VkResult" dir="-"                     name="VK_ERROR_VALIDATION_FAILED_EXT"/>
-                <enum value="VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT" name="VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT"/>
                 <enum offset="0" extends="VkObjectType"                         name="VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT"          comment="VkDebugReportCallbackEXT"/>
-                <enum value="VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT_EXT"         name="VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT"/>
                 <type name="VkDebugReportObjectTypeEXT"/>
                 <type name="VkDebugReportCallbackCreateInfoEXT"/>
                 <command name="vkCreateDebugReportCallbackEXT"/>
@@ -6987,7 +7059,7 @@ server.
                 <enum extends="VkDebugReportObjectTypeEXT" extnumber="86"  offset="0"  name="VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT"/>
             </require>
         </extension>
-        <extension name="VK_NV_glsl_shader" number="13" type="device" author="NV" contact="Piers Daniell @pdaniell-nv" supported="vulkan">
+        <extension name="VK_NV_glsl_shader" number="13" type="device" author="NV" contact="Piers Daniell @pdaniell-nv" supported="vulkan" deprecatedby="">
             <require>
                 <enum value="1"                                                 name="VK_NV_GLSL_SHADER_SPEC_VERSION"/>
                 <enum value="&quot;VK_NV_glsl_shader&quot;"                     name="VK_NV_GLSL_SHADER_EXTENSION_NAME"/>
@@ -7042,13 +7114,13 @@ server.
                 <enum value="&quot;VK_AMD_extension_20&quot;"                   name="VK_AMD_EXTENSION_20_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_AMD_shader_trinary_minmax" number="21" type="device" author="AMD" contact="Qun Lin, AMD @linqun" supported="vulkan">
+        <extension name="VK_AMD_shader_trinary_minmax" number="21" type="device" author="AMD" contact="Qun Lin @linqun" supported="vulkan">
             <require>
                 <enum value="1"                                                 name="VK_AMD_SHADER_TRINARY_MINMAX_SPEC_VERSION"/>
                 <enum value="&quot;VK_AMD_shader_trinary_minmax&quot;"          name="VK_AMD_SHADER_TRINARY_MINMAX_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_AMD_shader_explicit_vertex_parameter" number="22" type="device" author="AMD" contact="Qun Lin, AMD @linqun" supported="vulkan">
+        <extension name="VK_AMD_shader_explicit_vertex_parameter" number="22" type="device" author="AMD" contact="Qun Lin @linqun" supported="vulkan">
             <require>
                 <enum value="1"                                                 name="VK_AMD_SHADER_EXPLICIT_VERTEX_PARAMETER_SPEC_VERSION"/>
                 <enum value="&quot;VK_AMD_shader_explicit_vertex_parameter&quot;" name="VK_AMD_SHADER_EXPLICIT_VERTEX_PARAMETER_EXTENSION_NAME"/>
@@ -7252,6 +7324,7 @@ server.
             <require>
                 <enum value="0"                                                 name="VK_NVX_EXTENSION_51_SPEC_VERSION"/>
                 <enum value="&quot;VK_NVX_extension_51&quot;"                   name="VK_NVX_EXTENSION_51_EXTENSION_NAME"/>
+                <enum bitpos="13" extends="VkImageCreateFlagBits"               name="VK_IMAGE_CREATE_RESERVED_13_BIT_NV"/>
             </require>
         </extension>
         <extension name="VK_NVX_extension_52" number="52" author="NVX" contact="James Jones @cubanismo" supported="disabled">
@@ -7468,10 +7541,14 @@ server.
                 <enum value="&quot;VK_ARM_extension_01&quot;"                   name="VK_ARM_EXTENSION_01_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_ARM_extension_02" number="68" type="device" author="ARM" contact="Jan-Harald Fredriksen @janharaldfredriksen-arm" supported="disabled">
+        <extension name="VK_EXT_astc_decode_mode" number="68" type="device" author="ARM" contact="Jan-Harald Fredriksen @janharaldfredriksen-arm" requires="VK_KHR_get_physical_device_properties2" supported="vulkan">
             <require>
-                <enum value="0"                                                 name="VK_ARM_EXTENSION_02_SPEC_VERSION"/>
-                <enum value="&quot;VK_ARM_extension_02&quot;"                   name="VK_ARM_EXTENSION_02_EXTENSION_NAME"/>
+                <enum value="1"                                         name="VK_EXT_ASTC_DECODE_MODE_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_astc_decode_mode&quot;"       name="VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT"/>
+                <enum offset="1" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT"/>
+                <type name="VkImageViewASTCDecodeModeEXT"/>
+                <type name="VkPhysicalDeviceASTCDecodeFeaturesEXT"/>
             </require>
         </extension>
         <extension name="VK_IMG_extension_69" number="69" type="device" author="IMG" contact="Tobias Hector @tobski" supported="disabled">
@@ -7812,8 +7889,8 @@ server.
             <require>
                 <enum value="1"                                             name="VK_EXT_DISPLAY_SURFACE_COUNTER_SPEC_VERSION"/>
                 <enum value="&quot;VK_EXT_display_surface_counter&quot;"    name="VK_EXT_DISPLAY_SURFACE_COUNTER_EXTENSION_NAME"/>
-                <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT"/>
-                <enum value="VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT"  name="VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES2_EXT"/>
+                <enum offset="0"                                           extends="VkStructureType" name="VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT"/>
+                <enum alias="VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT" extends="VkStructureType" name="VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES2_EXT" comment="Backwards-compatible alias containing a typo"/>
                 <type name="VkSurfaceCounterFlagsEXT"/>
                 <type name="VkSurfaceCounterFlagBitsEXT"/>
                 <type name="VkSurfaceCapabilities2EXT"/>
@@ -8283,7 +8360,7 @@ server.
                 <enum value="&quot;VK_KHR_storage_buffer_storage_class&quot;" name="VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_AMD_gpu_shader_int16" number="133" type="device" author="AMD" contact="Qun Lin, AMD @linqun" supported="vulkan">
+        <extension name="VK_AMD_gpu_shader_int16" number="133" type="device" author="AMD" contact="Qun Lin @linqun" supported="vulkan">
             <require>
                 <enum value="1"                                             name="VK_AMD_GPU_SHADER_INT16_SPEC_VERSION"/>
                 <enum value="&quot;VK_AMD_gpu_shader_int16&quot;"           name="VK_AMD_GPU_SHADER_INT16_EXTENSION_NAME"/>
@@ -8319,10 +8396,19 @@ server.
                 <enum value="&quot;VK_AMD_shader_fragment_mask&quot;"       name="VK_AMD_SHADER_FRAGMENT_MASK_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_AMD_extension_139" number="139" author="AMD" contact="Mais Alnasser @malnasse" supported="disabled">
+        <extension name="VK_EXT_inline_uniform_block" number="139" type="device" author="EXT" requires="VK_KHR_get_physical_device_properties2,VK_KHR_maintenance1" contact="Daniel Rakos @aqnuep" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_AMD_EXTENSION_139_SPEC_VERSION"/>
-                <enum value="&quot;VK_AMD_extension_139&quot;"              name="VK_AMD_EXTENSION_139_EXTENSION_NAME"/>
+                <enum value="1"                                          name="VK_EXT_INLINE_UNIFORM_BLOCK_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_inline_uniform_block&quot;"    name="VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkDescriptorType"              name="VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT"/>
+                <enum offset="0" extends="VkStructureType"               name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT"/>
+                <enum offset="1" extends="VkStructureType"               name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT"/>
+                <enum offset="2" extends="VkStructureType"               name="VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT"/>
+                <enum offset="3" extends="VkStructureType"               name="VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT"/>
+                <type name="VkPhysicalDeviceInlineUniformBlockFeaturesEXT"/>
+                <type name="VkPhysicalDeviceInlineUniformBlockPropertiesEXT"/>
+                <type name="VkWriteDescriptorSetInlineUniformBlockEXT"/>
+                <type name="VkDescriptorPoolInlineUniformBlockCreateInfoEXT"/>
             </require>
         </extension>
         <extension name="VK_AMD_extension_140" number="140" author="AMD" contact="Mais Alnasser @malnasse" supported="disabled">
@@ -8632,7 +8718,6 @@ server.
                 <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_VALIDATION_CACHE_CREATE_INFO_EXT"/>
                 <enum offset="1" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT"/>
                 <enum offset="0" extends="VkObjectType"                     name="VK_OBJECT_TYPE_VALIDATION_CACHE_EXT" comment="VkValidationCacheEXT"/>
-                <enum value="VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT"         name="VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT"/>
                 <type name="VkValidationCacheEXT"/>
                 <type name="VkValidationCacheCreateInfoEXT"/>
                 <type name="VkShaderModuleValidationCacheCreateInfoEXT"/>
@@ -8679,12 +8764,26 @@ server.
             <require>
                 <enum value="0"                                             name="VK_EXT_EXTENSION_165_SPEC_VERSION"/>
                 <enum value="&quot;VK_NV_extension_165&quot;"               name="VK_EXT_EXTENSION_165_EXTENSION_NAME"/>
+                <enum bitpos="23" extends="VkAccessFlagBits"                name="VK_ACCESS_RESERVED_23_BIT_NV"/>
+                <enum bitpos="8"  extends="VkImageUsageFlagBits"            name="VK_IMAGE_USAGE_RESERVED_8_BIT_NV"/>
+                <enum bitpos="22" extends="VkPipelineStageFlagBits"         name="VK_PIPELINE_STAGE_RESERVED_22_BIT_NV"/>
             </require>
         </extension>
         <extension name="VK_NV_extension_166" number="166" author="NV" contact="Daniel Koch @dgkoch" supported="disabled">
             <require>
                 <enum value="0"                                             name="VK_EXT_EXTENSION_166_SPEC_VERSION"/>
                 <enum value="&quot;VK_NV_extension_166&quot;"               name="VK_EXT_EXTENSION_166_EXTENSION_NAME"/>
+                <enum bitpos="8" extends="VkShaderStageFlagBits"            name="VK_SHADER_STAGE_RESERVED_8_BIT_NV"/>
+                <enum bitpos="9" extends="VkShaderStageFlagBits"            name="VK_SHADER_STAGE_RESERVED_9_BIT_NV"/>
+                <enum bitpos="10" extends="VkShaderStageFlagBits"           name="VK_SHADER_STAGE_RESERVED_10_BIT_NV"/>
+                <enum bitpos="11" extends="VkShaderStageFlagBits"           name="VK_SHADER_STAGE_RESERVED_11_BIT_NV"/>
+                <enum bitpos="12" extends="VkShaderStageFlagBits"           name="VK_SHADER_STAGE_RESERVED_12_BIT_NV"/>
+                <enum bitpos="13" extends="VkShaderStageFlagBits"           name="VK_SHADER_STAGE_RESERVED_13_BIT_NV"/>
+                <enum bitpos="21" extends="VkPipelineStageFlagBits"         name="VK_PIPELINE_STAGE_RESERVED_21_BIT_NV"/>
+                <enum bitpos="10" extends="VkBufferUsageFlagBits"           name="VK_BUFFER_USAGE_RESERVED_10_BIT_NV"/>
+                <enum bitpos="21" extends="VkAccessFlagBits"                name="VK_ACCESS_RESERVED_21_BIT_NV"/>
+                <enum bitpos="22" extends="VkAccessFlagBits"                name="VK_ACCESS_RESERVED_22_BIT_NV"/>
+                <enum bitpos="5" extends="VkPipelineCreateFlagBits"         name="VK_PIPELINE_CREATE_RESERVED_5_BIT_NV"/>
             </require>
         </extension>
         <extension name="VK_NV_extension_167" number="167" author="NV" contact="Daniel Koch @dgkoch" supported="disabled">
@@ -8860,13 +8959,15 @@ server.
         </extension>
         <extension name="VK_EXT_vertex_attribute_divisor" number="191" type="device" requires="VK_KHR_get_physical_device_properties2" author="NV" contact="Vikram Kushwaha @vkushwaha" supported="vulkan">
             <require>
-                <enum value="1"                                         name="VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_SPEC_VERSION"/>
+                <enum value="3"                                         name="VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_SPEC_VERSION"/>
                 <enum value="&quot;VK_EXT_vertex_attribute_divisor&quot;"   name="VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME"/>
                 <enum offset="0" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT"/>
                 <enum offset="1" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT"/>
+                <enum offset="2" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT"/>
                 <type name="VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT"/>
                 <type name="VkVertexInputBindingDivisorDescriptionEXT"/>
                 <type name="VkPipelineVertexInputDivisorStateCreateInfoEXT"/>
+                <type name="VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT"/>
             </require>
         </extension>
         <extension name="VK_GOOGLE_extension_192" number="192" author="GOOGLE" contact="Jean-Francois Roy @jfroy" supported="disabled">
@@ -8940,6 +9041,10 @@ server.
             <require>
                 <enum value="0"                                         name="VK_NV_EXTENSION_203_SPEC_VERSION"/>
                 <enum value="&quot;VK_NV_extension_203&quot;"           name="VK_NV_EXTENSION_203_EXTENSION_NAME"/>
+                <enum bitpos="6" extends="VkShaderStageFlagBits"        name="VK_SHADER_STAGE_RESERVED_6_BIT_NV"/>
+                <enum bitpos="7" extends="VkShaderStageFlagBits"        name="VK_SHADER_STAGE_RESERVED_7_BIT_NV"/>
+                <enum bitpos="19" extends="VkPipelineStageFlagBits"     name="VK_PIPELINE_STAGE_RESERVED_19_BIT_NV"/>
+                <enum bitpos="20" extends="VkPipelineStageFlagBits"     name="VK_PIPELINE_STAGE_RESERVED_20_BIT_NV"/>
             </require>
         </extension>
         <extension name="VK_NV_extension_204" number="204" author="NV" contact="Pat Brown @nvpbrown" supported="disabled">
@@ -8960,10 +9065,16 @@ server.
                 <enum value="&quot;VK_NV_extension_206&quot;"           name="VK_NV_EXTENSION_206_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_NV_extension_207" number="207" author="NV" contact="Nuno Subtil @nsubtil" supported="disabled">
+        <extension name="VK_NV_device_diagnostic_checkpoints" type="device" number="207" requires="VK_KHR_get_physical_device_properties2" author="NVIDIA" contact="Nuno Subtil @nsubtil" supported="vulkan">
             <require>
-                <enum value="0"                                         name="VK_NV_EXTENSION_207_SPEC_VERSION"/>
-                <enum value="&quot;VK_NV_extension_207&quot;"           name="VK_NV_EXTENSION_207_EXTENSION_NAME"/>
+                <enum value="2"                                         name="VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_SPEC_VERSION"/>
+                <enum value="&quot;VK_NV_device_diagnostic_checkpoints&quot;" name="VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV"/>
+                <enum offset="1" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV"/>
+                <type name="VkQueueFamilyCheckpointPropertiesNV"/>
+                <type name="VkCheckpointDataNV"/>
+                <command name="vkCmdSetCheckpointNV"/>
+                <command name="vkGetQueueCheckpointDataNV"/>
             </require>
         </extension>
         <extension name="VK_KHR_extension_208" number="208" type="device" author="KHR" contact="Daniel Rakos @drakos-arm" supported="disabled">
@@ -8990,10 +9101,12 @@ server.
                 <enum value="&quot;VK_KHR_extension_211&quot;"          name="VK_KHR_EXTENSION_211_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_KHR_extension_212" number="212" type="device" author="KHR" contact="Jeff Bolz @jeffbolznv" supported="disabled">
+        <extension name="VK_KHR_vulkan_memory_model" number="212" type="device" author="KHR" contact="Jeff Bolz @jeffbolznv" provisional="true" supported="vulkan">
             <require>
-                <enum value="0"                                         name="VK_KHR_EXTENSION_212_SPEC_VERSION"/>
-                <enum value="&quot;VK_KHR_extension_212&quot;"          name="VK_KHR_EXTENSION_212_EXTENSION_NAME"/>
+                <enum value="2"                                         name="VK_KHR_VULKAN_MEMORY_MODEL_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_vulkan_memory_model&quot;"    name="VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR"/>
+                <type name="VkPhysicalDeviceVulkanMemoryModelFeaturesKHR"/>
             </require>
         </extension>
         <extension name="VK_AMD_extension_213" number="213" author="AMD" contact="Neil Henning @sheredom" supported="disabled">
@@ -9006,6 +9119,47 @@ server.
             <require>
                 <enum value="0"                                             name="VK_KHR_EXTENSION_214_SPEC_VERSION"/>
                 <enum value="&quot;VK_KHR_extension_214&quot;"              name="VK_KHR_EXTENSION_214_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_GOOGLE_extension_215" number="215" author="GOOGLE" contact="Jesse Hall @critsec" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_KHR_EXTENSION_215_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_extension_215&quot;"              name="VK_KHR_EXTENSION_215_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_GOOGLE_extension_216" number="216" author="GOOGLE" contact="Jesse Hall @critsec" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_KHR_EXTENSION_216_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_extension_216&quot;"              name="VK_KHR_EXTENSION_216_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_GOOGLE_extension_217" number="217" author="GOOGLE" contact="Jesse Hall @critsec" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_KHR_EXTENSION_217_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_extension_217&quot;"              name="VK_KHR_EXTENSION_217_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_EXT_macos_ios_window" number="218" author="EXT" contact="Dzmitry Malyshau @kvark" supported="disabled">
+            <require>
+                <enum value="0"                                                 name="VK_EXT_MACOS_IOS_WINDOW_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_macos_ios_window&quot;"               name="VK_EXT_MACOS_IOS_WINDOW_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_EXT_extension_219" number="219" type="device" author="EXT" contact="Matthew Netsch @mnetsch" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_EXT_EXTENSION_219_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_extension_219&quot;"              name="VK_EXT_EXTENSION_219_EXTENSION_NAME"/>
+                <enum bitpos="14" extends="VkImageCreateFlagBits"           name="VK_IMAGE_CREATE_RESERVED_14_BIT_EXT"/>
+                <enum bitpos="24" extends="VkAccessFlagBits"                name="VK_ACCESS_RESERVED_24_BIT_EXT"/>
+                <enum bitpos="24" extends="VkFormatFeatureFlagBits"         name="VK_FORMAT_FEATURE_RESERVED_24_BIT_EXT"/>
+                <enum bitpos="9"  extends="VkImageUsageFlagBits"            name="VK_IMAGE_USAGE_RESERVED_9_BIT_EXT"/>
+                <enum bitpos="23" extends="VkPipelineStageFlagBits"         name="VK_PIPELINE_STAGE_RESERVED_23_BIT_EXT"/>
+            </require>
+        </extension>
+        <extension name="VK_EXT_extension_220" number="220" author="EXT" contact="Dzmitry Malyshau @kvark" supported="disabled">
+            <require>
+                <enum value="0"                                              name="VK_EXT_EXTENSION_220_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_extension_220&quot;"               name="VK_EXT_EXTENSION_220_EXTENSION_NAME"/>
             </require>
         </extension>
     </extensions>

@@ -657,20 +657,16 @@ void _mesa_update_modelview_project( struct gl_context *ctx, GLuint new_state )
  * _math_matrix_ctr() for each element to initialize it.
  */
 static void
-init_matrix_stack( struct gl_matrix_stack *stack,
-                   GLuint maxDepth, GLuint dirtyFlag )
+init_matrix_stack(struct gl_matrix_stack *stack,
+                  GLuint maxDepth, GLuint dirtyFlag)
 {
-   GLuint i;
-
    stack->Depth = 0;
    stack->MaxDepth = maxDepth;
    stack->DirtyFlag = dirtyFlag;
    /* The stack will be dynamically resized at glPushMatrix() time */
    stack->Stack = calloc(1, sizeof(GLmatrix));
    stack->StackSize = 1;
-   for (i = 0; i < stack->StackSize; i++) {
-      _math_matrix_ctr(&stack->Stack[i]);
-   }
+   _math_matrix_ctr(&stack->Stack[0]);
    stack->Top = stack->Stack;
 }
 

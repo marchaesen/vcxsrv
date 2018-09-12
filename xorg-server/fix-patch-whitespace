@@ -1,4 +1,0 @@
-#!/bin/sh
-git diff --check |
-sed -n 's!^\([^:]*\):\([^:]*\):.*!sed -i "\2 s/[ \t]*$//; \2 s/ *\t/\t/g" \1!p' |
-sh
