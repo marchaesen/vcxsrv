@@ -378,6 +378,8 @@ typedef struct glamor_pixmap_private {
      * names.
      */
     glamor_pixmap_fbo **fbo_array;
+
+    Bool is_cbcr;
 } glamor_pixmap_private;
 
 extern DevPrivateKeyRec glamor_pixmap_private_key;
@@ -899,7 +901,7 @@ int glamor_xv_put_image(glamor_port_private *port_priv,
                         Bool sync,
                         RegionPtr clipBoxes);
 void glamor_xv_core_init(ScreenPtr screen);
-void glamor_xv_render(glamor_port_private *port_priv);
+void glamor_xv_render(glamor_port_private *port_priv, int id);
 
 #include "glamor_utils.h"
 

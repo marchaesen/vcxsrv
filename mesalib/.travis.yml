@@ -53,6 +53,7 @@ matrix:
             - xz-utils
             - libexpat1-dev
             - libelf-dev
+            - python3.5
             - python3-pip
     - env:
         - LABEL="meson loaders/classic DRI"
@@ -69,6 +70,7 @@ matrix:
             - libx11-xcb-dev
             - libxdamage-dev
             - libxfixes-dev
+            - python3.5
             - python3-pip
     - env:
         - LABEL="make loaders/classic DRI"
@@ -490,8 +492,10 @@ before_install:
 
 install:
   # Install a more modern meson from pip, since the version in the
-  # ubuntu repos is often quite old.
+  # ubuntu repos is often quite old. This requires python>=3.5, so
+  # let's make it default
   - if test "x$BUILD" = xmeson; then
+      sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.5 10;
       pip3 install --user meson;
       pip3 install --user mako;
     fi

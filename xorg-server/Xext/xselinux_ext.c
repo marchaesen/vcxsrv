@@ -689,8 +689,6 @@ SELinuxResetProc(ExtensionEntry * extEntry)
 void
 SELinuxExtensionInit(void)
 {
-    ExtensionEntry *extEntry;
-
     /* Check SELinux mode on system, configuration file, and boolean */
     if (!is_selinux_enabled()) {
         LogMessage(X_INFO, "SELinux: Disabled on system\n");
@@ -710,8 +708,7 @@ SELinuxExtensionInit(void)
     SELinuxFlaskInit();
 
     /* Add extension to server */
-    extEntry = AddExtension(SELINUX_EXTENSION_NAME,
-                            SELinuxNumberEvents, SELinuxNumberErrors,
-                            ProcSELinuxDispatch, SProcSELinuxDispatch,
-                            SELinuxResetProc, StandardMinorOpcode);
+    AddExtension(SELINUX_EXTENSION_NAME, SELinuxNumberEvents,
+                 SELinuxNumberErrors, ProcSELinuxDispatch,
+                 SProcSELinuxDispatch, SELinuxResetProc, StandardMinorOpcode);
 }

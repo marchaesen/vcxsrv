@@ -613,10 +613,14 @@ gl_iformat_for_pixmap(PixmapPtr pixmap)
 {
     glamor_screen_private *glamor_priv =
         glamor_get_screen_private((pixmap)->drawable.pScreen);
+    glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
 
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP &&
         ((pixmap)->drawable.depth == 1 || (pixmap)->drawable.depth == 8)) {
         return glamor_priv->one_channel_format;
+    } else if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP &&
+               (pixmap)->drawable.depth == 16 && pixmap_priv->is_cbcr) {
+        return GL_RG;
     } else if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP &&
                (pixmap)->drawable.depth == 30) {
         return GL_RGB10_A2;

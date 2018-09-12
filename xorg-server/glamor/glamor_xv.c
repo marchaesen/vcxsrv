@@ -59,8 +59,40 @@ typedef struct tagREF_TRANSFORM {
 #define RTFContrast(a)   (1.0 + ((a)*1.0)/1000.0)
 #define RTFHue(a)   (((a)*3.1416)/1000.0)
 
-static const glamor_facet glamor_facet_xv_planar = {
-    .name = "xv_planar",
+static const glamor_facet glamor_facet_xv_planar_2 = {
+    .name = "xv_planar_2",
+
+    .version = 120,
+
+    .source_name = "v_texcoord0",
+    .vs_vars = ("attribute vec2 position;\n"
+                "attribute vec2 v_texcoord0;\n"
+                "varying vec2 tcs;\n"),
+    .vs_exec = (GLAMOR_POS(gl_Position, position)
+                "        tcs = v_texcoord0;\n"),
+
+    .fs_vars = ("uniform sampler2D y_sampler;\n"
+                "uniform sampler2D u_sampler;\n"
+                "uniform vec4 offsetyco;\n"
+                "uniform vec4 ucogamma;\n"
+                "uniform vec4 vco;\n"
+                "varying vec2 tcs;\n"),
+    .fs_exec = (
+                "        float sample;\n"
+                "        vec2 sample_uv;\n"
+                "        vec4 temp1;\n"
+                "        sample = texture2D(y_sampler, tcs).w;\n"
+                "        temp1.xyz = offsetyco.www * vec3(sample) + offsetyco.xyz;\n"
+                "        sample_uv = texture2D(u_sampler, tcs).xy;\n"
+                "        temp1.xyz = ucogamma.xyz * vec3(sample_uv.x) + temp1.xyz;\n"
+                "        temp1.xyz = clamp(vco.xyz * vec3(sample_uv.y) + temp1.xyz, 0.0, 1.0);\n"
+                "        temp1.w = 1.0;\n"
+                "        gl_FragColor = temp1;\n"
+                ),
+};
+
+static const glamor_facet glamor_facet_xv_planar_3 = {
+    .name = "xv_planar_3",
 
     .version = 120,
 
@@ -110,26 +142,50 @@ Atom glamorBrightness, glamorContrast, glamorSaturation, glamorHue,
 XvImageRec glamor_xv_images[] = {
     XVIMAGE_YV12,
     XVIMAGE_I420,
+    XVIMAGE_NV12
 };
 int glamor_xv_num_images = ARRAY_SIZE(glamor_xv_images);
 
 static void
-glamor_init_xv_shader(ScreenPtr screen)
+glamor_init_xv_shader(ScreenPtr screen, int id)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     GLint sampler_loc;
+    const glamor_facet *glamor_facet_xv_planar = NULL;
+
+    switch (id) {
+    case FOURCC_YV12:
+    case FOURCC_I420:
+        glamor_facet_xv_planar = &glamor_facet_xv_planar_3;
+        break;
+    case FOURCC_NV12:
+        glamor_facet_xv_planar = &glamor_facet_xv_planar_2;
+        break;
+    default:
+        break;
+    }
 
     glamor_build_program(screen,
                          &glamor_priv->xv_prog,
-                         &glamor_facet_xv_planar, NULL, NULL, NULL);
+                         glamor_facet_xv_planar, NULL, NULL, NULL);
 
     glUseProgram(glamor_priv->xv_prog.prog);
     sampler_loc = glGetUniformLocation(glamor_priv->xv_prog.prog, "y_sampler");
     glUniform1i(sampler_loc, 0);
     sampler_loc = glGetUniformLocation(glamor_priv->xv_prog.prog, "u_sampler");
     glUniform1i(sampler_loc, 1);
-    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog.prog, "v_sampler");
-    glUniform1i(sampler_loc, 2);
+
+    switch (id) {
+    case FOURCC_YV12:
+    case FOURCC_I420:
+        sampler_loc = glGetUniformLocation(glamor_priv->xv_prog.prog, "v_sampler");
+        glUniform1i(sampler_loc, 2);
+        break;
+    case FOURCC_NV12:
+        break;
+    default:
+        break;
+    }
 
 }
 
@@ -227,6 +283,21 @@ glamor_xv_query_image_attributes(int id,
             offsets[2] = size;
         size += tmp;
         break;
+    case FOURCC_NV12:
+        *w = ALIGN(*w, 2);
+        *h = ALIGN(*h, 2);
+        size = ALIGN(*w, 4);
+        if (pitches)
+            pitches[0] = size;
+        size *= *h;
+        if (offsets)
+            offsets[1] = offsets[2] = size;
+        tmp = ALIGN(*w, 4);
+        if (pitches)
+            pitches[1] = pitches[2] = tmp;
+        tmp *= (*h >> 1);
+        size += tmp;
+        break;
     }
     return size;
 }
@@ -240,7 +311,7 @@ static REF_TRANSFORM trans[2] = {
 };
 
 void
-glamor_xv_render(glamor_port_private *port_priv)
+glamor_xv_render(glamor_port_private *port_priv, int id)
 {
     ScreenPtr screen = port_priv->pPixmap->drawable.pScreen;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
@@ -264,7 +335,7 @@ glamor_xv_render(glamor_port_private *port_priv)
     int dst_box_index;
 
     if (!glamor_priv->xv_prog.prog)
-        glamor_init_xv_shader(screen);
+        glamor_init_xv_shader(screen, id);
 
     cont = RTFContrast(port_priv->contrast);
     bright = RTFBrightness(port_priv->brightness);
@@ -293,6 +364,8 @@ glamor_xv_render(glamor_port_private *port_priv)
                 glamor_get_pixmap_private(port_priv->src_pix[i]);
             pixmap_priv_get_scale(src_pixmap_priv[i], &src_xscale[i],
                                   &src_yscale[i]);
+        } else {
+           src_pixmap_priv[i] = NULL;
         }
     }
     glamor_make_current(glamor_priv);
@@ -319,12 +392,21 @@ glamor_xv_render(glamor_port_private *port_priv)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, src_pixmap_priv[2]->fbo->tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    switch (id) {
+    case FOURCC_YV12:
+    case FOURCC_I420:
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, src_pixmap_priv[2]->fbo->tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        break;
+    case FOURCC_NV12:
+        break;
+    default:
+        break;
+    }
 
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
     glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
@@ -336,7 +418,7 @@ glamor_xv_render(glamor_port_private *port_priv)
     /* Set up a single primitive covering the area being drawn.  We'll
      * clip it to port_priv->clip using GL scissors instead of just
      * emitting a GL_QUAD per box, because this way we hopefully avoid
-     * diagonal tearing between the two trangles used to rasterize a
+     * diagonal tearing between the two triangles used to rasterize a
      * GL_QUAD.
      */
     i = 0;
@@ -417,6 +499,7 @@ glamor_xv_put_image(glamor_port_private *port_priv,
                     RegionPtr clipBoxes)
 {
     ScreenPtr pScreen = pDrawable->pScreen;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(pScreen);
     int srcPitch, srcPitch2;
     int top, nlines;
     int s2offset, s3offset, tmp;
@@ -425,8 +508,15 @@ glamor_xv_put_image(glamor_port_private *port_priv,
     s2offset = s3offset = srcPitch2 = 0;
 
     if (!port_priv->src_pix[0] ||
-        (width != port_priv->src_pix_w || height != port_priv->src_pix_h)) {
+        (width != port_priv->src_pix_w || height != port_priv->src_pix_h) ||
+        (port_priv->src_pix[2] && id == FOURCC_NV12) ||
+        (!port_priv->src_pix[2] && id != FOURCC_NV12)) {
         int i;
+
+        if (glamor_priv->xv_prog.prog) {
+            glDeleteProgram(glamor_priv->xv_prog.prog);
+            glamor_priv->xv_prog.prog = 0;
+        }
 
         for (i = 0; i < 3; i++)
             if (port_priv->src_pix[i])
@@ -435,17 +525,34 @@ glamor_xv_put_image(glamor_port_private *port_priv,
         port_priv->src_pix[0] =
             glamor_create_pixmap(pScreen, width, height, 8,
                                  GLAMOR_CREATE_FBO_NO_FBO);
-        port_priv->src_pix[1] =
-            glamor_create_pixmap(pScreen, width >> 1, height >> 1, 8,
-                                 GLAMOR_CREATE_FBO_NO_FBO);
-        port_priv->src_pix[2] =
-            glamor_create_pixmap(pScreen, width >> 1, height >> 1, 8,
-                                 GLAMOR_CREATE_FBO_NO_FBO);
+
+        switch (id) {
+        case FOURCC_YV12:
+        case FOURCC_I420:
+            port_priv->src_pix[1] =
+                glamor_create_pixmap(pScreen, width >> 1, height >> 1, 8,
+                                     GLAMOR_CREATE_FBO_NO_FBO);
+            port_priv->src_pix[2] =
+                glamor_create_pixmap(pScreen, width >> 1, height >> 1, 8,
+                                     GLAMOR_CREATE_FBO_NO_FBO);
+            if (!port_priv->src_pix[2])
+                return BadAlloc;
+            break;
+        case FOURCC_NV12:
+            port_priv->src_pix[1] =
+                glamor_create_pixmap(pScreen, width >> 1, height >> 1, 16,
+                                     GLAMOR_CREATE_FBO_NO_FBO |
+                                     GLAMOR_CREATE_FORMAT_CBCR);
+            port_priv->src_pix[2] = NULL;
+            break;
+        default:
+            return BadMatch;
+        }
+
         port_priv->src_pix_w = width;
         port_priv->src_pix_h = height;
 
-        if (!port_priv->src_pix[0] || !port_priv->src_pix[1] ||
-            !port_priv->src_pix[2])
+        if (!port_priv->src_pix[0] || !port_priv->src_pix[1])
             return BadAlloc;
     }
 
@@ -489,6 +596,29 @@ glamor_xv_put_image(glamor_port_private *port_priv,
                             0, 0, 0, 0,
                             buf + s3offset, srcPitch2);
         break;
+    case FOURCC_NV12:
+        srcPitch = ALIGN(width, 4);
+        s2offset = srcPitch * height;
+        s2offset += ((top >> 1) * srcPitch);
+
+        full_box.x1 = 0;
+        full_box.y1 = 0;
+        full_box.x2 = width;
+        full_box.y2 = nlines;
+
+        half_box.x1 = 0;
+        half_box.y1 = 0;
+        half_box.x2 = width;
+        half_box.y2 = (nlines + 1) >> 1;
+
+        glamor_upload_boxes(port_priv->src_pix[0], &full_box, 1,
+                            0, 0, 0, 0,
+                            buf + (top * srcPitch), srcPitch);
+
+        glamor_upload_boxes(port_priv->src_pix[1], &half_box, 1,
+                            0, 0, 0, 0,
+                            buf + s2offset, srcPitch);
+        break;
     default:
         return BadMatch;
     }
@@ -511,7 +641,7 @@ glamor_xv_put_image(glamor_port_private *port_priv,
     port_priv->w = width;
     port_priv->h = height;
     port_priv->pDraw = pDrawable;
-    glamor_xv_render(port_priv);
+    glamor_xv_render(port_priv, id);
     return Success;
 }
 
