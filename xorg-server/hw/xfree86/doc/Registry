@@ -216,7 +216,6 @@ DisableVidModeExtension   B     F    disable VidMode extension
 DontVTSwitch              B     F    disable Ctrl-Alt-Fn
 DontZap                   B     F    disable Ctrl-Alt-BS sequence
 DontZoom                  B     F    disable Ctrl-Alt-+/-
-NoTrapSignals             B     F    don't trap signals
 OffTime                   I     F    Time before DPMS off mode active (min)
 PciProbe1                 O     F    use PCI probe algorithm 1
 PciProbe2                 O     F    use PCI probe algorithm 2

@@ -81,7 +81,6 @@
 static DevPrivateKeyRec DGAScreenKeyRec;
 
 #define DGAScreenKeyRegistered dixPrivateKeyRegistered(&DGAScreenKeyRec)
-static Bool mieq_installed;
 
 static Bool DGACloseScreen(ScreenPtr pScreen);
 static void DGADestroyColormap(ColormapPtr pmap);
@@ -268,20 +267,14 @@ DGACloseScreen(ScreenPtr pScreen)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(pScreen);
 
-    if (mieq_installed) {
-        mieqSetHandler(ET_DGAEvent, NULL);
-        mieq_installed = FALSE;
-    }
-
+    mieqSetHandler(ET_DGAEvent, NULL);
+    pScreenPriv->pScrn->SetDGAMode(pScreenPriv->pScrn, 0, NULL);
     FreeMarkedVisuals(pScreen);
 
     pScreen->CloseScreen = pScreenPriv->CloseScreen;
     pScreen->DestroyColormap = pScreenPriv->DestroyColormap;
     pScreen->InstallColormap = pScreenPriv->InstallColormap;
     pScreen->UninstallColormap = pScreenPriv->UninstallColormap;
-
-    /* DGAShutdown() should have ensured that no DGA
-       screen were active by here */
 
     free(pScreenPriv);
 
@@ -461,10 +454,7 @@ xf86SetDGAMode(ScrnInfoPtr pScrn, int num, DGADevicePtr devRet)
     pScreenPriv->grabMouse = TRUE;
     pScreenPriv->grabKeyboard = TRUE;
 
-    if (!mieq_installed) {
-        mieqSetHandler(ET_DGAEvent, DGAHandleEvent);
-        mieq_installed = TRUE;
-    }
+    mieqSetHandler(ET_DGAEvent, DGAHandleEvent);
 
     return Success;
 }
@@ -481,10 +471,7 @@ DGASetInputMode(int index, Bool keyboard, Bool mouse)
         pScreenPriv->grabMouse = mouse;
         pScreenPriv->grabKeyboard = keyboard;
 
-        if (!mieq_installed) {
-            mieqSetHandler(ET_DGAEvent, DGAHandleEvent);
-            mieq_installed = TRUE;
-        }
+        mieqSetHandler(ET_DGAEvent, DGAHandleEvent);
     }
 }
 
@@ -584,24 +571,6 @@ DGAActive(int index)
         return TRUE;
 
     return FALSE;
-}
-
-/* Called by the event code in case the server is abruptly terminated */
-
-void
-DGAShutdown(void)
-{
-    ScrnInfoPtr pScrn;
-    int i;
-
-    if (!DGAScreenKeyRegistered)
-        return;
-
-    for (i = 0; i < screenInfo.numScreens; i++) {
-        pScrn = xf86Screens[i];
-
-        (void) (*pScrn->SetDGAMode) (pScrn, 0, NULL);
-    }
 }
 
 /* Called by the extension to initialize a mode */

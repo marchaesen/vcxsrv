@@ -65,7 +65,6 @@
 
 static const xf86ConfigSymTabRec ServerFlagsTab[] = {
     {ENDSECTION, "endsection"},
-    {NOTRAPSIGNALS, "notrapsignals"},
     {DONTZAP, "dontzap"},
     {DONTZOOM, "dontzoom"},
     {DISABLEVIDMODE, "disablevidmodeextension"},
@@ -111,7 +110,6 @@ xf86parseFlagsSection(void)
         case SUSPENDTIME:
         case OFFTIME:
             hasvalue = TRUE;
-        case NOTRAPSIGNALS:
         case DONTZAP:
         case DONTZOOM:
         case DISABLEVIDMODE:

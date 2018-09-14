@@ -51,7 +51,6 @@ typedef struct {
     Bool active;
     Bool inUse;
     BusRec bus;
-    int lastScrnFlag;
     DevUnion *entityPrivates;
     int numInstances;
     GDevPtr *devices;

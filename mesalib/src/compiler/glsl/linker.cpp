@@ -1287,6 +1287,66 @@ interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
    return true;
 }
 
+/**
+ * Verifies the invariance of built-in special variables.
+ */
+static bool
+validate_invariant_builtins(struct gl_shader_program *prog,
+                            const gl_linked_shader *vert,
+                            const gl_linked_shader *frag)
+{
+   const ir_variable *var_vert;
+   const ir_variable *var_frag;
+
+   if (!vert || !frag)
+      return true;
+
+   /*
+    * From OpenGL ES Shading Language 1.0 specification
+    * (4.6.4 Invariance and Linkage):
+    *     "The invariance of varyings that are declared in both the vertex and
+    *     fragment shaders must match. For the built-in special variables,
+    *     gl_FragCoord can only be declared invariant if and only if
+    *     gl_Position is declared invariant. Similarly gl_PointCoord can only
+    *     be declared invariant if and only if gl_PointSize is declared
+    *     invariant. It is an error to declare gl_FrontFacing as invariant.
+    *     The invariance of gl_FrontFacing is the same as the invariance of
+    *     gl_Position."
+    */
+   var_frag = frag->symbols->get_variable("gl_FragCoord");
+   if (var_frag && var_frag->data.invariant) {
+      var_vert = vert->symbols->get_variable("gl_Position");
+      if (var_vert && !var_vert->data.invariant) {
+         linker_error(prog,
+               "fragment shader built-in `%s' has invariant qualifier, "
+               "but vertex shader built-in `%s' lacks invariant qualifier\n",
+               var_frag->name, var_vert->name);
+         return false;
+      }
+   }
+
+   var_frag = frag->symbols->get_variable("gl_PointCoord");
+   if (var_frag && var_frag->data.invariant) {
+      var_vert = vert->symbols->get_variable("gl_PointSize");
+      if (var_vert && !var_vert->data.invariant) {
+         linker_error(prog,
+               "fragment shader built-in `%s' has invariant qualifier, "
+               "but vertex shader built-in `%s' lacks invariant qualifier\n",
+               var_frag->name, var_vert->name);
+         return false;
+      }
+   }
+
+   var_frag = frag->symbols->get_variable("gl_FrontFacing");
+   if (var_frag && var_frag->data.invariant) {
+      linker_error(prog,
+            "fragment shader built-in `%s' can not be declared as invariant\n",
+            var_frag->name);
+      return false;
+   }
+
+   return true;
+}
 
 /**
  * Populates a shaders symbol table with all global declarations
@@ -5011,6 +5071,12 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       if (prog->_LinkedShaders[i] != NULL)
          lower_named_interface_blocks(mem_ctx, prog->_LinkedShaders[i]);
    }
+
+   if (prog->IsES && prog->data->Version == 100)
+      if (!validate_invariant_builtins(prog,
+            prog->_LinkedShaders[MESA_SHADER_VERTEX],
+            prog->_LinkedShaders[MESA_SHADER_FRAGMENT]))
+         goto done;
 
    /* Implement the GLSL 1.30+ rule for discard vs infinite loops Do
     * it before optimization because we want most of the checks to get

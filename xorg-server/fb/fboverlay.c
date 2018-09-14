@@ -279,11 +279,11 @@ fbOverlayFinishScreenInit(ScreenPtr pScreen,
         (&fbOverlayScreenPrivateKeyRec, PRIVATE_SCREEN, 0))
         return FALSE;
 
-    pScrPriv = malloc(sizeof(FbOverlayScrPrivRec));
-    if (!pScrPriv)
+    if (bpp1 == 24 || bpp2 == 24)
         return FALSE;
 
-    if (bpp1 == 24 || bpp2 == 24)
+    pScrPriv = malloc(sizeof(FbOverlayScrPrivRec));
+    if (!pScrPriv)
         return FALSE;
 
     if (!fbInitVisuals(&visuals, &depths, &nvisuals, &ndepths, &depth1,

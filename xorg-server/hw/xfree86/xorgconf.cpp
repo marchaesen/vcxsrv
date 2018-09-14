@@ -82,12 +82,6 @@ EndSection
 
 Section "ServerFlags"
 
-# Uncomment this to cause a core dump at the spot where a signal is
-# received.  This may leave the console in an unusable state, but may
-# provide a better stack trace in the core dump to aid in debugging
-
-#    Option	"NoTrapSignals"
-
 # Uncomment this to disable the <Ctrl><Alt><Fn> VT switch sequence
 # (where n is 1 through 12).  This allows clients to receive these key
 # events.

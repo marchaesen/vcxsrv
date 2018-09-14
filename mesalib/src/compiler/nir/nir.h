@@ -2354,6 +2354,36 @@ nir_after_block_before_jump(nir_block *block)
 }
 
 static inline nir_cursor
+nir_before_src(nir_src *src, bool is_if_condition)
+{
+   if (is_if_condition) {
+      nir_block *prev_block =
+         nir_cf_node_as_block(nir_cf_node_prev(&src->parent_if->cf_node));
+      assert(!nir_block_ends_in_jump(prev_block));
+      return nir_after_block(prev_block);
+   } else if (src->parent_instr->type == nir_instr_type_phi) {
+#ifndef NDEBUG
+      nir_phi_instr *cond_phi = nir_instr_as_phi(src->parent_instr);
+      bool found = false;
+      nir_foreach_phi_src(phi_src, cond_phi) {
+         if (phi_src->src.ssa == src->ssa) {
+            found = true;
+            break;
+         }
+      }
+      assert(found);
+#endif
+      /* The LIST_ENTRY macro is a generic container-of macro, it just happens
+       * to have a more specific name.
+       */
+      nir_phi_src *phi_src = LIST_ENTRY(nir_phi_src, src, src);
+      return nir_after_block_before_jump(phi_src->pred);
+   } else {
+      return nir_before_instr(src->parent_instr);
+   }
+}
+
+static inline nir_cursor
 nir_before_cf_node(nir_cf_node *node)
 {
    if (node->type == nir_cf_node_block)

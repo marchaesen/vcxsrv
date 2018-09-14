@@ -56,7 +56,6 @@ typedef struct {
 
 extern Bool DGAScreenAvailable(ScreenPtr pScreen);
 extern Bool DGAActive(int Index);
-extern void DGAShutdown(void);
 
 extern Bool DGAVTSwitch(void);
 extern Bool DGAStealButtonEvent(DeviceIntPtr dev, int Index,

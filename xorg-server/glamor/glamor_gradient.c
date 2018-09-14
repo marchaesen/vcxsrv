@@ -38,7 +38,7 @@
 #define RADIAL_SMALL_STOPS (6 + 2)
 #define RADIAL_LARGE_STOPS (16 + 2)
 
-static const char *
+static char *
 _glamor_create_getcolor_fs_source(ScreenPtr screen, int stops_count,
                                   int use_array)
 {
@@ -310,7 +310,7 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
 	    "}\n"\
 	    "\n"\
             "%s\n" /* fs_getcolor_source */
-    const char *fs_getcolor_source;
+    char *fs_getcolor_source;
 
     glamor_priv = glamor_get_screen_private(screen);
 
@@ -343,6 +343,7 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
     fs_prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, gradient_fs);
 
     free(gradient_fs);
+    free(fs_getcolor_source);
 
     glAttachShader(gradient_prog, vs_prog);
     glAttachShader(gradient_prog, fs_prog);
@@ -493,7 +494,7 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
 	    "}\n"\
 	    "\n"\
             "%s" /* fs_getcolor_source */
-    const char *fs_getcolor_source;
+    char *fs_getcolor_source;
 
     glamor_priv = glamor_get_screen_private(screen);
 
@@ -522,6 +523,7 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
 
     fs_prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, gradient_fs);
     free(gradient_fs);
+    free(fs_getcolor_source);
 
     glAttachShader(gradient_prog, vs_prog);
     glAttachShader(gradient_prog, fs_prog);

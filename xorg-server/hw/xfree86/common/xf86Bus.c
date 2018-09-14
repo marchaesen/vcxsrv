@@ -553,25 +553,6 @@ xf86PostProbe(void)
                    "       for all framebuffer devices\n");
 }
 
-int
-xf86GetLastScrnFlag(int entityIndex)
-{
-    if (entityIndex < xf86NumEntities) {
-        return xf86Entities[entityIndex]->lastScrnFlag;
-    }
-    else {
-        return -1;
-    }
-}
-
-void
-xf86SetLastScrnFlag(int entityIndex, int scrnIndex)
-{
-    if (entityIndex < xf86NumEntities) {
-        xf86Entities[entityIndex]->lastScrnFlag = scrnIndex;
-    }
-}
-
 Bool
 xf86IsEntityShared(int entityIndex)
 {

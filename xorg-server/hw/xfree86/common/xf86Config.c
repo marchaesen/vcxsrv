@@ -619,7 +619,6 @@ configFiles(XF86ConfFilesPtr fileconf)
 }
 
 typedef enum {
-    FLAG_NOTRAPSIGNALS,
     FLAG_DONTVTSWITCH,
     FLAG_DONTZAP,
     FLAG_DONTZOOM,
@@ -653,8 +652,6 @@ typedef enum {
  * if the parser found the option in the config file.
  */
 static OptionInfoRec FlagOptions[] = {
-    {FLAG_NOTRAPSIGNALS, "NoTrapSignals", OPTV_BOOLEAN,
-     {0}, FALSE},
     {FLAG_DONTVTSWITCH, "DontVTSwitch", OPTV_BOOLEAN,
      {0}, FALSE},
     {FLAG_DONTZAP, "DontZap", OPTV_BOOLEAN,
@@ -737,7 +734,6 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
 
     xf86ProcessOptions(-1, optp, FlagOptions);
 
-    xf86GetOptValBool(FlagOptions, FLAG_NOTRAPSIGNALS, &xf86Info.notrapSignals);
     xf86GetOptValBool(FlagOptions, FLAG_DONTVTSWITCH, &xf86Info.dontVTSwitch);
     xf86GetOptValBool(FlagOptions, FLAG_DONTZAP, &xf86Info.dontZap);
     xf86GetOptValBool(FlagOptions, FLAG_DONTZOOM, &xf86Info.dontZoom);
@@ -939,10 +935,12 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
 	from = X_CMDLINE;
     i = -1;
     if (xf86GetOptValInteger(FlagOptions, FLAG_MAX_CLIENTS, &i)) {
-	if (i != 64 && i != 128 && i != 256 && i != 512)
-		ErrorF("MaxClients must be one of 64, 128, 256 or 512\n");
-	from = X_CONFIG;
-	LimitClients = i;
+        if (Ones(i) != 1 || i < 64 || i > 2048) {
+	    ErrorF("MaxClients must be one of 64, 128, 256, 512, 1024, or 2048\n");
+        } else {
+            from = X_CONFIG;
+            LimitClients = i;
+        }
     }
     xf86Msg(from, "Max clients allowed: %i, resource mask: 0x%x\n",
 	    LimitClients, RESOURCE_ID_MASK);

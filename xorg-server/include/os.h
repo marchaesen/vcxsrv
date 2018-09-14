@@ -129,8 +129,6 @@ extern _X_EXPORT void ResetOsBuffers(void);
 
 extern _X_EXPORT int TransIsListening(char *protocol);
 
-extern _X_EXPORT void InitConnectionLimits(void);
-
 extern _X_EXPORT void NotifyParentProcess(void);
 
 extern _X_EXPORT void CreateWellKnownSockets(void);

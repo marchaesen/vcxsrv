@@ -128,7 +128,6 @@ typedef int pid_t;
 
 struct ospoll   *server_poll;
 
-int MaxClients = 0;
 Bool NewOutputPending;          /* not yet attempted to write some new output */
 Bool NoListenAll;               /* Don't establish any listening sockets */
 
@@ -189,18 +188,6 @@ TransIsListening(char *protocol)
   return 0;
 }
 
-
-/* Set MaxClients */
-
-void
-InitConnectionLimits(void)
-{
-    MaxClients = MAXCLIENTS;
-
-#ifdef DEBUG
-    ErrorF("InitConnectionLimits: MaxClients = %d\n", MaxClients);
-#endif
-}
 
 /*
  * If SIGUSR1 was set to SIG_IGN when the server started, assume that either

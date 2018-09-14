@@ -166,9 +166,6 @@ xf86ProcessActionEvent(ActionEvent action, void *arg)
     case ACTION_TERMINATE:
         if (!xf86Info.dontZap) {
             xf86Msg(X_INFO, "Server zapped. Shutting down.\n");
-#ifdef XFreeXDGA
-            DGAShutdown();
-#endif
             GiveUp(0);
         }
         break;

@@ -108,7 +108,6 @@ xf86InfoRec xf86Info = {
     .ShareVTs = FALSE,
     .dontZap = FALSE,
     .dontZoom = FALSE,
-    .notrapSignals = FALSE,
     .currentScreen = NULL,
 #ifdef CSRG_BASED
     .consType = -1,
@@ -168,7 +167,6 @@ const char *xf86VisualNames[] = {
 };
 
 /* Parameters set only from the command line */
-const char *xf86ServerName = "no-name";
 Bool xf86fpFlag = FALSE;
 Bool xf86sFlag = FALSE;
 Bool xf86bsEnableFlag = FALSE;
