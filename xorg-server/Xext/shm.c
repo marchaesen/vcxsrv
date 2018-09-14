@@ -834,6 +834,19 @@ ProcPanoramiXShmGetImage(ClientPtr client)
             return BadMatch;
     }
 
+    if (format == ZPixmap) {
+        widthBytesLine = PixmapBytePad(w, pDraw->depth);
+        length = widthBytesLine * h;
+    }
+    else {
+        widthBytesLine = PixmapBytePad(w, 1);
+        lenPer = widthBytesLine * h;
+        plane = ((Mask) 1) << (pDraw->depth - 1);
+        length = lenPer * Ones(planemask & (plane | (plane - 1)));
+    }
+
+    VERIFY_SHMSIZE(shmdesc, stuff->offset, length, client);
+
     drawables = calloc(PanoramiXNumScreens, sizeof(DrawablePtr));
     if (!drawables)
         return BadAlloc;
@@ -856,18 +869,6 @@ ProcPanoramiXShmGetImage(ClientPtr client)
         .depth = pDraw->depth
     };
 
-    if (format == ZPixmap) {
-        widthBytesLine = PixmapBytePad(w, pDraw->depth);
-        length = widthBytesLine * h;
-    }
-    else {
-        widthBytesLine = PixmapBytePad(w, 1);
-        lenPer = widthBytesLine * h;
-        plane = ((Mask) 1) << (pDraw->depth - 1);
-        length = lenPer * Ones(planemask & (plane | (plane - 1)));
-    }
-
-    VERIFY_SHMSIZE(shmdesc, stuff->offset, length, client);
     xgi.size = length;
 
     if (length == 0) {          /* nothing to do */

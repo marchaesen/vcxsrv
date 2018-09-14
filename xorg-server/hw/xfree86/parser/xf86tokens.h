@@ -103,7 +103,6 @@ typedef enum {
     XKBDIR,
 
     /* Server Flag tokens.  These are deprecated in favour of generic Options */
-    NOTRAPSIGNALS,
     DONTZAP,
     DONTZOOM,
     DISABLEVIDMODE,

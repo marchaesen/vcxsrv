@@ -509,15 +509,6 @@ section to use in the absence of the
 .B \-layout
 command line option.
 .TP 7
-.BI "Option \*qNoTrapSignals\*q  \*q" boolean \*q
-This prevents the Xorg server from trapping a range of unexpected fatal
-signals and exiting cleanly.
-Instead, the Xorg server will die and drop core where the fault occurred.
-The default behaviour is for the Xorg server to exit cleanly, but still drop a
-core file.
-In general you never want to use this option unless you are debugging an Xorg
-server problem and know how to deal with the consequences.
-.TP 7
 .BI "Option \*qDontVTSwitch\*q  \*q" boolean \*q
 This disallows the use of the
 .BI Ctrl+Alt+F n

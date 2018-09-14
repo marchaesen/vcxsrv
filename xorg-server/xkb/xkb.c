@@ -2570,7 +2570,7 @@ _XkbSetMap(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req, char *values)
             first = last = 0;
         if (change.map.num_modmap_keys > 0) {
             firstMM = change.map.first_modmap_key;
-            lastMM = first + change.map.num_modmap_keys - 1;
+            lastMM = firstMM + change.map.num_modmap_keys - 1;
         }
         else
             firstMM = lastMM = 0;

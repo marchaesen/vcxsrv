@@ -63,7 +63,6 @@ typedef struct {
     Bool ShareVTs;
     Bool dontZap;
     Bool dontZoom;
-    Bool notrapSignals;         /* don't exit cleanly - die at fault */
 
     /* graphics part */
     ScreenPtr currentScreen;

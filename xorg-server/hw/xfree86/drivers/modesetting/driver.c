@@ -900,8 +900,6 @@ PreInit(ScrnInfoPtr pScrn, int flags)
     if (pScrn->numEntities != 1)
         return FALSE;
 
-    pEnt = xf86GetEntityInfo(pScrn->entityList[0]);
-
     if (flags & PROBE_DETECT) {
         return FALSE;
     }
@@ -909,6 +907,8 @@ PreInit(ScrnInfoPtr pScrn, int flags)
     /* Allocate driverPrivate */
     if (!GetRec(pScrn))
         return FALSE;
+
+    pEnt = xf86GetEntityInfo(pScrn->entityList[0]);
 
     ms = modesettingPTR(pScrn);
     ms->SaveGeneration = -1;

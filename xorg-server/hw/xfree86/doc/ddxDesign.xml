@@ -1905,15 +1905,6 @@ functions:
 
 	</para></blockquote>
 
-      <blockquote><para>
-	  <programlisting>
-    const char *xf86GetServerName();
-	  </programlisting>
-	  <blockquote><para>
-      Returns the name of the X server from the command line.
-	    </para></blockquote>
-
-	</para></blockquote>
     </sect2>
 
     <sect2>

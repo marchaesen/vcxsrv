@@ -188,7 +188,7 @@ xf86SetSerial(int fd, XF86OptionPtr options)
 {
     struct termios t;
     int val;
-    const char *s;
+    char *s;
     int baud, r;
 
     if (fd < 0)
@@ -264,8 +264,10 @@ xf86SetSerial(int fd, XF86OptionPtr options)
         }
         else {
             xf86Msg(X_ERROR, "Invalid Option Parity value: %s\n", s);
+            free(s);
             return -1;
         }
+        free(s);
     }
 
     if ((val = xf86SetIntOption(options, "Vmin", -1)) != -1) {
@@ -291,8 +293,10 @@ xf86SetSerial(int fd, XF86OptionPtr options)
         }
         else {
             xf86Msg(X_ERROR, "Invalid Option FlowControl value: %s\n", s);
+            free(s);
             return -1;
         }
+        free(s);
     }
 
     if ((xf86SetBoolOption(options, "ClearDTR", FALSE))) {

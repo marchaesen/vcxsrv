@@ -1,13 +1,5 @@
-image: docker:latest
-services:
-    - docker:dind
-
-before_script:
-    - echo FROM nwnk/xserver-travis-rawhide:v5 > Dockerfile
-    - echo ADD . /root >> Dockerfile
-    - echo WORKDIR /root >> Dockerfile
-    - docker build -t withgit .
+image: nwnk/xserver-travis-rawhide:v5
 
 job:
     script:
-        - docker run --volume $HOME/.ccache:/root/.ccache withgit ./test/scripts/build-travis-deps.sh
+        - ./test/scripts/build-travis-deps.sh

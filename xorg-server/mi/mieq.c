@@ -289,7 +289,7 @@ mieqSwitchScreen(DeviceIntPtr pDev, ScreenPtr pScreen, Bool set_dequeue_screen)
 void
 mieqSetHandler(int event, mieqHandler handler)
 {
-    if (handler && miEventQueue.handlers[event])
+    if (handler && miEventQueue.handlers[event] != handler)
         ErrorF("[mi] mieq: warning: overriding existing handler %p with %p for "
                "event %d\n", miEventQueue.handlers[event], handler, event);
 

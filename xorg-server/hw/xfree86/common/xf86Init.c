@@ -57,9 +57,6 @@
 #include "systemd-logind.h"
 
 #include "loaderProcs.h"
-#ifdef XFreeXDGA
-#include "dgaproc.h"
-#endif
 
 #define XF86_OS_PRIVS
 #include "xf86.h"
@@ -236,24 +233,6 @@ xf86PrivsElevated(void)
 }
 
 static void
-TrapSignals(void)
-{
-    if (xf86Info.notrapSignals) {
-        OsSignal(SIGSEGV, SIG_DFL);
-        OsSignal(SIGABRT, SIG_DFL);
-        OsSignal(SIGILL, SIG_DFL);
-#ifdef SIGEMT
-        OsSignal(SIGEMT, SIG_DFL);
-#endif
-        OsSignal(SIGFPE, SIG_DFL);
-        OsSignal(SIGBUS, SIG_DFL);
-        OsSignal(SIGSYS, SIG_DFL);
-        OsSignal(SIGXCPU, SIG_DFL);
-        OsSignal(SIGXFSZ, SIG_DFL);
-    }
-}
-
-static void
 AddSeatId(CallbackListPtr *pcbl, void *data, void *screen)
 {
     ScreenPtr pScreen = screen;
@@ -333,11 +312,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     config_pre_init();
 
     if (serverGeneration == 1) {
-        if ((xf86ServerName = strrchr(argv[0], '/')) != 0)
-            xf86ServerName++;
-        else
-            xf86ServerName = argv[0];
-
         xf86PrintBanner();
         LogPrintMarkers();
         if (xf86LogFile) {
@@ -363,8 +337,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
                 break;
             }
         }
-
-        TrapSignals();
 
         /* Initialise the loader */
         LoaderInit();
@@ -546,17 +518,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             return;
         }
 
-        for (i = 0; i < xf86NumScreens; i++) {
-            if (xf86Screens[i]->name == NULL) {
-                char *tmp;
-                XNFasprintf(&tmp, "screen%d", i);
-                xf86Screens[i]->name = tmp;
-                xf86MsgVerb(X_WARNING, 0,
-                            "Screen driver %d has no name set, using `%s'.\n",
-                            i, xf86Screens[i]->name);
-            }
-        }
-
         /* Remove (unload) drivers that are not required */
         for (i = 0; i < xf86NumDrivers; i++)
             if (xf86DriverList[i] && xf86DriverList[i]->refCount <= 0)
@@ -688,11 +649,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 #ifdef XFreeXDGA
         pScrn->SetDGAMode = xf86SetDGAMode;
 #endif
-        pScrn->DPMSSet = NULL;
-        pScrn->LoadPalette = NULL;
-        pScrn->SetOverscan = NULL;
-        pScrn->DriverFunc = NULL;
-        pScrn->pScreen = NULL;
         scr_index = AddGPUScreen(xf86ScreenInit, argc, argv);
         xf86VGAarbiterUnlock(pScrn);
         if (scr_index == i) {
@@ -716,11 +672,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 #ifdef XFreeXDGA
         xf86Screens[i]->SetDGAMode = xf86SetDGAMode;
 #endif
-        xf86Screens[i]->DPMSSet = NULL;
-        xf86Screens[i]->LoadPalette = NULL;
-        xf86Screens[i]->SetOverscan = NULL;
-        xf86Screens[i]->DriverFunc = NULL;
-        xf86Screens[i]->pScreen = NULL;
         scr_index = AddScreen(xf86ScreenInit, argc, argv);
         xf86VGAarbiterUnlock(xf86Screens[i]);
         if (scr_index == i) {
@@ -738,11 +689,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             /* This shouldn't normally happen */
             FatalError("AddScreen/ScreenInit failed for driver %d\n", i);
         }
-
-        DebugF("InitOutput - xf86Screens[%d]->pScreen = %p\n",
-               i, xf86Screens[i]->pScreen);
-        DebugF("xf86Screens[%d]->pScreen->CreateWindow = %p\n",
-               i, xf86Screens[i]->pScreen->CreateWindow);
 
         if (PictureGetSubpixelOrder(xf86Screens[i]->pScreen) == SubPixelUnknown) {
             xf86MonPtr DDC = (xf86MonPtr) (xf86Screens[i]->monitor->DDC);
@@ -883,10 +829,6 @@ ddxGiveUp(enum ExitCode error)
          */
         xf86Screens[i]->vtSema = FALSE;
     }
-
-#ifdef XFreeXDGA
-    DGAShutdown();
-#endif
 
     if (xorgHWOpenConsole)
         xf86CloseConsole();

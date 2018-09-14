@@ -1404,12 +1404,6 @@ xf86GetFlipPixels(void)
     return xf86FlipPixels;
 }
 
-const char *
-xf86GetServerName(void)
-{
-    return xf86ServerName;
-}
-
 Bool
 xf86ServerIsExiting(void)
 {

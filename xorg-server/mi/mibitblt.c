@@ -141,6 +141,8 @@ miCopyArea(DrawablePtr pSrcDrawable,
         free(ordering);
         free(pwidthFirst);
         free(pptFirst);
+        if (realSrcClip)
+            RegionDestroy(prgnSrcClip);
         return NULL;
     }
 
