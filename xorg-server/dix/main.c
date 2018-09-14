@@ -172,7 +172,6 @@ dix_main(int argc, char *argv[], char *envp[])
          chdir(ModuleFilename);
        }
      }
-    OsVendorPreInit(argc, argv);
     #endif
 
     InitRegions();
@@ -182,6 +181,10 @@ dix_main(int argc, char *argv[], char *envp[])
     CheckUserAuthorization();
 
     ProcessCommandLine(argc, argv);
+
+    #ifdef WIN32
+    OsVendorPreInit(argc, argv);
+    #endif
 
     alwaysCheckForInput[0] = 0;
     alwaysCheckForInput[1] = 1;
