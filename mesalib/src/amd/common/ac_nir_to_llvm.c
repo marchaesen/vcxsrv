@@ -2244,7 +2244,8 @@ static void get_image_coords(struct ac_nir_context *ctx,
 							       fmask_load_address[1],
 							       fmask_load_address[2],
 							       sample_index,
-							       get_image_descriptor(ctx, instr, AC_DESC_FMASK, false));
+							       get_sampler_desc(ctx, nir_instr_as_deref(instr->src[0].ssa->parent_instr),
+										AC_DESC_FMASK, NULL, false, false));
 	}
 	if (count == 1 && !gfx9_1d) {
 		if (instr->src[1].ssa->num_components)

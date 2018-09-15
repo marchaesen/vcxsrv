@@ -39,7 +39,7 @@ $(intermediates)/dummy.c:
 # This is the list of auto-generated files headers
 LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/broadcom/, $(BROADCOM_GENXML_GENERATED_FILES))
 
-define header-gen
+define pack-header-gen
 	@mkdir -p $(dir $@)
 	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
 	$(hide) $(PRIVATE_SCRIPT) $(PRIVATE_SCRIPT_FLAGS) $(PRIVATE_XML) $(PRIVATE_VER) > $@
@@ -49,25 +49,25 @@ $(intermediates)/broadcom/cle/v3d_packet_v21_pack.h: PRIVATE_SCRIPT := $(MESA_PY
 $(intermediates)/broadcom/cle/v3d_packet_v21_pack.h: PRIVATE_XML := $(LOCAL_PATH)/cle/v3d_packet_v21.xml
 $(intermediates)/broadcom/cle/v3d_packet_v21_pack.h: PRIVATE_VER := 21
 $(intermediates)/broadcom/cle/v3d_packet_v21_pack.h: $(LOCAL_PATH)/cle/v3d_packet_v21.xml $(LOCAL_PATH)/cle/gen_pack_header.py
-	$(call header-gen)
+	$(call pack-header-gen)
 
 $(intermediates)/broadcom/cle/v3d_packet_v33_pack.h: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(LOCAL_PATH)/cle/gen_pack_header.py
 $(intermediates)/broadcom/cle/v3d_packet_v33_pack.h: PRIVATE_XML := $(LOCAL_PATH)/cle/v3d_packet_v33.xml
 $(intermediates)/broadcom/cle/v3d_packet_v33_pack.h: PRIVATE_VER := 33
 $(intermediates)/broadcom/cle/v3d_packet_v33_pack.h: $(LOCAL_PATH)/cle/v3d_packet_v33.xml $(LOCAL_PATH)/cle/gen_pack_header.py
-	$(call header-gen)
+	$(call pack-header-gen)
 
 $(intermediates)/broadcom/cle/v3d_packet_v41_pack.h: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(LOCAL_PATH)/cle/gen_pack_header.py
 $(intermediates)/broadcom/cle/v3d_packet_v41_pack.h: PRIVATE_XML := $(LOCAL_PATH)/cle/v3d_packet_v33.xml
 $(intermediates)/broadcom/cle/v3d_packet_v41_pack.h: PRIVATE_VER := 41
 $(intermediates)/broadcom/cle/v3d_packet_v41_pack.h: $(LOCAL_PATH)/cle/v3d_packet_v33.xml $(LOCAL_PATH)/cle/gen_pack_header.py
-	$(call header-gen)
+	$(call pack-header-gen)
 
 $(intermediates)/broadcom/cle/v3d_packet_v42_pack.h: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(LOCAL_PATH)/cle/gen_pack_header.py
 $(intermediates)/broadcom/cle/v3d_packet_v42_pack.h: PRIVATE_XML := $(LOCAL_PATH)/cle/v3d_packet_v33.xml
 $(intermediates)/broadcom/cle/v3d_packet_v42_pack.h: PRIVATE_VER := 42
 $(intermediates)/broadcom/cle/v3d_packet_v42_pack.h: $(LOCAL_PATH)/cle/v3d_packet_v33.xml $(LOCAL_PATH)/cle/gen_pack_header.py
-	$(call header-gen)
+	$(call pack-header-gen)
 
 $(intermediates)/broadcom/cle/v3d_xml.h: $(addprefix $(MESA_TOP)/src/broadcom/,$(BROADCOM_GENXML_XML_FILES)) $(MESA_TOP)/src/intel/genxml/gen_zipped_file.py
 	@mkdir -p $(dir $@)

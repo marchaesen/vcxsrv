@@ -2090,6 +2090,33 @@ radv_emit_global_shader_pointers(struct radv_queue *queue,
 	}
 }
 
+static void
+radv_init_graphics_state(struct radeon_cmdbuf *cs, struct radv_queue *queue)
+{
+	struct radv_device *device = queue->device;
+
+	if (device->gfx_init) {
+		uint64_t va = radv_buffer_get_va(device->gfx_init);
+
+		radeon_emit(cs, PKT3(PKT3_INDIRECT_BUFFER_CIK, 2, 0));
+		radeon_emit(cs, va);
+		radeon_emit(cs, va >> 32);
+		radeon_emit(cs, device->gfx_init_size_dw & 0xffff);
+
+		radv_cs_add_buffer(device->ws, cs, device->gfx_init);
+	} else {
+		struct radv_physical_device *physical_device = device->physical_device;
+		si_emit_graphics(physical_device, cs);
+	}
+}
+
+static void
+radv_init_compute_state(struct radeon_cmdbuf *cs, struct radv_queue *queue)
+{
+	struct radv_physical_device *physical_device = queue->device->physical_device;
+	si_emit_compute(physical_device, cs);
+}
+
 static VkResult
 radv_get_preamble_cs(struct radv_queue *queue,
                      uint32_t scratch_size,
@@ -2243,6 +2270,18 @@ radv_get_preamble_cs(struct radv_queue *queue,
 
 		if (scratch_bo)
 			radv_cs_add_buffer(queue->device->ws, cs, scratch_bo);
+
+		/* Emit initial configuration. */
+		switch (queue->queue_family_index) {
+		case RADV_QUEUE_GENERAL:
+			radv_init_graphics_state(cs, queue);
+			break;
+		case RADV_QUEUE_COMPUTE:
+			radv_init_compute_state(cs, queue);
+			break;
+		case RADV_QUEUE_TRANSFER:
+			break;
+		}
 
 		if (descriptor_bo != queue->descriptor_bo) {
 			uint32_t *map = (uint32_t*)queue->device->ws->buffer_map(descriptor_bo);

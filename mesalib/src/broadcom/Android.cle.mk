@@ -29,6 +29,10 @@ LOCAL_SRC_FILES := $(BROADCOM_DECODER_FILES)
 
 LOCAL_STATIC_LIBRARIES := libmesa_broadcom_genxml
 
+LOCAL_C_INCLUDES += $(MESA_TOP)/src/gallium/include
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
+
 LOCAL_SHARED_LIBRARIES := libexpat libz
 
 include $(MESA_COMMON_MK)
