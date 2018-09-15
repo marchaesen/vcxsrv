@@ -1657,7 +1657,8 @@ radv_flush_indirect_descriptor_sets(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_descriptor_state *descriptors_state =
 		radv_get_descriptors_state(cmd_buffer, bind_point);
-	uint32_t size = MAX_SETS * 2 * 4;
+	uint8_t ptr_size = HAVE_32BIT_POINTERS ? 1 : 2;
+	uint32_t size = MAX_SETS * 4 * ptr_size;
 	uint32_t offset;
 	void *ptr;
 	
@@ -1666,13 +1667,14 @@ radv_flush_indirect_descriptor_sets(struct radv_cmd_buffer *cmd_buffer,
 		return;
 
 	for (unsigned i = 0; i < MAX_SETS; i++) {
-		uint32_t *uptr = ((uint32_t *)ptr) + i * 2;
+		uint32_t *uptr = ((uint32_t *)ptr) + i * ptr_size;
 		uint64_t set_va = 0;
 		struct radv_descriptor_set *set = descriptors_state->sets[i];
 		if (descriptors_state->valid & (1u << i))
 			set_va = set->va;
 		uptr[0] = set_va & 0xffffffff;
-		uptr[1] = set_va >> 32;
+		if (ptr_size == 2)
+			uptr[1] = set_va >> 32;
 	}
 
 	uint64_t va = radv_buffer_get_va(cmd_buffer->upload.upload_bo);
@@ -1714,6 +1716,8 @@ radv_flush_descriptors(struct radv_cmd_buffer *cmd_buffer,
 					 VK_PIPELINE_BIND_POINT_GRAPHICS;
 	struct radv_descriptor_state *descriptors_state =
 		radv_get_descriptors_state(cmd_buffer, bind_point);
+	struct radv_cmd_state *state = &cmd_buffer->state;
+	bool flush_indirect_descriptors;
 
 	if (!descriptors_state->dirty)
 		return;
@@ -1721,10 +1725,14 @@ radv_flush_descriptors(struct radv_cmd_buffer *cmd_buffer,
 	if (descriptors_state->push_dirty)
 		radv_flush_push_descriptors(cmd_buffer, bind_point);
 
-	if ((cmd_buffer->state.pipeline && cmd_buffer->state.pipeline->need_indirect_descriptor_sets) ||
-	    (cmd_buffer->state.compute_pipeline && cmd_buffer->state.compute_pipeline->need_indirect_descriptor_sets)) {
+	flush_indirect_descriptors =
+		(bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS &&
+		 state->pipeline && state->pipeline->need_indirect_descriptor_sets) ||
+		(bind_point == VK_PIPELINE_BIND_POINT_COMPUTE &&
+		 state->compute_pipeline && state->compute_pipeline->need_indirect_descriptor_sets);
+
+	if (flush_indirect_descriptors)
 		radv_flush_indirect_descriptor_sets(cmd_buffer, bind_point);
-	}
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws,
 	                                                   cmd_buffer->cs,
@@ -2290,20 +2298,6 @@ VkResult radv_ResetCommandBuffer(
 	return radv_reset_cmd_buffer(cmd_buffer);
 }
 
-static void emit_gfx_buffer_state(struct radv_cmd_buffer *cmd_buffer)
-{
-	struct radv_device *device = cmd_buffer->device;
-	if (device->gfx_init) {
-		uint64_t va = radv_buffer_get_va(device->gfx_init);
-		radv_cs_add_buffer(device->ws, cmd_buffer->cs, device->gfx_init);
-		radeon_emit(cmd_buffer->cs, PKT3(PKT3_INDIRECT_BUFFER_CIK, 2, 0));
-		radeon_emit(cmd_buffer->cs, va);
-		radeon_emit(cmd_buffer->cs, va >> 32);
-		radeon_emit(cmd_buffer->cs, device->gfx_init_size_dw & 0xffff);
-	} else
-		si_init_config(cmd_buffer);
-}
-
 VkResult radv_BeginCommandBuffer(
 	VkCommandBuffer commandBuffer,
 	const VkCommandBufferBeginInfo *pBeginInfo)
@@ -2328,21 +2322,6 @@ VkResult radv_BeginCommandBuffer(
 	cmd_buffer->state.last_first_instance = -1;
 	cmd_buffer->state.predication_type = -1;
 	cmd_buffer->usage_flags = pBeginInfo->flags;
-
-	/* setup initial configuration into command buffer */
-	if (cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_PRIMARY) {
-		switch (cmd_buffer->queue_family_index) {
-		case RADV_QUEUE_GENERAL:
-			emit_gfx_buffer_state(cmd_buffer);
-			break;
-		case RADV_QUEUE_COMPUTE:
-			si_init_compute(cmd_buffer);
-			break;
-		case RADV_QUEUE_TRANSFER:
-		default:
-			break;
-		}
-	}
 
 	if (cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
 	    (pBeginInfo->flags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT)) {
@@ -4468,19 +4447,27 @@ void radv_CmdBeginConditionalRenderingEXT(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_buffer, buffer, pConditionalRenderingBegin->buffer);
-	bool inverted;
+	bool draw_visible = true;
 	uint64_t va;
 
 	va = radv_buffer_get_va(buffer->bo) + pConditionalRenderingBegin->offset;
 
-	inverted = pConditionalRenderingBegin->flags & VK_CONDITIONAL_RENDERING_INVERTED_BIT_EXT;
+	/* By default, if the 32-bit value at offset in buffer memory is zero,
+	 * then the rendering commands are discarded, otherwise they are
+	 * executed as normal. If the inverted flag is set, all commands are
+	 * discarded if the value is non zero.
+	 */
+	if (pConditionalRenderingBegin->flags &
+	    VK_CONDITIONAL_RENDERING_INVERTED_BIT_EXT) {
+		draw_visible = false;
+	}
 
 	/* Enable predication for this command buffer. */
-	si_emit_set_predication_state(cmd_buffer, inverted, va);
+	si_emit_set_predication_state(cmd_buffer, draw_visible, va);
 	cmd_buffer->state.predicating = true;
 
 	/* Store conditional rendering user info. */
-	cmd_buffer->state.predication_type = inverted;
+	cmd_buffer->state.predication_type = draw_visible;
 	cmd_buffer->state.predication_va = va;
 }
 

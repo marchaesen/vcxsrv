@@ -566,7 +566,11 @@ make_texture(struct st_context *st,
       dest = pipe_transfer_map(pipe, pt, 0, 0,
                                PIPE_TRANSFER_WRITE, 0, 0,
                                width, height, &transfer);
-
+      if (!dest) {
+         pipe_resource_reference(&pt, NULL);
+         _mesa_unmap_pbo_source(ctx, unpack);
+         return NULL;
+      }
 
       /* Put image into texture transfer.
        * Note that the image is actually going to be upside down in
@@ -1174,6 +1178,13 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       return;
    }
 
+   /* Put glDrawPixels image into a texture */
+   pt = make_texture(st, width, height, format, type, unpack, pixels);
+   if (!pt) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDrawPixels");
+      return;
+   }
+
    /*
     * Get vertex/fragment shaders
     */
@@ -1198,13 +1209,6 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
        * into the constant buffer, we need to update them
        */
       st_upload_constants(st, &st->fp->Base);
-   }
-
-   /* Put glDrawPixels image into a texture */
-   pt = make_texture(st, width, height, format, type, unpack, pixels);
-   if (!pt) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDrawPixels");
-      return;
    }
 
    /* create sampler view for the image */

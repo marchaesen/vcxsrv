@@ -192,7 +192,6 @@ struct radv_userdata_info {
 	int8_t sgpr_idx;
 	uint8_t num_sgprs;
 	bool indirect;
-	uint32_t indirect_offset;
 };
 
 struct radv_userdata_locations {

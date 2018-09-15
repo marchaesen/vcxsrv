@@ -1065,8 +1065,10 @@ struct radv_image;
 
 bool radv_cmd_buffer_uses_mec(struct radv_cmd_buffer *cmd_buffer);
 
-void si_init_compute(struct radv_cmd_buffer *cmd_buffer);
-void si_init_config(struct radv_cmd_buffer *cmd_buffer);
+void si_emit_graphics(struct radv_physical_device *physical_device,
+		      struct radeon_cmdbuf *cs);
+void si_emit_compute(struct radv_physical_device *physical_device,
+		      struct radeon_cmdbuf *cs);
 
 void cik_create_gfx_config(struct radv_device *device);
 

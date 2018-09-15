@@ -79,7 +79,7 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 		radeon_set_context_reg(cs, R_028354_PA_SC_RASTER_CONFIG_1, raster_config_1);
 }
 
-static void
+void
 si_emit_compute(struct radv_physical_device *physical_device,
                 struct radeon_cmdbuf *cs)
 {
@@ -117,13 +117,6 @@ si_emit_compute(struct radv_physical_device *physical_device,
 	}
 }
 
-void
-si_init_compute(struct radv_cmd_buffer *cmd_buffer)
-{
-	struct radv_physical_device *physical_device = cmd_buffer->device->physical_device;
-	si_emit_compute(physical_device, cmd_buffer->cs);
-}
-
 /* 12.4 fixed-point */
 static unsigned radv_pack_float_12p4(float x)
 {
@@ -159,9 +152,9 @@ si_set_raster_config(struct radv_physical_device *physical_device,
 	}
 }
 
-static void
-si_emit_config(struct radv_physical_device *physical_device,
-	       struct radeon_cmdbuf *cs)
+void
+si_emit_graphics(struct radv_physical_device *physical_device,
+		 struct radeon_cmdbuf *cs)
 {
 	int i;
 
@@ -388,13 +381,6 @@ si_emit_config(struct radv_physical_device *physical_device,
 	si_emit_compute(physical_device, cs);
 }
 
-void si_init_config(struct radv_cmd_buffer *cmd_buffer)
-{
-	struct radv_physical_device *physical_device = cmd_buffer->device->physical_device;
-
-	si_emit_config(physical_device, cmd_buffer->cs);
-}
-
 void
 cik_create_gfx_config(struct radv_device *device)
 {
@@ -402,7 +388,7 @@ cik_create_gfx_config(struct radv_device *device)
 	if (!cs)
 		return;
 
-	si_emit_config(device->physical_device, cs);
+	si_emit_graphics(device->physical_device, cs);
 
 	while (cs->cdw & 7) {
 		if (device->physical_device->rad_info.gfx_ib_pad_with_type2)
@@ -1004,21 +990,19 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 /* sets the CP predication state using a boolean stored at va */
 void
 si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer,
-			      bool inverted, uint64_t va)
+			      bool draw_visible, uint64_t va)
 {
 	uint32_t op = 0;
 
 	if (va) {
 		op = PRED_OP(PREDICATION_OP_BOOL64);
 
-		/* By default, our internal rendering commands are discarded
-		 * only if the predicate is non-zero (ie. DRAW_VISIBLE). But
-		 * VK_EXT_conditional_rendering also allows to discard commands
-		 * when the predicate is zero, which means we have to use a
-		 * different flag.
+		/* PREDICATION_DRAW_VISIBLE means that if the 32-bit value is
+		 * zero, all rendering commands are discarded. Otherwise, they
+		 * are discarded if the value is non zero.
 		 */
-		op |= inverted ? PREDICATION_DRAW_VISIBLE :
-				 PREDICATION_DRAW_NOT_VISIBLE;
+		op |= draw_visible ? PREDICATION_DRAW_VISIBLE :
+				     PREDICATION_DRAW_NOT_VISIBLE;
 	}
 	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
 		radeon_emit(cmd_buffer->cs, PKT3(PKT3_SET_PREDICATION, 2, 0));
