@@ -658,8 +658,7 @@ wsi_wl_swapchain_get_wsi_image(struct wsi_swapchain *wsi_chain,
 
 static VkResult
 wsi_wl_swapchain_acquire_next_image(struct wsi_swapchain *wsi_chain,
-                                    uint64_t timeout,
-                                    VkSemaphore semaphore,
+                                    const VkAcquireNextImageInfoKHR *info,
                                     uint32_t *image_index)
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;

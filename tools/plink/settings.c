@@ -74,18 +74,18 @@ const char *const ttymodes[] = {
  * (which is only present in tools that manage settings).
  */
 
-Backend *backend_from_name(const char *name)
+const struct Backend_vtable *backend_vt_from_name(const char *name)
 {
-    Backend **p;
+    const struct Backend_vtable *const *p;
     for (p = backends; *p != NULL; p++)
 	if (!strcmp((*p)->name, name))
 	    return *p;
     return NULL;
 }
 
-Backend *backend_from_proto(int proto)
+const struct Backend_vtable *backend_vt_from_proto(int proto)
 {
-    Backend **p;
+    const struct Backend_vtable *const *p;
     for (p = backends; *p != NULL; p++)
 	if ((*p)->protocol == proto)
 	    return *p;
@@ -502,7 +502,7 @@ static void read_clip_setting(void *handle, const char *savekey,
 
 char *save_settings(const char *section, Conf *conf)
 {
-    void *sesskey;
+    struct settings_w *sesskey;
     char *errmsg;
 
     sesskey = open_settings_w(section, &errmsg);
@@ -513,7 +513,7 @@ char *save_settings(const char *section, Conf *conf)
     return NULL;
 }
 
-void save_open_settings(void *sesskey, Conf *conf)
+void save_open_settings(settings_w *sesskey, Conf *conf)
 {
     int i;
     const char *p;
@@ -528,9 +528,10 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "SSHLogOmitData", conf_get_int(conf, CONF_logomitdata));
     p = "raw";
     {
-	const Backend *b = backend_from_proto(conf_get_int(conf, CONF_protocol));
-	if (b)
-	    p = b->name;
+        const struct Backend_vtable *vt =
+            backend_vt_from_proto(conf_get_int(conf, CONF_protocol));
+        if (vt)
+            p = vt->name;
     }
     write_setting_s(sesskey, "Protocol", p);
     write_setting_i(sesskey, "PortNumber", conf_get_int(conf, CONF_port));
@@ -759,7 +760,7 @@ void save_open_settings(void *sesskey, Conf *conf)
 
 void load_settings(const char *section, Conf *conf)
 {
-    void *sesskey;
+    settings_r *sesskey;
 
     sesskey = open_settings_r(section);
     load_open_settings(sesskey, conf);
@@ -769,7 +770,7 @@ void load_settings(const char *section, Conf *conf)
         add_session_to_jumplist(section);
 }
 
-void load_open_settings(void *sesskey, Conf *conf)
+void load_open_settings(settings_r *sesskey, Conf *conf)
 {
     int i;
     char *prot;
@@ -791,9 +792,9 @@ void load_open_settings(void *sesskey, Conf *conf)
     conf_set_int(conf, CONF_protocol, default_protocol);
     conf_set_int(conf, CONF_port, default_port);
     {
-	const Backend *b = backend_from_name(prot);
-	if (b) {
-	    conf_set_int(conf, CONF_protocol, b->protocol);
+        const struct Backend_vtable *vt = backend_vt_from_name(prot);
+        if (vt) {
+            conf_set_int(conf, CONF_protocol, vt->protocol);
 	    gppi(sesskey, "PortNumber", default_port, conf, CONF_port);
 	}
     }
@@ -1241,7 +1242,7 @@ void get_sesslist(struct sesslist *list, int allocate)
     char otherbuf[2048];
     int buflen, bufsize, i;
     char *p, *ret;
-    void *handle;
+    settings_e *handle;
 
     if (allocate) {
 

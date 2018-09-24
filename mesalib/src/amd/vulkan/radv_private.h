@@ -684,6 +684,9 @@ struct radv_device {
 	bool use_global_bo_list;
 
 	struct radv_bo_list bo_list;
+
+	/* Whether anisotropy is forced with RADV_TEX_ANISO (-1 is disabled). */
+	int force_aniso;
 };
 
 struct radv_device_memory {

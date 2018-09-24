@@ -1,0 +1,227 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.2.1 Release Notes / September 21, 2018</h1>
+
+<p>
+Mesa 18.2.1 is a bug fix release which fixes bugs found since the 18.2.0 release.
+</p>
+<p>
+Mesa 18.2.0 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+SHA256: 45419ccbe1bf9a2e15ffe71ced34615002e1b42c24b917fbe2b2f58ab1970562  mesa-18.2.1.tar.gz
+SHA256: 9636dc6f3d188abdcca02da97cedd73640d9035224efd5db724187d062c81056  mesa-18.2.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=103241">Bug 103241</a> - Anv crashes when using 64-bit vertex inputs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107280">Bug 107280</a> - [DXVK] Batman: Arkham City with tessellation enabled hangs on SKL GT4</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107772">Bug 107772</a> - Mesa preprocessor matches if(def)s &amp; endifs incorrectly</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107779">Bug 107779</a> - Access violation with some games</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107810">Bug 107810</a> - The 'va_end' call is missed after 'va_copy' in 'util_vsnprintf' function under windows</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107832">Bug 107832</a> - Gallium picking A16L16 formats when emulating INTENSITY16 conflicts with mesa</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107843">Bug 107843</a> - 32bit Mesa build failes with meson.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107879">Bug 107879</a> - crash happens when link program</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107891">Bug 107891</a> - [wine, regression, bisected] RAGE, Wolfenstein The New Order hangs in menu</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Andres Gomez (3):</p>
+<ul>
+  <li>docs: add sha256 checksums for 18.2.0</li>
+  <li>Revert "Revert "glsl: skip stringification in preprocessor if in unreachable branch""</li>
+  <li>cherry-ignore: i965/tools: 32bit compilation with meson</li>
+</ul>
+
+<p>Andrii Simiklit (4):</p>
+<ul>
+  <li>apple/glx/log: added missing va_end() after va_copy()</li>
+  <li>mesa/util: don't use the same 'va_list' instance twice</li>
+  <li>mesa/util: don't ignore NULL returned from 'malloc'</li>
+  <li>mesa/util: add missing va_end() after va_copy()</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (5):</p>
+<ul>
+  <li>radv: Support v3 of VK_EXT_vertex_attribute_divisor.</li>
+  <li>radv: Set the user SGPR MSB for Vega.</li>
+  <li>radv: Only allow 16 user SGPRs for compute on GFX9+.</li>
+  <li>radv: Use build ID if available for cache UUID.</li>
+  <li>radv: Fix driver UUID SHA1 init.</li>
+</ul>
+
+<p>Christopher Egert (1):</p>
+<ul>
+  <li>radeon: fix ColorMask</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>virgl: don't send a shader create with no data. (v2)</li>
+</ul>
+
+<p>Dylan Baker (1):</p>
+<ul>
+  <li>meson: Print a message about why a libdrm version was selected</li>
+</ul>
+
+<p>Eric Anholt (2):</p>
+<ul>
+  <li>v3d: Fix SRC_ALPHA_SATURATE blending for RTs without alpha.</li>
+  <li>v3d: Fix setup of the VCM cache size.</li>
+</ul>
+
+<p>Erik Faye-Lund (2):</p>
+<ul>
+  <li>winsys/virgl: avoid unintended behavior</li>
+  <li>virgl: adjust strides when mapping temp-resources</li>
+</ul>
+
+<p>Fritz Koenig (2):</p>
+<ul>
+  <li>mesa: Additional FlipY applications</li>
+  <li>mesa: FramebufferParameteri parameter checking</li>
+</ul>
+
+<p>Gert Wollny (2):</p>
+<ul>
+  <li>winsys/virgl: correct resource and handle allocation (v2)</li>
+  <li>mesa/texture: Also check for LA texture when querying intensity component size</li>
+</ul>
+
+<p>Ian Romanick (1):</p>
+<ul>
+  <li>i965/fs: Don't propagate conditional modifiers from integer compares to adds</li>
+</ul>
+
+<p>Jason Ekstrand (11):</p>
+<ul>
+  <li>anv/pipeline: Only consider double elements which actually exist</li>
+  <li>i965: Workaround the gen9 hw astc5x5 sampler bug</li>
+  <li>anv: Re-emit vertex buffers when the pipeline changes</li>
+  <li>anv: Disable the vertex cache when tessellating on SKL GT4</li>
+  <li>anv: Clamp scissors to the framebuffer boundary</li>
+  <li>vulkan: Update the XML and headers to 1.1.84</li>
+  <li>anv: Support v3 of VK_EXT_vertex_attribute_divisor</li>
+  <li>anv/query: Write both dwords in emit_zero_queries</li>
+  <li>nir: Add a small pass to rematerialize derefs per-block</li>
+  <li>nir/loop_unroll: Re-materialize derefs in use blocks before unrolling</li>
+  <li>nir/opt_if: Re-materialize derefs in use blocks before peeling loops</li>
+</ul>
+
+<p>Josh Pieper (1):</p>
+<ul>
+  <li>st/mesa: Validate the result of pipe_transfer_map in make_texture (v2)</li>
+</ul>
+
+<p>Juan A. Suarez Romero (2):</p>
+<ul>
+  <li>cherry-ignore: radv: fix descriptor pool allocation size</li>
+  <li>Update version to 18.2.1</li>
+</ul>
+
+<p>Kenneth Feng (1):</p>
+<ul>
+  <li>amd: Add Picasso device id</li>
+</ul>
+
+<p>Marek Olšák (5):</p>
+<ul>
+  <li>radeonsi: fix HTILE for NPOT textures with mipmapping on SI/CI</li>
+  <li>winsys/radeon: fix CMASK fast clear for NPOT textures with mipmapping on SI/CI</li>
+  <li>r600: fix HTILE for NPOT textures with mipmapping</li>
+  <li>radeonsi: fix printing a BO list into ddebug reports</li>
+  <li>ac: revert new LLVM 7.0 behavior for fdiv</li>
+</ul>
+
+<p>Mathias Fröhlich (1):</p>
+<ul>
+  <li>tnl: Fix green gun regression in xonotic.</li>
+</ul>
+
+<p>Mauro Rossi (3):</p>
+<ul>
+  <li>android: broadcom/genxml: fix collision with intel/genxml header-gen macro</li>
+  <li>android: broadcom/cle: add gallium include path</li>
+  <li>android: broadcom/cle: export the broadcom top level path headers</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>loader/dri3: Only wait for back buffer fences in dri3_get_buffer</li>
+</ul>
+
+<p>Pierre Moreau (1):</p>
+<ul>
+  <li>nvir: Always split 64-bit IMAD/IMUL operations</li>
+</ul>
+
+<p>Samuel Pitoiset (7):</p>
+<ul>
+  <li>radv: fix function names for VK_EXT_conditional_rendering</li>
+  <li>radv: fix VK_EXT_conditional_rendering visibility</li>
+  <li>radv: bump the maximum number of arguments to 64</li>
+  <li>radv: handle loc-&gt;indirect correctly for the first descriptor</li>
+  <li>radv: fix GPU hangs with 32-bit indirect descriptors</li>
+  <li>radv: fix flushing indirect descriptors</li>
+  <li>radv: fix setting global locations for indirect descriptors</li>
+</ul>
+
+<p>Sergii Romantsov (3):</p>
+<ul>
+  <li>intel: compiler option msse2 and mstackrealign</li>
+  <li>i965/tools: 32bit compilation with meson</li>
+  <li>mesa/meson: 32bit xmlconfig linkage</li>
+</ul>
+
+<p>Timothy Arceri (2):</p>
+<ul>
+  <li>glsl: fixer lexer for unreachable defines</li>
+  <li>Revert "radeonsi: avoid syncing the driver thread in si_fence_finish"</li>
+</ul>
+
+
+</div>
+</body>
+</html>

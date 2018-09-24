@@ -181,6 +181,13 @@ opt_peel_loop_initial_if(nir_loop *loop)
       }
    }
 
+   /* We're about to re-arrange a bunch of blocks so make sure that we don't
+    * have deref uses which cross block boundaries.  We don't want a deref
+    * accidentally ending up in a phi.
+    */
+   nir_rematerialize_derefs_in_use_blocks_impl(
+      nir_cf_node_get_function(&loop->cf_node));
+
    /* Before we do anything, convert the loop to LCSSA.  We're about to
     * replace a bunch of SSA defs with registers and this will prevent any of
     * it from leaking outside the loop.
@@ -658,12 +665,6 @@ nir_opt_if(nir_shader *shader)
           * that don't dominate their uses.
           */
          nir_lower_regs_to_ssa_impl(function->impl);
-
-         /* Calling nir_convert_loop_to_lcssa() in opt_peel_loop_initial_if()
-          * adds extra phi nodes which may not be valid if they're used for
-          * something such as a deref.  Remove any unneeded phis.
-          */
-         nir_opt_remove_phis_impl(function->impl);
 
          progress = true;
       }

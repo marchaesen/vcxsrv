@@ -111,6 +111,9 @@ convert_loop_exit_for_ssa(nir_ssa_def *def, void *void_state)
    if (all_uses_inside_loop)
       return true;
 
+   /* We don't want derefs ending up in phi sources */
+   assert(def->parent_instr->type != nir_instr_type_deref);
+
    /* Initialize a phi-instruction */
    nir_phi_instr *phi = nir_phi_instr_create(state->shader);
    nir_ssa_dest_init(&phi->instr, &phi->dest,

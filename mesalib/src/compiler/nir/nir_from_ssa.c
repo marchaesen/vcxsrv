@@ -901,6 +901,8 @@ nir_lower_phis_to_regs_block(nir_block *block)
 
       nir_foreach_phi_src(src, phi) {
          assert(src->src.is_ssa);
+         /* We don't want derefs ending up in phi sources */
+         assert(!nir_src_as_deref(src->src));
          place_phi_read(shader, reg, src->src.ssa, src->pred);
       }
 

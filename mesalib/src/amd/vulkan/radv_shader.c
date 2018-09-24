@@ -210,7 +210,9 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.image_write_without_format = true,
 				.tessellation = true,
 				.int64 = true,
+				.int16 = true,
 				.multiview = true,
+				.subgroup_arithmetic = true,
 				.subgroup_ballot = true,
 				.subgroup_basic = true,
 				.subgroup_quad = true,
@@ -408,6 +410,7 @@ radv_fill_shader_variant(struct radv_device *device,
 
 	variant->code_size = radv_get_shader_binary_size(binary);
 	variant->rsrc2 = S_00B12C_USER_SGPR(variant->info.num_user_sgprs) |
+			 S_00B12C_USER_SGPR_MSB(variant->info.num_user_sgprs >> 5) |
 			 S_00B12C_SCRATCH_EN(scratch_enabled);
 
 	variant->rsrc1 = S_00B848_VGPRS((variant->config.num_vgprs - 1) / 4) |

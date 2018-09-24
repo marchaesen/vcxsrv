@@ -408,14 +408,6 @@ threaded_transfer(struct pipe_transfer *transfer)
    return (struct threaded_transfer*)transfer;
 }
 
-static inline struct pipe_context *
-threaded_context_unwrap_unsync(struct pipe_context *pipe)
-{
-   if (!pipe || !pipe->priv)
-      return pipe;
-   return (struct pipe_context*)pipe->priv;
-}
-
 static inline void
 tc_unflushed_batch_token_reference(struct tc_unflushed_batch_token **dst,
                                    struct tc_unflushed_batch_token *src)

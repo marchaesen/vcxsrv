@@ -75,7 +75,7 @@
 	<return type="GLboolean"/>
     </function>
 
-    <function name="BindRenderbufferEXT" deprecated="3.1">
+    <function name="BindRenderbufferEXT">
         <param name="target" type="GLenum"/>
         <param name="renderbuffer" type="GLuint"/>
         <glx rop="4316"/>
@@ -109,7 +109,7 @@
 	<return type="GLboolean"/>
     </function>
 
-    <function name="BindFramebufferEXT" deprecated="3.1">
+    <function name="BindFramebufferEXT">
         <param name="target" type="GLenum"/>
         <param name="framebuffer" type="GLuint"/>
         <glx rop="4319"/>

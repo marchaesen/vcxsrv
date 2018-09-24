@@ -45,22 +45,51 @@
 #include "sid.h"
 #include "gfx9d.h"
 #include "addrlib/gfx9/chip/gfx9_enum.h"
+#include "util/build_id.h"
 #include "util/debug.h"
+#include "util/mesa-sha1.h"
+
+static bool
+radv_get_build_id(void *ptr, struct mesa_sha1 *ctx)
+{
+	uint32_t timestamp;
+
+#ifdef HAVE_DL_ITERATE_PHDR
+	const struct build_id_note *note = NULL;
+	if ((note = build_id_find_nhdr_for_addr(ptr))) {
+		_mesa_sha1_update(ctx, build_id_data(note), build_id_length(note));
+	} else
+#endif
+	if (disk_cache_get_function_timestamp(ptr, &timestamp)) {
+		if (!timestamp) {
+			fprintf(stderr, "radv: The provided filesystem timestamp for the cache is bogus!\n");
+		}
+
+		_mesa_sha1_update(ctx, &timestamp, sizeof(timestamp));
+	} else
+		return false;
+	return true;
+}
 
 static int
 radv_device_get_cache_uuid(enum radeon_family family, void *uuid)
 {
-	uint32_t mesa_timestamp, llvm_timestamp;
-	uint16_t f = family;
+	struct mesa_sha1 ctx;
+	unsigned char sha1[20];
+	unsigned ptr_size = sizeof(void*);
+
 	memset(uuid, 0, VK_UUID_SIZE);
-	if (!disk_cache_get_function_timestamp(radv_device_get_cache_uuid, &mesa_timestamp) ||
-	    !disk_cache_get_function_timestamp(LLVMInitializeAMDGPUTargetInfo, &llvm_timestamp))
+	_mesa_sha1_init(&ctx);
+
+	if (!radv_get_build_id(radv_device_get_cache_uuid, &ctx) ||
+	    !radv_get_build_id(LLVMInitializeAMDGPUTargetInfo, &ctx))
 		return -1;
 
-	memcpy(uuid, &mesa_timestamp, 4);
-	memcpy((char*)uuid + 4, &llvm_timestamp, 4);
-	memcpy((char*)uuid + 8, &f, 2);
-	snprintf((char*)uuid + 10, VK_UUID_SIZE - 10, "radv%zd", sizeof(void *));
+	_mesa_sha1_update(&ctx, &family, sizeof(family));
+	_mesa_sha1_update(&ctx, &ptr_size, sizeof(ptr_size));
+	_mesa_sha1_final(&ctx, sha1);
+
+	memcpy(uuid, sha1, VK_UUID_SIZE);
 	return 0;
 }
 
@@ -734,7 +763,7 @@ void radv_GetPhysicalDeviceFeatures(
 		.shaderCullDistance                       = true,
 		.shaderFloat64                            = true,
 		.shaderInt64                              = true,
-		.shaderInt16                              = false,
+		.shaderInt16                              = pdevice->rad_info.chip_class >= GFX9 && HAVE_LLVM >= 0x700,
 		.sparseBinding                            = true,
 		.variableMultisampleRate                  = true,
 		.inheritedQueries                         = true,
@@ -1034,6 +1063,7 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->subgroupSize = 64;
 			properties->supportedStages = VK_SHADER_STAGE_ALL;
 			properties->supportedOperations =
+							VK_SUBGROUP_FEATURE_ARITHMETIC_BIT |
 							VK_SUBGROUP_FEATURE_BASIC_BIT |
 							VK_SUBGROUP_FEATURE_BALLOT_BIT |
 							VK_SUBGROUP_FEATURE_QUAD_BIT |
@@ -1150,6 +1180,20 @@ void radv_GetPhysicalDeviceProperties2(
 			VkPhysicalDeviceProtectedMemoryProperties *properties =
 				(VkPhysicalDeviceProtectedMemoryProperties *)ext;
 			properties->protectedNoFault = false;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT: {
+			VkPhysicalDeviceConservativeRasterizationPropertiesEXT *properties =
+				(VkPhysicalDeviceConservativeRasterizationPropertiesEXT *)ext;
+			properties->primitiveOverestimationSize = 0;
+			properties->maxExtraPrimitiveOverestimationSize = 0;
+			properties->extraPrimitiveOverestimationSizeGranularity = 0;
+			properties->primitiveUnderestimation = VK_FALSE;
+			properties->conservativePointAndLineRasterization = VK_FALSE;
+			properties->degenerateTrianglesRasterized = VK_FALSE;
+			properties->degenerateLinesRasterized = VK_FALSE;
+			properties->fullyCoveredFragmentShaderInputVariable = VK_FALSE;
+			properties->conservativeRasterizationPostDepthCoverage = VK_FALSE;
 			break;
 		}
 		default:
@@ -1435,6 +1479,28 @@ static int radv_get_device_extension_index(const char *name)
 	return -1;
 }
 
+static int
+radv_get_int_debug_option(const char *name, int default_value)
+{
+	const char *str;
+	int result;
+
+	str = getenv(name);
+	if (!str) {
+		result = default_value;
+	} else {
+		char *endptr;
+
+		result = strtol(str, &endptr, 0);
+		if (str == endptr) {
+			/* No digits founs. */
+			result = default_value;
+		}
+	}
+
+	return result;
+}
+
 VkResult radv_CreateDevice(
 	VkPhysicalDevice                            physicalDevice,
 	const VkDeviceCreateInfo*                   pCreateInfo,
@@ -1629,6 +1695,13 @@ VkResult radv_CreateDevice(
 		goto fail_meta;
 
 	device->mem_cache = radv_pipeline_cache_from_handle(pc);
+
+	device->force_aniso =
+		MIN2(16, radv_get_int_debug_option("RADV_TEX_ANISO", -1));
+	if (device->force_aniso >= 0) {
+		fprintf(stderr, "radv: Forcing anisotropy filter to %ix\n",
+			1 << util_logbase2(device->force_aniso));
+	}
 
 	*pDevice = radv_device_to_handle(device);
 	return VK_SUCCESS;
@@ -4428,13 +4501,26 @@ radv_tex_filter_mode(VkSamplerReductionModeEXT mode)
 	return 0;
 }
 
+static uint32_t
+radv_get_max_anisotropy(struct radv_device *device,
+			const VkSamplerCreateInfo *pCreateInfo)
+{
+	if (device->force_aniso >= 0)
+		return device->force_aniso;
+
+	if (pCreateInfo->anisotropyEnable &&
+	    pCreateInfo->maxAnisotropy > 1.0f)
+		return (uint32_t)pCreateInfo->maxAnisotropy;
+
+	return 0;
+}
+
 static void
 radv_init_sampler(struct radv_device *device,
 		  struct radv_sampler *sampler,
 		  const VkSamplerCreateInfo *pCreateInfo)
 {
-	uint32_t max_aniso = pCreateInfo->anisotropyEnable && pCreateInfo->maxAnisotropy > 1.0 ?
-					(uint32_t) pCreateInfo->maxAnisotropy : 0;
+	uint32_t max_aniso = radv_get_max_anisotropy(device, pCreateInfo);
 	uint32_t max_aniso_ratio = radv_tex_aniso_filter(max_aniso);
 	bool is_vi = (device->physical_device->rad_info.chip_class >= VI);
 	unsigned filter_mode = SQ_IMG_FILTER_MODE_BLEND;

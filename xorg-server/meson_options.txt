@@ -30,6 +30,7 @@ option('xdmcp', type: 'boolean', value: true)
 option('xdm-auth-1', type: 'boolean', value: true)
 option('secure-rpc', type: 'boolean', value: true)
 option('ipv6', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto')
+option('input_thread', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto')
 
 option('xkb_dir', type: 'string')
 option('xkb_output_dir', type: 'string')
@@ -45,7 +46,6 @@ option('fallback_input_driver', type: 'string', value: 'auto')
 option('vendor_name', type: 'string', value: 'The X.Org Foundation')
 option('vendor_name_short', type: 'string', value: 'X.Org')
 option('vendor_web', type: 'string', value: 'http://wiki.x.org')
-option('os_vendor', type: 'string', value: '')
 
 option('listen_tcp', type: 'boolean', value: false,
        description: 'Listen on TCP by default')

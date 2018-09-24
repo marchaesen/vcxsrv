@@ -87,6 +87,8 @@ ac_llvm_context_init(struct ac_llvm_context *ctx,
 	ctx->v4f32 = LLVMVectorType(ctx->f32, 4);
 	ctx->v8i32 = LLVMVectorType(ctx->i32, 8);
 
+	ctx->i16_0 = LLVMConstInt(ctx->i16, 0, false);
+	ctx->i16_1 = LLVMConstInt(ctx->i16, 1, false);
 	ctx->i32_0 = LLVMConstInt(ctx->i32, 0, false);
 	ctx->i32_1 = LLVMConstInt(ctx->i32, 1, false);
 	ctx->i64_0 = LLVMConstInt(ctx->i64, 0, false);
@@ -1391,17 +1393,31 @@ ac_build_umsb(struct ac_llvm_context *ctx,
 	LLVMTypeRef type;
 	LLVMValueRef highest_bit;
 	LLVMValueRef zero;
+	unsigned bitsize;
 
-	if (ac_get_elem_bits(ctx, LLVMTypeOf(arg)) == 64) {
+	bitsize = ac_get_elem_bits(ctx, LLVMTypeOf(arg));
+	switch (bitsize) {
+	case 64:
 		intrin_name = "llvm.ctlz.i64";
 		type = ctx->i64;
 		highest_bit = LLVMConstInt(ctx->i64, 63, false);
 		zero = ctx->i64_0;
-	} else {
+		break;
+	case 32:
 		intrin_name = "llvm.ctlz.i32";
 		type = ctx->i32;
 		highest_bit = LLVMConstInt(ctx->i32, 31, false);
 		zero = ctx->i32_0;
+		break;
+	case 16:
+		intrin_name = "llvm.ctlz.i16";
+		type = ctx->i16;
+		highest_bit = LLVMConstInt(ctx->i16, 15, false);
+		zero = ctx->i16_0;
+		break;
+	default:
+		unreachable(!"invalid bitsize");
+		break;
 	}
 
 	LLVMValueRef params[2] = {
@@ -2067,14 +2083,25 @@ LLVMValueRef ac_build_isign(struct ac_llvm_context *ctx, LLVMValueRef src0,
 	LLVMValueRef cmp, val, zero, one;
 	LLVMTypeRef type;
 
-	if (bitsize == 32) {
-		type = ctx->i32;
-		zero = ctx->i32_0;
-		one = ctx->i32_1;
-	} else {
+	switch (bitsize) {
+	case 64:
 		type = ctx->i64;
 		zero = ctx->i64_0;
 		one = ctx->i64_1;
+		break;
+	case 32:
+		type = ctx->i32;
+		zero = ctx->i32_0;
+		one = ctx->i32_1;
+		break;
+	case 16:
+		type = ctx->i16;
+		zero = ctx->i16_0;
+		one = ctx->i16_1;
+		break;
+	default:
+		unreachable(!"invalid bitsize");
+		break;
 	}
 
 	cmp = LLVMBuildICmp(ctx->builder, LLVMIntSGT, src0, zero, "");
@@ -2105,6 +2132,66 @@ LLVMValueRef ac_build_fsign(struct ac_llvm_context *ctx, LLVMValueRef src0,
 	cmp = LLVMBuildFCmp(ctx->builder, LLVMRealOGE, val, zero, "");
 	val = LLVMBuildSelect(ctx->builder, cmp, val, LLVMConstReal(type, -1.0), "");
 	return val;
+}
+
+LLVMValueRef ac_build_bit_count(struct ac_llvm_context *ctx, LLVMValueRef src0)
+{
+	LLVMValueRef result;
+	unsigned bitsize;
+
+	bitsize = ac_get_elem_bits(ctx, LLVMTypeOf(src0));
+
+	switch (bitsize) {
+	case 64:
+		result = ac_build_intrinsic(ctx, "llvm.ctpop.i64", ctx->i64,
+					    (LLVMValueRef []) { src0 }, 1,
+					    AC_FUNC_ATTR_READNONE);
+
+		result = LLVMBuildTrunc(ctx->builder, result, ctx->i32, "");
+		break;
+	case 32:
+		result = ac_build_intrinsic(ctx, "llvm.ctpop.i32", ctx->i32,
+					    (LLVMValueRef []) { src0 }, 1,
+					    AC_FUNC_ATTR_READNONE);
+		break;
+	case 16:
+		result = ac_build_intrinsic(ctx, "llvm.ctpop.i16", ctx->i16,
+					    (LLVMValueRef []) { src0 }, 1,
+					    AC_FUNC_ATTR_READNONE);
+		break;
+	default:
+		unreachable(!"invalid bitsize");
+		break;
+	}
+
+	return result;
+}
+
+LLVMValueRef ac_build_bitfield_reverse(struct ac_llvm_context *ctx,
+				       LLVMValueRef src0)
+{
+	LLVMValueRef result;
+	unsigned bitsize;
+
+	bitsize = ac_get_elem_bits(ctx, LLVMTypeOf(src0));
+
+	switch (bitsize) {
+	case 32:
+		result = ac_build_intrinsic(ctx, "llvm.bitreverse.i32", ctx->i32,
+					    (LLVMValueRef []) { src0 }, 1,
+					    AC_FUNC_ATTR_READNONE);
+		break;
+	case 16:
+		result = ac_build_intrinsic(ctx, "llvm.bitreverse.i16", ctx->i16,
+					    (LLVMValueRef []) { src0 }, 1,
+					    AC_FUNC_ATTR_READNONE);
+		break;
+	default:
+		unreachable(!"invalid bitsize");
+		break;
+	}
+
+	return result;
 }
 
 #define AC_EXP_TARGET		0
@@ -2422,14 +2509,25 @@ LLVMValueRef ac_find_lsb(struct ac_llvm_context *ctx,
 	const char *intrin_name;
 	LLVMTypeRef type;
 	LLVMValueRef zero;
-	if (src0_bitsize == 64) {
+
+	switch (src0_bitsize) {
+	case 64:
 		intrin_name = "llvm.cttz.i64";
 		type = ctx->i64;
 		zero = ctx->i64_0;
-	} else {
+		break;
+	case 32:
 		intrin_name = "llvm.cttz.i32";
 		type = ctx->i32;
 		zero = ctx->i32_0;
+		break;
+	case 16:
+		intrin_name = "llvm.cttz.i16";
+		type = ctx->i16;
+		zero = ctx->i16_0;
+		break;
+	default:
+		unreachable(!"invalid bitsize");
 	}
 
 	LLVMValueRef params[2] = {

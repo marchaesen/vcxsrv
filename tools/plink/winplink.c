@@ -45,7 +45,7 @@ void nonfatal(const char *p, ...)
     va_end(ap);
     fputc('\n', stderr);
 }
-void connection_fatal(void *frontend, const char *p, ...)
+void connection_fatal(Frontend *frontend, const char *p, ...)
 {
     va_list ap;
     fprintf(stderr, "FATAL ERROR: ");
@@ -76,15 +76,14 @@ DWORD orig_console_mode;
 
 WSAEVENT netevent;
 
-static Backend *back;
-static void *backhandle;
+static Backend *backend;
 static Conf *conf;
 
 int term_ldisc(Terminal *term, int mode)
 {
     return FALSE;
 }
-void frontend_echoedit_update(void *frontend, int echo, int edit)
+void frontend_echoedit_update(Frontend *frontend, int echo, int edit)
 {
     /* Update stdin read mode to reflect changes in line discipline. */
     DWORD mode;
@@ -101,9 +100,9 @@ void frontend_echoedit_update(void *frontend, int echo, int edit)
     SetConsoleMode(inhandle, mode);
 }
 
-char *get_ttymode(void *frontend, const char *mode) { return NULL; }
+char *get_ttymode(Frontend *frontend, const char *mode) { return NULL; }
 
-int from_backend(void *frontend_handle, int is_stderr,
+int from_backend(Frontend *frontend, int is_stderr,
 		 const void *data, int len)
 {
     if (is_stderr) {
@@ -115,17 +114,7 @@ int from_backend(void *frontend_handle, int is_stderr,
     return handle_backlog(stdout_handle) + handle_backlog(stderr_handle);
 }
 
-int from_backend_untrusted(void *frontend_handle, const void *data, int len)
-{
-    /*
-     * No "untrusted" output should get here (the way the code is
-     * currently, it's all diverted by FLAG_STDERR).
-     */
-    assert(!"Unexpected call to from_backend_untrusted()");
-    return 0; /* not reached */
-}
-
-int from_backend_eof(void *frontend_handle)
+int from_backend_eof(Frontend *frontend)
 {
     handle_write_eof(stdout_handle);
     return FALSE;   /* do not respond to incoming EOF with outgoing */
@@ -254,11 +243,11 @@ int stdin_gotdata(struct handle *h, void *data, int len)
 	cleanup_exit(0);
     }
     noise_ultralight(len);
-    if (back->connected(backhandle)) {
+    if (backend_connected(backend)) {
 	if (len > 0) {
-	    return back->send(backhandle, data, len);
+            return backend_send(backend, data, len);
 	} else {
-	    back->special(backhandle, TS_EOF);
+            backend_special(backend, TS_EOF);
 	    return 0;
 	}
     } else
@@ -281,9 +270,9 @@ void stdouterr_sent(struct handle *h, int new_backlog)
 		(h == stdout_handle ? "output" : "error"), buf);
 	cleanup_exit(0);
     }
-    if (back->connected(backhandle)) {
-	back->unthrottle(backhandle, (handle_backlog(stdout_handle) +
-				      handle_backlog(stderr_handle)));
+    if (backend_connected(backend)) {
+        backend_unthrottle(backend, (handle_backlog(stdout_handle) +
+                                     handle_backlog(stderr_handle)));
     }
 }
 
@@ -300,6 +289,7 @@ int main(int argc, char **argv)
     int use_subsystem = 0;
     int just_test_share_exists = FALSE;
     unsigned long now, next, then;
+    const struct Backend_vtable *vt;
 
     dll_hijacking_protection();
 
@@ -312,7 +302,7 @@ int main(int argc, char **argv)
     default_protocol = PROT_SSH;
     default_port = 22;
 
-    flags = FLAG_STDERR;
+    flags = 0;
     cmdline_tooltype |=
         (TOOLTYPE_HOST_ARG |
          TOOLTYPE_HOST_ARG_CAN_BE_SESSION |
@@ -334,10 +324,10 @@ int main(int argc, char **argv)
 	 */
 	char *p = getenv("PLINK_PROTOCOL");
 	if (p) {
-	    const Backend *b = backend_from_name(p);
-	    if (b) {
-		default_protocol = b->protocol;
-		default_port = b->default_port;
+            const struct Backend_vtable *vt = backend_vt_from_name(p);
+            if (vt) {
+                default_protocol = vt->protocol;
+                default_port = vt->default_port;
 		conf_set_int(conf, CONF_protocol, default_protocol);
 		conf_set_int(conf, CONF_port, default_port);
 	    }
@@ -432,8 +422,8 @@ int main(int argc, char **argv)
      * Select protocol. This is farmed out into a table in a
      * separate file to enable an ssh-free variant.
      */
-    back = backend_from_proto(conf_get_int(conf, CONF_protocol));
-    if (back == NULL) {
+    vt = backend_vt_from_proto(conf_get_int(conf, CONF_protocol));
+    if (vt == NULL) {
 	fprintf(stderr,
 		"Internal fault: Unsupported protocol found\n");
 	return 1;
@@ -460,13 +450,13 @@ int main(int argc, char **argv)
     console_provide_logctx(logctx);
 
     if (just_test_share_exists) {
-        if (!back->test_for_upstream) {
+        if (!vt->test_for_upstream) {
             fprintf(stderr, "Connection sharing not supported for connection "
-                    "type '%s'\n", back->name);
+                    "type '%s'\n", vt->name);
             return 1;
         }
-        if (back->test_for_upstream(conf_get_str(conf, CONF_host),
-                                    conf_get_int(conf, CONF_port), conf))
+        if (vt->test_for_upstream(conf_get_str(conf, CONF_host),
+                                  conf_get_int(conf, CONF_port), conf))
             return 0;
         else
             return 1;
@@ -487,16 +477,16 @@ int main(int argc, char **argv)
 	int nodelay = conf_get_int(conf, CONF_tcp_nodelay) &&
 	    (GetFileType(GetStdHandle(STD_INPUT_HANDLE)) == FILE_TYPE_CHAR);
 
-	error = back->init(NULL, &backhandle, conf,
-			   conf_get_str(conf, CONF_host),
-			   conf_get_int(conf, CONF_port),
-			   &realhost, nodelay,
-			   conf_get_int(conf, CONF_tcp_keepalives));
+        error = backend_init(vt, NULL, &backend, conf,
+                             conf_get_str(conf, CONF_host),
+                             conf_get_int(conf, CONF_port),
+                             &realhost, nodelay,
+                             conf_get_int(conf, CONF_tcp_keepalives));
 	if (error) {
 	    fprintf(stderr, "Unable to open connection:\n%s", error);
 	    return 1;
 	}
-	back->provide_logctx(backhandle, logctx);
+        backend_provide_logctx(backend, logctx);
 	sfree(realhost);
     }
 
@@ -532,7 +522,7 @@ int main(int argc, char **argv)
 	int n;
 	DWORD ticks;
 
-	if (!sending && back->sendok(backhandle)) {
+        if (!sending && backend_sendok(backend)) {
 	    stdin_handle = handle_input_new(inhandle, stdin_gotdata, NULL,
 					    0);
 	    sending = TRUE;
@@ -643,13 +633,13 @@ int main(int argc, char **argv)
 	sfree(handles);
 
 	if (sending)
-	    handle_unthrottle(stdin_handle, back->sendbuffer(backhandle));
+            handle_unthrottle(stdin_handle, backend_sendbuffer(backend));
 
-	if (!back->connected(backhandle) &&
+        if (!backend_connected(backend) &&
 	    handle_backlog(stdout_handle) + handle_backlog(stderr_handle) == 0)
 	    break;		       /* we closed the connection */
     }
-    exitcode = back->exitcode(backhandle);
+    exitcode = backend_exitcode(backend);
     if (exitcode < 0) {
 	fprintf(stderr, "Remote process exit code unavailable\n");
 	exitcode = 1;		       /* this is an error condition */

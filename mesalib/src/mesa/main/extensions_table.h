@@ -230,7 +230,7 @@ EXT(EXT_frag_depth                          , dummy_true                        
 EXT(EXT_framebuffer_blit                    , dummy_true                             , GLL, GLC,  x ,  x , 2005)
 EXT(EXT_framebuffer_multisample             , EXT_framebuffer_multisample            , GLL, GLC,  x ,  x , 2005)
 EXT(EXT_framebuffer_multisample_blit_scaled , EXT_framebuffer_multisample_blit_scaled, GLL, GLC,  x ,  x , 2011)
-EXT(EXT_framebuffer_object                  , dummy_true                             , GLL,  x ,  x ,  x , 2000)
+EXT(EXT_framebuffer_object                  , dummy_true                             , GLL, GLC,  x ,  x , 2000)
 EXT(EXT_framebuffer_sRGB                    , EXT_framebuffer_sRGB                   , GLL, GLC,  x ,  x , 1998)
 EXT(EXT_geometry_point_size                 , OES_geometry_shader                    ,  x ,  x ,  x ,  31, 2015)
 EXT(EXT_geometry_shader                     , OES_geometry_shader                    ,  x ,  x ,  x ,  31, 2015)

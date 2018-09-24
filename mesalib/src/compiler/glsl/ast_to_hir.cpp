@@ -1012,6 +1012,8 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
          mark_whole_array_access(rhs);
          mark_whole_array_access(lhs);
       }
+   } else {
+     error_emitted = true;
    }
 
    /* Most callers of do_assignment (assign, add_assign, pre_inc/dec,
@@ -4562,41 +4564,43 @@ process_initializer(ir_variable *var, ast_declaration *decl,
       /* Never emit code to initialize a uniform.
        */
       const glsl_type *initializer_type;
+      bool error_emitted = false;
       if (!type->qualifier.flags.q.uniform) {
-         do_assignment(initializer_instructions, state,
-                       NULL,
-                       lhs, rhs,
-                       &result, true,
-                       true,
-                       type->get_location());
+         error_emitted =
+            do_assignment(initializer_instructions, state,
+                          NULL, lhs, rhs,
+                          &result, true, true,
+                          type->get_location());
          initializer_type = result->type;
       } else
          initializer_type = rhs->type;
 
-      var->constant_initializer = rhs->constant_expression_value(mem_ctx);
-      var->data.has_initializer = true;
+      if (!error_emitted) {
+         var->constant_initializer = rhs->constant_expression_value(mem_ctx);
+         var->data.has_initializer = true;
 
-      /* If the declared variable is an unsized array, it must inherrit
-       * its full type from the initializer.  A declaration such as
-       *
-       *     uniform float a[] = float[](1.0, 2.0, 3.0, 3.0);
-       *
-       * becomes
-       *
-       *     uniform float a[4] = float[](1.0, 2.0, 3.0, 3.0);
-       *
-       * The assignment generated in the if-statement (below) will also
-       * automatically handle this case for non-uniforms.
-       *
-       * If the declared variable is not an array, the types must
-       * already match exactly.  As a result, the type assignment
-       * here can be done unconditionally.  For non-uniforms the call
-       * to do_assignment can change the type of the initializer (via
-       * the implicit conversion rules).  For uniforms the initializer
-       * must be a constant expression, and the type of that expression
-       * was validated above.
-       */
-      var->type = initializer_type;
+         /* If the declared variable is an unsized array, it must inherrit
+         * its full type from the initializer.  A declaration such as
+         *
+         *     uniform float a[] = float[](1.0, 2.0, 3.0, 3.0);
+         *
+         * becomes
+         *
+         *     uniform float a[4] = float[](1.0, 2.0, 3.0, 3.0);
+         *
+         * The assignment generated in the if-statement (below) will also
+         * automatically handle this case for non-uniforms.
+         *
+         * If the declared variable is not an array, the types must
+         * already match exactly.  As a result, the type assignment
+         * here can be done unconditionally.  For non-uniforms the call
+         * to do_assignment can change the type of the initializer (via
+         * the implicit conversion rules).  For uniforms the initializer
+         * must be a constant expression, and the type of that expression
+         * was validated above.
+         */
+         var->type = initializer_type;
+      }
 
       var->data.read_only = temp;
    }

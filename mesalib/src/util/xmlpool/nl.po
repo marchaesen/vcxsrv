@@ -58,62 +58,6 @@ msgstr ""
 msgid "Image Quality"
 msgstr "Beeldkwaliteit"
 
-#: t_options.h:133
-msgid "Texture color depth"
-msgstr "Textuurkleurendiepte"
-
-#: t_options.h:134
-msgid "Prefer frame buffer color depth"
-msgstr "Prefereer kaderbufferkleurdiepte"
-
-#: t_options.h:135
-msgid "Prefer 32 bits per texel"
-msgstr "Prefereer 32 bits per texel"
-
-#: t_options.h:136
-msgid "Prefer 16 bits per texel"
-msgstr "Prefereer 16 bits per texel"
-
-#: t_options.h:137
-msgid "Force 16 bits per texel"
-msgstr "Dwing 16 bits per texel af"
-
-#: t_options.h:143
-msgid "Initial maximum value for anisotropic texture filtering"
-msgstr "Initïele maximum waarde voor anisotrophische textuur filtering"
-
-#: t_options.h:148
-msgid "Forbid negative texture LOD bias"
-msgstr "Verbied negatief niveau detailonderscheid (LOD) van texturen"
-
-#: t_options.h:160
-msgid "Initial color reduction method"
-msgstr "Initïele kleurreductie methode"
-
-#: t_options.h:161
-msgid "Round colors"
-msgstr "Rond kleuren af"
-
-#: t_options.h:162
-msgid "Dither colors"
-msgstr "Rasteriseer kleuren"
-
-#: t_options.h:170
-msgid "Color rounding method"
-msgstr "Kleurafrondingmethode"
-
-#: t_options.h:171
-msgid "Round color components downward"
-msgstr "Rond kleurencomponenten af naar beneden"
-
-#: t_options.h:172
-msgid "Round to nearest color"
-msgstr "Rond af naar dichtsbijzijnde kleur"
-
-#: t_options.h:181
-msgid "Color dithering method"
-msgstr "Kleurrasteriseringsmethode"
-
 #: t_options.h:182
 msgid "Horizontal error diffusion"
 msgstr "Horizontale foutdiffusie"
@@ -125,10 +69,6 @@ msgstr "Horizontale foutdiffusie, zet fout bij lijnbegin terug"
 #: t_options.h:184
 msgid "Ordered 2D color dithering"
 msgstr "Geordende 2D kleurrasterisering"
-
-#: t_options.h:190
-msgid "Floating point depth buffer"
-msgstr "Dieptebuffer als commagetal"
 
 #: t_options.h:195
 msgid "A post-processing filter to cel-shade the output"
@@ -161,48 +101,6 @@ msgstr ""
 #: t_options.h:230
 msgid "Performance"
 msgstr "Prestatie"
-
-#: t_options.h:238
-msgid "TCL mode (Transformation, Clipping, Lighting)"
-msgstr "TCL-modus (Transformatie, Clipping, Licht)"
-
-#: t_options.h:239
-msgid "Use software TCL pipeline"
-msgstr "Gebruik software TCL pijpleiding"
-
-#: t_options.h:240
-msgid "Use hardware TCL as first TCL pipeline stage"
-msgstr "Gebruik hardware TCL as eerste TCL pijpleiding trap"
-
-#: t_options.h:241
-msgid "Bypass the TCL pipeline"
-msgstr "Omzeil de TCL pijpleiding"
-
-#: t_options.h:242
-msgid ""
-"Bypass the TCL pipeline with state-based machine code generated on-the-fly"
-msgstr ""
-"Omzeil de TCL pijpleiding met staatgebaseerde machinecode die tijdens "
-"executie gegenereerd wordt"
-
-#: t_options.h:251
-msgid "Method to limit rendering latency"
-msgstr "Methode om beeldopbouwvertraging te onderdrukken"
-
-#: t_options.h:252
-msgid "Busy waiting for the graphics hardware"
-msgstr "Actief wachten voor de grafische hardware"
-
-#: t_options.h:253
-msgid "Sleep for brief intervals while waiting for the graphics hardware"
-msgstr ""
-"Slaap voor korte intervallen tijdens het wachten op de grafische hardware"
-
-#: t_options.h:254
-msgid "Let the graphics hardware emit a software interrupt and sleep"
-msgstr ""
-"Laat de grafische hardware een software onderbreking uitzenden en in slaap "
-"vallen"
 
 #: t_options.h:264
 msgid "Synchronization with vertical refresh (swap intervals)"

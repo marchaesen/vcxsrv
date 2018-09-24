@@ -645,6 +645,10 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 			if (radv_is_filter_minmax_format_supported(format))
 				 tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT;
 
+			/* Don't support blitting surfaces with depth/stencil. */
+			if (vk_format_is_depth(format) && vk_format_is_stencil(format))
+				tiled &= ~VK_FORMAT_FEATURE_BLIT_DST_BIT;
+
 			/* Don't support linear depth surfaces */
 			linear = 0;
 		}

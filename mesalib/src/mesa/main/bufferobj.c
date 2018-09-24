@@ -597,7 +597,7 @@ _mesa_total_buffer_object_memory(struct gl_context *ctx)
  * \sa glBufferDataARB, dd_function_table::BufferData.
  */
 static GLboolean
-buffer_data_fallback(struct gl_context *ctx, GLenum target, GLsizeiptr size,
+buffer_data_fallback(struct gl_context *ctx, GLenum target, GLsizeiptrARB size,
                      const GLvoid *data, GLenum usage, GLenum storageFlags,
                      struct gl_buffer_object *bufObj)
 {
@@ -643,8 +643,8 @@ buffer_data_fallback(struct gl_context *ctx, GLenum target, GLsizeiptr size,
  * \sa glBufferSubDataARB, dd_function_table::BufferSubData.
  */
 static void
-buffer_sub_data_fallback(struct gl_context *ctx, GLintptr offset,
-                         GLsizeiptr size, const GLvoid *data,
+buffer_sub_data_fallback(struct gl_context *ctx, GLintptrARB offset,
+                         GLsizeiptrARB size, const GLvoid *data,
                          struct gl_buffer_object *bufObj)
 {
    (void) ctx;

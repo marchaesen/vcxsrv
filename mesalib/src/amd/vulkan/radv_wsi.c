@@ -206,23 +206,38 @@ VkResult radv_GetSwapchainImagesKHR(
 }
 
 VkResult radv_AcquireNextImageKHR(
-	VkDevice                                     _device,
+	VkDevice                                     device,
 	VkSwapchainKHR                               swapchain,
 	uint64_t                                     timeout,
 	VkSemaphore                                  semaphore,
-	VkFence                                      _fence,
+	VkFence                                      fence,
+	uint32_t*                                    pImageIndex)
+{
+	VkAcquireNextImageInfoKHR acquire_info = {
+		.sType = VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,
+		.swapchain = swapchain,
+		.timeout = timeout,
+		.semaphore = semaphore,
+		.fence = fence,
+		.deviceMask = 0,
+	};
+
+	return radv_AcquireNextImage2KHR(device, &acquire_info, pImageIndex);
+}
+
+VkResult radv_AcquireNextImage2KHR(
+	VkDevice                                     _device,
+	const VkAcquireNextImageInfoKHR*             pAcquireInfo,
 	uint32_t*                                    pImageIndex)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_physical_device *pdevice = device->physical_device;
-	RADV_FROM_HANDLE(radv_fence, fence, _fence);
+	RADV_FROM_HANDLE(radv_fence, fence, pAcquireInfo->fence);
 
-	VkResult result = wsi_common_acquire_next_image(&pdevice->wsi_device,
-							_device,
-							swapchain,
-							timeout,
-							semaphore,
-							pImageIndex);
+	VkResult result = wsi_common_acquire_next_image2(&pdevice->wsi_device,
+							 _device,
+                                                         pAcquireInfo,
+							 pImageIndex);
 
 	if (fence && (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)) {
 		fence->submitted = true;

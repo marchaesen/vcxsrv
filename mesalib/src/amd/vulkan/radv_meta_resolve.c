@@ -346,7 +346,8 @@ static void radv_pick_resolve_method_images(struct radv_image *src_image,
 		*method = RESOLVE_COMPUTE;
 	else if (vk_format_is_int(src_image->vk_format))
 		*method = RESOLVE_COMPUTE;
-	else if (src_image->info.array_size > 1)
+	else if (src_image->info.array_size > 1 ||
+		 dest_image->info.array_size > 1)
 		*method = RESOLVE_COMPUTE;
 	
 	if (radv_layout_dcc_compressed(dest_image, dest_image_layout, queue_mask)) {

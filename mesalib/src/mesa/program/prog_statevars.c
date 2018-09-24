@@ -571,7 +571,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       case STATE_FB_WPOS_Y_TRANSFORM:
          /* A driver may negate this conditional by using ZW swizzle
           * instead of XY (based on e.g. some other state). */
-         if (_mesa_is_user_fbo(ctx->DrawBuffer)) {
+         if (!ctx->DrawBuffer->FlipY) {
             /* Identity (XY) followed by flipping Y upside down (ZW). */
             value[0] = 1.0F;
             value[1] = 0.0F;

@@ -24,6 +24,7 @@
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_deref.h"
+#include "util/hash_table.h"
 
 void
 nir_deref_path_init(nir_deref_path *path,
@@ -378,4 +379,136 @@ nir_compare_derefs(nir_deref_instr *a, nir_deref_instr *b)
    nir_deref_path_finish(&b_path);
 
    return result;
+}
+
+struct rematerialize_deref_state {
+   bool progress;
+   nir_builder builder;
+   nir_block *block;
+   struct hash_table *cache;
+};
+
+static nir_deref_instr *
+rematerialize_deref_in_block(nir_deref_instr *deref,
+                             struct rematerialize_deref_state *state)
+{
+   if (deref->instr.block == state->block)
+      return deref;
+
+   if (!state->cache) {
+      state->cache = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
+                                             _mesa_key_pointer_equal);
+   }
+
+   struct hash_entry *cached = _mesa_hash_table_search(state->cache, deref);
+   if (cached)
+      return cached->data;
+
+   nir_builder *b = &state->builder;
+   nir_deref_instr *new_deref =
+      nir_deref_instr_create(b->shader, deref->deref_type);
+   new_deref->mode = deref->mode;
+   new_deref->type = deref->type;
+
+   if (deref->deref_type == nir_deref_type_var) {
+      new_deref->var = deref->var;
+   } else {
+      nir_deref_instr *parent = nir_src_as_deref(deref->parent);
+      if (parent) {
+         parent = rematerialize_deref_in_block(parent, state);
+         new_deref->parent = nir_src_for_ssa(&parent->dest.ssa);
+      } else {
+         nir_src_copy(&new_deref->parent, &deref->parent, new_deref);
+      }
+   }
+
+   switch (deref->deref_type) {
+   case nir_deref_type_var:
+   case nir_deref_type_array_wildcard:
+   case nir_deref_type_cast:
+      /* Nothing more to do */
+      break;
+
+   case nir_deref_type_array:
+      assert(!nir_src_as_deref(deref->arr.index));
+      nir_src_copy(&new_deref->arr.index, &deref->arr.index, new_deref);
+      break;
+
+   case nir_deref_type_struct:
+      new_deref->strct.index = deref->strct.index;
+      break;
+
+   default:
+      unreachable("Invalid deref instruction type");
+   }
+
+   nir_ssa_dest_init(&new_deref->instr, &new_deref->dest,
+                     deref->dest.ssa.num_components,
+                     deref->dest.ssa.bit_size,
+                     deref->dest.ssa.name);
+   nir_builder_instr_insert(b, &new_deref->instr);
+
+   return new_deref;
+}
+
+static bool
+rematerialize_deref_src(nir_src *src, void *_state)
+{
+   struct rematerialize_deref_state *state = _state;
+
+   nir_deref_instr *deref = nir_src_as_deref(*src);
+   if (!deref)
+      return true;
+
+   nir_deref_instr *block_deref = rematerialize_deref_in_block(deref, state);
+   if (block_deref != deref) {
+      nir_instr_rewrite_src(src->parent_instr, src,
+                            nir_src_for_ssa(&block_deref->dest.ssa));
+      nir_deref_instr_remove_if_unused(deref);
+      state->progress = true;
+   }
+
+   return true;
+}
+
+/** Re-materialize derefs in every block
+ *
+ * This pass re-materializes deref instructions in every block in which it is
+ * used.  After this pass has been run, every use of a deref will be of a
+ * deref in the same block as the use.  Also, all unused derefs will be
+ * deleted as a side-effect.
+ */
+bool
+nir_rematerialize_derefs_in_use_blocks_impl(nir_function_impl *impl)
+{
+   struct rematerialize_deref_state state = { 0 };
+   nir_builder_init(&state.builder, impl);
+
+   nir_foreach_block(block, impl) {
+      state.block = block;
+
+      /* Start each block with a fresh cache */
+      if (state.cache)
+         _mesa_hash_table_clear(state.cache, NULL);
+
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->type == nir_instr_type_deref) {
+            nir_deref_instr_remove_if_unused(nir_instr_as_deref(instr));
+            continue;
+         }
+
+         state.builder.cursor = nir_before_instr(instr);
+         nir_foreach_src(instr, rematerialize_deref_src, &state);
+      }
+
+#ifndef NDEBUG
+      nir_if *following_if = nir_block_get_following_if(block);
+      if (following_if)
+         assert(!nir_src_as_deref(following_if->condition));
+#endif
+   }
+
+   _mesa_hash_table_destroy(state.cache, NULL);
+
+   return state.progress;
 }

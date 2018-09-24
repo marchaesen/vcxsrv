@@ -52,8 +52,17 @@ conf_data.set('_GNU_SOURCE', '1')
 conf_data.set('HAS_APERTURE_DRV', host_machine.system() == 'openbsd')
 
 # XXX: BUNDLE_ID_PREFIX
-conf_data.set_quoted('OSNAME', 'Linux') # XXX
-conf_data.set('HAVE_INPUTTHREAD', '1') # XXX
+
+if get_option('input_thread') == 'false'
+  enable_input_thread = false
+else
+  enable_input_thread = cc.has_header_symbol('pthread.h',
+					     'PTHREAD_MUTEX_RECURSIVE')
+  if not enable_input_thread and get_option('input_thread') == 'true'
+    error('Input thread enabled and PTHREAD_MUTEX_RECURSIVE not found')
+  endif
+endif
+conf_data.set('HAVE_INPUTTHREAD', enable_input_thread)
 
 if cc.compiles('''
     #define _GNU_SOURCE 1
@@ -81,11 +90,6 @@ conf_data.set('CONFIG_HAL', build_hal)
 conf_data.set('SYSTEMD_LOGIND', build_systemd_logind)
 conf_data.set('NEED_DBUS', build_systemd_logind or build_hal)
 conf_data.set('CONFIG_WSCONS', host_machine.system() == 'openbsd')
-
-# XXX: SHMDIR is weird in autoconf, probing the build system for
-# various tmp directories.  Could we replace it with C code at runtime
-# that just uses whatever directory works?
-conf_data.set_quoted('SHMDIR', '/tmp')
 
 conf_data.set('HAVE_XSHMFENCE', xshmfence_dep.found())
 conf_data.set('WITH_LIBDRM', libdrm_dep.found())
@@ -231,7 +235,6 @@ conf_data.set('DEBUG', enable_debugging)
 conf_data.set_quoted('XVENDORNAME', get_option('vendor_name'))
 conf_data.set_quoted('XVENDORNAMESHORT', get_option('vendor_name_short'))
 conf_data.set_quoted('__VENDORDWEBSUPPORT__', get_option('vendor_web'))
-conf_data.set_quoted('OSVENDOR', get_option('os_vendor'))
 conf_data.set_quoted('BUILDERADDR', get_option('builder_addr'))
 conf_data.set_quoted('BUILDERSTRING', get_option('builder_string'))
 

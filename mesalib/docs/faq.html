@@ -16,7 +16,7 @@
 
 <center>
 <h1>Mesa Frequently Asked Questions</h1>
-Last updated: 9 October 2012
+Last updated: 19 September 2018
 </center>
 
 <br>
@@ -373,18 +373,16 @@ the archives) is a good way to get information.
 
 <h2>4.3 Why isn't GL_EXT_texture_compression_s3tc implemented in Mesa?</h2>
 <p>
-The <a href="http://oss.sgi.com/projects/ogl-sample/registry/EXT/texture_compression_s3tc.txt">specification for the extension</a>
-indicates that there are intellectual property (IP) and/or patent issues
-to be dealt with.
-</p>
-<p>We've been unsuccessful in getting a response from S3 (or whoever owns
-the IP nowadays) to indicate whether or not an open source project can
-implement the extension (specifically the compression/decompression
-algorithms).
+Oh but it is! Prior to 2nd October 2017, the Mesa project did not include s3tc
+support due to intellectual property (IP) and/or patent issues around the s3tc
+algorithm.
 </p>
 <p>
-In the mean time, a 3rd party <a href="https://dri.freedesktop.org/wiki/S3TC">
-plug-in library</a> is available.
+As of Mesa 17.3.0, Mesa now officially supports s3tc, as the patent has expired.
+</p>
+<p>
+In versions prior to this, a 3rd party <a href="https://dri.freedesktop.org/wiki/S3TC">
+plug-in library</a> was required.
 </p>
 
 </div>

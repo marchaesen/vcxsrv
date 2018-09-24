@@ -76,7 +76,8 @@ XcmsLookupColor (
     register int n;
     xLookupColorReply reply;
     register xLookupColorReq *req;
-    XColor def, scr;
+    XColor def = {0,};
+    XColor scr = {0,};
 
 /*
  * 0. Check for invalid arguments.

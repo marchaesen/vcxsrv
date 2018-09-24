@@ -21,10 +21,10 @@
 <p><strong>The Meson build system is generally considered stable and ready
 for production</strong></p>
 
-<p>The meson build is tested on on Linux, macOS, Cygwin and Haiku, it should
-work on FreeBSD, DragonflyBSD, NetBSD, and OpenBSD.</p>
+<p>The meson build is tested on Linux, macOS, Cygwin and Haiku, FreeBSD,
+DragonflyBSD, NetBSD, and should work on OpenBSD.</p>
 
-<p><strong>Mesa requires Meson >= 0.44.1 to build.</strong>
+<p><strong>Mesa requires Meson >= 0.45.0 to build.</strong>
 
 Some older versions of meson do not check that they are too old and will error
 out in odd ways.
@@ -99,37 +99,38 @@ recommended in the documentation</a>
 <dt><code>Environment Variables</code></dt>
 <dd><p>Meson supports the standard CC and CXX environment variables for
 changing the default compiler, and CFLAGS, CXXFLAGS, and LDFLAGS for setting
-options to the compiler and linker.
+options to the compiler and linker during the initial configuration.
 
-The default compilers depends on your operating system. Meson supports most of
-the popular compilers, a complete list is available
-<a href="http://mesonbuild.com/Reference-tables.html#compiler-ids">here</a>.
-
-These arguments are consumed and stored by meson when it is initialized or
-re-initialized. Therefore passing them to meson configure will not do anything,
-and passing them to ninja will only do something if ninja decides to
-re-initialize meson, for example, if a meson.build file has been changed.
-Changing these variables will not cause all targets to be rebuilt, so running
-ninja clean is recommended when changing CFLAGS or CXXFLAGS. Meson will never
-change compiler in a configured build directory.
+These arguments are consumed and stored by meson when it is initialized. To
+change these flags after the build is initialized (or when doing a first
+initialization), consider using <code>-D${lang}_args</code> and
+<code>-D${lang}_link_args</code> instead. Meson will never change compiler in a
+configured build directory.
 </p>
 
 <pre>
     CC=clang CXX=clang++ meson build-clang
     ninja -C build-clang
     ninja -C build-clang clean
-    touch meson.build
-    CFLAGS=-Wno-typedef-redefinition ninja -C build-clang
+    meson configure build -Dc_args="-Wno-typedef-redefinition"
+    ninja -C build-clang
 </pre>
+
+<p>
+The default compilers depends on your operating system. Meson supports most of
+the popular compilers, a complete list is available
+<a href="http://mesonbuild.com/Reference-tables.html#compiler-ids">here</a>.
+</p>
 
 <p>Meson also honors <code>DESTDIR</code> for installs</p>
 </dd>
 
 
 <dt><code>LLVM</code></dt>
-<dd><p>Meson includes upstream logic to wrap llvm-config using it's standard
+<dd><p>Meson includes upstream logic to wrap llvm-config using its standard
 dependency interface. It will search <code>$PATH</code> (or <code>%PATH%</code> on windows) for
-llvm-config, so using an LLVM from a non-standard path is as easy as
+llvm-config (and llvm-config$version and llvm-config-$version), so using an
+LLVM from a non-standard path is as easy as
 <code>PATH=/path/with/llvm-config:$PATH meson build</code>.
 </p></dd>
 </dl>

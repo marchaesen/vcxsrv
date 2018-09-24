@@ -17,12 +17,13 @@ struct ssh1_bpp_state {
     int chunk;
     PktIn *pktin;
 
-    const struct ssh_cipher *cipher;
-    void *cipher_ctx;
+    ssh1_cipher *cipher;
 
-    void *crcda_ctx;
+    struct crcda_ctx *crcda_ctx;
 
-    void *compctx, *decompctx;
+    int pending_compression_request;
+    ssh_compressor *compctx;
+    ssh_decompressor *decompctx;
 
     BinaryPacketProtocol bpp;
 };
@@ -51,11 +52,11 @@ static void ssh1_bpp_free(BinaryPacketProtocol *bpp)
 {
     struct ssh1_bpp_state *s = FROMFIELD(bpp, struct ssh1_bpp_state, bpp);
     if (s->cipher)
-        s->cipher->free_context(s->cipher_ctx);
+        ssh1_cipher_free(s->cipher);
     if (s->compctx)
-        zlib_compress_cleanup(s->compctx);
+        ssh_compressor_free(s->compctx);
     if (s->decompctx)
-        zlib_decompress_cleanup(s->decompctx);
+        ssh_decompressor_free(s->decompctx);
     if (s->crcda_ctx)
         crcda_free_context(s->crcda_ctx);
     if (s->pktin)
@@ -64,7 +65,7 @@ static void ssh1_bpp_free(BinaryPacketProtocol *bpp)
 }
 
 void ssh1_bpp_new_cipher(BinaryPacketProtocol *bpp,
-                         const struct ssh_cipher *cipher,
+                         const struct ssh1_cipheralg *cipher,
                          const void *session_key)
 {
     struct ssh1_bpp_state *s;
@@ -73,27 +74,22 @@ void ssh1_bpp_new_cipher(BinaryPacketProtocol *bpp,
 
     assert(!s->cipher);
 
-    s->cipher = cipher;
-    if (s->cipher) {
-        s->cipher_ctx = cipher->make_context();
-        cipher->sesskey(s->cipher_ctx, session_key);
+    if (cipher) {
+        s->cipher = ssh1_cipher_new(cipher);
+        ssh1_cipher_sesskey(s->cipher, session_key);
 
         assert(!s->crcda_ctx);
         s->crcda_ctx = crcda_make_context();
     }
 }
 
-void ssh1_bpp_start_compression(BinaryPacketProtocol *bpp)
+void ssh1_bpp_requested_compression(BinaryPacketProtocol *bpp)
 {
     struct ssh1_bpp_state *s;
     assert(bpp->vt == &ssh1_bpp_vtable);
     s = FROMFIELD(bpp, struct ssh1_bpp_state, bpp);
 
-    assert(!s->compctx);
-    assert(!s->decompctx);
-
-    s->compctx = zlib_compress_init();
-    s->decompctx = zlib_decompress_init();
+    s->pending_compression_request = TRUE;
 }
 
 static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
@@ -146,7 +142,7 @@ static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
         }
 
         if (s->cipher)
-            s->cipher->decrypt(s->cipher_ctx, s->data, s->biglen);
+            ssh1_cipher_decrypt(s->cipher, s->data, s->biglen);
 
         s->realcrc = crc32_compute(s->data, s->biglen - 4);
         s->gotcrc = GET_32BIT(s->data + s->biglen - 4);
@@ -159,9 +155,9 @@ static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
         if (s->decompctx) {
             unsigned char *decompblk;
             int decomplen;
-            if (!zlib_decompress_block(s->decompctx,
-                                       s->data + s->pad, s->length + 1,
-                                       &decompblk, &decomplen)) {
+            if (!ssh_decompressor_decompress(
+                    s->decompctx, s->data + s->pad, s->length + 1,
+                    &decompblk, &decomplen)) {
                 s->bpp.error = dupprintf(
                     "Zlib decompression encountered invalid data");
                 crStopV;
@@ -211,6 +207,20 @@ static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
 
             if (type == SSH1_MSG_DISCONNECT)
                 s->bpp.seen_disconnect = TRUE;
+
+            if (type == SSH1_SMSG_SUCCESS && s->pending_compression_request) {
+                assert(!s->compctx);
+                assert(!s->decompctx);
+
+                s->compctx = ssh_compressor_new(&ssh_zlib);
+                s->decompctx = ssh_decompressor_new(&ssh_zlib);
+
+                s->pending_compression_request = FALSE;
+            }
+
+            if (type == SSH1_SMSG_FAILURE && s->pending_compression_request) {
+                s->pending_compression_request = FALSE;
+            }
         }
     }
     crFinishV;
@@ -250,8 +260,8 @@ static void ssh1_bpp_format_packet(BinaryPacketProtocol *bpp, PktOut *pkt)
     if (s->compctx) {
         unsigned char *compblk;
         int complen;
-        zlib_compress_block(s->compctx, pkt->data + 12, pkt->length - 12,
-                            &compblk, &complen, 0);
+        ssh_compressor_compress(s->compctx, pkt->data + 12, pkt->length - 12,
+                                &compblk, &complen, 0);
         /* Replace the uncompressed packet data with the compressed
          * version. */
         pkt->length = 12;
@@ -273,7 +283,7 @@ static void ssh1_bpp_format_packet(BinaryPacketProtocol *bpp, PktOut *pkt)
     PUT_32BIT(pkt->data + pktoffs, len);
 
     if (s->cipher)
-        s->cipher->encrypt(s->cipher_ctx, pkt->data + pktoffs + 4, biglen);
+        ssh1_cipher_encrypt(s->cipher, pkt->data + pktoffs + 4, biglen);
 
     bufchain_add(s->bpp.out_raw, pkt->data + pktoffs,
                  biglen + 4); /* len(length+padding+type+data+CRC) */

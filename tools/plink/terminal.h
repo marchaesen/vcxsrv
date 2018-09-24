@@ -227,14 +227,13 @@ struct terminal_tag {
     wchar_t *paste_buffer;
     int paste_len, paste_pos;
 
-    void (*resize_fn)(void *, int, int);
-    void *resize_ctx;
+    Backend *backend;
 
-    void *ldisc;
+    Ldisc *ldisc;
 
-    void *frontend;
+    Frontend *frontend;
 
-    void *logctx;
+    LogContext *logctx;
 
     struct unicode_data *ucsdata;
 
