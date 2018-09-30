@@ -74,6 +74,8 @@ struct ac_llvm_context {
 	LLVMTypeRef v4f32;
 	LLVMTypeRef v8i32;
 
+	LLVMValueRef i16_0;
+	LLVMValueRef i16_1;
 	LLVMValueRef i32_0;
 	LLVMValueRef i32_1;
 	LLVMValueRef i64_0;
@@ -423,6 +425,11 @@ LLVMValueRef ac_build_isign(struct ac_llvm_context *ctx, LLVMValueRef src0,
 
 LLVMValueRef ac_build_fsign(struct ac_llvm_context *ctx, LLVMValueRef src0,
 			    unsigned bitsize);
+
+LLVMValueRef ac_build_bit_count(struct ac_llvm_context *ctx, LLVMValueRef src0);
+
+LLVMValueRef ac_build_bitfield_reverse(struct ac_llvm_context *ctx,
+				       LLVMValueRef src0);
 
 void ac_optimize_vs_outputs(struct ac_llvm_context *ac,
 			    LLVMValueRef main_fn,

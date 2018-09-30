@@ -856,17 +856,14 @@ wsi_common_get_images(VkSwapchainKHR _swapchain,
 }
 
 VkResult
-wsi_common_acquire_next_image(const struct wsi_device *wsi,
-                              VkDevice device,
-                              VkSwapchainKHR _swapchain,
-                              uint64_t timeout,
-                              VkSemaphore semaphore,
-                              uint32_t *pImageIndex)
+wsi_common_acquire_next_image2(const struct wsi_device *wsi,
+                               VkDevice device,
+                               const VkAcquireNextImageInfoKHR *pAcquireInfo,
+                               uint32_t *pImageIndex)
 {
-   WSI_FROM_HANDLE(wsi_swapchain, swapchain, _swapchain);
+   WSI_FROM_HANDLE(wsi_swapchain, swapchain, pAcquireInfo->swapchain);
 
-   return swapchain->acquire_next_image(swapchain, timeout,
-                                        semaphore, pImageIndex);
+   return swapchain->acquire_next_image(swapchain, pAcquireInfo, pImageIndex);
 }
 
 VkResult

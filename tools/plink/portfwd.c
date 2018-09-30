@@ -8,6 +8,19 @@
 
 #include "putty.h"
 #include "ssh.h"
+#include "sshchan.h"
+
+static void logeventf(Frontend *frontend, const char *fmt, ...)
+{
+    va_list ap;
+    char *buf;
+
+    va_start(ap, fmt);
+    buf = dupvprintf(fmt, ap);
+    va_end(ap);
+    logevent(frontend, buf);
+    sfree(buf);
+}
 
 /*
  * Enumeration of values that live in the 'socks_state' field of
@@ -21,12 +34,12 @@ typedef enum {
     SOCKS_5_CONNECT      /* expect a SOCKS 5 connection message */
 } SocksState;
 
-struct PortForwarding {
-    struct ssh_channel *c;        /* channel structure held by ssh.c */
-    void *backhandle;		       /* instance of SSH backend itself */
-    /* Note that backhandle need not be filled in if c is non-NULL */
+typedef struct PortForwarding {
+    SshChannel *c;         /* channel structure held by SSH connection layer */
+    ConnectionLayer *cl;   /* the connection layer itself */
+    /* Note that ssh need not be filled in if c is non-NULL */
     Socket s;
-    int throttled, throttle_override;
+    int input_wanted;
     int ready;
     SocksState socks_state;
     /*
@@ -44,10 +57,11 @@ struct PortForwarding {
     size_t socksbuf_consumed;
 
     const Plug_vtable *plugvt;
-};
+    Channel chan;
+} PortForwarding;
 
 struct PortListener {
-    void *backhandle;		       /* instance of SSH backend itself */
+    ConnectionLayer *cl;
     Socket s;
     int is_dynamic;
     /*
@@ -105,6 +119,8 @@ static void pfl_log(Plug plug, int type, SockAddr addr, int port,
     /* we have to dump these since we have no interface to logging.c */
 }
 
+static void pfd_close(struct PortForwarding *pf);
+
 static void pfd_closing(Plug plug, const char *error_msg, int error_code,
 			int calling_back)
 {
@@ -135,6 +151,8 @@ static void pfd_closing(Plug plug, const char *error_msg, int error_code,
     }
 }
 
+static void pfl_terminate(struct PortListener *pl);
+
 static void pfl_closing(Plug plug, const char *error_msg, int error_code,
 			int calling_back)
 {
@@ -142,10 +160,13 @@ static void pfl_closing(Plug plug, const char *error_msg, int error_code,
     pfl_terminate(pl);
 }
 
-static void wrap_send_port_open(void *channel, const char *hostname, int port,
-                                Socket s)
+static SshChannel *wrap_lportfwd_open(
+    ConnectionLayer *cl, const char *hostname, int port,
+    Socket s, Channel *chan)
 {
     char *peerinfo, *description;
+    SshChannel *toret;
+
     peerinfo = sk_peer_info(s);
     if (peerinfo) {
         description = dupprintf("forwarding from %s", peerinfo);
@@ -153,8 +174,11 @@ static void wrap_send_port_open(void *channel, const char *hostname, int port,
     } else {
         description = dupstr("forwarding");
     }
-    ssh_send_port_open(channel, hostname, port, description);
+
+    toret = ssh_lportfwd_open(cl, hostname, port, description, chan);
+
     sfree(description);
+    return toret;
 }
 
 static char *ipv4_to_string(unsigned ipv4)
@@ -396,21 +420,11 @@ static void pfd_receive(Plug plug, int urgent, char *data, int len)
 	 */
 	sk_set_frozen(pf->s, 1);
 
-	pf->c = new_sock_channel(pf->backhandle, pf);
-	if (pf->c == NULL) {
-	    pfd_close(pf);
-	    return;
-	} else {
-	    /* asks to forward to the specified host/port for this */
-	    wrap_send_port_open(pf->c, pf->hostname, pf->port, pf->s);
-	}
+        pf->c = wrap_lportfwd_open(pf->cl, pf->hostname, pf->port, pf->s,
+                                   &pf->chan);
     }
-    if (pf->ready) {
-	if (sshfwd_write(pf->c, data, len) > 0) {
-	    pf->throttled = 1;
-	    sk_set_frozen(pf->s, 1);
-	}
-    }
+    if (pf->ready)
+        sshfwd_write(pf->c, data, len);
 }
 
 static void pfd_sent(Plug plug, int bufsize)
@@ -429,57 +443,24 @@ static const Plug_vtable PortForwarding_plugvt = {
     NULL
 };
 
-/*
- * Called when receiving a PORT OPEN from the server to make a
- * connection to a destination host.
- *
- * On success, returns NULL and fills in *pf_ret. On error, returns a
- * dynamically allocated error message string.
- */
-char *pfd_connect(struct PortForwarding **pf_ret, char *hostname,int port,
-                  void *c, Conf *conf, int addressfamily)
-{
-    SockAddr addr;
-    const char *err;
-    char *dummy_realhost = NULL;
-    struct PortForwarding *pf;
+static void pfd_chan_free(Channel *chan);
+static void pfd_open_confirmation(Channel *chan);
+static void pfd_open_failure(Channel *chan, const char *errtext);
+static int pfd_send(Channel *chan, int is_stderr, const void *data, int len);
+static void pfd_send_eof(Channel *chan);
+static void pfd_set_input_wanted(Channel *chan, int wanted);
+static char *pfd_log_close_msg(Channel *chan);
 
-    /*
-     * Try to find host.
-     */
-    addr = name_lookup(hostname, port, &dummy_realhost, conf, addressfamily,
-                       NULL, NULL);
-    if ((err = sk_addr_error(addr)) != NULL) {
-        char *err_ret = dupstr(err);
-	sk_addr_free(addr);
-        sfree(dummy_realhost);
-	return err_ret;
-    }
-
-    /*
-     * Open socket.
-     */
-    pf = *pf_ret = new_portfwd_state();
-    pf->plugvt = &PortForwarding_plugvt;
-    pf->throttled = pf->throttle_override = 0;
-    pf->ready = 1;
-    pf->c = c;
-    pf->backhandle = NULL;	       /* we shouldn't need this */
-    pf->socks_state = SOCKS_NONE;
-
-    pf->s = new_connection(addr, dummy_realhost, port,
-                           0, 1, 0, 0, &pf->plugvt, conf);
-    sfree(dummy_realhost);
-    if ((err = sk_socket_error(pf->s)) != NULL) {
-        char *err_ret = dupstr(err);
-        sk_close(pf->s);
-	free_portfwd_state(pf);
-        *pf_ret = NULL;
-	return err_ret;
-    }
-
-    return NULL;
-}
+static const struct ChannelVtable PortForwarding_channelvt = {
+    pfd_chan_free,
+    pfd_open_confirmation,
+    pfd_open_failure,
+    pfd_send,
+    pfd_send_eof,
+    pfd_set_input_wanted,
+    pfd_log_close_msg,
+    chan_no_eager_close,
+};
 
 /*
  called when someone connects to the local port
@@ -495,9 +476,12 @@ static int pfl_accepting(Plug p, accept_fn_t constructor, accept_ctx_t ctx)
     pl = FROMFIELD(p, struct PortListener, plugvt);
     pf = new_portfwd_state();
     pf->plugvt = &PortForwarding_plugvt;
+    pf->chan.initial_fixed_window_size = 0;
+    pf->chan.vt = &PortForwarding_channelvt;
+    pf->input_wanted = TRUE;
 
     pf->c = NULL;
-    pf->backhandle = pl->backhandle;
+    pf->cl = pl->cl;
 
     pf->s = s = constructor(ctx, &pf->plugvt);
     if ((err = sk_socket_error(s)) != NULL) {
@@ -505,7 +489,7 @@ static int pfl_accepting(Plug p, accept_fn_t constructor, accept_ctx_t ctx)
 	return err != NULL;
     }
 
-    pf->throttled = pf->throttle_override = 0;
+    pf->input_wanted = TRUE;
     pf->ready = 0;
 
     if (pl->is_dynamic) {
@@ -518,15 +502,8 @@ static int pfl_accepting(Plug p, accept_fn_t constructor, accept_ctx_t ctx)
 	pf->socks_state = SOCKS_NONE;
 	pf->hostname = dupstr(pl->hostname);
 	pf->port = pl->port;	
-	pf->c = new_sock_channel(pl->backhandle, pf);
-
-	if (pf->c == NULL) {
-	    free_portfwd_state(pf);
-	    return 1;
-	} else {
-	    /* asks to forward to the specified host/port for this */
-	    wrap_send_port_open(pf->c, pf->hostname, pf->port, s);
-	}
+        pf->c = wrap_lportfwd_open(pl->cl, pf->hostname, pf->port,
+                                   s, &pf->chan);
     }
 
     return 0;
@@ -543,12 +520,14 @@ static const Plug_vtable PortListener_plugvt = {
 /*
  * Add a new port-forwarding listener from srcaddr:port -> desthost:destport.
  *
+ * desthost == NULL indicates dynamic SOCKS port forwarding.
+ *
  * On success, returns NULL and fills in *pl_ret. On error, returns a
  * dynamically allocated error message string.
  */
-char *pfl_listen(char *desthost, int destport, char *srcaddr,
-                 int port, void *backhandle, Conf *conf,
-                 struct PortListener **pl_ret, int address_family)
+static char *pfl_listen(char *desthost, int destport, char *srcaddr,
+                        int port, ConnectionLayer *cl, Conf *conf,
+                        struct PortListener **pl_ret, int address_family)
 {
     const char *err;
     struct PortListener *pl;
@@ -564,7 +543,7 @@ char *pfl_listen(char *desthost, int destport, char *srcaddr,
 	pl->is_dynamic = FALSE;
     } else
 	pl->is_dynamic = TRUE;
-    pl->backhandle = backhandle;
+    pl->cl = cl;
 
     pl->s = new_listener(srcaddr, port, &pl->plugvt,
                          !conf_get_int(conf, CONF_lport_acceptall),
@@ -580,7 +559,12 @@ char *pfl_listen(char *desthost, int destport, char *srcaddr,
     return NULL;
 }
 
-void pfd_close(struct PortForwarding *pf)
+static char *pfd_log_close_msg(Channel *chan)
+{
+    return dupstr("Forwarded port closed");
+}
+
+static void pfd_close(struct PortForwarding *pf)
 {
     if (!pf)
 	return;
@@ -592,7 +576,7 @@ void pfd_close(struct PortForwarding *pf)
 /*
  * Terminate a listener.
  */
-void pfl_terminate(struct PortListener *pl)
+static void pfl_terminate(struct PortListener *pl)
 {
     if (!pl)
 	return;
@@ -601,43 +585,42 @@ void pfl_terminate(struct PortListener *pl)
     free_portlistener_state(pl);
 }
 
-void pfd_unthrottle(struct PortForwarding *pf)
+static void pfd_set_input_wanted(Channel *chan, int wanted)
 {
-    if (!pf)
-	return;
-
-    pf->throttled = 0;
-    sk_set_frozen(pf->s, pf->throttled || pf->throttle_override);
+    assert(chan->vt == &PortForwarding_channelvt);
+    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
+    pf->input_wanted = wanted;
+    sk_set_frozen(pf->s, !pf->input_wanted);
 }
 
-void pfd_override_throttle(struct PortForwarding *pf, int enable)
+static void pfd_chan_free(Channel *chan)
 {
-    if (!pf)
-	return;
-
-    pf->throttle_override = enable;
-    sk_set_frozen(pf->s, pf->throttled || pf->throttle_override);
+    assert(chan->vt == &PortForwarding_channelvt);
+    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
+    pfd_close(pf);
 }
 
 /*
  * Called to send data down the raw connection.
  */
-int pfd_send(struct PortForwarding *pf, const void *data, int len)
+static int pfd_send(Channel *chan, int is_stderr, const void *data, int len)
 {
-    if (pf == NULL)
-	return 0;
+    assert(chan->vt == &PortForwarding_channelvt);
+    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
     return sk_write(pf->s, data, len);
 }
 
-void pfd_send_eof(struct PortForwarding *pf)
+static void pfd_send_eof(Channel *chan)
 {
+    assert(chan->vt == &PortForwarding_channelvt);
+    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
     sk_write_eof(pf->s);
 }
 
-void pfd_confirm(struct PortForwarding *pf)
+static void pfd_open_confirmation(Channel *chan)
 {
-    if (pf == NULL)
-	return;
+    assert(chan->vt == &PortForwarding_channelvt);
+    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
 
     pf->ready = 1;
     sk_set_frozen(pf->s, 0);
@@ -648,4 +631,436 @@ void pfd_confirm(struct PortForwarding *pf)
         strbuf_free(pf->socksbuf);
         pf->socksbuf = NULL;
     }
+}
+
+static void pfd_open_failure(Channel *chan, const char *errtext)
+{
+    assert(chan->vt == &PortForwarding_channelvt);
+    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
+
+    logeventf(pf->cl->frontend,
+              "Forwarded connection refused by server%s%s",
+              errtext ? ": " : "", errtext ? errtext : "");
+}
+
+/* ----------------------------------------------------------------------
+ * Code to manage the complete set of currently active port
+ * forwardings, and update it from Conf.
+ */
+
+struct PortFwdRecord {
+    enum { DESTROY, KEEP, CREATE } status;
+    int type;
+    unsigned sport, dport;
+    char *saddr, *daddr;
+    char *sserv, *dserv;
+    struct ssh_rportfwd *remote;
+    int addressfamily;
+    struct PortListener *local;
+};
+
+static int pfr_cmp(void *av, void *bv)
+{
+    PortFwdRecord *a = (PortFwdRecord *) av;
+    PortFwdRecord *b = (PortFwdRecord *) bv;
+    int i;
+    if (a->type > b->type)
+        return +1;
+    if (a->type < b->type)
+        return -1;
+    if (a->addressfamily > b->addressfamily)
+        return +1;
+    if (a->addressfamily < b->addressfamily)
+        return -1;
+    if ( (i = nullstrcmp(a->saddr, b->saddr)) != 0)
+        return i < 0 ? -1 : +1;
+    if (a->sport > b->sport)
+        return +1;
+    if (a->sport < b->sport)
+        return -1;
+    if (a->type != 'D') {
+        if ( (i = nullstrcmp(a->daddr, b->daddr)) != 0)
+            return i < 0 ? -1 : +1;
+        if (a->dport > b->dport)
+            return +1;
+        if (a->dport < b->dport)
+            return -1;
+    }
+    return 0;
+}
+
+void pfr_free(PortFwdRecord *pfr)
+{
+    /* Dispose of any listening socket. */
+    if (pfr->local)
+        pfl_terminate(pfr->local);
+
+    sfree(pfr->saddr);
+    sfree(pfr->daddr);
+    sfree(pfr->sserv);
+    sfree(pfr->dserv);
+    sfree(pfr);
+}
+
+struct PortFwdManager {
+    ConnectionLayer *cl;
+    Conf *conf;
+    tree234 *forwardings;
+};
+
+PortFwdManager *portfwdmgr_new(ConnectionLayer *cl)
+{
+    PortFwdManager *mgr = snew(PortFwdManager);
+
+    mgr->cl = cl;
+    mgr->conf = NULL;
+    mgr->forwardings = newtree234(pfr_cmp);
+
+    return mgr;
+}
+
+void portfwdmgr_close(PortFwdManager *mgr, PortFwdRecord *pfr)
+{
+    PortFwdRecord *realpfr = del234(mgr->forwardings, pfr);
+    if (realpfr == pfr)
+        pfr_free(pfr);
+}
+
+void portfwdmgr_close_all(PortFwdManager *mgr)
+{
+    PortFwdRecord *pfr;
+
+    while ((pfr = delpos234(mgr->forwardings, 0)) != NULL)
+        pfr_free(pfr);
+}
+
+void portfwdmgr_free(PortFwdManager *mgr)
+{
+    portfwdmgr_close_all(mgr);
+    freetree234(mgr->forwardings);
+    if (mgr->conf)
+        conf_free(mgr->conf);
+    sfree(mgr);
+}
+
+void portfwdmgr_config(PortFwdManager *mgr, Conf *conf)
+{
+    PortFwdRecord *pfr;
+    int i;
+    char *key, *val;
+
+    if (mgr->conf)
+        conf_free(mgr->conf);
+    mgr->conf = conf_copy(conf);
+
+    /*
+     * Go through the existing port forwardings and tag them
+     * with status==DESTROY. Any that we want to keep will be
+     * re-enabled (status==KEEP) as we go through the
+     * configuration and find out which bits are the same as
+     * they were before.
+     */
+    for (i = 0; (pfr = index234(mgr->forwardings, i)) != NULL; i++)
+        pfr->status = DESTROY;
+
+    for (val = conf_get_str_strs(conf, CONF_portfwd, NULL, &key);
+         val != NULL;
+         val = conf_get_str_strs(conf, CONF_portfwd, key, &key)) {
+        char *kp, *kp2, *vp, *vp2;
+        char address_family, type;
+        int sport, dport, sserv, dserv;
+        char *sports, *dports, *saddr, *host;
+
+        kp = key;
+
+        address_family = 'A';
+        type = 'L';
+        if (*kp == 'A' || *kp == '4' || *kp == '6')
+            address_family = *kp++;
+        if (*kp == 'L' || *kp == 'R')
+            type = *kp++;
+
+        if ((kp2 = host_strchr(kp, ':')) != NULL) {
+            /*
+             * There's a colon in the middle of the source port
+             * string, which means that the part before it is
+             * actually a source address.
+             */
+            char *saddr_tmp = dupprintf("%.*s", (int)(kp2 - kp), kp);
+            saddr = host_strduptrim(saddr_tmp);
+            sfree(saddr_tmp);
+            sports = kp2+1;
+        } else {
+            saddr = NULL;
+            sports = kp;
+        }
+        sport = atoi(sports);
+        sserv = 0;
+        if (sport == 0) {
+            sserv = 1;
+            sport = net_service_lookup(sports);
+            if (!sport) {
+                logeventf(mgr->cl->frontend, "Service lookup failed for source"
+                          " port \"%s\"", sports);
+            }
+        }
+
+        if (type == 'L' && !strcmp(val, "D")) {
+            /* dynamic forwarding */
+            host = NULL;
+            dports = NULL;
+            dport = -1;
+            dserv = 0;
+            type = 'D';
+        } else {
+            /* ordinary forwarding */
+            vp = val;
+            vp2 = vp + host_strcspn(vp, ":");
+            host = dupprintf("%.*s", (int)(vp2 - vp), vp);
+            if (*vp2)
+                vp2++;
+            dports = vp2;
+            dport = atoi(dports);
+            dserv = 0;
+            if (dport == 0) {
+                dserv = 1;
+                dport = net_service_lookup(dports);
+                if (!dport) {
+                    logeventf(mgr->cl->frontend,
+                              "Service lookup failed for destination"
+                              " port \"%s\"", dports);
+                }
+            }
+        }
+
+        if (sport && dport) {
+            /* Set up a description of the source port. */
+            pfr = snew(PortFwdRecord);
+            pfr->type = type;
+            pfr->saddr = saddr;
+            pfr->sserv = sserv ? dupstr(sports) : NULL;
+            pfr->sport = sport;
+            pfr->daddr = host;
+            pfr->dserv = dserv ? dupstr(dports) : NULL;
+            pfr->dport = dport;
+            pfr->local = NULL;
+            pfr->remote = NULL;
+            pfr->addressfamily = (address_family == '4' ? ADDRTYPE_IPV4 :
+                                  address_family == '6' ? ADDRTYPE_IPV6 :
+                                  ADDRTYPE_UNSPEC);
+
+            PortFwdRecord *existing = add234(mgr->forwardings, pfr);
+            if (existing != pfr) {
+                if (existing->status == DESTROY) {
+                    /*
+                     * We already have a port forwarding up and running
+                     * with precisely these parameters. Hence, no need
+                     * to do anything; simply re-tag the existing one
+                     * as KEEP.
+                     */
+                    existing->status = KEEP;
+                }
+                /*
+                 * Anything else indicates that there was a duplicate
+                 * in our input, which we'll silently ignore.
+                 */
+                pfr_free(pfr);
+            } else {
+                pfr->status = CREATE;
+            }
+        } else {
+            sfree(saddr);
+            sfree(host);
+        }
+    }
+
+    /*
+     * Now go through and destroy any port forwardings which were
+     * not re-enabled.
+     */
+    for (i = 0; (pfr = index234(mgr->forwardings, i)) != NULL; i++) {
+        if (pfr->status == DESTROY) {
+            char *message;
+
+            message = dupprintf("%s port forwarding from %s%s%d",
+                                pfr->type == 'L' ? "local" :
+                                pfr->type == 'R' ? "remote" : "dynamic",
+                                pfr->saddr ? pfr->saddr : "",
+                                pfr->saddr ? ":" : "",
+                                pfr->sport);
+
+            if (pfr->type != 'D') {
+                char *msg2 = dupprintf("%s to %s:%d", message,
+                                       pfr->daddr, pfr->dport);
+                sfree(message);
+                message = msg2;
+            }
+
+            logeventf(mgr->cl->frontend, "Cancelling %s", message);
+            sfree(message);
+
+            /* pfr->remote or pfr->local may be NULL if setting up a
+             * forwarding failed. */
+            if (pfr->remote) {
+                /*
+                 * Cancel the port forwarding at the server
+                 * end.
+                 *
+                 * Actually closing the listening port on the server
+                 * side may fail - because in SSH-1 there's no message
+                 * in the protocol to request it!
+                 *
+                 * Instead, we simply remove the record of the
+                 * forwarding from our local end, so that any
+                 * connections the server tries to make on it are
+                 * rejected.
+                 */
+                ssh_rportfwd_remove(mgr->cl, pfr->remote);
+            } else if (pfr->local) {
+                pfl_terminate(pfr->local);
+            }
+
+            delpos234(mgr->forwardings, i);
+            pfr_free(pfr);
+            i--;                       /* so we don't skip one in the list */
+        }
+    }
+
+    /*
+     * And finally, set up any new port forwardings (status==CREATE).
+     */
+    for (i = 0; (pfr = index234(mgr->forwardings, i)) != NULL; i++) {
+        if (pfr->status == CREATE) {
+            char *sportdesc, *dportdesc;
+            sportdesc = dupprintf("%s%s%s%s%d%s",
+                                  pfr->saddr ? pfr->saddr : "",
+                                  pfr->saddr ? ":" : "",
+                                  pfr->sserv ? pfr->sserv : "",
+                                  pfr->sserv ? "(" : "",
+                                  pfr->sport,
+                                  pfr->sserv ? ")" : "");
+            if (pfr->type == 'D') {
+                dportdesc = NULL;
+            } else {
+                dportdesc = dupprintf("%s:%s%s%d%s",
+                                      pfr->daddr,
+                                      pfr->dserv ? pfr->dserv : "",
+                                      pfr->dserv ? "(" : "",
+                                      pfr->dport,
+                                      pfr->dserv ? ")" : "");
+            }
+
+            if (pfr->type == 'L') {
+                char *err = pfl_listen(pfr->daddr, pfr->dport,
+                                       pfr->saddr, pfr->sport,
+                                       mgr->cl, conf, &pfr->local,
+                                       pfr->addressfamily);
+
+                logeventf(mgr->cl->frontend,
+                          "Local %sport %s forwarding to %s%s%s",
+                          pfr->addressfamily == ADDRTYPE_IPV4 ? "IPv4 " :
+                          pfr->addressfamily == ADDRTYPE_IPV6 ? "IPv6 " : "",
+                          sportdesc, dportdesc,
+                          err ? " failed: " : "", err ? err : "");
+                if (err)
+                    sfree(err);
+            } else if (pfr->type == 'D') {
+                char *err = pfl_listen(NULL, -1, pfr->saddr, pfr->sport,
+                                       mgr->cl, conf, &pfr->local,
+                                       pfr->addressfamily);
+
+                logeventf(mgr->cl->frontend,
+                          "Local %sport %s SOCKS dynamic forwarding%s%s",
+                          pfr->addressfamily == ADDRTYPE_IPV4 ? "IPv4 " :
+                          pfr->addressfamily == ADDRTYPE_IPV6 ? "IPv6 " : "",
+                          sportdesc,
+                          err ? " failed: " : "", err ? err : "");
+
+                if (err)
+                    sfree(err);
+            } else {
+                const char *shost;
+
+                if (pfr->saddr) {
+                    shost = pfr->saddr;
+                } else if (conf_get_int(conf, CONF_rport_acceptall)) {
+                    shost = "";
+                } else {
+                    shost = "localhost";
+                }
+
+                pfr->remote = ssh_rportfwd_alloc(
+                    mgr->cl, shost, pfr->sport, pfr->daddr, pfr->dport,
+                    pfr->addressfamily, sportdesc, pfr, NULL);
+
+                if (!pfr->remote) {
+                    logeventf(mgr->cl->frontend,
+                              "Duplicate remote port forwarding to %s:%d",
+                              pfr->daddr, pfr->dport);
+                    pfr_free(pfr);
+                } else {
+                    logeventf(mgr->cl->frontend, "Requesting remote port %s"
+                              " forward to %s", sportdesc, dportdesc);
+                }
+            }
+            sfree(sportdesc);
+            sfree(dportdesc);
+        }
+    }
+}
+
+/*
+ * Called when receiving a PORT OPEN from the server to make a
+ * connection to a destination host.
+ *
+ * On success, returns NULL and fills in *pf_ret. On error, returns a
+ * dynamically allocated error message string.
+ */
+char *portfwdmgr_connect(PortFwdManager *mgr, Channel **chan_ret,
+                         char *hostname, int port, SshChannel *c,
+                         int addressfamily)
+{
+    SockAddr addr;
+    const char *err;
+    char *dummy_realhost = NULL;
+    struct PortForwarding *pf;
+
+    /*
+     * Try to find host.
+     */
+    addr = name_lookup(hostname, port, &dummy_realhost, mgr->conf,
+                       addressfamily, NULL, NULL);
+    if ((err = sk_addr_error(addr)) != NULL) {
+        char *err_ret = dupstr(err);
+        sk_addr_free(addr);
+        sfree(dummy_realhost);
+        return err_ret;
+    }
+
+    /*
+     * Open socket.
+     */
+    pf = new_portfwd_state();
+    *chan_ret = &pf->chan;
+    pf->plugvt = &PortForwarding_plugvt;
+    pf->chan.initial_fixed_window_size = 0;
+    pf->chan.vt = &PortForwarding_channelvt;
+    pf->input_wanted = TRUE;
+    pf->ready = 1;
+    pf->c = c;
+    pf->cl = mgr->cl;
+    pf->socks_state = SOCKS_NONE;
+
+    pf->s = new_connection(addr, dummy_realhost, port,
+                           0, 1, 0, 0, &pf->plugvt, mgr->conf);
+    sfree(dummy_realhost);
+    if ((err = sk_socket_error(pf->s)) != NULL) {
+        char *err_ret = dupstr(err);
+        sk_close(pf->s);
+        free_portfwd_state(pf);
+        *chan_ret = NULL;
+        return err_ret;
+    }
+
+    return NULL;
 }

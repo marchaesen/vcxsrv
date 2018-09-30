@@ -58,58 +58,6 @@ msgstr ""
 msgid "Image Quality"
 msgstr "Bildkvalitet"
 
-#: t_options.h:133
-msgid "Texture color depth"
-msgstr "Färgdjup för texturer"
-
-#: t_options.h:134
-msgid "Prefer frame buffer color depth"
-msgstr "Föredra färgdjupet för framebuffer"
-
-#: t_options.h:135
-msgid "Prefer 32 bits per texel"
-msgstr "Föredra 32 bitar per texel"
-
-#: t_options.h:136
-msgid "Prefer 16 bits per texel"
-msgstr "Föredra 16 bitar per texel"
-
-#: t_options.h:137
-msgid "Force 16 bits per texel"
-msgstr "Tvinga 16 bitar per texel"
-
-#: t_options.h:143
-msgid "Initial maximum value for anisotropic texture filtering"
-msgstr "Initialt maximalt värde för anisotropisk texturfiltrering"
-
-#: t_options.h:148
-msgid "Forbid negative texture LOD bias"
-msgstr "Förbjud negativ LOD-kompensation för texturer"
-
-#: t_options.h:160
-msgid "Initial color reduction method"
-msgstr "Initial färgminskningsmetod"
-
-#: t_options.h:161
-msgid "Round colors"
-msgstr "Avrunda färger"
-
-#: t_options.h:162
-msgid "Dither colors"
-msgstr "Utjämna färger"
-
-#: t_options.h:170
-msgid "Color rounding method"
-msgstr "Färgavrundningsmetod"
-
-#: t_options.h:171
-msgid "Round color components downward"
-msgstr "Avrunda färdkomponenter nedåt"
-
-#: t_options.h:172
-msgid "Round to nearest color"
-msgstr "Avrunda till närmsta färg"
-
 #: t_options.h:181
 msgid "Color dithering method"
 msgstr "Färgutjämningsmetod"
@@ -125,10 +73,6 @@ msgstr "Horisontell felspridning, återställ fel vid radbörjan"
 #: t_options.h:184
 msgid "Ordered 2D color dithering"
 msgstr "Ordnad 2D-färgutjämning"
-
-#: t_options.h:190
-msgid "Floating point depth buffer"
-msgstr "Buffert för flytande punktdjup"
 
 #: t_options.h:195
 msgid "A post-processing filter to cel-shade the output"
@@ -161,44 +105,6 @@ msgstr ""
 #: t_options.h:230
 msgid "Performance"
 msgstr "Prestanda"
-
-#: t_options.h:238
-msgid "TCL mode (Transformation, Clipping, Lighting)"
-msgstr "TCL-läge (Transformation, Clipping, Lighting)"
-
-#: t_options.h:239
-msgid "Use software TCL pipeline"
-msgstr "Använd programvaru-TCL-rörledning"
-
-#: t_options.h:240
-msgid "Use hardware TCL as first TCL pipeline stage"
-msgstr "Använd maskinvaru-TCL som första TCL-rörledningssteg"
-
-#: t_options.h:241
-msgid "Bypass the TCL pipeline"
-msgstr "Kringgå TCL-rörledningen"
-
-#: t_options.h:242
-msgid ""
-"Bypass the TCL pipeline with state-based machine code generated on-the-fly"
-msgstr ""
-"Kringgå TCL-rörledningen med tillståndsbaserad maskinkod som direktgenereras"
-
-#: t_options.h:251
-msgid "Method to limit rendering latency"
-msgstr "Metod för att begränsa renderingslatens"
-
-#: t_options.h:252
-msgid "Busy waiting for the graphics hardware"
-msgstr "Upptagen med att vänta på grafikhårdvaran"
-
-#: t_options.h:253
-msgid "Sleep for brief intervals while waiting for the graphics hardware"
-msgstr "Sov i korta intervall under väntan på grafikhårdvaran"
-
-#: t_options.h:254
-msgid "Let the graphics hardware emit a software interrupt and sleep"
-msgstr "Låt grafikhårdvaran sända ut ett programvaruavbrott och sov"
 
 #: t_options.h:264
 msgid "Synchronization with vertical refresh (swap intervals)"

@@ -669,6 +669,7 @@ validate_phi_src(nir_phi_instr *instr, nir_block *pred, validate_state *state)
    nir_foreach_phi_src(src, instr) {
       if (src->pred == pred) {
          validate_assert(state, src->src.is_ssa);
+         validate_assert(state, src->src.ssa->parent_instr->type != nir_instr_type_deref);
          validate_src(&src->src, state, instr->dest.ssa.bit_size,
                       instr->dest.ssa.num_components);
          state->instr = NULL;

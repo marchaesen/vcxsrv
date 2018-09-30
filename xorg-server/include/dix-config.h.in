@@ -9,12 +9,6 @@
 /* Builder address */
 #undef BUILDERADDR
 
-/* Operating System Name */
-#undef OSNAME
-
-/* Operating System Vendor */
-#undef OSVENDOR
-
 /* Builder string */
 #undef BUILDERSTRING
 
@@ -457,9 +451,6 @@
 
 /* Wrap SIGBUS to catch MIT-SHM faults */
 #undef BUSFAULT
-
-/* Directory for shared memory temp files */
-#undef SHMDIR
 
 /* Don't let Xdefs.h define 'pointer' */
 #define _XTYPEDEF_POINTER       1

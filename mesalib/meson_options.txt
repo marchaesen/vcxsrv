@@ -238,6 +238,12 @@ option(
   description : 'Build with LLVM support.'
 )
 option(
+  'shared-llvm',
+  type : 'boolean',
+  value : true,
+  description : 'Whether to link llvm shared or statically.'
+)
+option(
   'valgrind',
   type : 'combo',
   value : 'auto',

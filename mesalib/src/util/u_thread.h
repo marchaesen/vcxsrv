@@ -36,10 +36,6 @@
 #include <signal.h>
 #endif
 
-#if defined(HAVE_PTHREAD) && !defined(ANDROID) && !defined(__APPLE__)
-#define HAVE_PTHREAD_SETAFFINITY
-#endif
-
 static inline thrd_t u_thread_create(int (*routine)(void *), void *param)
 {
    thrd_t thread;

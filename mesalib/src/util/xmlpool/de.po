@@ -59,78 +59,6 @@ msgstr ""
 msgid "Image Quality"
 msgstr "Bildqualität"
 
-#: t_options.h:133
-msgid "Texture color depth"
-msgstr "Texturfarbtiefe"
-
-#: t_options.h:134
-msgid "Prefer frame buffer color depth"
-msgstr "Bevorzuge Farbtiefe des Framebuffers"
-
-#: t_options.h:135
-msgid "Prefer 32 bits per texel"
-msgstr "Bevorzuge 32 bits pro Texel"
-
-#: t_options.h:136
-msgid "Prefer 16 bits per texel"
-msgstr "Bevorzuge 16 bits pro Texel"
-
-#: t_options.h:137
-msgid "Force 16 bits per texel"
-msgstr "Erzwinge 16 bits pro Texel"
-
-#: t_options.h:143
-msgid "Initial maximum value for anisotropic texture filtering"
-msgstr "Initialer Maximalwert für anisotropische Texturfilterung"
-
-#: t_options.h:148
-msgid "Forbid negative texture LOD bias"
-msgstr "Verbiete negative Textur-Detailgradverschiebung"
-
-#: t_options.h:160
-msgid "Initial color reduction method"
-msgstr "Initiale Farbreduktionsmethode"
-
-#: t_options.h:161
-msgid "Round colors"
-msgstr "Farben runden"
-
-#: t_options.h:162
-msgid "Dither colors"
-msgstr "Farben rastern"
-
-#: t_options.h:170
-msgid "Color rounding method"
-msgstr "Farbrundungsmethode"
-
-#: t_options.h:171
-msgid "Round color components downward"
-msgstr "Farbkomponenten abrunden"
-
-#: t_options.h:172
-msgid "Round to nearest color"
-msgstr "Zur ähnlichsten Farbe runden"
-
-#: t_options.h:181
-msgid "Color dithering method"
-msgstr "Farbrasterungsmethode"
-
-#: t_options.h:182
-msgid "Horizontal error diffusion"
-msgstr "Horizontale Fehlerstreuung"
-
-#: t_options.h:183
-msgid "Horizontal error diffusion, reset error at line start"
-msgstr "Horizontale Fehlerstreuung, Fehler am Zeilenanfang zurücksetzen"
-
-#: t_options.h:184
-msgid "Ordered 2D color dithering"
-msgstr "Geordnete 2D Farbrasterung"
-
-#: t_options.h:190
-msgid "Floating point depth buffer"
-msgstr "Fließkomma z-Puffer"
-
 #: t_options.h:195
 msgid "A post-processing filter to cel-shade the output"
 msgstr "Nachbearbeitungsfilter für Cell Shading"
@@ -166,46 +94,6 @@ msgstr ""
 #: t_options.h:230
 msgid "Performance"
 msgstr "Leistung"
-
-#: t_options.h:238
-msgid "TCL mode (Transformation, Clipping, Lighting)"
-msgstr "TCL-Modus (Transformation, Clipping, Licht)"
-
-#: t_options.h:239
-msgid "Use software TCL pipeline"
-msgstr "Benutze die Software-TCL-Pipeline"
-
-#: t_options.h:240
-msgid "Use hardware TCL as first TCL pipeline stage"
-msgstr "Benutze Hardware TCL als erste Stufe der TCL-Pipeline"
-
-#: t_options.h:241
-msgid "Bypass the TCL pipeline"
-msgstr "Umgehe die TCL-Pipeline"
-
-#: t_options.h:242
-msgid ""
-"Bypass the TCL pipeline with state-based machine code generated on-the-fly"
-msgstr ""
-"Umgehe die TCL-Pipeline mit zur Laufzeit erzeugtem, zustandsbasiertem "
-"Maschinencode"
-
-#: t_options.h:251
-msgid "Method to limit rendering latency"
-msgstr "Methode zur Begrenzung der Bildverzögerung"
-
-#: t_options.h:252
-msgid "Busy waiting for the graphics hardware"
-msgstr "Aktives Warten auf die Grafikhardware"
-
-#: t_options.h:253
-msgid "Sleep for brief intervals while waiting for the graphics hardware"
-msgstr "Kurze Schlafintervalle beim Warten auf die Grafikhardware"
-
-#: t_options.h:254
-msgid "Let the graphics hardware emit a software interrupt and sleep"
-msgstr ""
-"Die Grafikhardware eine Softwareunterbrechnung erzeugen lassen und schlafen"
 
 #: t_options.h:264
 msgid "Synchronization with vertical refresh (swap intervals)"

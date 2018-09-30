@@ -836,15 +836,10 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = emit_bitfield_insert(&ctx->ac, src[0], src[1], src[2], src[3]);
 		break;
 	case nir_op_bitfield_reverse:
-		result = ac_build_intrinsic(&ctx->ac, "llvm.bitreverse.i32", ctx->ac.i32, src, 1, AC_FUNC_ATTR_READNONE);
+		result = ac_build_bitfield_reverse(&ctx->ac, src[0]);
 		break;
 	case nir_op_bit_count:
-		if (ac_get_elem_bits(&ctx->ac, LLVMTypeOf(src[0])) == 32)
-			result = ac_build_intrinsic(&ctx->ac, "llvm.ctpop.i32", ctx->ac.i32, src, 1, AC_FUNC_ATTR_READNONE);
-		else {
-			result = ac_build_intrinsic(&ctx->ac, "llvm.ctpop.i64", ctx->ac.i64, src, 1, AC_FUNC_ATTR_READNONE);
-			result = LLVMBuildTrunc(ctx->ac.builder, result, ctx->ac.i32, "");
-		}
+		result = ac_build_bit_count(&ctx->ac, src[0]);
 		break;
 	case nir_op_vec2:
 	case nir_op_vec3:

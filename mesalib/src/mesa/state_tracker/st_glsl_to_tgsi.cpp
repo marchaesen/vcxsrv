@@ -4068,6 +4068,7 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
    case ir_intrinsic_generic_atomic_comp_swap:
    case ir_intrinsic_begin_invocation_interlock:
    case ir_intrinsic_end_invocation_interlock:
+   case ir_intrinsic_begin_fragment_shader_ordering:
       unreachable("Invalid intrinsic");
    }
 }
@@ -6265,6 +6266,34 @@ compile_tgsi_instruction(struct st_translate *t,
    }
 }
 
+/* Invert SamplePos.y when rendering to the default framebuffer. */
+static void
+emit_samplepos_adjustment(struct st_translate *t, int wpos_y_transform)
+{
+   struct ureg_program *ureg = t->ureg;
+
+   assert(wpos_y_transform >= 0);
+   struct ureg_src trans_const = ureg_DECL_constant(ureg, wpos_y_transform);
+   struct ureg_src samplepos_sysval = t->systemValues[SYSTEM_VALUE_SAMPLE_POS];
+   struct ureg_dst samplepos_flipped = ureg_DECL_temporary(ureg);
+   struct ureg_dst is_fbo = ureg_DECL_temporary(ureg);
+
+   ureg_ADD(ureg, ureg_writemask(samplepos_flipped, TGSI_WRITEMASK_Y),
+            ureg_imm1f(ureg, 1), ureg_negate(samplepos_sysval));
+
+   /* If trans.x == 1, use samplepos.y, else use 1 - samplepos.y. */
+   ureg_FSEQ(ureg, ureg_writemask(is_fbo, TGSI_WRITEMASK_Y),
+             ureg_scalar(trans_const, TGSI_SWIZZLE_X), ureg_imm1f(ureg, 1));
+   ureg_UCMP(ureg, ureg_writemask(samplepos_flipped, TGSI_WRITEMASK_Y),
+             ureg_src(is_fbo), samplepos_sysval, ureg_src(samplepos_flipped));
+   ureg_MOV(ureg, ureg_writemask(samplepos_flipped, TGSI_WRITEMASK_X),
+            samplepos_sysval);
+
+   /* Use the result in place of the system value. */
+   t->systemValues[SYSTEM_VALUE_SAMPLE_POS] = ureg_src(samplepos_flipped);
+}
+
+
 /**
  * Emit the TGSI instructions for inverting and adjusting WPOS.
  * This code is unavoidable because it also depends on whether
@@ -6832,6 +6861,10 @@ st_translate_program(
                emit_wpos(st_context(ctx), t, proginfo, ureg,
                          program->wpos_transform_const);
 
+            if (procType == PIPE_SHADER_FRAGMENT &&
+                semName == TGSI_SEMANTIC_SAMPLEPOS)
+               emit_samplepos_adjustment(t, program->wpos_transform_const);
+
             sysInputs &= ~(1ull << i);
          }
       }
@@ -7143,7 +7176,8 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    /* This must be done before the uniform storage is associated. */
    if (shader->Stage == MESA_SHADER_FRAGMENT &&
        (prog->info.inputs_read & VARYING_BIT_POS ||
-        prog->info.system_values_read & (1ull << SYSTEM_VALUE_FRAG_COORD))) {
+        prog->info.system_values_read & (1ull << SYSTEM_VALUE_FRAG_COORD) ||
+        prog->info.system_values_read & (1ull << SYSTEM_VALUE_SAMPLE_POS))) {
       static const gl_state_index16 wposTransformState[STATE_LENGTH] = {
          STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM
       };

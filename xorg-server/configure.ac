@@ -410,12 +410,6 @@ AC_ARG_WITH(builder-addr,    AS_HELP_STRING([--with-builder-addr=ADDRESS],
 				  [Builder address (default: xorg@lists.freedesktop.org)]),
 				[ BUILDERADDR="$withval" ],
 				[ BUILDERADDR="xorg@lists.freedesktop.org" ])
-AC_ARG_WITH(os-name,         AS_HELP_STRING([--with-os-name=OSNAME], [Name of OS (default: output of "uname -srm")]),
-				[ OSNAME="$withval" ],
-				[ OSNAME=`uname -srm` ])
-AC_ARG_WITH(os-vendor,       AS_HELP_STRING([--with-os-vendor=OSVENDOR], [Name of OS vendor]),
-				[ OSVENDOR="$withval" ],
-				[ OSVENDOR="" ])
 AC_ARG_WITH(builderstring,   AS_HELP_STRING([--with-builderstring=BUILDERSTRING], [Additional builder string]),
 				[ BUILDERSTRING="$withval" ]
 				[ ])
@@ -1121,49 +1115,6 @@ case "$DRI2,$HAVE_DRI2PROTO" in
 esac
 AM_CONDITIONAL(DRI2, test "x$DRI2" = xyes)
 
-dnl
-dnl Locate a suitable tmp file system for creating shared memeory files
-dnl
-
-AC_ARG_WITH(shared-memory-dir, AS_HELP_STRING([--with-shared-memory-dir=PATH], [Path to directory in a world-writable temporary directory for anonymous shared memory (default: auto)]),
-[],
-[with_shared_memory_dir=yes])
-
-shmdirs="/run/shm /var/tmp /tmp"
-
-case x"$with_shared_memory_dir" in
-xyes)
-	for dir in $shmdirs; do
-		case x"$with_shared_memory_dir" in
-		xyes)
-			echo Checking temp dir "$dir"
-			if test -d "$dir"; then
-				with_shared_memory_dir="$dir"
-			fi
-			;;
-		esac
-	done
-	;;
-x/*)
-	;;
-xno)
-	;;
-*)
-	AC_MSG_ERROR([Invalid directory specified for --with-shared-memory-dir: $with_shared_memory_dir])
-	;;
-esac
-
-case x"$with_shared_memory_dir" in
-xyes)
-	AC_MSG_ERROR([No directory found for shared memory temp files.])
-	;;
-xno)
-	;;
-*)
-	AC_DEFINE_UNQUOTED(SHMDIR, ["$with_shared_memory_dir"], [Directory for shared memory temp files])
-	;;
-esac
-
 AC_ARG_ENABLE(xtrans-send-fds,	AS_HELP_STRING([--disable-xtrans-send-fds], [Use Xtrans support for fd passing (default: auto)]), [XTRANS_SEND_FDS=$enableval], [XTRANS_SEND_FDS=auto])
 
 case "x$XTRANS_SEND_FDS" in
@@ -1502,12 +1453,6 @@ AC_DEFINE_UNQUOTED(XVENDORNAMESHORT, ["$VENDOR_NAME_SHORT"], [Short vendor name]
 AC_DEFINE_UNQUOTED(XORG_MAN_VERSION, ["$VENDOR_MAN_VERSION"], [Vendor man version])
 AC_DEFINE_UNQUOTED(BUILDERADDR, ["$BUILDERADDR"], [Builder address])
 
-if test -z "$OSNAME"; then
-    OSNAME="UNKNOWN"
-fi
-
-AC_DEFINE_UNQUOTED(OSNAME, ["$OSNAME"], [Operating System Name])
-AC_DEFINE_UNQUOTED(OSVENDOR, ["$OSVENDOR"], [Operating System Vendor])
 AC_DEFINE_UNQUOTED(BUILDERSTRING, ["$BUILDERSTRING"], [Builder string])
 
 AC_SUBST([VENDOR_NAME_SHORT])

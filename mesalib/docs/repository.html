@@ -35,9 +35,9 @@ You may access the repository either as an
 
 <p>
 You may also 
-<a href="https://cgit.freedesktop.org/mesa/mesa/"
+<a href="https://gitlab.freedesktop.org/mesa/mesa"
 >browse the main Mesa git repository</a> and the
-<a href="https://cgit.freedesktop.org/mesa/demos"
+<a href="https://gitlab.freedesktop.org/mesa/demos"
 >Mesa demos and tests git repository</a>.
 </p>
 
@@ -52,7 +52,7 @@ To get the Mesa sources anonymously (read-only):
 <li>Install the git software on your computer if needed.<br><br>
 <li>Get an initial, local copy of the repository with:
     <pre>
-    git clone git://anongit.freedesktop.org/git/mesa/mesa
+    git clone https://gitlab.freedesktop.org/mesa/mesa.git
     </pre>
 <li>Later, you can update your tree from the master repository with:
     <pre>
@@ -60,7 +60,7 @@ To get the Mesa sources anonymously (read-only):
     </pre>
 <li>If you also want the Mesa demos/tests repository:
     <pre>
-    git clone git://anongit.freedesktop.org/git/mesa/demos
+    git clone https://gitlab.freedesktop.org/mesa/demos.git
     </pre>
 </ol>
 
@@ -98,24 +98,17 @@ on a particular driver, add a new extension, etc.) in the bugzilla record.
 </ol>
 
 <p>
-Once your account is established:
-</p>
+Once your account is established, you can update your push url to use SSH:
+<pre>
+git remote set-url --push <em>origin</em> git@gitlab.freedesktop.org:mesa/mesa.git
+</pre>
 
-<ol>
-<li>Get an initial, local copy of the repository with:
-    <pre>
-    git clone git+ssh://username@git.freedesktop.org/git/mesa/mesa
-    </pre>
-    Replace <em>username</em> with your actual login name.<br><br>
-<li>Later, you can update your tree from the master repository with:
-    <pre>
-    git pull origin
-    </pre>
-<li>If you also want the Mesa demos/tests repository:
-    <pre>
-    git clone git+ssh://username@git.freedesktop.org/git/mesa/demos
-    </pre>
-</ol>
+You can also use <a href="https://gitlab.freedesktop.org/profile/personal_access_tokens">personal access tokens</a>
+to push over HTTPS instead (useful for people behind strict proxies).
+In this case, create a token, and put it in the url as shown here:
+<pre>
+git remote set-url --push <em>origin</em> https://<em>USER</em>:<em>TOKEN</em>@gitlab.freedesktop.org/mesa/mesa.git
+</pre>
 
 
 <h2>Windows Users</h2>
@@ -149,12 +142,12 @@ code while a branch has the latest stable code.
 </p>
 
 <p>
-The command <code>git-branch</code> will list all available branches.
+The command <code>git branch</code> will list all available branches.
 </p>
 
 <p>
 Questions about branch status/activity should be posted to the
-mesa3d-dev mailing list.
+mesa-dev mailing list.
 </p>
 
 <h2>Developer Git Tips</h2>

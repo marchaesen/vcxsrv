@@ -107,12 +107,6 @@ static PixmapFormatRec formats[MAXFORMATS] = {
 static int numFormats = 7;
 static Bool formatsDone = FALSE;
 
-#ifndef OSNAME
-#define OSNAME " unknown"
-#endif
-#ifndef OSVENDOR
-#define OSVENDOR ""
-#endif
 #ifndef PRE_RELEASE
 #define PRE_RELEASE XORG_VERSION_SNAP
 #endif
@@ -162,7 +156,6 @@ xf86PrintBanner(void)
 #endif
     xf86ErrorFVerb(0, "\nX Protocol Version %d, Revision %d\n",
                    X_PROTOCOL, X_PROTOCOL_REVISION);
-    xf86ErrorFVerb(0, "Build Operating System: %s %s\n", OSNAME, OSVENDOR);
 #ifdef HAS_UTSNAME
     {
         struct utsname name;

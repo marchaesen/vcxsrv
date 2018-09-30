@@ -968,6 +968,22 @@ if test "x$pthread_stubs_possible" = xyes; then
     PKG_CHECK_MODULES(PTHREADSTUBS, pthread-stubs >= 0.4)
 fi
 
+save_LIBS="$LIBS"
+LIBS="$PTHREAD_LIBS"
+AC_MSG_CHECKING(whether pthread_setaffinity_np is supported)
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
+    #define _GNU_SOURCE
+    #include <pthread.h>
+    int main() {
+       void *a = (void*) &pthread_setaffinity_np;
+       long b = (long) a;
+       return (int) b;
+    }]])],
+  [DEFINES="$DEFINES -DHAVE_PTHREAD_SETAFFINITY"];
+   AC_MSG_RESULT([yes]),
+   AC_MSG_RESULT([no]))
+LIBS="$save_LIBS"
+
 dnl Check for futex for fast inline simple_mtx_t.
 AC_CHECK_HEADER([linux/futex.h], [DEFINES="$DEFINES -DHAVE_LINUX_FUTEX_H"])
 

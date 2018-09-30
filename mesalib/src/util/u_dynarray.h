@@ -149,6 +149,7 @@ util_dynarray_trim(struct util_dynarray *buf)
 #define util_dynarray_element(buf, type, idx) ((type*)(buf)->data + (idx))
 #define util_dynarray_begin(buf) ((buf)->data)
 #define util_dynarray_end(buf) ((void*)util_dynarray_element((buf), char, (buf)->size))
+#define util_dynarray_num_elements(buf, type) ((buf)->size / sizeof(type))
 
 #define util_dynarray_foreach(buf, type, elem) \
    for (type *elem = (type *)(buf)->data; \

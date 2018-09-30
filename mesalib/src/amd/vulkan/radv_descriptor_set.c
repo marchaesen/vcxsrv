@@ -533,7 +533,7 @@ VkResult radv_CreateDescriptorPool(
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_descriptor_pool *pool;
-	int size = sizeof(struct radv_descriptor_pool);
+	uint64_t size = sizeof(struct radv_descriptor_pool);
 	uint64_t bo_size = 0, bo_count = 0, range_count = 0;
 
 

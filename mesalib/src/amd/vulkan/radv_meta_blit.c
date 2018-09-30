@@ -307,7 +307,7 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
                VkOffset2D dest_offset_0,
                VkOffset2D dest_offset_1,
                VkRect2D dest_box,
-               VkFilter blit_filter)
+               VkSampler sampler)
 {
 	struct radv_device *device = cmd_buffer->device;
 	uint32_t src_width = radv_minify(src_iview->image->info.width, src_iview->base_mip);
@@ -330,17 +330,6 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 			      device->meta_state.blit.pipeline_layout,
 			      VK_SHADER_STAGE_VERTEX_BIT, 0, 20,
 			      vertex_push_constants);
-
-	VkSampler sampler;
-	radv_CreateSampler(radv_device_to_handle(device),
-				 &(VkSamplerCreateInfo) {
-					 .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-						 .magFilter = blit_filter,
-						 .minFilter = blit_filter,
-						 .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-						 .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-						 .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-						 }, &cmd_buffer->pool->alloc, &sampler);
 
 	VkFramebuffer fb;
 	radv_CreateFramebuffer(radv_device_to_handle(device),
@@ -384,7 +373,7 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 			pipeline = &device->meta_state.blit.pipeline_3d_src[fs_key];
 			break;
 		default:
-			unreachable(!"bad VkImageType");
+			unreachable("bad VkImageType");
 		}
 		break;
 	}
@@ -413,7 +402,7 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 			pipeline = &device->meta_state.blit.depth_only_3d_pipeline;
 			break;
 		default:
-			unreachable(!"bad VkImageType");
+			unreachable("bad VkImageType");
 		}
 		break;
 	}
@@ -442,12 +431,12 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 			pipeline = &device->meta_state.blit.stencil_only_3d_pipeline;
 			break;
 		default:
-			unreachable(!"bad VkImageType");
+			unreachable("bad VkImageType");
 		}
 		break;
 	}
 	default:
-		unreachable(!"bad VkImageType");
+		unreachable("bad VkImageType");
 	}
 
 	if (!*pipeline) {
@@ -510,8 +499,6 @@ fail_pipeline:
 	/* TODO: above comment is not valid for at least descriptor sets/pools,
 	 * as we may not free them till after execution finishes. Check others. */
 
-	radv_DestroySampler(radv_device_to_handle(device), sampler,
-			    &cmd_buffer->pool->alloc);
 	radv_DestroyFramebuffer(radv_device_to_handle(device), fb,
 				&cmd_buffer->pool->alloc);
 }
@@ -550,8 +537,10 @@ void radv_CmdBlitImage(
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_image, src_image, srcImage);
 	RADV_FROM_HANDLE(radv_image, dest_image, destImage);
+	struct radv_device *device = cmd_buffer->device;
 	struct radv_meta_saved_state saved_state;
 	bool old_predicating;
+	VkSampler sampler;
 
 	/* From the Vulkan 1.0 spec:
 	 *
@@ -560,6 +549,16 @@ void radv_CmdBlitImage(
 	 */
 	assert(src_image->info.samples == 1);
 	assert(dest_image->info.samples == 1);
+
+	radv_CreateSampler(radv_device_to_handle(device),
+			   &(VkSamplerCreateInfo) {
+				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+				.magFilter = filter,
+				.minFilter = filter,
+				.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+				.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+				.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+			   }, &cmd_buffer->pool->alloc, &sampler);
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_GRAPHICS_PIPELINE |
@@ -682,7 +681,7 @@ void radv_CmdBlitImage(
 				       dest_image, &dest_iview, destImageLayout,
 				       dest_offset_0, dest_offset_1,
 				       dest_box,
-				       filter);
+				       sampler);
 		}
 	}
 
@@ -690,6 +689,9 @@ void radv_CmdBlitImage(
 	cmd_buffer->state.predicating = old_predicating;
 
 	radv_meta_restore(&saved_state, cmd_buffer);
+
+	radv_DestroySampler(radv_device_to_handle(device), sampler,
+			    &cmd_buffer->pool->alloc);
 }
 
 void

@@ -216,7 +216,7 @@ char *host_strduptrim(const char *s)
     return dupstr(s);
 }
 
-prompts_t *new_prompts(void *frontend)
+prompts_t *new_prompts(Frontend *frontend)
 {
     prompts_t *p = snew(prompts_t);
     p->prompts = NULL;
@@ -335,6 +335,12 @@ void burnstr(char *string)             /* sfree(str), only clear it first */
         smemclr(string, strlen(string));
         sfree(string);
     }
+}
+
+void logevent_and_free(Frontend *frontend, char *s)
+{
+    logevent(frontend, s);
+    sfree(s);
 }
 
 int toint(unsigned u)
@@ -821,6 +827,33 @@ int bufchain_try_fetch_consume(bufchain *ch, void *data, int len)
 }
 
 /* ----------------------------------------------------------------------
+ * Sanitise terminal output that we have reason not to trust, e.g.
+ * because it appears in the login banner or password prompt from a
+ * server, which we'd rather not permit to use arbitrary escape
+ * sequences.
+ */
+
+void sanitise_term_data(bufchain *out, const void *vdata, int len)
+{
+    const char *data = (const char *)vdata;
+    int i;
+
+    /*
+     * FIXME: this method of sanitisation is ASCII-centric. It would
+     * be nice to permit SSH banners and the like to contain printable
+     * Unicode, but that would need a lot more complicated code here
+     * (not to mention knowing what character set it should interpret
+     * the data as).
+     */
+    for (i = 0; i < len; i++) {
+        if (data[i] == '\n')
+            bufchain_add(out, "\r\n", 2);
+        else if (data[i] >= ' ' && data[i] < 0x7F)
+            bufchain_add(out, data + i, 1);
+    }
+}
+
+/* ----------------------------------------------------------------------
  * My own versions of malloc, realloc and free. Because I want
  * malloc and realloc to bomb out and exit the program if they run
  * out of memory, realloc to reliably call malloc if passed a NULL
@@ -1179,6 +1212,17 @@ int smemeq(const void *av, const void *bv, size_t len)
      * will clear bit 8 iff we want to return 0, and leave it set iff
      * we want to return 1, so then we can just shift down. */
     return (0x100 - val) >> 8;
+}
+
+int nullstrcmp(const char *a, const char *b)
+{
+    if (a == NULL && b == NULL)
+        return 0;
+    if (a == NULL)
+        return -1;
+    if (b == NULL)
+        return +1;
+    return strcmp(a, b);
 }
 
 ptrlen make_ptrlen(const void *ptr, size_t len)

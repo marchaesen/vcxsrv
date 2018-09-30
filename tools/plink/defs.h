@@ -21,7 +21,6 @@
 #endif
 
 typedef struct conf_tag Conf;
-typedef struct backend_tag Backend;
 typedef struct terminal_tag Terminal;
 
 typedef struct Filename Filename;
@@ -44,6 +43,33 @@ typedef struct SockAddr_tag *SockAddr;
 typedef struct Socket_vtable Socket_vtable;
 typedef struct Plug_vtable Plug_vtable;
 
+typedef struct Backend Backend;
+typedef struct Backend_vtable Backend_vtable;
+
+typedef struct Ldisc_tag Ldisc;
+typedef struct LogContext_tag LogContext;
+
+typedef struct Frontend Frontend;
+
+typedef struct ssh_tag *Ssh;
+
+typedef struct Channel Channel;
+typedef struct SshChannel SshChannel;
+
+typedef struct ssh_sharing_state ssh_sharing_state;
+typedef struct ssh_sharing_connstate ssh_sharing_connstate;
+typedef struct share_channel share_channel;
+
+typedef struct PortFwdManager PortFwdManager;
+typedef struct PortFwdRecord PortFwdRecord;
+typedef struct ConnectionLayer ConnectionLayer;
+
+typedef struct dlgparam dlgparam;
+
+typedef struct settings_w settings_w;
+typedef struct settings_r settings_r;
+typedef struct settings_e settings_e;
+
 /* Note indirection: for historical reasons (it used to be closer to
  * the OS socket type), the type that most code uses for a socket is
  * 'Socket', not 'Socket *'. So an implementation of Socket or Plug
@@ -63,6 +89,8 @@ typedef struct ptrlen {
 } ptrlen;
 
 typedef struct logblank_t logblank_t;
+
+typedef struct BinaryPacketProtocol BinaryPacketProtocol;
 
 /* Do a compile-time type-check of 'to_check' (without evaluating it),
  * as a side effect of returning the value 'to_return'. Note that

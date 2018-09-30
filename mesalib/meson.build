@@ -569,8 +569,6 @@ elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
   else
     _va = 'false'
   endif
-elif _va == 'auto'
-  _va = 'true'
 endif
 with_gallium_va = false
 dep_va = null_dep
@@ -1070,6 +1068,13 @@ pre_args += '-DHAVE_ZLIB'
 dep_thread = dependency('threads')
 if dep_thread.found() and host_machine.system() != 'windows'
   pre_args += '-DHAVE_PTHREAD'
+  if cc.has_function(
+      'pthread_setaffinity_np',
+      dependencies : dep_thread,
+      prefix : '#include <pthread.h>',
+      args : '-D_GNU_SOURCE')
+    pre_args += '-DHAVE_PTHREAD_SETAFFINITY'
+  endif
 endif
 if with_amd_vk or with_gallium_radeonsi or with_gallium_r600 or with_gallium_opencl
   dep_elf = dependency('libelf', required : false)
@@ -1181,6 +1186,8 @@ else
   _llvm_version = '>= 3.3.0'
 endif
 
+_shared_llvm = get_option('shared-llvm')
+
 _llvm = get_option('llvm')
 if _llvm == 'auto'
   dep_llvm = dependency(
@@ -1189,6 +1196,7 @@ if _llvm == 'auto'
     modules : llvm_modules,
     optional_modules : llvm_optional_modules,
     required : with_amd_vk or with_gallium_radeonsi or with_gallium_swr or with_gallium_opencl,
+    static : not _shared_llvm
   )
   with_llvm = dep_llvm.found()
 elif _llvm == 'true'
@@ -1197,6 +1205,7 @@ elif _llvm == 'true'
     version : _llvm_version,
     modules : llvm_modules,
     optional_modules : llvm_optional_modules,
+    static : not _shared_llvm,
   )
   with_llvm = true
 else

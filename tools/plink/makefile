@@ -13,6 +13,6 @@ CSRCS = winplink.c winhandl.c misc.c settings.c winstore.c windefs.c winmisc.c w
         pgssapi.c winnojmp.c conf.c callback.c sshshare.c winsecur.c errsock.c winshare.c \
         winnps.c winnpc.c noterm.c winhsock.c sshecc.c sshccp.c be_misc.c wincapi.c miscucs.c \
 				winucs.c sessprep.c marshal.c nullplug.c ssh1bpp.c ssh2bpp.c ssh1censor.c ssh2censor.c \
-				ssh2bpp-bare.c
+				ssh2bpp-bare.c sshcommon.c sshverstring.c sshmac.c agentf.c
 
 TTYAPP=plink

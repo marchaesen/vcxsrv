@@ -140,6 +140,11 @@ DRI_CONF_OPT_BEGIN_B(allow_glsl_layout_qualifier_on_function_parameters, def) \
         DRI_CONF_DESC(en,gettext("Allow layout qualifiers on function parameters.")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_FORCE_COMPAT_PROFILE(def) \
+DRI_CONF_OPT_BEGIN_B(force_compat_profile, def) \
+        DRI_CONF_DESC(en,gettext("Force an OpenGL compatibility context")) \
+DRI_CONF_OPT_END
+
 /**
  * \brief Image quality-related options
  */
@@ -147,70 +152,9 @@ DRI_CONF_OPT_END
 DRI_CONF_SECTION_BEGIN \
         DRI_CONF_DESC(en,gettext("Image Quality"))
 
-#define DRI_CONF_TEXTURE_DEPTH_FB       0
-#define DRI_CONF_TEXTURE_DEPTH_32       1
-#define DRI_CONF_TEXTURE_DEPTH_16       2
-#define DRI_CONF_TEXTURE_DEPTH_FORCE_16 3
-#define DRI_CONF_TEXTURE_DEPTH(def) \
-DRI_CONF_OPT_BEGIN_V(texture_depth,enum,def,"0:3") \
-        DRI_CONF_DESC_BEGIN(en,gettext("Texture color depth")) \
-                DRI_CONF_ENUM(0,gettext("Prefer frame buffer color depth")) \
-                DRI_CONF_ENUM(1,gettext("Prefer 32 bits per texel")) \
-                DRI_CONF_ENUM(2,gettext("Prefer 16 bits per texel")) \
-                DRI_CONF_ENUM(3,gettext("Force 16 bits per texel")) \
-        DRI_CONF_DESC_END \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_DEF_MAX_ANISOTROPY(def,range) \
-DRI_CONF_OPT_BEGIN_V(def_max_anisotropy,float,def,range) \
-        DRI_CONF_DESC(en,gettext("Initial maximum value for anisotropic texture filtering")) \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_NO_NEG_LOD_BIAS(def) \
-DRI_CONF_OPT_BEGIN_B(no_neg_lod_bias, def) \
-        DRI_CONF_DESC(en,gettext("Forbid negative texture LOD bias")) \
-DRI_CONF_OPT_END
-
 #define DRI_CONF_PRECISE_TRIG(def) \
 DRI_CONF_OPT_BEGIN_B(precise_trig, def) \
         DRI_CONF_DESC(en,gettext("Prefer accuracy over performance in trig functions")) \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_COLOR_REDUCTION_ROUND 0
-#define DRI_CONF_COLOR_REDUCTION_DITHER 1
-#define DRI_CONF_COLOR_REDUCTION(def) \
-DRI_CONF_OPT_BEGIN_V(color_reduction,enum,def,"0:1") \
-        DRI_CONF_DESC_BEGIN(en,gettext("Initial color reduction method")) \
-                DRI_CONF_ENUM(0,gettext("Round colors")) \
-                DRI_CONF_ENUM(1,gettext("Dither colors")) \
-        DRI_CONF_DESC_END \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_ROUND_TRUNC 0
-#define DRI_CONF_ROUND_ROUND 1
-#define DRI_CONF_ROUND_MODE(def) \
-DRI_CONF_OPT_BEGIN_V(round_mode,enum,def,"0:1") \
-        DRI_CONF_DESC_BEGIN(en,gettext("Color rounding method")) \
-                DRI_CONF_ENUM(0,gettext("Round color components downward")) \
-                DRI_CONF_ENUM(1,gettext("Round to nearest color")) \
-        DRI_CONF_DESC_END \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_DITHER_XERRORDIFF 0
-#define DRI_CONF_DITHER_XERRORDIFFRESET 1
-#define DRI_CONF_DITHER_ORDERED 2
-#define DRI_CONF_DITHER_MODE(def) \
-DRI_CONF_OPT_BEGIN_V(dither_mode,enum,def,"0:2") \
-        DRI_CONF_DESC_BEGIN(en,gettext("Color dithering method")) \
-                DRI_CONF_ENUM(0,gettext("Horizontal error diffusion")) \
-                DRI_CONF_ENUM(1,gettext("Horizontal error diffusion, reset error at line start")) \
-                DRI_CONF_ENUM(2,gettext("Ordered 2D color dithering")) \
-        DRI_CONF_DESC_END \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_FLOAT_DEPTH(def) \
-DRI_CONF_OPT_BEGIN_B(float_depth, def) \
-        DRI_CONF_DESC(en,gettext("Floating point depth buffer")) \
 DRI_CONF_OPT_END
 
 #define DRI_CONF_PP_CELSHADE(def) \
@@ -251,32 +195,6 @@ DRI_CONF_OPT_END
 #define DRI_CONF_SECTION_PERFORMANCE \
 DRI_CONF_SECTION_BEGIN \
         DRI_CONF_DESC(en,gettext("Performance"))
-
-#define DRI_CONF_TCL_SW 0
-#define DRI_CONF_TCL_PIPELINED 1
-#define DRI_CONF_TCL_VTXFMT 2
-#define DRI_CONF_TCL_CODEGEN 3
-#define DRI_CONF_TCL_MODE(def) \
-DRI_CONF_OPT_BEGIN_V(tcl_mode,enum,def,"0:3") \
-        DRI_CONF_DESC_BEGIN(en,gettext("TCL mode (Transformation, Clipping, Lighting)")) \
-                DRI_CONF_ENUM(0,gettext("Use software TCL pipeline")) \
-                DRI_CONF_ENUM(1,gettext("Use hardware TCL as first TCL pipeline stage")) \
-                DRI_CONF_ENUM(2,gettext("Bypass the TCL pipeline")) \
-                DRI_CONF_ENUM(3,gettext("Bypass the TCL pipeline with state-based machine code generated on-the-fly")) \
-        DRI_CONF_DESC_END \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_FTHROTTLE_BUSY 0
-#define DRI_CONF_FTHROTTLE_USLEEPS 1
-#define DRI_CONF_FTHROTTLE_IRQS 2
-#define DRI_CONF_FTHROTTLE_MODE(def) \
-DRI_CONF_OPT_BEGIN_V(fthrottle_mode,enum,def,"0:2") \
-        DRI_CONF_DESC_BEGIN(en,gettext("Method to limit rendering latency")) \
-                DRI_CONF_ENUM(0,gettext("Busy waiting for the graphics hardware")) \
-                DRI_CONF_ENUM(1,gettext("Sleep for brief intervals while waiting for the graphics hardware")) \
-                DRI_CONF_ENUM(2,gettext("Let the graphics hardware emit a software interrupt and sleep")) \
-        DRI_CONF_DESC_END \
-DRI_CONF_OPT_END
 
 #define DRI_CONF_VBLANK_NEVER 0
 #define DRI_CONF_VBLANK_DEF_INTERVAL_0 1

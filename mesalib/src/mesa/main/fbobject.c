@@ -1410,7 +1410,7 @@ allocate_renderbuffer_locked(struct gl_context *ctx, GLuint renderbuffer,
 
 
 static void
-bind_renderbuffer(GLenum target, GLuint renderbuffer, bool allow_user_names)
+bind_renderbuffer(GLenum target, GLuint renderbuffer)
 {
    struct gl_renderbuffer *newRb;
    GET_CURRENT_CONTEXT(ctx);
@@ -1430,9 +1430,10 @@ bind_renderbuffer(GLenum target, GLuint renderbuffer, bool allow_user_names)
          /* ID was reserved, but no real renderbuffer object made yet */
          newRb = NULL;
       }
-      else if (!newRb && !allow_user_names) {
+      else if (!newRb && ctx->API == API_OPENGL_CORE) {
          /* All RB IDs must be Gen'd */
-         _mesa_error(ctx, GL_INVALID_OPERATION, "glBindRenderbuffer(buffer)");
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBindRenderbuffer(non-gen name)");
          return;
       }
 
@@ -1455,22 +1456,16 @@ bind_renderbuffer(GLenum target, GLuint renderbuffer, bool allow_user_names)
 void GLAPIENTRY
 _mesa_BindRenderbuffer(GLenum target, GLuint renderbuffer)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
    /* OpenGL ES glBindRenderbuffer and glBindRenderbufferOES use this same
     * entry point, but they allow the use of user-generated names.
     */
-   bind_renderbuffer(target, renderbuffer, _mesa_is_gles(ctx));
+   bind_renderbuffer(target, renderbuffer);
 }
 
 void GLAPIENTRY
 _mesa_BindRenderbufferEXT(GLenum target, GLuint renderbuffer)
 {
-   /* This function should not be in the dispatch table for core profile /
-    * OpenGL 3.1, so execution should never get here in those cases -- no
-    * need for an explicit test.
-    */
-   bind_renderbuffer(target, renderbuffer, true);
+   bind_renderbuffer(target, renderbuffer);
 }
 
 /**
@@ -1503,6 +1498,7 @@ framebuffer_parameteri(struct gl_context *ctx, struct gl_framebuffer *fb,
       if (!ctx->Extensions.MESA_framebuffer_flip_y)
          goto invalid_pname_enum;
       cannot_be_winsys_fbo = true;
+      break;
    default:
       goto invalid_pname_enum;
    }
@@ -2797,7 +2793,7 @@ check_end_texture_render(struct gl_context *ctx, struct gl_framebuffer *fb)
 
 
 static void
-bind_framebuffer(GLenum target, GLuint framebuffer, bool allow_user_names)
+bind_framebuffer(GLenum target, GLuint framebuffer)
 {
    struct gl_framebuffer *newDrawFb, *newReadFb;
    GLboolean bindReadBuf, bindDrawBuf;
@@ -2828,9 +2824,10 @@ bind_framebuffer(GLenum target, GLuint framebuffer, bool allow_user_names)
          /* ID was reserved, but no real framebuffer object made yet */
          newDrawFb = NULL;
       }
-      else if (!newDrawFb && !allow_user_names) {
+      else if (!newDrawFb && ctx->API == API_OPENGL_CORE) {
          /* All FBO IDs must be Gen'd */
-         _mesa_error(ctx, GL_INVALID_OPERATION, "glBindFramebuffer(buffer)");
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBindFramebuffer(non-gen name)");
          return;
       }
 
@@ -2919,23 +2916,17 @@ _mesa_bind_framebuffers(struct gl_context *ctx,
 void GLAPIENTRY
 _mesa_BindFramebuffer(GLenum target, GLuint framebuffer)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
    /* OpenGL ES glBindFramebuffer and glBindFramebufferOES use this same entry
     * point, but they allow the use of user-generated names.
     */
-   bind_framebuffer(target, framebuffer, _mesa_is_gles(ctx));
+   bind_framebuffer(target, framebuffer);
 }
 
 
 void GLAPIENTRY
 _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
 {
-   /* This function should not be in the dispatch table for core profile /
-    * OpenGL 3.1, so execution should never get here in those cases -- no
-    * need for an explicit test.
-    */
-   bind_framebuffer(target, framebuffer, true);
+   bind_framebuffer(target, framebuffer);
 }
 
 

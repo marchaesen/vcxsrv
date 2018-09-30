@@ -1197,8 +1197,7 @@ wsi_display_wait_for_event(struct wsi_display *wsi,
 
 static VkResult
 wsi_display_acquire_next_image(struct wsi_swapchain *drv_chain,
-                               uint64_t timeout,
-                               VkSemaphore semaphore,
+                               const VkAcquireNextImageInfoKHR *info,
                                uint32_t *image_index)
 {
    struct wsi_display_swapchain *chain =
@@ -1211,6 +1210,7 @@ wsi_display_acquire_next_image(struct wsi_swapchain *drv_chain,
    if (chain->status != VK_SUCCESS)
       return chain->status;
 
+   uint64_t timeout = info->timeout;
    if (timeout != 0 && timeout != UINT64_MAX)
       timeout = wsi_rel_to_abs_time(timeout);
 
