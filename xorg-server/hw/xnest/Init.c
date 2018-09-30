@@ -126,21 +126,11 @@ CloseInput(void)
     mieqFini();
 }
 
-/*
- * DDX - specific abort routine.  Called by AbortServer().
- */
-void
-AbortDDX(enum ExitCode error)
-{
-    xnestDoFullGeneration = True;
-    xnestCloseDisplay();
-}
-
-/* Called by GiveUp(). */
 void
 ddxGiveUp(enum ExitCode error)
 {
-    AbortDDX(error);
+    xnestDoFullGeneration = True;
+    xnestCloseDisplay();
 }
 
 #ifdef __APPLE__

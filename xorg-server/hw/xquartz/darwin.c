@@ -172,20 +172,6 @@ DarwinPrintBanner(void)
 }
 
 /*
- * DarwinSaveScreen
- *  X screensaver support. Not implemented.
- */
-static Bool
-DarwinSaveScreen(ScreenPtr pScreen, int on)
-{
-    // FIXME
-    if (on == SCREEN_SAVER_FORCER) {}
-    else if (on == SCREEN_SAVER_ON) {}
-    else {}
-    return TRUE;
-}
-
-/*
  * DarwinScreenInit
  *  This is a callback from dix during AddScreen() from InitOutput().
  *  Initialize the screen and communicate information about it back to dix.
@@ -270,9 +256,6 @@ DarwinScreenInit(ScreenPtr pScreen, int argc, char **argv)
 #ifdef MITSHM
     ShmRegisterFbFuncs(pScreen);
 #endif
-
-    // this must be initialized (why doesn't X have a default?)
-    pScreen->SaveScreen = DarwinSaveScreen;
 
     // finish mode dependent screen setup including cursor support
     if (!QuartzSetupScreen(pScreen->myNum, pScreen)) {
@@ -842,18 +825,4 @@ void
 ddxGiveUp(enum ExitCode error)
 {
     LogClose(error);
-}
-
-/*
- * AbortDDX --
- *      DDX - specific abort routine.  Called by AbortServer(). The attempt is
- *      made to restore all original setting of the displays. Also all devices
- *      are closed.
- */
-_X_NORETURN
-void
-AbortDDX(enum ExitCode error)
-{
-    ErrorF("   AbortDDX\n");
-    OsAbort();
 }

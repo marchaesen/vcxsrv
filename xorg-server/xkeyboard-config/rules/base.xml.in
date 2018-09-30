@@ -3944,6 +3944,15 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>latin</name>
+            <_description>Kazakh (Latin)</_description>
+            <languageList>
+              <iso639Id>kaz</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -5469,7 +5478,20 @@
           <iso639Id>vie</iso639Id>
         </languageList>
       </configItem>
-      <variantList/>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>us</name>
+            <_description>Vietnamese (US keyboard with Vietnamese letters)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>fr</name>
+            <_description>Vietnamese (French, with Vietnamese letters)</_description>
+          </configItem>
+        </variant>
+      </variantList>
     </layout>
     <layout>
       <configItem>
@@ -5503,7 +5525,6 @@
           <iso639Id>jpn</iso639Id>
         </languageList>
       </configItem>
-      <variantList/>
     </layout>
     <layout>
       <configItem>
@@ -7250,17 +7271,11 @@
        </configItem>
       </option>
     </group>
-    <group allowMultipleSelection="true">
+    <group allowMultipleSelection="false">
       <configItem>
         <name>korean</name>
         <_description>Korean Hangul/Hanja keys</_description>
       </configItem>
-      <option>
-        <configItem>
-          <name>korean:hw_keys</name>
-          <_description>Hardware Hangul/Hanja keys</_description>
-        </configItem>
-      </option>
       <option>
         <configItem>
           <name>korean:ralt_rctrl</name>

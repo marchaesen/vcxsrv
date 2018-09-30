@@ -105,12 +105,6 @@ typedef struct x_IHRec {
 
 static IHPtr InputHandlers = NULL;
 
-Bool
-LegalModifier(unsigned int key, DeviceIntPtr pDev)
-{
-    return TRUE;
-}
-
 /*
  * TimeSinceLastInputEvent --
  *      Function used for screensaver purposes by the os module. Returns the

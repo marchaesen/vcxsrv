@@ -24,4 +24,5 @@ if get_option('xvfb')
 endif
 
 subdir('bigreq')
+subdir('damage')
 subdir('sync')

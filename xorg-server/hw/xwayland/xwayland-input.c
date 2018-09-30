@@ -1604,8 +1604,8 @@ tablet_tool_motion(void *data, struct zwp_tablet_tool_v2 *tool,
     struct xwl_tablet_tool *xwl_tablet_tool = data;
     struct xwl_seat *xwl_seat = xwl_tablet_tool->seat;
     int32_t dx, dy;
-    int sx = wl_fixed_to_int(x);
-    int sy = wl_fixed_to_int(y);
+    double sx = wl_fixed_to_double(x);
+    double sy = wl_fixed_to_double(y);
 
     if (!xwl_seat->tablet_focus_window)
         return;
@@ -1613,8 +1613,8 @@ tablet_tool_motion(void *data, struct zwp_tablet_tool_v2 *tool,
     dx = xwl_seat->tablet_focus_window->window->drawable.x;
     dy = xwl_seat->tablet_focus_window->window->drawable.y;
 
-    xwl_tablet_tool->x = dx + sx;
-    xwl_tablet_tool->y = dy + sy;
+    xwl_tablet_tool->x = (double) dx + sx;
+    xwl_tablet_tool->y = (double) dy + sy;
 }
 
 static void
@@ -1772,15 +1772,15 @@ tablet_tool_frame(void *data, struct zwp_tablet_tool_v2 *tool, uint32_t time)
     int button;
 
     valuator_mask_zero(&mask);
-    valuator_mask_set(&mask, 0, xwl_tablet_tool->x);
-    valuator_mask_set(&mask, 1, xwl_tablet_tool->y);
+    valuator_mask_set_double(&mask, 0, xwl_tablet_tool->x);
+    valuator_mask_set_double(&mask, 1, xwl_tablet_tool->y);
     valuator_mask_set(&mask, 2, xwl_tablet_tool->pressure);
-    valuator_mask_set(&mask, 3, xwl_tablet_tool->tilt_x);
-    valuator_mask_set(&mask, 4, xwl_tablet_tool->tilt_y);
-    valuator_mask_set(&mask, 5, xwl_tablet_tool->rotation + xwl_tablet_tool->slider);
+    valuator_mask_set_double(&mask, 3, xwl_tablet_tool->tilt_x);
+    valuator_mask_set_double(&mask, 4, xwl_tablet_tool->tilt_y);
+    valuator_mask_set_double(&mask, 5, xwl_tablet_tool->rotation + xwl_tablet_tool->slider);
 
     QueuePointerEvents(xwl_tablet_tool->xdevice, MotionNotify, 0,
-               POINTER_ABSOLUTE | POINTER_SCREEN, &mask);
+               POINTER_ABSOLUTE | POINTER_DESKTOP, &mask);
 
     valuator_mask_zero(&mask);
 
@@ -2489,12 +2489,6 @@ static const struct wl_registry_listener input_listener = {
     input_handler,
     global_remove,
 };
-
-Bool
-LegalModifier(unsigned int key, DeviceIntPtr pDev)
-{
-    return TRUE;
-}
 
 void
 ProcessInputEvents(void)

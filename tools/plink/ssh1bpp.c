@@ -30,14 +30,17 @@ struct ssh1_bpp_state {
 
 static void ssh1_bpp_free(BinaryPacketProtocol *bpp);
 static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp);
+static void ssh1_bpp_handle_output(BinaryPacketProtocol *bpp);
+static void ssh1_bpp_queue_disconnect(BinaryPacketProtocol *bpp,
+                                      const char *msg, int category);
 static PktOut *ssh1_bpp_new_pktout(int type);
-static void ssh1_bpp_format_packet(BinaryPacketProtocol *bpp, PktOut *pkt);
 
-const struct BinaryPacketProtocolVtable ssh1_bpp_vtable = {
+static const struct BinaryPacketProtocolVtable ssh1_bpp_vtable = {
     ssh1_bpp_free,
     ssh1_bpp_handle_input,
+    ssh1_bpp_handle_output,
     ssh1_bpp_new_pktout,
-    ssh1_bpp_format_packet,
+    ssh1_bpp_queue_disconnect,
 };
 
 BinaryPacketProtocol *ssh1_bpp_new(void)
@@ -45,6 +48,7 @@ BinaryPacketProtocol *ssh1_bpp_new(void)
     struct ssh1_bpp_state *s = snew(struct ssh1_bpp_state);
     memset(s, 0, sizeof(*s));
     s->bpp.vt = &ssh1_bpp_vtable;
+    ssh_bpp_common_setup(&s->bpp);
     return &s->bpp;
 }
 
@@ -59,8 +63,7 @@ static void ssh1_bpp_free(BinaryPacketProtocol *bpp)
         ssh_decompressor_free(s->decompctx);
     if (s->crcda_ctx)
         crcda_free_context(s->crcda_ctx);
-    if (s->pktin)
-        ssh_unref_packet(s->pktin);
+    sfree(s->pktin);
     sfree(s);
 }
 
@@ -83,14 +86,14 @@ void ssh1_bpp_new_cipher(BinaryPacketProtocol *bpp,
     }
 }
 
-void ssh1_bpp_requested_compression(BinaryPacketProtocol *bpp)
-{
-    struct ssh1_bpp_state *s;
-    assert(bpp->vt == &ssh1_bpp_vtable);
-    s = FROMFIELD(bpp, struct ssh1_bpp_state, bpp);
-
-    s->pending_compression_request = TRUE;
-}
+#define BPP_READ(ptr, len) do                                   \
+    {                                                           \
+        crMaybeWaitUntilV(s->bpp.input_eof ||                   \
+                          bufchain_try_fetch_consume(           \
+                              s->bpp.in_raw, ptr, len));        \
+        if (s->bpp.input_eof)                                   \
+            goto eof;                                           \
+    } while (0)
 
 static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
 {
@@ -104,15 +107,14 @@ static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
 
         {
             unsigned char lenbuf[4];
-            crMaybeWaitUntilV(bufchain_try_fetch_consume(
-                                  bpp->in_raw, lenbuf, 4));
+            BPP_READ(lenbuf, 4);
             s->len = toint(GET_32BIT_MSB_FIRST(lenbuf));
         }
 
         if (s->len < 0 || s->len > 262144) { /* SSH1.5-mandated max size */
-            s->bpp.error = dupprintf(
-                "Extremely large packet length from server suggests"
-                " data stream corruption");
+            ssh_sw_abort(s->bpp.ssh,
+                         "Extremely large packet length from server suggests"
+                         " data stream corruption");
             crStopV;
         }
 
@@ -125,19 +127,18 @@ static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
          */
         s->pktin = snew_plus(PktIn, s->biglen);
         s->pktin->qnode.prev = s->pktin->qnode.next = NULL;
-        s->pktin->refcount = 1;
+        s->pktin->qnode.on_free_queue = FALSE;
         s->pktin->type = 0;
 
         s->maxlen = s->biglen;
         s->data = snew_plus_get_aux(s->pktin);
 
-        crMaybeWaitUntilV(bufchain_try_fetch_consume(
-                              bpp->in_raw, s->data, s->biglen));
+        BPP_READ(s->data, s->biglen);
 
         if (s->cipher && detect_attack(s->crcda_ctx,
                                        s->data, s->biglen, NULL)) {
-            s->bpp.error = dupprintf(
-                "Network attack (CRC compensation) detected!");
+            ssh_sw_abort(s->bpp.ssh,
+                         "Network attack (CRC compensation) detected!");
             crStopV;
         }
 
@@ -147,8 +148,7 @@ static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
         s->realcrc = crc32_compute(s->data, s->biglen - 4);
         s->gotcrc = GET_32BIT(s->data + s->biglen - 4);
         if (s->gotcrc != s->realcrc) {
-            s->bpp.error = dupprintf(
-                "Incorrect CRC received on packet");
+            ssh_sw_abort(s->bpp.ssh, "Incorrect CRC received on packet");
             crStopV;
         }
 
@@ -158,8 +158,8 @@ static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
             if (!ssh_decompressor_decompress(
                     s->decompctx, s->data + s->pad, s->length + 1,
                     &decompblk, &decomplen)) {
-                s->bpp.error = dupprintf(
-                    "Zlib decompression encountered invalid data");
+                ssh_sw_abort(s->bpp.ssh,
+                             "Zlib decompression encountered invalid data");
                 crStopV;
             }
 
@@ -199,30 +199,54 @@ static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
                        NULL, 0, NULL);
         }
 
-        pq_push(s->bpp.in_pq, s->pktin);
+        pq_push(&s->bpp.in_pq, s->pktin);
 
         {
             int type = s->pktin->type;
             s->pktin = NULL;
 
-            if (type == SSH1_MSG_DISCONNECT)
-                s->bpp.seen_disconnect = TRUE;
+            switch (type) {
+              case SSH1_SMSG_SUCCESS:
+              case SSH1_SMSG_FAILURE:
+                if (s->pending_compression_request) {
+                    /*
+                     * This is the response to
+                     * SSH1_CMSG_REQUEST_COMPRESSION.
+                     */
+                    if (type == SSH1_SMSG_SUCCESS) {
+                        /*
+                         * If the response was positive, start
+                         * compression.
+                         */
+                        assert(!s->compctx);
+                        assert(!s->decompctx);
 
-            if (type == SSH1_SMSG_SUCCESS && s->pending_compression_request) {
-                assert(!s->compctx);
-                assert(!s->decompctx);
+                        s->compctx = ssh_compressor_new(&ssh_zlib);
+                        s->decompctx = ssh_decompressor_new(&ssh_zlib);
+                    }
 
-                s->compctx = ssh_compressor_new(&ssh_zlib);
-                s->decompctx = ssh_decompressor_new(&ssh_zlib);
-
-                s->pending_compression_request = FALSE;
-            }
-
-            if (type == SSH1_SMSG_FAILURE && s->pending_compression_request) {
-                s->pending_compression_request = FALSE;
+                    /*
+                     * Either way, cancel the pending flag, and
+                     * schedule a run of our output side in case we
+                     * had any packets queued up in the meantime.
+                     */
+                    s->pending_compression_request = FALSE;
+                    queue_idempotent_callback(&s->bpp.ic_out_pq);
+                }
+                break;
             }
         }
     }
+
+  eof:
+    if (!s->bpp.expect_close) {
+        ssh_remote_error(s->bpp.ssh,
+                         "Server unexpectedly closed network connection");
+    } else {
+        ssh_remote_eof(s->bpp.ssh, "Server closed network connection");
+    }
+    return;  /* avoid touching s now it's been freed */
+
     crFinishV;
 }
 
@@ -238,9 +262,8 @@ static PktOut *ssh1_bpp_new_pktout(int pkt_type)
     return pkt;
 }
 
-static void ssh1_bpp_format_packet(BinaryPacketProtocol *bpp, PktOut *pkt)
+static void ssh1_bpp_format_packet(struct ssh1_bpp_state *s, PktOut *pkt)
 {
-    struct ssh1_bpp_state *s = FROMFIELD(bpp, struct ssh1_bpp_state, bpp);
     int pad, biglen, i, pktoffs;
     unsigned long crc;
     int len;
@@ -287,6 +310,45 @@ static void ssh1_bpp_format_packet(BinaryPacketProtocol *bpp, PktOut *pkt)
 
     bufchain_add(s->bpp.out_raw, pkt->data + pktoffs,
                  biglen + 4); /* len(length+padding+type+data+CRC) */
+}
 
-    ssh_free_pktout(pkt);
+static void ssh1_bpp_handle_output(BinaryPacketProtocol *bpp)
+{
+    struct ssh1_bpp_state *s = FROMFIELD(bpp, struct ssh1_bpp_state, bpp);
+    PktOut *pkt;
+
+    if (s->pending_compression_request) {
+        /*
+         * Don't send any output packets while we're awaiting a
+         * response to SSH1_CMSG_REQUEST_COMPRESSION, because if they
+         * cross over in transit with the responding SSH1_CMSG_SUCCESS
+         * then the other end could decode them with the wrong
+         * compression settings.
+         */
+        return;
+    }
+
+    while ((pkt = pq_pop(&s->bpp.out_pq)) != NULL) {
+        int type = pkt->type;
+        ssh1_bpp_format_packet(s, pkt);
+        ssh_free_pktout(pkt);
+
+        if (type == SSH1_CMSG_REQUEST_COMPRESSION) {
+            /*
+             * When we see the actual compression request go past, set
+             * the pending flag, and stop processing packets this
+             * time.
+             */
+            s->pending_compression_request = TRUE;
+            break;
+        }
+    }
+}
+
+static void ssh1_bpp_queue_disconnect(BinaryPacketProtocol *bpp,
+                                      const char *msg, int category)
+{
+    PktOut *pkt = ssh_bpp_new_pktout(bpp, SSH1_MSG_DISCONNECT);
+    put_stringz(pkt, msg);
+    pq_push(&bpp->out_pq, pkt);
 }

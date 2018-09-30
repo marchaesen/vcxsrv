@@ -186,7 +186,6 @@ matrix:
             - libelf-dev
             - libunwind8-dev
     - env:
-        # NOTE: Analogous to SWR above, building Clover is quite slow.
         - LABEL="make Gallium ST Clover LLVM-3.9"
         - BUILD=make
         - MAKEFLAGS="-j4"
@@ -225,7 +224,6 @@ matrix:
             - libelf-dev
             - libunwind8-dev
     - env:
-        # NOTE: Analogous to SWR above, building Clover is quite slow.
         - LABEL="make Gallium ST Clover LLVM-4.0"
         - BUILD=make
         - MAKEFLAGS="-j4"
@@ -261,7 +259,6 @@ matrix:
             - libelf-dev
             - libunwind8-dev
     - env:
-        # NOTE: Analogous to SWR above, building Clover is quite slow.
         - LABEL="make Gallium ST Clover LLVM-5.0"
         - BUILD=make
         - MAKEFLAGS="-j4"
@@ -297,7 +294,6 @@ matrix:
             - libelf-dev
             - libunwind8-dev
     - env:
-        # NOTE: Analogous to SWR above, building Clover is quite slow.
         - LABEL="make Gallium ST Clover LLVM-6.0"
         - BUILD=make
         - MAKEFLAGS="-j4"
@@ -322,6 +318,39 @@ matrix:
             - llvm-6.0-dev
             - clang-6.0
             - libclang-6.0-dev
+            # Common
+            - xz-utils
+            - x11proto-xf86vidmode-dev
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libelf-dev
+            - libunwind8-dev
+    - env:
+        - LABEL="make Gallium ST Clover LLVM-7"
+        - BUILD=make
+        - MAKEFLAGS="-j4"
+        - MAKE_CHECK_COMMAND="true"
+        - LLVM_VERSION=7
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+        - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
+        - DRI_DRIVERS=""
+        - GALLIUM_ST="--disable-dri --enable-opencl --enable-opencl-icd --enable-llvm --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
+        - GALLIUM_DRIVERS="r600,radeonsi"
+        - VULKAN_DRIVERS=""
+        - LIBUNWIND_FLAGS="--enable-libunwind"
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+              key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
+            # llvm-7 requires libstdc++4.9 which is not in main repo
+            - ubuntu-toolchain-r-test
+          packages:
+            - libclc-dev
+            # From sources above
+            - llvm-7-dev
+            - clang-7
+            - libclang-7-dev
             # Common
             - xz-utils
             - x11proto-xf86vidmode-dev

@@ -64,17 +64,6 @@ static RootlessFrameProcsRec winMWExtWMProcs = {
 #endif
 
 /*
- * Prototypes
- */
-
-/*
- * Local functions
- */
-
-static Bool
- winSaveScreen(ScreenPtr pScreen, int on);
-
-/*
  * Determine what type of screen we are initializing
  * and call the appropriate procedure to intiailize
  * that type of screen.
@@ -327,9 +316,6 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
         pScreen->whitePixel = 1;
     }
 
-    /* Place our save screen function */
-    pScreen->SaveScreen = winSaveScreen;
-
     /* Finish fb initialization */
     if (!fbFinishScreenInit(pScreen,
                             pScreenInfo->pfb,
@@ -550,12 +536,5 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
     winDebug("winFinishScreenInitFB - returning\n");
 #endif
 
-    return TRUE;
-}
-
-/* See Porting Layer Definition - p. 33 */
-static Bool
-winSaveScreen(ScreenPtr pScreen, int on)
-{
     return TRUE;
 }

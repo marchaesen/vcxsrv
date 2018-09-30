@@ -22,14 +22,15 @@ struct ssh2_bare_bpp_state {
 
 static void ssh2_bare_bpp_free(BinaryPacketProtocol *bpp);
 static void ssh2_bare_bpp_handle_input(BinaryPacketProtocol *bpp);
+static void ssh2_bare_bpp_handle_output(BinaryPacketProtocol *bpp);
 static PktOut *ssh2_bare_bpp_new_pktout(int type);
-static void ssh2_bare_bpp_format_packet(BinaryPacketProtocol *bpp, PktOut *);
 
-const struct BinaryPacketProtocolVtable ssh2_bare_bpp_vtable = {
+static const struct BinaryPacketProtocolVtable ssh2_bare_bpp_vtable = {
     ssh2_bare_bpp_free,
     ssh2_bare_bpp_handle_input,
+    ssh2_bare_bpp_handle_output,
     ssh2_bare_bpp_new_pktout,
-    ssh2_bare_bpp_format_packet,
+    ssh2_bpp_queue_disconnect, /* in sshcommon.c */
 };
 
 BinaryPacketProtocol *ssh2_bare_bpp_new(void)
@@ -37,6 +38,7 @@ BinaryPacketProtocol *ssh2_bare_bpp_new(void)
     struct ssh2_bare_bpp_state *s = snew(struct ssh2_bare_bpp_state);
     memset(s, 0, sizeof(*s));
     s->bpp.vt = &ssh2_bare_bpp_vtable;
+    ssh_bpp_common_setup(&s->bpp);
     return &s->bpp;
 }
 
@@ -44,10 +46,18 @@ static void ssh2_bare_bpp_free(BinaryPacketProtocol *bpp)
 {
     struct ssh2_bare_bpp_state *s =
         FROMFIELD(bpp, struct ssh2_bare_bpp_state, bpp);
-    if (s->pktin)
-        ssh_unref_packet(s->pktin);
+    sfree(s->pktin);
     sfree(s);
 }
+
+#define BPP_READ(ptr, len) do                                   \
+    {                                                           \
+        crMaybeWaitUntilV(s->bpp.input_eof ||                   \
+                          bufchain_try_fetch_consume(           \
+                              s->bpp.in_raw, ptr, len));        \
+        if (s->bpp.input_eof)                                   \
+            goto eof;                                           \
+    } while (0)
 
 static void ssh2_bare_bpp_handle_input(BinaryPacketProtocol *bpp)
 {
@@ -60,13 +70,12 @@ static void ssh2_bare_bpp_handle_input(BinaryPacketProtocol *bpp)
         /* Read the length field. */
         {
             unsigned char lenbuf[4];
-            crMaybeWaitUntilV(bufchain_try_fetch_consume(
-                                  s->bpp.in_raw, lenbuf, 4));
+            BPP_READ(lenbuf, 4);
             s->packetlen = toint(GET_32BIT_MSB_FIRST(lenbuf));
         }
 
         if (s->packetlen <= 0 || s->packetlen >= (long)OUR_V2_PACKETLIMIT) {
-            s->bpp.error = dupstr("Invalid packet length received");
+            ssh_sw_abort(s->bpp.ssh, "Invalid packet length received");
             crStopV;
         }
 
@@ -75,8 +84,8 @@ static void ssh2_bare_bpp_handle_input(BinaryPacketProtocol *bpp)
          */
         s->pktin = snew_plus(PktIn, s->packetlen);
         s->pktin->qnode.prev = s->pktin->qnode.next = NULL;
+        s->pktin->qnode.on_free_queue = FALSE;
         s->maxlen = 0;
-        s->pktin->refcount = 1;
         s->data = snew_plus_get_aux(s->pktin);
 
         s->pktin->sequence = s->incoming_sequence++;
@@ -84,8 +93,7 @@ static void ssh2_bare_bpp_handle_input(BinaryPacketProtocol *bpp)
         /*
          * Read the remainder of the packet.
          */
-        crMaybeWaitUntilV(bufchain_try_fetch_consume(
-                              s->bpp.in_raw, s->data, s->packetlen));
+        BPP_READ(s->data, s->packetlen);
 
         /*
          * The data we just read is precisely the initial type byte
@@ -111,16 +119,25 @@ static void ssh2_bare_bpp_handle_input(BinaryPacketProtocol *bpp)
                        &s->pktin->sequence, 0, NULL);
         }
 
-        pq_push(s->bpp.in_pq, s->pktin);
-
-        {
-            int type = s->pktin->type;
+        if (ssh2_bpp_check_unimplemented(&s->bpp, s->pktin)) {
+            sfree(s->pktin);
             s->pktin = NULL;
-
-            if (type == SSH2_MSG_DISCONNECT)
-                s->bpp.seen_disconnect = TRUE;
+            continue;
         }
+
+        pq_push(&s->bpp.in_pq, s->pktin);
+        s->pktin = NULL;
     }
+
+  eof:
+    if (!s->bpp.expect_close) {
+        ssh_remote_error(s->bpp.ssh,
+                         "Server unexpectedly closed network connection");
+    } else {
+        ssh_remote_eof(s->bpp.ssh, "Server closed network connection");
+    }
+    return;  /* avoid touching s now it's been freed */
+
     crFinishV;
 }
 
@@ -133,11 +150,9 @@ static PktOut *ssh2_bare_bpp_new_pktout(int pkt_type)
     return pkt;
 }
 
-static void ssh2_bare_bpp_format_packet(BinaryPacketProtocol *bpp, PktOut *pkt)
+static void ssh2_bare_bpp_format_packet(struct ssh2_bare_bpp_state *s,
+                                        PktOut *pkt)
 {
-    struct ssh2_bare_bpp_state *s =
-        FROMFIELD(bpp, struct ssh2_bare_bpp_state, bpp);
-
     if (s->bpp.logctx) {
         ptrlen pktdata = make_ptrlen(pkt->data + 5, pkt->length - 5);
         logblank_t blanks[MAX_BLANKS];
@@ -155,6 +170,16 @@ static void ssh2_bare_bpp_format_packet(BinaryPacketProtocol *bpp, PktOut *pkt)
 
     PUT_32BIT(pkt->data, pkt->length - 4);
     bufchain_add(s->bpp.out_raw, pkt->data, pkt->length);
+}
 
-    ssh_free_pktout(pkt);
+static void ssh2_bare_bpp_handle_output(BinaryPacketProtocol *bpp)
+{
+    struct ssh2_bare_bpp_state *s =
+        FROMFIELD(bpp, struct ssh2_bare_bpp_state, bpp);
+    PktOut *pkt;
+
+    while ((pkt = pq_pop(&s->bpp.out_pq)) != NULL) {
+        ssh2_bare_bpp_format_packet(s, pkt);
+        ssh_free_pktout(pkt);
+    }
 }

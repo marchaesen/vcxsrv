@@ -1032,7 +1032,7 @@ xkb_symbols "olpc" {
    key <AD12> { [bracketright, braceright,  0x1000330,   0x1000330 ] }; // combining tilde below
 
    key <AC01>  { [         a,          A,          ae,               AE ] };
-   key <AC02>  { [         s,          S,      ssharp,        0x1001E9C ] }; // uppercase S sharp
+   key <AC02>  { [         s,          S,      ssharp,        0x1001E9E ] }; // uppercase S sharp
    key <AC03>  { [         d,          D,         eth,              ETH ] };
    key <AC04>  { [         f,          F,       thorn,            THORN ] };
    key <AC06>  { [         h,          H,    sterling,         sterling ] };
@@ -1095,7 +1095,7 @@ xkb_symbols "olpcm" {
    key <AD12> { [bracketright, braceright,  0x1000330,   0x1000330 ] }; // combining tilde below
 
    key <AC01>  { [         a,          A,          ae,               AE ] };
-   key <AC02>  { [         s,          S,      ssharp,        0x1001E9C ] }; // uppercase S sharp
+   key <AC02>  { [         s,          S,      ssharp,        0x1001E9E ] }; // uppercase S sharp
    key <AC03>  { [         d,          D,         eth,              ETH ] };
    key <AC04>  { [         f,          F,       thorn,            THORN ] };
    key <AC06>  { [         h,          H,    sterling,         sterling ] };

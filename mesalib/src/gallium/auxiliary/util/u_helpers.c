@@ -148,7 +148,10 @@ util_init_thread_pinning(void)
    /* Reset thread affinity for all child processes to prevent them from
     * inheriting the current thread's affinity.
     *
-    * What happens if a driver is unloaded and the app creates a thread?
+    * XXX: If the driver is unloaded after this, and the app later calls
+    * fork(), the child process will likely crash before fork() returns,
+    * because the address where util_set_full_cpu_affinity was located
+    * will either be unmapped or point to random other contents.
     */
    pthread_atfork(NULL, NULL, util_set_full_cpu_affinity);
 }

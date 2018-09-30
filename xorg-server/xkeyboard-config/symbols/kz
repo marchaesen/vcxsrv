@@ -243,3 +243,63 @@ key.type[group1] = "FOUR_LEVEL_ALPHABETIC";
 
    include "level3(ralt_switch)"
 };
+
+// Kazakh Latin (based on Kazakh alphabet version of 2018)
+// levels 3 and 4 are non-standard extensions
+partial alphanumeric_keys
+xkb_symbols "latin" {
+
+// Contact: Galym Kerimbekov <housegregory299@gmail.com>
+
+    name[Group1] = "Kazakh (Latin)";
+
+key.type[group1] = "FOUR_LEVEL";
+
+    key <TLDE> { [ parenleft,               parenright ] };
+    key <AE01> { [ quotedbl,                exclam ] };
+    key <AE06> { [ comma,                   semicolon ] };
+    key <AE07> { [ period,                  colon ] };
+    key <BKSL> { [ backslash,               slash ] };
+    key <AB10> { [ numerosign,              question ] };
+    key <LSGT> { [ less,                    greater,                 bar,         brokenbar ] };
+
+key.type[group1] = "ALPHABETIC";
+
+    key <AE02> { [ aacute,                  Aacute ] };
+    key <AE03> { [ iacute,                  Iacute ] };
+    key <AE04> { [ nacute,                  Nacute ] };
+    key <AE05> { [ U01F5,                   U01F4 ] }; // gG with acute
+    key <AE08> { [ uacute,                  Uacute ] };
+    key <AE09> { [ yacute,                  Yacute ] };
+    key <AE10> { [ oacute,                  Oacute ] }; 
+    key <AE11> { [ sacute,                  Sacute ] }; 
+    key <AE12> { [ cacute,                  Cacute ] }; 
+
+    key <AD01> { [ q,                       Q ] };
+    key <AD02> { [ w,                       W ] };
+    key <AD03> { [ e,                       E ] };
+    key <AD04> { [ r,                       R ] };
+    key <AD05> { [ t,                       T ] };
+    key <AD06> { [ y,                       Y ] };
+    key <AD07> { [ u,                       U ] };
+    key <AD08> { [ i,                       I ] };
+    key <AD09> { [ o,                       O ] };
+    key <AD10> { [ p,                       P ] };
+    key <AC01> { [ a,                       A ] };
+    key <AC02> { [ s,                       S ] };
+    key <AC03> { [ d,                       D ] };
+    key <AC04> { [ f,                       F ] };
+    key <AC05> { [ g,                       G ] };
+    key <AC06> { [ h,                       H ] };
+    key <AC07> { [ j,                       J ] };
+    key <AC08> { [ k,                       K ] };
+    key <AC09> { [ l,                       L ] };
+    key <AB01> { [ z,                       Z ] };
+    key <AB02> { [ x,                       X ] };
+    key <AB03> { [ c,                       C ] };
+    key <AB04> { [ v,                       M ] };
+    key <AB05> { [ b,                       B ] };
+    key <AB06> { [ n,                       N ] };
+    key <AB07> { [ m,                       M ] };
+};
+

@@ -1297,7 +1297,7 @@ wsi_display_crtc_solo(struct wsi_display *wsi,
  * which is currently idle.
  */
 static uint32_t
-wsi_display_select_crtc(struct wsi_display_connector *connector,
+wsi_display_select_crtc(const struct wsi_display_connector *connector,
                         drmModeResPtr mode_res,
                         drmModeConnectorPtr drm_connector)
 {
@@ -1712,6 +1712,10 @@ wsi_display_surface_create_swapchain(
 
    VkResult result = wsi_swapchain_init(wsi_device, &chain->base, device,
                                         create_info, allocator);
+   if (result != VK_SUCCESS) {
+      vk_free(allocator, chain);
+      return result;
+   }
 
    chain->base.destroy = wsi_display_swapchain_destroy;
    chain->base.get_wsi_image = wsi_display_get_wsi_image;
@@ -2304,6 +2308,7 @@ wsi_acquire_xlib_display(VkPhysicalDevice physical_device,
    if (!crtc)
       return VK_ERROR_INITIALIZATION_FAILED;
 
+#ifdef HAVE_DRI3_MODIFIERS
    xcb_randr_lease_t lease = xcb_generate_id(connection);
    xcb_randr_create_lease_cookie_t cl_c =
       xcb_randr_create_lease(connection, root, lease, 1, 1,
@@ -2324,6 +2329,7 @@ wsi_acquire_xlib_display(VkPhysicalDevice physical_device,
       return VK_ERROR_INITIALIZATION_FAILED;
 
    wsi->fd = fd;
+#endif
 
    return VK_SUCCESS;
 }

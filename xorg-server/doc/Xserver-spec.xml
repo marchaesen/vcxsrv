@@ -1316,7 +1316,7 @@ should be terminated with a newline.
 </para>
 <para>
 After printing the message arguments, FatalError() must be implemented
-such that the server will call AbortDDX() to give the ddx layer
+such that the server will call ddxGiveUp(EXIT_ERR_ABORT) to give the ddx layer
 a chance to reset the hardware, and then
 terminate the server; it must not return.
 </para>
@@ -1781,18 +1781,6 @@ maintains the client's changes to it.
 <para>
 The X protocol defines standard names to indicate the symbol(s)
 printed on each keycap. (See X11/keysym.h)
-</para>
-<para>
-Legal modifier keys must generate both up and down transitions.  When
-a client tries to change a modifier key (for instance, to make "A" the
-"Control" key), DIX calls the following routine, which should return
-TRUE if the key can be used as a modifier on the given device:
-<blockquote><programlisting>
-
-	Bool LegalModifier(key, pDev)
-	    unsigned int key;
-	    DevicePtr pDev;
-</programlisting></blockquote>
 </para>
 </section>
 </section>
@@ -4653,15 +4641,14 @@ An Example implementation is miPushPixels() in Xserver/mi/mipushpxl.c.</para>
   <title>Shutdown Procedures</title>
 <para>
 <blockquote><programlisting>
-	void AbortDDX(enum ExitCode error)
 	void ddxGiveUp(enum ExitCode error)
 </programlisting></blockquote>
 Some hardware may require special work to be done before the server
 exits so that it is not left in an intermediate state.  As explained
-in the OS layer, FatalError() will call AbortDDX() just before
+in the OS layer, FatalError() will call ddxGiveUp() just before
 terminating the server.  In addition, ddxGiveUp() will be called just
-before terminating the server on a "clean" death.  What AbortDDX() and
-ddxGiveUP do is left unspecified, only that stubs must exist in the
+before terminating the server on a "clean" death.  What
+ddxGiveUp does is left unspecified, only that it must exist in the
 ddx layer.  It is up to local implementors as to what they should
 accomplish before termination.</para>
 <section>
@@ -4923,7 +4910,6 @@ mi and fb implementations.</para>
 	    </thead>
 	    <tbody>
 <row><entry><function>ALLOCATE_LOCAL</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
-<row><entry><function>AbortDDX</function></entry><entry><literal>hd</literal></entry><entry><para></para></entry></row>
 <row><entry><function>AddCallback</function></entry><entry><literal>dix</literal></entry><entry><para></para></entry></row>
 <row><entry><function>AddEnabledDevice</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
 <row><entry><function>AddInputDevice</function></entry><entry><literal>dix</literal></entry><entry><para></para></entry></row>
@@ -5000,7 +4986,6 @@ mi and fb implementations.</para>
 <row><entry><function>InstallColormap</function></entry><entry><literal>ddx</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>Intersect</function></entry><entry><literal>mi</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>Inverse</function></entry><entry><literal>mi</literal></entry><entry><para>Screen</para></entry></row>
-<row><entry><function>LegalModifier</function></entry><entry><literal>hd</literal></entry><entry><para></para></entry></row>
 <row><entry><function>LineHelper</function></entry><entry><literal>mi</literal></entry><entry><para>GC op</para></entry></row>
 <row><entry><function>ListInstalledColormaps</function></entry><entry><literal>ddx</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>LookupKeyboardDevice</function></entry><entry><literal>dix</literal></entry><entry><para></para></entry></row>

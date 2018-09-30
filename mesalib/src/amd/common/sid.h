@@ -144,6 +144,7 @@
 #define PKT3_MPEG_INDEX                        0x3A /* not on CIK */
 #define PKT3_WAIT_REG_MEM                      0x3C
 #define		WAIT_REG_MEM_EQUAL		3
+#define		WAIT_REG_MEM_NOT_EQUAL		4
 #define         WAIT_REG_MEM_MEM_SPACE(x)       (((unsigned)(x) & 0x3) << 4)
 #define PKT3_MEM_WRITE                         0x3D /* not on CIK */
 #define PKT3_INDIRECT_BUFFER_CIK               0x3F /* new on CIK */

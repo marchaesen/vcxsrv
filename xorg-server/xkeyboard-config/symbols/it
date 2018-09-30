@@ -2,6 +2,8 @@
 // 17 May 2003 Modified by Sebastiano Vigna (vigna@dsi.unimi.it)
 // 03 December 2017 - Added it(intl) and it(scn), please refer to
 //                    Cadèmia Siciliana <l10n@cademiasiciliana.org>
+// 18 July 2018 - Fixed inconsistent 'ì' and 'ù' in it(intl)
+//                Alessandro Pellegrini <pellegrini@dis.uniroma1.it>
 
 default  partial alphanumeric_keys
 xkb_symbols "basic" {
@@ -375,7 +377,7 @@ partial alphanumeric_keys
     include "it(basic)"
     name[Group1] = "Italian (intl., with dead keys)";
 
-    key <AE12> { [ iacute, asciicircum,  asciitilde, dead_circumflex ] };
+    key <AE12> { [ igrave, asciicircum,  asciitilde, dead_circumflex ] };
 
     key <AD03> { [      e,           E,    EuroSign,           U0259 ] };
 
@@ -387,7 +389,7 @@ partial alphanumeric_keys
     key <AB02> { [      x,           X,       U03C7,           U03A7 ] };
     key <AB01> { [      z,           Z                               ] };
 
-    key <BKSL> { [ uacute,     section,  dead_grave,      dead_breve ] };
+    key <BKSL> { [ ugrave,     section,  dead_grave,      dead_breve ] };
 };
 
 partial alphanumeric_keys

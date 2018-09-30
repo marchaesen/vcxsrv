@@ -950,14 +950,8 @@ xf86SetDpi(ScrnInfoPtr pScrn, int x, int y)
 void
 xf86SetBlackWhitePixels(ScreenPtr pScreen)
 {
-    if (xf86FlipPixels) {
-        pScreen->whitePixel = 0;
-        pScreen->blackPixel = 1;
-    }
-    else {
-        pScreen->whitePixel = 1;
-        pScreen->blackPixel = 0;
-    }
+    pScreen->whitePixel = 1;
+    pScreen->blackPixel = 0;
 }
 
 /*
@@ -1396,12 +1390,6 @@ Gamma
 xf86GetGamma(void)
 {
     return xf86Gamma;
-}
-
-Bool
-xf86GetFlipPixels(void)
-{
-    return xf86FlipPixels;
 }
 
 Bool

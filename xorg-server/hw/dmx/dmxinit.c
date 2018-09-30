@@ -805,11 +805,12 @@ dmxSetDefaultFontPath(const char *fp)
     defaultFontPath = dmxFontPath;
 }
 
-/** This function is called in Xserver/os/utils.c from \a AbortServer().
- * We must ensure that backend and console state is restored in the
- * event the server shutdown wasn't clean. */
+/** This function is called in Xserver/dix/main.c from \a main() when
+ * dispatchException & DE_TERMINATE (which is the only way to exit the
+ * main loop without an interruption), and from AbortServer on
+ * abnormal exit. */
 void
-AbortDDX(enum ExitCode error)
+ddxGiveUp(enum ExitCode error)
 {
     int i;
 
@@ -828,15 +829,6 @@ ddxBeforeReset(void)
 {
 }
 #endif
-
-/** This function is called in Xserver/dix/main.c from \a main() when
- * dispatchException & DE_TERMINATE (which is the only way to exit the
- * main loop without an interruption. */
-void
-ddxGiveUp(enum ExitCode error)
-{
-    AbortDDX(error);
-}
 
 /** This function is called in Xserver/os/osinit.c from \a OsInit(). */
 void

@@ -829,16 +829,36 @@ damagePolyPoint(DrawablePtr pDrawable,
 
         /* this could be slow if the points were spread out */
 
-        while (--nptTmp) {
-            pptTmp++;
-            if (box.x1 > pptTmp->x)
-                box.x1 = pptTmp->x;
-            else if (box.x2 < pptTmp->x)
-                box.x2 = pptTmp->x;
-            if (box.y1 > pptTmp->y)
-                box.y1 = pptTmp->y;
-            else if (box.y2 < pptTmp->y)
-                box.y2 = pptTmp->y;
+        if (mode == CoordModePrevious) {
+            int x = box.x1;
+            int y = box.y1;
+
+            while (--nptTmp) {
+                pptTmp++;
+                x += pptTmp->x;
+                y += pptTmp->y;
+                if (box.x1 > x)
+                    box.x1 = x;
+                else if (box.x2 < x)
+                    box.x2 = x;
+                if (box.y1 > y)
+                    box.y1 = y;
+                else if (box.y2 < y)
+                    box.y2 = y;
+            }
+        }
+        else {
+            while (--nptTmp) {
+                pptTmp++;
+                if (box.x1 > pptTmp->x)
+                    box.x1 = pptTmp->x;
+                else if (box.x2 < pptTmp->x)
+                    box.x2 = pptTmp->x;
+                if (box.y1 > pptTmp->y)
+                    box.y1 = pptTmp->y;
+                else if (box.y2 < pptTmp->y)
+                    box.y2 = pptTmp->y;
+            }
         }
 
         box.x2++;

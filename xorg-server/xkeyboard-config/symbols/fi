@@ -301,7 +301,7 @@ xkb_symbols "fidvorak" {
     key <AE07> { [  7,               ampersand,        section,               singlelowquotemark    ] };
     key <AE08> { [  8,               asterisk                                                       ] };
     key <AE09> { [  9,               parenleft                                                      ] };
-    key <AE10> { [  0,               parenright,       dead_abovering,        degree                ] };
+    key <AE10> { [  0,               parenright,       degree,                dead_abovering        ] };
     key <AE11> { [  bracketleft,     braceleft                                                      ] };
     key <AE12> { [  bracketright,    braceright                                                     ] };
 

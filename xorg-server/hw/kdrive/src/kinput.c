@@ -354,12 +354,6 @@ KdPointerProc(DeviceIntPtr pDevice, int onoff)
     return BadImplementation;
 }
 
-Bool
-LegalModifier(unsigned int key, DeviceIntPtr pDev)
-{
-    return TRUE;
-}
-
 static void
 KdRingBell(KdKeyboardInfo * ki, int volume, int pitch, int duration)
 {

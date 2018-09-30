@@ -164,15 +164,9 @@ KdEnableScreen(ScreenPtr pScreen)
 }
 
 void
-AbortDDX(enum ExitCode error)
-{
-    KdDisableScreens();
-}
-
-void
 ddxGiveUp(enum ExitCode error)
 {
-    AbortDDX(error);
+    KdDisableScreens();
 }
 
 static Bool kdDumbDriver;

@@ -41,14 +41,17 @@ struct ssh_verstring_state {
 
 static void ssh_verstring_free(BinaryPacketProtocol *bpp);
 static void ssh_verstring_handle_input(BinaryPacketProtocol *bpp);
+static void ssh_verstring_handle_output(BinaryPacketProtocol *bpp);
 static PktOut *ssh_verstring_new_pktout(int type);
-static void ssh_verstring_format_packet(BinaryPacketProtocol *bpp, PktOut *);
+static void ssh_verstring_queue_disconnect(BinaryPacketProtocol *bpp,
+                                          const char *msg, int category);
 
-const struct BinaryPacketProtocolVtable ssh_verstring_vtable = {
+static const struct BinaryPacketProtocolVtable ssh_verstring_vtable = {
     ssh_verstring_free,
     ssh_verstring_handle_input,
+    ssh_verstring_handle_output,
     ssh_verstring_new_pktout,
-    ssh_verstring_format_packet,
+    ssh_verstring_queue_disconnect,
 };
 
 static void ssh_detect_bugs(struct ssh_verstring_state *s);
@@ -97,6 +100,7 @@ BinaryPacketProtocol *ssh_verstring_new(
     s->send_early = !ssh_version_includes_v1(protoversion);
 
     s->bpp.vt = &ssh_verstring_vtable;
+    ssh_bpp_common_setup(&s->bpp);
     return &s->bpp;
 }
 
@@ -197,6 +201,15 @@ static void ssh_verstring_send(struct ssh_verstring_state *s)
     vs_logevent(("We claim version: %s", s->our_vstring));
 }
 
+#define BPP_WAITFOR(minlen) do                          \
+    {                                                   \
+        crMaybeWaitUntilV(                              \
+            s->bpp.input_eof ||                         \
+            bufchain_size(s->bpp.in_raw) >= (minlen));  \
+        if (s->bpp.input_eof)                           \
+            goto eof;                                   \
+    } while (0)
+
 void ssh_verstring_handle_input(BinaryPacketProtocol *bpp)
 {
     struct ssh_verstring_state *s =
@@ -221,8 +234,7 @@ void ssh_verstring_handle_input(BinaryPacketProtocol *bpp)
          * Every time round this loop, we're at the start of a new
          * line, so look for the prefix.
          */
-        crMaybeWaitUntilV(bufchain_size(s->bpp.in_raw) >=
-                          s->prefix_wanted.len);
+        BPP_WAITFOR(s->prefix_wanted.len);
         bufchain_fetch(s->bpp.in_raw, s->prefix, s->prefix_wanted.len);
         if (!memcmp(s->prefix, s->prefix_wanted.ptr, s->prefix_wanted.len)) {
             bufchain_consume(s->bpp.in_raw, s->prefix_wanted.len);
@@ -237,7 +249,9 @@ void ssh_verstring_handle_input(BinaryPacketProtocol *bpp)
             void *data;
             char *nl;
 
-            crMaybeWaitUntilV(bufchain_size(s->bpp.in_raw) > 0);
+            /* Wait to receive at least 1 byte, but then consume more
+             * than that if it's there. */
+            BPP_WAITFOR(1);
             bufchain_prefix(s->bpp.in_raw, &data, &len);
             if ((nl = memchr(data, '\012', len)) != NULL) {
                 bufchain_consume(s->bpp.in_raw, nl - (char *)data + 1);
@@ -348,13 +362,14 @@ void ssh_verstring_handle_input(BinaryPacketProtocol *bpp)
          * Unable to agree on a major protocol version at all.
          */
         if (!ssh_version_includes_v2(s->our_protoversion)) {
-            s->bpp.error = dupstr(
-                "SSH protocol version 1 required by our configuration "
-                "but not provided by remote");
+            ssh_sw_abort(s->bpp.ssh,
+                         "SSH protocol version 1 required by our "
+                         "configuration but not provided by remote");
         } else {
-            s->bpp.error = dupstr(
-                "SSH protocol version 2 required by our configuration "
-                "but remote only provides (old, insecure) SSH-1");
+            ssh_sw_abort(s->bpp.ssh,
+                         "SSH protocol version 2 required by our "
+                         "configuration but remote only provides "
+                         "(old, insecure) SSH-1");
         }
         crStopV;
     }
@@ -376,6 +391,12 @@ void ssh_verstring_handle_input(BinaryPacketProtocol *bpp)
      * done.
      */
     s->receiver->got_ssh_version(s->receiver, s->major_protoversion);
+    return;
+
+  eof:
+    ssh_remote_error(s->bpp.ssh,
+                     "Server unexpectedly closed network connection");
+    return;  /* avoid touching s now it's been freed */
 
     crFinishV;
 }
@@ -387,7 +408,7 @@ static PktOut *ssh_verstring_new_pktout(int type)
     return NULL;
 }
 
-static void ssh_verstring_format_packet(BinaryPacketProtocol *bpp, PktOut *pkg)
+static void ssh_verstring_handle_output(BinaryPacketProtocol *bpp)
 {
     assert(0 && "Should never try to send packets during SSH version "
            "string exchange");
@@ -599,4 +620,10 @@ int ssh_verstring_get_bugs(BinaryPacketProtocol *bpp)
     struct ssh_verstring_state *s =
         FROMFIELD(bpp, struct ssh_verstring_state, bpp);
     return s->remote_bugs;
+}
+
+static void ssh_verstring_queue_disconnect(BinaryPacketProtocol *bpp,
+                                           const char *msg, int category)
+{
+    /* No way to send disconnect messages at this stage of the protocol! */
 }

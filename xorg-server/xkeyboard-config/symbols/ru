@@ -2,6 +2,7 @@
 // AEN <aen@logic.ru>
 // 2001/12/23 by Leon Kanter <leon@blackcatlinux.com>
 // 2005/12/09 Valery Inozemtsev <shrek@altlinux.ru>
+// 2018/07/15 @a13 (a.k.a. @dbvvmpg) and Stepanenko Andrey <ftvkyo2011@yandex.ru>
 
 // Windows layout
 default  partial alphanumeric_keys
@@ -974,3 +975,51 @@ xkb_symbols "prxn" {
 // srp: Потребно да се ставља lv5:rwin_switch_lock или једна из других брава петег ступња, да би шљакао пребацивач Caps!
 // https://bugs.freedesktop.org/show_bug.cgi?id=102189
 };
+
+
+partial alphanumeric_keys
+xkb_symbols "unipunct" {
+
+// Раскладка представляет собой обычную русскую раскладку, в которой некоторые редко используемые буквы
+// убрали на третий уровень, и поставили все пунктуационные знаки на то же место, где они стоят на
+// US раскладке.
+
+// ru(unipunct):
+// `~ 1! 2@ 3# 4$ 5% 6^ 7& 8* 9( 0) -_ =+
+// хХ бБ уУюЮ кК еЕэЭ нН гГ шШщЩ жЖ зЗ [{ ]} \|
+// фФ ыЫ вВ аА пП рР оОёЁ лЛ дД ;: '"           //"
+// яЯ чЧцЦ сС мМ иИйЙ тТ ьЬъЪ ,< .> /?
+
+ include "us(basic)"
+ name[Group1]= "Russian (with US punctuation)";
+
+ key <LatQ> { [ Cyrillic_ha,   Cyrillic_HA ] };
+ key <LatW> { [ Cyrillic_be,   Cyrillic_BE ] };
+ key <LatE> { [ Cyrillic_u,    Cyrillic_U, Cyrillic_yu, Cyrillic_YU ] };
+ key <LatR> { [ Cyrillic_ka,   Cyrillic_KA ] };
+ key <LatT> { [ Cyrillic_ie,   Cyrillic_IE, Cyrillic_e, Cyrillic_E ] };
+ key <LatY> { [ Cyrillic_en,   Cyrillic_EN ] };
+ key <LatU> { [ Cyrillic_ghe,  Cyrillic_GHE ] };
+ key <LatI> { [ Cyrillic_sha,  Cyrillic_SHA, Cyrillic_shcha, Cyrillic_SHCHA ] };
+ key <LatO> { [ Cyrillic_zhe,  Cyrillic_ZHE ] };
+ key <LatP> { [ Cyrillic_ze,   Cyrillic_ZE ] };
+
+ key <LatA> { [ Cyrillic_ef,   Cyrillic_EF ] };
+ key <LatS> { [ Cyrillic_yeru, Cyrillic_YERU ] };
+ key <LatD> { [ Cyrillic_ve,   Cyrillic_VE ] };
+ key <LatF> { [ Cyrillic_a,    Cyrillic_A ] };
+ key <LatG> { [ Cyrillic_pe,   Cyrillic_PE ] };
+ key <LatH> { [ Cyrillic_er,   Cyrillic_ER ] };
+ key <LatJ> { [ Cyrillic_o,    Cyrillic_O, Cyrillic_io, Cyrillic_IO ] };
+ key <LatK> { [ Cyrillic_el,   Cyrillic_EL ] };
+ key <LatL> { [ Cyrillic_de,   Cyrillic_DE ] };
+
+ key <LatZ> { [ Cyrillic_ya,   Cyrillic_YA ] };
+ key <LatX> { [ Cyrillic_che,  Cyrillic_CHE, Cyrillic_tse, Cyrillic_TSE ] };
+ key <LatC> { [ Cyrillic_es,   Cyrillic_ES ] };
+ key <LatV> { [ Cyrillic_em,   Cyrillic_EM ] };
+ key <LatB> { [ Cyrillic_i,    Cyrillic_I, Cyrillic_shorti, Cyrillic_SHORTI ] };
+ key <LatN> { [ Cyrillic_te,   Cyrillic_TE ] };
+ key <LatM> { [ Cyrillic_softsign, Cyrillic_SOFTSIGN, Cyrillic_hardsign, Cyrillic_HARDSIGN ] };
+};
+

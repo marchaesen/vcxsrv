@@ -307,6 +307,7 @@ AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes],            [CFLAGS="$CFLAGS 
 AX_CHECK_COMPILE_FLAG([-Wmissing-prototypes],                  [CFLAGS="$CFLAGS -Wmissing-prototypes"])
 dnl Dylan Baker: gcc and clang always accepr -Wno-*, hence check for the original warning, then set the no-* flag
 AX_CHECK_COMPILE_FLAG([-Wmissing-field-initializers],          [CFLAGS="$CFLAGS -Wno-missing-field-initializers"])
+AX_CHECK_COMPILE_FLAG([-Wformat-truncation],                   [CFLAGS="$CFLAGS -Wno-format-truncation"])
 AX_CHECK_COMPILE_FLAG([-fno-math-errno],                       [CFLAGS="$CFLAGS -fno-math-errno"])
 
 AX_CHECK_COMPILE_FLAG([-fno-trapping-math],                    [CFLAGS="$CFLAGS -fno-trapping-math"])
@@ -321,6 +322,7 @@ AX_CHECK_COMPILE_FLAG([-fno-math-errno],                       [CXXFLAGS="$CXXFL
 AX_CHECK_COMPILE_FLAG([-fno-trapping-math],                    [CXXFLAGS="$CXXFLAGS -fno-trapping-math"])
 AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],                   [VISIBILITY_CXXFLAGS="-fvisibility=hidden"])
 AX_CHECK_COMPILE_FLAG([-Wmissing-field-initializers],          [CXXFLAGS="$CXXFLAGS -Wno-missing-field-initializers"])
+AX_CHECK_COMPILE_FLAG([-Wformat-truncation],                   [CXXFLAGS="$CXXFLAGS -Wno-format-truncation"])
 AC_LANG_POP([C++])
 
 # Flags to help ensure that certain portions of the code -- and only those

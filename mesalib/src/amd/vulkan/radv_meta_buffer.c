@@ -513,7 +513,7 @@ void radv_CmdUpdateBuffer(
 	if (!dataSize)
 		return;
 
-	if (dataSize < RADV_BUFFER_OPS_CS_THRESHOLD) {
+	if (dataSize < RADV_BUFFER_UPDATE_THRESHOLD) {
 		si_emit_cache_flush(cmd_buffer);
 
 		radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, dst_buffer->bo);
