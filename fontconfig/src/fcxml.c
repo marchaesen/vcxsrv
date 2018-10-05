@@ -2073,16 +2073,36 @@ FcParseDir (FcConfigParse *parse)
 #endif
 
     attr = FcConfigGetAttribute (parse, "prefix");
-    if (attr && FcStrCmp (attr, (const FcChar8 *)"xdg") == 0)
-    {
-	prefix = FcConfigXdgDataHome ();
-	/* home directory might be disabled.
-	 * simply ignore this element.
-	 */
-	if (!prefix)
-	    goto bail;
-    }
     data = FcStrBufDoneStatic (&parse->pstack->str);
+    if (attr)
+    {
+	if (FcStrCmp (attr, (const FcChar8 *)"xdg") == 0)
+	{
+	    prefix = FcConfigXdgDataHome ();
+	    /* home directory might be disabled.
+	     * simply ignore this element.
+	     */
+	    if (!prefix)
+		goto bail;
+	}
+	else if (FcStrCmp (attr, (const FcChar8 *)"default") == 0 || FcStrCmp (attr, (const FcChar8 *)"cwd") == 0)
+	{
+	}
+	else if (FcStrCmp (attr, (const FcChar8 *)"relative") == 0)
+	{
+	    prefix = FcStrDirname (parse->name);
+	    if (!prefix)
+		goto bail;
+	}
+    }
+#ifndef _WIN32
+    /* For Win32, check this later for dealing with special cases */
+    else
+    {
+	if (!FcStrIsAbsoluteFilename (data) && data[0] != '~')
+	    FcConfigMessage (parse, FcSevereWarning, "Use of ambiguous <dir> element. please add prefix=\"cwd\" if current behavior is desired.");
+    }
+#endif
     if (!data)
     {
 	FcConfigMessage (parse, FcSevereError, "out of memory");
@@ -2152,6 +2172,11 @@ FcParseDir (FcConfigParse *parse)
 	if (data [strlen ((const char *) data) - 1] != '\\')
 	    strcat ((char *) data, "\\");
 	strcat ((char *) data, "fonts");
+    }
+    else if (!attr)
+    {
+	if (!FcStrIsAbsoluteFilename (data) && data[0] != '~')
+	    FcConfigMessage (parse, FcSevereWarning, "Use of ambiguous <dir> element. please add prefix=\"cwd\" if current behavior is desired.");
     }
 #endif
     if (strlen ((char *) data) == 0)

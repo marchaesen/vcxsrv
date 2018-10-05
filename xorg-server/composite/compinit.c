@@ -387,6 +387,8 @@ compScreenInit(ScreenPtr pScreen)
     cs->pOverlayWin = NULL;
     cs->pOverlayClients = NULL;
 
+    cs->pendingScreenUpdate = FALSE;
+
     cs->numAlternateVisuals = 0;
     cs->alternateVisuals = NULL;
     cs->numImplicitRedirectExceptions = 0;
@@ -441,8 +443,6 @@ compScreenInit(ScreenPtr pScreen)
 
     cs->ChangeWindowAttributes = pScreen->ChangeWindowAttributes;
     pScreen->ChangeWindowAttributes = compChangeWindowAttributes;
-
-    cs->BlockHandler = NULL;
 
     cs->CloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = compCloseScreen;

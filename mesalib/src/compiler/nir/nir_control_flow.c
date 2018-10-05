@@ -437,6 +437,23 @@ nearest_loop(nir_cf_node *node)
    return nir_cf_node_as_loop(node);
 }
 
+static void
+remove_phi_src(nir_block *block, nir_block *pred)
+{
+   nir_foreach_instr(instr, block) {
+      if (instr->type != nir_instr_type_phi)
+         break;
+
+      nir_phi_instr *phi = nir_instr_as_phi(instr);
+      nir_foreach_phi_src_safe(src, phi) {
+         if (src->pred == pred) {
+            list_del(&src->src.use_link);
+            exec_node_remove(&src->node);
+         }
+      }
+   }
+}
+
 /*
  * update the CFG after a jump instruction has been added to the end of a block
  */
@@ -447,6 +464,10 @@ nir_handle_add_jump(nir_block *block)
    nir_instr *instr = nir_block_last_instr(block);
    nir_jump_instr *jump_instr = nir_instr_as_jump(instr);
 
+   if (block->successors[0])
+      remove_phi_src(block->successors[0], block);
+   if (block->successors[1])
+      remove_phi_src(block->successors[1], block);
    unlink_block_successors(block);
 
    nir_function_impl *impl = nir_cf_node_get_function(&block->cf_node);
@@ -467,23 +488,6 @@ nir_handle_add_jump(nir_block *block)
    } else {
       assert(jump_instr->type == nir_jump_return);
       link_blocks(block, impl->end_block, NULL);
-   }
-}
-
-static void
-remove_phi_src(nir_block *block, nir_block *pred)
-{
-   nir_foreach_instr(instr, block) {
-      if (instr->type != nir_instr_type_phi)
-         break;
-
-      nir_phi_instr *phi = nir_instr_as_phi(instr);
-      nir_foreach_phi_src_safe(src, phi) {
-         if (src->pred == pred) {
-            list_del(&src->src.use_link);
-            exec_node_remove(&src->node);
-         }
-      }
    }
 }
 

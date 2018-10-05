@@ -1176,7 +1176,7 @@ if with_gallium_opencl
     'all-targets', 'linker', 'coverage', 'instrumentation', 'ipo', 'irreader',
     'lto', 'option', 'objcarcopts', 'profiledata',
   ]
-  llvm_optional_modules += ['coroutines', 'opencl']
+  llvm_optional_modules += ['coroutines']
 endif
 
 if with_amd_vk or with_gallium_radeonsi

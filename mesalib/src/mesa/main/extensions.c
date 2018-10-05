@@ -335,6 +335,30 @@ _mesa_extension_supported(const struct gl_context *ctx, extension_index i)
    return (ctx->Version >= ext->version[ctx->API]) && base[ext->offset];
 }
 
+/**
+ * Compare two entries of the extensions table.  Sorts first by year,
+ * then by name.
+ *
+ * Arguments are indices into _mesa_extension_table.
+ */
+static int
+extension_compare(const void *p1, const void *p2)
+{
+   extension_index i1 = * (const extension_index *) p1;
+   extension_index i2 = * (const extension_index *) p2;
+   const struct mesa_extension *e1 = &_mesa_extension_table[i1];
+   const struct mesa_extension *e2 = &_mesa_extension_table[i2];
+   int res;
+
+   res = (int)e1->year - (int)e2->year;
+
+   if (res == 0) {
+      res = strcmp(e1->name, e2->name);
+   }
+
+   return res;
+}
+
 
 /**
  * Construct the GL_EXTENSIONS string.  Called the first time that
@@ -372,8 +396,8 @@ _mesa_make_extension_string(struct gl_context *ctx)
 
       if (i->year <= maxYear &&
           _mesa_extension_supported(ctx, k)) {
-         length += strlen(i->name) + 1; /* +1 for space */
-         extension_indices[count++] = k;
+	 length += strlen(i->name) + 1; /* +1 for space */
+	 ++count;
       }
    }
    for (k = 0; k < MAX_UNRECOGNIZED_EXTENSIONS; k++)
@@ -384,6 +408,24 @@ _mesa_make_extension_string(struct gl_context *ctx)
    if (exts == NULL) {
       return NULL;
    }
+
+   /* Sort extensions in chronological order because idTech 2/3 games
+    * (e.g., Quake3 demo) store the extension list in a fixed size buffer.
+    * Some cases truncate, while others overflow the buffer. Resulting in
+    * misrendering and crashes, respectively.
+    * Address the former here, while the latter will be addressed by setting
+    * the MESA_EXTENSION_MAX_YEAR environment variable.
+    */
+   j = 0;
+   for (k = 0; k < MESA_EXTENSION_COUNT; ++k) {
+      if (_mesa_extension_table[k].year <= maxYear &&
+         _mesa_extension_supported(ctx, k)) {
+         extension_indices[j++] = k;
+      }
+   }
+   assert(j == count);
+   qsort(extension_indices, count,
+         sizeof *extension_indices, extension_compare);
 
    /* Build the extension string.*/
    for (j = 0; j < count; ++j) {

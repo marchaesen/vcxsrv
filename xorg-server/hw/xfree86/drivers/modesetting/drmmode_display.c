@@ -398,7 +398,6 @@ drmmode_prop_info_copy(drmmode_prop_info_ptr dst,
 err:
     while (i--)
         free(dst[i].enum_values);
-    free(dst);
     return FALSE;
 }
 

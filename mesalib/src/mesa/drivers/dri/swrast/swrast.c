@@ -885,8 +885,6 @@ dri_make_current(__DRIcontext * cPriv,
             return GL_TRUE;
         }
 
-	_glapi_check_multithread();
-
 	swrast_check_and_update_window_size(mesaCtx, mesaDraw);
 	if (mesaRead != mesaDraw)
 	    swrast_check_and_update_window_size(mesaCtx, mesaRead);

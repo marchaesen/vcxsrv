@@ -13,14 +13,18 @@
 -->
 <!ELEMENT dir (#PCDATA)>
 <!ATTLIST dir
-	  prefix    CDATA       "default"
-	  xml:space (default|preserve) 'preserve'>
+	  prefix    (default|xdg|relative|cwd)    "default"
+	  xml:space (default|preserve)            'preserve'>
 
 <!--
     Define the per-user file that holds cache font information.
 
     If the filename begins with '~', it is replaced with the users
     home directory path.
+
+    If 'prefix' is 'default' or 'cwd', then the current working directory will be added prior to the value.
+    If 'prefix' is 'xdg', then the value in the $XDG_DATA_HOME will be added prior to the value.
+    If 'prefix' is 'relative', then the path of curent file will be added prior to the value.
 -->
 <!ELEMENT cache (#PCDATA)>
 <!ATTLIST cache xml:space (default|preserve) 'preserve'>

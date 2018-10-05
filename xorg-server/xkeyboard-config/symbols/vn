@@ -44,7 +44,7 @@ partial alphanumeric_keys
 xkb_symbols "us" {
 
     include "us(euro)"
-    name[Group1]= "Vietnamese (US keyboard with Vietnamese letters)";
+    name[Group1]= "Vietnamese (US, with Vietnamese letters)";
 
     key <TLDE> { [dead_grave, dead_tilde,              grave,          asciitilde ] };
     key <AE04> { [         4,     dollar,           DongSign,            currency ] }; // ₫ ¤
@@ -87,4 +87,60 @@ xkb_symbols "fr" {
 
     key <AB07> { [ dead_hook,   question,          comma ] };
     key <AB08> { [dead_belowdot,  period,      semicolon ] };
+};
+
+
+// EXTRAS:
+
+// Vietnamese AÐERTY (60s typewriters adaptation)
+//
+// Copyright (C) 2018, Florent Gallaire Phong <f@gallai.re>
+
+partial alphanumeric_keys
+xkb_symbols "aderty" {
+
+    include "fr(basic)"
+
+    name[Group1]="Vietnamese (AÐERTY)";
+
+    key <AE02> { [dead_tilde,          2,             eacute,          asciitilde ] };
+    key <AE04> { [dead_acute,          4,         apostrophe,           braceleft ] };
+    key <AE07> { [dead_grave,          7,             egrave,               grave ] };
+
+    key <AD02> { [   dstroke,    Dstroke,                  z,                   Z ] }; // đ Đ
+    key <AD12> { [    dollar,   sterling,           DongSign,            currency ] }; // ₫ ¤
+
+    key <AC04> { [     uhorn,      Uhorn,                  f,                   F ] }; // ư Ư
+    key <AC07> { [     ohorn,      Ohorn,                  j,                   J ] }; // ơ Ơ
+
+    key <AB01> { [    abreve,     Abreve,                  w,                   W ] }; // ă Ă
+    key <AB07> { [ dead_hook,   question,          comma ] };
+    key <AB08> { [dead_belowdot,  period,      semicolon ] };
+};
+
+// Vietnamese QĐERTY (AĐERTY qwertification)
+//
+// Copyright (C) 2018, Florent Gallaire Phong <f@gallai.re>
+
+partial alphanumeric_keys
+xkb_symbols "qderty" {
+
+    include "us(euro)"
+    name[Group1]= "Vietnamese (QĐERTY)";
+
+    key <TLDE> { [dead_grave, dead_tilde,              grave,          asciitilde ] };
+    key <AE04> { [         4,     dollar,           DongSign,            currency ] }; // ₫ ¤
+
+    key <AD02> { [   dstroke,    Dstroke,                  w,                   W ] }; // đ Đ
+    key <AD03> { [         e,          E,        ecircumflex,         Ecircumflex ] }; // ê Ê
+    key <AD09> { [         o,          O,        ocircumflex,         Ocircumflex ] }; // ô Ô
+
+    key <AC01> { [         a,          A,        acircumflex,         Acircumflex ] }; // â Â
+    key <AC04> { [     uhorn,      Uhorn,                  f,                   F ] }; // ư Ư
+    key <AC07> { [     ohorn,      Ohorn,                  j,                   J ] }; // ơ Ơ
+    key <AC11> { [dead_acute,   quotedbl,         apostrophe ] };
+
+    key <AB01> { [    abreve,     Abreve,                  z,                   Z ] }; // ă Ă
+    key <AB09> { [dead_belowdot, greater,             period ] };
+    key <AB10> { [ dead_hook,   question,              slash ] };
 };

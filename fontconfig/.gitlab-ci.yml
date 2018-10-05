@@ -31,6 +31,8 @@ shared-build:
       - build-*/fontconfig*/_build/sub/test/*.log
       - build-*/fontconfig*/_build/sub/test/*.trs
       - build-*/*.log
+      - build-*/test/*.log
+      - build-*/test/*.trs
       - prefix-*
 static-build:
   stage: build

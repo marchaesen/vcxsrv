@@ -778,14 +778,13 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
 {
     char *dirname, *fontscale_name, *filename, *encdir;
     FILE *fontscale, *encfile;
-    DIR *dirp;
-    struct dirent *entry;
+    struct dirent** namelist;
     FT_Error ftrc;
     FT_Face face;
     ListPtr encoding, xlfd, lp;
     HashTablePtr entries;
     HashBucketPtr *array;
-    int i, n, found, rc;
+    int i, n, dirn, diri, found, rc;
     int isBitmap=0,xl=0;
 
     if (exclusionSuffix)
@@ -825,10 +824,10 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
         }
     }
 
-    dirp = opendir(dirname);
-    if(dirp == NULL) {
+    dirn = scandir(dirname, &namelist, NULL, alphasort);
+    if(dirn < 0) {
         fprintf(stderr, "%s: ", dirname);
-        perror("opendir");
+        perror("scandir");
         return 0;
     }
 
@@ -843,7 +842,8 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
         return 0;
     }
 
-    while((entry = readdir(dirp)) != NULL) {
+    for(diri = dirn - 1; diri >= 0; diri--) {
+        struct dirent *entry = namelist[diri];
         int have_face = 0;
         char *xlfd_name = NULL;
 	struct stat f_stat;
@@ -991,7 +991,9 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
 #undef PRIO
     }
 
-    closedir(dirp);
+    while(dirn--)
+        free(namelist[dirn]);
+    free(namelist);
     n = hashElements(entries);
     fprintf(fontscale, "%d\n", n);
     array = hashArray(entries, 1);

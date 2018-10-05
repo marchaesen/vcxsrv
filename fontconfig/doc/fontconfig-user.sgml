@@ -312,7 +312,7 @@ This is the top level element for a font configuration and can contain
   </para></refsect2>
   <refsect2><title><literal>&lt;dir prefix="default"&gt;</literal></title><para>
 This element contains a directory name which will be scanned for font files
-to include in the set of available fonts. If 'prefix' is set to "xdg", the value in the XDG_DATA_HOME environment variable will be added as the path prefix. please see XDG Base Directory Specification for more details.
+to include in the set of available fonts. If 'prefix' is set to "default" or "cwd", the current working directory will be added as the path prefix prior to the value. If 'prefix' is set to "xdg", the value in the XDG_DATA_HOME environment variable will be added as the path prefix. please see XDG Base Directory Specification for more details. If 'prefix' is set to "relative", the path of current file will be added prior to the value.
   </para></refsect2>
   <refsect2><title><literal>&lt;cachedir prefix="default"&gt;</literal></title><para>
 This element contains a directory name that is supposed to be stored or read

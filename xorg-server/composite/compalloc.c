@@ -47,24 +47,18 @@
 
 #include "compint.h"
 
-static void
-compScreenUpdate(ScreenPtr pScreen)
+static Bool
+compScreenUpdate(ClientPtr pClient, void *closure)
 {
-    compCheckTree(pScreen);
-    compPaintChildrenToWindow(pScreen->root);
-}
-
-static void
-compBlockHandler(ScreenPtr pScreen, void *pTimeout)
-{
+    ScreenPtr pScreen = closure;
     CompScreenPtr cs = GetCompScreen(pScreen);
 
-    pScreen->BlockHandler = cs->BlockHandler;
-    compScreenUpdate(pScreen);
-    (*pScreen->BlockHandler) (pScreen, pTimeout);
+    compCheckTree(pScreen);
+    compPaintChildrenToWindow(pScreen->root);
 
-    /* Next damage will restore the block handler */
-    cs->BlockHandler = NULL;
+    /* Next damage will restore the worker */
+    cs->pendingScreenUpdate = FALSE;
+    return TRUE;
 }
 
 void
@@ -87,9 +81,9 @@ compReportDamage(DamagePtr pDamage, RegionPtr pRegion, void *closure)
     CompScreenPtr cs = GetCompScreen(pScreen);
     CompWindowPtr cw = GetCompWindow(pWin);
 
-    if (!cs->BlockHandler) {
-        cs->BlockHandler = pScreen->BlockHandler;
-        pScreen->BlockHandler = compBlockHandler;
+    if (!cs->pendingScreenUpdate) {
+        QueueWorkProc(compScreenUpdate, serverClient, pScreen);
+        cs->pendingScreenUpdate = TRUE;
     }
     cw->damaged = TRUE;
 

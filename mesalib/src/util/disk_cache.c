@@ -189,7 +189,7 @@ do {                                       \
 } while (0);
 
 struct disk_cache *
-disk_cache_create(const char *gpu_name, const char *timestamp,
+disk_cache_create(const char *gpu_name, const char *driver_id,
                   uint64_t driver_flags)
 {
    void *local;
@@ -387,9 +387,9 @@ disk_cache_create(const char *gpu_name, const char *timestamp,
    cache->driver_keys_blob_size = cv_size;
 
    /* Create driver id keys */
-   size_t ts_size = strlen(timestamp) + 1;
+   size_t id_size = strlen(driver_id) + 1;
    size_t gpu_name_size = strlen(gpu_name) + 1;
-   cache->driver_keys_blob_size += ts_size;
+   cache->driver_keys_blob_size += id_size;
    cache->driver_keys_blob_size += gpu_name_size;
 
    /* We sometimes store entire structs that contains a pointers in the cache,
@@ -409,7 +409,7 @@ disk_cache_create(const char *gpu_name, const char *timestamp,
 
    uint8_t *drv_key_blob = cache->driver_keys_blob;
    DRV_KEY_CPY(drv_key_blob, &cache_version, cv_size)
-   DRV_KEY_CPY(drv_key_blob, timestamp, ts_size)
+   DRV_KEY_CPY(drv_key_blob, driver_id, id_size)
    DRV_KEY_CPY(drv_key_blob, gpu_name, gpu_name_size)
    DRV_KEY_CPY(drv_key_blob, &ptr_size, ptr_size_size)
    DRV_KEY_CPY(drv_key_blob, &driver_flags, driver_flags_size)

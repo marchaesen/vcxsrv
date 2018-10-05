@@ -41,6 +41,20 @@
 #include "utils.h"
 #include "dri_util.h"
 
+/* WARNING: HACK: Local defines to avoid pulling glx.h.
+ *
+ * Any parts of this file that use the following defines are either partial or
+ * entirely broken wrt EGL.
+ *
+ * For example any getConfigAttrib() or indexConfigAttrib() query from EGL for
+ * SLOW or NON_CONFORMANT_CONFIG will not work as expected since the EGL tokens
+ * are different from the GLX ones.
+ */
+#define GLX_NONE                                                0x8000
+#define GLX_SLOW_CONFIG                                         0x8001
+#define GLX_NON_CONFORMANT_CONFIG                               0x800D
+#define GLX_DONT_CARE                                           0xFFFFFFFF
+
 /**
  * Create the \c GL_RENDERER string for DRI drivers.
  * 
@@ -134,11 +148,12 @@ driGetRendererString( char * buffer, const char * hardware_name,
  * \param num_depth_stencil_bits  Number of entries in both \c depth_bits and
  *                      \c stencil_bits.
  * \param db_modes      Array of buffer swap modes.  If an element has a
- *                      value of \c GLX_NONE, then it represents a
- *                      single-buffered mode.  Other valid values are
- *                      \c GLX_SWAP_EXCHANGE_OML, \c GLX_SWAP_COPY_OML, and
- *                      \c GLX_SWAP_UNDEFINED_OML.  See the
- *                      GLX_OML_swap_method extension spec for more details.
+ *                      value of \c __DRI_ATTRIB_SWAP_NONE, then it
+ *                      represents a single-buffered mode.  Other valid
+ *                      values are \c __DRI_ATTRIB_SWAP_EXCHANGE,
+ *                      \c __DRI_ATTRIB_SWAP_COPY, and \c __DRI_ATTRIB_SWAP_UNDEFINED.
+ *                      They represent the respective GLX values as in
+ *                      the GLX_OML_swap_method extension spec.
  * \param num_db_modes  Number of entries in \c db_modes.
  * \param msaa_samples  Array of msaa sample count. 0 represents a visual
  *                      without a multisample buffer.

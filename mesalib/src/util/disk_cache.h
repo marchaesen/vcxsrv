@@ -26,6 +26,8 @@
 
 #ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
+#include <stdio.h>
+#include "util/build_id.h"
 #endif
 #include <assert.h>
 #include <stdint.h>
@@ -100,8 +102,31 @@ disk_cache_get_function_timestamp(void *ptr, uint32_t* timestamp)
    if (stat(info.dli_fname, &st)) {
       return false;
    }
+
+   if (!st.st_mtime) {
+      fprintf(stderr, "Mesa: The provided filesystem timestamp for the cache "
+              "is bogus! Disabling On-disk cache.\n");
+      return false;
+   }
+
    *timestamp = st.st_mtime;
+
    return true;
+}
+
+static inline bool
+disk_cache_get_function_identifier(void *ptr, uint32_t *id)
+{
+#ifdef HAVE_DL_ITERATE_PHDR
+   const struct build_id_note *note = NULL;
+   if ((note = build_id_find_nhdr_for_addr(ptr))) {
+      const uint8_t *id_sha1 = build_id_data(note);
+      assert(id_sha1);
+      *id = *id_sha1;
+      return true;
+   } else
+#endif
+   return disk_cache_get_function_timestamp(ptr, id);
 }
 #endif
 

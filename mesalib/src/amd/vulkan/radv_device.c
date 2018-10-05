@@ -61,10 +61,6 @@ radv_get_build_id(void *ptr, struct mesa_sha1 *ctx)
 	} else
 #endif
 	if (disk_cache_get_function_timestamp(ptr, &timestamp)) {
-		if (!timestamp) {
-			fprintf(stderr, "radv: The provided filesystem timestamp for the cache is bogus!\n");
-		}
-
 		_mesa_sha1_update(ctx, &timestamp, sizeof(timestamp));
 	} else
 		return false;
@@ -3901,7 +3897,7 @@ radv_init_dcc_control_reg(struct radv_device *device,
 	unsigned max_compressed_block_size;
 	unsigned independent_64b_blocks;
 
-	if (device->physical_device->rad_info.chip_class < VI)
+	if (!radv_image_has_dcc(iview->image))
 		return 0;
 
 	if (iview->image->info.samples > 1) {

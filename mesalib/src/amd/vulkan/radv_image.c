@@ -72,11 +72,8 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 	if (device->physical_device->rad_info.chip_class < VI)
 		return false;
 
-	if (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT)
-		return false;
-
-	if (pCreateInfo->flags & (VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT |
-				  VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR))
+	if ((pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) ||
+	    (pCreateInfo->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR))
 		return false;
 
 	if (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR)
@@ -99,6 +96,26 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 	    pCreateInfo->format != VK_FORMAT_D32_SFLOAT &&
 	    pCreateInfo->format != VK_FORMAT_D16_UNORM)
 		return false;
+
+	if (pCreateInfo->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) {
+		const struct VkImageFormatListCreateInfoKHR *format_list =
+			(const struct  VkImageFormatListCreateInfoKHR *)
+				vk_find_struct_const(pCreateInfo->pNext,
+						     IMAGE_FORMAT_LIST_CREATE_INFO_KHR);
+
+		/* We have to ignore the existence of the list if viewFormatCount = 0 */
+		if (format_list && format_list->viewFormatCount) {
+			/* compatibility is transitive, so we only need to check
+			 * one format with everything else.
+			 */
+			for (unsigned i = 0; i < format_list->viewFormatCount; ++i) {
+				if (pCreateInfo->format != format_list->pViewFormats[i])
+					return false;
+			}
+		} else {
+			return false;
+		}
+	}
 
 	return true;
 }
@@ -906,7 +923,9 @@ radv_image_can_enable_fmask(struct radv_image *image)
 static inline bool
 radv_image_can_enable_htile(struct radv_image *image)
 {
-	return image->info.levels == 1 && vk_format_is_depth(image->vk_format);
+	return image->info.levels == 1 &&
+	       vk_format_is_depth(image->vk_format) &&
+	       image->info.width * image->info.height >= 8 * 8;
 }
 
 VkResult

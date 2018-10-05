@@ -1088,20 +1088,18 @@ void radv_CmdResetQueryPool(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
+	uint32_t value = pool->type == VK_QUERY_TYPE_TIMESTAMP
+			 ? TIMESTAMP_NOT_READY : 0;
 	uint32_t flush_bits = 0;
 
 	flush_bits |= radv_fill_buffer(cmd_buffer, pool->bo,
 				       firstQuery * pool->stride,
-				       queryCount * pool->stride, 0);
+				       queryCount * pool->stride, value);
 
-	if (pool->type == VK_QUERY_TYPE_TIMESTAMP ||
-	    pool->type == VK_QUERY_TYPE_PIPELINE_STATISTICS) {
-		uint32_t value = pool->type == VK_QUERY_TYPE_TIMESTAMP
-				 ? TIMESTAMP_NOT_READY : 0;
-
+	if (pool->type == VK_QUERY_TYPE_PIPELINE_STATISTICS) {
 		flush_bits |= radv_fill_buffer(cmd_buffer, pool->bo,
 					       pool->availability_offset + firstQuery * 4,
-					       queryCount * 4, value);
+					       queryCount * 4, 0);
 	}
 
 	if (flush_bits) {
