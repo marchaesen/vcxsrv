@@ -217,12 +217,6 @@ xnestKeyboardProc(DeviceIntPtr pDev, int onoff)
     return Success;
 }
 
-Bool
-LegalModifier(unsigned int key, DeviceIntPtr pDev)
-{
-    return TRUE;
-}
-
 void
 xnestUpdateModifierState(unsigned int state)
 {

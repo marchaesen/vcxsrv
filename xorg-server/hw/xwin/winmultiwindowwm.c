@@ -1855,7 +1855,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
 static void
 winMultiWindowThreadExit(void *arg)
 {
-    AbortDDX(EXIT_ERR_ABORT);
+    ddxGiveUp(EXIT_ERR_ABORT);
 
     /* multiwindow client thread has exited, stop server as well */
     TerminateProcess(GetCurrentProcess(),1);

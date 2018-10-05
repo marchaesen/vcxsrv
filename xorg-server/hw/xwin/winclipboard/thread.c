@@ -548,7 +548,7 @@ static void
 winClipboardThreadExit(void *arg)
 {
   /* clipboard thread has exited, stop server as well */
-  AbortDDX(EXIT_ERR_ABORT);
+  ddxGiveUp(EXIT_ERR_ABORT);
   TerminateProcess(GetCurrentProcess(),1);
 }
 

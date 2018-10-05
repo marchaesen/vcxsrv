@@ -1,3 +1,7 @@
+Release 1.13.1 (2018-09-27)
+===========================
+* Don't flag extra reply in xcb_take_socket
+
 Release 1.13 (2018-02-28)
 =========================
 * Add support for variable-sized lists of FDs

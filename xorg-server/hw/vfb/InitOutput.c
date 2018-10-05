@@ -201,12 +201,6 @@ ddxGiveUp(enum ExitCode error)
     }
 }
 
-void
-AbortDDX(enum ExitCode error)
-{
-    ddxGiveUp(error);
-}
-
 #ifdef __APPLE__
 void
 DarwinHandleGUI(int argc, char *argv[])
@@ -459,12 +453,6 @@ vfbStoreColors(ColormapPtr pmap, int ndef, xColorItem * pdefs)
             swapcopy16(pXWDCmap[pdefs[i].pixel].blue, pdefs[i].blue);
         }
     }
-}
-
-static Bool
-vfbSaveScreen(ScreenPtr pScreen, int on)
-{
-    return TRUE;
 }
 
 #ifdef HAVE_MMAP
@@ -935,8 +923,6 @@ vfbScreenInit(ScreenPtr pScreen, int argc, char **argv)
        return FALSE;
 
     pScreen->InstallColormap = vfbInstallColormap;
-
-    pScreen->SaveScreen = vfbSaveScreen;
     pScreen->StoreColors = vfbStoreColors;
 
     miDCInitialize(pScreen, &vfbPointerCursorFuncs);

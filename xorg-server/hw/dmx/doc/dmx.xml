@@ -1077,16 +1077,6 @@ for the device when it was registered/initialized.
 
 </sect3>
 
-<sect3>
-<title>LegalModifier()</title>
-<!-- dmx/dmxinput.c - currently returns TRUE -->
-<para>LegalModifier() is a required DDX function that can be used to
-restrict which keys may be modifier keys.  This seems to be present for
-historical reasons, so this function should simply return TRUE
-unconditionally.
-</para>
-
-</sect3>
 </sect2>
 
 <sect2>

@@ -868,7 +868,7 @@ AbortServer(void)
     CloseWellKnownConnections();
     OsCleanup(TRUE);
     AbortDevices();
-    AbortDDX(EXIT_ERR_ABORT);
+    ddxGiveUp(EXIT_ERR_ABORT);
     fflush(stderr);
     if (CoreDump)
         OsAbort();

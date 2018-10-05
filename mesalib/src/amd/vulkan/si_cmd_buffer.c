@@ -683,7 +683,7 @@ void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 		 * counters) must immediately precede every timestamp event to
 		 * prevent a GPU hang on GFX9.
 		 */
-		if (chip_class == GFX9) {
+		if (chip_class == GFX9 && !is_mec) {
 			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
 			radeon_emit(cs, EVENT_TYPE(EVENT_TYPE_ZPASS_DONE) | EVENT_INDEX(1));
 			radeon_emit(cs, gfx9_eop_bug_va);
@@ -1214,6 +1214,8 @@ void si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer,
 		si_cp_dma_prepare(cmd_buffer, byte_count,
 				  size + skipped_size + realign_size,
 				  &dma_flags);
+
+		dma_flags &= ~CP_DMA_SYNC;
 
 		si_emit_cp_dma(cmd_buffer, main_dest_va, main_src_va,
 			       byte_count, dma_flags);

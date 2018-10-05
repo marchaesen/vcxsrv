@@ -181,7 +181,8 @@ st_update_framebuffer_state( struct st_context *st )
          st_update_renderbuffer_surface(st, strb);
       }
       framebuffer.zsbuf = strb->surface;
-      update_framebuffer_size(&framebuffer, strb->surface);
+      if (strb->surface)
+         update_framebuffer_size(&framebuffer, strb->surface);
    }
    else
       framebuffer.zsbuf = NULL;

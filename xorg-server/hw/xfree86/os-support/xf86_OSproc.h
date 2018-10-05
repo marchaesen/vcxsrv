@@ -90,7 +90,7 @@
 #ifndef NO_OSLIB_PROTOTYPES
 /*
  * This is to prevent re-entrancy to FatalError() when aborting.
- * Anything that can be called as a result of AbortDDX() should use this
+ * Anything that can be called as a result of ddxGiveUp() should use this
  * instead of FatalError().
  */
 

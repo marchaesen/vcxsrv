@@ -6,7 +6,7 @@ stages:
 before_script:
   - dnf -y upgrade --disablerepo=rawhide-modular --nogpgcheck fedora-repos fedora-repos-rawhide
   - dnf -y upgrade --disablerepo=rawhide-modular
-  - dnf -y install --disablerepo=rawhide-modular @buildsys-build autoconf automake libtool gettext gettext-devel gperf expat-devel freetype-devel libuuid-devel json-c-devel git docbook-utils docbook-utils-pdf
+  - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken @buildsys-build autoconf automake libtool gettext gettext-devel gperf expat-devel freetype-devel libuuid-devel json-c-devel git docbook-utils docbook-utils-pdf
 
 shared-build:
   stage: build

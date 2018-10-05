@@ -50,15 +50,6 @@
 #include "input.h"
 #include "mi.h"
 
-/** Returns TRUE if the key is a valid modifier.  For PC-class
- * keyboards, all keys can be used as modifiers, so return TRUE
- * always. */
-Bool
-LegalModifier(unsigned int key, DeviceIntPtr pDev)
-{
-    return TRUE;
-}
-
 /** Called from dix/main.c on each server generation to initialize
  * inputs.  All the work is done in dmxInputInit.  \see
  * dmxInputInit() */

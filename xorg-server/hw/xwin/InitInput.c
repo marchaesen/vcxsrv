@@ -46,21 +46,6 @@ int winProcEstablishConnection(ClientPtr /* client */ );
 DeviceIntPtr g_pwinPointer;
 DeviceIntPtr g_pwinKeyboard;
 
-/* Called from dix/devices.c */
-/*
- * All of our keys generate up and down transition notifications,
- * so all of our keys can be used as modifiers.
- *
- * An example of a modifier is mapping the A key to the Control key.
- * A has to be a legal modifier.  I think.
- */
-
-Bool
-LegalModifier(unsigned int uiKey, DeviceIntPtr pDevice)
-{
-    return TRUE;
-}
-
 /* Called from dix/dispatch.c */
 /*
  * Run through the Windows message queue(s) one more time.

@@ -43,12 +43,6 @@ from The Open Group.
 #include "exevents.h"
 #include "extinit.h"
 
-Bool
-LegalModifier(unsigned int key, DeviceIntPtr pDev)
-{
-    return TRUE;
-}
-
 void
 ProcessInputEvents(void)
 {

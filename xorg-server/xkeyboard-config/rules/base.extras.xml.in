@@ -578,6 +578,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>unipunct</name>
+            <_description>Russian (with US punctuation and some 3rd-layer keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>prxn</name>
             <_shortDescription>ru</_shortDescription>
             <_description>Russian (Polyglot and Reactionary)</_description>

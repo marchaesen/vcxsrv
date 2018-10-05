@@ -31,7 +31,7 @@ dnl
 AC_DEFUN([XORG_DRIVER_CHECK_EXT],[
 	AC_REQUIRE([PKG_PROG_PKG_CONFIG])
 	SAVE_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -I`$PKG_CONFIG --variable=sdkdir xorg-server`"
+	CFLAGS="$CFLAGS `$PKG_CONFIG --cflags xorg-server`"
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include "xorg-server.h"
 #if !defined $1

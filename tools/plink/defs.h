@@ -38,6 +38,8 @@ typedef uint32_t uint32;
 typedef struct BinarySink BinarySink;
 typedef struct BinarySource BinarySource;
 
+typedef struct IdempotentCallback IdempotentCallback;
+
 typedef struct SockAddr_tag *SockAddr;
 
 typedef struct Socket_vtable Socket_vtable;
@@ -70,6 +72,8 @@ typedef struct settings_w settings_w;
 typedef struct settings_r settings_r;
 typedef struct settings_e settings_e;
 
+typedef struct SessionSpecial SessionSpecial;
+
 /* Note indirection: for historical reasons (it used to be closer to
  * the OS socket type), the type that most code uses for a socket is
  * 'Socket', not 'Socket *'. So an implementation of Socket or Plug
@@ -91,6 +95,7 @@ typedef struct ptrlen {
 typedef struct logblank_t logblank_t;
 
 typedef struct BinaryPacketProtocol BinaryPacketProtocol;
+typedef struct PacketProtocolLayer PacketProtocolLayer;
 
 /* Do a compile-time type-check of 'to_check' (without evaluating it),
  * as a side effect of returning the value 'to_return'. Note that

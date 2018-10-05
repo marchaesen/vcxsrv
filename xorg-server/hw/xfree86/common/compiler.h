@@ -758,9 +758,9 @@ inl(unsigned short port)
     return xf86ReadMmio32Le((void *) ioBase, port);
 }
 
-#elif defined(__arm__) && defined(__linux__)
+#elif defined(__arm__) && defined(__GLIBC__)
 
-/* for Linux on ARM, we use the LIBC inx/outx routines */
+/* for glibc on ARM, we use the LIBC inx/outx routines */
 /* note that the appropriate setup via "ioperm" needs to be done */
 /*  *before* any inx/outx is done. */
 

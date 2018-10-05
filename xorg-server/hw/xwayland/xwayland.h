@@ -311,13 +311,13 @@ struct xwl_tablet_tool {
 
     DeviceIntPtr xdevice;
     uint32_t proximity_in_serial;
-    uint32_t x;
-    uint32_t y;
+    double x;
+    double y;
     uint32_t pressure;
-    float tilt_x;
-    float tilt_y;
-    float rotation;
-    float slider;
+    double tilt_x;
+    double tilt_y;
+    double rotation;
+    double slider;
 
     uint32_t buttons_now,
              buttons_prev;

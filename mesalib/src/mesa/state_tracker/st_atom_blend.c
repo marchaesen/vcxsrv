@@ -139,6 +139,12 @@ blend_per_rt(const struct gl_context *ctx, unsigned num_cb)
       /* this can only happen if GL_ARB_draw_buffers_blend is enabled */
       return GL_TRUE;
    }
+   if (ctx->DrawBuffer->_IntegerBuffers &&
+       (ctx->DrawBuffer->_IntegerBuffers != cb_mask)) {
+      /* If there is a mix of integer/non-integer buffers then blending
+       * must be handled on a per buffer basis. */
+      return GL_TRUE;
+   }
    return GL_FALSE;
 }
 

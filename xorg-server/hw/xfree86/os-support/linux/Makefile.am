@@ -13,6 +13,12 @@ APM_SRCS = lnx_apm.c
 XORG_CFLAGS += -DHAVE_APM
 endif
 
+if !LNXAPM
+if !LNXACPI
+ACPI_SRCS = $(srcdir)/../shared/pm_noop.c
+endif
+endif
+
 if SYSTEMD_LOGIND
 LOGIND_SRCS = systemd-logind.c
 XORG_CFLAGS += $(DBUS_CFLAGS)

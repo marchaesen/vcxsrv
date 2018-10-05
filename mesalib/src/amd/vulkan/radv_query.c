@@ -35,6 +35,7 @@
 #include "radv_cs.h"
 #include "sid.h"
 
+#define TIMESTAMP_NOT_READY UINT64_MAX
 
 static const int pipelinestat_block_size = 11 * 8;
 static const unsigned pipeline_statistics_indices[] = {7, 6, 3, 4, 5, 2, 1, 0, 8, 9, 10};
@@ -771,6 +772,8 @@ VkResult radv_CreateQueryPool(
 	struct radv_query_pool *pool = vk_alloc2(&device->alloc, pAllocator,
 					       sizeof(*pool), 8,
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	uint32_t initial_value = pCreateInfo->queryType == VK_QUERY_TYPE_TIMESTAMP
+				 ? TIMESTAMP_NOT_READY : 0;
 
 	if (!pool)
 		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -794,8 +797,7 @@ VkResult radv_CreateQueryPool(
 	pool->pipeline_stats_mask = pCreateInfo->pipelineStatistics;
 	pool->availability_offset = pool->stride * pCreateInfo->queryCount;
 	pool->size = pool->availability_offset;
-	if (pCreateInfo->queryType == VK_QUERY_TYPE_TIMESTAMP ||
-	    pCreateInfo->queryType == VK_QUERY_TYPE_PIPELINE_STATISTICS)
+	if (pCreateInfo->queryType == VK_QUERY_TYPE_PIPELINE_STATISTICS)
 		pool->size += 4 * pCreateInfo->queryCount;
 
 	pool->bo = device->ws->buffer_create(device->ws, pool->size,
@@ -813,7 +815,7 @@ VkResult radv_CreateQueryPool(
 		vk_free2(&device->alloc, pAllocator, pool);
 		return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	}
-	memset(pool->ptr, 0, pool->size);
+	memset(pool->ptr, initial_value, pool->size);
 
 	*pQueryPool = radv_query_pool_to_handle(pool);
 	return VK_SUCCESS;
@@ -855,7 +857,7 @@ VkResult radv_GetQueryPoolResults(
 		char *src = pool->ptr + query * pool->stride;
 		uint32_t available;
 
-		if (pool->type != VK_QUERY_TYPE_OCCLUSION) {
+		if (pool->type == VK_QUERY_TYPE_PIPELINE_STATISTICS) {
 			if (flags & VK_QUERY_RESULT_WAIT_BIT)
 				while(!*(volatile uint32_t*)(pool->ptr + pool->availability_offset + 4 * query))
 					;
@@ -864,6 +866,14 @@ VkResult radv_GetQueryPoolResults(
 
 		switch (pool->type) {
 		case VK_QUERY_TYPE_TIMESTAMP: {
+			available = *(uint64_t *)src != TIMESTAMP_NOT_READY;
+
+			if (flags & VK_QUERY_RESULT_WAIT_BIT) {
+				while (*(volatile uint64_t *)src == TIMESTAMP_NOT_READY)
+					;
+				available = *(uint64_t *)src != TIMESTAMP_NOT_READY;
+			}
+
 			if (!available && !(flags & VK_QUERY_RESULT_PARTIAL_BIT)) {
 				result = VK_NOT_READY;
 				break;
@@ -1031,21 +1041,22 @@ void radv_CmdCopyQueryPoolResults(
 
 
 			if (flags & VK_QUERY_RESULT_WAIT_BIT) {
-				/* TODO, not sure if there is any case where we won't always be ready yet */
-				uint64_t avail_va = va + pool->availability_offset + 4 * query;
-
-				/* This waits on the ME. All copies below are done on the ME */
-				si_emit_wait_fence(cs, avail_va, 1, 0xffffffff);
+				radeon_emit(cs, PKT3(PKT3_WAIT_REG_MEM, 5, false));
+				radeon_emit(cs, WAIT_REG_MEM_NOT_EQUAL | WAIT_REG_MEM_MEM_SPACE(1));
+				radeon_emit(cs, local_src_va);
+				radeon_emit(cs, local_src_va >> 32);
+				radeon_emit(cs, TIMESTAMP_NOT_READY >> 32);
+				radeon_emit(cs, 0xffffffff);
+				radeon_emit(cs, 4);
 			}
 			if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT) {
-				uint64_t avail_va = va + pool->availability_offset + 4 * query;
 				uint64_t avail_dest_va = dest_va + elem_size;
 
 				radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
 				radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_MEM) |
 						COPY_DATA_DST_SEL(COPY_DATA_MEM));
-				radeon_emit(cs, avail_va);
-				radeon_emit(cs, avail_va >> 32);
+				radeon_emit(cs, local_src_va);
+				radeon_emit(cs, local_src_va >> 32);
 				radeon_emit(cs, avail_dest_va);
 				radeon_emit(cs, avail_dest_va >> 32);
 			}
@@ -1085,9 +1096,12 @@ void radv_CmdResetQueryPool(
 
 	if (pool->type == VK_QUERY_TYPE_TIMESTAMP ||
 	    pool->type == VK_QUERY_TYPE_PIPELINE_STATISTICS) {
+		uint32_t value = pool->type == VK_QUERY_TYPE_TIMESTAMP
+				 ? TIMESTAMP_NOT_READY : 0;
+
 		flush_bits |= radv_fill_buffer(cmd_buffer, pool->bo,
 					       pool->availability_offset + firstQuery * 4,
-					       queryCount * 4, 0);
+					       queryCount * 4, value);
 	}
 
 	if (flush_bits) {
@@ -1287,7 +1301,6 @@ void radv_CmdWriteTimestamp(
 	bool mec = radv_cmd_buffer_uses_mec(cmd_buffer);
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 	uint64_t va = radv_buffer_get_va(pool->bo);
-	uint64_t avail_va = va + pool->availability_offset + 4 * query;
 	uint64_t query_va = va + pool->stride * query;
 
 	radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo);
@@ -1309,14 +1322,6 @@ void radv_CmdWriteTimestamp(
 			radeon_emit(cs, 0);
 			radeon_emit(cs, query_va);
 			radeon_emit(cs, query_va >> 32);
-
-			radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 3, 0));
-			radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
-				    S_370_WR_CONFIRM(1) |
-				    S_370_ENGINE_SEL(V_370_ME));
-			radeon_emit(cs, avail_va);
-			radeon_emit(cs, avail_va >> 32);
-			radeon_emit(cs, 1);
 			break;
 		default:
 			si_cs_emit_write_event_eop(cs,
@@ -1326,17 +1331,9 @@ void radv_CmdWriteTimestamp(
 						   EOP_DATA_SEL_TIMESTAMP,
 						   query_va, 0, 0,
 						   cmd_buffer->gfx9_eop_bug_va);
-			si_cs_emit_write_event_eop(cs,
-						   cmd_buffer->device->physical_device->rad_info.chip_class,
-						   mec,
-						   V_028A90_BOTTOM_OF_PIPE_TS, 0,
-						   EOP_DATA_SEL_VALUE_32BIT,
-						   avail_va, 0, 1,
-						   cmd_buffer->gfx9_eop_bug_va);
 			break;
 		}
 		query_va += pool->stride;
-		avail_va += 4;
 	}
 	assert(cmd_buffer->cs->cdw <= cdw_max);
 }

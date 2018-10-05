@@ -316,6 +316,8 @@ radv_shader_compile_to_nir(struct radv_device *device,
 			.lower_vote_eq_to_ballot = 1,
 		});
 
+	nir_lower_load_const_to_scalar(nir);
+
 	if (!(flags & VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT))
 		radv_optimize_nir(nir, false);
 

@@ -236,14 +236,6 @@ ddxGiveUp(enum ExitCode error)
     winDebug("ddxGiveUp - End\n");
 }
 
-/* See Porting Layer Definition - p. 57 */
-void
-AbortDDX(enum ExitCode error)
-{
-    winDebug("AbortDDX\n");
-    ddxGiveUp(error);
-}
-
 #ifdef __CYGWIN__
 /* hasmntopt is currently not implemented for cygwin */
 static const char *

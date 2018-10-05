@@ -789,9 +789,12 @@ foreach a : ['-Wall', '-Werror=implicit-function-declaration',
     c_args += a
   endif
 endforeach
-if cc.has_argument('-Wmissing-field-initializers')
-  c_args += '-Wno-missing-field-initializers'
-endif
+
+foreach a : ['missing-field-initializers', 'format-truncation']
+  if cc.has_argument('-W' + a)
+    c_args += '-Wno-' + a
+  endif
+endforeach
 
 c_vis_args = []
 if cc.has_argument('-fvisibility=hidden')
@@ -810,7 +813,7 @@ endforeach
 # For some reason, the test for -Wno-foo always succeeds with gcc, even if the
 # option is not supported. Hence, check for -Wfoo instead.
 
-foreach a : ['non-virtual-dtor', 'missing-field-initializers']
+foreach a : ['non-virtual-dtor', 'missing-field-initializers', 'format-truncation']
   if cpp.has_argument('-W' + a)
     cpp_args += '-Wno-' + a
   endif
@@ -1189,28 +1192,21 @@ endif
 _shared_llvm = get_option('shared-llvm')
 
 _llvm = get_option('llvm')
-if _llvm == 'auto'
+dep_llvm = null_dep
+with_llvm = false
+if _llvm != 'false'
   dep_llvm = dependency(
     'llvm',
     version : _llvm_version,
     modules : llvm_modules,
     optional_modules : llvm_optional_modules,
-    required : with_amd_vk or with_gallium_radeonsi or with_gallium_swr or with_gallium_opencl,
-    static : not _shared_llvm
-  )
-  with_llvm = dep_llvm.found()
-elif _llvm == 'true'
-  dep_llvm = dependency(
-    'llvm',
-    version : _llvm_version,
-    modules : llvm_modules,
-    optional_modules : llvm_optional_modules,
+    required : (
+      with_amd_vk or with_gallium_radeonsi or with_gallium_swr or
+      with_gallium_opencl or _llvm == 'true'
+    ),
     static : not _shared_llvm,
   )
-  with_llvm = true
-else
-  dep_llvm = null_dep
-  with_llvm = false
+  with_llvm = dep_llvm.found()
 endif
 if with_llvm
   _llvm_version = dep_llvm.version().split('.')

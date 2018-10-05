@@ -108,6 +108,8 @@ typedef uint32_t xcb_window_t;
  */
 #define RADV_BUFFER_OPS_CS_THRESHOLD 4096
 
+#define RADV_BUFFER_UPDATE_THRESHOLD 1024
+
 enum radv_mem_heap {
 	RADV_MEM_HEAP_VRAM,
 	RADV_MEM_HEAP_VRAM_CPU_ACCESS,

@@ -375,13 +375,7 @@ KdPointerProc(DeviceIntPtr pDevice, int onoff)
 }
 
 #ifndef _MSC_VER
-Bool
-LegalModifier(unsigned int key, DeviceIntPtr pDev)
-{
-    return TRUE;
-}
 #endif
-
 static void
 KdRingBell(KdKeyboardInfo * ki, int volume, int pitch, int duration)
 {

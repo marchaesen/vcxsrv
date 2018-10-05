@@ -726,17 +726,6 @@ DarwinModifierStringToNXMask(const char *str, int separatelr)
     return 0;
 }
 
-/*
- * LegalModifier
- *      This allows the ddx layer to prevent some keys from being remapped
- *      as modifier keys.
- */
-Bool
-LegalModifier(unsigned int key, DeviceIntPtr pDev)
-{
-    return 1;
-}
-
 #if !defined(__LP64__) || MAC_OS_X_VERSION_MIN_REQUIRED < 1050
 static inline UniChar
 macroman2ucs(unsigned char c)

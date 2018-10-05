@@ -1314,10 +1314,8 @@ vgaHWInit(ScrnInfoPtr scrninfp, DisplayModePtr mode)
     if (depth == 1) {
         /* Initialise the Mono map according to which bit-plane gets used */
 
-        Bool flipPixels = xf86GetFlipPixels();
-
         for (i = 0; i < 16; i++)
-            if (((i & (1 << BIT_PLANE)) != 0) != flipPixels)
+            if ((i & (1 << BIT_PLANE)) != 0)
                 regp->Attribute[i] = WHITE_VALUE;
             else
                 regp->Attribute[i] = BLACK_VALUE;

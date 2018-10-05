@@ -716,12 +716,6 @@ glxWinScreenProbe(ScreenPtr pScreen)
             LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
         }
 
-        if (strstr(wgl_extensions, "WGL_EXT_swap_control")) {
-            __glXEnableExtension(screen->base.glx_enable_bits,
-                                 "GLX_SGI_swap_control");
-            LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_swap_control\n");
-        }
-
         if (strstr(wgl_extensions, "WGL_ARB_make_current_read"))
             screen->has_WGL_ARB_make_current_read = TRUE;
 

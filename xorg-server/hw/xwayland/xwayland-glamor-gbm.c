@@ -843,6 +843,11 @@ xwl_glamor_gbm_init_egl(struct xwl_screen *xwl_screen)
         goto error;
     }
 
+    if (strstr((const char *)glGetString(GL_RENDERER), "llvmpipe")) {
+        ErrorF("Refusing to try glamor on llvmpipe\n");
+        goto error;
+    }
+
     if (!epoxy_has_gl_extension("GL_OES_EGL_image")) {
         ErrorF("GL_OES_EGL_image not available\n");
         goto error;

@@ -165,15 +165,9 @@ KdEnableScreen(ScreenPtr pScreen)
 
 void
 #ifndef _MSC_VER
-AbortDDX(enum ExitCode error)
-{
-    KdDisableScreens();
-}
-
-void
 ddxGiveUp(enum ExitCode error)
 {
-    AbortDDX(error);
+    KdDisableScreens();
 }
 #endif
 

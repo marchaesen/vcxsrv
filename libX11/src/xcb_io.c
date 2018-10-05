@@ -276,10 +276,19 @@ static xcb_generic_reply_t *poll_for_response(Display *dpy)
 	PendingRequest *req;
 	while(!(response = poll_for_event(dpy)) &&
 	      (req = dpy->xcb->pending_requests) &&
-	      !req->reply_waiter &&
-	      xcb_poll_for_reply64(dpy->xcb->connection, req->sequence, &response, &error))
+	      !req->reply_waiter)
 	{
-		uint64_t request = X_DPY_GET_REQUEST(dpy);
+		uint64_t request;
+
+		if(!xcb_poll_for_reply64(dpy->xcb->connection, req->sequence,
+					 &response, &error)) {
+			/* xcb_poll_for_reply64 may have read events even if
+			 * there is no reply. */
+			response = poll_for_event(dpy);
+			break;
+		}
+
+		request = X_DPY_GET_REQUEST(dpy);
 		if(XLIB_SEQUENCE_COMPARE(req->sequence, >, request))
 		{
 			throw_thread_fail_assert("Unknown sequence number "

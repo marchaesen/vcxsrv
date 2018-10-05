@@ -415,9 +415,6 @@ extern void ProcessPointerEvent(InternalEvent * /* ev */ ,
 extern void ProcessKeyboardEvent(InternalEvent * /*ev */ ,
                                  DeviceIntPtr /*keybd */ );
 
-extern Bool LegalModifier(unsigned int /*key */ ,
-                          DeviceIntPtr /*pDev */ );
-
 extern _X_EXPORT void ProcessInputEvents(void);
 
 extern _X_EXPORT void InitInput(int /*argc */ ,
