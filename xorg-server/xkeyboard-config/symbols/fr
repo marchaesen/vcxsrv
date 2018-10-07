@@ -979,6 +979,39 @@ xkb_symbols "geo" {
 
 };
 
+// US keyboard made French
+//
+// Copyright (C) 2018, Florent Gallaire <f@gallai.re>
+partial alphanumeric_keys
+xkb_symbols "us" {
+
+    include "us(euro)"
+    name[Group1]= "French (US keyboard with French letters)";
+
+    key <AB01> { [	   z,          Z,   acircumflex,      Acircumflex ] }; // â Â
+    key <AB03> { [	   c,          C,      ccedilla,         Ccedilla ] }; // ç Ç
+
+    key <AC01> { [	   a,          A,        agrave,           Agrave ] }; // à À
+    key <AC02> { [	   s,          S,            ae,               AE ] }; // æ Æ
+    key <AC03> { [	   d,          D,   ecircumflex,      Ecircumflex ] }; // ê Ê
+    key <AC04> { [	   f,          F,    ediaeresis,       Ediaeresis ] }; // ë Ë
+    key <AC06> { [	   h,          H,    udiaeresis,       Udiaeresis ] }; // ü Ü
+    key <AC07> { [	   j,          J,   ucircumflex,      Ucircumflex ] }; // û Û
+    key <AC08> { [	   k,          K,   icircumflex,      Icircumflex ] }; // î Î
+
+    key <AD03> { [	   e,          E,        eacute,           Eacute ] }; // é É
+    key <AD04> { [	   r,          R,        egrave,           Egrave ] }; // è È
+    key <AD06> { [	   y,          Y,    ydiaeresis,       Ydiaeresis ] }; // ÿ Ÿ
+    key <AD07> { [	   u,          U,        ugrave,           Ugrave ] }; // ù Ù
+    key <AD08> { [	   i,          I,    idiaeresis,       Idiaeresis ] }; // ï Ï
+    key <AD09> { [	   o,          O,   ocircumflex,      Ocircumflex ] }; // ô Ô
+    key <AD10> { [	   p,          P,            oe,               OE ] }; // œ Œ
+    key <AD11> { [ bracketleft,  braceleft,  guillemotleft,  leftdoublequotemark ] }; // « “
+    key <AD12> { [bracketright, braceright, guillemotright, rightdoublequotemark ] }; // » ”
+
+    key <AE04> { [        4,     dollar,      EuroSign,         currency ] }; // € ¤
+};
+
 // EXTRAS:
 
 partial alphanumeric_keys
@@ -1071,3 +1104,30 @@ xkb_symbols "azerty" {
     key <AB09>	{ [ 	colon,		slash					] };
     key <AB10>	{ [	exclam,		section					] };
 };
+
+// US keyboard made French (with dead keys, alternative)
+//
+// Copyright (C) 2018, Florent Gallaire <f@gallai.re>
+
+partial alphanumeric_keys
+xkb_symbols "us-alt" {
+
+    include "us(euro)"
+    name[Group1]= "French (US, with French letters, with dead keys, alternative)";
+
+    key <AB03> { [         c,          C,      ccedilla,         Ccedilla ] }; // ç Ç
+
+    key <AC01> { [         a,          A,            ae,               AE ] }; // æ Æ
+    key <AC11> { [dead_diaeresis, quotedbl,  apostrophe ] };
+
+    key <AD03> { [         e,          E,        eacute,           Eacute ] }; // é É
+    key <AD09> { [         o,          O,            oe,               OE ] }; // œ Œ
+    key <AD11> { [ bracketleft,  braceleft,  guillemotleft,  leftdoublequotemark ] }; // « “
+    key <AD12> { [bracketright, braceright, guillemotright, rightdoublequotemark ] }; // » ”
+
+    key <TLDE> { [dead_grave, asciitilde,         grave ] };
+    key <AE06> { [dead_circumflex, asciicircum,       6 ] };
+    key <AE04> { [         4,     dollar,      EuroSign,         currency ] }; // € ¤
+
+};
+

@@ -233,7 +233,7 @@ static void widen(uint64_t *wide, unsigned int narrow)
  * variable for that thread to process the response and wake us up.
  */
 
-static xcb_generic_reply_t *poll_for_event(Display *dpy)
+static xcb_generic_reply_t *poll_for_event(Display *dpy, Bool queued_only)
 {
 	/* Make sure the Display's sequence numbers are valid */
 	require_socket(dpy);
@@ -241,8 +241,12 @@ static xcb_generic_reply_t *poll_for_event(Display *dpy)
 	/* Precondition: This thread can safely get events from XCB. */
 	assert(dpy->xcb->event_owner == XlibOwnsEventQueue && !dpy->xcb->event_waiter);
 
-	if(!dpy->xcb->next_event)
-		dpy->xcb->next_event = xcb_poll_for_event(dpy->xcb->connection);
+	if(!dpy->xcb->next_event) {
+		if(queued_only)
+			dpy->xcb->next_event = xcb_poll_for_queued_event(dpy->xcb->connection);
+		else
+			dpy->xcb->next_event = xcb_poll_for_event(dpy->xcb->connection);
+	}
 
 	if(dpy->xcb->next_event)
 	{
@@ -274,7 +278,7 @@ static xcb_generic_reply_t *poll_for_response(Display *dpy)
 	void *response;
 	xcb_generic_error_t *error;
 	PendingRequest *req;
-	while(!(response = poll_for_event(dpy)) &&
+	while(!(response = poll_for_event(dpy, False)) &&
 	      (req = dpy->xcb->pending_requests) &&
 	      !req->reply_waiter)
 	{
@@ -284,7 +288,7 @@ static xcb_generic_reply_t *poll_for_response(Display *dpy)
 					 &response, &error)) {
 			/* xcb_poll_for_reply64 may have read events even if
 			 * there is no reply. */
-			response = poll_for_event(dpy);
+			response = poll_for_event(dpy, True);
 			break;
 		}
 
@@ -629,7 +633,7 @@ Status _XReply(Display *dpy, xReply *rep, int extra, Bool discard)
 			{ /* need braces around ConditionWait */
 				ConditionWait(dpy, dpy->xcb->event_notify);
 			}
-			while((event = poll_for_event(dpy)))
+			while((event = poll_for_event(dpy, True)))
 				handle_response(dpy, event, True);
 		}
 

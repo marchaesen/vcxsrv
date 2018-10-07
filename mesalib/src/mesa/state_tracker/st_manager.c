@@ -1030,8 +1030,6 @@ st_api_make_current(struct st_api *stapi, struct st_context_iface *stctxi,
    struct st_framebuffer *stdraw, *stread;
    boolean ret;
 
-   _glapi_check_multithread();
-
    if (st) {
       /* reuse or create the draw fb */
       stdraw = st_framebuffer_reuse_or_create(st,

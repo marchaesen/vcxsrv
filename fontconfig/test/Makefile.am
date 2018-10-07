@@ -91,6 +91,12 @@ test_bz106632_CFLAGS =					\
 test_bz106632_LDADD = $(top_builddir)/src/libfontconfig.la
 TESTS += test-bz106632
 
+check_PROGRAMS += test-issue107
+test_issue107_LDADD =					\
+	$(top_builddir)/src/libfontconfig.la		\
+	$(NULL)
+TESTS += test-issue107
+
 if !ENABLE_SHARED
 check_PROGRAMS += test-issue110
 test_issue110_CFLAGS =					\

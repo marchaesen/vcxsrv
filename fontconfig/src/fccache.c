@@ -46,6 +46,71 @@
 #define O_BINARY 0
 #endif
 
+#if defined(WIN32) && !defined(__CYGWIN__)
+#include <winsock.h>
+
+#define SECONDS_SINCE_1601 11644473600LL
+#define USEC_IN_SEC      1000000LL
+
+static void UnixTimevalToFileTime(struct timeval t, LPFILETIME pft)
+{
+  LONGLONG ll;
+
+  ll = Int32x32To64(t.tv_sec, USEC_IN_SEC*10) + t.tv_usec*10 + SECONDS_SINCE_1601*USEC_IN_SEC*10;
+  pft->dwLowDateTime = (DWORD)ll;
+  pft->dwHighDateTime = ll >> 32;
+}
+
+int utimes(const char *filename, const struct timeval times[2])
+{
+	FILETIME LastAccessTime;
+	FILETIME LastModificationTime;
+	HANDLE hFile;
+
+	if (times)
+  {
+		UnixTimevalToFileTime(times[0], &LastAccessTime);
+		UnixTimevalToFileTime(times[1], &LastModificationTime);
+	}
+	else
+  {
+		GetSystemTimeAsFileTime(&LastAccessTime);
+		GetSystemTimeAsFileTime(&LastModificationTime);
+	}
+
+	hFile=CreateFileA(filename, FILE_WRITE_ATTRIBUTES, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL, OPEN_EXISTING, 0, NULL);
+	if(hFile==INVALID_HANDLE_VALUE) {
+		switch(GetLastError()) {
+			case ERROR_FILE_NOT_FOUND:
+				errno=ENOENT;
+				break;
+			case ERROR_PATH_NOT_FOUND:
+			case ERROR_INVALID_DRIVE:
+				errno=ENOTDIR;
+				break;
+				/*			case ERROR_WRITE_PROTECT:	//CreateFile sets ERROR_ACCESS_DENIED on read-only devices
+								errno=EROFS;
+								break;*/
+			case ERROR_ACCESS_DENIED:
+				errno=EACCES;
+				break;
+			default:
+				errno=ENOENT;	//what other errors can occur?
+		}
+		return -1;
+	}
+
+	if(!SetFileTime(hFile, NULL, &LastAccessTime, &LastModificationTime)) {
+		//can this happen?
+		errno=ENOENT;
+		return -1;
+	}
+	CloseHandle(hFile);
+	return 0;
+}
+#endif
+
 FcBool
 FcDirCacheCreateUUID (FcChar8  *dir,
 		      FcBool    force,
@@ -155,18 +220,42 @@ FcDirCacheDeleteUUID (const FcChar8  *dir,
 		      FcConfig       *config)
 {
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
-    FcChar8 *target;
+    FcChar8 *target, *d;
     FcBool ret = FcTrue;
+    struct stat statb;
+    struct timeval times[2];
 
     if (sysroot)
-	target = FcStrBuildFilename (sysroot, dir, ".uuid", NULL);
+	d = FcStrBuildFilename (sysroot, dir, NULL);
     else
-	target = FcStrBuildFilename (dir, ".uuid", NULL);
-
+	d = FcStrBuildFilename (dir, NULL);
+    if (FcStat (d, &statb) != 0)
+    {
+	ret = FcFalse;
+	goto bail;
+    }
+    target = FcStrBuildFilename (d, ".uuid", NULL);
     ret = unlink ((char *) target) == 0;
+    if (ret)
+    {
+	times[0].tv_sec = statb.st_atime;
+	times[1].tv_sec = statb.st_mtime;
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+	times[0].tv_usec = statb.st_atim.tv_nsec / 1000;
+	times[1].tv_usec = statb.st_mtim.tv_nsec / 1000;
+#else
+	times[0].tv_usec = 0;
+	times[1].tv_usec = 0;
+#endif
+	if (utimes ((const char *) d, times) != 0)
+	{
+	    fprintf (stderr, "Unable to revert mtime: %s\n", d);
+	}
+	FcHashTableRemove (config->uuid_table, target);
+    }
     FcStrFree (target);
-    FcHashTableRemove (config->uuid_table, target);
-    FcStrFree(target);
+bail:
+    FcStrFree (d);
 
     return ret;
 }

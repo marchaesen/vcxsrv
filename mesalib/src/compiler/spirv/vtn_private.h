@@ -243,6 +243,8 @@ void vtn_build_cfg(struct vtn_builder *b, const uint32_t *words,
                    const uint32_t *end);
 void vtn_function_emit(struct vtn_builder *b, struct vtn_function *func,
                        vtn_instruction_handler instruction_handler);
+void vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
+                              const uint32_t *w, unsigned count);
 
 const uint32_t *
 vtn_foreach_instruction(struct vtn_builder *b, const uint32_t *start,

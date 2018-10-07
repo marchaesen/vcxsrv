@@ -64,10 +64,10 @@ get_gl_override(gl_api api, int *version, bool *fwd_context,
       bool fc_suffix;
       bool compat_suffix;
    } override[] = {
-      { -1, false, false},
-      { -1, false, false},
-      { -1, false, false},
-      { -1, false, false},
+      [API_OPENGL_COMPAT] = { -1, false, false},
+      [API_OPENGLES]      = { -1, false, false},
+      [API_OPENGLES2]     = { -1, false, false},
+      [API_OPENGL_CORE]   = { -1, false, false},
    };
 
    STATIC_ASSERT(ARRAY_SIZE(override) == API_OPENGL_LAST + 1);

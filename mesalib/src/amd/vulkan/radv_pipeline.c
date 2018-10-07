@@ -1075,7 +1075,9 @@ radv_pipeline_init_multisample_state(struct radv_pipeline *pipeline,
 	ms->pa_sc_line_cntl = S_028BDC_DX10_DIAMOND_TEST_ENA(1);
 	ms->pa_sc_aa_config = 0;
 	ms->db_eqaa = S_028804_HIGH_QUALITY_INTERSECTIONS(1) |
-		S_028804_STATIC_ANCHOR_ASSOCIATIONS(1);
+		      S_028804_STATIC_ANCHOR_ASSOCIATIONS(1) |
+		      S_028804_INTERPOLATE_COMP_Z(1) |
+		      S_028804_STATIC_ANCHOR_ASSOCIATIONS(1);
 	ms->pa_sc_mode_cntl_1 =
 		S_028A4C_WALK_FENCE_ENABLE(1) | //TODO linear dst fixes
 		S_028A4C_WALK_FENCE_SIZE(num_tile_pipes == 2 ? 2 : 3) |
@@ -2708,7 +2710,6 @@ radv_pipeline_generate_raster_state(struct radeon_cmdbuf *cs,
 	uint32_t pa_sc_conservative_rast = 0;
 
 	radeon_set_context_reg(cs, R_028810_PA_CL_CLIP_CNTL,
-	                       S_028810_PS_UCP_MODE(3) |
 	                       S_028810_DX_CLIP_SPACE_DEF(1) | // vulkan uses DX conventions.
 	                       S_028810_ZCLIP_NEAR_DISABLE(vkraster->depthClampEnable ? 1 : 0) |
 	                       S_028810_ZCLIP_FAR_DISABLE(vkraster->depthClampEnable ? 1 : 0) |

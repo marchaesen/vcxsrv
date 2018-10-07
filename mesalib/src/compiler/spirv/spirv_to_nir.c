@@ -1802,69 +1802,6 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
    vtn_foreach_decoration(b, val, handle_workgroup_size_decoration_cb, NULL);
 }
 
-static void
-vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
-                         const uint32_t *w, unsigned count)
-{
-   struct vtn_type *res_type = vtn_value(b, w[1], vtn_value_type_type)->type;
-   struct vtn_function *vtn_callee =
-      vtn_value(b, w[3], vtn_value_type_function)->func;
-   struct nir_function *callee = vtn_callee->impl->function;
-
-   vtn_callee->referenced = true;
-
-   nir_call_instr *call = nir_call_instr_create(b->nb.shader, callee);
-
-   unsigned param_idx = 0;
-
-   nir_deref_instr *ret_deref = NULL;
-   struct vtn_type *ret_type = vtn_callee->type->return_type;
-   if (ret_type->base_type != vtn_base_type_void) {
-      nir_variable *ret_tmp =
-         nir_local_variable_create(b->nb.impl, ret_type->type, "return_tmp");
-      ret_deref = nir_build_deref_var(&b->nb, ret_tmp);
-      call->params[param_idx++] = nir_src_for_ssa(&ret_deref->dest.ssa);
-   }
-
-   for (unsigned i = 0; i < vtn_callee->type->length; i++) {
-      struct vtn_type *arg_type = vtn_callee->type->params[i];
-      unsigned arg_id = w[4 + i];
-
-      if (arg_type->base_type == vtn_base_type_sampled_image) {
-         struct vtn_sampled_image *sampled_image =
-            vtn_value(b, arg_id, vtn_value_type_sampled_image)->sampled_image;
-
-         call->params[param_idx++] =
-            nir_src_for_ssa(&sampled_image->image->deref->dest.ssa);
-         call->params[param_idx++] =
-            nir_src_for_ssa(&sampled_image->sampler->deref->dest.ssa);
-      } else if (arg_type->base_type == vtn_base_type_pointer ||
-                 arg_type->base_type == vtn_base_type_image ||
-                 arg_type->base_type == vtn_base_type_sampler) {
-         struct vtn_pointer *pointer =
-            vtn_value(b, arg_id, vtn_value_type_pointer)->pointer;
-         call->params[param_idx++] =
-            nir_src_for_ssa(vtn_pointer_to_ssa(b, pointer));
-      } else {
-         /* This is a regular SSA value and we need a temporary */
-         nir_variable *tmp =
-            nir_local_variable_create(b->nb.impl, arg_type->type, "arg_tmp");
-         nir_deref_instr *tmp_deref = nir_build_deref_var(&b->nb, tmp);
-         vtn_local_store(b, vtn_ssa_value(b, arg_id), tmp_deref);
-         call->params[param_idx++] = nir_src_for_ssa(&tmp_deref->dest.ssa);
-      }
-   }
-   assert(param_idx == call->num_params);
-
-   nir_builder_instr_insert(&b->nb, &call->instr);
-
-   if (ret_type->base_type == vtn_base_type_void) {
-      vtn_push_value(b, w[2], vtn_value_type_undef);
-   } else {
-      vtn_push_ssa(b, w[2], res_type, vtn_local_load(b, ret_deref));
-   }
-}
-
 struct vtn_ssa_value *
 vtn_create_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
 {

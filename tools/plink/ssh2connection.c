@@ -22,7 +22,7 @@ struct outstanding_global_request;
 struct ssh2_connection_state {
     int crState;
 
-    Ssh ssh;
+    Ssh *ssh;
 
     ssh_sharing_state *connshare;
     char *peer_verstring;
@@ -370,7 +370,7 @@ static void ssh2_channel_free(struct ssh2_channel *c)
 }
 
 PacketProtocolLayer *ssh2_connection_new(
-    Ssh ssh, ssh_sharing_state *connshare, int is_simple,
+    Ssh *ssh, ssh_sharing_state *connshare, int is_simple,
     Conf *conf, const char *peer_verstring, ConnectionLayer **cl_out)
 {
     struct ssh2_connection_state *s = snew(struct ssh2_connection_state);
@@ -2267,9 +2267,9 @@ static void mainchan_send_eof(Channel *chan)
          */
         sshfwd_write_eof(mc->sc);
         ppl_logevent(("Sent EOF message"));
+        s->mainchan_eof_sent = TRUE;
+        s->want_user_input = FALSE;      /* now stop reading from stdin */
     }
-    s->mainchan_eof_sent = TRUE;
-    s->want_user_input = FALSE;      /* now stop reading from stdin */
 }
 
 static void mainchan_set_input_wanted(Channel *chan, int wanted)
@@ -2480,7 +2480,7 @@ static int ssh2_connection_want_user_input(PacketProtocolLayer *ppl)
 {
     struct ssh2_connection_state *s =
         FROMFIELD(ppl, struct ssh2_connection_state, ppl);
-    return s->want_user_input;
+    return s->mainchan_ready && s->want_user_input;
 }
 
 static void ssh2_connection_got_user_input(PacketProtocolLayer *ppl)

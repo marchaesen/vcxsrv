@@ -976,6 +976,12 @@ nir_lower_ssa_defs_to_regs_block(nir_block *block)
          mov->dest.dest = nir_dest_for_reg(reg);
          mov->dest.write_mask = (1 << reg->num_components) - 1;
          nir_instr_insert(nir_after_instr(&load->instr), &mov->instr);
+      } else if (instr->type == nir_instr_type_deref) {
+         /* Derefs should always be SSA values, don't rewrite them. */
+         nir_deref_instr *deref = nir_instr_as_deref(instr);
+         nir_foreach_use_safe(use, &deref->dest.ssa)
+            assert(use->parent_instr->block == block);
+         assert(list_empty(&deref->dest.ssa.if_uses));
       } else {
          nir_foreach_dest(instr, dest_replace_ssa_with_reg, &state);
       }

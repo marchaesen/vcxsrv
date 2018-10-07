@@ -156,7 +156,8 @@ typedef struct _CompScreen {
      */
     ChangeWindowAttributesProcPtr ChangeWindowAttributes;
 
-    ScreenBlockHandlerProcPtr BlockHandler;
+    Bool pendingScreenUpdate;
+
     CloseScreenProcPtr CloseScreen;
     int numAlternateVisuals;
     VisualID *alternateVisuals;

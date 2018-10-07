@@ -43,6 +43,7 @@ EXPORTS
   xcb_open_font
   xcb_parse_display
   xcb_poll_for_event
+  xcb_poll_for_queued_event
   xcb_poll_for_reply
   xcb_query_extension
   xcb_query_extension_reply

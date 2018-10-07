@@ -570,10 +570,9 @@ XdmcpRegisterDisplayClass(const char *name, int length)
 }
 
 static void
-xdmcp_start(void)
+xdmcp_reset(void)
 {
     timeOutRtx = 0;
-    get_xdmcp_sock();
     if (xdmcpSocket >= 0)
         SetNotifyFd(xdmcpSocket, XdmcpSocketNotify, X_NOTIFY_READ, NULL);
 #if defined(IPv6) && defined(AF_INET6)
@@ -582,6 +581,13 @@ xdmcp_start(void)
 #endif
     xdmcp_timer = TimerSet(NULL, 0, 0, XdmcpTimerNotify, NULL);
     send_packet();
+}
+
+static void
+xdmcp_start(void)
+{
+    get_xdmcp_sock();
+    xdmcp_reset();
 }
 
 /*
@@ -638,7 +644,7 @@ XdmcpReset(void)
 {
     state = XDM_INIT_STATE;
     if (state != XDM_OFF)
-        xdmcp_start();
+        xdmcp_reset();
 }
 
 /*
