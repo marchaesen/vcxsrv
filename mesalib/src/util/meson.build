@@ -23,6 +23,7 @@ inc_util = include_directories('.')
 subdir('xmlpool')
 
 files_mesa_util = files(
+  'bigmath.h',
   'bitscan.c',
   'bitscan.h',
   'bitset.h',
@@ -34,6 +35,8 @@ files_mesa_util = files(
   'debug.h',
   'disk_cache.c',
   'disk_cache.h',
+  'fast_idiv_by_const.c',
+  'fast_idiv_by_const.h',
   'format_r11g11b10f.h',
   'format_rgb9e5.h',
   'format_srgb.h',
@@ -167,6 +170,7 @@ if with_tests
     )
   )
 
+  subdir('tests/fast_idiv_by_const')
   subdir('tests/hash_table')
   subdir('tests/string_buffer')
   subdir('tests/vma')

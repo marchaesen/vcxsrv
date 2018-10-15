@@ -1136,7 +1136,7 @@ static void create_function(struct radv_shader_context *ctx,
 				   &user_sgpr_idx);
 		if (ctx->options->supports_spill) {
 			ctx->ring_offsets = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.implicit.buffer.ptr",
-							       LLVMPointerType(ctx->ac.i8, AC_CONST_ADDR_SPACE),
+							       LLVMPointerType(ctx->ac.i8, AC_ADDR_SPACE_CONST),
 							       NULL, 0, AC_FUNC_ATTR_READNONE);
 			ctx->ring_offsets = LLVMBuildBitCast(ctx->ac.builder, ctx->ring_offsets,
 							     ac_array_in_const_addr_space(ctx->ac.v4i32), "");
@@ -2282,7 +2282,7 @@ si_llvm_init_export_args(struct radv_shader_context *ctx,
 		return;
 
 	bool is_16bit = ac_get_type_size(LLVMTypeOf(values[0])) == 2;
-	if (ctx->stage == MESA_SHADER_FRAGMENT && target >= V_008DFC_SQ_EXP_MRT) {
+	if (ctx->stage == MESA_SHADER_FRAGMENT) {
 		unsigned index = target - V_008DFC_SQ_EXP_MRT;
 		unsigned col_format = (ctx->options->key.fs.col_format >> (4 * index)) & 0xf;
 		bool is_int8 = (ctx->options->key.fs.is_int8 >> index) & 1;

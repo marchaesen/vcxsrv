@@ -3195,6 +3195,7 @@ AC_CONFIG_FILES([Makefile
                  src/mesa/main/tests/Makefile
                  src/mesa/state_tracker/tests/Makefile
                  src/util/Makefile
+                 src/util/tests/fast_idiv_by_const/Makefile
                  src/util/tests/hash_table/Makefile
                  src/util/tests/set/Makefile
                  src/util/tests/string_buffer/Makefile

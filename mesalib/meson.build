@@ -306,7 +306,10 @@ endif
 
 _egl = get_option('egl')
 if _egl == 'auto'
-  with_egl = with_dri and with_shared_glapi and with_platforms
+  with_egl = (
+    not ['darwin', 'windows'].contains(host_machine.system()) and
+    with_dri and with_shared_glapi and with_platforms
+  )
 elif _egl == 'true'
   if not with_dri
     error('EGL requires dri')
@@ -316,6 +319,8 @@ elif _egl == 'true'
     error('No platforms specified, consider -Dplatforms=drm,x11,surfaceless at least')
   elif not ['disabled', 'dri'].contains(with_glx)
     error('EGL requires dri, but a GLX is being built without dri')
+  elif ['darwin', 'windows'].contains(host_machine.system())
+    error('EGL is not available on Windows or MacOS')
   endif
   with_egl = true
 else

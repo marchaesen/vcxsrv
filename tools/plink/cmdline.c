@@ -81,8 +81,8 @@ void cmdline_cleanup(void)
 } while (0)
 
 /*
- * Similar interface to get_userpass_input(), except that here a -1
- * return means that we aren't capable of processing the prompt and
+ * Similar interface to seat_get_userpass_input(), except that here a
+ * -1 return means that we aren't capable of processing the prompt and
  * someone else should do it.
  */
 int cmdline_get_passwd_input(prompts_t *p)
@@ -275,7 +275,7 @@ int cmdline_process_param(const char *p, char *value,
                     const char *comma = strchr(p, ',');
                     if (comma) {
                         char *prefix = dupprintf("%.*s", (int)(comma - p), p);
-                        const struct Backend_vtable *vt =
+                        const struct BackendVtable *vt =
                             backend_vt_from_name(prefix);
 
                         if (vt) {

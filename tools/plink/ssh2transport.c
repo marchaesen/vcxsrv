@@ -49,7 +49,10 @@ struct kexinit_algorithm {
             const struct ssh2_macalg *mac;
             int etm;
         } mac;
-        const struct ssh_compression_alg *comp;
+        struct {
+            const struct ssh_compression_alg *comp;
+            int delayed;
+        } comp;
     } u;
 };
 
@@ -206,6 +209,7 @@ struct ssh2_transport_state {
         const struct ssh2_macalg *mac;
         int etm_mode;
         const struct ssh_compression_alg *comp;
+        int comp_delayed;
     } in, out;
     ptrlen hostkeydata, sigdata;
     char *keystr, *fingerprint;
@@ -223,8 +227,6 @@ struct ssh2_transport_state {
     int n_preferred_ciphers;
     const struct ssh2_ciphers *preferred_ciphers[CIPHER_MAX];
     const struct ssh_compression_alg *preferred_comp;
-    int userauth_succeeded;         /* for delayed compression */
-    int pending_compression;
     int got_session_id;
     int dlgret;
     int guessok;
@@ -357,7 +359,7 @@ PacketProtocolLayer *ssh2_transport_new(
 static void ssh2_transport_free(PacketProtocolLayer *ppl)
 {
     struct ssh2_transport_state *s =
-        FROMFIELD(ppl, struct ssh2_transport_state, ppl);
+        container_of(ppl, struct ssh2_transport_state, ppl);
 
     /*
      * As our last act before being freed, move any outgoing packets
@@ -393,7 +395,6 @@ static void ssh2_transport_free(PacketProtocolLayer *ppl)
         ssh_key_free(s->hkey);
         s->hkey = NULL;
     }
-    if (s->e) freebn(s->e);
     if (s->f) freebn(s->f);
     if (s->p) freebn(s->p);
     if (s->g) freebn(s->g);
@@ -529,6 +530,7 @@ int ssh2_common_filter_queue(PacketProtocolLayer *ppl)
                 ((reason > 0 && reason < lenof(ssh2_disconnect_reasons)) ?
                  ssh2_disconnect_reasons[reason] : "unknown"),
                 PTRLEN_PRINTF(msg));
+            pq_pop(ppl->in_pq);
             return TRUE;               /* indicate that we've been freed */
 
           case SSH2_MSG_DEBUG:
@@ -596,7 +598,7 @@ static PktIn *ssh2_transport_pop(struct ssh2_transport_state *s)
 static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
 {
     struct ssh2_transport_state *s =
-        FROMFIELD(ppl, struct ssh2_transport_state, ppl);
+        container_of(ppl, struct ssh2_transport_state, ppl);
     PktIn *pktin;
     PktOut *pktout;
 
@@ -614,8 +616,6 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
     s->in.comp = s->out.comp = NULL;
 
     s->got_session_id = FALSE;
-    s->userauth_succeeded = FALSE;
-    s->pending_compression = FALSE;
     s->need_gss_transient_hostkey = FALSE;
     s->warned_about_no_gss_transient_hostkey = FALSE;
 
@@ -935,22 +935,23 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
             assert(lenof(compressions) > 1);
             /* Prefer non-delayed versions */
             alg = ssh2_kexinit_addalg(s->kexlists[j], s->preferred_comp->name);
-            alg->u.comp = s->preferred_comp;
-            /* We don't even list delayed versions of algorithms until
-             * they're allowed to be used, to avoid a race. See the end of
-             * this function. */
-            if (s->userauth_succeeded && s->preferred_comp->delayed_name) {
+            alg->u.comp.comp = s->preferred_comp;
+            alg->u.comp.delayed = FALSE;
+            if (s->preferred_comp->delayed_name) {
                 alg = ssh2_kexinit_addalg(s->kexlists[j],
                                           s->preferred_comp->delayed_name);
-                alg->u.comp = s->preferred_comp;
+                alg->u.comp.comp = s->preferred_comp;
+                alg->u.comp.delayed = TRUE;
             }
             for (i = 0; i < lenof(compressions); i++) {
                 const struct ssh_compression_alg *c = compressions[i];
                 alg = ssh2_kexinit_addalg(s->kexlists[j], c->name);
-                alg->u.comp = c;
-                if (s->userauth_succeeded && c->delayed_name) {
+                alg->u.comp.comp = c;
+                alg->u.comp.delayed = FALSE;
+                if (c->delayed_name) {
                     alg = ssh2_kexinit_addalg(s->kexlists[j], c->delayed_name);
-                    alg->u.comp = c;
+                    alg->u.comp.comp = c;
+                    alg->u.comp.delayed = TRUE;
                 }
             }
         }
@@ -1006,6 +1007,7 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         s->in.cipher = s->out.cipher = NULL;
         s->in.mac = s->out.mac = NULL;
         s->in.comp = s->out.comp = NULL;
+        s->in.comp_delayed = s->out.comp_delayed = FALSE;
         s->warn_kex = s->warn_hk = FALSE;
         s->warn_cscipher = s->warn_sccipher = FALSE;
 
@@ -1076,21 +1078,14 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
                         s->in.mac = alg->u.mac.mac;
                         s->in.etm_mode = alg->u.mac.etm;
                     } else if (i == KEXLIST_CSCOMP) {
-                        s->out.comp = alg->u.comp;
+                        s->out.comp = alg->u.comp.comp;
+                        s->out.comp_delayed = alg->u.comp.delayed;
                     } else if (i == KEXLIST_SCCOMP) {
-                        s->in.comp = alg->u.comp;
+                        s->in.comp = alg->u.comp.comp;
+                        s->in.comp_delayed = alg->u.comp.delayed;
                     }
                     goto matched;
                 }
-
-                /* Set a flag if there's a delayed compression option
-                 * available for a compression method that we just
-                 * failed to select the immediate version of. */
-                s->pending_compression = (
-                    (i == KEXLIST_CSCOMP || i == KEXLIST_SCCOMP) &&
-                    in_commasep_string(alg->u.comp->delayed_name,
-                                       str.ptr, str.len) &&
-                    !s->userauth_succeeded);
             }
             ssh_sw_abort(s->ppl.ssh, "Couldn't agree a %s (available: %.*s)",
                          kexlist_descr[i], PTRLEN_PRINTF(str));
@@ -1127,10 +1122,6 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
             }
         }
 
-        if (s->pending_compression) {
-            ppl_logevent(("Server supports delayed compression; "
-                          "will try this later"));
-        }
         get_string(pktin);  /* client->server language */
         get_string(pktin);  /* server->client language */
         s->ignorepkt = get_bool(pktin) && !s->guessok;
@@ -1146,9 +1137,9 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
                    BinarySource_UPCAST(pktin)->len + 1);
 
         if (s->warn_kex) {
-            s->dlgret = askalg(s->ppl.frontend, "key-exchange algorithm",
-                               s->kex_alg->name,
-                               ssh2_transport_dialog_callback, s);
+            s->dlgret = seat_confirm_weak_crypto_primitive(
+                s->ppl.seat, "key-exchange algorithm", s->kex_alg->name,
+                ssh2_transport_dialog_callback, s);
             crMaybeWaitUntilV(s->dlgret >= 0);
             if (s->dlgret == 0) {
                 ssh_user_close(s->ppl.ssh, "User aborted at kex warning");
@@ -1163,9 +1154,9 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
             /*
              * Change warning box wording depending on why we chose a
              * warning-level host key algorithm. If it's because
-             * that's all we have *cached*, use the askhk mechanism,
-             * and list the host keys we could usefully cross-certify.
-             * Otherwise, use askalg for the standard wording.
+             * that's all we have *cached*, list the host keys we
+             * could usefully cross-certify. Otherwise, use the same
+             * standard wording as any other weak crypto primitive.
              */
             betteralgs = NULL;
             for (j = 0; j < s->n_uncert_hostkeys; j++) {
@@ -1194,14 +1185,18 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
                 }
             }
             if (betteralgs) {
-                s->dlgret = askhk(
-                    s->ppl.frontend, s->hostkey_alg->ssh_id, betteralgs,
+                /* Use the special warning prompt that lets us provide
+                 * a list of better algorithms */
+                s->dlgret = seat_confirm_weak_cached_hostkey(
+                    s->ppl.seat, s->hostkey_alg->ssh_id, betteralgs,
                     ssh2_transport_dialog_callback, s);
                 sfree(betteralgs);
             } else {
-                s->dlgret = askalg(s->ppl.frontend, "host key type",
-                                   s->hostkey_alg->ssh_id,
-                                   ssh2_transport_dialog_callback, s);
+                /* If none exist, use the more general 'weak crypto'
+                 * warning prompt */
+                s->dlgret = seat_confirm_weak_crypto_primitive(
+                    s->ppl.seat, "host key type", s->hostkey_alg->ssh_id,
+                    ssh2_transport_dialog_callback, s);
             }
             crMaybeWaitUntilV(s->dlgret >= 0);
             if (s->dlgret == 0) {
@@ -1211,10 +1206,9 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         }
 
         if (s->warn_cscipher) {
-            s->dlgret = askalg(s->ppl.frontend,
-                               "client-to-server cipher",
-                               s->out.cipher->name,
-                               ssh2_transport_dialog_callback, s);
+            s->dlgret = seat_confirm_weak_crypto_primitive(
+                s->ppl.seat, "client-to-server cipher", s->out.cipher->name,
+                ssh2_transport_dialog_callback, s);
             crMaybeWaitUntilV(s->dlgret >= 0);
             if (s->dlgret == 0) {
                 ssh_user_close(s->ppl.ssh, "User aborted at cipher warning");
@@ -1223,10 +1217,9 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         }
 
         if (s->warn_sccipher) {
-            s->dlgret = askalg(s->ppl.frontend,
-                               "server-to-client cipher",
-                               s->in.cipher->name,
-                               ssh2_transport_dialog_callback, s);
+            s->dlgret = seat_confirm_weak_crypto_primitive(
+                s->ppl.seat, "server-to-client cipher", s->in.cipher->name,
+                ssh2_transport_dialog_callback, s);
             crMaybeWaitUntilV(s->dlgret >= 0);
             if (s->dlgret == 0) {
                 ssh_user_close(s->ppl.ssh, "User aborted at cipher warning");
@@ -1319,13 +1312,13 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         /*
          * Now generate and send e for Diffie-Hellman.
          */
-        set_busy_status(s->ppl.frontend, BUSY_CPU); /* this can take a while */
+        seat_set_busy_status(s->ppl.seat, BUSY_CPU);
         s->e = dh_create_e(s->dh_ctx, s->nbits * 2);
         pktout = ssh_bpp_new_pktout(s->ppl.bpp, s->kex_init_value);
         put_mp_ssh2(pktout, s->e);
         pq_push(s->ppl.out_pq, pktout);
 
-        set_busy_status(s->ppl.frontend, BUSY_WAITING); /* wait for server */
+        seat_set_busy_status(s->ppl.seat, BUSY_WAITING);
         crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
         if (pktin->type != s->kex_reply_value) {
             ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
@@ -1336,7 +1329,7 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
                                           pktin->type));
             return;
         }
-        set_busy_status(s->ppl.frontend, BUSY_CPU); /* cogitate */
+        seat_set_busy_status(s->ppl.seat, BUSY_CPU);
         s->hostkeydata = get_string(pktin);
         s->hkey = ssh_key_new_pub(s->hostkey_alg, s->hostkeydata);
         s->f = get_mp_ssh2(pktin);
@@ -1359,7 +1352,7 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
 
         /* We assume everything from now on will be quick, and it might
          * involve user interaction. */
-        set_busy_status(s->ppl.frontend, BUSY_NOT);
+        seat_set_busy_status(s->ppl.seat, BUSY_NOT);
 
         put_stringpl(s->exhash, s->hostkeydata);
         if (dh_is_gex(s->kex_alg)) {
@@ -1377,7 +1370,6 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         dh_cleanup(s->dh_ctx);
         s->dh_ctx = NULL;
         freebn(s->f); s->f = NULL;
-        freebn(s->e); s->e = NULL;
         if (dh_is_gex(s->kex_alg)) {
             freebn(s->g); s->g = NULL;
             freebn(s->p); s->p = NULL;
@@ -1516,7 +1508,7 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         ppl_logevent(("Doing GSSAPI (with Kerberos V5) Diffie-Hellman key "
                       "exchange with hash %s", s->kex_alg->hash->text_name));
         /* Now generate e for Diffie-Hellman. */
-        set_busy_status(s->ppl.frontend, BUSY_CPU); /* this can take a while */
+        seat_set_busy_status(s->ppl.seat, BUSY_CPU);
         s->e = dh_create_e(s->dh_ctx, s->nbits * 2);
 
         if (s->shgss->lib->gsslogmsg)
@@ -1675,7 +1667,7 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
 
         /* We assume everything from now on will be quick, and it might
          * involve user interaction. */
-        set_busy_status(s->ppl.frontend, BUSY_NOT);
+        seat_set_busy_status(s->ppl.seat, BUSY_NOT);
 
         if (!s->hkey)
             put_stringz(s->exhash, "");
@@ -1699,7 +1691,6 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         dh_cleanup(s->dh_ctx);
         s->dh_ctx = NULL;
         freebn(s->f); s->f = NULL;
-        freebn(s->e); s->e = NULL;
         if (dh_is_gex(s->kex_alg)) {
             freebn(s->g); s->g = NULL;
             freebn(s->p); s->p = NULL;
@@ -2033,11 +2024,10 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
                              "configured list");
                 return;
             } else if (s->dlgret < 0) { /* none configured; use standard handling */
-                s->dlgret = verify_ssh_host_key(s->ppl.frontend,
-                                                s->savedhost, s->savedport,
-                                                ssh_key_cache_id(s->hkey),
-                                                s->keystr, s->fingerprint,
-                                                ssh2_transport_dialog_callback, s);
+                s->dlgret = seat_verify_ssh_host_key(
+                    s->ppl.seat, s->savedhost, s->savedport,
+                    ssh_key_cache_id(s->hkey), s->keystr, s->fingerprint,
+                    ssh2_transport_dialog_callback, s);
 #ifdef FUZZING
                 s->dlgret = 1;
 #endif
@@ -2146,26 +2136,12 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
             s->ppl.bpp,
             s->out.cipher, cipher_key->u, cipher_iv->u,
             s->out.mac, s->out.etm_mode, mac_key->u,
-            s->out.comp);
+            s->out.comp, s->out.comp_delayed);
 
         strbuf_free(cipher_key);
         strbuf_free(cipher_iv);
         strbuf_free(mac_key);
     }
-
-    if (s->out.cipher)
-        ppl_logevent(("Initialised %.200s client->server encryption",
-                      s->out.cipher->text_name));
-    if (s->out.mac)
-        ppl_logevent(("Initialised %.200s client->server"
-                      " MAC algorithm%s%s",
-                      s->out.mac->text_name,
-                      s->out.etm_mode ? " (in ETM mode)" : "",
-                      (s->out.cipher->required_mac ?
-                       " (required by cipher)" : "")));
-    if (s->out.comp->text_name)
-        ppl_logevent(("Initialised %s compression",
-                      s->out.comp->text_name));
 
     /*
      * Now our end of the key exchange is complete, we can send all
@@ -2215,25 +2191,12 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
             s->ppl.bpp,
             s->in.cipher, cipher_key->u, cipher_iv->u,
             s->in.mac, s->in.etm_mode, mac_key->u,
-            s->in.comp);
+            s->in.comp, s->in.comp_delayed);
 
         strbuf_free(cipher_key);
         strbuf_free(cipher_iv);
         strbuf_free(mac_key);
     }
-
-    if (s->in.cipher)
-        ppl_logevent(("Initialised %.200s server->client encryption",
-                      s->in.cipher->text_name));
-    if (s->in.mac)
-        ppl_logevent(("Initialised %.200s server->client MAC algorithm%s%s",
-                      s->in.mac->text_name,
-                      s->in.etm_mode ? " (in ETM mode)" : "",
-                      (s->in.cipher->required_mac ?
-                       " (required by cipher)" : "")));
-    if (s->in.comp->text_name)
-        ppl_logevent(("Initialised %s decompression",
-                      s->in.comp->text_name));
 
     /*
      * Free shared secret.
@@ -2244,7 +2207,7 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
      * Update the specials menu to list the remaining uncertified host
      * keys.
      */
-    update_specials_menu(s->ppl.frontend);
+    seat_update_specials_menu(s->ppl.seat);
 
     /*
      * Key exchange is over. Loop straight back round if we have a
@@ -2315,41 +2278,17 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
 
         if (s->rekey_class == RK_POST_USERAUTH) {
             /*
-             * userauth has seen a USERAUTH_SUCCEEDED. For a couple of
-             * reasons, this may be the moment to do an immediate
-             * rekey with different parameters. But it may not; so
-             * here we turn that rekey class into either RK_NONE or
-             * RK_NORMAL.
+             * userauth has seen a USERAUTH_SUCCESS. This may be the
+             * moment to do an immediate rekey with different
+             * parameters. But it may not; so here we turn that rekey
+             * class into either RK_NONE or RK_NORMAL.
              *
-             * One is to turn on delayed compression. We do this by a
-             * rekey to work around a protocol design bug:
-             * draft-miller-secsh-compression-delayed-00 says that you
-             * negotiate delayed compression in the first key
-             * exchange, and both sides start compressing when the
-             * server has sent USERAUTH_SUCCESS. This has a race
-             * condition -- the server can't know when the client has
-             * seen it, and thus which incoming packets it should
-             * treat as compressed.
-             *
-             * Instead, we do the initial key exchange without
-             * offering the delayed methods, but note if the server
-             * offers them; when we get here, if a delayed method was
-             * available that was higher on our list than what we got,
-             * we initiate a rekey in which we _do_ list the delayed
-             * methods (and hopefully get it as a result). Subsequent
-             * rekeys will do the same.
-             *
-             * Another reason for a rekey at this point is if we've
-             * done a GSS key exchange and don't have anything in our
+             * Currently the only reason for this is if we've done a
+             * GSS key exchange and don't have anything in our
              * transient hostkey cache, in which case we should make
              * an attempt to populate the cache now.
              */
-            assert(!s->userauth_succeeded); /* should only happen once */
-            s->userauth_succeeded = TRUE;
-            if (s->pending_compression) {
-                s->rekey_reason = "enabling delayed compression";
-                s->rekey_class = RK_NORMAL;
-            } else if (s->need_gss_transient_hostkey) {
+            if (s->need_gss_transient_hostkey) {
                 s->rekey_reason = "populating transient host key cache";
                 s->rekey_class = RK_NORMAL;
             } else {
@@ -2767,7 +2706,7 @@ ptrlen ssh2_transport_get_session_id(PacketProtocolLayer *ppl)
     struct ssh2_transport_state *s;
 
     assert(ppl->vt == &ssh2_transport_vtable);
-    s = FROMFIELD(ppl, struct ssh2_transport_state, ppl);
+    s = container_of(ppl, struct ssh2_transport_state, ppl);
 
     assert(s->got_session_id);
     return make_ptrlen(s->session_id, s->session_id_len);
@@ -2778,7 +2717,7 @@ void ssh2_transport_notify_auth_done(PacketProtocolLayer *ppl)
     struct ssh2_transport_state *s;
 
     assert(ppl->vt == &ssh2_transport_vtable);
-    s = FROMFIELD(ppl, struct ssh2_transport_state, ppl);
+    s = container_of(ppl, struct ssh2_transport_state, ppl);
 
     s->rekey_reason = NULL;            /* will be filled in later */
     s->rekey_class = RK_POST_USERAUTH;
@@ -2791,7 +2730,7 @@ static int ssh2_transport_get_specials(
     PacketProtocolLayer *ppl, add_special_fn_t add_special, void *ctx)
 {
     struct ssh2_transport_state *s =
-        FROMFIELD(ppl, struct ssh2_transport_state, ppl);
+        container_of(ppl, struct ssh2_transport_state, ppl);
     int need_separator = FALSE;
     int toret;
 
@@ -2836,7 +2775,7 @@ static void ssh2_transport_special_cmd(PacketProtocolLayer *ppl,
                                        SessionSpecialCode code, int arg)
 {
     struct ssh2_transport_state *s =
-        FROMFIELD(ppl, struct ssh2_transport_state, ppl);
+        container_of(ppl, struct ssh2_transport_state, ppl);
 
     if (code == SS_REKEY) {
 	if (!s->kex_in_progress) {
@@ -2884,7 +2823,7 @@ static void ssh2_transport_reconfigure(PacketProtocolLayer *ppl, Conf *conf)
     int i;
 
     assert(ppl->vt == &ssh2_transport_vtable);
-    s = FROMFIELD(ppl, struct ssh2_transport_state, ppl);
+    s = container_of(ppl, struct ssh2_transport_state, ppl);
 
     rekey_time = sanitise_rekey_time(
         conf_get_int(conf, CONF_ssh_rekey_time), 60);
@@ -2935,7 +2874,7 @@ static void ssh2_transport_reconfigure(PacketProtocolLayer *ppl, Conf *conf)
     s->conf = conf_copy(conf);
 
     if (rekey_reason) {
-        if (!s->kex_in_progress) {
+        if (!s->kex_in_progress && !ssh2_bpp_rekey_inadvisable(s->ppl.bpp)) {
             s->rekey_reason = rekey_reason;
             s->rekey_class = RK_NORMAL;
             queue_idempotent_callback(&s->ppl.ic_process_queue);
@@ -2951,7 +2890,7 @@ static void ssh2_transport_reconfigure(PacketProtocolLayer *ppl, Conf *conf)
 static int ssh2_transport_want_user_input(PacketProtocolLayer *ppl)
 {
     struct ssh2_transport_state *s =
-        FROMFIELD(ppl, struct ssh2_transport_state, ppl);
+        container_of(ppl, struct ssh2_transport_state, ppl);
 
     /* Just delegate this to the higher layer */
     return ssh_ppl_want_user_input(s->higher_layer);
@@ -2960,7 +2899,7 @@ static int ssh2_transport_want_user_input(PacketProtocolLayer *ppl)
 static void ssh2_transport_got_user_input(PacketProtocolLayer *ppl)
 {
     struct ssh2_transport_state *s =
-        FROMFIELD(ppl, struct ssh2_transport_state, ppl);
+        container_of(ppl, struct ssh2_transport_state, ppl);
 
     /* Just delegate this to the higher layer */
     ssh_ppl_got_user_input(s->higher_layer);

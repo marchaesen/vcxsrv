@@ -184,7 +184,7 @@ ac_get_type_size(LLVMTypeRef type)
 	case LLVMDoubleTypeKind:
 		return 8;
 	case LLVMPointerTypeKind:
-		if (LLVMGetPointerAddressSpace(type) == AC_CONST_32BIT_ADDR_SPACE)
+		if (LLVMGetPointerAddressSpace(type) == AC_ADDR_SPACE_CONST_32BIT)
 			return 4;
 		return 8;
 	case LLVMVectorTypeKind:
@@ -558,6 +558,22 @@ LLVMValueRef ac_build_expand_to_vec4(struct ac_llvm_context *ctx,
 	return ac_build_gather_values(ctx, chan, 4);
 }
 
+LLVMValueRef ac_build_round(struct ac_llvm_context *ctx, LLVMValueRef value)
+{
+	unsigned type_size = ac_get_type_size(LLVMTypeOf(value));
+	const char *name;
+
+	if (type_size == 2)
+		name = "llvm.rint.f16";
+	else if (type_size == 4)
+		name = "llvm.rint.f32";
+	else
+		name = "llvm.rint.f64";
+
+	return ac_build_intrinsic(ctx, name, LLVMTypeOf(value), &value, 1,
+				  AC_FUNC_ATTR_READNONE);
+}
+
 LLVMValueRef
 ac_build_fdiv(struct ac_llvm_context *ctx,
 	      LLVMValueRef num,
@@ -675,8 +691,7 @@ ac_prepare_cube_coords(struct ac_llvm_context *ctx,
 	LLVMValueRef invma;
 
 	if (is_array && !is_lod) {
-		LLVMValueRef tmp = coords_arg[3];
-		tmp = ac_build_intrinsic(ctx, "llvm.rint.f32", ctx->f32, &tmp, 1, 0);
+		LLVMValueRef tmp = ac_build_round(ctx, coords_arg[3]);
 
 		/* Section 8.9 (Texture Functions) of the GLSL 4.50 spec says:
 		 *
@@ -891,7 +906,7 @@ ac_build_load_custom(struct ac_llvm_context *ctx, LLVMValueRef base_ptr,
 	LLVMValueRef indices[2] = {ctx->i32_0, index};
 
 	if (no_unsigned_wraparound &&
-	    LLVMGetPointerAddressSpace(LLVMTypeOf(base_ptr)) == AC_CONST_32BIT_ADDR_SPACE)
+	    LLVMGetPointerAddressSpace(LLVMTypeOf(base_ptr)) == AC_ADDR_SPACE_CONST_32BIT)
 		pointer = LLVMBuildInBoundsGEP(ctx->builder, base_ptr, indices, 2, "");
 	else
 		pointer = LLVMBuildGEP(ctx->builder, base_ptr, indices, 2, "");
@@ -1164,7 +1179,8 @@ ac_build_tbuffer_load_short(struct ac_llvm_context *ctx,
 			    LLVMValueRef vindex,
 			    LLVMValueRef voffset,
 				LLVMValueRef soffset,
-				LLVMValueRef immoffset)
+				LLVMValueRef immoffset,
+				LLVMValueRef glc)
 {
 	const char *name = "llvm.amdgcn.tbuffer.load.i32";
 	LLVMTypeRef type = ctx->i32;
@@ -1176,7 +1192,7 @@ ac_build_tbuffer_load_short(struct ac_llvm_context *ctx,
 				immoffset,
 				LLVMConstInt(ctx->i32, V_008F0C_BUF_DATA_FORMAT_16, false),
 				LLVMConstInt(ctx->i32, V_008F0C_BUF_NUM_FORMAT_UINT, false),
-				ctx->i1false,
+				glc,
 				ctx->i1false,
 	};
 	LLVMValueRef res = ac_build_intrinsic(ctx, name, type, params, 9, 0);
@@ -2482,7 +2498,7 @@ void ac_declare_lds_as_pointer(struct ac_llvm_context *ctx)
 {
 	unsigned lds_size = ctx->chip_class >= CIK ? 65536 : 32768;
 	ctx->lds = LLVMBuildIntToPtr(ctx->builder, ctx->i32_0,
-				     LLVMPointerType(LLVMArrayType(ctx->i32, lds_size / 4), AC_LOCAL_ADDR_SPACE),
+				     LLVMPointerType(LLVMArrayType(ctx->i32, lds_size / 4), AC_ADDR_SPACE_LDS),
 				     "lds");
 }
 
@@ -2564,7 +2580,7 @@ LLVMValueRef ac_find_lsb(struct ac_llvm_context *ctx,
 LLVMTypeRef ac_array_in_const_addr_space(LLVMTypeRef elem_type)
 {
 	return LLVMPointerType(LLVMArrayType(elem_type, 0),
-			       AC_CONST_ADDR_SPACE);
+			       AC_ADDR_SPACE_CONST);
 }
 
 LLVMTypeRef ac_array_in_const32_addr_space(LLVMTypeRef elem_type)
@@ -2573,7 +2589,7 @@ LLVMTypeRef ac_array_in_const32_addr_space(LLVMTypeRef elem_type)
 		return ac_array_in_const_addr_space(elem_type);
 
 	return LLVMPointerType(LLVMArrayType(elem_type, 0),
-			       AC_CONST_32BIT_ADDR_SPACE);
+			       AC_ADDR_SPACE_CONST_32BIT);
 }
 
 static struct ac_llvm_flow *
@@ -2747,7 +2763,7 @@ void ac_build_uif(struct ac_llvm_context *ctx, LLVMValueRef value,
 	if_cond_emit(ctx, cond, label_id);
 }
 
-LLVMValueRef ac_build_alloca(struct ac_llvm_context *ac, LLVMTypeRef type,
+LLVMValueRef ac_build_alloca_undef(struct ac_llvm_context *ac, LLVMTypeRef type,
 			     const char *name)
 {
 	LLVMBuilderRef builder = ac->builder;
@@ -2765,18 +2781,15 @@ LLVMValueRef ac_build_alloca(struct ac_llvm_context *ac, LLVMTypeRef type,
 	}
 
 	res = LLVMBuildAlloca(first_builder, type, name);
-	LLVMBuildStore(builder, LLVMConstNull(type), res);
-
 	LLVMDisposeBuilder(first_builder);
-
 	return res;
 }
 
-LLVMValueRef ac_build_alloca_undef(struct ac_llvm_context *ac,
+LLVMValueRef ac_build_alloca(struct ac_llvm_context *ac,
 				   LLVMTypeRef type, const char *name)
 {
-	LLVMValueRef ptr = ac_build_alloca(ac, type, name);
-	LLVMBuildStore(ac->builder, LLVMGetUndef(type), ptr);
+	LLVMValueRef ptr = ac_build_alloca_undef(ac, type, name);
+	LLVMBuildStore(ac->builder, LLVMConstNull(type), ptr);
 	return ptr;
 }
 

@@ -258,6 +258,6 @@ glsl_test = executable(
   install : with_tools.contains('glsl'),
 )
 
-if with_tests
+if with_any_opengl and with_tests
   subdir('tests')
 endif

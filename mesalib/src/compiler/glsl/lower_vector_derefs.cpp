@@ -59,8 +59,7 @@ vector_deref_visitor::visit_enter(ir_assignment *ir)
    if (!deref->array->type->is_vector())
       return ir_rvalue_enter_visitor::visit_enter(ir);
 
-   ir_dereference *const new_lhs = (ir_dereference *) deref->array;
-   ir->set_lhs(new_lhs);
+   ir_rvalue *const new_lhs = deref->array;
 
    void *mem_ctx = ralloc_parent(ir);
    ir_constant *old_index_constant =
@@ -72,8 +71,16 @@ vector_deref_visitor::visit_enter(ir_assignment *ir)
                                            ir->rhs,
                                            deref->array_index);
       ir->write_mask = (1 << new_lhs->type->vector_elements) - 1;
+      ir->set_lhs(new_lhs);
+   } else if (new_lhs->ir_type != ir_type_swizzle) {
+      ir->set_lhs(new_lhs);
+      ir->write_mask = 1 << old_index_constant->get_uint_component(0);
    } else {
-      ir->write_mask = 1 << old_index_constant->get_int_component(0);
+      /* If the "new" LHS is a swizzle, use the set_lhs helper to instead
+       * swizzle the RHS.
+       */
+      unsigned component[1] = { old_index_constant->get_uint_component(0) };
+      ir->set_lhs(new(mem_ctx) ir_swizzle(new_lhs, component, 1));
    }
 
    return ir_rvalue_enter_visitor::visit_enter(ir);

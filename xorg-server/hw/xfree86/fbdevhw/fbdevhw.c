@@ -329,6 +329,22 @@ fbdev_open(int scrnIndex, const char *dev, char **namep)
         return -1;
     }
 
+    /* only touch non-PCI devices on this path */
+    {
+        char buf[PATH_MAX];
+        char *sysfs_path = NULL;
+        char *node = strrchr(dev, '/') + 1;
+
+        if (asprintf(&sysfs_path, "/sys/class/graphics/%s", node) < 0 ||
+            readlink(sysfs_path, buf, sizeof(buf) < 0) ||
+            strstr(buf, "devices/pci")) {
+            free(sysfs_path);
+            close(fd);
+            return -1;
+        }
+        free(sysfs_path);
+    }
+
     if (namep) {
         if (-1 == ioctl(fd, FBIOGET_FSCREENINFO, (void *) (&fix))) {
             *namep = NULL;

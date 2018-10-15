@@ -10,18 +10,6 @@
 #include "ssh.h"
 #include "sshchan.h"
 
-static void logeventf(Frontend *frontend, const char *fmt, ...)
-{
-    va_list ap;
-    char *buf;
-
-    va_start(ap, fmt);
-    buf = dupvprintf(fmt, ap);
-    va_end(ap);
-    logevent(frontend, buf);
-    sfree(buf);
-}
-
 /*
  * Enumeration of values that live in the 'socks_state' field of
  * struct PortForwarding.
@@ -56,7 +44,7 @@ typedef struct PortForwarding {
     strbuf *socksbuf;
     size_t socksbuf_consumed;
 
-    const Plug_vtable *plugvt;
+    Plug plug;
     Channel chan;
 } PortForwarding;
 
@@ -71,7 +59,7 @@ struct PortListener {
     char *hostname;
     int port;
 
-    const Plug_vtable *plugvt;
+    Plug plug;
 };
 
 static struct PortForwarding *new_portfwd_state(void)
@@ -124,7 +112,8 @@ static void pfd_close(struct PortForwarding *pf);
 static void pfd_closing(Plug *plug, const char *error_msg, int error_code,
 			int calling_back)
 {
-    struct PortForwarding *pf = FROMFIELD(plug, struct PortForwarding, plugvt);
+    struct PortForwarding *pf =
+        container_of(plug, struct PortForwarding, plug);
 
     if (error_msg) {
         /*
@@ -205,7 +194,8 @@ static char *ipv6_to_string(ptrlen ipv6)
 
 static void pfd_receive(Plug *plug, int urgent, char *data, int len)
 {
-    struct PortForwarding *pf = FROMFIELD(plug, struct PortForwarding, plugvt);
+    struct PortForwarding *pf =
+        container_of(plug, struct PortForwarding, plug);
 
     if (len == 0)
         return;
@@ -429,13 +419,14 @@ static void pfd_receive(Plug *plug, int urgent, char *data, int len)
 
 static void pfd_sent(Plug *plug, int bufsize)
 {
-    struct PortForwarding *pf = FROMFIELD(plug, struct PortForwarding, plugvt);
+    struct PortForwarding *pf =
+        container_of(plug, struct PortForwarding, plug);
 
     if (pf->c)
 	sshfwd_unthrottle(pf->c, bufsize);
 }
 
-static const Plug_vtable PortForwarding_plugvt = {
+static const PlugVtable PortForwarding_plugvt = {
     pfd_log,
     pfd_closing,
     pfd_receive,
@@ -473,9 +464,9 @@ static int pfl_accepting(Plug *p, accept_fn_t constructor, accept_ctx_t ctx)
     Socket *s;
     const char *err;
 
-    pl = FROMFIELD(p, struct PortListener, plugvt);
+    pl = container_of(p, struct PortListener, plug);
     pf = new_portfwd_state();
-    pf->plugvt = &PortForwarding_plugvt;
+    pf->plug.vt = &PortForwarding_plugvt;
     pf->chan.initial_fixed_window_size = 0;
     pf->chan.vt = &PortForwarding_channelvt;
     pf->input_wanted = TRUE;
@@ -483,7 +474,7 @@ static int pfl_accepting(Plug *p, accept_fn_t constructor, accept_ctx_t ctx)
     pf->c = NULL;
     pf->cl = pl->cl;
 
-    pf->s = s = constructor(ctx, &pf->plugvt);
+    pf->s = s = constructor(ctx, &pf->plug);
     if ((err = sk_socket_error(s)) != NULL) {
 	free_portfwd_state(pf);
 	return err != NULL;
@@ -509,7 +500,7 @@ static int pfl_accepting(Plug *p, accept_fn_t constructor, accept_ctx_t ctx)
     return 0;
 }
 
-static const Plug_vtable PortListener_plugvt = {
+static const PlugVtable PortListener_plugvt = {
     pfl_log,
     pfl_closing,
     NULL,                          /* recv */
@@ -536,7 +527,7 @@ static char *pfl_listen(char *desthost, int destport, char *srcaddr,
      * Open socket.
      */
     pl = *pl_ret = new_portlistener_state();
-    pl->plugvt = &PortListener_plugvt;
+    pl->plug.vt = &PortListener_plugvt;
     if (desthost) {
 	pl->hostname = dupstr(desthost);
 	pl->port = destport;
@@ -545,7 +536,7 @@ static char *pfl_listen(char *desthost, int destport, char *srcaddr,
 	pl->is_dynamic = TRUE;
     pl->cl = cl;
 
-    pl->s = new_listener(srcaddr, port, &pl->plugvt,
+    pl->s = new_listener(srcaddr, port, &pl->plug,
                          !conf_get_int(conf, CONF_lport_acceptall),
                          conf, address_family);
     if ((err = sk_socket_error(pl->s)) != NULL) {
@@ -588,7 +579,7 @@ static void pfl_terminate(struct PortListener *pl)
 static void pfd_set_input_wanted(Channel *chan, int wanted)
 {
     assert(chan->vt == &PortForwarding_channelvt);
-    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
+    PortForwarding *pf = container_of(chan, PortForwarding, chan);
     pf->input_wanted = wanted;
     sk_set_frozen(pf->s, !pf->input_wanted);
 }
@@ -596,7 +587,7 @@ static void pfd_set_input_wanted(Channel *chan, int wanted)
 static void pfd_chan_free(Channel *chan)
 {
     assert(chan->vt == &PortForwarding_channelvt);
-    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
+    PortForwarding *pf = container_of(chan, PortForwarding, chan);
     pfd_close(pf);
 }
 
@@ -606,21 +597,21 @@ static void pfd_chan_free(Channel *chan)
 static int pfd_send(Channel *chan, int is_stderr, const void *data, int len)
 {
     assert(chan->vt == &PortForwarding_channelvt);
-    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
+    PortForwarding *pf = container_of(chan, PortForwarding, chan);
     return sk_write(pf->s, data, len);
 }
 
 static void pfd_send_eof(Channel *chan)
 {
     assert(chan->vt == &PortForwarding_channelvt);
-    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
+    PortForwarding *pf = container_of(chan, PortForwarding, chan);
     sk_write_eof(pf->s);
 }
 
 static void pfd_open_confirmation(Channel *chan)
 {
     assert(chan->vt == &PortForwarding_channelvt);
-    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
+    PortForwarding *pf = container_of(chan, PortForwarding, chan);
 
     pf->ready = 1;
     sk_set_frozen(pf->s, 0);
@@ -636,9 +627,9 @@ static void pfd_open_confirmation(Channel *chan)
 static void pfd_open_failure(Channel *chan, const char *errtext)
 {
     assert(chan->vt == &PortForwarding_channelvt);
-    PortForwarding *pf = FROMFIELD(chan, PortForwarding, chan);
+    PortForwarding *pf = container_of(chan, PortForwarding, chan);
 
-    logeventf(pf->cl->frontend,
+    logeventf(pf->cl->logctx,
               "Forwarded connection refused by server%s%s",
               errtext ? ": " : "", errtext ? errtext : "");
 }
@@ -800,7 +791,7 @@ void portfwdmgr_config(PortFwdManager *mgr, Conf *conf)
             sserv = 1;
             sport = net_service_lookup(sports);
             if (!sport) {
-                logeventf(mgr->cl->frontend, "Service lookup failed for source"
+                logeventf(mgr->cl->logctx, "Service lookup failed for source"
                           " port \"%s\"", sports);
             }
         }
@@ -826,7 +817,7 @@ void portfwdmgr_config(PortFwdManager *mgr, Conf *conf)
                 dserv = 1;
                 dport = net_service_lookup(dports);
                 if (!dport) {
-                    logeventf(mgr->cl->frontend,
+                    logeventf(mgr->cl->logctx,
                               "Service lookup failed for destination"
                               " port \"%s\"", dports);
                 }
@@ -896,7 +887,7 @@ void portfwdmgr_config(PortFwdManager *mgr, Conf *conf)
                 message = msg2;
             }
 
-            logeventf(mgr->cl->frontend, "Cancelling %s", message);
+            logeventf(mgr->cl->logctx, "Cancelling %s", message);
             sfree(message);
 
             /* pfr->remote or pfr->local may be NULL if setting up a
@@ -956,7 +947,7 @@ void portfwdmgr_config(PortFwdManager *mgr, Conf *conf)
                                        mgr->cl, conf, &pfr->local,
                                        pfr->addressfamily);
 
-                logeventf(mgr->cl->frontend,
+                logeventf(mgr->cl->logctx,
                           "Local %sport %s forwarding to %s%s%s",
                           pfr->addressfamily == ADDRTYPE_IPV4 ? "IPv4 " :
                           pfr->addressfamily == ADDRTYPE_IPV6 ? "IPv6 " : "",
@@ -969,7 +960,7 @@ void portfwdmgr_config(PortFwdManager *mgr, Conf *conf)
                                        mgr->cl, conf, &pfr->local,
                                        pfr->addressfamily);
 
-                logeventf(mgr->cl->frontend,
+                logeventf(mgr->cl->logctx,
                           "Local %sport %s SOCKS dynamic forwarding%s%s",
                           pfr->addressfamily == ADDRTYPE_IPV4 ? "IPv4 " :
                           pfr->addressfamily == ADDRTYPE_IPV6 ? "IPv6 " : "",
@@ -994,12 +985,12 @@ void portfwdmgr_config(PortFwdManager *mgr, Conf *conf)
                     pfr->addressfamily, sportdesc, pfr, NULL);
 
                 if (!pfr->remote) {
-                    logeventf(mgr->cl->frontend,
+                    logeventf(mgr->cl->logctx,
                               "Duplicate remote port forwarding to %s:%d",
                               pfr->daddr, pfr->dport);
                     pfr_free(pfr);
                 } else {
-                    logeventf(mgr->cl->frontend, "Requesting remote port %s"
+                    logeventf(mgr->cl->logctx, "Requesting remote port %s"
                               " forward to %s", sportdesc, dportdesc);
                 }
             }
@@ -1042,7 +1033,7 @@ char *portfwdmgr_connect(PortFwdManager *mgr, Channel **chan_ret,
      */
     pf = new_portfwd_state();
     *chan_ret = &pf->chan;
-    pf->plugvt = &PortForwarding_plugvt;
+    pf->plug.vt = &PortForwarding_plugvt;
     pf->chan.initial_fixed_window_size = 0;
     pf->chan.vt = &PortForwarding_channelvt;
     pf->input_wanted = TRUE;
@@ -1052,7 +1043,7 @@ char *portfwdmgr_connect(PortFwdManager *mgr, Channel **chan_ret,
     pf->socks_state = SOCKS_NONE;
 
     pf->s = new_connection(addr, dummy_realhost, port,
-                           0, 1, 0, 0, &pf->plugvt, mgr->conf);
+                           0, 1, 0, 0, &pf->plug, mgr->conf);
     sfree(dummy_realhost);
     if ((err = sk_socket_error(pf->s)) != NULL) {
         char *err_ret = dupstr(err);

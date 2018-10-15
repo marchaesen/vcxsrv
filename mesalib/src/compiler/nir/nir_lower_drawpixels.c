@@ -35,7 +35,7 @@ typedef struct {
    const nir_lower_drawpixels_options *options;
    nir_shader   *shader;
    nir_builder   b;
-   nir_variable *texcoord, *scale, *bias;
+   nir_variable *texcoord, *scale, *bias, *tex, *pixelmap;
 } lower_drawpixels_state;
 
 static nir_ssa_def *
@@ -125,6 +125,15 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
 
    texcoord = get_texcoord(state);
 
+   const struct glsl_type *sampler2D =
+      glsl_sampler_type(GLSL_SAMPLER_DIM_2D, false, false, GLSL_TYPE_FLOAT);
+
+   if (!state->tex) {
+      state->tex =
+         nir_variable_create(b->shader, nir_var_uniform, sampler2D, "drawpix");
+      state->tex->data.binding = state->options->drawpix_sampler;
+   }
+
    /* replace load_var(gl_Color) w/ texture sample:
     *   TEX def, texcoord, drawpix_sampler, 2D
     */
@@ -151,6 +160,12 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
    }
 
    if (state->options->pixel_maps) {
+      if (!state->pixelmap) {
+         state->pixelmap = nir_variable_create(b->shader, nir_var_uniform,
+                                               sampler2D, "pixelmap");
+         state->pixelmap->data.binding = state->options->pixelmap_sampler;
+      }
+
       /* do four pixel map look-ups with two TEX instructions: */
       nir_ssa_def *def_xy, *def_zw;
 

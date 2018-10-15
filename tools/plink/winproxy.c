@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define DEFINE_PLUG_METHOD_MACROS
 #include "tree234.h"
 #include "putty.h"
 #include "network.h"
@@ -51,30 +50,30 @@ Socket *platform_new_connection(SockAddr *addr, const char *hostname,
     sa.lpSecurityDescriptor = NULL;    /* default */
     sa.bInheritHandle = TRUE;
     if (!CreatePipe(&us_from_cmd, &cmd_to_us, &sa, 0)) {
-	Socket *ret =
-            new_error_socket("Unable to create pipes for proxy command", plug);
         sfree(cmd);
-	return ret;
+	return new_error_socket_fmt(
+            plug, "Unable to create pipes for proxy command: %s",
+            win_strerror(GetLastError()));
     }
 
     if (!CreatePipe(&cmd_from_us, &us_to_cmd, &sa, 0)) {
-	Socket *ret =
-            new_error_socket("Unable to create pipes for proxy command", plug);
         sfree(cmd);
 	CloseHandle(us_from_cmd);
 	CloseHandle(cmd_to_us);
-	return ret;
+	return new_error_socket_fmt(
+            plug, "Unable to create pipes for proxy command: %s",
+            win_strerror(GetLastError()));
     }
 
     if (!CreatePipe(&us_from_cmd_err, &cmd_err_to_us, &sa, 0)) {
-        Socket *ret = new_error_socket
-            ("Unable to create pipes for proxy command", plug);
         sfree(cmd);
         CloseHandle(us_from_cmd);
         CloseHandle(cmd_to_us);
         CloseHandle(us_to_cmd);
         CloseHandle(cmd_from_us);
-        return ret;
+        return new_error_socket_fmt(
+            plug, "Unable to create pipes for proxy command: %s",
+            win_strerror(GetLastError()));
     }
 
     SetHandleInformation(us_to_cmd, HANDLE_FLAG_INHERIT, 0);

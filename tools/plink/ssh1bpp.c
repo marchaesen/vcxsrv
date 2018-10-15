@@ -43,18 +43,19 @@ static const struct BinaryPacketProtocolVtable ssh1_bpp_vtable = {
     ssh1_bpp_queue_disconnect,
 };
 
-BinaryPacketProtocol *ssh1_bpp_new(void)
+BinaryPacketProtocol *ssh1_bpp_new(LogContext *logctx)
 {
     struct ssh1_bpp_state *s = snew(struct ssh1_bpp_state);
     memset(s, 0, sizeof(*s));
     s->bpp.vt = &ssh1_bpp_vtable;
+    s->bpp.logctx = logctx;
     ssh_bpp_common_setup(&s->bpp);
     return &s->bpp;
 }
 
 static void ssh1_bpp_free(BinaryPacketProtocol *bpp)
 {
-    struct ssh1_bpp_state *s = FROMFIELD(bpp, struct ssh1_bpp_state, bpp);
+    struct ssh1_bpp_state *s = container_of(bpp, struct ssh1_bpp_state, bpp);
     if (s->cipher)
         ssh1_cipher_free(s->cipher);
     if (s->compctx)
@@ -73,7 +74,7 @@ void ssh1_bpp_new_cipher(BinaryPacketProtocol *bpp,
 {
     struct ssh1_bpp_state *s;
     assert(bpp->vt == &ssh1_bpp_vtable);
-    s = FROMFIELD(bpp, struct ssh1_bpp_state, bpp);
+    s = container_of(bpp, struct ssh1_bpp_state, bpp);
 
     assert(!s->cipher);
 
@@ -83,6 +84,8 @@ void ssh1_bpp_new_cipher(BinaryPacketProtocol *bpp,
 
         assert(!s->crcda_ctx);
         s->crcda_ctx = crcda_make_context();
+
+        bpp_logevent(("Initialised %s encryption", cipher->text_name));
     }
 }
 
@@ -97,7 +100,7 @@ void ssh1_bpp_new_cipher(BinaryPacketProtocol *bpp,
 
 static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
 {
-    struct ssh1_bpp_state *s = FROMFIELD(bpp, struct ssh1_bpp_state, bpp);
+    struct ssh1_bpp_state *s = container_of(bpp, struct ssh1_bpp_state, bpp);
 
     crBegin(s->crState);
 
@@ -223,6 +226,8 @@ static void ssh1_bpp_handle_input(BinaryPacketProtocol *bpp)
 
                         s->compctx = ssh_compressor_new(&ssh_zlib);
                         s->decompctx = ssh_decompressor_new(&ssh_zlib);
+
+                        bpp_logevent(("Started zlib (RFC1950) compression"));
                     }
 
                     /*
@@ -314,7 +319,7 @@ static void ssh1_bpp_format_packet(struct ssh1_bpp_state *s, PktOut *pkt)
 
 static void ssh1_bpp_handle_output(BinaryPacketProtocol *bpp)
 {
-    struct ssh1_bpp_state *s = FROMFIELD(bpp, struct ssh1_bpp_state, bpp);
+    struct ssh1_bpp_state *s = container_of(bpp, struct ssh1_bpp_state, bpp);
     PktOut *pkt;
 
     if (s->pending_compression_request) {

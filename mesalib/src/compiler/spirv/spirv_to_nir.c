@@ -669,6 +669,16 @@ mutable_matrix_member(struct vtn_builder *b, struct vtn_type *type, int member)
 }
 
 static void
+vtn_handle_access_qualifier(struct vtn_builder *b, struct vtn_type *type,
+                            int member, enum gl_access_qualifier access)
+{
+   type->members[member] = vtn_type_copy(b, type->members[member]);
+   type = type->members[member];
+
+   type->access |= access;
+}
+
+static void
 struct_member_decoration_cb(struct vtn_builder *b,
                             struct vtn_value *val, int member,
                             const struct vtn_decoration *dec, void *void_ctx)
@@ -681,13 +691,21 @@ struct_member_decoration_cb(struct vtn_builder *b,
    assert(member < ctx->num_fields);
 
    switch (dec->decoration) {
-   case SpvDecorationNonWritable:
-   case SpvDecorationNonReadable:
    case SpvDecorationRelaxedPrecision:
-   case SpvDecorationVolatile:
-   case SpvDecorationCoherent:
    case SpvDecorationUniform:
       break; /* FIXME: Do nothing with this for now. */
+   case SpvDecorationNonWritable:
+      vtn_handle_access_qualifier(b, ctx->type, member, ACCESS_NON_WRITEABLE);
+      break;
+   case SpvDecorationNonReadable:
+      vtn_handle_access_qualifier(b, ctx->type, member, ACCESS_NON_READABLE);
+      break;
+   case SpvDecorationVolatile:
+      vtn_handle_access_qualifier(b, ctx->type, member, ACCESS_VOLATILE);
+      break;
+   case SpvDecorationCoherent:
+      vtn_handle_access_qualifier(b, ctx->type, member, ACCESS_COHERENT);
+      break;
    case SpvDecorationNoPerspective:
       ctx->fields[member].interpolation = INTERP_MODE_NOPERSPECTIVE;
       break;

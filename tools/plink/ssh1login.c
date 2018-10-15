@@ -99,7 +99,8 @@ PacketProtocolLayer *ssh1_login_new(
 
 static void ssh1_login_free(PacketProtocolLayer *ppl)
 {
-    struct ssh1_login_state *s = FROMFIELD(ppl, struct ssh1_login_state, ppl);
+    struct ssh1_login_state *s =
+        container_of(ppl, struct ssh1_login_state, ppl);
 
     if (s->successor_layer)
         ssh_ppl_free(s->successor_layer);
@@ -131,6 +132,7 @@ int ssh1_common_filter_queue(PacketProtocolLayer *ppl)
             ssh_remote_error(ppl->ssh,
                              "Server sent disconnect message:\n\"%.*s\"",
                              PTRLEN_PRINTF(msg));
+            pq_pop(ppl->in_pq);
             return TRUE;               /* indicate that we've been freed */
 
           case SSH1_MSG_DEBUG:
@@ -166,7 +168,8 @@ static PktIn *ssh1_login_pop(struct ssh1_login_state *s)
 
 static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
 {
-    struct ssh1_login_state *s = FROMFIELD(ppl, struct ssh1_login_state, ppl);
+    struct ssh1_login_state *s =
+        container_of(ppl, struct ssh1_login_state, ppl);
     PktIn *pktin;
     PktOut *pkt;
     int i;
@@ -277,8 +280,8 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                             "configured list");
             return;
         } else if (s->dlgret < 0) { /* none configured; use standard handling */
-            s->dlgret = verify_ssh_host_key(
-                s->ppl.frontend, s->savedhost, s->savedport,
+            s->dlgret = seat_verify_ssh_host_key(
+                s->ppl.seat, s->savedhost, s->savedport,
                 "rsa", keystr, fingerprint, ssh1_login_dialog_callback, s);
             sfree(keystr);
 #ifdef FUZZING
@@ -357,8 +360,9 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
 
         /* Warn about chosen cipher if necessary. */
         if (warn) {
-            s->dlgret = askalg(s->ppl.frontend, "cipher", cipher_string,
-                               ssh1_login_dialog_callback, s);
+            s->dlgret = seat_confirm_weak_crypto_primitive(
+                s->ppl.seat, "cipher", cipher_string,
+                ssh1_login_dialog_callback, s);
             crMaybeWaitUntilV(s->dlgret >= 0);
             if (s->dlgret == 0) {
                 ssh_user_close(s->ppl.ssh, "User aborted at cipher warning");
@@ -404,7 +408,6 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
             (s->cipher_type == SSH_CIPHER_BLOWFISH ? &ssh1_blowfish :
              s->cipher_type == SSH_CIPHER_DES ? &ssh1_des : &ssh1_3des);
         ssh1_bpp_new_cipher(s->ppl.bpp, cipher, s->session_key);
-        ppl_logevent(("Initialised %s encryption", cipher->text_name));
     }
 
     if (s->servkey.modulus) {
@@ -433,16 +436,17 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
     ppl_logevent(("Successfully started encryption"));
 
     if ((s->username = get_remote_username(s->conf)) == NULL) {
-        s->cur_prompt = new_prompts(s->ppl.frontend);
+        s->cur_prompt = new_prompts();
         s->cur_prompt->to_server = TRUE;
         s->cur_prompt->name = dupstr("SSH login name");
         add_prompt(s->cur_prompt, dupstr("login as: "), TRUE);
-        s->userpass_ret = get_userpass_input(s->cur_prompt, NULL);
+        s->userpass_ret = seat_get_userpass_input(
+            s->ppl.seat, s->cur_prompt, NULL);
         while (1) {
             while (s->userpass_ret < 0 &&
                    bufchain_size(s->ppl.user_input) > 0)
-                s->userpass_ret = get_userpass_input(
-                    s->cur_prompt, s->ppl.user_input);
+                s->userpass_ret = seat_get_userpass_input(
+                    s->ppl.seat, s->cur_prompt, s->ppl.user_input);
 
             if (s->userpass_ret >= 0)
                 break;
@@ -690,18 +694,19 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                         ppl_printf(("No passphrase required.\r\n"));
                     passphrase = NULL;
                 } else {
-                    s->cur_prompt = new_prompts(s->ppl.frontend);
+                    s->cur_prompt = new_prompts(s->ppl.seat);
                     s->cur_prompt->to_server = FALSE;
                     s->cur_prompt->name = dupstr("SSH key passphrase");
                     add_prompt(s->cur_prompt,
                                dupprintf("Passphrase for key \"%.100s\": ",
                                          s->publickey_comment), FALSE);
-                    s->userpass_ret = get_userpass_input(s->cur_prompt, NULL);
+                    s->userpass_ret = seat_get_userpass_input(
+                        s->ppl.seat, s->cur_prompt, NULL);
                     while (1) {
                         while (s->userpass_ret < 0 &&
                                bufchain_size(s->ppl.user_input) > 0)
-                            s->userpass_ret = get_userpass_input(
-                                s->cur_prompt, s->ppl.user_input);
+                            s->userpass_ret = seat_get_userpass_input(
+                                s->ppl.seat, s->cur_prompt, s->ppl.user_input);
 
                         if (s->userpass_ret >= 0)
                             break;
@@ -829,7 +834,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
         /*
          * Otherwise, try various forms of password-like authentication.
          */
-        s->cur_prompt = new_prompts(s->ppl.frontend);
+        s->cur_prompt = new_prompts(s->ppl.seat);
 
         if (conf_get_int(s->conf, CONF_try_tis_auth) &&
             (s->supported_auths_mask & (1 << SSH1_AUTH_TIS)) &&
@@ -949,12 +954,13 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
          * or CryptoCard exchange if we're doing TIS or CryptoCard
          * authentication.
          */
-        s->userpass_ret = get_userpass_input(s->cur_prompt, NULL);
+        s->userpass_ret = seat_get_userpass_input(
+            s->ppl.seat, s->cur_prompt, NULL);
         while (1) {
             while (s->userpass_ret < 0 &&
                    bufchain_size(s->ppl.user_input) > 0)
-                s->userpass_ret = get_userpass_input(
-                    s->cur_prompt, s->ppl.user_input);
+                s->userpass_ret = seat_get_userpass_input(
+                    s->ppl.seat, s->cur_prompt, s->ppl.user_input);
 
             if (s->userpass_ret >= 0)
                 break;
@@ -1112,7 +1118,6 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
              * easiest way to avoid race conditions if other packets
              * cross in transit.)
              */
-            ppl_logevent(("Started zlib (RFC1950) compression"));
 	} else if (pktin->type == SSH1_SMSG_FAILURE) {
             ppl_logevent(("Server refused to enable compression"));
 	    ppl_printf(("Server refused to compress\r\n"));
@@ -1172,7 +1177,7 @@ static void ssh1_login_special_cmd(PacketProtocolLayer *ppl,
                                    SessionSpecialCode code, int arg)
 {
     struct ssh1_login_state *s =
-        FROMFIELD(ppl, struct ssh1_login_state, ppl);
+        container_of(ppl, struct ssh1_login_state, ppl);
     PktOut *pktout;
 
     if (code == SS_PING || code == SS_NOP) {
@@ -1187,14 +1192,14 @@ static void ssh1_login_special_cmd(PacketProtocolLayer *ppl,
 static int ssh1_login_want_user_input(PacketProtocolLayer *ppl)
 {
     struct ssh1_login_state *s =
-        FROMFIELD(ppl, struct ssh1_login_state, ppl);
+        container_of(ppl, struct ssh1_login_state, ppl);
     return s->want_user_input;
 }
 
 static void ssh1_login_got_user_input(PacketProtocolLayer *ppl)
 {
     struct ssh1_login_state *s =
-        FROMFIELD(ppl, struct ssh1_login_state, ppl);
+        container_of(ppl, struct ssh1_login_state, ppl);
     if (s->want_user_input)
         queue_idempotent_callback(&s->ppl.ic_process_queue);
 }
@@ -1202,6 +1207,6 @@ static void ssh1_login_got_user_input(PacketProtocolLayer *ppl)
 static void ssh1_login_reconfigure(PacketProtocolLayer *ppl, Conf *conf)
 {
     struct ssh1_login_state *s =
-        FROMFIELD(ppl, struct ssh1_login_state, ppl);
+        container_of(ppl, struct ssh1_login_state, ppl);
     ssh_ppl_reconfigure(s->successor_layer, conf);
 }

@@ -88,6 +88,13 @@ lower_bitmap(nir_shader *shader, nir_builder *b,
 
    texcoord = nir_load_var(b, get_texcoord(shader));
 
+   const struct glsl_type *sampler2D =
+      glsl_sampler_type(GLSL_SAMPLER_DIM_2D, false, false, GLSL_TYPE_FLOAT);
+
+   nir_variable *tex_var =
+      nir_variable_create(shader, nir_var_uniform, sampler2D, "bitmap_tex");
+   tex_var->data.binding = options->sampler;
+
    tex = nir_tex_instr_create(shader, 1);
    tex->op = nir_texop_tex;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;

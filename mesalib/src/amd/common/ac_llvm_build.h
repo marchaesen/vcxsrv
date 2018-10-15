@@ -37,10 +37,12 @@ extern "C" {
 #define HAVE_32BIT_POINTERS (HAVE_LLVM >= 0x0700)
 
 enum {
-	/* CONST is the only address space that selects SMEM loads */
-	AC_CONST_ADDR_SPACE = HAVE_LLVM >= 0x700 ? 4 : 2,
-	AC_LOCAL_ADDR_SPACE = 3,
-	AC_CONST_32BIT_ADDR_SPACE = 6, /* same as CONST, but the pointer type has 32 bits */
+	AC_ADDR_SPACE_FLAT = HAVE_LLVM >= 0x0700 ? 0 : 4, /* Slower than global. */
+	AC_ADDR_SPACE_GLOBAL = 1,
+	AC_ADDR_SPACE_GDS = HAVE_LLVM >= 0x0700 ? 2 : 5,
+	AC_ADDR_SPACE_LDS = 3,
+	AC_ADDR_SPACE_CONST = HAVE_LLVM >= 0x0700 ? 4 : 2, /* Global allowing SMEM. */
+	AC_ADDR_SPACE_CONST_32BIT = 6, /* same as CONST, but the pointer type has 32 bits */
 };
 
 /* Combine these with & instead of |. */
@@ -173,6 +175,7 @@ ac_build_gather_values(struct ac_llvm_context *ctx,
 LLVMValueRef ac_build_expand_to_vec4(struct ac_llvm_context *ctx,
 				     LLVMValueRef value,
 				     unsigned num_channels);
+LLVMValueRef ac_build_round(struct ac_llvm_context *ctx, LLVMValueRef value);
 
 LLVMValueRef
 ac_build_fdiv(struct ac_llvm_context *ctx,
@@ -271,7 +274,8 @@ ac_build_tbuffer_load_short(struct ac_llvm_context *ctx,
 			    LLVMValueRef vindex,
 			    LLVMValueRef voffset,
 				LLVMValueRef soffset,
-				LLVMValueRef immoffset);
+				LLVMValueRef immoffset,
+				LLVMValueRef glc);
 
 LLVMValueRef
 ac_get_thread_id(struct ac_llvm_context *ctx);

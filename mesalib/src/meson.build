@@ -82,7 +82,7 @@ if with_gallium
   subdir('gallium')
   # This has to be here since it requires libgallium, and subdir cannot
   # contain ..
-  if with_tests
+  if with_tests and with_shared_glapi
     subdir('mesa/state_tracker/tests')
   endif
 endif

@@ -33,7 +33,7 @@ extern "C" {
 
 /* A helper to implement various "lowering" for transfers:
  *
- *  - exposing separate z32 and s8 as z32x24s8
+ *  - exposing separate depth and stencil resources as packed depth-stencil
  *  - fake RGTC support for GLES class hardware which needs it to expose GL3+
  *  - MSAA resolves
  *
@@ -79,16 +79,16 @@ struct u_transfer_vtbl {
     */
 
    /**
-    * Must be implemented if separate_z32s8 or fake_rgtc is used.  The
+    * Must be implemented if separate stencil or fake_rgtc is used.  The
     * internal_format is the format the resource was created with.  In
-    * the case of separate_z32s8 or fake_rgtc, prsc->format is set back
-    * to the state tracker visible format (Z32_FLOAT_S8X24_UINT or
+    * the case of separate stencil or fake_rgtc, prsc->format is set back
+    * to the state tracker visible format (e.g. Z32_FLOAT_S8X24_UINT or
     * PIPE_FORMAT_{RTGC,LATC}* after the resource is created.
     */
    enum pipe_format (*get_internal_format)(struct pipe_resource *prsc);
 
    /**
-    * Must be implemented if separate_z32s8 is used.  Used to set/get
+    * Must be implemented if separate stencil is lowered.  Used to set/get
     * the separate s8 stencil buffer.
     *
     * These two do not get/put references to the pipe_resource.  The
@@ -123,6 +123,7 @@ struct u_transfer_helper;
 
 struct u_transfer_helper * u_transfer_helper_create(const struct u_transfer_vtbl *vtbl,
                                                     bool separate_z32s8,
+                                                    bool separate_stencil,
                                                     bool fake_rgtc,
                                                     bool msaa_map);
 
