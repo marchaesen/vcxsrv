@@ -160,14 +160,21 @@
 #define PKT3_COPY_DATA			       0x40
 #define		COPY_DATA_SRC_SEL(x)		((x) & 0xf)
 #define			COPY_DATA_REG		0
-#define			COPY_DATA_MEM		1
+#define			COPY_DATA_SRC_MEM	1 /* only valid as source */
+#define                 COPY_DATA_TC_L2         2
+#define                 COPY_DATA_GDS           3
 #define                 COPY_DATA_PERF          4
 #define                 COPY_DATA_IMM           5
 #define                 COPY_DATA_TIMESTAMP     9
 #define		COPY_DATA_DST_SEL(x)		(((unsigned)(x) & 0xf) << 8)
-#define                 COPY_DATA_MEM_ASYNC     5
+#define                 COPY_DATA_DST_MEM_GRBM	1 /* sync across GRBM, deprecated */
+#define                 COPY_DATA_TC_L2         2
+#define                 COPY_DATA_GDS           3
+#define                 COPY_DATA_PERF          4
+#define                 COPY_DATA_DST_MEM       5
 #define		COPY_DATA_COUNT_SEL		(1 << 16)
 #define		COPY_DATA_WR_CONFIRM		(1 << 20)
+#define		COPY_DATA_ENGINE_PFP		(1 << 30)
 #define PKT3_PFP_SYNC_ME		       0x42
 #define PKT3_SURFACE_SYNC                      0x43 /* deprecated on CIK, use ACQUIRE_MEM */
 #define PKT3_ME_INITIALIZE                     0x44 /* not on CIK */

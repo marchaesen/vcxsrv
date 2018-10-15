@@ -113,3 +113,4 @@ def AddOptions(opts):
     opts.Add(BoolOption('swr', 'Build OpenSWR', 'no'))
     if host_platform == 'windows':
         opts.Add('MSVC_VERSION', 'Microsoft Visual C/C++ version')
+        opts.Add('MSVC_USE_SCRIPT', 'Microsoft Visual C/C++ vcvarsall script', True)

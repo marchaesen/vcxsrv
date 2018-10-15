@@ -55,7 +55,7 @@ glcpp = executable(
   build_by_default : false,
 )
 
-if with_tests
+if with_any_opengl and with_tests
   modes = ['unix', 'windows', 'oldmac', 'bizarro']
   if dep_valgrind.found()
     modes += ['valgrind']

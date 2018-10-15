@@ -237,10 +237,24 @@ void quit_help(HWND hwnd);
 /*
  * The terminal and logging context are notionally local to the
  * Windows front end, but they must be shared between window.c and
- * windlg.c. Likewise the saved-sessions list.
+ * windlg.c. Likewise the Seat structure for the Windows GUI.
  */
 GLOBAL Terminal *term;
 GLOBAL LogContext *logctx;
+
+/*
+ * GUI seat methods in windlg.c.
+ */
+int win_seat_verify_ssh_host_key(
+    Seat *seat, const char *host, int port,
+    const char *keytype, char *keystr, char *key_fingerprint,
+    void (*callback)(void *ctx, int result), void *ctx);
+int win_seat_confirm_weak_crypto_primitive(
+    Seat *seat, const char *algtype, const char *algname,
+    void (*callback)(void *ctx, int result), void *ctx);
+int win_seat_confirm_weak_cached_hostkey(
+    Seat *seat, const char *algname, const char *betteralgs,
+    void (*callback)(void *ctx, int result), void *ctx);
 
 /*
  * Windows-specific clipboard helper function shared with windlg.c,
@@ -596,7 +610,7 @@ void agent_schedule_callback(void (*callback)(void *, void *, int),
 /*
  * Exports from winser.c.
  */
-extern const struct Backend_vtable serial_backend;
+extern const struct BackendVtable serial_backend;
 
 /*
  * Exports from winjump.c.

@@ -52,6 +52,7 @@ struct ptn_compile {
    nir_variable *parameters;
    nir_variable *input_vars[VARYING_SLOT_MAX];
    nir_variable *output_vars[VARYING_SLOT_MAX];
+   nir_variable *sampler_vars[32]; /* matches number of bits in TexSrcUnit */
    nir_register **output_regs;
    nir_register **temp_regs;
 
@@ -484,9 +485,10 @@ ptn_kil(nir_builder *b, nir_ssa_def **src)
 }
 
 static void
-ptn_tex(nir_builder *b, nir_alu_dest dest, nir_ssa_def **src,
+ptn_tex(struct ptn_compile *c, nir_alu_dest dest, nir_ssa_def **src,
         struct prog_instruction *prog_inst)
 {
+   nir_builder *b = &c->build;
    nir_tex_instr *instr;
    nir_texop op;
    unsigned num_srcs;
@@ -566,6 +568,15 @@ ptn_tex(nir_builder *b, nir_alu_dest dest, nir_ssa_def **src,
    case GLSL_SAMPLER_DIM_SUBPASS:
    case GLSL_SAMPLER_DIM_SUBPASS_MS:
       unreachable("can't reach");
+   }
+
+   if (!c->sampler_vars[prog_inst->TexSrcUnit]) {
+      const struct glsl_type *type =
+         glsl_sampler_type(instr->sampler_dim, false, false, GLSL_TYPE_FLOAT);
+      nir_variable *var =
+         nir_variable_create(b->shader, nir_var_uniform, type, "sampler");
+      var->data.binding = prog_inst->TexSrcUnit;
+      c->sampler_vars[prog_inst->TexSrcUnit] = var;
    }
 
    unsigned src_number = 0;
@@ -784,7 +795,7 @@ ptn_emit_instruction(struct ptn_compile *c, struct prog_instruction *prog_inst)
    case OPCODE_TXD:
    case OPCODE_TXL:
    case OPCODE_TXP:
-      ptn_tex(b, dest, src, prog_inst);
+      ptn_tex(c, dest, src, prog_inst);
       break;
 
    case OPCODE_SWZ:

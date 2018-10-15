@@ -1297,7 +1297,7 @@ radv_load_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 		++reg_count;
 
 	radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
-	radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_MEM) |
+	radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_SRC_MEM) |
 			COPY_DATA_DST_SEL(COPY_DATA_REG) |
 			(reg_count == 2 ? COPY_DATA_COUNT_SEL : 0));
 	radeon_emit(cs, va);
@@ -1427,7 +1427,7 @@ radv_load_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 	uint32_t reg = R_028C8C_CB_COLOR0_CLEAR_WORD0 + cb_idx * 0x3c;
 
 	radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, cmd_buffer->state.predicating));
-	radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_MEM) |
+	radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_SRC_MEM) |
 			COPY_DATA_DST_SEL(COPY_DATA_REG) |
 			COPY_DATA_COUNT_SEL);
 	radeon_emit(cs, va);
@@ -3741,7 +3741,7 @@ radv_emit_dispatch_packets(struct radv_cmd_buffer *cmd_buffer,
 		if (loc->sgpr_idx != -1) {
 			for (unsigned i = 0; i < 3; ++i) {
 				radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
-				radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_MEM) |
+				radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_SRC_MEM) |
 						COPY_DATA_DST_SEL(COPY_DATA_REG));
 				radeon_emit(cs, (va +  4 * i));
 				radeon_emit(cs, (va + 4 * i) >> 32);

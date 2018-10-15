@@ -1476,7 +1476,10 @@ radv_cmd_clear_image(struct radv_cmd_buffer *cmd_buffer,
 				radv_get_layerCount(image, range);
 			for (uint32_t s = 0; s < layer_count; ++s) {
 
-				if (cs) {
+				if (cs ||
+				    (format == VK_FORMAT_R32G32B32_UINT ||
+				     format == VK_FORMAT_R32G32B32_SINT ||
+				     format == VK_FORMAT_R32G32B32_SFLOAT)) {
 					struct radv_meta_blit2d_surf surf;
 					surf.format = format;
 					surf.image = image;

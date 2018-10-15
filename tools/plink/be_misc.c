@@ -5,11 +5,11 @@
 #include <assert.h>
 #include <string.h>
 
-#define DEFINE_PLUG_METHOD_MACROS
 #include "putty.h"
 #include "network.h"
 
-void backend_socket_log(Frontend *frontend, int type, SockAddr *addr, int port,
+void backend_socket_log(Seat *seat, LogContext *logctx,
+                        int type, SockAddr *addr, int port,
                         const char *error_msg, int error_code, Conf *conf,
                         int session_started)
 {
@@ -43,7 +43,7 @@ void backend_socket_log(Frontend *frontend, int type, SockAddr *addr, int port,
             if (log_to_term == AUTO)
                 log_to_term = session_started ? FORCE_OFF : FORCE_ON;
             if (log_to_term == FORCE_ON)
-                from_backend(frontend, TRUE, msg, len);
+                seat_stderr(seat, msg, len);
 
             msg[len-2] = '\0';         /* remove the \r\n again */
         }
@@ -54,7 +54,7 @@ void backend_socket_log(Frontend *frontend, int type, SockAddr *addr, int port,
     }
 
     if (msg) {
-        logevent(frontend, msg);
+        logevent(logctx, msg);
         sfree(msg);
     }
 }
@@ -92,6 +92,8 @@ void log_proxy_stderr(Plug *plug, bufchain *buf, const void *vdata, int len)
         msg = snewn(msglen+1, char);
         bufchain_fetch(buf, msg, msglen);
         bufchain_consume(buf, msglen);
+        while (msglen > 0 && (msg[msglen-1] == '\n' || msg[msglen-1] == '\r'))
+            msglen--;
         msg[msglen] = '\0';
         fullmsg = dupprintf("proxy: %s", msg);
         plug_log(plug, 2, NULL, 0, fullmsg, 0);

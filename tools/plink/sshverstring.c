@@ -17,7 +17,6 @@ struct ssh_verstring_state {
     int crState;
 
     Conf *conf;
-    Frontend *frontend;
     ptrlen prefix_wanted;
     char *our_protoversion;
     struct ssh_version_receiver *receiver;
@@ -59,7 +58,7 @@ static int ssh_version_includes_v1(const char *ver);
 static int ssh_version_includes_v2(const char *ver);
 
 BinaryPacketProtocol *ssh_verstring_new(
-    Conf *conf, Frontend *frontend, int bare_connection_mode,
+    Conf *conf, LogContext *logctx, int bare_connection_mode,
     const char *protoversion, struct ssh_version_receiver *rcv)
 {
     struct ssh_verstring_state *s = snew(struct ssh_verstring_state);
@@ -88,7 +87,7 @@ BinaryPacketProtocol *ssh_verstring_new(
     assert(s->prefix_wanted.len <= PREFIX_MAXLEN);
 
     s->conf = conf_copy(conf);
-    s->frontend = frontend;
+    s->bpp.logctx = logctx;
     s->our_protoversion = dupstr(protoversion);
     s->receiver = rcv;
 
@@ -107,7 +106,7 @@ BinaryPacketProtocol *ssh_verstring_new(
 void ssh_verstring_free(BinaryPacketProtocol *bpp)
 {
     struct ssh_verstring_state *s =
-        FROMFIELD(bpp, struct ssh_verstring_state, bpp);
+        container_of(bpp, struct ssh_verstring_state, bpp);
     conf_free(s->conf);
     sfree(s->vstring);
     sfree(s->protoversion);
@@ -146,11 +145,9 @@ static int ssh_version_includes_v2(const char *ver)
     return ssh_versioncmp(ver, "1.99") >= 0;
 }
 
-#define vs_logevent(printf_args) \
-    logevent_and_free(s->frontend, dupprintf printf_args)
-
 static void ssh_verstring_send(struct ssh_verstring_state *s)
 {
+    BinaryPacketProtocol *bpp = &s->bpp; /* for bpp_logevent */
     char *p;
     int sv_pos;
 
@@ -198,7 +195,7 @@ static void ssh_verstring_send(struct ssh_verstring_state *s)
         bufchain_add(s->bpp.out_raw, "\015", 1);
     bufchain_add(s->bpp.out_raw, "\012", 1);
 
-    vs_logevent(("We claim version: %s", s->our_vstring));
+    bpp_logevent(("We claim version: %s", s->our_vstring));
 }
 
 #define BPP_WAITFOR(minlen) do                          \
@@ -213,7 +210,7 @@ static void ssh_verstring_send(struct ssh_verstring_state *s)
 void ssh_verstring_handle_input(BinaryPacketProtocol *bpp)
 {
     struct ssh_verstring_state *s =
-        FROMFIELD(bpp, struct ssh_verstring_state, bpp);
+        container_of(bpp, struct ssh_verstring_state, bpp);
 
     crBegin(s->crState);
 
@@ -308,7 +305,7 @@ void ssh_verstring_handle_input(BinaryPacketProtocol *bpp)
         s->vslen--;
     s->vstring[s->vslen] = '\0';
 
-    vs_logevent(("Remote version: %s", s->vstring));
+    bpp_logevent(("Remote version: %s", s->vstring));
 
     /*
      * Pick out the protocol version and software version. The former
@@ -374,7 +371,7 @@ void ssh_verstring_handle_input(BinaryPacketProtocol *bpp)
         crStopV;
     }
 
-    vs_logevent(("Using SSH protocol version %d", s->major_protoversion));
+    bpp_logevent(("Using SSH protocol version %d", s->major_protoversion));
 
     if (!s->send_early) {
         /*
@@ -410,8 +407,10 @@ static PktOut *ssh_verstring_new_pktout(int type)
 
 static void ssh_verstring_handle_output(BinaryPacketProtocol *bpp)
 {
-    assert(0 && "Should never try to send packets during SSH version "
-           "string exchange");
+    if (pq_peek(&bpp->out_pq)) {
+        assert(0 && "Should never try to send packets during SSH version "
+               "string exchange");
+    }
 }
 
 /*
@@ -420,6 +419,7 @@ static void ssh_verstring_handle_output(BinaryPacketProtocol *bpp)
  */
 static void ssh_detect_bugs(struct ssh_verstring_state *s)
 {
+    BinaryPacketProtocol *bpp = &s->bpp; /* for bpp_logevent */
     const char *imp = s->softwareversion;
 
     s->remote_bugs = 0;
@@ -443,7 +443,7 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * sniffing.
          */
         s->remote_bugs |= BUG_CHOKES_ON_SSH1_IGNORE;
-        vs_logevent(("We believe remote version has SSH-1 ignore bug"));
+        bpp_logevent(("We believe remote version has SSH-1 ignore bug"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_plainpw1) == FORCE_ON ||
@@ -455,8 +455,8 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * the password.
          */
         s->remote_bugs |= BUG_NEEDS_SSH1_PLAIN_PASSWORD;
-        vs_logevent(("We believe remote version needs a "
-                     "plain SSH-1 password"));
+        bpp_logevent(("We believe remote version needs a "
+                      "plain SSH-1 password"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_rsa1) == FORCE_ON ||
@@ -468,8 +468,8 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * an AUTH_RSA message.
          */
         s->remote_bugs |= BUG_CHOKES_ON_RSA;
-        vs_logevent(("We believe remote version can't handle SSH-1 "
-                     "RSA authentication"));
+        bpp_logevent(("We believe remote version can't handle SSH-1 "
+                      "RSA authentication"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_hmac2) == FORCE_ON ||
@@ -482,7 +482,7 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * These versions have the HMAC bug.
          */
         s->remote_bugs |= BUG_SSH2_HMAC;
-        vs_logevent(("We believe remote version has SSH-2 HMAC bug"));
+        bpp_logevent(("We believe remote version has SSH-2 HMAC bug"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_derivekey2) == FORCE_ON ||
@@ -495,8 +495,8 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * generate the keys).
          */
         s->remote_bugs |= BUG_SSH2_DERIVEKEY;
-        vs_logevent(("We believe remote version has SSH-2 "
-                     "key-derivation bug"));
+        bpp_logevent(("We believe remote version has SSH-2 "
+                      "key-derivation bug"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_rsapad2) == FORCE_ON ||
@@ -509,7 +509,7 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * These versions have the SSH-2 RSA padding bug.
          */
         s->remote_bugs |= BUG_SSH2_RSA_PADDING;
-        vs_logevent(("We believe remote version has SSH-2 RSA padding bug"));
+        bpp_logevent(("We believe remote version has SSH-2 RSA padding bug"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_pksessid2) == FORCE_ON ||
@@ -520,8 +520,8 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * public-key authentication.
          */
         s->remote_bugs |= BUG_SSH2_PK_SESSIONID;
-        vs_logevent(("We believe remote version has SSH-2 "
-                     "public-key-session-ID bug"));
+        bpp_logevent(("We believe remote version has SSH-2 "
+                      "public-key-session-ID bug"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_rekey2) == FORCE_ON ||
@@ -537,7 +537,7 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * These versions have the SSH-2 rekey bug.
          */
         s->remote_bugs |= BUG_SSH2_REKEY;
-        vs_logevent(("We believe remote version has SSH-2 rekey bug"));
+        bpp_logevent(("We believe remote version has SSH-2 rekey bug"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_maxpkt2) == FORCE_ON ||
@@ -548,8 +548,8 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * This version ignores our makpkt and needs to be throttled.
          */
         s->remote_bugs |= BUG_SSH2_MAXPKT;
-        vs_logevent(("We believe remote version ignores SSH-2 "
-                     "maximum packet size"));
+        bpp_logevent(("We believe remote version ignores SSH-2 "
+                      "maximum packet size"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_ignore2) == FORCE_ON) {
@@ -558,7 +558,7 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * none detected automatically.
          */
         s->remote_bugs |= BUG_CHOKES_ON_SSH2_IGNORE;
-        vs_logevent(("We believe remote version has SSH-2 ignore bug"));
+        bpp_logevent(("We believe remote version has SSH-2 ignore bug"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_oldgex2) == FORCE_ON ||
@@ -570,7 +570,7 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * we use the newer version.
          */
         s->remote_bugs |= BUG_SSH2_OLDGEX;
-        vs_logevent(("We believe remote version has outdated SSH-2 GEX"));
+        bpp_logevent(("We believe remote version has outdated SSH-2 GEX"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_winadj) == FORCE_ON) {
@@ -579,7 +579,7 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * reason or another. Currently, none detected automatically.
          */
         s->remote_bugs |= BUG_CHOKES_ON_WINADJ;
-        vs_logevent(("We believe remote version has winadj bug"));
+        bpp_logevent(("We believe remote version has winadj bug"));
     }
 
     if (conf_get_int(s->conf, CONF_sshbug_chanreq) == FORCE_ON ||
@@ -596,29 +596,29 @@ static void ssh_detect_bugs(struct ssh_verstring_state *s)
          * https://secure.ucc.asn.au/hg/dropbear/rev/cd02449b709c
          */
         s->remote_bugs |= BUG_SENDS_LATE_REQUEST_REPLY;
-        vs_logevent(("We believe remote version has SSH-2 "
-                     "channel request bug"));
+        bpp_logevent(("We believe remote version has SSH-2 "
+                      "channel request bug"));
     }
 }
 
 const char *ssh_verstring_get_remote(BinaryPacketProtocol *bpp)
 {
     struct ssh_verstring_state *s =
-        FROMFIELD(bpp, struct ssh_verstring_state, bpp);
+        container_of(bpp, struct ssh_verstring_state, bpp);
     return s->vstring;
 }
 
 const char *ssh_verstring_get_local(BinaryPacketProtocol *bpp)
 {
     struct ssh_verstring_state *s =
-        FROMFIELD(bpp, struct ssh_verstring_state, bpp);
+        container_of(bpp, struct ssh_verstring_state, bpp);
     return s->our_vstring;
 }
 
 int ssh_verstring_get_bugs(BinaryPacketProtocol *bpp)
 {
     struct ssh_verstring_state *s =
-        FROMFIELD(bpp, struct ssh_verstring_state, bpp);
+        container_of(bpp, struct ssh_verstring_state, bpp);
     return s->remote_bugs;
 }
 

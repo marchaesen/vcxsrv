@@ -4656,6 +4656,7 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    ctx = NULL;
    prog = NULL;
    precise = 0;
+   need_uarl = false;
    shader_program = NULL;
    shader = NULL;
    options = NULL;

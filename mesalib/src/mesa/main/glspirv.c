@@ -73,8 +73,6 @@ _mesa_spirv_shader_binary(struct gl_context *ctx,
    struct gl_spirv_module *module;
    struct gl_shader_spirv_data *spirv_data;
 
-   assert(length >= 0);
-
    module = malloc(sizeof(*module) + length);
    if (!module) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glShaderBinary");

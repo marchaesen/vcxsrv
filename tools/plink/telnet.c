@@ -173,7 +173,8 @@ struct Telnet {
     Socket *s;
     int closed_on_socket_error;
 
-    Frontend *frontend;
+    Seat *seat;
+    LogContext *logctx;
     Ldisc *ldisc;
     int term_width, term_height;
 
@@ -197,7 +198,7 @@ struct Telnet {
 
     Pinger *pinger;
 
-    const Plug_vtable *plugvt;
+    Plug plug;
     Backend backend;
 };
 
@@ -208,24 +209,21 @@ struct Telnet {
 static void c_write(Telnet *telnet, const void *buf, int len)
 {
     int backlog;
-    backlog = from_backend(telnet->frontend, 0, buf, len);
+    backlog = seat_stdout(telnet->seat, buf, len);
     sk_set_frozen(telnet->s, backlog > TELNET_MAX_BACKLOG);
 }
 
 static void log_option(Telnet *telnet, const char *sender, int cmd, int option)
 {
-    char *buf;
     /*
      * The strange-looking "<?""?>" below is there to avoid a
      * trigraph - a double question mark followed by > maps to a
      * closing brace character!
      */
-    buf = dupprintf("%s:\t%s %s", sender,
-		    (cmd == WILL ? "WILL" : cmd == WONT ? "WONT" :
-		     cmd == DO ? "DO" : cmd == DONT ? "DONT" : "<?""?>"),
-		    telopt(option));
-    logevent(telnet->frontend, buf);
-    sfree(buf);
+    logeventf(telnet->logctx, "%s:\t%s %s", sender,
+              (cmd == WILL ? "WILL" : cmd == WONT ? "WONT" :
+               cmd == DO ? "DO" : cmd == DONT ? "DONT" : "<?""?>"),
+              telopt(option));
 }
 
 static void send_opt(Telnet *telnet, int cmd, int option)
@@ -366,7 +364,6 @@ static void process_subneg(Telnet *telnet)
     switch (telnet->sb_opt) {
       case TELOPT_TSPEED:
 	if (telnet->sb_len == 1 && telnet->sb_buf[0] == TELQUAL_SEND) {
-	    char *logbuf;
 	    char *termspeed = conf_get_str(telnet->conf, CONF_termspeed);
 	    b = snewn(20 + strlen(termspeed), unsigned char);
 	    b[0] = IAC;
@@ -378,17 +375,14 @@ static void process_subneg(Telnet *telnet)
 	    b[n] = IAC;
 	    b[n + 1] = SE;
 	    telnet->bufsize = sk_write(telnet->s, b, n + 2);
-	    logevent(telnet->frontend, "server:\tSB TSPEED SEND");
-	    logbuf = dupprintf("client:\tSB TSPEED IS %s", termspeed);
-	    logevent(telnet->frontend, logbuf);
-	    sfree(logbuf);
+            logevent(telnet->logctx, "server:\tSB TSPEED SEND");
+            logeventf(telnet->logctx, "client:\tSB TSPEED IS %s", termspeed);
 	    sfree(b);
 	} else
-	    logevent(telnet->frontend, "server:\tSB TSPEED <something weird>");
+            logevent(telnet->logctx, "server:\tSB TSPEED <something weird>");
 	break;
       case TELOPT_TTYPE:
 	if (telnet->sb_len == 1 && telnet->sb_buf[0] == TELQUAL_SEND) {
-	    char *logbuf;
 	    char *termtype = conf_get_str(telnet->conf, CONF_termtype);
 	    b = snewn(20 + strlen(termtype), unsigned char);
 	    b[0] = IAC;
@@ -403,24 +397,20 @@ static void process_subneg(Telnet *telnet)
 	    b[n + 5] = SE;
 	    telnet->bufsize = sk_write(telnet->s, b, n + 6);
 	    b[n + 4] = 0;
-	    logevent(telnet->frontend, "server:\tSB TTYPE SEND");
-	    logbuf = dupprintf("client:\tSB TTYPE IS %s", b + 4);
-	    logevent(telnet->frontend, logbuf);
-	    sfree(logbuf);
+            logevent(telnet->logctx, "server:\tSB TTYPE SEND");
+            logeventf(telnet->logctx, "client:\tSB TTYPE IS %s", b + 4);
 	    sfree(b);
 	} else
-	    logevent(telnet->frontend, "server:\tSB TTYPE <something weird>\r\n");
+            logevent(telnet->logctx, "server:\tSB TTYPE <something weird>\r\n");
 	break;
       case TELOPT_OLD_ENVIRON:
       case TELOPT_NEW_ENVIRON:
 	p = telnet->sb_buf;
 	q = p + telnet->sb_len;
 	if (p < q && *p == TELQUAL_SEND) {
-	    char *logbuf;
 	    p++;
-	    logbuf = dupprintf("server:\tSB %s SEND", telopt(telnet->sb_opt));
-	    logevent(telnet->frontend, logbuf);
-	    sfree(logbuf);
+            logeventf(telnet->logctx, "server:\tSB %s SEND",
+                      telopt(telnet->sb_opt));
 	    if (telnet->sb_opt == TELOPT_OLD_ENVIRON) {
 		if (conf_get_int(telnet->conf, CONF_rfc_environ)) {
 		    value = RFC_VALUE;
@@ -493,29 +483,20 @@ static void process_subneg(Telnet *telnet)
 	    b[n++] = SE;
 	    telnet->bufsize = sk_write(telnet->s, b, n);
 	    if (n == 6) {
-		logbuf = dupprintf("client:\tSB %s IS <nothing>",
-				   telopt(telnet->sb_opt));
-		logevent(telnet->frontend, logbuf);
-		sfree(logbuf);
+                logeventf(telnet->logctx, "client:\tSB %s IS <nothing>",
+                          telopt(telnet->sb_opt));
 	    } else {
-		logbuf = dupprintf("client:\tSB %s IS:",
-				   telopt(telnet->sb_opt));
-		logevent(telnet->frontend, logbuf);
-		sfree(logbuf);
+                logeventf(telnet->logctx, "client:\tSB %s IS:",
+                          telopt(telnet->sb_opt));
 		for (eval = conf_get_str_strs(telnet->conf, CONF_environmt,
 					     NULL, &ekey);
 		     eval != NULL;
 		     eval = conf_get_str_strs(telnet->conf, CONF_environmt,
 					     ekey, &ekey)) {
-		    logbuf = dupprintf("\t%s=%s", ekey, eval);
-		    logevent(telnet->frontend, logbuf);
-		    sfree(logbuf);
+                    logeventf(telnet->logctx, "\t%s=%s", ekey, eval);
 		}
-		if (user) {
-		    logbuf = dupprintf("\tUSER=%s", user);
-		    logevent(telnet->frontend, logbuf);
-		    sfree(logbuf);
-		}
+                if (user)
+                    logeventf(telnet->logctx, "\tUSER=%s", user);
 	    }
 	    sfree(b);
 	    sfree(user);
@@ -645,8 +626,8 @@ static void do_telnet_read(Telnet *telnet, char *buf, int len)
 static void telnet_log(Plug *plug, int type, SockAddr *addr, int port,
 		       const char *error_msg, int error_code)
 {
-    Telnet *telnet = FROMFIELD(plug, Telnet, plugvt);
-    backend_socket_log(telnet->frontend, type, addr, port,
+    Telnet *telnet = container_of(plug, Telnet, plug);
+    backend_socket_log(telnet->seat, telnet->logctx, type, addr, port,
                        error_msg, error_code, telnet->conf,
                        telnet->session_started);
 }
@@ -654,7 +635,7 @@ static void telnet_log(Plug *plug, int type, SockAddr *addr, int port,
 static void telnet_closing(Plug *plug, const char *error_msg, int error_code,
 			   int calling_back)
 {
-    Telnet *telnet = FROMFIELD(plug, Telnet, plugvt);
+    Telnet *telnet = container_of(plug, Telnet, plug);
 
     /*
      * We don't implement independent EOF in each direction for Telnet
@@ -667,18 +648,18 @@ static void telnet_closing(Plug *plug, const char *error_msg, int error_code,
         telnet->s = NULL;
         if (error_msg)
             telnet->closed_on_socket_error = TRUE;
-	notify_remote_exit(telnet->frontend);
+	seat_notify_remote_exit(telnet->seat);
     }
     if (error_msg) {
-	logevent(telnet->frontend, error_msg);
-	connection_fatal(telnet->frontend, "%s", error_msg);
+        logevent(telnet->logctx, error_msg);
+	seat_connection_fatal(telnet->seat, "%s", error_msg);
     }
     /* Otherwise, the remote side closed the connection normally. */
 }
 
 static void telnet_receive(Plug *plug, int urgent, char *data, int len)
 {
-    Telnet *telnet = FROMFIELD(plug, Telnet, plugvt);
+    Telnet *telnet = container_of(plug, Telnet, plug);
     if (urgent)
 	telnet->in_synch = TRUE;
     telnet->session_started = TRUE;
@@ -687,11 +668,11 @@ static void telnet_receive(Plug *plug, int urgent, char *data, int len)
 
 static void telnet_sent(Plug *plug, int bufsize)
 {
-    Telnet *telnet = FROMFIELD(plug, Telnet, plugvt);
+    Telnet *telnet = container_of(plug, Telnet, plug);
     telnet->bufsize = bufsize;
 }
 
-static const Plug_vtable Telnet_plugvt = {
+static const PlugVtable Telnet_plugvt = {
     telnet_log,
     telnet_closing,
     telnet_receive,
@@ -706,8 +687,9 @@ static const Plug_vtable Telnet_plugvt = {
  * Also places the canonical host name into `realhost'. It must be
  * freed by the caller.
  */
-static const char *telnet_init(Frontend *frontend, Backend **backend_handle,
-			       Conf *conf, const char *host, int port,
+static const char *telnet_init(Seat *seat, Backend **backend_handle,
+                               LogContext *logctx, Conf *conf,
+                               const char *host, int port,
 			       char **realhost, int nodelay, int keepalive)
 {
     SockAddr *addr;
@@ -717,7 +699,7 @@ static const char *telnet_init(Frontend *frontend, Backend **backend_handle,
     int addressfamily;
 
     telnet = snew(Telnet);
-    telnet->plugvt = &Telnet_plugvt;
+    telnet->plug.vt = &Telnet_plugvt;
     telnet->backend.vt = &telnet_backend;
     telnet->conf = conf_copy(conf);
     telnet->s = NULL;
@@ -727,7 +709,8 @@ static const char *telnet_init(Frontend *frontend, Backend **backend_handle,
     telnet->activated = FALSE;
     telnet->sb_buf = NULL;
     telnet->sb_size = 0;
-    telnet->frontend = frontend;
+    telnet->seat = seat;
+    telnet->logctx = logctx;
     telnet->term_width = conf_get_int(telnet->conf, CONF_width);
     telnet->term_height = conf_get_int(telnet->conf, CONF_height);
     telnet->state = TOP_LEVEL;
@@ -741,7 +724,7 @@ static const char *telnet_init(Frontend *frontend, Backend **backend_handle,
      */
     addressfamily = conf_get_int(telnet->conf, CONF_addressfamily);
     addr = name_lookup(host, port, realhost, telnet->conf, addressfamily,
-                       telnet->frontend, "Telnet connection");
+                       telnet->logctx, "Telnet connection");
     if ((err = sk_addr_error(addr)) != NULL) {
 	sk_addr_free(addr);
 	return err;
@@ -754,7 +737,7 @@ static const char *telnet_init(Frontend *frontend, Backend **backend_handle,
      * Open socket.
      */
     telnet->s = new_connection(addr, *realhost, port, 0, 1, nodelay, keepalive,
-                               &telnet->plugvt, telnet->conf);
+                               &telnet->plug, telnet->conf);
     if ((err = sk_socket_error(telnet->s)) != NULL)
 	return err;
 
@@ -787,7 +770,7 @@ static const char *telnet_init(Frontend *frontend, Backend **backend_handle,
     /*
      * We can send special commands from the start.
      */
-    update_specials_menu(telnet->frontend);
+    seat_update_specials_menu(telnet->seat);
 
     /*
      * loghost overrides realhost, if specified.
@@ -809,7 +792,7 @@ static const char *telnet_init(Frontend *frontend, Backend **backend_handle,
 
 static void telnet_free(Backend *be)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
 
     sfree(telnet->sb_buf);
     if (telnet->s)
@@ -826,7 +809,7 @@ static void telnet_free(Backend *be)
  */
 static void telnet_reconfig(Backend *be, Conf *conf)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     pinger_reconfig(telnet->pinger, telnet->conf, conf);
     conf_free(telnet->conf);
     telnet->conf = conf_copy(conf);
@@ -837,7 +820,7 @@ static void telnet_reconfig(Backend *be, Conf *conf)
  */
 static int telnet_send(Backend *be, const char *buf, int len)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     unsigned char *p, *end;
     static const unsigned char iac[2] = { IAC, IAC };
     static const unsigned char cr[2] = { CR, NUL };
@@ -872,7 +855,7 @@ static int telnet_send(Backend *be, const char *buf, int len)
  */
 static int telnet_sendbuffer(Backend *be)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     return telnet->bufsize;
 }
 
@@ -881,10 +864,9 @@ static int telnet_sendbuffer(Backend *be)
  */
 static void telnet_size(Backend *be, int width, int height)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     unsigned char b[24];
     int n;
-    char *logbuf;
 
     telnet->term_width = width;
     telnet->term_height = height;
@@ -906,10 +888,8 @@ static void telnet_size(Backend *be, int width, int height)
     b[n++] = IAC;
     b[n++] = SE;
     telnet->bufsize = sk_write(telnet->s, b, n);
-    logbuf = dupprintf("client:\tSB NAWS %d,%d",
-		       telnet->term_width, telnet->term_height);
-    logevent(telnet->frontend, logbuf);
-    sfree(logbuf);
+    logeventf(telnet->logctx, "client:\tSB NAWS %d,%d",
+              telnet->term_width, telnet->term_height);
 }
 
 /*
@@ -917,7 +897,7 @@ static void telnet_size(Backend *be, int width, int height)
  */
 static void telnet_special(Backend *be, SessionSpecialCode code, int arg)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     unsigned char b[2];
 
     if (telnet->s == NULL)
@@ -1022,25 +1002,25 @@ static const SessionSpecial *telnet_get_specials(Backend *be)
 
 static int telnet_connected(Backend *be)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     return telnet->s != NULL;
 }
 
 static int telnet_sendok(Backend *be)
 {
-    /* Telnet *telnet = FROMFIELD(be, Telnet, backend); */
+    /* Telnet *telnet = container_of(be, Telnet, backend); */
     return 1;
 }
 
 static void telnet_unthrottle(Backend *be, int backlog)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     sk_set_frozen(telnet->s, backlog > TELNET_MAX_BACKLOG);
 }
 
 static int telnet_ldisc(Backend *be, int option)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     if (option == LD_ECHO)
 	return telnet->echoing;
     if (option == LD_EDIT)
@@ -1050,18 +1030,13 @@ static int telnet_ldisc(Backend *be, int option)
 
 static void telnet_provide_ldisc(Backend *be, Ldisc *ldisc)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     telnet->ldisc = ldisc;
-}
-
-static void telnet_provide_logctx(Backend *be, LogContext *logctx)
-{
-    /* This is a stub. */
 }
 
 static int telnet_exitcode(Backend *be)
 {
-    Telnet *telnet = FROMFIELD(be, Telnet, backend);
+    Telnet *telnet = container_of(be, Telnet, backend);
     if (telnet->s != NULL)
         return -1;                     /* still connected */
     else if (telnet->closed_on_socket_error)
@@ -1079,7 +1054,7 @@ static int telnet_cfg_info(Backend *be)
     return 0;
 }
 
-const struct Backend_vtable telnet_backend = {
+const struct BackendVtable telnet_backend = {
     telnet_init,
     telnet_free,
     telnet_reconfig,
@@ -1093,7 +1068,6 @@ const struct Backend_vtable telnet_backend = {
     telnet_sendok,
     telnet_ldisc,
     telnet_provide_ldisc,
-    telnet_provide_logctx,
     telnet_unthrottle,
     telnet_cfg_info,
     NULL /* test_for_upstream */,

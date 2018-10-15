@@ -52,7 +52,7 @@ struct BinaryPacketProtocol {
  * does centralised parts of the freeing too. */
 void ssh_bpp_free(BinaryPacketProtocol *bpp);
 
-BinaryPacketProtocol *ssh1_bpp_new(void);
+BinaryPacketProtocol *ssh1_bpp_new(LogContext *logctx);
 void ssh1_bpp_new_cipher(BinaryPacketProtocol *bpp,
                          const struct ssh1_cipheralg *cipher,
                          const void *session_key);
@@ -70,6 +70,13 @@ void ssh_bpp_common_setup(BinaryPacketProtocol *);
 void ssh2_bpp_queue_disconnect(BinaryPacketProtocol *bpp,
                                const char *msg, int category);
 int ssh2_bpp_check_unimplemented(BinaryPacketProtocol *bpp, PktIn *pktin);
+
+/* Convenience macro for BPPs to send formatted strings to the Event
+ * Log. Assumes a function parameter called 'bpp' is in scope, and
+ * takes a double pair of parens because it passes a whole argument
+ * list to dupprintf. */
+#define bpp_logevent(params) ( \
+        logevent_and_free((bpp)->logctx, dupprintf params))
 
 /*
  * Structure that tracks how much data is sent and received, for
@@ -96,19 +103,31 @@ struct DataTransferStats {
      ((stats)->direction.running = FALSE, TRUE) :       \
      ((stats)->direction.remaining -= (size), FALSE))
 
-BinaryPacketProtocol *ssh2_bpp_new(struct DataTransferStats *stats);
+BinaryPacketProtocol *ssh2_bpp_new(
+    LogContext *logctx, struct DataTransferStats *stats);
 void ssh2_bpp_new_outgoing_crypto(
     BinaryPacketProtocol *bpp,
     const struct ssh2_cipheralg *cipher, const void *ckey, const void *iv,
     const struct ssh2_macalg *mac, int etm_mode, const void *mac_key,
-    const struct ssh_compression_alg *compression);
+    const struct ssh_compression_alg *compression, int delayed_compression);
 void ssh2_bpp_new_incoming_crypto(
     BinaryPacketProtocol *bpp,
     const struct ssh2_cipheralg *cipher, const void *ckey, const void *iv,
     const struct ssh2_macalg *mac, int etm_mode, const void *mac_key,
-    const struct ssh_compression_alg *compression);
+    const struct ssh_compression_alg *compression, int delayed_compression);
 
-BinaryPacketProtocol *ssh2_bare_bpp_new(void);
+/*
+ * A query method specific to the interface between ssh2transport and
+ * ssh2bpp. If true, it indicates that we're potentially in the
+ * race-condition-prone part of delayed compression setup and so
+ * asynchronous outgoing transport-layer packets are currently not
+ * being sent, which means in particular that it would be a bad idea
+ * to start a rekey because then we'd stop responding to anything
+ * _other_ than transport-layer packets and deadlock the protocol.
+ */
+int ssh2_bpp_rekey_inadvisable(BinaryPacketProtocol *bpp);
+
+BinaryPacketProtocol *ssh2_bare_bpp_new(LogContext *logctx);
 
 /*
  * The initial code to handle the SSH version exchange is also
@@ -121,7 +140,7 @@ struct ssh_version_receiver {
                             int major_version);
 };
 BinaryPacketProtocol *ssh_verstring_new(
-    Conf *conf, Frontend *frontend, int bare_connection_mode,
+    Conf *conf, LogContext *logctx, int bare_connection_mode,
     const char *protoversion, struct ssh_version_receiver *rcv);
 const char *ssh_verstring_get_remote(BinaryPacketProtocol *);
 const char *ssh_verstring_get_local(BinaryPacketProtocol *);

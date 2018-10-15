@@ -33,11 +33,12 @@ static const struct BinaryPacketProtocolVtable ssh2_bare_bpp_vtable = {
     ssh2_bpp_queue_disconnect, /* in sshcommon.c */
 };
 
-BinaryPacketProtocol *ssh2_bare_bpp_new(void)
+BinaryPacketProtocol *ssh2_bare_bpp_new(LogContext *logctx)
 {
     struct ssh2_bare_bpp_state *s = snew(struct ssh2_bare_bpp_state);
     memset(s, 0, sizeof(*s));
     s->bpp.vt = &ssh2_bare_bpp_vtable;
+    s->bpp.logctx = logctx;
     ssh_bpp_common_setup(&s->bpp);
     return &s->bpp;
 }
@@ -45,7 +46,7 @@ BinaryPacketProtocol *ssh2_bare_bpp_new(void)
 static void ssh2_bare_bpp_free(BinaryPacketProtocol *bpp)
 {
     struct ssh2_bare_bpp_state *s =
-        FROMFIELD(bpp, struct ssh2_bare_bpp_state, bpp);
+        container_of(bpp, struct ssh2_bare_bpp_state, bpp);
     sfree(s->pktin);
     sfree(s);
 }
@@ -62,7 +63,7 @@ static void ssh2_bare_bpp_free(BinaryPacketProtocol *bpp)
 static void ssh2_bare_bpp_handle_input(BinaryPacketProtocol *bpp)
 {
     struct ssh2_bare_bpp_state *s =
-        FROMFIELD(bpp, struct ssh2_bare_bpp_state, bpp);
+        container_of(bpp, struct ssh2_bare_bpp_state, bpp);
 
     crBegin(s->crState);
 
@@ -175,7 +176,7 @@ static void ssh2_bare_bpp_format_packet(struct ssh2_bare_bpp_state *s,
 static void ssh2_bare_bpp_handle_output(BinaryPacketProtocol *bpp)
 {
     struct ssh2_bare_bpp_state *s =
-        FROMFIELD(bpp, struct ssh2_bare_bpp_state, bpp);
+        container_of(bpp, struct ssh2_bare_bpp_state, bpp);
     PktOut *pkt;
 
     while ((pkt = pq_pop(&s->bpp.out_pq)) != NULL) {

@@ -995,6 +995,11 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
     }
 
     renderer = glGetString(GL_RENDERER);
+    if (!renderer) {
+        xf86DrvMsg(scrn->scrnIndex, X_ERROR,
+                   "glGetString() returned NULL, your GL is broken\n");
+        goto error;
+    }
     if (strstr((const char *)renderer, "llvmpipe")) {
         xf86DrvMsg(scrn->scrnIndex, X_INFO,
                    "Refusing to try glamor on llvmpipe\n");

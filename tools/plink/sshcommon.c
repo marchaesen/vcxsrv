@@ -59,7 +59,7 @@ static void pktin_free_queue_callback(void *vctx)
 {
     while (pktin_freeq_head.next != &pktin_freeq_head) {
         PacketQueueNode *node = pktin_freeq_head.next;
-        PktIn *pktin = FROMFIELD(node, PktIn, qnode);
+        PktIn *pktin = container_of(node, PktIn, qnode);
         pktin_freeq_head.next = node->next;
         sfree(pktin);
     }
@@ -71,9 +71,10 @@ static IdempotentCallback ic_pktin_free = {
     pktin_free_queue_callback, NULL, FALSE
 };
 
-static PktIn *pq_in_get(PacketQueueBase *pqb, int pop)
+static PktIn *pq_in_after(PacketQueueBase *pqb,
+                          PacketQueueNode *prev, int pop)
 {
-    PacketQueueNode *node = pqb->end.next;
+    PacketQueueNode *node = prev->next;
     if (node == &pqb->end)
         return NULL;
 
@@ -89,12 +90,13 @@ static PktIn *pq_in_get(PacketQueueBase *pqb, int pop)
         queue_idempotent_callback(&ic_pktin_free);
     }
 
-    return FROMFIELD(node, PktIn, qnode);
+    return container_of(node, PktIn, qnode);
 }
 
-static PktOut *pq_out_get(PacketQueueBase *pqb, int pop)
+static PktOut *pq_out_after(PacketQueueBase *pqb,
+                            PacketQueueNode *prev, int pop)
 {
-    PacketQueueNode *node = pqb->end.next;
+    PacketQueueNode *node = prev->next;
     if (node == &pqb->end)
         return NULL;
 
@@ -104,21 +106,21 @@ static PktOut *pq_out_get(PacketQueueBase *pqb, int pop)
         node->prev = node->next = NULL;
     }
 
-    return FROMFIELD(node, PktOut, qnode);
+    return container_of(node, PktOut, qnode);
 }
 
 void pq_in_init(PktInQueue *pq)
 {
     pq->pqb.ic = NULL;
     pq->pqb.end.next = pq->pqb.end.prev = &pq->pqb.end;
-    pq->get = pq_in_get;
+    pq->after = pq_in_after;
 }
 
 void pq_out_init(PktOutQueue *pq)
 {
     pq->pqb.ic = NULL;
     pq->pqb.end.next = pq->pqb.end.prev = &pq->pqb.end;
-    pq->get = pq_out_get;
+    pq->after = pq_out_after;
 }
 
 void pq_in_clear(PktInQueue *pq)
@@ -343,7 +345,7 @@ int chan_no_eager_close(Channel *chan, int sent_local_eof, int rcvd_remote_eof)
  */
 
 void write_ttymodes_to_packet_from_conf(
-    BinarySink *bs, Frontend *frontend, Conf *conf,
+    BinarySink *bs, Seat *seat, Conf *conf,
     int ssh_version, int ospeed, int ispeed)
 {
     int i;
@@ -444,7 +446,7 @@ void write_ttymodes_to_packet_from_conf(
          *    mode.
          */
         if (sval[0] == 'A') {
-            sval = to_free = get_ttymode(frontend, mode->mode);
+            sval = to_free = seat_get_ttymode(seat, mode->mode);
         } else if (sval[0] == 'V') {
             sval++;                    /* skip the 'V' */
         } else {
@@ -636,19 +638,13 @@ const char *ssh2_pkt_type(Pkt_KCtx pkt_kctx, Pkt_ACtx pkt_actx, int type)
  * PacketProtocolLayer.
  */
 
-void ssh_logevent_and_free(void *frontend, char *message)
-{
-    logevent(frontend, message);
-    sfree(message);
-}
-
 void ssh_ppl_replace(PacketProtocolLayer *old, PacketProtocolLayer *new)
 {
     new->bpp = old->bpp;
     ssh_ppl_setup_queues(new, old->in_pq, old->out_pq);
     new->selfptr = old->selfptr;
     new->user_input = old->user_input;
-    new->frontend = old->frontend;
+    new->seat = old->seat;
     new->ssh = old->ssh;
 
     *new->selfptr = new;
@@ -693,7 +689,7 @@ void ssh_ppl_user_output_string_and_free(PacketProtocolLayer *ppl, char *text)
     /* Messages sent via this function are from the SSH layer, not
      * from the server-side process, so they always have the stderr
      * flag set. */
-    from_backend(ppl->frontend, TRUE, text, strlen(text));
+    seat_stderr(ppl->seat, text, strlen(text));
     sfree(text);
 }
 

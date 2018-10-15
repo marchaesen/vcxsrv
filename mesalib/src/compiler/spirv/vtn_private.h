@@ -296,6 +296,9 @@ struct vtn_type {
    /* for arrays, matrices and pointers, the array stride */
    unsigned stride;
 
+   /* Access qualifiers */
+   enum gl_access_qualifier access;
+
    union {
       /* Members for scalar, vector, and array-like types */
       struct {
@@ -457,6 +460,9 @@ struct vtn_pointer {
    /** A (block_index, offset) pair representing a UBO or SSBO position. */
    struct nir_ssa_def *block_index;
    struct nir_ssa_def *offset;
+
+   /* Access qualifiers */
+   enum gl_access_qualifier access;
 };
 
 struct vtn_variable {
@@ -488,6 +494,9 @@ struct vtn_variable {
     * hack at some point in the future.
     */
    struct vtn_pointer *copy_prop_sampler;
+
+   /* Access qualifiers. */
+   enum gl_access_qualifier access;
 };
 
 struct vtn_image_pointer {

@@ -144,6 +144,7 @@ libvulkan_radeon = shared_library(
     idep_nir,
   ],
   c_args : [c_vis_args, no_override_init_args, radv_flags],
+  cpp_args : [cpp_vis_args, radv_flags],
   link_args : [ld_args_bsymbolic, ld_args_gc_sections],
   install : true,
 )

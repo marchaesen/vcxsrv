@@ -1053,8 +1053,8 @@ void radv_CmdCopyQueryPoolResults(
 				uint64_t avail_dest_va = dest_va + elem_size;
 
 				radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
-				radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_MEM) |
-						COPY_DATA_DST_SEL(COPY_DATA_MEM));
+				radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_SRC_MEM) |
+						COPY_DATA_DST_SEL(COPY_DATA_DST_MEM_GRBM));
 				radeon_emit(cs, local_src_va);
 				radeon_emit(cs, local_src_va >> 32);
 				radeon_emit(cs, avail_dest_va);
@@ -1062,8 +1062,8 @@ void radv_CmdCopyQueryPoolResults(
 			}
 
 			radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
-			radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_MEM) |
-					COPY_DATA_DST_SEL(COPY_DATA_MEM) |
+			radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_SRC_MEM) |
+					COPY_DATA_DST_SEL(COPY_DATA_DST_MEM_GRBM) |
 					((flags & VK_QUERY_RESULT_64_BIT) ? COPY_DATA_COUNT_SEL : 0));
 			radeon_emit(cs, local_src_va);
 			radeon_emit(cs, local_src_va >> 32);

@@ -78,7 +78,7 @@ libglapi_static = static_library(
   build_by_default : false,
 )
 
-if not with_shared_glapi and with_tests
+if with_any_opengl and not with_shared_glapi and with_tests
   test(
     'glapi_static_check_table',
     executable(

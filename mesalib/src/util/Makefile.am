@@ -21,6 +21,7 @@
 
 SUBDIRS = . \
 	xmlpool \
+	tests/fast_idiv_by_const \
 	tests/hash_table \
 	tests/string_buffer \
 	tests/set

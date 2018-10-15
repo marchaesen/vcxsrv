@@ -33,7 +33,8 @@
 
 struct u_transfer_helper {
    const struct u_transfer_vtbl *vtbl;
-   bool separate_z32s8;
+   bool separate_z32s8; /**< separate z32 and s8 */
+   bool separate_stencil; /**< separate stencil for all formats */
    bool fake_rgtc;
    bool msaa_map;
 };
@@ -88,11 +89,12 @@ u_transfer_helper_resource_create(struct pipe_screen *pscreen,
    enum pipe_format format = templ->format;
    struct pipe_resource *prsc;
 
-   if ((format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT) && helper->separate_z32s8) {
+   if ((helper->separate_stencil && util_format_is_depth_and_stencil(format)) ||
+       (format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT && helper->separate_z32s8)) {
       struct pipe_resource t = *templ;
       struct pipe_resource *stencil;
 
-      t.format = PIPE_FORMAT_Z32_FLOAT;
+      t.format = util_format_get_depth_only(format);
 
       prsc = helper->vtbl->resource_create(pscreen, &t);
       if (!prsc)
@@ -266,22 +268,37 @@ u_transfer_helper_transfer_map(struct pipe_context *pctx,
    if (!trans->ptr)
       goto fail;
 
-   if (prsc->format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT) {
+   if (util_format_is_depth_and_stencil(prsc->format)) {
       struct pipe_resource *stencil = helper->vtbl->get_stencil(prsc);
       trans->ptr2 = helper->vtbl->transfer_map(pctx, stencil, level,
                                                usage, box, &trans->trans2);
 
       if (needs_pack(usage)) {
-         util_format_z32_float_s8x24_uint_pack_z_float(trans->staging,
-                                                       ptrans->stride,
-                                                       trans->ptr,
-                                                       trans->trans->stride,
-                                                       width, height);
-         util_format_z32_float_s8x24_uint_pack_s_8uint(trans->staging,
-                                                       ptrans->stride,
-                                                       trans->ptr2,
-                                                       trans->trans2->stride,
-                                                       width, height);
+         switch (prsc->format) {
+         case PIPE_FORMAT_Z32_FLOAT_S8X24_UINT:
+            util_format_z32_float_s8x24_uint_pack_z_float(trans->staging,
+                                                          ptrans->stride,
+                                                          trans->ptr,
+                                                          trans->trans->stride,
+                                                          width, height);
+            util_format_z32_float_s8x24_uint_pack_s_8uint(trans->staging,
+                                                          ptrans->stride,
+                                                          trans->ptr2,
+                                                          trans->trans2->stride,
+                                                          width, height);
+            break;
+         case PIPE_FORMAT_Z24_UNORM_S8_UINT:
+            util_format_z24_unorm_s8_uint_pack_separate(trans->staging,
+                                                        ptrans->stride,
+                                                        trans->ptr,
+                                                        trans->trans->stride,
+                                                        trans->ptr2,
+                                                        trans->trans2->stride,
+                                                        width, height);
+            break;
+         default:
+            unreachable("Unexpected format");
+         }
       }
    } else if (needs_pack(usage) &&
               util_format_description(prsc->format)->layout == UTIL_FORMAT_LAYOUT_RGTC) {
@@ -395,6 +412,22 @@ flush_region(struct pipe_context *pctx, struct pipe_transfer *ptrans,
                                                       ptrans->stride,
                                                       width, height);
       break;
+   case PIPE_FORMAT_Z24_UNORM_S8_UINT:
+      /* just do a strided 32-bit copy for depth; s8 can become garbage x8 */
+      util_format_z32_unorm_unpack_z_32unorm(dst, trans->trans->stride,
+                                             src, ptrans->stride,
+                                             width, height);
+      /* fallthru */
+   case PIPE_FORMAT_X24S8_UINT:
+      dst = (uint8_t *)trans->ptr2 +
+            (box->y * trans->trans2->stride) +
+            (box->x * util_format_get_blocksize(PIPE_FORMAT_S8_UINT));
+
+      util_format_z24_unorm_s8_uint_unpack_s_8uint(dst, trans->trans2->stride,
+                                                   src, ptrans->stride,
+                                                   width, height);
+      break;
+
    case PIPE_FORMAT_RGTC1_UNORM:
    case PIPE_FORMAT_RGTC1_SNORM:
    case PIPE_FORMAT_LATC1_UNORM:
@@ -487,6 +520,7 @@ u_transfer_helper_transfer_unmap(struct pipe_context *pctx,
 struct u_transfer_helper *
 u_transfer_helper_create(const struct u_transfer_vtbl *vtbl,
                          bool separate_z32s8,
+                         bool separate_stencil,
                          bool fake_rgtc,
                          bool msaa_map)
 {
@@ -494,6 +528,7 @@ u_transfer_helper_create(const struct u_transfer_vtbl *vtbl,
 
    helper->vtbl = vtbl;
    helper->separate_z32s8 = separate_z32s8;
+   helper->separate_stencil = separate_stencil;
    helper->fake_rgtc = fake_rgtc;
    helper->msaa_map = msaa_map;
 

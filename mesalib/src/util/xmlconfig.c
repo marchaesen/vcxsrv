@@ -998,12 +998,21 @@ scandir_filter(const struct dirent *ent)
 #ifdef _WIN32
     if (fnmatch("*.conf", ent->d_name))
 #else
+#ifndef DT_REG /* systems without d_type in dirent results */
+    struct stat st;
+
+    if ((lstat(ent->d_name, &st) != 0) ||
+        (!S_ISREG(st.st_mode) && !S_ISLNK(st.st_mode)))
+       return 0;
+#else
     if (ent->d_type != DT_REG && ent->d_type != DT_LNK)
        return 0;
+#endif
 
     if (fnmatch("*.conf", ent->d_name, 0))
 #endif
        return 0;
+
     return 1;
 }
 

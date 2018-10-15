@@ -35,7 +35,7 @@ msgstr ""
 "Project-Id-Version: xkeyboard-config-2.23.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
 "POT-Creation-Date: 2018-05-18 22:30+0100\n"
-"PO-Revision-Date: 2018-05-31 23:07+0100\n"
+"PO-Revision-Date: 2018-06-05 23:07+0100\n"
 "Last-Translator: Joe Hansen <joedalton2@yahoo.dk>\n"
 "Language-Team: Danish <dansk@dansk-gruppen.dk>\n"
 "Language: da\n"
@@ -1226,23 +1226,23 @@ msgstr "ta"
 
 #: ../rules/base.xml.in.h:312
 msgid "Tamil (TamilNet '99)"
-msgstr "Tamilsk (TamilNet '99)"
+msgstr "Tamil (TamilNet '99)"
 
 #: ../rules/base.xml.in.h:313
 msgid "Tamil (TamilNet '99 with Tamil numerals)"
-msgstr "Tamilsk (TamilNet '99 med tamilske numre)"
+msgstr "Tamil (TamilNet '99 med tamilske tal)"
 
 #: ../rules/base.xml.in.h:314
 msgid "Tamil (TamilNet '99, TAB encoding)"
-msgstr "Tamilsk (TamilNet '99, TAB-kodning)"
+msgstr "Tamil (TamilNet '99, TAB-kodning)"
 
 #: ../rules/base.xml.in.h:315
 msgid "Tamil (TamilNet '99, TSCII encoding)"
-msgstr "Tamilsk (TamilNet '99, TSCII-kodning)"
+msgstr "Tamil (TamilNet '99, TSCII-kodning)"
 
 #: ../rules/base.xml.in.h:316
 msgid "Tamil (Inscript)"
-msgstr "Tamilsk (Inscript)"
+msgstr "Tamil (Inscript)"
 
 #. Keyboard indicator for Telugu layouts
 #: ../rules/base.xml.in.h:318
@@ -1552,7 +1552,7 @@ msgstr "Tibetansk"
 
 #: ../rules/base.xml.in.h:404
 msgid "Tibetan (with ASCII numerals)"
-msgstr "Tibetansk (med ASCII-numre)"
+msgstr "Tibetansk (med ASCII-tal)"
 
 #: ../rules/base.xml.in.h:405
 msgid "ug"
@@ -2996,11 +2996,11 @@ msgstr "Singalesisk (fonetisk)"
 
 #: ../rules/base.xml.in.h:794
 msgid "Tamil (Sri Lanka, TamilNet '99)"
-msgstr "Tamilsk (Sri Lanka, TamilNet '99)"
+msgstr "Tamil (Sri Lanka, TamilNet '99)"
 
 #: ../rules/base.xml.in.h:795
 msgid "Tamil (Sri Lanka, TamilNet '99, TAB encoding)"
-msgstr "Tamilsk (Sri Lanka, TamilNet '99, TAB-kodning)"
+msgstr "Tamil (Sri Lanka, TamilNet '99, TAB-kodning)"
 
 #: ../rules/base.xml.in.h:796
 msgid "us"

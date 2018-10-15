@@ -314,10 +314,6 @@ apply_implicit_conversion(const glsl_type *to, ir_rvalue * &from,
    if (!state->is_version(120, 0))
       return false;
 
-   /* ESSL does not allow implicit conversions */
-   if (state->es_shader)
-      return false;
-
    /* From page 27 (page 33 of the PDF) of the GLSL 1.50 spec:
     *
     *    "There are no implicit array or structure conversions. For
@@ -1685,6 +1681,12 @@ ast_expression::do_hir(exec_list *instructions,
       op[1] = this->subexpressions[1]->hir(instructions, state);
 
       orig_type = op[0]->type;
+
+      /* Break out if operand types were not parsed successfully. */
+      if ((op[0]->type == glsl_type::error_type ||
+           op[1]->type == glsl_type::error_type))
+         break;
+
       type = arithmetic_result_type(op[0], op[1],
                                     (this->oper == ast_mul_assign),
                                     state, & loc);

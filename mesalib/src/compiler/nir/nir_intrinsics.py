@@ -565,7 +565,7 @@ intrinsic("load_interpolated_input", src_comp=[2, 1], dest_comp=0,
           indices=[BASE, COMPONENT], flags=[CAN_ELIMINATE, CAN_REORDER])
 
 # src[] = { buffer_index, offset }. No const_index
-load("ssbo", 2, flags=[CAN_ELIMINATE])
+load("ssbo", 2, flags=[CAN_ELIMINATE], indices=[ACCESS])
 # src[] = { offset }. const_index[] = { base, component }
 load("output", 1, [BASE, COMPONENT], flags=[CAN_ELIMINATE])
 # src[] = { vertex, offset }. const_index[] = { base }
@@ -591,6 +591,6 @@ store("output", 2, [BASE, WRMASK, COMPONENT])
 # const_index[] = { base, write_mask, component }
 store("per_vertex_output", 3, [BASE, WRMASK, COMPONENT])
 # src[] = { value, block_index, offset }. const_index[] = { write_mask }
-store("ssbo", 3, [WRMASK])
+store("ssbo", 3, [WRMASK, ACCESS])
 # src[] = { value, offset }. const_index[] = { base, write_mask }
 store("shared", 2, [BASE, WRMASK])
