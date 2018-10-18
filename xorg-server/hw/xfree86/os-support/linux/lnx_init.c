@@ -299,6 +299,7 @@ void
 xf86CloseConsole(void)
 {
     struct vt_mode VT;
+    struct vt_stat vts;
     int ret;
 
     if (xf86Info.ShareVTs) {
@@ -336,10 +337,19 @@ xf86CloseConsole(void)
 
     if (xf86Info.autoVTSwitch) {
         /*
-         * Perform a switch back to the active VT when we were started
-         */
+        * Perform a switch back to the active VT when we were started if our
+        * vt is active now.
+        */
         if (activeVT >= 0) {
-            switch_to(activeVT, "xf86CloseConsole");
+            SYSCALL(ret = ioctl(xf86Info.consoleFd, VT_GETSTATE, &vts));
+            if (ret < 0) {
+                xf86Msg(X_WARNING, "xf86OpenConsole: VT_GETSTATE failed: %s\n",
+                        strerror(errno));
+            } else {
+                if (vts.v_active == xf86Info.vtno) {
+                    switch_to(activeVT, "xf86CloseConsole");
+                }
+            }
             activeVT = -1;
         }
     }

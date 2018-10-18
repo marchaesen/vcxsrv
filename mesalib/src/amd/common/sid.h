@@ -146,6 +146,7 @@
 #define		WAIT_REG_MEM_EQUAL		3
 #define		WAIT_REG_MEM_NOT_EQUAL		4
 #define         WAIT_REG_MEM_MEM_SPACE(x)       (((unsigned)(x) & 0x3) << 4)
+#define         WAIT_REG_MEM_PFP		(1 << 8)
 #define PKT3_MEM_WRITE                         0x3D /* not on CIK */
 #define PKT3_INDIRECT_BUFFER_CIK               0x3F /* new on CIK */
 #define   R_3F0_IB_BASE_LO                     0x3F0
@@ -181,6 +182,9 @@
 #define PKT3_COND_WRITE                        0x45
 #define PKT3_EVENT_WRITE                       0x46
 #define PKT3_EVENT_WRITE_EOP                   0x47 /* not on GFX9 */
+#define         EOP_DST_SEL(x)				((x) << 16)
+#define			EOP_DST_SEL_MEM			0
+#define			EOP_DST_SEL_TC_L2		1
 #define         EOP_INT_SEL(x)                          ((x) << 24)
 #define			EOP_INT_SEL_NONE			0
 #define			EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM	3
@@ -189,6 +193,8 @@
 #define			EOP_DATA_SEL_VALUE_32BIT	1
 #define			EOP_DATA_SEL_VALUE_64BIT	2
 #define			EOP_DATA_SEL_TIMESTAMP		3
+#define			EOP_DATA_SEL_GDS		5
+#define		EOP_DATA_GDS(dw_offset, num_dwords)	((dw_offset) | ((unsigned)(num_dwords) << 16))
 /* CP DMA bug: Any use of CP_DMA.DST_SEL=TC must be avoided when EOS packets
  * are used. Use DST_SEL=MC instead. For prefetch, use SRC_SEL=TC and
  * DST_SEL=MC. Only CIK chips are affected.

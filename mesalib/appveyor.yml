@@ -33,11 +33,13 @@ branches:
 # - https://www.appveyor.com/blog/2014/06/04/shallow-clone-for-git-repositories
 clone_depth: 100
 
+# https://www.appveyor.com/docs/build-cache/
 cache:
-- win_flex_bison-2.5.9.zip
-- llvm-5.0.1-msvc2015-mtd.7z
+- '%LOCALAPPDATA%\pip\Cache -> appveyor.yml'
+- win_flex_bison-2.5.15.zip
+- llvm-5.0.1-msvc2017-mtd.7z
 
-os: Visual Studio 2015
+os: Visual Studio 2017
 
 init:
 # Appveyor defaults core.autocrlf to input instead of the default (true), but
@@ -45,8 +47,8 @@ init:
 - git config --global core.autocrlf true
 
 environment:
-  WINFLEXBISON_ARCHIVE: win_flex_bison-2.5.9.zip
-  LLVM_ARCHIVE: llvm-5.0.1-msvc2015-mtd.7z
+  WINFLEXBISON_VERSION: 2.5.15
+  LLVM_ARCHIVE: llvm-5.0.1-msvc2017-mtd.7z
 
 install:
 # Check git config
@@ -55,16 +57,17 @@ install:
 - python --version
 - python -m pip --version
 # Install Mako
-- python -m pip install Mako==1.0.6
+- python -m pip install Mako==1.0.7
 # Install pywin32 extensions, needed by SCons
 - python -m pip install pypiwin32
 # Install python wheels, necessary to install SCons via pip
 - python -m pip install wheel
 # Install SCons
-- python -m pip install scons==2.5.1
+- python -m pip install scons==3.0.1
 - scons --version
 # Install flex/bison
-- if not exist "%WINFLEXBISON_ARCHIVE%" appveyor DownloadFile "https://downloads.sourceforge.net/project/winflexbison/old_versions/%WINFLEXBISON_ARCHIVE%"
+- set WINFLEXBISON_ARCHIVE=win_flex_bison-%WINFLEXBISON_VERSION%.zip
+- if not exist "%WINFLEXBISON_ARCHIVE%" appveyor DownloadFile "https://github.com/lexxmark/winflexbison/releases/download/v%WINFLEXBISON_VERSION%/%WINFLEXBISON_ARCHIVE%"
 - 7z x -y -owinflexbison\ "%WINFLEXBISON_ARCHIVE%" > nul
 - set Path=%CD%\winflexbison;%Path%
 - win_flex --version
@@ -76,10 +79,10 @@ install:
 - set LLVM=%CD%\llvm
 
 build_script:
-- scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.0 llvm=1
+- scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.1 llvm=1
 
 after_build:
-- scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.0 llvm=1 check
+- scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.1 llvm=1 check
 
 
 # It's possible to setup notification here, as described in

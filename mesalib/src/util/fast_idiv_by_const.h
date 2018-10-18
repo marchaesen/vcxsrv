@@ -135,7 +135,13 @@ static inline uint32_t
 util_fast_udiv32(uint32_t n, struct util_fast_udiv_info info)
 {
    n = n >> info.pre_shift;
-   /* For non-power-of-two divisors, use a 32-bit ADD that clamps to UINT_MAX. */
+   /* If the divisor is not 1, you can instead use a 32-bit ADD that clamps
+    * to UINT_MAX. Dividing by 1 needs the full 64-bit ADD.
+    *
+    * If you have unsigned 64-bit MAD with 32-bit inputs, you can do:
+    *    increment = increment ? multiplier : 0; // on the CPU
+    *    (n * multiplier + increment) // on the GPU using unsigned 64-bit MAD
+    */
    n = (((uint64_t)n + info.increment) * info.multiplier) >> 32;
    n = n >> info.post_shift;
    return n;

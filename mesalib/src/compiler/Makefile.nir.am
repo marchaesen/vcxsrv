@@ -60,25 +60,37 @@ nir/nir_opt_algebraic.c: nir/nir_opt_algebraic.py nir/nir_algebraic.py
 	$(MKDIR_GEN)
 	$(PYTHON_GEN) $(srcdir)/nir/nir_opt_algebraic.py > $@ || ($(RM) $@; false)
 
-check_PROGRAMS += nir/tests/control_flow_tests
+check_PROGRAMS += \
+	nir/tests/control_flow_tests \
+	nir/tests/vars_tests
 
-nir_tests_control_flow_tests_CPPFLAGS = \
+NIR_TESTS_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_builddir)/src/compiler/nir \
 	-I$(top_srcdir)/src/compiler/nir
-
-nir_tests_control_flow_tests_SOURCES =			\
-	nir/tests/control_flow_tests.cpp
-nir_tests_control_flow_tests_CFLAGS =			\
+NIR_TESTS_CFLAGS = \
 	$(PTHREAD_CFLAGS)
-nir_tests_control_flow_tests_LDADD =			\
-	$(top_builddir)/src/gtest/libgtest.la		\
-	nir/libnir.la	\
-	$(top_builddir)/src/util/libmesautil.la		\
+NIR_TESTS_LDADD = \
+	$(top_builddir)/src/gtest/libgtest.la \
+	nir/libnir.la \
+	$(top_builddir)/src/util/libmesautil.la \
 	$(PTHREAD_LIBS)
 
 
-TESTS += nir/tests/control_flow_tests
+nir_tests_control_flow_tests_CPPFLAGS = $(NIR_TESTS_CPPFLAGS)
+nir_tests_control_flow_tests_SOURCES = nir/tests/control_flow_tests.cpp
+nir_tests_control_flow_tests_CFLAGS = $(NIR_TESTS_CFLAGS)
+nir_tests_control_flow_tests_LDADD = $(NIR_TESTS_LDADD)
+
+nir_tests_vars_tests_CPPFLAGS = $(NIR_TESTS_CPPFLAGS)
+nir_tests_vars_tests_SOURCES = nir/tests/vars_tests.cpp
+nir_tests_vars_tests_CFLAGS = $(NIR_TESTS_CFLAGS)
+nir_tests_vars_tests_LDADD = $(NIR_TESTS_LDADD)
+
+
+TESTS += \
+        nir/tests/control_flow_tests \
+        nir/tests/vars_tests
 
 
 BUILT_SOURCES += \

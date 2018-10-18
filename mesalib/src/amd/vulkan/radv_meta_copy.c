@@ -195,10 +195,14 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 
 
 			/* Perform Blit */
-			if (cs)
+			if (cs ||
+			    (img_bsurf.image->vk_format == VK_FORMAT_R32G32B32_UINT ||
+			     img_bsurf.image->vk_format == VK_FORMAT_R32G32B32_SINT ||
+			     img_bsurf.image->vk_format == VK_FORMAT_R32G32B32_SFLOAT)) {
 				radv_meta_buffer_to_image_cs(cmd_buffer, &buf_bsurf, &img_bsurf, 1, &rect);
-			else
+			} else {
 				radv_meta_blit2d(cmd_buffer, NULL, &buf_bsurf, &img_bsurf, 1, &rect);
+			}
 
 			/* Once we've done the blit, all of the actual information about
 			 * the image is embedded in the command buffer so we can just

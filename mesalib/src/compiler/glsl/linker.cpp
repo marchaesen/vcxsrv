@@ -4648,12 +4648,11 @@ verify_subroutine_associated_funcs(struct gl_shader_program *prog)
       gl_program *p = prog->_LinkedShaders[i]->Program;
       glsl_symbol_table *symbols = prog->_LinkedShaders[i]->symbols;
 
-      /*
-       * From OpenGL ES Shading Language 4.00 specification
-       * (6.1.2 Subroutines):
-       *     "A program will fail to compile or link if any shader
-       *     or stage contains two or more functions with the same
-       *     name if the name is associated with a subroutine type."
+      /* Section 6.1.2 (Subroutines) of the GLSL 4.00 spec says:
+       *
+       *   "A program will fail to compile or link if any shader
+       *    or stage contains two or more functions with the same
+       *    name if the name is associated with a subroutine type."
        */
       for (unsigned j = 0; j < p->sh.NumSubroutineFunctions; j++) {
          unsigned definitions = 0;

@@ -594,6 +594,67 @@ ac_build_fdiv(struct ac_llvm_context *ctx,
 	return ret;
 }
 
+/* See fast_idiv_by_const.h. */
+/* Set: increment = util_fast_udiv_info::increment ? multiplier : 0; */
+LLVMValueRef ac_build_fast_udiv(struct ac_llvm_context *ctx,
+				LLVMValueRef num,
+				LLVMValueRef multiplier,
+				LLVMValueRef pre_shift,
+				LLVMValueRef post_shift,
+				LLVMValueRef increment)
+{
+	LLVMBuilderRef builder = ctx->builder;
+
+	num = LLVMBuildLShr(builder, num, pre_shift, "");
+	num = LLVMBuildMul(builder,
+			   LLVMBuildZExt(builder, num, ctx->i64, ""),
+			   LLVMBuildZExt(builder, multiplier, ctx->i64, ""), "");
+	num = LLVMBuildAdd(builder, num,
+			   LLVMBuildZExt(builder, increment, ctx->i64, ""), "");
+	num = LLVMBuildLShr(builder, num, LLVMConstInt(ctx->i64, 32, 0), "");
+	num = LLVMBuildTrunc(builder, num, ctx->i32, "");
+	return LLVMBuildLShr(builder, num, post_shift, "");
+}
+
+/* See fast_idiv_by_const.h. */
+/* If num != UINT_MAX, this more efficient version can be used. */
+/* Set: increment = util_fast_udiv_info::increment; */
+LLVMValueRef ac_build_fast_udiv_nuw(struct ac_llvm_context *ctx,
+				    LLVMValueRef num,
+				    LLVMValueRef multiplier,
+				    LLVMValueRef pre_shift,
+				    LLVMValueRef post_shift,
+				    LLVMValueRef increment)
+{
+	LLVMBuilderRef builder = ctx->builder;
+
+	num = LLVMBuildLShr(builder, num, pre_shift, "");
+	num = LLVMBuildNUWAdd(builder, num, increment, "");
+	num = LLVMBuildMul(builder,
+			   LLVMBuildZExt(builder, num, ctx->i64, ""),
+			   LLVMBuildZExt(builder, multiplier, ctx->i64, ""), "");
+	num = LLVMBuildLShr(builder, num, LLVMConstInt(ctx->i64, 32, 0), "");
+	num = LLVMBuildTrunc(builder, num, ctx->i32, "");
+	return LLVMBuildLShr(builder, num, post_shift, "");
+}
+
+/* See fast_idiv_by_const.h. */
+/* Both operands must fit in 31 bits and the divisor must not be 1. */
+LLVMValueRef ac_build_fast_udiv_u31_d_not_one(struct ac_llvm_context *ctx,
+					      LLVMValueRef num,
+					      LLVMValueRef multiplier,
+					      LLVMValueRef post_shift)
+{
+	LLVMBuilderRef builder = ctx->builder;
+
+	num = LLVMBuildMul(builder,
+			   LLVMBuildZExt(builder, num, ctx->i64, ""),
+			   LLVMBuildZExt(builder, multiplier, ctx->i64, ""), "");
+	num = LLVMBuildLShr(builder, num, LLVMConstInt(ctx->i64, 32, 0), "");
+	num = LLVMBuildTrunc(builder, num, ctx->i32, "");
+	return LLVMBuildLShr(builder, num, post_shift, "");
+}
+
 /* Coordinates for cube map selection. sc, tc, and ma are as in Table 8.27
  * of the OpenGL 4.5 (Compatibility Profile) specification, except ma is
  * already multiplied by two. id is the cube face number.

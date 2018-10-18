@@ -255,6 +255,18 @@ nir_imm_vec4(nir_builder *build, float x, float y, float z, float w)
 }
 
 static inline nir_ssa_def *
+nir_imm_ivec2(nir_builder *build, int x, int y)
+{
+   nir_const_value v;
+
+   memset(&v, 0, sizeof(v));
+   v.i32[0] = x;
+   v.i32[1] = y;
+
+   return nir_build_imm(build, 2, 32, v);
+}
+
+static inline nir_ssa_def *
 nir_imm_int(nir_builder *build, int x)
 {
    nir_const_value v;

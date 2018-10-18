@@ -155,6 +155,12 @@ util_dynarray_trim(struct util_dynarray *buf)
    for (type *elem = (type *)(buf)->data; \
         elem < (type *)((char *)(buf)->data + (buf)->size); elem++)
 
+#define util_dynarray_foreach_reverse(buf, type, elem)          \
+   if ((buf)->size > 0)                                         \
+      for (type *elem = util_dynarray_top_ptr(buf, type);       \
+           elem;                                                \
+           elem = elem > (type *)(buf)->data ? elem - 1 : NULL)
+
 #define util_dynarray_delete_unordered(buf, type, v)                    \
    do {                                                                 \
       unsigned num_elements = (buf)->size / sizeof(type);               \

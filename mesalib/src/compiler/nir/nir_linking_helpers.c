@@ -92,10 +92,26 @@ tcs_add_output_reads(nir_shader *shader, uint64_t *read, uint64_t *patches_read)
    }
 }
 
-static bool
-remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
-                      uint64_t *used_by_other_stage,
-                      uint64_t *used_by_other_stage_patches)
+/**
+ * Helper for removing unused shader I/O variables, by demoting them to global
+ * variables (which may then by dead code eliminated).
+ *
+ * Example usage is:
+ *
+ * progress = nir_remove_unused_io_vars(producer,
+ *                                      &producer->outputs,
+ *                                      read, patches_read) ||
+ *                                      progress;
+ *
+ * The "used" should be an array of 4 uint64_ts (probably of VARYING_BIT_*)
+ * representing each .location_frac used.  Note that for vector variables,
+ * only the first channel (.location_frac) is examined for deciding if the
+ * variable is used!
+ */
+bool
+nir_remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
+                          uint64_t *used_by_other_stage,
+                          uint64_t *used_by_other_stage_patches)
 {
    bool progress = false;
    uint64_t *used;
@@ -125,6 +141,9 @@ remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
          progress = true;
       }
    }
+
+   if (progress)
+      nir_fixup_deref_modes(shader);
 
    return progress;
 }
@@ -166,11 +185,11 @@ nir_remove_unused_varyings(nir_shader *producer, nir_shader *consumer)
       tcs_add_output_reads(producer, read, patches_read);
 
    bool progress = false;
-   progress = remove_unused_io_vars(producer, &producer->outputs, read,
-                                    patches_read);
+   progress = nir_remove_unused_io_vars(producer, &producer->outputs, read,
+                                        patches_read);
 
-   progress = remove_unused_io_vars(consumer, &consumer->inputs, written,
-                                    patches_written) || progress;
+   progress = nir_remove_unused_io_vars(consumer, &consumer->inputs, written,
+                                        patches_written) || progress;
 
    return progress;
 }

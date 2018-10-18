@@ -77,13 +77,16 @@ xwl_glamor_init_wl_registry(struct xwl_screen *xwl_screen,
                                                  registry,
                                                  id,
                                                  interface,
-                                                 version)); /* no-op */
-    else if (xwl_screen->eglstream_backend.is_available &&
+                                                 version)) {
+        /* no-op */
+    } else if (xwl_screen->eglstream_backend.is_available &&
              xwl_screen->eglstream_backend.init_wl_registry(xwl_screen,
                                                             registry,
                                                             id,
                                                             interface,
-                                                            version)); /* no-op */
+                                                            version)) {
+        /* no-op */
+    }
 }
 
 Bool

@@ -1808,13 +1808,13 @@ radv_link_shaders(struct radv_pipeline *pipeline, nir_shader **shaders)
 				ac_lower_indirect_derefs(ordered_shaders[i],
 				                         pipeline->device->physical_device->rad_info.chip_class);
 			}
-			radv_optimize_nir(ordered_shaders[i], false);
+			radv_optimize_nir(ordered_shaders[i], false, false);
 
 			if (nir_lower_global_vars_to_local(ordered_shaders[i - 1])) {
 				ac_lower_indirect_derefs(ordered_shaders[i - 1],
 				                         pipeline->device->physical_device->rad_info.chip_class);
 			}
-			radv_optimize_nir(ordered_shaders[i - 1], false);
+			radv_optimize_nir(ordered_shaders[i - 1], false, false);
 		}
 	}
 }
@@ -2073,7 +2073,7 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 
 			if (!(flags & VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT)) {
 				nir_lower_io_to_scalar_early(nir[i], mask);
-				radv_optimize_nir(nir[i], false);
+				radv_optimize_nir(nir[i], false, false);
 			}
 		}
 	}
@@ -3107,14 +3107,14 @@ radv_pipeline_generate_ps_inputs(struct radeon_cmdbuf *cs,
 
 		vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_CLIP_DIST0];
 		if (vs_offset != AC_EXP_PARAM_UNDEFINED) {
-			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
+			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, false);
 			++ps_offset;
 		}
 
 		vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_CLIP_DIST1];
 		if (vs_offset != AC_EXP_PARAM_UNDEFINED &&
 		    ps->info.info.ps.num_input_clips_culls > 4) {
-			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
+			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, false);
 			++ps_offset;
 		}
 	}

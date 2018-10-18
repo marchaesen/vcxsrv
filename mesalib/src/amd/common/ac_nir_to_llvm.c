@@ -1387,7 +1387,7 @@ static LLVMValueRef visit_load_push_constant(struct ac_nir_context *ctx,
 
 	if (instr->dest.ssa.bit_size == 16) {
 		unsigned load_dwords = instr->dest.ssa.num_components / 2 + 1;
-		LLVMTypeRef vec_type = LLVMVectorType(LLVMInt16Type(), 2 * load_dwords);
+		LLVMTypeRef vec_type = LLVMVectorType(LLVMInt16TypeInContext(ctx->ac.context), 2 * load_dwords);
 		ptr = ac_cast_ptr(&ctx->ac, ptr, vec_type);
 		LLVMValueRef res = LLVMBuildLoad(ctx->ac.builder, ptr, "");
 		res = LLVMBuildBitCast(ctx->ac.builder, res, vec_type, "");
@@ -1671,7 +1671,7 @@ static LLVMValueRef visit_load_buffer(struct ac_nir_context *ctx,
 			};
 			results[idx] = ac_build_intrinsic(&ctx->ac, load_name, data_type, params, 5, 0);
 			unsigned num_elems = ac_get_type_size(data_type) / elem_size_bytes;
-			LLVMTypeRef resTy = LLVMVectorType(LLVMIntType(instr->dest.ssa.bit_size), num_elems);
+			LLVMTypeRef resTy = LLVMVectorType(LLVMIntTypeInContext(ctx->ac.context, instr->dest.ssa.bit_size), num_elems);
 			results[idx] = LLVMBuildBitCast(ctx->ac.builder, results[idx], resTy, "");
 		}
 	}
