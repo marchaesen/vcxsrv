@@ -67,6 +67,9 @@ static void
 detect_conflicting_assignments(struct _mesa_glsl_parse_state *state,
                                exec_list *instructions);
 static void
+verify_subroutine_associated_funcs(struct _mesa_glsl_parse_state *state);
+
+static void
 remove_per_vertex_blocks(exec_list *instructions,
                          _mesa_glsl_parse_state *state, ir_variable_mode mode);
 
@@ -155,6 +158,7 @@ _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
    foreach_list_typed (ast_node, ast, link, & state->translation_unit)
       ast->hir(instructions, state);
 
+   verify_subroutine_associated_funcs(state);
    detect_recursion_unlinked(state, instructions);
    detect_conflicting_assignments(state, instructions);
 
@@ -8680,6 +8684,38 @@ detect_conflicting_assignments(struct _mesa_glsl_parse_state *state,
    }
 }
 
+static void
+verify_subroutine_associated_funcs(struct _mesa_glsl_parse_state *state)
+{
+   YYLTYPE loc;
+   memset(&loc, 0, sizeof(loc));
+
+   /* Section 6.1.2 (Subroutines) of the GLSL 4.00 spec says:
+    *
+    *   "A program will fail to compile or link if any shader
+    *    or stage contains two or more functions with the same
+    *    name if the name is associated with a subroutine type."
+    */
+
+   for (int i = 0; i < state->num_subroutines; i++) {
+      unsigned definitions = 0;
+      ir_function *fn = state->subroutines[i];
+      /* Calculate number of function definitions with the same name */
+      foreach_in_list(ir_function_signature, sig, &fn->signatures) {
+         if (sig->is_defined) {
+            if (++definitions > 1) {
+               _mesa_glsl_error(&loc, state,
+                     "%s shader contains two or more function "
+                     "definitions with name `%s', which is "
+                     "associated with a subroutine type.\n",
+                     _mesa_shader_stage_to_string(state->stage),
+                     fn->name);
+               return;
+            }
+         }
+      }
+   }
+}
 
 static void
 remove_per_vertex_blocks(exec_list *instructions,

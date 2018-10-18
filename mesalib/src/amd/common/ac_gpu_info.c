@@ -643,9 +643,10 @@ ac_get_gs_table_depth(enum chip_class chip_class, enum radeon_family family)
 void
 ac_get_raster_config(struct radeon_info *info,
 		     uint32_t *raster_config_p,
-		     uint32_t *raster_config_1_p)
+		     uint32_t *raster_config_1_p,
+		     uint32_t *se_tile_repeat_p)
 {
-	unsigned raster_config, raster_config_1;
+	unsigned raster_config, raster_config_1, se_tile_repeat;
 
 	switch (info->family) {
 	/* 1 SE / 1 RB */
@@ -722,8 +723,16 @@ ac_get_raster_config(struct radeon_info *info,
 		raster_config_1 = 0x0000002a;
 	}
 
+	unsigned se_width = 8 << G_028350_SE_XSEL_GFX6(raster_config);
+	unsigned se_height = 8 << G_028350_SE_YSEL_GFX6(raster_config);
+
+	/* I don't know how to calculate this, though this is probably a good guess. */
+	se_tile_repeat = MAX2(se_width, se_height) * info->max_se;
+
 	*raster_config_p = raster_config;
 	*raster_config_1_p = raster_config_1;
+	if (se_tile_repeat_p)
+		*se_tile_repeat_p = se_tile_repeat;
 }
 
 void

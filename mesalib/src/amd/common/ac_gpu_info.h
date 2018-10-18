@@ -150,7 +150,8 @@ void ac_print_gpu_info(struct radeon_info *info);
 int ac_get_gs_table_depth(enum chip_class chip_class, enum radeon_family family);
 void ac_get_raster_config(struct radeon_info *info,
 			  uint32_t *raster_config_p,
-			  uint32_t *raster_config_1_p);
+			  uint32_t *raster_config_1_p,
+			  uint32_t *se_tile_repeat_p);
 void ac_get_harvested_configs(struct radeon_info *info,
 			      unsigned raster_config,
 			      unsigned *cik_raster_config_1_p,

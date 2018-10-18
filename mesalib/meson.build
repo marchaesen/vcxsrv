@@ -1112,7 +1112,7 @@ _drm_amdgpu_ver = '2.4.93'
 _drm_radeon_ver = '2.4.71'
 _drm_nouveau_ver = '2.4.66'
 _drm_etnaviv_ver = '2.4.89'
-_drm_freedreno_ver = '2.4.93'
+_drm_freedreno_ver = '2.4.96'
 _drm_intel_ver = '2.4.75'
 _drm_ver = '2.4.75'
 

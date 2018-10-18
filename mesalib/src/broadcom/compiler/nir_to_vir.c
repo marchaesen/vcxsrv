@@ -845,6 +845,20 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                                             vir_uniform_ui(c, 0)));
                 break;
 
+        case nir_op_pack_half_2x16_split:
+                result = vir_VFPACK(c, src[0], src[1]);
+                break;
+
+        case nir_op_unpack_half_2x16_split_x:
+                result = vir_FMOV(c, src[0]);
+                vir_set_unpack(c->defs[result.index], 0, V3D_QPU_UNPACK_L);
+                break;
+
+        case nir_op_unpack_half_2x16_split_y:
+                result = vir_FMOV(c, src[0]);
+                vir_set_unpack(c->defs[result.index], 0, V3D_QPU_UNPACK_H);
+                break;
+
         default:
                 fprintf(stderr, "unknown NIR ALU inst: ");
                 nir_print_instr(&instr->instr, stderr);
@@ -1917,6 +1931,8 @@ const nir_shader_compiler_options v3d_nir_options = {
         .lower_pack_snorm_4x8 = true,
         .lower_unpack_unorm_4x8 = true,
         .lower_unpack_snorm_4x8 = true,
+        .lower_pack_half_2x16 = true,
+        .lower_unpack_half_2x16 = true,
         .lower_fdiv = true,
         .lower_find_lsb = true,
         .lower_ffma = true,

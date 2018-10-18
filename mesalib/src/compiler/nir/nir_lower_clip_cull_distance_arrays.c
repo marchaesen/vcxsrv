@@ -144,6 +144,12 @@ combine_clip_cull(nir_shader *nir,
          cull = var;
    }
 
+   /* if the GLSL lowering pass has already run, don't bother repeating */
+   if (!cull && clip) {
+      if (!glsl_type_is_array(clip->type))
+         return false;
+   }
+
    const unsigned clip_array_size = get_unwrapped_array_length(nir, clip);
    const unsigned cull_array_size = get_unwrapped_array_length(nir, cull);
 

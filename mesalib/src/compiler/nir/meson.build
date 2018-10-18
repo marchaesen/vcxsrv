@@ -158,6 +158,7 @@ files_libnir = files(
   'nir_opt_cse.c',
   'nir_opt_dce.c',
   'nir_opt_dead_cf.c',
+  'nir_opt_dead_write_vars.c',
   'nir_opt_find_array_copies.c',
   'nir_opt_gcm.c',
   'nir_opt_global_to_local.c',
@@ -239,6 +240,17 @@ if with_tests
     executable(
       'nir_control_flow_test',
       files('tests/control_flow_tests.cpp'),
+      cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
+      include_directories : [inc_common],
+      dependencies : [dep_thread, idep_gtest, idep_nir],
+      link_with : libmesa_util,
+    )
+  )
+  test(
+    'nir_vars',
+    executable(
+      'nir_vars_test',
+      files('tests/vars_tests.cpp'),
       cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
       include_directories : [inc_common],
       dependencies : [dep_thread, idep_gtest, idep_nir],

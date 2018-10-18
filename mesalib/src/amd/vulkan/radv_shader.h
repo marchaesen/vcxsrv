@@ -298,7 +298,8 @@ struct radv_shader_slab {
 };
 
 void
-radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively);
+radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively,
+		  bool allow_copies);
 
 nir_shader *
 radv_shader_compile_to_nir(struct radv_device *device,

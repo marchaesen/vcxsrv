@@ -312,6 +312,8 @@ struct radv_physical_device {
 	VkPhysicalDeviceMemoryProperties memory_properties;
 	enum radv_mem_type mem_type_indices[RADV_MEM_TYPE_COUNT];
 
+	drmPciBusInfo bus_info;
+
 	struct radv_device_extension_table supported_extensions;
 };
 
@@ -503,6 +505,11 @@ struct radv_meta_state {
 		VkPipeline pipeline;
 		VkPipeline pipeline_3d;
 	} btoi;
+	struct {
+		VkPipelineLayout                          img_p_layout;
+		VkDescriptorSetLayout                     img_ds_layout;
+		VkPipeline pipeline;
+	} btoi_r32g32b32;
 	struct {
 		VkPipelineLayout                          img_p_layout;
 		VkDescriptorSetLayout                     img_ds_layout;

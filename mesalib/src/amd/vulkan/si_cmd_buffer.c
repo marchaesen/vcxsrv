@@ -134,7 +134,7 @@ si_set_raster_config(struct radv_physical_device *physical_device,
 
 	ac_get_raster_config(&physical_device->rad_info,
 			     &raster_config,
-			     &raster_config_1);
+			     &raster_config_1, NULL);
 
 	/* Always use the default config when all backends are enabled
 	 * (or when we failed to determine the enabled backends).

@@ -196,7 +196,7 @@ xwl_glamor_egl_supports_device_probing(void)
 static void **
 xwl_glamor_egl_get_devices(int *num_devices)
 {
-    EGLDeviceEXT *devices;
+    EGLDeviceEXT *devices, *tmp;
     Bool ret;
     int drm_dev_count = 0;
     int i;
@@ -233,7 +233,11 @@ xwl_glamor_egl_get_devices(int *num_devices)
         goto error;
 
     *num_devices = drm_dev_count;
-    devices = realloc(devices, sizeof(EGLDeviceEXT) * drm_dev_count);
+    tmp = realloc(devices, sizeof(EGLDeviceEXT) * drm_dev_count);
+    if (!tmp)
+        goto error;
+
+    devices = tmp;
 
     return devices;
 

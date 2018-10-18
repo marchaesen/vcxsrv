@@ -182,6 +182,23 @@ ac_build_fdiv(struct ac_llvm_context *ctx,
 	      LLVMValueRef num,
 	      LLVMValueRef den);
 
+LLVMValueRef ac_build_fast_udiv(struct ac_llvm_context *ctx,
+				LLVMValueRef num,
+				LLVMValueRef multiplier,
+				LLVMValueRef pre_shift,
+				LLVMValueRef post_shift,
+				LLVMValueRef increment);
+LLVMValueRef ac_build_fast_udiv_nuw(struct ac_llvm_context *ctx,
+				    LLVMValueRef num,
+				    LLVMValueRef multiplier,
+				    LLVMValueRef pre_shift,
+				    LLVMValueRef post_shift,
+				    LLVMValueRef increment);
+LLVMValueRef ac_build_fast_udiv_u31_d_not_one(struct ac_llvm_context *ctx,
+					      LLVMValueRef num,
+					      LLVMValueRef multiplier,
+					      LLVMValueRef post_shift);
+
 void
 ac_prepare_cube_coords(struct ac_llvm_context *ctx,
 		       bool is_deriv, bool is_array, bool is_lod,

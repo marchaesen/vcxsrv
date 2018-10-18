@@ -389,6 +389,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	if ((device->instance->debug_flags & RADV_DEBUG_INFO))
 		ac_print_gpu_info(&device->rad_info);
 
+	device->bus_info = *drm_device->businfo.pci;
 	return VK_SUCCESS;
 
 fail:
@@ -979,7 +980,7 @@ void radv_GetPhysicalDeviceProperties(
 		.maxClipDistances                         = 8,
 		.maxCullDistances                         = 8,
 		.maxCombinedClipAndCullDistances          = 8,
-		.discreteQueuePriorities                  = 1,
+		.discreteQueuePriorities                  = 2,
 		.pointSizeRange                           = { 0.125, 255.875 },
 		.lineWidthRange                           = { 0.0, 7.9921875 },
 		.pointSizeGranularity                     = (1.0 / 8.0),
@@ -1056,12 +1057,14 @@ void radv_GetPhysicalDeviceProperties2(
 			    (VkPhysicalDeviceSubgroupProperties*)ext;
 			properties->subgroupSize = 64;
 			properties->supportedStages = VK_SHADER_STAGE_ALL;
+			/* TODO: Enable VK_SUBGROUP_FEATURE_VOTE_BIT when wwm
+			 * is fixed in LLVM.
+			 */
 			properties->supportedOperations =
 							VK_SUBGROUP_FEATURE_ARITHMETIC_BIT |
 							VK_SUBGROUP_FEATURE_BASIC_BIT |
 							VK_SUBGROUP_FEATURE_BALLOT_BIT |
-							VK_SUBGROUP_FEATURE_QUAD_BIT |
-							VK_SUBGROUP_FEATURE_VOTE_BIT;
+							VK_SUBGROUP_FEATURE_QUAD_BIT;
 			if (pdevice->rad_info.chip_class >= VI) {
 				properties->supportedOperations |=
 							VK_SUBGROUP_FEATURE_SHUFFLE_BIT |
@@ -1188,6 +1191,15 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->degenerateLinesRasterized = VK_FALSE;
 			properties->fullyCoveredFragmentShaderInputVariable = VK_FALSE;
 			properties->conservativeRasterizationPostDepthCoverage = VK_FALSE;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT: {
+			VkPhysicalDevicePCIBusInfoPropertiesEXT *properties =
+				(VkPhysicalDevicePCIBusInfoPropertiesEXT *)ext;
+			properties->pciDomain = pdevice->bus_info.domain;
+			properties->pciBus = pdevice->bus_info.bus;
+			properties->pciDevice = pdevice->bus_info.dev;
+			properties->pciFunction = pdevice->bus_info.func;
 			break;
 		}
 		default:
@@ -4944,4 +4956,123 @@ radv_GetDeviceGroupPeerMemoryFeatures(
 	                       VK_PEER_MEMORY_FEATURE_COPY_DST_BIT |
 	                       VK_PEER_MEMORY_FEATURE_GENERIC_SRC_BIT |
 	                       VK_PEER_MEMORY_FEATURE_GENERIC_DST_BIT;
+}
+
+static const VkTimeDomainEXT radv_time_domains[] = {
+	VK_TIME_DOMAIN_DEVICE_EXT,
+	VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT,
+	VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_EXT,
+};
+
+VkResult radv_GetPhysicalDeviceCalibrateableTimeDomainsEXT(
+	VkPhysicalDevice                             physicalDevice,
+	uint32_t                                     *pTimeDomainCount,
+	VkTimeDomainEXT                              *pTimeDomains)
+{
+	int d;
+	VK_OUTARRAY_MAKE(out, pTimeDomains, pTimeDomainCount);
+
+	for (d = 0; d < ARRAY_SIZE(radv_time_domains); d++) {
+		vk_outarray_append(&out, i) {
+			*i = radv_time_domains[d];
+		}
+	}
+
+	return vk_outarray_status(&out);
+}
+
+static uint64_t
+radv_clock_gettime(clockid_t clock_id)
+{
+	struct timespec current;
+	int ret;
+
+	ret = clock_gettime(clock_id, &current);
+	if (ret < 0 && clock_id == CLOCK_MONOTONIC_RAW)
+		ret = clock_gettime(CLOCK_MONOTONIC, &current);
+	if (ret < 0)
+		return 0;
+
+	return (uint64_t) current.tv_sec * 1000000000ULL + current.tv_nsec;
+}
+
+VkResult radv_GetCalibratedTimestampsEXT(
+	VkDevice                                     _device,
+	uint32_t                                     timestampCount,
+	const VkCalibratedTimestampInfoEXT           *pTimestampInfos,
+	uint64_t                                     *pTimestamps,
+	uint64_t                                     *pMaxDeviation)
+{
+	RADV_FROM_HANDLE(radv_device, device, _device);
+	uint32_t clock_crystal_freq = device->physical_device->rad_info.clock_crystal_freq;
+	int d;
+	uint64_t begin, end;
+        uint64_t max_clock_period = 0;
+
+	begin = radv_clock_gettime(CLOCK_MONOTONIC_RAW);
+
+	for (d = 0; d < timestampCount; d++) {
+		switch (pTimestampInfos[d].timeDomain) {
+		case VK_TIME_DOMAIN_DEVICE_EXT:
+			pTimestamps[d] = device->ws->query_value(device->ws,
+								 RADEON_TIMESTAMP);
+                        uint64_t device_period = DIV_ROUND_UP(1000000, clock_crystal_freq);
+                        max_clock_period = MAX2(max_clock_period, device_period);
+			break;
+		case VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT:
+			pTimestamps[d] = radv_clock_gettime(CLOCK_MONOTONIC);
+                        max_clock_period = MAX2(max_clock_period, 1);
+			break;
+
+		case VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_EXT:
+			pTimestamps[d] = begin;
+			break;
+		default:
+			pTimestamps[d] = 0;
+			break;
+		}
+	}
+
+	end = radv_clock_gettime(CLOCK_MONOTONIC_RAW);
+
+        /*
+         * The maximum deviation is the sum of the interval over which we
+         * perform the sampling and the maximum period of any sampled
+         * clock. That's because the maximum skew between any two sampled
+         * clock edges is when the sampled clock with the largest period is
+         * sampled at the end of that period but right at the beginning of the
+         * sampling interval and some other clock is sampled right at the
+         * begining of its sampling period and right at the end of the
+         * sampling interval. Let's assume the GPU has the longest clock
+         * period and that the application is sampling GPU and monotonic:
+         *
+         *                               s                 e
+         *			 w x y z 0 1 2 3 4 5 6 7 8 9 a b c d e f
+         *	Raw              -_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
+         *
+         *                               g
+         *		  0         1         2         3
+         *	GPU       -----_____-----_____-----_____-----_____
+         *
+         *                                                m
+         *					    x y z 0 1 2 3 4 5 6 7 8 9 a b c
+         *	Monotonic                           -_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
+         *
+         *	Interval                     <----------------->
+         *	Deviation           <-------------------------->
+         *
+         *		s  = read(raw)       2
+         *		g  = read(GPU)       1
+         *		m  = read(monotonic) 2
+         *		e  = read(raw)       b
+         *
+         * We round the sample interval up by one tick to cover sampling error
+         * in the interval clock
+         */
+
+        uint64_t sample_interval = end - begin + 1;
+
+        *pMaxDeviation = sample_interval + max_clock_period;
+
+	return VK_SUCCESS;
 }
