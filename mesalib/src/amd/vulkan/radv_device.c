@@ -379,6 +379,15 @@ radv_physical_device_init(struct radv_physical_device *device,
 	radv_physical_device_init_mem_types(device);
 	radv_fill_device_extension_table(device, &device->supported_extensions);
 
+	device->bus_info = *drm_device->businfo.pci;
+
+	if ((device->instance->debug_flags & RADV_DEBUG_INFO))
+		ac_print_gpu_info(&device->rad_info);
+
+	/* The WSI is structured as a layer on top of the driver, so this has
+	 * to be the last part of initialization (at least until we get other
+	 * semi-layers).
+	 */
 	result = radv_init_wsi(device);
 	if (result != VK_SUCCESS) {
 		device->ws->destroy(device->ws);
@@ -386,10 +395,6 @@ radv_physical_device_init(struct radv_physical_device *device,
 		goto fail;
 	}
 
-	if ((device->instance->debug_flags & RADV_DEBUG_INFO))
-		ac_print_gpu_info(&device->rad_info);
-
-	device->bus_info = *drm_device->businfo.pci;
 	return VK_SUCCESS;
 
 fail:
@@ -483,7 +488,7 @@ static const struct debug_control radv_perftest_options[] = {
 const char *
 radv_get_perftest_option_name(int id)
 {
-	assert(id < ARRAY_SIZE(radv_debug_options) - 1);
+	assert(id < ARRAY_SIZE(radv_perftest_options) - 1);
 	return radv_perftest_options[id].string;
 }
 

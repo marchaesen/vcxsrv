@@ -210,7 +210,7 @@ xwl_present_events_notify(struct xwl_present_window *xwl_present_window)
     }
 }
 
-CARD32
+static CARD32
 xwl_present_timer_callback(OsTimerPtr timer,
                            CARD32 time,
                            void *arg)
