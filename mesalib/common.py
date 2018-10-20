@@ -99,8 +99,6 @@ def AddOptions(opts):
                         'enable static code analysis where available', 'no'))
     opts.Add(BoolOption('asan', 'enable Address Sanitizer', 'no'))
     opts.Add('toolchain', 'compiler toolchain', default_toolchain)
-    opts.Add(BoolOption('gles', 'EXPERIMENTAL: enable OpenGL ES support',
-                        'no'))
     opts.Add(BoolOption('llvm', 'use LLVM', default_llvm))
     opts.Add(BoolOption('openmp', 'EXPERIMENTAL: compile with openmp (swrast)',
                         'no'))

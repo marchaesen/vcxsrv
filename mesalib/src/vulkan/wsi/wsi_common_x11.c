@@ -99,33 +99,26 @@ wsi_dri3_open(xcb_connection_t *conn,
 }
 
 static bool
-wsi_x11_check_dri3_compatible(xcb_connection_t *conn, int local_fd)
+wsi_x11_check_dri3_compatible(const struct wsi_device *wsi_dev,
+                              xcb_connection_t *conn)
 {
    xcb_screen_iterator_t screen_iter =
       xcb_setup_roots_iterator(xcb_get_setup(conn));
    xcb_screen_t *screen = screen_iter.data;
 
    int dri3_fd = wsi_dri3_open(conn, screen->root, None);
-   if (dri3_fd != -1) {
-      char *local_dev = drmGetRenderDeviceNameFromFd(local_fd);
-      char *dri3_dev = drmGetRenderDeviceNameFromFd(dri3_fd);
-      int ret;
+   if (dri3_fd == -1)
+      return true;
 
-      close(dri3_fd);
+   bool match = wsi_device_matches_drm_fd(wsi_dev, dri3_fd);
 
-      ret = strcmp(local_dev, dri3_dev);
+   close(dri3_fd);
 
-      free(local_dev);
-      free(dri3_dev);
-
-      if (ret != 0)
-         return false;
-   }
-   return true;
+   return match;
 }
 
 static struct wsi_x11_connection *
-wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
+wsi_x11_connection_create(struct wsi_device *wsi_dev,
                           xcb_connection_t *conn)
 {
    xcb_query_extension_cookie_t dri3_cookie, pres_cookie, amd_cookie, nv_cookie;
@@ -134,7 +127,7 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
    bool has_present_v1_2 = false;
 
    struct wsi_x11_connection *wsi_conn =
-      vk_alloc(alloc, sizeof(*wsi_conn), 8,
+      vk_alloc(&wsi_dev->instance_alloc, sizeof(*wsi_conn), 8,
                 VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
    if (!wsi_conn)
       return NULL;
@@ -163,7 +156,7 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
       free(pres_reply);
       free(amd_reply);
       free(nv_reply);
-      vk_free(alloc, wsi_conn);
+      vk_free(&wsi_dev->instance_alloc, wsi_conn);
       return NULL;
    }
 
@@ -211,10 +204,10 @@ wsi_x11_connection_create(const VkAllocationCallbacks *alloc,
 }
 
 static void
-wsi_x11_connection_destroy(const VkAllocationCallbacks *alloc,
+wsi_x11_connection_destroy(struct wsi_device *wsi_dev,
                            struct wsi_x11_connection *conn)
 {
-   vk_free(alloc, conn);
+   vk_free(&wsi_dev->instance_alloc, conn);
 }
 
 static bool
@@ -231,7 +224,6 @@ wsi_x11_check_for_dri3(struct wsi_x11_connection *wsi_conn)
 
 static struct wsi_x11_connection *
 wsi_x11_get_connection(struct wsi_device *wsi_dev,
-		       const VkAllocationCallbacks *alloc,
                        xcb_connection_t *conn)
 {
    struct wsi_x11 *wsi =
@@ -247,7 +239,7 @@ wsi_x11_get_connection(struct wsi_device *wsi_dev,
       pthread_mutex_unlock(&wsi->mutex);
 
       struct wsi_x11_connection *wsi_conn =
-         wsi_x11_connection_create(alloc, conn);
+         wsi_x11_connection_create(wsi_dev, conn);
       if (!wsi_conn)
          return NULL;
 
@@ -256,7 +248,7 @@ wsi_x11_get_connection(struct wsi_device *wsi_dev,
       entry = _mesa_hash_table_search(wsi->connections, conn);
       if (entry) {
          /* Oops, someone raced us to it */
-         wsi_x11_connection_destroy(alloc, wsi_conn);
+         wsi_x11_connection_destroy(wsi_dev, wsi_conn);
       } else {
          entry = _mesa_hash_table_insert(wsi->connections, conn, wsi_conn);
       }
@@ -382,15 +374,13 @@ visual_has_alpha(xcb_visualtype_t *visual, unsigned depth)
 
 VkBool32 wsi_get_physical_device_xcb_presentation_support(
     struct wsi_device *wsi_device,
-    VkAllocationCallbacks *alloc,
     uint32_t                                    queueFamilyIndex,
-    int fd,
     bool can_handle_different_gpu,
     xcb_connection_t*                           connection,
     xcb_visualid_t                              visual_id)
 {
    struct wsi_x11_connection *wsi_conn =
-      wsi_x11_get_connection(wsi_device, alloc, connection);
+      wsi_x11_get_connection(wsi_device, connection);
 
    if (!wsi_conn)
       return false;
@@ -399,7 +389,7 @@ VkBool32 wsi_get_physical_device_xcb_presentation_support(
       return false;
 
    if (!can_handle_different_gpu)
-      if (!wsi_x11_check_dri3_compatible(connection, fd))
+      if (!wsi_x11_check_dri3_compatible(wsi_device, connection))
          return false;
 
    unsigned visual_depth;
@@ -433,16 +423,14 @@ x11_surface_get_window(VkIcdSurfaceBase *icd_surface)
 static VkResult
 x11_surface_get_support(VkIcdSurfaceBase *icd_surface,
                         struct wsi_device *wsi_device,
-                        const VkAllocationCallbacks *alloc,
                         uint32_t queueFamilyIndex,
-                        int local_fd,
                         VkBool32* pSupported)
 {
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
    xcb_window_t window = x11_surface_get_window(icd_surface);
 
    struct wsi_x11_connection *wsi_conn =
-      wsi_x11_get_connection(wsi_device, alloc, conn);
+      wsi_x11_get_connection(wsi_device, conn);
    if (!wsi_conn)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
@@ -600,6 +588,64 @@ x11_surface_get_present_modes(VkIcdSurfaceBase *surface,
 
    return *pPresentModeCount < ARRAY_SIZE(present_modes) ?
       VK_INCOMPLETE : VK_SUCCESS;
+}
+
+static bool
+x11_surface_is_local_to_gpu(struct wsi_device *wsi_dev,
+                            xcb_connection_t *conn)
+{
+   struct wsi_x11_connection *wsi_conn =
+      wsi_x11_get_connection(wsi_dev, conn);
+
+   if (!wsi_conn)
+      return false;
+
+   if (!wsi_x11_check_for_dri3(wsi_conn))
+      return false;
+
+   if (!wsi_x11_check_dri3_compatible(wsi_dev, conn))
+      return false;
+
+   return true;
+}
+
+static VkResult
+x11_surface_get_present_rectangles(VkIcdSurfaceBase *icd_surface,
+                                   struct wsi_device *wsi_device,
+                                   uint32_t* pRectCount,
+                                   VkRect2D* pRects)
+{
+   xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
+   xcb_window_t window = x11_surface_get_window(icd_surface);
+   VK_OUTARRAY_MAKE(out, pRects, pRectCount);
+
+   if (x11_surface_is_local_to_gpu(wsi_device, conn)) {
+      vk_outarray_append(&out, rect) {
+         xcb_generic_error_t *err = NULL;
+         xcb_get_geometry_cookie_t geom_cookie = xcb_get_geometry(conn, window);
+         xcb_get_geometry_reply_t *geom =
+            xcb_get_geometry_reply(conn, geom_cookie, &err);
+         free(err);
+         if (geom) {
+            *rect = (VkRect2D) {
+               .offset = { 0, 0 },
+               .extent = { geom->width, geom->height },
+            };
+         } else {
+            /* This can happen if the client didn't wait for the configure event
+             * to come back from the compositor.  In that case, we don't know the
+             * size of the window so we just return valid "I don't know" stuff.
+             */
+            *rect = (VkRect2D) {
+               .offset = { 0, 0 },
+               .extent = { -1, -1 },
+            };
+         }
+         free(geom);
+      }
+   }
+
+   return vk_outarray_status(&out);
 }
 
 VkResult wsi_create_xcb_surface(const VkAllocationCallbacks *pAllocator,
@@ -1264,7 +1310,6 @@ static VkResult
 x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
                              VkDevice device,
                              struct wsi_device *wsi_device,
-                             int local_fd,
                              const VkSwapchainCreateInfoKHR *pCreateInfo,
                              const VkAllocationCallbacks* pAllocator,
                              struct wsi_swapchain **swapchain_out)
@@ -1279,7 +1324,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
 
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
    struct wsi_x11_connection *wsi_conn =
-      wsi_x11_get_connection(wsi_device, pAllocator, conn);
+      wsi_x11_get_connection(wsi_device, conn);
    if (!wsi_conn)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
@@ -1331,7 +1376,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    else
       chain->last_present_mode = XCB_PRESENT_COMPLETE_MODE_COPY;
 
-   if (!wsi_x11_check_dri3_compatible(conn, local_fd))
+   if (!wsi_x11_check_dri3_compatible(wsi_device, conn))
        chain->base.use_prime_blit = true;
 
    chain->event_id = xcb_generate_id(chain->conn);
@@ -1473,6 +1518,7 @@ wsi_x11_init_wsi(struct wsi_device *wsi_device,
    wsi->base.get_formats = x11_surface_get_formats;
    wsi->base.get_formats2 = x11_surface_get_formats2;
    wsi->base.get_present_modes = x11_surface_get_present_modes;
+   wsi->base.get_present_rectangles = x11_surface_get_present_rectangles;
    wsi->base.create_swapchain = x11_surface_create_swapchain;
 
    wsi_device->wsi[VK_ICD_WSI_PLATFORM_XCB] = &wsi->base;
@@ -1501,7 +1547,7 @@ wsi_x11_finish_wsi(struct wsi_device *wsi_device,
    if (wsi) {
       struct hash_entry *entry;
       hash_table_foreach(wsi->connections, entry)
-         wsi_x11_connection_destroy(alloc, entry->data);
+         wsi_x11_connection_destroy(wsi_device, entry->data);
 
       _mesa_hash_table_destroy(wsi->connections, NULL);
 

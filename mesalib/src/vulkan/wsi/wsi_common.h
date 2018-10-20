@@ -90,9 +90,14 @@ struct wsi_interface;
 #define VK_ICD_WSI_PLATFORM_MAX (VK_ICD_WSI_PLATFORM_DISPLAY + 1)
 
 struct wsi_device {
+   /* Allocator for the instance */
+   VkAllocationCallbacks instance_alloc;
+
    VkPhysicalDevice pdevice;
    VkPhysicalDeviceMemoryProperties memory_props;
    uint32_t queue_family_count;
+
+   VkPhysicalDevicePCIBusInfoPropertiesEXT pci_bus_info;
 
    bool supports_modifiers;
    uint64_t (*image_get_modifier)(VkImage image);
@@ -163,10 +168,8 @@ ICD_DEFINE_NONDISP_HANDLE_CASTS(VkIcdSurfaceBase, VkSurfaceKHR)
 
 VkResult
 wsi_common_get_surface_support(struct wsi_device *wsi_device,
-                               int local_fd,
                                uint32_t queueFamilyIndex,
                                VkSurfaceKHR surface,
-                               const VkAllocationCallbacks *alloc,
                                VkBool32* pSupported);
 
 VkResult
@@ -198,6 +201,12 @@ wsi_common_get_surface_present_modes(struct wsi_device *wsi_device,
                                      VkPresentModeKHR *pPresentModes);
 
 VkResult
+wsi_common_get_present_rectangles(struct wsi_device *wsi,
+                                  VkSurfaceKHR surface,
+                                  uint32_t* pRectCount,
+                                  VkRect2D* pRects);
+
+VkResult
 wsi_common_get_surface_capabilities2ext(
    struct wsi_device *wsi_device,
    VkSurfaceKHR surface,
@@ -217,7 +226,6 @@ wsi_common_acquire_next_image2(const struct wsi_device *wsi,
 VkResult
 wsi_common_create_swapchain(struct wsi_device *wsi,
                             VkDevice device,
-                            int fd,
                             const VkSwapchainCreateInfoKHR *pCreateInfo,
                             const VkAllocationCallbacks *pAllocator,
                             VkSwapchainKHR *pSwapchain);

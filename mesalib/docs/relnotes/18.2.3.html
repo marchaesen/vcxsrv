@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.2.3 Release Notes / October 19, 2018</h1>
+
+<p>
+Mesa 18.2.3 is a bug fix release which fixes bugs found since the 18.2.2 release.
+</p>
+<p>
+Mesa 18.2.3 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+0e13e2342eae74d8848df23595c4bb4b2f8874c9e1213b8466b1fbfa7ef99375  mesa-18.2.3.tar.gz
+e2bf83c17e1abdecb1ee81af22652e27e9aa38f963e95e60f34275cc0376304f  mesa-18.2.3.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99507">Bug 99507</a> - Corrupted frame contents with Vulkan version of DOTA2, Talos Principle and Sascha Willems' demos when they're run Vsynched in fullscreen</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107857">Bug 107857</a> - GPU hang - GS_EMIT without shader outputs</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107926">Bug 107926</a> - [anv] Rise of the Tomb Raider always misrendering, segfault and gpu hang.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108012">Bug 108012</a> - Compiler crashes on access of non-existent member incremental operations</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Boyuan Zhang (1):</p>
+<ul>
+  <li>st/va: use provided sizes and coords for vlVaGetImage</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>anv: add missing unlock in error path.</li>
+</ul>
+
+<p>Dylan Baker (1):</p>
+<ul>
+  <li>meson: Don't allow building EGL on Windows or MacOS</li>
+</ul>
+
+<p>Emil Velikov (5):</p>
+<ul>
+  <li>st/nine: do not double-close the fd on teardown</li>
+  <li>egl: make eglSwapInterval a no-op for !window surfaces</li>
+  <li>egl: make eglSwapBuffers* a no-op for !window surfaces</li>
+  <li>vl/dri3: do full teardown on screen_destroy</li>
+  <li>Revert "mesa: remove unnecessary 'sort by year' for the GL extensions"</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>radv: add missing meson c++ visibility arguments</li>
+</ul>
+
+<p>Fritz Koenig (1):</p>
+<ul>
+  <li>i965: Replace checks for rb-&gt;Name with FlipY (v2)</li>
+</ul>
+
+<p>Gert Wollny (1):</p>
+<ul>
+  <li>virgl, vtest: Correct the transfer size calculation</li>
+</ul>
+
+<p>Ilia Mirkin (4):</p>
+<ul>
+  <li>glsl: fix array assignments of a swizzled vector</li>
+  <li>nv50,nvc0: mark RGBX_UINT formats as renderable</li>
+  <li>nv50,nvc0: guard against zero-size blits</li>
+  <li>nvc0: fix blitting red to srgb8_alpha</li>
+</ul>
+
+<p>Jason Ekstrand (7):</p>
+<ul>
+  <li>nir/cf: Remove phi sources if needed in nir_handle_add_jump</li>
+  <li>anv: Use separate MOCS settings for external BOs</li>
+  <li>intel/fs: Fix a typo in need_matching_subreg_offset</li>
+  <li>nir/from_ssa: Don't rewrite derefs destinations to registers</li>
+  <li>anv/batch_chain: Don't start a new BO just for BATCH_BUFFER_START</li>
+  <li>nir/alu_to_scalar: Use ssa_for_alu_src in hand-rolled expansions</li>
+  <li>intel: Don't propagate conditional modifiers if a UD source is negated</li>
+</ul>
+
+<p>Juan A. Suarez Romero (2):</p>
+<ul>
+  <li>docs: add sha256 checksums for 18.2.2</li>
+  <li>Update version to 18.2.3</li>
+</ul>
+
+<p>Józef Kucia (1):</p>
+<ul>
+  <li>radeonsi: avoid sending GS_EMIT in shaders without outputs</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>drirc: add a workaround for ARMA 3</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>radv: add a workaround for a VGT hang with prim restart and strips</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>glsl: do not attempt assignment if operand type not parsed correctly</li>
+</ul>
+
+<p>Timothy Arceri (11):</p>
+<ul>
+  <li>glsl: ignore trailing whitespace when define redefined</li>
+  <li>util: disable cache if we have no build-id and timestamp is zero</li>
+  <li>util: rename timestamp param in disk_cache_create()</li>
+  <li>util: add disk_cache_get_function_identifier()</li>
+  <li>radeonsi: use build-id when available for disk cache</li>
+  <li>nouveau: use build-id when available for disk cache</li>
+  <li>r600: use build-id when available for disk cache</li>
+  <li>mesa/st: add force_compat_profile option to driconfig</li>
+  <li>util: use force_compat_profile for Wolfenstein The Old Blood</li>
+  <li>util: better handle program names from wine</li>
+  <li>util: add drirc workarounds for RAGE</li>
+</ul>
+
+<p>Vinson Lee (1):</p>
+<ul>
+  <li>r600/sb: Fix constant-logical-operand warning.</li>
+</ul>
+
+
+</div>
+</body>
+</html>
