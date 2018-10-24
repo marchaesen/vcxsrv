@@ -115,6 +115,8 @@ EXTENSIONS = [
     Extension('VK_AMD_shader_core_properties',            1, True),
     Extension('VK_AMD_shader_info',                       1, True),
     Extension('VK_AMD_shader_trinary_minmax',             1, True),
+    Extension('VK_GOOGLE_decorate_string',                1, True),
+    Extension('VK_GOOGLE_hlsl_functionality1',            1, True),
 ]
 
 class VkVersion:

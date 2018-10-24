@@ -1375,6 +1375,10 @@ apply_var_decoration(struct vtn_builder *b,
                spirv_decoration_to_string(dec->decoration));
       break;
 
+   case SpvDecorationHlslSemanticGOOGLE:
+      /* HLSL semantic decorations can safely be ignored by the driver. */
+      break;
+
    default:
       vtn_fail("Unhandled decoration");
    }
@@ -1424,6 +1428,9 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
       break;
    case SpvDecorationCoherent:
       vtn_var->access |= ACCESS_COHERENT;
+      break;
+   case SpvDecorationHlslCounterBufferGOOGLE:
+      /* HLSL semantic decorations can safely be ignored by the driver. */
       break;
    default:
       break;

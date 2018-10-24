@@ -56,10 +56,6 @@ src_is_type(nir_src src, nir_alu_type type)
    if (!src.is_ssa)
       return false;
 
-   /* Turn nir_type_bool32 into nir_type_bool...they're the same thing. */
-   if (nir_alu_type_get_base_type(type) == nir_type_bool)
-      type = nir_type_bool;
-
    if (src.ssa->parent_instr->type == nir_instr_type_alu) {
       nir_alu_instr *src_alu = nir_instr_as_alu(src.ssa->parent_instr);
       nir_alu_type output_type = nir_op_infos[src_alu->op].output_type;
@@ -181,33 +177,14 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
    case nir_search_value_constant: {
       nir_search_constant *const_val = nir_search_value_as_constant(value);
 
-      if (!instr->src[src].src.is_ssa)
+      if (!nir_src_is_const(instr->src[src].src))
          return false;
-
-      if (instr->src[src].src.ssa->parent_instr->type != nir_instr_type_load_const)
-         return false;
-
-      nir_load_const_instr *load =
-         nir_instr_as_load_const(instr->src[src].src.ssa->parent_instr);
 
       switch (const_val->type) {
       case nir_type_float:
          for (unsigned i = 0; i < num_components; ++i) {
-            double val;
-            switch (load->def.bit_size) {
-            case 16:
-               val = _mesa_half_to_float(load->value.u16[new_swizzle[i]]);
-               break;
-            case 32:
-               val = load->value.f32[new_swizzle[i]];
-               break;
-            case 64:
-               val = load->value.f64[new_swizzle[i]];
-               break;
-            default:
-               unreachable("unknown bit size");
-            }
-
+            double val = nir_src_comp_as_float(instr->src[src].src,
+                                               new_swizzle[i]);
             if (val != const_val->data.d)
                return false;
          }
@@ -215,42 +192,17 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
 
       case nir_type_int:
       case nir_type_uint:
-      case nir_type_bool32:
-         switch (load->def.bit_size) {
-         case 8:
-            for (unsigned i = 0; i < num_components; ++i) {
-               if (load->value.u8[new_swizzle[i]] !=
-                   (uint8_t)const_val->data.u)
-                  return false;
-            }
-            return true;
-
-         case 16:
-            for (unsigned i = 0; i < num_components; ++i) {
-               if (load->value.u16[new_swizzle[i]] !=
-                   (uint16_t)const_val->data.u)
-                  return false;
-            }
-            return true;
-
-         case 32:
-            for (unsigned i = 0; i < num_components; ++i) {
-               if (load->value.u32[new_swizzle[i]] !=
-                   (uint32_t)const_val->data.u)
-                  return false;
-            }
-            return true;
-
-         case 64:
-            for (unsigned i = 0; i < num_components; ++i) {
-               if (load->value.u64[new_swizzle[i]] != const_val->data.u)
-                  return false;
-            }
-            return true;
-
-         default:
-            unreachable("unknown bit size");
+      case nir_type_bool: {
+         unsigned bit_size = nir_src_bit_size(instr->src[src].src);
+         uint64_t mask = bit_size == 64 ? UINT64_MAX : (1ull << bit_size) - 1;
+         for (unsigned i = 0; i < num_components; ++i) {
+            uint64_t val = nir_src_comp_as_uint(instr->src[src].src,
+                                                new_swizzle[i]);
+            if ((val & mask) != (const_val->data.u & mask))
+               return false;
          }
+         return true;
+      }
 
       default:
          unreachable("Invalid alu source type");
@@ -579,7 +531,8 @@ construct_value(const nir_search_value *value,
          }
          break;
 
-      case nir_type_bool32:
+      case nir_type_bool:
+         assert(bitsize->dest_size == 32);
          load->value.u32[0] = c->data.u;
          break;
       default:

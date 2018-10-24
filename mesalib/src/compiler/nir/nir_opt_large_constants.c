@@ -153,7 +153,7 @@ nir_opt_large_constants(nir_shader *shader,
          switch (intrin->intrinsic) {
          case nir_intrinsic_store_deref:
             dst_deref = nir_src_as_deref(intrin->src[0]);
-            src_is_const = nir_src_as_const_value(intrin->src[1]);
+            src_is_const = nir_src_is_const(intrin->src[1]);
             break;
 
          case nir_intrinsic_load_deref:

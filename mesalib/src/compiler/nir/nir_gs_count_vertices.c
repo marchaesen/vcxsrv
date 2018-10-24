@@ -71,19 +71,18 @@ nir_gs_count_vertices(const nir_shader *shader)
             if (!intrin)
                continue;
 
-            nir_const_value *val = nir_src_as_const_value(intrin->src[0]);
             /* We've found a non-constant value.  Bail. */
-            if (!val)
+            if (!nir_src_is_const(intrin->src[0]))
                return -1;
 
             if (count == -1)
-               count = val->i32[0];
+               count = nir_src_as_int(intrin->src[0]);
 
             /* We've found contradictory set_vertex_count intrinsics.
              * This can happen if there are early-returns in main() and
              * different paths emit different numbers of vertices.
              */
-            if (count != val->i32[0])
+            if (count != nir_src_as_int(intrin->src[0]))
                return -1;
          }
       }

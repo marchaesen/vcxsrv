@@ -523,6 +523,43 @@ ac_build_gather_values(struct ac_llvm_context *ctx,
 	return ac_build_gather_values_extended(ctx, values, value_count, 1, false, false);
 }
 
+/* Expand a scalar or vector to <dst_channels x type> by filling the remaining
+ * channels with undef. Extract at most src_channels components from the input.
+ */
+LLVMValueRef ac_build_expand(struct ac_llvm_context *ctx,
+			     LLVMValueRef value,
+			     unsigned src_channels,
+			     unsigned dst_channels)
+{
+	LLVMTypeRef elemtype;
+	LLVMValueRef chan[dst_channels];
+
+	if (LLVMGetTypeKind(LLVMTypeOf(value)) == LLVMVectorTypeKind) {
+		unsigned vec_size = LLVMGetVectorSize(LLVMTypeOf(value));
+
+		if (src_channels == dst_channels && vec_size == dst_channels)
+			return value;
+
+		src_channels = MIN2(src_channels, vec_size);
+
+		for (unsigned i = 0; i < src_channels; i++)
+			chan[i] = ac_llvm_extract_elem(ctx, value, i);
+
+		elemtype = LLVMGetElementType(LLVMTypeOf(value));
+	} else {
+		if (src_channels) {
+			assert(src_channels == 1);
+			chan[0] = value;
+		}
+		elemtype = LLVMTypeOf(value);
+	}
+
+	for (unsigned i = src_channels; i < dst_channels; i++)
+		chan[i] = LLVMGetUndef(elemtype);
+
+	return ac_build_gather_values(ctx, chan, dst_channels);
+}
+
 /* Expand a scalar or vector to <4 x type> by filling the remaining channels
  * with undef. Extract at most num_channels components from the input.
  */
@@ -530,32 +567,7 @@ LLVMValueRef ac_build_expand_to_vec4(struct ac_llvm_context *ctx,
 				     LLVMValueRef value,
 				     unsigned num_channels)
 {
-	LLVMTypeRef elemtype;
-	LLVMValueRef chan[4];
-
-	if (LLVMGetTypeKind(LLVMTypeOf(value)) == LLVMVectorTypeKind) {
-		unsigned vec_size = LLVMGetVectorSize(LLVMTypeOf(value));
-		num_channels = MIN2(num_channels, vec_size);
-
-		if (num_channels >= 4)
-			return value;
-
-		for (unsigned i = 0; i < num_channels; i++)
-			chan[i] = ac_llvm_extract_elem(ctx, value, i);
-
-		elemtype = LLVMGetElementType(LLVMTypeOf(value));
-	} else {
-		if (num_channels) {
-			assert(num_channels == 1);
-			chan[0] = value;
-		}
-		elemtype = LLVMTypeOf(value);
-	}
-
-	while (num_channels < 4)
-		chan[num_channels++] = LLVMGetUndef(elemtype);
-
-	return ac_build_gather_values(ctx, chan, 4);
+	return ac_build_expand(ctx, value, num_channels, 4);
 }
 
 LLVMValueRef ac_build_round(struct ac_llvm_context *ctx, LLVMValueRef value)

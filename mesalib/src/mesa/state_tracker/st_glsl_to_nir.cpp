@@ -665,7 +665,10 @@ st_link_nir(struct gl_context *ctx,
          mask = (nir_variable_mode)(mask | nir_var_shader_out);
 
       nir_shader *nir = shader->Program->nir;
-      NIR_PASS_V(nir, nir_lower_io_to_scalar_early, mask);
+
+      if (is_scalar[i])
+         NIR_PASS_V(nir, nir_lower_io_to_scalar_early, mask);
+
       st_nir_opts(nir, is_scalar[i]);
    }
 

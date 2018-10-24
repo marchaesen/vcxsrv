@@ -235,13 +235,10 @@ dead_cf_block(nir_block *block)
          return true;
       }
 
-      nir_const_value *const_value =
-         nir_src_as_const_value(following_if->condition);
-
-      if (!const_value)
+      if (!nir_src_is_const(following_if->condition))
          return false;
 
-      opt_constant_if(following_if, const_value->u32[0] != 0);
+      opt_constant_if(following_if, nir_src_as_bool(following_if->condition));
       return true;
    }
 

@@ -468,9 +468,6 @@ WalkTree(ScreenPtr pScreen, VisitWindowProcPtr func, void *data)
     return (TraverseTree(pScreen->root, func, data));
 }
 
-/* hack for forcing backing store on all windows */
-int defaultBackingStore = NotUseful;
-
 /* hack to force no backing store */
 Bool disableBackingStore = FALSE;
 Bool enableBackingStore = FALSE;
@@ -502,7 +499,6 @@ SetWindowToDefaults(WindowPtr pWin)
     pWin->eventMask = 0;
     pWin->deliverableEvents = 0;
     pWin->dontPropagate = 0;
-    pWin->forcedBS = FALSE;
     pWin->redirectDraw = RedirectDrawNone;
     pWin->forcedBG = FALSE;
     pWin->unhittable = FALSE;
@@ -693,8 +689,7 @@ InitRootWindow(WindowPtr pWin)
         backFlag |= CWBackPixel;
     }
 
-    pWin->backingStore = defaultBackingStore;
-    pWin->forcedBS = (defaultBackingStore != NotUseful);
+    pWin->backingStore = NotUseful;
     /* We SHOULD check for an error value here XXX */
     (*pScreen->ChangeWindowAttributes) (pWin, backFlag);
 
@@ -942,13 +937,6 @@ CreateWindow(Window wid, WindowPtr pParent, int x, int y, unsigned w,
     if (*error != Success) {
         DeleteWindow(pWin, None);
         return NullWindow;
-    }
-    if (!(vmask & CWBackingStore) && (defaultBackingStore != NotUseful)) {
-        XID value = defaultBackingStore;
-
-        (void) ChangeWindowAttributes(pWin, CWBackingStore, &value,
-                                      wClient(pWin));
-        pWin->forcedBS = TRUE;
     }
 
     if (SubSend(pParent)) {
@@ -1341,7 +1329,6 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                 goto PatchUp;
             }
             pWin->backingStore = val;
-            pWin->forcedBS = FALSE;
             break;
         case CWBackingPlanes:
             if (pWin->optional || ((CARD32) *pVlist != (CARD32) ~0L)) {
@@ -1610,10 +1597,7 @@ GetWindowAttributes(WindowPtr pWin, ClientPtr client,
     wa->type = X_Reply;
     wa->bitGravity = pWin->bitGravity;
     wa->winGravity = pWin->winGravity;
-    if (pWin->forcedBS && pWin->backingStore != Always)
-        wa->backingStore = NotUseful;
-    else
-        wa->backingStore = pWin->backingStore;
+    wa->backingStore = pWin->backingStore;
     wa->length = bytes_to_int32(sizeof(xGetWindowAttributesReply) -
                                 sizeof(xGenericReply));
     wa->sequenceNumber = client->sequence;

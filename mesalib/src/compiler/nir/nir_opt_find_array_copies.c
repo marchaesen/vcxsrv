@@ -124,8 +124,10 @@ try_match_deref(nir_deref_path *base_path, int *path_array_idx,
 
       case nir_deref_type_array:
          assert(b->arr.index.is_ssa && d->arr.index.is_ssa);
-         nir_const_value *const_b_idx = nir_src_as_const_value(b->arr.index);
-         nir_const_value *const_d_idx = nir_src_as_const_value(d->arr.index);
+         const bool const_b_idx = nir_src_is_const(b->arr.index);
+         const bool const_d_idx = nir_src_is_const(d->arr.index);
+         const unsigned b_idx = const_b_idx ? nir_src_as_uint(b->arr.index) : 0;
+         const unsigned d_idx = const_d_idx ? nir_src_as_uint(d->arr.index) : 0;
 
          /* If we don't have an index into the path yet or if this entry in
           * the path is at the array index, see if this is a candidate.  We're
@@ -133,8 +135,8 @@ try_match_deref(nir_deref_path *base_path, int *path_array_idx,
           * in the search deref.
           */
          if ((*path_array_idx < 0 || *path_array_idx == i) &&
-             const_b_idx && const_b_idx->u32[0] == 0 &&
-             const_d_idx && const_d_idx->u32[0] == arr_idx) {
+             const_b_idx && b_idx == 0 &&
+             const_d_idx && d_idx == arr_idx) {
             *path_array_idx = i;
             continue;
          }
@@ -149,8 +151,7 @@ try_match_deref(nir_deref_path *base_path, int *path_array_idx,
           * earlier.
           */
          if (b->arr.index.ssa == d->arr.index.ssa ||
-             (const_b_idx && const_d_idx &&
-              const_b_idx->u32[0] == const_d_idx->u32[0]))
+             (const_b_idx && const_d_idx && b_idx == d_idx))
             continue;
 
          goto fail;

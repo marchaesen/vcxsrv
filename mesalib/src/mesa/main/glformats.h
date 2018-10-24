@@ -119,9 +119,6 @@ _mesa_unpack_format_to_base_format(GLenum format);
 extern GLboolean
 _mesa_base_format_has_channel(GLenum base_format, GLenum pname);
 
-extern GLint
-_mesa_base_format_component_count(GLenum base_format);
-
 extern GLenum
 _mesa_generic_compressed_format_to_uncompressed_format(GLenum format);
 

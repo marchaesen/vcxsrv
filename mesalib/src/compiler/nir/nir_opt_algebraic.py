@@ -373,7 +373,7 @@ optimizations = [
    (('iand', ('uge(is_used_once)', a, c), ('uge', b, c)), ('uge', ('umin', a, b), c)),
 
    (('ior', 'a@bool', ('ieq', a, False)), True),
-   (('ior', 'a@bool', ('inot', a)), True),
+   (('ior', a, ('inot', a)), -1),
 
    (('iand', ('ieq', 'a@32', 0), ('ieq', 'b@32', 0)), ('ieq', ('ior', 'a@32', 'b@32'), 0)),
 

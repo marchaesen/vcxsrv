@@ -108,13 +108,11 @@ get_io_offset(nir_deref_instr *deref, bool is_vertex_input)
 
    for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
       if (d->deref_type == nir_deref_type_array) {
-         nir_const_value *const_index = nir_src_as_const_value(d->arr.index);
-
-         if (!const_index)
+         if (!nir_src_is_const(d->arr.index))
             return -1;
 
          offset += glsl_count_attribute_slots(d->type, is_vertex_input) *
-            const_index->u32[0];
+                   nir_src_as_uint(d->arr.index);
       }
       /* TODO: we can get the offset for structs here see nir_lower_io() */
    }

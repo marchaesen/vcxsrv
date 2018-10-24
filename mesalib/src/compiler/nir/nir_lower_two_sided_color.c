@@ -146,7 +146,7 @@ nir_lower_two_sided_color_block(nir_block *block,
          unsigned drvloc =
             state->colors[idx].front->data.driver_location;
          if (nir_intrinsic_base(intr) == drvloc) {
-            assert(nir_src_as_const_value(intr->src[0]));
+            assert(nir_src_is_const(intr->src[0]));
             break;
          }
       }

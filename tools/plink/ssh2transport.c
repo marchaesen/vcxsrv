@@ -10,63 +10,11 @@
 #include "sshppl.h"
 #include "sshcr.h"
 #include "storage.h"
+#include "ssh2transport.h"
 
-#ifndef NO_GSSAPI
-#include "sshgssc.h"
-#include "sshgss.h"
-#define MIN_CTXT_LIFETIME 5     /* Avoid rekey with short lifetime (seconds) */
-#define GSS_KEX_CAPABLE (1<<0)  /* Can do GSS KEX */
-#define GSS_CRED_UPDATED (1<<1) /* Cred updated since previous delegation */
-#define GSS_CTXT_EXPIRES (1<<2) /* Context expires before next timer */
-#define GSS_CTXT_MAYFAIL (1<<3) /* Context may expire during handshake */
-#endif
-
-#define DH_MIN_SIZE 1024
-#define DH_MAX_SIZE 8192
-
-enum kexlist {
-    KEXLIST_KEX, KEXLIST_HOSTKEY, KEXLIST_CSCIPHER, KEXLIST_SCCIPHER,
-    KEXLIST_CSMAC, KEXLIST_SCMAC, KEXLIST_CSCOMP, KEXLIST_SCCOMP,
-    NKEXLIST
-};
-#define MAXKEXLIST 16
-struct kexinit_algorithm {
-    const char *name;
-    union {
-        struct {
-            const struct ssh_kex *kex;
-            int warn;
-        } kex;
-        struct {
-            const ssh_keyalg *hostkey;
-            int warn;
-        } hk;
-        struct {
-            const struct ssh2_cipheralg *cipher;
-            int warn;
-        } cipher;
-        struct {
-            const struct ssh2_macalg *mac;
-            int etm;
-        } mac;
-        struct {
-            const struct ssh_compression_alg *comp;
-            int delayed;
-        } comp;
-    } u;
-};
-
-struct ssh_signkey_with_user_pref_id {
-    const ssh_keyalg *alg;
-    int id;
-};
-const static struct ssh_signkey_with_user_pref_id hostkey_algs[] = {
-    { &ssh_ecdsa_ed25519, HK_ED25519 },
-    { &ssh_ecdsa_nistp256, HK_ECDSA },
-    { &ssh_ecdsa_nistp384, HK_ECDSA },
-    { &ssh_ecdsa_nistp521, HK_ECDSA },
-    { &ssh_dss, HK_DSA },
-    { &ssh_rsa, HK_RSA },
+const struct ssh_signkey_with_user_pref_id ssh2_hostkey_algs[] = {
+    #define ARRAYENT_HOSTKEY_ALGORITHM(type, alg) { &alg, type },
+    HOSTKEY_ALGORITHMS(ARRAYENT_HOSTKEY_ALGORITHM)
 };
 
 const static struct ssh2_macalg *const macs[] = {
@@ -112,152 +60,6 @@ const static struct ssh_compression_alg *const compressions[] = {
     &ssh_zlib, &ssh_comp_none
 };
 
-/*
- * Enumeration of high-level classes of reason why we might need to do
- * a repeat key exchange. A full detailed reason in human-readable
- * string form for the Event Log is also provided, but this enum type
- * is used to discriminate between classes of reason that the code
- * needs to treat differently.
- *
- * RK_NONE == 0 is the value indicating that no rekey is currently
- * needed at all. RK_INITIAL indicates that we haven't even done the
- * _first_ key exchange yet. RK_SERVER indicates that we're rekeying
- * because the server asked for it, not because we decided it
- * ourselves. RK_NORMAL is the usual case. RK_GSS_UPDATE indicates
- * that we're rekeying because we've just got new GSSAPI credentials
- * (hence there's no point in doing a preliminary check for new GSS
- * creds, because we already know the answer); RK_POST_USERAUTH
- * indicates that _if_ we're going to need a post-userauth immediate
- * rekey for any reason, this is the moment to do it.
- *
- * So RK_POST_USERAUTH only tells the transport layer to _consider_
- * rekeying, not to definitely do it. Also, that one enum value is
- * special in that the user-readable reason text is passed in to the
- * transport layer as NULL, whereas fills in the reason text after it
- * decides whether it needs a rekey at all. In the other cases,
- * rekey_reason is passed in to the at the same time as rekey_class.
- */
-typedef enum RekeyClass {
-    RK_NONE = 0,
-    RK_INITIAL,
-    RK_SERVER,
-    RK_NORMAL,
-    RK_POST_USERAUTH,
-    RK_GSS_UPDATE
-} RekeyClass;
-
-struct ssh2_transport_state {
-    int crState;
-
-    PacketProtocolLayer *higher_layer;
-    PktInQueue pq_in_higher;
-    PktOutQueue pq_out_higher;
-    IdempotentCallback ic_pq_out_higher;
-
-    Conf *conf;
-    char *savedhost;
-    int savedport;
-    const char *rekey_reason;
-    enum RekeyClass rekey_class;
-
-    unsigned long max_data_size;
-
-    const struct ssh_kex *kex_alg;
-    const ssh_keyalg *hostkey_alg;
-    char *hostkey_str; /* string representation, for easy checking in rekeys */
-    unsigned char session_id[SSH2_KEX_MAX_HASH_LEN];
-    int session_id_len;
-    struct dh_ctx *dh_ctx;
-    ssh_hash *exhash;
-
-    struct DataTransferStats *stats;
-
-    char *client_greeting, *server_greeting;
-
-    int kex_in_progress;
-    unsigned long next_rekey, last_rekey;
-    const char *deferred_rekey_reason;
-    int higher_layer_ok;
-
-    /*
-     * Fully qualified host name, which we need if doing GSSAPI.
-     */
-    char *fullhostname;
-
-    /* shgss is outside the ifdef on purpose to keep APIs simple. If
-     * NO_GSSAPI is not defined, then it's just an opaque structure
-     * tag and the pointer will be NULL. */
-    struct ssh_connection_shared_gss_state *shgss;
-#ifndef NO_GSSAPI
-    int gss_status;
-    time_t gss_cred_expiry;             /* Re-delegate if newer */
-    unsigned long gss_ctxt_lifetime;    /* Re-delegate when short */
-    tree234 *transient_hostkey_cache;
-#endif
-
-    int gss_kex_used;
-
-    int nbits, pbits, warn_kex, warn_hk, warn_cscipher, warn_sccipher;
-    Bignum p, g, e, f, K;
-    void *our_kexinit;
-    int our_kexinitlen;
-    int kex_init_value, kex_reply_value;
-    const struct ssh2_macalg *const *maclist;
-    int nmacs;
-    struct {
-        const struct ssh2_cipheralg *cipher;
-        const struct ssh2_macalg *mac;
-        int etm_mode;
-        const struct ssh_compression_alg *comp;
-        int comp_delayed;
-    } in, out;
-    ptrlen hostkeydata, sigdata;
-    char *keystr, *fingerprint;
-    ssh_key *hkey;                     /* actual host key */
-    struct RSAKey *rsa_kex_key;             /* for RSA kex */
-    struct ec_key *ecdh_key;              /* for ECDH kex */
-    unsigned char exchange_hash[SSH2_KEX_MAX_HASH_LEN];
-    int n_preferred_kex;
-    int can_gssapi_keyex;
-    int need_gss_transient_hostkey;
-    int warned_about_no_gss_transient_hostkey;
-    const struct ssh_kexes *preferred_kex[KEX_MAX + 1]; /* +1 for GSSAPI */
-    int n_preferred_hk;
-    int preferred_hk[HK_MAX];
-    int n_preferred_ciphers;
-    const struct ssh2_ciphers *preferred_ciphers[CIPHER_MAX];
-    const struct ssh_compression_alg *preferred_comp;
-    int got_session_id;
-    int dlgret;
-    int guessok;
-    int ignorepkt;
-    struct kexinit_algorithm kexlists[NKEXLIST][MAXKEXLIST];
-#ifndef NO_GSSAPI
-    Ssh_gss_buf gss_buf;
-    Ssh_gss_buf gss_rcvtok, gss_sndtok;
-    Ssh_gss_stat gss_stat;
-    Ssh_gss_buf mic;
-    int init_token_sent;
-    int complete_rcvd;
-    int gss_delegate;
-#endif
-
-    /*
-     * List of host key algorithms for which we _don't_ have a stored
-     * host key. These are indices into the main hostkey_algs[] array
-     */
-    int uncert_hostkeys[lenof(hostkey_algs)];
-    int n_uncert_hostkeys;
-
-    /*
-     * Flag indicating that the current rekey is intended to finish
-     * with a newly cross-certified host key.
-     */
-    int cross_certifying;
-
-    PacketProtocolLayer ppl;
-};
-
 static void ssh2_transport_free(PacketProtocolLayer *);
 static void ssh2_transport_process_queue(PacketProtocolLayer *);
 static int ssh2_transport_get_specials(
@@ -268,7 +70,6 @@ static int ssh2_transport_want_user_input(PacketProtocolLayer *ppl);
 static void ssh2_transport_got_user_input(PacketProtocolLayer *ppl);
 static void ssh2_transport_reconfigure(PacketProtocolLayer *ppl, Conf *conf);
 
-static void ssh2_transport_dialog_callback(void *, int);
 static void ssh2_transport_set_max_data_size(struct ssh2_transport_state *s);
 static unsigned long sanitise_rekey_time(int rekey_time, unsigned long def);
 static void ssh2_transport_higher_layer_packet_callback(void *context);
@@ -287,16 +88,6 @@ static const struct PacketProtocolLayerVtable ssh2_transport_vtable = {
 #ifndef NO_GSSAPI
 static void ssh2_transport_gss_update(struct ssh2_transport_state *s,
                                       int definitely_rekeying);
-static void ssh_init_transient_hostkey_store(struct ssh2_transport_state *);
-static void ssh_cleanup_transient_hostkey_store(struct ssh2_transport_state *);
-static void ssh_store_transient_hostkey(
-    struct ssh2_transport_state *s, ssh_key *key);
-static int ssh_verify_transient_hostkey(
-    struct ssh2_transport_state *s, ssh_key *key);
-static int ssh_have_transient_hostkey(
-    struct ssh2_transport_state *s, const ssh_keyalg *alg);
-static int ssh_have_any_transient_hostkey(
-    struct ssh2_transport_state *s);
 #endif
 
 static int ssh2_transport_timer_update(struct ssh2_transport_state *s,
@@ -317,8 +108,8 @@ PacketProtocolLayer *ssh2_transport_new(
     Conf *conf, const char *host, int port, const char *fullhostname,
     const char *client_greeting, const char *server_greeting,
     struct ssh_connection_shared_gss_state *shgss,
-    struct DataTransferStats *stats,
-    PacketProtocolLayer *higher_layer)
+    struct DataTransferStats *stats, PacketProtocolLayer *higher_layer,
+    int is_server)
 {
     struct ssh2_transport_state *s = snew(struct ssh2_transport_state);
     memset(s, 0, sizeof(*s));
@@ -332,6 +123,7 @@ PacketProtocolLayer *ssh2_transport_new(
     s->client_greeting = dupstr(client_greeting);
     s->server_greeting = dupstr(server_greeting);
     s->stats = stats;
+    s->hostkeyblob = strbuf_new();
 
     pq_in_init(&s->pq_in_higher);
     pq_out_init(&s->pq_out_higher);
@@ -347,9 +139,21 @@ PacketProtocolLayer *ssh2_transport_new(
     s->gss_cred_expiry = GSS_NO_EXPIRATION;
     s->shgss->srv_name = GSS_C_NO_NAME;
     s->shgss->ctx = NULL;
-    ssh_init_transient_hostkey_store(s);
 #endif
+    s->thc = ssh_transient_hostkey_cache_new();
     s->gss_kex_used = FALSE;
+
+    s->outgoing_kexinit = strbuf_new();
+    s->incoming_kexinit = strbuf_new();
+    if (is_server) {
+        s->client_kexinit = s->incoming_kexinit;
+        s->server_kexinit = s->outgoing_kexinit;
+        s->out.mkkey_adjust = 1;
+    } else {
+        s->client_kexinit = s->outgoing_kexinit;
+        s->server_kexinit = s->incoming_kexinit;
+        s->in.mkkey_adjust = 1;
+    }
 
     ssh2_transport_set_max_data_size(s);
 
@@ -390,8 +194,9 @@ static void ssh2_transport_free(PacketProtocolLayer *ppl)
     sfree(s->server_greeting);
     sfree(s->keystr);
     sfree(s->hostkey_str);
+    strbuf_free(s->hostkeyblob);
     sfree(s->fingerprint);
-    if (s->hkey) {
+    if (s->hkey && !s->hostkeys) {
         ssh_key_free(s->hkey);
         s->hkey = NULL;
     }
@@ -407,9 +212,9 @@ static void ssh2_transport_free(PacketProtocolLayer *ppl)
         ssh_ecdhkex_freekey(s->ecdh_key);
     if (s->exhash)
         ssh_hash_free(s->exhash);
-#ifndef NO_GSSAPI
-    ssh_cleanup_transient_hostkey_store(s);
-#endif
+    strbuf_free(s->outgoing_kexinit);
+    strbuf_free(s->incoming_kexinit);
+    ssh_transient_hostkey_cache_free(s->thc);
     sfree(s);
 }
 
@@ -525,7 +330,7 @@ int ssh2_common_filter_queue(PacketProtocolLayer *ppl)
             msg = get_string(pktin);
 
             ssh_remote_error(
-                ppl->ssh, "Server sent disconnect message\n"
+                ppl->ssh, "Remote side sent disconnect message\n"
                 "type %d (%s):\n\"%.*s\"", reason,
                 ((reason > 0 && reason < lenof(ssh2_disconnect_reasons)) ?
                  ssh2_disconnect_reasons[reason] : "unknown"),
@@ -589,10 +394,569 @@ static int ssh2_transport_filter_queue(struct ssh2_transport_state *s)
     }
 }
 
-static PktIn *ssh2_transport_pop(struct ssh2_transport_state *s)
+PktIn *ssh2_transport_pop(struct ssh2_transport_state *s)
 {
     ssh2_transport_filter_queue(s);
     return pq_pop(s->ppl.in_pq);
+}
+
+static void ssh2_write_kexinit_lists(
+    BinarySink *pktout,
+    struct kexinit_algorithm kexlists[NKEXLIST][MAXKEXLIST],
+    Conf *conf, int remote_bugs,
+    const char *hk_host, int hk_port, const ssh_keyalg *hk_prev,
+    ssh_transient_hostkey_cache *thc,
+    ssh_key *const *our_hostkeys, int our_nhostkeys,
+    int first_time, int can_gssapi_keyex, int transient_hostkey_mode)
+{
+    int i, j, k, warn;
+
+    int n_preferred_kex;
+    const struct ssh_kexes *preferred_kex[KEX_MAX + 1]; /* +1 for GSSAPI */
+    int n_preferred_hk;
+    int preferred_hk[HK_MAX];
+    int n_preferred_ciphers;
+    const struct ssh2_ciphers *preferred_ciphers[CIPHER_MAX];
+    const struct ssh_compression_alg *preferred_comp;
+    const struct ssh2_macalg *const *maclist;
+    int nmacs;
+
+    struct kexinit_algorithm *alg;
+
+    /*
+     * Set up the preferred key exchange. (NULL => warn below here)
+     */
+    n_preferred_kex = 0;
+    if (can_gssapi_keyex)
+        preferred_kex[n_preferred_kex++] = &ssh_gssk5_sha1_kex;
+    for (i = 0; i < KEX_MAX; i++) {
+        switch (conf_get_int_int(conf, CONF_ssh_kexlist, i)) {
+          case KEX_DHGEX:
+            preferred_kex[n_preferred_kex++] =
+                &ssh_diffiehellman_gex;
+            break;
+          case KEX_DHGROUP14:
+            preferred_kex[n_preferred_kex++] =
+                &ssh_diffiehellman_group14;
+            break;
+          case KEX_DHGROUP1:
+            preferred_kex[n_preferred_kex++] =
+                &ssh_diffiehellman_group1;
+            break;
+          case KEX_RSA:
+            preferred_kex[n_preferred_kex++] =
+                &ssh_rsa_kex;
+            break;
+          case KEX_ECDH:
+            preferred_kex[n_preferred_kex++] =
+                &ssh_ecdh_kex;
+            break;
+          case KEX_WARN:
+            /* Flag for later. Don't bother if it's the last in
+             * the list. */
+            if (i < KEX_MAX - 1) {
+                preferred_kex[n_preferred_kex++] = NULL;
+            }
+            break;
+        }
+    }
+
+    /*
+     * Set up the preferred host key types. These are just the ids
+     * in the enum in putty.h, so 'warn below here' is indicated
+     * by HK_WARN.
+     */
+    n_preferred_hk = 0;
+    for (i = 0; i < HK_MAX; i++) {
+        int id = conf_get_int_int(conf, CONF_ssh_hklist, i);
+        /* As above, don't bother with HK_WARN if it's last in the
+         * list */
+        if (id != HK_WARN || i < HK_MAX - 1)
+            preferred_hk[n_preferred_hk++] = id;
+    }
+
+    /*
+     * Set up the preferred ciphers. (NULL => warn below here)
+     */
+    n_preferred_ciphers = 0;
+    for (i = 0; i < CIPHER_MAX; i++) {
+        switch (conf_get_int_int(conf, CONF_ssh_cipherlist, i)) {
+          case CIPHER_BLOWFISH:
+            preferred_ciphers[n_preferred_ciphers++] = &ssh2_blowfish;
+            break;
+          case CIPHER_DES:
+            if (conf_get_int(conf, CONF_ssh2_des_cbc))
+                preferred_ciphers[n_preferred_ciphers++] = &ssh2_des;
+            break;
+          case CIPHER_3DES:
+            preferred_ciphers[n_preferred_ciphers++] = &ssh2_3des;
+            break;
+          case CIPHER_AES:
+            preferred_ciphers[n_preferred_ciphers++] = &ssh2_aes;
+            break;
+          case CIPHER_ARCFOUR:
+            preferred_ciphers[n_preferred_ciphers++] = &ssh2_arcfour;
+            break;
+          case CIPHER_CHACHA20:
+            preferred_ciphers[n_preferred_ciphers++] = &ssh2_ccp;
+            break;
+          case CIPHER_WARN:
+            /* Flag for later. Don't bother if it's the last in
+             * the list. */
+            if (i < CIPHER_MAX - 1) {
+                preferred_ciphers[n_preferred_ciphers++] = NULL;
+            }
+            break;
+        }
+    }
+
+    /*
+     * Set up preferred compression.
+     */
+    if (conf_get_int(conf, CONF_compression))
+        preferred_comp = &ssh_zlib;
+    else
+        preferred_comp = &ssh_comp_none;
+
+    for (i = 0; i < NKEXLIST; i++)
+        for (j = 0; j < MAXKEXLIST; j++)
+            kexlists[i][j].name = NULL;
+    /* List key exchange algorithms. */
+    warn = FALSE;
+    for (i = 0; i < n_preferred_kex; i++) {
+        const struct ssh_kexes *k = preferred_kex[i];
+        if (!k) warn = TRUE;
+        else for (j = 0; j < k->nkexes; j++) {
+                alg = ssh2_kexinit_addalg(kexlists[KEXLIST_KEX],
+                                          k->list[j]->name);
+                alg->u.kex.kex = k->list[j];
+                alg->u.kex.warn = warn;
+            }
+    }
+    /* List server host key algorithms. */
+    if (our_hostkeys) {
+        /*
+         * In server mode, we just list the algorithms that match the
+         * host keys we actually have.
+         */
+        for (i = 0; i < our_nhostkeys; i++) {
+            alg = ssh2_kexinit_addalg(kexlists[KEXLIST_HOSTKEY],
+                                      ssh_key_alg(our_hostkeys[i])->ssh_id);
+            alg->u.hk.hostkey = ssh_key_alg(our_hostkeys[i]);
+            alg->u.hk.warn = FALSE;
+        }
+    } else if (first_time) {
+        /*
+         * In the first key exchange, we list all the algorithms
+         * we're prepared to cope with, but prefer those algorithms
+         * for which we have a host key for this host.
+         *
+         * If the host key algorithm is below the warning
+         * threshold, we warn even if we did already have a key
+         * for it, on the basis that if the user has just
+         * reconfigured that host key type to be warned about,
+         * they surely _do_ want to be alerted that a server
+         * they're actually connecting to is using it.
+         */
+        warn = FALSE;
+        for (i = 0; i < n_preferred_hk; i++) {
+            if (preferred_hk[i] == HK_WARN)
+                warn = TRUE;
+            for (j = 0; j < lenof(ssh2_hostkey_algs); j++) {
+                if (ssh2_hostkey_algs[j].id != preferred_hk[i])
+                    continue;
+                if (have_ssh_host_key(hk_host, hk_port,
+                                      ssh2_hostkey_algs[j].alg->cache_id)) {
+                    alg = ssh2_kexinit_addalg(kexlists[KEXLIST_HOSTKEY],
+                                              ssh2_hostkey_algs[j].alg->ssh_id);
+                    alg->u.hk.hostkey = ssh2_hostkey_algs[j].alg;
+                    alg->u.hk.warn = warn;
+                }
+            }
+        }
+        warn = FALSE;
+        for (i = 0; i < n_preferred_hk; i++) {
+            if (preferred_hk[i] == HK_WARN)
+                warn = TRUE;
+            for (j = 0; j < lenof(ssh2_hostkey_algs); j++) {
+                if (ssh2_hostkey_algs[j].id != preferred_hk[i])
+                    continue;
+                alg = ssh2_kexinit_addalg(kexlists[KEXLIST_HOSTKEY],
+                                          ssh2_hostkey_algs[j].alg->ssh_id);
+                alg->u.hk.hostkey = ssh2_hostkey_algs[j].alg;
+                alg->u.hk.warn = warn;
+            }
+        }
+#ifndef NO_GSSAPI
+    } else if (transient_hostkey_mode) {
+        /*
+         * If we've previously done a GSSAPI KEX, then we list
+         * precisely the algorithms for which a previous GSS key
+         * exchange has delivered us a host key, because we expect
+         * one of exactly those keys to be used in any subsequent
+         * non-GSS-based rekey.
+         *
+         * An exception is if this is the key exchange we
+         * triggered for the purposes of populating that cache -
+         * in which case the cache will currently be empty, which
+         * isn't helpful!
+         */
+        warn = FALSE;
+        for (i = 0; i < n_preferred_hk; i++) {
+            if (preferred_hk[i] == HK_WARN)
+                warn = TRUE;
+            for (j = 0; j < lenof(ssh2_hostkey_algs); j++) {
+                if (ssh2_hostkey_algs[j].id != preferred_hk[i])
+                    continue;
+                if (ssh_transient_hostkey_cache_has(
+                        thc, ssh2_hostkey_algs[j].alg)) {
+                    alg = ssh2_kexinit_addalg(kexlists[KEXLIST_HOSTKEY],
+                                              ssh2_hostkey_algs[j].alg->ssh_id);
+                    alg->u.hk.hostkey = ssh2_hostkey_algs[j].alg;
+                    alg->u.hk.warn = warn;
+                }
+            }
+        }
+#endif
+    } else {
+        /*
+         * In subsequent key exchanges, we list only the host key
+         * algorithm that was selected in the first key exchange,
+         * so that we keep getting the same host key and hence
+         * don't have to interrupt the user's session to ask for
+         * reverification.
+         */
+        assert(hk_prev);
+        alg = ssh2_kexinit_addalg(kexlists[KEXLIST_HOSTKEY], hk_prev->ssh_id);
+        alg->u.hk.hostkey = hk_prev;
+        alg->u.hk.warn = FALSE;
+    }
+    if (can_gssapi_keyex) {
+        alg = ssh2_kexinit_addalg(kexlists[KEXLIST_HOSTKEY], "null");
+        alg->u.hk.hostkey = NULL;
+    }
+    /* List encryption algorithms (client->server then server->client). */
+    for (k = KEXLIST_CSCIPHER; k <= KEXLIST_SCCIPHER; k++) {
+        warn = FALSE;
+#ifdef FUZZING
+        alg = ssh2_kexinit_addalg(kexlists[k], "none");
+        alg->u.cipher.cipher = NULL;
+        alg->u.cipher.warn = warn;
+#endif /* FUZZING */
+        for (i = 0; i < n_preferred_ciphers; i++) {
+            const struct ssh2_ciphers *c = preferred_ciphers[i];
+            if (!c) warn = TRUE;
+            else for (j = 0; j < c->nciphers; j++) {
+                    alg = ssh2_kexinit_addalg(kexlists[k],
+                                              c->list[j]->name);
+                    alg->u.cipher.cipher = c->list[j];
+                    alg->u.cipher.warn = warn;
+                }
+        }
+    }
+
+    /*
+     * Be prepared to work around the buggy MAC problem.
+     */
+    if (remote_bugs & BUG_SSH2_HMAC) {
+        maclist = buggymacs;
+        nmacs = lenof(buggymacs);
+    } else {
+        maclist = macs;
+        nmacs = lenof(macs);
+    }
+
+    /* List MAC algorithms (client->server then server->client). */
+    for (j = KEXLIST_CSMAC; j <= KEXLIST_SCMAC; j++) {
+#ifdef FUZZING
+        alg = ssh2_kexinit_addalg(kexlists[j], "none");
+        alg->u.mac.mac = NULL;
+        alg->u.mac.etm = FALSE;
+#endif /* FUZZING */
+        for (i = 0; i < nmacs; i++) {
+            alg = ssh2_kexinit_addalg(kexlists[j], maclist[i]->name);
+            alg->u.mac.mac = maclist[i];
+            alg->u.mac.etm = FALSE;
+        }
+        for (i = 0; i < nmacs; i++) {
+            /* For each MAC, there may also be an ETM version,
+             * which we list second. */
+            if (maclist[i]->etm_name) {
+                alg = ssh2_kexinit_addalg(kexlists[j], maclist[i]->etm_name);
+                alg->u.mac.mac = maclist[i];
+                alg->u.mac.etm = TRUE;
+            }
+        }
+    }
+
+    /* List client->server compression algorithms,
+     * then server->client compression algorithms. (We use the
+     * same set twice.) */
+    for (j = KEXLIST_CSCOMP; j <= KEXLIST_SCCOMP; j++) {
+        assert(lenof(compressions) > 1);
+        /* Prefer non-delayed versions */
+        alg = ssh2_kexinit_addalg(kexlists[j], preferred_comp->name);
+        alg->u.comp.comp = preferred_comp;
+        alg->u.comp.delayed = FALSE;
+        if (preferred_comp->delayed_name) {
+            alg = ssh2_kexinit_addalg(kexlists[j],
+                                      preferred_comp->delayed_name);
+            alg->u.comp.comp = preferred_comp;
+            alg->u.comp.delayed = TRUE;
+        }
+        for (i = 0; i < lenof(compressions); i++) {
+            const struct ssh_compression_alg *c = compressions[i];
+            alg = ssh2_kexinit_addalg(kexlists[j], c->name);
+            alg->u.comp.comp = c;
+            alg->u.comp.delayed = FALSE;
+            if (c->delayed_name) {
+                alg = ssh2_kexinit_addalg(kexlists[j], c->delayed_name);
+                alg->u.comp.comp = c;
+                alg->u.comp.delayed = TRUE;
+            }
+        }
+    }
+
+    /*
+     * Finally, format the lists into text and write them into the
+     * outgoing KEXINIT packet.
+     */
+    for (i = 0; i < NKEXLIST; i++) {
+        strbuf *list = strbuf_new();
+        for (j = 0; j < MAXKEXLIST; j++) {
+            if (kexlists[i][j].name == NULL) break;
+            add_to_commasep(list, kexlists[i][j].name);
+        }
+        put_stringsb(pktout, list);
+    }
+    /* List client->server languages. Empty list. */
+    put_stringz(pktout, "");
+    /* List server->client languages. Empty list. */
+    put_stringz(pktout, "");
+}
+
+static int ssh2_scan_kexinits(
+    ptrlen client_kexinit, ptrlen server_kexinit,
+    struct kexinit_algorithm kexlists[NKEXLIST][MAXKEXLIST],
+    const struct ssh_kex **kex_alg, const ssh_keyalg **hostkey_alg,
+    transport_direction *cs, transport_direction *sc,
+    int *warn_kex, int *warn_hk, int *warn_cscipher, int *warn_sccipher,
+    Ssh *ssh, int *ignore_guess_cs_packet, int *ignore_guess_sc_packet,
+    int *n_server_hostkeys, int server_hostkeys[MAXKEXLIST])
+{
+    BinarySource client[1], server[1];
+    int i;
+    int guess_correct;
+    ptrlen clists[NKEXLIST], slists[NKEXLIST];
+    const struct kexinit_algorithm *selected[NKEXLIST];
+
+    BinarySource_BARE_INIT(client, client_kexinit.ptr, client_kexinit.len);
+    BinarySource_BARE_INIT(server, server_kexinit.ptr, server_kexinit.len);
+
+    /* Skip packet type bytes and random cookies. */
+    get_data(client, 1 + 16);
+    get_data(server, 1 + 16);
+
+    guess_correct = TRUE;
+
+    /* Find the matching string in each list, and map it to its
+     * kexinit_algorithm structure. */
+    for (i = 0; i < NKEXLIST; i++) {
+        ptrlen clist, slist, cword, sword, found;
+        int cfirst, sfirst, j;
+
+        clists[i] = get_string(client);
+        slists[i] = get_string(server);
+        if (get_err(client) || get_err(server)) {
+            /* Report a better error than the spurious "Couldn't
+             * agree" that we'd generate if we pressed on regardless
+             * and treated the empty get_string() result as genuine */
+            ssh_proto_error(ssh, "KEXINIT packet was incomplete");
+            return FALSE;
+        }
+
+        for (cfirst = TRUE, clist = clists[i];
+             get_commasep_word(&clist, &cword); cfirst = FALSE)
+            for (sfirst = TRUE, slist = slists[i];
+                 get_commasep_word(&slist, &sword); sfirst = FALSE)
+                if (ptrlen_eq_ptrlen(cword, sword)) {
+                    found = cword;
+                    goto found_match;
+                }
+
+        /* No matching string found in the two lists. Delay reporting
+         * a fatal error until below, because sometimes it turns out
+         * not to be fatal. */
+        selected[i] = NULL;
+
+        /*
+         * However, even if a failure to agree on any algorithm at all
+         * is not completely fatal (e.g. because it's the MAC
+         * negotiation for a cipher that comes with a built-in MAC),
+         * it still invalidates the guessed key exchange packet. (RFC
+         * 4253 section 7, not contradicted by OpenSSH's
+         * PROTOCOL.chacha20poly1305 or as far as I can see by their
+         * code.)
+         */
+        guess_correct = FALSE;
+
+        continue;
+
+      found_match:
+
+        selected[i] = NULL;
+        for (j = 0; j < MAXKEXLIST; j++) {
+            if (ptrlen_eq_string(found, kexlists[i][j].name)) {
+                selected[i] = &kexlists[i][j];
+                break;
+            }
+        }
+        assert(selected[i]); /* kexlists[] must cover one of the inputs */
+
+        /*
+         * If the kex or host key algorithm is not the first one in
+         * both sides' lists, that means the guessed key exchange
+         * packet (if any) is officially wrong.
+         */
+        if ((i == KEXLIST_KEX || i == KEXLIST_HOSTKEY) && !(cfirst || sfirst))
+            guess_correct = FALSE;
+    }
+
+    /*
+     * Skip language strings in both KEXINITs, and read the flags
+     * saying whether a guessed KEX packet follows.
+     */
+    get_string(client);
+    get_string(client);
+    get_string(server);
+    get_string(server);
+    if (ignore_guess_cs_packet)
+        *ignore_guess_cs_packet = get_bool(client) && !guess_correct;
+    if (ignore_guess_sc_packet)
+        *ignore_guess_sc_packet = get_bool(server) && !guess_correct;
+
+    /*
+     * Now transcribe the selected algorithm set into the output data.
+     */
+    for (i = 0; i < NKEXLIST; i++) {
+        const struct kexinit_algorithm *alg;
+
+        /*
+         * If we've already selected a cipher which requires a
+         * particular MAC, then just select that. This is the case in
+         * which it's not a fatal error if the actual MAC string lists
+         * didn't include any matching error.
+         */
+        if (i == KEXLIST_CSMAC && cs->cipher &&
+            cs->cipher->required_mac) {
+            cs->mac = cs->cipher->required_mac;
+            cs->etm_mode = !!(cs->mac->etm_name);
+            continue;
+        }
+        if (i == KEXLIST_SCMAC && sc->cipher &&
+            sc->cipher->required_mac) {
+            sc->mac = sc->cipher->required_mac;
+            sc->etm_mode = !!(sc->mac->etm_name);
+            continue;
+        }
+
+        alg = selected[i];
+        if (!alg) {
+            /*
+             * Otherwise, any match failure _is_ a fatal error.
+             */
+            ssh_sw_abort(ssh, "Couldn't agree a %s (available: %.*s)",
+                         kexlist_descr[i], PTRLEN_PRINTF(slists[i]));
+            return FALSE;
+        }
+
+        switch (i) {
+          case KEXLIST_KEX:
+            *kex_alg = alg->u.kex.kex;
+            *warn_kex = alg->u.kex.warn;
+            break;
+
+          case KEXLIST_HOSTKEY:
+            /*
+             * Ignore an unexpected/inappropriate offer of "null",
+             * we offer "null" when we're willing to use GSS KEX,
+             * but it is only acceptable when GSSKEX is actually
+             * selected.
+             */
+            if (alg->u.hk.hostkey == NULL &&
+                (*kex_alg)->main_type != KEXTYPE_GSS)
+                continue;
+
+            *hostkey_alg = alg->u.hk.hostkey;
+            *warn_hk = alg->u.hk.warn;
+            break;
+
+          case KEXLIST_CSCIPHER:
+            cs->cipher = alg->u.cipher.cipher;
+            *warn_cscipher = alg->u.cipher.warn;
+            break;
+
+          case KEXLIST_SCCIPHER:
+            sc->cipher = alg->u.cipher.cipher;
+            *warn_sccipher = alg->u.cipher.warn;
+            break;
+
+          case KEXLIST_CSMAC:
+            cs->mac = alg->u.mac.mac;
+            cs->etm_mode = alg->u.mac.etm;
+            break;
+
+          case KEXLIST_SCMAC:
+            sc->mac = alg->u.mac.mac;
+            sc->etm_mode = alg->u.mac.etm;
+            break;
+
+          case KEXLIST_CSCOMP:
+            cs->comp = alg->u.comp.comp;
+            cs->comp_delayed = alg->u.comp.delayed;
+            break;
+
+          case KEXLIST_SCCOMP:
+            sc->comp = alg->u.comp.comp;
+            sc->comp_delayed = alg->u.comp.delayed;
+            break;
+
+          default:
+            assert(FALSE && "Bad list index in scan_kexinits");
+        }
+    }
+
+    if (server_hostkeys) {
+        /*
+         * Finally, make an auxiliary pass over the server's host key
+         * list to find all the host key algorithms offered by the
+         * server which we know about at all, whether we selected each
+         * one or not. We return these as a list of indices into the
+         * constant ssh2_hostkey_algs[] array.
+         */
+        *n_server_hostkeys = 0;
+
+        for (i = 0; i < lenof(ssh2_hostkey_algs); i++)
+            if (in_commasep_string(ssh2_hostkey_algs[i].alg->ssh_id,
+                                   slists[KEXLIST_HOSTKEY].ptr,
+                                   slists[KEXLIST_HOSTKEY].len))
+                server_hostkeys[(*n_server_hostkeys)++] = i;
+    }
+
+    return TRUE;
+}
+
+void ssh2transport_finalise_exhash(struct ssh2_transport_state *s)
+{
+    put_mp_ssh2(s->exhash, s->K);
+    assert(ssh_hash_alg(s->exhash)->hlen <= sizeof(s->exchange_hash));
+    ssh_hash_final(s->exhash, s->exchange_hash);
+    s->exhash = NULL;
+
+#if 0
+    debug(("Exchange hash is:\n"));
+    dmemdump(s->exchange_hash, s->kex_alg->hash->hlen);
+#endif
 }
 
 static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
@@ -618,14 +982,6 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
     s->got_session_id = FALSE;
     s->need_gss_transient_hostkey = FALSE;
     s->warned_about_no_gss_transient_hostkey = FALSE;
-
-    /*
-     * Be prepared to work around the buggy MAC problem.
-     */
-    if (s->ppl.remote_bugs & BUG_SSH2_HMAC)
-        s->maclist = buggymacs, s->nmacs = lenof(buggymacs);
-    else
-        s->maclist = macs, s->nmacs = lenof(macs);
 
   begin_key_exchange:
 
@@ -677,1410 +1033,206 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
 #endif
 
     s->ppl.bpp->pls->kctx = SSH2_PKTCTX_NOKEX;
-    {
-        int i, j, k, warn;
-        struct kexinit_algorithm *alg;
-
-        /*
-         * Set up the preferred key exchange. (NULL => warn below here)
-         */
-        s->n_preferred_kex = 0;
-        if (s->can_gssapi_keyex)
-            s->preferred_kex[s->n_preferred_kex++] = &ssh_gssk5_sha1_kex;
-        for (i = 0; i < KEX_MAX; i++) {
-	    switch (conf_get_int_int(s->conf, CONF_ssh_kexlist, i)) {
-              case KEX_DHGEX:
-                s->preferred_kex[s->n_preferred_kex++] =
-                    &ssh_diffiehellman_gex;
-                break;
-              case KEX_DHGROUP14:
-                s->preferred_kex[s->n_preferred_kex++] =
-                    &ssh_diffiehellman_group14;
-                break;
-              case KEX_DHGROUP1:
-                s->preferred_kex[s->n_preferred_kex++] =
-                    &ssh_diffiehellman_group1;
-                break;
-              case KEX_RSA:
-                s->preferred_kex[s->n_preferred_kex++] =
-                    &ssh_rsa_kex;
-                break;
-              case KEX_ECDH:
-                s->preferred_kex[s->n_preferred_kex++] =
-                    &ssh_ecdh_kex;
-                break;
-              case KEX_WARN:
-                /* Flag for later. Don't bother if it's the last in
-                 * the list. */
-                if (i < KEX_MAX - 1) {
-                    s->preferred_kex[s->n_preferred_kex++] = NULL;
-                }
-                break;
-            }
-        }
-
-        /*
-         * Set up the preferred host key types. These are just the ids
-         * in the enum in putty.h, so 'warn below here' is indicated
-         * by HK_WARN.
-         */
-        s->n_preferred_hk = 0;
-        for (i = 0; i < HK_MAX; i++) {
-            int id = conf_get_int_int(s->conf, CONF_ssh_hklist, i);
-            /* As above, don't bother with HK_WARN if it's last in the
-             * list */
-            if (id != HK_WARN || i < HK_MAX - 1)
-                s->preferred_hk[s->n_preferred_hk++] = id;
-        }
-
-        /*
-         * Set up the preferred ciphers. (NULL => warn below here)
-         */
-        s->n_preferred_ciphers = 0;
-	for (i = 0; i < CIPHER_MAX; i++) {
-	    switch (conf_get_int_int(s->conf, CONF_ssh_cipherlist, i)) {
-              case CIPHER_BLOWFISH:
-                s->preferred_ciphers[s->n_preferred_ciphers++] = &ssh2_blowfish;
-                break;
-              case CIPHER_DES:
-		if (conf_get_int(s->conf, CONF_ssh2_des_cbc))
-                    s->preferred_ciphers[s->n_preferred_ciphers++] = &ssh2_des;
-                break;
-              case CIPHER_3DES:
-                s->preferred_ciphers[s->n_preferred_ciphers++] = &ssh2_3des;
-                break;
-              case CIPHER_AES:
-                s->preferred_ciphers[s->n_preferred_ciphers++] = &ssh2_aes;
-                break;
-              case CIPHER_ARCFOUR:
-                s->preferred_ciphers[s->n_preferred_ciphers++] = &ssh2_arcfour;
-                break;
-              case CIPHER_CHACHA20:
-                s->preferred_ciphers[s->n_preferred_ciphers++] = &ssh2_ccp;
-                break;
-              case CIPHER_WARN:
-                /* Flag for later. Don't bother if it's the last in
-                 * the list. */
-                if (i < CIPHER_MAX - 1) {
-                    s->preferred_ciphers[s->n_preferred_ciphers++] = NULL;
-                }
-                break;
-            }
-        }
-
-        /*
-         * Set up preferred compression.
-         */
-	if (conf_get_int(s->conf, CONF_compression))
-            s->preferred_comp = &ssh_zlib;
-        else
-            s->preferred_comp = &ssh_comp_none;
-
-        /*
-         * Flag that KEX is in progress.
-         */
-        s->kex_in_progress = TRUE;
-
-        for (i = 0; i < NKEXLIST; i++)
-            for (j = 0; j < MAXKEXLIST; j++)
-                s->kexlists[i][j].name = NULL;
-        /* List key exchange algorithms. */
-        warn = FALSE;
-        for (i = 0; i < s->n_preferred_kex; i++) {
-            const struct ssh_kexes *k = s->preferred_kex[i];
-            if (!k) warn = TRUE;
-            else for (j = 0; j < k->nkexes; j++) {
-                    alg = ssh2_kexinit_addalg(s->kexlists[KEXLIST_KEX],
-                                              k->list[j]->name);
-                    alg->u.kex.kex = k->list[j];
-                    alg->u.kex.warn = warn;
-                }
-        }
-        /* List server host key algorithms. */
-        if (!s->got_session_id) {
-            /*
-             * In the first key exchange, we list all the algorithms
-             * we're prepared to cope with, but prefer those algorithms
-             * for which we have a host key for this host.
-             *
-             * If the host key algorithm is below the warning
-             * threshold, we warn even if we did already have a key
-             * for it, on the basis that if the user has just
-             * reconfigured that host key type to be warned about,
-             * they surely _do_ want to be alerted that a server
-             * they're actually connecting to is using it.
-             */
-            warn = FALSE;
-            for (i = 0; i < s->n_preferred_hk; i++) {
-                if (s->preferred_hk[i] == HK_WARN)
-                    warn = TRUE;
-                for (j = 0; j < lenof(hostkey_algs); j++) {
-                    if (hostkey_algs[j].id != s->preferred_hk[i])
-                        continue;
-                    if (have_ssh_host_key(s->savedhost, s->savedport,
-                                          hostkey_algs[j].alg->cache_id)) {
-                        alg = ssh2_kexinit_addalg(s->kexlists[KEXLIST_HOSTKEY],
-                                                  hostkey_algs[j].alg->ssh_id);
-                        alg->u.hk.hostkey = hostkey_algs[j].alg;
-                        alg->u.hk.warn = warn;
-                    }
-                }
-            }
-            warn = FALSE;
-            for (i = 0; i < s->n_preferred_hk; i++) {
-                if (s->preferred_hk[i] == HK_WARN)
-                    warn = TRUE;
-                for (j = 0; j < lenof(hostkey_algs); j++) {
-                    if (hostkey_algs[j].id != s->preferred_hk[i])
-                        continue;
-                    alg = ssh2_kexinit_addalg(s->kexlists[KEXLIST_HOSTKEY],
-                                              hostkey_algs[j].alg->ssh_id);
-                    alg->u.hk.hostkey = hostkey_algs[j].alg;
-                    alg->u.hk.warn = warn;
-                }
-            }
-#ifndef NO_GSSAPI
-        } else if (s->gss_kex_used && !s->need_gss_transient_hostkey) {
-            /*
-             * If we've previously done a GSSAPI KEX, then we list
-             * precisely the algorithms for which a previous GSS key
-             * exchange has delivered us a host key, because we expect
-             * one of exactly those keys to be used in any subsequent
-             * non-GSS-based rekey.
-             *
-             * An exception is if this is the key exchange we
-             * triggered for the purposes of populating that cache -
-             * in which case the cache will currently be empty, which
-             * isn't helpful!
-             */
-            warn = FALSE;
-            for (i = 0; i < s->n_preferred_hk; i++) {
-                if (s->preferred_hk[i] == HK_WARN)
-                    warn = TRUE;
-                for (j = 0; j < lenof(hostkey_algs); j++) {
-                    if (hostkey_algs[j].id != s->preferred_hk[i])
-                        continue;
-                    if (ssh_have_transient_hostkey(s, hostkey_algs[j].alg)) {
-                        alg = ssh2_kexinit_addalg(s->kexlists[KEXLIST_HOSTKEY],
-                                                  hostkey_algs[j].alg->ssh_id);
-                        alg->u.hk.hostkey = hostkey_algs[j].alg;
-                        alg->u.hk.warn = warn;
-                    }
-                }
-            }
-#endif
-        } else {
-            /*
-             * In subsequent key exchanges, we list only the kex
-             * algorithm that was selected in the first key exchange,
-             * so that we keep getting the same host key and hence
-             * don't have to interrupt the user's session to ask for
-             * reverification.
-             */
-            assert(s->kex_alg);
-            alg = ssh2_kexinit_addalg(s->kexlists[KEXLIST_HOSTKEY],
-                                      s->hostkey_alg->ssh_id);
-            alg->u.hk.hostkey = s->hostkey_alg;
-            alg->u.hk.warn = FALSE;
-        }
-        if (s->can_gssapi_keyex) {
-            alg = ssh2_kexinit_addalg(s->kexlists[KEXLIST_HOSTKEY], "null");
-            alg->u.hk.hostkey = NULL;
-        }
-        /* List encryption algorithms (client->server then server->client). */
-        for (k = KEXLIST_CSCIPHER; k <= KEXLIST_SCCIPHER; k++) {
-            warn = FALSE;
-#ifdef FUZZING
-            alg = ssh2_kexinit_addalg(s->kexlists[k], "none");
-            alg->u.cipher.cipher = NULL;
-            alg->u.cipher.warn = warn;
-#endif /* FUZZING */
-            for (i = 0; i < s->n_preferred_ciphers; i++) {
-                const struct ssh2_ciphers *c = s->preferred_ciphers[i];
-                if (!c) warn = TRUE;
-                else for (j = 0; j < c->nciphers; j++) {
-                        alg = ssh2_kexinit_addalg(s->kexlists[k],
-                                                  c->list[j]->name);
-                        alg->u.cipher.cipher = c->list[j];
-                        alg->u.cipher.warn = warn;
-                    }
-            }
-        }
-        /* List MAC algorithms (client->server then server->client). */
-        for (j = KEXLIST_CSMAC; j <= KEXLIST_SCMAC; j++) {
-#ifdef FUZZING
-            alg = ssh2_kexinit_addalg(s->kexlists[j], "none");
-            alg->u.mac.mac = NULL;
-            alg->u.mac.etm = FALSE;
-#endif /* FUZZING */
-            for (i = 0; i < s->nmacs; i++) {
-                alg = ssh2_kexinit_addalg(s->kexlists[j], s->maclist[i]->name);
-                alg->u.mac.mac = s->maclist[i];
-                alg->u.mac.etm = FALSE;
-            }
-            for (i = 0; i < s->nmacs; i++)
-                /* For each MAC, there may also be an ETM version,
-                 * which we list second. */
-                if (s->maclist[i]->etm_name) {
-                    alg = ssh2_kexinit_addalg(s->kexlists[j],
-                                              s->maclist[i]->etm_name);
-                    alg->u.mac.mac = s->maclist[i];
-                    alg->u.mac.etm = TRUE;
-                }
-        }
-        /* List client->server compression algorithms,
-         * then server->client compression algorithms. (We use the
-         * same set twice.) */
-        for (j = KEXLIST_CSCOMP; j <= KEXLIST_SCCOMP; j++) {
-            assert(lenof(compressions) > 1);
-            /* Prefer non-delayed versions */
-            alg = ssh2_kexinit_addalg(s->kexlists[j], s->preferred_comp->name);
-            alg->u.comp.comp = s->preferred_comp;
-            alg->u.comp.delayed = FALSE;
-            if (s->preferred_comp->delayed_name) {
-                alg = ssh2_kexinit_addalg(s->kexlists[j],
-                                          s->preferred_comp->delayed_name);
-                alg->u.comp.comp = s->preferred_comp;
-                alg->u.comp.delayed = TRUE;
-            }
-            for (i = 0; i < lenof(compressions); i++) {
-                const struct ssh_compression_alg *c = compressions[i];
-                alg = ssh2_kexinit_addalg(s->kexlists[j], c->name);
-                alg->u.comp.comp = c;
-                alg->u.comp.delayed = FALSE;
-                if (c->delayed_name) {
-                    alg = ssh2_kexinit_addalg(s->kexlists[j], c->delayed_name);
-                    alg->u.comp.comp = c;
-                    alg->u.comp.delayed = TRUE;
-                }
-            }
-        }
-        /*
-         * Construct and send our key exchange packet.
-         */
-        pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_KEXINIT);
-        for (i = 0; i < 16; i++)
-            put_byte(pktout, (unsigned char) random_byte());
-        for (i = 0; i < NKEXLIST; i++) {
-            strbuf *list = strbuf_new();
-            for (j = 0; j < MAXKEXLIST; j++) {
-                if (s->kexlists[i][j].name == NULL) break;
-                add_to_commasep(list, s->kexlists[i][j].name);
-            }
-            put_stringsb(pktout, list);
-        }
-        /* List client->server languages. Empty list. */
-        put_stringz(pktout, "");
-        /* List server->client languages. Empty list. */
-        put_stringz(pktout, "");
-        /* First KEX packet does _not_ follow, because we're not that brave. */
-        put_bool(pktout, FALSE);
-        /* Reserved. */
-        put_uint32(pktout, 0);
-    }
-
-    s->our_kexinitlen = pktout->length - 5;
-    s->our_kexinit = snewn(s->our_kexinitlen, unsigned char);
-    memcpy(s->our_kexinit, pktout->data + 5, s->our_kexinitlen);
-
-    pq_push(s->ppl.out_pq, pktout);
-
-    crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
 
     /*
-     * Now examine the other side's KEXINIT to see what we're up
-     * to.
+     * Construct our KEXINIT packet, in a strbuf so we can refer to it
+     * later.
+     */
+    s->client_kexinit->len = 0;
+    put_byte(s->outgoing_kexinit, SSH2_MSG_KEXINIT);
+    {
+        int i;
+        for (i = 0; i < 16; i++)
+            put_byte(s->outgoing_kexinit, (unsigned char) random_byte());
+    }
+    ssh2_write_kexinit_lists(
+        BinarySink_UPCAST(s->outgoing_kexinit), s->kexlists,
+        s->conf, s->ppl.remote_bugs,
+        s->savedhost, s->savedport, s->hostkey_alg, s->thc,
+        s->hostkeys, s->nhostkeys,
+        !s->got_session_id, s->can_gssapi_keyex,
+        s->gss_kex_used && !s->need_gss_transient_hostkey);
+    /* First KEX packet does _not_ follow, because we're not that brave. */
+    put_bool(s->outgoing_kexinit, FALSE);
+    put_uint32(s->outgoing_kexinit, 0);             /* reserved */
+
+    /*
+     * Send our KEXINIT.
+     */
+    pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_KEXINIT);
+    put_data(pktout, s->outgoing_kexinit->u + 1,
+             s->outgoing_kexinit->len - 1); /* omit initial packet type byte */
+    pq_push(s->ppl.out_pq, pktout);
+
+    /*
+     * Flag that KEX is in progress.
+     */
+    s->kex_in_progress = TRUE;
+
+    /*
+     * Wait for the other side's KEXINIT, and save it.
+     */
+    crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
+    if (pktin->type != SSH2_MSG_KEXINIT) {
+        ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
+                        "expecting KEXINIT, type %d (%s)", pktin->type,
+                        ssh2_pkt_type(s->ppl.bpp->pls->kctx,
+                                      s->ppl.bpp->pls->actx, pktin->type));
+        return;
+    }
+    s->incoming_kexinit->len = 0;
+    put_byte(s->incoming_kexinit, SSH2_MSG_KEXINIT);
+    put_data(s->incoming_kexinit, get_ptr(pktin), get_avail(pktin));
+
+    /*
+     * Work through the two KEXINIT packets in parallel to find the
+     * selected algorithm identifiers.
      */
     {
-        ptrlen str;
-        int i, j;
+        int nhk, hks[MAXKEXLIST], i, j;
 
-        if (pktin->type != SSH2_MSG_KEXINIT) {
-            ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
-                            "expecting KEXINIT, type %d (%s)", pktin->type,
-                            ssh2_pkt_type(s->ppl.bpp->pls->kctx,
-                                          s->ppl.bpp->pls->actx, pktin->type));
+        if (!ssh2_scan_kexinits(
+                ptrlen_from_strbuf(s->client_kexinit),
+                ptrlen_from_strbuf(s->server_kexinit),
+                s->kexlists, &s->kex_alg, &s->hostkey_alg, &s->out, &s->in,
+                &s->warn_kex, &s->warn_hk, &s->warn_cscipher,
+                &s->warn_sccipher, s->ppl.ssh, NULL, &s->ignorepkt, &nhk, hks))
+            return; /* FALSE means a fatal error function was called */
+
+        /*
+         * In addition to deciding which host key we're actually going
+         * to use, we should make a list of the host keys offered by
+         * the server which we _don't_ have cached. These will be
+         * offered as cross-certification options by ssh_get_specials.
+         *
+         * We also count the key we're currently using for KEX as one
+         * we've already got, because by the time this menu becomes
+         * visible, it will be.
+         */
+        s->n_uncert_hostkeys = 0;
+
+        for (i = 0; i < nhk; i++) {
+            j = hks[i];
+            if (ssh2_hostkey_algs[j].alg != s->hostkey_alg &&
+                !have_ssh_host_key(s->savedhost, s->savedport,
+                                   ssh2_hostkey_algs[j].alg->cache_id)) {
+                s->uncert_hostkeys[s->n_uncert_hostkeys++] = j;
+            }
+        }
+    }
+
+    if (s->warn_kex) {
+        s->dlgret = seat_confirm_weak_crypto_primitive(
+            s->ppl.seat, "key-exchange algorithm", s->kex_alg->name,
+            ssh2_transport_dialog_callback, s);
+        crMaybeWaitUntilV(s->dlgret >= 0);
+        if (s->dlgret == 0) {
+            ssh_user_close(s->ppl.ssh, "User aborted at kex warning");
             return;
         }
-        s->kex_alg = NULL;
-        s->hostkey_alg = NULL;
-        s->in.cipher = s->out.cipher = NULL;
-        s->in.mac = s->out.mac = NULL;
-        s->in.comp = s->out.comp = NULL;
-        s->in.comp_delayed = s->out.comp_delayed = FALSE;
-        s->warn_kex = s->warn_hk = FALSE;
-        s->warn_cscipher = s->warn_sccipher = FALSE;
+    }
 
-        get_data(pktin, 16);           /* skip garbage cookie */
+    if (s->warn_hk) {
+        int j, k;
+        char *betteralgs;
 
-        s->guessok = FALSE;
-        for (i = 0; i < NKEXLIST; i++) {
-            str = get_string(pktin);
-            if (get_err(pktin)) {
-                ssh_proto_error(s->ppl.ssh, "KEXINIT packet was incomplete");
-                return;
-            }
-
-            /* If we've already selected a cipher which requires a
-             * particular MAC, then just select that, and don't even
-             * bother looking through the server's KEXINIT string for
-             * MACs. */
-            if (i == KEXLIST_CSMAC && s->out.cipher &&
-                s->out.cipher->required_mac) {
-                s->out.mac = s->out.cipher->required_mac;
-                s->out.etm_mode = !!(s->out.mac->etm_name);
-                goto matched;
-            }
-            if (i == KEXLIST_SCMAC && s->in.cipher &&
-                s->in.cipher->required_mac) {
-                s->in.mac = s->in.cipher->required_mac;
-                s->in.etm_mode = !!(s->in.mac->etm_name);
-                goto matched;
-            }
-
-            for (j = 0; j < MAXKEXLIST; j++) {
-                struct kexinit_algorithm *alg = &s->kexlists[i][j];
-                if (alg->name == NULL) break;
-                if (in_commasep_string(alg->name, str.ptr, str.len)) {
-                    /* We've found a matching algorithm. */
-                    if (i == KEXLIST_KEX || i == KEXLIST_HOSTKEY) {
-                        /* Check if we might need to ignore first kex pkt */
-                        if (j != 0 ||
-                            !first_in_commasep_string(alg->name,
-                                                      str.ptr, str.len))
-                            s->guessok = FALSE;
-                    }
-                    if (i == KEXLIST_KEX) {
-                        s->kex_alg = alg->u.kex.kex;
-                        s->warn_kex = alg->u.kex.warn;
-                    } else if (i == KEXLIST_HOSTKEY) {
-                        /*
-                         * Ignore an unexpected/inappropriate offer of "null",
-                         * we offer "null" when we're willing to use GSS KEX,
-                         * but it is only acceptable when GSSKEX is actually
-                         * selected.
-                         */
-                        if (alg->u.hk.hostkey == NULL &&
-                            s->kex_alg->main_type != KEXTYPE_GSS)
-                            continue;
-                        s->hostkey_alg = alg->u.hk.hostkey;
-                        s->warn_hk = alg->u.hk.warn;
-                    } else if (i == KEXLIST_CSCIPHER) {
-                        s->out.cipher = alg->u.cipher.cipher;
-                        s->warn_cscipher = alg->u.cipher.warn;
-                    } else if (i == KEXLIST_SCCIPHER) {
-                        s->in.cipher = alg->u.cipher.cipher;
-                        s->warn_sccipher = alg->u.cipher.warn;
-                    } else if (i == KEXLIST_CSMAC) {
-                        s->out.mac = alg->u.mac.mac;
-                        s->out.etm_mode = alg->u.mac.etm;
-                    } else if (i == KEXLIST_SCMAC) {
-                        s->in.mac = alg->u.mac.mac;
-                        s->in.etm_mode = alg->u.mac.etm;
-                    } else if (i == KEXLIST_CSCOMP) {
-                        s->out.comp = alg->u.comp.comp;
-                        s->out.comp_delayed = alg->u.comp.delayed;
-                    } else if (i == KEXLIST_SCCOMP) {
-                        s->in.comp = alg->u.comp.comp;
-                        s->in.comp_delayed = alg->u.comp.delayed;
-                    }
-                    goto matched;
+        /*
+         * Change warning box wording depending on why we chose a
+         * warning-level host key algorithm. If it's because
+         * that's all we have *cached*, list the host keys we
+         * could usefully cross-certify. Otherwise, use the same
+         * standard wording as any other weak crypto primitive.
+         */
+        betteralgs = NULL;
+        for (j = 0; j < s->n_uncert_hostkeys; j++) {
+            const struct ssh_signkey_with_user_pref_id *hktype =
+                &ssh2_hostkey_algs[s->uncert_hostkeys[j]];
+            int better = FALSE;
+            for (k = 0; k < HK_MAX; k++) {
+                int id = conf_get_int_int(s->conf, CONF_ssh_hklist, k);
+                if (id == HK_WARN) {
+                    break;
+                } else if (id == hktype->id) {
+                    better = TRUE;
+                    break;
                 }
             }
-            ssh_sw_abort(s->ppl.ssh, "Couldn't agree a %s (available: %.*s)",
-                         kexlist_descr[i], PTRLEN_PRINTF(str));
-            return;
-          matched:;
-
-            if (i == KEXLIST_HOSTKEY &&
-                !s->gss_kex_used &&
-                s->kex_alg->main_type != KEXTYPE_GSS) {
-                int j;
-
-                /*
-                 * In addition to deciding which host key we're
-                 * actually going to use, we should make a list of the
-                 * host keys offered by the server which we _don't_
-                 * have cached. These will be offered as cross-
-                 * certification options by ssh_get_specials.
-                 *
-                 * We also count the key we're currently using for KEX
-                 * as one we've already got, because by the time this
-                 * menu becomes visible, it will be.
-                 */
-                s->n_uncert_hostkeys = 0;
-
-                for (j = 0; j < lenof(hostkey_algs); j++) {
-                    if (hostkey_algs[j].alg != s->hostkey_alg &&
-                        in_commasep_string(hostkey_algs[j].alg->ssh_id,
-                                           str.ptr, str.len) &&
-                        !have_ssh_host_key(s->savedhost, s->savedport,
-                                           hostkey_algs[j].alg->cache_id)) {
-                        s->uncert_hostkeys[s->n_uncert_hostkeys++] = j;
-                    }
+            if (better) {
+                if (betteralgs) {
+                    char *old_ba = betteralgs;
+                    betteralgs = dupcat(betteralgs, ",",
+                                        hktype->alg->ssh_id,
+                                        (const char *)NULL);
+                    sfree(old_ba);
+                } else {
+                    betteralgs = dupstr(hktype->alg->ssh_id);
                 }
             }
         }
-
-        get_string(pktin);  /* client->server language */
-        get_string(pktin);  /* server->client language */
-        s->ignorepkt = get_bool(pktin) && !s->guessok;
-
-        s->exhash = ssh_hash_new(s->kex_alg->hash);
-        put_stringz(s->exhash, s->client_greeting);
-        put_stringz(s->exhash, s->server_greeting);
-        put_string(s->exhash, s->our_kexinit, s->our_kexinitlen);
-        sfree(s->our_kexinit);
-        /* Include the type byte in the hash of server's KEXINIT */
-        put_string(s->exhash,
-                   (const char *)BinarySource_UPCAST(pktin)->data - 1,
-                   BinarySource_UPCAST(pktin)->len + 1);
-
-        if (s->warn_kex) {
-            s->dlgret = seat_confirm_weak_crypto_primitive(
-                s->ppl.seat, "key-exchange algorithm", s->kex_alg->name,
-                ssh2_transport_dialog_callback, s);
-            crMaybeWaitUntilV(s->dlgret >= 0);
-            if (s->dlgret == 0) {
-                ssh_user_close(s->ppl.ssh, "User aborted at kex warning");
-                return;
-            }
-        }
-
-        if (s->warn_hk) {
-            int j, k;
-            char *betteralgs;
-
-            /*
-             * Change warning box wording depending on why we chose a
-             * warning-level host key algorithm. If it's because
-             * that's all we have *cached*, list the host keys we
-             * could usefully cross-certify. Otherwise, use the same
-             * standard wording as any other weak crypto primitive.
-             */
-            betteralgs = NULL;
-            for (j = 0; j < s->n_uncert_hostkeys; j++) {
-                const struct ssh_signkey_with_user_pref_id *hktype =
-                    &hostkey_algs[s->uncert_hostkeys[j]];
-                int better = FALSE;
-                for (k = 0; k < HK_MAX; k++) {
-                    int id = conf_get_int_int(s->conf, CONF_ssh_hklist, k);
-                    if (id == HK_WARN) {
-                        break;
-                    } else if (id == hktype->id) {
-                        better = TRUE;
-                        break;
-                    }
-                }
-                if (better) {
-                    if (betteralgs) {
-                        char *old_ba = betteralgs;
-                        betteralgs = dupcat(betteralgs, ",",
-                                            hktype->alg->ssh_id,
-                                            (const char *)NULL);
-                        sfree(old_ba);
-                    } else {
-                        betteralgs = dupstr(hktype->alg->ssh_id);
-                    }
-                }
-            }
-            if (betteralgs) {
+        if (betteralgs) {
                 /* Use the special warning prompt that lets us provide
                  * a list of better algorithms */
                 s->dlgret = seat_confirm_weak_cached_hostkey(
                     s->ppl.seat, s->hostkey_alg->ssh_id, betteralgs,
                     ssh2_transport_dialog_callback, s);
-                sfree(betteralgs);
-            } else {
+            sfree(betteralgs);
+        } else {
                 /* If none exist, use the more general 'weak crypto'
                  * warning prompt */
                 s->dlgret = seat_confirm_weak_crypto_primitive(
                     s->ppl.seat, "host key type", s->hostkey_alg->ssh_id,
                     ssh2_transport_dialog_callback, s);
-            }
-            crMaybeWaitUntilV(s->dlgret >= 0);
-            if (s->dlgret == 0) {
-                ssh_user_close(s->ppl.ssh, "User aborted at host key warning");
-                return;
-            }
         }
-
-        if (s->warn_cscipher) {
-            s->dlgret = seat_confirm_weak_crypto_primitive(
-                s->ppl.seat, "client-to-server cipher", s->out.cipher->name,
-                ssh2_transport_dialog_callback, s);
-            crMaybeWaitUntilV(s->dlgret >= 0);
-            if (s->dlgret == 0) {
-                ssh_user_close(s->ppl.ssh, "User aborted at cipher warning");
-                return;
-            }
-        }
-
-        if (s->warn_sccipher) {
-            s->dlgret = seat_confirm_weak_crypto_primitive(
-                s->ppl.seat, "server-to-client cipher", s->in.cipher->name,
-                ssh2_transport_dialog_callback, s);
-            crMaybeWaitUntilV(s->dlgret >= 0);
-            if (s->dlgret == 0) {
-                ssh_user_close(s->ppl.ssh, "User aborted at cipher warning");
-                return;
-            }
-        }
-
-        if (s->ignorepkt) /* first_kex_packet_follows */
-            crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
-    }
-
-    if (s->kex_alg->main_type == KEXTYPE_DH) {
-        /*
-         * Work out the number of bits of key we will need from the
-         * key exchange. We start with the maximum key length of
-         * either cipher...
-         */
-        {
-            int csbits, scbits;
-
-            csbits = s->out.cipher ? s->out.cipher->real_keybits : 0;
-            scbits = s->in.cipher ? s->in.cipher->real_keybits : 0;
-            s->nbits = (csbits > scbits ? csbits : scbits);
-        }
-        /* The keys only have hlen-bit entropy, since they're based on
-         * a hash. So cap the key size at hlen bits. */
-        if (s->nbits > s->kex_alg->hash->hlen * 8)
-            s->nbits = s->kex_alg->hash->hlen * 8;
-
-        /*
-         * If we're doing Diffie-Hellman group exchange, start by
-         * requesting a group.
-         */
-        if (dh_is_gex(s->kex_alg)) {
-            ppl_logevent(("Doing Diffie-Hellman group exchange"));
-            s->ppl.bpp->pls->kctx = SSH2_PKTCTX_DHGEX;
-            /*
-             * Work out how big a DH group we will need to allow that
-             * much data.
-             */
-            s->pbits = 512 << ((s->nbits - 1) / 64);
-            if (s->pbits < DH_MIN_SIZE)
-                s->pbits = DH_MIN_SIZE;
-            if (s->pbits > DH_MAX_SIZE)
-                s->pbits = DH_MAX_SIZE;
-            if ((s->ppl.remote_bugs & BUG_SSH2_OLDGEX)) {
-                pktout = ssh_bpp_new_pktout(
-                    s->ppl.bpp, SSH2_MSG_KEX_DH_GEX_REQUEST_OLD);
-                put_uint32(pktout, s->pbits);
-            } else {
-                pktout = ssh_bpp_new_pktout(
-                    s->ppl.bpp, SSH2_MSG_KEX_DH_GEX_REQUEST);
-                put_uint32(pktout, DH_MIN_SIZE);
-                put_uint32(pktout, s->pbits);
-                put_uint32(pktout, DH_MAX_SIZE);
-            }
-            pq_push(s->ppl.out_pq, pktout);
-
-            crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
-            if (pktin->type != SSH2_MSG_KEX_DH_GEX_GROUP) {
-                ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
-                                "expecting Diffie-Hellman group, type %d (%s)",
-                                pktin->type,
-                                ssh2_pkt_type(s->ppl.bpp->pls->kctx,
-                                              s->ppl.bpp->pls->actx,
-                                              pktin->type));
-                return;
-            }
-            s->p = get_mp_ssh2(pktin);
-            s->g = get_mp_ssh2(pktin);
-            if (get_err(pktin)) {
-                ssh_proto_error(s->ppl.ssh,
-                                "Unable to parse Diffie-Hellman group packet");
-                return;
-            }
-            s->dh_ctx = dh_setup_gex(s->p, s->g);
-            s->kex_init_value = SSH2_MSG_KEX_DH_GEX_INIT;
-            s->kex_reply_value = SSH2_MSG_KEX_DH_GEX_REPLY;
-        } else {
-            s->ppl.bpp->pls->kctx = SSH2_PKTCTX_DHGROUP;
-            s->dh_ctx = dh_setup_group(s->kex_alg);
-            s->kex_init_value = SSH2_MSG_KEXDH_INIT;
-            s->kex_reply_value = SSH2_MSG_KEXDH_REPLY;
-            ppl_logevent(("Using Diffie-Hellman with standard group \"%s\"",
-                          s->kex_alg->groupname));
-        }
-
-        ppl_logevent(("Doing Diffie-Hellman key exchange with hash %s",
-                      s->kex_alg->hash->text_name));
-        /*
-         * Now generate and send e for Diffie-Hellman.
-         */
-        seat_set_busy_status(s->ppl.seat, BUSY_CPU);
-        s->e = dh_create_e(s->dh_ctx, s->nbits * 2);
-        pktout = ssh_bpp_new_pktout(s->ppl.bpp, s->kex_init_value);
-        put_mp_ssh2(pktout, s->e);
-        pq_push(s->ppl.out_pq, pktout);
-
-        seat_set_busy_status(s->ppl.seat, BUSY_WAITING);
-        crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
-        if (pktin->type != s->kex_reply_value) {
-            ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
-                            "expecting Diffie-Hellman reply, type %d (%s)",
-                            pktin->type,
-                            ssh2_pkt_type(s->ppl.bpp->pls->kctx,
-                                          s->ppl.bpp->pls->actx,
-                                          pktin->type));
-            return;
-        }
-        seat_set_busy_status(s->ppl.seat, BUSY_CPU);
-        s->hostkeydata = get_string(pktin);
-        s->hkey = ssh_key_new_pub(s->hostkey_alg, s->hostkeydata);
-        s->f = get_mp_ssh2(pktin);
-        s->sigdata = get_string(pktin);
-        if (get_err(pktin)) {
-            ssh_proto_error(s->ppl.ssh,
-                            "Unable to parse Diffie-Hellman reply packet");
-            return;
-        }
-
-        {
-            const char *err = dh_validate_f(s->dh_ctx, s->f);
-            if (err) {
-                ssh_proto_error(s->ppl.ssh, "Diffie-Hellman reply failed "
-                                "validation: %s", err);
-                return;
-            }
-        }
-        s->K = dh_find_K(s->dh_ctx, s->f);
-
-        /* We assume everything from now on will be quick, and it might
-         * involve user interaction. */
-        seat_set_busy_status(s->ppl.seat, BUSY_NOT);
-
-        put_stringpl(s->exhash, s->hostkeydata);
-        if (dh_is_gex(s->kex_alg)) {
-            if (!(s->ppl.remote_bugs & BUG_SSH2_OLDGEX))
-                put_uint32(s->exhash, DH_MIN_SIZE);
-            put_uint32(s->exhash, s->pbits);
-            if (!(s->ppl.remote_bugs & BUG_SSH2_OLDGEX))
-                put_uint32(s->exhash, DH_MAX_SIZE);
-            put_mp_ssh2(s->exhash, s->p);
-            put_mp_ssh2(s->exhash, s->g);
-        }
-        put_mp_ssh2(s->exhash, s->e);
-        put_mp_ssh2(s->exhash, s->f);
-
-        dh_cleanup(s->dh_ctx);
-        s->dh_ctx = NULL;
-        freebn(s->f); s->f = NULL;
-        if (dh_is_gex(s->kex_alg)) {
-            freebn(s->g); s->g = NULL;
-            freebn(s->p); s->p = NULL;
-        }
-    } else if (s->kex_alg->main_type == KEXTYPE_ECDH) {
-
-        ppl_logevent(("Doing ECDH key exchange with curve %s and hash %s",
-                      ssh_ecdhkex_curve_textname(s->kex_alg),
-                      s->kex_alg->hash->text_name));
-        s->ppl.bpp->pls->kctx = SSH2_PKTCTX_ECDHKEX;
-
-        s->ecdh_key = ssh_ecdhkex_newkey(s->kex_alg);
-        if (!s->ecdh_key) {
-            ssh_sw_abort(s->ppl.ssh, "Unable to generate key for ECDH");
-            return;
-        }
-
-        pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_KEX_ECDH_INIT);
-        {
-            strbuf *pubpoint = strbuf_new();
-            ssh_ecdhkex_getpublic(s->ecdh_key, BinarySink_UPCAST(pubpoint));
-            put_stringsb(pktout, pubpoint);
-        }
-
-        pq_push(s->ppl.out_pq, pktout);
-
-        crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
-        if (pktin->type != SSH2_MSG_KEX_ECDH_REPLY) {
-            ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
-                            "expecting ECDH reply, type %d (%s)", pktin->type,
-                            ssh2_pkt_type(s->ppl.bpp->pls->kctx,
-                                          s->ppl.bpp->pls->actx,
-                                          pktin->type));
-            return;
-        }
-
-        s->hostkeydata = get_string(pktin);
-        put_stringpl(s->exhash, s->hostkeydata);
-        s->hkey = ssh_key_new_pub(s->hostkey_alg, s->hostkeydata);
-
-        {
-            strbuf *pubpoint = strbuf_new();
-            ssh_ecdhkex_getpublic(s->ecdh_key, BinarySink_UPCAST(pubpoint));
-            put_string(s->exhash, pubpoint->u, pubpoint->len);
-            strbuf_free(pubpoint);
-        }
-
-        {
-            ptrlen keydata = get_string(pktin);
-            put_stringpl(s->exhash, keydata);
-            s->K = ssh_ecdhkex_getkey(s->ecdh_key, keydata.ptr, keydata.len);
-            if (!get_err(pktin) && !s->K) {
-                ssh_proto_error(s->ppl.ssh, "Received invalid elliptic curve "
-                                "point in ECDH reply");
-                return;
-            }
-        }
-
-        s->sigdata = get_string(pktin);
-        if (get_err(pktin)) {
-            ssh_proto_error(s->ppl.ssh, "Unable to parse ECDH reply packet");
-            return;
-        }
-
-        ssh_ecdhkex_freekey(s->ecdh_key);
-        s->ecdh_key = NULL;
-#ifndef NO_GSSAPI
-    } else if (s->kex_alg->main_type == KEXTYPE_GSS) {
-        ptrlen data;
-
-        s->ppl.bpp->pls->kctx = SSH2_PKTCTX_GSSKEX;
-        s->init_token_sent = 0;
-        s->complete_rcvd = 0;
-        s->hkey = NULL;
-        s->fingerprint = NULL;
-        s->keystr = NULL;
-
-        /*
-         * Work out the number of bits of key we will need from the
-         * key exchange. We start with the maximum key length of
-         * either cipher...
-         *
-         * This is rote from the KEXTYPE_DH section above.
-         */
-        {
-            int csbits, scbits;
-
-            csbits = s->out.cipher->real_keybits;
-            scbits = s->in.cipher->real_keybits;
-            s->nbits = (csbits > scbits ? csbits : scbits);
-        }
-        /* The keys only have hlen-bit entropy, since they're based on
-         * a hash. So cap the key size at hlen bits. */
-        if (s->nbits > s->kex_alg->hash->hlen * 8)
-            s->nbits = s->kex_alg->hash->hlen * 8;
-
-        if (dh_is_gex(s->kex_alg)) {
-            /*
-             * Work out how big a DH group we will need to allow that
-             * much data.
-             */
-            s->pbits = 512 << ((s->nbits - 1) / 64);
-            ppl_logevent(("Doing GSSAPI (with Kerberos V5) Diffie-Hellman "
-                          "group exchange, with minimum %d bits", s->pbits));
-            pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_KEXGSS_GROUPREQ);
-            put_uint32(pktout, s->pbits); /* min */
-            put_uint32(pktout, s->pbits); /* preferred */
-            put_uint32(pktout, s->pbits * 2); /* max */
-            pq_push(s->ppl.out_pq, pktout);
-
-            crMaybeWaitUntilV(
-                (pktin = ssh2_transport_pop(s)) != NULL);
-            if (pktin->type != SSH2_MSG_KEXGSS_GROUP) {
-                ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
-                                "expecting Diffie-Hellman group, type %d (%s)",
-                                pktin->type,
-                                ssh2_pkt_type(s->ppl.bpp->pls->kctx,
-                                              s->ppl.bpp->pls->actx,
-                                              pktin->type));
-                return;
-            }
-            s->p = get_mp_ssh2(pktin);
-            s->g = get_mp_ssh2(pktin);
-            if (get_err(pktin)) {
-                ssh_proto_error(s->ppl.ssh,
-                                "Unable to parse Diffie-Hellman group packet");
-                return;
-            }
-            s->dh_ctx = dh_setup_gex(s->p, s->g);
-        } else {
-            s->dh_ctx = dh_setup_group(s->kex_alg);
-            ppl_logevent(("Using GSSAPI (with Kerberos V5) Diffie-Hellman with"
-                          " standard group \"%s\"", s->kex_alg->groupname));
-        }
-
-        ppl_logevent(("Doing GSSAPI (with Kerberos V5) Diffie-Hellman key "
-                      "exchange with hash %s", s->kex_alg->hash->text_name));
-        /* Now generate e for Diffie-Hellman. */
-        seat_set_busy_status(s->ppl.seat, BUSY_CPU);
-        s->e = dh_create_e(s->dh_ctx, s->nbits * 2);
-
-        if (s->shgss->lib->gsslogmsg)
-            ppl_logevent(("%s", s->shgss->lib->gsslogmsg));
-
-        /* initial tokens are empty */
-        SSH_GSS_CLEAR_BUF(&s->gss_rcvtok);
-        SSH_GSS_CLEAR_BUF(&s->gss_sndtok);
-        SSH_GSS_CLEAR_BUF(&s->mic);
-        s->gss_stat = s->shgss->lib->acquire_cred(
-            s->shgss->lib, &s->shgss->ctx, &s->gss_cred_expiry);
-        if (s->gss_stat != SSH_GSS_OK) {
-            ssh_sw_abort(s->ppl.ssh,
-                         "GSSAPI key exchange failed to initialise");
-            return;
-        }
-
-        /* now enter the loop */
-        assert(s->shgss->srv_name);
-        do {
-            /*
-             * When acquire_cred yields no useful expiration, go with the
-             * service ticket expiration.
-             */
-            s->gss_stat = s->shgss->lib->init_sec_context(
-                s->shgss->lib, &s->shgss->ctx, s->shgss->srv_name,
-                s->gss_delegate, &s->gss_rcvtok, &s->gss_sndtok,
-                (s->gss_cred_expiry == GSS_NO_EXPIRATION ?
-                 &s->gss_cred_expiry : NULL), NULL);
-            SSH_GSS_CLEAR_BUF(&s->gss_rcvtok);
-
-            if (s->gss_stat == SSH_GSS_S_COMPLETE && s->complete_rcvd)
-                break; /* MIC is verified after the loop */
-
-            if (s->gss_stat != SSH_GSS_S_COMPLETE &&
-                s->gss_stat != SSH_GSS_S_CONTINUE_NEEDED) {
-                if (s->shgss->lib->display_status(
-                        s->shgss->lib, s->shgss->ctx,
-                        &s->gss_buf) == SSH_GSS_OK) {
-                    char *err = s->gss_buf.value;
-                    ssh_sw_abort(s->ppl.ssh,
-                                 "GSSAPI key exchange failed to initialise "
-                                 "context: %s", err);
-                    sfree(err);
-                    return;
-                }
-            }
-            assert(s->gss_stat == SSH_GSS_S_COMPLETE ||
-                   s->gss_stat == SSH_GSS_S_CONTINUE_NEEDED);
-
-            if (!s->init_token_sent) {
-                s->init_token_sent = 1;
-                pktout = ssh_bpp_new_pktout(s->ppl.bpp,
-                                            SSH2_MSG_KEXGSS_INIT);
-                if (s->gss_sndtok.length == 0) {
-                    ssh_sw_abort(s->ppl.ssh, "GSSAPI key exchange failed: "
-                                 "no initial context token");
-                    return;
-                }
-                put_string(pktout,
-                           s->gss_sndtok.value, s->gss_sndtok.length);
-                put_mp_ssh2(pktout, s->e);
-                pq_push(s->ppl.out_pq, pktout);
-                s->shgss->lib->free_tok(s->shgss->lib, &s->gss_sndtok);
-                ppl_logevent(("GSSAPI key exchange initialised"));
-            } else if (s->gss_sndtok.length != 0) {
-                pktout = ssh_bpp_new_pktout(
-                    s->ppl.bpp, SSH2_MSG_KEXGSS_CONTINUE);
-                put_string(pktout,
-                           s->gss_sndtok.value, s->gss_sndtok.length);
-                pq_push(s->ppl.out_pq, pktout);
-                s->shgss->lib->free_tok(s->shgss->lib, &s->gss_sndtok);
-            }
-
-            if (s->gss_stat == SSH_GSS_S_COMPLETE && s->complete_rcvd)
-                break;
-
-          wait_for_gss_token:
-            crMaybeWaitUntilV(
-                (pktin = ssh2_transport_pop(s)) != NULL);
-            switch (pktin->type) {
-              case SSH2_MSG_KEXGSS_CONTINUE:
-                data = get_string(pktin);
-                s->gss_rcvtok.value = (char *)data.ptr;
-                s->gss_rcvtok.length = data.len;
-                continue;
-              case SSH2_MSG_KEXGSS_COMPLETE:
-                s->complete_rcvd = 1;
-                s->f = get_mp_ssh2(pktin);
-                data = get_string(pktin);
-                s->mic.value = (char *)data.ptr;
-                s->mic.length = data.len;
-                /* Save expiration time of cred when delegating */
-                if (s->gss_delegate && s->gss_cred_expiry != GSS_NO_EXPIRATION)
-                    s->gss_cred_expiry = s->gss_cred_expiry;
-                /* If there's a final token we loop to consume it */
-                if (get_bool(pktin)) {
-                    data = get_string(pktin);
-                    s->gss_rcvtok.value = (char *)data.ptr;
-                    s->gss_rcvtok.length = data.len;
-                    continue;
-                }
-                break;
-              case SSH2_MSG_KEXGSS_HOSTKEY:
-                s->hostkeydata = get_string(pktin);
-                if (s->hostkey_alg) {
-                    s->hkey = ssh_key_new_pub(s->hostkey_alg,
-                                              s->hostkeydata);
-                    put_string(s->exhash,
-                               s->hostkeydata.ptr, s->hostkeydata.len);
-                }
-                /*
-                 * Can't loop as we have no token to pass to
-                 * init_sec_context.
-                 */
-                goto wait_for_gss_token;
-              case SSH2_MSG_KEXGSS_ERROR:
-                /*
-                 * We have no use for the server's major and minor
-                 * status.  The minor status is really only
-                 * meaningful to the server, and with luck the major
-                 * status means something to us (but not really all
-                 * that much).  The string is more meaningful, and
-                 * hopefully the server sends any error tokens, as
-                 * that will produce the most useful information for
-                 * us.
-                 */
-                get_uint32(pktin); /* server's major status */
-                get_uint32(pktin); /* server's minor status */
-                data = get_string(pktin);
-                ppl_logevent(("GSSAPI key exchange failed; "
-                              "server's message: %.*s", PTRLEN_PRINTF(data)));
-                /* Language tag, but we have no use for it */
-                get_string(pktin);
-                /*
-                 * Wait for an error token, if there is one, or the
-                 * server's disconnect.  The error token, if there
-                 * is one, must follow the SSH2_MSG_KEXGSS_ERROR
-                 * message, per the RFC.
-                 */
-                goto wait_for_gss_token;
-              default:
-                ssh_proto_error(s->ppl.ssh, "Received unexpected packet "
-                                "during GSSAPI key exchange, type %d (%s)",
-                                pktin->type,
-                                ssh2_pkt_type(s->ppl.bpp->pls->kctx,
-                                              s->ppl.bpp->pls->actx,
-                                              pktin->type));
-                return;
-            }
-        } while (s->gss_rcvtok.length ||
-                 s->gss_stat == SSH_GSS_S_CONTINUE_NEEDED ||
-                 !s->complete_rcvd);
-
-        s->K = dh_find_K(s->dh_ctx, s->f);
-
-        /* We assume everything from now on will be quick, and it might
-         * involve user interaction. */
-        seat_set_busy_status(s->ppl.seat, BUSY_NOT);
-
-        if (!s->hkey)
-            put_stringz(s->exhash, "");
-        if (dh_is_gex(s->kex_alg)) {
-            /* min,  preferred, max */
-            put_uint32(s->exhash, s->pbits);
-            put_uint32(s->exhash, s->pbits);
-            put_uint32(s->exhash, s->pbits * 2);
-
-            put_mp_ssh2(s->exhash, s->p);
-            put_mp_ssh2(s->exhash, s->g);
-        }
-        put_mp_ssh2(s->exhash, s->e);
-        put_mp_ssh2(s->exhash, s->f);
-
-        /*
-         * MIC verification is done below, after we compute the hash
-         * used as the MIC input.
-         */
-
-        dh_cleanup(s->dh_ctx);
-        s->dh_ctx = NULL;
-        freebn(s->f); s->f = NULL;
-        if (dh_is_gex(s->kex_alg)) {
-            freebn(s->g); s->g = NULL;
-            freebn(s->p); s->p = NULL;
-        }
-#endif
-    } else {
-        ptrlen rsakeydata;
-
-        assert(s->kex_alg->main_type == KEXTYPE_RSA);
-        ppl_logevent(("Doing RSA key exchange with hash %s",
-                      s->kex_alg->hash->text_name));
-        s->ppl.bpp->pls->kctx = SSH2_PKTCTX_RSAKEX;
-        /*
-         * RSA key exchange. First expect a KEXRSA_PUBKEY packet
-         * from the server.
-         */
-        crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
-        if (pktin->type != SSH2_MSG_KEXRSA_PUBKEY) {
-            ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
-                            "expecting RSA public key, type %d (%s)",
-                            pktin->type,
-                            ssh2_pkt_type(s->ppl.bpp->pls->kctx,
-                                          s->ppl.bpp->pls->actx,
-                                          pktin->type));
-            return;
-        }
-
-        s->hostkeydata = get_string(pktin);
-        put_stringpl(s->exhash, s->hostkeydata);
-        s->hkey = ssh_key_new_pub(s->hostkey_alg, s->hostkeydata);
-
-        rsakeydata = get_string(pktin);
-
-        s->rsa_kex_key = ssh_rsakex_newkey(rsakeydata.ptr, rsakeydata.len);
-        if (!s->rsa_kex_key) {
-            ssh_proto_error(s->ppl.ssh,
-                            "Unable to parse RSA public key packet");
-            return;
-        }
-
-        put_stringpl(s->exhash, rsakeydata);
-
-        /*
-         * Next, set up a shared secret K, of precisely KLEN -
-         * 2*HLEN - 49 bits, where KLEN is the bit length of the
-         * RSA key modulus and HLEN is the bit length of the hash
-         * we're using.
-         */
-        {
-            int klen = ssh_rsakex_klen(s->rsa_kex_key);
-            int nbits = klen - (2*s->kex_alg->hash->hlen*8 + 49);
-            int i, byte = 0;
-            strbuf *buf;
-            unsigned char *outstr;
-            int outstrlen;
-
-            s->K = bn_power_2(nbits - 1);
-
-            for (i = 0; i < nbits; i++) {
-                if ((i & 7) == 0) {
-                    byte = random_byte();
-                }
-                bignum_set_bit(s->K, i, (byte >> (i & 7)) & 1);
-            }
-
-            /*
-             * Encode this as an mpint.
-             */
-            buf = strbuf_new();
-            put_mp_ssh2(buf, s->K);
-
-            /*
-             * Encrypt it with the given RSA key.
-             */
-            outstrlen = (klen + 7) / 8;
-            outstr = snewn(outstrlen, unsigned char);
-            ssh_rsakex_encrypt(s->kex_alg->hash, buf->u, buf->len,
-                               outstr, outstrlen, s->rsa_kex_key);
-
-            /*
-             * And send it off in a return packet.
-             */
-            pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_KEXRSA_SECRET);
-            put_string(pktout, outstr, outstrlen);
-            pq_push(s->ppl.out_pq, pktout);
-
-            put_string(s->exhash, outstr, outstrlen);
-
-            strbuf_free(buf);
-            sfree(outstr);
-        }
-
-        ssh_rsakex_freekey(s->rsa_kex_key);
-        s->rsa_kex_key = NULL;
-
-        crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
-        if (pktin->type != SSH2_MSG_KEXRSA_DONE) {
-            ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
-                            "expecting RSA kex signature, type %d (%s)",
-                            pktin->type,
-                            ssh2_pkt_type(s->ppl.bpp->pls->kctx,
-                                          s->ppl.bpp->pls->actx,
-                                          pktin->type));
-            return;
-        }
-
-        s->sigdata = get_string(pktin);
-        if (get_err(pktin)) {
-            ssh_proto_error(s->ppl.ssh, "Unable to parse RSA kex signature");
+        crMaybeWaitUntilV(s->dlgret >= 0);
+        if (s->dlgret == 0) {
+            ssh_user_close(s->ppl.ssh, "User aborted at host key warning");
             return;
         }
     }
 
-    put_mp_ssh2(s->exhash, s->K);
-    assert(ssh_hash_alg(s->exhash)->hlen <= sizeof(s->exchange_hash));
-    ssh_hash_final(s->exhash, s->exchange_hash);
-    s->exhash = NULL;
-
-#ifndef NO_GSSAPI
-    if (s->kex_alg->main_type == KEXTYPE_GSS) {
-        Ssh_gss_buf gss_buf;
-        SSH_GSS_CLEAR_BUF(&s->gss_buf);
-
-        gss_buf.value = s->exchange_hash;
-        gss_buf.length = s->kex_alg->hash->hlen;
-        s->gss_stat = s->shgss->lib->verify_mic(
-            s->shgss->lib, s->shgss->ctx, &gss_buf, &s->mic);
-        if (s->gss_stat != SSH_GSS_OK) {
-            if (s->shgss->lib->display_status(
-                    s->shgss->lib, s->shgss->ctx, &s->gss_buf) == SSH_GSS_OK) {
-                char *err = s->gss_buf.value;
-                ssh_sw_abort(s->ppl.ssh, "GSSAPI key exchange MIC was "
-                             "not valid: %s", err);
-                sfree(err);
-            } else {
-                ssh_sw_abort(s->ppl.ssh, "GSSAPI key exchange MIC was "
-                             "not valid");
-            }
+    if (s->warn_cscipher) {
+        s->dlgret = seat_confirm_weak_crypto_primitive(
+            s->ppl.seat, "client-to-server cipher", s->out.cipher->name,
+            ssh2_transport_dialog_callback, s);
+        crMaybeWaitUntilV(s->dlgret >= 0);
+        if (s->dlgret == 0) {
+            ssh_user_close(s->ppl.ssh, "User aborted at cipher warning");
             return;
-        }
-
-        s->gss_kex_used = TRUE;
-
-        /*-
-         * If this the first KEX, save the GSS context for "gssapi-keyex"
-         * authentication.
-         *
-         * http://tools.ietf.org/html/rfc4462#section-4
-         *
-         * This method may be used only if the initial key exchange was
-         * performed using a GSS-API-based key exchange method defined in
-         * accordance with Section 2.  The GSS-API context used with this
-         * method is always that established during an initial GSS-API-based
-         * key exchange.  Any context established during key exchange for the
-         * purpose of rekeying MUST NOT be used with this method.
-         */
-        if (s->got_session_id) {
-            s->shgss->lib->release_cred(s->shgss->lib, &s->shgss->ctx);
-        }
-        ppl_logevent(("GSSAPI Key Exchange complete!"));
-    }
-#endif
-
-    s->dh_ctx = NULL;
-
-#if 0
-    debug(("Exchange hash is:\n"));
-    dmemdump(s->exchange_hash, s->kex_alg->hash->hlen);
-#endif
-
-    /* In GSS keyex there's no hostkey signature to verify */
-    if (s->kex_alg->main_type != KEXTYPE_GSS) {
-        if (!s->hkey) {
-            ssh_proto_error(s->ppl.ssh, "Server's host key is invalid");
-            return;
-        }
-
-        if (!ssh_key_verify(
-                s->hkey, s->sigdata,
-                make_ptrlen(s->exchange_hash, s->kex_alg->hash->hlen))) {
-#ifndef FUZZING
-            ssh_proto_error(s->ppl.ssh, "Signature from server's host key "
-                            "is invalid");
-            return;
-#endif
         }
     }
 
-    s->keystr = (s->hkey ? ssh_key_cache_str(s->hkey) : NULL);
-#ifndef NO_GSSAPI
-    if (s->gss_kex_used) {
-        /*
-         * In a GSS-based session, check the host key (if any) against
-         * the transient host key cache. See comment above, at the
-         * definition of ssh_transient_hostkey_cache_entry.
-         */
-        if (s->kex_alg->main_type == KEXTYPE_GSS) {
-
-            /*
-             * We've just done a GSS key exchange. If it gave us a
-             * host key, store it.
-             */
-            if (s->hkey) {
-                s->fingerprint = ssh2_fingerprint(s->hkey);
-                ppl_logevent(("GSS kex provided fallback host key:"));
-                ppl_logevent(("%s", s->fingerprint));
-                sfree(s->fingerprint);
-                s->fingerprint = NULL;
-                ssh_store_transient_hostkey(s, s->hkey);
-            } else if (!ssh_have_any_transient_hostkey(s)) {
-                /*
-                 * But if it didn't, then we currently have no
-                 * fallback host key to use in subsequent non-GSS
-                 * rekeys. So we should immediately trigger a non-GSS
-                 * rekey of our own, to set one up, before the session
-                 * keys have been used for anything else.
-                 *
-                 * This is similar to the cross-certification done at
-                 * user request in the permanent host key cache, but
-                 * here we do it automatically, once, at session
-                 * startup, and only add the key to the transient
-                 * cache.
-                 */
-                if (s->hostkey_alg) {
-                    s->need_gss_transient_hostkey = TRUE;
-                } else {
-                    /*
-                     * If we negotiated the "null" host key algorithm
-                     * in the key exchange, that's an indication that
-                     * no host key at all is available from the server
-                     * (both because we listed "null" last, and
-                     * because RFC 4462 section 5 says that a server
-                     * MUST NOT offer "null" as a host key algorithm
-                     * unless that is the only algorithm it provides
-                     * at all).
-                     *
-                     * In that case we actually _can't_ perform a
-                     * non-GSSAPI key exchange, so it's pointless to
-                     * attempt one proactively. This is also likely to
-                     * cause trouble later if a rekey is required at a
-                     * moment whne GSS credentials are not available,
-                     * but someone setting up a server in this
-                     * configuration presumably accepts that as a
-                     * consequence.
-                     */
-                    if (!s->warned_about_no_gss_transient_hostkey) {
-                        ppl_logevent(("No fallback host key available"));
-                        s->warned_about_no_gss_transient_hostkey = TRUE;
-                    }
-                }
-            }
-        } else {
-            /*
-             * We've just done a fallback key exchange, so make
-             * sure the host key it used is in the cache of keys
-             * we previously received in GSS kexes.
-             *
-             * An exception is if this was the non-GSS key exchange we
-             * triggered on purpose to populate the transient cache.
-             */
-            assert(s->hkey);  /* only KEXTYPE_GSS lets this be null */
-            s->fingerprint = ssh2_fingerprint(s->hkey);
-
-            if (s->need_gss_transient_hostkey) {
-                ppl_logevent(("Post-GSS rekey provided fallback host key:"));
-                ppl_logevent(("%s", s->fingerprint));
-                ssh_store_transient_hostkey(s, s->hkey);
-                s->need_gss_transient_hostkey = FALSE;
-            } else if (!ssh_verify_transient_hostkey(s, s->hkey)) {
-                ppl_logevent(("Non-GSS rekey after initial GSS kex "
-                              "used host key:"));
-                ppl_logevent(("%s", s->fingerprint));
-                ssh_sw_abort(s->ppl.ssh, "Server's host key did not match any "
-                             "used in previous GSS kex");
-                return;
-            }
-
-            sfree(s->fingerprint);
-            s->fingerprint = NULL;
+    if (s->warn_sccipher) {
+        s->dlgret = seat_confirm_weak_crypto_primitive(
+            s->ppl.seat, "server-to-client cipher", s->in.cipher->name,
+            ssh2_transport_dialog_callback, s);
+        crMaybeWaitUntilV(s->dlgret >= 0);
+        if (s->dlgret == 0) {
+            ssh_user_close(s->ppl.ssh, "User aborted at cipher warning");
+            return;
         }
-    } else
-#endif /* NO_GSSAPI */
-        if (!s->got_session_id) {
-            /*
-             * Make a note of any other host key formats that are available.
-             */
-            {
-                int i, j, nkeys = 0;
-                char *list = NULL;
-                for (i = 0; i < lenof(hostkey_algs); i++) {
-                    if (hostkey_algs[i].alg == s->hostkey_alg)
-                        continue;
+    }
 
-                    for (j = 0; j < s->n_uncert_hostkeys; j++)
-                        if (s->uncert_hostkeys[j] == i)
-                            break;
+    /*
+     * If the other side has sent an initial key exchange packet that
+     * we must treat as a wrong guess, wait for it, and discard it.
+     */
+    if (s->ignorepkt)
+        crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
 
-                    if (j < s->n_uncert_hostkeys) {
-                        char *newlist;
-                        if (list)
-                            newlist = dupprintf("%s/%s", list,
-                                                hostkey_algs[i].alg->ssh_id);
-                        else
-                            newlist = dupprintf("%s", hostkey_algs[i].alg->ssh_id);
-                        sfree(list);
-                        list = newlist;
-                        nkeys++;
-                    }
-                }
-                if (list) {
-                    ppl_logevent(("Server also has %s host key%s, but we "
-                                  "don't know %s", list,
-                                  nkeys > 1 ? "s" : "",
-                                  nkeys > 1 ? "any of them" : "it"));
-                    sfree(list);
-                }
-            }
-
-            /*
-             * Authenticate remote host: verify host key. (We've already
-             * checked the signature of the exchange hash.)
-             */
-            s->fingerprint = ssh2_fingerprint(s->hkey);
-            ppl_logevent(("Host key fingerprint is:"));
-            ppl_logevent(("%s", s->fingerprint));
-            /* First check against manually configured host keys. */
-            s->dlgret = verify_ssh_manual_host_key(
-                s->conf, s->fingerprint, s->hkey);
-            if (s->dlgret == 0) {          /* did not match */
-                ssh_sw_abort(s->ppl.ssh, "Host key did not appear in manually "
-                             "configured list");
-                return;
-            } else if (s->dlgret < 0) { /* none configured; use standard handling */
-                s->dlgret = seat_verify_ssh_host_key(
-                    s->ppl.seat, s->savedhost, s->savedport,
-                    ssh_key_cache_id(s->hkey), s->keystr, s->fingerprint,
-                    ssh2_transport_dialog_callback, s);
-#ifdef FUZZING
-                s->dlgret = 1;
-#endif
-                crMaybeWaitUntilV(s->dlgret >= 0);
-                if (s->dlgret == 0) {
-                    ssh_user_close(s->ppl.ssh,
-                                   "User aborted at host key verification");
-                    return;
-                }
-            }
-            sfree(s->fingerprint);
-            s->fingerprint = NULL;
-            /*
-             * Save this host key, to check against the one presented in
-             * subsequent rekeys.
-             */
-            s->hostkey_str = s->keystr;
-            s->keystr = NULL;
-        } else if (s->cross_certifying) {
-            s->fingerprint = ssh2_fingerprint(s->hkey);
-            ppl_logevent(("Storing additional host key for this host:"));
-            ppl_logevent(("%s", s->fingerprint));
-            sfree(s->fingerprint);
-            s->fingerprint = NULL;
-            store_host_key(s->savedhost, s->savedport,
-                           ssh_key_cache_id(s->hkey), s->keystr);
-            s->cross_certifying = FALSE;
-            /*
-             * Don't forget to store the new key as the one we'll be
-             * re-checking in future normal rekeys.
-             */
-            s->hostkey_str = s->keystr;
-            s->keystr = NULL;
-        } else {
-            /*
-             * In a rekey, we never present an interactive host key
-             * verification request to the user. Instead, we simply
-             * enforce that the key we're seeing this time is identical to
-             * the one we saw before.
-             */
-            if (strcmp(s->hostkey_str, s->keystr)) {
-#ifndef FUZZING
-                ssh_sw_abort(s->ppl.ssh,
-                             "Host key was different in repeat key exchange");
-                return;
-#endif
-            }
-        }
-    sfree(s->keystr);
-    s->keystr = NULL;
-    if (s->hkey) {
-        ssh_key_free(s->hkey);
-        s->hkey = NULL;
+    /*
+     * Actually perform the key exchange.
+     */
+    s->exhash = ssh_hash_new(s->kex_alg->hash);
+    put_stringz(s->exhash, s->client_greeting);
+    put_stringz(s->exhash, s->server_greeting);
+    put_string(s->exhash, s->client_kexinit->u, s->client_kexinit->len);
+    put_string(s->exhash, s->server_kexinit->u, s->server_kexinit->len);
+    s->crStateKex = 0;
+    while (1) {
+        ssh2kex_coroutine(s);
+        if (!s->crStateKex)
+            break;
+        crReturnV;
     }
 
     /*
@@ -2113,8 +1265,8 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
     ssh_bpp_handle_output(s->ppl.bpp);
 
     /*
-     * We've sent client NEWKEYS, so create and initialise
-     * client-to-server session keys.
+     * We've sent outgoing NEWKEYS, so create and initialise outgoing
+     * session keys.
      */
     {
         strbuf *cipher_key = strbuf_new();
@@ -2122,14 +1274,15 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         strbuf *mac_key = strbuf_new();
 
         if (s->out.cipher) {
-            ssh2_mkkey(s, cipher_iv, s->K, s->exchange_hash, 'A',
-                       s->out.cipher->blksize);
-            ssh2_mkkey(s, cipher_key, s->K, s->exchange_hash, 'C',
+            ssh2_mkkey(s, cipher_iv, s->K, s->exchange_hash,
+                       'A' + s->out.mkkey_adjust, s->out.cipher->blksize);
+            ssh2_mkkey(s, cipher_key, s->K, s->exchange_hash,
+                       'C' + s->out.mkkey_adjust,
                        s->out.cipher->padded_keybytes);
         }
         if (s->out.mac) {
-            ssh2_mkkey(s, mac_key, s->K, s->exchange_hash, 'E',
-                       s->out.mac->keylen);
+            ssh2_mkkey(s, mac_key, s->K, s->exchange_hash,
+                       'E' + s->out.mkkey_adjust, s->out.mac->keylen);
         }
 
         ssh2_bpp_new_outgoing_crypto(
@@ -2168,8 +1321,8 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
     s->stats->in.remaining = s->max_data_size;
 
     /*
-     * We've seen server NEWKEYS, so create and initialise
-     * server-to-client session keys.
+     * We've seen incoming NEWKEYS, so create and initialise
+     * incoming session keys.
      */
     {
         strbuf *cipher_key = strbuf_new();
@@ -2177,14 +1330,15 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         strbuf *mac_key = strbuf_new();
 
         if (s->in.cipher) {
-            ssh2_mkkey(s, cipher_iv, s->K, s->exchange_hash, 'B',
-                       s->in.cipher->blksize);
-            ssh2_mkkey(s, cipher_key, s->K, s->exchange_hash, 'D',
+            ssh2_mkkey(s, cipher_iv, s->K, s->exchange_hash,
+                       'A' + s->in.mkkey_adjust, s->in.cipher->blksize);
+            ssh2_mkkey(s, cipher_key, s->K, s->exchange_hash,
+                       'C' + s->in.mkkey_adjust,
                        s->in.cipher->padded_keybytes);
         }
         if (s->in.mac) {
-            ssh2_mkkey(s, mac_key, s->K, s->exchange_hash, 'F',
-                       s->in.mac->keylen);
+            ssh2_mkkey(s, mac_key, s->K, s->exchange_hash,
+                       'E' + s->in.mkkey_adjust, s->in.mac->keylen);
         }
 
         ssh2_bpp_new_incoming_crypto(
@@ -2236,14 +1390,43 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
      * decided to initiate a rekey ourselves for some reason.
      */
     if (!s->higher_layer_ok) {
-        pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_SERVICE_REQUEST);
-        put_stringz(pktout, s->higher_layer->vt->name);
-        pq_push(s->ppl.out_pq, pktout);
-        crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
-        if (pktin->type != SSH2_MSG_SERVICE_ACCEPT) {
-            ssh_sw_abort(s->ppl.ssh, "Server refused request to start "
-                         "'%s' protocol", s->higher_layer->vt->name);
-            return;
+        if (!s->hostkeys) {
+            /* We're the client, so send SERVICE_REQUEST. */
+            pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_SERVICE_REQUEST);
+            put_stringz(pktout, s->higher_layer->vt->name);
+            pq_push(s->ppl.out_pq, pktout);
+            crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
+            if (pktin->type != SSH2_MSG_SERVICE_ACCEPT) {
+                ssh_sw_abort(s->ppl.ssh, "Server refused request to start "
+                             "'%s' protocol", s->higher_layer->vt->name);
+                return;
+            }
+        } else {
+            ptrlen service_name;
+
+            /* We're the server, so expect SERVICE_REQUEST. */
+            crMaybeWaitUntilV((pktin = ssh2_transport_pop(s)) != NULL);
+            if (pktin->type != SSH2_MSG_SERVICE_REQUEST) {
+                ssh_proto_error(s->ppl.ssh, "Received unexpected packet when "
+                                "expecting SERVICE_REQUEST, type %d (%s)",
+                                pktin->type,
+                                ssh2_pkt_type(s->ppl.bpp->pls->kctx,
+                                              s->ppl.bpp->pls->actx,
+                                              pktin->type));
+                return;
+            }
+            service_name = get_string(pktin);
+            if (!ptrlen_eq_string(service_name, s->higher_layer->vt->name)) {
+                ssh_proto_error(s->ppl.ssh, "Client requested service "
+                                "'%.*s' when we only support '%s'",
+                                PTRLEN_PRINTF(service_name),
+                                s->higher_layer->vt->name);
+                return;
+            }
+
+            pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_SERVICE_ACCEPT);
+            put_stringz(pktout, s->higher_layer->vt->name);
+            pq_push(s->ppl.out_pq, pktout);
         }
 
         s->higher_layer_ok = TRUE;
@@ -2272,7 +1455,7 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
                 return;
             }
             pq_push_front(s->ppl.in_pq, pktin);
-            ppl_logevent(("Server initiated key re-exchange"));
+            ppl_logevent(("Remote side initiated key re-exchange"));
             s->rekey_class = RK_SERVER;
         }
 
@@ -2317,7 +1500,7 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
              * rekey, we process it anyway!)
              */
             if ((s->ppl.remote_bugs & BUG_SSH2_REKEY)) {
-                ppl_logevent(("Server bug prevents key re-exchange (%s)",
+                ppl_logevent(("Remote bug prevents key re-exchange (%s)",
                               s->rekey_reason));
                 /* Reset the counters, so that at least this message doesn't
                  * hit the event log _too_ often. */
@@ -2453,7 +1636,7 @@ static int ssh2_transport_timer_update(struct ssh2_transport_state *s,
     return 0;
 }
 
-static void ssh2_transport_dialog_callback(void *loginv, int ret)
+void ssh2_transport_dialog_callback(void *loginv, int ret)
 {
     struct ssh2_transport_state *s = (struct ssh2_transport_state *)loginv;
     s->dlgret = ret;
@@ -2584,123 +1767,6 @@ static void ssh2_transport_gss_update(struct ssh2_transport_state *s,
         s->gss_status |= GSS_CTXT_EXPIRES;
 }
 
-/*
- * Data structure managing host keys in sessions based on GSSAPI KEX.
- *
- * In a session we started with a GSSAPI key exchange, the concept of
- * 'host key' has completely different lifetime and security semantics
- * from the usual ones. Per RFC 4462 section 2.1, we assume that any
- * host key delivered to us in the course of a GSSAPI key exchange is
- * _solely_ there to use as a transient fallback within the same
- * session, if at the time of a subsequent rekey the GSS credentials
- * are temporarily invalid and so a non-GSS KEX method has to be used.
- *
- * In particular, in a GSS-based SSH deployment, host keys may not
- * even _be_ persistent identities for the server; it would be
- * legitimate for a server to generate a fresh one routinely if it
- * wanted to, like SSH-1 server keys.
- *
- * So, in this mode, we never touch the persistent host key cache at
- * all, either to check keys against it _or_ to store keys in it.
- * Instead, we maintain an in-memory cache of host keys that have been
- * mentioned in GSS key exchanges within this particular session, and
- * we permit precisely those host keys in non-GSS rekeys.
- */
-struct ssh_transient_hostkey_cache_entry {
-    const ssh_keyalg *alg;
-    strbuf *pub_blob;
-};
-
-static int ssh_transient_hostkey_cache_cmp(void *av, void *bv)
-{
-    const struct ssh_transient_hostkey_cache_entry
-        *a = (const struct ssh_transient_hostkey_cache_entry *)av,
-        *b = (const struct ssh_transient_hostkey_cache_entry *)bv;
-    return strcmp(a->alg->ssh_id, b->alg->ssh_id);
-}
-
-static int ssh_transient_hostkey_cache_find(void *av, void *bv)
-{
-    const ssh_keyalg *aalg = (const ssh_keyalg *)av;
-    const struct ssh_transient_hostkey_cache_entry
-        *b = (const struct ssh_transient_hostkey_cache_entry *)bv;
-    return strcmp(aalg->ssh_id, b->alg->ssh_id);
-}
-
-static void ssh_init_transient_hostkey_store(
-    struct ssh2_transport_state *s)
-{
-    s->transient_hostkey_cache =
-        newtree234(ssh_transient_hostkey_cache_cmp);
-}
-
-static void ssh_cleanup_transient_hostkey_store(
-    struct ssh2_transport_state *s)
-{
-    struct ssh_transient_hostkey_cache_entry *ent;
-    while ((ent = delpos234(s->transient_hostkey_cache, 0)) != NULL) {
-        strbuf_free(ent->pub_blob);
-        sfree(ent);
-    }
-    freetree234(s->transient_hostkey_cache);
-}
-
-static void ssh_store_transient_hostkey(
-    struct ssh2_transport_state *s, ssh_key *key)
-{
-    struct ssh_transient_hostkey_cache_entry *ent, *retd;
-
-    if ((ent = find234(s->transient_hostkey_cache, (void *)ssh_key_alg(key),
-                       ssh_transient_hostkey_cache_find)) != NULL) {
-        strbuf_free(ent->pub_blob);
-        sfree(ent);
-    }
-
-    ent = snew(struct ssh_transient_hostkey_cache_entry);
-    ent->alg = ssh_key_alg(key);
-    ent->pub_blob = strbuf_new();
-    ssh_key_public_blob(key, BinarySink_UPCAST(ent->pub_blob));
-    retd = add234(s->transient_hostkey_cache, ent);
-    assert(retd == ent);
-}
-
-static int ssh_verify_transient_hostkey(
-    struct ssh2_transport_state *s, ssh_key *key)
-{
-    struct ssh_transient_hostkey_cache_entry *ent;
-    int toret = FALSE;
-
-    if ((ent = find234(s->transient_hostkey_cache, (void *)ssh_key_alg(key),
-                       ssh_transient_hostkey_cache_find)) != NULL) {
-        strbuf *this_blob = strbuf_new();
-        ssh_key_public_blob(key, BinarySink_UPCAST(this_blob));
-
-        if (this_blob->len == ent->pub_blob->len &&
-            !memcmp(this_blob->s, ent->pub_blob->s,
-                    this_blob->len))
-            toret = TRUE;
-
-        strbuf_free(this_blob);
-    }
-
-    return toret;
-}
-
-static int ssh_have_transient_hostkey(
-    struct ssh2_transport_state *s, const ssh_keyalg *alg)
-{
-    struct ssh_transient_hostkey_cache_entry *ent =
-        find234(s->transient_hostkey_cache, (void *)alg,
-                ssh_transient_hostkey_cache_find);
-    return ent != NULL;
-}
-
-static int ssh_have_any_transient_hostkey(
-    struct ssh2_transport_state *s)
-{
-    return count234(s->transient_hostkey_cache) > 0;
-}
-
 ptrlen ssh2_transport_get_session_id(PacketProtocolLayer *ppl)
 {
     struct ssh2_transport_state *s;
@@ -2760,7 +1826,7 @@ static int ssh2_transport_get_specials(
             add_special(ctx, "Cache new host key type", SS_SUBMENU, 0);
             for (i = 0; i < s->n_uncert_hostkeys; i++) {
                 const ssh_keyalg *alg =
-                    hostkey_algs[s->uncert_hostkeys[i]].alg;
+                    ssh2_hostkey_algs[s->uncert_hostkeys[i]].alg;
 
                 add_special(ctx, alg->ssh_id, SS_XCERT, s->uncert_hostkeys[i]);
             }
@@ -2785,7 +1851,7 @@ static void ssh2_transport_special_cmd(PacketProtocolLayer *ppl,
 	}
     } else if (code == SS_XCERT) {
 	if (!s->kex_in_progress) {
-            s->hostkey_alg = hostkey_algs[arg].alg;
+            s->hostkey_alg = ssh2_hostkey_algs[arg].alg;
             s->cross_certifying = TRUE;
             s->rekey_reason = "cross-certifying new host key";
             s->rekey_class = RK_NORMAL;

@@ -396,7 +396,7 @@ mark_array_deref_used(nir_deref_instr *deref,
    for (unsigned i = 0; i < info->num_levels; i++) {
       nir_deref_instr *p = path.path[i + 1];
       if (p->deref_type == nir_deref_type_array &&
-          nir_src_as_const_value(p->arr.index) == NULL)
+          !nir_src_is_const(p->arr.index))
          info->levels[i].split = false;
    }
 }
@@ -566,8 +566,8 @@ array_path_is_out_of_bounds(nir_deref_path *path,
       if (p->deref_type == nir_deref_type_array_wildcard)
          continue;
 
-      nir_const_value *const_index = nir_src_as_const_value(p->arr.index);
-      if (const_index && const_index->u32[0] >= info->levels[i].array_len)
+      if (nir_src_is_const(p->arr.index) &&
+          nir_src_as_uint(p->arr.index) >= info->levels[i].array_len)
          return true;
    }
 
@@ -751,7 +751,7 @@ split_array_access_impl(nir_function_impl *impl,
             for (unsigned i = 0; i < info->num_levels; i++) {
                if (info->levels[i].split) {
                   nir_deref_instr *p = path.path[i + 1];
-                  unsigned index = nir_src_as_const_value(p->arr.index)->u32[0];
+                  unsigned index = nir_src_as_uint(p->arr.index);
                   assert(index < info->levels[i].array_len);
                   split = &split->splits[index];
                }
@@ -995,9 +995,8 @@ mark_deref_used(nir_deref_instr *deref,
 
       unsigned max_used;
       if (deref->deref_type == nir_deref_type_array) {
-         nir_const_value *const_index =
-            nir_src_as_const_value(deref->arr.index);
-         max_used = const_index ? const_index->u32[0] : UINT_MAX;
+         max_used = nir_src_is_const(deref->arr.index) ?
+                    nir_src_as_uint(deref->arr.index) : UINT_MAX;
       } else {
          /* For wildcards, we read or wrote the whole thing. */
          assert(deref->deref_type == nir_deref_type_array_wildcard);
@@ -1316,8 +1315,8 @@ vec_deref_is_oob(nir_deref_instr *deref,
       if (p->deref_type == nir_deref_type_array_wildcard)
          continue;
 
-      nir_const_value *const_index = nir_src_as_const_value(p->arr.index);
-      if (const_index && const_index->u32[0] >= usage->levels[i].array_len) {
+      if (nir_src_is_const(p->arr.index) &&
+          nir_src_as_uint(p->arr.index) >= usage->levels[i].array_len) {
          oob = true;
          break;
       }

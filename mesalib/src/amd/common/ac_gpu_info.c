@@ -99,7 +99,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	struct drm_amdgpu_info_device device_info = {};
 	struct amdgpu_buffer_size_alignments alignment_info = {};
 	struct drm_amdgpu_info_hw_ip dma = {}, compute = {}, uvd = {};
-	struct drm_amdgpu_info_hw_ip uvd_enc = {}, vce = {}, vcn_dec = {};
+	struct drm_amdgpu_info_hw_ip uvd_enc = {}, vce = {}, vcn_dec = {}, vcn_jpeg = {};
 	struct drm_amdgpu_info_hw_ip vcn_enc = {}, gfx = {};
 	struct amdgpu_gds_resource_info gds = {};
 	uint32_t vce_version = 0, vce_feature = 0, uvd_version = 0, uvd_feature = 0;
@@ -182,6 +182,14 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		r = amdgpu_query_hw_ip_info(dev, AMDGPU_HW_IP_VCN_ENC, 0, &vcn_enc);
 		if (r) {
 			fprintf(stderr, "amdgpu: amdgpu_query_hw_ip_info(vcn_enc) failed.\n");
+			return false;
+		}
+	}
+
+	if (info->drm_major == 3 && info->drm_minor >= 27) {
+		r = amdgpu_query_hw_ip_info(dev, AMDGPU_HW_IP_VCN_JPEG, 0, &vcn_jpeg);
+		if (r) {
+			fprintf(stderr, "amdgpu: amdgpu_query_hw_ip_info(vcn_jpeg) failed.\n");
 			return false;
 		}
 	}
@@ -340,7 +348,8 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	info->max_se = amdinfo->num_shader_engines;
 	info->max_sh_per_se = amdinfo->num_shader_arrays_per_engine;
 	info->has_hw_decode =
-		(uvd.available_rings != 0) || (vcn_dec.available_rings != 0);
+		(uvd.available_rings != 0) || (vcn_dec.available_rings != 0) ||
+		(vcn_jpeg.available_rings != 0);
 	info->uvd_fw_version =
 		uvd.available_rings ? uvd_version : 0;
 	info->vce_fw_version =
@@ -439,6 +448,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	ib_align = MAX2(ib_align, vce.ib_start_alignment);
 	ib_align = MAX2(ib_align, vcn_dec.ib_start_alignment);
 	ib_align = MAX2(ib_align, vcn_enc.ib_start_alignment);
+	ib_align = MAX2(ib_align, vcn_jpeg.ib_start_alignment);
        assert(ib_align);
 	info->ib_start_alignment = ib_align;
 

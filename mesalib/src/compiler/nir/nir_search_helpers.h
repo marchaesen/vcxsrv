@@ -29,29 +29,30 @@
 
 #include "nir.h"
 #include "util/bitscan.h"
+#include <math.h>
 
 static inline bool
 is_pos_power_of_two(nir_alu_instr *instr, unsigned src, unsigned num_components,
                     const uint8_t *swizzle)
 {
-   nir_const_value *val = nir_src_as_const_value(instr->src[src].src);
-
    /* only constant srcs: */
-   if (!val)
+   if (!nir_src_is_const(instr->src[src].src))
       return false;
 
    for (unsigned i = 0; i < num_components; i++) {
       switch (nir_op_infos[instr->op].input_types[src]) {
-      case nir_type_int:
-         if (val->i32[swizzle[i]] < 0)
-            return false;
-         if (!util_is_power_of_two_nonzero(val->i32[swizzle[i]]))
-            return false;
-         break;
-      case nir_type_uint:
-         if (!util_is_power_of_two_nonzero(val->u32[swizzle[i]]))
+      case nir_type_int: {
+         int64_t val = nir_src_comp_as_int(instr->src[src].src, swizzle[i]);
+         if (val <= 0 || !util_is_power_of_two_or_zero64(val))
             return false;
          break;
+      }
+      case nir_type_uint: {
+         uint64_t val = nir_src_comp_as_uint(instr->src[src].src, swizzle[i]);
+         if (val == 0 || !util_is_power_of_two_or_zero64(val))
+            return false;
+         break;
+      }
       default:
          return false;
       }
@@ -64,20 +65,18 @@ static inline bool
 is_neg_power_of_two(nir_alu_instr *instr, unsigned src, unsigned num_components,
                     const uint8_t *swizzle)
 {
-   nir_const_value *val = nir_src_as_const_value(instr->src[src].src);
-
    /* only constant srcs: */
-   if (!val)
+   if (!nir_src_is_const(instr->src[src].src))
       return false;
 
    for (unsigned i = 0; i < num_components; i++) {
       switch (nir_op_infos[instr->op].input_types[src]) {
-      case nir_type_int:
-         if (val->i32[swizzle[i]] > 0)
-            return false;
-         if (!util_is_power_of_two_nonzero(abs(val->i32[swizzle[i]])))
+      case nir_type_int: {
+         int64_t val = nir_src_comp_as_int(instr->src[src].src, swizzle[i]);
+         if (val >= 0 || !util_is_power_of_two_or_zero64(-val))
             return false;
          break;
+      }
       default:
          return false;
       }
@@ -90,17 +89,18 @@ static inline bool
 is_zero_to_one(nir_alu_instr *instr, unsigned src, unsigned num_components,
                const uint8_t *swizzle)
 {
-   nir_const_value *val = nir_src_as_const_value(instr->src[src].src);
-
-   if (!val)
+   /* only constant srcs: */
+   if (!nir_src_is_const(instr->src[src].src))
       return false;
 
    for (unsigned i = 0; i < num_components; i++) {
       switch (nir_op_infos[instr->op].input_types[src]) {
-      case nir_type_float:
-         if (val->f32[swizzle[i]] < 0.0f || val->f32[swizzle[i]] > 1.0f)
+      case nir_type_float: {
+         double val = nir_src_comp_as_float(instr->src[src].src, swizzle[i]);
+         if (isnan(val) || val < 0.0f || val > 1.0f)
             return false;
          break;
+      }
       default:
          return false;
       }
@@ -113,12 +113,7 @@ static inline bool
 is_not_const(nir_alu_instr *instr, unsigned src, UNUSED unsigned num_components,
              UNUSED const uint8_t *swizzle)
 {
-   nir_const_value *val = nir_src_as_const_value(instr->src[src].src);
-
-   if (val)
-      return false;
-
-   return true;
+   return !nir_src_is_const(instr->src[src].src);
 }
 
 static inline bool

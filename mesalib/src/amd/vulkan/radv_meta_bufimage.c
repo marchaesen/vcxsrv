@@ -556,8 +556,8 @@ build_nir_btoi_r32g32b32_compute_shader(struct radv_device *dev)
 
 	nir_ssa_def *global_pos =
 		nir_iadd(&b,
-			 nir_imul(&b, pos_y, &pitch->dest.ssa),
-			 nir_imul(&b, pos_x, nir_imm_int(&b, 3)));
+			 nir_imul(&b, nir_channel(&b, img_coord, 1), &pitch->dest.ssa),
+			 nir_imul(&b, nir_channel(&b, img_coord, 0), nir_imm_int(&b, 3)));
 
 	nir_ssa_def *input_img_deref = &nir_build_deref_var(&b, input_img)->dest.ssa;
 

@@ -74,7 +74,7 @@ emit_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
    for (; *deref_arr; deref_arr++) {
       nir_deref_instr *deref = *deref_arr;
       if (deref->deref_type == nir_deref_type_array &&
-          nir_src_as_const_value(deref->arr.index) == NULL) {
+          !nir_src_is_const(deref->arr.index)) {
          int length = glsl_get_length(parent->type);
 
          emit_indirect_load_store_deref(b, orig_instr, parent, deref_arr,
@@ -137,7 +137,7 @@ lower_indirect_derefs_block(nir_block *block, nir_builder *b,
       nir_deref_instr *base = deref;
       while (base->deref_type != nir_deref_type_var) {
          if (base->deref_type == nir_deref_type_array &&
-             nir_src_as_const_value(base->arr.index) == NULL)
+             !nir_src_is_const(base->arr.index))
             has_indirect = true;
 
          base = nir_deref_instr_parent(base);

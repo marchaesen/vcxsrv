@@ -50,7 +50,7 @@
  */
 void
 st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
-                 struct pipe_image_view *img)
+                 struct pipe_image_view *img, unsigned shader_access)
 {
    struct st_texture_object *stObj = st_texture_object(u->TexObj);
 
@@ -65,6 +65,23 @@ st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
       break;
    case GL_READ_WRITE:
       img->access = PIPE_IMAGE_ACCESS_READ_WRITE;
+      break;
+   default:
+      unreachable("bad gl_image_unit::Access");
+   }
+
+   switch (shader_access) {
+   case GL_NONE:
+      img->shader_access = 0;
+      break;
+   case GL_READ_ONLY:
+      img->shader_access = PIPE_IMAGE_ACCESS_READ;
+      break;
+   case GL_WRITE_ONLY:
+      img->shader_access = PIPE_IMAGE_ACCESS_WRITE;
+      break;
+   case GL_READ_WRITE:
+      img->shader_access = PIPE_IMAGE_ACCESS_READ_WRITE;
       break;
    default:
       unreachable("bad gl_image_unit::Access");
@@ -125,7 +142,8 @@ st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
 void
 st_convert_image_from_unit(const struct st_context *st,
                            struct pipe_image_view *img,
-                           GLuint imgUnit)
+                           GLuint imgUnit,
+                           unsigned shader_access)
 {
    struct gl_image_unit *u = &st->ctx->ImageUnits[imgUnit];
 
@@ -134,7 +152,7 @@ st_convert_image_from_unit(const struct st_context *st,
       return;
    }
 
-   st_convert_image(st, u, img);
+   st_convert_image(st, u, img, shader_access);
 }
 
 static void
@@ -153,7 +171,8 @@ st_bind_images(struct st_context *st, struct gl_program *prog,
    for (i = 0; i < prog->info.num_images; i++) {
       struct pipe_image_view *img = &images[i];
 
-      st_convert_image_from_unit(st, img, prog->sh.ImageUnits[i]);
+      st_convert_image_from_unit(st, img, prog->sh.ImageUnits[i],
+                                 prog->sh.ImageAccess[i]);
    }
    cso_set_shader_images(st->cso_context, shader_type, 0,
                          prog->info.num_images, images);

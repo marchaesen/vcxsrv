@@ -25,7 +25,7 @@ option(
   choices : [
     '', 'auto', 'x11', 'wayland', 'drm', 'surfaceless', 'haiku', 'android',
   ],
-  description : 'comma separated list of window systems to support. If this is set to auto all platforms applicable to the OS will be enabled.'
+  description : 'window systems to support. If this is set to `auto`, all platforms applicable will be enabled.'
 )
 option(
   'dri3',

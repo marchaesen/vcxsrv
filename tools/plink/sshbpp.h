@@ -56,11 +56,10 @@ BinaryPacketProtocol *ssh1_bpp_new(LogContext *logctx);
 void ssh1_bpp_new_cipher(BinaryPacketProtocol *bpp,
                          const struct ssh1_cipheralg *cipher,
                          const void *session_key);
-/* requested_compression() notifies the SSH-1 BPP that we've just sent
- * a request to enable compression, which means that on receiving the
- * next SSH1_SMSG_SUCCESS or SSH1_SMSG_FAILURE message, it should set
- * up zlib compression if it was SUCCESS. */
-void ssh1_bpp_requested_compression(BinaryPacketProtocol *bpp);
+/* This is only called from outside the BPP in server mode; in client
+ * mode the BPP detects compression start time automatically by
+ * snooping message types */
+void ssh1_bpp_start_compression(BinaryPacketProtocol *bpp);
 
 /* Helper routine which does common BPP initialisation, e.g. setting
  * up in_pq and out_pq, and initialising input_consumer. */
@@ -104,7 +103,7 @@ struct DataTransferStats {
      ((stats)->direction.remaining -= (size), FALSE))
 
 BinaryPacketProtocol *ssh2_bpp_new(
-    LogContext *logctx, struct DataTransferStats *stats);
+    LogContext *logctx, struct DataTransferStats *stats, int is_server);
 void ssh2_bpp_new_outgoing_crypto(
     BinaryPacketProtocol *bpp,
     const struct ssh2_cipheralg *cipher, const void *ckey, const void *iv,
@@ -141,7 +140,8 @@ struct ssh_version_receiver {
 };
 BinaryPacketProtocol *ssh_verstring_new(
     Conf *conf, LogContext *logctx, int bare_connection_mode,
-    const char *protoversion, struct ssh_version_receiver *rcv);
+    const char *protoversion, struct ssh_version_receiver *rcv,
+    int server_mode, const char *impl_name);
 const char *ssh_verstring_get_remote(BinaryPacketProtocol *);
 const char *ssh_verstring_get_local(BinaryPacketProtocol *);
 int ssh_verstring_get_bugs(BinaryPacketProtocol *);

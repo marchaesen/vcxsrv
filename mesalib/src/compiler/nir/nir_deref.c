@@ -112,7 +112,7 @@ nir_deref_instr_has_indirect(nir_deref_instr *instr)
          return true;
 
       if (instr->deref_type == nir_deref_type_array &&
-          !nir_src_as_const_value(instr->arr.index))
+          !nir_src_is_const(instr->arr.index))
          return true;
 
       instr = nir_deref_instr_parent(instr);
@@ -160,7 +160,7 @@ nir_deref_instr_get_const_offset(nir_deref_instr *deref,
    unsigned offset = 0;
    for (nir_deref_instr **p = &path.path[1]; *p; p++) {
       if ((*p)->deref_type == nir_deref_type_array) {
-         offset += nir_src_as_const_value((*p)->arr.index)->u32[0] *
+         offset += nir_src_as_uint((*p)->arr.index) *
                    type_get_array_stride((*p)->type, size_align);
       } else if ((*p)->deref_type == nir_deref_type_struct) {
          /* p starts at path[1], so this is safe */
@@ -312,15 +312,13 @@ nir_compare_deref_paths(nir_deref_path *a_path,
                    b_tail->deref_type == nir_deref_type_array);
             assert(a_tail->arr.index.is_ssa && b_tail->arr.index.is_ssa);
 
-            nir_const_value *a_index_const =
-               nir_src_as_const_value(a_tail->arr.index);
-            nir_const_value *b_index_const =
-               nir_src_as_const_value(b_tail->arr.index);
-            if (a_index_const && b_index_const) {
+            if (nir_src_is_const(a_tail->arr.index) &&
+                nir_src_is_const(b_tail->arr.index)) {
                /* If they're both direct and have different offsets, they
                 * don't even alias much less anything else.
                 */
-               if (a_index_const->u32[0] != b_index_const->u32[0])
+               if (nir_src_as_uint(a_tail->arr.index) !=
+                   nir_src_as_uint(b_tail->arr.index))
                   return 0;
             } else if (a_tail->arr.index.ssa == b_tail->arr.index.ssa) {
                /* They're the same indirect, continue on */
