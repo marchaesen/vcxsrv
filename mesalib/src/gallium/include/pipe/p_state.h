@@ -484,7 +484,8 @@ struct pipe_image_view
 {
    struct pipe_resource *resource; /**< resource into which this is a view  */
    enum pipe_format format;      /**< typed PIPE_FORMAT_x */
-   unsigned access;              /**< PIPE_IMAGE_ACCESS_x */
+   uint16_t access;              /**< PIPE_IMAGE_ACCESS_x */
+   uint16_t shader_access;       /**< PIPE_IMAGE_ACCESS_x */
 
    union {
       struct {

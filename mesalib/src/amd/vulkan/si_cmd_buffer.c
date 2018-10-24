@@ -516,16 +516,16 @@ si_write_scissors(struct radeon_cmdbuf *cs, int first,
 		VkRect2D scissor = si_intersect_scissor(&scissors[i], &viewport_scissor);
 
 		get_viewport_xform(viewports + i, scale, translate);
-		scale[0] = abs(scale[0]);
-		scale[1] = abs(scale[1]);
+		scale[0] = fabsf(scale[0]);
+		scale[1] = fabsf(scale[1]);
 
 		if (scale[0] < 0.5)
 			scale[0] = 0.5;
 		if (scale[1] < 0.5)
 			scale[1] = 0.5;
 
-		guardband_x = MIN2(guardband_x, (max_range - abs(translate[0])) / scale[0]);
-		guardband_y = MIN2(guardband_y, (max_range - abs(translate[1])) / scale[1]);
+		guardband_x = MIN2(guardband_x, (max_range - fabsf(translate[0])) / scale[0]);
+		guardband_y = MIN2(guardband_y, (max_range - fabsf(translate[1])) / scale[1]);
 
 		radeon_emit(cs, S_028250_TL_X(scissor.offset.x) |
 			    S_028250_TL_Y(scissor.offset.y) |

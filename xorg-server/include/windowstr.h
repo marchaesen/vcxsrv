@@ -159,7 +159,6 @@ typedef struct _Window {
     unsigned realized:1;        /* ancestors are all mapped */
     unsigned viewable:1;        /* realized && InputOutput */
     unsigned dontPropagate:3;   /* index into DontPropagateMasks */
-    unsigned forcedBS:1;        /* system-supplied backingStore */
     unsigned redirectDraw:2;    /* COMPOSITE rendering redirect */
     unsigned forcedBG:1;        /* must have an opaque background */
     unsigned unhittable:1;      /* doesn't hit-test, for rootless */

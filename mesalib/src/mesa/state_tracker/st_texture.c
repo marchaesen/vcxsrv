@@ -540,7 +540,7 @@ st_create_image_handle_from_unit(struct st_context *st,
    struct pipe_context *pipe = st->pipe;
    struct pipe_image_view img;
 
-   st_convert_image_from_unit(st, &img, imgUnit);
+   st_convert_image_from_unit(st, &img, imgUnit, GL_READ_WRITE);
 
    return pipe->create_image_handle(pipe, &img);
 }

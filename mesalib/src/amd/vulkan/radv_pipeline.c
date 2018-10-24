@@ -1788,6 +1788,28 @@ radv_link_shaders(struct radv_pipeline *pipeline, nir_shader **shaders)
 		ordered_shaders[shader_count++] = shaders[MESA_SHADER_VERTEX];
 	}
 
+	if (shader_count > 1) {
+		unsigned first = ordered_shaders[shader_count - 1]->info.stage;
+		unsigned last = ordered_shaders[0]->info.stage;
+
+		if (ordered_shaders[0]->info.stage == MESA_SHADER_FRAGMENT &&
+		    ordered_shaders[1]->info.has_transform_feedback_varyings)
+			nir_link_xfb_varyings(ordered_shaders[1], ordered_shaders[0]);
+
+		for (int i = 0; i < shader_count; ++i)  {
+			nir_variable_mode mask = 0;
+
+			if (ordered_shaders[i]->info.stage != first)
+				mask = mask | nir_var_shader_in;
+
+			if (ordered_shaders[i]->info.stage != last)
+				mask = mask | nir_var_shader_out;
+
+			nir_lower_io_to_scalar_early(ordered_shaders[i], mask);
+			radv_optimize_nir(ordered_shaders[i], false, false);
+		}
+	}
+
 	for (int i = 1; i < shader_count; ++i)  {
 		nir_lower_io_arrays_to_elements(ordered_shaders[i],
 						ordered_shaders[i - 1]);
@@ -2033,17 +2055,6 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 		modules[MESA_SHADER_FRAGMENT] = &fs_m;
 	}
 
-	/* Determine first and last stage. */
-	unsigned first = MESA_SHADER_STAGES;
-	unsigned last = 0;
-	for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-		if (!pStages[i])
-			continue;
-		if (first == MESA_SHADER_STAGES)
-			first = i;
-		last = i;
-	}
-
 	for (unsigned i = 0; i < MESA_SHADER_STAGES; ++i) {
 		const VkPipelineShaderStageCreateInfo *stage = pStages[i];
 
@@ -2060,21 +2071,6 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 		 */
 		if (nir[i]->info.name) {
 			nir[i] = nir_shader_clone(NULL, nir[i]);
-		}
-
-		if (first != last) {
-			nir_variable_mode mask = 0;
-
-			if (i != first)
-				mask = mask | nir_var_shader_in;
-
-			if (i != last)
-				mask = mask | nir_var_shader_out;
-
-			if (!(flags & VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT)) {
-				nir_lower_io_to_scalar_early(nir[i], mask);
-				radv_optimize_nir(nir[i], false, false);
-			}
 		}
 	}
 

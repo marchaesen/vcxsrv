@@ -587,7 +587,6 @@ UseMsg(void)
     ErrorF("-terminate             terminate at server reset\n");
     ErrorF("-to #                  connection time out\n");
     ErrorF("-tst                   disable testing extensions\n");
-    ErrorF("-wm                    WhenMapped default backing-store\n");
     ErrorF("-wr                    create root window with white background\n");
 #ifdef PANORAMIX
     ErrorF("+xinerama              Enable XINERAMA extension\n");
@@ -966,8 +965,6 @@ ProcessCommandLine(int argc, char *argv[])
         else if (strcmp(argv[i], "-tst") == 0) {
             noTestExtensions = TRUE;
         }
-        else if (strcmp(argv[i], "-wm") == 0)
-            defaultBackingStore = WhenMapped;
         else if (strcmp(argv[i], "-wr") == 0)
             whiteRoot = TRUE;
         else if (strcmp(argv[i], "-background") == 0) {

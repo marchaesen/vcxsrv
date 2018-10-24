@@ -2407,8 +2407,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
 
    if (_mesa_is_gles(ctx)) {
       bool valid = true;
-      if (_mesa_base_format_component_count(baseFormat) >
-          _mesa_base_format_component_count(rb_base_format)) {
+      if (_mesa_components_in_format(baseFormat) >
+          _mesa_components_in_format(rb_base_format)) {
          valid = false;
       }
       if (baseFormat == GL_DEPTH_COMPONENT ||

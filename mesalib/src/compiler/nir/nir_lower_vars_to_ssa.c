@@ -162,9 +162,8 @@ get_deref_node_recur(nir_deref_instr *deref,
       return parent->children[deref->strct.index];
 
    case nir_deref_type_array: {
-      nir_const_value *const_index = nir_src_as_const_value(deref->arr.index);
-      if (const_index) {
-         uint32_t index = const_index->u32[0];
+      if (nir_src_is_const(deref->arr.index)) {
+         uint32_t index = nir_src_as_uint(deref->arr.index);
          /* This is possible if a loop unrolls and generates an
           * out-of-bounds offset.  We need to handle this at least
           * somewhat gracefully.
@@ -252,9 +251,7 @@ foreach_deref_node_worker(struct deref_node *node, nir_deref_instr **path,
       return;
 
    case nir_deref_type_array: {
-      nir_const_value *const_index = nir_src_as_const_value((*path)->arr.index);
-      assert(const_index);
-      uint32_t index = const_index->u32[0];
+      uint32_t index = nir_src_as_uint((*path)->arr.index);
 
       if (node->children[index]) {
          foreach_deref_node_worker(node->children[index],
@@ -318,11 +315,10 @@ path_may_be_aliased_node(struct deref_node *node, nir_deref_instr **path,
       }
 
    case nir_deref_type_array: {
-      nir_const_value *const_index = nir_src_as_const_value((*path)->arr.index);
-      if (!const_index)
+      if (!nir_src_is_const((*path)->arr.index))
          return true;
 
-      uint32_t index = const_index->u32[0];
+      uint32_t index = nir_src_as_uint((*path)->arr.index);
 
       /* If there is an indirect at this level, we're aliased. */
       if (node->indirect)

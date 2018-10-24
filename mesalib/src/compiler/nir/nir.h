@@ -700,6 +700,22 @@ nir_src_num_components(nir_src src)
    return src.is_ssa ? src.ssa->num_components : src.reg.reg->num_components;
 }
 
+static inline bool
+nir_src_is_const(nir_src src)
+{
+   return src.is_ssa &&
+          src.ssa->parent_instr->type == nir_instr_type_load_const;
+}
+
+int64_t nir_src_as_int(nir_src src);
+uint64_t nir_src_as_uint(nir_src src);
+bool nir_src_as_bool(nir_src src);
+double nir_src_as_float(nir_src src);
+int64_t nir_src_comp_as_int(nir_src src, unsigned component);
+uint64_t nir_src_comp_as_uint(nir_src src, unsigned component);
+bool nir_src_comp_as_bool(nir_src src, unsigned component);
+double nir_src_comp_as_float(nir_src src, unsigned component);
+
 static inline unsigned
 nir_dest_bit_size(nir_dest dest)
 {
@@ -2783,6 +2799,7 @@ bool nir_remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
                                uint64_t *used_by_other_stage_patches);
 void nir_compact_varyings(nir_shader *producer, nir_shader *consumer,
                           bool default_to_smooth_interp);
+void nir_link_xfb_varyings(nir_shader *producer, nir_shader *consumer);
 
 typedef enum {
    /* If set, this forces all non-flat fragment shader inputs to be

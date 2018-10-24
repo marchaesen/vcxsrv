@@ -57,12 +57,9 @@ lower_tex_src_to_offset(nir_builder *b,
          break;
 
       case nir_deref_type_array: {
-         nir_const_value *const_deref_index =
-            nir_src_as_const_value(deref->arr.index);
-
-         if (const_deref_index && index == NULL) {
+         if (nir_src_is_const(deref->arr.index) && index == NULL) {
             /* We're still building a direct index */
-            base_index += const_deref_index->u32[0] * array_elements;
+            base_index += nir_src_as_uint(deref->arr.index) * array_elements;
          } else {
             if (index == NULL) {
                /* We used to be direct but not anymore */

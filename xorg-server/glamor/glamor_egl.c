@@ -291,6 +291,12 @@ glamor_make_pixmap_exportable(PixmapPtr pixmap, Bool modifiers_ok)
     case 16:
         format = GBM_FORMAT_RGB565;
         break;
+    case 15:
+        format = GBM_FORMAT_ARGB1555;
+        break;
+    case 8:
+        format = GBM_FORMAT_R8;
+        break;
     default:
         xf86DrvMsg(scrn->scrnIndex, X_ERROR,
                    "Failed to make %d depth, %dbpp pixmap exportable\n",

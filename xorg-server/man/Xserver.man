@@ -289,17 +289,6 @@ sets video-off screen-saver preference.
 .B \-v
 sets video-on screen-saver preference.
 .TP 8
-.B \-wm
-forces the default backing-store of all windows to be WhenMapped.  This
-is a backdoor way of getting backing-store to apply to all windows.
-Although all mapped windows will have backing store, the backing store
-attribute value reported by the server for a window will be the last
-value established by a client.  If it has never been set by a client,
-the server will report the default value, NotUseful.  This behavior is
-required by the X protocol, which allows the server to exceed the
-client's backing store expectations but does not provide a way to tell
-the client that it is doing so.
-.TP 8
 .B \-wr
 sets the default root window to solid white instead of the standard root weave
 pattern.

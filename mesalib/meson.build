@@ -1086,14 +1086,6 @@ if dep_thread.found() and host_machine.system() != 'windows'
     pre_args += '-DHAVE_PTHREAD_SETAFFINITY'
   endif
 endif
-if with_amd_vk or with_gallium_radeonsi or with_gallium_r600 or with_gallium_opencl
-  dep_elf = dependency('libelf', required : false)
-  if not dep_elf.found()
-    dep_elf = cc.find_library('elf')
-  endif
-else
-  dep_elf = null_dep
-endif
 dep_expat = dependency('expat')
 # this only exists on linux so either this is linux and it will be found, or
 # its not linux and and wont
@@ -1110,7 +1102,7 @@ dep_libdrm_etnaviv = null_dep
 dep_libdrm_freedreno = null_dep
 dep_libdrm_intel = null_dep
 
-_drm_amdgpu_ver = '2.4.93'
+_drm_amdgpu_ver = '2.4.95'
 _drm_radeon_ver = '2.4.71'
 _drm_nouveau_ver = '2.4.66'
 _drm_etnaviv_ver = '2.4.89'
@@ -1238,6 +1230,16 @@ if with_llvm
   endif
 elif with_amd_vk or with_gallium_radeonsi or with_gallium_swr
   error('The following drivers require LLVM: Radv, RadeonSI, SWR. One of these is enabled, but LLVM is disabled.')
+endif
+
+if (with_amd_vk or with_gallium_radeonsi or with_gallium_opencl or
+    (with_gallium_r600 and with_llvm))
+  dep_elf = dependency('libelf', required : false)
+  if not dep_elf.found()
+    dep_elf = cc.find_library('elf')
+  endif
+else
+  dep_elf = null_dep
 endif
 
 dep_glvnd = null_dep

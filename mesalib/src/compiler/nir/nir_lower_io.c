@@ -112,10 +112,8 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref,
       assert(glsl_type_is_scalar((*p)->type));
 
       /* We always lower indirect dereferences for "compact" array vars. */
-      nir_const_value *const_index = nir_src_as_const_value((*p)->arr.index);
-      assert(const_index);
-
-      const unsigned total_offset = *component + const_index->u32[0];
+      const unsigned index = nir_src_as_uint((*p)->arr.index);
+      const unsigned total_offset = *component + index;
       const unsigned slot_offset = total_offset / 4;
       *component = total_offset % 4;
       return nir_imm_int(b, type_size(glsl_vec4_type()) * slot_offset);

@@ -44,6 +44,7 @@ typedef struct SockAddr SockAddr;
 
 typedef struct Socket Socket;
 typedef struct Plug Plug;
+typedef struct SocketPeerInfo SocketPeerInfo;
 
 typedef struct Backend Backend;
 typedef struct BackendVtable BackendVtable;
@@ -60,8 +61,12 @@ typedef struct Frontend Frontend;
 
 typedef struct Ssh Ssh;
 
+typedef struct SftpServer SftpServer;
+typedef struct SftpServerVtable SftpServerVtable;
+
 typedef struct Channel Channel;
 typedef struct SshChannel SshChannel;
+typedef struct mainchan mainchan;
 
 typedef struct ssh_sharing_state ssh_sharing_state;
 typedef struct ssh_sharing_connstate ssh_sharing_connstate;

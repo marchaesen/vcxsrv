@@ -277,6 +277,20 @@ static const struct ChannelVtable zombiechan_channelvt = {
     zombiechan_set_input_wanted,
     zombiechan_log_close_msg,
     zombiechan_want_close,
+    chan_no_exit_status,
+    chan_no_exit_signal,
+    chan_no_exit_signal_numeric,
+    chan_no_run_shell,
+    chan_no_run_command,
+    chan_no_run_subsystem,
+    chan_no_enable_x11_forwarding,
+    chan_no_enable_agent_forwarding,
+    chan_no_allocate_pty,
+    chan_no_set_env,
+    chan_no_send_break,
+    chan_no_send_signal,
+    chan_no_change_window_size,
+    chan_no_request_response,
 };
 
 Channel *zombiechan_new(void)
@@ -335,107 +349,159 @@ void chan_remotely_opened_failure(Channel *chan, const char *errtext)
     assert(0 && "this channel type should never receive OPEN_FAILURE");
 }
 
-int chan_no_eager_close(Channel *chan, int sent_local_eof, int rcvd_remote_eof)
+int chan_default_want_close(
+    Channel *chan, int sent_local_eof, int rcvd_remote_eof)
 {
-    return FALSE;     /* default: never proactively ask for a close */
+    /*
+     * Default close policy: we start initiating the CHANNEL_CLOSE
+     * procedure as soon as both sides of the channel have seen EOF.
+     */
+    return sent_local_eof && rcvd_remote_eof;
+}
+
+int chan_no_exit_status(Channel *chan, int status)
+{
+    return FALSE;
+}
+
+int chan_no_exit_signal(
+    Channel *chan, ptrlen signame, int core_dumped, ptrlen msg)
+{
+    return FALSE;
+}
+
+int chan_no_exit_signal_numeric(
+    Channel *chan, int signum, int core_dumped, ptrlen msg)
+{
+    return FALSE;
+}
+
+int chan_no_run_shell(Channel *chan)
+{
+    return FALSE;
+}
+
+int chan_no_run_command(Channel *chan, ptrlen command)
+{
+    return FALSE;
+}
+
+int chan_no_run_subsystem(Channel *chan, ptrlen subsys)
+{
+    return FALSE;
+}
+
+int chan_no_enable_x11_forwarding(
+    Channel *chan, int oneshot, ptrlen authproto, ptrlen authdata,
+    unsigned screen_number)
+{
+    return FALSE;
+}
+
+int chan_no_enable_agent_forwarding(Channel *chan)
+{
+    return FALSE;
+}
+
+int chan_no_allocate_pty(
+    Channel *chan, ptrlen termtype, unsigned width, unsigned height,
+    unsigned pixwidth, unsigned pixheight, struct ssh_ttymodes modes)
+{
+    return FALSE;
+}
+
+int chan_no_set_env(Channel *chan, ptrlen var, ptrlen value)
+{
+    return FALSE;
+}
+
+int chan_no_send_break(Channel *chan, unsigned length)
+{
+    return FALSE;
+}
+
+int chan_no_send_signal(Channel *chan, ptrlen signame)
+{
+    return FALSE;
+}
+
+int chan_no_change_window_size(
+    Channel *chan, unsigned width, unsigned height,
+    unsigned pixwidth, unsigned pixheight)
+{
+    return FALSE;
+}
+
+void chan_no_request_response(Channel *chan, int success)
+{
+    assert(0 && "this channel type should never send a want-reply request");
 }
 
 /* ----------------------------------------------------------------------
- * Common routine to marshal tty modes into an SSH packet.
+ * Common routines for handling SSH tty modes.
  */
 
-void write_ttymodes_to_packet_from_conf(
-    BinarySink *bs, Seat *seat, Conf *conf,
-    int ssh_version, int ospeed, int ispeed)
+static unsigned real_ttymode_opcode(unsigned our_opcode, int ssh_version)
 {
-    int i;
+    switch (our_opcode) {
+      case TTYMODE_ISPEED:
+        return ssh_version == 1 ? TTYMODE_ISPEED_SSH1 : TTYMODE_ISPEED_SSH2;
+      case TTYMODE_OSPEED:
+        return ssh_version == 1 ? TTYMODE_OSPEED_SSH1 : TTYMODE_OSPEED_SSH2;
+      default:
+        return our_opcode;
+    }
+}
 
-    /*
-     * Codes for terminal modes.
-     * Most of these are the same in SSH-1 and SSH-2.
-     * This list is derived from RFC 4254 and
-     * SSH-1 RFC-1.2.31.
-     */
-    static const struct ssh_ttymode {
+static unsigned our_ttymode_opcode(unsigned real_opcode, int ssh_version)
+{
+    if (ssh_version == 1) {
+        switch (real_opcode) {
+          case TTYMODE_ISPEED_SSH1:
+            return TTYMODE_ISPEED;
+          case TTYMODE_OSPEED_SSH1:
+            return TTYMODE_OSPEED;
+          default:
+            return real_opcode;
+        }
+    } else {
+        switch (real_opcode) {
+          case TTYMODE_ISPEED_SSH2:
+            return TTYMODE_ISPEED;
+          case TTYMODE_OSPEED_SSH2:
+            return TTYMODE_OSPEED;
+          default:
+            return real_opcode;
+        }
+    }
+}
+
+struct ssh_ttymodes get_ttymodes_from_conf(Seat *seat, Conf *conf)
+{
+    struct ssh_ttymodes modes;
+    size_t i;
+
+    static const struct mode_name_type {
         const char *mode;
         int opcode;
-        enum { TTY_OP_CHAR, TTY_OP_BOOL } type;
-    } ssh_ttymodes[] = {
-        /* "V" prefix discarded for special characters relative to SSH specs */
-        { "INTR",      1, TTY_OP_CHAR },
-        { "QUIT",      2, TTY_OP_CHAR },
-        { "ERASE",     3, TTY_OP_CHAR },
-        { "KILL",      4, TTY_OP_CHAR },
-        { "EOF",       5, TTY_OP_CHAR },
-        { "EOL",       6, TTY_OP_CHAR },
-        { "EOL2",      7, TTY_OP_CHAR },
-        { "START",     8, TTY_OP_CHAR },
-        { "STOP",      9, TTY_OP_CHAR },
-        { "SUSP",     10, TTY_OP_CHAR },
-        { "DSUSP",    11, TTY_OP_CHAR },
-        { "REPRINT",  12, TTY_OP_CHAR },
-        { "WERASE",   13, TTY_OP_CHAR },
-        { "LNEXT",    14, TTY_OP_CHAR },
-        { "FLUSH",    15, TTY_OP_CHAR },
-        { "SWTCH",    16, TTY_OP_CHAR },
-        { "STATUS",   17, TTY_OP_CHAR },
-        { "DISCARD",  18, TTY_OP_CHAR },
-        { "IGNPAR",   30, TTY_OP_BOOL },
-        { "PARMRK",   31, TTY_OP_BOOL },
-        { "INPCK",    32, TTY_OP_BOOL },
-        { "ISTRIP",   33, TTY_OP_BOOL },
-        { "INLCR",    34, TTY_OP_BOOL },
-        { "IGNCR",    35, TTY_OP_BOOL },
-        { "ICRNL",    36, TTY_OP_BOOL },
-        { "IUCLC",    37, TTY_OP_BOOL },
-        { "IXON",     38, TTY_OP_BOOL },
-        { "IXANY",    39, TTY_OP_BOOL },
-        { "IXOFF",    40, TTY_OP_BOOL },
-        { "IMAXBEL",  41, TTY_OP_BOOL },
-        { "IUTF8",    42, TTY_OP_BOOL },
-        { "ISIG",     50, TTY_OP_BOOL },
-        { "ICANON",   51, TTY_OP_BOOL },
-        { "XCASE",    52, TTY_OP_BOOL },
-        { "ECHO",     53, TTY_OP_BOOL },
-        { "ECHOE",    54, TTY_OP_BOOL },
-        { "ECHOK",    55, TTY_OP_BOOL },
-        { "ECHONL",   56, TTY_OP_BOOL },
-        { "NOFLSH",   57, TTY_OP_BOOL },
-        { "TOSTOP",   58, TTY_OP_BOOL },
-        { "IEXTEN",   59, TTY_OP_BOOL },
-        { "ECHOCTL",  60, TTY_OP_BOOL },
-        { "ECHOKE",   61, TTY_OP_BOOL },
-        { "PENDIN",   62, TTY_OP_BOOL }, /* XXX is this a real mode? */
-        { "OPOST",    70, TTY_OP_BOOL },
-        { "OLCUC",    71, TTY_OP_BOOL },
-        { "ONLCR",    72, TTY_OP_BOOL },
-        { "OCRNL",    73, TTY_OP_BOOL },
-        { "ONOCR",    74, TTY_OP_BOOL },
-        { "ONLRET",   75, TTY_OP_BOOL },
-        { "CS7",      90, TTY_OP_BOOL },
-        { "CS8",      91, TTY_OP_BOOL },
-        { "PARENB",   92, TTY_OP_BOOL },
-        { "PARODD",   93, TTY_OP_BOOL }
+        enum { TYPE_CHAR, TYPE_BOOL } type;
+    } modes_names_types[] = {
+        #define TTYMODE_CHAR(name, val, index) { #name, val, TYPE_CHAR },
+        #define TTYMODE_FLAG(name, val, field, mask) { #name, val, TYPE_BOOL },
+        #include "sshttymodes.h"
+        #undef TTYMODE_CHAR
+        #undef TTYMODE_FLAG
     };
 
-    /* Miscellaneous other tty-related constants. */
-    enum {
-        /* The opcodes for ISPEED/OSPEED differ between SSH-1 and SSH-2. */
-        SSH1_TTY_OP_ISPEED = 192,
-        SSH1_TTY_OP_OSPEED = 193,
-        SSH2_TTY_OP_ISPEED = 128,
-        SSH2_TTY_OP_OSPEED = 129,
+    memset(&modes, 0, sizeof(modes));
 
-        SSH_TTY_OP_END = 0
-    };
-
-    for (i = 0; i < lenof(ssh_ttymodes); i++) {
-        const struct ssh_ttymode *mode = ssh_ttymodes + i;
+    for (i = 0; i < lenof(modes_names_types); i++) {
+        const struct mode_name_type *mode = &modes_names_types[i];
         const char *sval = conf_get_str_str(conf, CONF_ttymodes, mode->mode);
         char *to_free = NULL;
 
-        /* Every mode known to the current version of the code should be
-         * mentioned; this was ensured when settings were loaded. */
+        if (!sval)
+            sval = "N";                /* just in case */
 
         /*
          * sval[0] can be
@@ -462,7 +528,7 @@ void write_ttymodes_to_packet_from_conf(
             unsigned ival = 0;
 
             switch (mode->type) {
-              case TTY_OP_CHAR:
+              case TYPE_CHAR:
                 if (*sval) {
                     char *next = NULL;
                     /* We know ctrlparse won't write to the string, so
@@ -474,7 +540,7 @@ void write_ttymodes_to_packet_from_conf(
                     ival = 255; /* special value meaning "don't set" */
                 }
                 break;
-              case TTY_OP_BOOL:
+              case TYPE_BOOL:
                 if (stricmp(sval, "yes") == 0 ||
                     stricmp(sval, "on") == 0 ||
                     stricmp(sval, "true") == 0 ||
@@ -492,30 +558,91 @@ void write_ttymodes_to_packet_from_conf(
                 assert(0 && "Bad mode->type");
             }
 
-            /*
-             * And write it into the output packet. The parameter
-             * value is formatted as a byte in SSH-1, but a uint32
-             * in SSH-2.
-             */
-            put_byte(bs, mode->opcode);
-            if (ssh_version == 1)
-                put_byte(bs, ival);
-            else
-                put_uint32(bs, ival);
+            modes.have_mode[mode->opcode] = TRUE;
+            modes.mode_val[mode->opcode] = ival;
         }
 
         sfree(to_free);
     }
 
-    /*
-     * Finish off with the terminal speeds (which are formatted as
-     * uint32 in both protocol versions) and the end marker.
-     */
-    put_byte(bs, ssh_version == 1 ? SSH1_TTY_OP_ISPEED : SSH2_TTY_OP_ISPEED);
-    put_uint32(bs, ispeed);
-    put_byte(bs, ssh_version == 1 ? SSH1_TTY_OP_OSPEED : SSH2_TTY_OP_OSPEED);
-    put_uint32(bs, ospeed);
-    put_byte(bs, SSH_TTY_OP_END);
+    {
+        unsigned ospeed, ispeed;
+
+        /* Unpick the terminal-speed config string. */
+        ospeed = ispeed = 38400;           /* last-resort defaults */
+        sscanf(conf_get_str(conf, CONF_termspeed), "%u,%u", &ospeed, &ispeed);
+        /* Currently we unconditionally set these */
+        modes.have_mode[TTYMODE_ISPEED] = TRUE;
+        modes.mode_val[TTYMODE_ISPEED] = ispeed;
+        modes.have_mode[TTYMODE_OSPEED] = TRUE;
+        modes.mode_val[TTYMODE_OSPEED] = ospeed;
+    }
+
+    return modes;
+}
+
+struct ssh_ttymodes read_ttymodes_from_packet(
+    BinarySource *bs, int ssh_version)
+{
+    struct ssh_ttymodes modes;
+    memset(&modes, 0, sizeof(modes));
+
+    while (1) {
+        unsigned real_opcode, our_opcode;
+
+        real_opcode = get_byte(bs);
+        if (real_opcode == TTYMODE_END_OF_LIST)
+            break;
+        if (real_opcode >= 160) {
+            /*
+             * RFC 4254 (and the SSH 1.5 spec): "Opcodes 160 to 255
+             * are not yet defined, and cause parsing to stop (they
+             * should only be used after any other data)."
+             *
+             * My interpretation of this is that if one of these
+             * opcodes appears, it's not a parse _error_, but it is
+             * something that we don't know how to parse even well
+             * enough to step over it to find the next opcode, so we
+             * stop parsing now and assume that the rest of the string
+             * is composed entirely of things we don't understand and
+             * (as usual for unsupported terminal modes) silently
+             * ignore.
+             */
+            return modes;
+        }
+
+        our_opcode = our_ttymode_opcode(real_opcode, ssh_version);
+        assert(our_opcode < TTYMODE_LIMIT);
+        modes.have_mode[our_opcode] = TRUE;
+
+        if (ssh_version == 1 && real_opcode >= 1 && real_opcode <= 127)
+            modes.mode_val[our_opcode] = get_byte(bs);
+        else
+            modes.mode_val[our_opcode] = get_uint32(bs);
+    }
+
+    return modes;
+}
+
+void write_ttymodes_to_packet(BinarySink *bs, int ssh_version,
+                              struct ssh_ttymodes modes)
+{
+    unsigned i;
+
+    for (i = 0; i < TTYMODE_LIMIT; i++) {
+        if (modes.have_mode[i]) {
+            unsigned val = modes.mode_val[i];
+            unsigned opcode = real_ttymode_opcode(i, ssh_version);
+
+            put_byte(bs, opcode);
+            if (ssh_version == 1 && opcode >= 1 && opcode <= 127)
+                put_byte(bs, val);
+            else
+                put_uint32(bs, val);
+        }
+    }
+
+    put_byte(bs, TTYMODE_END_OF_LIST);
 }
 
 /* ----------------------------------------------------------------------
@@ -604,6 +731,38 @@ void add_to_commasep(strbuf *buf, const char *data)
     if (buf->len > 0)
         put_byte(buf, ',');
     put_data(buf, data, strlen(data));
+}
+
+int get_commasep_word(ptrlen *list, ptrlen *word)
+{
+    const char *comma;
+
+    /*
+     * Discard empty list elements, should there be any, because we
+     * never want to return one as if it was a real string. (This
+     * introduces a mild tolerance of badly formatted data in lists we
+     * receive, but I think that's acceptable.)
+     */
+    while (list->len > 0 && *(const char *)list->ptr == ',') {
+        list->ptr = (const char *)list->ptr + 1;
+        list->len--;
+    }
+
+    if (!list->len)
+        return FALSE;
+
+    comma = memchr(list->ptr, ',', list->len);
+    if (!comma) {
+        *word = *list;
+        list->len = 0;
+    } else {
+        size_t wordlen = comma - (const char *)list->ptr;
+        word->ptr = list->ptr;
+        word->len = wordlen;
+        list->ptr = (const char *)list->ptr + wordlen + 1;
+        list->len -= wordlen + 1;
+    }
+    return TRUE;
 }
 
 /* ----------------------------------------------------------------------
@@ -830,7 +989,7 @@ int verify_ssh_manual_host_key(
 }
 
 /* ----------------------------------------------------------------------
- * Common get_specials function for the two SSH-1 layers.
+ * Common functions shared between SSH-1 layers.
  */
 
 int ssh1_common_get_specials(
@@ -847,6 +1006,56 @@ int ssh1_common_get_specials(
     }
 
     return FALSE;
+}
+
+int ssh1_common_filter_queue(PacketProtocolLayer *ppl)
+{
+    PktIn *pktin;
+    ptrlen msg;
+
+    while ((pktin = pq_peek(ppl->in_pq)) != NULL) {
+        switch (pktin->type) {
+          case SSH1_MSG_DISCONNECT:
+            msg = get_string(pktin);
+            ssh_remote_error(ppl->ssh,
+                             "Remote side sent disconnect message:\n\"%.*s\"",
+                             PTRLEN_PRINTF(msg));
+            pq_pop(ppl->in_pq);
+            return TRUE;               /* indicate that we've been freed */
+
+          case SSH1_MSG_DEBUG:
+            msg = get_string(pktin);
+            ppl_logevent(("Remote debug message: %.*s", PTRLEN_PRINTF(msg)));
+            pq_pop(ppl->in_pq);
+            break;
+
+          case SSH1_MSG_IGNORE:
+            /* Do nothing, because we're ignoring it! Duhh. */
+            pq_pop(ppl->in_pq);
+            break;
+
+          default:
+            return FALSE;
+        }
+    }
+
+    return FALSE;
+}
+
+void ssh1_compute_session_id(
+    unsigned char *session_id, const unsigned char *cookie,
+    struct RSAKey *hostkey, struct RSAKey *servkey)
+{
+    struct MD5Context md5c;
+    int i;
+
+    MD5Init(&md5c);
+    for (i = (bignum_bitcount(hostkey->modulus) + 7) / 8; i-- ;)
+        put_byte(&md5c, bignum_byte(hostkey->modulus, i));
+    for (i = (bignum_bitcount(servkey->modulus) + 7) / 8; i-- ;)
+        put_byte(&md5c, bignum_byte(servkey->modulus, i));
+    put_data(&md5c, cookie, 8);
+    MD5Final(session_id, &md5c);
 }
 
 /* ----------------------------------------------------------------------

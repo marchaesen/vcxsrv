@@ -53,12 +53,11 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref, nir_variable *var,
    unsigned offset = 0;
    for (; *p; p++) {
       if ((*p)->deref_type == nir_deref_type_array) {
-         nir_const_value *c = nir_src_as_const_value((*p)->arr.index);
-
-         assert(c);     /* must not be indirect dereference */
+         /* must not be indirect dereference */
+         unsigned index = nir_src_as_uint((*p)->arr.index);
 
          unsigned size = glsl_count_attribute_slots((*p)->type, false);
-         offset += size * c->u32[0];
+         offset += size * index;
 
          unsigned num_elements = glsl_type_is_array((*p)->type) ?
             glsl_get_aoa_size((*p)->type) : 1;
@@ -66,7 +65,7 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref, nir_variable *var,
          num_elements *= glsl_type_is_matrix(glsl_without_array((*p)->type)) ?
             glsl_get_matrix_columns(glsl_without_array((*p)->type)) : 1;
 
-         *element_index += num_elements * c->u32[0];
+         *element_index += num_elements * index;
       } else if ((*p)->deref_type == nir_deref_type_struct) {
          /* TODO: we could also add struct splitting support to this pass */
          break;
@@ -195,7 +194,7 @@ deref_has_indirect(nir_builder *b, nir_variable *var, nir_deref_path *path)
       if ((*p)->deref_type != nir_deref_type_array)
          continue;
 
-      if (!nir_src_as_const_value((*p)->arr.index))
+      if (!nir_src_is_const((*p)->arr.index))
          return true;
    }
 

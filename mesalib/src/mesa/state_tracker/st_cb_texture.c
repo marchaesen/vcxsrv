@@ -3237,7 +3237,7 @@ st_NewImageHandle(struct gl_context *ctx, struct gl_image_unit *imgObj)
    struct pipe_context *pipe = st->pipe;
    struct pipe_image_view image;
 
-   st_convert_image(st, imgObj, &image);
+   st_convert_image(st, imgObj, &image, GL_READ_WRITE);
 
    return pipe->create_image_handle(pipe, &image);
 }
