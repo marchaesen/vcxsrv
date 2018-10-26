@@ -42,7 +42,6 @@ init_block(nir_block *block, nir_function_impl *impl)
       block->imm_dom = NULL;
    block->num_dom_children = 0;
 
-   struct set_entry *entry;
    set_foreach(block->dom_frontier, entry) {
       _mesa_set_remove(block->dom_frontier, entry);
    }
@@ -72,7 +71,6 @@ static bool
 calc_dominance(nir_block *block)
 {
    nir_block *new_idom = NULL;
-   struct set_entry *entry;
    set_foreach(block->predecessors, entry) {
       nir_block *pred = (nir_block *) entry->key;
 
@@ -96,7 +94,6 @@ static bool
 calc_dom_frontier(nir_block *block)
 {
    if (block->predecessors->entries > 1) {
-      struct set_entry *entry;
       set_foreach(block->predecessors, entry) {
          nir_block *runner = (nir_block *) entry->key;
 
@@ -269,7 +266,6 @@ nir_dump_dom_frontier_impl(nir_function_impl *impl, FILE *fp)
 {
    nir_foreach_block(block, impl) {
       fprintf(fp, "DF(%u) = {", block->index);
-      struct set_entry *entry;
       set_foreach(block->dom_frontier, entry) {
          nir_block *df = (nir_block *) entry->key;
          fprintf(fp, "%u, ", df->index);

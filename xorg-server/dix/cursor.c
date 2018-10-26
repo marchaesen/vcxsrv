@@ -293,12 +293,13 @@ AllocARGBCursor(unsigned char *psrcbits, unsigned char *pmaskbits,
         size_t i, size = bits->width * bits->height;
 
         for (i = 0; i < size; i++) {
-            if ((argb[i] & 0xff000000) == 0 && (argb[i] & 0xffffff) != 0) {
+            CARD32 a = argb[i] >> 24;
+
+            if (argb[i] > (a << 24 | a << 16 | a << 8 | a)) {
                 /* ARGB data doesn't seem pre-multiplied, fix it */
                 for (i = 0; i < size; i++) {
-                    CARD32 a, ar, ag, ab;
+                    CARD32 ar, ag, ab;
 
-                    a = argb[i] >> 24;
                     ar = a * ((argb[i] >> 16) & 0xff) / 0xff;
                     ag = a * ((argb[i] >> 8) & 0xff) / 0xff;
                     ab = a * (argb[i] & 0xff) / 0xff;

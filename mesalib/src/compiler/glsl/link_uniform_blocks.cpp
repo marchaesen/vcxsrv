@@ -362,7 +362,6 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
                       ctx->Const.UseSTD430AsDefaultPacking);
 
    unsigned i = 0;
-   struct hash_entry *entry;
    hash_table_foreach (block_hash, entry) {
       const struct link_uniform_block_active *const b =
          (const struct link_uniform_block_active *) entry->data;
@@ -429,7 +428,6 @@ link_uniform_blocks(void *mem_ctx,
    unsigned num_ubo_variables = 0;
    unsigned num_ssbo_variables = 0;
    count_block_size block_size;
-   struct hash_entry *entry;
 
    hash_table_foreach (block_hash, entry) {
       struct link_uniform_block_active *const b =

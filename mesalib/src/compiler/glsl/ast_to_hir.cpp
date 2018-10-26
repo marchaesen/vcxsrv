@@ -6645,7 +6645,6 @@ ast_case_statement_list::hir(exec_list *instructions,
     * if default should be chosen or not.
     */
    if (!default_case.is_empty()) {
-      struct hash_entry *entry;
       ir_factory body(instructions, state);
 
       ir_expression *cmp = NULL;

@@ -87,8 +87,6 @@ public:
 
    void remove_dead_variables()
    {
-      struct set_entry *entry;
-
       set_foreach(variables, entry) {
          ir_variable *ir = (ir_variable *) entry->key;
 

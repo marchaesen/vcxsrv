@@ -727,7 +727,6 @@ validate_block(nir_block *block, validate_state *state)
       }
    }
 
-   struct set_entry *entry;
    set_foreach(block->predecessors, entry) {
       const nir_block *pred = entry->key;
       validate_assert(state, pred->successors[0] == block ||
@@ -936,7 +935,6 @@ postvalidate_reg_decl(nir_register *reg, validate_state *state)
 
    if (reg_state->uses->entries != 0) {
       printf("extra entries in register uses:\n");
-      struct set_entry *entry;
       set_foreach(reg_state->uses, entry)
          printf("%p\n", entry->key);
 
@@ -951,7 +949,6 @@ postvalidate_reg_decl(nir_register *reg, validate_state *state)
 
    if (reg_state->if_uses->entries != 0) {
       printf("extra entries in register if_uses:\n");
-      struct set_entry *entry;
       set_foreach(reg_state->if_uses, entry)
          printf("%p\n", entry->key);
 
@@ -966,7 +963,6 @@ postvalidate_reg_decl(nir_register *reg, validate_state *state)
 
    if (reg_state->defs->entries != 0) {
       printf("extra entries in register defs:\n");
-      struct set_entry *entry;
       set_foreach(reg_state->defs, entry)
          printf("%p\n", entry->key);
 
@@ -1033,7 +1029,6 @@ postvalidate_ssa_def(nir_ssa_def *def, void *void_state)
 
    if (def_state->uses->entries != 0) {
       printf("extra entries in SSA def uses:\n");
-      struct set_entry *entry;
       set_foreach(def_state->uses, entry)
          printf("%p\n", entry->key);
 
@@ -1048,7 +1043,6 @@ postvalidate_ssa_def(nir_ssa_def *def, void *void_state)
 
    if (def_state->if_uses->entries != 0) {
       printf("extra entries in SSA def uses:\n");
-      struct set_entry *entry;
       set_foreach(def_state->if_uses, entry)
          printf("%p\n", entry->key);
 
@@ -1157,7 +1151,6 @@ dump_errors(validate_state *state)
    if (_mesa_hash_table_num_entries(errors) > 0) {
       fprintf(stderr, "%d additional errors:\n",
               _mesa_hash_table_num_entries(errors));
-      struct hash_entry *entry;
       hash_table_foreach(errors, entry) {
          fprintf(stderr, "%s\n", (char *)entry->data);
       }

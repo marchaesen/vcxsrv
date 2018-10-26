@@ -177,8 +177,6 @@ _mesa_hash_table_destroy(struct hash_table *ht,
       return;
 
    if (delete_function) {
-      struct hash_entry *entry;
-
       hash_table_foreach(ht, entry) {
          delete_function(entry);
       }
@@ -284,7 +282,7 @@ static void
 _mesa_hash_table_rehash(struct hash_table *ht, unsigned new_size_index)
 {
    struct hash_table old_ht;
-   struct hash_entry *table, *entry;
+   struct hash_entry *table;
 
    if (new_size_index >= ARRAY_SIZE(hash_sizes))
       return;

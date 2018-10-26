@@ -180,8 +180,6 @@ vir_setup_def(struct v3d_compile *c, struct qblock *block, int ip,
 static void
 sf_state_clear(struct hash_table *partial_update_ht)
 {
-        struct hash_entry *entry;
-
         hash_table_foreach(partial_update_ht, entry) {
                 struct partial_update_state *state = entry->data;
 

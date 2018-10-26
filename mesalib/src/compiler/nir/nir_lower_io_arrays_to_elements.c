@@ -359,7 +359,6 @@ nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
                                   patch_indirects, split_inputs, true);
 
       /* Remove old input from the shaders inputs list */
-      struct hash_entry *entry;
       hash_table_foreach(split_inputs, entry) {
          nir_variable *var = (nir_variable *) entry->key;
          exec_node_remove(&var->node);
@@ -369,7 +368,6 @@ nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
    }
 
    /* Remove old output from the shaders outputs list */
-   struct hash_entry *entry;
    hash_table_foreach(split_outputs, entry) {
       nir_variable *var = (nir_variable *) entry->key;
       exec_node_remove(&var->node);
@@ -406,7 +404,6 @@ nir_lower_io_arrays_to_elements(nir_shader *producer, nir_shader *consumer)
                                patch_indirects, split_inputs, false);
 
    /* Remove old input from the shaders inputs list */
-   struct hash_entry *entry;
    hash_table_foreach(split_inputs, entry) {
       nir_variable *var = (nir_variable *) entry->key;
       exec_node_remove(&var->node);

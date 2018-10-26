@@ -85,7 +85,6 @@ nir_lower_global_vars_to_local(nir_shader *shader)
       }
    }
 
-   struct hash_entry *entry;
    hash_table_foreach(var_func_table, entry) {
       nir_variable *var = (void *)entry->key;
       nir_function_impl *impl = entry->data;

@@ -830,7 +830,6 @@ place_phi_read(nir_shader *shader, nir_register *reg,
    if (block != def->parent_instr->block) {
       /* Try to go up the single-successor tree */
       bool all_single_successors = true;
-      struct set_entry *entry;
       set_foreach(block->predecessors, entry) {
          nir_block *pred = (nir_block *)entry->key;
          if (pred->successors[0] && pred->successors[1]) {

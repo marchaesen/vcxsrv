@@ -122,7 +122,6 @@ convert_loop_exit_for_ssa(nir_ssa_def *def, void *void_state)
    /* Create a phi node with as many sources pointing to the same ssa_def as
     * the block has predecessors.
     */
-   struct set_entry *entry;
    set_foreach(block_after_loop->predecessors, entry) {
       nir_phi_src *phi_src = ralloc(phi, nir_phi_src);
       phi_src->src = nir_src_for_ssa(def);

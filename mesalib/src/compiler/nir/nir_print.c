@@ -1085,7 +1085,6 @@ print_block(nir_block *block, print_state *state, unsigned tabs)
    nir_block **preds =
       malloc(block->predecessors->entries * sizeof(nir_block *));
 
-   struct set_entry *entry;
    unsigned i = 0;
    set_foreach(block->predecessors, entry) {
       preds[i++] = (nir_block *) entry->key;

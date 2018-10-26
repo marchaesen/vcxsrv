@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/stat.h>
+#include "util/mesa-sha1.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -115,18 +116,21 @@ disk_cache_get_function_timestamp(void *ptr, uint32_t* timestamp)
 }
 
 static inline bool
-disk_cache_get_function_identifier(void *ptr, uint32_t *id)
+disk_cache_get_function_identifier(void *ptr, struct mesa_sha1 *ctx)
 {
+   uint32_t timestamp;
+
 #ifdef HAVE_DL_ITERATE_PHDR
    const struct build_id_note *note = NULL;
    if ((note = build_id_find_nhdr_for_addr(ptr))) {
-      const uint8_t *id_sha1 = build_id_data(note);
-      assert(id_sha1);
-      *id = *id_sha1;
-      return true;
+      _mesa_sha1_update(ctx, build_id_data(note), build_id_length(note));
    } else
 #endif
-   return disk_cache_get_function_timestamp(ptr, id);
+   if (disk_cache_get_function_timestamp(ptr, &timestamp)) {
+      _mesa_sha1_update(ctx, &timestamp, sizeof(timestamp));
+   } else
+      return false;
+   return true;
 }
 #endif
 

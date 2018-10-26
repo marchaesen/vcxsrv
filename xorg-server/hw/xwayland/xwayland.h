@@ -188,6 +188,7 @@ struct xwl_window {
 #ifdef GLAMOR_HAS_GBM
 struct xwl_present_window {
     struct xwl_screen *xwl_screen;
+    struct xwl_present_event *sync_flip;
     WindowPtr window;
     struct xorg_list link;
 
