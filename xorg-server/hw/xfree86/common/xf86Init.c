@@ -925,36 +925,33 @@ xf86CheckPrivs(const char *option, const char *arg)
 int
 ddxProcessArgument(int argc, char **argv, int i)
 {
-#define CHECK_FOR_REQUIRED_ARGUMENT() \
-    if (((i + 1) >= argc) || (!argv[i + 1])) { 				\
-      ErrorF("Required argument to %s not specified\n", argv[i]); 	\
-      UseMsg(); 							\
-      FatalError("Required argument to %s not specified\n", argv[i]);	\
-    }
-
     /* First the options that are not allowed with elevated privileges */
     if (!strcmp(argv[i], "-modulepath")) {
-        CHECK_FOR_REQUIRED_ARGUMENT();
-        xf86CheckPrivs(argv[i], argv[i + 1]);
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        if (xf86PrivsElevated())
+              FatalError("\nInvalid argument -modulepath "
+                "with elevated privileges\n");
         xf86ModulePath = argv[i + 1];
         xf86ModPathFrom = X_CMDLINE;
         return 2;
     }
     if (!strcmp(argv[i], "-logfile")) {
-        CHECK_FOR_REQUIRED_ARGUMENT();
-        xf86CheckPrivs(argv[i], argv[i + 1]);
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        if (xf86PrivsElevated())
+              FatalError("\nInvalid argument -logfile "
+                "with elevated privileges\n");
         xf86LogFile = argv[i + 1];
         xf86LogFileFrom = X_CMDLINE;
         return 2;
     }
     if (!strcmp(argv[i], "-config") || !strcmp(argv[i], "-xf86config")) {
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         xf86CheckPrivs(argv[i], argv[i + 1]);
         xf86ConfigFile = argv[i + 1];
         return 2;
     }
     if (!strcmp(argv[i], "-configdir")) {
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         xf86CheckPrivs(argv[i], argv[i + 1]);
         xf86ConfigDir = argv[i + 1];
         return 2;
@@ -1048,7 +1045,7 @@ ddxProcessArgument(int argc, char **argv, int i)
     if (!strcmp(argv[i], "-fbbpp")) {
         int bpp;
 
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         if (sscanf(argv[++i], "%d", &bpp) == 1) {
             xf86FbBpp = bpp;
             return 2;
@@ -1061,7 +1058,7 @@ ddxProcessArgument(int argc, char **argv, int i)
     if (!strcmp(argv[i], "-depth")) {
         int depth;
 
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         if (sscanf(argv[++i], "%d", &depth) == 1) {
             xf86Depth = depth;
             return 2;
@@ -1074,7 +1071,7 @@ ddxProcessArgument(int argc, char **argv, int i)
     if (!strcmp(argv[i], "-weight")) {
         int red, green, blue;
 
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         if (sscanf(argv[++i], "%1d%1d%1d", &red, &green, &blue) == 3) {
             xf86Weight.red = red;
             xf86Weight.green = green;
@@ -1090,7 +1087,7 @@ ddxProcessArgument(int argc, char **argv, int i)
         !strcmp(argv[i], "-ggamma") || !strcmp(argv[i], "-bgamma")) {
         double gamma;
 
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         if (sscanf(argv[++i], "%lf", &gamma) == 1) {
             if (gamma < GAMMA_MIN || gamma > GAMMA_MAX) {
                 ErrorF("gamma out of range, only  %.2f <= gamma_value <= %.1f"
@@ -1109,22 +1106,22 @@ ddxProcessArgument(int argc, char **argv, int i)
         }
     }
     if (!strcmp(argv[i], "-layout")) {
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         xf86LayoutName = argv[++i];
         return 2;
     }
     if (!strcmp(argv[i], "-screen")) {
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         xf86ScreenName = argv[++i];
         return 2;
     }
     if (!strcmp(argv[i], "-pointer")) {
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         xf86PointerName = argv[++i];
         return 2;
     }
     if (!strcmp(argv[i], "-keyboard")) {
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         xf86KeyboardName = argv[++i];
         return 2;
     }
@@ -1157,7 +1154,7 @@ ddxProcessArgument(int argc, char **argv, int i)
     }
 #ifdef XSERVER_LIBPCIACCESS
     if (!strcmp(argv[i], "-isolateDevice")) {
-        CHECK_FOR_REQUIRED_ARGUMENT();
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
         if (strncmp(argv[++i], "PCI:", 4)) {
             FatalError("Bus types other than PCI not yet isolable\n");
         }

@@ -1545,7 +1545,6 @@ wsi_x11_finish_wsi(struct wsi_device *wsi_device,
       (struct wsi_x11 *)wsi_device->wsi[VK_ICD_WSI_PLATFORM_XCB];
 
    if (wsi) {
-      struct hash_entry *entry;
       hash_table_foreach(wsi->connections, entry)
          wsi_x11_connection_destroy(wsi_device, entry->data);
 

@@ -264,13 +264,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
     else
         currentScreen = &vfbScreens[lastScreen];
 
-#define CHECK_FOR_REQUIRED_ARGUMENTS(num) \
-    if (((i + num) >= argc) || (!argv[i + num])) {                      \
-      ErrorF("Required argument to %s not specified\n", argv[i]);       \
-      UseMsg();                                                         \
-      FatalError("Required argument to %s not specified\n", argv[i]);   \
-    }
-
     if (strcmp(argv[i], "-screen") == 0) {      /* -screen n WxHxD */
         int screenNum;
 

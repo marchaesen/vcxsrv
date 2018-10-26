@@ -1200,7 +1200,6 @@ shrink_vec_var_list(struct exec_list *vars,
          if (!var_usage || !var_usage->vars_copied)
             continue;
 
-         struct set_entry *copy_entry;
          set_foreach(var_usage->vars_copied, copy_entry) {
             struct vec_var_usage *copy_usage = (void *)copy_entry->key;
             if (copy_usage->comps_kept != var_usage->comps_kept) {

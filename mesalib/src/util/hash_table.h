@@ -139,9 +139,9 @@ _mesa_fnv32_1a_accumulate_block(uint32_t hash, const void *data, size_t size)
  * an entry's data with the deleted marker), but not against insertion
  * (which may rehash the table, making entry a dangling pointer).
  */
-#define hash_table_foreach(ht, entry)                   \
-   for (entry = _mesa_hash_table_next_entry(ht, NULL);  \
-        entry != NULL;                                  \
+#define hash_table_foreach(ht, entry)                                      \
+   for (struct hash_entry *entry = _mesa_hash_table_next_entry(ht, NULL);  \
+        entry != NULL;                                                     \
         entry = _mesa_hash_table_next_entry(ht, entry))
 
 static inline void
@@ -151,8 +151,6 @@ hash_table_call_foreach(struct hash_table *ht,
                                          void *closure),
                         void *closure)
 {
-   struct hash_entry *entry;
-
    hash_table_foreach(ht, entry)
       callback(entry->key, entry->data, closure);
 }

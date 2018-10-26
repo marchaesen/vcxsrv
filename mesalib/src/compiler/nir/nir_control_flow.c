@@ -189,7 +189,6 @@ split_block_beginning(nir_block *block)
    new_block->cf_node.parent = block->cf_node.parent;
    exec_node_insert_node_before(&block->cf_node.node, &new_block->cf_node.node);
 
-   struct set_entry *entry;
    set_foreach(block->predecessors, entry) {
       nir_block *pred = (nir_block *) entry->key;
       replace_successor(pred, block, new_block);

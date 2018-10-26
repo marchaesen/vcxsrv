@@ -201,7 +201,6 @@ gather_vars_written(struct copy_prop_var_state *state,
       /* Merge new information to the parent control flow node. */
       if (written) {
          written->modes |= new_written->modes;
-         struct hash_entry *new_entry;
          hash_table_foreach(new_written->derefs, new_entry) {
             struct hash_entry *old_entry =
                _mesa_hash_table_search_pre_hashed(written->derefs, new_entry->hash,
@@ -575,7 +574,6 @@ invalidate_copies_for_cf_node(struct copy_prop_var_state *state,
       }
    }
 
-   struct hash_entry *entry;
    hash_table_foreach (written->derefs, entry) {
       nir_deref_instr *deref_written = (nir_deref_instr *)entry->key;
       kill_aliases(copies, deref_written, (uintptr_t)entry->data);

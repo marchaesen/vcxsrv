@@ -40,7 +40,6 @@ find_continue_block(nir_loop *loop)
 
    assert(header_block->predecessors->entries == 2);
 
-   struct set_entry *pred_entry;
    set_foreach(header_block->predecessors, pred_entry) {
       if (pred_entry->key != prev_block)
          return (nir_block*)pred_entry->key;

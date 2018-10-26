@@ -165,7 +165,6 @@ append_set_vertex_count(nir_block *end_block, struct state *state)
    /* Insert the new intrinsic in all of the predecessors of the end block,
     * but before any jump instructions (return).
     */
-   struct set_entry *entry;
    set_foreach(end_block->predecessors, entry) {
       nir_block *pred = (nir_block *) entry->key;
       b->cursor = nir_after_block_before_jump(pred);

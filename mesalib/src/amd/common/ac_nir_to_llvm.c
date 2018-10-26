@@ -3635,7 +3635,6 @@ static void visit_post_phi(struct ac_nir_context *ctx,
 
 static void phi_post_pass(struct ac_nir_context *ctx)
 {
-	struct hash_entry *entry;
 	hash_table_foreach(ctx->phis, entry) {
 		visit_post_phi(ctx, (nir_phi_instr*)entry->key,
 		               (LLVMValueRef)entry->data);

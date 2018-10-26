@@ -168,8 +168,6 @@ _mesa_set_destroy(struct set *ht, void (*delete_function)(struct set_entry *entr
       return;
 
    if (delete_function) {
-      struct set_entry *entry;
-
       set_foreach (ht, entry) {
          delete_function(entry);
       }
@@ -187,8 +185,6 @@ _mesa_set_destroy(struct set *ht, void (*delete_function)(struct set_entry *entr
 void
 _mesa_set_clear(struct set *set, void (*delete_function)(struct set_entry *entry))
 {
-   struct set_entry *entry;
-
    if (!set)
       return;
 
@@ -256,7 +252,7 @@ static void
 set_rehash(struct set *ht, unsigned new_size_index)
 {
    struct set old_ht;
-   struct set_entry *table, *entry;
+   struct set_entry *table;
 
    if (new_size_index >= ARRAY_SIZE(hash_sizes))
       return;

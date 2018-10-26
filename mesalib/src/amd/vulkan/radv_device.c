@@ -43,29 +43,12 @@
 #include "ac_llvm_util.h"
 #include "vk_format.h"
 #include "sid.h"
+#include "git_sha1.h"
 #include "gfx9d.h"
 #include "addrlib/gfx9/chip/gfx9_enum.h"
 #include "util/build_id.h"
 #include "util/debug.h"
 #include "util/mesa-sha1.h"
-
-static bool
-radv_get_build_id(void *ptr, struct mesa_sha1 *ctx)
-{
-	uint32_t timestamp;
-
-#ifdef HAVE_DL_ITERATE_PHDR
-	const struct build_id_note *note = NULL;
-	if ((note = build_id_find_nhdr_for_addr(ptr))) {
-		_mesa_sha1_update(ctx, build_id_data(note), build_id_length(note));
-	} else
-#endif
-	if (disk_cache_get_function_timestamp(ptr, &timestamp)) {
-		_mesa_sha1_update(ctx, &timestamp, sizeof(timestamp));
-	} else
-		return false;
-	return true;
-}
 
 static int
 radv_device_get_cache_uuid(enum radeon_family family, void *uuid)
@@ -77,8 +60,8 @@ radv_device_get_cache_uuid(enum radeon_family family, void *uuid)
 	memset(uuid, 0, VK_UUID_SIZE);
 	_mesa_sha1_init(&ctx);
 
-	if (!radv_get_build_id(radv_device_get_cache_uuid, &ctx) ||
-	    !radv_get_build_id(LLVMInitializeAMDGPUTargetInfo, &ctx))
+	if (!disk_cache_get_function_identifier(radv_device_get_cache_uuid, &ctx) ||
+	    !disk_cache_get_function_identifier(LLVMInitializeAMDGPUTargetInfo, &ctx))
 		return -1;
 
 	_mesa_sha1_update(&ctx, &family, sizeof(family));
@@ -1205,6 +1188,29 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->pciBus = pdevice->bus_info.bus;
 			properties->pciDevice = pdevice->bus_info.dev;
 			properties->pciFunction = pdevice->bus_info.func;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR: {
+			VkPhysicalDeviceDriverPropertiesKHR *driver_props =
+				(VkPhysicalDeviceDriverPropertiesKHR *) ext;
+
+			driver_props->driverID = VK_DRIVER_ID_MESA_RADV_KHR;
+			memset(driver_props->driverName, 0, VK_MAX_DRIVER_NAME_SIZE_KHR);
+			strcpy(driver_props->driverName, "radv");
+
+			memset(driver_props->driverInfo, 0, VK_MAX_DRIVER_INFO_SIZE_KHR);
+			snprintf(driver_props->driverInfo, VK_MAX_DRIVER_INFO_SIZE_KHR,
+				"Mesa " PACKAGE_VERSION	" (" MESA_GIT_SHA1 ")"
+				" (LLVM %d.%d.%d)",
+				 (HAVE_LLVM >> 8) & 0xff, HAVE_LLVM & 0xff,
+				 MESA_LLVM_VERSION_PATCH);
+
+			driver_props->conformanceVersion = (VkConformanceVersionKHR) {
+				.major = 1,
+				.minor = 1,
+				.subminor = 2,
+				.patch = 0,
+			};
 			break;
 		}
 		default:

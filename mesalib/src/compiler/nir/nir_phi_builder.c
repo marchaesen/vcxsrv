@@ -129,7 +129,6 @@ nir_phi_builder_add_value(struct nir_phi_builder *pb, unsigned num_components,
 
    while (w_start != w_end) {
       nir_block *cur = pb->W[w_start++];
-      struct set_entry *dom_entry;
       set_foreach(cur->dom_frontier, dom_entry) {
          nir_block *next = (nir_block *) dom_entry->key;
 
@@ -276,7 +275,6 @@ nir_phi_builder_finish(struct nir_phi_builder *pb)
           * XXX: Calling qsort this many times seems expensive.
           */
          int num_preds = 0;
-         struct set_entry *entry;
          set_foreach(phi->instr.block->predecessors, entry)
             preds[num_preds++] = (nir_block *)entry->key;
          qsort(preds, num_preds, sizeof(*preds), compare_blocks);

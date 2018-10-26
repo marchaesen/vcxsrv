@@ -260,6 +260,9 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
     uint64_t modifier;
     int i;
 
+    if (xwl_pixmap == NULL)
+       return NULL;
+
     if (xwl_pixmap->buffer) {
         /* Buffer already exists. Return it and inform caller if interested. */
         if (created)
@@ -509,6 +512,9 @@ glamor_egl_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
 #endif
 
     xwl_pixmap = xwl_pixmap_get(pixmap);
+
+    if (xwl_pixmap == NULL)
+       return 0;
 
     if (!xwl_pixmap->bo)
        return 0;

@@ -460,7 +460,6 @@ lower_copies_to_load_store(struct deref_node *node,
    nir_builder b;
    nir_builder_init(&b, state->impl);
 
-   struct set_entry *copy_entry;
    set_foreach(node->copies, copy_entry) {
       nir_intrinsic_instr *copy = (void *)copy_entry->key;
 
@@ -727,7 +726,6 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
       assert(node->path.path[0]->var->constant_initializer == NULL);
 
       if (node->stores) {
-         struct set_entry *store_entry;
          set_foreach(node->stores, store_entry) {
             nir_intrinsic_instr *store =
                (nir_intrinsic_instr *)store_entry->key;

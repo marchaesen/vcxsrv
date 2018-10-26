@@ -190,7 +190,6 @@ do_constant_variable(exec_list *instructions)
                                   _mesa_key_pointer_equal);
    v.run(instructions);
 
-   struct hash_entry *hte;
    hash_table_foreach(v.ht, hte) {
       struct assignment_entry *entry = (struct assignment_entry *) hte->data;
 

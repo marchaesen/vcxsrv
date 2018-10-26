@@ -531,7 +531,7 @@ nir_compact_varyings(nir_shader *producer, nir_shader *consumer,
 void
 nir_link_xfb_varyings(nir_shader *producer, nir_shader *consumer)
 {
-   nir_variable *input_vars[MAX_VARYING] = {};
+   nir_variable *input_vars[MAX_VARYING] = { 0 };
 
    nir_foreach_variable(var, &consumer->inputs) {
       if (var->data.location >= VARYING_SLOT_VAR0 &&

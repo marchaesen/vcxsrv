@@ -354,7 +354,7 @@ present_wnmd_flip(WindowPtr window,
                   Bool sync_flip,
                   RegionPtr damage)
 {
-    ScreenPtr                   screen = crtc->pScreen;
+    ScreenPtr                   screen = window->drawable.pScreen;
     present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
 
     return (*screen_priv->wnmd_info->flip) (window,

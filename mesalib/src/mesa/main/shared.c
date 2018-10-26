@@ -409,7 +409,6 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
       _mesa_reference_buffer_object(ctx, &shared->NullBufferObj, NULL);
 
    if (shared->SyncObjects) {
-      struct set_entry *entry;
       set_foreach(shared->SyncObjects, entry) {
          _mesa_unref_sync_object(ctx, (struct gl_sync_object *) entry->key, 1);
       }

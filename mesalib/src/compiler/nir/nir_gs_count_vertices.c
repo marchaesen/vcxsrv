@@ -62,7 +62,6 @@ nir_gs_count_vertices(const nir_shader *shader)
       /* set_vertex_count intrinsics only appear in predecessors of the
        * end block.  So we don't need to walk all of them.
        */
-      struct set_entry *entry;
       set_foreach(function->impl->end_block->predecessors, entry) {
          nir_block *block = (nir_block *) entry->key;
 

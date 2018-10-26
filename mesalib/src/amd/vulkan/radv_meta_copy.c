@@ -482,10 +482,14 @@ meta_copy_image(struct radv_cmd_buffer *cmd_buffer,
 			rect.src_y = src_offset_el.y;
 
 			/* Perform Blit */
-			if (cs)
+			if (cs ||
+			    (b_src.format == VK_FORMAT_R32G32B32_UINT ||
+			     b_src.format == VK_FORMAT_R32G32B32_SINT ||
+			     b_src.format == VK_FORMAT_R32G32B32_SFLOAT)) {
 				radv_meta_image_to_image_cs(cmd_buffer, &b_src, &b_dst, 1, &rect);
-			else
+			} else {
 				radv_meta_blit2d(cmd_buffer, &b_src, NULL, &b_dst, 1, &rect);
+			}
 
 			b_src.layer++;
 			b_dst.layer++;

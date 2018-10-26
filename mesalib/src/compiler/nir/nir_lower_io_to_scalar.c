@@ -360,7 +360,6 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
    }
 
    /* Remove old input from the shaders inputs list */
-   struct hash_entry *entry;
    hash_table_foreach(split_inputs, entry) {
       nir_variable *var = (nir_variable *) entry->key;
       exec_node_remove(&var->node);

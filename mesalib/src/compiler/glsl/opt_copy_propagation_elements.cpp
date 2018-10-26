@@ -111,7 +111,6 @@ public:
       /* TODO: Check write mask, and possibly not clear everything. */
 
       /* For any usage of our variable on the RHS, clear it out. */
-      struct set_entry *set_entry;
       set_foreach(entry->dsts, set_entry) {
          ir_variable *dst_var = (ir_variable *)set_entry->key;
          acp_entry *dst_entry = pull_acp(dst_var);

@@ -380,7 +380,6 @@ ir_constant_propagation_visitor::visit_enter(ir_if *ir)
       acp->make_empty();
       killed_all = true;
    } else {
-      hash_entry *htk;
       hash_table_foreach(new_kills, htk)
          kill((ir_variable *) htk->key, (uintptr_t) htk->data);
    }
@@ -420,7 +419,6 @@ ir_constant_propagation_visitor::handle_loop(ir_loop *ir, bool keep_acp)
    this->acp = orig_acp;
    this->killed_all = this->killed_all || orig_killed_all;
 
-   hash_entry *htk;
    hash_table_foreach(new_kills, htk) {
       kill((ir_variable *) htk->key, (uintptr_t) htk->data);
    }

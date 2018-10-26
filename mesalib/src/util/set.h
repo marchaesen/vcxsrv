@@ -96,9 +96,9 @@ _mesa_set_random_entry(struct set *set,
  * insertion (which may rehash the set, making entry a dangling
  * pointer).
  */
-#define set_foreach(set, entry)                          \
-   for (entry = _mesa_set_next_entry(set, NULL);  \
-        entry != NULL;                                   \
+#define set_foreach(set, entry)                                     \
+   for (struct set_entry *entry = _mesa_set_next_entry(set, NULL);  \
+        entry != NULL;                                              \
         entry = _mesa_set_next_entry(set, entry))
 
 #ifdef __cplusplus

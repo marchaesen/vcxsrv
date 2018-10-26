@@ -912,6 +912,7 @@ static void
 get_xdmcp_sock(void)
 {
     int soopts = 1;
+    int socketfd = -1;
 
 #if defined(IPv6) && defined(AF_INET6)
     if ((xdmcpSocket6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0)
@@ -924,8 +925,18 @@ get_xdmcp_sock(void)
                         sizeof(soopts)) < 0)
         XdmcpWarning("UDP set broadcast socket-option failed");
 #endif                          /* SO_BROADCAST */
-    if (xdmcpSocket >= 0 && xdm_from != NULL) {
-        if (bind(xdmcpSocket, (struct sockaddr *) &FromAddress,
+
+    if (xdm_from == NULL)
+        return;
+
+    if (SOCKADDR_FAMILY(FromAddress) == AF_INET)
+        socketfd = xdmcpSocket;
+#if defined(IPv6) && defined(AF_INET6)
+    else if (SOCKADDR_FAMILY(FromAddress) == AF_INET6)
+        socketfd = xdmcpSocket6;
+#endif
+    if (socketfd >= 0) {
+        if (bind(socketfd, (struct sockaddr *) &FromAddress,
                  FromAddressLen) < 0) {
             FatalError("Xserver: failed to bind to -from address: %s\n",
                        xdm_from);
