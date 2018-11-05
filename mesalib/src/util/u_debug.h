@@ -39,14 +39,13 @@
 #define U_DEBUG_H_
 
 
-#include "os/os_misc.h"
+#include "util/os_misc.h"
 
 #if defined(PIPE_OS_HAIKU)
 /* Haiku provides debug_printf in libroot with OS.h */
 #include <OS.h>
 #endif
 
-#include "pipe/p_format.h"
 #include "pipe/p_defines.h"
 
 
@@ -131,13 +130,8 @@ debug_printf(const char *format, ...)
  * messages.
  */
 void debug_print_blob( const char *name, const void *blob, unsigned size );
-
-/* Print a message along with a prettified format string
- */
-void debug_print_format(const char *msg, unsigned fmt );
 #else
 #define debug_print_blob(_name, _blob, _size) ((void)0)
-#define debug_print_format(_msg, _fmt) ((void)0)
 #endif
 
 
@@ -457,23 +451,6 @@ debug_get_option_ ## sufix (void) \
    } \
    return value; \
 }
-
-
-unsigned long
-debug_memory_begin(void);
-
-void 
-debug_memory_end(unsigned long beginning);
-
-
-void
-debug_print_transfer_flags(const char *msg, unsigned usage);
-
-void
-debug_print_bind_flags(const char *msg, unsigned usage);
-
-void
-debug_print_usage_enum(const char *msg, enum pipe_resource_usage usage);
 
 
 #ifdef	__cplusplus

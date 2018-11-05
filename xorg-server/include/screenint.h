@@ -54,20 +54,9 @@ typedef struct _Visual *VisualPtr;
 typedef struct _Depth *DepthPtr;
 typedef struct _Screen *ScreenPtr;
 
-extern _X_EXPORT int AddScreen(Bool (* /*pfnInit */ )(
-                                                         ScreenPtr /*pScreen */
-                                                         ,
-                                                         int /*argc */ ,
-                                                         char ** /*argv */ ),
-                               int /*argc */ ,
-                               char ** /*argv */ );
-
-
-extern _X_EXPORT int AddGPUScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
-                                                   int /*argc */ ,
-                                                   char **      /*argv */
-                                                   ),
-                                  int argc, char **argv);
+typedef Bool (*ScreenInitProcPtr)(ScreenPtr pScreen, int argc, char **argv);
+extern _X_EXPORT int AddScreen(ScreenInitProcPtr pfnInit, int argc, char **argv);
+extern _X_EXPORT int AddGPUScreen(ScreenInitProcPtr pfnInit, int argc, char **argv);
 
 extern _X_EXPORT void RemoveGPUScreen(ScreenPtr pScreen);
 

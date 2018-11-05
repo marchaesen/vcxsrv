@@ -99,9 +99,6 @@ def generate(env):
             return
 
         env.Prepend(CPPPATH = [os.path.join(llvm_dir, 'include')])
-        env.AppendUnique(CPPDEFINES = [
-            'HAVE_STDINT_H',
-        ])
         env.Prepend(LIBPATH = [os.path.join(llvm_dir, 'lib')])
         # LIBS should match the output of `llvm-config --libs engine mcjit bitwriter x86asmprinter irreader`
         if llvm_version >= distutils.version.LooseVersion('5.0'):

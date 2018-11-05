@@ -925,6 +925,8 @@ util_format_srgb(enum pipe_format format)
    switch (format) {
    case PIPE_FORMAT_L8_UNORM:
       return PIPE_FORMAT_L8_SRGB;
+   case PIPE_FORMAT_R8_UNORM:
+      return PIPE_FORMAT_R8_SRGB;
    case PIPE_FORMAT_L8A8_UNORM:
       return PIPE_FORMAT_L8A8_SRGB;
    case PIPE_FORMAT_R8G8B8_UNORM:
@@ -1001,6 +1003,8 @@ util_format_linear(enum pipe_format format)
    switch (format) {
    case PIPE_FORMAT_L8_SRGB:
       return PIPE_FORMAT_L8_UNORM;
+   case PIPE_FORMAT_R8_SRGB:
+      return PIPE_FORMAT_R8_UNORM;
    case PIPE_FORMAT_L8A8_SRGB:
       return PIPE_FORMAT_L8A8_UNORM;
    case PIPE_FORMAT_R8G8B8_SRGB:

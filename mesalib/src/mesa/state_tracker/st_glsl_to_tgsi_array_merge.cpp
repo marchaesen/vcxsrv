@@ -686,7 +686,7 @@ using namespace tgsi_array_merge;
 int  merge_arrays(int narrays,
 		  unsigned *array_sizes,
 		  exec_list *instructions,
-		  struct array_live_range *arr_live_ranges)
+		  class array_live_range *arr_live_ranges)
 {
    array_remapping *map= new array_remapping[narrays + 1];
 

@@ -203,6 +203,7 @@ convert_block(nir_block *block, nir_builder *b)
          nir_intrinsic_op sysval_op =
             nir_intrinsic_from_system_value(var->data.location);
          sysval = nir_load_system_value(b, sysval_op, 0);
+         sysval->bit_size = load_deref->dest.ssa.bit_size;
       }
 
       nir_ssa_def_rewrite_uses(&load_deref->dest.ssa, nir_src_for_ssa(sysval));

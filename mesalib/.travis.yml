@@ -92,6 +92,7 @@ matrix:
             - libx11-xcb-dev
             - libxdamage-dev
             - libxfixes-dev
+            - python3-pip
     - env:
         # NOTE: Building SWR is 2x (yes two) times slower than all the other
         # gallium drivers combined.
@@ -124,6 +125,7 @@ matrix:
             - libx11-xcb-dev
             - libelf-dev
             - libunwind8-dev
+            - python3-pip
     - env:
         - LABEL="make Gallium Drivers RadeonSI"
         - BUILD=make
@@ -153,6 +155,7 @@ matrix:
             - libx11-xcb-dev
             - libelf-dev
             - libunwind8-dev
+            - python3-pip
     - env:
         - LABEL="make Gallium Drivers Other"
         - BUILD=make
@@ -185,6 +188,7 @@ matrix:
             - libx11-xcb-dev
             - libelf-dev
             - libunwind8-dev
+            - python3-pip
     - env:
         - LABEL="make Gallium ST Clover LLVM-3.9"
         - BUILD=make
@@ -223,6 +227,7 @@ matrix:
             - libx11-xcb-dev
             - libelf-dev
             - libunwind8-dev
+            - python3-pip
     - env:
         - LABEL="make Gallium ST Clover LLVM-4.0"
         - BUILD=make
@@ -258,6 +263,7 @@ matrix:
             - libx11-xcb-dev
             - libelf-dev
             - libunwind8-dev
+            - python3-pip
     - env:
         - LABEL="make Gallium ST Clover LLVM-5.0"
         - BUILD=make
@@ -293,6 +299,7 @@ matrix:
             - libx11-xcb-dev
             - libelf-dev
             - libunwind8-dev
+            - python3-pip
     - env:
         - LABEL="make Gallium ST Clover LLVM-6.0"
         - BUILD=make
@@ -325,6 +332,7 @@ matrix:
             - libx11-xcb-dev
             - libelf-dev
             - libunwind8-dev
+            - python3-pip
     - env:
         - LABEL="make Gallium ST Clover LLVM-7"
         - BUILD=make
@@ -394,6 +402,7 @@ matrix:
             - libx11-xcb-dev
             - libelf-dev
             - libunwind8-dev
+            - python3-pip
     - env:
         - LABEL="make Vulkan"
         - BUILD=make
@@ -422,6 +431,7 @@ matrix:
             - libexpat1-dev
             - libx11-xcb-dev
             - libelf-dev
+            - python3-pip
     - env:
         - LABEL="scons"
         - BUILD=scons

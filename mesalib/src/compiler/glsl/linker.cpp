@@ -2269,10 +2269,11 @@ link_output_variables(struct gl_linked_shader *linked_shader,
          if (ir->ir_type != ir_type_variable)
             continue;
 
-         ir_variable *const var = (ir_variable *) ir;
+         ir_variable *var = (ir_variable *) ir;
 
          if (var->data.mode == ir_var_shader_out &&
                !symbols->get_variable(var->name)) {
+            var = var->clone(linked_shader, NULL);
             symbols->add_variable(var);
             linked_shader->ir->push_head(var);
          }
@@ -2709,7 +2710,8 @@ static bool
 assign_attribute_or_color_locations(void *mem_ctx,
                                     gl_shader_program *prog,
                                     struct gl_constants *constants,
-                                    unsigned target_index)
+                                    unsigned target_index,
+                                    bool do_assignment)
 {
    /* Maximum number of generic locations.  This corresponds to either the
     * maximum number of draw buffers or the maximum number of generic
@@ -3071,6 +3073,9 @@ assign_attribute_or_color_locations(void *mem_ctx,
       to_assign[num_attr].var = var;
       num_attr++;
    }
+
+   if (!do_assignment)
+      return true;
 
    if (target_index == MESA_SHADER_VERTEX) {
       unsigned total_attribs_size =
@@ -4779,12 +4784,12 @@ link_varyings_and_uniforms(unsigned first, unsigned last,
    }
 
    if (!assign_attribute_or_color_locations(mem_ctx, prog, &ctx->Const,
-                                            MESA_SHADER_VERTEX)) {
+                                            MESA_SHADER_VERTEX, true)) {
       return false;
    }
 
    if (!assign_attribute_or_color_locations(mem_ctx, prog, &ctx->Const,
-                                            MESA_SHADER_FRAGMENT)) {
+                                            MESA_SHADER_FRAGMENT, true)) {
       return false;
    }
 
@@ -5159,6 +5164,27 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 
       if (ctx->Const.LowerTessLevel) {
          lower_tess_level(prog->_LinkedShaders[i]);
+      }
+
+      /* Section 13.46 (Vertex Attribute Aliasing) of the OpenGL ES 3.2
+       * specification says:
+       *
+       *    "In general, the behavior of GLSL ES should not depend on compiler
+       *    optimizations which might be implementation-dependent. Name matching
+       *    rules in most languages, including C++ from which GLSL ES is derived,
+       *    are based on declarations rather than use.
+       *
+       *    RESOLUTION: The existence of aliasing is determined by declarations
+       *    present after preprocessing."
+       *
+       * Because of this rule, we do a 'dry-run' of attribute assignment for
+       * vertex shader inputs here.
+       */
+      if (prog->IsES && i == MESA_SHADER_VERTEX) {
+         if (!assign_attribute_or_color_locations(mem_ctx, prog, &ctx->Const,
+                                                  MESA_SHADER_VERTEX, false)) {
+            goto done;
+         }
       }
 
       /* Call opts before lowering const arrays to uniforms so we can const

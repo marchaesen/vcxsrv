@@ -150,7 +150,7 @@ server.
         <type category="define">// Vulkan 1.1 version number
 #define <name>VK_API_VERSION_1_1</name> <type>VK_MAKE_VERSION</type>(1, 1, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 88</type>
+#define <name>VK_HEADER_VERSION</name> 90</type>
 
         <type category="define">
 #define <name>VK_DEFINE_HANDLE</name>(object) typedef struct object##_T* object;</type>
@@ -977,7 +977,7 @@ server.
             <member>const <type>void</type>*            <name>pNext</name></member>
             <member optional="true"><type>VkShaderModuleCreateFlags</type> <name>flags</name></member>
             <member><type>size_t</type>                 <name>codeSize</name><comment>Specified in bytes</comment></member>
-            <member len="latexmath:[codeSize \over 4]" altlen="codeSize / 4">const <type>uint32_t</type>*            <name>pCode</name><comment>Binary code of size codeSize</comment></member>
+            <member len="latexmath:[\textrm{codeSize} \over 4]" altlen="codeSize / 4">const <type>uint32_t</type>*            <name>pCode</name><comment>Binary code of size codeSize</comment></member>
         </type>
         <type category="struct" name="VkDescriptorSetLayoutBinding">
             <member><type>uint32_t</type>               <name>binding</name><comment>Binding number for this entry</comment></member>
@@ -3564,7 +3564,7 @@ server.
             <member len="drmFormatModifierCount">const <type>uint64_t</type>* <name>pDrmFormatModifiers</name></member>
         </type>
         <type category="struct" name="VkImageDrmFormatModifierExplicitCreateInfoEXT" structextends="VkImageCreateInfo">
-            <member values="VK_STRUCTURE_TYPE_IMAGE_EXCPLICIT_DRM_FORMAT_MODIFIER_CREATE_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member values="VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>* <name>pNext</name></member>
             <member><type>uint64_t</type> <name>drmFormatModifier</name></member>
             <member optional="false"><type>uint32_t</type> <name>drmFormatModifierPlaneCount</name></member>
@@ -4857,7 +4857,7 @@ server.
         </command>
         <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_DEVICE_LOST">
             <proto><type>VkResult</type> <name>vkQueueWaitIdle</name></proto>
-            <param><type>VkQueue</type> <name>queue</name></param>
+            <param externsync="true"><type>VkQueue</type> <name>queue</name></param>
         </command>
         <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_DEVICE_LOST">
             <proto><type>VkResult</type> <name>vkDeviceWaitIdle</name></proto>
@@ -6931,7 +6931,7 @@ server.
             <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
             <param len="createInfoCount"><type>VkPipeline</type>* <name>pPipelines</name></param>
         </command>
-        <command>
+        <command successcodes="VK_SUCCESS">
             <proto><type>VkResult</type> <name>vkGetImageDrmFormatModifierPropertiesEXT</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkImage</type> <name>image</name></param>
@@ -9367,7 +9367,7 @@ server.
                 <enum offset="1" extends="VkStructureType" name="VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT"/>
                 <enum offset="2" extends="VkStructureType" name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT"/>
                 <enum offset="3" extends="VkStructureType" name="VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT"/>
-                <enum offset="4" extends="VkStructureType" name="VK_STRUCTURE_TYPE_IMAGE_EXCPLICIT_DRM_FORMAT_MODIFIER_CREATE_INFO_EXT"/>
+                <enum offset="4" extends="VkStructureType" name="VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT"/>
                 <enum offset="5" extends="VkStructureType" name="VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT"/>
 
                 <enum offset="0" extends="VkImageTiling" name="VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT"/>
@@ -10074,6 +10074,30 @@ server.
             <require>
                 <enum value="0"                                              name="VK_KHR_EXTENSION_240_SPEC_VERSION"/>
                 <enum value="&quot;VK_KHR_extension_240&quot;"               name="VK_KHR_EXTENSION_240_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_NV_extension_241" number="241" author="NVIDIA" contact="Nuno Subtil @nsubtil" supported="disabled">
+            <require>
+                <enum value="0"                                              name="VK_NV_EXTENSION_241_SPEC_VERSION"/>
+                <enum value="&quot;VK_NV_extension_241&quot;"                name="VK_NV_EXTENSION_241_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_NV_extension_242" number="242" author="NVIDIA" contact="Nuno Subtil @nsubtil" supported="disabled">
+            <require>
+                <enum value="0"                                              name="VK_NV_EXTENSION_242_SPEC_VERSION"/>
+                <enum value="&quot;VK_NV_extension_242&quot;"                name="VK_NV_EXTENSION_242_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_INTEL_extension_243" number="243" author="INTEL" contact="Slawek Grajewski @sgrajewski" supported="disabled">
+            <require>
+                <enum value="0"                                              name="VK_INTEL_EXTENSION_243_SPEC_VERSION"/>
+                <enum value="&quot;VK_INTEL_extension_243&quot;"             name="VK_INTEL_EXTENSION_243_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_MESA_extension_244" number="244" author="MESA" contact="Andres Rodriguez @lostgoat" supported="disabled">
+            <require>
+                <enum value="0"                                              name="VK_MESA_EXTENSION_244_SPEC_VERSION"/>
+                <enum value="&quot;VK_MESA_extension_244&quot;"              name="VK_MESA_EXTENSION_244_EXTENSION_NAME"/>
             </require>
         </extension>
     </extensions>

@@ -114,6 +114,7 @@ PIPE_FORMAT_I32_FLOAT             , plain, 1, 1, f32 ,     ,     ,     , xxxx, r
 
 # SRGB formats
 PIPE_FORMAT_L8_SRGB               , plain, 1, 1, un8 ,     ,     ,     , xxx1, srgb 
+PIPE_FORMAT_R8_SRGB               , plain, 1, 1, un8 ,     ,     ,     , x001, srgb
 PIPE_FORMAT_L8A8_SRGB             , plain, 1, 1, un8 , un8 ,     ,     , xxxy, srgb 
 PIPE_FORMAT_R8G8B8_SRGB           , plain, 1, 1, un8 , un8 , un8 ,     , xyz1, srgb 
 PIPE_FORMAT_R8G8B8A8_SRGB         , plain, 1, 1, un8 , un8 , un8 , un8 , xyzw, srgb 

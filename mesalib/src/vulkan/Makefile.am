@@ -6,7 +6,7 @@ vulkan_includedir = $(includedir)/vulkan
 vulkan_api_xml = $(top_srcdir)/src/vulkan/registry/vk.xml
 
 MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
-PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
+PYTHON_GEN = $(AM_V_GEN)$(PYTHON) $(PYTHON_FLAGS)
 
 EXTRA_DIST = \
 	util/gen_enum_to_str.py \

@@ -236,7 +236,7 @@ COMMON = $(API_XML) \
 
 COMMON_GLX = $(COMMON) glX_API.xml glX_XML.py glX_proto_common.py
 
-PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
+PYTHON_GEN = $(AM_V_GEN)$(PYTHON) $(PYTHON_FLAGS)
 
 ######################################################################
 

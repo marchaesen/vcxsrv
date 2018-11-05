@@ -55,6 +55,11 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
+# Emil:
+# Toggle Werror since at some point clang started treating unknown -W
+# flags as warnings, succeeding with the build, yet issuing an annoying
+# warning.
+
 #serial 3
 
 AC_DEFUN([AX_CHECK_COMPILE_FLAG],
@@ -62,7 +67,7 @@ AC_DEFUN([AX_CHECK_COMPILE_FLAG],
 AS_VAR_PUSHDEF([CACHEVAR],[ax_cv_check_[]_AC_LANG_ABBREV[]flags_$4_$1])dnl
 AC_CACHE_CHECK([whether _AC_LANG compiler accepts $1], CACHEVAR, [
   ax_check_save_flags=$[]_AC_LANG_PREFIX[]FLAGS
-  _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $4 $1"
+  _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $4 $1 -Werror"
   AC_COMPILE_IFELSE([m4_default([$5],[AC_LANG_PROGRAM()])],
     [AS_VAR_SET(CACHEVAR,[yes])],
     [AS_VAR_SET(CACHEVAR,[no])])

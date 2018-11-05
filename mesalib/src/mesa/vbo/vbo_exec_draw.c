@@ -54,10 +54,9 @@ vbo_exec_debug_verts(struct vbo_exec_context *exec)
 
    for (i = 0 ; i < exec->vtx.prim_count ; i++) {
       struct _mesa_prim *prim = &exec->vtx.prim[i];
-      printf("   prim %d: %s%s %d..%d %s %s\n",
+      printf("   prim %d: %s %d..%d %s %s\n",
              i,
              _mesa_lookup_prim_by_nr(prim->mode),
-             prim->weak ? " (weak)" : "",
              prim->start,
              prim->start + prim->count,
              prim->begin ? "BEGIN" : "(wrap)",

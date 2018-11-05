@@ -300,7 +300,7 @@ lower_subgroups_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
    case nir_intrinsic_vote_feq:
    case nir_intrinsic_vote_ieq:
       if (options->lower_vote_trivial)
-         return nir_imm_int(b, NIR_TRUE);
+         return nir_imm_true(b);
 
       if (options->lower_vote_eq_to_ballot)
          return lower_vote_eq_to_ballot(b, intrin, options);

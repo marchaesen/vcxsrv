@@ -585,6 +585,12 @@ vir_compile_init(const struct v3d_compiler *compiler,
         return c;
 }
 
+static int
+type_size_vec4(const struct glsl_type *type)
+{
+        return glsl_count_attribute_slots(type, false);
+}
+
 static void
 v3d_lower_nir(struct v3d_compile *c)
 {
@@ -712,6 +718,26 @@ uint64_t *v3d_compile_vs(const struct v3d_compiler *compiler,
                                                  program_id, variant_id);
 
         c->vs_key = key;
+
+        /* Split our I/O vars and dead code eliminate the unused
+         * components.
+         */
+        NIR_PASS_V(c->s, nir_lower_io_to_scalar_early,
+                   nir_var_shader_in | nir_var_shader_out);
+        uint64_t used_outputs[4] = {0};
+        for (int i = 0; i < c->vs_key->num_fs_inputs; i++) {
+                int slot = v3d_slot_get_slot(c->vs_key->fs_inputs[i]);
+                int comp = v3d_slot_get_component(c->vs_key->fs_inputs[i]);
+                used_outputs[comp] |= 1ull << slot;
+        }
+        NIR_PASS_V(c->s, nir_remove_unused_io_vars,
+                   &c->s->outputs, used_outputs, NULL); /* demotes to globals */
+        NIR_PASS_V(c->s, nir_lower_global_vars_to_local);
+        v3d_optimize_nir(c->s);
+        NIR_PASS_V(c->s, nir_remove_dead_variables, nir_var_shader_in);
+        NIR_PASS_V(c->s, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
+                   type_size_vec4,
+                   (nir_lower_io_options)0);
 
         v3d_lower_nir(c);
 

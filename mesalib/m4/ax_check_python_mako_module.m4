@@ -52,7 +52,7 @@ else:
     ver_req = distutils.version.LooseVersion('$1')
     ver_act = distutils.version.LooseVersion(mako.__version__)
     sys.exit(int(ver_req > ver_act))
-    " | $PYTHON2 -
+    " | $PYTHON -
 
     if test $? -ne 0 ; then
        AC_MSG_RESULT(no)

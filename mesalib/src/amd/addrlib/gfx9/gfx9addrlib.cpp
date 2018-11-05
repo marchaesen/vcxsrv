@@ -1291,7 +1291,7 @@ ChipFamily Gfx9Lib::HwlConvertChipFamily(
             break;
         case FAMILY_RV:
             m_settings.isArcticIsland = 1;
-            m_settings.isRaven        = ASICREV_IS_RAVEN(uChipRevision);
+            m_settings.isRaven        = ASICREV_IS_RAVEN(uChipRevision) || ASICREV_IS_RAVEN2(uChipRevision);
 
             if (m_settings.isRaven)
             {

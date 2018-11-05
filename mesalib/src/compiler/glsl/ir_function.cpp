@@ -274,7 +274,8 @@ choose_best_inexact_overload(_mesa_glsl_parse_state *state,
     * assume everything supported in any GLSL version is available.
     */
    if (!state || state->is_version(400, 0) || state->ARB_gpu_shader5_enable ||
-       state->MESA_shader_integer_functions_enable) {
+       state->MESA_shader_integer_functions_enable ||
+       state->EXT_shader_implicit_conversions_enable) {
       for (ir_function_signature **sig = matches; sig < matches + num_matches; sig++) {
          if (is_best_inexact_overload(actual_parameters, matches, num_matches, *sig))
             return *sig;

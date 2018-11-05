@@ -256,7 +256,7 @@
 
 typedef struct ScpReplyReceiver ScpReplyReceiver;
 struct ScpReplyReceiver {
-    int err;
+    bool err;
     unsigned code;
     char *errmsg;
     struct fxp_attrs attrs;
@@ -268,14 +268,14 @@ struct ScpReplyReceiver {
 static void scp_reply_ok(SftpReplyBuilder *srb)
 {
     ScpReplyReceiver *reply = container_of(srb, ScpReplyReceiver, srb);
-    reply->err = FALSE;
+    reply->err = false;
 }
 
 static void scp_reply_error(
     SftpReplyBuilder *srb, unsigned code, const char *msg)
 {
     ScpReplyReceiver *reply = container_of(srb, ScpReplyReceiver, srb);
-    reply->err = TRUE;
+    reply->err = true;
     reply->code = code;
     sfree(reply->errmsg);
     reply->errmsg = dupstr(msg);
@@ -284,7 +284,7 @@ static void scp_reply_error(
 static void scp_reply_name_count(SftpReplyBuilder *srb, unsigned count)
 {
     ScpReplyReceiver *reply = container_of(srb, ScpReplyReceiver, srb);
-    reply->err = FALSE;
+    reply->err = false;
 }
 
 static void scp_reply_full_name(
@@ -293,7 +293,7 @@ static void scp_reply_full_name(
 {
     ScpReplyReceiver *reply = container_of(srb, ScpReplyReceiver, srb);
     char *p;
-    reply->err = FALSE;
+    reply->err = false;
     sfree((void *)reply->name.ptr);
     reply->name.ptr = p = mkstr(name);
     reply->name.len = name.len;
@@ -303,14 +303,14 @@ static void scp_reply_full_name(
 static void scp_reply_simple_name(SftpReplyBuilder *srb, ptrlen name)
 {
     ScpReplyReceiver *reply = container_of(srb, ScpReplyReceiver, srb);
-    reply->err = FALSE;
+    reply->err = false;
 }
 
 static void scp_reply_handle(SftpReplyBuilder *srb, ptrlen handle)
 {
     ScpReplyReceiver *reply = container_of(srb, ScpReplyReceiver, srb);
     char *p;
-    reply->err = FALSE;
+    reply->err = false;
     sfree((void *)reply->handle.ptr);
     reply->handle.ptr = p = mkstr(handle);
     reply->handle.len = handle.len;
@@ -320,7 +320,7 @@ static void scp_reply_data(SftpReplyBuilder *srb, ptrlen data)
 {
     ScpReplyReceiver *reply = container_of(srb, ScpReplyReceiver, srb);
     char *p;
-    reply->err = FALSE;
+    reply->err = false;
     sfree((void *)reply->data.ptr);
     reply->data.ptr = p = mkstr(data);
     reply->data.len = data.len;
@@ -330,7 +330,7 @@ static void scp_reply_attrs(
     SftpReplyBuilder *srb, struct fxp_attrs attrs)
 {
     ScpReplyReceiver *reply = container_of(srb, ScpReplyReceiver, srb);
-    reply->err = FALSE;
+    reply->err = false;
     reply->attrs = attrs;
 }
 
@@ -371,17 +371,18 @@ typedef struct ScpSourceStackEntry ScpSourceStackEntry;
 struct ScpSource {
     SftpServer *sf;
 
-    int acks, expect_newline, eof, throttled, finished;
+    int acks;
+    bool expect_newline, eof, throttled, finished;
 
     SshChannel *sc;
     ScpSourceStackEntry *head;
-    int recursive;
-    int send_file_times;
+    bool recursive;
+    bool send_file_times;
 
     strbuf *pending_commands[3];
     int n_pending_commands;
 
-    uint64 file_offset, file_size;
+    uint64_t file_offset, file_size;
 
     ScpReplyReceiver reply;
 
@@ -426,8 +427,8 @@ static void scp_source_push(ScpSource *scp, ScpSourceNodeType type,
 static char *scp_source_err_base(ScpSource *scp, const char *fmt, va_list ap)
 {
     char *msg = dupvprintf(fmt, ap);
-    sshfwd_write_ext(scp->sc, TRUE, msg, strlen(msg));
-    sshfwd_write_ext(scp->sc, TRUE, "\012", 1);
+    sshfwd_write_ext(scp->sc, true, msg, strlen(msg));
+    sshfwd_write_ext(scp->sc, true, "\012", 1);
     return msg;
 }
 static void scp_source_err(ScpSource *scp, const char *fmt, ...)
@@ -451,7 +452,7 @@ static void scp_source_abort(ScpSource *scp, const char *fmt, ...)
     sshfwd_write_eof(scp->sc);
     sshfwd_initiate_close(scp->sc, msg);
 
-    scp->finished = TRUE;
+    scp->finished = true;
 }
 
 static void scp_source_push_name(
@@ -469,7 +470,7 @@ static void scp_source_push_name(
             return;
         }
     } else {
-        if (!attrs.flags & SSH_FILEXFER_ATTR_SIZE) {
+        if (!(attrs.flags & SSH_FILEXFER_ATTR_SIZE)) {
             scp_source_err(scp, "unable to read file size for %.*s",
                            PTRLEN_PRINTF(pathname));
             return;
@@ -482,7 +483,7 @@ static void scp_source_push_name(
 static void scp_source_free(ScpServer *s);
 static int scp_source_send(ScpServer *s, const void *data, size_t length);
 static void scp_source_eof(ScpServer *s);
-static void scp_source_throttle(ScpServer *s, int throttled);
+static void scp_source_throttle(ScpServer *s, bool throttled);
 
 static struct ScpServerVtable ScpSource_ScpServer_vt = {
     scp_source_free,
@@ -535,7 +536,7 @@ static void scp_source_send_E(ScpSource *scp)
 
 static void scp_source_send_CD(
     ScpSource *scp, char cmdchar,
-    struct fxp_attrs attrs, uint64 size, ptrlen name)
+    struct fxp_attrs attrs, uint64_t size, ptrlen name)
 {
     strbuf *cmd;
 
@@ -547,18 +548,15 @@ static void scp_source_send_CD(
         strbuf_catf(cmd, "T%lu 0 %lu 0\012", attrs.mtime, attrs.atime);
     }
 
-    char sizebuf[32];
-    uint64_decimal(size, sizebuf);
-
     const char *slash;
     while ((slash = memchr(name.ptr, '/', name.len)) != NULL)
         name = make_ptrlen(
             slash+1, name.len - (slash+1 - (const char *)name.ptr));
  
     scp->pending_commands[scp->n_pending_commands++] = cmd = strbuf_new();
-    strbuf_catf(cmd, "%c%04o %s %.*s\012", cmdchar,
+    strbuf_catf(cmd, "%c%04o %"PRIu64" %.*s\012", cmdchar,
                 (unsigned)(attrs.permissions & 07777),
-                sizebuf, PTRLEN_PRINTF(name));
+                size, PTRLEN_PRINTF(name));
 
     if (cmdchar == 'C') {
         /* We'll also wait for an ack before sending the file data,
@@ -626,8 +624,7 @@ static void scp_source_process_stack(ScpSource *scp)
     /*
      * Mostly, we start by waiting for an ack byte from the receiver.
      */
-    if (scp->head && scp->head->type == SCP_READFILE &&
-        uint64_compare(scp->file_offset, uint64_make(0, 0)) != 0) {
+    if (scp->head && scp->head->type == SCP_READFILE && scp->file_offset) {
         /*
          * Exception: if we're already in the middle of transferring a
          * file, we'll be called back here because the channel backlog
@@ -691,7 +688,7 @@ static void scp_source_process_stack(ScpSource *scp)
          * wildcard (if any) we're using to match the filenames we get
          * back.
          */
-        sftpsrv_stat(scp->sf, &scp->reply.srb, pathname, TRUE);
+        sftpsrv_stat(scp->sf, &scp->reply.srb, pathname, true);
         if (scp->reply.err) {
             scp_source_abort(
                 scp, "%.*s: unable to access: %s",
@@ -717,14 +714,12 @@ static void scp_source_process_stack(ScpSource *scp)
          * Transfer file data if our backlog hasn't filled up.
          */
         int backlog;
-        uint64 remaining =
-            uint64_subtract(scp->file_size, scp->file_offset);
-        uint64 limit = uint64_make(0, 4096);
-        if (uint64_compare(remaining, limit) < 0)
-            limit = remaining;
-        if (limit.lo > 0) {
+        uint64_t limit = scp->file_size - scp->file_offset;
+        if (limit > 4096)
+            limit = 4096;
+        if (limit > 0) {
             sftpsrv_read(scp->sf, &scp->reply.srb, scp->head->handle,
-                         scp->file_offset, limit.lo);
+                         scp->file_offset, limit);
             if (scp->reply.err) {
                 scp_source_abort(
                     scp, "%.*s: unable to read: %s",
@@ -734,8 +729,7 @@ static void scp_source_process_stack(ScpSource *scp)
 
             backlog = sshfwd_write(
                 scp->sc, scp->reply.data.ptr, scp->reply.data.len);
-            scp->file_offset = uint64_add(
-                scp->file_offset, uint64_make(0, scp->reply.data.len));
+            scp->file_offset += scp->reply.data.len;
 
             if (backlog < SCP_MAX_BACKLOG)
                 scp_requeue(scp);
@@ -762,7 +756,7 @@ static void scp_source_process_stack(ScpSource *scp)
         sshfwd_send_exit_status(scp->sc, 0);
         sshfwd_write_eof(scp->sc);
         sshfwd_initiate_close(scp->sc, NULL);
-        scp->finished = TRUE;
+        scp->finished = true;
         return;
     }
 
@@ -773,7 +767,7 @@ static void scp_source_process_stack(ScpSource *scp)
     scp->head = node->next;
 
     if (node->type == SCP_READDIR) {
-        sftpsrv_readdir(scp->sf, &scp->reply.srb, node->handle, 1, TRUE);
+        sftpsrv_readdir(scp->sf, &scp->reply.srb, node->handle, 1, true);
         if (scp->reply.err) {
             if (scp->reply.code != SSH_FX_EOF)
                 scp_source_err(scp, "%.*s: unable to list directory: %s",
@@ -819,8 +813,7 @@ static void scp_source_process_stack(ScpSource *scp)
         assert(scp->recursive || node->wildcard);
 
         if (!node->wildcard)
-            scp_source_send_CD(scp, 'D', node->attrs,
-                               uint64_make(0, 0), node->pathname);
+            scp_source_send_CD(scp, 'D', node->attrs, 0, node->pathname);
         sftpsrv_opendir(scp->sf, &scp->reply.srb, node->pathname);
         if (scp->reply.err) {
             scp_source_err(
@@ -855,7 +848,7 @@ static void scp_source_process_stack(ScpSource *scp)
             scp_requeue(scp);
             return;
         }
-        scp->file_offset = uint64_make(0, 0);
+        scp->file_offset = 0;
         scp->file_size = scp->reply.attrs.size;
         scp_source_send_CD(scp, 'C', node->attrs,
                            scp->file_size, node->pathname);
@@ -879,7 +872,7 @@ static int scp_source_send(ScpServer *s, const void *vdata, size_t length)
         if (scp->expect_newline) {
             if (data[i] == '\012') {
                 /* End of an error message following a 1 byte */
-                scp->expect_newline = FALSE;
+                scp->expect_newline = false;
                 scp->acks++;
             }
         } else {
@@ -888,7 +881,7 @@ static int scp_source_send(ScpServer *s, const void *vdata, size_t length)
                 scp->acks++;
                 break;
               case 1:                  /* non-fatal error; consume it */
-                scp->expect_newline = TRUE;
+                scp->expect_newline = true;
                 break;
               case 2:
                 scp_source_abort(
@@ -907,7 +900,7 @@ static int scp_source_send(ScpServer *s, const void *vdata, size_t length)
     return 0;
 }
 
-static void scp_source_throttle(ScpServer *s, int throttled)
+static void scp_source_throttle(ScpServer *s, bool throttled)
 {
     ScpSource *scp = container_of(s, ScpSource, scpserver);
 
@@ -926,7 +919,7 @@ static void scp_source_eof(ScpServer *s)
     if (scp->finished)
         return;
 
-    scp->eof = TRUE;
+    scp->eof = true;
     scp_source_process_stack(scp);
 }
 
@@ -943,12 +936,12 @@ struct ScpSink {
     SshChannel *sc;
     ScpSinkStackEntry *head;
 
-    uint64 file_offset, file_size;
+    uint64_t file_offset, file_size;
     unsigned long atime, mtime;
-    int got_file_times;
+    bool got_file_times;
 
     bufchain data;
-    int input_eof;
+    bool input_eof;
     strbuf *command;
     char command_chr;
 
@@ -970,16 +963,16 @@ struct ScpSinkStackEntry {
     ptrlen destpath;
 
     /*
-     * If isdir is TRUE, then destpath identifies a directory that the
-     * files we receive should be created inside. If it's FALSE, then
+     * If isdir is true, then destpath identifies a directory that the
+     * files we receive should be created inside. If it's false, then
      * it identifies the exact pathname the next file we receive
      * should be created _as_ - regardless of the filename in the 'C'
      * command.
      */
-    int isdir;
+    bool isdir;
 };
 
-static void scp_sink_push(ScpSink *scp, ptrlen pathname, int isdir)
+static void scp_sink_push(ScpSink *scp, ptrlen pathname, bool isdir)
 {
     ScpSinkStackEntry *node = snew_plus(ScpSinkStackEntry, pathname.len);
     char *p = snew_plus_get_aux(node);
@@ -1003,7 +996,7 @@ static void scp_sink_pop(ScpSink *scp)
 static void scp_sink_free(ScpServer *s);
 static int scp_sink_send(ScpServer *s, const void *data, size_t length);
 static void scp_sink_eof(ScpServer *s);
-static void scp_sink_throttle(ScpServer *s, int throttled) {}
+static void scp_sink_throttle(ScpServer *s, bool throttled) {}
 
 static struct ScpServerVtable ScpSink_ScpServer_vt = {
     scp_sink_free,
@@ -1020,7 +1013,7 @@ static void scp_sink_start_callback(void *vscp)
 
 static ScpSink *scp_sink_new(
     SshChannel *sc, const SftpServerVtable *sftpserver_vt, ptrlen pathname,
-    int pathname_is_definitely_dir)
+    bool pathname_is_definitely_dir)
 {
     ScpSink *scp = snew(ScpSink);
     memset(scp, 0, sizeof(*scp));
@@ -1039,11 +1032,11 @@ static ScpSink *scp_sink_new(
          * directory because of the -d option in the command line,
          * test it ourself to see whether it is or not.
          */
-        sftpsrv_stat(scp->sf, &scp->reply.srb, pathname, TRUE);
+        sftpsrv_stat(scp->sf, &scp->reply.srb, pathname, true);
         if (!scp->reply.err &&
             (scp->reply.attrs.flags & SSH_FILEXFER_ATTR_PERMISSIONS) &&
             (scp->reply.attrs.permissions & PERMS_DIRECTORY))
-            pathname_is_definitely_dir = TRUE;
+            pathname_is_definitely_dir = true;
     }
     scp_sink_push(scp, pathname, pathname_is_definitely_dir);
 
@@ -1110,7 +1103,7 @@ static void scp_sink_coroutine(ScpSink *scp)
             if (sscanf(scp->command->s, "T%lu %lu %lu %lu",
                        &scp->mtime, &dummy1, &scp->atime, &dummy2) != 4)
                 goto parse_error;
-            scp->got_file_times = TRUE;
+            scp->got_file_times = true;
         } else if (scp->command_chr == 'C' || scp->command_chr == 'D') {
             /*
              * Common handling of the start of this case, because the
@@ -1135,7 +1128,7 @@ static void scp_sink_coroutine(ScpSink *scp)
             if (*p != ' ')
                 goto parse_error;
             p++;
-            scp->file_size = uint64_from_decimal(q);
+            scp->file_size = strtoull(q, NULL, 10);
 
             ptrlen leafname = make_ptrlen(
                 p, scp->command->len - (p - scp->command->s));
@@ -1156,7 +1149,7 @@ static void scp_sink_coroutine(ScpSink *scp)
                 scp->attrs.atime = scp->atime;
                 scp->attrs.flags |= SSH_FILEXFER_ATTR_ACMODTIME;
             }
-            scp->got_file_times = FALSE;
+            scp->got_file_times = false;
 
             if (scp->command_chr == 'D') {
                 sftpsrv_mkdir(scp->sf, &scp->reply.srb,
@@ -1169,7 +1162,7 @@ static void scp_sink_coroutine(ScpSink *scp)
                     goto done;
                 }
 
-                scp_sink_push(scp, scp->filename, TRUE);
+                scp_sink_push(scp, scp->filename, true);
             } else {
                 sftpsrv_open(scp->sf, &scp->reply.srb, scp->filename,
                              SSH_FXF_WRITE | SSH_FXF_CREAT | SSH_FXF_TRUNC,
@@ -1185,11 +1178,11 @@ static void scp_sink_coroutine(ScpSink *scp)
                  * Now send an ack, and read the file data.
                  */
                 sshfwd_write(scp->sc, "\0", 1);
-                scp->file_offset = uint64_make(0, 0);
-                while (uint64_compare(scp->file_offset, scp->file_size) < 0) {
+                scp->file_offset = 0;
+                while (scp->file_offset < scp->file_size) {
                     void *vdata;
                     int len;
-                    uint64 this_len, remaining;
+                    uint64_t this_len, remaining;
 
                     crMaybeWaitUntilV(
                         scp->input_eof || bufchain_size(&scp->data) > 0);
@@ -1200,22 +1193,21 @@ static void scp_sink_coroutine(ScpSink *scp)
                     }
 
                     bufchain_prefix(&scp->data, &vdata, &len);
-                    this_len = uint64_make(0, len);
-                    remaining = uint64_subtract(
-                        scp->file_size, scp->file_offset);
-                    if (uint64_compare(this_len, remaining) > 0)
+                    this_len = len;
+                    remaining = scp->file_size - scp->file_offset;
+                    if (this_len > remaining)
                         this_len = remaining;
                     sftpsrv_write(scp->sf, &scp->reply.srb,
                                   scp->reply.handle, scp->file_offset,
-                                  make_ptrlen(vdata, this_len.lo));
+                                  make_ptrlen(vdata, this_len));
                     if (scp->reply.err) {
                         scp->errmsg = dupprintf(
                             "'%.*s': unable to write to file: %s",
                             PTRLEN_PRINTF(scp->filename), scp->reply.errmsg);
                         goto done;
                     }
-                    bufchain_consume(&scp->data, this_len.lo);
-                    scp->file_offset = uint64_add(scp->file_offset, this_len);
+                    bufchain_consume(&scp->data, this_len);
+                    scp->file_offset += this_len;
                 }
 
                 /*
@@ -1236,7 +1228,7 @@ static void scp_sink_coroutine(ScpSink *scp)
                 goto done;
             }
             scp_sink_pop(scp);
-            scp->got_file_times = FALSE;
+            scp->got_file_times = false;
         } else {
             ptrlen cmd_pl;
 
@@ -1254,8 +1246,8 @@ static void scp_sink_coroutine(ScpSink *scp)
 
   done:
     if (scp->errmsg) {
-        sshfwd_write_ext(scp->sc, TRUE, scp->errmsg, strlen(scp->errmsg));
-        sshfwd_write_ext(scp->sc, TRUE, "\012", 1);
+        sshfwd_write_ext(scp->sc, true, scp->errmsg, strlen(scp->errmsg));
+        sshfwd_write_ext(scp->sc, true, "\012", 1);
         sshfwd_send_exit_status(scp->sc, 1);
     } else {
         sshfwd_send_exit_status(scp->sc, 0);
@@ -1282,7 +1274,7 @@ static void scp_sink_eof(ScpServer *s)
 {
     ScpSink *scp = container_of(s, ScpSink, scpserver);
 
-    scp->input_eof = TRUE;
+    scp->input_eof = true;
     scp_sink_coroutine(scp);
 }
 
@@ -1304,7 +1296,7 @@ static void scp_error_free(ScpServer *s);
 static int scp_error_send(ScpServer *s, const void *data, size_t length)
 { return 0; }
 static void scp_error_eof(ScpServer *s) {}
-static void scp_error_throttle(ScpServer *s, int throttled) {}
+static void scp_error_throttle(ScpServer *s, bool throttled) {}
 
 static struct ScpServerVtable ScpError_ScpServer_vt = {
     scp_error_free,
@@ -1316,8 +1308,8 @@ static struct ScpServerVtable ScpError_ScpServer_vt = {
 static void scp_error_send_message_cb(void *vscp)
 {
     ScpError *scp = (ScpError *)vscp;
-    sshfwd_write_ext(scp->sc, TRUE, scp->message, strlen(scp->message));
-    sshfwd_write_ext(scp->sc, TRUE, "\n", 1);
+    sshfwd_write_ext(scp->sc, true, scp->message, strlen(scp->message));
+    sshfwd_write_ext(scp->sc, true, "\n", 1);
     sshfwd_send_exit_status(scp->sc, 1);
     sshfwd_write_eof(scp->sc);
     sshfwd_initiate_close(scp->sc, scp->message);
@@ -1362,8 +1354,8 @@ static void scp_error_free(ScpServer *s)
 ScpServer *scp_recognise_exec(
     SshChannel *sc, const SftpServerVtable *sftpserver_vt, ptrlen command)
 {
-    int recursive = FALSE, preserve = FALSE;
-    int targetshouldbedirectory = FALSE;
+    bool recursive = false, preserve = false;
+    bool targetshouldbedirectory = false;
     ptrlen command_orig = command;
 
     if (!ptrlen_startswith(command, PTRLEN_LITERAL("scp "), &command))
@@ -1375,15 +1367,15 @@ ScpServer *scp_recognise_exec(
             continue;
         }
         if (ptrlen_startswith(command, PTRLEN_LITERAL("-r "), &command)) {
-            recursive = TRUE;
+            recursive = true;
             continue;
         }
         if (ptrlen_startswith(command, PTRLEN_LITERAL("-p "), &command)) {
-            preserve = TRUE;
+            preserve = true;
             continue;
         }
         if (ptrlen_startswith(command, PTRLEN_LITERAL("-d "), &command)) {
-            targetshouldbedirectory = TRUE;
+            targetshouldbedirectory = true;
             continue;
         }
         break;

@@ -184,5 +184,5 @@ int remap_arrays(int narrays, unsigned *array_sizes,
 int merge_arrays(int narrays,
 		 unsigned *array_sizes,
 		 exec_list *instructions,
-		 struct array_live_range *arr_live_ranges);
+		 class array_live_range *arr_live_ranges);
 #endif

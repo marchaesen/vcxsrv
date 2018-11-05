@@ -135,6 +135,8 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
 		return HAVE_LLVM >= 0x0700 ? "gfx904" : "gfx902";
 	case CHIP_VEGA20:
 		return HAVE_LLVM >= 0x0700 ? "gfx906" : "gfx902";
+	case CHIP_RAVEN2:
+		return "gfx902"; /* TODO: use gfx909 when it's available */
 	default:
 		return "";
 	}
@@ -151,7 +153,8 @@ static LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
 	LLVMTargetRef target = ac_get_llvm_target(triple);
 
 	snprintf(features, sizeof(features),
-		 "+DumpCode,+vgpr-spilling,-fp32-denormals,+fp64-denormals%s%s%s%s",
+		 "+DumpCode,-fp32-denormals,+fp64-denormals%s%s%s%s%s",
+		 HAVE_LLVM >= 0x0800 ? "" : ",+vgpr-spilling",
 		 tm_options & AC_TM_SISCHED ? ",+si-scheduler" : "",
 		 tm_options & AC_TM_FORCE_ENABLE_XNACK ? ",+xnack" : "",
 		 tm_options & AC_TM_FORCE_DISABLE_XNACK ? ",-xnack" : "",

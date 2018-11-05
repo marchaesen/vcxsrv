@@ -34,7 +34,7 @@
 
 #include "pipe/p_config.h"
 
-#include "u_debug.h"
+#include "util/u_debug.h"
 #include "u_cpu_detect.h"
 #include "c11/threads.h"
 

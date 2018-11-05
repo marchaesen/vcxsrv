@@ -95,6 +95,13 @@ each configuration you want to build
 recommended in the documentation</a>
 </p>
 
+<p>
+Autotools automatically updates translation files as part of the build process,
+meson does not do this. Instead if you want translated drirc files you will need 
+to invoke non-default targets for ninja to update them:
+<code>ninja -C build/ xmlpool-pot xmlpool-update-po xmlpool-gmo</code>
+</p>
+
 <dl>
 <dt><code>Environment Variables</code></dt>
 <dd><p>Meson supports the standard CC and CXX environment variables for

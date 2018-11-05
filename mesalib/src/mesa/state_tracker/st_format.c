@@ -169,6 +169,8 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
       return PIPE_FORMAT_AL88_SRGB;
    case MESA_FORMAT_L_SRGB8:
       return PIPE_FORMAT_L8_SRGB;
+   case MESA_FORMAT_R_SRGB8:
+      return PIPE_FORMAT_R8_SRGB;
    case MESA_FORMAT_BGR_SRGB8:
       return PIPE_FORMAT_R8G8B8_SRGB;
    case MESA_FORMAT_A8B8G8R8_SRGB:
@@ -719,6 +721,8 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
       return MESA_FORMAT_A8L8_SRGB;
    case PIPE_FORMAT_L8_SRGB:
       return MESA_FORMAT_L_SRGB8;
+   case PIPE_FORMAT_R8_SRGB:
+      return MESA_FORMAT_R_SRGB8;
    case PIPE_FORMAT_R8G8B8_SRGB:
       return MESA_FORMAT_BGR_SRGB8;
    case PIPE_FORMAT_ABGR8888_SRGB:
@@ -1422,6 +1426,10 @@ static const struct format_mapping format_map[] = {
       { GL_SLUMINANCE_EXT, GL_SLUMINANCE8_EXT, GL_COMPRESSED_SLUMINANCE_EXT,
         0 },
       { PIPE_FORMAT_L8_SRGB, DEFAULT_SRGBA_FORMATS }
+   },
+   {
+      { GL_SR8_EXT, 0 },
+      { PIPE_FORMAT_R8_SRGB, 0 }
    },
 
    /* 16-bit float formats */

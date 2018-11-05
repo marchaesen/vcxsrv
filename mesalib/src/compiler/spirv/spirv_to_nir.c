@@ -1798,11 +1798,17 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
          nir_const_value src[4];
 
          for (unsigned i = 0; i < count - 4; i++) {
-            nir_constant *c =
-               vtn_value(b, w[4 + i], vtn_value_type_constant)->constant;
+            struct vtn_value *src_val =
+               vtn_value(b, w[4 + i], vtn_value_type_constant);
+
+            /* If this is an unsized source, pull the bit size from the
+             * source; otherwise, we'll use the bit size from the destination.
+             */
+            if (!nir_alu_type_get_type_size(nir_op_infos[op].input_types[i]))
+               bit_size = glsl_get_bit_size(src_val->type->type);
 
             unsigned j = swap ? 1 - i : i;
-            src[j] = c->values[0];
+            src[j] = src_val->constant->values[0];
          }
 
          val->constant->values[0] =

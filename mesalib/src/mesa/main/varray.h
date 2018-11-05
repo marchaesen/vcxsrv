@@ -271,64 +271,11 @@ _mesa_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid *pointer);
 
 
 extern void GLAPIENTRY
-_mesa_MultiDrawArrays(GLenum mode, const GLint *first,
-                      const GLsizei *count, GLsizei primcount);
-
-extern void GLAPIENTRY
-_mesa_MultiDrawElementsEXT(GLenum mode, const GLsizei *count, GLenum type,
-                           const GLvoid **indices, GLsizei primcount);
-
-extern void GLAPIENTRY
-_mesa_MultiDrawElementsBaseVertex(GLenum mode,
-                                  const GLsizei *count, GLenum type,
-                                  const GLvoid **indices, GLsizei primcount,
-                                  const GLint *basevertex);
-
-extern void GLAPIENTRY
-_mesa_MultiModeDrawArraysIBM(const GLenum * mode, const GLint * first,
-                             const GLsizei * count,
-                             GLsizei primcount, GLint modestride );
-
-
-extern void GLAPIENTRY
-_mesa_MultiModeDrawElementsIBM(const GLenum * mode, const GLsizei * count,
-                               GLenum type, const GLvoid * const * indices,
-                               GLsizei primcount, GLint modestride );
-
-extern void GLAPIENTRY
 _mesa_LockArraysEXT(GLint first, GLsizei count);
 
 extern void GLAPIENTRY
 _mesa_UnlockArraysEXT(void);
 
-
-extern void GLAPIENTRY
-_mesa_DrawArrays(GLenum mode, GLint first, GLsizei count);
-
-extern void GLAPIENTRY
-_mesa_DrawArraysInstanced(GLenum mode, GLint first, GLsizei count,
-                          GLsizei primcount);
-
-extern void GLAPIENTRY
-_mesa_DrawElements(GLenum mode, GLsizei count, GLenum type,
-                   const GLvoid *indices);
-
-extern void GLAPIENTRY
-_mesa_DrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count,
-                        GLenum type, const GLvoid *indices);
-
-extern void GLAPIENTRY
-_mesa_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
-                             const GLvoid *indices, GLint basevertex);
-
-extern void GLAPIENTRY
-_mesa_DrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
-                                  GLsizei count, GLenum type,
-                                  const GLvoid *indices,
-                                  GLint basevertex);
-
-extern void GLAPIENTRY
-_mesa_DrawTransformFeedback(GLenum mode, GLuint name);
 
 void GLAPIENTRY
 _mesa_PrimitiveRestartIndex_no_error(GLuint index);

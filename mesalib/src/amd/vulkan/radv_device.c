@@ -113,6 +113,7 @@ radv_get_device_name(enum radeon_family family, char *name, size_t name_len)
 	case CHIP_VEGA10: chip_string = "AMD RADV VEGA10"; break;
 	case CHIP_VEGA12: chip_string = "AMD RADV VEGA12"; break;
 	case CHIP_RAVEN: chip_string = "AMD RADV RAVEN"; break;
+	case CHIP_RAVEN2: chip_string = "AMD RADV RAVEN2"; break;
 	default: chip_string = "AMD RADV unknown"; break;
 	}
 
@@ -336,7 +337,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 		device->has_rbplus = true;
 		device->rbplus_allowed = device->rad_info.family == CHIP_STONEY ||
 					 device->rad_info.family == CHIP_VEGA12 ||
-		                         device->rad_info.family == CHIP_RAVEN;
+		                         device->rad_info.family == CHIP_RAVEN ||
+		                         device->rad_info.family == CHIP_RAVEN2;
 	}
 
 	/* The mere presence of CLEAR_STATE in the IB causes random GPU hangs
@@ -840,6 +842,13 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->vertexAttributeInstanceRateZeroDivisor = VK_TRUE;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT: {
+			VkPhysicalDeviceTransformFeedbackFeaturesEXT *features =
+				(VkPhysicalDeviceTransformFeedbackFeaturesEXT*)ext;
+			features->transformFeedback = true;
+			features->geometryStreams = true;
+			break;
+		}
 		default:
 			break;
 		}
@@ -1089,9 +1098,7 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->shaderArraysPerEngineCount =
 				pdevice->rad_info.max_sh_per_se;
 			properties->computeUnitsPerShaderArray =
-				pdevice->rad_info.num_good_compute_units /
-					(pdevice->rad_info.max_se *
-					 pdevice->rad_info.max_sh_per_se);
+				pdevice->rad_info.num_good_cu_per_sh;
 			properties->simdPerComputeUnit = 4;
 			properties->wavefrontsPerSimd =
 				pdevice->rad_info.family == CHIP_TONGA ||
@@ -1200,7 +1207,7 @@ void radv_GetPhysicalDeviceProperties2(
 
 			memset(driver_props->driverInfo, 0, VK_MAX_DRIVER_INFO_SIZE_KHR);
 			snprintf(driver_props->driverInfo, VK_MAX_DRIVER_INFO_SIZE_KHR,
-				"Mesa " PACKAGE_VERSION	" (" MESA_GIT_SHA1 ")"
+				"Mesa " PACKAGE_VERSION MESA_GIT_SHA1
 				" (LLVM %d.%d.%d)",
 				 (HAVE_LLVM >> 8) & 0xff, HAVE_LLVM & 0xff,
 				 MESA_LLVM_VERSION_PATCH);
@@ -1211,6 +1218,21 @@ void radv_GetPhysicalDeviceProperties2(
 				.subminor = 2,
 				.patch = 0,
 			};
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_PROPERTIES_EXT: {
+			VkPhysicalDeviceTransformFeedbackPropertiesEXT *properties =
+				(VkPhysicalDeviceTransformFeedbackPropertiesEXT *)ext;
+			properties->maxTransformFeedbackStreams = MAX_SO_STREAMS;
+			properties->maxTransformFeedbackBuffers = MAX_SO_BUFFERS;
+			properties->maxTransformFeedbackBufferSize = UINT32_MAX;
+			properties->maxTransformFeedbackStreamDataSize = 512;
+			properties->maxTransformFeedbackBufferDataSize = UINT32_MAX;
+			properties->maxTransformFeedbackBufferDataStride = 512;
+			properties->transformFeedbackQueries = true;
+			properties->transformFeedbackStreamsLinesTriangles = false;
+			properties->transformFeedbackRasterizationStreamSelect = false;
+			properties->transformFeedbackDraw = true;
 			break;
 		}
 		default:
@@ -1613,11 +1635,13 @@ VkResult radv_CreateDevice(
 
 	device->pbb_allowed = device->physical_device->rad_info.chip_class >= GFX9 &&
 			((device->instance->perftest_flags & RADV_PERFTEST_BINNING) ||
-			 device->physical_device->rad_info.family == CHIP_RAVEN);
+			 device->physical_device->rad_info.family == CHIP_RAVEN ||
+			 device->physical_device->rad_info.family == CHIP_RAVEN2);
 
 	/* Disabled and not implemented for now. */
 	device->dfsm_allowed = device->pbb_allowed &&
-	                       device->physical_device->rad_info.family == CHIP_RAVEN;
+	                       (device->physical_device->rad_info.family == CHIP_RAVEN ||
+	                        device->physical_device->rad_info.family == CHIP_RAVEN2);
 
 #ifdef ANDROID
 	device->always_use_syncobj = device->physical_device->rad_info.has_syncobj_wait_for_submit;

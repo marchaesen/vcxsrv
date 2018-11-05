@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.2.4 Release Notes / October 31, 2018</h1>
+
+<p>
+Mesa 18.2.4 is a bug fix release which fixes bugs found since the 18.2.4 release.
+</p>
+<p>
+Mesa 18.2.4 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+968bfe78605e9397ddf244933b1fa62edb8429fc55aaec2ae7e20bb1c82abdea  mesa-18.2.4.tar.gz
+621d1aebb57876d5b6a5d2dcf4eb7e0620e650c6fe5cf3655c65e243adc9cb4e  mesa-18.2.4.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107865">Bug 107865</a> - swr fail to build with llvm-libs 6.0.1</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108272">Bug 108272</a> - [polaris10] opencl-mesa: Anything using OpenCL segfaults, XFX Radeon RX 580</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108524">Bug 108524</a> - [RADV]  GPU lockup on event synchronization</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Smith (2):</p>
+<ul>
+  <li>ac/nir: Use context-specific LLVM types</li>
+  <li>anv: Fix sanitization of stencil state when the depth test is disabled</li>
+</ul>
+
+<p>Alok Hota (2):</p>
+<ul>
+  <li>swr/rast: ignore CreateElementUnorderedAtomicMemCpy</li>
+  <li>swr/rast: fix intrinsic/function for LLVM 7 compatibility</li>
+</ul>
+
+<p>Andres Rodriguez (1):</p>
+<ul>
+  <li>radv: fix check for perftest options size</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (1):</p>
+<ul>
+  <li>radv: Emit enqueued pipeline barriers on event write.</li>
+</ul>
+
+<p>Connor Abbott (2):</p>
+<ul>
+  <li>ac: Introduce ac_build_expand()</li>
+  <li>ac: Fix loading a dvec3 from an SSBO</li>
+</ul>
+
+<p>David McFarland (1):</p>
+<ul>
+  <li>util: Change remaining uint32 cache ids to sha1</li>
+</ul>
+
+<p>Dylan Baker (1):</p>
+<ul>
+  <li>meson: don't require libelf for r600 without LLVM</li>
+</ul>
+
+<p>Elie Tournier (1):</p>
+<ul>
+  <li>gallium: Correctly handle no config context creation</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>radv: s/abs/fabsf/ for floats</li>
+</ul>
+
+<p>Jan Vesely (1):</p>
+<ul>
+  <li>radeonsi: Bump number of allowed global buffers to 32</li>
+</ul>
+
+<p>Jason Ekstrand (3):</p>
+<ul>
+  <li>spirv: Use the right bit-size for spec constant ops</li>
+  <li>blorp: Emit a dummy 3DSTATE_WM prior to 3DSTATE_WM_HZ_OP</li>
+  <li>anv: Flag semaphore BOs as external</li>
+</ul>
+
+<p>Juan A. Suarez Romero (3):</p>
+<ul>
+  <li>docs: add sha256 checksums for 18.2.3</li>
+  <li>cherry-ignore: Revert "anv/skylake: disable ForceThreadDispatchEnable"</li>
+  <li>Update version to 18.2.4</li>
+</ul>
+
+<p>Liviu Prodea (1):</p>
+<ul>
+  <li>scons: Put to rest zombie texture_float build option.</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>radeonsi: fix a VGT hang with primitive restart on Polaris10 and later</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>loader/dri3: Also wait for front buffer fence if we triggered it</li>
+</ul>
+
+<p>Nanley Chery (1):</p>
+<ul>
+  <li>intel/blorp: Define the clear value bounds for HiZ clears</li>
+</ul>
+
+<p>Rob Clark (2):</p>
+<ul>
+  <li>freedreno: fix inorder rendering case</li>
+  <li>freedreno: don't flush when new and old pfb is identical</li>
+</ul>
+
+
+</div>
+</body>
+</html>

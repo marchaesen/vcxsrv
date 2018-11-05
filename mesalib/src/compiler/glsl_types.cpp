@@ -1425,7 +1425,7 @@ glsl_type::can_implicitly_convert_to(const glsl_type *desired,
     * state, we're doing intra-stage function linking where these checks have
     * already been done.
     */
-   if (state && !state->is_version(120, 0))
+   if (state && !state->has_implicit_conversions())
       return false;
 
    /* There is no conversion among matrix types. */
@@ -1446,8 +1446,7 @@ glsl_type::can_implicitly_convert_to(const glsl_type *desired,
     * state-dependent checks have already happened though, so allow anything
     * that's allowed in any shader version.
     */
-   if ((!state || state->is_version(400, 0) || state->ARB_gpu_shader5_enable ||
-        state->MESA_shader_integer_functions_enable) &&
+   if ((!state || state->has_implicit_uint_to_int_conversion()) &&
          desired->base_type == GLSL_TYPE_UINT && this->base_type == GLSL_TYPE_INT)
       return true;
 

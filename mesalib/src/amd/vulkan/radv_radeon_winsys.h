@@ -268,9 +268,6 @@ struct radeon_winsys {
 			    const struct ac_surf_info *surf_info,
 			    struct radeon_surf *surf);
 
-	int (*surface_best)(struct radeon_winsys *ws,
-			    struct radeon_surf *surf);
-
 	struct radeon_winsys_fence *(*create_fence)();
 	void (*destroy_fence)(struct radeon_winsys_fence *fence);
 	bool (*fence_wait)(struct radeon_winsys *ws,

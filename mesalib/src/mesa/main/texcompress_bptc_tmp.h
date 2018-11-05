@@ -25,6 +25,9 @@
  * Included by texcompress_bptc and gallium to define BPTC decoding routines.
  */
 
+#ifndef TEXCOMPRESS_BPTC_TMP_H
+#define TEXCOMPRESS_BPTC_TMP_H
+
 #include "util/format_srgb.h"
 #include "util/half_float.h"
 #include "macros.h"
@@ -1741,3 +1744,5 @@ compress_rgb_float(int width, int height,
       dst += dst_row_diff;
    }
 }
+
+#endif

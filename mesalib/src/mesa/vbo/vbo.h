@@ -33,47 +33,13 @@
 
 #include <stdbool.h>
 #include "main/glheader.h"
+#include "main/draw.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct gl_context;
-
-struct _mesa_prim
-{
-   GLuint mode:8;    /**< GL_POINTS, GL_LINES, GL_QUAD_STRIP, etc */
-   GLuint indexed:1;
-   GLuint begin:1;
-   GLuint end:1;
-   GLuint weak:1;
-   GLuint no_current_update:1;
-   GLuint is_indirect:1;
-   GLuint pad:18;
-
-   GLuint start;
-   GLuint count;
-   GLint basevertex;
-   GLuint num_instances;
-   GLuint base_instance;
-   GLuint draw_id;
-
-   GLsizeiptr indirect_offset;
-};
-
-/* Would like to call this a "vbo_index_buffer", but this would be
- * confusing as the indices are not neccessarily yet in a non-null
- * buffer object.
- */
-struct _mesa_index_buffer
-{
-   GLuint count;
-   unsigned index_size;
-   struct gl_buffer_object *obj;
-   const void *ptr;
-};
-
-
 
 GLboolean
 _vbo_CreateContext(struct gl_context *ctx);
@@ -102,7 +68,8 @@ void
 vbo_save_SaveFlushVertices(struct gl_context *ctx);
 
 void
-vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode);
+vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode,
+                     bool no_current_update);
 
 void
 vbo_save_NewList(struct gl_context *ctx, GLuint list, GLenum mode);
@@ -115,16 +82,6 @@ vbo_save_BeginCallList(struct gl_context *ctx, struct gl_display_list *list);
 
 void
 vbo_save_EndCallList(struct gl_context *ctx);
-
-
-void
-_vbo_draw_indirect(struct gl_context *ctx, GLuint mode,
-                        struct gl_buffer_object *indirect_data,
-                        GLsizeiptr indirect_offset, unsigned draw_count,
-                        unsigned stride,
-                        struct gl_buffer_object *indirect_draw_count_buffer,
-                        GLsizeiptr indirect_draw_count_offset,
-                        const struct _mesa_index_buffer *ib);
 
 
 void

@@ -131,7 +131,8 @@ enum radv_ud_index {
 	AC_UD_PUSH_CONSTANTS = 1,
 	AC_UD_INDIRECT_DESCRIPTOR_SETS = 2,
 	AC_UD_VIEW_INDEX = 3,
-	AC_UD_SHADER_START = 4,
+	AC_UD_STREAMOUT_BUFFERS = 4,
+	AC_UD_SHADER_START = 5,
 	AC_UD_VS_VERTEX_BUFFERS = AC_UD_SHADER_START,
 	AC_UD_VS_BASE_VERTEX_START_INSTANCE,
 	AC_UD_VS_MAX_UD,
@@ -143,6 +144,22 @@ enum radv_ud_index {
 	AC_UD_TES_MAX_UD,
 	AC_UD_MAX_UD = AC_UD_TCS_MAX_UD,
 };
+
+struct radv_stream_output {
+	uint8_t location;
+	uint8_t buffer;
+	uint16_t offset;
+	uint8_t component_mask;
+	uint8_t stream;
+};
+
+struct radv_streamout_info {
+	uint16_t num_outputs;
+	struct radv_stream_output outputs[MAX_SO_OUTPUTS];
+	uint16_t strides[MAX_SO_BUFFERS];
+	uint32_t enabled_stream_buffers_mask;
+};
+
 struct radv_shader_info {
 	bool loads_push_constants;
 	uint32_t desc_set_used_mask;
@@ -159,6 +176,9 @@ struct radv_shader_info {
 	} vs;
 	struct {
 		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
+		uint8_t num_stream_output_components[4];
+		uint8_t output_streams[VARYING_SLOT_VAR31 + 1];
+		uint8_t max_stream;
 	} gs;
 	struct {
 		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
@@ -186,6 +206,8 @@ struct radv_shader_info {
 		uint64_t outputs_written;
 		uint64_t patch_outputs_written;
 	} tcs;
+
+	struct radv_streamout_info so;
 };
 
 struct radv_userdata_info {

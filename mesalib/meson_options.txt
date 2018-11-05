@@ -302,7 +302,7 @@ option(
   type : 'array',
   value : [],
   choices : ['freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'all'],
-  description : 'List of tools to build.',
+  description : 'List of tools to build. (Note: `intel-ui` selects `intel`)',
 )
 option(
   'power8',

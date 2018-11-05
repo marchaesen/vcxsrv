@@ -106,8 +106,6 @@ C_SOURCES := \
 	os/os_memory_debug.h \
 	os/os_memory_stdc.h \
 	os/os_memory.h \
-	os/os_misc.c \
-	os/os_misc.h \
 	os/os_mman.h \
 	os/os_process.c \
 	os/os_process.h \
@@ -224,10 +222,8 @@ C_SOURCES := \
 	util/u_box.h \
 	util/u_cache.c \
 	util/u_cache.h \
-	util/u_cpu_detect.c \
-	util/u_cpu_detect.h \
-	util/u_debug.c \
-	util/u_debug.h \
+	util/u_debug_gallium.h \
+	util/u_debug_gallium.c \
 	util/u_debug_describe.c \
 	util/u_debug_describe.h \
 	util/u_debug_flush.c \
@@ -302,6 +298,7 @@ C_SOURCES := \
 	util/u_pack_color.h \
 	util/u_pointer.h \
 	util/u_prim.h \
+	util/u_prim.c \
 	util/u_prim_restart.c \
 	util/u_prim_restart.h \
 	util/u_pstipple.c \

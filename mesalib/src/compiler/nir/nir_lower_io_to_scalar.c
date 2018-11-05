@@ -320,7 +320,9 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
                if (glsl_type_is_64bit(glsl_without_array(var->type)))
                   continue;
 
-               if (var->data.location < VARYING_SLOT_VAR0 &&
+               if (!(shader->info.stage == MESA_SHADER_VERTEX &&
+                     mode == nir_var_shader_in) &&
+                   var->data.location < VARYING_SLOT_VAR0 &&
                    var->data.location >= 0)
                   continue;
 

@@ -31,15 +31,10 @@
 
 #include "pipe/p_compiler.h"
 #include "util/u_debug.h"
-#include "util/u_dump.h"
 #include "pipe/p_format.h"
 #include "pipe/p_state.h"
-#include "util/u_inlines.h"
-#include "util/u_format.h"
-#include "util/u_memory.h"
 #include "util/u_string.h"
 #include "util/u_math.h"
-#include "util/u_prim.h"
 #include <inttypes.h>
 
 #include <stdio.h>
@@ -404,40 +399,6 @@ debug_dump_flags(const struct debug_named_value *names, unsigned long value)
 }
 
 
-#ifdef DEBUG
-void
-debug_print_format(const char *msg, unsigned fmt )
-{
-   debug_printf("%s: %s\n", msg, util_format_name(fmt));
-}
-#endif
-
-
-/** Return string name of given primitive type */
-const char *
-u_prim_name(enum pipe_prim_type prim)
-{
-   static const struct debug_named_value names[] = {
-      DEBUG_NAMED_VALUE(PIPE_PRIM_POINTS),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_LINES),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_LINE_LOOP),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_LINE_STRIP),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLES),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLE_STRIP),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLE_FAN),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_QUADS),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_QUAD_STRIP),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_POLYGON),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_LINES_ADJACENCY),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_LINE_STRIP_ADJACENCY),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLES_ADJACENCY),
-      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY),
-      DEBUG_NAMED_VALUE_END
-   };
-   return debug_dump_enum(names, prim);
-}
-
-
 
 #ifdef DEBUG
 int fl_indent = 0;
@@ -477,73 +438,4 @@ debug_funclog_enter_exit(const char* f, UNUSED const int line,
       debug_printf("  ");
    debug_printf("%s\n", f);
 }
-#endif
-
-
-
-#ifdef DEBUG
-/**
- * Print PIPE_TRANSFER_x flags with a message.
- */
-void
-debug_print_transfer_flags(const char *msg, unsigned usage)
-{
-   debug_printf("%s: ", msg);
-   util_dump_transfer_usage(stdout, usage);
-   printf("\n");
-}
-
-
-/**
- * Print PIPE_BIND_x flags with a message.
- */
-void
-debug_print_bind_flags(const char *msg, unsigned usage)
-{
-   static const struct debug_named_value names[] = {
-      DEBUG_NAMED_VALUE(PIPE_BIND_DEPTH_STENCIL),
-      DEBUG_NAMED_VALUE(PIPE_BIND_RENDER_TARGET),
-      DEBUG_NAMED_VALUE(PIPE_BIND_BLENDABLE),
-      DEBUG_NAMED_VALUE(PIPE_BIND_SAMPLER_VIEW),
-      DEBUG_NAMED_VALUE(PIPE_BIND_VERTEX_BUFFER),
-      DEBUG_NAMED_VALUE(PIPE_BIND_INDEX_BUFFER),
-      DEBUG_NAMED_VALUE(PIPE_BIND_CONSTANT_BUFFER),
-      DEBUG_NAMED_VALUE(PIPE_BIND_DISPLAY_TARGET),
-      DEBUG_NAMED_VALUE(PIPE_BIND_STREAM_OUTPUT),
-      DEBUG_NAMED_VALUE(PIPE_BIND_CURSOR),
-      DEBUG_NAMED_VALUE(PIPE_BIND_CUSTOM),
-      DEBUG_NAMED_VALUE(PIPE_BIND_GLOBAL),
-      DEBUG_NAMED_VALUE(PIPE_BIND_SHADER_BUFFER),
-      DEBUG_NAMED_VALUE(PIPE_BIND_SHADER_IMAGE),
-      DEBUG_NAMED_VALUE(PIPE_BIND_COMPUTE_RESOURCE),
-      DEBUG_NAMED_VALUE(PIPE_BIND_COMMAND_ARGS_BUFFER),
-      DEBUG_NAMED_VALUE(PIPE_BIND_SCANOUT),
-      DEBUG_NAMED_VALUE(PIPE_BIND_SHARED),
-      DEBUG_NAMED_VALUE(PIPE_BIND_LINEAR),
-      DEBUG_NAMED_VALUE_END
-   };
-
-   debug_printf("%s: %s\n", msg, debug_dump_flags(names, usage));
-}
-
-
-/**
- * Print PIPE_USAGE_x enum values with a message.
- */
-void
-debug_print_usage_enum(const char *msg, enum pipe_resource_usage usage)
-{
-   static const struct debug_named_value names[] = {
-      DEBUG_NAMED_VALUE(PIPE_USAGE_DEFAULT),
-      DEBUG_NAMED_VALUE(PIPE_USAGE_IMMUTABLE),
-      DEBUG_NAMED_VALUE(PIPE_USAGE_DYNAMIC),
-      DEBUG_NAMED_VALUE(PIPE_USAGE_STREAM),
-      DEBUG_NAMED_VALUE(PIPE_USAGE_STAGING),
-      DEBUG_NAMED_VALUE_END
-   };
-
-   debug_printf("%s: %s\n", msg, debug_dump_enum(names, usage));
-}
-
-
 #endif

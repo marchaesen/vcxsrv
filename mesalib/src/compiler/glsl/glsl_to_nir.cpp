@@ -833,7 +833,7 @@ nir_visitor::visit(ir_call *ir)
       }
 
       nir_intrinsic_instr *instr = nir_intrinsic_instr_create(shader, op);
-      nir_dest *dest = &instr->dest;
+      nir_ssa_def *ret = &instr->dest.ssa;
 
       switch (op) {
       case nir_intrinsic_atomic_counter_read_deref:
@@ -1037,22 +1037,8 @@ nir_visitor::visit(ir_call *ir)
           * consider a true boolean to be ~0. Fix this up with a != 0
           * comparison.
           */
-         if (type->is_boolean()) {
-            nir_alu_instr *load_ssbo_compare =
-               nir_alu_instr_create(shader, nir_op_ine);
-            load_ssbo_compare->src[0].src.is_ssa = true;
-            load_ssbo_compare->src[0].src.ssa = &instr->dest.ssa;
-            load_ssbo_compare->src[1].src =
-               nir_src_for_ssa(nir_imm_int(&b, 0));
-            for (unsigned i = 0; i < type->vector_elements; i++)
-               load_ssbo_compare->src[1].swizzle[i] = 0;
-            nir_ssa_dest_init(&load_ssbo_compare->instr,
-                              &load_ssbo_compare->dest.dest,
-                              type->vector_elements, bit_size, NULL);
-            load_ssbo_compare->dest.write_mask = (1 << type->vector_elements) - 1;
-            nir_builder_instr_insert(&b, &load_ssbo_compare->instr);
-            dest = &load_ssbo_compare->dest.dest;
-         }
+         if (type->is_boolean())
+            ret = nir_i2b(&b, &instr->dest.ssa);
          break;
       }
       case nir_intrinsic_ssbo_atomic_add:
@@ -1243,7 +1229,7 @@ nir_visitor::visit(ir_call *ir)
       }
 
       if (ir->return_deref)
-         nir_store_deref(&b, evaluate_deref(ir->return_deref), &dest->ssa, ~0);
+         nir_store_deref(&b, evaluate_deref(ir->return_deref), ret, ~0);
 
       return;
    }
@@ -1403,7 +1389,7 @@ nir_visitor::visit(ir_expression *ir)
        */
 
       if (ir->type->is_boolean())
-         this->result = nir_ine(&b, &load->dest.ssa, nir_imm_int(&b, 0));
+         this->result = nir_i2b(&b, &load->dest.ssa);
 
       return;
    }

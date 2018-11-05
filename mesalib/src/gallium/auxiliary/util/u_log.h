@@ -47,7 +47,7 @@
 
 #include <stdio.h>
 
-#include "u_debug.h"
+#include "util/u_debug.h"
 
 struct u_log_page;
 struct u_log_auto_logger;

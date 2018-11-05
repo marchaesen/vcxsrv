@@ -27,7 +27,7 @@ struct ssh2_userauth_server_state {
 
     ptrlen username, service, method;
     unsigned methods, this_method;
-    int partial_success;
+    bool partial_success;
 
     AuthKbdInt *aki;
 
@@ -146,13 +146,13 @@ static void ssh2_userauth_server_process_queue(PacketProtocolLayer *ppl)
              */
             pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_USERAUTH_FAILURE);
             put_stringz(pktout, "");
-            put_bool(pktout, FALSE);
+            put_bool(pktout, false);
             pq_push(s->ppl.out_pq, pktout);
             continue;
         }
 
         s->methods = auth_methods(s->authpolicy);
-        s->partial_success = FALSE;
+        s->partial_success = false;
 
         if (ptrlen_eq_string(s->method, "none")) {
             s->this_method = AUTHMETHOD_NONE;
@@ -162,23 +162,37 @@ static void ssh2_userauth_server_process_queue(PacketProtocolLayer *ppl)
             if (!auth_none(s->authpolicy, s->username))
                 goto failure;
         } else if (ptrlen_eq_string(s->method, "password")) {
-            int changing;
-            ptrlen password;
+            bool changing;
+            ptrlen password, new_password, *new_password_ptr;
 
             s->this_method = AUTHMETHOD_PASSWORD;
             if (!(s->methods & s->this_method))
                 goto failure;
 
             changing = get_bool(pktin);
-            if (changing)
-                goto failure;          /* FIXME: not yet supported */
-
             password = get_string(pktin);
 
-            if (!auth_password(s->authpolicy, s->username, password))
+            if (changing) {
+                new_password = get_string(pktin);
+                new_password_ptr = &new_password;
+            } else {
+                new_password_ptr = NULL;
+            }
+
+            int result = auth_password(s->authpolicy, s->username,
+                                       password, new_password_ptr);
+            if (result == 2) {
+                pktout = ssh_bpp_new_pktout(
+                    s->ppl.bpp, SSH2_MSG_USERAUTH_PASSWD_CHANGEREQ);
+                put_stringz(pktout, "Please change your password");
+                put_stringz(pktout, ""); /* language tag */
+                pq_push(s->ppl.out_pq, pktout);
+                continue; /* skip USERAUTH_{SUCCESS,FAILURE} epilogue */
+            } else if (result != 1) {
                 goto failure;
+            }
         } else if (ptrlen_eq_string(s->method, "publickey")) {
-            int has_signature, success;
+            bool has_signature, success;
             ptrlen algorithm, blob, signature;
             const ssh_keyalg *keyalg;
             ssh_key *key;
@@ -313,7 +327,7 @@ static void ssh2_userauth_server_process_queue(PacketProtocolLayer *ppl)
              */
             s->methods = auth_methods(s->authpolicy);
         }
-        s->partial_success = TRUE;
+        s->partial_success = true;
 
       failure:
         pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_USERAUTH_FAILURE);

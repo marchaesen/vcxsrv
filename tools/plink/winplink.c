@@ -38,13 +38,13 @@ DWORD orig_console_mode;
 WSAEVENT netevent;
 
 static Backend *backend;
-static Conf *conf;
+Conf *conf;
 
-int term_ldisc(Terminal *term, int mode)
+bool term_ldisc(Terminal *term, int mode)
 {
-    return FALSE;
+    return false;
 }
-static void plink_echoedit_update(Seat *seat, int echo, int edit)
+static void plink_echoedit_update(Seat *seat, bool echo, bool edit)
 {
     /* Update stdin read mode to reflect changes in line discipline. */
     DWORD mode;
@@ -61,7 +61,7 @@ static void plink_echoedit_update(Seat *seat, int echo, int edit)
     SetConsoleMode(inhandle, mode);
 }
 
-static int plink_output(Seat *seat, int is_stderr, const void *data, int len)
+static int plink_output(Seat *seat, bool is_stderr, const void *data, int len)
 {
     if (is_stderr) {
 	handle_write(stderr_handle, data, len);
@@ -72,10 +72,10 @@ static int plink_output(Seat *seat, int is_stderr, const void *data, int len)
     return handle_backlog(stdout_handle) + handle_backlog(stderr_handle);
 }
 
-static int plink_eof(Seat *seat)
+static bool plink_eof(Seat *seat)
 {
     handle_write_eof(stdout_handle);
-    return FALSE;   /* do not respond to incoming EOF with outgoing */
+    return false;   /* do not respond to incoming EOF with outgoing */
 }
 
 static int plink_get_userpass_input(Seat *seat, prompts_t *p, bufchain *input)
@@ -185,7 +185,7 @@ static void version(void)
     exit(0);
 }
 
-char *do_select(SOCKET skt, int startup)
+char *do_select(SOCKET skt, bool startup)
 {
     int events;
     if (startup) {
@@ -254,18 +254,18 @@ void stdouterr_sent(struct handle *h, int new_backlog)
     }
 }
 
-const int share_can_be_downstream = TRUE;
-const int share_can_be_upstream = TRUE;
+const bool share_can_be_downstream = true;
+const bool share_can_be_upstream = true;
 
 int main(int argc, char **argv)
 {
-    int sending;
+    bool sending;
     SOCKET *sklist;
     int skcount, sksize;
     int exitcode;
-    int errors;
-    int use_subsystem = 0;
-    int just_test_share_exists = FALSE;
+    bool errors;
+    bool use_subsystem = false;
+    bool just_test_share_exists = false;
     unsigned long now, next, then;
     const struct BackendVtable *vt;
 
@@ -292,10 +292,10 @@ int main(int argc, char **argv)
      */
     conf = conf_new();
     do_defaults(NULL, conf);
-    loaded_session = FALSE;
+    loaded_session = false;
     default_protocol = conf_get_int(conf, CONF_protocol);
     default_port = conf_get_int(conf, CONF_port);
-    errors = 0;
+    errors = false;
     {
 	/*
 	 * Override the default protocol if PLINK_PROTOCOL is set.
@@ -318,16 +318,16 @@ int main(int argc, char **argv)
         if (ret == -2) {
             fprintf(stderr,
                     "plink: option \"%s\" requires an argument\n", p);
-            errors = 1;
+            errors = true;
         } else if (ret == 2) {
             --argc, ++argv;
         } else if (ret == 1) {
             continue;
         } else if (!strcmp(p, "-batch")) {
-            console_batch_mode = 1;
+            console_batch_mode = true;
         } else if (!strcmp(p, "-s")) {
             /* Save status to write to conf later. */
-            use_subsystem = 1;
+            use_subsystem = true;
         } else if (!strcmp(p, "-V") || !strcmp(p, "--version")) {
             version();
         } else if (!strcmp(p, "--help")) {
@@ -336,7 +336,7 @@ int main(int argc, char **argv)
             pgp_fingerprints();
             exit(1);
         } else if (!strcmp(p, "-shareexists")) {
-            just_test_share_exists = TRUE;
+            just_test_share_exists = true;
 	} else if (*p != '-') {
             char *command;
             int cmdlen, cmdsize;
@@ -362,12 +362,12 @@ int main(int argc, char **argv)
             /* change trailing blank to NUL */
             conf_set_str(conf, CONF_remote_cmd, command);
             conf_set_str(conf, CONF_remote_cmd2, "");
-            conf_set_int(conf, CONF_nopty, TRUE);  /* command => no tty */
+            conf_set_bool(conf, CONF_nopty, true);  /* command => no tty */
 
             break;		       /* done with cmdline */
         } else {
             fprintf(stderr, "plink: unknown option \"%s\"\n", p);
-            errors = 1;
+            errors = true;
         }
     }
 
@@ -389,7 +389,7 @@ int main(int argc, char **argv)
      * Apply subsystem status.
      */
     if (use_subsystem)
-        conf_set_int(conf, CONF_ssh_subsys, TRUE);
+        conf_set_bool(conf, CONF_ssh_subsys, true);
 
     if (!*conf_get_str(conf, CONF_remote_cmd) &&
 	!*conf_get_str(conf, CONF_remote_cmd2) &&
@@ -419,10 +419,10 @@ int main(int argc, char **argv)
      * the "simple" flag.
      */
     if (conf_get_int(conf, CONF_protocol) == PROT_SSH &&
-	!conf_get_int(conf, CONF_x11_forward) &&
-	!conf_get_int(conf, CONF_agentfwd) &&
+	!conf_get_bool(conf, CONF_x11_forward) &&
+	!conf_get_bool(conf, CONF_agentfwd) &&
 	!conf_get_str_nthstrkey(conf, CONF_portfwd, 0))
-	conf_set_int(conf, CONF_ssh_simple, TRUE);
+	conf_set_bool(conf, CONF_ssh_simple, true);
 
     logctx = log_init(default_logpolicy, conf);
 
@@ -446,19 +446,19 @@ int main(int argc, char **argv)
     /*
      * Start up the connection.
      */
-    netevent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    netevent = CreateEvent(NULL, false, false, NULL);
     {
 	const char *error;
 	char *realhost;
 	/* nodelay is only useful if stdin is a character device (console) */
-	int nodelay = conf_get_int(conf, CONF_tcp_nodelay) &&
+	bool nodelay = conf_get_bool(conf, CONF_tcp_nodelay) &&
 	    (GetFileType(GetStdHandle(STD_INPUT_HANDLE)) == FILE_TYPE_CHAR);
 
         error = backend_init(vt, plink_seat, &backend, logctx, conf,
                              conf_get_str(conf, CONF_host),
                              conf_get_int(conf, CONF_port),
                              &realhost, nodelay,
-                             conf_get_int(conf, CONF_tcp_keepalives));
+                             conf_get_bool(conf, CONF_tcp_keepalives));
 	if (error) {
 	    fprintf(stderr, "Unable to open connection:\n%s", error);
 	    return 1;
@@ -488,7 +488,7 @@ int main(int argc, char **argv)
 
     main_thread_id = GetCurrentThreadId();
 
-    sending = FALSE;
+    sending = false;
 
     now = GETTICKCOUNT();
 
@@ -501,7 +501,7 @@ int main(int argc, char **argv)
         if (!sending && backend_sendok(backend)) {
 	    stdin_handle = handle_input_new(inhandle, stdin_gotdata, NULL,
 					    0);
-	    sending = TRUE;
+	    sending = true;
 	}
 
         if (toplevel_callback_pending()) {
@@ -523,14 +523,13 @@ int main(int argc, char **argv)
 	handles = handle_get_events(&nhandles);
 	handles = sresize(handles, nhandles+1, HANDLE);
 	handles[nhandles] = netevent;
-	n = MsgWaitForMultipleObjects(nhandles+1, handles, FALSE, ticks,
+	n = MsgWaitForMultipleObjects(nhandles+1, handles, false, ticks,
 				      QS_POSTMESSAGE);
 	if ((unsigned)(n - WAIT_OBJECT_0) < (unsigned)nhandles) {
 	    handle_got_event(handles[n - WAIT_OBJECT_0]);
 	} else if (n == WAIT_OBJECT_0 + nhandles) {
 	    WSANETWORKEVENTS things;
 	    SOCKET socket;
-	    extern SOCKET first_socket(int *), next_socket(int *);
 	    int i, socketstate;
 
 	    /*

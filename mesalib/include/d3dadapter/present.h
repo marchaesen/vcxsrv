@@ -125,7 +125,7 @@ struct ID3DPresent
 #define ID3DPresent_SetCursorPos(p,a) (p)->lpVtbl->SetCursorPos(p,a)
 #define ID3DPresent_SetCursor(p,a,b,c) (p)->lpVtbl->SetCursor(p,a,b,c)
 #define ID3DPresent_SetGammaRamp(p,a,b) (p)->lpVtbl->SetGammaRamp(p,a,b)
-#define ID3DPresent_GetWindowInfo(p,a,b,c,d) (p)->lpVtbl->GetWindowSize(p,a,b,c,d)
+#define ID3DPresent_GetWindowInfo(p,a,b,c,d) (p)->lpVtbl->GetWindowInfo(p,a,b,c,d)
 #define ID3DPresent_GetWindowOccluded(p) (p)->lpVtbl->GetWindowOccluded(p)
 #define ID3DPresent_ResolutionMismatch(p) (p)->lpVtbl->ResolutionMismatch(p)
 #define ID3DPresent_CreateThread(p,a,b) (p)->lpVtbl->CreateThread(p,a,b)

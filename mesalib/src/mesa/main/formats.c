@@ -1108,6 +1108,7 @@ _mesa_uncompressed_format_to_type_and_comps(mesa_format format,
       *comps = 4;
       return;
    case MESA_FORMAT_L_SRGB8:
+   case MESA_FORMAT_R_SRGB8:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 1;
       return;
@@ -1670,6 +1671,7 @@ _mesa_format_matches_format_and_type(mesa_format mesa_format,
               (type == GL_UNSIGNED_SHORT_8_8_REV_MESA && littleEndian != swapBytes));
 
    case MESA_FORMAT_R_UNORM8:
+   case MESA_FORMAT_R_SRGB8:
       return format == GL_RED && type == GL_UNSIGNED_BYTE;
    case MESA_FORMAT_R8G8_UNORM:
       return format == GL_RG && type == GL_UNSIGNED_BYTE && littleEndian;

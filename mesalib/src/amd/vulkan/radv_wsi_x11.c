@@ -45,7 +45,6 @@ VkBool32 radv_GetPhysicalDeviceXcbPresentationSupportKHR(
    return wsi_get_physical_device_xcb_presentation_support(
       &device->wsi_device,
       queueFamilyIndex,
-      true,
       connection, visual_id);
 }
 
@@ -60,7 +59,6 @@ VkBool32 radv_GetPhysicalDeviceXlibPresentationSupportKHR(
    return wsi_get_physical_device_xcb_presentation_support(
       &device->wsi_device,
       queueFamilyIndex,
-      true,
       XGetXCBConnection(dpy), visualID);
 }
 

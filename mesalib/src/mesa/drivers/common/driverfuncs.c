@@ -28,6 +28,7 @@
 #include "main/accum.h"
 #include "main/arrayobj.h"
 #include "main/context.h"
+#include "main/draw.h"
 #include "main/formatquery.h"
 #include "main/framebuffer.h"
 #include "main/mipmap.h"
@@ -55,7 +56,6 @@
 #include "tnl/tnl.h"
 #include "swrast/swrast.h"
 #include "swrast/s_renderbuffer.h"
-#include "vbo/vbo.h"
 
 #include "driverfuncs.h"
 #include "meta.h"
@@ -122,7 +122,7 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
 
    /* Draw functions */
    driver->Draw = NULL;
-   driver->DrawIndirect = _vbo_draw_indirect;
+   driver->DrawIndirect = _mesa_draw_indirect;
 
    /* simple state commands */
    driver->AlphaFunc = NULL;

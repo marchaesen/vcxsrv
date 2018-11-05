@@ -1274,6 +1274,10 @@ glsl_to_tgsi_visitor::try_emit_mad(ir_expression *ir, int mul_operand)
    st_src_reg a, b, c;
    st_dst_reg result_dst;
 
+   // there is no TGSI opcode for this
+   if (ir->type->is_integer_64())
+      return false;
+
    ir_expression *expr = ir->operands[mul_operand]->as_expression();
    if (!expr || expr->operation != ir_binop_mul)
       return false;
@@ -2084,7 +2088,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
             emit_asm(ir, TGSI_OPCODE_USHR, st_dst_reg(index_reg), offset,
                  st_src_reg_for_int(4));
             cbuf.reladdr = ralloc(mem_ctx, st_src_reg);
-            memcpy(cbuf.reladdr, &index_reg, sizeof(index_reg));
+            *cbuf.reladdr = index_reg;
          }
 
          if (const_uniform_block) {
@@ -2093,7 +2097,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
          } else {
             /* Relative/variable constant buffer */
             cbuf.reladdr2 = ralloc(mem_ctx, st_src_reg);
-            memcpy(cbuf.reladdr2, &op[0], sizeof(st_src_reg));
+            *cbuf.reladdr2 = op[0];
          }
          cbuf.has_index2 = true;
 
@@ -2804,12 +2808,12 @@ glsl_to_tgsi_visitor::visit(ir_dereference_array *ir)
 
       if (is_2D) {
          src.reladdr2 = ralloc(mem_ctx, st_src_reg);
-         memcpy(src.reladdr2, &index_reg, sizeof(index_reg));
+         *src.reladdr2 = index_reg;
          src.index2D = 0;
          src.has_index2 = true;
       } else {
          src.reladdr = ralloc(mem_ctx, st_src_reg);
-         memcpy(src.reladdr, &index_reg, sizeof(index_reg));
+         *src.reladdr = index_reg;
       }
    }
 
@@ -4146,8 +4150,7 @@ glsl_to_tgsi_visitor::get_deref_offsets(ir_dereference *ir,
    unsigned location = 0;
    ir_variable *var = ir->variable_referenced();
 
-   memset(reladdr, 0, sizeof(*reladdr));
-   reladdr->file = PROGRAM_UNDEFINED;
+   reladdr->reset();
 
    *base = 0;
    *array_size = 1;
@@ -5595,7 +5598,7 @@ glsl_to_tgsi_visitor::split_arrays(void)
 void
 glsl_to_tgsi_visitor::merge_registers(void)
 {
-   struct array_live_range *arr_live_ranges = NULL;
+   class array_live_range *arr_live_ranges = NULL;
 
    struct register_live_range *reg_live_ranges =
 	 rzalloc_array(mem_ctx, struct register_live_range, this->next_temp);
@@ -7467,24 +7470,16 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 }
 
 void
-st_translate_stream_output_info(glsl_to_tgsi_visitor *glsl_to_tgsi,
-                                const ubyte outputMapping[],
-                                struct pipe_stream_output_info *so)
-{
-   if (!glsl_to_tgsi->shader_program->last_vert_prog)
-      return;
-
-   struct gl_transform_feedback_info *info =
-      glsl_to_tgsi->shader_program->last_vert_prog->sh.LinkedTransformFeedback;
-   st_translate_stream_output_info2(info, outputMapping, so);
-}
-
-void
-st_translate_stream_output_info2(struct gl_transform_feedback_info *info,
+st_translate_stream_output_info(struct gl_transform_feedback_info *info,
                                 const ubyte outputMapping[],
                                 struct pipe_stream_output_info *so)
 {
    unsigned i;
+
+   if (!info) {
+      so->num_outputs = 0;
+      return;
+   }
 
    for (i = 0; i < info->NumOutputs; i++) {
       so->output[i].register_index =

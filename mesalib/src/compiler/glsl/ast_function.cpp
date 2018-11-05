@@ -667,7 +667,12 @@ match_function_by_name(const char *name,
    /* Local shader has no exact candidates; check the built-ins. */
    _mesa_glsl_initialize_builtin_functions();
    sig = _mesa_glsl_find_builtin_function(state, name, actual_parameters);
-   return sig;
+
+   /* if _mesa_glsl_find_builtin_function failed, fall back to the result
+    * of choose_best_inexact_overload() instead. This should only affect
+    * GLES.
+    */
+   return sig ? sig : local_sig;
 }
 
 static ir_function_signature *

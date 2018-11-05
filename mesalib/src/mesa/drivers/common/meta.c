@@ -42,6 +42,7 @@
 #include "main/buffers.h"
 #include "main/clear.h"
 #include "main/condrender.h"
+#include "main/draw.h"
 #include "main/depth.h"
 #include "main/enable.h"
 #include "main/fbobject.h"

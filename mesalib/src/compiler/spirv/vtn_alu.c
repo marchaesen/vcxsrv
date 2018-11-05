@@ -494,7 +494,7 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
          default: vtn_fail("invalid number of components");
          }
          val->ssa->def = nir_build_alu(&b->nb, op, src[0],
-                                       nir_imm_int(&b->nb, NIR_FALSE),
+                                       nir_imm_false(&b->nb),
                                        NULL, NULL);
       }
       break;
@@ -511,7 +511,7 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
          default: vtn_fail("invalid number of components");
          }
          val->ssa->def = nir_build_alu(&b->nb, op, src[0],
-                                       nir_imm_int(&b->nb, NIR_TRUE),
+                                       nir_imm_true(&b->nb),
                                        NULL, NULL);
       }
       break;
