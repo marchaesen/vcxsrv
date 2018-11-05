@@ -189,7 +189,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		 * and just use the NIR shader */
 		nir = module->nir;
 		nir->options = &nir_options;
-		nir_validate_shader(nir);
+		nir_validate_shader(nir, "in internal shader");
 
 		assert(exec_list_length(&nir->functions) == 1);
 		struct exec_node *node = exec_list_get_head(&nir->functions);
@@ -243,6 +243,8 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.runtime_descriptor_array = true,
 				.stencil_export = true,
 				.storage_16bit = true,
+				.geometry_streams = true,
+				.transform_feedback = true,
 			},
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,
@@ -251,7 +253,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 					   &spirv_options, &nir_options);
 		nir = entry_point->shader;
 		assert(nir->info.stage == stage);
-		nir_validate_shader(nir);
+		nir_validate_shader(nir, "after spirv_to_nir");
 
 		free(spec_entries);
 
@@ -434,7 +436,12 @@ radv_fill_shader_variant(struct radv_device *device,
 	variant->code_size = radv_get_shader_binary_size(binary);
 	variant->rsrc2 = S_00B12C_USER_SGPR(variant->info.num_user_sgprs) |
 			 S_00B12C_USER_SGPR_MSB(variant->info.num_user_sgprs >> 5) |
-			 S_00B12C_SCRATCH_EN(scratch_enabled);
+			 S_00B12C_SCRATCH_EN(scratch_enabled) |
+			 S_00B12C_SO_BASE0_EN(!!info->so.strides[0]) |
+			 S_00B12C_SO_BASE1_EN(!!info->so.strides[1]) |
+			 S_00B12C_SO_BASE2_EN(!!info->so.strides[2]) |
+			 S_00B12C_SO_BASE3_EN(!!info->so.strides[3]) |
+			 S_00B12C_SO_EN(!!info->so.num_outputs);
 
 	variant->rsrc1 = S_00B848_VGPRS((variant->config.num_vgprs - 1) / 4) |
 		S_00B848_SGPRS((variant->config.num_sgprs - 1) / 8) |

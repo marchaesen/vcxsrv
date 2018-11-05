@@ -41,7 +41,7 @@ TESTS += glsl/glcpp/tests/glcpp-test.sh			\
 
 TESTS_ENVIRONMENT= \
 	export abs_builddir=$(abs_builddir); \
-	export PYTHON2=$(PYTHON2); \
+	export PYTHON=$(PYTHON); \
 	export PYTHON_FLAGS=$(PYTHON_FLAGS);
 
 check_PROGRAMS +=					\

@@ -257,6 +257,7 @@ texfetch_funcs[] =
    FETCH_FUNCS(A8L8_SRGB),
 
    /* Array sRGB formats */
+   FETCH_FUNCS(R_SRGB8),
    FETCH_FUNCS(L_SRGB8),
    FETCH_FUNCS(BGR_SRGB8),
 

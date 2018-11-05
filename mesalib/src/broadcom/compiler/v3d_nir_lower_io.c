@@ -52,44 +52,6 @@ replace_intrinsic_with_vec(nir_builder *b, nir_intrinsic_instr *intr,
 }
 
 static void
-v3d_nir_lower_output(struct v3d_compile *c, nir_builder *b,
-                     nir_intrinsic_instr *intr)
-{
-        nir_variable *output_var = NULL;
-        nir_foreach_variable(var, &c->s->outputs) {
-                if (var->data.driver_location == nir_intrinsic_base(intr)) {
-                        output_var = var;
-                        break;
-                }
-        }
-        assert(output_var);
-
-        if (c->vs_key) {
-                int slot = output_var->data.location;
-                bool used = false;
-
-                switch (slot) {
-                case VARYING_SLOT_PSIZ:
-                case VARYING_SLOT_POS:
-                        used = true;
-                        break;
-
-                default:
-                        for (int i = 0; i < c->vs_key->num_fs_inputs; i++) {
-                                if (v3d_slot_get_slot(c->vs_key->fs_inputs[i]) == slot) {
-                                        used = true;
-                                        break;
-                                }
-                        }
-                        break;
-                }
-
-                if (!used)
-                        nir_instr_remove(&intr->instr);
-        }
-}
-
-static void
 v3d_nir_lower_uniform(struct v3d_compile *c, nir_builder *b,
                       nir_intrinsic_instr *intr)
 {
@@ -133,10 +95,6 @@ v3d_nir_lower_io_instr(struct v3d_compile *c, nir_builder *b,
 
         switch (intr->intrinsic) {
         case nir_intrinsic_load_input:
-                break;
-
-        case nir_intrinsic_store_output:
-                v3d_nir_lower_output(c, b, intr);
                 break;
 
         case nir_intrinsic_load_uniform:

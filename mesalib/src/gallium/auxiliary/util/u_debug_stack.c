@@ -32,7 +32,7 @@
  * @author Jose Fonseca <jfonseca@vmware.com>
  */
 
-#include "u_debug.h"
+#include "util/u_debug.h"
 #include "u_debug_symbol.h"
 #include "u_debug_stack.h"
 

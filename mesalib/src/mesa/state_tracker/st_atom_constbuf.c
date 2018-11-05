@@ -92,7 +92,7 @@ st_upload_constants(struct st_context *st, struct gl_program *prog)
    /* update constants */
    if (params && params->NumParameters) {
       struct pipe_constant_buffer cb;
-      const uint paramBytes = params->NumParameters * sizeof(GLfloat) * 4;
+      const uint paramBytes = params->NumParameterValues * sizeof(GLfloat);
 
       /* Update the constants which come from fixed-function state, such as
        * transformation matrices, fog factors, etc.  The rest of the values in

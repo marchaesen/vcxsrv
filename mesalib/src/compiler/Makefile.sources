@@ -216,6 +216,7 @@ NIR_FILES = \
 	nir/nir_format_convert.h \
 	nir/nir_from_ssa.c \
 	nir/nir_gather_info.c \
+	nir/nir_gather_xfb_info.c \
 	nir/nir_gs_count_vertices.c \
 	nir/nir_inline_functions.c \
 	nir/nir_instr_set.c \
@@ -308,7 +309,8 @@ NIR_FILES = \
 	nir/nir_validate.c \
 	nir/nir_vla.h \
 	nir/nir_worklist.c \
-	nir/nir_worklist.h
+	nir/nir_worklist.h \
+	nir/nir_xfb_info.h
 
 SPIRV_GENERATED_FILES = \
 	spirv/spirv_info.c \

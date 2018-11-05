@@ -314,6 +314,12 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		return false;
 	}
 
+	/* Raven2 uses the same PCI IDs as Raven1, but different revision IDs. */
+	if (info->family == CHIP_RAVEN && amdinfo->chip_rev >= 0x8) {
+		info->family = CHIP_RAVEN2;
+		info->name = "RAVEN2";
+	}
+
 	if (info->family >= CHIP_VEGA10)
 		info->chip_class = GFX9;
 	else if (info->family >= CHIP_TONGA)

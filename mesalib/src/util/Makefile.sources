@@ -27,6 +27,8 @@ MESA_UTIL_FILES := \
 	mesa-sha1.h \
 	os_time.c \
 	os_time.h \
+	os_misc.c \
+	os_misc.h \
 	u_process.c \
 	u_process.h \
 	sha1/sha1.c \
@@ -66,6 +68,10 @@ MESA_UTIL_FILES := \
 	u_thread.h \
 	u_vector.c \
 	u_vector.h \
+	u_debug.c \
+	u_debug.h \
+	u_cpu_detect.c \
+	u_cpu_detect.h \
 	vma.c \
 	vma.h
 

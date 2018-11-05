@@ -22,7 +22,7 @@
 .PHONY: git_sha1.h
 git_sha1.h:
 	@echo "updating $@"
-	@$(PYTHON2) $(top_srcdir)/bin/git_sha1_gen.py --output $@
+	@$(PYTHON) $(top_srcdir)/bin/git_sha1_gen.py --output $@
 
 BUILT_SOURCES = git_sha1.h
 CLEANFILES = $(BUILT_SOURCES)

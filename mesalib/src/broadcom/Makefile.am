@@ -56,7 +56,7 @@ EXTRA_DIST = \
 	qpu/meson.build
 
 MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
-PYTHON_GEN = $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
+PYTHON_GEN = $(AM_V_GEN)$(PYTHON) $(PYTHON_FLAGS)
 
 include Makefile.genxml.am
 include Makefile.cle.am

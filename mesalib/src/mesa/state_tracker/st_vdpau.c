@@ -133,7 +133,7 @@ st_vdpau_resource_from_description(struct gl_context *ctx,
    whandle.stride = desc->stride;
 
    res = st->pipe->screen->resource_from_handle(st->pipe->screen, &templ, &whandle,
-						PIPE_HANDLE_USAGE_READ_WRITE);
+						PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE);
    close(desc->handle);
 
    return res;

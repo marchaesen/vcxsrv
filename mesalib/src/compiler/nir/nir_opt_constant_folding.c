@@ -89,6 +89,8 @@ constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
          case 8:
             src[i].u8[j] = load_const->value.u8[instr->src[i].swizzle[j]];
             break;
+         default:
+            unreachable("Invalid bit size");
          }
       }
 
@@ -129,12 +131,9 @@ constant_fold_intrinsic_instr(nir_intrinsic_instr *instr)
 {
    bool progress = false;
 
-   if (instr->intrinsic == nir_intrinsic_discard_if) {
-      nir_const_value *src_val = nir_src_as_const_value(instr->src[0]);
-      if (src_val && src_val->u32[0] == NIR_FALSE) {
-         nir_instr_remove(&instr->instr);
-         progress = true;
-      } else if (src_val && src_val->u32[0] == NIR_TRUE) {
+   if (instr->intrinsic == nir_intrinsic_discard_if &&
+       nir_src_is_const(instr->src[0])) {
+      if (nir_src_as_bool(instr->src[0])) {
          /* This method of getting a nir_shader * from a nir_instr is
           * admittedly gross, but given the rarity of hitting this case I think
           * it's preferable to plumbing an otherwise unused nir_shader *
@@ -147,6 +146,10 @@ constant_fold_intrinsic_instr(nir_intrinsic_instr *instr)
          nir_intrinsic_instr *discard =
             nir_intrinsic_instr_create(shader, nir_intrinsic_discard);
          nir_instr_insert_before(&instr->instr, &discard->instr);
+         nir_instr_remove(&instr->instr);
+         progress = true;
+      } else {
+         /* We're not discarding, just delete the instruction */
          nir_instr_remove(&instr->instr);
          progress = true;
       }

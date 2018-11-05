@@ -171,7 +171,7 @@ static const struct Opt *const opts[] = {
 typedef struct Telnet Telnet;
 struct Telnet {
     Socket *s;
-    int closed_on_socket_error;
+    bool closed_on_socket_error;
 
     Seat *seat;
     LogContext *logctx;
@@ -180,14 +180,14 @@ struct Telnet {
 
     int opt_states[NUM_OPTS];
 
-    int echoing, editing;
-    int activated;
+    bool echoing, editing;
+    bool activated;
     int bufsize;
-    int in_synch;
+    bool in_synch;
     int sb_opt, sb_len;
     unsigned char *sb_buf;
     int sb_size;
-    int session_started;
+    bool session_started;
 
     enum {
 	TOP_LEVEL, SEENIAC, SEENWILL, SEENWONT, SEENDO, SEENDONT,
@@ -248,7 +248,8 @@ static void deactivate_option(Telnet *telnet, const struct Opt *o)
 /*
  * Generate side effects of enabling or disabling an option.
  */
-static void option_side_effects(Telnet *telnet, const struct Opt *o, int enabled)
+static void option_side_effects(
+    Telnet *telnet, const struct Opt *o, bool enabled)
 {
     if (o->option == TELOPT_ECHO && o->send == DO)
 	telnet->echoing = !enabled;
@@ -271,7 +272,7 @@ static void option_side_effects(Telnet *telnet, const struct Opt *o, int enabled
 	    telnet->opt_states[o_they_sga.index] = REQUESTED;
 	    send_opt(telnet, o_they_sga.send, o_they_sga.option);
 	}
-	telnet->activated = TRUE;
+	telnet->activated = true;
     }
 }
 
@@ -290,7 +291,7 @@ static void activate_option(Telnet *telnet, const struct Opt *o)
 	deactivate_option(telnet, o->option ==
 			  TELOPT_NEW_ENVIRON ? &o_oenv : &o_nenv);
     }
-    option_side_effects(telnet, o, 1);
+    option_side_effects(telnet, o, true);
 }
 
 static void refused_option(Telnet *telnet, const struct Opt *o)
@@ -300,7 +301,7 @@ static void refused_option(Telnet *telnet, const struct Opt *o)
 	send_opt(telnet, WILL, TELOPT_OLD_ENVIRON);
 	telnet->opt_states[o_oenv.index] = REQUESTED;
     }
-    option_side_effects(telnet, o, 0);
+    option_side_effects(telnet, o, false);
 }
 
 static void proc_rec_opt(Telnet *telnet, int cmd, int option)
@@ -336,7 +337,7 @@ static void proc_rec_opt(Telnet *telnet, int cmd, int option)
 	      case ACTIVE:
 		telnet->opt_states[(*o)->index] = INACTIVE;
 		send_opt(telnet, (*o)->nsend, option);
-		option_side_effects(telnet, *o, 0);
+		option_side_effects(telnet, *o, false);
 		break;
 	      case INACTIVE:
 	      case REALLY_INACTIVE:
@@ -412,7 +413,7 @@ static void process_subneg(Telnet *telnet)
             logeventf(telnet->logctx, "server:\tSB %s SEND",
                       telopt(telnet->sb_opt));
 	    if (telnet->sb_opt == TELOPT_OLD_ENVIRON) {
-		if (conf_get_int(telnet->conf, CONF_rfc_environ)) {
+		if (conf_get_bool(telnet->conf, CONF_rfc_environ)) {
 		    value = RFC_VALUE;
 		    var = RFC_VAR;
 		} else {
@@ -542,7 +543,7 @@ static void do_telnet_read(Telnet *telnet, char *buf, int len)
 		 * just stop hiding on the next 0xf2 and hope for the best.
 		 */
 		else if (c == DM)
-		    telnet->in_synch = 0;
+		    telnet->in_synch = false;
 #endif
 		if (c == CR && telnet->opt_states[o_they_bin.index] != ACTIVE)
 		    telnet->state = SEENCR;
@@ -562,7 +563,7 @@ static void do_telnet_read(Telnet *telnet, char *buf, int len)
 	    else if (c == SB)
 		telnet->state = SEENSB;
 	    else if (c == DM) {
-		telnet->in_synch = 0;
+		telnet->in_synch = false;
 		telnet->state = TOP_LEVEL;
 	    } else {
 		/* ignore everything else; print it if it's IAC */
@@ -633,7 +634,7 @@ static void telnet_log(Plug *plug, int type, SockAddr *addr, int port,
 }
 
 static void telnet_closing(Plug *plug, const char *error_msg, int error_code,
-			   int calling_back)
+			   bool calling_back)
 {
     Telnet *telnet = container_of(plug, Telnet, plug);
 
@@ -647,7 +648,7 @@ static void telnet_closing(Plug *plug, const char *error_msg, int error_code,
         sk_close(telnet->s);
         telnet->s = NULL;
         if (error_msg)
-            telnet->closed_on_socket_error = TRUE;
+            telnet->closed_on_socket_error = true;
 	seat_notify_remote_exit(telnet->seat);
     }
     if (error_msg) {
@@ -661,8 +662,8 @@ static void telnet_receive(Plug *plug, int urgent, char *data, int len)
 {
     Telnet *telnet = container_of(plug, Telnet, plug);
     if (urgent)
-	telnet->in_synch = TRUE;
-    telnet->session_started = TRUE;
+	telnet->in_synch = true;
+    telnet->session_started = true;
     do_telnet_read(telnet, data, len);
 }
 
@@ -690,7 +691,7 @@ static const PlugVtable Telnet_plugvt = {
 static const char *telnet_init(Seat *seat, Backend **backend_handle,
                                LogContext *logctx, Conf *conf,
                                const char *host, int port,
-			       char **realhost, int nodelay, int keepalive)
+			       char **realhost, bool nodelay, bool keepalive)
 {
     SockAddr *addr;
     const char *err;
@@ -703,10 +704,10 @@ static const char *telnet_init(Seat *seat, Backend **backend_handle,
     telnet->backend.vt = &telnet_backend;
     telnet->conf = conf_copy(conf);
     telnet->s = NULL;
-    telnet->closed_on_socket_error = FALSE;
-    telnet->echoing = TRUE;
-    telnet->editing = TRUE;
-    telnet->activated = FALSE;
+    telnet->closed_on_socket_error = false;
+    telnet->echoing = true;
+    telnet->editing = true;
+    telnet->activated = false;
     telnet->sb_buf = NULL;
     telnet->sb_size = 0;
     telnet->seat = seat;
@@ -716,7 +717,7 @@ static const char *telnet_init(Seat *seat, Backend **backend_handle,
     telnet->state = TOP_LEVEL;
     telnet->ldisc = NULL;
     telnet->pinger = NULL;
-    telnet->session_started = TRUE;
+    telnet->session_started = true;
     *backend_handle = &telnet->backend;
 
     /*
@@ -736,8 +737,8 @@ static const char *telnet_init(Seat *seat, Backend **backend_handle,
     /*
      * Open socket.
      */
-    telnet->s = new_connection(addr, *realhost, port, 0, 1, nodelay, keepalive,
-                               &telnet->plug, telnet->conf);
+    telnet->s = new_connection(addr, *realhost, port, false, true, nodelay,
+                               keepalive, &telnet->plug, telnet->conf);
     if ((err = sk_socket_error(telnet->s)) != NULL)
 	return err;
 
@@ -746,7 +747,7 @@ static const char *telnet_init(Seat *seat, Backend **backend_handle,
     /*
      * Initialise option states.
      */
-    if (conf_get_int(telnet->conf, CONF_passive_telnet)) {
+    if (conf_get_bool(telnet->conf, CONF_passive_telnet)) {
 	const struct Opt *const *o;
 
 	for (o = opts; *o; o++)
@@ -759,13 +760,13 @@ static const char *telnet_init(Seat *seat, Backend **backend_handle,
 	    if (telnet->opt_states[(*o)->index] == REQUESTED)
 		send_opt(telnet, (*o)->send, (*o)->option);
 	}
-	telnet->activated = TRUE;
+	telnet->activated = true;
     }
 
     /*
      * Set up SYNCH state.
      */
-    telnet->in_synch = FALSE;
+    telnet->in_synch = false;
 
     /*
      * We can send special commands from the start.
@@ -1000,16 +1001,16 @@ static const SessionSpecial *telnet_get_specials(Backend *be)
     return specials;
 }
 
-static int telnet_connected(Backend *be)
+static bool telnet_connected(Backend *be)
 {
     Telnet *telnet = container_of(be, Telnet, backend);
     return telnet->s != NULL;
 }
 
-static int telnet_sendok(Backend *be)
+static bool telnet_sendok(Backend *be)
 {
     /* Telnet *telnet = container_of(be, Telnet, backend); */
-    return 1;
+    return true;
 }
 
 static void telnet_unthrottle(Backend *be, int backlog)
@@ -1018,14 +1019,14 @@ static void telnet_unthrottle(Backend *be, int backlog)
     sk_set_frozen(telnet->s, backlog > TELNET_MAX_BACKLOG);
 }
 
-static int telnet_ldisc(Backend *be, int option)
+static bool telnet_ldisc(Backend *be, int option)
 {
     Telnet *telnet = container_of(be, Telnet, backend);
     if (option == LD_ECHO)
 	return telnet->echoing;
     if (option == LD_EDIT)
 	return telnet->editing;
-    return FALSE;
+    return false;
 }
 
 static void telnet_provide_ldisc(Backend *be, Ldisc *ldisc)

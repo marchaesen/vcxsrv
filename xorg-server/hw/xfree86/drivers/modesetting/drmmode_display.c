@@ -3558,9 +3558,9 @@ drmmode_load_palette(ScrnInfoPtr pScrn, int numColors,
 Bool
 drmmode_setup_colormap(ScreenPtr pScreen, ScrnInfoPtr pScrn)
 {
-    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, 0,
-                   "Initializing kms color map for depth %d, %d bpc.\n",
-                   pScrn->depth, pScrn->rgbBits);
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+              "Initializing kms color map for depth %d, %d bpc.\n",
+              pScrn->depth, pScrn->rgbBits);
     if (!miCreateDefColormap(pScreen))
         return FALSE;
 

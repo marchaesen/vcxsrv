@@ -71,6 +71,7 @@ header = """/**
 #include "main/depth.h"
 #include "main/debug_output.h"
 #include "main/dlist.h"
+#include "main/draw.h"
 #include "main/drawpix.h"
 #include "main/drawtex.h"
 #include "main/rastpos.h"
@@ -131,7 +132,6 @@ header = """/**
 #include "main/formatquery.h"
 #include "main/dispatch.h"
 #include "main/vdpau.h"
-#include "vbo/vbo.h"
 
 
 /**
@@ -152,7 +152,7 @@ _mesa_initialize_exec_table(struct gl_context *ctx)
 
    assert(ctx->Version > 0);
 
-   vbo_initialize_exec_dispatch(ctx, exec);
+   _mesa_initialize_exec_dispatch(ctx, exec);
 """
 
 

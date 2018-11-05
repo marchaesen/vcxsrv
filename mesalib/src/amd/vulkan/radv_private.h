@@ -99,6 +99,9 @@ typedef uint32_t xcb_window_t;
 #define NUM_META_FS_KEYS 12
 #define RADV_MAX_DRM_DEVICES 8
 #define MAX_VIEWS        8
+#define MAX_SO_STREAMS 4
+#define MAX_SO_BUFFERS 4
+#define MAX_SO_OUTPUTS 64
 
 #define NUM_DEPTH_CLEAR_PIPELINES 3
 
@@ -840,6 +843,7 @@ enum radv_cmd_dirty_bits {
 	RADV_CMD_DIRTY_INDEX_BUFFER                      = 1 << 11,
 	RADV_CMD_DIRTY_FRAMEBUFFER                       = 1 << 12,
 	RADV_CMD_DIRTY_VERTEX_BUFFER                     = 1 << 13,
+	RADV_CMD_DIRTY_STREAMOUT_BUFFER                  = 1 << 14,
 };
 
 enum radv_cmd_flush_bits {
@@ -865,6 +869,7 @@ enum radv_cmd_flush_bits {
 	/* Pipeline query controls. */
 	RADV_CMD_FLAG_START_PIPELINE_STATS = 1 << 13,
 	RADV_CMD_FLAG_STOP_PIPELINE_STATS  = 1 << 14,
+	RADV_CMD_FLAG_VGT_STREAMOUT_SYNC   = 1 << 15,
 
 	RADV_CMD_FLUSH_AND_INV_FRAMEBUFFER = (RADV_CMD_FLAG_FLUSH_AND_INV_CB |
 					      RADV_CMD_FLAG_FLUSH_AND_INV_CB_META |
@@ -875,6 +880,29 @@ enum radv_cmd_flush_bits {
 struct radv_vertex_binding {
 	struct radv_buffer *                          buffer;
 	VkDeviceSize                                 offset;
+};
+
+struct radv_streamout_binding {
+	struct radv_buffer *buffer;
+	VkDeviceSize offset;
+	VkDeviceSize size;
+};
+
+struct radv_streamout_state {
+	/* Mask of bound streamout buffers. */
+	uint8_t enabled_mask;
+
+	/* External state that comes from the last vertex stage, it must be
+	 * set explicitely when binding a new graphics pipeline.
+	 */
+	uint16_t stride_in_dw[MAX_SO_BUFFERS];
+	uint32_t enabled_stream_buffers_mask; /* stream0 buffers0-3 in 4 LSB */
+
+	/* State of VGT_STRMOUT_BUFFER_(CONFIG|END) */
+	uint32_t hw_enabled_mask;
+
+	/* State of VGT_STRMOUT_(CONFIG|EN) */
+	bool streamout_enabled;
 };
 
 struct radv_viewport_state {
@@ -984,6 +1012,7 @@ struct radv_cmd_state {
 	const struct radv_subpass *                         subpass;
 	struct radv_dynamic_state                     dynamic;
 	struct radv_attachment_state *                attachments;
+	struct radv_streamout_state                  streamout;
 	VkRect2D                                     render_area;
 
 	/* Index buffer */
@@ -1053,6 +1082,7 @@ struct radv_cmd_buffer {
 	struct radeon_cmdbuf *cs;
 	struct radv_cmd_state state;
 	struct radv_vertex_binding                   vertex_bindings[MAX_VBS];
+	struct radv_streamout_binding                streamout_bindings[MAX_SO_BUFFERS];
 	uint32_t queue_family_index;
 
 	uint8_t push_constants[MAX_PUSH_CONSTANTS_SIZE];
@@ -1350,6 +1380,9 @@ struct radv_pipeline {
 
 	unsigned max_waves;
 	unsigned scratch_bytes_per_wave;
+
+	/* Not NULL if graphics pipeline uses streamout. */
+	struct radv_shader_variant *streamout_shader;
 };
 
 static inline bool radv_pipeline_has_gs(const struct radv_pipeline *pipeline)

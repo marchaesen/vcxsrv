@@ -78,7 +78,6 @@ LIBDRM_AMDGPU_REQUIRED=2.4.95
 LIBDRM_INTEL_REQUIRED=2.4.75
 LIBDRM_NVVIEUX_REQUIRED=2.4.66
 LIBDRM_NOUVEAU_REQUIRED=2.4.66
-LIBDRM_FREEDRENO_REQUIRED=2.4.96
 LIBDRM_ETNAVIV_REQUIRED=2.4.89
 LIBDRM_VC4_REQUIRED=2.4.89
 
@@ -125,9 +124,7 @@ AC_PROG_GREP
 AC_PROG_NM
 AM_PROG_AS
 AX_CHECK_GNU_MAKE
-AM_PATH_PYTHON([2.7],, [:])
-PYTHON2=$PYTHON
-AC_SUBST([PYTHON2])
+AM_PATH_PYTHON([2.7],, [AM_PATH_PYTHON([3.4],, [:])])
 
 AC_PROG_SED
 AC_PROG_MKDIR_P
@@ -160,7 +157,7 @@ fi
 
 AX_CHECK_PYTHON_MAKO_MODULE($PYTHON_MAKO_REQUIRED)
 
-if test "$PYTHON2" = ":"; then
+if test "$PYTHON" = ":"; then
     if test ! -f "$srcdir/src/util/format_srgb.c"; then
         AC_MSG_ERROR([Python not found - unable to generate sources])
     fi
@@ -298,6 +295,12 @@ esac
 
 AM_CONDITIONAL(HAVE_ANDROID, test "x$android" = xyes)
 
+# Toggle Werror since at some point clang started treating unknown -W
+# flags as warnings, succeeding with the build, yet issuing an annoying
+# warning.
+save_CFLAGS="$CFLAGS"
+export CFLAGS="$CFLAGS -Werror"
+
 dnl
 dnl Check compiler flags
 dnl
@@ -313,6 +316,11 @@ AX_CHECK_COMPILE_FLAG([-fno-math-errno],                       [CFLAGS="$CFLAGS 
 AX_CHECK_COMPILE_FLAG([-fno-trapping-math],                    [CFLAGS="$CFLAGS -fno-trapping-math"])
 AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],                   [VISIBILITY_CFLAGS="-fvisibility=hidden"])
 
+CFLAGS="$save_CFLAGS"
+
+# Toggle Werror since at some point clang started treating unknown -W
+# flags as warnings, succeeding with the build, yet issuing an annoying
+# warning.
 dnl
 dnl Check C++ compiler flags
 dnl
@@ -2722,7 +2730,6 @@ if test -n "$with_gallium_drivers"; then
             ;;
         xfreedreno)
             HAVE_GALLIUM_FREEDRENO=yes
-            PKG_CHECK_MODULES([FREEDRENO], [libdrm >= $LIBDRM_FREEDRENO_REQUIRED libdrm_freedreno >= $LIBDRM_FREEDRENO_REQUIRED])
             require_libdrm "freedreno"
             ;;
         xetnaviv)
@@ -3367,7 +3374,7 @@ if test "x$enable_llvm" = xyes; then
     echo "        LLVM_LDFLAGS:    $LLVM_LDFLAGS"
     echo ""
 fi
-echo "        PYTHON2:         $PYTHON2"
+echo "        PYTHON:         $PYTHON"
 
 echo ""
 echo "        Run '${MAKE-make}' to build Mesa"

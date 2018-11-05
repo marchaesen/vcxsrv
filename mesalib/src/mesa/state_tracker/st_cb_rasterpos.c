@@ -206,7 +206,6 @@ new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
    rs->prim.indexed = 0;
    rs->prim.begin = 1;
    rs->prim.end = 1;
-   rs->prim.weak = 0;
    rs->prim.start = 0;
    rs->prim.count = 1;
 

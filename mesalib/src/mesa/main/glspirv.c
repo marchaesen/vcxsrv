@@ -234,7 +234,7 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
       ralloc_asprintf(nir, "SPIRV:%s:%d",
                       _mesa_shader_stage_to_abbrev(nir->info.stage),
                       prog->Name);
-   nir_validate_shader(nir);
+   nir_validate_shader(nir, "after spirv_to_nir");
 
    nir->info.separate_shader = linked_shader->Program->info.separate_shader;
 
@@ -253,7 +253,6 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
          exec_node_remove(&func->node);
    }
    assert(exec_list_length(&nir->functions) == 1);
-   entry_point->name = ralloc_strdup(entry_point, "main");
 
    /* Split member structs.  We do this before lower_io_to_temporaries so that
     * it doesn't lower system values to temporaries by accident.

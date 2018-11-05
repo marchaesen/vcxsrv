@@ -777,6 +777,7 @@ static int radv_amdgpu_winsys_cs_submit_chained(struct radeon_winsys_ctx *_ctx,
 	amdgpu_bo_list_handle bo_list;
 	struct amdgpu_cs_request request = {0};
 	struct amdgpu_cs_ib_info ibs[2];
+	unsigned number_of_ibs = 1;
 
 	for (unsigned i = cs_count; i--;) {
 		struct radv_amdgpu_cs *cs = radv_amdgpu_cs(cs_array[i]);
@@ -800,28 +801,33 @@ static int radv_amdgpu_winsys_cs_submit_chained(struct radeon_winsys_ctx *_ctx,
 		}
 	}
 
-	r = radv_amdgpu_create_bo_list(cs0->ws, cs_array, cs_count, NULL, 0, initial_preamble_cs,
-	                               radv_bo_list, &bo_list);
+	/* Create a buffer object list. */
+	r = radv_amdgpu_create_bo_list(cs0->ws, cs_array, cs_count, NULL, 0,
+				       initial_preamble_cs, radv_bo_list,
+				       &bo_list);
 	if (r) {
 		fprintf(stderr, "amdgpu: buffer list creation failed for the "
 				"chained submission(%d)\n", r);
 		return r;
 	}
 
+	/* Configure the CS request. */
+	if (initial_preamble_cs) {
+		ibs[0] = radv_amdgpu_cs(initial_preamble_cs)->ib;
+		ibs[1] = cs0->ib;
+		number_of_ibs++;
+	} else {
+		ibs[0] = cs0->ib;
+	}
+
 	request.ip_type = cs0->hw_ip;
 	request.ring = queue_idx;
-	request.number_of_ibs = 1;
-	request.ibs = &cs0->ib;
+	request.number_of_ibs = number_of_ibs;
+	request.ibs = ibs;
 	request.resources = bo_list;
 	request.fence_info = radv_set_cs_fence(ctx, cs0->hw_ip, queue_idx);
 
-	if (initial_preamble_cs) {
-		request.ibs = ibs;
-		request.number_of_ibs = 2;
-		ibs[1] = cs0->ib;
-		ibs[0] = ((struct radv_amdgpu_cs*)initial_preamble_cs)->ib;
-	}
-
+	/* Submit the CS. */
 	r = radv_amdgpu_cs_submit(ctx, &request, sem_info);
 	if (r) {
 		if (r == -ENOMEM)
@@ -834,12 +840,15 @@ static int radv_amdgpu_winsys_cs_submit_chained(struct radeon_winsys_ctx *_ctx,
 	if (bo_list)
 		amdgpu_bo_list_destroy(bo_list);
 
+	if (r)
+		return r;
+
 	if (fence)
 		radv_amdgpu_request_to_fence(ctx, fence, &request);
 
 	radv_assign_last_submit(ctx, &request);
 
-	return r;
+	return 0;
 }
 
 static int radv_amdgpu_winsys_cs_submit_fallback(struct radeon_winsys_ctx *_ctx,
@@ -1088,9 +1097,10 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 
 		for (unsigned j = 0; j < number_of_ibs; j++) {
 			ws->buffer_destroy(bos[j]);
-			if (r)
-				return r;
 		}
+
+		if (r)
+			return r;
 
 		i += cnt;
 	}

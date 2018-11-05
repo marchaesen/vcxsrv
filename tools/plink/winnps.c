@@ -15,9 +15,6 @@
 
 #include "winsecur.h"
 
-Socket *make_handle_socket(HANDLE send_H, HANDLE recv_H, HANDLE stderr_H,
-                           Plug *plug, int overlapped);
-
 typedef struct NamedPipeServerSocket {
     /* Parameters for (repeated) creation of named pipe objects */
     PSECURITY_DESCRIPTOR psd;
@@ -73,14 +70,14 @@ static SocketPeerInfo *sk_namedpipeserver_peer_info(Socket *s)
     return NULL;
 }
 
-static int create_named_pipe(NamedPipeServerSocket *ps, int first_instance)
+static bool create_named_pipe(NamedPipeServerSocket *ps, bool first_instance)
 {
     SECURITY_ATTRIBUTES sa;
 
     memset(&sa, 0, sizeof(sa));
     sa.nLength = sizeof(sa);
     sa.lpSecurityDescriptor = ps->psd;
-    sa.bInheritHandle = FALSE;
+    sa.bInheritHandle = false;
 
     ps->pipehandle = CreateNamedPipe
         (/* lpName */
@@ -117,17 +114,11 @@ static Socket *named_pipe_accept(accept_ctx_t ctx, Plug *plug)
 {
     HANDLE conn = (HANDLE)ctx.p;
 
-    return make_handle_socket(conn, conn, NULL, plug, TRUE);
+    return make_handle_socket(conn, conn, NULL, plug, true);
 }
 
-/*
- * Dummy SockAddr *type which just holds a named pipe address. Only
- * used for calling plug_log from named_pipe_accept_loop() here.
- */
-SockAddr *sk_namedpipe_addr(const char *pipename);
-
 static void named_pipe_accept_loop(NamedPipeServerSocket *ps,
-                                   int got_one_already)
+                                   bool got_one_already)
 {
     while (1) {
         int error;
@@ -136,7 +127,7 @@ static void named_pipe_accept_loop(NamedPipeServerSocket *ps,
         if (got_one_already) {
             /* If we were called with a connection already waiting,
              * skip this step. */
-            got_one_already = FALSE;
+            got_one_already = false;
             error = 0;
         } else {
             /*
@@ -173,7 +164,7 @@ static void named_pipe_accept_loop(NamedPipeServerSocket *ps,
                 CloseHandle(conn);
             }
 
-            if (!create_named_pipe(ps, FALSE)) {
+            if (!create_named_pipe(ps, false)) {
                 error = GetLastError();
             } else {
                 /*
@@ -196,7 +187,7 @@ static void named_pipe_accept_loop(NamedPipeServerSocket *ps,
 static void named_pipe_connect_callback(void *vps)
 {
     NamedPipeServerSocket *ps = (NamedPipeServerSocket *)vps;
-    named_pipe_accept_loop(ps, TRUE);
+    named_pipe_accept_loop(ps, true);
 }
 
 /*
@@ -234,18 +225,18 @@ Socket *new_named_pipe_listener(const char *pipename, Plug *plug)
         goto cleanup;
     }
 
-    if (!create_named_pipe(ret, TRUE)) {
+    if (!create_named_pipe(ret, true)) {
         ret->error = dupprintf("unable to create named pipe '%s': %s",
                                pipename, win_strerror(GetLastError()));
         goto cleanup;
     }
 
     memset(&ret->connect_ovl, 0, sizeof(ret->connect_ovl));
-    ret->connect_ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    ret->connect_ovl.hEvent = CreateEvent(NULL, true, false, NULL);
     ret->callback_handle =
         handle_add_foreign_event(ret->connect_ovl.hEvent,
                                  named_pipe_connect_callback, ret);
-    named_pipe_accept_loop(ret, FALSE);
+    named_pipe_accept_loop(ret, false);
 
   cleanup:
     return &ret->sock;

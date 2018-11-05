@@ -47,6 +47,8 @@ void vbo_save_init( struct gl_context *ctx )
    for (gl_vertex_processing_mode vpm = VP_MODE_FF; vpm < VP_MODE_MAX; ++vpm)
       save->VAO[vpm] = NULL;
 
+   save->no_current_update = false;
+
    ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
 }
 
@@ -70,19 +72,4 @@ void vbo_save_destroy( struct gl_context *ctx )
       free(save->vertex_store);
       save->vertex_store = NULL;
    }
-}
-
-
-
-
-/* Note that this can occur during the playback of a display list:
- */
-void vbo_save_fallback( struct gl_context *ctx, GLboolean fallback )
-{
-   struct vbo_save_context *save = &vbo_context(ctx)->save;
-
-   if (fallback)
-      save->replay_flags |= VBO_SAVE_FALLBACK;
-   else
-      save->replay_flags &= ~VBO_SAVE_FALLBACK;
 }

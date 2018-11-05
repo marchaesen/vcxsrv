@@ -81,7 +81,8 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
                   "OpGroupNonUniformElect must return a Bool");
       nir_intrinsic_instr *elect =
          nir_intrinsic_instr_create(b->nb.shader, nir_intrinsic_elect);
-      nir_ssa_dest_init(&elect->instr, &elect->dest, 1, 32, NULL);
+      nir_ssa_dest_init_for_type(&elect->instr, &elect->dest,
+                                 val->type->type, NULL);
       nir_builder_instr_insert(&b->nb, &elect->instr);
       val->ssa->def = &elect->dest.ssa;
       break;
@@ -112,7 +113,8 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       intrin->src[0] = nir_src_for_ssa(vtn_ssa_value(b, w[4])->def);
       intrin->src[1] = nir_src_for_ssa(nir_load_subgroup_invocation(&b->nb));
 
-      nir_ssa_dest_init(&intrin->instr, &intrin->dest, 1, 32, NULL);
+      nir_ssa_dest_init_for_type(&intrin->instr, &intrin->dest,
+                                 val->type->type, NULL);
       nir_builder_instr_insert(&b->nb, &intrin->instr);
 
       val->ssa->def = &intrin->dest.ssa;
@@ -166,7 +168,8 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       if (src1)
          intrin->src[1] = nir_src_for_ssa(src1);
 
-      nir_ssa_dest_init(&intrin->instr, &intrin->dest, 1, 32, NULL);
+      nir_ssa_dest_init_for_type(&intrin->instr, &intrin->dest,
+                                 val->type->type, NULL);
       nir_builder_instr_insert(&b->nb, &intrin->instr);
 
       val->ssa->def = &intrin->dest.ssa;
@@ -225,7 +228,8 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
          nir_intrinsic_instr_create(b->nb.shader, op);
       intrin->num_components = src0->num_components;
       intrin->src[0] = nir_src_for_ssa(src0);
-      nir_ssa_dest_init(&intrin->instr, &intrin->dest, 1, 32, NULL);
+      nir_ssa_dest_init_for_type(&intrin->instr, &intrin->dest,
+                                 val->type->type, NULL);
       nir_builder_instr_insert(&b->nb, &intrin->instr);
 
       val->ssa->def = &intrin->dest.ssa;

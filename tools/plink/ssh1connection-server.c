@@ -13,12 +13,13 @@
 #include "ssh1connection.h"
 #include "sshserver.h"
 
-static int ssh1sesschan_write(SshChannel *c, int is_stderr, const void *, int);
+static int ssh1sesschan_write(SshChannel *c, bool is_stderr,
+                              const void *, int);
 static void ssh1sesschan_write_eof(SshChannel *c);
 static void ssh1sesschan_initiate_close(SshChannel *c, const char *err);
 static void ssh1sesschan_send_exit_status(SshChannel *c, int status);
 static void ssh1sesschan_send_exit_signal(
-    SshChannel *c, ptrlen signame, int core_dumped, ptrlen msg);
+    SshChannel *c, ptrlen signame, bool core_dumped, ptrlen msg);
 
 static const struct SshChannelVtable ssh1sesschan_vtable = {
     ssh1sesschan_write,
@@ -54,7 +55,7 @@ void ssh1_connection_direction_specific_setup(
     }
 }
 
-int ssh1_handle_direction_specific_packet(
+bool ssh1_handle_direction_specific_packet(
     struct ssh1_connection_state *s, PktIn *pktin)
 {
     PacketProtocolLayer *ppl = &s->ppl; /* for ppl_logevent */
@@ -63,7 +64,8 @@ int ssh1_handle_direction_specific_packet(
     unsigned remid;
     ptrlen host, cmd, data;
     char *host_str, *err;
-    int port, listenport, success;
+    int port, listenport;
+    bool success;
 
     switch (pktin->type) {
       case SSH1_CMSG_EXEC_SHELL:
@@ -72,8 +74,8 @@ int ssh1_handle_direction_specific_packet(
 
         ppl_logevent(("Client requested a shell"));
         chan_run_shell(s->mainchan_chan);
-        s->finished_setup = TRUE;
-        return TRUE;
+        s->finished_setup = true;
+        return true;
 
       case SSH1_CMSG_EXEC_CMD:
         if (s->finished_setup)
@@ -82,8 +84,8 @@ int ssh1_handle_direction_specific_packet(
         cmd = get_string(pktin);
         ppl_logevent(("Client sent command '%.*s'", PTRLEN_PRINTF(cmd)));
         chan_run_command(s->mainchan_chan, cmd);
-        s->finished_setup = TRUE;
-        return TRUE;
+        s->finished_setup = true;
+        return true;
 
       case SSH1_CMSG_REQUEST_COMPRESSION:
         if (s->compressing) {
@@ -99,10 +101,10 @@ int ssh1_handle_direction_specific_packet(
             /* And now ensure that the _next_ packet will be the first
              * compressed one. */
             ssh1_bpp_start_compression(s->ppl.bpp);
-            s->compressing = TRUE;
+            s->compressing = true;
         }
 
-        return TRUE;
+        return true;
 
       case SSH1_CMSG_REQUEST_PTY:
         if (s->finished_setup)
@@ -118,21 +120,21 @@ int ssh1_handle_direction_specific_packet(
 
             if (get_err(pktin)) {
                 ppl_logevent(("Unable to decode pty request packet"));
-                success = FALSE;
+                success = false;
             } else if (!chan_allocate_pty(
                            s->mainchan_chan, termtype, width, height,
                            pixwidth, pixheight, modes)) {
                 ppl_logevent(("Unable to allocate a pty"));
-                success = FALSE;
+                success = false;
             } else {
-                success = TRUE;
+                success = true;
             }
         }
 
         pktout = ssh_bpp_new_pktout(
             s->ppl.bpp, (success ? SSH1_SMSG_SUCCESS : SSH1_SMSG_FAILURE));
         pq_push(s->ppl.out_pq, pktout);
-        return TRUE;
+        return true;
 
       case SSH1_CMSG_PORT_FORWARD_REQUEST:
         if (s->finished_setup)
@@ -153,7 +155,7 @@ int ssh1_handle_direction_specific_packet(
         pktout = ssh_bpp_new_pktout(
             s->ppl.bpp, (success ? SSH1_SMSG_SUCCESS : SSH1_SMSG_FAILURE));
         pq_push(s->ppl.out_pq, pktout);
-        return TRUE;
+        return true;
 
       case SSH1_CMSG_X11_REQUEST_FORWARDING:
         if (s->finished_setup)
@@ -167,13 +169,13 @@ int ssh1_handle_direction_specific_packet(
                 screen_number = get_uint32(pktin);
 
             success = chan_enable_x11_forwarding(
-                s->mainchan_chan, FALSE, authproto, authdata, screen_number);
+                s->mainchan_chan, false, authproto, authdata, screen_number);
         }
 
         pktout = ssh_bpp_new_pktout(
             s->ppl.bpp, (success ? SSH1_SMSG_SUCCESS : SSH1_SMSG_FAILURE));
         pq_push(s->ppl.out_pq, pktout);
-        return TRUE;
+        return true;
 
       case SSH1_CMSG_AGENT_REQUEST_FORWARDING:
         if (s->finished_setup)
@@ -184,19 +186,19 @@ int ssh1_handle_direction_specific_packet(
         pktout = ssh_bpp_new_pktout(
             s->ppl.bpp, (success ? SSH1_SMSG_SUCCESS : SSH1_SMSG_FAILURE));
         pq_push(s->ppl.out_pq, pktout);
-        return TRUE;
+        return true;
 
       case SSH1_CMSG_STDIN_DATA:
         data = get_string(pktin);
-        chan_send(s->mainchan_chan, FALSE, data.ptr, data.len);
-        return TRUE;
+        chan_send(s->mainchan_chan, false, data.ptr, data.len);
+        return true;
 
       case SSH1_CMSG_EOF:
         chan_send_eof(s->mainchan_chan);
-        return TRUE;
+        return true;
 
       case SSH1_CMSG_WINDOW_SIZE:
-        return TRUE;
+        return true;
 
       case SSH1_MSG_PORT_OPEN:
         remid = get_uint32(pktin);
@@ -226,7 +228,7 @@ int ssh1_handle_direction_specific_packet(
         } else {
             ssh1_channel_init(c);
             c->remoteid = remid;
-            c->halfopen = FALSE;
+            c->halfopen = false;
             pktout = ssh_bpp_new_pktout(
                 s->ppl.bpp, SSH1_MSG_CHANNEL_OPEN_CONFIRMATION);
             put_uint32(pktout, c->remoteid);
@@ -235,10 +237,10 @@ int ssh1_handle_direction_specific_packet(
             ppl_logevent(("Forwarded port opened successfully"));
         }
 
-        return TRUE;
+        return true;
 
       default:
-        return FALSE;
+        return false;
     }
 
   unexpected_setup_packet:
@@ -246,12 +248,12 @@ int ssh1_handle_direction_specific_packet(
                     "setup phase, type %d (%s)", pktin->type,
                     ssh1_pkt_type(pktin->type));
     /* FIXME: ensure caller copes with us just having freed the whole layer */
-    return TRUE;
+    return true;
 }
 
 SshChannel *ssh1_session_open(ConnectionLayer *cl, Channel *chan)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
 struct ssh_rportfwd *ssh1_rportfwd_alloc(
@@ -260,11 +262,11 @@ struct ssh_rportfwd *ssh1_rportfwd_alloc(
     int addressfamily, const char *log_description, PortFwdRecord *pfr,
     ssh_sharing_connstate *share_ctx)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
     return NULL;
 }
 
-static int ssh1sesschan_write(SshChannel *sc, int is_stderr,
+static int ssh1sesschan_write(SshChannel *sc, bool is_stderr,
                               const void *data, int len)
 {
     struct ssh1_connection_state *s =
@@ -303,7 +305,7 @@ static void ssh1sesschan_send_exit_status(SshChannel *sc, int status)
 }
 
 static void ssh1sesschan_send_exit_signal(
-    SshChannel *sc, ptrlen signame, int core_dumped, ptrlen msg)
+    SshChannel *sc, ptrlen signame, bool core_dumped, ptrlen msg)
 {
     /* SSH-1 has no separate representation for signals */
     ssh1sesschan_send_exit_status(sc, 128);
@@ -320,7 +322,7 @@ SshChannel *ssh1_serverside_x11_open(
 
     c->connlayer = s;
     ssh1_channel_init(c);
-    c->halfopen = TRUE;
+    c->halfopen = true;
     c->chan = chan;
 
     ppl_logevent(("Forwarding X11 connection to client"));
@@ -342,7 +344,7 @@ SshChannel *ssh1_serverside_agent_open(ConnectionLayer *cl, Channel *chan)
 
     c->connlayer = s;
     ssh1_channel_init(c);
-    c->halfopen = TRUE;
+    c->halfopen = true;
     c->chan = chan;
 
     ppl_logevent(("Forwarding agent connection to client"));

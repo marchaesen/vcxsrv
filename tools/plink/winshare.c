@@ -115,13 +115,10 @@ static char *make_name(const char *prefix, const char *name)
     return retname;
 }
 
-Socket *new_named_pipe_client(const char *pipename, Plug *plug);
-Socket *new_named_pipe_listener(const char *pipename, Plug *plug);
-
 int platform_ssh_share(const char *pi_name, Conf *conf,
                        Plug *downplug, Plug *upplug, Socket **sock,
                        char **logtext, char **ds_err, char **us_err,
-                       int can_upstream, int can_downstream)
+                       bool can_upstream, bool can_downstream)
 {
     char *name, *mutexname, *pipename;
     HANDLE mutex;
@@ -161,9 +158,9 @@ int platform_ssh_share(const char *pi_name, Conf *conf,
         memset(&sa, 0, sizeof(sa));
         sa.nLength = sizeof(sa);
         sa.lpSecurityDescriptor = psd;
-        sa.bInheritHandle = FALSE;
+        sa.bInheritHandle = false;
 
-        mutex = CreateMutex(&sa, FALSE, mutexname);
+        mutex = CreateMutex(&sa, false, mutexname);
 
         if (!mutex) {
             *logtext = dupprintf("CreateMutex(\"%s\") failed: %s",

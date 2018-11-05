@@ -889,6 +889,10 @@ void st_init_extensions(struct pipe_screen *screen,
 	  PIPE_FORMAT_R8G8B8A8_SRGB},
         GL_TRUE }, /* at least one format must be supported */
 
+      { { o(EXT_texture_sRGB_R8) },
+        { PIPE_FORMAT_R8_SRGB },
+        GL_TRUE },
+
       { { o(EXT_texture_type_2_10_10_10_REV) },
         { PIPE_FORMAT_R10G10B10A2_UNORM,
           PIPE_FORMAT_B10G10R10A2_UNORM },

@@ -66,6 +66,6 @@ common_libamd_common_la_LIBADD = $(LIBELF_LIBS)
 
 common/sid_tables.h: $(srcdir)/common/sid_tables.py $(srcdir)/common/sid.h $(srcdir)/common/gfx9d.h
 	$(AM_V_at)$(MKDIR_P) $(@D)
-	$(AM_V_GEN) $(PYTHON2) $(srcdir)/common/sid_tables.py $(srcdir)/common/sid.h $(srcdir)/common/gfx9d.h > $@
+	$(AM_V_GEN) $(PYTHON) $(srcdir)/common/sid_tables.py $(srcdir)/common/sid.h $(srcdir)/common/gfx9d.h > $@
 
 BUILT_SOURCES = $(AMD_GENERATED_FILES)

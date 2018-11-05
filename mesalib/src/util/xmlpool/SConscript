@@ -8,7 +8,7 @@ xmlpool_options, = env.CodeGenerate(
     target = 'options.h',
     script = 'gen_xmlpool.py',
     source = ['t_options.h'],
-    command = python_cmd + ' $SCRIPT $SOURCE ' + LOCALEDIR + ' > $TARGET'
+    command = python_cmd + ' $SCRIPT --template $SOURCE --output $TARGET --localedir ' + LOCALEDIR
 )
 
 Export('xmlpool_options')

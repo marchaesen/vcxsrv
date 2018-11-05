@@ -21,6 +21,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef ST_SHADER_CACHE_H
+#define ST_SHADER_CACHE_H
+
 #include "st_context.h"
 #include "compiler/blob.h"
 #include "main/mtypes.h"
@@ -72,4 +75,6 @@ st_store_ir_in_disk_cache(struct st_context *st, struct gl_program *prog,
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

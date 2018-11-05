@@ -97,6 +97,7 @@ enum radeon_family {
     CHIP_VEGA12,
     CHIP_VEGA20,
     CHIP_RAVEN,
+    CHIP_RAVEN2,
     CHIP_LAST,
 };
 

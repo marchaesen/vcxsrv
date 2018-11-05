@@ -4264,6 +4264,7 @@ struct gl_extensions
    GLboolean EXT_texture_shared_exponent;
    GLboolean EXT_texture_snorm;
    GLboolean EXT_texture_sRGB;
+   GLboolean EXT_texture_sRGB_R8;
    GLboolean EXT_texture_sRGB_decode;
    GLboolean EXT_texture_swizzle;
    GLboolean EXT_texture_type_2_10_10_10_REV;

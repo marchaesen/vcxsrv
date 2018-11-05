@@ -151,6 +151,10 @@ static void addrlib_family_rev_id(enum radeon_family family,
 		*addrlib_family = FAMILY_RV;
 		*addrlib_revid = get_first(AMDGPU_RAVEN_RANGE);
 		break;
+	case CHIP_RAVEN2:
+		*addrlib_family = FAMILY_RV;
+		*addrlib_revid = get_first(AMDGPU_RAVEN2_RANGE);
+		break;
 	default:
 		fprintf(stderr, "amdgpu: Unknown family.\n");
 	}

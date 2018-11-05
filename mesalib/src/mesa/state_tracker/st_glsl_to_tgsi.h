@@ -22,6 +22,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef ST_GLSL_TO_TGSI_H
+#define ST_GLSL_TO_TGSI_H
+
 #include "pipe/p_defines.h"
 #include "pipe/p_shader_tokens.h"
 #include "main/mtypes.h"
@@ -58,12 +61,7 @@ void free_glsl_to_tgsi_visitor(struct glsl_to_tgsi_visitor *v);
 GLboolean st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog);
 
 void
-st_translate_stream_output_info(struct glsl_to_tgsi_visitor *glsl_to_tgsi,
-                                const ubyte outputMapping[],
-                                struct pipe_stream_output_info *so);
-
-void
-st_translate_stream_output_info2(struct gl_transform_feedback_info *info,
+st_translate_stream_output_info(struct gl_transform_feedback_info *info,
                                 const ubyte outputMapping[],
                                 struct pipe_stream_output_info *so);
 
@@ -72,4 +70,6 @@ _mesa_sysval_to_semantic(unsigned sysval);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

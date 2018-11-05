@@ -32,6 +32,8 @@
 
 #define NIR_SEARCH_MAX_VARIABLES 16
 
+struct nir_builder;
+
 typedef enum {
    nir_search_value_expression,
    nir_search_value_variable,
@@ -123,8 +125,9 @@ NIR_DEFINE_CAST(nir_search_value_as_expression, nir_search_value,
                 nir_search_expression, value,
                 type, nir_search_value_expression)
 
-nir_alu_instr *
-nir_replace_instr(nir_alu_instr *instr, const nir_search_expression *search,
-                  const nir_search_value *replace, void *mem_ctx);
+nir_ssa_def *
+nir_replace_instr(struct nir_builder *b, nir_alu_instr *instr,
+                  const nir_search_expression *search,
+                  const nir_search_value *replace);
 
 #endif /* _NIR_SEARCH_ */

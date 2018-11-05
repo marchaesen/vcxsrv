@@ -13,11 +13,11 @@
 typedef struct Raw Raw;
 struct Raw {
     Socket *s;
-    int closed_on_socket_error;
+    bool closed_on_socket_error;
     int bufsize;
     Seat *seat;
     LogContext *logctx;
-    int sent_console_eof, sent_socket_eof, session_started;
+    bool sent_console_eof, sent_socket_eof, session_started;
 
     Conf *conf;
 
@@ -57,7 +57,7 @@ static void raw_check_close(Raw *raw)
 }
 
 static void raw_closing(Plug *plug, const char *error_msg, int error_code,
-			int calling_back)
+			bool calling_back)
 {
     Raw *raw = container_of(plug, Raw, plug);
 
@@ -66,7 +66,7 @@ static void raw_closing(Plug *plug, const char *error_msg, int error_code,
         if (raw->s) {
             sk_close(raw->s);
             raw->s = NULL;
-            raw->closed_on_socket_error = TRUE;
+            raw->closed_on_socket_error = true;
             seat_notify_remote_exit(raw->seat);
         }
         logevent(raw->logctx, error_msg);
@@ -81,10 +81,10 @@ static void raw_closing(Plug *plug, const char *error_msg, int error_code,
             if (!raw->sent_socket_eof) {
                 if (raw->s)
                     sk_write_eof(raw->s);
-                raw->sent_socket_eof= TRUE;
+                raw->sent_socket_eof= true;
             }
         }
-        raw->sent_console_eof = TRUE;
+        raw->sent_console_eof = true;
         raw_check_close(raw);
     }
 }
@@ -95,7 +95,7 @@ static void raw_receive(Plug *plug, int urgent, char *data, int len)
     c_write(raw, data, len);
     /* We count 'session start', for proxy logging purposes, as being
      * when data is received from the network and printed. */
-    raw->session_started = TRUE;
+    raw->session_started = true;
 }
 
 static void raw_sent(Plug *plug, int bufsize)
@@ -122,7 +122,7 @@ static const PlugVtable Raw_plugvt = {
 static const char *raw_init(Seat *seat, Backend **backend_handle,
                             LogContext *logctx, Conf *conf,
 			    const char *host, int port, char **realhost,
-                            int nodelay, int keepalive)
+                            bool nodelay, bool keepalive)
 {
     SockAddr *addr;
     const char *err;
@@ -134,11 +134,11 @@ static const char *raw_init(Seat *seat, Backend **backend_handle,
     raw->plug.vt = &Raw_plugvt;
     raw->backend.vt = &raw_backend;
     raw->s = NULL;
-    raw->closed_on_socket_error = FALSE;
+    raw->closed_on_socket_error = false;
     *backend_handle = &raw->backend;
-    raw->sent_console_eof = raw->sent_socket_eof = FALSE;
+    raw->sent_console_eof = raw->sent_socket_eof = false;
     raw->bufsize = 0;
-    raw->session_started = FALSE;
+    raw->session_started = false;
     raw->conf = conf_copy(conf);
 
     raw->seat = seat;
@@ -161,8 +161,8 @@ static const char *raw_init(Seat *seat, Backend **backend_handle,
     /*
      * Open socket.
      */
-    raw->s = new_connection(addr, *realhost, port, 0, 1, nodelay, keepalive,
-			    &raw->plug, conf);
+    raw->s = new_connection(addr, *realhost, port, false, true, nodelay,
+                            keepalive, &raw->plug, conf);
     if ((err = sk_socket_error(raw->s)) != NULL)
 	return err;
 
@@ -239,7 +239,7 @@ static void raw_special(Backend *be, SessionSpecialCode code, int arg)
     Raw *raw = container_of(be, Raw, backend);
     if (code == SS_EOF && raw->s) {
         sk_write_eof(raw->s);
-        raw->sent_socket_eof= TRUE;
+        raw->sent_socket_eof= true;
         raw_check_close(raw);
     }
 
@@ -255,15 +255,15 @@ static const SessionSpecial *raw_get_specials(Backend *be)
     return NULL;
 }
 
-static int raw_connected(Backend *be)
+static bool raw_connected(Backend *be)
 {
     Raw *raw = container_of(be, Raw, backend);
     return raw->s != NULL;
 }
 
-static int raw_sendok(Backend *be)
+static bool raw_sendok(Backend *be)
 {
-    return 1;
+    return true;
 }
 
 static void raw_unthrottle(Backend *be, int backlog)
@@ -272,11 +272,11 @@ static void raw_unthrottle(Backend *be, int backlog)
     sk_set_frozen(raw->s, backlog > RAW_MAX_BACKLOG);
 }
 
-static int raw_ldisc(Backend *be, int option)
+static bool raw_ldisc(Backend *be, int option)
 {
     if (option == LD_EDIT || option == LD_ECHO)
-	return 1;
-    return 0;
+	return true;
+    return false;
 }
 
 static void raw_provide_ldisc(Backend *be, Ldisc *ldisc)

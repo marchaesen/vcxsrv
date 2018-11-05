@@ -135,7 +135,7 @@ bool
 wsi_device_matches_drm_fd(const struct wsi_device *wsi, int drm_fd)
 {
    drmDevicePtr fd_device;
-   int ret = drmGetDevice(drm_fd, &fd_device);
+   int ret = drmGetDevice2(drm_fd, 0, &fd_device);
    if (ret)
       return false;
 

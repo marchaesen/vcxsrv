@@ -375,7 +375,6 @@ visual_has_alpha(xcb_visualtype_t *visual, unsigned depth)
 VkBool32 wsi_get_physical_device_xcb_presentation_support(
     struct wsi_device *wsi_device,
     uint32_t                                    queueFamilyIndex,
-    bool can_handle_different_gpu,
     xcb_connection_t*                           connection,
     xcb_visualid_t                              visual_id)
 {
@@ -387,10 +386,6 @@ VkBool32 wsi_get_physical_device_xcb_presentation_support(
 
    if (!wsi_x11_check_for_dri3(wsi_conn))
       return false;
-
-   if (!can_handle_different_gpu)
-      if (!wsi_x11_check_dri3_compatible(wsi_device, connection))
-         return false;
 
    unsigned visual_depth;
    if (!connection_get_visualtype(connection, visual_id, &visual_depth))

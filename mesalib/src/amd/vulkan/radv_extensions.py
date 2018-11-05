@@ -109,6 +109,7 @@ EXTENSIONS = [
     Extension('VK_EXT_sampler_filter_minmax',             1, 'device->rad_info.chip_class >= CIK'),
     Extension('VK_EXT_shader_viewport_index_layer',       1, True),
     Extension('VK_EXT_shader_stencil_export',             1, True),
+    Extension('VK_EXT_transform_feedback',                1, True),
     Extension('VK_EXT_vertex_attribute_divisor',          3, True),
     Extension('VK_AMD_draw_indirect_count',               1, True),
     Extension('VK_AMD_gcn_shader',                        1, True),

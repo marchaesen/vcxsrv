@@ -79,7 +79,7 @@ ChanopenResult ssh2_connection_parse_channel_open(
     }
 }
 
-int ssh2_connection_parse_global_request(
+bool ssh2_connection_parse_global_request(
     struct ssh2_connection_state *s, ptrlen type, PktIn *pktin)
 {
     if (ptrlen_eq_string(type, "tcpip-forward")) {
@@ -88,19 +88,19 @@ int ssh2_connection_parse_global_request(
         /* In SSH-2, the host/port we listen on are the same host/port
          * we want reported back to us when a connection comes in,
          * because that's what we tell the client */
-        int toret = portfwdmgr_listen(
+        bool toret = portfwdmgr_listen(
             s->portfwdmgr, host, port, host, port, s->conf);
         sfree(host);
         return toret;
     } else if (ptrlen_eq_string(type, "cancel-tcpip-forward")) {
         char *host = mkstr(get_string(pktin));
         unsigned port = get_uint32(pktin);
-        int toret = portfwdmgr_unlisten(s->portfwdmgr, host, port);
+        bool toret = portfwdmgr_unlisten(s->portfwdmgr, host, port);
         sfree(host);
         return toret;
     } else {
         /* Unrecognised request. */
-        return FALSE;
+        return false;
     }
 }
 
@@ -142,17 +142,17 @@ struct ssh_rportfwd *ssh2_rportfwd_alloc(
     int addressfamily, const char *log_description, PortFwdRecord *pfr,
     ssh_sharing_connstate *share_ctx)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
 void ssh2_rportfwd_remove(ConnectionLayer *cl, struct ssh_rportfwd *rpf)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
 SshChannel *ssh2_session_open(ConnectionLayer *cl, Channel *chan)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
 SshChannel *ssh2_serverside_x11_open(
@@ -166,7 +166,7 @@ SshChannel *ssh2_serverside_x11_open(
 
     c->connlayer = s;
     ssh2_channel_init(c);
-    c->halfopen = TRUE;
+    c->halfopen = true;
     c->chan = chan;
 
     ppl_logevent(("Forwarding X11 channel to client"));
@@ -189,7 +189,7 @@ SshChannel *ssh2_serverside_agent_open(ConnectionLayer *cl, Channel *chan)
 
     c->connlayer = s;
     ssh2_channel_init(c);
-    c->halfopen = TRUE;
+    c->halfopen = true;
     c->chan = chan;
 
     ppl_logevent(("Forwarding SSH agent to client"));
@@ -200,21 +200,21 @@ SshChannel *ssh2_serverside_agent_open(ConnectionLayer *cl, Channel *chan)
     return &c->sc;
 }
 
-void ssh2channel_start_shell(SshChannel *sc, int want_reply)
+void ssh2channel_start_shell(SshChannel *sc, bool want_reply)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
 void ssh2channel_start_command(
-    SshChannel *sc, int want_reply, const char *command)
+    SshChannel *sc, bool want_reply, const char *command)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
-int ssh2channel_start_subsystem(
-    SshChannel *sc, int want_reply, const char *subsystem)
+bool ssh2channel_start_subsystem(
+    SshChannel *sc, bool want_reply, const char *subsystem)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
 void ssh2channel_send_exit_status(SshChannel *sc, int status)
@@ -229,7 +229,7 @@ void ssh2channel_send_exit_status(SshChannel *sc, int status)
 }
 
 void ssh2channel_send_exit_signal(
-    SshChannel *sc, ptrlen signame, int core_dumped, ptrlen msg)
+    SshChannel *sc, ptrlen signame, bool core_dumped, ptrlen msg)
 {
     struct ssh2_channel *c = container_of(sc, struct ssh2_channel, sc);
     struct ssh2_connection_state *s = c->connlayer;
@@ -244,7 +244,7 @@ void ssh2channel_send_exit_signal(
 }
 
 void ssh2channel_send_exit_signal_numeric(
-    SshChannel *sc, int signum, int core_dumped, ptrlen msg)
+    SshChannel *sc, int signum, bool core_dumped, ptrlen msg)
 {
     struct ssh2_channel *c = container_of(sc, struct ssh2_channel, sc);
     struct ssh2_connection_state *s = c->connlayer;
@@ -259,41 +259,41 @@ void ssh2channel_send_exit_signal_numeric(
 }
 
 void ssh2channel_request_x11_forwarding(
-    SshChannel *sc, int want_reply, const char *authproto,
-    const char *authdata, int screen_number, int oneshot)
+    SshChannel *sc, bool want_reply, const char *authproto,
+    const char *authdata, int screen_number, bool oneshot)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
-void ssh2channel_request_agent_forwarding(SshChannel *sc, int want_reply)
+void ssh2channel_request_agent_forwarding(SshChannel *sc, bool want_reply)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
 void ssh2channel_request_pty(
-    SshChannel *sc, int want_reply, Conf *conf, int w, int h)
+    SshChannel *sc, bool want_reply, Conf *conf, int w, int h)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
-int ssh2channel_send_env_var(
-    SshChannel *sc, int want_reply, const char *var, const char *value)
+bool ssh2channel_send_env_var(
+    SshChannel *sc, bool want_reply, const char *var, const char *value)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
-int ssh2channel_send_serial_break(SshChannel *sc, int want_reply, int length)
+bool ssh2channel_send_serial_break(SshChannel *sc, bool want_reply, int length)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
-int ssh2channel_send_signal(
-    SshChannel *sc, int want_reply, const char *signame)
+bool ssh2channel_send_signal(
+    SshChannel *sc, bool want_reply, const char *signame)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }
 
 void ssh2channel_send_terminal_size_change(SshChannel *sc, int w, int h)
 {
-    assert(FALSE && "Should never be called in the server");
+    assert(false && "Should never be called in the server");
 }

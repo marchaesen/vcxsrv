@@ -23,13 +23,13 @@ typedef struct sesschan {
     LogPolicy logpolicy;
     Seat seat;
 
-    int want_pty;
+    bool want_pty;
     struct ssh_ttymodes ttymodes;
     int wc, hc, wp, hp;
     strbuf *termtype;
 
-    int ignoring_input;
-    int seen_eof, seen_exit;
+    bool ignoring_input;
+    bool seen_eof, seen_exit;
 
     Plug xfwd_plug;
     int n_x11_sockets;
@@ -48,25 +48,25 @@ typedef struct sesschan {
 } sesschan;
 
 static void sesschan_free(Channel *chan);
-static int sesschan_send(Channel *chan, int is_stderr, const void *, int);
+static int sesschan_send(Channel *chan, bool is_stderr, const void *, int);
 static void sesschan_send_eof(Channel *chan);
 static char *sesschan_log_close_msg(Channel *chan);
-static int sesschan_want_close(Channel *, int, int);
-static void sesschan_set_input_wanted(Channel *chan, int wanted);
-static int sesschan_run_shell(Channel *chan);
-static int sesschan_run_command(Channel *chan, ptrlen command);
-static int sesschan_run_subsystem(Channel *chan, ptrlen subsys);
-static int sesschan_enable_x11_forwarding(
-    Channel *chan, int oneshot, ptrlen authproto, ptrlen authdata,
+static bool sesschan_want_close(Channel *, bool, bool);
+static void sesschan_set_input_wanted(Channel *chan, bool wanted);
+static bool sesschan_run_shell(Channel *chan);
+static bool sesschan_run_command(Channel *chan, ptrlen command);
+static bool sesschan_run_subsystem(Channel *chan, ptrlen subsys);
+static bool sesschan_enable_x11_forwarding(
+    Channel *chan, bool oneshot, ptrlen authproto, ptrlen authdata,
     unsigned screen_number);
-static int sesschan_enable_agent_forwarding(Channel *chan);
-static int sesschan_allocate_pty(
+static bool sesschan_enable_agent_forwarding(Channel *chan);
+static bool sesschan_allocate_pty(
     Channel *chan, ptrlen termtype, unsigned width, unsigned height,
     unsigned pixwidth, unsigned pixheight, struct ssh_ttymodes modes);
-static int sesschan_set_env(Channel *chan, ptrlen var, ptrlen value);
-static int sesschan_send_break(Channel *chan, unsigned length);
-static int sesschan_send_signal(Channel *chan, ptrlen signame);
-static int sesschan_change_window_size(
+static bool sesschan_set_env(Channel *chan, ptrlen var, ptrlen value);
+static bool sesschan_send_break(Channel *chan, unsigned length);
+static bool sesschan_send_signal(Channel *chan, ptrlen signame);
+static bool sesschan_change_window_size(
     Channel *chan, unsigned width, unsigned height,
     unsigned pixwidth, unsigned pixheight);
 
@@ -95,7 +95,7 @@ static const struct ChannelVtable sesschan_channelvt = {
     chan_no_request_response,
 };
 
-static int sftp_chan_send(Channel *chan, int is_stderr, const void *, int);
+static int sftp_chan_send(Channel *chan, bool is_stderr, const void *, int);
 static void sftp_chan_send_eof(Channel *chan);
 static char *sftp_log_close_msg(Channel *chan);
 
@@ -124,9 +124,9 @@ static const struct ChannelVtable sftp_channelvt = {
     chan_no_request_response,
 };
 
-static int scp_chan_send(Channel *chan, int is_stderr, const void *, int);
+static int scp_chan_send(Channel *chan, bool is_stderr, const void *, int);
 static void scp_chan_send_eof(Channel *chan);
-static void scp_set_input_wanted(Channel *chan, int wanted);
+static void scp_set_input_wanted(Channel *chan, bool wanted);
 static char *scp_log_close_msg(Channel *chan);
 
 static const struct ChannelVtable scp_channelvt = {
@@ -166,11 +166,11 @@ static const LogPolicyVtable sesschan_logpolicy_vt = {
     sesschan_logging_error,
 };
 
-static int sesschan_seat_output(Seat *, int is_stderr, const void *, int);
-static int sesschan_seat_eof(Seat *);
+static int sesschan_seat_output(Seat *, bool is_stderr, const void *, int);
+static bool sesschan_seat_eof(Seat *);
 static void sesschan_notify_remote_exit(Seat *seat);
 static void sesschan_connection_fatal(Seat *seat, const char *message);
-static int sesschan_get_window_pixel_size(Seat *seat, int *width, int *height);
+static bool sesschan_get_window_pixel_size(Seat *seat, int *w, int *h);
 
 static const SeatVtable sesschan_seat_vt = {
     sesschan_seat_output,
@@ -206,7 +206,7 @@ Channel *sesschan_new(SshChannel *c, LogContext *logctx,
     sess->conf = conf_new();
     load_open_settings(NULL, sess->conf);
 
-    /* Set close-on-exit = TRUE to suppress uxpty.c's "[pterm: process
+    /* Set close-on-exit = true to suppress uxpty.c's "[pterm: process
      * terminated with status x]" message */
     conf_set_int(sess->conf, CONF_close_on_exit, FORCE_ON);
 
@@ -241,7 +241,7 @@ static void sesschan_free(Channel *chan)
     sfree(sess);
 }
 
-static int sesschan_send(Channel *chan, int is_stderr,
+static int sesschan_send(Channel *chan, bool is_stderr,
                          const void *data, int length)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
@@ -264,7 +264,7 @@ static char *sesschan_log_close_msg(Channel *chan)
     return dupstr("Session channel closed");
 }
 
-static void sesschan_set_input_wanted(Channel *chan, int wanted)
+static void sesschan_set_input_wanted(Channel *chan, bool wanted)
 {
     /* I don't think we need to do anything here */
 }
@@ -277,40 +277,40 @@ static void sesschan_start_backend(sesschan *sess, const char *cmd)
     backend_size(sess->backend, sess->wc, sess->hc);
 }
 
-int sesschan_run_shell(Channel *chan)
+bool sesschan_run_shell(Channel *chan)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
 
     if (sess->backend)
-        return FALSE;
+        return false;
 
     sesschan_start_backend(sess, NULL);
-    return TRUE;
+    return true;
 }
 
-int sesschan_run_command(Channel *chan, ptrlen command)
+bool sesschan_run_command(Channel *chan, ptrlen command)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
 
     if (sess->backend)
-        return FALSE;
+        return false;
 
     /* FIXME: make this possible to configure off */
     if ((sess->scpsrv = scp_recognise_exec(sess->c, sess->sftpserver_vt,
                                            command)) != NULL) {
         sess->chan.vt = &scp_channelvt;
         logevent(sess->parent_logctx, "Starting built-in SCP server");
-        return TRUE;
+        return true;
     }
 
     char *command_str = mkstr(command);
     sesschan_start_backend(sess, command_str);
     sfree(command_str);
 
-    return TRUE;
+    return true;
 }
 
-int sesschan_run_subsystem(Channel *chan, ptrlen subsys)
+bool sesschan_run_subsystem(Channel *chan, ptrlen subsys)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
 
@@ -318,17 +318,17 @@ int sesschan_run_subsystem(Channel *chan, ptrlen subsys)
         sess->sftpsrv = sftpsrv_new(sess->sftpserver_vt);
         sess->chan.vt = &sftp_channelvt;
         logevent(sess->parent_logctx, "Starting built-in SFTP subsystem");
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 static void fwd_log(Plug *plug, int type, SockAddr *addr, int port,
                     const char *error_msg, int error_code)
 { /* don't expect any weirdnesses from a listening socket */ }
 static void fwd_closing(Plug *plug, const char *error_msg, int error_code,
-                        int calling_back)
+                        bool calling_back)
 { /* not here, either */ }
 
 static int xfwd_accepting(Plug *p, accept_fn_t constructor, accept_ctx_t ctx)
@@ -344,13 +344,13 @@ static int xfwd_accepting(Plug *p, accept_fn_t constructor, accept_ctx_t ctx)
     s = constructor(ctx, plug);
     if ((err = sk_socket_error(s)) != NULL) {
 	portfwd_raw_free(chan);
-        return TRUE;
+        return 1;
     }
     pi = sk_peer_info(s);
     portfwd_raw_setup(chan, s, ssh_serverside_x11_open(sess->c->cl, chan, pi));
     sk_free_peer_info(pi);
 
-    return FALSE;
+    return 0;
 }
 
 static const PlugVtable xfwd_plugvt = {
@@ -361,8 +361,8 @@ static const PlugVtable xfwd_plugvt = {
     xfwd_accepting,
 };
 
-int sesschan_enable_x11_forwarding(
-    Channel *chan, int oneshot, ptrlen authproto, ptrlen authdata_hex,
+bool sesschan_enable_x11_forwarding(
+    Channel *chan, bool oneshot, ptrlen authproto, ptrlen authdata_hex,
     unsigned screen_number)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
@@ -371,7 +371,7 @@ int sesschan_enable_x11_forwarding(
     char screensuffix[32];
 
     if (oneshot)
-        return FALSE;                  /* not supported */
+        return false;                  /* not supported */
 
     snprintf(screensuffix, sizeof(screensuffix), ".%u", screen_number);
 
@@ -379,7 +379,7 @@ int sesschan_enable_x11_forwarding(
      * Decode the authorisation data from ASCII hex into binary.
      */
     if (authdata_hex.len % 2)
-        return FALSE;                  /* expected an even number of digits */
+        return false;                  /* expected an even number of digits */
     authdata_bin = strbuf_new();
     for (i = 0; i < authdata_hex.len; i += 2) {
         const unsigned char *hex = authdata_hex.ptr;
@@ -387,7 +387,7 @@ int sesschan_enable_x11_forwarding(
 
         if (!isxdigit(hex[i]) || !isxdigit(hex[i+1])) {
             strbuf_free(authdata_bin);
-            return FALSE;              /* not hex */
+            return false;              /* not hex */
         }
 
         hexbuf[0] = hex[i];
@@ -420,11 +420,11 @@ static int agentfwd_accepting(
     s = constructor(ctx, plug);
     if ((err = sk_socket_error(s)) != NULL) {
 	portfwd_raw_free(chan);
-        return TRUE;
+        return 1;
     }
     portfwd_raw_setup(chan, s, ssh_serverside_agent_open(sess->c->cl, chan));
 
-    return FALSE;
+    return 0;
 }
 
 static const PlugVtable agentfwd_plugvt = {
@@ -435,7 +435,7 @@ static const PlugVtable agentfwd_plugvt = {
     agentfwd_accepting,
 };
 
-int sesschan_enable_agent_forwarding(Channel *chan)
+bool sesschan_enable_agent_forwarding(Channel *chan)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
     char *error, *socketname, *dir_prefix;
@@ -459,7 +459,7 @@ int sesschan_enable_agent_forwarding(Channel *chan)
     return sess->agentfwd_socket != NULL;
 }
 
-int sesschan_allocate_pty(
+bool sesschan_allocate_pty(
     Channel *chan, ptrlen termtype, unsigned width, unsigned height,
     unsigned pixwidth, unsigned pixheight, struct ssh_ttymodes modes)
 {
@@ -467,23 +467,23 @@ int sesschan_allocate_pty(
     char *s;
 
     if (sess->want_pty)
-        return FALSE;
+        return false;
 
     s = mkstr(termtype);
     conf_set_str(sess->conf, CONF_termtype, s);
     sfree(s);
 
-    sess->want_pty = TRUE;
+    sess->want_pty = true;
     sess->ttymodes  = modes;
     sess->wc = width;
     sess->hc = height;
     sess->wp = pixwidth;
     sess->hp = pixheight;
 
-    return TRUE;
+    return true;
 }
 
-int sesschan_set_env(Channel *chan, ptrlen var, ptrlen value)
+bool sesschan_set_env(Channel *chan, ptrlen var, ptrlen value)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
 
@@ -492,10 +492,10 @@ int sesschan_set_env(Channel *chan, ptrlen var, ptrlen value)
     sfree(svar);
     sfree(svalue);
 
-    return TRUE;
+    return true;
 }
 
-int sesschan_send_break(Channel *chan, unsigned length)
+bool sesschan_send_break(Channel *chan, unsigned length)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
 
@@ -506,12 +506,12 @@ int sesschan_send_break(Channel *chan, unsigned length)
          * implementation-defined semantics to _its_ duration
          * parameter, this all just sounds too difficult. */
         backend_special(sess->backend, SS_BRK, 0);
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
-int sesschan_send_signal(Channel *chan, ptrlen signame)
+bool sesschan_send_signal(Channel *chan, ptrlen signame)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
 
@@ -527,20 +527,20 @@ int sesschan_send_signal(Channel *chan, ptrlen signame)
     #undef SIGNAL_SUB
 
     if (code == SS_EXITMENU)
-        return FALSE;
+        return false;
 
     backend_special(sess->backend, code, 0);
-    return TRUE;
+    return true;
 }
 
-int sesschan_change_window_size(
+bool sesschan_change_window_size(
     Channel *chan, unsigned width, unsigned height,
     unsigned pixwidth, unsigned pixheight)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
 
     if (!sess->want_pty)
-        return FALSE;
+        return false;
 
     sess->wc = width;
     sess->hc = height;
@@ -550,11 +550,11 @@ int sesschan_change_window_size(
     if (sess->backend)
         backend_size(sess->backend, sess->wc, sess->hc);
 
-    return TRUE;
+    return true;
 }
 
 static int sesschan_seat_output(
-    Seat *seat, int is_stderr, const void *data, int len)
+    Seat *seat, bool is_stderr, const void *data, int len)
 {
     sesschan *sess = container_of(seat, sesschan, seat);
     return sshfwd_write_ext(sess->c, is_stderr, data, len);
@@ -573,7 +573,7 @@ static void sesschan_check_close_callback(void *vctx)
         sshfwd_initiate_close(sess->c, NULL);
 }
 
-static int sesschan_want_close(Channel *chan, int seen_eof, int rcvd_eof)
+static bool sesschan_want_close(Channel *chan, bool seen_eof, bool rcvd_eof)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
 
@@ -585,15 +585,15 @@ static int sesschan_want_close(Channel *chan, int seen_eof, int rcvd_eof)
     return (sess->seen_eof && sess->seen_exit);
 }
 
-static int sesschan_seat_eof(Seat *seat)
+static bool sesschan_seat_eof(Seat *seat)
 {
     sesschan *sess = container_of(seat, sesschan, seat);
 
     sshfwd_write_eof(sess->c);
-    sess->seen_eof = TRUE;
+    sess->seen_eof = true;
 
     queue_toplevel_callback(sesschan_check_close_callback, sess);
-    return TRUE;
+    return true;
 }
 
 static void sesschan_notify_remote_exit(Seat *seat)
@@ -611,14 +611,14 @@ static void sesschan_notify_remote_exit(Seat *seat)
             sigmsg = dupstr("");
 
         sshfwd_send_exit_signal(
-            sess->c, signame, FALSE, ptrlen_from_asciz(sigmsg));
+            sess->c, signame, false, ptrlen_from_asciz(sigmsg));
 
         sfree(sigmsg);
     } else {
         sshfwd_send_exit_status(sess->c, backend_exitcode(sess->backend));
     }
 
-    sess->seen_exit = TRUE;
+    sess->seen_exit = true;
     queue_toplevel_callback(sesschan_check_close_callback, sess);
 }
 
@@ -628,26 +628,26 @@ static void sesschan_connection_fatal(Seat *seat, const char *message)
 
     /* Closest translation I can think of */
     sshfwd_send_exit_signal(
-        sess->c, PTRLEN_LITERAL("HUP"), FALSE, ptrlen_from_asciz(message));
+        sess->c, PTRLEN_LITERAL("HUP"), false, ptrlen_from_asciz(message));
 
-    sess->ignoring_input = TRUE;
+    sess->ignoring_input = true;
 }
 
-static int sesschan_get_window_pixel_size(Seat *seat, int *width, int *height)
+static bool sesschan_get_window_pixel_size(Seat *seat, int *width, int *height)
 {
     sesschan *sess = container_of(seat, sesschan, seat);
 
     *width = sess->wp;
     *height = sess->hp;
 
-    return TRUE;
+    return true;
 }
 
 /* ----------------------------------------------------------------------
  * Built-in SFTP subsystem.
  */
 
-static int sftp_chan_send(Channel *chan, int is_stderr,
+static int sftp_chan_send(Channel *chan, bool is_stderr,
                           const void *data, int length)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
@@ -695,7 +695,7 @@ static char *sftp_log_close_msg(Channel *chan)
  * Built-in SCP subsystem.
  */
 
-static int scp_chan_send(Channel *chan, int is_stderr,
+static int scp_chan_send(Channel *chan, bool is_stderr,
                          const void *data, int length)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
@@ -713,7 +713,7 @@ static char *scp_log_close_msg(Channel *chan)
     return dupstr("Session channel (SCP) closed");
 }
 
-static void scp_set_input_wanted(Channel *chan, int wanted)
+static void scp_set_input_wanted(Channel *chan, bool wanted)
 {
     sesschan *sess = container_of(chan, sesschan, chan);
     scp_throttle(sess->scpsrv, !wanted);

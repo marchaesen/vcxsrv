@@ -1905,49 +1905,6 @@ _mesa_UnlockArraysEXT( void )
 }
 
 
-/* GL_IBM_multimode_draw_arrays */
-void GLAPIENTRY
-_mesa_MultiModeDrawArraysIBM( const GLenum * mode, const GLint * first,
-			      const GLsizei * count,
-			      GLsizei primcount, GLint modestride )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   GLint i;
-
-   FLUSH_VERTICES(ctx, 0);
-
-   for ( i = 0 ; i < primcount ; i++ ) {
-      if ( count[i] > 0 ) {
-         GLenum m = *((GLenum *) ((GLubyte *) mode + i * modestride));
-	 CALL_DrawArrays(ctx->CurrentServerDispatch, ( m, first[i], count[i] ));
-      }
-   }
-}
-
-
-/* GL_IBM_multimode_draw_arrays */
-void GLAPIENTRY
-_mesa_MultiModeDrawElementsIBM( const GLenum * mode, const GLsizei * count,
-				GLenum type, const GLvoid * const * indices,
-				GLsizei primcount, GLint modestride )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   GLint i;
-
-   FLUSH_VERTICES(ctx, 0);
-
-   /* XXX not sure about ARB_vertex_buffer_object handling here */
-
-   for ( i = 0 ; i < primcount ; i++ ) {
-      if ( count[i] > 0 ) {
-         GLenum m = *((GLenum *) ((GLubyte *) mode + i * modestride));
-	 CALL_DrawElements(ctx->CurrentServerDispatch, ( m, count[i], type,
-							 indices[i] ));
-      }
-   }
-}
-
-
 static void
 primitive_restart_index(struct gl_context *ctx, GLuint index)
 {

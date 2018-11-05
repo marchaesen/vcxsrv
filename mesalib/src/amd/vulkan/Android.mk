@@ -74,7 +74,8 @@ LOCAL_C_INCLUDES := \
 	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_vulkan_util,,)/util
 
 LOCAL_WHOLE_STATIC_LIBRARIES := \
-	libmesa_vulkan_util
+	libmesa_vulkan_util \
+	libmesa_git_sha1
 
 LOCAL_GENERATED_SOURCES += $(intermediates)/radv_entrypoints.c
 LOCAL_GENERATED_SOURCES += $(intermediates)/radv_entrypoints.h

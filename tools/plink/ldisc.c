@@ -60,12 +60,12 @@ static void pwrite(Ldisc *ldisc, unsigned char c)
     }
 }
 
-static int char_start(Ldisc *ldisc, unsigned char c)
+static bool char_start(Ldisc *ldisc, unsigned char c)
 {
     if (in_utf(ldisc->term))
 	return (c < 0x80 || c >= 0xC0);
     else
-	return 1;
+	return true;
 }
 
 static void bsb(Ldisc *ldisc, int n)
@@ -84,7 +84,7 @@ Ldisc *ldisc_create(Conf *conf, Terminal *term, Backend *backend, Seat *seat)
     ldisc->buf = NULL;
     ldisc->buflen = 0;
     ldisc->bufsiz = 0;
-    ldisc->quotenext = 0;
+    ldisc->quotenext = false;
 
     ldisc->backend = backend;
     ldisc->term = term;
@@ -103,8 +103,8 @@ Ldisc *ldisc_create(Conf *conf, Terminal *term, Backend *backend, Seat *seat)
 
 void ldisc_configure(Ldisc *ldisc, Conf *conf)
 {
-    ldisc->telnet_keyboard = conf_get_int(conf, CONF_telnet_keyboard);
-    ldisc->telnet_newline = conf_get_int(conf, CONF_telnet_newline);
+    ldisc->telnet_keyboard = conf_get_bool(conf, CONF_telnet_keyboard);
+    ldisc->telnet_newline = conf_get_bool(conf, CONF_telnet_newline);
     ldisc->protocol = conf_get_int(conf, CONF_protocol);
     ldisc->localecho = conf_get_int(conf, CONF_localecho);
     ldisc->localedit = conf_get_int(conf, CONF_localedit);
@@ -126,7 +126,7 @@ void ldisc_echoedit_update(Ldisc *ldisc)
     seat_echoedit_update(ldisc->seat, ECHOING, EDITING);
 }
 
-void ldisc_send(Ldisc *ldisc, const void *vbuf, int len, int interactive)
+void ldisc_send(Ldisc *ldisc, const void *vbuf, int len, bool interactive)
 {
     const char *buf = (const char *)vbuf;
     int keyflag = 0;
@@ -233,7 +233,7 @@ void ldisc_send(Ldisc *ldisc, const void *vbuf, int len, int interactive)
 		}
 		break;
 	      case CTRL('V'):	       /* quote next char */
-		ldisc->quotenext = TRUE;
+		ldisc->quotenext = true;
 		break;
 	      case CTRL('D'):	       /* logout or send */
 		if (ldisc->buflen == 0) {
@@ -298,7 +298,7 @@ void ldisc_send(Ldisc *ldisc, const void *vbuf, int len, int interactive)
 		ldisc->buf[ldisc->buflen++] = c;
 		if (ECHOING)
 		    pwrite(ldisc, (unsigned char) c);
-		ldisc->quotenext = FALSE;
+		ldisc->quotenext = false;
 		break;
 	    }
 	}

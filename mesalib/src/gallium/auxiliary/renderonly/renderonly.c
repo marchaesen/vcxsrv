@@ -138,7 +138,7 @@ renderonly_create_gpu_import_for_resource(struct pipe_resource *rsc,
       return NULL;
 
    status = screen->resource_get_handle(screen, NULL, rsc, &handle,
-         PIPE_HANDLE_USAGE_READ_WRITE);
+         PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE);
    if (!status)
       goto free_scanout;
 

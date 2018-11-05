@@ -54,7 +54,7 @@ libgallium_la_SOURCES += \
 endif
 
 MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
-PYTHON_GEN =  $(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS)
+PYTHON_GEN =  $(AM_V_GEN)$(PYTHON) $(PYTHON_FLAGS)
 
 indices/u_indices_gen.c: indices/u_indices_gen.py
 	$(MKDIR_GEN)

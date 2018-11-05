@@ -116,7 +116,7 @@ st_src_reg::st_src_reg(gl_register_file file, int index, enum glsl_base_type typ
    this->is_double_vertex_input = false;
 }
 
-st_src_reg::st_src_reg()
+void st_src_reg::reset()
 {
    this->type = GLSL_TYPE_ERROR;
    this->file = PROGRAM_UNDEFINED;
@@ -131,6 +131,11 @@ st_src_reg::st_src_reg()
    this->double_reg2 = false;
    this->array_id = 0;
    this->is_double_vertex_input = false;
+}
+
+st_src_reg::st_src_reg()
+{
+   reset();
 }
 
 st_src_reg::st_src_reg(const st_src_reg &reg)

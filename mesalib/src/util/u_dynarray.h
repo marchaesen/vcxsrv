@@ -134,7 +134,7 @@ util_dynarray_trim(struct util_dynarray *buf)
          } else {
             free(buf->data);
          }
-         buf->data = 0;
+         buf->data = NULL;
          buf->capacity = 0;
       }
    }

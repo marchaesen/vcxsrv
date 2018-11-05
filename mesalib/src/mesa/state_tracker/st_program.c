@@ -458,12 +458,9 @@ st_translate_vertex_program(struct st_context *st,
    }
 
    if (stvp->shader_program) {
-      struct gl_program *prog = stvp->shader_program->last_vert_prog;
-      if (prog) {
-         st_translate_stream_output_info2(prog->sh.LinkedTransformFeedback,
-                                          stvp->result_to_output,
-                                          &stvp->tgsi.stream_output);
-      }
+      st_translate_stream_output_info(stvp->Base.sh.LinkedTransformFeedback,
+                                      stvp->result_to_output,
+                                      &stvp->tgsi.stream_output);
 
       st_store_ir_in_disk_cache(st, &stvp->Base, true);
       return true;
@@ -505,7 +502,7 @@ st_translate_vertex_program(struct st_context *st,
                                    output_semantic_name,
                                    output_semantic_index);
 
-      st_translate_stream_output_info(stvp->glsl_to_tgsi,
+      st_translate_stream_output_info(stvp->Base.sh.LinkedTransformFeedback,
                                       stvp->result_to_output,
                                       &stvp->tgsi.stream_output);
 
@@ -1417,7 +1414,7 @@ st_translate_program_common(struct st_context *st,
    }
    ureg_destroy(ureg);
 
-   st_translate_stream_output_info(glsl_to_tgsi,
+   st_translate_stream_output_info(prog->sh.LinkedTransformFeedback,
                                    outputMapping,
                                    &out_state->stream_output);
 
@@ -1464,9 +1461,9 @@ st_translate_program_stream_output(struct gl_program *prog,
       }
    }
 
-   st_translate_stream_output_info2(prog->sh.LinkedTransformFeedback,
-                                    outputMapping,
-                                    stream_output);
+   st_translate_stream_output_info(prog->sh.LinkedTransformFeedback,
+                                   outputMapping,
+                                   stream_output);
 }
 
 /**

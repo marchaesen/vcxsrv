@@ -602,7 +602,7 @@ compile_vertex_list(struct gl_context *ctx)
 
    node->prim_store->refcount++;
 
-   if (node->prims[0].no_current_update) {
+   if (save->no_current_update) {
       node->current_data = NULL;
    }
    else {
@@ -720,8 +720,6 @@ wrap_buffers(struct gl_context *ctx)
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    GLint i = save->prim_count - 1;
    GLenum mode;
-   GLboolean weak;
-   GLboolean no_current_update;
 
    assert(i < (GLint) save->prim_max);
    assert(i >= 0);
@@ -730,8 +728,6 @@ wrap_buffers(struct gl_context *ctx)
     */
    save->prims[i].count = (save->vert_count - save->prims[i].start);
    mode = save->prims[i].mode;
-   weak = save->prims[i].weak;
-   no_current_update = save->prims[i].no_current_update;
 
    /* store the copied vertices, and allocate a new list.
     */
@@ -740,8 +736,6 @@ wrap_buffers(struct gl_context *ctx)
    /* Restart interrupted primitive
     */
    save->prims[0].mode = mode;
-   save->prims[0].weak = weak;
-   save->prims[0].no_current_update = no_current_update;
    save->prims[0].begin = 0;
    save->prims[0].end = 0;
    save->prims[0].pad = 0;
@@ -1199,7 +1193,8 @@ _save_CallLists(GLsizei n, GLenum type, const GLvoid * v)
  * Updating of ctx->Driver.CurrentSavePrimitive is already taken care of.
  */
 void
-vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode)
+vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode,
+                     bool no_current_update)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    const GLuint i = save->prim_count++;
@@ -1208,15 +1203,14 @@ vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode)
    save->prims[i].mode = mode & VBO_SAVE_PRIM_MODE_MASK;
    save->prims[i].begin = 1;
    save->prims[i].end = 0;
-   save->prims[i].weak = (mode & VBO_SAVE_PRIM_WEAK) ? 1 : 0;
-   save->prims[i].no_current_update =
-      (mode & VBO_SAVE_PRIM_NO_CURRENT_UPDATE) ? 1 : 0;
    save->prims[i].pad = 0;
    save->prims[i].start = save->vert_count;
    save->prims[i].count = 0;
    save->prims[i].num_instances = 1;
    save->prims[i].base_instance = 0;
    save->prims[i].is_indirect = 0;
+
+   save->no_current_update = no_current_update;
 
    if (save->out_of_memory) {
       _mesa_install_save_vtxfmt(ctx, &save->vtxfmt_noop);
@@ -1283,10 +1277,11 @@ _save_PrimitiveRestartNV(void)
    } else {
       /* get current primitive mode */
       GLenum curPrim = save->prims[save->prim_count - 1].mode;
+      bool no_current_update = save->no_current_update;
 
       /* restart primitive */
       CALL_End(GET_DISPATCH(), ());
-      vbo_save_NotifyBegin(ctx, curPrim);
+      vbo_save_NotifyBegin(ctx, curPrim, no_current_update);
    }
 }
 
@@ -1300,7 +1295,7 @@ static void GLAPIENTRY
 _save_OBE_Rectf(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
 {
    GET_CURRENT_CONTEXT(ctx);
-   vbo_save_NotifyBegin(ctx, GL_QUADS | VBO_SAVE_PRIM_WEAK);
+   vbo_save_NotifyBegin(ctx, GL_QUADS, false);
    CALL_Vertex2f(GET_DISPATCH(), (x1, y1));
    CALL_Vertex2f(GET_DISPATCH(), (x2, y1));
    CALL_Vertex2f(GET_DISPATCH(), (x2, y2));
@@ -1333,8 +1328,7 @@ _save_OBE_DrawArrays(GLenum mode, GLint start, GLsizei count)
 
    _ae_map_vbos(ctx);
 
-   vbo_save_NotifyBegin(ctx, (mode | VBO_SAVE_PRIM_WEAK
-                              | VBO_SAVE_PRIM_NO_CURRENT_UPDATE));
+   vbo_save_NotifyBegin(ctx, mode, true);
 
    for (i = 0; i < count; i++)
       CALL_ArrayElement(GET_DISPATCH(), (start + i));
@@ -1417,8 +1411,7 @@ _save_OBE_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
       indices =
          ADD_POINTERS(indexbuf->Mappings[MAP_INTERNAL].Pointer, indices);
 
-   vbo_save_NotifyBegin(ctx, (mode | VBO_SAVE_PRIM_WEAK |
-                              VBO_SAVE_PRIM_NO_CURRENT_UPDATE));
+   vbo_save_NotifyBegin(ctx, mode, true);
 
    switch (type) {
    case GL_UNSIGNED_BYTE:
@@ -1804,12 +1797,8 @@ vbo_save_EndCallList(struct gl_context *ctx)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
 
-   if (ctx->ListState.CallDepth == 1) {
-      /* This is correct: want to keep only the VBO_SAVE_FALLBACK
-       * flag, if it is set:
-       */
-      save->replay_flags &= VBO_SAVE_FALLBACK;
-   }
+   if (ctx->ListState.CallDepth == 1)
+      save->replay_flags = 0;
 }
 
 
@@ -1848,10 +1837,9 @@ vbo_print_vertex_list(struct gl_context *ctx, void *data, FILE *f)
 
    for (i = 0; i < node->prim_count; i++) {
       struct _mesa_prim *prim = &node->prims[i];
-      fprintf(f, "   prim %d: %s%s %d..%d %s %s\n",
+      fprintf(f, "   prim %d: %s %d..%d %s %s\n",
              i,
              _mesa_lookup_prim_by_nr(prim->mode),
-             prim->weak ? " (weak)" : "",
              prim->start,
              prim->start + prim->count,
              (prim->begin) ? "BEGIN" : "(wrap)",

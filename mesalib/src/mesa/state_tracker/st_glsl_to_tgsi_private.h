@@ -51,6 +51,7 @@ public:
    st_src_reg();
    st_src_reg(const st_src_reg &reg);
    void operator=(const st_src_reg &reg);
+   void reset();
 
    explicit st_src_reg(st_dst_reg reg);
 

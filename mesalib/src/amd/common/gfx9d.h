@@ -4457,6 +4457,9 @@
 #define   S_028424_OVERWRITE_COMBINER_WATERMARK(x)                    (((unsigned)(x) & 0x1F) << 2)
 #define   G_028424_OVERWRITE_COMBINER_WATERMARK(x)                    (((x) >> 2) & 0x1F)
 #define   C_028424_OVERWRITE_COMBINER_WATERMARK                       0xFFFFFF83
+#define   S_028424_DISABLE_CONSTANT_ENCODE_REG(x)                     (((unsigned)(x) & 0x1) << 10) /* Raven2+ */
+#define   G_028424_DISABLE_CONSTANT_ENCODE_REG(x)                     (((x) >> 10) & 0x1)
+#define   C_028424_DISABLE_CONSTANT_ENCODE_REG                        0xFFFFFBFF
 #define R_02842C_DB_STENCIL_CONTROL                                     0x02842C
 #define   S_02842C_STENCILFAIL(x)                                     (((unsigned)(x) & 0x0F) << 0)
 #define   G_02842C_STENCILFAIL(x)                                     (((x) >> 0) & 0x0F)

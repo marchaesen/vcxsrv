@@ -1087,7 +1087,7 @@ void access_recorder::record_write(const st_dst_reg& dst, int line,
 }
 
 void access_recorder::get_required_live_ranges(struct register_live_range *register_live_ranges,
-					       struct array_live_range *array_live_ranges)
+					       class array_live_range *array_live_ranges)
 {
    RENAME_DEBUG(debug_log << "== register live ranges ==========\n");
    for(int i = 0; i < ntemps; ++i) {
@@ -1122,7 +1122,7 @@ static void dump_instruction(ostream& os, int line, prog_scope *scope,
 bool
 get_temp_registers_required_live_ranges(void *mem_ctx, exec_list *instructions,
 		  int ntemps, struct register_live_range *register_live_ranges,
-		  int narrays, struct array_live_range *array_live_ranges)
+		  int narrays, class array_live_range *array_live_ranges)
 {
    int line = 0;
    int loop_id = 1;

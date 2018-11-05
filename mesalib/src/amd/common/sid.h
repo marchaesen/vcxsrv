@@ -119,6 +119,7 @@
 #define			STRMOUT_OFFSET_FROM_VGT_FILLED_SIZE	1
 #define			STRMOUT_OFFSET_FROM_MEM			2
 #define			STRMOUT_OFFSET_NONE			3
+#define		STRMOUT_DATA_TYPE(x)		(((unsigned)(x) & 0x1) << 7)
 #define		STRMOUT_SELECT_BUFFER(x)	(((unsigned)(x) & 0x3) << 8)
 #define PKT3_DRAW_INDEX_OFFSET_2               0x35
 #define PKT3_WRITE_DATA                        0x37
@@ -145,6 +146,7 @@
 #define PKT3_WAIT_REG_MEM                      0x3C
 #define		WAIT_REG_MEM_EQUAL		3
 #define		WAIT_REG_MEM_NOT_EQUAL		4
+#define		WAIT_REG_MEM_GREATER_OR_EQUAL   5
 #define         WAIT_REG_MEM_MEM_SPACE(x)       (((unsigned)(x) & 0x3) << 4)
 #define         WAIT_REG_MEM_PFP		(1 << 8)
 #define PKT3_MEM_WRITE                         0x3D /* not on CIK */

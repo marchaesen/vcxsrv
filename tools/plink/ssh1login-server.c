@@ -28,14 +28,14 @@ struct ssh1_login_server_state {
     ptrlen username;
 
     struct RSAKey *servkey, *hostkey;
-    int servkey_generated_here;
+    bool servkey_generated_here;
     Bignum sesskey;
 
     AuthPolicy *authpolicy;
     unsigned ap_methods, current_method;
     unsigned char auth_rsa_expected_response[16];
     struct RSAKey *authkey;
-    int auth_successful;
+    bool auth_successful;
 
     PacketProtocolLayer ppl;
 };
@@ -43,13 +43,13 @@ struct ssh1_login_server_state {
 static void ssh1_login_server_free(PacketProtocolLayer *); 
 static void ssh1_login_server_process_queue(PacketProtocolLayer *);
 
-static int ssh1_login_server_get_specials(
+static bool ssh1_login_server_get_specials(
     PacketProtocolLayer *ppl, add_special_fn_t add_special,
-    void *ctx) { return FALSE; }
+    void *ctx) { return false; }
 static void ssh1_login_server_special_cmd(PacketProtocolLayer *ppl,
                                    SessionSpecialCode code, int arg) {}
-static int ssh1_login_server_want_user_input(
-    PacketProtocolLayer *ppl) { return FALSE; }
+static bool ssh1_login_server_want_user_input(
+    PacketProtocolLayer *ppl) { return false; }
 static void ssh1_login_server_got_user_input(PacketProtocolLayer *ppl) {}
 static void ssh1_login_server_reconfigure(
     PacketProtocolLayer *ppl, Conf *conf) {}
@@ -101,7 +101,7 @@ static void ssh1_login_server_free(PacketProtocolLayer *ppl)
     sfree(s);
 }
 
-static int ssh1_login_server_filter_queue(struct ssh1_login_server_state *s)
+static bool ssh1_login_server_filter_queue(struct ssh1_login_server_state *s)
 {
     return ssh1_common_filter_queue(&s->ppl);
 }
@@ -138,7 +138,7 @@ static void ssh1_login_server_process_queue(PacketProtocolLayer *ppl)
         s->servkey = snew(struct RSAKey);
         rsa_generate(s->servkey, server_key_bits, no_progress, NULL);
         s->servkey->comment = NULL;
-        s->servkey_generated_here = TRUE;
+        s->servkey_generated_here = true;
     }
 
     s->local_protoflags = SSH1_PROTOFLAGS_SUPPORTED;
@@ -280,7 +280,7 @@ static void ssh1_login_server_process_queue(PacketProtocolLayer *ppl)
             if (nul)
                 password.len = (const char *)nul - (const char *)password.ptr;
 
-            if (auth_password(s->authpolicy, s->username, password))
+            if (auth_password(s->authpolicy, s->username, password, NULL))
                 goto auth_success;
         } else if (pktin->type == SSH1_CMSG_AUTH_RSA) {
             s->current_method = AUTHMETHOD_PUBLICKEY;

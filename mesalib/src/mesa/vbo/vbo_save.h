@@ -137,10 +137,6 @@ _vbo_save_get_vertex_count(const struct vbo_save_vertex_list *node)
 #define VBO_SAVE_BUFFER_SIZE (256*1024) /* dwords */
 #define VBO_SAVE_PRIM_SIZE   128
 #define VBO_SAVE_PRIM_MODE_MASK         0x3f
-#define VBO_SAVE_PRIM_WEAK              0x40
-#define VBO_SAVE_PRIM_NO_CURRENT_UPDATE 0x80
-
-#define VBO_SAVE_FALLBACK    0x10000000
 
 struct vbo_save_vertex_store {
    struct gl_buffer_object *bufferobj;
@@ -176,6 +172,8 @@ struct vbo_save_context {
    struct _mesa_prim *prims;
    GLuint prim_count, prim_max;
 
+   bool no_current_update;
+
    struct vbo_save_vertex_store *vertex_store;
    struct vbo_save_primitive_store *prim_store;
 
@@ -197,7 +195,6 @@ struct vbo_save_context {
 
 void vbo_save_init(struct gl_context *ctx);
 void vbo_save_destroy(struct gl_context *ctx);
-void vbo_save_fallback(struct gl_context *ctx, GLboolean fallback);
 
 /* save_loopback.c:
  */
