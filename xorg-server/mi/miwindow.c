@@ -129,6 +129,7 @@ miMarkWindow(WindowPtr pWin)
     val->before.oldAbsCorner.y = pWin->drawable.y;
     val->before.borderVisible = NullRegion;
     val->before.resized = FALSE;
+    val->after.borderExposed.data= 0; // unitialised member--> causes crash
     pWin->valdata = val;
 }
 
@@ -364,7 +365,7 @@ miResizeWindow(WindowPtr pWin, int x, int y, unsigned int w, unsigned int h,
     RegionPtr borderVisible = NullRegion;       /* visible area of the border */
     Bool shrunk = FALSE;        /* shrunk in an inner dimension */
     Bool moved = FALSE;         /* window position changed */
-    WindowPtr pLayerWin;
+    WindowPtr pLayerWin=0;
 
     /* if this is a root window, can't be resized */
     if (!(pParent = pWin->parent))

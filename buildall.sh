@@ -6,11 +6,11 @@ elif [[ "$1" == "0" ]] ; then
 source ./setenv.sh 0
 else
   echo "Please pass 1 (64-bit compilation) or 0 (32-bit compilation) as first argument"
-  exit 
+  exit
 fi
 if [[ "$2" == "" ]] ; then
   echo "Please pass number of parallel builds as second argument"
-  exit 
+  exit
 fi
 
 function check-error {
@@ -24,8 +24,7 @@ which nasm > /dev/null 2>&1
 check-error 'Please install nasm'
 
 which MSBuild.exe > /dev/null 2>&1
-check-error 'Please install/set environment for visual studio 2010'
-
+check-error 'Please install/set environment for visual studio 2017'
 which python.exe > /dev/null 2>&1
 check-error 'Make sure that python.exe is in the PATH. (e.g. cp /usr/bin/python2.7.exe /usr/bin/python.exe)'
 
@@ -39,35 +38,35 @@ export PATH=/cygdrive/c/perl/perl/bin:$PATH
 #set -v
 
 if [[ "$IS64" == "1" ]]; then
-MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Release Multithreaded" /p:Platform=x64
-check-error 'Error compiling freetype'
-MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Debug Multithreaded" /p:Platform=x64
-check-error 'Error compiling freetype'
+	MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Release Multithreaded" /p:Platform=x64
+	check-error 'Error compiling freetype'
+	MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Debug Multithreaded" /p:Platform=x64
+	check-error 'Error compiling freetype'
 else
-MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Release Multithreaded" /p:Platform=Win32
-check-error 'Error compiling freetype'
-MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Debug Multithreaded" /p:Platform=Win32
-check-error 'Error compiling freetype'
+	MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Release Multithreaded" /p:Platform=Win32
+	check-error 'Error compiling freetype'
+	MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Debug Multithreaded" /p:Platform=Win32
+	check-error 'Error compiling freetype'
 fi
 
 cd openssl
 
 if [[ "$IS64" == "1" ]]; then
 
-if [[ ! -d "release64" ]]; then
-  mkdir release64
-fi
-cd release64
+	if [[ ! -d "release64" ]]; then
+	  mkdir release64
+	fi
+	cd release64
 
-perl ../Configure VC-WIN64A --release
+	perl ../Configure VC-WIN64A --release
 else
 
-if [[ ! -d "release32" ]]; then
-  mkdir release32
-fi
-cd release32
+	if [[ ! -d "release32" ]]; then
+	  mkdir release32
+	fi
+	cd release32
 
-perl ../Configure VC-WIN32 --release
+	perl ../Configure VC-WIN32 --release
 fi
 check-error 'Error executing perl'
 
@@ -77,22 +76,17 @@ check-error 'Error compiling openssl for release'
 cd ..
 
 if [[ "$IS64" == "1" ]]; then
-
-if [[ ! -d "debug64" ]]; then
-  mkdir debug64
-fi
-cd debug64
-
-perl ../Configure VC-WIN64A --debug
-
+	if [[ ! -d "debug64" ]]; then
+	  mkdir debug64
+	fi
+	cd debug64
+	perl ../Configure VC-WIN64A --debug
 else
-
-if [[ ! -d "debug32" ]]; then
-  mkdir debug32
-fi
-cd debug32
-
-perl ../Configure VC-WIN32 --debug
+	if [[ ! -d "debug32" ]]; then
+	  mkdir debug32
+	fi
+	cd debug32
+	perl ../Configure VC-WIN32 --debug
 fi
 check-error 'Error executing perl'
 
@@ -111,20 +105,42 @@ cd ..
 #reuse the cygwin perl again
 export PATH=$ORIPATH
 
-MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Release /p:Platform=x64
-check-error 'Error compiling mhmake for release'
 
-MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Debug /p:Platform=x64
-check-error 'Error compiling mhmake for debug'
+if [[ "$IS64" == "1" ]]; then
+	MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Release /p:Platform=x64
+	check-error 'Error compiling mhmake for release'
 
-export MHMAKECONF=`cygpath -da .`
+	MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Debug /p:Platform=x64
+	check-error 'Error compiling mhmake for debug'
+	export MHMAKECONF=`cygpath -da .`
 
-tools/mhmake/Release64/mhmake -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
-check-error 'Error compiling vcxsrv for debug'
+	tools/mhmake/Release64/mhmake -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
+	check-error 'Error compiling vcxsrv for debug'
 
-tools/mhmake/Release64/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
-check-error 'Error compiling vcxsrv for release'
+	tools/mhmake/Release64/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
+	check-error 'Error compiling vcxsrv for release'
 
-cd xorg-server/installer
-./packageall.bat
+	cd xorg-server/installer
+	./packageall.bat nox86
+else
+	MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Release /p:Platform=Win32
+	check-error 'Error compiling mhmake for release'
+
+	MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Debug /p:Platform=Win32
+	check-error 'Error compiling mhmake for debug'
+	export MHMAKECONF=`cygpath -da .`
+
+	tools/mhmake/Release/mhmake -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
+	check-error 'Error compiling vcxsrv for debug'
+
+	tools/mhmake/Release/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
+	check-error 'Error compiling vcxsrv for release'
+
+	cd xorg-server/installer
+	./packageall.bat nox64
+fi
+
+
+
+
 

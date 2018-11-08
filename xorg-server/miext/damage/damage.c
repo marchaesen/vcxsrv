@@ -1340,10 +1340,58 @@ damageText(DrawablePtr pDrawable,
     free(charinfo);
 }
 
+Bool g_iActualCodePage=TRUE;
+
+// convert Slovak to iso8859-2
+void convert_1250_8859_2(char* text, int len)
+{
+    int i;
+    for( i=0;i<len;i++ )
+    {
+        unsigned char c= text[i];
+        switch(c)
+        {
+            case 0x8A: text[i]= 0xA9; break; // L?
+            case 0x9A: text[i]= 0xB9; break; // L?
+            case 0x8E: text[i]= 0xAE; break; // L?
+            case 0x9E: text[i]= 0xBE; break; // Ll
+
+            case 0x8C: text[i]= 0xA6; break; // L?
+            case 0x8D: text[i]= 0xAB; break; // L?
+            case 0x8F: text[i]= 0xAC; break; // La
+            case 0x9C: text[i]= 0xB6; break; // L?
+            case 0x9D: text[i]= 0xBB; break; // LA
+            case 0x9F: text[i]= 0xBC; break; // Ls
+            case 0xA1: text[i]= 0xB7; break; // ˇ
+            case 0xA5: text[i]= 0xA1; break; // Ą
+            case 0xB9: text[i]= 0xB1; break; // ą
+            case 0xBC: text[i]= 0xA5; break; // Ŀ
+            case 0xBE: text[i]= 0xB5; break; // Ĭ
+        }
+    }
+}
+
+
 static int
 damagePolyText8(DrawablePtr pDrawable,
                 GCPtr pGC, int x, int y, int count, char *chars)
 {
+    if( g_iActualCodePage)
+    {
+        unsigned int acp_code= GetACP();
+        switch( acp_code )
+        {
+            case 1250: // central europe --slovak
+                convert_1250_8859_2(chars,count);
+                break;
+            case 1251: // eastern europe --russian
+                //convert_1251_8859_5(chars,count);
+                break;
+            case 1252: // west europe --german
+                //:wqconvert_1252_8859_1(chars,count);
+                break;
+        }
+    }
     DAMAGE_GC_OP_PROLOGUE(pGC, pDrawable);
     damageText(pDrawable, pGC, x, y, (unsigned long) count, chars, Linear8Bit,
                TT_POLY8);

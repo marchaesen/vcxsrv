@@ -46,6 +46,10 @@ extern const char *g_pszLogFile;
 extern Bool g_fLogFileChanged;
 #endif
 extern int g_iLogVerbose;
+
+extern Bool g_iIgnoreNumLock;
+extern Bool g_iActualCodePage;
+
 extern Bool g_fLogInited;
 
 extern Bool g_fAuthEnabled;

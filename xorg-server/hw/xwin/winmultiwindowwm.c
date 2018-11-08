@@ -94,14 +94,14 @@ extern void winSetAuthorization(void);
  * Constant defines
  */
 
-#define WIN_CONNECT_RETRIES	5
-#define WIN_CONNECT_DELAY	5
+#define WIN_CONNECT_RETRIES 5
+#define WIN_CONNECT_DELAY   5
 #ifdef HAS_DEVWINDOWS
-#define WIN_MSG_QUEUE_FNAME	"/dev/windows"
+#define WIN_MSG_QUEUE_FNAME "/dev/windows"
 #endif
 
-#define HINT_MAX	(1L<<0)
-#define HINT_MIN	(1L<<1)
+#define HINT_MAX (1L<<0)
+#define HINT_MIN (1L<<1)
 
 /*
  * Local structures
@@ -639,13 +639,16 @@ UpdateName(WMInfoPtr pWMInfo, xcb_window_t iWindow)
         /* Get the X windows window name */
         GetWindowName(pWMInfo, iWindow, &pszWindowName);
 
-        if (pszWindowName) {
+        // Use Active-Code-Page for Window-Title
+        if (pszWindowName && pszWindowName[0])
+        {
             /* Convert from UTF-8 to wide char */
+            int charset= _getmbcp()?CP_UTF8:CP_ACP;
             int iLen =
-                MultiByteToWideChar(CP_UTF8, 0, pszWindowName, -1, NULL, 0);
+                MultiByteToWideChar(charset, 0, pszWindowName, -1, NULL, 0);
             wchar_t *pwszWideWindowName =
                 malloc(sizeof(wchar_t)*(iLen + 1));
-            MultiByteToWideChar(CP_UTF8, 0, pszWindowName, -1,
+            MultiByteToWideChar(charset, 0, pszWindowName, -1,
                                 pwszWideWindowName, iLen);
 
             /* Set the Windows window name */
@@ -653,6 +656,10 @@ UpdateName(WMInfoPtr pWMInfo, xcb_window_t iWindow)
 
             free(pwszWideWindowName);
             free(pszWindowName);
+        }
+        else
+        {
+            SetWindowTextA(hWnd, "");
         }
     }
 }
@@ -728,9 +735,10 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, unsigned long *maxmin, int 
        But that doesn't seem to work reliably, and causes the window to flicker, so use
        the iTaskbarList interface to tell the taskbar to show or hide this window.
      */
+    // parentless windows appears also on task bar, regardless of style
     winShowWindowOnTaskbar(hWnd,
-                           (GetWindowLongPtr(hWnd, GWL_EXSTYLE) &
-                            WS_EX_APPWINDOW) ? TRUE : FALSE);
+                           (GetWindowLongPtr(hWnd, GWL_EXSTYLE)&WS_EX_APPWINDOW)||
+                            GetWindowLongPtr(hWnd, GWLP_HWNDPARENT)==0 ? TRUE : FALSE);
 }
 
 /*
@@ -1940,13 +1948,13 @@ winDeinitMultiWindowWM(void)
 }
 
 /* Windows window styles */
-#define HINT_NOFRAME	(1L<<0)
-#define HINT_BORDER	(1L<<1)
-#define HINT_SIZEBOX	(1L<<2)
-#define HINT_CAPTION	(1L<<3)
-#define HINT_NOMAXIMIZE (1L<<4)
-#define HINT_NOMINIMIZE (1L<<5)
-#define HINT_NOSYSMENU  (1L<<6)
+#define HINT_NOFRAME     (1L<<0)
+#define HINT_BORDER      (1L<<1)
+#define HINT_SIZEBOX     (1L<<2)
+#define HINT_CAPTION     (1L<<3)
+#define HINT_NOMAXIMIZE  (1L<<4)
+#define HINT_NOMINIMIZE  (1L<<5)
+#define HINT_NOSYSMENU   (1L<<6)
 #define HINT_SKIPTASKBAR (1L<<7)
 
 static void
@@ -1963,6 +1971,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
     unsigned long taskbar = 0;
     unsigned long style, exStyle;
     unsigned long oristyle, oriexStyle;
+    Bool nodecoration = FALSE;
 
     *maxmin = 0;
 
@@ -2025,11 +2034,42 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
         MwmHints *mwm_hint = xcb_get_property_value(reply);
         if (mwm_hint && (nitems >= PropMwmHintsElements) &&
             (mwm_hint->flags & MwmHintsDecorations)) {
-            if (!mwm_hint->decorations) {
-                hint &= ~(HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION);
-                hint |= (HINT_NOFRAME | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
+          if (!mwm_hint->decorations)
+          {
+            WindowPtr pWin = GetProp(hWnd, WIN_WINDOW_PROP);
+            if (pWin)
+            {
+              int iX, iY, iWidth, iHeight;
+              int monitorHeight= GetSystemMetrics(SM_CYVIRTUALSCREEN);
+              float proportion;
+              DrawablePtr pDraw = &pWin->drawable;
+
+              /* Get the X and Y location of the X window */
+              iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
+              iY = pWin->drawable.y + GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+              /* Get the height and width of the X window */
+              iWidth = pWin->drawable.width;
+              iHeight = pWin->drawable.height;
+
+              proportion= ((float)pWin->drawable.height)/monitorHeight;
+              winDebug("nodecoration %x = proportion %f\n",hWnd,proportion);
+              if( proportion>0.95 && proportion<1.00)
+              {   // if height is inside 5% of full range , make it fullscreen (there is no HINT_FULLSCREEN)
+                winDebug("nodecoration %x SET fullscreen\n",hWnd);
+                *maxmin |= HINT_MAX; // make fullscreen !
+              }
+              pWin->borderWidth=0;
             }
-            else if (!(mwm_hint->decorations & MwmDecorAll)) {
+
+            hint &= ~(HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION | HINT_NOFRAME);
+            hint |= ( HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE | HINT_NOFRAME);
+            nodecoration = TRUE;
+            winDebug("nodecoration %x = TRUE\n",hWnd);
+          }
+          else
+            if (!(mwm_hint->decorations & MwmDecorAll))
+            {
                 if (!(mwm_hint->decorations & MwmDecorBorder))
                     hint &= ~HINT_BORDER;
                 if (!(mwm_hint->decorations & MwmDecorHandle))
@@ -2040,10 +2080,12 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
                     hint |= HINT_NOSYSMENU;
                 if (!(mwm_hint->decorations & MwmDecorMinimize))
                     hint |= HINT_NOMINIMIZE;
-                if (!(mwm_hint->decorations & MwmDecorMaximize))
+                if (!(mwm_hint->decorations & MwmDecorMaximize) &&
+                    !(mwm_hint->decorations & MwmDecorMinimize))
                     hint |= HINT_NOMAXIMIZE;
             }
-            else {
+            else
+            {
                 /*
                    MwmDecorAll means all decorations *except* those specified by other flag
                    bits that are set.  Not yet implemented.
@@ -2085,27 +2127,9 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
                WM_NORMAL_HINTS indicates the window should be resizeable, let
                the window have a resizing border.  This is necessary for windows
                with gtk3+ 3.14 csd. */
-            if (hint & HINT_BORDER)
-                hint |= HINT_SIZEBOX;
-
             if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
                 /* Not maximizable if a maximum size is specified, and that size
                    is smaller (in either dimension) than the screen size */
-                if ((size_hints.max_width < GetSystemMetrics(SM_CXVIRTUALSCREEN))
-                    || (size_hints.max_height < GetSystemMetrics(SM_CYVIRTUALSCREEN)))
-                    hint |= HINT_NOMAXIMIZE;
-
-                if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
-                    /*
-                       If both minimum size and maximum size are specified and are the same,
-                       don't bother with a resizing frame
-                     */
-                    if ((size_hints.min_width == size_hints.max_width)
-                        && (size_hints.min_height == size_hints.max_height)) {
-                        hint |= HINT_NOMAXIMIZE;
-                        hint = (hint & ~HINT_SIZEBOX);
-                    }
-                }
             }
         }
     }
@@ -2205,7 +2229,14 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
         style = style & ~WS_SYSMENU;
 
     if (hint & HINT_SKIPTASKBAR) {
-        style = style & ~WS_MINIMIZEBOX;        /* window will become lost if minimized */
+      style = style & ~WS_MINIMIZEBOX;        /* window will become lost if minimized */
+    }
+
+    if (nodecoration)
+    {	// fullscreen
+        style &= ~(WS_THICKFRAME|WS_DLGFRAME|WS_SIZEBOX|WS_MAXIMIZEBOX|WS_MINIMIZEBOX|WS_SYSMENU|WS_MINIMIZEBOX|WS_CAPTION);
+        style |= WS_POPUP|WS_VISIBLE;
+        winDebug("nodecoration %x style SET %x\n", hWnd, style);
     }
 
     if (!IsWindow (hWnd))
@@ -2220,6 +2251,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
             winShowWindowOnTaskbar(hWnd, FALSE);
         }
         SetWindowLongPtr(hWnd, GWL_STYLE, style);
+        oristyle= style;
     }
 
     exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
@@ -2230,7 +2262,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
         exStyle = (exStyle & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW;
     if (exStyle!=oriexStyle)
     {
-      SetWindowLongPtr(hWnd, GWL_EXSTYLE, exStyle);
+        SetWindowLongPtr(hWnd, GWL_EXSTYLE, exStyle);
     }
 
     winDebug
