@@ -407,16 +407,22 @@ Bool isThereSomething(Bool are_ready);
 
 void DispatchQueuedEvents(Bool wait)
 {
-  static int reentrantcheck;
-  if (!wait)
-  {
-    if (reentrantcheck)
-      return;
-    reentrantcheck=1;
-  }
-  while (1)
-  {
-        if (InputCheckPending()) {
+    static int reentrantcheck;
+    static int maxDoCount;
+    if (!wait)
+    {
+        if (reentrantcheck)
+        {
+            maxDoCount = -1;
+            return;
+        }
+        reentrantcheck=1;
+        maxDoCount = 10;
+    }
+    while (1)
+    {
+        if (InputCheckPending())
+        {
             ProcessInputEvents();
             FlushIfCriticalOutputPending();
         }
@@ -433,6 +439,11 @@ void DispatchQueuedEvents(Bool wait)
                 reentrantcheck=0;
                 return;
             }
+            else if (maxDoCount-- < 0)
+            {
+                reentrantcheck=0;
+                return;
+            }
         }
 
        /*****************
@@ -440,7 +451,8 @@ void DispatchQueuedEvents(Bool wait)
 	*  each round
 	*****************/
 
-        if (!dispatchException && clients_are_ready()) {
+        if (!dispatchException && clients_are_ready())
+        {
             long start_tick;
             ClientPtr client;
             client = SmartScheduleClient();
@@ -448,7 +460,8 @@ void DispatchQueuedEvents(Bool wait)
             isItTimeToYield = FALSE;
 
             start_tick = SmartScheduleTime;
-            while (!isItTimeToYield) {
+            while (!isItTimeToYield)
+            {
                 int result;
 #ifdef XSERVER_DTRACE
                 CARD8 StartMajorOp;
@@ -467,7 +480,8 @@ void DispatchQueuedEvents(Bool wait)
 
                 /* now, finally, deal with client requests */
                 result = ReadRequestFromClient(client);
-                if (result <= 0) {
+                if (result <= 0)
+                {
                     if (result < 0)
                         CloseDownClient(client);
                     break;
@@ -476,7 +490,8 @@ void DispatchQueuedEvents(Bool wait)
                 client->sequence++;
                 client->majorOp = ((xReq *) client->requestBuffer)->reqType;
                 client->minorOp = 0;
-                if (client->majorOp >= EXTENSION_BASE) {
+                if (client->majorOp >= EXTENSION_BASE)
+                {
                     ExtensionEntry *ext = GetExtensionEntry(client->majorOp);
 
                     if (ext)
@@ -495,11 +510,11 @@ void DispatchQueuedEvents(Bool wait)
 #endif
                 if (result > (maxBigRequestSize << 2))
                     result = BadLength;
-                else {
+                else
+                {
                     result = XaceHookDispatch(client, client->majorOp);
                     if (result == Success)
-                        result =
-                            (*client->requestVector[client->majorOp]) (client);
+                        result = (*client->requestVector[client->majorOp]) (client);
                 }
                 if (!SmartScheduleSignalEnable)
                     SmartScheduleTime = GetTimeInMillis();
@@ -507,42 +522,36 @@ void DispatchQueuedEvents(Bool wait)
 #ifdef XSERVER_DTRACE
                 if (XSERVER_REQUEST_DONE_ENABLED())
                 {
-                  if (result!=Success)
-                  {
-                    char Message[255];
-                    sprintf(Message,"ERROR: %s (0x%x)",LookupMajorName(client->majorOp),client->errorValue);
-                    XSERVER_REQUEST_DONE(Message,
-                                         client->majorOp, client->sequence,
-                                         client->index, result);
-                  }
-                  else
-                  {
-                    if (StartMajorOp!=client->majorOp)
+                    if (result!=Success)
                     {
-                      char Message[255];
-                      sprintf(Message,"Changed request: %s -> %s",LookupMajorName(StartMajorOp),LookupMajorName(client->majorOp));
-                      XSERVER_REQUEST_DONE(Message,
-                                           client->majorOp, client->sequence,
-                                           client->index, result);
+                        char Message[255];
+                        sprintf(Message,"ERROR: %s (0x%x)",LookupMajorName(client->majorOp),client->errorValue);
+                        XSERVER_REQUEST_DONE(Message, client->majorOp, client->sequence, client->index, result);
                     }
                     else
                     {
-                      XSERVER_REQUEST_DONE(LookupMajorName(client->majorOp),
-                                           client->majorOp, client->sequence,
-                                           client->index, result);
+                        if (StartMajorOp!=client->majorOp)
+                        {
+                            char Message[255];
+                            sprintf(Message,"Changed request: %s -> %s",LookupMajorName(StartMajorOp),LookupMajorName(client->majorOp));
+                            XSERVER_REQUEST_DONE(Message, client->majorOp, client->sequence, client->index, result);
+                        }
+                        else
+                        {
+                            XSERVER_REQUEST_DONE(LookupMajorName(client->majorOp), client->majorOp, client->sequence, client->index, result);
+                        }
                     }
-                  }
                 }
 #endif
 
-                if (client->noClientException != Success) {
+                if (client->noClientException != Success)
+                {
                     CloseDownClient(client);
                     break;
                 }
-                else if (result != Success) {
-                    SendErrorToClient(client, client->majorOp,
-                                      client->minorOp,
-                                      client->errorValue, result);
+                else if (result != Success)
+                {
+                    SendErrorToClient(client, client->majorOp, client->minorOp, client->errorValue, result);
                     break;
                 }
             }
