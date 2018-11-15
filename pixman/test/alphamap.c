@@ -10,7 +10,8 @@ static const pixman_format_code_t formats[] =
     PIXMAN_a8r8g8b8,
     PIXMAN_a2r10g10b10,
     PIXMAN_a4r4g4b4,
-    PIXMAN_a8
+    PIXMAN_a8,
+    PIXMAN_rgba_float,
 };
 
 static const pixman_format_code_t alpha_formats[] =
@@ -18,7 +19,8 @@ static const pixman_format_code_t alpha_formats[] =
     PIXMAN_null,
     PIXMAN_a8,
     PIXMAN_a2r10g10b10,
-    PIXMAN_a4r4g4b4
+    PIXMAN_a4r4g4b4,
+    PIXMAN_rgba_float,
 };
 
 static const int origins[] =
@@ -41,7 +43,10 @@ make_image (pixman_format_code_t format)
     uint8_t bpp = PIXMAN_FORMAT_BPP (format) / 8;
     pixman_image_t *image;
 
-    bits = (uint32_t *)make_random_bytes (WIDTH * HEIGHT * bpp);
+    if (format != PIXMAN_rgba_float)
+	bits = (uint32_t *)make_random_bytes (WIDTH * HEIGHT * bpp);
+    else
+	bits = (uint32_t *)make_random_floats (WIDTH * HEIGHT * bpp);
 
     image = pixman_image_create_bits (format, WIDTH, HEIGHT, bits, WIDTH * bpp);
 
@@ -51,11 +56,11 @@ make_image (pixman_format_code_t format)
     return image;
 }
 
-static uint8_t
+static float
 get_alpha (pixman_image_t *image, int x, int y, int orig_x, int orig_y)
 {
     uint8_t *bits;
-    uint8_t r;
+    uint32_t r;
 
     if (image->common.alpha_map)
     {
@@ -69,7 +74,7 @@ get_alpha (pixman_image_t *image, int x, int y, int orig_x, int orig_y)
 	}
 	else
 	{
-	    return 0;
+	    return 0.f;
 	}
     }
 
@@ -78,28 +83,32 @@ get_alpha (pixman_image_t *image, int x, int y, int orig_x, int orig_y)
     if (image->bits.format == PIXMAN_a8)
     {
 	r = bits[y * WIDTH + x];
+	return r / 255.f;
     }
     else if (image->bits.format == PIXMAN_a2r10g10b10)
     {
 	r = ((uint32_t *)bits)[y * WIDTH + x] >> 30;
-	r |= r << 2;
-	r |= r << 4;
+	return r / 3.f;
     }
     else if (image->bits.format == PIXMAN_a8r8g8b8)
     {
 	r = ((uint32_t *)bits)[y * WIDTH + x] >> 24;
+	return r / 255.f;
     }
     else if (image->bits.format == PIXMAN_a4r4g4b4)
     {
 	r = ((uint16_t *)bits)[y * WIDTH + x] >> 12;
-	r |= r << 4;
+	return r / 15.f;
+    }
+    else if (image->bits.format == PIXMAN_rgba_float)
+    {
+	return ((float *)bits)[y * WIDTH * 4 + x * 4 + 3];
     }
     else
     {
 	assert (0);
+	return 0.f;
     }
-
-    return r;
 }
 
 static uint16_t
@@ -133,12 +142,34 @@ get_red (pixman_image_t *image, int x, int y, int orig_x, int orig_y)
 	r |= r << 4;
 	r |= r << 8;
     }
+    else if (image->bits.format == PIXMAN_rgba_float)
+    {
+	double tmp = ((float *)bits)[y * WIDTH * 4 + x * 4];
+	return tmp * 65535.;
+    }
     else
     {
 	assert (0);
     }
 
     return r;
+}
+
+static float get_alpha_err(pixman_format_code_t sf, pixman_format_code_t saf,
+			   pixman_format_code_t df, pixman_format_code_t daf)
+{
+	pixman_format_code_t s = saf != PIXMAN_null ? saf : sf;
+	pixman_format_code_t d = daf != PIXMAN_null ? daf : df;
+
+	/* There are cases where we go through the 8 bit compositing
+	 * path even with 10bpc and higher formats.
+	 */
+	if (PIXMAN_FORMAT_A(s) == PIXMAN_FORMAT_A(d))
+		return 1.f / 255.f;
+	else if (PIXMAN_FORMAT_A(s) > PIXMAN_FORMAT_A(d))
+		return 1.f / ((1 << PIXMAN_FORMAT_A(d)) - 1);
+	else
+		return 1.f / ((1 << PIXMAN_FORMAT_A(s)) - 1);
 }
 
 static int
@@ -151,14 +182,10 @@ run_test (int s, int d, int sa, int da, int soff, int doff)
     pixman_image_t *src, *dst, *orig_dst, *alpha, *orig_alpha;
     pixman_transform_t t1;
     int j, k;
-    int n_alpha_bits, n_red_bits;
+    int n_red_bits;
 
     soff = origins[soff];
     doff = origins[doff];
-
-    n_alpha_bits = PIXMAN_FORMAT_A (df);
-    if (daf != PIXMAN_null)
-	n_alpha_bits = PIXMAN_FORMAT_A (daf);
 
     n_red_bits = PIXMAN_FORMAT_R (df);
 
@@ -211,21 +238,25 @@ run_test (int s, int d, int sa, int da, int soff, int doff)
     {
 	for (k = MAX (doff, 0); k < MIN (WIDTH, WIDTH + doff); ++k)
 	{
-	    uint8_t sa, da, oda, refa;
+	    float sa, da, oda, refa;
 	    uint16_t sr, dr, odr, refr;
+	    float err;
+
+	    err = get_alpha_err(sf, saf, df, daf);
 
 	    sa = get_alpha (src, k, j, soff, soff);
 	    da = get_alpha (dst, k, j, doff, doff);
 	    oda = get_alpha (orig_dst, k, j, doff, doff);
 
-	    if (sa + oda > 255)
-		refa = 255;
+	    if (sa + oda > 1.f)
+		refa = 1.f;
 	    else
 		refa = sa + oda;
 
-	    if (da >> (8 - n_alpha_bits) != refa >> (8 - n_alpha_bits))
+	    if (da - err > refa ||
+	        da + err < refa)
 	    {
-		printf ("\nWrong alpha value at (%d, %d). Should be 0x%x; got 0x%x. Source was 0x%x, original dest was 0x%x\n",
+		printf ("\nWrong alpha value at (%d, %d). Should be %g; got %g. Source was %g, original dest was %g\n",
 			k, j, refa, da, sa, oda);
 
 		printf ("src: %s, alpha: %s, origin %d %d\ndst: %s, alpha: %s, origin: %d %d\n\n",

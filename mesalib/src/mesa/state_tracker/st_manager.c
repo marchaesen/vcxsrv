@@ -888,6 +888,9 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    else if (attribs->flags & ST_CONTEXT_FLAG_HIGH_PRIORITY)
       ctx_flags |= PIPE_CONTEXT_HIGH_PRIORITY;
 
+   if (attribs->flags & ST_CONTEXT_FLAG_RESET_NOTIFICATION_ENABLED)
+      ctx_flags |= PIPE_CONTEXT_LOSE_CONTEXT_ON_RESET;
+
    pipe = smapi->screen->context_create(smapi->screen, NULL, ctx_flags);
    if (!pipe) {
       *error = ST_CONTEXT_ERROR_NO_MEMORY;
@@ -1069,15 +1072,6 @@ st_api_make_current(struct st_api *stapi, struct st_context_iface *stctxi,
        * of the referenced drawables no longer exist.
        */
       st_framebuffers_purge(st);
-
-      /* Notify the driver that the context thread may have been changed.
-       * This should pin all driver threads to a specific L3 cache for optimal
-       * performance on AMD Zen CPUs.
-       */
-      struct glthread_state *glthread = st->ctx->GLThread;
-      thrd_t *upper_thread = glthread ? &glthread->queue.threads[0] : NULL;
-
-      util_context_thread_changed(st->pipe, upper_thread);
    }
    else {
       ret = _mesa_make_current(NULL, NULL, NULL);

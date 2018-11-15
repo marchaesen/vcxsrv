@@ -44,86 +44,86 @@
 typedef struct _FontCacheQueryVersion {
     CARD8	reqType;		/* always FontCacheReqCode */
     CARD8	fontcacheReqType;	/* always X_FontCacheQueryVersion */
-    CARD16	length B16;
+    CARD16	length;
 } xFontCacheQueryVersionReq;
 #define sz_xFontCacheQueryVersionReq	4
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     BOOL	pad1;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD16	majorVersion B16;	/* major version of Font-Cache */
-    CARD16	minorVersion B16;	/* minor version of Font-Cache */
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD16	majorVersion;		/* major version of Font-Cache */
+    CARD16	minorVersion;		/* minor version of Font-Cache */
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xFontCacheQueryVersionReply;
 #define sz_xFontCacheQueryVersionReply	32
 
 typedef struct _FontCacheGetCacheSettings {
     CARD8	reqType;		/* always FontCacheReqCode */
     CARD8	fontcacheReqType;	/* always X_FontCacheGetCacheSettings */
-    CARD16	length B16;
+    CARD16	length;
 } xFontCacheGetCacheSettingsReq;
 #define sz_xFontCacheGetCacheSettingsReq	4
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     BOOL	pad1;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	himark B32;
-    CARD32	lowmark B32;
-    CARD32	balance B32;
-    CARD32	reserve0 B32;
-    CARD32	reserve1 B32;
-    CARD32	reserve2 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	himark;
+    CARD32	lowmark;
+    CARD32	balance;
+    CARD32	reserve0;
+    CARD32	reserve1;
+    CARD32	reserve2;
 } xFontCacheGetCacheSettingsReply;
 #define sz_xFontCacheGetCacheSettingsReply	32
 
 typedef struct _FontCacheChangeCacheSettings {
     CARD8	reqType;		/* always FontCacheReqCode */
     CARD8	fontcacheReqType;	/* always X_FontCacheChangeCacheSettings */
-    CARD16	length B16;
-    CARD32	himark B32;
-    CARD32	lowmark B32;
-    CARD32	balance B32;
-    CARD32	reserve0 B32;
-    CARD32	reserve1 B32;
-    CARD32	reserve2 B32;
-    CARD32	reserve3 B32;
+    CARD16	length;
+    CARD32	himark;
+    CARD32	lowmark;
+    CARD32	balance;
+    CARD32	reserve0;
+    CARD32	reserve1;
+    CARD32	reserve2;
+    CARD32	reserve3;
 } xFontCacheChangeCacheSettingsReq;
 #define sz_xFontCacheChangeCacheSettingsReq	32
 
 typedef struct _FontCacheGetCacheStatistics {
     CARD8	reqType;		/* always FontCacheReqCode */
     CARD8	fontcacheReqType;	/* always X_FontCacheGetCacheStatistics */
-    CARD16	length B16;
+    CARD16	length;
 } xFontCacheGetCacheStatisticsReq;
 #define sz_xFontCacheGetCacheStatisticsReq	4
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     BOOL	pad1;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	purge_runs B32;
-    CARD32	purge_stat B32;
-    CARD32	balance B32;
-    CARD32	reserve0 B32;
-    CARD32	f_hits B32;
-    CARD32	f_misshits B32;
-    CARD32	f_purged B32;
-    CARD32	f_usage B32;
-    CARD32	f_reserve0 B32;
-    CARD32	v_hits B32;
-    CARD32	v_misshits B32;
-    CARD32	v_purged B32;
-    CARD32	v_usage B32;
-    CARD32	v_reserve0 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	purge_runs;
+    CARD32	purge_stat;
+    CARD32	balance;
+    CARD32	reserve0;
+    CARD32	f_hits;
+    CARD32	f_misshits;
+    CARD32	f_purged;
+    CARD32	f_usage;
+    CARD32	f_reserve0;
+    CARD32	v_hits;
+    CARD32	v_misshits;
+    CARD32	v_purged;
+    CARD32	v_usage;
+    CARD32	v_reserve0;
 } xFontCacheGetCacheStatisticsReply;
 #define sz_xFontCacheGetCacheStatisticsReply	64
 

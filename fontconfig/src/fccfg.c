@@ -2233,7 +2233,7 @@ FcConfigRealFilename (FcConfig		*config,
 
     if (n)
     {
-	FcChar8 buf[PATH_MAX];
+	FcChar8 buf[FC_PATH_MAX];
 	ssize_t len;
 
 	if (sysroot)

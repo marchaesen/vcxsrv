@@ -520,7 +520,7 @@ static void
 SEventDeviceValuator(deviceValuator * from, deviceValuator * to)
 {
     int i;
-    INT32 *ip B32;
+    INT32 *ip;
 
     *to = *from;
     swaps(&to->sequenceNumber);
@@ -544,7 +544,7 @@ static void
 SDeviceStateNotifyEvent(deviceStateNotify * from, deviceStateNotify * to)
 {
     int i;
-    INT32 *ip B32;
+    INT32 *ip;
 
     *to = *from;
     swaps(&to->sequenceNumber);

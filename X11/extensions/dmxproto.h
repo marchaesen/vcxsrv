@@ -74,7 +74,7 @@
 typedef struct {
     CARD8   reqType;            /* dmxcode */
     CARD8   dmxReqType;         /* X_DMXQueryVersion */
-    CARD16  length B16;
+    CARD16  length;
 } xDMXQueryVersionReq;
 #define sz_xDMXQueryVersionReq 4
 
@@ -82,14 +82,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   ununsed;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  majorVersion B32;
-    CARD32  minorVersion B32;
-    CARD32  patchVersion B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  majorVersion;
+    CARD32  minorVersion;
+    CARD32  patchVersion;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
 } xDMXQueryVersionReply;
 #define sz_xDMXQueryVersionReply 32
 
@@ -97,7 +97,7 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXSync */
-    CARD16  length B16;
+    CARD16  length;
 } xDMXSyncReq;
 #define sz_xDMXSyncReq 4
 
@@ -105,14 +105,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  status B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  status;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
 } xDMXSyncReply;
 #define sz_xDMXSyncReply 32
 
@@ -120,8 +120,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXForceWindowCreation */
-    CARD16  length B16;
-    CARD32  window B32;
+    CARD16  length;
+    CARD32  window;
 } xDMXForceWindowCreationReq;
 #define sz_xDMXForceWindowCreationReq 8
 
@@ -129,14 +129,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  status B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  status;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
 } xDMXForceWindowCreationReply;
 #define sz_xDMXForceWindowCreationReply 32
 
@@ -144,7 +144,7 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXGetScreenCount */
-    CARD16  length B16;
+    CARD16  length;
 } xDMXGetScreenCountReq;
 #define sz_xDMXGetScreenCountReq 4
 
@@ -152,14 +152,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  screenCount B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  screenCount;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
 } xDMXGetScreenCountReply;
 #define sz_xDMXGetScreenCountReply 32
 
@@ -167,8 +167,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXGetScreenAttributes */
-    CARD16  length B16;
-    CARD32  physicalScreen B32;
+    CARD16  length;
+    CARD32  physicalScreen;
 } xDMXGetScreenAttributesReq;
 #define sz_xDMXGetScreenAttributesReq 8
 
@@ -176,22 +176,22 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  displayNameLength B32;
-    CARD32  logicalScreen B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  displayNameLength;
+    CARD32  logicalScreen;
 
-    CARD16  screenWindowWidth B16;
-    CARD16  screenWindowHeight B16;
-    INT16   screenWindowXoffset B16;
-    INT16   screenWindowYoffset B16;
+    CARD16  screenWindowWidth;
+    CARD16  screenWindowHeight;
+    INT16   screenWindowXoffset;
+    INT16   screenWindowYoffset;
 
-    CARD16  rootWindowWidth B16;
-    CARD16  rootWindowHeight B16;
-    INT16   rootWindowXoffset B16;
-    INT16   rootWindowYoffset B16;
-    INT16   rootWindowXorigin B16;
-    INT16   rootWindowYorigin B16;
+    CARD16  rootWindowWidth;
+    CARD16  rootWindowHeight;
+    INT16   rootWindowXoffset;
+    INT16   rootWindowYoffset;
+    INT16   rootWindowXorigin;
+    INT16   rootWindowYorigin;
 } xDMXGetScreenAttributesReply;
 #define sz_xDMXGetScreenAttributesReply 36
 
@@ -199,9 +199,9 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXChangeScreensAttributes */
-    CARD16  length B16;
-    CARD32  screenCount B32;
-    CARD32  maskCount B32;
+    CARD16  length;
+    CARD32  screenCount;
+    CARD32  maskCount;
 } xDMXChangeScreensAttributesReq;
 #define sz_xDMXChangeScreensAttributesReq 12
 
@@ -209,14 +209,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  status B32;
-    CARD32  errorScreen B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  status;
+    CARD32  errorScreen;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
 } xDMXChangeScreensAttributesReply;
 #define sz_xDMXChangeScreensAttributesReply 32
 
@@ -224,10 +224,10 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXAddScreen */
-    CARD16  length B16;
-    CARD32  displayNameLength B32;
-    CARD32  physicalScreen B32;
-    CARD32  valueMask B32;
+    CARD16  length;
+    CARD32  displayNameLength;
+    CARD32  physicalScreen;
+    CARD32  valueMask;
 } xDMXAddScreenReq;
 #define sz_xDMXAddScreenReq 16
 
@@ -235,14 +235,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  status B32;
-    CARD32  physicalScreen B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  status;
+    CARD32  physicalScreen;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
 } xDMXAddScreenReply;
 #define sz_xDMXAddScreenReply 32
 
@@ -250,8 +250,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXRemoveScreen */
-    CARD16  length B16;
-    CARD32  physicalScreen B32;
+    CARD16  length;
+    CARD32  physicalScreen;
 } xDMXRemoveScreenReq;
 #define sz_xDMXRemoveScreenReq 8
 
@@ -259,14 +259,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  status B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  status;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
 } xDMXRemoveScreenReply;
 #define sz_xDMXRemoveScreenReply 32
 
@@ -274,8 +274,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXGetWindowAttributes */
-    CARD16  length B16;
-    CARD32  window B32;
+    CARD16  length;
+    CARD32  window;
 } xDMXGetWindowAttributesReq;
 #define sz_xDMXGetWindowAttributesReq 8
 
@@ -283,14 +283,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  screenCount B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  screenCount;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
 } xDMXGetWindowAttributesReply;
 #define sz_xDMXGetWindowAttributesReply 32
 
@@ -298,7 +298,7 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXGetDesktopAttributes */
-    CARD16  length B16;
+    CARD16  length;
 } xDMXGetDesktopAttributesReq;
 #define sz_xDMXGetDesktopAttributesReq 4
 
@@ -306,16 +306,16 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
     INT16   width;
     INT16   height;
     INT16   shiftX;
     INT16   shiftY;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
 } xDMXGetDesktopAttributesReply;
 #define sz_xDMXGetDesktopAttributesReply 32
 
@@ -323,8 +323,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXChangeDesktopAttributes */
-    CARD16  length B16;
-    CARD32  valueMask B32;
+    CARD16  length;
+    CARD32  valueMask;
 } xDMXChangeDesktopAttributesReq;
 #define sz_xDMXChangeDesktopAttributesReq 8
 
@@ -332,14 +332,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  status B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  status;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
 } xDMXChangeDesktopAttributesReply;
 #define sz_xDMXChangeDesktopAttributesReply 32
 
@@ -347,7 +347,7 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXGetInputCount */
-    CARD16  length B16;
+    CARD16  length;
 } xDMXGetInputCountReq;
 #define sz_xDMXGetInputCountReq 4
 
@@ -355,14 +355,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  inputCount B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  inputCount;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
 } xDMXGetInputCountReply;
 #define sz_xDMXGetInputCountReply 32
 
@@ -370,8 +370,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXGetInputAttributes */
-    CARD16  length B16;
-    CARD32  deviceId B32;
+    CARD16  length;
+    CARD32  deviceId;
 } xDMXGetInputAttributesReq;
 #define sz_xDMXGetInputAttributesReq 8
 
@@ -379,17 +379,17 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  inputType B32;
-    CARD32  physicalScreen B32;
-    CARD32  physicalId B32;
-    CARD32  nameLength B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  inputType;
+    CARD32  physicalScreen;
+    CARD32  physicalId;
+    CARD32  nameLength;
     BOOL    isCore;
     BOOL    sendsCore;
     BOOL    detached;
     CARD8   pad0;
-    CARD32  pad1 B32;
+    CARD32  pad1;
 } xDMXGetInputAttributesReply;
 #define sz_xDMXGetInputAttributesReply 32
 
@@ -397,8 +397,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXAddInput */
-    CARD16  length B16;
-    CARD32  displayNameLength B32;
+    CARD16  length;
+    CARD32  displayNameLength;
     CARD32  valueMask;
 } xDMXAddInputReq;
 #define sz_xDMXAddInputReq 12
@@ -407,14 +407,14 @@ typedef struct {
 typedef struct {
     BYTE    type;               /* X_Reply */
     CARD8   unused;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  status B32;
-    CARD32  physicalId B32;
-    CARD32  pad0 B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  status;
+    CARD32  physicalId;
+    CARD32  pad0;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
 } xDMXAddInputReply;
 #define sz_xDMXAddInputReply 32
 
@@ -422,8 +422,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;            /* DMXCode */
     CARD8   dmxReqType;         /* X_DMXRemoveInput */
-    CARD16  length B16;
-    CARD32  physicalId B32;
+    CARD16  length;
+    CARD32  physicalId;
 } xDMXRemoveInputReq;
 #define sz_xDMXRemoveInputReq 8
 
@@ -431,14 +431,14 @@ typedef struct {
 typedef struct {
     BYTE     type;
     CARD8    unused;
-    CARD16   sequenceNumber B16;
-    CARD32   length B32;
-    CARD32   status B32;
-    CARD32   pad0 B32;
-    CARD32   pad1 B32;
-    CARD32   pad2 B32;
-    CARD32   pad3 B32;
-    CARD32   pad4 B32;
+    CARD16   sequenceNumber;
+    CARD32   length;
+    CARD32   status;
+    CARD32   pad0;
+    CARD32   pad1;
+    CARD32   pad2;
+    CARD32   pad3;
+    CARD32   pad4;
 } xDMXRemoveInputReply;
 #define sz_xDMXRemoveInputReply 32
 

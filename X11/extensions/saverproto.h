@@ -48,25 +48,25 @@ in this Software without prior written authorization from the X Consortium.
 typedef struct _ScreenSaverQueryVersion {
     CARD8 reqType;		/* always ScreenSaverReqCode */
     CARD8 saverReqType;		/* always X_ScreenSaverQueryVersion */
-    CARD16 length B16;
+    CARD16 length;
     CARD8 clientMajor;
     CARD8 clientMinor;
-    CARD16 unused B16;
+    CARD16 unused;
 } xScreenSaverQueryVersionReq;
 #define sz_xScreenSaverQueryVersionReq	8
 
 typedef struct {
     CARD8 type;			/* X_Reply */
     CARD8 unused;			/* not used */
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD16 majorVersion B16;	/* major version of protocol */
-    CARD16 minorVersion B16;	/* minor version of protocol */
-    CARD32 pad0 B32;
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 majorVersion;	/* major version of protocol */
+    CARD16 minorVersion;	/* minor version of protocol */
+    CARD32 pad0;
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
 } xScreenSaverQueryVersionReply;
 #define sz_xScreenSaverQueryVersionReply	32
 
@@ -75,24 +75,24 @@ typedef struct {
 typedef struct _ScreenSaverQueryInfo {
     CARD8 reqType;		/* always ScreenSaverReqCode */
     CARD8 saverReqType;		/* always X_ScreenSaverQueryInfo */
-    CARD16 length B16;
-    Drawable drawable B32;
+    CARD16 length;
+    Drawable drawable;
 } xScreenSaverQueryInfoReq;
 #define sz_xScreenSaverQueryInfoReq	8
 
 typedef struct {
     CARD8 type;			/* X_Reply */
     BYTE state;			/* Off, On */
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    Window window B32;
-    CARD32 tilOrSince B32;
-    CARD32 idle B32;
-    CARD32 eventMask B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    Window window;
+    CARD32 tilOrSince;
+    CARD32 idle;
+    CARD32 eventMask;
     BYTE kind;			/* Blanked, Internal, External */
     CARD8 pad0;
-    CARD16 pad1 B16;
-    CARD32 pad2 B32;
+    CARD16 pad1;
+    CARD32 pad2;
 } xScreenSaverQueryInfoReply;
 #define sz_xScreenSaverQueryInfoReply	32
 
@@ -101,9 +101,9 @@ typedef struct {
 typedef struct _ScreenSaverSelectInput {
     CARD8 reqType;		/* always ScreenSaverReqCode */
     CARD8 saverReqType;		/* always X_ScreenSaverSelectInput */
-    CARD16 length B16;
-    Drawable drawable B32;
-    CARD32 eventMask B32;
+    CARD16 length;
+    Drawable drawable;
+    CARD32 eventMask;
 } xScreenSaverSelectInputReq;
 #define sz_xScreenSaverSelectInputReq	12
 
@@ -112,14 +112,14 @@ typedef struct _ScreenSaverSelectInput {
 typedef struct _ScreenSaverSetAttributes {
     CARD8 reqType;		/* always ScreenSaverReqCode */
     CARD8 saverReqType;		/* always X_ScreenSaverSetAttributes */
-    CARD16 length B16;
-    Drawable drawable B32;
-    INT16 x B16, y B16;
-    CARD16 width B16, height B16, borderWidth B16;
+    CARD16 length;
+    Drawable drawable;
+    INT16 x, y;
+    CARD16 width, height, borderWidth;
     BYTE c_class;
     CARD8 depth;
-    VisualID visualID B32;
-    CARD32 mask B32;
+    VisualID visualID;
+    CARD32 mask;
 } xScreenSaverSetAttributesReq;
 #define sz_xScreenSaverSetAttributesReq	28
 
@@ -128,8 +128,8 @@ typedef struct _ScreenSaverSetAttributes {
 typedef struct _ScreenSaverUnsetAttributes {
     CARD8 reqType;		/* always ScreenSaverReqCode */
     CARD8 saverReqType;		/* always X_ScreenSaverUnsetAttributes */
-    CARD16 length B16;
-    Drawable drawable B32;
+    CARD16 length;
+    Drawable drawable;
 } xScreenSaverUnsetAttributesReq;
 #define sz_xScreenSaverUnsetAttributesReq	8
 
@@ -138,24 +138,24 @@ typedef struct _ScreenSaverUnsetAttributes {
 typedef struct _ScreenSaverSuspend {
     CARD8 reqType;
     CARD8 saverReqType;
-    CARD16 length B16;
-    CARD32 suspend B32;		/* a boolean, but using the wrong encoding */
+    CARD16 length;
+    CARD32 suspend;		/* a boolean, but using the wrong encoding */
 } xScreenSaverSuspendReq;
 #define sz_xScreenSaverSuspendReq	8
 
 typedef struct _ScreenSaverNotify {
     CARD8 type;			/* always eventBase + ScreenSaverNotify */
     BYTE state;			/* off, on, cycle */
-    CARD16 sequenceNumber B16;
-    Time timestamp B32;
-    Window root B32;
-    Window window B32;		/* screen saver window */
+    CARD16 sequenceNumber;
+    Time timestamp;
+    Window root;
+    Window window;		/* screen saver window */
     BYTE kind;			/* blanked, internal, external */
     BYTE forced;
-    CARD16 pad0 B16;
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
+    CARD16 pad0;
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
 } xScreenSaverNotifyEvent;
 #define sz_xScreenSaverNotifyEvent	32
 

@@ -295,6 +295,14 @@ HASH		^{SPC}#{SPC}
 				  BEGIN PP;
 				  return PRAGMA_OPTIMIZE_OFF;
 				}
+^{SPC}#{SPC}pragma{SPCP}warning{SPC}\({SPC}on{SPC}\) {
+				  BEGIN PP;
+				  return PRAGMA_WARNING_ON;
+				}
+^{SPC}#{SPC}pragma{SPCP}warning{SPC}\({SPC}off{SPC}\) {
+				  BEGIN PP;
+				  return PRAGMA_WARNING_OFF;
+				}
 ^{SPC}#{SPC}pragma{SPCP}STDGL{SPCP}invariant{SPC}\({SPC}all{SPC}\) {
 				  BEGIN PP;
 				  return PRAGMA_INVARIANT_ALL;

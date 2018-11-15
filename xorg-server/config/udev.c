@@ -39,6 +39,10 @@
 #include "globals.h"
 #include "systemd-logind.h"
 
+#ifdef HAVE_SYS_SYSMACROS_H
+#include <sys/sysmacros.h>
+#endif
+
 #define UDEV_XKB_PROP_KEY "xkb"
 
 #define LOG_PROPERTY(path, prop, val)                                   \

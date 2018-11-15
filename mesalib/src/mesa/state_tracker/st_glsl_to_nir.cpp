@@ -588,6 +588,9 @@ st_nir_link_shaders(nir_shader **producer, nir_shader **consumer, bool scalar)
 {
    nir_lower_io_arrays_to_elements(*producer, *consumer);
 
+   if (nir_link_constant_varyings(*producer, *consumer))
+      st_nir_opts(*consumer, scalar);
+
    NIR_PASS_V(*producer, nir_remove_dead_variables, nir_var_shader_out);
    NIR_PASS_V(*consumer, nir_remove_dead_variables, nir_var_shader_in);
 

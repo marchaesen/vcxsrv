@@ -401,6 +401,9 @@ enum pipe_flush_flags
  */
 #define PIPE_CONTEXT_LOW_PRIORITY      (1 << 5)
 
+/** Stop execution if the device is reset. */
+#define PIPE_CONTEXT_LOSE_CONTEXT_ON_RESET (1 << 6)
+
 /**
  * Flags for pipe_context::memory_barrier.
  */

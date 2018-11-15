@@ -684,7 +684,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define	XkbIM_UseAnyMods  (XkbIM_UseAnyGroup|XkbIM_UseCompat)
 
     /*
-     * Compatibility Map Compontents:
+     * Compatibility Map Components:
      *  - Specifies the components to be allocated in XkbAllocCompatMap.
      */
 #define	XkbSymInterpMask	(1<<0)

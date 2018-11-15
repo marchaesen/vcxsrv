@@ -1811,6 +1811,26 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
             src[j] = src_val->constant->values[0];
          }
 
+         /* fix up fixed size sources */
+         switch (op) {
+         case nir_op_ishl:
+         case nir_op_ishr:
+         case nir_op_ushr: {
+            if (bit_size == 32)
+               break;
+            for (unsigned i = 0; i < num_components; ++i) {
+               switch (bit_size) {
+               case 64: src[1].u32[i] = src[1].u64[i]; break;
+               case 16: src[1].u32[i] = src[1].u16[i]; break;
+               case  8: src[1].u32[i] = src[1].u8[i];  break;
+               }
+            }
+            break;
+         }
+         default:
+            break;
+         }
+
          val->constant->values[0] =
             nir_eval_const_opcode(op, num_components, bit_size, src);
          break;

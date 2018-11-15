@@ -67,8 +67,8 @@ typedef struct
     ClientPtr            client;  /* Multi-client support and error handling */
     xXTrapGetCurReply    cur;    /* Struct of Miscellaneous state info */
     xXTrapGetStatsReply  *stats; /* Pointer to stat's, malloc'd if requested */
-    CARD32 last_input_time B32; /* last timestamp from input event */
-    CARD16 protocol B16;        /* current communication protocol */
+    CARD32 last_input_time;      /* last timestamp from input event */
+    CARD16 protocol;             /* current communication protocol */
 } XETrapEnv;
 
 #define XETrapSetHeaderEvent(phdr)      ((phdr)->type = 0x1L)

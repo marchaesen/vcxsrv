@@ -58,9 +58,9 @@
 typedef struct {
     CARD8   reqType;
     CARD8   compositeReqType;
-    CARD16  length B16;
-    CARD32  majorVersion B32;
-    CARD32  minorVersion B32;
+    CARD16  length;
+    CARD32  majorVersion;
+    CARD32  minorVersion;
 } xCompositeQueryVersionReq;
 
 #define sz_xCompositeQueryVersionReq   12
@@ -68,14 +68,14 @@ typedef struct {
 typedef struct {
     BYTE    type;   /* X_Reply */
     BYTE    pad1;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  majorVersion B32;
-    CARD32  minorVersion B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  majorVersion;
+    CARD32  minorVersion;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
 } xCompositeQueryVersionReply;
 
 #define sz_xCompositeQueryVersionReply	32
@@ -83,11 +83,11 @@ typedef struct {
 typedef struct {
     CARD8   reqType;
     CARD8   compositeReqType;
-    CARD16  length B16;
-    Window  window B32;
+    CARD16  length;
+    Window  window;
     CARD8   update;
     CARD8   pad1;
-    CARD16  pad2 B16;
+    CARD16  pad2;
 } xCompositeRedirectWindowReq;
 
 #define sz_xCompositeRedirectWindowReq	12
@@ -95,11 +95,11 @@ typedef struct {
 typedef struct {
     CARD8   reqType;
     CARD8   compositeReqType;
-    CARD16  length B16;
-    Window  window B32;
+    CARD16  length;
+    Window  window;
     CARD8   update;
     CARD8   pad1;
-    CARD16  pad2 B16;
+    CARD16  pad2;
 } xCompositeRedirectSubwindowsReq;
 
 #define sz_xCompositeRedirectSubwindowsReq	    12
@@ -107,11 +107,11 @@ typedef struct {
 typedef struct {
     CARD8   reqType;
     CARD8   compositeReqType;
-    CARD16  length B16;
-    Window  window B32;
+    CARD16  length;
+    Window  window;
     CARD8   update;
     CARD8   pad1;
-    CARD16  pad2 B16;
+    CARD16  pad2;
 } xCompositeUnredirectWindowReq;
 
 #define sz_xCompositeUnredirectWindowReq    12
@@ -119,11 +119,11 @@ typedef struct {
 typedef struct {
     CARD8   reqType;
     CARD8   compositeReqType;
-    CARD16  length B16;
-    Window  window B32;
+    CARD16  length;
+    Window  window;
     CARD8   update;
     CARD8   pad1;
-    CARD16  pad2 B16;
+    CARD16  pad2;
 } xCompositeUnredirectSubwindowsReq;
 
 #define sz_xCompositeUnredirectSubwindowsReq   12
@@ -131,9 +131,9 @@ typedef struct {
 typedef struct {
     CARD8   reqType;
     CARD8   compositeReqType;
-    CARD16  length B16;
-    Region  region B32;
-    Window  window B32;
+    CARD16  length;
+    Region  region;
+    Window  window;
 } xCompositeCreateRegionFromBorderClipReq;
 
 #define sz_xCompositeCreateRegionFromBorderClipReq  12
@@ -144,8 +144,8 @@ typedef struct {
     CARD8   reqType;
     CARD8   compositeReqType;
     CARD16  length;
-    Window  window B32;
-    Pixmap  pixmap B32;
+    Window  window;
+    Pixmap  pixmap;
 } xCompositeNameWindowPixmapReq;
 
 #define sz_xCompositeNameWindowPixmapReq	    12
@@ -155,8 +155,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;
     CARD8   compositeReqType;
-    CARD16  length B16;
-    Window  window B32;
+    CARD16  length;
+    Window  window;
 } xCompositeGetOverlayWindowReq;
 
 #define sz_xCompositeGetOverlayWindowReq sizeof(xCompositeGetOverlayWindowReq)
@@ -164,14 +164,14 @@ typedef struct {
 typedef struct {
     BYTE    type;   /* X_Reply */
     BYTE    pad1;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    Window  overlayWin B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
-    CARD32  pad6 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    Window  overlayWin;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
+    CARD32  pad6;
 } xCompositeGetOverlayWindowReply;
 
 #define sz_xCompositeGetOverlayWindowReply sizeof(xCompositeGetOverlayWindowReply)
@@ -179,8 +179,8 @@ typedef struct {
 typedef struct {
     CARD8   reqType;
     CARD8   compositeReqType;
-    CARD16  length B16;
-    Window  window B32;
+    CARD16  length;
+    Window  window;
 } xCompositeReleaseOverlayWindowReq;
 
 #define sz_xCompositeReleaseOverlayWindowReq sizeof(xCompositeReleaseOverlayWindowReq)

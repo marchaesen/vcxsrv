@@ -1293,14 +1293,21 @@ RetrieveTouchDeliveryData(DeviceIntPtr dev, TouchPointInfoPtr ti,
     int rc;
     InputClients *iclients = NULL;
     *mask = NULL;
+    *grab = NULL;
 
     if (listener->type == LISTENER_GRAB ||
         listener->type == LISTENER_POINTER_GRAB) {
-
         *grab = listener->grab;
 
         BUG_RETURN_VAL(!*grab, FALSE);
+    }
+    else if (ti->emulate_pointer && dev->deviceGrab.grab &&
+             !dev->deviceGrab.fromPassiveGrab) {
+        /* There may be an active pointer grab on the device */
+        *grab = dev->deviceGrab.grab;
+    }
 
+    if (*grab) {
         *client = rClient(*grab);
         *win = (*grab)->window;
         *mask = (*grab)->xi2mask;
@@ -1357,8 +1364,6 @@ RetrieveTouchDeliveryData(DeviceIntPtr dev, TouchPointInfoPtr ti,
             /* if owner selected, oclients is NULL */
             *client = oclients ? rClient(oclients) : wClient(*win);
         }
-
-        *grab = NULL;
     }
 
     return TRUE;
@@ -1497,16 +1502,6 @@ DeliverEmulatedMotionEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
                                        &ti->listeners[0], &client, &win, &grab,
                                        &mask))
             return;
-
-        /* There may be a pointer grab on the device */
-        if (!grab) {
-            grab = dev->deviceGrab.grab;
-            if (grab) {
-                win = grab->window;
-                mask = grab->xi2mask;
-                client = rClient(grab);
-            }
-        }
 
         DeliverTouchEmulatedEvent(dev, ti, (InternalEvent*)&motion, &ti->listeners[0], client,
                                   win, grab, mask);

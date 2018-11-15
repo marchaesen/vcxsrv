@@ -81,7 +81,7 @@
 #define MiscExtGrabStateLocked	1	/* A client already requested that
 					 * grabs cannot be removed/killed */
 #define MiscExtGrabStateAlready	2	/* Request for enabling/disabling
-					 * grab removeal/kill already done */
+					 * grab removal/kill already done */
 
 _XFUNCPROTOBEGIN
 

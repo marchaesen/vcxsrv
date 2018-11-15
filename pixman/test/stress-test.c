@@ -11,6 +11,8 @@
 
 static const pixman_format_code_t image_formats[] =
 {
+    PIXMAN_rgba_float,
+    PIXMAN_rgb_float,
     PIXMAN_a8r8g8b8,
     PIXMAN_x8r8g8b8,
     PIXMAN_r5g6b5,
@@ -100,6 +102,14 @@ get_size (void)
     }
 }
 
+static uint32_t
+real_reader (const void *src, int size);
+
+static void *xor_ptr(const void *ptr)
+{
+	return (void *)(((intptr_t)ptr) ^ (intptr_t)0x8000000080000000);
+}
+
 static void
 destroy (pixman_image_t *image, void *data)
 {
@@ -114,6 +124,9 @@ destroy (pixman_image_t *image, void *data)
 	    if (image->bits.rowstride < 0)
 		bits -= (- image->bits.rowstride * (image->bits.height - 1));
 
+	    if (image->bits.read_func == real_reader)
+		bits = xor_ptr(bits);
+
 	    fence_free (bits);
 	}
     }
@@ -124,6 +137,7 @@ destroy (pixman_image_t *image, void *data)
 static uint32_t
 real_reader (const void *src, int size)
 {
+    src = xor_ptr(src);
     switch (size)
     {
     case 1:
@@ -141,6 +155,7 @@ real_reader (const void *src, int size)
 static void
 real_writer (void *src, uint32_t value, int size)
 {
+    src = xor_ptr(src);
     switch (size)
     {
     case 1:
@@ -247,9 +262,20 @@ create_random_bits_image (alpha_preference_t alpha_preference)
     pixman_filter_t filter;
     pixman_fixed_t *coefficients = NULL;
     int n_coefficients = 0;
+    int align_add, align_mask;
 
     /* format */
     format = random_format (alpha_preference);
+    switch (PIXMAN_FORMAT_BPP (format)) {
+    case 128:
+	align_mask = 15;
+	align_add = align_mask + prng_rand_n (65);
+	break;
+    default:
+	align_mask = 3;
+	align_add = align_mask + prng_rand_n (17);
+	break;
+    }
 
     indexed = NULL;
     if (PIXMAN_FORMAT_TYPE (format) == PIXMAN_TYPE_COLOR)
@@ -291,9 +317,12 @@ create_random_bits_image (alpha_preference_t alpha_preference)
     {
     default:
     case 0:
-	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
-	stride = (stride + 3) & (~3);
-	bits = (uint32_t *)make_random_bytes (height * stride);
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8;
+	stride = (stride + align_add) & (~align_mask);
+	if (format == PIXMAN_rgb_float || format == PIXMAN_rgba_float)
+	    bits = (uint32_t *)make_random_floats (height * stride);
+	else
+	    bits = (uint32_t *)make_random_bytes (height * stride);
 	break;
 
     case 1:
@@ -302,8 +331,8 @@ create_random_bits_image (alpha_preference_t alpha_preference)
 	break;
 
     case 2: /* Zero-filled */
-	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
-	stride = (stride + 3) & (~3);
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8;
+	stride = (stride + align_add) & (~align_mask);
 	bits = fence_malloc (height * stride);
 	if (!bits)
 	    return NULL;
@@ -311,8 +340,8 @@ create_random_bits_image (alpha_preference_t alpha_preference)
 	break;
 
     case 3: /* Filled with 0xFF */
-	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
-	stride = (stride + 3) & (~3);
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8;
+	stride = (stride + align_add) & (~align_mask);
 	bits = fence_malloc (height * stride);
 	if (!bits)
 	    return NULL;
@@ -320,27 +349,35 @@ create_random_bits_image (alpha_preference_t alpha_preference)
 	break;
 
     case 4: /* bits is a bad pointer, has read/write functions */
-	stride = 232;
-	bits = (void *)0x01;
-	read_func = fake_reader;
-	write_func = fake_writer;
-	break;
+	if (PIXMAN_FORMAT_BPP (format) <= 32) {
+	    stride = 232;
+	    bits = (void *)0x01;
+	    read_func = fake_reader;
+	    write_func = fake_writer;
+	    break;
+	}
 
     case 5: /* bits is a real pointer, has read/write functions */
-	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
-	stride = (stride + 3) & (~3);
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8;
+	stride = (stride + align_add) & (~align_mask);
 	bits = fence_malloc (height * stride);
 	if (!bits)
 	    return NULL;
 	memset (bits, 0xff, height * stride);
-	read_func = real_reader;
-	write_func = real_writer;
+	if (PIXMAN_FORMAT_BPP (format) <= 32) {
+	    bits = xor_ptr(bits);
+	    read_func = real_reader;
+	    write_func = real_writer;
+	}
 	break;
 
     case 6: /* bits is a real pointer, stride is negative */
-	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8 + prng_rand_n (17);
-	stride = (stride + 3) & (~3);
-	bits = (uint32_t *)make_random_bytes (height * stride);
+	stride = (width * PIXMAN_FORMAT_BPP (format) + 7) / 8;
+	stride = (stride + align_add) & (~align_mask);
+	if (format == PIXMAN_rgb_float || format == PIXMAN_rgba_float)
+	    bits = (uint32_t *)make_random_floats (height * stride);
+	else
+	    bits = (uint32_t *)make_random_bytes (height * stride);
 	if (!bits)
 	    return NULL;
 	bits += ((height - 1) * stride) / 4;

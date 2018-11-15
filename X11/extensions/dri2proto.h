@@ -63,294 +63,294 @@
 #define DRI2_InvalidateBuffers	1
 
 typedef struct {
-    CARD32  attachment B32;
-    CARD32  name B32;
-    CARD32  pitch B32;
-    CARD32  cpp B32;
-    CARD32  flags B32;
+    CARD32  attachment;
+    CARD32  name;
+    CARD32  pitch;
+    CARD32  cpp;
+    CARD32  flags;
 } xDRI2Buffer;
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  majorVersion B32;
-    CARD32  minorVersion B32;
+    CARD16  length;
+    CARD32  majorVersion;
+    CARD32  minorVersion;
 } xDRI2QueryVersionReq;
 #define sz_xDRI2QueryVersionReq   12
 
 typedef struct {
     BYTE    type;   /* X_Reply */
     BYTE    pad1;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  majorVersion B32;
-    CARD32  minorVersion B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  majorVersion;
+    CARD32  minorVersion;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
 } xDRI2QueryVersionReply;
 #define sz_xDRI2QueryVersionReply	32
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  window B32;
-    CARD32  driverType B32;
+    CARD16  length;
+    CARD32  window;
+    CARD32  driverType;
 } xDRI2ConnectReq;
 #define sz_xDRI2ConnectReq	12
 
 typedef struct {
     BYTE    type;   /* X_Reply */
     BYTE    pad1;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  driverNameLength B32;
-    CARD32  deviceNameLength B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  driverNameLength;
+    CARD32  deviceNameLength;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
 } xDRI2ConnectReply;
 #define sz_xDRI2ConnectReply	32
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  window B32;
-    CARD32  magic B32;
+    CARD16  length;
+    CARD32  window;
+    CARD32  magic;
 } xDRI2AuthenticateReq;
 #define sz_xDRI2AuthenticateReq   12
 
 typedef struct {
     BYTE    type;   /* X_Reply */
     BYTE    pad1;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  authenticated B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
-    CARD32  pad6 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  authenticated;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
+    CARD32  pad6;
 } xDRI2AuthenticateReply;
 #define sz_xDRI2AuthenticateReply	32
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
+    CARD16  length;
+    CARD32  drawable;
 } xDRI2CreateDrawableReq;
 #define sz_xDRI2CreateDrawableReq   8
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
+    CARD16  length;
+    CARD32  drawable;
 } xDRI2DestroyDrawableReq;
 #define sz_xDRI2DestroyDrawableReq   8
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
-    CARD32  count B32;
+    CARD16  length;
+    CARD32  drawable;
+    CARD32  count;
 } xDRI2GetBuffersReq;
 #define sz_xDRI2GetBuffersReq   12
 
 typedef struct {
     BYTE    type;   /* X_Reply */
     BYTE    pad1;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  width B32;
-    CARD32  height B32;
-    CARD32  count B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  width;
+    CARD32  height;
+    CARD32  count;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
 } xDRI2GetBuffersReply;
 #define sz_xDRI2GetBuffersReply	32
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
-    CARD32  region B32;
-    CARD32  dest B32;
-    CARD32  src B32;
+    CARD16  length;
+    CARD32  drawable;
+    CARD32  region;
+    CARD32  dest;
+    CARD32  src;
 } xDRI2CopyRegionReq;
 #define sz_xDRI2CopyRegionReq   20
 
 typedef struct {
     BYTE    type;   /* X_Reply */
     BYTE    pad1;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
-    CARD32  pad6 B32;
-    CARD32  pad7 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
+    CARD32  pad6;
+    CARD32  pad7;
 } xDRI2CopyRegionReply;
 #define sz_xDRI2CopyRegionReply	32
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
-    CARD32  target_msc_hi B32;
-    CARD32  target_msc_lo B32;
-    CARD32  divisor_hi B32;
-    CARD32  divisor_lo B32;
-    CARD32  remainder_hi B32;
-    CARD32  remainder_lo B32;
+    CARD16  length;
+    CARD32  drawable;
+    CARD32  target_msc_hi;
+    CARD32  target_msc_lo;
+    CARD32  divisor_hi;
+    CARD32  divisor_lo;
+    CARD32  remainder_hi;
+    CARD32  remainder_lo;
 } xDRI2SwapBuffersReq;
 #define sz_xDRI2SwapBuffersReq  32
 
 typedef struct {
     BYTE    type;   /* X_Reply */
     BYTE    pad1;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  swap_hi B32;
-    CARD32  swap_lo B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  swap_hi;
+    CARD32  swap_lo;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
 } xDRI2SwapBuffersReply;
 #define sz_xDRI2SwapBuffersReply 32
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
+    CARD16  length;
+    CARD32  drawable;
 } xDRI2GetMSCReq;
 #define sz_xDRI2GetMSCReq 8
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
-    CARD32  target_msc_hi B32;
-    CARD32  target_msc_lo B32;
-    CARD32  divisor_hi B32;
-    CARD32  divisor_lo B32;
-    CARD32  remainder_hi B32;
-    CARD32  remainder_lo B32;
+    CARD16  length;
+    CARD32  drawable;
+    CARD32  target_msc_hi;
+    CARD32  target_msc_lo;
+    CARD32  divisor_hi;
+    CARD32  divisor_lo;
+    CARD32  remainder_hi;
+    CARD32  remainder_lo;
 } xDRI2WaitMSCReq;
 #define sz_xDRI2WaitMSCReq 32
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
-    CARD32  target_sbc_hi B32;
-    CARD32  target_sbc_lo B32;
+    CARD16  length;
+    CARD32  drawable;
+    CARD32  target_sbc_hi;
+    CARD32  target_sbc_lo;
 } xDRI2WaitSBCReq;
 #define sz_xDRI2WaitSBCReq 16
 
 typedef struct {
     CARD8   type;
     CARD8   pad1;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  ust_hi B32;
-    CARD32  ust_lo B32;
-    CARD32  msc_hi B32;
-    CARD32  msc_lo B32;
-    CARD32  sbc_hi B32;
-    CARD32  sbc_lo B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  ust_hi;
+    CARD32  ust_lo;
+    CARD32  msc_hi;
+    CARD32  msc_lo;
+    CARD32  sbc_hi;
+    CARD32  sbc_lo;
 } xDRI2MSCReply;
 #define sz_xDRI2MSCReply 32
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
-    CARD32  interval B32;
+    CARD16  length;
+    CARD32  drawable;
+    CARD32  interval;
 } xDRI2SwapIntervalReq;
 #define sz_xDRI2SwapIntervalReq 12
 
 typedef struct {
     CARD8 type;
     CARD8 pad;
-    CARD16 sequenceNumber B16;
-    CARD16 event_type B16;
+    CARD16 sequenceNumber;
+    CARD16 event_type;
     CARD16 pad2;
-    CARD32 drawable B32;
-    CARD32 ust_hi B32;
-    CARD32 ust_lo B32;
-    CARD32 msc_hi B32;
-    CARD32 msc_lo B32;
-    CARD32 sbc_hi B32;
-    CARD32 sbc_lo B32;
+    CARD32 drawable;
+    CARD32 ust_hi;
+    CARD32 ust_lo;
+    CARD32 msc_hi;
+    CARD32 msc_lo;
+    CARD32 sbc_hi;
+    CARD32 sbc_lo;
 } xDRI2BufferSwapComplete;
 #define sz_xDRI2BufferSwapComplete 32
 
 typedef struct {
     CARD8 type;
     CARD8 pad;
-    CARD16 sequenceNumber B16;
-    CARD16 event_type B16;
+    CARD16 sequenceNumber;
+    CARD16 event_type;
     CARD16 pad2;
-    CARD32 drawable B32;
-    CARD32 ust_hi B32;
-    CARD32 ust_lo B32;
-    CARD32 msc_hi B32;
-    CARD32 msc_lo B32;
-    CARD32 sbc B32;
+    CARD32 drawable;
+    CARD32 ust_hi;
+    CARD32 ust_lo;
+    CARD32 msc_hi;
+    CARD32 msc_lo;
+    CARD32 sbc;
 } xDRI2BufferSwapComplete2;
 #define sz_xDRI2BufferSwapComplete2 32
 
 typedef struct {
     CARD8 type;
     CARD8 pad;
-    CARD16 sequenceNumber B16;
-    CARD32 drawable B32;
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
+    CARD16 sequenceNumber;
+    CARD32 drawable;
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
 } xDRI2InvalidateBuffers;
 #define sz_xDRI2InvalidateBuffers 32
 
 typedef struct {
     CARD8   reqType;
     CARD8   dri2ReqType;
-    CARD16  length B16;
-    CARD32  drawable B32;
-    CARD32  param B32;
+    CARD16  length;
+    CARD32  drawable;
+    CARD32  param;
 } xDRI2GetParamReq;
 #define sz_xDRI2GetParamReq 12
 
 typedef struct {
     BYTE    type; /*X_Reply*/
     BOOL    is_param_recognized;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD32  value_hi B32;
-    CARD32  value_lo B32;
-    CARD32  pad1 B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD32  value_hi;
+    CARD32  value_lo;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
 } xDRI2GetParamReply;
 #define sz_xDRI2GetParamReply 32
 

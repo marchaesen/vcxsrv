@@ -74,76 +74,76 @@ restoring the definitions in X.h.  */
 typedef struct _AppleWMQueryVersion {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMQueryVersion */
-    CARD16	length B16;
+    CARD16	length;
 } xAppleWMQueryVersionReq;
 #define sz_xAppleWMQueryVersionReq	4
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     BOOL	pad1;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD16	majorVersion B16;	/* major version of WM protocol */
-    CARD16	minorVersion B16;	/* minor version of WM protocol */
-    CARD32	patchVersion B32;       /* patch version of WM protocol */
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD16	majorVersion;		/* major version of WM protocol */
+    CARD16	minorVersion;		/* minor version of WM protocol */
+    CARD32	patchVersion;		/* patch version of WM protocol */
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xAppleWMQueryVersionReply;
 #define sz_xAppleWMQueryVersionReply	32
 
 typedef struct _AppleWMDisableUpdate {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMDisableUpdate */
-    CARD16	length B16;
-    CARD32	screen B32;
+    CARD16	length;
+    CARD32	screen;
 } xAppleWMDisableUpdateReq;
 #define sz_xAppleWMDisableUpdateReq	8
 
 typedef struct _AppleWMReenableUpdate {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMReenableUpdate */
-    CARD16	length B16;
-    CARD32	screen B32;
+    CARD16	length;
+    CARD32	screen;
 } xAppleWMReenableUpdateReq;
 #define sz_xAppleWMReenableUpdateReq	8
 
 typedef struct _AppleWMSelectInput {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMSelectInput */
-    CARD16	length B16;
-    CARD32	mask B32;
+    CARD16	length;
+    CARD32	mask;
 } xAppleWMSelectInputReq;
 #define sz_xAppleWMSelectInputReq	8
 
 typedef struct _AppleWMNotify {
 	BYTE	type;		/* always eventBase + event type */
 	BYTE	kind;
-	CARD16	sequenceNumber B16;
-	Time	time B32;	/* time of change */
-	CARD16	pad1 B16;
-	CARD32	arg B32;
-	CARD32	pad3 B32;
-	CARD32  pad4 B32;
-	CARD32  pad5 B32;
-	CARD32  pad6 B32;
+	CARD16	sequenceNumber;
+	Time	time;		/* time of change */
+	CARD16	pad1;
+	CARD32	arg;
+	CARD32	pad3;
+	CARD32  pad4;
+	CARD32  pad5;
+	CARD32  pad6;
 } xAppleWMNotifyEvent;
 #define sz_xAppleWMNotifyEvent	32
 
 typedef struct _AppleWMSetWindowMenu {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMSetWindowMenu */
-    CARD16	length B16;
-    CARD16	nitems B16;
-    CARD16	pad1 B16;
+    CARD16	length;
+    CARD16	nitems;
+    CARD16	pad1;
 } xAppleWMSetWindowMenuReq;
 #define sz_xAppleWMSetWindowMenuReq	8
 
 typedef struct _AppleWMSetWindowMenuCheck {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMSetWindowMenuCheck */
-    CARD16	length B16;
+    CARD16	length;
     CARD32	index;
 } xAppleWMSetWindowMenuCheckReq;
 #define sz_xAppleWMSetWindowMenuCheckReq 8
@@ -151,14 +151,14 @@ typedef struct _AppleWMSetWindowMenuCheck {
 typedef struct _AppleWMSetFrontProcess {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMSetFrontProcess */
-    CARD16	length B16;
+    CARD16	length;
 } xAppleWMSetFrontProcessReq;
 #define sz_xAppleWMSetFrontProcessReq 4
 
 typedef struct _AppleWMSetWindowLevel {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMSetWindowLevel */
-    CARD16	length B16;
+    CARD16	length;
     CARD32	window;
     CARD32	level;
 } xAppleWMSetWindowLevelReq;
@@ -167,7 +167,7 @@ typedef struct _AppleWMSetWindowLevel {
 typedef struct _AppleWMSendPSN {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMSendPSN */
-    CARD16	length B16;
+    CARD16	length;
     CARD32	psn_hi;
     CARD32	psn_lo;
 } xAppleWMSendPSNReq;
@@ -176,7 +176,7 @@ typedef struct _AppleWMSendPSN {
 typedef struct _AppleWMAttachTransient {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMAttachTransient */
-    CARD16	length B16;
+    CARD16	length;
     CARD32	child;
     CARD32	parent;
 } xAppleWMAttachTransientReq;
@@ -185,7 +185,7 @@ typedef struct _AppleWMAttachTransient {
 typedef struct _AppleWMSetCanQuit {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMSetCanQuit */
-    CARD16	length B16;
+    CARD16	length;
     CARD32	state;
 } xAppleWMSetCanQuitReq;
 #define sz_xAppleWMSetCanQuitReq 8
@@ -193,86 +193,86 @@ typedef struct _AppleWMSetCanQuit {
 typedef struct _AppleWMFrameGetRect {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMFrameGetRect */
-    CARD16	length B16;
-    CARD16	frame_class B16;
-    CARD16	frame_rect B16;
-    CARD16	ix B16;
-    CARD16	iy B16;
-    CARD16	iw B16;
-    CARD16	ih B16;
-    CARD16	ox B16;
-    CARD16	oy B16;
-    CARD16	ow B16;
-    CARD16	oh B16;
+    CARD16	length;
+    CARD16	frame_class;
+    CARD16	frame_rect;
+    CARD16	ix;
+    CARD16	iy;
+    CARD16	iw;
+    CARD16	ih;
+    CARD16	ox;
+    CARD16	oy;
+    CARD16	ow;
+    CARD16	oh;
 } xAppleWMFrameGetRectReq;
 #define sz_xAppleWMFrameGetRectReq	24
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     BOOL	pad1;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD16	x B16;
-    CARD16	y B16;
-    CARD16	w B16;
-    CARD16	h B16;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD16	x;
+    CARD16	y;
+    CARD16	w;
+    CARD16	h;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xAppleWMFrameGetRectReply;
 #define sz_xAppleWMFrameGetRectReply	32
 
 typedef struct _AppleWMFrameHitTest {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMFrameHitTest */
-    CARD16	length B16;
-    CARD16	frame_class B16;
-    CARD16	pad1 B16;
-    CARD16	px B16;
-    CARD16	py B16;
-    CARD16	ix B16;
-    CARD16	iy B16;
-    CARD16	iw B16;
-    CARD16	ih B16;
-    CARD16	ox B16;
-    CARD16	oy B16;
-    CARD16	ow B16;
-    CARD16	oh B16;
+    CARD16	length;
+    CARD16	frame_class;
+    CARD16	pad1;
+    CARD16	px;
+    CARD16	py;
+    CARD16	ix;
+    CARD16	iy;
+    CARD16	iw;
+    CARD16	ih;
+    CARD16	ox;
+    CARD16	oy;
+    CARD16	ow;
+    CARD16	oh;
 } xAppleWMFrameHitTestReq;
 #define sz_xAppleWMFrameHitTestReq	28
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     BOOL	pad1;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	ret B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	ret;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xAppleWMFrameHitTestReply;
 #define sz_xAppleWMFrameHitTestReply	32
 
 typedef struct _AppleWMFrameDraw {
     CARD8	reqType;		/* always WMReqCode */
     CARD8	wmReqType;		/* always X_AppleWMFrameDraw */
-    CARD16	length B16;
-    CARD32	screen B32;
-    CARD32	window B32;
-    CARD16	frame_class B16;
-    CARD16	frame_attr B16;
-    CARD16	ix B16;
-    CARD16	iy B16;
-    CARD16	iw B16;
-    CARD16	ih B16;
-    CARD16	ox B16;
-    CARD16	oy B16;
-    CARD16	ow B16;
-    CARD16	oh B16;
-    CARD32	title_length B32;
+    CARD16	length;
+    CARD32	screen;
+    CARD32	window;
+    CARD16	frame_class;
+    CARD16	frame_attr;
+    CARD16	ix;
+    CARD16	iy;
+    CARD16	iw;
+    CARD16	ih;
+    CARD16	ox;
+    CARD16	oy;
+    CARD16	ow;
+    CARD16	oh;
+    CARD32	title_length;
 } xAppleWMFrameDrawReq;
 #define sz_xAppleWMFrameDrawReq	36
 

@@ -164,6 +164,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %token VERSION_TOK EXTENSION LINE COLON EOL INTERFACE OUTPUT
 %token PRAGMA_DEBUG_ON PRAGMA_DEBUG_OFF
 %token PRAGMA_OPTIMIZE_ON PRAGMA_OPTIMIZE_OFF
+%token PRAGMA_WARNING_ON PRAGMA_WARNING_OFF
 %token PRAGMA_INVARIANT_ALL
 %token LAYOUT_TOK
 %token DOT_TOK
@@ -246,6 +247,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %type <n> unary_operator
 %type <expression> function_identifier
 %type <node> external_declaration
+%type <node> pragma_statement
 %type <declarator_list> init_declarator_list
 %type <declarator_list> single_declaration
 %type <expression> initializer
@@ -328,10 +330,10 @@ version_statement:
    ;
 
 pragma_statement:
-   PRAGMA_DEBUG_ON EOL
-   | PRAGMA_DEBUG_OFF EOL
-   | PRAGMA_OPTIMIZE_ON EOL
-   | PRAGMA_OPTIMIZE_OFF EOL
+   PRAGMA_DEBUG_ON EOL { $$ = NULL; }
+   | PRAGMA_DEBUG_OFF EOL { $$ = NULL; }
+   | PRAGMA_OPTIMIZE_ON EOL { $$ = NULL; }
+   | PRAGMA_OPTIMIZE_OFF EOL { $$ = NULL; }
    | PRAGMA_INVARIANT_ALL EOL
    {
       /* Pragma invariant(all) cannot be used in a fragment shader.
@@ -353,6 +355,18 @@ pragma_statement:
       } else {
          state->all_invariant = true;
       }
+
+      $$ = NULL;
+   }
+   | PRAGMA_WARNING_ON EOL
+   {
+      void *mem_ctx = state->linalloc;
+      $$ = new(mem_ctx) ast_warnings_toggle(true);
+   }
+   | PRAGMA_WARNING_OFF EOL
+   {
+      void *mem_ctx = state->linalloc;
+      $$ = new(mem_ctx) ast_warnings_toggle(false);
    }
    ;
 
@@ -2723,7 +2737,7 @@ jump_statement:
 external_declaration:
    function_definition      { $$ = $1; }
    | declaration            { $$ = $1; }
-   | pragma_statement       { $$ = NULL; }
+   | pragma_statement       { $$ = $1; }
    | layout_defaults        { $$ = $1; }
    | ';'                    { $$ = NULL; }
    ;

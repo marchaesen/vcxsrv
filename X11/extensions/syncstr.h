@@ -155,7 +155,7 @@ typedef union {
 
 extern pointer SyncCreateSystemCounter(
     char *	/* name */,
-    CARD64  	/* inital_value */,
+    CARD64  	/* initial_value */,
     CARD64  	/* resolution */,
     SyncCounterType /* change characterization */,
     void        (* /*QueryValue*/ ) (

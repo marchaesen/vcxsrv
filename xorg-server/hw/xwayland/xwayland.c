@@ -93,6 +93,10 @@ ddxUseMsg(void)
     ErrorF("-eglstream             use eglstream backend for nvidia GPUs\n");
 }
 
+static int wm_fd = -1;
+static int listen_fds[5] = { -1, -1, -1, -1, -1 };
+static int listen_fd_count;
+
 int
 ddxProcessArgument(int argc, char *argv[], int i)
 {
@@ -100,10 +104,19 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
     else if (strcmp(argv[i], "-listen") == 0) {
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+
         NoListenAll = TRUE;
+        if (listen_fd_count == ARRAY_SIZE(listen_fds))
+            FatalError("Too many -listen arguments given, max is %zu\n",
+                       ARRAY_SIZE(listen_fds));
+
+        listen_fds[listen_fd_count++] = atoi(argv[i + 1]);
         return 2;
     }
     else if (strcmp(argv[i], "-wm") == 0) {
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        wm_fd = atoi(argv[i + 1]);
         return 2;
     }
     else if (strcmp(argv[i], "-shm") == 0) {
@@ -880,9 +893,7 @@ xwl_sync_events (struct xwl_screen *xwl_screen)
 static CARD32
 add_client_fd(OsTimerPtr timer, CARD32 time, void *arg)
 {
-    struct xwl_screen *xwl_screen = arg;
-
-    if (!AddClientOnOpenFD(xwl_screen->wm_fd))
+    if (!AddClientOnOpenFD(wm_fd))
         FatalError("Failed to add wm client\n");
 
     TimerFree(timer);
@@ -891,12 +902,12 @@ add_client_fd(OsTimerPtr timer, CARD32 time, void *arg)
 }
 
 static void
-listen_on_fds(struct xwl_screen *xwl_screen)
+listen_on_fds(void)
 {
     int i;
 
-    for (i = 0; i < xwl_screen->listen_fd_count; i++)
-        ListenOnOpenFD(xwl_screen->listen_fds[i], FALSE);
+    for (i = 0; i < listen_fd_count; i++)
+        ListenOnOpenFD(listen_fds[i], FALSE);
 }
 
 static void
@@ -913,7 +924,7 @@ wm_selection_callback(CallbackListPtr *p, void *data, void *arg)
         info->kind != SelectionSetOwner)
         return;
 
-    listen_on_fds(xwl_screen);
+    listen_on_fds();
 
     DeleteCallback(&SelectionCallback, wm_selection_callback, xwl_screen);
 }
@@ -930,7 +941,6 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     xwl_screen = calloc(1, sizeof *xwl_screen);
     if (xwl_screen == NULL)
         return FALSE;
-    xwl_screen->wm_fd = -1;
 
     if (!dixRegisterPrivateKey(&xwl_screen_private_key, PRIVATE_SCREEN, 0))
         return FALSE;
@@ -949,21 +959,6 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-rootless") == 0) {
             xwl_screen->rootless = 1;
-        }
-        else if (strcmp(argv[i], "-wm") == 0) {
-            xwl_screen->wm_fd = atoi(argv[i + 1]);
-            i++;
-            TimerSet(NULL, 0, 1, add_client_fd, xwl_screen);
-        }
-        else if (strcmp(argv[i], "-listen") == 0) {
-            if (xwl_screen->listen_fd_count ==
-                ARRAY_SIZE(xwl_screen->listen_fds))
-                FatalError("Too many -listen arguments given, max is %zu\n",
-                           ARRAY_SIZE(xwl_screen->listen_fds));
-
-            xwl_screen->listen_fds[xwl_screen->listen_fd_count++] =
-                atoi(argv[i + 1]);
-            i++;
         }
         else if (strcmp(argv[i], "-shm") == 0) {
             xwl_screen->glamor = 0;
@@ -988,13 +983,6 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         xwl_screen->root_clip_mode = ROOT_CLIP_INPUT_ONLY;
     else
         xwl_screen->root_clip_mode = ROOT_CLIP_FULL;
-
-    if (xwl_screen->listen_fd_count > 0) {
-        if (xwl_screen->wm_fd >= 0)
-            AddCallback(&SelectionCallback, wm_selection_callback, xwl_screen);
-        else
-            listen_on_fds(xwl_screen);
-    }
 
     xorg_list_init(&xwl_screen->output_list);
     xorg_list_init(&xwl_screen->seat_list);
@@ -1164,4 +1152,13 @@ InitOutput(ScreenInfo * screen_info, int argc, char **argv)
     xorgGlxCreateVendor();
 
     LocalAccessScopeUser();
+
+    if (listen_fd_count > 0) {
+        if (wm_fd >= 0) {
+            TimerSet(NULL, 0, 1, add_client_fd, NULL);
+            AddCallback(&SelectionCallback, wm_selection_callback, NULL);
+        } else {
+            listen_on_fds();
+        }
+    }
 }

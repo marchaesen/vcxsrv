@@ -55,11 +55,28 @@ nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index)
    return &load->dest.ssa;
 }
 
+<%
+def sysval_decl_list(opcode):
+   res = ''
+   if opcode.indices:
+      res += ', unsigned ' + opcode.indices[0].lower()
+   return res
+
+def sysval_arg_list(opcode):
+   args = []
+   if opcode.indices:
+      args.append(opcode.indices[0].lower())
+   else:
+      args.append('0')
+   return ', '.join(args)
+%>
+
 % for name, opcode in filter(lambda v: v[1].sysval, sorted(INTR_OPCODES.items())):
 static inline nir_ssa_def *
-nir_${name}(nir_builder *build)
+nir_${name}(nir_builder *build${sysval_decl_list(opcode)})
 {
-   return nir_load_system_value(build, nir_intrinsic_${name}, 0);
+   return nir_load_system_value(build, nir_intrinsic_${name},
+                                ${sysval_arg_list(opcode)});
 }
 % endfor
 

@@ -138,16 +138,16 @@ typedef struct _xPrintPrintEvent {
 	BYTE detail;		/* XPStartJobNotify, XPEndJobNotify,
 				   XPStartDocNotify, XPEndDocNotify,
 				   XPStartPageNotify, XPEndPageNotify */
-	CARD16 sequenceNumber B16;
-	PCONTEXT printContext B32; /* print context */
+	CARD16 sequenceNumber;
+	PCONTEXT printContext;	/* print context */
 	BOOL   cancel;		/* canceled flag */
 	CARD8  pad1;		/* rest is unused */
-	CARD16 pad2 B16;
-	CARD32 pad3 B32;
-	CARD32 pad4 B32;
-	CARD32 pad5 B32;
-	CARD32 pad6 B32;
-	CARD32 pad7 B32;
+	CARD16 pad2;
+	CARD32 pad3;
+	CARD32 pad4;
+	CARD32 pad5;
+	CARD32 pad6;
+	CARD32 pad7;
 } xPrintPrintEvent;
 #define sz_xPrintPrintEvent 32;
 
@@ -156,14 +156,14 @@ typedef struct _xPrintAttributeEvent {
 	BYTE   detail;		/* XPJobAttr, XPDocAttr, XPPageAttr,
 				   XPPrinterAttr, XPSpoolerAttr,
 				   XPMediumAttr, XPServerAttr */
-	CARD16 sequenceNumber B16;
-	PCONTEXT printContext B32; /* print context */
-	CARD32 pad1 B32;
-	CARD32 pad2 B32;
-	CARD32 pad3 B32;
-	CARD32 pad4 B32;
-	CARD32 pad5 B32;
-	CARD32 pad6 B32;
+	CARD16 sequenceNumber;
+	PCONTEXT printContext;	/* print context */
+	CARD32 pad1;
+	CARD32 pad2;
+	CARD32 pad3;
+	CARD32 pad4;
+	CARD32 pad5;
+	CARD32 pad6;
 } xPrintAttributeEvent;
 #define sz_xPrintAttributeEvent 32;
 
@@ -175,22 +175,22 @@ typedef struct _xPrintAttributeEvent {
 typedef struct _PrintQueryVersion {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintQueryVersion */
-	CARD16	length B16;
+	CARD16	length;
 } xPrintQueryVersionReq;
 #define sz_xPrintQueryVersionReq	4
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	CARD16	majorVersion B16;	/* major version of Xp protocol */
-	CARD16	minorVersion B16;	/* minor version of Xp protocol */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	CARD16	majorVersion;		/* major version of Xp protocol */
+	CARD16	minorVersion;		/* minor version of Xp protocol */
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
 } xPrintQueryVersionReply;
 #define sz_xPrintQueryVersionReply	32
 
@@ -198,9 +198,9 @@ typedef struct {
 typedef struct _PrintGetPrinterList {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintGetPrinterList */
-	CARD16	length B16;
-	CARD32	printerNameLen B32;	/* length of printer name */
-	CARD32	localeLen B32;		/* length of locale string */
+	CARD16	length;
+	CARD32	printerNameLen;		/* length of printer name */
+	CARD32	localeLen;		/* length of locale string */
 
 	/* variable portion *****************************************
 	STRING8	printerName;		 * printer name *
@@ -214,21 +214,21 @@ typedef struct _PrintGetPrinterList {
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	CARD32	listCount B32;		/* of PRINTER recs below */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	CARD32	listCount;		/* of PRINTER recs below */
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
 
 	/* variable portion *****************************************
-	CARD32	nameLen B32;		* length of name in bytes *
+	CARD32	nameLen;		* length of name in bytes *
 	STRING8	name;			* name *
 	BYTE	pad(nameLen)		* unused *
 
-	CARD32	descLen B32;		* length of desc in bytes *
+	CARD32	descLen;		* length of desc in bytes *
 	STRING8	desc;			* localized description *
 	BYTE	pad(descLen)		* unused *
 	************************************************************/
@@ -239,7 +239,7 @@ typedef struct {
 typedef struct _PrintRehashPrinterList {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintRehashPrinterList */
-	CARD16	length B16;
+	CARD16	length;
 } xPrintRehashPrinterListReq;
 #define sz_xPrintRehashPrinterListReq	4
 
@@ -247,10 +247,10 @@ typedef struct _PrintRehashPrinterList {
 typedef struct _PrintCreateContext {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintInitSetContext */
-	CARD16	length B16;
-	CARD32	contextID B32;		/* ID for context */
-	CARD32	printerNameLen B32;	/* length of printerName in bytes */
-	CARD32	localeLen B32;		/* length of locale in bytes */
+	CARD16	length;
+	CARD32	contextID;		/* ID for context */
+	CARD32	printerNameLen;		/* length of printerName in bytes */
+	CARD32	localeLen;		/* length of locale in bytes */
 
 	/* variable portion *****************************************
 	STRING8	printerName		 * printer name *
@@ -265,8 +265,8 @@ typedef struct _PrintCreateContext {
 typedef struct _PrintSetContext {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintSetContext */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
 } xPrintSetContextReq;
 #define sz_xPrintSetContextReq		8
 
@@ -274,21 +274,21 @@ typedef struct _PrintSetContext {
 typedef struct _PrintGetContext {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintGetContext */
-	CARD16	length B16;
+	CARD16	length;
 } xPrintGetContextReq;
 #define sz_xPrintGetContextReq		4
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	PCONTEXT printContext B32;	/* print context */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	PCONTEXT printContext;		/* print context */
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
 } xPrintGetContextReply;
 #define sz_xPrintGetContextReply	32
 
@@ -296,8 +296,8 @@ typedef struct {
 typedef struct _PrintDestroyContext {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintDestroyContext */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
 } xPrintDestroyContextReq;
 #define sz_xPrintDestroyContextReq	8
 
@@ -305,22 +305,22 @@ typedef struct _PrintDestroyContext {
 typedef struct _PrintGetContextScreen {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintGetContextScreen */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
 } xPrintGetContextScreenReq;
 #define sz_xPrintGetContextScreenReq	8
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
 	WINDOW  rootWindow;		/* screenPtr represented as rootWin */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
 } xPrintGetContextScreenReply;
 #define sz_xPrintGetContextScreenReply	32
 
@@ -328,20 +328,20 @@ typedef struct {
 typedef struct _PrintStartJob {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintStartJob */
-	CARD16	length B16;
+	CARD16	length;
 	CARD8	saveData;		/* save data boolean */
 	CARD8	pad1;
-	CARD16	pad2 B16;
+	CARD16	pad2;
 } xPrintStartJobReq;
 #define sz_xPrintStartJobReq		8
 
 typedef struct _PrintEndJob {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintEndJob */
-	CARD16	length B16;
+	CARD16	length;
 	BOOL	cancel;			/* cancel boolean */
 	CARD8	pad1;
-	CARD16	pad2 B16;
+	CARD16	pad2;
 } xPrintEndJobReq;
 #define sz_xPrintEndJobReq		8
 
@@ -349,20 +349,20 @@ typedef struct _PrintEndJob {
 typedef struct _PrintStartDoc {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintStartDoc */
-	CARD16	length B16;
+	CARD16	length;
 	CARD8	type;			/* type for document */
 	CARD8	pad1;
-	CARD16	pad2 B16;
+	CARD16	pad2;
 } xPrintStartDocReq;
 #define sz_xPrintStartDocReq		8
 
 typedef struct _PrintEndDoc {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintEndDoc */
-	CARD16	length B16;
+	CARD16	length;
 	BOOL	cancel;			/* cancel boolean */
 	CARD8	pad1;
-	CARD16	pad2 B16;
+	CARD16	pad2;
 } xPrintEndDocReq;
 #define sz_xPrintEndDocReq		8
 
@@ -370,9 +370,9 @@ typedef struct _PrintEndDoc {
 typedef struct _PrintPutDocumentData {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintPutDocumentData */
-	CARD16	length B16;
-	DRAWABLE drawable B32;		/* target drawable */
-	CARD32	len_data B32;		/* big len in bytes */
+	CARD16	length;
+	DRAWABLE drawable;		/* target drawable */
+	CARD32	len_data;		/* big len in bytes */
 	CARD16	len_fmt;		/* len in bytes */
 	CARD16	len_options;		/* len in bytes */
 
@@ -391,23 +391,23 @@ typedef struct _PrintPutDocumentData {
 typedef struct _PrintGetDocumentData {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintGetDocumentData */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
-	CARD32	maxBufferSize B32;	/* maximum buffer size requested */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
+	CARD32	maxBufferSize;		/* maximum buffer size requested */
 } xPrintGetDocumentDataReq;
 #define sz_xPrintGetDocumentDataReq	12
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	CARD32	statusCode B32;		/* status code for reply */
-	CARD32	finishedFlag B32;	/* is this the last reply */
-	CARD32	dataLen B32;		/* data length */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	CARD32	statusCode;		/* status code for reply */
+	CARD32	finishedFlag;		/* is this the last reply */
+	CARD32	dataLen;		/* data length */
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
 
 	/* variable portion *****************************************
 	LISTofBYTE	data;		 * data *
@@ -420,18 +420,18 @@ typedef struct {
 typedef struct _PrintStartPage {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintStartPage */
-	CARD16	length B16;
-	WINDOW	window B32;		/* window */
+	CARD16	length;
+	WINDOW	window;			/* window */
 } xPrintStartPageReq;
 #define sz_xPrintStartPageReq		8
 
 typedef struct _PrintEndPage {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintEndPage */
-	CARD16	length B16;
+	CARD16	length;
 	BOOL	cancel;			/* cancel boolean */
 	CARD8	pad1;
-	CARD16	pad2 B16;
+	CARD16	pad2;
 } xPrintEndPageReq;
 #define sz_xPrintEndPageReq		8
 
@@ -439,9 +439,9 @@ typedef struct _PrintEndPage {
 typedef struct _PrintSelectInput {
         CARD8   reqType;        	/* always PrintReqCode */
 	CARD8   printReqType;		/* always X_PrintSelectInput */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
-	BITMASK	eventMask B32;
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
+	BITMASK	eventMask;
 } xPrintSelectInputReq;
 #define sz_xPrintSelectInputReq		12
 
@@ -449,47 +449,47 @@ typedef struct _PrintSelectInput {
 typedef struct _PrintInputSelected {
         CARD8   reqType;        	/* always PrintReqCode */
 	CARD8   printReqType;		/* always X_PrintInputSelected */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
 } xPrintInputSelectedReq;
 #define sz_xPrintInputSelectedReq	8
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	BITMASK	eventMask B32;		/* your event mask */
-	BITMASK	allEventsMask B32;	/* all event mask */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	BITMASK	eventMask;		/* your event mask */
+	BITMASK	allEventsMask;		/* all event mask */
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
 } xPrintInputSelectedReply;
 #define sz_xPrintInputSelectedReply	32
 
 typedef struct _PrintGetAttributes {
         CARD8   reqType;        	/* always PrintReqCode */
 	CARD8   printReqType;		/* always X_PrintGetAttributes */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
         CARD8   type;			/* type */
         CARD8   pad1;			/* unused */
-        CARD16  pad2 B16;		/* unused */
+        CARD16  pad2;			/* unused */
 } xPrintGetAttributesReq;
 #define sz_xPrintGetAttributesReq	12
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	CARD32	stringLen B32;		/* length of xrm db string */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	CARD32	stringLen;		/* length of xrm db string */
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
 
         /* variable portion *****************************************
 	STRING8	string;                  * xrm db as a string *
@@ -502,12 +502,12 @@ typedef struct {
 typedef struct _PrintSetAttributes {
         CARD8   reqType;        	/* always PrintReqCode */
 	CARD8   printReqType;		/* always X_PrintSetAttributes */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
-	CARD32	stringLen B32;		/* length of xrm db string */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
+	CARD32	stringLen;		/* length of xrm db string */
         CARD8   type;                   /* type */
 	CARD8   rule;			/* replacement rule */
-	CARD16  pad1 B16;		/* unused */
+	CARD16  pad1;			/* unused */
 
         /* variable portion *****************************************
 	STRING8	string;                  * xrm db as a string *
@@ -520,12 +520,12 @@ typedef struct _PrintSetAttributes {
 typedef struct _PrintGetOneAttribute {
         CARD8   reqType;        	/* always PrintReqCode */
 	CARD8   printReqType;		/* always X_PrintGetOneAttribute */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
 	CARD32	nameLen;		/* length of name string */
         CARD8   type;			/* type */
         CARD8   pad1;			/* unused */
-        CARD16  pad2 B16;		/* unused */
+        CARD16  pad2;			/* unused */
 
         /* variable portion *****************************************
 	STRING8	name;			 * name as a string *
@@ -537,14 +537,14 @@ typedef struct _PrintGetOneAttribute {
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	CARD32	valueLen B32;		/* length of value string */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	CARD32	valueLen;		/* length of value string */
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
 
         /* variable portion *****************************************
 	STRING8	value;			 * value as a string *
@@ -557,25 +557,25 @@ typedef struct {
 typedef struct _PrintGetPageDimensions {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintGetPageDimensions */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
 } xPrintGetPageDimensionsReq;
 #define sz_xPrintGetPageDimensionsReq	8
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
 	CARD16	width;			/* total pixel width */
 	CARD16	height;			/* total pixel height */
 	CARD16	rx;			/* reproducable x pixel offset */
 	CARD16	ry;			/* reproducable y pixel offset */
 	CARD16	rwidth;			/* reproducable x pixel width */
 	CARD16	rheight;		/* reproducable y pixel width */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
 } xPrintGetPageDimensionsReply;
 #define sz_xPrintGetPageDimensionsReply	32
 
@@ -583,21 +583,21 @@ typedef struct {
 typedef struct _PrintQueryScreens {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintQueryScreens */
-	CARD16	length B16;
+	CARD16	length;
 } xPrintQueryScreensReq;
 #define sz_xPrintQueryScreensReq	4
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
 	CARD32	listCount;		/* number of screens following */
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
 
         /* variable portion *****************************************
 	WINDOW	rootWindow;		 * root window of screen *
@@ -608,48 +608,48 @@ typedef struct {
 typedef struct _PrintSetImageResolution {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintSetImageResolution */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
-	CARD16 imageRes B16;		/* image resolution */
-	CARD16 pad1 B16;
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
+	CARD16 imageRes;		/* image resolution */
+	CARD16 pad1;
 } xPrintSetImageResolutionReq;
 #define sz_xPrintSetImageResolutionReq	12
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	BOOL	status;			/* accepted or not */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	CARD16	prevRes B16;		/* previous resolution */
-	CARD16	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
-	CARD32	pad6 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	CARD16	prevRes;		/* previous resolution */
+	CARD16	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
+	CARD32	pad6;
 } xPrintSetImageResolutionReply;
 #define sz_xPrintSetImageResolutionReply 32
 
 typedef struct _PrintGetImageResolution {
 	CARD8	reqType;		/* always PrintReqCode */
 	CARD8	printReqType;		/* always X_PrintGetImageResolution */
-	CARD16	length B16;
-	PCONTEXT printContext B32;	/* print context */
+	CARD16	length;
+	PCONTEXT printContext;		/* print context */
 } xPrintGetImageResolutionReq;
 #define sz_xPrintGetImageResolutionReq	8
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	CARD16	imageRes B16;		/* image resolution */
-	CARD16	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
-	CARD32	pad6 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	CARD16	imageRes;		/* image resolution */
+	CARD16	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
+	CARD32	pad6;
 } xPrintGetImageResolutionReply;
 #define sz_xPrintGetImageResolutionReply 32
 

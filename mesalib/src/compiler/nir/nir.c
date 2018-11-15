@@ -1530,13 +1530,7 @@ nir_ssa_def_components_read(const nir_ssa_def *def)
          nir_alu_src *alu_src = exec_node_data(nir_alu_src, use, src);
          int src_idx = alu_src - &alu->src[0];
          assert(src_idx >= 0 && src_idx < nir_op_infos[alu->op].num_inputs);
-
-         for (unsigned c = 0; c < NIR_MAX_VEC_COMPONENTS; c++) {
-            if (!nir_alu_instr_channel_used(alu, src_idx, c))
-               continue;
-
-            read_mask |= (1 << alu_src->swizzle[c]);
-         }
+         read_mask |= nir_alu_instr_src_read_mask(alu, src_idx);
       } else {
          return (1 << def->num_components) - 1;
       }

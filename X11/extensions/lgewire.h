@@ -54,7 +54,7 @@ in this Software without prior written authorization from The Open Group.
 typedef struct {
     CARD8       reqType;
     CARD8       lgeReqType;
-    CARD16	length B16;
+    CARD16	length;
 } xLgeQueryVersionReq;
 
 #define sz_xLgeQueryVersionReq	sizeof(xLgeQueryVersionReq)
@@ -63,14 +63,14 @@ typedef struct {
     /* Always X_Reply */
     BYTE        type;
     CARD8       unused;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	majorVersion B32;
-    CARD32	minorVersion B32;
-    CARD32      implementation B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	majorVersion;
+    CARD32	minorVersion;
+    CARD32	implementation;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
 } xLgeQueryVersionReply;
 
 #define sz_xLgeQueryVersionReply sizeof(xLgeQueryVersionReply)
@@ -78,10 +78,10 @@ typedef struct {
 typedef struct {
     CARD8  reqType;
     CARD8  lgeReqType;
-    CARD16 length B16;
+    CARD16 length;
     CARD8  clientType;
     BOOL   sendEventDirect;
-    CARD16 pad2 B16;
+    CARD16 pad2;
 } xLgeRegisterClientReq;
 
 #define sz_xLgeRegisterClientReq sizeof(xLgeRegisterClientReq)
@@ -89,7 +89,7 @@ typedef struct {
 typedef struct {
     CARD8  reqType;
     CARD8  lgeReqType;
-    CARD16 length B16;
+    CARD16 length;
     /* The pseudo-root window of the screen */
     Window prw;
 } xLgeRegisterScreenReq;
@@ -99,10 +99,10 @@ typedef struct {
 typedef struct {
     CARD8     reqType;
     CARD8     lgeReqType;
-    CARD16    length B16;
+    CARD16    length;
     BOOL      enable;
     CARD8     pad1;
-    CARD16    pad2 B16;
+    CARD16    pad2;
 } xLgeControlLgModeReq;
 
 #define sz_xLgeControlLgModeReq sizeof(xLgeControlLgModeReq)
@@ -110,7 +110,7 @@ typedef struct {
 typedef struct {
     CARD8     reqType;
     CARD8     lgeReqType;
-    CARD16    length B16;
+    CARD16    length;
     xEvent    event;
 } xLgeSendEventReq;
 

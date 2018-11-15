@@ -72,8 +72,8 @@ typedef struct
 
 typedef struct
 {
-    CARD16	first B16;
-    CARD16	last B16;
+    CARD16	first;
+    CARD16	last;
 } RECORD_RANGE16;
 
 typedef struct
@@ -108,12 +108,12 @@ typedef struct
     CARD8       	coreRepliesLast;
     CARD8  		extRequestsMajorFirst;
     CARD8		extRequestsMajorLast;
-    CARD16  		extRequestsMinorFirst B16;
-    CARD16  		extRequestsMinorLast B16;
+    CARD16  		extRequestsMinorFirst;
+    CARD16  		extRequestsMinorLast;
     CARD8  		extRepliesMajorFirst;
     CARD8		extRepliesMajorLast;
-    CARD16  		extRepliesMinorFirst B16;
-    CARD16  		extRepliesMinorLast B16;
+    CARD16  		extRepliesMinorFirst;
+    CARD16  		extRepliesMinorLast;
     CARD8       	deliveredEventsFirst;
     CARD8       	deliveredEventsLast;
     CARD8		deviceEventsFirst;
@@ -127,8 +127,8 @@ typedef struct
 
 typedef struct
 {
-    RECORD_CLIENTSPEC	clientResource B32;
-    CARD32		nRanges B32;
+    RECORD_CLIENTSPEC	clientResource;
+    CARD32		nRanges;
 /* LISTofRECORDRANGE */
 } RECORD_CLIENT_INFO;
 
@@ -140,9 +140,9 @@ typedef RECORD_CLIENT_INFO xRecordClientInfo;
 typedef struct {
     CARD8       reqType;
     CARD8       recordReqType;
-    CARD16      length B16;
-    CARD16      majorVersion B16;
-    CARD16      minorVersion B16;
+    CARD16      length;
+    CARD16      majorVersion;
+    CARD16      minorVersion;
 } xRecordQueryVersionReq;
 #define sz_xRecordQueryVersionReq 	8
 
@@ -150,15 +150,15 @@ typedef struct
 {
     CARD8   type;
     CARD8   pad0;
-    CARD16  sequenceNumber B16;
-    CARD32  length	 B32;
-    CARD16  majorVersion B16;
-    CARD16  minorVersion B16;
-    CARD32  pad1	 B32;
-    CARD32  pad2	 B32;
-    CARD32  pad3	 B32;
-    CARD32  pad4	 B32;
-    CARD32  pad5	 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD16  majorVersion;
+    CARD16  minorVersion;
+    CARD32  pad1;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
  } xRecordQueryVersionReply;
 #define sz_xRecordQueryVersionReply  	32
 
@@ -169,13 +169,13 @@ typedef struct
 {
     CARD8     		reqType;
     CARD8     		recordReqType;
-    CARD16    		length B16;
-    RECORD_RC		context B32;
+    CARD16    		length;
+    RECORD_RC		context;
     RECORD_ELEMENT_HEADER elementHeader;
     CARD8		pad;
-    CARD16		pad0 B16;
-    CARD32		nClients B32;
-    CARD32              nRanges B32;
+    CARD16		pad0;
+    CARD32		nClients;
+    CARD32		nRanges;
 /* LISTofRECORD_CLIENTSPEC */
 /* LISTofRECORDRANGE */
 } xRecordCreateContextReq;
@@ -188,13 +188,13 @@ typedef struct
 {
     CARD8     		reqType;
     CARD8     		recordReqType;
-    CARD16    		length B16;
-    RECORD_RC		context B32;
+    CARD16    		length;
+    RECORD_RC		context;
     RECORD_ELEMENT_HEADER elementHeader;
     CARD8		pad;
-    CARD16		pad0 B16;
-    CARD32		nClients B32;
-    CARD32              nRanges B32;
+    CARD16		pad0;
+    CARD32		nClients;
+    CARD32		nRanges;
 /* LISTofRECORD_CLIENTSPEC */
 /* LISTofRECORDRANGE */
 } xRecordRegisterClientsReq;
@@ -207,9 +207,9 @@ typedef struct
 {
     CARD8     		reqType;
     CARD8     		recordReqType;
-    CARD16    		length B16;
-    RECORD_RC		context B32;
-    CARD32		nClients B32;
+    CARD16    		length;
+    RECORD_RC		context;
+    CARD32		nClients;
 /* LISTofRECORD_CLIENTSPEC */
 } xRecordUnregisterClientsReq;
 #define sz_xRecordUnregisterClientsReq 	12
@@ -221,8 +221,8 @@ typedef struct
 {
     CARD8     	reqType;
     CARD8     	recordReqType;
-    CARD16    	length B16;
-    RECORD_RC	context B32;
+    CARD16    	length;
+    RECORD_RC	context;
 } xRecordGetContextReq;
 #define sz_xRecordGetContextReq 		8
 
@@ -230,16 +230,16 @@ typedef struct
 {
     CARD8   	type;
     BOOL    	enabled;
-    CARD16  	sequenceNumber B16;
-    CARD32  	length	 B32;
+    CARD16  	sequenceNumber;
+    CARD32  	length;
     RECORD_ELEMENT_HEADER  elementHeader;
     CARD8	pad;
-    CARD16	pad0 B16;
-    CARD32  	nClients B32;
-    CARD32  	pad1 B32;
-    CARD32  	pad2 B32;
-    CARD32  	pad3 B32;
-    CARD32  	pad4 B32;
+    CARD16	pad0;
+    CARD32  	nClients;
+    CARD32  	pad1;
+    CARD32  	pad2;
+    CARD32  	pad3;
+    CARD32  	pad4;
 /* LISTofCLIENT_INFO */ 		/* intercepted-clients */
 } xRecordGetContextReply;
 #define sz_xRecordGetContextReply  	32
@@ -251,8 +251,8 @@ typedef struct
 {
     CARD8     	reqType;
     CARD8     	recordReqType;
-    CARD16    	length B16;
-    RECORD_RC	context B32;
+    CARD16    	length;
+    RECORD_RC	context;
 } xRecordEnableContextReq;
 #define sz_xRecordEnableContextReq 	8
 
@@ -260,16 +260,16 @@ typedef struct
 {
     CARD8		type;
     CARD8		category;
-    CARD16		sequenceNumber B16;
-    CARD32		length B32;
+    CARD16		sequenceNumber;
+    CARD32		length;
     RECORD_ELEMENT_HEADER  elementHeader;
     BOOL		clientSwapped;
-    CARD16		pad1 B16;
-    RECORD_XIDBASE 	idBase B32;
-    CARD32		serverTime B32;
-    CARD32		recordedSequenceNumber B32;
-    CARD32		pad3 B32;
-    CARD32		pad4 B32;
+    CARD16		pad1;
+    RECORD_XIDBASE 	idBase;
+    CARD32		serverTime;
+    CARD32		recordedSequenceNumber;
+    CARD32		pad3;
+    CARD32		pad4;
     /* BYTE		data; */
 } xRecordEnableContextReply;
 #define sz_xRecordEnableContextReply 	32
@@ -281,8 +281,8 @@ typedef struct
 {
     CARD8     	reqType;
     CARD8     	recordReqType;
-    CARD16    	length B16;
-    RECORD_RC 	context B32;
+    CARD16    	length;
+    RECORD_RC 	context;
 } xRecordDisableContextReq;
 #define sz_xRecordDisableContextReq	8
 
@@ -293,8 +293,8 @@ typedef struct
 {
     CARD8     	reqType;
     CARD8     	recordReqType;
-    CARD16    	length B16;
-    RECORD_RC 	context B32;
+    CARD16    	length;
+    RECORD_RC 	context;
 } xRecordFreeContextReq;
 #define sz_xRecordFreeContextReq 	8
 

@@ -615,6 +615,13 @@ struct _mesa_glsl_parse_state {
    char *info_log;
 
    /**
+    * Are warnings enabled?
+    *
+    * Emission of warngins is controlled by '#pragma warning(...)'.
+    */
+   bool warnings_enabled;
+
+   /**
     * \name Enable bits for GLSL extensions
     */
    /*@{*/

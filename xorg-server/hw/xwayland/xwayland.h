@@ -120,9 +120,6 @@ struct xwl_screen {
     int expecting_event;
     enum RootClipMode root_clip_mode;
 
-    int wm_fd;
-    int listen_fds[5];
-    int listen_fd_count;
     int rootless;
     int glamor;
     int present;

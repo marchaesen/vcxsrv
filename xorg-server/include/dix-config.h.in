@@ -506,4 +506,7 @@
 /* Have epoll_create1() */
 #undef HAVE_EPOLL_CREATE1
 
+/* Have <sys/sysmacros.h> header */
+#undef HAVE_SYS_SYSMACROS_H
+
 #endif /* _DIX_CONFIG_H_ */

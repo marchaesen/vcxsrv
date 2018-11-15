@@ -3094,6 +3094,7 @@ int
 dixSaveScreens(ClientPtr client, int on, int mode)
 {
     int rc, i, what, type;
+    XID vlist[2];
 
     if (on == SCREEN_SAVER_FORCER) {
         if (mode == ScreenSaverReset)
@@ -3146,14 +3147,11 @@ dixSaveScreens(ClientPtr client, int on, int mode)
                  * for the root window, so PaintWindow works
                  */
                 screenIsSaved = SCREEN_SAVER_OFF;
-                (*pWin->drawable.pScreen->MoveWindow) (pWin,
-                                                       (short) (-
-                                                                (rand() %
-                                                                 RANDOM_WIDTH)),
-                                                       (short) (-
-                                                                (rand() %
-                                                                 RANDOM_WIDTH)),
-                                                       pWin->nextSib, VTMove);
+
+                vlist[0] = -(rand() % RANDOM_WIDTH);
+                vlist[1] = -(rand() % RANDOM_WIDTH);
+                ConfigureWindow(pWin, CWX | CWY, vlist, client);
+
                 screenIsSaved = SCREEN_SAVER_ON;
             }
             /*

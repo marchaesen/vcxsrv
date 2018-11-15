@@ -8766,3 +8766,11 @@ remove_per_vertex_blocks(exec_list *instructions,
       }
    }
 }
+
+ir_rvalue *
+ast_warnings_toggle::hir(exec_list *,
+                         struct _mesa_glsl_parse_state *state)
+{
+   state->warnings_enabled = enable;
+   return NULL;
+}

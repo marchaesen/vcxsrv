@@ -269,10 +269,10 @@ typedef CARD16 KeyButMask;
 typedef struct {
     CARD8	byteOrder;
     BYTE	pad;
-    CARD16	majorVersion B16, minorVersion B16;
-    CARD16	nbytesAuthProto B16;	/* Authorization protocol */
-    CARD16	nbytesAuthString B16;	/* Authorization string */
-    CARD16	pad2 B16;
+    CARD16	majorVersion, minorVersion;
+    CARD16	nbytesAuthProto;	/* Authorization protocol */
+    CARD16	nbytesAuthString;	/* Authorization string */
+    CARD16	pad2;
 } xConnClientPrefix;
 
 /* Server response to xConnClientPrefix.
@@ -288,19 +288,19 @@ typedef struct {
 typedef struct {
     CARD8          success;
     BYTE           lengthReason; /*num bytes in string following if failure */
-    CARD16         majorVersion B16,
-                   minorVersion B16;
-    CARD16         length B16;  /* 1/4 additional bytes in setup info */
+    CARD16         majorVersion,
+                   minorVersion;
+    CARD16         length;       /* 1/4 additional bytes in setup info */
 } xConnSetupPrefix;
 
 
 typedef struct {
-    CARD32         release B32;
-    CARD32         ridBase B32,
-                   ridMask B32;
-    CARD32         motionBufferSize B32;
-    CARD16         nbytesVendor B16;  /* number of bytes in vendor string */
-    CARD16         maxRequestSize B16;
+    CARD32         release;
+    CARD32         ridBase,
+                   ridMask;
+    CARD32         motionBufferSize;
+    CARD16         nbytesVendor;      /* number of bytes in vendor string */
+    CARD16         maxRequestSize;
     CARD8          numRoots;          /* number of roots structs to follow */
     CARD8          numFormats;        /* number of pixmap formats */
     CARD8          imageByteOrder;        /* LSBFirst, MSBFirst */
@@ -308,7 +308,7 @@ typedef struct {
     CARD8          bitmapScanlineUnit,     /* 8, 16, 32 */
                    bitmapScanlinePad;     /* 8, 16, 32 */
     KeyCode	   minKeyCode, maxKeyCode;
-    CARD32	   pad2 B32;
+    CARD32	   pad2;
 } xConnSetup;
 
 typedef struct {
@@ -316,7 +316,7 @@ typedef struct {
     CARD8          bitsPerPixel;
     CARD8          scanLinePad;
     CARD8          pad1;
-    CARD32	   pad2 B32;
+    CARD32	   pad2;
 } xPixmapFormat;
 
 /* window root */
@@ -324,32 +324,32 @@ typedef struct {
 typedef struct {
     CARD8 	depth;
     CARD8 	pad1;
-    CARD16	nVisuals B16;  /* number of xVisualType structures following */
-    CARD32	pad2 B32;
+    CARD16	nVisuals;  /* number of xVisualType structures following */
+    CARD32	pad2;
     } xDepth;
 
 typedef struct {
-    VisualID visualID B32;
+    VisualID visualID;
 #if defined(__cplusplus) || defined(c_plusplus)
     CARD8 c_class;
 #else
     CARD8 class;
 #endif
     CARD8 bitsPerRGB;
-    CARD16 colormapEntries B16;
-    CARD32 redMask B32, greenMask B32, blueMask B32;
-    CARD32 pad B32;
+    CARD16 colormapEntries;
+    CARD32 redMask, greenMask, blueMask;
+    CARD32 pad;
     } xVisualType;
 
 typedef struct {
-    Window         windowId B32;
-    Colormap       defaultColormap B32;
-    CARD32         whitePixel B32, blackPixel B32;
-    CARD32         currentInputMask B32;
-    CARD16         pixWidth B16, pixHeight B16;
-    CARD16         mmWidth B16, mmHeight B16;
-    CARD16         minInstalledMaps B16, maxInstalledMaps B16;
-    VisualID       rootVisualID B32;
+    Window         windowId;
+    Colormap       defaultColormap;
+    CARD32         whitePixel, blackPixel;
+    CARD32         currentInputMask;
+    CARD16         pixWidth, pixHeight;
+    CARD16         mmWidth, mmHeight;
+    CARD16         minInstalledMaps, maxInstalledMaps;
+    VisualID       rootVisualID;
     CARD8          backingStore;
     BOOL           saveUnders;
     CARD8          rootDepth;
@@ -365,28 +365,28 @@ typedef struct {
 /* Used in GetMotionEvents */
 
 typedef struct {
-    CARD32 time B32;
-    INT16 x B16, y B16;
+    CARD32 time;
+    INT16 x, y;
 } xTimecoord;
 
 typedef struct {
     CARD8 family;
     BYTE pad;
-    CARD16 length B16;
+    CARD16 length;
 } xHostEntry;
 
 typedef struct {
-    INT16 leftSideBearing B16,
-	  rightSideBearing B16,
-	  characterWidth B16,
-	  ascent B16,
-	  descent B16;
-    CARD16 attributes B16;
+    INT16 leftSideBearing,
+	  rightSideBearing,
+	  characterWidth,
+	  ascent,
+	  descent;
+    CARD16 attributes;
 } xCharInfo;
 
 typedef struct {
-    Atom name B32;
-    CARD32 value B32;
+    Atom name;
+    CARD32 value;
 } xFontProp;
 
 /*
@@ -400,15 +400,15 @@ typedef struct {           /* followed by string */
 
 
 typedef struct {
-    CARD32 pixel B32;
-    CARD16 red B16, green B16, blue B16;
+    CARD32 pixel;
+    CARD16 red, green, blue;
     CARD8 flags;  /* DoRed, DoGreen, DoBlue booleans */
     CARD8 pad;
 } xColorItem;
 
 
 typedef struct {
-    CARD16 red B16, green B16, blue B16, pad B16;
+    CARD16 red, green, blue, pad;
 } xrgb;
 
 typedef CARD8 KEYCODE;
@@ -425,14 +425,14 @@ typedef CARD8 KEYCODE;
 typedef struct {
     BYTE type;              /* X_Reply */
     BYTE data1;             /* depends on reply type */
-    CARD16 sequenceNumber B16;  /* of last request received by server */
-    CARD32 length B32;      /* 4 byte quantities beyond size of GenericReply */
-    CARD32 data00 B32;
-    CARD32 data01 B32;
-    CARD32 data02 B32;
-    CARD32 data03 B32;
-    CARD32 data04 B32;
-    CARD32 data05 B32;
+    CARD16 sequenceNumber;  /* of last request received by server */
+    CARD32 length;          /* 4 byte quantities beyond size of GenericReply */
+    CARD32 data00;
+    CARD32 data01;
+    CARD32 data02;
+    CARD32 data03;
+    CARD32 data04;
+    CARD32 data05;
     } xGenericReply;
 
 /* Individual reply formats. */
@@ -440,134 +440,134 @@ typedef struct {
 typedef struct {
     BYTE type;  /* X_Reply */
     CARD8 backingStore;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;	/* NOT 0; this is an extra-large reply */
-    VisualID visualID B32;
+    CARD16 sequenceNumber;
+    CARD32 length;	/* NOT 0; this is an extra-large reply */
+    VisualID visualID;
 #if defined(__cplusplus) || defined(c_plusplus)
-    CARD16 c_class B16;
+    CARD16 c_class;
 #else
-    CARD16 class B16;
+    CARD16 class;
 #endif
     CARD8 bitGravity;
     CARD8 winGravity;
-    CARD32 backingBitPlanes B32;
-    CARD32 backingPixel B32;
+    CARD32 backingBitPlanes;
+    CARD32 backingPixel;
     BOOL saveUnder;
     BOOL mapInstalled;
     CARD8 mapState;
     BOOL override;
-    Colormap colormap B32;
-    CARD32 allEventMasks B32;
-    CARD32 yourEventMask B32;
-    CARD16 doNotPropagateMask B16;
-    CARD16 pad B16;
+    Colormap colormap;
+    CARD32 allEventMasks;
+    CARD32 yourEventMask;
+    CARD16 doNotPropagateMask;
+    CARD16 pad;
     } xGetWindowAttributesReply;
 
 typedef struct {
     BYTE type;   /* X_Reply */
     CARD8 depth;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    Window root B32;
-    INT16 x B16, y B16;
-    CARD16 width B16, height B16;
-    CARD16 borderWidth B16;
-    CARD16 pad1 B16;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    Window root;
+    INT16 x, y;
+    CARD16 width, height;
+    CARD16 borderWidth;
+    CARD16 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
     } xGetGeometryReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    Window root B32, parent B32;
-    CARD16 nChildren B16;
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    Window root, parent;
+    CARD16 nChildren;
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
     } xQueryTreeReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32; /* 0 */
-    Atom atom B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
+    CARD16 sequenceNumber;
+    CARD32 length; /* 0 */
+    Atom atom;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
     } xInternAtomReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* of additional bytes */
-    CARD16 nameLength B16;  /* # of characters in name */
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* of additional bytes */
+    CARD16 nameLength;  /* # of characters in name */
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xGetAtomNameReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     CARD8 format;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32; /* of additional bytes */
-    Atom propertyType B32;
-    CARD32 bytesAfter B32;
-    CARD32 nItems B32; /* # of 8, 16, or 32-bit entities in reply */
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
+    CARD16 sequenceNumber;
+    CARD32 length; /* of additional bytes */
+    Atom propertyType;
+    CARD32 bytesAfter;
+    CARD32 nItems; /* # of 8, 16, or 32-bit entities in reply */
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
     } xGetPropertyReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD16 nProperties B16;
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 nProperties;
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xListPropertiesReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    Window owner B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    Window owner;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
     } xGetSelectionOwnerReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE status;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
     } xGrabPointerReply;
 
 typedef xGrabPointerReply xGrabKeyboardReply;
@@ -575,59 +575,59 @@ typedef xGrabPointerReply xGrabKeyboardReply;
 typedef struct {
     BYTE type;  /* X_Reply */
     BOOL sameScreen;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    Window root B32, child B32;
-    INT16 rootX B16, rootY B16, winX B16, winY B16;
-    CARD16 mask B16;
-    CARD16 pad1 B16;
-    CARD32 pad B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    Window root, child;
+    INT16 rootX, rootY, winX, winY;
+    CARD16 mask;
+    CARD16 pad1;
+    CARD32 pad;
     } xQueryPointerReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD32 nEvents B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD32 nEvents;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
     } xGetMotionEventsReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BOOL sameScreen;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32; /* 0 */
-    Window child B32;
-    INT16 dstX B16, dstY B16;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
+    CARD16 sequenceNumber;
+    CARD32 length; /* 0 */
+    Window child;
+    INT16 dstX, dstY;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
     } xTranslateCoordsReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     CARD8 revertTo;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    Window focus B32;
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    Window focus;
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
     } xGetInputFocusReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 2, NOT 0; this is an extra-large reply */
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 2, NOT 0; this is an extra-large reply */
     BYTE map[32];
     } xQueryKeymapReply;
 
@@ -635,238 +635,238 @@ typedef struct {
 typedef struct _xQueryFontReply {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* definitely > 0, even if "nCharInfos" is 0 */
+    CARD16 sequenceNumber;
+    CARD32 length;  /* definitely > 0, even if "nCharInfos" is 0 */
     xCharInfo minBounds;
-    CARD32 walign1 B32;
+    CARD32 walign1;
     xCharInfo maxBounds;
-    CARD32 walign2 B32;
-    CARD16 minCharOrByte2 B16, maxCharOrByte2 B16;
-    CARD16 defaultChar B16;
-    CARD16 nFontProps B16;  /* followed by this many xFontProp structures */
+    CARD32 walign2;
+    CARD16 minCharOrByte2, maxCharOrByte2;
+    CARD16 defaultChar;
+    CARD16 nFontProps;  /* followed by this many xFontProp structures */
     CARD8 drawDirection;
     CARD8 minByte1, maxByte1;
     BOOL allCharsExist;
-    INT16 fontAscent B16, fontDescent B16;
-    CARD32 nCharInfos B32; /* followed by this many xCharInfo structures */
+    INT16 fontAscent, fontDescent;
+    CARD32 nCharInfos; /* followed by this many xCharInfo structures */
 } xQueryFontReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     CARD8 drawDirection;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    INT16 fontAscent B16, fontDescent B16;
-    INT16 overallAscent B16, overallDescent B16;
-    INT32 overallWidth B32, overallLeft B32, overallRight B32;
-    CARD32 pad B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    INT16 fontAscent, fontDescent;
+    INT16 overallAscent, overallDescent;
+    INT32 overallWidth, overallLeft, overallRight;
+    CARD32 pad;
     } xQueryTextExtentsReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD16 nFonts B16;
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 nFonts;
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xListFontsReply;
 
 /* Warning: this MUST match (up to component renaming) xQueryFontReply */
 typedef struct {
     BYTE type;  /* X_Reply */
     CARD8 nameLength;  /* 0 indicates end-of-reply-sequence */
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* definitely > 0, even if "nameLength" is 0 */
+    CARD16 sequenceNumber;
+    CARD32 length;  /* definitely > 0, even if "nameLength" is 0 */
     xCharInfo minBounds;
-    CARD32 walign1 B32;
+    CARD32 walign1;
     xCharInfo maxBounds;
-    CARD32 walign2 B32;
-    CARD16 minCharOrByte2 B16, maxCharOrByte2 B16;
-    CARD16 defaultChar B16;
-    CARD16 nFontProps B16;  /* followed by this many xFontProp structures */
+    CARD32 walign2;
+    CARD16 minCharOrByte2, maxCharOrByte2;
+    CARD16 defaultChar;
+    CARD16 nFontProps;  /* followed by this many xFontProp structures */
     CARD8 drawDirection;
     CARD8 minByte1, maxByte1;
     BOOL allCharsExist;
-    INT16 fontAscent B16, fontDescent B16;
-    CARD32 nReplies B32;   /* hint as to how many more replies might be coming */
+    INT16 fontAscent, fontDescent;
+    CARD32 nReplies;   /* hint as to how many more replies might be coming */
 } xListFontsWithInfoReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD16 nPaths B16;
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 nPaths;
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xGetFontPathReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     CARD8 depth;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    VisualID visual B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    VisualID visual;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xGetImageReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD16 nColormaps B16;
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 nColormaps;
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xListInstalledColormapsReply;
 
 typedef struct {
     BYTE type; /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;   /* 0 */
-    CARD16 red B16, green B16, blue B16;
-    CARD16 pad2 B16;
-    CARD32 pixel B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;   /* 0 */
+    CARD16 red, green, blue;
+    CARD16 pad2;
+    CARD32 pixel;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
     } xAllocColorReply;
 
 typedef struct {
     BYTE type; /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    CARD32 pixel B32;
-    CARD16 exactRed B16, exactGreen B16, exactBlue B16;
-    CARD16 screenRed B16, screenGreen B16, screenBlue B16;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    CARD32 pixel;
+    CARD16 exactRed, exactGreen, exactBlue;
+    CARD16 screenRed, screenGreen, screenBlue;
+    CARD32 pad2;
+    CARD32 pad3;
     } xAllocNamedColorReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD16 nPixels B16, nMasks B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 nPixels, nMasks;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xAllocColorCellsReply;
 
 typedef struct {
     BYTE type; /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD16 nPixels B16;
-    CARD16 pad2 B16;
-    CARD32 redMask B32, greenMask B32, blueMask B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 nPixels;
+    CARD16 pad2;
+    CARD32 redMask, greenMask, blueMask;
+    CARD32 pad3;
+    CARD32 pad4;
     } xAllocColorPlanesReply;
 
 typedef struct {
     BYTE type; /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD16 nColors B16;
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 nColors;
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xQueryColorsReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    CARD16 exactRed B16, exactGreen B16, exactBlue B16;
-    CARD16 screenRed B16, screenGreen B16, screenBlue B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    CARD16 exactRed, exactGreen, exactBlue;
+    CARD16 screenRed, screenGreen, screenBlue;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
     } xLookupColorReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    CARD16 width B16, height B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    CARD16 width, height;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xQueryBestSizeReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32; /* 0 */
+    CARD16 sequenceNumber;
+    CARD32 length; /* 0 */
     BOOL  present;
     CARD8 major_opcode;
     CARD8 first_event;
     CARD8 first_error;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xQueryExtensionReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     CARD8 nExtensions;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xListExtensionsReply;
 
 
 typedef struct {
     BYTE   type;  /* X_Reply */
     CARD8  success;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xSetMappingReply;
 typedef xSetMappingReply xSetPointerMappingReply;
 typedef xSetMappingReply xSetModifierMappingReply;
@@ -874,95 +874,95 @@ typedef xSetMappingReply xSetModifierMappingReply;
 typedef struct {
     BYTE type;  /* X_Reply */
     CARD8 nElts;  /* how many elements does the map have */
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xGetPointerMappingReply;
 
 typedef struct {
     BYTE type;
     CARD8 keySymsPerKeyCode;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
 } xGetKeyboardMappingReply;
 
 typedef struct {
     BYTE type;
     CARD8 numKeyPerModifier;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
 } xGetModifierMappingReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BOOL globalAutoRepeat;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 5 */
-    CARD32 ledMask B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 5 */
+    CARD32 ledMask;
     CARD8 keyClickPercent, bellPercent;
-    CARD16 bellPitch B16, bellDuration B16;
-    CARD16 pad B16;
+    CARD16 bellPitch, bellDuration;
+    CARD16 pad;
     BYTE map[32];  /* bit masks start here */
     } xGetKeyboardControlReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    CARD16 accelNumerator B16, accelDenominator B16;
-    CARD16 threshold B16;
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    CARD16 accelNumerator, accelDenominator;
+    CARD16 threshold;
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
     } xGetPointerControlReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BYTE pad1;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;  /* 0 */
-    CARD16 timeout B16, interval B16;
+    CARD16 sequenceNumber;
+    CARD32 length;  /* 0 */
+    CARD16 timeout, interval;
     BOOL preferBlanking;
     BOOL allowExposures;
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
     } xGetScreenSaverReply;
 
 typedef struct {
     BYTE type;  /* X_Reply */
     BOOL enabled;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD16 nHosts B16;
-    CARD16 pad1 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 nHosts;
+    CARD16 pad1;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
     } xListHostsReply;
 
 
@@ -976,16 +976,16 @@ typedef struct {
 typedef struct {
     BYTE type;                  /* X_Error */
     BYTE errorCode;
-    CARD16 sequenceNumber B16;       /* the nth request from this client */
-    CARD32 resourceID B32;
-    CARD16 minorCode B16;
+    CARD16 sequenceNumber;       /* the nth request from this client */
+    CARD32 resourceID;
+    CARD16 minorCode;
     CARD8 majorCode;
     BYTE pad1;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
 } xError;
 
 /*****************************************************************
@@ -998,68 +998,68 @@ typedef struct _xEvent {
 	struct {
 	    BYTE type;
 	    BYTE detail;
-	    CARD16 sequenceNumber B16;
+	    CARD16 sequenceNumber;
 	    } u;
 	struct {
-            CARD32 pad00 B32;
-	    Time time B32;
-	    Window root B32, event B32, child B32;
-	    INT16 rootX B16, rootY B16, eventX B16, eventY B16;
-	    KeyButMask state B16;
+	    CARD32 pad00;
+	    Time time;
+	    Window root, event, child;
+	    INT16 rootX, rootY, eventX, eventY;
+	    KeyButMask state;
 	    BOOL sameScreen;
 	    BYTE pad1;
 	} keyButtonPointer;
 	struct {
-            CARD32 pad00 B32;
-            Time time B32;
-	    Window root B32, event B32, child B32;
-	    INT16 rootX B16, rootY B16, eventX B16, eventY B16;
-	    KeyButMask state B16;
+	    CARD32 pad00;
+	    Time time;
+	    Window root, event, child;
+	    INT16 rootX, rootY, eventX, eventY;
+	    KeyButMask state;
 	    BYTE mode; 			/* really XMode */
 	    BYTE flags;		/* sameScreen and focus booleans, packed together */
 #define ELFlagFocus        (1<<0)
 #define ELFlagSameScreen   (1<<1)
 	} enterLeave;
 	struct {
-            CARD32 pad00 B32;
-	    Window window B32;
+	    CARD32 pad00;
+	    Window window;
 	    BYTE mode; 			/* really XMode */
 	    BYTE pad1, pad2, pad3;
 	} focus;
 	struct {
-            CARD32 pad00 B32;
-	    Window window B32;
-	    CARD16 x B16, y B16, width B16, height B16;
-	    CARD16 count B16;
-	    CARD16 pad2 B16;
+	    CARD32 pad00;
+	    Window window;
+	    CARD16 x, y, width, height;
+	    CARD16 count;
+	    CARD16 pad2;
 	} expose;
 	struct {
-            CARD32 pad00 B32;
-	    Drawable drawable B32;
-	    CARD16 x B16, y B16, width B16, height B16;
-	    CARD16 minorEvent B16;
-	    CARD16 count B16;
+	    CARD32 pad00;
+	    Drawable drawable;
+	    CARD16 x, y, width, height;
+	    CARD16 minorEvent;
+	    CARD16 count;
 	    BYTE majorEvent;
 	    BYTE pad1, pad2, pad3;
 	} graphicsExposure;
 	struct {
-            CARD32 pad00 B32;
-	    Drawable drawable B32;
-	    CARD16 minorEvent B16;
+	    CARD32 pad00;
+	    Drawable drawable;
+	    CARD16 minorEvent;
 	    BYTE majorEvent;
 	    BYTE bpad;
 	} noExposure;
 	struct {
-            CARD32 pad00 B32;
-	    Window window B32;
+	    CARD32 pad00;
+	    Window window;
 	    CARD8 state;
 	    BYTE pad1, pad2, pad3;
 	} visibility;
 	struct {
-            CARD32 pad00 B32;
-	    Window parent B32, window B32;
-	    INT16 x B16, y B16;
-	    CARD16 width B16, height B16, borderWidth B16;
+	    CARD32 pad00;
+	    Window parent, window;
+	    INT16 x, y;
+	    CARD16 width, height, borderWidth;
 	    BOOL override;
 	    BYTE bpad;
         } createNotify;
@@ -1072,98 +1072,98 @@ typedef struct _xEvent {
  * the same offset for the event window.
  */
 	struct {
-            CARD32 pad00 B32;
-	    Window event B32, window B32;
+	    CARD32 pad00;
+	    Window event, window;
 	} destroyNotify;
 	struct {
-            CARD32 pad00 B32;
-	    Window event B32, window B32;
+	    CARD32 pad00;
+	    Window event, window;
 	    BOOL fromConfigure;
 	    BYTE pad1, pad2, pad3;
         } unmapNotify;
 	struct {
-            CARD32 pad00 B32;
-	    Window event B32, window B32;
+	    CARD32 pad00;
+	    Window event, window;
 	    BOOL override;
 	    BYTE pad1, pad2, pad3;
         } mapNotify;
 	struct {
-            CARD32 pad00 B32;
-	    Window parent B32, window B32;
+	    CARD32 pad00;
+	    Window parent, window;
         } mapRequest;
 	struct {
-            CARD32 pad00 B32;
-	    Window event B32, window B32, parent B32;
-	    INT16 x B16, y B16;
+	    CARD32 pad00;
+	    Window event, window, parent;
+	    INT16 x, y;
 	    BOOL override;
 	    BYTE pad1, pad2, pad3;
 	} reparent;
 	struct {
-            CARD32 pad00 B32;
-	    Window event B32, window B32, aboveSibling B32;
-	    INT16 x B16, y B16;
-	    CARD16 width B16, height B16, borderWidth B16;
+	    CARD32 pad00;
+	    Window event, window, aboveSibling;
+	    INT16 x, y;
+	    CARD16 width, height, borderWidth;
 	    BOOL override;
 	    BYTE bpad;
 	} configureNotify;
 	struct {
-            CARD32 pad00 B32;
-	    Window parent B32, window B32, sibling B32;
-	    INT16 x B16, y B16;
-	    CARD16 width B16, height B16, borderWidth B16;
-	    CARD16 valueMask B16;
-	    CARD32 pad1 B32;
+	    CARD32 pad00;
+	    Window parent, window, sibling;
+	    INT16 x, y;
+	    CARD16 width, height, borderWidth;
+	    CARD16 valueMask;
+	    CARD32 pad1;
 	} configureRequest;
 	struct {
-            CARD32 pad00 B32;
-	    Window event B32, window B32;
-	    INT16 x B16, y B16;
-	    CARD32 pad1 B32, pad2 B32, pad3 B32, pad4 B32;
+	    CARD32 pad00;
+	    Window event, window;
+	    INT16 x, y;
+	    CARD32 pad1, pad2, pad3, pad4;
 	} gravity;
 	struct {
-            CARD32 pad00 B32;
-	    Window window B32;
-	    CARD16 width B16, height B16;
+	    CARD32 pad00;
+	    Window window;
+	    CARD16 width, height;
 	} resizeRequest;
 	struct {
 /* The event field in the circulate record is really the parent when this
    is used as a CirculateRequest instead of a CirculateNotify */
-            CARD32 pad00 B32;
-	    Window event B32, window B32, parent B32;
+	    CARD32 pad00;
+	    Window event, window, parent;
 	    BYTE place;			/* Top or Bottom */
 	    BYTE pad1, pad2, pad3;
 	} circulate;
 	struct {
-            CARD32 pad00 B32;
-	    Window window B32;
-	    Atom atom B32;
-	    Time time B32;
+	    CARD32 pad00;
+	    Window window;
+	    Atom atom;
+	    Time time;
 	    BYTE state;			/* NewValue or Deleted */
 	    BYTE pad1;
-	    CARD16 pad2 B16;
+	    CARD16 pad2;
 	} property;
 	struct {
-            CARD32 pad00 B32;
-            Time time B32;
-	    Window window B32;
-	    Atom atom B32;
+	    CARD32 pad00;
+	    Time time;
+	    Window window;
+	    Atom atom;
 	} selectionClear;
 	struct {
-            CARD32 pad00 B32;
-            Time time B32;
-	    Window owner B32, requestor B32;
-	    Atom selection B32, target B32, property B32;
+	    CARD32 pad00;
+	    Time time;
+	    Window owner, requestor;
+	    Atom selection, target, property;
 	} selectionRequest;
 	struct {
-            CARD32 pad00 B32;
-            Time time B32;
-	    Window requestor B32;
-	    Atom selection B32, target B32, property B32;
+	    CARD32 pad00;
+	    Time time;
+	    Window requestor;
+	    Atom selection, target, property;
 	} selectionNotify;
 	struct {
-            CARD32 pad00 B32;
-	    Window window B32;
-	    Colormap colormap B32;
+	    CARD32 pad00;
+	    Window window;
+	    Colormap colormap;
 #if defined(__cplusplus) || defined(c_plusplus)
 	    BOOL c_new;
 #else
@@ -1173,39 +1173,39 @@ typedef struct _xEvent {
 	    BYTE pad1, pad2;
 	} colormap;
 	struct {
-	    CARD32 pad00 B32;
+	    CARD32 pad00;
 	    CARD8 request;
 	    KeyCode firstKeyCode;
 	    CARD8 count;
 	    BYTE pad1;
 	} mappingNotify;
 	struct {
-            CARD32 pad00 B32;
-	    Window window B32;
+	    CARD32 pad00;
+	    Window window;
 	    union {
 		struct {
-		    Atom type B32;
-		    INT32 longs0 B32;
-		    INT32 longs1 B32;
-		    INT32 longs2 B32;
-		    INT32 longs3 B32;
-		    INT32 longs4 B32;
+		    Atom type;
+		    INT32 longs0;
+		    INT32 longs1;
+		    INT32 longs2;
+		    INT32 longs3;
+		    INT32 longs4;
 		} l;
 		struct {
-		    Atom type B32;
-		    INT16 shorts0 B16;
-		    INT16 shorts1 B16;
-		    INT16 shorts2 B16;
-		    INT16 shorts3 B16;
-		    INT16 shorts4 B16;
-		    INT16 shorts5 B16;
-		    INT16 shorts6 B16;
-		    INT16 shorts7 B16;
-		    INT16 shorts8 B16;
-		    INT16 shorts9 B16;
+		    Atom type;
+		    INT16 shorts0;
+		    INT16 shorts1;
+		    INT16 shorts2;
+		    INT16 shorts3;
+		    INT16 shorts4;
+		    INT16 shorts5;
+		    INT16 shorts6;
+		    INT16 shorts7;
+		    INT16 shorts8;
+		    INT16 shorts9;
 		} s;
 		struct {
-		    Atom type B32;
+		    Atom type;
 		    INT8 bytes[20];
 		} b;
 	    } u;
@@ -1232,15 +1232,15 @@ typedef struct
 {
     BYTE    type;
     CARD8   extension;
-    CARD16  sequenceNumber B16;
-    CARD32  length B32;
-    CARD16  evtype B16;
-    CARD16  pad2 B16;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
-    CARD32  pad6 B32;
-    CARD32  pad7 B32;
+    CARD16  sequenceNumber;
+    CARD32  length;
+    CARD16  evtype;
+    CARD16  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
+    CARD32  pad6;
+    CARD32  pad7;
 } xGenericEvent;
 
 
@@ -1314,7 +1314,7 @@ typedef union {
 typedef struct _xReq {
 	CARD8 reqType;
 	CARD8 data;            /* meaning depends on request type */
-	CARD16 length B16;         /* length in 4 bytes quantities
+	CARD16 length;         /* length in 4 bytes quantities
 				  of whole request, including this header */
 } xReq;
 
@@ -1328,90 +1328,90 @@ typedef struct _xReq {
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    CARD32 id B32;  /* a Window, Drawable, Font, GContext, Pixmap, etc. */
+    CARD16 length;
+    CARD32 id;  /* a Window, Drawable, Font, GContext, Pixmap, etc. */
     } xResourceReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 depth;
-    CARD16 length B16;
-    Window wid B32, parent B32;
-    INT16 x B16, y B16;
-    CARD16 width B16, height B16, borderWidth B16;
+    CARD16 length;
+    Window wid, parent;
+    INT16 x, y;
+    CARD16 width, height, borderWidth;
 #if defined(__cplusplus) || defined(c_plusplus)
-    CARD16 c_class B16;
+    CARD16 c_class;
 #else
-    CARD16 class B16;
+    CARD16 class;
 #endif
-    VisualID visual B32;
-    CARD32 mask B32;
+    VisualID visual;
+    CARD32 mask;
 } xCreateWindowReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Window window B32;
-    CARD32 valueMask B32;
+    CARD16 length;
+    Window window;
+    CARD32 valueMask;
 } xChangeWindowAttributesReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE mode;
-    CARD16 length B16;
-    Window window B32;
+    CARD16 length;
+    Window window;
 } xChangeSaveSetReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Window window B32, parent B32;
-    INT16 x B16, y B16;
+    CARD16 length;
+    Window window, parent;
+    INT16 x, y;
 } xReparentWindowReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 pad;
-    CARD16 length B16;
-    Window window B32;
-    CARD16 mask B16;
-    CARD16 pad2 B16;
+    CARD16 length;
+    Window window;
+    CARD16 mask;
+    CARD16 pad2;
 } xConfigureWindowReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 direction;
-    CARD16 length B16;
-    Window window B32;
+    CARD16 length;
+    Window window;
 } xCirculateWindowReq;
 
 typedef struct {    /* followed by padded string */
     CARD8 reqType;
     BOOL onlyIfExists;
-    CARD16 length B16;
-    CARD16 nbytes  B16;    /* number of bytes in string */
-    CARD16 pad B16;
+    CARD16 length;
+    CARD16 nbytes;    /* number of bytes in string */
+    CARD16 pad;
 } xInternAtomReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 mode;
-    CARD16 length B16;
-    Window window B32;
-    Atom property B32, type B32;
+    CARD16 length;
+    Window window;
+    Atom property, type;
     CARD8 format;
     BYTE pad[3];
-    CARD32 nUnits B32;     /* length of stuff following, depends on format */
+    CARD32 nUnits;     /* length of stuff following, depends on format */
 } xChangePropertyReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Window window B32;
-    Atom property B32;
+    CARD16 length;
+    Window window;
+    Atom property;
 } xDeletePropertyReq;
 
 typedef struct {
@@ -1421,101 +1421,101 @@ typedef struct {
 #else
     BOOL delete;
 #endif
-    CARD16 length B16;
-    Window window B32;
-    Atom property B32, type B32;
-    CARD32 longOffset B32;
-    CARD32 longLength B32;
+    CARD16 length;
+    Window window;
+    Atom property, type;
+    CARD32 longOffset;
+    CARD32 longLength;
 } xGetPropertyReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Window window B32;
-    Atom selection B32;
-    Time time B32;
+    CARD16 length;
+    Window window;
+    Atom selection;
+    Time time;
 } xSetSelectionOwnerReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Window requestor B32;
-    Atom selection B32, target B32, property B32;
-    Time time B32;
+    CARD16 length;
+    Window requestor;
+    Atom selection, target, property;
+    Time time;
     } xConvertSelectionReq;
 
 typedef struct {
     CARD8 reqType;
     BOOL propagate;
-    CARD16 length B16;
-    Window destination B32;
-    CARD32 eventMask B32;
+    CARD16 length;
+    Window destination;
+    CARD32 eventMask;
     xEvent event;
 } xSendEventReq;
 
 typedef struct {
     CARD8 reqType;
     BOOL ownerEvents;
-    CARD16 length B16;
-    Window grabWindow B32;
-    CARD16 eventMask B16;
+    CARD16 length;
+    Window grabWindow;
+    CARD16 eventMask;
     BYTE pointerMode, keyboardMode;
-    Window confineTo B32;
-    Cursor cursor B32;
-    Time time B32;
+    Window confineTo;
+    Cursor cursor;
+    Time time;
 } xGrabPointerReq;
 
 typedef struct {
     CARD8 reqType;
     BOOL ownerEvents;
-    CARD16 length B16;
-    Window grabWindow B32;
-    CARD16 eventMask B16;
+    CARD16 length;
+    Window grabWindow;
+    CARD16 eventMask;
     BYTE pointerMode, keyboardMode;
-    Window confineTo B32;
-    Cursor cursor B32;
+    Window confineTo;
+    Cursor cursor;
     CARD8 button;
     BYTE pad;
-    CARD16 modifiers B16;
+    CARD16 modifiers;
 } xGrabButtonReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 button;
-    CARD16 length B16;
-    Window grabWindow B32;
-    CARD16 modifiers B16;
-    CARD16 pad B16;
+    CARD16 length;
+    Window grabWindow;
+    CARD16 modifiers;
+    CARD16 pad;
 } xUngrabButtonReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Cursor cursor B32;
-    Time time B32;
-    CARD16 eventMask B16;
-    CARD16 pad2 B16;
+    CARD16 length;
+    Cursor cursor;
+    Time time;
+    CARD16 eventMask;
+    CARD16 pad2;
 } xChangeActivePointerGrabReq;
 
 typedef struct {
     CARD8 reqType;
     BOOL ownerEvents;
-    CARD16 length B16;
-    Window grabWindow B32;
-    Time time B32;
+    CARD16 length;
+    Window grabWindow;
+    Time time;
     BYTE pointerMode, keyboardMode;
-    CARD16 pad B16;
+    CARD16 pad;
 } xGrabKeyboardReq;
 
 typedef struct {
     CARD8 reqType;
     BOOL ownerEvents;
-    CARD16 length B16;
-    Window grabWindow B32;
-    CARD16 modifiers B16;
+    CARD16 length;
+    Window grabWindow;
+    CARD16 modifiers;
     CARD8 key;
     BYTE pointerMode, keyboardMode;
     BYTE pad1, pad2, pad3;
@@ -1524,75 +1524,75 @@ typedef struct {
 typedef struct {
     CARD8 reqType;
     CARD8 key;
-    CARD16 length B16;
-    Window grabWindow B32;
-    CARD16 modifiers B16;
-    CARD16 pad B16;
+    CARD16 length;
+    Window grabWindow;
+    CARD16 modifiers;
+    CARD16 pad;
 } xUngrabKeyReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 mode;
-    CARD16 length B16;
-    Time time B32;
+    CARD16 length;
+    Time time;
 } xAllowEventsReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Window window B32;
-    Time start B32, stop B32;
+    CARD16 length;
+    Window window;
+    Time start, stop;
 } xGetMotionEventsReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Window srcWid B32, dstWid B32;
-    INT16 srcX B16, srcY B16;
+    CARD16 length;
+    Window srcWid, dstWid;
+    INT16 srcX, srcY;
 } xTranslateCoordsReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Window srcWid B32, dstWid B32;
-    INT16 srcX B16, srcY B16;
-    CARD16 srcWidth B16, srcHeight B16;
-    INT16 dstX B16, dstY B16;
+    CARD16 length;
+    Window srcWid, dstWid;
+    INT16 srcX, srcY;
+    CARD16 srcWidth, srcHeight;
+    INT16 dstX, dstY;
 } xWarpPointerReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 revertTo;
-    CARD16 length B16;
-    Window focus B32;
-    Time time B32;
+    CARD16 length;
+    Window focus;
+    Time time;
 } xSetInputFocusReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Font fid B32;
-    CARD16 nbytes B16;
+    CARD16 length;
+    Font fid;
+    CARD16 nbytes;
     BYTE pad1, pad2;	/* string follows on word boundary */
 } xOpenFontReq;
 
 typedef struct {
     CARD8 reqType;
     BOOL oddLength;
-    CARD16 length B16;
-    Font fid B32;
+    CARD16 length;
+    Font fid;
     } xQueryTextExtentsReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    CARD16 maxNames B16;
-    CARD16 nbytes B16;  /* followed immediately by string bytes */
+    CARD16 length;
+    CARD16 maxNames;
+    CARD16 nbytes;	/* followed immediately by string bytes */
 } xListFontsReq;
 
 typedef xListFontsReq xListFontsWithInfoReq;
@@ -1600,98 +1600,98 @@ typedef xListFontsReq xListFontsWithInfoReq;
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    CARD16 nFonts B16;
+    CARD16 length;
+    CARD16 nFonts;
     BYTE pad1, pad2;	/* LISTofSTRING8 follows on word boundary */
 } xSetFontPathReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 depth;
-    CARD16 length B16;
-    Pixmap pid B32;
-    Drawable drawable B32;
-    CARD16 width B16, height B16;
+    CARD16 length;
+    Pixmap pid;
+    Drawable drawable;
+    CARD16 width, height;
 } xCreatePixmapReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    GContext gc B32;
-    Drawable drawable B32;
-    CARD32 mask B32;
+    CARD16 length;
+    GContext gc;
+    Drawable drawable;
+    CARD32 mask;
 } xCreateGCReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    GContext gc B32;
-    CARD32 mask B32;
+    CARD16 length;
+    GContext gc;
+    CARD32 mask;
 } xChangeGCReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    GContext srcGC B32, dstGC B32;
-    CARD32 mask B32;
+    CARD16 length;
+    GContext srcGC, dstGC;
+    CARD32 mask;
 } xCopyGCReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    GContext gc B32;
-    CARD16 dashOffset B16;
-    CARD16 nDashes B16;        /* length LISTofCARD8 of values following */
+    CARD16 length;
+    GContext gc;
+    CARD16 dashOffset;
+    CARD16 nDashes;	/* length LISTofCARD8 of values following */
 } xSetDashesReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE ordering;
-    CARD16 length B16;
-    GContext gc B32;
-    INT16 xOrigin B16, yOrigin B16;
+    CARD16 length;
+    GContext gc;
+    INT16 xOrigin, yOrigin;
 } xSetClipRectanglesReq;
 
 typedef struct {
     CARD8 reqType;
     BOOL exposures;
-    CARD16 length B16;
-    Window window B32;
-    INT16 x B16, y B16;
-    CARD16 width B16, height B16;
+    CARD16 length;
+    Window window;
+    INT16 x, y;
+    CARD16 width, height;
 } xClearAreaReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Drawable srcDrawable B32, dstDrawable B32;
-    GContext gc B32;
-    INT16 srcX B16, srcY B16, dstX B16, dstY B16;
-    CARD16 width B16, height B16;
+    CARD16 length;
+    Drawable srcDrawable, dstDrawable;
+    GContext gc;
+    INT16 srcX, srcY, dstX, dstY;
+    CARD16 width, height;
 } xCopyAreaReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Drawable srcDrawable B32, dstDrawable B32;
-    GContext gc B32;
-    INT16 srcX B16, srcY B16, dstX B16, dstY B16;
-    CARD16 width B16, height B16;
-    CARD32 bitPlane B32;
+    CARD16 length;
+    Drawable srcDrawable, dstDrawable;
+    GContext gc;
+    INT16 srcX, srcY, dstX, dstY;
+    CARD16 width, height;
+    CARD32 bitPlane;
 } xCopyPlaneReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE coordMode;
-    CARD16 length B16;
-    Drawable drawable B32;
-    GContext gc B32;
+    CARD16 length;
+    Drawable drawable;
+    GContext gc;
 } xPolyPointReq;
 
 typedef xPolyPointReq xPolyLineReq;  /* same request structure */
@@ -1701,9 +1701,9 @@ typedef xPolyPointReq xPolyLineReq;  /* same request structure */
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Drawable drawable B32;
-    GContext gc B32;
+    CARD16 length;
+    Drawable drawable;
+    GContext gc;
 } xPolySegmentReq;
 
 typedef xPolySegmentReq xPolyArcReq;
@@ -1714,36 +1714,36 @@ typedef xPolySegmentReq xPolyFillArcReq;
 typedef struct _FillPolyReq {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Drawable drawable B32;
-    GContext gc B32;
+    CARD16 length;
+    Drawable drawable;
+    GContext gc;
     BYTE shape;
     BYTE coordMode;
-    CARD16 pad1 B16;
+    CARD16 pad1;
 } xFillPolyReq;
 
 
 typedef struct _PutImageReq {
     CARD8 reqType;
     CARD8 format;
-    CARD16 length B16;
-    Drawable drawable B32;
-    GContext gc B32;
-    CARD16 width B16, height B16;
-    INT16 dstX B16, dstY B16;
+    CARD16 length;
+    Drawable drawable;
+    GContext gc;
+    CARD16 width, height;
+    INT16 dstX, dstY;
     CARD8 leftPad;
     CARD8 depth;
-    CARD16 pad B16;
+    CARD16 pad;
 } xPutImageReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 format;
-    CARD16 length B16;
-    Drawable drawable B32;
-    INT16 x B16, y B16;
-    CARD16 width B16, height B16;
-    CARD32 planeMask B32;
+    CARD16 length;
+    Drawable drawable;
+    INT16 x, y;
+    CARD16 width, height;
+    CARD32 planeMask;
 } xGetImageReq;
 
 /* the following used by PolyText8 and PolyText16 */
@@ -1751,10 +1751,10 @@ typedef struct {
 typedef struct {
     CARD8 reqType;
     CARD8 pad;
-    CARD16 length B16;
-    Drawable drawable B32;
-    GContext gc B32;
-    INT16 x B16, y B16;		/* items (xTextElt) start after struct */
+    CARD16 length;
+    Drawable drawable;
+    GContext gc;
+    INT16 x, y;		/* items (xTextElt) start after struct */
 } xPolyTextReq;
 
 typedef xPolyTextReq xPolyText8Req;
@@ -1763,10 +1763,10 @@ typedef xPolyTextReq xPolyText16Req;
 typedef struct {
     CARD8 reqType;
     BYTE nChars;
-    CARD16 length B16;
-    Drawable drawable B32;
-    GContext gc B32;
-    INT16 x B16, y B16;
+    CARD16 length;
+    Drawable drawable;
+    GContext gc;
+    INT16 x, y;
 } xImageTextReq;
 
 typedef xImageTextReq xImageText8Req;
@@ -1775,124 +1775,124 @@ typedef xImageTextReq xImageText16Req;
 typedef struct {
     CARD8 reqType;
     BYTE alloc;
-    CARD16 length B16;
-    Colormap mid B32;
-    Window window B32;
-    VisualID visual B32;
+    CARD16 length;
+    Colormap mid;
+    Window window;
+    VisualID visual;
 } xCreateColormapReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Colormap mid B32;
-    Colormap srcCmap B32;
+    CARD16 length;
+    Colormap mid;
+    Colormap srcCmap;
 } xCopyColormapAndFreeReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Colormap cmap B32;
-    CARD16 red B16, green B16, blue B16;
-    CARD16 pad2 B16;
+    CARD16 length;
+    Colormap cmap;
+    CARD16 red, green, blue;
+    CARD16 pad2;
 } xAllocColorReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Colormap cmap B32;
-    CARD16 nbytes B16;  /* followed by structure */
+    CARD16 length;
+    Colormap cmap;
+    CARD16 nbytes;	/* followed by structure */
     BYTE pad1, pad2;
 } xAllocNamedColorReq;
 
 typedef struct {
     CARD8 reqType;
     BOOL contiguous;
-    CARD16 length B16;
-    Colormap cmap B32;
-    CARD16 colors B16, planes B16;
+    CARD16 length;
+    Colormap cmap;
+    CARD16 colors, planes;
 } xAllocColorCellsReq;
 
 typedef struct {
     CARD8 reqType;
     BOOL contiguous;
-    CARD16 length B16;
-    Colormap cmap B32;
-    CARD16 colors B16, red B16, green B16, blue B16;
+    CARD16 length;
+    Colormap cmap;
+    CARD16 colors, red, green, blue;
 } xAllocColorPlanesReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Colormap cmap B32;
-    CARD32 planeMask B32;
+    CARD16 length;
+    Colormap cmap;
+    CARD32 planeMask;
 } xFreeColorsReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Colormap cmap B32;
+    CARD16 length;
+    Colormap cmap;
 } xStoreColorsReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 flags;   /* DoRed, DoGreen, DoBlue, as in xColorItem */
-    CARD16 length B16;
-    Colormap cmap B32;
-    CARD32 pixel B32;
-    CARD16 nbytes B16;  /* number of name string bytes following structure */
+    CARD16 length;
+    Colormap cmap;
+    CARD32 pixel;
+    CARD16 nbytes;  /* number of name string bytes following structure */
     BYTE pad1, pad2;
     } xStoreNamedColorReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Colormap cmap B32;
+    CARD16 length;
+    Colormap cmap;
 } xQueryColorsReq;
 
 typedef struct {    /* followed  by string of length len */
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Colormap cmap B32;
-    CARD16 nbytes B16;  /* number of string bytes following structure*/
+    CARD16 length;
+    Colormap cmap;
+    CARD16 nbytes;  /* number of string bytes following structure*/
     BYTE pad1, pad2;
 } xLookupColorReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Cursor cid B32;
-    Pixmap source B32, mask B32;
-    CARD16 foreRed B16, foreGreen B16, foreBlue B16;
-    CARD16 backRed B16, backGreen B16, backBlue B16;
-    CARD16 x B16, y B16;
+    CARD16 length;
+    Cursor cid;
+    Pixmap source, mask;
+    CARD16 foreRed, foreGreen, foreBlue;
+    CARD16 backRed, backGreen, backBlue;
+    CARD16 x, y;
 } xCreateCursorReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Cursor cid B32;
-    Font source B32, mask B32;
-    CARD16 sourceChar B16, maskChar B16;
-    CARD16 foreRed B16, foreGreen B16, foreBlue B16;
-    CARD16 backRed B16, backGreen B16, backBlue B16;
+    CARD16 length;
+    Cursor cid;
+    Font source, mask;
+    CARD16 sourceChar, maskChar;
+    CARD16 foreRed, foreGreen, foreBlue;
+    CARD16 backRed, backGreen, backBlue;
 } xCreateGlyphCursorReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Cursor cursor B32;
-    CARD16 foreRed B16, foreGreen B16, foreBlue B16;
-    CARD16 backRed B16, backGreen B16, backBlue B16;
+    CARD16 length;
+    Cursor cursor;
+    CARD16 foreRed, foreGreen, foreBlue;
+    CARD16 backRed, backGreen, backBlue;
 } xRecolorCursorReq;
 
 typedef struct {
@@ -1902,99 +1902,99 @@ typedef struct {
 #else
     CARD8 class;
 #endif
-    CARD16 length B16;
-    Drawable drawable B32;
-    CARD16 width B16, height B16;
+    CARD16 length;
+    Drawable drawable;
+    CARD16 width, height;
 } xQueryBestSizeReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    CARD16 nbytes B16;  /* number of string bytes following structure */
+    CARD16 length;
+    CARD16 nbytes;	/* number of string bytes following structure */
     BYTE pad1, pad2;
 } xQueryExtensionReq;
 
 typedef struct {
     CARD8   reqType;
     CARD8   numKeyPerModifier;
-    CARD16  length B16;
+    CARD16  length;
 } xSetModifierMappingReq;
 
 typedef struct {
     CARD8 reqType;
-    CARD8 nElts;  /* how many elements in the map */
-    CARD16 length B16;
+    CARD8 nElts;	/* how many elements in the map */
+    CARD16 length;
 } xSetPointerMappingReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
+    CARD16 length;
     KeyCode firstKeyCode;
     CARD8 count;
-    CARD16 pad1 B16;
+    CARD16 pad1;
 } xGetKeyboardMappingReq;
 
 typedef struct {
     CARD8 reqType;
     CARD8 keyCodes;
-    CARD16 length B16;
+    CARD16 length;
     KeyCode firstKeyCode;
     CARD8 keySymsPerKeyCode;
-    CARD16 pad1 B16;
+    CARD16 pad1;
 } xChangeKeyboardMappingReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    CARD32 mask B32;
+    CARD16 length;
+    CARD32 mask;
 } xChangeKeyboardControlReq;
 
 typedef struct {
     CARD8 reqType;
     INT8 percent;  /* -100 to 100 */
-    CARD16 length B16;
+    CARD16 length;
 } xBellReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    INT16 accelNum B16, accelDenum B16;
-    INT16 threshold B16;
+    CARD16 length;
+    INT16 accelNum, accelDenum;
+    INT16 threshold;
     BOOL doAccel, doThresh;
 } xChangePointerControlReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    INT16 timeout B16, interval B16;
+    CARD16 length;
+    INT16 timeout, interval;
     BYTE preferBlank, allowExpose;
-    CARD16 pad2 B16;
+    CARD16 pad2;
 } xSetScreenSaverReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE mode;
-    CARD16 length B16;
+    CARD16 length;
     CARD8 hostFamily;
     BYTE pad;
-    CARD16 hostLength B16;
+    CARD16 hostLength;
 } xChangeHostsReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
+    CARD16 length;
     } xListHostsReq;
 
 typedef struct {
     CARD8 reqType;
     BYTE mode;
-    CARD16 length B16;
+    CARD16 length;
     } xChangeModeReq;
 
 typedef xChangeModeReq xSetAccessControlReq;
@@ -2004,10 +2004,10 @@ typedef xChangeModeReq xForceScreenSaverReq;
 typedef struct { /* followed by LIST of ATOM */
     CARD8 reqType;
     BYTE pad;
-    CARD16 length B16;
-    Window window B32;
-    CARD16 nAtoms B16;
-    INT16 nPositions B16;
+    CARD16 length;
+    Window window;
+    CARD16 nAtoms;
+    INT16 nPositions;
     } xRotatePropertiesReq;
 
 

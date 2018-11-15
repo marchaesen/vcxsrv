@@ -595,6 +595,21 @@ make_random_bytes (int n_bytes)
     return bytes;
 }
 
+float *
+make_random_floats (int n_bytes)
+{
+    uint8_t *bytes = fence_malloc (n_bytes);
+    float *vals = (float *)bytes;
+
+    if (!bytes)
+	return 0;
+
+    for (n_bytes /= 4; n_bytes; vals++, n_bytes--)
+	*vals = (float)rand() / (float)RAND_MAX;
+
+    return (float *)bytes;
+}
+
 void
 a8r8g8b8_to_rgba_np (uint32_t *dst, uint32_t *src, int n_pixels)
 {
@@ -1179,6 +1194,11 @@ static const format_entry_t format_list[] =
      * so keep the list properly ordered between entries and aliases.
      * Aliases are not listed by list_formats ().
      */
+
+/* 128bpp formats */
+    ENTRY (rgba_float),
+/* 96bpp formats */
+    ENTRY (rgb_float),
 
 /* 32bpp formats */
     ENTRY (a8r8g8b8),
@@ -1914,6 +1934,10 @@ pixel_checker_init (pixel_checker_t *checker, pixman_format_code_t format)
 
     checker->format = format;
 
+    if (format == PIXMAN_rgba_float ||
+	format == PIXMAN_rgb_float)
+	return;
+
     switch (PIXMAN_FORMAT_TYPE (format))
     {
     case PIXMAN_TYPE_A:
@@ -1970,10 +1994,19 @@ pixel_checker_init (pixel_checker_t *checker, pixman_format_code_t format)
     checker->bw = PIXMAN_FORMAT_B (format);
 }
 
+static void
+pixel_checker_require_uint32_format (const pixel_checker_t *checker)
+{
+    assert (checker->format != PIXMAN_rgba_float &&
+	    checker->format != PIXMAN_rgb_float);
+}
+
 void
 pixel_checker_split_pixel (const pixel_checker_t *checker, uint32_t pixel,
 			   int *a, int *r, int *g, int *b)
 {
+    pixel_checker_require_uint32_format(checker);
+
     *a = (pixel & checker->am) >> checker->as;
     *r = (pixel & checker->rm) >> checker->rs;
     *g = (pixel & checker->gm) >> checker->gs;
@@ -1987,6 +2020,8 @@ pixel_checker_get_masks (const pixel_checker_t *checker,
                          uint32_t              *gm,
                          uint32_t              *bm)
 {
+    pixel_checker_require_uint32_format(checker);
+
     if (am)
         *am = checker->am;
     if (rm)
@@ -2002,6 +2037,8 @@ pixel_checker_convert_pixel_to_color (const pixel_checker_t *checker,
                                       uint32_t pixel, color_t *color)
 {
     int a, r, g, b;
+
+    pixel_checker_require_uint32_format(checker);
 
     pixel_checker_split_pixel (checker, pixel, &a, &r, &g, &b);
 
@@ -2078,6 +2115,8 @@ void
 pixel_checker_get_max (const pixel_checker_t *checker, color_t *color,
 		       int *am, int *rm, int *gm, int *bm)
 {
+    pixel_checker_require_uint32_format(checker);
+
     get_limits (checker, DEVIATION, color, am, rm, gm, bm);
 }
 
@@ -2085,6 +2124,8 @@ void
 pixel_checker_get_min (const pixel_checker_t *checker, color_t *color,
 		       int *am, int *rm, int *gm, int *bm)
 {
+    pixel_checker_require_uint32_format(checker);
+
     get_limits (checker, - DEVIATION, color, am, rm, gm, bm);
 }
 
@@ -2096,6 +2137,8 @@ pixel_checker_check (const pixel_checker_t *checker, uint32_t pixel,
     int32_t ai, ri, gi, bi;
     pixman_bool_t result;
 
+    pixel_checker_require_uint32_format(checker);
+
     pixel_checker_get_min (checker, color, &a_lo, &r_lo, &g_lo, &b_lo);
     pixel_checker_get_max (checker, color, &a_hi, &r_hi, &g_hi, &b_hi);
     pixel_checker_split_pixel (checker, pixel, &ai, &ri, &gi, &bi);
@@ -2105,6 +2148,39 @@ pixel_checker_check (const pixel_checker_t *checker, uint32_t pixel,
 	r_lo <= ri && ri <= r_hi	&&
 	g_lo <= gi && gi <= g_hi	&&
 	b_lo <= bi && bi <= b_hi;
+
+    return result;
+}
+
+static void
+color_limits (const pixel_checker_t *checker,
+	      double limit, const color_t *color, color_t *out)
+{
+    if (PIXMAN_FORMAT_A(checker->format))
+	out->a = color->a + limit;
+    else
+	out->a = 1.;
+
+    out->r = color->r + limit;
+    out->g = color->g + limit;
+    out->b = color->b + limit;
+}
+
+pixman_bool_t
+pixel_checker_check_color (const pixel_checker_t *checker,
+			   const color_t *actual, const color_t *reference)
+{
+    color_t min, max;
+    pixman_bool_t result;
+
+    color_limits(checker, -DEVIATION, reference, &min);
+    color_limits(checker, DEVIATION, reference, &max);
+
+    result =
+	actual->a >= min.a && actual->a <= max.a &&
+	actual->r >= min.r && actual->r <= max.r &&
+	actual->g >= min.g && actual->g <= max.g &&
+	actual->b >= min.b && actual->b <= max.b;
 
     return result;
 }

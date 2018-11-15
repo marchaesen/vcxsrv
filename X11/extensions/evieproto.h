@@ -42,113 +42,113 @@ DEALINGS IN THE SOFTWARE.
 typedef struct _XevieQueryVersion {
     CARD8   reqType;
     CARD8   xevieReqType;
-    CARD16  length B16;
-    CARD16  client_major_version B16;
-    CARD16  client_minor_version B16;
+    CARD16  length;
+    CARD16  client_major_version;
+    CARD16  client_minor_version;
 } xXevieQueryVersionReq;
 #define sz_xXevieQueryVersionReq            8
 
 typedef struct {
     BYTE    type;
     BOOL    pad1;
-    CARD16  sequence_number B16;
-    CARD32  length B32;
-    CARD16  server_major_version B16;
-    CARD16  server_minor_version B16;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
-    CARD32  pad6 B32;
+    CARD16  sequence_number;
+    CARD32  length;
+    CARD16  server_major_version;
+    CARD16  server_minor_version;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
+    CARD32  pad6;
 } xXevieQueryVersionReply;
 #define sz_xXevieQueryVersionReply  32
 
 typedef struct _XevieStart {
     CARD8   reqType;
     CARD8   xevieReqType;
-    CARD16  length B16;
-    CARD32  screen B32;
+    CARD16  length;
+    CARD32  screen;
 } xXevieStartReq;
 #define sz_xXevieStartReq 8
 
 typedef struct {
     BYTE    type;
     BOOL    pad1;
-    CARD16  sequence_number B16;
-    CARD32  length B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
-    CARD32  pad6 B32;
-    CARD32  pad7 B32;
+    CARD16  sequence_number;
+    CARD32  length;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
+    CARD32  pad6;
+    CARD32  pad7;
 } xXevieStartReply;
 #define sz_xXevieStartReply         32
 
 typedef struct _XevieEnd {
     CARD8   reqType;
     CARD8   xevieReqType;
-    CARD16  length B16;
-    CARD32  cmap B32;
+    CARD16  length;
+    CARD32  cmap;
 } xXevieEndReq;
 #define sz_xXevieEndReq             8
 
 typedef struct {
     BYTE    type;           /* X_Reply */
     BOOL    pad1;
-    CARD16  sequence_number B16;
-    CARD32  length B32;
-    CARD32  pad2 B32;
-    CARD32  pad3 B32;
-    CARD32  pad4 B32;
-    CARD32  pad5 B32;
-    CARD32  pad6 B32;
-    CARD32  pad7 B32;
+    CARD16  sequence_number;
+    CARD32  length;
+    CARD32  pad2;
+    CARD32  pad3;
+    CARD32  pad4;
+    CARD32  pad5;
+    CARD32  pad6;
+    CARD32  pad7;
 } xXevieEndReply;
 #define sz_xXevieEndReply   32
 
 typedef struct _XevieSend {
     CARD8       reqType;
     CARD8       xevieReqType;
-    CARD16      length B16;
+    CARD16      length;
     xEvent      event;
-    CARD32      dataType B32;
+    CARD32      dataType;
 } xXevieSendReq;
 #define sz_xXevieSendReq           104
 
 typedef struct {
     BYTE        type;
     BOOL        pad1;
-    CARD16      sequence_number B16;
-    CARD32      length B32;
-    CARD32      pad2 B32;
-    CARD32      pad3 B32;
-    CARD32      pad4 B32;
-    CARD32      pad5 B32;
-    CARD32      pad6 B32;
-    CARD32      pad7 B32;
+    CARD16      sequence_number;
+    CARD32      length;
+    CARD32      pad2;
+    CARD32      pad3;
+    CARD32      pad4;
+    CARD32      pad5;
+    CARD32      pad6;
+    CARD32      pad7;
 } xXevieSendReply;
 #define sz_xXevieSendReply        32
 
 typedef struct _XevieSelectInput {
     CARD8  reqType;
     CARD8  xevieReqType;
-    CARD16      length B16;
-    CARD32 event_mask B32;
+    CARD16 length;
+    CARD32 event_mask;
 } xXevieSelectInputReq;
 #define sz_xXevieSelectInputReq          8
 
 typedef struct {
     BYTE   type;
     BOOL   pad1;
-    CARD16 sequence_number B16;
-    CARD32 length B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
-    CARD32 pad6 B32;
-    CARD32 pad7 B32;
+    CARD16 sequence_number;
+    CARD32 length;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
+    CARD32 pad7;
 } xXevieSelectInputReply;
 #define sz_xXevieSelectInputReply        32
 

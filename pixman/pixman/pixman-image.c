@@ -842,6 +842,10 @@ pixman_image_set_accessors (pixman_image_t *           image,
 
     if (image->type == BITS)
     {
+	/* Accessors only work for <= 32 bpp. */
+	if (PIXMAN_FORMAT_BPP(image->bits.format) > 32)
+	    return_if_fail (!read_func && !write_func);
+
 	image->bits.read_func = read_func;
 	image->bits.write_func = write_func;
 

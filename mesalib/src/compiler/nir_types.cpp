@@ -301,6 +301,11 @@ glsl_type_is_boolean(const struct glsl_type *type)
 {
    return type->is_boolean();
 }
+bool
+glsl_type_is_integer(const struct glsl_type *type)
+{
+   return type->is_integer();
+}
 
 const glsl_type *
 glsl_void_type(void)

@@ -70,7 +70,7 @@ typedef struct
     XETrapCfg   v;             /* XTrap configuration values */
     XETrapCB    *req_cb;       /* Pointer to Request Callbacks */
     XETrapCB    *evt_cb;       /* Pointer to Event Callbacks (starting at 2) */
-    CARD32      last_time B32; /* Last (delta) timestamp */
+    CARD32      last_time;     /* Last (delta) timestamp */
 } XETCValues;
 
     /* bits 0 thru 6 are formerly "families" (now obsolete) */
