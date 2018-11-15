@@ -1132,10 +1132,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
 
-    if (IS_OPTION("-numlock")) {
-        g_iIgnoreNumLock = TRUE;
-        return 1;
-    }
     if (IS_OPTION("-codepage")) {
         g_iActualCodePage = TRUE;
         return 1;

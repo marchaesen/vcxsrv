@@ -139,142 +139,6 @@ static void gatherWindows(void)
   EnumDesktopWindows(NULL, enumWindowsProc, (LPARAM)processId);
 }
 
-
-#define USE_IGNORE_NUMLOCK 1
-Bool g_iIgnoreNumLock= TRUE;
-
-typedef struct winTranslateKeyStruct
-{
-	WPARAM wParam; LPARAM lParam;
-	WPARAM wParamSubst; LPARAM lParamSubst;
-} winTranslateKeyStruct;
-
-/*
-0x0409 English (United States)
-0x0809 English (United Kingdom)
-0x0c09 English (Australian)
-0x1009 English (Canadian)
-0x1409 English (New Zealand)
-0x1809 English (Ireland)
-0x1c09 English (South Africa)
-0x2009 English (Jamaica)
-0x2409 English (Caribbean)
-0x2809 English (Belize)
-0x2c09 English (Trinidad)
-
-0x0407 German (Standard)
-0x0807 German (Swiss)
-0x0c07 German (Austrian)
-0x1007 German (Luxembourg)
-0x1407 German (Liechtenstein)
-*/
-int
-winSubstituteKey(WPARAM* wParam, LPARAM* lParam)
-{
-#if USE_IGNORE_NUMLOCK
-  int i;
-  const winTranslateKeyStruct* dsc;
-  static const winTranslateKeyStruct subst_list[]=
-  {
-    { 0x00000061,0x004f0001,0x00000031,0x00020001}, // 1
-    { 0x00000061,0xc04f0001,0x00000031,0xc0020001},
-
-    { 0x00000062,0x00500001,0x00000032,0x00030001}, // 2
-    { 0x00000062,0xc0500001,0x00000032,0xc0030001},
-
-    { 0x00000063,0x00510001,0x00000033,0x00040001}, // 3
-    { 0x00000063,0xc0510001,0x00000033,0xc0040001},
-
-    { 0x00000064,0x004b0001,0x00000034,0x00050001}, // 4
-    { 0x00000064,0xc04b0001,0x00000034,0xc0050001},
-
-    { 0x00000065,0x004c0001,0x00000035,0x00060001}, // 5
-    { 0x00000065,0xc04c0001,0x00000035,0xc0060001},
-
-    { 0x00000066,0x004d0001,0x00000036,0x00070001}, // 6
-    { 0x00000066,0xc04d0001,0x00000036,0xc0070001},
-
-    { 0x00000067,0x00470001,0x00000037,0x00080001}, // 7
-    { 0x00000067,0xc0470001,0x00000037,0xc0080001},
-
-    { 0x00000068,0x00480001,0x00000038,0x00090001}, // 8
-    { 0x00000068,0xc0480001,0x00000038,0xc0090001},
-
-    { 0x00000069,0x00490001,0x00000039,0x000a0001}, // 9
-    { 0x00000069,0xc0490001,0x00000039,0xc00a0001},
-
-    { 0x00000060,0x00520001,0x00000030,0x000b0001}, // 0
-    { 0x00000060,0xc0520001,0x00000030,0xc00b0001},
-
-    { 0x00000090,0x01450001,0x00000010,0x002a0001}, // NumLock->shift
-    { 0x00000090,0xc1450001,0x00000010,0xc02a0001},
-
-    { 0x0000002e,0x00530001,0x000000be,0x00340001}, // . ENGLISH
-    { 0x0000002e,0xc0530001,0x000000be,0xc0340001},
-    { 0x0000006e,0x00530001,0x000000be,0x00340001}, // .
-    { 0x0000006e,0xc0530001,0x000000be,0xc0340001},
-
-    0
-  };
-
-  if(!g_iIgnoreNumLock)
-    return 0;
-
-  if ( (*lParam & 0x00FFFFFF)== 0x00530001)
-  {
-    unsigned short keyboard_layout=(unsigned short)GetKeyboardLayout(0);
-    static const winTranslateKeyStruct subst_list_dot[]=
-    {    // DEUTSCH
-      { 0x0000002e, 0x00530001, 0x000000be, 0x00340001 }, // . ENGLISH
-      { 0x0000002e, 0xc0530001, 0x000000be, 0xc0340001 },
-      { 0x0000006e, 0x00530001, 0x000000be, 0x00340001 }, // .
-      { 0x0000006e, 0xc0530001, 0x000000be, 0xc0340001 },
-
-      { 0x0000002e, 0x00530001, 0x000000bc, 0x00330001 }, // ,
-      { 0x0000002e, 0xc0530001, 0x000000bc, 0xc0330001 },
-      { 0x0000006e, 0x00530001, 0x000000bc, 0x00330001 }, // ,
-      { 0x0000006e, 0xc0530001, 0x000000bc, 0xc0330001 },
-      0
-    };
-
-    switch (keyboard_layout)
-    {
-      case 0x0407: // German (Standard)
-      case 0x0807: // German (Swiss)
-      case 0x0c07: // German (Austrian)
-      case 0x1007: // German (Luxembourg)
-      case 0x1407: // German (Liechtenstein)
-        for( i=0; (dsc= &subst_list_dot[i]) && (dsc->lParam); i++)
-        {
-          if( dsc->wParam== *wParam && dsc->lParam== *lParam)
-          {
-            *wParam= dsc->wParamSubst;
-            *lParam= dsc->lParamSubst;
-            winDebug("winSubstituteKey:wParam %08x lParam %08x\n", (int)*wParam, (int)*lParam);
-            return 1;
-            break;
-          }
-        }
-        break;
-    }
-  }
-
-  winDebug("winOriginalKey : wParam %08x lParam %08x\n", (int)*wParam, (int)*lParam);
-  for( i=0; (dsc= &subst_list[i]) && (dsc->lParam); i++)
-  {
-    if( dsc->wParam== *wParam && dsc->lParam== *lParam)
-    {
-      *wParam= dsc->wParamSubst;
-      *lParam= dsc->lParamSubst;
-      winDebug("winSubstituteKey:wParam %08x lParam %08x\n", (int)*wParam, (int)*lParam);
-      return 1;
-      break;
-    }
-  }
-#endif
-  return 0;
-}
-
 /*
  * Called by winWakeupHandler
  * Processes current Windows message
@@ -525,7 +389,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         break;
-
+      
     case WM_SIZE:
     {
         SCROLLINFO si;
@@ -629,7 +493,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         s_pScreenInfo->dwYOffset = -si.nPos;
     }
         return 0;
-
+      
       case WM_SYSCOMMAND:
           if ((wParam & 0xfff0) == SC_MAXIMIZE ||
               (wParam & 0xfff0) == SC_RESTORE)
@@ -1219,8 +1083,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
 
-        winSubstituteKey(&wParam, &lParam);
-
         /*
          * FIXME: Catching Alt-F4 like this is really terrible.  This should
          * be generalized to handle other Windows keyboard signals.  Actually,
@@ -1285,8 +1147,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_KEYUP:
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
-
-        winSubstituteKey(&wParam, &lParam); // substitute NumLock
 
         /* Ignore the fake Ctrl_L that follows an AltGr release */
         if (winIsFakeCtrl_L(message, wParam, lParam))
