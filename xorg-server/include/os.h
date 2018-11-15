@@ -145,7 +145,7 @@ extern _X_EXPORT const char *ClientAuthorized(ClientPtr /*client */ ,
                                               unsigned int /*string_n */ ,
                                               char * /*auth_string */ );
 
-extern _X_EXPORT Bool EstablishNewConnections(ClientPtr clientUnused,
+extern _X_EXPORT void EstablishNewConnections(ClientPtr clientUnused,
                                               void *closure);
 
 extern _X_EXPORT void CloseDownConnection(ClientPtr /*client */ );
